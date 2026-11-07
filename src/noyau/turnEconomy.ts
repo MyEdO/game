@@ -33,7 +33,7 @@ export function hasMeaningfulOption(ctx: ActionCtx): boolean {
 /**
  * Ce combattant peut-il AGIR EN PREMIER ce Round (réordonnancement d'initiative) ? LDB 17 l.25, LDB 62 l.298-300.
  * Lu par la frise d'initiative pendant la pause de début de Round ; le CONTRÔLE (qui réordonne qui) est filtré par
- * `actFirstIds` (`controlsCombatant`). Tir rapide (LDB 11 l.97-103) : `preemptRangedShot`. Pur.
+ * `actFirstIds` (`controlsCombatant`). Tir rapide (LDB 11 l.97-103) : `declencherLeTirPreventif`. Pur.
  */
 export function canActFirst(c: Combatant, battle: BattleState): boolean {
   // ÉLIGIBILITÉ par RESSOURCE/position (Chance ou arme Rapide) — le `kind` n'est PAS un gate ici : le

@@ -34,7 +34,7 @@ function sorcier(): Combatant {
 }
 
 beforeEach(() => {
-  banc.getState().seedRng(11);
+  banc.getState().ensemencerLeTirage(11);
 });
 
 describe('Malepierre — câblage PROD (Incantation, `incanterLeSort`/`jetLancer@cast`/`jetValider(\'cast\')`)', () => {

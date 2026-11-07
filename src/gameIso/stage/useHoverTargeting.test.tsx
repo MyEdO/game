@@ -41,8 +41,8 @@ function cliqueLaCase(pt: { x: number; y: number }) {
 function setup() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
-  useGame.getState().startScene(testScene());
-  useGame.getState().startCombat('enc-mutants');
+  useGame.getState().lancerLaScene(testScene());
+  useGame.getState().lancerLeCombat('enc-mutants');
   useGame.getState().fenetreValider('roundStart');
   const battle = useGame.getState().battle!;
   const active = battle.combatants.find((combatant) => combatant.kind === 'hero')!;

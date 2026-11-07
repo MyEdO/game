@@ -23,10 +23,10 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 function setup(careerId: string) {
   const h = createHero({ speciesId: 'humains-reiklander', careerId, label: 'H', seed: 1 });
   banc.setState({ party: [h], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, journal: [] });
-  banc.getState().startScene(testScene());
+  banc.getState().lancerLaScene(testScene());
   creditBourse(banc.getState, banc.setState, h.id, fromBrass(20000));
-  banc.getState().seedRng(13);
-  banc.getState().startInterlude(3);
+  banc.getState().ensemencerLeTirage(13);
+  banc.getState().ouvrirLInterlude(3);
   draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
   const itl = banc.getState().interlude!;
   itl.perHero[h.id] = { ...itl.perHero[h.id], fx: undefined, left: 3 };

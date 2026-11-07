@@ -84,7 +84,7 @@ describe('extendedTest / forceDoor — même patron, même suite', () => {
   const porte: Effect = { type: 'forceDoor', label: 'Porte', doorBE: 0, doorB: 6, flag: 'porte-ouverte' };
 
   it('Test étendu atteint : la suite se joue après l’issue', () => {
-    get().seedRng(7);
+    get().ensemencerLeTirage(7);
     runFlow(get, banc.setState, puis(crochetage, 'apres-test'));
     expect(get().flags['apres-test']).toBeUndefined();
     let garde = 0;
@@ -105,7 +105,7 @@ describe('extendedTest / forceDoor — même patron, même suite', () => {
   });
 
   it('porte enfoncée : la suite se joue après l’ouverture', () => {
-    get().seedRng(7);
+    get().ensemencerLeTirage(7);
     runFlow(get, banc.setState, puis(porte, 'apres-porte'));
     expect(get().flags['apres-porte']).toBeUndefined();
     let garde = 0;

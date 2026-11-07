@@ -17,8 +17,8 @@ describe('Conséquences d’attaque en révélation (store)', () => {
   function battle() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -26,7 +26,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
   }
 
   it('un Coup Critique ouvre une séquence de conséquence « Coup Critique » (panneau riche)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { hero, enemy } = battle();
     enemy.important = true; // LDB 18 l.44 : hors Mort subite
     banc.setState({ pendingCascade: null });
@@ -97,7 +97,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
   // Déviation Critique FOLDÉE (P3a) : le Critique pré-tiré + le choix Dévier/Subir = une ÉTAPE de la
   // séquence (panneau riche). « Subir » applique CE Critique ; « Dévier » l'ignore (−1 PA).
   it('Déviation Critique → étape de CHOIX inline : « Subir » applique le Critique, « Dévier » l’ignore', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { hero, enemy } = battle();
     const heroNow = () => banc.getState().battle!.combatants.find((c) => c.kind === 'hero')!;
     hero.armour.corps = 3; // PA au corps → la déviation est possible

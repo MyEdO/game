@@ -49,7 +49,7 @@ const CARTE: WorldMap = {
  *  (`attribuerLeRoleDeMarche`), départ (`partirEnVoyage`), qui ouvre la cascade du jour, puis la Météo d'Étape jouée. */
 function rangeeAuDepart(posting: Parameters<ReturnType<typeof banc.getState>['attribuerLeRoleDeMarche']>[1]): BatchParticipant | undefined {
   banc.setState({ party: [heros()], journal: [], pendingCascade: null, travelPlan: null });
-  banc.getState().loadProject({ scenes: [scene('lieu-a-scene', 'Village A'), scene('lieu-b-scene', 'Bourg B')], entryId: 'lieu-a-scene', worldMap: CARTE, projet: null });
+  banc.getState().chargerLeProjet({ scenes: [scene('lieu-a-scene', 'Village A'), scene('lieu-b-scene', 'Bourg B')], entryId: 'lieu-a-scene', worldMap: CARTE, projet: null });
   banc.getState().attribuerLeRoleDeMarche('h', posting);
   banc.getState().partirEnVoyage('r1', 'pied');
   const bande = () => banc.getState().pendingCascade?.participants.find((s) => s.kind === 'stagePosteBatch');

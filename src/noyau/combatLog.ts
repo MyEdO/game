@@ -84,7 +84,7 @@ export function journaliser(
   if (!lines.length && !extra.length) return;
   const b = get().battle;
   if (!b) {
-    get().log(lines);
+    get().ecrireAuJournal(lines);
     return;
   }
   const dites = fixedJetOpen(get()) ? lines.map(markFixedDie) : lines;

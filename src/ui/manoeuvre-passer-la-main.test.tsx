@@ -23,11 +23,11 @@ beforeAll(() => {
 
 /** Un héros au Souffle (Feu) déclare sa manœuvre sur le seul ennemi debout et lance son jet. */
 function souffleLance(gmSeat: number | undefined): Combatant {
-  useGame.getState().seedRng(2);
+  useGame.getState().ensemencerLeTirage(2);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
-  useGame.getState().startScene(testScene());
-  useGame.getState().startCombat('enc-mutants');
+  useGame.getState().lancerLaScene(testScene());
+  useGame.getState().lancerLeCombat('enc-mutants');
   useGame.getState().fenetreValider('roundStart');
   vi.clearAllTimers();
   useGame.setState({ net: { ...useGame.getState().net, gmSeat } });

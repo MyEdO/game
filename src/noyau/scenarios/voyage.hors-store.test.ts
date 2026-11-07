@@ -58,9 +58,9 @@ describe('16-voyage — intégration Voyage par Étapes', () => {
   it('règle pré-activée → postes résolus, véhicule à coque bâti, météo d’Étape journalisée', () => {
     for (const [id, v] of Object.entries(scenario.rules ?? {})) setRule(id, v as any);
     seedBattleRng(7);
-    banc.getState().setParty(scenario.construire().party);
+    banc.getState().fixerLeGroupe(scenario.construire().party);
     // La LONGUE route part du hameau : on entre à p-hameau pour la prendre en diligence.
-    banc.getState().loadProject({ scenes: [scenarioConstruit.scene, ...(scenarioConstruit.extraScenes ?? [])], entryId: 'test-voyage-hameau', worldMap: scenarioConstruit.worldMap!, projet: null });
+    banc.getState().chargerLeProjet({ scenes: [scenarioConstruit.scene, ...(scenarioConstruit.extraScenes ?? [])], entryId: 'test-voyage-hameau', worldMap: scenarioConstruit.worldMap!, projet: null });
     if (scenario.money) distributeCredit(banc.getState, banc.setState, scenario.money); // bourses du groupe (SOCLE POSSESSIONS #531)
     banc.getState().partirEnVoyage('r-longue', 'diligence', { classeId: 'exterieur' });
     const plan = banc.getState().travelPlan;

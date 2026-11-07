@@ -297,7 +297,7 @@ export function flowTestsWithoutStake(src: string): number[] {
  * précédents mesurent des PORTES (le littéral d'étape, la `RollRequest` du seam, le 1ᵉʳ argument de
  * `testFlow`) ; or un jet se DÉCRIT dans un littéral, et ce littéral entre par bien d'autres portes :
  * un nœud `{ kind:'test', test:{…} }` monté à la main, un `FlowTest` passé DIRECTEMENT à
- * `openSkillTest`, un `spec` d'`openPartyTest`, un `extendedTest`, l'argument de `startExtendedTest`
+ * `openSkillTest`, un `spec` d'`openPartyTest`, un `extendedTest`, l'argument de `ouvrirLeTestEtendu`
  * (qui pose son enjeu sur l'étape `extendedJet`), l'opération armée de chirurgie
  * (`medic.surgery`, dont `useSurgeryJetProps` lit l'enjeu). Toutes produisent un jet, aucune n'était
  * mesurée.

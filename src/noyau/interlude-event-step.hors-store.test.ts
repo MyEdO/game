@@ -41,7 +41,7 @@ function groupe(): Combatant[] {
   const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
   const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
   banc.setState({ party: [a, b], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [], pendingCascade: null, suspendedCascades: [] });
-  banc.getState().startScene(testScene());
+  banc.getState().lancerLaScene(testScene());
   banc.abandonner();
   creditBourse(banc.getState, banc.setState, a.id, fromBrass(2000));
   creditBourse(banc.getState, banc.setState, b.id, fromBrass(2000));
@@ -94,7 +94,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
       const suivant = d100(refRng); // dé SUIVANT → mesure la consommation exacte du flux
 
       seedBattleRng(seed);
-      banc.getState().startInterlude(2);
+      banc.getState().ouvrirLInterlude(2);
       // La séquence s'ouvre même sans l'option : elle se JOUE, dé par dé, au rang de chaque étape.
       expect(draineCascade(banc.getState), `seed ${seed} : étapes de la séquence`)
         .toEqual(['interludeEvent', 'interludeEvent', 'interludePurse']);
@@ -123,7 +123,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
   it('option ÉTEINTE : la séquence s’ouvre quand même — aucun dé posable, et les Activités ouvrent une fois jouée', () => {
     const party = groupe();
     seedBattleRng(5);
-    banc.getState().startInterlude(2);
+    banc.getState().ouvrirLInterlude(2);
     expect(steps().map((s) => s.kind)).toEqual(['interludeEvent', 'interludeEvent', 'interludePurse']);
     expect(canFixDie(banc.getState(), party[0].id), 'option ÉTEINTE : la pose n’est pas offerte').toBe(false);
     expect(banc.getState().interlude!.phase).toBe('tirage');
@@ -136,7 +136,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     const party = groupe();
     const avant = toBrass(partyMoneyTotal(banc.getState));
     setDesFixes(true);
-    banc.getState().startInterlude(2);
+    banc.getState().ouvrirLInterlude(2);
     expect(banc.getState().interlude!.phase).toBe('tirage');
     expect(banc.getState().pendingCascade!.purpose).toBe('interlude');
     expect(steps().map((s) => s.kind)).toEqual(['interludeEvent', 'interludeEvent', 'interludePurse']);
@@ -159,7 +159,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     const avant = toBrass(partyMoneyTotal(banc.getState));
     const fortune0 = party[1].fortune ?? 0;
     setDesFixes(true);
-    banc.getState().startInterlude(2);
+    banc.getState().ouvrirLInterlude(2);
     // Héros A : « Le Prévôt arrive » (−30 % sur les bourses) — l'effet de GROUPE reste en suspens.
     banc.getState().jetImposerLeResultat('cascadeTirage', PREVOT, steps()[0].id);
     expect(steps()[0].fixed).toBe(true);
@@ -185,7 +185,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     const party = groupe();
     const avant = toBrass(partyMoneyTotal(banc.getState));
     setDesFixes(true);
-    banc.getState().startInterlude(2);
+    banc.getState().ouvrirLInterlude(2);
     banc.getState().jetImposerLeResultat('cascadeTirage', PREVOT, steps()[0].id); // −30
     banc.getState().jetValider('cascade');
     banc.getState().jetImposerLeResultat('cascadeTirage', KLEPTO, steps()[1].id); // −50
@@ -200,7 +200,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
   it('perte d’Activité (Festivités) : la ligne posée décrémente le budget du héros de l’étape', () => {
     const party = groupe();
     setDesFixes(true);
-    banc.getState().startInterlude(3);
+    banc.getState().ouvrirLInterlude(3);
     banc.getState().jetImposerLeResultat('cascadeTirage', FESTIVITES, steps()[0].id);
     banc.getState().jetValider('cascade');
     expect(perHeroOf(party[0].id).left).toBe(2); // min(3, 3) − 1
@@ -213,7 +213,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     banc.setState({ net: { ...net, mode: 'guest', mySeat: 1, ownership: { [party[0].id]: 1, [party[1].id]: 0 } } });
     setDesFixes(true);
     seedBattleRng(3);
-    banc.getState().startInterlude(2);
+    banc.getState().ouvrirLInterlude(2);
     // Les deux héros sont tenus par un siège HUMAIN (le local, un distant) : deux étapes à jouer, et
     // l'hôte ne tire pour aucun des deux. Qui VOIT quelle fenêtre appartient à `modalArbiter`, pas ici.
     expect(steps().map((s) => s.kind)).toEqual(['interludeEvent', 'interludeEvent', 'interludePurse']);
@@ -233,7 +233,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     // sans lui, une Activité entreprise pendant le tirage ESQUIVE l'interdiction que l'événement pose.
     const party = groupe();
     setDesFixes(true);
-    banc.getState().startInterlude(2);
+    banc.getState().ouvrirLInterlude(2);
     banc.setState({ journal: [] });
     banc.getState().pratiquerLActivite(party[0].id, 'revenus');
     expect(banc.getState().pendingActivity, 'Activité ouverte pendant le tirage').toBeNull();
@@ -261,7 +261,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     const party = groupe();
     const avant = toBrass(partyMoneyTotal(banc.getState));
     setDesFixes(true);
-    banc.getState().startInterlude(2);
+    banc.getState().ouvrirLInterlude(2);
     banc.getState().jetImposerLeResultat('cascadeTirage', AVERTI, steps()[0].id);
     banc.getState().jetValider('cascade'); // 1ʳᵉ étape validée : le curseur est sur la 2ᵉ (1/3)
     const save = sauverLeBanc(banc);
@@ -285,7 +285,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
 
   it('les bourses du groupe annoncent leurs pertes avant « Continuer », qui les applique telles quelles', () => {
     groupe();
-    banc.getState().startInterlude(2);
+    banc.getState().ouvrirLInterlude(2);
     banc.getState().jetImposerLeResultat('cascadeTirage', PREVOT, steps()[0].id);
     banc.getState().jetValider('cascade');
     banc.getState().jetImposerLeResultat('cascadeTirage', AVERTI, steps()[1].id);
@@ -304,7 +304,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
   it('#973 : la ligne du DÉNOUEMENT de groupe ne porte pas « (dé fixé) » — aucun dé n’y est jeté', () => {
     groupe();
     setDesFixes(true);
-    banc.getState().startInterlude(2);
+    banc.getState().ouvrirLInterlude(2);
     banc.getState().jetImposerLeResultat('cascadeTirage', PREVOT, steps()[0].id);
     banc.getState().jetValider('cascade');
     banc.getState().jetImposerLeResultat('cascadeTirage', AVERTI, steps()[1].id);

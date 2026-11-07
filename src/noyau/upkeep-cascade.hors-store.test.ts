@@ -16,7 +16,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * #T3 — Cascade RAW d'horloge (`noyau/upkeep.ts`) : ce que le passage du temps déclenche sur les
- * franchissements de jour, QUEL QUE SOIT le chemin (advanceTime, repos, voyage) :
+ * franchissements de jour, QUEL QUE SOIT le chemin (avancerLeTemps, repos, voyage) :
  *  - maladies (LDB 20) : incubation/durée en jours CALENDAIRES — progressent SANS repos ;
  *  - convalescence des Blessures critiques (LDB 18 l.222 : « un nombre de jours égal à 30 – votre Bonus d'Endurance ») ;
  *  - purge des contrecoups d'incantation à durée d'horloge (LDB 46/40) sur TOUS les chemins ;
@@ -37,18 +37,18 @@ describe('#T3 — cascade d’horloge (maladies/convalescence/purge sur franchis
     banc.setState({ battle: null, mode: 'exploration', journal: [], travelPlan: null });
   });
 
-  it('une maladie en incubation progresse quand le temps passe SANS repos (advanceTime)', () => {
+  it('une maladie en incubation progresse quand le temps passe SANS repos (avancerLeTemps)', () => {
     const c = hero({ diseases: [contractDisease('infection-mineure', deFixe(1), { incubation: 2, duration: 5 })!] });
     banc.setState({ party: [c], gameTime: 0, lastUpkeepDay: 0 });
-    banc.getState().advanceTime(2 * MINUTES_PER_DAY); // 2 jours d'aventure, personne ne dort
+    banc.getState().avancerLeTemps(2 * MINUTES_PER_DAY); // 2 jours d'aventure, personne ne dort
     const dz = banc.getState().party[0].diseases![0];
     expect(dz.phase).toBe('active'); // l'incubation (2 j) s'est écoulée — calendaire, pas « au repos »
   });
 
-  it('le bilan d’entretien d’advanceTime est VISIBLE et INFLUENÇABLE : le Test de Faim ouvre une cascade (#253), jamais un témoin pré-résolu', () => {
+  it('le bilan d’entretien d’avancerLeTemps est VISIBLE et INFLUENÇABLE : le Test de Faim ouvre une cascade (#253), jamais un témoin pré-résolu', () => {
     const c = hero({ items: [], hunger: { days: 1, tests: 0, failures: 0 } }); // affamé, sans rations → Test de Faim ce jour
     banc.setState({ party: [c], gameTime: 0, lastUpkeepDay: 0, pendingCascade: null });
-    banc.getState().advanceTime(MINUTES_PER_DAY);
+    banc.getState().avancerLeTemps(MINUTES_PER_DAY);
     // Le jet d'entretien passe par la SURFACE influençable (cascade), pas un reveal pré-résolu (LDB 17 : Chance sur tout Test raté).
     const p = banc.getState().pendingCascade;
     expect(p).toBeTruthy();
@@ -61,14 +61,14 @@ describe('#T3 — cascade d’horloge (maladies/convalescence/purge sur franchis
   it('la convalescence d’un trauma décompte les jours CALENDAIRES (LDB 18 l.222), repos ou pas', () => {
     const c = hero({ traumas: avecSequelles([], [tk('dechirure', 'mineur', 'jambeD', { be: 28 })]) }); // 30−28 = 2 jours
     banc.setState({ party: [c], gameTime: 0, lastUpkeepDay: 0 });
-    banc.getState().advanceTime(2 * MINUTES_PER_DAY);
+    banc.getState().avancerLeTemps(2 * MINUTES_PER_DAY);
     expect(banc.getState().party[0].traumas!.length).toBe(0); // guéri sans avoir « dormi »
   });
 
   it('anti-double-comptage : une nuit de repos = UN seul jour de maladie décompté', () => {
     const c = hero({ diseases: [contractDisease('infection-mineure', deFixe(1), { incubation: 0, duration: 6 })!] });
     banc.setState({ party: [c], gameTime: 12 * 60, lastUpkeepDay: 0 });
-    banc.getState().restParty(); // dort jusqu'à l'aube → 1 franchissement de jour
+    banc.getState().reposerLeGroupe(); // dort jusqu'à l'aube → 1 franchissement de jour
     expect(banc.getState().party[0].diseases![0].minutesLeft).toBe(5 * MINUTES_PER_DAY); // 6 − 1 jour, PAS − 2
   });
 
@@ -76,7 +76,7 @@ describe('#T3 — cascade d’horloge (maladies/convalescence/purge sur franchis
     const t0 = 12 * 60;
     const c = hero({ castPenalties: [{ label: 'Pensez à vos actes', skill: 'priere', maxZeroDR: true, untilTime: t0 + 60 }] });
     banc.setState({ party: [c], gameTime: t0, lastUpkeepDay: 0 });
-    banc.getState().restParty(); // le repos pose gameTime directement (pas advanceTime)
+    banc.getState().reposerLeGroupe(); // le repos pose gameTime directement (pas avancerLeTemps)
     expect(banc.getState().party[0].castPenalties ?? []).toHaveLength(0);
     expect(banc.getState().journal.join(' ')).toMatch(/Pensez à vos actes se dissipe/);
   });
@@ -89,9 +89,9 @@ describe('#T3 — cascade d’horloge (maladies/convalescence/purge sur franchis
       label: 'Tour de force', defaultUntilTime: t0 + 60,
     });
     banc.setState({ party: [c], gameTime: t0, lastUpkeepDay: 0 });
-    banc.getState().advanceTime(30); // 30 min : toujours actif
+    banc.getState().avancerLeTemps(30); // 30 min : toujours actif
     expect(banc.getState().party[0].activeEffects).toHaveLength(1);
-    banc.getState().advanceTime(31); // 61 min : échéance dépassée → dissipé
+    banc.getState().avancerLeTemps(31); // 61 min : échéance dépassée → dissipé
     expect(banc.getState().party[0].activeEffects ?? []).toHaveLength(0);
     expect(banc.getState().journal.join(' ')).toMatch(/Tour de force se dissipe/);
   });

@@ -73,7 +73,7 @@ function map(routePatch: Partial<MapRouteTrace> = {}): WorldMap {
  *  60 sous) vit sur le meneur, seedée après le chargement du projet (#531). */
 function setup(worldMap: WorldMap, party: Combatant[] = [hero({ items: [ration('r1'), ration('r2'), ration('r3')] })], possessions: Possession[] = []) {
   banc.setState({ party });
-  banc.getState().loadProject({ scenes: [sceneA(), sceneB()], entryId: 'lieu-a-scene', worldMap, projet: null });
+  banc.getState().chargerLeProjet({ scenes: [sceneA(), sceneB()], entryId: 'lieu-a-scene', worldMap, projet: null });
   if (possessions.length) banc.setState({ possessions });
   creditBourse(banc.getState, banc.setState, party[0].id, { gold: 0, silver: 5, brass: 0 });
 }

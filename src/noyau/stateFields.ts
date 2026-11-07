@@ -3,7 +3,7 @@
  * vue éphémère…) — SOURCE UNIQUE de leur valeur initiale ET des contextes qui les réinitialisent.
  *
  * Les trois sites de reset (état initial `create()`, `quitterLaScene` = changement de scène,
- * `startCombat` = ouverture de combat) lisent UN tableau, par deux dérivés : aucun site ne re-liste
+ * `lancerLeCombat` = ouverture de combat) lisent UN tableau, par deux dérivés : aucun site ne re-liste
  * un champ `pending*` à la main.
  *
  * - `initialFields()` : le bloc `{ champ: init }` complet — l'état `create()` le spread (forme à plat
@@ -17,7 +17,7 @@
 import type { EtatDeJeu } from './etat';
 
 /** Contextes de réinitialisation. `scene` = changement de scène (`quitterLaScene`) ;
- *  `combatStart` = ouverture de combat (`startCombat`). */
+ *  `combatStart` = ouverture de combat (`lancerLeCombat`). */
 export type ResetScope = 'scene' | 'combatStart';
 
 /** TOUTES les clés `pending*` de `EtatDeJeu` — DÉRIVÉ (jamais une re-liste manuelle). Borne à la
@@ -103,7 +103,7 @@ const STATE_FIELDS = {
   pendingFateSave: { init: null, resetOn: [] },
   pendingVictory: { init: null, resetOn: ['combatStart'] },
   // Vol terrestre en cours (#327 A5.1) : marqueur SURVIVANT à l'ouverture de combat (posé APRÈS
-  // startCombat), éteint explicitement au teardown (`resolveCargoRaid`). Transitoire — jamais persisté.
+  // lancerLeCombat), éteint explicitement au teardown (`denouerLeVol`). Transitoire — jamais persisté.
   cargoRaid: { init: false, resetOn: ['scene'] },
   pendingLoot: { init: null, resetOn: [] },
   document: { init: null, resetOn: [] },
@@ -121,24 +121,24 @@ const STATE_FIELDS = {
   // Campagne publiée choisie au menu (PartyScreen) : survit jusqu'à la constitution du groupe, jamais
   // remis par un changement de scène/combat (posé AVANT toute scène de jeu).
   pendingCampaign: { init: null, resetOn: [] },
-  // Document source du paquet de campagne chargé (#766) : posé par `loadProject`, SURVIT aux transitions
+  // Document source du paquet de campagne chargé (#766) : posé par `chargerLeProjet`, SURVIT aux transitions
   // de scène (`resetOn: []`) — c'est lui qui, au chargement d'une save, ré-enregistre TOUTES les scènes
   // et re-dérive `campaignNarratif`. Entre au snapshot par ce manifeste (patron `pendingCampaign`).
   campaignDoc: { init: null, resetOn: [] },
   // Instances runtime de scène (#707) : delta capturé au départ (entités retirées, flags de porte/
   // structure) par `sceneId`, réappliqué au clone frais au revisit (`quitterLaScene`). SURVIT aux
   // transitions (`resetOn: []`), embarqué au snapshot par ce manifeste (patron `campaignDoc`) ;
-  // vidé en nouvelle partie (`startScene` → reset à l'init).
+  // vidé en nouvelle partie (`lancerLaScene` → reset à l'init).
   sceneInstances: { init: {}, resetOn: [] },
   // Commandes d'interlude (LDB 22-23) : purgées explicitement à l'ouverture du prochain interlude
-  // (`startInterlude`), jamais par `resetFields` (elles doivent SURVIVRE au combat/aux scènes entre-temps).
+  // (`ouvrirLInterlude`), jamais par `resetFields` (elles doivent SURVIVRE au combat/aux scènes entre-temps).
   pendingOrders: { init: [], resetOn: [] },
   // Jet d'Activité d'interlude/bataille de masse : clos par `jetAnnuler('activity')`/`jetValider('activity')`, jamais
   // par un changement de scène/combat (l'interlude n'ouvre pas de combat pendant qu'une Activité est en cours).
   pendingActivity: { init: null, resetOn: [] },
-  // Cadre de campagne (#717) : l'ouverture est posée par `loadProject` APRÈS `startScene` et le récap
+  // Cadre de campagne (#717) : l'ouverture est posée par `chargerLeProjet` APRÈS `lancerLaScene` et le récap
   // est armé en plein jeu — tous deux doivent SURVIVRE aux transitions de scène et à l'ouverture d'un
-  // combat (`resetOn: []`, patron `campaignDoc`) ; ils meurent avec la partie (`startScene` → init).
+  // combat (`resetOn: []`, patron `campaignDoc`) ; ils meurent avec la partie (`lancerLaScene` → init).
   pendingOuverture: { init: null, resetOn: [] },
   pendingChapterRecap: { init: null, resetOn: [] },
   // Porte d'heure de départ (maison, #340) : posée sur la carte du monde, effacée en quittant la scène/carte.

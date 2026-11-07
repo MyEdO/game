@@ -155,7 +155,7 @@ export function ownsLocal(state: Jeu, combatantId: string | undefined): boolean 
 /**
  * DÉCISION DE GROUPE — le geste qui n'appartient à AUCUN combattant : le jeton unique d'exploration
  * (dialogue, interaction d'entité). Son routage d'intent est `seat === (net.gmSeat ?? 0)` (`ROUTES` :
- * le choix `dialogue.reponse`/`interactEntity`) — exactement ce que `seatOwns` rend sur le
+ * le choix `dialogue.reponse`/`interagirAvecLEntite`) — exactement ce que `seatOwns` rend sur le
  * sentinel MONDE (`WORLD_STEP_OWNER` : le siège MJ quand il existe, l'hôte sinon). Le prédicat
  * DÉLÈGUE donc au même routage au lieu de recopier la formule : afficher le choix, l'exécuter au
  * clic et l'exécuter à la touche répondent par la même table de vérité. SOLO : toujours vrai.
@@ -436,7 +436,7 @@ const PAR_ARG1: Route = { rule: (s, seat, args) => seatOwns(s, seat, idArg(args[
 
 /**
  * CLIC DE CARTE pendant un ciblage détenu par une fenêtre HORS registre de modales (#1016) — c'est
- * LE chemin : le balayage et la 2ᵉ frappe (`cleaveAttack`/`dualStrikeAttack`) sont la machinerie du clic
+ * LE chemin : le balayage et la 2ᵉ frappe (`frapperEnBalayage`/`frapperDeLaSecondeArme`) sont la machinerie du clic
  * (`targetingModes`, `MachinerieDuNoyau`), et le clic voyage par `cliquerLaCase`. Ce clic retombait sur
  * `modalOwnerOf`, qui ne consulte que `MODAL_DEFS` : sous un `fateSave` (1ʳᵉ entrée, priorité maximale) l'attaquant qui balaie était
  * REFUSÉ et la victime acceptée — son clic mourait ensuite dans les gardes de `cliquerLeCombattant`,

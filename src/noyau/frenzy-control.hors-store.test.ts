@@ -27,9 +27,9 @@ describe('Contrôle de la Frénésie (LDB 10 l.251-255) — fin de Round, opt-in
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     if (withTalent) hero.talents = [...hero.talents, { talentId: 'controle-de-la-frenesie', times: 1 }];
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     seedBattleRng(7);
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;

@@ -42,7 +42,7 @@ const groundScene = (): Scene =>
     layers: [{ z: 0, tiles: new Array(20 * 20).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] }) as unknown as Scene;
 
 const mkGet = (sc: Scene, combatants: Combatant[]): (() => JeuDuNoyau) =>
-  (() => ({ scene: sc, battle: { combatants, movementUsed: 0 }, facing: {}, gameTime: 0, log: () => {} })) as unknown as () => JeuDuNoyau;
+  (() => ({ scene: sc, battle: { combatants, movementUsed: 0 }, facing: {}, gameTime: 0, ecrireAuJournal: () => {} })) as unknown as () => JeuDuNoyau;
 
 describe('firedWeapon — bélier ADE II (Équipe 6) : −20 plat en sous-effectif, RIEN d’autre touché', () => {
   it('Équipe au complet (6/6) : arme nette (Équipe non marquée incomplète, Qualités/Recharge intactes)', () => {

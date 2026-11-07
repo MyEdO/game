@@ -1,7 +1,7 @@
 /**
  * Zones d'effet AUTHORÉES (pièges/hasards posés dans l'éditeur). Réutilisent le runtime des zones de
  * Sort : `sceneZonesToBattle` convertit `Scene.effectZones` → `BattleZone` PERMANENTES (pas de TTL),
- * appliquées par `crossZones` (traversée) / `zonesRoundTick` (stationnement). `startCombat` les sème.
+ * appliquées par `crossZones` (traversée) / `zonesRoundTick` (stationnement). `lancerLeCombat` les sème.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Combatant } from '../engine/types';
@@ -122,7 +122,7 @@ describe('barrières — infranchissables pour les créatures gatées (via occup
   });
 });
 
-describe('intégration : startCombat sème les pièges de la scène dans battle.zones', () => {
+describe('intégration : lancerLeCombat sème les pièges de la scène dans battle.zones', () => {
   it('une scène avec effectZones → zone permanente dans le combat', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const scene: Scene = {
@@ -132,8 +132,8 @@ describe('intégration : startCombat sème les pièges de la scène dans battle.
       ],
     };
     banc.setState({ party: [hero] });
-    banc.getState().startScene(scene);
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(scene);
+    banc.getState().lancerLeCombat('enc-mutants');
     const zones = banc.getState().battle!.zones ?? [];
     const pit = zones.find((z) => z.label === 'Fosse à pieux')!;
     expect(pit).toBeTruthy();

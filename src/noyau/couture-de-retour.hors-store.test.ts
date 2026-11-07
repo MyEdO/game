@@ -48,9 +48,9 @@ function combat(): string {
   hero.talents.push({ talentId: 'magie-mineure', times: 1 });
   hero.spells = [];
   banc.setState({ battle: null, party: [hero], pendingCascade: null, pendingRoundStart: null, journal: [] });
-  banc.getState().startScene(testScene());
+  banc.getState().lancerLaScene(testScene());
   seedBattleRng(777);
-  banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
+  banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
   banc.abandonner();
   return hero.id;
 }
@@ -153,8 +153,8 @@ describe('coutures du héros en combat (#2312)', () => {
     const base = effectiveChar(h, 'capacite-de-tir');
     h.activeEffects = [{ label: 'Sort', char: 'capacite-de-tir', bonus: 10, duration: { scale: 'rounds', left: 3 } }];
     banc.setState({ battle: null, party: [h], pendingCascade: null, pendingRoundStart: null, journal: [] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
     banc.abandonner();
     expect(cbt(h.id).activeEffects?.map((e) => e.duration)).toEqual([{ scale: 'rounds', left: 3 }]);
     expect(effectiveChar(cbt(h.id), 'capacite-de-tir')).toBe(base + 10);
@@ -166,8 +166,8 @@ describe('coutures du héros en combat (#2312)', () => {
     applyExposureFailure(h, 1, battleRng(), 'froid');
     expect(effectiveChar(h, 'capacite-de-tir')).toBeLessThan(base);
     banc.setState({ battle: null, party: [h], pendingCascade: null, pendingRoundStart: null, journal: [] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
     banc.abandonner();
     expect(effectiveChar(cbt(h.id), 'capacite-de-tir')).toBe(effectiveChar(grp(h.id), 'capacite-de-tir'));
     expect(effectiveChar(cbt(h.id), 'capacite-de-tir')).toBeLessThan(base);
@@ -339,8 +339,8 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
     it(`${nom} : refusée en combat (rien ne change, refus VISIBLE), passe hors combat`, () => {
       const h = heros();
       banc.setState({ battle: null, party: [h], pendingCascade: null, pendingRoundStart: null, journal: [] });
-      banc.getState().startScene(testScene());
-      banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
+      banc.getState().lancerLaScene(testScene());
+      banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
       banc.abandonner();
       const avant = structuredClone(cbt(h.id));
       depense(cbt(h.id));

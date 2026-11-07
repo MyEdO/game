@@ -27,8 +27,8 @@ const scenarioConstruit = scenario.construire();
  */
 function startBelier(): { soldat: Combatant; crew: Combatant[]; ram: Combatant; porte: Combatant } {
   banc.setState({ party: scenario.construire().party });
-  banc.getState().startScene(scenarioConstruit.scene);
-  banc.getState().startCombat('siege-belier');
+  banc.getState().lancerLaScene(scenarioConstruit.scene);
+  banc.getState().lancerLeCombat('siege-belier');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
@@ -163,7 +163,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     expect(banc.getState().battle!.acted).toBe(false);
   });
 
-  it("le CHEF pousse → l'engin ET tous les servants translatent du MÊME delta (formation rigide, comme shipAdvance)", () => {
+  it("le CHEF pousse → l'engin ET tous les servants translatent du MÊME delta (formation rigide, comme avancerLeNavire)", () => {
     const { soldat, crew, ram } = startBelier();
     setActive(soldat.id);
     const movers = [ram, ...crew];

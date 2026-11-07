@@ -115,7 +115,7 @@ describe('#1015 — sonde 3 : `run` en cadence NON manuelle', () => {
     const a = mk('a', 'hero', { x: 0, y: 0 });
     const e = mk('e', 'enemy', { x: 6, y: 0 });
     banc.setState({ battle: arena([a, e]), mode: 'battle', scene: testScene(), net: NET_COOP, party: [] });
-    g().battleRun({ x: 3, y: 0 });
+    g().ouvrirLaCourse({ x: 3, y: 0 });
     expect(g().pendingRun?.combatantId, 'précondition : la Course du héros `a` est ouverte').toBe('a');
     for (const i of RUN_VERBS) expect(seats(i), `${i} (Rapide)`).toEqual([true, false, false]);
     setCadence('auto');
@@ -146,9 +146,9 @@ describe('#1015 — sonde 5 : `activity` (hors combat) — accord avec la route 
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'charlatan', label: 'H', seed: 1 });
     hero.id = 'b';
     banc.setState({ party: [hero], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, net: NET_COOP });
-    g().startScene(testScene());
+    g().lancerLaScene(testScene());
     banc.setState({ net: NET_COOP });
-    g().startInterlude(3);
+    g().ouvrirLInterlude(3);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     g().pratiquerLActivite('b', 'observer-une-cible');
     expect(g().pendingActivity?.heroId, 'précondition : l’Activité du héros `b` est ouverte').toBe('b');
@@ -163,7 +163,7 @@ describe('#1015 — sonde 6 : SOLO bit-à-bit', () => {
     const a = mk('a', 'hero', { x: 0, y: 0 });
     const e = mk('e', 'enemy', { x: 6, y: 0 });
     banc.setState({ battle: arena([a, e]), mode: 'battle', scene: testScene(), net: NET_SOLO, party: [] });
-    g().battleRun({ x: 3, y: 0 });
+    g().ouvrirLaCourse({ x: 3, y: 0 });
     expect(g().pendingRun?.combatantId).toBe('a');
     for (const i of RUN_VERBS) expect(intentAllowedFor(g(), 0, ...geste(i)), i).toBe(true);
   });
@@ -172,9 +172,9 @@ describe('#1015 — sonde 6 : SOLO bit-à-bit', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'charlatan', label: 'H', seed: 2 });
     hero.id = 'a';
     banc.setState({ party: [hero], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, net: NET_SOLO });
-    g().startScene(testScene());
+    g().lancerLaScene(testScene());
     banc.setState({ net: NET_SOLO });
-    g().startInterlude(3);
+    g().ouvrirLInterlude(3);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     g().pratiquerLActivite('a', 'observer-une-cible');
     expect(g().pendingActivity?.heroId).toBe('a');

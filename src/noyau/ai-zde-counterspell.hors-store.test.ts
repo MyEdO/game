@@ -25,7 +25,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTAGÉ jetValider@cast)', () => {
   beforeEach(() => {
-    banc.getState().seedRng(17);
+    banc.getState().ensemencerLeTirage(17);
   });
 
   /** Un héros LANCEUR (Langue (Magick)) capable de Dissiper, posé en (x,y). */

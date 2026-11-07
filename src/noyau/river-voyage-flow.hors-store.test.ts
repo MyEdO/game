@@ -75,8 +75,8 @@ const quai = (id: string, label: string) => buildScene({ id, label, desc: '.', s
 function launch(withSavoir = false, km = 45, extra: Partial<MapRouteTrace> = {}): void {
   seedBattleRng(7);
   const g = get();
-  g.setParty(crew(withSavoir));
-  g.loadProject({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap(km, extra), projet: null });
+  g.fixerLeGroupe(crew(withSavoir));
+  g.chargerLeProjet({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap(km, extra), projet: null });
   set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
   creditBourse(get, set, get().party[0].id, { gold: 500, silver: 0, brass: 0 }); // bourse du groupe (péages/auberges) — SOCLE POSSESSIONS #531
 }
@@ -973,7 +973,7 @@ describe('#1341 — la spec d’un Test se demande par ID (la donnée en stocke 
     // monte l'étape `riverControlRepair`. Sa cible DOIT venir de Métier (Charpentier), pas de la carac nue.
     launch(false, 45);
     const bran = charpentier();
-    get().setParty([...get().party, bran]);
+    get().fixerLeGroupe([...get().party, bran]);
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     set({ travelPlan: { ...plan, river: { ...plan.river!, broken: true } } });
     const { steps } = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);

@@ -192,11 +192,11 @@ export interface Objective {
 }
 
 /** DOCUMENT SOURCE de la partie en cours (#766) — snapshot AUTO-SUFFISANT du paquet de campagne chargé
- *  par `loadProject` (scènes + carte + narratif + scène d'entrée). Embarqué au save (via `stateFields`)
+ *  par `chargerLeProjet` (scènes + carte + narratif + scène d'entrée). Embarqué au save (via `stateFields`)
  *  pour que le chargement RÉ-ENREGISTRE toutes les scènes (`registerScene`) et RE-DÉRIVE `campaignNarratif`
  *  — sans lui, une save reloadée ne connaîtrait que la scène courante et les transitions vers les
  *  AUTRES scènes du paquet échoueraient en silence. `null` = aucun paquet chargé (partie posée par
- *  `startScene` seule). */
+ *  `lancerLaScene` seule). */
 export interface CampaignDoc {
   scenes: Scene[];
   worldMap?: import('./worldMap').WorldMap | null;
@@ -207,7 +207,7 @@ export interface CampaignDoc {
   projet: { id: string } | null;
 }
 
-/** Ce que LANCE `loadProject` : les scènes du paquet, sa scène d'entrée, sa carte, son narratif et
+/** Ce que LANCE `chargerLeProjet` : les scènes du paquet, sa scène d'entrée, sa carte, son narratif et
  *  l'identité de son document (`CampaignDoc.projet`, OBLIGATOIRE : `null` déclare un scénario). */
 export interface PaquetALancer {
   scenes: Scene[];
@@ -354,11 +354,11 @@ export interface EtatDeJeu {
   /** PILE d'objectifs courants (« je fais quoi maintenant ? »), keyés par id STABLE — posés/mis à jour/
    *  retirés par les Effets `setObjective`/`clearObjective`. Le HUD affiche le plus récent (dernier de
    *  la pile). PERSISTE entre transitions de scène (hors `stateFields`, comme `flags`) — un objectif
-   *  traverse les scènes ; vidé en nouvelle partie (`startScene`). #238. */
+   *  traverse les scènes ; vidé en nouvelle partie (`lancerLaScene`). #238. */
   objectives: Objective[];
   /** Objectifs SOLDÉS de la partie (#717) — MÊME objet `Objective`, DÉPLACÉ ici par l'Effet
    *  `clearObjective` au lieu d'être perdu : c'est la seule archive dont le récap de chapitre
-   *  dérive. CAMPAGNE-scopé comme `objectives` ; vidé en nouvelle partie (`startScene`). */
+   *  dérive. CAMPAGNE-scopé comme `objectives` ; vidé en nouvelle partie (`lancerLaScene`). */
   objectifsSoldes: Objective[];
   /** Borne d'ouverture du chapitre courant (#717) — posée à l'acquittement de l'ouverture
    *  (`fenetreValider('ouverture')`), re-posée à la clôture (`fenetreValider('chapterRecap')`) ; null = aucun chapitre borné. */
@@ -367,9 +367,9 @@ export interface EtatDeJeu {
    *  `armChapterRecapIfDue`. La clôture est une Condition, et une Condition vraie le RESTE (un drapeau
    *  ne se retire pas) : sans ce fait, le lot d'effets suivant ré-armerait un récap vide, à l'infini.
    *  Un seul booléen suffit : un paquet porte UNE `narratif.cloture`, et le fait meurt avec la partie
-   *  (`startScene` remet l'état à l'init, `loadProject` y repasse pour tout paquet chargé). */
+   *  (`lancerLaScene` remet l'état à l'init, `chargerLeProjet` y repasse pour tout paquet chargé). */
   clotureConsommee: boolean;
-  /** Ouverture cérémonielle EN ATTENTE (#717) — posée par `loadProject` APRÈS `startScene` (qui remet
+  /** Ouverture cérémonielle EN ATTENTE (#717) — posée par `chargerLeProjet` APRÈS `lancerLaScene` (qui remet
    *  l'état à l'init), rendue par `CampaignOpeningScreen` AVANT tout HUD. */
   pendingOuverture: OuvertureBlock | null;
   /** Récap de fin de chapitre EN ATTENTE (#717) — armé par `armChapterRecapIfDue` quand la CLÔTURE
@@ -377,20 +377,20 @@ export interface EtatDeJeu {
   pendingChapterRecap: ChapterRecap | null;
   /** État runtime du carnet d'enquête (#670, mécanique MAISON) — keyé par id d'`Indice`
    *  (`indiceDuNarratif`), absent = indice CACHÉ. CAMPAGNE-scopée : survit aux transitions
-   *  de scène (une enquête traverse plusieurs scènes), vidée en nouvelle partie (`startScene`). */
+   *  de scène (une enquête traverse plusieurs scènes), vidée en nouvelle partie (`lancerLaScene`). */
   clues: Record<string, ClueState>;
   /** Brouillard de guerre : cases déjà explorées par scène (`sceneId` → clés "x,y,z"). PERSISTE entre
-   *  transitions (hors manifeste de reset `stateFields`) ; vidé en nouvelle partie (`startScene`). */
+   *  transitions (hors manifeste de reset `stateFields`) ; vidé en nouvelle partie (`lancerLaScene`). */
   explored: Record<string, string[]>;
-  /** Journal d'événements RÉCENTS (fenêtre glissante de 40, `log`) — CAMPAGNE-scopé : survit aux
-   *  transitions de scène (comme `clues`/`explored`), vidé en nouvelle partie (`startScene`). Verbatim
+  /** Journal d'événements RÉCENTS (fenêtre glissante de 40, `ecrireAuJournal`) — CAMPAGNE-scopé : survit aux
+   *  transitions de scène (comme `clues`/`explored`), vidé en nouvelle partie (`lancerLaScene`). Verbatim
    *  des dialogues (non borné à 40) : `dialogueHistory`, slot séparé (ne pas greffer ici). */
   journal: string[];
   /** CONVERSATION en cours (`EtatDialogue`, porteuse de sa `session`) — ouverte par l'unique
    *  fabrique `ouvrirDialogue` (`noyau/dialogue.ts`), jamais bâtie à la main. */
   dialogue: EtatDialogue | null;
   /** Archive verbatim des tours de dialogue (#718) — CAMPAGNE-scopée : survit aux transitions de
-   *  scène, vidée en nouvelle partie (`startScene`). Fenêtre bornée (`DIALOGUE_HISTORY_CAP`), séparée
+   *  scène, vidée en nouvelle partie (`lancerLaScene`). Fenêtre bornée (`DIALOGUE_HISTORY_CAP`), séparée
    *  du `journal` (dont le cap 40 éjecterait l'historique de dialogue). */
   dialogueHistory: DialogueTurn[];
   /** Marchand ouvert (#2) : instantané du stock pour la visite (Disponibilité figée). */
@@ -404,7 +404,7 @@ export interface EtatDeJeu {
   battle: BattleState | null;
   campaignSceneId: string | null;
   /** Couche NARRATIVE de la campagne chargée (#765/#767) — bloc `{affaires, indices, presetsPnj, objets}`
-   *  du paquet, posé par `loadProject`, lu par id via les résolveurs UNIQUES de `resolveursDuNarratif.ts`. RUNTIME
+   *  du paquet, posé par `chargerLeProjet`, lu par id via les résolveurs UNIQUES de `resolveursDuNarratif.ts`. RUNTIME
    *  (jamais dans `src/data` global, jamais au Compendium) ; null = aucune campagne à narratif. La
    *  persistance snapshot est déférée (#766). */
   campaignNarratif: NarratifBlock | null;
@@ -414,7 +414,7 @@ export interface EtatDeJeu {
   /** Instances runtime de scène (#707) — delta capturé au départ (entités retirées, flags de porte/
    *  structure) par `sceneId`, réappliqué au clone frais au revisit (`quitterLaScene`). SURVIT aux
    *  transitions (hors manifeste de reset `stateFields`, `resetOn: []`) ; vidé en nouvelle partie
-   *  (`startScene`). Snapshotté via `stateFields` comme `campaignDoc`. */
+   *  (`lancerLaScene`). Snapshotté via `stateFields` comme `campaignDoc`. */
   sceneInstances: Record<string, SceneMutation>;
   pendingTest: PendingTest | null;
   /** Sauvegarde d'Initiative d'une « Fuite de vapeur » (MDG 12 l.326-328) — Test perso différé par modale. */
@@ -433,7 +433,7 @@ export interface EtatDeJeu {
    *  l'arme employée est tenue dans une main gatée (`attackHandGate`). Modale influençable, calque `reload`. */
   pendingHandGate: PendingHandGate | null;
   /** Pilonnage INDIRECT en cours (« viser une case », AA 10 l.169-171) : pièce indirecte servie en attente du
-   *  point d'impact (placeur de zone source 'siege'). Clic-case → `siegeAimCommit`. */
+   *  point d'impact (placeur de zone source 'siege'). Clic-case → `poserLePointDImpact`. */
   pendingSiegeAim: PendingSiegeAim | null;
   pendingReload: PendingReload | null;
   /** « Se libérer » (Empêtré) / « se rouler » (En flammes) en cours — modale interactive (LDB 16). */
@@ -524,7 +524,7 @@ export interface EtatDeJeu {
    *  ne dit RIEN de la ligne aujourd'hui — surtout pas qu'elle ne parle d'aucun État. */
   pendingLogQueue: { line: string; cid?: string; stateId?: string }[];
   /** File d'effets PROGRAMMÉS (minuteries `delayedEffect`) — déclenchés au franchissement de
-   *  leur échéance dans `advanceTime`. */
+   *  leur échéance dans `avancerLeTemps`. */
   scheduledEffects: ScheduledEffect[];
   /** Battement en cours (LDB 10 l.103 — modale de jet de CC non opposé retirant l'Avantage adverse). */
   pendingBattement: PendingBattement | null;
@@ -557,7 +557,7 @@ export interface EtatDeJeu {
   /** Modale d'ordre de Round en attente (Chance, 3e usage : pré-emption d'initiative). */
   pendingRoundStart: { round: number; readyBySeat?: Record<number, boolean> } | null;
   /** Tir rapide (LDB 10) : id du héros dont la visée d'interruption est ARMÉE pendant la pause (badge de la
-   *  frise) — le prochain clic sur un adversaire (carte OU frise) déclenche `preemptRangedShot`. `null` = aucune. */
+   *  frise) — le prochain clic sur un adversaire (carte OU frise) déclenche `declencherLeTirPreventif`. `null` = aucune. */
   preemptAiming: string | null;
   /** Sauvetage par le Destin en attente (LDB 17 l.29-32). */
   pendingFateSave: { heroId: string; source: FateSaveSource; restoreWounds?: number;
@@ -567,7 +567,7 @@ export interface EtatDeJeu {
   /** Récompenses de victoire capturées (écran de fin de combat) ; null hors victoire. */
   pendingVictory: PendingVictory | null;
   /** VOL TERRESTRE en cours (#327) : le combat courant est né d'une péripétie dangereuse terrestre —
-   *  la cargaison du convoi est en jeu, dénouée au teardown de combat (`resolveCargoRaid`). */
+   *  la cargaison du convoi est en jeu, dénouée au teardown de combat (`denouerLeVol`). */
   cargoRaid: boolean;
   /** Butin HORS combat (fouille/Test/dialogue/trigger) — fenêtre « qui l'emporte ? » (même brique). */
   pendingLoot: PendingLoot | null;

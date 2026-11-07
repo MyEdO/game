@@ -66,7 +66,7 @@ describe('Entrée en Frénésie du héros — modale (Test de FM)', () => {
     const { H } = heroFaceAUnEnnemi(banc, testScene());
     H.traits = [{ id: 'frenesie' }];
     H.characteristics['force-mentale'] = 1; // Test de FM raté quasi sûr
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     banc.getState().entrerEnFrenesie();
     banc.getState().jetLancer('frenzy');
     const r = banc.getState().pendingFrenzy!.result!;

@@ -27,14 +27,14 @@ const munitions = (c: Combatant | undefined): number => c?.conditions?.find((x) 
 describe('onCrit : chaque Blessure critique non létale, le filtre coupCritique au seul Coup Critique (#1595 C6)', () => {
   beforeEach(() => {
     banc.setState({ battle: null, pendingAttack: null, pendingCascade: null });
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
   });
 
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;

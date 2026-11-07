@@ -21,8 +21,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 function startFixtureCombat() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], battle: null });
-  banc.getState().startScene(testScene());
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().lancerLeCombat('enc-mutants');
 }
 
 function enrolledEntityIds(): string[] {
@@ -146,7 +146,7 @@ describe('ouverture de combat — un PNJ enrôlé ASSIS se lève', () => {
   it('sa place est libérée AVANT la pose du combat ; le voisin non enrôlé reste attablé', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero], battle: null });
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     const sc = banc.getState().scene!;
     const enrole = sc.encounters.find((e) => e.id === 'enc-mutants')!.members![0].entityId;
     const pos = sc.entities.find((e) => e.id === enrole)!.pos;
@@ -169,7 +169,7 @@ describe('ouverture de combat — un PNJ enrôlé ASSIS se lève', () => {
     }
     expect(seatPoseOf(banc.getState().scene!, combattant)).not.toBeNull();
 
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLeCombat('enc-mutants');
 
     expect(seatPoseOf(banc.getState().scene!, combattant)).toBeNull();
     expect(seatPoseOf(banc.getState().scene!, badaud)).toMatchObject({ slotId: 'place-1' });

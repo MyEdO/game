@@ -19,8 +19,8 @@ describe('0 PB → État À Terre, MÊME sur overkill/Critique (LDB 18 l.15)', (
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -30,7 +30,7 @@ describe('0 PB → État À Terre, MÊME sur overkill/Critique (LDB 18 l.15)', (
   }
 
   it('un héros amené à 0 PB par OVERKILL n’est jamais « debout sans état » → À Terre (ou Inconscient/mort)', () => {
-    banc.getState().seedRng(5);
+    banc.getState().ensemencerLeTirage(5);
     const { H, E } = setup();
     H.wounds = blessuresDeBase(12, 3, H); // PB bas
     H.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 } as never;
@@ -49,7 +49,7 @@ describe('0 PB → État À Terre, MÊME sur overkill/Critique (LDB 18 l.15)', (
   });
 
   it('un héros amené EXACTEMENT à 0 PB (sans overkill) obtient aussi À Terre', () => {
-    banc.getState().seedRng(5);
+    banc.getState().ensemencerLeTirage(5);
     const { H, E } = setup();
     H.wounds = blessuresDeBase(12, 5, H);
     H.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 } as never;

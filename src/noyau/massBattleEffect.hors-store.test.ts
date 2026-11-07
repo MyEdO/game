@@ -92,7 +92,7 @@ describe('Effet startMassBattle — appliqué par applyEffects', () => {
 
   it('l\'édition d\'une situation compose EXACTEMENT la liste de Scènes présentées au Round', () => {
     // La situation authorée du Round 1 est présentée telle quelle à l'engagement (pas un tirage).
-    banc.getState().massBattleBegin();
+    banc.getState().engagerLaBataille();
     const mb = banc.getState().massBattle!;
     // Round 1 = ['pluie-de-fleches','ligne-de-mire'] + la menace « intrus » n'est PAS de ce Round → situation stricte.
     expect(mb.situation).toEqual(['pluie-de-fleches', 'ligne-de-mire']);
@@ -105,7 +105,7 @@ describe('Effet startMassBattle — sans catalogue ni situations (tirage aléato
     const mb = banc.getState().massBattle!;
     expect(mb.pool.length).toBe(12);           // tout le catalogue
     expect(mb.situations).toBeUndefined();
-    banc.getState().massBattleBegin();
+    banc.getState().engagerLaBataille();
     expect(banc.getState().massBattle!.situation.length).toBe(3); // tirage borné
   });
 });

@@ -90,7 +90,7 @@ describe('Poursuite — l’exemple canonique du Source (LDB 15 l.98-102)', () =
   beforeEach(() => banc.setState({ battle: null, party: [], journal: [], pendingCascade: null, sequence: null }));
 
   it('Distance 2, cultistes DR 0/2/2 contre Sigrid DR 3 → rattrapés, sacrifice, Distance 1, Sigrid sortie', () => {
-    banc.getState().seedRng(340);
+    banc.getState().ensemencerLeTirage(340);
     const [sigrid, eichengard] = heroes();
     banc.setState({ party: [sigrid, eichengard] });
     banc.setState({
@@ -130,7 +130,7 @@ describe('Poursuite — sacrifier le plus lent (LDB 15 l.94)', () => {
   beforeEach(() => banc.setState({ battle: null, party: [], journal: [], pendingCascade: null, sequence: null }));
 
   it('(a) le camp du GROUPE poursuivi choisit — la voie « sacrifier » nomme le plus lent', () => {
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     const [a, b, c] = heroes();
     banc.setState({ sequence: pursuitSeq({ distance: 1, foes: [{ label: 'Cavalier', movement: 4, skill: 95 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound([{ id: a.id, sl: -6 }, { id: b.id, sl: 2 }, { id: c.id, sl: 3 }]));
@@ -140,7 +140,7 @@ describe('Poursuite — sacrifier le plus lent (LDB 15 l.94)', () => {
   });
 
   it('(a)+(d) sacrifier : le plus lent sort de la course et la Distance se RECALCULE sans lui', () => {
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     const [a, b, c] = heroes();
     banc.setState({ sequence: pursuitSeq({ distance: 1, foes: [{ label: 'Cavalier', movement: 4, skill: 95 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound([{ id: a.id, sl: -6 }, { id: b.id, sl: 2 }, { id: c.id, sl: 3 }]));
@@ -158,7 +158,7 @@ describe('Poursuite — sacrifier le plus lent (LDB 15 l.94)', () => {
   });
 
   it('(b) camp PNJ poursuivant : le plus lent des poursuivants s’arrête, les autres continuent', () => {
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     const [a, b, c] = heroes();
     banc.setState({
       // `escapeAt` haut : la manche recalculée ne peut pas SEMER les poursuivants, elle continue.
@@ -175,7 +175,7 @@ describe('Poursuite — sacrifier le plus lent (LDB 15 l.94)', () => {
   });
 
   it('(c) le retardataire qui n’est PAS une cible prioritaire est purement et simplement IGNORÉ', () => {
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     const [a, b, c] = heroes();
     banc.setState({
       sequence: pursuitSeq({
@@ -194,7 +194,7 @@ describe('Poursuite — sacrifier le plus lent (LDB 15 l.94)', () => {
   });
 
   it('(b)+(c) quand c’est le GROUPE qui poursuit, la décision est une FENÊTRE : qui s’arrête, ou ignorer', () => {
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     const [a, b, c] = heroes();
     banc.setState({
       sequence: pursuitSeq({

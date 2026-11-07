@@ -44,7 +44,7 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
     const st = chute('d1');
     expect(stepInteraction(st)).toBe('de');
     expect(stepReady(st, banc.getState())).toBe(false);
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     startCascade(banc.getState, banc.setState, { title: 'Chute', purpose: 'test', steps: [st] });
     banc.getState().jetValider('cascade'); // pas encore tiré → no-op : la fenêtre force d'abord le dé
     expect(tombes).toHaveLength(0);
@@ -101,7 +101,7 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
   });
 
   it('(iv) `runCascadeImmediate` résout un `de` d’office ET le JOURNALISE (dé + total avec son unité)', () => {
-    banc.getState().seedRng(9);
+    banc.getState().ensemencerLeTirage(9);
     const out = runCascadeImmediate(banc.getState, banc.setState, [chute('d3', { forcedRoll: 13 })])!;
     expect(out[0].de!.result).toEqual({ roll: 13, total: 13 });
     expect(tombes).toEqual([{ roll: 13, total: 13 }]);
@@ -112,7 +112,7 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
   });
 
   it('(iv bis) « Tout lancer » résout les `de` restants par le MÊME résolveur', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     startCascade(banc.getState, banc.setState, { title: 'Chute', purpose: 'test', steps: [chute('a'), chute('b')] });
     banc.getState().jetLancer('cascade');
     expect(tombes).toHaveLength(2);

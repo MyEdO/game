@@ -122,7 +122,7 @@ export function carryOverState(c: Combatant): Partial<Combatant> {
   return out as Partial<Combatant>;
 }
 
-/** Couture d'ENTRÉE (`startCombat`) : le combattant né du héros du groupe, selon `REPORT_DE_COMBATTANT`.
+/** Couture d'ENTRÉE (`lancerLeCombat`) : le combattant né du héros du groupe, selon `REPORT_DE_COMBATTANT`.
  *  Copie défensive ; la position reste à poser par l'appelant. */
 export function entreeEnRencontre(h: Combatant): Combatant {
   const c = structuredClone(h);

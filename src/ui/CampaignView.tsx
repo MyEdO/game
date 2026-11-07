@@ -61,7 +61,7 @@ import { DialogueHistoryScreen } from './DialogueHistoryScreen';
 import { voyageHubActive, voyageStepPending } from '../noyau/modalArbiter';
 import { lieuDuGroupe } from '../noyau/worldMap';
 import { sceneDuRegistre } from '../noyau/monde/registreDesScenes';
-import { restPlacesHere, sceneLieu } from '../noyau/restFlow';
+import { restPlacesHere } from '../noyau/restFlow';
 import { fouilleOuverte } from '../noyau/interactionsDExploration';
 import { hoverClickCommits } from './pointerCaps';
 import { controlsActive } from '../noyau/netOwnership';
@@ -318,7 +318,7 @@ export function CampaignView() {
             rest={!travelPlan && restHere && !hubPlace
               ? {
                   title: t(restHere.places.auberge ? 'cv.dormirAuberge' : restHere.places.maison ? 'cv.dormirChezSoi' : 'cv.camperSurPlace'),
-                  onOpen: () => ouvrirLeRepos({ places: restHere.places, lieu: sceneLieu(useGame.getState), quality: restHere.quality }),
+                  onOpen: () => ouvrirLeRepos(),
                 }
               : undefined}
             onFouiller={fouilleOfferte ? fouillerLaPiece : undefined}

@@ -273,7 +273,7 @@ function rendu() {
   lines.push(
     '',
     'Un scénario peut embarquer **plusieurs scènes** (`extraScenes`) et une **carte du monde** (`worldMap`) :',
-    'il est alors chargé comme un projet (`loadProject`).',
+    'il est alors chargé comme un projet (`chargerLeProjet`).',
   )
 
   const out = lines.join('\n') + '\n'

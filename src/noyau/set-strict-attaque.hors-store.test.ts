@@ -64,7 +64,7 @@ const pendingWeaponLabel = (): string => {
 };
 
 beforeEach(() => {
-  banc.getState().seedRng(11);
+  banc.getState().ensemencerLeTirage(11);
 });
 
 describe('set de TIR pur : aucune arme de mêlée fabriquée (#1348)', () => {

@@ -65,8 +65,8 @@ describe('jour SOUS ORDRES — d’un bloc en local ; en coop ou jour par jour, 
   const departs = {
     fleuve: (cadence: VoyageCadence) => {
       seedBattleRng(7);
-      get().setParty(riverCrew());
-      get().loadProject({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap(45), projet: null });
+      get().fixerLeGroupe(riverCrew());
+      get().chargerLeProjet({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap(45), projet: null });
       set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] } as never);
       creditBourse(get, set, get().party[0].id, { gold: 500, silver: 0, brass: 0 });
       return () => get().partirEnVoyage('r-reik', 'barge', { cadence });
@@ -231,8 +231,8 @@ describe('descente FLUVIALE COMMANDÉE (#91) — routine sans modale par jet', (
   beforeEach(() => {
     seedBattleRng(7);
     const g = get();
-    g.setParty(riverCrew());
-    g.loadProject({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap(45), projet: null });
+    g.fixerLeGroupe(riverCrew());
+    g.chargerLeProjet({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap(45), projet: null });
     set({ money: { gold: 500, silver: 0, brass: 0 }, travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [], net: { ...get().net, mode: 'local' } } as never);
   });
 
@@ -275,8 +275,8 @@ describe('DEFAULT_VOYAGE_ORDERS — source unique du défaut de cadence (mer ⇄
   beforeEach(() => {
     seedBattleRng(7);
     const g = get();
-    g.setParty(riverCrew());
-    g.loadProject({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap(45), projet: null });
+    g.fixerLeGroupe(riverCrew());
+    g.chargerLeProjet({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap(45), projet: null });
     set({ money: { gold: 500, silver: 0, brass: 0 }, travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [], net: { ...get().net, mode: 'local' } } as never);
   });
 

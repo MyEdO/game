@@ -37,8 +37,8 @@ describe('En flammes (navire) — N États, N Blessures par Round, par le chemin
     seedBattleRng(1);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     const b = banc.getState().battle!;
     const ship = vehicleCombatant(findVehicleById('diligence')!, 'navire')!;
     addCondition(ship, 'en-flammes-navire', 2);

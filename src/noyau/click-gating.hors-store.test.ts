@@ -36,7 +36,7 @@ function setup() {
 }
 
 beforeEach(() => {
-  banc.getState().seedRng(29);
+  banc.getState().ensemencerLeTirage(29);
 });
 
 describe('cliquerLaCase — tir refusé AVANT la modale', () => {

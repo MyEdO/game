@@ -242,7 +242,6 @@ export const fr = {
   'verbe.marchand.repartition': 'Répartir',
   'verbe.victory.fermer': 'Continuer',
   'verbe.depecerLaCreature': 'Dépecer',
-  'verbe.loadProject': 'Charger',
   'verbe.soignerLePatient': 'Soigner',
   'verbe.medic.plaie': 'Blessure soignée',
   'verbe.mountTarget.fermer': 'Annuler',
@@ -2663,7 +2662,7 @@ export const fr = {
   // ── #1318 V8c₂ — STORE (`store.*`) : les lignes de journal des actions du jeu et du store
   // (navire de combat, sauvegarde, transition, fouille, dialogue, Test étendu, porte). ──
   'store.shipTack': '{ship} vire de bord — nouveau cap : {dir}.',
-  'store.shipAdvance': '{ship} avance de {n} case{s} (cap {dir}).',
+  'store.avancerLeNavire': '{ship} avance de {n} case{s} (cap {dir}).',
   'store.saveInBattle': 'Impossible de sauvegarder en plein combat.',
   'store.saveInvite': 'Seul l’hôte de la partie sauvegarde.',
   'store.saveOk': 'Partie sauvegardée (emplacement {slot}).',

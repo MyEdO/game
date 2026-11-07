@@ -71,7 +71,7 @@ describe('la fenêtre nomme ses verbes, et le pid qu’ils attendent, à chaque 
       expect(f.pid).toBe(f.etape!.id);
       expect(f.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetLancer@cascadeTirage', 'jetImposerLeResultat@cascadeTirage', 'jetValider@cascade']));
       // La vue replie une ligne trop large en continuations indentées de deux espaces (`BORNES.largeur`).
-      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n').split('\n  ').join(' ')).toContain(`verbes (pid ${f.pid}) : jetLancer(flux: "cascadeTirage", pid?: chaine) · jetImposerLeResultat(flux: "cascadeTirage", roll: nombre, pid?: chaine)`);
+      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n').split('\n  ').join(' ')).toContain(`verbes (pid ${f.pid}) : jetLancer(flux: "cascadeTirage", pid?: id de rangée) · jetImposerLeResultat(flux: "cascadeTirage", roll: nombre, pid?: id de rangée)`);
       expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n'), 'la table se lit avant son tirage').toMatch(/^jet cascadeTirage : \S+ .+ à tirer$/m);
     });
   });
@@ -158,7 +158,7 @@ describe('le journal', () => {
     });
   });
   it('une entrée plus haute que la page se lit seule, par ses lignes (`ligne`), jusqu’à la dernière', () => {
-    const entree = (n: number, texte: string): LigneNumerotee => ({ n, pas: 1, ligne: { de: 'journal', texte }, differee: false });
+    const entree = (n: number, texte: string): LigneNumerotee => ({ n, pas: 1, ligne: { de: 'journal', texte, heure: 0 }, differee: false });
     const haute = Array.from({ length: 20 }, (_, i) => `l${i}`).join('\n');
     const journal = [entree(0, 'A'), entree(1, haute), entree(2, 'C')];
     expect(rendreLeJournal(journal, 0)).toEqual(['0 [pas 1] A', '+2 : `lire {"quoi":"journal","depuis":1}`']);

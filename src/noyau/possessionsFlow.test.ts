@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import {
-  addPossession,
+  ajouterLaPossession,
   renommerLaPossession,
-  transferPossession,
+  transmettreLaPossession,
   remiserLaPossession,
   recupererLaPossession,
   embarquer,
   debarquer,
   cederLaPossession,
-  learnPossessionTrait,
+  apprendreLeTrait,
   possessionsByOwner,
   possessionsByLocation,
 } from './possessionsFlow';
@@ -30,7 +30,7 @@ function makeHarness(party: Combatant[], possessions: Possession[] = []): { get:
     flags: {},
     gameTime: 0,
     lieu: 'lieu-1',
-    log: () => {},
+    ecrireAuJournal: () => {},
     net: initialNet(),
   } as unknown as JeuDuNoyau;
   const get: Get = () => state;
@@ -85,10 +85,10 @@ const mule = (ownerId: string): Omit<BetePossession, 'uid'> => ({
 });
 
 describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
-  it('addPossession attribue pos-1 puis pos-2 par scan du registre', () => {
+  it('ajouterLaPossession attribue pos-1 puis pos-2 par scan du registre', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
-    const uid1 = addPossession(get, set, mule('h1'));
-    const uid2 = addPossession(get, set, mule('h1'));
+    const uid1 = ajouterLaPossession(get, set, mule('h1'));
+    const uid2 = ajouterLaPossession(get, set, mule('h1'));
     expect(uid1).toBe('pos-1');
     expect(uid2).toBe('pos-2');
     expect(get().possessions).toHaveLength(2);
@@ -96,39 +96,39 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
 
   it('anti-collision par SCAN : pos-1 encore présent → un 3e ajout prend pos-3, jamais pos-1', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
-    addPossession(get, set, mule('h1')); // pos-1
-    addPossession(get, set, mule('h1')); // pos-2
-    const uid3 = addPossession(get, set, mule('h1'));
+    ajouterLaPossession(get, set, mule('h1')); // pos-1
+    ajouterLaPossession(get, set, mule('h1')); // pos-2
+    const uid3 = ajouterLaPossession(get, set, mule('h1'));
     expect(uid3).toBe('pos-3');
   });
 
   it('anti-collision par SCAN : pos-1 retiré du registre → le prochain ajout reste au-delà du max restant', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
-    addPossession(get, set, mule('h1')); // pos-1
-    addPossession(get, set, mule('h1')); // pos-2
+    ajouterLaPossession(get, set, mule('h1')); // pos-1
+    ajouterLaPossession(get, set, mule('h1')); // pos-2
     // pos-1 retiré directement (simule une consommation externe du registre)
     set((s) => ({ possessions: s.possessions.filter((p) => p.uid !== 'pos-1') }));
-    const uid3 = addPossession(get, set, mule('h1'));
+    const uid3 = ajouterLaPossession(get, set, mule('h1'));
     expect(uid3).toBe('pos-3'); // scanne le MAX (pos-2), pas un compteur qui réutiliserait pos-1
   });
 
   it('renommerLaPossession pose le label d’instance', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
-    const uid = addPossession(get, set, mule('h1'));
+    const uid = ajouterLaPossession(get, set, mule('h1'));
     renommerLaPossession(get, set, uid, 'Marguerite');
     expect(get().possessions.find((p) => p.uid === uid)?.label).toBe('Marguerite');
   });
 
-  it('transferPossession réaffecte ownerId', () => {
+  it('transmettreLaPossession réaffecte ownerId', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
-    const uid = addPossession(get, set, mule('h1'));
-    transferPossession(get, set, uid, 'h2');
+    const uid = ajouterLaPossession(get, set, mule('h1'));
+    transmettreLaPossession(get, set, uid, 'h2');
     expect(get().possessions.find((p) => p.uid === uid)?.ownerId).toBe('h2');
   });
 
   it('remiserLaPossession → au-lieu, recupererLaPossession → avec-le-groupe', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
-    const uid = addPossession(get, set, mule('h1'));
+    const uid = ajouterLaPossession(get, set, mule('h1'));
     remiserLaPossession(get, set, uid);
     expect(get().possessions.find((p) => p.uid === uid)?.location).toEqual({ kind: 'au-lieu', placeId: 'lieu-1' });
     recupererLaPossession(get, set, uid);
@@ -137,8 +137,8 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
 
   it('embarquer → embarquee sur hostUid, debarquer → avec-le-groupe', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
-    const uid = addPossession(get, set, mule('h1'));
-    const hostUid = addPossession(get, set, barge('h1'));
+    const uid = ajouterLaPossession(get, set, mule('h1'));
+    const hostUid = ajouterLaPossession(get, set, barge('h1'));
     embarquer(get, set, uid, hostUid);
     expect(get().possessions.find((p) => p.uid === uid)?.location).toEqual({ kind: 'embarquee', hostUid });
     debarquer(get, set, uid);
@@ -147,15 +147,15 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
 
   it('embarquer refuse un hôte introuvable — no-op (registre incohérent)', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
-    const uid = addPossession(get, set, mule('h1'));
+    const uid = ajouterLaPossession(get, set, mule('h1'));
     embarquer(get, set, uid, 'pos-inexistant');
     expect(get().possessions.find((p) => p.uid === uid)?.location).toEqual({ kind: 'avec-le-groupe' });
   });
 
   it('embarquer refuse navire sur navire — nature incompatible (§5)', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
-    const uidA = addPossession(get, set, barge('h1'));
-    const uidB = addPossession(get, set, barge('h1'));
+    const uidA = ajouterLaPossession(get, set, barge('h1'));
+    const uidB = ajouterLaPossession(get, set, barge('h1'));
     embarquer(get, set, uidA, uidB);
     expect(get().possessions.find((p) => p.uid === uidA)?.location).toEqual({ kind: 'avec-le-groupe' });
   });
@@ -163,43 +163,43 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
   it('embarquer refuse si la capacité libre de l’hôte est dépassée', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
     // barge → capacité 300 Enc (MDG 12) ; une charrette (véhicule) pèse 10 (own) + son cargo.
-    const hostUid = addPossession(get, set, barge('h1'));
-    const idA = addPossession(get, set, vehicule('h1', 'charrette', [{ uid: 'lot-1', cargoId: 'grain', enc: 280, basePriceGold: 1 }]));
+    const hostUid = ajouterLaPossession(get, set, barge('h1'));
+    const idA = ajouterLaPossession(get, set, vehicule('h1', 'charrette', [{ uid: 'lot-1', cargoId: 'grain', enc: 280, basePriceGold: 1 }]));
     embarquer(get, set, idA, hostUid);
     expect(get().possessions.find((p) => p.uid === idA)?.location).toEqual({ kind: 'embarquee', hostUid });
-    const idB = addPossession(get, set, vehicule('h1', 'chariot-leger'));
+    const idB = ajouterLaPossession(get, set, vehicule('h1', 'chariot-leger'));
     embarquer(get, set, idB, hostUid); // 290 (charrette 10+280) déjà + 30 (chariot-leger) > 300
     expect(get().possessions.find((p) => p.uid === idB)?.location).toEqual({ kind: 'avec-le-groupe' });
   });
 
   it('cederLaPossession pose destroyed=true (la confirmation reste côté appelant)', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
-    const uid = addPossession(get, set, mule('h1'));
+    const uid = ajouterLaPossession(get, set, mule('h1'));
     cederLaPossession(get, set, uid);
     expect(get().possessions.find((p) => p.uid === uid)?.destroyed).toBe(true);
   });
 
-  it('learnPossessionTrait ajoute un trait appris (nature bete), idempotent', () => {
+  it('apprendreLeTrait ajoute un trait appris (nature bete), idempotent', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
-    const uid = addPossession(get, set, mule('h1'));
-    learnPossessionTrait(get, set, uid, 'dresse-monter');
-    learnPossessionTrait(get, set, uid, 'dresse-monter'); // pas de doublon
+    const uid = ajouterLaPossession(get, set, mule('h1'));
+    apprendreLeTrait(get, set, uid, 'dresse-monter');
+    apprendreLeTrait(get, set, uid, 'dresse-monter'); // pas de doublon
     const p = get().possessions.find((x) => x.uid === uid);
     expect(p?.nature === 'bete' && p.learnedTraits).toEqual(['dresse-monter']);
   });
 
   it('possessionsByOwner filtre par propriétaire', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
-    addPossession(get, set, mule('h1'));
-    addPossession(get, set, mule('h2'));
+    ajouterLaPossession(get, set, mule('h1'));
+    ajouterLaPossession(get, set, mule('h2'));
     expect(possessionsByOwner(get, 'h1')).toHaveLength(1);
     expect(possessionsByOwner(get, 'h2')).toHaveLength(1);
   });
 
   it('possessionsByLocation filtre par localisation et exclut les détruites', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
-    const uid1 = addPossession(get, set, mule('h1'));
-    addPossession(get, set, { ...mule('h1'), location: { kind: 'au-lieu', placeId: 'l1' } });
+    const uid1 = ajouterLaPossession(get, set, mule('h1'));
+    ajouterLaPossession(get, set, { ...mule('h1'), location: { kind: 'au-lieu', placeId: 'l1' } });
     cederLaPossession(get, set, uid1);
     expect(possessionsByLocation(get, 'avec-le-groupe')).toHaveLength(0); // uid1 détruite, exclue
     expect(possessionsByLocation(get, 'au-lieu')).toHaveLength(1);
@@ -211,8 +211,8 @@ describe('possessionsFlow — succession à la sortie de groupe (#615 §6/§19 d
     const h1 = makeHero('h1');
     const h2 = makeHero('h2');
     const { get, set } = makeHarness([h1, h2]);
-    const uidA = addPossession(get, set, mule('h1'));
-    const uidB = addPossession(get, set, mule('h1'));
+    const uidA = ajouterLaPossession(get, set, mule('h1'));
+    const uidB = ajouterLaPossession(get, set, mule('h1'));
     renvoyerLeHeros(get, set, 'h1');
     expect(get().possessions.find((p) => p.uid === uidA)?.ownerId).toBe('h2');
     expect(get().possessions.find((p) => p.uid === uidB)?.ownerId).toBe('h2');
@@ -233,7 +233,7 @@ describe('possessionsFlow — succession à la sortie de groupe (#615 §6/§19 d
   it('groupe vidé par le retrait (dernier membre) : repli documenté — rien à hériter, aucune casse', () => {
     const h1 = makeHero('h1');
     const { get, set } = makeHarness([h1]);
-    addPossession(get, set, mule('h1'));
+    ajouterLaPossession(get, set, mule('h1'));
     creditBourse(get, set, 'h1', { gold: 3, silver: 0, brass: 0 });
     expect(() => renvoyerLeHeros(get, set, 'h1')).not.toThrow();
     expect(get().party).toHaveLength(0);
@@ -247,7 +247,7 @@ describe('possessionsFlow — succession à la sortie de groupe (#615 §6/§19 d
     const bruno = makeHero('bruno');
     const victime = makeHero('victime');
     const { get, set } = makeHarness([anna, bruno, victime]);
-    const uid = addPossession(get, set, mule('victime'));
+    const uid = ajouterLaPossession(get, set, mule('victime'));
     creditBourse(get, set, 'victime', { gold: 4, silver: 0, brass: 0 });
     renvoyerLeHeros(get, set, 'victime');
     expect(get().possessions.find((p) => p.uid === uid)?.ownerId).toBe('bruno');
@@ -261,7 +261,7 @@ describe('possessionsFlow — succession à la sortie de groupe (#615 §6/§19 d
     const anna = { ...makeHero('anna'), dead: true };
     const victime = makeHero('victime');
     const { get, set } = makeHarness([anna, victime]);
-    const uid = addPossession(get, set, mule('victime'));
+    const uid = ajouterLaPossession(get, set, mule('victime'));
     creditBourse(get, set, 'victime', { gold: 2, silver: 0, brass: 0 });
     expect(() => renvoyerLeHeros(get, set, 'victime')).not.toThrow();
     expect(get().possessions.find((p) => p.uid === uid)?.ownerId).toBe('victime');

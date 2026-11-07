@@ -25,7 +25,7 @@ const poser = (combatants: Combatant[], over: Record<string, unknown> = {}): voi
 describe('coque routière (EDOC 07 l.334) : ni Critique, ni collision, ni IA de navire', () => {
   beforeEach(() => {
     banc = ouvrirLeBanc();
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
   });
 
   it('un Critique sur une diligence ne lève pas, ne compte aucune Blessure Critique, ne pose aucun État et journalise le refus', () => {
@@ -45,7 +45,7 @@ describe('coque routière (EDOC 07 l.334) : ni Critique, ni collision, ni IA de 
     const dil = diligence();
     poser([nav, dil], { facing: { nav: 'E' } });
     const avant = { nav: nav.wounds.current, dil: dil.wounds.current };
-    banc.getState().shipAdvance('nav', 3);
+    banc.getState().avancerLeNavire('nav', 3);
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === 'dil')!.wounds.current).toBe(avant.dil);
     expect(b.combatants.find((c) => c.id === 'nav')!.wounds.current).toBe(avant.nav);

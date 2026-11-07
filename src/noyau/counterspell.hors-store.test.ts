@@ -22,8 +22,8 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     });
     hero.spells = ['flechette'];
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -51,7 +51,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
   });
 
   it('IA : l’ennemie chante un Contre-sort contre le Sort du héros (déclaré au jet, 1/Round)', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const { H, E } = setup();
     castSpell(banc.getState, banc.setState, H, E, 'flechette');
     banc.getState().jetLancer('cast');
@@ -92,7 +92,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
   });
 
   it('IA : le Sort ennemi SUSPEND le tour ; résoudre la réaction rend la main', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const { H, E } = setup();
     H.wounds = blessuresDeBase(99, 99, H); // survit au Carreau : le sujet est la suspension
     banc.setState({
@@ -130,7 +130,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
   });
 
   it('une Prière ne se dissipe pas (LDB 46 : « Si un SORT vous cible »)', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const { H } = setup();
     const hero = banc.getState().battle!.combatants.find((c) => c.id === H.id)! as Combatant;
     hero.skills = [...hero.skills, { id: 'priere', characteristic: 'sociabilite', advances: 5 }];

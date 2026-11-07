@@ -54,11 +54,11 @@ const critHit = (woundsLost = 2): AttackResult => ({
 
 function startFight(seed: number, opts: { pa?: ArmourPoints; gmSeat?: number } = {}) {
   banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [] });
-  banc.getState().seedRng(seed);
+  banc.getState().ensemencerLeTirage(seed);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
   banc.setState({ party: [hero] });
-  banc.getState().startScene(structuredClone(testScene()));
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(structuredClone(testScene()));
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   banc.setState({ net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: opts.gmSeat } });

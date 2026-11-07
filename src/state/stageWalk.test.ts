@@ -25,7 +25,7 @@ function poserScene(): void {
   const sc = emptyScene('scene-test', 10, 10);
   sc.id = 'marche-tenue';
   sc.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 5, y: 5 } });
-  get().startScene(sc);
+  get().lancerLaScene(sc);
   useGame.setState({
     screen: 'campaign', mode: 'exploration', partyPos: { x: 5, y: 5 },
     camRot: 0, camEdge: false, viewMode: undefined, povActive: false,
@@ -229,7 +229,7 @@ describe('FRONTIÈRE DE SCÈNE — une marche tenue ne traverse pas la transitio
   }
 
   it('trigger de transition traversé touche TENUE : aucun pas AVEUGLE dans la scène d’arrivée', () => {
-    useGame.getState().loadProject({ scenes: [scenePiegee('walk-a', 'walk-b'), sceneArrivee('walk-b')], entryId: 'walk-a', projet: null });
+    useGame.getState().chargerLeProjet({ scenes: [scenePiegee('walk-a', 'walk-b'), sceneArrivee('walk-b')], entryId: 'walk-a', projet: null });
     useGame.setState({ screen: 'campaign', mode: 'exploration', partyPos: { x: 5, y: 5 }, camRot: 0, camEdge: false, viewMode: undefined, povActive: false } as never);
     demarrerMarche(get, { vue: 'iso', dir: 'up' }); // 1ᵉʳ pas → (4,4) → trigger → scène B
     expect(useGame.getState().scene?.id, 'la transition doit avoir eu lieu').toBe('walk-b');

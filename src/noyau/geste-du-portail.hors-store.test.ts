@@ -30,7 +30,7 @@ function couloir(): Scene {
 function enExploration(): { fermee: RoomPortal; ouverte: RoomPortal } {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [h], battle: null, journal: [] });
-  g().startScene(couloir());
+  g().lancerLaScene(couloir());
   banc.setState({ partyPos: { x: 1, y: 1 } });
   const s = g();
   const portails = aretesUtilisables({ scene: s.scene!, visible: computeStateVisible(s), controleur: s.partyPos, activeZ: 0 }).flatMap((a) => (a.portail ? [a.portail] : []));

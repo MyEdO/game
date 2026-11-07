@@ -43,8 +43,8 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     const party = Array.from({ length: n }, (_, i) =>
       createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i + 1}`, seed: i + 1 }));
     banc.setState({ party });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -63,7 +63,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
   }
 
   it('Terreur : openRoundStartPsych ouvre la BANDE (déclaration sur l’étape, jet sur la rangée) ; jetLancer@cascadeBatch+jetValider@cascade applique le Brisé', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup('enorme'); // gap 2 → Terreur 2
     H.characteristics['force-mentale'] = 10; // Test de Calme raté → Brisé
     openRoundStartPsych(banc.getState, banc.setState);
@@ -87,7 +87,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
   });
 
   it('Peur : openRoundEndCascade ouvre la bande (kind peur) et cumule le DR', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup('grande'); // gap 1 → Peur 1
     openRoundEndCascade(banc.getState, banc.setState);
     expect(band().combatPsych?.kind).toBe('peur');
@@ -99,7 +99,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
   });
 
   it('Peur — Résilience « Je ne faillirai pas ! » par rangée : réussite forcée (DR maximal) + Résilience consommée', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H } = setup('grande'); // Peur 1 (Indice 1)
     H.resilience = 2;
     openRoundEndCascade(banc.getState, banc.setState);
@@ -121,7 +121,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
   });
 
   it('Détermination sur une Peur de combat = immunité TEMPORAIRE (LDB 17 l.59), jouée PAR RANGÉE : calmeDR INCHANGÉ, Peur NON surmontée', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup('grande'); // E est une source de Peur (Taille)
     H.resolve = 2;
     const clos = banc.getState().battle!.round - 1; // le Round que clôt `openRoundEndCascade`
@@ -149,7 +149,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
   });
 
   it('Résilience « Je ne faillirai pas ! » sur une Peur de combat : le DR gagné suit le dé CHOISI (LDB 17 l.68), dé POSÉ offert PAR RANGÉE', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup('grande');
     H.resilience = 2;
     const clos = banc.getState().battle!.round - 1; // le Round que clôt `openRoundEndCascade`
@@ -180,7 +180,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
   // restriction de forme de Test. Le choix du dé est donc offert AUSSI sur une bande BINAIRE (Terreur) ;
   // ce qui distingue le binaire, c'est que l'ISSUE ne dépend pas du dé : elle reste une réussite.
   it('le dé se choisit AUSSI sur une bande BINAIRE (Terreur) — l’issue reste une réussite', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H } = setup('enorme'); // Terreur 2 (bande binaire)
     H.resilience = 1;
     openRoundStartPsych(banc.getState, banc.setState);
@@ -195,7 +195,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
   });
 
   it('Sans Peur (Ennemi, LDB 10 l.1051) : allègement PAR RANGÉE (Calme Accessible +20) ; réussite → Peur ignorée', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup('grande'); // source de Peur 1 (Taille)
     E.groups = ['ogre'];
     H.talents = [...(H.talents ?? []), { talentId: 'sans-peur', spec: 'ogre', times: 1 }]; // Sans Peur (Ogre)
@@ -215,7 +215,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
   });
 
   it('Sans Peur RATÉ face à une Peur 0 : surmontée par le Test étendu, jamais « ignorée » (LDB 10 l.1051 ; LDB 85 l.122)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup('moyenne');
     E.groups = ['ogre'];
     H.psychTraits = [{ type: 'phobie', cible: ciblePsy.groupe('ogre'), indice: 0 }];
@@ -243,7 +243,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
   });
 
   it('la Peur s’enregistre au début du Round sans Test (LDB 21 l.25) ; la Terreur ne se teste PAS à la fin', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup('grande'); // Peur 1
     openRoundStartPsych(banc.getState, banc.setState); // Peur enregistrée, testée à la fin → aucune cascade
     expect(banc.getState().pendingCascade).toBeNull();
@@ -270,8 +270,8 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     const party = [1, 2].map((i) =>
       createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i }));
     banc.setState({ party });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -289,7 +289,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
   }
 
   it('DÉBUT de Round : deux héros au MÊME Trait ciblé → UNE étape à DEUX rangées (une fenêtre, pas « jet 1/2 »)', () => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const { A, B, E1 } = duo();
     E1.groups = ['mort-vivant'];
     for (const h of [A, B]) {
@@ -318,7 +318,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
   // un seul → SON `actorId`. Un owner `undefined` rendrait la fenêtre à l'HÔTE SEUL (`modalArbiter`,
   // entrée `cascade`) : l'hôte roulerait le Test de Calme du héros d'un invité (classe #1268).
   it('POSSESSION : deux héros appelés → fenêtre PARTAGÉE ; un seul → la bande EST la sienne', () => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const { A, B, E1 } = duo();
     E1.groups = ['mort-vivant'];
     for (const h of [A, B]) h.psychTraits = [{ type: 'animosite', cible: ciblePsy.groupe('mort-vivant') }];
@@ -338,7 +338,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
   });
 
   it('FIN de Round : deux héros craignant la MÊME source → une bande ; deux sources → deux bandes', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const { A, B, E1, E2 } = duo();
     E1.causesPeur = 2;
     openRoundEndCascade(banc.getState, banc.setState);
@@ -364,7 +364,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
   });
 
   it('Test ÉTENDU par rangée (LDB 21 l.25) : le cumul progresse d’un Round à l’autre, la bande suivante part du DR déjà gagné', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const { A, B, E1 } = duo();
     E1.causesPeur = 6; // Indice élevé : le Test étendu ne se solde pas en un Round
     openRoundEndCascade(banc.getState, banc.setState);
@@ -402,7 +402,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
   });
 
   it('ORDRE de fin de Round : tous les upkeeps INFLUENÇABLES précèdent les bandes de Peur', () => {
-    banc.getState().seedRng(5);
+    banc.getState().ensemencerLeTirage(5);
     const { A, B, E1 } = duo();
     E1.causesPeur = 2;
     for (const h of [A, B]) addCondition(h, COND.empoisonne, 2);
@@ -417,7 +417,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
    * par le BAS (le total ne descend pas sous 0), et le Round suivant repart de ce total, pas de zéro.
    */
   it('cumul étendu : un Round RATÉ retire les DR négatifs (plancher 0), le Round suivant repart du total réel', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const { A, E1 } = duo();
     E1.causesPeur = 6;
     const b0 = banc.getState().battle!;
@@ -451,7 +451,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
    * Test de chacun. Sans Peur (LDB 10 l.1051) allège la SEULE rangée de son porteur.
    */
   it('DEUX difficultés dans UNE bande : le porteur de Sans Peur teste en Accessible, l’autre en Intermédiaire', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const { A, B, E1 } = duo();
     E1.causesPeur = 2;
     E1.groups = ['ogre'];
@@ -472,7 +472,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
    * rangée doit la SUBIR (cible) et la NOMMER (chip), jamais la fondre ni l'oublier.
    */
   it('pénalité d’État (LDB 16) : la cible de la rangée la subit ET la ligne la NOMME', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const { A, B, E1 } = duo();
     E1.causesPeur = 2;
     addCondition(A, COND.brise, 2); // −20 sur les Tests de A

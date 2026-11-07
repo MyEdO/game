@@ -21,10 +21,10 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 function setup() {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [h], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, journal: [] });
-  banc.getState().startScene(testScene());
+  banc.getState().lancerLaScene(testScene());
   creditBourse(banc.getState, banc.setState, h.id, fromBrass(20000));
-  banc.getState().seedRng(13);
-  banc.getState().startInterlude(3);
+  banc.getState().ensemencerLeTirage(13);
+  banc.getState().ouvrirLInterlude(3);
   draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
   const itl = banc.getState().interlude!;
   itl.perHero[h.id] = { ...itl.perHero[h.id], fx: undefined, left: 3 };
@@ -55,7 +55,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const moneyBefore = toBrass(partyMoneyTotal(banc.getState));
     const leftBefore = st(heroId).left;
     // Re-seed juste avant l'action : le tirage du tuteur est le PREMIER jet consommé depuis là.
-    banc.getState().seedRng(42);
+    banc.getState().ensemencerLeTirage(42);
     const expectedTutor = rollDice(1, 10, makeRNG(42));
     banc.getState().suivreLEntrainement(heroId, 'skill', opt.id, opt.spec);
     const h = hero();
@@ -73,7 +73,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const opt = pickSkill(true);
     const xpBefore = hero().xp!;
     const moneyBefore = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().seedRng(42);
+    banc.getState().ensemencerLeTirage(42);
     const expectedTutor = rollDice(1, 10, makeRNG(42)) * 2;
     banc.getState().suivreLEntrainement(heroId, 'skill', opt.id, opt.spec);
     const h = hero();
@@ -92,7 +92,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const charBefore = hero().characteristics[charKey];
     const xpBefore = hero().xp!;
     const moneyBefore = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const expectedTutor = rollDice(1, 10, makeRNG(7));
     banc.getState().suivreLEntrainement(heroId, 'characteristic', opt.id);
     const h = hero();

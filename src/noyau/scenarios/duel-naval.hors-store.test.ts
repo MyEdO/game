@@ -21,11 +21,11 @@ const scenarioConstruit = scenario.construire();
 /** Lance le scénario duel dans le store (comme `__wfrp.scenario`), Round 1 acquitté, RNG SEMÉE. */
 function launch(seed: number) {
   const g = banc.getState();
-  g.seedRng(seed);
+  g.ensemencerLeTirage(seed);
   seedBattleRng(seed);
-  g.setParty(scenario.construire().party);
-  g.startScene(scenarioConstruit.scene);
-  g.startCombat('duel');
+  g.fixerLeGroupe(scenario.construire().party);
+  g.lancerLaScene(scenarioConstruit.scene);
+  g.lancerLeCombat('duel');
   if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('roundStart');
 }
 
@@ -56,7 +56,7 @@ function shipAct(shipId: string, targetId: string): 'fire' | 'maneuver' {
   const side = targetArc(heading, sh.pos!, tg.pos!);
   const bp = bearingPostes(sh, side);
   const bpRange = Math.max(0, ...bp.map(rangeM));
-  if (bpRange > 0 && dist <= bpRange && banc.getState().shipAutoBattery(shipId, targetId)) {
+  if (bpRange > 0 && dist <= bpRange && banc.getState().tirerLaBordee(shipId, targetId)) {
     settleCascade();
     return 'fire';
   }
@@ -168,7 +168,7 @@ describe('Bordée IA : le marin tenu dévie, la bordée et le tour du navire ne 
     const tribord = cogue.postes!.find((p) => p.side === 'tribord')!;
     cogue.postes = [...cogue.postes!, structuredClone({ ...tribord, item: { ...tribord.item, uid: `${tribord.item.uid}-2` } })];
     banc.setState({ facing: { ...banc.getState().facing, 'cogue-duel': 'E' }, battle: { ...b, turn: b.order.indexOf('cogue-duel') } });
-    const bordees = vi.spyOn(banc.getState(), 'shipAutoBattery');
+    const bordees = vi.spyOn(banc.getState(), 'tirerLaBordee');
     const tirs = () => banc.getState().battle!.log.filter((l) => l.text.includes(`touche ${grimm.label}`)).length;
     const paAvant = ship(marin).armour.corps;
 
@@ -205,12 +205,12 @@ describe('Bordée IA : le marin tenu dévie, la bordée et le tour du navire ne 
     cogue.postes = [...cogue.postes!, structuredClone({ ...tribord, item: { ...tribord.item, uid: `${tribord.item.uid}-2` } })];
     const pirate = { ...structuredClone(ship('pregen-101')), id: 'pirate', label: 'Pirate', pos: { x: 8, y: 5 }, traits: [{ id: 'demoniaque', value: 9 }] } as unknown as Combatant;
     banc.setState({ facing: { ...banc.getState().facing, 'cogue-duel': 'E' }, battle: { ...b, combatants: [...b.combatants, pirate], turn: b.order.indexOf('cogue-duel') } });
-    const bordees = vi.spyOn(banc.getState(), 'shipAutoBattery');
+    const bordees = vi.spyOn(banc.getState(), 'tirerLaBordee');
     const pv = ship('pirate').wounds.current;
     const cap = banc.getState().facing['cogue-duel'];
     const pos = { ...ship('cogue-duel').pos! };
 
-    expect(banc.getState().shipAutoBattery('cogue-duel', 'pirate')).toBe(true);
+    expect(banc.getState().tirerLaBordee('cogue-duel', 'pirate')).toBe(true);
     expect(banc.getState().pendingCascade, 'le 1er coup suspend sur la sauvegarde').not.toBeNull();
     expect(ship('pirate').wounds.current, 'le 2e coup attend dans la suite').toBe(pv);
     banc.avancer(5000);

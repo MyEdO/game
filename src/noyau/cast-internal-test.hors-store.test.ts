@@ -28,8 +28,8 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
     wiz.spells = ['chute', ...(wiz.spells ?? [])];
     const ally = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 13 });
     banc.setState({ party: [wiz, ally] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const W = b.combatants.find((c) => c.kind === 'hero' && c.label === 'W')!;

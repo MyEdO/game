@@ -1660,7 +1660,7 @@ export interface Combatant {
   /** Pénalités/blocages d'incantation temporisés (contrecoups des tables d'Imparfaites/Colère,
    *  LDB 46/40) : « Langue maladroite −10 », « pas de Test de Prière N Rounds », « DR de Prière
    *  plafonné à 0 une semaine »… `roundsLeft` décrémenté en fin de Round (combat + entretien hors
-   *  combat) ; `untilTime` purgé par l'horloge (advanceTime). Persisté. */
+   *  combat) ; `untilTime` purgé par l'horloge (avancerLeTemps). Persisté. */
   castPenalties?: CastPenalty[];
   /** Accumulateur de Focalisation : DR cumulé pour un sort d'Arcane/Domaine. */
   focus?: { spell: string; dr: number };
@@ -1670,7 +1670,7 @@ export interface Combatant {
   dispel?: { spellId: string; spellCasterId: string; total: number };
   /** Artisanat en cours (« Tout travail inachevé peut être conservé », LDB 23 l.102) — DONNÉE
    *  PERSISTÉE AU HÉROS (survit à la clôture d'un interlude — `InterludeState.perHero` est
-   *  reconstruit à neuf à CHAQUE ouverture, `startInterlude`). `trappingId` = id de l'objet
+   *  reconstruit à neuf à CHAQUE ouverture, `ouvrirLInterlude`). `trappingId` = id de l'objet
    *  fabriqué ; `atouts`/`defauts` = ids de qualité (runtime). */
   craft?: { trappingId: string; tier: import('./money').StatusTier; avail: Availability; atouts: string[]; defauts: string[]; drDone: number; drTarget: number; difficulty: Difficulty };
   /** Rituel en cours de Focalisation (Activité « Accomplir un Rituel », `VDM 02 l.777`) — DONNÉE
@@ -1781,7 +1781,7 @@ export interface Combatant {
    *  `suffocationTick` (`engine/suffocation.ts`) : à reposer chaque Round pour rester immunisé. */
   wateredThisRound?: boolean;
   /** A déjà bénéficié d'un soin de Blessures (Guérison) cette rencontre (LDB 09 l.260).
-   *  Réinitialisé au début de chaque combat (startCombat). N'affecte PAS l'arrêt d'Hémorragie. */
+   *  Réinitialisé au début de chaque combat (lancerLeCombat). N'affecte PAS l'arrêt d'Hémorragie. */
   soinRencontreUtilise?: boolean;
   /** Mort (résultat létal ou mort lente). Hors de combat définitif. */
   dead?: boolean;

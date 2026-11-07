@@ -25,7 +25,7 @@ import type { Scene } from '../../noyau/monde/scene';
  */
 const RAM_POS = { x: 6, y: 6 };
 const RAM_HEADING = 'N' as const;
-/** Le Soldat SOLO atterrit une case à l'ouest de `heroStart` (`startCombat`) : (5,6). */
+/** Le Soldat SOLO atterrit une case à l'ouest de `heroStart` (`lancerLeCombat`) : (5,6). */
 const SOLDAT_POS = { x: 5, y: 6 };
 // Ids RÉELS des membres de rencontre : `enemy-<encounterId>-<index>` (`spawnEnemy`) — l'affût est
 // l'index 0, la monture l'index 1, les cinq servants les index 2 à 6. Le CHEF est le Soldat (héros).

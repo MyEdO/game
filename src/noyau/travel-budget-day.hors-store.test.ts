@@ -42,7 +42,7 @@ function map(km = 16): WorldMap {
 }
 function setup(km = 16, party: Combatant[] = [hero()]): void {
   banc.setState({ party, gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
-  get().loadProject({ scenes: [sceneA(), sceneB()], entryId: 'lieu-a-scene', worldMap: map(km), projet: null });
+  get().chargerLeProjet({ scenes: [sceneA(), sceneB()], entryId: 'lieu-a-scene', worldMap: map(km), projet: null });
   banc.setState({ gameTime: campaignStart() });
 }
 
@@ -111,7 +111,7 @@ describe('#340 / #2533 — budget d’heures PAR JOUR CALENDAIRE (LDB 51 l.195)'
     const day0 = get().travelDayHours.day;
 
     // Une nuit jouée fait passer au jour suivant → l'accumulateur repart de zéro au prochain trajet.
-    get().restParty(1);
+    get().reposerLeGroupe(1);
     get().partirEnVoyage('r1', 'pied');
     expect(get().travelDayHours.day).toBe(dayIndex(get().gameTime));
     expect(get().travelDayHours.day).not.toBe(day0);
@@ -157,7 +157,7 @@ describe('#340 — nuit forcée (privation de sommeil, maison, défaut ON [arbit
     setup(16);
     banc.setState({ gameTime: campaignStart(), lastNightDay: dayIndex(campaignStart()), lastUpkeepDay: dayIndex(campaignStart()) });
     const before = stacks(get().party[0], 'extenue');
-    get().advanceTime(24 * 60); // franchit un jour sans dormir
+    get().avancerLeTemps(24 * 60); // franchit un jour sans dormir
     expect(stacks(get().party[0], 'extenue')).toBeGreaterThan(before);
   });
 
@@ -166,7 +166,7 @@ describe('#340 — nuit forcée (privation de sommeil, maison, défaut ON [arbit
     setup(16);
     banc.setState({ gameTime: campaignStart(), lastNightDay: dayIndex(campaignStart()), lastUpkeepDay: dayIndex(campaignStart()) });
     const before = stacks(get().party[0], 'extenue');
-    get().advanceTime(24 * 60);
+    get().avancerLeTemps(24 * 60);
     expect(stacks(get().party[0], 'extenue')).toBe(before);
   });
 });

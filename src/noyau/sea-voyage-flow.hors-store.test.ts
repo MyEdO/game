@@ -718,8 +718,8 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
       pendingCrewTest: null, pendingRest: null, pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [],
     } as never);
-    get().loadProject({ scenes: [portScene('port-a', 'Port A'), portScene('port-b', 'Port B'), abordageScene()], entryId: 'port-a', worldMap, projet: null });
-    set({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } } as never); // startScene remet le vessel de campagne — repose-le
+    get().chargerLeProjet({ scenes: [portScene('port-a', 'Port A'), portScene('port-b', 'Port B'), abordageScene()], entryId: 'port-a', worldMap, projet: null });
+    set({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } } as never); // lancerLaScene remet le vessel de campagne — repose-le
   }
 
   it('franchissement de l’ancrage (kmDone ≥ at × km) → Test de Perception PUIS abordage, une seule fois — la cascade-jour SURVIT au combat (#284/#275)', () => {
@@ -736,7 +736,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     expect(casc).toBeTruthy();
     const embuscadeStep = casc!.participants[casc!.cursor];
     expect(embuscadeStep?.kind).toBe('embuscade'); // Test de Perception influençable (patron terrestre « Attaqués ! »)
-    stepCascade(); // valide l'étape 'embuscade' → ouvre l'abordage (startCombat)
+    stepCascade(); // valide l'étape 'embuscade' → ouvre l'abordage (lancerLeCombat)
     expect(get().travelPlan!.sea!.ambushFired).toBe(true);
     expect(get().travelPlan!.interrupted).toBe(true);
     expect(get().battle).toBeTruthy(); // abordage ouvert par la couture partagée
@@ -755,7 +755,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     runSeaDay(get, set);
     let guard = 0;
     while (get().pendingCascade && get().pendingCascade!.participants[get().pendingCascade!.cursor]?.kind !== 'embuscade' && guard++ < 30) stepCascade();
-    stepCascade(); // valide 'embuscade' → ouvre l'abordage (startCombat), suspend la cascade-jour
+    stepCascade(); // valide 'embuscade' → ouvre l'abordage (lancerLeCombat), suspend la cascade-jour
     expect(get().battle).toBeTruthy();
     expect(get().suspendedCascades.length).toBe(1);
 
@@ -901,7 +901,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
     expect(get().travelPlan).toBeNull(); // arrivée
     expect(get().pendingShoreLeave).toBeTruthy(); // événement de port (port B a un profil)
     expect(get().vessel!.lastVoyageMilles).toBe(550);
-    // 550 milles / (18×5) = ~7 jours → l’horloge a franchi ~7 jours (couture unique advanceTime).
+    // 550 milles / (18×5) = ~7 jours → l’horloge a franchi ~7 jours (couture unique avancerLeTemps).
     expect(get().gameTime - t0).toBe(7 * 24 * 60);
     expect(get().vessel!.waterLitres).toBeLessThan(1000); // eau des tonneaux consommée (comme le détaillé)
   });
@@ -996,7 +996,7 @@ describe('Traversée rapide × embuscade ANCRÉE (#212) : interruption puis repr
       pendingCrewTest: null, pendingRest: null, pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [],
     } as never);
-    get().loadProject({ scenes: [portScene('port-a', 'Port A'), portScene('port-b', 'Port B'), abordageScene()], entryId: 'port-a', worldMap: abordageMap, projet: null });
+    get().chargerLeProjet({ scenes: [portScene('port-a', 'Port A'), portScene('port-b', 'Port B'), abordageScene()], entryId: 'port-a', worldMap: abordageMap, projet: null });
     set({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } } as never);
   });
 
@@ -1004,7 +1004,7 @@ describe('Traversée rapide × embuscade ANCRÉE (#212) : interruption puis repr
     get().partirEnVoyage('r1', 'mer', { fast: true });
     const p = get().pendingCascade!;
     expect(p.participants[p.cursor]?.kind).toBe('voyage-rapide');
-    stepCascade(); // valide → computeFastPalier + finalizeFastVoyage → embuscade ancrée → startCombat
+    stepCascade(); // valide → computeFastPalier + finalizeFastVoyage → embuscade ancrée → lancerLeCombat
     expect(get().battle).toBeTruthy(); // abordage ouvert par la couture partagée (#212)
     expect(get().scene!.id).toBe('ls-abordage');
     expect(get().travelPlan!.sea!.ambushFired).toBe(true);

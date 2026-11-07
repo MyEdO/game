@@ -106,7 +106,7 @@ export interface ExploreMovePlan {
  *  d'`exploreMovePlan` (ou par un appelant qui a déjà décidé de l'assise) — il résout la géométrie,
  *  il ne décide pas de l'offre.
  *
- *  Le chemin retourné se termine EXACTEMENT sur l'abord : c'est ce que `interactEntity` exige pour
+ *  Le chemin retourné se termine EXACTEMENT sur l'abord : c'est ce que `interagirAvecLEntite` exige pour
  *  asseoir (le groupe doit être SUR la case d'abord, pas simplement à côté du meuble). Déjà sur
  *  l'abord → chemin d'un seul point, à l'appelant d'y voir « rien à marcher ». */
 export function exploreSeatPlan(
@@ -116,7 +116,7 @@ export function exploreSeatPlan(
   opts: PathOpts = { blocked: new Set() },
 ): { slotId: string; approach: Pt; path: Pt[] } | null {
   const libres = seatSlotsOf(scene, propId).filter((s) => !scene.seatAssignments?.[propId]?.[s.slotId]);
-  // La place SOUS LES PIEDS prime sur l'ordre du catalogue — c'est celle que `interactEntity` prendra
+  // La place SOUS LES PIEDS prime sur l'ordre du catalogue — c'est celle que `interagirAvecLEntite` prendra
   // (il n'accepte que le slot dont l'abord est exactement `partyPos`) : diverger ici ferait planifier
   // une marche vers une place que le geste refuserait à l'arrivée.
   const surPlace = libres.find((s) => memeCase(s.approach, partyPos));

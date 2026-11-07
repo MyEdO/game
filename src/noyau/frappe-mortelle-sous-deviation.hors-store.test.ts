@@ -31,8 +31,8 @@ const SEED_NON_LETAL = 3;
 function monte() {
   const heros = [1, 2, 3].map((i) => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i }));
   banc.setState({ party: heros });
-  banc.getState().startScene(testScene());
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   const b = banc.getState().battle!;
   const [H1, H2, H3] = b.combatants.filter((c) => c.kind === 'hero');
@@ -62,7 +62,7 @@ const enJeu = (id: string): Combatant => banc.getState().battle!.combatants.find
 
 /** Le maillon sur H2 suspend sur son étape ; rend les cibles frappées, dans l'ordre, après la fermeture. */
 function frappeMortelle(seed: number, cle: 'devier' | 'subir'): { H2: Combatant; frappes: string[] } {
-  banc.getState().seedRng(seed);
+  banc.getState().ensemencerLeTirage(seed);
   const { H1, H2, H3, E } = monte();
   const frappes: string[] = [];
   const off = bus.on(EVT.ANIM_ATTACK, (e: { to: string }) => frappes.push(e.to === H2.id ? 'H2' : e.to === H3.id ? 'H3' : e.to));

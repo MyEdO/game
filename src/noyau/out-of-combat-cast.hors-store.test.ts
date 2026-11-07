@@ -33,7 +33,7 @@ function forceCast(casterId: string) {
 
 describe('Incantation hors combat (couture D)', () => {
   beforeEach(() => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
   });
 
   it('Prêtre lance « Bénédiction de Guérison » sur un allié blessé hors combat → +1 PB, journalisé, sans combat', () => {
@@ -81,7 +81,7 @@ describe('Incantation hors combat (couture D)', () => {
     if (foc) foc.advances = Math.max(foc.advances, 5);
     else wiz.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 5 });
     banc.setState({ party: [wiz], battle: null, pendingFocus: null });
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
 
     banc.getState().focaliserLeSort(wiz.id, 'arme-aethyrique');
     const pf = banc.getState().pendingFocus;

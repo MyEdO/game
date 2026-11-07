@@ -27,9 +27,9 @@ const PIETINEMENT = findManeuverById('pietinement')!;
 function engage(tourDe: 'heros' | 'creature', o: { tailleE: SizeCategory; tailleH: SizeCategory; traitsE?: TraitList; traitsH?: TraitList; movementUsed?: number; advantageE?: number }): { H: Combatant; E: Combatant } {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
-  g().seedRng(2);
-  g().startScene(testScene());
-  g().startCombat('enc-mutants');
+  g().ensemencerLeTirage(2);
+  g().lancerLaScene(testScene());
+  g().lancerLeCombat('enc-mutants');
   g().fenetreValider('roundStart');
   const b = g().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;

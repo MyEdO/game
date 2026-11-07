@@ -46,7 +46,7 @@ function poser(netMode: 'host' | 'local'): void {
   } as never);
 }
 
-/** Le geste est le CLIC du combattant ; `battleHeal` est sa machinerie (#3370). La Course, Action dépensée, n'a pas de
+/** Le geste est le CLIC du combattant ; `ouvrirLaGuerison` est sa machinerie (#3370). La Course, Action dépensée, n'a pas de
  *  geste : le clic de case ne l'offre pas (`resolveMovement`). */
 const gestes: [string, string, unknown[], 'pendingHeal'][] = [
   ['heal', 'cliquerLaCase', [{ x: 6, y: 5 }, 'al'], 'pendingHeal'],

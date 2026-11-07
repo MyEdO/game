@@ -462,7 +462,7 @@ export function isCrenellated(scene: Scene, x: number, y: number, z = 0): boolea
 }
 
 /** Le GROUPE peut-il être posé en `pt`, case de SON étage ? Seule lecture de cette question : le pas du
- *  groupe (`moveParty`), l'atterrissage de l'Effet `fall` et la validation de ses réfs (`validateScene`). */
+ *  groupe (`deplacerLeGroupe`), l'atterrissage de l'Effet `fall` et la validation de ses réfs (`validateScene`). */
 export function groupePosable(scene: Scene, pt: { x: number; y: number; z?: number }): boolean {
   return isWalkable(scene, pt.x, pt.y, pt.z ?? 0);
 }

@@ -31,7 +31,7 @@ const openCast = (w: Combatant) => {
 };
 
 beforeEach(() => {
-  banc.getState().seedRng(11);
+  banc.getState().ensemencerLeTirage(11);
 });
 
 describe('Incantation — Résilience AVANT le jet (LDB 17 l.68)', () => {

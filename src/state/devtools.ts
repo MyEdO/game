@@ -269,7 +269,7 @@ function routesRendues(map: WorldMap, lieu: string | null): { route: MapRoute; o
  *                           (convention jetLancer(flux)/jetValider(flux)/jetAnnuler(flux) ; reveals/Round ont leur verbe propre)
  *   __wfrp.killEnemies()  → élimine tous les ennemis du combat et déclenche la victoire (flux normal) ;
  *                           killEnemies({withQualityLoot:true}) → ajoute au butin un objet catalogué à qualités
- *   __wfrp.interlude()    → arme un INTERLUDE de démo jouable (startInterlude — sans voyager jusqu'à Altdorf)
+ *   __wfrp.interlude()    → arme un INTERLUDE de démo jouable (ouvrirLInterlude — sans voyager jusqu'à Altdorf)
  *   __wfrp.dealDamage('id', n) → inflige n Dégâts (op wounds, VRAI pipeline : armure de coque, reddition/naufrage)
  *   __wfrp.combatEnd({…}) → arme les conséquences de fin de combat (critique infectant + exposition
  *                           Corruption) puis termine le combat en LAISSANT la cascade ouverte (influençable)
@@ -625,19 +625,19 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     if (!sc) throw new Error(`__wfrp.scenario : « ${id} » introuvable — ids : ${scenarios.map((t) => t.id).join(', ')}`);
     clearAiTurnLog(); // trace IA vierge pour ce scénario
     const s = g();
-    if (seed != null) s.seedRng(seed);
+    if (seed != null) s.ensemencerLeTirage(seed);
     const construit = poserScenario(g, sc);
     // Un plateau VIDE est un refus, jamais un silence : la recette qui continue dessus attribue son
     // rouge au geste suivant. « Vide » se mesure sur la scène ACTIVE du store après chargement —
     // aucune scène (`scene` nul) ou aucune entité peuplée (`scene.entities`, la population que lisent
-    // le rendu comme les sondes `__wfrp.entities`/`visibleCount`). Le groupe n'y change rien : `setParty`
-    // ne pose que `state.party` (`partyFlow.ts`), et c'est `startScene` qui cherche son point de départ
+    // le rendu comme les sondes `__wfrp.entities`/`visibleCount`). Le groupe n'y change rien : `fixerLeGroupe`
+    // ne pose que `state.party` (`partyFlow.ts`), et c'est `lancerLaScene` qui cherche son point de départ
     // DANS `scene.entities` (`noyau/entreeEnScene.ts`, entité `heroStart`) — 0 entité = aucun sol sous le groupe.
     const chargee = g().scene;
     if (!chargee || chargee.entities.length === 0)
       throw new Error(
         `__wfrp.scenario : « ${id} » a chargé une scène VIDE (${chargee ? `scène « ${chargee.id} », 0 entité` : 'aucune scène active'}) — ` +
-          `plateau inexploitable : le groupe posé par setParty ne vit pas dans scene.entities, aucune entité = aucun point de départ (heroStart) ni décor.`,
+          `plateau inexploitable : le groupe posé par fixerLeGroupe ne vit pas dans scene.entities, aucune entité = aucun point de départ (heroStart) ni décor.`,
       );
     // La MÉMOIRE d'onglet ne retient qu'un lancement qui a passé les deux refus : mémoriser avant le
     // chargement ferait rejouer en boucle un scénario qui jette à `resumeLastScenario()`.
@@ -846,7 +846,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const ent = find(id);
       if (!ent) return `✗ « ${id} » introuvable — voir __wfrp.entities()`;
       useGame.setState({ partyPos: { ...ent.pos } });
-      g().interactEntity(id);
+      g().interagirAvecLEntite(id);
       const s = g();
       if (s.dialogue) return `✓ dialogue ouvert (${id})`;
       if (s.merchant) return `✓ marchand ouvert (${id})`;
@@ -1224,7 +1224,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
 
     /** Charge une CAMPAGNE BUILT-IN sans dérouler le character creator ×4 à la main :
      *  __wfrp.campaign('loup-et-saumure', 42). Sans argument : liste les ids. `sceneId` (optionnel)
-     *  démarre ailleurs qu'à l'entrée par défaut. MÊME chemin que le picker `PartyScreen` (`setParty` +
+     *  démarre ailleurs qu'à l'entrée par défaut. MÊME chemin que le picker `PartyScreen` (`fixerLeGroupe` +
      *  `setPendingCampaign` + `lancerCampagne`) — jamais une reconstruction parallèle de l'état. */
     campaign: (id?: string, seed?: number, sceneId?: string) => {
       if (!id) return builtinCampaigns.map((c) => `${c.id} — ${c.label}`);
@@ -1241,8 +1241,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         return `✗ scène « ${sceneId} » introuvable dans « ${id} » — ids : ${lancee.scenes.map((sc) => sc.id).join(', ')}`;
       }
       const s = g();
-      if (seed != null) s.seedRng(seed);
-      s.setParty(makeShowcaseParty()); // campagnes built-in sans pré-tirés propres — groupe canonique (4 piliers)
+      if (seed != null) s.ensemencerLeTirage(seed);
+      s.fixerLeGroupe(makeShowcaseParty()); // campagnes built-in sans pré-tirés propres — groupe canonique (4 piliers)
       s.setPendingCampaign(lancee);
       const refus = lancerCampagne(g, lancee, sceneId);
       if (refus) return `✗ campagne « ${c.label} » refusée — ${refus}`;
@@ -1254,12 +1254,12 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     /** Lance une bataille de masse de démonstration (ADE II 08) sans scénario : __wfrp.massBattle(60, 40, 3).
      *  Les Scènes de COMBAT ne s'amorcent que si la scène courante porte les rencontres attendues. */
     massBattle: (ally = 50, enemy = 55, rounds = 3) => {
-      g().startMassBattle({ allyMight: ally, enemyMight: enemy, plannedRounds: rounds, terrain: 'Les deux armées se font face dans la plaine.' });
+      g().amorcerLaBataille({ allyMight: ally, enemyMight: enemy, plannedRounds: rounds, terrain: 'Les deux armées se font face dans la plaine.' });
       return `✓ bataille de masse lancée — Puissance ${ally} contre ${enemy}, ${rounds} Round(s)`;
     },
 
     /** RECETTE #380 : arme un INTERLUDE de démonstration jouable sans voyager jusqu'à Altdorf. MÊME
-     *  chemin que le flux réel (`startInterlude` : `state.interlude` peuplé — Événement d100 par héros,
+     *  chemin que le flux réel (`ouvrirLInterlude` : `state.interlude` peuplé — Événement d100 par héros,
      *  budget d'Activités `perHero[*].granted`, écran 'interlude') — le catalogue d'Activités reste dérivé
      *  de la DONNÉE (`interludeCatalog`/`activities.json`), rien d'inventé. Sans groupe chargé, pose le
      *  groupe canonique (`makeShowcaseParty`, comme `campaign()`/`scenario()`). À conduire à la main
@@ -1268,8 +1268,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const s = g();
       if (s.battle) return '✗ combat en cours — impossible d\'ouvrir un interlude (voir __wfrp.killEnemies())';
       if (s.interlude) return `interlude déjà ouvert (${Object.keys(s.interlude.perHero).length} héros) — écran 'interlude', à conduire à la main`;
-      if (!s.party.length) s.setParty(makeShowcaseParty()); // pas de groupe chargé → 4 piliers canoniques
-      s.startInterlude(weeks);
+      if (!s.party.length) s.fixerLeGroupe(makeShowcaseParty()); // pas de groupe chargé → 4 piliers canoniques
+      s.ouvrirLInterlude(weeks);
       const after = useGame.getState();
       if (!after.interlude) return '✗ interlude non ouvert — voir __wfrp.state()/__wfrp.log()';
       const budget = [...new Set(Object.values(after.interlude.perHero).map((h) => h.granted))].join('/');
@@ -1452,7 +1452,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!b || !ship) return '✗ navire introuvable (combat uniquement)';
       const before = g().facing[shipId];
       if (!before) return `✗ ${ship.label} n'a pas de cap (facing) — pas un navire orienté ?`;
-      g().shipTurn(shipId, typeof side === 'number' ? side : side === 'tribord' ? 2 : -2);
+      g().virerLeNavire(shipId, typeof side === 'number' ? side : side === 'tribord' ? 2 : -2);
       return `✓ ${ship.label} : cap ${before} → ${g().facing[shipId]}`;
     },
 
@@ -1741,7 +1741,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       } : undefined;
       const log: string[] = [];
       applyHullCriticalToTarget(coque, gree, log, useGame.setState, { get: () => useGame.getState(), forcedLocRoll: de, forcedCritRoll, ...(ctx ? { ctx } : {}) });
-      for (const l of log) useGame.getState().log(l);
+      for (const l of log) useGame.getState().ecrireAuJournal(l);
       return [`✓ Critique de navire « ${location} » (d100 imposé ${de}) sur ${coque.label}`, ...log];
     },
 
@@ -2057,7 +2057,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!encounterId) return encs.map((e) => e.id);
       if (!encs.some((e) => e.id === encounterId))
         return `✗ rencontre inconnue — dispo : ${encs.map((e) => e.id).join(', ') || 'aucune'}`;
-      g().startCombat(encounterId);
+      g().lancerLeCombat(encounterId);
       return g().battle ? `✓ combat lancé (${encounterId})` : `rien lancé (rencontre vide ?)`;
     },
 
@@ -2074,14 +2074,14 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
 
     /** RECETTE : avance l'horloge (purge les effets à durée d'horloge). */
     time: (minutes = 60) => {
-      g().advanceTime(minutes);
+      g().avancerLeTemps(minutes);
       return `${formatImperial(g().gameTime)}`;
     },
 
     /** RECETTE : le groupe dort N jours — déroule la cascade quotidienne #T3 (rations/faim,
      *  maladies, convalescence des critiques). */
     rest: (days = 1) => {
-      g().restParty(days);
+      g().reposerLeGroupe(days);
       return `+${days} j → ${formatImperial(g().gameTime)}`;
     },
 
@@ -2154,10 +2154,10 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** RECETTE : ré-ensemence le RNG de bataille (`makeRNG`/`seedBattleRng`, déterminisme) — MÊME action
-     *  que `store.seedRng` (utilisée par `scenario(id, seed)` au lancement), exposée pour re-seeder EN
+     *  que `store.ensemencerLeTirage` (utilisée par `scenario(id, seed)` au lancement), exposée pour re-seeder EN
      *  COURS de combat, recette reproductible sans relancer le scénario. */
     seed: (n: number) => {
-      g().seedRng(n);
+      g().ensemencerLeTirage(n);
       return `✓ RNG de bataille re-ensemencé (seed ${n})`;
     },
 

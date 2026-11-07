@@ -28,7 +28,7 @@ function pair() {
 }
 
 beforeEach(() => {
-  banc.getState().seedRng(31);
+  banc.getState().ensemencerLeTirage(31);
 });
 
 describe('États à durée (ConditionInstance.roundsLeft)', () => {

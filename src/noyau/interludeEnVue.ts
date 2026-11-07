@@ -69,7 +69,7 @@ function gestesDuCatalogue(s: Etat, h: Combatant, def: ActivityDef): { cible: bo
   const parCible: { libelle: string; opts: CiblesChoisies }[] = [
     ...[...armes, ...artefacts].map((i) => ({ libelle: i.label, opts: { itemUid: i.uid } })),
     ...sorts.map((x) => ({ libelle: x.spell.label, opts: { spellId: x.spell.id } })),
-    ...traitsPsy.map((x) => ({ libelle: libelleDePsy(x.trait.type, x.trait.cible), opts: { traitPsy: x.vise } })),
+    ...traitsPsy.map((x) => ({ libelle: libelleDePsy(x.trait.type, x.trait.cible), opts: { traitPsy: x.cle } })),
   ];
   const geste = (libelle: string, opts?: CiblesChoisies): GesteDInterlude =>
     ({ libelle, geste: { verbe: 'pratiquerLActivite', args: opts ? [h.id, def.id, opts] : [h.id, def.id] }, refus: refusDOuvertureDActivite(s, h.id, def, opts) });
