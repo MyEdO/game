@@ -25,7 +25,7 @@ import type { Combatant, EffectSource, EffectSourceKind } from '../engine/types'
 import { contractDisease, tickDisease } from '../engine/disease';
 import { dayIndex, MINUTES_PER_DAY } from '../engine/clock';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import type { FlowTest } from '../engine/flowCore';
+import { lierLesTirages, tiragesDuFlow, type FlowTest } from '../engine/flowCore';
 import type { Get } from './flowTypes';
 import type { Jeu } from './etat';
 import type { CascadeStep } from './pendings';
@@ -71,7 +71,9 @@ export interface Noeud {
   source?: EffectSource;
 }
 
-/** Tous les nœuds `kind:'test'` de la base app-owned, avec l'ENTRÉE qui les porte (id STABLE). */
+/** Tous les nœuds `kind:'test'` de la base app-owned, avec l'ENTRÉE qui les porte (id STABLE). Un Flow qui tire des
+ *  valeurs liées les lie d'abord, comme `runFlow` au départ (`lierLesTirages`, chaque tirage à 1) : un nœud n'est
+ *  jouable que dans la portée du Flow qui les tire. */
 export function noeudsDeTest(): Noeud[] {
   const out: Noeud[] = [];
   for (const fichier of listerDossier(DATA).filter((f) => f.endsWith('.json'))) {
@@ -84,7 +86,10 @@ export function noeudsDeTest(): Noeud[] {
       const walk = (n: unknown, chemin: string): void => {
         if (Array.isArray(n)) { n.forEach((v, i) => walk(v, `${chemin}[${i}]`)); return; }
         if (!n || typeof n !== 'object') return;
-        const o = n as Record<string, unknown>;
+        const brut = n as Record<string, unknown>;
+        const o = typeof brut.kind === 'string' && tiragesDuFlow(brut).definitions.size
+          ? lierLesTirages(brut as unknown as Flow, () => 1) as unknown as Record<string, unknown>
+          : brut;
         if (o.kind === 'test' && o.test) {
           const kind = KIND_PAR_FICHIER[fichier];
           out.push({ fichier, entryId: id, ft: o.test as FlowTest, node: o as unknown as NoeudTest, chemin, ...(kind ? { source: { kind, id } } : {}) });
