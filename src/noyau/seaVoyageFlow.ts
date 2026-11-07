@@ -1161,42 +1161,6 @@ function computeFastPalier(get: Get, set: Set, crewDR: number): void {
   patchSea(get, set, { fast: { ...fast, palierId: palier.id, roll, result, crewDR, manannTens, pendingFinalize: true } });
 }
 
-/** Applique les conséquences d'un palier de voyage rapide (l.33-37) : équipage PNJ manquant (couture
- *  partagée `applyVesselCrewLoss`, plafonnée au nominal), cargaison gâtée/volée (% par lot), Blessures
- *  de coque perdues (% du max, PERSISTÉ #30) et Coups Critiques (localisation aléatoire, notés — l.49 :
- *  les Dégâts d'équipage d'un Critique sont ignorés, déjà couverts par les pertes du voyage). */
-function applyFastPalier(get: Get, set: Set, palierId?: string): void {
-  const palier = FAST_VOYAGE_PALIERS.find((p) => p.id === palierId);
-  if (!palier) return;
-  const rng = battleRng();
-  const vessel0 = get().vessel;
-  if (palier.crewLostPct > 0 && vessel0) {
-    const present = shipboardSouls(get()).crew;
-    const lost = Math.round(present * palier.crewLostPct / 100);
-    if (lost > 0) for (const l of applyVesselCrewLoss(get, set, lost)) tell(get, set, [l]);
-  }
-  const vessel1 = get().vessel;
-  if (palier.cargoLostPct > 0 && vessel1?.cargo?.length) {
-    const cargo = vessel1.cargo
-      .map((l) => ({ ...l, enc: Math.floor(l.enc * (1 - palier.cargoLostPct / 100)) }))
-      .filter((l) => l.enc > 0);
-    set({ vessel: { ...vessel1, cargo } });
-    tell(get, set, [t('sv.cargoLostPct', { pct: palier.cargoLostPct })]);
-  }
-  const vessel2 = get().vessel;
-  const hull2 = get().travelPlan?.vehicle;
-  if (palier.hullLostPct > 0 && vessel2 && hull2) {
-    const max = hull2.wounds.max;
-    const cur = hull2.wounds.current;
-    const lost = Math.round(max * palier.hullLostPct / 100);
-    if (max > 0 && lost > 0) {
-      damageVesselHull(get, set, hull2, lost);
-      tell(get, set, [t('sv.hullLostPct', { ship: nomDuNavire(vessel2), n: Math.min(lost, cur), pct: palier.hullLostPct })]);
-    }
-  }
-  for (let i = 0; i < palier.criticals; i++) applyVesselCritical(get, set, rollShipCritical(localisationAleatoire(rng), rng));
-}
-
 /** Achève une traversée rapide (RÉ-ENTRANT) : une embuscade ANCRÉE (#212) non déclenchée INTERROMPT
  *  d'abord (le reste s'achève en rapide APRÈS le combat, la cascade `'voyage-rapide'` s'étant SUSPENDUE
  *  — resumée au teardown de combat, `resumeSuspendedCascade`) ; sinon
@@ -1223,8 +1187,8 @@ function finalizeFastVoyage(get: Get, set: Set): void {
       t('sv.fastResult', { die: formatDice(deDuVoyageRapide()), roll: String(fast.roll), weeks: fast.weeks, crewDR: `${crewDR >= 0 ? '+' : ''}${crewDR}`, manann: `${manannTens >= 0 ? '+' : ''}${manannTens}`, result: String(fast.result), palier: palier.label }),
       palier.desc,
     ]);
+    if (palier.consequence) jouerFlowEntier(runFlow(get, set, palier.consequence, palier.label));
   }
-  applyFastPalier(get, set, fast.palierId);
   patchSea(get, set, { fast: { ...fast, pendingFinalize: false } });
   // Eau douce des tonneaux (MDG 14 l.242) : POPULATION EMBARQUÉE (héros + effectif PNJ, `shipboardSouls`)
   // × régime médian × jours — MÊME couture que le détaillé (`continueSeaDayAfterCascade`), le voyage
@@ -2090,12 +2054,13 @@ function openPirateHail(get: Get, set: Set, b: SeaBoarding, fouille: boolean): v
  *
  *  Le coup à l'ÉQUIPAGE de la rangée (MDG 13 l.763) s'applique ICI, en voyage comme en combat :
  *  conséquence certaine appliquée, ÉPREUVE ouverte par la PORTE canonique (bande pour les héros
- *  tenus, voie inline sinon), sur les personnes exposées à bord (#1657 B3-2). */
-export function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolved): void {
+ *  tenus, voie inline sinon), sur les personnes exposées à bord (#1657 B3-2), sauf `equipageEpargne`
+ *  (MDG 15 l.49-51). */
+export function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolved, equipageEpargne?: true): void {
   const vessel = get().vessel;
   if (vessel) set({ vessel: { ...vessel, criticals: [...(vessel.criticals ?? []), crit.note] } });
   tell(get, set, [`${crit.log}`, `→ ${crit.note}`]);
-  if (!crit.crewHit) return;
+  if (!crit.crewHit || equipageEpargne) return;
   const coque = get().travelPlan?.vehicle;
   if (!coque) return;
   const equipage = exposedCrew(get().party);

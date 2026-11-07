@@ -1017,6 +1017,8 @@ const optionsDeFormule = (soi: z.ZodType<unknown>, avecJet: boolean): z.ZodType<
   marquerProduit(nommerChamps(z.strictObject({ stacks: z.literal('self') }), { stacks: { label: "cumuls" } }), 'optionsDeFormule', 'stacks'),
   marquerProduit(nommerChamps(z.strictObject({ engagedAdvantageGap: z.literal(true) }), { engagedAdvantageGap: { label: "écart d’Avantage au contact" } }), 'optionsDeFormule', 'engagedAdvantageGap'),
   marquerProduit(nommerChamps(z.strictObject({ woundsDealt: z.literal(true) }), { woundsDealt: { label: "Blessures infligées" } }), 'optionsDeFormule', 'woundsDealt'),
+  // MDG 15 l.33.
+  marquerProduit(nommerChamps(z.strictObject({ blessuresMax: z.literal(true) }), { blessuresMax: { label: "Blessures maximales" } }), 'optionsDeFormule', 'blessuresMax'),
   // LDB 09 l.97.
   ...(avecJet ? [marquerProduit(nommerChamps(z.strictObject({ sl: z.literal(true) }), { sl: { label: "DR" } }), 'optionsDeFormule', 'sl')] : []),
   marquerProduit(nommerChamps(z.strictObject({ rule: refRegleOptionnelle }), { rule: { label: "règle" } }), 'optionsDeFormule', 'rule'),
@@ -1030,7 +1032,7 @@ const optionsDeFormule = (soi: z.ZodType<unknown>, avecJet: boolean): z.ZodType<
 ];
 
 /** `Formula` (`src/engine/ops.ts`) — quantité résolue à l'application (littéral/dés/bonus/Indice/
- *  jet-associé/pions/écart d'Avantage/Blessures/somme/facteur/borne basse/tranches). Resserré ici sur `CharKey`
+ *  jet-associé/pions/écart d'Avantage/Blessures infligées/Blessures maximales/somme/facteur/borne basse/tranches). Resserré ici sur `CharKey`
  *  (fidèle à `src/engine/ops.ts`), sans risque pour les datasets (vérifié au parse). */
 export const formulaSchema: z.ZodType<unknown> = z.lazy(() => z.union(optionsDeFormule(formulaSchema, true) as [z.ZodType<unknown>, ...z.ZodType<unknown>[]]));
 

@@ -83,7 +83,6 @@ interface ParametresDeBord {
     diseaseChancePct: number; ratAttacks: QuantiteTiree; ratCC: number; ratWeapon: number;
   };
   'vaisseau-pestifere': { cargoCrates: QuantiteTiree; biscuitDays: QuantiteTiree; waterBarrels: QuantiteTiree; co: QuantiteTiree; resistDifficulty: Difficulty };
-  rien: SansParametre;
   'autres-voyageurs': SansParametre;
   'ile-inconnue': SansParametre;
 }
@@ -95,7 +94,6 @@ interface ParametresDePort {
   'controle-a-quai': { taxPct: number; bribeDifficulty: Difficulty; bribeCO: QuantiteTiree };
   'tache-noire': SansParametre;
   penuries: SansParametre;
-  rien: SansParametre;
   'constructeur-itinerant': { metier: Record<string, number>; daysPerJob: QuantiteTiree };
   'offre-suspecte': { maxEnc: number; discountPct: number };
   'rumeurs-commerciales': { gossipDifficulty: Difficulty; demandBonus: number; days: QuantiteTiree };
@@ -118,16 +116,9 @@ export type EvenementDeBord = EvenementDe<ParametresDeBord> | RangeeEnGrammaire;
 export type EvenementDePort = EvenementDe<ParametresDePort> | RangeeEnGrammaire;
 export type SeaEventDef = EvenementDeBord | EvenementDePort;
 
-/** Palier du VOYAGE RAPIDE (l.33-37) : cran du dé de sa table, conséquences en % + Coups Critiques. */
-export interface FastVoyagePalier extends BandeOuverte {
-  id: string;
-  label: string;
-  desc: string;
-  crewLostPct: number;
-  cargoLostPct: number;
-  hullLostPct: number;
-  criticals: number;
-}
+/** Palier du VOYAGE RAPIDE (l.33-37) : cran du dé de sa table ; sa `consequence` (`runFlow`), absente pour un
+ *  palier sans perte. */
+export type FastVoyagePalier = BandeOuverte & { id: string; label: string; desc: string; consequence?: Flow };
 
 const EVENTS = seaEventsJson as unknown as {
   manann: { base: number; portEventMod: number; factors: ManannFactor[] };
@@ -244,10 +235,8 @@ export function rollDaysToNextEvent(rng: RNG): number {
   return d10(rng);
 }
 
-/** Événement de bord NOMMÉ (par `id`, sinon par `kind` — plusieurs événements peuvent partager un kind,
- *  ex. `infestation` = rats / rats géants). Pour forcer un tirage en recette (#332). */
-export const seaBoardEventById = (idOrKind: string): EvenementDeBord | undefined =>
-  BOARD_EVENTS.find((e) => e.id === idOrKind) ?? BOARD_EVENTS.find((e) => e.kind === idOrKind);
+/** Événement de bord NOMMÉ par son `id`. Pour forcer un tirage en recette (#332). */
+export const seaBoardEventById = (id: string): EvenementDeBord | undefined => BOARD_EVENTS.find((e) => e.id === id);
 
 type DuGenre<E extends SeaEventDef, K extends NonNullable<E['kind']>> = Extract<E, { kind: K }>;
 

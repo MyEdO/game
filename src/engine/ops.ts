@@ -128,6 +128,9 @@ export type FormuleDe<J> =
    *  Condition `woundsDealt`. Absorption « Toute attaque qui touche la créature inflige une quantité ÉGALE
    *  de Dégâts à la victime absorbée » (EDO 11 l.222) : `wounds { amount: { woundsDealt: true } }`. 0 hors contexte. */
   | { woundsDealt: true }
+  /** BLESSURES MAXIMALES du référent (`wounds.max`) — « Le vaisseau perd 75 % de ses Blessures » (MDG 15
+   *  l.33) s'écrit `{parTranche:4, of:{times:{of:{blessuresMax:true}, factor:3}}}`. 0 sans combattant. */
+  | { blessuresMax: true }
   /** SOMME de termes (composition) — « 1d10 + (pions − 1) » des Dégâts d'En Flammes (LDB 16 l.84). Permet
    *  d'authorer une formule composée sans coder en dur l'addition au moteur. Récursif. */
   | { sum: FormuleDe<J>[] }
@@ -182,7 +185,7 @@ export function avantageDeCampSansFiche(avant: number, ops: readonly GameOp[], p
 /** Clés reconnues d'une `Formula` OBJET — SOURCE UNIQUE, alignée sur l'union `Formula` et sur les
  *  branches de `resolveFormula`. Réutilisée par le garde-fou d'intégrité des données
  *  (`src/data/data-wellformed.test.ts`) pour valider les champs Formula des `GameOp` sans re-coder la liste. */
-export const FORMULA_OBJECT_KEYS = ['bonusOf', 'charOf', 'dice', 'rolled', 'indiceOf', 'stacks', 'engagedAdvantageGap', 'woundsDealt', 'sl', 'rule', 'sum', 'times', 'minimum', 'parTranche'] as const;
+export const FORMULA_OBJECT_KEYS = ['bonusOf', 'charOf', 'dice', 'rolled', 'indiceOf', 'stacks', 'engagedAdvantageGap', 'woundsDealt', 'blessuresMax', 'sl', 'rule', 'sum', 'times', 'minimum', 'parTranche'] as const;
 
 /** Une valeur est-elle une `Formula` VALIDE — résoluble par `resolveFormula` sans planter ? `number` FINI,
  *  ou objet portant exactement une clé connue (`sum` récursif). PUR. Rejette une string (un `'$indice'`
@@ -1213,8 +1216,9 @@ export type GameOp =
   | { op: 'manann'; delta: EffetSigne; factorId?: never }
   | { op: 'manann'; factorId: string; delta?: never }
   /** COUPS CRITIQUES de coque : `count` Critiques sur `location`, ou sur une localisation tirée
-   *  (`aleatoire`). Op de NAVIRE. MDG 15 l.153 */
-  | { op: 'shipCritical'; location: ShipCritKey | 'aleatoire'; count: Formula }
+   *  (`aleatoire`) ; `equipageEpargne` ignore les Dégâts qu'ils infligent à l'équipage. Op de NAVIRE.
+   *  MDG 15 l.153, l.49-51 */
+  | { op: 'shipCritical'; location: ShipCritKey | 'aleatoire'; count: Formula; equipageEpargne?: true }
   /** MODIFICATEUR du navire : `m` au Mouvement, `manDR` en DR aux Tests de Manœuvre, `evite` les périls que le
    *  navire ne heurte pas (op `perilDeMer`), jusqu'au carénage (`carenage`), jusqu'au prochain événement de
    *  bord (`evenementDeBord`) ou pendant `jours` jours. Op de NAVIRE. MDG 15 l.184-185, l.187-188, l.228, l.229 */
@@ -1225,14 +1229,17 @@ export type GameOp =
    *  MDG 15 l.189, l.196-197, l.199, l.219, l.226-227, l.248, l.257 */
   | { op: 'meteoImposee'; jours: Formula; meteo?: Partial<SeaWeather>; ventInverse?: true; aggravation?: AggravationMeteo }
   /** CARGAISON chargée dans la cale du navire : `enc` Enc d'une cargaison tirée au hasard pour la saison, à
-   *  son prix de base ; OU `perteAuDechargement` Enc perdus du prochain lot déchargé dans ce port. Op de
-   *  NAVIRE. MDG 15 l.209-210, l.224-225, l.250 */
-  | { op: 'cargaison'; enc: Formula; perteAuDechargement?: never }
-  | { op: 'cargaison'; perteAuDechargement: Formula; enc?: never }
+   *  son prix de base ; OU `perteAuDechargement` Enc perdus du prochain lot déchargé dans ce port ; OU
+   *  `perduePct` % de l'Enc de la cale perdus. Op de NAVIRE. MDG 15 l.209-210, l.224-225, l.250, l.33-36 */
+  | { op: 'cargaison'; enc: Formula; perteAuDechargement?: never; perduePct?: never }
+  | { op: 'cargaison'; perteAuDechargement: Formula; enc?: never; perduePct?: never }
+  | { op: 'cargaison'; perduePct: number; enc?: never; perteAuDechargement?: never }
   /** ÉQUIPAGE du navire : `delta` marins (négatif : perdus ; positif : recueillis, dans la limite de
    *  l'effectif nominal) ; le recueilli qui tient un rôle d'équipage (`role`) entre au rôle, sans solde
-   *  jusqu'au prochain port (`sansSolde`). Op de NAVIRE. MDG 15 l.202-204, l.213-218, l.258 */
-  | { op: 'equipage'; delta: Formula; role?: { id: Id<'crewRole'> }; sansSolde?: 'jusquAuPort' }
+   *  jusqu'au prochain port (`sansSolde`). OU `perdusPct` % des PNJ de l'équipage à bord perdus. Op de
+   *  NAVIRE. MDG 15 l.202-204, l.213-218, l.258, l.33-35 */
+  | { op: 'equipage'; delta: Formula; role?: { id: Id<'crewRole'> }; sansSolde?: 'jusquAuPort'; perdusPct?: never }
+  | { op: 'equipage'; perdusPct: number; delta?: never; role?: never; sansSolde?: never }
   /** PROVISIONS de bord : `jours` jours de vivres de l'équipage gagnés, OU `gateesPct` % des provisions à
    *  bord gâtées (cale et rations des héros), exclusifs. Op de NAVIRE. MDG 15 l.169-170, l.235-236 */
   | { op: 'provisions'; jours: Formula; gateesPct?: never }
