@@ -1022,6 +1022,24 @@
     }
   },
   {
+    "id": "sea-passager-clandestin",
+    "type": "stakes",
+    "label": "Repérer le passager clandestin",
+    "cascade": "voyage",
+    "cle": "sea-passager-clandestin",
+    "template": "Repéré, le passager clandestin l’est avant de repartir ; sinon, sa présence se découvre en voyage.",
+    "form": "descripteur",
+    "rule": {
+      "id": "perception",
+      "type": "skill"
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 133,
+      "note": "MDG 15 l.258"
+    }
+  },
+  {
     "id": "stage-weather",
     "type": "stakes",
     "label": "Météo de l'Étape",

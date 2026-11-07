@@ -19,6 +19,7 @@ import { actorIn, inBattleId } from './monde/combatants';
 import { campGain } from './combat/advantagePool';
 import { markActed } from './combatFlow';
 import { reprendreTestSubi } from './combat/triggeredTest';
+import { poursuivreLAccostage } from './seaVoyageFlow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { garanti } from '../lib/garanti';
 import type { Cloture, PendingExtendedTest } from './pendings';
@@ -180,6 +181,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
       FLOWS.test.apply(get);
       // Le Test EST une cascade-hôte à une étape (rendu par CascadeModal) : on ferme LES DEUX avant de
       // lancer la branche (qui peut ouvrir d'autres pendings — combat, autre Test…).
+      const accostage = get().pendingCascade?.portArrival;
       set({ pendingTest: null, pendingCascade: null });
       const actor = get().party.find((c) => c.id === pt.actorId);
       const tool = pt.itemUid ? actor?.items?.find((i) => i.uid === pt.itemUid) : undefined;
@@ -224,6 +226,8 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
       if (!effSuccess && !pt.noOwnTestFailed) clotures.push({ verbe: 'testRateDeLActeur', actorId: pt.actorId, sl: pt.sl });
       if (pt.dialogueNext) clotures.push({ verbe: 'dialogueSuivant', transition: pt.dialogueNext });
       cloturer(get, set, issue, clotures);
+      // Le Test d'un événement d'escale ferme sa cascade sans `dispatchCascadeDone` : l'accostage qu'elle portait suit la branche.
+      if (accostage) poursuivreLAccostage(get, set, accostage);
     },
   } satisfies Partial<CloturesDuJet>;
 }

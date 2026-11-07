@@ -32,7 +32,7 @@ import { simpleTriggeredTestStep, withDerivedStake } from './combat/triggeredTes
 import { effectSourcesOf } from './triggeredEffects';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW } from '../engine/flowCore';
-import { BOARD_EVENTS } from '../engine/seaVoyage';
+import { BOARD_EVENTS, PORT_EVENTS } from '../engine/seaVoyage';
 import { noeudsDeTest, KIND_PAR_FICHIER } from './noeudsDeTest.testkit';
 import { resolveStake, findById, combatStakeRef, regles, type StakeRef } from '../data';
 import { ACTIVITIES } from '../engine/activities';
@@ -73,9 +73,9 @@ const ENJEU_AU_PRODUCTEUR: Record<string, () => { entryId: string; stake: StakeR
   // catégories Codex de coque choisies à la LOCALISATION touchée, jamais le document-table.
   'river-criticals.json': () => enjeuxDesCoupsAEquipage(RIVER_CRIT_SET),
   'ship-criticals.json': () => enjeuxDesCoupsAEquipage(SHIP_CRIT_SET),
-  // `consequence` d'un événement de bord : le document est la TABLE (`sea-events`), le foyer est la
+  // `consequence` d'un événement de bord ou d'escale : le document est la TABLE (`sea-events`), le foyer est la
   // RANGÉE, que l'enjeu authoré nomme (`entryId`) ; `runFlow` le passe tel quel à la porte du Test.
-  'sea-events.json': () => BOARD_EVENTS.flatMap((e) => noeudsTestDe(e.consequence).map((n) => ({ entryId: e.id, stake: n.test.stake }))),
+  'sea-events.json': () => [...BOARD_EVENTS, ...PORT_EVENTS].flatMap((e) => noeudsTestDe(e.consequence).map((n) => ({ entryId: e.id, stake: n.test.stake }))),
 };
 
 /** Les nœuds `test` d'un Flow, dans l'ordre. */
