@@ -313,7 +313,7 @@ export function Inspector({
     if (architectureBody) setScene(patchRoofExclusion(scene, architectureBody.id, i, patch));
   };
   const addExclusion = () => {
-    if (architectureBody) setScene(addRoofExclusion(scene, architectureBody.id, architectureStorey?.z ?? 0));
+    if (architectureBody) setScene(addRoofExclusion(scene, architectureBody.id, architectureStorey?.z ?? 0, { x: 0, y: 0, w: 2, h: 2 }));
   };
   const removeExclusion = (i: number) => {
     if (architectureBody) setScene(removeRoofExclusion(scene, architectureBody.id, i));

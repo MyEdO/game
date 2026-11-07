@@ -79,11 +79,11 @@ export function poseToitureDuCorps(scene: Scene, bodyId: string, champ: keyof Ro
 
 type ExclusionDeToiture = NonNullable<ArchitectureBody['roofExclusions']>[number];
 
-/** Ajoute au corps une exclusion de toiture 2×2 en (0,0), à l'étage `z`, et re-dérive ses masses. */
-export function addRoofExclusion(scene: Scene, bodyId: string, z: number): Scene {
+/** Ajoute au corps une exclusion de toiture sur `rect` (plafonné à la carte), à l'étage `z`, et re-dérive ses masses. */
+export function addRoofExclusion(scene: Scene, bodyId: string, z: number, rect: Rect): Scene {
   return rederiveRoofMasses(updateArchitectureBody(scene, bodyId, (body) => ({
     ...body,
-    roofExclusions: [...(body.roofExclusions ?? []), { z, rect: boundedRect(scene, { x: 0, y: 0, w: 2, h: 2 }) }],
+    roofExclusions: [...(body.roofExclusions ?? []), { z, rect: boundedRect(scene, rect) }],
   })));
 }
 

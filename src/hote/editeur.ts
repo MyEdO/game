@@ -15,7 +15,7 @@ import {
   assoirALaPlace, findVehicleById, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
   DIFFICULTY_LABELS, FACES_D_ARETE, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
-  BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
+  ACTIONS_D_ARCHITECTURE, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
   type WallPaint, ZONE_VARIANTS,
 } from '../noyau/index';
@@ -186,16 +186,13 @@ function entreeDeLaSelection(s: SessionDEdition): { nom: string; x: number; y: n
 
 /** Les options de l'outil d'architecture de la session `s`, à l'action `action` : le corps actif parmi ceux de la
  *  scène, sélectionner ou poser une façade (refusée sans corps), et chaque ouvrage à bâtir, refusé avec sa raison. */
-function optionsDArchitecture(s: SessionDEdition, action: 'select' | 'facade'): (Choix | Bouton)[] {
+function optionsDArchitecture(s: SessionDEdition, action: (typeof ACTIONS_D_ARCHITECTURE)[number]): (Choix | Bouton)[] {
   const corps = sceneEditee(s).architecture ?? [];
   const actif = corpsActif(s);
-  const outil = (a: 'select' | 'facade'): GesteDEdition => ({ geste: 'outil', outil: { mode: 'architecture', action: a } });
   return [
     ...(corps.length ? [choix('corps', t('ecran.editeur.corps'), corps.map((c) => bouton(`corps/${c.id}`, c.label ?? c.id, { geste: 'corps', id: c.id }, c.id === actif?.id)))] : []),
-    choix('architecture/action', t('ecran.editeur.architecture.action'), [
-      bouton('architecture/select', t('ecran.editeur.architecture.select'), outil('select'), action === 'select'),
-      bouton('architecture/facade', t('ecran.editeur.architecture.facade'), outil('facade'), action === 'facade', actif ? null : t('ecran.editeur.ouvrage.refus.sansCorps')),
-    ]),
+    choix('architecture/action', t('ecran.editeur.architecture.action'), ACTIONS_D_ARCHITECTURE.map((a) =>
+      bouton(`architecture/${a}`, t(`ecran.editeur.architecture.${a}`), { geste: 'outil', outil: { mode: 'architecture', action: a } }, action === a, a === 'select' || actif ? null : t('ecran.editeur.ouvrage.refus.sansCorps')))),
     ...OUVRAGES.map((o) => {
       const refus = refusDOuvrage(s, o);
       return bouton(`batir/${o}`, t(`ecran.editeur.ouvrage.${o}`), { geste: 'batir', ouvrage: o }, false, refus && t(`ecran.editeur.ouvrage.refus.${refus}`));
@@ -466,6 +463,7 @@ function inspecteurDArchitecture(s: SessionDEdition): (Choix | Ligne | Bouton | 
         ...styles.map((m) => bouton(`corps/style/${m.id}`, m.label, { geste: 'architecture', patch: { style: m.id } }, corps.style === m.id)),
       ], 'liste'),
       ligne('corps/etages', t('ecran.editeur.corps.etages', { n: corps.storeys.length, s: pluriel(corps.storeys.length) })),
+      ...toitureDuCorps(scene, corps),
       supprimer(),
     ];
   }
@@ -482,11 +480,93 @@ function inspecteurDArchitecture(s: SessionDEdition): (Choix | Ligne | Bouton | 
     ];
   }
   if (sel?.type === 'facadeSection' && corps) return [...inspecteurDeFacade(scene, corps, corps.facades.find((f) => f.id === sel.id)!), supprimer()];
-  if (sel?.type === 'architecturePart' || sel?.type === 'roofSection') return [ligne('architecture/poignee', t('ecran.editeur.zone.poignee')), supprimer()];
+  if (sel?.type === 'roofSection' && corps) return [ligne('architecture/poignee', t('ecran.editeur.zone.poignee')), ...reglagesDeLaMasse(corps, corps.masses.find((m) => m.id === sel.id)!), supprimer()];
+  if (sel?.type === 'architecturePart') return [ligne('architecture/poignee', t('ecran.editeur.zone.poignee')), supprimer()];
   return [];
 }
 
-/** Le pas des réglettes de position et de largeur d'une ouverture, en fraction de l'arête. */
+/** Les pas des réglettes de la pente d'un toit, en degrés, du comble d'un corps et des niveaux d'une masse. */
+const PAS_DE_PENTE: Pas = { pas: 5, unite: '°', ...PENTE_TOIT_DEG };
+const PAS_D_ETAGE: Pas = { pas: 1, unite: '', min: 1, max: Infinity };
+const COTES_D_EGOUT = ['N', 'E', 'S', 'O'] as const;
+
+type Corps = NonNullable<ReturnType<typeof corpsActif>>;
+type Toiture = NonNullable<Extract<GesteDEdition, { geste: 'architecture' }>['patch']['toiture']>;
+type ReglageDeMasse = NonNullable<Extract<GesteDEdition, { geste: 'architecture' }>['patch']['masse']>;
+
+/** Le pas d'une réglette, l'unité qu'affichent ses boutons (le pas multiplié par `facteur`), et ses bornes. */
+interface Pas { pas: number; unite: string; facteur?: number; min: number; max: number }
+
+/** Une réglette `id` : sa ligne `texte`, moins et plus au pas `p` depuis `v` (au centième), chacun jouant `jeu` de la
+ *  valeur visée, refusés à la borne, et, si `defaut` est donné, son bouton `libelle`, qui joue `jeu`, pressé quand la
+ *  valeur est le défaut. */
+function reglette(id: string, texte: string, v: number, p: Pas, jeu: (v: number) => GesteDEdition, defaut?: { libelle: string; jeu: GesteDEdition; presse: boolean }): (Ligne | Bouton)[] {
+  const vers = (sens: number) => Math.min(p.max, Math.max(p.min, Math.round((v + sens * p.pas) * 100) / 100));
+  const affiche = { pas: Math.round(p.pas * (p.facteur ?? 1) * 100) / 100, unite: p.unite };
+  return [
+    ligne(id, texte),
+    bouton(`${id}/moins`, t('ecran.editeur.reglette.moins', affiche), jeu(vers(-1)), false, v <= p.min ? t('ecran.editeur.reglette.auMinimum') : null),
+    bouton(`${id}/plus`, t('ecran.editeur.reglette.plus', affiche), jeu(vers(1)), false, v >= p.max ? t('ecran.editeur.reglette.auMaximum') : null),
+    ...(defaut ? [bouton(`${id}/defaut`, defaut.libelle, defaut.jeu, defaut.presse)] : []),
+  ];
+}
+
+/** Le choix du côté d'égout bas d'un appentis : à déclarer (`null`), ou chacun des quatre côtés. */
+const choixDEgout = (id: string, cote: string | undefined, jeu: (c: (typeof COTES_D_EGOUT)[number] | null) => GesteDEdition): Choix =>
+  choix(id, t('ecran.editeur.toiture.egout'), [null, ...COTES_D_EGOUT].map((c) => bouton(`${id}/${c ?? 'aucun'}`, t(`ecran.editeur.toiture.egout.${c ?? 'aucun'}`), jeu(c), (cote ?? null) === c)));
+
+/** La couverture `material` : le bouton qui la fait suivre, s'il est donné (pressé sans couverture), puis chaque matière
+ *  couvrante. */
+const choixDeCouverture = (id: string, material: string | undefined, jeu: (m: string) => GesteDEdition, suit: GesteDEdition | null): Choix =>
+  choix(id, t('ecran.editeur.toiture.couverture'), [
+    ...(suit ? [bouton(`${id}/suit`, t('ecran.editeur.toiture.suit'), suit, material === undefined)] : []),
+    ...matieresCouvrantes().map((m) => bouton(`${id}/${m.id}`, m.label, jeu(m.id), material === m.id)),
+  ], 'liste');
+
+/** La toiture du corps `corps` : celle qui s'applique, puis chaque champ de son intention, profil, côté d'égout d'un
+ *  appentis, pente, comble et couverture, chacun réglé ou suivant (`toitureEffective`) ; ses exclusions, chacune à
+ *  retirer. */
+function toitureDuCorps(scene: Scene, corps: Corps): (Choix | Ligne | Bouton)[] {
+  const effective = toitureEffective(scene, corps);
+  const rd = corps.roofDefaults;
+  const sur = (toiture: Toiture): GesteDEdition => ({ geste: 'architecture', patch: { toiture } });
+  const couverture = matieresCouvrantes().find((m) => m.id === effective.material)?.label ?? effective.material;
+  return [
+    ligne('toiture', t('ecran.editeur.toiture', { couverture, pente: effective.penteReference, comble: effective.riseMaxStoreys })),
+    choix('toiture/profil', t('ecran.editeur.toiture.profil'), [
+      bouton('toiture/profil/suit', t('ecran.editeur.toiture.suitLaPortee'), sur({ profile: null }), rd?.profile === undefined),
+      ...PROFILS_DE_TOIT.map(([p, libelle]) => bouton(`toiture/profil/${p}`, libelle, sur({ profile: p }), rd?.profile === p)),
+    ], 'liste'),
+    ...(effective.profile === 'shed' ? [choixDEgout('toiture/egout', rd?.eaveSide, (c) => sur({ eaveSide: c }))] : []),
+    ...reglette('toiture/pente', t('ecran.editeur.toiture.pente', { v: rd?.pitchDeg ?? effective.penteReference }), rd?.pitchDeg ?? effective.penteReference, PAS_DE_PENTE,
+      (v) => sur({ pitchDeg: v }), { libelle: t('ecran.editeur.toiture.suit'), jeu: sur({ pitchDeg: null }), presse: rd?.pitchDeg === undefined }),
+    ...reglette('toiture/comble', t('ecran.editeur.toiture.comble', { v: effective.riseMaxStoreys }), effective.riseMaxStoreys, PAS_D_ETAGE,
+      (v) => sur({ riseMaxStoreys: v }), { libelle: t('ecran.editeur.toiture.suit'), jeu: sur({ riseMaxStoreys: null }), presse: rd?.riseMaxStoreys === undefined }),
+    choixDeCouverture('toiture/couverture', rd?.material, (m) => sur({ material: m }), sur({ material: null })),
+    ...(corps.roofExclusions ?? []).flatMap((ex, i) => [
+      ligne(`toiture/exclusion/${i}`, t('ecran.editeur.toiture.exclusion', { ...ex.rect, z: ex.z })),
+      bouton(`toiture/exclusion/${i}/retirer`, t('ecran.editeur.toiture.exclusion.retirer'), { geste: 'architecture', patch: { retirerExclusion: i } }),
+    ]),
+  ];
+}
+
+/** Les réglages de la masse de toiture `masse` du corps `corps` : son étage sommet, ses niveaux, son profil, l'axe de
+ *  son faîtage, le côté d'égout d'un appentis, sa pente et sa couverture. */
+function reglagesDeLaMasse(corps: Corps, masse: Corps['masses'][number]): (Choix | Ligne | Bouton)[] {
+  const sur = (m: ReglageDeMasse): GesteDEdition => ({ geste: 'architecture', patch: { masse: m } });
+  return [
+    choix('masse/couche', t('ecran.editeur.masse.sommet'), corps.storeys.map((e) => e.z).sort((a, b) => a - b)
+      .map((z) => bouton(`masse/couche/${z}`, t('ecran.editeur.couche', { z }), { geste: 'architecture', patch: { z } }, masse.z === z))),
+    ...reglette('masse/niveaux', t('ecran.editeur.masse.niveaux', { v: masse.levels }), masse.levels, PAS_D_ETAGE, (v) => sur({ levels: v })),
+    choix('masse/profil', t('ecran.editeur.toiture.profil'), PROFILS_DE_TOIT.map(([p, libelle]) => bouton(`masse/profil/${p}`, libelle, sur({ profile: p }), masse.profile === p)), 'liste'),
+    choix('masse/faitage', t('ecran.editeur.masse.faitage'), ([null, 'x', 'y'] as const).map((a) => bouton(`masse/faitage/${a ?? 'auto'}`, t(`ecran.editeur.masse.faitage.${a ?? 'auto'}`), sur({ ridge: a }), (masse.ridge ?? null) === a))),
+    ...(masse.profile === 'shed' ? [choixDEgout('masse/egout', masse.eaveSide, (c) => sur({ eaveSide: c }))] : []),
+    ...reglette('masse/pente', t('ecran.editeur.toiture.pente', { v: masse.pitchDeg }), masse.pitchDeg, PAS_DE_PENTE, (v) => sur({ pitchDeg: v })),
+    choixDeCouverture('masse/couverture', masse.material, (m) => sur({ material: m }), null),
+  ];
+}
+
+/** Le pas des réglettes de position et de largeur d'une ouverture, en fraction de l'arête, affiché en pourcents. */
 const PAS_D_OUVERTURE = 0.05;
 
 /** L'inspecteur de la façade `facade` du corps `corps` : son apparence en liste, son étage parmi ceux du corps, chacune
@@ -500,21 +580,16 @@ function inspecteurDeFacade(scene: Scene, corps: NonNullable<ReturnType<typeof c
   const ouvertures = (facade.features ?? []).flatMap((o) => {
     const id = `baie/${o.id}`;
     const jeu = (patch: Extract<GesteDEdition, { geste: 'baie' }>['patch']): GesteDEdition => ({ geste: 'baie', id: o.id, patch });
-    const reglette = (cle: 'offset' | 'width', champ: 'position' | 'largeur') => {
+    const regler = (cle: 'offset' | 'width', champ: 'position' | 'largeur') => {
       const v = o[cle] ?? DEFAUTS_D_OUVERTURE[cle];
-      const { min, max } = BORNES_D_OUVERTURE[cle];
-      const pas = (sens: number) => Math.round((v + sens * PAS_D_OUVERTURE) * 100) / 100;
-      return [
-        ligne(`${id}/${champ}`, t(`ecran.editeur.baie.${champ}`, { v: Math.round(v * 100) }) + (o[cle] === undefined ? ` ${t('ecran.editeur.baie.defaut')}` : '')),
-        bouton(`${id}/${champ}/moins`, '−', jeu({ [champ]: pas(-1) }), false, v <= min ? t('ecran.editeur.baie.borne') : null),
-        bouton(`${id}/${champ}/plus`, '+', jeu({ [champ]: pas(1) }), false, v >= max ? t('ecran.editeur.baie.borne') : null),
-        bouton(`${id}/${champ}/defaut`, t('ecran.editeur.baie.auDefaut'), jeu({ [champ]: null }), o[cle] === undefined),
-      ];
+      const texte = t(`ecran.editeur.baie.${champ}`, { v: Math.round(v * 100) }) + (o[cle] === undefined ? ` ${t('ecran.editeur.baie.defaut')}` : '');
+      return reglette(`${id}/${champ}`, texte, v, { pas: PAS_D_OUVERTURE, unite: ' %', facteur: 100, ...BORNES_D_OUVERTURE[cle] }, (x) => jeu({ [champ]: x }),
+        { libelle: t('ecran.editeur.baie.auDefaut'), jeu: jeu({ [champ]: null }), presse: o[cle] === undefined });
     };
     return [
       choix(`${id}/sorte`, t('ecran.editeur.baie', { id: o.id }), SORTES_D_OUVERTURE.map(([k, libelle]) => bouton(`${id}/sorte/${k}`, libelle, jeu({ sorte: k }), o.kind === k)), 'liste'),
-      ...reglette('offset', 'position'),
-      ...reglette('width', 'largeur'),
+      ...regler('offset', 'position'),
+      ...regler('width', 'largeur'),
       bouton(`${id}/retirer`, t('ecran.editeur.baie.retirer'), jeu(null)),
     ];
   });

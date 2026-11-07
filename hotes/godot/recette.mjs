@@ -75,7 +75,12 @@
 //   l'outil Sélection, un clic sur une case libre puis « Coller » y pose la copie, nommée de même ; à l'inspecteur de la
 //   copie, « Source de lumière » l'allume à 6 m, « Rayon +1 m » la porte à 7 m. L'outil Emplacement de siège, un clic sur
 //   une case libre y pose le premier engin, nommé comme lui ; « Droite (tribord) » fixe son créneau. L'outil Sélection,
-//   un clic sur une case libre vide la sélection.
+//   un clic sur une case libre vide la sélection. L'outil Zone, une pièce tirée de deux cases sur deux, nommée et munie de
+//   sa poignée ; l'outil Sélection, la poignée glissée l'agrandit, « Supprimer » la retire. L'outil Architecture, un clic
+//   sur une case libre puis « Nouveau corps » y pose un corps, dont l'inspecteur dit la toiture ; « Poser une façade »,
+//   un clic sur le côté nord de la case y pose une façade, « Ajouter une ouverture » lui en donne une ; « Tirer une
+//   exclusion de toiture », un rectangle tiré à côté l'ajoute au corps ; un clic sur la case puis « Nouvelle masse de
+//   toiture » y pose une masse, que « +1 » monte à deux niveaux.
 //   « Charger une planche… » ouvre le choix d'un fichier de la page, que la recette remplit d'une planche quadrillée : le
 //   calque se pose sur toute la carte ; « Caler par deux points », puis le centre d'une case comme premier point de
 //   l'image, son coin comme son nœud, et le centre de la case quatre plus loin comme second point, le coin de la case
@@ -995,7 +1000,7 @@ async function parcoursEditeur() {
   noter(`éditeur ouvert : ${e.zones['editeur.titre'][0].texte}, couches ${e.zones['editeur.couches'][0].valeurs.map((b) => b.libelle).join(', ')}`)
   await capturer('3508-l1-1-ouverte')
   for (const id of ['outil/height', 'hauteur/haute', 'pinceau/3']) {
-    await cliquerBouton({ element: `bouton/${id}` })
+    await cliquerAuPanneau({ element: `bouton/${id}` })
     assert.equal(boutonDeLEditeur(await editeur(), id)?.presse, true, `${id} choisi à son bouton`)
   }
   const cases = (await ecran()).cases
@@ -1027,19 +1032,19 @@ async function parcoursEditeur() {
   const fichiers = MANUSCRITS.map((rel) => join(dossierDesProjetsLivres(depot), rel))
   const lus = () => fichiers.map((f) => readFileSync(f, 'utf8'))
   const avantLEnregistrement = lus()
-  await cliquerBouton({ element: 'bouton/enregistrer' })
+  await cliquerAuPanneau({ element: 'bouton/enregistrer' })
   await waitFor(session, `Object.values(globalThis.wfrpEcran?.editeur?.zones ?? {}).flat().some((el) => el.id === 'enregistrer' && el.refus === 'Rien à enregistrer')`)
   const ecrits = lus().filter((texte, i) => texte !== avantLEnregistrement[i])
   assert.equal(ecrits.length, 1, '« Enregistrer » écrit la carte au dépôt')
   noter(`« Enregistrer » : ${MANUSCRITS[lus().findIndex((texte, i) => texte !== avantLEnregistrement[i])]} écrit (${ecrits[0].length} caractères), puis rien à enregistrer`)
-  await cliquerBouton({ element: 'bouton/annuler' })
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
   await waitFor(session, `Math.abs(globalThis.wfrpEcran?.cases['${x0 + 2},${y0}'][1] - ${avant[1]}) < 0.5`)
   noter('« Annuler » : la surface revient à sa place')
   const aretes = (await editeur()).aretes
   const [ax, ay] = cases[`${x0},${y0}`]
   const [bx, by] = cases[`${x0 + 1},${y0}`]
   const cote = [(ax + bx) / 2, (ay + by) / 2]
-  await cliquerBouton({ element: 'bouton/outil/wall' })
+  await cliquerAuPanneau({ element: 'bouton/outil/wall' })
   assert.equal(boutonDeLEditeur(await editeur(), 'arete/wall')?.presse, true, 'l’outil Murs pose une cloison')
   await cliquerPoint(...cote)
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.aretes === ${aretes + 1}`)
@@ -1052,20 +1057,20 @@ async function parcoursEditeur() {
   assert.match(choisie?.texte ?? '', /^Arête .* · couche 0 · mur · /, 'la sélection dit l’arête choisie')
   noter(`outil Sélection, même point : ${choisie.texte}, gainée`)
   await capturer('3508-l2-1-cloison-choisie')
-  await cliquerBouton({ element: 'bouton/arete/porte' })
+  await cliquerAuPanneau({ element: 'bouton/arete/porte' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.surcouche.arete?.piece.startsWith('porte-') === true`)
-  await cliquerBouton({ element: 'bouton/arete/fermee' })
+  await cliquerAuPanneau({ element: 'bouton/arete/fermee' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.surcouche.arete?.piece === 'porte-fermee'`)
   e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'arete/fermee')?.presse, true, 'la porte fermée au départ, à l’inspecteur')
   noter(`inspecteur : « Porte » puis « Fermée au départ » : ${e.zones['editeur.pointee'].find((l) => l.id === 'arete')?.texte}, ${e.aretes} arêtes`)
   await capturer('3508-l2-3-porte-fermee')
-  await cliquerBouton({ element: 'bouton/annuler' })
-  await cliquerBouton({ element: 'bouton/annuler' })
-  await cliquerBouton({ element: 'bouton/annuler' })
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.aretes === ${aretes} && globalThis.wfrpEcran.editeur.surcouche.arete === null`)
   noter('« Annuler » trois fois : la cloison retirée')
-  await cliquerBouton({ element: 'bouton/outil/stair' })
+  await cliquerAuPanneau({ element: 'bouton/outil/stair' })
   await cliquerPoint(ax, ay)
   await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.cases.length === 1')
   e = await editeur()
@@ -1074,18 +1079,18 @@ async function parcoursEditeur() {
   assert.equal(e.zones['editeur.options'].find((l) => l.id === 'plan')?.texte, poser.refus, 'la raison du refus, en clair au panneau')
   noter(`outil Volée, un clic : ${e.zones['editeur.options'].find((l) => l.id === 'trace')?.texte}, en surcouche ; « Poser la volée » refusé : ${poser.refus}`)
   await capturer('3508-l2-2-volee-tracee')
-  await cliquerBouton({ element: 'bouton/volee/effacer' })
+  await cliquerAuPanneau({ element: 'bouton/volee/effacer' })
   await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.cases.length === 0')
   noter('« Effacer le tracé » : la surcouche vide')
-  await cliquerBouton({ element: 'bouton/outil/crenellated' })
+  await cliquerAuPanneau({ element: 'bouton/outil/crenellated' })
   await cliquerPoint(ax, ay)
   await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.pointee'] ?? []).some((l) => l.id === 'crenelage')`)
   e = await editeur()
   noter(`outil Crénelage, un clic : ${e.zones['editeur.pointee'].find((l) => l.id === 'crenelage').texte}`)
-  await cliquerBouton({ element: 'bouton/annuler' })
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
   await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.pointee'] ?? []).length > 0 && !globalThis.wfrpEcran.editeur.zones['editeur.pointee'].some((l) => l.id === 'crenelage')`)
   noter('« Annuler » : la marque effacée')
-  await cliquerBouton({ element: 'bouton/outil/prop' })
+  await cliquerAuPanneau({ element: 'bouton/outil/prop' })
   e = await editeur()
   const catalogue = e.zones['editeur.options'].find((c) => c.id === 'decors').valeurs.find((b) => b.presse)
   /** Une case à l'écran sans repère à deux cases d'elle : aucun décor posé ne la couvre. */
@@ -1098,7 +1103,7 @@ async function parcoursEditeur() {
   assert.deepEqual([decor.sorte, decor.x, decor.y, decor.nom, e.noms[`${dx},${dy},0`]], ['prop', dx, dy, catalogue.libelle, catalogue.libelle], 'l’outil Décor pose le décor choisi sur la case cliquée, sélectionné, nommé au-dessus d’elle')
   noter(`outil Décor, un clic : ${e.zones['editeur.pointee'].find((l) => l.id === 'entite').texte}`)
   const champDuNom = async () => (await ecran()).saisies.find((x) => x.element === 'saisieTexte/nommer/nom')
-  for (let n = 0; (await champDuNom()).y > 480; n++) {
+  for (let n = 0; !((await champDuNom())?.y <= 480); n++) {
     assert.ok(n < 20, 'le champ du nom amené par la molette au milieu du panneau')
     await molette(session, { surface: 'canvas', x: 160, y: 400 }, 100)
     await sleep(250)
@@ -1110,7 +1115,7 @@ async function parcoursEditeur() {
   for (let n = 0; n < champ.texte.length; n++) await realKey(session, { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 })
   for (const lettre of 'Comptoir') await realKey(session, { key: lettre, code: `Key${lettre.toUpperCase()}`, windowsVirtualKeyCode: lettre.toUpperCase().charCodeAt(0) })
   await waitFor(session, `globalThis.wfrpEcran?.saisies.find((x) => x.element === 'saisieTexte/nommer/nom')?.texte === 'Comptoir'`)
-  await cliquerBouton({ element: 'formulaire/nommer' })
+  await cliquerAuPanneau({ element: 'formulaire/nommer' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.noms['${dx},${dy},0'] === 'Comptoir'`)
   noter(`« Renommer » : ${(await editeur()).zones['editeur.pointee'].find((l) => l.id === 'entite').texte}`)
   await capturer('3508-l3-1-decor-nomme')
@@ -1173,6 +1178,38 @@ async function parcoursEditeur() {
   await cliquerAuPanneau({ element: 'bouton/zone/supprimer' })
   await waitFor(session, '!globalThis.wfrpEcran?.editeur?.surcouche.zones.some((z) => z.choisi)')
   noter('« Supprimer » : la pièce retirée')
+  await cliquerAuPanneau({ element: 'bouton/outil/architecture' })
+  await cliquerPoint(...cases[`${zx},${zy}`])
+  await cliquerAuPanneau({ element: 'bouton/batir/corps' })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'toiture')`)
+  e = await editeur()
+  noter(`outil Architecture, un clic sur la case ${zx}, ${zy}, « Nouveau corps » : ${e.zones['editeur.options'].find((c) => c.id === 'corps').valeurs.find((b) => b.presse).libelle} ; ${inspecte(e, 'toiture').texte}`)
+  await cliquerAuPanneau({ element: 'bouton/architecture/facade' })
+  const [[nx, ny], [sx, sy]] = [cases[`${zx},${zy - 1}`], cases[`${zx},${zy}`]]
+  await cliquerPoint((nx + sx) / 2, (ny + sy) / 2)
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'facade/apparence')`)
+  await cliquerAuPanneau({ element: 'bouton/baie/ajouter' })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('baie/') && l.id.endsWith('/sorte'))`)
+  e = await editeur()
+  const baie = e.zones['editeur.inspecteur'].find((l) => l.id.startsWith('baie/') && l.id.endsWith('/sorte'))
+  noter(`« Poser une façade », un clic sur le côté nord de la case, « Ajouter une ouverture » : ${baie.valeurs.find((b) => b.presse).libelle}, ${inspecte(e, baie.id.replace(/sorte$/, 'position')).texte}`)
+  await capturer('3508-l5-1-facade')
+  await cliquerAuPanneau({ element: 'bouton/architecture/exclusion' })
+  await glisserDe(`${zx + 1},${zy}`, `${zx + 2},${zy + 1}`, 'l’exclusion de toiture tirée')
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'toiture/exclusion/0')`)
+  e = await editeur()
+  assert.equal(boutonDeLEditeur(e, 'architecture/select')?.presse, true, 'l’exclusion tirée, le clic revient à la sélection')
+  noter(`« Tirer une exclusion de toiture », de (${zx + 1}, ${zy}) à (${zx + 2}, ${zy + 1}) : ${inspecte(e, 'toiture/exclusion/0').texte}`)
+  await cliquerPoint(...cases[`${zx},${zy}`])
+  await cliquerAuPanneau({ element: 'bouton/batir/masse' })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'masse/niveaux')`)
+  await cliquerAuPanneau({ element: 'bouton/masse/niveaux/plus' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'masse/niveaux')?.texte === 'Niveaux : 2'`)
+  e = await editeur()
+  assert.equal(e.surcouche.zones.find((z) => z.choisi)?.sorte, 'masse', 'la masse bâtie, sélectionnée en surcouche')
+  noter(`un clic sur la case, « Nouvelle masse de toiture », « +1 » : ${e.zones['editeur.pointee'].find((l) => l.id === 'zone')?.texte} ; ${inspecte(e, 'masse/niveaux').texte}`)
+  await capturer('3508-l5-2-masse')
+  await cliquerAuPanneau({ element: 'bouton/outil/select' })
   await cliquerPoint(...cases[`${dx + 1},${dy}`])
   await waitFor(session, '(globalThis.wfrpEcran?.editeur?.zones["editeur.pointee"] ?? []).some((l) => l.id === "zone")')
   noter(`outil Sélection, un clic sur la case ${dx + 1}, ${dy} : ${(await editeur()).zones['editeur.pointee'].find((l) => l.id === 'zone').texte}`)

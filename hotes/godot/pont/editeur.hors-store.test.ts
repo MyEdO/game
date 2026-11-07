@@ -366,6 +366,60 @@ describe('l’éditeur de carte par le pont, l’architecture', () => {
     expect(inspecteur(retiree).some((el) => el.id.startsWith(`${id}/`))).toBe(false);
   });
 
+  it('la toiture d’un corps : son profil, sa pente réglée puis suivie, sa couverture ; une exclusion tirée sur la couche, puis retirée', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const inspecteur = (e: Edition) => e.vue.zones['editeur.inspecteur'];
+    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/architecture'));
+    jouer({ geste: 'appui', point: point(2, 2) });
+    const bati = presser(boutonDe(jouer({ geste: 'relache', point: point(2, 2) }), 'batir/corps'));
+    expect(boutonDe(bati, 'toiture/profil/suit').presse, 'sans intention, le profil suit la portée').toBe(true);
+    expect(boutonDe(presser(boutonDe(bati, 'toiture/profil/shed')), 'toiture/egout/aucun').presse, 'un appentis déclare son égout').toBe(true);
+
+    const pente = (e: Edition) => inspecteur(e).find((el) => el.id === 'toiture/pente');
+    const avant = pente(bati);
+    const relevee = presser(boutonDe(bati, 'toiture/pente/plus'));
+    expect(pente(relevee)).not.toEqual(avant);
+    expect(boutonDe(relevee, 'toiture/pente/defaut').presse).toBe(false);
+    expect(pente(presser(boutonDe(relevee, 'toiture/pente/defaut')))).toEqual(avant);
+    const couverture = (inspecteur(bati).find((el) => el.id === 'toiture/couverture') as Choix).valeurs.find((v) => !v.presse && v.id !== 'toiture/couverture/suit')!;
+    const couverte = presser(couverture);
+    expect(boutonDe(couverte, couverture.id).presse).toBe(true);
+    expect(boutonDe(couverte, 'toiture/couverture/suit').presse).toBe(false);
+
+    presser(boutonDe(couverte, 'architecture/exclusion'));
+    jouer({ geste: 'appui', point: point(3, 3) });
+    jouer({ geste: 'glisse', point: point(4, 5) });
+    const exclue = jouer({ geste: 'relache', point: point(4, 5) });
+    expect(boutonDe(exclue, 'architecture/select').presse, 'l’exclusion tirée, le clic revient à la sélection').toBe(true);
+    expect(inspecteur(exclue).find((el) => el.id === 'toiture/exclusion/0')).toMatchObject({ texte: 'Exclusion de toiture : 2 × 3 cases depuis 3, 3 · couche 0' });
+    expect(inspecteur(presser(boutonDe(exclue, 'toiture/exclusion/0/retirer'))).some((el) => el.id.startsWith('toiture/exclusion/'))).toBe(false);
+  });
+
+  it('une masse bâtie sur la case pointée : ses niveaux bornés à un, son profil, son faîtage, sa pente', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const inspecteur = (e: Edition) => e.vue.zones['editeur.inspecteur'];
+    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/architecture'));
+    jouer({ geste: 'appui', point: point(2, 2) });
+    const bati = presser(boutonDe(jouer({ geste: 'relache', point: point(2, 2) }), 'batir/corps'));
+    const masse = presser(boutonDe(bati, 'batir/masse'));
+    expect(masse.surcouche.zones.find((z) => z.choisi)).toMatchObject({ sorte: 'masse', cases: [{ x: 2, y: 2, z: 0 }] });
+    expect(boutonDe(masse, 'masse/couche/0').presse).toBe(true);
+    expect(inspecteur(masse).find((el) => el.id === 'masse/niveaux')).toMatchObject({ texte: 'Niveaux : 1' });
+    expect(boutonDe(masse, 'masse/niveaux/moins').refus).toBe('Déjà au minimum');
+    const haute = presser(boutonDe(masse, 'masse/niveaux/plus'));
+    expect(inspecteur(haute).find((el) => el.id === 'masse/niveaux')).toMatchObject({ texte: 'Niveaux : 2' });
+    expect(boutonDe(presser(boutonDe(haute, 'masse/faitage/y')), 'masse/faitage/y').presse).toBe(true);
+    const appentis = presser(boutonDe(haute, 'masse/profil/shed'));
+    expect(boutonDe(appentis, 'masse/egout/aucun').presse).toBe(true);
+    expect(boutonDe(presser(boutonDe(appentis, 'masse/egout/S')), 'masse/egout/S').presse).toBe(true);
+    const pente = inspecteur(appentis).find((el) => el.id === 'masse/pente');
+    expect(inspecteur(presser(boutonDe(appentis, 'masse/pente/moins'))).find((el) => el.id === 'masse/pente')).not.toEqual(pente);
+  });
+
   it('sans corps, la façade et les ouvrages d’un corps se refusent', () => {
     const { appel } = table();
     const outil = editionDe(appel('editer', boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/architecture').jeu));
