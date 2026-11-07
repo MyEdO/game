@@ -17,7 +17,7 @@
  * ces primitives (surface d'attaque/défense) — cette FEUILLE ne connaît ni le store ni le rendu.
  */
 import type { Combatant } from './types';
-import { byId } from '../data';
+import { byId, skills } from '../data';
 import { bonusDe } from './characteristics';
 import { skillBaseValue, possesses } from './skills';
 import { sousPeur } from './psychology';
@@ -33,14 +33,12 @@ export function skillAdvantageCap(c: Combatant, skillId: string): number {
   return Math.max(0, bonusDe(c, sd.combatAdvantage.cap));
 }
 
-/** Compétences dont `c` peut se servir en combat pour cumuler l'Avantage, avec leur plafond. */
+/** Compétences dont `c` peut se servir en combat pour cumuler l'Avantage, avec leur plafond : toute Compétence du
+ *  catalogue qui en déclare l'application et qu'il possède (`possesses`, Compétence de base comprise). */
 export function combatAdvantageSkills(c: Combatant): { skillId: string; cap: number }[] {
-  const out: { skillId: string; cap: number }[] = [];
-  for (const s of c.skills ?? []) {
-    const cap = skillAdvantageCap(c, s.id);
-    if (cap > 0) out.push({ skillId: s.id, cap });
-  }
-  return out;
+  return skills.filter((sd) => sd.combatAdvantage)
+    .map((sd) => ({ skillId: sd.id, cap: skillAdvantageCap(c, sd.id) }))
+    .filter((s) => s.cap > 0);
 }
 
 // ── B) Substitution sociale en combat ───────────────────────────────────────

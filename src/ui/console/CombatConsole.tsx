@@ -844,7 +844,8 @@ export function CombatConsole() {
       });
     }),
     cellFor('heal', 'geste', { key: 'q-soigner' }),
-    cellFor('water', 'geste'),
+    // L'aspersion s'offre par allié (`cibles-aspersion`) : la case joue le premier, que le verbe prend par défaut.
+    cellFor('water', 'geste', { args: offres.find((o) => o.actionId === 'water')?.args }),
   ];
   const quick = placer('accesRapide', rapides.filter((c): c is Cell => !!c));
 

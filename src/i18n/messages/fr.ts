@@ -3967,6 +3967,7 @@ export const fr = {
   // ADE II 8 l.233 (seuil de la moitié de l'Équipe requise, `noyau/siegePush.pushCrewOk`).
   'agate.pushUndercrew': 'équipe trop réduite pour pousser l’engin',
   'agate.nothingToReload': 'aucune arme à recharger',
+  'agate.attackUnavailable': 'attaque indisponible',
   'agate.alreadyAiming': 'déjà en joue',
   'agate.shantyQuartSung': 'ce quart a déjà eu sa chanson',
   'agate.noShantySinger': 'aucun chanteur libre à bord',

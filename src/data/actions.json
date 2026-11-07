@@ -7,7 +7,8 @@
     "surface": "deduite-du-set",
     "gate": [
       "fantassin",
-      "action-libre"
+      "action-libre",
+      "attaque-disponible"
     ],
     "run": "armerLAttaque",
     "mode": "attack",

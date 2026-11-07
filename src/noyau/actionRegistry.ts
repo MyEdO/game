@@ -33,7 +33,7 @@ import { isEngaged } from '../engine/engagement';
 import { desengagementSansAction, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { isFrenzied, isFrenzyCapable } from '../engine/psychology';
 import { isVehicle, estNavire } from '../engine/coque';
-import { compatibleAmmo, activeLoadout } from '../engine/items';
+import { compatibleAmmo, activeLoadout, loadoutLabel } from '../engine/items';
 import { canPushback } from '../engine/qualities/dispatch';
 import { hasBattement, hasDistraire } from '../engine/combatFeatures/dispatch';
 import { actorHasSkill } from '../engine/skills';
@@ -52,9 +52,9 @@ import { canMove, mountablesNear } from './mount';
 import { refusActionDepensee, refusCoque, refusDeCharge, refusDeCourse, refusHorsDEtatDAgir, refusMouvementEntame, refusPriereImposee, refusSansMouvement } from './refusDuTour';
 import { servablePostes, crewPosteOf, shipOfCrew, rechargeDuTour } from './monde/shipPostes';
 import { chanteurDuNavire, quartChante } from './shipCrew';
-import { type ShipPoste } from '../engine/types';
+import { type ItemInstance, type ShipPoste, type Weapon, type WeaponLoadout } from '../engine/types';
 import { pushSlot } from './siegePush';
-import { ACTIONS, crewTestTypes, findConditionById, findSpellById, type ActionDef } from '../data/index';
+import { ACTIONS, byId, crewTestTypes, type ManeuverDef, findConditionById, findSpellById, type ActionDef } from '../data/index';
 import { garanti } from '../lib/garanti';
 import { isArcaneSpell, castBlockedBy, castInfoIsPrayer, focusSkillFor, focusWindLabel } from '../engine/magic';
 import { t } from '../i18n';
@@ -294,6 +294,10 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
   },
   /** Une pièce du navire est prête à faire feu (`postesPretsAFaireFeu`, lu par `ouvrirLaBordee` via `batteryBlock`). */
   'pieces-au-navire': ({ active }) => (postesPretsAFaireFeu(active).length > 0 ? ok : no(t('agate.noLoadedPostes'))),
+  /** L'attaque de la case (`args.attackId`, l'arme à défaut) est une des attaques disponibles (`availableAttacks`), celle
+   *  qu'arme `armerLAttaque`. */
+  'attaque-disponible': ({ active, battle, args }) =>
+    (availableAttacks(active, battle).some((a) => a.id === (args?.attackId ?? 'arme')) ? ok : no(t('agate.attackUnavailable'))),
   // ── PERTINENCE (#2911) : l'entrée a-t-elle lieu d'être offerte à CE porteur (`GATES_DE_PERTINENCE`) ?
   fantassin,
   /** Déjà en joue : Viser n'a pas lieu d'être offert (`LDB 14 l.61`). */
@@ -415,13 +419,15 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
   'armes-a-distance': ({ active }) => armesADistance(active),
   /** Les armes à distance qui ont un cycle de charge (`reload`) : c'est l'arme que `rechargerLArme` recharge. */
   'armes-a-recharge': ({ active }) => armesADistance(active).filter((w) => (w.reload ?? 0) > 0),
-  /** Les munitions compatibles de l'arme visée, ou de chaque arme à distance quand aucune n'est visée. */
+  /** Les munitions compatibles de l'arme visée, ou de chaque arme à distance quand aucune n'est visée : la paire de
+   *  l'arme et de sa munition, que `approvisionnerLArme` reçoit. */
   'munitions-compatibles': ({ active, weaponUid }) => {
     const visee = active.weapons.find((x) => x.uid === weaponUid);
-    return (visee ? [visee] : armesADistance(active)).flatMap((w) => compatibleAmmo(active, w));
+    return (visee ? [visee] : armesADistance(active)).flatMap((arme) => compatibleAmmo(active, arme).map((munition) => ({ arme, munition })));
   },
   'manoeuvres-sur-soi': ({ active }) => selfManeuversOf(active).filter((m) => selfManeuverApplicable(active, m)),
-  'sets-d-armes': ({ active }) => active.loadouts ?? [],
+  /** Les sets d'armes du porteur, chacun nommé par son contenu (`loadoutLabel`). */
+  'sets-d-armes': ({ active }) => (active.loadouts ?? []).map((set) => ({ set, label: loadoutLabel(set, active) })),
   'objets-au-sol': ({ active, state }) => {
     if (!state || !active.pos) return [];
     const flags = state.flags ?? {};
@@ -484,6 +490,41 @@ export const ACTION_PORTEURS: Record<string, (candidat: unknown) => ActionPorteu
   'attaques-de-trait': (c) => {
     const a = c as AttackOption;
     return { porteurId: a.id, args: { attackId: a.id }, label: a.label };
+  },
+  /** Une MUNITION d'une arme à distance : la paire que `approvisionnerLArme` reçoit. */
+  'munitions-compatibles': (c) => {
+    const { arme, munition } = c as { arme: Weapon; munition: ItemInstance };
+    return { porteurId: munition.uid, args: { ammoUid: munition.uid, weaponUid: arme.uid }, label: munition.label };
+  },
+  /** Un allié à asperger (`aspergerDEau`) : une entité du champ. */
+  'cibles-aspersion': (c) => {
+    const cible = c as Combatant;
+    return { porteurId: cible.id, args: { targetId: cible.id } };
+  },
+  /** Une méthode d'Avantage : sa Compétence (`gagnerLAvantage`). */
+  'competences-avantage': (c) => {
+    const { skillId } = c as { skillId: IdDeCompetence };
+    return { porteurId: skillId, args: { skillId }, label: byId('skill', skillId)?.label };
+  },
+  /** Une manœuvre sur soi (`manoeuvrerSurSoi`). */
+  'manoeuvres-sur-soi': (c) => {
+    const m = c as ManeuverDef;
+    return { porteurId: m.id, args: { maneuverId: m.id }, label: m.label };
+  },
+  /** Un consommable du porteur (`utiliserLObjet`). */
+  consommables: (c) => {
+    const objet = c as ItemInstance;
+    return { porteurId: objet.uid, args: { itemUid: objet.uid }, label: objet.label };
+  },
+  /** Un set d'armes du porteur (`prendreLaPanoplie`). */
+  'sets-d-armes': (c) => {
+    const { set, label } = c as { set: WeaponLoadout; label: string };
+    return { porteurId: set.id, args: { loadoutId: set.id }, label };
+  },
+  /** Un État porté (`depenserLaDetermination(…, 'retirerUnEtat', id)`) : la pastille de l'État. */
+  'etats-retirables': (c) => {
+    const etat = c as { id: IdDeCondition };
+    return { porteurId: etat.id, args: { conditionId: etat.id }, label: findConditionById(etat.id)?.label };
   },
   /** Une attaque de ZONE : `lancerLAttaqueDeZone` la résout par son `kind`. */
   'attaques-de-zone': (c) => {
