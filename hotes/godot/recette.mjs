@@ -87,7 +87,13 @@
 //   huit plus loin comme son nœud : la planche s'étire du double, son échelle dite en pixels par case moitié de celle
 //   d'avant.
 //   « Couche 1 » édite l'étage, sans calque. À l'ouverture, sans sélection, l'inspecteur est celui de la scène : « +15° »
-//   tourne son nord, « Annuler » le rend au haut du plan.
+//   tourne son nord, « Annuler » le rend au haut du plan. « Nouvelle scène » l'ajoute au projet, « Retirer la scène »
+//   rend la précédente. Une seconde « Nouvelle scène » reçoit, dans un bloc de cases à l'écran, les ouvrages de la
+//   Diligence : une couche ajoutée, un palier peint en Dallage à 4 m ; douze côtés en Mur à ossature en bois autour de
+//   trois cases sur trois, une porte au nord, une fenêtre au sud ; la pièce tirée sur elles ; un corps, son étage, une
+//   façade au nord et son ouverture ; une volée de quatre cases tirée vers le palier, posée ; un décor tourné au nord-est,
+//   un départ, un déclencheur tiré : la validation ne dit aucune erreur. « Enregistrer » écrit au dépôt la scène et
+//   chacun de ces ouvrages ; « Tester la scène » ouvre le combat sur elle.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
@@ -982,7 +988,7 @@ async function parcoursEditeur() {
   await waitFor(session, '!!globalThis.wfrpEcran?.editeur && !!wfrpEcran.cases', { timeoutMs: 120000 })
   /** Le bouton `quoi` du panneau d'outils, amené à l'écran par la molette sur le panneau, vers le bas jusqu'à ce que
    *  l'écran ne bouge plus, puis vers le haut, puis cliqué : chaque cran republie l'écran. */
-  const cliquerAuPanneau = async (quoi) => {
+  const amenerAuPanneau = async (quoi) => {
     let sens = 100
     let avant = null
     for (let n = 0; !trouver((await ecran()).boutons, quoi); n++) {
@@ -993,7 +999,25 @@ async function parcoursEditeur() {
       await molette(session, { surface: 'canvas', x: 160, y: 400 }, sens)
       await sleep(250)
     }
+    return trouver((await ecran()).boutons, quoi)
+  }
+  const cliquerAuPanneau = async (quoi) => {
+    await amenerAuPanneau(quoi)
     await cliquerBouton(quoi)
+  }
+  /** La valeur `id` de la liste déroulante `liste` des options de l'outil choisie : la liste amenée sur le panneau,
+   *  ouverte d'un clic, qui n'y place aucun article, la flèche descendue du premier jusqu'à elle, puis Entrée. */
+  const choisirALaListe = async (liste, id) => {
+    const libelle = (await editeur()).zones['editeur.options'].find((el) => el.id === liste).valeurs.find((b) => b.id === id).libelle
+    const deroulante = await amenerAuPanneau({ element: `liste/${liste}` })
+    const rang = deroulante.choix.indexOf(libelle)
+    assert.ok(rang >= 0, `${libelle} est offert : ${deroulante.choix.join(', ')}`)
+    await geste(session, { surface: 'canvas', x: deroulante.x, y: deroulante.y }, { qui: `liste ${liste}` }, clic())
+    await sleep(400)
+    for (let n = 0; n <= rang; n++) await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.options'].find((el) => el.id === '${liste}')?.valeurs.find((b) => b.id === '${id}')?.presse === true`)
   }
   let e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'couche/0')?.presse, true, 'la carte s’ouvre sur sa couche 0')
@@ -1283,13 +1307,133 @@ async function parcoursEditeur() {
   e = await editeur()
   assert.equal(e.zones['editeur.titre'][0].texte, avantLAjout.at(-1).libelle, 'retirée, sa précédente s’édite')
   noter(`« Retirer la scène » : ${scenes(e.zones).length} scènes, ${e.zones['editeur.titre'][0].texte} éditée`)
-  const testee = e.zones['editeur.titre'][0].texte
+  await cliquerAuPanneau({ element: 'bouton/scenes/ajouter' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0].texte === 'Nouvelle scène'`)
+  const sceneNeuve = (await ecran()).cases
+  const largeur = Math.max(...Object.keys(sceneNeuve).map((k) => Number(k.split(',')[0]))) + 1
+  const hauteur = Math.max(...Object.keys(sceneNeuve).map((k) => Number(k.split(',')[1]))) + 1
+  /** L'origine du bâti : le bloc de ses cases, de (-1, -1) à (9, 6), à l'écran hors du panneau et dans la carte. */
+  const origine = Object.keys(sceneNeuve).map((k) => k.split(',').map(Number))
+    .find(([x, y]) => x >= 1 && y >= 1 && x + 9 < largeur && y + 6 < hauteur && Array.from({ length: 11 * 8 }, (_, i) => sceneNeuve[`${x - 1 + (i % 11)},${y - 1 + Math.floor(i / 11)}`]).every(aLEcran))
+  assert.ok(origine, 'un bloc de onze cases sur huit de la scène neuve à l’écran, hors du panneau')
+  const [ox, oy] = origine
+  /** Le point de l'écran de la case (`dx`, `dy`) du bâti, tel que l'écran le publie maintenant. */
+  const aLaCase = async (dx, dy) => (await ecran()).cases[`${ox + dx},${oy + dy}`]
+  const cliquerLaCase = async (dx, dy) => cliquerPoint(...(await aLaCase(dx, dy)))
+  /** Un clic sur la case (`dx`, `dy`) du bâti, tout près de son côté qui la sépare de sa voisine (`vx`, `vy`). */
+  const cliquerLeCote = async ([dx, dy], [vx, vy]) => {
+    const [[ax, ay], [bx, by]] = [await aLaCase(dx, dy), await aLaCase(vx, vy)]
+    await cliquerPoint(ax + 0.45 * (bx - ax), ay + 0.45 * (by - ay))
+  }
+  /** Le pointeur tenu de la première case du bâti de `chemin` à la dernière, par chacune. */
+  const tirerPar = async (chemin, qui) => {
+    const points = await Promise.all(chemin.map(([dx, dy]) => aLaCase(dx, dy)))
+    await marquer()
+    await geste(session, { surface: 'canvas', x: points[0][0], y: points[0][1] }, { qui }, async ({ x, y }, emettre) => {
+      await emettre('souris', { type: 'mouseMoved', x, y })
+      await emettre('souris', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
+      await sleep(200)
+      for (const [px, py] of points.slice(1)) {
+        await emettre('souris', { type: 'mouseMoved', x: px, y: py, button: 'left', buttons: 1 })
+        await sleep(300)
+      }
+      const [fx, fy] = points[points.length - 1]
+      await emettre('souris', { type: 'mouseReleased', x: fx, y: fy, button: 'left', clickCount: 1 })
+    })
+    await nouvelEcran()
+  }
+  const presserTour = async (...ids) => {
+    for (const id of ids) await cliquerAuPanneau({ element: `bouton/${id}` })
+  }
+  const options = async () => (await editeur()).zones['editeur.options'].filter((l) => l.type === 'ligne').map((l) => l.texte)
+  const palier = [[8, 0], [8, 1], [8, 2]]
+  await presserTour('couche/ajouter', 'outil/tile', 'pinceau/1')
+  await choisirALaListe('terrains', 'terrain/dalle')
+  for (const c of palier) await cliquerLaCase(...c)
+  await presserTour('outil/height', 'pinceau/1', 'hauteur/haute')
+  for (const c of palier) await cliquerLaCase(...c)
+  await presserTour('couche/0')
+  e = await editeur()
+  assert.equal(boutonDeLEditeur(e, 'couche/1')?.libelle, 'Couche 1', 'la scène neuve a deux couches')
+  noter(`« Ajouter une couche », le palier peint en Dallage à 4 m sur la couche 1 : ${e.zones['editeur.couches'][0].valeurs.map((b) => b.libelle).join(', ')}`)
+  const aretesAvantLesMurs = e.aretes
+  await presserTour('outil/wall')
+  await choisirALaListe('structures', 'structure/mur-a-ossature-en-bois')
+  for (const d of [0, 1, 2]) {
+    await cliquerLeCote([d, 0], [d, -1])
+    await cliquerLeCote([d, 2], [d, 3])
+    await cliquerLeCote([0, d], [-1, d])
+    await cliquerLeCote([2, d], [3, d])
+  }
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.aretes === ${aretesAvantLesMurs + 12}`)
+  await presserTour('arete/door')
+  await cliquerLeCote([1, 0], [1, -1])
+  await presserTour('outil/select')
+  await cliquerLeCote([2, 2], [2, 3])
+  await presserTour('arete/fenetre')
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.pointee'] ?? []).some((l) => l.id === 'arete' && l.texte.includes(' · fenêtre · '))`)
+  e = await editeur()
+  noter(`outil Murs, « Mur à ossature en bois », douze côtés cliqués autour de trois cases sur trois, une porte au nord, une fenêtre au sud : ${e.zones['editeur.pointee'].find((l) => l.id === 'arete').texte}`)
+  await presserTour('outil/zone', 'zone/room')
+  await tirerPar([[0, 0], [1, 1], [2, 2]], 'la pièce tirée')
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.surcouche.zones.find((z) => z.choisi)?.cases.length === 9`)
+  await presserTour('outil/architecture')
+  await cliquerLaCase(0, 0)
+  await presserTour('batir/corps', 'batir/etage')
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.couches'][0].valeurs.find((b) => b.presse)?.id === 'couche/1'`)
+  await presserTour('couche/0', 'architecture/facade')
+  await cliquerLeCote([2, 0], [2, -1])
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'facade/apparence')`)
+  await presserTour('baie/ajouter')
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('baie/') && l.id.endsWith('/sorte'))`)
+  noter('outil Zone, la pièce tirée sur les neuf cases ; outil Architecture, « Nouveau corps », « Nouvel étage », une façade au nord et son ouverture')
+  await presserTour('outil/stair', 'etage/1')
+  await tirerPar([[4, 1], [5, 1], [6, 1], [7, 1]], 'la volée tracée')
+  await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.cases.length === 4')
+  const plan = await options()
+  assert.deepEqual(plan, ['Tracé : 4 cases', '0 m → 4 m · cotes 1 · 2 · 3 · 4 m'], 'la volée tracée monte au palier')
+  await presserTour('volee/poser')
+  await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.cases.length === 0')
+  noter(`outil Volée, quatre cases tirées vers le palier : ${plan.join(', ')} ; « Poser la volée »`)
+  await presserTour('outil/prop')
+  await cliquerLaCase(5, 4)
+  await presserTour('outil/select')
+  await cliquerLaCase(5, 4)
+  await presserTour('entite/cap/NE')
+  await presserTour('outil/heroStart')
+  await cliquerLaCase(3, 5)
+  await presserTour('outil/zone', 'zone/trigger')
+  await tirerPar([[6, 4], [7, 5], [8, 6]], 'le déclencheur tiré')
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.surcouche.zones.find((z) => z.choisi)?.cases.length === 9`)
+  e = await editeur()
+  const validation = e.zones['editeur.validation'][0].texte
+  assert.match(validation, /^Validation : 0 erreur\(s\)/, 'la scène bâtie ne porte aucune erreur')
+  noter(`un décor tourné au nord-est, un départ, un déclencheur tiré sur trois cases sur trois : ${validation}`)
+  await capturer('3508-l7-1-batie')
+  const avantLeBati = lus()
+  await cliquerAuPanneau({ element: 'bouton/enregistrer' })
+  await waitFor(session, `Object.values(globalThis.wfrpEcran?.editeur?.zones ?? {}).flat().some((el) => el.id === 'enregistrer' && el.refus === 'Rien à enregistrer')`)
+  const ecrit = lus().findIndex((texte, i) => texte !== avantLeBati[i])
+  const anciennes = new Set(JSON.parse(avantLeBati[ecrit]).scenes.map((sc) => sc.id))
+  const batie = JSON.parse(lus()[ecrit]).scenes.find((sc) => !anciennes.has(sc.id))
+  const ici = (dx, dy) => ({ x: ox + dx, y: oy + dy })
+  assert.deepEqual(batie.layers.map((l) => l.z), [0, 1], 'deux couches')
+  assert.deepEqual([4, 5, 6, 7].map((dx) => batie.layers[0].height[(oy + 1) * largeur + ox + dx]), [1, 2, 3, 4], 'la volée cotée de cran en cran')
+  assert.equal(batie.walls.filter((w) => w.structure === 'mur-a-ossature-en-bois').length, 11, 'onze murs à ossature en bois')
+  assert.deepEqual(batie.walls.filter((w) => w.door).map((w) => [w.x, w.y, w.side]), [[ox + 1, oy, 'N']], 'la porte au nord')
+  assert.deepEqual(batie.walls.filter((w) => w.window).map((w) => [w.x, w.y, w.side]), [[ox + 2, oy + 3, 'N']], 'la fenêtre au sud')
+  assert.deepEqual(batie.architecture[0].storeys.map((st) => st.z), [0, 1], 'un corps de deux étages')
+  assert.equal(batie.architecture[0].facades.flatMap((f) => f.features ?? []).length, 1, 'une façade et son ouverture')
+  assert.deepEqual(batie.effectZones.map((z) => [z.presentation, z.area]), [['interior', { kind: 'rect', ...ici(0, 0), w: 3, h: 3 }]], 'la pièce')
+  assert.deepEqual(batie.entities.map((en) => [en.kind, en.pos, en.facing]), [['prop', ici(5, 4), 'NE'], ['heroStart', ici(3, 5), undefined]], 'le décor tourné, le départ')
+  assert.deepEqual(batie.triggers.map((tr) => [tr.rect, tr.flow]), [[{ ...ici(6, 4), w: 3, h: 3 }, { kind: 'seq', steps: [] }]], 'le déclencheur, au flux vide')
+  noter(`« Enregistrer » : ${MANUSCRITS[ecrit]} porte la scène ${batie.id} : ${batie.layers.length} couches, ${batie.walls.length} arêtes, ${batie.architecture[0].storeys.length} étages, ${batie.effectZones.length} pièce, ${batie.entities.length} entités, ${batie.triggers.length} déclencheur`)
   await cliquerAuPanneau({ element: 'bouton/tester' })
   await waitFor(session, '!globalThis.wfrpEcran?.editeur && !!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   const v = await vue()
-  assert.equal(v.projection.scene?.nom, testee, '« Tester la scène » ouvre le combat sur la scène éditée')
+  assert.equal(v.projection.scene?.nom, 'Nouvelle scène', '« Tester la scène » ouvre le combat sur la scène bâtie')
   noter(`« Tester la scène » : partie ouverte sur ${v.projection.scene.nom}, ${Object.keys((await ecran()).cases).length} cases`)
-  await capturer('3508-l6-4-essai')
+  await capturer('3508-l7-2-essai')
 }
 
 /** La page ouverte de la création : son titre. */
