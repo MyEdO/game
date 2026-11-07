@@ -1,0 +1,56 @@
+/** Les ports factices du relay (#3556) : une socket pilotée par le test, une compression réversible et une minuterie
+ *  sur les minuteurs (factices sous `vi.useFakeTimers`) du test. */
+import type { Compression, Minuterie, PortsDuRelais, SocketLike } from './relay';
+
+/** Une socket dont le test joue le serveur : `open`, `receive`, `dropFromServer`. */
+export class FakeSocket implements SocketLike {
+  static instances: FakeSocket[] = [];
+  static get last(): FakeSocket | undefined {
+    return FakeSocket.instances[FakeSocket.instances.length - 1];
+  }
+  sent: string[] = [];
+  closedWith: { code?: number } | null = null;
+  bufferedAmount = 0;
+  onSend: ((data: string) => void) | null = null;
+  onopen: (() => void) | null = null;
+  onmessage: ((e: { data: unknown }) => void) | null = null;
+  onclose: ((e: { code: number; reason: string }) => void) | null = null;
+  onerror: (() => void) | null = null;
+  constructor(readonly url: string) {
+    FakeSocket.instances.push(this);
+  }
+  send(d: string): void {
+    this.sent.push(d);
+    this.onSend?.(d);
+  }
+  close(code?: number, reason?: string): void {
+    this.closedWith = { code };
+    this.onclose?.({ code: code ?? 1005, reason: reason ?? '' });
+  }
+  open(): void {
+    this.onopen?.();
+  }
+  receive(d: string): void {
+    this.onmessage?.({ data: d });
+  }
+  dropFromServer(code = 1006, reason = ''): void {
+    this.onclose?.({ code, reason });
+  }
+}
+
+/** Réversible et distincte du clair : le champ `z` ne se lit qu'en passant par elle. */
+export const compressionFactice: Compression = {
+  comprimer: async (texte) => `z:${texte}`,
+  decomprimer: async (b64) => (b64.startsWith('z:') ? b64.slice(2) : null),
+};
+
+export const minuterieDuTest: Minuterie = {
+  programmer: (suite, delai) => {
+    const id = setTimeout(suite, delai);
+    return () => clearTimeout(id);
+  },
+};
+
+export const portsDuTest = (socket: PortsDuRelais['socket'] = (url) => new FakeSocket(url)): PortsDuRelais => ({
+  socket, minuterie: minuterieDuTest, compression: compressionFactice,
+});

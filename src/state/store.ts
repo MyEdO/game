@@ -10,6 +10,7 @@ import { viewYawDeg } from './stageYaw';
 import { resetStagePan } from './stagePan';
 import { resetStageGestes } from './stageGestes';
 import * as netFlow from './netFlow';
+import { netAssign, netAssignSlot, setGmSeat } from '../hote/coop/salon';
 import { stockageDesSauvegardes } from './saves';
 import { ecrireLaSauvegarde, lireLaSauvegarde, AUTO_SLOT, type SaveSlot, type AnySlot } from '../hote/sauvegardes';
 import { chargerLaSave, lireSave, refusDeSauvegarde, snapshotSave, type ObsoleteCause, type RefusDeSauvegarde, type SaveGame } from '../noyau/persistance/save';
@@ -292,12 +293,12 @@ export const useGame = create<GameState>((set, get) => ({
   openPossessionsScreen: (uid) => set({ possessionsScreen: { uid: uid ?? null } }),
   closePossessionsScreen: () => set({ possessionsScreen: null }),
 
-  netHostStart: (name) => netFlow.netHostStart(get, set, name),
-  netJoin: (code, name) => netFlow.netJoin(get, set, (data) => netFlow.applyNetSnapshot(set, data), code, name),
-  netAssign: (heroId, seat) => netFlow.netAssign(get, set, heroId, seat),
-  setGmSeat: (seat) => netFlow.setGmSeat(get, set, seat),
-  netAssignSlot: (slot, seat) => netFlow.netAssignSlot(get, set, slot, seat),
-  netLeave: () => netFlow.netLeave(get, set),
+  netHostStart: (name) => netFlow.salon.heberger(get, set, name),
+  netJoin: (code, name) => netFlow.salon.rejoindre(get, set, (data) => netFlow.applyNetSnapshot(set, data), code, name),
+  netAssign: (heroId, seat) => netAssign(get, set, heroId, seat),
+  setGmSeat: (seat) => setGmSeat(get, set, seat),
+  netAssignSlot: (slot, seat) => netAssignSlot(get, set, slot, seat),
+  netLeave: () => netFlow.salon.quitter(set),
 
   // ── Sauvegarde / chargement (Jalon 5) — `noyau/persistance/save.ts` ──
   saveGame: (slot) => {

@@ -36,7 +36,7 @@ const EXEMPTES = new Map<string, string>([
   ["src/noyau/pursuitFlow.ts|row.label ?? t('step.pursuitMouvement')", AUTHORE],
   ["src/noyau/monde/usable.ts|a.label ?? t(`usable.${a.id}` as MsgKey)", AUTHORE],
   ['src/gameIso/stage/PastilleEntite.tsx|mark.label ?? \'\'', AUTHORE],
-  ['src/net/relay.ts|env.name ?? \'\'', OUTILLAGE],
+  ['src/hote/coop/relay.ts|env.name ?? \'\'', OUTILLAGE],
   ['src/noyau/cascade.ts|st.label ?? \'Conséquences\'', AUTHORE],
   ['src/noyau/combat/triggeredTest.ts|step.label ?? \'\'', AUTHORE],
   ['src/noyau/combat/triggeredTest.ts|step.label ?? \'Réaction\'', AUTHORE],
