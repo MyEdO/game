@@ -4,7 +4,7 @@
  * changement de couche et à chaque écriture finie, jamais pendant le geste. Ouverte du texte que sert le dépôt, la carte
  * s'y enregistre : `editer` rend le texte à écrire, et la tient pour enregistrée à l'issue réussie de l'écriture. Les
  * entités et les entrées de la couche éditée se repèrent en surcouche ; le formulaire de l'inspecteur les nomme. Le
- * formulaire tiré du schéma écrit le Test de traversée et les effets d'une zone d'effet (#3606).
+ * formulaire tiré du schéma écrit la condition d'entrée d'un déclencheur, le Test de traversée et les effets d'une zone d'effet (#3606).
  */
 import { describe, expect, it } from 'vitest';
 import { erreurDe, table, type Reponse } from './pont.testkit';
@@ -929,41 +929,72 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
   const manuscrit = listerProjetsLivres().find((rel) => rel.split('/').pop()! in PROJETS_MANUSCRITS)!;
   const servi = lireProjetLivre(manuscrit) as { id: string };
 
-  it('le Test de traversée et les effets à chaque Round d’une zone d’effet s’écrivent au formulaire ; enregistrés, rouverts du dépôt, ils sont relus et la validation ne dit aucune erreur', { timeout: 120_000 }, () => {
+  it('la condition d’entrée d’un déclencheur, le Test de traversée et les listes d’ops d’une zone d’effet s’écrivent au formulaire, variante par variante, élément par élément ; enregistrés, rouverts du dépôt, ils sont relus et la validation ne dit aucune erreur', { timeout: 120_000 }, () => {
     const { appel } = table();
     let e = editionDe(appel('editer', { ouvrir: servi.id, projet: JSON.stringify(servi) }));
     const jouer = (edition: unknown) => (e = editionDe(appel('editer', { edition })));
     const presser = (id: string) => (e = editionDe(appel('editer', boutonDe(e, id).jeu)));
-    /** La valeur `valeur` du choix d'id `id` de l'inspecteur : le bouton qui la joue. */
-    const option = (id: string, valeur: unknown) => valeursDeLInspecteur(e, id).find((b) => (b.jeu as { args: unknown[] }).args[2] === valeur)!;
-    const choisir = (id: string, valeur: unknown) => (e = editionDe(appel('editer', option(id, valeur).jeu)));
-    const formulaire = (id: string) => e.vue.zones['editeur.inspecteur'].find((el): el is Formulaire => el.type === 'formulaire' && el.id === id)!;
+    /** La valeur de libellé `libelle` du choix d'id `id` de l'inspecteur : le bouton qui la joue. */
+    const option = (id: string, libelle: string) => valeursDeLInspecteur(e, id).find((b) => b.libelle === libelle) ?? (() => { throw new Error(`aucune valeur ${libelle} sous ${id}`); })();
+    const choisir = (id: string, libelle: string) => (e = editionDe(appel('editer', option(id, libelle).jeu)));
+    const inspecteur = () => e.vue.zones['editeur.inspecteur'];
+    const formulaire = (id: string) => inspecteur().find((el): el is Formulaire => el.type === 'formulaire' && el.id === id) ?? (() => { throw new Error(`aucun formulaire ${id}`); })();
     const saisir = (id: string, valeur: unknown) => {
       const [porteur, chemin] = formulaire(id).champs.map((c) => (c.type === 'fixe' ? c.valeur : undefined));
       return (e = editionDe(appel('editer', { type: 'valeur', args: [porteur, chemin, valeur] })));
     };
+    const tracer = (sorte: string, de: [number, number], a: [number, number]) => {
+      presser('outil/zone'); presser(`zone/${sorte}`);
+      jouer({ geste: 'appui', point: point(...de) });
+      jouer({ geste: 'relache', point: point(...a) });
+    };
+    const porteurDe = (id: string) => ((boutonDe(e, id).jeu as { edition: { porteur: { sorte: string; id: string } } }).edition.porteur);
     const validation = () => (e.vue.zones['editeur.validation'][0] as Ligne).texte;
     const sansErreur = /^Validation : (aucun défaut|0 erreur\(s\))/;
     expect(validation()).toMatch(sansErreur);
 
-    presser('scenes/ajouter'); presser('outil/zone'); presser('zone/effect');
-    jouer({ geste: 'appui', point: point(2, 2) });
-    jouer({ geste: 'relache', point: point(3, 3) });
-    const zoneId = (formulaire('valeur/perRound').champs[0] as { valeur: { id: string } }).valeur.id;
-    expect(e.vue.zones['editeur.inspecteur'].some((el) => el.id === 'valeur/crossTest/characteristic'), 'sans Test, aucun de ses champs').toBe(false);
+    presser('scenes/ajouter');
+    tracer('trigger', [0, 0], [1, 1]);
+    const declencheur = porteurDe('valeur/when/kind/aucune');
+    expect(declencheur.sorte).toBe('declencheur');
+    expect(boutonDe(e, 'valeur/when/kind/aucune').presse, 'sans condition d’entrée').toBe(true);
+    expect(inspecteur().some((el) => el.id.startsWith('valeur/flow')), 'le flux n’est pas au formulaire').toBe(false);
+    choisir('valeur/when/kind', 'TOUS (ET)');
+    expect(option('valeur/when/kind', 'TOUS (ET)').presse).toBe(true);
+    expect(inspecteur().some((el) => el.id.startsWith('valeur/when/of/0')), 'TOUS de « Toujours » : une liste vide').toBe(false);
+    presser('valeur/when/of/ajouter');
+    choisir('valeur/when/of/0/kind', 'Drapeaux');
+    saisir('valeur/when/of/0/expr', 'porte');
+    presser('valeur/when/of/ajouter');
+    choisir('valeur/when/of/1/kind', 'NON');
+    choisir('valeur/when/of/1/of/kind', 'Ennemi en Ligne de Vue');
+    expect(boutonDe(e, 'valeur/when/of/1/monter').libelle).toMatch(/^Monter/);
+    expect(inspecteur().some((el) => el.id === 'valeur/when/of/0/monter'), 'le premier ne monte pas').toBe(false);
+
+    tracer('effect', [2, 2], [3, 3]);
+    const zone = porteurDe('valeur/onCross/ajouter');
+    expect(zone.sorte).toBe('zone');
+    expect(option('valeur/onCross/0/op', 'Blessures (ignore BE/PA)').presse, 'la zone posée porte l’op de sa graine').toBe(true);
+    expect(inspecteur().find((el) => el.id === 'valeur/onCross/0/motif'), 'une op sans forme déclarée le dit').toMatchObject({ type: 'ligne' });
+    saisir('valeur/onCross/0', { op: 'wounds', amount: 3 });
+    expect(formulaire('valeur/onCross/0').champs[2], 'et se saisit en JSON').toMatchObject({ type: 'saisieJson', valeur: '{"op":"wounds","amount":3}' });
+    presser('valeur/onCross/0/retirer');
+    expect(inspecteur().some((el) => el.id === 'valeur/onCross'), 'vidée, la liste quitte la zone').toBe(false);
     presser('valeur/crossTest/ajouter');
-    expect(validation(), 'un Test vide se refuse à la porte, que la validation relit').toMatch(/^Validation : 1 erreur\(s\)/);
-    expect(e.vue.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/crossTest')).toMatchObject({ type: 'ligne', texte: 'Test de traversée' });
-    expect(boutonDe(e, 'valeur/crossTest/characteristic/aucune').presse, 'la caractéristique absente').toBe(true);
-    choisir('valeur/crossTest/characteristic', 'force');
-    choisir('valeur/crossTest/difficulty', 'difficile');
-    saisir('valeur/crossTest/requireSL', 1);
-    saisir('valeur/perRound', [{ op: 'corruption', amount: 1 }]);
-    expect(option('valeur/crossTest/characteristic', 'force').presse).toBe(true);
-    expect(boutonDe(e, 'valeur/crossTest/characteristic/aucune').presse).toBe(false);
-    expect(formulaire('valeur/crossTest/requireSL').champs[2]).toMatchObject({ type: 'saisieNombre', valeur: 1, pas: 0.01 });
-    expect(formulaire('valeur/perRound').champs[2]).toMatchObject({ type: 'saisieJson', valeur: '[{"op":"corruption","amount":1}]' });
-    expect(erreurDe(appel('editer', { type: 'valeur', args: [{ sorte: 'zone', id: zoneId }, ['label'], 'Fosse'] })).categorie, 'un champ que le formulaire n’offre pas').toBe('validation');
+    choisir('valeur/crossTest/characteristic', 'Force');
+    presser('valeur/onCross/ajouter');
+    choisir('valeur/onCross/0/op', 'Points de Corruption');
+    saisir('valeur/onCross/0/amount', 2);
+    presser('valeur/onCross/ajouter');
+    choisir('valeur/onCross/1/op', 'Modif. de caractéristique');
+    choisir('valeur/onCross/1/char', 'Agilité');
+    saisir('valeur/onCross/1/mod', -5);
+    presser('valeur/onCross/1/monter');
+    expect(option('valeur/onCross/0/op', 'Modif. de caractéristique').presse, 'montée, la seconde op passe première').toBe(true);
+    expect(option('valeur/onCross/1/op', 'Points de Corruption').presse).toBe(true);
+    expect(erreurDe(appel('editer', { type: 'valeur', args: [zone, ['label'], 'Fosse'] })).categorie, 'un champ que le formulaire n’offre pas').toBe('validation');
+    const horsSorte = erreurDe(appel('editer', { type: 'valeur', args: [zone, ['onCross', 0, 'mod'], 'cinq'] }));
+    expect([horsSorte.categorie, horsSorte.message], 'une valeur hors de la sorte de son champ, refusée avec sa raison').toEqual(['regle', expect.stringContaining('onCross/0/mod')]);
     expect(validation()).toMatch(sansErreur);
 
     const enregistree = editionDe(appel('editer', boutonDe(e, 'enregistrer').jeu));
@@ -974,15 +1005,22 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     const { appel: rouvrir } = table();
     const rouverte = editionDe(rouvrir('editer', { ouvrir: servi.id, projet: JSON.stringify(lireProjetLivre(manuscrit, depot)) }));
     rmSync(depot, { recursive: true, force: true });
-    const neuve = (JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] }).scenes.find((sc) => sc.effectZones?.some((z) => z.id === zoneId))!;
+    const neuve = (JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] }).scenes.find((sc) => sc.effectZones?.some((z) => z.id === zone.id))!;
+    expect(neuve.triggers.find((t) => t.id === declencheur.id)?.when).toEqual({ kind: 'all', of: [{ kind: 'flag', expr: 'porte' }, { kind: 'not', of: { kind: 'foeInLoS' } }] });
+    expect(neuve.effectZones!.find((z) => z.id === zone.id)).toMatchObject({
+      crossTest: { characteristic: 'force' },
+      onCross: [{ op: 'charMod', char: 'agilite', mod: -5 }, { op: 'corruption', amount: 2 }],
+    });
     rouvrir('editer', boutonDe(rouverte, `scenes/${neuve.id}`).jeu);
+    rouvrir('editer', { edition: { geste: 'appui', point: point(0, 0) } });
+    e = editionDe(rouvrir('editer', { edition: { geste: 'relache', point: point(0, 0) } }));
+    expect(option('valeur/when/kind', 'TOUS (ET)').presse, 'rouverte, la condition du déclencheur').toBe(true);
+    expect(option('valeur/when/of/1/of/kind', 'Ennemi en Ligne de Vue').presse).toBe(true);
+    expect(formulaire('valeur/when/of/0/expr').champs[2]).toMatchObject({ valeur: 'porte' });
     rouvrir('editer', { edition: { geste: 'appui', point: point(3, 3) } });
     e = editionDe(rouvrir('editer', { edition: { geste: 'relache', point: point(3, 3) } }));
-    expect(formulaire('valeur/perRound').champs[0]).toMatchObject({ valeur: { sorte: 'zone', id: zoneId } });
-    expect(option('valeur/crossTest/characteristic', 'force').presse, 'rouverte, la caractéristique').toBe(true);
-    expect(option('valeur/crossTest/difficulty', 'difficile').presse, 'rouverte, la difficulté').toBe(true);
-    expect(formulaire('valeur/crossTest/requireSL').champs[2]).toMatchObject({ valeur: 1 });
-    expect(formulaire('valeur/perRound').champs[2]).toMatchObject({ valeur: '[{"op":"corruption","amount":1}]' });
+    expect(option('valeur/onCross/0/char', 'Agilité').presse, 'rouverte, les ops de la zone').toBe(true);
+    expect(formulaire('valeur/onCross/1/amount').champs[2]).toMatchObject({ valeur: 2 });
     expect(validation(), 'rouverte du dépôt, la validation ne dit aucune erreur').toMatch(sansErreur);
   });
 });
