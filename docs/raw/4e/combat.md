@@ -1604,9 +1604,9 @@ Trois cas, du plus simple au plus exigeant :
 
 | Situation | Test requis | Coût / vitesse |
 |---|---|---|
-| **Surface facile** (échelle ou équivalent) | Aucun Test | Vitesse **½** : il faut dépenser **4 m de Mouvement** pour gravir une échelle de **2 m** |
-| **Surface facile, plus vite** | **Escalade Accessible (+20)** (consomme l'**Action**) | Distance supplémentaire = **Mouvement + DR** mètres (ex. M 4, DR +2 → +6 m) |
-| **Surface verticale à prises** (deux mains libres) | **Escalade** (difficulté fixée par le MJ ; consomme l'**Action**) | Vitesse de montée ou de descente = **(½ Mouvement + DR)** mètres |
+| **Surface facile** (échelle ou équivalent) | Aucun Test | Vitesse **½** : il faut dépenser **4 m de Mouvement** pour gravir une échelle de **2 m** (LDB 15 l.55) |
+| **Surface facile, plus vite** | **Escalade Accessible (+20)** (consomme l'**Action**) | Distance supplémentaire = **Mouvement + DR** mètres (ex. M 4, DR +2 → +6 m) (LDB 15 l.55) |
+| **Surface verticale à prises** (deux mains libres) | **Escalade** (difficulté fixée par le MJ ; consomme l'**Action**) | Vitesse de montée ou de descente = **(½ Mouvement + DR)** mètres (LDB 15 l.57) |
 
 Certaines escalades sont **trop difficiles** pour un Personnage ne possédant pas le Talent **Grimpeur** (LDB 15 l.57, renvoi p.138).
 
