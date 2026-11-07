@@ -37,7 +37,7 @@ import { remiseMaximaleDeMarchandage } from './merchantFlow';
 import { refuserGeste } from './refusVisible';
 import { findVehicleById, findCrewRoleById, crewRoles, combatStakeRef, refLabel, type CrewRoleData } from '../data';
 import { t } from '../i18n';
-import { weeklyCrewWageBrass } from '../engine/crewMorale';
+import { ajouterAuRoster, weeklyCrewWageBrass } from '../engine/crewMorale';
 import {
   rollCargoAvailability, rollMerchantSkill, rollMerchantOpposition, buySellerDR, cargoBasePrice, rollRandomCargo,
   sellChance, offerPricePct, sellRelation, dumpingPricePct, cargoTotalEnc,
@@ -356,7 +356,8 @@ export function vendreAuPort(get: Get, set: Set, lotId: IdDeCargaison): void {
   if (!get().port || !get().vessel) return;
   const cale = lotALaCale(get, lotId);
   if (!cale) { refuserGeste(get, set, t('port.horsDuNavire')); return; }
-  const { st, vessel, lot } = cale;
+  if (decharger(get, set, lotId)) return;
+  const { st, vessel, lot } = garanti(lotALaCale(get, lotId), lotId, 'lot vendu');
   const milles = vessel.lastVoyageMilles ?? 0;
   const chance = sellChance(st.port, lot.cargoId, milles);
   const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
@@ -378,6 +379,27 @@ export function vendreAuPort(get: Get, set: Set, lotId: IdDeCargaison): void {
   openPortSellBuyerStep(get, set, lotId, lot.enc, true, 1);
 }
 
+/** Décharge le lot `lotId` (`dechargerLeLot`) ; `true` quand la perte l'a vidé : il n'y a plus rien à vendre. */
+function decharger(get: Get, set: Set, lotId: IdDeCargaison): boolean {
+  const lignes = dechargerLeLot(get, set, lotId);
+  if (lignes.length) log(get, set, lignes);
+  return !lotALaCale(get, lotId);
+}
+
+/** Au DÉCHARGEMENT du lot `uid` dans le port de l'escale : la perte en attente (`perteAuDechargement`) le
+ *  frappe, puis est levée ; rend le journal. MDG 15 l.250 */
+function dechargerLeLot(get: Get, set: Set, uid: string): string[] {
+  const vessel = get().vessel;
+  const perte = vessel?.perteAuDechargement;
+  if (!vessel || perte === undefined) return [];
+  const lot = garanti((vessel.cargo ?? []).find((l) => l.uid === uid), uid, 'lot déchargé');
+  const perdus = Math.min(perte, lot.enc);
+  const cargo = (vessel.cargo ?? []).flatMap((l) => (l.uid !== uid ? [l] : l.enc > perdus ? [{ ...l, enc: l.enc - perdus }] : []));
+  const { perteAuDechargement: _p, ...reste } = vessel;
+  set({ vessel: { ...reste, cargo } });
+  return [t('eff.perteDechargee', { enc: perdus, cargo: findCargoById(lot.cargoId)?.label ?? lot.cargoId })];
+}
+
 /** Refus de brader le lot `cargoId` au port ouvert : `refusDeGesteSurLeGroupe`, puis port qui ne rachète pas ce
  *  lot (`dumpingPricePct` nul, MDG 15 l.399) ; `null` sinon. Tombe dans `jeterAuPort`, lu par l'écran. */
 export function refusDeBradageEnPort(s: Pick<Jeu, 'net' | 'port'>, cargoId: string): string | null {
@@ -390,9 +412,10 @@ export function jeterAuPort(get: Get, set: Set, lotId: IdDeCargaison): void {
   if (!get().port || !get().vessel) return;
   const cale = lotALaCale(get, lotId);
   if (!cale) { refuserGeste(get, set, t('port.horsDuNavire')); return; }
-  const { st, vessel, lot } = cale;
-  const refus = refusDeBradageEnPort(get(), lot.cargoId);
+  const refus = refusDeBradageEnPort(get(), cale.lot.cargoId);
   if (refus) { refuserGeste(get, set, refus); return; }
+  if (decharger(get, set, lotId)) return;
+  const { st, vessel, lot } = garanti(lotALaCale(get, lotId), lotId, 'lot bradé');
   const pct = garanti(dumpingPricePct(st.port, lot.cargoId), lot.cargoId, 'pourcentage de bradage');
   const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
   const gross = Math.max(0, Math.round(lot.enc * lot.basePriceGold * (pct / 100)));
@@ -430,10 +453,7 @@ export function recruterLEquipage(get: Get, set: Set, roleId: string, count = 1)
   const vessel = garanti(get().vessel, 'vessel', 'navire de l’embauche');
   const role = garanti(findCrewRoleById(roleId), roleId, 'rôle d’équipage');
   if (count <= 0 || !role.wage) return [];
-  const crew = vessel.crew ?? [];
-  const next = crew.some((h) => h.roleId === roleId)
-    ? crew.map((h) => h.roleId === roleId ? { ...h, count: h.count + count } : h)
-    : [...crew, { roleId, count }];
+  const next = ajouterAuRoster(vessel.crew, roleId, count);
   set({ vessel: { ...vessel, crew: next } });
   const lines = [t('port.hired', { count, role: role.label, wage: formatMoney(priceToMoney(role.wage.weekly)), total: formatMoney(fromBrass(weeklyCrewWageBrass(next))) })];
   log(get, set, lines);

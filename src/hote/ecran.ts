@@ -10,7 +10,7 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, batailleEnVue, carteEnVue, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
+  ACTIONS, avecSigne, batailleEnVue, carteEnVue, cleDuGeste, marchandEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
   type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RecapTone, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
@@ -197,6 +197,7 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     ...patientDuSoin(etat),
     ...trajetsDeLaCarte(etat),
     ...ecranDuLieu(etat),
+    ...echoppe(etat),
     ...recitDuVoyage(etat),
     ...herosDeLInterlude(etat),
     ...champDeBataille(etat),
@@ -380,6 +381,49 @@ function recitDuVoyage(etat: Jeu): Element[] {
     ...r.journees.map((j, i): Entite => ({ type: 'entite', id: `recit/jour/${i}`, ton: 'neutre', nom: j.libelle, elements: j.lignes.map((l, k) => ligne(String(k), l)) })),
     ...(r.suite ? [ligne('recit/suite', r.suite)] : []),
   ];
+}
+
+/** L'échoppe ouverte (`marchandEnVue`) : la bourse du groupe ; chaque famille de l'étal en entité, chaque article en
+ *  bouton qui en met une unité au panier, son prix au libellé, pressé quand le panier en tient ; le panier, chaque ligne
+ *  en bouton qui en ôte une unité, et le paiement de son total ; chaque héros et ses possessions, chacune en bouton qui la
+ *  met au lot ou l'en retire, son gain au libellé ; puis la vente du lot. */
+function echoppe(etat: Jeu): Element[] {
+  const m = marchandEnVue(etat);
+  if (!m) return [];
+  const avecPrix = (nom: string, prix: string | null) => (prix === null ? nom : t('ecran.echoppe.article', { nom, prix }));
+  return [
+    puce('bourse', t('ecran.bourse'), m.bourse),
+    ...m.etal.map((f): Entite => ({
+      type: 'entite', id: `etal/${f.id}`, ton: 'neutre', nom: f.nom,
+      elements: f.articles.map((a) => boutonDeGeste(a.id, avecPrix(a.nom, a.prix), a.ajouter.geste, a.ajouter.refus, a.auPanier > 0)),
+    })),
+    {
+      type: 'entite', id: 'panier', ton: 'neutre', nom: t('ecran.echoppe.panier'),
+      elements: [
+        ...m.panier.lignes.map((l) => boutonDeGeste(l.id, avecPrix(t('ecran.echoppe.ligne', { nom: l.nom, qty: l.qty }), l.sousTotal), l.oter, null)),
+        boutonDeGeste('payer', t('ecran.echoppe.payer', { total: m.panier.total }), m.panier.payer.geste, m.panier.payer.refus),
+      ],
+    },
+    ...m.vente.heros.map((h): Entite => ({
+      type: 'entite', id: `vente/${h.id}`, ton: 'neutre', nom: h.nom,
+      elements: h.possessions.map((p) => boutonDeGeste(p.uid, avecPrix(p.nom, p.gain), p.basculer, p.refus, p.auLot)),
+    })),
+    boutonDeGeste('vendre', t('ecran.echoppe.vendre', { total: m.vente.total }), m.vente.vendre.geste, m.vente.vendre.refus),
+  ];
+}
+
+/** Les clés des choix de fenêtre (`fenetreChoisir`) que jouent les boutons de `elements`, à toute profondeur : un choix
+ *  que le corps porte ne se redessine pas en réglage. */
+function choixPortes(elements: readonly Element[]): Set<string> {
+  const cles = new Set<string>();
+  const parcourir = (e: Element | Bouton): void => {
+    if (e.type === 'bouton' && 'type' in e.jeu && e.jeu.type === VERBE_DE_CHOIX) cles.add(cleDuGeste({ verbe: VERBE_DE_CHOIX, fenetre: e.jeu.args[0] as FenetreAChoix, axe: e.jeu.args[1] as AxeDuChoix }));
+    if (e.type === 'entite') e.elements.forEach(parcourir);
+    if (e.type === 'choix' || e.type === 'liste') e.valeurs.forEach(parcourir);
+    if (e.type === 'plan') e.points.forEach((p) => p.elements.forEach(parcourir));
+  };
+  elements.forEach(parcourir);
+  return cles;
 }
 
 /** Le patient du soin en attente (`fenetreDuSoin`) ; le soigneur est celui qui tient la fenêtre et jette. */
@@ -642,13 +686,15 @@ function zonesDeLaFiche(etat: Jeu, ouverte: FicheOuverte | null): Pick<ZonesDeLE
 export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessiner | null, fiche: FicheOuverte | null, creation: CreationOuverte | null): ZonesDeLEcran {
   const c = p.combat;
   const gestes = fenetre ? elementsDesGestes(fenetre.gestes) : [];
+  const corps = fenetre ? corpsDeLaFenetre(etat) : [];
+  const portes = choixPortes(corps);
   const reglages = new Set(fenetre?.gestes.filter((g) => g.reglage).map((g) => g.cle));
   const etape = fenetre ? [fenetre.etape === fenetre.titre ? null : fenetre.etape, fenetre.proprietaire.genre === 'porteur' ? fenetre.proprietaire.nom : null].filter((x): x is string => x !== null) : [];
   return {
     'fenetre.titre': fenetre ? [ligne('titre', fenetre.titre)] : [],
     'fenetre.etape': etape.length ? [ligne('etape', etape.join(t('ecran.separateur')))] : [],
-    'fenetre.corps': fenetre ? corpsDeLaFenetre(etat) : [],
-    'fenetre.reglages': gestes.filter((g) => reglages.has(g.id)),
+    'fenetre.corps': corps,
+    'fenetre.reglages': gestes.filter((g) => reglages.has(g.id) && !portes.has(g.id)),
     'fenetre.gestes': gestes.filter((g) => !reglages.has(g.id)),
     'combat.tour': c ? [ligne('tour', c.tour === null ? t('ecran.round', { round: c.round }) : t('ecran.tour', { round: c.round, tour: c.tour, tours: c.tours }))] : [],
     'combat.ordre': c ? ordreDuTour(etat, c) : [],

@@ -494,16 +494,19 @@ export function wallEnds(w: Pick<WallSeg, 'x' | 'y' | 'side'>): [Pt, Pt] {
 }
 
 /** La hauteur (m) d'où le segment `seg` de `scene` se dresse : la plus basse des deux cases qu'il sépare qui portent un
- *  sol sur sa couche, celle de sa case pour une diagonale, un bord de carte ou deux cases sans sol. Un mur contre une
- *  volée reste debout sur le sol d'en bas ; le mur du pourtour d'un étage, sur son plancher, non sur le vide d'à côté. */
+ *  sol sur sa couche ; sans sol de part et d'autre, le plus bas sol de sa couche ; sur une couche sans sol, sa case. Un
+ *  mur contre une volée reste debout sur le sol d'en bas ; le mur du pourtour d'un étage, sur son plancher, non sur le
+ *  vide d'à côté ; celui qui borde une trémie, au niveau de son étage. */
 export function piedDeLArete(scene: Scene, seg: Pick<WallSeg, 'x' | 'y' | 'side' | 'z'>): number {
   const z = seg.z ?? 0;
-  const [dx, dy] = seg.side === 'N' ? [0, -1] : seg.side === 'E' ? [1, 0] : [0, 0];
-  const cases = [{ x: seg.x, y: seg.y }, ...(dx || dy ? [{ x: seg.x + dx, y: seg.y + dy }] : [])];
-  const sols = cases
+  const solsDe = (cases: readonly Pt[]) => cases
     .filter(({ x, y }) => x >= 0 && y >= 0 && x < scene.dimensions.w && y < scene.dimensions.h && !estAbsent(tileAt(scene, x, y, z)))
     .map(({ x, y }) => heightAt(scene, x, y, z));
-  return sols.length ? Math.min(...sols) : heightAt(scene, seg.x, seg.y, z);
+  const bords = solsDe(casesDeFace(seg, 'les-deux'));
+  if (bords.length) return Math.min(...bords);
+  const { w, h } = scene.dimensions;
+  const couche = solsDe(Array.from({ length: w * h }, (_, i) => ({ x: i % w, y: Math.floor(i / w) })));
+  return couche.length ? Math.min(...couche) : heightAt(scene, seg.x, seg.y, z);
 }
 
 /** Lien vertical entre deux cases ADJACENTES (Chebyshev : cardinale OU diagonale, grille 8-connexe cf.

@@ -60,11 +60,10 @@ import { rollTest, evaluateTest, isDoubleRoll, extendedTestStep, estJete, cibleM
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { testValue, partyAssisted, partyBest, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
-import { buildWeapon, newUid } from '../engine/items';
+import { buildWeapon } from '../engine/items';
 import { applyOps, resolveFormula, type PairedSense } from '../engine/ops';
 import { damageHull, healHull } from './monde/shipDamage';
 import { itemCapability } from '../engine/capabilities';
-import { isRation } from '../engine/provisions';
 import { toDate, MINUTES_PER_DAY, minutesUntilNext, duskMinute, dayIndex } from '../engine/clock';
 import { seasonOfMonth } from '../engine/travelStages';
 import {
@@ -85,7 +84,7 @@ import { findWhirlpool, pickSeaHazard, strandingOccurs, strandingPenaltyLine, de
 import {
   evenementsDeBord, deDesEvenementsDeBord, deDesEvenementsDePort, deDuVoyageRapide, rollPortEvent, rollDaysToNextEvent, addManann, MANANN_BASE, seaBoardEventById,
   removeCargo, spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, overloadMaxEnc, overloadMarks, resolveFastVoyage, FAST_VOYAGE_PALIERS,
-  seulEvenementDePort, rollRandomCargo, cargoBasePrice, meteosActives, modificateursAuCarenage, sommeDesModificateurs,
+  seulEvenementDePort, meteosActives, modificateursAuCarenage, sommeDesModificateurs,
   type CargoOverload, type EvenementDeBord, type ManannMood, type PortProfile, type CargoLot,
 } from '../engine/seaVoyage';
 import { navalMoveMod, navalTraitsDe, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullNavalTraits, vesselNavalTraits } from '../engine/navalTraits';
@@ -93,7 +92,7 @@ import { rule } from '../engine/policy';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { groupsFor } from '../engine/groups';
 import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
-import { crewRoleValue, crewTestModParts, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, SUCCES_MINIME_CAP } from '../engine/crewMorale';
+import { ajouterAuRoster, crewRoleValue, crewTestModParts, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, SUCCES_MINIME_CAP } from '../engine/crewMorale';
 import type { NightEntry } from './restFlow';
 import { provisioningManifest } from '../engine/provisions';
 import { toMoney, canAfford, type Money } from '../engine/money';
@@ -2121,7 +2120,6 @@ function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, rng: RNG,
     if (event.consequence) jouerFlowEntier(runFlow(get, set, event.consequence, event.label));
     return ligne;
   }
-  const vessel = get().vessel;
   const ship = get().travelPlan?.vehicle;
   switch (event.kind) {
     case 'infestation': {
@@ -2132,17 +2130,6 @@ function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, rng: RNG,
           spoilPerNight: structuredClone(p.spoilEncPerNight), // #2097
         },
       });
-      break;
-    }
-    case 'penurie-nourriture': {
-      let spoiled = 0;
-      for (const h of get().party) {
-        const rations = (h.items ?? []).filter(isRation);
-        const toSpoil = Math.floor(rations.length * event.params.spoilPct / 100);
-        for (let i = 0; i < toSpoil; i++) { const idx = h.items!.findIndex(isRation); if (idx >= 0) { h.items!.splice(idx, 1); spoiled++; } }
-      }
-      set({ party: [...get().party] });
-      tell(get, set, [t('sv.rationsSpoiled', { n: spoiled })]);
       break;
     }
     case 'vents-favorables':
@@ -2214,17 +2201,6 @@ function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, rng: RNG,
       // fuir / combattre / se soumettre (A5.3 #327), en cascade interactive avant la journée.
       openPirateHail(get, set, event);
       break;
-    case 'debris-cargaison':
-    case 'epave-cargaison': {
-      // MDG 15 l.210, l.225
-      if (!vessel) break;
-      const enc = tirer(event.params.cargoEnc, rng);
-      const season = seasonOfMonth(toDate(get().gameTime).month);
-      const cargo = rollRandomCargo(season, rng);
-      set({ vessel: { ...vessel, cargo: [...(vessel.cargo ?? []), { uid: newUid(), cargoId: cargo.id, enc, basePriceGold: cargoBasePrice(cargo, season, rng) }] } });
-      tell(get, set, [t('sv.cargoFished', { enc, cargo: cargo.label })]);
-      break;
-    }
     default:
       break; // narratif : le desc verbatim au journal suffit — rien d'inventé
   }
@@ -2506,12 +2482,36 @@ function trancherLaRelache(get: Get, set: Set, allow: boolean): void {
  *  propre cascade) puis arrivée au lieu (`arriverAuLieu`). SOURCE UNIQUE des deux gestes enchaînés,
  *  partagée par `trancherLaRelache` (inline) et la clôture de cascade surfacée (`dispatchCascadeDone`). */
 export function finalizePortArrivalTo(get: Get, set: Set, to: MapPlace, allow: boolean): void {
+  const accostage = accosterLeNavire(get, set);
+  if (accostage.length) log(get, set, accostage);
   const avant = get().pendingCascade;
   resolvePortArrival(get, set, to.port, battleRng(), allow);
   const ouverte = get().pendingCascade;
   // L'événement a SUSPENDU sur sa propre cascade (Test, choix) : l'arrivée au lieu attend sa clôture.
   if (ouverte && ouverte !== avant) { set({ pendingCascade: { ...ouverte, portArrival: { toPlaceId: to.id, allow, evenementJoue: true } } }); return; }
   arriverAuLieu(set, to);
+}
+
+/** À l'ACCOSTAGE : les recueillis sans solde rejoignent l'équipage pour une paie normale, et la perte au
+ *  déchargement de l'escale précédente est levée. MDG 15 l.213-218, l.250 */
+function accosterLeNavire(get: Get, set: Set): string[] {
+  const vessel = get().vessel;
+  if (!vessel || (!vessel.recueillisSansSolde?.length && vessel.perteAuDechargement === undefined)) return [];
+  const recueillis = vessel.recueillisSansSolde ?? [];
+  const crew = recueillis.reduce((roster, h) => ajouterAuRoster(roster, h.roleId, h.count), vessel.crew ?? []);
+  const { recueillisSansSolde: _r, perteAuDechargement: _p, ...reste } = vessel;
+  set({ vessel: { ...reste, ...(recueillis.length ? { crew } : {}) } });
+  const n = recueillis.reduce((s, h) => s + h.count, 0);
+  return n ? [t('eff.recueillisEngages', { n })] : [];
+}
+
+
+/** L'accostage `arrival` qu'une cascade FERMÉE sans clôture portait : il passe à la cascade que sa branche
+ *  a ouverte, sinon il se finalise. */
+export function poursuivreLAccostage(get: Get, set: Set, arrival: NonNullable<PendingCascade['portArrival']>): void {
+  const ouverte = get().pendingCascade;
+  if (ouverte) set({ pendingCascade: { ...ouverte, portArrival: arrival } });
+  else finalizePortArrival(get, set, arrival);
 }
 
 /** Clôture d'une cascade `portArrival` (désertion à la relâche surfacée, #387) : résout le lieu par id

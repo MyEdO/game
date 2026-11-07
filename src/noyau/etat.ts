@@ -274,6 +274,12 @@ export interface CampaignVessel {
   /** #216 — Solde hebdomadaire NON payée cumulée (sous de cuivre) : bourse insuffisante au tick →
    *  `pas-de-paie` et dette accumulée ici. Absent = aucune dette. */
   wagesOwed?: number;
+  /** Recueillis à un rôle d'équipage qui servent SANS SOLDE jusqu'au prochain port, où ils rejoignent
+   *  `crew` (op `equipage`, `sansSolde: 'jusquAuPort'`). MDG 15 l.213-218 */
+  recueillisSansSolde?: import('../engine/crewMorale').CrewHire[];
+  /** Enc de cargaison perdus au PROCHAIN déchargement dans le port de l'escale (op `cargaison`,
+   *  `perteAuDechargement`) ; levé à l'accostage suivant. MDG 15 l.250 */
+  perteAuDechargement?: number;
 }
 
 /** État réseau SÉRIALISABLE (dans l'état du jeu). `ownership` : heroId → siège (0 = hôte).

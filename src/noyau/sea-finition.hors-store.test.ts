@@ -340,6 +340,18 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
     expect(partyMoneyTotal(get).gold).toBeGreaterThan(before); // ¼ × 100 × 2 = 50 CO
   });
 
+  it('Gangs des quais : la perte en attente frappe le premier lot déchargé dans ce port, puis se lève (MDG 15 l.250)', () => {
+    seedBattleRng(2);
+    set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot-4', cargoId: 'bois-mer', enc: 100, basePriceGold: 2 }, { uid: 'lot-5', cargoId: 'bois-mer', enc: 10, basePriceGold: 2 }], perteAuDechargement: 30 }, lieu: 'B' });
+    get().ouvrirLePort();
+    const before = partyMoneyTotal(get).gold;
+    get().jeterLaCargaison('lot-4');
+    expect(partyMoneyTotal(get).gold - before).toBe(35); // ¼ × (100 − 30) × 2
+    expect(get().vessel!.perteAuDechargement).toBeUndefined();
+    get().jeterLaCargaison('lot-5');
+    expect(partyMoneyTotal(get).gold - before).toBe(35 + 5); // ¼ × 10 × 2 : la perte ne frappe qu'une fois
+  });
+
   it('acheterLaCargaison au port : seule la cale du navire se négocie, un autre porteur est refusé en le disant', () => {
     seedBattleRng(2);
     get().ouvrirLePort();

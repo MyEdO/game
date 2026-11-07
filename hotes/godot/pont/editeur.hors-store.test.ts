@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { erreurDe, table, type Reponse } from './pont.testkit';
-import type { AreteDessinee, VolumeDuMonde } from '../../../src/noyau/index';
+import type { AreteDessinee, Scene, VolumeDuMonde } from '../../../src/noyau/index';
 import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
 import type { Bouton, Choix, Formulaire, Ligne } from '../../../src/hote/elements';
 import type { CalqueAffiche, SurcoucheDeLEdition, ZonesDeLEditeur } from '../../../src/hote/editeur';
@@ -142,7 +142,7 @@ describe('l’éditeur de carte par le pont, les murs', () => {
     const materiau = valeursDe(portes, 'structures')[1];
     presser(materiau);
     const posee = jouer({ geste: 'appui', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
-    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ case: { x: 1, y: 1 }, milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, pied: 0, piece: 'porte-ouverte', famille: 'colombage', hauteurM: 4 }]);
+    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ cle: '1,1,N,0', case: { x: 1, y: 1 }, milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, pied: 0, piece: 'porte-ouverte', famille: 'colombage', hauteurM: 4 }]);
     jouer({ geste: 'relache', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
 
     presser(boutonDe(posee, 'outil/select'));
@@ -834,5 +834,92 @@ describe('l’éditeur de carte par le pont, au dépôt', () => {
     rmSync(depot, { recursive: true, force: true });
     const relue = editionDe(rouvrir('editer', { edition: { geste: 'appui', point: point(1, 1) } }));
     expect(relue.vue.zones['editeur.pointee'][0].texte, 'rouverte, la case porte le terrain peint').toContain(` · ${autre.libelle} · `);
+  });
+});
+
+describe('l’éditeur de carte par le pont, une scène bâtie de bout en bout', () => {
+  const manuscrit = listerProjetsLivres().find((rel) => rel.split('/').pop()! in PROJETS_MANUSCRITS)!;
+  const servi = lireProjetLivre(manuscrit) as { id: string; scenes: { id: string }[] };
+
+  it('une scène neuve reçoit les ouvrages de la Diligence ; enregistrée, rouverte du dépôt, sa validation ne dit aucune erreur', { timeout: 240_000 }, () => {
+    const { appel } = table();
+    let e = editionDe(appel('editer', { ouvrir: servi.id, projet: JSON.stringify(servi) }));
+    const jouer = (edition: unknown) => (e = editionDe(appel('editer', { edition })));
+    const presser = (id: string) => (e = editionDe(appel('editer', boutonDe(e, id).jeu)));
+    const pres = (x: number, y: number, fx = x, fy = y) => ({ case: { x, y }, f: { x: fx, y: fy } });
+    const cliquer = (x: number, y: number, fx = x, fy = y) => { jouer({ geste: 'appui', point: pres(x, y, fx, fy) }); jouer({ geste: 'relache', point: pres(x, y, fx, fy) }); };
+    const tirer = (cases: [number, number][]) => {
+      jouer({ geste: 'appui', point: point(...cases[0]) });
+      for (const c of cases.slice(1)) jouer({ geste: 'glisse', point: point(...c) });
+      jouer({ geste: 'relache', point: point(...cases[cases.length - 1]) });
+    };
+    const pointee = () => e.vue.zones['editeur.pointee'].map((l) => (l as Ligne).texte);
+
+    const [ox, oy] = [3, 3];
+    const ici = (dx: number, dy: number) => ({ x: ox + dx, y: oy + dy });
+    const cliquerLaCase = (dx: number, dy: number) => cliquer(ox + dx, oy + dy);
+    /** Un clic sur la case (`dx`, `dy`), tout près de son côté qui la sépare de sa voisine (`vx`, `vy`). */
+    const cliquerLeCote = ([dx, dy]: [number, number], [vx, vy]: [number, number]) => cliquer(ox + dx, oy + dy, ox + dx + 0.45 * (vx - dx), oy + dy + 0.45 * (vy - dy));
+    const tirerPar = (chemin: [number, number][]) => tirer(chemin.map(([dx, dy]) => [ox + dx, oy + dy]));
+    const palier: [number, number][] = [[8, 0], [8, 1], [8, 2]];
+
+    presser('scenes/ajouter');
+    presser('couche/ajouter');
+    presser('outil/tile'); presser('pinceau/1'); presser('terrain/dalle');
+    for (const c of palier) cliquerLaCase(...c);
+    presser('outil/height'); presser('pinceau/1'); presser('hauteur/haute');
+    for (const c of palier) cliquerLaCase(...c);
+    presser('couche/0');
+
+    presser('outil/wall'); presser('structure/mur-a-ossature-en-bois');
+    for (const d of [0, 1, 2]) {
+      cliquerLeCote([d, 0], [d, -1]);
+      cliquerLeCote([d, 2], [d, 3]);
+      cliquerLeCote([0, d], [-1, d]);
+      cliquerLeCote([2, d], [3, d]);
+    }
+    presser('arete/door'); cliquerLeCote([1, 0], [1, -1]);
+    presser('outil/select'); cliquerLeCote([2, 2], [2, 3]); presser('arete/fenetre');
+    expect(pointee()[1]).toBe(`Arête ${ox + 2}, ${oy + 3} N · couche 0 · fenêtre · Mur à ossature en bois`);
+
+    presser('outil/zone'); presser('zone/room'); tirerPar([[0, 0], [1, 1], [2, 2]]);
+    presser('outil/architecture'); cliquerLaCase(0, 0); presser('batir/corps'); presser('batir/etage');
+    expect(e.vue.couche, 'l’étage bâti s’édite').toBe(1);
+    presser('couche/0'); presser('architecture/facade'); cliquerLeCote([2, 0], [2, -1]); presser('baie/ajouter');
+
+    presser('outil/stair'); presser('etage/1'); tirerPar([[4, 1], [5, 1], [6, 1], [7, 1]]);
+    expect(e.vue.zones['editeur.options'].filter((l) => l.type === 'ligne').map((l) => (l as Ligne).texte)).toEqual(['Tracé : 4 cases', '0 m → 4 m · cotes 1 · 2 · 3 · 4 m']);
+    presser('volee/poser');
+
+    presser('outil/prop'); cliquerLaCase(5, 4); presser('outil/select'); cliquerLaCase(5, 4); presser('entite/cap/NE');
+    presser('outil/heroStart'); cliquerLaCase(3, 5);
+    presser('outil/zone'); presser('zone/trigger'); tirerPar([[6, 4], [7, 5], [8, 6]]);
+    expect((e.vue.zones['editeur.validation'][0] as Ligne).texte).toMatch(/^Validation : 0 erreur\(s\)/);
+    expect((appel('editer', boutonDe(e, 'tester').jeu) as Reponse & { essai?: boolean }).essai, 'la scène bâtie se met à l’essai').toBe(true);
+
+    const enregistree = editionDe(appel('editer', boutonDe(e, 'enregistrer').jeu));
+    const projet = JSON.parse(enregistree.depot!.texte) as typeof servi;
+    const neuve = projet.scenes.find((sc) => !servi.scenes.some((d) => d.id === sc.id)) as unknown as Scene;
+    expect(neuve.layers.map((l) => l.z), 'deux couches').toEqual([0, 1]);
+    expect([4, 5, 6, 7].map((dx) => neuve.layers[0].height![(oy + 1) * neuve.dimensions.w + ox + dx]), 'la volée cotée de cran en cran').toEqual([1, 2, 3, 4]);
+    expect(neuve.walls!.filter((w) => w.structure === 'mur-a-ossature-en-bois'), 'onze murs à ossature en bois').toHaveLength(11);
+    expect(neuve.walls!.filter((w) => w.door).map((w) => [w.x, w.y, w.side])).toEqual([[ox + 1, oy, 'N']]);
+    expect(neuve.walls!.filter((w) => w.window).map((w) => [w.x, w.y, w.side])).toEqual([[ox + 2, oy + 3, 'N']]);
+    const [corps] = neuve.architecture!;
+    expect(corps.storeys.map((st) => st.z), 'un corps de deux étages').toEqual([0, 1]);
+    expect(corps.facades!.flatMap((f) => f.features ?? []).map((f) => f.kind), 'une façade et son ouverture').toEqual(['gable']);
+    expect(neuve.effectZones!.map((z) => [z.presentation, z.area]), 'la pièce').toEqual([['interior', { kind: 'rect', ...ici(0, 0), w: 3, h: 3 }]]);
+    expect(neuve.entities.map((en) => [en.kind, en.pos, en.facing])).toEqual([['prop', ici(5, 4), 'NE'], ['heroStart', ici(3, 5), undefined]]);
+    expect(neuve.triggers.map((tr) => [tr.rect, tr.flow]), 'le déclencheur tiré, au flux vide').toEqual([[{ ...ici(6, 4), w: 3, h: 3 }, { kind: 'seq', steps: [] }]]);
+
+    const { appel: rouvrir } = table();
+    const depot = mkdtempSync(join(tmpdir(), 'editeur-3508-'));
+    const fichier = join(dossierDesProjetsLivres(depot), manuscrit);
+    mkdirSync(dirname(fichier), { recursive: true });
+    writeFileSync(fichier, enregistree.depot!.texte);
+    const rouverte = editionDe(rouvrir('editer', { ouvrir: servi.id, projet: JSON.stringify(lireProjetLivre(manuscrit, depot)) }));
+    rmSync(depot, { recursive: true, force: true });
+    const relue = editionDe(rouvrir('editer', boutonDe(rouverte, `scenes/${neuve.id}`).jeu));
+    expect((relue.vue.zones['editeur.validation'][0] as Ligne).texte, 'rouverte du dépôt, la porte la lit et la validation ne dit aucune erreur').toMatch(/^Validation : 0 erreur\(s\)/);
   });
 });
