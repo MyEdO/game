@@ -149,7 +149,7 @@ export const libelleDeTable = (s: CascadeStep): string | undefined => (s.table ?
 
 type JetLu = { roll: number; target?: number; sl?: number; success?: boolean } | null | undefined;
 
-/** La ligne d'un Test : le dé se lit comme la rangée l'affiche (`ui/breakdown.testBreakdown`). */
+/** La ligne d'un Test : le dé se lit comme la rangée l'affiche (`testBreakdown`). */
 function ligne(qui: string | null | undefined, test: string, r: JetLu, cible?: number | null): LigneDeJet {
   const c = r?.target ?? cible ?? null;
   return {

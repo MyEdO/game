@@ -160,7 +160,7 @@ export interface HullCriticalOutcome {
   /** Critiques de Coque SUPPLÉMENTAIRES résolus (1d10…) — ops déjà appliqués à la coque. */
   extraHullCrits: ShipCriticalResolved[];
   /** Coup à l'ÉQUIPAGE de la rangée : conséquence certaine DÉJÀ appliquée, épreuve RENDUE. L'appelant
-   *  (`state`) ouvre `testFlow` par la porte canonique sur les `victims`. */
+   *  (`noyau`) ouvre `testFlow` par la porte canonique sur les `victims`. */
   crewHit?: CrewHitOutcome & { label: string };
   lines: string[];
 }
@@ -180,7 +180,7 @@ function posteCrew(hull: Combatant, crew: Combatant[], rng: RNG): Combatant[] {
 export interface CrewHitOutcome {
   /** Ids des marins VISÉS par le coup (`crewTarget`) — l'ordre est celui de la sélection. */
   victims: string[];
-  /** Nœud `test` de la rangée, ENJEU POSÉ : la couche `state` l'OUVRE (une bande de N rangées, une
+  /** Nœud `test` de la rangée, ENJEU POSÉ : la couche `noyau` l'OUVRE (une bande de N rangées, une
    *  par siège). Absent quand la rangée n'appelle aucun jet. */
   testFlow?: FlowTestNode;
   /** Marins ayant réellement encaissé la conséquence CERTAINE (`ops`, déjà appliquée). */

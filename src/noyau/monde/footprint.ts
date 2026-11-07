@@ -56,7 +56,7 @@ export const propDeclaredFoot = (ref: string | undefined): { w: number; h: numbe
 
 /**
  * ANCRE MONDE d'un décor posé en `pos` — le point sur lequel TOUT ce que le décor projette se pose :
- * sa géométrie volumique (`gameIso/builders/props.ts` → `buildPropVolumes`), son dessin billboard, et
+ * sa géométrie volumique (`buildPropVolumes`), son dessin billboard, et
  * le FOYER de la source qu'il porte (`noyau/monde/vision.ts` → `LightSource.foyer`). Un décor s'ancre au
  * CENTRE de son empreinte : `pos` en est le coin NO, `decorFootGeometry` donne le décalage
  * fractionnaire vers ce centre. UNE définition, parce qu'une lampe calée sur un autre point que sa
@@ -94,11 +94,11 @@ export function propFootTiles(ref: string | undefined, pos: Pt, facing: Dir8 | u
  *
  * DEUX grandeurs, deux emplois, et pas l'une pour l'autre :
  *  - `sx`/`sy` = l'étendue de l'empreinte, AXE PAR AXE. C'est ce que suit toute figure POSÉE AU SOL
- *    sur l'empreinte — le halo d'interaction (`gameIso/builders/interactHalos`). Un `scale` isotrope
+ *    sur l'empreinte — le halo d'interaction. Un `scale` isotrope
  *    y débordait d'une demi-case sur l'axe court d'un meuble 1×2 : le halo d'une table murale passait
  *    à travers le mur, dans la pièce voisine.
  *  - `scale` = l'échelle du DESSIN, isotrope par nature : une vignette de billboard s'agrandit sans
- *    se déformer, donc au plus grand côté (`gameIso/builders/props.ts`, `PropEl.echelle`).
+ *    se déformer, donc au plus grand côté (`PropEl.echelle`).
  * Le décalage est LU à `data/props.types.ts` (`offsetAncre`), où le validateur de catalogue et la
  * résolution des places le lisent aussi : `src/data` ne peut pas remonter jusqu'ici sans cycle.
  */

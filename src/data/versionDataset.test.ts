@@ -6,10 +6,8 @@
  *  1. il rend EXACTEMENT ce qu'une `Map` figée à l'import rendrait — sans quoi il ne remplace rien ;
  *  2. il se REFAIT à l'écriture — sans quoi ce serait un mémo mort, et le premier contrat ne
  *     prouverait qu'un instantané.
- * Ce que ce contrôle de fraîcheur COÛTE est une durée : elle vit au banc
- * `gameIso/stage/versionDataset.bench.ts` (`npm run bench`), hors de `npm test` et de la CI (#1788).
- * Le banc et sa prémisse vivent sous `gameIso/` parce qu'ils CUISENT des scènes : ce fichier-ci ne
- * prouve que du PUR, et n'importe donc rien hors de `src/data` (pureté de couche, #1709).
+ * Ce que ce contrôle de fraîcheur COÛTE est une durée : elle vit à un banc (`npm run bench`), hors de
+ * `npm test` et de la CI (#1788). Ce fichier-ci ne prouve que du PUR, et n'importe donc rien hors de `src/data` (pureté de couche, #1709).
  */
 import { describe, it, expect } from 'vitest';
 import { findById, props } from './index';

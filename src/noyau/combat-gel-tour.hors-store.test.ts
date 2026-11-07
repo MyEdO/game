@@ -447,7 +447,7 @@ describe('#1852 — un combattant ne décide qu’UNE fois son tour', () => {
     const { enemy } = setup();
     enemy.traits = [];
     maybeRunEnemyTurn(g, banc.setState); // timer de tour EN VOL
-    g().resumeCadence();                    // le joueur change la cadence de combat (`EFFETS` de state/preferences.ts)
+    g().resumeCadence();                    // le joueur change la cadence de combat
     banc.reprendreTout();
     const tours = aiTurnLog().filter((r) => r.id === enemy.id && r.round === 1);
     expect(tours.length).toBe(1);

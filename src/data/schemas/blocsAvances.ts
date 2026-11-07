@@ -15,7 +15,7 @@ const SCHEMA_BLOCS_AVANCES = nommerChamps(z.strictObject({
   encounters: encountersSchema.optional(),
 }), { dialogues: metaDesChamps(sceneSchema, { exigees: true }).dialogues, triggers: metaDesChamps(sceneSchema, { exigees: true }).triggers, encounters: metaDesChamps(sceneSchema, { exigees: true }).encounters });
 
-/** Porte de la modale « Avancé » (`saveAdvanced`, `ui/editor/Editor.tsx`), hors de l'écran pour être mesurable hors montage : c'est
+/** Porte de la modale « Avancé » (`saveAdvanced`), hors de l'écran pour être mesurable hors montage : c'est
  *  elle qui rend le refus que l'auteur lit (#1588). Forme VIVANTE (`validerFormeVivante`, #2001) : le
  *  schéma prouve la forme disque, la valeur collée est relue sous sa vue TS, son texte gardé — patron
  *  de `parseProject`. */

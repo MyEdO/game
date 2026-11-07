@@ -1,7 +1,7 @@
 /**
  * LE GESTE D'UN ACCÈS (`gesteDuPortail`) : la porte fermée s'actionne, l'accès ouvert se franchit en marchant vers sa case
  * d'en face, la marche fermée (dialogue) n'ouvre aucun geste. Les gestes d'exploration (`gestesDExploration`) le lisent ;
- * l'activation de l'écran aussi (`gameIso/stage/useStagePointer.ts`, `activatePortal`).
+ * l'activation de l'écran aussi (`activatePortal`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';

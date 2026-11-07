@@ -1,7 +1,7 @@
 /**
  * CLIQUET NOMINATIF « une Activité à JET dit son ENJEU » (#1117 L3) — troisième pendant des cliquets
- * du chantier, à l'étage de l'ACTIVITÉ : `state/cascade-step-stake-guard` tient les étapes de
- * cascade, `ui/mono-stake-ratchet` les coquilles de modale, celui-ci la DONNÉE qui les alimente.
+ * du chantier, à l'étage de l'ACTIVITÉ : les deux autres tiennent les étapes de cascade et les
+ * coquilles de modale, celui-ci la DONNÉE qui les alimente.
  *
  * Le prédicat de jet est celui du moteur (`activityRolls`), pas un grep : une Activité LANCE si elle
  * déclare des `skills`/`char`/`freeSkill`, ou si son résolveur dérive la compétence du héros

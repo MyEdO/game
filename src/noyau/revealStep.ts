@@ -20,7 +20,7 @@ const REVEAL_ICON: Record<RevealEntry['kind'], IconId> = {
 };
 
 /** Une révélation → étape d'AFFICHAGE de la séquence : la charge riche `reveal` voyage TELLE QUELLE
- *  (le rendu est routé par `kind` dans `ui/RevealBody.tsx` — panneau du Critique, parchemin d'entrée
+ *  (le rendu est routé par `kind` — panneau du Critique, parchemin d'entrée
  *  de zone, rangée de tirage + lignes pour le reste). `actorId` = le CONCERNÉ (victime → propriétaire
  *  de la modale en coop, et portrait du sujet dans la fenêtre). `opts.table` = la DÉCLARATION du tirage
  *  DÉJÀ résolu qui a produit la révélation (#942 L4 : le d100 de sévérité d'un Critique) — la rangée

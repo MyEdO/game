@@ -1068,7 +1068,7 @@ export function admetLePeche(noeud: unknown): boolean {
 
 /** NATURE d'une Influence corruptrice (`LDB 19 l.29`) — clés des Tests de la fiche `influences-corruptrices`
  *  (`TESTS_DE_REGLE`, `engine/ruleRefs.ts`). SOURCE UNIQUE : les deux portes `corruptionExposure.nature`
- *  (op `GameOp`, effet de scène), les sélecteurs de l'atelier, la modale (`ui/CorruptionModal.tsx`) et
+ *  (op `GameOp`, effet de scène), les sélecteurs de l'atelier, la modale de Corruption et
  *  la couture du slot (`noyau/corruptionFlow.ts`) en dérivent — jamais une deuxième liste. */
 export const NATURES_D_INFLUENCE = TESTS_DE_REGLE['influences-corruptrices'];
 export type NatureDInfluence = (typeof NATURES_D_INFLUENCE)[number];

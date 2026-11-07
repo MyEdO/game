@@ -45,7 +45,7 @@ import { t } from '../i18n';
  * FENÊTRES D'INFLUENCE — prédicats PURS, écrits UNE fois, à côté des ops qui les exécutent
  * (`opReroll`, `opBonusSL`, `opDarkPact`, `opForceSuccess`) et qui les appellent pour se garder. Ils rendent
  * ce qui FERME le verbe (`FermetureDuJet`), `null` quand il est ouvert. La coquille d'affichage les consomme
- * (`ui/RollRow` → `ui/InfluenceRow` → `ui/ChanceButtons`), et la fabrique les compose en `fermetures` pour le
+ * (rangée, influence, Chance), et la fabrique les compose en `fermetures` pour le
  * lecteur des verbes ouverts (`verbesOuverts.ts`) : une modale ne déclare que les FAITS de son jet, jamais une
  * éligibilité.
  *
@@ -358,7 +358,7 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    * exprimables par une lentille — attaque/défense/piétinement/coup dans le dos (`result.attackerDetail`),
    * incantation (`CastResult`, `critable` faux pour une Prière), étape de cascade (`step.result`/`target`),
    * Test `fuite` du fuyard (`slot.jet`). Le QUAND (Résilience vs dé fixé, avant/après le jet) ne s'écrit
-   * plus ici : il est arbitré une seule fois par `ui/forcedDieRow.ts`.
+   * plus ici : l'hôte l'arbitre une seule fois, à la pose du dé.
    */
   caps?: {
     forced?: boolean;
@@ -593,7 +593,7 @@ function opResist<P extends PendingBase>(
  *    celle du dé saisi, évaluée NORMALEMENT (réussite/échec, DR, doubles réels).
  *
  * AUCUNE gate de possession ici : l'option « Dés fixés » est CLIENT-SIDE (elle n'arme que l'affordance
- * de CELUI qui clique, cf. `ui/forcedDieRow.ts`), et l'autorisation d'un geste reçu par le réseau est
+ * de CELUI qui clique, `netOwnership.canFixDie`), et l'autorisation d'un geste reçu par le réseau est
  * celle du SIÈGE ÉMETTEUR (`netOwnership.intentAllowedFor`) — la ré-évaluer ici avec l'état LOCAL de
  * l'hôte faisait tomber en silence le geste légitime d'un invité sur son propre héros.
  * Renvoie `true` si un patch a été commis (l'appelant journalise la valeur RÉELLEMENT appliquée).

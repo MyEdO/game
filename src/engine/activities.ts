@@ -482,7 +482,7 @@ export function activityRolls(def: Pick<ActivityDef, 'tests' | 'freeSkill' | 're
 
 /** Ligne de mod du modificateur de SITUATION d'un Test d'Activité (Menace `ADE II 8 l.219`,
  *  Planification l.75) — SOURCE UNIQUE, partagée par le CALCUL de la cible (`massBattleFlow`,
- *  `rollFlowSpecs`) et par son RENDU (`ui/ActivityModal.tsx`) : trois littéraux du même fait
+ *  `rollFlowSpecs`) et par son RENDU : trois littéraux du même fait
  *  divergeaient sinon. Aucun mod ⇒ aucune ligne (jamais un « Modificateur +0 » inventé). PURE. */
 export function activityModLines(mod: number | undefined, modLabel: string | undefined): ModLine[] {
   return mod ? [{ label: modLabel ?? 'Modificateur', value: mod, famille: 'jet' as const }] : [];

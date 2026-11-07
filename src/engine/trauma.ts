@@ -641,7 +641,7 @@ export function settleHealedCriticals(c: Combatant): string[] {
  *  Résistance ou Inconscient, LDB 18 l.74) armés sur `target` (`Trauma.critTrigger`) que le critique COURANT
  *  (à `location`) fait feu : pour chaque signature DISTINCTE dont le personnage porte l'État `whileCondition`
  *  et dont la `location` correspond (ou est absente), le nœud `test` de sauvegarde est RENDU — jamais roulé :
- *  l'appelant `state` l'ouvre par la porte, dans le geste du critique qui l'a fait feu. Lu au point unique de
+ *  l'appelant (`noyau`) l'ouvre par la porte, dans le geste du critique qui l'a fait feu. Lu au point unique de
  *  résolution (`resolveCritique`) ; PUR, aucun RNG. */
 export function fireCritTriggers(target: Combatant, location: HitLocation): FlowTestNode[] {
   const out: FlowTestNode[] = [];
