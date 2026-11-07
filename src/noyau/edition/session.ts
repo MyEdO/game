@@ -654,10 +654,9 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     case 'zone':
       return ecrireSurLaSelection(s, patchZone(scene, s.sel, g.patch), zonesDe);
     case 'valeur': {
-      const zones = scene.effectZones ?? [];
-      const rang = zones.findIndex((z) => z.id === g.porteur.id);
-      const ecrite = rang < 0 ? undefined : zoneAvecLaValeur(zones[rang], g.chemin, g.valeur);
-      return ecrite ? ecrireSurLaSelection(s, replaceEffectZone(scene, rang, ecrite), (sc) => sc.effectZones) : s;
+      const zone = (scene.effectZones ?? []).find((z) => z.id === g.porteur.id);
+      const ecrite = zone && zoneAvecLaValeur(zone, g.chemin, g.valeur);
+      return ecrite ? ecrireSurLaSelection(s, replaceEffectZone(scene, g.porteur.id, ecrite), (sc) => sc.effectZones) : s;
     }
     case 'nommer': {
       const ent = entiteDeLaSelection(scene, s.sel);
