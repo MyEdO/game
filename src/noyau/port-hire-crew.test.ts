@@ -21,7 +21,7 @@ function mkStore(vessel: CampaignVessel | null) {
   const log = (msg: string | string[]) => {
     state = { ...state, journal: [...state.journal.slice(-40), ...(Array.isArray(msg) ? msg : [msg])] };
   };
-  const get = (() => ({ ...state, log })) as unknown as Get;
+  const get = (() => ({ ...state, ecrireAuJournal: log })) as unknown as Get;
   const set = ((patch: Partial<typeof state>) => { state = { ...state, ...patch }; }) as unknown as Set;
   return { get, set, read: () => state };
 }
