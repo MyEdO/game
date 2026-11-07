@@ -38,7 +38,7 @@ const EMISSION: Record<string, { parUI: true } | { sansSurface: string }> = {
   incanterLeSort: { parUI: true },
   focaliserLeSort: { parUI: true },
   dissiperLeSort: { parUI: true },
-  roundStartPromote: { parUI: true },
+  promouvoirLeCombattant: { parUI: true },
   // La sortie d'une fenêtre (`modalArbiter.sortieDeLaFenetre`) : le bouton qui ferme son écran, et les sorties
   // d'interlude du balayage et de la 2ᵉ frappe (`actionRegistry.OFFRES_PAR_RUN`).
   fenetreFermer: { parUI: true },
@@ -51,21 +51,21 @@ const EMISSION: Record<string, { parUI: true } | { sansSurface: string }> = {
   // registre). Les deux sens passent par le même verbe.
   leverLaMain: { parUI: true },
   // Carnet d'enquête (#670) : l'épingle et la nouveauté vue, émises par `CarnetScreen`.
-  toggleCluePin: { parUI: true },
-  markCluesSeen: { parUI: true },
-  partyAddHero: { parUI: true },
-  partyRemoveHero: { parUI: true },
-  partyReplaceHero: { parUI: true },
-  interludeActivity: { parUI: true },
-  interludeCraftStart: { parUI: true },
-  interludeOrder: { parUI: true },
-  interludeBank: { parUI: true },
-  interludeWithdraw: { parUI: true },
-  interludeEntrainement: { parUI: true },
-  favorSettle: { parUI: true },
-  massBattleActivity: { parUI: true },
+  epinglerLIndice: { parUI: true },
+  marquerLesIndices: { parUI: true },
+  recruterLeHeros: { parUI: true },
+  renvoyerLeHeros: { parUI: true },
+  remplacerLeHeros: { parUI: true },
+  pratiquerLActivite: { parUI: true },
+  fabriquerLObjet: { parUI: true },
+  commanderLObjet: { parUI: true },
+  deposerALaBanque: { parUI: true },
+  retirerDeLaBanque: { parUI: true },
+  suivreLEntrainement: { parUI: true },
+  solderLaFaveur: { parUI: true },
+  menerLActionDeBataille: { parUI: true },
   // Tir rapide (#1050) : le badge de la frise ARME la visée ; le tir lui-même part du clic-token.
-  armPreempt: { parUI: true },
+  armerLeTirPreventif: { parUI: true },
   // Réglages des jets (#3368) : l'arme d'enfoncement d'une rangée de `ForceDoorModal` (EDO 11 l.93), les Bandages du
   // soin (LDB 74 l.41), la déclaration d'une rangée de Contre-sort (#1042/#1059) ou de chute (#700), chacun une option
   // de sa fenêtre.

@@ -75,7 +75,7 @@ export interface MapPlace {
 }
 
 /** Un POI de PLAN (#345 phase 5) : cible EXCLUSIVE `sceneId` (transition vers une scène du projet,
- *  `transitionTo`) OU `serviceKind` (`id` d'un service RÉSOLU du lieu — `placeServices`, dont le
+ *  `quitterLaScene`) OU `serviceKind` (`id` d'un service RÉSOLU du lieu — `placeServices`, dont le
  *  port/marché AUTOMATIQUES `'port'`/`'marche'` — le MÊME panneau de service que l'onglet Services),
  *  jamais les deux. `id` STABLE (référencé par l'éditeur et les tests, `validateScene`) ; `label` est
  *  le SEUL champ d'affichage (doctrine ids internes, AGENTS.md). */
@@ -322,7 +322,7 @@ export interface ResolvedPlaceService {
   /** Bande d'ambiance par défaut (catalogue `lieux-services.json`, id du registre des fonds de l'hôte). */
   backdrop?: string;
   /** Archétype marchand (catalogue `lieux-services.json`, ex. `armurier` pour le forgeron) — porte vers
-   *  le système marchand EXISTANT (`openPlaceMerchant`, #369), aucun système neuf. */
+   *  le système marchand EXISTANT (`ouvrirLaBoutique`, #369), aucun système neuf. */
   merchantArchetype?: string;
   /** Écran plein-champ EXISTANT vers lequel le service porte (catalogue `lieux-services.json`) :
    *  `port` = l'écran de port (onglet Chantier par défaut), sous garde de navire de campagne. */
@@ -444,7 +444,7 @@ export function produitsDuProfil(production: readonly string[] | undefined): { p
  *  absent : aucune évaluation, toutes les routes reliées sont rendues.
  *
  *  Lecteur du VOYAGE : le moteur ne propose jamais un trajet fermé, et n'en démarre jamais un —
- *  `startTravel` (`travelFlow.ts`) réévalue `when` au départ, au même niveau que le sens unique `from`.
+ *  `partirEnVoyage` (`travelFlow.ts`) réévalue `when` au départ, au même niveau que le sens unique `from`.
  *  La VUE lit `routesEtat`, qui rend aussi les trajets fermés — le joueur doit VOIR qu'il ne peut plus
  *  y aller (et pourquoi). */
 export function routesFrom(map: WorldMap, placeId: string, ctx?: ConditionCtx): MapRoute[] {

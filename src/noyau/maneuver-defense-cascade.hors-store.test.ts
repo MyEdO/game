@@ -108,8 +108,8 @@ describe('Défense de manœuvre de zone — cascade influençable (héros) vs si
     expect(p.participants.length).toBe(1);
     const cur = p.participants[0];
     // « Je ne faillirai pas ! » (Résilience) AVANT le jet → réussite forcée → le héros l'emporte → RÉSISTE.
-    banc.getState().jetForceSuccess('cascade', cur.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetForcerLaReussite('cascade', cur.id);
+    banc.getState().jetValider('cascade');
     const live = banc.getState().battle!.combatants.find((c) => c.id === h1.id)!;
     expect(live.wounds.current).toBe(before); // résisté : aucun Dégât
     expect(live.conditions.some((c) => c.id === 'en-flammes')).toBe(false);

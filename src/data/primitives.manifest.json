@@ -2038,7 +2038,7 @@
     "label": "apparencesCandidates/choisirApparenceDObjet/deciderApparencesDesArmes/racineDesCandidats/formeResolue/SourceDeForme",
     "fichier": "src/engine/items.ts",
     "concept": "forme racine mécanique `shape` copiée à la naissance ; `choisirApparenceDObjet` admet une décision explicite par `shape` et `formChoices` de la fiche résolue, puis écrit la même racine et l’apparence sur l’instance ; les CANDIDATS de l’objet porté lisent cette racine et la variante compatible, sans relire la fiche ; une arme naturelle ne publie aucun candidat ; `racineDesCandidats` lit la dernière entrée, que `formeResolue` rend (#2967)",
-    "perimetre": "tout lecteur d’une apparence ou de sa racine : dessin (`armeDeDessin`), icône d’inventaire, sélecteur Apparence de la fiche et admission par `choisirApparence` via `choisirApparenceDObjet`, outillage de recette (`__wfrp.battle`)",
+    "perimetre": "tout lecteur d’une apparence ou de sa racine : dessin (`armeDeDessin`), icône d’inventaire, sélecteur Apparence de la fiche et admission par `poserLApparence` via `choisirApparenceDObjet`, outillage de recette (`__wfrp.battle`)",
     "verrou": "src/engine/apparences-candidates.test.ts, src/noyau/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
   },
   {

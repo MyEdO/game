@@ -51,8 +51,8 @@ describe('Clôture — le devis est ce que le geste applique', () => {
       heros('Recrue', 1603, 3, { gold: 0, silver: 0, brass: 0 }),
     ], [SANS_EFFET, SANS_EFFET, SANS_EFFET]);
     const [a, b, c] = banc.getState().party.map((h) => h.id);
-    banc.actions.interludeBank(a, 'mecenat', 1200);
-    expect(banc.getState().bank, 'témoin : le Mécénat est déposé').toEqual([{ heroId: a, kind: 'mecenat', brass: 1200, rate: 0 }]);
+    banc.actions.deposerALaBanque(a, 'mecenat', 1200);
+    expect(banc.getState().bank, 'témoin : le Mécénat est déposé').toEqual([{ uid: expect.any(String), heroId: a, kind: 'mecenat', brass: 1200, rate: 0 }]);
     banc.setState((s) => ({
       gameTime: 120,
       pendingOrders: [{ heroId: c, trappingId: 'dague' }],
@@ -86,7 +86,7 @@ describe('Clôture — le devis est ce que le geste applique', () => {
     expect(s.interlude).toBeNull();
     expect(bourses(banc), 'bourses : gaspillées, puis les seuls Revenus').toEqual([120, 0, 0]);
     expect(s.party.map((h) => h.careerLevel), 'Niveaux : ceux du devis').toEqual([3, 4, 2]);
-    expect(s.bank, 'le dépôt survit à la clôture').toEqual([{ heroId: a, kind: 'mecenat', brass: 1200, rate: 0 }]);
+    expect(s.bank, 'le dépôt survit à la clôture').toEqual([{ uid: expect.any(String), heroId: a, kind: 'mecenat', brass: 1200, rate: 0 }]);
     expect(s.gameTime, 'reprise : celle du devis').toBe(19020);
     expect(hasCondition(s.party[2], 'extenue'), 'l’issue différée est posée après le repos').toBe(true);
   });
@@ -145,7 +145,7 @@ describe('Clôture — devis = geste = oracle, sur 60 groupes tirés', () => {
       }
       return {
         gameTime,
-        bank: ri(0, 4) < 3 ? [{ heroId: ids[0], kind: 'stash' as const, brass: ri(1, 900), rate: 0 }] : [],
+        bank: ri(0, 4) < 3 ? [{ uid: 'depot-sonde', heroId: ids[0], kind: 'stash' as const, brass: ri(1, 900), rate: 0 }] : [],
         pendingOrders: ri(0, 4) < 2 ? [{ heroId: ids[0], trappingId: 'dague' }] : [],
         party: [...s.party.map((h) => (morts.has(h.id) ? { ...h, dead: true } : h)), ...(intrus ? [intrus] : [])],
         interlude: { ...s.interlude!, perHero },

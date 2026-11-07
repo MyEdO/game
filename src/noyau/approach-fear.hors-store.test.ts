@@ -67,12 +67,12 @@ describe('approachFearTrigger — source de Peur qui s’approche (LDB 21 l.27)'
     expect(stacks(h, COND.brise)).toBe(0); // conséquence différée
   });
 
-  it('héros MANUEL : Test `source-se-rapproche` RATÉ (jetRoll@cascadeBatch+Next) → 1 État Brisé', () => {
+  it('héros MANUEL : Test `source-se-rapproche` RATÉ (jetLancer@cascadeBatch+Next) → 1 État Brisé', () => {
     seedBattleRng(1);
     const h = hero({ characteristics: { 'force-mentale': 1 } as never }); // FM 1 : le Test de la fiche du jeu ~imbattable à rater
     run([h], mover({ pos: { x: 6, y: 5 } }), { x: 9, y: 5 });
-    banc.getState().jetRoll('cascadeBatch', h.id);
-    banc.getState().jetConfirm('cascade'); // valide l’échec → branche fail → op condition `brise`
+    banc.getState().jetLancer('cascadeBatch', h.id);
+    banc.getState().jetValider('cascade'); // valide l’échec → branche fail → op condition `brise`
     const got = banc.getState().battle!.combatants.find((x) => x.id === h.id)!;
     expect(stacks(got, COND.brise)).toBe(1);
   });
@@ -81,8 +81,8 @@ describe('approachFearTrigger — source de Peur qui s’approche (LDB 21 l.27)'
     seedBattleRng(1);
     const h = hero({ characteristics: { 'force-mentale': 100 } as never });
     run([h], mover({ pos: { x: 6, y: 5 } }), { x: 9, y: 5 });
-    banc.getState().jetRoll('cascadeBatch', h.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetLancer('cascadeBatch', h.id);
+    banc.getState().jetValider('cascade');
     const got = banc.getState().battle!.combatants.find((x) => x.id === h.id)!;
     expect(stacks(got, COND.brise)).toBe(0);
   });
@@ -100,11 +100,11 @@ describe('approachFearTrigger — source de Peur qui s’approche (LDB 21 l.27)'
     // Test SIMPLE (LDB 21 l.27) : aucune opposition FIGÉE — la source ne jette rien, ni une fois ni N fois.
     expect(step.meta?.opposed).toBeUndefined();
     // La bande n'est PRÊTE qu'une fois ses deux rangées jouées.
-    banc.getState().jetRoll('cascadeBatch', 'h1');
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetLancer('cascadeBatch', 'h1');
+    banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade!.cursor).toBe(0);
-    banc.getState().jetRoll('cascadeBatch', 'h2');
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetLancer('cascadeBatch', 'h2');
+    banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
   });
 
@@ -262,7 +262,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
     banc.reprendreLesEnAttente(); // joue le glissé d'approche → ouvre la frappe
     expect(banc.getState().pendingAttack?.fromCharge).toBe(true);
     expect(H.approachMoves).toHaveLength(1);
-    banc.getState().jetCancel('attack');
+    banc.getState().jetAnnuler('attack');
     expect(H.approachMoves).toBeUndefined();
     advanceTurn(banc.getState, banc.setState);
     expect(brise(E.id)).toBe(0);
@@ -328,7 +328,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
     banc.getState().gagnerLAvantage('intuition');
     const pt = banc.getState().pendingTest!;
     banc.setState({ pendingTest: { ...pt, roll: 99, success: false, sl: -3 } });
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     expect(H.approachMoves).toBeUndefined();
     expect(brise(E.id)).toBe(1);
   });

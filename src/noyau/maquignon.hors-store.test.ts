@@ -46,7 +46,7 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
     banc.getState().openMerchant('pnj');
     const before = toBrass(partyMoneyTotal(banc.getState));
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', 'mule');
-    banc.getState().payCart();
+    banc.getState().payerLesAchats();
     const st = banc.getState();
     expect(st.possessions.length).toBe(0); // pas encore de possession : en attente de répartition
     expect(st.merchant!.pendingDistribution).toBeTruthy();
@@ -61,7 +61,7 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 50, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', 'mule');
-    banc.getState().payCart();
+    banc.getState().payerLesAchats();
     const mule = banc.getState().merchant!.pendingDistribution!.find((d) => 'unit' in d && d.unit.id === 'mule');
     expect(mule).toBeDefined();
     banc.getState().fenetreChoisir('marchand', 'repartition', mule!.uid, 'h2'); // réassigne au 2e héros (pas le défaut party[0])
@@ -81,7 +81,7 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
     const line = banc.getState().merchant!.stock.find((l) => l.id === 'selle-et-harnais');
     expect(line).toBeDefined();
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', 'selle-et-harnais');
-    banc.getState().payCart();
+    banc.getState().payerLesAchats();
     const st = banc.getState();
     expect(st.merchant!.pendingDistribution).toBeTruthy(); // panier avec objet de sac → écran de répartition renseigné
     expect(st.merchant!.pendingDistribution!.some((d) => 'item' in d && d.item.trappingId === 'selle-et-harnais')).toBe(true);
@@ -95,7 +95,7 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
     banc.getState().openMerchant('pnj');
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', 'mule');
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', 'selle-et-harnais');
-    banc.getState().payCart();
+    banc.getState().payerLesAchats();
     const dist = banc.getState().merchant!.pendingDistribution!;
     const unite = dist.find((d) => 'unit' in d);
     const objet = dist.find((d) => 'item' in d);

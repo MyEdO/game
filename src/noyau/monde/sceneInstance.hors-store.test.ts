@@ -88,14 +88,14 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
     expect(banc.getState().scene!.entities.map((e) => e.id)).not.toContain('decor-retire');
     expect(doorIsOpen(banc.getState().scene!, DOOR_OPENED)).toBe(true);
 
-    banc.getState().transitionTo('scene-b');
+    banc.getState().quitterLaScene('scene-b');
     expect(banc.getState().scene?.id).toBe('scene-b');
     expect(banc.getState().sceneInstances['scene-a']).toEqual<SceneMutation>({
       removedEntityIds: ['decor-retire'],
       flags: { __door_1_1_N_0: true },
     });
 
-    banc.getState().transitionTo('scene-a');
+    banc.getState().quitterLaScene('scene-a');
     const back = banc.getState().scene!;
     expect(back.id).toBe('scene-a');
     expect(back.entities.map((e) => e.id)).not.toContain('decor-retire'); // ressuscité si régression
@@ -109,8 +109,8 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
     const sceneA = fixtureScene('scene-c');
     const sceneB = fixtureScene('scene-d');
     banc.getState().loadProject({ scenes: [sceneA, sceneB], entryId: 'scene-c', projet: null });
-    banc.getState().transitionTo('scene-d');
-    banc.getState().transitionTo('scene-c');
+    banc.getState().quitterLaScene('scene-d');
+    banc.getState().quitterLaScene('scene-c');
     expect(banc.getState().sceneInstances).toEqual({});
     const back = banc.getState().scene!;
     expect(back.entities.map((e) => e.id).sort()).toEqual(['decor-retire', 'decor-untouche', 'hs']);
@@ -122,7 +122,7 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
     const sceneA = fixtureScene('scene-e');
     banc.getState().loadProject({ scenes: [sceneA], entryId: 'scene-e', projet: null });
     removeEntity(banc.getState, banc.setState, 'decor-retire');
-    banc.getState().transitionTo('scene-e'); // capture (même scène, revisit immédiat)
+    banc.getState().quitterLaScene('scene-e'); // capture (même scène, revisit immédiat)
     expect(Object.keys(banc.getState().sceneInstances)).toHaveLength(1);
     banc.getState().startScene(fixtureScene('scene-f'));
     expect(banc.getState().sceneInstances).toEqual({});
@@ -130,7 +130,7 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
 
   // RÈGLE : à l'entrée en scène, l'assise se NORMALISE — ne survit que la place dont le meuble est
   // posé, la place déclarée au catalogue, et le corps disponible.
-  it('transitionTo : l’assise AUTHORÉE d’un héros hors groupe est élaguée à l’entrée en scène', () => {
+  it('quitterLaScene : l’assise AUTHORÉE d’un héros hors groupe est élaguée à l’entrée en scène', () => {
     banc.setState({ party: [hero()] });
     const a = fixtureScene('scene-t1');
     const b = fixtureScene('scene-t2');
@@ -140,7 +140,7 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
       'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' }, 'place-3': { kind: 'party', rang: 4 } },
     };
     banc.getState().loadProject({ scenes: [a, b], entryId: 'scene-t1', projet: null });
-    banc.getState().transitionTo('scene-t2');
+    banc.getState().quitterLaScene('scene-t2');
     // Le PNJ authoré reste assis ; le héros qui n'est pas du groupe ne réserve rien.
     expect(banc.getState().scene!.seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' } } });
   });
@@ -152,7 +152,7 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
       const sceneB = fixtureScene('scene-h');
       banc.getState().loadProject({ scenes: [sceneA, sceneB], entryId: 'scene-g', projet: null });
       removeEntity(banc.getState, banc.setState, 'decor-retire');
-      banc.getState().transitionTo('scene-h', undefined, { x: 0, y: 0 }); // capture scene-g avant sauvegarde d'une AUTRE scène
+      banc.getState().quitterLaScene('scene-h', undefined, { x: 0, y: 0 }); // capture scene-g avant sauvegarde d'une AUTRE scène
       const texte = sauverLeBanc(banc);
 
       banc.setState({ sceneInstances: {} }); // « nouvelle partie » — état écrasé avant le chargement
@@ -160,7 +160,7 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
       chargerSurLeBanc(banc, texte);
       expect(banc.getState().sceneInstances['scene-g']).toEqual<SceneMutation>({ removedEntityIds: ['decor-retire'], flags: {} });
 
-      banc.getState().transitionTo('scene-g');
+      banc.getState().quitterLaScene('scene-g');
       expect(banc.getState().scene!.entities.map((e) => e.id)).not.toContain('decor-retire');
     });
 
@@ -192,7 +192,7 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
       const sceneA = fixtureScene('scene-i');
       banc.getState().loadProject({ scenes: [sceneA], entryId: 'scene-i', projet: null });
       removeEntity(banc.getState, banc.setState, 'decor-retire');
-      banc.getState().transitionTo('scene-i'); // capture : l'état chargé avant la save porte une instance
+      banc.getState().quitterLaScene('scene-i'); // capture : l'état chargé avant la save porte une instance
       expect(Object.keys(banc.getState().sceneInstances)).toHaveLength(1);
       // Save écrite à la version COURANTE, clé `sceneInstances` RETIRÉE : filet n°1 de la politique de
       // version (champ manquant → `initialFields`), pas une save d'une autre version.

@@ -125,11 +125,11 @@ export function CampaignView() {
   const refusFinDeSeance = useGame(refusDeFinDeSeance);
   const fermer = useGame((s) => s.fenetreFermer);
   const pendingRoundStart = useGame((s) => s.pendingRoundStart);
-  const roundStartPromote = useGame((s) => s.roundStartPromote);
+  const promouvoirLeCombattant = useGame((s) => s.promouvoirLeCombattant);
   const gameTime = useGame((s) => s.gameTime);
   const worldMap = useGame((s) => s.worldMap);
   const worldMapOpen = useGame((s) => s.worldMapOpen);
-  const openWorldMap = useGame((s) => s.openWorldMap);
+  const ouvrirLaCarte = useGame((s) => s.ouvrirLaCarte);
   const port = useGame((s) => s.port);
   const landMarket = useGame((s) => s.landMarket);
   const pendingSeaActivities = useGame((s) => s.pendingSeaActivities);
@@ -144,7 +144,7 @@ export function CampaignView() {
   const povActive = useGame((s) => s.povActive);
   const netMode = useGame((s) => s.net.mode);
   const refusSave = useGame((s) => refusDeSauvegarde(s, s.net.mySeat));
-  const openRest = useGame((s) => s.openRest);
+  const ouvrirLeRepos = useGame((s) => s.ouvrirLeRepos);
   const partyPos = useGame((s) => s.partyPos);
   // Offre de repos LÀ OÙ SE TIENT le groupe (zone d'auteur > scène > camp ; null = interdit).
   const restHere = mode === 'exploration' && scene ? restPlacesHere({ scene, partyPos } as Parameters<typeof restPlacesHere>[0]) : null;
@@ -211,7 +211,7 @@ export function CampaignView() {
   });
   // LDB 10.
   const preemptAiming = useGame((s) => s.preemptAiming);
-  const armPreempt = useGame((s) => s.armPreempt);
+  const armerLeTirPreventif = useGame((s) => s.armerLeTirPreventif);
   const canPreemptIds = preemptShooterIds(useGame.getState); // source UNIQUE (partagée avec le ciblage clavier)
   // PAUSE AU PROCHAIN ROUND (`raise-hand`) : l'interrupteur du pied de frise. Verdict d'offre et
   // dispatcher viennent du REGISTRE — la vue ne connaît qu'un id d'action, et la bascule repasse par
@@ -310,7 +310,7 @@ export function CampaignView() {
                forcé ouvert). */
             onVoyage={voyageHub && voyageMin && !voyageStepUp ? () => setVoyageMin(false) : undefined}
             /* Carte du monde (#T2) : la scène est un lieu connu, ou un voyage interrompu attend. */
-            worldMap={worldMap && (lieu || travelPlan) ? { onOpen: openWorldMap, interrupted: !!travelPlan?.interrupted } : undefined}
+            worldMap={worldMap && (lieu || travelPlan) ? { onOpen: ouvrirLaCarte, interrupted: !!travelPlan?.interrupted } : undefined}
             /* Hub de ville (#343) : à un lieu offrant au moins un service, ou un couchage sur place. */
             hub={hubPlace ? { label: hubPlace.label, icon: hubPlace.icon ?? 'nav/campaign', onOpen: ouvrirLeLieu } : undefined}
             /* Dormir ici HORS lieu (route, camp sauvage) — l'offre vient de la ZONE où se tient le
@@ -318,7 +318,7 @@ export function CampaignView() {
             rest={!travelPlan && restHere && !hubPlace
               ? {
                   title: t(restHere.places.auberge ? 'cv.dormirAuberge' : restHere.places.maison ? 'cv.dormirChezSoi' : 'cv.camperSurPlace'),
-                  onOpen: () => openRest({ places: restHere.places, lieu: sceneLieu(useGame.getState), quality: restHere.quality }),
+                  onOpen: () => ouvrirLeRepos({ places: restHere.places, lieu: sceneLieu(useGame.getState), quality: restHere.quality }),
                 }
               : undefined}
             onFouiller={fouilleOfferte ? fouillerLaPiece : undefined}
@@ -357,10 +357,10 @@ export function CampaignView() {
               onInspect={setInspectId}
               onHover={setHoverCombatant}
               hoveredId={hovered}
-              onPromote={roundStartPromote}
+              onPromote={promouvoirLeCombattant}
               canPreemptIds={canPreemptIds}
               preemptArmedId={preemptAiming}
-              onPreempt={armPreempt}
+              onPreempt={armerLeTirPreventif}
               hand={netMode === 'local' ? undefined : {
                 raised: handRaised,
                 reason: handVerdict.ok ? undefined : handVerdict.reason,

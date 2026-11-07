@@ -69,9 +69,9 @@ function scenesDuRound(s: Jeu, mb: MassBattleState): SceneEnVue[] {
       position: sc.sceneKind === 'hold' && sc.hold ? positionDe(mb, id, sc.hold.breakpoint) : null,
       postes: combat || resolue || mb.awaitingNext ? null : libres.map((h) => {
         const poste = postes.includes(h.id);
-        return { nom: h.label, poste, geste: { verbe: 'setMassBattleHero', args: [id, poste ? postes.filter((x) => x !== h.id) : [...postes, h.id]] } };
+        return { nom: h.label, poste, geste: { verbe: 'affecterLeHeros', args: [id, poste ? postes.filter((x) => x !== h.id) : [...postes, h.id]] } };
       }),
-      engager: { libelle: t(combat ? 'mbf.engagerLeCombat' : 'mbf.resoudre'), geste: { verbe: 'massBattleScene', args: [id] }, refus: refusDeSceneDeBataille(s, id) },
+      engager: { libelle: t(combat ? 'mbf.engagerLeCombat' : 'mbf.resoudre'), geste: { verbe: 'jouerLaScene', args: [id] }, refus: refusDeSceneDeBataille(s, id) },
     };
   });
 }
@@ -93,14 +93,14 @@ export function batailleEnVue(s: Jeu): BatailleEnVue | null {
     menace: enRound ? massBattleThreatPenalty(mb) : 0,
     scenes: enRound ? scenesDuRound(s, mb) : [],
     alea: mb.hazard ? { libelle: mb.hazard.label, texte: mb.hazard.text } : null,
-    tirerAlea: aleaOuvert ? { libelle: t('mbf.tirerAlea', { die: formatDice(massBattleHazardsDie()) }), geste: { verbe: 'massBattleHazard', args: [] }, refus: null } : null,
-    choisirAlea: aleaOuvert ? BATTLE_HAZARDS.map((h) => ({ libelle: h.label, geste: { verbe: 'massBattleHazard', args: [h.min] }, refus: null })) : [],
+    tirerAlea: aleaOuvert ? { libelle: t('mbf.tirerAlea', { die: formatDice(massBattleHazardsDie()) }), geste: { verbe: 'affronterLePeril', args: [] }, refus: null } : null,
+    choisirAlea: aleaOuvert ? BATTLE_HAZARDS.map((h) => ({ libelle: h.label, geste: { verbe: 'affronterLePeril', args: [h.min] }, refus: null })) : [],
     gestes: !enRound ? [] : mb.awaitingNext
       ? [
-          { libelle: t('mbf.rallyLabel'), geste: { verbe: 'massBattleRally', args: [] }, refus: refusDeRassemblement(s) },
-          { libelle: t('mbf.roundSuivant'), geste: { verbe: 'massBattleAdvance', args: [] }, refus: null },
+          { libelle: t('mbf.rallyLabel'), geste: { verbe: 'rallierLesTroupes', args: [] }, refus: refusDeRassemblement(s) },
+          { libelle: t('mbf.roundSuivant'), geste: { verbe: 'avancerLaBataille', args: [] }, refus: null },
         ]
-      : [{ libelle: t('mbf.testSpectaculaire'), geste: { verbe: 'massBattleClash', args: [] }, refus: null }],
+      : [{ libelle: t('mbf.testSpectaculaire'), geste: { verbe: 'engagerLaMelee', args: [] }, refus: null }],
     issue: mb.phase === 'over' ? issueDe(mb) : null,
   };
 }

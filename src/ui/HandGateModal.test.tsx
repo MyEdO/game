@@ -70,7 +70,7 @@ describe('sélecteur de dé HÉRITÉ de la coquille — modale sans aucun code l
   it('Résilience dépensée → le choix du dé est offert, borné à la cible (LDB 17 l.68)', () => {
     open();
     expect(shellHtml()).not.toContain('Dé choisi');
-    useGame.getState().jetForceSuccess('handGate');
+    useGame.getState().jetForcerLaReussite('handGate');
     expect(useGame.getState().pendingHandGate!.forced).toBe(true);
     const html = shellHtml();
     expect(html).toContain('Dé choisi'); // « Dé choisi (Je ne faillirai pas !) »
@@ -79,8 +79,8 @@ describe('sélecteur de dé HÉRITÉ de la coquille — modale sans aucun code l
 
   it('le dé choisi s’applique réellement au Test (le verbe existe pour ce flux)', () => {
     open();
-    useGame.getState().jetForceSuccess('handGate');
-    useGame.getState().jetSetForcedRoll('handGate', 11);
+    useGame.getState().jetForcerLaReussite('handGate');
+    useGame.getState().jetImposerLeResultat('handGate', 11);
     const pg = useGame.getState().pendingHandGate!;
     expect(pg.roll).toBe(11);
     expect(pg.success).toBe(true);
@@ -94,7 +94,7 @@ describe('sélecteur de dé HÉRITÉ de la coquille — modale sans aucun code l
     expect(shellHtml()).toContain('Fixer le dé');
     expect(shellHtml()).not.toContain('Dé fixé');
     const resil = useGame.getState().battle!.combatants[0].resilience;
-    useGame.getState().jetSetForcedRoll('handGate', 41);
+    useGame.getState().jetImposerLeResultat('handGate', 41);
     const pg = useGame.getState().pendingHandGate!;
     expect(pg.roll).toBe(41);
     expect(pg.success).toBe(true); // 41 ≤ 60 : réussite NATURELLE, pas forcée

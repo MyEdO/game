@@ -6,7 +6,7 @@
  * (MSRC 7) a une table de vent PROPRE (5 forces, direction RELATIVE arrière/côté/contraire — l.21-41),
  * un Test de Navigation SIMPLE (Voile OU Ramer, un par étape — l.11-15) et ses propres Critiques de bateau
  * (l.72-94). Ce qui est réellement COMMUN (boucle jour/jour, halte de nuit, entretien quotidien, coque
- * persistée) est réutilisé côté flux (`riverVoyageFlow` réutilise `openRest`/`runDailyUpkeep`/
+ * persistée) est réutilisé côté flux (`riverVoyageFlow` réutilise `ouvrirLeRepos`/`runDailyUpkeep`/
  * `persistHullWounds` de la machinerie de voyage), pas ré-implémenté.
  *
  * RAW modélisé (MSRC 7) :

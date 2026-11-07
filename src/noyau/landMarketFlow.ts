@@ -96,7 +96,7 @@ export function currentMarket(get: Get): { placeId: string; label: string; marke
 /** Génère les offres d'ACHAT à l'arrivée (MSRC 13 l.22-42) : disponibilité en 2 temps — d'abord une CHANCE de
  *  trouver un marchand ((Taille+Richesse)×10 %, `rollFindMerchant`), puis la TAILLE de chaque cargaison
  *  (`rollCargoQuantity`). Un Emplacement « Commerce » ajoute une cargaison ALÉATOIRE de la table saisonnière. */
-export function openLandMarket(get: Get, set: Set): void {
+export function ouvrirLeMarche(get: Get, set: Set): void {
   const cur = currentMarket(get);
   if (!cur) return;
   ouvrirEtal(get, set, 'land', `Halle — ${cur.label}`);
@@ -184,7 +184,7 @@ export function generateTradeRumour(get: Get, set: Set, currentPlaceId: string, 
 /** ÉVALUATION de la qualité SECRÈTE d'un lot de Vin/Eau-de-vie proposé (l.95) : Test d'Évaluation, difficulté
  *  Intermédiaire (Accessible si le meneur a Résistance à l'alcool ≥ 50). Sur un succès, révèle la vraie qualité ;
  *  sur un échec, une FAUSSE indication décalée du degré d'échec. Un lot ne s'évalue qu'une fois. */
-export function landEvalWine(get: Get, set: Set, cargoId: string): void {
+export function evaluerLeVin(get: Get, set: Set, cargoId: string): void {
   if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
   const st = get().landMarket;
   if (!st) return;
@@ -208,7 +208,7 @@ const LAND_WINE_EVAL_KIND = 'land-market-wine-eval';
 /** TRANSFERT de cargaison entre deux porteurs CO-LOCALISÉS (#327, décision 8) — route par `transferCargo`
  *  du tronc (jamais une 2ᵉ arithmétique) puis RE-PERSISTE les deux porteurs. Le refus du plan
  *  (`planDuTransfertDemande`) tombe avant toute écriture. */
-export function moveCargo(get: Get, set: Set, lotId: IdDeCargaison, toId: IdDePorteurDeCargaison, enc: number): void {
+export function deplacerLaCargaison(get: Get, set: Set, lotId: IdDeCargaison, toId: IdDePorteurDeCargaison, enc: number): void {
   if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
   const plan = planDuTransfertDemande(bulkCarriers(get()), lotId, toId, enc);
   if (plan.refus !== null) { refuserGeste(get, set, plan.refus); return; }
@@ -426,9 +426,9 @@ export function sortiesDuMarcheTerrestre(_get: Get, set: Set) {
 
 export function creerActionsDuMarcheTerrestre(get: Get, set: Set) {
   return {
-    openLandMarket: () => openLandMarket(get, set),
-    moveCargo: (lotId, toId, enc) => moveCargo(get, set, lotId, toId, enc),
-    landEvalWine: (cargoId) => landEvalWine(get, set, cargoId),
+    ouvrirLeMarche: () => ouvrirLeMarche(get, set),
+    deplacerLaCargaison: (lotId, toId, enc) => deplacerLaCargaison(get, set, lotId, toId, enc),
+    evaluerLeVin: (cargoId) => evaluerLeVin(get, set, cargoId),
   } satisfies FabriqueDuNoyau;
 }
 

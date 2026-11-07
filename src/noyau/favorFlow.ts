@@ -95,7 +95,7 @@ export function breakFavor(get: Get, set: Set, heroId: string, favorId: string):
 export function creerActionsDesFaveurs(get: Get, set: Set) {
   return {
     favorGrant: (heroId, level, owedTo, desc) => grantFavor(get, set, heroId, level, owedTo, desc),
-    favorSettle: (heroId, favorId) => settleFavorActivity(get, set, heroId, favorId),
-    favorBreak: (heroId, favorId) => breakFavor(get, set, heroId, favorId),
+    solderLaFaveur: (heroId, favorId) => settleFavorActivity(get, set, heroId, favorId),
+    rompreLaFaveur: (heroId, favorId) => breakFavor(get, set, heroId, favorId),
   } satisfies FabriqueDuNoyau;
 }

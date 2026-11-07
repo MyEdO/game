@@ -27,14 +27,14 @@ export function ActivityModal() {
   const pa = useGame((s) => s.pendingActivity);
   const party = useGame((s) => s.party);
   const massBattle = useGame((s) => s.massBattle);
-  const roll = useGesteDeJet('jetRoll', 'activity');
-  const reroll = useGesteDeJet('jetReroll', 'activity');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'activity');
-  const darkPact = useGesteDeJet('jetDarkPact', 'activity');
-  const force = useGesteDeJet('jetForceSuccess', 'activity'); // Résilience (LDB 17 l.68)
-  const reverse = useGesteDeJet('jetReverse', 'activity'); // Inversion (LDB 12 l.42)
-  const cancel = useGesteDeJet('jetCancel', 'activity');
-  const confirm = useGesteDeJet('jetConfirm', 'activity');
+  const roll = useGesteDeJet('jetLancer', 'activity');
+  const reroll = useGesteDeJet('jetRelancer', 'activity');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'activity');
+  const darkPact = useGesteDeJet('jetPactiser', 'activity');
+  const force = useGesteDeJet('jetForcerLaReussite', 'activity'); // Résilience (LDB 17 l.68)
+  const reverse = useGesteDeJet('jetInverser', 'activity'); // Inversion (LDB 12 l.42)
+  const cancel = useGesteDeJet('jetAnnuler', 'activity');
+  const confirm = useGesteDeJet('jetValider', 'activity');
   if (!pa) return null;
   const actor = party.find((c) => c.id === pa.heroId);
   const rolled = pa.roll != null;

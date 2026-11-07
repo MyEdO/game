@@ -12,7 +12,7 @@
  *                    `EVT.ANIM_MOVE`), jamais la répétition automatique du clavier ni une vitesse
  *                    inventée. Aucune file : à l'arrivée, on regarde ce qui est tenu MAINTENANT.
  *
- * Chaque case traversée est une ARRIVÉE : le pas passe par `stepPartyDir`/`stepPartyRelative` du store
+ * Chaque case traversée est une ARRIVÉE : le pas passe par `stepPartyDir`/`avancerDUnPas` du store
  * (donc `moveParty` — facing, déclencheurs, déplacement-puis-fouille). Une porte qui s'ouvre pendant la
  * marche (dialogue, combat, écran, modale, fenêtre hors-modale) la termine sur la case atteinte.
  */
@@ -73,7 +73,7 @@ function commettre(get: () => GameState): void {
   }
   const depart = s.partyPos;
   if (pas.vue === 'iso') s.stepPartyDir(pas.dir);
-  else s.stepPartyRelative(pas.rel);
+  else s.avancerDUnPas(pas.rel);
   const arrivee = get().partyPos;
   // Timer TRACÉ (`web/minuteries.ts`, mur `murs/minuteries`, #415). La durée vient de `walkMs`, la fonction même dont le rendu déduit la fin
   // du glissement (`fx/useWalkAnim`) : un pas d'une case vaut donc STEP_MS, mur compris — un pas refusé

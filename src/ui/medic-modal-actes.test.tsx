@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * #3059 L3 — un acte de l'infirmerie (`MedicModal`) est grisé EXACTEMENT quand le geste `medicAct` le
+ * #3059 L3 — un acte de l'infirmerie (`MedicModal`) est grisé EXACTEMENT quand le geste `soignerLePatient` le
  * refuserait, avec la raison que lit le verdict `refusDActeDeSoin` (`noyau/medicFlow.ts`). Montage réel,
  * clic réel sur le bouton de l'acte.
  */
@@ -50,7 +50,7 @@ function acte(nom: string) {
   return { bouton, ferme: bouton.getAttribute('aria-disabled') === 'true', raison: rid ? document.getElementById(rid)?.textContent ?? null : null };
 }
 
-describe('MedicModal — acte grisé = acte que medicAct refuse, même raison', () => {
+describe('MedicModal — acte grisé = acte que soignerLePatient refuse, même raison', () => {
   it('Hémorragie verrouillée par Chirurgie, chirurgien présent : « Opérer » offert, le clic arme l’opération', () => {
     const doc = hero({ id: 'doc', talents: [{ talentId: 'chirurgie', times: 1 }] });
     const patient = hero({ id: 'p', label: 'Patient', skills: [], conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] });

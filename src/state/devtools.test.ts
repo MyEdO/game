@@ -363,7 +363,7 @@ describe('__wfrp — autres commandes de recette', () => {
         onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,
       },
     });
-    useGame.getState().jetConfirm('test');
+    useGame.getState().jetValider('test');
     expect(buildApi().lastRoll()).toEqual({ actorId: hero.id, success: true, sl: 1, roll: 42, target: 50 });
   });
 
@@ -602,8 +602,8 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     const ici = combattant().pos!;
     for (const e of g().battle!.combatants.filter((c) => c.kind === 'enemy')) e.pos = { x: ici.x + 12, y: ici.y + 12 };
     g().battleRun({ x: ici.x + 3, y: ici.y });
-    g().jetRoll('run');
-    g().jetConfirm('run');
+    g().jetLancer('run');
+    g().jetValider('run');
     expect(g().battle!.runBudget, 'la Course a posé son budget').toBeGreaterThan(0);
     expect(api.turn(heroId)).toMatch(/^✓/);
     const b = g().battle!;
@@ -1075,7 +1075,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
   });
 
   it('advanceSeaDay() fait avancer d’UN jour (cascade + halte de nuit résolues), s’arrête sur la cascade FRAÎCHE du jour suivant', async () => {
-    useGame.getState().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
+    useGame.getState().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
     const p = buildApi().advanceSeaDay();
     await vi.runAllTimersAsync();
     const msg = await p;
@@ -1096,7 +1096,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
   });
 
   it('skipToArrival() roule jusqu’à l’accostage (travelPlan vidé, route courte de 100 milles)', async () => {
-    useGame.getState().startTravel('r1', 'mer');
+    useGame.getState().partirEnVoyage('r1', 'mer');
     const p = buildApi().skipToArrival();
     await vi.runAllTimersAsync();
     const msg = await p;
@@ -1106,7 +1106,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
   });
 
   it('dealShipDamage() inflige des Dégâts HORS COMBAT via la SOURCE UNIQUE vessel.wounds (#296)', () => {
-    useGame.getState().startTravel('r1', 'mer');
+    useGame.getState().partirEnVoyage('r1', 'mer');
     // À l'appareillage, `vessel.wounds` reste `undefined` jusqu'à la première écriture (piège #296) —
     // la coque de trajet (`travelPlan.vehicle`) porte la valeur RÉELLE tant qu'aucun Dégât/jour n'écrit.
     const before = useGame.getState().travelPlan!.vehicle!.wounds.current;

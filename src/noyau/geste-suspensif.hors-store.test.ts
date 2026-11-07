@@ -90,8 +90,8 @@ describe('extendedTest / forceDoor — même patron, même suite', () => {
     let garde = 0;
     while (get().pendingExtendedTest && garde++ < 60) {
       const p = get().pendingExtendedTest!;
-      get().jetRoll('extendedTest', p.rounds[p.rounds.length - 1].id);
-      get().jetConfirm('extendedTest');
+      get().jetLancer('extendedTest', p.rounds[p.rounds.length - 1].id);
+      get().jetValider('extendedTest');
     }
     expect(get().flags.cede).toBe(true);
     expect(get().flags['apres-test']).toBe(true);
@@ -99,7 +99,7 @@ describe('extendedTest / forceDoor — même patron, même suite', () => {
 
   it('Test étendu abandonné : la suite se joue aussi', () => {
     runFlow(get, banc.setState, puis(crochetage, 'apres-test'));
-    get().jetCancel('extendedTest');
+    get().jetAnnuler('extendedTest');
     expect(get().flags.cede).toBeUndefined();
     expect(get().flags['apres-test']).toBe(true);
   });
@@ -110,8 +110,8 @@ describe('extendedTest / forceDoor — même patron, même suite', () => {
     expect(get().flags['apres-porte']).toBeUndefined();
     let garde = 0;
     while (get().pendingForceDoor && garde++ < 60) {
-      for (const part of get().pendingForceDoor!.participants) get().jetRoll('forceDoor', part.id);
-      get().jetConfirm('forceDoor');
+      for (const part of get().pendingForceDoor!.participants) get().jetLancer('forceDoor', part.id);
+      get().jetValider('forceDoor');
     }
     expect(get().flags['porte-ouverte']).toBe(true);
     expect(get().flags['apres-porte']).toBe(true);
@@ -119,7 +119,7 @@ describe('extendedTest / forceDoor — même patron, même suite', () => {
 
   it('porte abandonnée : la suite se joue aussi', () => {
     runFlow(get, banc.setState, puis(porte, 'apres-porte'));
-    get().jetCancel('forceDoor');
+    get().jetAnnuler('forceDoor');
     expect(get().flags['apres-porte']).toBe(true);
   });
 });

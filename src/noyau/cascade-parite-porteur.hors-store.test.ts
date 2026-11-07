@@ -228,7 +228,7 @@ interface Conduite {
   interaction: string;
   prete: boolean;
   tiree: boolean;
-  /** La pose du dé ouverte sous le curseur (`jetSetForcedRoll('cascadeTirage')`, fermeture `canFixDie`). */
+  /** La pose du dé ouverte sous le curseur (`jetImposerLeResultat('cascadeTirage')`, fermeture `canFixDie`). */
   pose: boolean;
   curseurAvant: number | null;
   curseurApres: number | null;
@@ -243,7 +243,7 @@ function conduite(trace: number[]): Conduite {
   const st = p ? p.participants[p.cursor] : undefined;
   const avant = curseur();
   const pose = !!st && fermeturesDuFlux(get(), 'cascadeTirage', st.id).setForcedRoll === null;
-  get().jetConfirm('cascade');
+  get().jetValider('cascade');
   const obs: Conduite = {
     interaction: st ? stepInteraction(st) : 'aucune',
     prete: !!st && stepReady(st, get()),
@@ -281,7 +281,7 @@ const PORTES: Record<string, (porteur: Porteur) => Conduite> = {
       title: 'Parité', purpose: 'test',
       steps: [etapeMuette(porteur, heroId, 'parite-sus', cleDeFixture('parite-suspend')), etapeTable(porteur, heroId)],
     });
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     if (get().pendingCascade) suspendActiveCascade(get, set);
     resumeSuspendedCascade(get, set);
     return conduite(trace);

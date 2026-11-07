@@ -30,7 +30,7 @@ describe('refusDeRevenus — le geste Revenus d’un héros dont la Classe est b
     expect(raison).toBe('Larron ne peut pas entreprendre Revenus (événement : Répression du crime).');
     const avant = JSON.stringify(banc.getState().interlude);
     const journal = banc.getState().journal.length;
-    banc.actions.interludeActivity(heroId, 'revenus');
+    banc.actions.pratiquerLActivite(heroId, 'revenus');
     expect(banc.getState().journal.slice(journal)).toEqual([raison]);
     expect(JSON.stringify(banc.getState().interlude), 'une Activité a été consommée').toBe(avant);
     expect(banc.getState().pendingActivity).toBeNull();
@@ -39,7 +39,7 @@ describe('refusDeRevenus — le geste Revenus d’un héros dont la Classe est b
   it('un guerrier sous le même Événement : aucun refus, les Revenus s’ouvrent', () => {
     const { banc, heroId } = apresLaRepression('soldat', 'Vétéran');
     expect(refusDeRevenus(banc.getState(), heroId)).toBeNull();
-    banc.actions.interludeActivity(heroId, 'revenus');
+    banc.actions.pratiquerLActivite(heroId, 'revenus');
     expect(banc.getState().pendingActivity?.heroId).toBe(heroId);
   });
 });

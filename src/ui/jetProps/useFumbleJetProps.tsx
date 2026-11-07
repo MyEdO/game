@@ -15,14 +15,14 @@ import { t } from '../../i18n';
  * via ce hook). La Maladresse est une CONSÉQUENCE du Test raté sur un double : comme le Critique, elle
  * vit DANS la MÊME fenêtre que l'attaque/défense, plus dans une modale d'arbitre séparée. AUCUNE influence
  * (la Chance agit AVANT qu'un Test ne devienne Maladresse ; une fois actée, l'Oups ! est subi). Le jet est
- * un tirage de TABLE (pas de cible / DR) : `jetRoll('fumble')` → `result`, `jetConfirm('fumble')` → applyOups. `null`
+ * un tirage de TABLE (pas de cible / DR) : `jetLancer('fumble')` → `result`, `jetValider('fumble')` → applyOups. `null`
  * si aucune Maladresse en attente.
  */
 export function useFumbleJetProps(): ComponentProps<typeof RollShell> | null {
   const pc = useGame((s) => s.pendingCascade);
   const battle = useGame((s) => s.battle);
-  const lancer = useGesteDeJet('jetRoll', 'fumble');
-  const confirm = useGesteDeJet('jetConfirm', 'fumble');
+  const lancer = useGesteDeJet('jetLancer', 'fumble');
+  const confirm = useGesteDeJet('jetValider', 'fumble');
   const step = pc?.participants[pc.cursor]; // SOURCE UNIQUE : l'étape courante PORTE la maladresse (`step.fumble`)
   if (!battle || !pc || step?.jet !== 'fumble' || !step.fumble) return null;
   const combatant = battle.combatants.find((c) => c.id === step.actorId);

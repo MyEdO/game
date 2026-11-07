@@ -131,11 +131,11 @@ describe('(b) annulation', () => {
     expect(get().localIntent).toEqual({ actionId: 'charge' });
   });
 
-  it('désarmer (`battleArmIntent(null)`) dissout l’intention et sa bande', () => {
+  it('désarmer (`armerLIntention(null)`) dissout l’intention et sa bande', () => {
     setup();
     get().jouerLOffre('charge');
     expect(get().localIntent).not.toBeNull();
-    get().battleArmIntent(null);
+    get().armerLIntention(null);
     expect(get().localIntent).toBeNull();
     expect(intentReach(get).size).toBe(0);
   });
@@ -211,7 +211,7 @@ describe('(d) COOP : l’intention est LOCALE au client', () => {
   });
 
   it('l’ARMEMENT n’est pas un intent réseau (seul le COMMIT du geste en est un)', () => {
-    expect(GUEST_INTENTS).not.toContain('battleArmIntent');
+    expect(GUEST_INTENTS).not.toContain('armerLIntention');
     // Le commit, lui, passe par les portes de clic déjà exposées.
     expect(GUEST_INTENTS).toContain('cliquerLaCase');
   });

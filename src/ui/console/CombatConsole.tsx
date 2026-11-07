@@ -439,7 +439,7 @@ export function CombatConsole() {
   // PORTEUR élu du mode Dissiper (clic-token, `DISPEL_MODE`) : c'est LUI qui fait naître le
   // panneau-paramètre de l'alvéole Dissiper — le SORT reste à choisir (spec §1d).
   const dispelCarrierId = useGame((s) => s.dispelCarrierId);
-  const dispelSelectCarrier = useGame((s) => s.dispelSelectCarrier);
+  const designerLeSupport = useGame((s) => s.designerLeSupport);
   // ANCRES des panneaux-paramètres : un panneau naît de SON déclencheur, donc du rect de l'alvéole
   // qui l'ouvre. QUELLE alvéole en ouvre un est une donnée du REGISTRE (`panneau` de l'entrée) — la
   // console ne teste aucun id : elle pose une ancre sur toute case dont la def le déclare, et le
@@ -1280,7 +1280,7 @@ export function CombatConsole() {
           anchor={ancresPanneau.current.get(ACTION_DISSIPER) ?? null}
           intitule={`Quel Sort dissiper sur ${dispelCarrier.label} ?`}
           options={dispelOptions}
-          onClose={() => dispelSelectCarrier(null)}
+          onClose={() => designerLeSupport(null)}
         />
       )}
 

@@ -33,7 +33,7 @@ export function innGatherInfoMinutes(): number {
 
 /** Ouvre le Test de Ragot de l'auberge (activité `recueillir-informations`, contexte `auberge`). Silence
  *  attendu si aucun héros n'a la Compétence (`openRoll` : garde `partyBest` sans candidat, D3). */
-export function gatherInnInfo(get: Get, set: Set): void {
+export function recueillirLesRumeurs(get: Get, set: Set): void {
   const def = activityById(ACTIVITY_ID);
   const test = def?.tests?.[0];
   if (!def || !test?.skill) return;
@@ -47,7 +47,7 @@ export function gatherInnInfo(get: Get, set: Set): void {
 
 export function creerActionsDeLAuberge(get: Get, set: Set) {
   return {
-    gatherInnInfo: () => gatherInnInfo(get, set),
+    recueillirLesRumeurs: () => recueillirLesRumeurs(get, set),
   } satisfies FabriqueDuNoyau;
 }
 

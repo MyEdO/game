@@ -29,13 +29,13 @@ function gestesDuService(s: Jeu, ici: MapPlace, svc: ResolvedPlaceService): Gest
   if (svc.category === 'auberge') {
     const quality = sceneDuRegistre(ici.scene)?.rest?.quality;
     const dormir: GesteDuService[] = svc.rest
-      ? [{ id: 'dormir', libelle: t('lieu.dormir'), geste: { verbe: 'openRest', args: [{ places: svc.rest, lieu: libelleOuAbsence(ici, 'lieu', ici.id), ...(quality ? { quality } : {}) }] }, refus: null }]
+      ? [{ id: 'dormir', libelle: t('lieu.dormir'), geste: { verbe: 'ouvrirLeRepos', args: [{ places: svc.rest, lieu: libelleOuAbsence(ici, 'lieu', ici.id), ...(quality ? { quality } : {}) }] }, refus: null }]
       : [];
-    return [...dormir, { id: 'informations', libelle: t('lieu.informations'), geste: { verbe: 'gatherInnInfo', args: [] }, refus: null }];
+    return [...dormir, { id: 'informations', libelle: t('lieu.informations'), geste: { verbe: 'recueillirLesRumeurs', args: [] }, refus: null }];
   }
-  if (svc.category === 'port' || svc.opensScreen === 'port') return entrer({ verbe: 'openPort', args: [] }, refusDEntrerAuPort(s));
-  if (svc.category === 'marche') return entrer({ verbe: 'openLandMarket', args: [] });
-  if (svc.merchantArchetype) return entrer({ verbe: 'openPlaceMerchant', args: [placeServiceMerchantId(ici.id, svc.id), svc.merchantArchetype, ...(svc.backdrop ? [svc.backdrop] : [])] });
+  if (svc.category === 'port' || svc.opensScreen === 'port') return entrer({ verbe: 'ouvrirLePort', args: [] }, refusDEntrerAuPort(s));
+  if (svc.category === 'marche') return entrer({ verbe: 'ouvrirLeMarche', args: [] });
+  if (svc.merchantArchetype) return entrer({ verbe: 'ouvrirLaBoutique', args: [placeServiceMerchantId(ici.id, svc.id), svc.merchantArchetype, ...(svc.backdrop ? [svc.backdrop] : [])] });
   return [];
 }
 

@@ -4,7 +4,7 @@
  * monde est le MÊME qu'en mer (couche `voyageCadence`), posé partout où un bateau porte l'équipage.
  * Le fleuve n'offre que Commandée et Jour par jour — la traversée rapide est MDG 15 l.21-37.
  * L'`aria-pressed` du sélecteur dit la cadence TRANSMISE, même après une traversée rapide choisie en mer.
- * Mesuré depuis le CLIC jusqu'aux ordres du `TravelPlan` construit par `startTravel`.
+ * Mesuré depuis le CLIC jusqu'aux ordres du `TravelPlan` construit par `partirEnVoyage`.
  */
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
@@ -122,17 +122,17 @@ describe('#2545 — départ fluvial : la cadence se choisit au clic et part avec
 });
 
 describe('#2545 — sans geste : l’écran et l’API rendent la même cadence (`DEFAULT_VOYAGE_ORDERS`)', () => {
-  it('fleuve : « Partir » sans toucher au sélecteur et `startTravel` sans cadence → les mêmes ordres', () => {
+  it('fleuve : « Partir » sans toucher au sélecteur et `partirEnVoyage` sans cadence → les mêmes ordres', () => {
     partir();
     expect(get().travelPlan?.river, 'la descente est JOUÉE').toBeTruthy();
     const parLEcran = get().travelPlan?.orders?.cadence;
     act(() => { aQuai(); });
-    get().startTravel('r-reik', 'barge');
+    get().partirEnVoyage('r-reik', 'barge');
     expect(get().travelPlan?.river, 'la descente est JOUÉE').toBeTruthy();
     expect(get().travelPlan?.orders?.cadence).toBe(parLEcran);
   });
 
-  it('mer : appareiller sans toucher au sélecteur et `startTravel` sans cadence → les mêmes ordres', () => {
+  it('mer : appareiller sans toucher au sélecteur et `partirEnVoyage` sans cadence → les mêmes ordres', () => {
     act(() => { cogue(); });
     choisirDestination('Marienburg');
     expect(bouton(String(t('wm.traverseeCommandee'))), 'le sélecteur de cadence est offert en mer').toBeTruthy();
@@ -141,7 +141,7 @@ describe('#2545 — sans geste : l’écran et l’API rendent la même cadence 
     const parLEcran = get().travelPlan?.orders?.cadence;
     expect(parLEcran, 'l’écran transmet une cadence').toBeTruthy();
     act(() => { aQuai(); cogue(); });
-    get().startTravel('r-mer', 'mer');
+    get().partirEnVoyage('r-mer', 'mer');
     expect(get().travelPlan?.sea, 'la traversée est JOUÉE').toBeTruthy();
     expect(get().travelPlan?.orders?.cadence).toBe(parLEcran);
   });

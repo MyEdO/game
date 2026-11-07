@@ -124,11 +124,11 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
   const buy = useGame((s) => s.acheterLaCargaison);
   const sell = useGame((s) => s.vendreLaCargaison);
   const dump = useGame((s) => s.jeterLaCargaison);
-  const repair = useGame((s) => s.portRepair);
-  const careen = useGame((s) => s.portCareen);
-  const install = useGame((s) => s.portInstallUpgrade);
-  const hire = useGame((s) => s.portHireCrew);
-  const dismiss = useGame((s) => s.portDismissCrew);
+  const repair = useGame((s) => s.reparerLeNavire);
+  const careen = useGame((s) => s.carenerLeNavire);
+  const install = useGame((s) => s.installerLAmelioration);
+  const hire = useGame((s) => s.recruterLEquipage);
+  const dismiss = useGame((s) => s.renvoyerLEquipage);
   const pendingShoreLeave = useGame((s) => s.pendingShoreLeave);
   const pendingManannPriest = useGame((s) => s.pendingManannPriest);
   const refusHote = useGame(refusDeGesteSurLeGroupe);

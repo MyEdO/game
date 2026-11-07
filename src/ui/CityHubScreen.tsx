@@ -70,13 +70,13 @@ export function CityHubScreen({
   const gameTime = useGame((s) => s.gameTime);
   const worldMap = useGame((s) => s.worldMap);
   const tradeRumours = useGame((s) => s.tradeRumours);
-  const openRest = useGame((s) => s.openRest);
-  const openPort = useGame((s) => s.openPort);
+  const ouvrirLeRepos = useGame((s) => s.ouvrirLeRepos);
+  const ouvrirLePort = useGame((s) => s.ouvrirLePort);
   const vessel = useGame((s) => s.vessel);
-  const openLandMarket = useGame((s) => s.openLandMarket);
-  const openPlaceMerchant = useGame((s) => s.openPlaceMerchant);
-  const gatherInnInfo = useGame((s) => s.gatherInnInfo);
-  const transitionTo = useGame((s) => s.transitionTo);
+  const ouvrirLeMarche = useGame((s) => s.ouvrirLeMarche);
+  const ouvrirLaBoutique = useGame((s) => s.ouvrirLaBoutique);
+  const recueillirLesRumeurs = useGame((s) => s.recueillirLesRumeurs);
+  const quitterLaScene = useGame((s) => s.quitterLaScene);
 
   const services = placeServices(place, scene, rest?.places);
   const [selId, setSelId] = useState<string | null>(services[0]?.id ?? null);
@@ -94,7 +94,7 @@ export function CityHubScreen({
   /** OUVREURS par écran DÉCLARÉ (`ResolvedPlaceService.opensScreen`) : la valeur du catalogue choisit
    *  l'ouvreur ET sa garde. Table TOTALE de l'union — un écran de plus ne compile pas sans sa ligne. */
   const SCREEN_ROUTES: Record<NonNullable<ResolvedPlaceService['opensScreen']>, { open: () => void; refus: () => string | null }> = {
-    port: { open: openPort, refus: () => refusPort },
+    port: { open: ouvrirLePort, refus: () => refusPort },
   };
 
   /** Panneau de détail d'un SERVICE résolu — source UNIQUE, appelée pour la sélection de l'onglet
@@ -115,8 +115,8 @@ export function CityHubScreen({
           porteur={porteurSvc}
           actions={
             <>
-              {svc.rest && <button type="button" className="btn btn-primary" onClick={() => openRest({ places: svc.rest, lieu: libelleOuAbsence(place, 'lieu', place.id), quality: rest?.quality })}>Dormir</button>}
-              <button type="button" className="btn btn-primary" onClick={gatherInnInfo}>
+              {svc.rest && <button type="button" className="btn btn-primary" onClick={() => ouvrirLeRepos({ places: svc.rest, lieu: libelleOuAbsence(place, 'lieu', place.id), quality: rest?.quality })}>Dormir</button>}
+              <button type="button" className="btn btn-primary" onClick={recueillirLesRumeurs}>
                 Recueillir des informations (≈{Math.round(innGatherInfoMinutes() / 60)} h)
               </button>
             </>
@@ -159,7 +159,7 @@ export function CityHubScreen({
               label="Entrer au port"
               enabled={refusPort == null}
               {...raisonSi(refusPort)}
-              onClick={() => enter(openPort)}
+              onClick={() => enter(ouvrirLePort)}
             />
           }
         >
@@ -173,7 +173,7 @@ export function CityHubScreen({
           id={`pane-svc-${svc.id}`}
           icon={serviceIcon(svc)}
           title={svc.label}
-          actions={<button type="button" className="btn btn-primary" onClick={() => enter(openLandMarket)}>Entrer au marché</button>}
+          actions={<button type="button" className="btn btn-primary" onClick={() => enter(ouvrirLeMarche)}>Entrer au marché</button>}
         >
           <ProfileSynth taille={svc.market.taille} richesse={svc.market.richesse} production={svc.market.produits} />
         </ActivityPane>
@@ -191,7 +191,7 @@ export function CityHubScreen({
           actions={
             <button
               type="button" className="btn btn-primary"
-              onClick={() => enter(() => openPlaceMerchant(placeServiceMerchantId(place.id, svc.id), svc.merchantArchetype!, svc.backdrop))}
+              onClick={() => enter(() => ouvrirLaBoutique(placeServiceMerchantId(place.id, svc.id), svc.merchantArchetype!, svc.backdrop))}
             >
               Entrer chez le forgeron
             </button>
@@ -278,7 +278,7 @@ export function CityHubScreen({
         icon={poiIcon(poiSel, services)}
         title={poiSel.label}
         desc="Ce point mène à un autre endroit."
-        actions={<button type="button" className="btn btn-primary" onClick={() => enter(() => transitionTo(poiSel.sceneId!))}>Entrer</button>}
+        actions={<button type="button" className="btn btn-primary" onClick={() => enter(() => quitterLaScene(poiSel.sceneId!))}>Entrer</button>}
       />
     );
   } else {

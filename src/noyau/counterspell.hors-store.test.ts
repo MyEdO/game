@@ -54,17 +54,17 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     banc.getState().seedRng(3);
     const { H, E } = setup();
     castSpell(banc.getState, banc.setState, H, E, 'flechette');
-    banc.getState().jetRoll('cast');
+    banc.getState().jetLancer('cast');
     const pc = banc.getState().pendingCast!;
     if (!pc.result!.isCritical) {
       expect(pc.result!.log).toContain('Contre-sort de');
       expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.dispelledThisRound).toBe(true);
     }
     // 2e incantation du même Round : l'essai est consommé, plus de Contre-sort. (La 1re situation se
-    // referme à la main — après le jet, `jetCancel('cast')` REFUSE de renoncer, #1031.)
+    // referme à la main — après le jet, `jetAnnuler('cast')` REFUSE de renoncer, #1031.)
     banc.setState({ pendingCast: null, pendingCascade: null, pendingCounterspell: null });
     castSpell(banc.getState, banc.setState, H, E, 'flechette');
-    banc.getState().jetRoll('cast');
+    banc.getState().jetLancer('cast');
     const pc2 = banc.getState().pendingCast!;
     expect(pc2.result!.log).not.toContain('Contre-sort de');
   });
@@ -110,7 +110,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     // dernière déclaration referme la fenêtre par le résolveur canonique.
     if (st.pendingCounterspell) {
       for (const p of st.pendingCounterspell.participants) banc.getState().jetRegler('counterspell', 'declaration', 'pass', p.id);
-    } else banc.getState().jetConfirm('cast');
+    } else banc.getState().jetValider('cast');
     banc.avancer(2000);
     // Une Maladresse de l'IA déclare son étape à table comme partout (#1426) : la main ne repasse
     // qu'une fois la séquence de conséquence jouée (le socle a déjà tiré ce que nul siège ne tient).
@@ -137,7 +137,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     acquerirTalent(hero, { id: 'beni', spec: 'shallya' }); // LDB 10 l.109
     hero.spells = ['benediction-de-guerison'];
     castSpell(banc.getState, banc.setState, hero, hero, 'benediction-de-guerison');
-    banc.getState().jetRoll('cast');
+    banc.getState().jetLancer('cast');
     expect(banc.getState().pendingCast!.result!.log).not.toContain('Contre-sort');
   });
 });

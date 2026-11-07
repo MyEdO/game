@@ -48,7 +48,7 @@ describe('#273 dernier volet — policy de la porte sur le stock marchand', () =
     banc.setState({ ...baseState(), net: { ...banc.getState().net, gmSeat: 0 } });
     banc.getState().openMerchant('pnj');
     expect(banc.getState().pendingCascade).not.toBeNull();
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const s = banc.getState();
     expect(s.pendingCascade).toBeNull();
     expect(s.merchant).not.toBeNull();
@@ -68,7 +68,7 @@ describe('#273 dernier volet — policy de la porte sur le stock marchand', () =
     banc.getState().seedRng(4);
     banc.setState({ ...baseState(), net: { ...banc.getState().net, gmSeat: 0 } });
     banc.getState().openMerchant('pnj');
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const gmStock = banc.getState().merchant!.stock.map((l) => `${l.id}:${l.qty}`).sort().join('|');
 
     expect(gmStock).toEqual(inlineStock);

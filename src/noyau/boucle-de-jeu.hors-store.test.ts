@@ -192,7 +192,7 @@ describe('Boucle de jeu (store)', () => {
   function joueLaSeverite() {
     const st = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(st, 'une seule étape porte le tirage ET la décision').toHaveLength(1);
-    banc.getState().jetRoll('cascadeTirage', st[0].id);
+    banc.getState().jetLancer('cascadeTirage', st[0].id);
     return banc.getState().pendingCascade!.participants.find((s) => s.kind === 'deviation')!;
   }
 
@@ -217,7 +217,7 @@ describe('Boucle de jeu (store)', () => {
     mkDeviationSetup();
     const dev = joueLaSeverite();
     banc.getState().jetRegler('cascade', 'choix', 'devier', dev.id);
-    banc.getState().jetConfirm('cascade'); // valide le choix → applier 'deviation' → resolveDeviation
+    banc.getState().jetValider('cascade'); // valide le choix → applier 'deviation' → resolveDeviation
     const h = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(h.armour.corps).toBe(2);          // 1 PA sacrifiée (LDB 63 l.30-32)
     expect(h.criticalWounds ?? 0).toBe(0);   // Coup Critique ignoré
@@ -227,7 +227,7 @@ describe('Boucle de jeu (store)', () => {
     mkDeviationSetup();
     const dev = joueLaSeverite();
     banc.getState().jetRegler('cascade', 'choix', 'subir', dev.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const h = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(h.criticalWounds ?? 0).toBe(1);   // Coup Critique appliqué (table 18-Traumatisme)
     expect(h.armour.corps).toBe(3);          // PA intacte (rien dévié)
@@ -264,14 +264,14 @@ describe('Boucle de jeu (store)', () => {
 
   it('Attaque (jet = étape 0) : une touche simple clôt la séquence (jet seul → resume)', () => {
     mkAttackSeq({ hit: true, attackerRoll: 23, netSL: 2, location: 'corps', damage: 5, woundsLost: 3, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: 'Touché' });
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
     expect(banc.getState().pendingAttack).toBeNull();
     expect(banc.getState().pendingCascade).toBeNull(); // aucune conséquence empilée → séquence finalisée
   });
 
   it('Attaque (jet = étape 0) : un Coup Critique s’empile DANS la même séquence (pas de 2ᵉ fenêtre)', () => {
     mkAttackSeq({ hit: true, attackerRoll: 24, netSL: 4, location: 'corps', critLocation: 'corps', damage: 9, woundsLost: 4, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'Coup Critique' });
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
     const seq = banc.getState().pendingCascade;
     expect(seq?.purpose).toBe('combat');
     expect(seq?.participants[0]?.jet).toBe('attack');                          // le jet reste l'étape 0
@@ -310,7 +310,7 @@ describe('Boucle de jeu (store)', () => {
     expect(banc.getState().pendingTest!.itemUid).toBe('t2');
   });
 
-  it('jetRoll@test peuple pendingTest.isDouble (booléen, pour la casse Bâclé)', () => {
+  it('jetLancer@test peuple pendingTest.isDouble (booléen, pour la casse Bâclé)', () => {
     const hero = combattantDeTest({
       id: 'h1', label: 'Lest', kind: 'hero',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 50, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -325,11 +325,11 @@ describe('Boucle de jeu (store)', () => {
         onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,
       },
     });
-    banc.getState().jetRoll('test');
+    banc.getState().jetLancer('test');
     expect(typeof banc.getState().pendingTest!.isDouble).toBe('boolean');
   });
 
-  // jetConfirm('test') avec outil : pendingTest injecté à la main (RNG hors combat non seedable → déterministe).
+  // jetValider('test') avec outil : pendingTest injecté à la main (RNG hors combat non seedable → déterministe).
   function mkToolTest(quality: string, over: Partial<import('../noyau/pendings').PendingTest>): Combatant {
     const hero = combattantDeTest({
       id: 'h1', label: 'Lest', kind: 'hero',
@@ -351,35 +351,35 @@ describe('Boucle de jeu (store)', () => {
     return hero;
   }
 
-  it('jetConfirm@test : Pratique (+1 DR) repêche un échec qui n’a manqué que le seuil requireSL', () => {
+  it('jetValider@test : Pratique (+1 DR) repêche un échec qui n’a manqué que le seuil requireSL', () => {
     mkToolTest('Pratique', {}); // roll 48 ≤ 50, sl 0 < requireSL 1 → +1 DR ⇒ sl 1 ≥ 1
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     expect(banc.getState().flags['reussi']).toBe(true);
   });
 
-  it('jetConfirm@test : Pratique ne transforme PAS un d100 raté (roll > cible) en réussite', () => {
+  it('jetValider@test : Pratique ne transforme PAS un d100 raté (roll > cible) en réussite', () => {
     mkToolTest('Pratique', { roll: 60, sl: -1, requireSL: 0 }); // roll 60 > 50 → raté au dé
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     expect(banc.getState().flags['rate']).toBe(true);
   });
 
-  it('jetConfirm@test : Peu Fiable (−1 DR) ne repêche pas (échec aggravé)', () => {
+  it('jetValider@test : Peu Fiable (−1 DR) ne repêche pas (échec aggravé)', () => {
     mkToolTest('Peu Fiable', {}); // sl 0 −1 = −1 < requireSL 1 → reste raté
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     expect(banc.getState().flags['rate']).toBe(true);
   });
 
-  it('jetConfirm@test : outil Bâclé qui Maladresse (échec + double) se brise', () => {
+  it('jetValider@test : outil Bâclé qui Maladresse (échec + double) se brise', () => {
     mkToolTest('Bâclé', { roll: 55, sl: -1, requireSL: 0, isDouble: true });
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     const item = banc.getState().party[0].items!.find((i) => i.uid === 't1')!;
     expect(item.destroyed).toBe(true);
     expect(banc.getState().journal.some((l) => l.includes('se brise'))).toBe(true);
   });
 
-  it('jetConfirm@test : sans outil, l’issue est inchangée (branche échec)', () => {
+  it('jetValider@test : sans outil, l’issue est inchangée (branche échec)', () => {
     mkToolTest('', { itemUid: undefined });
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     expect(banc.getState().flags['rate']).toBe(true);
   });
 
@@ -420,7 +420,7 @@ describe('Boucle de jeu (store)', () => {
     const h = b.combatants.find((c) => c.kind === 'hero')!;
     h.wounds.current = 10;
     banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon: h.weapons[0], result: { roll: 11, kind: 'selfWound', label: 'x' } } }], { title: '', purpose: 'combat' }) });
-    banc.getState().jetConfirm('fumble');
+    banc.getState().jetValider('fumble');
     const after = banc.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(after.wounds.current).toBe(9); // -1, ignore BE+PA
     expect(banc.getState().pendingCascade).toBeNull(); // l'étape Maladresse unique se ferme (donnée portée par l'étape)
@@ -436,7 +436,7 @@ describe('Boucle de jeu (store)', () => {
     const b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
     banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon: h.weapons[0], result: { roll: 85, kind: 'trauma', label: 'x' } } }], { title: '', purpose: 'combat' }) });
-    banc.getState().jetConfirm('fumble');
+    banc.getState().jetValider('fumble');
     const after = banc.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(after.criticalWounds).toBe(1);
     expect(after.traumas?.[0]?.ops?.some((o) => o.op === 'moveScale')).toBe(true); // jambe → Mouvement ÷2
@@ -493,7 +493,7 @@ describe('Boucle de jeu (store)', () => {
       // La défense est une étape de cascade combat (Lot 1) → on la pose comme en jeu (maybeOpenDefense).
       pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/defend', purpose: 'combat' }),
     });
-    banc.getState().jetConfirm('defense');
+    banc.getState().jetValider('defense');
     const st = banc.getState();
     // La Maladresse est l'étape COURANTE de la cascade combat ; sa donnée (arme/résultat) vit SUR l'étape.
     const cur = st.pendingCascade?.participants[st.pendingCascade!.cursor];
@@ -507,8 +507,8 @@ describe('Boucle de jeu (store)', () => {
 
   it('Déviation Critique — défenseur héros crité : le curseur AVANCE sur l’étape deviation (anti soft-lock Auto-combat)', () => {
     // Régression : un héros crité en DÉFENSE → applyAttackResult empile l'étape 'deviation' et suspend ;
-    // jetConfirm('defense') doit avancer le curseur HORS de l'étape défense (pendingDefense déjà nulle), sinon le
-    // pilote Auto-combat boucle dessus (jetConfirm('defense') no-op) = soft-lock vécu.
+    // jetValider('defense') doit avancer le curseur HORS de l'étape défense (pendingDefense déjà nulle), sinon le
+    // pilote Auto-combat boucle dessus (jetValider('defense') no-op) = soft-lock vécu.
     setRule('combat-critical-deflect', true);
     seedBattleRng(424242);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
@@ -534,7 +534,7 @@ describe('Boucle de jeu (store)', () => {
       },
       pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/defend', purpose: 'combat' }),
     });
-    banc.getState().jetConfirm('defense');
+    banc.getState().jetValider('defense');
     const st = banc.getState();
     const cur = st.pendingCascade?.participants[st.pendingCascade!.cursor];
     expect(cur?.kind).toBe('deviation'); // le curseur a QUITTÉ l'étape défense orpheline
@@ -583,7 +583,7 @@ describe('Boucle de jeu (store)', () => {
     const weapon = h.weapons.find((w) => w.uid === witem.uid) ?? h.weapons[0];
     // (1) Maladresse 21-40 → 1 Dégât d'arme, écrit sur l'ItemInstance source.
     banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon, result: { roll: 25, kind: 'weaponDamageActLast', label: 'x' } } }], { title: '', purpose: 'combat' }) });
-    banc.getState().jetConfirm('fumble');
+    banc.getState().jetValider('fumble');
     const hMid = banc.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(hMid.items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
     // (2) Fin de combat (victoire) → writeback vers le groupe.
@@ -620,14 +620,14 @@ describe('Boucle de jeu (store)', () => {
     cliquerSurLeCombattant(banc.getState, enemy.id);
     expect(banc.getState().pendingCast).not.toBeNull();
     expect(banc.getState().battle!.acted).toBe(false); // pas encore lancé
-    banc.getState().jetRoll('cast'); // « Lancer » : fige le jet
+    banc.getState().jetLancer('cast'); // « Lancer » : fige le jet
     // Dé FIXÉ (#939) : 23 réussit (Int 90) et n'est PAS un double — sinon l'état du RNG partagé
     // (isolate:false) peut sortir une Incantation Critique, dont l'effet se CHOISIT (LDB 46 l.28-32)
     // avant toute application : « Appliquer » resterait alors inerte et `acted` faux (classe #1014).
-    banc.getState().jetSetForcedRoll('cast', 23);
+    banc.getState().jetImposerLeResultat('cast', 23);
     expect(banc.getState().pendingCast!.result).not.toBeNull();
     expect(banc.getState().pendingCast!.result!.isCritical, 'jet déterministe non critique').toBe(false);
-    banc.getState().jetConfirm('cast'); // « Appliquer » : résout
+    banc.getState().jetValider('cast'); // « Appliquer » : résout
     st = banc.getState();
     // L'action est consommée, l'incantation journalisée, et la modale fermée.
     expect(st.battle!.acted).toBe(true);
@@ -649,8 +649,8 @@ describe('Boucle de jeu (store)', () => {
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: 'cast', selectedSpellId: 'benediction-de-bataille', acted: false } });
     cliquerSurLeCombattant(banc.getState, heroC.id); // se cibler soi-même → ouvre la modale
-    banc.getState().jetRoll('cast'); // « Lancer »
-    banc.getState().jetConfirm('cast'); // « Appliquer »
+    banc.getState().jetLancer('cast'); // « Lancer »
+    banc.getState().jetValider('cast'); // « Appliquer »
     st = banc.getState();
     const after = st.battle!.combatants.find((c) => c.id === heroC.id)!;
     const failed = st.battle!.log.some((l) => l.text.includes('échoue'));
@@ -678,8 +678,8 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
     const before = enemy.wounds.current;
     cliquerSurLeCombattant(banc.getState, enemy.id, { confirm: true }); // ouvre la modale d'attaque
-    banc.getState().jetRoll('attack'); // lance le jet
-    banc.getState().jetConfirm('attack'); // applique le résultat
+    banc.getState().jetLancer('attack'); // lance le jet
+    banc.getState().jetValider('attack'); // applique le résultat
     st = banc.getState();
     const enemyAfter = st.battle!.combatants.find((c) => c.id === enemy.id)!;
     expect(enemyAfter.wounds.current).toBeLessThan(before);
@@ -707,19 +707,19 @@ describe('Boucle de jeu (store)', () => {
       },
     });
     // Acquittement bloqué tant que le jet n'a pas eu lieu.
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     expect(banc.getState().pendingTest).not.toBeNull();
     // « Lancer » : le jet se fait.
-    banc.getState().jetRoll('test');
+    banc.getState().jetLancer('test');
     expect(banc.getState().pendingTest!.roll).not.toBeNull();
     // Forcer un jet propre RATÉ (cible 95) pour exercer la relance (gate « jet raté », LDB 12 l.13).
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 99, success: false } });
     // Chance : relance et consomme un point.
-    banc.getState().jetReroll('test');
+    banc.getState().jetRelancer('test');
     expect(banc.getState().party[0].fortune).toBe(1);
     expect(banc.getState().pendingTest!.roll).not.toBeNull();
     // Acquittement : ferme la modale.
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     expect(banc.getState().pendingTest).toBeNull();
   });
 
@@ -739,7 +739,7 @@ describe('Boucle de jeu (store)', () => {
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
     cliquerSurLeCombattant(banc.getState, enemy.id, { confirm: true }); // ouvre la modale
-    banc.getState().jetRoll('attack'); // le +1 Sonné s'applique AVANT le jet
+    banc.getState().jetLancer('attack'); // le +1 Sonné s'applique AVANT le jet
     st = banc.getState();
     const heroAfter = st.battle!.combatants.find((c) => c.id === heroC.id)!;
     expect(heroAfter.advantage).toBe(1);
@@ -770,18 +770,18 @@ describe('Boucle de jeu (store)', () => {
       },
       pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: H.id }], { title: 'Défense', purpose: 'combat' }),
     });
-    banc.getState().jetRoll('defense'); // « Défendre » : roule la défense + résout
+    banc.getState().jetLancer('defense'); // « Défendre » : roule la défense + résout
     let pd = banc.getState().pendingDefense!;
     expect(pd.result).not.toBeNull();
     expect(pd.def).not.toBeNull();
     // Forcer une défense propre RATÉE pour exercer la relance (gate « jet raté », LDB 12 l.13).
     banc.setState({ pendingDefense: { ...pd, def: { ...pd.def!, success: false } } });
     const atkRoll = pd.atk.roll;
-    banc.getState().jetReroll('defense'); // Chance : relance la DÉFENSE
+    banc.getState().jetRelancer('defense'); // Chance : relance la DÉFENSE
     pd = banc.getState().pendingDefense!;
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.fortune).toBe(1); // 1 point dépensé
     expect(pd.atk.roll).toBe(atkRoll); // l'attaque (pd.atk) n'est JAMAIS relancée
-    banc.getState().jetConfirm('defense'); // Appliquer → ferme
+    banc.getState().jetValider('defense'); // Appliquer → ferme
     expect(banc.getState().pendingDefense).toBeNull();
   });
 
@@ -910,8 +910,8 @@ describe('Boucle de jeu (store)', () => {
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
-    banc.getState().jetRoll('attack');
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetLancer('attack');
+    banc.getState().jetValider('attack');
     st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.engagedWith).toContain(E.id);
     expect(st.battle!.combatants.find((c) => c.id === E.id)!.engagedWith).toContain(H.id);
@@ -966,7 +966,7 @@ describe('Boucle de jeu (store)', () => {
     expect(st.pendingAttack).toBeNull();
   });
 
-  it('jetCancel@attack après le JET d’une Charge est sans effet (charge engagée, LDB 15 l.35)', () => {
+  it('jetAnnuler@attack après le JET d’une Charge est sans effet (charge engagée, LDB 15 l.35)', () => {
     // Avant le jet, une charge s'annule (misclic — cf. charge-undo.hors-store.test.ts) ; une fois le dé lancé
     // (`result` posé), elle est ENGAGÉE : plus d'annulation.
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
@@ -978,7 +978,7 @@ describe('Boucle de jeu (store)', () => {
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
     banc.setState({ pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: { hit: false } as never, fromCharge: true } });
-    banc.getState().jetCancel('attack');
+    banc.getState().jetAnnuler('attack');
     expect(banc.getState().pendingAttack).not.toBeNull(); // dé lancé → engagé
   });
 
@@ -1069,7 +1069,7 @@ describe('Boucle de jeu (store)', () => {
         result: 'failure',
       },
     });
-    banc.getState().jetConfirm('disengage');
+    banc.getState().jetValider('disengage');
     st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === E.id)!.advantage).toBe(1); // adversaire +1 (l.89)
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.engagedWith).toContain(E.id); // toujours Engagé
@@ -1103,7 +1103,7 @@ describe('Boucle de jeu (store)', () => {
         result: 'success',
       },
     });
-    banc.getState().jetConfirm('disengage');
+    banc.getState().jetValider('disengage');
     st = banc.getState();
     const Ha = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(Ha.advantage).toBe(1); // +1 Avantage (l.89)
@@ -1134,7 +1134,7 @@ describe('Boucle de jeu (store)', () => {
         result: 'failure',
       },
     });
-    banc.getState().jetReroll('disengage');
+    banc.getState().jetRelancer('disengage');
     const stx = banc.getState();
     expect(stx.battle!.combatants.find((c) => c.id === H.id)!.fortune).toBe(1); // 1 point dépensé
     expect(stx.pendingDisengage!.atk!.roll).toBe(35); // jet du foe NON relancé
@@ -1186,7 +1186,7 @@ describe('Boucle de jeu (store)', () => {
         result: 'tie',
       },
     });
-    banc.getState().jetConfirm('disengage');
+    banc.getState().jetValider('disengage');
     st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === E.id)!.advantage).toBe(0); // statu quo : pas de +1 à l'adversaire
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.engagedWith).toContain(E.id); // reste Engagé
@@ -1220,7 +1220,7 @@ describe('Boucle de jeu (store)', () => {
         result: 'success',
       },
     });
-    banc.getState().jetConfirm('disengage');
+    banc.getState().jetValider('disengage');
     st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.engagedWith).toEqual([]); // libéré de E1 ET E2
   });
@@ -1280,8 +1280,8 @@ describe('Boucle de jeu (store)', () => {
     expect(Ha.engagedWith).toEqual([E.id]); // toujours Engagé tant que le Test `fuite` n'est pas confirmé
 
     // Test `fuite` INFLUENÇABLE (flux `flee`) : Lancer → Appliquer (applique le coup + complète la fuite).
-    banc.getState().jetRoll('flee', H.id);
-    banc.getState().jetConfirm('flee');
+    banc.getState().jetLancer('flee', H.id);
+    banc.getState().jetValider('flee');
     st = banc.getState();
     Ha = st.battle!.combatants.find((c) => c.id === H.id)!;
     Ea = st.battle!.combatants.find((c) => c.id === E.id)!;
@@ -1350,118 +1350,118 @@ describe('Avancement par PX (store) — câblage moteur', () => {
     expect(h0().xp).toBe(150);
   });
 
-  it('buyCharAdvance in-carrière (CT) : +1 valeur, +1 augmentation, coût 25', () => {
+  it('acheterLaCaracteristique in-carrière (CT) : +1 valeur, +1 augmentation, coût 25', () => {
     set1(mkHero({ xp: 1000 }));
-    banc.getState().buyCharAdvance('h', 'capacite-de-tir');
+    banc.getState().acheterLaCaracteristique('h', 'capacite-de-tir');
     expect(h0().characteristics['capacite-de-tir']).toBe(31);
     expect(h0().charAdvances!['capacite-de-tir']).toBe(1);
     expect(h0().xp).toBe(975);
   });
 
-  it('buyCharAdvance hors-carrière (CC) : coût doublé (50)', () => {
+  it('acheterLaCaracteristique hors-carrière (CC) : coût doublé (50)', () => {
     set1(mkHero({ xp: 1000 }));
-    banc.getState().buyCharAdvance('h', 'capacite-de-combat');
+    banc.getState().acheterLaCaracteristique('h', 'capacite-de-combat');
     expect(h0().xp).toBe(950);
   });
 
-  it('buyCharAdvance recalcule les Blessures quand le Bonus d’Endurance monte', () => {
+  it('acheterLaCaracteristique recalcule les Blessures quand le Bonus d’Endurance monte', () => {
     const h = mkHero({
       xp: 1000,
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 39, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     });
     set1(blessuresSurLeProfil({ ...h, wounds: blessuresPosees(h) }));
     expect(h0().wounds.max).toBe(12);
-    banc.getState().buyCharAdvance('h', 'endurance'); // 39→40 : BE 3→4, Blessures = BF + 2·BE + BFM = 3 + 8 + 3 = 14
+    banc.getState().acheterLaCaracteristique('h', 'endurance'); // 39→40 : BE 3→4, Blessures = BF + 2·BE + BFM = 3 + 8 + 3 = 14
     expect(h0().characteristics.endurance).toBe(40);
     expect(h0().wounds.max).toBe(14);
     expect(h0().wounds.current).toBe(14);
   });
 
-  it('buySkillAdvance : Compétence connue in-carrière (Charme) +1, coût 10', () => {
+  it('acheterLaCompetence : Compétence connue in-carrière (Charme) +1, coût 10', () => {
     set1(mkHero({ xp: 1000 }));
-    banc.getState().buySkillAdvance('h', { id: 'charme' });
+    banc.getState().acheterLaCompetence('h', { id: 'charme' });
     expect(h0().skills.find((s) => s.id === 'charme')!.advances).toBe(1);
     expect(h0().xp).toBe(990);
   });
 
-  it('buySkillAdvance : acquiert une Compétence de carrière non connue (Ragot) à advances 1', () => {
+  it('acheterLaCompetence : acquiert une Compétence de carrière non connue (Ragot) à advances 1', () => {
     set1(mkHero({ xp: 1000 }));
-    banc.getState().buySkillAdvance('h', { id: 'ragot' });
+    banc.getState().acheterLaCompetence('h', { id: 'ragot' });
     const ragot = h0().skills.find((s) => s.id === 'ragot');
     expect(ragot).toBeTruthy();
     expect(ragot!.advances).toBe(1);
     expect(h0().xp).toBe(990);
   });
 
-  it('buySkillAdvance : refuse une Compétence hors-carrière non connue', () => {
+  it('acheterLaCompetence : refuse une Compétence hors-carrière non connue', () => {
     set1(mkHero({ xp: 1000 }));
-    banc.getState().buySkillAdvance('h', { id: 'natation' }); // ni connue, ni in-carrière
+    banc.getState().acheterLaCompetence('h', { id: 'natation' }); // ni connue, ni in-carrière
     expect(h0().skills.find((s) => s.id === 'natation')).toBeUndefined();
     expect(h0().xp).toBe(1000);
   });
 
-  it('buyTalent in-carrière (Sociable) : créé à times 1, coût 100', () => {
+  it('acheterLeTalent in-carrière (Sociable) : créé à times 1, coût 100', () => {
     set1(mkHero({ xp: 1000 }));
-    banc.getState().buyTalent('h', 'sociable');
+    banc.getState().acheterLeTalent('h', 'sociable');
     expect(h0().talents.find((t) => t.talentId === 'sociable')!.times).toBe(1);
     expect(h0().xp).toBe(900);
   });
 
-  it('buyTalent hors-carrière : refusé (LDB 07 l.93)', () => {
+  it('acheterLeTalent hors-carrière : refusé (LDB 07 l.93)', () => {
     set1(mkHero({ xp: 1000 }));
-    banc.getState().buyTalent('h', 'castagneur'); // hors Niveau Agitateur
+    banc.getState().acheterLeTalent('h', 'castagneur'); // hors Niveau Agitateur
     expect(h0().talents.find((t) => t.talentId === 'castagneur')).toBeUndefined();
     expect(h0().xp).toBe(1000);
   });
 
-  it('changeCareer : 200 (non complété) + 100 (autre Classe, LDB 07 l.144) ; niveau 1 imposé', () => {
+  it('changerDeCarriere : 200 (non complété) + 100 (autre Classe, LDB 07 l.144) ; niveau 1 imposé', () => {
     // Agitateur (Citadins) → Érudit (Lettrés) : 200 + 100 PX.
     set1(mkHero({ xp: 350 }));
-    banc.getState().changeCareer('h', 'erudit', 2); // niveau ≠ 1 → refusé (LDB 07 l.144)
+    banc.getState().changerDeCarriere('h', 'erudit', 2); // niveau ≠ 1 → refusé (LDB 07 l.144)
     expect(h0().career).toBe('agitateur');
-    banc.getState().changeCareer('h', 'erudit', 1);
+    banc.getState().changerDeCarriere('h', 'erudit', 1);
     expect(h0().career).toBe('erudit');
     expect(h0().careerLevel).toBe(1);
     expect(h0().xp).toBe(50);
   });
 
-  it('changeCareer : même Classe = pas de surcoût (Agitateur → Artisan, Citadins)', () => {
+  it('changerDeCarriere : même Classe = pas de surcoût (Agitateur → Artisan, Citadins)', () => {
     set1(mkHero({ xp: 250 }));
-    banc.getState().changeCareer('h', 'artisan', 1);
+    banc.getState().changerDeCarriere('h', 'artisan', 1);
     expect(h0().career).toBe('artisan');
     expect(h0().xp).toBe(50);
   });
 
-  it('changeCareer : monter au niveau suivant refusé tant que le niveau n\'est pas complété (LDB 07 l.137)', () => {
+  it('changerDeCarriere : monter au niveau suivant refusé tant que le niveau n\'est pas complété (LDB 07 l.137)', () => {
     set1(mkHero({ xp: 1000 }));
-    banc.getState().changeCareer('h', 'agitateur', 2);
+    banc.getState().changerDeCarriere('h', 'agitateur', 2);
     expect(h0().careerLevel).toBe(1); // refusé
     expect(h0().xp).toBe(1000);
   });
 
-  it('buyTalent : Maxi 1 respecté (Lire/Écrire ×2 refusé, LDB 10)', () => {
+  it('acheterLeTalent : Maxi 1 respecté (Lire/Écrire ×2 refusé, LDB 10)', () => {
     set1(mkHero({ xp: 1000 })); // Pamphlétaire : Lire/Écrire in-carrière
-    banc.getState().buyTalent('h', 'lire-ecrire');
+    banc.getState().acheterLeTalent('h', 'lire-ecrire');
     expect(h0().talents.find((t) => t.talentId === 'lire-ecrire')!.times).toBe(1);
-    banc.getState().buyTalent('h', 'lire-ecrire');
+    banc.getState().acheterLeTalent('h', 'lire-ecrire');
     expect(h0().talents.find((t) => t.talentId === 'lire-ecrire')!.times).toBe(1); // Maxi atteint
     expect(h0().xp).toBe(900);
   });
 
-  it('buyTalent : Haine au Maxi (Bonus de Force Mentale) refuse un groupe neuf (LDB 10 l.18, l.548)', () => {
+  it('acheterLeTalent : Haine au Maxi (Bonus de Force Mentale) refuse un groupe neuf (LDB 10 l.18, l.548)', () => {
     // Flagellant Niveau 2 : « Haine (Hérétiques) » in-carrière ; FM 30 → Maxi 3.
     set1(mkHero({ xp: 1000, career: 'flagellant', careerLevel: 2, talents: [{ talentId: 'haine', spec: 'peau-verte', times: 3 }] }));
-    banc.getState().buyTalent('h', 'haine', 'heretiques');
+    banc.getState().acheterLeTalent('h', 'haine', 'heretiques');
     expect(h0().talents.some((t) => t.talentId === 'haine' && t.spec === 'heretiques')).toBe(false);
     expect(h0().xp).toBe(1000);
     set1(mkHero({ xp: 1000, career: 'flagellant', careerLevel: 2, talents: [{ talentId: 'haine', spec: 'peau-verte', times: 2 }] }));
-    banc.getState().buyTalent('h', 'haine', 'heretiques');
+    banc.getState().acheterLeTalent('h', 'haine', 'heretiques');
     expect(h0().talents.find((t) => t.talentId === 'haine' && t.spec === 'heretiques')?.times).toBe(1);
   });
 
-  it('buyTalent : « +5 Caractéristique de départ » passif à l\'achat (Guerrier né, LDB 10)', () => {
+  it('acheterLeTalent : « +5 Caractéristique de départ » passif à l\'achat (Guerrier né, LDB 10)', () => {
     set1(mkHero({ xp: 1000, career: 'soldat' })); // Recrue : Guerrier né in-carrière
-    banc.getState().buyTalent('h', 'guerrier-ne');
+    banc.getState().acheterLeTalent('h', 'guerrier-ne');
     // La valeur brute reste inchangée (passif non cuit) ; baseWithTalents lit le charMod du talent.
     expect(h0().characteristics['capacite-de-combat']).toBe(30); // base INCHANGÉE
     expect(baseWithTalents(h0(), 'capacite-de-combat')).toBe(35); // base + passif Guerrier né = 35
@@ -1479,24 +1479,24 @@ describe('Avancement par PX (store) — câblage moteur', () => {
     expect(slot.options!.some((o) => o.display === 'Savoir-vivre (Criminels)' && o.owned)).toBe(true);
     // Avant désignation : l'achat direct passe par le slot libre (auto-désignation) — ici on
     // teste la DÉSIGNATION explicite (0 PX) puis la montée.
-    banc.getState().designateCareerSlot('h', slot.slotKey, 'savoir-vivre', 'criminels');
+    banc.getState().designerLeCreneau('h', slot.slotKey, 'savoir-vivre', 'criminels');
     expect(h0().careerSlotChoices?.['conseiller']?.[slot.slotKey]).toBe('savoir-vivre|criminels');
     expect(h0().xp).toBe(1000); // gratuit
-    banc.getState().buyTalent('h', 'savoir-vivre', 'criminels');
+    banc.getState().acheterLeTalent('h', 'savoir-vivre', 'criminels');
     expect(h0().talents.find((t) => talentConcrete(t) === 'Savoir-vivre (Criminels)')!.times).toBe(2);
     expect(h0().xp).toBe(800); // 2ᵉ acquisition = 200 PX (LDB 07 l.105)
     // Le slot étant désigné, une AUTRE spec est hors carrière → refusée (l.97).
-    banc.getState().buyTalent('h', 'savoir-vivre', 'nobles');
+    banc.getState().acheterLeTalent('h', 'savoir-vivre', 'nobles');
     expect(h0().talents.find((t) => talentConcrete(t) === 'Savoir-vivre (Nobles)')).toBeUndefined();
   });
 
   it('emplacement « (Au choix) » : l\'achat via un slot libre le DÉSIGNE automatiquement', () => {
     set1(mkHero({ xp: 1000, career: 'conseiller' }));
-    banc.getState().buyTalent('h', 'savoir-vivre', 'nobles');
+    banc.getState().acheterLeTalent('h', 'savoir-vivre', 'nobles');
     expect(h0().talents.find((t) => talentConcrete(t) === 'Savoir-vivre (Nobles)')!.times).toBe(1);
     expect(Object.values(h0().careerSlotChoices?.['conseiller'] ?? {})).toContain('savoir-vivre|nobles');
     // Slot consommé : une autre spec n'est plus achetable dans CETTE carrière.
-    banc.getState().buyTalent('h', 'savoir-vivre', 'criminels');
+    banc.getState().acheterLeTalent('h', 'savoir-vivre', 'criminels');
     expect(h0().talents.find((t) => talentConcrete(t) === 'Savoir-vivre (Criminels)')).toBeUndefined();
   });
 
@@ -1897,15 +1897,15 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     expect((banc.getState().party[0].items ?? []).map((i) => i.label)).toEqual(['Dague']);
   });
 
-  it('appraiseGear (Évaluation) : succès → la ligne est révélée, l’objet attribué arrive identifié', () => {
+  it('evaluerLeButin (Évaluation) : succès → la ligne est révélée, l’objet attribué arrive identifié', () => {
     lootScene();
     banc.getState().interactEntity('coffre');
-    banc.getState().appraiseGear('loot', banc.getState().pendingLoot!.gear[0].uid);
+    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid);
     const pa = banc.getState().pendingAppraise!;
     expect(pa.gear).toEqual({ scope: 'loot', uid: banc.getState().pendingLoot!.gear[0].uid });
     expect(pa.skillLabel ?? 'Évaluation').toBe('Évaluation');
     banc.setState({ pendingAppraise: { ...pa, roll: 10, success: true, sl: 2 } });
-    banc.getState().jetConfirm('appraise');
+    banc.getState().jetValider('appraise');
     const line = banc.getState().pendingLoot!.gear[0];
     expect(line.effect.identified).toBeUndefined(); // révélé = champ absent
     banc.getState().fenetreChoisir('loot', 'ligne', banc.getState().pendingLoot!.gear[0].uid, 'a');
@@ -1919,25 +1919,25 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     // Le looter reçoit le Talent : le bouton/flux ne s'arme que pour un porteur (Intuition).
     banc.setState({ party: [looter({ talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as Partial<Combatant>)] });
     banc.getState().interactEntity('coffre');
-    banc.getState().appraiseGear('loot', banc.getState().pendingLoot!.gear[0].uid, 'detect');
+    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid, 'detect');
     let pa = banc.getState().pendingAppraise!;
     expect(pa.mode).toBe('detect');
     expect(pa.skillLabel).toBe('Intuition');
     // Échec : l'artefact ne se laisse plus sonder (detectTried), rien de révélé.
     banc.setState({ pendingAppraise: { ...pa, roll: 95, success: false, sl: -5 } });
-    banc.getState().jetConfirm('appraise');
+    banc.getState().jetValider('appraise');
     let line = banc.getState().pendingLoot!.gear[0];
     expect(line.effect.detectTried).toBe(true);
     expect(line.effect.identified).toBe(false);
     // Une 2e tentative est refusée (« une seule fois par artefact »).
-    banc.getState().appraiseGear('loot', banc.getState().pendingLoot!.gear[0].uid, 'detect');
+    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid, 'detect');
     expect(banc.getState().pendingAppraise).toBeNull();
     // On force une nouvelle détection (autre ligne de vie du test) : succès DR 2 ≥ 1 règle → identifié.
     line.effect.detectTried = false;
-    banc.getState().appraiseGear('loot', banc.getState().pendingLoot!.gear[0].uid, 'detect');
+    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid, 'detect');
     pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 5, success: true, sl: 2 } });
-    banc.getState().jetConfirm('appraise');
+    banc.getState().jetValider('appraise');
     line = banc.getState().pendingLoot!.gear[0];
     expect(line.effect.magicKnown).toBe(true);
     expect(line.effect.identified).toBeUndefined(); // tout révélé
@@ -1947,10 +1947,10 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     lootScene();
     banc.setState({ party: [looter({ talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as Partial<Combatant>)] });
     applyEffectsLoot(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId: 'dague' }], 'Sac');
-    banc.getState().appraiseGear('loot', banc.getState().pendingLoot!.gear[0].uid, 'detect');
+    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid, 'detect');
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 5, success: true, sl: 2 } });
-    banc.getState().jetConfirm('appraise');
+    banc.getState().jetValider('appraise');
     const line = banc.getState().pendingLoot!.gear[0];
     expect(line.effect.detectTried).toBe(true);
     expect(line.effect.magicKnown).toBeUndefined();
@@ -1959,17 +1959,17 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
   it('anti-spam Évaluation : un échec verrouille l’objet pour la JOURNÉE (re-tentative demain)', () => {
     lootScene();
     banc.getState().interactEntity('coffre');
-    banc.getState().appraiseGear('loot', banc.getState().pendingLoot!.gear[0].uid);
+    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid);
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 99, success: false, sl: -6 } });
-    banc.getState().jetConfirm('appraise');
+    banc.getState().jetValider('appraise');
     expect(banc.getState().pendingLoot!.gear[0].effect.appraiseTriedDay).toBeDefined();
     // Même jour : la re-tentative est refusée (pas de modale).
-    banc.getState().appraiseGear('loot', banc.getState().pendingLoot!.gear[0].uid);
+    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid);
     expect(banc.getState().pendingAppraise).toBeNull();
     // Le lendemain : on peut retenter.
     banc.getState().advanceTime(24 * 60);
-    banc.getState().appraiseGear('loot', banc.getState().pendingLoot!.gear[0].uid);
+    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid);
     expect(banc.getState().pendingAppraise).not.toBeNull();
     banc.setState({ pendingAppraise: null });
   });
@@ -2086,7 +2086,7 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
     banc.abandonner();
   });
 
-  it('jetReroll@test : refusée si le d100 propre est réussi (roll ≤ cible)', () => {
+  it('jetRelancer@test : refusée si le d100 propre est réussi (roll ≤ cible)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     hero.fortune = 2;
     banc.setState({
@@ -2094,12 +2094,12 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
       pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
         requireSL: 0, target: 50, roll: 20, success: true, sl: 3, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
-    banc.getState().jetReroll('test');
+    banc.getState().jetRelancer('test');
     expect(banc.getState().party[0].fortune).toBe(2); // rien dépensé (jet réussi)
     expect(banc.getState().pendingTest!.roll).toBe(20); // jet inchangé
   });
 
-  it('jetReroll@test : autorisée une seule fois sur un jet raté', () => {
+  it('jetRelancer@test : autorisée une seule fois sur un jet raté', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     hero.fortune = 2;
     banc.setState({
@@ -2107,14 +2107,14 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
       pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 5, difficulty: 'intermediaire',
         requireSL: 0, target: 5, roll: 95, success: false, sl: -9, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
-    banc.getState().jetReroll('test'); // 1re relance OK (jet raté)
+    banc.getState().jetRelancer('test'); // 1re relance OK (jet raté)
     expect(banc.getState().party[0].fortune).toBe(1);
     expect(banc.getState().pendingTest!.rerolled).toBe(true);
-    banc.getState().jetReroll('test'); // 2e relance refusée (déjà relancé)
+    banc.getState().jetRelancer('test'); // 2e relance refusée (déjà relancé)
     expect(banc.getState().party[0].fortune).toBe(1); // pas de 2e dépense
   });
 
-  it('jetBonusSL@test : +1 DR fait passer un Test à requireSL, et est cumulable', () => {
+  it('jetAjouterUnDR@test : +1 DR fait passer un Test à requireSL, et est cumulable', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     hero.fortune = 3;
     banc.setState({
@@ -2122,16 +2122,16 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
       pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
         requireSL: 2, target: 50, roll: 45, success: false, sl: 0, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
-    banc.getState().jetBonusSL('test'); // DR 0 → 1 (< 2)
+    banc.getState().jetAjouterUnDR('test'); // DR 0 → 1 (< 2)
     expect(banc.getState().party[0].fortune).toBe(2);
     expect(banc.getState().pendingTest!.success).toBe(false);
-    banc.getState().jetBonusSL('test'); // DR 1 → 2 (≥ requireSL 2) → succès
+    banc.getState().jetAjouterUnDR('test'); // DR 1 → 2 (≥ requireSL 2) → succès
     expect(banc.getState().party[0].fortune).toBe(1);
     expect(banc.getState().pendingTest!.sl).toBe(2);
     expect(banc.getState().pendingTest!.success).toBe(true);
   });
 
-  it('jetBonusSL@test : la Chance (+1 DR) ne fabrique PAS de réussite depuis un d100 RATÉ (sans seuil de DR exigé)', () => {
+  it('jetAjouterUnDR@test : la Chance (+1 DR) ne fabrique PAS de réussite depuis un d100 RATÉ (sans seuil de DR exigé)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     hero.fortune = 3;
     banc.setState({
@@ -2140,7 +2140,7 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
       pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
         requireSL: 0, target: 50, roll: 95, success: false, sl: -5, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
-    banc.getState().jetBonusSL('test');
+    banc.getState().jetAjouterUnDR('test');
     expect(banc.getState().pendingTest!.sl).toBe(-4); // le DR monte
     expect(banc.getState().pendingTest!.success).toBe(false); // l'échec du dé tient
   });
@@ -2344,10 +2344,10 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     expect(banc.getState().pendingRoundStart).toBeNull();
   });
 
-  it('roundStartPromote place le héros en tête et dépense 1 Chance', () => {
+  it('promouvoirLeCombattant place le héros en tête et dépense 1 Chance', () => {
     const { H } = endOfRoundBattle(2);
     banc.getState().terminerLeTour();
-    banc.getState().roundStartPromote(H.id);
+    banc.getState().promouvoirLeCombattant(H.id);
     const st = banc.getState();
     expect(st.battle!.order[0]).toBe(H.id);
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.fortune).toBe(1);
@@ -2356,7 +2356,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
   it('la validation de la pause (`fenetreValider(\'roundStart\')`) ferme la modale et active le héros promu en premier', () => {
     const { H } = endOfRoundBattle(1);
     banc.getState().terminerLeTour();
-    banc.getState().roundStartPromote(H.id);
+    banc.getState().promouvoirLeCombattant(H.id);
     banc.getState().fenetreValider('roundStart');
     const st = banc.getState();
     expect(st.pendingRoundStart).toBeNull();
@@ -2374,8 +2374,8 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     seedBattleRng(1);
     banc.getState().preemptRangedShot(H.id, E.id);
     expect(banc.getState().pendingAttack?.interrupt).toBe(true); // modale de tir ouverte, tireur non-actif
-    banc.getState().jetRoll('attack');
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetLancer('attack');
+    banc.getState().jetValider('attack');
     let st = banc.getState();
     expect(st.pendingAttack).toBeNull();                 // tir résolu
     expect(st.pendingRoundStart).not.toBeNull();          // TOUJOURS à la pause de début de Round (aucun tour avancé)
@@ -2578,7 +2578,7 @@ describe('Résilience — « Je ne faillirai pas ! » (LDB 17 l.68)', () => {
       pendingTest: { actorId: hero.id, actorName: 'A', label: 'Test', skillValue: 30, difficulty: 'intermediaire',
         requireSL: 0, target: 30, roll: 95, success: false, sl: -6, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
-    banc.getState().jetForceSuccess('test');
+    banc.getState().jetForcerLaReussite('test');
     expect(banc.getState().pendingTest!.success).toBe(true);
     expect(banc.getState().party[0].resilience).toBe(0);
   });
@@ -2619,8 +2619,8 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     banc.getState().seedRng(2);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true }); // ouvre la modale d'attaque (chargé + munition OK)
     expect(banc.getState().pendingAttack).not.toBeNull();
-    banc.getState().jetRoll('attack');
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetLancer('attack');
+    banc.getState().jetValider('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect((h.items ?? []).find((i) => i.uid === 'am1')!.qty).toBe(1); // 2 → 1
     expect(rangedOf(h).loaded).toBe(false); // Recharge 1 → déchargé
@@ -2645,17 +2645,17 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(banc.getState().battle!.acted).toBe(false); // l'Action n'est consommée qu'à Appliquer
   });
 
-  it('jetRoll@reload + jetConfirm@reload : cumule le DR (Test étendu), recharge à ≥ Indice, consomme l’Action', () => {
+  it('jetLancer@reload + jetValider@reload : cumule le DR (Test étendu), recharge à ≥ Indice, consomme l’Action', () => {
     const { H } = archer();
     rangedOf(H).loaded = false;
     rangedOf(H).reloadProgress = 0;
     banc.getState().seedRng(2);
     banc.getState().rechargerLArme();
-    banc.getState().jetRoll('reload');
+    banc.getState().jetLancer('reload');
     const pr = banc.getState().pendingReload!;
     expect(pr.roll).not.toBeNull();
     const expected = Math.max(0, 0 + pr.sl); // formule du Test étendu (clamp à 0)
-    banc.getState().jetConfirm('reload');
+    banc.getState().jetValider('reload');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     if (expected >= 1) {
       expect(rangedOf(h).loaded).toBe(true);
@@ -2680,10 +2680,10 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).reloadProgress = 0;
     banc.getState().seedRng(2);
     banc.getState().rechargerLArme();
-    banc.getState().jetRoll('reload');
+    banc.getState().jetLancer('reload');
     const pr = { ...banc.getState().pendingReload! };
     const journalAvant = banc.getState().journal.length;
-    banc.getState().jetConfirm('reload');
+    banc.getState().jetValider('reload');
     const evs = banc.getState().battle!.log.filter((e) => e.kind === 'reload');
     expect(evs, 'UNE ligne d’issue, dans le journal de COMBAT').toHaveLength(1);
     expect(banc.getState().journal.length, 'canal COMBAT : rien dans le journal narratif').toBe(journalAvant);
@@ -2693,17 +2693,17 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(ia, 'parité joueur ⇄ IA : une seule déclaration d’issue').toEqual([evs[0].text]);
   });
 
-  it('jetConfirm@reload : un DR insuffisant (Recharge 2) laisse l’arme déchargée et garde le progrès', () => {
+  it('jetValider@reload : un DR insuffisant (Recharge 2) laisse l’arme déchargée et garde le progrès', () => {
     const { H } = archer();
     H.weapons = [{ label: 'Arbalète lourde', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 100, qualities: [{ id: 'recharge', value: 2 }], subType: 'Arbalète', reload: 2 }];
     rangedOf(H).loaded = false;
     rangedOf(H).reloadProgress = 0;
     banc.getState().seedRng(2);
     banc.getState().rechargerLArme();
-    banc.getState().jetRoll('reload');
+    banc.getState().jetLancer('reload');
     const pr = banc.getState().pendingReload!;
     const expected = Math.max(0, 0 + pr.sl);
-    banc.getState().jetConfirm('reload');
+    banc.getState().jetValider('reload');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(rangedOf(h).loaded).toBe(expected >= 2);
     expect(rangedOf(h).reloadProgress).toBe(expected >= 2 ? 0 : expected);
@@ -2762,7 +2762,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     banc.getState().seedRng(2);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     expect(banc.getState().pendingAttack, 'le pistolet chargé TIRE').not.toBeNull();
-    banc.getState().jetCancel('attack');
+    banc.getState().jetAnnuler('attack');
     // (4) Retour à l'ARBALÈTE : elle est restée déchargée, avec SA progression intacte.
     h = swap('arb');
     const arb2 = h.weapons.find((w) => w.uid === 'w-arb')!;
@@ -2799,7 +2799,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     // (2) Le rechargement vise l'arme DÉSIGNÉE : la modale s'ouvre sur le gauche, pas sur le droit.
     banc.getState().rechargerLArme('p2');
     expect(banc.getState().pendingReload?.weaponUid).toBe('p2');
-    banc.getState().jetCancel('reload');
+    banc.getState().jetAnnuler('reload');
     // (3) Sans uid : la 1re arme DÉCHARGÉE (ici le gauche) — jamais une arme déjà prête.
     banc.getState().rechargerLArme();
     expect(banc.getState().pendingReload?.weaponUid).toBe('p2');
@@ -2843,7 +2843,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(rangedOf(h).loadedAmmoUid).toBe('am1');
   });
 
-  it('jetConfirm@reload CAPTURE la munition choisie sur le coup chargé', () => {
+  it('jetValider@reload CAPTURE la munition choisie sur le coup chargé', () => {
     const { H } = archer();
     H.items!.push(am2());
     rangedOf(H).loaded = false;
@@ -2855,7 +2855,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
         skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 10, target: 40, sl: 3, success: true,
       },
     });
-    banc.getState().jetConfirm('reload');
+    banc.getState().jetValider('reload');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(rangedOf(h).loaded).toBe(true);
     expect(rangedOf(h).loadedAmmoUid).toBe('am2');
@@ -2875,14 +2875,14 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
         skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 10, target: 40, sl: 3, success: true,
       },
     });
-    banc.getState().jetConfirm('reload');
+    banc.getState().jetValider('reload');
     banc.setState({ battle: { ...banc.getState().battle!, acted: false } });
     // La sélection change APRÈS le chargement : le coup déjà chargé, lui, ne change pas.
     rangedOf(banc.getState().battle!.combatants.find((c) => c.id === H.id)!).ammoUid = 'am1';
     banc.getState().seedRng(2);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
-    banc.getState().jetRoll('attack');
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetLancer('attack');
+    banc.getState().jetValider('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.items!.find((i) => i.uid === 'am2')!.qty).toBe(2); // 3 → 2 : le coup chargé est parti
     expect(h.items!.find((i) => i.uid === 'am1')!.qty).toBe(2); // l'autre pile n'a pas bougé
@@ -2896,8 +2896,8 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).ammoUid = 'am2';
     banc.getState().seedRng(2);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
-    banc.getState().jetRoll('attack');
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetLancer('attack');
+    banc.getState().jetValider('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.items!.find((i) => i.uid === 'am1')!.qty).toBe(1); // capturée : 2 → 1
     expect(h.items!.find((i) => i.uid === 'am2')!.qty).toBe(3); // sélection courante : intacte
@@ -2916,8 +2916,8 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(rangedOf(banc.getState().battle!.combatants.find((c) => c.id === H.id)!).loaded).toBe(true);
     banc.getState().seedRng(2);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
-    banc.getState().jetRoll('attack');
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetLancer('attack');
+    banc.getState().jetValider('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.items!.find((i) => i.uid === 'fl2')!.qty).toBe(4);
     expect(h.items!.find((i) => i.uid === 'fl1')!.qty).toBe(5);
@@ -2936,7 +2936,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(banc.getState().pendingAttack).not.toBeNull();
   });
 
-  it('jetConfirm@reload : cumul sous 0 → reloadProgress revient à 0 (Test étendu « recommence », LDB 12 l.174)', () => {
+  it('jetValider@reload : cumul sous 0 → reloadProgress revient à 0 (Test étendu « recommence », LDB 12 l.174)', () => {
     const { H } = archer();
     rangedOf(H).loaded = false;
     rangedOf(H).reloadProgress = 1;
@@ -2946,7 +2946,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
         skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 95, target: 40, sl: -2, success: false,
       },
     });
-    banc.getState().jetConfirm('reload');
+    banc.getState().jetValider('reload');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(rangedOf(h).reloadProgress).toBe(0); // 1 + (-2) = -1 → plancher 0
     expect(rangedOf(h).loaded).toBe(false);
@@ -2965,7 +2965,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     banc.setState({ battle: { ...banc.getState().battle!, acted: false, action: null } });
     banc.getState().seedRng(2);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
-    banc.getState().jetRoll('attack');
+    banc.getState().jetLancer('attack');
     const pa = banc.getState().pendingAttack!;
     const d = pa.result!.attackerDetail!;
     const nomme = [...(d.mods ?? []), ...(d.difficultyParts ?? [])];
@@ -2974,7 +2974,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     // — ou l'inverse — casse cette égalité).
     const dv = d.difficultyCombined ?? (d.difficulty ? DIFFICULTY_MODIFIERS[d.difficulty] : 0);
     expect(d.target - d.base).toBe(dv + (d.mods ?? []).reduce((s, m) => s + m.value, 0));
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.aiming).toBe(false);
   });
 
@@ -3042,7 +3042,7 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
     expect(capDuGroupe(banc.getState())).toBe('O');
   });
 
-  it("transitionTo : par point d'entrée nommé → cap recalculé vers le contenu de la NOUVELLE carte (l'authoré du heroStart ne s'applique pas : on ne spawne pas dessus)", () => {
+  it("quitterLaScene : par point d'entrée nommé → cap recalculé vers le contenu de la NOUVELLE carte (l'authoré du heroStart ne s'applique pas : on ne spawne pas dessus)", () => {
     const a = emptyScene('scene-test', 5, 5);
     a.id = 'a';
     const b = emptyScene('scene-test', 7, 7);
@@ -3051,12 +3051,12 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
     b.entryPoints = { porte: { x: 3, y: 6 } }; // bord sud de b
     banc.getState().setParty([lead]);
     banc.getState().loadProject({ scenes: [a, b], entryId: 'a', projet: null });
-    banc.getState().transitionTo('b', 'porte');
+    banc.getState().quitterLaScene('b', 'porte');
     expect(banc.getState().partyPos).toEqual({ x: 3, y: 6 });
     expect(capDuGroupe(banc.getState())).toBe('N'); // vers le centroïde (3,3), PAS 'O'
   });
 
-  it('transitionTo : sans entrée nommée → spawn au heroStart, facing authoré respecté', () => {
+  it('quitterLaScene : sans entrée nommée → spawn au heroStart, facing authoré respecté', () => {
     const a = emptyScene('scene-test', 5, 5);
     a.id = 'a2';
     const b = emptyScene('scene-test', 7, 7);
@@ -3064,7 +3064,7 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
     b.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 3, y: 6 }, facing: 'NE' });
     banc.getState().setParty([lead]);
     banc.getState().loadProject({ scenes: [a, b], entryId: 'a2', projet: null });
-    banc.getState().transitionTo('b2');
+    banc.getState().quitterLaScene('b2');
     expect(capDuGroupe(banc.getState())).toBe('NE');
   });
 });
@@ -3196,7 +3196,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     expect(banc.getState().party[0].items!.length).toBe(0);
   });
 
-  it('panier : ajouterAuPanier → payCart débite le total + met en attente de répartition → confirm distribue', () => {
+  it('panier : ajouterAuPanier → payerLesAchats débite le total + met en attente de répartition → confirm distribue', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
@@ -3204,7 +3204,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     expect(banc.getState().merchant!.cart).toEqual([{ id, qty: 2 }]);
     const before = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().payCart();
+    banc.getState().payerLesAchats();
     const st = banc.getState();
     expect(toBrass(partyMoneyTotal(banc.getState))).toBeLessThan(before); // total débité
     expect(st.merchant!.cart).toEqual([]); // panier vidé
@@ -3239,38 +3239,38 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     banc.getState().fenetreFermer('marchand'); // quitte SANS payer
     banc.getState().openMerchant('pnj'); // réouverture (même réassort)
     expect(banc.getState().merchant!.bargainLocked).toBe(true); // l'info est gardée
-    banc.getState().startBargain('buy');
+    banc.getState().marchanderLePrix('buy');
     expect(banc.getState().pendingBargain).toBeNull(); // le marchand refuse de marchander
   });
 
-  it('refuseBargain(\'buy\') : vide le panier, annule la remise, VERROU PARTAGÉ (bloque achat ET vente), persiste', () => {
+  it('refuserLeMarche(\'buy\') : vide le panier, annule la remise, VERROU PARTAGÉ (bloque achat ET vente), persiste', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainBuy: { won: true, drNet: 2, negotiator: false } } })); // négocié
-    banc.getState().refuseBargain('buy');
+    banc.getState().refuserLeMarche('buy');
     const st = banc.getState();
     expect(st.merchant!.cart).toEqual([]);
     expect(st.merchant!.bargainBuy ?? null).toBeNull(); // remise annulée
     expect(st.merchant!.bargainLocked).toBe(true);
     // verrou PARTAGÉ : la VENTE est aussi bloquée
-    banc.getState().startBargain('sell');
+    banc.getState().marchanderLePrix('sell');
     expect(banc.getState().pendingBargain).toBeNull();
     banc.getState().fenetreFermer('marchand');
     banc.getState().openMerchant('pnj');
     expect(banc.getState().merchant!.bargainLocked).toBe(true); // persiste
   });
 
-  it('refuseBargain(\'sell\') : annule l’offre + VERROU PARTAGÉ (bloque l’ACHAT aussi)', () => {
+  it('refuserLeMarche(\'sell\') : annule l’offre + VERROU PARTAGÉ (bloque l’ACHAT aussi)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainSell: { won: true, drNet: 2, negotiator: false } } })); // vente négociée
-    banc.getState().refuseBargain('sell');
+    banc.getState().refuserLeMarche('sell');
     const st = banc.getState();
     expect(st.merchant!.bargainSell ?? null).toBeNull();
     expect(st.merchant!.bargainLocked).toBe(true);
-    banc.getState().startBargain('buy'); // achat aussi bloqué
+    banc.getState().marchanderLePrix('buy'); // achat aussi bloqué
     expect(banc.getState().pendingBargain).toBeNull();
   });
 
@@ -3289,7 +3289,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainBuy: { won: true, drNet: 2, negotiator: false } } }));
-    banc.getState().payCart(); // scelle le deal (paie)
+    banc.getState().payerLesAchats(); // scelle le deal (paie)
     banc.getState().fenetreFermer('marchand');
     banc.getState().openMerchant('pnj');
     expect(banc.getState().merchant!.bargainLocked).toBe(false); // pas de pénalité
@@ -3311,13 +3311,13 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     expect(banc.getState().merchant!.cart).toHaveLength(0);
   });
 
-  it('payCart : refuse si Bourse insuffisante (panier intact, rien en répartition)', () => {
+  it('payerLesAchats : refuse si Bourse insuffisante (panier intact, rien en répartition)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.setState({ party: [withBourseMoney(banc.getState().party[0], { gold: 0, silver: 0, brass: 1 })] }); // la bourse fond entre le panier et le paiement
-    banc.getState().payCart();
+    banc.getState().payerLesAchats();
     const st = banc.getState();
     expect(st.merchant!.pendingDistribution ?? null).toBeNull();
     expect(st.merchant!.cart).toHaveLength(1);
@@ -3328,7 +3328,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     banc.getState().openMerchant('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
-    banc.getState().payCart();
+    banc.getState().payerLesAchats();
     banc.getState().fenetreFermer('marchand'); // ferme sans confirmer → flush au sac du 1er héros
     expect(banc.getState().party[0].items!.some((i) => i.trappingId === id)).toBe(true);
   });
@@ -3338,38 +3338,38 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     banc.setState({ party: [h], scene: merchantScene() });
     banc.getState().openMerchant('pnj');
     banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', 'x');
-    banc.getState().confirmSell();
+    banc.getState().vendreLeLot();
     const st = banc.getState();
     expect(st.party[0].items!.find((i) => i.uid === 'x')).toBeUndefined();
     expect(toBrass(partyMoneyTotal(banc.getState))).toBeGreaterThan(0); // Hallebarde 2 CO × 10 %
   });
 
-  it('repairItem : reset damageTaken contre 10 %/PA, débite la Bourse (#2d)', () => {
+  it('reparerLObjet : reset damageTaken contre 10 %/PA, débite la Bourse (#2d)', () => {
     const h = hero(); h.items = [{ uid: 'a', trappingId: 'chemise-de-mailles', label: 'Chemise de mailles', kind: 'armor', pa: 3, damageTaken: 2, qualities: [], enc: 1, equipped: true } as any];
     banc.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
     const before = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().repairItem('a', 'h');
+    banc.getState().reparerLObjet('a', 'h');
     const st = banc.getState();
     expect(st.party[0].items!.find((i) => i.uid === 'a')!.damageTaken).toBe(0); // réparé
     expect(toBrass(partyMoneyTotal(banc.getState))).toBeLessThan(before); // débité
   });
 
-  it('repairItem : ignore une armure intacte (damageTaken 0) — pas de débit', () => {
+  it('reparerLObjet : ignore une armure intacte (damageTaken 0) — pas de débit', () => {
     const h = hero(); h.items = [{ uid: 'b', label: 'Chemise de mailles', kind: 'armor', pa: 3, damageTaken: 0, qualities: [], enc: 1, equipped: true } as any];
     banc.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
     const before = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().repairItem('b', 'h');
+    banc.getState().reparerLObjet('b', 'h');
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(before); // rien à réparer
   });
 
-  it('repairItem : répare une ARME endommagée à 10 %/point (LDB 62 l.135)', () => {
+  it('reparerLObjet : répare une ARME endommagée à 10 %/point (LDB 62 l.135)', () => {
     const h = hero(); h.items = [{ uid: 'w', trappingId: 'dague', label: 'Dague', kind: 'melee', damage: { plusBF: true, flat: 2 }, damageTaken: 1, qualities: [], enc: 0, equipped: true } as any];
     banc.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
     banc.getState().openMerchant('pnj');
     const before = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().repairItem('w', 'h');
+    banc.getState().reparerLObjet('w', 'h');
     const st = banc.getState();
     expect(st.party[0].items!.find((i) => i.uid === 'w')!.damageTaken).toBe(0); // réparée
     expect(toBrass(partyMoneyTotal(banc.getState))).toBeLessThan(before); // débité
@@ -3377,46 +3377,46 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   const negotiator = (): Combatant => combattantDeTest({ id: 'h', label: 'H', items: [], characteristics: { sociabilite: 40 }, skills: [], talents: [], wounds: blessuresDeBase(10), conditions: [], weapons: [] });
 
-  it('startBargain : crée un pendingBargain (marchand = bargainSkill de l’archétype) (#2c)', () => {
+  it('marchanderLePrix : crée un pendingBargain (marchand = bargainSkill de l’archétype) (#2c)', () => {
     banc.setState({ party: [negotiator()], scene: merchantScene() });
     banc.getState().openMerchant('pnj');
-    banc.getState().startBargain('buy');
+    banc.getState().marchanderLePrix('buy');
     const pb = banc.getState().pendingBargain!;
     expect(pb).toBeTruthy();
     expect(pb.playerId).toBe('h');
     expect(pb.opposant.valeur).toBe(45); // armurier.bargainSkill
   });
 
-  it('jetConfirm@bargain : verrouille le MODE achat ; 2ᵉ achat no-op mais la vente reste possible (B, #2c)', () => {
+  it('jetValider@bargain : verrouille le MODE achat ; 2ᵉ achat no-op mais la vente reste possible (B, #2c)', () => {
     banc.setState({ party: [negotiator()], scene: merchantScene() });
     banc.getState().openMerchant('pnj');
-    banc.getState().startBargain('buy');
+    banc.getState().marchanderLePrix('buy');
     // force un résultat gagné, sans RNG
     const pb = banc.getState().pendingBargain!;
     const win = { roll: 10, target: 40, success: true, sl: 3, isDouble: false };
     const lose = { roll: 80, target: 45, success: false, sl: -3, isDouble: false };
     banc.setState({ pendingBargain: { ...pb, roll: win, merchantRoll: lose, result: { attacker: win, defender: lose, winner: 'attacker', attackerWins: true, netSL: 6, decidedBy: 'dr' } } });
-    banc.getState().jetConfirm('bargain');
+    banc.getState().jetValider('bargain');
     expect(banc.getState().pendingBargain).toBeNull();
     expect(banc.getState().merchant!.bargainBuy).toEqual({ won: true, drNet: 6, negotiator: false });
     expect(banc.getState().merchant!.soured).toBeFalsy(); // gagné → pas de méfiance
-    banc.getState().startBargain('buy'); // achat déjà négocié → no-op
+    banc.getState().marchanderLePrix('buy'); // achat déjà négocié → no-op
     expect(banc.getState().pendingBargain).toBeNull();
-    banc.getState().startBargain('sell'); // la vente est une négociation DISTINCTE → s'ouvre
+    banc.getState().marchanderLePrix('sell'); // la vente est une négociation DISTINCTE → s'ouvre
     expect(banc.getState().pendingBargain?.contrepartie).toEqual({ kind: 'marchand', mode: 'sell', titre: t('out.bargainTitreVente') });
   });
 
-  it('jetConfirm@bargain : un échec « de beaucoup » (net DR ≥ 6) rend le marchand méfiant → plus de marchandage (C, #2c)', () => {
+  it('jetValider@bargain : un échec « de beaucoup » (net DR ≥ 6) rend le marchand méfiant → plus de marchandage (C, #2c)', () => {
     banc.setState({ party: [negotiator()], scene: merchantScene() });
     banc.getState().openMerchant('pnj');
-    banc.getState().startBargain('buy');
+    banc.getState().marchanderLePrix('buy');
     const pb = banc.getState().pendingBargain!;
     const lose = { roll: 90, target: 40, success: false, sl: -5, isDouble: false };
     const win = { roll: 10, target: 45, success: true, sl: 3, isDouble: false };
     banc.setState({ pendingBargain: { ...pb, roll: lose, merchantRoll: win, result: { attacker: lose, defender: win, winner: 'defender', attackerWins: false, netSL: 8, decidedBy: 'dr' } } });
-    banc.getState().jetConfirm('bargain');
+    banc.getState().jetValider('bargain');
     expect(banc.getState().merchant!.soured).toBe(true);
-    banc.getState().startBargain('sell'); // marchand méfiant → toute négociation bloquée
+    banc.getState().marchanderLePrix('sell'); // marchand méfiant → toute négociation bloquée
     expect(banc.getState().pendingBargain).toBeNull();
   });
 
@@ -3429,7 +3429,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
       banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id); // le Marchandage porte sur le panier déjà composé (LDB 59 l.43)
       banc.setState({ merchant: { ...banc.getState().merchant!, bargainBuy: bargain } });
       const before = toBrass(partyMoneyTotal(banc.getState));
-      banc.getState().payCart();
+      banc.getState().payerLesAchats();
       return before - toBrass(partyMoneyTotal(banc.getState));
     };
     const full = buyWith(null);
@@ -3447,7 +3447,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
       const m = banc.getState().merchant!;
       banc.setState({ merchant: { ...m, bargainSell } });
       banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', 'x');
-      banc.getState().confirmSell();
+      banc.getState().vendreLeLot();
       return toBrass(partyMoneyTotal(banc.getState));
     };
     const lowball = sellWith(null); // ¼ par défaut (le marchand lowballe)
@@ -3478,43 +3478,43 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   const appraiser = (): Combatant => combattantDeTest({ id: 'h', label: 'H', kind: 'hero', characteristics: { intelligence: 30 }, skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 10 }], talents: [], items: [{ uid: 'm', label: 'Épée', kind: 'melee', qualities: [{ id: 'de-plaies-atroces' }], enc: 1, equipped: false, identified: false }], wounds: blessuresDeBase(10), conditions: [], weapons: [] });
 
-  it('appraiseItem : crée un pendingAppraise sur l’objet non identifié (#2e)', () => {
+  it('evaluerLObjet : crée un pendingAppraise sur l’objet non identifié (#2e)', () => {
     banc.setState({ party: [appraiser()], scene: merchantScene() });
     banc.getState().openMerchant('pnj');
-    banc.getState().appraiseItem('m', 'h');
+    banc.getState().evaluerLObjet('m', 'h');
     const pa = banc.getState().pendingAppraise!;
     expect(pa).toBeTruthy();
     expect(pa.itemUid).toBe('m');
     expect(pa.target).toBe(40); // Int 30 + Évaluation 10, Intermédiaire +0
   });
 
-  it('appraiseItem : personne qui puisse tenter l’Évaluation (LDB 09 l.30) → refus NOMMÉ, aucune fenêtre', () => {
+  it('evaluerLObjet : personne qui puisse tenter l’Évaluation (LDB 09 l.30) → refus NOMMÉ, aucune fenêtre', () => {
     const profane = { ...appraiser(), skills: [] } as Combatant;
     banc.setState({ party: [profane], scene: merchantScene() });
     banc.getState().openMerchant('pnj');
-    banc.getState().appraiseItem('m', 'h');
+    banc.getState().evaluerLObjet('m', 'h');
     expect(banc.getState().pendingAppraise).toBeNull();
     expect(banc.getState().journal.slice(-1)[0]).toBe('Personne dans le groupe ne peut tenter le Test d’Évaluation.');
   });
 
-  it('jetConfirm@appraise : succès → identified=true (révèle l’objet) (#2e)', () => {
+  it('jetValider@appraise : succès → identified=true (révèle l’objet) (#2e)', () => {
     banc.setState({ party: [appraiser()], scene: merchantScene() });
     banc.getState().openMerchant('pnj');
-    banc.getState().appraiseItem('m', 'h');
+    banc.getState().evaluerLObjet('m', 'h');
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 10, success: true, sl: 2 } });
-    banc.getState().jetConfirm('appraise');
+    banc.getState().jetValider('appraise');
     expect(banc.getState().party[0].items!.find((i) => i.uid === 'm')!.identified).toBe(true);
     expect(banc.getState().pendingAppraise).toBeNull();
   });
 
-  it('jetConfirm@appraise : échec → l’objet reste non identifié (#2e)', () => {
+  it('jetValider@appraise : échec → l’objet reste non identifié (#2e)', () => {
     banc.setState({ party: [appraiser()], scene: merchantScene() });
     banc.getState().openMerchant('pnj');
-    banc.getState().appraiseItem('m', 'h');
+    banc.getState().evaluerLObjet('m', 'h');
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 90, success: false, sl: -3 } });
-    banc.getState().jetConfirm('appraise');
+    banc.getState().jetValider('appraise');
     expect(banc.getState().party[0].items!.find((i) => i.uid === 'm')!.identified).toBe(false);
   });
 
@@ -3551,14 +3551,14 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
   });
 });
 
-describe('transferItem — donner un objet à un autre héros', () => {
+describe('transmettreLObjet — donner un objet à un autre héros', () => {
   const h = (id: string, items: unknown[] = []): Combatant =>
     combattantDeTest({ id, label: id.toUpperCase(), items: items as ItemInstance[], characteristics: {}, wounds: blessuresDeBase(10), conditions: [], weapons: [] });
 
   it('déplace l’objet (retiré de la source, ajouté NON équipé chez la cible)', () => {
     const a = h('a', [{ uid: 'x', label: 'Épée bâtarde', kind: 'melee', qualities: [], enc: 2, equipped: true }]);
     banc.setState({ party: [a, h('b')] });
-    banc.getState().transferItem('x', 'a', 'b');
+    banc.getState().transmettreLObjet('x', 'a', 'b');
     const st = banc.getState();
     expect(st.party.find((c) => c.id === 'a')!.items!.find((i) => i.uid === 'x')).toBeUndefined();
     const moved = st.party.find((c) => c.id === 'b')!.items!.find((i) => i.uid === 'x');
@@ -3568,8 +3568,8 @@ describe('transferItem — donner un objet à un autre héros', () => {
   it('no-op si même héros ou objet absent', () => {
     const a = h('a', [{ uid: 'x', label: 'Dague', kind: 'melee', qualities: [], enc: 0, equipped: false }]);
     banc.setState({ party: [a, h('b')] });
-    banc.getState().transferItem('x', 'a', 'a'); // même héros
-    banc.getState().transferItem('zzz', 'a', 'b'); // objet inexistant
+    banc.getState().transmettreLObjet('x', 'a', 'a'); // même héros
+    banc.getState().transmettreLObjet('zzz', 'a', 'b'); // objet inexistant
     expect(banc.getState().party.find((c) => c.id === 'a')!.items!.length).toBe(1);
     expect(banc.getState().party.find((c) => c.id === 'b')!.items!.length).toBe(0);
   });
@@ -3597,14 +3597,14 @@ describe('Marché — règles optionnelles (market-mode / market-guild)', () => 
     expect(sansDispo).toBeGreaterThanOrEqual(complet);
   });
 
-  it("market-mode 'sans-marchandage' : startBargain ne propose plus de Marchandage", () => {
+  it("market-mode 'sans-marchandage' : marchanderLePrix ne propose plus de Marchandage", () => {
     banc.setState({ party: [hero()], scene: merchantScene() });
     banc.getState().openMerchant('pnj');
-    banc.getState().startBargain('buy');
+    banc.getState().marchanderLePrix('buy');
     expect(banc.getState().pendingBargain).not.toBeNull(); // complet : Marchandage proposé
     banc.setState({ pendingBargain: null });
     setRule('market-mode', 'sans-marchandage');
-    banc.getState().startBargain('buy');
+    banc.getState().marchanderLePrix('buy');
     expect(banc.getState().pendingBargain).toBeNull(); // désactivé
   });
 

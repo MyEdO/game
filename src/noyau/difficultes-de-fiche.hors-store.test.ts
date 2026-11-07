@@ -105,11 +105,11 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     restaurerFiche();
   });
 
-  it('Course : `battleRun` pose le Test de `course`, `jetRoll@run` le jette', () => {
+  it('Course : `battleRun` pose le Test de `course`, `jetLancer@run` le jette', () => {
     const { H } = auCombat();
     g().battleRun({ x: 16, y: 10 });
     expect(g().pendingRun!.test).toMatchObject(testDeFiche('course', 'courir'));
-    g().jetRoll('run');
+    g().jetLancer('run');
     expect(g().pendingRun!.result!.target).toBe(cible(H, 'course', 'courir'));
   });
 
@@ -136,7 +136,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     expect(g().pendingRun!.test).toMatchObject({ skill: { id: 'chevaucher' } });
   });
 
-  it('Chute volontaire : `franchirLArete` pose le Test de `chute`, `jetRoll@fall` le jette', () => {
+  it('Chute volontaire : `franchirLArete` pose le Test de `chute`, `jetLancer@fall` le jette', () => {
     const s = emptyScene('scene-test', 4, 4);
     s.layers[0].height = Array.from({ length: 16 }, (_, i) => (i === 2 ? 4 : 0));
     const hero = heros();
@@ -144,7 +144,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     g().franchirLArete({ x: 2, y: 0 }, { x: 2, y: 1 });
     expect(g().pendingFall!.test).toMatchObject(testDeFiche('chute', 'tenter'));
     g().jetRegler('fall', 'tenter', true, hero.id);
-    g().jetRoll('fall', hero.id);
+    g().jetLancer('fall', hero.id);
     expect(g().pendingFall!.participants[0].result!.target).toBe(cible(hero, 'chute', 'tenter'));
   });
 
@@ -157,7 +157,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     }
   });
 
-  it('Fuite : `jetRegler(\'disengage\', \'fuir\')` pose le Test de `fuite` sur le slot du fuyard, `jetRoll@flee` le jette', () => {
+  it('Fuite : `jetRegler(\'disengage\', \'fuir\')` pose le Test de `fuite` sur le slot du fuyard, `jetLancer@flee` le jette', () => {
     const { H, E } = auCombat();
     E.characteristics['capacite-de-combat'] = 90;
     H.engagedWith = [E.id];
@@ -168,7 +168,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     });
     g().jetRegler('disengage', 'fuir', true);
     expect(fleeTouche(g().pendingDisengage!)!.test).toMatchObject(testDeFiche('fuite', 'touche-en-fuyant'));
-    g().jetRoll('flee', H.id);
+    g().jetLancer('flee', H.id);
     expect(fleeTouche(g().pendingDisengage!)!.jet!.target).toBe(cible(H, 'fuite', 'touche-en-fuyant'));
   });
 
@@ -178,7 +178,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     banc.setState({ battle: { ...g().battle!, reachable: new Map([['11,10', 1]]) } });
     g().cliquerLaCase({ x: 11, y: 10 }, undefined, { confirm: true });
     expect(g().pendingApproach!.test).toMatchObject(testDeFiche('calme-d-approche', 'se-rapprocher'));
-    g().jetRoll('approach');
+    g().jetLancer('approach');
     expect(g().pendingApproach!.result!.target).toBe(cible(H, 'calme-d-approche', 'se-rapprocher'));
   });
 
@@ -215,7 +215,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     expect(g().pendingCorruption).toMatchObject({ nature: 'physique', test: testDeFiche('influences-corruptrices', 'physique') });
     g().jetRegler('corruption', 'nature', 'spirituelle');
     expect(g().pendingCorruption).toMatchObject({ nature: 'spirituelle', test: testDeFiche('influences-corruptrices', 'spirituelle') });
-    g().jetRoll('corruption');
+    g().jetLancer('corruption');
     expect(g().pendingCorruption!.target).toBe(cible(hero, 'influences-corruptrices', 'spirituelle'));
   });
 
@@ -232,10 +232,10 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const itl = g().interlude!;
     itl.perHero[hero.id] = { ...itl.perHero[hero.id], fx: undefined, left: 3 };
     banc.setState({ interlude: { ...itl } });
-    g().interludeActivity(hero.id, 'tester-objets-magiques', { itemUid: 'art1' });
-    g().jetRoll('activity');
+    g().pratiquerLActivite(hero.id, 'tester-objets-magiques', { itemUid: 'art1' });
+    g().jetLancer('activity');
     banc.setState({ pendingActivity: { ...g().pendingActivity!, roll: 98, success: false, sl: -5 } });
-    g().jetConfirm('activity');
+    g().jetValider('activity');
     expect(g().pendingCorruption).toMatchObject({ nature: 'physique', test: testDeFiche('influences-corruptrices', 'physique') });
   });
 
@@ -302,7 +302,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     banc.setState({ party: [hero] });
     gainCorruption(g, banc.setState, hero, 1);
     expect(g().pendingCorruption).toMatchObject({ kind: 'seuil', test: testDeFiche('corrompu', 'contenir') });
-    g().jetRoll('corruption');
+    g().jetLancer('corruption');
     expect(g().pendingCorruption!.target).toBe(cible(hero, 'corrompu', 'contenir'));
   });
 });

@@ -88,11 +88,11 @@ describe('un tour complet par le pont', () => {
     expect(suite.vue.projection.fenetre, 'la charge ouvre la fenêtre d’attaque').toMatchObject({ cle: 'cascade', etape: { genre: 'attackJet' } });
     expect(suite.vue.disposition, 'la fenêtre d’attaque se dispose par sa clé et son jet').toBe('cascade/attack');
     expect(suite.vue.zones['fenetre.reglages'].map((g) => g.id), 'la Localisation est une option du coup').toContain('jetRegler@attack#localisation');
-    expect(suite.vue.zones['fenetre.gestes'].map((g) => g.id), 'le jet est un pas de la séquence').toContain('jetRoll@attack');
+    expect(suite.vue.zones['fenetre.gestes'].map((g) => g.id), 'le jet est un pas de la séquence').toContain('jetLancer@attack');
     expect(corpsDe(suite.vue, 'degats'), 'les Dégâts de l’arme, à part').toMatchObject({ type: 'puce', valeur: expect.stringMatching(/^\+\d+$/) });
     expect(corpsDe(suite.vue, 'cible'), 'la fenêtre nomme la cible').toMatchObject({ type: 'ligne', texte: expect.stringContaining(nomDeLaCible) });
     expect(corpsDe(suite.vue, 'jet'), 'le jet de l’attaquant, à lancer').toMatchObject({ type: 'jet', qui: heros.nom, cible: expect.stringMatching(/\d+$/), resultat: null, verdict: null, detail: expect.stringMatching(/^base \d+/) });
-    expect(attendu(suite), 'avant le jet, le jet est attendu').toBe('jetRoll@attack');
+    expect(attendu(suite), 'avant le jet, le jet est attendu').toBe('jetLancer@attack');
 
     const localiser = () => {
       const g = gesteDe(suite.vue, 'jetRegler@attack#localisation');
@@ -109,7 +109,7 @@ describe('un tour complet par le pont', () => {
     expect(corpsDe(suite.vue, 'jet'), 'le jet tombé dit son verdict').toMatchObject({ type: 'jet', verdict: expect.any(String) });
     const issue = corpsDe(suite.vue, 'issue');
     expect(issue, 'le jet tombé dit son issue').toMatchObject({ type: 'ligne' });
-    expect(attendu(suite), 'le jet tombé, la confirmation est attendue').toBe('jetConfirm@attack');
+    expect(attendu(suite), 'le jet tombé, la confirmation est attendue').toBe('jetValider@attack');
     const confirmee = presser(bouton(suite, attendu(suite)));
     suite = confirmee.suite;
     expect(suite.vue.projection.fenetre?.etape?.genre, 'confirmée, la fenêtre d’attaque se ferme').not.toBe('attackJet');
@@ -142,11 +142,11 @@ describe('un tour complet par le pont', () => {
     expect(suite.vue.disposition, 'la Défense se dispose par sa clé et son jet').toBe('cascade/defense');
     const reaction = corpsDe(suite.vue, 'defense/jet');
     expect(reaction, 'avant le dé, la réaction dit son score à atteindre').toMatchObject({ type: 'jet', cible: expect.stringMatching(/\d+$/), resultat: null, detail: expect.stringMatching(/^base \d+/) });
-    expect(attendu(suite), 'avant le jet de Défense, le jet est attendu').toBe('jetRoll@defense');
+    expect(attendu(suite), 'avant le jet de Défense, le jet est attendu').toBe('jetLancer@defense');
     const evenements = [...journal];
     ({ suite, journal } = presser(bouton(suite, attendu(suite))));
     evenements.push(...journal);
-    expect(attendu(suite), 'le jet de Défense tombé, sa confirmation est attendue').toBe('jetConfirm@defense');
+    expect(attendu(suite), 'le jet de Défense tombé, sa confirmation est attendue').toBe('jetValider@defense');
     expect(corpsDe(suite.vue, 'defense/jet'), 'le dé tombé, la ligne avant le dé s’efface').toBeUndefined();
     expect(corpsDe(suite.vue, 'defense/issue'), 'le dé tombé, la Défense dit son issue').toMatchObject({ type: 'ligne', texte: expect.stringMatching(/\S/) });
     expect(suite.vue.zones['fenetre.corps'].find((e) => e.type === 'jet' && e.libelle === (reaction as Jet).libelle), 'le jet tombé vise le score annoncé avant le dé').toMatchObject({ cible: (reaction as Jet).cible });

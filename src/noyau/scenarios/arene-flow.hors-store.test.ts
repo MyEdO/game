@@ -180,15 +180,15 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     expect(m.npc!.label).toBe('Médecin'); // le label de l'entité (renommable)
     expect(banc.getState().party.some((h) => h.id === m.npc!.id)).toBe(false);
     expect(m.patientId).toBe(party[1].id); // défaut = un patient soignable
-    banc.getState().medicAct('wounds'); // débit 5 pa + jet du PNJ
+    banc.getState().soignerLePatient('wounds'); // débit 5 pa + jet du PNJ
     const ph = banc.getState().pendingHeal!;
     // La valeur JOUÉE vient de la FICHE référencée par l'entité ; l'effet n'en porte aucune.
     const fiche = sceneNpc(hub, 'medecin', presetPnjById)!;
     expect(ph.skillValue).toBe(testValue(fiche, { skill: { id: 'guerison' } }));
     expect(m.npc!.intBonus).toBe(bonus(effectiveChar(fiche, 'intelligence')));
     expect(bourseOf(banc.getState().party.find((h) => h.id === ph.targetId)!).silver).toBe(5); // 10 − 5 pistoles débitées à la bourse du patient
-    banc.getState().jetRoll('heal');
-    banc.getState().jetConfirm('heal');
+    banc.getState().jetLancer('heal');
+    banc.getState().jetValider('heal');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(banc.getState().medic).not.toBeNull(); // l'infirmerie reste ouverte (autre acte/patient)
     banc.getState().fenetreFermer('medic');
@@ -255,7 +255,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
   it('un acte sans patient pertinent est simplement refusé (pas de jet)', () => {
     banc.setState({ party: makeShowcaseParty(), scene: hub, battle: null, pendingHeal: null, medic: null }); // groupe au max de PB
     applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'medecin' }]);
-    banc.getState().medicAct('wounds');
+    banc.getState().soignerLePatient('wounds');
     expect(banc.getState().pendingHeal).toBeNull();
     banc.getState().fenetreFermer('medic');
   });

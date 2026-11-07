@@ -28,13 +28,13 @@ export function CrewTestModal() {
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
   const owns = useOwns(); // possession locale à l'affichage (#1262) — hook : AVANT tout retour anticipé
-  const roll = useGesteDeJet('jetRoll', 'crewTest');
-  const reroll = useGesteDeJet('jetReroll', 'crewTest');
-  const bonus = useGesteDeJet('jetBonusSL', 'crewTest');
-  const darkPact = useGesteDeJet('jetDarkPact', 'crewTest');
-  const force = useGesteDeJet('jetForceSuccess', 'crewTest');
-  const confirm = useGesteDeJet('jetConfirm', 'crewTest');
-  const cancel = useGesteDeJet('jetCancel', 'crewTest');
+  const roll = useGesteDeJet('jetLancer', 'crewTest');
+  const reroll = useGesteDeJet('jetRelancer', 'crewTest');
+  const bonus = useGesteDeJet('jetAjouterUnDR', 'crewTest');
+  const darkPact = useGesteDeJet('jetPactiser', 'crewTest');
+  const force = useGesteDeJet('jetForcerLaReussite', 'crewTest');
+  const confirm = useGesteDeJet('jetValider', 'crewTest');
+  const cancel = useGesteDeJet('jetAnnuler', 'crewTest');
   if (!p) return null;
   return (
     <CrewTestModalView

@@ -5,12 +5,12 @@ import type { VerrouDuLexique } from './fabriquesDuNoyau';
 type Verbes = keyof ActionsDuNoyau;
 
 describe('le verrou du lexique des verbes (#3371 §3.4)', () => {
-  it('admet un nom du lexique, refuse un nom hors lexique et un nom en attente mort', () => {
+  it('admet un nom du lexique, refuse un nom hors lexique', () => {
     const verdicts: unknown[] = [];
     const admis: VerrouDuLexique<Verbes | 'acheterLeSort' | 'debarquer' | 'jouerALaTaverne'> = true;
     verdicts.push(admis);
 
-    // @ts-expect-error nom anglais hors de `NomEnAttente`
+    // @ts-expect-error nom anglais
     const anglais: VerrouDuLexique<Verbes | 'battleCharge'> = true;
     // @ts-expect-error mot exclu du lexique : un choix de fenêtre se joue par `fenetreChoisir`
     const exclu: VerrouDuLexique<Verbes | 'choisirLaCible'> = true;
@@ -18,10 +18,8 @@ describe('le verrou du lexique des verbes (#3371 §3.4)', () => {
     const jetManuscrit: VerrouDuLexique<Verbes | 'jetLancerLaCascade'> = true;
     // @ts-expect-error famille de fenêtre hors de ses trois actions
     const fenetreManuscrite: VerrouDuLexique<Verbes | 'fenetreAnnuler'> = true;
-    // @ts-expect-error nom en attente absent des verbes du noyau
-    const attenteMorte: VerrouDuLexique<Exclude<Verbes, 'partyAddHero'>> = true;
-    verdicts.push(anglais, exclu, jetManuscrit, fenetreManuscrite, attenteMorte);
+    verdicts.push(anglais, exclu, jetManuscrit, fenetreManuscrite);
 
-    expect(verdicts).toEqual([true, true, true, true, true, true]);
+    expect(verdicts).toEqual([true, true, true, true, true]);
   });
 });

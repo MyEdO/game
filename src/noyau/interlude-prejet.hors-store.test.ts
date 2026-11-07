@@ -60,13 +60,13 @@ const héros = (b: Banc, id: string): Combatant => b.getState().party.find((h) =
 
 /** Les cibles que chaque Activité lit, et ce qu'elle exige d'engager avant (ouvrage, dépôt). */
 const CIBLES: Record<string, (b: Banc, heroId: string) => CiblesChoisies> = {
-  craft: (b, id) => { b.actions.interludeCraftStart(id, craftCatalog()[0].id, [], []); return {}; },
+  craft: (b, id) => { b.actions.fabriquerLObjet(id, craftCatalog()[0].id, [], []); return {}; },
   learn: (b, id) => ({ talentId: learnableTalents(héros(b, id))[0].id }),
   identify: () => ({ itemUid: 'art-1' }),
   'tester-objets-magiques': () => ({ itemUid: 'art-1' }),
   'entrainement-arme-inhabituelle': () => ({ itemUid: 'arme-1' }),
   convalescence: () => ({ traitPsy: { type: 'peur' } }),
-  mecenat: (b, id) => { b.actions.interludeBank(id, 'mecenat', 1200); return { depositIndex: 0 }; },
+  mecenat: (b, id) => { b.actions.deposerALaBanque(id, 'mecenat', 1200); return { depotId: b.getState().bank[0]?.uid }; },
   'recherche-universitaire': (b, id) => ({ spellId: learnableSpells(héros(b, id)).find((x) => x.cost > 0)!.spell.id }),
 };
 
@@ -136,7 +136,7 @@ function ouvrir(id: string, prepare?: (b: Banc) => void, seed?: number, instruit
   const def = activityById(id)!;
   const preJet = preJetDActivite(b.getState(), h.id, def, cibles);
   const journal = b.getState().journal.length;
-  b.actions.interludeActivity(h.id, id, cibles);
+  b.actions.pratiquerLActivite(h.id, id, cibles);
   return { b, h: héros(b, h.id), preJet, pa: b.getState().pendingActivity, dit: b.getState().journal.slice(journal) };
 }
 
@@ -187,13 +187,13 @@ describe('Pré-jet d’Activité — la voie retenue est TENTABLE (LDB 09 l.30)'
 describe('Pré-jet d’Apprentissage — l’acharnement est un modificateur du Test (LDB 23 l.72)', () => {
   it('après une tentative ratée : Agilité 37, Difficile, +10 nommé', () => {
     const { b, h } = ouvrir('learn');
-    b.actions.jetRoll('activity');
+    b.actions.jetLancer('activity');
     b.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 99, success: false, sl: -2 } }));
-    b.actions.jetConfirm('activity');
+    b.actions.jetValider('activity');
     const talentId = learnableTalents(h)[0].id;
     expect(b.getState().interlude!.perHero[h.id].learnFails?.[talentId], 'témoin : une tentative ratée').toBe(1);
     const preJet = preJetDActivite(b.getState(), h.id, activityById('learn')!, { talentId })!;
-    b.actions.interludeActivity(h.id, 'learn', { talentId });
+    b.actions.pratiquerLActivite(h.id, 'learn', { talentId });
     const pa = b.getState().pendingActivity!;
     expect({ valeur: pa.skillValue, difficulte: pa.difficulty, mod: pa.mod, modLabel: pa.modLabel })
       .toEqual({ valeur: 37, difficulte: 'difficile', mod: 10, modLabel: 'Acharnement' });
@@ -209,10 +209,10 @@ describe('Pré-jet de préparation de bataille — la cible rendue par le volet 
     const second = instruit(withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Second', seed: 1602 }), { gold: 1, silver: 0, brass: 0 }), 5);
     const b = banc([meneur, second]);
     b.actions.startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
-    b.actions.setMassBattleHero('planification', [meneur.id, second.id]);
+    b.actions.affecterLeHeros('planification', [meneur.id, second.id]);
     const s = b.getState();
     const { ligne } = preJetDePreparation(s, s.massBattle!, héros(b, meneur.id), battleActivityById('planification')!)!.pending;
-    b.actions.massBattleActivity('planification', meneur.id);
+    b.actions.menerLActionDeBataille('planification', meneur.id);
     const pa = b.getState().pendingActivity!;
     expect(pa.support, 'témoin : le Second soutient').toMatchObject({ count: 1, ids: [second.id] });
     expect({ base: ligne.base, cible: ligne.target }).toEqual({ base: PLANIF.base, cible: PLANIF.cible });
@@ -237,12 +237,12 @@ describe('Pré-jet de préparation de bataille — la cible rendue par le volet 
     if (i % 2) b.setState((s) => ({ massBattle: { ...s.massBattle!, planningBonus: 20 } }));
     const ecarts: string[] = [];
     for (const { def } of battlePrepEntries(b.getState().massBattle!)) {
-      if (def.assisted) b.actions.setMassBattleHero(def.id, [a.id, second.id]);
+      if (def.assisted) b.actions.affecterLeHeros(def.id, [a.id, second.id]);
       const s = b.getState();
       const pj = preJetDePreparation(s, s.massBattle!, héros(b, a.id), def);
       const refus = refusDePrepaDeBataille(s.massBattle!, héros(b, a.id), def);
       b.setState(() => ({ pendingActivity: null }));
-      b.actions.massBattleActivity(def.id, a.id);
+      b.actions.menerLActionDeBataille(def.id, a.id);
       const pa = b.getState().pendingActivity;
       if (!pj || !pa) { if (refus == null) ecarts.push(`${def.id} : ouverte sans refus, pré-jet ${!!pj}, jet posé ${!!pa}`); continue; }
       const affiche = { cible: pj.pending.ligne.target, cible2: pj.ligne2?.target, difficulte: pj.pending.ligne.difficulty };
@@ -314,14 +314,14 @@ function confronteAuVolet(b: Banc, heroId: string, def: ActivityDef, cibles: Cib
   const refus = refusDOuvertureDActivite(s, heroId, def, cibles);
   const pj = preJetDActivite(s, heroId, def, cibles);
   b.setState(() => ({ pendingActivity: null }));
-  b.actions.interludeActivity(heroId, def.id, cibles);
+  b.actions.pratiquerLActivite(heroId, def.id, cibles);
   const pa = b.getState().pendingActivity;
   if (!pa || !pj) {
     if (refus == null) ecarts.push(`${ctx} ${def.id} : ouvert sans refus, pré-jet ${!!pj}, jet posé ${!!pa}`);
     return false;
   }
   if (refus != null || pj.refus != null) ecarts.push(`${ctx} ${def.id} : jet posé malgré le refus « ${refus ?? pj.refus} »`);
-  b.actions.jetRoll('activity');
+  b.actions.jetLancer('activity');
   const lance = b.getState().pendingActivity!;
   const affiche = { test: testSkillLabel(pj.test), valeur: pj.value, difficulte: pj.ligne.difficulty, mod: pj.mods.reduce((n, m) => n + m.value, 0), cible: pj.ligne.target };
   const jet = { test: pa.skillLabel, valeur: pa.skillValue, difficulte: pa.difficulty, mod: pa.mod ?? 0, cible: lance.target };
@@ -349,15 +349,15 @@ describe('Pré-jet d’Activité — sur toute carrière et toute fiche, le vole
       const ouvrage = craftCatalog().find((o) => { const t = findTrappingById(o.id); return t && craftSpecOf(t); });
       if (metierOf(héros(b, h.id)) && ouvrage) {
         const engagement = preJetDActivite(b.getState(), h.id, activityById('craft')!, {}, { ouvrage: craftTarget(ouvrage.tier, ouvrage.avail, 0, 0) });
-        b.actions.interludeCraftStart(h.id, ouvrage.id, [], []);
+        b.actions.fabriquerLObjet(h.id, ouvrage.id, [], []);
         if (héros(b, h.id).craft) {
           expect(preJetDActivite(b.getState(), h.id, activityById('craft')!), `v${n} engagement`).toEqual(engagement);
           // L'ouvrage engagé se lance sur le Métier qui l'a engagé (`metierOf`, LDB 23 l.76).
           expect(confronteAuVolet(b, h.id, activityById('craft')!, {}, ecarts, `v${n}`), `v${n} lancer de l'ouvrage`).toBe(true);
         }
       }
-      b.actions.interludeBank(h.id, 'mecenat', 1200);
-      if (b.getState().bank.length) confronteAuVolet(b, h.id, activityById('mecenat')!, { depositIndex: 0 }, ecarts, `v${n}`);
+      b.actions.deposerALaBanque(h.id, 'mecenat', 1200);
+      if (b.getState().bank.length) confronteAuVolet(b, h.id, activityById('mecenat')!, { depotId: b.getState().bank[0].uid }, ecarts, `v${n}`);
     }
     expect(ecarts).toEqual([]);
   });
@@ -373,7 +373,7 @@ describe('Revenus — la Compétence de carrière se tente (LDB 08 l.110, LDB 09
     const h = withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'conseiller', label: 'Conseiller', seed: 4001 }), { gold: 5, silver: 0, brass: 0 });
     h.skills = h.skills.map((k) => ({ ...k, advances: 0 }));
     const b = banc([h]);
-    b.actions.interludeActivity(h.id, 'revenus');
+    b.actions.pratiquerLActivite(h.id, 'revenus');
     expect(b.getState().pendingActivity?.skillLabel).toBe(REVENUS_CONSEILLER);
   });
 });

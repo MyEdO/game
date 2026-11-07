@@ -195,7 +195,7 @@ export function refusDOuvrirLaTaverne(s: Pick<Jeu, 'net'>): string | null {
 
 /** OUVRE la table. `npcId` = le PNJ qui PROPOSE la partie (son dialogue vient de l'ouvrir) : la
  *  modale s'ouvre sur SON offre. GÉNÉRIQUE — tout PNJ à `tavernGame` en hérite, aucun n'est nommé. */
-export function openTavernGames(get: Get, set: Set, npcId?: string): void {
+export function ouvrirLesJeux(get: Get, set: Set, npcId?: string): void {
   if (refuseSi(get, set, refusDOuvrirLaTaverne)) return;
   set({ tavernGames: { result: null, ...(npcId ? { npcId } : {}) } });
 }
@@ -381,7 +381,7 @@ export function refusDAdversaire(s: Jeu, gameId: string, challengerId: string, k
  * Résout le réglage d'une partie, ou dit pourquoi elle ne s'ouvre pas : table d'hôte
  * (`refusDeTableDHote`), séquence déjà active, jeu inconnu, challenger absent, coéquipier d'un jeu
  * d'équipe, genre de vis-à-vis non offert (`refusDAdversaire`), vis-à-vis absent, profil de coéquipier inconnu, mise absente d'un jeu de pot. SOURCE
- * UNIQUE de `refusDeJouer` et de `playTavernGame`.
+ * UNIQUE de `refusDeJouer` et de `jouerALaTaverne`.
  */
 function preparerLaPartie(s: Jeu, opts: ReglageDePartie): PartiePrete | { refus: string } {
   const refusHote = refusDeTableDHote(s);
@@ -414,7 +414,7 @@ function preparerLaPartie(s: Jeu, opts: ReglageDePartie): PartiePrete | { refus:
   return { game, challenger, opponentActor, allie, stakeBrass };
 }
 
-/** Pourquoi la partie réglée par `opts` ne s'ouvre pas, ou `null` — verdict UNIQUE de `playTavernGame`
+/** Pourquoi la partie réglée par `opts` ne s'ouvre pas, ou `null` — verdict UNIQUE de `jouerALaTaverne`
  *  et de la modale (`preparerLaPartie`). */
 export function refusDeJouer(s: Jeu, opts: ReglageDePartie): string | null {
   const p = preparerLaPartie(s, opts);
@@ -426,7 +426,7 @@ export function refusDeJouer(s: Jeu, opts: ReglageDePartie): string | null {
  * MISE UNITAIRE d'un jeu de pot, plafonnée à la bourse du challenger (`preparerLaPartie`) ; refusée,
  * la partie le DIT (`refusDeJouer`).
  */
-export function playTavernGame(get: Get, set: Set, opts: ReglageDePartie): void {
+export function jouerALaTaverne(get: Get, set: Set, opts: ReglageDePartie): void {
   const p = preparerLaPartie(get(), opts);
   if ('refus' in p) { refuserGeste(get, set, p.refus); return; }
   const { game, challenger, opponentActor, allie, stakeBrass } = p;
@@ -878,7 +878,7 @@ function tavernTeamRound(get: Get, seq: SequenceState<TavernPayload>): SequenceR
   return { title: titre, icon: 'nav/dice', steps, payload: { ...p, choices: {} } };
 }
 
-/** La partie et son challenger, validés par `playTavernGame` à l'ouverture : leur absence en cours de
+/** La partie et son challenger, validés par `jouerALaTaverne` à l'ouverture : leur absence en cours de
  *  séquence est un défaut, jamais un retour muet (#1906). */
 function partieEnCours(get: Get, p: TavernPayload, site: string): { game: TavernGame; challenger: Combatant } {
   return {
@@ -2496,8 +2496,8 @@ function finalizeTavernGame(
 
 export function creerActionsDeTaverne(get: Get, set: Set) {
   return {
-    openTavernGames: (npcId?: string) => openTavernGames(get, set, npcId),
-    playTavernGame: (opts) => playTavernGame(get, set, opts),
+    ouvrirLesJeux: (npcId?: string) => ouvrirLesJeux(get, set, npcId),
+    jouerALaTaverne: (opts) => jouerALaTaverne(get, set, opts),
   } satisfies FabriqueDuNoyau;
 }
 

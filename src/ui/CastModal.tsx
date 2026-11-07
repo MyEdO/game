@@ -58,35 +58,35 @@ export function CastModal() {
   const pc = useGame((s) => s.pendingCast);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
-  const roll = useGesteDeJet('jetRoll', 'cast');
-  const reroll = useGesteDeJet('jetReroll', 'cast');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'cast');
-  const darkPact = useGesteDeJet('jetDarkPact', 'cast');
+  const roll = useGesteDeJet('jetLancer', 'cast');
+  const reroll = useGesteDeJet('jetRelancer', 'cast');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'cast');
+  const darkPact = useGesteDeJet('jetPactiser', 'cast');
   const regler = useGame((s) => s.jetRegler);
-  const forceSuccess = useGesteDeJet('jetForceSuccess', 'cast');
-  const confirm = useGesteDeJet('jetConfirm', 'cast');
-  const cancel = useGesteDeJet('jetCancel', 'cast');
+  const forceSuccess = useGesteDeJet('jetForcerLaReussite', 'cast');
+  const confirm = useGesteDeJet('jetValider', 'cast');
+  const cancel = useGesteDeJet('jetAnnuler', 'cast');
   // Opposition de la cible (multijet DANS cette modale) : chaque cible oppose son Test (FM/Int/Bagarre).
   const pcs = useGame((s) => s.pendingCastOpposition);
-  const oppRoll = useGesteDeJet('jetRoll', 'opposition');
-  const oppReroll = useGesteDeJet('jetReroll', 'opposition');
-  const oppBonusSL = useGesteDeJet('jetBonusSL', 'opposition');
-  const oppDarkPact = useGesteDeJet('jetDarkPact', 'opposition');
-  const oppForce = useGesteDeJet('jetForceSuccess', 'opposition');
-  const oppResist = useGesteDeJet('jetResist', 'opposition'); // Résistance (Menace : Magie) — auto-succès du talent (LDB 10)
-  const oppConfirm = useGesteDeJet('jetConfirm', 'opposition');
+  const oppRoll = useGesteDeJet('jetLancer', 'opposition');
+  const oppReroll = useGesteDeJet('jetRelancer', 'opposition');
+  const oppBonusSL = useGesteDeJet('jetAjouterUnDR', 'opposition');
+  const oppDarkPact = useGesteDeJet('jetPactiser', 'opposition');
+  const oppForce = useGesteDeJet('jetForcerLaReussite', 'opposition');
+  const oppResist = useGesteDeJet('jetResister', 'opposition'); // Résistance (Menace : Magie) — auto-succès du talent (LDB 10)
+  const oppConfirm = useGesteDeJet('jetValider', 'opposition');
   // Contre-sort (Dissipation) : RÉACTION au Sort figé dans `pendingCast` — plus de modale
   // séparée (« le contre-sort, c'est le lancement d'un sort qui peut être opposé »). Chaque
   // contre-lanceur a SA rangée (`RollRow`), DANS cette modale d'incantation, exactement comme
-  // l'opposition de cible ci-dessus. « Laisser passer »/« Appliquer » agrègent via `jetConfirm('counterspell')`.
+  // l'opposition de cible ci-dessus. « Laisser passer »/« Appliquer » agrègent via `jetValider('counterspell')`.
   const csp = useGame((s) => s.pendingCounterspell);
-  const cspRoll = useGesteDeJet('jetRoll', 'counterspell');
-  const cspReroll = useGesteDeJet('jetReroll', 'counterspell');
-  const cspBonusSL = useGesteDeJet('jetBonusSL', 'counterspell');
-  const cspDarkPact = useGesteDeJet('jetDarkPact', 'counterspell');
-  const cspForce = useGesteDeJet('jetForceSuccess', 'counterspell');
-  const cspConfirm = useGesteDeJet('jetConfirm', 'counterspell');
-  const cspCancel = useGesteDeJet('jetCancel', 'counterspell');
+  const cspRoll = useGesteDeJet('jetLancer', 'counterspell');
+  const cspReroll = useGesteDeJet('jetRelancer', 'counterspell');
+  const cspBonusSL = useGesteDeJet('jetAjouterUnDR', 'counterspell');
+  const cspDarkPact = useGesteDeJet('jetPactiser', 'counterspell');
+  const cspForce = useGesteDeJet('jetForcerLaReussite', 'counterspell');
+  const cspConfirm = useGesteDeJet('jetValider', 'counterspell');
+  const cspCancel = useGesteDeJet('jetAnnuler', 'counterspell');
   if (!pc) return null;
   const pool = battle?.combatants ?? party; // même modale en combat (file) et hors combat (groupe)
   // La fenêtre en données (`fenetreDIncantation`) : NI, réglages et leurs refus, Surincantation, pose, issue.
@@ -347,7 +347,7 @@ export function CastModal() {
           {/* CONTRE-SORT (Dissipation, LDB 46 l.156) : le Sort est figé (révélé ci-dessus), les
               contre-lanceurs éligibles ont chacun leur rangée DANS cette même modale d'incantation
               (plus de modale séparée : un contre-sort EST un lancement de sort opposé).
-              PLUSIEURS peuvent chanter contre la même incantation (#1040, cf. `jetConfirm('counterspell')`,
+              PLUSIEURS peuvent chanter contre la même incantation (#1040, cf. `jetValider('counterspell')`,
               src/noyau/combatSlice.ts) ; la COMPOSITION (contrer seul / s'unir / s'abstenir) se fige
               au premier jet de la fenêtre (#1059) — au-delà, seules les rangées déclarées agissent.
               COOP : chaque rangée est pilotée par le siège qui POSSÈDE son porteur — héros du siège,

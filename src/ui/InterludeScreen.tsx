@@ -333,7 +333,7 @@ function BattleBanner({ mb }: { mb: MassBattleState }) {
 
 /** Entrée « Jeux de taverne » (NADJ 16) : ouvre la modale de jeu (choix jeu + adversaire). */
 function TavernGamesEntry() {
-  const open = useGame((s) => s.openTavernGames);
+  const open = useGame((s) => s.ouvrirLesJeux);
   const refus = useGame(refusDOuvrirLaTaverne);
   return (
     <section className="interlude-hero panel">
@@ -623,7 +623,7 @@ function ActivityList({ hero, catalog, favors, pane, onPane, canDrive, refusDe, 
 
 /** Revenus : la formule ET le pré-jet sont lisibles AVANT d'entreprendre. LDB 08 l.105-120 */
 function RevenusPane({ hero, etat, status, refus, desc, porteur }: { hero: Combatant; etat: EtatDInterlude; status: Status; refus?: string; desc?: string; porteur?: Porteur }) {
-  const activity = useGame((s) => s.interludeActivity);
+  const activity = useGame((s) => s.pratiquerLActivite);
   return (
     <ActivityPane
       id="pane-revenus"
@@ -652,7 +652,7 @@ function RevenusPane({ hero, etat, status, refus, desc, porteur }: { hero: Comba
 function CraftProgressPane({ hero, etat, craft, refus, desc, porteur }: {
   hero: Combatant; etat: EtatDInterlude; craft: NonNullable<Combatant['craft']>; refus?: string; desc?: string; porteur?: Porteur;
 }) {
-  const activity = useGame((s) => s.interludeActivity);
+  const activity = useGame((s) => s.pratiquerLActivite);
   const label = findTrappingById(craft.trappingId)?.label ?? craft.trappingId;
   return (
     <ActivityPane
@@ -715,7 +715,7 @@ function TrappingSelect({ options, value, onChange, detail }: {
 
 /** Engager un Artisanat (LDB 23 l.76) : catalogue + Atouts/Défauts visés ; matériaux ¼ du prix. */
 function CraftPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant; etat: EtatDInterlude; mene?: string; choix?: string; desc?: string; porteur?: Porteur }) {
-  const craftStart = useGame((s) => s.interludeCraftStart);
+  const craftStart = useGame((s) => s.fabriquerLObjet);
   const catalog = useMemo(() => craftCatalog(), []);
   const [id, setId] = useState(choix ?? '');
   const [atouts, setAtouts] = useState<string[]>([]);
@@ -769,7 +769,7 @@ function CraftPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant
 
 /** Apprentissage particulier : Talent hors carrière, PX et tuteur lus sur `learnableTalents`. LDB 23 l.66-72 */
 function LearnPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant; etat: EtatDeDepot; mene?: string; choix?: string; desc?: string; porteur?: Porteur }) {
-  const activity = useGame((s) => s.interludeActivity);
+  const activity = useGame((s) => s.pratiquerLActivite);
   const options = useMemo(() => learnableTalents(hero), [hero]);
   const [id, setId] = useState(choix ?? '');
   const { search, setSearch, filtered } = useFilteredList(options, (o) => o.label);
@@ -818,7 +818,7 @@ function LearnPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant
 /** Entraînement : Compétence ou Caractéristique hors carrière, sans jet, PX et tuteur lus sur
  *  `entrainementOptions`. LDB 23 l.132-136 */
 function EntrainementPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant; etat: EtatDInterlude; mene?: string; choix?: string; desc?: string; porteur?: Porteur }) {
-  const entrainement = useGame((s) => s.interludeEntrainement);
+  const entrainement = useGame((s) => s.suivreLEntrainement);
   const options = useMemo(() => entrainementOptions(hero), [hero]);
   const [key, setKey] = useState(choix ?? '');
   const keyOf = (o: EntrainementOption) => `${o.kind}|${o.id}|${o.spec ?? ''}`;
@@ -870,7 +870,7 @@ function EntrainementPane({ hero, etat, mene, choix, desc, porteur }: { hero: Co
  *  volet lit le verdict `refusDAcquitterUneFaveur`. Rupture de la chaîne : `resetInterruptedFavorProgress`
  *  (noyau/favorFlow, #1040 [entériné 2026-08-03]). LDB 23 l.147-151, #509 */
 function FavorSettlePane({ hero, etat, mene, favors }: { hero: Combatant; etat: EtatDeFaveur; mene?: string; favors: Favor[] }) {
-  const settle = useGame((s) => s.favorSettle);
+  const settle = useGame((s) => s.solderLaFaveur);
   const [id, setId] = useState(favors[0]?.id ?? '');
   const sel = favors.find((f) => f.id === id) ?? favors[0];
   const required = sel ? favorRequiredActivities(sel.level) : null;
@@ -910,7 +910,7 @@ function FavorSettlePane({ hero, etat, mene, favors }: { hero: Combatant; etat: 
 /** Passer commande (LDB 23 l.178-184) : objet Exotique payé MAINTENANT, livré au prochain interlude.
  *  Pas de jet — le pied porte le coût et la formule. */
 function OrderPane({ hero, etat, mene, choix }: { hero: Combatant; etat: EtatDInterlude; mene?: string; choix?: string }) {
-  const order = useGame((s) => s.interludeOrder);
+  const order = useGame((s) => s.commanderLObjet);
   const catalog = useMemo(() => orderCatalog(), []);
   const [id, setId] = useState(choix ?? '');
   const sel = catalog.find((o) => o.id === id);
@@ -943,7 +943,7 @@ function OrderPane({ hero, etat, mene, choix }: { hero: Combatant; etat: EtatDIn
 /** Opérations bancaires (LDB 23 l.164-176) + Mécénat (ACE 12 l.45-49) : dépôt sans jet — le pied porte
  *  les formules (Indice d'intérêts, découverte de planque) et les trois dépôts possibles. */
 function BankPane({ hero, etat, mene, money, mecenat }: { hero: Combatant; etat: EtatDeDepot; mene?: string; money: Money; mecenat?: ActivityDef }) {
-  const bankDeposit = useGame((s) => s.interludeBank);
+  const bankDeposit = useGame((s) => s.deposerALaBanque);
   const [amountPa, setAmountPa] = useState(10);
   const purseBrass = toBrass(money);
   const pa = Math.max(1, Math.floor(amountPa));
@@ -1018,7 +1018,7 @@ function BankPane({ hero, etat, mene, money, mecenat }: { hero: Combatant; etat:
 
 /** Identifier un artefact : choisir un objet NON identifié du sac. ADE II 4 l.41 */
 function IdentifyPane({ hero, etat, mene, desc, porteur }: { hero: Combatant; etat: EtatDeDepot; mene?: string; desc?: string; porteur?: Porteur }) {
-  const activity = useGame((s) => s.interludeActivity);
+  const activity = useGame((s) => s.pratiquerLActivite);
   const def = activityById('identify')!;
   const items = ciblesDActivite(hero, def).artefacts;
   const [choisi, setUid] = useState('');
@@ -1062,7 +1062,7 @@ function IdentifyPane({ hero, etat, mene, desc, porteur }: { hero: Combatant; et
 /** Volet d'une Activité du CATALOGUE data-driven : description VERBATIM (`<Prose>`) ; pré-jet, cibles et
  *  refus lus au noyau (`preJetDActivite`, `ciblesDActivite`, `refusDOuvertureDActivite`). */
 function CatalogPane({ hero, def, etat, mene }: { hero: Combatant; def: ActivityDef; etat: EtatDeDepot; mene?: string }) {
-  const start = useGame((s) => s.interludeActivity);
+  const start = useGame((s) => s.pratiquerLActivite);
   const [targetUid, setTargetUid] = useState('');
   const [spellId, setSpellId] = useState('');
   const [traitChoisi, setTraitPsy] = useState('');
@@ -1123,7 +1123,7 @@ function CatalogPane({ hero, def, etat, mene }: { hero: Combatant; def: Activity
 
 /** Volet d'une Activité de PRÉPARATION de bataille (ADE II 8), rendu DANS le menu d'interlude par le
  *  gabarit `ActivityPane` (comme toute Activité). « Entreprendre » ouvre le jet MENÉ par ce héros par le
- *  canal UNIQUE de bataille (`massBattleActivity`) — l'issue porte sur l'ARMÉE,
+ *  canal UNIQUE de bataille (`menerLActionDeBataille`) — l'issue porte sur l'ARMÉE,
  *  le budget d'Activité consommé est celui, UNIQUE, de l'interlude. Le pré-jet rend la ligne du Test que
  *  monte le geste (`preJetDePreparation`). */
 function BattlePrepPane({ hero, etat, def, refus, massBattle: mb }: {
@@ -1131,7 +1131,7 @@ function BattlePrepPane({ hero, etat, def, refus, massBattle: mb }: {
   /** La bataille en attente de préparation : son verdict `refusDePrepaDeBataille`. */
   massBattle: MassBattleState | null;
 }) {
-  const battleActivity = useGame((s) => s.massBattleActivity);
+  const battleActivity = useGame((s) => s.menerLActionDeBataille);
   // Pré-jet : les lignes du Test que monte le geste (`preJetDePreparation`) — Soutien, Test combiné,
   // Caractéristique déclarée et réservoir de modificateur compris.
   const test = mb ? preJetDePreparation(etat, mb, hero, def) : null;
@@ -1180,12 +1180,12 @@ function BankList({ etat, canDrive }: {
   etat: EtatDeDepot;
   canDrive: (heroId: string) => boolean;
 }) {
-  const withdraw = useGame((s) => s.interludeWithdraw);
+  const withdraw = useGame((s) => s.retirerDeLaBanque);
   return (
     <div className="interlude-actions">
       {etat.bank.map((b, i) => {
         const owner = etat.party.find((h) => h.id === b.heroId);
-        const refus = canDrive(b.heroId) ? refusDeRetrait(etat, i) : t('interlude.depositForeign');
+        const refus = canDrive(b.heroId) ? refusDeRetrait(etat, b.uid) : t('interlude.depositForeign');
         return (
           <GatedAction
             key={i}
@@ -1204,7 +1204,7 @@ function BankList({ etat, canDrive }: {
               : b.kind === 'mecenat'
                 ? 'Retirer le mécénat (1 Activité) : Test d’Évaluation Intermédiaire (+0) — rendu de 120 % à la perte totale'
                 : `Retirer la planque (libre) : ${fmt(b.brass)} — découverte sur d100 ≤ ${seuilDePerteBancaire('stash', b.rate)}`}
-            onClick={() => withdraw(i)}
+            onClick={() => withdraw(b.uid)}
             primary={false}
             btnClassName="small"
           />

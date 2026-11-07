@@ -63,8 +63,8 @@ function souffler(H: Combatant, E: Combatant, type: string) {
   H.advantage = 3;
   banc.getState().armerLAttaque('souffle');
   cliquerSurLeCombattant(banc.getState, E.id);
-  banc.getState().jetRoll('maneuver');
-  banc.getState().jetConfirm('maneuver');
+  banc.getState().jetLancer('maneuver');
+  banc.getState().jetValider('maneuver');
 }
 
 function finDeRound() {

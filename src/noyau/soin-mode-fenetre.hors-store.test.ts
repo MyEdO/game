@@ -93,7 +93,7 @@ describe('fenêtre du soin — l’acte, refusé comme le réglage `heal.mode` l
     const al = cb({ id: 'al', label: 'Blessé', wounds: blessuresDeBase(12, 3), conditions: [{ id: 'hemorragique', value: 2 }], pos: { x: 2, y: 1 } });
     enCombat(doc, al);
     g().battleHeal('al', 'wounds');
-    g().jetRoll('heal');
+    g().jetLancer('heal');
     expect(fenetreDuSoin(g())!.mode.options.every((o) => o.refus), 'aucun acte ne se règle une fois le dé tombé').toBe(true);
   });
 });

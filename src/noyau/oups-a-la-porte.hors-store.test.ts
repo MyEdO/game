@@ -72,9 +72,9 @@ const etapeCourante = (): CascadeStep | undefined => {
 function poser(valeur: number): string {
   const st = etapeCourante();
   expect(st, 'aucune étape à jouer').toBeDefined();
-  if (st!.de) banc.getState().jetSetForcedRoll('cascadeTirage', valeur, st!.id);
-  if (st!.table) banc.getState().jetSetForcedRoll('cascadeTirage', valeur, st!.id);
-  banc.getState().jetConfirm('cascade');
+  if (st!.de) banc.getState().jetImposerLeResultat('cascadeTirage', valeur, st!.id);
+  if (st!.table) banc.getState().jetImposerLeResultat('cascadeTirage', valeur, st!.id);
+  banc.getState().jetValider('cascade');
   return st!.id;
 }
 
@@ -163,8 +163,8 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
   it('Bâclé + Solide : « Appliquer » pose le curseur SUR le dé de Sauvegarde, et un 2ᵉ « Appliquer » ne repousse rien', () => {
     const arme = epeeBacleeSolide();
     monteHote(arme);
-    banc.getState().jetRoll('fumble');
-    banc.getState().jetConfirm('fumble');
+    banc.getState().jetLancer('fumble');
+    banc.getState().jetValider('fumble');
     const st = etapeCourante()!;
     expect(st.kind, 'le curseur est SUR la casse, pas resté sur la Maladresse').toBe('casseDArme');
     expect(st.de?.seuil?.indice, 'la fenêtre montre « ≥ Solide (9+) »').toBe(9);
@@ -172,7 +172,7 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
     expect(etapesDeCasse().length, 'une seule sauvegarde poussée').toBe(1);
 
     const avant = { etapes: banc.getState().pendingCascade!.participants.length, seq: banc.getState().pendingCascade!.seq, log: lignesLues() };
-    banc.getState().jetConfirm('fumble'); // le joueur re-clique « Appliquer »
+    banc.getState().jetValider('fumble'); // le joueur re-clique « Appliquer »
     expect(banc.getState().pendingCascade!.participants.length, 'aucun doublon d’étape').toBe(avant.etapes);
     expect(banc.getState().pendingCascade!.seq, 'le compteur d’identité n’a pas bougé').toBe(avant.seq);
     expect(lignesLues(), 'rien n’a été rejoué').toEqual(avant.log);
@@ -194,8 +194,8 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
   it('le journal dit le dé qui DÉCIDE avant ce qu’il a décidé, et ne le dit qu’une fois', () => {
     const arme = epeeBacleeSolide();
     monteHote(arme);
-    banc.getState().jetRoll('fumble');
-    banc.getState().jetConfirm('fumble');
+    banc.getState().jetLancer('fumble');
+    banc.getState().jetValider('fumble');
     poser(8);
     const journal = (banc.getState().battle?.log ?? []).map((l) => l.text);
     const iSeuil = journal.findIndex((l) => /Épée bâclée ne résiste pas — Sauvegarde 1d10 : 8 < Solide \(9\+\)\./.test(l));
@@ -222,10 +222,10 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
         for (const e of st.pendingCascade?.participants ?? []) if (e.kind === 'casseDArme' && !vues.has(e.id)) vues.set(e.id, brisee(arme));
       });
       monteHote(arme);
-      banc.getState().jetRoll('fumble');
+      banc.getState().jetLancer('fumble');
       const pc = banc.getState().pendingCascade!;
       banc.setState({ pendingCascade: { ...pc, participants: pc.participants.map((st, k) => (k === pc.cursor ? { ...st, fumble: { ...st.fumble!, result: INCIDENT } } : st)) } });
-      banc.getState().jetConfirm('fumble');
+      banc.getState().jetValider('fumble');
     };
     const journal = (): string[] => (banc.getState().battle?.log ?? []).map((l) => l.text);
     const detruite = (l: string): boolean => /se brise sur la Maladresse|arme détruite\.$/.test(l);
@@ -258,8 +258,8 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
     const arme = { ...epeeBacleeSolide(), uid: 'epee-1' } as Weapon;
     const hero = monteHote(arme);
     hero.items = [{ uid: 'epee-1', label: arme.label, kind: 'melee', qualities: arme.qualities, destroyed: true }] as never;
-    banc.getState().jetRoll('fumble');
-    banc.getState().jetConfirm('fumble');
+    banc.getState().jetLancer('fumble');
+    banc.getState().jetValider('fumble');
     expect(etapesDeCasse(), 'la cassure a eu lieu : rien à sauver (`LDB 60 l.30`)').toEqual([]);
     const lues = lignesLues();
     expect(lues.filter((l) => /tient le choc|Sauvegarde 1d10/.test(l)), lues.join(' | ')).toEqual([]);
@@ -268,8 +268,8 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
   it('Bâclé + Solide, dé posé à 9 : l’arme tient, et RIEN ne parle d’arme brisée', () => {
     const arme = epeeBacleeSolide();
     monteHote(arme);
-    banc.getState().jetRoll('fumble');
-    banc.getState().jetConfirm('fumble');
+    banc.getState().jetLancer('fumble');
+    banc.getState().jetValider('fumble');
     poser(9);
     expect(brisee(arme), 'LDB 60 l.30 : « 9+ » sauve').toBeFalsy();
     const lues = lignesLues();
@@ -280,8 +280,8 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
   it('Bâclé SANS Solide : aucune étape de casse, l’arme est brisée, le journal le dit, et le curseur a quitté la Maladresse', () => {
     const arme = { label: 'Épée bâclée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'bacle' }] } as unknown as Weapon;
     monteHote(arme);
-    banc.getState().jetRoll('fumble');
-    banc.getState().jetConfirm('fumble');
+    banc.getState().jetLancer('fumble');
+    banc.getState().jetValider('fumble');
     expect(etapesDeCasse().length, 'sans Solide, aucun dé à la porte').toBe(0);
     expect(brisee(arme), 'Bâclé casse sur toute Maladresse (LDB 60 l.50)').toBe(true);
     expect((banc.getState().battle?.log ?? []).map((l) => l.text).some((l) => /Épée bâclée \(Bâclé\) se brise sur la Maladresse de bretteur\./.test(l)),
@@ -365,7 +365,7 @@ describe('aucune scission par PORTEUR — un ennemi conduit par l’IA suit le M
     expect(st.actorId).toBe(brute.id);
     expect(st.de?.result, 'aucun siège ne tient ce dé : le socle l’a roulé d’office').toBeTruthy();
     const total = st.de!.result!.total;
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(brisee(arme), `dé ${total} : l’arme casse si et seulement si le dé rate le 9+`).toBe(total < 9);
     expect(brute.nextActionPenalty, 'la Maladresse s’applique à la reprise').toBe(-10); // LDB 14 l.26
   });
@@ -397,7 +397,7 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
   let net: ReturnType<typeof banc.getState>['net'];
   beforeEach(() => { net = banc.getState().net; banc.setState({ net: { ...net, gmSeat: 0 } }); });
 
-  /** Le chemin JOUEUR d'une fenêtre de défense #1858 mode `machine` : c'est `jetConfirm('defense')` qui applique. */
+  /** Le chemin JOUEUR d'une fenêtre de défense #1858 mode `machine` : c'est `jetValider('defense')` qui applique. */
   function monteDefense(armeAttaquant: Weapon, coup: SuiteDeCoup): { hero: Combatant; brute: Combatant } {
     const hero = mk('hero', 'heros', { pos: { x: 0, y: 0 }, weapons: [EPEE_HERO()] });
     const brute = mk('enemy', 'brute', { pos: { x: 1, y: 0 }, weapons: [armeAttaquant] });
@@ -415,20 +415,20 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
   /** La Maladresse de l'attaquant (LDB 14 l.13), geste du siège MJ, au curseur dès que la défense est quittée. */
   const maladresseDeLaBrute = (): void => {
     expect(etapeCourante(), 'la Maladresse de la brute ouvre la queue du coup').toMatchObject({ kind: 'fumbleJet', actorId: 'brute' });
-    banc.getState().jetRoll('fumble');
-    banc.getState().jetConfirm('fumble');
+    banc.getState().jetLancer('fumble');
+    banc.getState().jetValider('fumble');
   };
 
   it('témoin SANS Solide et cas AVEC Solide : la Maladresse du héros défenseur s’ouvre dans les DEUX', () => {
     monteDefense(bacle(false), { enchainement: { mode: 'aucun' } });
-    banc.getState().jetConfirm('defense');
+    banc.getState().jetValider('defense');
     maladresseDeLaBrute();
     const temoin = etapes();
     expect(temoin.some((s) => s.startsWith('fumbleJet:') && s.includes('heros')),
       `témoin : ${temoin.join(' | ')}`).toBe(true);
 
     monteDefense(bacle(true), { enchainement: { mode: 'aucun' } });
-    banc.getState().jetConfirm('defense');
+    banc.getState().jetValider('defense');
     maladresseDeLaBrute();
     expect(etapeCourante()!.kind, 'le dé de casse part à la porte AVANT la Maladresse du héros').toBe('casseDArme');
     expect(etapes().some((s) => s.startsWith('fumbleJet:') && s.includes('heros')), 'rien de la queue ne joue devant le dé').toBe(false);
@@ -440,17 +440,17 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
 
   it('la SUITE portée par la fenêtre (Action gratuite) est rendue par la reprise, une seule fois', () => {
     monteDefense(bacle(true), { restitution: { prevActed: false }, manoeuvre: { kind: 'frappe-reactive' }, enchainement: { mode: 'aucun' } });
-    banc.getState().jetConfirm('defense');
+    banc.getState().jetValider('defense');
     maladresseDeLaBrute();
     expect(banc.getState().battle!.acted, 'l’Action du coup est consommée ; la suite n’a PAS joué').toBe(true);
     poser(9);
     // La suite vient APRÈS la Maladresse du héros défenseur (`APRES_COUP`) : elle attend son Oups !.
     expect(banc.getState().battle!.acted, 'la Maladresse du défenseur précède la suite').toBe(true);
-    banc.getState().jetRoll('fumble');
-    banc.getState().jetConfirm('fumble');
+    banc.getState().jetLancer('fumble');
+    banc.getState().jetValider('fumble');
     expect(banc.getState().battle!.acted, 'la reprise rend l’Action gratuite').toBe(false);
     const avant = (banc.getState().battle?.log ?? []).map((l) => l.text);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect((banc.getState().battle?.log ?? []).map((l) => l.text), 'une reprise de plus ne rejoue rien').toEqual(avant);
   });
 
@@ -458,13 +458,13 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
     banc.setState({ net });
     expect(banc.getState().net.gmSeat, 'aucun siège MJ ne tient la brute').toBeUndefined();
     monteDefense(bacle(true), { restitution: { prevActed: false }, manoeuvre: { kind: 'frappe-reactive' }, enchainement: { mode: 'aucun' } });
-    banc.getState().jetConfirm('defense');
+    banc.getState().jetValider('defense');
     expect(etapeCourante(), 'les dés de la brute sont tirés d’office : le curseur est au héros').toMatchObject({ kind: 'fumbleJet', actorId: 'heros' });
     expect(etapes().filter((s) => s.startsWith('casseDArme:')), 'le dé de casse est né à la porte, une fois').toHaveLength(1);
     expect(lignesLues().some((l) => /^brute — Sauvegarde Solide — Épée bâclée : dé \d+/.test(l)), lignesLues().join(' | ')).toBe(true);
     expect(banc.getState().battle!.acted, 'la Maladresse du défenseur précède la suite').toBe(true);
-    banc.getState().jetRoll('fumble');
-    banc.getState().jetConfirm('fumble');
+    banc.getState().jetLancer('fumble');
+    banc.getState().jetValider('fumble');
     expect(banc.getState().pendingCascade, 'plus aucune étape à jouer').toBeNull();
     expect(banc.getState().battle!.acted, 'la reprise rend l’Action gratuite').toBe(false);
   });
@@ -472,7 +472,7 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
   it('le maillon de BALAYAGE porté par la fenêtre (#1858 `ChaineDeBalayage`) voyage jusqu’à la reprise', () => {
     const chaine = { mode: 'chaine' as const, hitIds: ['heros'], n: 1, bcc: 2, fm: true };
     monteDefense(bacle(true), { enchainement: chaine });
-    banc.getState().jetConfirm('defense');
+    banc.getState().jetValider('defense');
     maladresseDeLaBrute();
     const casse = etapeCourante()!;
     expect(casse.kind).toBe('casseDArme');
@@ -552,7 +552,7 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
     expect(suitesJouees, 'la suite du coup s’exécute une seule fois').toBe(1);
 
     const avant = (banc.getState().battle?.log ?? []).map((l) => l.text);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect((banc.getState().battle?.log ?? []).map((l) => l.text), 'une reprise de plus ne rejoue rien').toEqual(avant);
     expect(maladresses(rival.label)).toBe(1);
     expect(suitesJouees, 'aucune seconde exécution de la suite').toBe(1);

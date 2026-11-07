@@ -46,11 +46,11 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     expect(sr).not.toBeNull();
     expect(sr.opposition).toBeUndefined();
     expect(sr.skillLabel).toBe('Athlétisme');
-    banc.getState().jetRoll('recover');
+    banc.getState().jetLancer('recover');
     expect(banc.getState().pendingStateRecovery!.roll).not.toBeNull();
     // fige une réussite reproductible (DR 1) avant Appliquer
     banc.setState({ pendingStateRecovery: { ...banc.getState().pendingStateRecovery!, success: true, netSL: 1 } });
-    banc.getState().jetConfirm('recover');
+    banc.getState().jetValider('recover');
     const after = banc.getState().battle!.combatants.find((c) => c.id === 'h')!;
     expect(after.conditions.find((c) => c.id === 'en-flammes')).toBeUndefined(); // 2 − (1+1) = 0 → retiré
     expect(banc.getState().battle!.acted).toBe(true);
@@ -66,10 +66,10 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     const sr = banc.getState().pendingStateRecovery!;
     expect(sr.opposition).toBeDefined();
     expect(sr.opposition?.label).toBe('Pieuvre');
-    banc.getState().jetRoll('recover');
+    banc.getState().jetLancer('recover');
     // fige la victoire de l’acteur (F 80 ≫ F 20)
     banc.setState({ pendingStateRecovery: { ...banc.getState().pendingStateRecovery!, success: true, netSL: 0 } });
-    banc.getState().jetConfirm('recover');
+    banc.getState().jetValider('recover');
     const after = banc.getState().battle!.combatants.find((c) => c.id === 'h')!;
     expect(after.conditions.find((c) => c.id === 'empetre')).toBeUndefined();
     expect(banc.getState().battle!.acted).toBe(true);
@@ -87,9 +87,9 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     const h = hero({ id: 'h', conditions: [{ id: 'en-flammes', value: 1 }] });
     setBattle([h], 'h');
     banc.getState().seRemettreDeLEtat('en-flammes');
-    banc.getState().jetRoll('recover');
+    banc.getState().jetLancer('recover');
     banc.setState({ pendingStateRecovery: { ...banc.getState().pendingStateRecovery!, success: false, netSL: 0 } });
-    banc.getState().jetConfirm('recover');
+    banc.getState().jetValider('recover');
     const after = banc.getState().battle!.combatants.find((c) => c.id === 'h')!;
     expect(after.conditions.find((c) => c.id === 'en-flammes')?.value).toBe(1); // intact
     expect(banc.getState().battle!.acted).toBe(true);
@@ -140,9 +140,9 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     const h = hero({ id: 'h', conditions: [{ id: 'empetre', value: 1, escapeThreshold: 3, entangleOnFail: true }], armour: { tete: 5, brasG: 5, brasD: 5, corps: 5, jambeG: 5, jambeD: 5 } });
     setBattle([h], 'h');
     banc.getState().seRemettreDeLEtat('empetre');
-    banc.getState().jetRoll('recover');
+    banc.getState().jetLancer('recover');
     banc.setState({ pendingStateRecovery: { ...banc.getState().pendingStateRecovery!, success: false, netSL: 1 } }); // DR < seuil → échoue
-    banc.getState().jetConfirm('recover');
+    banc.getState().jetValider('recover');
     const after = banc.getState().battle!.combatants.find((c) => c.id === 'h')!;
     expect(after.conditions.find((c) => c.id === 'empetre')?.value).toBe(2); // 1 → 2 (aggravation)
   });
@@ -151,9 +151,9 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     const h = hero({ id: 'h', conditions: [{ id: 'empetre', value: 1, escapeStrength: 47 }] });
     setBattle([h], 'h');
     banc.getState().seRemettreDeLEtat('empetre');
-    banc.getState().jetRoll('recover');
+    banc.getState().jetLancer('recover');
     banc.setState({ pendingStateRecovery: { ...banc.getState().pendingStateRecovery!, success: false, netSL: 0 } });
-    banc.getState().jetConfirm('recover');
+    banc.getState().jetValider('recover');
     const after = banc.getState().battle!.combatants.find((c) => c.id === 'h')!;
     expect(after.conditions.find((c) => c.id === 'empetre')?.value).toBe(1); // inchangé
   });
@@ -166,9 +166,9 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
       conditions: [{ id: 'empetre', value: 1, escapeThreshold: 3, entangleOnFail: true, struggleDamage: 1 }] }));
     setBattle([h], 'h');
     banc.getState().seRemettreDeLEtat('empetre');
-    banc.getState().jetRoll('recover');
+    banc.getState().jetLancer('recover');
     banc.setState({ pendingStateRecovery: { ...banc.getState().pendingStateRecovery!, success: true, netSL: 3 } });
-    banc.getState().jetConfirm('recover');
+    banc.getState().jetValider('recover');
     const after = banc.getState().battle!.combatants.find((c) => c.id === 'h')!;
     expect(after.wounds!.current).toBe(11); // 1 Blessure malgré 5 PA (ignore l’armure)
     expect(after.conditions.find((c) => c.id === 'empetre')).toBeUndefined(); // libéré
@@ -181,9 +181,9 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
       conditions: [{ id: 'empetre', value: 1, escapeThreshold: 3, entangleOnFail: true, struggleDamage: 1 }] }));
     setBattle([h], 'h');
     banc.getState().seRemettreDeLEtat('empetre');
-    banc.getState().jetRoll('recover');
+    banc.getState().jetLancer('recover');
     banc.setState({ pendingStateRecovery: { ...banc.getState().pendingStateRecovery!, success: false, netSL: 1 } });
-    banc.getState().jetConfirm('recover');
+    banc.getState().jetValider('recover');
     const after = banc.getState().battle!.combatants.find((c) => c.id === 'h')!;
     expect(after.wounds!.current).toBe(11); // Dégâts infligés MÊME sur échec
     expect(after.conditions.find((c) => c.id === 'empetre')?.value).toBe(2); // + aggravation
@@ -193,7 +193,7 @@ describe('Récupération d’État — flux combat (LDB 16 l.66/84)', () => {
     const h = hero({ id: 'h', conditions: [{ id: 'en-flammes', value: 1 }] });
     setBattle([h], 'h');
     banc.getState().seRemettreDeLEtat('en-flammes');
-    banc.getState().jetCancel('recover');
+    banc.getState().jetAnnuler('recover');
     expect(banc.getState().pendingStateRecovery).toBeNull();
     expect(banc.getState().battle!.acted).toBe(false);
   });

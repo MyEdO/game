@@ -71,7 +71,7 @@ export interface MerchantState {
   soured?: boolean;
   cart: { id: string; qty: number }[];
   /** Panier de VENTE (#22b) : instances d'objets sélectionnées chez leur porteur, vendues d'un coup
-   *  (`confirmSell`) — parité avec le panier d'achat. Une instance est unique (pas de quantité). */
+   *  (`vendreLeLot`) — parité avec le panier d'achat. Une instance est unique (pas de quantité). */
   sellCart?: { uid: string; heroId: string }[];
   /** « Baisse des prix » (LDB 59 l.60) : par instance vendue, nombre de fois où le vendeur divise son
    *  prix par deux pour trouver un acheteur (chaque division monte la Disponibilité d'un cran). */
@@ -103,7 +103,7 @@ function listedBrassOf(t: { price: Partial<Money> | 'ND' | null; qualities?: unk
 /** Ligne de catalogue GÉNÉRALISÉE (#619 Lot A) — trapping OU UNITÉ vendue par archétype (`unitKinds`,
  *  véhicule `vehicles.json` / créature-monture `creatures.json`, facette `purchase`).
  *  SOURCE UNIQUE du triplet label/prix/Disponibilité, réutilisée par le STOCK (`computeFreshStockLines`)
- *  ET le PAIEMENT (`payCart`) — jamais un lookup de prix dupliqué par site. `unit` absent =
+ *  ET le PAIEMENT (`payerLesAchats`) — jamais un lookup de prix dupliqué par site. `unit` absent =
  *  trapping ordinaire (achat → objet de sac) ; présent = achat → POSSESSION (`kind`/id du catalogue).
  *  EXPORTÉE : `MerchantPanel` (UI) résout AUSSI label/prix/Dispo/famille d'une ligne de stock par cette
  *  SOURCE UNIQUE — jamais un `findTrappingById` nu qui présumerait une ligne trapping. */
@@ -200,7 +200,7 @@ export function remiseDAchatPct(m: MerchantState): number {
 }
 
 /** Prix d'achat UNITAIRE d'une ligne de stock (LDB 59 l.9-11 ; LDB 59 l.43). SOURCE UNIQUE lue par
- *  `payCart`, `refusDAjout` et l'écran du marchand. `null` : ligne hors catalogue ou prix « ND »
+ *  `payerLesAchats`, `refusDAjout` et l'écran du marchand. `null` : ligne hors catalogue ou prix « ND »
  *  (LDB 62 l.28). */
 export function prixDeLigne(m: MerchantState, id: string, ent: SceneEntity | undefined, party: Combatant[]): Money | null {
   const entry = catalogEntryOf(id);
@@ -217,7 +217,7 @@ export interface LigneDuPanier { id: string; qty: number; unitaire: Money | null
 export interface DevisDuPanier { lignes: LigneDuPanier[]; total: Money; refus: string | null }
 
 /** Devis du panier d'achat contre la bourse `bourse` du groupe — SOURCE UNIQUE du total payé par
- *  `payCart` et affiché par l'écran. */
+ *  `payerLesAchats` et affiché par l'écran. */
 export function devisDuPanier(m: MerchantState, { ent, party, bourse, refusHote }: ContexteDAchat): DevisDuPanier {
   const lignes = (m.cart ?? []).map((c): LigneDuPanier => {
     const unitaire = prixDeLigne(m, c.id, ent, party);
@@ -305,7 +305,7 @@ function persistStock(set: Set, entityId: string, stock: { id: string; qty: numb
 
 /** Réassort INLINE (local sans MJ, #273 dernier volet) : calcule + persiste + journalise en UNE fois —
  *  zéro friction pour le joueur solo/local (comportement inchangé). SOURCE UNIQUE de ce chemin, partagée
- *  par l'ouverture (`openMerchant`) et la recherche active (`searchAvailability`). Retourne le stock tiré. */
+ *  par l'ouverture (`openMerchant`) et la recherche active (`chercherLaDisponibilite`). Retourne le stock tiré. */
 function rollFreshStock(
   get: Get, set: Set,
   entityId: string, ent: SceneEntity | undefined, arch: MerchantArchetypeDef, settlement: Settlement, now: number, restockPeriod: number, gossipDay: boolean,
@@ -321,7 +321,7 @@ function rollFreshStock(
  *  présent → étape VISIBLE (jamais un tirage silencieux) : « Continuer » l'applique. Recalcule les MÊMES
  *  lignes depuis les primitives sérialisables du `meta` (le rng seedé n'est jamais transporté lui-même —
  *  seuls ses PARAMÈTRES le sont, cf. `CascadeStepMeta`) ; ouvre le panneau marchand (`openMerchant`) ou
- *  rafraîchit son stock si `merchant` porte déjà cette entité (`searchAvailability`), au choix de
+ *  rafraîchit son stock si `merchant` porte déjà cette entité (`chercherLaDisponibilite`), au choix de
  *  `s.merchant?.entityId === entityId` — un seul applier pour les deux appelants. */
 const MERCHANT_STOCK_KIND = 'merchant-stock';
 
@@ -336,7 +336,7 @@ function openStockRevealCascade(
   // #331 réserve A-bis : PRÉ-POSE le tirage article par article dans `outcome` AVANT validation — la
   // modale d'affichage ne montrait QUE l'en-tête + « Terminer ». Le tirage est SEEDÉ déterministe
   // (`computeFreshStockLines`), donc ces lignes affichées == celles que l'applier recompose/persiste.
-  // `ent` n'existe pas pour un marchand de LIEU (#369, `openPlaceMerchant`) — le pretirage se calcule
+  // `ent` n'existe pas pour un marchand de LIEU (#369, `ouvrirLaBoutique`) — le pretirage se calcule
   // quand même, `computeFreshStockLines` tolère `ent` absent (overrides d'entité simplement absents).
   const ent = get().scene?.entities.find((e) => e.id === entityId);
   const outcome = arch
@@ -354,7 +354,7 @@ function openStockRevealCascade(
 }
 
 /** Ouverture PARTAGÉE d'une visite marchande (#369) — `ent` est l'override d'ENTITÉ de scène (PNJ posé
- *  dans une scène) quand il existe ; un marchand de LIEU (`openPlaceMerchant`, catalogue `lieux-services.json`)
+ *  dans une scène) quand il existe ; un marchand de LIEU (`ouvrirLaBoutique`, catalogue `lieux-services.json`)
  *  n'en porte aucun et joue les défauts d'archétype nus. SOURCE UNIQUE du calcul d'ouverture, réutilisée
  *  par les deux entrées — aucune n'est un fork de l'autre. */
 function openMerchantByArchetype(get: Get, set: Set, entityId: string, archetype: string, ent?: SceneEntity, backdrop?: string): void {
@@ -393,7 +393,7 @@ export function openMerchant(get: Get, set: Set, entityId: string): void {
 /** Marchand de LIEU (#369) — ouvre le système marchand EXISTANT pour un service de catalogue sans
  *  `SceneEntity` (forgeron du hub de ville…) : même `openMerchantByArchetype`, keyé sur l'id virtuel
  *  `placeServiceMerchantId` (stock persistant propre au lieu+service). Extension du général, pas un fork. */
-export function openPlaceMerchant(get: Get, set: Set, entityId: string, archetype: string, backdrop?: string): void {
+export function ouvrirLaBoutique(get: Get, set: Set, entityId: string, archetype: string, backdrop?: string): void {
   openMerchantByArchetype(get, set, entityId, archetype, undefined, backdrop);
 }
 
@@ -426,7 +426,7 @@ function finalizeSearchAvailability(get: Get, set: Set, entityId: string, restoc
  *  des Tests de Ragot ». Le groupe consacre UNE JOURNÉE (avance l'horloge) et jette un Test de Ragot ; sur
  *  un succès, un RÉASSORT FRAIS est tiré avec +10 % (cumulable avec la Carrière cohérente jusqu'au plafond
  *  +20 % du RAW). Sur un échec, la journée est perdue (réassort normal, sans le bonus de recherche). */
-export function searchAvailability(get: Get, set: Set): void {
+export function chercherLaDisponibilite(get: Get, set: Set): void {
   const m = get().merchant;
   if (!m) return;
   const ent = get().scene?.entities.find((e) => e.id === m.entityId);
@@ -470,7 +470,7 @@ function possessionDUnite(unit: UniteVendue, ownerId: string): Parameters<typeof
     : { nature: 'vehicule', vehicleId: unit.id, ownerId, location: { kind: 'avec-le-groupe' }, items: [] };
 }
 
-export function refuseBargain(get: Get, set: Set, mode: 'buy' | 'sell'): void {
+export function refuserLeMarche(get: Get, set: Set, mode: 'buy' | 'sell'): void {
   const m = get().merchant; if (!m || (mode === 'buy' ? m.bargainBuy : m.bargainSell) == null) return;
   // Refuser une négociation → annule ce côté + VERROU PARTAGÉ (plus de marchandage achat NI vente jusqu'au réassort).
   const patch = mode === 'buy' ? { cart: [], bargainBuy: null } : { bargainSell: null };
@@ -481,7 +481,7 @@ export function refuseBargain(get: Get, set: Set, mode: 'buy' | 'sell'): void {
   get().log(t('mf.bargainRefused'));
 }
 
-export function payCart(get: Get, set: Set): void {
+export function payerLesAchats(get: Get, set: Set): void {
   const m = get().merchant; if (!m) return;
   const cart = m.cart ?? [];
   const devis = devisDuPanier(m, contexteDAchat(get(), m));
@@ -534,7 +534,7 @@ function repartirLesAchats(get: Get, set: Set): void {
 }
 
 /** Gain de revente d'un objet (catalogue × qualité × resaleRate × facteur de Marchandage). SOURCE UNIQUE
- *  du prix de vente — partagée par `confirmSell` ET l'aperçu UI (pas de formule dupliquée).
+ *  du prix de vente — partagée par `vendreLeLot` ET l'aperçu UI (pas de formule dupliquée).
  *  Facteur : `bargainSellFactor` (LDB 59 l.54) ; sans Marchandage de vente, 0,5. */
 export function sellGain(item: ItemInstance, m: MerchantState): ReturnType<typeof fromBrass> {
   const sellFactor = m.bargainSell ? bargainSellFactor(m.bargainSell.won, m.bargainSell.drNet, m.bargainSell.negotiator) : 0.5;
@@ -638,7 +638,7 @@ export type DemandeDeTroc = { giveHeroId: string; giveTrappingId: string; getSto
 /** Devis d'un Troc : `refus` = la raison affichée, `null` quand le devis existe et que le Troc passe. */
 export type DevisDeTroc = ({ refus: null; quote: BarterQuote } | { refus: string; quote: BarterQuote | null }) & { getCount: number; max: number };
 
-/** Devis d'un Troc (LDB 59 l.64-76) — son refus tombe dans `barterExchange`, lu par l'écran. */
+/** Devis d'un Troc (LDB 59 l.64-76) — son refus tombe dans `troquerLesObjets`, lu par l'écran. */
 export function devisDeTroc(m: MerchantState, party: Combatant[], opts: DemandeDeTroc): DevisDeTroc {
   const getCount = Math.max(1, Math.floor(opts.getCount ?? 1));
   const refused = barterRefusal(opts.giveTrappingId) ?? barterRefusal(opts.getStockId);
@@ -659,7 +659,7 @@ export function devisDeTroc(m: MerchantState, party: Combatant[], opts: DemandeD
 /** Exécute un Troc (LDB 59 l.64) : le héros `giveHeroId` cède les exemplaires du devis (`devisDeTroc`) du
  *  trapping `giveTrappingId` (SANS argent) contre `getCount` exemplaires du stock `getStockId`. Les refus
  *  (`refusDeGesteSurLeGroupe`, puis celui du devis) tombent avant toute écriture. */
-export function barterExchange(get: Get, set: Set, opts: DemandeDeTroc): void {
+export function troquerLesObjets(get: Get, set: Set, opts: DemandeDeTroc): void {
   if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
   const m = get().merchant; if (!m) return;
   const v = devisDeTroc(m, get().party, opts);
@@ -706,7 +706,7 @@ function removeSold(s: Jeu, entries: { uid: string; heroId: string }[]): ReturnT
 /** Une instance du panier de vente chez son porteur, avec son gain (`sellGain`) et son refus (`sellRefusal`). */
 export interface LigneDeVente { hero: Combatant; it: ItemInstance; gain: Money; refus: string | null }
 
-/** Devis du panier de VENTE — SOURCE UNIQUE du total crédité par `confirmSell` et affiché par l'écran ;
+/** Devis du panier de VENTE — SOURCE UNIQUE du total crédité par `vendreLeLot` et affiché par l'écran ;
  *  `total` ne compte que les lignes sans refus, `refus` dit qu'aucune ne se vend. */
 export function devisDeVente(m: MerchantState, party: Combatant[]): { lignes: LigneDeVente[]; total: Money; refus: string | null } {
   const lignes = (m.sellCart ?? []).flatMap((c): LigneDeVente[] => {
@@ -721,9 +721,9 @@ export function devisDeVente(m: MerchantState, party: Combatant[]): { lignes: Li
   };
 }
 
-/** Conclut la vente du panier (parité achat/`payCart`) : crédite le devis `devisDeVente`, retire les
+/** Conclut la vente du panier (parité achat/`payerLesAchats`) : crédite le devis `devisDeVente`, retire les
  *  objets de leurs porteurs, honore la négociation de vente. */
-export function confirmSell(get: Get, set: Set): void {
+export function vendreLeLot(get: Get, set: Set): void {
   if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
   const m = get().merchant; if (!m) return;
   const devis = devisDeVente(m, get().party);
@@ -744,14 +744,14 @@ export function confirmSell(get: Get, set: Set): void {
 }
 
 /** Coût de réparation d'un objet endommagé (LDB 63 l.64 ; LDB 62 l.135) — SOURCE UNIQUE lue par
- *  `repairItem` et l'écran du marchand. */
+ *  `reparerLObjet` et l'écran du marchand. */
 export function coutDeReparation(item: ItemInstance): Money {
   const trapping = item.trappingId ? findTrappingById(item.trappingId) : undefined;
   return fromBrass(itemRepairCostBrass(item, trapping ? toBrass(priceToMoney(trapping.price)) : 0));
 }
 
 /** Refus de réparer `item` aux frais de son porteur `hero` : la raison affichée, ou `null`. Tombe dans
- *  `repairItem`, lu par l'écran. */
+ *  `reparerLObjet`, lu par l'écran. */
 export function refusDeReparation(hero: Combatant, item: ItemInstance, refusHote: string | null): string | null {
   return refusHote ?? refusDeBourse(hero, coutDeReparation(item), 'mf.repairPurseKo', { label: item.label });
 }
@@ -759,7 +759,7 @@ export function refusDeReparation(hero: Combatant, item: ItemInstance, refusHote
 /** Réparation d'un objet chez un artisan — armure (LDB 63 l.64) OU arme (LDB 62 l.135), au coût
  *  `coutDeReparation`. Une arme réduite à l'état improvisé est irréparable (isRepairable). Le refus de
  *  `refusDeReparation` tombe avant tout débit. */
-export function repairItem(get: Get, set: Set, uid: string, heroId: string): void {
+export function reparerLObjet(get: Get, set: Set, uid: string, heroId: string): void {
   const m = get().merchant; if (!m) return;
   const hero = get().party.find((h) => h.id === heroId);
   const item = hero?.items?.find((i) => i.uid === uid);
@@ -794,7 +794,7 @@ export function ouvrirMarchandage(get: Get, set: Set, contrepartie: Contrepartie
   } });
 }
 
-export function startBargain(get: Get, set: Set, mode: 'buy' | 'sell'): void {
+export function marchanderLePrix(get: Get, set: Set, mode: 'buy' | 'sell'): void {
   const m = get().merchant; if (!m) return;
   const ent = get().scene?.entities.find((e) => e.id === m.entityId);
   const mkt = marketRule(ent, 'marketMode') as string;
@@ -894,7 +894,7 @@ export function gameDay(s: Pick<Jeu, 'gameTime'>): number {
   return Math.floor(s.gameTime / MINUTES_PER_DAY);
 }
 
-export function appraiseItem(get: Get, set: Set, uid: string, heroId: string, mode: 'evaluate' | 'detect' = 'evaluate'): void {
+export function evaluerLObjet(get: Get, set: Set, uid: string, heroId: string, mode: 'evaluate' | 'detect' = 'evaluate'): void {
   if (refuseSi(get, set, refusDInventaire)) return;
   const hero = actorIn(get(), heroId);
   const item = hero?.items?.find((i) => i.uid === uid); if (!item) return;
@@ -911,7 +911,7 @@ const ligneDuButin = (s: Jeu, scope: 'loot' | 'victory', uid: IdDeLigneDeButin) 
 
 /** Évaluation/Détection d'une ligne de butin ENCORE en fenêtre (loot ou victoire) — révéler AVANT
  *  de choisir qui l'emporte (demande utilisateur). */
-export function appraiseGear(get: Get, set: Set, scope: 'loot' | 'victory', uid: IdDeLigneDeButin, mode: 'evaluate' | 'detect' = 'evaluate'): void {
+export function evaluerLeButin(get: Get, set: Set, scope: 'loot' | 'victory', uid: IdDeLigneDeButin, mode: 'evaluate' | 'detect' = 'evaluate'): void {
   const line = ligneDuButin(get(), scope, uid); if (!line) return;
   if (mode === 'detect' && line.effect.detectTried) return;
   if (mode === 'evaluate' && line.effect.appraiseTriedDay === gameDay(get())) return;
@@ -998,16 +998,16 @@ function acquitterLEvaluation(get: Get, set: Set): void {
 export function creerActionsDuMarchand(get: Get, set: Set) {
   return {
     openMerchant: (entityId) => openMerchant(get, set, entityId),
-    openPlaceMerchant: (entityId, archetype, backdrop) => openPlaceMerchant(get, set, entityId, archetype, backdrop),
-    searchAvailability: () => searchAvailability(get, set),
-    refuseBargain: (mode) => refuseBargain(get, set, mode),
-    payCart: () => payCart(get, set),
-    confirmSell: () => confirmSell(get, set),
-    repairItem: (uid, heroId) => repairItem(get, set, uid, heroId),
-    startBargain: (mode) => startBargain(get, set, mode),
-    appraiseItem: (uid, heroId, mode) => appraiseItem(get, set, uid, heroId, mode),
-    appraiseGear: (scope, uid, mode) => appraiseGear(get, set, scope, uid, mode),
-    barterExchange: (opts) => barterExchange(get, set, opts),
+    ouvrirLaBoutique: (entityId, archetype, backdrop) => ouvrirLaBoutique(get, set, entityId, archetype, backdrop),
+    chercherLaDisponibilite: () => chercherLaDisponibilite(get, set),
+    refuserLeMarche: (mode) => refuserLeMarche(get, set, mode),
+    payerLesAchats: () => payerLesAchats(get, set),
+    vendreLeLot: () => vendreLeLot(get, set),
+    reparerLObjet: (uid, heroId) => reparerLObjet(get, set, uid, heroId),
+    marchanderLePrix: (mode) => marchanderLePrix(get, set, mode),
+    evaluerLObjet: (uid, heroId, mode) => evaluerLObjet(get, set, uid, heroId, mode),
+    evaluerLeButin: (scope, uid, mode) => evaluerLeButin(get, set, scope, uid, mode),
+    troquerLesObjets: (opts) => troquerLesObjets(get, set, opts),
   } satisfies FabriqueDuNoyau;
 }
 
@@ -1065,7 +1065,7 @@ export const TABLES = {
       const archetype = String(meta.archetype ?? '');
       const ent = get().scene?.entities.find((e) => e.id === entityId);
       const arch = findMerchantArchetypeById(archetype);
-      // `arch` (`meta.archetype`, sérialisé à l'ouverture) SUFFIT — un marchand de LIEU (#369, `openPlaceMerchant`)
+      // `arch` (`meta.archetype`, sérialisé à l'ouverture) SUFFIT — un marchand de LIEU (#369, `ouvrirLaBoutique`)
       // n'a aucune `SceneEntity` de scène, `ent` reste alors `undefined` (overrides d'entité simplement absents).
       if (!arch) return {};
       const settlement = String(meta.settlement ?? arch.settlement) as Settlement;

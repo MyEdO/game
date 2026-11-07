@@ -36,7 +36,7 @@ export interface MerchantArchetypeDef {
    *  (`noyau/merchantFlow.ts`) DÉRIVE les membres à chaque catégorie en itérant `creatures`/`vehicles`
    *  (facette `purchase`) — une monture/un véhicule neuf apparaît AUTOMATIQUEMENT, sans toucher ce
    *  fichier. `'bete'` = créatures à `purchase` (montures/bêtes de trait) ; `'vehicule-terrestre'` =
-   *  véhicules à `purchase` sans coque (`!ship`). (`'navire'` : achat non géré par `payCart` -> #748.)
+   *  véhicules à `purchase` sans coque (`!ship`). (`'navire'` : achat non géré par `payerLesAchats` -> #748.)
    *  Achetée, une unité crée une POSSESSION au lieu d'un objet de sac (`catalogEntryOf`,
    *  `noyau/merchantFlow.ts`). */
   unitKinds?: UniteAchetable[];

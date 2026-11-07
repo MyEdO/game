@@ -1,7 +1,7 @@
 /**
  * L'ISSUE D'UNE ACTIVITÉ AUX BANDES AUTOMATIQUES (LDB 12 l.25-28) : l'issue canonique du flux `activity`
  * (`FLOWS.activity.outcomeOf`) d'un Test simple ouvert par l'interlude, le dé posé par l'option des dés fixés
- * (`jetSetForcedRoll`). La cible est bornée à 01-99 par la ligne du jet ; seules les bandes départagent le dé.
+ * (`jetImposerLeResultat`). La cible est bornée à 01-99 par la ligne du jet ; seules les bandes départagent le dé.
  */
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc } from './banc.testkit';
@@ -25,9 +25,9 @@ function revenusAuDe(valeur: number, extenue: number, de: number) {
   const itl = banc.getState().interlude!;
   itl.perHero[h.id] = { ...itl.perHero[h.id], fx: undefined, left: 3 };
   banc.setState({ interlude: { ...itl } });
-  banc.getState().interludeActivity(h.id, 'revenus');
-  banc.getState().jetRoll('activity');
-  banc.getState().jetSetForcedRoll('activity', de);
+  banc.getState().pratiquerLActivite(h.id, 'revenus');
+  banc.getState().jetLancer('activity');
+  banc.getState().jetImposerLeResultat('activity', de);
   return FLOWS.activity.outcomeOf(banc.getState);
 }
 

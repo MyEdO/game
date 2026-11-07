@@ -1,6 +1,6 @@
 /**
  * ENTRÉE EN SCÈNE (#2817 D5) : le noyau émet `EVT.ARRIVEE_EN_SCENE` à chaque scène où le groupe entre, `neuve` pour
- * une partie neuve (`startScene`), non neuve pour un changement de scène (`transitionTo`), le point de reprise de
+ * une partie neuve (`startScene`), non neuve pour un changement de scène (`quitterLaScene`), le point de reprise de
  * l'hôte (`refusDeSauvegarde`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -37,6 +37,6 @@ describe('entrée en scène — l’événement que l’hôte consomme (#2817 D5
 
   it('un changement de scène émet UNE entrée NON neuve sur la scène d’arrivée', () => {
     banc.getState().loadProject({ scenes: [scene('entree-a'), scene('entree-b')], entryId: 'entree-a', projet: null });
-    expect(arrivees(() => banc.getState().transitionTo('entree-b'))).toEqual([{ sceneId: 'entree-b', neuve: false }]);
+    expect(arrivees(() => banc.getState().quitterLaScene('entree-b'))).toEqual([{ sceneId: 'entree-b', neuve: false }]);
   });
 });

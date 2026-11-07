@@ -41,13 +41,13 @@ import { applySummon } from './summonFlow';
 import { contractDisease, applyContraction, diseaseDefs } from '../engine/disease';
 import { memoParVersion } from '../data/versionDataset';
 import { HEAL_SKILL, type HealMode } from '../engine/healing';
-import { openMedic } from './medicFlow';
+import { ouvrirLeMedecin } from './medicFlow';
 import { activeSeaPrecipitation, openPortAt, vesselManann, setVesselHull } from './seaVoyageFlow';
 import { applyManannFactor, addManann, findManannFactor } from '../engine/seaVoyage';
 import { placeById } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
 import { refusDOuvrirLaTaverne, tavernNpcOffers } from './tavernFlow';
-import { openRest, placesOfKind, sceneLieu } from './restFlow';
+import { ouvrirLeRepos, placesOfKind, sceneLieu } from './restFlow';
 import { avecSequelles, traumaById, dechirureFractureFicheId, permanentAmputations } from '../engine/trauma';
 import { DAY_PHASES, minutesUntilNext, scheduleAt } from '../engine/clock';
 import { TIME_COST } from '../engine/timeCost';
@@ -196,7 +196,7 @@ export function flowRestant(entId: string, action: { id: string; flow: Flow }, f
 
 /** Joue les déclencheurs de zone (`triggersEnJeu` : authorés + dérivés des portes secrètes) où le groupe
  *  vient d'ENTRER. Seul appelant : la pose du groupe en exploration (`poserLeGroupe`) — ni le combat, ni l'entrée de scène
- *  (`transitionTo`/`startScene`) sans premier pas ne jouent un déclencheur. */
+ *  (`quitterLaScene`/`startScene`) sans premier pas ne jouent un déclencheur. */
 export function checkTriggers(get: Get, set: SetFn) {
   const { scene, partyPos, flags } = get();
   if (!scene) return;
@@ -292,7 +292,7 @@ export function attribuerLaLigne(get: Get, set: SetFn, key: 'pendingLoot' | 'pen
   set(retrait);
 }
 
-/** Les créatures que `harvestCreature` accepte : les vaincues de `pendingVictory` à profil de récolte, pas encore
+/** Les créatures que `depecerLaCreature` accepte : les vaincues de `pendingVictory` à profil de récolte, pas encore
  *  récoltées. ZI 13. */
 export function creaturesADepecer(s: Jeu): string[] {
   const pv = s.pendingVictory;
@@ -424,10 +424,10 @@ export type Applique = typeof OPS_DIFFEREES | undefined;
  * conséquence se dit, et il n'y a aucune suite à confier.
  *
  * Exceptions nommées, toutes deux une avance du CURSEUR de la cascade après l'appel :
- * - `advanceCombatJet` (`jetConfirm('attack')`). Il retient le curseur tant qu'une fenêtre `pending*` est
+ * - `advanceCombatJet` (`jetValider('attack')`). Il retient le curseur tant qu'une fenêtre `pending*` est
  *   ouverte ; un coup suspendu sur une ÉTAPE (sauvegarde, Déviation) l'a poussée dans la cascade, et le
  *   curseur avance DESSUS (`combatSlice.ts` `advanceCombatJet`).
- * - la validation qui clôt l'étape COURANTE (`jetConfirm('fumble')`, la Maladresse) : l'après-coup qui tient
+ * - la validation qui clôt l'étape COURANTE (`jetValider('fumble')`, la Maladresse) : l'après-coup qui tient
  *   la main a poussé ses étapes DERRIÈRE elle, et le curseur avance dessus.
  *
  * Ce qui suit AILLEURS (horloge, dialogue, retrait de décor, seam de Test raté) n'est PAS exempté :
@@ -797,7 +797,7 @@ export function openSkillTest(
     actorId?: string;
     noOwnTestFailed?: boolean;
     /** Action de combat « Cumuler l'Avantage » (LDB 09 l.305-308) : l'octroi porté par le pending et
-     *  appliqué par `jetConfirm('test')` — la couture reste la même, seule la conséquence est déclarée ici. */
+     *  appliqué par `jetValider('test')` — la couture reste la même, seule la conséquence est déclarée ici. */
     combatAdvantage?: { combatantId: string; cap: number };
     /** Test initié en COMBAT : annulable pré-jet (l'Action n'est pas encore dépensée). */
     cancellable?: boolean;
@@ -952,8 +952,8 @@ export function openSkillTest(
   });
   // « Une situation = une modale » : le Test EST une cascade à une étape `jet:'test'`, rendue par
   // `CascadeModal` (via `useTestJetProps`). `pendingTest` coexiste comme porteur de données (comme
-  // `pendingAttack` pour l'attaque) ; `jetConfirm('test')` ferme les deux. Pas d'applier : la conséquence
-  // (branche onSuccess/onFailure + continuation) est lancée par `jetConfirm('test')`.
+  // `pendingAttack` pour l'attaque) ; `jetValider('test')` ferme les deux. Pas d'applier : la conséquence
+  // (branche onSuccess/onFailure + continuation) est lancée par `jetValider('test')`.
   // ENJEU (#1117) : `FlowTest.stake` DESCEND sur l'étape qui lance — c'est elle que `CascadeModal` lit.
   // Second transporteur du champ, à parité avec les deux fabriques de `combat/triggeredTest.ts` : sans
   // lui, tout Flow joué par `runFlow` (Escalade, Saut, Récolte…) porterait un enjeu que rien n'affiche.
@@ -976,7 +976,7 @@ function ouvrirGeste(get: Get, set: SetFn, e: Effect, suite: Flow, sl?: number):
  * vide le lot et prend la pile restante comme suite, comme `test` ; `if` vide d'abord le lot
  * (la condition lit l'état VIVANT — flags/horloge — donc après les Effets émis) puis branche ; `test`
  * vide le lot, ouvre la modale et SUSPEND — la branche choisie + la continuation (reste de la pile)
- * sont reprises par `jetConfirm('test')`. Pas de boucle → terminaison garantie.
+ * sont reprises par `jetValider('test')`. Pas de boucle → terminaison garantie.
  *
  * Rend `OPS_DIFFEREES` (#1508) quand un lot a ouvert un dé à la porte : la pile RESTANTE lui a été
  * confiée, et l'appelant n'a plus rien à jouer. CHAQUE vidange du lot est un point d'application, donc
@@ -1047,7 +1047,7 @@ export interface EffectEnv {
   set: SetFn;
   log(line: string): void;
   pushReveal(entry: RevealEntry): void;
-  /** DR (SL) du Test résolu qui a produit ce lot d'Effets (`jetConfirm('test')`/`pt.sl`, symétrique de
+  /** DR (SL) du Test résolu qui a produit ce lot d'Effets (`jetValider('test')`/`pt.sl`, symétrique de
    *  `opsCtx.sl` en combat, `triggeredTest.ts:159`) — absent hors Test (déclencheur de scène, etc.). */
   sl?: number;
   /** Cibles d'un effet `party`/`hero` (héros vivants concernés, bon ensemble) — `effectTargets`. */
@@ -1806,7 +1806,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Repos déclenché par l'éditeur (trigger/dialogue) : ouvre la MODALE DE NUIT (couchage +
       // pitance par héros, prix RAW, bilan globalisé). `lodging` non renseigné dans l'effet ⇒
       // défaut maison (arbitrage de contexte, cf. `placesOfKind`).
-      openRest(env.get, env.set, { places: placesOfKind(e.lodging ?? 'maison'), lieu: sceneLieu(env.get), quality: e.quality, days: e.days ?? 1 });
+      ouvrirLeRepos(env.get, env.set, { places: placesOfKind(e.lodging ?? 'maison'), lieu: sceneLieu(env.get), quality: e.quality, days: e.days ?? 1 });
     },
   },
   mealParty: {
@@ -1862,7 +1862,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => {
       const cur = env.get();
       if (cur.scene) env.set({ previousScene: { id: cur.scene.id, pos: { ...cur.partyPos } } });
-      env.get().transitionTo(e.scene, e.entry);
+      env.get().quitterLaScene(e.scene, e.entry);
     },
     refs: (e, ctx) => ctx.sceneIds.has(e.scene) ? [] : [{ level: 'error', message: `Effet → scène inexistante « ${e.scene} »` }],
   },
@@ -1873,7 +1873,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const prev = env.get().previousScene;
       if (prev) {
         env.set({ previousScene: null });
-        env.get().transitionTo(prev.id, undefined, prev.pos);
+        env.get().quitterLaScene(prev.id, undefined, prev.pos);
       }
     },
   },
@@ -1883,7 +1883,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (_e, env) => {
       // « Partir en voyage » depuis une porte/route de la scène (#T2) — l'action est déjà gardée
       // (no-op sans carte ou en combat).
-      env.get().openWorldMap();
+      env.get().ouvrirLaCarte();
     },
   },
   setVessel: {
@@ -2026,7 +2026,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (refusDOuvrirLaTaverne(env.get())) return;
       const parle = env.get().dialogue?.speakerId;
       const propose = parle && tavernNpcOffers(env.get().scene, presetDuNarratif(env.get().campaignNarratif)).some((o) => o.id === parle);
-      env.get().openTavernGames(propose ? parle : undefined);
+      env.get().ouvrirLesJeux(propose ? parle : undefined);
     },
   },
   medicalAid: {
@@ -2216,7 +2216,7 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: { acts?: { act: HealMode;
   const npc = sceneNpc(get().scene, e.entityId, presetDuNarratif(get().campaignNarratif));
   if (!npc) { get().log(t('eff.medicNoNpc', { id: e.entityId || '(aucun)' })); return; }
   if (!possesses(npc, { id: HEAL_SKILL })) { get().log(t('eff.medicNoHealSkill', { name: npc.label })); return; }
-  openMedic(get, set, {
+  ouvrirLeMedecin(get, set, {
     npc: {
       id: e.entityId,
       label: npc.label,

@@ -480,7 +480,7 @@ export function assignedHeroesFor(mb: MassBattleState, party: Combatant[], actio
 }
 
 /** Enregistre l'AFFECTATION de PJ à une action du Round (Scène MULTI-PJ / Activité). */
-export function setMassBattleHero(get: Get, set: Set, actionId: string, heroIds: string[]): void {
+export function affecterLeHeros(get: Get, set: Set, actionId: string, heroIds: string[]): void {
   const mb = get().massBattle;
   if (!mb) return;
   const assignment = { ...mb.assignment };
@@ -670,7 +670,7 @@ export function openMassBattleRally(get: Get, set: Set): void {
   });
 }
 
-// ── Application des issues (appelée par `jetConfirm('activity')` pour une `PendingActivity` de bataille) ───
+// ── Application des issues (appelée par `jetValider('activity')` pour une `PendingActivity` de bataille) ───
 
 /** Applique un delta de Puissance COURANTE à un camp par `GameOp` (`heal`/`wounds`). */
 function applyDelta(mb: MassBattleState, side: 'ally' | 'enemy', delta: number): MassBattleState {
@@ -806,9 +806,9 @@ function applyHoldResolution(
   return { mb: next, lines };
 }
 
-/** Applique l'issue d'une `PendingActivity` de BATAILLE à `MassBattleState` (appelé par `jetConfirm('activity')`).
+/** Applique l'issue d'une `PendingActivity` de BATAILLE à `MassBattleState` (appelé par `jetValider('activity')`).
  *  Route selon le contexte (préparation / Scène de Round) et le genre. Le budget d'Activité (une prépa =
- *  une Activité d'interlude, l.65) est décrémenté par `jetConfirm('activity')`, PAS ici (application ⊥ budget). */
+ *  une Activité d'interlude, l.65) est décrémenté par `jetValider('activity')`, PAS ici (application ⊥ budget). */
 export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): void {
   const mb = get().massBattle;
   if (!mb || pa.roll == null || !pa.activityId) return;
@@ -923,8 +923,8 @@ export function massBattleSetHazard(get: Get, set: Set, roll?: number): void {
 }
 
 /** Résout le Test spectaculaire de Puissance du Round (l.120) puis marque l'attente du Rassemblement /
- *  passage au Round suivant (l.122-124). Ne fait PAS avancer le Round (cf. `massBattleAdvance`). */
-export function massBattleClash(get: Get, set: Set): void {
+ *  passage au Round suivant (l.122-124). Ne fait PAS avancer le Round (cf. `avancerLaBataille`). */
+export function engagerLaMelee(get: Get, set: Set): void {
   const mb = get().massBattle;
   if (!mb || mb.phase !== 'round' || mb.awaitingNext) return;
   const allyMod = mb.allyMod + (mb.round === 1 ? mb.firstRoundBonus : 0);
@@ -949,7 +949,7 @@ export function massBattleClash(get: Get, set: Set): void {
 }
 
 /** Passe au Round suivant (l.124) : compose la nouvelle SITUATION et réinitialise l'état par-Round. */
-export function massBattleAdvance(get: Get, set: Set): void {
+export function avancerLaBataille(get: Get, set: Set): void {
   const mb = get().massBattle;
   if (!mb || mb.phase !== 'round' || !mb.awaitingNext) return;
   const advanced: MassBattleState = { ...mb, round: mb.round + 1 };
@@ -1016,13 +1016,13 @@ export function creerActionsDeBatailleDeMasse(get: Get, set: Set) {
     // Combat de masse / Puissance de Bataille (ADE II 08) — flux d'orchestration + jet de PJ différé.
     startMassBattle: (spec) => startMassBattle(get, set, spec),
     massBattleBegin: () => massBattleBegin(get, set),
-    massBattleActivity: (activityId, heroId) => openMassBattleActivity(get, set, activityId, heroId),
-    massBattleScene: (sceneId) => openMassBattleScene(get, set, sceneId),
-    setMassBattleHero: (actionId, heroIds) => setMassBattleHero(get, set, actionId, heroIds),
-    massBattleRally: () => openMassBattleRally(get, set),
-    massBattleHazard: (roll) => massBattleSetHazard(get, set, roll),
-    massBattleClash: () => massBattleClash(get, set),
-    massBattleAdvance: () => massBattleAdvance(get, set),
+    menerLActionDeBataille: (activityId, heroId) => openMassBattleActivity(get, set, activityId, heroId),
+    jouerLaScene: (sceneId) => openMassBattleScene(get, set, sceneId),
+    affecterLeHeros: (actionId, heroIds) => affecterLeHeros(get, set, actionId, heroIds),
+    rallierLesTroupes: () => openMassBattleRally(get, set),
+    affronterLePeril: (roll) => massBattleSetHazard(get, set, roll),
+    engagerLaMelee: () => engagerLaMelee(get, set),
+    avancerLaBataille: () => avancerLaBataille(get, set),
   } satisfies FabriqueDuNoyau;
 }
 

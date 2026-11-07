@@ -378,10 +378,10 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
     expect(p.participants.some((x) => x.id === 'helm')).toBe(true); // le Timonier (helm) est contributeur
     banc.getState().jetRegler('shipManeuver', 'virage', 2); // tribord 90° (virage ⟂ jet)
     expect(banc.getState().pendingShipManeuver!.turnSteps).toBe(2);
-    banc.getState().jetRoll('shipManeuver', 'helm'); // le PJ lance SON rôle (interactif)
+    banc.getState().jetLancer('shipManeuver', 'helm'); // le PJ lance SON rôle (interactif)
     expect(banc.getState().pendingShipManeuver!.participants.every((x) => x.result)).toBe(true);
     expect(banc.getState().facing.ship).toBe('N'); // cap encore intact : application différée à la confirmation
-    banc.getState().jetConfirm('shipManeuver');
+    banc.getState().jetValider('shipManeuver');
     const st = banc.getState();
     expect(st.pendingShipManeuver).toBeNull();
     expect(st.battle!.acted).toBe(true); // un jet = une Action
@@ -410,7 +410,7 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
 
   it('rôle non tentable : le total = Σ des N jets + DR plats, la ligne sans jet n’y pèse rien (MDG 14 l.13)', () => {
     ouvreAvecSansVoile();
-    banc.getState().jetRoll('shipManeuver', 'helm');
+    banc.getState().jetLancer('shipManeuver', 'helm');
     const p = banc.getState().pendingShipManeuver!;
     const helmSl = jete(p.participants.find((x) => x.id === 'helm')!.result).sl;
     const plats = maneuverCrewTotal([], p.essentialRoleId, p.moraleScore, p.undercrew, p.extraDR);
@@ -420,10 +420,10 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
   it('rôle non tentable : ni jet, ni Résilience, ni Chance — aucun tirage consommé (LDB 09 l.30 ; #2588 Q1)', () => {
     ouvreAvecSansVoile();
     const st = banc.getState();
-    st.jetRoll('shipManeuver', 'muet');
-    st.jetForceSuccess('shipManeuver', 'muet');
-    st.jetBonusSL('shipManeuver', 'muet');
-    st.jetReroll('shipManeuver', 'muet');
+    st.jetLancer('shipManeuver', 'muet');
+    st.jetForcerLaReussite('shipManeuver', 'muet');
+    st.jetAjouterUnDR('shipManeuver', 'muet');
+    st.jetRelancer('shipManeuver', 'muet');
     expect(banc.getState().pendingShipManeuver!.participants.find((x) => x.id === 'muet')!.result).toEqual(ECHEC_SANS_JET);
     const muet = banc.getState().battle!.combatants.find((c) => c.id === 'muet')!;
     expect([muet.fortune, muet.resilience]).toEqual([2, 1]); // aucun point dépensé
@@ -467,7 +467,7 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
       banc.getState().manoeuvrerLeNavire('helm');
       const p = banc.getState().pendingShipManeuver!;
       expect(p.extraDR).toBe(3); // openCrewTestPending : SEUL site d'addition du mod
-      banc.getState().jetRoll('shipManeuver', 'helm');
+      banc.getState().jetLancer('shipManeuver', 'helm');
       const rolled = banc.getState().pendingShipManeuver!;
       const total = maneuverCrewTotal(rolled.participants, rolled.essentialRoleId, rolled.moraleScore, rolled.undercrew, rolled.extraDR);
       const shipC = banc.getState().battle!.combatants.find((c) => c.id === 'ship')!;
@@ -514,7 +514,7 @@ describe('Test d’équipage : un rôle devenu non tentable au jet pose le refus
     const b = banc.getState().battle!;
     const sansVoile = { ...helm, skills: [] } as unknown as Combatant;
     banc.setState({ battle: { ...b, combatants: b.combatants.map((c) => (c.id === 'helm' ? sansVoile : c)) } });
-    banc.getState().jetRoll('shipManeuver', 'helm');
+    banc.getState().jetLancer('shipManeuver', 'helm');
     const apres = banc.getState().pendingShipManeuver!.participants.find((x) => x.id === 'helm')!;
     const attendu = crewRoleValue(sansVoile, findCrewRoleById(part.roleId)!, apres.navigation).refus;
     expect(attendu).toBeDefined();

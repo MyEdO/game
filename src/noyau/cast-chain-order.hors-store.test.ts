@@ -89,24 +89,24 @@ describe('Chaîne d’incantation — le Contre-sort se règle avant l’opposit
     // Fenêtre de Contre-sort telle que `routeCounterspell` la pose après le jet figé (ici, un
     // contre-lanceur adverse possédé par un siège).
     banc.setState({ pendingCounterspell: { participants: [{ id: E.id, interactive: true, declared: 'solo', result: null }] } });
-    banc.getState().jetCancel('counterspell'); // aucun Contre-sort retenu → la fenêtre se ferme
+    banc.getState().jetAnnuler('counterspell'); // aucun Contre-sort retenu → la fenêtre se ferme
     expect(banc.getState().pendingCounterspell).toBeNull();
     // Le LANCEUR est surfacé (héros manuel) : sa modale d'incantation tient encore ses choix — la
     // chaîne ne repart pas toute seule (#1028, `resumeAfterCounterspell`), c'est « Appliquer » qui la relance.
     expect(banc.getState().pendingCastOpposition, 'la chaîne n’avance pas dans le dos du lanceur').toBeNull();
-    banc.getState().jetConfirm('cast');
+    banc.getState().jetValider('cast');
     expect(banc.getState().pendingCastOpposition, 'l’opposition de cible s’ouvre une fois le Contre-sort réglé').toBeTruthy();
     expect(banc.getState().pendingCast, 'rien n’est appliqué tant que l’opposition est due').toBeTruthy();
     const part = banc.getState().pendingCastOpposition!.participants.find((p) => p.id === E.id)!;
     expect(part.interactive).toBe(false); // cible IA = rangée témoin, jet roulé à l'ouverture
     expect(part.result!.resisted).toBe(false); // FM 20 vs incantation à +6 DR
-    banc.getState().jetConfirm('opposition');
+    banc.getState().jetValider('opposition');
     expect(banc.getState().pendingCastOpposition).toBeNull();
     expect(banc.getState().pendingCast).toBeNull();
     expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.dead).toBe(true);
   });
 
-  it('ZdE non posée : `resolveCastChain` et `jetConfirm(\'cast\')` laissent le MÊME état (la pose passe avant l’opposition)', () => {
+  it('ZdE non posée : `resolveCastChain` et `jetValider(\'cast\')` laissent le MÊME état (la pose passe avant l’opposition)', () => {
     /** Pose une ZdE NON posée sur l'incantation figée (center null = pose encore due). */
     const zdeNonPosee = () => {
       const pc = banc.getState().pendingCast!;
@@ -129,7 +129,7 @@ describe('Chaîne d’incantation — le Contre-sort se règle avant l’opposit
       const { H, E } = setup();
       frozenCast(H, E);
       zdeNonPosee();
-      banc.getState().jetConfirm('cast');
+      banc.getState().jetValider('cast');
       return etat();
     })();
 

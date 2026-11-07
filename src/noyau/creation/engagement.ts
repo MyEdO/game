@@ -56,5 +56,5 @@ export function engagement(d: CreatorDraft, heroId?: string): RosterEntry {
 
 /** L'intention qui engage au groupe le héros nouveau de `d`, pour un hôte sans roster. */
 export function intentionDEngagement(d: CreatorDraft): Intention {
-  return { type: 'partyAddHero', args: [{ brouillon: d }] };
+  return { type: 'recruterLeHeros', args: [{ brouillon: d }] };
 }

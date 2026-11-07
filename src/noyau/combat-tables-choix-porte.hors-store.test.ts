@@ -257,7 +257,7 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
         },
       },
     } as never);
-    banc.getState().jetConfirm('flee');
+    banc.getState().jetValider('flee');
 
     const st = parKind('fleeMove')!;
     expect(st, 'la fuite a son étape de REPRISE').toBeTruthy();

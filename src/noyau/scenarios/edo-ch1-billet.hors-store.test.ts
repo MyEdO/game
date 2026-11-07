@@ -84,13 +84,13 @@ function tarifDuBillet(): TarifDePassage {
 
 /** « Marchander » le billet puis « Conclure » : le joueur jette `joueur`, Gunnar et Hultz `vendeur`. */
 function marchander(joueur: (cible: number) => number, vendeur: number): BargainOutcome {
-  get().startBilletBargain(T1, 'diligence');
+  get().marchanderLeBillet(T1, 'diligence');
   const pb = get().pendingBargain!;
   expect(pb.contrepartie).toEqual({ kind: 'billet', routeId: T1, vehicule: 'diligence', depuis: 'la-diligence', titre: t('out.bargainTitreBillet') });
   imposerLesD100(joueur(pb.playerSkill), vendeur);
-  get().jetRoll('bargain');
+  get().jetLancer('bargain');
   vi.restoreAllMocks();
-  get().jetConfirm('bargain');
+  get().jetValider('bargain');
   return get().marchandagesDeBillet[cleDeBillet(T1, 'diligence', 'la-diligence')];
 }
 /** Victoire nette de 1 à 5 DR : le joueur réussit d'un Degré (cible − 10), le vendeur fait 27 sur 27 (DR 0). */
@@ -104,7 +104,7 @@ describe('(a) le billet La Diligence → Sept Rayons se paie UNE fois, au dépar
     aBord();
     const avant = bourse();
     expect(avant).toBe(160); // 96 + 18 + 25 + 21 : Richesses tirées des 4 piliers
-    get().startTravel(T1, 'diligence', { classeId: 'exterieur' });
+    get().partirEnVoyage(T1, 'diligence', { classeId: 'exterieur' });
     expect(bourse(), '4 × 48 = 192 sous > 160 : passage refusé, rien débité').toBe(avant);
     expect(get().travelPlan).toBeNull();
     expect(get().billetEnMain).toBeNull();
@@ -115,14 +115,14 @@ describe('(a) le billet La Diligence → Sept Rayons se paie UNE fois, au dépar
     const issue = gagneDeUnPeu();
     expect(issue.won && issue.drNet >= 0 && issue.drNet < 6).toBe(true);
     const avant = bourse();
-    get().startTravel(T1, 'diligence', { classeId: 'exterieur' });
+    get().partirEnVoyage(T1, 'diligence', { classeId: 'exterieur' });
     expect(avant - bourse()).toBe(4 * 36);
     expect(get().billetEnMain).toEqual({ routeId: T1, vehicule: 'diligence', classeId: 'exterieur', routesRestantes: [T2] });
     arriver('route-principale');
     fouillerLeCorps();
     expect(get().flags['edo-ch1-corps-kastor-fouille']).toBe(true);
     const auVirage = bourse();
-    get().startTravel(T2, 'diligence', { classeId: 'exterieur' });
+    get().partirEnVoyage(T2, 'diligence', { classeId: 'exterieur' });
     expect(bourse(), 'le billet couvre le tronçon 2 : aucun débit').toBe(auVirage);
     arriver('auberge-des-sept-rayons');
     expect(get().billetEnMain).toBeNull();
@@ -165,17 +165,17 @@ describe('(c) un seul Test de Marchandage par billet', () => {
   it('le vendeur est Gunnar et Hultz, au Marchandage de leur fiche ; après conclusion, le billet ne se remarchande plus', () => {
     aBord();
     const gunnar = pnjAuPreset('edo-gunnar-et-hultz', 'probe', presetPnjById)!;
-    get().startBilletBargain(T1, 'diligence');
+    get().marchanderLeBillet(T1, 'diligence');
     const pb = get().pendingBargain!;
     expect(pb.opposant.label).toBe('Gunnar et Hultz');
     expect(pb.opposant.valeur).toBe(skillBaseValue(gunnar, { skill: { id: 'marchandage' } }));
     expect(pb.opposant.valeur).toBe(27); // Sociabilité 27, sans Augmentation en Marchandage
     vi.restoreAllMocks();
-    get().jetCancel('bargain');
+    get().jetAnnuler('bargain');
     marchander(() => 99, 1);
     expect(get().pendingBargain).toBeNull();
     expect(get().marchandagesDeBillet[cleDeBillet(T1, 'diligence', 'la-diligence')]?.won).toBe(false);
-    get().startBilletBargain(T1, 'diligence');
+    get().marchanderLeBillet(T1, 'diligence');
     expect(get().pendingBargain, 'le billet est déjà marchandé').toBeNull();
   });
 
@@ -184,7 +184,7 @@ describe('(c) un seul Test de Marchandage par billet', () => {
     const issue = marchander(() => 1, 99);
     expect(issue.won && issue.drNet >= 6).toBe(true);
     const avant = bourse();
-    get().startTravel(T1, 'diligence', { classeId: 'exterieur' });
+    get().partirEnVoyage(T1, 'diligence', { classeId: 'exterieur' });
     expect(avant - bourse()).toBe(4 * 24);
   });
 });
@@ -193,12 +193,12 @@ describe('(d) billet abandonné quand le groupe quitte la diligence', () => {
   it('à pied sur la route couverte : rien n’est débité et le billet en main s’efface', () => {
     aBord();
     gagneDeUnPeu();
-    get().startTravel(T1, 'diligence', { classeId: 'exterieur' });
+    get().partirEnVoyage(T1, 'diligence', { classeId: 'exterieur' });
     arriver('route-principale');
     fouillerLeCorps();
     expect(get().billetEnMain?.routesRestantes).toEqual([T2]);
     const avant = bourse();
-    get().startTravel(T2, 'pied');
+    get().partirEnVoyage(T2, 'pied');
     expect(bourse()).toBe(avant);
     expect(get().billetEnMain).toBeNull();
   });

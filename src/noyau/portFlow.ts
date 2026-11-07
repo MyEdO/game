@@ -2,7 +2,7 @@
  * ÉCRAN PORT (MDG 15 « Longs voyages ») — services au navire de campagne à quai, orchestrés côté
  * state (le moteur PUR vit dans `engine/seaVoyage` + `engine/shipBuild`, déjà testé) :
  *  - RÉPARATION / CARÉNAGE / AMÉLIORATIONS : `portRepairVessel` / `portCareenVessel` /
- *    `portInstallUpgrade` (`seaVoyageFlow`, #30), actions du store ;
+ *    `installerLAmelioration` (`seaVoyageFlow`, #30), actions du store ;
  *  - COMMERCE MARITIME (l.309-436) : achat (Type/Taille/Marchandage) et vente (Trouver un
  *    acheteur/Prix d'offre/Marchandage) + bradage (l.399), résolus ICI contre le moteur.
  *
@@ -152,14 +152,14 @@ export function devisDAchatEnPort(s: Pick<Jeu, 'port' | 'vessel' | 'net' | 'part
 }
 
 /** Refus d'entrer au port : la raison affichée, ou `null`. Le négoce maritime se fait sur le navire de
- *  campagne (MDG 15 l.319). Tombe dans `openPort`, lu par le hub du lieu. */
+ *  campagne (MDG 15 l.319). Tombe dans `ouvrirLePort`, lu par le hub du lieu. */
 export function refusDEntrerAuPort(s: Pick<Jeu, 'vessel'>): string | null {
   return s.vessel ? null : t('port.sansNavire');
 }
 
 /** Génère les offres d'ACHAT de l'escale (l.319-331) : Production + Surplus (Enc = (Taille+Richesse+
  *  Surplus)×1d10×10, 1 → rien), et une cargaison aléatoire par « commerce » (3× si cosmopolite, l.347). */
-export function openPort(get: Get, set: Set): void {
+export function ouvrirLePort(get: Get, set: Set): void {
   const cur = currentPort(get);
   if (!cur) return;
   const refus = refusDEntrerAuPort(get());
@@ -408,13 +408,13 @@ export function rolesRecrutables(): CrewRoleData[] {
 }
 
 /** Refus d'embaucher au rôle `roleId` : `refusHote` (`refusDeGesteSurLeGroupe`), sans navire, ou rôle sans
- *  barème ; `null` sinon. Tombe dans `portHireCrew`, lu par l'écran d'escale. */
+ *  barème ; `null` sinon. Tombe dans `recruterLEquipage`, lu par l'écran d'escale. */
 export function refusDEmbauche(vessel: Jeu['vessel'], roleId: string, refusHote: string | null): string | null {
   return refusHote ?? (!vessel ? t('port.sansNavire') : findCrewRoleById(roleId)?.wage?.weekly ? null : t('port.roleSansSolde', { role: findCrewRoleById(roleId)?.label ?? roleId }));
 }
 
 /** Refus de débarquer un membre du rôle `roleId` : `refusHote`, sans navire, ou aucun membre de ce rôle à bord ;
- *  `null` sinon. Tombe dans `portDismissCrew`, lu par l'écran d'escale. */
+ *  `null` sinon. Tombe dans `renvoyerLEquipage`, lu par l'écran d'escale. */
 export function refusDeDebarquement(vessel: Jeu['vessel'], roleId: string, refusHote: string | null): string | null {
   return refusHote ?? (!vessel ? t('port.sansNavire') : vessel.crew?.some((h) => h.roleId === roleId && h.count > 0) ? null : t('port.aucunABord', { role: findCrewRoleById(roleId)?.label ?? roleId }));
 }
@@ -424,7 +424,7 @@ export function refusDeDebarquement(vessel: Jeu['vessel'], roleId: string, refus
  *  MDG 14 l.293-302) est prélevée à l'entretien (`resolveVesselWeek`) : le moteur ne débite JAMAIS à
  *  l'embauche (aucune avance dans le modèle), la bourse ne bouge pas ici. Un rôle sans barème (`wage`
  *  absent) n'est pas recrutable. Renvoie le journal (ligne de solde totale recalculée). */
-export function portHireCrew(get: Get, set: Set, roleId: string, count = 1): string[] {
+export function recruterLEquipage(get: Get, set: Set, roleId: string, count = 1): string[] {
   const refus = refusDEmbauche(get().vessel, roleId, refusDeGesteSurLeGroupe(get()));
   if (refus) { refuserGeste(get, set, refus); return []; }
   const vessel = garanti(get().vessel, 'vessel', 'navire de l’embauche');
@@ -442,7 +442,7 @@ export function portHireCrew(get: Get, set: Set, roleId: string, count = 1): str
 
 /** DÉBARQUEMENT d'un membre salarié à quai (#228) : retire `count` PNJ du rôle `roleId` (poste supprimé
  *  s'il tombe à 0). Aucune indemnité modélisée (le moteur ne débite qu'à la paie). Renvoie le journal. */
-export function portDismissCrew(get: Get, set: Set, roleId: string, count = 1): string[] {
+export function renvoyerLEquipage(get: Get, set: Set, roleId: string, count = 1): string[] {
   const refus = refusDeDebarquement(get().vessel, roleId, refusDeGesteSurLeGroupe(get()));
   if (refus) { refuserGeste(get, set, refus); return []; }
   const vessel = garanti(get().vessel, 'vessel', 'navire du débarquement');
@@ -464,9 +464,9 @@ export function sortiesDuPort(_get: Get, set: Set) {
 
 export function creerActionsDuPort(get: Get, set: Set) {
   return {
-    openPort: () => openPort(get, set),
-    portHireCrew: (roleId, count) => portHireCrew(get, set, roleId, count),
-    portDismissCrew: (roleId, count) => portDismissCrew(get, set, roleId, count),
+    ouvrirLePort: () => ouvrirLePort(get, set),
+    recruterLEquipage: (roleId, count) => recruterLEquipage(get, set, roleId, count),
+    renvoyerLEquipage: (roleId, count) => renvoyerLEquipage(get, set, roleId, count),
   } satisfies FabriqueDuNoyau;
 }
 

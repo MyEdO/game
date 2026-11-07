@@ -11,8 +11,8 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
- * UNE ÉTAPE NOMME CE QU'ON Y JOUE : un verbe d'étape de cascade (`jetRegler('cascade', 'choix' | 'quantite')`, `jetRoll('cascadeTirage')` et
- * `jetSetForcedRoll('cascadeTirage')`) joué hors de l'étape qu'il sert — un autre `pid` que l'étape courante, ou une
+ * UNE ÉTAPE NOMME CE QU'ON Y JOUE : un verbe d'étape de cascade (`jetRegler('cascade', 'choix' | 'quantite')`, `jetLancer('cascadeTirage')` et
+ * `jetImposerLeResultat('cascadeTirage')`) joué hors de l'étape qu'il sert — un autre `pid` que l'étape courante, ou une
  * interaction autre que celle que l'étape attend (`stepInteraction`) — est refusé par le canal des refus du noyau
  * (`refuserGeste` ; hors combat, le journal) et le refus nomme l'étape attendue. Cas témoin : l'étape de Déviation
  * d'un Critique porte la table de sévérité ET le choix Dévier/Subir, la table d'abord.
@@ -52,13 +52,13 @@ describe('un verbe de cascade joué hors de son étape est refusé en nommant l�
   });
 
   it('un verbe qui vise une autre étape que la courante : refusé, le refus nomme l’étape courante', () => {
-    get().jetRoll('cascadeTirage', 'suite');
+    get().jetLancer('cascadeTirage', 'suite');
     expect(courante().table!.result).toBeFalsy();
     expect(dernierRefus()).toBe('Geste refusé : il vise l’étape suite, mais l’étape courante est « Blessure critique » (deviation), qui attend son tirage sur table.');
   });
 
   it('dans l’ordre de l’étape, chaque verbe passe ; un tirage rejoué est fermé, la pose du dé re-pose', () => {
-    get().jetRoll('cascadeTirage', 'deviation');
+    get().jetLancer('cascadeTirage', 'deviation');
     expect(courante().table!.result).toBeTruthy();
     expect(stepInteraction(courante())).toBe('choix');
     get().jetRegler('cascade', 'choix', 'devier', 'deviation');
@@ -67,9 +67,9 @@ describe('un verbe de cascade joué hors de son étape est refusé en nommant l�
 
     const tire = courante().table!.result;
     expect(fermeturesDuFlux(get(), 'cascadeTirage', 'deviation').roll).toBe('jetLance');
-    get().jetRoll('cascadeTirage', 'deviation');
+    get().jetLancer('cascadeTirage', 'deviation');
     expect(courante().table!.result).toBe(tire);
-    get().jetSetForcedRoll('cascadeTirage', 77, 'deviation');
+    get().jetImposerLeResultat('cascadeTirage', 77, 'deviation');
     expect(courante()).toMatchObject({ fixed: true, chosen: 'devier', table: { result: { roll: 77 } } });
 
     get().jetRegler('cascade', 'choix', 'fuir', 'deviation');

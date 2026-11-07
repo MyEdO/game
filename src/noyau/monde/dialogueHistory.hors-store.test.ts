@@ -136,14 +136,14 @@ describe('dialogue.reponse — archivage (#718)', () => {
   });
 });
 
-describe('dialogueHistory / journal — survie cross-scène (transitionTo)', () => {
+describe('dialogueHistory / journal — survie cross-scène (quitterLaScene)', () => {
   it('les DEUX slots SURVIVENT à une transition de scène (campagne-scopés)', () => {
     banc.setState({ screen: 'campaign', battle: null, mode: 'exploration', flags: {}, dialogue: null, pendingTest: null });
     banc.getState().startScene(testScene());
     banc.setState({ party: [hero()] });
     banc.getState().log('événement récent');
     banc.setState({ dialogueHistory: [{ nodeText: 'n', choiceText: 'c', at: 0, dialogueId: 'd', session: 1 }] });
-    banc.getState().transitionTo(testScene().id);
+    banc.getState().quitterLaScene(testScene().id);
     expect(banc.getState().dialogueHistory.length).toBe(1);
     expect(banc.getState().journal).toContain('événement récent');
   });

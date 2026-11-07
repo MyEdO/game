@@ -65,7 +65,7 @@ describe('test-critiques-doubles — le noyau n’annonce le double que sous la 
 describe('FLOWS.test — isDouble PROPAGÉ du jet jusqu’au pendingTest', () => {
   beforeEach(() => { banc.setState({ battle: null, mode: 'exploration' }); });
 
-  it('après jetRoll@test, pendingTest.isDouble est cohérent avec isDoubleRoll(roll), et vrai au moins une fois', () => {
+  it('après jetLancer@test, pendingTest.isDouble est cohérent avec isDoubleRoll(roll), et vrai au moins une fois', () => {
     const h = hero({});
     let sawDouble = false;
     // Le jet du flux `test` tire sur `battleRng` ; on répète jusqu'à voir un double

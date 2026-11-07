@@ -1,5 +1,5 @@
 /**
- * Jours de mer jugés par le NOYAU (#3059) : le geste `startTravel` en traversée RAPIDE pose
+ * Jours de mer jugés par le NOYAU (#3059) : le geste `partirEnVoyage` en traversée RAPIDE pose
  * `sea.fast.days` au M de croisière du navire (gréement + Améliorations), au rythme de la règle maison
  * `sea-night-sailing`, et refuse d'appareiller un navire sans M ou à la cale surchargée. L'estimation
  * de la carte du monde lit les mêmes fonctions. MDG 12 l.70-75 ; MDG 12 l.293 ; MDG 15 l.25 ;
@@ -28,7 +28,7 @@ const carte: WorldMap = {
 
 interface Navire { vehicleId: string; upgrades?: NavalTraitRef[]; cargo?: CargoLot[] }
 
-/** Appareille en traversée rapide par le geste `startTravel` et rend les jours que le noyau a posés
+/** Appareille en traversée rapide par le geste `partirEnVoyage` et rend les jours que le noyau a posés
  *  (`undefined` : aucun départ). */
 function joursDeLaTraverseeRapide(navire: Navire, reglesMaison: Record<string, unknown> = {}): number | undefined {
   const entrees: EntreesDeLaPartie = { graine: 7, reglesMaison, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
@@ -42,7 +42,7 @@ function joursDeLaTraverseeRapide(navire: Navire, reglesMaison: Record<string, u
     vessel: { ...navire, morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
   }, entrees);
   try {
-    partie.envoyer({ type: 'startTravel', args: ['r1', 'mer', { fast: true }] });
+    partie.envoyer({ type: 'partirEnVoyage', args: ['r1', 'mer', { fast: true }] });
     return partie.etat().travelPlan?.sea?.fast?.days;
   } finally {
     partie.fermer();

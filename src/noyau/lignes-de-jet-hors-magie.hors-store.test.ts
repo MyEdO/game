@@ -13,8 +13,8 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { poserLeTestDeMain, startDisengage } from './combatFlow';
 import { fleeTouche } from './pendings';
-import { openSurgeryPass } from './medicFlow';
-import { appraiseItem } from './merchantFlow';
+import { ouvrirLaChirurgie } from './medicFlow';
+import { evaluerLObjet } from './merchantFlow';
 import { applyEffects } from './combatEffects';
 import { ligneDeFrenesie, ligneDuTestNomme } from './rollFlowSpecs';
 import { fenetreDeCorruption, refusDeLaNature } from './fenetreDeCorruption';
@@ -79,7 +79,7 @@ describe('flux sur l’acteur vivant : la cible annoncée par le lecteur est cel
     exterue(banc, 'h');
     const annoncee = cibleMesuree(ligneDuTestNomme(acteur(banc.getState(), 'h'), banc.getState().pendingRun!.test));
     const enVue = cibleEnVue(banc.getState(), 'run', 'h');
-    banc.getState().jetRoll('run');
+    banc.getState().jetLancer('run');
     expect(cibleMesuree(banc.getState().pendingRun!.result!)).toEqual(annoncee);
     expect(enVue, 'jetsEnVue').toBe(annoncee.target);
   });
@@ -92,7 +92,7 @@ describe('flux sur l’acteur vivant : la cible annoncée par le lecteur est cel
     exterue(banc, 'h');
     const annoncee = cibleMesuree(ligneDuTestNomme(acteur(banc.getState(), 'h'), banc.getState().pendingFall!.test));
     const enVue = cibleEnVue(banc.getState(), 'fall', 'h');
-    banc.getState().jetRoll('fall', 'h');
+    banc.getState().jetLancer('fall', 'h');
     expect(cibleMesuree(banc.getState().pendingFall!.participants[0].result!)).toEqual(annoncee);
     expect(enVue, 'jetsEnVue').toBe(annoncee.target);
   });
@@ -105,7 +105,7 @@ describe('flux sur l’acteur vivant : la cible annoncée par le lecteur est cel
     exterue(banc, 'h');
     const annoncee = cibleMesuree(ligneDuTestNomme(acteur(banc.getState(), 'h'), banc.getState().pendingApproach!.test));
     const enVue = cibleEnVue(banc.getState(), 'approach', 'h');
-    banc.getState().jetRoll('approach');
+    banc.getState().jetLancer('approach');
     expect(cibleMesuree(banc.getState().pendingApproach!.result as never)).toEqual(annoncee);
     expect(enVue, 'jetsEnVue').toBe(annoncee.target);
   });
@@ -117,7 +117,7 @@ describe('flux sur l’acteur vivant : la cible annoncée par le lecteur est cel
     exterue(banc, 'h');
     const annoncee = cibleMesuree(ligneDeFrenesie(acteur(banc.getState(), 'h')));
     const enVue = cibleEnVue(banc.getState(), 'frenzy', 'h');
-    banc.getState().jetRoll('frenzy');
+    banc.getState().jetLancer('frenzy');
     expect(cibleMesuree(banc.getState().pendingFrenzy!.result as never)).toEqual(annoncee);
     expect(enVue, 'jetsEnVue').toBe(annoncee.target);
   });
@@ -139,7 +139,7 @@ describe('flux sur l’acteur vivant : la cible annoncée par le lecteur est cel
     exterue(banc, 'h');
     const annoncee = cibleMesuree(ligneDuTestNomme(acteur(banc.getState(), 'h'), test));
     const enVue = cibleEnVue(banc.getState(), 'flee', 'h');
-    banc.getState().jetRoll('flee', 'h');
+    banc.getState().jetLancer('flee', 'h');
     expect(cibleMesuree(fleeTouche(banc.getState().pendingDisengage!)!.jet as { target: number; clamped?: number })).toEqual(annoncee);
     expect(enVue, 'jetsEnVue').toBe(annoncee.target);
   });
@@ -154,7 +154,7 @@ describe('flux sur l’acteur vivant : la cible annoncée par le lecteur est cel
     exterue(banc, 'h');
     const annoncee = cibleMesuree(ligneDuTestNomme(acteur(banc.getState(), 'h'), banc.getState().pendingCorruption!.test));
     const enVue = cibleEnVue(banc.getState(), 'corruption', 'h');
-    banc.getState().jetRoll('corruption');
+    banc.getState().jetLancer('corruption');
     const pc = banc.getState().pendingCorruption!;
     expect(cibleMesuree({ target: pc.target!, clamped: pc.clamped })).toEqual(annoncee);
     expect(enVue, 'jetsEnVue').toBe(annoncee.target);
@@ -170,7 +170,7 @@ describe('flux figés : la ligne posée à l’ouverture est celle que le résol
     const ligne = banc.getState().pendingHandGate!.ligne;
     expect(ligne.difficulty).toBe('accessible');
     exterue(banc, 'h');
-    banc.getState().jetRoll('handGate');
+    banc.getState().jetLancer('handGate');
     const pg = banc.getState().pendingHandGate!;
     expect(pg.ligne).toEqual(ligne);
     expect(cibleMesuree(pg)).toEqual(cibleMesuree(ligne));
@@ -185,11 +185,11 @@ describe('flux figés : la ligne posée à l’ouverture est celle que le résol
       medic: { patientId: 'p', surgery: { kind: 'recovery', difficulty: 'accessible', healerId: 'c', healerName: 'c', skill: 81, intBonus: 6, targetDR: 6, cumDR: 0 } } as never,
     });
     seedBattleRng(7);
-    openSurgeryPass(banc.getState, banc.setState);
+    ouvrirLaChirurgie(banc.getState, banc.setState);
     const ligne = banc.getState().pendingSurgery!.ligne;
     expect(ligne.difficulty).toBe('accessible');
     exterue(banc, 'c');
-    banc.getState().jetRoll('surgery');
+    banc.getState().jetLancer('surgery');
     const ps = banc.getState().pendingSurgery!;
     expect(ps.ligne).toEqual(ligne);
     expect(cibleMesuree(ps)).toEqual(cibleMesuree(ligne));
@@ -200,9 +200,9 @@ describe('flux figés : la ligne posée à l’ouverture est celle que le résol
     const dague = { uid: 'd1', label: 'Dague', kind: 'trapping', trappingId: 'dague', qualities: [] } as unknown as ItemInstance;
     banc.setState({ battle: null, party: [heros('h', { items: [dague] })] });
     seedBattleRng(7);
-    appraiseItem(banc.getState, banc.setState, 'd1', 'h');
+    evaluerLObjet(banc.getState, banc.setState, 'd1', 'h');
     const avant = banc.getState().pendingAppraise!;
-    banc.getState().jetRoll('appraise');
+    banc.getState().jetLancer('appraise');
     const apres = banc.getState().pendingAppraise!;
     expect(cibleMesuree(avant), 'la cible que la fenêtre lit avant le jet').toEqual(cibleMesuree(apres));
     expect(cibleMesuree(avant.ligne)).toEqual(cibleMesuree(apres));
@@ -225,7 +225,7 @@ describe('Corruption : la nature que la fenêtre offre est celle que le verbe ac
       const banc = ouvrir();
       const option = fenetreDeCorruption(banc.getState())!.nature!.options.find((o) => o.valeur === cle)!;
       banc.getState().jetRegler('corruption', 'nature', cle);
-      banc.getState().jetRoll('corruption');
+      banc.getState().jetLancer('corruption');
       expect(banc.getState().pendingCorruption!.target).toBe(option.cible);
     });
   }
@@ -233,7 +233,7 @@ describe('Corruption : la nature que la fenêtre offre est celle que le verbe ac
   for (const lance of [false, true]) {
     it(`contrat ${lance ? 'après' : 'avant'} le jet : refus annoncé ⇔ verbe sans effet`, () => {
       const banc = ouvrir();
-      if (lance) banc.getState().jetRoll('corruption');
+      if (lance) banc.getState().jetLancer('corruption');
       for (const cle of NATURES_D_INFLUENCE) {
         const autre = cle === 'physique' ? 'spirituelle' : 'physique';
         if (!lance) banc.getState().jetRegler('corruption', 'nature', autre);

@@ -27,7 +27,7 @@ afterEach(() => {
 
 describe('Modale de taverne — la Difficulté annoncée suit la donnée', () => {
   it.each([['cerevis', 'Accessible'], ['dominos', 'Accessible'], ['moulins', 'Facile'], ['pierres', 'Accessible']])('%s annonce %s', (id, attendu) => {
-    act(() => { g().openTavernGames(); });
+    act(() => { g().ouvrirLesJeux(); });
     const doc = monterRacine(<TavernGameModal />).container.ownerDocument;
     const label = findTavernGameById(id)!.label;
     const bouton = [...doc.querySelectorAll('button')].find((b) => b.textContent?.trim() === label)!;

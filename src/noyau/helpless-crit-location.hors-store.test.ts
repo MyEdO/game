@@ -50,7 +50,7 @@ describe('#124 — cible Inconsciente : choix de Localisation (RAW-2 gratuit, LD
     // Débloqué DÈS la déclaration (avant tout jet) : même mécanisme que la Résilience (`pa.forced`),
     // mais gratuit — cf. LDB 16 l.113 « sans avoir à dépenser un Point de Résilience ».
     expect(banc.getState().pendingAttack?.forced).toBe(true);
-    banc.getState().jetRoll('attack');
+    banc.getState().jetLancer('attack');
     const pa = banc.getState().pendingAttack!;
     expect(pa.result?.critical).toBe(true); // helplessTest (combat.ts) : Critique déjà forcé (inchangé par #124)
     // AVANT #124, réglage `attack.localisationDuCritique` était bloqué par le garde `!pa.forced` (combatSlice.ts) :
@@ -58,7 +58,7 @@ describe('#124 — cible Inconsciente : choix de Localisation (RAW-2 gratuit, LD
     banc.getState().jetRegler('attack', 'localisationDuCritique', 'jambeG');
     expect(banc.getState().pendingAttack!.result!.critLocation).toBe('jambeG');
     const resRef = banc.getState().pendingAttack!.result!; // même objet, muté en place par applyAttackResult
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
     expect(resRef.location).toBe('jambeG'); // la Localisation CHOISIE est celle réellement résolue, pas un re-tirage
   });
 

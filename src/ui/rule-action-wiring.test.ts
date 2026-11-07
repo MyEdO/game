@@ -35,7 +35,7 @@ describe('règles optionnelles — actions déclarées, câblage store & icônes
   });
 
   it('MORSURE : un nom fautif, une propriété non appelable et une icône inventée sont REFUSÉS', () => {
-    expect(runIsStoreAction('restoreFortuneNow')).toBe(true); // le nom réellement déclaré
+    expect(runIsStoreAction('restaurerLaFortune')).toBe(true); // le nom réellement déclaré
     expect(runIsStoreAction('restoreFortuneMaintenant')).toBe(false); // renommage/typo
     expect(runIsStoreAction('battle')).toBe(false); // propriété d'état : crash au clic
     expect(runIsStoreAction('party')).toBe(false);

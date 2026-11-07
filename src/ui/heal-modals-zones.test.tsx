@@ -153,7 +153,7 @@ describe('Chirurgie (MedicModal → useSurgeryJetProps) — la Difficulté vit s
 describe('dossier d’opération — l’A→B n’est rendu que s’il EXISTE', () => {
   const patient = () => mk('Opéré', { traumas: [{ label: 'Fracture', location: 'brasG', surgery: true }] } as never);
   /** Ouvre le dossier d'opération d'un patient, le chirurgien étant du GROUPE ou un PNJ tarifé
-   *  (`healerId` sentinelle posé par `medicFlow.medicAct`, absent du groupe). */
+   *  (`healerId` sentinelle posé par `medicFlow.soignerLePatient`, absent du groupe). */
   const openSurgery = (healerId: string, party: Combatant[]) => {
     useGame.setState({
       battle: null, party, pendingSurgery: null,
@@ -258,7 +258,7 @@ describe('infirmerie — Échap annule le jet posé, jamais l’opération qui l
       medic: { patientId: patient.id, surgery: operation },
     } as never);
     act(() => root.render(<MedicModal />));
-    act(() => useGame.getState().openSurgeryPass());
+    act(() => useGame.getState().ouvrirLaChirurgie());
     expect(useGame.getState().pendingSurgery, 'la passe est posée').not.toBeNull();
 
     echap();
@@ -287,7 +287,7 @@ describe('infirmerie — Échap annule le jet posé, jamais l’opération qui l
       screen: 'campaign', mode: 'exploration', gameMenuOpen: false, dialogue: null, battle: null,
       party: [soigneur(), patient], pendingHeal: null, pendingSurgery: null, medic: null,
     } as never);
-    act(() => useGame.getState().openMedic({ patientId: patient.id }));
+    act(() => useGame.getState().ouvrirLeMedecin({ patientId: patient.id }));
     act(() => root.render(<MedicModal />));
     for (const tour of [1, 2]) {
       cliquer('Soigner les Blessures');

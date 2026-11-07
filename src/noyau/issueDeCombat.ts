@@ -25,7 +25,7 @@ export function creerActionsDIssueDeCombat(get: Get, set: Set) {
         get().log(t('store.cargoRaidNothing'));
       }
     },
-    harvestCreature: (creatureId) => harvestVictoryCreature(get, set, creatureId),
+    depecerLaCreature: (creatureId) => harvestVictoryCreature(get, set, creatureId),
   } satisfies FabriqueDuNoyau;
 }
 

@@ -68,7 +68,7 @@ export const cheminMarchable = (scene: Scene, chemin: readonly Pt[]): boolean =>
   chemin.every((p, i) => i === 0 || gesteDuPas(chemin, i).verbe === 'sauter' || walkNeighbors(scene, chemin[i - 1]).some((n) => memeCase(n, p)));
 
 /** La marche du groupe est-elle ouverte : en exploration, hors dialogue. La garde de tout pas du groupe (`pasDeLaMarche`,
- *  `stepPartyRelative`, `pasAligneDuGroupe`), de la marche tenue de l'écran et de son aperçu au survol. */
+ *  `avancerDUnPas`, `pasAligneDuGroupe`), de la marche tenue de l'écran et de son aperçu au survol. */
 export const marcheOuverte = (s: Pick<Jeu, 'mode' | 'dialogue'>): boolean => s.mode === 'exploration' && !s.dialogue;
 
 /** Le pas d'une case du groupe vers `dest` : refusé (`MOVE_BLOCKED`) sans case, sinon le meneur glisse d'une case par
@@ -152,12 +152,12 @@ export function creerActionsDeMarche(get: Get, set: Set) {
       }
       poserLeGroupe(get, set, pt);
     },
-    pivotParty: (turn) => {
+    pivoterLeGroupe: (turn) => {
       if (!meneurDuMonde(get())) return; // groupe vide : personne à faire pivoter
       // Pivot du regard SEUL (aucun déplacement → pas de réorientation par `faceFromPath`). ±1 cran = 45°.
       set((s) => ({ facing: poserCapDuGroupe(s.facing, rotateDir8(capDuGroupe(s) ?? 'S', turn)) }));
     },
-    stepPartyRelative: (rel) => {
+    avancerDUnPas: (rel) => {
       const s = get();
       if (!marcheOuverte(s)) return;
       const scene = s.scene;

@@ -39,7 +39,7 @@ describe('clues — câblage noyau (#670)', () => {
     banc.getState().loadProject({ scenes: [sceneA, sceneB], entryId: 'scene-a2', narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     expect(banc.getState().clues['ind-lettre']).toBeDefined();
-    banc.getState().transitionTo('scene-b2');
+    banc.getState().quitterLaScene('scene-b2');
     expect(banc.getState().scene?.id).toBe('scene-b2');
     expect(banc.getState().clues['ind-lettre'].stadeCourant).toBe('s1'); // assertion POSITIVE, survit
   });
@@ -53,20 +53,20 @@ describe('clues — câblage noyau (#670)', () => {
     expect(banc.getState().clues).toEqual({});
   });
 
-  it('`markCluesSeen` marque le siège LOCAL hors intent (#2415)', () => {
+  it('`marquerLesIndices` marque le siège LOCAL hors intent (#2415)', () => {
     banc.setState({ party: [hero()] });
     banc.getState().loadProject({ scenes: [fixtureScene('scene-n')], entryId: 'scene-n', narratif: narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     expect(estNouveauPour(banc.getState().clues['ind-lettre'], 0)).toBe(true);
-    banc.getState().markCluesSeen(affichés(banc.getState().clues, ['ind-lettre']));
+    banc.getState().marquerLesIndices(affichés(banc.getState().clues, ['ind-lettre']));
     expect(banc.getState().clues['ind-lettre'].vuParSiège).toEqual({ 0: true });
   });
 
-  it('`markCluesSeen` appliqué AU NOM du siège 1 ne marque que lui : le siège 0 voit encore la nouveauté (#2415)', () => {
+  it('`marquerLesIndices` appliqué AU NOM du siège 1 ne marque que lui : le siège 0 voit encore la nouveauté (#2415)', () => {
     banc.setState({ party: [hero()] });
     banc.getState().loadProject({ scenes: [fixtureScene('scene-p')], entryId: 'scene-p', narratif: narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
-    withActingSeat(1, () => banc.getState().markCluesSeen(affichés(banc.getState().clues, ['ind-lettre'])));
+    withActingSeat(1, () => banc.getState().marquerLesIndices(affichés(banc.getState().clues, ['ind-lettre'])));
     const c = banc.getState().clues['ind-lettre'];
     expect(c.vuParSiège).toEqual({ 1: true });
     expect(estNouveauPour(c, 0), 'le marquage d’un invité a levé la nouveauté de l’hôte').toBe(true);
@@ -78,19 +78,19 @@ describe('clues — câblage noyau (#670)', () => {
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     const affiché = affichés(banc.getState().clues, ['ind-lettre']); // le Carnet du siège 1 affiche s1 et émet son intent
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre', stade: 's2' }]);
-    withActingSeat(1, () => banc.getState().markCluesSeen(affiché));
+    withActingSeat(1, () => banc.getState().marquerLesIndices(affiché));
     const c = banc.getState().clues['ind-lettre'];
     expect(c.stadeCourant).toBe('s2');
     expect(estNouveauPour(c, 1), 's2 est marqué vu pour un siège qui n’a affiché que s1').toBe(true);
   });
 
-  it('toggleCluePin épingle/désépingle par l’action du noyau', () => {
+  it('epinglerLIndice épingle/désépingle par l’action du noyau', () => {
     banc.setState({ party: [hero()] });
     banc.getState().loadProject({ scenes: [fixtureScene('scene-e')], entryId: 'scene-e', narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
-    banc.getState().toggleCluePin('ind-lettre');
+    banc.getState().epinglerLIndice('ind-lettre');
     expect(banc.getState().clues['ind-lettre'].épinglé).toBe(true);
-    banc.getState().toggleCluePin('ind-mono');
+    banc.getState().epinglerLIndice('ind-mono');
     expect(banc.getState().clues['ind-mono']).toBeUndefined();
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('carnet.refus.indiceInconnu', { id: 'ind-mono' }));
   });
@@ -100,7 +100,7 @@ describe('clues — câblage noyau (#670)', () => {
       banc.setState({ party: [hero()] });
       banc.getState().loadProject({ scenes: [fixtureScene('scene-f')], entryId: 'scene-f', narratif, projet: null });
       applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
-      banc.getState().toggleCluePin('ind-lettre');
+      banc.getState().epinglerLIndice('ind-lettre');
       applyEffects(banc.getState, banc.setState, [{ type: 'discreditClue', indiceId: 'ind-mono' }]);
       const before = banc.getState().clues;
       expect(before['ind-lettre'].épinglé).toBe(true);

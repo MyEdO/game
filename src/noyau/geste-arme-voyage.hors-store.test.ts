@@ -64,7 +64,7 @@ describe('(A) RÉ-ENTRÉE — un geste ARMÉ puis DIFFÉRÉ par un gate se comme
     expect(get().localIntent, 'témoin : le clic a bien dissous l’intention').toBeNull();
     banc.setState({ pendingApproach: { ...get().pendingApproach!, result: { success: true, roll: 5, target: 50, sl: 4 } } });
     banc.abandonner();
-    get().jetConfirm('approach');
+    get().jetValider('approach');
     banc.reprendreLesEnAttente(); // joue le glissé d'approche → ouvre la frappe
     const h = get().battle!.combatants.find((c) => c.id === H.id)!;
     expect(get().refus, 'le geste GAGNÉ au jet a été refusé à la relance').toBeNull();
@@ -258,7 +258,7 @@ describe('(C) le REFUS est un canal LOCAL — et ne se tait jamais', () => {
     setup();
     refuserGeste(get, banc.setState, 'Hors de portée.');
     banc.setState({ battle: null, mode: 'exploration' });
-    get().transitionTo(testScene().id); // seam RÉEL du checkpoint : l'entrée en scène fait sauvegarder l'hôte
+    get().quitterLaScene(testScene().id); // seam RÉEL du checkpoint : l'entrée en scène fait sauvegarder l'hôte
     expect(get().refus, 'le refus a traversé le changement de scène').toBeNull();
     const snap = snapshotSave(get(), '2026-08-20T00:00:00.000Z');
     expect(snap.data.refus, 'un refus périmé part dans la sauvegarde').toBeNull();

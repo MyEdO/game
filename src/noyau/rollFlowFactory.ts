@@ -11,7 +11,7 @@
  *
  * La fabrique centralise la plomberie commune (gardes, dépense de Chance/Résilience, drapeau
  * `rerolled`, patch de re-rendu) ; chaque flux ne déclare QUE sa partie métier via `RollFlowSpec`
- * (cf. `rollFlows.ts`). Le corps de « Appliquer » (`CloturesDuJet`, joué par `jetConfirm(flux)`) reste écrit à la
+ * (cf. `rollFlows.ts`). Le corps de « Appliquer » (`CloturesDuJet`, joué par `jetValider(flux)`) reste écrit à la
  * main : ses effets sont tous différents — c'est la règle, pas la plomberie.
  *
  * Garde-fou : les primitives de résolution (RNG, moteur) ne sont appelées QUE par `resolve`/
@@ -369,7 +369,7 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
     /** Détermination (immunité PSY temporaire, LDB 17 l.59) : MÊME catégorie que `resist` (dépenser une
      *  ressource pour infléchir un Test psy), PAS une réussite forcée. Le flux DÉCLARE l'effet SPÉCIFIQUE
      *  (dépense de Détermination + marqueur `immune` sur le slot psy), la fabrique fournit le CÂBLAGE
-     *  (interface store/intent/modale via le verbe `determine` → geste `jetDetermine(flux, …)`, le handler
+     *  (interface store/intent/modale via le verbe `determine` → geste `jetDepenserLaDetermination(flux, …)`, le handler
      *  ci-dessous GATE `actor` et la `fermeture` du flux, puis dispatche `appliquer`). Exposé par les seuls flux à
      *  `caps.determine`. */
     determine?: {
@@ -820,7 +820,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
         bonusSL: parActeur(() => fermetureDuBonus(vue, faits) ?? (bonusOffert(slot) ? null : 'nonOffert')),
         darkPact: impose ? 'jetImpose' : parActeur(() => fermetureDuPacte(vue, faits)),
         forceSuccess: fermetureDuForcage(s, get, p, slot, actor),
-        // Le dé FIXÉ se juge au siège qui le pose (`canFixDie`) ; l'op ne le rejuge pas (`VerbesDeJet.jetSetForcedRoll`).
+        // Le dé FIXÉ se juge au siège qui le pose (`canFixDie`) ; l'op ne le rejuge pas (`VerbesDeJet.jetImposerLeResultat`).
         setForcedRoll: fermetureDuDeChoisi(slot, actor, p) ?? (!slot.forced && !canFixDie(s, actor?.id) ? 'desFixesInactifs' : null),
         resist: !spec.caps?.resist ? 'nonOffert' : temoin ? 'rangeeTemoin' : parActeur((a) => fermetureDeLaResistance(a, menace, rolled, spec.outcome(slot))),
         determine: !spec.caps?.determine ? 'nonOffert' : parActeur((a) => spec.caps!.determine!.fermeture(s, slot, a)),

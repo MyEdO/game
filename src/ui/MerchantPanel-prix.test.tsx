@@ -1,6 +1,6 @@
 /**
  * L'écran du marchand affiche le prix du NOYAU (#3059) : sous « Tenir les comptes », une ligne au prix
- * listé ≤ Statut du groupe s'affiche à 0 et se paie bourse vide, comme `payCart` la débite.
+ * listé ≤ Statut du groupe s'affiche à 0 et se paie bourse vide, comme `payerLesAchats` la débite.
  * LDB 59 l.9-11.
  */
 import { describe, it, expect, afterEach } from 'vitest';

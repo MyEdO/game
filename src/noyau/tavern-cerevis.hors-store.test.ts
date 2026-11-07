@@ -37,7 +37,7 @@ import { pnjAuProfil } from './monde/sceneNpc';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-/** L'adversaire au profil standard, nommé comme `playTavernGame` le nomme (`opponentActor.label`). */
+/** L'adversaire au profil standard, nommé comme `jouerALaTaverne` le nomme (`opponentActor.label`). */
 const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;
 
 const get = () => banc.getState();
@@ -107,7 +107,7 @@ describe('Le Cerevis — la donnée porte la règle, et dit ce qui est maison', 
 
   it('la partie s’ouvre sur le Test que la donnée déclare — Pari, à sa Difficulté propre', () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    get().jouerALaTaverne({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const step = get().pendingCascade!.participants[0];
     expect(step.kind).toBe(TAVERN_ROUND_KIND);
     expect(step.difficulty, '« Pari Accessible (+20) », pas le repli Intermédiaire du jeu rapide').toBe('accessible');
@@ -121,7 +121,7 @@ describe('Le Cerevis — la donnée porte la règle, et dit ce qui est maison', 
    */
   it('la fenêtre porte la SECONDE LECTURE (Initiative) dès l’ouverture, sur la MÊME cible que la clôture', () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    get().jouerALaTaverne({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const step = get().pendingCascade!.participants[0];
     const attendue = effectiveTarget(get().party[0], { characteristic: 'initiative' }, 'accessible');
     expect(step.second, 'aucun second Test caché : la rangée le DIT').toEqual({
@@ -137,7 +137,7 @@ describe('Le Cerevis — la donnée porte la règle, et dit ce qui est maison', 
   it('héros CONTRE héros : CHAQUE rangée de la bande porte SA seconde lecture', () => {
     const [a, b] = makePregens() as Combatant[];
     banc.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
-    get().playTavernGame({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
+    get().jouerALaTaverne({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     const bande = get().pendingCascade!.participants[0];
     expect(bande.participants).toHaveLength(2);
     for (const r of bande.participants!) {
@@ -206,7 +206,7 @@ describe('Le Cerevis — les deux lectures du MÊME dé', () => {
 describe('Le Cerevis — les chouettes s’effacent au geste du joueur (l.88)', () => {
   it('avec des chouettes au tableau, la fenêtre OFFRE l’effacement — et l’effacer en retire une', () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    get().jouerALaTaverne({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     // Un tour PERDU met une chouette au tableau ; le tour SUIVANT s'ouvre alors sur la question de
     // l'effacement — c'est le cycle du socle qui l'ouvre, aucune fenêtre n'est forgée ici.
     const seq = get().sequence as EtatDeFamille<typeof TAVERN_SEQUENCE>;
@@ -219,7 +219,7 @@ describe('Le Cerevis — les chouettes s’effacent au geste du joueur (l.88)', 
     expect(etape.kind, 'le joueur décide s’il boit pour effacer').toBe('tavern-erase');
     expect(etape.options!.map((o) => o.key)).toEqual(['efface', 'garde']);
     get().jetRegler('cascade', 'choix', 'efface', etape.id);
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     expect(marques().player, 'une chouette de moins').toBe(1);
     expect(compte().erased.player).toBe(1);
   });

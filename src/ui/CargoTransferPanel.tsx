@@ -11,7 +11,7 @@ import { NumberField } from './NumberField';
 /**
  * SURFACE DE TRANSFERT de cargaison entre porteurs CO-LOCALISÉS (#327, décision 9) — composée dans les
  * écrans EXISTANTS (marché terrestre bât↔véhicule, dossier navire navire↔porteur terrestre au port). Route
- * sur l'action store `moveCargo`. Aucune 2ᵉ modale : un simple formulaire source→cible→lot→quantité, dont
+ * sur l'action store `deplacerLaCargaison`. Aucune 2ᵉ modale : un simple formulaire source→cible→lot→quantité, dont
  * choix, plafond et refus sont ceux du plan du noyau (`planDeTransfert`). Ne s'affiche que s'il y a au
  * moins deux porteurs et du vrac à déplacer.
  */
@@ -24,7 +24,7 @@ export function CargoTransferPanel({ carriers, onMove, labelOf, ...placement }: 
   const [rawTo, setTo] = useState('');
   const [rawLot, setLot] = useState('');
   const [encSaisi, setEncSaisi] = useState<number | null>(null);
-  // Transférer touche la cale du groupe : refus d'invité lu au noyau, comme `moveCargo` le lit en tête.
+  // Transférer touche la cale du groupe : refus d'invité lu au noyau, comme `deplacerLaCargaison` le lit en tête.
   const refusHote = useGame(refusDeGesteSurLeGroupe);
   const disabled = refusHote != null;
 

@@ -57,7 +57,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     // Re-seed juste avant l'action : le tirage du tuteur est le PREMIER jet consommé depuis là.
     banc.getState().seedRng(42);
     const expectedTutor = rollDice(1, 10, makeRNG(42));
-    banc.getState().interludeEntrainement(heroId, 'skill', opt.id, opt.spec);
+    banc.getState().suivreLEntrainement(heroId, 'skill', opt.id, opt.spec);
     const h = hero();
     const owned = h.skills.find((s) => s.id === opt.id && memeSpecialisation(s.spec, opt.spec));
     expect(owned?.advances).toBe(opt.advances + 1);
@@ -75,7 +75,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const moneyBefore = toBrass(partyMoneyTotal(banc.getState));
     banc.getState().seedRng(42);
     const expectedTutor = rollDice(1, 10, makeRNG(42)) * 2;
-    banc.getState().interludeEntrainement(heroId, 'skill', opt.id, opt.spec);
+    banc.getState().suivreLEntrainement(heroId, 'skill', opt.id, opt.spec);
     const h = hero();
     const owned = h.skills.find((s) => s.id === opt.id && memeSpecialisation(s.spec, opt.spec));
     expect(owned?.advances).toBe(opt.advances + 1);
@@ -94,7 +94,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const moneyBefore = toBrass(partyMoneyTotal(banc.getState));
     banc.getState().seedRng(7);
     const expectedTutor = rollDice(1, 10, makeRNG(7));
-    banc.getState().interludeEntrainement(heroId, 'characteristic', opt.id);
+    banc.getState().suivreLEntrainement(heroId, 'characteristic', opt.id);
     const h = hero();
     expect(h.characteristics[charKey]).toBe(charBefore + 1);
     expect(h.xp).toBe(xpBefore - opt.xpCost);
@@ -107,7 +107,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     hero().xp = 2000;
     const moneyBefore = toBrass(partyMoneyTotal(banc.getState));
     const before = hero().characteristics['capacite-de-combat'];
-    banc.getState().interludeEntrainement(heroId, 'characteristic', 'capacite-de-combat');
+    banc.getState().suivreLEntrainement(heroId, 'characteristic', 'capacite-de-combat');
     expect(hero().characteristics['capacite-de-combat']).toBe(before);
     expect(hero().xp).toBe(2000);
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(moneyBefore);
@@ -119,7 +119,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     hero().xp = opt.xpCost - 1;
     const moneyBefore = toBrass(partyMoneyTotal(banc.getState));
     const leftBefore = st(heroId).left;
-    banc.getState().interludeEntrainement(heroId, 'skill', opt.id, opt.spec);
+    banc.getState().suivreLEntrainement(heroId, 'skill', opt.id, opt.spec);
     expect(hero().skills.find((s) => s.id === opt.id && memeSpecialisation(s.spec, opt.spec))).toBeUndefined();
     expect(hero().xp).toBe(opt.xpCost - 1);
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(moneyBefore);
@@ -132,7 +132,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const opt = pickSkill(false);
     debitBourse(banc.getState, banc.setState, heroId, bourseOf(hero())); // vide la bourse : ne couvre même pas 1 sc
     const leftBefore = st(heroId).left;
-    banc.getState().interludeEntrainement(heroId, 'skill', opt.id, opt.spec);
+    banc.getState().suivreLEntrainement(heroId, 'skill', opt.id, opt.spec);
     expect(hero().skills.find((s) => s.id === opt.id && memeSpecialisation(s.spec, opt.spec))).toBeUndefined();
     expect(hero().xp).toBe(2000);
     expect(st(heroId).left).toBe(leftBefore);
@@ -145,7 +145,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const itl = banc.getState().interlude!;
     itl.perHero[heroId] = { ...st(heroId), left: 0 };
     banc.setState({ interlude: { ...itl } });
-    banc.getState().interludeEntrainement(heroId, 'skill', opt.id, opt.spec);
+    banc.getState().suivreLEntrainement(heroId, 'skill', opt.id, opt.spec);
     expect(hero().skills.find((s) => s.id === opt.id && memeSpecialisation(s.spec, opt.spec))).toBeUndefined();
     expect(st(heroId).left).toBe(0);
     expect(banc.getState().journal.slice(-1)[0]).toBe('H n’a plus d’Activité d’interlude.');

@@ -7,7 +7,7 @@
  * snapshot de l'hôte l'efface (`coop.instantaneDeLaCoop`).
  *
  * Le défaut mesuré : le clic du combattant (`cliquerLaCase`) est un intent d'allowlist, donc chez l'invité il partait à
- * l'hôte, qui exécutait `dispelSelectCarrier` DANS SON PROPRE STORE — un panneau étranger s'ouvrait
+ * l'hôte, qui exécutait `designerLeSupport` DANS SON PROPRE STORE — un panneau étranger s'ouvrait
  * chez l'hôte, et l'invité n'en voyait jamais aucun (son élection n'existait nulle part).
  *
  * La couture est celle, déjà écrite, du verdict d'armement (`localIntent.argsAvecVerdictLocal`) : ce
@@ -33,7 +33,7 @@ const table = (mode: 'host' | 'guest', porteurs: Record<string, number>) => banc
 describe('Dissipation en coop — l’élection du porteur ne voyage JAMAIS', () => {
   it('le porteur élu est ABSENT du snapshot (l’élection d’un joueur ne regarde pas les autres)', () => {
     table('host', { e1: 2 });
-    get().dispelSelectCarrier('e1');
+    get().designerLeSupport('e1');
     expect(get().dispelCarrierId, 'témoin : l’élection est bien posée avant la mesure').toBe('e1');
     expect('dispelCarrierId' in instantaneDeLaCoop(get()), 'le porteur élu de l’hôte part chez ses invités').toBe(false);
   });

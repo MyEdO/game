@@ -78,7 +78,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   if (!p) return null;
 
-  // Titre FRANC (arbitrage user 2026-07-11) : la nature de la halte + le lieu nommé par l'appelant d'`openRest`.
+  // Titre FRANC (arbitrage user 2026-07-11) : la nature de la halte + le lieu nommé par l'appelant d'`ouvrirLeRepos`.
   const lieu = <> — {p.lieu}</>;
   const title = p.places.auberge ? <><Icon id="rest/bed" size="sm" /> {t('rf.nightInn')}{lieu}</> : p.places.maison ? <><Icon id="time/night" size="sm" /> {t('rf.nightHome')}{lieu}</> : p.places.bord ? <><Icon id="travel/sail-ship" size="sm" /> {t('rf.nightAboard')}{lieu}</> : <><Icon id="rest/camp" size="sm" /> {t('rf.nightStars')}{lieu}</>;
 

@@ -180,7 +180,7 @@ describe('#1318 V4 — issue métier défavorable sur un TEST réussi : rien d�
     expect(b.some((t) => /Résilience/.test(t)), 'le Test est RÉUSSI : la Résilience ne s’offre pas (LDB 17 l.68)').toBe(false);
     // (b) le SEAM refuse aussi — l'affordance absente n'était pas une règle perdue.
     const avant = useGame.getState().battle!.combatants[0].fortune;
-    act(() => { useGame.getState().jetReroll('cast'); });
+    act(() => { useGame.getState().jetRelancer('cast'); });
     expect(useGame.getState().battle!.combatants[0].fortune, 'aucun Point de Chance débité').toBe(avant);
   });
 
@@ -197,7 +197,7 @@ describe('#1318 V4 — issue métier défavorable sur un TEST réussi : rien d�
     expect(b.some((t) => /Relancer/.test(t)), 'le d100 est RÉUSSI : la Chance ne s’offre pas (LDB 17 l.23)').toBe(false);
     expect(b.some((t) => /Résilience/.test(t)), 'le d100 est RÉUSSI : la Résilience ne s’offre pas (LDB 17 l.68)').toBe(false);
     const avant = useGame.getState().battle!.combatants[0].fortune;
-    act(() => { useGame.getState().jetReroll('test'); });
+    act(() => { useGame.getState().jetRelancer('test'); });
     expect(useGame.getState().battle!.combatants[0].fortune, 'aucun Point de Chance débité').toBe(avant);
   });
 });

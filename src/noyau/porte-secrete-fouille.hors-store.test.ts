@@ -59,7 +59,7 @@ const fouiller = () => banc.getState().fouillerLaPiece();
 const DUREE = rule('fouille-piece-minutes') as number;
 const resoudre = (success: boolean) => {
   banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: success ? 1 : 99, success, sl: success ? 3 : -3 } });
-  banc.getState().jetConfirm('test');
+  banc.getState().jetValider('test');
 };
 
 describe('Fouiller la pièce — le second déclencheur de la découverte', () => {

@@ -83,7 +83,7 @@ persistance — chaque combat spawn une coque fraîche.
   (pit #408, traversées interminables).
 - `when` (`Condition`) — PRATICABILITÉ du trajet, axe ARÊTE du gating narratif (anti-backtracking) :
   absent = toujours praticable ; faux = le trajet reste À L'ÉCRAN (le lieu déjà visité ne disparaît pas)
-  mais le départ est REFUSÉ — `startTravel` (`src/noyau/travelFlow.ts`) le revérifie au départ, au même
+  mais le départ est REFUSÉ — `partirEnVoyage` (`src/noyau/travelFlow.ts`) le revérifie au départ, au même
   niveau que `from` : la vue n'est pas le verrou.
 - `refus` — raison JOUEUR de l'indisponibilité, rendue en infobulle par `GatedAction`. **EXIGÉE dès que
   `when` est posé** (`mapRouteSchema`, `src/data/schemas/defs-scenes/worldmap.ts`) : un trajet fermé MUET
@@ -273,8 +273,8 @@ mécanisme dédié de rendu) — voir le patron complet dans
 ### 9quater. Persistance d'état des scènes au revisit (#707)
 
 Quand le groupe QUITTE puis REVIENT dans une scène déjà visitée, ses mutations de jeu sont conservées
-— une couche d'INSTANCE par `sceneId` (`sceneInstances`, posée par `transitionTo`, `src/noyau/entreeEnScene.ts`) capture le delta au
-départ et le réapplique au clone frais du document à l'entrée (`transitionTo`). Le document projet
+— une couche d'INSTANCE par `sceneId` (`sceneInstances`, posée par `quitterLaScene`, `src/noyau/entreeEnScene.ts`) capture le delta au
+départ et le réapplique au clone frais du document à l'entrée (`quitterLaScene`). Le document projet
 reste la SOURCE (rééditable) ; l'instance est superposée, sérialisée dans la save, répliquée en coop.
 
 **Ce qui PERSISTE au revisit** : les entités RETIRÉES (décor `interact.consume` fouillé, PNJ tués en

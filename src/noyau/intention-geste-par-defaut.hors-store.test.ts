@@ -68,7 +68,7 @@ describe('(a) le clic-SOL au-delà de la Marche exige la Course ARMÉE', () => {
     expect(zones().course.size, 'la zone de Course se peint sans avoir été demandée').toBe(0);
     get().jouerLOffre('course');
     expect(zones().course.size, 'la Course armée ne peint pas sa zone').toBeGreaterThan(0);
-    get().battleArmIntent(null);
+    get().armerLIntention(null);
     expect(zones().course.size, 'le désarmement laisse la zone de Course peinte').toBe(0);
   });
 
@@ -153,7 +153,7 @@ describe('(d) l’annulation reste GRATUITE par construction', () => {
     const { H } = setup();
     const avant = { mv: get().battle!.movementUsed ?? 0, acted: get().battle!.acted, adv: H.advantage };
     get().jouerLOffre('course');
-    get().battleArmIntent(null);
+    get().armerLIntention(null);
     expect(get().localIntent).toBeNull();
     const b = get().battle!;
     expect({ mv: b.movementUsed ?? 0, acted: b.acted, adv: b.combatants.find((c) => c.id === H.id)!.advantage }).toEqual(avant);

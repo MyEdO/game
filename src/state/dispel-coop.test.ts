@@ -31,7 +31,7 @@ describe('Dissipation en coop — l’élection du porteur ne voyage JAMAIS', ()
     try {
       cliquerSurLeCombattant(get, 'e1'); // 2 Sorts → élection LOCALE
       expect(get().dispelCarrierId, 'le substitut d’invité n’a pas joué l’élection en local').toBe('e1');
-      get().dispelSelectCarrier(null);
+      get().designerLeSupport(null);
       cliquerSurLeCombattant(get, 'e2'); // 1 Sort → geste de jeu, parti au réseau (donc inerte ici)
       expect(get().dispelCarrierId).toBeNull();
       expect(get().pendingDispel, 'le commit a été joué en local au lieu de partir en intent').toBeNull();

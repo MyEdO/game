@@ -49,7 +49,7 @@ describe('les erreurs d’un geste : catégorie, drapeau d’erreur, fichier int
     refuse(partie('dome', verbe('fenetreValider', 'roundStart')), geste, categorie, /./);
   });
   it('un verbe inconnu nomme les gestes de la fenêtre qui tient la main et ses voisins de nom', () => {
-    refuse(partie('dome'), verbe('fenetreValid'), 'validation', /verbe inconnu : fenetreValid ; gestes de la fenêtre roundStart : roundStartPromote, armPreempt, cliquerLaCase, fenetreValider@roundStart ; voisins : fenetreValider/);
+    refuse(partie('dome'), verbe('fenetreValid'), 'validation', /verbe inconnu : fenetreValid ; gestes de la fenêtre roundStart : promouvoirLeCombattant, armerLeTirPreventif, cliquerLaCase, fenetreValider@roundStart ; voisins : fenetreValider/);
   });
 });
 
@@ -75,10 +75,10 @@ describe('la partie et son fichier', () => {
   });
   it('une suite s’arrête au premier geste refusé : les précédents s’écrivent, lui non, la réponse dit combien sont passés', () => {
     const t = partie('dome');
-    const r = t.jouer(verbe('fenetreValider', 'roundStart'), { offre: 'charge' }, verbe('jetConfirm', 'cascade'), verbe('terminerLeTour'));
+    const r = t.jouer(verbe('fenetreValider', 'roundStart'), { offre: 'charge' }, verbe('jetValider', 'cascade'), verbe('terminerLeTour'));
     expect(r.erreur, r.texte).not.toBeNull();
     expect(r.lignes[0]).toMatch(/^2\/4 appliqués : fenetreValider · offre charge/);
-    expect(r.texte).toMatch(/geste 3\/4 refusé, rien de lui ne s’écrit : erreur regle : jetConfirm sans effet/);
+    expect(r.texte).toMatch(/geste 3\/4 refusé, rien de lui ne s’écrit : erreur regle : jetValider sans effet/);
     expect(r.texte, 'une seule vue, à la fin').toMatch(/intention armée : charge/);
     expect(t.fichier().trimEnd().split('\n')).toHaveLength(3);
   });
@@ -88,7 +88,7 @@ describe('la partie et son fichier', () => {
     expect(t.lire('vue').texte).not.toMatch(/intention armée/);
   });
   it('un geste refusé qui a touché l’état (son refus) ne laisse rien en mémoire : la partie est rejouée depuis le fichier', () => {
-    const t = partie('pont-vitrine', verbe('stepPartyRelative', 'back'));
+    const t = partie('pont-vitrine', verbe('avancerDUnPas', 'back'));
     const avant = t.lire('vue').texte;
     refuse(t, verbe('franchirLArete', { x: 13, y: 12 }, { x: 13, y: 13 }), 'regle', /franchirLArete sans effet : /);
     expect(t.lire('vue').texte, 'la mémoire a divergé du fichier : la vue garde le refus').toBe(avant);
@@ -133,14 +133,14 @@ describe('un geste sans effet se refuse (`regle`) et ne s’écrit pas', () => {
     }
   });
   it('valider une étape sans cascade ouverte', { timeout: 120_000 }, () => {
-    refuse(partie('dome', verbe('fenetreValider', 'roundStart')), verbe('jetConfirm', 'cascade'), 'regle', /jetConfirm sans effet/);
+    refuse(partie('dome', verbe('fenetreValider', 'roundStart')), verbe('jetValider', 'cascade'), 'regle', /jetValider sans effet/);
   });
   it('une Dissipation sans Langue (Magick) ne dit sa raison qu’au journal : sans effet, la ligne du journal est la raison', { timeout: 120_000 }, () => {
     refuse(partie('revisit'), verbe('dissiperLeSort', 'pregen-101', 'nulle-part', 'pregen-101'), 'regle', /dissiperLeSort sans effet : Il faut la compétence Langue \(Magick\)/);
   });
   it('un pas bloqué n’émet qu’un événement informatif : sans effet, l’événement est la raison', { timeout: 120_000 }, () => {
-    const t = partie('pont-vitrine', verbe('stepPartyRelative', 'back'));
-    refuse(t, verbe('stepPartyRelative', 'back'), 'regle', /stepPartyRelative sans effet : move_blocked/);
+    const t = partie('pont-vitrine', verbe('avancerDUnPas', 'back'));
+    refuse(t, verbe('avancerDUnPas', 'back'), 'regle', /avancerDUnPas sans effet : move_blocked/);
     expect(t.lire('vue').texte).toMatch(/groupe \(7,0\)/);
   });
   it('un clic du champ sous un coup ouvert (son jet en attente) : le noyau le refuse, sans aperçu posé', { timeout: 120_000 }, () => {
@@ -183,7 +183,7 @@ describe('les arguments de `jouer` se contrôlent contre le type du verbe', () =
     ['un Pt sans y', verbe('cliquerLaCase', { x: 3 }), /pt\.y manque/],
     ['un pid nombre', verbe('jetRegler', 'cascade', 'choix', 'devier', 0), /pid : une chaîne attendue/],
     ['un argument requis manquant', verbe('dissiperLeSort', 'sorciere'), /l’argument spellId manque/],
-    ['un argument en trop', verbe('jetConfirm', 'cascade', 1), /1 argument\(s\) au plus/],
+    ['un argument en trop', verbe('jetValider', 'cascade', 1), /1 argument\(s\) au plus/],
   ] as const)('%s lève `validation`', { timeout: 120_000 }, (_cas, geste, message) => {
     refuse(partie('dome', verbe('fenetreValider', 'roundStart')), geste, 'validation', message);
   });
@@ -193,7 +193,7 @@ describe('les arguments de `jouer` se contrôlent contre le type du verbe', () =
     refuse(t, verbe('actionnerLaPorte', 'door-open(2,3)'), 'validation', /porte : "door-open\(2,3\)" n’est pas un id de porte \(valides : 1:2,4:N:couloir:bureau\)/);
   });
   it('`null` omet un argument optionnel pour poser le suivant', { timeout: 120_000 }, () => {
-    const t = partie('revisit', verbe('transitionTo', 'test-revisit-couloir', null, { x: 1, y: 1 }));
+    const t = partie('revisit', verbe('quitterLaScene', 'test-revisit-couloir', null, { x: 1, y: 1 }));
     expect(t.lire('vue').texte).toMatch(/^scène test-revisit-couloir [^]*\ngroupe \(1,1\)/);
   });
 });
@@ -202,13 +202,13 @@ describe('les verbes et les scènes', () => {
   it('`lire verbes` rend la signature d’un verbe, ou les verbes dont le nom contient un morceau, sans partie', () => {
     const t = table();
     expect(t.lire('verbes', { id: 'cliquerLaCase' }).texte).toBe('cliquerLaCase(pt: {"x": nombre, "y": nombre, "z"?: nombre}, entite?: id de combattant ou d’entité de scène, opts?: {"confirm"?: booleen, "approche"?: booleen,\n  "courseArmee"?: booleen})');
-    expect(t.lire('verbes', { id: 'RoundStart' }).texte).toMatch(/roundStartPromote/);
+    expect(t.lire('verbes', { id: 'LeCombattant' }).texte).toMatch(/promouvoirLeCombattant/);
     const tous = t.lire('verbes');
     expect(tous.erreur).toBeNull();
     expect(tous.texte).toMatch(/\+\d+ : `lire \{"quoi":"verbes","depuis":80\}`/);
   });
-  it('toutes les scènes du scénario sont chargées : `transitionTo` mène à la scène sœur', { timeout: 120_000 }, () => {
-    const t = partie('revisit', verbe('transitionTo', 'test-revisit-couloir'));
+  it('toutes les scènes du scénario sont chargées : `quitterLaScene` mène à la scène sœur', { timeout: 120_000 }, () => {
+    const t = partie('revisit', verbe('quitterLaScene', 'test-revisit-couloir'));
     expect(t.lire('vue').texte).toMatch(/^scène test-revisit-couloir « Le Couloir »/);
   });
 });

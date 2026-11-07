@@ -69,9 +69,9 @@ describe('la fenêtre nomme ses verbes, et le pid qu’ils attendent, à chaque 
       const f = projeter(r.partie.etat(), r.gestes.length, r.journal.length).fenetre!;
       expect(f.etape?.interaction, 'témoin : l’étape courante est un tirage sur table').toBe('table');
       expect(f.pid).toBe(f.etape!.id);
-      expect(f.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@cascadeTirage', 'jetSetForcedRoll@cascadeTirage', 'jetConfirm@cascade']));
+      expect(f.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetLancer@cascadeTirage', 'jetImposerLeResultat@cascadeTirage', 'jetValider@cascade']));
       // La vue replie une ligne trop large en continuations indentées de deux espaces (`BORNES.largeur`).
-      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n').split('\n  ').join(' ')).toContain(`verbes (pid ${f.pid}) : jetRoll(flux: "cascadeTirage", pid?: chaine) · jetSetForcedRoll(flux: "cascadeTirage", roll: nombre, pid?: chaine)`);
+      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n').split('\n  ').join(' ')).toContain(`verbes (pid ${f.pid}) : jetLancer(flux: "cascadeTirage", pid?: chaine) · jetImposerLeResultat(flux: "cascadeTirage", roll: nombre, pid?: chaine)`);
       expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n'), 'la table se lit avant son tirage').toMatch(/^jet cascadeTirage : \S+ .+ à tirer$/m);
     });
   });
@@ -89,15 +89,15 @@ describe('la fenêtre nomme ses verbes, et le pid qu’ils attendent, à chaque 
       expect(f.gestes.filter((g) => !lu(g)).map(cleDuGeste), 'des gestes de la fenêtre manquent à la vue').toEqual([]);
     });
   });
-  it('l’étape-jet d’attaque nomme la pose du dé de son flux (`jetSetForcedRoll` sur `attack`)', { timeout: 120_000 }, () => {
+  it('l’étape-jet d’attaque nomme la pose du dé de son flux (`jetImposerLeResultat` sur `attack`)', { timeout: 120_000 }, () => {
     auPremierTour('dome', (r) => {
-      expect(projeter(r.partie.etat(), r.gestes.length, r.journal.length).fenetre!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@attack', 'jetConfirm@attack', 'jetSetForcedRoll@attack']));
+      expect(projeter(r.partie.etat(), r.gestes.length, r.journal.length).fenetre!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetLancer@attack', 'jetValider@attack', 'jetImposerLeResultat@attack']));
     }, { offre: 'charge' }, { type: 'cliquerLaCase', args: [{ x: 7, y: 5 }, 'enemy-enc-dome-1'] });
   });
 });
 
 describe('le jet se lit avant sa confirmation', () => {
-  it('après `jetRoll@attack`, la vue rend les rangées du jet (d100, cible, DR), la gagnante et le DR net, ceux de `pendingAttack.result`', { timeout: 120_000 }, () => {
+  it('après `jetLancer@attack`, la vue rend les rangées du jet (d100, cible, DR), la gagnante et le DR net, ceux de `pendingAttack.result`', { timeout: 120_000 }, () => {
     auPremierTour('dome', (r) => {
       const res = r.partie.etat().pendingAttack!.result!;
       const p = projeter(r.partie.etat(), r.gestes.length, r.journal.length);
@@ -106,7 +106,7 @@ describe('le jet se lit avant sa confirmation', () => {
       expect(jet.lignes[0]).toMatchObject({ genre: 'test', jet: { d100: res.attackerDetail!.roll, dr: res.attackerDetail!.sl, reussi: res.attackerDetail!.success } });
       expect(jet.lignes).toHaveLength(res.defenderDetail ? 2 : 1);
       expect(rendreLaVue(p).join('\n')).toMatch(/^jet attack : .* · (gagne : \S+|égalité) · DR net [+-]?\d+$/m);
-    }, { offre: 'charge' }, { type: 'cliquerLaCase', args: [{ x: 7, y: 5 }, 'enemy-enc-dome-1'] }, { type: 'jetRoll', args: ['attack'] });
+    }, { offre: 'charge' }, { type: 'cliquerLaCase', args: [{ x: 7, y: 5 }, 'enemy-enc-dome-1'] }, { type: 'jetLancer', args: ['attack'] });
   });
 });
 

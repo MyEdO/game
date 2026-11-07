@@ -215,14 +215,14 @@ describe('#1016 — gestes TERMINAUX de ces mêmes fenêtres (barre d’action /
 });
 
 describe('#1016 — pause de début de Round (`turn: -1`) : la FENÊTRE est à tous, ses GESTES ne le sont pas', () => {
-  it('roundStartPromote : le siège du héros promu agit (LDB 17 l.25) ; un autre siège est refusé', () => {
+  it('promouvoirLeCombattant : le siège du héros promu agit (LDB 17 l.25) ; un autre siège est refusé', () => {
     setup({}, -1);
     banc.setState({ pendingRoundStart: { round: 2 } });
     const b = banc.getState().battle!;
     banc.setState({ battle: { ...b, order: ['e1', 'h2', 'e2', 'h3'] } });
-    expect(applyIntent(2, 'roundStartPromote', ['h2'])).toBe('refusee');
+    expect(applyIntent(2, 'promouvoirLeCombattant', ['h2'])).toBe('refusee');
     expect(banc.getState().battle!.order[0], 'un autre siège dépensait la Chance de h2').toBe('e1');
-    expect(applyIntent(1, 'roundStartPromote', ['h2']), 'sans route, AUCUN siège invité ne promeut (pas de combattant actif)').toBe('appliquee');
+    expect(applyIntent(1, 'promouvoirLeCombattant', ['h2']), 'sans route, AUCUN siège invité ne promeut (pas de combattant actif)').toBe('appliquee');
     expect(banc.getState().battle!.order[0]).toBe('h2');
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'h2')!.fortune).toBe(1);
   });

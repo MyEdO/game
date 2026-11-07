@@ -33,16 +33,16 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     const valides = refuseLId(t, verbe('cliquerLaCase', { x: 7, y: 5 }, 'nobody'), /entite : "nobody" n’est pas un id de combattant ou d’entité de scène \(valides : .*enemy-enc-dome-1/);
     passeLeControle(t, verbe('cliquerLaCase', { x: 7, y: 5 }, valides.find((id) => id.startsWith('enemy'))!));
   });
-  it('héros : `createLoadout`', { timeout: 120_000 }, () => {
+  it('héros : `creerLaPanoplie`', { timeout: 120_000 }, () => {
     const t = partie('revisit');
-    const [heros] = refuseLId(t, verbe('createLoadout', 'nobody'), /heroId : "nobody" n’est pas un id de héros \(valides : /);
-    const r = t.jouer(verbe('createLoadout', heros));
+    const [heros] = refuseLId(t, verbe('creerLaPanoplie', 'nobody'), /heroId : "nobody" n’est pas un id de héros \(valides : /);
+    const r = t.jouer(verbe('creerLaPanoplie', heros));
     expect(r.erreur, r.texte).toBeNull();
   });
-  it('scène : `transitionTo`', { timeout: 120_000 }, () => {
+  it('scène : `quitterLaScene`', { timeout: 120_000 }, () => {
     const t = partie('revisit');
-    const valides = refuseLId(t, verbe('transitionTo', 'nulle-part'), /sceneId : "nulle-part" n’est pas un id de scène \(valides : .*test-revisit-couloir/);
-    const r = t.jouer(verbe('transitionTo', valides.find((id) => id === 'test-revisit-couloir')!));
+    const valides = refuseLId(t, verbe('quitterLaScene', 'nulle-part'), /sceneId : "nulle-part" n’est pas un id de scène \(valides : .*test-revisit-couloir/);
+    const r = t.jouer(verbe('quitterLaScene', valides.find((id) => id === 'test-revisit-couloir')!));
     expect(r.erreur, r.texte).toBeNull();
   });
   it('entité de scène : `cliquerLaCase`', { timeout: 120_000 }, () => {
@@ -55,31 +55,31 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     const [porte] = refuseLId(t, verbe('actionnerLaPorte', 'nobody'), /porte : "nobody" n’est pas un id de porte \(valides : /);
     passeLeControle(t, verbe('actionnerLaPorte', porte));
   });
-  it('indice : `toggleCluePin`, et chaque indice affiché de `markCluesSeen`', { timeout: 120_000 }, () => {
+  it('indice : `epinglerLIndice`, et chaque indice affiché de `marquerLesIndices`', { timeout: 120_000 }, () => {
     const t = partie('enquete-carnet');
-    refuseLId(t, verbe('toggleCluePin', 'ind-rumeur-forgeron'), /indiceId : "ind-rumeur-forgeron" n’est pas un id d’indice \(valides : aucun ici\)/);
+    refuseLId(t, verbe('epinglerLIndice', 'ind-rumeur-forgeron'), /indiceId : "ind-rumeur-forgeron" n’est pas un id d’indice \(valides : aucun ici\)/);
     expect(t.jouer(verbe('cliquerLaCase', { x: 7, y: 6 })).erreur).toBeNull();
-    const [indice] = refuseLId(t, verbe('toggleCluePin', 'nobody'), /indiceId : "nobody" n’est pas un id d’indice \(valides : ind-rumeur-forgeron\)/);
-    refuseLId(t, verbe('markCluesSeen', [{ id: 'nobody', étapes: 1, statut: 'réfuté', stadeCourant: 's1' }]), /affichés\[0\]\.id : "nobody" n’est pas un id d’indice/);
-    passeLeControle(t, verbe('toggleCluePin', indice));
+    const [indice] = refuseLId(t, verbe('epinglerLIndice', 'nobody'), /indiceId : "nobody" n’est pas un id d’indice \(valides : ind-rumeur-forgeron\)/);
+    refuseLId(t, verbe('marquerLesIndices', [{ id: 'nobody', étapes: 1, statut: 'réfuté', stadeCourant: 's1' }]), /affichés\[0\]\.id : "nobody" n’est pas un id d’indice/);
+    passeLeControle(t, verbe('epinglerLIndice', indice));
   });
-  it('pré-tiré : `partyAddHero`, le noyau bâtit le héros de la donnée', { timeout: 120_000 }, () => {
+  it('pré-tiré : `recruterLeHeros`, le noyau bâtit le héros de la donnée', { timeout: 120_000 }, () => {
     const t = partie('revisit');
-    const [pretire] = refuseLId(t, verbe('partyAddHero', { pretire: 'nobody' }), /heros\.pretire : "nobody" n’est pas un id de pré-tiré \(valides : /);
-    passeLeControle(t, verbe('partyAddHero', { pretire }));
+    const [pretire] = refuseLId(t, verbe('recruterLeHeros', { pretire: 'nobody' }), /heros\.pretire : "nobody" n’est pas un id de pré-tiré \(valides : /);
+    passeLeControle(t, verbe('recruterLeHeros', { pretire }));
   });
-  it('porteur et objet : `toggleEquip`', { timeout: 120_000 }, () => {
+  it('porteur et objet : `equiperLObjet`', { timeout: 120_000 }, () => {
     const t = partie('revisit');
-    const [heros] = refuseLId(t, verbe('toggleEquip', 'nobody', 'x'), /heroId : "nobody" n’est pas un id de porteur \(valides : /);
-    const [objet] = refuseLId(t, verbe('toggleEquip', heros, 'nobody'), /uid : "nobody" n’est pas un id d’objet \(valides : /);
-    const r = t.jouer(verbe('toggleEquip', heros, objet));
+    const [heros] = refuseLId(t, verbe('equiperLObjet', 'nobody', 'x'), /heroId : "nobody" n’est pas un id de porteur \(valides : /);
+    const [objet] = refuseLId(t, verbe('equiperLObjet', heros, 'nobody'), /uid : "nobody" n’est pas un id d’objet \(valides : /);
+    const r = t.jouer(verbe('equiperLObjet', heros, objet));
     expect(r.erreur, r.texte).toBeNull();
   });
-  it('possession : `renamePossession`, aucune ici', { timeout: 120_000 }, () => {
-    refuseLId(partie('revisit'), verbe('renamePossession', 'nobody', 'x'), /uid : "nobody" n’est pas un id de possession \(valides : aucun ici\)/);
+  it('possession : `renommerLaPossession`, aucune ici', { timeout: 120_000 }, () => {
+    refuseLId(partie('revisit'), verbe('renommerLaPossession', 'nobody', 'x'), /uid : "nobody" n’est pas un id de possession \(valides : aucun ici\)/);
   });
-  it('un id dans un tableau : `setMassBattleHero`', { timeout: 120_000 }, () => {
-    refuseLId(partie('revisit'), verbe('setMassBattleHero', 'a', ['nobody']), /heroIds\[0\] : "nobody" n’est pas un id de héros/);
+  it('un id dans un tableau : `affecterLeHeros`', { timeout: 120_000 }, () => {
+    refuseLId(partie('revisit'), verbe('affecterLeHeros', 'a', ['nobody']), /heroIds\[0\] : "nobody" n’est pas un id de héros/);
   });
   it('la signature dit ce que le paramètre désigne', () => {
     const r = table().lire('verbes', { id: 'cliquerLaCase' });

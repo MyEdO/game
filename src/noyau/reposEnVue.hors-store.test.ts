@@ -18,7 +18,7 @@ function relais() {
   const b = createHero({ speciesId: 'nains', careerId: 'artisan', label: 'Borin', seed: 12 });
   for (const h of [a, b]) h.items = (h.items ?? []).filter((i) => !isRation(i));
   const banc = ouvrirLeBanc({ graine: 7, etat: { party: [a, b] } });
-  banc.actions.openRest({ lieu: fixtureText('Le relais'), places: { auberge: true } });
+  banc.actions.ouvrirLeRepos({ lieu: fixtureText('Le relais'), places: { auberge: true } });
   const vue = () => reposEnVue(banc.getState())!;
   const dernier = () => banc.getState().journal.slice(-1)[0];
   return { banc, a, b, vue, dernier };

@@ -63,9 +63,9 @@ describe('chaque argument d’un verbe de fenêtre se dessine en mots du joueur'
 
 describe('un argument qui désigne un élément de l’état se choisit parmi ses éléments nommés (#2937)', () => {
   it.each([
-    ['harvestCreature', 'creatureId', 'IdDeCreatureADepecer'],
-    ['roundStartPromote', 'heroId', 'IdDeCombattantPromouvable'],
-    ['armPreempt', 'heroId', 'IdDeTireurRapide'],
+    ['depecerLaCreature', 'creatureId', 'IdDeCreatureADepecer'],
+    ['promouvoirLeCombattant', 'heroId', 'IdDeCombattantPromouvable'],
+    ['armerLeTirPreventif', 'heroId', 'IdDeTireurRapide'],
   ])('%s.%s désigne %s', (verbe, nom, cle) => {
     const p = VERBES[verbe].find((x) => x.nom === nom)!;
     const membres = p.forme.genre === 'union' ? p.forme.membres : [p.forme];

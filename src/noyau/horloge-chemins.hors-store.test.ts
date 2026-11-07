@@ -46,7 +46,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
   it('nuit du joueur (`restFlow`) : la modale de repos, Dormir, puis la cascade de nuit tirent l’échéance', () => {
     set({ party: makePregens().slice(0, 1), scene: emptyScene('scene-test', 10, 10), gameTime: campaignStart() + 20 * 60 });
     const t0 = armeLEcheance();
-    get().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
+    get().ouvrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
     get().fenetreValider('rest');
     expect(get().pendingRest, 'Dormir a été refusé').toBeNull();
     draineCascade(get, 30);
@@ -66,7 +66,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
     get().loadProject({ scenes: [scene('lieu-a'), scene('lieu-b')], entryId: 'lieu-a', worldMap: carte, projet: null });
     set({ gameTime: campaignStart(), flags: {}, scheduledEffects: [] });
     const t0 = armeLEcheance();
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     attendQueLEcheanceTire(t0);
   });
 
@@ -92,7 +92,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
     set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [], flags: {}, scheduledEffects: [] });
     creditBourse(get, set, gunnar.id, { gold: 500, silver: 0, brass: 0 });
     const t0 = armeLEcheance();
-    get().startTravel('r-reik', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jour-par-jour' });
     draineCascade(get, 30);
     attendQueLEcheanceTire(t0);
   });
@@ -112,7 +112,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     } as never);
     const t0 = armeLEcheance();
-    get().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
     draineCascade(get, 30);
     attendQueLEcheanceTire(t0);
   });

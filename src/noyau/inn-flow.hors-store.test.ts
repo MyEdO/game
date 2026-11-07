@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { gatherInnInfo, innGatherInfoMinutes } from './innFlow';
+import { recueillirLesRumeurs, innGatherInfoMinutes } from './innFlow';
 import { seedBattleRng } from './battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
 import { buildScene } from './mapSpec';
@@ -59,8 +59,8 @@ function drainCascade(): void {
   while (get().pendingCascade && n++ < 20) {
     const p = get().pendingCascade!;
     const cur = p.participants[p.cursor];
-    if (cur && cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
-    else get().jetConfirm('cascade');
+    if (cur && cur.target != null && !cur.result) get().jetLancer('cascade', cur.id);
+    else get().jetValider('cascade');
   }
 }
 
@@ -68,7 +68,7 @@ describe('#352 — Recueillir des informations à l’auberge (activité canoniq
   it('succès (Ragot élevé) : une rumeur ajoutée au board tradeRumours, aucun Exténué, l’horloge avance', () => {
     launch(60, 7);
     const before = get().gameTime;
-    gatherInnInfo(get, set);
+    recueillirLesRumeurs(get, set);
     drainCascade();
     expect(get().tradeRumours.length).toBe(1);
     expect(get().tradeRumours[0].placeId).toBe('B'); // AUTRE Lieu à `market`
@@ -79,7 +79,7 @@ describe('#352 — Recueillir des informations à l’auberge (activité canoniq
   it('échec (aucune Compétence Ragot) : aucune rumeur, Exténué octroyé (EDOC 8 l.133), l’horloge avance quand même', () => {
     launch(0, 42);
     const before = get().gameTime;
-    gatherInnInfo(get, set);
+    recueillirLesRumeurs(get, set);
     drainCascade();
     expect(get().tradeRumours.length).toBe(0);
     expect(stacks(get().party[0], 'extenue')).toBeGreaterThan(0);

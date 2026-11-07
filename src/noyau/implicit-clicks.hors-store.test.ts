@@ -123,13 +123,13 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
     expect(computeRunReach(banc.getState).size).toBe(0);
   });
 
-  it('jetConfirm@run : jet généreux → arrive à destination, Action consommée', () => {
+  it('jetValider@run : jet généreux → arrive à destination, Action consommée', () => {
     const { H } = setup();
     const p = { ...banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos! };
     const M = effectiveMovement(H);
     const dest = { x: p.x + M + 2, y: p.y };
     banc.setState({ pendingRun: { combatantId: H.id, test: testDeRegle('course', 'courir'), dest, result: { success: true, roll: 10, target: 60, dr: 4, bonusCases: 2 * M } } });
-    banc.getState().jetConfirm('run');
+    banc.getState().jetValider('run');
     const st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(dest);
     expect(st.battle!.acted).toBe(true);
@@ -142,7 +142,7 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
     const M = effectiveMovement(H);
     const dest = { x: p.x + M + 2, y: p.y }; // coût M+2 ; budget M + 2M = 3M → reliquat 2M−2
     banc.setState({ pendingRun: { combatantId: H.id, test: testDeRegle('course', 'courir'), dest, result: { success: true, roll: 10, target: 60, dr: 4, bonusCases: 2 * M } } });
-    banc.getState().jetConfirm('run');
+    banc.getState().jetValider('run');
     let st = banc.getState();
     const h = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(st.battle!.runBudget).toBe(3 * M);
@@ -161,7 +161,7 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
     const dest = { x: p.x + 2 * M, y: p.y }; // demandé : 2M cases plein est
     // Jet désastreux : bonus de Course 1 seule case → budget total M+1.
     banc.setState({ pendingRun: { combatantId: H.id, test: testDeRegle('course', 'courir'), dest, result: { success: false, roll: 96, target: 60, dr: -3, bonusCases: 1 } } });
-    banc.getState().jetConfirm('run');
+    banc.getState().jetValider('run');
     const st = banc.getState();
     const h = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.pos).toEqual({ x: p.x + M + 1, y: p.y }); // au max du possible le long du chemin

@@ -26,7 +26,7 @@ function castTarget(discreet: boolean): number {
   banc.getState().seedRng(5);
   banc.getState().incanterLeSort(p.id, 'benediction-de-guerison', p.id);
   if (discreet) banc.getState().jetRegler('cast', 'discret', true);
-  banc.getState().jetRoll('cast');
+  banc.getState().jetLancer('cast');
   return banc.getState().pendingCast!.result!.target;
 }
 

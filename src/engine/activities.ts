@@ -989,7 +989,7 @@ export function tutorCostRange(talentXpCost: number): { minBrass: number; maxBra
 }
 
 export interface LearnOption {
-  /** `id` STABLE du Talent — clé de `learnFails` et `opts.talentId` d'`interludeActivity('learn')`. */
+  /** `id` STABLE du Talent — clé de `learnFails` et `opts.talentId` de `pratiquerLActivite('learn')`. */
   id: string;
   label: string;
   /** Coût PX de la PROCHAINE acquisition (talentCost × fois déjà prises). */

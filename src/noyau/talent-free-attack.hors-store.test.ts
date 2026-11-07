@@ -48,7 +48,7 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
     H.talents = [...(H.talents ?? []), { talentId: 'assaut-feroce', times: 1 }];
     H.advantage = 3; // de quoi payer l'attaque supplémentaire (coût Avantage)
     banc.setState({ battle: { ...banc.getState().battle!, acted: false }, pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT } });
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.freeAttacksThisTurn?.['assaut-feroce']).toBe(1); // le talent a tiré son attaque supplémentaire, 1× ce Round
   });
@@ -75,7 +75,7 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
     const { H, E } = setup();
     H.advantage = 3;
     banc.setState({ battle: { ...banc.getState().battle!, acted: false }, pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT } });
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.freeAttacksThisTurn?.['assaut-feroce']).toBeUndefined();
   });
@@ -131,8 +131,8 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
     // Maladresse est un dé du HÉROS (`jetSurfaced`), que le pilote mène par `JET_AUTO.fumble`.
     const pc = banc.getState().pendingCascade!;
     expect(pc.participants[pc.cursor]).toMatchObject({ jet: 'fumble', actorId: H.id });
-    banc.getState().jetRoll('fumble');
-    banc.getState().jetConfirm('fumble');
+    banc.getState().jetLancer('fumble');
+    banc.getState().jetValider('fumble');
     expect(banc.getState().pendingCascade).toBeNull();
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.freeAttacksThisTurn?.['frappe-reactive']).toBe(1); // a riposté 1× contre ce chargeur

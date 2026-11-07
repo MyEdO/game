@@ -106,13 +106,13 @@ describe('identitesResolues + nommer — le paquet suit le héros désigné', ()
 
   it('le désigné REMPLACÉ dans le groupe : le nom reste celui figé à la désignation', () => {
     designer([heros('h1', 'humains-reiklander', 'M'), heros('h2', 'nains', 'F')], 'h2');
-    get().partyReplaceHero('h2', engageDe('h3', 'humains-reiklander', 'M'));
+    get().remplacerLeHeros('h2', engageDe('h3', 'humains-reiklander', 'M'));
     expect(nommer('Kastor Lieberung', enVigueur())).toBe('Kallar Linkassniz');
   });
 
   it('le désigné RÉÉDITÉ (même id, autre espèce et sexe) : le nom reste celui figé à la désignation', () => {
     designer([heros('h2', 'nains', 'F')], 'h2');
-    get().partyReplaceHero('h2', engageDe('h2', 'humains-reiklander', 'M'));
+    get().remplacerLeHeros('h2', engageDe('h2', 'humains-reiklander', 'M'));
     expect(nommer('Kastor Lieberung', enVigueur())).toBe('Kallar Linkassniz');
   });
 

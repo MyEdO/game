@@ -141,7 +141,7 @@ describe('coutures du héros en combat (#2312)', () => {
     cbt(id).weapons = [];
     const avant = cbt(id).fortune ?? 0;
     expect(avant).toBeGreaterThan(0);
-    banc.getState().roundStartPromote(id);
+    banc.getState().promouvoirLeCombattant(id);
     expect(cbt(id).fortune).toBe(avant - 1);
     banc.setState({ pendingRoundStart: null });
     fin();
@@ -222,12 +222,12 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
 
   /** Une dépense valide pour `c` (lu là où le jeu lit), hors du refus. */
   const DEPENSES: Record<string, (c: Combatant) => void> = {
-    buyCharAdvance: (c) => banc.getState().buyCharAdvance(c.id, 'capacite-de-combat'),
-    buySkillAdvance: (c) => { const sk = buildAdvancementView(banc.getState(), c).skills.find((x) => x.known)!; banc.getState().buySkillAdvance(c.id, sk.skill); },
-    buyTalent: (c) => { const ta = buildAdvancementView(banc.getState(), c).talents.find((x) => x.talentId && !x.maxReached)!; banc.getState().buyTalent(c.id, ta.talentId!, ta.spec); },
-    buySpell: (c) => banc.getState().buySpell(c.id, learnableSpells(c).find((x) => x.cost > 0)!.spell.id),
-    trainProsthesis: (c) => banc.getState().trainProsthesis(c.id, c.items!.find((i) => i.trappingId === 'fausse-jambe')!.uid),
-    changeCareer: (c) => banc.getState().changeCareer(c.id, careers.find((x) => x.id !== c.career)!.id, 1),
+    acheterLaCaracteristique: (c) => banc.getState().acheterLaCaracteristique(c.id, 'capacite-de-combat'),
+    acheterLaCompetence: (c) => { const sk = buildAdvancementView(banc.getState(), c).skills.find((x) => x.known)!; banc.getState().acheterLaCompetence(c.id, sk.skill); },
+    acheterLeTalent: (c) => { const ta = buildAdvancementView(banc.getState(), c).talents.find((x) => x.talentId && !x.maxReached)!; banc.getState().acheterLeTalent(c.id, ta.talentId!, ta.spec); },
+    acheterLeSort: (c) => banc.getState().acheterLeSort(c.id, learnableSpells(c).find((x) => x.cost > 0)!.spell.id),
+    entrainerLaProthese: (c) => banc.getState().entrainerLaProthese(c.id, c.items!.find((i) => i.trappingId === 'fausse-jambe')!.uid),
+    changerDeCarriere: (c) => banc.getState().changerDeCarriere(c.id, careers.find((x) => x.id !== c.career)!.id, 1),
   };
 
   const heros = (): Combatant => {
@@ -360,7 +360,7 @@ describe('la composition du groupe ne change pas en combat (#2312)', () => {
     const avant = structuredClone(banc.getState().party);
     const s = banc.getState();
     // En combat, le refus se dit à l'écran du geste (`refuserGeste`) : chaque geste le pose à neuf.
-    for (const geste of [() => s.partyAddHero(engage('autre')), () => s.partyRemoveHero(id), () => s.partyReplaceHero(id, engage(id))]) {
+    for (const geste of [() => s.recruterLeHeros(engage('autre')), () => s.renvoyerLeHeros(id), () => s.remplacerLeHeros(id, engage(id))]) {
       banc.setState({ refus: null });
       geste();
       expect(banc.getState().refus?.texte).toBe('La composition du groupe ne change pas en combat.');
@@ -371,7 +371,7 @@ describe('la composition du groupe ne change pas en combat (#2312)', () => {
   it('hors combat, la composition change', () => {
     const id = combat();
     banc.setState({ battle: null });
-    banc.getState().partyRemoveHero(id);
+    banc.getState().renvoyerLeHeros(id);
     expect(banc.getState().party.some((h) => h.id === id)).toBe(false);
   });
 });

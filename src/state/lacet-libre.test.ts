@@ -117,10 +117,10 @@ describe('rotateCam — la rotation par CRAN de l’éditeur et des bancs', () =
 });
 
 describe('ANGLE INITIAL — une partie arrivée en vue de face repart d’un cran diagonal', () => {
-  it("l'entrée de scène (transitionTo) ramène la vue au cran diagonal", () => {
+  it("l'entrée de scène (quitterLaScene) ramène la vue au cran diagonal", () => {
     g().startScene(testScene());
     useGame.setState({ camEdge: true });
-    g().transitionTo(testScene().id);
+    g().quitterLaScene(testScene().id);
     expect(g().camEdge).toBe(false);
   });
 });

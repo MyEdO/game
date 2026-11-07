@@ -42,8 +42,8 @@ export function LandMarketView() {
   const buy = useGame((s) => s.acheterLaCargaison);
   const sell = useGame((s) => s.vendreLaCargaison);
   const dump = useGame((s) => s.jeterLaCargaison);
-  const move = useGame((s) => s.moveCargo);
-  const evalWine = useGame((s) => s.landEvalWine);
+  const move = useGame((s) => s.deplacerLaCargaison);
+  const evalWine = useGame((s) => s.evaluerLeVin);
   const refusEval = appraiseRefus(party);
   const net = useGame((s) => s.net);
   const refusHote = refusDeGesteSurLeGroupe({ net });

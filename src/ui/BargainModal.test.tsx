@@ -29,7 +29,7 @@ const base: PendingBargain = {
 const noop = () => {};
 
 /** #1882 — le marchand est un PNJ de scène : sa ligne adverse porte SA fiche (`sceneNpc`), preset compris,
- *  résolue à l'ouverture (`startBargain`) et lue par la modale dans le pending. */
+ *  résolue à l'ouverture (`marchanderLePrix`) et lue par la modale dans le pending. */
 describe('BargainModal — le marchand à preset joue sa fiche', () => {
   afterEach(() => { useGame.setState({ campaignNarratif: null, merchant: null, pendingBargain: null }); });
 
@@ -42,7 +42,7 @@ describe('BargainModal — le marchand à preset joue sa fiche', () => {
     const negociateur = blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'hero', items: [], characteristics: profilDeTest({ sociabilite: 40 }), skills: [], talents: [], wounds: blessuresDeBase(10), conditions: [], weapons: [], armour: {} }) as unknown as Combatant;
     useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'marchand-nomme', base: 'nain', profil: { label: 'Gunther le Négociant' } }] }, scene, party: [negociateur] });
     useGame.getState().openMerchant('marchand');
-    useGame.getState().startBargain('buy');
+    useGame.getState().marchanderLePrix('buy');
     const pb = useGame.getState().pendingBargain!;
     const fiche = sceneNpc(scene, 'marchand', presetPnjById)!;
     expect(fiche.creatureId).toBe('nain');

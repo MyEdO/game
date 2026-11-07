@@ -3,7 +3,7 @@
  * FLOWS.battement/FLOWS.distraire → resolveBattement/resolveDistraire produit bien l'effet RAW :
  *  - Battement (LDB 10 l.103) : Action, Test de CC non opposé → retire de l'Avantage adverse ;
  *  - Distraire (LDB 10 l.364) : Mouvement, Test opposé Athlétisme vs Calme → pose `distractedRounds`.
- * On pilote le VRAI flux (battleX → jetRoll(flux) → jetConfirm(flux)), avec des Caractéristiques rendant l'issue
+ * On pilote le VRAI flux (battleX → jetLancer(flux) → jetValider(flux)), avec des Caractéristiques rendant l'issue
  * déterministe, et on vérifie l'effet + le coût (Action pour Battement, Mouvement pour Distraire).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -57,10 +57,10 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     expect(pb!.foeId).toBe(E.id);
     expect(pb!.result).toBeNull(); // rien n’est tiré avant Lancer
 
-    banc.getState().jetRoll('battement'); // le flux tire le jet de CC (figé)
-    banc.getState().jetForceSuccess('battement'); // Résilience → le jet du flux est forcé en réussite (LDB 17 l.68)
+    banc.getState().jetLancer('battement'); // le flux tire le jet de CC (figé)
+    banc.getState().jetForcerLaReussite('battement'); // Résilience → le jet du flux est forcé en réussite (LDB 17 l.68)
     expect(banc.getState().pendingBattement!.result!.success).toBe(true);
-    banc.getState().jetConfirm('battement'); // Appliquer → resolveBattement
+    banc.getState().jetValider('battement'); // Appliquer → resolveBattement
 
     const st = banc.getState();
     expect(st.pendingBattement).toBeNull();
@@ -82,9 +82,9 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     expect(pd!.atk).toBeNull(); // Athlétisme du mover pas encore lancé
     expect(pd!.defRoll).toBeTruthy(); // Calme du foe déjà figé
 
-    banc.getState().jetRoll('distraire'); // le flux tire l’Athlétisme, opposé au Calme figé
+    banc.getState().jetLancer('distraire'); // le flux tire l’Athlétisme, opposé au Calme figé
     expect(banc.getState().pendingDistraire!.result).toBe('success');
-    banc.getState().jetConfirm('distraire'); // Appliquer → resolveDistraire
+    banc.getState().jetValider('distraire'); // Appliquer → resolveDistraire
 
     const st = banc.getState();
     expect(st.pendingDistraire).toBeNull();
@@ -99,9 +99,9 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     H.characteristics['capacite-de-combat'] = 1; // échec quasi certain
     engage(H, E);
     banc.getState().faireUnBattement();
-    banc.getState().jetRoll('battement');
+    banc.getState().jetLancer('battement');
     expect(banc.getState().pendingBattement!.result!.success).toBe(false);
-    banc.getState().jetConfirm('battement');
+    banc.getState().jetValider('battement');
     const e2 = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     expect(e2.advantage).toBe(3); // rien retiré sur un échec (manv.battementFail)
   });
@@ -158,7 +158,7 @@ describe('Battement & Distraire — le verdict d’offre porte la condition de C
     expect(actionGate('distraire', ctx(H)).ok, 'une fumée entre les deux ne ferme pas le geste').toBe(true);
     banc.getState().tenterDeDistraire();
     expect(banc.getState().pendingDistraire?.foeId, 'le dispatcher ouvre bien sur cet adversaire').toBe(E.id);
-    banc.getState().jetCancel('distraire');
+    banc.getState().jetAnnuler('distraire');
     const b2 = banc.getState().battle!;
     b2.combatants.filter((c) => c.kind === 'enemy').forEach((c) => (c.dead = true));
     banc.setState({ battle: { ...b2 } });

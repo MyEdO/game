@@ -42,7 +42,7 @@ describe('LandMarketView — « Évaluer » le vin suit qui peut tenter le Test 
       battle: null, worldMap: landMap, lieu: 'A', travelPlan: null, landMarket: null, journal: [],
     } as never);
     seedBattleRng(3);
-    get().openLandMarket();
+    get().ouvrirLeMarche();
   });
 
   it('un héros formé à l’Évaluation : le geste est offert', () => {
@@ -80,7 +80,7 @@ describe('LandMarketView — « Acheter » lit le refus du noyau (#3059, MSRC 13
     } as never);
     creditBourse(get, useGame.setState.bind(useGame), get().party[0].id, { gold: 5000, silver: 0, brass: 0 });
     seedBattleRng(3);
-    get().openLandMarket();
+    get().ouvrirLeMarche();
   });
 
   it('lot sous le minimum, porteur libre et bourse pleine : le geste est fermé sur le lot minimal (MSRC 13 l.131)', () => {

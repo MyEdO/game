@@ -126,7 +126,7 @@ export interface NightEntry {
 
 export interface PendingRest extends PendingBase {
   places: RestPlaces;
-  /** OÙ le groupe passe la nuit, nommé par l'APPELANT d'`openRest` (relais ou bivouac de la route,
+  /** OÙ le groupe passe la nuit, nommé par l'APPELANT d'`ouvrirLeRepos` (relais ou bivouac de la route,
    *  bord du bateau, scène courante) — seul lieu du titre de la modale. */
   lieu: PlayerText;
   /** Piètre : ½ prix, nourriture à risque (Courante galopante 10 %) — LDB 66. */
@@ -601,7 +601,7 @@ export function restPlacesHere(st: Jeu): { places: RestPlaces; quality: 'normale
   return { places, quality: zone?.quality ?? sc.rest?.quality ?? 'normale' };
 }
 
-/** Options d'`openRest` : l'APPELANT dit où le groupe dort (`places` = l'offre, `lieu` = son nom). */
+/** Options d'`ouvrirLeRepos` : l'APPELANT dit où le groupe dort (`places` = l'offre, `lieu` = son nom). */
 export interface OpenRestOpts {
   lieu: PlayerText;
   places?: RestPlaces;
@@ -614,7 +614,7 @@ export interface OpenRestOpts {
 }
 
 /** Ouvre la modale de Repos avec une OFFRE de lieux (effet, halte de voyage, bouton de Repos). */
-export function openRest(get: Get, set: Set, opts: OpenRestOpts): void {
+export function ouvrirLeRepos(get: Get, set: Set, opts: OpenRestOpts): void {
   const st = get();
   if (st.battle || st.pendingRest) return;
   const places = opts.places ?? { maison: true, camp: true };
@@ -753,7 +753,7 @@ export function validationsDuRepos(get: Get, set: Set) {
 
 export function creerActionsDuRepos(get: Get, set: Set) {
   return {
-    openRest: (opts) => openRest(get, set, opts),
+    ouvrirLeRepos: (opts) => ouvrirLeRepos(get, set, opts),
     // « Dormir » : sommeil de `days` journée(s) (défaut 1) — récup. (Exténué/Blessures) + cauchemars (LDB 16/18/21).
     restParty: (days = 1) => { sleepParty(get, set, days); },
   } satisfies FabriqueDuNoyau;

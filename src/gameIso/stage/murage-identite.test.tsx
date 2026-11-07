@@ -384,7 +384,7 @@ const BATTERIE: readonly Geste[] = [
       await attendreRepos('la bascule en première personne doit être servie avant le geste');
     },
     témoin: () => String(capDuGroupe(useGame.getState()) ?? '—'),
-    agir: async () => { await act(async () => { useGame.getState().pivotParty(1); }); },
+    agir: async () => { await act(async () => { useGame.getState().pivoterLeGroupe(1); }); },
   },
   {
     nom: 'une heure',

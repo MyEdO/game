@@ -27,7 +27,7 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { CorpsDesReglages } from './reglagesDuJet';
 
 /** Issue du Round COURANT d'un Test étendu de scène, `null` avant son jet : lue par le geste
- *  (`jetConfirm('extendedTest')`) et par la fenêtre. LDB 12 l.170-185 */
+ *  (`jetValider('extendedTest')`) et par la fenêtre. LDB 12 l.170-185 */
 export function issueDuRound(p: PendingExtendedTest): ReturnType<typeof extendedTestStep> | null {
   const cur = p.rounds[p.rounds.length - 1];
   return cur?.result ? extendedTestStep(p.total, cur.result, p.targetDR) : null;
@@ -119,7 +119,7 @@ export const TABLES = {
   },
 } satisfies FragmentDeTables;
 
-/** Les clôtures des Tests de scène (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */
+/** Les clôtures des Tests de scène (`CloturesDuJet`) : `jetValider` les joue, tant que le flux les ouvre. */
 export function cloturesDesTestsDeScene(get: Get, set: Set) {
   return {
     extendedTest: () => {

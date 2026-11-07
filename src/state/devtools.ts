@@ -41,7 +41,7 @@ export type GesteCarteAttendu =
   | ({ kind: (typeof KIND_DE_POSE)[PlacingZone['source']] } & Omit<PlacingZone, 'source'>)
   | { kind: 'cibles'; label: string; casterId: string; cibles: string[] };
 
-import { portRepairVessel, portCareenVessel, portInstallUpgrade, damageCampaignVessel } from '../noyau/seaVoyageFlow';
+import { portRepairVessel, portCareenVessel, installerLAmelioration, damageCampaignVessel } from '../noyau/seaVoyageFlow';
 import { seaBoardEventById } from '../engine/seaVoyage';
 import { beginShipwreck } from '../noyau/shipwreck';
 import { lieuDuGroupe, placeById, routesCliquables, documentDeProjet, exigerUnRefus, type MapRoute, type WorldMap } from '../noyau/worldMap';
@@ -204,7 +204,7 @@ function observerDialogueDuDessus(): { kind: string; plan: LayerPlan; nom: strin
   return { kind: couche.kind, plan: couche.plan, nom, selecteur: '[data-wfrp-dialogue-dessus]' };
 }
 
-/** Trace du DERNIER Test résolu (`jetConfirm('test')`, `EVT.TEST_RESOLVED`) — observation pure pour la
+/** Trace du DERNIER Test résolu (`jetValider('test')`, `EVT.TEST_RESOLVED`) — observation pure pour la
  *  recette navigateur (`__wfrp.lastRoll()`), JAMAIS dans l'état de jeu persisté (module DEV seul,
  *  chargé dynamiquement, #514). Abonnement au scope module = une SEULE souscription (`installDevtools`
  *  n'est appelé qu'une fois, `main.tsx`). */
@@ -266,7 +266,7 @@ function routesRendues(map: WorldMap, lieu: string | null): { route: MapRoute; o
  *                           sur une étape, ou coup joué sans fenêtre ; ✗ si rien ne part
  *   __wfrp.turnShip('id', 'tribord'|'babord'|crans) → vire le cap d'un NAVIRE (manœuvre) → re-mappe ses bordées
  *   __wfrp.modal()        → modale(s) ouvertes ; __wfrp.roll()/confirm()/cancel() → pilote LA modale
- *                           (convention jetRoll(flux)/jetConfirm(flux)/jetCancel(flux) ; reveals/Round ont leur verbe propre)
+ *                           (convention jetLancer(flux)/jetValider(flux)/jetAnnuler(flux) ; reveals/Round ont leur verbe propre)
  *   __wfrp.killEnemies()  → élimine tous les ennemis du combat et déclenche la victoire (flux normal) ;
  *                           killEnemies({withQualityLoot:true}) → ajoute au butin un objet catalogué à qualités
  *   __wfrp.interlude()    → arme un INTERLUDE de démo jouable (startInterlude — sans voyager jusqu'à Altdorf)
@@ -297,12 +297,12 @@ function routesRendues(map: WorldMap, lieu: string | null): { route: MapRoute; o
  *                           maybeRunEnemyTurn), juste sans les délais de lisibilité (chorégraphie)
  *   __wfrp.advanceSeaDay() → symétrique VOYAGE de `fastForward` : pilote la journée en mer EN COURS
  *                           (cascade du jour, halte de nuit, Activités hebdo…) jusqu'au jour SUIVANT,
- *                           l'arrivée ou un combat — MÊME machinerie que le joueur (`jetRoll('cascade')`/
+ *                           l'arrivée ou un combat — MÊME machinerie que le joueur (`jetLancer('cascade')`/
  *                           Finish, fenetreValider('rest'), fenetreValider('seaActivities')…), juste sans les clics ;
  *                           advanceSeaDay({stopOnEveryEvent:true}) → s'arrête AUSSI au recap d'un événement
  *                           RACONTÉ (carte-parchemin de `travelDay.events`) — et SEULEMENT là : jamais
  *                           sur une étape STRUCTURELLE du jour (Progression, Orientation, Exposition…),
- *                           que `jetRoll('cascade')` traverse aux défauts. Pour observer une étape
+ *                           que `jetLancer('cascade')` traverse aux défauts. Pour observer une étape
  *                           précise : advanceSeaDay({stopAt:'<kind>'}) → s'arrête AVANT de la résoudre
  *                           (ex. stopAt:'sea-progression-choice'), cascade rendue intacte
  *   __wfrp.skipToArrival() → comme `advanceSeaDay` mais ROULE jusqu'à l'ACCOSTAGE (ou interruption)
@@ -348,7 +348,7 @@ function routesRendues(map: WorldMap, lieu: string | null): { route: MapRoute; o
  *                           clics, jamais via ce raccourci
  */
 /** Flux « jet différé » pilotable parmi des `pending*` ouverts — convention pending<Flux> ↔
- *  `jetRoll(flux)`/`jetConfirm(flux)`/`jetCancel(flux)`. Les files à verbe propre (pause de Round, victoire) et les invites de
+ *  `jetLancer(flux)`/`jetValider(flux)`/`jetAnnuler(flux)`. Les files à verbe propre (pause de Round, victoire) et les invites de
  *  CIBLAGE (Cleave/DualStrike/choix de monture) sont exclues. */
 function devFluxOf(open: string[]): string | null {
   const special = new Set(['pendingRoundStart', 'pendingVictory', 'pendingCleave', 'pendingDualStrike', 'pendingMountTarget']);
@@ -446,7 +446,7 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
             return;
           }
           if (p.cursor < p.participants.length) {
-            s.jetRoll('cascade'); // « Tout lancer » — peut buter sur un CHOIX du joueur (cursor < length)
+            s.jetLancer('cascade'); // « Tout lancer » — peut buter sur un CHOIX du joueur (cursor < length)
             const after = useGame.getState().pendingCascade;
             if (after && after.cursor < after.participants.length) {
               const cur = after.participants[after.cursor];
@@ -468,7 +468,7 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
           real(tick, 0); return;
         }
         if (s.pendingRest) {
-          const jourClos = s.pendingRest.travelHalt ? s.travelPlan?.log?.[s.travelPlan.log.length - 1] : undefined; // `openRest`
+          const jourClos = s.pendingRest.travelHalt ? s.travelPlan?.log?.[s.travelPlan.log.length - 1] : undefined; // `ouvrirLeRepos`
           const evts = jourClos?.events ?? [];
           if (stopOnEvent && evts.length) {
             resolve(`✓ événement de bord raconté au recap (${evts.length}) — carte-parchemin visible à la halte de nuit (__wfrp.modal()/state()) ; fenetreValider('rest') ou advanceSeaDay() reprend`);
@@ -488,7 +488,7 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
         const sr = s as unknown as Record<string, unknown>;
         const open = Object.keys(sr).filter((k) => /^pending/.test(k) && (Array.isArray(sr[k]) ? (sr[k] as unknown[]).length > 0 : sr[k] != null));
         if (open.length) { devDriveModal('Roll'); devDriveModal('Confirm'); real(tick, 0); return; }
-        if (plan.interrupted) { s.resumeTravel(); real(tick, 0); return; }
+        if (plan.interrupted) { s.reprendreLeVoyage(); real(tick, 0); return; }
         // Rien à piloter LÀ (reprise différée d'un applier en vol, `setTimeout(0)` déjà posé côté
         // seaVoyageFlow) : re-scrute au tick suivant sans action, laisse la chaîne réelle rattraper.
         real(tick, 4);
@@ -1306,7 +1306,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       };
     },
 
-    /** DERNIER Test résolu (`jetConfirm('test')`, en/hors combat) — lecture SEULE de la trace posée par le
+    /** DERNIER Test résolu (`jetValider('test')`, en/hors combat) — lecture SEULE de la trace posée par le
      *  SEAM `EVT.TEST_RESOLVED` (`noyau/testsDeScene.ts`), pour lire le DR sans parser `innerText` (recette #514).
      *  `null` si aucun Test résolu depuis le chargement de la page. */
     lastRoll: () => (lastRollTrace ? { ...lastRollTrace } : null),
@@ -1488,7 +1488,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       aiTurnLog().slice(-n).map((r) =>
         `R${r.round} ${r.label}: ${r.action}${r.top.length ? '  | ' + r.top.map((t) => `${t.kind}${t.spell ? ':' + t.spell : ''}${t.targetId ? '→' + t.targetId : ''}=${t.utility}`).join('  ') : '  (forcé)'}`),
 
-    /** Modale(s) `pending*` ouvertes + les gestes de pilotage dérivés (`jetRoll(flux)`/`jetConfirm(flux)`/`jetCancel(flux)`). */
+    /** Modale(s) `pending*` ouvertes + les gestes de pilotage dérivés (`jetLancer(flux)`/`jetValider(flux)`/`jetAnnuler(flux)`). */
     modal: () => {
       const s = g() as unknown as Record<string, unknown>;
       const open = Object.keys(s).filter((k) => /^pending/.test(k) && (Array.isArray(s[k]) ? (s[k] as unknown[]).length > 0 : s[k] != null));
@@ -1517,11 +1517,11 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return null;
     },
 
-    /** Lance le jet de LA modale ouverte (`jetRoll(flux)`) */
+    /** Lance le jet de LA modale ouverte (`jetLancer(flux)`) */
     roll: () => devDriveModal('Roll'),
-    /** Applique/acquitte LA modale ouverte (Round → fenetreValider('roundStart'), sinon jetConfirm(flux)). */
+    /** Applique/acquitte LA modale ouverte (Round → fenetreValider('roundStart'), sinon jetValider(flux)). */
     confirm: () => devDriveModal('Confirm'),
-    /** Annule LA modale ouverte (`jetCancel(flux)`). */
+    /** Annule LA modale ouverte (`jetAnnuler(flux)`). */
     cancel: () => devDriveModal('Cancel'),
 
     /** RECETTE : élimine tous les ennemis du combat en cours puis passe par le flux de
@@ -1555,7 +1555,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       // draine d'office (sans influence) TOUTE cascade jusqu'à atteindre la victoire, sinon le drive
       // resterait bloqué sur une modale. Borne dure (la reprise 'combat' relance la boucle checkBattleOver).
       for (let guard = 0; useGame.getState().pendingCascade && !useGame.getState().battle?.over && guard < 8; guard++) {
-        useGame.getState().jetRoll('cascade');
+        useGame.getState().jetLancer('cascade');
         if (!refusDeLaSortie(useGame.getState(), 'cascade')) useGame.getState().fenetreFermer('cascade');
         if (!useGame.getState().battle?.over) checkBattleOver(() => useGame.getState(), useGame.setState);
       }
@@ -1602,7 +1602,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *   - Destin/Résilience CRÉDITÉS au héros (≥1 chacun) → les boutons Chance/Résilience sont visibles
      *     dans la modale (preuve que le Test est INFLUENÇABLE avant l'écran de victoire).
      *  Puis tous les ennemis sont mis hors d'action et `checkBattleOver` ouvre la cascade
-     *  (`combatEndBoundary`) AVANT `pendingVictory` — à conduire à la main (jetRoll('cascade', id)/Next, Chance/
+     *  (`combatEndBoundary`) AVANT `pendingVictory` — à conduire à la main (jetLancer('cascade', id)/Next, Chance/
      *  Résilience), sa fermeture enchaîne sur l'écran de victoire. `corruption` ∈ `EXPOSURE_LADDER` ou false. */
     combatEnd: (opts?: { heroId?: string; critical?: boolean; corruption?: string | false }) => {
       const s = g();
@@ -1682,13 +1682,13 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
 
     /**
      * RECETTE : POSTE un membre d'équipage à une station de navire (#1508) — l'action RÉELLE du jeu
-     * (`setShipStation`), pas une écriture parallèle : c'est elle que la fiche de bord appelle.
+     * (`affecterALaStation`), pas une écriture parallèle : c'est elle que la fiche de bord appelle.
      */
     station: (heroId: string, stationId: string | null) => {
       const s = g();
       const hero = s.party.find((h) => h.id === heroId) ?? inBattleId(s.battle, heroId);
       if (!hero) return `✗ héros « ${heroId} » introuvable — ${s.party.map((h) => h.id).join(', ')}`;
-      useGame.getState().setShipStation(hero.id, stationId);
+      useGame.getState().affecterALaStation(hero.id, stationId);
       // Le porteur peut n'être QUE dans la file de combat (marin embarqué, pas dans `party`) : relire le
       // seul `party` rendait « station « — » » alors que l'épinglage venait d'être fait.
       const s2 = g();
@@ -2046,7 +2046,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
 
     /** RECETTE : saute vers une scène du projet/de la campagne par id (machinerie de transition). */
     go: (sceneId: string, entry?: string) => {
-      g().transitionTo(sceneId, entry);
+      g().quitterLaScene(sceneId, entry);
       const after = g().scene?.id;
       return after === sceneId ? `✓ scène → ${sceneId}` : `✗ « ${sceneId} » inconnue (scène : ${after ?? '—'})`;
     },
@@ -2068,7 +2068,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const set = useGame.setState.bind(useGame);
       const lines = what === 'reparer' ? portRepairVessel(get, set)
         : what === 'carener' ? portCareenVessel(get, set)
-        : portInstallUpgrade(get, set, what, units);
+        : installerLAmelioration(get, set, what, units);
       return lines.join('\n');
     },
 

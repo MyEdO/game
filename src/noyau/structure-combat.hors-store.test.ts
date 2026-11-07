@@ -448,7 +448,7 @@ describe('Structures de siège — CHEMIN DE CLIC joueur (overlay d’arête →
     while (!structureIsDown(banc.getState().scene!, seg) && guard++ < 400) {
       giveTurn();
       cliquerSurLeCombattant(banc.getState, S!.id, { confirm: true }); // = clic sur l'overlay d'arête de la structure
-      if (banc.getState().pendingAttack) { banc.getState().jetRoll('attack'); banc.getState().jetConfirm('attack'); }
+      if (banc.getState().pendingAttack) { banc.getState().jetLancer('attack'); banc.getState().jetValider('attack'); }
       draineCascade(banc.getState);
       const s = live(S!.id);
       if (s && s.wounds.current <= 0) aZeroEnJeu = true;

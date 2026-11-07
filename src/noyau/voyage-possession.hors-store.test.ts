@@ -107,7 +107,7 @@ describe('#1262 V2 — la journée en MER se possède (classe #1268)', () => {
     expect(seatOwns(get(), 0, modalOwnerOf(get()) as string), 'et plus à l’hôte').toBe(false);
 
     get().jetRegler('cascade', 'choix', 'crew', choix.id);
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     const bande = parKind('progression')!;
     expect(bande, 'la voie ÉQUIPAGE insère sa bande').toBeTruthy();
     // La possession se DÉDUIT du nombre de porteurs (`bandStep`) : `groupOwner` à plusieurs, le porteur
@@ -201,7 +201,7 @@ describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le p
     expect(humanControlled(get(), gunnar), 'chez l’hôte, il ne pilote pas le batelier de l’invité…').toBe(false);
     expect(surfaceOf(get, gunnar.id), '…mais un siège humain le tient').toBe(true);
 
-    get().startTravel('r-reik', 'barge');
+    get().partirEnVoyage('r-reik', 'barge');
     const jour = etapes().filter((s) => s.target != null);
     expect(jour.length, 'la journée porte ses jets').toBeGreaterThan(0);
     // Chaque étape NOMME son jeteur (le mint le dérive de l'acteur déclaré) et la fenêtre suit son siège.
@@ -222,12 +222,12 @@ describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le p
     set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
     deuxSieges(gunnar.id);
     addCondition(get().party[0], COND.inconscient);
-    get().startTravel('r-reik', 'barge');
+    get().partirEnVoyage('r-reik', 'barge');
     const jour = etapes();
     expect(jour.some((s) => s.kind === 'riverNav'), 'personne ne tient la barre : aucun Test de Navigation').toBe(false);
     const i = jour.findIndex((s) => s.kind === 'riverPerilCheck');
     expect(i, 'le pas de vérification du péril est dans la cascade du jour').toBeGreaterThanOrEqual(0);
-    for (let k = 0; k < i; k++) get().jetConfirm('cascade');
+    for (let k = 0; k < i; k++) get().jetValider('cascade');
     const pc = get().pendingCascade!;
     expect(pc.participants[pc.cursor].kind, 'la fenêtre est posée sur le pas de vérification').toBe('riverPerilCheck');
     expect(pc.participants[pc.cursor].actorId, 'aucun héros ne le porte').toBeUndefined();
@@ -260,7 +260,7 @@ describe('#1262 V2 — l’allure FORCÉE ouvre sa cascade pour le conducteur d�
     deuxSieges(lead.id, aide.id); // l'attelage entier est conduit depuis le siège de l'invité
     expect(humanControlled(get(), lead), 'chez l’hôte, le conducteur de l’invité n’est pas « à la main »').toBe(false);
 
-    get().startTravel('r1', 'diligence', { allure: 'galop' });
+    get().partirEnVoyage('r1', 'diligence', { allure: 'galop' });
 
     const km = parKind('landForcedPace');
     expect(km, 'le Test de Conduite d’attelage s’OUVRE (le chemin synchrone le roulait sans fenêtre)').toBeTruthy();

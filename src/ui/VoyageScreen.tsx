@@ -280,7 +280,7 @@ export function voyageTiles(
  *  `stepWord` = « Jour » (mer/fleuve) ou « Étape » (terre) ; `pendingActive` = une étape attend ;
  *  `agenda` = ses sous-phases (fait/en cours/à venir, cf. `dayAgenda`) — carte `current` seulement.
  *  `nightHalt` : une halte de nuit est EN COURS — le jour qu'elle clôt est DÉJÀ le dernier de `plan.log`
- *  (`openRest`, ou `resumeTravel` pour un jour interrompu), une carte sélectionnable comme tout jour
+ *  (`ouvrirLeRepos`, ou `reprendreLeVoyage` pour un jour interrompu), une carte sélectionnable comme tout jour
  *  passé, et `current` est la Nuit elle-même. */
 export function voyageDayCards(
   plan: TravelPlan, sub: 'mer' | 'fleuve' | 'terre', stepWord: string, pendingActive: boolean,
@@ -320,7 +320,7 @@ export function VoyageScreen({ onClose, reduireRefus }: { onClose: () => void; r
   const fromLabel = libelleOuAbsence(worldMap ? placeById(worldMap, plan.fromPlaceId) : undefined, 'lieu', plan.fromPlaceId);
   const toLabel = libelleOuAbsence(worldMap ? placeById(worldMap, plan.toPlaceId) : undefined, 'lieu', plan.toPlaceId);
   const log = plan.log ?? [];
-  // Halte de nuit EN COURS : le jour qu'elle clôt est déjà le dernier de `plan.log` (`openRest`, `resumeTravel`).
+  // Halte de nuit EN COURS : le jour qu'elle clôt est déjà le dernier de `plan.log` (`ouvrirLeRepos`, `reprendreLeVoyage`).
   const nightHalt = !!pendingRest?.travelHalt;
   const dayNum = nightHalt ? log.length : log.length + 1;
   const stepWord = sub === 'terre' ? t('vs.motEtape') : t('vs.motJour');

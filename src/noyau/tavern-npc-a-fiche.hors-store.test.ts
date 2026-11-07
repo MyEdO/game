@@ -20,7 +20,7 @@ import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
 import { findTavernGameById } from '../engine/tavernGame';
-import { playTavernGame, tavernGameValue, tavernNpcOffers } from './tavernFlow';
+import { jouerALaTaverne, tavernGameValue, tavernNpcOffers } from './tavernFlow';
 import { sceneNpc } from './monde/sceneNpc';
 import { activeSequence, sequenceBoardOf } from './sequenceCore';
 import { applierDe } from './cascade';
@@ -85,7 +85,7 @@ describe('#1279 S4-b — l’adversaire de taverne à FICHE', () => {
     const jeu = findTavernGameById('dominos')!;
     const challenger = get().party[0]!;
 
-    playTavernGame(get, set, { gameId: 'dominos', challengerId: challenger.id, opponent: { kind: 'npc', id: 'pnj-plantule' } });
+    jouerALaTaverne(get, set, { gameId: 'dominos', challengerId: challenger.id, opponent: { kind: 'npc', id: 'pnj-plantule' } });
 
     const seq = activeSequence<{ opponentValue: number; opponentName: string; opponentId?: string }>(get)!;
     expect(seq.payload.opponentId).toBe('pnj-plantule');
@@ -99,7 +99,7 @@ describe('#1279 S4-b — l’adversaire de taverne à FICHE', () => {
     const challenger = get().party[0]!;
     const jeu = findTavernGameById('dominos')!;
 
-    playTavernGame(get, set, { gameId: 'dominos', challengerId: challenger.id, opponent: { kind: 'npc', id: 'pnj-plantule' } });
+    jouerALaTaverne(get, set, { gameId: 'dominos', challengerId: challenger.id, opponent: { kind: 'npc', id: 'pnj-plantule' } });
     const seq = activeSequence<{ opponentValue: number }>(get)!;
 
     expect(seq.payload.opponentValue).not.toBe(tavernGameValue(challenger, jeu));
@@ -120,7 +120,7 @@ describe('#1279 S4-b — l’adversaire de taverne à FICHE', () => {
     poseScene([pnjDeScene('pnj-plantule', 'Plantule', 55)]);
     const challenger = get().party[0]!;
 
-    playTavernGame(get, set, { gameId: 'dominos', challengerId: challenger.id, opponent: { kind: 'npc', id: 'pnj-fantome' } });
+    jouerALaTaverne(get, set, { gameId: 'dominos', challengerId: challenger.id, opponent: { kind: 'npc', id: 'pnj-fantome' } });
 
     expect(activeSequence(get)).toBeNull();
     expect(get().journal.slice(-1)[0]).toBe(t('tavern.adversaireAbsent', { jeu: findTavernGameById('dominos')!.label }));
@@ -132,25 +132,25 @@ describe('#1906 — une partie REFUSÉE le dit au journal, jamais un retour muet
   const dominos = () => findTavernGameById('dominos')!.label;
 
   it('jeu inconnu', () => {
-    playTavernGame(get, set, { gameId: 'jeu-fantome', challengerId: get().party[0]!.id, opponent: { kind: 'profil', id: 'humain' } });
+    jouerALaTaverne(get, set, { gameId: 'jeu-fantome', challengerId: get().party[0]!.id, opponent: { kind: 'profil', id: 'humain' } });
     expect(activeSequence(get)).toBeNull();
     expect(get().journal.slice(-1)[0]).toBe(t('tavern.jeuInconnu', { id: 'jeu-fantome' }));
   });
 
   it('challenger sorti du groupe', () => {
-    playTavernGame(get, set, { gameId: 'dominos', challengerId: 'heros-parti', opponent: { kind: 'profil', id: 'humain' } });
+    jouerALaTaverne(get, set, { gameId: 'dominos', challengerId: 'heros-parti', opponent: { kind: 'profil', id: 'humain' } });
     expect(activeSequence(get)).toBeNull();
     expect(get().journal.slice(-1)[0]).toBe(t('tavern.challengerAbsent', { jeu: dominos() }));
   });
 
   it('adversaire héros sorti du groupe', () => {
-    playTavernGame(get, set, { gameId: 'dominos', challengerId: get().party[0]!.id, opponent: { kind: 'hero', id: 'heros-parti' } });
+    jouerALaTaverne(get, set, { gameId: 'dominos', challengerId: get().party[0]!.id, opponent: { kind: 'hero', id: 'heros-parti' } });
     expect(activeSequence(get)).toBeNull();
     expect(get().journal.slice(-1)[0]).toBe(t('tavern.adversaireAbsent', { jeu: dominos() }));
   });
 
   it('socle : un challenger disparu en cours de séquence LÈVE, jamais un tableau muet', () => {
-    playTavernGame(get, set, { gameId: 'dominos', challengerId: get().party[0]!.id, opponent: { kind: 'profil', id: 'humain' } });
+    jouerALaTaverne(get, set, { gameId: 'dominos', challengerId: get().party[0]!.id, opponent: { kind: 'profil', id: 'humain' } });
     const seq = activeSequence(get);
     expect(seq).not.toBeNull();
     set({ sequence: { ...seq!, payload: { ...(seq!.payload as object), challengerId: 'heros-parti' } } } as never);
@@ -164,7 +164,7 @@ describe('#1906 — une partie REFUSÉE le dit au journal, jamais un retour muet
 
   it('profil de coéquipier inconnu', () => {
     const jeu = findTavernGameById('middenball')!;
-    playTavernGame(get, set, { gameId: jeu.id, challengerId: get().party[0]!.id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'profil-fantome' });
+    jouerALaTaverne(get, set, { gameId: jeu.id, challengerId: get().party[0]!.id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'profil-fantome' });
     expect(activeSequence(get)).toBeNull();
     expect(get().journal.slice(-1)[0]).toBe(t('tavern.coequipierSansProfil', { jeu: jeu.label, profil: 'profil-fantome' }));
   });
@@ -232,7 +232,7 @@ describe('L2 #1548 — le PNJ de taverne RENOMMÉ garde son nom', () => {
     poseScene([pnjRenomme('pnj-gerta', 'Gerta la Rusée', 'Batelière')]);
     const challenger = get().party[0]!;
 
-    playTavernGame(get, set, { gameId: 'dominos', challengerId: challenger.id, opponent: { kind: 'npc', id: 'pnj-gerta' } });
+    jouerALaTaverne(get, set, { gameId: 'dominos', challengerId: challenger.id, opponent: { kind: 'npc', id: 'pnj-gerta' } });
 
     const seq = activeSequence<{ opponentName: string; opponentValue: number }>(get)!;
     expect(seq.payload.opponentName).toBe('Gerta la Rusée');
@@ -251,7 +251,7 @@ describe('#1279 S4-b — l’adversaire de scène GARDE sa rangée dans la manch
     poseScene([pnjDeScene('pnj-plantule', 'Plantule', 55)]);
     const challenger = get().party[0]!;
 
-    playTavernGame(get, set, { gameId: 'dominos', challengerId: challenger.id, opponent: { kind: 'npc', id: 'pnj-plantule' } });
+    jouerALaTaverne(get, set, { gameId: 'dominos', challengerId: challenger.id, opponent: { kind: 'npc', id: 'pnj-plantule' } });
 
     const rows = get().pendingCascade?.participants.flatMap((s) => s.participants ?? []) ?? [];
     expect(rows.map((r) => r.id).sort()).toEqual([challenger.id, 'pnj-plantule'].sort());
