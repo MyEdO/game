@@ -141,6 +141,8 @@ function areteALEtage<T extends { z?: number }>(edge: T, z: number): T {
 /** BORNES d'une ouverture de façade, en fraction de son arête : `offset` place son centre (0 = début,
  *  1 = fin), `width` est sa largeur. Lues par l'Inspecteur pour ses champs, tenues ici à l'écriture. */
 export const BORNES_D_OUVERTURE = { offset: { min: 0, max: 1 }, width: { min: 0.05, max: 1 } } as const;
+/** La position et la largeur d'une ouverture qui n'en porte pas, en fraction de l'arête. */
+export const DEFAUTS_D_OUVERTURE = { offset: 0.5, width: 0.6 } as const;
 
 /** Ouverture `feature` patchée par `patch`, chaque fraction ramenée dans `BORNES_D_OUVERTURE` ;
  *  `undefined` retire le champ (défaut de rendu). */

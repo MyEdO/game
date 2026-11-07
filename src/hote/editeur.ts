@@ -15,7 +15,7 @@ import {
   assoirALaPlace, findVehicleById, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
   DIFFICULTY_LABELS, FACES_D_ARETE, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
-  buildingsMeta, corpsActif, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
+  BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
   type WallPaint, ZONE_VARIANTS,
 } from '../noyau/index';
@@ -481,10 +481,52 @@ function inspecteurDArchitecture(s: SessionDEdition): (Choix | Ligne | Bouton | 
       supprimer(corps.storeys.length > 1 ? null : t('ecran.editeur.etage.dernier')),
     ];
   }
-  if (sel?.type === 'architecturePart' || sel?.type === 'roofSection' || sel?.type === 'facadeSection') {
-    return [...(sel.type === 'facadeSection' ? [] : [ligne('architecture/poignee', t('ecran.editeur.zone.poignee'))]), supprimer()];
-  }
+  if (sel?.type === 'facadeSection' && corps) return [...inspecteurDeFacade(scene, corps, corps.facades.find((f) => f.id === sel.id)!), supprimer()];
+  if (sel?.type === 'architecturePart' || sel?.type === 'roofSection') return [ligne('architecture/poignee', t('ecran.editeur.zone.poignee')), supprimer()];
   return [];
+}
+
+/** Le pas des réglettes de position et de largeur d'une ouverture, en fraction de l'arête. */
+const PAS_D_OUVERTURE = 0.05;
+
+/** L'inspecteur de la façade `facade` du corps `corps` : son apparence en liste, son étage parmi ceux du corps, chacune
+ *  de ses ouvertures (sa sorte ; sa position et sa largeur à la réglette, ou le défaut du rendu ; la retirer), en
+ *  ajouter une (refusé sans arête), les pièces de son étage qu'elle révèle. */
+function inspecteurDeFacade(scene: Scene, corps: NonNullable<ReturnType<typeof corpsActif>>, facade: NonNullable<ReturnType<typeof corpsActif>>['facades'][number]): (Choix | Ligne | Bouton)[] {
+  const sur = (patch: Extract<GesteDEdition, { geste: 'architecture' }>['patch']): GesteDEdition => ({ geste: 'architecture', patch });
+  const pieces = piecesDeLaCouche(scene, facade.z);
+  const revelees = facade.roomZoneIds ?? [];
+  const basculer = (id: string) => (revelees.includes(id) ? revelees.filter((p) => p !== id) : [...revelees, id]);
+  const ouvertures = (facade.features ?? []).flatMap((o) => {
+    const id = `baie/${o.id}`;
+    const jeu = (patch: Extract<GesteDEdition, { geste: 'baie' }>['patch']): GesteDEdition => ({ geste: 'baie', id: o.id, patch });
+    const reglette = (cle: 'offset' | 'width', champ: 'position' | 'largeur') => {
+      const v = o[cle] ?? DEFAUTS_D_OUVERTURE[cle];
+      const { min, max } = BORNES_D_OUVERTURE[cle];
+      const pas = (sens: number) => Math.round((v + sens * PAS_D_OUVERTURE) * 100) / 100;
+      return [
+        ligne(`${id}/${champ}`, t(`ecran.editeur.baie.${champ}`, { v: Math.round(v * 100) }) + (o[cle] === undefined ? ` ${t('ecran.editeur.baie.defaut')}` : '')),
+        bouton(`${id}/${champ}/moins`, '−', jeu({ [champ]: pas(-1) }), false, v <= min ? t('ecran.editeur.baie.borne') : null),
+        bouton(`${id}/${champ}/plus`, '+', jeu({ [champ]: pas(1) }), false, v >= max ? t('ecran.editeur.baie.borne') : null),
+        bouton(`${id}/${champ}/defaut`, t('ecran.editeur.baie.auDefaut'), jeu({ [champ]: null }), o[cle] === undefined),
+      ];
+    };
+    return [
+      choix(`${id}/sorte`, t('ecran.editeur.baie', { id: o.id }), SORTES_D_OUVERTURE.map(([k, libelle]) => bouton(`${id}/sorte/${k}`, libelle, jeu({ sorte: k }), o.kind === k)), 'liste'),
+      ...reglette('offset', 'position'),
+      ...reglette('width', 'largeur'),
+      bouton(`${id}/retirer`, t('ecran.editeur.baie.retirer'), jeu(null)),
+    ];
+  });
+  return [
+    choix('facade/apparence', t('ecran.editeur.facade.apparence'), FACADE_APPEARANCE_IDS.map((a) => bouton(`facade/apparence/${a}`, a, sur({ apparence: a }), facade.appearance === a)), 'liste'),
+    choix('facade/couche', t('ecran.editeur.entite.couche'), corps.storeys.map((e) => e.z).sort((a, b) => a - b).map((z) => bouton(`facade/couche/${z}`, t('ecran.editeur.couche', { z }), sur({ z }), facade.z === z))),
+    ...ouvertures,
+    bouton('baie/ajouter', t('ecran.editeur.baie.ajouter'), { geste: 'baie', id: null, patch: null }, false, facade.edges[0] ? null : t('ecran.editeur.baie.sansArete')),
+    pieces.length
+      ? choix('facade/pieces', t('ecran.editeur.pieces'), pieces.map((p) => bouton(`facade/pieces/${p.id}`, p.label, sur({ pieces: basculer(p.id) }), revelees.includes(p.id))))
+      : ligne('facade/pieces', t('ecran.editeur.pieces.aucune')),
+  ];
 }
 
 /** L'emprise au pinceau de la zone d'effet `zoneId` : y ajouter des cases, en retirer (l'outil d'emprise armé dans ce

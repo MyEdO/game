@@ -339,6 +339,33 @@ describe('l’éditeur de carte par le pont, l’architecture', () => {
     expect(rez.vue.zones['editeur.inspecteur'].find((el) => el.id === 'corps/etages')).toMatchObject({ texte: '2 étages' });
   });
 
+  it('une façade posée sur l’arête appuyée : son apparence, une ouverture à sa sorte, à sa position, retirée', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/architecture'));
+    jouer({ geste: 'appui', point: point(2, 2) });
+    const bati = presser(boutonDe(jouer({ geste: 'relache', point: point(2, 2) }), 'batir/corps'));
+    presser(boutonDe(bati, 'architecture/facade'));
+    const posee = jouer({ geste: 'appui', point: { case: { x: 2, y: 2 }, f: { x: 2, y: 1.55 } } });
+    const inspecteur = (e: Edition) => e.vue.zones['editeur.inspecteur'];
+    expect(boutonDe(posee, 'architecture/select').presse, 'la façade posée, le clic revient à la sélection').toBe(true);
+    expect(inspecteur(posee).find((el) => el.id === 'facade/apparence')).toMatchObject({ type: 'liste' });
+    const apparence = (inspecteur(posee).find((el) => el.id === 'facade/apparence') as Choix).valeurs.find((v) => !v.presse)!;
+    expect(boutonDe(presser(apparence), apparence.id).presse).toBe(true);
+
+    const ouverte = presser(boutonDe(posee, 'baie/ajouter'));
+    const sorte = inspecteur(ouverte).find((el) => el.id.startsWith('baie/') && el.id.endsWith('/sorte')) as Choix;
+    const id = sorte.id.slice(0, -'/sorte'.length);
+    expect(inspecteur(ouverte).find((el) => el.id === `${id}/position`)).toMatchObject({ texte: 'Position : 50 % de l’arête (défaut)' });
+    const decalee = presser(boutonDe(ouverte, `${id}/position/plus`));
+    expect(inspecteur(decalee).find((el) => el.id === `${id}/position`)).toMatchObject({ texte: 'Position : 55 % de l’arête' });
+    const autre = sorte.valeurs.find((v) => !v.presse)!;
+    expect(boutonDe(presser(boutonDe(decalee, autre.id)), autre.id).presse).toBe(true);
+    const retiree = presser(boutonDe(decalee, `${id}/retirer`));
+    expect(inspecteur(retiree).some((el) => el.id.startsWith(`${id}/`))).toBe(false);
+  });
+
   it('sans corps, la façade et les ouvrages d’un corps se refusent', () => {
     const { appel } = table();
     const outil = editionDe(appel('editer', boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/architecture').jeu));
