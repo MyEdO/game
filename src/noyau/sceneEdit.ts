@@ -937,6 +937,78 @@ export function patchRestZone(scene: Scene, idx: number, patch: Partial<NonNulla
   return { ...scene, restZones: (scene.restZones ?? []).map((z, i) => (i === idx ? { ...z, ...patch } : z)) };
 }
 
+/** Ce que l'inspecteur écrit sur la zone sélectionnée (`patchZone`) : sa couche ; d'un déclencheur, s'il ne joue
+ *  qu'une fois ; d'une zone de repos, ses lieux et sa qualité piètre ; d'une zone d'effet, son nom, sa nature (`null` :
+ *  non déclarée), sa forme, et son emprise rendue pleine (`clearEffectZoneCarve`). */
+export interface PatchDeZone {
+  z?: number;
+  once?: boolean;
+  lieux?: NonNullable<Scene['restZones']>[number]['places'];
+  pietre?: boolean;
+  nom?: string;
+  presentation?: 'interior' | 'exterior' | null;
+  forme?: ZoneArea['kind'];
+  pleine?: true;
+}
+
+/** Le rectangle `r` porté à la couche `z` (`z` omis au rez). */
+const rectALaCouche = (r: Rect, z: number) => ({ x: r.x, y: r.y, w: r.w, h: r.h, ...(z ? { z } : {}) });
+
+/** La zone d'effet `zone` portée à la couche `z`, son emprise découpée avec elle. */
+function zoneDEffetALaCouche(zone: SceneEffectZone, z: number): SceneEffectZone {
+  const { z: _z, tiles, ...reste } = zone;
+  return { ...reste, ...(z ? { z } : {}), ...(tiles ? { tiles: tiles.map((t) => carveTile(t, z)) } : {}) };
+}
+
+/** La zone d'effet `zone` patchée de `patch` (`PatchDeZone`). */
+function zoneDEffetPatchee(zone: SceneEffectZone, patch: PatchDeZone): SceneEffectZone {
+  let out = patch.z === undefined ? zone : zoneDEffetALaCouche(zone, patch.z);
+  if (patch.nom !== undefined) out = { ...out, label: patch.nom };
+  if (patch.presentation !== undefined) {
+    const { presentation: _p, ...reste } = out;
+    out = patch.presentation ? { ...reste, presentation: patch.presentation } : reste;
+  }
+  if (patch.forme) out = setEffectZoneArea(out, effectZoneArea(patch.forme, effectZoneRect(out.area)));
+  return patch.pleine ? clearEffectZoneCarve(out) : out;
+}
+
+/** La zone sélectionnée `sel` de `scene` (déclencheur, zone de repos ou d'effet) patchée de `patch` ; `scene` telle
+ *  quelle hors d'une zone. */
+export function patchZone(scene: Scene, sel: Sel, patch: PatchDeZone): Scene {
+  if (sel?.type === 'trigger') {
+    return {
+      ...scene,
+      triggers: scene.triggers.map((t) => {
+        if (t.id !== sel.id) return t;
+        const { once: _once, ...reste } = t;
+        const once = patch.once ?? t.once;
+        return { ...reste, rect: patch.z === undefined ? t.rect : rectALaCouche(t.rect, patch.z), ...(once ? { once } : {}) };
+      }),
+    };
+  }
+  if (sel?.type === 'restZone') {
+    return {
+      ...scene,
+      restZones: (scene.restZones ?? []).map((r, i) => {
+        if (i !== sel.idx) return r;
+        const { quality: _q, ...reste } = r;
+        const pietre = patch.pietre ?? r.quality === 'pietre';
+        return {
+          ...reste,
+          rect: patch.z === undefined ? r.rect : rectALaCouche(r.rect, patch.z),
+          places: { ...r.places, ...patch.lieux },
+          ...(pietre ? { quality: 'pietre' as const } : {}),
+        };
+      }),
+    };
+  }
+  if (sel?.type === 'effectZone') {
+    const zone = scene.effectZones?.[sel.idx];
+    return zone ? replaceEffectZone(scene, sel.idx, zoneDEffetPatchee(zone, patch)) : scene;
+  }
+  return scene;
+}
+
 /** CONTENU DE NAISSANCE d'une zone d'effet : ce que l'outil qui la dessine lui donne (pièce, piège,
  *  barrière…). `id`, `area` et `z` restent au créateur — ils viennent du geste, pas de l'appelant. */
 export type EffectZoneSeed = Partial<Omit<SceneEffectZone, 'id' | 'area' | 'z'>>;

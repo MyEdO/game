@@ -28,7 +28,7 @@ import { isEngaged } from '../engine/engagement';
 import { desengagementSansAction, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { isFrenzied, isFrenzyCapable } from '../engine/psychology';
 import { isVehicle, estNavire } from '../engine/coque';
-import { compatibleAmmo, activeLoadout, isUnarmed } from '../engine/items';
+import { compatibleAmmo, activeLoadout } from '../engine/items';
 import { aRecharger } from '../engine/weaponLoad';
 import { canPushback } from '../engine/qualities/dispatch';
 import { hasBattement, hasDistraire } from '../engine/combatFeatures/dispatch';
@@ -336,12 +336,12 @@ function armesADistance(active: Combatant) {
 }
 
 /** Le set au poing ouvre-t-il un corps à corps ? Arme de mêlée DU set, ou set MAINS NUES (`LDB 15 l.35-37`,
- *  `LDB 13 l.90`). Sans set (statbloc de créature), l'arsenal réel, Mains nues écartées (`isUnarmed`). */
+ *  `LDB 13 l.90`). Sans set (statbloc de créature), l'arsenal réel, Mains nues comprises (`LDB 14 l.155`). */
 function setDeMelee(active: Combatant): boolean {
   const set = activeLoadout(active);
   const armes = set
     ? [set.main, set.off].flatMap((uid) => active.weapons.filter((w) => !!uid && w.uid === uid))
-    : active.weapons.filter((w) => !isUnarmed(w));
+    : active.weapons;
   return armes.length === 0 || armes.some((w) => w.type === 'melee');
 }
 

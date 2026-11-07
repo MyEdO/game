@@ -1,58 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { RELAY_URL_PROD, relayHttpUrl, roomWsUrl, RelayClient, RoomGuest, RoomHost, type SocketLike } from './relay';
-import { inflateB64 } from './compress';
-import { GuestSession, HostSession } from '../hote/coop/session';
-import type { EtatDeJeu } from '../noyau/etat';
-import type { Scene } from '../noyau/monde/scene';
-import { resetSceneRegistry, sceneDuRegistre } from '../noyau/monde/registreDesScenes';
+import { roomWsUrl, RelayClient, RoomGuest, RoomHost } from './relay';
+import { FakeSocket, compressionFactice, minuterieDuTest, portsDuTest } from './relay.testkit';
+import { GuestSession, HostSession } from './session';
+import type { EtatDeJeu } from '../../noyau/etat';
+import type { Scene } from '../../noyau/monde/scene';
+import { resetSceneRegistry, sceneDuRegistre } from '../../noyau/monde/registreDesScenes';
 
-class FakeSocket implements SocketLike {
-  static last: FakeSocket | null = null;
-  sent: string[] = [];
-  closedWith: { code?: number } | null = null;
-  bufferedAmount = 0;
-  onSend: ((data: string) => void) | null = null;
-  onopen: (() => void) | null = null;
-  onmessage: ((e: { data: unknown }) => void) | null = null;
-  onclose: ((e: { code: number; reason: string }) => void) | null = null;
-  onerror: (() => void) | null = null;
-  constructor(readonly url: string) {
-    FakeSocket.last = this;
-  }
-  send(d: string): void {
-    this.sent.push(d);
-    this.onSend?.(d);
-  }
-  close(code?: number, reason?: string): void {
-    this.closedWith = { code };
-    this.onclose?.({ code: code ?? 1005, reason: reason ?? '' });
-  }
-  // helpers de test (côté « serveur ») :
-  open(): void {
-    this.onopen?.();
-  }
-  receive(d: string): void {
-    this.onmessage?.({ data: d });
-  }
-  dropFromServer(code = 1006, reason = ''): void {
-    this.onclose?.({ code, reason });
-  }
-}
+const BASE = 'http://localhost:8787';
 
-const makeSocket = (url: string) => new FakeSocket(url);
+const ports = portsDuTest();
 
 function resumedHostSession() {
   let hostSocket: FakeSocket;
   let hostOnline = true;
-  const roomHost = new RoomHost('ABC234', 'T', (url) => {
+  const roomHost = new RoomHost(BASE, 'ABC234', 'T', portsDuTest((url) => {
     hostSocket = new FakeSocket(url);
     hostSocket.onSend = (raw) => {
       const env = JSON.parse(raw) as Record<string, unknown>;
       if (env.to === 1) guestSocket.receive(JSON.stringify({ data: env.data, z: env.z }));
     };
     return hostSocket;
-  });
-  const roomGuest = new RoomGuest('ABC234', 'Anna', makeSocket);
+  }));
+  const roomGuest = new RoomGuest(BASE, 'ABC234', 'Anna', ports);
   const guestSocket = FakeSocket.last!;
   guestSocket.onSend = (raw) => {
     const env = JSON.parse(raw) as Record<string, unknown>;
@@ -121,49 +90,34 @@ function resumedHostSession() {
   };
 }
 
-beforeEach(() => vi.useFakeTimers());
+beforeEach(() => {
+  vi.useFakeTimers();
+  FakeSocket.instances = [];
+});
 afterEach(() => {
   vi.useRealTimers();
-  vi.unstubAllEnvs();
   resetSceneRegistry();
 });
 
-describe('URL du relais selon le mode Vite', () => {
-  it.each(['test', 'development'])('sans override en mode %s : HTTP et WS locaux', (mode) => {
-    vi.stubEnv('MODE', mode);
-    vi.stubEnv('PROD', false);
-    vi.stubEnv('VITE_RELAY_URL', undefined);
-    expect(relayHttpUrl()).toBe('http://localhost:8787');
-    const ws = new URL(roomWsUrl('ABC234', { role: 'guest', name: 'Anne & Bob' }));
+describe('URL de la room', () => {
+  it('HTTP → WS, chemin de la room, paramètres dans l’ordre', () => {
+    const ws = new URL(roomWsUrl(BASE, 'ABC234', { role: 'guest', name: 'Anne & Bob' }));
     expect(ws.origin).toBe('ws://localhost:8787');
     expect(ws.pathname).toBe('/room/ABC234');
     expect([...ws.searchParams]).toEqual([['role', 'guest'], ['name', 'Anne & Bob']]);
   });
 
-  it('sans override en production : HTTP et WS du Worker', () => {
-    vi.stubEnv('PROD', true);
-    vi.stubEnv('VITE_RELAY_URL', undefined);
-    expect(relayHttpUrl()).toBe(RELAY_URL_PROD);
-    const ws = new URL(roomWsUrl('ABC234', { role: 'host', token: 'test-token' }));
-    expect(ws.origin).toBe(new URL(RELAY_URL_PROD).origin.replace(/^https/, 'wss'));
-    expect(ws.pathname).toBe('/room/ABC234');
+  it('HTTPS → WSS', () => {
+    const ws = new URL(roomWsUrl('https://relais.example', 'ABC234', { role: 'host', token: 'test-token' }));
+    expect(ws.origin).toBe('wss://relais.example');
     expect(ws.searchParams.get('token')).toBe('test-token');
-  });
-
-  it.each([false, true])('override explicite prioritaire (PROD=%s)', (prod) => {
-    vi.stubEnv('PROD', prod);
-    vi.stubEnv('VITE_RELAY_URL', 'http://localhost:8799');
-    expect(relayHttpUrl()).toBe('http://localhost:8799');
-    expect(new URL(roomWsUrl('ABC234', { role: 'host' })).origin).toBe('ws://localhost:8799');
-    vi.stubEnv('VITE_RELAY_URL', RELAY_URL_PROD);
-    expect(relayHttpUrl()).toBe(RELAY_URL_PROD);
   });
 });
 
 describe('RelayClient (heartbeat + reconnexion)', () => {
   it('ping toutes les 10 s ; silence > 25 s → fermeture puis reconnexion à backoff', () => {
     const states: string[] = [];
-    new RelayClient({ url: () => 'ws://x/room/ABC234?role=host&token=T', makeSocket, onEnvelope: () => {}, onState: (s) => states.push(s) });
+    new RelayClient({ url: () => 'ws://x/room/ABC234?role=host&token=T', socket: ports.socket, minuterie: minuterieDuTest, onEnvelope: () => {}, onState: (s) => states.push(s) });
     const first = FakeSocket.last!;
     first.open();
     vi.advanceTimersByTime(10_000);
@@ -178,7 +132,7 @@ describe('RelayClient (heartbeat + reconnexion)', () => {
 
   it('fermeture 4xxx du DO → fatale (raison remontée, AUCUNE reconnexion)', () => {
     const fatal = vi.fn();
-    new RelayClient({ url: () => 'ws://x', makeSocket, onEnvelope: () => {}, onFatal: fatal });
+    new RelayClient({ url: () => 'ws://x', socket: ports.socket, minuterie: minuterieDuTest, onEnvelope: () => {}, onFatal: fatal });
     const ws = FakeSocket.last!;
     ws.open();
     ws.dropFromServer(4404, 'Partie inconnue ou expirée.');
@@ -191,7 +145,7 @@ describe('RelayClient (heartbeat + reconnexion)', () => {
 
 describe('RoomHost (démultiplexage par siège)', () => {
   it('join/gone remontent ; les enveloppes {from} sont routées au bon Transport virtuel', async () => {
-    const rh = new RoomHost('ABC234', 'T', makeSocket);
+    const rh = new RoomHost(BASE, 'ABC234', 'T', ports);
     const ws = FakeSocket.last!;
     const onJoin = vi.fn();
     rh.onJoin = onJoin;
@@ -210,7 +164,7 @@ describe('RoomHost (démultiplexage par siège)', () => {
   });
 
   it('gros payload → champ z compressé, restituable', async () => {
-    const rh = new RoomHost('ABC234', 'T', makeSocket);
+    const rh = new RoomHost(BASE, 'ABC234', 'T', ports);
     const ws = FakeSocket.last!;
     ws.open();
     const t1 = rh.seatTransport(1);
@@ -219,11 +173,11 @@ describe('RoomHost (démultiplexage par siège)', () => {
     await rh.idle();
     const env = JSON.parse(ws.sent[ws.sent.length - 1]) as { to: number; z?: string; data?: string };
     expect(env.data).toBeUndefined();
-    expect(await inflateB64(env.z!)).toBe(big);
+    expect(await compressionFactice.decomprimer(env.z!)).toBe(big);
   });
 
   it('closeSeat déclenche le onClose du transport virtuel (fin de grace)', () => {
-    const rh = new RoomHost('ABC234', 'T', makeSocket);
+    const rh = new RoomHost(BASE, 'ABC234', 'T', ports);
     FakeSocket.last!.open();
     const t1 = rh.seatTransport(1);
     const closed = vi.fn();
@@ -283,7 +237,7 @@ describe('RoomGuest (Transport + reprise)', () => {
   });
 
   it('seated capture siège+token ; reconnexion → URL avec token + onReconnected', () => {
-    const rg = new RoomGuest('ABC234', 'Anna', makeSocket);
+    const rg = new RoomGuest(BASE, 'ABC234', 'Anna', ports);
     const first = FakeSocket.last!;
     expect(first.url).toContain('name=Anna');
     const reconnected = vi.fn();
@@ -301,7 +255,7 @@ describe('RoomGuest (Transport + reprise)', () => {
   });
 
   it('délivre data, et close() envoie ctl bye', async () => {
-    const rg = new RoomGuest('ABC234', 'Anna', makeSocket);
+    const rg = new RoomGuest(BASE, 'ABC234', 'Anna', ports);
     const ws = FakeSocket.last!;
     ws.open();
     const got: string[] = [];

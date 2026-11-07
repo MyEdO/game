@@ -107,4 +107,11 @@ describe('le pied d’une arête', () => {
     s.layers[0].height = [0, 3, 0, 0, 0, 0, 0, 0, 0];
     expect(piedDeLArete(s, { x: 1, y: 0, side: 'N' }), 'au bord de la carte, sa case').toBe(3);
   });
+
+  it('au pourtour d’un étage, du plancher de l’étage : une case sans sol à côté ne compte pas', () => {
+    const s = emptyScene('pied', 3, 1);
+    s.layers.push({ z: 1, tiles: ['vide', 'plancher', 'vide'], height: [0, 4, 0] });
+    expect(piedDeLArete(s, { x: 1, y: 0, side: 'E', z: 1 }), 'le vide à l’est').toBe(4);
+    expect(piedDeLArete(s, { x: 0, y: 0, side: 'E', z: 1 }), 'le vide est sa propre case').toBe(4);
+  });
 });

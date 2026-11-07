@@ -1,27 +1,19 @@
 /**
- * Couche relay coop : connexion WebSocket au Worker Cloudflare (`server/`), heartbeat +
- * reconnexion à backoff avec reprise de siège par token, et compression des gros payloads
- * (champ `z` — l'enveloppe reste en clair pour le routage par le Durable Object).
+ * Client du relay coop : connexion au Worker Cloudflare (`server/`), heartbeat + reconnexion à backoff avec reprise de
+ * siège par token, et compression des gros payloads (champ `z` — l'enveloppe reste en clair pour le routage par le
+ * Durable Object). La plateforme s'injecte (`PortsDuRelais`) : la socket, la minuterie et la compression.
  *
- * - `RelayClient`  : une connexion WS robuste (ping/pong, retry, fermetures 4xxx fatales).
- * - `RoomHost`     : démultiplexe l'unique WS hôte en un Transport VIRTUEL par siège —
- *                    `hote/coop/session.ts::addGuest` les consomme sans rien savoir du relay.
+ * - `RelayClient`  : une connexion robuste (ping/pong, retry, fermetures 4xxx fatales).
+ * - `RoomHost`     : démultiplexe l'unique socket hôte en un Transport VIRTUEL par siège —
+ *                    `session.ts::addGuest` les consomme sans rien savoir du relay.
  * - `RoomGuest`    : EST un Transport (côté invité).
  * L'ordre des messages est préservé malgré la compression async : chaînes send/recv.
  */
-import type { Transport } from '../hote/coop/transport';
-import { deflateB64, inflateB64 } from './compress';
+import type { Transport } from './transport';
 
-export const RELAY_URL_PROD = 'https://w4-coop-relay.gauche-c.workers.dev';
-
-export function relayHttpUrl(): string {
-  return (import.meta.env?.VITE_RELAY_URL as string | undefined)
-    ?? (import.meta.env.PROD ? RELAY_URL_PROD : 'http://localhost:8787');
-}
-
-export function roomWsUrl(code: string, params: Record<string, string>): string {
-  const base = relayHttpUrl().replace(/^http/, 'ws');
-  return `${base}/room/${code}?${new URLSearchParams(params).toString()}`;
+/** L'URL WebSocket de la room `code` sur le relay d'URL HTTP `base`. */
+export function roomWsUrl(base: string, code: string, params: Record<string, string>): string {
+  return `${base.replace(/^http/, 'ws')}/room/${code}?${new URLSearchParams(params).toString()}`;
 }
 
 /** Seuil de compression ; en dessous, le JSON part en clair (champ data). */
@@ -44,10 +36,29 @@ export interface SocketLike {
 export type MakeSocket = (url: string) => SocketLike;
 export type ConnState = 'connecting' | 'ok' | 'reconnecting' | 'lost';
 
+/** Un appel différé de l'hôte : `programmer` rend de quoi l'annuler. */
+export interface Minuterie {
+  programmer(suite: () => void, delai: number): () => void;
+}
+
+/** La compression d'un payload en base64url, et sa restitution (null : entrée non fiable). */
+export interface Compression {
+  comprimer(texte: string): Promise<string>;
+  decomprimer(b64: string): Promise<string | null>;
+}
+
+/** La plateforme du relay, injectée par l'hôte. */
+export interface PortsDuRelais {
+  socket: MakeSocket;
+  minuterie: Minuterie;
+  compression: Compression;
+}
+
 export interface RelayOpts {
   /** URL recalculée à CHAQUE tentative — permet d'ajouter le token de reprise. */
   url: () => string;
-  makeSocket?: MakeSocket;
+  socket: MakeSocket;
+  minuterie: Minuterie;
   onEnvelope: (env: Record<string, unknown>) => void;
   onState?: (s: ConnState) => void;
   /** Fermetures DÉFINITIVES : code 4xxx du DO (room inconnue/pleine/fermée) ou retry épuisé. */
@@ -57,8 +68,8 @@ export interface RelayOpts {
 export class RelayClient {
   state: ConnState = 'connecting';
   private ws: SocketLike | null = null;
-  private pingTimer: ReturnType<typeof setInterval> | null = null;
-  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private arreterLePing: (() => void) | null = null;
+  private annulerLeRetry: (() => void) | null = null;
   private lastPong = 0;
   private retryDelay = 1000;
   private retryStart = 0;
@@ -75,26 +86,31 @@ export class RelayClient {
   }
 
   private stopPing(): void {
-    if (this.pingTimer != null) clearInterval(this.pingTimer);
-    this.pingTimer = null;
+    this.arreterLePing?.();
+    this.arreterLePing = null;
+  }
+
+  /** Un battement toutes les `PING_MS`, réarmé à chaque battement. */
+  private battre(ws: SocketLike): void {
+    this.arreterLePing = this.opts.minuterie.programmer(() => {
+      if (Date.now() - this.lastPong > PONG_TIMEOUT_MS) {
+        ws.close(); // demi-mort (NAT, veille…) → on coupe franchement, le retry reprend
+        return;
+      }
+      ws.send('ping');
+      this.battre(ws);
+    }, PING_MS);
   }
 
   private open(): void {
-    const make = this.opts.makeSocket ?? ((url: string) => new WebSocket(url) as unknown as SocketLike);
-    const ws = make(this.opts.url());
+    const ws = this.opts.socket(this.opts.url());
     this.ws = ws;
     ws.onopen = () => {
       this.lastPong = Date.now();
       this.retryDelay = 1000;
       this.retryStart = 0;
       this.setState('ok');
-      this.pingTimer = setInterval(() => {
-        if (Date.now() - this.lastPong > PONG_TIMEOUT_MS) {
-          ws.close(); // demi-mort (NAT, veille…) → on coupe franchement, le retry reprend
-          return;
-        }
-        ws.send('ping');
-      }, PING_MS);
+      this.battre(ws);
     };
     ws.onmessage = (e) => {
       if (e.data === 'pong') {
@@ -134,8 +150,8 @@ export class RelayClient {
       return;
     }
     this.setState('reconnecting');
-    this.retryTimer = setTimeout(() => {
-      this.retryTimer = null;
+    this.annulerLeRetry = this.opts.minuterie.programmer(() => {
+      this.annulerLeRetry = null;
       this.open();
     }, this.retryDelay);
     this.retryDelay = Math.min(this.retryDelay * 2, 10_000);
@@ -153,16 +169,16 @@ export class RelayClient {
     if (this.closed) return;
     this.closed = true;
     this.stopPing();
-    if (this.retryTimer != null) clearTimeout(this.retryTimer);
+    this.annulerLeRetry?.();
     this.ws?.close(1000, 'bye');
   }
 }
 
 /** Enveloppe un payload : clair si petit, compressé (`z`) sinon ; null si > 1 Mio (refus loggé). */
-async function packed(to: number | null, data: string): Promise<Record<string, unknown> | null> {
+async function packed(compression: Compression, to: number | null, data: string): Promise<Record<string, unknown> | null> {
   const env: Record<string, unknown> = to == null ? {} : { to };
   if (data.length < COMPRESS_MIN) return { ...env, data };
-  const z = await deflateB64(data);
+  const z = await compression.comprimer(data);
   if (z.length > WS_MAX) {
     console.error(`[coop] message trop volumineux (${z.length} o compressés > 1 Mio) — non envoyé`);
     return null;
@@ -170,7 +186,7 @@ async function packed(to: number | null, data: string): Promise<Record<string, u
   return { ...env, z };
 }
 
-/** Transport virtuel d'un siège côté hôte (recréé après la grace par netFlow). */
+/** Transport virtuel d'un siège côté hôte (recréé après la grace par `salon.ts`). */
 class VirtualSeat implements Transport {
   private msgCb: ((d: string) => void) | null = null;
   private closeCb: (() => void) | null = null;
@@ -209,10 +225,11 @@ export class RoomHost {
   private sendChain: Promise<void> = Promise.resolve();
   private recvChain: Promise<void> = Promise.resolve();
 
-  constructor(code: string, hostToken: string, makeSocket?: MakeSocket) {
+  constructor(base: string, code: string, hostToken: string, private readonly ports: PortsDuRelais) {
     this.relay = new RelayClient({
-      url: () => roomWsUrl(code, { role: 'host', token: hostToken }),
-      makeSocket,
+      url: () => roomWsUrl(base, code, { role: 'host', token: hostToken }),
+      socket: ports.socket,
+      minuterie: ports.minuterie,
       onEnvelope: (env) => this.handle(env),
       onState: (s) => this.onConnState?.(s),
       onFatal: (reason) => this.onFatal?.(reason),
@@ -235,7 +252,7 @@ export class RoomHost {
     if (typeof env.from !== 'number') return;
     // Décompression SÉQUENTIELLE : l'ordre des messages d'un siège doit être préservé.
     this.recvChain = this.recvChain.then(async () => {
-      const text = typeof env.z === 'string' ? await inflateB64(env.z) : typeof env.data === 'string' ? env.data : null;
+      const text = typeof env.z === 'string' ? await this.ports.compression.decomprimer(env.z) : typeof env.data === 'string' ? env.data : null;
       if (text != null) this.transports.get(env.from as number)?.deliver(text);
     });
   }
@@ -245,7 +262,7 @@ export class RoomHost {
     const t = new VirtualSeat(seat, (s, data) => {
       // Compression + envoi SÉQUENTIELS : un petit message ne doit pas doubler un gros en cours.
       this.sendChain = this.sendChain.then(async () => {
-        const env = await packed(s, data);
+        const env = await packed(this.ports.compression, s, data);
         if (env) this.relay.sendRaw(JSON.stringify(env));
       });
     });
@@ -286,12 +303,13 @@ export class RoomGuest implements Transport {
   private recvChain: Promise<void> = Promise.resolve();
   private wasReconnecting = false;
 
-  constructor(code: string, name: string, makeSocket?: MakeSocket, resumeToken?: string) {
+  constructor(base: string, code: string, name: string, private readonly ports: PortsDuRelais, resumeToken?: string) {
     if (resumeToken) this.token = resumeToken;
     this.relay = new RelayClient({
       // Token connu (reprise/reload) → resume ; sinon nouveau join nominatif.
-      url: () => roomWsUrl(code, this.token ? { role: 'guest', token: this.token } : { role: 'guest', name }),
-      makeSocket,
+      url: () => roomWsUrl(base, code, this.token ? { role: 'guest', token: this.token } : { role: 'guest', name }),
+      socket: ports.socket,
+      minuterie: ports.minuterie,
       onEnvelope: (env) => this.handle(env),
       onState: (s) => {
         this.onConnState?.(s);
@@ -323,14 +341,14 @@ export class RoomGuest implements Transport {
       return;
     }
     this.recvChain = this.recvChain.then(async () => {
-      const text = typeof env.z === 'string' ? await inflateB64(env.z) : typeof env.data === 'string' ? env.data : null;
+      const text = typeof env.z === 'string' ? await this.ports.compression.decomprimer(env.z) : typeof env.data === 'string' ? env.data : null;
       if (text != null) this.msgCb?.(text);
     });
   }
 
   send(data: string): void {
     this.sendChain = this.sendChain.then(async () => {
-      const env = await packed(null, data);
+      const env = await packed(this.ports.compression, null, data);
       if (env) this.relay.sendRaw(JSON.stringify(env));
     });
   }

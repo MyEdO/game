@@ -54,19 +54,19 @@ export function aretesDeLaCouche(scene: Scene, z: number): AreteDessinee[] {
   return (scene.walls ?? []).filter((seg) => (seg.z ?? 0) === z).map((seg) => areteDessinee(scene, seg));
 }
 
-/** Les clés (`edgeKey`) des couronnes crénelées de la couche `z` de `scene` (`couronnesDeLaCouche`) tombées avec leur
- *  mur abattu (`structureIsDown`) ; celle d'un corps de garde (`door`) reste sur le linteau de son passage. */
-function couronnesAbattues(scene: Scene, z: number): string[] {
+/** Les clés (`edgeKey`) des couronnes crénelées de `scene` (`couronnesDuMonde`) tombées avec leur mur abattu
+ *  (`structureIsDown`) ; celle d'un corps de garde (`door`) reste sur le linteau de son passage. */
+function couronnesAbattues(scene: Scene): string[] {
   return (scene.walls ?? []).filter((seg) => {
     const apparence = APPARENCES.get(apparenceDArete(scene, seg));
-    return (seg.z ?? 0) === z && !!apparence?.parapet && !apparence.door && !!seg.structure && structureIsDown(scene, seg);
+    return !!apparence?.parapet && !apparence.door && !!seg.structure && structureIsDown(scene, seg);
   }).map(edgeKey);
 }
 
-/** Le plateau d'une scène tel qu'un hôte le dessine : ses dimensions, les arêtes de sa couche de base
- *  (`aretesDeLaCouche`), son échelle métrique (`sceneMetresPerTile`), les nappes de toit que le groupe posé sur
+/** Le plateau d'une scène tel qu'un hôte le dessine : ses dimensions, les arêtes de toutes ses couches
+ *  (`areteDessinee`), son échelle métrique (`sceneMetresPerTile`), les nappes de toit que le groupe posé sur
  *  `allies` dégage (`toitsLeves`) et les couronnes crénelées tombées (`couronnesAbattues`). */
 export function plateauDeLaScene(scene: Scene, allies: readonly Pt[]): { w: number; h: number; metresParCase: number; aretes: AreteDessinee[]; toitsLeves: string[]; couronnesAbattues: string[] } {
   const { w, h } = scene.dimensions;
-  return { w, h, metresParCase: sceneMetresPerTile(scene), aretes: aretesDeLaCouche(scene, 0), toitsLeves: toitsLeves(scene, allies), couronnesAbattues: couronnesAbattues(scene, 0) };
+  return { w, h, metresParCase: sceneMetresPerTile(scene), aretes: (scene.walls ?? []).map((seg) => areteDessinee(scene, seg)), toitsLeves: toitsLeves(scene, allies), couronnesAbattues: couronnesAbattues(scene) };
 }
