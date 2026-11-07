@@ -177,6 +177,9 @@ const porteAlsoIn = (categoryKey: string): boolean => {
  * SOURCE UNIQUE : utilisée par le filtre de `CodexEdit` ET par le garde-fou `no-json-fields.test` (qui
  * vérifie qu'aucun champ d'aucun dataset éditable ne retombe en `kind:'json'`). Ajouter un éditeur dédié
  * = ajouter sa/ses clé(s) ici (et le composant dans le rendu). */
+/** Les tables d'événements de mer (`sea-events.json`), dont la `consequence` est un Flow de racine `evenementDeMer`. */
+const EVENEMENTS_DE_MER: readonly string[] = ['seaBoardEvents', 'seaPortEvents'];
+
 export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   const k = new Set<string>();
   const add = (...keys: string[]) => keys.forEach((x) => k.add(x));
@@ -196,6 +199,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'mutationTables' || categoryKey === 'weather') add('entries');
   if (['mutations', 'trappings'].includes(categoryKey)) add('derivedWeapon');
   if (categoryKey === 'trappings') add('consumable', 'consumableDuration', 'onHitEffects'); // onHitEffects → TriggeredEffectsField (#175)
+  if (EVENEMENTS_DE_MER.includes(categoryKey)) add('consequence'); // Flow joué par `runFlow` → FlowEditor (#1652)
   // #1318 : paliers d'entraînement d'une PROTHÈSE (LDB 73) — `{cost,label,reduces?,grants?}[]`,
   // tableau d'objets HOMOGÈNES → éditeur GÉNÉRIQUE commun (`GenericArrayField`), jamais le repli JSON.
   if (categoryKey === 'trappings') add('prosthesisTraining');
@@ -605,6 +609,13 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
             <span>effet d’un CONSOMMABLE (potion/drogue/bandage) — Flow appliqué au buveur (ops, branches, Tests « au boire »)</span>
             <FlowEditor flow={(entry.consumable as Flow | undefined) ?? EMPTY_FLOW} ctx={ctxDeCatalogue('consommable')}
               onChange={(f) => edit('consumable', f.kind === 'seq' && f.steps.length === 0 ? undefined : f)} />
+          </div>
+        )}
+        {EVENEMENTS_DE_MER.includes(categoryKey) && (
+          <div className="ed-field">
+            <span>conséquence de l’événement — Flow joué à bord ou à l’escale (ops du groupe, d’un héros ou du navire, branches, Tests, choix)</span>
+            <FlowEditor flow={(entry.consequence as Flow | undefined) ?? EMPTY_FLOW} ctx={ctxDeCatalogue('evenementDeMer')}
+              onChange={(f) => edit('consequence', f.kind === 'seq' && f.steps.length === 0 ? undefined : f)} />
           </div>
         )}
         {hasConsumable && <ConsumableDurationField value={entry.consumableDuration as ConsumableDuration | undefined} onChange={(v) => edit('consumableDuration', v)} />}

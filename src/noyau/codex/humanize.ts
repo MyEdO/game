@@ -28,7 +28,8 @@ import { traumaLabelOf } from '../../engine/trauma';
 import { cibleDeRef, libelleDePsy } from '../../engine/psych/ciblage';
 import { libelleDuTraitOctroye } from '../../engine/psych/opsPsy';
 import { formatMoney } from '../../engine/money';
-import { formatDice } from '../../engine/dice';
+import { formatDice, formatEffetSigne } from '../../engine/dice';
+import { shipLocationLabel } from '../../engine/shipCritical';
 import { rule, ruleDef } from '../../engine/policy';
 import {
   conditionLabel, psychologyLabel, groupLabel, symptomLabel, creatureLabel,
@@ -305,6 +306,7 @@ export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], n
       const sujet = sujetDuGroupe(c.who);
       return `${t(neg ? 'codex.c.skill.non' : 'codex.c.skill', { sujet, nom: refLabel('skills', { id: c.id, spec: c.spec }) })}${c.advances ? ` (≥${c.advances})` : ''}`;
     }
+    case 'talent': return t(neg ? 'codex.c.talent.non' : 'codex.c.talent', { sujet: sujetDuGroupe(c.who), nom: refLabel('talents', { id: c.id, spec: c.spec }) });
     case 'career': return t(neg ? 'codex.c.career.non' : 'codex.c.career', { sujet: sujetDuGroupe(c.who), nom: refLabel('careers', { id: c.id }) });
     case 'species': return t(neg ? 'codex.c.species.non' : 'codex.c.species', { sujet: sujetDuGroupe(c.who), nom: refLabel('races', { id: c.id }) });
     case 'status': return t(neg ? 'codex.c.status.non' : 'codex.c.status', { sujet: sujetDuGroupe(c.who), statut: c.atLeast });
@@ -565,6 +567,14 @@ export function humanizeOp(o: GameOp): string {
     case 'light': return t('codex.op.light', { n: o.radiusM });
     case 'intoxicate': return t('codex.op.intoxicate');
     case 'narrative': return o.text;
+    case 'shipMorale': return t('codex.op.shipMorale', { delta: formatEffetSigne(o.delta) });
+    case 'manann': return o.factorId !== undefined
+      ? t('codex.op.manann.facteur', { nom: refLabel('seaManannFactors', { id: o.factorId }) })
+      : t('codex.op.manann', { delta: formatEffetSigne(o.delta) });
+    case 'shipCritical': return t('codex.op.shipCritical', {
+      n: humanizeFormula(o.count),
+      loc: o.location === 'aleatoire' ? t('codex.op.shipCritical.aleatoire') : shipLocationLabel(o.location),
+    });
   }
   return assertNever(o);
 }

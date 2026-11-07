@@ -16,7 +16,7 @@ import { messageRecurrenceHorloge, SELF_REF, type GameOp, type OpPassive } from 
 import { etatConnu } from '../../../engine/conditions';
 import { t } from '../../../i18n';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
-import { chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
+import { chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refusDeLId, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
@@ -224,6 +224,21 @@ const DECLARATIONS_D_OPS = {
    *  étalée parmi les clés de l'op (garde `src/data/monnaie-forme-unique.test.ts`, sonde A). La seule
    *  dénomination chiffrable est `brass`, l'unité de compte de `engine/money.ts`. */
   money: nommerChamps(z.strictObject({ op: z.literal('money'), montant: nommerChamps(z.strictObject({ brass: formulaSchema }), { brass: { label: "sous de cuivre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }) }), { op: { label: "opération"  }, montant: { label: "montant" } }),
+  /** Ops de NAVIRE (`OPS_DU_NAVIRE`, `engine/ops.ts`) : résolues sur la cible `navire` d'un EffectOp. */
+  shipMorale: nommerChamps(z.strictObject({ op: z.literal('shipMorale'), delta: effetSigneSchema }), { op: { label: "opération"  }, delta: { label: "variation" } }),
+  /** Variation LIBRE (`delta`) OU facteur du tableau (`factorId`, MDG 15 l.97-124), exclusifs. */
+  manann: z.union([
+    nommerChamps(z.strictObject({ op: z.literal('manann'), delta: effetSigneSchema }), { op: { label: "opération"  }, delta: { label: "variation" } }),
+    nommerChamps(z.strictObject({ op: z.literal('manann'), factorId: z.string().min(1) }), { op: { label: "opération"  }, factorId: { label: "facteur" , texte: { regime: "technique"} } }),
+  ], {
+    error: (iss) => {
+      const v = (iss.input ?? {}) as { delta?: unknown; factorId?: unknown };
+      return (v.delta === undefined) === (v.factorId === undefined)
+        ? 'Humeur EXCLUSIVE : « delta » (variation tirée) OU « factorId » (facteur du tableau) — exactement un des deux.'
+        : undefined;
+    },
+  }),
+  shipCritical: nommerChamps(z.strictObject({ op: z.literal('shipCritical'), location: z.union([shipLocationSchema, z.literal('aleatoire')]), count: formulaSchema }), { op: { label: "opération"  }, location: { label: "localisation" }, count: { label: "nombre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   healCaster: nommerChamps(z.strictObject({ op: z.literal('healCaster'), amount: formulaSchema }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   gainAdvantage: nommerChamps(z.strictObject({ op: z.literal('gainAdvantage'), amount: formulaSchema }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   topUpAdvantage: nommerChamps(z.strictObject({ op: z.literal('topUpAdvantage'), amount: ouReserve(formulaSchema, INDICE_TEMPLATE), feedOpposingPool: z.boolean().optional() }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, feedOpposingPool: { label: "réserve adverse" } }),
@@ -772,6 +787,12 @@ const conditionDeCompetenceSchema = refOuSpec('skill', {
   who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
 }) as z.ZodType<Extract<Condition, { kind: 'skill' }>> & z.core.$ZodTypeDiscriminable;
 
+/** `{ kind: 'talent' }` — un héros du groupe porte le Talent (Béni (Manann) : MDG 15 l.197-198). */
+const conditionDeTalentSchema = refOuSpec('talent', {
+  kind: nommerNoeud(z.literal('talent'), { nom: 'type' }),
+  who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
+}) as z.ZodType<Extract<Condition, { kind: 'talent' }>> & z.core.$ZodTypeDiscriminable;
+
 /** Les algèbres `Condition` construites, par Conditions réservées admises. */
 const ALGEBRES_DE_CONDITION = new Map<string, z.ZodType<Condition>>();
 
@@ -807,6 +828,7 @@ function conditionDe(admises: readonly ConditionReservee[]): z.ZodType<Condition
       marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('partyDead'), who: partySelectorSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }), 'conditionDe', 'condition.partyDead'),
       marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('etat'), etat: z.string().min(1, 'Condition « etat » : nommez l’état de campagne lu.'), value: z.string().optional() }), { kind: { label: "type"  }, etat: { label: "état de campagne" , texte: { regime: "technique"} }, value: { label: "valeur" , texte: { regime: "technique"} } }), 'conditionDe', 'condition.etat'),
       conditionDeCompetenceSchema,
+      conditionDeTalentSchema,
       marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('career'), id: z.string(), who: partySelectorSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, who: { label: "acteur"  } }), 'conditionDe', 'condition.career'),
       marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('species'), id: z.string(), who: partySelectorSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, who: { label: "acteur"  } }), 'conditionDe', 'condition.species'),
       marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('status'), atLeast: statutSchema, who: partySelectorSchema.optional() }), { kind: { label: "type"  }, atLeast: { label: "minimum" , texte: { regime: "technique"} }, who: { label: "acteur"  } }), 'conditionDe', 'condition.status'),
@@ -1215,8 +1237,8 @@ function construire(regimes: Regimes) {
   /** EFFECTOP — pont UNIQUE entre la logique authorée (Flow) et le moteur mécanique des sorts : applique
    *  des `GameOp` à une cible (`party`/`hero` scène, ou `caster`/`target` incantation). Feuille `do` par
    *  DÉFAUT du `Flow<E>` générique (`engine/flowCore.ts:559`), et l'un des membres de l'union `Effect` de
-   *  scène (`defs-scenes/effets.ts`). `on` = les 4 valeurs de
-   *  l'interface TS : `'party'`/`'hero'` (scène) ou `'caster'`/`'target'` (contexte d'incantation). Le
+   *  scène (`defs-scenes/effets.ts`). `on` = les 5 valeurs de
+   *  l'interface TS : `'party'`/`'hero'`/`'navire'` (scène) ou `'caster'`/`'target'` (contexte d'incantation). Le
    *  ciblage `'self'`/`'victim'` est le vocabulaire du NIVEAU TRIGGER (`effectTargetingSchema`), pas de la
    *  feuille : sur la feuille, `'caster'` = porteur, `'target'` = cible résolue par le trigger. */
   declarerEnfants(gameOp, Object.entries(opDefs).map(([op, noeud]) => ({ noeud, segment: '^' + op })), valeur => {
@@ -1228,7 +1250,7 @@ function construire(regimes: Regimes) {
   const effectOp = marquerProduit(nommerChamps(z.strictObject({
     type: z.literal('ops'),
     ops: executeesDe(gameOp),
-    on: z.enum(['party', 'hero', 'caster', 'target']).optional(),
+    on: z.enum(['party', 'hero', 'navire', 'caster', 'target']).optional(),
     heroId: z.string().optional(),
     untilTime: z.number().optional(),
     label: z.string().optional(),

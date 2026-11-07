@@ -26,7 +26,7 @@ import { toDate } from './clock';
 import type { CharKey, Difficulty, EffectSource, HitLocation } from './types';
 import { relationBetween, type Camp, type Relation } from './relations';
 import { groupMatch } from './groups';
-import { opDemandeUnDe, type GameOp, type PairedSense } from './ops';
+import { estOpDuNavire, opDemandeUnDe, type GameOp, type PairedSense } from './ops';
 import type { CibleEnVue } from './psychology';
 import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
@@ -49,12 +49,12 @@ export interface TemporalCondition {
 /** EFFECTOP — la feuille PURE (engine) d'un `Flow` : applique des `GameOp` (Blessures/soin/État/charMod/
  *  Corruption/buffs… — vocabulaire PARTAGÉ avec les sorts, `engine/ops`) à une cible. C'est le DÉFAUT de
  *  la feuille générique `Flow<E>` ; la couche `state` élargit `E` à son union `Effect` (transition/
- *  dialogue/combat…). `on` = qui : `party`/`hero` (scène, défaut `party`) ou `caster`/`target` (contexte
- *  d'incantation, résolu par le flux de sort). */
+ *  dialogue/combat…). `on` = qui : `party`/`hero`/`navire` (scène, défaut `party` ; `navire` = le navire de
+ *  campagne, `noyau/navireOps.ts`) ou `caster`/`target` (contexte d'incantation, résolu par le flux de sort). */
 export interface EffectOp {
   type: 'ops';
   ops: GameOp[];
-  on?: 'party' | 'hero' | 'caster' | 'target';
+  on?: 'party' | 'hero' | 'navire' | 'caster' | 'target';
   heroId?: string;
   /** Échéance d'HORLOGE (minute `gameTime`) des effets DURABLES posés par ces ops — BAKÉE sur la feuille
    *  (durée d'un consommable résolue AU BOIRE, `bakeConsumableFlow`) pour SURVIVRE aux suspensions (une
@@ -154,6 +154,9 @@ export type Condition =
   | { kind: 'skill'; id: string; spec?: string; advances?: number; who?: PartySelector }
   /** Un héros du groupe (`any`/`all`) exerce la carrière `id` (`Combatant.career`) — #711. */
   | { kind: 'career'; id: string; who?: PartySelector }
+  /** Un héros du groupe (`any`/`all`) porte le Talent `id` (`spec` éventuelle : Béni (Manann)) — gate
+   *  « un Prêtre ou une Nonne de Manann à bord » (MDG 15 l.197-198, l.230-232). */
+  | { kind: 'talent'; id: string; spec?: string; who?: PartySelector }
   /** Un héros du groupe (`any`/`all`) est de l'espèce `id` (`Combatant.species`) — #711. */
   | { kind: 'species'; id: string; who?: PartySelector }
   /** Un héros du groupe (`any`/`all`) a un Statut (LDB 08, `actorStatus`) au moins `atLeast`
@@ -254,6 +257,8 @@ export interface ConditionCtx {
   party?: { id?: string; dead?: boolean; items?: { label: string; trappingId?: string }[];
     /** Compétences possédées (#711 `skill`) — instances brutes, comme `Combatant.skills`. */
     skills?: { id: string; spec?: string; advances?: number }[];
+    /** Talents possédés (`talent`) — instances brutes, comme `Combatant.talents`. */
+    talents?: readonly { talentId: string; spec?: string }[];
     /** Carrière/espèce/niveau de carrière courants (#711 `career`/`species`/`status`) — bruts,
      *  comme `Combatant.career`/`species`/`careerLevel`. */
     career?: string; species?: string; careerLevel?: number;
@@ -419,6 +424,7 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
       return matchParty(ctx, cond.who ?? 'any', (m) => (m.skills ?? []).some((s) =>
         refCouvre({ id: cond.id, spec: cond.spec }, s) && (s.advances ?? 0) >= (cond.advances ?? 0)));
     case 'career': return matchParty(ctx, cond.who ?? 'any', (m) => m.career === cond.id);
+    case 'talent': return matchParty(ctx, cond.who ?? 'any', (m) => (m.talents ?? []).some((t) => refCouvre({ id: cond.id, spec: cond.spec }, { id: t.talentId, spec: t.spec })));
     case 'species': return matchParty(ctx, cond.who ?? 'any', (m) => m.species === cond.id);
     case 'status': return matchParty(ctx, cond.who ?? 'any', (m) => statusMeets(actorStatus(m), cond.atLeast));
     case 'all': return cond.of.every((c) => evalCondition(c, ctx));
@@ -829,11 +835,15 @@ export function flowHasTest<E = EffectOp>(flow: Flow<E>): boolean {
  *  `test` contenant l'une d'elles vers l'exécuteur IMPUR plutôt que `runPureFlowLines` (qui les avalerait). */
 const HOOK_BACKED_OPS = new Set(['grantFreeAttack', 'interruptFocus', 'breakBlade', 'delayed']);
 
-/** Le Flow porte-t-il une op IMPURE adossée à un hook de `runCombatFlow` (cf. `HOOK_BACKED_OPS`) ? Si oui,
- *  son exécution doit passer par `runCombatFlow` (le hook y vit), jamais par `runPureFlowLines`. */
+/** Op IMPURE : de `HOOK_BACKED_OPS`, ou de NAVIRE (`estOpDuNavire`), résolue sur la cible `navire` par
+ *  `noyau/navireOps.ts` — `applyOps` les laisse toutes inertes. */
+const estOpImpure = (o: GameOp): boolean => HOOK_BACKED_OPS.has(o.op) || estOpDuNavire(o);
+
+/** Le Flow porte-t-il une op IMPURE (cf. `estOpImpure`) ? Si oui, son exécution ne passe jamais par
+ *  `runPureFlowLines`, qui l'avalerait. */
 export function flowHasImpureOp<E = EffectOp>(flow: Flow<E>): boolean {
   switch (flow.kind) {
-    case 'do': { const e = flow.effect; return isEffectOp(e) && e.ops.some((o) => HOOK_BACKED_OPS.has(o.op)); }
+    case 'do': { const e = flow.effect; return isEffectOp(e) && e.ops.some(estOpImpure); }
     case 'seq': return flow.steps.some((s) => flowHasImpureOp(s));
     case 'if': return flowHasImpureOp(flow.then) || (flow.else ? flowHasImpureOp(flow.else) : false);
     case 'test': return flowHasImpureOp(flow.success) || flowHasImpureOp(flow.fail);
@@ -841,15 +851,16 @@ export function flowHasImpureOp<E = EffectOp>(flow: Flow<E>): boolean {
   }
 }
 
-/** Ops de `HOOK_BACKED_OPS` interdites HORS branche `success`/`fail` d'un nœud `test` dans un Flow d'effet
+/** Ops IMPURES (`estOpImpure`) interdites HORS branche `success`/`fail` d'un nœud `test` dans un Flow d'effet
  *  DÉCLENCHÉ (`effects: TriggeredEffect[]`, traits/talents/atouts/États/psychologie…) — EXCLUT
  *  `grantFreeAttack`, légitime top-level (résolu par `resolveFreeAttacks`, cf. `flowHasFreeAttack`, ex.
  *  Frappe réactive). `interruptFocus`/`breakBlade`/`delayed` n'ont de hook que dans le do-loop de
- *  `runCombatFlow` AVEC son contexte de branche de Test résolue ; placées ailleurs, `applyTriggeredEffects`
- *  (walker `runPureFlowLines`) les avale en silence (`applyOps` les laisse inertes). */
-const STRAY_IMPURE_OPS = new Set([...HOOK_BACKED_OPS].filter((op) => op !== 'grantFreeAttack'));
+ *  `runCombatFlow` AVEC son contexte de branche de Test résolue, les ops de navire n'en ont aucun ; placées
+ *  ailleurs, `applyTriggeredEffects` (walker `runPureFlowLines`) les avale en silence (`applyOps` les laisse
+ *  inertes). */
+const estOpImpureErrante = (o: GameOp): boolean => o.op !== 'grantFreeAttack' && estOpImpure(o);
 
-/** Le Flow porte-t-il une op de `STRAY_IMPURE_OPS` EN DEHORS d'une branche `success`/`fail` de `test` ?
+/** Le Flow porte-t-il une op IMPURE errante (`estOpImpureErrante`) EN DEHORS d'une branche `success`/`fail` de `test` ?
  *  `inTestBranch` (interne, propagé par la récursion) reste vrai tant qu'on n'est pas ressorti d'un nœud
  *  `test` — vérité utilisée par la garde de bien-formation des données (`effects` déclenchés). */
 /**
@@ -875,7 +886,7 @@ export function flowHasImpureOpOutsideTest<E = EffectOp>(flow: Flow<E>, inTestBr
     case 'do': {
       if (inTestBranch) return false;
       const e = flow.effect;
-      return isEffectOp(e) && e.ops.some((o) => STRAY_IMPURE_OPS.has(o.op));
+      return isEffectOp(e) && e.ops.some(estOpImpureErrante);
     }
     case 'seq': return flow.steps.some((s) => flowHasImpureOpOutsideTest(s, inTestBranch));
     case 'if': return flowHasImpureOpOutsideTest(flow.then, inTestBranch) || (flow.else ? flowHasImpureOpOutsideTest(flow.else, inTestBranch) : false);

@@ -601,10 +601,19 @@
         "id": "bateau-endommage",
         "label": "Bateau endommagé",
         "desc": "Bateau endommagé. Quelque chose secoue très rudement le vaisseau et une partie de sa structure rompt au lieu de simplement plier. Le navire subit un Coup Critique sur une localisation aléatoire.",
-        "kind": "coup-critique",
-        "params": {
-          "crits": 1,
-          "critLocation": "aleatoire"
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "shipCritical",
+                "location": "aleatoire",
+                "count": 1
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
@@ -774,14 +783,23 @@
         "id": "figure-de-proue-prophetique",
         "label": "Figure de proue prophétique",
         "desc": "Figure de proue prophétique. Un membre de l'équipage soutient sincèrement qu'il a vu la figure de proue du navire prendre vie et l'a entendue annoncer le déplaisir de Manann. Réduisez le Moral d'1d10.",
-        "kind": "presage",
-        "params": {
-          "moral": {
-            "sign": -1,
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "shipMorale",
+                "delta": {
+                  "sign": -1,
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                }
+              }
+            ]
           }
         },
         "source": {
@@ -936,21 +954,90 @@
         "id": "presage-divin-albatros",
         "label": "Présage divin",
         "desc": "Présage divin. Un albatros vole en cercle autour du grand mât trois fois dans le sens inverse des aiguilles d'une montre. Le bateau doit immédiatement se mettre dans les bonnes grâces de Manann. Sauf si un Prêtre ou une Nonne de Manann à bord réussit un Test de Prière Complexe (–10), réduisez l'Humeur de Manann de –2d10 et le Moral d'1d10.",
-        "kind": "presage",
-        "params": {
-          "prayerDifficulty": "complexe",
-          "manann": {
-            "sign": -1,
-            "dice": {
-              "n": 2,
-              "sides": 10
+        "consequence": {
+          "kind": "if",
+          "cond": {
+            "kind": "talent",
+            "id": "beni",
+            "spec": "manann"
+          },
+          "then": {
+            "kind": "test",
+            "test": {
+              "skill": {
+                "id": "priere"
+              },
+              "difficulty": "complexe",
+              "stake": {
+                "key": {
+                  "dataset": "voyage",
+                  "kind": "sea-priere",
+                  "entryId": "presage-divin-albatros",
+                  "entryCategory": "seaBoardEvents"
+                }
+              }
+            },
+            "success": {
+              "kind": "seq",
+              "steps": []
+            },
+            "fail": {
+              "kind": "do",
+              "effect": {
+                "type": "ops",
+                "on": "navire",
+                "ops": [
+                  {
+                    "op": "manann",
+                    "delta": {
+                      "sign": -1,
+                      "dice": {
+                        "n": 2,
+                        "sides": 10
+                      }
+                    }
+                  },
+                  {
+                    "op": "shipMorale",
+                    "delta": {
+                      "sign": -1,
+                      "dice": {
+                        "n": 1,
+                        "sides": 10
+                      }
+                    }
+                  }
+                ]
+              }
             }
           },
-          "moral": {
-            "sign": -1,
-            "dice": {
-              "n": 1,
-              "sides": 10
+          "else": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "navire",
+              "ops": [
+                {
+                  "op": "manann",
+                  "delta": {
+                    "sign": -1,
+                    "dice": {
+                      "n": 2,
+                      "sides": 10
+                    }
+                  }
+                },
+                {
+                  "op": "shipMorale",
+                  "delta": {
+                    "sign": -1,
+                    "dice": {
+                      "n": 1,
+                      "sides": 10
+                    }
+                  }
+                }
+              ]
             }
           }
         },
@@ -991,13 +1078,24 @@
         "id": "usure",
         "label": "Usure",
         "desc": "Usure. Le bateau subit 1d10 Blessures à cause de l'usure générale du voyage.",
-        "kind": "usure",
-        "params": {
-          "wounds": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "wounds",
+                "amount": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                },
+                "ignoreTB": true,
+                "ignoreAP": true
+              }
+            ]
           }
         },
         "source": {
@@ -1158,14 +1256,23 @@
         "id": "bonne-humeur",
         "label": "Bonne humeur",
         "desc": "Bonne humeur. Les membres de l'équipage s'entendent bien et discutent entre eux de la chance qu'ils ont de servir sur un bateau qui porte bonheur. Gagnez 2d10 Moral.",
-        "kind": "bonne-humeur",
-        "params": {
-          "moral": {
-            "sign": 1,
-            "dice": {
-              "n": 2,
-              "sides": 10
-            }
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "shipMorale",
+                "delta": {
+                  "sign": 1,
+                  "dice": {
+                    "n": 2,
+                    "sides": 10
+                  }
+                }
+              }
+            ]
           }
         },
         "source": {
@@ -1277,21 +1384,61 @@
         "id": "presage-divin-feu-bleu",
         "label": "Présage divin",
         "desc": "Présage divin. L'équipage voit du feu bleu onduler autour du sommet du mât. Le bateau doit immédiatement tenter d'attirer la faveur de Manann. Si un Prêtre ou une Nonne de Manann à bord réussit un Test de Prière Complexe (–10), augmentez l'Humeur de Manann de 2d10 et le Moral d'1d10.",
-        "kind": "presage",
-        "params": {
-          "prayerDifficulty": "complexe",
-          "manann": {
-            "sign": 1,
-            "dice": {
-              "n": 2,
-              "sides": 10
-            }
+        "consequence": {
+          "kind": "if",
+          "cond": {
+            "kind": "talent",
+            "id": "beni",
+            "spec": "manann"
           },
-          "moral": {
-            "sign": 1,
-            "dice": {
-              "n": 1,
-              "sides": 10
+          "then": {
+            "kind": "test",
+            "test": {
+              "skill": {
+                "id": "priere"
+              },
+              "difficulty": "complexe",
+              "stake": {
+                "key": {
+                  "dataset": "voyage",
+                  "kind": "sea-priere",
+                  "entryId": "presage-divin-feu-bleu",
+                  "entryCategory": "seaBoardEvents"
+                }
+              }
+            },
+            "success": {
+              "kind": "do",
+              "effect": {
+                "type": "ops",
+                "on": "navire",
+                "ops": [
+                  {
+                    "op": "manann",
+                    "delta": {
+                      "sign": 1,
+                      "dice": {
+                        "n": 2,
+                        "sides": 10
+                      }
+                    }
+                  },
+                  {
+                    "op": "shipMorale",
+                    "delta": {
+                      "sign": 1,
+                      "dice": {
+                        "n": 1,
+                        "sides": 10
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "fail": {
+              "kind": "seq",
+              "steps": []
             }
           }
         },
@@ -1348,6 +1495,7 @@
         "id": "embrigadement",
         "label": "Embrigadement",
         "desc": "Embrigadement. Un bateau manquant de bras pour son équipage a enlevé une partie des vôtres. Vous perdez 2d10 membres d'équipage. Vous pouvez les récupérer en réussissant un Test de Ragot Intermédiaire (+0), puis en payant 2d10 CO ou en réussissant un Test de Discrétion Complexe (–10). En cas d'échec sur n'importe lequel des deux Tests, vous perdez 1d10 membres d'équipage de plus, car votre plan pour libérer vos compagnons tourne mal et l'autre navire prend la mer et quitte le port. Si vous avez refusé la permission de faire relâche à terre à votre équipage, cet événement n'a pas lieu.",
+        "relache": true,
         "kind": "embrigadement",
         "params": {
           "lostCrew": {
@@ -1689,14 +1837,24 @@
         "id": "fete-de-manann",
         "label": "Fête de Manann",
         "desc": "Fête de Manann. Le port donne actuellement un festival en l'honneur de Manann, qui célèbre son importance pour sa communauté. Si le capitaine autorise son équipage à faire relâche à terre et se joint aux festivités avec sincérité, l'Humeur de Manann augmente de 2d10.",
-        "kind": "fete-manann",
-        "params": {
-          "manann": {
-            "sign": 1,
-            "dice": {
-              "n": 2,
-              "sides": 10
-            }
+        "relache": true,
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "manann",
+                "delta": {
+                  "sign": 1,
+                  "dice": {
+                    "n": 2,
+                    "sides": 10
+                  }
+                }
+              }
+            ]
           }
         },
         "source": {

@@ -84,6 +84,7 @@ export function condSummary(c: Condition | undefined, narratif?: NarratifBlock):
     case 'has': return `${libelleDeValeur(actorRefSchema, c.who)} a ${libelleDeValeur(hasWhatSchema, c.what)} « ${c.value ? refLabel(valeurDeHas(c).cfg.ds, { id: c.value, spec: c.what === 'talent' ? c.spec : undefined }) : '?'} »`;
     case 'casterChaosDomain': return `Domaine du Chaos du lanceur = ${c.is || '?'}`;
     case 'skill': return `${quiResume(c.who, narratif)} : Compétence « ${c.id || '?'}${c.spec ? ` (${c.spec})` : ''} »${c.advances ? ` ≥${c.advances}` : ''}`;
+    case 'talent': return `${quiResume(c.who, narratif)} : Talent « ${c.id ? refLabel('talents', { id: c.id, spec: c.spec }) : '?'} »`;
     case 'career': return `${quiResume(c.who, narratif)} : carrière « ${c.id || '?'} »`;
     case 'species': return `${quiResume(c.who, narratif)} : espèce « ${c.id || '?'} »`;
     case 'status': return `${quiResume(c.who, narratif)} : Statut ≥ « ${c.atLeast || '?'} »`;

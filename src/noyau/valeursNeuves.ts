@@ -199,6 +199,9 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'rollTable': return { op: 'rollTable', die: 'd10', entries: [] };
     case 'rollMutation': return { op: 'rollMutation', table: '' };
     case 'narrative': return { op: 'narrative', text: '' };
+    case 'shipMorale': return { op: 'shipMorale', delta: { sign: 1, dice: { n: 1, sides: 10 } } };
+    case 'manann': return { op: 'manann', delta: { sign: 1, dice: { n: 1, sides: 10 } } };
+    case 'shipCritical': return { op: 'shipCritical', location: 'aleatoire', count: 1 };
     default: return { op: 'wounds', amount: 5 };
   }
 }

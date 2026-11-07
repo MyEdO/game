@@ -561,8 +561,14 @@
            {
             "kind": "do",
             "effect": {
-             "type": "adjustManann",
-             "factorId": "pretre-sans-peche"
+             "type": "ops",
+             "on": "navire",
+             "ops": [
+              {
+               "op": "manann",
+               "factorId": "pretre-sans-peche"
+              }
+             ]
             }
            },
            {
@@ -594,8 +600,14 @@
            {
             "kind": "do",
             "effect": {
-             "type": "adjustManann",
-             "factorId": "petit-sacrifice"
+             "type": "ops",
+             "on": "navire",
+             "ops": [
+              {
+               "op": "manann",
+               "factorId": "petit-sacrifice"
+              }
+             ]
             }
            }
           ]
@@ -620,8 +632,14 @@
            {
             "kind": "do",
             "effect": {
-             "type": "adjustManann",
-             "factorId": "sacrifice-moyen"
+             "type": "ops",
+             "on": "navire",
+             "ops": [
+              {
+               "op": "manann",
+               "factorId": "sacrifice-moyen"
+              }
+             ]
             }
            }
           ]
@@ -646,8 +664,14 @@
            {
             "kind": "do",
             "effect": {
-             "type": "adjustManann",
-             "factorId": "grand-sacrifice"
+             "type": "ops",
+             "on": "navire",
+             "ops": [
+              {
+               "op": "manann",
+               "factorId": "grand-sacrifice"
+              }
+             ]
             }
            }
           ]

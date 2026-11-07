@@ -128,6 +128,9 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   charDamage: 'Perte permanente de Caractéristique',
   intoxicate: 'Boisson alcoolisée (échec de Résistance à l’alcool)',
   narrative: 'Effet narratif (texte libre)',
+  shipMorale: 'Moral de l’équipage du navire',
+  manann: 'Humeur de Manann',
+  shipCritical: 'Coup critique au navire',
 };
 
 /** Champ d'une op portant une RÉFÉRENCE de registre : `ds` = dataset où elle doit résoudre,
@@ -183,6 +186,7 @@ export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>>
   contractDisease: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }],
   reduceDiseaseDays: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: false }],
   giveTrapping: [{ field: 'trappingId', ds: 'trappings', label: 'Possession', required: false }],
+  manann: [{ field: 'factorId', ds: 'seaManannFactors', label: 'Facteur de l’Humeur de Manann', required: true, sauf: 'delta' }],
 };
 
 /** Réfs REQUISES non élues d'UNE op (champ absent ou vide) — sans récursion. PURE. */

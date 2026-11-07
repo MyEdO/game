@@ -13,7 +13,7 @@
  * citation est portée par la spec/table qui l'emploie ; ce qui n'est pas
  * modélisable reste une op `narrative` (journalisée, arbitrage MJ, rien d'inventé).
  */
-import { RNG, roll, type DiceSpec, rollDice, totalDuDe } from './dice';
+import { RNG, roll, type DiceSpec, type EffetSigne, rollDice, totalDuDe } from './dice';
 import { bonus, effectiveChar, effectiveArmourAt, blessuresReconciliees } from './characteristics';
 import { LOCALISATIONS_DE_COUP } from './localisations';
 import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, aUnVerrouLevePar, syncDerivedConditions, removeActiveEffects, pionsRetirables } from './conditions';
@@ -24,7 +24,7 @@ import { groupMatch, groupesDe } from './groups';
 import { findTableEntry } from './tables';
 import { applyFall } from './movement';
 import { hullShipSize } from './shipBuild';
-import { findFallTable } from '../data/shipCriticals';
+import { findFallTable, type ShipCritKey } from '../data/shipCriticals';
 import { ALL_MAGIC, type CastPenalty } from './types';
 import { refCouvre, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { contexteDeTestSchema, type NatureDInfluence, type SourceRef } from '../data/schemas/grammaire/valeurs';
@@ -1203,7 +1203,23 @@ export type GameOp =
    *  du Flow de consommable d'une boisson (le Test de Résistance à l'alcool est le nœud `test` du Flow). */
   | { op: 'intoxicate' }
   /** Narration de campagne : texte Markdown et provenance locale. #2001. */
-  | { op: 'narrative'; text: string; source?: SourceRef; adapteDe?: SourceRef };
+  | { op: 'narrative'; text: string; source?: SourceRef; adapteDe?: SourceRef }
+  /** MORAL de l'équipage du navire (MDG 14) : `delta` signé tiré. Op de NAVIRE (`OPS_DU_NAVIRE`) — inerte
+   *  dans `applyOps`, résolue sur la cible `navire` (`noyau/navireOps.ts`). MDG 15 l.180, l.220 */
+  | { op: 'shipMorale'; delta: EffetSigne }
+  /** HUMEUR DE MANANN du navire : `delta` signé libre, OU un facteur du tableau (`factorId`, appliqué une
+   *  fois par navire, MDG 15 l.85). Op de NAVIRE. MDG 15 l.83-125 */
+  | { op: 'manann'; delta: EffetSigne; factorId?: never }
+  | { op: 'manann'; factorId: string; delta?: never }
+  /** COUPS CRITIQUES de coque : `count` Critiques sur `location`, ou sur une localisation tirée
+   *  (`aleatoire`). Op de NAVIRE. MDG 15 l.153 */
+  | { op: 'shipCritical'; location: ShipCritKey | 'aleatoire'; count: Formula };
+
+/** Les ops de NAVIRE : résolues sur la seule cible `navire` d'un EffectOp (`noyau/navireOps.ts`), inertes
+ *  partout ailleurs. */
+export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical'] as const satisfies readonly GameOp['op'][];
+export type OpDuNavire = Extract<GameOp, { op: (typeof OPS_DU_NAVIRE)[number] }>;
+export const estOpDuNavire = (o: GameOp): o is OpDuNavire => (OPS_DU_NAVIRE as readonly string[]).includes(o.op);
 
 /** Op d'une liste lue par le collecteur `passiveMods` : sans `auTotal` (#3060). */
 export type OpPassive = Exclude<GameOp, { op: 'attrMod'; attr: 'wounds' }> | { op: 'attrMod'; attr: 'wounds'; mod: FormuleSansTirage; auTotal?: never };
@@ -2912,12 +2928,16 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'teleport':
       case 'chain':
       case 'delayed':
+      case 'shipMorale':
+      case 'manann':
+      case 'shipCritical':
         // Effets IMPURS (grille + initiative / reconstitution programmée / zones de bataille / ouverture
         // d'une frappe / interruption de Focalisation / désarmement-bris de Piège-lame / poussée /
         // téléportation / rebond de Projectile / ops différées à échéance d'horloge) — résolus par la
         // couche state (combatFlow : applySummon / scheduleRespawn → file horloge / placeSpellZone ; les
         // hooks `freeAttack`/`focusInterrupt`/`bladeTrap` appelés par `runCombatFlow` ; `applyCast` scanne
-        // push/teleport/chain ; `delayed` → `scheduleDelayedOps` aux points d'application d'un EffectOp),
+        // push/teleport/chain ; `delayed` → `scheduleDelayedOps` aux points d'application d'un EffectOp ;
+        // les ops de navire → `noyau/navireOps.ts`),
         // qui détient get/set et le combattant. `applyOps` (moteur pur) les laisse INERTES.
         break;
       case 'polymorph':

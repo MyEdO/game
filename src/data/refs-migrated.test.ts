@@ -22,6 +22,7 @@ import type { SchemaDef } from './schemas/types';
 import { catalogueSpecs, entreeOuverte, mesureDuParse, refusDeSpec, specAuCatalogue } from './schemas/grammaire/ref';
 import { IDS_PAR_ESPACE } from './schemas/_ids.generated';
 import { itemFromTrappingById } from '../engine/items';
+import { MANANN_FACTORS } from '../engine/seaVoyage';
 import { makePregens } from './pregens';
 import areneProject from '../scenes/arene/arene-projet.json';
 import loupProject from '../scenes/loup-et-saumure/loup-et-saumure-projet.json';
@@ -618,6 +619,7 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
     crewTestTypes: (id) => !!findCrewTestTypeById(id),
     mutationTables: (id) => MUTATION_TABLE_IDS.has(id),
     lightTones: (id) => !!findLightToneById(id),
+    seaManannFactors: (id) => MANANN_FACTORS.some((f) => f.id === id),
   };
 
   /** Le corpus des DEUX racines, celui que parse le registre des slots (`scanDuCorpus`) : une seule

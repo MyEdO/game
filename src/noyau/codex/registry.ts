@@ -803,9 +803,12 @@ function shipCritEntryItem(e: ShipCritEntry, jeu: ShipCritSet): CodexItem {
 }
 
 /** Item Codex d'un Événement de bord/de port (`SeaEventDef` — MDG 15, #157 suite) : plage de jet
- *  (d100 modifié par l'Humeur de Manann, ou 2d10) → texte verbatim. */
+ *  (d100 modifié par l'Humeur de Manann, ou 2d10) → texte verbatim, et sa `consequence` en grammaire. */
 function seaEventItem(e: SeaEventDef, faces?: number): CodexItem {
-  return depuisEnveloppe(e, { sub: fourchette(e.min, e.max, faces) });
+  return depuisEnveloppe(e, {
+    sub: fourchette(e.min, e.max, faces),
+    sections: sections(spellFlowSection(e.consequence, ETATS_DU_CODEX, tr('codex.fiche.consequences'))),
+  });
 }
 
 /** Item Codex d'un Facteur d'Humeur de Manann (`ManannFactor` — MDG 15, #157 suite) : effet signé

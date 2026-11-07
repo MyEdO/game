@@ -513,18 +513,6 @@ export const setVesselSchema = nommerChamps(z.strictObject({
   crew: z.array(crewHireSchema).optional(),
 }), { type: { label: "type"  }, vehicleId: { label: "véhicule" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, morale: { label: "moral" }, hullCurrent: { label: "coque actuelle" }, hullMax: { label: "coque maximale" }, saboteurDR: { label: "DR de sabotage" }, waterLitres: { label: "eau en litres" }, provisions: { label: "provisions" }, crew: { label: "équipage" } });
 
-/** Fait varier l'HUMEUR DE MANANN du navire de campagne (`MDG 15 l.83-125`) — à poser sur une
- *  bénédiction de prêtre, un sacrifice ou tout événement narratif d'auteur. `factorId` = un facteur
- *  du tableau « EFFET SUR L'HUMEUR DE MANANN » (`sea-events.json`, appliqué UNE SEULE FOIS par
- *  navire — `applyManannFactor`, l.85) ; `delta` = un ajustement chiffré libre hors-tableau (ex.
- *  « Fête de Manann » 2d10) — mutuellement exclusifs, `factorId` prioritaire si les deux sont posés.
- *  Sans navire de campagne → no-op journalisé. */
-export const adjustManannSchema = nommerChamps(z.strictObject({
-  type: z.literal('adjustManann'),
-  factorId: z.string().optional(),
-  delta: nommerChamps(z.strictObject({ flat: z.number(), d10: z.number(), sign: z.union([z.literal(1), z.literal(-1)]) }), { flat: { label: "valeur fixe" }, d10: { label: "dés à dix faces" }, sign: { label: "signe" } }).optional(),
-}), { type: { label: "type"  }, factorId: { label: "facteur" , texte: { regime: "technique"} }, delta: { label: "variation" } });
-
 /** AJUSTE le navire de campagne EXISTANT (#233) — patch des SEULS champs fournis, contrairement à
  *  `setVessel` (remplacement total : effacerait Humeur de Manann/dégâts/Moral accumulés). À poser
  *  sur un événement narratif qui touche PARTIELLEMENT le navire (ex. démasquage d'un saboteur qui
@@ -652,7 +640,6 @@ export type Effect =
   | z.infer<typeof openTavernGamesSchema>
   | z.infer<typeof openWorldMapSchema>
   | z.infer<typeof setVesselSchema>
-  | z.infer<typeof adjustManannSchema>
   | z.infer<typeof adjustVesselSchema>
   | z.infer<typeof endDialogueSchema>;
 
@@ -723,7 +710,6 @@ export const effectSchema: z.ZodType<Effect> = z.lazy(() =>
     openTavernGamesSchema,
     openWorldMapSchema,
     setVesselSchema,
-    adjustManannSchema,
     adjustVesselSchema,
     endDialogueSchema,
   ]),
@@ -785,7 +771,6 @@ nommerEffet(transitionSchema, "Transition de scène");
 nommerEffet(transitionBackSchema, "Retour à la scène précédente");
 nommerEffet(openWorldMapSchema, "Ouvrir la carte du monde");
 nommerEffet(setVesselSchema, "Doter le groupe d’un navire");
-nommerEffet(adjustManannSchema, "Humeur de Manann");
 nommerEffet(adjustVesselSchema, "Ajuster le navire");
 nommerEffet(startCombatSchema, "Démarrer un combat");
 nommerEffet(startPursuitSchema, "Poursuite terrestre");

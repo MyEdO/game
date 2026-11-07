@@ -86,6 +86,7 @@ const KIND_OPTIONS: [Condition['kind'], string][] = [
   ['has', 'Possède (Groupe/Talent/Trait)'],
   ['casterChaosDomain', 'Domaine du Chaos du lanceur'],
   ['skill', 'Compétence du groupe'],
+  ['talent', 'Talent du groupe'],
   ['career', 'Carrière du groupe'],
   ['species', 'Espèce du groupe'],
   ['status', 'Statut du groupe ≥'],
@@ -338,6 +339,17 @@ export function ConditionEditor({ cond, onChange, kinds, narratif, noeud = condi
           />
           <ChoixDeSpec type="skill" id={cond.id} value={cond.spec} ariaLabel="Spécialisation de la Compétence" onChange={(spec) => onChange({ ...cond, spec })} />
           <label className="dr">≥ avances<NumberField variant="nu" label="Avances minimales" min={0} vide value={cond.advances} onChange={(n) => onChange({ ...cond, advances: n ?? undefined })} /></label>
+          <SelecteurDeHeros narratif={narratif} who={cond.who ?? 'any'} onChange={(who) => onChange({ ...cond, who })} />
+        </span>
+      )}
+      {cond.kind === 'talent' && (
+        <span className="cond-time">
+          <RefField
+            cfg={{ ds: 'talents', single: true }}
+            value={cond.id}
+            onChange={(v) => onChange(reposerLId(cond, (v as string) ?? ''))}
+          />
+          <ChoixDeSpec type="talent" id={cond.id} value={cond.spec} ariaLabel="Spécialisation du Talent" onChange={(spec) => onChange({ ...cond, spec })} />
           <SelecteurDeHeros narratif={narratif} who={cond.who ?? 'any'} onChange={(who) => onChange({ ...cond, who })} />
         </span>
       )}

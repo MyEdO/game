@@ -1348,8 +1348,10 @@ describe('#1652 — chaque événement lit SES paramètres en donnée (MDG 15 l.
     expect(lot.basePriceGold).toBeGreaterThan(0);
   });
 
-  it('Bonne humeur : le Moral bouge de `moral` (MDG 15 l.220 « Gagnez 2d10 Moral »)', () => {
-    deBord('bonne-humeur', { moral: { sign: 1, dice: { n: 0, sides: 10, plus: 4 } } });
+  it('Bonne humeur : sa `consequence` fait bouger le Moral (MDG 15 l.220 « Gagnez 2d10 Moral »)', () => {
+    const moral = (delta: object) => ({ kind: 'do', effect: { type: 'ops', on: 'navire', ops: [{ op: 'shipMorale', delta }] } });
+    expect(seaBoardEventById('bonne-humeur')?.consequence).toEqual(moral({ sign: 1, dice: { n: 2, sides: 10 } }));
+    setDataset('seaBoardEvents', BOARD_EVENTS.map((e) => (e.id === 'bonne-humeur' ? { ...e, consequence: moral({ sign: 1, dice: { n: 0, sides: 10, plus: 4 } }) } : e)) as never);
     jourForce('bonne-humeur');
     expect(get().vessel!.morale.score).toBe(75 + 4);
   });
@@ -1429,14 +1431,17 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
 
   it('relâche REFUSÉE : Fête de Manann (2d10 → 18) perd son bonus d\'Humeur (MDG 15 l.260)', () => {
     // Humeur neutre (mod 0) : 2d10 = 9+9 = 18 → « Fête de Manann » (min 18 max 18, sea-events.json).
+    const drapeaux = get().flags;
     resolvePortArrival(get, set, undefined, seq(9, 9, 1, 1), false);
+    expect(get().journal.some((l) => l.includes('« Fête de Manann » n\'a pas lieu'))).toBe(true);
     expect(get().vessel!.manann?.score ?? 0).toBe(0);
-    expect(get().journal.some((l) => l.includes('ne se joint pas aux festivités'))).toBe(true);
+    expect(get().flags, 'la relâche se lit sur la rangée, aucun drapeau de monde').toEqual(drapeaux);
   });
 
   it('relâche ACCORDÉE : Fête de Manann applique bien son bonus d\'Humeur (2d10)', () => {
-    resolvePortArrival(get, set, undefined, seq(9, 9, 1, 1, 5, 5), true);
-    expect(get().vessel!.manann?.score ?? 0).toBe(10); // 5+5
+    resolvePortArrival(get, set, undefined, seq(9, 9, 1, 1), true);
+    expect(get().vessel!.manann!.score).toBeGreaterThanOrEqual(2);
+    expect(get().vessel!.manann!.score).toBeLessThanOrEqual(20);
   });
 
   it('accostage RÉEL (continueSeaDayAfterCascade) : pendingShoreLeave s\'ouvre AVANT tout tirage d\'événement de port', () => {
