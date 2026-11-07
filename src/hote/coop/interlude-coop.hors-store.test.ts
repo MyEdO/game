@@ -44,7 +44,7 @@ function table(): { banc: Banc; guest: GuestSession; hote: Combatant; invite: Co
       favors: [hote, invite].map((h) => ({ id: `faveur-${h.id}`, heroId: h.id, level: 'mineure' as const, owedTo: 'Un échevin', desc: 'Un service', progress: 0 })),
     },
   });
-  banc.actions.startInterlude(1);
+  banc.actions.ouvrirLInterlude(1);
   draineCascade(banc.getState);
   expect(banc.getState().interlude?.phase, 'témoin : les Activités sont ouvertes').toBe('activities');
   const host = new HostSession({
@@ -81,7 +81,7 @@ describe('Interlude en coop : l’invité mène les Activités de SON héros', (
 
   it('préparation de bataille : le jet s’ouvre MENÉ par son héros', () => {
     const { banc, guest, invite } = table();
-    banc.actions.startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
     guest.sendIntent('menerLActionDeBataille', [prepaDe(invite), invite.id]);
     expect(banc.getState().pendingActivity?.heroId).toBe(invite.id);
   });
@@ -90,7 +90,7 @@ describe('Interlude en coop : l’invité mène les Activités de SON héros', (
 describe('Interlude en coop : l’invité est refusé sur le héros d’un autre siège', () => {
   it('Entraînement, Faveur, préparation de bataille du héros de l’hôte : rien ne bouge, le refus se dit', () => {
     const { banc, guest, hote } = table();
-    banc.actions.startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().favors, banc.getState().pendingActivity]);
     const journal = banc.getState().journal.length;
     guest.sendIntent('suivreLEntrainement', [hote.id, 'characteristic', 'intelligence']);

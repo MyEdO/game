@@ -15,7 +15,7 @@ const pastilleDePenalite = (html: string): string | undefined => html.match(/<sp
 
 describe('pénalité d’incantation : sa pastille d’état mène à la fiche de son sort, par id', () => {
   it('Couronne de Flammes lancée : la pénalité porte la source du sort, et sa pastille ouvre la fiche', () => {
-    useGame.getState().seedRng(51);
+    useGame.getState().ensemencerLeTirage(51);
     const [lanceur, cible] = pregenParty(PREGEN.sorcier, PREGEN.soldat);
     useGame.setState({ party: [lanceur, cible] as Combatant[], battle: null });
     applyCast(useGame.getState, useGame.setState, lanceur, cible, findSpellById('couronne-de-flammes')!, reussi, false, false);

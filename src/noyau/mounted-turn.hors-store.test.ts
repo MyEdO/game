@@ -37,7 +37,7 @@ function setup() {
 
 beforeEach(() => {
   banc.setState({ battle: null, party: [], journal: [] });
-  banc.getState().seedRng(1);
+  banc.getState().ensemencerLeTirage(1);
 });
 
 describe('monture Nerveux chevauchée = pas de tour propre', () => {

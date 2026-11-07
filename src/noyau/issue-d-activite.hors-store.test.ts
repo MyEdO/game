@@ -19,8 +19,8 @@ function revenusAuDe(valeur: number, extenue: number, de: number) {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1, manualChars: tableTotale(CHAR_KEYS, () => valeur) });
   if (extenue) addCondition(h, 'extenue', extenue);
   banc.setState({ party: [h], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, journal: [] });
-  banc.getState().startScene(testScene());
-  banc.getState().startInterlude(3);
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().ouvrirLInterlude(3);
   draineCascade(banc.getState);
   const itl = banc.getState().interlude!;
   itl.perHero[h.id] = { ...itl.perHero[h.id], fx: undefined, left: 3 };

@@ -93,9 +93,9 @@ describe('useStagePointer — pincer à deux doigts', () => {
   });
 
   it('le RELÂCHEMENT d’un doigt du pincer ne commet aucun clic (pas d’ordre de déplacement au bout d’un zoom)', () => {
-    const moveParty = vi.fn();
+    const deplacerLeGroupe = vi.fn();
     const { pointer } = monter();
-    useGame.setState({ moveParty });
+    useGame.setState({ deplacerLeGroupe: deplacerLeGroupe });
 
     pointer.handlers.onPointerDown(doigt(1, 100, 100));
     pointer.handlers.onPointerDown(doigt(2, 200, 100));
@@ -103,6 +103,6 @@ describe('useStagePointer — pincer à deux doigts', () => {
     pointer.handlers.onPointerUp(doigt(2, 300, 100));
     pointer.handlers.onPointerUp(doigt(1, 100, 100));
 
-    expect(moveParty).not.toHaveBeenCalled();
+    expect(deplacerLeGroupe).not.toHaveBeenCalled();
   });
 });

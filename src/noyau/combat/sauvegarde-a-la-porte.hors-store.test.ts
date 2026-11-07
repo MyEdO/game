@@ -735,7 +735,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
     banc.setState({ pendingAttack: { attackerId: heros.id, targetId: e1.id, location: 'corps', result: { ...touche(), cleave: true } } as never });
     banc.getState().jetValider('attack');
     expect(banc.getState().pendingCleave?.restitution, 'la chaîne de la gratuite emporte sa restitution').toEqual({ prevActed: false });
-    banc.getState().cleaveAttack(demon.id);
+    banc.getState().frapperEnBalayage(demon.id);
     const pa = banc.getState().pendingAttack!;
     banc.setState({ pendingAttack: { ...pa, result: touche() } as never });
     banc.getState().jetValider('attack');
@@ -782,7 +782,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
     seedBattleRng(2);
     // Pause de début de Round : le tireur n'est PAS actif (l'interruption est hors de l'ordre, LDB 11 l.97-103).
     banc.setState({ pendingRoundStart: { round: 2, promoted: null } as never });
-    banc.getState().preemptRangedShot(tireur.id, demon.id);
+    banc.getState().declencherLeTirPreventif(tireur.id, demon.id);
     const pa = banc.getState().pendingAttack;
     expect(pa?.interrupt, 'le tir d’interruption a bien ouvert sa cascade-hôte').toBe(true);
     banc.setState({ pendingAttack: { ...pa!, result: touche() } as never });

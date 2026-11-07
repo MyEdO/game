@@ -1246,7 +1246,7 @@ function batchOwnTestFailedLines(get: Get, step: CascadeStep): string[] {
 
 /** Applique la conséquence d'une étape + ses insertions ; renvoie le tableau d'étapes mis à jour, les
  *  lignes de journal, et `suspended` (l'applier a fait basculer le slot ACTIF vers un AUTRE contexte —
- *  `startCombat`, cf. `suspendActiveCascade` — PENDANT sa propre exécution). Partagé par les trois
+ *  `lancerLeCombat`, cf. `suspendActiveCascade` — PENDANT sa propre exécution). Partagé par les trois
  *  pilotes (interactif, « tout résoudre », immédiat).
  *
  *  `unwitnessed` : le pilote DÉCLARE qu'aucune fenêtre n'a montré le jet de cette étape (pilote
@@ -1380,7 +1380,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   // annule ; le tronquer le ferait tomber en silence).
   if (out?.stopSequence) next = next.slice(0, i + 1 + inseres.length);
   // NOTRE cascade a été PARQUÉE pendant l'exécution de l'applier — `suspendActiveCascade` (couture
-  // universelle `startCombat`/`quitterLaScene`, qui vide le slot ; ou `startCascade` d'un AUTRE `purpose`,
+  // universelle `lancerLeCombat`/`quitterLaScene`, qui vide le slot ; ou `startCascade` d'un AUTRE `purpose`,
   // #942 L1, qui le rend à la nouvelle cascade) : elle est dans `suspendedCascades`. Le retour l'expose,
   // JAMAIS écrit ici — ressusciter le slot écraserait le contexte qui l'a pris.
   // La PILE est le signe EXACT (pas la simple différence de référence du slot) : un applier qui APPEND
@@ -1410,7 +1410,7 @@ function reconcileSuspended(get: Get, set: Set, stale: PendingCascade, patch: Pa
 
 /** SUSPEND la cascade ACTIVE (si une l'est) : la pousse en tête de `suspendedCascades` (pile LIFO) et
  *  vide le slot `pendingCascade`. Primitive GÉNÉRIQUE (kind-agnostique, aucune mention de domaine) —
- *  déclenchée par la couture universelle `startCombat`/`quitterLaScene` (noyau/combatSlice.ts,
+ *  déclenchée par la couture universelle `lancerLeCombat`/`quitterLaScene` (noyau/combatSlice.ts,
  *  noyau/entreeEnScene.ts) : un combat qui s'ouvre PENDANT une cascade active (ex. un abordage déclenché par
  *  l'applier d'une étape de voyage) ne doit ni écraser ni perdre les étapes restantes — le slot
  *  `pendingCascade` redevient disponible pour les cascades DU COMBAT (jets d'attaque…), gates d'action
@@ -1656,7 +1656,7 @@ function avanceUnPas(get: Get, set: Set): PendingCascade | null | typeof ENCORE 
     if (r.bornes) fondu = { ...p, ...fusionnerLesBornes(p, r.bornes) };
   }
   const next = p.cursor + 1;
-  // SUSPENDUE en plein vol (`startCombat`/`quitterLaScene` déclenché par l'applier de l'étape courante) :
+  // SUSPENDUE en plein vol (`lancerLeCombat`/`quitterLaScene` déclenché par l'applier de l'étape courante) :
   // le slot ne nous appartient plus — jamais de ressuscite ici.
   //  - étapes RESTANTES (curseur avant la fin) : met à jour l'entrée de pile (étapes/curseur À JOUR),
   //    la séquence reprendra où elle en est (couture de reprise) ;
@@ -1707,7 +1707,7 @@ function piloterDepuisLeCurseur(get: Get, set: Set, p: PendingCascade, reprise: 
  *  « dé-dormir », les conséquences subies s'appliquent quand même — puis place le curseur EN FIN
  *  (`cursor === participants.length`) = état BILAN. La modale RESTE ouverte pour montrer TOUTES les
  *  conséquences ; c'est `finalizeCascade` (« Terminer ») qui ferme et enchaîne la suite — on rend alors
- *  `null`. SEULE exception : la DERNIÈRE étape a SUSPENDU la séquence en plein vol (`startCombat`/
+ *  `null`. SEULE exception : la DERNIÈRE étape a SUSPENDU la séquence en plein vol (`lancerLeCombat`/
  *  `quitterLaScene` depuis son applier) — aucun BILAN n'est montrable (le slot appartient au nouveau
  *  contexte) et il ne reste AUCUNE étape à préserver : on retire l'entrée de la pile et on rend la
  *  cascade FINALISÉE pour que l'appelant joue son dénouement (même distinction qu'`advanceCascade`). */
@@ -1754,7 +1754,7 @@ export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | nu
     seq = r.seq;
     log = [...log, ...r.journal];
     if (r.bornes) { const b = fusionnerLesBornes({ ...fondu, log }, r.bornes); fondu = { ...fondu, ...b }; log = b.log; }
-    // SUSPENDUE en plein vol (l'applier a déclenché `startCombat`/`quitterLaScene`) : le slot ne nous
+    // SUSPENDUE en plein vol (l'applier a déclenché `lancerLeCombat`/`quitterLaScene`) : le slot ne nous
     // appartient plus — jamais de ressuscite/écrase du slot actif.
     if (r.suspended) {
       if (i + 1 >= steps.length) { reconcileSuspended(get, set, p, null); return { ...fondu, participants: steps, seq, log }; }
@@ -1792,7 +1792,7 @@ export function finalizeCascade(get: Get, set: Set): PendingCascade | null {
  * AVANT tout dénouement. `undefined` : l'appelant n'enchaîne rien.
  *
  * `ctx` (optionnel) : titre/`purpose` du fragment — SEULEMENT nécessaire pour un appelant qui résout
- * un tableau DE PLUSIEURS étapes dont l'une peut ouvrir un combat en plein vol (`startCombat`, ex. la
+ * un tableau DE PLUSIEURS étapes dont l'une peut ouvrir un combat en plein vol (`lancerLeCombat`, ex. la
  * cascade auto-pilotée d'un jour de voyage routine) : si le combat s'ouvre, la séquence ENTIÈRE est
  * poussée en pile (`suspendedCascades`), curseur derrière l'étape qui l'a ouvert, marquée `piloteImmediat`
  * — jamais perdue ni résolue À L'AVEUGLE pendant que le combat tourne ; le combat clos, CE pilote reprend
@@ -1923,7 +1923,7 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
     cur = r.steps;
     seq = r.seq;
     if (r.bornes) collectees = fusionnerLesBornes(collectees, r.bornes);
-    // Un combat s'est ouvert PENDANT cette résolution immédiate (l'applier a appelé `startCombat` —
+    // Un combat s'est ouvert PENDANT cette résolution immédiate (l'applier a appelé `lancerLeCombat` —
     // no-op de suspension ici puisque CE tableau n'était PAS dans le slot actif) : le reste du tableau
     // ne se résout pas pendant que le combat tourne. Avec un contexte, la séquence ENTIÈRE est parquée
     // derrière le combat (`suspendedCascades`) — étapes déjà jouées comprises, que son dénouement

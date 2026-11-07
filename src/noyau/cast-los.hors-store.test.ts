@@ -52,7 +52,7 @@ function setup() {
 }
 
 beforeEach(() => {
-  banc.getState().seedRng(23);
+  banc.getState().ensemencerLeTirage(23);
 });
 
 describe('castSpell — Ligne de Vue (LDB 46 l.121)', () => {

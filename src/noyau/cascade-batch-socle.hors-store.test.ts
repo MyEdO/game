@@ -50,7 +50,7 @@ const row = (id: string, over: Partial<BatchParticipant> = {}): BatchParticipant
 
 beforeEach(() => {
   banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
-  banc.getState().seedRng(7);
+  banc.getState().ensemencerLeTirage(7);
 });
 
 describe('parité des VERBES : une bande offre ce qu’offre l’étape mono', () => {

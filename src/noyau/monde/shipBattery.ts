@@ -62,7 +62,7 @@ export function mostArmedSide(ship: Combatant): FireArc | null {
 }
 
 /** Pièces d'un navire qui peuvent FAIRE FEU : **chargées** (`loaded !== false`, MDG 12 / LDB 62 l.333). PUR —
- *  source unique lue par la bordée (`bearingPostes` → `batteryBlock`, commit de `battleShipBattery`) et par
+ *  source unique lue par la bordée (`bearingPostes` → `batteryBlock`, commit de `ouvrirLaBordee`) et par
  *  le gate d'offre `pieces-au-navire`. */
 export function postesPretsAFaireFeu(ship: Combatant): ShipPoste[] {
   return (ship.postes ?? []).filter((p) => p.loaded !== false);

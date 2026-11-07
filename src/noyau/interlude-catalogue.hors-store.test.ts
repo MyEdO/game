@@ -19,7 +19,7 @@ import { refusDeRetrait, refusDOuvertureDActivite } from './verdictsDInterlude';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { Favor } from '../engine/favor';
 import type { PsychTrait } from '../engine/psychology';
-import { ciblePsy } from '../engine/psych/ciblage';
+import { ciblePsy, identiteDeCiblage } from '../engine/psych/ciblage';
 import { applyOps } from '../engine/ops';
 import { makeRNG } from '../engine/dice';
 
@@ -43,7 +43,7 @@ function auLieu(fiche: Fiche = {}, favors: (heroId: string) => Favor[] = () => [
     h.spells = fiche.magie.sorts;
   }
   const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [h], scene: SCENE, lieu, favors: favors(h.id) } });
-  banc.actions.startInterlude(3);
+  banc.actions.ouvrirLInterlude(3);
   draineCascade(banc.getState);
   expect(banc.getState().interlude?.phase, 'témoin : le tirage est dénoué').toBe('activities');
   expect(banc.getState().interlude?.perHero[h.id].left, 'témoin : une Activité reste').toBeGreaterThan(0);
@@ -156,13 +156,13 @@ describe('Convalescence — le Trait psychologique est une cible choisie (ADE II
 
   it('Trait non porté : refusée et dite', () => {
     const { banc, heroId } = auLieu({ psychTraits: TRAITS });
-    expect(refuse(banc, () => banc.actions.pratiquerLActivite(heroId, 'convalescence', { traitPsy: { type: 'haine' } })))
+    expect(refuse(banc, () => banc.actions.pratiquerLActivite(heroId, 'convalescence', { traitPsy: 'haine' })))
       .toEqual(['Vétéran : choisir un Trait psychologique porté.']);
   });
 
   it('réussite : élimine le Trait CHOISI, pas le premier porté', () => {
     const { banc, heroId } = auLieu({ psychTraits: TRAITS });
-    banc.actions.pratiquerLActivite(heroId, 'convalescence', { traitPsy: { type: 'peur' } });
+    banc.actions.pratiquerLActivite(heroId, 'convalescence', { traitPsy: 'peur' });
     expect(banc.getState().pendingActivity?.activityId, 'témoin : le jet s’ouvre').toBe('convalescence');
     confirmer(banc, true, 1);
     expect(heros(banc, heroId).psychTraits).toEqual([{ type: 'frenesie' }]);
@@ -172,7 +172,7 @@ describe('Convalescence — le Trait psychologique est une cible choisie (ADE II
   it('deux Haines à Cibles différentes : le joueur choisit l’INSTANCE, la Haine (Elfe) part, la Haine (Nain) reste', () => {
     const haines: PsychTrait[] = [{ type: 'haine', cible: ciblePsy.groupe('nain') }, { type: 'haine', cible: ciblePsy.groupe('elfe') }];
     const { banc, heroId } = auLieu({ psychTraits: haines });
-    banc.actions.pratiquerLActivite(heroId, 'convalescence', { traitPsy: { type: 'haine', cible: { id: 'elfe' } } });
+    banc.actions.pratiquerLActivite(heroId, 'convalescence', { traitPsy: identiteDeCiblage('haine', ciblePsy.groupe('elfe')) });
     expect(banc.getState().pendingActivity?.activityId, 'témoin : le jet s’ouvre').toBe('convalescence');
     confirmer(banc, true, 1);
     expect(heros(banc, heroId).psychTraits).toEqual([{ type: 'haine', cible: 'nain' }]);
@@ -180,7 +180,7 @@ describe('Convalescence — le Trait psychologique est une cible choisie (ADE II
 
   it('Trait choisi disparu avant la confirmation : la réussite ne retire AUCUN autre Trait, et le dit', () => {
     const { banc, heroId } = auLieu({ psychTraits: TRAITS });
-    banc.actions.pratiquerLActivite(heroId, 'convalescence', { traitPsy: { type: 'peur' } });
+    banc.actions.pratiquerLActivite(heroId, 'convalescence', { traitPsy: 'peur' });
     expect(banc.getState().pendingActivity?.activityId, 'témoin : le jet s’ouvre').toBe('convalescence');
     const h = heros(banc, heroId);
     applyOps(h, [{ op: 'removePsychTrait', psychType: { id: 'peur' } }], { rng: makeRNG(1) }); // la Peur part entre l'ouverture et la confirmation
@@ -193,7 +193,7 @@ describe('Convalescence — le Trait psychologique est une cible choisie (ADE II
 
   it('échec : les Traits restent, un jeton inverse UN Test de Calme qui résiste à un Trait Psychologique, l’Activité est consommée', () => {
     const { banc, heroId } = auLieu({ psychTraits: TRAITS });
-    banc.actions.pratiquerLActivite(heroId, 'convalescence', { traitPsy: { type: 'peur' } });
+    banc.actions.pratiquerLActivite(heroId, 'convalescence', { traitPsy: 'peur' });
     const left = banc.getState().interlude!.perHero[heroId].left;
     confirmer(banc, false, -2);
     const h = heros(banc, heroId);
@@ -215,7 +215,7 @@ describe('Faveur Importante', () => {
 describe('Préparation de bataille', () => {
   it('déjà faite : refusée et dite, rien en attente', () => {
     const { banc, heroId } = auLieu();
-    banc.actions.startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
     banc.actions.menerLActionDeBataille('inspire', heroId);
     expect(banc.getState().pendingActivity?.activityId, 'témoin : le Discours s’ouvre').toBe('inspire');
     banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 20, success: true, sl: 2 } }));

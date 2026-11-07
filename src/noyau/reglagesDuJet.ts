@@ -16,7 +16,7 @@ import type { OvercastAxis } from '../engine/overcast';
 import type { FermetureDuJet } from './rollFlowFactory';
 import type { Jeu } from './etat';
 import type { CounterDeclaration } from './pendings';
-import type { IdDAdversaireADistraire, IdDAdversaireDuBattement, IdDeChanson, IdDeCombattant, IdDeFormeConjuree, IdDeHeros, IdDObjet } from './designations';
+import type { IdDAdversaireADistraire, IdDAdversaireDuBattement, IdDeChanson, IdDeCombattant, IdDeFormeConjuree, IdDeHeros, IdDeRangee, IdDObjet, IdDOptionDEtape } from './designations';
 import { offreDeLIncantation, type ReglageOffertDeLIncantation } from './reglagesDIncantation';
 import { sequenceAbandonOf } from './sequenceCore';
 
@@ -76,7 +76,7 @@ export interface ReglagesDuJet {
     /** L'abandon de la séquence en cours (`SequenceDef.abandon`). */
     abandon: true;
     /** La clé de l'option retenue à l'étape « choix » courante (`CascadeStep.options`). */
-    choix: string;
+    choix: IdDOptionDEtape;
     /** Le nombre saisi à l'étape « quantité » courante, ramené à sa plage (`clampStepAmount`). */
     quantite: number;
   };
@@ -271,7 +271,7 @@ export interface VerbeDeReglage {
 /** Les arguments du verbe, union corrélée sur chaque réglage : la valeur suit son réglage jusque dans une intention
  *  (`Parameters<ActionsDuNoyau['jetRegler']>`). */
 export type ArgumentsDuReglage = {
-  [F in FluxRegle]: { [K in ReglageDu<F>]: [flux: F, reglage: K, valeur: ReglagesDuJet[F][K], pid?: string] }[ReglageDu<F>];
+  [F in FluxRegle]: { [K in ReglageDu<F>]: [flux: F, reglage: K, valeur: ReglagesDuJet[F][K], pid?: IdDeRangee] }[ReglageDu<F>];
 }[FluxRegle];
 
 /** Le corps de chaque réglage, table TOTALE sur `ReglagesDuJet` : il reçoit la valeur, et la rangée d'un réglage de

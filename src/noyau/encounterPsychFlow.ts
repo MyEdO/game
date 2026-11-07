@@ -228,7 +228,7 @@ export const TABLES = {
         if (!hero || !part.result) { part.outcome = []; continue; }
         const lines = resultLines(resolvePsychRow(get, set, hero, ep, part.result, !!part.immune, !!part.meta?.sansPeur));
         part.outcome = lines;
-        for (const l of lines) get().log(l.text);
+        for (const l of lines) get().ecrireAuJournal(l.text);
       }
       set(touchActors(get()));
       return { consequences: [] };

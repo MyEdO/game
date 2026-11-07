@@ -144,7 +144,7 @@ const ACTES_IMMEDIATS: readonly HealMode[] = ['wounds', 'bleed', 'ammo'];
 export const estActeImmediat = (mode: HealMode): boolean => ACTES_IMMEDIATS.includes(mode);
 
 /** `raisonDeModeDeSoin` en combat : un mode hors-combat y est fermé. Verdict UNIQUE des gestes de soin en
- *  combat (`battleHeal`, réglage `heal.mode` et fenêtre du soin, `refusDuModeDuSoin`). */
+ *  combat (`ouvrirLaGuerison`, réglage `heal.mode` et fenêtre du soin, `refusDuModeDuSoin`). */
 export function raisonDeModeDeSoinEnCombat(target: Combatant, mode: HealMode): string | null {
   return estActeImmediat(mode) ? raisonDeModeDeSoin(target, mode) : t('heal.raisonHorsCombat');
 }

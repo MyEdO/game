@@ -131,7 +131,7 @@ const BASELINE = { totalCalls: 758, totalAdHocResets: 301 }; // +1 (#1117 L3 : `
 // Mesure exacte 743/301).
 // +1 (ASSISE, même lot : `combatFlow.releaseSeatsOfDowned` — la couture UNIQUE « un corps mis hors
 // d'action ne tient plus sa chaise », appelée là où la mort est ACTÉE (`notifySlain`, entretien hors
-// combat d'`advanceTime`). Un `set({ scene })` littéral et CONDITIONNEL : la scène n'est réécrite que
+// combat d'`avancerLeTemps`). Un `set({ scene })` littéral et CONDITIONNEL : la scène n'est réécrite que
 // si un occupant est réellement tombé (sinon même référence). Aucun reset ad hoc de plus.
 // Mesure exacte 744/301).
 // #1508 T2 — le cliquet ne monte PAS, il se remplit : 748/301 à HEAD, 749/301 sur l'arbre, pour une
@@ -146,7 +146,7 @@ const BASELINE = { totalCalls: 758, totalAdHocResets: 301 }; // +1 (#1117 L3 : `
 // héros en place ; ce `set` est la seule ligne qui rende la mutation visible au store — MÊME patron,
 // même unique écriture, que les autres appliers de cascade. Aucun reset ad hoc de plus (302 inchangé).
 // #1687 lot 3-I-a — 750 → 751 : l'EXÉCUTEUR UNIQUE des gestes d'exploration (`store.jouerAction`) pose
-// le dialogue d'un PNJ (`set({ dialogue })`), geste qui vivait dans `interactEntity` — lequel n'en
+// le dialogue d'un PNJ (`set({ dialogue })`), geste qui vivait dans `interagirAvecLEntite` — lequel n'en
 // porte plus aucun, il délègue. Le solde n'est pas nul parce que le ramassage en combat perd sa
 // réécriture du document de scène au profit d'un drapeau (`set` INCONDITIONNEL là où il
 // était dans un `else`) : même nombre de `set` écrits, un de plus qu'à HEAD. Aucun reset ad hoc de
@@ -180,7 +180,7 @@ const BASELINE = { totalCalls: 758, totalAdHocResets: 301 }; // +1 (#1117 L3 : `
 // Aucun reset ad hoc de plus (300 inchangé) : le helper n'écrit aucun champ `pending*`.
 // — puis 749 → 748, MESURÉ (`runSetScan` sur l'arbre du lot) : `corruptionFlow.resolveRenounce` route
 //   la conséquence de « Je te renie ! » (LDB 17 l.67) par `combatLog.journaliser` au lieu de réécrire
-//   à la main le couple `if (battle) set({ battle: {…log} }) else get().log(…)` — un `set` littéral de
+//   à la main le couple `if (battle) set({ battle: {…log} }) else get().ecrireAuJournal(…)` — un `set` littéral de
 //   moins, et le routage a seulement UNE définition. BASELINE = la mesure (748/300), sans mou.
 // Lecture A1 — 747 → 748, MESURÉ (run CI 36335240417 : 748) : le lanceur unique des scénarios de
 // test (`scenarioFlow.demarrerScenario`) pose le navire construit par `set({ vessel })`, ÉCRITURE UNIQUE des

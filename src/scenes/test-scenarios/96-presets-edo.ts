@@ -10,7 +10,7 @@ import type { TestScenario } from './_shared';
 /**
  * Recette du LOT C de #671 : trois PNJ de « L'Ennemi Intérieur » authorés en `presetsPnj` (base globale
  * + surcharges embarquées, résolus par `resolvePresetCreature` une fois le narratif posé par
- * `loadProject`), puis mis en scène — spawn + dialogue avec portrait (Phillipe) + combat (Knud).
+ * `chargerLeProjet`), puis mis en scène — spawn + dialogue avec portrait (Phillipe) + combat (Knud).
  * Knud et Phillipe : le paquet de la Diligence (`diligence/diligence-projet.json`, #680) ; Josef : MSR 141.
  */
 function presetDuPaquet(id: string): PresetPnj {

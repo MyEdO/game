@@ -19,9 +19,9 @@ const g = () => banc.getState();
 function frappeGratuite(tourDe: 'heros' | 'creature', fileEpuisee = false) {
   const A = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
   banc.setState({ party: [A] });
-  g().seedRng(5);
-  g().startScene(testScene());
-  g().startCombat('enc-mutants');
+  g().ensemencerLeTirage(5);
+  g().lancerLaScene(testScene());
+  g().lancerLeCombat('enc-mutants');
   g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;

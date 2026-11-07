@@ -70,8 +70,8 @@ function combat(actif: 'hero' | 'enemy' = 'hero') {
   vi.useFakeTimers();
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero], net: NET0, battle: null });
-  useGame.getState().startScene(testScene());
-  useGame.getState().startCombat('enc-mutants');
+  useGame.getState().lancerLaScene(testScene());
+  useGame.getState().lancerLeCombat('enc-mutants');
   useGame.getState().fenetreValider('roundStart');
   vi.clearAllTimers();
   vi.useRealTimers(); // `respirer` attend en temps réel

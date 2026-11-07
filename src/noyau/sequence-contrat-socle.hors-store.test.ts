@@ -47,7 +47,7 @@ const KIND_JET = cleDeFixture('sonde-1479-jet');
 let apples = 0;
 beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, [KIND_INERTE]: () => { apples++; return {}; }, [KIND_OUVRE_COMBAT]: (_get, setter) => {
   apples++;
-  // Ce que fait `startCombat` du point de vue de la garde : le slot appartient désormais à un AUTRE
+  // Ce que fait `lancerLeCombat` du point de vue de la garde : le slot appartient désormais à un AUTRE
   // contexte. La garde lit `get().battle` — inutile de monter un combat complet pour la mesurer.
   setter({ battle: { combatants: [], order: [], turn: 0, round: 1, log: [], over: null } as never });
   return {};

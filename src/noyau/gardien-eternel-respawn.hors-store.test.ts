@@ -17,7 +17,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * ne prenne les précautions appropriées… ». Câblé 100% en DONNÉE via l'op IMPURE `scheduleRespawn` portée
  * par un effet `onSlain` (MIROIR de `summon`) : à la mort, `notifySlain` la moissonne
  * (`resolveTriggerImpureOps`) et PROGRAMME une entrée dans `scheduledEffects` (file horloge, Lot 0) à
- * `gameTime + d10 jours` ; l'échéance, franchie par `advanceTime`/`fireScheduledEffects`, RÉ-INVOQUE la
+ * `gameTime + d10 jours` ; l'échéance, franchie par `avancerLeTemps`/`fireScheduledEffects`, RÉ-INVOQUE la
  * créature (`applySummon`) près de sa position de mort. Les « précautions » = le `cancelFlag` (un Effet de
  * scène/MJ le pose → l'entrée est consommée sans reconstitution).
  */
@@ -36,7 +36,7 @@ const scene = (): Scene => ({ id: 's', name: 's', dimensions: { w: 16, h: 16 }, 
 const battle = (cs: Combatant[]): any => ({ combatants: cs, order: cs.map((c) => c.id), baseOrder: cs.map((c) => c.id), turn: 0, round: 1, log: [], zones: [], over: false });
 
 function harness(over: Record<string, unknown> = {}) {
-  let s: any = { battle: undefined, scene: scene(), flags: {}, scheduledEffects: [], gameTime: 0, journal: [], log: (l: string) => { s.journal.push(l); }, ...over };
+  let s: any = { battle: undefined, scene: scene(), flags: {}, scheduledEffects: [], gameTime: 0, journal: [], ecrireAuJournal: (l: string) => { s.journal.push(l); }, ...over };
   return { get: () => s, set: (p: any) => { s = { ...s, ...(typeof p === 'function' ? p(s) : p) }; }, state: () => s };
 }
 

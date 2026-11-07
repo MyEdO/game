@@ -25,8 +25,8 @@ function setup(seed: number) {
   seedBattleRng(seed);
   const built = scenario.construire();
   banc.setState({ battle: null, party: built.party });
-  g().startScene(built.scene);
-  g().startCombat('enc-entrainement', undefined, { noSurprise: true });
+  g().lancerLaScene(built.scene);
+  g().lancerLeCombat('enc-entrainement', undefined, { noSurprise: true });
   for (let i = 0; i < 20 && (g().pendingRoundStart || g().pendingCascade); i++) {
     if (g().pendingRoundStart) g().fenetreValider('roundStart'); else avanceEtapeCascade(g);
   }

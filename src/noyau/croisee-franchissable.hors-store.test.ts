@@ -23,7 +23,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /**
  * Croisée FRANCHISSABLE (#700) : sauter par une fenêtre d'étage EST la chute volontaire (LDB 15 l.82,
  * EDO 01 l.229) ; l'enjamber de plain-pied est un geste sans Test (LDB 15 l.55) qui paie l'allège de
- * CETTE croisée (`WallSeg.allege`, arbitrage #700 du 2026-10-04). L'atterrissage d'exploration est un PAS du groupe (`moveParty`).
+ * CETTE croisée (`WallSeg.allege`, arbitrage #700 du 2026-10-04). L'atterrissage d'exploration est un PAS du groupe (`deplacerLeGroupe`).
  */
 
 /** Déclencheur `once` sur la case (x,y) au rez : son drapeau prouve que `checkTriggers` a joué. */
@@ -129,7 +129,7 @@ describe('sauter par la croisée d’étage — exploration', () => {
     expect(phaseDeChute(banc.getState().pendingFall!)).toBe('choice');
   });
 
-  it('« Sauter » : l’atterrissage passe par `moveParty` — le déclencheur de la rue joue', () => {
+  it('« Sauter » : l’atterrissage passe par `deplacerLeGroupe` — le déclencheur de la rue joue', () => {
     banc.getState().franchirLArete({ ...dedans, z: 1 }, dehors);
     banc.getState().jetRegler('fall', 'tenter', false, banc.getState().party[0].id);
     draineCascade(banc.getState);
@@ -137,7 +137,7 @@ describe('sauter par la croisée d’étage — exploration', () => {
     expect(banc.getState().flags.__trigger_rue).toBe(true);
   });
 
-  it('chute amortie à 0 m : l’atterrissage passe aussi par `moveParty`', () => {
+  it('chute amortie à 0 m : l’atterrissage passe aussi par `deplacerLeGroupe`', () => {
     banc.getState().franchirLArete({ ...dedans, z: 1 }, dehors);
     const id = banc.getState().party[0].id;
     banc.getState().jetRegler('fall', 'tenter', true, id);
@@ -150,7 +150,7 @@ describe('sauter par la croisée d’étage — exploration', () => {
 });
 
 describe('enjamber la croisée de plain-pied — exploration', () => {
-  it('le pas du groupe passe par `moveParty` : position, déclencheur joué', () => {
+  it('le pas du groupe passe par `deplacerLeGroupe` : position, déclencheur joué', () => {
     explorer(plainPied(), { ...dedans, z: 0 });
     banc.getState().franchirLArete({ ...dedans, z: 0 }, dehors);
     expect(banc.getState().partyPos).toEqual({ x: 2, y: 1, z: 0 });
@@ -195,8 +195,8 @@ describe('enjamber la croisée — combat', () => {
   function setup(movementUsed = 0, tour: { acted?: boolean; movedPreAction?: boolean } = {}, sc = plainPied()) {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;

@@ -30,10 +30,10 @@ describe('Défense de manœuvre de zone — cascade influençable (héros) vs si
     const H1 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 });
     const H2 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H2', seed: 2 });
     banc.setState({ party: [H1, H2] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const b = banc.getState().battle!;
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');
     enemies.slice(1).forEach((e) => (e.dead = true));

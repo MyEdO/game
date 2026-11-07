@@ -328,7 +328,7 @@ describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'e1', location: null, result: toucheDuHeros(true) } as never });
     banc.getState().jetValider('attack');
     expect(banc.getState().pendingCleave?.restitution, 'la chaîne ouverte emporte la restitution').toEqual({ prevActed: false });
-    banc.getState().cleaveAttack('e2');
+    banc.getState().frapperEnBalayage('e2');
     const pa = banc.getState().pendingAttack!;
     banc.setState({ pendingAttack: { ...pa, result: toucheDuHeros(false) } as never });
     banc.getState().jetValider('attack');
@@ -370,7 +370,7 @@ describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de
     expect(banc.getState().battle!.combatants.find((c) => c.id === e1.id)!.wounds.current, 'la gratuite a touché e1').toBeLessThan(200);
     expect(banc.getState().pendingCleave?.attackerId, 'la chaîne est offerte au héros').toBe('h');
     expect(banc.getState().pendingCleave?.restitution, 'la chaîne emporte la restitution de la gratuite').toEqual({ prevActed: false });
-    banc.getState().cleaveAttack('e2');
+    banc.getState().frapperEnBalayage('e2');
     const pa = banc.getState().pendingAttack!;
     banc.setState({ pendingAttack: { ...pa, result: toucheDuHeros(false) } as never });
     banc.getState().jetValider('attack');

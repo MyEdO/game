@@ -15,8 +15,8 @@ const get = () => useGame.getState();
 function setup() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
-  get().startScene(testScene());
-  get().startCombat('enc-mutants');
+  get().lancerLaScene(testScene());
+  get().lancerLeCombat('enc-mutants');
   get().fenetreValider('roundStart');
   vi.clearAllTimers();
   const b = get().battle!;

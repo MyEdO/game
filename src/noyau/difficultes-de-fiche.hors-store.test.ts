@@ -53,8 +53,8 @@ function heros(): Combatant {
 /** Combat de la scène de test, tour du héros, rien d'engagé. */
 function auCombat(): { H: Combatant; E: Combatant } {
   banc.setState({ party: [heros()], pendingRun: null, pendingApproach: null, pendingDisengage: null, pendingCascade: null });
-  g().startScene(testScene());
-  g().startCombat('enc-mutants');
+  g().lancerLaScene(testScene());
+  g().lancerLeCombat('enc-mutants');
   g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;
@@ -72,7 +72,7 @@ function auCombat(): { H: Combatant; E: Combatant } {
  *  cavalier), sinon le cheval attend à une case. */
 function enSelle({ dejaEnSelle = true } = {}): { R: Combatant; monture: Combatant } {
   lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(testScenarios.find((sc) => sc.id === 'entrainement')!));
-  if (!g().battle) g().startCombat('enc-entrainement');
+  if (!g().battle) g().lancerLeCombat('enc-entrainement');
   if (g().pendingRoundStart) g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;
@@ -98,16 +98,16 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     banc = ouvrirLeBanc();
     poserFicheDeTest();
     banc.setState({ battle: null, journal: [], pendingCorruption: null, pendingRenounce: null, corruptionQueue: [], pendingFall: null });
-    g().seedRng(4);
+    g().ensemencerLeTirage(4);
   });
   afterEach(() => {
     banc.abandonner();
     restaurerFiche();
   });
 
-  it('Course : `battleRun` pose le Test de `course`, `jetLancer@run` le jette', () => {
+  it('Course : `ouvrirLaCourse` pose le Test de `course`, `jetLancer@run` le jette', () => {
     const { H } = auCombat();
-    g().battleRun({ x: 16, y: 10 });
+    g().ouvrirLaCourse({ x: 16, y: 10 });
     expect(g().pendingRun!.test).toMatchObject(testDeFiche('course', 'courir'));
     g().jetLancer('run');
     expect(g().pendingRun!.result!.target).toBe(cible(H, 'course', 'courir'));
@@ -224,10 +224,10 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     hero.items = [...(hero.items ?? []), { uid: 'art1', name: 'Amulette étrange', kind: 'trapping', qualities: [], enc: 0, equipped: false, identified: false } as never];
     hero.skills.push({ id: 'recherche', characteristic: 'intelligence', advances: 5 }); // le Test de Recherche se tente (LDB 09 l.30)
     banc.setState({ party: [hero], interlude: null, bank: [], pendingOrders: [], pendingActivity: null });
-    g().startScene(testScene());
+    g().lancerLaScene(testScene());
     banc.abandonner();
     banc.setState({ worldMap: { id: 'w', label: 'Monde', places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 50, y: 50 }, scene: testScene().id }], routes: [] }, lieu: 'altdorf' });
-    g().startInterlude(3);
+    g().ouvrirLInterlude(3);
     draineCascade(g);
     const itl = g().interlude!;
     itl.perHero[hero.id] = { ...itl.perHero[hero.id], fx: undefined, left: 3 };
@@ -286,7 +286,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const ecarts = { competence: 0, difficulte: 0 };
     for (let graine = 1; graine <= 60; graine++) {
       E.corruption = 99;
-      g().seedRng(graine);
+      g().ensemencerLeTirage(graine);
       const lignes = gainCorruption(g, banc.setState, E, 1);
       expect(g().pendingCorruption).toBeNull();
       expect(lignes.some((l) => String(l).includes(t('cor.contained', { name: E.label }))), `graine ${graine}`).toBe(reussit(graine, skill, d));

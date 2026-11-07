@@ -33,7 +33,7 @@ function tirage(deA: number, carriereB = 'soldat', deB = DE.sansEffet, bank: (a:
   ];
   const chance = party.map((h) => h.fortune ?? 0);
   const banc = ouvrirLeBanc({ graine: 3, desFixes: true, etat: { party, scene: SCENE, worldMap: ALTDORF as never, bank: bank(party[0].id, party[1].id) } });
-  banc.actions.startInterlude(2);
+  banc.actions.ouvrirLInterlude(2);
   for (const de of [deA, deB]) avanceEtapeCascade(banc.getState, () => de);
   avanceEtapeCascade(banc.getState); // dénouement de groupe
   expect(banc.getState().interlude?.phase, 'témoin : le tirage est dénoué').toBe('activities');
@@ -50,7 +50,7 @@ const bourse = (banc: Banc, id: string) => toBrass(bourseOf(banc.getState().part
 /** Le gain de Revenus réussis de B sous `deA` et `deB`, joué par le geste, graine fixe. */
 function revenusDeB(deA: number, carriereB: string, deB = DE.sansEffet): number {
   const { banc, b } = tirage(deA, carriereB, deB);
-  banc.actions.seedRng(42);
+  banc.actions.ensemencerLeTirage(42);
   banc.actions.pratiquerLActivite(b, 'revenus');
   banc.actions.jetLancer('activity');
   banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 10, success: true, sl: 1 } }));

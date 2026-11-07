@@ -48,8 +48,8 @@ const CARRIER_ID = 'convoi-1';
 
 /** Un marchand du groupe : Ragot + Marchandage élevés (Fel poussé) pour des Tests fiables sous graine.
  *  Le chariot de convoi (porteur réel de la cargaison, #327) est posé SÉPARÉMENT (Possession, SOCLE
- *  POSSESSIONS #617/#618) — `launchAtA` le pose après `loadProject` (le registre est vidé+re-semé au
- *  démarrage de scène, `startScene`/`seedStartingPossessions`). */
+ *  POSSESSIONS #617/#618) — `launchAtA` le pose après `chargerLeProjet` (le registre est vidé+re-semé au
+ *  démarrage de scène, `lancerLaScene`/`seedStartingPossessions`). */
 function trader(): Combatant {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', seed: 11, id: 't-artur' });
   h.characteristics = { ...h.characteristics, Fel: 60 } as Combatant['characteristics'];
@@ -81,8 +81,8 @@ function launchAtA(): void {
   seedBattleRng(7);
   const g = get();
   const h = trader();
-  g.setParty([h]);
-  g.loadProject({ scenes: [marche('marche-a', 'Grünburg'), marche('marche-b', 'Altdorf')], entryId: 'marche-a', worldMap: tradeMap(), projet: null });
+  g.fixerLeGroupe([h]);
+  g.chargerLeProjet({ scenes: [marche('marche-a', 'Grünburg'), marche('marche-b', 'Altdorf')], entryId: 'marche-a', worldMap: tradeMap(), projet: null });
   // trader() n'a pas de bourse → partyMoneyTotal = 0 ; le registre de possessions REMPLACE tout auto-semis
   // de dotation carrière (marchand niveau 1 porte une mule) par LE porteur déterministe du test.
   set({ landMarket: null, tradeRumours: [], journal: [], possessions: [convoi(h.id)] });

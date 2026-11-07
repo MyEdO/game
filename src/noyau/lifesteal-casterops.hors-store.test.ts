@@ -20,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const ok = (sl: number): CastResult => ({ cast: true, roll: 21, target: 70, sl, isCritical: false, isFumble: false, log: '' });
 
 beforeEach(() => {
-  banc.getState().seedRng(7);
+  banc.getState().ensemencerLeTirage(7);
 });
 
 describe('Vol de vie — lifeSteal + casterOps', () => {

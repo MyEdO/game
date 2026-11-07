@@ -352,8 +352,8 @@ describe('registre de raccourcis — il se tait sous un dialogue de la pile (mê
     seedBattleRng(7);
     const heros = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Héros', seed: 1 });
     useGame.setState({ party: [heros], screen: 'campaign', gameMenuOpen: false, dialogue: null });
-    useGame.getState().startScene(testScene());
-    act(() => { useGame.getState().startCombat('enc-mutants'); });
+    useGame.getState().lancerLaScene(testScene());
+    act(() => { useGame.getState().lancerLeCombat('enc-mutants'); });
     if (useGame.getState().pendingRoundStart) act(() => useGame.getState().fenetreValider('roundStart'));
     const b = useGame.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;

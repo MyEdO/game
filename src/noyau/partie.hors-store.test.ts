@@ -121,10 +121,10 @@ describe('creerPartie — le journal de l’appel, capté à ses écrivains', ()
 });
 
 describe('creerPartie — la machinerie n’est pas une intention (#3370)', () => {
-  it('`startScene` ne se type pas en `Intention` : une scène se lance par `lancer`', () => {
-    // @ts-expect-error `startScene` est un membre de `MachinerieDuNoyau`, qu'aucune `Intention` ne nomme.
-    const intention: Intention = { type: 'startScene', args: [testScene()] };
-    expect(intention.type).toBe('startScene');
+  it('`lancerLaScene` ne se type pas en `Intention` : une scène se lance par `lancer`', () => {
+    // @ts-expect-error `lancerLaScene` est un membre de `MachinerieDuNoyau`, qu'aucune `Intention` ne nomme.
+    const intention: Intention = { type: 'lancerLaScene', args: [testScene()] };
+    expect(intention.type).toBe('lancerLaScene');
   });
 });
 

@@ -143,7 +143,7 @@ export interface RiverDayContext {
 }
 
 const log = (get: Get, _set: Set, lines: string[]) => {
-  if (lines.length) get().log(lines);
+  if (lines.length) get().ecrireAuJournal(lines);
 };
 
 /** La COQUE de trajet fluviale : le navire de campagne si c'en est un, sinon le véhicule-bateau de la route

@@ -28,6 +28,7 @@ import { buildAuthorPerilSteps } from './authorPerils';
 const LAND_PERIL_INTERRUPT = 'travel-land';
 import { ouvrirLeRepos, placesOfKind, sceneLieu, routeLieu } from './restFlow';
 import type { Jeu } from './etat';
+import type { IdDeClasseDePassage } from './designations';
 import { arriverAuLieu, quitterLeLieu } from './lieuFlow';
 import { lieuDuGroupe, placeById, otherEnd, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
 import { billetApresDepart, offreDePassage, type OffreDePassage } from './billetFlow';
@@ -226,7 +227,7 @@ export interface LandDayContext {
 }
 
 const log = (get: Get, _set: Set, lines: string[]) => {
-  if (lines.length) get().log(lines);
+  if (lines.length) get().ecrireAuJournal(lines);
 };
 
 /** Heures de voyage/jour SANS Test (RAW LDB 51 l.195, défaut 6) — paramétrable au niveau carte. */
@@ -329,7 +330,7 @@ export function passagePayant(get: Get<Jeu>, route: MapRoute, mode: TravelMode):
 /** Réglages d'un départ choisis à la carte du monde : classe du billet, heures de route par jour, allure,
  *  rythme forcé et cadence en mer, traversée rapide. */
 export interface OptionsDeDepart {
-  classeId?: string; hoursPerDay?: number; allure?: Allure; seaPace?: number; fast?: boolean;
+  classeId?: IdDeClasseDePassage; hoursPerDay?: number; allure?: Allure; seaPace?: number; fast?: boolean;
   cadence?: import('./voyageCadence').VoyageCadence;
 }
 
@@ -645,7 +646,7 @@ function runTravelDays(get: Get, set: Set): void {
     // L'ENTRETIEN du jour (rations/faim, maladies, convalescence) n'est PAS roulé ici : il se résout
     // dans la cascade de la halte de nuit (`buildNightCascade`), APRÈS le repas — sinon la Faim
     // s'installerait avant que le groupe ne mange. À l'ARRIVÉE (pas de nuit), le prochain
-    // `runDailyUpkeep` (repos/advanceTime) le rattrape via la garde `lastUpkeepDay`.
+    // `runDailyUpkeep` (repos/avancerLeTemps) le rattrape via la garde `lastUpkeepDay`.
     const kmDone = Math.min(plan.km, plan.kmDone + (forced ? forced.km : hoursToday * kmh));
     set({ travelPlan: { ...get().travelPlan!, kmDone } });
     const recapDay: TravelRecapDay = {
@@ -1325,9 +1326,9 @@ export function sortiesDuVoyage(get: Get, set: Set) {
         jouerFlowEntier(applyEffectsLoot(get, set, then.effects, t('eff.flowTitleDiscovery'))); // trouvaille d'étape de voyage → fenêtre aussi
       } else {
         get().quitterLaScene(then.scene, then.entry);
-        get().startCombat(then.encounter, undefined, { noSurprise: then.noSurprise });
+        get().lancerLeCombat(then.encounter, undefined, { noSurprise: then.noSurprise });
         // Vol terrestre (#327) : cette embuscade terrestre met la cargaison du convoi en jeu — la
-        // perte GRADUÉE se dénoue au teardown de combat. Posé APRÈS startCombat (le reset `combatStart`
+        // perte GRADUÉE se dénoue au teardown de combat. Posé APRÈS lancerLeCombat (le reset `combatStart`
         // n'efface donc pas le marqueur).
         if (get().battle) set({ cargoRaid: true });
       }

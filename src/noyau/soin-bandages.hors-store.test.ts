@@ -57,7 +57,7 @@ describe('Hémorragie sous Bandages (LDB 09 l.261 ; LDB 74 l.41)', () => {
   it('Guérison réussie DR 1 sur 4 États : 1 restant avec Bandages, 2 sans ; l’annonce dit ce que l’application retire', () => {
     for (const [avec, annonce, reste] of [[true, "3 pion(s) d'Hémorragie stoppé(s) sur Al.", 1], [false, "2 pion(s) d'Hémorragie stoppé(s) sur Al.", 2]] as const) {
       combat([hero({ id: 'doc', skills: GUERISON, items: [bandage('b1')] }), hero({ id: 'al', label: 'Al', conditions: [{ id: 'hemorragique', value: 4 }], pos: { x: 2, y: 1 } })]);
-      banc.getState().battleHeal('al', 'bleed');
+      banc.getState().ouvrirLaGuerison('al', 'bleed');
       if (avec) banc.getState().jetRegler('heal', 'bandages', 'doc');
       jete(10, true, 1);
       expect(describeHeal(banc.getState().pendingHeal!, enCombat('al'))).toBe(annonce);
@@ -69,14 +69,14 @@ describe('Hémorragie sous Bandages (LDB 09 l.261 ; LDB 74 l.41)', () => {
 
   it('l’annonce est plafonnée aux États portés (1 État, DR 3 : 1 annoncé, 1 retiré)', () => {
     combat([hero({ id: 'doc', skills: GUERISON }), hero({ id: 'al', label: 'Al', conditions: [{ id: 'hemorragique', value: 1 }], pos: { x: 2, y: 1 } })]);
-    banc.getState().battleHeal('al', 'bleed');
+    banc.getState().ouvrirLaGuerison('al', 'bleed');
     jete(10, true, 3);
     expect(describeHeal(banc.getState().pendingHeal!, enCombat('al'))).toBe("1 pion(s) d'Hémorragie stoppé(s) sur Al.");
   });
 
   it('Dextérité sous Bandages (soigneur sans Guérison) : Test de Dextérité, 1 État retiré quel que soit le DR', () => {
     combat([hero({ id: 'doc', items: [bandage('b1')] }), hero({ id: 'al', label: 'Al', conditions: [{ id: 'hemorragique', value: 4 }], pos: { x: 2, y: 1 } })]);
-    banc.getState().battleHeal('al', 'bleed');
+    banc.getState().ouvrirLaGuerison('al', 'bleed');
     const ph = banc.getState().pendingHeal!;
     expect([ph.test, ph.bandagesDe, ph.skillValue, ph.difficulty]).toEqual(['dexterite', 'doc', 35, 'intermediaire']);
     jete(10, true, 3);
@@ -86,13 +86,13 @@ describe('Hémorragie sous Bandages (LDB 09 l.261 ; LDB 74 l.41)', () => {
 
   it('Dextérité sans Bandages : non offerte (soin refusé)', () => {
     combat([hero({ id: 'doc' }), hero({ id: 'al', label: 'Al', conditions: [{ id: 'hemorragique', value: 4 }], pos: { x: 2, y: 1 } })]);
-    banc.getState().battleHeal('al', 'bleed');
+    banc.getState().ouvrirLaGuerison('al', 'bleed');
     expect(banc.getState().pendingHeal).toBeNull();
   });
 
   it('en Dextérité : le soin de Blessures est refusé, et les Bandages ne se retirent pas', () => {
     combat([hero({ id: 'doc', items: [bandage('b1')] }), hero({ id: 'al', label: 'Al', wounds: blessuresDeBase(12, 3), conditions: [{ id: 'hemorragique', value: 2 }], pos: { x: 2, y: 1 } })]);
-    banc.getState().battleHeal('al', 'bleed');
+    banc.getState().ouvrirLaGuerison('al', 'bleed');
     banc.getState().jetRegler('heal', 'mode', 'wounds');
     banc.getState().jetRegler('heal', 'bandages', null);
     expect([banc.getState().pendingHeal!.mode, banc.getState().pendingHeal!.bandagesDe]).toEqual(['bleed', 'doc']);
@@ -100,7 +100,7 @@ describe('Hémorragie sous Bandages (LDB 09 l.261 ; LDB 74 l.41)', () => {
 
   it('un porteur de Guérison choisit la Dextérité, seulement Bandages engagés (réglage `heal.test`)', () => {
     combat([hero({ id: 'doc', skills: GUERISON, items: [bandage('b1')] }), hero({ id: 'al', label: 'Al', conditions: [{ id: 'hemorragique', value: 2 }], pos: { x: 2, y: 1 } })]);
-    banc.getState().battleHeal('al', 'bleed');
+    banc.getState().ouvrirLaGuerison('al', 'bleed');
     banc.getState().jetRegler('heal', 'test', 'dexterite');
     expect(banc.getState().pendingHeal!.test).toBe('guerison');
     banc.getState().jetRegler('heal', 'bandages', 'doc');
@@ -113,7 +113,7 @@ describe('Blessures et Aide Médicale sous Bandages (LDB 09 l.260 ; LDB 18 l.311
   it('soin de Blessures réussi : aucune Infection (`woundDressed`) seulement sous Bandages', () => {
     for (const avec of [true, false]) {
       combat([hero({ id: 'doc', skills: GUERISON, items: [bandage('b1')] }), hero({ id: 'al', label: 'Al', wounds: blessuresDeBase(12, 3), pos: { x: 2, y: 1 } })]);
-      banc.getState().battleHeal('al', 'wounds');
+      banc.getState().ouvrirLaGuerison('al', 'wounds');
       if (avec) banc.getState().jetRegler('heal', 'bandages', 'doc');
       jete(10, true, 1);
       banc.getState().jetValider('heal');
@@ -124,7 +124,7 @@ describe('Blessures et Aide Médicale sous Bandages (LDB 09 l.260 ; LDB 18 l.311
   it('soin raté sous Bandages : l’unité s’use et l’Aide Médicale est reçue ; raté sans Bandages, rien', () => {
     for (const avec of [true, false]) {
       combat([hero({ id: 'doc', skills: GUERISON, items: [bandage('b1')] }), hero({ id: 'al', label: 'Al', wounds: blessuresDeBase(12, 3), traumas: [{ traumaId: 'z', awaitingMedicalAid: true }] as never, pos: { x: 2, y: 1 } })]);
-      banc.getState().battleHeal('al', 'wounds');
+      banc.getState().ouvrirLaGuerison('al', 'wounds');
       if (avec) banc.getState().jetRegler('heal', 'bandages', 'doc');
       jete(90, false, -5);
       banc.getState().jetValider('heal');
@@ -140,7 +140,7 @@ describe('+DR des Talents « Tests : » et inversion sur le soin (LDB 10 l.19, l
     for (let seed = 1; seed < 40; seed++) {
       combat([doc, hero({ id: 'al', label: 'Al', wounds: blessuresDeBase(12, 3), pos: { x: 2, y: 1 } })]);
       seedBattleRng(seed);
-      banc.getState().battleHeal('al', 'wounds');
+      banc.getState().ouvrirLaGuerison('al', 'wounds');
       banc.getState().jetLancer('heal');
       const ph = banc.getState().pendingHeal!;
       if (!ph.success) continue;
@@ -153,7 +153,7 @@ describe('+DR des Talents « Tests : » et inversion sur le soin (LDB 10 l.19, l
   it('le dé fixé du soin garde le +1 DR de Pansement de fortune en Round de combat (même issue que le jet)', () => {
     const doc = hero({ id: 'doc', skills: GUERISON, talents: [{ talentId: 'pansement-de-fortune', times: 1 }] as never });
     combat([doc, hero({ id: 'al', label: 'Al', wounds: blessuresDeBase(12, 3), pos: { x: 2, y: 1 } })]);
-    banc.getState().battleHeal('al', 'wounds');
+    banc.getState().ouvrirLaGuerison('al', 'wounds');
     banc.getState().jetLancer('heal');
     banc.getState().jetImposerLeResultat('heal', 5);
     const ph = garanti(banc.getState().pendingHeal, 'heal', 'soin');
@@ -164,7 +164,7 @@ describe('+DR des Talents « Tests : » et inversion sur le soin (LDB 10 l.19, l
     const doc = hero({ id: 'doc', skills: GUERISON, talents: [{ talentId: 'pansement-de-fortune', times: 1 }] as never });
     applyOps(doc, [{ op: 'grantReverseToken', skill: { id: 'guerison' } }], { rng: makeRNG(1), label: 'Pratiquer' });
     combat([doc, hero({ id: 'al', label: 'Al', wounds: blessuresDeBase(12, 3), pos: { x: 2, y: 1 } })]);
-    banc.getState().battleHeal('al', 'wounds');
+    banc.getState().ouvrirLaGuerison('al', 'wounds');
     const ph = banc.getState().pendingHeal!;
     banc.setState({ pendingHeal: { ...ph, roll: 82, target: 40, success: false, sl: -4 } });
     banc.getState().jetInverser('heal');
@@ -195,7 +195,7 @@ describe('+DR des Talents « Tests : » et inversion sur le soin (LDB 10 l.19, l
     ] as const;
     for (const c of cas) {
       combat([hero({ id: 'doc', skills: c.skills as never, talents, items: [bandage('b1')] }), hero({ id: 'al', label: 'Al', conditions: [{ id: 'hemorragique', value: 2 }], pos: { x: 2, y: 1 } })]);
-      banc.getState().battleHeal('al', 'bleed');
+      banc.getState().ouvrirLaGuerison('al', 'bleed');
       if (c.bandages) banc.getState().jetRegler('heal', 'bandages', 'doc');
       expect(banc.getState().pendingHeal!.test).toBe(c.test);
       banc.setState({ pendingHeal: { ...banc.getState().pendingHeal!, roll: 82, target: 40, success: false, sl: -4 } });

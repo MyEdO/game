@@ -355,7 +355,7 @@ const V8C2: Site[] = [
   {
     site: 'shipManeuver.ts — avance de coque (pluriel porté par la variable)',
     avant: `${NAVIRE} avance de ${2} case${'s'} (cap ${'NE'}).`,
-    apres: t('store.shipAdvance', { ship: NAVIRE, n: 2, s: 's', dir: 'NE' }),
+    apres: t('store.avancerLeNavire', { ship: NAVIRE, n: 2, s: 's', dir: 'NE' }),
   },
   {
     site: 'issueDeCombat.ts — vol terrestre (issue + fragment « porteurs » optionnels)',

@@ -40,8 +40,8 @@ function setup() {
     return h;
   };
   banc.setState({ party: [mk('W1', 707, 20, 'feu'), mk('W2', 101, 10, 'feu'), mk('W3', 55, 15, 'mort')] });
-  banc.getState().startScene(testScene());
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   const b = banc.getState().battle!;
   const heroes = b.combatants.filter((c) => c.kind === 'hero');

@@ -67,14 +67,14 @@ function deroule(): { issue: string; ouverts?: string[]; doubleMain: string[] } 
     if (cible === 'pendingDualStrike' && !s.pendingHandGate) {
       const a = s.battle.combatants.find((x) => x.id === s.pendingDualStrike!.attackerId)!;
       const t = s.battle.combatants.find((x) => x.kind !== a.kind && vivant(x) && adj(a, x));
-      if (t) g().dualStrikeAttack(t.id);
+      if (t) g().frapperDeLaSecondeArme(t.id);
       if (g().pendingDualStrike && !g().pendingAttack && !g().pendingHandGate) g().fenetreFermer('dualStrike');
       continue;
     }
     if (cible === 'pendingCleave') {
       const a = s.battle.combatants.find((x) => x.id === s.pendingCleave!.attackerId)!;
       const t = s.battle.combatants.find((x) => x.kind !== a.kind && !s.pendingCleave!.hitIds.includes(x.id) && vivant(x) && adj(a, x));
-      if (t) g().cleaveAttack(t.id);
+      if (t) g().frapperEnBalayage(t.id);
       if (!g().pendingAttack) g().fenetreFermer('cleave');
       continue;
     }

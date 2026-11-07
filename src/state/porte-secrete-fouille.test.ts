@@ -42,7 +42,7 @@ const heros = () => ['A', 'B'].map((label, i) => {
 
 function explorer(scene: Scene, pos: { x: number; y: number }) {
   useGame.setState({ party: heros() });
-  useGame.getState().startScene(scene);
+  useGame.getState().lancerLaScene(scene);
   useGame.setState({ partyPos: pos, lightLevel: 1, dialogue: null });
 }
 

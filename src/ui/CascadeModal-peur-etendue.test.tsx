@@ -32,8 +32,8 @@ afterEach(() => {
 describe('Peur de combat entamée — barre de la rangée', () => {
   it('échec DR −2 sur un cumul de 3 (Indice 5) : la barre annonce 1 / 5 DR', () => {
     useGame.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 })], pendingCascade: null });
-    useGame.getState().startScene(testScene());
-    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().lancerLaScene(testScene());
+    useGame.getState().lancerLeCombat('enc-mutants');
     useGame.getState().fenetreValider('roundStart');
     const b = useGame.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;

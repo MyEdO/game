@@ -140,7 +140,7 @@ describe('Guérison en combat (combatSlice) — canal HORS COMBAT (`testValue`),
     expect(v, 'l’État sépare la nue de la valeur jetée').toBeLessThan(nue);
 
     banc.setState({ battle: { ...get().battle!, action: 'heal' } }); // le Soin se commet depuis son mode armé (`HEAL_MODE`)
-    get().battleHeal('bl', 'wounds');
+    get().ouvrirLaGuerison('bl', 'wounds');
     const ph = get().pendingHeal!;
     expect(ph.target).toBe(clampTarget(v + DIFFICULTY_MODIFIERS[ph.difficulty]).target);
 

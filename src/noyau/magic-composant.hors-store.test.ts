@@ -26,8 +26,8 @@ const SPELL = 'mur-de-feu'; // un id de Sort de Domaine réel (Feu) — couvert 
 function mageInBattle() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
   banc.setState({ party: [hero] });
-  banc.getState().startScene(testScene());
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
@@ -36,7 +36,7 @@ function mageInBattle() {
 
 describe('Composants d’incantation (LDB 46 l.107-113)', () => {
   beforeEach(() => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
   });
 
   it('règle ON : un composant DÉGRADE une Imparfaite Majeure en Mineure (le contrecoup est joué une Mineure)', () => {

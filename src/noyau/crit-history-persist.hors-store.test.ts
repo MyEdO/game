@@ -48,7 +48,7 @@ describe('#194 — persistance save/load de l\'historique de critiques', () => {
   beforeEach(() => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sourd', seed: 4 });
     banc.setState({ party: [hero], battle: null });
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
   });
 
   it('critEntriesSuffered survit au round-trip sauver → réinitialiser → charger', () => {

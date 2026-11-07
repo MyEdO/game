@@ -305,12 +305,12 @@ export const useGame = create<GameState>((set, get) => ({
     const s = get();
     const refus = refusDeSauvegarde(s, s.net.mySeat);
     if (refus) {
-      get().log(t(MESSAGE_DU_REFUS[refus]));
+      get().ecrireAuJournal(t(MESSAGE_DU_REFUS[refus]));
       return false;
     }
     const save = snapshotSave(s, new Date().toISOString(), ruleOverrides());
     const ok = ecrireLaSauvegarde(stockageDesSauvegardes(), slot, save);
-    get().log(ok ? t('store.saveOk', { slot }) : t('store.saveKo'));
+    get().ecrireAuJournal(ok ? t('store.saveOk', { slot }) : t('store.saveKo'));
     return ok;
   },
   loadGame: (slot) => {

@@ -37,7 +37,7 @@ function monte() {
   lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(testScenarios.find((sc) => sc.id === 'entrainement')!));
   setRule('combat-frappe-mortelle', true);
   setRule('combat-critical-deflect', true);
-  g().startCombat('enc-entrainement');
+  g().lancerLeCombat('enc-entrainement');
   expect(g().battle).toBeTruthy();
   if (g().pendingRoundStart) g().fenetreValider('roundStart');
   nePeutPasDifferer(applyEffects(g, banc.setState, [{ type: 'ops', on: 'hero', heroId: H, ops: [opPsy.pose('frenesie')] }]), 'frenesie-critique-devie');
@@ -56,7 +56,7 @@ function monte() {
   banc.setState({ battle: { ...g().battle! }, net: { ...g().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
   expect(g().battle!.acted).toBe(false);
 
-  g().seedRng(seedDuCritique());
+  g().ensemencerLeTirage(seedDuCritique());
   openAttackCascade(g, banc.setState, { attackerId: H, targetId: gob.id, location: null, result: null }, 'Attaque', 'action/attack');
   g().jetLancer('attack');
   expect(g().pendingAttack?.result?.critical, 'le jet 1 doit être un Coup Critique').toBe(true);
@@ -82,7 +82,7 @@ describe('Frénésie + Coup Critique dévié + balayage (LDB 21 l.33)', () => {
   it('la restitution traverse l’étape critique, puis le maillon suivant rend `acted:false`', () => {
     const { man } = monte();
     expect(g().pendingCleave?.restitution).toEqual({ prevActed: false });
-    g().cleaveAttack(man.id);
+    g().frapperEnBalayage(man.id);
     g().jetLancer('attack');
     g().jetImposerLeResultat('attack', 21); // LDB 13 l.183
     expect(g().pendingAttack?.result?.critical, 'le 2ᵉ coup touche sans Coup Critique').toBe(false);

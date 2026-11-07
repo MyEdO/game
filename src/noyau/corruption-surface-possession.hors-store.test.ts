@@ -35,7 +35,7 @@ beforeEach(() => {
     battle: null, party: [], journal: [], pendingCorruption: null, pendingRenounce: null,
     corruptionQueue: [], net: { ...NET0, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} },
   });
-  g().seedRng(7);
+  g().ensemencerLeTirage(7);
 });
 
 describe('Seuil de Corruption — la SURFACE, pas l’affordance locale (#1426)', () => {

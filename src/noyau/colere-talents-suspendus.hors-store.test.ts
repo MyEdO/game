@@ -79,10 +79,10 @@ describe('Colère des dieux — perte temporaire de Béni et Invocation (LDB 40 
     expect(banc.getState().pendingCast).toBeNull();
     expect(banc.getState().journal.join('\n')).toMatch(/ne possède pas le Talent Béni/);
 
-    banc.getState().advanceTime(4 * MINUTES_PER_DAY - 1);
+    banc.getState().avancerLeTemps(4 * MINUTES_PER_DAY - 1);
     expect(possede(banc.getState().party[0], 'beni')).toBe(false);
 
-    banc.getState().advanceTime(1);
+    banc.getState().avancerLeTemps(1);
     const rendu = banc.getState().party[0];
     expect(possede(rendu, 'beni')).toBe(true);
     expect(possede(rendu, 'invocation')).toBe(true);

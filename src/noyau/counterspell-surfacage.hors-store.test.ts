@@ -29,8 +29,8 @@ function setup() {
   });
   hero.spells = ['flechette'];
   banc.setState({ party: [hero] });
-  banc.getState().startScene(testScene());
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -64,7 +64,7 @@ const net = (over: Partial<Jeu['net']>) =>
 
 describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le kind', () => {
   it('A — siège MJ posé : le contre-lanceur ENNEMI d’un Sort de héros prend une rangée INTERACTIVE (plus de jet volé)', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const { H, E } = setup();
     net({ gmSeat: 0 });
     castSpell(banc.getState, banc.setState, H, E, 'flechette');
@@ -82,7 +82,7 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
   });
 
   it('B — la rangée ennemie appartient au SEUL siège MJ (intent + affichage + dé fixé)', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const { H, E } = setup();
     net({ mode: 'host', mySeat: 2, gmSeat: 2, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } as Partial<Jeu['net']>);
     castSpell(banc.getState, banc.setState, H, E, 'flechette');
@@ -103,7 +103,7 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
   });
 
   it('C — SOLO (aucun siège MJ) : aucune fenêtre, et l’ennemie chante inline — BIT-À-BIT (différentielle seedée)', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const { H, E } = setup();
     // (1) chemin INLINE (solo) : l'aiguilleur ne surface rien et laisse le meilleur lanceur chanter.
     freezeHeroCast(H, E);
@@ -134,7 +134,7 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
   });
 
   it('D — Sort ENNEMI (IA) : chaque contre-lanceur héros garde SA rangée, à SON siège', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const w2 = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W2', careerTalent: { id: 'magie-mineure' }, seed: 101 });
     w2.spells = ['flechette'];
     const { H, E } = setup();

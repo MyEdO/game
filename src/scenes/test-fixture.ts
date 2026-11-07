@@ -9,7 +9,7 @@ const H = 16;
  * Scène de FIXTURE pour les tests de combat (neutre, sans contenu de campagne), construite à l'appel
  * (#1692). Grille d'herbe praticable + un point de départ héros. Dimensions et `heroStart` fixés pour
  * rester un drop-in (les tests qui se déplacent relativement à (6,10) restent valides). Rencontre
- * `enc-mutants` (3 Mutants) : les tests de combat font `startCombat('enc-mutants')` puis adaptent les
+ * `enc-mutants` (3 Mutants) : les tests de combat font `lancerLeCombat('enc-mutants')` puis adaptent les
  * combattants à leur cas (Taille, États…).
  */
 export function testScene(): Scene {

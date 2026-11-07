@@ -48,7 +48,7 @@ import { refuseSi } from './verrousDeFiche';
 import { refuserGeste } from './refusVisible';
 import { rule } from '../engine/policy';
 import type { Jeu } from './etat';
-import type { IdDeHeros, IdDeJeuDeTaverne, IdDeProfilStandard } from './designations';
+import type { IdDEntiteDeScene, IdDeHeros, IdDeJeuDeTaverne, IdDeProfilStandard } from './designations';
 import { bourseOf } from '../engine/bourse';
 import {
   freeCons, opposedAttackerLabel, monoStep, bandStep, choiceStep, quantityStep, rollStep, composeRollLabel, surfaceOf, effectiveTarget, tableStep, displayStep,
@@ -86,9 +86,9 @@ import type { FragmentDeTables, PartDeTable } from './tablesPosees';
  *  · `profil` : un habitué sans entité de scène, au profil standard choisi (`pnjAuProfil`, `LDB 77 l.7`).
  */
 export type TavernOpponent =
-  | { kind: 'hero'; id: string }
-  | { kind: 'npc'; id: string }
-  | { kind: 'profil'; id: string };
+  | { kind: 'hero'; id: IdDeHeros }
+  | { kind: 'npc'; id: IdDEntiteDeScene }
+  | { kind: 'profil'; id: IdDeProfilStandard };
 
 /** Résultat de la dernière partie (affiché dans la modale). Étend l'issue moteur des libellés/mise. */
 export interface TavernGamesResult extends TavernGameResult {
@@ -1316,7 +1316,7 @@ function potOuvreManche(get: Get, seq: SequenceState<TavernPayload>, game: Taver
   if (enJeu.length < 2) return potFin({ ...p, out, pot: 0, mises: {} }, [...log, t('tavern.potPlusDeJoueurs')]);
   // Le socle ne journalise le `log` d'une manche que si elle est résolue d'office : une sortie de
   // table doit rester au journal.
-  for (const ligne of log) get().log(ligne);
+  for (const ligne of log) get().ecrireAuJournal(ligne);
   // Le premier joueur d'une manche est celui du rang (chacun ouvre la sienne, l.17) ; s'il n'est pas
   // en jeu, le suivant dans l'ordre du tour ouvre à sa place.
   const depart = (manche - 1) % seats.length;
@@ -1550,7 +1550,7 @@ type FinDePot = 'issue' | 'abandon' | 'interruption';
 function potRendLesMises(get: Get, p: TavernPayload): Record<string, number> {
   let rendu = { ...(p.net ?? {}) };
   for (const seat of p.seats ?? []) rendu = potMouvement(rendu, seat, p.mises?.[seat.id] ?? 0);
-  if ((p.pot ?? 0) > 0) get().log(t('tavern.potRendu', { montant: formatMoney(fromBrass(p.pot ?? 0)) }));
+  if ((p.pot ?? 0) > 0) get().ecrireAuJournal(t('tavern.potRendu', { montant: formatMoney(fromBrass(p.pot ?? 0)) }));
   return rendu;
 }
 
@@ -2492,7 +2492,7 @@ function finalizeTavernGame(
   set({ tavernGames: { result } });
   const enjeu = netBrass > 0 ? t('tavern.enjeuGain', { montant: formatMoney(fromBrass(netBrass)) }) : netBrass < 0 ? t('tavern.enjeuPerte', { montant: formatMoney(fromBrass(-netBrass)) }) : '';
   const issue = t(winner === 'player' ? 'tavern.issueWon' : winner === 'opponent' ? 'tavern.issueLost' : 'tavern.issueTie');
-  get().log(t('tavern.finDePartie', { jeu: game.label, who: challenger.label, adversaire: opponentName, issue, texte, enjeu }));
+  get().ecrireAuJournal(t('tavern.finDePartie', { jeu: game.label, who: challenger.label, adversaire: opponentName, issue, texte, enjeu }));
 }
 
 export function creerActionsDeTaverne(get: Get, set: Set) {

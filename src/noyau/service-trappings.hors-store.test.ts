@@ -45,7 +45,7 @@ describe('stock marchand — lit la vue', () => {
 
   it('la Tavernière ne met JAMAIS en stock une entrée hors de la vue', () => {
     banc.setState({ scene: sceneWithTaverniere() });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const stock = banc.getState().merchant!.stock;
     expect(stock.length).toBeGreaterThan(0);
     for (const id of horsDeLaVue()) expect(stock.some((l) => l.id === id), id).toBe(false);

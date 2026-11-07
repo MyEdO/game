@@ -15,7 +15,7 @@ import { KEYBINDINGS } from './clavier/keybindings';
 
 /**
  * ÉMISSION — une route ne protège que ce que quelqu'un ÉMET. Le défaut d'origine était exactement
- * là : `cleaveAttack` routé alors qu'AUCUN site d'écran ne le demande (le clic voyage par
+ * là : `frapperEnBalayage` routé alors qu'AUCUN site d'écran ne le demande (le clic voyage par
  * `cliquerLaCase`). Chaque intent routé par #1016 déclare donc son émetteur, et le scan
  * CONFRONTE la déclaration aux sources d'écran.
  * UN GESTE PEUT ÊTRE ÉMIS PAR TROIS CHEMINS, et le scan les connaît tous les trois :

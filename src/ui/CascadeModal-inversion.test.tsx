@@ -34,8 +34,8 @@ afterEach(() => {
 /** Bande de Peur ouverte par le producteur du jeu, la rangée du héros posée à cible 55, dé 64. */
 function bandeDePeur(jeton: boolean): void {
   useGame.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 })], pendingCascade: null });
-  useGame.getState().startScene(testScene());
-  useGame.getState().startCombat('enc-mutants');
+  useGame.getState().lancerLaScene(testScene());
+  useGame.getState().lancerLeCombat('enc-mutants');
   useGame.getState().fenetreValider('roundStart');
   const b = useGame.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;

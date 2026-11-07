@@ -123,7 +123,7 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Jouteur', seed: 1 });
     h.advantage = 0;
     banc.setState({ battle: null, party: [h], journal: [], pendingCascade: null, sequence: null });
-    banc.getState().seedRng(9);
+    banc.getState().ensemencerLeTirage(9);
     passes.length = 0;
   });
 
@@ -272,7 +272,7 @@ describe('la BORNE tient compte des phases déclarées', () => {
   beforeEach(() => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Jouteur', seed: 2 });
     banc.setState({ battle: null, party: [h], journal: [], pendingCascade: null, sequence: null });
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     passes.length = 0;
   });
 

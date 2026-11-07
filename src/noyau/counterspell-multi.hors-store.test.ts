@@ -30,8 +30,8 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
     };
     const w1 = mk('W1', 707), w2 = mk('W2', 101);
     banc.setState({ party: [w1, w2] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const heroes = b.combatants.filter((c) => c.kind === 'hero');
@@ -77,7 +77,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
   const cur = (id: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!;
 
   it('DÉCLARATION : le déclaré SOLO chante et consomme SON essai, celui qui PASSE garde le sien', () => {
-    banc.getState().seedRng(9);
+    banc.getState().ensemencerLeTirage(9);
     const { heroes, E } = setup();
     const [h1, h2] = heroes;
     enemyCast(E, h1);
@@ -130,7 +130,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
   });
 
   it('Résilience d’une rangée NON DÉCLARÉE, après l’échec d’un autre : REFUSÉE, et le Point reste en poche', () => {
-    banc.getState().seedRng(5);
+    banc.getState().ensemencerLeTirage(5);
     const { heroes, E } = setup();
     const [h1, h2] = heroes;
     enemyCast(E, h1);
@@ -150,7 +150,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
   });
 
   it('une rangée qui a DISSIPÉ ferme la lice : le suivant est refusé SANS brûler son essai du Round', () => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const { heroes, E, E2 } = setup();
     const [h1] = heroes;
     freezeCast(h1, E, 5); // lanceur héros : l'incantation reste lisible
@@ -171,7 +171,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
   it('fenêtre DÉCLARÉE sans jet dû : « Appliquer » et « Laisser passer » rendent la MÊME issue (repli IA unique)', () => {
     /** Fenêtre à un surfacé qui passe + un contre-lanceur IA témoin, jet du lanceur figé. */
     const openVierge = () => {
-      banc.getState().seedRng(5);
+      banc.getState().ensemencerLeTirage(5);
       const { heroes, E } = setup();
       freezeCast(heroes[0], E, 3);
       banc.setState({ pendingCounterspell: { participants: [
@@ -191,7 +191,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
   });
 
   it('« Laisser passer » après déclaration (aucun Contre-sort chanté) → le Sort se résout tel quel', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const { heroes, E } = setup();
     const [h1] = heroes;
     enemyCast(E, h1);

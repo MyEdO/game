@@ -50,8 +50,8 @@ describe('Attaque gratuite de Tentacule (store)', () => {
   function setup(withTentacle = true) {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -73,7 +73,7 @@ describe('Attaque gratuite de Tentacule (store)', () => {
   }
 
   it('frappe gratuite : modale standard, Action préservée, 1/tour, Empêtré sur Dégâts', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.characteristics['capacite-de-combat'] = 95;
     H.characteristics.force = 45;

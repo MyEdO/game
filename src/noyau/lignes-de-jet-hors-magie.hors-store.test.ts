@@ -148,7 +148,7 @@ describe('flux sur l’acteur vivant : la cible annoncée par le lecteur est cel
     poserFicheDeTest();
     const banc = ouvrirLeBanc();
     banc.setState({ battle: null, party: [heros()] });
-    banc.getState().seedRng(13);
+    banc.getState().ensemencerLeTirage(13);
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', heroId: 'h' }]);
     banc.getState().jetRegler('corruption', 'nature', 'spirituelle');
     exterue(banc, 'h');
@@ -215,7 +215,7 @@ describe('Corruption : la nature que la fenêtre offre est celle que le verbe ac
     poserFicheDeTest();
     const banc = ouvrirLeBanc();
     banc.setState({ battle: null, party: [heros()] });
-    banc.getState().seedRng(13);
+    banc.getState().ensemencerLeTirage(13);
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', heroId: 'h', ...(nature ? { nature } : {}) }]);
     return banc;
   };

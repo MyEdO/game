@@ -2,7 +2,7 @@
 // système de carnet, seulement de la prose d'enquête. `Indice`/`Affaire` (données, `data/schemas/defs-scenes/narratif.ts`)
 // restent la SOURCE ; ce module ne porte que l'ÉTAT RUNTIME (quel stade est atteint, statut, épingle, nouveauté).
 import type { Indice } from '../../data/schemas/defs-scenes/narratif';
-import type { IdDIndice } from '../designations';
+import type { IdDIndice, IdDeStadeDIndice } from '../designations';
 
 /** État runtime d'un indice révélé au carnet. Absent de `Jeu.clues` = indice CACHÉ. */
 export interface ClueState {
@@ -94,7 +94,7 @@ export interface IndiceAffiché {
   id: IdDIndice;
   étapes: number;
   statut: ClueState['statut'];
-  stadeCourant: string;
+  stadeCourant: IdDeStadeDIndice;
 }
 
 /** L'affichage d'un indice tel qu'il est MAINTENANT — ce que le Carnet envoie à `marquerVus`. */

@@ -38,8 +38,8 @@ function setup() {
     return h;
   };
   banc.setState({ party: [mk('W1', 707), mk('W2', 101)] });
-  banc.getState().startScene(testScene());
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   const b = banc.getState().battle!;
   const heroes = b.combatants.filter((c) => c.kind === 'hero');
@@ -104,7 +104,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
   });
 
   it('MOMENT : lanceur SURFACÉ à Critique — rien au jet, la fenêtre suit le choix d’effet (jetValider@cast)', () => {
-    banc.getState().seedRng(9);
+    banc.getState().ensemencerLeTirage(9);
     const { heroes, E } = setup();
     const [H] = heroes;
     freeze(H, E, { ...CRIT, cast: true }); // le héros manuel tient sa modale : le choix de Critique est DÛ
@@ -139,7 +139,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
   });
 
   it('PLUSIEURS candidats : la fenêtre naît vierge, la PHASE 1 verrouille les dés, puis chaque déclaré chante', () => {
-    banc.getState().seedRng(9);
+    banc.getState().ensemencerLeTirage(9);
     const { heroes, E } = setup();
     const [h1, h2] = heroes;
     castSpell(banc.getState, banc.setState, E, h1, 'carreau'); // lanceur IA : jet figé + aiguillage
@@ -199,7 +199,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     // Recherche BORNÉE et déterministe d'un jet d'IA critique (double réussi) : le sujet est l'ÉCRITURE
     // du choix, pas la probabilité du Critique.
     for (let seed = 1; seed <= 60 && !critique; seed++) {
-      banc.getState().seedRng(seed);
+      banc.getState().ensemencerLeTirage(seed);
       banc.setState({ pendingCast: null, pendingCascade: null, pendingCounterspell: null });
       for (const c of banc.getState().battle!.combatants) c.dispelledThisRound = undefined;
       castSpell(banc.getState, banc.setState, E, h1, 'carreau'); // lanceur IA : jet figé + aiguillage
@@ -219,7 +219,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
   );
 
   it('dé PRÉ-ARMÉ double (repro recette #1029) : aucune fenêtre avant le choix d’effet, puis fenêtre sur le VRAI résultat', () => {
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     const { heroes, E } = setup();
     const [H] = heroes;
     H.characteristics.intelligence = 99; // le dé 33 PASSE et fait un double (Critique) ; 99 serait un échec (LDB 12 l.25-28)
@@ -239,7 +239,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
   });
 
   it('dé PRÉ-ARMÉ non-double : la Dissipation part AU jet, sur la valeur armée', () => {
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     const { heroes, E } = setup();
     const [H] = heroes;
     H.characteristics.intelligence = 99;
@@ -253,7 +253,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
   });
 
   it('Résilience PRÉ-JET : même contrat atomique (aucune Dissipation sur le jet naturel)', () => {
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     const { heroes, E } = setup();
     const [H] = heroes;
     H.characteristics.intelligence = 99;
@@ -268,7 +268,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
   });
 
   it('« Laisser passer » : aucun surfacé n’a tenté → le meilleur contre-lanceur IA de la fenêtre chante', () => {
-    banc.getState().seedRng(5);
+    banc.getState().ensemencerLeTirage(5);
     const { heroes, E } = setup();
     const [h1] = heroes;
     freeze(h1, E, { cast: true, roll: 30, target: 60, sl: 3, isCritical: false, isFumble: false, log: 'Sort lancé' });

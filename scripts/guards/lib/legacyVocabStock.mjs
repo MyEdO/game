@@ -709,7 +709,7 @@ export const LEGACY_VOCAB_SITES = [
   {
     fichier: "src/noyau/sequence-contrat-socle.hors-store.test.ts",
     motif: "désormais",
-    ancre: "// Ce que fait `startCombat` du point de vue de la garde : le slot appartient désormais à un AUTRE",
+    ancre: "// Ce que fait `lancerLeCombat` du point de vue de la garde : le slot appartient désormais à un AUTRE",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

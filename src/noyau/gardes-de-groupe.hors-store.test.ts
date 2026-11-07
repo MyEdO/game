@@ -159,7 +159,7 @@ describe('récupération de nuit — `refusDeRecuperation` (LDB 18 l.338, LDB 16
 });
 
 describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () => {
-  const ouvrir = (places: Record<string, boolean>) => get().ouvrirLeRepos({ lieu: fixtureText('Ici'), places } as never);
+  const ouvrir = (places: Record<string, boolean>) => get().offrirLeRepos({ lieu: fixtureText('Ici'), places } as never);
 
   it('solo, nuit gratuite : « Dormir » ouvre la nuit d’un appel', () => {
     banc.setState({ party: heros(1) });

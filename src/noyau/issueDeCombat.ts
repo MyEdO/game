@@ -13,16 +13,16 @@ import type { FragmentDeTables } from './tablesPosees';
 
 export function creerActionsDIssueDeCombat(get: Get, set: Set) {
   return {
-    resolveCargoRaid: (outcome) => {
+    denouerLeVol: (outcome) => {
       if (!get().cargoRaid) return;
       const { patch, pct, losses } = applyLandCargoRaid(get(), outcome);
       const total = losses.reduce((n, l) => n + l.removed, 0);
       set({ ...patch, cargoRaid: false });
       if (total > 0) {
         // Consequence structurée (#295) — issue en donnée + total, jamais un jet silencieux.
-        get().log(t('store.cargoRaid', { issue: t(outcome === 'fled' ? 'store.cargoRaidFled' : 'store.cargoRaidBroken'), enc: total, pct, porteurs: losses.length > 1 ? t('store.fragCargoPorters', { n: losses.length }) : '' }));
+        get().ecrireAuJournal(t('store.cargoRaid', { issue: t(outcome === 'fled' ? 'store.cargoRaidFled' : 'store.cargoRaidBroken'), enc: total, pct, porteurs: losses.length > 1 ? t('store.fragCargoPorters', { n: losses.length }) : '' }));
       } else if (outcome !== 'victory' && pct > 0) {
-        get().log(t('store.cargoRaidNothing'));
+        get().ecrireAuJournal(t('store.cargoRaidNothing'));
       }
     },
     depecerLaCreature: (creatureId) => harvestVictoryCreature(get, set, creatureId),
@@ -42,7 +42,7 @@ export function sortiesDIssueDeCombat(get: Get, set: Set) {
   return {
     /** Ferme l'écran de victoire, au quorum (`sortie: 'quorum'`), et revient à l'exploration. */
     victory: () => {
-      get().resolveCargoRaid('victory'); // combat gagné = le convoi est sauf (0 %), le flag s'éteint (#327)
+      get().denouerLeVol('victory'); // combat gagné = le convoi est sauf (0 %), le flag s'éteint (#327)
       const pv = get().pendingVictory;
       const leftoverGear = (pv?.gear ?? []).map((g) => g.effect); // équipement non attribué → 1er héros par défaut
       const cont = pv?.onContinue;
@@ -65,14 +65,14 @@ export function sortiesDIssueDeCombat(get: Get, set: Set) {
     },
     /** Ferme l'écran de l'ANÉANTISSEMENT hors combat (`checkPartyWiped`) : pas de bataille à reprendre, retour au menu. */
     aneantissement: () => {
-      get().resolveCargoRaid('defeat'); // le convoi est pillé (landRobberyLossPct, #327)
+      get().denouerLeVol('defeat'); // le convoi est pillé (landRobberyLossPct, #327)
       set({ partyWiped: false, battle: null, screen: 'menu' });
     },
     /** Ferme l'écran du REPLI : dans une Scène de COMBAT de bataille de masse (ADE II 08), la défaite tactique ne met
      *  PAS fin à la partie : les héros sont repoussés (soignés, le combat de scène est une abstraction), l'issue
      *  `combatLost` alimente le camp allié (Duel l.223 : −20 ; Percée l.175 : Charge), et la bataille CONTINUE. */
     repli: () => {
-      get().resolveCargoRaid('defeat'); // combat perdu = le convoi est pillé (landRobberyLossPct, #327)
+      get().denouerLeVol('defeat'); // combat perdu = le convoi est pillé (landRobberyLossPct, #327)
       const heal = (c: import('../engine/types').Combatant): import('../engine/types').Combatant => ({
         ...c, wounds: { ...c.wounds, current: c.wounds.max }, conditions: [], criticalWounds: 0, dead: false, outOfRencontre: false,
       });
@@ -82,7 +82,7 @@ export function sortiesDIssueDeCombat(get: Get, set: Set) {
     },
     /** Ferme l'écran de DÉFAITE hors bataille de masse : reprise standard (retour à la scène / redémarrage). */
     defaite: () => {
-      get().resolveCargoRaid('defeat'); // combat perdu = le convoi est pillé (landRobberyLossPct, #327)
+      get().denouerLeVol('defeat'); // combat perdu = le convoi est pillé (landRobberyLossPct, #327)
       if (get().scene) set({ mode: 'exploration', battle: null });
       resumeSuspendedCascade(get, set); // teardown de combat (couture universelle), comme la victoire
     },

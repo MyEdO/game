@@ -418,12 +418,12 @@ export interface ActivityDef {
    *  favorable facilite le Test. */
   difficultyFrom?: BattleDifficultyFrom;
   /** Genre d'une Scène de Round ('bataille-round') : `test` (Test de Compétence des PJ, delta de Puissance
-   *  par l'issue) ; `combat` (rencontre tactique — `startCombat` — touches/kills nourrissent le delta) ;
+   *  par l'issue) ; `combat` (rencontre tactique — `lancerLeCombat` — touches/kills nourrissent le delta) ;
    *  `threat` (Scène MENACE qui s'IMPOSE et pénalise les autres Scènes tant qu'elle vit, Intrus l.219) ;
    *  `hold` (Tenez votre position l.161 : Test OPPOSÉ récurrent, Point de rupture entre Rounds) ;
    *  `rally` (Rassemblement l.122 : Test de Résistance qui soigne les héros). Absent = Activité ordinaire. */
   sceneKind?: 'test' | 'combat' | 'threat' | 'hold' | 'rally';
-  /** Scène 'combat'/'threat' : id de rencontre de la scène à démarrer (`startCombat`). */
+  /** Scène 'combat'/'threat' : id de rencontre de la scène à démarrer (`lancerLeCombat`). */
   encounter?: string;
   /** Durée max en Rounds de Combat (indicatif narratif, l.139/157/175…). */
   rounds?: number;

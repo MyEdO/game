@@ -57,8 +57,8 @@ export const EVT = {
    *  que l'hôte ouvre. */
   HEROS_A_CREER: 'heros_a_creer',
   /** noyau → hôte : le groupe entre dans la scène {sceneId, neuve} — `neuve` pour une partie qui commence
-   *  (`startScene`), faux pour un changement de scène (`quitterLaScene`) (#2817 D5). */
+   *  (`lancerLaScene`), faux pour un changement de scène (`quitterLaScene`) (#2817 D5). */
   ARRIVEE_EN_SCENE: 'arrivee_en_scene',
-  /** noyau → hôte : une ligne écrite au journal {texte}, par ses seuls écrivains (`log`, l'entrée en scène). */
+  /** noyau → hôte : une ligne écrite au journal {texte}, par ses seuls écrivains (`ecrireAuJournal`, l'entrée en scène). */
   LIGNE_AU_JOURNAL: 'ligne_au_journal',
 } as const;

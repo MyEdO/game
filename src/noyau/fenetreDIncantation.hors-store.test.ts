@@ -176,8 +176,8 @@ function enCombat(banc: Banc) {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'H', careerTalent: { id: 'magie-mineure' }, seed: 707 });
   h.spells = ['explosion', 'carreau'];
   banc.setState({ party: [h] });
-  banc.getState().startScene(testScene());
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -259,7 +259,7 @@ describe('le lanceur que conduit le moteur écrit sa politique au jet ; le lance
     let res: NonNullable<Jeu['pendingCast']> | null = null;
     // Recherche BORNÉE et déterministe d'un jet d'IA critique : le sujet est l'écriture du choix.
     for (let seed = 1; seed <= 200 && !res; seed++) {
-      banc.getState().seedRng(seed);
+      banc.getState().ensemencerLeTirage(seed);
       banc.setState({ pendingCast: null, pendingCascade: null, pendingCounterspell: null });
       castSpell(banc.getState, banc.setState, E, H, FIXTURES.degats.id);
       const pc = banc.getState().pendingCast;

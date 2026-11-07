@@ -81,7 +81,7 @@ describe('restRecovery — repos d’une nuit (LDB 16 l.92 / 18 l.380 / 21 l.95)
   });
 
   // (Convalescence des traumas : décomptée par l'ENTRETIEN quotidien — #T3, jours calendaires —
-  //  testée sur le chemin du noyau « restParty » ci-dessous et dans upkeep-cascade.hors-store.test.ts.)
+  //  testée sur le chemin du noyau « reposerLeGroupe » ci-dessous et dans upkeep-cascade.hors-store.test.ts.)
 
   it('un mort ne se repose pas', () => {
     const c = hero({ dead: true, conditions: [{ id: 'extenue', value: 1 }] });
@@ -122,13 +122,13 @@ describe('restRecovery — repos d’une nuit (LDB 16 l.92 / 18 l.380 / 21 l.95)
   });
 });
 
-describe('restParty (store) — « Dormir jusqu’à l’aube »', () => {
+describe('reposerLeGroupe (store) — « Dormir jusqu’à l’aube »', () => {
   beforeEach(() => { banc.setState({ battle: null, mode: 'exploration', journal: [] }); });
 
   it('avance jusqu’à l’aube et applique la récupération', () => {
     const c = hero({ id: 'a', conditions: [{ id: 'extenue', value: 1 }] });
     banc.setState({ party: [c], gameTime: 12 * 60 }); // midi
-    banc.getState().restParty();
+    banc.getState().reposerLeGroupe();
     const after = banc.getState();
     expect(dayPhase(after.gameTime).id).toBe('aube'); // réveil à l’aube
     expect(hasCondition(after.party[0], 'extenue')).toBe(false);
@@ -138,17 +138,17 @@ describe('restParty (store) — « Dormir jusqu’à l’aube »', () => {
   it('un héros Hémorragique sans Destin SURVIT à la nuit (pas de spirale d’entretien — régression du bloquant)', () => {
     const c = hero({ id: 'a', wounds: blessuresDeBase(12), conditions: [{ id: 'hemorragique', value: 1 }], fate: 0 });
     banc.setState({ party: [c], gameTime: 12 * 60 });
-    banc.getState().restParty();
+    banc.getState().reposerLeGroupe();
     const after = banc.getState().party[0];
     expect(after.dead).not.toBe(true);
     expect(hasCondition(after, 'hemorragique')).toBe(true); // toujours à stabiliser (Guérison), pas mort en dormant
   });
 
-  it('restParty(3) avance ~3 jours et soigne davantage qu’une nuit', () => {
+  it('reposerLeGroupe(3) avance ~3 jours et soigne davantage qu’une nuit', () => {
     const c = hero({ id: 'a', wounds: blessuresDeBase(100, 2) });
     banc.setState({ party: [c], gameTime: 12 * 60 });
     const t0 = banc.getState().gameTime;
-    banc.getState().restParty(3);
+    banc.getState().reposerLeGroupe(3);
     const after = banc.getState();
     expect(after.gameTime - t0).toBeGreaterThanOrEqual(2 * 24 * 60); // au moins 2 jours pleins + la 1re nuit
     expect(after.party[0].wounds.current).toBeGreaterThan(2 + 4); // bien plus qu’un seul +BE
@@ -158,14 +158,14 @@ describe('restParty (store) — « Dormir jusqu’à l’aube »', () => {
   it('le repos fait avancer la convalescence des traumas (cascade #T3 — via l’entretien quotidien)', () => {
     const c = hero({ id: 'a', traumas: avecSequelles([], [tk('dechirure', 'mineur', 'jambeD', { be: 28 })]) }); // 30−28 = 2 jours
     banc.setState({ party: [c], gameTime: 12 * 60, lastUpkeepDay: 0 });
-    banc.getState().restParty(3); // 3 jours franchis ≥ 2 → guéri
+    banc.getState().reposerLeGroupe(3); // 3 jours franchis ≥ 2 → guéri
     expect(banc.getState().party[0].traumas!.length).toBe(0);
   });
 
   it('ne fait rien en plein combat', () => {
     banc.setState({ battle: { combatants: [], order: [], turn: 0, round: 1, log: [], over: null } as any, gameTime: 12 * 60 });
     const t0 = banc.getState().gameTime;
-    banc.getState().restParty();
+    banc.getState().reposerLeGroupe();
     expect(banc.getState().gameTime).toBe(t0); // inchangé
   });
 });

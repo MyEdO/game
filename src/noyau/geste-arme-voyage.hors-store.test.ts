@@ -37,8 +37,8 @@ const get = () => banc.getState();
 function setup(opts: { peur?: boolean } = {}) {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], screen: 'campaign' });
-  get().startScene(testScene());
-  get().startCombat('enc-mutants');
+  get().lancerLaScene(testScene());
+  get().lancerLeCombat('enc-mutants');
   get().fenetreValider('roundStart');
   banc.abandonner();
   const b = get().battle!;
@@ -249,7 +249,7 @@ describe('(C) le REFUS est un canal LOCAL — et ne se tait jamais', () => {
     setup();
     refuserGeste(get, banc.setState, 'Hors de portée.');
     banc.setState({ battle: null, mode: 'exploration' }); // fin de combat (patron de la sortie de la victoire)
-    get().startCombat('enc-mutants');
+    get().lancerLeCombat('enc-mutants');
     expect(get().battle, 'témoin : le combat suivant ne s’est pas ouvert').not.toBeNull();
     expect(get().refus, 'le refus du combat précédent ouvre le suivant').toBeNull();
   });

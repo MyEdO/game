@@ -48,8 +48,8 @@ const scene = () => buildScene({ id: 'auberge-a', label: 'Auberge du Cerf', desc
 function launch(advances: number, seed: number): void {
   seedBattleRng(seed);
   const g = get();
-  g.setParty([hero(advances)]);
-  g.loadProject({ scenes: [scene()], entryId: 'auberge-a', worldMap: tavernMap(), projet: null });
+  g.fixerLeGroupe([hero(advances)]);
+  g.chargerLeProjet({ scenes: [scene()], entryId: 'auberge-a', worldMap: tavernMap(), projet: null });
   set({ tradeRumours: [], journal: [] });
 }
 

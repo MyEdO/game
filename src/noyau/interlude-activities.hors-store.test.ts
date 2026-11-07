@@ -29,10 +29,10 @@ describe('Activités d’interlude (LDB 23)', () => {
   beforeEach(() => {
     const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ party: [a] });
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, fromBrass(2000));
-    banc.getState().seedRng(13);
-    banc.getState().startInterlude(3);
+    banc.getState().ensemencerLeTirage(13);
+    banc.getState().ouvrirLInterlude(3);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
   });
 
@@ -293,7 +293,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     expect(st().left).toBe(2);
     // Clôture + nouvel interlude : la commande est livrée.
     banc.getState().fenetreValider('interlude');
-    banc.getState().startInterlude(1);
+    banc.getState().ouvrirLInterlude(1);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     expect(hero().items?.some((i) => i.label === exotic.label)).toBe(true);
     expect(banc.getState().pendingOrders).toHaveLength(0);
@@ -513,9 +513,9 @@ describe('#1874 C0 — Crampes abdominales hors combat : À Terre sur le MALADE,
       id: `h${i}`,
     }));
     banc.setState({ party });
-    banc.getState().startScene(testScene());
-    banc.getState().seedRng(13);
-    banc.getState().startInterlude(3);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().ensemencerLeTirage(13);
+    banc.getState().ouvrirLInterlude(3);
     draineCascade(banc.getState);
   });
 

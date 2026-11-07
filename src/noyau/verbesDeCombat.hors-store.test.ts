@@ -67,7 +67,7 @@ function duel(): { partie: Partie; H: Combatant; E: Combatant } {
   return { partie, H: activeCombatant(b)!, E: b.combatants.find((c) => c.id === idDeE)! };
 }
 
-/** Le duel sur le banc : le banc lit aussi la machinerie (`battleHeal`, le corps qui commet le clic du Soin), qu’aucun hôte n’appelle. */
+/** Le duel sur le banc : le banc lit aussi la machinerie (`ouvrirLaGuerison`, le corps qui commet le clic du Soin), qu’aucun hôte n’appelle. */
 function duelSurLeBanc(): { banc: Banc; H: Combatant } {
   const banc = ouvrirLeBanc({ ...ENTREES, etat: etatDuDuel().etat });
   return { banc, H: activeCombatant(banc.getState().battle!)! };
@@ -355,10 +355,10 @@ describe('Commits publics sous un État qui verrouille l’Action (LDB 16 l.52) 
     });
   }
 
-  it('battleHeal, que commet le clic du Soin : le Brisé est refusé par le verdict de son entrée', () => {
+  it('ouvrirLaGuerison, que commet le clic du Soin : le Brisé est refusé par le verdict de son entrée', () => {
     const { banc, H } = duelSurLeBanc();
     addCondition(H, 'brise');
-    banc.getState().battleHeal(H.id, 'wounds');
+    banc.getState().ouvrirLaGuerison(H.id, 'wounds');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(banc.getState().refus?.texte).toBe(refusVerrouDAction(H));
   });

@@ -94,22 +94,22 @@ describe('Vol terrestre — dénouement au teardown de combat (store)', () => {
     banc.setState({ party: [h], vessel: null, worldMap: null, scene: null, possessions: [cartPossession(h.id, [lot('vin-eau-de-vie', 40)])], battle: null, cargoRaid: true, journal: [] } as never);
   });
 
-  it('resolveCargoRaid(defeat) retire 75 % des lots réels du véhicule et éteint le flag', () => {
-    get().resolveCargoRaid('defeat');
+  it('denouerLeVol(defeat) retire 75 % des lots réels du véhicule et éteint le flag', () => {
+    get().denouerLeVol('defeat');
     const cart = get().possessions[0];
     expect(cargoTotalEnc(cart.cargo ?? [])).toBe(10); // 40 − 30 (75 %)
     expect(get().cargoRaid).toBe(false);
   });
 
-  it('resolveCargoRaid(victory) ne retire rien (convoi sauf) et éteint le flag', () => {
-    get().resolveCargoRaid('victory');
+  it('denouerLeVol(victory) ne retire rien (convoi sauf) et éteint le flag', () => {
+    get().denouerLeVol('victory');
     expect(cargoTotalEnc(get().possessions[0].cargo ?? [])).toBe(40);
     expect(get().cargoRaid).toBe(false);
   });
 
   it('no-op quand aucun vol n’est en cours', () => {
     banc.setState({ cargoRaid: false } as never);
-    get().resolveCargoRaid('defeat');
+    get().denouerLeVol('defeat');
     expect(cargoTotalEnc(get().possessions[0].cargo ?? [])).toBe(40);
   });
 });

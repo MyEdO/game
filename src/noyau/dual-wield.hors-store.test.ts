@@ -60,7 +60,7 @@ describe('resolveDualSecond : 2ᵉ attaque du Maniement de deux armes (LDB 10 l.
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ attackerRoll: 34, attackerDetail: { roll: 34, target: 50, success: true, sl: 1 } } as never), dualMode: true } as any });
     banc.getState().jetValider('attack');
     expect(banc.getState().pendingDualStrike!.jet).toBe(reverseRoll(34));
-    banc.getState().dualStrikeAttack('f2');
+    banc.getState().frapperDeLaSecondeArme('f2');
     expect(banc.getState().pendingAttack?.result?.attackerRoll).toBe(43);
   });
 
@@ -142,7 +142,7 @@ const hitRes = (over: Partial<AttackResult> = {}): AttackResult => ({
 const DEUX_ARMES: Partial<Combatant> = { talents: [{ talentId: 'maniement-de-deux-armes', times: 1 }] };
 
 describe('chaînage de l’Action « des deux armes »', () => {
-  it('main touche → pendingDualStrike ouvert + −10 défense posé ; dualStrikeAttack → 2ᵉ frappe pré-résolue ; confirm → fermé', () => {
+  it('main touche → pendingDualStrike ouvert + −10 défense posé ; frapperDeLaSecondeArme → 2ᵉ frappe pré-résolue ; confirm → fermé', () => {
     setupBattle(DEUX_ARMES);
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes(), dualMode: true } as any });
     banc.getState().jetValider('attack');
@@ -151,7 +151,7 @@ describe('chaînage de l’Action « des deux armes »', () => {
     expect(ds!.offWeaponUid).toBe('o');
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(-10);
 
-    banc.getState().dualStrikeAttack('f2');
+    banc.getState().frapperDeLaSecondeArme('f2');
     const pa = banc.getState().pendingAttack;
     expect(pa?.dualSecond).toBe(true);
     expect(pa?.result).not.toBeNull();
@@ -238,7 +238,7 @@ describe('Main ensanglantée (AA 07 l.117) — 2ᵉ frappe « des deux armes » 
   it('SEULE la 2nde main gatée → la 2ᵉ frappe interpose le Test (pas encore résolue)', () => {
     setupBattle(gatedHero(['off']));
     banc.setState({ pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', jet: 3 } as any });
-    banc.getState().dualStrikeAttack('f2');
+    banc.getState().frapperDeLaSecondeArme('f2');
     const s = banc.getState();
     expect(s.pendingHandGate?.hand).toBe('off');
     expect(s.pendingAttack).toBeNull();
@@ -248,7 +248,7 @@ describe('Main ensanglantée (AA 07 l.117) — 2ᵉ frappe « des deux armes » 
   it('RÉUSSITE → la 2ᵉ frappe se résout (dualSecond pré-résolu)', () => {
     setupBattle(gatedHero(['off']));
     banc.setState({ pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', jet: 3 } as any });
-    banc.getState().dualStrikeAttack('f2');
+    banc.getState().frapperDeLaSecondeArme('f2');
     const pg = banc.getState().pendingHandGate!;
     banc.setState({ pendingHandGate: { ...pg, roll: pg.target, success: true, sl: 0 } });
     banc.getState().jetValider('handGate');
@@ -261,7 +261,7 @@ describe('Main ensanglantée (AA 07 l.117) — 2ᵉ frappe « des deux armes » 
   it('ÉCHEC → l\'objet de la 2nde main glisse (pas la directrice) ; 2ᵉ frappe renoncée, sous-flux clos', () => {
     setupBattle(gatedHero(['off']));
     banc.setState({ pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', jet: 3 } as any });
-    banc.getState().dualStrikeAttack('f2');
+    banc.getState().frapperDeLaSecondeArme('f2');
     const pg = banc.getState().pendingHandGate!;
     banc.setState({ pendingHandGate: { ...pg, roll: 99, success: false, sl: -3 } });
     banc.getState().jetValider('handGate');
@@ -277,7 +277,7 @@ describe('Main ensanglantée (AA 07 l.117) — 2ᵉ frappe « des deux armes » 
   it('un SEUL Test par Action : main directrice AUSSI gatée → la 2nde n\'est PAS re-testée', () => {
     setupBattle(gatedHero(['main', 'off']));
     banc.setState({ pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', jet: 3 } as any });
-    banc.getState().dualStrikeAttack('f2');
+    banc.getState().frapperDeLaSecondeArme('f2');
     const s = banc.getState();
     expect(s.pendingHandGate).toBeNull();           // le Test de la directrice a déjà couvert l'Action
     expect(s.pendingAttack?.dualSecond).toBe(true); // la 2ᵉ frappe se résout directement
@@ -306,7 +306,7 @@ describe('#998 — la 2ᵉ frappe opposée à un défenseur SURFACÉ passe par S
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes(), dualMode: true, defended: true } as any });
     banc.getState().jetValider('attack');
     expect(banc.getState().pendingDualStrike).not.toBeNull();
-    banc.getState().dualStrikeAttack('f2');
+    banc.getState().frapperDeLaSecondeArme('f2');
     expect(banc.getState().pendingAttack?.result?.defenderDetail, 'aucun jet de défense roulé en silence').toBeUndefined();
     banc.getState().jetValider('attack');
     const pd = banc.getState().pendingDefense;
@@ -330,7 +330,7 @@ describe('#998 — la 2ᵉ frappe opposée à un défenseur SURFACÉ passe par S
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes(), dualMode: true, defended: true } as any });
     banc.getState().jetValider('attack');
     banc.setState({ pendingDualStrike: { ...banc.getState().pendingDualStrike!, jet: 56 } });
-    banc.getState().dualStrikeAttack('f2');
+    banc.getState().frapperDeLaSecondeArme('f2');
     expect(banc.getState().pendingAttack?.result?.attackerDetail?.roll, 'la 2ᵉ frappe prend le jet tranché').toBe(56);
     banc.getState().jetValider('attack');
     expect((banc.getState().pendingDefense as any)?.atk?.roll, 'le jet figé voyage sur la fenêtre').toBe(56);
@@ -348,7 +348,7 @@ describe('#998 — la 2ᵉ frappe opposée à un défenseur SURFACÉ passe par S
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ attackerRoll: 43, attackerDetail: { roll: 43, target: 50, success: true, sl: 0 } } as any), dualMode: true, defended: true } as any });
     banc.getState().jetValider('attack');
     banc.setState({ pendingDualStrike: { ...banc.getState().pendingDualStrike!, jet: reverseRoll(34) } });
-    banc.getState().dualStrikeAttack('f2');
+    banc.getState().frapperDeLaSecondeArme('f2');
     banc.getState().jetValider('attack');
     banc.getState().jetLancer('defense');
     banc.getState().jetImposerLeResultat('defense', deDefense);

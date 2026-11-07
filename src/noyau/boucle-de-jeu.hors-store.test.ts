@@ -100,7 +100,7 @@ function drainCombatEndCascade() {
 
 describe('Boucle de jeu (store)', () => {
   beforeEach(() => {
-    banc.abandonner(); // purge tout timer fuité d'un test précédent (startCombat arme maybeRunEnemyTurn)
+    banc.abandonner(); // purge tout timer fuité d'un test précédent (lancerLeCombat arme maybeRunEnemyTurn)
     reset();
   });
   afterEach(() => {
@@ -108,7 +108,7 @@ describe('Boucle de jeu (store)', () => {
   });
 
   it('charge une scène et place le groupe au départ', () => {
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     const st = banc.getState();
     expect(st.scene?.id).toBe('test-fixture');
     expect(st.partyPos).toEqual({ x: 6, y: 10 });
@@ -118,10 +118,10 @@ describe('Boucle de jeu (store)', () => {
   it('persiste Blessures + critiques + États persistants vers le groupe en fin de combat (victoire)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
-    banc.abandonner(); // purge le timer d'IA armé par startCombat — on pilote l'ordre nous-mêmes
+    banc.abandonner(); // purge le timer d'IA armé par lancerLeCombat — on pilote l'ordre nous-mêmes
 
     const b = banc.getState().battle!;
     // Héros blessé + 1 État persistant + 1 transitoire + 1 critique ; tous les ennemis hors de combat.
@@ -387,8 +387,8 @@ describe('Boucle de jeu (store)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     // Le membre du groupe porte un État persistant (Hémorragique) et un transitoire (À Terre).
     banc.setState({ party: [{ ...hero, conditions: [{ id: 'hemorragique', value: 1 }, { id: 'a-terre', value: 1 }] }] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const h = banc.getState().battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -400,8 +400,8 @@ describe('Boucle de jeu (store)', () => {
     const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
     banc.setState({ party: [a, { ...b, dead: true }] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const heroes = banc.getState().battle!.combatants.filter((c) => c.kind === 'hero');
@@ -412,8 +412,8 @@ describe('Boucle de jeu (store)', () => {
   it('Maladresse — la clôture du flux `fumble` applique l’auto-blessure (Oups! 01-20)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -429,8 +429,8 @@ describe('Boucle de jeu (store)', () => {
   it('Maladresse — trauma (Oups! 81-90) pose une Déchirure de jambe + 1 Blessure critique', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -445,8 +445,8 @@ describe('Boucle de jeu (store)', () => {
   it('Maladresse — perte d’Action (Oups! 71-80) consommée au tour suivant', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -465,8 +465,8 @@ describe('Boucle de jeu (store)', () => {
   it('Maladresse — fumble du DÉFENSEUR héros (défense ratée + double) → étape jet:fumble de la cascade', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -513,8 +513,8 @@ describe('Boucle de jeu (store)', () => {
     seedBattleRng(424242);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -545,8 +545,8 @@ describe('Boucle de jeu (store)', () => {
   it('Maladresse — « agir en dernier » (21-40) ne dure qu’UN Round (ordre canonique restauré)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -572,8 +572,8 @@ describe('Boucle de jeu (store)', () => {
   it('Maladresse — l’usure d’arme (Oups! 21-40) écrit sur l’ItemInstance et persiste combat→combat', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     let b = banc.getState().battle!;
@@ -596,7 +596,7 @@ describe('Boucle de jeu (store)', () => {
     expect(banc.getState().battle?.over).toBe('victory');
     expect(banc.getState().party[0].items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
     // (3) Combat suivant : l'usure est ré-importée (carry-in + recomputeLoadout).
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const h2 = banc.getState().battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -608,8 +608,8 @@ describe('Boucle de jeu (store)', () => {
     hero.characteristics.intelligence = 90; // assurer le lancement (NI 0)
     hero.spells = ['flechette'];
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -641,8 +641,8 @@ describe('Boucle de jeu (store)', () => {
     pretre.characteristics.sociabilite = 95; // assurer la réussite de la Prière
     pretre.spells = ['benediction-de-bataille'];
     banc.setState({ party: [pretre] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -664,9 +664,9 @@ describe('Boucle de jeu (store)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     hero.characteristics['capacite-de-combat'] = 70; // CC élevée + seed fixe → touche déterministe
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(2); // RNG de combat contrôlé : seed 2 ⇒ touche avec dégâts (cf. recherche)
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(2); // RNG de combat contrôlé : seed 2 ⇒ touche avec dégâts (cf. recherche)
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -726,9 +726,9 @@ describe('Boucle de jeu (store)', () => {
   it('attaquer une cible Sonnée en mêlée donne +1 Avantage à l’attaquant (LDB 16 l.125)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(2);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(2);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -748,9 +748,9 @@ describe('Boucle de jeu (store)', () => {
   it('défense réactive : Défendre → résultat ; Chance relance la défense (attaque FIGÉE) ; Appliquer ferme', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(4);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(4);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -788,11 +788,11 @@ describe('Boucle de jeu (store)', () => {
   it('un ennemi qui attaque un héros en mêlée OUVRE la modale de défense (tour de l’IA suspendu)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(5);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(5);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
-    banc.abandonner(); // purge le timer d'IA armé par startCombat → on pilote nous-mêmes l'ordre du tour
+    banc.abandonner(); // purge le timer d'IA armé par lancerLeCombat → on pilote nous-mêmes l'ordre du tour
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -815,9 +815,9 @@ describe('Boucle de jeu (store)', () => {
   it('attaque IA MONTÉE : le jet figé de la modale de défense porte le +20 Combat monté (LDB 14 l.180)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(5);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(5);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     let st = banc.getState();
@@ -850,8 +850,8 @@ describe('Boucle de jeu (store)', () => {
   it('Sonné : un héros actif ne peut PAS attaquer/incanter, mais peut se déplacer (LDB 16 l.125)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -868,11 +868,11 @@ describe('Boucle de jeu (store)', () => {
   it('Sonné : un ennemi renonce à son Action — pas d’attaque, pas de modale de défense', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(5);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(5);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
-    banc.abandonner(); // purge le timer d'IA armé par startCombat → on pilote nous-mêmes l'ordre du tour
+    banc.abandonner(); // purge le timer d'IA armé par lancerLeCombat → on pilote nous-mêmes l'ordre du tour
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -898,9 +898,9 @@ describe('Boucle de jeu (store)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     hero.characteristics['capacite-de-combat'] = 70;
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(2);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(2);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -920,9 +920,9 @@ describe('Boucle de jeu (store)', () => {
   it('Charge : se ruer au contact depuis 2 cases donne +1 Avantage (strict l.77) et impose l’attaque', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(7);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(7);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     let st = banc.getState();
@@ -948,8 +948,8 @@ describe('Boucle de jeu (store)', () => {
   it('Charge interdite si déjà Engagé (LDB 15 l.35)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -971,8 +971,8 @@ describe('Boucle de jeu (store)', () => {
     // (`result` posé), elle est ENGAGÉE : plus d'annulation.
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -985,8 +985,8 @@ describe('Boucle de jeu (store)', () => {
   it('Combat monté — cliquer un couple ouvre le choix cavalier/monture puis cible l’id choisi (LDB 14 l.181)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     let st = banc.getState();
@@ -1019,9 +1019,9 @@ describe('Boucle de jeu (store)', () => {
   it('Désengagement A : Avantage supérieur → partir en le sacrifiant, sans consommer l’Action (LDB 15 l.47)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(3);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(3);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -1048,8 +1048,8 @@ describe('Boucle de jeu (store)', () => {
   it('Désengagement B échec : l’adversaire gagne +1 Avantage, fuite impossible, Action consommée (LDB 15 l.49)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -1080,9 +1080,9 @@ describe('Boucle de jeu (store)', () => {
   it('Désengagement B succès : +1 Avantage, libéré, Mouvement rouvert, Action consommée (LDB 15 l.49)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(3);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(3);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -1115,9 +1115,9 @@ describe('Boucle de jeu (store)', () => {
   it('Désengagement B : la Chance relance l’Esquive (le jet du foe reste figé)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(4);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(4);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -1143,9 +1143,9 @@ describe('Boucle de jeu (store)', () => {
   it('Engagé : sélectionner « Déplacer » entre dans le Désengagement (LDB 15 l.43)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(6);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(6);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -1165,8 +1165,8 @@ describe('Boucle de jeu (store)', () => {
   it('Désengagement B égalité parfaite : statu quo — ni fuite, ni Avantage à l’adversaire', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -1196,9 +1196,9 @@ describe('Boucle de jeu (store)', () => {
   it('Désengagement B succès en multi-engagement : libère TOUS les adversaires (cohérent avec A)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(3);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(3);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -1228,8 +1228,8 @@ describe('Boucle de jeu (store)', () => {
   it('Désengagement raté (Action consommée) : re-cliquer « Déplacer » ne relance PAS l’Esquive (anti-boucle)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -1251,9 +1251,9 @@ describe('Boucle de jeu (store)', () => {
   it('Désengagement — Fuir : adversaire +1 Avantage + coup dans le dos SUBI ; Test de Calme DIFFÉRÉ (flux flee) puis libéré et peut courir (LDB 15 l.59-68)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(5);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(5);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -1296,9 +1296,9 @@ describe('Boucle de jeu (store)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     hero.characteristics['capacite-de-combat'] = 70;
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(2);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(2);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -1344,9 +1344,9 @@ describe('Avancement par PX (store) — câblage moteur', () => {
   const set1 = (h: Combatant) => banc.setState({ party: [h] });
   const h0 = () => banc.getState().party[0];
 
-  it('grantXp : ajoute des PX au héros', () => {
+  it('accorderLesPx : ajoute des PX au héros', () => {
     set1(mkHero({ xp: 0 }));
-    banc.getState().grantXp('h', 150);
+    banc.getState().accorderLesPx('h', 150);
     expect(h0().xp).toBe(150);
   });
 
@@ -1508,7 +1508,7 @@ describe('Avancement par PX (store) — câblage moteur', () => {
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     scene.triggers.push({ id: 't-xp', rect: { x: 2, y: 0, w: 1, h: 1 }, once: true, flow: flowFromEffects([{ type: 'giveXp', amount: 100 }]) });
     banc.setState({ party: [a, b] });
-    banc.getState().startScene(scene);
+    banc.getState().lancerLaScene(scene);
     poserLeGroupe(banc.getState, banc.setState, { x: 2, y: 0 }); // entre dans la zone du trigger
     const st = banc.getState();
     expect(st.party.find((h) => h.id === 'a')!.xp).toBe(100);
@@ -1542,17 +1542,17 @@ describe('Fouille / butin par objet cherchable (store)', () => {
       },
     });
     banc.setState({ party: [looter()] });
-    banc.getState().startScene(scene);
+    banc.getState().lancerLaScene(scene);
     banc.setState({ partyPos: { x: 0, y: 0 } });
 
-    banc.getState().interactEntity('cadavre');
+    banc.getState().interagirAvecLEntite('cadavre');
     let st = banc.getState();
     expect(partyMoneyTotal(banc.getState).gold).toBe(2);
     expect(st.party[0].xp).toBe(10);
     expect(st.scene!.entities.find((e) => e.id === 'cadavre')).toBeTruthy(); // le corps RESTE
 
     // Re-fouille : aucun double octroi
-    banc.getState().interactEntity('cadavre');
+    banc.getState().interagirAvecLEntite('cadavre');
     st = banc.getState();
     expect(partyMoneyTotal(banc.getState).gold).toBe(2);
     expect(st.party[0].xp).toBe(10);
@@ -1580,10 +1580,10 @@ describe('Fouille / butin par objet cherchable (store)', () => {
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     scene.entities.push({ id: 'coffre', kind: 'prop', pos: { x: 1, y: 0 }, label: 'Coffre', usable: { actions: [{ id: 'fouiller', consume: true, flow: flowFromEffects([{ type: 'giveTrapping', custom: 'Fiole' }, { type: 'giveTrapping', custom: 'Lettre' }]) }] } });
     banc.setState({ party: [looter()] });
-    banc.getState().startScene(scene);
+    banc.getState().lancerLaScene(scene);
     banc.setState({ partyPos: { x: 0, y: 0 } });
 
-    banc.getState().interactEntity('coffre');
+    banc.getState().interagirAvecLEntite('coffre');
     let st = banc.getState();
     // Le butin N'EST PLUS donné en silence au 1er héros : il s'ouvre en fenêtre d'attribution.
     expect(st.party[0].items ?? []).toEqual([]);
@@ -1630,10 +1630,10 @@ describe('Fouille / butin par objet cherchable (store)', () => {
       usable: { actions: [{ id: 'fouiller', unique: true, flow: flowFromEffects([{ type: 'giveTrapping', trappingId: 'dague' }]) }] },
     });
     banc.setState({ party: [heroWithBag()] });
-    banc.getState().startScene(scene);
+    banc.getState().lancerLaScene(scene);
     banc.setState({ partyPos: { x: 0, y: 0 } });
 
-    banc.getState().interactEntity('cadavre');
+    banc.getState().interagirAvecLEntite('cadavre');
     expect(banc.getState().pendingLoot?.gear.map((g) => g.label)).toEqual(['Dague']); // fenêtre d'abord
     banc.getState().fenetreFermer('loot'); // non attribué → 1er héros
     const hero = banc.getState().party[0];
@@ -1656,21 +1656,21 @@ describe('Fouille / butin par objet cherchable (store)', () => {
       usable: { actions: [{ id: 'fouiller', unique: true, flow: flowFromEffects([{ type: 'giveMoney', montant: { gold: 5 } }]) }] },
     });
     banc.setState({ party: [looter()] });
-    banc.getState().startScene(scene);
+    banc.getState().lancerLaScene(scene);
     banc.setState({ partyPos: { x: 0, y: 0, z: 1 } }); // groupe à l'étage 1, entité au rez (même x,y)
 
-    banc.getState().interactEntity('cadavre');
+    banc.getState().interagirAvecLEntite('cadavre');
     expect(partyMoneyTotal(banc.getState).gold).toBe(0); // pas de fouille à travers le plancher
 
     banc.setState({ partyPos: { x: 0, y: 0, z: 0 } }); // même étage → interaction permise
-    banc.getState().interactEntity('cadavre');
+    banc.getState().interagirAvecLEntite('cadavre');
     expect(partyMoneyTotal(banc.getState).gold).toBe(5);
   });
 });
 
 /**
  * L'EXÉCUTEUR UNIQUE des gestes d'exploration (#1687) : `actionsDe` DIT ce qui est offert,
- * `jouerAction` le JOUE — et `interactEntity` n'est que « joue l'UNIQUE offre ». Les scènes sont
+ * `jouerAction` le JOUE — et `interagirAvecLEntite` n'est que « joue l'UNIQUE offre ». Les scènes sont
  * FABRIQUÉES ici : aucune scène de campagne n'est prise pour fixture.
  */
 describe('jouerAction — l’exécuteur unique des gestes authorés', () => {
@@ -1685,7 +1685,7 @@ describe('jouerAction — l’exécuteur unique des gestes authorés', () => {
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     scene.entities.push({ id: 'coffre', kind: 'prop', pos: { x: 1, y: 0 }, label: 'Coffre', usable: { actions } });
     banc.setState({ party: [looter()] });
-    banc.getState().startScene(scene);
+    banc.getState().lancerLaScene(scene);
     banc.setState({ partyPos: { x: 0, y: 0 } });
   }
 
@@ -1724,14 +1724,14 @@ describe('jouerAction — l’exécuteur unique des gestes authorés', () => {
     expect(banc.getState().scene!.entities.find((e) => e.id === 'coffre')).toBeUndefined();
   });
 
-  it('interactEntity : UNE offre → jouée ; N offres → rien n’est joué (le panneau borné les sert)', () => {
+  it('interagirAvecLEntite : UNE offre → jouée ; N offres → rien n’est joué (le panneau borné les sert)', () => {
     poser([{ id: 'fouiller', flow: don(2), unique: true }]);
-    banc.getState().interactEntity('coffre');
+    banc.getState().interagirAvecLEntite('coffre');
     expect(or(), 'une seule offre : le clic la joue').toBe(2);
 
     poser([{ id: 'fouiller', flow: don(2) }, { id: 'ouvrir', flow: don(5) }]);
     const avant = banc.getState().journal.length;
-    banc.getState().interactEntity('coffre');
+    banc.getState().interagirAvecLEntite('coffre');
     expect(or(), 'plusieurs gestes : le raccourci ne choisit pas à la place du joueur').toBe(0);
     // Et il ne le DIT pas non plus : la pastille de l'entité porte les N gestes, son panneau
     // « Que faire ? » les sert. Un journal ici serait un message que personne ne lit.
@@ -1791,13 +1791,13 @@ describe('Déplacement-puis-fouille (move-to-interact, P5)', () => {
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     scene.entities.push({ id: 'cadavre', kind: 'prop', pos: { x: 5, y: 0 }, label: 'Cadavre', usable: { actions: [{ id: 'fouiller', unique: true, flow: flowFromEffects([{ type: 'giveMoney', montant: { gold: 3 } }]) }] } });
     banc.setState({ party: [looter()] });
-    banc.getState().startScene(scene);
+    banc.getState().lancerLaScene(scene);
     banc.setState({ partyPos: { x: 0, y: 0 } });
   }
 
-  it('moveParty arrivant SUR la case d’arrivée armée déclenche la fouille et purge pendingInteract', () => {
+  it('deplacerLeGroupe arrivant SUR la case d’arrivée armée déclenche la fouille et purge pendingInteract', () => {
     armedScene();
-    banc.getState().setPendingInteract({ id: 'cadavre', at: { x: 4, y: 0 } });
+    banc.getState().poserLInteraction({ id: 'cadavre', at: { x: 4, y: 0 } });
     poserLeGroupe(banc.getState, banc.setState, { x: 1, y: 0 }); // encore loin → pas de fouille
     expect(banc.getState().pendingInteract).toMatchObject({ id: 'cadavre' });
     expect(partyMoneyTotal(banc.getState).gold).toBe(0);
@@ -1810,7 +1810,7 @@ describe('Déplacement-puis-fouille (move-to-interact, P5)', () => {
   it('une adjacence CROISÉE en chemin n’ouvre pas l’interaction : seule la case d’arrivée armée le fait', () => {
     armedScene();
     // Plan : rejoindre (4,1) — (4,0), croisée en route, est adjacente au cadavre SANS être l'arrivée.
-    banc.getState().setPendingInteract({ id: 'cadavre', at: { x: 4, y: 1 } });
+    banc.getState().poserLInteraction({ id: 'cadavre', at: { x: 4, y: 1 } });
     poserLeGroupe(banc.getState, banc.setState, { x: 4, y: 0 });
     expect(banc.getState().pendingInteract, 'le pending survit au passage').toMatchObject({ id: 'cadavre' });
     expect(partyMoneyTotal(banc.getState).gold, 'rien n’a été fouillé en passant').toBe(0);
@@ -1825,18 +1825,18 @@ describe('Déplacement-puis-fouille (move-to-interact, P5)', () => {
    *  comme ses voisins de recharge, de désengagement ou d'empoignade. */
   it('un pending armé ne survit pas à l’ouverture d’un combat', () => {
     armedScene();
-    banc.getState().setPendingInteract({ id: 'cadavre', at: { x: 4, y: 0 } });
+    banc.getState().poserLInteraction({ id: 'cadavre', at: { x: 4, y: 0 } });
     expect(resetFields('combatStart'), 'le cadre PURGE ce champ').toHaveProperty('pendingInteract', null);
-    banc.setState({ ...resetFields('combatStart') }); // ce que `startCombat` applique
+    banc.setState({ ...resetFields('combatStart') }); // ce que `lancerLeCombat` applique
     expect(banc.getState().pendingInteract).toBeNull();
     poserLeGroupe(banc.getState, banc.setState, { x: 4, y: 0 }); // la case armée : plus rien ne s'y déclenche
     expect(partyMoneyTotal(banc.getState).gold).toBe(0);
   });
 
-  it('annulation : setPendingInteract(null) empêche la fouille à l’arrivée (clic ailleurs)', () => {
+  it('annulation : poserLInteraction(null) empêche la fouille à l’arrivée (clic ailleurs)', () => {
     armedScene();
-    banc.getState().setPendingInteract({ id: 'cadavre', at: { x: 4, y: 0 } });
-    banc.getState().setPendingInteract(null);
+    banc.getState().poserLInteraction({ id: 'cadavre', at: { x: 4, y: 0 } });
+    banc.getState().poserLInteraction(null);
     poserLeGroupe(banc.getState, banc.setState, { x: 4, y: 0 });
     expect(partyMoneyTotal(banc.getState).gold).toBe(0);
   });
@@ -1862,13 +1862,13 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
       ]) }] },
     });
     banc.setState({ party: [looter()] });
-    banc.getState().startScene(scene);
+    banc.getState().lancerLaScene(scene);
     banc.setState({ partyPos: { x: 0, y: 0 } });
   }
 
   it('fouille avec butin : fenêtre titrée (texte + or + équipement), bourse créditée immédiatement', () => {
     lootScene();
-    banc.getState().interactEntity('coffre');
+    banc.getState().interagirAvecLEntite('coffre');
     const st = banc.getState();
     expect(st.pendingLoot?.title).toBe('Coffre de la garnison');
     expect(st.pendingLoot?.messages).toEqual(['Sous une fausse planche, la solde du mois.']);
@@ -1899,7 +1899,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
 
   it('evaluerLeButin (Évaluation) : succès → la ligne est révélée, l’objet attribué arrive identifié', () => {
     lootScene();
-    banc.getState().interactEntity('coffre');
+    banc.getState().interagirAvecLEntite('coffre');
     banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid);
     const pa = banc.getState().pendingAppraise!;
     expect(pa.gear).toEqual({ scope: 'loot', uid: banc.getState().pendingLoot!.gear[0].uid });
@@ -1918,7 +1918,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     lootScene();
     // Le looter reçoit le Talent : le bouton/flux ne s'arme que pour un porteur (Intuition).
     banc.setState({ party: [looter({ talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as Partial<Combatant>)] });
-    banc.getState().interactEntity('coffre');
+    banc.getState().interagirAvecLEntite('coffre');
     banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid, 'detect');
     let pa = banc.getState().pendingAppraise!;
     expect(pa.mode).toBe('detect');
@@ -1958,7 +1958,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
 
   it('anti-spam Évaluation : un échec verrouille l’objet pour la JOURNÉE (re-tentative demain)', () => {
     lootScene();
-    banc.getState().interactEntity('coffre');
+    banc.getState().interagirAvecLEntite('coffre');
     banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid);
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 99, success: false, sl: -6 } });
@@ -1968,7 +1968,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid);
     expect(banc.getState().pendingAppraise).toBeNull();
     // Le lendemain : on peut retenter.
-    banc.getState().advanceTime(24 * 60);
+    banc.getState().avancerLeTemps(24 * 60);
     banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid);
     expect(banc.getState().pendingAppraise).not.toBeNull();
     banc.setState({ pendingAppraise: null });
@@ -1976,7 +1976,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
 
   it('fenêtres successives : le butin s’AJOUTE à la fenêtre ouverte (pas d’écrasement)', () => {
     lootScene();
-    banc.getState().interactEntity('coffre');
+    banc.getState().interagirAvecLEntite('coffre');
     applyEffectsLoot(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId: 'dague' }], 'Sac oublié');
     const pl = banc.getState().pendingLoot!;
     expect(pl.title).toBe('Coffre de la garnison'); // la 1re fenêtre garde son titre
@@ -2372,7 +2372,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     banc.getState().terminerLeTour(); // → Round 2, pendingRoundStart
     const orderBefore = [...banc.getState().battle!.order];
     seedBattleRng(1);
-    banc.getState().preemptRangedShot(H.id, E.id);
+    banc.getState().declencherLeTirPreventif(H.id, E.id);
     expect(banc.getState().pendingAttack?.interrupt).toBe(true); // modale de tir ouverte, tireur non-actif
     banc.getState().jetLancer('attack');
     banc.getState().jetValider('attack');
@@ -2422,8 +2422,8 @@ describe('annulerLeDeplacement — annuler un déplacement décomposé tant qu�
   function moveSetup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -2487,7 +2487,7 @@ describe('Blessures critiques & mort en combat (LDB 18-Traumatisme)', () => {
   it('overkill sur un HÉROS → Blessure critique (compteur++), tombe à 0 PB', () => {
     const { H, E } = combat({ wounds: blessuresDeBase(12, 2), armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } });
     H.items = (H.items ?? []).filter((i) => i.kind !== 'armor'); // sans armure portée : aucune Déviation (LDB 63 l.30)
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     // L'IA (E) frappe H en mêlée SANS défense opposable (cible sans réaction, cas imposé RAW) :
     // résolution non opposée, DR d'attaque plein → overkill car 2 PB < dégâts.
     const atk = { roll: 5, target: 80, success: true, sl: 7, isDouble: false };
@@ -2502,7 +2502,7 @@ describe('Blessures critiques & mort en combat (LDB 18-Traumatisme)', () => {
   it('héros SANS Destin Inconscient + 0 PB + critiques > BE → meurt en fin de Round (LDB 18 l.48-49)', () => {
     const { H, E } = combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4, fate: 0 }); // BE=3, pas de Destin → mort directe
     banc.setState({ battle: { ...banc.getState().battle!, order: [E.id, H.id], turn: 1 } }); // H dernier → terminerLeTour franchit le Round
-    banc.getState().seedRng(1);
+    banc.getState().ensemencerLeTirage(1);
     banc.getState().terminerLeTour();
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.dead).toBe(true);
@@ -2529,7 +2529,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
 
   it('mort lente d’un héros à Destin → suspend (pendingFateSave source=slow), pas mort', () => {
     combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4 }); // fate=1, BE=3
-    banc.getState().seedRng(1);
+    banc.getState().ensemencerLeTirage(1);
     banc.getState().terminerLeTour(); // H dernier → franchit le Round
     const st = banc.getState();
     expect(st.pendingFateSave).not.toBeNull();
@@ -2539,7 +2539,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
 
   it('« Meurs un autre jour » : éjecté vivant, Destin −1, le Round reprend', () => {
     const { H } = combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4, fate: 2 });
-    banc.getState().seedRng(1);
+    banc.getState().ensemencerLeTirage(1);
     banc.getState().terminerLeTour();
     banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
@@ -2551,7 +2551,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
 
   it('« Accepter le sort » : mort', () => {
     const { H } = combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4 });
-    banc.getState().seedRng(1);
+    banc.getState().ensemencerLeTirage(1);
     banc.getState().terminerLeTour();
     banc.getState().fenetreChoisir('fateSave', 'issue', 'accept');
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.dead).toBe(true);
@@ -2559,7 +2559,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
 
   it('héros SANS Destin : mort lente directe, pas de pause', () => {
     const { H } = combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4, fate: 0 });
-    banc.getState().seedRng(1);
+    banc.getState().ensemencerLeTirage(1);
     banc.getState().terminerLeTour();
     expect(banc.getState().pendingFateSave).toBeNull();
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.dead).toBe(true);
@@ -2616,7 +2616,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
 
   it('tirer consomme 1 munition et décharge une arme à Recharge', () => {
     const { H, E } = archer();
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true }); // ouvre la modale d'attaque (chargé + munition OK)
     expect(banc.getState().pendingAttack).not.toBeNull();
     banc.getState().jetLancer('attack');
@@ -2649,7 +2649,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     const { H } = archer();
     rangedOf(H).loaded = false;
     rangedOf(H).reloadProgress = 0;
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     banc.getState().rechargerLArme();
     banc.getState().jetLancer('reload');
     const pr = banc.getState().pendingReload!;
@@ -2678,7 +2678,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     const { H } = archer();
     rangedOf(H).loaded = false;
     rangedOf(H).reloadProgress = 0;
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     banc.getState().rechargerLArme();
     banc.getState().jetLancer('reload');
     const pr = { ...banc.getState().pendingReload! };
@@ -2698,7 +2698,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     H.weapons = [{ label: 'Arbalète lourde', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 100, qualities: [{ id: 'recharge', value: 2 }], subType: 'Arbalète', reload: 2 }];
     rangedOf(H).loaded = false;
     rangedOf(H).reloadProgress = 0;
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     banc.getState().rechargerLArme();
     banc.getState().jetLancer('reload');
     const pr = banc.getState().pendingReload!;
@@ -2759,7 +2759,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     // (3) Retour au PISTOLET : toujours chargé → le tir part (le gate ne réclame pas de rechargement).
     h = swap('pist');
     expect(weaponLoaded(h, h.weapons.find((w) => w.uid === 'w-pist')!)).toBe(true);
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     expect(banc.getState().pendingAttack, 'le pistolet chargé TIRE').not.toBeNull();
     banc.getState().jetAnnuler('attack');
@@ -2879,7 +2879,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     banc.setState({ battle: { ...banc.getState().battle!, acted: false } });
     // La sélection change APRÈS le chargement : le coup déjà chargé, lui, ne change pas.
     rangedOf(banc.getState().battle!.combatants.find((c) => c.id === H.id)!).ammoUid = 'am1';
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.getState().jetLancer('attack');
     banc.getState().jetValider('attack');
@@ -2894,7 +2894,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).loaded = true;
     rangedOf(H).loadedAmmoUid = 'am1';
     rangedOf(H).ammoUid = 'am2';
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.getState().jetLancer('attack');
     banc.getState().jetValider('attack');
@@ -2914,7 +2914,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).loaded = true;
     banc.getState().approvisionnerLArme('fl2');
     expect(rangedOf(banc.getState().battle!.combatants.find((c) => c.id === H.id)!).loaded).toBe(true);
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.getState().jetLancer('attack');
     banc.getState().jetValider('attack');
@@ -2963,7 +2963,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     // passé votre dernière action à viser » est une entrée de la table (`LDB 14`) : elle COMPOSE la
     // Difficulté du jet (#1153) au lieu de flotter en chip — on lit donc TOUT ce que la ligne nomme.
     banc.setState({ battle: { ...banc.getState().battle!, acted: false, action: null } });
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.getState().jetLancer('attack');
     const pa = banc.getState().pendingAttack!;
@@ -3024,21 +3024,21 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
 
   const lead = combattantDeTest({ id: 'lead', label: 'L', xp: 0 });
 
-  it('startScene : heroStart au bord sud SANS facing → le groupe regarde le contenu (N, pas le vide POV)', () => {
+  it('lancerLaScene : heroStart au bord sud SANS facing → le groupe regarde le contenu (N, pas le vide POV)', () => {
     const sc = emptyScene('scene-test', 21, 20);
     sc.id = 'sud';
     sc.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 10, y: 19 } });
-    banc.getState().setParty([lead]);
-    banc.getState().startScene(sc);
+    banc.getState().fixerLeGroupe([lead]);
+    banc.getState().lancerLaScene(sc);
     expect(banc.getState().facing).toEqual({ [CAP_GROUPE]: 'N' });
   });
 
-  it('startScene : heroStart AVEC facing authoré → respecté tel quel', () => {
+  it('lancerLaScene : heroStart AVEC facing authoré → respecté tel quel', () => {
     const sc = emptyScene('scene-test', 21, 20);
     sc.id = 'authore';
     sc.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 10, y: 19 }, facing: 'O' });
-    banc.getState().setParty([lead]);
-    banc.getState().startScene(sc);
+    banc.getState().fixerLeGroupe([lead]);
+    banc.getState().lancerLaScene(sc);
     expect(capDuGroupe(banc.getState())).toBe('O');
   });
 
@@ -3049,8 +3049,8 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
     b.id = 'b';
     b.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 3, y: 3 }, facing: 'O' });
     b.entryPoints = { porte: { x: 3, y: 6 } }; // bord sud de b
-    banc.getState().setParty([lead]);
-    banc.getState().loadProject({ scenes: [a, b], entryId: 'a', projet: null });
+    banc.getState().fixerLeGroupe([lead]);
+    banc.getState().chargerLeProjet({ scenes: [a, b], entryId: 'a', projet: null });
     banc.getState().quitterLaScene('b', 'porte');
     expect(banc.getState().partyPos).toEqual({ x: 3, y: 6 });
     expect(capDuGroupe(banc.getState())).toBe('N'); // vers le centroïde (3,3), PAS 'O'
@@ -3062,26 +3062,26 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
     const b = emptyScene('scene-test', 7, 7);
     b.id = 'b2';
     b.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 3, y: 6 }, facing: 'NE' });
-    banc.getState().setParty([lead]);
-    banc.getState().loadProject({ scenes: [a, b], entryId: 'a2', projet: null });
+    banc.getState().fixerLeGroupe([lead]);
+    banc.getState().chargerLeProjet({ scenes: [a, b], entryId: 'a2', projet: null });
     banc.getState().quitterLaScene('b2');
     expect(capDuGroupe(banc.getState())).toBe('NE');
   });
 });
 
-describe('Horloge in-game — gameTime + advanceTime (Phase T1)', () => {
-  it('advanceTime fait avancer gameTime (depuis le départ de campagne)', () => {
+describe('Horloge in-game — gameTime + avancerLeTemps (Phase T1)', () => {
+  it('avancerLeTemps fait avancer gameTime (depuis le départ de campagne)', () => {
     banc.setState({ gameTime: campaignStart() });
-    banc.getState().advanceTime(90); // +1h30
+    banc.getState().avancerLeTemps(90); // +1h30
     expect(banc.getState().gameTime).toBe(campaignStart() + 90);
-    banc.getState().advanceTime(MINUTES_PER_DAY); // +1 jour
+    banc.getState().avancerLeTemps(MINUTES_PER_DAY); // +1 jour
     expect(banc.getState().gameTime).toBe(campaignStart() + 90 + MINUTES_PER_DAY);
   });
 
-  it('advanceTime est un no-op si minutes ≤ 0', () => {
+  it('avancerLeTemps est un no-op si minutes ≤ 0', () => {
     banc.setState({ gameTime: campaignStart() });
-    banc.getState().advanceTime(0);
-    banc.getState().advanceTime(-30);
+    banc.getState().avancerLeTemps(0);
+    banc.getState().avancerLeTemps(-30);
     expect(banc.getState().gameTime).toBe(campaignStart());
   });
 });
@@ -3096,13 +3096,13 @@ describe('« Tout est horodaté » — branchements TIME_COST (Phase T1)', () =>
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     scene.entities.push({ id: 'cadavre', kind: 'prop', pos: { x: 1, y: 0 }, label: 'Cadavre', usable: { actions: [{ id: 'fouiller', unique: true, flow: flowFromEffects([{ type: 'giveMoney', montant: { gold: 1 } }]) }] } });
     banc.setState({ party: [combattantDeTest({ id: 'a', label: 'A', xp: 0, wounds: blessuresDeBase(12), conditions: [] })] });
-    banc.getState().startScene(scene);
+    banc.getState().lancerLaScene(scene);
     banc.setState({ partyPos: { x: 0, y: 0 }, gameTime: campaignStart() });
 
-    banc.getState().interactEntity('cadavre');
+    banc.getState().interagirAvecLEntite('cadavre');
     expect(banc.getState().gameTime).toBe(campaignStart() + TIME_COST.search);
     // Re-fouille : retour anticipé (déjà fouillé) → aucun nouvel avancement.
-    banc.getState().interactEntity('cadavre');
+    banc.getState().interagirAvecLEntite('cadavre');
     expect(banc.getState().gameTime).toBe(campaignStart() + TIME_COST.search);
   });
 
@@ -3121,8 +3121,8 @@ describe('« Tout est horodaté » — branchements TIME_COST (Phase T1)', () =>
   it('franchir un Round de combat avance le temps de TIME_COST.combatRound', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -3133,7 +3133,7 @@ describe('« Tout est horodaté » — branchements TIME_COST (Phase T1)', () =>
   });
 
   it('sceneTransition reste à 0 (intérieur) — le point d’appel existe (seam #T2), sans avancer le temps', () => {
-    expect(TIME_COST.sceneTransition).toBe(0); // advanceTime(0) = no-op ; paramétrable pour l'extérieur/voyage
+    expect(TIME_COST.sceneTransition).toBe(0); // avancerLeTemps(0) = no-op ; paramétrable pour l'extérieur/voyage
   });
 });
 
@@ -3158,7 +3158,7 @@ describe('Effet setTime — forcer l’heure du jour (jour/nuit via trigger, #T1
   });
 });
 
-describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
+describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => {
   beforeEach(() => reset());
   const hero = (): Combatant => combattantDeTest({ id: 'h', label: 'H', items: [], characteristics: {}, wounds: blessuresDeBase(10), conditions: [], weapons: [] });
   const merchantScene = () => {
@@ -3167,9 +3167,9 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     return sc;
   };
 
-  it('openMerchant : crée un stock (Commune toujours présente) + état merchant', () => {
+  it('ouvrirLeMarchand : crée un stock (Commune toujours présente) + état merchant', () => {
     banc.setState({ party: [hero()], scene: merchantScene() });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const m = banc.getState().merchant!;
     expect(m.entityId).toBe('pnj');
     expect(m.stock.length).toBeGreaterThan(0); // au moins les Communes de la catégorie
@@ -3178,7 +3178,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   it('achat au panier : débite la Bourse, donne l’objet à stats au héros, décrémente la qty', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const line = banc.getState().merchant!.stock[0];
     const before = toBrass(partyMoneyTotal(banc.getState));
     acheterAuPanier(banc.getState, line.id);
@@ -3190,7 +3190,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   it('achat au panier refusé si Bourse insuffisante (objet inchangé)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const line = banc.getState().merchant!.stock[0];
     acheterAuPanier(banc.getState, line.id);
     expect(banc.getState().party[0].items!.length).toBe(0);
@@ -3198,7 +3198,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   it('panier : ajouterAuPanier → payerLesAchats débite le total + met en attente de répartition → confirm distribue', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
@@ -3219,7 +3219,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   it('panier : après Marchandage, AJOUT bloqué mais RETRAIT permis (« j’en prends un de moins »)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty >= 2)!.id;
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id); // qty 2
@@ -3232,12 +3232,12 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   it('Marchandage NON conclu : quitter sans payer → bloqué jusqu’au réassort, PERSISTE à la réouverture', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainBuy: { won: true, drNet: 2, negotiator: false } } })); // négocié
     banc.getState().fenetreFermer('marchand'); // quitte SANS payer
-    banc.getState().openMerchant('pnj'); // réouverture (même réassort)
+    banc.getState().ouvrirLeMarchand('pnj'); // réouverture (même réassort)
     expect(banc.getState().merchant!.bargainLocked).toBe(true); // l'info est gardée
     banc.getState().marchanderLePrix('buy');
     expect(banc.getState().pendingBargain).toBeNull(); // le marchand refuse de marchander
@@ -3245,7 +3245,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   it('refuserLeMarche(\'buy\') : vide le panier, annule la remise, VERROU PARTAGÉ (bloque achat ET vente), persiste', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainBuy: { won: true, drNet: 2, negotiator: false } } })); // négocié
@@ -3258,13 +3258,13 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     banc.getState().marchanderLePrix('sell');
     expect(banc.getState().pendingBargain).toBeNull();
     banc.getState().fenetreFermer('marchand');
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     expect(banc.getState().merchant!.bargainLocked).toBe(true); // persiste
   });
 
   it('refuserLeMarche(\'sell\') : annule l’offre + VERROU PARTAGÉ (bloque l’ACHAT aussi)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainSell: { won: true, drNet: 2, negotiator: false } } })); // vente négociée
     banc.getState().refuserLeMarche('sell');
     const st = banc.getState();
@@ -3276,28 +3276,28 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   it('vente négociée puis quittée SANS rien vendre → bloqué (vente non honorée)', () => {
     banc.setState({ party: [{ ...hero(), items: [{ uid: 'd', label: 'Dague', kind: 'melee', qualities: [], enc: 0, equipped: false }] } as any], scene: merchantScene() });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainSell: { won: true, drNet: 2, negotiator: false } } }));
     banc.getState().fenetreFermer('marchand'); // quitte sans vendre
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     expect(banc.getState().merchant!.bargainLocked).toBe(true);
   });
 
   it('Marchandage CONCLU (payé) : pas de blocage à la réouverture', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainBuy: { won: true, drNet: 2, negotiator: false } } }));
     banc.getState().payerLesAchats(); // scelle le deal (paie)
     banc.getState().fenetreFermer('marchand');
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     expect(banc.getState().merchant!.bargainLocked).toBe(false); // pas de pénalité
   });
 
   it('panier : ajouterAuPanier plafonne à la quantité en stock', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const line = banc.getState().merchant!.stock.find((l) => l.qty > 0)!;
     for (let i = 0; i < line.qty + 5; i++) banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', line.id);
     expect(banc.getState().merchant!.cart.find((c) => c.id === line.id)!.qty).toBe(line.qty);
@@ -3305,7 +3305,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   it('ajouterAuPanier : refuse une unité que la Bourse ne couvre pas (panier vide)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 0, silver: 0, brass: 1 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     expect(banc.getState().merchant!.cart).toHaveLength(0);
@@ -3313,7 +3313,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   it('payerLesAchats : refuse si Bourse insuffisante (panier intact, rien en répartition)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.setState({ party: [withBourseMoney(banc.getState().party[0], { gold: 0, silver: 0, brass: 1 })] }); // la bourse fond entre le panier et le paiement
@@ -3325,7 +3325,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   it('la sortie du marchand valide une répartition en attente (objets non perdus, par défaut au 1er héros)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.getState().payerLesAchats();
@@ -3336,7 +3336,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
   it('vente (panier) : crédite resaleRate × prix et retire l’objet du héros', () => {
     const h = hero(); h.items = [{ uid: 'x', trappingId: 'hallebarde', label: 'Hallebarde', kind: 'melee', qualities: [], enc: 3, equipped: false }] as any;
     banc.setState({ party: [h], scene: merchantScene() });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', 'x');
     banc.getState().vendreLeLot();
     const st = banc.getState();
@@ -3347,7 +3347,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
   it('reparerLObjet : reset damageTaken contre 10 %/PA, débite la Bourse (#2d)', () => {
     const h = hero(); h.items = [{ uid: 'a', trappingId: 'chemise-de-mailles', label: 'Chemise de mailles', kind: 'armor', pa: 3, damageTaken: 2, qualities: [], enc: 1, equipped: true } as any];
     banc.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const before = toBrass(partyMoneyTotal(banc.getState));
     banc.getState().reparerLObjet('a', 'h');
     const st = banc.getState();
@@ -3358,7 +3358,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
   it('reparerLObjet : ignore une armure intacte (damageTaken 0) — pas de débit', () => {
     const h = hero(); h.items = [{ uid: 'b', label: 'Chemise de mailles', kind: 'armor', pa: 3, damageTaken: 0, qualities: [], enc: 1, equipped: true } as any];
     banc.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const before = toBrass(partyMoneyTotal(banc.getState));
     banc.getState().reparerLObjet('b', 'h');
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(before); // rien à réparer
@@ -3367,7 +3367,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
   it('reparerLObjet : répare une ARME endommagée à 10 %/point (LDB 62 l.135)', () => {
     const h = hero(); h.items = [{ uid: 'w', trappingId: 'dague', label: 'Dague', kind: 'melee', damage: { plusBF: true, flat: 2 }, damageTaken: 1, qualities: [], enc: 0, equipped: true } as any];
     banc.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const before = toBrass(partyMoneyTotal(banc.getState));
     banc.getState().reparerLObjet('w', 'h');
     const st = banc.getState();
@@ -3379,7 +3379,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   it('marchanderLePrix : crée un pendingBargain (marchand = bargainSkill de l’archétype) (#2c)', () => {
     banc.setState({ party: [negotiator()], scene: merchantScene() });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     banc.getState().marchanderLePrix('buy');
     const pb = banc.getState().pendingBargain!;
     expect(pb).toBeTruthy();
@@ -3389,7 +3389,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   it('jetValider@bargain : verrouille le MODE achat ; 2ᵉ achat no-op mais la vente reste possible (B, #2c)', () => {
     banc.setState({ party: [negotiator()], scene: merchantScene() });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     banc.getState().marchanderLePrix('buy');
     // force un résultat gagné, sans RNG
     const pb = banc.getState().pendingBargain!;
@@ -3408,7 +3408,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   it('jetValider@bargain : un échec « de beaucoup » (net DR ≥ 6) rend le marchand méfiant → plus de marchandage (C, #2c)', () => {
     banc.setState({ party: [negotiator()], scene: merchantScene() });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     banc.getState().marchanderLePrix('buy');
     const pb = banc.getState().pendingBargain!;
     const lose = { roll: 90, target: 40, success: false, sl: -5, isDouble: false };
@@ -3424,7 +3424,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     const buyWith = (bargain: { won: boolean; drNet: number; negotiator: boolean } | null): number => {
       reset();
       banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
-      banc.getState().openMerchant('pnj');
+      banc.getState().ouvrirLeMarchand('pnj');
       const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
       banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id); // le Marchandage porte sur le panier déjà composé (LDB 59 l.43)
       banc.setState({ merchant: { ...banc.getState().merchant!, bargainBuy: bargain } });
@@ -3443,7 +3443,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
       const h = hero(); h.items = [{ uid: 'x', trappingId: 'hallebarde', label: 'Hallebarde', kind: 'melee', qualities: [], enc: 3, equipped: false }] as any;
       reset();
       banc.setState({ party: [h], scene: merchantScene() });
-      banc.getState().openMerchant('pnj');
+      banc.getState().ouvrirLeMarchand('pnj');
       const m = banc.getState().merchant!;
       banc.setState({ merchant: { ...m, bargainSell } });
       banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', 'x');
@@ -3465,7 +3465,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
     const buyAt = (markup: number): number => {
       reset();
       banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
-      banc.getState().openMerchant('pnj');
+      banc.getState().ouvrirLeMarchand('pnj');
       const m = banc.getState().merchant!;
       banc.setState({ merchant: { ...m, buyMarkup: markup } });
       const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
@@ -3480,7 +3480,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   it('evaluerLObjet : crée un pendingAppraise sur l’objet non identifié (#2e)', () => {
     banc.setState({ party: [appraiser()], scene: merchantScene() });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     banc.getState().evaluerLObjet('m', 'h');
     const pa = banc.getState().pendingAppraise!;
     expect(pa).toBeTruthy();
@@ -3491,7 +3491,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
   it('evaluerLObjet : personne qui puisse tenter l’Évaluation (LDB 09 l.30) → refus NOMMÉ, aucune fenêtre', () => {
     const profane = { ...appraiser(), skills: [] } as Combatant;
     banc.setState({ party: [profane], scene: merchantScene() });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     banc.getState().evaluerLObjet('m', 'h');
     expect(banc.getState().pendingAppraise).toBeNull();
     expect(banc.getState().journal.slice(-1)[0]).toBe('Personne dans le groupe ne peut tenter le Test d’Évaluation.');
@@ -3499,7 +3499,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   it('jetValider@appraise : succès → identified=true (révèle l’objet) (#2e)', () => {
     banc.setState({ party: [appraiser()], scene: merchantScene() });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     banc.getState().evaluerLObjet('m', 'h');
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 10, success: true, sl: 2 } });
@@ -3510,7 +3510,7 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   it('jetValider@appraise : échec → l’objet reste non identifié (#2e)', () => {
     banc.setState({ party: [appraiser()], scene: merchantScene() });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     banc.getState().evaluerLObjet('m', 'h');
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 90, success: false, sl: -3 } });
@@ -3526,25 +3526,25 @@ describe('Marchand — openMerchant / achat et vente au panier (#2)', () => {
 
   it('re-stock : la déplétion PERSISTE entre visites sans temps écoulé (#T3)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     const q0 = banc.getState().merchant!.stock.find((l) => l.id === id)!.qty;
     acheterAuPanier(banc.getState, id);
     banc.getState().fenetreFermer('marchand');
-    banc.getState().openMerchant('pnj'); // ré-ouverture immédiate → stock déplété conservé
+    banc.getState().ouvrirLeMarchand('pnj'); // ré-ouverture immédiate → stock déplété conservé
     expect(banc.getState().merchant!.stock.find((l) => l.id === id)!.qty).toBe(q0 - 1);
   });
 
   it('re-stock : après ≥ restockDays (1 j), le stock est re-tiré frais (#T3)', () => {
     const t0 = banc.getState().gameTime;
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const rolled0 = banc.getState().merchantStocks['pnj'].rolledAt;
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     acheterAuPanier(banc.getState, id);
     banc.getState().fenetreFermer('marchand');
     banc.setState({ gameTime: t0 + 2 * 24 * 60 }); // +2 jours (≥ restockDays défaut 1)
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const rolled1 = banc.getState().merchantStocks['pnj'].rolledAt;
     expect(rolled1).toBeGreaterThan(rolled0); // re-tiré au nouveau temps (stock frais)
     expect(rolled1).toBe(t0 + 2 * 24 * 60);
@@ -3587,11 +3587,11 @@ describe('Marché — règles optionnelles (market-mode / market-guild)', () => 
 
   it("market-mode 'sans-disponibilite' : le stock est un superset du mode complet (tout le catalogue, pas de Test)", () => {
     banc.setState({ party: [hero()], scene: merchantScene() });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const complet = banc.getState().merchant!.stock.length;
     banc.setState({ merchant: null, merchantStocks: {} });
     setRule('market-mode', 'sans-disponibilite');
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const sansDispo = banc.getState().merchant!.stock.length;
     expect(sansDispo).toBeGreaterThan(0);
     expect(sansDispo).toBeGreaterThanOrEqual(complet);
@@ -3599,7 +3599,7 @@ describe('Marché — règles optionnelles (market-mode / market-guild)', () => 
 
   it("market-mode 'sans-marchandage' : marchanderLePrix ne propose plus de Marchandage", () => {
     banc.setState({ party: [hero()], scene: merchantScene() });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     banc.getState().marchanderLePrix('buy');
     expect(banc.getState().pendingBargain).not.toBeNull(); // complet : Marchandage proposé
     banc.setState({ pendingBargain: null });
@@ -3608,10 +3608,10 @@ describe('Marché — règles optionnelles (market-mode / market-guild)', () => 
     expect(banc.getState().pendingBargain).toBeNull(); // désactivé
   });
 
-  it('market-guild : openMerchant produit un stock valide (Guildes câblées sans casse)', () => {
+  it('market-guild : ouvrirLeMarchand produit un stock valide (Guildes câblées sans casse)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() });
     setRule('market-guild', true);
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     expect(banc.getState().merchant!.stock.length).toBeGreaterThan(0);
   });
 });
