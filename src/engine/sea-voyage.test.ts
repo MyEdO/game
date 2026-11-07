@@ -43,7 +43,7 @@ describe('événements de bord & de port (MDG 15 l.89 + l.127-129)', () => {
   it('port : 2d10 ±1 selon le signe de l’Humeur ; l’événement survient dans les 2d10 heures', () => {
     const e = rollPortEvent(-10, seq(5, 5, 3, 4)); // 5+5−1 = 9 → « Pas d'événement » (9-12)
     expect(e.roll).toBe(9);
-    expect(e.event.kind).toBe('rien');
+    expect(e.event.id).toBe('pas-d-evenement');
     expect(e.hours).toBe(7);
     const f = rollPortEvent(15, seq(10, 10, 1, 1)); // 10+10+1 = 21 → Saturation
     expect(f.roll).toBe(21);
