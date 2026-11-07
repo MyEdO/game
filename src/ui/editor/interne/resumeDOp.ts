@@ -37,6 +37,7 @@ export function formulaSummary(f: JsonFormula | undefined): string {
   if ('stacks' in f) return 'pions';
   if ('engagedAdvantageGap' in f) return 'écart d’Avantage';
   if ('woundsDealt' in f) return 'PB infligés';
+  if ('blessuresMax' in f) return 'B max';
   if ('sl' in f) return 'DR';
   if ('sinPoints' in f) return 'Points de Péché';
   if ('rule' in f) return ruleDef(f.rule)?.label ?? f.rule;
@@ -162,11 +163,11 @@ export function opSummary(o: GameOp): string {
     case 'narrative': return o.text ? `« ${coupeAuMot(o.text, 40)} »` : '(vide)';
     case 'shipMorale': return `Moral ${formatEffetSigne(o.delta)}`;
     case 'manann': return o.factorId !== undefined ? `facteur « ${refLabel('seaManannFactors', { id: o.factorId })} »` : `Humeur ${formatEffetSigne(o.delta)}`;
-    case 'shipCritical': return `${formulaSummary(o.count)} Critique(s) — ${o.location === 'aleatoire' ? 'Localisation aléatoire' : shipLocationLabel(o.location)}`;
+    case 'shipCritical': return `${formulaSummary(o.count)} Critique(s) — ${o.location === 'aleatoire' ? 'Localisation aléatoire' : shipLocationLabel(o.location)}${o.equipageEpargne ? ' · équipage épargné' : ''}`;
     case 'navireMod': return `${[o.m !== undefined ? `M ${o.m >= 0 ? '+' : ''}${o.m}` : '', o.manDR !== undefined ? `Man ${o.manDR >= 0 ? '+' : ''}${o.manDR} DR` : '', o.evite ? `évite ${o.evite.join(', ')}` : ''].filter(Boolean).join(', ')} ${o.jusqua === 'carenage' ? '→ carénage' : o.jusqua === 'evenementDeBord' ? '→ prochain événement' : `· ${formulaSummary(o.jusqua.jours)} j`}`;
     case 'meteoImposee': return `météo ${[...Object.values(o.meteo ?? {}), ...(o.ventInverse ? ['vent inversé'] : [])].join(', ')} · ${formulaSummary(o.jours)} j${o.aggravation ? ' (aggravation)' : ''}`;
-    case 'cargaison': return o.perteAuDechargement !== undefined ? `−${formulaSummary(o.perteAuDechargement)} Enc au déchargement` : `${formulaSummary(o.enc)} Enc de cargaison tirée`;
-    case 'equipage': return `Équipage ${formulaSummary(o.delta)}${o.role ? ` (${refLabel('crewRoles', o.role)})` : ''}${o.sansSolde ? ' · sans solde jusqu’au port' : ''}`;
+    case 'cargaison': return o.perteAuDechargement !== undefined ? `−${formulaSummary(o.perteAuDechargement)} Enc au déchargement` : o.perduePct !== undefined ? `−${o.perduePct} % de la cargaison` : `${formulaSummary(o.enc)} Enc de cargaison tirée`;
+    case 'equipage': return o.perdusPct !== undefined ? `Équipage −${o.perdusPct} % des PNJ` : `Équipage ${formulaSummary(o.delta)}${o.role ? ` (${refLabel('crewRoles', o.role)})` : ''}${o.sansSolde ? ' · sans solde jusqu’au port' : ''}`;
     case 'provisions': return o.gateesPct !== undefined ? `${o.gateesPct} % des provisions gâtées` : `+${formulaSummary(o.jours)} j de vivres`;
     case 'perilDeMer': return o.collision !== undefined ? `Collision : ${o.collision.id}` : `Tourbillon : ${o.tourbillon.id}`;
     case 'navireHostile': return `${refLabel('vehicles', o.navire)} · ${o.equipage.nombre} × ${refLabel('creatures', o.equipage)}${o.exigence === 'fouille' ? ' · fouille' : ''}`;

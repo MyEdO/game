@@ -2345,14 +2345,13 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
 
     /** RECETTE #332 : force un ÉVÉNEMENT DE BORD maritime NOMMÉ (`sea-events.json`) au PROCHAIN jour de
      *  traversée — court-circuite le timer 1d10 + le tirage d100/Manann de `resolveSeaDayEvent` (le
-     *  garde `sea.forcedEventId`). `id` = id d'événement (`cogue-pirate`) OU son kind (`infestation`,
-     *  premier match). À combiner avec `advanceSeaDay()`/`skipToArrival()` pour LE dérouler sans espérer
+     *  garde `sea.forcedEventId`). `id` = id d'événement (`cogue-pirate`). À combiner avec `advanceSeaDay()`/`skipToArrival()` pour LE dérouler sans espérer
      *  la bande d'Humeur. Rend la désertion/l'abordage observable sans dérouler des semaines de tirages. */
     forceEncounter: (id = 'cogue-pirate') => {
       const plan = g().travelPlan;
       if (!plan?.sea) return '✗ aucune traversée maritime en cours (state.travelPlan.sea)';
       const event = seaBoardEventById(id);
-      if (!event) return `✗ événement « ${id} » introuvable — id ou kind d'événement de bord (sea-events.json)`;
+      if (!event) return `✗ événement « ${id} » introuvable — id d'événement de bord (sea-events.json)`;
       useGame.setState({ travelPlan: { ...plan, sea: { ...plan.sea, forcedEventId: id } } });
       return `✓ « ${event.label} » forcé au prochain jour — dérouler avec __wfrp.advanceSeaDay()`;
     },

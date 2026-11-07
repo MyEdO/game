@@ -766,7 +766,7 @@ export const genreDeCible = (on: EffectOp['on']): string | undefined => (typeof 
  *  - `consommable` : `bakeConsumableFlow` réécrit toute feuille sur le buveur (`engine/consumables.ts`) ;
  *  - `critiqueDeCoque` : `bandeTriggeredTest` sur les marins touchés (`engine/shipCritical.ts`, `applyCrewHit`) ;
  *  - `evenementDeMer` : `runFlow` sur la `consequence` d'une rangée de `sea-events.json` (`resolveBoardEvent`,
- *    `resolvePortArrival`, `seaVoyageFlow.ts`) — le marcheur de scène, donc sa table.
+ *    `resolvePortArrival`, `finalizeFastVoyage`, `seaVoyageFlow.ts`) — le marcheur de scène, donc sa table.
  */
 export const CIBLES_PAR_RACINE = {
   scene: CIBLES_D_EFFET_DE_SCENE,

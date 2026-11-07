@@ -5,7 +5,9 @@ import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
 import type { WorldMap } from './worldMap';
 import { applyEffects, jouerFlowEntier, runFlow } from './combatEffects';
-import { buildSeaPlan, finalizePortArrivalTo, portCareenVessel, runSeaDay } from './seaVoyageFlow';
+import { applyVesselCritical, buildSeaPlan, finalizePortArrivalTo, portCareenVessel, runSeaDay } from './seaVoyageFlow';
+import { rollShipCritical } from '../engine/shipCritical';
+import { makeRNG } from '../engine/dice';
 import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
 import { applierDe } from './cascade';
 import { creditBourse } from './bourseFlow';
@@ -14,7 +16,7 @@ import type { ModificateurDuNavire } from '../engine/seaVoyage';
 import type { Jeu } from './etat';
 import { fixtureText } from '../i18n/fixtureText';
 import { setDataset, resetData } from '../data/overrides';
-import { BOARD_EVENTS, PORT_EVENTS } from '../engine/seaVoyage';
+import { BOARD_EVENTS, FAST_VOYAGE_PALIERS, PORT_EVENTS } from '../engine/seaVoyage';
 import type { Flow } from '../engine/flowCore';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { Combatant } from '../engine/types';
@@ -643,5 +645,60 @@ describe('Périls et navires hostiles en grammaire (#1652 lot 4 — MDG 15, vale
     expect(coque().reserveDAbordage!.restant).toBe(24 - 2 * vague);
     expect(coque().exitReason).toBeUndefined();
     expect(JSON.stringify(get().battle!.log)).toContain(t('crew.vagueDAbordage', { ship: coque().label, n: vague, restant: 24 - 2 * vague }));
+  });
+});
+
+describe('Voyage rapide en grammaire (#1652 lot 5 — MDG 15 l.33-37, l.49-51)', () => {
+  beforeEach(etatFrais);
+
+  const surLeNavire = (ops: unknown[]): Effect => ({ type: 'ops', on: 'navire', ops } as never);
+  const opsDu = (id: string): GameOp[] => {
+    const c = FAST_VOYAGE_PALIERS.find((p) => p.id === id)!.consequence;
+    return c ? (c as Extract<Flow, { kind: 'do' }>).effect.ops as GameOp[] : [];
+  };
+  const partDesBlessures = (tranche: number, num: number) => ({ parTranche: tranche, of: num === 1 ? { blessuresMax: true } : { times: { of: { blessuresMax: true }, factor: num } } });
+  const pertes = (equipage: number, cargaison: number, coque: ReturnType<typeof partDesBlessures>, critiques: number) => [
+    { op: 'equipage', perdusPct: equipage },
+    { op: 'cargaison', perduePct: cargaison },
+    { op: 'wounds', amount: coque, ignoreTB: true, ignoreAP: true },
+    { op: 'shipCritical', location: 'aleatoire', count: critiques, equipageEpargne: true },
+  ];
+
+  it('la donnée porte la RAW : équipage, cargaison, Blessures et Critiques de chaque palier, l’équipage épargné par les Critiques', () => {
+    expect(opsDu('desastreux')).toEqual(pertes(50, 75, partDesBlessures(4, 3), 3));
+    expect(opsDu('ereintant')).toEqual(pertes(20, 50, partDesBlessures(2, 1), 2));
+    expect(opsDu('difficile')).toEqual(pertes(10, 25, partDesBlessures(4, 1), 1));
+    expect(opsDu('sans-encombre')).toEqual([{ op: 'cargaison', perduePct: 10 }]);
+    expect(FAST_VOYAGE_PALIERS.find((p) => p.id === 'parfait')!.consequence).toBeUndefined();
+  });
+
+  it('`equipage.perdusPct` : la part des PNJ à bord, arrondie', () => {
+    expect(shipboardSouls(get()).crew).toBe(15);
+    applyEffects(get, set, [surLeNavire([{ op: 'equipage', perdusPct: 20 }])]);
+    expect(get().vessel!.crewLost).toBe(3);
+  });
+
+  it('`cargaison.perduePct` : la part de l’Encombrement de la cale, répartie au fil des lots', () => {
+    set({ vessel: { ...get().vessel!, cargo: [{ uid: 'a', cargoId: 'bois-mer', enc: 100, basePriceGold: 1 }, { uid: 'b', cargoId: 'bois-mer', enc: 20, basePriceGold: 1 }] } });
+    applyEffects(get, set, [surLeNavire([{ op: 'cargaison', perduePct: 25 }])]);
+    expect(get().vessel!.cargo!.reduce((s, l) => s + l.enc, 0)).toBe(90);
+    expect(get().journal).toContain(t('eff.cargaisonPerdue', { pct: 25, enc: 30 }));
+  });
+
+  it('`{blessuresMax}` : les Blessures maximales de la coque visée, 75 % arrondis à l’inférieur', () => {
+    set({ vessel: { ...get().vessel!, wounds: { current: 50, max: 50 } } });
+    applyEffects(get, set, [surLeNavire([{ op: 'wounds', amount: partDesBlessures(4, 3) }])]);
+    expect(get().vessel!.wounds!.current).toBe(50 - 37);
+  });
+
+  it('`shipCritical.equipageEpargne` : le Critique tombe sans Dégâts à l’équipage exposé (l.49-51)', () => {
+    set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0])!, party: get().party.map((h, i) => (i === 0 ? { ...h, shipStation: 'pont' } : h)) });
+    const crit = () => rollShipCritical('coque', makeRNG(1), 3);
+    expect(crit().crewHit, 'prémisse : « Coque dégradée » frappe le pont').toBeDefined();
+    applyVesselCritical(get, set, crit(), true);
+    expect(get().pendingCascade).toBeNull();
+    expect(get().vessel!.criticals).toHaveLength(1);
+    applyVesselCritical(get, set, crit());
+    expect(get().pendingCascade).not.toBeNull();
   });
 });

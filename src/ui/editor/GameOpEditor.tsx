@@ -146,6 +146,7 @@ export const LIBELLE_DE_FORME: Record<FormulaShape, string> = {
   pions: 'Pions de l’État déclencheur',
   ecartAvantage: 'Écart d’Avantage (adversaires engagés)',
   blessuresInfligees: 'Blessures infligées (attaque courante)',
+  blessuresMax: 'Blessures maximales de la cible',
   dr: 'DR du Test',
   regle: 'Règle optionnelle',
   minimum: 'Minimum',

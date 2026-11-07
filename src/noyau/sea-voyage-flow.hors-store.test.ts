@@ -952,10 +952,10 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
     get().partirEnVoyage('r1', 'mer', { fast: true });
     driveFast();
     const v = get().vessel!;
-    expect(v.crewLost).toBe(8); // 50 % de 15 PNJ (round 7,5) — couture partagée applyVesselCrewLoss
-    expect(v.cargo![0].enc).toBe(25); // −75 % (floor 100×0,25)
-    expect(v.wounds!.current).toBe(12); // 50 − round(50×0,75)=38
-    expect(v.criticals!.length).toBe(3); // 3 Coups Critiques (l.33)
+    expect(v.crewLost).toBe(8); // l.33 : 50 % de 15 PNJ, 7,5 arrondi
+    expect(v.cargo![0].enc).toBe(25); // l.33 : 75 % de 100 Enc
+    expect(v.wounds!.current).toBe(13); // l.33 : 75 % de 50 Blessures, 37,5 arrondi à l'inférieur
+    expect(v.criticals!.length).toBe(3); // l.33
   });
 
   it('palier PARFAIT (Humeur de Manann au zénith) : aucune conséquence négative', () => {
@@ -1187,8 +1187,8 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
     expect(etape.table!.result!.die).toBe(etape.table!.result!.roll - 40); // le dé EFFECTIF est décalé
   });
 
-  /** La FOURCHETTE 48-80 de la table (`sea-events.json`) rend « Navigation ordinaire », l'entrée
-   *  `kind:'rien'` — mesurée SUR LE FLUX réel, dé posé par la fenêtre. */
+  /** La FOURCHETTE 48-80 de la table (`sea-events.json`) rend « Navigation ordinaire », rangée narrative
+   *  (MDG 15 l.201) — mesurée SUR LE FLUX réel, dé posé par la fenêtre. */
   it('dé posé à 60 (Humeur neutre) → l’entrée « Navigation ordinaire », et la journée ne raconte aucun incident', () => {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jour-par-jour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1, forcedEventId: undefined } } });
@@ -1198,7 +1198,9 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
     get().jetImposerLeResultat('cascadeTirage', 60, etape.id);
     const tiree = get().pendingCascade!.participants.find((s) => s.kind === 'seaBoardEvent')!.table!.result!;
     expect(tiree.id).toBe('navigation-ordinaire');
-    expect(seaBoardEventById(tiree.id)!.kind).toBe('rien');
+    const rangee = seaBoardEventById(tiree.id)!;
+    expect(rangee.kind).toBeUndefined();
+    expect(rangee.consequence).toBeUndefined();
   });
 
   /** LOT 3 (#1426) : UNE voix par événement, et elle est la CONSÉQUENCE de l'étape. Deux exigences que

@@ -11,11 +11,13 @@ import type { FormuleDe, FormuleSansTirage, PerSL } from './ops';
 /** Lecture d'une valeur par Caractéristique : le profil d'un porteur au statbloc (`traitsDuPorteur`). */
 export type LectureDeCarac = (k: CharKey) => number;
 
-/** Le RÉFÉRENT d'une formule : ses Caractéristiques (`charOf`) et leurs Bonus (`bonusOf`). */
-export interface Referent { carac: LectureDeCarac; bonusDe: LectureDeCarac }
+/** Le RÉFÉRENT d'une formule : ses Caractéristiques (`charOf`), leurs Bonus (`bonusOf`) et, pour un combattant,
+ *  ses Blessures maximales (`blessuresMax`). */
+export interface Referent { carac: LectureDeCarac; bonusDe: LectureDeCarac; blessuresMax?: () => number }
 
-/** Le référent d'un combattant : ses Caractéristiques effectives, leurs Bonus par `bonusDe`. LDB 21 l.33 */
-export const caracDuCombattant = (ref: Combatant): Referent => ({ carac: (k) => effectiveChar(ref, k), bonusDe: (k) => bonusDe(ref, k) });
+/** Le référent d'un combattant : ses Caractéristiques effectives, leurs Bonus par `bonusDe`, ses Blessures
+ *  maximales. LDB 21 l.33 */
+export const caracDuCombattant = (ref: Combatant): Referent => ({ carac: (k) => effectiveChar(ref, k), bonusDe: (k) => bonusDe(ref, k), blessuresMax: () => ref.wounds.max });
 
 /** Le référent d'un profil lu par `lire` : Bonus nus. */
 export const lectureDuProfil = (lire: LectureDeCarac): Referent => ({ carac: lire, bonusDe: (k) => bonus(lire(k)) });
@@ -35,6 +37,7 @@ export function evaluer<J>(f: FormuleDe<J>, ref: Referent, jet: (t: J) => number
   if ('stacks' in f) return stacks ?? 0;
   if ('engagedAdvantageGap' in f) return gap ?? 0;
   if ('woundsDealt' in f) return woundsDealt ?? 0;
+  if ('blessuresMax' in f) return ref.blessuresMax?.() ?? 0;
   if ('rule' in f) { const v = rule(f.rule); return typeof v === 'number' && Number.isFinite(v) ? v : 0; }
   if ('minimum' in f) return Math.max(f.minimum, sous(f.of));
   if ('parTranche' in f) return Math.floor(sous(f.of) / f.parTranche);
