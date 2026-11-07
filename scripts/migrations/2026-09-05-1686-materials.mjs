@@ -4,8 +4,8 @@
  *
  * `propMaterials.json`, `roofMaterials.json` et `reliefMaterials.json` portaient la même chose — une
  * matière de rendu — sous trois documents, trois schémas et trois accesseurs. Le domaine qui les
- * séparait est celui que le pivot du rendu déclare déjà sur chaque Face (`MaterialRef.domain`,
- * `src/gameIso/builders/types.ts`) : il descend donc dans l'entrée (`domain`), et les trois documents
+ * séparait est celui que le pivot du rendu déclare déjà sur chaque Face (`MaterialRef.domain`) :
+ * il descend donc dans l'entrée (`domain`), et les trois documents
  * n'ont plus de raison d'être. L'identité d'une matière reste le couple (domaine, id), et l'id reste
  * unique sur tout le périmètre (les homonymes ont été composés au lot 1).
  *

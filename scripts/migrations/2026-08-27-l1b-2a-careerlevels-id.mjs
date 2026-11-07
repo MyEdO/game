@@ -5,8 +5,7 @@
  * MOTIF MESURÉ : les 432 entrées n'ont AUCUNE identité de premier niveau — le couple `career`+`level`
  * la portait, ce que `scripts/gen-registry.mjs` inscrivait au défaut `DEFAUTS_IDS['careerLevels.json']`
  * (« liste d'entités sans identité de premier niveau »). Le seul site du dépôt qui FABRIQUAIT un id de
- * niveau le composait au vol avec un séparateur `:` (`src/ui/compendium/registry.ts`) : l'identité
- * existait donc déjà, non déclarée et non partagée. Elle devient une CLÉ de la donnée.
+ * niveau le composait au vol avec un séparateur `:` : l'identité existait donc déjà, non déclarée et non partagée. Elle devient une CLÉ de la donnée.
  *
  * SÉPARATEUR `-` (et non `:`) : graphie des ids du dépôt (slugs `kebab-case`), et `-` est le
  * séparateur admis par le détecteur d'ids du registre. Unicité MESURÉE avant écriture : 432/432
