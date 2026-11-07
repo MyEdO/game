@@ -111,9 +111,6 @@ const STATE_FIELDS = {
   // transient de voyage (ne survit à rien d'autre que la confirmation → halte de nuit).
   port: { init: null, resetOn: ['scene'] },
   pendingSeaActivities: { init: null, resetOn: [] },
-  // Survit à `quitterLaScene` : posé JUSTE avant la transition vers la scène de port (resolvePortArrival),
-  // il doit rester actif dans la nouvelle scène (comme pendingSeaActivities ci-dessus).
-  pendingManannPriest: { init: null, resetOn: [] },
   // Posé à l'accostage AVANT toute transition de scène (celle-ci n'intervient qu'à la résolution du
   // choix `shoreLeave.accorder`) — aucune scène à survivre, mais transitoire de voyage comme les autres.
   pendingShoreLeave: { init: null, resetOn: [] },

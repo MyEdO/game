@@ -49,6 +49,17 @@ export function fieldsWrittenIn(
   fieldNames: Set<string>,
   creditable?: (node: Node) => boolean
 ): Set<string>;
-/** `program` absent : bâti pour CET appel (~8 s). */
-export function auditSceneFieldEditability(root: string, program?: SessionProgramme): FieldEditability[];
+/** Une écriture que l'aller-retour de l'éditeur joue : le document avant et après, le chemin écrit depuis la scène, la
+ *  valeur jouée et la saisie qui l'a portée. */
+export interface EcritureJouee { avant: unknown; apres: unknown; chemin: (string | number)[]; valeur: unknown; saisie: string }
+/** La marque d'un crédit par aller-retour dans la colonne `authors`. */
+export const ALLER_RETOUR: string;
+/** Ids de champ du périmètre auxquels la propriété `name` de `type` se rattache. */
+export function idsOf(checker: Checker, cles: Map<Declaration | string, string>, type: unknown, name: string): Set<string>;
+/** Ids de champ du périmètre que le dernier pas de `chemin` écrit dans `doc`, marché sur le type `Scene`. */
+export function idsDuChemin(checker: Checker, cles: Map<Declaration | string, string>, scene: unknown, doc: unknown, chemin: readonly (string | number)[]): Set<string>;
+/** Le document a changé au chemin, la valeur relue est la jouée, la saisie n'est pas du JSON. */
+export function ecritureCreditee(e: EcritureJouee): boolean;
+/** `program` absent : bâti pour CET appel (~8 s). `ecrituresJouees` : créditées par aller-retour (`ALLER_RETOUR`). */
+export function auditSceneFieldEditability(root: string, program?: SessionProgramme, options?: { ecrituresJouees?: readonly EcritureJouee[] }): FieldEditability[];
 export function orphanFields(rows: FieldEditability[]): FieldEditability[];

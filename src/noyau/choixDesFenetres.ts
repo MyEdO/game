@@ -40,10 +40,6 @@ export interface ChoixDesFenetres {
   council: {
     paie: IdDeChoixDePaie;
   };
-  manannPriest: {
-    /** MDG 15 l.246 ; `false` : l'Humeur de Manann. */
-    payer: boolean;
-  };
   shoreLeave: {
     /** MDG 15 l.245 */
     accorder: boolean;
@@ -154,7 +150,6 @@ export const CHOIX_DES_FENETRES = {
   renounce: { renier: clot },
   mountTarget: { cible: clot },
   council: { paie: clotParLHote },
-  manannPriest: { payer: clotParLHote },
   shoreLeave: { accorder: clotParLHote },
   medic: { patient: reprenable, abandon: clot, plaie: reprenable },
   dialogue: { reponse: clot },

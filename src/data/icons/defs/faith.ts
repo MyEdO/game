@@ -1,6 +1,6 @@
 import type { IconFamily } from '../types';
 
-/* Famille « foi » (ChanceButtons/CastModal/ManannPriestModal — Prière, chapelle, trident de Manann).
+/* Famille « foi » (ChanceButtons/CastModal, choix du Prêtre de Manann — Prière, chapelle, trident de Manann).
    Charte de dessin : voir defs/action.ts. */
 
 const K = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';

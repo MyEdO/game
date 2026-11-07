@@ -21,7 +21,6 @@ import { conversationRepond, reponsesDuNoeud } from './dialogue';
 import { refuserGesteDuSiege } from './refusVisible';
 import type { Reglage, ValeurDuReglage } from './reglages';
 import { refusDeChoixDePaie } from './shipCrew';
-import { refusDePayerManann } from './seaVoyageFlow';
 import { corruptionTarget } from './corruptionFlow';
 import { activityById } from '../engine/activities';
 import { plafondDeMiseDOpportunite, plafondDePlanque, seaActivitiesCatalog, seaActivityBlocked, seaActivityRefus } from './seaActivities';
@@ -133,7 +132,6 @@ export const OUVERTS_DU_CHOIX = {
       ? payChoices().map(({ factorId }) => ouverte(factorId, garanti(findMoraleFactor(factorId), factorId, 'choix de paie').label, refusDeChoixDePaie(s, factorId)))
       : [])),
   },
-  manannPriest: { payer: reglage('manannPriest', 'payer', ouiNon((s) => !!s.pendingManannPriest, (s, payer) => (payer ? refusDePayerManann(s) : null))) },
   shoreLeave: { accorder: reglage('shoreLeave', 'accorder', ouiNon((s) => !!s.pendingShoreLeave)) },
   medic: {
     patient: reglage('medic', 'patient', (s) => {

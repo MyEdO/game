@@ -7,7 +7,6 @@ import { makePregens } from '../data/pregens';
 import { withBourseMoney } from '../engine/bourse';
 import { toMoney, spellMoney } from '../engine/money';
 import { SeaActivitiesModal } from './SeaActivitiesModal';
-import { ManannPriestModal } from './ManannPriestModal';
 import { PortView } from './PortView';
 
 const initial = useGame.getState();
@@ -24,7 +23,7 @@ beforeEach(() => {
   useGame.setState({
     party: [hero(3)], vessel, port, net: { ...initial.net, mode: 'local' },
     pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 0, hours: 0, lines: [] } },
-    pendingManannPriest: { cost: toMoney({ gold: 5 }) }, pendingShoreLeave: null,
+    pendingShoreLeave: null,
   });
 });
 
@@ -42,9 +41,9 @@ const bouton = (container: HTMLElement, texte: string) => {
 const coins = (container: HTMLElement, gold: number) =>
   [...container.querySelectorAll('.coins')].some((c) => c.getAttribute('title') === spellMoney(toMoney({ gold })));
 
-describe('bourses dérivées — trois consommateurs montés sous StrictMode', () => {
-  it.each(['mer', 'manann', 'port'] as const)('%s : montage stable puis mise à jour de la bourse', async (cas) => {
-    const node = cas === 'mer' ? <SeaActivitiesModal /> : cas === 'manann' ? <ManannPriestModal /> : <PortView initialTab="cargaison" />;
+describe('bourses dérivées — deux consommateurs montés sous StrictMode', () => {
+  it.each(['mer', 'port'] as const)('%s : montage stable puis mise à jour de la bourse', async (cas) => {
+    const node = cas === 'mer' ? <SeaActivitiesModal /> : <PortView initialTab="cargaison" />;
     const { container } = monterRacine(<StrictMode>{node}</StrictMode>);
     if (cas === 'mer') {
       await act(async () => bouton(container, "Commerce d'opportunité").click());
@@ -53,8 +52,8 @@ describe('bourses dérivées — trois consommateurs montés sous StrictMode', (
     } else {
       // Port : 3 CO restent sous le prix plancher du lot (5 Enc à 1 CO, moins la meilleure remise de Marchandage
       // possible, au plus −30 %) : l'achat est fermé avant le jet.
-      expect(bouton(container, cas === 'manann' ? 'Payer' : 'Acheter').getAttribute('aria-disabled')).toBe('true');
-      if (cas === 'port') expect(coins(container, 3)).toBe(true);
+      expect(bouton(container, 'Acheter').getAttribute('aria-disabled')).toBe('true');
+      expect(coins(container, 3)).toBe(true);
     }
 
     const html = container.innerHTML;
@@ -66,8 +65,8 @@ describe('bourses dérivées — trois consommateurs montés sous StrictMode', (
       expect(container.textContent).toContain('Mise (CO, max 80)');
       expect(coins(container, 80)).toBe(true);
     } else {
-      expect(bouton(container, cas === 'manann' ? 'Payer' : 'Acheter').getAttribute('aria-disabled')).not.toBe('true');
-      if (cas === 'port') expect(coins(container, 80)).toBe(true);
+      expect(bouton(container, 'Acheter').getAttribute('aria-disabled')).not.toBe('true');
+      expect(coins(container, 80)).toBe(true);
     }
   });
 });

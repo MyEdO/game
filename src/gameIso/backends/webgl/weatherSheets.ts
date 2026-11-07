@@ -23,61 +23,17 @@
  */
 import * as THREE from 'three';
 import type { WeatherBrumeDef } from '../../../data/ambiance.types';
+import { openSkyRuns, positionsDeNappe, sceneGroundSpan, type OpenRun } from '../../../noyau/monde/meteo';
 import type { Scene } from '../../../noyau/monde/scene';
-import { shelterField, shelterSectionAt } from '../../../noyau/monde/volume/toits';
-import { sceneGroundSpan } from './weatherParticles';
 import { withRenderRank } from './renderRanks';
 import { materiauPlanTransparent } from './worldMaterials';
-
-/** Une bande CONTINUE de colonnes à ciel ouvert sur la rangée `y` : de `x0` à `x1` INCLUS. */
-export interface OpenRun {
-  y: number;
-  x0: number;
-  x1: number;
-}
-
-/** Les bandes à CIEL OUVERT de la carte, rangée par rangée (PURE, sans three). Une colonne coiffée
- *  par une masse est exclue — c'est le verdict d'abri de la scène, pas un second calcul. La fusion en
- *  bandes est ce qui garde la géométrie petite : une carte sans bâti rend UNE bande par rangée là où
- *  un quad par case en rendrait `w`.
- *
- *  Le verdict est pris SANS cote : une colonne coiffée l'est à TOUTE hauteur pour la brume (une
- *  nappe posée au-dessus d'un toit bas passerait sinon au travers de la charpente). */
-export function openSkyRuns(scene: Scene): OpenRun[] {
-  const abris = shelterField(scene);
-  const { w, h } = scene.dimensions;
-  const runs: OpenRun[] = [];
-  for (let y = 0; y < h; y++) {
-    let debut = -1;
-    for (let x = 0; x <= w; x++) {
-      const ouvert = x < w && shelterSectionAt(abris, x, y) === null;
-      if (ouvert && debut < 0) debut = x;
-      if (!ouvert && debut >= 0) {
-        runs.push({ y, x0: debut, x1: x - 1 });
-        debut = -1;
-      }
-    }
-  }
-  return runs;
-}
 
 /** Géométrie d'une NAPPE : un quad horizontal par bande, à la cote monde `yM`. Repère three : `x` =
  *  est, `y` = haut, `z` = sud — la même convention que le semis. Deux triangles par bande, sans
  *  index (une nappe se monte une fois par scène). */
 export function brumeSheetGeometry(runs: readonly OpenRun[], mpt: number, yM: number): THREE.BufferGeometry {
-  const pos = new Float32Array(runs.length * 18);
-  runs.forEach((run, i) => {
-    const x0 = (run.x0 - 0.5) * mpt;
-    const x1 = (run.x1 + 0.5) * mpt;
-    const z0 = (run.y - 0.5) * mpt;
-    const z1 = (run.y + 0.5) * mpt;
-    const o = i * 18;
-    // (x0,z0) (x1,z0) (x1,z1) — puis (x0,z0) (x1,z1) (x0,z1)
-    const s = [x0, yM, z0, x1, yM, z0, x1, yM, z1, x0, yM, z0, x1, yM, z1, x0, yM, z1];
-    for (let k = 0; k < 18; k++) pos[o + k] = s[k];
-  });
   const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positionsDeNappe(runs, mpt, yM), 3));
   geo.computeVertexNormals();
   geo.computeBoundingBox();
   geo.computeBoundingSphere();

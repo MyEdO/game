@@ -22,7 +22,7 @@ import { createHero } from '../../engine/character';
 import type { Combatant } from '../../engine/types';
 import { parseProject } from '../../noyau/worldMap';
 import * as sceneMeshes from '../backends/webgl/sceneMeshes';
-import { refEstVolumique, props as catalogueDeDecor } from '../../data';
+import { refEstVolumique } from '../../data';
 import * as texturesStatiques from './texturesStatiques';
 import { CampaignView } from '../../ui/CampaignView';
 import { setStageRendererFactory } from './GameStage3D';
@@ -94,11 +94,9 @@ const canevas = () => canevasDe(hôte!);
 const cuissons = () => Number(canevas().dataset.bake ?? -1);
 
 /**
- * DÉCOR ENCORE SERVI EN BILLBOARD par une scène — le plancher de population que ce banc exige avant
- * de comparer deux relevés. DÉRIVÉ (`refEstVolumique`), jamais un chiffre en dur : la vague volumique
- * (#1343) fait quitter le billboard à des refs lot par lot (mesuré sur le hub après #1644 : 51 décors,
- * dont 25 en faces cuites — tonneau, caisse, coffre, étagère, urne, pile, étal), et un seuil figé se
- * lirait comme « un quad en retard » là où il n'y a plus de quad du tout à attendre.
+ * DÉCOR SERVI EN BILLBOARD par une scène — le plancher de population que ce banc exige avant de
+ * comparer deux relevés. DÉRIVÉ (`refEstVolumique`), jamais un chiffre en dur : seul le repli d'une ref
+ * hors catalogue se sert encore en quad (#3198).
  */
 const decorsBillboard = (sc: Scene): number =>
   sc.entities.filter((e) => e.kind === 'prop' && !refEstVolumique(e.ref)).length;
@@ -136,12 +134,24 @@ function scèneArène(): Scene {
 /** La scène RÉELLE du jeu (le hub de l'arène, `scenes/arene/arene-projet.json`) : bâtiments, toitures
  *  et une soixantaine de sujets. C'est sur elle que la loi de dégagement MORD — sur une carte nue, les
  *  deux regards regardent la même chose et « rien ne remonte » serait vrai sans rien prouver. */
-const HUB = parseProject(
+const HUB_AUTHORE = parseProject(
   areneProjet,
 ).scenes.find((sc) => sc.id === 'arene-hub')!;
 
 /** Le poste de départ authored du groupe (`heroStart`) — la même lecture que `store.lancerLaScene`. */
-const DEPART = { ...(HUB.entities.find((e) => e.kind === 'heroStart')!.pos) };
+const DEPART = { ...(HUB_AUTHORE.entities.find((e) => e.kind === 'heroStart')!.pos) };
+
+/** Le hub, plus douze décors servis en QUAD autour du départ : chaque type du catalogue se cuit en
+ *  volume (#3198), et seul le repli d'ERREUR d'une ref hors catalogue (#877) se sert encore en billboard. */
+const HUB: Scene = {
+  ...HUB_AUTHORE,
+  entities: [
+    ...HUB_AUTHORE.entities,
+    ...Array.from({ length: 12 }, (_, i) => ({
+      id: `repli-${i}`, kind: 'prop', pos: { x: DEPART.x - 3 + (i % 6), y: DEPART.y - 2 + Math.floor(i / 6) * 4 }, ref: refDecorBillboard(),
+    }) as Scene['entities'][number]),
+  ],
+};
 
 /** Le hub monté, groupé à son départ authored, décor SERVI. */
 async function monterHub(quadsAttendus = decorsBillboard(HUB)): Promise<void> {
@@ -222,19 +232,6 @@ async function battreAprèsLeFait(): Promise<void> {
 }
 
 describe('Bascule de regard — le monde ne se démonte pas (#1385)', () => {
-  it('le filet des seuils de population tient encore : le hub sert encore du décor en billboard', () => {
-    expect(
-      decorsBillboard(HUB),
-      'la phase 4 de #1343 (mort du chemin billboard des props) fera tomber ce filet EXPRÈS : le seuil '
-      + 'dérivé vaudrait 0 et les PRÉMISSES de ce banc ne mordraient plus — il faudra alors les '
-      + 'reformuler sur la population de FACES, pas les laisser passer du vide.',
-    ).toBeGreaterThan(0);
-    expect(
-      catalogueDeDecor.filter((p) => !p.volume).length,
-      'plus aucune ref billboard au catalogue : la scène d’arène de ce banc ne poserait plus un seul quad',
-    ).toBeGreaterThanOrEqual(2);
-  });
-
   it('même canevas, même monde cuit, aucune purge de cache, aucun quad perdu', async () => {
     await monterCampagne();
     const canevasAvant = canevas();

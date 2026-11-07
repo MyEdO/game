@@ -75,6 +75,8 @@ matiere_du_calque = SubResource("Materiau_calque")
 
 [node name="Couronnes" type="Node3D" parent="Volume"]
 
+[node name="Meteo" type="Node3D" parent="Volume"]
+
 [node name="Surbrillance" type="Node3D" parent="."]
 
 [node name="Aretes" type="Node3D" parent="."]

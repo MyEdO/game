@@ -559,11 +559,10 @@ export function chansonsDuChanteur(s: Jeu): string[] {
 }
 
 /**
- * Applique un DELTA d'effectif PNJ CUMULÉ du navire de CAMPAGNE (Embrigadement — MDG 15 l.245 : perte de
- * 2d10 membres d'équipage, recouvrable par Ragot puis rançon/Discrétion) : PERSISTE sur
- * `CampaignVessel.crewLost`, plafonné à `[0, nominal]` (`vehicles.json` ship.crew — même source que
- * `shipUndercrew`) dans les deux sens. `delta` positif = perte, négatif = recouvrement (séquence
- * Ragot/rançon/Discrétion : `openEmbrigadementRecovery`, `embrigadementFlow`). Renvoie le journal.
+ * Applique un DELTA d'effectif PNJ CUMULÉ du navire de CAMPAGNE (op de navire `equipage`, MDG 15 l.245) :
+ * PERSISTE sur `CampaignVessel.crewLost`, plafonné à `[0, nominal]` (`vehicles.json` ship.crew — même
+ * source que `shipUndercrew`) dans les deux sens. `delta` positif = perte, négatif = recouvrement. Renvoie
+ * le journal.
  */
 export function applyVesselCrewLoss(get: Get, set: SetFn, delta: number): string[] {
   const vessel = get().vessel;

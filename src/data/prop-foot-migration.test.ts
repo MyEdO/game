@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
-import { props, findPropById } from './index';
+import { findPropById } from './index';
 import { normalizeScene, emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../noyau/monde/scene';
 import { empreinteDuProp } from './props.types';
 import { buildOperaFloorplan } from '../scenes/opera/floorplan';
@@ -11,41 +11,6 @@ import { parseProject } from '../noyau/worldMap';
 import { scenarioEntities } from '../scenes/opera/furnished';
 import type { AreneSceneFactory } from '../../scripts/arene/scenes.d.mts';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
-
-/**
- * Empreintes de TYPE portées par le catalogue de décor (`props.json` `foot`) : une ligne par
- * BILLBOARD qui en déclare une, à sa valeur de migration sauf recalage par un MODÈLE, motivé à sa ligne.
- */
-const LEGACY_PROP_FOOT_TABLE: [string, number, number][] = [
-  ['abreuvoir', 2, 1],
-  ['balustrade-bois', 3, 1],
-  // `balustrade-loge` se pose désormais à la CASE (une travée par case de rive de puits,
-  // `opera/floorplan.ts` `puitsRim`) : son empreinte de type a suivi le modèle, pas la migration.
-  ['balustrade-loge', 1, 1],
-  ['barque', 2, 1],
-  ['canon-de-pont', 1, 1],
-  ['cheval-mort', 2, 1],
-  ['cuve-brasserie', 1, 1],
-  ['ecoutille', 1, 1],
-  ['enclume', 1, 1],
-  ['epave-carrosse', 2, 2],
-  ['escalier-bois', 1, 1],
-  ['escalier-loge', 1, 1],
-  ['foyer-de-forge', 1, 1],
-  ['idole-chaos', 2, 2],
-  ['lit', 2, 1],
-  ['passerelle-d-embarquement', 2, 1],
-  ['rouleau-de-cordage', 1, 1],
-  ['stalle-ecurie', 1, 1],
-  // L'empreinte d'une RECETTE dérive de son corps (#1509), tenue par `noyau/monde/volume/props-volumiques.test.ts` `EMPREINTES_ATTENDUES`.
-  // Cette liste ne peut que DÉCROÎTRE : chaque billboard converti en sort.
-  ['tente', 2, 2],
-  ['tribune', 3, 1],
-];
-
-const propFootTable = (): [string, number, number][] =>
-  props.filter((p) => p.foot).map((p): [string, number, number] => [p.id, p.foot!.w, p.foot!.h])
-    .sort((a, b) => a[0].localeCompare(b[0], 'fr'));
 
 const SCENES_DIR = join(__dirname, '../scenes');
 const ARENE_JSON = join(SCENES_DIR, 'arene/arene-projet.json');
@@ -122,8 +87,7 @@ const authoredPropFootTable = (): [string, string, string, number, number][] =>
 const sceneWithEntity = (ent: SceneEntity): Scene => ({ ...emptyScene('scene-test', 8, 8), entities: [ent] });
 
 describe('migration de l’empreinte : du legacy d’instance au catalogue de type', () => {
-  it('migre sans dérive les empreintes de type : la physique d’un décor vient de son TYPE', () => {
-    expect(propFootTable()).toEqual(LEGACY_PROP_FOOT_TABLE);
+  it('la physique d’un décor vient de son TYPE : la charrette couvre ses deux cases', () => {
     const scene = normalizeScene(sceneWithEntity({ id: 'c', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'charrette' }));
     expect(entityBlockedAt(scene, scene.entities[0].pos.x + 1, scene.entities[0].pos.y, 0)).toBe(true);
     expect(entityBlockedAt(scene, scene.entities[0].pos.x + 2, scene.entities[0].pos.y, 0)).toBe(false);

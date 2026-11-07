@@ -89,9 +89,6 @@ interface ParametresDeBord {
 
 /** Les paramètres que lit chaque genre d'Événement d'escale (MDG 15 l.243-263). */
 interface ParametresDePort {
-  embrigadement: { lostCrew: QuantiteTiree; gossipDifficulty: Difficulty; ransomCO: QuantiteTiree; stealthDifficulty: Difficulty; failExtraLostCrew: QuantiteTiree };
-  'pretre-manann': { blessingCO: QuantiteTiree; blessingSilverPerSize: number; manann: EffetSigne };
-  'controle-a-quai': { taxPct: number; bribeDifficulty: Difficulty; bribeCO: QuantiteTiree };
   'tache-noire': SansParametre;
   penuries: SansParametre;
   'constructeur-itinerant': { metier: Record<string, number>; daysPerJob: QuantiteTiree };
@@ -237,17 +234,6 @@ export function rollDaysToNextEvent(rng: RNG): number {
 
 /** Événement de bord NOMMÉ par son `id`. Pour forcer un tirage en recette (#332). */
 export const seaBoardEventById = (id: string): EvenementDeBord | undefined => BOARD_EVENTS.find((e) => e.id === id);
-
-type DuGenre<E extends SeaEventDef, K extends NonNullable<E['kind']>> = Extract<E, { kind: K }>;
-
-/** L'UNIQUE événement de la table qui porte ce genre : l'état qui en dure (le choix du Prêtre) n'en garde
- *  que le genre. */
-function seulDuGenre<E extends SeaEventDef, K extends NonNullable<E['kind']>>(table: E[], nom: string, kind: K): DuGenre<E, K> {
-  const trouves = table.filter((e) => e.kind === kind);
-  if (trouves.length !== 1) throw new Error(`sea-events.json › ${nom} : ${trouves.length} événement(s) de genre « ${kind} », un seul attendu`);
-  return trouves[0] as DuGenre<E, K>;
-}
-export const seulEvenementDePort = <K extends NonNullable<EvenementDePort['kind']>>(kind: K) => seulDuGenre(PORT_EVENTS, 'portEvents', kind);
 
 /** Tire un ÉVÉNEMENT DE PORT à l'accostage (l.127-129) au dé de sa table, ±1 selon le signe de l'Humeur ;
  *  il « se produit dans les 2d10 heures après accostage ». PUR. */

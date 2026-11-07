@@ -1,13 +1,17 @@
 /**
  * LA LUMIÈRE D'UNE SCÈNE (#3476, lot B), que tout hôte du noyau pose telle quelle : le soleil de l'heure (`monde/soleil`),
  * l'ambiante du palier de lumière (`ambientScalar`, `lightLevels.json`), le ciel et la brume de profondeur du lieu
- * (`ambiance.json › pov`), la teinte de la météo (`ambiance.json › iso.weather`) et les sources ponctuelles de la scène
- * (`sceneLightSources`, ton `lightTones.json`). Les énergies et les teintes de nuit sont des choix de RENDU, aucune
+ * (`ambiance.json › pov`), la teinte de la météo (`sceneWeatherFx`) et les sources ponctuelles de la scène
+ * (`sceneLightSources`, ton `lightTones.json`, un ton hors catalogue au repli visible `MISSING_TONE`). Les énergies et les teintes de nuit sont des choix de RENDU, aucune
  * règle ne les chiffre. Repère des builders : X = est, Y = haut, Z = sud, en cases.
  */
-import { ambiance, findLightToneById } from '../data';
+import { ambiance, DEFAULT_LIGHT_TONE_ID, findLightToneById, type LightToneDef } from '../data';
 import { parseHex } from '../lib/couleurHex';
+import type { Regard } from './monde/aretes';
+import { sceneBrume, sceneWeatherFx } from './monde/meteo';
 import { heightAt, isIndoor, type Scene } from './monde/scene';
+import { catalogEntry, MISSING_ID, MISSING_LABEL, MISSING_TONE } from './monde/volume/missing';
+import { shelterField, shelterSectionAt } from './monde/volume/toits';
 import { ambientScalar } from './monde/vision';
 import { sceneSun } from './monde/soleil';
 import { sceneLightSources, type VisionInput } from './visionState';
@@ -35,6 +39,8 @@ const NUIT = '#141c33';
 const AMBIANTE_INTERIEURE = '#e8c9a0';
 /** Énergie d'une source de ton d'intensité 1. */
 const ENERGIE_DES_SOURCES = 2.5;
+/** Le ton de repli visible d'un id hors de `lightTones.json` : la couleur d'alarme, sans vacillement. */
+const TON_HORS_CATALOGUE: LightToneDef = { id: MISSING_ID, type: 'lightTones', label: MISSING_LABEL, color: MISSING_TONE, intensity: 1 };
 
 export interface SourceDeLumiere {
   /** Foyer en cases (x, y), sa couche, et sa hauteur (m) au-dessus du zéro de la scène. */
@@ -55,8 +61,10 @@ export interface LumiereDeLaScene {
   ambiante: { couleur: string; energie: number };
   /** Dégradé du ciel d'un extérieur ; null en intérieur, dont le fond est la brume. */
   ciel: { zenith: string; horizon: string } | null;
-  /** Brume de profondeur : sa teinte, puis où elle commence et où elle couvre tout, en cases au-delà du point visé. */
-  brume: { couleur: string; debutCases: number; finCases: number };
+  /** Brume de profondeur : sa teinte, puis où elle commence et où elle couvre tout, en cases au-delà du point visé, ou
+   *  depuis l'œil (`depuisLOeil`) en immersion : celle d'un intérieur quand le groupe est sous un toit (`shelterField`),
+   *  sinon resserrée par la brume de la météo (`povTightenK`). */
+  brume: { couleur: string; debutCases: number; finCases: number; depuisLOeil: boolean };
   sources: SourceDeLumiere[];
 }
 
@@ -68,12 +76,12 @@ function melange(a: string, b: string, t: number): string {
   return versHex([0, 1, 2].map((i) => ca[i] + (cb[i] - ca[i]) * t) as [number, number, number]);
 }
 
-/** La lumière de la scène de `etat` à son heure. */
-export function lumiereDeLaScene(etat: VisionInput & { scene: Scene }): LumiereDeLaScene {
+/** La lumière de la scène de `etat` à son heure, sous le regard `regard`. */
+export function lumiereDeLaScene(etat: VisionInput & { scene: Scene }, regard: Regard): LumiereDeLaScene {
   const { scene, gameTime } = etat;
   const interieur = isIndoor(scene);
   const palier = ambientScalar(scene, gameTime, etat.lightLevel);
-  const meteo = interieur || !scene.weather ? null : (ambiance.iso.weather as Partial<Record<string, { tint: string; alpha: number }>>)[scene.weather] ?? null;
+  const meteo = sceneWeatherFx(scene);
   const sousLaMeteo = (c: string): string => (meteo ? melange(c, meteo.tint, meteo.alpha) : c);
   const deNuit = (c: string): string => sousLaMeteo(melange(NUIT, c, palier));
   const course = sceneSun(scene, gameTime);
@@ -85,7 +93,10 @@ export function lumiereDeLaScene(etat: VisionInput & { scene: Scene }): LumiereD
       }
     : null;
   const { pov } = ambiance;
-  const profondeur = interieur ? pov.depth.indoor : pov.depth.outdoor;
+  const depuisLOeil = regard === 'immersion';
+  const dedans = interieur || (depuisLOeil && shelterSectionAt(shelterField(scene), etat.partyPos.x, etat.partyPos.y) !== null);
+  const profondeur = dedans ? pov.depth.indoor : pov.depth.outdoor;
+  const resserrement = depuisLOeil && !dedans ? sceneBrume(scene)?.povTightenK ?? 1 : 1;
   return {
     soleil,
     ambiante: {
@@ -93,9 +104,14 @@ export function lumiereDeLaScene(etat: VisionInput & { scene: Scene }): LumiereD
       energie: AMBIANTE_NOIRE + (AMBIANTE_PLEINE - AMBIANTE_NOIRE) * palier,
     },
     ciel: interieur ? null : { zenith: deNuit(pov.skyTop), horizon: deNuit(pov.fogOutdoor) },
-    brume: { couleur: interieur ? pov.fogIndoor : deNuit(pov.fogOutdoor), debutCases: profondeur.fogStartT, finCases: profondeur.farTiles },
+    brume: {
+      couleur: dedans ? pov.fogIndoor : deNuit(pov.fogOutdoor),
+      debutCases: profondeur.fogStartT * resserrement,
+      finCases: profondeur.farTiles * resserrement,
+      depuisLOeil,
+    },
     sources: sceneLightSources(etat).map((s) => {
-      const ton = findLightToneById(s.tone ?? 'flamme') ?? findLightToneById('flamme')!;
+      const ton = catalogEntry(findLightToneById, s.tone ?? DEFAULT_LIGHT_TONE_ID, 'lightTones', TON_HORS_CATALOGUE);
       const z = s.z ?? 0;
       return {
         x: s.pos.x + (s.foyer?.x ?? 0),

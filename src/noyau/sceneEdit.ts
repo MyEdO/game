@@ -30,7 +30,12 @@ import {
   type SeatOccupant,
 } from './monde/seating';
 import { METRES_PER_LEVEL } from './monde/relief';
-import { entityKindSchema, typeNonNomme, type Terrain, type SceneRoofDefaults, type ReliefDefaults, PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
+import { entityKindSchema, sceneEffectZoneSchema, typeNonNomme, type Terrain, type SceneRoofDefaults, type ReliefDefaults, PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
+import { ouverts } from '../data/schemas/grammaire/descente';
+import { declarationDeFeuilleDId } from '../data/schemas/grammaire/ref';
+import { champsDeclares, choixDuNoeud, videDuNoeud } from './codex/editFields';
+import { valeurNeuveDe } from './valeursNeuves';
+import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { buildingRoofMaterial } from './monde/buildings';
 import { sceneZoneTiles, zoneAreaTiles } from './monde/zones';
 import type { Pt as ScenePt } from './monde/path';
@@ -38,7 +43,7 @@ import { ACTION_FOUILLER } from './monde/usable';
 import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
-import { type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
+import { CHAMPS_DU_FORMULAIRE_DE_ZONE, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
 
 export type Rect = { x: number; y: number; w: number; h: number };
 export type Pt = { x: number; y: number };
@@ -952,6 +957,63 @@ function champ<T extends object, K extends keyof T>(o: T, k: K, v: T[K] | undefi
 function champs<T extends object>(o: T, patch: Partial<NoInfer<T>>): T {
   const poses: Partial<T> = patch;
   return (Object.keys(poses) as (keyof T)[]).reduce((out, k) => champ<T, keyof T>(out, k, poses[k]), o);
+}
+
+/** Un pas du chemin d'un champ dans sa donnée : une clé d'objet, ou un rang de liste. */
+export type Segment = string | number;
+
+type Objet = Record<string, unknown>;
+
+/** Le nœud admet-il que son champ soit retiré ? */
+const retirable = (noeud: unknown): boolean => videDuNoeud(noeud) === undefined;
+
+/** La valeur `valeur` est-elle de la sorte du nœud `noeud` ? `undefined` : s'il admet le retrait ; d'un champ à choix,
+ *  l'une de ses valeurs (`choixDuNoeud`) ; d'un objet, sa valeur neuve (`valeurNeuveDe`) ; sinon, une valeur que le
+ *  nœud parse. */
+function admise(noeud: unknown, valeur: unknown): boolean {
+  if (valeur === undefined) return retirable(noeud);
+  const choix = choixDuNoeud(noeud);
+  if (choix) return choix.some((o) => o.valeur === valeur);
+  if (champsDeclares(noeud)) return jsonCanonique(valeur) === jsonCanonique(valeurNeuveDe(noeud));
+  return (noeud as { safeParse: (v: unknown) => { success: boolean } }).safeParse(valeur).success;
+}
+
+/** L'objet `o` où le champ au chemin `[cle, ...reste]` vaut `valeur`, posé par `champ` ; un objet que ce retrait vide,
+ *  au rang `rang` du chemin, en part aussi quand `vidable(rang)`. */
+function ecrit(o: Objet, [cle, ...reste]: readonly string[], valeur: unknown, vidable: (rang: number) => boolean, rang = 0): Objet {
+  if (!reste.length) return champ(o, cle, valeur);
+  const sous = o[cle] as Objet;
+  const suite = ecrit(sous, reste, valeur, vidable, rang + 1);
+  const vide = valeur === undefined && Object.keys(sous).length > 0 && !Object.keys(suite).length;
+  return champ(o, cle, vide && vidable(rang) ? undefined : suite);
+}
+
+/** La donnée `donnee` de l'objet de schéma `objet` où `valeur` s'écrit au chemin `chemin`, le champ retiré si elle
+ *  vaut `undefined` (`ecrit`) ; `undefined` si le formulaire ne l'offre pas : un pas qui n'est pas une clé déclarée
+ *  d'un objet présent (`champsDeclares`), une clé `id` qui n'est pas une référence `idDe` (une identité se change par
+ *  son geste dédié, qui la propage), ou une valeur qui n'est pas de la sorte du champ (`admise`). Le schéma entier ne se
+ *  vérifie qu'à l'enregistrement et à l'essai. */
+export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Segment[], valeur: unknown): Objet | undefined {
+  const noeuds: unknown[] = [];
+  let champsIci = champsDeclares(objet);
+  let point: unknown = donnee;
+  for (const pas of chemin) {
+    if (!champsIci || typeof pas !== 'string' || point === null || typeof point !== 'object') return undefined;
+    const noeud = champsIci.find(([cle]) => cle === pas)?.[1];
+    if (noeud === undefined || (pas === 'id' && !ouverts([noeud]).some((n) => declarationDeFeuilleDId(n) !== undefined))) return undefined;
+    noeuds.push(noeud);
+    champsIci = champsDeclares(noeud);
+    point = (point as Objet)[pas];
+  }
+  if (!noeuds.length || !admise(noeuds[noeuds.length - 1], valeur)) return undefined;
+  return ecrit(donnee, chemin as readonly string[], valeur, (rang) => retirable(noeuds[rang]));
+}
+
+/** La zone d'effet `zone` où `valeur` s'écrit au chemin `chemin` de son formulaire (`CHAMPS_DU_FORMULAIRE_DE_ZONE`,
+ *  `avecLaValeur`) ; `undefined` si son formulaire ne l'offre pas. */
+export function zoneAvecLaValeur(zone: SceneEffectZone, chemin: readonly Segment[], valeur: unknown): SceneEffectZone | undefined {
+  const offert = (CHAMPS_DU_FORMULAIRE_DE_ZONE as readonly Segment[]).includes(chemin[0]);
+  return offert ? (avecLaValeur(sceneEffectZoneSchema, zone as unknown as Objet, chemin, valeur) as SceneEffectZone | undefined) : undefined;
 }
 
 /** Les entrées couvertes `couvre` d'un patch, `undefined` pour aucune. */

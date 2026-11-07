@@ -1,6 +1,7 @@
 /**
  * VALEURS NEUVES DE L'ATELIER (#3059) : l'op neuve d'un type (`newOp`), la formule d'une forme
- * (`formulaForShape`, `shapeOf`) et l'effet neuf d'un type (`newEffect`). Fonctions pures, au noyau parce qu'elles lisent le moteur et le modèle du monde
+ * (`formulaForShape`, `shapeOf`), l'effet neuf d'un type (`newEffect`) et la valeur neuve d'un nœud de schéma
+ * (`valeurNeuveDe`). Fonctions pures, au noyau parce qu'elles lisent le moteur et le modèle du monde
  * (`terrainsElectifs`, `EFFECT_HANDLERS`) : tout hôte crée la même valeur que l'éditeur web.
  */
 import type { Formula, GameOp } from '../engine/ops';
@@ -11,6 +12,7 @@ import { memoParVersion } from '../data';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import { terrainsElectifs } from './monde/terrain';
 import { EFFECT_HANDLERS } from './combatEffects';
+import { admetUneListe, bornesDuNoeud, champsDeclares, choixDuNoeud, kindDuNoeud, videDuNoeud } from './codex/editFields';
 
 
 /** Règles optionnelles NUMÉRIQUES (`kind: 'param'`) — seules éligibles au terme `{rule}` d'une Formula
@@ -22,19 +24,21 @@ export const paramsDeRegle = memoParVersion('reglesOptionnelles', () => OPTIONAL
  *  (`GameOpEditor.formule-totale.test.tsx`). */
 export type FormulaShape =
   | 'lit' | 'bonus' | 'char' | 'dice' | 'times' | 'rolled' | 'indice' | 'pions' | 'ecartAvantage'
-  | 'blessuresInfligees' | 'blessuresMax' | 'dr' | 'regle' | 'minimum' | 'tranches' | 'somme' | 'peche';
+  | 'blessuresInfligees' | 'blessuresMax' | 'tailleDuNavire' | 'valeurCargaison' | 'dr' | 'tire' | 'regle' | 'minimum' | 'tranches' | 'somme' | 'peche';
 
 /** Forme d'une `Formula` objet, par la clé qui la porte. */
 export const FORME_DE_CLE: Readonly<Record<string, FormulaShape>> = {
   bonusOf: 'bonus', charOf: 'char', dice: 'dice', times: 'times', rolled: 'rolled', indiceOf: 'indice',
-  stacks: 'pions', engagedAdvantageGap: 'ecartAvantage', woundsDealt: 'blessuresInfligees', blessuresMax: 'blessuresMax', sl: 'dr',
+  stacks: 'pions', engagedAdvantageGap: 'ecartAvantage', woundsDealt: 'blessuresInfligees', blessuresMax: 'blessuresMax',
+  tailleDuNavire: 'tailleDuNavire', valeurCargaison: 'valeurCargaison', sl: 'dr', tire: 'tire',
   rule: 'regle', minimum: 'minimum', parTranche: 'tranches', sum: 'somme', sinPoints: 'peche',
 };
 
 /** Termes CONSTANTS : leur forme est leur valeur, sans champ à saisir. */
 const TERME_CONSTANT: Partial<Record<FormulaShape, JsonFormula>> = {
   rolled: { rolled: true }, indice: { indiceOf: true }, pions: { stacks: 'self' }, ecartAvantage: { engagedAdvantageGap: true },
-  blessuresInfligees: { woundsDealt: true }, blessuresMax: { blessuresMax: true }, dr: { sl: true }, peche: { sinPoints: true },
+  blessuresInfligees: { woundsDealt: true }, blessuresMax: { blessuresMax: true }, tailleDuNavire: { tailleDuNavire: true },
+  valeurCargaison: { valeurCargaison: true }, dr: { sl: true }, peche: { sinPoints: true },
 };
 
 export const shapeOf = (f: JsonFormula | undefined): FormulaShape => {
@@ -66,6 +70,8 @@ export function formulaForShape(s: FormulaShape, current: JsonFormula | undefine
     case 'dice': return { dice: { n: 1, sides: 10 } };
     case 'times': return { times: { of: { dice: { n: 1, sides: 10 } }, factor: 10 } }; // « 1d10 × 10 » (LDB 71)
     case 'regle': return { rule: paramsDeRegle()[0]?.id ?? '' };
+    // La valeur liée DÉFINIE tire la formule courante (« Vous perdez 2d10 membres d'équipage », MDG 15 l.245).
+    case 'tire': return { tire: 'valeur', de: enveloppe };
     // Le minimum ENVELOPPE la formule courante (« 1d10 – (Bonus d'Endurance) Rounds (minimum de 1) »,
     // AA 07 l.113) : la quantité éditée n'est pas perdue au changement de forme.
     case 'minimum': return { minimum: 1, of: enveloppe };
@@ -216,4 +222,23 @@ export function newOp(op: GameOp['op'] | string): GameOp {
 /** Effet par défaut d'un type — délégué à la FABRIQUE du registre (`EFFECT_HANDLERS[t].make`). */
 export function newEffect(type: Effect['type']): Effect {
   return EFFECT_HANDLERS[type].make();
+}
+
+/** La valeur NEUVE du nœud de schéma `noeud` : d'un champ à choix, sa première valeur (`choixDuNoeud`) ; d'un objet,
+ *  ses seuls champs dont le nœud n'admet pas le retrait (`videDuNoeud`), chacun à sa valeur neuve ; d'un nombre, 0, ou
+ *  sa borne basse si elle est au-dessus ; d'un texte, '' ; d'une liste, [] ; `undefined` pour tout autre nœud, qu'un
+ *  objet neuf ne porte pas. */
+export function valeurNeuveDe(noeud: unknown): unknown {
+  const choix = choixDuNoeud(noeud);
+  if (choix) return choix[0]?.valeur;
+  const champs = champsDeclares(noeud);
+  if (champs) return Object.fromEntries(champs.flatMap(([cle, n]) => {
+    const neuve = videDuNoeud(n) === undefined ? undefined : valeurNeuveDe(n);
+    return neuve === undefined ? [] : [[cle, neuve]];
+  }));
+  const bornes = bornesDuNoeud(noeud);
+  if (bornes) return bornes.min !== null && bornes.min > 0 ? bornes.min : 0;
+  const kind = kindDuNoeud('', noeud);
+  if (kind === 'text' || kind === 'textarea') return '';
+  return admetUneListe(noeud) ? [] : undefined;
 }

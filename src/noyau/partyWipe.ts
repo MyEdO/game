@@ -41,7 +41,6 @@ export function checkPartyWiped(get: Get, set: Set): boolean {
     pendingSteamSave: null,
     pendingSeaActivities: null,
     pendingShoreLeave: null,
-    pendingManannPriest: null,
   });
   return true;
 }

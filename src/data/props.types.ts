@@ -31,7 +31,7 @@
  * L'EMPREINTE TOURNE AVEC LE CAP (#1509) : les cases d'un décor à recette sont celles de son CORPS
  * tourné, sièges exclus (`empreinteDeriveeDuProp` ci-dessous, servie à tous les consommateurs par
  * `empreinteDuProp` puis `noyau/monde/footprint.ts` `propFootTiles`). Une table 2×1 au cap E occupe 1×2.
- * Un BILLBOARD, qui n'a pas de corps, garde son empreinte DÉCLARÉE (`foot`).
+ * Chaque type de décor porte sa recette (`PropData.volume`, requise, #3198) : aucun ne déclare de cases.
  *
  * CAP D'IDENTITÉ = `S` (`CAP_IDENTITE_PROP`) — contrat de DONNÉE, à connaître pour authorer : une
  * recette (et les `seatSlots` qui l'accompagnent) s'écrit telle qu'elle se voit à l'instance SANS
@@ -352,7 +352,7 @@ export type { PropMaterialData };
 
 /**
  * Type de PROP/décor app-owned : couche SÉMANTIQUE (physique `solid`, opacité `opaque`, classe de
- * `cover`, émission de lumière `light`, empreinte `foot`) ET géométrie locale (`volume`, `seatSlots`) —
+ * `cover`, émission de lumière `light`) ET géométrie locale (`volume`, `seatSlots`) —
  * le rendu SVG de vignette reste au catalogue gameIso. Vérité UNIQUE des dimensions d'un
  * décor : une instance de scène ne redéclare aucune empreinte. Lu par la walkability (`sceneRules`), la
  * Ligne de Vue/couvert (`lineOfSight`), la lumière (`vision`) et le monde volumique. Édité au Codex.
@@ -372,14 +372,12 @@ export interface PropData {
    *  (LDB 74 l.43/58). Le LECTEUR le divise par le `metresPerTile` de la scène pour en faire les cases
    *  d'une `LightSource` (`noyau/monde/vision.ts`, `rayonEnCases`). */
   light?: { radiusM: number; tone?: string };
-  foot?: { w: number; h: number };
-  volume?: PropVolumeRecipe;
+  volume: PropVolumeRecipe;
   seatSlots?: PropSeatSlot[];
 }
 
-/** Empreinte DÉCLARÉE d'un type de prop — défaut 1×1. Vérité des dimensions d'un décor SANS recette
- *  (billboard) ; un décor à recette tire la sienne de son CORPS (`empreinteDeriveeDuProp`). */
-export const propFootOf = (prop: PropData | undefined): { w: number; h: number } => prop?.foot ?? { w: 1, h: 1 };
+/** L'empreinte d'un décor que le catalogue ne RÉSOUT pas (#877) : sa seule case. */
+const UNE_CASE: { w: number; h: number } = { w: 1, h: 1 };
 
 /** Boîte englobante d'une primitive dans le repère LOCAL, en mètres : au plan (`x0..x1`, `y0..y1`),
  *  et en hauteur (`bas..haut`) — mesurée sur `polygonesDePrimitive`, la seule géométrie que le
@@ -448,7 +446,6 @@ const empreintesDerivees = new WeakMap<PropVolumeRecipe, WeakMap<readonly PropSe
  * PURE (mémoïsée par identité de recette, cap et échelle).
  */
 export function empreinteDeriveeDuProp(prop: PropData, facing: Dir8, mpt: number): { w: number; h: number } {
-  if (!prop.volume) return propFootOf(prop);
   let parPlaces = empreintesDerivees.get(prop.volume);
   if (!parPlaces) { parPlaces = new WeakMap(); empreintesDerivees.set(prop.volume, parPlaces); }
   const places = prop.seatSlots ?? SANS_PLACES;
@@ -458,7 +455,7 @@ export function empreinteDeriveeDuProp(prop: PropData, facing: Dir8, mpt: number
   const connue = parCap.get(cle);
   if (connue) return connue;
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-  for (const primitive of prop.volume?.primitives ?? []) {
+  for (const primitive of prop.volume.primitives) {
     if (placeAssiseDe(prop, primitive)) continue;
     for (const poly of polygonesDePrimitive(primitive))
       for (const s of poly) {
@@ -469,18 +466,18 @@ export function empreinteDeriveeDuProp(prop: PropData, facing: Dir8, mpt: number
   }
   // LE site de conversion mètres → cases de ce module (#1507, déclaré par `noyau/monde/echelle-de-scene.test.ts`).
   const enCases = (metres: number): number => Math.max(1, Math.ceil(metres / mpt - 1e-9));
-  const val = Number.isFinite(x0) ? { w: enCases(x1 - x0), h: enCases(y1 - y0) } : propFootOf(prop);
+  const val = Number.isFinite(x0) ? { w: enCases(x1 - x0), h: enCases(y1 - y0) } : UNE_CASE;
   parCap.set(cle, val);
   return val;
 }
 
 /**
  * EMPREINTE EFFECTIVE d'un type de décor au cap d'une instance — la couture UNIQUE que lisent tous les
- * consommateurs de cases (walkability, Ligne de Vue, lumière, halo). Un décor à recette la tire de son
- * CORPS tourné ; un BILLBOARD, qui n'a pas de corps, garde son empreinte déclarée. PURE.
+ * consommateurs de cases (walkability, Ligne de Vue, lumière, halo) : le CORPS tourné de sa recette ;
+ * un type que le catalogue ne résout pas (#877) n'occupe que sa case. PURE.
  */
 export function empreinteDuProp(prop: PropData | undefined, facing: Dir8 | undefined, mpt: number): { w: number; h: number } {
-  if (!prop?.volume) return propFootOf(prop);
+  if (!prop) return UNE_CASE;
   return empreinteDeriveeDuProp(prop, facing ?? CAP_IDENTITE_PROP, mpt);
 }
 
@@ -591,7 +588,7 @@ export function validatePropCatalog(entries: readonly PropData[], mpt: number): 
     // Le JSON n'est pas typé à l'EXÉCUTION (même raison que les côtés de cylindre ci-dessus) : le REPÈRE
     // déclaré par la recette doit être celui que `rotatePropLocal` implémente, sans quoi la géométrie
     // sort d'un demi-tour sans que rien ne le dise.
-    if (prop.volume && prop.volume.capIdentite !== CAP_IDENTITE_PROP)
+    if (prop.volume.capIdentite !== CAP_IDENTITE_PROP)
       errors.push(`${prop.id}: recette au repère « ${prop.volume.capIdentite} » (seul ${CAP_IDENTITE_PROP} est implémenté)`);
     // COUVERT D'UN DÉCOR OPAQUE — un décor qui coupe la Ligne de Vue est lu par `tileBlocksSight`
     // (`noyau/monde/lineOfSight.ts:tileBlocksSight`), qui rend « bloqué » ou force « totale » au contact AVANT que la
@@ -599,17 +596,17 @@ export function validatePropCatalog(entries: readonly PropData[], mpt: number): 
     // moteur n'applique jamais. Le catalogue ne peut donc pas la porter.
     if (prop.opaque && prop.cover !== 'totale')
       errors.push(`${prop.id}: opaque avec cover ${prop.cover ? `« ${prop.cover} »` : 'absent'} — un décor opaque ne rend que « totale » (lineOfSight)`);
-    const formes = (prop.volume?.primitives ?? []).map((primitive) => erreursDePrimitive(prop.id, primitive));
+    const formes = prop.volume.primitives.map((primitive) => erreursDePrimitive(prop.id, primitive));
     for (const forme of formes) errors.push(...forme.errors);
     // FOYER D'UNE SOURCE VOLUMIQUE (#1680 ligne 5) — les trois anomalies sont les trois façons dont
     // `emet` et `light` peuvent se contredire, et aucune n'est rattrapable au rendu : une lumière dont
     // le foyer n'est pas DÉCLARÉ se devinerait, et deviner l'ancre d'une lampe est ce que ce lot supprime.
-    const emettrices = (prop.volume?.primitives ?? []).filter((p) => p.emet);
+    const emettrices = prop.volume.primitives.filter((p) => p.emet);
     if (emettrices.length > 1)
       errors.push(`${prop.id}: ${emettrices.length} primitives « emet » — une source ponctuelle n’a qu’UN foyer`);
     if (emettrices.length && !prop.light)
       errors.push(`${prop.id}: primitive « emet » sans \`light\` — un foyer sans source n’éclaire rien`);
-    if (prop.light && prop.volume && !emettrices.length)
+    if (prop.light && !emettrices.length)
       errors.push(`${prop.id}: \`light\` sur une recette volumique sans primitive « emet » — le foyer d’un volume se DÉCLARE, il ne se devine pas`);
     for (const slot of prop.seatSlots ?? []) {
       if (!slot.id.trim()) errors.push(`${prop.id}: slot sans id`);

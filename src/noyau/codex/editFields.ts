@@ -1,12 +1,17 @@
 /**
  * Inférence de formulaire DEPUIS la donnée (pas de schéma par dataset → un nouveau dataset s'édite
  * tout seul). Métadonnées de RENDU uniquement : décrit comment afficher un champ, sans introduire de
- * structure intermédiaire — on édite les vrais objets de `src/data`. Consommé par `CodexEdit`.
+ * structure intermédiaire — on édite les vrais objets de `src/data`. Consommé par `CodexEdit` et par le
+ * formulaire de l'éditeur de carte (`formulaireDeZone`, `noyau/sceneEditLecture.ts`).
  */
 import { LIBELLES_ENVELOPPE, type CleEnveloppe } from '../../data/schemas/grammaire/document';
 import { derouleEnum, metaDesChamps, valeursDe, type MetaChamp } from '../../data/schemas/grammaire/meta';
 import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
 import { defDe, enfantsDe, ouverts } from '../../data/schemas/grammaire/descente';
+import { declarationDeFeuilleDId } from '../../data/schemas/grammaire/ref';
+import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
+import { choixDeLaFeuilleDId, datasetDeLEspaceDuType } from '../../data';
+import { libelleDuLitteral } from '../libelles';
 
 export type FieldKind = 'text' | 'textarea' | 'number' | 'checkbox' | 'stringList' | 'numberList' | 'source' | 'descRef' | 'recordNumber' | 'recordText' | 'object' | 'json' | 'select' | 'selectList';
 
@@ -26,7 +31,15 @@ export interface FieldDesc {
   noeud?: unknown;
   /** Valeur POSÉE par le def (littéral d'enveloppe) : elle s'AFFICHE, elle ne se saisit pas. */
   fige?: boolean;
+  /** Bornes d'un champ `number` lues sur son nœud (`bornesDuNoeud`). */
+  bornes?: BornesDuNombre;
 }
+
+/** Ce qu'un nœud NOMBRE admet : un entier ou non, entre sa borne basse et sa borne haute (`null` : sans borne). */
+export interface BornesDuNombre { entier: boolean; min: number | null; max: number | null }
+
+/** Une valeur d'un champ à choix, et son libellé. */
+export interface ValeurDuChoix { valeur: string | number | boolean; libelle: string }
 
 function kindOf(key: string, v: unknown): FieldKind {
   // `source` = composite {book,page} SEULEMENT quand la donnée l'est réellement — un `source` MAISON
@@ -99,9 +112,56 @@ function echantillonDu(key: string, noeud: unknown): unknown {
 
 /** Kind d'un champ DÉCLARÉ qu'aucun échantillon ne porte : celui que `kindOf` donne à un échantillon de
  *  son nœud ; `json` quand le nœud n'en a pas. */
-function kindDuNoeud(key: string, noeud: unknown): FieldKind {
+export function kindDuNoeud(key: string, noeud: unknown): FieldKind {
   const e = echantillonDu(key, noeud);
   return e === SANS_FORME ? 'json' : kindOf(key, e);
+}
+
+/** La seule forme concrète de la fermeture `ouverts` du nœud ; `undefined` quand elle en a plusieurs ou aucune. */
+function seuleForme(noeud: unknown): unknown {
+  const formes = ouverts([noeud]).filter((n) => !estTransparent(n));
+  return formes.length === 1 ? formes[0] : undefined;
+}
+
+/** Les bornes du nœud quand sa seule forme est un nombre ; `undefined` sinon. */
+export function bornesDuNoeud(noeud: unknown): BornesDuNombre | undefined {
+  const n = seuleForme(noeud);
+  if (defDe(n)?.type !== 'number') return undefined;
+  const nombre = n as { isInt: boolean; minValue: number | null; maxValue: number | null };
+  const borne = (v: number | null): number | null => (v !== null && Number.isFinite(v) ? v : null);
+  return { entier: nombre.isInt, min: borne(nombre.minValue), max: borne(nombre.maxValue) };
+}
+
+/** Les champs DÉCLARÉS du nœud quand sa seule forme est un objet, dans l'ordre de sa déclaration, chacun avec son
+ *  nœud ; `undefined` sinon. */
+export function champsDeclares(noeud: unknown): (readonly [string, unknown])[] | undefined {
+  const n = seuleForme(noeud);
+  if (defDe(n)?.type !== 'object') return undefined;
+  return enfantsDe(n).flatMap((e) => (e.cle === undefined ? [] : [[e.cle, e.noeud] as const]));
+}
+
+/** Les valeurs d'un champ À CHOIX, chacune nommée, lues sur la fermeture de son nœud : les entrées d'une référence
+ *  `idDe` fermée qu'un dataset porte, sa sous-liste comprise (`choixDeLaFeuilleDId`) ; sinon, de sa seule forme,
+ *  les valeurs d'une énumération (`libelleDeValeur`), d'un littéral (`libelleDuLitteral`), faux et vrai d'un
+ *  booléen ; `undefined` pour tout autre nœud. */
+export function choixDuNoeud(noeud: unknown): ValeurDuChoix[] | undefined {
+  const feuille = ouverts([noeud]).map(declarationDeFeuilleDId).find((d) => d !== undefined);
+  if (feuille && !feuille.ouverte && datasetDeLEspaceDuType(feuille.type) !== undefined) {
+    return choixDeLaFeuilleDId(feuille).map((e) => ({ valeur: e.id, libelle: e.label }));
+  }
+  const n = seuleForme(noeud);
+  const def = defDe(n);
+  const nommees = (valeurs: readonly (string | number | boolean)[], libelle: (v: string | number | boolean) => string): ValeurDuChoix[] => valeurs.map((valeur) => ({ valeur, libelle: libelle(valeur) }));
+  switch (def?.type) {
+    case 'enum': return nommees(Object.values(def.entries ?? {}) as string[], (v) => libelleDeValeur(n, v as string));
+    case 'literal': {
+      const valeurs = def.values as unknown[];
+      const primitives = valeurs.every((v): v is string | number | boolean => ['string', 'number', 'boolean'].includes(typeof v));
+      return primitives ? nommees(valeurs as (string | number | boolean)[], (v) => libelleDuLitteral(v) ?? String(v)) : undefined;
+    }
+    case 'boolean': return nommees([false, true], (v) => libelleDuLitteral(v)!);
+    default: return undefined;
+  }
 }
 
 /** La fermeture `ouverts` du nœud offre-t-elle une forme OBJET à clés déclarées qui porte toutes les
@@ -156,31 +216,8 @@ export function offreDesRangees(field: FieldDesc, value: unknown): boolean {
   return Array.isArray(value) && value.every((x) => x != null && typeof x === 'object' && !Array.isArray(x));
 }
 
-/**
- * Le champ `cle` est-il DÉRIVÉ d'un autre champ de CETTE entrée ? Un champ dérivé ne s'offre pas à
- * l'édition : sa valeur ne vient pas de l'auteur, et la saisir serait écrite nulle part (la porte de
- * sérialisation la retire) tout en donnant à l'écran deux surfaces pour un même texte.
- *
- * SEUL cas aujourd'hui — la PROSE ADRESSÉE (#1389) : quand l'entrée porte `descRef`, sa `desc` est le
- * texte que l'adresse RÉSOUT, injecté au chargement du module par `wfrp:prose-source` et retiré au
- * save par `versDisque` (`grammaire/prose.ts`). Le champ d'adresse prend sa place, à SA position
- * (l'ordre des champs suit la donnée : le `desc` matérialisé s'y pose là où `descRef` vit).
- *
- * GESTE « DÉTACHER » : l'auteur qui remet le livre de l'adresse à vide fait rendre `undefined` à
- * `DescRefField` — l'entrée ne porte plus d'adresse, et `desc` redevient éditable, avec la prose
- * matérialisée pour valeur initiale. Reprendre la prose à la main est donc UN geste, pas une saisie
- * en double.
- *
- * SEUIL : une adresse ne dérive la prose que quand elle ADRESSE un passage — `adresseUnPassage`
- * (`grammaire/valeurs.ts`), qui lit le seuil `MIN_FRAGMENTS` que `descRefSchema` pose lui-même sur
- * `parts`. L'état INTERMÉDIAIRE de la composition (livre choisi, chapitre et fragments à venir :
- * `{ book, ch: '', parts: [] }`, ce que `DescRefField` rend dès le choix du livre) garde donc
- * « Description » éditable, avec la prose matérialisée — sans ce seuil, l'aller-retour vide→livre
- * laisse l'écran sans prose ni message tant que chapitre + section + blocs ne sont pas ressaisis
- * (recette 2026-09-14). Aucune surface en double n'apparaît pour autant : une adresse incomplète est
- * refusée à la sauvegarde par `descRefSchema` (`parts` `.min(MIN_FRAGMENTS)`, `grammaire/valeurs.ts`),
- * et une adresse complète fait passer `versDisque`, qui retire `desc`.
- */
+/** Le champ `cle` de l'entrée est-il DÉRIVÉ d'un autre de ses champs, hors de l'édition : la `desc` d'une entrée
+ *  dont `descRef` adresse un passage (`adresseUnPassage`, `grammaire/valeurs.ts`). #1389 */
 export function estDerive(entree: Record<string, unknown>, cle: string): boolean {
   return cle === 'desc' && adresseUnPassage(entree.descRef);
 }
@@ -270,6 +307,7 @@ export function inferFields(entries: Record<string, unknown>[], regime: RegimeDe
     // Un champ qui porte ici un tableau, là un scalaire (union `booléen | chaînes`) n'a aucun contrôle
     // structuré qui rende ses deux formes : il s'édite en JSON.
     const kind = tableaux && scalaires ? 'json' : !vues.includes(key) ? kindDuNoeud(key, noeud) : kindDuChampVu(key, noeud, echantillon);
-    return { key, label: libelleDuChamp(key, regime), kind, nullable, noeud };
+    const bornes = kind === 'number' ? bornesDuNoeud(noeud) : undefined;
+    return { key, label: libelleDuChamp(key, regime), kind, nullable, noeud, ...(bornes ? { bornes } : {}) };
   });
 }

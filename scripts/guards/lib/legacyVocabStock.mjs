@@ -170,13 +170,6 @@ export const LEGACY_VOCAB_SITES = [
   {
     fichier: "src/data/prop-foot-migration.test.ts",
     motif: "désormais",
-    ancre: "// `balustrade-loge` se pose désormais à la CASE (une travée par case de rive de puits,",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/data/prop-foot-migration.test.ts",
-    motif: "désormais",
     ancre: "désormais 1×1 pour les trois tables d'Opéra, et ce contrat prouverait l'inverse de son titre. */",
     lot: "L7 désormais",
     date: "2026-09-26",
@@ -532,13 +525,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/scenes/prop-footprint-occupancy.test.ts",
-    motif: "désormais",
-    ancre: "déclarée dans `props.json` couvre désormais TOUTES ses cases dans TOUTE scène livrée, y compris",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/scenes/test-scenarios/42-belier-porte.ts",
     motif: "désormais",
     ancre: "de MÊLÉE servie se mesure depuis l'EMPREINTE DE LA COQUE (#210, `meleeWarMachineHullOf`), désormais 2×2",
@@ -626,13 +612,6 @@ export const LEGACY_VOCAB_SITES = [
     fichier: "src/noyau/monde/footprint.test.ts",
     motif: "désormais",
     ancre: "leur case du seul fait que leur corps a désormais une empreinte. Liste NOMINATIVE : un",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/noyau/monde/footprint.ts",
-    motif: "désormais",
-    ancre: "désormais dérivées.",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

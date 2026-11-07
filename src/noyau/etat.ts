@@ -658,8 +658,6 @@ export interface EtatDeJeu {
   landMarket: import('./landMarketFlow').LandMarketState | null;
   /** ACTIVITÉS EN MER en attente (semaine de 8 jours, MDG 15 l.266-306) — modale de choix par héros. */
   pendingSeaActivities: import('./seaActivities').PendingSeaActivities | null;
-  /** ÉVÉNEMENT DE PORT « Prêtre de Manann » en attente de CHOIX (MDG 15 l.246). */
-  pendingManannPriest: import('./seaVoyageFlow').PendingManannPriest | null;
   /** Permission de RELÂCHE À TERRE en attente de CHOIX, posée à l'accostage AVANT l'événement de
    *  port (MDG 15 l.245). */
   pendingShoreLeave: import('./seaVoyageFlow').PendingShoreLeave | null;
