@@ -11,7 +11,8 @@ export type Cutaway = 'hidden' | 'visible';
  *  l'allié quand aucune pièce n'est déclarée (`roomlessCells`).
  *
  *  `overheadCells` = le COUVERCLE au-dessus de la TÊTE : les cases des masses qui surplombent un allié
- *  dans le MONDE, aux niveaux strictement au-dessus du sien. C'est ce qui sépare « le bâti où je me
+ *  dans le MONDE, aux niveaux strictement au-dessus du sien, et l'emprise de sa pièce aux couches
+ *  au-dessus de la sienne. C'est ce qui sépare « le bâti où je me
  *  tiens » de « ce qui est posé par-dessus ma tête » — un passage couvert est abrité par une masse dont
  *  l'allié n'occupe AUCUN niveau, et l'étage au-dessus d'une salle n'appartient à aucune de ses pièces.
  *  Tout y tombe, la DALLE comprise : cette dalle est le plafond de l'allié.

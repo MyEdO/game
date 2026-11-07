@@ -25,7 +25,7 @@ func _recetter() -> void:
 	monde.poser_les_aretes([NORD, SUD, DESSUS].map(func(a: Dictionary) -> Dictionary:
 		return {cle = a.cle, milieu = a.milieu, sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 2.0, piece = "mur", famille = null}))
 	monde.poser_les_nappes([], [{cle = "dessus", positions = [], normales = [], couleurs = [], surfaces = []}])
-	monde.cacher_le_bati([], [], [NORD, SUD, DESSUS].map(func(a: Dictionary) -> Dictionary: return {cle = a.cle, dedans = a.dedans}))
+	monde.cacher_le_bati([], [], [], [NORD, SUD, DESSUS].map(func(a: Dictionary) -> Dictionary: return {cle = a.cle, dedans = a.dedans}))
 	_verifier(monde, "de face")
 	var pivot: Node3D = monde.get_node("Pivot")
 	pivot.rotation.y += PI

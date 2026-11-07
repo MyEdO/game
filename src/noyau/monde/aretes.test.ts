@@ -116,3 +116,25 @@ describe('plateauDeLaScene — les arêtes que le groupe dégage (#3476)', () =>
     expect(plateauDeLaScene(salle(), []).aretesDegagees).toEqual([]);
   });
 });
+
+describe('plateauDeLaScene — le couvercle d’une pièce sous un étage (#3476)', () => {
+  /** La salle (1..2, 1..2) du rez, sous un étage dont le plancher couvre (1..2, 1..2) et dont un mur borde (2, 1). */
+  const salleSousEtage = (): Scene => {
+    const s = emptyScene('etage', 4, 4);
+    s.layers.push({ z: 1, tiles: s.layers[0].tiles.map(() => 'plancher'), height: s.layers[0].tiles.map(() => 4) });
+    return {
+      ...s,
+      walls: [{ x: 2, y: 1, side: 'E', z: 1 }, { x: 0, y: 0, side: 'N', z: 1 }],
+      effectZones: [{ id: 'salle', label: 'Salle', presentation: 'interior', area: { kind: 'rect', x: 1, y: 1, w: 2, h: 2 } }],
+    };
+  };
+  it('l’emprise de la pièce à l’étage est au couvercle, et le mur d’étage qui la borde tombe sous tout regard', () => {
+    const plateau = plateauDeLaScene(salleSousEtage(), [{ x: 1, y: 1 }]);
+    expect(new Set(plateau.couvercle)).toEqual(new Set(['1,1,1', '2,1,1', '1,2,1', '2,2,1']));
+    expect(plateau.aretesDegagees.filter((a) => a.cle.endsWith(',1'))).toEqual([{ cle: '2,1,E,1', dedans: null }]);
+  });
+  it('rien au couvercle pour le groupe à l’étage ou dehors', () => {
+    expect(plateauDeLaScene(salleSousEtage(), [{ x: 1, y: 1, z: 1 }]).couvercle).toEqual([]);
+    expect(plateauDeLaScene(salleSousEtage(), [{ x: 3, y: 3 }]).couvercle).toEqual([]);
+  });
+});

@@ -8,8 +8,8 @@ import type { FamilleDuKit, StructureAppearanceDef } from '../../data/structureA
 import { apparenceDArete, edgeKey, facadeEdges } from './facades';
 import type { Pt } from './path';
 import { METRES_PER_LEVEL } from './relief';
-import { piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
-import { coteDegage, cutawayOverhead } from './volume/architectureVisibility';
+import { casesDeFace, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
+import { coteDegage, cutawayOverhead, type ClearedSpace } from './volume/architectureVisibility';
 import { clearedSpace } from './volume/toits';
 import { toitsLeves } from './volume/volume';
 
@@ -23,8 +23,8 @@ export type PieceDArete = 'mur' | 'porte-fermee' | 'porte-ouverte' | 'fenetre' |
 export interface AreteDessinee { cle: string; case: Pt; milieu: Pt; sens: Pt; pied: number; piece: PieceDArete; famille: FamilleDuKit | null; hauteurM: number }
 
 /** Une arête que le groupe dégage : sa clé (`edgeKey`) et, si elle borde l'espace dégagé (`coteDegage`), le pas de grille
- *  qui mène de sa case dehors à sa case dedans, que l'hôte abat quand sa caméra regarde dans ce sens ; `null` si elle se
- *  dresse au-dessus de la tête d'un allié (`cutawayOverhead`), qui tombe sous tout regard. */
+ *  qui mène de sa case dehors à sa case dedans, que l'hôte abat quand sa caméra regarde dans ce sens ; `null` si l'une
+ *  des cases qu'elle sépare est au-dessus de la tête d'un allié (`cutawayOverhead`) : elle tombe sous tout regard. */
 export interface AreteDegagee { cle: string; dedans: Pt | null }
 
 const APPARENCES: ReadonlyMap<string, StructureAppearanceDef> = new Map(structureAppearances.map((a) => [a.id, a]));
@@ -70,27 +70,28 @@ function couronnesAbattues(scene: Scene): string[] {
   }).map(edgeKey);
 }
 
-/** Les arêtes de `scene` que le groupe posé sur `allies` dégage (`clearedSpace`, la loi de `architectureVisibility`) :
+/** Les arêtes de `scene` que l'espace dégagé `cleared` (`clearedSpace`, la loi de `architectureVisibility`) abat :
  *  celles au-dessus de la tête d'un allié, et celles qui bordent l'espace où il se tient. */
-function aretesDegagees(scene: Scene, allies: readonly Pt[]): AreteDegagee[] {
-  const cleared = clearedSpace(scene, allies);
+function aretesDegagees(scene: Scene, cleared: ClearedSpace): AreteDegagee[] {
   const facades = facadeEdges(scene);
   return (scene.walls ?? []).flatMap((seg): AreteDegagee[] => {
     const cle = edgeKey(seg);
-    if (cutawayOverhead(seg, cleared)) return [{ cle, dedans: null }];
+    if (casesDeFace(seg, 'les-deux').some((c) => cutawayOverhead({ ...c, z: seg.z }, cleared))) return [{ cle, dedans: null }];
     const cote = coteDegage({ ...seg, roomZoneIds: facades.get(cle)?.roomZoneIds }, cleared);
     return cote ? [{ cle, dedans: { x: cote.dedans.x - cote.dehors.x, y: cote.dedans.y - cote.dehors.y } }] : [];
   });
 }
 
 /** Le plateau d'une scène tel qu'un hôte le dessine : ses dimensions, les arêtes de toutes ses couches
- *  (`areteDessinee`), son échelle métrique (`sceneMetresPerTile`), et ce que le groupe posé sur `allies` dégage : les
- *  nappes de toit (`toitsLeves`) et les arêtes (`aretesDegagees`) ; et les couronnes crénelées tombées
- *  (`couronnesAbattues`). */
-export function plateauDeLaScene(scene: Scene, allies: readonly Pt[]): { w: number; h: number; metresParCase: number; aretes: AreteDessinee[]; aretesDegagees: AreteDegagee[]; toitsLeves: string[]; couronnesAbattues: string[] } {
+ *  (`areteDessinee`), son échelle métrique (`sceneMetresPerTile`), et ce que le groupe posé sur `allies` dégage
+ *  (`clearedSpace`) : le couvercle au-dessus de sa tête (`overheadCells`, ses cases `x,y,z`), les nappes de toit
+ *  (`toitsLeves`) et les arêtes (`aretesDegagees`) ; et les couronnes crénelées tombées (`couronnesAbattues`). */
+export function plateauDeLaScene(scene: Scene, allies: readonly Pt[]): { w: number; h: number; metresParCase: number; aretes: AreteDessinee[]; couvercle: string[]; aretesDegagees: AreteDegagee[]; toitsLeves: string[]; couronnesAbattues: string[] } {
   const { w, h } = scene.dimensions;
+  const cleared = clearedSpace(scene, allies);
   return {
     w, h, metresParCase: sceneMetresPerTile(scene), aretes: (scene.walls ?? []).map((seg) => areteDessinee(scene, seg)),
-    aretesDegagees: aretesDegagees(scene, allies), toitsLeves: toitsLeves(scene, allies), couronnesAbattues: couronnesAbattues(scene),
+    couvercle: [...cleared.overheadCells], aretesDegagees: aretesDegagees(scene, cleared), toitsLeves: toitsLeves(scene, allies),
+    couronnesAbattues: couronnesAbattues(scene),
   };
 }
