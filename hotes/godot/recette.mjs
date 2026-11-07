@@ -86,7 +86,8 @@
 //   l'image, son coin comme son nœud, et le centre de la case quatre plus loin comme second point, le coin de la case
 //   huit plus loin comme son nœud : la planche s'étire du double, son échelle dite en pixels par case moitié de celle
 //   d'avant.
-//   « Couche 1 » édite l'étage, sans calque.
+//   « Couche 1 » édite l'étage, sans calque. À l'ouverture, sans sélection, l'inspecteur est celui de la scène : « +15° »
+//   tourne son nord, « Annuler » le rend au haut du plan.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
@@ -999,6 +1000,18 @@ async function parcoursEditeur() {
   assert.equal(boutonDeLEditeur(e, 'enregistrer')?.refus, 'Rien à enregistrer', 'la carte s’ouvre telle que le dépôt la sert')
   noter(`éditeur ouvert : ${e.zones['editeur.titre'][0].texte}, couches ${e.zones['editeur.couches'][0].valeurs.map((b) => b.libelle).join(', ')}`)
   await capturer('3508-l1-1-ouverte')
+  const nord = () => e.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte
+  assert.equal(nord(), 'Nord : vers le haut du plan', 'sans sélection, l’inspecteur est celui de la scène')
+  await cliquerAuPanneau({ element: 'bouton/scene/nord/plus' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte === 'Nord : 15° dans le sens horaire'`)
+  e = await editeur()
+  noter(`inspecteur de la scène, « +15° » : ${nord()}`)
+  await capturer('3508-l6-1-scene')
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte === 'Nord : vers le haut du plan'`)
+  for (let n = 0; n < 20; n++) await molette(session, { surface: 'canvas', x: 160, y: 400 }, -100)
+  e = await editeur()
+  noter('« Annuler » : le nord rendu au haut du plan')
   for (const id of ['outil/height', 'hauteur/haute', 'pinceau/3']) {
     await cliquerAuPanneau({ element: `bouton/${id}` })
     assert.equal(boutonDeLEditeur(await editeur(), id)?.presse, true, `${id} choisi à son bouton`)

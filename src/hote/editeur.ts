@@ -15,8 +15,8 @@ import {
   assoirALaPlace, findVehicleById, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
   DIFFICULTY_LABELS, FACES_D_ARETE, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
-  ACTIONS_D_ARCHITECTURE, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
-  type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
+  ACTIONS_D_ARCHITECTURE, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
+  type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
   type WallPaint, ZONE_VARIANTS,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
@@ -218,6 +218,12 @@ const formulaireDuNom = (nom: string | undefined, optionnel: boolean): Formulair
   champs: [{ type: 'saisieTexte', id: 'nommer/nom', ton: 'neutre', nom: 'nom', optionnel, libelle: t('ecran.editeur.entite.nom'), valeur: nom ?? '' }],
 });
 
+/** Le formulaire de verbe `verbe`, à un champ texte `nom` prérempli de `valeur`. */
+const formulaireAUnChamp = (verbe: string, libelle: string, nom: string, intitule: string, valeur: string, optionnel: boolean): Formulaire => ({
+  type: 'formulaire', id: verbe, libelle, verbe, focus: false, refus: null,
+  champs: [{ type: 'saisieTexte', id: `${verbe}/${nom}`, ton: 'neutre', nom, optionnel, libelle: intitule, valeur }],
+});
+
 /** Le formulaire qui change l'identifiant `id` de la zone d'effet sélectionnée. */
 const formulaireDeLIdentifiant = (id: string): Formulaire => ({
   type: 'formulaire', id: 'identifier', libelle: t('ecran.editeur.zone.identifier'), verbe: 'identifier', focus: false, refus: null,
@@ -227,18 +233,22 @@ const formulaireDeLIdentifiant = (id: string): Formulaire => ({
 /** Par entrée des fiches commitées, son texte coupé au mot. */
 const COURT_DE_L_ENTREE = new Map(ENTREES_DE_DOSSIER.map((e) => [e.id, coupeAuMot(e.libelle, 70)]));
 
-/** Les entrées de fiche que couvre la zone (`couvre`), chacune retirée à sa pression, ou la ligne qui dit qu'il n'y en a
- *  aucune ; puis la liste des entrées des fiches commitées qu'elle ne couvre pas, chacune ajoutée à son choix. */
-function couverture(couvre: readonly string[] | undefined, sur: (patch: PatchDeZone) => GesteDEdition): (Choix | Ligne)[] {
+/** Les entrées de fiche couvertes (`couvre`), à l'id `id` : une ligne par entrée, son texte coupé au mot, ou la ligne qui
+ *  dit qu'il n'y en a aucune ; la liste des entrées couvertes, chacune retirée à son choix ; la liste des entrées des
+ *  fiches commitées qui ne le sont pas, chacune ajoutée à son choix ; chaque article joue `jeu` des entrées couvertes
+ *  après lui, `null` pour aucune. */
+function couverture(id: string, couvre: readonly string[] | undefined, jeu: (couvre: string[] | null) => GesteDEdition): (Choix | Ligne)[] {
   const ids = couvre ?? [];
-  const reste = (sans: string) => ids.filter((id) => id !== sans);
+  const reste = (sans: string) => ids.filter((e) => e !== sans);
   return [
-    ids.length
-      ? choix('zone/couvre', t('ecran.editeur.zone.couvre'), ids.map((id) =>
-        bouton(`zone/couvre/${id}`, `${id} — ${COURT_DE_L_ENTREE.get(id) ?? t('ecran.editeur.zone.couvre.introuvable')}`, sur({ couvre: reste(id).length ? reste(id) : null }), true)))
-      : ligne('zone/couvre', t('ecran.editeur.zone.couvre.aucune')),
-    choix('zone/couvre/ajouter', t('ecran.editeur.zone.couvre.ajouter'), ENTREES_DE_DOSSIER.filter((e) => !ids.includes(e.id)).map((e) =>
-      bouton(`zone/couvre/ajouter/${e.id}`, `${e.id} — ${COURT_DE_L_ENTREE.get(e.id)}`, sur({ couvre: [...ids, e.id] }), false)), 'liste'),
+    ...(ids.length
+      ? [
+        ...ids.map((e) => ligne(`${id}/${e}`, t('ecran.editeur.zone.couvre.entree', { id: e, texte: COURT_DE_L_ENTREE.get(e) ?? t('ecran.editeur.zone.couvre.introuvable') }))),
+        choix(`${id}/retirer`, t('ecran.editeur.zone.couvre.retirer'), ids.map((e) => bouton(`${id}/retirer/${e}`, e, jeu(reste(e).length ? reste(e) : null), false)), 'liste'),
+      ]
+      : [ligne(id, t('ecran.editeur.zone.couvre.aucune'))]),
+    choix(`${id}/ajouter`, t('ecran.editeur.zone.couvre.ajouter'), ENTREES_DE_DOSSIER.filter((e) => !ids.includes(e.id)).map((e) =>
+      bouton(`${id}/ajouter/${e.id}`, `${e.id} — ${COURT_DE_L_ENTREE.get(e.id)}`, jeu([...ids, e.id]), false)), 'liste'),
   ];
 }
 
@@ -397,7 +407,7 @@ function inspecteurDEntree(s: SessionDEdition, entree: { nom: string; z: number 
   ];
 }
 
-/** Les lieux de repos qu'une zone de repos offre. */
+/** Les lieux de repos qu'une scène ou une zone de repos offre. */
 const LIEUX = ['auberge', 'maison', 'camp'] as const;
 
 type Rect = { x: number; y: number; w: number; h: number };
@@ -636,14 +646,14 @@ function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | B
       bouton('zone/pleine', t('ecran.editeur.zone.emprise.pleine'), sur({ pleine: true }), false, ez.tiles ? null : t('ecran.editeur.zone.emprise.dejaPleine')),
       bouton('zone/blocksLoS', t('ecran.editeur.zone.blocksLoS'), sur({ blocksLoS: !ez.blocksLoS }), !!ez.blocksLoS),
       bouton('zone/barrier', t('ecran.editeur.zone.barrier'), sur({ barrier: !ez.barrier }), !!ez.barrier),
-      ...couverture(ez.couvre, sur),
+      ...couverture('zone/couvre', ez.couvre, (couvre) => sur({ couvre })),
     );
   }
   propre.push(choixDeLaCouche(s, 'zone/couche', zone.z, (z) => sur({ z })));
   if (sel?.type === 'trigger') {
     const declencheur = scene.triggers.find((tr) => tr.id === sel.id)!;
     propre.unshift(formulaireDuNom(declencheur.id, false));
-    propre.push(bouton('zone/uneFois', t('ecran.editeur.zone.uneFois'), sur({ once: !declencheur.once }), !!declencheur.once), ...couverture(declencheur.couvre, sur));
+    propre.push(bouton('zone/uneFois', t('ecran.editeur.zone.uneFois'), sur({ once: !declencheur.once }), !!declencheur.once), ...couverture('zone/couvre', declencheur.couvre, (couvre) => sur({ couvre })));
   }
   if (sel?.type === 'restZone') {
     const repos = scene.restZones![sel.idx];
@@ -782,7 +792,61 @@ function inspecteur(s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[]
   if (entree) return inspecteurDEntree(s, entree);
   if (zone) return inspecteurDeZone(s, zone);
   const architecture = inspecteurDArchitecture(s);
-  return architecture.length ? architecture : inspecteurDArete(s);
+  if (architecture.length) return architecture;
+  return s.sel ? inspecteurDArete(s) : inspecteurDeScene(sceneEditee(s));
+}
+
+/** Les pas des réglettes de la grille, en cases, de l'échelle, en mètres par case, et du nord, en degrés. */
+const PAS_DE_GRILLE: Pas = { pas: 1, unite: '', min: 5, max: Infinity };
+const PAS_D_ECHELLE: Pas = { pas: 1, unite: ' m', min: 1, max: Infinity };
+const PAS_DU_NORD: Pas = { pas: 15, unite: '°', min: 0, max: 345 };
+
+/** L'inspecteur de la scène `scene`, sans sélection : le formulaire qui la nomme, celui qui la décrit ; sa grille,
+ *  largeur et hauteur à la réglette ; les entrées de fiche qu'elle couvre ; son ambiance, son échelle, sa lumière
+ *  ambiante, son nord, son environnement et sa météo ; la matière de chaque partie de son relief ; sa toiture par
+ *  défaut ; son repos sur place ; ses drapeaux de départ, et le formulaire qui en ajoute un. */
+function inspecteurDeScene(scene: Scene): (Choix | Ligne | Bouton | Formulaire)[] {
+  const sur = (patch: PatchDeScene): GesteDEdition => ({ geste: 'scene', patch });
+  const scalaire = (patch: NonNullable<PatchDeScene['scalaires']>) => sur({ scalaires: patch });
+  const { w, h } = scene.dimensions;
+  const echelle = sceneMetresPerTile(scene);
+  const toit = scene.roofDefaults;
+  const repos = reposDeScene(scene);
+  const nonDit = t('ecran.editeur.scene.nonDit');
+  return [
+    formulaireDuNom(scene.label, false),
+    formulaireAUnChamp('decrire', t('ecran.editeur.scene.decrire'), 'desc', t('ecran.editeur.scene.description'), scene.desc ?? '', true),
+    ...reglette('scene/largeur', t('ecran.editeur.scene.largeur', { v: w }), w, PAS_DE_GRILLE, (v) => sur({ dimensions: { w: v, h } })),
+    ...reglette('scene/hauteur', t('ecran.editeur.scene.hauteur', { v: h }), h, PAS_DE_GRILLE, (v) => sur({ dimensions: { w, h: v } })),
+    ...couverture('scene/couvre', scene.couvre, (couvre) => scalaire({ couvre })),
+    choix('scene/ambiance', t('ecran.editeur.scene.ambiance'), AMBIANCES.map((a) => bouton(`scene/ambiance/${a}`, t(`ecran.editeur.scene.ambiance.${a}`), scalaire({ ambiance: a }), (scene.ambiance ?? 'exterieur') === a))),
+    ...reglette('scene/echelle', t('ecran.editeur.scene.echelle', { v: echelle }), echelle, PAS_D_ECHELLE, (v) => scalaire({ metresPerTile: v })),
+    choix('scene/lumiere', t('ecran.editeur.scene.lumiere'), [
+      bouton('scene/lumiere/auto', t('ecran.editeur.scene.lumiere.auto'), scalaire({ ambientLight: null }), scene.ambientLight === undefined),
+      ...lightLevels.map((l) => bouton(`scene/lumiere/${l.id}`, l.label, scalaire({ ambientLight: l.id }), scene.ambientLight === l.id)),
+    ], 'liste'),
+    ...reglette('scene/nord', scene.northDeg === undefined ? t('ecran.editeur.scene.nord.haut') : t('ecran.editeur.scene.nord', { v: scene.northDeg }), scene.northDeg ?? 0, PAS_DU_NORD,
+      (v) => sur({ nord: v }), { libelle: t('ecran.editeur.scene.nord.defaut'), jeu: sur({ nord: null }), presse: scene.northDeg === undefined }),
+    choix('scene/environnement', t('ecran.editeur.scene.environnement'), [null, ...ENVIRONNEMENTS].map((e) =>
+      bouton(`scene/environnement/${e ?? 'aucun'}`, e ? t(`ecran.editeur.scene.environnement.${e}`) : nonDit, scalaire({ environment: e }), (scene.environment ?? null) === e))),
+    choix('scene/meteo', t('ecran.editeur.scene.meteo'), [
+      bouton('scene/meteo/aucune', nonDit, scalaire({ weather: null }), scene.weather === undefined),
+      ...METEOS.map(([m, libelle]) => bouton(`scene/meteo/${m}`, libelle, scalaire({ weather: m }), scene.weather === m)),
+    ], 'liste'),
+    ...PARTS_RELIEF.map((part) => choix(`scene/relief/${part}`, t(`ecran.editeur.scene.relief.${part}`), matieresDe('relief').map((m) =>
+      bouton(`scene/relief/${part}/${m.id}`, m.label, sur({ relief: { [part]: m.id } }), scene.reliefDefaults[part] === m.id)), 'liste')),
+    ligne('scene/toiture', t('ecran.editeur.scene.toiture')),
+    choixDeCouverture('scene/toiture/couverture', toit.material, (m) => sur({ toiture: { material: m } }), null),
+    ...reglette('scene/toiture/pente', t('ecran.editeur.toiture.pente', { v: toit.pitchDeg }), toit.pitchDeg, PAS_DE_PENTE, (v) => sur({ toiture: { pitchDeg: v } })),
+    ...reglette('scene/toiture/comble', t('ecran.editeur.toiture.comble', { v: toit.riseMaxStoreys }), toit.riseMaxStoreys, PAS_D_ETAGE, (v) => sur({ toiture: { riseMaxStoreys: v } })),
+    choix('scene/repos', t('ecran.editeur.scene.repos'), LIEUX.map((l) => bouton(`scene/repos/${l}`, t(`ecran.editeur.zone.lieu.${l}`), sur({ repos: { lieux: { [l]: !repos[l] } } }), !!repos[l]))),
+    bouton('scene/repos/pietre', t('ecran.editeur.zone.pietre'), sur({ repos: { pietre: repos.quality !== 'pietre' } }), repos.quality === 'pietre'),
+    ...(Object.keys(scene.flags).length ? [
+      choix('scene/drapeau', t('ecran.editeur.scene.drapeaux'), Object.entries(scene.flags).map(([cle, valeur]) => bouton(`scene/drapeau/${cle}`, cle, sur({ drapeaux: { [cle]: !valeur } }), valeur))),
+      choix('scene/drapeau/retirer', t('ecran.editeur.scene.drapeau.retirer'), Object.keys(scene.flags).map((cle) => bouton(`scene/drapeau/retirer/${cle}`, cle, sur({ drapeaux: { [cle]: null } }))), 'liste'),
+    ] : []),
+    formulaireAUnChamp('drapeau', t('ecran.editeur.scene.drapeau.ajouter'), 'cle', t('ecran.editeur.scene.drapeau.cle'), '', false),
+  ];
 }
 
 /** La ligne du parapet crénelé de la case pointée de la session `s`, sa structure ; aucune sans parapet. */
@@ -952,18 +1016,28 @@ const estEntier = (v: unknown): v is number => Number.isInteger(v);
 const estNombre = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
 /** Le geste du formulaire de l'inspecteur que portent les zones `z`, joué `{ type, args }` : celui qui nomme la
- *  sélection (`formulaireDuNom`), `{ geste: 'nommer', nom }`, le nom saisi, absent s'il est laissé vide ; celui qui change
- *  l'identifiant de la zone d'effet (`formulaireDeLIdentifiant`), `{ geste: 'identifier', id }` ; `undefined` si les zones
- *  ne portent pas ce formulaire ou si `args` n'est pas ce qu'il saisit. */
-export function gesteDuFormulaire(z: ZonesDeLEditeur, jeu: unknown): Extract<GesteDEdition, { geste: 'nommer' | 'identifier' }> | undefined {
-  if (!estObjet(jeu) || Object.keys(jeu).length !== 2 || (jeu.type !== 'nommer' && jeu.type !== 'identifier') || !Array.isArray(jeu.args)) return undefined;
+ *  sélection ou la scène (`formulaireDuNom`), `{ geste: 'nommer', nom }`, le nom saisi, absent s'il est laissé vide ;
+ *  celui qui change l'identifiant de la zone d'effet (`formulaireDeLIdentifiant`), `{ geste: 'identifier', id }` ; celui
+ *  qui décrit la scène, sa description, retirée si elle est laissée vide ; celui qui ajoute un drapeau de départ à la
+ *  scène, vrai ; `undefined` si les zones ne portent pas ce formulaire ou si `args` n'est pas ce qu'il saisit. */
+export function gesteDuFormulaire(z: ZonesDeLEditeur, jeu: unknown): GesteDEdition | undefined {
+  if (!estObjet(jeu) || Object.keys(jeu).length !== 2 || !VERBES_DE_FORMULAIRE.includes(jeu.type as string) || !Array.isArray(jeu.args)) return undefined;
   const [valeur, ...reste] = jeu.args as unknown[];
   const vide = valeur === undefined || valeur === null;
-  if (reste.length || !(typeof valeur === 'string' || (vide && jeu.type === 'nommer'))) return undefined;
+  const optionnel = jeu.type === 'nommer' || jeu.type === 'decrire';
+  if (reste.length || !(typeof valeur === 'string' || (vide && optionnel))) return undefined;
   if (!z['editeur.inspecteur'].some((e) => e.type === 'formulaire' && e.verbe === jeu.type)) return undefined;
-  if (jeu.type === 'identifier') return { geste: 'identifier', id: valeur as string };
-  return { geste: 'nommer', ...(typeof valeur === 'string' ? { nom: valeur } : {}) };
+  const texte = typeof valeur === 'string' ? valeur : undefined;
+  switch (jeu.type) {
+    case 'identifier': return { geste: 'identifier', id: valeur as string };
+    case 'decrire': return { geste: 'scene', patch: { scalaires: { desc: texte?.trim() || null } } };
+    case 'drapeau': return texte?.trim() ? { geste: 'scene', patch: { drapeaux: { [texte.trim()]: true } } } : undefined;
+    default: return { geste: 'nommer', ...(texte !== undefined ? { nom: texte } : {}) };
+  }
 }
+
+/** Les verbes des formulaires de l'inspecteur. */
+const VERBES_DE_FORMULAIRE: readonly string[] = ['nommer', 'identifier', 'decrire', 'drapeau'];
 
 /** Si `g` est l'issue de l'écriture d'un enregistrement au dépôt : `{ geste: 'enregistrement', reussi }`, rien de plus. */
 export function estLIssueDUnEnregistrement(g: unknown): g is Extract<GesteDEdition, { geste: 'enregistrement' }> {

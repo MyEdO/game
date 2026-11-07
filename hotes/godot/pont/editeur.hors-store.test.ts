@@ -48,6 +48,13 @@ function valeursDe(e: Edition, id: string): Bouton[] {
   return c.valeurs;
 }
 
+/** Les valeurs du choix d'id `id` de l'inspecteur. */
+function valeursDeLInspecteur(e: Edition, id: string): Bouton[] {
+  const c = e.vue.zones['editeur.inspecteur'].find((el) => el.id === id);
+  if (c?.type !== 'choix' && c?.type !== 'liste') throw new Error(`aucun choix ${id}`);
+  return c.valeurs;
+}
+
 /** La première campagne du jeu : chaque scène a au moins deux cases de côté. */
 const CAMPAGNE = allBuiltinCampaigns[0].id;
 const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
@@ -292,9 +299,9 @@ describe('l’éditeur de carte par le pont, les zones', () => {
     const offerte = (inspecteur(barree).find((el) => el.id === 'zone/couvre/ajouter') as Choix).valeurs[0];
     const couverte = presser(offerte);
     const id = offerte.id.slice('zone/couvre/ajouter/'.length);
-    expect(boutonDe(couverte, `zone/couvre/${id}`)).toMatchObject({ presse: true, libelle: offerte.libelle });
+    expect(inspecteur(couverte).find((el) => el.id === `zone/couvre/${id}`)).toMatchObject({ type: 'ligne', texte: `Couvre ${offerte.libelle}` });
     expect((inspecteur(couverte).find((el) => el.id === 'zone/couvre/ajouter') as Choix).valeurs.some((v) => v.id === offerte.id), 'une entrée couverte ne s’offre plus').toBe(false);
-    expect(inspecteur(presser(boutonDe(couverte, `zone/couvre/${id}`))).find((el) => el.id === 'zone/couvre')?.type, 'retirée, la zone n’en couvre aucune').toBe('ligne');
+    expect(inspecteur(presser(boutonDe(couverte, `zone/couvre/retirer/${id}`))).find((el) => el.id === 'zone/couvre')?.type, 'retirée, la zone n’en couvre aucune').toBe('ligne');
   });
 
   it('un déclencheur se renomme, sous un nom libre seulement, et couvre une entrée de fiche', () => {
@@ -304,7 +311,7 @@ describe('l’éditeur de carte par le pont, les zones', () => {
     const ancien = posee.surcouche.zones.find((z) => z.choisi)!.nom;
     expect(renomme.surcouche.zones.some((z) => z.nom === ancien), 'le déclencheur ne garde pas son ancien nom').toBe(false);
     const couvert = presser((renomme.vue.zones['editeur.inspecteur'].find((el) => el.id === 'zone/couvre/ajouter') as Choix).valeurs[0]);
-    expect((couvert.vue.zones['editeur.inspecteur'].find((el) => el.id === 'zone/couvre') as Choix).valeurs.map((v) => v.presse)).toEqual([true]);
+    expect((couvert.vue.zones['editeur.inspecteur'].find((el) => el.id === 'zone/couvre/retirer') as Choix).valeurs).toHaveLength(1);
   });
 });
 
@@ -428,6 +435,45 @@ describe('l’éditeur de carte par le pont, l’architecture', () => {
   });
 });
 
+describe('l’éditeur de carte par le pont, la scène', () => {
+  it('sans sélection, l’inspecteur règle la scène : son nom, sa description, sa grille, son nord, sa météo, son relief, sa toiture, son repos, ses drapeaux', () => {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const inspecteur = (e: Edition) => e.vue.zones['editeur.inspecteur'];
+    const champ = (e: Edition, verbe: string) => (inspecteur(e).find((el) => el.type === 'formulaire' && el.verbe === verbe) as Formulaire).champs[0];
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const texte = (e: Edition, id: string) => (inspecteur(e).find((el) => el.id === id) as Ligne).texte;
+    const nombre = (e: Edition, id: string) => Number(/-?\d+/.exec(texte(e, id))![0]);
+    expect(champ(ouverte, 'nommer')).toMatchObject({ valeur: ouverte.vue.zones['editeur.titre'][0].texte });
+    expect(editionDe(appel('editer', { type: 'nommer', args: ['Relais de poste'] })).vue.zones['editeur.titre'][0]).toMatchObject({ texte: 'Relais de poste' });
+    expect(champ(editionDe(appel('editer', { type: 'decrire', args: ['Une note'] })), 'decrire')).toMatchObject({ valeur: 'Une note' });
+    expect(champ(editionDe(appel('editer', { type: 'decrire', args: [] })), 'decrire')).toMatchObject({ valeur: '' });
+
+    const large = presser(boutonDe(ouverte, 'scene/largeur/plus'));
+    expect(nombre(large, 'scene/largeur')).toBe(nombre(ouverte, 'scene/largeur') + 1);
+    expect(texte(large, 'scene/nord'), 'aucune scène livrée ne déclare son nord').toBe('Nord : vers le haut du plan');
+    const tourne = presser(boutonDe(large, 'scene/nord/plus'));
+    expect(texte(tourne, 'scene/nord')).toBe('Nord : 15° dans le sens horaire');
+    expect(boutonDe(presser(boutonDe(tourne, 'scene/nord/defaut')), 'scene/nord/defaut').presse).toBe(true);
+
+    const meteo = valeursDeLInspecteur(tourne, 'scene/meteo').find((b) => !b.presse && b.id !== 'scene/meteo/aucune')!;
+    expect(boutonDe(presser(meteo), meteo.id).presse).toBe(true);
+    const falaise = valeursDeLInspecteur(tourne, 'scene/relief/cliff').find((b) => !b.presse)!;
+    expect(boutonDe(presser(falaise), falaise.id).presse).toBe(true);
+    const pente = presser(boutonDe(tourne, 'scene/toiture/pente/plus'));
+    expect(nombre(pente, 'scene/toiture/pente')).toBe(nombre(tourne, 'scene/toiture/pente') + 5);
+    const camp = boutonDe(pente, 'scene/repos/camp');
+    expect(boutonDe(presser(camp), 'scene/repos/camp').presse).toBe(!camp.presse);
+
+    const drapeau = editionDe(appel('editer', { type: 'drapeau', args: ['pont-leve'] }));
+    expect(boutonDe(drapeau, 'scene/drapeau/pont-leve').presse).toBe(true);
+    expect(boutonDe(presser(boutonDe(drapeau, 'scene/drapeau/pont-leve')), 'scene/drapeau/pont-leve').presse).toBe(false);
+    const retire = presser(boutonDe(drapeau, 'scene/drapeau/retirer/pont-leve'));
+    expect(() => boutonDe(retire, 'scene/drapeau/pont-leve')).toThrow();
+    expect(erreurDe(appel('editer', { type: 'drapeau', args: [' '] })).categorie).toBe('validation');
+  });
+});
+
 describe('l’éditeur de carte par le pont, le combat et l’ameublement', () => {
   it('un emplacement de siège posé à l’outil : son engin, son arc, ses servants et leur chef ; un personnage enrôlé dans une rencontre neuve, allié piloté', () => {
     const { appel } = table();
@@ -515,7 +561,7 @@ describe('l’éditeur de carte par le pont, l’inspecteur d’arête', () => {
     expect(inspecte('arete/suspendu')).toMatchObject({ texte: 'Chute si l’on se suspend d’abord : 0.5 m' });
 
     e = presser(boutonDe(e, 'arete/supprimer'));
-    expect(e.vue.zones['editeur.inspecteur'], 'l’arête supprimée, plus d’inspecteur').toEqual([]);
+    expect(e.vue.zones['editeur.inspecteur'].map((el) => el.id).filter((id) => !id.startsWith('scene/') && !['nommer', 'decrire', 'drapeau'].includes(id)), 'l’arête supprimée, l’inspecteur de la scène').toEqual([]);
   });
 });
 
