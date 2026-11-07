@@ -1,8 +1,7 @@
 /**
  * `intentionDuClicDeCase` (noyau) : ce que joue la case → ennemi → attaque, case libre → déplacement, allié → rien ;
  * `jouerLeClicDuCombattant` / `jouerLeClicDeCase` : le geste joué, lu par le commit du curseur, le clic-sol
- * (`useStagePointer.performClick`), la frappe d'une structure et la frise. Le curseur clavier et manette se joue en
- * `src/state/combatCursor.test.ts`.
+ * (`useStagePointer.performClick`), la frappe d'une structure et la frise.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -63,7 +62,7 @@ describe('intentionDuClicDeCase — clic-sol et commit du curseur (mode-aware)',
 describe('jouerLeClicDuCombattant / jouerLeClicDeCase — le geste du clic, lu dans l’état au moment du clic', () => {
   let banc: Banc;
   beforeEach(() => { banc = ouvrirLeBanc(); });
-  /** Le verbe du champ remplacé DANS L'ÉTAT, comme l'enrobage d'intention de l'invité coop (`state/netFlow.ts`). */
+  /** Le verbe du champ remplacé DANS L'ÉTAT, comme l'enrobage d'intention de l'invité coop (`hote/coop/salon.ts`, `emettreIntentInvite`). */
   function poser() {
     const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
     const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 10 };

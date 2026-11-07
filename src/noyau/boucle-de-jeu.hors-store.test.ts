@@ -1,7 +1,6 @@
 /**
  * La boucle de jeu au banc du noyau : scène, combat, avancement par PX, fouille et butin, consommables, Chance,
- * Détermination, munitions, Destin et Résilience, horloge, marchand. Ce que le store web y ajoute (clavier, curseur,
- * caméra, vue, inspection, gardes d'une partie à l'autre) se joue en `src/state/store.test.ts`.
+ * Détermination, munitions, Destin et Résilience, horloge, marchand.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { parseQualityInstance } from '../engine/qualities/normalize';

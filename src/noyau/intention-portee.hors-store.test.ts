@@ -21,7 +21,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { computeChargeReach, computeRunReach, displayedReach } from './combatFlow';
-import { intentReach, armedIntentPortee } from './localIntent';
+import { intentReach, armedIntentPortee, porteesDuTour } from './localIntent';
 import { appliquerLInstantane, instantaneDeLaCoop } from './coop';
 import { GUEST_INTENTS } from './intentionsDeSiege';
 import { chargeReach } from '../engine/movement';
@@ -90,6 +90,30 @@ describe('(a) la portée AFFICHÉE est celle du moteur', () => {
     expect(intentReach(get).size).toBe(0);
   });
 
+  it('Course armée → sa zone est `computeRunReach`, jamais une 2ᵉ bande d’intention (`porteesDuTour`)', () => {
+    setup();
+    get().jouerLOffre('course');
+    expect(get().localIntent).toEqual({ actionId: 'course' });
+    const attendu = computeRunReach(get);
+    expect(attendu.size).toBeGreaterThan(0);
+    const portees = porteesDuTour(get, true);
+    expect([...portees.course.keys()].sort()).toEqual([...attendu.keys()].sort());
+    expect(portees.intention.size, 'la Course peint sa zone DEUX fois').toBe(0);
+  });
+
+  it('AUCUNE portée d’intention ne se peint VIDE — chaque geste armé montre la sienne (`porteesDuTour`)', () => {
+    const mesures: [string, (p: ReturnType<typeof porteesDuTour>) => number][] = [
+      ['mouvement', (p) => p.intention.size],
+      ['charge', (p) => p.intention.size],
+      ['course', (p) => p.course.size],
+    ];
+    for (const [actionId, mesure] of mesures) {
+      setup();
+      get().jouerLOffre(actionId);
+      const p = porteesDuTour(get, true);
+      expect(mesure(p), `l’intention « ${actionId} » (${armedIntentPortee(get)}) est armée et ne peint RIEN — intention=${p.intention.size} course=${p.course.size}`).toBeGreaterThan(0);
+    }
+  });
 });
 
 describe('(b) annulation', () => {
@@ -105,6 +129,15 @@ describe('(b) annulation', () => {
     get().jouerLOffre('course');
     get().jouerLOffre('charge');
     expect(get().localIntent).toEqual({ actionId: 'charge' });
+  });
+
+  it('désarmer (`battleArmIntent(null)`) dissout l’intention et sa bande', () => {
+    setup();
+    get().jouerLOffre('charge');
+    expect(get().localIntent).not.toBeNull();
+    get().battleArmIntent(null);
+    expect(get().localIntent).toBeNull();
+    expect(intentReach(get).size).toBe(0);
   });
 
   it('le tour qui s’achève emporte l’intention', () => {
