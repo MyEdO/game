@@ -84,11 +84,14 @@
 //   copie, « Source de lumière » l'allume à 6 m, « Rayon +1 m » la porte à 7 m. L'outil Emplacement de siège, un clic sur
 //   une case libre y pose le premier engin, nommé comme lui ; « Droite (tribord) » fixe son créneau. L'outil Sélection,
 //   un clic sur une case libre vide la sélection. L'outil Zone, une pièce tirée de deux cases sur deux, nommée et munie de
-//   sa poignée ; l'outil Sélection, la poignée glissée l'agrandit, « Supprimer » la retire. L'outil Architecture, un clic
-//   sur une case libre puis « Nouveau corps » y pose un corps, dont l'inspecteur dit la toiture ; « Poser une façade »,
-//   un clic sur le côté nord de la case y pose une façade, « Ajouter une ouverture » lui en donne une ; « Tirer une
-//   exclusion de toiture », un rectangle tiré à côté l'ajoute au corps ; un clic sur la case puis « Nouvelle masse de
-//   toiture » y pose une masse, que « +1 » monte à deux niveaux.
+//   sa poignée ; l'outil Sélection, la poignée glissée l'agrandit ; à son inspecteur (#3606), « Ajouter : Test de
+//   traversée », la difficulté choisie en liste et « sans assistance » au clic ; « Supprimer » la retire. L'outil
+//   Architecture, un clic sur une case libre puis « Nouveau corps » y pose un corps, dont l'inspecteur dit la toiture ;
+//   « Poser une façade », un clic sur le côté nord de la case y pose une façade, « Ajouter une ouverture » lui en donne
+//   une ; « Tirer une exclusion de toiture », un rectangle tiré à côté l'ajoute au corps ; un clic sur la case puis
+//   « Nouvelle masse de toiture » y pose une masse, que « +1 » monte à deux niveaux. L'outil Sélection, un clic sur la
+//   case voisine du décor choisit le déclencheur qui la couvre : à son inspecteur, sa condition « TOUS (ET) » choisie en
+//   liste, puis « Ajouter » lui donne une condition dans son contenu ; « Annuler » deux fois la retire.
 //   « Charger une planche… » ouvre le choix d'un fichier de la page, que la recette remplit d'une planche quadrillée : le
 //   calque se pose sur toute la carte ; « Caler par deux points », puis le centre d'une case comme premier point de
 //   l'image, son coin comme son nœud, et le centre de la case quatre plus loin comme second point, le coin de la case
@@ -1436,6 +1439,19 @@ async function parcoursEditeur() {
   await cliquerPoint(...cases[`${dx + 1},${dy}`])
   await waitFor(session, '(globalThis.wfrpEcran?.editeur?.zones["editeur.pointee"] ?? []).some((l) => l.id === "zone")')
   noter(`outil Sélection, un clic sur la case ${dx + 1}, ${dy} : ${(await editeur()).zones['editeur.pointee'].find((l) => l.id === 'zone').texte}`)
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'valeur/when/kind')`)
+  e = await editeur()
+  await choisirALaListe('valeur/when/kind', inspecte(e, 'valeur/when/kind').valeurs.find((b) => b.libelle === 'TOUS (ET)').id, 'editeur.inspecteur')
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'valeur/when/of/ajouter')`)
+  await cliquerAuPanneau({ element: 'bouton/valeur/when/of/ajouter' })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'valeur/when/of/0/kind')`)
+  e = await editeur()
+  const sousCondition = inspecte(e, 'valeur/when/of/0/kind').valeurs.find((b) => b.presse)?.libelle
+  noter(`à l’inspecteur du déclencheur, la condition « ${inspecte(e, 'valeur/when/kind').valeurs.find((b) => b.presse).libelle} », puis « Ajouter » : une condition « ${sousCondition} » dans son contenu`)
+  await capturer('3606-m0b-1-condition-du-declencheur')
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/when/of'))`)
   const planche = join(depot, 'planche.png')
   ecrirePlanche(planche)
   await session.rpc('Page.setInterceptFileChooserDialog', { enabled: true })

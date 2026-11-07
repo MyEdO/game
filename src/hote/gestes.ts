@@ -17,6 +17,7 @@ import {
 } from '../noyau/index';
 import { garanti } from '../lib/garanti';
 import { proprietaireDeLaFenetre, type ProprietaireDeLaFenetre } from './projection';
+import type { Valeur } from './elements';
 import type { Forme, ParametreDeVerbe } from './formes';
 import { parametresDeLAxe } from './geste';
 import { VERBES } from './verbes.generated';
@@ -44,7 +45,8 @@ export function parametresDuGeste(g: GesteDuJeu): readonly ParametreDeVerbe[] {
 /** Au-delà de ce nombre de valeurs, un choix se rend en liste plutôt qu'en rangée de boutons. */
 export const CHOIX_EN_BOUTONS = 7;
 
-/** Un argument d'un geste : `fixe`, posé par la fenêtre (`valeur`) ; `choix` parmi `valeurs` ; `nombre`, entre ses
+/** Un argument d'un geste : `fixe`, posé par la fenêtre (`valeur`) ; `choix` parmi `valeurs`, chacune ce qu'elle vaut,
+ *  son libellé et ce qui la refuse ; `nombre`, entre ses
  *  `bornes` quand le réglage en pose ; `texte`, une chaîne ; `objet`, ses `champs` saisis chacun ; `json`, une valeur
  *  JSON. `valeur` est la valeur courante que le réglage dit (`null` sans réglage). */
 export interface ArgumentDuGeste {
@@ -53,7 +55,7 @@ export interface ArgumentDuGeste {
   saisie: 'fixe' | 'choix' | 'nombre' | 'texte' | 'objet' | 'json';
   libelle: string | null;
   valeur: unknown;
-  valeurs: ValeurDuReglage[] | null;
+  valeurs: Omit<Valeur, 'presse'>[] | null;
   bornes: Reglage['bornes'];
   note: string | null;
   champs: ArgumentDuGeste[] | null;

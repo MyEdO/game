@@ -17,7 +17,7 @@ import {
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
-  type WallPaint, ZONE_VARIANTS, champsDeclares, choixDuNoeud, formulaireDeZone, inferFields, valeurNeuveDe, type FieldDesc, type Segment,
+  type WallPaint, ZONE_VARIANTS, champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -658,35 +658,89 @@ function elementDeValeur(id: string, porteur: PorteurDeValeur, chemin: Segment[]
   return elementsDesGestes([g])[0];
 }
 
-/** Les éléments du formulaire tiré du schéma des champs `champs` (`FieldDesc`, `inferFields`) du porteur `porteur`, de
- *  donnée `donnee`, à plat, chacun d'id `valeur/<chemin>` et jouant `{ geste: 'valeur', porteur, chemin, valeur }`
- *  (`valeur` absente : le champ se retire). Un objet (`champsDeclares`) présent : son libellé, ses champs, et « Retirer »
- *  si son absence est admise ; absent : « Ajouter », qui pose sa valeur neuve (`valeurNeuveDe`). Tout autre champ :
- *  l'élément de sa valeur (`elementDeValeur`), puis, si son absence est admise, « Aucune » sous un choix, pressé quand
- *  il est absent, ou « Retirer » sous un champ présent. */
+/** Le geste `valeur` qui écrit `v` au chemin `chemin` du porteur `porteur` (`v` absente : le champ se retire). */
+const ecrireLaValeur = (porteur: PorteurDeValeur, chemin: Segment[], v?: unknown): GesteDEdition => ({ geste: 'valeur', porteur, chemin, ...(v === undefined ? {} : { valeur: v }) });
+
+/** Les éléments du formulaire tiré du schéma des champs `champs` (`FieldDesc`) du porteur `porteur`, de donnée
+ *  `donnee`, au chemin `chemin` : ceux de chaque champ (`elementsDuChamp`), à plat. */
 function elementsDuFormulaire(porteur: PorteurDeValeur, champs: readonly FieldDesc[], donnee: Record<string, unknown>, chemin: Segment[] = []): (Choix | Ligne | Bouton | Formulaire)[] {
-  return champs.flatMap((f): (Choix | Ligne | Bouton | Formulaire)[] => {
-    const ici = [...chemin, f.key];
-    const id = `valeur/${ici.join('/')}`;
-    const valeur = donnee[f.key];
-    const ecrire = (v?: unknown): GesteDEdition => ({ geste: 'valeur', porteur, chemin: ici, ...(v === undefined ? {} : { valeur: v }) });
-    const retirer = valeur !== undefined && f.nullable ? [bouton(`${id}/retirer`, t('ecran.editeur.valeur.retirer', { libelle: f.label }), ecrire())] : [];
-    if (champsDeclares(f.noeud)) {
-      if (valeur === undefined) return [bouton(`${id}/ajouter`, t('ecran.editeur.valeur.ajouter', { libelle: f.label }), ecrire(valeurNeuveDe(f.noeud)))];
-      const objet = valeur as Record<string, unknown>;
-      return [ligne(id, f.label), ...elementsDuFormulaire(porteur, inferFields([objet], { noeud: f.noeud, niveau: 'profondeur' }), objet, ici), ...retirer];
+  return champs.flatMap((f) => elementsDuChamp(porteur, f, donnee[f.key], [...chemin, f.key]));
+}
+
+/** Les éléments du champ `f` du porteur `porteur`, de valeur `valeur` (`undefined` : absent), au chemin `ici`, d'id
+ *  `valeur/<chemin>`, chacun jouant `{ geste: 'valeur', porteur, chemin, valeur }`. Un objet (`champsDeclares`)
+ *  présent : son libellé, ses champs offerts (`champsOfferts`), et « Retirer » si son absence est admise ; absent :
+ *  « Ajouter », qui pose sa valeur neuve (`valeurNeuveDe`). Une union nommée : sa variante (`elementsDeLUnion`). Une
+ *  liste : ses éléments (`elementsDeLaListe`). Tout autre champ : l'élément de sa valeur (`elementDeValeur`), puis, si
+ *  son absence est admise, « Aucune » sous un choix, pressé quand il est absent, ou « Retirer » sous un champ présent. */
+function elementsDuChamp(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[]): (Choix | Ligne | Bouton | Formulaire)[] {
+  const id = `valeur/${ici.join('/')}`;
+  const retirer = valeur !== undefined && f.nullable ? [bouton(`${id}/retirer`, t('ecran.editeur.valeur.retirer', { libelle: f.label }), ecrireLaValeur(porteur, ici))] : [];
+  if (champsDeclares(f.noeud)) {
+    if (valeur === undefined) return [bouton(`${id}/ajouter`, t('ecran.editeur.valeur.ajouter', { libelle: f.label }), ecrireLaValeur(porteur, ici, valeurNeuveDe(f.noeud)))];
+    const objet = valeur as Record<string, unknown>;
+    return [ligne(id, f.label), ...elementsDuFormulaire(porteur, champsOfferts(f.noeud, objet), objet, ici), ...retirer];
+  }
+  if (unionDuNoeud(f.noeud)) return elementsDeLUnion(porteur, f, valeur, ici);
+  if (elementDuNoeud(f.noeud) !== undefined) return elementsDeLaListe(porteur, f, valeur, ici);
+  const a = argumentDeValeur(f, valeur);
+  const aucune = a.saisie === 'choix' && f.nullable ? [bouton(`${id}/aucune`, t('ecran.editeur.valeur.aucune'), ecrireLaValeur(porteur, ici), valeur === undefined)] : [];
+  return [elementDeValeur(id, porteur, ici, f, a), ...(a.saisie === 'choix' ? aucune : retirer)];
+}
+
+/** Les éléments du champ union `f` (`unionDuNoeud`), de valeur `valeur`, au chemin `ici`, les discriminants `tenus` déjà
+ *  choisis : le choix de sa variante, d'id `valeur/<chemin>/<discriminant>`, chacune posant sa valeur
+ *  (`variantesAChoisir`), suivi de « Aucune » si son absence est admise ; puis, de la variante courante, une union
+ *  choisie sous le même chemin, ses champs offerts, ou, d'une op sans forme déclarée, la ligne qui le dit et la saisie
+ *  JSON de l'op entière. */
+function elementsDeLUnion(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[], tenus: readonly string[] = []): (Choix | Ligne | Bouton | Formulaire)[] {
+  const id = `valeur/${ici.join('/')}`;
+  const u = unionDuNoeud(f.noeud)!;
+  const idDuChoix = `${id}/${u.discriminant}`;
+  const variantes = variantesAChoisir(f.noeud, valeur)!.map((v) => ({ valeur: v.valeur, libelle: v.libelle, refus: null }));
+  const a: ArgumentDuGeste = { nom: 'valeur', optionnel: false, saisie: 'choix', libelle: f.label, valeur: valeur ?? null, valeurs: variantes, bornes: null, note: null, champs: null };
+  const aucune = f.nullable ? [bouton(`${idDuChoix}/aucune`, t('ecran.editeur.valeur.aucune'), ecrireLaValeur(porteur, ici), valeur === undefined)] : [];
+  const courante = varianteCourante(u, valeur);
+  const choisis = [...tenus, u.discriminant];
+  const suite = (): (Choix | Ligne | Bouton | Formulaire)[] => {
+    if (!courante) return [];
+    if (courante.noeud === undefined) {
+      return [ligne(`${id}/motif`, t('ecran.editeur.valeur.motif.opNonTypee')), elementDeValeur(id, porteur, ici, f, { ...a, saisie: 'json', valeurs: null })];
     }
-    const a = argumentDeValeur(f, valeur);
-    const aucune = a.saisie === 'choix' && f.nullable ? [bouton(`${id}/aucune`, t('ecran.editeur.valeur.aucune'), ecrire(), valeur === undefined)] : [];
-    return [elementDeValeur(id, porteur, ici, f, a), ...(a.saisie === 'choix' ? aucune : retirer)];
+    if (unionDuNoeud(courante.noeud)) return elementsDeLUnion(porteur, { ...f, label: courante.libelle, nullable: false, noeud: courante.noeud }, valeur, ici, choisis);
+    const objet = valeur as Record<string, unknown>;
+    return elementsDuFormulaire(porteur, champsOfferts(courante.noeud, objet, choisis), objet, ici);
+  };
+  return [elementDeValeur(idDuChoix, porteur, ici, f, a), ...aucune, ...suite()];
+}
+
+/** Les éléments du champ liste `f` (`elementDuNoeud`), de valeur `valeur`, au chemin `ici` : présente, son libellé puis
+ *  chacun de ses éléments, au chemin de son rang (`champDeLElement`), ses éléments, « Retirer » et, hors du premier,
+ *  « Monter » ; puis « Ajouter », qui pose un élément neuf (`valeurNeuveDe`) en fin. Chaque bouton écrit la liste entière
+ *  (`gestesDeLaListe`). */
+function elementsDeLaListe(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[]): (Choix | Ligne | Bouton | Formulaire)[] {
+  const id = `valeur/${ici.join('/')}`;
+  const liste = Array.isArray(valeur) ? valeur : [];
+  const gestes = gestesDeLaListe(liste, valeurNeuveDe(elementDuNoeud(f.noeud)));
+  const elements = liste.flatMap((e, rang) => {
+    const champ = champDeLElement(f, rang);
+    const { retirer, monter } = gestes.elements[rang];
+    return [
+      ...elementsDuChamp(porteur, champ, e, [...ici, rang]),
+      bouton(`${id}/${rang}/retirer`, t('ecran.editeur.valeur.retirer', { libelle: champ.label }), ecrireLaValeur(porteur, ici, retirer)),
+      ...(monter ? [bouton(`${id}/${rang}/monter`, t('ecran.editeur.valeur.monter', { libelle: champ.label }), ecrireLaValeur(porteur, ici, monter))] : []),
+    ];
   });
+  const ajouter = bouton(`${id}/ajouter`, t('ecran.editeur.valeur.ajouter', { libelle: f.label }), ecrireLaValeur(porteur, ici, gestes.ajouter));
+  return valeur === undefined ? [ajouter] : [ligne(id, f.label), ...elements, ajouter];
 }
 
 /** L'inspecteur de la zone sélectionnée `zone` de la session `s` : la poignée qui la redimensionne ; d'un déclencheur,
  *  son nom ; d'une zone d'effet, son nom, son identifiant, sa nature, sa forme, son emprise au pinceau et toute son aire
  *  rendue, si elle coupe la ligne de vue, si elle barre le passage, les entrées de fiche qu'elle couvre, et le formulaire
- *  tiré du schéma de son Test de traversée et de ses effets à la traversée et à chaque Round (`formulaireDeZone`) ; sa couche ;
- *  d'un déclencheur, s'il ne joue qu'une fois et les entrées de fiche qu'il couvre ; d'une zone de repos, ses lieux et
+ *  tiré du schéma de son Test de traversée et de ses effets à la traversée et à chaque Round (`formulaireDe`) ; sa couche ;
+ *  d'un déclencheur, s'il ne joue qu'une fois, les entrées de fiche qu'il couvre et le formulaire tiré du schéma de sa
+ *  condition d'entrée ; d'une zone de repos, ses lieux et
  *  sa qualité ; la supprimer. */
 function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | Bouton | Formulaire)[] {
   const scene = sceneEditee(s);
@@ -707,14 +761,18 @@ function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | B
       bouton('zone/blocksLoS', t('ecran.editeur.zone.blocksLoS'), sur({ blocksLoS: !ez.blocksLoS }), !!ez.blocksLoS),
       bouton('zone/barrier', t('ecran.editeur.zone.barrier'), sur({ barrier: !ez.barrier }), !!ez.barrier),
       ...couverture('zone/couvre', ez.couvre, (couvre) => sur({ couvre })),
-      ...elementsDuFormulaire({ sorte: 'zone', id: ez.id }, formulaireDeZone(ez), ez as unknown as Record<string, unknown>),
+      ...elementsDuFormulaire({ sorte: 'zone', id: ez.id }, formulaireDe('zone', ez), ez as unknown as Record<string, unknown>),
     );
   }
   propre.push(choixDeLaCouche(s, 'zone/couche', zone.z, (z) => sur({ z })));
   if (sel?.type === 'trigger') {
     const declencheur = scene.triggers.find((tr) => tr.id === sel.id)!;
     propre.unshift(formulaireDuNom(declencheur.id, false));
-    propre.push(bouton('zone/uneFois', t('ecran.editeur.zone.uneFois'), sur({ once: !declencheur.once }), !!declencheur.once), ...couverture('zone/couvre', declencheur.couvre, (couvre) => sur({ couvre })));
+    propre.push(
+      bouton('zone/uneFois', t('ecran.editeur.zone.uneFois'), sur({ once: !declencheur.once }), !!declencheur.once),
+      ...couverture('zone/couvre', declencheur.couvre, (couvre) => sur({ couvre })),
+      ...elementsDuFormulaire({ sorte: 'declencheur', id: declencheur.id }, formulaireDe('declencheur', declencheur), declencheur as unknown as Record<string, unknown>),
+    );
   }
   if (sel?.type === 'restZone') {
     const repos = scene.restZones![sel.idx];
@@ -1159,6 +1217,13 @@ export function gesteDuFormulaire(z: ZonesDeLEditeur, jeu: unknown): GesteDEditi
     case 'drapeau': return texte?.trim() ? { geste: 'scene', patch: { drapeaux: { [texte.trim()]: true } } } : undefined;
     default: return { geste: 'nommer', ...(texte !== undefined ? { nom: texte } : {}) };
   }
+}
+
+/** Pourquoi la session `s` n'écrit pas la valeur du geste `g` (`refusDeLaValeur`), dit à l'auteur ; `null` si elle
+ *  l'écrit. */
+export function refusDeLaValeurDit(s: SessionDEdition, g: Extract<GesteDEdition, { geste: 'valeur' }>): string | null {
+  const refus = refusDeLaValeur(s, g);
+  return refus && t(`ecran.editeur.valeur.refus.${refus}`, { chemin: g.chemin.join('/') });
 }
 
 /** Les verbes des formulaires de l'inspecteur. */

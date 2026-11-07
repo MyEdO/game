@@ -64,11 +64,11 @@ export { areteDessinee, aretesDeLaCouche, plateauDeLaScene, regardDuJeu, REGARDS
 export type { Scene } from './monde/scene';
 export { couronnesDuMonde, toitsDuMonde, volumeDuMonde, type VolumeDuMonde } from './monde/volume/volume';
 export { PLAN_DEFECT_FAMILIES } from './planDefects';
-export { avertissementsDeLaSession, calqueDeLaCouche, casesDuDefaut, corpsActif, editer, ouvrirLEdition, planDeLaVolee, projetDuDepot, refusDOuvrage, sceneEditee, scenesDeLaSession, essaiDeLaScene, texteAEnregistrer, ACTIONS_D_ARCHITECTURE, AMBIANCES, ENVIRONNEMENTS, HAUTEURS, METEOS, OUVRAGES, PINCEAUX, PROFILS_DE_TOIT, SORTES_D_OUVERTURE, versLaFautive, type BrouillonDArete, type GesteDEdition, type PatchDArete, type PatchDeScene, type SessionDEdition } from './edition/session';
-export { formulaireDeZone } from './sceneEditLecture';
-export { champsDeclares, choixDuNoeud, inferFields, type FieldDesc } from './codex/editFields';
-export { valeurNeuveDe } from './valeursNeuves';
-export type { Segment } from './sceneEdit';
+export { avertissementsDeLaSession, calqueDeLaCouche, casesDuDefaut, corpsActif, editer, ouvrirLEdition, planDeLaVolee, projetDuDepot, refusDOuvrage, refusDeLaValeur, sceneEditee, scenesDeLaSession, essaiDeLaScene, texteAEnregistrer, ACTIONS_D_ARCHITECTURE, AMBIANCES, ENVIRONNEMENTS, HAUTEURS, METEOS, OUVRAGES, PINCEAUX, PROFILS_DE_TOIT, SORTES_D_OUVERTURE, versLaFautive, type BrouillonDArete, type GesteDEdition, type PatchDArete, type PatchDeScene, type SessionDEdition } from './edition/session';
+export { formulaireDe } from './sceneEditLecture';
+export { champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, unionDuNoeud, varianteCourante, type FieldDesc } from './codex/editFields';
+export { valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
+export { gestesDeLaListe, type Segment } from './sceneEdit';
 export { buildingsMeta } from './monde/buildings';
 export { FACADE_APPEARANCE_IDS } from './monde/facades';
 export { BORNES_D_OUVERTURE, DEFAUTS_D_OUVERTURE, toitureEffective } from './sceneEdit';
