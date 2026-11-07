@@ -33,11 +33,10 @@ const feuilleDeParam = z.union([
 
 /** `SeaEventDef` (`src/engine/seaVoyage.ts`) — `consequence` = sa suite MÉCANIQUE en grammaire (`Flow`),
  *  jouée par `runFlow` ; sans elle ni genre, la rangée est narrative. `kind`/`params` = le genre d'une
- *  rangée dont la suite est codée (`ParametresDeBord`, `ParametresDePort`) ; `feuilleDeRangee` : la feuille de ses
- *  paramètres, un effet signé n'étant lu qu'à bord (Triton, MDG 15 l.136-139). `relache` : la rangée ne se
+ *  rangée dont la suite est codée (`ParametresDeBord`, `ParametresDePort`). `relache` : la rangée ne se
  *  joue qu'avec la relâche à terre accordée (MDG 15 l.245, l.260) ; `taillePortMax` : qu'à l'escale d'un port
  *  de Taille au plus celle-ci (MDG 15 l.249). #1652 */
-const seaEventDef = (feuilleDeRangee: z.ZodType<unknown>) => nommerChamps(z.strictObject({
+const seaEventDef = nommerChamps(z.strictObject({
   ...plageOuverteSchema.shape,
   id: z.string(),
   label: z.string(),
@@ -47,7 +46,8 @@ const seaEventDef = (feuilleDeRangee: z.ZodType<unknown>) => nommerChamps(z.stri
   consequence: flowSchema.optional(),
   kind: z.string().optional(),
   params: z.record(z.string(), z.union([
-    feuilleDeRangee,
+    feuilleDeParam,
+    effetSigneSchema,
     z.array(feuilleDeParam),
     z.record(z.string(), z.union([feuilleDeParam, z.record(z.string(), feuilleDeParam)])),
   ])).optional(),
@@ -100,9 +100,9 @@ const doc = document(
       factors: { label: 'Facteurs' },
     }),
     /** MDG 15 l.134 */
-    boardEvents: tableTiree(seaEventDef(z.union([feuilleDeParam, effetSigneSchema]))),
+    boardEvents: tableTiree(seaEventDef),
     /** MDG 15 l.243 */
-    portEvents: tableTiree(seaEventDef(feuilleDeParam)),
+    portEvents: tableTiree(seaEventDef),
     /** MDG 15 l.32 */
     fastVoyage: tableTiree(fastVoyagePalier, { champs: { source: sourceRefSchema }, meta: { source: { label: 'Source' } } }),
   },
