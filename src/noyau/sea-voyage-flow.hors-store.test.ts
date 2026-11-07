@@ -1098,15 +1098,16 @@ describe('Cogue pirate (#327 A5.3) — l’événement navire-hostile PRÉSENTE 
   });
 });
 
-/** Joue la journée étape par étape JUSQU'À la validation de l'étape d'événement de bord (incluse) : le
- *  `RecapEvent` du jour vit dans `sea.events` tant que le jour n'est pas CLOS (la clôture le déplace
- *  dans `travelPlan.log`, cf. le bloc « Clôture du jour de mer » ci-dessous). */
-function jusquApresEvenementDeBord(max = 40): void {
-  for (let i = 0; i < max && get().pendingCascade; i++) {
-    const joue = get().pendingCascade!.participants[get().pendingCascade!.cursor];
-    avanceEtapeCascade(get);
-    if (joue?.kind === 'seaBoardEvent') return;
-  }
+/** Joue la journée étape par étape JUSQU'À ce que l'étape d'événement de bord soit tirée et validée, et la rend : un
+ *  tirage de MONDE que le siège ne fixe pas n'est pas un vrai choix, la journée le passe d'elle-même (#3534). Le
+ *  `RecapEvent` du jour vit dans `sea.events` tant que le jour n'est pas CLOS (la clôture le déplace dans
+ *  `travelPlan.log`, cf. le bloc « Clôture du jour de mer » ci-dessous). */
+function evenementDeBordTire(max = 40): CascadeStep {
+  const tire = () => get().pendingCascade?.participants.find((s) => s.kind === 'seaBoardEvent' && s.committed);
+  for (let i = 0; i < max && get().pendingCascade && !tire(); i++) avanceEtapeCascade(get);
+  const etape = tire();
+  if (!etape) throw new Error('la journée s’est close sans montrer l’événement de bord tiré');
+  return etape;
 }
 
 describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couvert avant #383)', () => {
@@ -1124,17 +1125,13 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
 
   /** CONTRAT (#1426) : l'événement de bord n'est plus résolu inline — c'est une ÉTAPE À TABLE du canal
    *  de cascade (`sea-board-event`, dé de MONDE). Le `RecapEvent` naît donc quand l'étape est DRAINÉE,
-   *  pas à l'appel de `runSeaDay` : le test joue la journée comme un joueur (pilote partagé) au lieu de
-   *  lire l'état à mi-course. */
+   *  pas à l'appel de `runSeaDay` : le test joue la journée comme un joueur (pilote partagé). */
   it('un tirage NATUREL (non forcé, `daysToEvent` échu) : l’étape à TABLE drainée capture le d100 dans le `RecapEvent` — label+texte SOURCÉS (`BOARD_EVENTS`, pas de copie en dur)', () => {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jour-par-jour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1, forcedEventId: undefined } } });
     runSeaDay(get, set);
-    const etape = get().pendingCascade!.participants.find((s) => s.kind === 'seaBoardEvent')!;
+    const etape = evenementDeBordTire();
     expect(etape.worldOwner, 'dé de MONDE : aucun acteur ne le porte').toBe(true);
-    // La table se JOUE dans sa fenêtre (le siège qui possède le monde lance) : elle naît non tirée.
-    expect(etape.table!.result, 'le socle ne tire pas à la place de la fenêtre').toBeUndefined();
-    jusquApresEvenementDeBord();
     const events = get().travelPlan!.sea!.events ?? [];
     expect(events).toHaveLength(1);
     const ev = events[0];
@@ -1165,8 +1162,7 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
     set({ vessel: { ...get().vessel!, manann: { score: -40, applied: [] } } });
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1, forcedEventId: undefined } } });
     runSeaDay(get, set);
-    jusquApresEvenementDeBord(); // la table se joue dans sa fenêtre : c'est le geste qui la tire
-    const etape = get().pendingCascade!.participants.find((s) => s.kind === 'seaBoardEvent')!;
+    const etape = evenementDeBordTire();
     expect(etape.table!.mod).toBe(-40);
     expect(etape.table!.result!.die).toBe(etape.table!.result!.roll - 40); // le dé EFFECTIF est décalé
   });
@@ -1196,8 +1192,7 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1, forcedEventId: undefined } } });
     set({ journal: [] });
     runSeaDay(get, set);
-    jusquApresEvenementDeBord(); // la table se joue dans sa fenêtre : c'est le geste qui la tire
-    const etape = get().pendingCascade!.participants.find((s) => s.kind === 'seaBoardEvent')!;
+    const etape = evenementDeBordTire();
     const def = BOARD_EVENTS.find((e) => e.id === etape.table!.result!.id)!;
     const portantes = get().journal.filter((l) => l.includes(def.label));
     expect(portantes).toHaveLength(1);

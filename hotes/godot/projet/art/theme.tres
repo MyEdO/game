@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=13 format=3]
+[gd_resource type="Theme" load_steps=14 format=3]
 
 [ext_resource type="StyleBox" path="res://art/fond_panneau.tres" id="1_fond"]
 
@@ -27,6 +27,15 @@ content_margin_bottom = 12.0
 
 [sub_resource type="StyleBoxFlat" id="Fond_du_monde"]
 bg_color = Color(0.086, 0.075, 0.059, 1)
+
+[sub_resource type="StyleBoxFlat" id="Fond_du_paysage"]
+bg_color = Color(0.2, 0.2, 0.24, 1)
+border_width_bottom = 2
+border_color = Color(0.29, 0.25, 0.17, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
 
 [sub_resource type="StyleBoxFlat" id="Fond_de_puce"]
 bg_color = Color(0.2, 0.18, 0.15, 1)
@@ -139,6 +148,8 @@ Panneau/base_type = &"PanelContainer"
 Panneau/styles/panel = ExtResource("1_fond")
 Monde/base_type = &"PanelContainer"
 Monde/styles/panel = SubResource("Fond_du_monde")
+Paysage/base_type = &"PanelContainer"
+Paysage/styles/panel = SubResource("Fond_du_paysage")
 Fenetre/base_type = &"PanelContainer"
 Fenetre/styles/panel = SubResource("Cadre_de_fenetre")
 Puce/base_type = &"PanelContainer"

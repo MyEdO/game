@@ -934,30 +934,23 @@ describe('#1426 — les portes du curseur', () => {
   });
 });
 
-describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadence auto la résout', () => {
-  it('(a) TERRE — cadence manuelle, option OFF : la Météo d’Étape ATTEND sa fenêtre, « Lancer » la franchit', () => {
+describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un siège la fixe, la cadence auto la résout', () => {
+  it('(a) TERRE — cadence manuelle, option OFF : la Météo d’Étape n’est pas un vrai choix, elle se tire et va au journal (#3534)', () => {
     ouvreJourTerrestre(11);
     expect(get().pendingCascade?.purpose).toBe('travelDay');
-    const meteo = get().pendingCascade!.participants[0];
-    expect(meteo.kind).toBe('stageWeather');
+    const meteo = get().pendingCascade!.participants.find((st) => st.kind === 'stageWeather')!;
     expect(meteo.worldOwner, 'aucun acteur ne la porte : le sentinel la route au siège').toBe(true);
-    expect(meteo.table!.result, 'le socle ne tire pas à la place du siège qui possède le monde').toBeUndefined();
-    expect(canFixDie(get(), undefined), 'option OFF : la POSE n’est pas offerte — seul « Lancer » l’est').toBe(false);
-    expect(draineJour(false), 'sans geste, la séquence tient sur sa table (comme un jet de Critique)').toBe('stageWeather');
-    expect(get().pendingRest, 'et la journée n’est pas allée à la halte').toBeFalsy();
-    expect(draineJour(true), 'le « Lancer » de la fenêtre la franchit').toBeUndefined();
-    expect(get().pendingRest, 'la journée va jusqu’à la halte de nuit').toBeTruthy();
+    expect(canFixDie(get(), undefined), 'option OFF : le siège qui possède le monde n’a rien à poser').toBe(false);
+    expect(meteo.table!.result, 'le socle l’a tirée sans arrêt').toBeTruthy();
+    expect(etapeCourante()!.kind, 'la journée s’arrête au premier vrai choix, après elle').not.toBe('stageWeather');
     expect(get().journal.some((l) => l.includes('Météo')), 'la Météo d’Étape est au journal').toBe(true);
+    expect(draineJour(false), 'aucune autre table ne retient la journée').toBeUndefined();
+    expect(get().pendingRest, 'la journée va jusqu’à la halte de nuit').toBeTruthy();
   });
 
-  it('(a) MER — même contrat pour l’Événement de bord (le socle ne tire pas, la fenêtre lance)', () => {
+  it('(a) MER — même règle pour l’Événement de bord : tiré sans arrêt, raconté à la clôture du jour (#3534)', () => {
     ouvreJourMaritime(4);
-    const evt = get().pendingCascade!.participants.find((s) => s.kind === 'seaBoardEvent')!;
-    expect(evt.worldOwner).toBe(true);
-    expect(evt.table!.result).toBeUndefined();
-    const arret = draineJour(false);
-    expect(etapeCourante()!.table, `la séquence attend une table (étape « ${arret} »)`).toBeTruthy();
-    expect(draineJour(true)).toBeUndefined();
+    expect(draineJour(false), 'aucune table ne retient la journée').toBeUndefined();
     // Le jour CLOS déplace ses events dans sa carte de récap (`sea.events` repart à vide).
     expect(get().travelPlan!.log![0].events, 'l’événement de bord a été raconté').toHaveLength(1);
   });

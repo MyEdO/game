@@ -37,6 +37,13 @@ script = ExtResource("1_zone")
 source = "fenetre.corps"
 ids = PackedStringArray("repos/nuit", "repos/temps")
 
+[node name="Route" type="VBoxContainer" parent="Colonne"]
+
+[node name="Zone" type="Node" parent="Colonne/Route"]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("voyage/")
+
 [node name="Etape" type="VBoxContainer" parent="Colonne"]
 
 [node name="Zone" type="Node" parent="Colonne/Etape"]

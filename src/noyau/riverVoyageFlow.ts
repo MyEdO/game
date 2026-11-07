@@ -57,7 +57,7 @@ import {
   type RiverWindForceId, type RiverWindDirId,
 } from '../engine/riverNavigation';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
-import { startCascade, runCascadeImmediate } from './cascade';
+import { jouerLaJournee } from './cascade';
 import { checkPartyWiped } from './partyWipe';
 import { composeRollLabel, freeCons, monoStep, choiceStep, displayStep, refusePorte, surfaceOf, pousseSi, openWorldTest, type Consequence, type BandLigne } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
@@ -249,14 +249,8 @@ function resolveRiverDay(get: Get, set: Set, route: MapRoute): void {
     if (!checkPartyWiped(get, set)) continueRiverDayAfterCascade(get, set);
     return;
   }
-  // Traversée sous ordres (`voyageCadence.traverseeCommandee`, #91, #2545) : le jour se joue d'un bloc
-  // par le pilote IMMÉDIAT ; un choix sans défaut l'interrompt en `travelDay` (`cascade.runCascadeImmediate`).
-  if (traverseeCommandee(get())) {
-    if (!runCascadeImmediate(get, set, steps, { title: t('rv.dayTitle'), purpose: 'travelDay' })) return;
-    continueRiverDayAfterCascade(get, set);
-    return;
-  }
-  startCascade(get, set, { title: t('rv.dayTitle'), icon: 'travel/wave', purpose: 'travelDay', steps });
+  // Traversée sous ordres (`voyageCadence.traverseeCommandee`, #91, #2545) : aucun arrêt.
+  jouerLaJournee(get, set, steps, { title: t('rv.dayTitle'), purpose: 'travelDay' }, traverseeCommandee(get()));
 }
 
 /** Test de Navigation du jour : sa Difficulté (le Test est demandé par MSRC 7 l.15, sans Difficulté
