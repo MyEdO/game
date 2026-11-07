@@ -44,11 +44,11 @@ import { DATEES, MIGRATIONS, RACINE } from '../../test/lib/bancIdempotence.mjs'
 const texteDe = (migration) => fs.readFileSync(path.join(MIGRATIONS, migration), 'utf8');
 
 /**
- * Ce que les migrations mesurées LISENT hors `src/data` : la lib de dérivation des labels d'art et
- * les defs d'art dont elle tire le label. COPIÉ, jamais monté en lien : le dépôt jetable ne doit
- * porter aucun chemin qui débouche sur l'arbre réel.
+ * Ce que les migrations mesurées LISENT hors `src/data` : les libs de gardes qu'elles importent.
+ * COPIÉ, jamais monté en lien : le dépôt jetable ne doit porter aucun chemin qui débouche sur
+ * l'arbre réel.
  */
-const LUS = ['scripts/guards/lib', 'src/gameIso/catalog/decor/defs'];
+const LUS = ['scripts/guards/lib'];
 
 /**
  * La forme que les vagues mesurées ont LUE : un tableau racine de lignes, chacune ouvrant sur

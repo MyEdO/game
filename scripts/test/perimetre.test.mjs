@@ -368,7 +368,7 @@ test('toolchain touchée (lectures des dépendances comprises) ⇒ toute la suit
   // en .tsx), bench, hors racine (`docs`), ignoré, suivi mais supprimé du disque, suivi sous un `node_modules`.
   const racine = forger(t, {
     '.gitignore': '/node_modules/\nsrc/ign/\n', 'tsconfig.json': '{}', 'server/package.json': '{}',
-    'src/state/voyage-cadence.test.ts': 'export {}\n', 'src/b.test.tsx': 'export {}\n', 'server/src/c.test.tsx': 'export {}\n',
+    'src/noyau/voyage-cadence.test.ts': 'export {}\n', 'src/b.test.tsx': 'export {}\n', 'server/src/c.test.tsx': 'export {}\n',
     'src/d.bench.ts': 'export {}\n', 'docs/e.test.ts': 'export {}\n', 'src/z.test.ts': 'export {}\n',
     'src/.x/h.test.ts': 'export {}\n', 'src/node_modules/y.test.ts': 'export {}\n',
   }, {
@@ -376,13 +376,13 @@ test('toolchain touchée (lectures des dépendances comprises) ⇒ toute la suit
     'src/f.test.ts': 'export {}\n', 'src/ign/g.test.ts': 'export {}\n',
   }, { commiter: false })
   rmSync(join(racine, 'src/z.test.ts'))
-  const suite = ['src/.x/h.test.ts', 'src/b.test.tsx', 'src/f.test.ts', 'src/state/voyage-cadence.test.ts']
+  const suite = ['src/.x/h.test.ts', 'src/b.test.tsx', 'src/f.test.ts', 'src/noyau/voyage-cadence.test.ts']
 
   const perimetre = await deriver(racine, { base: 'HEAD' })
   assert.deepEqual(perimetre.toolchain, ['server/package.json', 'tsconfig.json'])
   assert.deepEqual([...perimetre.vitest].sort(), suite)
   assert.deepEqual([...perimetre.retenus.keys()].filter((f) => f.startsWith('src/')).sort(), suite)
-  assert.equal(perimetre.retenus.get('src/state/voyage-cadence.test.ts').nature, 'toolchain')
+  assert.equal(perimetre.retenus.get('src/noyau/voyage-cadence.test.ts').nature, 'toolchain')
 
   assert.deepEqual(fichiersDeLaSuite(racine, { env: envDeDepotForge() }).map((f) => f.rel), suite)
 
@@ -537,12 +537,12 @@ test('planDExecution : dans un rang, le SIGNAL passe avant le prix', () => {
   assert.deepEqual([plan.lances, plan.aLaCI], [['t.test.mjs', 'r.test.mjs', 'a.test.mjs'], ['b.test.mjs', 'z.test.mjs']])
 })
 
-test('planDExecution : la racine balayée s’ordonne par SPÉCIFICITÉ (fichier exact, `src/ui`, `src`, `.`), puis par coût', () => {
+test('planDExecution : la racine balayée s’ordonne par SPÉCIFICITÉ (fichier exact, `src/noyau`, `src`, `.`), puis par coût', () => {
   const retenus = new Map([['racine.test.ts', { rang: 1, specificite: 9000 }], ['src.test.ts', { rang: 1, specificite: 800 }],
-    ['exact.test.ts', { rang: 1, specificite: 1 }], ['ui.test.ts', { rang: 1, specificite: 60 }], ['ui-bis.test.ts', { rang: 1, specificite: 60 }]])
-  const estimations = new Map([['racine.test.ts', { ms: 1000 }], ['src.test.ts', { ms: 1000 }], ['exact.test.ts', { ms: 5000 }], ['ui.test.ts', { ms: 3000 }], ['ui-bis.test.ts', { ms: 1000 }]])
+    ['exact.test.ts', { rang: 1, specificite: 1 }], ['noyau.test.ts', { rang: 1, specificite: 60 }], ['noyau-bis.test.ts', { rang: 1, specificite: 60 }]])
+  const estimations = new Map([['racine.test.ts', { ms: 1000 }], ['src.test.ts', { ms: 1000 }], ['exact.test.ts', { ms: 5000 }], ['noyau.test.ts', { ms: 3000 }], ['noyau-bis.test.ts', { ms: 1000 }]])
   const plan = planDExecution(retenus, { budget: 10, estimations })
-  assert.deepEqual([plan.lances, plan.aLaCI], [['exact.test.ts', 'ui-bis.test.ts', 'ui.test.ts', 'src.test.ts'], ['racine.test.ts']])
+  assert.deepEqual([plan.lances, plan.aLaCI], [['exact.test.ts', 'noyau-bis.test.ts', 'noyau.test.ts', 'src.test.ts'], ['racine.test.ts']])
 })
 
 test('planDExecution : le budget porte sur le MUR, la somme répartie sur les workers', () => {
@@ -906,7 +906,7 @@ test('gates déléguées (#3145) : un fichier sous le `lit` d’une gate marqué
 })
 
 test('suite du noyau (#2817, #2928) : un fichier d’une racine des zones touché la lance ENTIÈRE par `test:noyau`, et un rouge se relance sur elle', () => {
-  const post = ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts', 'src/state/x.hors-store.test.ts', 'src/noyau/partie.ts', 'scripts/a.mjs']
+  const post = ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts', 'src/data/x.hors-store.test.ts', 'src/noyau/partie.ts', 'scripts/a.mjs']
   assert.deepEqual(suiteDuNoyauALancer(['src/noyau/partie.ts'], post), ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts'], 'un fichier du noyau qui n’est pas un test lance la suite')
   assert.deepEqual(suiteDuNoyauALancer(['src/data/supprime.json'], post), ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts'], 'un fichier de src/ supprimé compte')
   assert.deepEqual(suiteDuNoyauALancer(['scripts/a.mjs'], post), [], 'hors de src/, la suite ne se lance pas')
