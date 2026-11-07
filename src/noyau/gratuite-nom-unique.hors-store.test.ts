@@ -16,6 +16,7 @@ import type { Combatant } from '../engine/types';
 import type { TraitList } from '../engine/statEntry';
 import type { SuiteDeCoup } from './pendings';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -29,9 +30,9 @@ const nomDeLaManoeuvre = (kind: string): string => attaqueNaturelle(TRAITS, kind
 function engage(tourDe: 'heros' | 'creature'): { H: Combatant; E: Combatant } {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
-  g().seedRng(5);
-  g().startScene(testScene());
-  g().startCombat('enc-mutants');
+  g().ensemencerLeTirage(5);
+  g().lancerLaScene(testScene());
+  g().lancerLeCombat('enc-mutants');
   g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;
@@ -59,7 +60,7 @@ function nomsDeLAttaque(kind: string): { option: string; reticule: string; modal
   g().armerLAttaque(option.id);
   const ht = hoverTargeting(g, H, E);
   if (ht.kind !== 'ok') throw new Error(`réticule ${ht.kind}`);
-  g().battleClickEntity(E.id, { confirm: true });
+  cliquerSurLeCombattant(g, E.id, { confirm: true });
   const pa = g().pendingAttack;
   if (pa?.freeKind !== kind) throw new Error(`le clic n'a pas ouvert la gratuite « ${kind} »`);
   const b = g().battle!;
@@ -74,8 +75,8 @@ function nomsDeLaDefense(): Map<string, string> {
   expect(maybeOpenDefense(g, banc.setState, E, H, E.weapons[0], suite), 'la fenêtre de l’attaque d’Arme s’ouvre').toBe(true);
   const noms = new Map<string, string>();
   for (let garde = 0; garde < 10 && g().pendingDefense; garde++) {
-    g().jetRoll('defense');
-    g().jetConfirm('defense');
+    g().jetLancer('defense');
+    g().jetValider('defense');
     banc.reprendreTout();
     const pd = g().pendingDefense;
     const kind = pd?.suite.mode === 'machine' ? pd.suite.coup.manoeuvre?.kind : undefined;

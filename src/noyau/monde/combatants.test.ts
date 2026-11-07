@@ -12,7 +12,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
  * MENEUR du groupe — définition UNIQUE (#1362, lot L1a) : UN id, celui que le plateau dessine, que
  * le regard de première personne porte, qui s'assoit, qui grimpe et qui reçoit le cap d'entrée de
  * scène. Ce fichier tient les REPLIS de l'élection ; le câblage de ses lecteurs vit en
- * `src/state/meneur-unique.test.ts`.
+ * `src/noyau/meneur-unique.hors-store.test.ts`.
  */
 
 /** Héros minimal : seuls l'état « hors d'action » et les Blessures pèsent sur l'élection. */

@@ -70,9 +70,9 @@ export function CarrierInventory({
   weaponHandLabel,
   rowExtra,
 }: CarrierInventoryProps) {
-  const toggleEquip = useGame((s) => s.toggleEquip);
-  const stowItem = useGame((s) => s.stowItem);
-  const transferItem = useGame((s) => s.transferItem);
+  const equiperLObjet = useGame((s) => s.equiperLObjet);
+  const rangerLObjet = useGame((s) => s.rangerLObjet);
+  const transmettreLObjet = useGame((s) => s.transmettreLObjet);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
   const possessions = useGame((s) => s.possessions);
@@ -149,7 +149,7 @@ export function CarrierInventory({
                 enabled={!gestes.porter.refus}
                 {...raisonSi(gestes.porter.refus)}
                 descOfferte={isProsthesis ? 'Porter la prothèse (annule le malus d’amputation correspondant)' : isCape ? 'Porter la cape (cosmétique — visible dans le dos du héros)' : it.kind === 'misc' ? 'Porter (−1 Enc)' : undefined}
-                onClick={() => toggleEquip(carrierId, it.uid)}
+                onClick={() => equiperLObjet(carrierId, it.uid)}
                 primary={false}
                 ariaPressed={gestes.porter.porte}
                 btnClassName="small"
@@ -170,7 +170,7 @@ export function CarrierInventory({
                   label: libelle,
                   sub: `${containerFillEnc(carrier, bag.uid)}/${bag.container?.capacity ?? 0}`,
                 }))}
-                onSelect={(cid) => stowItem(carrierId, it.uid, cid)}
+                onSelect={(cid) => rangerLObjet(carrierId, it.uid, cid)}
               />
             )}
             {gestes.donner?.refus && (
@@ -188,7 +188,7 @@ export function CarrierInventory({
                       ? { key: c.possession.uid, media: prefixOf(c.possession), label: libelle }
                       : { key: c.hero.id, media: <CharFrame c={c.hero} variant="identity" size="xs" decoratif />, label: libelle },
                 )}
-                onSelect={(cid) => transferItem(it.uid, carrierId, cid)}
+                onSelect={(cid) => transmettreLObjet(it.uid, carrierId, cid)}
               />
             )}
             {gestes.sortir && (
@@ -198,7 +198,7 @@ export function CarrierInventory({
                 enabled={!gestes.sortir.refus}
                 {...raisonSi(gestes.sortir.refus)}
                 descOfferte="Sortir du contenant"
-                onClick={() => stowItem(carrierId, it.uid, null)}
+                onClick={() => rangerLObjet(carrierId, it.uid, null)}
                 primary={false}
                 btnClassName="small"
               />

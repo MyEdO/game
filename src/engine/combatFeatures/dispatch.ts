@@ -1,7 +1,7 @@
 /**
  * Dispatcher PUR des capacités de TALENTS (LDB 10) : agrège les champs du registre par porteur
  * (niveau = `times` du talent) et expose des helpers typés consommés par combat.ts / combatFlow /
- * rollFlows / store. Aucune mutation. Même patron que `engine/qualities/dispatch.ts`.
+ * rollFlowSpecs / store. Aucune mutation. Même patron que `engine/qualities/dispatch.ts`.
  */
 import type { Combatant, RangeBandId, ReverseQuery, Weapon } from '../types';
 import { isShieldItem } from '../items';

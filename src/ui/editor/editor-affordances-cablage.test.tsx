@@ -317,7 +317,7 @@ describe('Inspecteur — une zone d’effet RONDE s’auteure au clic (`ZoneArea
           barrier: { blockGroups: ['demon'] },
         }],
       },
-      { type: 'effectZone', idx: 0 },
+      { type: 'effectZone', id: 'ward' },
     );
     await h.mount();
 
@@ -351,7 +351,7 @@ describe('Inspecteur — la NATURE d’une zone atteint le PLAN (#881)', () => {
   const couvertes = (scene: Scene) => new Set(buildRoofs(scene).flatMap((el) => el.cells.map((cell) => `${cell.x},${cell.y}`)));
 
   it('déclarer la zone « Extérieur » ôte la toiture de la cour — et le sélecteur RELIT ce qu’il a écrit', async () => {
-    const h = mount(sceneAvecCour(), { type: 'effectZone', idx: 0 });
+    const h = mount(sceneAvecCour(), { type: 'effectZone', id: 'cour' });
     await h.mount();
 
     // CONTRE-ÉPREUVE : avant le geste, la cour est coiffée comme le reste du corps.
@@ -375,7 +375,7 @@ describe('Inspecteur — la NATURE d’une zone atteint le PLAN (#881)', () => {
       ...sceneAvecCour(),
       effectZones: [{ id: 'piege', label: 'Piège', area: { kind: 'rect', x: 3, y: 3, w: 2, h: 2 }, z: 0, onCross: [{ op: 'wounds', amount: 5, ignoreTB: false, ignoreAP: true }] }],
     };
-    const h = mount(piege, { type: 'effectZone', idx: 0 });
+    const h = mount(piege, { type: 'effectZone', id: 'piege' });
     await h.mount();
 
     expect(selectByLabel(h.container, 'Nature').value).toBe(''); // la troisième nature s'affiche pour ce qu'elle est
@@ -399,7 +399,7 @@ describe('Inspecteur — l’EMPRISE d’une zone se peint SUR la carte (`SceneE
           onCross: [{ op: 'wounds', amount: 3, ignoreTB: false, ignoreAP: true }],
         }],
       },
-      { type: 'effectZone', idx: 0 },
+      { type: 'effectZone', id: 'salle' },
     );
     await h.mount();
 
@@ -430,7 +430,7 @@ describe('Inspecteur — l’EMPRISE d’une zone se peint SUR la carte (`SceneE
           tiles: [{ x: 2, y: 1 }, { x: 1, y: 2 }, { x: 2, y: 2 }],
         }],
       },
-      { type: 'effectZone', idx: 0 },
+      { type: 'effectZone', id: 'salle' },
     );
     await h.mount();
     expect(sceneZoneTiles(h.sceneOf().effectZones![0])).toHaveLength(3);
@@ -453,7 +453,7 @@ describe('Inspecteur — l’EMPRISE d’une zone se peint SUR la carte (`SceneE
           blocksLoS: true,
         }],
       },
-      { type: 'effectZone', idx: 0 },
+      { type: 'effectZone', id: 'salle' },
     );
     await h.mount();
     expect(sceneZoneTiles(h.sceneOf().effectZones![0]).map((t) => `${t.x},${t.y}`).sort())
@@ -529,8 +529,8 @@ function sceneNavale(): Scene {
 
 const spawned = (scene: Scene, id: string) => {
   useGame.setState({ party: pregenParty(PREGEN.soldat) });
-  useGame.getState().startScene(scene);
-  useGame.getState().startCombat('abordage');
+  useGame.getState().lancerLaScene(scene);
+  useGame.getState().lancerLeCombat('abordage');
   return useGame.getState().battle!.combatants.find((c) => c.id === id)!;
 };
 

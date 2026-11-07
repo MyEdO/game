@@ -14,7 +14,7 @@
  */
 import { Scene, tileAt, heightAt, porteNonSecrete, sceneMetresPerTile, wallEnds, type ArchitectureRect } from '../../noyau/monde/scene';
 import { roofHidden, massFootBBox } from '../../noyau/monde/buildings';
-import { effectiveArchitecture } from '../../noyau/sceneEdit';
+import { DEFAUTS_D_OUVERTURE, effectiveArchitecture } from '../../noyau/sceneEdit';
 import { decorAncre, decorFootGeometry } from '../../noyau/monde/footprint';
 import { findPropById, refEstVolumique } from '../../data';
 import { facesDuDecor } from '../../noyau/monde/volume/propVolumes';
@@ -192,7 +192,7 @@ export function buildProps(scene: Scene, visible?: ReadonlySet<string>, view?: F
         const viz = facadeFeatureViz(section.appearance, feature.kind);
         if (!viz) continue;
         emittedFeatures.add(featureId);
-        const offset = feature.offset ?? 0.5;
+        const offset = feature.offset ?? DEFAUTS_D_OUVERTURE.offset;
         const [a, b] = wallEnds(edge);
         const ancre = {
           x: a.x + (b.x - a.x) * offset,

@@ -16,7 +16,7 @@ import type { TestScenario } from './_shared';
  * enclos et le jardin) — (21,29)E, (21,30)E,
  * (23,29)E, (23,30)E, (19,31)E, (19,32)E — jamais des arêtes posées pour le test.
  *
- * Le groupe arrive dans l'allée de la stalle EST : `startCombat` pose les héros en (24,31) et (24,32)
+ * Le groupe arrive dans l'allée de la stalle EST : `lancerLeCombat` pose les héros en (24,31) et (24,32)
  * (`partyPos.x - 1`, `partyPos.y + i`).
  */
 

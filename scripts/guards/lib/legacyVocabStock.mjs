@@ -170,13 +170,6 @@ export const LEGACY_VOCAB_SITES = [
   {
     fichier: "src/data/prop-foot-migration.test.ts",
     motif: "désormais",
-    ancre: "// `balustrade-loge` se pose désormais à la CASE (une travée par case de rive de puits,",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/data/prop-foot-migration.test.ts",
-    motif: "désormais",
     ancre: "désormais 1×1 pour les trois tables d'Opéra, et ce contrat prouverait l'inverse de son titre. */",
     lot: "L7 désormais",
     date: "2026-09-26",
@@ -532,13 +525,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/scenes/prop-footprint-occupancy.test.ts",
-    motif: "désormais",
-    ancre: "déclarée dans `props.json` couvre désormais TOUTES ses cases dans TOUTE scène livrée, y compris",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/scenes/test-scenarios/42-belier-porte.ts",
     motif: "désormais",
     ancre: "de MÊLÉE servie se mesure depuis l'EMPREINTE DE LA COQUE (#210, `meleeWarMachineHullOf`), désormais 2×2",
@@ -630,13 +616,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/noyau/monde/footprint.ts",
-    motif: "désormais",
-    ancre: "désormais dérivées.",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/i18n-narration-guard.test.ts",
     motif: "désormais",
     ancre: "littéral-là n'est PAS une ligne de journal ; il est désormais compté ICI, à sa place.",
@@ -709,7 +688,7 @@ export const LEGACY_VOCAB_SITES = [
   {
     fichier: "src/noyau/sequence-contrat-socle.hors-store.test.ts",
     motif: "désormais",
-    ancre: "// Ce que fait `startCombat` du point de vue de la garde : le slot appartient désormais à un AUTRE",
+    ancre: "// Ce que fait `lancerLeCombat` du point de vue de la garde : le slot appartient désormais à un AUTRE",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

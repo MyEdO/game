@@ -89,7 +89,7 @@ describe('l’ouverture d’une partie', () => {
     try {
       expect(partie.etat().battle, 'témoin : la partie s’ouvre hors combat').toBeFalsy();
       const id = partie.etat().party[0].id;
-      partie.envoyer({ type: 'setHeroBackground', args: [id, { motivation: 'Foi' }] });
+      partie.envoyer({ type: 'ecrireLHistorique', args: [id, { motivation: 'Foi' }] });
       expect(persistes.map((h) => [h.id, h.motivation])).toEqual([[id, 'Foi']]);
     } finally {
       partie.fermer();

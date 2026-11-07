@@ -1,5 +1,5 @@
 import { describe, it, beforeEach, expect } from 'vitest';
-import { applyShipPostes } from './monde/shipPostes';
+import { applyShipPostes, serveAtPoste } from './monde/shipPostes';
 import { firedWeapon, firedAttackBlock, resolveAttack } from './combatFlow';
 import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
@@ -61,7 +61,7 @@ const groundScene = (): Scene =>
     layers: [{ z: 0, tiles: new Array(40 * 40).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] }) as unknown as Scene;
 
 const mkGet = (sc: Scene, combatants: Combatant[], facing: Record<string, string> = {}, movementUsed = 0): (() => JeuDuNoyau) =>
-  (() => ({ scene: sc, battle: { combatants, movementUsed }, facing, gameTime: 0, net: initialNet(), log: () => {} })) as unknown as () => JeuDuNoyau;
+  (() => ({ scene: sc, battle: { combatants, movementUsed }, facing, gameTime: 0, net: initialNet(), ecrireAuJournal: () => {} })) as unknown as () => JeuDuNoyau;
 
 // (A) SERVICE — la SceneEntity au sol qui PORTE des postes se spawn avec `Combatant.postes` ; au combat,
 //     `applyShipPostes` (kind-agnostique) sert la pièce au chef d'équipage. SANS `side` (tir omni).
@@ -152,44 +152,52 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
   });
 });
 
-// (D) RECHARGE — Test étendu (`rechargerLaPiece` → `jetConfirm('reload')`) recharge la pièce AU SOL, kind-agnostique,
-//     sans coque ni merScale.
-describe('(D) Recharge — Test étendu rechargeant l’emplacement au sol (rechargerLaPiece/jetConfirm@reload)', () => {
-  const setup = () => {
+// (D) RECHARGE — le chef d'une pièce AU SOL la recharge à SON Tour, de son Action, comme une arme portée (LDB 62 l.335 ;
+//     LDB 13 l.106, arbitrage #3595 du 2026-11-07), soutenu par un servant adjacent (MDG 12 l.462).
+describe('(D) Recharge — Test étendu du chef rechargeant l’emplacement au sol (rechargerLArme/jetValider@reload)', () => {
+  const setup = (order = ['chef', 'emplacement', 's1']) => {
     const item = itemFromTrappingById('baliste')!; // Recharge 3, Indice 2
-    const poste: ShipPoste = { item, crewIds: ['chef', 's1'], loaded: false, reloadProgress: 2 };
-    const chef = mkGunner('chef', 'hero', { x: 5, y: 5 }, 80);
+    const poste: ShipPoste = { item, crewIds: [], loaded: false, reloadProgress: 2 };
+    const chef = mkGunner('chef', 'hero', { x: 5, y: 6 }, 80);
     chef.skills = [{ id: 'projectiles', spec: 'arbalete', characteristic: 'capacite-de-tir', advances: 20 }] as never;
-    const s1 = mkCrewman('s1');
+    const s1 = mkGunner('s1', 'npc', { x: 6, y: 6 }, 40);
+    s1.skills = [{ id: 'projectiles', spec: 'arbalete', characteristic: 'capacite-de-tir', advances: 10 }] as never;
     const emplacement = mkEmplacement(poste);
+    const all = [emplacement, chef, s1];
+    serveAtPoste(chef, poste, all); // chef : l'arme de la pièce
+    serveAtPoste(s1, poste, all); // renfort
     banc.setState({
-      battle: { combatants: [emplacement, chef, s1], order: ['emplacement', 'chef', 's1'], turn: 0, round: 1, acted: false, log: [], crewActed: {} } as never,
+      battle: { combatants: all, order, turn: 0, round: 1, acted: false, log: [], crewActed: {} } as never,
       party: [chef], facing: {}, pendingReload: null, scene: null as never,
     });
-    return { item };
+    return { item, poste };
   };
 
-  it('ouvre la modale de recharge sur le CHEF, cible = Recharge (effectif complet → pas de ×2)', () => {
+  it('ouvre la modale de recharge sur le CHEF, cible = Recharge (effectif complet → pas de ×2), Soutien du renfort', () => {
     const { item } = setup();
-    banc.getState().rechargerLaPiece('emplacement', item.uid);
+    banc.getState().rechargerLArme(item.uid);
     const pr = banc.getState().pendingReload!;
-    expect(pr).toBeTruthy();
     expect(pr.actorId).toBe('chef');
     expect(pr.reload).toBe(3); // Recharge 3, équipage complet (chef + s1 ≥ Indice 2) → pas doublée
     expect(pr.progressBefore).toBe(2);
+    expect(pr.soutien?.ids).toEqual(['s1']); // MDG 12 l.462
   });
 
-  it('réussite suffisante → la PIÈCE est rechargée (poste.loaded), tour du porteur NON consommé', () => {
+  it('réussite suffisante → la PIÈCE est rechargée, et l’Action du chef est prise (LDB 13 l.106, arbitrage #3595)', () => {
     seedBattleRng(1); // CT 80 → réussite, DR ≥ 1 → 2 + DR ≥ 3 → rechargée
-    const { item } = setup();
-    banc.getState().rechargerLaPiece('emplacement', item.uid);
-    banc.getState().jetRoll('reload');
-    banc.getState().jetConfirm('reload');
-    const st = banc.getState();
-    const poste = st.battle!.combatants.find((c) => c.id === 'emplacement')!.postes![0];
+    const { item, poste } = setup();
+    banc.getState().rechargerLArme(item.uid);
+    banc.getState().jetLancer('reload');
+    banc.getState().jetValider('reload');
     expect(poste.loaded).toBe(true);
     expect(poste.reloadProgress).toBe(0);
-    expect(st.battle!.acted).toBe(false); // tâche d'équipage parallèle (ne consomme pas le tour)
+    expect(banc.getState().battle!.acted).toBe(true);
+  });
+
+  it('au Tour de l’emplacement, son chef qui a un Tour propre ne recharge pas : il le fera au sien', () => {
+    const { item } = setup(['emplacement', 'chef', 's1']);
+    banc.getState().rechargerLArme(item.uid);
+    expect(banc.getState().pendingReload).toBeNull();
   });
 });
 

@@ -6,7 +6,7 @@
 import { advancementBaseId, findCareerById, findSpellById, findTalentById, findTrappingById, levelsForCareer, libelleOuAbsence, refLabel } from '../data';
 import { interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
 import { t, type MsgKey } from '../i18n';
-import type { IdDObjet } from './designations';
+import type { IdDeDepot, IdDeSort, IdDeTalent, IdDeTraitPsyPorte, IdDObjet } from './designations';
 import { possesses, type TestDesigne } from '../engine/skills';
 import { rollLine, type RollLineParts } from './rollSeam';
 import { buildWeapon } from '../engine/items';
@@ -19,7 +19,7 @@ import { favorRequiredActivities } from '../engine/favor';
 import { learnableSpells } from '../engine/grimoire';
 import { reussiteSansObjet, type GameOp } from '../engine/ops';
 import type { PsychTrait } from '../engine/psychology';
-import { MOTIF_D_ID_DE_GROUPE, cibleDeRef, identiteDeCiblage, refDeCible, type RefDeCible } from '../engine/psych/ciblage';
+import { identiteDeCiblage, refDeCible, type RefDeCible } from '../engine/psych/ciblage';
 import { actorStatus } from '../engine/social';
 import { fromBrass, toBrass, toMoney, priceToMoney, formatMoney } from '../engine/money';
 import {
@@ -66,15 +66,15 @@ export function refusDActivite(s: EtatDInterlude, heroId: string): string | null
     ?? ((s.interlude?.perHero[heroId]?.left ?? 0) <= 0 ? t('if.noActivityLeft', { name: nomDuHeros(s, heroId) }) : null);
 }
 
-/** Refus de retirer le dépôt `index` : la planque n'attend que le tirage, l'investissement consomme une
+/** Refus de retirer le dépôt `depotId` : la planque n'attend que le tirage, l'investissement consomme une
  *  Activité de son dépositaire, le Mécénat s'ouvre comme son Activité (`refusDOuvertureDActivite` : lieu
  *  et Test d'Évaluation tentable compris). Verdict UNIQUE de `bankWithdraw` et de l'écran ; `null` pour un
  *  dépôt absent, que le geste ignore. LDB 23 l.168-170, ACE 12 l.47-49 ; LDB 09 l.30 */
-export function refusDeRetrait(s: EtatDeDepot, index: number): string | null {
-  const dep = (s.bank ?? [])[index];
+export function refusDeRetrait(s: EtatDeDepot, depotId: IdDeDepot): string | null {
+  const dep = (s.bank ?? []).find((d) => d.uid === depotId);
   if (!dep) return null;
   const mecenat = dep.kind === 'mecenat' ? activiteDeMecenat() : undefined;
-  if (mecenat) return refusDOuvertureDActivite(s, dep.heroId, mecenat, { depositIndex: index });
+  if (mecenat) return refusDOuvertureDActivite(s, dep.heroId, mecenat, { depotId });
   return dep.kind === 'stash' ? refusDuTirage(s, dep.heroId) : refusDActivite(s, dep.heroId);
 }
 
@@ -253,7 +253,7 @@ function refusDeDepot(s: EtatDeDepot, heroId: string, kind: GenreDeDepot, montan
 
 /** Les cibles reçues par l'ouverture d'une Activité du catalogue : objet, sort, dépôt, Talent, instance de
  *  Trait psychologique. */
-export interface CiblesChoisies { itemUid?: IdDObjet; spellId?: string; depositIndex?: number; talentId?: string; traitPsy?: TraitPsyVise }
+export interface CiblesChoisies { itemUid?: IdDObjet; spellId?: IdDeSort; depotId?: IdDeDepot; talentId?: IdDeTalent; traitPsy?: IdDeTraitPsyPorte }
 
 /** Une instance de Trait psychologique visée : son type, et sa Cible si elle en porte une. */
 export interface TraitPsyVise { type: string; cible?: RefDeCible }
@@ -261,19 +261,6 @@ export interface TraitPsyVise { type: string; cible?: RefDeCible }
 /** Un Trait psychologique PORTÉ que le joueur peut choisir : sa clé d'instance (`identiteDeCiblage`), le Trait,
  *  et sa visée. */
 export interface TraitPsyChoisissable { cle: string; trait: PsychTrait; vise: TraitPsyVise }
-
-/** La clé d'instance d'une visée reçue, ou `null` si elle n'en a pas la forme. */
-export function cleDuTraitVise(vise: unknown): string | null {
-  const v = vise as Partial<TraitPsyVise> | null | undefined;
-  if (typeof v?.type !== 'string') return null;
-  const ref = v.cible as { id?: unknown; personnage?: unknown } | undefined;
-  if (ref === undefined) return identiteDeCiblage(v.type);
-  if (typeof ref?.id === 'string' && MOTIF_D_ID_DE_GROUPE.test(ref.id)) return identiteDeCiblage(v.type, cibleDeRef({ id: ref.id }));
-  if (typeof ref?.personnage === 'string' && ref.personnage !== '' && !ref.personnage.startsWith('@')) {
-    return identiteDeCiblage(v.type, cibleDeRef({ personnage: ref.personnage }));
-  }
-  return null;
-}
 
 /** Les cibles qu'une Activité du catalogue offre au héros : armes inhabituelles non maîtrisées (ACE 12
  *  l.17-21), objets non identifiés (ADE II 4 l.41, ACE 12 l.33-42), sorts payants à mémoriser (ACE 12 l.55),
@@ -303,17 +290,20 @@ const retireUnTraitAuChoix = (def: ActivityDef): boolean =>
   (opsDeReussite(def) ?? []).some((o) => o.op === 'removePsychTrait' && !o.psychType);
 
 /** Les Traits psychologiques portés par `h`, un par INSTANCE (type et Cible). */
-function traitsPsyChoisissables(h: Combatant): TraitPsyChoisissable[] {
+export function traitsPsyChoisissables(h: Combatant): TraitPsyChoisissable[] {
   const vus = new Map<string, PsychTrait>();
   for (const p of h.psychTraits ?? []) vus.set(identiteDeCiblage(p.type, p.cible), p);
   return [...vus].map(([cle, trait]) => ({ cle, trait, vise: { type: trait.type, ...(trait.cible !== undefined ? { cible: refDeCible(trait.cible) } : {}) } }));
 }
 
+/** La visée du Trait psychologique porté par `h` de clé `cle` (`traitsPsyChoisissables`), ou `undefined`. */
+export const viseDuTrait = (h: Combatant, cle: IdDeTraitPsyPorte | undefined): TraitPsyVise | undefined =>
+  (cle === undefined ? undefined : traitsPsyChoisissables(h).find((x) => x.cle === cle)?.vise);
+
 /** Les ops d'issue sous la cible choisie : le retrait d'un Trait psychologique « de votre choix » vise
  *  l'INSTANCE choisie, portée ou non (`opSansObjet` juge une instance disparue). Lu par le verdict et par la
  *  confirmation du jet. ADE II 09 l.33 */
-export function opsCiblees(ops: GameOp[], cibles: Pick<CiblesChoisies, 'traitPsy'>): GameOp[] {
-  const vise = cleDuTraitVise(cibles.traitPsy) != null ? cibles.traitPsy! : undefined;
+export function opsCiblees(ops: GameOp[], vise: TraitPsyVise | undefined): GameOp[] {
   return ops.map((o): GameOp => (o.op === 'removePsychTrait' && !o.psychType && vise
     ? { op: 'removePsychTrait', psychType: { id: vise.type }, ...(vise.cible ? { cible: vise.cible } : {}) }
     : o));
@@ -343,7 +333,7 @@ function opsDeReussite(def: ActivityDef): GameOp[] | null {
 /** Refus d'une Activité dont la RÉUSSITE, sous la cible choisie, n'aurait rien à changer au héros
  *  (`reussiteSansObjet`, jugée avant le jet). ACE 12 l.15, ADE II 09 l.33 */
 function refusDeReussiteSansObjet(h: Combatant, def: ActivityDef, opts: CiblesChoisies): string | null {
-  const raison = reussiteSansObjet(h, opsCiblees(opsDeReussite(def) ?? [], opts), { avantLeJet: true, source: { kind: 'activity', id: def.id } });
+  const raison = reussiteSansObjet(h, opsCiblees(opsDeReussite(def) ?? [], viseDuTrait(h, opts.traitPsy)), { avantLeJet: true, source: { kind: 'activity', id: def.id } });
   return raison ? t('if.reussiteSansObjet', { raison, label: def.label }) : null;
 }
 
@@ -351,7 +341,7 @@ function refusDeReussiteSansObjet(h: Combatant, def: ActivityDef, opts: CiblesCh
 function refusDeCibleDActivite(s: EtatDInterlude, h: Combatant, def: ActivityDef, opts: CiblesChoisies): string | null {
   const cibles = ciblesDActivite(h, def);
   return refusDeCibleDuResolveur(s, h, def, cibles, opts)
-    ?? (retireUnTraitAuChoix(def) ? refusDeCible(h, cibles.traitsPsy.map((x) => x.cle), cleDuTraitVise(opts.traitPsy) ?? undefined, 'if.noPsychTrait', 'if.psychTraitNotTarget') : null);
+    ?? (retireUnTraitAuChoix(def) ? refusDeCible(h, cibles.traitsPsy.map((x) => x.cle), opts.traitPsy, 'if.noPsychTrait', 'if.psychTraitNotTarget') : null);
 }
 
 function refusDeCibleDuResolveur(s: EtatDInterlude, h: Combatant, def: ActivityDef, cibles: CiblesDActivite, opts: CiblesChoisies): string | null {
@@ -364,7 +354,7 @@ function refusDeCibleDuResolveur(s: EtatDInterlude, h: Combatant, def: ActivityD
     case 'identifyByResearch': return refusDeCible(h, cibles.artefacts.map((i) => i.uid), opts.itemUid, 'if.noArtefact', 'if.artefactNotTarget');
     case 'memorizeDiscount': return refusDeCible(h, cibles.sorts.map((x) => x.spell.id), opts.spellId, 'if.noSpellToMemorize', 'if.spellNotTarget');
     case 'mecenat': {
-      const dep = (s.bank ?? [])[opts.depositIndex ?? -1];
+      const dep = (s.bank ?? []).find((d) => d.uid === opts.depotId);
       return dep?.kind === 'mecenat' && dep.heroId === h.id ? null : t('if.mecenatDepotKo', { name: h.label });
     }
     case 'reputation': {
@@ -430,9 +420,9 @@ export function refusDAcquitterUneFaveur(s: EtatDeFaveur, heroId: string, favorI
 export interface ConfirmationDActivite { heroId: string; success?: boolean; talent?: string; tutorBrass?: number; costBrass?: number }
 
 /** Refus d'appliquer le jet d'Activité confirmé : Activité, Talent à apprendre (et, sur un succès, les PX
- *  de son achat : avec la liste du volet, les deux refus de `buyTalent`), puis ce que la confirmation
+ *  de son achat : avec la liste du volet, les deux refus d'`acheterLeTalent`), puis ce que la confirmation
  *  débite (tuteur d'Apprentissage, dépense de Réputation) hors de la bourse. Verdict UNIQUE de
- *  `jetConfirm('activity')`, avant tout débit. LDB 23 l.66-72, l.228-234 */
+ *  `jetValider('activity')`, avant tout débit. LDB 23 l.66-72, l.228-234 */
 export function refusDeConfirmerLActivite(s: EtatDInterlude, pa: ConfirmationDActivite): string | null {
   const refus = refusDActivite(s, pa.heroId);
   const h = herosDe(s, pa.heroId);

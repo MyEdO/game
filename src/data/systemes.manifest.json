@@ -166,7 +166,7 @@
       "src/ui/PortView.tsx"
     ],
     "etat": "partiel",
-    "ticket": "Marchandage terrestre résolu hors modale (landMarketFlow.ts landBuyCargo / landSellCargo → bargainOpposed, opposedTest direct) — #2687",
+    "ticket": "Marchandage terrestre résolu hors modale (landMarketFlow.ts acheterALaHalle / vendreALaHalle → bargainOpposed, opposedTest direct) — #2687",
     "notes": "—"
   },
   {
@@ -209,7 +209,8 @@
     "modules": [
       "src/state/netFlow.ts",
       "src/noyau/netOwnership.ts",
-      "src/net/relay.ts",
+      "src/hote/coop/relay.ts",
+      "src/hote/coop/salon.ts",
       "src/hote/coop/session.ts",
       "src/noyau/coop.ts",
       "src/state/intents.ts",

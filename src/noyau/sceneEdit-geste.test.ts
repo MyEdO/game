@@ -1,7 +1,7 @@
 /**
  * Le GESTE de l'éditeur au noyau (#3059) : appliquer un outil à une case, valider un rectangle, créer
- * une architecture, décaler une sélection, poser une volée — sans `src/ui` ni `gameIso`, avec les bornes
- * et refus de l'éditeur web. `editEntity` refuse l'identité (`id`, `kind`) par un refus nommé.
+ * une architecture, décaler une sélection, poser une volée — sans écran ni rendu, avec les bornes
+ * et refus de l'éditeur. `editEntity` refuse l'identité (`id`, `kind`) par un refus nommé.
  */
 import { describe, expect, it } from 'vitest';
 import { emptyScene, heightAt, tileAt, type Scene } from './monde/scene';
@@ -70,7 +70,7 @@ describe('validerRectangle — le rectangle tracé', () => {
   it('une pièce naît intérieure, une zone d’effet naît piégée', () => {
     const piece = validerRectangle(vide(), { mode: 'zone', zone: 'room' }, rect, 0)!;
     expect(piece.scene.effectZones![0]).toMatchObject({ label: 'Pièce', presentation: 'interior', area: { kind: 'rect', ...rect } });
-    expect(piece.sel).toEqual({ type: 'effectZone', idx: 0 });
+    expect(piece.sel).toEqual({ type: 'effectZone', id: piece.scene.effectZones![0].id });
     const piege = validerRectangle(vide(), { mode: 'zone', zone: 'effect' }, rect, 0)!;
     expect(piege.scene.effectZones![0].onCross).toEqual([{ op: 'wounds', amount: 5, ignoreTB: false, ignoreAP: true }]);
   });

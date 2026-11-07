@@ -4,7 +4,7 @@
  * par `policy.ts` — chaque entrée y porte sa réf chapitre + ligne) mais ici, en valeur pure. Le
  * partage est le MÊME que `policy` ⇄ `noyau/reglesMaison` :
  * ce module FEUILLE porte la valeur (moteur pur, zéro dépendance), `noyau/preferences.ts` porte la
- * table, `hote/preferences.ts` la persistance, `state/preferences.ts` l'effet déclaré par le web.
+ * table, `hote/preferences.ts` la persistance, chaque hôte l'effet qu'il déclare.
  *
  * SEULE source de vérité pour le mode d'automatisation : le reste du moteur/store lit `cadence()`,
  * `cadenceAuto()` ou `cadenceAutoCombat()`.

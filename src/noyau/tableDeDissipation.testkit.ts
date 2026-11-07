@@ -18,7 +18,7 @@ export function tableDeDissipation(mode: 'host' | 'guest', porteurs: Record<stri
   const e2 = spawnEnemy({ ref: 'moritz-valgeir' }, 'e2', { x: 8, y: 6 });
   // Porteurs de Sorts à la forme RÉELLE d'un effet actif (`bonus`/`duration` REQUIS,
   // `engine/types.ts`) : un effet sans durée ne peut pas exister en jeu — le peintre de pastilles
-  // jette dessus (`gameIso/effectIcons.ts` lit `e.duration.scale`). Le type le GARDE ici.
+  // jette dessus (il lit `e.duration.scale`). Le type le GARDE ici.
   for (const c of [e1, e2]) {
     const n = porteurs[c.id] ?? 0;
     c.activeEffects = Array.from({ length: n }, (_, i): ActiveEffect => ({

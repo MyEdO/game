@@ -1,5 +1,5 @@
 /**
- * LA VALEUR DE LA 2ᵉ FRAPPE DU MANIEMENT DE DEUX ARMES, jouée par le noyau (`jetConfirm('attack')` → `jouerLaSuiteDuCoup`).
+ * LA VALEUR DE LA 2ᵉ FRAPPE DU MANIEMENT DE DEUX ARMES, jouée par le noyau (`jetValider('attack')` → `jouerLaSuiteDuCoup`).
  * LDB 10 l.773 ; LDB 18 l.53 ; LDB 13 l.183 ; LDB 41 l.170 ; MDG 13 l.656, l.724 ; AA 10 l.114 ; #1595 c.6229354257, c.6229550544.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -58,7 +58,7 @@ interface Frappe {
   opsDuHeros?: GameOp[];
 }
 
-/** La 1ʳᵉ frappe d'un Maniement de deux armes, confirmée par `jetConfirm('attack')`. */
+/** La 1ʳᵉ frappe d'un Maniement de deux armes, confirmée par `jetValider('attack')`. */
 function premiereFrappe({ roll, cible: over = {}, pieces = [], arme = epee, retenu = false, tenu = false, resoudre, opsDuHeros = [] }: Frappe) {
   const heros = mk('hero', 'bretteur', { weapons: [arme, dague] } as never);
   applyOps(heros, opsDuHeros, { rng: desDuTest });
@@ -79,7 +79,7 @@ function premiereFrappe({ roll, cible: over = {}, pieces = [], arme = epee, rete
     ? resoudre(heros, cible, arme)
     : rederivePassiveAttack(heros, cible, arme, { roll, target: 90, success: true, sl: 3, isDouble: roll % 11 === 0 } as never, 'melee', { rng: battleRng() }, 'corps', retenu);
   banc.setState({ pendingAttack: { attackerId: heros.id, targetId: cible.id, location: 'corps', dualMode: true, result } as never });
-  banc.getState().jetConfirm('attack');
+  banc.getState().jetValider('attack');
   return result;
 }
 
@@ -134,8 +134,8 @@ describe('la 2ᵉ frappe après un Coup Critique prend un d100 du tableau, jamai
     premiereFrappe({ roll: 33, cible: { traits: [{ id: 'demoniaque', value: 8 }] } as never });
     const st = etapeCourante();
     expect(st?.kind).toBe('sauvegarde');
-    banc.getState().jetSetForcedRoll('cascadeTirage', 8, st!.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetImposerLeResultat('cascadeTirage', 8, st!.id);
+    banc.getState().jetValider('cascade');
     expect(vivant('cible').wounds.current, 'le coup est ignoré').toBe(30);
     expect(jet()).toBe(D100_AU_BESOIN_APRES_SAUVEGARDE);
   });

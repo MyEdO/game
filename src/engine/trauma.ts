@@ -641,7 +641,7 @@ export function settleHealedCriticals(c: Combatant): string[] {
  *  Résistance ou Inconscient, LDB 18 l.74) armés sur `target` (`Trauma.critTrigger`) que le critique COURANT
  *  (à `location`) fait feu : pour chaque signature DISTINCTE dont le personnage porte l'État `whileCondition`
  *  et dont la `location` correspond (ou est absente), le nœud `test` de sauvegarde est RENDU — jamais roulé :
- *  l'appelant `state` l'ouvre par la porte, dans le geste du critique qui l'a fait feu. Lu au point unique de
+ *  l'appelant (`noyau`) l'ouvre par la porte, dans le geste du critique qui l'a fait feu. Lu au point unique de
  *  résolution (`resolveCritique`) ; PUR, aucun RNG. */
 export function fireCritTriggers(target: Combatant, location: HitLocation): FlowTestNode[] {
   const out: FlowTestNode[] = [];
@@ -814,7 +814,7 @@ function tierAcquis(it: ItemInstance, tier: ProsthesisTier, cumul: number): bool
  *  (`TrappingData.prosthesisTraining`, dans l'ordre) qui reste à acquérir — un aspect à lever (`grants`)
  *  ou une tranche de pénalité à racheter (`reduces`, l.19). `undefined` si l'objet n'est pas une prothèse
  *  entraînable, n'est pas porté, ou est déjà entièrement maîtrisé.
- *  SOURCE UNIQUE partagée par l'écran d'Avancement et `trainProsthesis` (noyau/partyFlow.ts). */
+ *  SOURCE UNIQUE partagée par l'écran d'Avancement et `entrainerLaProthese` (noyau/partyFlow.ts). */
 export function nextProsthesisTier(it: ItemInstance): ProsthesisTier | undefined {
   if (!it.equipped) return undefined;
   const tiers = it.prosthesisTraining ?? [];
@@ -1169,7 +1169,7 @@ export function traumaCharPenalties(c: Combatant, key: CharKey): number[] {
 
 /** Pénalité de mobilité/Esquive due aux traumatismes de jambe (≤ 0 ; sommée, LDB 14 l.95). Une prothèse
  *  qui annule TOUT (Merveille d'ingénierie, LDB 73) lève aussi l'Esquive ; la Fausse jambe SEULE laisse le
- *  −20 subsister tant qu'elle n'est pas ENTRAÎNÉE (200 PX, `ItemInstance.prosthesisTrained` — `trainProsthesis`,
+ *  −20 subsister tant qu'elle n'est pas ENTRAÎNÉE (200 PX, `ItemInstance.prosthesisTrained` — `entrainerLaProthese`,
  *  noyau/partyFlow.ts) : entraînée, `prosthesisCancels` l'élève à `'all'` et lève aussi l'Esquive. */
 export function traumaDodgePenaltyParts(c: Combatant): PassiveMod[] {
   return pmodsFull(c, 'skillMod', false).filter((m) => {

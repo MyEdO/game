@@ -74,14 +74,14 @@ describe('placeCombatant — (re)stampe pos.h depuis le relief de la scène', ()
 
 describe('spawn — la SceneEntity.z se propage en Combatant.pos.z', () => {
   it('une entité enrôlée à z:1 → son Combattant a pos.z===1 ; un ennemi au sol n’a PAS de z', () => {
-    banc.getState().seedRng(1);
+    banc.getState().ensemencerLeTirage(1);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     const scene = structuredClone(testScene());
     const ent = scene.entities.find((e) => e.id === 'enemy-enc-mutants-0')!;
     ent.z = 1; // posté sur une couche supérieure
-    banc.getState().startScene(scene);
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(scene);
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === 'enemy-enc-mutants-0')!.pos?.z).toBe(1);
@@ -89,15 +89,15 @@ describe('spawn — la SceneEntity.z se propage en Combatant.pos.z', () => {
   });
 });
 
-describe('startCombat — partyPos.z (étage du groupe) se propage aux Combattants HÉROS (#801)', () => {
+describe('lancerLeCombat — partyPos.z (étage du groupe) se propage aux Combattants HÉROS (#801)', () => {
   it('groupe posté à z=1 → tous les héros placés ont pos.z===1 (pas téléportés au rez)', () => {
-    banc.getState().seedRng(1);
+    banc.getState().ensemencerLeTirage(1);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     const scene = structuredClone(testScene());
-    banc.getState().startScene(scene);
+    banc.getState().lancerLaScene(scene);
     banc.setState({ partyPos: { ...banc.getState().partyPos, z: 1 } });
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const heroes = b.combatants.filter((c) => c.kind === 'hero' && !c.mountable);
@@ -106,12 +106,12 @@ describe('startCombat — partyPos.z (étage du groupe) se propage aux Combattan
   });
 
   it('groupe au rez (z absent) → héros placés SANS z (byte-identique, non-régression)', () => {
-    banc.getState().seedRng(1);
+    banc.getState().ensemencerLeTirage(1);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     const scene = structuredClone(testScene());
-    banc.getState().startScene(scene);
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(scene);
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const heroes = b.combatants.filter((c) => c.kind === 'hero' && !c.mountable);

@@ -100,6 +100,7 @@ try {
     const { validerManifesteDeBase } = await chargerEvaluateur('../manifesteDeBase.ts')
     const verdict = validerManifesteDeBase(entree.manifeste, entree.base)
     if (!verdict.ok) throw new Error(`--etats-gabarit : manifeste invalide : ${verdict.ecarts.map((e) => `[${e.code}] ${e.ou} : ${e.detail}`).join('; ')}`)
+    if (!verdict.manifeste.gabarit) throw new Error(`--etats-gabarit : la base ${verdict.manifeste.base} ne porte pas de table de gabarit`)
     const { etatsDuGabarit } = await chargerEvaluateur('../etatsDuGabarit.ts')
     const liste = etatsDuGabarit(verdict.manifeste.gabarit, verdict.manifeste.silhouettes)
     const etats = []

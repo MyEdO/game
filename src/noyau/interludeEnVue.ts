@@ -69,10 +69,10 @@ function gestesDuCatalogue(s: Etat, h: Combatant, def: ActivityDef): { cible: bo
   const parCible: { libelle: string; opts: CiblesChoisies }[] = [
     ...[...armes, ...artefacts].map((i) => ({ libelle: i.label, opts: { itemUid: i.uid } })),
     ...sorts.map((x) => ({ libelle: x.spell.label, opts: { spellId: x.spell.id } })),
-    ...traitsPsy.map((x) => ({ libelle: libelleDePsy(x.trait.type, x.trait.cible), opts: { traitPsy: x.vise } })),
+    ...traitsPsy.map((x) => ({ libelle: libelleDePsy(x.trait.type, x.trait.cible), opts: { traitPsy: x.cle } })),
   ];
   const geste = (libelle: string, opts?: CiblesChoisies): GesteDInterlude =>
-    ({ libelle, geste: { verbe: 'interludeActivity', args: opts ? [h.id, def.id, opts] : [h.id, def.id] }, refus: refusDOuvertureDActivite(s, h.id, def, opts) });
+    ({ libelle, geste: { verbe: 'pratiquerLActivite', args: opts ? [h.id, def.id, opts] : [h.id, def.id] }, refus: refusDOuvertureDActivite(s, h.id, def, opts) });
   return parCible.length ? { cible: true, gestes: parCible.map((c) => geste(c.libelle, c.opts)) } : { cible: false, gestes: [geste(def.label)] };
 }
 
@@ -88,23 +88,23 @@ function activitesDuHeros(s: Etat, h: Combatant): ActiviteEnVue[] {
   const identify = activite('identify');
   const favors = (s.favors ?? []).filter((f) => f.heroId === h.id);
   return [
-    simple(revenus.id, revenus.label, { verbe: 'interludeActivity', args: [h.id, revenus.id] }, refusDOuvertureDActivite(s, h.id, revenus)),
-    ...(h.craft ? [simple('craft', activite('craft').label, { verbe: 'interludeActivity', args: [h.id, 'craft'] }, refusDOuvertureDActivite(s, h.id, activite('craft')))] : []),
+    simple(revenus.id, revenus.label, { verbe: 'pratiquerLActivite', args: [h.id, revenus.id] }, refusDOuvertureDActivite(s, h.id, revenus)),
+    ...(h.craft ? [simple('craft', activite('craft').label, { verbe: 'pratiquerLActivite', args: [h.id, 'craft'] }, refusDOuvertureDActivite(s, h.id, activite('craft')))] : []),
     parCible(learn.id, learn.label, learnableTalents(h).map((o) => ({
-      libelle: auPrix(o.label, t('interlude.px', { px: o.xpCost })), geste: { verbe: 'interludeActivity', args: [h.id, learn.id, { talentId: o.id }] }, refus: refusDOuvertureDActivite(s, h.id, learn, { talentId: o.id }),
+      libelle: auPrix(o.label, t('interlude.px', { px: o.xpCost })), geste: { verbe: 'pratiquerLActivite', args: [h.id, learn.id, { talentId: o.id }] }, refus: refusDOuvertureDActivite(s, h.id, learn, { talentId: o.id }),
     }))),
     parCible('order', t('interlude.commande'), orderCatalog().map((o) => ({
-      libelle: auPrix(o.label, formatMoney(fromBrass(o.priceBrass))), geste: { verbe: 'interludeOrder', args: [h.id, o.id] }, refus: refusDeCommande(s, h.id, o.id),
+      libelle: auPrix(o.label, formatMoney(fromBrass(o.priceBrass))), geste: { verbe: 'commanderLObjet', args: [h.id, o.id] }, refus: refusDeCommande(s, h.id, o.id),
     }))),
     { id: identify.id, libelle: identify.label, refus: ferme, ...gestesDuCatalogue(s, h, identify) },
     parCible('entrainement', activite('entrainement').label, entrainementOptions(h).map((o) => ({
-      libelle: auPrix(o.label, t('interlude.px', { px: o.xpCost })), geste: { verbe: 'interludeEntrainement', args: o.spec === undefined ? [h.id, o.kind, o.id] : [h.id, o.kind, o.id, o.spec] }, refus: refusDEntrainement(s, h.id, o.kind, o.id, o.spec),
+      libelle: auPrix(o.label, t('interlude.px', { px: o.xpCost })), geste: { verbe: 'suivreLEntrainement', args: o.spec === undefined ? [h.id, o.kind, o.id] : [h.id, o.kind, o.id, o.spec] }, refus: refusDEntrainement(s, h.id, o.kind, o.id, o.spec),
     }))),
     ...(favors.length ? [parCible('faveur', t('interlude.faveur'), favors.map((f) => ({
-      libelle: f.owedTo, geste: { verbe: 'favorSettle', args: [h.id, f.id] }, refus: refusDAcquitterUneFaveur(s, h.id, f.id),
+      libelle: f.owedTo, geste: { verbe: 'solderLaFaveur', args: [h.id, f.id] }, refus: refusDAcquitterUneFaveur(s, h.id, f.id),
     })))] : []),
     ...interludeCatalog(s).filter((d) => !d.resolver || !RESOLVEURS_A_PART.has(d.resolver)).map((def): ActiviteEnVue => (def.contexts.includes('bataille')
-      ? simple(def.id, def.label, { verbe: 'massBattleActivity', args: [def.id, h.id] }, ferme ?? refusDePrepaDeBataille(s.massBattle!, h, def))
+      ? simple(def.id, def.label, { verbe: 'menerLActionDeBataille', args: [def.id, h.id] }, ferme ?? refusDePrepaDeBataille(s.massBattle!, h, def))
       : { id: def.id, libelle: def.label, refus: ferme, ...gestesDuCatalogue(s, h, def) })),
   ];
 }
@@ -117,7 +117,7 @@ function ouvrageDuHeros(s: Etat, h: Combatant, catalogue: readonly CraftOption[]
   const qualite = (id: string): ValeurDInterlude => ({ libelle: garanti(describeQuality({ id }), id, 'qualité d’artisanat').label, valeur: id, refus: null });
   const { atouts, defauts } = qualitesDArtisanat();
   return {
-    geste: { verbe: 'interludeCraftStart', args: [h.id] }, refus,
+    geste: { verbe: 'fabriquerLObjet', args: [h.id] }, refus,
     ouvrages: refus ? [] : catalogue.map((o) => ({ libelle: auPrix(o.label, formatMoney(fromBrass(o.materialsBrass))), valeur: o.id, refus: refusDArtisanat(s, h.id, o.id) })),
     atouts: refus ? [] : atouts.map(qualite),
     defauts: refus ? [] : defauts.map(qualite),
@@ -132,7 +132,7 @@ const GENRES_DE_DEPOT: readonly GenreDeDepot[] = ['invest', 'stash', 'mecenat'];
 function depotDuHeros(s: Etat, h: Combatant): DepotAFaire {
   const max = Math.floor(toBrass(bourseOf(h)) / PA_PER_SC) * PA_PER_SC;
   return {
-    geste: { verbe: 'interludeBank', args: [h.id] },
+    geste: { verbe: 'deposerALaBanque', args: [h.id] },
     refus: devisDeDepot(s, h.id, 'stash', max).refus,
     genres: GENRES_DE_DEPOT.map((g) => ({ libelle: t(`interlude.genre.${g}`), valeur: g, refus: devisDeDepot(s, h.id, g, max).refus })),
     max, pas: PA_PER_SC,
@@ -144,7 +144,7 @@ function depotDuHeros(s: Etat, h: Combatant): DepotAFaire {
 const RESOLVEURS_A_PART = new Set(['income', 'craftExtended', 'learnTalent', 'identify', 'entrainement', 'mecenat']);
 
 /** Le libellé d'un dépôt : son héros, son genre et son montant, et ce que rend un investissement. */
-function libelleDuDepot(s: Etat, d: NonNullable<Etat['bank']>[number]): string {
+export function libelleDuDepot(s: Pick<Jeu, 'party'>, d: NonNullable<Etat['bank']>[number]): string {
   const heros = garanti(s.party.find((h) => h.id === d.heroId), d.heroId, 'héros du dépôt').label;
   const montant = formatMoney(fromBrass(d.brass));
   return d.kind === 'invest'
@@ -167,6 +167,6 @@ export function interludeEnVue(s: Jeu): InterludeEnVue | null {
         ouvrage: ouvrageDuHeros(s, h, catalogue), depot: depotDuHeros(s, h),
       };
     }),
-    depots: (s.bank ?? []).map((d, i) => ({ libelle: libelleDuDepot(s, d), geste: { verbe: 'interludeWithdraw', args: [i] }, refus: refusDeRetrait(s, i) })),
+    depots: (s.bank ?? []).map((d) => ({ libelle: libelleDuDepot(s, d), geste: { verbe: 'retirerDeLaBanque', args: [d.uid] }, refus: refusDeRetrait(s, d.uid) })),
   };
 }

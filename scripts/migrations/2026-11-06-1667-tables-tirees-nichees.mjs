@@ -1,5 +1,5 @@
 /**
- * Migration #1667 train (b) — une sous-table tirée d'un document `config` devient un nœud nommé
+ * Migration #1667 trains (b) et (e) — une sous-table tirée d'un document `config` devient un nœud nommé
  * `{ die, entries }` (`tableTiree`, `src/data/schemas/grammaire/document.ts`), la forme de
  * `weather.json › seasons[]` : le tableau de rangées passe sous `entries`, son dé imprimé sous `die`.
  *
@@ -9,9 +9,12 @@
  *   `sea-navigation.json`    `.orientation.changementDeCap` `d10`   MDG 13 l.326 (« Résultat du d10 »)
  *   `land-cargo.json`        `.wineQuality`                 `d10`   MSRC 13 l.97 (colonne « d10 »)
  *   `land-cargo.json`        `.rumours`                     `d100`  MSRC 13 l.283 (colonne « D100 »)
+ *   `sea-weather.json`       `.table`                       `d10`   MDG 13 l.170 (« Résultat du d10 »)
+ *   `sea-weather.json`       `.roseDesVents`                `d10`   MDG 13 l.252 (colonne « d10 »)
+ *   `mass-battle.json`       `.hazards`                     `1d10`  ADE II 08 l.311 (colonne « 1d10 »)
  *
  * Entrées : src/data/river-navigation.json, src/data/water-exposure.json, src/data/sea-navigation.json,
- * src/data/land-cargo.json.
+ * src/data/land-cargo.json, src/data/sea-weather.json, src/data/mass-battle.json.
  *
  * Le nœud prend la place du tableau, au même rang dans son parent. Un nœud déjà migré (objet portant
  * `die` et `entries`) est laissé tel quel : son `die` est une donnée. FORME ASSERTÉE SUR LE RÉSULTAT :
@@ -32,6 +35,8 @@ const TABLES = {
   'water-exposure.json': [[['diseases'], 'd100']],
   'sea-navigation.json': [[['orientation', 'changementDeCap'], 'd10']],
   'land-cargo.json': [[['wineQuality'], 'd10'], [['rumours'], 'd100']],
+  'sea-weather.json': [[['table'], 'd10'], [['roseDesVents'], 'd10']],
+  'mass-battle.json': [[['hazards'], '1d10']],
 };
 
 const estNoeud = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -68,4 +73,4 @@ if (arrets.length) {
   process.exit(1);
 }
 for (const [chemin, , out] of ecritures) writeFileSync(chemin, out, 'utf8');
-console.log(`migration 1667 (b) : ${ecritures.length} document(s) réécrit(s)${ecritures.length ? ` (${ecritures.map(([, f]) => f).join(', ')})` : ''}.`);
+console.log(`migration 1667 (b, e) : ${ecritures.length} document(s) réécrit(s)${ecritures.length ? ` (${ecritures.map(([, f]) => f).join(', ')})` : ''}.`);

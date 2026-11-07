@@ -1,6 +1,6 @@
 /**
  * Le noyau sans hôte (#2817 D6, D7) : aucun store dans ce graphe de modules, donc ni plateforme posée ni
- * jeu branché. La plateforme web se prouve à `src/state/plateforme-web.test.ts`.
+ * jeu branché.
  */
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from '../engine/types';

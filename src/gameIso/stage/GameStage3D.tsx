@@ -143,7 +143,8 @@ import { poserLampesDuCiel, stageLightScalars, type LampesDuCiel } from './stage
 import { viewPolicy } from './viewPolicy';
 import { applyFlicker, applyPointLights, createPointLightPool, hasFlicker, pointLightWrites, POINT_LIGHT_BUDGET, type PointLightSlots } from './stagePointLights';
 import type { LightSource } from '../../noyau/monde/vision';
-import { AMBIANCE, sceneBrume, scenePrecip } from '../catalog/ambiance';
+import { AMBIANCE } from '../catalog/ambiance';
+import { sceneBrume, scenePrecip } from '../../noyau/monde/meteo';
 import { isSheltered, shelterField, shelterSectionAt } from '../../noyau/monde/volume/toits';
 import { buildBrumeSheets, retainBrumeSheets, type BrumeSlot } from '../backends/webgl/weatherSheets';
 import {

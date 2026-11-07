@@ -8,15 +8,15 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 // Focalisation par modale (LDB — Test étendu).
 describe('Focalisation en modale (store)', () => {
-  it('focaliserLeSort ouvre pendingFocus sans tirer ; jetRoll@focus tire ; jetConfirm@focus cumule le DR + consomme l’Action', () => {
+  it('focaliserLeSort ouvre pendingFocus sans tirer ; jetLancer@focus tire ; jetValider@focus cumule le DR + consomme l’Action', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     hero.characteristics['force-mentale'] = 80;
     hero.spells = ['arme-aethyrique'];
     if (!hero.skills.some((s) => s.id === 'focalisation')) hero.skills.push({ id: 'focalisation', advances: 20, characteristic: 'force-mentale' } as never);
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(2);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(2);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     let st = banc.getState();
@@ -28,22 +28,22 @@ describe('Focalisation en modale (store)', () => {
     expect(banc.getState().pendingFocus).toBeTruthy();
     expect(banc.getState().pendingFocus!.result).toBeNull(); // pas encore lancé
 
-    banc.getState().jetRoll('focus');
+    banc.getState().jetLancer('focus');
     expect(banc.getState().pendingFocus!.result).toBeTruthy(); // jet figé
 
-    banc.getState().jetConfirm('focus');
+    banc.getState().jetValider('focus');
     st = banc.getState();
     expect(st.pendingFocus).toBeNull();
     expect(st.battle!.combatants.find((c) => c.id === heroC.id)!.focus?.spell).toBe('arme-aethyrique'); // DR cumulé (id stable)
     expect(st.battle!.acted).toBe(true); // la Focalisation consomme l'Action
   });
 
-  it('IA : un ennemi ACTIF peut focaliser pour lui-même ; jetConfirm@focus pose le DR et reprend son tour', () => {
+  it('IA : un ennemi ACTIF peut focaliser pour lui-même ; jetValider@focus pose le DR et reprend son tour', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'PJ', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(7);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(7);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     let st = banc.getState();
@@ -61,10 +61,10 @@ describe('Focalisation en modale (store)', () => {
     banc.getState().focaliserLeSort(enemy.id, 'carreau'); // garde héros-only relâchée → autorisé pour l'IA active
     expect(banc.getState().pendingFocus).toBeTruthy();
 
-    banc.getState().jetRoll('focus');
+    banc.getState().jetLancer('focus');
     expect(banc.getState().pendingFocus!.result).toBeTruthy();
 
-    banc.getState().jetConfirm('focus');
+    banc.getState().jetValider('focus');
     st = banc.getState();
     expect(st.pendingFocus).toBeNull();
     const e2 = st.battle!.combatants.find((c) => c.id === enemy.id)!;
@@ -78,8 +78,8 @@ describe('Focalisation en modale (store)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     hero.spells = ['flechette'];
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const st = banc.getState();

@@ -51,7 +51,6 @@ import { PortView } from './PortView';
 import { ShipDossier } from './ShipDossier';
 import { LandMarketView } from './LandMarketView';
 import { SeaActivitiesModal } from './SeaActivitiesModal';
-import { ManannPriestModal } from './ManannPriestModal';
 import { ShoreLeaveModal } from './ShoreLeaveModal';
 import { TravelRecapModal } from './TravelRecapModal';
 import { VoyageScreen } from './VoyageScreen';
@@ -61,11 +60,11 @@ import { DialogueHistoryScreen } from './DialogueHistoryScreen';
 import { voyageHubActive, voyageStepPending } from '../noyau/modalArbiter';
 import { lieuDuGroupe } from '../noyau/worldMap';
 import { sceneDuRegistre } from '../noyau/monde/registreDesScenes';
-import { restPlacesHere, sceneLieu } from '../noyau/restFlow';
+import { restPlacesHere } from '../noyau/restFlow';
 import { fouilleOuverte } from '../noyau/interactionsDExploration';
 import { hoverClickCommits } from './pointerCaps';
 import { controlsActive } from '../noyau/netOwnership';
-import { jouerLeClicDuCombattant } from '../noyau/combatOrParty';
+import { cliquerSurLeCombattant, jouerLeClicDuCombattant } from '../noyau/combatOrParty';
 import { useGamepad } from './useGamepad';
 import { lancerCampagne } from '../scenes/campaign';
 import { estNouveauPour } from '../noyau/monde/clues';
@@ -125,15 +124,14 @@ export function CampaignView() {
   const refusFinDeSeance = useGame(refusDeFinDeSeance);
   const fermer = useGame((s) => s.fenetreFermer);
   const pendingRoundStart = useGame((s) => s.pendingRoundStart);
-  const roundStartPromote = useGame((s) => s.roundStartPromote);
+  const promouvoirLeCombattant = useGame((s) => s.promouvoirLeCombattant);
   const gameTime = useGame((s) => s.gameTime);
   const worldMap = useGame((s) => s.worldMap);
   const worldMapOpen = useGame((s) => s.worldMapOpen);
-  const openWorldMap = useGame((s) => s.openWorldMap);
+  const ouvrirLaCarte = useGame((s) => s.ouvrirLaCarte);
   const port = useGame((s) => s.port);
   const landMarket = useGame((s) => s.landMarket);
   const pendingSeaActivities = useGame((s) => s.pendingSeaActivities);
-  const pendingManannPriest = useGame((s) => s.pendingManannPriest);
   const pendingShoreLeave = useGame((s) => s.pendingShoreLeave);
   const vessel = useGame((s) => s.vessel);
   const travelPlan = useGame((s) => s.travelPlan);
@@ -142,10 +140,9 @@ export function CampaignView() {
   const partyWiped = useGame((s) => s.partyWiped);
   const party = useGame((s) => s.party);
   const povActive = useGame((s) => s.povActive);
-  const battleClickEntity = useGame((s) => s.battleClickEntity);
   const netMode = useGame((s) => s.net.mode);
   const refusSave = useGame((s) => refusDeSauvegarde(s, s.net.mySeat));
-  const openRest = useGame((s) => s.openRest);
+  const ouvrirLeRepos = useGame((s) => s.ouvrirLeRepos);
   const partyPos = useGame((s) => s.partyPos);
   // Offre de repos LÀ OÙ SE TIENT le groupe (zone d'auteur > scène > camp ; null = interdit).
   const restHere = mode === 'exploration' && scene ? restPlacesHere({ scene, partyPos } as Parameters<typeof restPlacesHere>[0]) : null;
@@ -212,7 +209,7 @@ export function CampaignView() {
   });
   // LDB 10.
   const preemptAiming = useGame((s) => s.preemptAiming);
-  const armPreempt = useGame((s) => s.armPreempt);
+  const armerLeTirPreventif = useGame((s) => s.armerLeTirPreventif);
   const canPreemptIds = preemptShooterIds(useGame.getState); // source UNIQUE (partagée avec le ciblage clavier)
   // PAUSE AU PROCHAIN ROUND (`raise-hand`) : l'interrupteur du pied de frise. Verdict d'offre et
   // dispatcher viennent du REGISTRE — la vue ne connaît qu'un id d'action, et la bascule repasse par
@@ -245,16 +242,16 @@ export function CampaignView() {
   const isTargeting = controls && cibleDesEntites;
   // LDB 10.
   const onStripPortrait = (id: string) => {
-    // Tir rapide armé : router le clic vers `battleClickEntity` (source UNIQUE carte ⇄ frise) — il déclenche
+    // Tir rapide armé : router le clic vers `cliquerLaCase` (source UNIQUE carte ⇄ frise) — il déclenche
     // l'interruption sur un adversaire valide, même pendant la pause où il n'y a pas de combattant actif.
-    if (preemptAiming) { battleClickEntity(id); return; }
+    if (preemptAiming) { cliquerSurLeCombattant(useGame.getState, id); return; }
     // MÊME comportement que cliquer le token sur la carte (IsoStage) : action de combat si la cible est
     // actionnable ET qu'on contrôle l'actif (coop : ton tour) ; l'inspection est le geste SECONDAIRE du
     // portrait (`onInspect`). `jouerLeClicDuCombattant` = clic PARTAGÉ carte ⇄ frise.
     if (controls) jouerLeClicDuCombattant(useGame.getState, id, hoverClickCommits()); // desktop : un clic commet (cf. pointerCaps)
   };
   const onDockPortrait = (id: string) => {
-    if (isTargeting) { battleClickEntity(id, { confirm: hoverClickCommits() }); return; }
+    if (isTargeting) { cliquerSurLeCombattant(useGame.getState, id, { confirm: hoverClickCommits() }); return; }
     setSheetId(id);
   };
 
@@ -311,7 +308,7 @@ export function CampaignView() {
                forcé ouvert). */
             onVoyage={voyageHub && voyageMin && !voyageStepUp ? () => setVoyageMin(false) : undefined}
             /* Carte du monde (#T2) : la scène est un lieu connu, ou un voyage interrompu attend. */
-            worldMap={worldMap && (lieu || travelPlan) ? { onOpen: openWorldMap, interrupted: !!travelPlan?.interrupted } : undefined}
+            worldMap={worldMap && (lieu || travelPlan) ? { onOpen: ouvrirLaCarte, interrupted: !!travelPlan?.interrupted } : undefined}
             /* Hub de ville (#343) : à un lieu offrant au moins un service, ou un couchage sur place. */
             hub={hubPlace ? { label: hubPlace.label, icon: hubPlace.icon ?? 'nav/campaign', onOpen: ouvrirLeLieu } : undefined}
             /* Dormir ici HORS lieu (route, camp sauvage) — l'offre vient de la ZONE où se tient le
@@ -319,7 +316,7 @@ export function CampaignView() {
             rest={!travelPlan && restHere && !hubPlace
               ? {
                   title: t(restHere.places.auberge ? 'cv.dormirAuberge' : restHere.places.maison ? 'cv.dormirChezSoi' : 'cv.camperSurPlace'),
-                  onOpen: () => openRest({ places: restHere.places, lieu: sceneLieu(useGame.getState), quality: restHere.quality }),
+                  onOpen: () => ouvrirLeRepos(),
                 }
               : undefined}
             onFouiller={fouilleOfferte ? fouillerLaPiece : undefined}
@@ -358,10 +355,10 @@ export function CampaignView() {
               onInspect={setInspectId}
               onHover={setHoverCombatant}
               hoveredId={hovered}
-              onPromote={roundStartPromote}
+              onPromote={promouvoirLeCombattant}
               canPreemptIds={canPreemptIds}
               preemptArmedId={preemptAiming}
-              onPreempt={armPreempt}
+              onPreempt={armerLeTirPreventif}
               hand={netMode === 'local' ? undefined : {
                 raised: handRaised,
                 reason: handVerdict.ok ? undefined : handVerdict.reason,
@@ -426,7 +423,6 @@ export function CampaignView() {
         {landMarket && mode === 'exploration' && <LandMarketView />}
         {pendingSeaActivities && mode === 'exploration' && <SeaActivitiesModal />}
         {/* Au port ouvert, ces décisions sont surfacées par l'onglet Escale du hub (#228) — pas de double surface. */}
-        {pendingManannPriest && mode === 'exploration' && !port && <ManannPriestModal />}
         {/* Relâche à terre : incrustée au CENTRE du hub de voyage quand il est actif (VoyageScreen) ;
             modale flottante seulement HORS hub (arbitrage user 2026-07-11). */}
         {pendingShoreLeave && mode === 'exploration' && !port && !voyageHub && <ShoreLeaveModal />}

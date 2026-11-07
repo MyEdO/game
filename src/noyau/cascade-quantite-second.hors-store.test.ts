@@ -87,7 +87,7 @@ describe('Étape « quantité » — la 6ᵉ interaction de la coquille', () => 
     expect(get().pendingCascade!.participants[0].amount).toBe(100);
     get().jetRegler('cascade', 'quantite', 3, 'autre-etape');
     expect(get().pendingCascade!.participants[0].amount).toBe(100);
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     expect(retenus).toEqual([100]);
     expect(get().pendingCascade).toBeNull();
   });

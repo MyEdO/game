@@ -64,7 +64,7 @@ test('HAUSSE de baseline de cliquet → avertissement', () => {
 
 // ── Cas légitimes (doivent RESTER silencieux) ────────────────────────────────────────────────────
 test('CRÉATION d\'un fichier de garde (Write, inexistant) → silence (arbitrage 2026-09-28)', () => {
-  silent(evaluate({ file: 'src/ui/relocated-guard.test.ts', before: '', after: "const W = ['a.ts:1']", isWrite: true, exists: false }))
+  silent(evaluate({ file: 'src/noyau/relocated-guard.test.ts', before: '', after: "const W = ['a.ts:1']", isWrite: true, exists: false }))
   silent(evaluate({ file: 'scripts/guards/lib/newThing.mjs', before: '', after: "export const x = 'y'", isWrite: true, exists: false }))
 })
 

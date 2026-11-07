@@ -53,7 +53,7 @@ describe('Test étendu : le Round s’inverse sur la Compétence du Test', () =>
     const banc = ouvrirLeBanc();
     banc.setState({ battle: null, party: [heros('H', talent('studieux'))], pendingExtendedTest: etendu({ id: 'recherche' }) });
     expect(FLOWS.extendedTest.reversePreview(banc.getState, 'round-1')).toEqual(INVERSE);
-    banc.getState().jetReverse('extendedTest', 'round-1');
+    banc.getState().jetInverser('extendedTest', 'round-1');
     expect(banc.getState().pendingExtendedTest!.rounds[0].result).toEqual(INVERSE);
   });
 
@@ -71,10 +71,10 @@ describe('Test étendu : le Round s’inverse sur la Compétence du Test', () =>
       net: { ...initialNet(), mode: 'host', mySeat: 0, ownership: { h2: 1, h3: 2 }, slots: [1, 2, 0, 0], seatNames: { 0: 'Hôte', 1: 'A', 2: 'B' } },
       pendingExtendedTest: { ...etendu({ id: 'crochetage' }), actorId: 'h2' },
     });
-    expect(appliquerLIntentionDUnSiege(banc.getState, 2, 'jetReverse', ['extendedTest', 'round-1'])).toBe('refusee');
-    expect(appliquerLIntentionDUnSiege(banc.getState, 0, 'jetReverse', ['extendedTest', 'round-1'])).toBe('refusee');
+    expect(appliquerLIntentionDUnSiege(banc.getState, 2, 'jetInverser', ['extendedTest', 'round-1'])).toBe('refusee');
+    expect(appliquerLIntentionDUnSiege(banc.getState, 0, 'jetInverser', ['extendedTest', 'round-1'])).toBe('refusee');
     expect(banc.getState().pendingExtendedTest!.rounds[0].result!.roll).toBe(64);
-    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'jetReverse', ['extendedTest', 'round-1'])).toBe('appliquee');
+    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'jetInverser', ['extendedTest', 'round-1'])).toBe('appliquee');
     expect(banc.getState().pendingExtendedTest!.rounds[0].result).toEqual(INVERSE);
   });
 });
@@ -89,7 +89,7 @@ describe('Activité : Talents partout, jetons d’aventure sur les seules Scène
     const banc = ouvrirLeBanc();
     banc.setState({ party: [heros('H', talent('studieux'))], pendingActivity: activite('recherche') });
     expect(FLOWS.activity.reversePreview(banc.getState)).toEqual(INVERSE);
-    banc.getState().jetReverse('activity');
+    banc.getState().jetInverser('activity');
     expect(banc.getState().pendingActivity).toMatchObject({ roll: 46, sl: 1, success: true });
   });
 
@@ -108,7 +108,7 @@ describe('Activité : Talents partout, jetons d’aventure sur les seules Scène
     expect(FLOWS.activity.reverseAvailable(banc.getState)).toBe(false);
     banc.setState({ pendingActivity: activite('corps-a-corps', { battle: 'round' }) });
     expect(FLOWS.activity.reversePreview(banc.getState)).toEqual(INVERSE);
-    banc.getState().jetReverse('activity');
+    banc.getState().jetInverser('activity');
     expect(jetons(lu(banc, 'H'))).toEqual([]);
   });
 
@@ -129,7 +129,7 @@ describe('Battement : le Test de Corps à corps s’inverse', () => {
     const banc = ouvrirLeBanc();
     battement(jeton(heros('H'), { skill: { id: 'corps-a-corps' } }), banc);
     expect(FLOWS.battement.reversePreview(banc.getState)).toEqual(INVERSE);
-    banc.getState().jetReverse('battement');
+    banc.getState().jetInverser('battement');
     expect(banc.getState().pendingBattement!.result).toMatchObject({ roll: 46, target: 55, sl: 1, success: true });
     expect(jetons(lu(banc, 'H'))).toEqual([]);
   });
@@ -152,7 +152,7 @@ describe('À sang-froid sur une rangée de Psychologie PILOTÉE (LDB 85 l.13)', 
     const banc = ouvrirLeBanc();
     bande(banc, heros('H', { traits: [{ id: 'a-sang-froid' }] } as Partial<Combatant>));
     expect(FLOWS.cascadeBatch.reversePreview(banc.getState, 'H')).toEqual(INVERSE);
-    banc.getState().jetReverse('cascadeBatch', 'H');
+    banc.getState().jetInverser('cascadeBatch', 'H');
     expect(banc.getState().pendingCascade!.participants[0].participants![0].result).toEqual({ roll: 46, target: 55, sl: 1, success: true });
   });
 
@@ -178,7 +178,7 @@ describe('Mécénat (ACE 12 l.60-62) : jeton de Sociabilité face à l’amateur
     expect(jetons(h).map((e) => e.reverseToken)).toEqual([{ characteristic: 'sociabilite', contexte: 'amateurDeTheatre', illimite: true }]);
     banc.setState({ battle: null, party: [h], pendingTest: testSocial('charme', 'amateurDeTheatre') });
     expect(FLOWS.test.reversePreview(banc.getState)).toEqual(INVERSE);
-    banc.getState().jetReverse('test');
+    banc.getState().jetInverser('test');
     expect(banc.getState().pendingTest).toMatchObject(INVERSE);
     expect(jetons(lu(banc, 'H'))).toHaveLength(1);
   });
@@ -199,7 +199,7 @@ describe('Mécénat (ACE 12 l.60-62) : jeton de Sociabilité face à l’amateur
     applyOps(h, bande(3).ops!, { rng: makeRNG(1), label: 'Mécénat' });
     banc.setState({ battle: null, party: [h], pendingTest: testSocial('charme', 'amateurDeTheatre') });
     expect(FLOWS.test.reversePreview(banc.getState)).toEqual(INVERSE);
-    banc.getState().jetReverse('test');
+    banc.getState().jetInverser('test');
     expect(jetons(lu(banc, 'H'))).toEqual([]);
   });
 

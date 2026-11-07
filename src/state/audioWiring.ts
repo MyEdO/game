@@ -5,14 +5,14 @@
  *  - ANIM_MOVE → pas espacés le long du chemin ; MOVE_BLOCKED → heurt sourd (#792) ;
  *  - BATTLE_OVER (victoire) → gong ;
  *  - écran/mode/scène (store) → sélection musicale (`musicSelectionOf`) → canal musique (`audio/engine.ts`).
- * Ajouter un son = 1 def dans `audio/defs/` + (si nouvel événement) une ligne ici.
+ * Ajouter un son = 1 def dans `data/sons/defs/` + (si nouvel événement) une ligne ici.
  */
 import { bus, EVT } from '../noyau/bus';
 import { isIndoor, type Scene } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { scheduleFlowTimer } from '../web/minuteries';
 import { playSfx, playMusic } from '../audio/engine';
-import type { MusicSelection } from '../audio/music';
+import type { MusicSelection } from '../data/sons/musique';
 
 /** Tranche minimale d'état nécessaire (évite de dépendre du store — testable à sec). */
 export interface MusicStateSlice {

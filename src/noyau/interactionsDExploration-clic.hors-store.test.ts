@@ -1,7 +1,7 @@
 /**
  * Le clic d'EXPLORATION joué (`cliquerLaCase`, `interactionsDExploration.ts`) : contrat déclaré d'
  * `IntentionDExploration`. `rejoindre` pose le pending puis marche ; `dire` écrit au journal ; `annuler` (la case du
- * groupe) abandonne le pending ; toute variante hors `rejoindre` pose d'abord `setPendingInteract(null)`.
+ * groupe) abandonne le pending ; toute variante hors `rejoindre` pose d'abord `poserLInteraction(null)`.
  * Scènes FABRIQUÉES.
  */
 import { describe, expect, it, beforeEach } from 'vitest';

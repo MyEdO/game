@@ -60,9 +60,9 @@ describe('Colère des dieux — malus aux Compétences associées à la divinit�
     expect(echeances(p)).toEqual([MAINTENANT + 5 * 60]);
 
     banc.setState({ party: [p] });
-    banc.getState().advanceTime(5 * 60 - 1);
+    banc.getState().avancerLeTemps(5 * 60 - 1);
     expect(valeurs(banc.getState().party[0], skills)).toEqual(avant.map((v) => v - 10));
-    banc.getState().advanceTime(1);
+    banc.getState().avancerLeTemps(1);
     expect(valeurs(banc.getState().party[0], skills)).toEqual(avant);
   });
 
@@ -76,9 +76,9 @@ describe('Colère des dieux — malus aux Compétences associées à la divinit�
     expect(echeances(p)).toEqual([MAINTENANT + 10 * MINUTES_PER_DAY]);
 
     banc.setState({ party: [p] });
-    banc.getState().advanceTime(10 * MINUTES_PER_DAY - 1);
+    banc.getState().avancerLeTemps(10 * MINUTES_PER_DAY - 1);
     expect(valeurs(banc.getState().party[0], skills)).toEqual(avant.map((v, i) => (i === 1 ? v - 10 : v)));
-    banc.getState().advanceTime(1);
+    banc.getState().avancerLeTemps(1);
     expect(valeurs(banc.getState().party[0], skills)).toEqual(avant);
   });
 

@@ -5,7 +5,7 @@
  * généré : `npm run docs:hote-texte`.
  */
 import {
-  effectiveArmourAt, effectiveTalents, actionGate, etatDeLaBarre, endTurnArmed, porteurParId, CLICS_DU_CHAMP,
+  effectiveArmourAt, effectiveTalents, actionGate, etatDeLaBarre, endTurnArmed, porteurParId, CLIC_DU_CHAMP,
   LOCALISATIONS_DE_COUP, ACTIONS, cleDuGeste,
   type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type LigneDeJet, type Offre,
 } from '../noyau/index';
@@ -192,7 +192,7 @@ export function rendreLaVue(p: Projection): string[] {
       const liste = c.offres.liste.map(libelleDOffre);
       lignes.push(`offres : ${liste.length ? [...liste, ...enPlus(c.offres.enPlus, `(${appelEcrit('lire', { quoi: 'offres' })})`)].join(' · ') : 'aucune offre légale'}`);
       if (c.cibles.liste.length) lignes.push(`cibles : ${[...c.cibles.liste, ...enPlus(c.cibles.enPlus, 'autres')].join(', ')}`);
-      lignes.push(...replier(`champ : ${Object.values(CLICS_DU_CHAMP).map((v) => signature(v, VERBES[v] ?? [])).join(' · ')}`));
+      lignes.push(...replier(`champ : ${signature(CLIC_DU_CHAMP, VERBES[CLIC_DU_CHAMP] ?? [])}`));
     } else if (!c.fin) lignes.push(`barre ${c.barre.forme} : ${c.barre.raison}`);
   } else {
     lignes.push(`${p.scene ? `scène ${p.scene.id} « ${p.scene.nom} »` : 'aucune scène'} · écran ${p.ecran} · pas ${p.pas}`);

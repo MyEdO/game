@@ -105,10 +105,10 @@ describe('Marques de cases — l’écran DÉJÀ MONTÉ suit le store (#1411 P0-
   it('INTENTION : armer peint N > 0 cellules `intent`, désarmer les retire', () => {
     monter();
     expect(marques('intent'), 'aucune intention armée au montage').toBe(0);
-    act(() => { useGame.getState().battleArmIntent('charge'); });
+    act(() => { useGame.getState().armerLIntention('charge'); });
     expect(useGame.getState().localIntent, 'l’intention n’est même pas armée').toEqual({ actionId: 'charge' });
     expect(marques('intent'), 'l’armement n’a peint AUCUNE case : la portée reste invisible').toBeGreaterThan(0);
-    act(() => { useGame.getState().battleArmIntent(null); });
+    act(() => { useGame.getState().armerLIntention(null); });
     expect(useGame.getState().localIntent).toBeNull();
     expect(marques('intent'), 'le désarmement laisse la portée à l’écran').toBe(0);
   });

@@ -38,7 +38,7 @@ const REGLE = 'règle de jeu bornée à la rencontre';
 /** Table TOTALE des champs de `Combatant` (#2312) : un champ ajouté au type sans classement ne compile pas. */
 export const REPORT_DE_COMBATTANT = {
   id: PERSISTE, label: PERSISTE, kind: PERSISTE, followsCharacterRules: PERSISTE, creatureId: PERSISTE, porteurDeFiche: PERSISTE,
-  crewIds: rencontre(COQUE), postes: rencontre(COQUE), saboteurDR: rencontre(COQUE), cargoEnc: rencontre(COQUE),
+  crewIds: rencontre(COQUE), reserveDAbordage: rencontre(COQUE), postes: rencontre(COQUE), saboteurDR: rencontre(COQUE), cargoEnc: rencontre(COQUE),
   lastShantyQuart: rencontre(COQUE), upgrades: rencontre(COQUE), mannedPoste: rencontre(COQUE),
   singingShanty: rencontre(REGLE), // MDG 09 l.38
   teamCommanderId: rencontre(REGLE), // AA 13 l.29-35
@@ -122,7 +122,7 @@ export function carryOverState(c: Combatant): Partial<Combatant> {
   return out as Partial<Combatant>;
 }
 
-/** Couture d'ENTRÉE (`startCombat`) : le combattant né du héros du groupe, selon `REPORT_DE_COMBATTANT`.
+/** Couture d'ENTRÉE (`lancerLeCombat`) : le combattant né du héros du groupe, selon `REPORT_DE_COMBATTANT`.
  *  Copie défensive ; la position reste à poser par l'appelant. */
 export function entreeEnRencontre(h: Combatant): Combatant {
   const c = structuredClone(h);

@@ -30,7 +30,7 @@ const refDe = (cle: string): RefDesignee => {
 
 export function TravelRolesPanel() {
   const party = useGame((s) => s.party);
-  const setTravelRole = useGame((s) => s.setTravelRole);
+  const attribuerLeRoleDeMarche = useGame((s) => s.attribuerLeRoleDeMarche);
   const heroes = party.filter((h) => !h.dead && !h.outOfRencontre && h.kind === 'hero');
   return (
     <PostesRoster
@@ -39,7 +39,7 @@ export function TravelRolesPanel() {
       heroes={heroes}
       postes={activitiesFor('voyage').map(activityAsPoste)}
       pinnedOf={(h) => posteEpingle(h)?.activityId}
-      onSet={(heroId, posteId, parametre) => setTravelRole(heroId, posteId ? { activityId: posteId, ...(parametre ? { freeSkill: refDe(parametre) } : {}) } : null)}
+      onSet={(heroId, posteId, parametre) => attribuerLeRoleDeMarche(heroId, posteId ? { activityId: posteId, ...(parametre ? { freeSkill: refDe(parametre) } : {}) } : null)}
       refusCandidat={(p, h) => { const def = activityById(p.id); return def ? refusCandidatActivite(h, def) : undefined; }}
       parametreDe={(p, h) => { const def = activityById(p.id); return def?.freeSkill
         ? { intitule: `${p.label} — ${h.label} : quelle Compétence ?`, valeurs: competencesAPratiquer(h, def).map((v) => ({ key: cleDe(v.ref), label: refLabel('skills', v.ref), ...(v.refus ? { refus: v.refus } : {}) })) }

@@ -1,11 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { makeRNG } from './dice';
-import { datasetObject, setObjectDataset } from '../data/overrides';
-import { SEA_HAZARDS, findSeaHazard, pickSeaHazard, strandingPenalty, strandingOccurs, debrisEntangleFor, perilManagement } from './seaPerils';
+import { SEA_HAZARDS, findSeaHazard, strandingPenalty, strandingOccurs, debrisEntangleFor, perilManagement } from './seaPerils';
 
 /**
- * PÉRILS EN MER — couche pure (MDG 13 l.423-564), ORPHELINE avant le câblage #444 (`seaVoyageFlow.ts`
- * `case 'collision'`). Verbatim re-vérifié `Source/WH - V4 - La Mer de Griffe/13 - Navigation
+ * PÉRILS EN MER — couche pure (MDG 13 l.423-564), jouée par l'op de navire `perilDeMer`
+ * (`seaVoyageFlow.ts` `heurterLePeril`). Verbatim re-vérifié `Source/WH - V4 - La Mer de Griffe/13 - Navigation
  * maritime.md` l.471-499.
  */
 describe('SEA_HAZARDS — les 4 périls verbatim (l.475-499)', () => {
@@ -21,24 +19,6 @@ describe('SEA_HAZARDS — les 4 périls verbatim (l.475-499)', () => {
     expect(findSeaHazard('rocher')!.strandChancePct).toBe(20);
     expect(findSeaHazard('bas-fonds')!.strandChancePct).toBe(40);
     expect(findSeaHazard('debris-marins')!.strandChancePct).toBeUndefined();
-  });
-});
-
-describe('pickSeaHazard — tirage pondéré (#444, poids MAISON défaut équiprobable)', () => {
-  it('ne renvoie toujours qu’un péril RÉEL de SEA_HAZARDS (RNG seedé)', () => {
-    const rng = makeRNG(7);
-    for (let i = 0; i < 20; i++) expect(SEA_HAZARDS).toContain(pickSeaHazard(rng));
-  });
-
-  it('un poids à 0 sur les 3 autres force le tirage sur le 4ᵉ — la pondération est bien LUE en donnée', () => {
-    const original = structuredClone(datasetObject('seaPerils'));
-    try {
-      setObjectDataset('seaPerils', { ...original, hazards: SEA_HAZARDS.map((h) => ({ ...h, weight: h.id === 'bas-fonds' ? 1 : 0 })) } as never);
-      const rng = makeRNG(3);
-      for (let i = 0; i < 10; i++) expect(pickSeaHazard(rng).id).toBe('bas-fonds');
-    } finally {
-      setObjectDataset('seaPerils', original);
-    }
   });
 });
 

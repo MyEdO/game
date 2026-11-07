@@ -60,25 +60,25 @@ describe('Manœuvre → re-mapping des bordées (aligner / désaligner sa bordé
   });
 });
 
-describe('shipTurn (action store) — vire le cap, branché aux arcs', () => {
+describe('virerLeNavire (action store) — vire le cap, branché aux arcs', () => {
   const ship = (): Combatant =>
     combattantDeTest({ id: 'ship', label: 'Cogue', kind: 'enemy', pos: { x: 5, y: 5 }, conditions: [], weapons: [] });
 
   it('vire tribord 90° (N → E)', () => {
     banc.setState({ battle: { combatants: [ship()], order: ['ship'], turn: 0 } as never, facing: { ship: 'N' } });
-    banc.getState().shipTurn('ship', 2);
+    banc.getState().virerLeNavire('ship', 2);
     expect(banc.getState().facing.ship).toBe('E'); // firedAttackBlock/targeting reliront ce cap → arcs re-mappés
   });
 
   it('vire bâbord 90° (N → O)', () => {
     banc.setState({ battle: { combatants: [ship()], order: ['ship'], turn: 0 } as never, facing: { ship: 'N' } });
-    banc.getState().shipTurn('ship', -2);
+    banc.getState().virerLeNavire('ship', -2);
     expect(banc.getState().facing.ship).toBe('O');
   });
 
   it('navire sans cap → no-op (aucun virage fantôme)', () => {
     banc.setState({ battle: { combatants: [], order: [], turn: 0 } as never, facing: {} });
-    banc.getState().shipTurn('ghost', 2);
+    banc.getState().virerLeNavire('ghost', 2);
     expect(banc.getState().facing.ghost).toBeUndefined();
   });
 });
@@ -220,7 +220,7 @@ describe('maneuverShip — Test de Navigation du barreur → vire le navire (MDG
   });
 });
 
-describe('shipAdvance (action store) — avance coque + équipage le long du cap (MDG 13)', () => {
+describe('avancerLeNavire (action store) — avance coque + équipage le long du cap (MDG 13)', () => {
   const hull = (over: Partial<Combatant> = {}): Combatant =>
     combattantDeTest({ id: 'ship', label: 'Cogue', kind: 'npc', pos: { x: 5, y: 5 }, crewIds: ['m1', 'm2'], conditions: [], weapons: [], ...over });
   const sailor = (id: string, pos: { x: number; y: number }): Combatant =>
@@ -230,7 +230,7 @@ describe('shipAdvance (action store) — avance coque + équipage le long du cap
     const m1 = sailor('m1', { x: 4, y: 4 });
     const m2 = sailor('m2', { x: 4, y: 6 });
     banc.setState({ battle: { combatants: [hull(), m1, m2], order: ['ship'], turn: 0 } as never, facing: { ship: 'E' }, scene: null as never });
-    expect(banc.getState().shipAdvance('ship', 3)).toBe(3);
+    expect(banc.getState().avancerLeNavire('ship', 3)).toBe(3);
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === 'ship')!.pos).toEqual({ x: 8, y: 5 });
     expect(b.combatants.find((c) => c.id === 'm1')!.pos).toEqual({ x: 7, y: 4 }); // +3x, offset (−1,−1) gardé
@@ -240,7 +240,7 @@ describe('shipAdvance (action store) — avance coque + équipage le long du cap
   it('clampe aux bornes de scène : coque près du bord → moved < cases, équipage translaté du même moved', () => {
     const m1 = sailor('m1', { x: 4, y: 5 });
     banc.setState({ battle: { combatants: [hull({ crewIds: ['m1'] }), m1], order: ['ship'], turn: 0 } as never, facing: { ship: 'E' }, scene: emptyScene('scene-test', 7, 10) });
-    expect(banc.getState().shipAdvance('ship', 5)).toBe(1); // bord est à x=6 → 1 seule case dispo depuis x=5
+    expect(banc.getState().avancerLeNavire('ship', 5)).toBe(1); // bord est à x=6 → 1 seule case dispo depuis x=5
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === 'ship')!.pos).toEqual({ x: 6, y: 5 });
     expect(b.combatants.find((c) => c.id === 'm1')!.pos).toEqual({ x: 5, y: 5 }); // +1 (même moved)
@@ -248,7 +248,7 @@ describe('shipAdvance (action store) — avance coque + équipage le long du cap
 
   it('cap absent OU 0 case dispo → no-op, renvoie 0 (aucune mutation)', () => {
     banc.setState({ battle: { combatants: [hull()], order: ['ship'], turn: 0 } as never, facing: {}, scene: null as never });
-    expect(banc.getState().shipAdvance('ship', 3)).toBe(0); // pas de cap
+    expect(banc.getState().avancerLeNavire('ship', 3)).toBe(0); // pas de cap
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'ship')!.pos).toEqual({ x: 5, y: 5 }); // intacte
   });
 
@@ -343,7 +343,7 @@ describe('shipAdvance (action store) — avance coque + équipage le long du cap
     const ship = navHull('ship', 5, 'cogue', 45, 50);
     const other = navHull('other', 8, 'knarr', 40, 30);
     banc.setState({ battle: { combatants: [ship, other], order: ['ship'], turn: 0 } as never, facing: { ship: 'E', other: 'O' }, scene: null as never });
-    expect(banc.getState().shipAdvance('ship', 5)).toBe(2); // cap E : cases 6,7 libres ; 8 occupée → stop à 7
+    expect(banc.getState().avancerLeNavire('ship', 5)).toBe(2); // cap E : cases 6,7 libres ; 8 occupée → stop à 7
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === 'ship')!.pos).toEqual({ x: 7, y: 5 }); // adjacent, PAS sur (8,5)
     expect(b.combatants.find((c) => c.id === 'other')!.wounds.current).toBeLessThan(30); // la victime encaisse
@@ -354,7 +354,7 @@ describe('shipAdvance (action store) — avance coque + équipage le long du cap
     const ship = navHull('ship', 5, 'cogue', 45, 50);
     const other = navHull('other', 20, 'knarr', 40, 30); // hors de portée
     banc.setState({ battle: { combatants: [ship, other], order: ['ship'], turn: 0 } as never, facing: { ship: 'E', other: 'O' }, scene: null as never });
-    expect(banc.getState().shipAdvance('ship', 3)).toBe(3); // rien devant → avance pleine
+    expect(banc.getState().avancerLeNavire('ship', 3)).toBe(3); // rien devant → avance pleine
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'other')!.wounds.current).toBe(30); // intacte
   });
 });
@@ -378,10 +378,10 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
     expect(p.participants.some((x) => x.id === 'helm')).toBe(true); // le Timonier (helm) est contributeur
     banc.getState().jetRegler('shipManeuver', 'virage', 2); // tribord 90° (virage ⟂ jet)
     expect(banc.getState().pendingShipManeuver!.turnSteps).toBe(2);
-    banc.getState().jetRoll('shipManeuver', 'helm'); // le PJ lance SON rôle (interactif)
+    banc.getState().jetLancer('shipManeuver', 'helm'); // le PJ lance SON rôle (interactif)
     expect(banc.getState().pendingShipManeuver!.participants.every((x) => x.result)).toBe(true);
     expect(banc.getState().facing.ship).toBe('N'); // cap encore intact : application différée à la confirmation
-    banc.getState().jetConfirm('shipManeuver');
+    banc.getState().jetValider('shipManeuver');
     const st = banc.getState();
     expect(st.pendingShipManeuver).toBeNull();
     expect(st.battle!.acted).toBe(true); // un jet = une Action
@@ -410,7 +410,7 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
 
   it('rôle non tentable : le total = Σ des N jets + DR plats, la ligne sans jet n’y pèse rien (MDG 14 l.13)', () => {
     ouvreAvecSansVoile();
-    banc.getState().jetRoll('shipManeuver', 'helm');
+    banc.getState().jetLancer('shipManeuver', 'helm');
     const p = banc.getState().pendingShipManeuver!;
     const helmSl = jete(p.participants.find((x) => x.id === 'helm')!.result).sl;
     const plats = maneuverCrewTotal([], p.essentialRoleId, p.moraleScore, p.undercrew, p.extraDR);
@@ -420,10 +420,10 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
   it('rôle non tentable : ni jet, ni Résilience, ni Chance — aucun tirage consommé (LDB 09 l.30 ; #2588 Q1)', () => {
     ouvreAvecSansVoile();
     const st = banc.getState();
-    st.jetRoll('shipManeuver', 'muet');
-    st.jetForceSuccess('shipManeuver', 'muet');
-    st.jetBonusSL('shipManeuver', 'muet');
-    st.jetReroll('shipManeuver', 'muet');
+    st.jetLancer('shipManeuver', 'muet');
+    st.jetForcerLaReussite('shipManeuver', 'muet');
+    st.jetAjouterUnDR('shipManeuver', 'muet');
+    st.jetRelancer('shipManeuver', 'muet');
     expect(banc.getState().pendingShipManeuver!.participants.find((x) => x.id === 'muet')!.result).toEqual(ECHEC_SANS_JET);
     const muet = banc.getState().battle!.combatants.find((c) => c.id === 'muet')!;
     expect([muet.fortune, muet.resilience]).toEqual([2, 1]); // aucun point dépensé
@@ -467,7 +467,7 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
       banc.getState().manoeuvrerLeNavire('helm');
       const p = banc.getState().pendingShipManeuver!;
       expect(p.extraDR).toBe(3); // openCrewTestPending : SEUL site d'addition du mod
-      banc.getState().jetRoll('shipManeuver', 'helm');
+      banc.getState().jetLancer('shipManeuver', 'helm');
       const rolled = banc.getState().pendingShipManeuver!;
       const total = maneuverCrewTotal(rolled.participants, rolled.essentialRoleId, rolled.moraleScore, rolled.undercrew, rolled.extraDR);
       const shipC = banc.getState().battle!.combatants.find((c) => c.id === 'ship')!;
@@ -514,7 +514,7 @@ describe('Test d’équipage : un rôle devenu non tentable au jet pose le refus
     const b = banc.getState().battle!;
     const sansVoile = { ...helm, skills: [] } as unknown as Combatant;
     banc.setState({ battle: { ...b, combatants: b.combatants.map((c) => (c.id === 'helm' ? sansVoile : c)) } });
-    banc.getState().jetRoll('shipManeuver', 'helm');
+    banc.getState().jetLancer('shipManeuver', 'helm');
     const apres = banc.getState().pendingShipManeuver!.participants.find((x) => x.id === 'helm')!;
     const attendu = crewRoleValue(sansVoile, findCrewRoleById(part.roleId)!, apres.navigation).refus;
     expect(attendu).toBeDefined();

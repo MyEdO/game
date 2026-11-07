@@ -9,8 +9,8 @@
  * cascade, pas une clé modale) :
  *  - `MODAL_DEFS.auto` (modalArbiter) pour les modales STANDALONE (frénésie, course, focalisation, Destin…) ;
  *  - `JET_AUTO` (ici) pour les étapes-JET de la `cascade` de COMBAT (attaque/défense/… bespoke) — leur
- *    résolution passe par leur propre flux (`jetRoll(flux)`→`jetConfirm(flux)`, qui fait avancer la cascade), PAS par le
- *    résolveur générique « tout résoudre » (`jetRoll('cascade')`, réservé aux jets de NUIT/VOYAGE, qui ont un `target`).
+ *    résolution passe par leur propre flux (`jetLancer(flux)`→`jetValider(flux)`, qui fait avancer la cascade), PAS par le
+ *    résolveur générique « tout résoudre » (`jetLancer('cascade')`, réservé aux jets de NUIT/VOYAGE, qui ont un `target`).
  *
  * Module FEUILLE : n'importe RIEN de `combatFlow` ; tout passe par `get().xxx`. INERT tant que la chaîne
  * de reprise (C3/C4) ne l'appelle pas — `cadenceAuto()` est faux par défaut (mode « manuel »).
@@ -39,11 +39,11 @@ import { axesDeLaFenetre, VERBE_DE_CHOIX, type FenetreAChoix } from './choixDesF
  * porte) — tranché par l'IA en Auto-combat (C4). Record total : ajouter un `jet` force une politique.
  */
 export const JET_AUTO: Record<NonNullable<CascadeStep['jet']>, AutoPolicy> = {
-  attack: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'attack' }, { verbe: 'jetConfirm', flux: 'attack' }] },
-  defense: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'defense' }, { verbe: 'jetConfirm', flux: 'defense' }] },
-  fumble: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'fumble' }, { verbe: 'jetConfirm', flux: 'fumble' }] },
-  test: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'test' }, { verbe: 'jetConfirm', flux: 'test' }] },
-  cast: { mode: 'choice', autoDrive: [{ verbe: 'jetRoll', flux: 'cast' }, { verbe: 'jetConfirm', flux: 'cast' }] }, // Rapide : le joueur décide (surincantation) ; Auto-combat : l'IA incante (sans surincanter)
+  attack: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'attack' }, { verbe: 'jetValider', flux: 'attack' }] },
+  defense: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'defense' }, { verbe: 'jetValider', flux: 'defense' }] },
+  fumble: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'fumble' }, { verbe: 'jetValider', flux: 'fumble' }] },
+  test: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'test' }, { verbe: 'jetValider', flux: 'test' }] },
+  cast: { mode: 'choice', autoDrive: [{ verbe: 'jetLancer', flux: 'cast' }, { verbe: 'jetValider', flux: 'cast' }] }, // Rapide : le joueur décide (surincantation) ; Auto-combat : l'IA incante (sans surincanter)
   disengage: { mode: 'choice' },  // menu d'options (Fuir / Esquiver) — initié par le joueur, n'arrive pas en Auto
   extended: { mode: 'choice' },   // multi-participant (rare en combat)
   forceDoor: { mode: 'choice' },  // multi groupOwner (rare en combat)
@@ -69,8 +69,8 @@ export const FENETRE_DU_JET: Record<NonNullable<CascadeStep['jet']>, { flux: Flo
     reactives: [
       // Contre-sort : la fenêtre a une PHASE 1 de déclaration (#1042/#1059) — la cadence déclare les
       // rangées de CE siège (« contrer seul » = le geste que le joueur posait en lançant) avant de rouler.
-      { flux: 'counterspell', rangees: (s) => s.pendingCounterspell?.participants, drive: [{ verbe: 'jetRegler', flux: 'counterspell', reglage: 'declaration', toutes: true, valeur: 'solo' }, { verbe: 'jetRoll', flux: 'counterspell' }, { verbe: 'jetConfirm', flux: 'counterspell' }] },
-      { flux: 'opposition', rangees: (s) => s.pendingCastOpposition?.participants, drive: [{ verbe: 'jetRoll', flux: 'opposition' }, { verbe: 'jetConfirm', flux: 'opposition' }] },
+      { flux: 'counterspell', rangees: (s) => s.pendingCounterspell?.participants, drive: [{ verbe: 'jetRegler', flux: 'counterspell', reglage: 'declaration', toutes: true, valeur: 'solo' }, { verbe: 'jetLancer', flux: 'counterspell' }, { verbe: 'jetValider', flux: 'counterspell' }] },
+      { flux: 'opposition', rangees: (s) => s.pendingCastOpposition?.participants, drive: [{ verbe: 'jetLancer', flux: 'opposition' }, { verbe: 'jetValider', flux: 'opposition' }] },
     ],
   },
   test: { flux: 'test' },
@@ -224,11 +224,11 @@ export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
 /**
  * FENÊTRES RÉACTIVES à drive ouvertes DANS l'étape `jet:'cast'` (Contre-sort #1028, opposition de cible #949,
  * `FENETRE_DU_JET.cast.reactives`) et leur drive d'auto-cadence (#1030). Le drive de l'ÉTAPE ne peut traverser ni l'une ni l'autre :
- * `jetConfirm('cast')` s'abstient sous Contre-sort (la Dissipation se résout AVANT, `LDB 46 l.156`) et
- * `jetConfirm('opposition')` refuse d'agréger tant qu'une rangée interactive n'a pas jeté — `autoDrive` y
+ * `jetValider('cast')` s'abstient sous Contre-sort (la Dissipation se résout AVANT, `LDB 46 l.156`) et
+ * `jetValider('opposition')` refuse d'agréger tant qu'une rangée interactive n'a pas jeté — `autoDrive` y
  * re-tirait donc à vide (l'opposition allant jusqu'à se RÉOUVRIR à chaque passage, jets compris).
  * POLITIQUE du drive (pas une règle) : chaque rangée jouable ICI jette, puis « Appliquer » — les issues
- * restent tranchées par les agrégations canoniques (`jetConfirm('counterspell')` #1040, `jetConfirm('opposition')`),
+ * restent tranchées par les agrégations canoniques (`jetValider('counterspell')` #1040, `jetValider('opposition')`),
  * et les rangées non surfacées par leurs chemins existants (`applyCounterspellFallback`, jets témoins
  * roulés à l'ouverture). ORDRE = celui de la chaîne réelle (`resolveCastChain`) : le Contre-sort
  * précède l'opposition (une incantation n'ouvre jamais la seconde tant que la première est posée).
@@ -327,9 +327,9 @@ function autoResolveCascade(get: Get, set: Set): void {
     }
     // Combat : avancer d'UNE étape (comme le joueur) → les étapes-jet en aval (Maladresse…) gardent leur
     // driver bespoke au tick suivant, au lieu d'être écrasées par un « tout résoudre » global.
-    if (pc.purpose === 'combat') { get().jetConfirm('cascade'); programmer(() => tickCombatAuto(get, set), beatHold(get, 'autoResolve')); return; }
+    if (pc.purpose === 'combat') { get().jetValider('cascade'); programmer(() => tickCombatAuto(get, set), beatHold(get, 'autoResolve')); return; }
   }
-  get().jetRoll('cascade');
+  get().jetLancer('cascade');
   programmer(() => tickCombatAuto(get, set), beatHold(get, 'autoResolve')); // gérer le bilan / l'étape suivante
 }
 
@@ -344,7 +344,7 @@ function stepAutoResolved(s: Jeu, step: CascadeStep): boolean {
     return !!(w ?? pol.autoDrive); // incantation en Auto
   }
   if (stepInteraction(step) === 'choix') return cadenceAutoCombat() && step.defaultChoice != null; // choix : auto SEULEMENT si un défaut est authoré (sinon décision au joueur, pas de hang)
-  return true; // jet/affichage générique (nuit/voyage) → tout résoudre (`jetRoll('cascade')`)
+  return true; // jet/affichage générique (nuit/voyage) → tout résoudre (`jetLancer('cascade')`)
 }
 
 /**
@@ -422,8 +422,7 @@ export function tickCombatAuto(get: Get, set: Set): void {
 /**
  * Planifie un tick d'auto-cadence après un changement d'état : rien en mode manuel (défaut, zéro
  * overhead), sinon UN tick hors du cycle de `set`, coalescé sur son jeton tant que la plateforme le dit
- * en attente : un tick annulé par l'hôte n'en bloque aucun autre. L'hôte l'appelle à chaque écriture
- * (`initCombatAuto`, `src/state/store.ts`).
+ * en attente : un tick annulé par l'hôte n'en bloque aucun autre. L'hôte l'appelle à chaque écriture.
  */
 let tickPlanifie: Jeton | null = null;
 export function planifierLeTickAuto(get: Get, set: Set): void {

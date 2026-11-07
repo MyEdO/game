@@ -72,6 +72,14 @@ describe('volumeDuMonde (#3476)', () => {
     expect(volumeDuMonde(s, 1)).toEqual(volumeDuMonde(s));
   });
 
+  it('le couvercle retire du volume les cases qu’il nomme, couche comprise : l’étage au-dessus de la tête, pas le rez', () => {
+    const s = emptyScene('scene-test', 2, 1);
+    s.layers[0].tiles = ['plancher', 'plancher'];
+    s.layers.push({ z: 1, tiles: ['plancher', 'plancher'], height: [3, 3] });
+    const cases = (v: VolumeDuMonde) => new Set(triangles(v).map((t) => t.case.join(',')));
+    expect(cases(volumeDuMonde(s, undefined, new Set(['0,0,1'])))).toEqual(new Set(['0,0,0', '1,0,0', '1,0,1']));
+  });
+
   it('chaque triangle porte la couche de sa case : le plancher de l’étage à z 1, le sol du rez à z 0', () => {
     const s = emptyScene('scene-test', 1, 1);
     s.layers[0].tiles = ['plancher'];
@@ -109,6 +117,16 @@ describe('volumeDuMonde (#3476)', () => {
     expect(Math.max(...tris.flatMap((t) => t.ys))).toBeGreaterThan(0.5);
     const etage: Scene = { ...s, entities: [{ ...s.entities[0], z: 1 }], layers: [...s.layers, { z: 1, tiles: Array(9).fill('vide'), height: Array(9).fill(3) }] };
     expect(volumeDuMonde(etage, 0).surfaces.some((m) => m.matiere.startsWith('prop--'))).toBe(false);
+  });
+
+  it('le décor que son terrain pose (le bois, ses arbres) se dresse sur chacune de ses cases', () => {
+    const s = emptyScene('scene-test', 3, 1);
+    s.layers[0].tiles = ['herbe', 'bois', 'herbe'];
+    const v = volumeDuMonde(s);
+    const decor = v.surfaces.filter((m) => m.matiere.startsWith('prop--'));
+    expect(decor.map((m) => m.matiere)).toContain('prop--feuillage');
+    const tris = triangles(v).filter((_, t) => decor.some((m) => m.debut <= t * 3 && t * 3 < m.fin));
+    expect(new Set(tris.map((t) => t.case.join(',')))).toEqual(new Set(['1,0,0']));
   });
 });
 

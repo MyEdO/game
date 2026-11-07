@@ -107,6 +107,8 @@ const NOMMES = [
   'action|free|charge',
   'base|avancee',
   'capacite-de-combat|capacite-de-tir',
+  // `charKeySchema` (#3606) : les 10 Caractéristiques, nommées par `CHAR_LABELS`.
+  'capacite-de-combat|capacite-de-tir|force|endurance|initiative|agilite|dexterite|intelligence|force-mentale|sociabilite',
   'circonstance|jet',
   'esquive|parade|init|resist|auto',
   'feeding|praying|cowering|standing|howling',
@@ -151,6 +153,7 @@ const NOMMES = [
   'premier|courant|extreme',
   'proue|tribord|poupe|babord',
   'psych|perilDesEaux|bandages|amateurDArt|amateurDeTheatre',
+  'quadrupede|quadrupede-aile|oiseau|sans-jambes|theropode|arthropode-a-pinces|sans-membres|amorphe|arachnide|poisson|unique|cephalopode|squig',
   // `amateurSchema` : la contrepartie d'un Test de Sociabilité qu'une fiche déclare (ACE 12 l.60-62).
   'amateurDArt|amateurDeTheatre',
   'source-d-eau|blessures-et-etats',
@@ -285,7 +288,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'opposed|extended',
   'party|enemies',
   'party|hero',
-  'party|hero|caster|target',
+  'party|hero|navire|membreAuHasard|caster|target',
   'pas|trot|galop',
   'pluie|averse|neige',
   'radius|diameter',

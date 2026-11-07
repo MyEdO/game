@@ -1,8 +1,7 @@
 /**
  * #2533 — les écrans du voyage terrestre disent vrai : la halte nomme son lieu et joue l'Exposition sous
  * la météo du JOUR, la durée du récapitulatif est l'heure écoulée, le jour clos n'a qu'une carte, et le
- * d10 des péripéties passe par la porte des jets. Les cartes de jour de l'écran (`voyageDayCards`, `ui/VoyageScreen`,
- * lié au store) se jouent en `src/state/voyage-ecrans-vrais.test.ts`.
+ * d10 des péripéties passe par la porte des jets.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { seedBattleRng } from './battleRng';
@@ -68,7 +67,7 @@ function map(route: Partial<MapRouteTrace> = {}): WorldMap {
 }
 function setup(worldMap: WorldMap, departWeather?: Scene['weather'], party: Combatant[] = [hero()]): void {
   set({ party, travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [], battle: null });
-  get().loadProject({ scenes: [scene('scene-depart', 'Cour du relais de départ', departWeather), scene('scene-arrivee', 'Place de Federholz')], entryId: 'scene-depart', worldMap, projet: null });
+  get().chargerLeProjet({ scenes: [scene('scene-depart', 'Cour du relais de départ', departWeather), scene('scene-arrivee', 'Place de Federholz')], entryId: 'scene-depart', worldMap, projet: null });
   set({ gameTime: campaignStart() });
 }
 
@@ -77,12 +76,12 @@ function poseMeteo(id: string): void {
   const meteo = get().pendingCascade!.participants.find((s) => s.kind === 'stageWeather')!;
   const saison = seasonOfMonth(toDate(get().gameTime).month);
   const rangee = tableStepDef(`stage-weather-${saison}`)!.rows.find((r) => r.id === id)!;
-  get().jetSetForcedRoll('cascadeTirage', rangee.min, meteo.id);
+  get().jetImposerLeResultat('cascadeTirage', rangee.min, meteo.id);
 }
 
 /** Les `kind` des étapes de la NUIT de halte, couchage dehors et sans repas. */
 function etapesDeLaNuit(): string[] {
-  get().restSet('h', { lodging: 'dehors', food: 'rien' });
+  get().fenetreChoisir('rest', 'couchage', 'dehors', 'h'); get().fenetreChoisir('rest', 'pitance', 'rien', 'h');
   get().fenetreValider('rest');
   return get().pendingCascade?.participants.map((s) => s.kind) ?? [];
 }
@@ -94,7 +93,7 @@ describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOU
   it('la halte nomme la route du voyage, jamais la scène de départ — relais ou bivouac', () => {
     for (const inns of [true, false]) {
       setup(map({ inns }));
-      get().startTravel('r1', 'pied'); // 30 km à 4 km/h : 6 h, puis la nuit
+      get().partirEnVoyage('r1', 'pied'); // 30 km à 4 km/h : 6 h, puis la nuit
       const halte = get().pendingRest!;
       expect(halte.travelHalt).toBe(true);
       expect(halte.lieu).toBe('Weiler → Federholz');
@@ -106,7 +105,7 @@ describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOU
     carte.places[0] = { ...carte.places[0], label: 'Auberge La Diligence' };
     carte.places[1] = { ...carte.places[1], label: 'La route principale' };
     setup(carte);
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     expect(get().pendingRest!.lieu).toBe('Auberge La Diligence → La route principale');
   });
 
@@ -114,7 +113,7 @@ describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOU
     setRule('travel-etapes', true);
     setDesFixes(true);
     setup(map(), 'clair');
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     poseMeteo('pluie-diluvienne');
     draineCascade(get);
     expect(get().pendingRest?.travelHalt).toBe(true);
@@ -126,7 +125,7 @@ describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOU
     setRule('travel-etapes', true);
     setDesFixes(true);
     setup(map(), 'tempete');
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     poseMeteo('beau');
     draineCascade(get);
     expect(activeExposureSeverity(get)).toBe('clement');
@@ -135,7 +134,7 @@ describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOU
 
   it('Étapes éteintes (défaut) : la route n’a pas de météo, la nuit lit la scène de départ (#2533 c.6071899887)', () => {
     setup(map(), 'tempete');
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     expect(rule('travel-etapes')).toBe(false);
     expect(get().pendingRest?.travelHalt).toBe(true);
     expect(get().travelPlan?.log?.[0]?.weather).toBeUndefined();
@@ -148,7 +147,7 @@ describe('#2533 — interruption puis reprise à budget nul : le jour interrompu
     setRule('travel-etapes', true);
     setDesFixes(true);
     setup(map({ km: 60, perils: [{ label: 'Brigands sur la route !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-brigands' }] }] }), 'clair');
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     poseMeteo('pluie-diluvienne');
     draineCascade(get);
     expect(get().travelPlan?.interrupted).toBe(true);
@@ -160,7 +159,7 @@ describe('#2533 — interruption puis reprise à budget nul : le jour interrompu
     set({ battle: null, mode: 'exploration' });
     const wm = get().worldMap!;
     set({ worldMap: { ...wm, routes: wm.routes.map((r) => ({ ...r, perils: [] })) } });
-    get().resumeTravel();
+    get().reprendreLeVoyage();
     expect(get().pendingCascade, 'aucun jour de 0 h : ni météo ni péripétie').toBeNull();
     expect(get().pendingRest?.travelHalt).toBe(true);
     const log = get().travelPlan!.log!;
@@ -177,7 +176,7 @@ describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halt
     setRule('travel-etapes', true);
     setDesFixes(true);
     setup(map({ km: 60, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-brigands' }] }] }), 'clair');
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     poseMeteo('pluie-diluvienne');
     draineCascade(get);
     const jours = get().travelPlan!.recap!.days;
@@ -191,10 +190,10 @@ describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halt
 
   it('un repos déjà ouvert refuse la halte : le jour interrompu reste au log quand même', () => {
     const jour = jourInterrompu();
-    get().openRest({ lieu: sceneLieu(get), places: { camp: true } });
-    get().resumeTravel();
+    get().offrirLeRepos({ lieu: sceneLieu(get), places: { camp: true } });
+    get().reprendreLeVoyage();
     const plan = get().travelPlan!;
-    expect(plan.log, 'le jour interrompu est perdu si sa clôture attend `openRest`').toEqual([jour]);
+    expect(plan.log, 'le jour interrompu est perdu si sa clôture attend `ouvrirLeRepos`').toEqual([jour]);
     expect(plan.recap).toBeUndefined();
   });
 });
@@ -217,11 +216,11 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
     setRule('travel-etapes', true);
     setup(map({ km: 200, modes: ['diligence', 'pied'], perils: brigands }));
     creditBourse(get, set, 'h', { gold: 5, silver: 0, brass: 0 });
-    get().startTravel('r1', 'diligence', { classeId: 'exterieur' });
+    get().partirEnVoyage('r1', 'diligence', { classeId: 'exterieur' });
     interromptPuisVainc();
     const jours = get().travelPlan!.recap!.days;
     const jourInterrompu = jours[jours.length - 1];
-    get().resumeTravel();
+    get().reprendreLeVoyage();
     const log = get().travelPlan!.log!;
     expect(log, 'le jour interrompu est clos, tel quel').toEqual([jourInterrompu]);
     expect(get().pendingCascade?.participants[0].kind, 'la journée neuve tire sa Météo d’Étape').toBe('stageWeather');
@@ -230,12 +229,12 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
   it('à pied, nuit passée en scène puis reprise : une carte = un jour, la journée neuve a sa météo', () => {
     setRule('travel-etapes', true);
     setup(map({ km: 60, perils: brigands }));
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     interromptPuisVainc();
-    get().openRest({ lieu: sceneLieu(get), places: { camp: true } });
+    get().offrirLeRepos({ lieu: sceneLieu(get), places: { camp: true } });
     get().fenetreValider('rest');
     draineCascade(get);
-    get().resumeTravel();
+    get().reprendreLeVoyage();
     const log = get().travelPlan!.log!;
     expect(log).toHaveLength(1);
     expect(log[0].hours).toBeLessThanOrEqual(6.01);
@@ -247,11 +246,11 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
     setup(map({ km: 300, modes: ['diligence', 'pied'], perils: brigands }), undefined,
       [hero({ skills: [{ id: 'conduite-d-attelage', advances: 60 }] } as Partial<Combatant>)]);
     creditBourse(get, set, 'h', { gold: 500, silver: 0, brass: 0 });
-    get().startTravel('r1', 'diligence', { allure: 'galop' });
+    get().partirEnVoyage('r1', 'diligence', { allure: 'galop' });
     const premierPas = get().pendingCascade!.participants[0].kind;
     interromptPuisVainc();
     const nJournal = get().journal.length;
-    get().resumeTravel();
+    get().reprendreLeVoyage();
     const roulesHorsPorte = get().journal.slice(nJournal).filter((l) => /attelage/i.test(l));
     expect(roulesHorsPorte).toEqual([]);
     expect(get().pendingCascade?.participants[0].kind, 'la journée neuve rouvre le jet du conducteur').toBe(premierPas);
@@ -265,7 +264,7 @@ describe('#2533 — Plein air réussi dispense la nuit de son Exposition (EDOC 0
     setRule('travel-attraper-froid', true);
     setDesFixes(true);
     setup(map(), 'clair', [hero({ travelRole: { activityId: 'plein-air' } })]);
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     poseMeteo('pluie-diluvienne');
     const jour: string[] = [];
     draineCascade(get, 200, (step) => { jour.push(step.kind); return step.table || step.de ? undefined : issue; });
@@ -295,7 +294,7 @@ describe('#2533 — Plein air réussi dispense la nuit de son Exposition (EDOC 0
 describe('#2533 (2) — durée RÉELLE du récapitulatif : arrivée moins départ', () => {
   it('2 h 40 de route : 160 minutes, pas « 1 jour »', () => {
     setup(map({ km: 8, speed: { pied: 3 } })); // 8 km à 3 km/h
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     expect(get().travelRecap?.status).toBe('arrived');
     expect(get().travelRecap?.dureeMin).toBe(160);
   });
@@ -303,7 +302,7 @@ describe('#2533 (2) — durée RÉELLE du récapitulatif : arrivée moins dépar
   it('deux jours de route : la durée écoulée, nuit et attente de l’aube comprises', () => {
     setup(map());
     const t0 = get().gameTime;
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     get().fenetreValider('rest');
     draineCascade(get);
     expect(get().travelRecap?.status).toBe('arrived');
@@ -316,12 +315,12 @@ describe('#2533 (5) — péripéties : le dé de seuil passe par la porte des je
   it('jour sans événement : la rangée montre le dé POSÉ et « aucune péripétie »', () => {
     setDesFixes(true);
     setup(map({ perilDie: 8 }));
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     const seuil = get().pendingCascade!.participants.find((s) => s.kind === 'landPeril')!;
     expect(seuil.worldOwner).toBe(true);
     expect(seuil.table!.spec, 'le dé de seuil est celui de la donnée (`peripeties.json › tirageQuotidien`)').toEqual(peripetieSeuilDie());
     expect(seuil.table!.result, 'le socle ne tire pas à la place du siège qui possède le monde').toBeUndefined();
-    get().jetSetForcedRoll('cascadeTirage', 3, seuil.id);
+    get().jetImposerLeResultat('cascadeTirage', 3, seuil.id);
     const tire = get().pendingCascade!.participants.find((s) => s.id === seuil.id)!.table!.result!;
     expect(tire.roll).toBe(3);
     expect(tire.lines).toEqual([t('tf.perilNone')]);
@@ -333,16 +332,16 @@ describe('#2533 (5) — péripéties : le dé de seuil passe par la porte des je
   it('dé posé sur le seuil : la table des péripéties s’insère, son dé passe aussi par la porte', () => {
     setDesFixes(true);
     setup(map({ perilDie: 8 }));
-    get().startTravel('r1', 'pied');
+    get().partirEnVoyage('r1', 'pied');
     const seuil = get().pendingCascade!.participants.find((s) => s.kind === 'landPeril')!;
-    get().jetSetForcedRoll('cascadeTirage', 8, seuil.id);
-    get().jetConfirm('cascade');
+    get().jetImposerLeResultat('cascadeTirage', 8, seuil.id);
+    get().jetValider('cascade');
     const table = get().pendingCascade!.participants.find((s) => s.kind === 'landPerilTable')!;
     expect(table, 'le seuil atteint insère la table des péripéties').toBeTruthy();
     expect(table.worldOwner, 'aucun acteur ne la porte : le sentinel la route au siège').toBe(true);
     expect(table.table!.result).toBeUndefined();
     const narratif = PERIPETIES.find((p) => p.kind === 'narratif')!;
-    get().jetSetForcedRoll('cascadeTirage', narratif.roll, table.id);
+    get().jetImposerLeResultat('cascadeTirage', narratif.roll, table.id);
     expect(get().pendingCascade!.participants.find((s) => s.id === table.id)!.table!.result!.id).toBe(narratif.id);
     draineCascade(get);
     expect(get().journal.join('\n')).toContain(narratif.label);

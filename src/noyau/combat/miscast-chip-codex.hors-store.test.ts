@@ -15,15 +15,14 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * ANCRAGE DE RÈGLE d'un contrecoup — chemin RÉEL (`applyMiscast` → `finishMiscast` → `runCombatFlow`,
  * qui partagent UN `OpsCtx`). L'effet durable posé par « Purifier la chair » (`LDB 40 l.75`) est une
  * pastille du joueur : sans entité SOURCE, elle s'affiche nue (ni fiche, ni popover — arbitrage user
- * 2026-07-18). La source est la RANGÉE tirée, dans la catégorie que sa table déclare en donnée. La
- * pastille de cette source et sa fiche : `src/gameIso/miscast-chip-codex.test.ts`.
+ * 2026-07-18). La source est la RANGÉE tirée, dans la catégorie que sa table déclare en donnée.
  */
 describe('Contrecoup — la pastille de l’effet porte SA rangée (LDB 40 l.75)', () => {
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -61,7 +60,7 @@ describe('Contrecoup — la pastille de l’effet porte SA rangée (LDB 40 l.75)
     banc.setState({
       pendingCascade: { ...p0, participants: p0.participants.map((s, k) => (k === idx ? { ...s, result: { roll: 99, target: step.base ?? 30, sl: -5, success: false } } : s)) },
     });
-    banc.getState().jetRoll('cascade');
+    banc.getState().jetLancer('cascade');
     return live(H.id);
   }
 

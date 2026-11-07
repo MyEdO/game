@@ -5,11 +5,12 @@
  * apparence variante, née du contexte de carrière, monte l'élément de sa racine.
  */
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { baseDeTest } from '../asset/modeles.testkit.ts';
 import { listage } from '../servir.mjs';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import { suiteDe, table, type Reponse } from './pont.testkit';
+import type { CombattantProjete } from '../../../src/hote/projection';
 import type { VueDuPont } from './pont';
 
 /** Le listage des modèles commités du projet Godot, tel que `GET /modeles/` le sert. */
@@ -22,10 +23,16 @@ const servir = (manifestes: Record<string, unknown>) =>
   expect(appel('modeles', { manifestes, osDesRigides: tableTotale(Object.keys(manifestes), (id) => COMMITES.osDesRigides[id] ?? []) })).toMatchObject({ ok: true });
 
 describe('le corps des combattants dans la vue', () => {
-  const { vue } = suiteDe(appel('demarrer', { scenario: 'bestiaire', graine: 7 }));
-  const dessines = vue.projection.combat!.voisins.liste;
-  const heros = dessines.find((c) => c.id === 'pregen-101')!;
-  const sansPortee = dessines.find((c) => c.portee === null)!;
+  let vue: VueDuPont;
+  let dessines: CombattantProjete[];
+  let heros: CombattantProjete;
+  let sansPortee: CombattantProjete;
+  beforeAll(() => {
+    ({ vue } = suiteDe(appel('demarrer', { scenario: 'bestiaire', graine: 7 })));
+    dessines = vue.projection.combat!.voisins.liste;
+    heros = dessines.find((c) => c.id === 'pregen-101')!;
+    sansPortee = dessines.find((c) => c.portee === null)!;
+  });
 
   it('sans modeles : un refus, et aucun combattant n’a de corps', () => {
     expect(vue.corps.refus).toMatch(/^\[sans-modeles\] /);

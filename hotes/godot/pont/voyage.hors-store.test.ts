@@ -75,8 +75,8 @@ describe('le voyage par le pont', () => {
     expect(suite.vue.projection.scene?.id, 'le groupe n’est pas entré dans la scène du lieu').toBe('test-voyage-village');
     const corps = parId(suite.vue.zones['fenetre.corps']);
     const gestes = (id: string) => (corps[id] as Entite).elements.map((b) => [(b as Bouton).libelle, ((b as Bouton).jeu as { type: string }).type]);
-    expect(gestes('service/auberge'), 'l’auberge : dormir, recueillir des informations').toEqual([['Dormir', 'openRest'], ['Recueillir des informations', 'gatherInnInfo']]);
-    expect(gestes('service/forgeron'), 'le forgeron : son échoppe').toEqual([['Entrer', 'openPlaceMerchant']]);
+    expect(gestes('service/auberge'), 'l’auberge : dormir, recueillir des informations').toEqual([['Dormir', 'ouvrirLeRepos'], ['Recueillir des informations', 'recueillirLesRumeurs']]);
+    expect(gestes('service/forgeron'), 'le forgeron : son échoppe').toEqual([['Entrer', 'ouvrirLaBoutique']]);
     const retour = corps['trajet/r-grandroute'] as Entite;
     expect([retour.nom, retour.elements.map((x) => (x as Choix).libelle)], 'le trajet qui en part, le même départ que sur la carte').toEqual(['Weiler', ['30 km']]);
 

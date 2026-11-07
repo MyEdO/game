@@ -35,7 +35,7 @@ function jusquAuTour(partie: Partie, tenu: (c: Combatant) => boolean): Combatant
     const actif = activeCombatant(partie.etat().battle!);
     if (actif && tenu(actif)) return actif;
     const e = partie.etat();
-    const intentions: Intention[] = e.pendingDefense ? [{ type: 'jetRoll', args: ['defense'] }, { type: 'jetConfirm', args: ['defense'] }] : [actif ? { type: 'jouerLOffre', args: ['end-turn'] } : { type: 'fenetreValider', args: ['roundStart'] }];
+    const intentions: Intention[] = e.pendingDefense ? [{ type: 'jetLancer', args: ['defense'] }, { type: 'jetValider', args: ['defense'] }] : [actif ? { type: 'jouerLOffre', args: ['end-turn'] } : { type: 'fenetreValider', args: ['roundStart'] }];
     for (const i of intentions) jouer(partie, partie.envoyer(i));
   }
   throw new Error('témoin : le tour attendu n’est pas venu');
@@ -183,7 +183,7 @@ describe('Préalables et pertinence : l’offre refuse ce que le dispatcher refu
     }
   });
 
-  it('Coque : la Bordée se ferme quand aucune pièce n’est chargée (`postesPretsAFaireFeu`, lu par `battleShipBattery`)', () => {
+  it('Coque : la Bordée se ferme quand aucune pièce n’est chargée (`postesPretsAFaireFeu`, lu par `ouvrirLaBordee`)', () => {
     const partie = auTour('duel-naval', (c) => !!c.postes?.length && c.kind === 'hero');
     try {
       const ctx = contexte(partie);
@@ -201,8 +201,8 @@ describe('Préalables et pertinence : l’offre refuse ce que le dispatcher refu
       const ctx = contexte(partie);
       expect(actionGate('sing-shanty', { ...ctx, args: { shipId: ctx.active.id } }).reason).toBe(t('agate.noShantySinger'));
       const poste = ctx.active.postes![0];
-      expect(poste.loaded, 'témoin : la pièce est déchargée').not.toBe(false);
-      expect(actionGate('ship-reload', { ...ctx, args: { shipId: ctx.active.id, posteUid: poste.item.uid } }).reason).toBe(t('agate.noPosteToReload'));
+      expect(poste.loaded, 'témoin : la pièce est chargée').not.toBe(false);
+      expect(actionGate('ship-reload', { ...ctx, args: { weaponUid: poste.item.uid } }).reason).toBe(t('agate.nothingToReload'));
     } finally {
       partie.fermer();
     }

@@ -6,7 +6,9 @@
  *   effet signé      `"+2d10"` / `"-3d10"` (crew-morale)        → `{ "sign": ±1, "dice": { n, sides } }`
  *   effet de Manann  `{ sign, flat, d10 }` (sea-events)         → `{ "sign": ±1, "dice": { n: d10, sides: 10, plus?: flat } }`
  *
- * La clé `die` d'une table (dé de tirage de l'enveloppe) n'est pas une valeur tirée : jamais touchée.
+ * La clé `die` d'une table (dé de tirage de l'enveloppe) n'est pas une valeur tirée : jamais touchée ; l'enjeu
+ * `stake` d'un Test de `consequence` non plus (`values` = texte de gabarit, forme que pose
+ * `2026-11-07-1652-moral-manann.mjs`, reconnue au rejeu).
  * Lecteurs : `tirer` / `tirerSigne` (`src/engine/dice.ts`), schémas `tirageSchema` / `effetSigneSchema`
  * (`src/data/schemas/grammaire/valeurs.ts`).
  *
@@ -59,7 +61,7 @@ function migrer(noeud, chemin, fichier) {
 }
 
 function migrerValeur(v, cle, chemin, fichier) {
-  if (cle === 'die') return v;
+  if (cle === 'die' || cle === 'stake') return v;
   if (fichier === 'sea-events.json' && cle === 'effect' && v && typeof v === 'object' && 'd10' in v) {
     const { sign, flat, d10 } = v;
     return { sign, dice: { n: d10, sides: 10, ...(flat ? { plus: flat } : {}) } };
@@ -80,7 +82,8 @@ function recenser(noeud, acc = [], chemin = '') {
   if (Array.isArray(noeud)) { noeud.forEach((v, i) => recenser(v, acc, `${chemin}[${i}]`)); return acc; }
   if (!noeud || typeof noeud !== 'object') return acc;
   for (const [k, v] of Object.entries(noeud)) {
-    if (k !== 'die' && estChaineDeDe(v)) acc.push(`${chemin}.${k}`);
+    if (k === 'die' || k === 'stake') continue;
+    if (estChaineDeDe(v)) acc.push(`${chemin}.${k}`);
     else recenser(v, acc, `${chemin}.${k}`);
   }
   return acc;

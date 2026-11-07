@@ -6,8 +6,8 @@
  * FORGÉ (index d'une réponse masquée, réponse trop chère) et une touche restée vive sous une modale
  * arrivent tous ici, et repartent sans rien changer.
  *
- * Contrats POSITIFS : l'état ne bouge pas (nœud, archive, bourse, pending). Que le `when` de la touche dise la MÊME
- * chose que le verbe (`conversationRepond`, prédicat unique) se joue en `src/state/dialogue-verbe-garde.test.ts`.
+ * Contrats POSITIFS : l'état ne bouge pas (nœud, archive, bourse, pending). Le prédicat unique des portes d'une
+ * réponse est `conversationRepond`.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';

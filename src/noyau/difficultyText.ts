@@ -1,6 +1,6 @@
 /**
- * Le TEXTE d'une Difficulté affichée, SOURCE UNIQUE pour tout hôte : la modale de jet du web (`ui/RollLine`), le
- * réticule et les badges du stage (`gameIso/stage`), et tout hôte qui lit la partie sans écran. Le cran de
+ * Le TEXTE d'une Difficulté affichée, SOURCE UNIQUE pour tout hôte : la modale de jet, le
+ * réticule et les badges du plateau, et tout hôte qui lit la partie sans écran. Le cran de
  * l'échelle quand la composition en atteint un, sinon le modificateur RÉEL nommé par le catalogue
  * (`difficulty.combinee`, `LDB 14 l.91-96`). Jamais le cran VOISIN, jamais la Difficulté déclarée seule quand
  * `combined` est posé.

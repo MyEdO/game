@@ -173,6 +173,13 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
           </Stack>
         )}
       </div>
+      {/* GATE : no-op si fausse ; dans un Flow de scène, filtre les héros qui peuvent jeter (MDG 15 l.197). */}
+      <div className="tf-row">
+        <label className="ed-check" title="Le Test n’a lieu que si cette Condition est vraie ; en scène, seuls les héros qui la satisfont peuvent le jeter">
+          <input type="checkbox" checked={test.gate !== undefined} onChange={(e) => upd({ gate: e.target.checked ? { kind: 'always' } : undefined })} /> Condition d’accès
+        </label>
+        {test.gate && <ConditionEditor cond={test.gate} onChange={(gate) => upd({ gate })} />}
+      </div>
       {isSocialTest(test) && (
         <div className="tf-row">
           <ListeDIds

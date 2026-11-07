@@ -1,5 +1,5 @@
 /**
- * MÉTÉO ÉDITÉE AU CODEX — le geste de `CodexEdit.save` (`src/ui/editor/codex/CodexEdit.tsx` › `save`)
+ * MÉTÉO ÉDITÉE AU CODEX — le geste de `CodexEdit.save`
  * joué sur `weather.json` : pose mémoire (`setDataset`), validation de la SOURCE ENTIÈRE
  * (`validateDataset(datasetFile, datasetSerializeRoot)`), et au refus REPRISE de l'état d'avant.
  *

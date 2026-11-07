@@ -147,6 +147,12 @@ export function exposedCrew(crew: Combatant[]): Combatant[] {
   return crew.filter((c) => !c.dead && (c.wounds?.current ?? 0) > 0);
 }
 
+/** Les marins ÉPINGLÉS au rôle `roleId` (`Combatant.shipRole`, jamais une inférence par Compétence) : la cible
+ *  `{ role }` d'un coup d'équipage et d'une feuille de scène. MSRC 07 l.86 ; MDG 15 l.233 */
+export function marinsDuRole(crew: readonly Combatant[], roleId: string): Combatant[] {
+  return crew.filter((c) => c.shipRole === roleId);
+}
+
 /** Issue d'un Critique encaissé par une COQUE et RÉPERCUTÉ sur son équipage (MDG 13-14). */
 export interface HullCriticalOutcome {
   location: ShipLocation;
@@ -160,7 +166,7 @@ export interface HullCriticalOutcome {
   /** Critiques de Coque SUPPLÉMENTAIRES résolus (1d10…) — ops déjà appliqués à la coque. */
   extraHullCrits: ShipCriticalResolved[];
   /** Coup à l'ÉQUIPAGE de la rangée : conséquence certaine DÉJÀ appliquée, épreuve RENDUE. L'appelant
-   *  (`state`) ouvre `testFlow` par la porte canonique sur les `victims`. */
+   *  (`noyau`) ouvre `testFlow` par la porte canonique sur les `victims`. */
   crewHit?: CrewHitOutcome & { label: string };
   lines: string[];
 }
@@ -180,7 +186,7 @@ function posteCrew(hull: Combatant, crew: Combatant[], rng: RNG): Combatant[] {
 export interface CrewHitOutcome {
   /** Ids des marins VISÉS par le coup (`crewTarget`) — l'ordre est celui de la sélection. */
   victims: string[];
-  /** Nœud `test` de la rangée, ENJEU POSÉ : la couche `state` l'OUVRE (une bande de N rangées, une
+  /** Nœud `test` de la rangée, ENJEU POSÉ : la couche `noyau` l'OUVRE (une bande de N rangées, une
    *  par siège). Absent quand la rangée n'appelle aucun jet. */
   testFlow?: FlowTestNode;
   /** Marins ayant réellement encaissé la conséquence CERTAINE (`ops`, déjà appliquée). */
@@ -221,7 +227,7 @@ export function shipStationOuverte(traits: NavalTraitRef[] | undefined, id: stri
  */
 function crewHitVictims(hull: Combatant, crew: Combatant[], crewTarget: CrewTarget, rng: RNG): { victims: Combatant[]; fermees: string[] } {
   if ('poste' in crewTarget) return { victims: posteCrew(hull, crew, rng), fermees: [] };
-  if ('role' in crewTarget) return { victims: exposedCrew(crew).filter((c) => c.shipRole === crewTarget.role.id), fermees: [] };
+  if ('role' in crewTarget) return { victims: marinsDuRole(exposedCrew(crew), crewTarget.role.id), fermees: [] };
   const ouvertes = crewTarget.stations.filter((id) => shipStationOuverte(hullNavalTraits(hull), id));
   return {
     victims: exposedCrew(crew).filter((c) => c.shipStation !== undefined && ouvertes.includes(c.shipStation)),

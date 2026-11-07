@@ -23,7 +23,7 @@ import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { seedBattleRng, battleRng } from './battleRng';
-import { landSellCargo, openLandMarket } from './landMarketFlow';
+import { vendreALaHalle, ouvrirLeMarche } from './landMarketFlow';
 import { persistCarriersCargo } from './carriers';
 import { createHero, skillCharacteristicById } from '../engine/character';
 import { buildScene } from './mapSpec';
@@ -55,7 +55,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  *  1. la surface d'un jet de monde en solo — la fenêtre s'ouvre, option OFF comme ON ;
  *  2. la DOMINATION de la cadence auto, qui ne se renverse pas ;
  *  3. la coop — la fenêtre suit le siège MJ, jamais « l'hôte par défaut » ;
- *  4. la PARITÉ terre/mer du commerce (`landSellCargo`), passé par la porte ;
+ *  4. la PARITÉ terre/mer du commerce (`vendreALaHalle`), passé par la porte ;
  *  5. le FLUX RNG, identique quelle que soit l'option de pose.
  */
 
@@ -211,7 +211,7 @@ describe('#1426 socle — la surface se juge sur l’ID du porteur (combat comme
   });
 });
 
-// ── PARITÉ TERRE/MER du commerce : `landSellCargo` passe par `openWorldTest` ─────────────────────
+// ── PARITÉ TERRE/MER du commerce : `vendreALaHalle` passe par `openWorldTest` ─────────────────────
 
 function skill(c: Combatant, skillId: string, advances: number): void {
   const ex = c.skills.find((s) => s.id === skillId && s.spec == null);
@@ -221,7 +221,7 @@ function skill(c: Combatant, skillId: string, advances: number): void {
 
 const CARRIER_ID = 'convoi-1';
 const profile = (extra: Partial<LandMarketProfile> = {}): LandMarketProfile => ({ taille: 4, richesse: 4, produits: ['commerce-terre', 'vin-eau-de-vie'], ...extra });
-const lot: CargoLot = { cargoId: 'vin-eau-de-vie', enc: 40, basePriceGold: 10 };
+const lot: CargoLot = { uid: 'lot-1', cargoId: 'vin-eau-de-vie', enc: 40, basePriceGold: 10 };
 const marche = (id: string, label: string) => buildScene({ id, label, desc: '.', size: [8, 6], terrain: 'planches', heroStart: [2, 3] });
 
 function carte(): WorldMap {
@@ -237,8 +237,8 @@ function marcheAvecLot(): void {
   seedBattleRng(7);
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', seed: 11, id: 't-artur' });
   skill(h, 'marchandage', 60);
-  get().setParty([h]);
-  get().loadProject({ scenes: [marche('marche-b', 'Altdorf')], entryId: 'marche-b', worldMap: carte(), projet: null });
+  get().fixerLeGroupe([h]);
+  get().chargerLeProjet({ scenes: [marche('marche-b', 'Altdorf')], entryId: 'marche-b', worldMap: carte(), projet: null });
   const convoi: Possession = { uid: CARRIER_ID, ownerId: h.id, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] };
   set({
     landMarket: { placeId: 'B', label: 'Altdorf', market: profile(), offers: [] },
@@ -271,7 +271,7 @@ describe('#1426 — le flux RNG de la vente terrestre ne dépend pas de l’opti
   it('sous graine FIXE, la vente jouée AU LANCER rend un gain EXACT (un dé de plus/de moins le change)', () => {
     marcheAvecLot();
     seedBattleRng(3);
-    landSellCargo(get, set, CARRIER_ID, 0);
+    vendreALaHalle(get, set, lot.uid);
     expect(get().pendingCascade, 'le siège du monde tient la fenêtre : elle s’ouvre même sans option de pose').toBeTruthy();
     lancer(); // 1ʳᵉ tentative : le dé se LANCE (aucune pose), c'est le geste sans option
     if (get().pendingCascade) lancer(); // 2ᵉ tentative (moitié du lot) quand la 1ʳᵉ rate
@@ -291,7 +291,7 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
 
   it('le dé d’acheteur OUVRE une étape de MONDE (plus aucune résolution muette au journal)', () => {
     marcheAvecLot();
-    landSellCargo(get, set, CARRIER_ID, 0);
+    vendreALaHalle(get, set, lot.uid);
     const p = get().pendingCascade;
     expect(p, 'la vente ouvre une fenêtre au lieu de trancher en silence').toBeTruthy();
     const step = p!.participants[p!.cursor];
@@ -305,7 +305,7 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
 
   it('1ʳᵉ tentative RÉUSSIE : la vente se conclut, SANS le message de moitié', () => {
     marcheAvecLot();
-    landSellCargo(get, set, CARRIER_ID, 0);
+    vendreALaHalle(get, set, lot.uid);
     poser(1); // ≤ 70 → acheteur trouvé
     const j = get().journal.join('\n');
     expect(j).not.toContain('la moitié');
@@ -314,7 +314,7 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
 
   it('1ʳᵉ ratée → 2ᵉ tentative sur la MOITIÉ du lot, à la MÊME Demande (l.146 verbatim)', () => {
     marcheAvecLot();
-    landSellCargo(get, set, CARRIER_ID, 0);
+    vendreALaHalle(get, set, lot.uid);
     poser(99); // > 70 → pas d'acheteur pour tout le lot
     const p = get().pendingCascade;
     expect(p, 'la 2ᵉ tentative est une SECONDE étape posable').toBeTruthy();
@@ -326,7 +326,7 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
 
   it('2ᵉ tentative RÉUSSIE : le message « la moitié trouve preneur » précède la ligne de vente', () => {
     marcheAvecLot();
-    landSellCargo(get, set, CARRIER_ID, 0);
+    vendreALaHalle(get, set, lot.uid);
     poser(99);
     poser(1);
     const j = get().journal;
@@ -338,7 +338,7 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
 
   it('les DEUX tentatives ratées : aucun acheteur, et la ligne NOMME la Demande visée', () => {
     marcheAvecLot();
-    landSellCargo(get, set, CARRIER_ID, 0);
+    vendreALaHalle(get, set, lot.uid);
     poser(99);
     poser(99);
     expect(get().journal.join('\n')).toContain('aucun acheteur intéressé à Altdorf (Demande 70)');
@@ -461,7 +461,7 @@ describe('#1426 Q2 — le pourcentage d’auteur se lit « dé ≤ nombre visé 
     marcheAvecLot();
     resetDesFixes();
     seedBattleRng(3);
-    landSellCargo(get, set, CARRIER_ID, 0);
+    vendreALaHalle(get, set, lot.uid);
     // Le dé d'acheteur est un dé de MONDE : il se joue dans SA fenêtre (#1426). Ce que le joueur LIT
     // de ce dé, c'est donc l'étape (sa rangée + son dénouement), pas une ligne de journal.
     // L'étape AVEC son dé tombé, telle que la fenêtre la montre : relue à chaque état du banc.
@@ -585,10 +585,10 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
   it('(a) option OFF : la fenêtre s’ouvre quand même — un siège tient le monde — mais AUCUN dé n’y est posable', () => {
     halle();
     resetDesFixes();
-    openLandMarket(get, set);
+    ouvrirLeMarche(get, set);
     expect(get().pendingEtalLot, 'la fenêtre suit la SURFACE du monde, pas l’option de confort').toBeTruthy();
     expect(canFixDie(get(), WORLD_STEP_OWNER), 'option OFF : la pose n’est pas offerte').toBe(false);
-    get().jetConfirm('etalLot');
+    get().jetValider('etalLot');
     expect(get().landMarket, 'l’étal existe après validation').toBeTruthy();
   });
 
@@ -596,7 +596,7 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
     halle();
     setDesFixes(true); // l’option ne rattrape rien : la cadence domine la surface
     setCadence('auto');
-    openLandMarket(get, set);
+    ouvrirLeMarche(get, set);
     expect(get().pendingEtalLot, 'cadence auto : rien à montrer, rien à poser').toBeNull();
     expect(get().landMarket, 'l’étal existe').toBeTruthy();
   });
@@ -605,18 +605,18 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
     halle();
     setDesFixes(true);
     setCadence('auto');
-    openLandMarket(get, set);
+    ouvrirLeMarche(get, set);
     const sansFenetre = etal();
 
     for (const option of [false, true]) {
       halle();
       resetCadence();
       setDesFixes(option);
-      openLandMarket(get, set);
+      ouvrirLeMarche(get, set);
       const lot = get().pendingEtalLot;
       expect(lot, 'la fenêtre de lot s’ouvre AVANT l’écran').toBeTruthy();
       expect(lot!.participants.length, 'un lot vide n’aurait rien à poser').toBeGreaterThan(0);
-      get().jetConfirm('etalLot');
+      get().jetValider('etalLot');
       expect(get().pendingEtalLot, 'la validation referme la fenêtre').toBeNull();
       expect(etal(), `option ${option ? 'ON' : 'OFF'} : la fenêtre ne change RIEN par sa seule existence`).toEqual(sansFenetre);
     }
@@ -625,48 +625,48 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
   it('(b) poser un dé change l’étal — et seul le dé posé bouge', () => {
     halle();
     setDesFixes(true);
-    openLandMarket(get, set);
+    ouvrirLeMarche(get, set);
     const avant = (() => { const g = get(); return g.pendingEtalLot!.participants.map((r) => r.value); })();
     // On pose le DERNIER dé (un prix/une quantité, jamais la présence du marchand) à une valeur
     // franchement différente : l'étal doit suivre.
     const parts0 = get().pendingEtalLot!.participants;
     const dernier = parts0[parts0.length - 1];
     const neuf = dernier.value === dernier.max ? dernier.min : dernier.max;
-    get().jetSetForcedRoll('etalLot', neuf, dernier.id);
+    get().jetImposerLeResultat('etalLot', neuf, dernier.id);
     const apres = get().pendingEtalLot!.participants.map((r) => r.value);
     expect(apres[apres.length - 1], 'la valeur saisie est la valeur posée').toBe(neuf);
     expect(apres.slice(0, -1), 'aucun autre dé n’a bougé').toEqual(avant.slice(0, -1));
-    get().jetConfirm('etalLot');
+    get().jetValider('etalLot');
     expect(get().landMarket, 'l’étal est ouvert après validation').toBeTruthy();
   });
 
   it('(c) l’ORDRE des rangées est l’ordre des dés : permuter deux valeurs change l’étal', () => {
     halle();
     setDesFixes(true);
-    openLandMarket(get, set);
+    ouvrirLeMarche(get, set);
     const lot = get().pendingEtalLot!;
     // Il faut deux dés de valeurs DIFFÉRENTES pour que la permutation se voie.
     const paire = lot.participants.findIndex((r, i) => i > 0 && r.value !== lot.participants[i - 1].value);
     if (paire < 1) return; // graine dégénérée : rien à permuter, le cas ne dit rien
-    get().jetConfirm('etalLot');
+    get().jetValider('etalLot');
     const direct = etal();
 
     halle();
     setDesFixes(true);
-    openLandMarket(get, set);
+    ouvrirLeMarche(get, set);
     const l2 = get().pendingEtalLot!;
     const a = l2.participants[paire - 1];
     const b = l2.participants[paire];
-    get().jetSetForcedRoll('etalLot', b.value, a.id);
-    get().jetSetForcedRoll('etalLot', a.value, b.id);
-    get().jetConfirm('etalLot');
+    get().jetImposerLeResultat('etalLot', b.value, a.id);
+    get().jetImposerLeResultat('etalLot', a.value, b.id);
+    get().jetValider('etalLot');
     expect(etal(), 'deux dés permutés ne peuvent pas rendre le même étal').not.toEqual(direct);
   });
 
   it('le lot NOMME chaque dé : un dé sans nom ne serait pas posable', () => {
     halle();
     setDesFixes(true);
-    openLandMarket(get, set);
+    ouvrirLeMarche(get, set);
     for (const r of get().pendingEtalLot!.participants) {
       // Un libellé NON VIDE ne suffit pas : le repli du journal en fournirait un. Ce qu'on exige est
       // qu'AUCUN dé ne soit resté anonyme — poser un dé dont on ignore ce qu'il décide n'est pas poser.
@@ -688,7 +688,7 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
  * aucun siège n'est à la manœuvre (`cadenceAuto`), le SEAM du pilote (`cascade.poserLeCurseur`, joué
  * par les quatre portes du curseur) la résout au RANG de l'étape — jamais au build — et
  * `advanceCascade` la franchit dans le même geste : une porte qui l'oublierait laisserait la séquence
- * plantée dessus, `jetConfirm('cascade')` en no-op.
+ * plantée dessus, `jetValider('cascade')` en no-op.
  */
 const carteMonde: WorldMap = {
   id: 'cm', label: 'Reikland',
@@ -727,10 +727,10 @@ function prepareJourTerrestre(seed: number): void {
   siegeDuMonde();
   setRule('travel-etapes', true);
   set({ party: makePregens().slice(0, 3), gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, suspendedCascades: [], travelRecap: null, journal: [], battle: null });
-  get().loadProject({ scenes: [scenePlate('monde-a'), scenePlate('monde-b')], entryId: 'monde-a', worldMap: carteMonde, projet: null });
+  get().chargerLeProjet({ scenes: [scenePlate('monde-a'), scenePlate('monde-b')], entryId: 'monde-a', worldMap: carteMonde, projet: null });
   set({ gameTime: campaignStart() });
 }
-const ouvreJourTerrestre = (seed: number): void => { prepareJourTerrestre(seed); get().startTravel('rt', 'pied'); };
+const ouvreJourTerrestre = (seed: number): void => { prepareJourTerrestre(seed); get().partirEnVoyage('rt', 'pied'); };
 
 /** État d'une traversée dont le compteur d'événement de bord échoit AUJOURD'HUI (l'étape à table
  *  existe). RNG ensemencé EN TÊTE, pour la raison dite sur `prepareJourTerrestre` : `buildSeaPlan`
@@ -870,7 +870,7 @@ function sitesCurseurALaMain(): string[] {
  * `cascade.poserLeCurseur` est le seam qui décide ce qui se passe quand le curseur ATTEINT une étape
  * (une table qu'aucun siège ne joue s'y résout d'office). Un site qui écrit `cursor:` à la main dans
  * `pendingCascade` court-circuite ce seam : la table reste non tirée, `stepReady` la refuse et
- * `jetConfirm('cascade')` devient un no-op DÉFINITIF — la séquence est perdue avec le geste du joueur.
+ * `jetValider('cascade')` devient un no-op DÉFINITIF — la séquence est perdue avec le geste du joueur.
  *
  * Deux cas : la PORTE publique (`poserCurseurCascade`) fait le travail, et aucun site de production
  * de `src/**` ne l'écrit à la main (garde STRUCTURELLE ci-dessous — un `cursor:` de plus la rougit).
@@ -925,7 +925,7 @@ describe('#1426 — les portes du curseur', () => {
     const steps = [...Array(PAS_DE_CHARGE)].map((_, i) => etapeTableMonde(`charge-${i}`, cleDeFixture('sonde-charge')));
     startCascade(get, set, { title: 'Charge', purpose: 'test', steps });
     expect(get().pendingCascade!.participants[0].table!.result, 'la 1ʳᵉ est tirée à l’ouverture').toBeTruthy();
-    get().jetConfirm('cascade'); // UN geste : le socle franchit toutes les suivantes
+    get().jetValider('cascade'); // UN geste : le socle franchit toutes les suivantes
     expect(get().pendingCascade, 'la séquence est allée jusqu’à son dénouement').toBeNull();
     expect(profondeurs, 'chaque étape a été commitée une fois').toHaveLength(PAS_DE_CHARGE);
     const creuse = Math.min(...profondeurs);
@@ -970,11 +970,11 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
     expect(canFixDie(get(), undefined), 'option ON + siège qui possède le monde : la pose est offerte').toBe(true);
     expect(meteo.table!.result, 'la pose ne tire pas non plus : c’est le joueur qui pose').toBeUndefined();
     const avant = get().pendingCascade;
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     expect(get().pendingCascade, 'aucune avancée tant que la table n’est pas tirée').toBe(avant);
-    get().jetSetForcedRoll('cascadeTirage', 7, meteo.id);
+    get().jetImposerLeResultat('cascadeTirage', 7, meteo.id);
     expect(etapeCourante()!.table!.result!.roll).toBe(7);
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     expect(get().pendingCascade!.cursor, 'la pose débloque la séquence').toBeGreaterThan(0);
   });
 
@@ -985,7 +985,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
     expect(seatOwns(get(), 1, WORLD_STEP_OWNER), 'le monde appartient au siège MJ').toBe(true);
     expect(seatOwns(get(), 0, WORLD_STEP_OWNER), 'et plus à l’hôte').toBe(false);
     expect(canFixDie(get(), undefined), 'l’hôte ne pose pas le dé d’un siège qu’il ne tient pas').toBe(false);
-    get().startTravel('rt', 'pied');
+    get().partirEnVoyage('rt', 'pied');
     const meteo = get().pendingCascade!.participants[0];
     expect(meteo.kind).toBe('stageWeather');
     expect(meteo.table!.result, 'la pose viendra de CE client : l’hôte attend').toBeUndefined();
@@ -1010,7 +1010,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
       steps: [etapeAffichage('av'), etapeTableMonde('t'), etapeAffichage('ap')],
     });
     expect(get().pendingCascade!.cursor).toBe(0);
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     expect(get().pendingCascade!.cursor, 'la table n’a pas retenu le curseur : franchie au même geste').toBe(2);
     expect(get().pendingCascade!.participants[1].table!.result, 'et elle porte bien son dé').toBeTruthy();
     set({ pendingCascade: null, suspendedCascades: [] });
@@ -1026,11 +1026,11 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
     });
     // L'applier SUSPEND la séquence en plein vol ; la couture de CLÔTURE (`dispatchCascadeDone`,
     // combatSlice) la REPREND aussitôt — slot libre, hors combat : c'est la reprise du jeu réel.
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     expect(get().suspendedCascades, 'la pile est rendue').toHaveLength(0);
     expect(get().pendingCascade!.cursor, 'la reprise se pose SUR la table').toBe(1);
     expect(etapeCourante()!.table!.result, 'que le seam de reprise a résolue').toBeTruthy();
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     expect(get().pendingCascade!.cursor, 'et la séquence continue (jamais un no-op définitif)').toBe(2);
     set({ pendingCascade: null, suspendedCascades: [] });
   });
@@ -1058,7 +1058,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
     startCascade(get, set, { title: 'Contrôle', purpose: 'test', steps: [etape] });
     expect(etapeCourante()!.table!.result, 'une table d’ACTEUR reste à la main de son porteur').toBeUndefined();
     const avant = get().pendingCascade;
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     expect(get().pendingCascade, 'et elle continue de retenir la séquence').toBe(avant);
     set({ pendingCascade: null, suspendedCascades: [] });
   });
@@ -1066,14 +1066,14 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
   it('(e) PARITÉ RNG terre — le FLUX de dés est le même, option OFF et option ON', () => {
     prepareJourTerrestre(23);
     const off = traceDesTirages();
-    get().startTravel('rt', 'pied');
+    get().partirEnVoyage('rt', 'pied');
     const arretOff = draineJour(true);
     const offGele = [...off]; // la trace est VIVANTE : la geler avant que le second montage ne tire
 
     setDesFixes(true);
     prepareJourTerrestre(23);
     const on = traceDesTirages();
-    get().startTravel('rt', 'pied');
+    get().partirEnVoyage('rt', 'pied');
     const arretOn = draineJour(true);
     expect({ arretOff, arretOn }, 'les deux journées vont jusqu’à la halte').toEqual({ arretOff: undefined, arretOn: undefined });
     expect(offGele.length, 'la journée a bien consommé des dés').toBeGreaterThan(3);

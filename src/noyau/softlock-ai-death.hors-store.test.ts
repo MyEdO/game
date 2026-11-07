@@ -17,8 +17,8 @@ function setupBattle(nHeroes: number) {
   const party = Array.from({ length: nHeroes }, (_, i) =>
     createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }));
   banc.setState({ party });
-  banc.getState().startScene(testScene());
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   return banc.getState().battle!;
 }

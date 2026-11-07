@@ -26,7 +26,7 @@ import { addCondition } from '../engine/conditions';
 import { makePregens, makeShowcaseParty } from '../data/pregens';
 import { builtinCampaigns, campagneDuJeu, diligenceCampaign, documentDuJeu, lancerCampagne, paquetDuJeu } from '../scenes/campaign';
 import { porteurDeProjet, porteurDuNarratif, porteurDeScene } from './porteurDeProjet';
-import { CHEMINS_ADRESSES } from './liage';
+import { CHEMINS_ADRESSES } from '../noyau/codex/chemins-adresses';
 import type { Porteur } from '../noyau/codex/porteur';
 import { Prose } from './Prose';
 import { CampaignOpeningScreen } from './CampaignOpeningScreen';
@@ -72,10 +72,10 @@ function sceneDuTest(): Scene {
   return s;
 }
 
-/** Le paquet du test chargé par la voie de toute partie (`loadProject`), sous `projet`. */
+/** Le paquet du test chargé par la voie de toute partie (`chargerLeProjet`), sous `projet`. */
 function charger(projet: { id: string } | null): void {
   useGame.setState({ party: makePregens().slice(0, 1), battle: null });
-  get().loadProject({ scenes: [sceneDuTest()], entryId: 'scene-porteur', narratif, projet });
+  get().chargerLeProjet({ scenes: [sceneDuTest()], entryId: 'scene-porteur', narratif, projet });
 }
 
 const liensDe = (el: Element): string[] => [...el.querySelectorAll('.codex-ref')].map((a) => a.textContent ?? '');
@@ -225,7 +225,7 @@ describe('Sites de prose de PROJET : portés en campagne, nus en scénario', () 
 
   it.each([[true], [false]])('ouverture, sous-titre (`narratif.ouverture.sousTitre.texte`), en campagne = %s', async (enCampagne) => {
     useGame.setState({ party: makePregens().slice(0, 1), battle: null });
-    get().loadProject({ scenes: [sceneDuTest()], entryId: 'scene-porteur', narratif: { ...narratif, ouverture: { titre: 'Chapitre', pitch: NEUTRE, sousTitre: { texte: TEXTE } } }, projet: enCampagne ? { id: PROJET } : null });
+    get().chargerLeProjet({ scenes: [sceneDuTest()], entryId: 'scene-porteur', narratif: { ...narratif, ouverture: { titre: 'Chapitre', pitch: NEUTRE, sousTitre: { texte: TEXTE } } }, projet: enCampagne ? { id: PROJET } : null });
     await monter(<CampaignOpeningScreen />);
     expect(container.textContent).toContain(TEXTE);
     expect(liensDe(container)).toEqual(enCampagne ? ['Peur'] : []);
@@ -234,7 +234,7 @@ describe('Sites de prose de PROJET : portés en campagne, nus en scénario', () 
   it.each([[true], [false]])('récapitulatif de chapitre, sous-titre (`narratif.cloture.sousTitre.texte`), en campagne = %s', async (enCampagne) => {
     useGame.setState({ party: makePregens().slice(0, 1), battle: null });
     const clos: NarratifBlock = { ...narratif, ouverture: undefined, cloture: { when: { kind: 'flag', expr: 'fin' }, titre: 'Fin', sousTitre: { texte: TEXTE } } };
-    get().loadProject({ scenes: [sceneDuTest()], entryId: 'scene-porteur', narratif: clos, projet: enCampagne ? { id: PROJET } : null });
+    get().chargerLeProjet({ scenes: [sceneDuTest()], entryId: 'scene-porteur', narratif: clos, projet: enCampagne ? { id: PROJET } : null });
     applyEffects(get, useGame.setState, [{ type: 'setFlag', flag: 'fin' }]);
     expect(get().pendingChapterRecap?.sousTitre).toBe(TEXTE);
     await monter(<ChapterRecapScreen />);
@@ -247,7 +247,7 @@ describe('Sites de prose de PROJET : portés en campagne, nus en scénario', () 
     autre.id = 'scene-autre';
     const cible = sceneDuTest();
     cible.startMessage = { texte: TEXTE };
-    get().loadProject({ scenes: [autre, cible], entryId: 'scene-porteur', narratif, projet: enCampagne ? { id: PROJET } : null });
+    get().chargerLeProjet({ scenes: [autre, cible], entryId: 'scene-porteur', narratif, projet: enCampagne ? { id: PROJET } : null });
     const entree = [get().pendingCascade, ...get().suspendedCascades].flatMap((c) => c?.participants ?? []).map((st) => st.reveal).find((r) => r?.kind === 'sceneEntry');
     expect(entree?.sceneId).toBe('scene-porteur');
     expect(porteurDeScene(get(), 'scene-porteur', 'startMessage.texte')).toEqual(enCampagne ? { type: 'projet', id: PROJET, chemin: 'scenes[1].startMessage.texte' } : undefined);

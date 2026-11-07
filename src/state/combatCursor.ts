@@ -3,7 +3,7 @@
  * (lisent l'état, ne mutent rien) ; `creerActionsDuCurseur` en fait les actions du store, et
  * `curseurPerime` est la règle qui le remet à `null`. Clavier ET manette alimentent le MÊME curseur, qui
  * pilote le réticule existant (`hoverTargeting`/`resolveMovement`) et commet via les actions du noyau
- * `battleClickEntity`/`battleClickTile`. Zéro chemin parallèle.
+ * `cliquerLaCase`. Zéro chemin parallèle.
  */
 import { pointDeCase, type Pt } from '../noyau/monde/path';
 import type { Get, Set } from '../noyau/flowTypes';

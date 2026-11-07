@@ -20,7 +20,7 @@ function hero(id: string, items: ItemInstance[] = [], F = 30, E = 30): Combatant
 }
 
 const item = (uid: string, over: Partial<ItemInstance> = {}): ItemInstance => ({ uid, label: uid, kind: 'misc', qualities: [], enc: 0, equipped: false, ...over });
-const lot = (cargoId: string, enc: number): CargoLot => ({ cargoId, enc, basePriceGold: 1 });
+const lot = (cargoId: string, enc: number): CargoLot => ({ uid: `lot-${cargoId}`, cargoId, enc, basePriceGold: 1 });
 
 /** Possession bête (SOCLE POSSESSIONS #617/#618) — `mule` = `poney-ane-ou-mule` → encPortee 14. */
 const beastPossession = (uid: string, ownerId: string, creatureId: string, cargo: CargoLot[] = []): Possession =>

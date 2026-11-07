@@ -14,7 +14,7 @@ import { facadeStructureAppearance, wallPartColor } from './structures';
 import type { WallPart } from '../../../data/structureAppearance.types';
 
 /** Entrée de REPLI VISIBLE (#877) : un terrain au ton d'alarme, jamais l'apparence d'un autre terrain.
- *  `stops` VIDE : le dégradé peint du repli est `MISSING_GRADIENT`, émis par `defsGlobaux()` (`gameIso/sprites`) — une
+ *  `stops` VIDE : le dégradé peint du repli est `MISSING_GRADIENT`, émis par `defsGlobaux()` — une
  *  rampe recopiée ici en serait une seconde définition. Infranchissable et de priorité nulle : le repli ne déborde sur
  *  aucun voisin et n'ouvre aucun passage que la donnée n'a pas authorisé. */
 const TERRAIN_MANQUANT: TerrainDef = {

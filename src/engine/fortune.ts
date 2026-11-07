@@ -20,7 +20,7 @@ export function canReroll(ownRollFailed: boolean, alreadyRerolled: boolean): boo
  * Le plafond restauré est `fortuneMax` — le MAXIMUM effectif, que Chanceux (LDB 10 l.160) et les
  * effets actifs déplacent au-dessus du seul Indice de Destin — jamais `fate` nu.
  * SOURCE UNIQUE partagée par l'Effet de scène `restoreFortune` (combatEffects), l'action de store
- * `restoreFortuneNow()` (règle optionnelle « Longues Séances de Jeu », LDB 17 l.47) et la fin de
+ * `restaurerLaFortune()` (règle optionnelle « Longues Séances de Jeu », LDB 17 l.47) et la fin de
  * séance (`terminerLaSeance`, partyFlow).
  */
 export function restoreFortune(party: Combatant[]): Combatant[] {

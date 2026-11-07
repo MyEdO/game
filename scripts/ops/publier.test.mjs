@@ -351,7 +351,7 @@ describe('estMiroir', () => {
   })
 
   test('estMiroir : une cible documentaire ou de code reste hors des miroirs', () => {
-    for (const pure of ['docs/systemes.md', 'docs/raw/coverage.md', 'docs/raw/4e/catalogue-sorts.md', 'docs/.sources-lues.json', 'src/audio/_registry.generated.ts'])
+    for (const pure of ['docs/systemes.md', 'docs/raw/coverage.md', 'docs/raw/4e/catalogue-sorts.md', 'docs/.sources-lues.json', 'src/data/icones.generated.ts'])
       assert.equal(estMiroir(pure), false, pure)
   })
 
@@ -1865,7 +1865,7 @@ test('file : une fusion en CONFLIT résiduel, un STOCK sous pilote compris, est 
 // #2203
 test('file : une fusion dont TOUS les conflits sont des cibles PURES se CONCLUT en les retirant de l’index, puis reprend au push', () => {
   const refus = { disponible: true, valeur: { status: 1, stdout: 'CONFLICT (content)', stderr: '' } }
-  const conflits = ['docs/systemes.md', 'src/audio/_registry.generated.ts']
+  const conflits = ['docs/systemes.md', 'src/data/icones.generated.ts']
   const { ctx, gestes } = ctxFile({ pr: REST({ mergeable_state: 'dirty' }), fusion: refus, conflits })
   const journal = journalPush()
   const vu = etapeFile.jouer(ctx, journal)

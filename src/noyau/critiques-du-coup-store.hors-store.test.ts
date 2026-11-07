@@ -35,11 +35,11 @@ interface Coup { seed?: number; roll?: number; double?: boolean; current?: numbe
  *  `martyr` = l'autre ennemi la garde (LDB 43 l.107) ; `demoniaque` = l'Indice de sa sauvegarde (LDB 85 l.98). `sousAttaque` = le coup d'une sous-attaque.
  *  `arme` = l'arme du coup ; `retenu` = Retenir ses coups (LDB 18 l.30 ; AA 07 l.59) ; `vehicule` = la cible est ce véhicule, tel que le jeu le fait naître ; `grapple` = une Empoignade (LDB 14 l.159). */
 function coup({ seed = 7, roll = 44, double = true, current = 2, important = true, chanceux = false, pa = 0, endurance, pieces = [], de = 1, tenu = false, choisir, martyr = false, demoniaque, sousAttaque = false, arme = epee, retenu = false, vehicule, grapple = false }: Coup = {}) {
-  banc.getState().seedRng(seed);
+  banc.getState().ensemencerLeTirage(seed);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: tenu ? 'host' : 'local', mySeat: 0, gmSeat: tenu ? 1 : undefined } });
-  banc.getState().startScene(structuredClone(testScene()));
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(structuredClone(testScene()));
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
@@ -464,11 +464,11 @@ function carreauEnCombat(): { mage: Combatant; cible: Combatant } {
   const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
   w.spells = ['carreau'];
   banc.setState({ party: [w], battle: null, pendingCast: null, pendingCascade: null, suspendedCascades: [] });
-  banc.getState().startScene(structuredClone(testScene()));
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(structuredClone(testScene()));
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
-  banc.getState().seedRng(7);
+  banc.getState().ensemencerLeTirage(7);
   const b = banc.getState().battle!;
   const mage = b.combatants.find((c) => c.label === 'W')!;
   const cible = b.combatants.find((c) => c.kind === 'enemy')!;
@@ -825,8 +825,8 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
   it('une touche au hasard : la phrase du tas et la ligne de la victime, une fois chacune', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
     banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
-    banc.getState().startScene(structuredClone(testScene()));
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(structuredClone(testScene()));
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -838,7 +838,7 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
     autres.forEach((c, i) => { c.pos = { x: 1, y: 1 + i }; });
     let tir: ReturnType<typeof resolveAttack> = null;
     for (let graine = 1; graine < 60 && !tir?.victim; graine++) {
-      banc.getState().seedRng(graine);
+      banc.getState().ensemencerLeTirage(graine);
       tir = resolveAttack(banc.getState, H, cible, undefined, false, true, false, arc);
     }
     const { victim, res, weapon } = tir!;
@@ -854,8 +854,8 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
   it('tir dévié dans la mêlée (LDB 14 l.116) : la phrase de la déviation et la ligne de l’allié touché, une fois chacune', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
     banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
-    banc.getState().startScene(structuredClone(testScene()));
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(structuredClone(testScene()));
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -869,7 +869,7 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
     autres.forEach((c, i) => { c.pos = { x: 1, y: 1 + i }; });
     let tir: ReturnType<typeof resolveAttack> = null;
     for (let graine = 1; graine < 200 && !tir?.victim; graine++) {
-      banc.getState().seedRng(graine);
+      banc.getState().ensemencerLeTirage(graine);
       tir = resolveAttack(banc.getState, tireur, H, undefined, false, false, false, arc);
     }
     const { victim, res, weapon } = tir!;

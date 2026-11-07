@@ -3,8 +3,7 @@
  * Question tenue ici : héros 1 à 0 Blessure, héros 2 debout — qui pivote
  * à Q/E, qui le regard de première personne suit, qui s'assoit, qui porte la lampe, qui grimpe, qui
  * le plateau anime, à qui appartient le cap d'entrée de scène ? UN SEUL id, celui de `meneurDuMonde`
- * (`src/noyau/monde/combatants.ts`). Les REPLIS de l'élection vivent en `combatants.test.ts`. Le regard de première
- * personne et le jeton de groupe que dessine l'écran se jouent en `src/state/meneur-unique.test.ts`.
+ * (`src/noyau/monde/combatants.ts`). Les REPLIS de l'élection vivent en `combatants.test.ts`.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -16,7 +15,8 @@ import { bus, EVT } from './bus';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { poserLeGroupe } from './marcheDuGroupe';
-import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { combattantDeTest, blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { engage } from './creation/engagement.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -69,7 +69,7 @@ function scèneDeFalaise(climb: WallClimb): Scene {
 
 function poser(party: Combatant[], sc: Scene, pos?: { x: number; y: number }) {
   banc.setState({ party, scene: null, mode: 'exploration', journal: [], battle: null, dialogue: null, pendingInteract: null });
-  banc.getState().startScene(sc);
+  banc.getState().lancerLaScene(sc);
   if (pos) banc.setState({ partyPos: { ...pos } });
 }
 
@@ -82,9 +82,9 @@ describe('un seul meneur — le premier du roster est à terre, c’est le suiva
     expect(capDuGroupe(banc.getState())).toBe(facing[CAP_GROUPE]);
   });
 
-  it('PIVOT (Q/E) : `pivotParty` tourne le cap du GROUPE, et rien d’autre', () => {
+  it('PIVOT (Q/E) : `pivoterLeGroupe` tourne le cap du GROUPE, et rien d’autre', () => {
     banc.setState({ facing: poserCapDuGroupe({}, 'N') });
-    banc.getState().pivotParty(1);
+    banc.getState().pivoterLeGroupe(1);
     expect(capDuGroupe(banc.getState())).toBe('NE');
     expect(Object.keys(banc.getState().facing)).toEqual([CAP_GROUPE]);
   });
@@ -94,13 +94,13 @@ describe('un seul meneur — le premier du roster est à terre, c’est le suiva
     const anims: string[] = [];
     const ecoute = (p: { id: string }) => anims.push(p.id);
     bus.on(EVT.ANIM_MOVE, ecoute as never);
-    banc.getState().stepPartyRelative('left');
+    banc.getState().avancerDUnPas('left');
     bus.off(EVT.ANIM_MOVE, ecoute as never);
     expect(anims).toEqual(['b']);
     expect(capDuGroupe(banc.getState())).toBe('E'); // pas latéral : cap PRÉSERVÉ
   });
 
-  it('MARCHE : `moveParty` oriente le cap du groupe le long du pas', () => {
+  it('MARCHE : `deplacerLeGroupe` oriente le cap du groupe le long du pas', () => {
     banc.setState({ facing: {}, partyPos: { x: 5, y: 5 } });
     poserLeGroupe(banc.getState, banc.setState, { x: 6, y: 5 });
     expect(capDuGroupe(banc.getState())).toBe('E');
@@ -116,7 +116,7 @@ describe('un seul meneur — le premier du roster est à terre, c’est le suiva
   });
 
   it("ASSISE : c'est le meneur debout qui prend place, et le cap du groupe suit la place", () => {
-    banc.getState().interactEntity(PROP);
+    banc.getState().interagirAvecLEntite(PROP);
     const pose = seatPoseOf(banc.getState().scene!, MENEUR);
     expect(pose).toMatchObject({ propId: PROP });
     expect(capDuGroupe(banc.getState())).toBe(pose!.facing);
@@ -132,15 +132,40 @@ describe('un seul meneur — le premier du roster est à terre, c’est le suiva
     expect(portees[0].srcId).toBe('b');
   });
 });
+describe('changer de meneur par la composition du groupe ne change QUE le meneur — le cap est celui du groupe', () => {
+  /** Le groupe entre, puis pivote deux fois : le regard quitte le cap d'entrée. */
+  function entrerPuisPivoter() {
+    poser([hero('a', 12), hero('b', 12)], scèneDeTaverne(), ABORD_NORD);
+    banc.getState().pivoterLeGroupe(1);
+    banc.getState().pivoterLeGroupe(1);
+    return capDuGroupe(banc.getState());
+  }
+
+  it('REMPLACEMENT du meneur par un héros d’id NEUF (`remplacerLeHeros`) : cap intact', () => {
+    const capAvant = entrerPuisPivoter();
+    banc.getState().remplacerLeHeros('a', engage('a2'));
+    expect(meneurDuMonde(banc.getState())?.id).toBe('a2');
+    expect(capDuGroupe(banc.getState())).toBe(capAvant);
+  });
+
+  it('AJOUT d’un héros (`recruterLeHeros`) qui devient meneur : cap intact', () => {
+    const capAvant = entrerPuisPivoter();
+    banc.getState().recruterLeHeros(engage('c'));
+    banc.setState({ party: banc.getState().party.map((h) => (h.id === 'c' ? h : blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } }))) });
+    expect(meneurDuMonde(banc.getState())?.id).toBe('c');
+    expect(capDuGroupe(banc.getState())).toBe(capAvant);
+  });
+});
+
 describe('le cap du GROUPE traverse le combat', () => {
   it('OUVERTURE : les héros reçoivent leur cap INDIVIDUEL, le cap du groupe reste intact', () => {
     poser([hero('a', 12), hero('b', 12)], scèneDeTaverne(), ABORD_NORD);
-    banc.getState().pivotParty(1);
+    banc.getState().pivoterLeGroupe(1);
     const capAvant = capDuGroupe(banc.getState());
     const heros = banc.getState().party.map((h, i) => ({ ...h, pos: { x: 1 + i, y: 1 } }));
     const orc = combattantDeTest({ id: 'orc', label: 'Orc', kind: 'enemy', wounds: blessuresDeBase(8), conditions: [], pos: { x: 5, y: 1 } });
     banc.setState({ battle: { combatants: [...heros, orc] } as never });
-    banc.getState().faceAtCombatStart();
+    banc.getState().orienterLesCombattants();
 
     const f = banc.getState().facing;
     expect(f.a, 'un héros POSÉ face à un adversaire reçoit son cap individuel').toBe('E');
@@ -150,10 +175,10 @@ describe('le cap du GROUPE traverse le combat', () => {
 
   it('OUVERTURE : un héros SANS adversaire posé n’hérite d’aucun cap — il retombe au défaut sud, comme ses pairs', () => {
     poser([hero('a', 12), hero('b', 12)], scèneDeTaverne(), ABORD_NORD);
-    banc.getState().pivotParty(1); // cap de groupe ≠ 'S'
+    banc.getState().pivoterLeGroupe(1); // cap de groupe ≠ 'S'
     const heros = banc.getState().party.map((h, i) => ({ ...h, pos: { x: 1 + i, y: 1 } }));
     banc.setState({ battle: { combatants: heros } as never }); // aucun adversaire POSÉ
-    banc.getState().faceAtCombatStart();
+    banc.getState().orienterLesCombattants();
 
     const f = banc.getState().facing;
     expect(Object.keys(f), 'aucun cap individuel écrit : le combat n’a personne à viser').toEqual([CAP_GROUPE]);
@@ -164,10 +189,10 @@ describe('le cap du GROUPE traverse le combat', () => {
 
   it('SORTIE : le cap retrouvé est celui d’AVANT le combat', () => {
     poser([hero('a', 12), hero('b', 12)], scèneDeTaverne(), ABORD_NORD);
-    banc.getState().pivotParty(1);
+    banc.getState().pivoterLeGroupe(1);
     const capAvant = capDuGroupe(banc.getState());
     banc.setState({ battle: { combatants: banc.getState().party.map((h, i) => ({ ...h, pos: { x: 1 + i, y: 1 } })) } as never });
-    banc.getState().faceAtCombatStart();
+    banc.getState().orienterLesCombattants();
     banc.setState({ battle: null, mode: 'exploration' });
     expect(capDuGroupe(banc.getState())).toBe(capAvant);
   });
@@ -179,7 +204,7 @@ describe('un seul meneur — le Grimpeur lu est celui du meneur debout', () => {
 
   it('Talent porté par le héros AU SOL (premier du roster) : la paroi se refuse', () => {
     poser([hero('a', 0, [{ talentId: 'grimpeur', times: 1 }]), B_DEBOUT()], scèneDeFalaise({ kind: 'surface', requiresGrimpeur: true }), PIED);
-    banc.getState().climbAcross(PIED, SOMMET);
+    banc.getState().franchirLArete(PIED, SOMMET);
     expect(banc.getState().partyPos).toMatchObject(PIED);
   });
 
@@ -190,19 +215,19 @@ describe('un seul meneur — le Grimpeur lu est celui du meneur debout', () => {
     a.wounds.current = 0;
     b.talents = [...(b.talents ?? []), { talentId: 'grimpeur', times: 1 }];
     poser([a, b], scèneDeFalaise({ kind: 'surface', requiresGrimpeur: true }), PIED);
-    banc.getState().climbAcross(PIED, SOMMET);
+    banc.getState().franchirLArete(PIED, SOMMET);
     expect(banc.getState().partyPos).toMatchObject(SOMMET);
   });
 
   it('meneur INCONSCIENT (8 Blessures) porteur du Talent : la paroi se refuse — il ne grimpe pas', () => {
     poser([A_INCONSCIENT([{ talentId: 'grimpeur', times: 1 }]), B_DEBOUT()], scèneDeFalaise({ kind: 'surface', requiresGrimpeur: true }), PIED);
-    banc.getState().climbAcross(PIED, SOMMET);
+    banc.getState().franchirLArete(PIED, SOMMET);
     expect(banc.getState().partyPos).toMatchObject(PIED);
   });
 
   it('GROUPE ENTIER à terre : la paroi se refuse — aucun meneur n’est fabriqué pour grimper', () => {
     poser([hero('a', 0, [{ talentId: 'grimpeur', times: 1 }]), hero('b', 0, [{ talentId: 'grimpeur', times: 1 }])], scèneDeFalaise({ kind: 'surface', requiresGrimpeur: true }), PIED);
-    banc.getState().climbAcross(PIED, SOMMET);
+    banc.getState().franchirLArete(PIED, SOMMET);
     expect(banc.getState().partyPos).toMatchObject(PIED);
   });
 });

@@ -21,7 +21,7 @@ const get = () => banc.getState();
 function partie(gameId: string) {
   const a = makePregens()[0] as Combatant;
   banc.setState({ battle: null, party: [a], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
-  get().playTavernGame({ gameId, challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
+  get().jouerALaTaverne({ gameId, challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
   const board = sequenceBoardOf(get);
   expect(board, `${gameId} : un tableau de marque`).not.toBeNull();
   return board!;

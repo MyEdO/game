@@ -70,7 +70,7 @@ describe('#3059 — PortView lit les verdicts du noyau', () => {
     expect(geste('cargaison', 'port-buy-bois-mer')).toEqual({ ferme: 'true', raison: texte });
     const fenetres = () => Object.entries(get()).filter(([k, v]) => k.startsWith('pending') && v).map(([k]) => k);
     const avant = fenetres();
-    get().portBuyCargo('bois-mer', 5);
+    get().acheterLaCargaison('vessel', 'bois-mer', 5);
     expect(fenetres(), 'aucun Test de Marchandage ouvert').toEqual(avant);
     expect(get().vessel!.cargo ?? []).toEqual([]);
     expect(get().journal.some((l) => l.includes(texte))).toBe(true);
@@ -78,7 +78,7 @@ describe('#3059 — PortView lit les verdicts du noyau', () => {
 
   it('cale à 3 Enc du plafond dur : la borne du champ d’Enc et la ligne de cale viennent du noyau', () => {
     const plafond = overloadMaxEnc(COGUE.ship!.capacity);
-    useGame.setState({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois-mer', enc: plafond - 3, basePriceGold: 1 }] } });
+    useGame.setState({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: plafond - 3, basePriceGold: 1 }] } });
     const offre = get().port!.offers[0];
     const hote = document.createElement('div');
     const root = createRoot(hote);
@@ -91,7 +91,7 @@ describe('#3059 — PortView lit les verdicts du noyau', () => {
   });
 
   it('cale au plafond dur : l’achat est fermé, raison = le refus d’embarquer du noyau', () => {
-    const plein: CampaignVessel['cargo'] = [{ cargoId: 'bois-mer', enc: overloadMaxEnc(COGUE.ship!.capacity), basePriceGold: 1 }];
+    const plein: CampaignVessel['cargo'] = [{ uid: 'lot-2', cargoId: 'bois-mer', enc: overloadMaxEnc(COGUE.ship!.capacity), basePriceGold: 1 }];
     useGame.setState({ vessel: { ...get().vessel!, cargo: plein } });
     const offre = get().port!.offers[0];
     expect(offre, 'escale sans offre').toBeTruthy();

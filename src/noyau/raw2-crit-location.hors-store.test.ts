@@ -7,6 +7,7 @@ import { createHero } from '../engine/character';
 import { setRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -58,8 +59,8 @@ describe("réglage attack.localisationDuCritique — « Je ne faillirai pas ! »
   function attaqueRatee(current: number, paBrasG = 0, autresPA = 0, chanceux = true) {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -72,15 +73,15 @@ describe("réglage attack.localisationDuCritique — « Je ne faillirai pas ! »
     E.armour = { tete: autresPA, brasG: paBrasG, brasD: autresPA, corps: autresPA, jambeG: autresPA, jambeD: autresPA };
     E.talents = chanceux ? [{ talentId: 'chanceux', times: 1 }] as never : []; // AA 07 l.67
     banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, movedPreAction: false, acted: false } });
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     seedBattleRng(3);
-    banc.getState().jetRoll('attack');
+    banc.getState().jetLancer('attack');
     expect(banc.getState().pendingAttack!.result!.hit, 'la graine fait rater le jet').toBe(false);
   }
   /** « Je ne faillirai pas ! » : le résultat choisi réussit sans double. */
   function forcer(valeur = 21) {
-    banc.getState().jetForceSuccess('attack');
-    banc.getState().jetSetForcedRoll('attack', valeur);
+    banc.getState().jetForcerLaReussite('attack');
+    banc.getState().jetImposerLeResultat('attack', valeur);
     const res = banc.getState().pendingAttack!.result!;
     expect(res.hit).toBe(true);
     expect(res.critical, 'aucun double : pas de Coup Critique au jet').toBe(false);
@@ -92,7 +93,7 @@ describe("réglage attack.localisationDuCritique — « Je ne faillirai pas ! »
     banc.getState().jetRegler('attack', 'localisationDuCritique', 'jambeG');
     const res = banc.getState().pendingAttack!.result!;
     expect(res.critLocation).toBe('jambeG');
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
     expect(res.location).toBe('jambeG');
   });
 
@@ -106,7 +107,7 @@ describe("réglage attack.localisationDuCritique — « Je ne faillirai pas ! »
       expect(res.location, 'le jet inversé, 23, est le Bras gauche').toBe('brasG');
       banc.getState().jetRegler('attack', 'localisationDuCritique', 'jambeG');
       expect(res.critLocation, 'aucun d100 de Localisation à choisir').toBeUndefined();
-      banc.getState().jetConfirm('attack');
+      banc.getState().jetValider('attack');
       const critiques = (banc.getState().battle?.log ?? []).map((l) => l.text).filter((t) => t.startsWith('Blessure critique'));
       return { res, cible: E, critiques };
     };
@@ -128,8 +129,8 @@ describe("réglage attack.localisationDuCritique — « Je ne faillirai pas ! »
 
   it('cible sous Mort subite, double forcé : aucun choix (LDB 18 l.44 ; AA 07 l.65 ; #1595 c.6219992594)', () => {
     attaqueRatee(20, 0, 0, false);
-    banc.getState().jetForceSuccess('attack');
-    banc.getState().jetSetForcedRoll('attack', 11);
+    banc.getState().jetForcerLaReussite('attack');
+    banc.getState().jetImposerLeResultat('attack', 11);
     expect(banc.getState().pendingAttack!.result!.critical, 'précondition : le double fait le Coup Critique au jet').toBe(true);
     banc.getState().jetRegler('attack', 'localisationDuCritique', 'tete');
     expect(banc.getState().pendingAttack!.result!.critLocation).toBeUndefined();

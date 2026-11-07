@@ -22,7 +22,7 @@ import { campagneALancer, lancerCampagne, campagneDuJeu, diligenceCampaign } fro
 import { applyEffects } from './combatEffects';
 import { appliquerLInstantane, instantaneDeLaCoop } from './coop';
 
-/** Scène minimale (heroStart) chargeable par le chemin RÉEL (`loadProject`/`transitionTo`). */
+/** Scène minimale (heroStart) chargeable par le chemin RÉEL (`chargerLeProjet`/`quitterLaScene`). */
 function scene(id: string): Scene {
   const s = emptyScene('scene-test', 6, 6);
   s.id = id;
@@ -48,7 +48,7 @@ const worldMap: WorldMap = {
   id: 'snap-carte', label: 'Carte', places: [{ id: 'p', label: 'Bourg', pos: { x: 0, y: 0 }, scene: 'scene-a' }], routes: [],
 };
 
-describe('loadProject — la scène d’entrée est une scène du paquet, ou le chargement LÈVE', () => {
+describe('chargerLeProjet — la scène d’entrée est une scène du paquet, ou le chargement LÈVE', () => {
   beforeEach(() => {
     resetSceneRegistry();
     banc = ouvrirLeBanc();
@@ -58,12 +58,12 @@ describe('loadProject — la scène d’entrée est une scène du paquet, ou le 
     ['id inconnu', [scene('sa'), scene('sb')], 'INEXISTANTE', /« INEXISTANTE » absente \(sa, sb\)/],
     ['paquet sans scène', [], 'x', /« x » absente \(\)/],
   ] as const)('%s : aucune scène démarrée ni enregistrée, aucun `campaignDoc` écrit', (_nom, scenes, entree, motif) => {
-    banc.getState().loadProject({ scenes: [scene('avant')], entryId: 'avant', projet: null });
+    banc.getState().chargerLeProjet({ scenes: [scene('avant')], entryId: 'avant', projet: null });
     const docAvant = banc.getState().campaignDoc;
-    expect(() => banc.getState().loadProject({ scenes: [...scenes], entryId: entree, projet: null })).toThrow(motif);
+    expect(() => banc.getState().chargerLeProjet({ scenes: [...scenes], entryId: entree, projet: null })).toThrow(motif);
     expect(banc.getState().scene?.id).toBe('avant');
     expect(banc.getState().campaignDoc).toBe(docAvant);
-    banc.getState().transitionTo('sb');
+    banc.getState().quitterLaScene('sb');
     expect(banc.getState().scene?.id).toBe('avant');
   });
 });
@@ -74,10 +74,10 @@ describe('#766 — save de campagne auto-suffisante et rejouable', () => {
     banc = ouvrirLeBanc();
   });
 
-  it('reload (registre vidé) : campaignDoc re-registre la scène B → transitionTo réussit', () => {
+  it('reload (registre vidé) : campaignDoc re-registre la scène B → quitterLaScene réussit', () => {
     // 1. Charge un projet MULTI-scènes par le chemin réel, puis sauve.
     banc.setState({ party: makePregens().slice(0, 1), battle: null });
-    banc.getState().loadProject({ scenes: [scene('scene-a'), scene('scene-b')], entryId: 'scene-a', worldMap, narratif, projet: null });
+    banc.getState().chargerLeProjet({ scenes: [scene('scene-a'), scene('scene-b')], entryId: 'scene-a', worldMap, narratif, projet: null });
     expect(banc.getState().scene?.id).toBe('scene-a');
     expect(banc.getState().campaignDoc?.scenes.map((s) => s.id)).toEqual(['scene-a', 'scene-b']);
     const save = sauverLeBanc(banc);
@@ -85,8 +85,8 @@ describe('#766 — save de campagne auto-suffisante et rejouable', () => {
     // 2. Reload : `sceneRegistry` reparti de zéro, scene-b INCONNUE.
     resetSceneRegistry();
     banc.setState({ party: makePregens().slice(0, 1) });
-    banc.getState().loadProject({ scenes: [scene('scene-solo')], entryId: 'scene-solo', projet: null });
-    banc.getState().transitionTo('scene-b');
+    banc.getState().chargerLeProjet({ scenes: [scene('scene-solo')], entryId: 'scene-solo', projet: null });
+    banc.getState().quitterLaScene('scene-b');
     expect(banc.getState().scene?.id).toBe('scene-solo'); // scene-b introuvable → transition ignorée
 
     // 3. Chargement de la save : re-registration des scènes du paquet + re-dérivation du narratif.
@@ -97,7 +97,7 @@ describe('#766 — save de campagne auto-suffisante et rejouable', () => {
     expect(presetPnjById('snap-pnj')?.id).toBe('snap-pnj');
     expect(objetDuNarratif(banc.getState().campaignNarratif)(OBJET_ID)?.label).toBe('Lame maudite');
     // La preuve : scene-b, absente du registre reparti de zéro, l'est de nouveau → la transition réussit.
-    banc.getState().transitionTo('scene-b');
+    banc.getState().quitterLaScene('scene-b');
     expect(banc.getState().scene?.id).toBe('scene-b');
   });
 
@@ -112,7 +112,7 @@ describe('#766 — save de campagne auto-suffisante et rejouable', () => {
     banc.setState(etatInitialDuJeu());
     chargerSurLeBanc(banc, save);
     expect(banc.getState().worldMap?.id).toBe(arene.worldMap?.id);
-    banc.getState().transitionTo('arene-hub');
+    banc.getState().quitterLaScene('arene-hub');
     expect(banc.getState().scene?.id).toBe('arene-hub');
   });
 });
@@ -123,7 +123,7 @@ describe('#2206 — l’identité du projet et la provenance du document remis s
   /** Un projet `snap-projet` chargé par le chemin réel, son document remis par l'effet `document`. */
   function charger(): void {
     banc.setState({ party: makePregens().slice(0, 1), battle: null });
-    banc.getState().loadProject({ scenes: [scene('scene-a')], entryId: 'scene-a', narratif: avecDocument, projet: { id: 'snap-projet' } });
+    banc.getState().chargerLeProjet({ scenes: [scene('scene-a')], entryId: 'scene-a', narratif: avecDocument, projet: { id: 'snap-projet' } });
     applyEffects(banc.getState, banc.setState, [{ type: 'document', documentId: 'snap-doc' }]);
   }
 

@@ -81,13 +81,13 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
   const travelPlan = useGame((s) => s.travelPlan);
   const fermer = useGame((s) => s.fenetreFermer);
   const close = () => fermer('carteDuMonde');
-  const startTravel = useGame((s) => s.startTravel);
-  const startBilletBargain = useGame((s) => s.startBilletBargain);
+  const partirEnVoyage = useGame((s) => s.partirEnVoyage);
+  const marchanderLeBillet = useGame((s) => s.marchanderLeBillet);
   // Abonnements du devis et du refus de départ, lus dans l'état (`devisDeTrajet`, `refusDeDepart`).
   useGame((s) => s.travelDayHours);
   useGame((s) => s.billetEnMain);
   useGame((s) => s.marchandagesDeBillet);
-  const resumeTravel = useGame((s) => s.resumeTravel);
+  const reprendreLeVoyage = useGame((s) => s.reprendreLeVoyage);
   // Porte d'heure de départ (maison, #340) : départ terrestre/fluvial de nuit → attendre l'aube / annuler.
   const pendingDeparture = useGame((s) => s.pendingDeparture);
   const valider = useGame((s) => s.fenetreValider);
@@ -214,7 +214,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
   // COQUE qui portera l'équipage — la seule chose dont l'épinglage des STATIONS a besoin (ses RÉFS
   // navales gatent `cale`/`nid-de-pie`). Deux porteurs, deux adaptateurs, un seul gate : le navire de
   // campagne en mer, le bateau du trajet sur une route FLUVIALE jouée (même condition qu'au départ,
-  // `travelFlow.startTravel`). Pas de coque = pas de panneau : il n'y a nulle part où se tenir.
+  // `travelFlow.partirEnVoyage`). Pas de coque = pas de panneau : il n'y a nulle part où se tenir.
   const fluvialJoue = !!selRoute && descenteJouee(useGame.getState, selRoute, mode);
   const stationsTraits: NavalTraitRef[] | null = mode === 'mer'
     ? (vessel ? vesselNavalTraits(vessel) : null)
@@ -226,7 +226,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
   // Forcer le rythme : MDG 13 l.95-107, MDG 12 l.311.
   const seaRig = seaPropulsion && seaPropulsion.mode !== 'vapeur' ? { mode: seaPropulsion.mode, competence: seaPropulsion.competence } : null;
   /** Traversée RAPIDE TRANSMISE au départ (MDG 15 l.21-37) : source unique de l'`aria-pressed` du
-   *  sélecteur de cadence et des ordres passés à `startTravel`. */
+   *  sélecteur de cadence et des ordres passés à `partirEnVoyage`. */
   const fastJoue = mode === 'mer' && seaFast;
   const seaPaceChoices = seaRig ? [0, 1, 2].filter((b) => b === 0 || forcePaceDifficulty(b, seaRig.mode) != null) : [0];
   const seaPaceRefus = seaRig ? forcePaceRefus(party, seaRig.competence) : null;
@@ -235,7 +235,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
   // Population embarquée pour le manifeste d'avitaillement (#245) : MDG 14 l.238.
   const seaCrewCount = shipboardSouls({ party, vessel }).crew;
 
-  // Le départ demandé : les MÊMES réglages font le devis, le refus et le geste (`travelFlow.startTravel`).
+  // Le départ demandé : les MÊMES réglages font le devis, le refus et le geste (`travelFlow.partirEnVoyage`).
   const base = baseHoursPerDay(map);
   const maxH = maxHoursPerDay(map);
   const opts: OptionsDeDepart = {
@@ -478,7 +478,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
               ariaLabel={t('wm.reprendre')}
               enabled={!isGuest}
               reason={t('wm.hoteDecide')}
-              onClick={resumeTravel}
+              onClick={reprendreLeVoyage}
             />
           </Row>
         </div>
@@ -558,7 +558,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
                     label={t('wm.marchander')}
                     enabled={!isGuest && !achat.issue}
                     reason={isGuest ? t('wm.hoteDecide') : t('wm.marchandageFait')}
-                    onClick={() => startBilletBargain(selRoute.id, mode)}
+                    onClick={() => marchanderLeBillet(selRoute.id, mode)}
                     primary={false}
                     btnClassName="small"
                   />
@@ -665,7 +665,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
           {mode === 'mer' && vessel ? <ShipRolesPanel /> : rule('travel-etapes') && <TravelRolesPanel />}
           {/* STATIONS à bord, EMPILÉES sous les postes (maquette validée 2026-09-04) : partout où un
               bateau porte l'équipage — le navire de campagne en mer, et le bateau du trajet FLUVIAL
-              (même gate qu'au départ, `travelFlow.startTravel`). Le fleuve n'a PAS de roster de
+              (même gate qu'au départ, `travelFlow.partirEnVoyage`). Le fleuve n'a PAS de roster de
               postes d'équipage (MSRC 7 ne connaît ni rôles MDG ni Moral) : les stations y sont
               seules, et c'est ce que le livre demande. */}
           {stationsTraits && <ShipStationsPanel traits={stationsTraits} />}
@@ -681,7 +681,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
               enabled={!refusDuDepart}
               {...raisonSi(refusDuDepart)}
               onClick={() => {
-                startTravel(selRoute.id, mode, opts);
+                partirEnVoyage(selRoute.id, mode, opts);
                 if (aLAube) attendreLAube(); // la porte a différé le départ : la nuit se passe sur place, d'un geste
               }}
             />

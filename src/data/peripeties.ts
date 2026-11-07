@@ -12,10 +12,10 @@
  *  - 'attaque'   : `LDB 51 l.221` (sans rencontre configurée → narratif au journal) ;
  *  - 'narratif'  : le texte de la ligne, journalisé tel quel.
  */
-import type { DiceSpec } from '../engine/dice';
 import { peripeties } from './index';
 import peripetiesJson from './peripeties.json';
 import { deDeTirageDe } from './rangees';
+import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
 import type * as tableDesPeripeties from './schemas/defs/peripeties';
 
 export interface Peripetie {
@@ -28,6 +28,6 @@ export interface Peripetie {
 
 export const PERIPETIES = peripeties;
 /** Le dé de la Table des Péripéties, lu à l'appel. */
-export const peripetieDie = (): DiceSpec => deDeTirageDe<typeof tableDesPeripeties>(peripetiesJson);
+export const peripetieDie = (): DeDeTable => deDeTirageDe<typeof tableDesPeripeties>(peripetiesJson);
 /** Le dé du seuil quotidien des Péripéties (`tirageQuotidien`), lu à l'appel. */
-export const peripetieSeuilDie = (): DiceSpec => peripetiesJson.tirageQuotidien.dice;
+export const peripetieSeuilDie = (): DeDeTable => deDeLaTableTiree(peripetiesJson.tirageQuotidien);

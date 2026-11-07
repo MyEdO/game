@@ -62,7 +62,7 @@ function castAndCount(spellId: string, sl: number, opts: { foes?: number; focuse
 }
 
 describe('Nécromancie — compte d’invocations au lancement', () => {
-  beforeEach(() => { banc.getState().seedRng(7); });
+  beforeEach(() => { banc.getState().ensemencerLeTirage(7); });
 
   it('Réanimation : exactement Bonus de Force Mentale + DR zombies (LDB 50 l.94)', () => {
     const bfm = bonus(effectiveChar(setup(1), 'force-mentale'));

@@ -34,8 +34,8 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -75,7 +75,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(step.meta?.opposed?.attackerLabel, 'aucun libellé authoré : « Force » se dérive').toBeUndefined();
   });
 
-  it('(a) HÉROS : jetRoll@cascade+jetConfirm@cascade → l’issue (Sonné ou non) SUIT resolveOpposed(jetDéfenseur, Force figée)', () => {
+  it('(a) HÉROS : jetLancer@cascade+jetValider@cascade → l’issue (Sonné ou non) SUIT resolveOpposed(jetDéfenseur, Force figée)', () => {
     seedBattleRng(3);
     const { H, wielder } = setup();
     wielder.characteristics.force = 60;
@@ -85,12 +85,12 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
     const aT = step.meta!.opposed!.aT; // attaquant figé
 
-    banc.getState().jetRoll('cascade', step.id);
+    banc.getState().jetLancer('cascade', step.id);
     // Le jet du défenseur (Résistance) est posé sur l’étape ; l’issue doit être COHÉRENTE avec resolveOpposed
     // (ATTAQUANT figé en 1ʳᵉ position, comme la production) : la victime résiste si l’attaquant ne l’emporte pas.
     const rolled = jete(banc.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
     const expectedResist = resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false }).winner !== 'attacker';
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
 
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
     // Sonné posé SSI l’attaquant l’emporte (la victime ne résiste PAS) — preuve que l’applier branche via resolveOpposed.
@@ -114,7 +114,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(testValue(H, { skill: { id: 'resistance' } })).toBe(testValue(wielder, { characteristic: 'force' }));
 
     // seed POSÉ ICI (après le spawn qui consomme le RNG d’initiative) : la 1ʳᵉ consommation est le jet de
-    // l’ATTAQUANT, la 2ᵉ celui du défenseur (jetRoll('cascade', id)). seed 113 → deux d100 IDENTIQUES → ÉGALITÉ stricte.
+    // l’ATTAQUANT, la 2ᵉ celui du défenseur (jetLancer('cascade', id)). seed 113 → deux d100 IDENTIQUES → ÉGALITÉ stricte.
     seedBattleRng(113);
     fireTriggers(banc.getState, wielder, 'onHit', { victim: H, weapon: assommante(), location: 'tete', rng: makeRNG(1), set: banc.setState });
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
@@ -123,7 +123,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(aT.base, 'le pré-jet de l’attaquant porte sa Force NUE').toBe(fNue);
     expect(step.base, 'l’étape du défenseur porte sa Résistance NUE').toBe(fNue);
 
-    banc.getState().jetRoll('cascade', step.id);
+    banc.getState().jetLancer('cascade', step.id);
     const rolled = jete(banc.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
     // Le cœur de la preuve : jet défenseur == jet attaquant (même roll/cible/DR) → ÉGALITÉ stricte.
     expect(rolled.roll).toBe(aT.roll);
@@ -133,7 +133,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false, base: step.base }).winner).toBe('tie');
     // L’étape conclut « résiste » (success) — un test simple plié sur le jet de l’ATTAQUANT aurait conclu autrement.
     expect(rolled.success).toBe(true);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
 
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
     expect(hasCondition(h, 'sonne')).toBe(false); // ÉGALITÉ → PAS de Sonné (l’attaquant ne remporte pas)

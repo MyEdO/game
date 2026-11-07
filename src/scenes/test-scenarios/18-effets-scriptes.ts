@@ -5,10 +5,10 @@ import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 
 /**
- * « Effets scriptés » (#96/#97) : quatre moteurs faits+testés Vitest (`fall`+`inflictTrauma`,
- * `medicalAid`, `ambitionLost`, `petitePriere`) mais jamais atteignables depuis le menu — chacun
- * posé ici sur un déclencheur réel (trigger de zone, dialogue, décor interactif) d'un petit village.
- * Quatre interactions indépendantes, une seule chacune : rien à répéter (anti-grind trivial).
+ * « Effets scriptés » (#96/#97) : cinq moteurs faits+testés Vitest (`fall`+`inflictTrauma`,
+ * `medicalAid`, `ambitionLost`, `petitePriere`, `openCharacterCreator`) mais jamais atteignables depuis le
+ * menu — chacun posé ici sur un déclencheur réel (trigger de zone, dialogue, décor interactif) d'un petit village.
+ * Cinq interactions indépendantes, une seule chacune : rien à répéter (anti-grind trivial).
  */
 const construireVillage = (): Scene => buildScene({
   id: 'test-effets-scriptes-village',
@@ -40,6 +40,11 @@ const construireVillage = (): Scene => buildScene({
             ]),
           },
         ]) }] },
+    },
+    // Effet `openCharacterCreator` (#3556) : l'hôte ouvre sa création sur un héros neuf.
+    {
+      id: 'avis-d-enrolement', kind: 'prop', ref: 'panneau', label: 'Avis d’enrôlement', pos: { x: 2, y: 7 },
+      usable: { actions: [{ id: 'lire', label: 'Signer l’enrôlement', flow: flowFromEffects([{ type: 'openCharacterCreator' }]) }] },
     },
     // Effet `ambitionLost` (ADE II Annexe I, reporté de #94) : le messager annonce une catastrophe.
     {
@@ -116,7 +121,8 @@ export const scenario: TestScenario = {
     // LDB 25
     '`petitePriere` (autel interactif, option `prayer-petites`), `ambitionLost` (dialogue du ' +
     // ADE II Annexe I ; LDB 15 ; LDB 18
-    'messager), `fall`+`inflictTrauma` (trappe vermoulue, repositionnement).',
+    'messager), `fall`+`inflictTrauma` (trappe vermoulue, repositionnement), `openCharacterCreator` (avis ' +
+    'd’enrôlement : la création s’ouvre sur un héros neuf).',
   partyNote: 'Pré-tirés',
   construire: () => ({ party: makePregens(), scene: construireVillage() }),
   rules: { 'prayer-petites': true, 'psych-acquisition-optional': true },

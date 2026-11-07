@@ -16,7 +16,7 @@ function forge() {
   const h = withBourseMoney(createHero({ speciesId: 'nains', careerId: 'artisan', label: 'Forgeron', seed: 1602 }), { gold: 10, silver: 0, brass: 0 });
   if (!h.skills.some((s) => s.id === 'metier')) h.skills.push({ id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 10 });
   const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [h], screen: 'interlude' } });
-  banc.actions.startInterlude(1);
+  banc.actions.ouvrirLInterlude(1);
   draineCascade(banc.getState);
   const vue = () => interludeEnVue(banc.getState())!.heros[0];
   const dernier = () => banc.getState().journal.slice(-1)[0];
@@ -28,16 +28,16 @@ describe('l’ouvrage et le dépôt de l’interlude en vue', () => {
     const { banc, id, vue, dernier } = forge();
     const ouvrage = vue().ouvrage!;
     expect(ouvrage.refus, 'le forgeron peut engager un ouvrage').toBeNull();
-    expect(ouvrage.geste, 'le verbe et le héros posé').toEqual({ verbe: 'interludeCraftStart', args: [id] });
+    expect(ouvrage.geste, 'le verbe et le héros posé').toEqual({ verbe: 'fabriquerLObjet', args: [id] });
     const ouvert = ouvrage.ouvrages.find((o) => !o.refus)!;
     expect(ouvert.libelle, 'l’ouvrage dit ses matériaux').toMatch(/ · /);
     expect(ouvrage.atouts.length && ouvrage.defauts.length, 'des Atouts et des Défauts à viser').toBeGreaterThan(0);
 
-    banc.actions.interludeCraftStart(id, null as unknown as string, [], []);
+    banc.actions.fabriquerLObjet(id, null as unknown as string, [], []);
     expect(dernier(), 'l’ouvrage laissé vide est refusé, dit').toBe('Choisissez un équipement du catalogue.');
     expect(vue().ouvrage, 'rien d’engagé').not.toBeNull();
 
-    banc.actions.interludeCraftStart(id, ouvert.valeur, [ouvrage.atouts[0].valeur], []);
+    banc.actions.fabriquerLObjet(id, ouvert.valeur, [ouvrage.atouts[0].valeur], []);
     expect(banc.getState().party[0].craft, 'l’ouvrage est engagé, son Atout visé').toMatchObject({ trappingId: ouvert.valeur, atouts: [ouvrage.atouts[0].valeur] });
     expect(vue().ouvrage, 'l’ouvrage engagé ne s’offre plus').toBeNull();
     expect(vue().activites.some((a) => a.id === 'craft'), 'l’Artisanat en cours se poursuit').toBe(true);
@@ -46,14 +46,14 @@ describe('l’ouvrage et le dépôt de l’interlude en vue', () => {
   it('le dépôt : chaque genre fermé par son devis, le montant que la bourse couvre ; planqué, il rejoint les dépôts', () => {
     const { banc, id, vue, dernier } = forge();
     const depot = vue().depot;
-    expect(depot, 'la bourse de 10 CO, par pistole').toMatchObject({ refus: null, geste: { verbe: 'interludeBank', args: [id] }, max: 2400, pas: 12 });
+    expect(depot, 'la bourse de 10 CO, par pistole').toMatchObject({ refus: null, geste: { verbe: 'deposerALaBanque', args: [id] }, max: 2400, pas: 12 });
     expect(depot.genres.map((g) => [g.valeur, g.refus]), 'un artisan Bronze n’investit pas, le Mécénat ne se pratique pas ici').toEqual([
       ['invest', 'Forgeron : investir en banque exige le Statut Argent ou Or.'], ['stash', null], ['mecenat', 'Le Mécénat ne se pratique pas ici.'],
     ]);
 
-    banc.actions.interludeBank(id, null as unknown as 'stash', 120);
+    banc.actions.deposerALaBanque(id, null as unknown as 'stash', 120);
     expect(dernier(), 'le genre laissé vide est refusé, dit').toBe('Choisissez le dépôt : investir, planquer ou Mécénat.');
-    banc.actions.interludeBank(id, 'stash', 120);
+    banc.actions.deposerALaBanque(id, 'stash', 120);
     expect(interludeEnVue(banc.getState())!.depots.map((d) => d.libelle), 'la planque rejoint les dépôts').toHaveLength(1);
   });
 });

@@ -93,7 +93,7 @@ test('DENY : le commit placé après `--` devient un pathspec (mesuré 2026-08-2
 test('PASSE : la forme correcte, et un `git show` sans séparateur', () => {
   assert.ok(silent('git show --stat --format= 951d6b1fd -- src/data src/scenes'))
   assert.ok(silent('git show 951d6b1fd'))
-  assert.ok(silent('git show HEAD -- src/ui'))
+  assert.ok(silent('git show HEAD -- src/noyau'))
   assert.ok(silent('git show --stat -- src/data'), 'un pathspec ordinaire ne ressemble pas à un sha')
 })
 

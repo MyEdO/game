@@ -10,7 +10,7 @@
  * garde) ni dispatch de capability (pas un pouvoir de combat).
  *
  * Module PUR : le grain (scène/Round) et la couture combat (tirage à l'ouverture, re-tirage au
- * Round, câblage `extraMod` de `resolveCasting`/`resolveFocus`) vivent en `state/` — cf.
+ * Round, câblage `extraMod` de `resolveCasting`/`resolveFocus`) vivent au noyau — cf.
  * `src/noyau/combatFlow.ts` (`windsOfMagicAtCombatStart`) et `src/noyau/combat/roundHooks.ts`.
  */
 import type { RNG } from './dice';

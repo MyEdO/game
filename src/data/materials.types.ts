@@ -1,8 +1,8 @@
 /**
  * MATIÈRES DU MONDE (#1686 lot 2) — vue TS de `materials.json`, dataset UNIQUE des matières de rendu.
  *
- * L'identité d'une matière est le couple (`domain`, `id`) ; l'id reste unique sur tout le périmètre
- * (`src/gameIso/catalog/materials-identite.test.ts`), si bien qu'un homonyme se COMPOSE (`prop-ardoise` /
+ * L'identité d'une matière est le couple (`domain`, `id`) ; l'id reste unique sur tout le périmètre,
+ * si bien qu'un homonyme se COMPOSE (`prop-ardoise` /
  * `toit-ardoise`) plutôt que de compter sur son domaine pour être séparable.
  *
  * Le fichier porte UNE forme d'entrée (schéma `schemas/defs/materials.ts` : toutes les clés de charge
@@ -23,11 +23,9 @@ import type { Slot } from '../lib/palette';
  * plinthes/arases, mouchetis. DONNÉE PURE portée par les defs d'apparence (`StructureAppearanceDef`,
  * `RoofMaterialDef`, `ReliefMaterialDef`, `TerrainDef`) via leur champ optionnel `detail`.
  *
- * `expandRecipe` (`gameIso/detail/expand.ts`) déplie la recette en primitives UV en ESPACE DE FACE [0,1]² (+ mètres pour
- * les épaisseurs), consommées par DEUX peintres : `gameIso/authoring/detailSvg.ts` (SVG d'authoring)
- * et `gameIso/backends/webgl/faceBake.ts` (cuisson par face du rendu
- * volumique) ; le tracé de PÉRIODE (`gameIso/detail/courses.ts`) a les mêmes trois consommateurs
- * (`gameIso/authoring/detailSvg`, `gameIso/backends/webgl/periodTexture.ts`). Chaque peintre rasterise à sa
+ * `expandRecipe` déplie la recette en primitives UV en ESPACE DE FACE [0,1]² (+ mètres pour
+ * les épaisseurs), consommées par DEUX peintres : le SVG d'authoring et la cuisson par face du rendu
+ * volumique ; le tracé de PÉRIODE a les mêmes consommateurs. Chaque peintre rasterise à sa
  * résolution, les vues retombent sur le MÊME détail parce que le seed est dérivé de l'identité MONDE
  * (`hash32`, jamais stocké).
  *

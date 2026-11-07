@@ -1,5 +1,5 @@
 /** AMBIANCE de rendu partagée iso ⇄ POV — vue TS de `ambiance.json` (objet RACINE unique, schéma
- *  `schemas/defs/ambiance.ts`), lue par `AMBIANCE` et ses fonctions (`src/gameIso/catalog/ambiance.ts`). */
+ *  `schemas/defs/ambiance.ts`). */
 
 /** État de visibilité d'une case, du plus au moins connu (`visibilityOf`, `src/noyau/visibility.ts`). */
 export type Visibility = 'visible' | 'explored' | 'unknown';
@@ -8,7 +8,7 @@ export type Visibility = 'visible' | 'explored' | 'unknown';
 export interface RadialVeilDef { cx: string; cy: string; r: string; color: string; alpha: number; innerOff?: string }
 
 /** #1176 P2-6 — PRÉCIPITATION MONDE d'un type de météo : ce qui TOMBE dans le volume de la voie
- *  volumique (`gameIso/backends/webgl/weatherParticles.ts`). Toute l'apparence et toute la physique du semis
+ *  volumique. Toute l'apparence et toute la physique du semis
  *  sont ici, en donnée : le MOTEUR est N+1-par-donnée — un `WeatherPrecipDef` forgé, absent du dépôt,
  *  tombe sans une ligne de code (mesuré, `weatherParticles.test.ts`) et aucun consommateur ne connaît
  *  le nom d'un type. Le VOCABULAIRE des types, lui, est une énumération à TROIS sites — `WeatherFxId`
@@ -31,9 +31,9 @@ export interface WeatherPrecipDef {
 }
 
 /** #1247 — BRUME MONDE d'un type de météo : les nappes horizontales que la voie volumique pose dans
- *  le volume (`gameIso/backends/webgl/weatherSheets.ts`). `hM` est une cote ABSOLUE au-dessus du sol le plus
+ *  le volume. `hM` est une cote ABSOLUE au-dessus du sol le plus
  *  BAS de la carte — la référence du semis de précipitation (`precipArea`). `povTightenK` resserre la
- *  portée de la première personne (`povDepth`, `gameIso/pov/camera.ts`), les deux consommateurs de portée à
+ *  portée de la première personne (`povDepth`), les deux consommateurs de portée à
  *  la fois. Aucun type de météo n'est nommé au code : tout vient de `src/data/ambiance.json`. */
 export interface WeatherBrumeLayer { hM: number; alpha: number }
 export interface WeatherBrumeDef {
@@ -59,8 +59,7 @@ export type WeatherFxId = 'pluie' | 'brouillard' | 'neige' | 'tempete';
 
 export interface AmbianceDef {
   /** Luminosité PLANCHER partagée : une surface éclairée à 0 n'est jamais totalement noire. Source UNIQUE
-   *  du clamp de lumière des DEUX vues — POV (`tint`, `gameIso/pov/camera.ts`) et voile d'occlusion des sols iso
-   *  (`gameIso/authoring/floorsSvg.ts`) → les deux répondent d'un cran égal. */
+   *  du clamp de lumière des DEUX vues — POV (`tint`) et voile d'occlusion des sols iso → les deux répondent d'un cran égal. */
   ambientFloor: number;
   /** APPLICATION de la politique de visibilité (`visibilityOf`, `src/noyau/visibility.ts`) en facteur multiplicatif, par
    *  état de case. Source UNIQUE des rendus : couleur de sommet du monde three (`visibilityTint`) et
@@ -69,13 +68,13 @@ export interface AmbianceDef {
   fogTint: Record<Visibility, number>;
   /** MODELÉ DE FORME de la voie VOLUMIQUE (#1300) : facteur d'irradiance ambiante par FAMILLE
    *  D'ORIENTATION, multiplié dans la couleur de sommet de chaque face selon la direction qu'elle
-   *  regarde (`shadeFactorOf`, `gameIso/backends/webgl/faceColors.ts`). `verticales[0..3]` suit l'ordre
+   *  regarde (`shadeFactorOf`). `verticales[0..3]` suit l'ordre
    *  CYCLIQUE de la grille (−z, +x, +z, −x) ; le schéma en tient les bornes et l'absence de paire
    *  cycliquement adjacente jumelle (`schemas/defs/ambiance.ts`). */
   faceShade: { haut: number; verticales: readonly number[]; bas: number };
   /** #1372 — ENTRÉE EN SCÈNE : rayon MONDE (m) autour du groupe dont les sujets tiennent le voile de
-   *  chargement, et PLAFOND (ms) au-delà duquel il tombe quoi qu'il arrive. Lus par l'écran volumique
-   *  (`gameIso/stage/GameStage3D.tsx`), nulle part ailleurs. */
+   *  chargement, et PLAFOND (ms) au-delà duquel il tombe quoi qu'il arrive. Lus par l'écran volumique,
+   *  nulle part ailleurs. */
   entreeEnScene: { rayonM: number; plafondMs: number };
   iso: {
     /** Voile CHAUD (lumière dorée descendante) posé sur toute la scène. */

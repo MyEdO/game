@@ -77,7 +77,7 @@
 //
 // MODE 2 (`computeFieldPredicateConsumers`) — sélection dynamique par PRÉDICAT DE CHAMP : du code de
 // production filtre le catalogue (`<catalogue>.filter((param) => param.champ === 'valeur'…)`, ex.
-// `ui/InterludeScreen.tsx` bâtissant le pool de l'Artisanat) sans jamais citer l'id, et l'entité
+// l'écran d'Artisanat bâtissant son pool) sans jamais citer l'id, et l'entité
 // satisfait ce prédicat. Restreint fail-closed à une grammaire d'égalité littérale simple sur
 // `Array.prototype.filter` (jamais `.find`/`.some`, jamais négation/optionnel/parenthèses de
 // groupement), ET à un résultat EXPLOITÉ PAR ID : la chaîne doit se terminer par
@@ -85,7 +85,7 @@
 // n'est pas un consommateur, cf. `entityConsumers.mjs` pour le cas mesuré `falseQualities()` REJETÉ).
 // Tout filtre hors grammaire est IGNORÉ (l'entrée reste orpheline). Trouvaille mesurée (2026-07) :
 // `qualities:laid` est sélectionnée par ses champs `polarite`/`subType` ET exploitée par id
-// (`defautsDObjet` de `ui/InterludeScreen.tsx`) sans jamais être citée littéralement — la définition MODE 1 seule
+// (`defautsDObjet`) sans jamais être citée littéralement — la définition MODE 1 seule
 // la classait à tort en dette.
 //
 // ENTITÉS MÉTA (`META_CATALOG_ENTRIES`) — une ligne de TABLE RAW transcrite en entrée de catalogue

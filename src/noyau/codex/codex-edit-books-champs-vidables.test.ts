@@ -12,7 +12,7 @@
  * (`validateDataset`, `src/data/schemas/validate.ts:129`) — jamais un schéma forgé. Il vit ici, et
  * non avec les tests de donnée (`src/data/book-source-integrity.test.ts`) ni avec ceux de
  * `validateDataset` (`src/data/schemas/validate.test.ts`), parce qu'il lui faut les DEUX côtés de la
- * couture : `src/ui` peut lire `src/data`, l'inverse serait une dépendance à contresens.
+ * couture : le noyau peut lire `src/data`, l'inverse serait une dépendance à contresens.
  */
 import { describe, it, expect } from 'vitest';
 import { inferFields } from './editFields';
@@ -21,7 +21,7 @@ import { books } from '../../data/index';
 
 const FILE = 'books.json';
 const entrees = books as unknown as Record<string, unknown>[];
-/** MÊME régime que `src/ui/editor/codex/CodexEdit.tsx` › `AtelierDEntree` — le banc lit le formulaire que l'écran construit. */
+/** MÊME régime que l'atelier du Codex (`AtelierDEntree`) — le banc lit le formulaire que l'écran construit. */
 const REGIME = { meta: metaPourFichier(FILE), noeud: noeudObjet(schemaForFile(FILE)) };
 const CHAMPS = inferFields(entrees, REGIME);
 /**

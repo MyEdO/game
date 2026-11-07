@@ -86,7 +86,7 @@ describe('CharacterSheet — Apparence sur l’objet', () => {
     expect(opts).not.toContain('Cape ouvragée');
     expect(opts).toHaveLength(new Set([...racines, findTrappingById('arme-simple')!.shape?.id]).size + 2);
     for (const a of apparencesAdmissiblesDObjet(h.items![0])) {
-      act(() => useGame.getState().choisirApparence(h.id, h.items![0].uid, a.id));
+      act(() => useGame.getState().poserLApparence(h.id, h.items![0].uid, a.id));
       expect(apparencesCandidates(useGame.getState().party[0].items![0])[0]).toBe(a.id);
     }
   });
@@ -112,7 +112,7 @@ describe('CharacterSheet — Apparence sur l’objet', () => {
     expect(useGame.getState().party[0].items!.map((it) => it.apparence)).toEqual(['choix-bouclier', 'choix-armure', 'choix-cape']);
   });
 
-  it('la variante courante vient des candidats et le sélecteur reste OUVERT en combat (cosmétique, `choisirApparence` sans verrou)', () => {
+  it('la variante courante vient des candidats et le sélecteur reste OUVERT en combat (cosmétique, `poserLApparence` sans verrou)', () => {
     const h = { ...hero(), items: [{ ...itemFromTrappingById('arme-simple')!, apparence: 'choix-epee' }] };
     useGame.setState({ party: [h], sheetId: h.id });
     const { container } = monterRacine(<CharacterSheet heroId={h.id} onClose={() => {}} />);

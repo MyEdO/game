@@ -46,7 +46,7 @@
 // voisines et les collections déclarées séparément gardent leur mesure. Le checker n'est emprunté
 // que si un import candidat est présent, et reste vivant pendant tout le parcours.
 // Un ARGUMENT qui ne nomme AUCUN FICHIER est un PARAMÈTRE, pas un porteur : c'est une liste de
-// RACINES que l'appelé consomme (`readCorpus(['src/ui', 'src/gameIso'])`). Dès qu'un fichier y est
+// RACINES que l'appelé consomme (`readCorpus(['src/noyau', 'src/engine'])`). Dès qu'un fichier y est
 // nommé (extension, ou `fichier:ligne`), le littéral RESTE un porteur quelle que soit la façade —
 // `defineStock([ … ])`, `registre([ … ])`, `Array.from([ … ])`, `Object.freeze([ … ])`,
 // `new Set([ … ])` : même refus qu’en TÊTE de `lignesLocales`, un stock reste un stock.
@@ -109,8 +109,8 @@
 //     CHEMIN, et une ligne de mapping de plus dans une lib de garde se DÉCLARE par `CLIQUET:` comme
 //     toute autre croissance ;
 //   · un stock de DOSSIERS passé en ARGUMENT est HORS DE VUE, et c'est le prix payé pour cesser de
-//     compter une marche d'arbre migrée : `registre(['src/ui', 'src/state'])` écrit au module ne
-//     rend aucune entrée, là où `const R = ['src/ui', 'src/state']` en rend deux. Le REPLI de ligne,
+//     compter une marche d'arbre migrée : `registre(['src/noyau', 'src/engine'])` écrit au module ne
+//     rend aucune entrée, là où `const R = ['src/noyau', 'src/engine']` en rend deux. Le REPLI de ligne,
 //     lui, ne les voit dans aucun des deux cas ;
 //   · un ARGUMENT qui NOMME un fichier reste compté : les sept façades d'une ligne de la sonde du
 //     juge (2026-09-07) — `defineStock`, `registre`, `Array.from`, `[].concat`, identité,
@@ -176,7 +176,7 @@ const CHEMIN_SOURCE_SIMPLE = String.raw`Source\/[^'"\`]+\.md`;
  *  qu'un chemin — l'exiger complet laisserait passer le cas FONDATEUR de cette porte. */
 const NOM_NU = String.raw`[\w.-]+\.(?:ts|tsx|mjs|mts|json|md|css)`;
 /** Le suffixe toléré DANS la chaîne d'un jeton : `:ligne`/`:symbole`, et balise commentée
- *  (`'src/ui/X.test.tsx // div'`). */
+ *  (`'src/noyau/X.test.ts // div'`). */
 const SUFFIXE_JETON = String.raw`(?::[\w.|:-]+)?(?:\s+\/\/\s*[^'"\`]*)?`;
 /** Un jeton d'entrée entre quotes, DEUX branches — la quote fermante décide de ce que le chemin
  *  peut porter : toute quote admet un chemin sans espace ni apostrophe ; la quote DOUBLE et le
@@ -188,7 +188,7 @@ const JETON = String.raw`(?:['"\`](?:${CHEMIN}|${NOM_NU}|${CHEMIN_SOURCE_SIMPLE}
 const NOMME = new RegExp(String.raw`^(?:${CHEMIN}|${NOM_NU}|${CHEMIN_SOURCE})${SUFFIXE_JETON}$`);
 
 /** Le même jeton, resserré sur ce qui nomme un FICHIER : un chemin qui porte une EXTENSION (suivie
- *  au besoin de `:ligne`/`:symbole`), ou un nom de fichier nu. `'src/ui'`, `'src/ui/styles'`,
+ *  au besoin de `:ligne`/`:symbole`), ou un nom de fichier nu. `'src/noyau'`, `'src/noyau/monde'`,
  *  `'scripts/migrations'` n'en sont pas : ce sont des RACINES de scan. Ce motif ne sert QU'À décider
  *  si un littéral en position d'ARGUMENT reste un porteur — partout ailleurs, `NOMME` fait foi. */
 const CHEMIN_FICHIER = String.raw`(?:src|scripts|docs)\/[^'"\`\s]*\.(?:ts|tsx|mjs|mts|json|md|css)`;
@@ -329,7 +329,7 @@ function texteDeGabarit(ts, node) {
 
 /**
  * Le littéral est-il un PARAMÈTRE d'appel ? — un argument qui ne nomme AUCUN fichier. Alors ce n'est
- * pas un porteur : c'est une liste de RACINES que l'appelé consomme (`readCorpus(['src/ui'])`), et
+ * pas un porteur : c'est une liste de RACINES que l'appelé consomme (`readCorpus(['src/noyau'])`), et
  * la compter faisait payer un cliquet à une marche d'arbre migrée.
  *
  * La position d'argument NE SUFFIT PAS à exempter : sinon `defineStock(['src/a.ts', 'src/b.ts'])`,

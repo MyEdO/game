@@ -84,7 +84,7 @@ export function journaliser(
   if (!lines.length && !extra.length) return;
   const b = get().battle;
   if (!b) {
-    get().log(lines);
+    get().ecrireAuJournal(lines);
     return;
   }
   const dites = fixedJetOpen(get()) ? lines.map(markFixedDie) : lines;
@@ -93,7 +93,7 @@ export function journaliser(
 
 /**
  * Intensité d'un évènement → CADENCE (le Réalisateur `noyau/combatDirector` allonge les temps forts)
- * ET emphase visuelle de la bannière (`gameIso/combatNarration`). `grave` = un critique / une mise à
+ * ET emphase visuelle de la bannière. `grave` = un critique / une mise à
  * mort ; `strong` = une Peur. (#161 : vit ici parce que la cadence du combat en a
  * besoin, ce n'est pas QUE de l'affichage ; le rendu la reprend pour sa propre emphase, sens normal.)
  */
@@ -113,7 +113,7 @@ const IMPORTANT: Set<CombatEventKind> = new Set([
 
 /** Un évènement `condition`/`detail` est important s'il applique un État INCAPACITANT (Sonné, À terre…
  *  — sévérité ≥ 50, `conditionSeverity`). Le texte est en FRANÇAIS (journal) : l'État nommé se retrouve
- *  par `conditionIdInText` (`engine/conditions`, scan UNIQUE partagé avec `gameIso/combatNarration`),
+ *  par `conditionIdInText` (`engine/conditions`, scan UNIQUE partagé avec la bannière),
  *  et tout ce qui suit ne manipule qu'un id. */
 function isImportantConditionText(text: string): boolean {
   const id = conditionIdInText(text);
@@ -128,8 +128,8 @@ export function isImportantEvent(e: CombatEvent): boolean {
 }
 
 /** Ton du DERNIER évènement important du journal (ou `'normal'` si aucun / journal vide) — SOURCE
- *  UNIQUE de cadence pour `combatDirector.beatHold` (le bandeau, lui, garde `gameIso/combatNarration`
- *  pour l'icône/la coloration par camp, hors du périmètre `state`). */
+ *  UNIQUE de cadence pour `combatDirector.beatHold` (le bandeau, lui, garde
+ *  l'icône/la coloration par camp). */
 export function lastEventTone(events: CombatEvent[]): CombatTone {
   for (let i = events.length - 1; i >= 0; i--) if (isImportantEvent(events[i])) return toneOf(events[i].kind);
   return 'normal';

@@ -12,7 +12,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * #619 Lot A — le maquignon vend des MONTURES/VÉHICULES (`unitIds`, `computeFreshStockLines`) : acheter
- * une unité crée une POSSESSION (`addPossession`) au lieu d'un objet de sac, la bourse paie le prix
+ * une unité crée une POSSESSION (`ajouterLaPossession`) au lieu d'un objet de sac, la bourse paie le prix
  * `purchase` de `creatures.json` (pas le barème trapping).
  * #760 — l'achat d'une unité entre dans l'écran de RÉPARTITION (comme un objet de sac) : le
  * joueur choisit le héros propriétaire, la possession n'est créée qu'à la validation de l'échoppe (`fenetreValider('marchand')`).
@@ -34,7 +34,7 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
 
   it('le stock liste la mule avec sa Disponibilité, échoue sans le maquignon (garde de câblage)', () => {
     banc.setState({ party: [hero('h', 'H')], scene: maquignonScene() });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const line = banc.getState().merchant!.stock.find((l) => l.id === 'mule');
     expect(line).toBeDefined();
     expect(line!.qty).toBeGreaterThan(0);
@@ -43,10 +43,10 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
   it('acheter une mule (panier) ouvre la répartition avec une entrée unité — aucune possession avant confirmation (#760)', () => {
     banc.setState({ party: [hero('h', 'H')], scene: maquignonScene() });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 50, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const before = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().addToCart('mule');
-    banc.getState().payCart();
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', 'mule');
+    banc.getState().payerLesAchats();
     const st = banc.getState();
     expect(st.possessions.length).toBe(0); // pas encore de possession : en attente de répartition
     expect(st.merchant!.pendingDistribution).toBeTruthy();
@@ -59,12 +59,12 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
   it('confirmer la répartition sur le héros CHOISI (pas party[0] par défaut) crée la possession avec le bon ownerId', () => {
     banc.setState({ party: [hero('h1', 'H1'), hero('h2', 'H2')], scene: maquignonScene() });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 50, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
-    banc.getState().addToCart('mule');
-    banc.getState().payCart();
-    const idx = banc.getState().merchant!.pendingDistribution!.findIndex((d) => 'unit' in d && d.unit.id === 'mule');
-    expect(idx).toBeGreaterThanOrEqual(0);
-    banc.getState().assignDistribution(idx, 'h2'); // réassigne au 2e héros (pas le défaut party[0])
+    banc.getState().ouvrirLeMarchand('pnj');
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', 'mule');
+    banc.getState().payerLesAchats();
+    const mule = banc.getState().merchant!.pendingDistribution!.find((d) => 'unit' in d && d.unit.id === 'mule');
+    expect(mule).toBeDefined();
+    banc.getState().fenetreChoisir('marchand', 'repartition', mule!.uid, 'h2'); // réassigne au 2e héros (pas le défaut party[0])
     banc.getState().fenetreValider('marchand');
     const st = banc.getState();
     const pos = st.possessions.find((p) => p.nature === 'bete' && 'id' in p.ref && p.ref.id === 'mule');
@@ -77,11 +77,11 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
   it('acheter un trapping ordinaire (harnachement) chez le maquignon reste inchangé (aucune casse)', () => {
     banc.setState({ party: [hero('h', 'H')], scene: maquignonScene() });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 50, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const line = banc.getState().merchant!.stock.find((l) => l.id === 'selle-et-harnais');
     expect(line).toBeDefined();
-    banc.getState().addToCart('selle-et-harnais');
-    banc.getState().payCart();
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', 'selle-et-harnais');
+    banc.getState().payerLesAchats();
     const st = banc.getState();
     expect(st.merchant!.pendingDistribution).toBeTruthy(); // panier avec objet de sac → écran de répartition renseigné
     expect(st.merchant!.pendingDistribution!.some((d) => 'item' in d && d.item.trappingId === 'selle-et-harnais')).toBe(true);
@@ -92,17 +92,17 @@ describe('#619 Lot A — maquignon : achat d\'unité → possession', () => {
   it('un panier mixte (unité + objet de sac) verse l\'objet au bon héros ET crée la possession de l\'unité (#760)', () => {
     banc.setState({ party: [hero('h1', 'H1'), hero('h2', 'H2')], scene: maquignonScene() });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 50, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
-    banc.getState().addToCart('mule');
-    banc.getState().addToCart('selle-et-harnais');
-    banc.getState().payCart();
+    banc.getState().ouvrirLeMarchand('pnj');
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', 'mule');
+    banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', 'selle-et-harnais');
+    banc.getState().payerLesAchats();
     const dist = banc.getState().merchant!.pendingDistribution!;
-    const unitIdx = dist.findIndex((d) => 'unit' in d);
-    const itemIdx = dist.findIndex((d) => 'item' in d);
-    expect(unitIdx).toBeGreaterThanOrEqual(0);
-    expect(itemIdx).toBeGreaterThanOrEqual(0);
-    banc.getState().assignDistribution(unitIdx, 'h2');
-    banc.getState().assignDistribution(itemIdx, 'h1');
+    const unite = dist.find((d) => 'unit' in d);
+    const objet = dist.find((d) => 'item' in d);
+    expect(unite).toBeDefined();
+    expect(objet).toBeDefined();
+    banc.getState().fenetreChoisir('marchand', 'repartition', unite!.uid, 'h2');
+    banc.getState().fenetreChoisir('marchand', 'repartition', objet!.uid, 'h1');
     banc.getState().fenetreValider('marchand');
     const st = banc.getState();
     const pos = st.possessions.find((p) => p.nature === 'bete' && 'id' in p.ref && p.ref.id === 'mule');

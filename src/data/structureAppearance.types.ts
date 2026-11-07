@@ -1,5 +1,5 @@
-/** Apparence PARTAGÉE d'une structure d'arête (mur/porte), consommée par l'iso (`gameIso/builders/walls.ts`)
- *  ET le volumique (`gameIso/backends/webgl/`). Donnée pure (`src/data/structureAppearance.json`), découplée de `StructureData` (règles).
+/** Apparence PARTAGÉE d'une structure d'arête (mur/porte), consommée par l'iso
+ *  ET le volumique. Donnée pure (`src/data/structureAppearance.json`), découplée de `StructureData` (règles).
  *  Couleurs : hex ou var CSS (`var(--struct-*)`, base.css). L'iso dérive l'ombrage par orientation via
  *  `shade()` à partir des couleurs de base ci-dessous ; le POV les teinte par la lumière. */
 import type { DetailRecipe } from './materials.types';
@@ -58,7 +58,7 @@ export interface StructureAppearanceDef {
   };
 }
 
-/** Parties NOMMÉES d'un mur assemblé par le builder du pivot (`gameIso/builders/walls.ts`) — LISTE RUNTIME dont
+/** Parties NOMMÉES d'un mur assemblé par le builder du pivot — LISTE RUNTIME dont
  *  l'union `WallPart` dérive : le `switch` de `wallPartRelief` s'y mesure (garde d'exhaustivité), et le
  *  schéma de `structureAppearance.json` (`schemas/defs/structureAppearance.ts`) y contraint les clés de `relief`. Chaque backend résout la
  *  couleur de BASE d'une partie via `wallPartColor` puis applique SA lumière (orientation iso / tint POV). */

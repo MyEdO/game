@@ -18,19 +18,19 @@ beforeAll(() => {
 let container: HTMLDivElement;
 let root: Root;
 
-const porteur = (id: string, cargo: { cargoId: string; enc: number }[], capacity: number): CargoCarrier => ({
+const porteur = (id: string, cargo: { uid: string; cargoId: string; enc: number }[], capacity: number): CargoCarrier => ({
   id, label: id, hull: 'vehicule' as CargoCarrier['hull'], capacity, discreteEnc: 0,
   cargo: cargo as CargoCarrier['cargo'], location: { kind: 'au-lieu', placeId: 'bourg' },
 });
 
-function monter(onMove: (f: string, t: string, c: string, e: number) => void) {
+function monter(onMove: (lot: string, vers: string, e: number) => void) {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
   act(() => {
     root.render(
       <CargoTransferPanel
-        carriers={[porteur('chariot', [{ cargoId: 'ble', enc: 12 }], 40), porteur('mule', [], 5)]}
+        carriers={[porteur('chariot', [{ uid: 'lot-1', cargoId: 'ble', enc: 12 }], 40), porteur('mule', [], 5)]}
         onMove={onMove}
         labelOf={(id) => id}
       />,
@@ -64,7 +64,7 @@ describe('CargoTransferPanel — la borne du champ « Enc » est celle du domain
 
   it('saisie au-dessus de la borne : CALÉE à la place libre, le transfert part avec la valeur vue', () => {
     const bougé: number[] = [];
-    monter((_f, _t, _c, e) => bougé.push(e));
+    monter((_l, _v, e) => bougé.push(e));
     saisir('99');
     expect(champ().value, 'la valeur AFFICHÉE est celle qui partira — jamais un écart entre l’œil et le moteur').toBe('5');
     act(() => { (container.querySelector('button') as HTMLButtonElement).click(); });
@@ -73,7 +73,7 @@ describe('CargoTransferPanel — la borne du champ « Enc » est celle du domain
 
   it('champ VIDE = « tout ce qui peut passer » (le maximum), jamais 0 — et le transfert le revide', () => {
     const bougé: number[] = [];
-    monter((_f, _t, _c, e) => bougé.push(e));
+    monter((_l, _v, e) => bougé.push(e));
     saisir('3');
     saisir('');
     expect(champ().value).toBe('');

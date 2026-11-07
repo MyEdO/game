@@ -1,8 +1,7 @@
 /**
  * Défauts de recette du créateur (DEV, #518) — PUR : applique étape par étape des choix VALIDES
  * jusqu'à `upto` incluse, en réutilisant les gestes/dérivations de `brouillon.ts` (jamais un chemin
- * parallèle). Consommé par `__wfrp.fillCreatorDefaults` (`src/state/devtools.ts`) via la couture
- * `CharacterCreator.tsx` — jamais appelé au flux joueur réel.
+ * parallèle). Consommé par `__wfrp.fillCreatorDefaults` de l'hôte — jamais appelé au flux joueur réel.
  */
 import {
   type CreatorDraft,

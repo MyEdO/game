@@ -145,14 +145,15 @@ function controlerLeContexte(offre: string, ctx: ContexteDOffre | undefined, off
 }
 
 /** L'intention d'un geste, contrôlée. Une offre que le noyau refuse (`refusDeLOffre`, le verdict même de `jouerLOffre`)
- *  est une erreur de règle avec sa raison ; un champ du contexte que l'offre ne lit pas (`controlerLeContexte`) est une
- *  erreur de validation. Le verbe d'un geste a été contrôlé contre `VERBES` (`gesteDuVerbe`). Un verbe joué au nom d'un siège joint le verdict d'armement que ce siège voit
+ *  est une erreur de règle avec sa raison ; un champ du contexte que l'offre ne lit pas (`controlerLeContexte`), ou un id
+ *  du contexte que l'état ne désigne pas (`argumentsDuVerbe` sur `jouerLOffre`), est une erreur de validation. Le verbe d'un geste a été contrôlé contre `VERBES` (`gesteDuVerbe`). Un verbe joué au nom d'un siège joint le verdict d'armement que ce siège voit
  *  (`argsAvecVerdictLocal`), comme le client du web le joint à son intention. */
 export function intentionDuGeste(etat: Jeu, geste: Geste, pistes: PistesDeLecture): Intention {
   if ('offre' in geste) {
     valider(ACTIONS.some((a) => a.id === geste.offre), `offre inconnue : ${geste.offre}${pistes.offres}`);
     const barre = etatDeLaBarre(etat);
     controlerLeContexte(geste.offre, geste.ctx, barre.forme === 'ouverte' ? offresDeLaBarreOuverte(etat, barre) : [], pistes);
+    if (geste.ctx) argumentsDuVerbe(etat, 'jouerLOffre', [geste.offre, geste.ctx], VERBES.jouerLOffre);
     const refus = refusDeLOffre(etat, geste.offre, geste.ctx);
     if (refus) throw new ErreurDeGeste('regle', `${geste.offre} n’est pas offerte : ${refus}${pistes.offre(geste.offre)}`);
     return { type: 'jouerLOffre', args: geste.ctx ? [geste.offre, geste.ctx] : [geste.offre] };

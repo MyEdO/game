@@ -3,7 +3,7 @@
  * d'avance, marchandable) et LDB 51 l.178 (billet IMPLICITE d'une route sans billet d'auteur : classe × km).
  *
  * UNE offre par départ (`offreDePassage`), lue par l'écran de départ (`WorldMapView`) ET par le débit
- * (`travelFlow.startTravel`) : l'estimation et le paiement appellent la même fonction de prix
+ * (`travelFlow.partirEnVoyage`) : l'estimation et le paiement appellent la même fonction de prix
  * (`engine/travel.transportCost`). Le billet payé vit dans `billetEnMain` jusqu'à son dernier tronçon ;
  * l'issue de son Marchandage dans `marchandagesDeBillet` (un Test par billet).
  */
@@ -115,7 +115,7 @@ function offreIci(get: Get, routeId: string, vehicule: string): OffreDePassage |
 }
 
 /** « Marchander » le billet (EDO 01 l.142) : Test opposé contre le vendeur du preset, UN par billet. */
-export function startBilletBargain(get: Get, set: Set, routeId: string, vehicule: string): void {
+export function marchanderLeBillet(get: Get, set: Set, routeId: string, vehicule: string): void {
   if (get().battle || get().pendingBargain) return;
   const offre = offreIci(get, routeId, vehicule);
   if (!offre || offre.couvert || !offre.vendeurPresetId || offre.issue) return;
@@ -126,6 +126,6 @@ export function startBilletBargain(get: Get, set: Set, routeId: string, vehicule
 
 export function creerActionsDuBillet(get: Get, set: Set) {
   return {
-    startBilletBargain: (routeId, vehicule) => startBilletBargain(get, set, routeId, vehicule),
+    marchanderLeBillet: (routeId, vehicule) => marchanderLeBillet(get, set, routeId, vehicule),
   } satisfies FabriqueDuNoyau;
 }

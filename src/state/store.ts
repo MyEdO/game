@@ -10,6 +10,7 @@ import { viewYawDeg } from './stageYaw';
 import { resetStagePan } from './stagePan';
 import { resetStageGestes } from './stageGestes';
 import * as netFlow from './netFlow';
+import { netAssign, netAssignSlot, setGmSeat } from '../hote/coop/salon';
 import { stockageDesSauvegardes } from './saves';
 import { ecrireLaSauvegarde, lireLaSauvegarde, AUTO_SLOT, type SaveSlot, type AnySlot } from '../hote/sauvegardes';
 import { chargerLaSave, lireSave, refusDeSauvegarde, snapshotSave, type ObsoleteCause, type RefusDeSauvegarde, type SaveGame } from '../noyau/persistance/save';
@@ -100,7 +101,7 @@ export interface EtatDeLAdaptateur {
    *  réseau), read-only : actif même hors de son tour. null = aucun survol de portrait. */
   hoverCombatantId: string | null;
   /** Curseur de combat CLAVIER/MANETTE : case visée (éventuellement aimantée à une cible). Il pilote le
-   *  réticule comme un survol souris et se commet via battleClickEntity/Tile. null = aucune navigation
+   *  réticule comme un survol souris et se commet via cliquerLaCase. null = aucune navigation
    *  clavier en cours (la souris a la main). Périmé par `curseurPerime`. */
   combatCursor: CombatCursor | null;
   /** Entité mise en évidence par le SURVOL — en combat le combattant (token carte OU portrait frise),
@@ -292,24 +293,24 @@ export const useGame = create<GameState>((set, get) => ({
   openPossessionsScreen: (uid) => set({ possessionsScreen: { uid: uid ?? null } }),
   closePossessionsScreen: () => set({ possessionsScreen: null }),
 
-  netHostStart: (name) => netFlow.netHostStart(get, set, name),
-  netJoin: (code, name) => netFlow.netJoin(get, set, (data) => netFlow.applyNetSnapshot(set, data), code, name),
-  netAssign: (heroId, seat) => netFlow.netAssign(get, set, heroId, seat),
-  setGmSeat: (seat) => netFlow.setGmSeat(get, set, seat),
-  netAssignSlot: (slot, seat) => netFlow.netAssignSlot(get, set, slot, seat),
-  netLeave: () => netFlow.netLeave(get, set),
+  netHostStart: (name) => netFlow.salon.heberger(get, set, name),
+  netJoin: (code, name) => netFlow.salon.rejoindre(get, set, (data) => netFlow.applyNetSnapshot(set, data), code, name),
+  netAssign: (heroId, seat) => netAssign(get, set, heroId, seat),
+  setGmSeat: (seat) => setGmSeat(get, set, seat),
+  netAssignSlot: (slot, seat) => netAssignSlot(get, set, slot, seat),
+  netLeave: () => netFlow.salon.quitter(set),
 
   // ── Sauvegarde / chargement (Jalon 5) — `noyau/persistance/save.ts` ──
   saveGame: (slot) => {
     const s = get();
     const refus = refusDeSauvegarde(s, s.net.mySeat);
     if (refus) {
-      get().log(t(MESSAGE_DU_REFUS[refus]));
+      get().ecrireAuJournal(t(MESSAGE_DU_REFUS[refus]));
       return false;
     }
     const save = snapshotSave(s, new Date().toISOString(), ruleOverrides());
     const ok = ecrireLaSauvegarde(stockageDesSauvegardes(), slot, save);
-    get().log(ok ? t('store.saveOk', { slot }) : t('store.saveKo'));
+    get().ecrireAuJournal(ok ? t('store.saveOk', { slot }) : t('store.saveKo'));
     return ok;
   },
   loadGame: (slot) => {

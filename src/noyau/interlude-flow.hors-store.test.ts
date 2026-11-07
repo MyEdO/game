@@ -30,13 +30,13 @@ describe('Interlude — flux start/end', () => {
     const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
     banc.setState({ party: [a, b] });
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, fromBrass(1000)); // bourse perso de départ (#531)
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
   });
 
-  it('startInterlude : événements tirés par héros, Activités = min(3, semaines), écran dédié', () => {
-    banc.getState().startInterlude(2);
+  it('ouvrirLInterlude : événements tirés par héros, Activités = min(3, semaines), écran dédié', () => {
+    banc.getState().ouvrirLInterlude(2);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     const itl = banc.getState().interlude!;
     expect(itl).toBeTruthy();
@@ -54,8 +54,8 @@ describe('Interlude — flux start/end', () => {
     }
   });
 
-  it('startInterlude : 5 semaines → max 3 Activités (« maximum de trois », LDB 23 l.5)', () => {
-    banc.getState().startInterlude(5);
+  it('ouvrirLInterlude : 5 semaines → max 3 Activités (« maximum de trois », LDB 23 l.5)', () => {
+    banc.getState().ouvrirLInterlude(5);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     for (const st of Object.values(banc.getState().interlude!.perHero)) {
       const ev = eventOf(st);
@@ -64,7 +64,7 @@ describe('Interlude — flux start/end', () => {
   });
 
   it('la validation de l’interlude : Argent à gaspiller (bourse → Revenus seuls), retour campagne, le temps passe', () => {
-    banc.getState().startInterlude(1);
+    banc.getState().ouvrirLInterlude(1);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     const itl = banc.getState().interlude!;
     const heroId = Object.keys(itl.perHero)[0];
@@ -77,28 +77,28 @@ describe('Interlude — flux start/end', () => {
     expect(banc.getState().gameTime).toBeGreaterThan(t0); // 7 jours de repos écoulés
   });
 
-  // #897 : `startInterlude` reconstruit `perHero` À NEUF (`InterludeState.perHero`, doc ci-dessus) —
+  // #897 : `ouvrirLInterlude` reconstruit `perHero` À NEUF (`InterludeState.perHero`, doc ci-dessus) —
   // un Artisanat/Rituel en cours doit donc vivre AILLEURS pour survivre à la clôture. Sonde chiffrée :
   // entamer (mutation directe, comme `craftStart`/`openRitualFocus`), clôturer, rouvrir, constater la
   // reprise au MÊME point (`Combatant.craft`/`Combatant.ritual`, `engine/types.ts`).
   it('#897 : un Artisanat/Rituel en cours SURVIT à la clôture ET à la réouverture d’un interlude', () => {
-    banc.getState().startInterlude(1);
+    banc.getState().ouvrirLInterlude(1);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     const h = banc.getState().party[0];
     h.craft = { trappingId: 'dague', tier: 'bronze', avail: 'Commune', atouts: [], defauts: [], drDone: 3, drTarget: 5, difficulty: 'accessible' };
     h.ritual = { spellId: 'graver-une-pierre-d-ogham', drDone: 7, drTarget: 25 };
     banc.getState().fenetreValider('interlude');
-    expect(banc.getState().interlude).toBeNull(); // clôture EFFECTIVE (`interlude` reconstruit à neuf au prochain `startInterlude`)
+    expect(banc.getState().interlude).toBeNull(); // clôture EFFECTIVE (`interlude` reconstruit à neuf au prochain `ouvrirLInterlude`)
     expect(banc.getState().party[0].craft).toEqual({ trappingId: 'dague', tier: 'bronze', avail: 'Commune', atouts: [], defauts: [], drDone: 3, drTarget: 5, difficulty: 'accessible' });
     expect(banc.getState().party[0].ritual).toEqual({ spellId: 'graver-une-pierre-d-ogham', drDone: 7, drTarget: 25 });
-    banc.getState().startInterlude(1); // réouverture : `perHero` neuf, `craft`/`ritual` restent au héros
+    banc.getState().ouvrirLInterlude(1); // réouverture : `perHero` neuf, `craft`/`ritual` restent au héros
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     expect(banc.getState().party[0].craft?.drDone).toBe(3);
     expect(banc.getState().party[0].ritual?.drDone).toBe(7);
   });
 
   it('la clôture NOURRIT le groupe (vie en ville payée par le gaspillage) — pas de famine sur 3 semaines', () => {
-    banc.getState().startInterlude(3);
+    banc.getState().ouvrirLInterlude(3);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     const before = banc.getState().party.map((h) => h.wounds.current);
     banc.getState().fenetreValider('interlude'); // 21 jours — sans le couvert, la Faim RAW tuerait le groupe
@@ -108,7 +108,7 @@ describe('Interlude — flux start/end', () => {
   });
 
   it('« Avec le pouvoir » : Niveau 3 sans Revenus → retombe au Niveau 2 (LDB 23 l.33)', () => {
-    banc.getState().startInterlude(1);
+    banc.getState().ouvrirLInterlude(1);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     const hero = banc.getState().party[0];
     hero.careerLevel = 3;
@@ -124,9 +124,9 @@ describe('Interlude — flux start/end', () => {
   });
 
   it('en combat : refusé', () => {
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
-    banc.getState().startInterlude(1);
+    banc.getState().ouvrirLInterlude(1);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     expect(banc.getState().interlude).toBeNull();
   });
@@ -142,7 +142,7 @@ describe('Interlude — flux start/end', () => {
     const elf = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 });
     elf.species = 'hauts-elfes';
     banc.setState({ party: [elf], interlude: null });
-    banc.getState().startInterlude(3);
+    banc.getState().ouvrirLInterlude(3);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     const st = banc.getState().interlude!.perHero[elf.id];
     const ev = eventOf(st);
@@ -154,7 +154,7 @@ describe('Interlude — flux start/end', () => {
     const elf = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 });
     elf.species = 'hauts-elfes';
     banc.setState({ party: [elf], interlude: null });
-    banc.getState().startInterlude(3);
+    banc.getState().ouvrirLInterlude(3);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     const st = banc.getState().interlude!.perHero[elf.id];
     const ev = eventOf(st);
@@ -167,7 +167,7 @@ describe('Interlude — flux start/end', () => {
     const elf = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 });
     elf.species = 'hauts-elfes';
     banc.setState({ party: [elf], interlude: null });
-    banc.getState().startInterlude(3);
+    banc.getState().ouvrirLInterlude(3);
     draineCascade(banc.getState);
     const st = banc.getState().interlude!.perHero[elf.id];
     const ev = eventOf(st);

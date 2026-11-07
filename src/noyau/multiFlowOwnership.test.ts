@@ -107,8 +107,8 @@ describe('flux MULTI — possession par participant (dérivée de FLOW_VERBS)', 
   it('un flux inconnu, ou qui n’accepte pas le verbe, n’est possédé par AUCUN siège', () => {
     const s = base(FIXTURES.counterspell);
     for (const seat of [0, 1, 2]) {
-      expect(intentAllowedFor(s, seat, 'jetRoll', ['zz-inconnu', H_OWNER]), `siège ${seat}, flux inconnu`).toBe(false);
-      expect(intentAllowedFor(s, seat, 'jetResist', ['counterspell', H_OWNER]), `siège ${seat}, Résistance sur le Contre-sort`).toBe(false);
+      expect(intentAllowedFor(s, seat, 'jetLancer', ['zz-inconnu', H_OWNER]), `siège ${seat}, flux inconnu`).toBe(false);
+      expect(intentAllowedFor(s, seat, 'jetResister', ['counterspell', H_OWNER]), `siège ${seat}, Résistance sur le Contre-sort`).toBe(false);
     }
   });
 

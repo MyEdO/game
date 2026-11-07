@@ -27,7 +27,7 @@ export type RefusFranchissement =
   | 'non-adjacente' // pas une case cardinale voisine
   | 'aucune-surface' // rien de marchable à atteindre en (to.x, to.y)
   | 'muree' // l'arête barre le pas et n'est pas une croisée franchissable
-  | 'escalade' // arête grimpable → flux dédié (`climbAcross`/Escalade)
+  | 'escalade' // arête grimpable → flux dédié (`franchirLArete`, Escalade)
   | 'marche'; // pas ordinaire sans croisée : la marche, pas un geste
 
 /** `fall` : `suspendu` = hauteur de chute de qui SE SUSPEND d'abord (EDO 01 l.231), présente
@@ -86,7 +86,7 @@ export function defautDeSuspension(scene: Scene, from: Pt, to: Pt): DefautDeSusp
 }
 
 /** Mouvement (cases) que coûte l'allège `allege` (m) de la croisée franchie — LDB 15 l.55.
- *  Lu par l'enjambée (`windowAcross`) et par la chute (`mouvementDeLaChute`). */
+ *  Lu par l'enjambée (`franchirLArete`) et par la chute (`mouvementDeLaChute`). */
 export function mouvementDeLAllege(allege: number, metresParCase: number): number {
   return climbMovementCost(allege, metresParCase);
 }

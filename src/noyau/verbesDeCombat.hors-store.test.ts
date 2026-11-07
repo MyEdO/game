@@ -45,7 +45,7 @@ const envoyer = <K extends keyof ActionsDuNoyau>(partie: Partie, type: K, ...arg
 /** La Course, telle que l'hôte la joue : l'offre `course` arme sa portée, le clic confirmé sur `pt` la commet. */
 const courir = (partie: Partie, pt: { x: number; y: number }): void => {
   envoyer(partie, 'jouerLOffre', 'course');
-  envoyer(partie, 'battleClickTile', pt, { confirm: true });
+  envoyer(partie, 'cliquerLaCase', pt, undefined, { confirm: true });
 };
 
 /** L'état du duel ouvert, le tour au héros, H et E au contact sans être Engagés. */
@@ -67,7 +67,7 @@ function duel(): { partie: Partie; H: Combatant; E: Combatant } {
   return { partie, H: activeCombatant(b)!, E: b.combatants.find((c) => c.id === idDeE)! };
 }
 
-/** Le duel sur le banc : le banc lit aussi la machinerie (`battleHeal`, le corps qui commet le clic du Soin), qu’aucun hôte n’appelle. */
+/** Le duel sur le banc : le banc lit aussi la machinerie (`ouvrirLaGuerison`, le corps qui commet le clic du Soin), qu’aucun hôte n’appelle. */
 function duelSurLeBanc(): { banc: Banc; H: Combatant } {
   const banc = ouvrirLeBanc({ ...ENTREES, etat: etatDuDuel().etat });
   return { banc, H: activeCombatant(banc.getState().battle!)! };
@@ -92,7 +92,7 @@ describe('Course (LDB 15 l.41) : « la distance couverte vient en plus de celle 
   it('courir après avoir marché est permis, sans dépasser Mouvement restant + Course', () => {
     const { partie, H } = duel();
     try {
-      envoyer(partie, 'battleClickTile', laPlusLointaine(computeMoveReach(lire(partie))), { confirm: true });
+      envoyer(partie, 'cliquerLaCase', laPlusLointaine(computeMoveReach(lire(partie))), undefined, { confirm: true });
       const b0 = partie.etat().battle!;
       expect(b0.movementUsed, 'témoin : le héros a marché').toBeGreaterThan(0);
       expect(actionGate('course', contexte(partie))).toEqual({ ok: true });
@@ -103,9 +103,9 @@ describe('Course (LDB 15 l.41) : « la distance couverte vient en plus de celle 
       courir(partie, laPlusLointaine(zone, computeMoveReach(lire(partie))));
       const pr = partie.etat().pendingRun;
       expect(pr, 'la Course après la Marche est refusée').toBeTruthy();
-      envoyer(partie, 'jetRoll', 'run');
+      envoyer(partie, 'jetLancer', 'run');
       const bonus = partie.etat().pendingRun!.result!.bonusCases;
-      envoyer(partie, 'jetConfirm', 'run');
+      envoyer(partie, 'jetValider', 'run');
       const b = partie.etat().battle!;
       expect(b.acted).toBe(true);
       expect(b.runBudget).toBe(mountMovement(b, H) + bonus);
@@ -164,7 +164,7 @@ describe('Course : un seul verdict pour l’offre, le geste et la zone (`refusDe
       for (let pas = 0; pas < 40 && !(activeCombatant(partie.etat().battle!)?.kind === 'hero'); pas++) {
         const e = partie.etat();
         const intentions: Intention[] = e.pendingDefense
-          ? [{ type: 'jetRoll', args: ['defense'] }, { type: 'jetConfirm', args: ['defense'] }]
+          ? [{ type: 'jetLancer', args: ['defense'] }, { type: 'jetValider', args: ['defense'] }]
           : activeCombatant(e.battle!) ? [{ type: 'jouerLOffre', args: ['end-turn'] }] : [{ type: 'fenetreValider', args: ['roundStart'] }];
         for (const intention of intentions) jouer(partie, partie.envoyer(intention));
       }
@@ -177,7 +177,7 @@ describe('Course : un seul verdict pour l’offre, le geste et la zone (`refusDe
       R.resilience = 2;
       expect([mountMovement(b, R), runMovementBonus(R), runMovementBonus(monture)], 'témoin : cheval M7, cavalier Sprinter').toEqual([7, 1, 0]);
       courir(partie, laPlusLointaine(computeRunReach(lire(partie))));
-      envoyer(partie, 'jetForceSuccess', 'run');
+      envoyer(partie, 'jetForcerLaReussite', 'run');
       expect(partie.etat().pendingRun!.result!.bonusCases).toBe(16);
     } finally {
       partie.fermer();
@@ -219,7 +219,7 @@ describe('Clic d’attaque : les refus élémentaires du tour (`refusDuTour.ts`)
     const { partie, H, E } = duel();
     try {
       addCondition(H, 'brise');
-      envoyer(partie, 'battleClickEntity', E.id, { confirm: true });
+      envoyer(partie, 'cliquerLaCase', { ...E.pos! }, E.id, { confirm: true });
       expect(partie.etat().pendingAttack ?? null).toBeNull();
       expect(refusDit(partie)).toBe(refusVerrouDAction(H));
     } finally {
@@ -249,7 +249,7 @@ describe('Brisé en donnée (LDB 16 l.52, `restrictsAction`) : la Marche du verr
 
 /** Marche jusqu'au bout, puis l'Action : plus de Mouvement après l'Action (`canMove`). */
 function actionEtMouvementDepenses(partie: Partie): void {
-  envoyer(partie, 'battleClickTile', laPlusLointaine(computeMoveReach(lire(partie))), { confirm: true });
+  envoyer(partie, 'cliquerLaCase', laPlusLointaine(computeMoveReach(lire(partie))), undefined, { confirm: true });
   envoyer(partie, 'jouerLOffre', 'defend');
   expect(partie.etat().battle, 'témoin : Marche puis Action').toMatchObject({ acted: true, movedPreAction: true });
 }
@@ -263,7 +263,7 @@ describe('Désengagement (LDB 15 l.43-49) : une option par verdict', () => {
       expect(actionGate('disengage', contexte(partie))).toEqual({ ok: true });
       envoyer(partie, 'jouerLOffre', 'disengage');
       expect(partie.etat().pendingDisengage).toMatchObject({ canSacrifice: false, refusEsquive: t('agate.unableToAct'), canFuir: true });
-      envoyer(partie, 'jetRoll', 'disengage');
+      envoyer(partie, 'jetLancer', 'disengage');
       expect(partie.etat().pendingDisengage, 'l’Esquive fermée s’est jouée').toMatchObject({ phase: 'choice', def: null });
     } finally {
       partie.fermer();
@@ -355,10 +355,10 @@ describe('Commits publics sous un État qui verrouille l’Action (LDB 16 l.52) 
     });
   }
 
-  it('battleHeal, que commet le clic du Soin : le Brisé est refusé par le verdict de son entrée', () => {
+  it('ouvrirLaGuerison, que commet le clic du Soin : le Brisé est refusé par le verdict de son entrée', () => {
     const { banc, H } = duelSurLeBanc();
     addCondition(H, 'brise');
-    banc.getState().battleHeal(H.id, 'wounds');
+    banc.getState().ouvrirLaGuerison(H.id, 'wounds');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(banc.getState().refus?.texte).toBe(refusVerrouDAction(H));
   });

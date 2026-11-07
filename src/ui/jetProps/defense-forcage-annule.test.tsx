@@ -47,11 +47,11 @@ function play(opts: { atk?: boolean; def?: boolean }): string {
   const g = useGame.getState;
   seedBattleRng(3);
   openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-  g().jetRoll('attack');
-  if (opts.atk) g().jetForceSuccess('attack');
-  g().jetConfirm('attack');
-  g().jetRoll('defense');
-  if (opts.def) g().jetForceSuccess('defense');
+  g().jetLancer('attack');
+  if (opts.atk) g().jetForcerLaReussite('attack');
+  g().jetValider('attack');
+  g().jetLancer('defense');
+  if (opts.def) g().jetForcerLaReussite('defense');
   return monterRacine(<Probe />).container.textContent ?? '';
 }
 

@@ -4,7 +4,7 @@
  *
  * Les 6 classes des trois véhicules à facette Voyage (`interieur`/`exterieur` de la diligence,
  * `cabine`/`pont` de la barge et de la barge fluviale) portent une identité STABLE consommée par
- * `src/engine/travel.ts` (`transportCost`) et choisie à l'écran (`src/ui/WorldMapView.tsx`) : c'est
+ * `src/engine/travel.ts` (`transportCost`) et choisie à l'écran : c'est
  * la forme canonique `id` + `label`, `key` n'en était que la graphie divergente.
  *
  * ENTRÉES : `src/data/vehicles.json` (la seule donnée lue et écrite).

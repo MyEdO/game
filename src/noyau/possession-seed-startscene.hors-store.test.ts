@@ -1,6 +1,6 @@
 /**
  * Semis des Possessions de dotation au démarrage d'une partie neuve (#617/#618 SOCLE POSSESSIONS
- * Lot 1) — seam `startScene` (`noyau/entreeEnScene.ts`), JAMAIS le chargement (la save restaure `data.possessions`).
+ * Lot 1) — seam `lancerLaScene` (`noyau/entreeEnScene.ts`), JAMAIS le chargement (la save restaure `data.possessions`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -13,7 +13,7 @@ import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 
-describe('Semis de Possessions — startScene (#617/#618 Lot 1)', () => {
+describe('Semis de Possessions — lancerLaScene (#617/#618 Lot 1)', () => {
   beforeEach(() => {
     banc = ouvrirLeBanc();
   });
@@ -21,10 +21,10 @@ describe('Semis de Possessions — startScene (#617/#618 Lot 1)', () => {
   it('dotation {vehicleId} (contrebandier niv.2 → barque-fluviale, careerLevels.json) → possession vehicule avec-le-groupe, owner = héros', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'contrebandier', label: 'Contreb.', seed: 1 });
     hero.careerLevel = 2; // la dotation barque-fluviale est portée par ce Niveau, pas le 1
-    banc.getState().setParty([hero]);
+    banc.getState().fixerLeGroupe([hero]);
     const sc = emptyScene('scene-test', 6, 6);
     sc.id = 'test-seed-vehicule';
-    banc.getState().startScene(sc);
+    banc.getState().lancerLaScene(sc);
     const { possessions } = banc.getState();
     const vehicule = possessions.find((p) => p.nature === 'vehicule');
     expect(vehicule).toBeDefined();
@@ -35,21 +35,21 @@ describe('Semis de Possessions — startScene (#617/#618 Lot 1)', () => {
 
   it("héros sans carrière (party fixture nue) → aucun crash, aucune possession semée", () => {
     const lead = combattantDeTest({ id: 'lead', label: 'L', xp: 0 });
-    banc.getState().setParty([lead]);
+    banc.getState().fixerLeGroupe([lead]);
     const sc = emptyScene('scene-test', 5, 5);
     sc.id = 'test-seed-sans-carriere';
-    banc.getState().startScene(sc);
+    banc.getState().lancerLaScene(sc);
     expect(banc.getState().possessions).toHaveLength(0);
   });
 
   it('loadGame NE redéclenche PAS le semis — la save fait foi, jamais de doublon (#617/#618 §3)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'contrebandier', label: 'Contreb.', seed: 1 });
     hero.careerLevel = 2;
-    banc.getState().setParty([hero]);
+    banc.getState().fixerLeGroupe([hero]);
     const sc = emptyScene('scene-test', 6, 6);
     sc.id = 'test-seed-loadgame';
-    banc.getState().startScene(sc);
-    expect(banc.getState().possessions).toHaveLength(1); // semé UNE fois par startScene
+    banc.getState().lancerLaScene(sc);
+    expect(banc.getState().possessions).toHaveLength(1); // semé UNE fois par lancerLaScene
     banc.abandonner();
     const save = sauverLeBanc(banc);
     // Simule un rechargement (état vidé, groupe reformé) puis le chargement — la save restaure le

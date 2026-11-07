@@ -25,13 +25,13 @@ const COMMENT_OR_BLANK = /^\s*(?:\/\/|\/\*|\*|$)/
 test('#1244 ordre TOTAL des puces — même (livre, chapitre), deux fichiers : le rendu ne dépend pas de l’ordre d’entrée', () => {
   const puces = [
     { book: 'LDB', ch: 5, text: '- `LDB 5` (l.10) → src/engine/aaa.ts' },
-    { book: 'LDB', ch: 5, text: '- `LDB 5` (l.20) → src/state/zzz.ts' },
+    { book: 'LDB', ch: 5, text: '- `LDB 5` (l.20) → src/noyau/zzz.ts' },
     { book: 'LDB', ch: 2, text: '- `LDB 2` (l.1) → src/engine/bbb.ts' },
   ]
   const attendu = [
     '- `LDB 2` (l.1) → src/engine/bbb.ts',
     '- `LDB 5` (l.10) → src/engine/aaa.ts',
-    '- `LDB 5` (l.20) → src/state/zzz.ts',
+    '- `LDB 5` (l.20) → src/noyau/zzz.ts',
   ]
   assert.deepEqual([...puces].sort(ordreDesPuces).map((p) => p.text), attendu)
   assert.deepEqual([...puces].reverse().sort(ordreDesPuces).map((p) => p.text), attendu,
@@ -269,9 +269,9 @@ test('isDeadExport : symbole NON exporté (usage local) → jamais flagué', () 
 
 test('isDeadExport : exporté MAIS appelé localement (hors commentaire, hors déclaration) → pas mort', () => {
   const index = makeIndex([
-    { rel: 'src/state/v.ts', content: ['export function effectiveSeaM() {}', '// note : effectiveSeaM ancienne', 'const x = effectiveSeaM()'].join('\n') },
+    { rel: 'src/noyau/v.ts', content: ['export function effectiveSeaM() {}', '// note : effectiveSeaM ancienne', 'const x = effectiveSeaM()'].join('\n') },
   ])
-  assert.equal(isDeadExport('effectiveSeaM', 'src/state/v.ts', index), false)
+  assert.equal(isDeadExport('effectiveSeaM', 'src/noyau/v.ts', index), false)
 })
 
 test('isDeadExport : exporté avec appelant dans un AUTRE fichier (hors commentaire) → pas mort (cas capriciousMod)', () => {
@@ -285,21 +285,21 @@ test('isDeadExport : exporté avec appelant dans un AUTRE fichier (hors commenta
 test('isDeadExport : appelant UNIQUEMENT en commentaire → toujours mort (le commentaire ne compte pas)', () => {
   const index = makeIndex([
     { rel: 'src/engine/orphan.ts', content: ['export function ghost() {}'].join('\n') },
-    { rel: 'src/state/other.ts', content: ['// TODO: brancher ghost() un jour', 'export const y = 1'].join('\n') },
+    { rel: 'src/noyau/other.ts', content: ['// TODO: brancher ghost() un jour', 'export const y = 1'].join('\n') },
   ])
   assert.equal(isDeadExport('ghost', 'src/engine/orphan.ts', index), true)
 })
 
 test('closureOf : suit les imports DYNAMIQUES import(\'…\') (lazy) — #487 correctif', () => {
   const root = mkdtempSync(join(tmpdir(), 'bi-clo-'))
-  mkdirSync(join(root, 'src', 'ui'), { recursive: true })
-  writeFileSync(join(root, 'src', 'main.tsx'), "const App = lazy(() => import('./ui/CampaignView'))\n")
-  writeFileSync(join(root, 'src', 'ui', 'CampaignView.tsx'), "import { WorldMapView } from './WorldMapView'\nexport const CampaignView = 1\n")
-  writeFileSync(join(root, 'src', 'ui', 'WorldMapView.tsx'), 'export const WorldMapView = 1\n')
+  mkdirSync(join(root, 'src', 'noyau'), { recursive: true })
+  writeFileSync(join(root, 'src', 'entree.tsx'), "const Partie = lazy(() => import('./noyau/Campagne'))\n")
+  writeFileSync(join(root, 'src', 'noyau', 'Campagne.tsx'), "import { Carte } from './Carte'\nexport const Campagne = 1\n")
+  writeFileSync(join(root, 'src', 'noyau', 'Carte.tsx'), 'export const Carte = 1\n')
   try {
-    const clo = closureOf([join(root, 'src', 'main.tsx')], { racine: root })
-    assert.ok(clo.has('src/ui/CampaignView.tsx'), 'import dynamique suivi')
-    assert.ok(clo.has('src/ui/WorldMapView.tsx'), 'chaîne transitive via l\'import dynamique')
+    const clo = closureOf([join(root, 'src', 'entree.tsx')], { racine: root })
+    assert.ok(clo.has('src/noyau/Campagne.tsx'), 'import dynamique suivi')
+    assert.ok(clo.has('src/noyau/Carte.tsx'), 'chaîne transitive via l\'import dynamique')
   } finally { rmSync(root, { recursive: true, force: true }) }
 })
 

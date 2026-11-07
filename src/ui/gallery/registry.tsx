@@ -995,8 +995,8 @@ function GearAssignListDemo() {
   const heros = herosExemples().slice(0, 3);
   if (!heros.length) return <p className="hint">Aucun pregen disponible.</p>;
   const gear: LootGear[] = [
-    { label: 'Lame finement ouvragée', magic: true, effect: { type: 'giveTrapping', trappingId: 'arme-simple', qualities: ['precise'], identified: false } },
-    { label: 'Clé en fer', magic: false, effect: { type: 'giveTrapping', custom: 'Clé en fer' } },
+    { uid: 'demo-lame', label: 'Lame finement ouvragée', magic: true, effect: { type: 'giveTrapping', trappingId: 'arme-simple', qualities: ['precise'], identified: false } },
+    { uid: 'demo-cle', label: 'Clé en fer', magic: false, effect: { type: 'giveTrapping', custom: 'Clé en fer' } },
   ];
   return <GearAssignList gear={gear} assignable={heros} onAssign={() => {}} onAppraise={() => {}} />;
 }

@@ -27,7 +27,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     vi.clearAllTimers();
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sauvé', seed: 4 });
     useGame.setState({ party: [hero], battle: null, net: initialNet() });
-    useGame.getState().startScene(testScene());
+    useGame.getState().lancerLaScene(testScene());
     vi.clearAllTimers();
   });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); loadRuleOverrides({}); });
@@ -56,7 +56,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     expect(after.party[0]?.wounds.current).toBe(3);
     expect(after.scene?.id).toBe(testScene().id);
     expect(after.screen).toBe('campaign');
-    after.log('le store répond'); // les actions n'ont pas été écrasées par le merge
+    after.ecrireAuJournal('le store répond'); // les actions n'ont pas été écrasées par le merge
     const j = useGame.getState().journal;
     expect(j[j.length - 1]).toBe('le store répond');
   });
@@ -93,7 +93,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
   });
 
   it('en combat : sauvegarde refusée, le slot reste vide', () => {
-    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().lancerLeCombat('enc-mutants');
     useGame.getState().fenetreValider('roundStart');
     vi.clearAllTimers();
     expect(useGame.getState().saveGame(1)).toBe(false);

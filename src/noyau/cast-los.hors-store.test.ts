@@ -52,7 +52,7 @@ function setup() {
 }
 
 beforeEach(() => {
-  banc.getState().seedRng(23);
+  banc.getState().ensemencerLeTirage(23);
 });
 
 describe('castSpell — Ligne de Vue (LDB 46 l.121)', () => {
@@ -106,15 +106,15 @@ describe('ZdE « jet puis pose » — LdV vers la case centre À LA POSE', () =>
     const { w } = setup();
     const b = banc.getState().battle!;
     banc.setState({ battle: { ...b, selectedSpellId: 'explosion' } });
-    banc.getState().battleClickTile({ x: 3, y: 0 }); // tout clic ouvre la modale (centre null)
+    banc.getState().cliquerLaCase({ x: 3, y: 0 }); // tout clic ouvre la modale (centre null)
     const pc = banc.getState().pendingCast!;
     expect(pc.zone).toMatchObject({ center: null });
     banc.setState({ pendingCast: { ...pc, result: { cast: true, roll: 11, target: 70, sl: 4, isCritical: false, isFumble: false, log: 'lancé' } as never } });
     banc.getState().jetRegler('cast', 'carte', 'zone');
-    banc.getState().battleClickTile({ x: 16, y: 4 }); // centre masqué par le mur
+    banc.getState().cliquerLaCase({ x: 16, y: 4 }); // centre masqué par le mur
     expect(banc.getState().journal.join('\n')).toMatch(/pas de ligne de vue/i);
     expect(banc.getState().pendingCast?.zone?.placing).toBe(true); // la pose continue
-    banc.getState().battleClickTile({ x: 16, y: 0 }); // brèche : e-vu dans le rayon → appliqué
+    banc.getState().cliquerLaCase({ x: 16, y: 0 }); // brèche : e-vu dans le rayon → appliqué
     expect(banc.getState().pendingCast).toBeNull();
     void w;
   });

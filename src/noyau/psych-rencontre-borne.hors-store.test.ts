@@ -1,5 +1,5 @@
 /**
- * #1224 — les trois sondes du juge, promues en tests, mesurées sur le CHEMIN RÉEL (noyau, `startScene`,
+ * #1224 — les trois sondes du juge, promues en tests, mesurées sur le CHEMIN RÉEL (noyau, `lancerLaScene`,
  * `psychDRAdjust` tel que les résolutions d'attaque l'appellent : SANS roster).
  *
  * RAW mesuré (LDB 21, `Source/…/21 - Psychologie.md`) :
@@ -50,7 +50,7 @@ const C = (o: Partial<Combatant>): Combatant => combattantDeTest({ id: 'x', kind
 
 beforeEach(() => {
   banc.setState({ battle: null, pendingCascade: null, scene: null, party: [] });
-  banc.getState().seedRng(2);
+  banc.getState().ensemencerLeTirage(2);
 });
 
 describe('#1224 — BORNE DE RENCONTRE des afflictions psy (LDB 21 l.9)', () => {
@@ -58,16 +58,16 @@ describe('#1224 — BORNE DE RENCONTRE des afflictions psy (LDB 21 l.9)', () => 
     banc.setState({ party: [phobique()] });
     const id = banc.getState().party[0].id;
 
-    banc.getState().startScene(scene('s1', [ARAI('arai')]));
+    banc.getState().lancerLaScene(scene('s1', [ARAI('arai')]));
     expect(banc.getState().pendingCascade, 'précondition : la bande de Phobie s’ouvre').toBeTruthy();
-    banc.getState().jetRoll('cascadeBatch', id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetLancer('cascadeBatch', id);
+    banc.getState().jetValider('cascade');
     expect(banc.getState().party[0].psychState, 'précondition : le Test raté pose la Peur').toEqual([
       expect.objectContaining({ type: 'peur', sourceId: 'arai' }),
     ]);
 
     // Nouvelle rencontre (autre scène), MÊME individu : l'affliction de la rencontre close a expiré…
-    banc.getState().startScene(scene('s9', [ARAI('arai')]));
+    banc.getState().lancerLaScene(scene('s9', [ARAI('arai')]));
     expect(banc.getState().pendingCascade, 'la bande se REJOUE dans la nouvelle rencontre').toBeTruthy();
     expect(banc.getState().pendingCascade!.participants[0].encounterPsych).toMatchObject({ kind: 'peur', sourceId: 'arai' });
   });
@@ -75,13 +75,13 @@ describe('#1224 — BORNE DE RENCONTRE des afflictions psy (LDB 21 l.9)', () => 
   it('l’affliction ne survit pas non plus dans une scène SANS sa source (−1 DR à vie interdit)', () => {
     banc.setState({ party: [phobique()] });
     const id = banc.getState().party[0].id;
-    banc.getState().startScene(scene('s1', [ARAI('arai')]));
-    banc.getState().jetRoll('cascadeBatch', id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().lancerLaScene(scene('s1', [ARAI('arai')]));
+    banc.getState().jetLancer('cascadeBatch', id);
+    banc.getState().jetValider('cascade');
     const arai = C({ id: 'arai', kind: 'enemy', groups: ['bete'] });
     expect(psychDRAdjust(banc.getState().party[0], arai), 'précondition : la Peur mord dans SA rencontre').toBe(-1);
 
-    banc.getState().startScene(scene('s5', [ent({ id: 'paysan', statblock: { label: 'Paysan', char: { B: 10 } } as never })]));
+    banc.getState().lancerLaScene(scene('s5', [ent({ id: 'paysan', statblock: { label: 'Paysan', char: { B: 10 } } as never })]));
     expect(banc.getState().party[0].psychState, 'rencontre close : plus aucune affliction').toEqual([]);
     expect(psychDRAdjust(banc.getState().party[0], arai)).toBe(0);
   });
@@ -89,10 +89,10 @@ describe('#1224 — BORNE DE RENCONTRE des afflictions psy (LDB 21 l.9)', () => 
   it('dans la MÊME rencontre, la source déjà affrontée ne rouvre pas de bande', () => {
     banc.setState({ party: [phobique()] });
     const id = banc.getState().party[0].id;
-    banc.getState().startScene(scene('s1', [ARAI('arai')]));
-    banc.getState().jetRoll('cascadeBatch', id);
-    banc.getState().jetConfirm('cascade');
-    // Ré-ouverture de la porte SANS changer de rencontre (pas de startScene) : rien de neuf.
+    banc.getState().lancerLaScene(scene('s1', [ARAI('arai')]));
+    banc.getState().jetLancer('cascadeBatch', id);
+    banc.getState().jetValider('cascade');
+    // Ré-ouverture de la porte SANS changer de rencontre (pas de lancerLaScene) : rien de neuf.
     const before = banc.getState().party[0].psychState;
     expect(before).toHaveLength(1);
     expect(banc.getState().pendingCascade).toBeNull();
@@ -140,7 +140,7 @@ describe('#1224 — « tant que vous défendez les êtres aimés » (LDB 21 l.75
     banc.setState({ party: [h] });
     // Scène SANS aimé : la borne ne balaie QUE les afflictions nées d'un Test (`fromTest`) — la pose
     // authorée SURVIT et suit sa propre règle, le refresh l'éteint faute de défendable.
-    banc.getState().startScene(scene('s1', [ent({ id: 'paysan', statblock: { label: 'Paysan', char: { B: 10 } } as never })]));
+    banc.getState().lancerLaScene(scene('s1', [ent({ id: 'paysan', statblock: { label: 'Paysan', char: { B: 10 } } as never })]));
     const apres = banc.getState().party[0].psychState!;
     expect(apres, 'la pose authorée SURVIT à la borne — le refresh a donc un objet').toHaveLength(1);
     expect(apres[0].active, 'aucun aimé présent : éteinte').toBe(false);

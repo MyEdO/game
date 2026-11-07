@@ -1,6 +1,6 @@
 /**
  * Bascule de CADENCE en plein combat (retour playtest 2026-06-27) :
- *  1. passer de Manuel/Rapide à AUTO ne doit PAS figer le combat — `resumeCadence` ré-entre la boucle
+ *  1. passer de Manuel/Rapide à AUTO ne doit PAS figer le combat — `reprendreLaCadence` ré-entre la boucle
  *     (l'IA joue le tour de l'acteur courant) ;
  *  2. en AUTO, le joueur n'a AUCUNE affordance sur le héros actif — `controlsActive` est FAUX (la grille de
  *     déplacement, le réticule, la barre d'action et les raccourcis se gatent dessus).
@@ -19,8 +19,8 @@ describe('Bascule de Cadence en plein combat', () => {
 
   function startAtHeroTurn() {
     banc.setState({ party: makeShowcaseParty() });
-    banc.getState().startScene(embuscadeConstruit.scene);
-    banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
+    banc.getState().lancerLaScene(embuscadeConstruit.scene);
+    banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const hero = b.combatants.find((c) => c.kind === 'hero')!;
@@ -37,12 +37,12 @@ describe('Bascule de Cadence en plein combat', () => {
     expect(controlsActive(banc.getState())).toBe(false); // auto → l'IA pilote, UI inerte
   });
 
-  it('passer en AUTO en plein tour héros NE FIGE PAS : resumeCadence relance l’IA (le tour avance)', () => {
+  it('passer en AUTO en plein tour héros NE FIGE PAS : reprendreLaCadence relance l’IA (le tour avance)', () => {
     const id = startAtHeroTurn();
     const logBefore = banc.getState().battle!.log.length;
     // bascule manuel → auto en plein tour héros, comme le panneau Règles maison
     setCadence('auto');
-    banc.getState().resumeCadence();
+    banc.getState().reprendreLaCadence();
     banc.avancer(4000); // laisse jouer le télégraphe + l'action de l'IA
     const b = banc.getState().battle!;
     const activeNow = b.order[b.turn];

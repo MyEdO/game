@@ -30,13 +30,13 @@ describe('barterQuote (LDB 59 l.64-76)', () => {
   });
 });
 
-describe('barterExchange', () => {
+describe('troquerLesObjets', () => {
   it('cède les exemplaires requis, reçoit le bien acquis, décrémente le stock, bourse INCHANGÉE', () => {
     const hero = makePregens()[0] as Combatant;
     hero.items = [itemFromTrappingById('hallebarde'), itemFromTrappingById('hallebarde')].filter(Boolean) as ItemInstance[];
     banc.setState({ party: [hero], merchant: merchant([{ id: 'dague', qty: 5 }]) });
     const before = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().barterExchange({ giveHeroId: hero.id, giveTrappingId: 'hallebarde', getStockId: 'dague', getCount: 1 });
+    banc.getState().troquerLesObjets({ giveHeroId: hero.id, giveTrappingId: 'hallebarde', getStockId: 'dague', getCount: 1 });
     const st = banc.getState();
     const items = st.party[0].items ?? [];
     expect(items.filter((i) => i.trappingId === 'hallebarde')).toHaveLength(1); // 1 cédée
@@ -49,7 +49,7 @@ describe('barterExchange', () => {
     const hero = makePregens()[0] as Combatant;
     hero.items = []; // rien à céder
     banc.setState({ party: [hero], merchant: merchant([{ id: 'dague', qty: 5 }]) });
-    banc.getState().barterExchange({ giveHeroId: hero.id, giveTrappingId: 'hallebarde', getStockId: 'dague', getCount: 1 });
+    banc.getState().troquerLesObjets({ giveHeroId: hero.id, giveTrappingId: 'hallebarde', getStockId: 'dague', getCount: 1 });
     expect((banc.getState().party[0].items ?? []).some((i) => i.trappingId === 'dague')).toBe(false);
   });
 });
@@ -90,7 +90,7 @@ describe('hors commerce — VENTE et TROC refusés, avec leur raison', () => {
     const hero = makePregens()[0] as Combatant;
     hero.items = [itemFromTrappingById('licence-de-guilde')!];
     banc.setState({ party: [hero], merchant: merchant([]) });
-    banc.getState().addToSellCart(hero.items[0].uid, hero.id);
+    banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', hero.items[0].uid);
     expect(banc.getState().merchant!.sellCart ?? []).toHaveLength(0);
     expect(banc.getState().journal.join('\n')).toMatch(/Vente refusée.*Licence de Guilde/);
   });
@@ -99,7 +99,7 @@ describe('hors commerce — VENTE et TROC refusés, avec leur raison', () => {
     const hero = makePregens()[0] as Combatant;
     hero.items = [itemFromTrappingById('hallebarde')!];
     banc.setState({ party: [hero], merchant: merchant([]) });
-    banc.getState().addToSellCart(hero.items[0].uid, hero.id);
+    banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', hero.items[0].uid);
     expect(banc.getState().merchant!.sellCart ?? []).toHaveLength(1);
   });
 
@@ -113,7 +113,7 @@ describe('hors commerce — VENTE et TROC refusés, avec leur raison', () => {
     const hero = makePregens()[0] as Combatant;
     hero.items = [itemFromTrappingById('licence-de-guilde')!, itemFromTrappingById('licence-de-guilde')!];
     banc.setState({ party: [hero], merchant: merchant([{ id: 'dague', qty: 5 }]) });
-    banc.getState().barterExchange({ giveHeroId: hero.id, giveTrappingId: 'licence-de-guilde', getStockId: 'dague', getCount: 1 });
+    banc.getState().troquerLesObjets({ giveHeroId: hero.id, giveTrappingId: 'licence-de-guilde', getStockId: 'dague', getCount: 1 });
     expect((banc.getState().party[0].items ?? []).some((i) => i.trappingId === 'dague')).toBe(false);
     expect(banc.getState().journal.join('\n')).toMatch(/Troc impossible.*Licence de Guilde/);
   });

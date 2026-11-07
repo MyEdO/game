@@ -39,8 +39,8 @@ function ouvrirLaDefense(): void {
   } as unknown as BattleState;
   banc.setState({ battle, mode: 'battle', scene: testScene(), pendingDefense: null, pendingAttack: null, pendingCascade: null, net: { ...initialNet(), mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } });
   openAttackCascade(g, banc.setState, { attackerId: ennemi.id, targetId: heros.id, location: null, result: null, weaponUid: 'ra' }, 'Attaque', 'action/attack');
-  g().jetRoll('attack');
-  g().jetConfirm('attack');
+  g().jetLancer('attack');
+  g().jetValider('attack');
 }
 
 describe('fenêtre de Défense — la cible de chaque réaction est celle du jet', () => {
@@ -57,7 +57,7 @@ describe('fenêtre de Défense — la cible de chaque réaction est celle du jet
       const vue = fenetreDeDefense(g())!;
       if (mode === 'parade') expect(vue.jet!.mods.map((m) => m.label), 'fixture : la Parade contre une arme Rapide porte son malus').toContain('Rapide');
       expect(vue.jet!.target, `${mode} : la ligne de la fenêtre et l’option disent la même cible`).toBe(annoncee);
-      g().jetRoll('defense');
+      g().jetLancer('defense');
       expect(g().pendingDefense!.result!.defenderDetail!.target, `${mode} : la cible annoncée est celle jetée`).toBe(annoncee);
       expect(fenetreDeDefense(g())!.reaction, `${mode} : après le dé, la réaction ne se règle plus`).toBeNull();
       expect(fenetreDeDefense(g())!.jet, `${mode} : après le dé, la ligne est \`defenderDetail\``).toBeNull();

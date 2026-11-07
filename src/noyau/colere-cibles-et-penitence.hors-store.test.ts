@@ -39,7 +39,7 @@ let banc: Banc;
 beforeEach(() => {
   banc = ouvrirLeBanc();
   banc.setState({ battle: null, pendingCast: null, pendingCascade: null, party: [], journal: [], gameTime: MAINTENANT });
-  banc.getState().seedRng(11);
+  banc.getState().ensemencerLeTirage(11);
 });
 afterEach(() => resetDesFixes());
 
@@ -56,7 +56,7 @@ function pretreEtAllie(peche: number) {
 function benir(casterId: string, targetId: string, roll: number, deDeTable = 50) {
   const result: CastResult = { cast: true, roll, target: 60, sl: 1, isCritical: false, isFumble: false, log: 'Prière exaucée.' };
   banc.setState({ pendingCast: { casterId, targetId, spellId: GUERISON, missile: false, focused: false, result } });
-  banc.getState().jetConfirm('cast');
+  banc.getState().jetValider('cast');
   draineEtapes(banc.getState, 50, poseSurDeNonTombe(deDeTable));
 }
 
@@ -101,10 +101,10 @@ describe('Colère des dieux — 41-45 « Votre cause est indigne » (LDB 40 l.64
     const sigmar = structuredClone(heros(pretre.id));
     sigmar.talents = sigmar.talents.map((t) => (t.talentId === 'beni' ? { ...t, spec: 'sigmar' } : t));
     banc.setState({ party: [sigmar, heros(allie.id)] });
-    banc.getState().advanceTime(echeance - MAINTENANT - 1);
+    banc.getState().avancerLeTemps(echeance - MAINTENANT - 1);
     benir(pretre.id, allie.id, 45);
     expect(heros(allie.id).wounds.current).toBe(avant + 1);
-    banc.getState().advanceTime(1);
+    banc.getState().avancerLeTemps(1);
     expect(bannissement(heros(allie.id))).toBeUndefined();
     benir(pretre.id, allie.id, 45);
     expect(heros(allie.id).wounds.current).toBe(avant + 2);
@@ -117,8 +117,8 @@ describe('Colère des dieux — 76-80 « Vous avez péché contre moi » (LDB 40
     const [pretre] = pregenParty(PREGEN.pretre);
     pretre.sinPoints = 2;
     banc.setState({ party: [pretre] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const { H, E, patch } = auContact(banc.getState());

@@ -1,25 +1,24 @@
 /**
  * LE REPOS EN VUE (#3328) — ce qu'un hôte montre de la nuit à régler (`rest`, LDB 66) : la nuit, son lieu et sa durée,
  * le temps qu'il fait, puis chaque dormeur, son couchage et sa pitance parmi ce que le lieu lui offre, chacun écrit en
- * verbe du noyau (`restSet`), et ce qui l'attend cette nuit ; enfin la note de la halte et la bourse qui la paie.
+ * choix de la fenêtre (`fenetreChoisir('rest', …)`, `OUVERTS_DU_CHOIX`), et ce qui l'attend cette nuit ; enfin la note
+ * de la halte et la bourse qui la paie.
  * Lecteur PUR, lu par les hôtes du noyau (`hote/ecran.ts`).
  */
 import type { Jeu } from './etat';
-import type { ActionsDuNoyau, GesteDuNoyau } from './actionsDuNoyau';
+import type { GesteDuNoyau } from './actionsDuNoyau';
 import type { Combatant } from '../engine/types';
 import { exposureShelterFromTent, exposureTestCount } from '../engine/exposure';
 import { refusDeRecuperation } from '../engine/rest';
 import { formatMoney, toBrass } from '../engine/money';
 import { fenetreDuJeu } from './combatAuto';
 import { activeExposureSeverity, nuitDispenseeParPleinAir } from './combatFlow';
-import { foodOptions, lodgingOptions, nightTitle, noteDAubergeCouverte, restCost, type PendingRest } from './restFlow';
+import { nightTitle, noteDAubergeCouverte, restCost } from './restFlow';
+import { reglageDuChoixDeFenetre } from './choixDeFenetre';
+import { VERBE_DE_CHOIX, type AxeDe } from './choixDesFenetres';
 import { totalDesBourses } from './bourseFlow';
-import { libelleDuLitteral, libelleDuParametre } from './libelles';
-import { garanti } from '../lib/garanti';
+import { libelleDuChoix } from './libelles';
 import { t } from '../i18n';
-
-/** Les verbes que le repos en vue règle : ses dormeurs les jouent, la fenêtre ne les redit pas. */
-export const REGLAGES_DU_REPOS = ['restSet'] as const satisfies readonly (keyof ActionsDuNoyau)[];
 
 /** Un choix d'un dormeur : son nom, puis chaque valeur que le lieu lui offre, le geste qui la prend et si c'est la sienne. */
 export interface ChoixDeRepos { libelle: string; valeurs: { libelle: string; geste: GesteDuNoyau; choisie: boolean }[] }
@@ -36,17 +35,12 @@ export interface ReposEnVue {
   note: { texte: string; couverte: boolean } | null;
 }
 
-type Reglage = keyof PendingRest['perHero'][string];
-
-/** Le choix `reglage` du dormeur `h` parmi `offertes`. */
-function choix<R extends Reglage>(p: PendingRest, h: Combatant, reglage: R, offertes: readonly PendingRest['perHero'][string][R][]): ChoixDeRepos {
+/** Le choix `axe` du dormeur `h`, parmi ce que la nuit lui ouvre (`OUVERTS_DU_CHOIX`). */
+function choix(s: Jeu, h: Combatant, axe: AxeDe<'rest'>): ChoixDeRepos {
+  const r = reglageDuChoixDeFenetre(s, 'rest', axe, h.id);
   return {
-    libelle: garanti(libelleDuParametre(REGLAGES_DU_REPOS[0], reglage), reglage, 'réglage du repos'),
-    valeurs: offertes.map((v) => ({
-      libelle: garanti(libelleDuLitteral(v, reglage), v, 'valeur du repos'),
-      geste: { verbe: REGLAGES_DU_REPOS[0], args: [h.id, { [reglage]: v }] },
-      choisie: p.perHero[h.id][reglage] === v,
-    })),
+    libelle: libelleDuChoix('rest', axe),
+    valeurs: (r.valeurs ?? []).map((v) => ({ libelle: v.libelle, geste: { verbe: VERBE_DE_CHOIX, args: ['rest', axe, v.valeur, h.id] }, choisie: v.valeur === r.courant })),
   };
 }
 
@@ -72,8 +66,8 @@ export function reposEnVue(s: Jeu): ReposEnVue | null {
       const { lodging, food } = p.perHero[h.id];
       return {
         id: h.id, nom: h.label,
-        couchage: choix(p, h, 'lodging', lodgingOptions(p.places)),
-        pitance: choix(p, h, 'food', foodOptions(p.places, h)),
+        couchage: choix(s, h, 'couchage'),
+        pitance: choix(s, h, 'pitance'),
         alertes: [
           refusDeRecuperation(h),
           food === 'rien' ? t('rf.ventreVide') : null,

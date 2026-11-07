@@ -40,7 +40,7 @@ export function TravelRecapModal({ seam }: { seam?: TravelRecap } = {}) {
   const gameTime = useGame((s) => s.gameTime);
   const fermer = useGame((s) => s.fenetreFermer);
   const dismiss = () => fermer('recitDeVoyage');
-  const openWorldMap = useGame((s) => s.openWorldMap);
+  const ouvrirLaCarte = useGame((s) => s.ouvrirLaCarte);
   const recap = seam ?? storeRecap;
   if (!recap) return null;
   const ambush = !!recap.then; // une embuscade ATTEND : l'acquittement déclenche le combat
@@ -53,7 +53,7 @@ export function TravelRecapModal({ seam }: { seam?: TravelRecap } = {}) {
         ? <><Icon id="scenario/travel" size="sm" /> {t('trm.titreInterrompu')}</>
         : <><Icon id="scenario/travel" size="sm" /> {t('trm.titreArret')}</>;
   const kmLeft = Math.max(0, Math.round(recap.km - recap.kmDone));
-  const onContinue = () => { dismiss(); openWorldMap(); };
+  const onContinue = () => { dismiss(); ouvrirLaCarte(); };
   return (
     <Modal title={title} onClose={dismiss} backdropClose={!ambush}
       footer={

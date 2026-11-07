@@ -17,7 +17,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * dernier ennemi remplit la condition de victoire ne doit PAS voir l'écran de Victoire (HORS_MODAL) s'empiler
  * par-dessus sa modale (clic intercepté) — doctrine suspension/reprise (cascade.ts). La cascade de Surprise
  * est construite ICI par `applySurprise` (VRAI `triggeredBatchTest` influençable, héros manuel) et RÉSOLUE par les
- * actions du noyau (`jetRoll('cascade')`/`fenetreFermer('cascade')`) : la continuation vers la victoire différée n'est
+ * actions du noyau (`jetLancer('cascade')`/`fenetreFermer('cascade')`) : la continuation vers la victoire différée n'est
  * PROVOQUÉE par aucun `set()` manuel d'état interne ni `checkBattleOver` rappelé à la main — elle vient de
  * `dispatchCascadeDone` (combatSlice), qui re-vérifie `checkBattleOver` à la clôture d'une cascade 'combat'.
  */
@@ -97,7 +97,7 @@ describe('F3 — Surprise (cascade de setup) vs Victoire : ordonnancement de che
     // 2) On RÉSOUT la Surprise par les ACTIONS réelles (le VRAI chemin joueur : tout lancer + terminer). AUCUN
     //    `set()` d'état interne, AUCUN `checkBattleOver` rappelé à la main : la continuation vient de
     //    `dispatchCascadeDone`, qui re-vérifie `checkBattleOver` (slot libre) → OUVRE la cascade de fin (#345).
-    get().jetRoll('cascade');
+    get().jetLancer('cascade');
     get().fenetreFermer('cascade');
     const fin = get().pendingCascade;
     expect(fin).toBeTruthy();
@@ -107,7 +107,7 @@ describe('F3 — Surprise (cascade de setup) vs Victoire : ordonnancement de che
     expect(get().pendingVictory).toBeNull();
 
     // 3) On résout la cascade de FIN par les ACTIONS → la Victoire s'enchaîne (finishCombatEnd → finishVictory).
-    get().jetRoll('cascade');
+    get().jetLancer('cascade');
     get().fenetreFermer('cascade');
     expect(get().battle!.over).toBe('victory');
     expect(get().pendingVictory).toBeTruthy();

@@ -25,15 +25,15 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
   }
 
   it('chacun frappe indépendamment ; les dégâts cumulés font céder la porte (flag posé)', () => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const [a, b] = heroes();
-    banc.getState().startForceDoor({ label: 'Porte de la cave', doorBE: 0, doorB: 8, heroIds: [a.id, b.id], flag: 'cave_ouverte' });
+    banc.getState().enfoncerLaPorte({ label: 'Porte de la cave', doorBE: 0, doorB: 8, heroIds: [a.id, b.id], flag: 'cave_ouverte' });
     let guard = 0;
     while (banc.getState().pendingForceDoor && guard++ < 40) {
       const p = banc.getState().pendingForceDoor!;
-      p.participants.forEach((part) => banc.getState().jetRoll('forceDoor', part.id)); // chacun SON jet
+      p.participants.forEach((part) => banc.getState().jetLancer('forceDoor', part.id)); // chacun SON jet
       expect(banc.getState().pendingForceDoor!.participants.every((x) => x.result)).toBe(true);
-      banc.getState().jetConfirm('forceDoor'); // applique la somme du Round
+      banc.getState().jetValider('forceDoor'); // applique la somme du Round
     }
     expect(banc.getState().pendingForceDoor).toBeNull(); // la porte a cédé
     expect(banc.getState().flags.cave_ouverte).toBe(true); // ouverture en jeu (flag de scène)
@@ -48,7 +48,7 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
    */
   it('l’étape est MINTÉE en forme de GROUPE : `groupOwner`, aucun porteur nommé, fenêtre à tous les sièges', () => {
     const [a, b] = heroes();
-    banc.getState().startForceDoor({ label: 'Porte', doorBE: 0, doorB: 8, heroIds: [a.id, b.id] });
+    banc.getState().enfoncerLaPorte({ label: 'Porte', doorBE: 0, doorB: 8, heroIds: [a.id, b.id] });
     const casc = banc.getState().pendingCascade!;
     expect(casc.participants).toHaveLength(1);
     const st = casc.participants[0];
@@ -61,18 +61,18 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
 
   it('EDO : DR + BF < BE → 0 dégât (la porte ne bouge pas) — objets sans minimum 1', () => {
     const [a, b] = heroes();
-    banc.getState().startForceDoor({ label: 'Porte blindée', doorBE: 8, doorB: 5, heroIds: [a.id, b.id] });
+    banc.getState().enfoncerLaPorte({ label: 'Porte blindée', doorBE: 8, doorB: 5, heroIds: [a.id, b.id] });
     // Coups faibles (comme Gerhardt : DR −2 + BF 4 = 2 < BE 8 → 0).
     const p = banc.getState().pendingForceDoor!;
     banc.setState({ pendingForceDoor: { ...p, participants: p.participants.map((x) => ({ ...x, result: { roll: 63, target: 46, sl: -2, damage: 0 } })) } });
-    banc.getState().jetConfirm('forceDoor');
+    banc.getState().jetValider('forceDoor');
     expect(banc.getState().pendingForceDoor!.doorB).toBe(5); // 0 dégât → Blessures inchangées, nouveau Round
   });
 
   it('Résilience garantit un coup ; chaque héros dépense SES propres ressources', () => {
     const [a] = heroes();
-    banc.getState().startForceDoor({ label: 'Porte', doorBE: 0, doorB: 50, heroIds: [a.id] });
-    banc.getState().jetForceSuccess('forceDoor', a.id); // « Je ne faillirai pas ! » → DR max → dégâts
+    banc.getState().enfoncerLaPorte({ label: 'Porte', doorBE: 0, doorB: 50, heroIds: [a.id] });
+    banc.getState().jetForcerLaReussite('forceDoor', a.id); // « Je ne faillirai pas ! » → DR max → dégâts
     const r = banc.getState().pendingForceDoor!.participants[0].result!;
     expect(r.damage).toBeGreaterThan(0);
     expect(banc.getState().party[0].resilience).toBe(1); // 1 Point de Résilience dépensé (le SIEN)
@@ -86,8 +86,8 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
     const [a] = heroes();
     a.characteristics['capacite-de-combat'] = 65; // Bagarre (Corps à corps) → cible ~65 (dizaines 6)
     banc.setState({ party: [a] });
-    banc.getState().startForceDoor({ label: 'Porte', doorBE: 0, doorB: 80, heroIds: [a.id] });
-    banc.getState().jetForceSuccess('forceDoor', a.id); // « Je ne faillirai pas ! »
+    banc.getState().enfoncerLaPorte({ label: 'Porte', doorBE: 0, doorB: 80, heroIds: [a.id] });
+    banc.getState().jetForcerLaReussite('forceDoor', a.id); // « Je ne faillirai pas ! »
     const r = banc.getState().pendingForceDoor!.participants[0].result!;
     const maxDR = Math.floor(Math.min(r.target, 95) / 10); // dizaines de la cible = DR forcé MAXIMAL
     expect(maxDR).toBeGreaterThan(1);   // cible élevée → DR max clairement > 1

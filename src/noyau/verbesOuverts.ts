@@ -31,7 +31,7 @@ function verbeDuCycle(flux: FlowKey, g: GesteDuJeu): { verbe: RollVerb; enFenetr
 }
 
 /** Ce qui ferme maintenant « tout résoudre » sur la cascade `pc` (`TOUT_RESOUDRE`) : la validation de l'étape
- *  (`jetConfirm('cascade')`) quand l'étape attend un choix que rien ne tranche à la place du joueur
+ *  (`jetValider('cascade')`) quand l'étape attend un choix que rien ne tranche à la place du joueur
  *  (`resolveRemainingCascade`), ou au bilan. */
 function fermetureDeToutResoudre(s: Jeu, pc: PendingCascade): FermetureDuJet | null {
   const etape = pc.participants[pc.cursor];
@@ -49,8 +49,8 @@ const FERMETURES_DES_VERBES: Partial<Record<string, (s: Jeu) => Partial<Record<s
     [cleDuGeste({ verbe: 'jetRegler', flux: 'counterspell', reglage: 'declaration', toutes: true })]: rangeesAReglerIci(s, declarationDuReglage('counterspell', 'declaration')).length ? null : 'rienADeclarer',
   },
   roundStart: (s) => ({
-    armPreempt: preemptShooterIds(() => s).length ? null : 'nonOffert',
-    battleClickEntity: s.preemptAiming ? null : 'nonOffert',
+    armerLeTirPreventif: preemptShooterIds(() => s).length ? null : 'nonOffert',
+    cliquerLaCase: s.preemptAiming ? null : 'nonOffert',
   }),
 };
 

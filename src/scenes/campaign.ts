@@ -3,7 +3,7 @@
  *  l'éditeur ouvre en copie (`copieDuJeu`). À l'import, une campagne du jeu n'est que son IDENTITÉ, lue
  *  non parsée à la racine du paquet, et son paquet : la jouer, l'ouvrir dans l'éditeur ou l'exporter
  *  fait passer son paquet par la porte `parseProject` AU GESTE (#1692), comme une entrée de
- *  bibliothèque (`campagneDeLEntree`, `state/projectLibrary.ts`). */
+ *  bibliothèque (`campagneDeLEntree`). */
 import { Scene } from '../noyau/monde/scene';
 import { WorldMap, parseProject, documentDeProjet, playerEntryError, type ProjectDoc, type ProjectIdentite } from '../noyau/worldMap';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
@@ -61,7 +61,7 @@ export function campagneALancer(choisie: Jeu['pendingCampaign']): NonNullable<Je
   return choisie ?? campagneDuJeu(areneCampaign);
 }
 
-/** LANCE la campagne `campagneALancer(choisie)` par `loadProject`, SOURCE UNIQUE de « Lancer »
+/** LANCE la campagne `campagneALancer(choisie)` par `chargerLeProjet`, SOURCE UNIQUE de « Lancer »
  *  (`PartyScreen`), du repli de défaite (`CampaignView`) et de `__wfrp.campaign` ; `sceneId` remplace
  *  sa scène d'entrée. Rend le refus du groupe (`refusDeLancer`), ou celui de la porte énoncé au joueur
  *  (`playerEntryError`, `noyau/worldMap.ts`), `null` quand la campagne est chargée. */
@@ -74,12 +74,12 @@ export function lancerCampagne(get: Get, choisie: Jeu['pendingCampaign'], sceneI
   } catch (err) {
     return playerEntryError(err, 'jouer');
   }
-  get().loadProject({ scenes: lancee.scenes, entryId: sceneId ?? lancee.startSceneId, worldMap: lancee.worldMap ?? null, narratif: lancee.narratif, projet: lancee.projet });
+  get().chargerLeProjet({ scenes: lancee.scenes, entryId: sceneId ?? lancee.startSceneId, worldMap: lancee.worldMap ?? null, narratif: lancee.narratif, projet: lancee.projet });
   return null;
 }
 
 /** Ce qu'OUVRE dans l'éditeur la COPIE d'une campagne du jeu (#367) — SOURCE UNIQUE de `loadBuiltin`
- *  (`ui/editor/Editor.tsx`), qui ne fait que la poser. Tout y est la copie PROFONDE de `paquetDuJeu` : l'édition
+ *  de l'éditeur, qui ne fait que la poser. Tout y est la copie PROFONDE de `paquetDuJeu` : l'édition
  *  ne touche jamais le paquet commité. L'identité est celle du paquet parsé, ENTIÈRE (provenance
  *  comprise), sans le `label`, que l'éditeur renomme ; `activeAxes` n'y figure que si la campagne en
  *  déclare. Un refus de la porte lève `ProjetRefuse`. */

@@ -12,7 +12,7 @@ import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from './combattan
  * GARDE DE CLASSE — tout `ActiveEffect` posé doit porter un ANCRAGE DE RÈGLE.
  *
  * Une pastille d'effet n'informe le joueur que si elle est reliée à une règle (arbitrage user
- * 2026-07-18) : `chipCodex` (`src/gameIso/effectIcons.ts`) résout par id STABLE — `sourceSpellId`
+ * 2026-07-18) : `chipCodex` résout par id STABLE — `sourceSpellId`
  * (sort/prière source) ou `effectId` (identité de l'effet) — et ne fabrique AUCUN repli. Un effet
  * posé sans l'un des deux s'affiche donc NU : icône + libellé, sans fiche ni popover.
  *
@@ -148,7 +148,6 @@ const BASELINE: string[] = [
   'noyau/combatFlow.ts | outcome.ops | { rng: battleRng() }', // ops de l'issue d'une manœuvre
   'noyau/medicFlow.ts | penalty | { rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }', // pénalité posée par un soin raté
   'noyau/seaVoyageFlow.ts | p.scaldOps | { rng: battleRng(), now: get().gameTime }', // brûlure de vapeur (scaldOps) d'une pièce de machine
-  'noyau/seaVoyageFlow.ts | ops | { label: event.label, rng, defaultUntilTime: until }', // ops d'un événement de bord pour ses jours tirés (Rafale de Ghyran, Chance du navigateur)
   'noyau/travelFlow.ts | r.entry.occupantOps | { rng: battleRng() }', // ops subies par l'occupant d'une rencontre de voyage
   'noyau/travelPostes.ts | [op] | { rng: battleRng() }', // Exténué du Test de résistance de traversée (État : ancré par son condId)
   // #1279 S1 — EFFETS PAR MANCHE d'une séquence : les ops viennent de la DONNÉE de l'entrée qui joue

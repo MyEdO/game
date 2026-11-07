@@ -55,7 +55,7 @@ const enVigueur = () => identitesResolues(get());
 function designer(party: ReturnType<typeof heros>[], heroId?: string) {
   const s = emptyScene('scene-test', 4, 4); s.id = 'sc'; s.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
   banc.setState({ campaignNarratif: null, scene: null, etats: {}, identitesFigees: {}, pendingDesignationHeros: null, net: { ...get().net, mode: 'local' } });
-  get().loadProject({ scenes: [s], entryId: 'sc', narratif: narratif(), projet: null });
+  get().chargerLeProjet({ scenes: [s], entryId: 'sc', narratif: narratif(), projet: null });
   banc.setState({ party });
   if (heroId === undefined) return;
   runFlow(get, banc.setState, { kind: 'do', effect: { type: 'designerHeros', etat: 'sosie' } });
@@ -106,13 +106,13 @@ describe('identitesResolues + nommer — le paquet suit le héros désigné', ()
 
   it('le désigné REMPLACÉ dans le groupe : le nom reste celui figé à la désignation', () => {
     designer([heros('h1', 'humains-reiklander', 'M'), heros('h2', 'nains', 'F')], 'h2');
-    get().partyReplaceHero('h2', engageDe('h3', 'humains-reiklander', 'M'));
+    get().remplacerLeHeros('h2', engageDe('h3', 'humains-reiklander', 'M'));
     expect(nommer('Kastor Lieberung', enVigueur())).toBe('Kallar Linkassniz');
   });
 
   it('le désigné RÉÉDITÉ (même id, autre espèce et sexe) : le nom reste celui figé à la désignation', () => {
     designer([heros('h2', 'nains', 'F')], 'h2');
-    get().partyReplaceHero('h2', engageDe('h2', 'humains-reiklander', 'M'));
+    get().remplacerLeHeros('h2', engageDe('h2', 'humains-reiklander', 'M'));
     expect(nommer('Kastor Lieberung', enVigueur())).toBe('Kallar Linkassniz');
   });
 

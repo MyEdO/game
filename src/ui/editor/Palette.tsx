@@ -17,10 +17,9 @@ import { Icon } from '../Icon';
 import { OptionChooser } from '../OptionChooser';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
 import { terrainIds, terrainLabel } from '../../noyau/monde/terrain';
-import { propDeclaredFoot } from '../../noyau/monde/footprint';
 import { terrainDef } from '../../noyau/monde/volume/matieres';
 import { decorsDuCatalogue } from '../../gameIso/catalog/decor';
-import { premierOffert, profilsStandard, refEstVolumique } from '../../data';
+import { premierOffert, profilsStandard } from '../../data';
 import { GatedAction } from '../GatedAction';
 import type { Pt } from '../../noyau/sceneEdit';
 import { HAUTEURS, PINCEAUX } from '../../noyau/edition/session';
@@ -462,17 +461,11 @@ export function Palette({
             <div className="pal-list">
               {filterByLabel(decorsDuCatalogue(), (p) => p.label, search).map((p) => {
                 // L'empreinte que la PALETTE annonce est celle que la scène posera : dérivée du corps
-                // pour un décor à recette (#1509), déclarée pour un billboard — au cap d'IDENTITÉ, le
-                // seul que la palette connaît (l'instance choisira le sien), et à l'échelle de la
-                // scène ÉDITÉE : la même recette ne couvre pas les mêmes cases à 2 et à 4 m/case.
-                const volumique = refEstVolumique(p.id);
-                const effective = volumique
-                  ? empreinteDuProp(p, CAP_IDENTITE_PROP, sceneMetresPerTile(scene))
-                  : propDeclaredFoot(p.id);
-                // Un décor à recette n'a plus de tri-état à montrer (son corps décide toujours) : sa
-                // chip ne dit quelque chose que s'il dépasse UNE case. Pour un billboard, la présence
-                // même du `foot` est l'information — elle reste annoncée telle quelle.
-                const empreinte = effective && (!volumique || effective.w > 1 || effective.h > 1) ? effective : undefined;
+                // (#1509) au cap d'IDENTITÉ, le seul que la palette connaît (l'instance choisira le
+                // sien), et à l'échelle de la scène ÉDITÉE : la même recette ne couvre pas les mêmes
+                // cases à 2 et à 4 m/case. Sa chip ne dit quelque chose que s'il dépasse UNE case.
+                const effective = empreinteDuProp(p, CAP_IDENTITE_PROP, sceneMetresPerTile(scene));
+                const empreinte = effective.w > 1 || effective.h > 1 ? effective : undefined;
                 return (
                 <button
                   key={p.id}

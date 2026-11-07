@@ -51,10 +51,10 @@ describe('les bornes des sorties de l’exploration, des verbes et du journal', 
     tientSesBornes('carte', 'carte', t.lire('carte'));
     tientSesBornes('vue', 'vue', t.lire('vue'));
   });
-  it('une erreur tient ses bornes, sur les verbes aux formes les plus larges (`fenetreChoisir`, `startTravel`, `playTavernGame`)', { timeout: 120_000 }, () => {
+  it('une erreur tient ses bornes, sur les verbes aux formes les plus larges (`fenetreChoisir`, `partirEnVoyage`, `jouerALaTaverne`)', { timeout: 120_000 }, () => {
     const t = table();
     expect(t.nouvelle('dome').erreur).toBeNull();
-    for (const nom of ['fenetreChoisir', 'startTravel', 'playTavernGame']) {
+    for (const nom of ['fenetreChoisir', 'partirEnVoyage', 'jouerALaTaverne']) {
       const r = t.jouer(verbe(nom, 1));
       tientSesBornes(nom, 'jouer', r, true);
       expect(r.texte, `${nom} : l’erreur se replie, elle n’est pas coupée`).not.toMatch(/…$/m);

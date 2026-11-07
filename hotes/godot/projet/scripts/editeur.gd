@@ -49,7 +49,9 @@ func _ready() -> void:
 		(defilement as ScrollContainer).get_v_scroll_bar().value_changed.connect(func(_valeur: float) -> void: _publier_l_ecran())
 	get_tree().node_added.connect(func(noeud: Node) -> void:
 		if noeud is LineEdit and _interface.is_ancestor_of(noeud):
-			(noeud as LineEdit).text_changed.connect(func(_texte: String) -> void: _publier_l_ecran()))
+			(noeud as LineEdit).text_changed.connect(func(_texte: String) -> void: _publier_l_ecran())
+		elif noeud is TextEdit and _interface.is_ancestor_of(noeud):
+			(noeud as TextEdit).text_changed.connect(_publier_l_ecran))
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
 	var campagne := _pont.parametre("campagne")
@@ -74,7 +76,8 @@ func _pointer(geste: String, touche: Dictionary) -> void:
 
 
 ## Une réponse de `editer` : le monde et ses arêtes posés s'il y en a un, la surcouche peinte, le calque posé, les zones
-## montrées, le texte à enregistrer écrit au dépôt, les calques gardés, et la planche demandée choisie.
+## montrées, le texte à enregistrer écrit au dépôt, les calques gardés, et la planche demandée choisie ; la scène mise
+## à l'essai se joue au combat.
 func _suivre(reponse: Dictionary) -> void:
 	if reponse.get("ok") != true:
 		return
@@ -113,6 +116,9 @@ func _suivre(reponse: Dictionary) -> void:
 		_garder(reponse.memoire)
 	if reponse.has("planche"):
 		_charger_la_planche(reponse.planche.image)
+	if reponse.has("essai"):
+		_pont.essai = true
+		get_tree().change_scene_to_file.call_deferred("res://scenes/Combat.tscn")
 
 
 ## Le fichier des calques gardés de la campagne ouverte.
@@ -128,7 +134,8 @@ func _planche(image: String) -> Texture2D:
 	return _planches[image]
 
 
-## Les calques `memoire.calques` gardés à la place des précédents, et chaque planche de `memoire.oublier` effacée.
+## Les calques `memoire.calques` gardés à la place des précédents, chaque planche de `memoire.oublier` effacée, et chaque
+## planche de `memoire.deplacer` déplacée.
 func _garder(memoire: Dictionary) -> void:
 	DirAccess.make_dir_recursive_absolute(CALQUES)
 	var fichier := FileAccess.open(_fichier_des_calques(), FileAccess.WRITE)
@@ -137,6 +144,10 @@ func _garder(memoire: Dictionary) -> void:
 	for image in memoire.oublier:
 		DirAccess.remove_absolute("user://%s.png" % image)
 		_planches.erase(image)
+	for planche in memoire.deplacer:
+		DirAccess.make_dir_recursive_absolute(("user://%s.png" % planche.vers).get_base_dir())
+		DirAccess.rename_absolute("user://%s.png" % planche.de, "user://%s.png" % planche.vers)
+		_planches.erase(planche.de)
 
 
 ## La planche `image` choisie sur le disque de l'auteur, écrite en `user://<image>.png`, puis sa taille rendue au pont ;
@@ -197,7 +208,10 @@ func _unhandled_input(event: InputEvent) -> void:
 ## texte (`PontDuNoyau.saisies_a_l_ecran`), le point de
 ## chaque case de la couche éditée (`Monde.points`), et l'éditeur : ses zones, sa surcouche, le nombre d'arêtes posées
 ## sur le monde, les noms posés sur le monde, son calque et s'il est posé, sa planche lue. Republié quand un défilement
-## du panneau bouge ou qu'un champ de texte change.
+## du panneau bouge ou qu'un champ de texte change ; rien si l'éditeur a quitté l'écran entre-temps (l'essai ouvre le
+## combat).
 func _publier_l_ecran() -> void:
 	await get_tree().process_frame
+	if not is_inside_tree():
+		return
 	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), saisies = PontDuNoyau.saisies_a_l_ecran([_interface]), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche, aretes = _monde.nombre_d_aretes(), noms = _monde.noms(), calque = _calque, calque_pose = _monde.calque_pose()}})

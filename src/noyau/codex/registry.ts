@@ -22,7 +22,7 @@ import {
   isNamed, specCatalogOf, specLabel, seasonLabel,
   SYMPTOM_SEVERITIES,
   vehicles, celestialHouses, groups, groupLabel, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles, cibleCodex,
-  charAbr, navalPorts, shipConstruction, effectTables, disponibilite,
+  charAbr, navalPorts, shipConstruction, effectTables, disponibilite, massBattleHazardsDie,
   conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil, testSkillLabel,
 } from '../../data';
 // #157 (audit d'exposition Codex) : catalogues app-owned chargés par un module dédié plutôt que la
@@ -49,9 +49,9 @@ import { miscastDie } from '../../engine/miscast';
 import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, mountIncidentDie, vehicleProblemDie, encounterDie } from '../../engine/travelTables';
 import type { TravelTableEntry } from '../../engine/travelTables';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
-import { OBSESSIONS } from '../../data/obsessions';
+import { OBSESSIONS, obsessionsDie } from '../../data/obsessions';
 import { tableDesCritiquesDeStructure } from '../../engine/structureCritical';
-import { bandeAuDe, facesDuDe, fourchette } from '../../engine/tables';
+import { bandeAuDe, deDeLaTableTiree, facesDuDe, fourchette, type DeDeTable } from '../../engine/tables';
 import { ARTILLERY_MISFIRE, artilleryMisfireDie } from '../../data/artilleryMisfire';
 import { structureCriticalsDie } from '../../data/structureCriticals';
 import { deDeTirageDe } from '../../data/rangees';
@@ -755,7 +755,7 @@ function critEntryItem(e: CritTableEntry, jeu: JeuDeCritique, table: CritTableKe
 /** Item Codex d'une entrée de table de voyage (`TravelTableEntry` — Incidents de monte EDOC 7,
  *  Problèmes de véhicule EDOC 7, Rencontres EDOC 8, #157 suite) — MÊME projection pour les 3
  *  familles : bande au dé `de` de sa table → texte + Dégâts véhicule éventuels + effet GameOp sur les occupants. */
-function travelEntryItem(e: TravelTableEntry, de: DiceSpec, occupantsTitle: string): CodexItem {
+function travelEntryItem(e: TravelTableEntry, de: DeDeTable, occupantsTitle: string): CodexItem {
   return depuisEnveloppe(e, {
     sub: bandeAuDe(de, e.min, e.max),
     meta: facts(fact(tr('codex.fiche.degatsVehicule'), e.vehicleWounds ? formatDice(e.vehicleWounds.dice) : null)),
@@ -805,9 +805,12 @@ function shipCritEntryItem(e: ShipCritEntry, jeu: ShipCritSet): CodexItem {
 }
 
 /** Item Codex d'un Événement de bord/de port (`SeaEventDef` — MDG 15, #157 suite) : plage de jet
- *  (d100 modifié par l'Humeur de Manann, ou 2d10) → texte verbatim. */
+ *  (d100 modifié par l'Humeur de Manann, ou 2d10) → texte verbatim, et sa `consequence` en grammaire. */
 function seaEventItem(e: SeaEventDef, faces?: number): CodexItem {
-  return depuisEnveloppe(e, { sub: fourchette(e.min, e.max, faces) });
+  return depuisEnveloppe(e, {
+    sub: fourchette(e.min, e.max, faces),
+    sections: sections(spellFlowSection(e.consequence, ETATS_DU_CODEX, tr('codex.fiche.consequences'))),
+  });
 }
 
 /** Item Codex d'un Facteur d'Humeur de Manann (`ManannFactor` — MDG 15, #157 suite) : effet signé
@@ -1009,7 +1012,7 @@ function miscastTestSection(t: NonNullable<MiscastRowEntry['test']>): CodexSecti
 
 /** Item Codex d'une entrée de table miscast (Incantation Imparfaite / Colère des dieux) — plage d100 →
  *  nom, effet immédiat (`ops`, dialecte) + Test imbriqué éventuel + relance (cascade/multiplication). */
-function miscastRowItem(e: MiscastRowEntry, de: DiceSpec): CodexItem {
+function miscastRowItem(e: MiscastRowEntry, de: DeDeTable): CodexItem {
   return depuisEnveloppe(e, {
     sub: bandeAuDe(de, e.min, e.max),
     meta: facts(e.reroll ? fact(tr('codex.fiche.relance'), e.reroll === 'majeure' ? tr('codex.fiche.cascadeTableauMajeur') : tr('codex.fiche.multiplication2TiragesMineurs')) : null),
@@ -1084,7 +1087,7 @@ function phenomenonSaturationFact(s: ArcanePhenomenon['saturation']): CodexFact 
 function arcaneTableRows(t: ArcaneTable): CodexRow[] {
   return t.entries.map((r) => ({
     t: 'kv',
-    k: fourchette(r.min, r.max, facesDuDe(t.die)),
+    k: fourchette(r.min, r.max, facesDuDe(deDeLaTableTiree(t))),
     v: [r.label, r.domainIds?.length ? `(${r.domainIds.map((d) => refLabel('domains', { id: d })).join(', ')})` : undefined].filter(Boolean).join(' '),
   } as CodexRow));
 }
@@ -1252,12 +1255,12 @@ const CODEX_SPECS = {
         ),
         sections: sections(
           {
-            title: tr('codex.fiche.forceDuVent1d10'), layout: 'list',
-            rows: n.windForces.entries.map((f) => ({ t: 'kv', k: fourchette(f.min, f.max, facesDuDe(n.windForces.die)), v: f.label } as CodexRow)),
+            title: tr('codex.fiche.forceDuVent', { die: formatDice(deDeLaTableTiree(n.windForces)) }), layout: 'list',
+            rows: n.windForces.entries.map((f) => ({ t: 'kv', k: fourchette(f.min, f.max, facesDuDe(deDeLaTableTiree(n.windForces))), v: f.label } as CodexRow)),
           },
           {
-            title: tr('codex.fiche.directionDuVent1d10RelativeAu'), layout: 'list',
-            rows: n.windDirections.entries.map((d) => ({ t: 'kv', k: fourchette(d.min, d.max, facesDuDe(n.windDirections.die)), v: d.label } as CodexRow)),
+            title: tr('codex.fiche.directionDuVentRelativeAu', { die: formatDice(deDeLaTableTiree(n.windDirections)) }), layout: 'list',
+            rows: n.windDirections.entries.map((d) => ({ t: 'kv', k: fourchette(d.min, d.max, facesDuDe(deDeLaTableTiree(n.windDirections))), v: d.label } as CodexRow)),
           },
           {
             title: tr('codex.fiche.effetDuVentForceDirection'), layout: 'list',
@@ -1561,10 +1564,10 @@ const CODEX_SPECS = {
       sub: tr('codex.fiche.plages', { length: t.entries.length, die: t.die }),
       // Tirage au dé de la table → Mutation : chaque plage est un lien cross-réf vers la fiche de mutation.
       sections: sections({
-        title: tr('codex.fiche.tirageMutation', { die: t.die }), layout: 'list',
+        title: tr('codex.fiche.tirageMutation', { die: formatDice(deDeLaTableTiree(t)) }), layout: 'list',
         rows: t.entries.map((r) => {
           const label = mutations.find((mu) => mu.id === r.mutation)?.label ?? r.mutation;
-          return { t: 'ref', category: 'mutations', id: r.mutation, label, show: label, badge: fourchette(r.min, r.max, facesDuDe(t.die)) } as CodexRow;
+          return { t: 'ref', category: 'mutations', id: r.mutation, label, show: label, badge: fourchette(r.min, r.max, facesDuDe(deDeLaTableTiree(t))) } as CodexRow;
         }),
       }),
     })),
@@ -1883,7 +1886,7 @@ const CODEX_SPECS = {
   },
   massBattleHazards: {
     label: 'codex.fiche.batailleDeMasseAleasDeBataille', group: 'tables', cluster: 'codex.fiche.batailleDeMasse',
-    build: () => BATTLE_HAZARDS.map((h) => depuisEnveloppe(h, { sub: `1d10 = ${h.min}` })),
+    build: () => BATTLE_HAZARDS.map((h) => depuisEnveloppe(h, { sub: bandeAuDe(massBattleHazardsDie(), h.min, h.max) })),
   },
   // ── Datasets-OBJETS uniques (E3b) : config de création (objet) + banque de noms (Record par race) ──
   details: {
@@ -2056,7 +2059,8 @@ const CODEX_SPECS = {
   },
   celestialHouses: {
     label: 'codex.fiche.demeuresAstrologiques', group: 'personnage',
-    build: () => celestialHouses.map((h) => depuisEnveloppe(h, { sub: `2d10 ≤ ${h.rand}` })),
+    // ADE II 03 l.504-512, l.514
+    build: () => celestialHouses.map((h, i) => depuisEnveloppe(h, { sub: fourchette((celestialHouses[i - 1]?.rand ?? 0) + 1, h.rand) })),
   },
   groups: {
     label: 'codex.fiche.groupesCible', group: 'monde',
@@ -2228,10 +2232,10 @@ const CODEX_SPECS = {
         sections: sections(
           waterModifiersSection(w.modifiers),
           {
-            title: tr('codex.fiche.maladiesJetD100ApresEchecDu'), layout: 'list',
+            title: tr('codex.fiche.maladiesJetApresEchecDu', { die: formatDice(deDeLaTableTiree(w.diseases)) }), layout: 'list',
             rows: w.diseases.entries.map((d) => {
               const label = maladies.find((m) => m.id === d.disease)?.label ?? d.disease;
-              return { t: 'ref', category: 'maladies', id: d.disease, label, show: label, badge: `${fourchette(d.min, d.max, facesDuDe(w.diseases.die))}${d.rerollUnlessWounded ? tr('codex.fiche.relanceSiIndemne') : ''}` } as CodexRow;
+              return { t: 'ref', category: 'maladies', id: d.disease, label, show: label, badge: `${fourchette(d.min, d.max, facesDuDe(deDeLaTableTiree(w.diseases)))}${d.rerollUnlessWounded ? tr('codex.fiche.relanceSiIndemne') : ''}` } as CodexRow;
             }),
           },
         ),
@@ -2335,8 +2339,8 @@ const CODEX_SPECS = {
             rows: n.orientation.reperes.map((r) => ({ t: 'kv', k: `DR ${fourchette(r.min, r.max)}`, v: r.desc } as CodexRow)),
           },
           {
-            title: tr('codex.fiche.changementDeCap1d10', { v: derive ? tr('codex.fiche.aDr', { driftMajorBonus: n.orientation.driftMajorBonus, v: fourchette(derive.min, derive.max) }) : '' }), layout: 'list',
-            rows: n.orientation.changementDeCap.entries.map((r) => ({ t: 'kv', k: fourchette(r.min, r.max, facesDuDe(n.orientation.changementDeCap.die)), v: r.desc } as CodexRow)),
+            title: tr('codex.fiche.changementDeCap', { die: formatDice(deDeLaTableTiree(n.orientation.changementDeCap)), v: derive ? tr('codex.fiche.aDr', { driftMajorBonus: n.orientation.driftMajorBonus, v: fourchette(derive.min, derive.max) }) : '' }), layout: 'list',
+            rows: n.orientation.changementDeCap.entries.map((r) => ({ t: 'kv', k: fourchette(r.min, r.max, facesDuDe(deDeLaTableTiree(n.orientation.changementDeCap))), v: r.desc } as CodexRow)),
           },
           {
             title: composeRollLabel(undefined, tr('codex.fiche.pharesClochers'), { skill: { id: 'perception' } }), layout: 'list',
@@ -2400,18 +2404,18 @@ const CODEX_SPECS = {
       // Les 4 aspects du tirage (`table[].precipitations`/`.temperature`/`.visibilite`/`.vent`) sont des
       // ids de catalogue (`w.precipitations`/`.temperatures`/`.visibilites`/`.vents`, CHACUN déjà porteur
       // de son `label` FR verbatim MDG) — la fiche résout id→label PAR LOOKUP (jamais l'id affiché ;
-      // aucune duplication de `label` sur `table[]`, la SOURCE UNIQUE du libellé reste le catalogue).
+      // aucune duplication de `label` sur `table.entries[]`, la SOURCE UNIQUE du libellé reste le catalogue).
       const precipLabel = new Map(w.precipitations.map((p) => [p.id, p.label]));
       const tempLabel = new Map(w.temperatures.map((t) => [t.id, t.label]));
       const visLabel = new Map(w.visibilites.map((v) => [v.id, v.label]));
       const windLabel = new Map(w.vents.map((v) => [v.id, v.label]));
       return [{
-        id: 'seaWeather', label: tr('codex.fiche.meteoDeLaMerDesGriffes'), source: src(w.table[0]?.source),
+        id: 'seaWeather', label: tr('codex.fiche.meteoDeLaMerDesGriffes'), source: src(w.table.entries[0]?.source),
         meta: facts(fact(tr('codex.fiche.modificateurMerChaude'), w.warmSeaMod)),
         sections: sections(
           {
-            title: tr('codex.fiche.tirageQuotidien1d10SaisonParAspect'), layout: 'list',
-            rows: w.table.map((row) => ({
+            title: tr('codex.fiche.tirageQuotidienSaisonParAspect', { die: formatDice(deDeLaTableTiree(w.table)) }), layout: 'list',
+            rows: w.table.entries.map((row) => ({
               t: 'kv', k: fourchette(row.min, row.max),
               v: [precipLabel.get(row.precipitations), tempLabel.get(row.temperature), visLabel.get(row.visibilite), windLabel.get(row.vent)].join(' · '),
             } as CodexRow)),
@@ -2517,8 +2521,8 @@ const CODEX_SPECS = {
         meta: facts(fact(tr('codex.fiche.ragot'), tr('codex.fiche.difficulteEtModificateur', { v: DIFFICULTY_LABELS[gossip.difficulty], mod: signe(gossip.mod) }))),
         sections: sections(
           {
-            title: tr('codex.fiche.qualiteDuVin1d10'), layout: 'list',
-            rows: c.wineQuality.entries.map((q) => ({ t: 'kv', k: fourchette(q.min, q.max, facesDuDe(c.wineQuality.die)), v: tr('codex.fiche.qualitePrixCo', { label: q.label, price: q.price }) } as CodexRow)),
+            title: tr('codex.fiche.qualiteDuVin', { die: formatDice(deDeLaTableTiree(c.wineQuality)) }), layout: 'list',
+            rows: c.wineQuality.entries.map((q) => ({ t: 'kv', k: fourchette(q.min, q.max, facesDuDe(deDeLaTableTiree(c.wineQuality))), v: tr('codex.fiche.qualitePrixCo', { label: q.label, price: q.price }) } as CodexRow)),
           },
           {
             title: tr('codex.fiche.achat'), layout: 'list',
@@ -2543,9 +2547,9 @@ const CODEX_SPECS = {
             ],
           },
           {
-            title: tr('codex.fiche.rumeursCommerciales1d100'), layout: 'list',
+            title: tr('codex.fiche.rumeursCommerciales', { die: formatDice(deDeLaTableTiree(c.rumours)) }), layout: 'list',
             rows: c.rumours.entries.flatMap((r) => [
-              { t: 'sub', label: fourchette(r.min, r.max, facesDuDe(c.rumours.die)) } as CodexRow,
+              { t: 'sub', label: fourchette(r.min, r.max, facesDuDe(deDeLaTableTiree(c.rumours))) } as CodexRow,
               { t: 'text', text: r.desc } as CodexRow,
               ...r.biens.map((id) => portCargoRow(id)),
             ]),
@@ -2584,7 +2588,7 @@ const CODEX_SPECS = {
   },
   obsessions: {
     label: 'codex.fiche.obsessionsTable', group: 'tables',
-    build: () => OBSESSIONS.map((o) => ({ id: o.id, label: groupLabel(o.id), sub: `2d10 ${fourchette(o.min, o.max)}` })),
+    build: () => OBSESSIONS.map((o) => ({ id: o.id, label: groupLabel(o.id), sub: bandeAuDe(obsessionsDie(), o.min, o.max) })),
   },
   reglesOptionnelles: {
     // V9 #1318 : le catalogue des règles optionnelles est une DONNÉE (`reglesOptionnelles.json`) —

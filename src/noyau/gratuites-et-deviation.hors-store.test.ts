@@ -23,8 +23,8 @@ const harnois = (): ItemInstance =>
 function monte() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
-  banc.getState().startScene(testScene());
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
@@ -52,7 +52,7 @@ const etapesDeDeviation = () => (banc.getState().pendingCascade?.participants ??
 describe('Gratuites de créature et Déviation (LDB 63 l.30, #1858)', () => {
   for (const cle of ['devier', 'subir'] as const) {
     it(`Morsure critique sur un héros tenu SURPRIS (${cle}) : Piétinement attend l'étape, puis part une fois au même tour`, () => {
-      banc.getState().seedRng(41); // la Morsure porte un Critique : la file garde Piétinement
+      banc.getState().ensemencerLeTirage(41); // la Morsure porte un Critique : la file garde Piétinement
       const { H, E } = monte();
       const tour = { round: banc.getState().battle!.round, turn: banc.getState().battle!.turn };
       expect(aiCreatureFreeAttacks(banc.getState, banc.setState, E), 'la Morsure suspend sur son étape').toBe(true);

@@ -10,8 +10,7 @@ import { estSuiteVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  * label est de l'AFFICHAGE (AGENTS.md, doctrine ids), fragile à tout renommage. La source unique est
  * `pregen(PREGEN.<clé>)` / `pregenParty(...)` (`src/data/pregens.ts`), résolution par id STABLE
  * (`pregen-<seed>`) qui JETTE explicitement si absent. ZÉRO TOLÉRANCE (pas de baseline cliquet) :
- * la migration (#322) a ramené le compte à 0 sur les 42 sites recensés (16 fichiers `src/state` +
- * 1 scénario) ; tout nouveau site réintroduit régresse.
+ * la migration (#322) a ramené le compte à 0 sur les 42 sites recensés (17 fichiers) ; tout nouveau site réintroduit régresse.
  */
 
 const NAMES = (pregens as { label: string }[]).map((p) => p.label);

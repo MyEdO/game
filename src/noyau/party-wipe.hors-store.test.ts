@@ -63,12 +63,12 @@ describe('checkPartyWiped — invariant global hors combat', () => {
     expect(banc.getState().battle).not.toBeNull();
   });
 
-  it('au TICK d’entretien (advanceTime) : groupe entier tombé → défaite + purge', () => {
+  it('au TICK d’entretien (avancerLeTemps) : groupe entier tombé → défaite + purge', () => {
     banc.setState({
       party: [hero({ dead: true }), hero({ id: 'h2', label: 'Bruno', dead: true })],
       pendingRest: { places: { bord: true }, quality: 'normale', days: 1, perHero: {}, phase: 'setup' } as never,
     });
-    banc.getState().advanceTime(60);
+    banc.getState().avancerLeTemps(60);
     expect(banc.getState().partyWiped).toBe(true);
     expect(banc.getState().pendingRest).toBeNull();
   });

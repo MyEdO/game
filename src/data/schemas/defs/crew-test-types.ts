@@ -36,6 +36,8 @@ const doc = document(
       source: { label: 'source' },
     }),
     'id',
+    // L'espace des types : le `crewTestType` d'un Test de Flow (`flowTestSchema`) y résout AU PARSE.
+    { espace: {} },
   ),
   },
   {

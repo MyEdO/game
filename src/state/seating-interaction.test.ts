@@ -44,7 +44,7 @@ describe('meuble à places ET fouillable — les deux affordances restent atteig
     const table = sc.entities.find((e) => e.id === PROP)!;
     (table as { usable?: unknown }).usable = { assise: true, ...FOUILLE };
     if (seatAssignments) sc.seatAssignments = seatAssignments;
-    useGame.getState().startScene(sc);
+    useGame.getState().lancerLaScene(sc);
     useGame.setState({ partyPos: { ...pos }, flags: {} });
   }
 
@@ -59,12 +59,12 @@ describe('meuble à places ET fouillable — les deux affordances restent atteig
     const halos = () => interactionHalos([], [el], sc(), useGame.getState().flags, { survol: null, reveler: true });
     expect(halos()).toHaveLength(1);
 
-    useGame.getState().interactEntity(PROP); // fouille consommée
-    useGame.getState().interactEntity(PROP); // place prise
+    useGame.getState().interagirAvecLEntite(PROP); // fouille consommée
+    useGame.getState().interagirAvecLEntite(PROP); // place prise
     expect(poseDuMeneur()).not.toBeNull();
     // Il reste 3 places : le halo appelle encore, et le clic sert encore (se relever).
     expect(halos()).toHaveLength(1);
-    useGame.getState().interactEntity(PROP);
+    useGame.getState().interagirAvecLEntite(PROP);
     expect(poseDuMeneur(), 'le clic du meuble occupé relève TOUJOURS, quoi que porte le meuble').toBeNull();
   });
 });

@@ -21,7 +21,7 @@ describe('GearAssignList (butin attribuable)', () => {
   it('objet CATALOGUÉ à qualités : ses qualités de def rendent des chips, sans les porter sur l’Effet', () => {
     // Bâton de combat (def : Assommante, Défensive) injecté par un simple giveTrapping — aucune qualité
     // sur l'Effet : le bug #384 les faisait disparaître de l'écran de victoire.
-    const html = render([{ label: 'Bâton de combat', magic: false, effect: { type: 'giveTrapping', trappingId: 'baton-de-combat' } }]);
+    const html = render([{ uid: 'g0', label: 'Bâton de combat', magic: false, effect: { type: 'giveTrapping', trappingId: 'baton-de-combat' } }]);
     expect(html).toContain('entity-chip');
     expect(html).toContain('Assommante'); // libellé résolu via le registre depuis la def
     expect(html).toContain('Défensive');
@@ -29,19 +29,19 @@ describe('GearAssignList (butin attribuable)', () => {
   });
 
   it('objet catalogué SANS qualité : aucun chip', () => {
-    const html = render([{ label: 'Corde', magic: false, effect: { type: 'giveTrapping', trappingId: 'corde' } }]);
+    const html = render([{ uid: 'g0', label: 'Corde', magic: false, effect: { type: 'giveTrapping', trappingId: 'corde' } }]);
     expect(html).not.toContain('entity-chip');
   });
 
   it('qualité MAGIQUE portée par l’Effet (objet custom) : rendue en chip, id brut jamais affiché', () => {
-    const html = render([{ label: 'Amulette', magic: true, effect: { type: 'giveTrapping', custom: 'Amulette', qualities: ['empaleuse'], identified: true } }]);
+    const html = render([{ uid: 'g0', label: 'Amulette', magic: true, effect: { type: 'giveTrapping', custom: 'Amulette', qualities: ['empaleuse'], identified: true } }]);
     expect(html).toContain('entity-chip');
     expect(html).toContain('Empaleuse'); // libellé résolu via le registre, pas l'id « empaleuse »
     expect(html).not.toContain('>empaleuse<');
   });
 
   it('objet catalogué + qualité magique NON identifié : qualités masquées jusqu’à Évaluation', () => {
-    const html = render([{ label: 'Hallebarde', magic: true, effect: { type: 'giveTrapping', trappingId: 'hallebarde', qualities: ['empaleuse'], identified: false } }]);
+    const html = render([{ uid: 'g0', label: 'Hallebarde', magic: true, effect: { type: 'giveTrapping', trappingId: 'hallebarde', qualities: ['empaleuse'], identified: false } }]);
     expect(html).toContain('non identifié');
     expect(html).not.toContain('entity-chip'); // ni def ni magiques tant que non révélé
   });
@@ -49,7 +49,7 @@ describe('GearAssignList (butin attribuable)', () => {
 
 describe('GearAssignList — Évaluer / Détecter suivent qui peut tenter le Test (LDB 09 l.30)', () => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  const inconnu: LootGear = { label: 'Hallebarde', magic: true, effect: { type: 'giveTrapping', trappingId: 'hallebarde', qualities: ['empaleuse'], identified: false } };
+  const inconnu: LootGear = { uid: 'g0', label: 'Hallebarde', magic: true, effect: { type: 'giveTrapping', trappingId: 'hallebarde', qualities: ['empaleuse'], identified: false } };
   /** Monté au client : le groupe se lit au store (`useGame`), comme à l'écran de victoire. */
   const geste = (party: Combatant[], label: 'Évaluer' | 'Détecter', id: string) => {
     useGame.setState({ party });

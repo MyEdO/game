@@ -87,7 +87,7 @@ export interface AreteUtilisable {
   largeurPrise: number;
   /** Texte JOUEUR déjà résolu. */
   libelle: string;
-  /** Combattant-structure visé par le geste de siège (`battleClickEntity`). */
+  /** Combattant-structure visé par le geste de siège (`cliquerLaCase`). */
   cid?: string;
   /** Accès de pièce que le geste FRANCHIT (ouvrir la porte, marcher jusqu'à `to`) — jumeau de `cid`
    *  pour la capacité `porte` : la clé d'arête dit OÙ, ce champ dit avec QUOI le geste s'exécute
@@ -292,4 +292,17 @@ export function aretesUtilisables(ctx: ContexteAretes): AreteUtilisable[] {
     }
   }
   return out;
+}
+
+/** La capacité de l'arête que franchit le pas `de` → `vers` (case cardinale d'en face), telle que le dériveur la rend au
+ *  mobile posé en `de`, à sa couche, sans brouillard ; `null` sans arête qui offre un geste. */
+export function capaciteDuPas(scene: Scene, de: Pt, vers: Pt): CapaciteArete | null {
+  const z = de.z ?? 0;
+  const ctx: ContexteAretes = { scene, visible: new Set([`${de.x},${de.y},${z}`]), controleur: { ...de, z }, activeZ: z };
+  const arete = aretesUtilisables(ctx).find((a) => {
+    const [c1, c2] = cotes(a.x, a.y, a.side);
+    const borde = (p: Pt, q: Pt) => p.x === de.x && p.y === de.y && q.x === vers.x && q.y === vers.y;
+    return borde(c1, c2) || borde(c2, c1);
+  });
+  return arete?.capacite ?? null;
 }

@@ -9,6 +9,7 @@ import { hasCondition } from '../engine/conditions';
 import { testScene } from '../scenes/test-fixture';
 import { deFixe, desDuTest } from '../engine/dice.testkit';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -49,8 +50,8 @@ describe('Attaque gratuite de Tentacule (store)', () => {
   function setup(withTentacle = true) {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -72,21 +73,21 @@ describe('Attaque gratuite de Tentacule (store)', () => {
   }
 
   it('frappe gratuite : modale standard, Action préservée, 1/tour, Empêtré sur Dégâts', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.characteristics['capacite-de-combat'] = 95;
     H.characteristics.force = 45;
     const before = E.wounds.current;
     // Chemin d'attaque UNIFIÉ : on arme l'attaque Tentacule puis on clique l'ennemi (adjacent → frappe directe).
     banc.getState().armerLAttaque('tentacule');
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     const pa = banc.getState().pendingAttack;
     expect(pa?.freeKind).toBe('tentacules');
     expect(pa?.weaponUid).toBe('nat-tentacule');
     expect(pa?.result).toBeNull(); // rien n'est tiré avant Lancer
-    banc.getState().jetRoll('attack');
+    banc.getState().jetLancer('attack');
     expect(banc.getState().pendingAttack?.result).toBeTruthy();
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
     const st = banc.getState();
     const e2 = st.battle!.combatants.find((c) => c.id === E.id)!;
     const h2 = st.battle!.combatants.find((c) => c.id === H.id)!;
@@ -107,7 +108,7 @@ describe('Attaque gratuite de Tentacule (store)', () => {
     const { E } = setup();
     E.pos = { x: 14, y: 10 }; // hors d'Allonge → l'attaque de mêlée s'approche (charge) au lieu de refuser
     banc.getState().armerLAttaque('tentacule');
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) → ouvre la frappe
     const pa = banc.getState().pendingAttack;
     expect(pa?.freeKind).toBe('tentacules');

@@ -36,13 +36,13 @@ export type VerbesDeFenetre = readonly (keyof ActionsDuNoyau)[];
 export const AUCUN_VERBE_DE_JOUEUR: readonly never[] = Object.freeze([]);
 
 /** Un geste d'une fenêtre : un verbe de la partie ; un verbe de jet (`NomDeVerbeDeJet`) nomme le flux qu'il vise, et
- *  `toutes` quand il joue sa rangée omise sur un flux à plusieurs jets (« Tout résoudre » : `jetRoll('cascade')`) ; le
+ *  `toutes` quand il joue sa rangée omise sur un flux à plusieurs jets (« Tout résoudre » : `jetLancer('cascade')`) ; le
  *  réglage d'un jet (`jetRegler`) son flux et son réglage, `toutes` sur sa rangée omise (« Tout déclarer »), et la
  *  valeur que la fenêtre y pose (`valeur`) ; le choix d'une fenêtre (`fenetreChoisir`) sa fenêtre et son axe, la validation
  *  (`fenetreValider`) ou la sortie (`fenetreFermer`) d'une fenêtre la fenêtre qu'elle valide ou ferme. */
 export interface GesteDuJeu { verbe: keyof ActionsDuNoyau; flux?: FlowKey; toutes?: true; reglage?: ReglageDuJet; valeur?: string; fenetre?: FenetreQuiSeFerme | FenetreAValider | FenetreAChoix; axe?: AxeDuChoix }
 
-/** L'identité d'un geste dans sa fenêtre : son verbe, et le flux d'un verbe de jet (`jetRoll@attack`, `jetRoll@cascade*`
+/** L'identité d'un geste dans sa fenêtre : son verbe, et le flux d'un verbe de jet (`jetLancer@attack`, `jetLancer@cascade*`
  *  pour sa rangée omise), le flux et le réglage d'un réglage (`jetRegler@attack#arme`), la fenêtre et l'axe d'un choix
  *  (`fenetreChoisir@fateSave#issue`) ou la fenêtre d'une validation ou d'une sortie (`fenetreFermer@council`). */
 export const cleDuGeste = (g: GesteDuJeu): string => {
@@ -67,7 +67,7 @@ export interface RangeeDeFenetre { id: string; interactive?: boolean; result?: u
  * Politique d'auto-résolution d'une modale (Cadence Rapide/Auto). Les gestes de `drive` sont des
  * résolveurs RÉELS du noyau (`GesteDuJeu`, vérifiés par `modalAuto.hors-store.test.ts`), joués sans autre argument que
  * leur flux — jamais une dérivation (le mapping clé→action n'est PAS 1:1 : `stateRecovery`→`recover`,
- * `corruption`→`jetConfirm('corruption')`…). Les jets de COMBAT (attaque/défense/cast/…) sont des étapes de la
+ * `corruption`→`jetValider('corruption')`…). Les jets de COMBAT (attaque/défense/cast/…) sont des étapes de la
  * `cascade` (`partial`), pilotées via `JET_AUTO` dans `combatAuto`.
  */
 export type AutoPolicy =
@@ -119,22 +119,22 @@ export const MODAL_DEFS = [
   { key: 'fateSave', when: (s) => !!s.pendingFateSave, owner: (s) => s.pendingFateSave?.heroId, auto: { mode: 'choice' }, covers: ['pendingFateSave'] },
   // (La Maladresse est une étape `jet:'fumble'` de la cascade `combat`, rendue par `cascade` ci-dessous
   //  (CascadeModal → useFumbleJetProps). La donnée (arme/résultat) vit SUR l'étape (`step.fumble`), source
-  //  unique lue par `jetRoll('fumble')` ; `jetConfirm('fumble')` applique les Oups ! et enchaîne le curseur.)
+  //  unique lue par `jetLancer('fumble')` ; `jetValider('fumble')` applique les Oups ! et enchaîne le curseur.)
   // (Le Renversement (Déstabilisante) n'ouvre AUCUNE modale et ne pose aucun `pending*` : il se résout
   //  dans l'attribution d'Avantage de `applyAttackResult` (`reversalStealOne`, `combat/advantagePool.ts`).)
   // LOT DE DÉS d'un étal (#1426) : aucun personnage n'est concerné — c'est le MONDE qui tire. Owner =
   // le sentinel `WORLD_STEP_OWNER` (siège MJ s'il existe, hôte sinon), comme toute étape de monde.
-  { key: 'etalLot', when: (s) => !!s.pendingEtalLot, owner: () => WORLD_STEP_OWNER, auto: { mode: 'self', drive: [{ verbe: 'jetConfirm', flux: 'etalLot' }] }, covers: ['pendingEtalLot'], flux: ['etalLot'], rangees: (s) => s.pendingEtalLot?.participants },
+  { key: 'etalLot', when: (s) => !!s.pendingEtalLot, owner: () => WORLD_STEP_OWNER, auto: { mode: 'self', drive: [{ verbe: 'jetValider', flux: 'etalLot' }] }, covers: ['pendingEtalLot'], flux: ['etalLot'], rangees: (s) => s.pendingEtalLot?.participants },
   // DÉSIGNATION d'un héros pour un état de campagne (EDO 02 l.91) : décision de GROUPE, au siège du
   // MONDE (`WORLD_STEP_OWNER` — celui de `ownsGroupDecision`, comme le dialogue) ; jamais auto-résolue. Elle se
   // clôt sans choix une fois aucun héros vivant à désigner.
   { key: 'designationHeros', when: (s) => !!s.pendingDesignationHeros, owner: () => WORLD_STEP_OWNER, auto: { mode: 'hostOnly' }, covers: ['pendingDesignationHeros'], sortie: 'proprietaire', sortieFermee: (s) => (s.party?.some((h) => !h.dead) ? 'herosADesigner' : null) },
   { key: 'renounce', when: (s) => !!s.pendingRenounce, owner: (s) => s.pendingRenounce?.heroId, auto: { mode: 'choice' }, covers: ['pendingRenounce'] },
   // Battement (LDB 10 l.103) : jet PROPRE de CC (non opposé) → 'self' (Lancer puis Appliquer).
-  { key: 'battement', when: (s) => !!s.pendingBattement, owner: (s) => s.pendingBattement?.attackerId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'battement' }, { verbe: 'jetConfirm', flux: 'battement' }] }, covers: ['pendingBattement'], flux: ['battement'] },
+  { key: 'battement', when: (s) => !!s.pendingBattement, owner: (s) => s.pendingBattement?.attackerId, auto: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'battement' }, { verbe: 'jetValider', flux: 'battement' }] }, covers: ['pendingBattement'], flux: ['battement'] },
   // Distraire (LDB 10 l.364) : jet PROPRE d'Athlétisme opposé au Calme figé du foe → 'self' (le mover pilote son jet).
-  { key: 'distraire', when: (s) => !!s.pendingDistraire, owner: (s) => s.pendingDistraire?.moverId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'distraire' }, { verbe: 'jetConfirm', flux: 'distraire' }] }, covers: ['pendingDistraire'], flux: ['distraire'] },
-  { key: 'maneuver', when: (s) => !!s.pendingManeuver, owner: (s) => s.pendingManeuver?.attackerId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'maneuver' }, { verbe: 'jetConfirm', flux: 'maneuver' }] }, covers: ['pendingManeuver'], flux: ['maneuver'] },
+  { key: 'distraire', when: (s) => !!s.pendingDistraire, owner: (s) => s.pendingDistraire?.moverId, auto: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'distraire' }, { verbe: 'jetValider', flux: 'distraire' }] }, covers: ['pendingDistraire'], flux: ['distraire'] },
+  { key: 'maneuver', when: (s) => !!s.pendingManeuver, owner: (s) => s.pendingManeuver?.attackerId, auto: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'maneuver' }, { verbe: 'jetValider', flux: 'maneuver' }] }, covers: ['pendingManeuver'], flux: ['maneuver'] },
   // (Une RÉVÉLATION — jet subi / sur table / d'entretien — est une ÉTAPE d'AFFICHAGE de la cascade
   //  (`CascadeStep.reveal`), rendue par l'entrée `cascade` ci-dessous : son owner est celui de l'étape
   //  courante (`actorId` = le concerné), comme tout pas de séquence.)
@@ -154,19 +154,19 @@ export const MODAL_DEFS = [
   // (mode 'choice', comme `auContact`). Initiée par le joueur (jamais par l'IA) → pas d'auto-drive.
   { key: 'grapple', when: (s) => !!s.pendingGrapple, owner: (s) => s.pendingGrapple?.actorId, auto: { mode: 'choice' }, covers: ['pendingGrapple'], flux: ['grapple'] },
   { key: 'mountTarget', when: (s) => !!s.pendingMountTarget, owner: (s) => (s.battle ? s.battle.order[s.battle.turn] : undefined), auto: { mode: 'choice' }, covers: ['pendingMountTarget'], sortie: 'proprietaire' }, // l'attaquant actif qui a cliqué le couple
-  { key: 'frenzy', when: (s) => !!s.pendingFrenzy, owner: (s) => s.pendingFrenzy?.combatantId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'frenzy' }, { verbe: 'jetConfirm', flux: 'frenzy' }] }, covers: ['pendingFrenzy'], flux: ['frenzy'] },
-  { key: 'approach', when: (s) => !!s.pendingApproach, owner: (s) => s.pendingApproach?.combatantId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'approach' }, { verbe: 'jetConfirm', flux: 'approach' }] }, covers: ['pendingApproach'], flux: ['approach'] },
-  { key: 'ward', when: (s) => !!s.pendingWard, owner: (s) => s.pendingWard?.attackerId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'ward' }, { verbe: 'jetConfirm', flux: 'ward' }] }, covers: ['pendingWard'], flux: ['ward'] },
-  { key: 'run', when: (s) => !!s.pendingRun, owner: (s) => s.pendingRun?.combatantId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'run' }, { verbe: 'jetConfirm', flux: 'run' }] }, covers: ['pendingRun'], flux: ['run'] },
-  // Chute VOLONTAIRE (LDB 15 l.82) : initiée par le JOUEUR (clic sur une arête de capacité `chute`, jamais l'IA, cf. `fallAcross`)
+  { key: 'frenzy', when: (s) => !!s.pendingFrenzy, owner: (s) => s.pendingFrenzy?.combatantId, auto: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'frenzy' }, { verbe: 'jetValider', flux: 'frenzy' }] }, covers: ['pendingFrenzy'], flux: ['frenzy'] },
+  { key: 'approach', when: (s) => !!s.pendingApproach, owner: (s) => s.pendingApproach?.combatantId, auto: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'approach' }, { verbe: 'jetValider', flux: 'approach' }] }, covers: ['pendingApproach'], flux: ['approach'] },
+  { key: 'ward', when: (s) => !!s.pendingWard, owner: (s) => s.pendingWard?.attackerId, auto: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'ward' }, { verbe: 'jetValider', flux: 'ward' }] }, covers: ['pendingWard'], flux: ['ward'] },
+  { key: 'run', when: (s) => !!s.pendingRun, owner: (s) => s.pendingRun?.combatantId, auto: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'run' }, { verbe: 'jetValider', flux: 'run' }] }, covers: ['pendingRun'], flux: ['run'] },
+  // Chute VOLONTAIRE (LDB 15 l.82) : initiée par le JOUEUR (clic sur une arête de capacité `chute`, jamais l'IA, cf. `franchirLArete`)
   // → vrai CHOIX (mode 'choice', comme `auContact`/`grapple`) : Rapide/Auto-combat ne la déclenchent jamais.
   { key: 'fall', when: (s) => !!s.pendingFall, owner: (s) => s.pendingFall?.initiateurId, auto: { mode: 'choice' }, covers: ['pendingFall'], flux: ['fall'], rangees: (s) => (s.pendingFall ? rangeesDuesDeChute(s.pendingFall) : undefined) },
   { key: 'shipManeuver', when: (s) => !!s.pendingShipManeuver, owner: (s) => s.pendingShipManeuver?.shipId, auto: { mode: 'choice' }, covers: ['pendingShipManeuver'], flux: ['shipManeuver'], rangees: (s) => s.pendingShipManeuver?.participants }, // Test d'équipage MULTI : chaque PJ pilote SON jet (cf. RollRow), pas d'auto-drive mono
   { key: 'shipBattery', when: (s) => !!s.pendingShipBattery, owner: (s) => s.pendingShipBattery?.shipId, auto: { mode: 'choice' }, covers: ['pendingShipBattery'], flux: ['shipBattery'], rangees: (s) => s.pendingShipBattery?.participants }, // Tir de batterie MULTI (Artilleurs) — idem manœuvre
   { key: 'crewTest', when: (s) => !!s.pendingCrewTest, owner: (s) => s.pendingCrewTest?.shipId, auto: { mode: 'choice' }, covers: ['pendingCrewTest'], flux: ['crewTest'], rangees: (s) => s.pendingCrewTest?.participants }, // Test d'équipage GÉNÉRIQUE (Rude épreuve…) — idem manœuvre
   { key: 'shanty', when: (s) => !!s.pendingShanty, owner: (s) => s.pendingShanty?.singerId, auto: { mode: 'choice' }, covers: ['pendingShanty'], flux: ['shanty'] }, // Chanson de marin : CHOIX de la chanson (pré-jet) — jamais auto-résolue
-  { key: 'focus', when: (s) => !!s.pendingFocus, owner: (s) => s.pendingFocus?.casterId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'focus' }, { verbe: 'jetConfirm', flux: 'focus' }] }, covers: ['pendingFocus'], flux: ['focus'] },
-  { key: 'dispel', when: (s) => !!s.pendingDispel, owner: (s) => s.pendingDispel?.casterId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'dispel' }, { verbe: 'jetConfirm', flux: 'dispel' }] }, covers: ['pendingDispel'], flux: ['dispel'] },
+  { key: 'focus', when: (s) => !!s.pendingFocus, owner: (s) => s.pendingFocus?.casterId, auto: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'focus' }, { verbe: 'jetValider', flux: 'focus' }] }, covers: ['pendingFocus'], flux: ['focus'] },
+  { key: 'dispel', when: (s) => !!s.pendingDispel, owner: (s) => s.pendingDispel?.casterId, auto: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'dispel' }, { verbe: 'jetValider', flux: 'dispel' }] }, covers: ['pendingDispel'], flux: ['dispel'] },
   // Infirmerie OUVERTE : c'est ELLE qui rend les jets EMBARQUÉS (soin OU passe de Chirurgie) — la modale
   // autonome `heal` (entrée ci-dessous) ne sert qu'au combat, et la Chirurgie est toujours hors combat.
   // Owner : le soigneur/chirurgien du jet INFLUENÇABLE en cours (coop), sinon tous. `pendingSurgery` vit
@@ -174,14 +174,14 @@ export const MODAL_DEFS = [
   // L'infirmerie CÈDE le devant à une CASCADE en cours (`!s.pendingCascade`) — le Test d'infection
   // post-opératoire (LDB 10 l.184) est un jet INFLUENÇABLE qui doit passer AU-DESSUS du panneau ; à sa
   // clôture l'infirmerie RÉAPPARAÎT (même patron que `heal` cédant à `medic`).
-  { key: 'medic', when: (s) => !!s.medic && !s.pendingCascade, owner: (s) => s.pendingHeal?.healerId ?? s.pendingSurgery?.healerId ?? '*', auto: { mode: 'hostOnly' }, covers: ['pendingSurgery'], flux: ['heal', 'surgery'], verbes: ['medicAct', 'openSurgeryPass'], sortie: 'proprietaire', sortieFermee: (s) => (s.pendingHeal || s.pendingSurgery || s.medic?.surgery ? 'soinEnCours' : null) }, // pendingHeal COUVERT par 'heal' ci-dessous (l'infirmerie le lit aussi, mais n'en est pas l'unique propriétaire)
+  { key: 'medic', when: (s) => !!s.medic && !s.pendingCascade, owner: (s) => s.pendingHeal?.healerId ?? s.pendingSurgery?.healerId ?? '*', auto: { mode: 'hostOnly' }, covers: ['pendingSurgery'], flux: ['heal', 'surgery'], verbes: ['soignerLePatient', 'ouvrirLaChirurgie'], sortie: 'proprietaire', sortieFermee: (s) => (s.pendingHeal || s.pendingSurgery || s.medic?.surgery ? 'soinEnCours' : null) }, // pendingHeal COUVERT par 'heal' ci-dessous (l'infirmerie le lit aussi, mais n'en est pas l'unique propriétaire)
   // Repos (nuit) : chacun règle SES héros et se dit prêt, l'hôte dort au quorum — modale chez tous.
-  { key: 'rest', when: (s) => !!s.pendingRest, owner: () => '*', auto: { mode: 'hostOnly' }, covers: ['pendingRest'], verbes: ['restSet'], validation: 'hoteAuQuorum', sortie: 'hote', sortieFermee: (s) => (s.pendingRest?.travelHalt ? 'halteDeVoyage' : null) },
+  { key: 'rest', when: (s) => !!s.pendingRest, owner: () => '*', auto: { mode: 'hostOnly' }, covers: ['pendingRest'], validation: 'hoteAuQuorum', sortie: 'hote', sortieFermee: (s) => (s.pendingRest?.travelHalt ? 'halteDeVoyage' : null) },
   // Conseil de bord (paie hebdomadaire + Moral, #229) : décision de bourse PARTAGÉE → l'hôte seul (comme
   // les autres actions à l'argent du groupe, `CHOIX_DES_FENETRES.council`) ; hors-combat, jamais auto (la cadence
   // auto ne l'ouvre pas).
   { key: 'council', when: (s) => !!s.pendingCouncil, owner: () => undefined, auto: { mode: 'hostOnly' }, covers: ['pendingCouncil'], sortie: 'hote', sortieFermee: (s) => (s.pendingCouncil?.phase === 'bilan' ? null : 'paieDue') },
-  { key: 'heal', when: (s) => !!s.pendingHeal && !s.medic, owner: (s) => s.pendingHeal?.healerId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'heal' }, { verbe: 'jetConfirm', flux: 'heal' }] }, covers: ['pendingHeal'], flux: ['heal'] },
+  { key: 'heal', when: (s) => !!s.pendingHeal && !s.medic, owner: (s) => s.pendingHeal?.healerId, auto: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'heal' }, { verbe: 'jetValider', flux: 'heal' }] }, covers: ['pendingHeal'], flux: ['heal'] },
   // (Le Contre-sort (Dissipation) est une RÉACTION au Sort figé dans `pendingCast`, rendue DANS la
   //  modale `cast` ci-dessous : une rangée `RollRow` par contre-lanceur (`pendingCounterspell
   //  .participants`), comme l'opposition de cible. « Le contre-sort, c'est le lancement d'un sort qui
@@ -229,13 +229,13 @@ export const MODAL_DEFS = [
   //  → l'entrée `cascade` met l'owner à '*' (moment partagé + Contre-sort multi en coop) ; un Sort de HÉROS
   //  sans `groupOwner` → owner = `actorId` (le lanceur). Le ciblage CARTE (pickingTargets / pose de zone)
   //  efface la modale via le `return null` du renderer `cast` dans CascadeModal.)
-  { key: 'reload', when: (s) => !!s.pendingReload, owner: (s) => s.pendingReload?.actorId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'reload' }, { verbe: 'jetConfirm', flux: 'reload' }] }, covers: ['pendingReload'], flux: ['reload'] },
+  { key: 'reload', when: (s) => !!s.pendingReload, owner: (s) => s.pendingReload?.actorId, auto: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'reload' }, { verbe: 'jetValider', flux: 'reload' }] }, covers: ['pendingReload'], flux: ['reload'] },
   // Main ensanglantée (AA 07 l.117) : Test de Dextérité PAR ACTION — jet PROPRE de l'attaquant (`self`) ;
   // en cadence Rapide/Auto le driver le résout (Lancer → Appliquer), comme `reload`.
-  { key: 'handGate', when: (s) => !!s.pendingHandGate, owner: (s) => s.pendingHandGate?.attackerId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'handGate' }, { verbe: 'jetConfirm', flux: 'handGate' }] }, covers: ['pendingHandGate'], flux: ['handGate'] },
-  { key: 'stateRecovery', when: (s) => !!s.pendingStateRecovery, owner: (s) => s.pendingStateRecovery?.actorId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'recover' }, { verbe: 'jetConfirm', flux: 'recover' }] }, covers: ['pendingStateRecovery'], flux: ['recover'] },
+  { key: 'handGate', when: (s) => !!s.pendingHandGate, owner: (s) => s.pendingHandGate?.attackerId, auto: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'handGate' }, { verbe: 'jetValider', flux: 'handGate' }] }, covers: ['pendingHandGate'], flux: ['handGate'] },
+  { key: 'stateRecovery', when: (s) => !!s.pendingStateRecovery, owner: (s) => s.pendingStateRecovery?.actorId, auto: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'recover' }, { verbe: 'jetValider', flux: 'recover' }] }, covers: ['pendingStateRecovery'], flux: ['recover'] },
   // Sauvegarde d'Initiative « Fuite de vapeur » (MDG 12 l.326-328) : jet PROPRE de la personne au moteur.
-  { key: 'steamSave', when: (s) => !!s.pendingSteamSave, owner: (s) => s.pendingSteamSave?.actorId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'steamSave' }, { verbe: 'jetConfirm', flux: 'steamSave' }] }, covers: ['pendingSteamSave'], flux: ['steamSave'] },
+  { key: 'steamSave', when: (s) => !!s.pendingSteamSave, owner: (s) => s.pendingSteamSave?.actorId, auto: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'steamSave' }, { verbe: 'jetValider', flux: 'steamSave' }] }, covers: ['pendingSteamSave'], flux: ['steamSave'] },
   // (L'attaque est une étape `jet:'attack'` de la cascade `combat`, rendue par `cascade` ci-dessus
   //  (CascadeModal → useAttackJetProps) — `pendingAttack` coexiste comme porteur de données. TOUS les
   //  chemins d'attaque (Charge / normale / gratuite + balayage/dual qui réutilisent) ouvrent une cascade.
@@ -245,7 +245,7 @@ export const MODAL_DEFS = [
   // Jet d'Activité d'interlude (LDB 23) — hors combat, même règle coop qu'en combat : le PROPRIÉTAIRE
   // du héros joue, les autres voient « X joue… ».
   { key: 'activity', when: (s) => !!s.pendingActivity, owner: (s) => s.pendingActivity?.heroId, auto: { mode: 'hostOnly' }, covers: ['pendingActivity'], flux: ['activity'] },
-  { key: 'corruption', when: (s) => !!s.pendingCorruption, owner: (s) => s.pendingCorruption?.heroId, auto: { mode: 'self', drive: [{ verbe: 'jetRoll', flux: 'corruption' }, { verbe: 'jetConfirm', flux: 'corruption' }] }, covers: ['pendingCorruption'], flux: ['corruption'] },
+  { key: 'corruption', when: (s) => !!s.pendingCorruption, owner: (s) => s.pendingCorruption?.heroId, auto: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'corruption' }, { verbe: 'jetValider', flux: 'corruption' }] }, covers: ['pendingCorruption'], flux: ['corruption'] },
 ] as const satisfies readonly ModalDef[];
 
 export type ModalKey = (typeof MODAL_DEFS)[number]['key'];
@@ -327,20 +327,19 @@ export interface HorsModalDef {
 export const HORS_MODAL = [
   { key: 'bargain', pendingKey: 'pendingBargain', tientLaMain: true, owner: (s) => s.pendingBargain?.playerId, flux: ['bargain'] }, // Marchandage (écran Marché, billet de la carte du monde)
   { key: 'appraise', pendingKey: 'pendingAppraise', tientLaMain: true, owner: (s) => s.pendingAppraise?.actorId, flux: ['appraise'] }, // Évaluation/Détection (écran Marché/Compendium)
-  { key: 'loot', pendingKey: 'pendingLoot', tientLaMain: true, owner: () => '*', verbes: ['assignLootGear', 'appraiseGear'], sortie: 'hote' }, // Butin hors victoire : chacun voit qui l'emporte
-  { key: 'victory', pendingKey: 'pendingVictory', tientLaMain: true, owner: () => '*', verbes: ['assignVictoryGear', 'harvestCreature', 'appraiseGear'], sortie: 'quorum' }, // Écran de victoire : chaque siège se dit prêt, le quorum le ferme
-  { key: 'siegeAim', pendingKey: 'pendingSiegeAim', tientLaMain: true, owner: (s) => s.pendingSiegeAim?.gunnerId, verbes: ['battleClickTile'], sortie: 'proprietaire' }, // Placeur de case (ciblage carte, pas de modale) : le clic de case dépose l'impact
+  { key: 'loot', pendingKey: 'pendingLoot', tientLaMain: true, owner: () => '*', verbes: ['evaluerLeButin'], sortie: 'hote' }, // Butin hors victoire : chacun voit qui l'emporte
+  { key: 'victory', pendingKey: 'pendingVictory', tientLaMain: true, owner: () => '*', verbes: ['depecerLaCreature', 'evaluerLeButin'], sortie: 'quorum' }, // Écran de victoire : chaque siège se dit prêt, le quorum le ferme
+  { key: 'siegeAim', pendingKey: 'pendingSiegeAim', tientLaMain: true, owner: (s) => s.pendingSiegeAim?.gunnerId, verbes: ['cliquerLaCase'], sortie: 'proprietaire' }, // Placeur de case (ciblage carte, pas de modale) : le clic de case dépose l'impact
   { key: 'interact', pendingKey: 'pendingInteract', tientLaMain: false, owner: () => undefined }, // Interaction de décor : hôte (pas de héros structuré porté par le pending)
-  { key: 'roundStart', pendingKey: 'pendingRoundStart', tientLaMain: true, owner: () => '*', verbes: ['roundStartPromote', 'armPreempt', 'battleClickEntity'], validation: 'quorum' }, // Pause de début de Round (fenêtre Chance) : chaque siège se dit prêt, le quorum lance le Round ; le clic du combattant tire la visée armée (Tir rapide)
+  { key: 'roundStart', pendingKey: 'pendingRoundStart', tientLaMain: true, owner: () => '*', verbes: ['promouvoirLeCombattant', 'armerLeTirPreventif', 'cliquerLaCase'], validation: 'quorum' }, // Pause de début de Round (fenêtre Chance) : chaque siège se dit prêt, le quorum lance le Round ; le clic du combattant tire la visée armée (Tir rapide)
   { key: 'seaActivities', pendingKey: 'pendingSeaActivities', tientLaMain: true, owner: () => '*', validation: 'hote' }, // Activités hebdomadaires en mer : chaque siège choisit pour ses héros, l'hôte valide la semaine
-  { key: 'manannPriest', pendingKey: 'pendingManannPriest', tientLaMain: true, owner: () => '*' }, // Événement de port (MDG 15) : décision de groupe
   { key: 'shoreLeave', pendingKey: 'pendingShoreLeave', tientLaMain: true, owner: () => '*' }, // Relâche à terre (MDG 15) : décision de groupe
   { key: 'campaign', pendingKey: 'pendingCampaign', tientLaMain: false, owner: () => undefined }, // Campagne choisie au menu : un écran de l'hôte avant tout siège, que « Lancer » charge
   { key: 'orders', pendingKey: 'pendingOrders', tientLaMain: false, owner: () => undefined }, // Commandes d'interlude : dépense de bourse de groupe, hôte
   // Balayage / 2ᵉ frappe : ciblage carte (TargetPrompt), pas de modale — leurs gestes (enchaîner par le clic du
   // combattant, terminer, renoncer) sont ceux de l'ATTAQUANT qui les tient (#1016).
-  { key: 'cleave', pendingKey: 'pendingCleave', tientLaMain: true, owner: (s) => s.pendingCleave?.attackerId, verbes: ['battleClickEntity'], sortie: 'proprietaire' },
-  { key: 'dualStrike', pendingKey: 'pendingDualStrike', tientLaMain: true, owner: (s) => s.pendingDualStrike?.attackerId, verbes: ['battleClickEntity'], sortie: 'proprietaire' },
+  { key: 'cleave', pendingKey: 'pendingCleave', tientLaMain: true, owner: (s) => s.pendingCleave?.attackerId, verbes: ['cliquerLaCase'], sortie: 'proprietaire' },
+  { key: 'dualStrike', pendingKey: 'pendingDualStrike', tientLaMain: true, owner: (s) => s.pendingDualStrike?.attackerId, verbes: ['cliquerLaCase'], sortie: 'proprietaire' },
   { key: 'logQueue', pendingKey: 'pendingLogQueue', tientLaMain: false, owner: () => undefined }, // File de journal DIFFÉRÉE : système, drainée automatiquement (pas d'acteur)
   // Cadre de campagne (#717) : rideau d'ouverture et récap de fin de chapitre — des ÉCRANS
   // (`ScreenShell`), pas des modales de combat, et des gestes d'HÔTE (l'ouverture est un rideau, la

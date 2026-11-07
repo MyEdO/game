@@ -15,7 +15,7 @@ import { RULE_REF } from '../engine/ruleRefs';
 import { autoExposureMods, sourceExposureMod, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { createHero } from '../engine/character';
 import { type RNG } from '../engine/dice';
-import { facesDuDe } from '../engine/tables';
+import { deDeLaTableTiree, facesDuDe } from '../engine/tables';
 import { seedBattleRng } from './battleRng';
 import type { Combatant } from '../engine/types';
 import { deMax, desEnSuite } from '../engine/dice.testkit';
@@ -39,7 +39,7 @@ describe('water-exposure.json — la donnée MSRC 16 l.23-61', () => {
       expect(e.max).toBeGreaterThanOrEqual(e.min);
       next = e.max + 1;
     }
-    expect(next).toBe(facesDuDe(WATER_EXPOSURE.diseases.die) + 1);
+    expect(next).toBe(facesDuDe(deDeLaTableTiree(WATER_EXPOSURE.diseases)) + 1);
   });
   it('« Par État Assommé » (MSRC) → id LDB `sonne` (le LDB 16 n\'a pas d\'État « Assommé » — glissement de traduction)', () => {
     const m = WATER_EXPOSURE.modifiers.find((x) => x.id === 'par-etat-assomme')!;

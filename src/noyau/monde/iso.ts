@@ -2,7 +2,7 @@
  * Conversion px-iso → MÈTRES MONDE (dépend de `noyau/monde/relief` : `METRES_PER_LEVEL`) — seule partie de
  * la projection isométrique qui a besoin du MONDE plutôt que du seul écran. La géométrie de
  * projection elle-même (grille↔écran, centres/arêtes de tuile, tri de profondeur…) vit dans
- * `src/geometry/iso.ts` (#161 : `state` en a besoin, ce n'est pas QUE du rendu) — ce module la
+ * `src/geometry/iso.ts` (#161 : le noyau en a besoin, ce n'est pas QUE du rendu) — ce module la
  * RÉ-IMPORTE pour ses propres besoins, il ne la redéfinit pas.
  */
 import { METRES_PER_LEVEL } from './relief';
@@ -16,6 +16,8 @@ export const isoPxToM = (px: number): number => (px / LEVEL_H) * METRES_PER_LEVE
  *  exactement `METRES_PER_LEVEL` (4 m) : un mur atteint le plafond, UNE seule échelle de hauteur dans
  *  tout le monde. Vérité partagée builder/backends/POV. */
 export const WALL_H_M = isoPxToM(WALL_H);
+/** Hauteur de l'œil au-dessus de la surface où se tient le groupe (mètres). */
+export const EYE_H = 1.7;
 /** CADENCE VERTICALE de la projection : pixels d'ÉCRAN par mètre d'élévation — l'inverse de
  *  `isoPxToM`, et la SEULE définition de cette grandeur dans le dépôt. Elle sert au backend affine
  *  (transformée de motif, épaisseurs de trait, hauteurs de brin), aux caméras du backend volumique

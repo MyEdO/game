@@ -41,7 +41,7 @@ import { tablesDuJeu } from './tablesDuJeu';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-/** L'adversaire au profil standard, nommé comme `playTavernGame` le nomme (`opponentActor.label`). */
+/** L'adversaire au profil standard, nommé comme `jouerALaTaverne` le nomme (`opponentActor.label`). */
 const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;
 
 const get = () => banc.getState();
@@ -79,7 +79,7 @@ function poseLancer(roll: number, sl: number): void {
     participants: [{ ...row, result: { roll, target: row.target!, sl, success: evaluateTest(roll, row.target!).success } }],
   };
   banc.setState({ pendingCascade: { ...pc, participants, cursor: idx } });
-  get().jetConfirm('cascade');
+  get().jetValider('cascade');
 }
 
 /** Tranche le CHOIX ouvert (ligne visée, gain), et le commit. */
@@ -87,7 +87,7 @@ function trancher(kind: string, cle: string): void {
   const cur = courant();
   expect(cur?.kind, `le choix « ${kind} » est ouvert`).toBe(kind);
   get().jetRegler('cascade', 'choix', cle, cur!.id);
-  get().jetConfirm('cascade');
+  get().jetValider('cascade');
 }
 
 /** SAISIT le nombre de l'étape « quantité » ouverte (gain libre, l.97), et le commit. */
@@ -95,7 +95,7 @@ function saisir(kind: string, n: number): void {
   const cur = courant();
   expect(cur?.kind, `la saisie « ${kind} » est ouverte`).toBe(kind);
   get().jetRegler('cascade', 'quantite', n, cur!.id);
-  get().jetConfirm('cascade');
+  get().jetValider('cascade');
 }
 
 /** L'état de volée en cours. */
@@ -193,7 +193,7 @@ describe('La Bête parmi les Tailleurs — l’écrêtage aux quilles restantes 
 
   it('un DR ÉNORME n’abat que les seize quilles — et le passage s’arrête, il n’y a plus rien à abattre', () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'bete-tailleurs', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
+    get().jouerALaTaverne({ gameId: 'bete-tailleurs', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     poseLancer(5, 20); // réussite à +60, DR posé bien au-delà des 16 quilles
     const res = get().tavernGames!.result!;
     expect(res.playerSL, 'seize quilles, pas une de plus (l’écrêtage)').toBe(16);
@@ -203,7 +203,7 @@ describe('La Bête parmi les Tailleurs — l’écrêtage aux quilles restantes 
 
   it('un CRITIQUE renverse toutes les quilles, quel que soit le DR', () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'bete-tailleurs', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
+    get().jouerALaTaverne({ gameId: 'bete-tailleurs', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     poseLancer(11, 0); // double sur une réussite = Critique (l.7), DR nul
     expect(get().tavernGames!.result!.playerSL).toBe(16);
   });
@@ -223,7 +223,7 @@ describe('L’Arène — la cible se CHOISIT, le Critique encercle la suivante (
 
   it('la cible choisie règle la DIFFICULTÉ du lancer, et le Critique paie la ligne SUIVANTE', () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'arene', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
+    get().jouerALaTaverne({ gameId: 'arene', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     trancher('tavern-throw-aim', '2'); // les Cornes : 30 points, Accessible (+20)
     const band = get().pendingCascade!.participants.find((s) => s.kind === 'tavern-throw')!;
     expect(band.participants![0].difficulty, 'la Difficulté vient de la ligne visée').toBe('accessible');
@@ -233,7 +233,7 @@ describe('L’Arène — la cible se CHOISIT, le Critique encercle la suivante (
 
   it('sans Critique, la cible visée paie ses points — et un échec ne paie rien', () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'arene', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
+    get().jouerALaTaverne({ gameId: 'arene', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     trancher('tavern-throw-aim', '2');
     poseLancer(12, 1);
     expect(volley().gains.player).toEqual([30]);
@@ -249,7 +249,7 @@ describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE 
   /** Amène la partie à `points` marqués pour le challenger, sa première fléchette en main. */
   function aDeuxDoigts(points: number): Combatant {
     const a = seul();
-    get().playTavernGame({ gameId: 'flechettes', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
+    get().jouerALaTaverne({ gameId: 'flechettes', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     const seq = get().sequence as EtatDeFamille<typeof TAVERN_SEQUENCE>;
     // Le lanceur du tour est le challenger : l'ordre est tiré au sort (l.97), on le fixe pour mesurer.
     const throwers = [...(seq.payload.throwers ?? [])].sort((x) => (x.camp === 'player' ? -1 : 1));
@@ -275,7 +275,7 @@ describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE 
       banc.setState({ battle: null, party: [], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
       seedBattleRng(graine);
       const a = seul();
-      get().playTavernGame({ gameId: 'flechettes', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
+      get().jouerALaTaverne({ gameId: 'flechettes', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
       const payload = get().sequence!.payload as TavernPayload;
       vus.add(payload.throwers![0].camp);
     }
@@ -343,7 +343,7 @@ describe('Les boules — la MEILLEURE boule décide, plafonnée à 6 DR (l.57)',
 
   it('le score du camp est sa MEILLEURE boule, jamais la somme des trois', () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
+    get().jouerALaTaverne({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     poseLancer(12, 2);
     poseLancer(13, 5);
     expect(volley().gains.player).toEqual([2, 5]);
@@ -354,7 +354,7 @@ describe('Les boules — la MEILLEURE boule décide, plafonnée à 6 DR (l.57)',
 
   it('une boule RATÉE est hors-jeu (elle ne compte pas), et le DR est plafonné à 6', () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
+    get().jouerALaTaverne({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
     poseLancer(99, -4); // hors-jeu
     poseLancer(12, 9); // DR brut 9 : le plafond mord
     expect(volley().gains.player).toEqual([0, 6]);
@@ -362,7 +362,7 @@ describe('Les boules — la MEILLEURE boule décide, plafonnée à 6 DR (l.57)',
 
   it('PARTIE ENTIÈRE à graine réelle : elle conclut sans borne, et le score annoncé est celui du tableau', async () => {
     const a = seul();
-    get().playTavernGame({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    get().jouerALaTaverne({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const vus: number[] = [];
     for (let i = 0; i < 60 && get().pendingCascade; i++) {
       const board = sequenceBoardOf(get);
@@ -370,9 +370,9 @@ describe('Les boules — la MEILLEURE boule décide, plafonnée à 6 DR (l.57)',
       const cur = courant();
       if (cur?.kind === 'tavern-throw') {
         vus.push(board!.camps[0].score);
-        for (const row of cur.participants ?? []) if (row.interactive !== false && !row.result) get().jetRoll('cascadeBatch', row.id);
+        for (const row of cur.participants ?? []) if (row.interactive !== false && !row.result) get().jetLancer('cascadeBatch', row.id);
       }
-      get().jetConfirm('cascade');
+      get().jetValider('cascade');
       await tick();
     }
     const res = get().tavernGames!.result!;
@@ -520,7 +520,7 @@ describe('Plafond de DR et départage — les deux juges', () => {
     avecLesTables({ departages: { ...tablesDuJeu().departages, 'test-le-defiant-gagne': { departage: () => 'a' } } });
     const [a, b] = makePregens().slice(0, 2) as Combatant[];
     banc.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
-    get().playTavernGame({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
+    get().jouerALaTaverne({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     banc.setState({ sequence: { ...get().sequence!, params: { ...get().sequence!.params, tieBreak: cleDeFixture('test-le-defiant-gagne') } } });
     for (let i = 0; i < 6; i++) poseLancer(12, 4); // six boules à 4 DR : les deux camps à égalité
     const res = get().tavernGames!.result!;
@@ -531,7 +531,7 @@ describe('Plafond de DR et départage — les deux juges', () => {
   it('le départage RAW des boules reste le match nul (l.57)', () => {
     const [a, b] = makePregens().slice(0, 2) as Combatant[];
     banc.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
-    get().playTavernGame({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
+    get().jouerALaTaverne({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     for (let i = 0; i < 6; i++) poseLancer(12, 4);
     expect(get().tavernGames!.result!.winner).toBe('tie');
   });

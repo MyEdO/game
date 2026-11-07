@@ -35,6 +35,12 @@ theme_override_constants/separation = 8
 script = ExtResource("3_zone")
 source = "editeur.titre"
 
+[node name="Scenes" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Scenes"]
+script = ExtResource("3_zone")
+source = "editeur.scenes"
+
 [node name="Outils" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
 
 [node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Outils"]
@@ -82,6 +88,12 @@ source = "editeur.pointee"
 [node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
 script = ExtResource("3_zone")
 source = "editeur.inspecteur"
+
+[node name="Validation" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Validation"]
+script = ExtResource("3_zone")
+source = "editeur.validation"
 
 [node name="Calque" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
 

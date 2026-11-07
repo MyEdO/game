@@ -14,7 +14,7 @@
  *                      les `effects` de `traits.json` (substituée par `withArg`, noyau/triggeredEffects).
  *  6. FLOW PUR       — chaque `TriggeredEffect.flow` (champs `TriggeredEffect[]` du catalogue, extraits
  *                      par regex de `data/index.ts` — JAMAIS une liste de fichiers à la main) ne porte pas
- *                      une op de `STRAY_IMPURE_OPS` (`interruptFocus`/`breakBlade`/`delayed`) HORS branche
+ *                      une op IMPURE errante (`interruptFocus`/`breakBlade`/`delayed`, op de navire) HORS branche
  *                      `success`/`fail` d'un `test` (`flowHasImpureOpOutsideTest`, engine/flowCore) : ces
  *                      ops n'ont de hook que dans le do-loop de `runCombatFlow` avec son contexte de
  *                      branche — ailleurs, le walker pur `runPureFlowLines` (noyau/combat/flowEval) les
@@ -122,12 +122,12 @@ function walk(node: unknown, file: string, path: string, scan: Scan): void {
     if (typeof v === 'string' && v.startsWith('$') && !isTemplate(v, file, `${path}.${k}`))
       scan.badPlaceholders.push({ file, path: `${path}.${k}`, detail: `placeholder $… non substitué : ${JSON.stringify(v)}` });
     // (6) flow pur — un champ `TriggeredEffect[]` du catalogue (effects/onHitEffects…) ne porte pas de
-    // STRAY_IMPURE_OPS hors branche success/fail de test (cf. en-tête).
+    // op IMPURE errante hors branche success/fail de test (cf. en-tête).
     if (TRIGGERED_EFFECT_FIELDS.has(k) && Array.isArray(v)) {
       v.forEach((te, i) => {
         if (te && typeof te === 'object' && 'flow' in te) {
           if (flowHasImpureOpOutsideTest(te.flow as Flow))
-            scan.strayImpureOps.push({ file, path: `${path}.${k}[${i}].flow`, detail: `op impure (interruptFocus/breakBlade/delayed) HORS branche success/fail d'un test — avalée en silence par runPureFlowLines` });
+            scan.strayImpureOps.push({ file, path: `${path}.${k}[${i}].flow`, detail: `op impure (interruptFocus/breakBlade/delayed, op de navire) HORS branche success/fail d'un test — avalée en silence par runPureFlowLines` });
           if (HORS_SOURCES_DE_GRATUITES.has(file) && flowHasFreeAttack(te.flow as Flow))
             scan.strayFreeAttacks.push({ file, path: `${path}.${k}[${i}].flow`, detail: `grantFreeAttack hors des sources de resolveFreeAttacks — sauté par le bus, jamais joué` });
         }

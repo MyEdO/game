@@ -2,7 +2,7 @@
 // L'union `RevealEntry['kind']` (src/noyau/pendings.ts) est un CONTRAT d'affichage : chaque membre
 // doit avoir au moins un site qui PRODUIT une telle entrée dans les sources (hors tests). Un membre
 // sans producteur laisse vivre son câblage UI (icône `REVEAL_ICON`, libellé de table, branche de rendu
-// de `ui/RevealBody.tsx`) pour un cas qui n'arrive jamais ; un producteur d'un kind hors union ne compile pas.
+// de la révélation) pour un cas qui n'arrive jamais ; un producteur d'un kind hors union ne compile pas.
 //
 // FORMES de production reconnues :
 //   (1) `pushReveal(set, { kind: '…' })` / `env.pushReveal({ kind: '…' })` — l'émetteur UNIQUE ;

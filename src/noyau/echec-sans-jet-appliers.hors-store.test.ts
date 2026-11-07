@@ -106,7 +106,7 @@ describe('Poste de voyage : la meilleure compétence TENTABLE, sinon un échec s
     it('validée, la rangée applique l’échec : Exténué (EDOC 8 l.133)', () => {
       const batch = buildStageSteps(banc.getState, banc.setState, 'beau', 'ete').find((s) => s.kind === 'stagePosteBatch')!;
       startCascade(banc.getState, banc.setState, { title: 'Étape', purpose: 'test', steps: [batch] });
-      banc.getState().jetConfirm('cascade');
+      banc.getState().jetValider('cascade');
       const hilda = banc.getState().party.find((h) => h.id === 'h')!;
       expect(hasCondition(hilda, 'extenue')).toBe(true);
     });
@@ -158,11 +158,11 @@ describe('Ragot non tentable : la journée de recherche est perdue (LDB 59 l.50)
   it('port-sell-gossip : aucun acheteur, aucune recherche d’acheteur enchaînée (MDG 15 l.366-372)', () => {
     const PORT = { taille: 4, richesse: 4, production: [] } as unknown as PortProfile;
     banc.setState({
-      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ cargoId: 'bois-mer', enc: 40, basePriceGold: 10 }], lastVoyageMilles: 0 },
+      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: 40, basePriceGold: 10 }], lastVoyageMilles: 0 },
       port: { placeId: 'P', label: 'Port', port: PORT, offers: [] },
     } as never);
     const hero = banc.getState().party[0];
-    const out = appliquer(ragotSansJet('port-sell-gossip', hero, t('port.buyerSearch'), { cargoIndex: 0 }), hero);
+    const out = appliquer(ragotSansJet('port-sell-gossip', hero, t('port.buyerSearch'), { lotId: 'lot-1' }), hero);
     expect(ligneDe(out)).toBe(t('port.gossipSansJet', { name: 'Hilda', issue: t('port.gossipFail', { relation: t('port.produces') }) }));
     expect(banc.getState().pendingCascade).toBeNull();
   });
@@ -219,7 +219,7 @@ describe('SEAM `onOwnTestFailed` : un échec sans jet est un Test raté de son p
       ligne: { test: { skill: { id: 'ragot' } }, refus: refusRagot(hero) },
     })!;
     startCascade(banc.getState, banc.setState, { title: 'X', purpose: 'test', steps: [step] });
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(hasCondition(banc.getState().party[0], 'sonne'), 'Test raté à DR 0 : Sonné posé par le symptôme').toBe(true);
     expect(hasCondition(banc.getState().party[0], 'a-terre'), 'aucun DR négatif').toBe(false);
   });
@@ -228,7 +228,7 @@ describe('SEAM `onOwnTestFailed` : un échec sans jet est un Test raté de son p
     const hero = banc.getState().party[0];
     const ligne = rollStep({ actor: hero, test: { skill: { id: 'ragot' } }, difficulty: 'intermediaire', refus: refusRagot(hero) });
     startCascade(banc.getState, banc.setState, { title: 'X', purpose: 'test', steps: [bandStep({ id: 'bande-sans-jet', kind: cleDeFixture('bande-sans-jet') }, [{ id: hero.id, interactive: true, result: null, ...ligne }])!] });
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(hasCondition(banc.getState().party[0], 'sonne'), 'Test raté à DR 0 : Sonné posé par le symptôme').toBe(true);
     expect(hasCondition(banc.getState().party[0], 'a-terre'), 'aucun DR négatif').toBe(false);
   });

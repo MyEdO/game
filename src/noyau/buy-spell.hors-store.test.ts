@@ -1,5 +1,5 @@
 /**
- * Lot 7 — achat/apprentissage de sorts côté noyau : buySpell (PX, Chaos → +1
+ * Lot 7 — achat/apprentissage de sorts côté noyau : acheterLeSort (PX, Chaos → +1
  * Corruption), Effet d'éditeur learnSpell (sans PX), lecture au grimoire (NI ×2
  * dans le flux pendingCast).
  */
@@ -18,10 +18,10 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 beforeEach(() => {
   banc.setState({ battle: null, party: [], journal: [], pendingCast: null });
-  banc.getState().seedRng(41);
+  banc.getState().ensemencerLeTirage(41);
 });
 
-describe('buySpell', () => {
+describe('acheterLeSort', () => {
   it('mémorise contre PX (Magie mineure) ; refuse sans PX suffisants', () => {
     // Sans Talent aléatoire (`talentsRolled: false`) : aucun tirage ne touche la FM.
     const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: PREGEN.sorcier, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
@@ -33,11 +33,11 @@ describe('buySpell', () => {
     w.characteristics['force-mentale'] = 25;
     w.xp = 60;
     banc.setState({ party: [w] as Combatant[] });
-    banc.getState().buySpell(w.id, 'drain');
+    banc.getState().acheterLeSort(w.id, 'drain');
     const after = banc.getState().party[0];
     expect(after.spells).toContain('drain'); // runtime = id de sort
     expect(after.xp).toBe(10);
-    banc.getState().buySpell(w.id, 'eblouissant'); // 3 connus → bande ×2 : 100 PX > 10 restants
+    banc.getState().acheterLeSort(w.id, 'eblouissant'); // 3 connus → bande ×2 : 100 PX > 10 restants
     expect(banc.getState().party[0].spells).not.toContain('eblouissant');
     expect(banc.getState().journal).toContain(t('pf.notEnoughXp', { name: w.label, cost: 100 }));
   });
@@ -47,7 +47,7 @@ describe('buySpell', () => {
     p.talents.push({ talentId: 'beni', spec: 'sigmar', times: 1 });
     p.xp = 0;
     banc.setState({ party: [p] as Combatant[] });
-    banc.getState().buySpell(p.id, 'benediction-de-puissance'); // Sigmar (LDB 41)
+    banc.getState().acheterLeSort(p.id, 'benediction-de-puissance'); // Sigmar (LDB 41)
     expect(banc.getState().party[0].spells).toContain('benediction-de-puissance'); // id de sort
     expect(banc.getState().party[0].xp).toBe(0);
   });
@@ -57,7 +57,7 @@ describe('buySpell', () => {
     w.talents.push({ talentId: 'magie-du-chaos', spec: 'nurgle', times: 1 });
     w.xp = 200;
     banc.setState({ party: [w] as Combatant[] });
-    banc.getState().buySpell(w.id, 'flot-de-corruption');
+    banc.getState().acheterLeSort(w.id, 'flot-de-corruption');
     const after = banc.getState().party[0];
     expect(after.spells).toContain('flot-de-corruption'); // sort du Chaos appris (id stable)
     expect(after.corruption ?? 0).toBeGreaterThanOrEqual(1); // +1 Point de Corruption (LDB 19)

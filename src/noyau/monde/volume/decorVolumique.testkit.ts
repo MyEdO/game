@@ -1,14 +1,17 @@
 /**
- * KIT DU DÉCOR VOLUMIQUE — la population des recettes de `props.json` et les mesures que ses contrats partagent : le
- * contrat de la donnée (`props-volumiques.test.ts`, ce dossier) et celui de l'émetteur de l'hôte web
- * (`src/gameIso/catalog/props-volumiques.test.ts`, #3556).
+ * KIT DU DÉCOR VOLUMIQUE — la population des recettes de `props.json` et les mesures que ses contrats partagent, dont le
+ * contrat de la donnée (`props-volumiques.test.ts`, ce dossier).
  */
 import { findPropById, props } from '../../../data';
 import { empriseLocaleM, placeAssiseDe, type PropPrimitive } from '../../../data/props.types';
 import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../scene';
 
-/** Les refs à recette, DÉRIVÉES du catalogue : une recette de plus entre sous contrat par sa seule déclaration. */
-export const IDS = props.filter((p) => p.volume).map((p) => p.id);
+/** Une ref de décor que le catalogue ne résout pas : la seule qui se serve encore en billboard, celui
+ *  d'ERREUR (#877) — chaque type du catalogue porte sa recette (#3198). */
+export const REF_HORS_CATALOGUE = 'decor-hors-catalogue';
+
+/** Les refs du catalogue, chacune à recette (#3198) : une recette de plus entre sous contrat par sa seule déclaration. */
+export const IDS = props.map((p) => p.id);
 
 /** Les recettes qui offrent une place assise. */
 export const propsAvecPlaces = props.filter((p) => (p.seatSlots?.length ?? 0) > 0);
@@ -31,7 +34,7 @@ export function emprise(p: PropPrimitive): { x0: number; x1: number; y0: number;
 /** Le CORPS d'une recette (sièges exclus) et ses SIÈGES, chacun avec la place qu'il porte. */
 export const corpsEtSieges = (id: string) => {
   const prop = findPropById(id)!;
-  const parts = prop.volume!.primitives.map((p) => ({ e: emprise(p), slot: placeAssiseDe(prop, p) }));
+  const parts = prop.volume.primitives.map((p) => ({ e: emprise(p), slot: placeAssiseDe(prop, p) }));
   return { corps: parts.filter((v) => !v.slot), sieges: parts.filter((v) => v.slot) };
 };
 

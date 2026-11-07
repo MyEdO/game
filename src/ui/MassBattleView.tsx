@@ -13,6 +13,8 @@ import {
   type MassBattleState, type MassBattleArmy,
 } from '../noyau/massBattleFlow';
 import { BATTLE_HAZARDS } from '../engine/massBattle';
+import { formatDice } from '../engine/dice';
+import { massBattleHazardsDie } from '../data';
 import type { Combatant } from '../engine/types';
 import { GatedAction, raisonSi } from './GatedAction';
 import { Grid } from './Layout';
@@ -80,10 +82,10 @@ function ArmyBar({ army, side }: { army: MassBattleArmy; side: 'ally' | 'enemy' 
 }
 
 function RoundPanel({ mb }: { mb: MassBattleState }) {
-  const rollHazard = useGame((s) => s.massBattleHazard);
-  const clash = useGame((s) => s.massBattleClash);
-  const rally = useGame((s) => s.massBattleRally);
-  const advance = useGame((s) => s.massBattleAdvance);
+  const rollHazard = useGame((s) => s.affronterLePeril);
+  const clash = useGame((s) => s.engagerLaMelee);
+  const rally = useGame((s) => s.rallierLesTroupes);
+  const advance = useGame((s) => s.avancerLaBataille);
   const scene = useGame((s) => s.scene);
   const partyZ = useGame((s) => s.partyPos.z ?? 0); // le plan suit l'étage du groupe
   const [selectedStationId, setSelectedStationId] = useState<string | undefined>(undefined);
@@ -134,7 +136,7 @@ function RoundPanel({ mb }: { mb: MassBattleState }) {
         </div>
       ) : (
         <div className="bar mb-actions">
-          <button className="btn small" disabled={mb.awaitingNext} onClick={() => rollHazard()}>Tirer un facteur (1d10)</button>
+          <button className="btn small" disabled={mb.awaitingNext} onClick={() => rollHazard()}>{t('mbf.tirerAlea', { die: formatDice(massBattleHazardsDie()) })}</button>
           <select
             className="mb-select"
             defaultValue=""
@@ -175,8 +177,8 @@ function RoundPanel({ mb }: { mb: MassBattleState }) {
  * du verbe (`refusDeSceneDeBataille`).
  */
 function SceneStationDetail({ mb, station }: { mb: MassBattleState; station: Station }) {
-  const chooseScene = useGame((s) => s.massBattleScene);
-  const setHero = useGame((s) => s.setMassBattleHero);
+  const chooseScene = useGame((s) => s.jouerLaScene);
+  const setHero = useGame((s) => s.affecterLeHeros);
   const party = useGame((s) => s.party);
   if (station.ref.kind !== 'battleScene') return null;
   const sceneId = station.ref.sceneId;

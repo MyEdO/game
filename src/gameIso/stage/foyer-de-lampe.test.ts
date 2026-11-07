@@ -153,9 +153,10 @@ describe('la lampe d’un décor VOLUMIQUE est posée sur sa primitive émettric
   });
 
   it('un émetteur SANS primitive déclarée garde la hauteur par DÉFAUT, à l’aplomb de sa case', () => {
-    // Le brasero est un BILLBOARD qui éclaire : aucune recette, donc aucun foyer à déclarer. Ce n'est
-    // pas un second régime — c'est l'autre valeur du même paramètre.
-    const scene = sceneAvec('brasero', 'S');
+    // Un tonneau que son INSTANCE fait éclairer : sa recette ne déclare aucun foyer. Ce n'est pas un
+    // second régime — c'est l'autre valeur du même paramètre.
+    const scene = sceneAvec('tonneau', 'S');
+    scene.entities = [{ ...scene.entities[0], light: { radiusM: 6 } } as Scene['entities'][number]];
     expect(mapLights(scene)[0].foyer).toBeUndefined();
     const lampe = lampeDe(scene);
     const mpt = sceneMetresPerTile(scene);

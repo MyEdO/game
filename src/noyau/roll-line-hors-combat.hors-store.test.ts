@@ -340,8 +340,8 @@ describe('Infirmerie / Activité — cibles montées par `rollLine` (#1153 L3)',
     });
     const blesse = hero({ id: 'al', label: 'Blessé', wounds: blessuresDeBase(12, 4) });
     fresh([doc, blesse]);
-    get().openMedic({ patientId: 'al' });
-    get().medicAct('wounds');
+    get().ouvrirLeMedecin({ patientId: 'al' });
+    get().soignerLePatient('wounds');
     const ph = get().pendingHeal!;
     // Aucun soutien possible (le patient n'a pas Guérison) → la cible est celle du soigneur seul.
     expect(ph.target).toBe(clampTarget(testValue(doc, { skill: { id: 'guerison' } }) + DIFFICULTY_MODIFIERS[ph.difficulty]).target);
@@ -356,11 +356,11 @@ describe('Infirmerie / Activité — cibles montées par `rollLine` (#1153 L3)',
     } as never);
     fresh([doc, patient]);
     set({ pendingSurgery: null } as never);
-    get().openMedic({ patientId: 'p' });
-    get().medicAct('recovery'); // ARME la rééducation (aucun jet)
+    get().ouvrirLeMedecin({ patientId: 'p' });
+    get().soignerLePatient('recovery'); // ARME la rééducation (aucun jet)
     const sg = get().medic!.surgery!;
     expect(sg.difficulty).toBe('accessible');
-    get().openSurgeryPass();
+    get().ouvrirLaChirurgie();
     const ps = get().pendingSurgery!;
     // La cible ne vaut PLUS la compétence nue : elle porte la Difficulté de l'opération engagée.
     expect(ps.target).toBe(clampTarget(sg.skill + DIFFICULTY_MODIFIERS.accessible).target);

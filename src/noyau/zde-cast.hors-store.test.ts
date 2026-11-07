@@ -1,8 +1,7 @@
 /**
  * Lot 6 — Ciblage de Zone d'Effet (LDB 47 l.28) : parsing diamètre/portée,
  * clic-case en mode incantation → toutes les cibles du rayon visées par le
- * même jet, garde-fou de portée. Le clic du curseur de combat sur une cible hors de portée se joue en
- * `src/state/zde-cast.test.ts`.
+ * même jet, garde-fou de portée, et cible hors de portée refusée avant le routage de zone (LDB 47 l.27).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -12,6 +11,8 @@ import { zdeDiameterMeters, zdeRadiusTiles, spellRangeTiles } from '../engine/ma
 import { findSpellById } from '../data';
 import type { Combatant } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { currentTargetingMode } from './targetingModes';
+import { jouerLeClicDeCase } from './combatOrParty';
 
 let banc: Banc;
 
@@ -44,7 +45,7 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
   beforeEach(() => {
     banc = ouvrirLeBanc();
     banc.setState({ battle: null, party: [], journal: [], pendingCast: null, refus: null });
-    banc.getState().seedRng(17);
+    banc.getState().ensemencerLeTirage(17);
   });
 
   function setupBattle() {
@@ -69,13 +70,13 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
 
   it('tout clic (case ou token) OUVRE la modale sans centre ; la pose touche tous ceux du rayon FINAL', () => {
     const { w, e1, e2, e3 } = setupBattle();
-    banc.getState().battleClickTile({ x: 9, y: 9 }); // n'importe quelle case : la modale s'ouvre
+    banc.getState().cliquerLaCase({ x: 9, y: 9 }); // n'importe quelle case : la modale s'ouvre
     const pc = banc.getState().pendingCast!;
     expect(pc.zone).toMatchObject({ center: null, radius: 1 });
     expect(pc.targetId).toBe(w.id); // ancre lanceur — aucun effet ne lui est appliqué
     banc.setState({ pendingCast: { ...pc, result: okCast(4) as never } });
     banc.getState().jetRegler('cast', 'carte', 'zone');
-    banc.getState().battleClickTile({ x: 6, y: 6 }); // pose → application immédiate
+    banc.getState().cliquerLaCase({ x: 6, y: 6 }); // pose → application immédiate
     expect(banc.getState().pendingCast).toBeNull();
     const hp = (id: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!.wounds;
     expect(hp('e1').current).toBeLessThan(hp('e1').max); // dans le rayon
@@ -88,7 +89,7 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
   it('Surincantation « +Zone » (LDB 47 l.15) : le gabarit s’agrandit du Ø initial et la pose ramasse plus loin', () => {
     const { w } = setupBattle();
     const ni = findSpellById('explosion')!.cn ?? 0;
-    banc.getState().battleClickTile({ x: 9, y: 9 });
+    banc.getState().cliquerLaCase({ x: 9, y: 9 });
     let pc = banc.getState().pendingCast!;
     banc.setState({ pendingCast: { ...pc, result: okCast(ni + 2) as never } }); // surplus 2 → 1 allocation
     banc.getState().jetRegler('cast', 'surincantationZone', 1);
@@ -96,7 +97,7 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
     expect(pc.overcast?.zone).toBe(1);
     expect(pc.zone!.radius).toBe(2); // r0m 2 m → ×2 = 4 m → 2 cases
     banc.getState().jetRegler('cast', 'carte', 'zone');
-    banc.getState().battleClickTile({ x: 10, y: 10 }); // e3 (12,12) à 2 cases du centre
+    banc.getState().cliquerLaCase({ x: 10, y: 10 }); // e3 (12,12) à 2 cases du centre
     const hp = (id: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!.wounds;
     expect(hp('e3').current).toBeLessThan(hp('e3').max);
     expect(hp('e1').current).toBe(hp('e1').max); // loin du centre
@@ -106,17 +107,30 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
   it('pose hors de portée → refus journalisé, la pose RESTE en cours ; zone VIDE → autorisée (Action consommée)', () => {
     const { w } = setupBattle();
     w.characteristics['force-mentale'] = 8; // portée (FM) mètres → 4 cases
-    banc.getState().battleClickTile({ x: 9, y: 9 });
+    banc.getState().cliquerLaCase({ x: 9, y: 9 });
     const pc = banc.getState().pendingCast!;
     banc.setState({ pendingCast: { ...pc, result: okCast(4) as never } });
     banc.getState().jetRegler('cast', 'carte', 'zone');
-    banc.getState().battleClickTile({ x: 12, y: 12 }); // 10 cases > 4 → refus
+    banc.getState().cliquerLaCase({ x: 12, y: 12 }); // 10 cases > 4 → refus
     expect(banc.getState().journal.join('\n')).toMatch(/hors de portée/);
     expect(banc.getState().pendingCast?.zone?.placing).toBe(true); // toujours en pose
-    banc.getState().battleClickTile({ x: 4, y: 4 }); // dans la portée, PERSONNE dans le rayon
+    banc.getState().cliquerLaCase({ x: 4, y: 4 }); // dans la portée, PERSONNE dans le rayon
     expect(banc.getState().pendingCast).toBeNull();
     // En combat, la sortie commune (finishPlayerAction) écrit dans le LOG de combat.
     expect(banc.getState().battle!.log.map((e) => e.text).join('\n')).toMatch(/ne touche personne/);
     expect(banc.getState().battle!.acted).toBe(true);
+  });
+
+  // LDB 47 l.27. Le clic passe par la porte du champ (`jouerLeClicDeCase`), celle du clic-sol et du curseur.
+  it('cible HORS de portée : rien au survol, aucune cascade ouverte au clic, et le refus est DIT', () => {
+    const { w, e3 } = setupBattle();
+    w.characteristics['force-mentale'] = 20; // portée du sort = FM mètres → 10 cases
+    e3.pos = { x: 19, y: 19 }; // 17 cases depuis (2,2) : au-delà de la portée
+    const mode = currentTargetingMode(banc.getState);
+    expect(mode.id).toBe('cast');
+    expect(mode.affordance!(banc.getState, w, e3), 'invalide = le survol n’affiche rien').toMatchObject({ kind: 'invalid' });
+    expect(jouerLeClicDeCase(banc.getState, e3.pos!, true), 'le clic de la cible se joue').toBe(true);
+    expect(banc.getState().pendingCast, 'une zone ne s’ouvre PAS sur une cible hors d’atteinte').toBeNull();
+    expect(banc.getState().refus?.texte, 'le refus se dit au point du geste').toBeTruthy();
   });
 });

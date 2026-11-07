@@ -25,11 +25,11 @@ interface Coup { sl: number; critical: boolean; martyr?: boolean; fenetre?: bool
  *  (`rederivePassiveAttack` → `applyHit`). `fenetre` : attaque STANDARD, dont le Critique ouvre la fenêtre
  *  de Blessure critique et RÉ-ENTRE `applyAttackResult`. */
 function touche({ sl, critical, martyr = true, fenetre = false, arme = epee, endurance, endurancePretre, pa = 0 }: Coup) {
-  banc.getState().seedRng(7);
+  banc.getState().ensemencerLeTirage(7);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [] });
-  banc.getState().startScene(structuredClone(testScene()));
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(structuredClone(testScene()));
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;

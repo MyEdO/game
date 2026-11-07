@@ -27,26 +27,25 @@ describe('#1051 — construction de la table : fail-fast sur clé dupliquée', (
   const R: Route = { rule: () => true };
 
   it('deux groupes qui fournissent la MÊME clé lèvent un litige nommant l’intent', () => {
-    expect(() => buildRoutes([['jetRoll', R]], [['partyAddHero', R], ['jetRoll', R]])).toThrow(/jetRoll/);
+    expect(() => buildRoutes([['jetLancer', R]], [['recruterLeHeros', R], ['jetLancer', R]])).toThrow(/jetLancer/);
   });
 
   it('la même clé DEUX FOIS dans un seul groupe lève aussi (pas de dédoublonnage silencieux)', () => {
-    expect(() => buildRoutes([['raiseHand', R], ['raiseHand', R]])).toThrow(/« raiseHand »/);
+    expect(() => buildRoutes([['leverLaMain', R], ['leverLaMain', R]])).toThrow(/« leverLaMain »/);
   });
 
   it('des groupes disjoints s’assemblent, et la dernière route posée est CONSULTABLE', () => {
-    const t = buildRoutes([['raiseHand', R]], [['lowerHand', { rule: () => false }]]);
-    expect([...t.keys()]).toEqual(['raiseHand', 'lowerHand']);
-    expect(t.get('lowerHand')!.rule({} as never, 0, [])).toBe(false);
+    const t = buildRoutes([['leverLaMain', R]], [['fenetreValider', { rule: () => false }]]);
+    expect([...t.keys()]).toEqual(['leverLaMain', 'fenetreValider']);
+    expect(t.get('fenetreValider')!.rule({} as never, 0, [])).toBe(false);
   });
 
-  it('une clé se nomme par un verbe invité, de jet, ou, gardée hors allowlist, du noyau (#3371 §3.5)', () => {
+  it('une clé se nomme par un verbe invité ou de jet (#3371 §3.5)', () => {
     // @ts-expect-error aucun verbe ne porte ce nom
     const inconnue = buildRoutes([['intentQuiNExistePas', R]]);
-    // @ts-expect-error verbe de l’hôte sans raison hors allowlist
-    const deLHote = buildRoutes([['openRest', R]]);
-    const gardee = buildRoutes([['openRest', { ...R, horsAllowlist: 'raison' }]]);
-    expect([inconnue, deLHote, gardee].map((t) => t.size)).toEqual([1, 1, 1]);
+    // @ts-expect-error verbe de l’hôte
+    const deLHote = buildRoutes([['ouvrirLeRepos', R]]);
+    expect([inconnue, deLHote].map((t) => t.size)).toEqual([1, 1]);
   });
 });
 
@@ -79,20 +78,21 @@ describe('#1051 — les familles de routes sont DISJOINTES (invariant verrouill�
 });
 
 describe('#1051 — frontière table ⇄ REPLI universel', () => {
-  it('le repli n’est PAS une entrée de la table : la majorité des intents invités y passe', () => {
-    const repli = [...GUEST_INTENTS].filter((a) => !ROUTES.has(a));
-    expect(repli.length, 'population du repli universel (mesure de référence #1051, +12 exposés #1050, −1 routé #1042 : counterspellCancel porte la frontière de phase, −1 verbe purgé #1117 : `cascadeDetermine`, +1 exposé #1279 Sf : la quantité d’étape, jumelle du choix d’étape, +3 exposés #1426 : les trois verbes du LOT DE DÉS d’étal — `etalLotSetForcedRoll`/`etalLotConfirm`/`etalLotCancel` — passent VOLONTAIREMENT par le repli, qui les route à l’owner de leur modale, soit le sentinel `WORLD_STEP_OWNER` : une route dédiée y recopierait la même réponse, −2 purgés / +1 exposé #1349 G5 : `attackSetHeldGround`/`attackSetIntoCrowd` remplacés par `basculerLaPosture`, +1 exposé #1411 P2-A : `armerLaFinDuTour`, 1er temps du garde-fou « tour gâché » — geste du TOUR ACTIF, que le repli route à son propriétaire, +2 exposés #1508 : `cascadeDieRoll`/`cascadeDieSetForcedRoll`, jumeaux EXACTS des deux verbes de table — même goulot d’état, même routage par l’owner de leur étape, +1 exposé #1920 : `surgeryPassCancel`, jumeau de `surgeryNext`/`surgeryCancel` qui passent déjà par le repli — il les route à l’owner de la modale `medic`, le chirurgien de `pendingSurgery`, porteur même du jet, −1 routé #2415 : `toggleCluePin`, refusé à tout invité par le repli hors combat — il passe à `TOUJOURS` avec `markCluesSeen`, exposé et routé d’emblée, −3 verbes purgés #1765 : `battleTrample`/`trampleConfirm`/`trampleCancel`, le Piétinement passe par la manœuvre commune, +1 exposé #1595 : la Riposte (réglage `defense.riposte`), jumelle des réglages `defense.reaction`/`defense.armeDeParade`/`defense.porteBouclier` qui passent déjà par le repli — il les route à l’owner de l’étape `defense` de la cascade, le défenseur, +1 exposé #2942 : `battleClearPreview`, jumeau d’`armerLaFinDuTour` — l’aperçu armé vit dans `battle`, geste du TOUR ACTIF que le repli route à son propriétaire, −2 routés #2903 : `activityCancel`/`disengageCancel`, verbe `cancel` de leur flux mono, routés par le porteur du jet (`jetOwnedIntents`), +1 exposé #3059 : `extendedTestReverse`, la fenêtre du Test étendu appartient à son acteur (`modalArbiter`), le repli refuse tout autre siège, +1 exposé #3059 I3 : le Test du soin (réglage `heal.test`), jumeau du réglage `heal.mode` qui passe déjà par le repli — il le route à l’owner de la fenêtre de soin, le soigneur, −23 routés #2961 : 18 annulations et 5 jets manuscrits deviennent les verbes `cancel`/`roll` générés de leur flux mono, routés par le porteur du jet (`jetOwnedIntents`), −21 routés #3311 : les gestes de jet sans acteur de rangée — Round, étape, dé, annulation d’un flux multi — deviennent les verbes `jet<Verbe>(flux, …)`, routés (`routeDuVerbeDeJet`), qui rendent la décision au repli universel, −35 routés #3324 : les clôtures manuscrites deviennent le verbe `jetConfirm(flux)`, routé par le porteur du jet (flux mono) ou rendu au repli (flux multi), −6 routés #3327 : le dé d’étape de cascade (4) et la Maladresse (2) deviennent les verbes de jet de leurs flux `cascadeTirage` et `fumble`, −3 routés #3367 : les sorties de la cascade, du choix de monture et de l’infirmerie deviennent `fenetreFermer(fenetre)`, routé par le siège que le registre de la fenêtre déclare, −26 routés #3368 : les réglages des jets deviennent le verbe `jetRegler(flux, reglage, valeur)`, routé par le porteur du jet (flux mono), le porteur que la valeur désigne (Bandages) ou la rangée (arme d’enfoncement), le repli ne gardant que la fenêtre d’un flux multi, −5 sortis #3370 : `battleRun`/`battleHeal`/`battleAuContact`/`battleGrapple`/`battleShipBattery` sont la machinerie du clic (`MachinerieDuNoyau`), qui voyage par `battleClickEntity`/`battleClickTile`, −1 routé #3369 : le « Prêt » du repos devient la validation du repos `fenetreValider` sur `rest`, routée par le registre de la fenêtre), −1 routé #3367 lot B : la validation d’étape de la cascade devient la clôture `jetConfirm(\'cascade\')`, routée (`routeDuVerbeDeJet`), qui rend la décision au repli universel, −9 routés #3369 lot 2 : le Destin (3), le reniement, la cible montée, le patient et l’abandon d’opération deviennent `fenetreChoisir(fenetre, axe, valeur)`, routé par le siège que le choix déclare, la carte de l’incantation (2) devient le réglage `cast.carte`, routé par le porteur du jet, −1 routé #3369 lot 3 : « Tout résoudre » devient le jet sans rangée `jetRoll(\'cascade\')`, routé (`routeDuVerbeDeJet`), qui rend la décision au repli universel, −7 routés #3369 lot 3 : le choix et la quantité d’étape de cascade, le sacrifice et la fuite du Désengagement, l’issue d’Au Contact, la rupture et l’issue de l’Empoignade deviennent des réglages `jetRegler(flux, reglage, valeur)`, routés par le porteur du jet (flux mono) ou rendus au repli (rangée d’étape de cascade, qui n’est pas un combattant), −1 routé #3369 lot 3 : la plaie opérée devient le choix `fenetreChoisir(\'medic\', \'plaie\', uid)`, routé par le siège que le choix déclare, −41 sortis #3371 lot 2 : les 32 corps d’offre et les 9 verbes de combat fusionnés avec leur jumeau hors combat sont la machinerie de `jouerLOffre`, routé par le lieu de son offre (`lieuDeLOffre`), +4 exposés #3371 lot 2 : `desarmerLeMode`, `utiliserLObjet`, `prendreLaPanoplie` et `depenserLaDetermination`, gestes du tour actif ou de leur porteur, que le repli route à son propriétaire)').toBe(11);
+  it('le repli n’est PAS une entrée de la table : il porte les gestes routés au propriétaire de ce qu’ils touchent', () => {
+    const repli = [...GUEST_INTENTS].filter((a) => !ROUTES.has(a)).sort();
+    expect(repli, 'population du repli universel : chacun se route au propriétaire du tour actif (`effacerLApercu`, `desarmerLeMode`), de son porteur (`utiliserLObjet`, `prendreLaPanoplie`, `depenserLaDetermination`), du mobile (`franchirLArete`) ou de la fenêtre `medic` (`soignerLePatient`, `ouvrirLaChirurgie`) ; un geste qui entre au repli ou en sort se nomme ici').toEqual([
+      'depenserLaDetermination', 'desarmerLeMode', 'effacerLApercu', 'franchirLArete', 'ouvrirLaChirurgie', 'prendreLaPanoplie', 'soignerLePatient', 'utiliserLObjet',
+    ]);
     expect(ROUTES.has('armerLeMode'), 'un geste de tour ordinaire ne se route pas').toBe(false);
   });
 
-  // Le compte ci-dessus est un CLIQUET : il constate 182 sans dire d'où vient le −1. Ici la population
-  // est DÉRIVÉE — repli et routés PARTITIONNENT l'allowlist — et le mouvement de #1117 est NOMMÉ : la
-  // Détermination se joue PAR RANGÉE de bande, geste `jetDetermine('cascadeBatch', pid)`, qui est routé.
+  // La population est DÉRIVÉE : repli et routés PARTITIONNENT l'allowlist. La Détermination se joue PAR RANGÉE de
+  // bande, geste `jetDepenserLaDetermination('cascadeBatch', pid)`, qui est routé.
   it('la population du repli est DÉRIVÉE (partition de l’allowlist) et la Détermination PAR RANGÉE est routée', () => {
     const routes = [...GUEST_INTENTS].filter((a) => ROUTES.has(a));
     const repli = [...GUEST_INTENTS].filter((a) => !ROUTES.has(a));
     expect(repli.length + routes.length, 'partition exacte de l’allowlist').toBe(GUEST_INTENTS.size);
-    expect(ROUTES.has('jetDetermine'), 'la Détermination PAR RANGÉE est routée (#1117)').toBe(true);
+    expect(ROUTES.has('jetDepenserLaDetermination'), 'la Détermination PAR RANGÉE est routée (#1117)').toBe(true);
   });
 
   it('GARDE DE CLASSE (#2415) : tout intent de GROUPE a sa route — hors combat, le repli le refuserait à tout invité', () => {
@@ -104,25 +104,15 @@ describe('#1051 — frontière table ⇄ REPLI universel', () => {
     expect(ROUTES.has('intentQuiNExistePas')).toBe(false);
   });
 
-  it('les routes hors `GUEST_INTENTS` sont conservées et DÉCLARENT leur raison', () => {
-    const hors = [...ROUTES.keys()].filter((a) => !GUEST_INTENTS.has(a)).sort();
-    expect(hors, 'route hors allowlist : le geste est inatteignable par le réseau (défense en profondeur)')
-      .toEqual(['cliquerLaCase']);
-    for (const a of hors.filter((x) => NOM.includes(x))) {
-      expect(ROUTES.get(a)!.horsAllowlist, `${a} : route hors allowlist sans justification`).toBeTruthy();
-    }
+  it('toute route est celle d’un geste que l’invité envoie (`GUEST_INTENTS`)', () => {
+    expect([...ROUTES.keys()].filter((a) => !GUEST_INTENTS.has(a)), 'route d’un geste que le réseau ne porte pas').toEqual([]);
   });
 });
 
-describe('#1051 — l’ancienne regex d’interlude est ÉNUMÉRÉE (4 clés explicites, bit-identiques)', () => {
-  const RE_HISTORIQUE = /^interlude(Activity|CraftStart|Order|Bank)$/;
-
-  it('les noms que la regex matchait sont EXACTEMENT les 4 clés posées', () => {
-    const univers = new Set([...GUEST_INTENTS, ...ROUTES.keys()]);
-    const matchés = [...univers].filter((a) => RE_HISTORIQUE.test(a)).sort();
-    expect(matchés).toEqual(['interludeActivity', 'interludeBank', 'interludeCraftStart', 'interludeOrder']);
-    for (const a of matchés) {
-      expect(ROUTES.has(a), `${a} : la regex le routait, la table ne le route plus`).toBe(true);
+describe('#1051 — les Activités d’interlude sont routées par une clé explicite chacune', () => {
+  it('chaque verbe d’Activité a sa route et son intent d’interlude', () => {
+    for (const a of ['pratiquerLActivite', 'deposerALaBanque', 'fabriquerLObjet', 'commanderLObjet'] as const) {
+      expect(ROUTES.has(a), `${a} : la table ne le route pas`).toBe(true);
       expect(INTERLUDE_INTENTS.has(a)).toBe(true);
     }
   });

@@ -18,8 +18,9 @@ import { initialNet, type BattleState } from './etat';
 import { draineCascade } from './cascade.testkit';
 import { openAttackCascade } from './combatFlow';
 import { gainCorruption } from './corruptionFlow';
-import { openMedic, medicAct } from './medicFlow';
+import { ouvrirLeMedecin, soignerLePatient } from './medicFlow';
 import { intentAllowedFor } from './netOwnership';
+import { NOM_DU_VERBE_DE_JET, type RollVerb } from './flowVerbs';
 import { modalOwnerOf } from './modalArbiter';
 import { seedBattleRng } from './battleRng';
 import { setCadence, cadenceAuto } from '../engine/cadence';
@@ -51,16 +52,16 @@ const NET_SOLO = { ...NET0, mode: 'local' as const, mySeat: 0, gmSeat: 0, owners
 
 const g = () => banc.getState();
 /** Les gestes de jet `list` sur le flux `flux`, par leur identité `verbe@flux` (`cleDuGeste`). */
-const verbs = (flux: string, list: string[]) => list.map((v) => `jet${v[0].toUpperCase()}${v.slice(1)}@${flux}`);
+const verbs = (flux: string, list: RollVerb[]) => list.map((v) => `${NOM_DU_VERBE_DE_JET[v]}@${flux}`);
 /** Le verbe et les arguments du geste `verbe@flux` (`VerbesDeJet`). */
 const geste = (cle: string): [string, unknown[]] => {
   const [verbe, flux] = cle.split('@');
-  return [verbe, verbe === 'jetSetForcedRoll' ? [flux, 42] : [flux]];
+  return [verbe, verbe === 'jetImposerLeResultat' ? [flux, 42] : [flux]];
 };
 /** Verdict des 3 sièges pour un geste : [hôte, joueur, MJ]. */
 const seats = (cle: string) => [0, 1, 2].map((seat) => intentAllowedFor(g(), seat, ...geste(cle)));
 
-const INFLUENCE = ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'];
+const INFLUENCE: RollVerb[] = ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'];
 const CORRUPTION_VERBS = verbs('corruption', [...INFLUENCE, 'resist']);
 const HEAL_VERBS = verbs('heal', INFLUENCE);
 const RUN_VERBS = verbs('run', ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact']);
@@ -92,7 +93,7 @@ describe('#1015 — sonde 2 : `heal` par un SOIGNEUR PNJ (hors `actorIn`)', () =
   it('AUCUN siège n’influence le jet d’un soigneur PNJ', () => {
     // Un PNJ n'a ni Chance ni Résilience à dépenser : personne n'influence son jet, et l'AFFICHAGE
     // comme l'INTENT répondent pareil (même prédicat `seatInfluences`). Le pending porte l'id du PNJ
-    // (`medicAct` : `healerId: healer.id ?? 'pnj-soigneur'`), absent du groupe ET du combat — le Test
+    // (`soignerLePatient` : `healerId: healer.id ?? 'pnj-soigneur'`), absent du groupe ET du combat — le Test
     // roule sur une valeur BAKÉE (`p.skillValue`, drapeau `actorless`, rollFlowSpecs.ts:349-350 :
     // « L'INFLUENCE (Chance/Résilience) reste gérée à part par la fabrique via `spec.actor` (no-op si
     // l'acteur est un PNJ). »).
@@ -100,8 +101,8 @@ describe('#1015 — sonde 2 : `heal` par un SOIGNEUR PNJ (hors `actorIn`)', () =
     hero.id = 'b';
     hero.wounds = { ...hero.wounds, current: hero.wounds.max - 5 };
     banc.setState({ battle: null, mode: 'exploration', scene: testScene(), party: [hero], net: NET_COOP });
-    openMedic(g, banc.setState, { patientId: 'b', npc: { id: 'medecin-de-scene', label: 'Barbier-chirurgien', skill: { id: 'guerison', value: 45 }, intBonus: 3, acts: [{ act: 'wounds' }] } });
-    medicAct(g, banc.setState, 'wounds');
+    ouvrirLeMedecin(g, banc.setState, { patientId: 'b', npc: { id: 'medecin-de-scene', label: 'Barbier-chirurgien', skill: { id: 'guerison', value: 45 }, intBonus: 3, acts: [{ act: 'wounds' }] } });
+    soignerLePatient(g, banc.setState, 'wounds');
     expect(g().pendingHeal?.healerId, 'précondition : le soigneur est le PNJ de scène').toBe('medecin-de-scene');
     for (const i of HEAL_VERBS) expect(seats(i), `${i} : un PNJ n’a ni Chance ni Résilience à dépenser`).toEqual([false, false, false]);
   });
@@ -114,7 +115,7 @@ describe('#1015 — sonde 3 : `run` en cadence NON manuelle', () => {
     const a = mk('a', 'hero', { x: 0, y: 0 });
     const e = mk('e', 'enemy', { x: 6, y: 0 });
     banc.setState({ battle: arena([a, e]), mode: 'battle', scene: testScene(), net: NET_COOP, party: [] });
-    g().battleRun({ x: 3, y: 0 });
+    g().ouvrirLaCourse({ x: 3, y: 0 });
     expect(g().pendingRun?.combatantId, 'précondition : la Course du héros `a` est ouverte').toBe('a');
     for (const i of RUN_VERBS) expect(seats(i), `${i} (Rapide)`).toEqual([true, false, false]);
     setCadence('auto');
@@ -145,14 +146,14 @@ describe('#1015 — sonde 5 : `activity` (hors combat) — accord avec la route 
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'charlatan', label: 'H', seed: 1 });
     hero.id = 'b';
     banc.setState({ party: [hero], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, net: NET_COOP });
-    g().startScene(testScene());
+    g().lancerLaScene(testScene());
     banc.setState({ net: NET_COOP });
-    g().startInterlude(3);
+    g().ouvrirLInterlude(3);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
-    g().interludeActivity('b', 'observer-une-cible');
+    g().pratiquerLActivite('b', 'observer-une-cible');
     expect(g().pendingActivity?.heroId, 'précondition : l’Activité du héros `b` est ouverte').toBe('b');
     // Route `interlude*` (1er argument = le héros visé) et route par PORTEUR nomment le même siège.
-    expect([0, 1, 2].map((s) => intentAllowedFor(g(), s, 'interludeActivity', ['b']))).toEqual([false, true, false]);
+    expect([0, 1, 2].map((s) => intentAllowedFor(g(), s, 'pratiquerLActivite', ['b']))).toEqual([false, true, false]);
     for (const i of ACTIVITY_VERBS) expect(seats(i), i).toEqual([false, true, false]);
   });
 });
@@ -162,7 +163,7 @@ describe('#1015 — sonde 6 : SOLO bit-à-bit', () => {
     const a = mk('a', 'hero', { x: 0, y: 0 });
     const e = mk('e', 'enemy', { x: 6, y: 0 });
     banc.setState({ battle: arena([a, e]), mode: 'battle', scene: testScene(), net: NET_SOLO, party: [] });
-    g().battleRun({ x: 3, y: 0 });
+    g().ouvrirLaCourse({ x: 3, y: 0 });
     expect(g().pendingRun?.combatantId).toBe('a');
     for (const i of RUN_VERBS) expect(intentAllowedFor(g(), 0, ...geste(i)), i).toBe(true);
   });
@@ -171,11 +172,11 @@ describe('#1015 — sonde 6 : SOLO bit-à-bit', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'charlatan', label: 'H', seed: 2 });
     hero.id = 'a';
     banc.setState({ party: [hero], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, net: NET_SOLO });
-    g().startScene(testScene());
+    g().lancerLaScene(testScene());
     banc.setState({ net: NET_SOLO });
-    g().startInterlude(3);
+    g().ouvrirLInterlude(3);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
-    g().interludeActivity('a', 'observer-une-cible');
+    g().pratiquerLActivite('a', 'observer-une-cible');
     expect(g().pendingActivity?.heroId).toBe('a');
     for (const i of ACTIVITY_VERBS) expect(intentAllowedFor(g(), 0, ...geste(i)), i).toBe(true);
   });

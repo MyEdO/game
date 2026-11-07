@@ -21,13 +21,13 @@ export function FocusModal() {
   const pf = useGame((s) => s.pendingFocus);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
-  const roll = useGesteDeJet('jetRoll', 'focus');
-  const reroll = useGesteDeJet('jetReroll', 'focus');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'focus');
-  const darkPact = useGesteDeJet('jetDarkPact', 'focus');
-  const force = useGesteDeJet('jetForceSuccess', 'focus');
-  const confirm = useGesteDeJet('jetConfirm', 'focus');
-  const cancel = useGesteDeJet('jetCancel', 'focus');
+  const roll = useGesteDeJet('jetLancer', 'focus');
+  const reroll = useGesteDeJet('jetRelancer', 'focus');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'focus');
+  const darkPact = useGesteDeJet('jetPactiser', 'focus');
+  const force = useGesteDeJet('jetForcerLaReussite', 'focus');
+  const confirm = useGesteDeJet('jetValider', 'focus');
+  const cancel = useGesteDeJet('jetAnnuler', 'focus');
   if (!pf) return null;
   const caster = (battle?.combatants ?? party).find((c) => c.id === pf.casterId); // combat (file) ou hors combat (groupe)
   if (!caster) return null;

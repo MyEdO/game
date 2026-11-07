@@ -1,6 +1,6 @@
 /**
  * LE REPOS EN VUE, sans store (#3328) : `reposEnVue` dit la nuit à régler, chaque dormeur et ce que le lieu lui offre en
- * couchage et en pitance, chacun écrit en verbe du noyau (`restSet`), ce qui l'attend cette nuit, et la note que les
+ * couchage et en pitance, chacun écrit en choix de la fenêtre (`fenetreChoisir('rest', …)`), ce qui l'attend cette nuit, et la note que les
  * bourses paient ; le verbe refuse en le disant ce que le lieu n'offre pas. LDB 66
  */
 import { describe, it, expect } from 'vitest';
@@ -10,6 +10,7 @@ import { createHero } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
 import { isRation } from '../engine/provisions';
 import { fixtureText } from '../i18n/fixtureText';
+import { t } from '../i18n';
 
 /** Un banc dont le groupe, deux héros sans ration et une bourse de 2 pistoles, s'arrête à l'auberge du relais. */
 function relais() {
@@ -17,7 +18,7 @@ function relais() {
   const b = createHero({ speciesId: 'nains', careerId: 'artisan', label: 'Borin', seed: 12 });
   for (const h of [a, b]) h.items = (h.items ?? []).filter((i) => !isRation(i));
   const banc = ouvrirLeBanc({ graine: 7, etat: { party: [a, b] } });
-  banc.actions.openRest({ lieu: fixtureText('Le relais'), places: { auberge: true } });
+  banc.getState().offrirLeRepos({ lieu: fixtureText('Le relais'), places: { auberge: true } });
   const vue = () => reposEnVue(banc.getState())!;
   const dernier = () => banc.getState().journal.slice(-1)[0];
   return { banc, a, b, vue, dernier };
@@ -31,23 +32,23 @@ describe('le repos en vue', () => {
     const anna = r.dormeurs.find((d) => d.id === a.id)!;
     expect(anna.couchage.valeurs.map((v) => [v.libelle, v.choisie]), 'les couchages du relais, le premier pris').toEqual([['Privée', true], ['Commune', false], ['Dehors', false]]);
     expect(anna.pitance.valeurs.map((v) => v.libelle), 'sans ration, le repas ou rien').toEqual(['Repas', 'Rien']);
-    expect(anna.couchage.valeurs[2].geste, 'le couchage, en verbe du noyau').toEqual({ verbe: 'restSet', args: [a.id, { lodging: 'dehors' }] });
+    expect(anna.couchage.valeurs[2].geste, 'le couchage, en verbe du noyau').toEqual({ verbe: 'fenetreChoisir', args: ['rest', 'couchage', 'dehors', a.id] });
     expect(r.note, 'une chambre pour deux et deux repas, plus que la bourse').toMatchObject({ couverte: false });
   });
 
   it('le dormeur règle sa nuit : la note suit, le ventre vide se dit ; ce que le lieu n’offre pas est refusé, dit', () => {
     const { banc, a, b, vue, dernier } = relais();
-    for (const h of [a, b]) banc.actions.restSet(h.id, { lodging: 'dehors' });
-    banc.actions.restSet(a.id, { food: 'rien' });
+    for (const h of [a, b]) banc.actions.fenetreChoisir('rest', 'couchage', 'dehors', h.id);
+    banc.actions.fenetreChoisir('rest', 'pitance', 'rien', a.id);
     const anna = vue().dormeurs.find((d) => d.id === a.id)!;
     expect(anna.couchage.valeurs.find((v) => v.choisie)?.libelle, 'dehors').toBe('Dehors');
     expect(anna.alertes, 'le ventre vide').toContain('Ventre vide');
     expect(vue().note, 'un repas seul, que la bourse couvre').toMatchObject({ couverte: true });
 
-    banc.actions.restSet(a.id, { lodging: 'bord' });
-    expect(dernier(), 'le hamac n’est pas offert au relais').toBe('Ce couchage n’est pas offert ici.');
-    banc.actions.restSet(a.id, { food: 'ration' });
-    expect(dernier(), 'sans ration, pas de ration').toBe('Cette pitance n’est pas offerte à Anna.');
+    banc.actions.fenetreChoisir('rest', 'couchage', 'bord', a.id);
+    expect(dernier(), 'le hamac n’est pas offert au relais').toBe(t('choix.refus.valeur'));
+    banc.actions.fenetreChoisir('rest', 'pitance', 'ration', a.id);
+    expect(dernier(), 'sans ration, pas de ration').toBe(t('choix.refus.valeur'));
     expect(vue().dormeurs.find((d) => d.id === a.id)!.couchage.valeurs.find((v) => v.choisie)?.libelle, 'rien ne change').toBe('Dehors');
   });
 });

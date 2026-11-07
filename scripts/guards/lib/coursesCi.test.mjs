@@ -131,7 +131,7 @@ const JOURNAL_NODE = [
 /** Course 35986843571 (vitest). */
 const JOURNAL_VITEST = [
   "build\tUNKNOWN STEP\t\uFEFF2026-09-24T10:22:35.3845169Z Current runner version: '2.337.0'",
-  "build\tUNKNOWN STEP\t2026-09-24T10:34:12.8482465Z  ✓ src/ui/FxChip.test.tsx (1 test) 4ms",
+  "build\tUNKNOWN STEP\t2026-09-24T10:34:12.8482465Z  ✓ src/noyau/absorption.test.ts (1 test) 4ms",
   "build\tUNKNOWN STEP\t2026-09-24T10:34:13.2660645Z ",
   "build\tUNKNOWN STEP\t2026-09-24T10:34:13.2975662Z ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
   "build\tUNKNOWN STEP\t2026-09-24T10:34:13.2976133Z ",

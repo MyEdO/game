@@ -21,7 +21,6 @@ import { conversationRepond, reponsesDuNoeud } from './dialogue';
 import { refuserGesteDuSiege } from './refusVisible';
 import type { Reglage, ValeurDuReglage } from './reglages';
 import { refusDeChoixDePaie } from './shipCrew';
-import { refusDePayerManann } from './seaVoyageFlow';
 import { corruptionTarget } from './corruptionFlow';
 import { activityById } from '../engine/activities';
 import { plafondDeMiseDOpportunite, plafondDePlanque, seaActivitiesCatalog, seaActivityBlocked, seaActivityRefus } from './seaActivities';
@@ -29,6 +28,11 @@ import { decidingSeat } from './netOwnership';
 import { seatOwns } from './sieges';
 import type { IdDeHeros } from './designations';
 import { herosDeLaSeance, type AxeDuGroupe, type AxeDuHerosDeLaSeance } from './partyFlow';
+import { BAISSES_DE_PRIX_MAX, catalogEntryOf, contexteDAchat, libelleDeLaRepartition, refusDAjout, sellRefusal, type MerchantState } from './merchantFlow';
+import { dormeurDuRepos, foodOptions, lodgingOptions, nourrituresDeTroupe } from './restFlow';
+import { itemLabel } from '../engine/items';
+import type { ItemInstance } from '../engine/types';
+import type { LootGear } from './pendings';
 import {
   VERBE_DE_CHOIX, declarationDuChoix, type AxeDe, type AxeDuChoix, type CorpsDesChoix, type FenetreAChoix, type OuvertsDuChoix,
 } from './choixDesFenetres';
@@ -80,6 +84,31 @@ const caseDuGroupe = (axe: AxeDuGroupe) => reglage('finDeSeance', axe, ouiNon(se
 /** La case `axe` du héros `pid` de la fin de séance. */
 const caseDuHeros = (axe: AxeDuHerosDeLaSeance) => reglage('finDeSeance', axe, ouiNon(seanceOuverte), (s, pid) => (pid === undefined ? null : s.finDeSeance?.heros[pid]?.[axe] ?? false));
 
+/** L'article `id` du stock du marchand, nommé par son catalogue. */
+const article = (id: string): ValeurDuReglage => ouverte(id, garanti(catalogEntryOf(id), id, 'article du marchand').label);
+/** La seule valeur d'un geste qui vide (`axe`) tant que `plein` : `true`. */
+const vider = (axe: 'viderLePanier' | 'viderLaVente', plein: (m: MerchantState) => boolean) => reglage('marchand', axe, (s) => (s.merchant && plein(s.merchant) ? [ouverte(true, libelleDuChoix('marchand', axe))] : []));
+/** Chaque objet du groupe que `retenu` garde, l'échoppe ouverte, fermé par la raison de `refus`. */
+const objetsALEchoppe = (axe: AxeDe<'marchand'>, retenu: (it: ItemInstance, m: MerchantState) => boolean, refus: (it: ItemInstance) => string | null = () => null) =>
+  reglage('marchand', axe, (s) => {
+    const m = s.merchant;
+    return m ? s.party.flatMap((h) => (h.items ?? []).filter((it) => retenu(it, m)).map((it) => ouverte(it.uid, itemLabel(it), refus(it)))) : [];
+  });
+const baissesDe = (m: MerchantState, it: ItemInstance): number => m.sellHalvings?.[it.uid] ?? 0;
+const enVente = (m: MerchantState, it: ItemInstance): boolean => (m.sellCart ?? []).some((c) => c.uid === it.uid);
+/** Le héros `pid` d'une rangée, hors de toute rangée tout héros : un héros du groupe. */
+const duGroupe = (s: Jeu, pid: IdDeHeros | undefined): boolean => pid === undefined || s.party.some((h) => h.id === pid);
+/** Chaque ligne du butin `lignes`, au héros `pid` du groupe. */
+const lignesDuButin = (fenetre: 'loot' | 'victory', lignes: (s: Jeu) => readonly LootGear[] | undefined) =>
+  reglage(fenetre, 'ligne', (s, pid) => (duGroupe(s, pid) ? (lignes(s) ?? []).map((g) => ouverte(g.uid, g.label)) : []));
+/** La nuit à régler, au dormeur `pid` (hors de toute rangée, la troupe). */
+const nuitDuDormeur = (s: Jeu, pid: IdDeHeros | undefined) => {
+  const p = s.pendingRest;
+  return p?.phase === 'setup' && (pid === undefined || dormeurDuRepos(s, pid)) ? { p, dormeur: dormeurDuRepos(s, pid) } : null;
+};
+/** Une valeur du repos, nommée par son axe (`couchage`, `pitance`). */
+const duRepos = (v: string, axe: 'couchage' | 'pitance'): ValeurDuReglage => ouverte(v, garanti(libelleDuLitteral(v, axe), v, 'valeur du repos'));
+
 /** L'issue du Sauvetage par le Destin, dans l'ordre de la fenêtre : celles que sa source offre (`fateSaveOptions`), puis
  *  la mort acceptée. LDB 17 l.29-32 */
 const ISSUES_DU_DESTIN = ['negate', 'survive', 'accept'] as const;
@@ -103,7 +132,6 @@ export const OUVERTS_DU_CHOIX = {
       ? payChoices().map(({ factorId }) => ouverte(factorId, garanti(findMoraleFactor(factorId), factorId, 'choix de paie').label, refusDeChoixDePaie(s, factorId)))
       : [])),
   },
-  manannPriest: { payer: reglage('manannPriest', 'payer', ouiNon((s) => !!s.pendingManannPriest, (s, payer) => (payer ? refusDePayerManann(s) : null))) },
   shoreLeave: { accorder: reglage('shoreLeave', 'accorder', ouiNon((s) => !!s.pendingShoreLeave)) },
   medic: {
     patient: reglage('medic', 'patient', (s) => {
@@ -131,6 +159,38 @@ export const OUVERTS_DU_CHOIX = {
       const hero = herosDeLaSemaine(s, pid);
       return hero && activiteChoisie(s, pid)?.resolver === 'seaChart' ? plafondDePlanque(s, hero) : null;
     }, (s, pid) => choixDuHeros(s, pid)?.stashGold ?? 0),
+  },
+  // LDB 59 l.43-60
+  marchand: {
+    ajouterAuPanier: reglage('marchand', 'ajouterAuPanier', (s) => {
+      const m = s.merchant;
+      return m ? m.stock.map((l) => ({ ...article(l.id), refus: refusDAjout(m, l.id, contexteDAchat(s, m)) })) : [];
+    }),
+    oterDuPanier: reglage('marchand', 'oterDuPanier', (s) => (s.merchant?.cart ?? []).map((c) => article(c.id))),
+    retirerDuPanier: reglage('marchand', 'retirerDuPanier', (s) => (s.merchant?.cart ?? []).map((c) => article(c.id))),
+    viderLePanier: vider('viderLePanier', (m) => m.cart.length > 0),
+    ajouterALaVente: objetsALEchoppe('ajouterALaVente', (it, m) => !enVente(m, it), (it) => {
+      const raison = sellRefusal(it);
+      return raison === null ? null : t('trade.sellRefused', { reason: raison });
+    }),
+    retirerDeLaVente: objetsALEchoppe('retirerDeLaVente', (it, m) => enVente(m, it)),
+    viderLaVente: vider('viderLaVente', (m) => !!m.sellCart?.length),
+    baisserLePrix: objetsALEchoppe('baisserLePrix', (it, m) => sellRefusal(it) === null && baissesDe(m, it) < BAISSES_DE_PRIX_MAX),
+    releverLePrix: objetsALEchoppe('releverLePrix', (it, m) => baissesDe(m, it) > 0),
+    repartition: reglage('marchand', 'repartition', (s, pid) => (duGroupe(s, pid) ? (s.merchant?.pendingDistribution ?? []).map((d) => ouverte(d.uid, libelleDeLaRepartition(d))) : [])),
+  },
+  loot: { ligne: lignesDuButin('loot', (s) => s.pendingLoot?.gear) },
+  victory: { ligne: lignesDuButin('victory', (s) => s.pendingVictory?.gear) },
+  // LDB 66
+  rest: {
+    couchage: reglage('rest', 'couchage', (s, pid) => {
+      const nuit = nuitDuDormeur(s, pid);
+      return nuit ? lodgingOptions(nuit.p.places).map((v) => duRepos(v, 'couchage')) : [];
+    }, (s, pid) => (pid === undefined ? null : s.pendingRest?.perHero[pid]?.lodging ?? null)),
+    pitance: reglage('rest', 'pitance', (s, pid) => {
+      const nuit = nuitDuDormeur(s, pid);
+      return nuit ? (nuit.dormeur ? foodOptions(nuit.p.places, nuit.dormeur) : nourrituresDeTroupe(nuit.p.places)).map((v) => duRepos(v, 'pitance')) : [];
+    }, (s, pid) => (pid === undefined ? null : s.pendingRest?.perHero[pid]?.food ?? null)),
   },
   // LDB 05 l.793-841, LDB 17 l.81 : chaque case se coche ou se décoche jusqu'à la fin de la séance, par l'hôte.
   finDeSeance: {

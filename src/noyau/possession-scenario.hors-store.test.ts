@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { addPossession } from './possessionsFlow';
+import { ajouterLaPossession } from './possessionsFlow';
 import { snapshotSave, lireSave, type SaveGame } from './persistance/save';
 import { possessionTotalEnc } from '../engine/possession';
 import type { Possession } from '../engine/possession';
@@ -30,8 +30,8 @@ const set: Banc['setState'] = (e) => banc.setState(e);
 
 describe('scénario-étalon possessions — charrette + mule chargée (terrestre, §5)', () => {
   it('possessionTotalEnc survit à un round-trip snapshotSave → lireSave', () => {
-    const charretteUid = addPossession(get, set, { ...vehicule('charrette', [{ cargoId: 'grain', enc: 15, basePriceGold: 3 }]), location: { kind: 'au-lieu', placeId: 'ecurie' } });
-    const muleUid = addPossession(get, set, bete('mule', [{ cargoId: 'vin-eau-de-vie', enc: 4, basePriceGold: 8 }]));
+    const charretteUid = ajouterLaPossession(get, set, { ...vehicule('charrette', [{ uid: 'lot-1', cargoId: 'grain', enc: 15, basePriceGold: 3 }]), location: { kind: 'au-lieu', placeId: 'ecurie' } });
+    const muleUid = ajouterLaPossession(get, set, bete('mule', [{ uid: 'lot-2', cargoId: 'vin-eau-de-vie', enc: 4, basePriceGold: 8 }]));
 
     const before = get().possessions;
     const charretteBefore = before.find((p) => p.uid === charretteUid)!;

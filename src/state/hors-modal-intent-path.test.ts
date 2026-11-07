@@ -15,8 +15,8 @@ import { KEYBINDINGS } from './clavier/keybindings';
 
 /**
  * ÉMISSION — une route ne protège que ce que quelqu'un ÉMET. Le défaut d'origine était exactement
- * là : `cleaveAttack` routé alors qu'AUCUN site d'écran ne le demande (le clic voyage par
- * `battleClickEntity`). Chaque intent routé par #1016 déclare donc son émetteur, et le scan
+ * là : `frapperEnBalayage` routé alors qu'AUCUN site d'écran ne le demande (le clic voyage par
+ * `cliquerLaCase`). Chaque intent routé par #1016 déclare donc son émetteur, et le scan
  * CONFRONTE la déclaration aux sources d'écran.
  * UN GESTE PEUT ÊTRE ÉMIS PAR TROIS CHEMINS, et le scan les connaît tous les trois :
  *   1. TEXTUEL — le nom du verbe apparaît dans une source d'écran (`src/ui`/`src/gameIso`) ;
@@ -28,19 +28,17 @@ import { KEYBINDINGS } from './clavier/keybindings';
  * DEUX LIMITES DÉCLARÉES : (a) le scan reste TEXTUEL — il prouve l'existence d'un site d'émission,
  * JAMAIS son atteignabilité à l'écran (bouton affiché, affordance ouverte), qui se juge en recette
  * navigateur ; (b) la liste confrontée à cette table est DÉRIVÉE de `netOwnership.ROUTES` (#1051) —
- * toute route nominative doit donc déclarer son émetteur, sauf celles que `Route.horsAllowlist`
- * marque inatteignables par le réseau.
+ * toute route nominative doit donc déclarer son émetteur.
  */
-const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string } | { sansSurface: string }> = {
-  battleClickEntity: { parUI: true },
-  battleClickTile: { parUI: true },
+const EMISSION: Record<string, { parUI: true } | { sansSurface: string }> = {
+  cliquerLaCase: { parUI: true },
   // L'offre du registre (#3371) : chaque case, touche ou bandeau qui la joue (`jouerLOffre(<id>)`).
   jouerLOffre: { parUI: true },
   // Les sorts de la fiche, hors combat comme en combat (`CharacterSheet`).
   incanterLeSort: { parUI: true },
   focaliserLeSort: { parUI: true },
   dissiperLeSort: { parUI: true },
-  roundStartPromote: { parUI: true },
+  promouvoirLeCombattant: { parUI: true },
   // La sortie d'une fenêtre (`modalArbiter.sortieDeLaFenetre`) : le bouton qui ferme son écran, et les sorties
   // d'interlude du balayage et de la 2ᵉ frappe (`actionRegistry.OFFRES_PAR_RUN`).
   fenetreFermer: { parUI: true },
@@ -50,26 +48,24 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   // Le choix d'une fenêtre (`choixDesFenetres.CHOIX_DES_FENETRES`) : le bouton de chaque valeur de son écran.
   fenetreChoisir: { parUI: true },
   // Demande de pause au prochain Round : l'interrupteur du pied de FRISE (`raise-hand`, relais du
-  // registre). Les deux sens passent par le même dispatcher, d'où le retrait `interne`.
-  raiseHand: { parUI: true },
-  lowerHand: { interne: 'actionRegistry.OFFRES_PAR_RUN.raiseHand — le relais baisse la main levée de son siège', dans: 'src/noyau/actionRegistry.ts' },
-  assignVictoryGear: { parUI: true },
+  // registre). Les deux sens passent par le même verbe.
+  leverLaMain: { parUI: true },
   // Carnet d'enquête (#670) : l'épingle et la nouveauté vue, émises par `CarnetScreen`.
-  toggleCluePin: { parUI: true },
-  markCluesSeen: { parUI: true },
-  partyAddHero: { parUI: true },
-  partyRemoveHero: { parUI: true },
-  partyReplaceHero: { parUI: true },
-  interludeActivity: { parUI: true },
-  interludeCraftStart: { parUI: true },
-  interludeOrder: { parUI: true },
-  interludeBank: { parUI: true },
-  interludeWithdraw: { parUI: true },
-  interludeEntrainement: { parUI: true },
-  favorSettle: { parUI: true },
-  massBattleActivity: { parUI: true },
+  epinglerLIndice: { parUI: true },
+  marquerLesIndices: { parUI: true },
+  recruterLeHeros: { parUI: true },
+  renvoyerLeHeros: { parUI: true },
+  remplacerLeHeros: { parUI: true },
+  pratiquerLActivite: { parUI: true },
+  fabriquerLObjet: { parUI: true },
+  commanderLObjet: { parUI: true },
+  deposerALaBanque: { parUI: true },
+  retirerDeLaBanque: { parUI: true },
+  suivreLEntrainement: { parUI: true },
+  solderLaFaveur: { parUI: true },
+  menerLActionDeBataille: { parUI: true },
   // Tir rapide (#1050) : le badge de la frise ARME la visée ; le tir lui-même part du clic-token.
-  armPreempt: { parUI: true },
+  armerLeTirPreventif: { parUI: true },
   // Réglages des jets (#3368) : l'arme d'enfoncement d'une rangée de `ForceDoorModal` (EDO 11 l.93), les Bandages du
   // soin (LDB 74 l.41), la déclaration d'une rangée de Contre-sort (#1042/#1059) ou de chute (#700), chacun une option
   // de sa fenêtre.
@@ -103,7 +99,7 @@ function verbesRelayesParLeRegistre(): Set<string> {
   return new Set(ACTIONS.filter((a) => a.run && avecSurface.has(a.id)).map((a) => a.run!));
 }
 
-describe('#1016 — toute route porte sur un geste RÉELLEMENT émis (ou déclare son site interne)', () => {
+describe('#1016 — toute route porte sur un geste RÉELLEMENT émis (ou déclare n’avoir aucune surface)', () => {
   const emis = (name: string, sources: string[]) => sources.some((src) => src.includes(name));
   const CLAVIER_SRC = readFileSync(join(process.cwd(), 'src', 'state', 'clavier', 'keybindings.ts'), 'utf8');
   /** Les trois chemins d'émission (voir l'en-tête d'`EMISSION`). */
@@ -135,22 +131,11 @@ describe('#1016 — toute route porte sur un geste RÉELLEMENT émis (ou déclar
     expect(muettes, 'entrée `sansSurface` sans adresse de destination').toEqual([]);
   });
 
-  it('les intents déclarés `interne` n’ont AUCUN site d’écran, et le site nommé existe', () => {
-    const sources = ecranSources();
-    const internes = Object.entries(EMISSION).filter(([, e]) => 'interne' in e) as [string, { interne: string; dans: string }][];
-    expect(internes.map(([n]) => n), 'précondition : au moins une route de défense en profondeur').not.toEqual([]);
-    const menteuses = internes.map(([n]) => n).filter((n) => emis(n, sources));
-    expect(menteuses, 'déclaré interne mais émis par un écran — le reclasser `parUI`').toEqual([]);
-    // Le fichier NOMMÉ par la déclaration doit contenir l'appel : un site interne inventé se voit ici.
-    const absents = internes.filter(([n, e]) => !readFileSync(join(process.cwd(), ...e.dans.split('/')), 'utf8').includes(n)).map(([n]) => n);
-    expect(absents, 'site interne nommé mais introuvable dans le fichier déclaré').toEqual([]);
-  });
-
   it('toute route NOMINATIVE de `ROUTES` figure dans EMISSION (aucune route sans verdict d’émission)', () => {
     const derivees = new Set<string>(Object.values(NOM_DU_VERBE_DE_JET));
     const routes = [...ROUTES.keys()].filter((a) => !derivees.has(a));
     expect(routes.length, 'précondition : la table expose bien ses routes nominatives').toBeGreaterThan(10);
-    const sansVerdict = routes.filter((n) => !(n in EMISSION) && !ROUTES.get(n)!.horsAllowlist);
+    const sansVerdict = routes.filter((n) => !(n in EMISSION));
     expect(sansVerdict, 'route sans entrée EMISSION — déclarer qui l’émet').toEqual([]);
   });
 });

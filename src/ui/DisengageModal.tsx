@@ -34,28 +34,28 @@ const DISENGAGE_STAKE: Record<PendingDisengage['phase'], FlowStakeId> = { choice
  * - **'choice'** : PAS un jet — le MENU d'options (`OptionChooser`) Sacrifier l'Avantage / Esquiver /
  *   Fuir + Résilience pré-jet, rendu dans un `Modal` simple (RollShell ne fait pas les menus).
  * - **'esquive'** : `RollShell` opposé (2 rangées) — [0] Corps à corps du foe FIGÉ (témoin) vs
- *   [1] Esquive du mover INTERACTIVE (cycle d'influence), `winnerIndex`/`outcome`. Appliquer = `jetConfirm('disengage')`.
+ *   [1] Esquive du mover INTERACTIVE (cycle d'influence), `winnerIndex`/`outcome`. Appliquer = `jetValider('disengage')`.
  * - **'fuir'** : `RollShell` (flux MULTI `flee`, 2 slots) — [0] le coup dans le dos du FRAPPEUR,
  *   [1] le Test du FUYARD (fiche `fuite`, présent seulement si le coup a fait des Blessures). Chaque rangée
- *   est INTERACTIVE pour son contrôleur humain, TÉMOIN sinon. Appliquer = `jetConfirm('flee')`.
+ *   est INTERACTIVE pour son contrôleur humain, TÉMOIN sinon. Appliquer = `jetValider('flee')`.
  */
 export function DisengageModal() {
   const pd = useGame((s) => s.pendingDisengage);
   const battle = useGame((s) => s.battle);
   const regler = useGame((s) => s.jetRegler);
-  const esquiver = useGesteDeJet('jetRoll', 'disengage');
-  const reroll = useGesteDeJet('jetReroll', 'disengage');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'disengage');
-  const darkPact = useGesteDeJet('jetDarkPact', 'disengage');
-  const forceSuccess = useGesteDeJet('jetForceSuccess', 'disengage');
-  const confirm = useGesteDeJet('jetConfirm', 'disengage');
-  const fleeRoll = useGesteDeJet('jetRoll', 'flee');
-  const fleeReroll = useGesteDeJet('jetReroll', 'flee');
-  const fleeBonusSL = useGesteDeJet('jetBonusSL', 'flee');
-  const fleeDarkPact = useGesteDeJet('jetDarkPact', 'flee');
-  const fleeForce = useGesteDeJet('jetForceSuccess', 'flee');
-  const fleeConfirm = useGesteDeJet('jetConfirm', 'flee');
-  const cancel = useGesteDeJet('jetCancel', 'disengage');
+  const esquiver = useGesteDeJet('jetLancer', 'disengage');
+  const reroll = useGesteDeJet('jetRelancer', 'disengage');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'disengage');
+  const darkPact = useGesteDeJet('jetPactiser', 'disengage');
+  const forceSuccess = useGesteDeJet('jetForcerLaReussite', 'disengage');
+  const confirm = useGesteDeJet('jetValider', 'disengage');
+  const fleeRoll = useGesteDeJet('jetLancer', 'flee');
+  const fleeReroll = useGesteDeJet('jetRelancer', 'flee');
+  const fleeBonusSL = useGesteDeJet('jetAjouterUnDR', 'flee');
+  const fleeDarkPact = useGesteDeJet('jetPactiser', 'flee');
+  const fleeForce = useGesteDeJet('jetForcerLaReussite', 'flee');
+  const fleeConfirm = useGesteDeJet('jetValider', 'flee');
+  const cancel = useGesteDeJet('jetAnnuler', 'disengage');
   if (!pd || !battle) return null;
   const mover = battle.combatants.find((c) => c.id === pd.moverId);
   const foe = battle.combatants.find((c) => c.id === pd.foeId);

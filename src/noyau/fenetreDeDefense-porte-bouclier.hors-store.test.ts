@@ -46,8 +46,8 @@ function ouvrirLaDefense(avantage: number, dejaUtilise = false, projete = avanta
   } as unknown as BattleState;
   banc.setState({ battle, mode: 'battle', scene: testScene(), pendingDefense: null, pendingAttack: null, pendingCascade: null, net: { ...initialNet(), mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } });
   openAttackCascade(g, banc.setState, { attackerId: ennemi.id, targetId: heros.id, location: null, result: null, weaponUid: 'ep' }, 'Attaque', 'action/attack');
-  g().jetRoll('attack');
-  g().jetConfirm('attack');
+  g().jetLancer('attack');
+  g().jetValider('attack');
   expect(g().pendingDefense, 'chemin : la Défense du héros s’ouvre').toBeTruthy();
   g().jetRegler('defense', 'reaction', 'parade');
   g().jetRegler('defense', 'armeDeParade', 'sh');
@@ -83,8 +83,8 @@ describe('fenêtre de Défense — Porte-Bouclier (AA 13 l.84)', () => {
 
   it('après le jet : la poussée ne se règle plus, les Dégâts exigent une Défense gagnée', () => {
     ouvrirLaDefense(2);
-    g().jetRoll('defense');
-    g().jetSetForcedRoll('defense', 99);
+    g().jetLancer('defense');
+    g().jetImposerLeResultat('defense', 99);
     const r = refus();
     expect(r.push).toBe(t('defense.refus.jetLance'));
     expect(r.damage).toBe(t('defense.refus.degatsSansDefenseGagnee'));

@@ -21,7 +21,7 @@ import { useGesteDeJet } from './useGesteDeJet';
  */
 export function EtalLotModal() {
   const p = useGame((s) => s.pendingEtalLot);
-  const confirm = useGesteDeJet('jetConfirm', 'etalLot');
+  const confirm = useGesteDeJet('jetValider', 'etalLot');
   if (!p) return null;
 
   const rows: BuiltRollRow[] = p.participants.map((r) => tableRow({

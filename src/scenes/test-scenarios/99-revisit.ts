@@ -11,7 +11,7 @@ import type { Scene } from '../../noyau/monde/scene';
  * sas de transition. Prose de FIXTURE (test-scenario dev, pas du contenu de campagne livré).
  *
  * Recette : fouiller le coffre (disparaît) + ouvrir la porte en Réserve, passer par le Couloir,
- * revenir en Réserve — le coffre reste absent, la porte reste ouverte (sans ce lot, `transitionTo`
+ * revenir en Réserve — le coffre reste absent, la porte reste ouverte (sans ce lot, `quitterLaScene`
  * re-clonait la scène authored à chaque entrée et perdait les deux mutations).
  */
 const construireReserve = (): Scene => buildScene({
@@ -72,7 +72,7 @@ export const scenario: TestScenario = {
   tests:
     'Persistance d’état au revisit (#707, couche `sceneInstances`) : fouiller le coffre `interact.consume` ' +
     'de la Réserve (disparaît) + ouvrir sa porte, transiter par le Couloir, revenir en Réserve — le coffre ' +
-    'reste absent et la porte reste ouverte (sans capture/apply, `transitionTo` re-clonait la scène authored).',
+    'reste absent et la porte reste ouverte (sans capture/apply, `quitterLaScene` re-clonait la scène authored).',
   partyNote: 'Pré-tirés',
   construire: () => ({ party: makePregens(), scene: construireReserve(), extraScenes: [construireCouloir()] }),
 };

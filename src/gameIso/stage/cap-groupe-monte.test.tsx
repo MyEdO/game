@@ -74,7 +74,7 @@ async function monter(vue: 'iso' | 'top' = 'iso'): Promise<void> {
 describe('Cap du GROUPE — sur l’écran MONTÉ (#1362)', () => {
   it('VUE DU DESSUS : le disque du groupe, monté par l’hôte, porte le quartier du cap de GROUPE', async () => {
     await monter('top');
-    await act(async () => { useGame.getState().pivotParty(1); });
+    await act(async () => { useGame.getState().pivoterLeGroupe(1); });
     await respirer(80);
     const cap = capDuGroupe(useGame.getState())!;
     const meneur = meneurDuMonde(useGame.getState())!;

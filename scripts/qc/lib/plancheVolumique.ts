@@ -34,7 +34,7 @@ import { CAP_IDENTITE_PROP } from '../../../src/data/props.types';
 
 /** DÉRIVÉE du catalogue : une recette de plus entre en planche par sa seule déclaration en donnée —
  *  une liste manuscrite laisserait les suivantes hors QC en silence. */
-export const RECETTES = props.filter((p) => p.volume).map((p) => p.id);
+export const RECETTES = props.map((p) => p.id);
 
 /** Les deux familles de projection que la planche montre — l'edge-on est le losange tourné de 45°, il
  *  ne dirait rien de plus qu'un cran de caméra. */
@@ -172,7 +172,7 @@ export function construireHtml(): { html: string; vides: string[] } {
   const vides: string[] = [];
   const lignes = RECETTES.map((id) => {
     const prop = findPropById(id);
-    if (!prop?.volume) throw new Error(`recette absente : ${id}`);
+    if (!prop) throw new Error(`décor absent : ${id}`);
     const faces = buildPropVolumes(prop, ancrageDePlanche, CASE_METRIQUE);
     const cellules = COLONNES.map(({ titre, rot, vue }) => {
       const { svg, peintes } = vueSvg(faces, rot, vue);

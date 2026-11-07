@@ -5,7 +5,7 @@
  * `routeTriggeredTest` → `openSkillTest`, et sa branche parle le vocabulaire `target`/`caster`.
  * Seul le marcheur d'ACTEUR (`runCombatFlow`) honore ce vocabulaire : le marcheur de SCÈNE (`runFlow`)
  * parle `party`/`hero`+`heroId` et ne connaît ni sujet ni lanceur. Le marqueur `PendingTest.subi`
- * NOMME le vocabulaire de la branche, et `jetConfirm('test')` la confie au marcheur qui le parle
+ * NOMME le vocabulaire de la branche, et `jetValider('test')` la confie au marcheur qui le parle
  * (`reprendreTestSubi`).
  *
  * Le cycle d'une MALADIE (`onTick.test` d'un symptôme, `dailyTest.test` d'une maladie) est lui aussi un
@@ -65,7 +65,7 @@ function acquitter(opts: { success: boolean; sl: number }): void {
   const pt = get().pendingTest;
   expect(pt, 'aucune modale de jet ouverte : la porte n’a pas routé le Test').toBeTruthy();
   set({ pendingTest: { ...pt!, roll: opts.success ? 1 : 99, success: opts.success, sl: opts.sl } });
-  get().jetConfirm('test');
+  get().jetValider('test');
 }
 
 /** Aller-retour JSON du COUPLE suspendu (save, coop, pending sérialisé) — réinjecté tel quel. */

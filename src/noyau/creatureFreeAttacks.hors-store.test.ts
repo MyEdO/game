@@ -19,8 +19,8 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -39,7 +39,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   }
 
   it('Morsure : touche, dégâts infligés, Action NON consommée (gratuite)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'morsure', value: 14 }]; E.advantage = 1;
     const before = H.wounds.current;
@@ -55,7 +55,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   });
 
   it('coût : une attaque gratuite RATÉE dépense bien 1 Avantage (CC=1 → échec)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { E } = setup();
     E.traits = [{ id: 'morsure', value: 14 }]; E.advantage = 2; E.characteristics['capacite-de-combat'] = 1; // rate → pas de +1 du vainqueur
     aiCreatureFreeAttacks(banc.getState, banc.setState, E);
@@ -63,7 +63,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   });
 
   it('cible Surprise, Morsure RATÉE : raté sans effet, aucun Avantage ne bouge hors du coût (LDB 16 l.135 ; arbitrage A6 2026-10-13)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.size = 'moyenne';
     E.traits = [{ id: 'morsure', value: 14 }]; E.advantage = 3; E.characteristics['capacite-de-combat'] = 1;
@@ -75,7 +75,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   });
 
   it('cible Surprise, Morsure qui retire des Blessures : la cible perd TOUT son Avantage (LDB 14 l.219)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.size = 'moyenne';
     E.traits = [{ id: 'morsure', value: 14 }]; E.advantage = 1;
@@ -88,7 +88,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   });
 
   it('Attaque caudale : cible de Taille INFÉRIEURE qui perd des PB → À Terre (LDB 85 l.47)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'attaque-caudale', value: 14 }]; E.advantage = 1;
     aiCreatureFreeAttacks(banc.getState, banc.setState, E);
@@ -97,7 +97,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   });
 
   it('file priorisée : Morsure (trait) PUIS Piétinement (Taille) résolus, file vidée', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'morsure', value: 14 }]; E.advantage = 5;
     H.aiControlled = true; // porteur non tenu : ses Blessures critiques sans étape (LDB 63 l.30 ; #1858)
@@ -117,7 +117,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   });
 
   it('Cornes : Attaque gratuite gagnée par une Charge qui rapporte l’Avantage, sans coût d’Avantage (LDB 85 l.83)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'cornes', value: 14 }]; E.advantage = 0; E.chargedThisTurn = true; E.chargeAvecAvantage = true; // réserve vide : la gratuite ne coûte rien
     const before = H.wounds.current;
@@ -134,7 +134,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   });
 
   it('Souffle (Feu) : zone, Test opposé CT/Esquive → dégâts ignorant les PA + En flammes', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'souffle', value: 14, arg: 'feu' }]; E.advantage = 2; E.characteristics['capacite-de-tir'] = 85;
     H.characteristics.agilite = 1; H.skills = H.skills.filter((s) => s.id !== 'esquive');
@@ -148,7 +148,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   });
 
   it('Vomissement : zone (3 Av), dégâts BE+4 + Sonné + corrosion (cuir porté)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'vomissement', value: 0 }]; E.advantage = 3; E.characteristics['capacite-de-tir'] = 85; E.characteristics.endurance = 40; // BE 4 → BE+4 Dégâts
     H.characteristics.agilite = 1; H.skills = H.skills.filter((s) => s.id !== 'esquive');
@@ -165,7 +165,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   });
 
   it('Souffle (Fumée) : la zone s’enfume — Lignes de vue bloquées pendant BE Rounds (RAW)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'souffle', value: 0, arg: 'fumee' }]; E.advantage = 2; E.characteristics['capacite-de-tir'] = 85; E.characteristics.endurance = 40; // BE 4
     aiCreatureFreeAttacks(banc.getState, banc.setState, E);
@@ -187,7 +187,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   });
 
   it('Regard pétrifiant : dépense tout l’Avantage, marge ≥ 6 DR → cible Pétrifiée', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'regard-petrifiant' }]; E.advantage = 6; E.characteristics['capacite-de-tir'] = 90; // +6 DR d'Avantage + CT élevée
     H.characteristics.initiative = 1; H.skills = H.skills.filter((s) => s.id !== 'initiative');
@@ -199,7 +199,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   });
 
   it('Étreinte glaciale : 2 Avantages, succès → 1d10+DR Blessures ignorant BE et PA', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'etreinte-glaciale' }]; E.advantage = 2; E.characteristics['capacite-de-combat'] = 90;
     H.armour = { tete: 6, brasG: 6, brasD: 6, corps: 6, jambeG: 6, jambeD: 6 }; // PA ignorés
@@ -211,7 +211,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   });
 
   it('« 8 Tentacules +9 » : 8 Attaques gratuites à coût 0, Empêtré sur Dégâts, Avantage non consommé (LDB 85 l.405)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'tentacules', count: 8, value: 9 }]; E.advantage = 0; E.characteristics['capacite-de-combat'] = 95; // coût 0 : pas besoin d'Avantage
     H.aiControlled = true; // porteur non tenu : ses Blessures critiques sans étape (LDB 63 l.30 ; #1858)
@@ -226,7 +226,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   });
 
   it('Constricteur : toute touche → Empêtré + PRISE d’Empoignade établie ; Vampirique : la Morsure soigne', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'morsure', value: 14 }, { id: 'constricteur' }, { id: 'vampirique' }]; E.advantage = 1;
     E.wounds = blessuresDeBase(40, 10, E); // blessé → peut se soigner
@@ -241,7 +241,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
 
   it('Hurlement fantomatique : zone vivante, 1d10 ignore BE+PA + 3 Assourdi, dépense tous les Av', () => {
     setCadence('auto'); // le Test de Résistance enfoui du héros passif se résout INLINE comme un monstre (pas de cascade joueur)
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'hurlement-fantomatique' }]; E.advantage = 4; E.characteristics.initiative = 40;
     H.armour = { tete: 6, brasG: 6, brasD: 6, corps: 6, jambeG: 6, jambeD: 6 }; // PA ignorés
@@ -256,7 +256,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
 
   it('Venin : Morsure venimeuse sur PB → Test de Résistance raté → Empoisonné (LDB 85 l.326)', () => {
     setCadence('auto'); // le Test de Résistance enfoui du héros passif se résout INLINE comme un monstre (pas de cascade joueur)
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'morsure', value: 14 }, { id: 'venin', arg: 'intermediaire' }]; E.advantage = 1;
     H.characteristics.endurance = 1; // Endurance minime → Résistance ratée quasi à coup sûr
@@ -268,7 +268,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
 
   // ── Tentacules / Langue préhensile : entame & résolution d'Empoignade (LDB 85 l.405/213) ──
   it('Tentacules : une touche établit la PRISE d’Empoignade (grapple:true, « entame une Empoignade avec ce tentacule »)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'tentacules', count: 1, value: 9 }]; E.advantage = 0; E.characteristics['capacite-de-combat'] = 95; // coût 0
     aiCreatureFreeAttacks(banc.getState, banc.setState, E);
@@ -280,7 +280,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   });
 
   it('Langue préhensile : touche une proie plus PETITE → Empêtré, PRISE établie, proie ENTRAÎNÉE vers la créature', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'langue-prehensile', value: 9 }]; E.advantage = 2; E.characteristics['capacite-de-tir'] = 95; // 1 Av, touche
     E.pos = { x: 10, y: 10 }; E.size = 'grande';
@@ -297,7 +297,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
 
   // LDB 85 l.213
   it('Langue préhensile : touche ENTIÈREMENT absorbée (BE + PA ≥ Indice, 0 Blessure perdue) → Empêtré quand même', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     // 1 Av : celui de la Langue, aucun pour un Piétinement (LDB 85 l.387) sur la proie entraînée
     E.traits = [{ id: 'langue-prehensile', value: 9 }]; E.advantage = 1; E.characteristics['capacite-de-tir'] = 95;
@@ -314,7 +314,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   });
 
   it('Empoignade tenue par un Tentacule : résolue en Attaque GRATUITE (Test opposé de Force), Action NON consommée', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'tentacules', count: 1, value: 9 }]; E.advantage = 0;
     E.characteristics.force = 90; // Force écrasante
@@ -332,7 +332,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
 
   // LDB 85 l.405 : « Gagnez une Action d'Attaque gratuite par tentacule » ; la résolution en consomme une.
   it('Empoignade par un Tentacule : la résolution consomme LA gratuite du tentacule — pas de 2ᵉ frappe', () => {
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     const { H, E } = setup();
     E.traits = [{ id: 'tentacules', count: 1, value: 4 }]; E.advantage = 0;
     H.wounds = blessuresDeBase(300, 300, H);
