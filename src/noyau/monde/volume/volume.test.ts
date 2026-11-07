@@ -72,6 +72,14 @@ describe('volumeDuMonde (#3476)', () => {
     expect(volumeDuMonde(s, 1)).toEqual(volumeDuMonde(s));
   });
 
+  it('le couvercle retire du volume les cases qu’il nomme, couche comprise : l’étage au-dessus de la tête, pas le rez', () => {
+    const s = emptyScene('scene-test', 2, 1);
+    s.layers[0].tiles = ['plancher', 'plancher'];
+    s.layers.push({ z: 1, tiles: ['plancher', 'plancher'], height: [3, 3] });
+    const cases = (v: VolumeDuMonde) => new Set(triangles(v).map((t) => t.case.join(',')));
+    expect(cases(volumeDuMonde(s, undefined, new Set(['0,0,1'])))).toEqual(new Set(['0,0,0', '1,0,0', '1,0,1']));
+  });
+
   it('chaque triangle porte la couche de sa case : le plancher de l’étage à z 1, le sol du rez à z 0', () => {
     const s = emptyScene('scene-test', 1, 1);
     s.layers[0].tiles = ['plancher'];

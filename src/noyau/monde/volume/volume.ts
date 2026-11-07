@@ -20,6 +20,7 @@ import { edgeKey, facadeEdges } from '../facades';
 import { WALL_H_M } from '../iso';
 import { centreDeLaCarte, facesGeometry, trianglesOrientes } from './worldTris';
 import { buildRoofs, nappeKey } from './toits';
+import { spaceCellKey } from './architectureVisibility';
 import type { Face } from './types';
 import type { MaterialRef } from '../../../data/materials.types';
 
@@ -121,12 +122,13 @@ function emballer(scene: Scene, listees: readonly { face: Face; cell: { x: numbe
 
 /** Le volume du monde de `scene` : le sol de la couche `activeZ` et de celles du dessous (terrain, relief, raccords,
  *  piliers), les crêtes de ses zones crénelées (`cretesDePerimetre`) et les décors volumiques qui s'y posent, sans les
- *  surplombs fantômes des couches au-dessus ; sans `activeZ`, de toutes ses couches. PUR. */
-export function volumeDuMonde(scene: Scene, activeZ = Math.max(...scene.layers.map((l) => l.z))): VolumeDuMonde {
+ *  surplombs fantômes des couches au-dessus ; sans `activeZ`, de toutes ses couches ; sans les cases du `couvercle`
+ *  (clés `x,y,z`, `couvercleDuGroupe`). PUR. */
+export function volumeDuMonde(scene: Scene, activeZ = Math.max(...scene.layers.map((l) => l.z)), couvercle: ReadonlySet<string> = new Set()): VolumeDuMonde {
   const mpt = sceneMetresPerTile(scene);
   const sol = buildFloors(scene, undefined, { activeZ }).filter((el) => !el.states.ghost).flatMap((el) => el.faces.map((face) => ({ face, cell: el.cell })));
   const cretes = cretesDePerimetre(scene).filter((c) => c.case.z <= activeZ).flatMap((c) => c.faces.map((face) => ({ face, cell: c.arete })));
-  const listees = [...sol, ...cretes, ...decorsVolumiques(scene, activeZ, mpt)];
+  const listees = [...sol, ...cretes, ...decorsVolumiques(scene, activeZ, mpt)].filter(({ cell }) => !couvercle.has(spaceCellKey(cell.x, cell.y, cell.z)));
   const geometrie = emballer(scene, listees);
   const { w, h } = scene.dimensions;
   const hauteurs = scene.layers.map((l) => ({ z: l.z, rangees: Array.from({ length: h }, (_, y) => Array.from({ length: w }, (_, x) => heightAt(scene, x, y, l.z))) }));
