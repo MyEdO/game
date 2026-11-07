@@ -35,13 +35,14 @@ import { documentDuNarratif, indiceDuNarratif, objetDuNarratif, presetDuNarratif
 import { revealClue, discreditClue } from './monde/clues';
 import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef, testSkillLabel } from '../data';
 import { MORALE_BASE } from '../engine/crewMorale';
-import { clampSaboteurDR } from './shipCrew';
+import { clampSaboteurDR, shipboardSouls } from './shipCrew';
 import { harvestProfileFor, harvestSizeOf, harvestYield } from '../engine/harvest';
 import { applySummon } from './summonFlow';
 import { contractDisease, applyContraction, diseaseDefs } from '../engine/disease';
 import { memoParVersion } from '../data/versionDataset';
 import { HEAL_SKILL, type HealMode } from '../engine/healing';
 import { ouvrirLeMedecin } from './medicFlow';
+import { ouvrirLesContagions } from './combatFlow';
 import { activeSeaPrecipitation, openPortAt, setVesselHull } from './seaVoyageFlow';
 import { placeById } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
@@ -61,14 +62,15 @@ import { computeStateVisible } from './visionState';
 import { placeCombatant } from './monde/spawn';
 import { refuserGeste } from './refusVisible';
 import { flowFromEffects, testFlow } from './monde/flow';
-import { type FlowTest, type EffectOp, type CibleDeRole, type Condition, flowEffects, evalCondition, leafOpsCtx, lierLesTirages, EMPTY_FLOW } from '../engine/flowCore';
+import { type FlowTest, type EffectOp, type CibleDeRole, type CibleDeVolontaires, type Condition, flowEffects, evalCondition, flowTestGateOpen, leafOpsCtx, lierLesTirages, EMPTY_FLOW } from '../engine/flowCore';
+import { buildActorView } from '../engine/actorView';
 import { inRect, combatantsWithinRadius } from './monde/combatGeometry';
 import { removeEntity } from './combatPlacement';
 import { bus, EVT } from './bus';
 import { combatDistance } from './monde/footprint';
-import { type CascadeApplier, pushStep, idDeLaDernierePoussee, etapesDeLaFenetre, annoterEtapeDeLaFenetre } from './cascade';
+import { type CascadeApplier, pushStep, startCascade, idDeLaDernierePoussee, etapesDeLaFenetre, annoterEtapeDeLaFenetre } from './cascade';
 import { exposureWaveBand } from './nightBands';
-import { freeCons, rollStep, hostStep, idDansLaSequence, monoStep, openChoice, openSequence, pousseSi, pushDie } from './rollSeam';
+import { choiceStep, freeCons, rollStep, hostStep, idDansLaSequence, monoStep, openChoice, openSequence, pousseSi, pushDie } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { startGroundPursuit } from './pursuitFlow';
 import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from '../engine/waterExposure';
@@ -747,12 +749,14 @@ export const CIBLES_D_EFFET_DE_SCENE = [
   { on: 'hero', label: 'Un héros' },
   { on: 'navire', label: 'Le navire' },
   { on: 'role', label: 'Un rôle d’équipage' },
+  { on: 'membreAuHasard', label: 'Un membre du bord au hasard' },
+  { on: 'volontaires', label: 'Les héros volontaires' },
 ] as const;
 export type CibleDEffetDeScene = (typeof CIBLES_D_EFFET_DE_SCENE)[number]['on'];
 
-/** Le GENRE d'une cible de feuille : la valeur de `on`, ou `role` pour sa forme objet (`CibleDeRole`) — la clé
- *  que les tables de cibles (`CIBLES_PAR_RACINE`) et l'atelier lisent. */
-export const genreDeCible = (on: EffectOp['on']): string | undefined => (typeof on === 'object' ? 'role' : on);
+/** Le GENRE d'une cible de feuille : la valeur de `on`, ou `role` / `volontaires` pour ses formes objet
+ *  (`CibleDeRole`, `CibleDeVolontaires`) — la clé que les tables de cibles (`CIBLES_PAR_RACINE`) et l'atelier lisent. */
+export const genreDeCible = (on: EffectOp['on']): string | undefined => (typeof on === 'object' ? ('role' in on ? 'role' : 'volontaires') : on);
 
 /**
  * REGISTRE des tables de cibles d'un Effet `ops`, une entrée par RACINE : chaque table offre EXACTEMENT
@@ -788,7 +792,7 @@ export type TableDeCibles = (typeof CIBLES_PAR_RACINE)[RacineDEffet];
 
 /** `on` (défaut `party`) appartient-il au vocabulaire de scène ? Garde de type : le handler narrowe
  *  dessus avant d'appeler `env.targets`. */
-export function estCibleDeScene(on: EffectOp['on']): on is Exclude<CibleDEffetDeScene, 'role'> | CibleDeRole {
+export function estCibleDeScene(on: EffectOp['on']): on is Exclude<CibleDEffetDeScene, 'role' | 'volontaires'> | CibleDeRole | CibleDeVolontaires {
   return CIBLES_D_EFFET_DE_SCENE.some((c) => c.on === (genreDeCible(on) ?? 'party'));
 }
 
@@ -817,11 +821,21 @@ function avecDureeTiree(env: EffectEnv, e: EffectOp, pendantJours: Formula, suje
   return { ...reste, untilTime: env.get().gameTime + jours * MINUTES_PER_DAY, ...(label ? { label } : {}) };
 }
 
+/** Un membre du bord tiré au hasard, au prorata des âmes à bord (`shipboardSouls`) : un héros vivant, ou un marin
+ *  de l'effectif PNJ, sans fiche, qui ne rend aucune cible. MDG 15 l.161, l.176 */
+function membreDuBordAuHasard(get: Get, rng: RNG): Combatant[] {
+  const heros = effectTargets(get, 'party');
+  const ames = heros.length + shipboardSouls(get()).crew;
+  if (!ames) return [];
+  const i = rng.int(0, ames - 1);
+  return i < heros.length ? [heros[i]] : [];
+}
+
 /** Le refus, dit UNE fois — même phrase à la validation d'une scène et à la levée du marcheur. */
 export function messageCibleHorsScene(e: { label?: string; on?: EffectOp['on'] }, on: string): string {
   return `Effet ${e.label ? `« ${e.label} » ` : ''}à « on: ${on} » : ce vocabulaire est celui d'un effet DÉCLENCHÉ `
     + '(cible et lanceur résolus par sa porte, `routeTriggeredTest`), que le marcheur de scène ne connaît pas. '
-    + 'Une scène vise `party`, `hero` (+ `heroId`), `navire` ou un rôle d’équipage (`{ role }`).';
+    + 'Une scène vise `party`, `hero` (+ `heroId`), `navire`, `membreAuHasard`, un rôle d’équipage (`{ role }`) ou des volontaires (`{ volontaires }`).';
 }
 
 /** Le refus d'une op de NAVIRE posée sur une autre cible que `navire` : elle n'y aurait aucun effet. */
@@ -849,6 +863,8 @@ export function openSkillTest(
     cancellable?: boolean;
     /** Test SUBI : le vocabulaire de sa branche (`PendingTest.subi`) — posé par `routeTriggeredTest`. */
     subi?: PendingTest['subi'];
+    /** Les seuls héros qui peuvent jeter le Test (`FlowTest.gate`) ; le meilleur d'entre eux est proposé. */
+    parmi?: readonly string[];
   },
 ): boolean {
   // Modulateurs sociaux PAR ACTEUR (un Test social vs un interlocuteur) : malus psy Animosité/Préjugé
@@ -901,9 +917,11 @@ export function openSkillTest(
   // L'acteur imposé est un COMBATTANT (`actorIn`) : en combat, un ennemi mené par le siège MJ en est un.
   const restrictId = opts?.actorId;
   const imposed = restrictId ? actorIn(get(), restrictId) : undefined;
+  const parmi = opts?.parmi;
+  const admis = (c: Combatant): boolean => !parmi || parmi.includes(c.id);
   const best = restrictId
     ? (imposed && !imposed.dead ? { actor: imposed } : null)
-    : partyBest(get().party, spec, socialMod);
+    : partyBest(get().party.filter(admis), spec, socialMod);
   if (!best) return false;
   const baseDifficulty = spec.difficulty ?? 'intermediaire';
   const eased = !!spec.easierIf && get().party.some((c) => !c.dead && (
@@ -929,7 +947,7 @@ export function openSkillTest(
   // `opts.actorId`). Un Test qu'on ne peut pas soutenir se déclare `noSupport` (l.197), il ne se
   // dérive pas de la restriction du lanceur.
   const allies = (a: Combatant): Combatant[] => pool.filter((c) => c.kind === a.kind && !c.dead);
-  const runners = imposed ? [best.actor] : pool.filter((c) => c.kind === 'hero' && peutTenter(c, { skill: spec.skill }));
+  const runners = imposed ? [best.actor] : pool.filter((c) => c.kind === 'hero' && admis(c) && peutTenter(c, { skill: spec.skill }));
   const candidates = runners.map((actor) => {
     const living = allies(actor);
     // Soutien (LDB 12 l.187-200) : si CET acteur mène, les AUTRES membres capables l'assistent (+10, plafond
@@ -1046,6 +1064,15 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
     const node = stack.shift()!;
     switch (node.kind) {
       case 'do': {
+        // Les VOLONTAIRES décident avant la feuille : même patron que le `choice` ci-dessous.
+        const volontaires = node.effect.type === 'ops' && typeof node.effect.on === 'object' && 'volontaires' in node.effect.on ? node.effect.on.volontaires : undefined;
+        if (volontaires !== undefined) {
+          if (flush()) return confier(node);
+          const after: Flow = { kind: 'seq', steps: stack.splice(0) };
+          if (demanderLesVolontaires(get, set, node.effect as EffectOp, volontaires, after, label, sl)) return undefined;
+          stack.unshift(after);
+          break;
+        }
         // GESTE JOUEUR (`suspensif`) : même patron que le `test` ci-dessous — le lot se vide d'abord, le
         // reste de la pile devient la suite que son pending rejouera.
         if (!(EFFECT_HANDLERS[node.effect.type] as EffectHandler).suspensif) { batch.push(node.effect); break; }
@@ -1072,7 +1099,8 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
           break;
         }
         // Personne ne peut tenter → on saute le Test et on reprend directement la continuation.
-        if (!openSkillTest(get, set, node.test, node.success, node.fail, after)) return runFlow(get, set, after, label, sl);
+        const parmi = node.test.gate ? testeursAdmis(get, node.test) : undefined;
+        if (!openSkillTest(get, set, node.test, node.success, node.fail, after, parmi ? { parmi } : undefined)) return runFlow(get, set, after, label, sl);
         return undefined;
       }
       case 'choice': {
@@ -1122,6 +1150,32 @@ function ouvrirLeChoixDuFlow(get: Get, set: SetFn, node: Extract<Flow, { kind: '
     defaultChoice: 'yes',
     meta: { choiceYes: node.yes, choiceNo: node.no ?? EMPTY_FLOW, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) },
   });
+  return true;
+}
+
+/** Les héros vivants qui ouvrent la `gate` du Test, évaluée sur chacun seul. MDG 15 l.197, l.231 */
+function testeursAdmis(get: Get, test: FlowTest): string[] {
+  const ctx = condCtx(get);
+  return get().party.filter((h) => !h.dead && flowTestGateOpen(test, { ...ctx, party: [h], target: buildActorView(h) })).map((h) => h.id);
+}
+
+/**
+ * Pose la question `question` à CHAQUE héros vivant, à son siège (étapes `flowVolontaire`) ; l'applier de la
+ * dernière joue la feuille `e` sur ceux qui ont dit oui, puis `after`. L'auto-pilote renonce (`defaultChoice`).
+ * `false` sans héros vivant : la feuille ne vise personne. MDG 15 l.196
+ */
+function demanderLesVolontaires(get: Get, set: SetFn, e: EffectOp, question: string, after: Flow, label: string, sl?: number): boolean {
+  const heros = effectTargets(get, 'party');
+  if (!heros.length) { get().ecrireAuJournal(t('eff.volontairesAucun', { question })); return false; }
+  const meta = { choiceYes: { kind: 'do' as const, effect: e }, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) };
+  const etapes = heros.map((h, i) => choiceStep({
+    id: `flowVolontaire-${question}-${h.id}`, kind: 'flowVolontaire', actorId: h.id, icon: 'ui/think',
+    label: stepPrecision(dataLabel(question), dataLabel(h.label)),
+    options: [{ key: 'yes', label: dataLabel(question) }, { key: 'no', label: t('opt.renoncer') }],
+    defaultChoice: 'no',
+    ...(i === heros.length - 1 ? { meta } : {}),
+  }));
+  startCascade(get, set, { title: label, purpose: 'test', icon: 'ui/think', steps: etapes.filter((x): x is BuiltCascadeStep => !!x) });
   return true;
 }
 
@@ -1604,9 +1658,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const e = bougerLaBourseDuGroupe(env, feuilleAuthoree, base.rng);
       if (!e) return;
       if (on === 'navire') { appliquerAuNavire(env.get, env.set, e, { ...base, label: e.label ?? env.label }).forEach((l) => env.log(l)); return; }
-      const targets = typeof on === 'object' ? marinsDuRole(env.targets('party'), on.role.id) : env.targets(on, e.heroId);
+      if (typeof on === 'object' && 'volontaires' in on) throw new Error(t('eff.volontairesHorsFlow', { question: on.volontaires }));
+      const targets = on === 'membreAuHasard' ? membreDuBordAuHasard(env.get, base.rng)
+        : typeof on === 'object' ? marinsDuRole(env.targets('party'), on.role.id) : env.targets(on, e.heroId);
       if (!targets.length) {
         if (typeof on === 'object') env.log(t('eff.roleSansTitulaire', { role: refLabel('crewRoles', on.role) }));
+        if (on === 'membreAuHasard') env.log(t('eff.membreAuHasardMarin'));
         return;
       }
       // Durée TIRÉE une fois pour la feuille (MDG 15 l.212 « Pendant les 1d10 prochains jours ») puis
@@ -1621,6 +1678,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       }
       env.set(touchActors(env.get()));
       lines.forEach((l) => env.log(l));
+      if (!env.get().battle) ouvrirLesContagions(env.get, env.set, targets.map((c) => c.id));
     },
     // Un contenu de scène fautif se refuse dans l'ÉDITEUR (`validateScene`), avec le MÊME message
     // que la levée du marcheur.
@@ -2315,7 +2373,7 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: { acts?: { act: HealMode;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = [...WATER_EXPOSURE_KINDS, 'opsDe', 'chuteDe', 'flowChoice'] as const;
+export const GENRES_D_ETAPE = [...WATER_EXPOSURE_KINDS, 'opsDe', 'chuteDe', 'flowChoice', 'flowVolontaire'] as const;
 
 /** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */
 export const GENRES_HOTES = ['sceneTestJet'] as const;
@@ -2361,6 +2419,21 @@ export const TABLES = {
       if (step.chosen !== 'yes' && step.chosen !== 'no') return;
       const branche = (step.chosen === 'yes' ? step.meta?.choiceYes : step.meta?.choiceNo) ?? EMPTY_FLOW;
       jouerFlowEntier(runFlow(get, set, { kind: 'seq', steps: [branche, step.meta?.after ?? EMPTY_FLOW] }, step.meta?.flowLabel, step.meta?.flowSl));
+      return { consequences: freeCons([]) };
+    },
+    /** Réponse d'un héros à la question des VOLONTAIRES (`demanderLesVolontaires`) : la dernière étape de la
+     *  série joue la feuille sur chaque héros qui a dit oui, puis la continuation du Flow. MDG 15 l.196 */
+    flowVolontaire: (get, set, step, _hero, sctx) => {
+      if (step.chosen !== 'yes' && step.chosen !== 'no') return;
+      const feuille = step.meta?.choiceYes;
+      if (!feuille || feuille.kind !== 'do' || feuille.effect.type !== 'ops') return { consequences: freeCons([]) };
+      const e = feuille.effect;
+      const oui = sctx.steps.slice(0, sctx.index + 1)
+        .filter((x) => x.kind === 'flowVolontaire' && x.id.startsWith(`flowVolontaire-${(e.on as CibleDeVolontaires).volontaires}-`) && x.chosen === 'yes' && x.actorId)
+        .map((x) => x.actorId!);
+      if (!oui.length) get().ecrireAuJournal(t('eff.volontairesAucun', { question: (e.on as CibleDeVolontaires).volontaires }));
+      const feuilles: Flow[] = oui.map((heroId) => ({ kind: 'do', effect: { ...e, on: 'hero', heroId } }));
+      jouerFlowEntier(runFlow(get, set, { kind: 'seq', steps: [...feuilles, step.meta?.after ?? EMPTY_FLOW] }, step.meta?.flowLabel, step.meta?.flowSl));
       return { consequences: freeCons([]) };
     },
     chuteDe: (get, set, step, hero) => {

@@ -5,7 +5,7 @@ import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
 import type { WorldMap } from './worldMap';
 import { applyEffects, jouerFlowEntier, runFlow } from './combatEffects';
-import { applyVesselCritical, buildSeaPlan, finalizePortArrivalTo, portCareenVessel, runSeaDay } from './seaVoyageFlow';
+import { applyVesselCritical, buildSeaPlan, continueSeaDayAfterCascade, finalizePortArrivalTo, portCareenVessel, runSeaDay } from './seaVoyageFlow';
 import { rollShipCritical } from '../engine/shipCritical';
 import { makeRNG } from '../engine/dice';
 import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
@@ -900,5 +900,134 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
     tranche('Verser le pot-de-vin', false);
     tranche('Payer les droits de douane', true);
     expect(enSous()).toBe((50 - 10) * 240);
+  });
+});
+
+describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194-198, l.230-232)', () => {
+  beforeEach(etatFrais);
+  afterEach(() => resetData());
+
+  const sansMarins = () => set({ vessel: { ...get().vessel!, crewLost: 99 } });
+  const consequence = (id: string): Flow => BOARD_EVENTS.find((e) => e.id === id)!.consequence!;
+  const bandeDeContraction = () => get().pendingCascade?.participants.find((s) => s.kind === 'combatEndDisease');
+  const jour = (evenement: string): void => {
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jour-par-jour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: evenement } } });
+    runSeaDay(get, set);
+  };
+
+  it('Présage : le Test de Prière revient au Béni (Manann), même moins doué qu’un autre héros (l.197-198)', () => {
+    const [h0, h1, ...reste] = get().party;
+    set({ party: [
+      { ...h0, skills: [...(h0.skills ?? []), { id: 'priere', characteristic: 'sociabilite', advances: 5 }], talents: [...h0.talents, { talentId: 'beni', spec: 'manann', times: 1 }] },
+      { ...h1, skills: [...(h1.skills ?? []), { id: 'priere', characteristic: 'sociabilite', advances: 40 }] },
+      ...reste,
+    ] });
+    jour('presage-divin-albatros');
+    expect(get().pendingTest?.actorId).toBe(h0.id);
+    expect((get().pendingTest?.candidates ?? []).map((c) => c.id)).not.toContain(h1.id);
+  });
+
+  it('la donnée réserve la Prière des deux Présages au Béni (Manann)', () => {
+    for (const id of ['presage-divin-albatros', 'presage-divin-feu-bleu']) {
+      expect(JSON.stringify(consequence(id))).toContain('"gate":{"kind":"talent","id":"beni","spec":"manann"}');
+    }
+  });
+
+  it('une exposition HORS combat ouvre tout de suite la bande de Contraction, et consomme le marqueur (LDB 20)', () => {
+    jouerFlowEntier(runFlow(get, set, { kind: 'do', effect: { type: 'ops', on: 'party', ops: [{ op: 'exposeDisease', disease: 'peste-noire' }] } as never }, 'Puces'));
+    const bande = bandeDeContraction();
+    expect(bande?.meta).toEqual({ entry: 'contagion', disease: 'peste-noire' });
+    expect(bande?.participants?.map((p) => [p.id, p.difficulty])).toEqual(get().party.map((h) => [h.id, 'accessible']));
+    expect(get().party.every((h) => !h.diseaseExposure?.length)).toBe(true);
+  });
+
+  it('`membreAuHasard` : la feuille touche UN héros quand l’équipage PNJ est vide', () => {
+    sansMarins();
+    jouerFlowEntier(runFlow(get, set, { kind: 'do', effect: { type: 'ops', on: 'membreAuHasard', ops: [{ op: 'exposeDisease', disease: 'fievre-du-rongeur' }] } as never }, 'Rats'));
+    expect(bandeDeContraction()?.participants).toHaveLength(1);
+  });
+
+  it('`membreAuHasard` : un marin PNJ tiré ne touche aucun héros, le journal le dit', () => {
+    set({ party: [] });
+    jouerFlowEntier(runFlow(get, set, { kind: 'do', effect: { type: 'ops', on: 'membreAuHasard', ops: [{ op: 'exposeDisease', disease: 'fievre-du-rongeur' }] } as never }, 'Rats'));
+    expect(bandeDeContraction()).toBeUndefined();
+    expect(get().journal.some((l) => String(l).includes(t('eff.membreAuHasardMarin', { label: 'Rats' })))).toBe(true);
+  });
+
+  it('Infestations : la donnée porte la RAW (Complexe 25 DR / 3d10 Enc / 30 % ; Intermédiaire 10 DR / 1d10 Enc / 15 %)', () => {
+    const geants = JSON.stringify(consequence('infestation-de-rats-geants'));
+    expect(geants).toContain('"crewTestType":{"id":"extermination-nuisibles"},"difficulty":"complexe","targetDR":25');
+    expect(geants).toContain('{"op":"cargaison","perdueEnc":{"dice":{"n":3,"sides":10}}}');
+    expect(geants).toContain('{"min":1,"max":30,"ops":[{"op":"exposeDisease","disease":"fievre-du-rongeur"}]}');
+    const rats = JSON.stringify(consequence('infestation-de-rats'));
+    expect(rats).toContain('"crewTestType":{"id":"extermination-nuisibles"},"difficulty":"intermediaire","targetDR":10');
+    expect(rats).toContain('{"op":"cargaison","perdueEnc":{"dice":{"n":1,"sides":10}}}');
+    expect(rats).toContain('{"min":1,"max":15,"ops":[{"op":"exposeDisease","disease":"fievre-du-rongeur"}]}');
+  });
+
+  it('Extermination : chaque étape cumule ses DR jusqu’au total, et l’infestation tombe (MDG 14 l.98-104)', () => {
+    jouerFlowEntier(runFlow(get, set, consequence('infestation-de-rats'), 'Infestation de rats'));
+    expect(get().vessel!.infestation?.targetDR).toBe(10);
+    set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0])! });
+    const appliquer = (sl: number) => applierDe('extermination')!(get, set, { id: 'extermination', kind: 'extermination', label: fixtureText('extermination'), result: { roll: 0, target: 0, sl, success: sl >= 0 } } as never, undefined, { steps: [], index: 0 });
+    appliquer(6);
+    expect(get().vessel!.infestation?.progres).toBe(6);
+    appliquer(4);
+    expect(get().vessel!.infestation).toBeUndefined();
+  });
+
+  it('nuit en mer : le Flow de nuit de l’infestation se joue', () => {
+    jouerFlowEntier(runFlow(get, set, consequence('infestation-de-rats'), 'Infestation de rats'));
+    set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot', cargoId: 'bois-mer', enc: 50, basePriceGold: 1 }] } });
+    set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0])! });
+    continueSeaDayAfterCascade(get, set);
+    expect((get().vessel!.cargo ?? []).reduce((n, l) => n + l.enc, 0)).toBeLessThan(50);
+  });
+
+  it('Infestation : chaque nuit, la cale perd 1d10 Enc', () => {
+    jouerFlowEntier(runFlow(get, set, consequence('infestation-de-rats'), 'Infestation de rats'));
+    const nuit = get().vessel!.infestation!.chaqueNuit;
+    set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot', cargoId: 'bois-mer', enc: 50, basePriceGold: 1 }] } });
+    jouerFlowEntier(runFlow(get, set, nuit, 'Infestation de rats'));
+    const perdus = 50 - get().vessel!.cargo!.reduce((s, l) => s + l.enc, 0);
+    expect(perdus).toBeGreaterThanOrEqual(1);
+    expect(perdus).toBeLessThanOrEqual(10);
+  });
+
+  it('Vaisseau de pestiférés : l’abordage rapporte caisses, rations, eau et CO ; seul le volontaire est exposé (l.194-196)', () => {
+    set({ vessel: { ...get().vessel!, provisions: 0, waterLitres: 0 } });
+    const bourse0 = toBrass(partyMoneyTotal(get));
+    jouerFlowEntier(runFlow(get, set, consequence('vaisseau-de-pestiferes'), 'Vaisseau de pestiférés'));
+    avanceEtapeCascade(get, undefined, () => 'yes');
+    const v = get().vessel!;
+    const caisses = (v.cargo ?? []).reduce((s, l) => s + l.enc, 0);
+    expect(caisses).toBeGreaterThanOrEqual(2);
+    expect(caisses).toBeLessThanOrEqual(20);
+    expect(v.provisions).toBeGreaterThanOrEqual(1);
+    expect(v.provisions).toBeLessThanOrEqual(100);
+    expect(v.waterLitres! % 145).toBe(0);
+    expect(v.waterLitres! / 145).toBeGreaterThanOrEqual(2);
+    expect(v.waterLitres! / 145).toBeLessThanOrEqual(20);
+    const co = (toBrass(partyMoneyTotal(get)) - bourse0) / 240;
+    expect(Number.isInteger(co)).toBe(true);
+    expect(co).toBeGreaterThanOrEqual(3);
+    expect(co).toBeLessThanOrEqual(30);
+    const [volontaire] = get().party;
+    for (const h of get().party) {
+      const etape = get().pendingCascade!.participants[get().pendingCascade!.cursor];
+      expect(etape.kind).toBe('flowVolontaire');
+      expect(etape.actorId).toBe(h.id);
+      expect(etape.defaultChoice).toBe('no');
+      avanceEtapeCascade(get, undefined, () => (h.id === volontaire.id ? 'yes' : 'no'));
+    }
+    expect(get().pendingCascade!.participants.filter((s) => s.kind === 'combatEndDisease').flatMap((s) => s.participants!.map((p) => p.id))).toEqual([volontaire.id]);
+  });
+
+  it('Vaisseau de pestiférés : sans abordage, rien ne change', () => {
+    jouerFlowEntier(runFlow(get, set, consequence('vaisseau-de-pestiferes'), 'Vaisseau de pestiférés'));
+    avanceEtapeCascade(get, undefined, () => 'no');
+    expect(get().vessel!.cargo ?? []).toEqual([]);
+    expect(get().pendingCascade).toBeNull();
   });
 });

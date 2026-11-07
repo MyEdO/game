@@ -410,7 +410,7 @@ describe('Carte marine (MDG 15) — Orientation & Planque (#147)', () => {
   });
 });
 
-describe('Infestation de rats géants — Extermination des nuisibles Complexe (MDG 15 l.159-162)', () => {
+describe('Infestation de rats géants — Extermination des nuisibles Complexe (MDG 15 l.159-164)', () => {
   beforeEach(freshState);
 
   function driveDayCaptureExtermination(): number | undefined {
@@ -425,35 +425,46 @@ describe('Infestation de rats géants — Extermination des nuisibles Complexe (
     return extra;
   }
 
-  it('Complexe (–10) descend au Test d’équipage d’Extermination en −1 DR plat (même canal que l’Ouragan)', () => {
-    get().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
-    const plan = get().travelPlan!;
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Infestation de rats géants', testType: 'extermination-nuisibles', difficulty: 'complexe', need: 25, progress: 0, spoilPerNight: { dice: { n: 3, sides: 10 } } } } } });
-    expect(driveDayCaptureExtermination()).toBe(-1);
-  });
-
-  it('l’événement de bord FORCÉ pose la difficulté COMPLEXE de la donnée (jamais Intermédiaire en dur)', () => {
+  /** L'infestation que pose la rangée de la donnée, par un événement de bord FORCÉ. */
+  function infestationDeLaDonnee(): NonNullable<NonNullable<ReturnType<typeof get>['vessel']>['infestation']> {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: 'infestation-de-rats-geants' } } });
     runSeaDay(get, set);
-    expect(get().travelPlan!.sea!.infestation?.difficulty).toBe('complexe');
+    return get().vessel!.infestation!;
+  }
+
+  it('Complexe (–10) descend au Test d’équipage d’Extermination en −1 DR plat (même canal que l’Ouragan)', () => {
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
+    set({ vessel: { ...get().vessel!, infestation: { label: 'Infestation de rats géants', crewTestType: 'extermination-nuisibles', difficulty: 'complexe', targetDR: 25, progres: 0, chaqueNuit: EMPTY_FLOW } } });
+    expect(driveDayCaptureExtermination()).toBe(-1);
+  });
+
+  it('l’événement de bord FORCÉ pose l’infestation de la donnée sur le navire : Complexe, 25 DR', () => {
+    const inf = infestationDeLaDonnee();
+    expect(inf.difficulty).toBe('complexe');
+    expect(inf.targetDR).toBe(25);
+    expect(inf.progres).toBe(0);
   });
 
   it('3d10 : un total NON multiple de 3 (ex. 4/7/11) est ATTEIGNABLE — 1d10×3 en interdirait 20/28', () => {
+    const infestation = infestationDeLaDonnee();
+    freshState();
     const vessel0 = get().vessel!;
     const contenance = findVehicleById(vessel0.vehicleId)!.ship!.capacity; // MDG 12 l.70-75
     const seen = new Set<number>();
     for (let seed = 1; seed <= 60; seed++) {
       freshState();
-      set({ vessel: { ...vessel0, cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: contenance, basePriceGold: 1 }] } });
+      set({ vessel: { ...vessel0, infestation, cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: contenance, basePriceGold: 1 }] } });
       const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
-      set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Rats', testType: 'extermination-nuisibles', difficulty: 'complexe', need: 25, progress: 0, spoilPerNight: { dice: { n: 3, sides: 10 } } } } } });
+      set({ travelPlan: plan });
       const before = get().vessel!.cargo!.reduce((n, l) => n + l.enc, 0);
       seedBattleRng(seed);
       continueSeaDayAfterCascade(get, set);
       const after = get().vessel!.cargo!.reduce((n, l) => n + l.enc, 0);
       const spoiled = before - after;
-      if (spoiled > 0) seen.add(spoiled);
+      expect(spoiled).toBeGreaterThanOrEqual(3);
+      expect(spoiled).toBeLessThanOrEqual(30);
+      seen.add(spoiled);
     }
     expect([...seen].some((v) => v % 3 !== 0)).toBe(true);
   });
@@ -588,10 +599,12 @@ describe('table appliers — les 10 Tests d’équipage de VOYAGE (#275 Ronde 2 
   });
 
   it('extermination : progression cumulée jusqu’à extermination complète (MDG 14 l.98-104)', () => {
-    const plan = planWithSea();
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, infestation: { label: 'Rats', testType: 'extermination-nuisibles', difficulty: 'intermediaire', need: 5, progress: 0, spoilPerNight: { dice: { n: 1, sides: 10 } } } } } });
-    apply('extermination', 5, true);
-    expect(get().travelPlan!.sea!.infestation).toBeUndefined();
+    planWithSea();
+    set({ vessel: { ...get().vessel!, infestation: { label: 'Rats', crewTestType: 'extermination-nuisibles', difficulty: 'intermediaire', targetDR: 5, progres: 0, chaqueNuit: EMPTY_FLOW } } });
+    apply('extermination', 3, true);
+    expect(get().vessel!.infestation?.progres).toBe(3);
+    apply('extermination', 2, true);
+    expect(get().vessel!.infestation).toBeUndefined();
   });
 
   it('voyage-rapide : calcule ET applique le palier (Rude épreuve, l.28)', () => {

@@ -16,8 +16,8 @@
  *     → Repères / Changement de cap (retard %, quart de tour, demi-tour) ;
  *  6. CRISE en cours (Poursuite ch.13 l.354 / Tourbillon l.514) : un Test d'équipage par manche
  *     (modales POURSUITE / MANŒUVRE, #65) jusqu'à l'issue ;
- *  7. infestation de rats (événement) : Test d'équipage étendu d'EXTERMINATION DES NUISIBLES
- *     (modale, #65 — 1d10 h par Test, MDG 14 l.98-104) + cargaison gâtée chaque nuit ;
+ *  7. INFESTATION de la cale (`vessel.infestation`, op `infestation`) : Test d'équipage étendu
+ *     d'EXTERMINATION DES NUISIBLES (modale, #65 — 1d10 h par Test, MDG 14 l.98-104) + son Flow de nuit ;
  *  8. ÉVÉNEMENT DE BORD tous les 1d10 jours (ch.15 l.89, d100 + Humeur de Manann) ;
  *  9. nuit : coque endommagée → Test d'équipage d'ENTRETIEN (modale, #65 — remplace le Test de
  *     Métier à −2 DR, MDG 14 l.116-124, réparation TEMPORAIRE ch.13 l.647) ; Salissures
@@ -53,7 +53,7 @@ import { type StakeRef, voyageStakeRef, conditionLabel, findVehicleById, findCre
 import { profilNavalDe } from '../engine/coque';
 import { installCost, rollSteamBreakdown, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
 import { estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
-import { deMonde, formatDice, roll as rollDice, tirer, type QuantiteTiree, type RNG, type Tirage } from '../engine/dice';
+import { deMonde, formatDice, roll as rollDice, tirer, type RNG, type Tirage } from '../engine/dice';
 import { facesDuDe, findTableEntry } from '../engine/tables';
 import { rollTest, evaluateTest, isDoubleRoll, extendedTestStep, estJete, cibleMesuree } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
@@ -82,7 +82,7 @@ import { effectiveChar, blessuresPosees } from '../engine/characteristics';
 import { findSeaHazard, findWhirlpool, strandingOccurs, strandingPenaltyLine, debrisEntangleFor } from '../engine/seaPerils';
 import {
   evenementsDeBord, deDesEvenementsDeBord, deDesEvenementsDePort, deDuVoyageRapide, rollPortEvent, rollDaysToNextEvent, MANANN_BASE, seaBoardEventById,
-  removeCargo, spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, overloadMaxEnc, overloadMarks, resolveFastVoyage, FAST_VOYAGE_PALIERS,
+  spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, overloadMaxEnc, overloadMarks, resolveFastVoyage, FAST_VOYAGE_PALIERS,
   meteosActives, modificateursAuCarenage, modificateursApresUnEvenement, evitementDuPeril, sommeDesModificateurs,
   type CargoOverload, type EvenementDeBord, type ManannMood, type PortProfile, type CargoLot,
 } from '../engine/seaVoyage';
@@ -194,8 +194,6 @@ export interface SeaVoyageState {
   lighthouseDR?: number;
   /** Voiles affalées aujourd'hui (vents trop forts) : ancre jetée ou dérive à 25 % (ch.13 l.294). */
   sailsDown?: boolean;
-  /** Infestation de rats ACTIVE (Test étendu d'Extermination, MDG 14 l.98 + événements ch.15). */
-  infestation?: { label: string; testType: string; difficulty: Difficulty; need: number; progress: number; spoilPerNight: QuantiteTiree };
   /** ÉCHOUÉ sur un péril (Rocher/Bas-fonds, MDG 13 l.471-473/497/499, #444) : le navire s'arrête net,
    *  aucune Progression tant qu'un Test de Force (pénalité = `strandingPenalty`) ne l'a pas dégagé. */
   stranded?: { hazardId: string; label: string };
@@ -906,11 +904,10 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
     ? Number(rule('sea-chart-orientation-dr')) : 0;
   const orientStep = buildVoyageCrewStep(get, 'orientation', 'orientation', chartDR ? { extraDR: chartDR } : {});
   pousseSi(out, orientStep);
-  // 7. Infestation active : Test étendu d'EXTERMINATION (1d10 h/Test, MDG 14 l.98-104) — la difficulté
-  // de l'événement (posée à `resolveBoardEvent`, `sea-events.json#params.difficulty`) descend en DR
-  // plat sur l'agrégat (même canal que l'Ouragan → Affaler, `case 'ouragan'` ci-dessus).
-  if (sea.infestation) {
-    const st = buildVoyageCrewStep(get, sea.infestation.testType, 'extermination', { difficulty: sea.infestation.difficulty });
+  // 7. Infestation de la cale : Test étendu d'EXTERMINATION (MDG 14 l.98-104), à la difficulté de l'op `infestation`.
+  const infestation = get().vessel?.infestation;
+  if (infestation) {
+    const st = buildVoyageCrewStep(get, infestation.crewTestType, 'extermination', { difficulty: infestation.difficulty });
     pousseSi(out, st);
   }
   // 9a. Coque endommagée → Test d'équipage d'ENTRETIEN (remplace le Métier à −2 DR, MDG 14 l.116-124).
@@ -1009,7 +1006,7 @@ const DRIFT_EFFECT_KEY = { 1: 'sv.driftAhead', 0: 'sv.driftAbeam', [-1]: 'sv.dri
  *  infestation. #275 */
 function seaDayAllRoutine(get: Get): boolean {
   const sea = get().travelPlan!.sea!;
-  return !sea.crisis && !sea.infestation;
+  return !sea.crisis && !get().vessel?.infestation;
 }
 
 /** PV structuré (couche `voyageCadence` — « aucun jet silencieux ») : une entrée de JET par contributeur
@@ -1482,20 +1479,11 @@ export function continueSeaDayAfterCascade(get: Get, set: Set, auPv: CascadeStep
   // Une « Fuite de vapeur » (MDG 12 l.326-328) suspend le jour depuis l'applier `progression` : sa
   // reprise est `resolveSteamSave`, quel que soit le pilote qui a clos le fragment.
   if (!plan?.sea || get().pendingSteamSave) return;
-  const rng = battleRng();
   const sea = plan.sea;
 
-  // Nuit : l'infestation gâte la cargaison (ch.15, événements Infestation).
-  if (sea.infestation) {
-    const vessel = get().vessel;
-    if (vessel?.cargo?.length) {
-      const spoil = tirer(sea.infestation.spoilPerNight, rng);
-      const first = vessel.cargo[0];
-      const r = removeCargo(vessel.cargo, first.cargoId, spoil);
-      set({ vessel: { ...vessel, cargo: r.lots } });
-      if (r.removed) tell(get, set, [t('sv.ratsSpoil', { enc: r.removed })]);
-    } else tell(get, set, [t('sv.ratsIdle')]);
-  }
+  // MDG 15 l.160-161, l.175-176
+  const infestation = get().vessel?.infestation;
+  if (infestation) jouerFlowEntier(runFlow(get, set, infestation.chaqueNuit, infestation.label));
 
   // Eau douce (ch.13 l.209-213 + ch.14 l.242) : consommation par bande de Température × POPULATION EMBARQUÉE
   // (héros + effectif PNJ nominal, `shipboardSouls` — MDG 14 l.238 : « l'équipage … a besoin de beaucoup
@@ -2111,24 +2099,7 @@ function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, roll?: nu
   const vessel = get().vessel;
   if (vessel?.modificateurs?.some((m) => m.jusqua === 'evenementDeBord')) set({ vessel: { ...vessel, modificateurs: modificateursApresUnEvenement(vessel.modificateurs) } });
   const ligne = noteEvent(get, set, { title: event.label, text: event.desc, roll });
-  if (event.kind === undefined) {
-    if (event.consequence) jouerFlowEntier(runFlow(get, set, event.consequence, event.label));
-    return ligne;
-  }
-  switch (event.kind) {
-    case 'infestation': {
-      const p = event.params;
-      patchSea(get, set, {
-        infestation: {
-          label: event.label, testType: p.testType, difficulty: p.difficulty, need: p.targetDR, progress: 0,
-          spoilPerNight: structuredClone(p.spoilEncPerNight), // #2097
-        },
-      });
-      break;
-    }
-    default:
-      break; // narratif : le desc verbatim au journal suffit — rien d'inventé
-  }
+  if (event.consequence) jouerFlowEntier(runFlow(get, set, event.consequence, event.label));
   return ligne;
 }
 
@@ -2701,20 +2672,15 @@ export const TABLES = {
      *  (`extendedTestStep`, #273 Étape 1 : consolidation arithmétique, cadence INCHANGÉE — un jet par jour). */
     extermination: (get, set, step) => {
       if (!step.result) return;
-      const sea = get().travelPlan?.sea;
-      if (!sea?.infestation) return;
-      const inf = sea.infestation;
+      const vessel = get().vessel;
+      const inf = vessel?.infestation;
+      if (!vessel || !inf) return;
       const rng = battleRng();
-      const { total: progress, done } = extendedTestStep(inf.progress, step.result, inf.need);
+      const { total: progres, done } = extendedTestStep(inf.progres, step.result, inf.targetDR);
       get().avancerLHorloge(rollDice(1, 10, rng) * 60); // « Chaque Test nécessite … 1d10 heures » (MDG 14 l.100)
-      let j: string[];
-      if (done) {
-        patchSea(get, set, { infestation: undefined });
-        j = [t('sv.verminCleared', { label: inf.label, progress, need: inf.need })];
-      } else {
-        patchSea(get, set, { infestation: { ...inf, progress } });
-        j = [t('sv.verminProgress', { label: inf.label, progress, need: inf.need })];
-      }
+      const { infestation: _exterminee, ...sansInfestation } = vessel;
+      set({ vessel: done ? sansInfestation : { ...vessel, infestation: { ...inf, progres } } });
+      const j = [t(done ? 'sv.verminCleared' : 'sv.verminProgress', { label: inf.label, progress: progres, need: inf.targetDR })];
       noteSeaLine(get, set, j);
       return { consequences: freeCons(j) };
     },

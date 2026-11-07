@@ -15,11 +15,11 @@ import type { EffectOp } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
 import { caracDuCombattant, type Referent } from '../engine/formule';
 import { profilNavalDe } from '../engine/coque';
-import { valeurDeLaCargaison } from '../engine/cargo';
+import { spoilCargoByEnc, valeurDeLaCargaison } from '../engine/cargo';
 import { addManann, applyManannFactor, cargoBasePrice, meteosActives, modificateursActifs, rollRandomCargo, spoilCargoByPct, type ModificateurDuNavire } from '../engine/seaVoyage';
 import { ajouterAuRoster } from '../engine/crewMorale';
 import { seasonOfMonth } from '../engine/travelStages';
-import { isRation } from '../engine/provisions';
+import { isRation, LITRES_PAR_TONNEAU } from '../engine/provisions';
 import { newUid } from '../engine/items';
 import { rollShipCritical } from '../engine/shipCritical';
 import { dataLabel, findCrewRoleById, voyageStakeRef } from '../data';
@@ -129,6 +129,11 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
         set({ vessel: { ...vessel, perteAuDechargement: perte } });
         return [t('eff.perteAuDechargement', { enc: perte })];
       }
+      if (o.perdueEnc !== undefined) {
+        const { lots, removed } = spoilCargoByEnc(vessel.cargo ?? [], resolveFormula(o.perdueEnc, ref, ctx.rng));
+        set({ vessel: { ...vessel, cargo: lots } });
+        return [t('eff.cargaisonPerdueEnc', { enc: removed })];
+      }
       const enc = Math.max(0, Math.round(resolveFormula(o.enc, ref, ctx.rng)));
       const season = seasonOfMonth(toDate(get().gameTime).month);
       const cargo = rollRandomCargo(season, ctx.rng);
@@ -136,7 +141,10 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
       return [t('eff.cargaison', { enc, cargo: cargo.label })];
     }
     case 'provisions':
-      return o.gateesPct !== undefined ? gaterLesProvisions(get, set, o.gateesPct) : ajouterDesVivres(get, set, joursTires(o.jours, ref, ctx));
+      if (o.gateesPct !== undefined) return gaterLesProvisions(get, set, o.gateesPct);
+      if (o.rations !== undefined) return ajouterDesRations(get, set, joursTires(o.rations, ref, ctx));
+      if (o.eauTonneaux !== undefined) return ajouterDeLEau(get, set, joursTires(o.eauTonneaux, ref, ctx));
+      return ajouterDesVivres(get, set, joursTires(o.jours, ref, ctx));
     case 'equipage':
       return o.perdusPct !== undefined
         ? changerLEquipage(get, set, -Math.round(shipboardSouls(get()).crew * o.perdusPct / 100), undefined, undefined)
@@ -145,6 +153,12 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
       return o.collision !== undefined ? heurterLePeril(get, set, coque, o.collision.id, ctx.rng) : entrerDansLeTourbillon(get, set, o.tourbillon.id, nomDeSource(ctx));
     case 'navireHostile':
       return navireHostileEnVue(get, set, coque, o, nomDeSource(ctx));
+    case 'infestation': {
+      const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
+      const label = nomDeSource(ctx);
+      set({ vessel: { ...vessel, infestation: { label, crewTestType: o.crewTestType.id, difficulty: o.difficulty, targetDR: o.targetDR, progres: 0, chaqueNuit: o.chaqueNuit } } });
+      return [t('eff.infestation', { label, dr: o.targetDR })];
+    }
   }
 }
 
@@ -192,6 +206,23 @@ function ajouterDesVivres(get: Get, set: Set, jours: number): string[] {
   const rations = jours * equipage;
   set({ vessel: { ...vessel, provisions: vessel.provisions + rations } });
   return [t('eff.provisionsJours', { n: jours, equipage, rations, total: vessel.provisions + rations })];
+}
+
+/** Ajoute `n` rations de mer (jours-homme) aux vivres de la cale. MDG 15 l.194 ; MDG 14 l.238 */
+function ajouterDesRations(get: Get, set: Set, n: number): string[] {
+  const vessel = garanti(get().vessel, 'provisions', 'navire de campagne de la coque visée');
+  if (vessel.provisions == null) return [t('eff.provisionsSansSuivi')];
+  set({ vessel: { ...vessel, provisions: vessel.provisions + n } });
+  return [t('eff.provisionsRations', { n, total: vessel.provisions + n })];
+}
+
+/** Embarque `n` tonneaux d'eau douce. MDG 15 l.194 ; MDG 14 l.242 */
+function ajouterDeLEau(get: Get, set: Set, n: number): string[] {
+  const vessel = garanti(get().vessel, 'provisions', 'navire de campagne de la coque visée');
+  if (vessel.waterLitres == null) return [t('eff.eauSansSuivi')];
+  const litres = n * LITRES_PAR_TONNEAU;
+  set({ vessel: { ...vessel, waterLitres: vessel.waterLitres + litres } });
+  return [t('eff.eauTonneaux', { n, litres, total: vessel.waterLitres + litres })];
 }
 
 const signe = (n: number): string => `${n >= 0 ? '+' : '−'}${Math.abs(n)}`;
