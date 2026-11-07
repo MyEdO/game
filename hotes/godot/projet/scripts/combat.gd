@@ -24,7 +24,7 @@ extends Node
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 
 var _vue: Dictionary = {}
-## L'id de la scène dont le monde est posé au plateau, vide avant le premier.
+## La scène et la clé du volume du monde posé au plateau, vide avant le premier.
 var _cle_du_monde := ""
 var _zones: Array[Zone] = []
 
@@ -85,10 +85,10 @@ func _suivre(reponse: Dictionary) -> void:
 	_publier_l_ecran.call_deferred()
 
 
-## Le monde de la scène `scene` (`vue.projection.scene`), sans le couvercle au-dessus du groupe (`plateau.couvercle`), au
-## plateau (`Plateau.poser_le_monde`), s'il n'y est pas déjà.
+## Le monde de la scène `scene` (`vue.projection.scene`), sous le regard du plateau (`plateau.cleDuMonde`), au plateau
+## (`Plateau.poser_le_monde`), s'il n'y est pas déjà.
 func _poser_le_monde_de(scene: Variant, plateau: Variant) -> void:
-	var cle := "" if scene == null or plateau == null else "%s|%s" % [scene.id, "|".join(PackedStringArray(plateau.couvercle))]
+	var cle := "" if scene == null or plateau == null else "%s|%s" % [scene.id, plateau.cleDuMonde]
 	if cle == _cle_du_monde:
 		return
 	_cle_du_monde = cle
@@ -126,6 +126,13 @@ func _defile(_valeur: float) -> void:
 func _publier_l_ecran() -> void:
 	await get_tree().process_frame
 	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_ecran]), cases = _plateau.points(), corps = _plateau.corps()})
+
+
+## La touche du regard (`changer_de_regard`) passe au regard suivant (`regarder`, `plateau.regardSuivant`).
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("changer_de_regard") and _vue.get("plateau") != null:
+		get_viewport().set_input_as_handled()
+		_suivre(_pont.appeler("regarder", {regard = _vue.plateau.regardSuivant}))
 
 
 ## Un clic sur `case` : le clic du champ sur la case, et sur son occupant s'il en a un.

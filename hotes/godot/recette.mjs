@@ -29,6 +29,9 @@
 // - `etage` (`--scenario fenetre-ecuries`, #3476) : l'entrée de la scène poursuivie à l'Entrée, le groupe à l'étage du
 //   relais ; un clic sur une case du couloir de l'étage y mène le groupe : la case cliquée est celle du plancher sous le
 //   pointeur, à sa couche, pas celle de la salle basse dessous.
+// - `regards` (`--scenario fenetre-ecuries`, #3476) : l'entrée de la scène poursuivie à l'Entrée, le groupe à l'étage du
+//   relais ; la touche V passe du regard tactique au plateau, puis à l'immersion ; en immersion, une touche de marche
+//   tenue (Z, Q, S ou D) mène le groupe à une case voisine, que le noyau a jouée ; V rend la tactique.
 // - `dialogue` (`--scenario dialogue-multi`) : l'entrée de la scène poursuivie à l'Entrée, un clic sur une case à côté de
 //   Gustav, son offre « Parler » cliquée parmi les gestes d'exploration, la conversation dessinée, puis la première
 //   réponse cliquée : l'interlocuteur suivant prend la parole.
@@ -122,6 +125,7 @@
 //   node hotes/godot/recette.mjs --parcours exploration --scenario porte-close --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours relief --scenario grimpant --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours etage --scenario fenetre-ecuries --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours regards --scenario fenetre-ecuries --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours creation --scenario marche-equipement --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours dialogue --scenario dialogue-multi --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours atelier --web <export> --captures <dossier> --modeles <dossier neuf>
@@ -147,7 +151,7 @@ const chaine = { type: 'string' }
 const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|fiche|inventaire|creation|editeur|atelier|composition]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|fiche|inventaire|creation|editeur|atelier|composition]')
 if (o.parcours === 'atelier' && !(o.modeles && o.base && o.element && o.reexport)) throw new Error('--parcours atelier attend --modeles <dossier neuf> --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
@@ -533,6 +537,50 @@ async function parcoursEtage() {
   await attendreLaVue(`v.projection.exploration?.groupe.join() === '${couloir.x},${couloir.y}' && v.projection.exploration.etage === ${couloir.z}`)
   noter(`clic sur la case ${couloir.x},${couloir.y} du couloir de l’étage : le groupe y marche, à l’étage`)
   await capturer('3476-c4-2-couloir')
+}
+
+async function parcoursRegards() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  let v = await vue()
+  while (v.projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+    v = await vue()
+  }
+  assert.equal(v.plateau.regard, 'tactique', 'la partie commence en tactique')
+  await capturer('3476-v1-tactique')
+  const V = { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }
+  for (const regard of ['plateau', 'immersion']) {
+    await realKey(session, V)
+    await attendreLaVue(`v.plateau.regard === '${regard}'`)
+    await sleep(600)
+    noter(`V : le regard ${regard}`)
+    await capturer(`3476-v2-${regard}`)
+  }
+  const depart = (await vue()).projection.exploration
+  const marches = [['z', 'KeyW', 87], ['q', 'KeyA', 65], ['s', 'KeyS', 83], ['d', 'KeyD', 68]]
+  let arrivee = null
+  for (const [key, code, windowsVirtualKeyCode] of marches) {
+    await realKeyDown(session, { key, code, windowsVirtualKeyCode })
+    await sleep(2000)
+    await realKeyUp(session, { key, code, windowsVirtualKeyCode })
+    const x = (await vue()).projection.exploration
+    if (x.groupe.join() !== depart.groupe.join() || x.etage !== depart.etage) {
+      arrivee = x
+      noter(`${key.toUpperCase()} tenue : le groupe marche de ${depart.groupe} à ${x.groupe}, à l’étage ${x.etage}`)
+      break
+    }
+  }
+  assert.ok(arrivee, 'une touche de marche tenue mène le groupe à une case voisine')
+  await sleep(300)
+  await capturer('3476-v3-immersion-marche')
+  await realKey(session, V)
+  await attendreLaVue("v.plateau.regard === 'tactique'")
+  noter('V : la tactique, à la suite du groupe')
+  await sleep(600)
+  await capturer('3476-v4-tactique-suivie')
 }
 
 async function parcoursDialogue() {
@@ -2065,7 +2113,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

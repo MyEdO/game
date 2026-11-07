@@ -29,6 +29,14 @@ const RADIANS_PAR_PIXEL := 0.005
 ## Le tangage de l'orbite, borné entre la vue plongeante et la vue rasante au-dessus du sol.
 const TANGAGE_MINIMAL := -1.2
 const TANGAGE_MAXIMAL := 0.2
+## Le tangage de la caméra au regard `plateau`, à la verticale du plateau.
+const TANGAGE_DU_PLATEAU := -PI / 2.0
+## La plus longue image de marche (s) que compte l'immersion.
+const DUREE_D_UNE_IMAGE_DE_MARCHE := 0.1
+## Le tangage de l'œil au regard `immersion`, borné de part et d'autre de l'horizon, en deçà de la verticale.
+const TANGAGE_DE_L_OEIL := 1.4
+## Le lacet d'une caméra qui regarde vers chaque cap (`Dir8`) du plateau : le nord vers -Z, l'ouest vers -X.
+const LACETS_DES_CAPS := {N = 0.0, NO = PI / 4.0, O = PI / 2.0, SO = 3.0 * PI / 4.0, S = PI, SE = -3.0 * PI / 4.0, E = -PI / 2.0, NE = -PI / 4.0}
 ## L'écart, en pixels, entre une bulle et le point de l'écran qu'elle désigne.
 const ECART_DE_BULLE := 12.0
 ## La largeur, en pixels, au-delà de laquelle le texte d'une bulle se replie au mot (`Bulle`).
@@ -146,6 +154,30 @@ static func point_de_carte_du_lieu(lieu: Vector3) -> Vector2:
 	return Vector2(lieu.x - DEMI_CASE, lieu.z - DEMI_CASE)
 
 
+## Le lacet de la caméra au regard `plateau` sous le lacet `lacet` du regard `tactique`, en biais d'un demi-quart de tour :
+## les bords du plateau droits à l'écran.
+static func lacet_du_plateau(lacet: float) -> float:
+	return lacet - QUART_DE_TOUR / 2.0
+
+
+## L'œil à `oeil` mètres au-dessus du sol `sol`, sur un plateau de `metres_par_case` mètres par case.
+static func oeil_sur(sol: Vector3, oeil: float, metres_par_case: float) -> Vector3:
+	return Vector3(sol.x, sol.y + hauteur_au_plateau(oeil, metres_par_case), sol.z)
+
+
+## Les mètres d'une image de marche de `duree` secondes à `vitesse` m/s, l'image bornée à `DUREE_D_UNE_IMAGE_DE_MARCHE` :
+## une image lente ne fait jamais sauter une case.
+static func metres_de_marche(vitesse: float, duree: float) -> float:
+	return vitesse * minf(duree, DUREE_D_UNE_IMAGE_DE_MARCHE)
+
+
+## Le lieu `lieu` après `metres` mètres de marche, sur un plateau de `metres_par_case` mètres par case : vers l'entrée de
+## force `gauche`, `droite`, `avant` et `arriere` par action, bornée à l'unité, tournée du lacet `lacet`.
+static func lieu_apres_la_marche(lieu: Vector3, gauche: float, droite: float, avant: float, arriere: float, lacet: float, metres: float, metres_par_case: float) -> Vector3:
+	var direction := Vector3(droite - gauche, 0.0, arriere - avant).limit_length(1.0).rotated(Vector3.UP, lacet)
+	return lieu + direction * hauteur_au_plateau(metres, metres_par_case)
+
+
 ## Le lacet de la caméra tourné d'un quart de tour dans le sens `sens` (1 ou -1).
 static func lacet_tourne(lacet: float, sens: float) -> float:
 	return lacet + sens * QUART_DE_TOUR
@@ -198,9 +230,9 @@ static func lacet_glisse(lacet: float, pixels: float) -> float:
 	return lacet - pixels * RADIANS_PAR_PIXEL
 
 
-## Le tangage de l'orbite tourné par un glissé de `pixels` à la souris, borné à [`TANGAGE_MINIMAL`, `TANGAGE_MAXIMAL`].
-static func tangage_glisse(tangage: float, pixels: float) -> float:
-	return clampf(tangage - pixels * RADIANS_PAR_PIXEL, TANGAGE_MINIMAL, TANGAGE_MAXIMAL)
+## Le tangage tourné par un glissé de `pixels` à la souris, borné à [`minimum`, `maximum`].
+static func tangage_glisse(tangage: float, pixels: float, minimum: float, maximum: float) -> float:
+	return clampf(tangage - pixels * RADIANS_PAR_PIXEL, minimum, maximum)
 
 
 ## L'échelle de pose `echelle` de l'os `racine` du gabarit à l'échelle uniforme `facteur` (`CONTRAT.md`, « Gabarit d'une

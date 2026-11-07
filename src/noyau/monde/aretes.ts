@@ -7,12 +7,13 @@ import { structureAppearances } from '../../data';
 import type { FamilleDuKit, StructureAppearanceDef } from '../../data/structureAppearance.types';
 import { apparenceDArete, edgeKey, facadeEdges } from './facades';
 import type { Pt } from './path';
+import { EYE_H } from './iso';
 import { METRES_PER_LEVEL } from './relief';
 import { casesDeFace, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
 import type { Rot } from '../../geometry/iso';
 import { cutawayOverhead, frontFacadeCutaway, type ClearedSpace } from './volume/architectureVisibility';
 import { clearedSpace } from './volume/toits';
-import { toitsLeves } from './volume/volume';
+import { toitsLeves, toutesLesNappes, volumeDuMonde, type VolumeDuMonde } from './volume/volume';
 
 /** La pièce qu'une arête porte : un mur plein, une porte fermée ou ouverte, une fenêtre aux volets ouverts ou clos, ou
  *  la brèche d'une structure abattue. */
@@ -88,22 +89,56 @@ function aretesDegagees(scene: Scene, cleared: ClearedSpace): AreteDegagee[] {
   });
 }
 
-/** Le couvercle au-dessus de la tête du groupe posé sur `allies` (`clearedSpace`, `overheadCells`) : les clés `x,y,z` de
- *  ses cases. */
-export function couvercleDuGroupe(scene: Scene, allies: readonly Pt[]): ReadonlySet<string> {
-  return clearedSpace(scene, allies).overheadCells;
+/** Le regard qu'un hôte porte sur le plateau (#3476) : à la verticale, comme sur un plateau de jeu (`plateau`) ; de
+ *  biais, à la suite du groupe (`tactique`) ; aux yeux du meneur (`immersion`). `REGARDS` les range dans l'ordre où
+ *  l'hôte les fait défiler. */
+export type Regard = 'plateau' | 'tactique' | 'immersion';
+export const REGARDS: readonly Regard[] = ['tactique', 'plateau', 'immersion'];
+
+/** Le regard que le jeu tient pour le regard `voulu` : l'immersion, qui marche avec le groupe en exploration, cède
+ *  à la tactique le temps d'un combat. PUR. */
+export function regardDuJeu(voulu: Regard, enCombat: boolean): Regard {
+  return voulu === 'immersion' && enCombat ? 'tactique' : voulu;
 }
 
-/** Le plateau d'une scène tel qu'un hôte le dessine : ses dimensions, les arêtes de toutes ses couches
- *  (`areteDessinee`), son échelle métrique (`sceneMetresPerTile`), et ce que le groupe posé sur `allies` dégage
- *  (`clearedSpace`) : le couvercle au-dessus de sa tête (`overheadCells`, ses cases `x,y,z`), les nappes de toit
- *  (`toitsLeves`) et les arêtes (`aretesDegagees`) ; et les couronnes crénelées tombées (`couronnesAbattues`). */
-export function plateauDeLaScene(scene: Scene, allies: readonly Pt[]): { w: number; h: number; metresParCase: number; aretes: AreteDessinee[]; couvercle: string[]; aretesDegagees: AreteDegagee[]; toitsLeves: string[]; couronnesAbattues: string[] } {
+/** La couche la plus haute où se tient un allié de `allies` : celle que le regard `plateau` montre, rien au-dessus. */
+const coucheDuGroupe = (allies: readonly Pt[]): number => Math.max(0, ...allies.map((a) => a.z ?? 0));
+
+/** Ce que le regard `regard` retire du volume du monde pour le groupe posé sur `allies` : au plateau, les couches
+ *  au-dessus de la sienne (`activeZ`) ; en tactique, le couvercle au-dessus de sa tête (`clearedSpace`,
+ *  `overheadCells`, ses cases `x,y,z`) ; en immersion, rien. */
+function retraitDuRegard(scene: Scene, allies: readonly Pt[], regard: Regard): { activeZ?: number; couvercle: ReadonlySet<string> } {
+  if (regard === 'plateau') return { activeZ: coucheDuGroupe(allies), couvercle: new Set() };
+  return { couvercle: regard === 'tactique' ? clearedSpace(scene, allies).overheadCells : new Set() };
+}
+
+/** Le volume du monde de `scene` (`volumeDuMonde`) sous le regard `regard`, sans ce qu'il retire pour le groupe posé
+ *  sur `allies` (`retraitDuRegard`). PUR. */
+export function volumeDuRegard(scene: Scene, allies: readonly Pt[], regard: Regard): VolumeDuMonde {
+  const { activeZ, couvercle } = retraitDuRegard(scene, allies, regard);
+  return volumeDuMonde(scene, activeZ, couvercle);
+}
+
+/** Le plateau d'une scène tel qu'un hôte le dessine sous le regard `regard` : ses dimensions, les arêtes de toutes ses
+ *  couches (`areteDessinee`), son échelle métrique (`sceneMetresPerTile`), la hauteur de l'œil au-dessus du sol
+ *  (`EYE_H`), le regard et celui qui le suit dans `REGARDS`, la clé du volume que le regard demande (`cleDuMonde`, qui change quand `volumeDuRegard` change), ce que
+ *  le regard retire pour le groupe posé sur `allies` : les nappes de toit (`toitsLeves` : en tactique, celles qu'il
+ *  dégage ; au plateau, toutes) et les arêtes (`aretesDegagees` : en tactique, celles qu'il dégage ; au plateau,
+ *  celles des couches au-dessus de la sienne, sous tout cran) ; et les couronnes crénelées tombées
+ *  (`couronnesAbattues`). */
+export function plateauDeLaScene(scene: Scene, allies: readonly Pt[], regard: Regard): { w: number; h: number; metresParCase: number; oeilM: number; regard: Regard; regardSuivant: Regard; cleDuMonde: string; aretes: AreteDessinee[]; aretesDegagees: AreteDegagee[]; toitsLeves: string[]; couronnesAbattues: string[] } {
   const { w, h } = scene.dimensions;
-  const cleared = clearedSpace(scene, allies);
+  const { activeZ, couvercle } = retraitDuRegard(scene, allies, regard);
+  const aretesRetirees = (): AreteDegagee[] => {
+    if (regard === 'tactique') return aretesDegagees(scene, clearedSpace(scene, allies));
+    if (regard === 'immersion') return [];
+    return (scene.walls ?? []).filter((seg) => (seg.z ?? 0) > coucheDuGroupe(allies)).map((seg) => ({ cle: edgeKey(seg), abattueSous: [...CRANS] }));
+  };
   return {
-    w, h, metresParCase: sceneMetresPerTile(scene), aretes: (scene.walls ?? []).map((seg) => areteDessinee(scene, seg)),
-    couvercle: [...cleared.overheadCells], aretesDegagees: aretesDegagees(scene, cleared), toitsLeves: toitsLeves(scene, allies),
+    w, h, metresParCase: sceneMetresPerTile(scene), oeilM: EYE_H, regard, regardSuivant: REGARDS[(REGARDS.indexOf(regard) + 1) % REGARDS.length],
+    cleDuMonde: [regard, activeZ ?? '', ...couvercle].join('|'),
+    aretes: (scene.walls ?? []).map((seg) => areteDessinee(scene, seg)), aretesDegagees: aretesRetirees(),
+    toitsLeves: regard === 'tactique' ? toitsLeves(scene, allies) : regard === 'plateau' ? toutesLesNappes(scene) : [],
     couronnesAbattues: couronnesAbattues(scene),
   };
 }
