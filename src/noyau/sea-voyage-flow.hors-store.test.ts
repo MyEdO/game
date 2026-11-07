@@ -602,6 +602,18 @@ describe('table appliers — les 10 Tests d’équipage de VOYAGE (#275 Ronde 2 
     expect(get().travelPlan?.sea?.fast?.pendingFinalize).toBeFalsy();
   });
 
+  it('voyage-rapide : un total de Rude épreuve à −2 DR retire 2 points de Moral au navire, un total positif aucun (MDG 14 l.110, MDG 15 l.27)', () => {
+    const traverser = (sl: number): number => {
+      set({ vessel: { ...get().vessel!, morale: { ...get().vessel!.morale, score: 75 } } });
+      const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
+      set({ travelPlan: { ...plan, sea: { ...plan.sea!, fast: { days: 3, weeks: 0 } } } });
+      apply('voyage-rapide', sl);
+      return get().vessel!.morale.score;
+    };
+    expect(traverser(-2)).toBe(73);
+    expect(traverser(3)).toBe(75);
+  });
+
   it('poursuite : gain de Distance mute la crise EN PLACE (ni échappé, ni rattrapé)', () => {
     const plan = planWithSea();
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, crisis: { kind: 'poursuite', label: 'Écumeur', distance: 0, escapeAt: 100, foeM: 3, foeSkill: 10 } } } });

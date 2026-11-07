@@ -92,7 +92,7 @@ import { rule } from '../engine/policy';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { groupsFor } from '../engine/groups';
 import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
-import { ajouterAuRoster, crewRoleValue, crewTestModParts, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, SUCCES_MINIME_CAP } from '../engine/crewMorale';
+import { ajouterAuRoster, crewRoleValue, crewTestModParts, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, rudeEpreuveMoraleDelta, SUCCES_MINIME_CAP } from '../engine/crewMorale';
 import type { NightEntry } from './restFlow';
 import { provisioningManifest } from '../engine/provisions';
 import { toMoney, canAfford, type Money } from '../engine/money';
@@ -1126,6 +1126,9 @@ export function dureeDeTraversee(km: number, m: number): number {
   return Math.max(1, joursDeMer(km, m));
 }
 
+/** Le Test d'équipage de la traversée rapide : la Rude épreuve (MDG 15 l.27). */
+const TEST_DU_VOYAGE_RAPIDE = 'rude-epreuve';
+
 /** Appareille en TRAVERSÉE RAPIDE (l.21-37) : construit un plan `sea.fast` (jamais la boucle jour par
  *  jour), estime la durée (distance / vitesse moyenne, l.25) puis ouvre l'UNIQUE Test d'équipage de
  *  Rude épreuve (modale existante). Sans équipage apte : palier au DR 0, résolution immédiate. `false`
@@ -1141,7 +1144,7 @@ export function startFastVoyage(
   set({ travelPlan: { ...plan, sea: { ...plan.sea!, fast: { days, weeks } } }, worldMapOpen: false, travelRecap: null });
   const to = get().worldMap ? placeById(get().worldMap!, toPlaceId) : undefined;
   log(get, set, [t('sv.departFast', { ship: plan.vehicle!.label, to: libelleOuAbsence(to, 'lieu', toPlaceId), days, km: plan.km })]);
-  const st = buildVoyageCrewStep(get, 'rude-epreuve', 'voyage-rapide');
+  const st = buildVoyageCrewStep(get, TEST_DU_VOYAGE_RAPIDE, 'voyage-rapide');
   if (st) { startCascade(get, set, { title: t('sv.fastTitle'), icon: 'travel/wave', purpose: 'test', steps: [st] }); return true; }
   computeFastPalier(get, set, 0); // aucun équipage apte au Test → DR 0
   finalizeFastVoyage(get, set);
@@ -2821,6 +2824,12 @@ export const TABLES = {
      *  ancrée éventuelle d'abord, jamais raconté avant — `finalizeFastVoyage` est RÉ-ENTRANT). */
     'voyage-rapide': (get, set, step) => {
       if (!step.result) return;
+      // Un type de Test dont le total négatif coûte du Moral (`moraleOnNegativeDR`) le retire au navire. MDG 14 l.110
+      const ship = get().travelPlan?.vehicle;
+      if (ship && findCrewTestTypeById(TEST_DU_VOYAGE_RAPIDE)?.moraleOnNegativeDR) {
+        const j = applyShipMoraleDelta(get, set, ship, rudeEpreuveMoraleDelta(step.result.sl));
+        if (j.length) noteSeaLine(get, set, j);
+      }
       computeFastPalier(get, set, step.result.sl);
       finalizeFastVoyage(get, set);
     },
