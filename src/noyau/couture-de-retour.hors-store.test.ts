@@ -32,8 +32,7 @@ import { learnableSpells } from '../engine/grimoire';
 import { itemFromTrappingById } from '../engine/items';
 import { careers } from '../data';
 
-// Coutures d'entrée et de retour d'un héros dans le combat (#2312). La liaison de `__wfrp.disease` se joue en
-// `src/state/couture-de-retour.test.ts`.
+// Coutures d'entrée et de retour d'un héros dans le combat (#2312).
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { chargerSurLeBanc, sauverLeBanc } from './persistance/save.testkit';
 import { pushReveal } from './combatEffects';
 import { revealToStep } from './revealStep';
 import { stepInteraction } from './cascade';
@@ -20,8 +21,7 @@ import { groupesDe } from '../engine/groups';
  * RÉVÉLATION = étape d'AFFICHAGE de la cascade (#942 L8) : `pushReveal` n'alimente plus une file
  * parallèle, il APPEND une étape dans la séquence d'accueil — celle en vol, sinon une séquence
  * d'affichage qu'il ouvre. Le contrat porte donc sur la SÉQUENCE : ordre d'arrivée, charge riche
- * portée par l'étape, acquittement par `jetConfirm('cascade')`. La traversée de
- * la sauvegarde du navigateur se joue en `src/state/reveal.test.ts`.
+ * portée par l'étape, acquittement par `jetConfirm('cascade')`, et traversée de la sauvegarde.
  */
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -55,6 +55,19 @@ describe('révélation → étape d’affichage de cascade', () => {
     pushReveal(banc.setState, { kind: 'round', title: 'B', lines: [] });
     banc.getState().jetConfirm('cascade');
     expect(banc.getState().pendingCascade!.cursor).toBe(1);
+    banc.getState().jetConfirm('cascade');
+    expect(banc.getState().pendingCascade).toBeNull();
+  });
+
+  it('une étape d’affichage EN VOL traverse la sauvegarde, et la séquence restaurée se dénoue', () => {
+    const reveal = { kind: 'mutation', title: 'Mutation — Écailles', dice: 42, lines: ['a', 'b'], subjectId: 'h1' } satisfies RevealEntry;
+    pushReveal(banc.setState, reveal);
+    const texte = sauverLeBanc(banc);
+    banc.setState({ pendingCascade: null });
+    chargerSurLeBanc(banc, texte);
+    const step = banc.getState().pendingCascade!.participants[0];
+    expect(step.kind).toBe('mutation');
+    expect(step.reveal).toEqual(reveal);
     banc.getState().jetConfirm('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
   });

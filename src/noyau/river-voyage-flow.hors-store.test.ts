@@ -28,8 +28,7 @@ const VOYAGE_STAKES = STAKES.filter((e) => e.cascade === 'voyage');
  * les jets du JOUR (Agilité, Navigation, Louvoyage, sauvegardes de vent, évitement des périls)
  * passent par la MÊME cascade influençable (Chance/Pacte/Résilience) que la nuit — aucune auto-résolution
  * inline. La cascade du jour (`purpose:'travelDay'`) se clôt sur le calcul des km puis enchaîne la
- * halte de nuit / l'arrivée ; la nuit reste la cascade de repos (Phase A). Les helpers de recette du web
- * (`__wfrp.riverDayCascade`, `__wfrp.forceRiverCapsize`) se jouent en `src/state/river-voyage-flow.test.ts`.
+ * halte de nuit / l'arrivée ; la nuit reste la cascade de repos (Phase A).
  */
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -134,6 +133,13 @@ describe('cascade du JOUR fluvial — tous les jets sont influençables (purpose
     const cur = pc!.participants[pc!.cursor];
     expect(cur.target).not.toBeNull();
     expect(cur.result ?? null).toBeNull();
+  });
+
+  it('tant que la journée est ouverte, `runRiverDays` n’en ouvre pas une seconde (aucune étape doublée)', () => {
+    get().startTravel('r-reik', 'barge', { cadence: 'jour-par-jour' });
+    const ouverte = get().pendingCascade!.participants.map((s) => s.id);
+    runRiverDays(get, set);
+    expect(get().pendingCascade!.participants.map((s) => s.id)).toEqual(ouverte);
   });
 
   it('le jour affiche le vent + le Test de Navigation une fois la cascade déroulée', () => {
