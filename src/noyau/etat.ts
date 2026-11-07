@@ -314,7 +314,7 @@ export interface EtatDeJeu {
   facing: Record<string, Dir8>;
   /** INTENTION LOCALE armée depuis l'interface (case de console) : le geste que le prochain clic du
    *  champ commettra, avec SA portée peinte d'avance (`localIntent.ts`, spec HUD zone 4). LOCAL au
-   *  client : hors `battle`, hors allowlist d'intents, préservé par `applyHostSnapshot` — seul le
+   *  client : hors `battle`, hors allowlist d'intents, préservé par `appliquerLInstantane` — seul le
    *  COMMIT du geste part en réseau. null = aucune intention (gestes par défaut du grid, inchangés). */
   localIntent: LocalIntent | null;
   /** PORTEUR élu du mode Dissiper (`DISPEL_MODE`, spec HUD §1d) : le clic-token l'a choisi, il reste

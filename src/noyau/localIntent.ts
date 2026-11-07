@@ -8,8 +8,8 @@
  * case), et son annulation est GRATUITE par construction — aucune ressource n'est engagée à l'armement.
  *
  * COOP : `localIntent` vit à la RACINE du store, HORS `battle` — le mode est LOCAL au client (aucun
- * intent réseau à l'armement, seul le COMMIT du geste part), et `applyHostSnapshot` le préserve
- * (`netFlow.ts`). Les POSTURES, elles, sont du JEU : elles vivent dans `battle`.
+ * intent réseau à l'armement, seul le COMMIT du geste part), et `appliquerLInstantane` le préserve
+ * (`LOCALES_AU_CLIENT`, `coop.ts`). Les POSTURES, elles, sont du JEU : elles vivent dans `battle`.
  *
  * Chaque action du registre qui arme une intention déclare, en donnée (`intent` de `actions.json`),
  * l'id de la PORTÉE que le champ doit peindre ; le code de cette portée vit ici, jamais en JSON.
