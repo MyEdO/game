@@ -116,7 +116,7 @@ import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/charact
 import { testValue, soutienDetail, type SupportDetail, type TestDesigne } from '../engine/skills';
 import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
-import { endShanty, resolveShipUnits, withCrewActed } from './shipCrew';
+import { endShanty, monterLesVagues, resolveShipUnits, withCrewActed } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
@@ -7059,6 +7059,13 @@ export function checkBattleOver(get: Get, set: SetFn): boolean {
   // Navires comme UNITÉS (MDG 13-14) : une coque COULÉE emporte son équipage par-dessus bord, une coque
   // sans équipage en état est PRISE et sort du combat — les deux voies de victoire navale (naufrage OU
   // abordage) convergent ici (kind-agnostique, sweep centralisé comme le désarçonnement ci-dessus).
+  // Vagues d'abordage (MDG 15 l.150, l.171) : la réserve d'une coque monte AVANT que la coque soit déclarée prise.
+  const vagues = scene ? monterLesVagues(battle, scene) : [];
+  if (vagues.length) {
+    battle.log = [...battle.log, ...evLines(vagues, 'detail')]; // en place : les journaux de cette passe la suivent
+    set({ battle: { ...battle } });
+    bus.emit(EVT.SCENE_DIRTY);
+  }
   const navalResolved = resolveShipUnits(battle.combatants);
   if (navalResolved.length) {
     set({ battle: { ...battle, log: [...battle.log, ...evLines(navalResolved, 'detail')] } });

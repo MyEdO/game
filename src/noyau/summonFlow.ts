@@ -39,7 +39,7 @@ export type Invocation = Summon | (Omit<Summon, 'ref'> & { porteur: PorteurDeFic
 /** Cases walkable et LIBRES (toute empreinte exclue) autour de `center`, en anneaux croissants (≤8),
  *  sur l'ÉTAGE de `center` (z-aware, #802) : un lanceur posé sur un chemin de ronde `z>0` invoque sur
  *  SON étage, jamais au sol en contrebas. */
-function freeTilesNear(scene: Scene, battle: BattleState, center: Pt, n: number): Pt[] {
+export function freeTilesNear(scene: Scene, battle: BattleState, center: Pt, n: number): Pt[] {
   const blocked = occupied(battle, '__summon-placement__'); // un id ⇒ toutes les empreintes bloquent
   const z = center.z ?? 0;
   const out: Pt[] = [];

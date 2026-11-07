@@ -35,6 +35,9 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { choisirLaMunition } from '../engine/items';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
+import type { Scene } from './monde/scene';
+import { spawnEnemy } from './monde/spawn';
+import { freeTilesNear, inscrireEnBataille } from './summonFlow';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 
 /**
@@ -327,6 +330,33 @@ export function resolveShipUnits(combatants: Combatant[]): string[] {
       hull.exitReason = 'prise'; // #237 : coque amenée, lue « rendu » (pavillon baissé) au token de coque
       lines.push(t('crew.taken', { ship: hull.label }));
     }
+  }
+  return lines;
+}
+
+/**
+ * VAGUES D'ABORDAGE : une coque dont tout l'équipage exposé (`crewIds`) est hors de combat et qui garde des
+ * marins en RÉSERVE (`reserveDAbordage`) en fait monter une vague neuve, placée près d'elle, inscrite à
+ * l'initiative après elle et rattachée à son équipage. Passe AVANT `resolveShipUnits`, qui sinon déclarerait
+ * la coque prise. Mute EN PLACE, renvoie le journal. Appelé par `checkBattleOver`. MDG 15 l.150, l.171
+ */
+export function monterLesVagues(battle: BattleState, scene: Scene): string[] {
+  const lines: string[] = [];
+  for (const hull of [...battle.combatants]) {
+    const r = hull.reserveDAbordage;
+    if (!r?.restant || !hull.pos || !hull.crewIds?.length || isOutOfAction(hull)) continue;
+    if (!hull.crewIds.every((id) => { const c = inBattleId(battle, id); return !c || isOutOfAction(c); })) continue;
+    const base = battle.combatants.length;
+    const montes = freeTilesNear(scene, battle, hull.pos, Math.min(r.vague, r.restant)).map((pos, i) => {
+      const c = spawnEnemy({ ref: r.ref }, `${hull.id}-vague-${base}-${i}`, pos);
+      c.kind = hull.kind;
+      return c;
+    });
+    if (!montes.length) continue;
+    for (const c of montes) inscrireEnBataille(battle, c, hull.id);
+    hull.crewIds = [...hull.crewIds, ...montes.map((c) => c.id)];
+    hull.reserveDAbordage = { ...r, restant: r.restant - montes.length };
+    lines.push(t('crew.vagueDAbordage', { ship: hull.label, n: montes.length, restant: r.restant - montes.length }));
   }
   return lines;
 }

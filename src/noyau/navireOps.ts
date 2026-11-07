@@ -13,7 +13,7 @@ import { MINUTES_PER_DAY, toDate } from '../engine/clock';
 import { estOpDuNavire, nomDeSource, resolveFormula, type GameOp, type OpDuNavire, type OpsCtx } from '../engine/ops';
 import type { EffectOp } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
-import { addManann, applyManannFactor, cargoBasePrice, meteosActives, modificateursActifs, rollRandomCargo } from '../engine/seaVoyage';
+import { addManann, applyManannFactor, cargoBasePrice, meteosActives, modificateursActifs, rollRandomCargo, type ModificateurDuNavire } from '../engine/seaVoyage';
 import { ajouterAuRoster } from '../engine/crewMorale';
 import { seasonOfMonth } from '../engine/travelStages';
 import { isRation } from '../engine/provisions';
@@ -22,7 +22,8 @@ import { rollShipCritical } from '../engine/shipCritical';
 import { dataLabel, findCrewRoleById, voyageStakeRef } from '../data';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { applyShipMoraleDelta, applyVesselCrewLoss, shipboardSouls } from './shipCrew';
-import { applyVesselCritical, buildVoyageCrewStep, coqueDuNavireDeCampagne, localisationAleatoire, noteSeaLine, persistHullWounds, setVesselHull, vesselManann, voyageShip } from './seaVoyageFlow';
+import { applyVesselCritical, buildVoyageCrewStep, coqueDuNavireDeCampagne, entrerDansLeTourbillon, heurterLePeril, localisationAleatoire, navireHostileEnVue, noteSeaLine, persistHullWounds, setVesselHull, vesselManann, voyageShip } from './seaVoyageFlow';
+import { findSeaHazard } from '../engine/seaPerils';
 import { applyLeafOps, OPS_DIFFEREES } from './combatEffects';
 import { startCascade } from './cascade';
 import type { Get, Set } from './flowTypes';
@@ -71,12 +72,19 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
     case 'navireMod': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
       const now = get().gameTime;
-      const jours = o.jusqua === 'carenage' ? null : joursTires(o.jusqua.jours, coque, ctx);
+      const jusqua: ModificateurDuNavire['jusqua'] = typeof o.jusqua === 'string' ? o.jusqua : now + joursTires(o.jusqua.jours, coque, ctx) * MINUTES_PER_DAY;
       const label = nomDeSource(ctx);
-      const mod = { label, ...(o.m !== undefined ? { m: o.m } : {}), ...(o.manDR !== undefined ? { manDR: o.manDR } : {}), jusqua: jours === null ? 'carenage' as const : now + jours * MINUTES_PER_DAY };
+      const mod: ModificateurDuNavire = {
+        label, ...(o.m !== undefined ? { m: o.m } : {}), ...(o.manDR !== undefined ? { manDR: o.manDR } : {}), ...(o.evite ? { evite: [...o.evite] } : {}), jusqua,
+      };
       set({ vessel: { ...vessel, modificateurs: [...modificateursActifs(vessel.modificateurs, now), mod] } });
-      const axes = [...(o.m !== undefined ? [t('eff.navireModM', { m: signe(o.m) })] : []), ...(o.manDR !== undefined ? [t('eff.navireModMan', { dr: signe(o.manDR) })] : [])];
-      return [t('eff.navireMod', { label, axes: axes.join(', '), duree: jours === null ? t('eff.jusquAuCarenage') : t('eff.pendantNJours', { n: jours }) })];
+      const axes = [
+        ...(o.m !== undefined ? [t('eff.navireModM', { m: signe(o.m) })] : []),
+        ...(o.manDR !== undefined ? [t('eff.navireModMan', { dr: signe(o.manDR) })] : []),
+        ...(o.evite ? [t('eff.navireModEvite', { perils: o.evite.map(libelleDuPeril).join(', ') })] : []),
+      ];
+      const duree = typeof jusqua === 'number' ? t('eff.pendantNJours', { n: (jusqua - now) / MINUTES_PER_DAY }) : jusqua === 'carenage' ? t('eff.jusquAuCarenage') : t('eff.jusquAuProchainEvenement');
+      return [t('eff.navireMod', { label, axes: axes.join(', '), duree })];
     }
     case 'meteoImposee': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
@@ -109,8 +117,15 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
       return o.gateesPct !== undefined ? gaterLesProvisions(get, set, o.gateesPct) : ajouterDesVivres(get, set, joursTires(o.jours, coque, ctx));
     case 'equipage':
       return changerLEquipage(get, set, Math.round(resolveFormula(o.delta, coque, ctx.rng)), o.role?.id, o.sansSolde);
+    case 'perilDeMer':
+      return o.collision !== undefined ? heurterLePeril(get, set, coque, o.collision.id, ctx.rng) : entrerDansLeTourbillon(get, set, o.tourbillon.id, nomDeSource(ctx));
+    case 'navireHostile':
+      return navireHostileEnVue(get, set, coque, o, nomDeSource(ctx));
   }
 }
+
+/** Libellé d'un péril de `sea-perils.json`. */
+const libelleDuPeril = (id: string): string => garanti(findSeaHazard(id), id, 'péril en mer').label;
 
 /** Change l'effectif de `delta` marins (`applyVesselCrewLoss`, borné à l'effectif nominal) ; un recueilli au
  *  rôle `roleId` entre au roster `crew`, ou à `recueillisSansSolde` jusqu'au prochain port. MDG 15 l.202-204,

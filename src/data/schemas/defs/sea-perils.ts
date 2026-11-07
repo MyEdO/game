@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { document, type EnveloppeDocument } from '../grammaire/document';
 import { cibleEtendueSchema, difficultySchema, shipSizeSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { exigerDuTest, flowTestSchema } from '../grammaire/mecanique';
+import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'sea-perils.json';
 export const famille = 'config';
@@ -37,8 +38,6 @@ const seaHazardDef = nommerChamps(z.strictObject({
   }).optional(),
   desc: z.string(),
   source: sourceRefSchema,
-  /** Poids du tirage de collision (#444) — MAISON, cf. `hazardsWeightNote` ci-dessous. */
-  weight: z.number().optional(),
 }), {
   id: { label: 'Identifiant' },
   label: { label: 'Libellé' },
@@ -50,7 +49,6 @@ const seaHazardDef = nommerChamps(z.strictObject({
   freeTest: { label: 'Test de libération' },
   desc: { label: 'Description' },
   source: { label: 'Source' },
-  weight: { label: 'Pondération du tirage' },
 });
 
 /** `StraitDef` (`src/engine/seaPerils.ts`). */
@@ -93,11 +91,11 @@ const whirlpoolDef = nommerChamps(z.strictObject({
 
 const champs = {
   echouer: nommerChamps(z.strictObject({ desc: z.string(), source: sourceRefSchema }), { desc: { label: 'Description' }, source: { label: 'Source' } }),
-  /** Pondération MAISON du tirage entre `hazards[]` (#444) — le RAW l.475-499 est muet sur la fréquence. */
-  hazardsWeightNote: z.string(),
-  hazards: z.array(seaHazardDef),
+  /** L'espace des périls : la `collision` d'une op `perilDeMer` et l'`evite` d'une op `navireMod` y résolvent. */
+  hazards: listeCle(seaHazardDef, 'id', { espace: {} }),
   detroits: z.array(straitDef),
-  tourbillons: z.array(whirlpoolDef),
+  /** L'espace des tourbillons : le `tourbillon` d'une op `perilDeMer` y résout. */
+  tourbillons: listeCle(whirlpoolDef, 'id', { espace: {} }),
   tourbillonSwim: nommerChamps(z.strictObject({ test: flowTestSchema, source: sourceRefSchema }).superRefine(exigerDuTest('skill', 'difficulty')), { test: { label: 'Test' }, source: { label: 'Source' } }),
   gestionDesPerils: z.array(
     nommerChamps(z.strictObject({ distanceM: z.number(), spot: difficultySchema, avoid: difficultySchema, source: sourceRefSchema }), {
@@ -115,7 +113,6 @@ const doc = document(
   champs,
   {
     echouer: { label: 'Échouage', hint: "Description et référence de la règle d'échouage" },
-    hazardsWeightNote: { label: 'Note de pondération', hint: 'Pondération MAISON du tirage entre dangers — le RAW ne chiffre pas la fréquence' },
     hazards: { label: 'Dangers de navigation', hint: 'Catalogue des dangers (Iceberg/Débris/Rocher/Bas-fonds) — collision, empêtrement' },
     detroits: { label: 'Détroits', hint: 'Passages resserrés : Mouvement max et DR de Navigation pour les franchir' },
     tourbillons: { label: 'Tourbillons', hint: "Zones dangereuses : rayon, spirale d'aspiration, chance d'évasion" },
