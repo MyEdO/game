@@ -1322,9 +1322,13 @@ async function parcoursEditeur() {
   await capturer('3508-l4-2-piece-agrandie')
   await cliquerAuPanneau({ element: 'bouton/valeur/crossTest/ajouter' })
   await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'valeur/crossTest/difficulty')`)
-  await choisirALaListe('valeur/crossTest/difficulty', 'valeur/crossTest/difficulty/difficile', 'editeur.inspecteur')
-  await cliquerAuPanneau({ element: 'bouton/valeur/crossTest/noSupport/true' })
-  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/crossTest/noSupport')?.valeurs.find((b) => b.id === 'valeur/crossTest/noSupport/true')?.presse === true`)
+  /** L'id du bouton qui joue la valeur `valeur` du choix `choix` de l'inspecteur (`{ type: 'valeur', args: [porteur, chemin, valeur] }`). */
+  const idDeLaValeur = (e, choix, valeur) => inspecte(e, choix).valeurs.find((b) => b.jeu.args[2] === valeur).id
+  e = await editeur()
+  await choisirALaListe('valeur/crossTest/difficulty', idDeLaValeur(e, 'valeur/crossTest/difficulty', 'difficile'), 'editeur.inspecteur')
+  const sansSoutien = idDeLaValeur(e, 'valeur/crossTest/noSupport', true)
+  await cliquerAuPanneau({ element: `bouton/${sansSoutien}` })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/crossTest/noSupport')?.valeurs.find((b) => b.id === '${sansSoutien}')?.presse === true`)
   e = await editeur()
   const difficulte = inspecte(e, 'valeur/crossTest/difficulty').valeurs.find((b) => b.presse).libelle
   noter(`« Ajouter Test de traversée », difficulté « ${difficulte} », soutien refusé : ${e.zones['editeur.validation'][0].texte}`)
