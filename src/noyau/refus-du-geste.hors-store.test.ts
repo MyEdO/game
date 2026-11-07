@@ -18,6 +18,7 @@ import { rechargeDuTour, servablePostes } from './monde/shipPostes';
 import { waterSprayCandidates } from '../engine/suffocation';
 import { battementFoes, distraireFoes } from './combatManeuvers';
 import type { Combatant } from '../engine/types';
+import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import type { BattleState, Jeu } from './etat';
 import type { GesteDuNoyau, VerbesDeLaBarre } from './actionsDuNoyau';
 
@@ -73,5 +74,32 @@ describe('#3610 — refusDuGeste : l’offre est la projection du refus de son g
       advanceTurn(banc.getState, banc.setState);
     }
     expect(ecarts).toEqual([]);
+  });
+});
+
+describe('#3610 — Dissiper : le mode s’offre une fois, chaque Sort dissipable porte son geste (LDB 46 l.158-162)', () => {
+  const mk = (id: string, extra: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
+    id, name: id, kind: 'hero',
+    characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 },
+    wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
+    weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
+    skills: [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 20 }], talents: [], spells: [], pos: { x: 1, y: 1 },
+    ...extra,
+  }) as unknown as Combatant);
+
+  it('dispel une fois, dispel-spell par Sort, son geste admis par le corps qu’il déclare', () => {
+    const banc = ouvrirLeBanc();
+    const sort = (spellId: string, casterId: string) => ({ label: spellId, char: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 }, spell: { spellId, ni: 2, casterId, label: spellId } });
+    const cible = mk('cible', { kind: 'enemy', pos: { x: 5, y: 5 }, activeEffects: [sort('malefice', 'e1'), sort('aveuglement', 'e2')] } as never);
+    banc.setState({ battle: { combatants: [mk('mage'), cible], order: ['mage', 'cible'], turn: 0, round: 1, acted: false, over: null, log: [], reachable: new Map(), movementUsed: 0 } as never });
+    const s = banc.getState();
+    const offres = offresDeLActif({ active: s.battle!.combatants[0], battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime, state: s });
+    expect(offres.filter((o) => o.actionId === 'dispel').map((o) => o.geste)).toEqual([{ verbe: 'armerLeMode', args: ['dispel'] }]);
+    expect(offres.filter((o) => o.actionId === 'dispel-spell').map((o) => o.geste)).toEqual([
+      { verbe: 'dissiperLeSort', args: ['mage', 'malefice', 'e1'] },
+      { verbe: 'dissiperLeSort', args: ['mage', 'aveuglement', 'e2'] },
+    ]);
+    banc.getState().dissiperLeSort('mage', 'aveuglement', 'e2');
+    expect(banc.getState().pendingDispel, 'le geste du candidat n’ouvre pas sa Dissipation').toMatchObject({ spellId: 'aveuglement' });
   });
 });

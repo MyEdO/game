@@ -45,7 +45,7 @@ import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { canAidTeam } from './monde/commandTeam';
 import { controlsCombatant, decidingSeat, unSiegeAgit } from './netOwnership';
 import { surfaceTientLaMain } from './modalArbiter';
-import { dispellableSpellsOn } from '../engine/dispel';
+import { dispellableSpellsOn, type DispellableSpell } from '../engine/dispel';
 import { combatAdvantageSkills } from '../engine/skillCombatApps';
 import { activeCombatant, placingZoneOf, STANCE_BLOCK } from './combatFlow';
 import { canMove, mountablesNear } from './mount';
@@ -380,6 +380,11 @@ export interface ActionSelectorCtx extends ActionCtx {
   weaponUid?: string;
 }
 
+/** Les Sorts que le porteur peut dissiper (`dispellableSpellsOn`), Langue (Magick) exigée (`LDB 46 l.158-162`). */
+function sortsDissipables({ active, battle }: ActionSelectorCtx): DispellableSpell[] {
+  return actorHasSkill(active, { id: 'langue', spec: 'magick' }) ? dispellableSpellsOn(battle.combatants) : [];
+}
+
 /** Les SÉLECTEURS de candidats, par id (`candidates` de `actions.json`) — enveloppes nommées des
  *  fonctions déjà écrites (la liste manuscrite de l'IA n'a plus lieu d'être). */
 export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unknown[]> = {
@@ -399,9 +404,11 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
     healableTargets(active, battle.combatants.filter((c) => c.kind === active.kind), { adjacency: true }).filter((c) => modesDOuverture(c, active).length > 0),
   'cibles-aspersion': ({ active, battle }) =>
     hasWaterContainer(active) ? waterSprayCandidates(active, battle.combatants.filter((c) => c.kind === active.kind)) : [],
-  /** Dissiper est un Test de Langue (Magick) (`LDB 46 l.158-162`) : sans elle, rien n'est dissipable par ce porteur. */
-  'sorts-dissipables': ({ active, battle }) =>
-    actorHasSkill(active, { id: 'langue', spec: 'magick' }) ? dispellableSpellsOn(battle.combatants) : [],
+  /** Dissiper est un Test de Langue (Magick) (`LDB 46 l.158-162`) : sans elle, rien n'est dissipable par ce porteur. Le
+   *  mode Dissiper (`dispel`) s'offre une fois s'il en existe un. */
+  'sorts-dissipables': sortsDissipables,
+  /** Les MÊMES Sorts, chacun le candidat de son geste (`dispel-spell` → `dissiperLeSort`, `ACTION_PORTEURS`). */
+  'sorts-a-dissiper': sortsDissipables,
   /** Méthodes d'Avantage POSSÉDÉES (dédupliquées par Compétence : un Savoir groupé = une case). Le
    *  PLAFOND ne filtre plus ici : il est le verdict d'offre `avantage-sous-plafond`, qui laisse la case
    *  dessinée fermée avec sa raison — une seule source, jamais un filtre muet doublé d'un gate. */
@@ -510,6 +517,11 @@ export const ACTION_PORTEURS: Record<string, (candidat: unknown) => ActionPorteu
   'manoeuvres-sur-soi': (c) => {
     const m = c as ManeuverDef;
     return { porteurId: m.id, args: { maneuverId: m.id }, label: m.label };
+  },
+  /** Un Sort à dissiper, par son lanceur (`dissiperLeSort`). */
+  'sorts-a-dissiper': (c) => {
+    const d = c as DispellableSpell;
+    return { porteurId: `${d.spellId}@${d.casterId}`, args: { spellId: d.spellId, casterId: d.casterId }, label: d.label };
   },
   /** Un consommable du porteur (`utiliserLObjet`). */
   consommables: (c) => {

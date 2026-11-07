@@ -382,7 +382,7 @@
     "surface": "grille",
     "gate": "action-libre-hors-frenesie",
     "run": "dissiperLeSort",
-    "candidates": "sorts-dissipables",
+    "candidates": "sorts-a-dissiper",
     "coutAction": "action",
     "rule": {
       "id": "dissipation",
