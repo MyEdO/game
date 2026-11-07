@@ -2,15 +2,17 @@
  * Inférence de formulaire DEPUIS la donnée (pas de schéma par dataset → un nouveau dataset s'édite
  * tout seul). Métadonnées de RENDU uniquement : décrit comment afficher un champ, sans introduire de
  * structure intermédiaire — on édite les vrais objets de `src/data`. Consommé par `CodexEdit` et par le
- * formulaire de l'éditeur de carte (`formulaireDeZone`, `noyau/sceneEditLecture.ts`).
+ * formulaire de l'éditeur de carte (`formulaireDe`, `noyau/sceneEditLecture.ts`), qui y lit aussi les variantes d'une
+ * union (`unionDuNoeud`) et l'élément d'une liste (`elementDuNoeud`).
  */
 import { LIBELLES_ENVELOPPE, type CleEnveloppe } from '../../data/schemas/grammaire/document';
-import { derouleEnum, metaDesChamps, valeursDe, type MetaChamp } from '../../data/schemas/grammaire/meta';
+import { derouleEnum, libelleDeValeur, metaDesChamps, nomDeNoeud, valeursDe, type MetaChamp } from '../../data/schemas/grammaire/meta';
 import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
-import { defDe, enfantsDe, ouverts } from '../../data/schemas/grammaire/descente';
+import { declarationDEnfants, defDe, enfantsDe, ouverts, pasDeDonnee, valeursAdmises } from '../../data/schemas/grammaire/descente';
 import { declarationDeFeuilleDId } from '../../data/schemas/grammaire/ref';
-import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
+import { OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
 import { choixDeLaFeuilleDId, datasetDeLEspaceDuType } from '../../data';
+import type { GameOp } from '../../engine/ops';
 import { libelleDuLitteral } from '../libelles';
 
 export type FieldKind = 'text' | 'textarea' | 'number' | 'checkbox' | 'stringList' | 'numberList' | 'source' | 'descRef' | 'recordNumber' | 'recordText' | 'object' | 'json' | 'select' | 'selectList';
@@ -164,6 +166,99 @@ export function choixDuNoeud(noeud: unknown): ValeurDuChoix[] | undefined {
   }
 }
 
+/** Le nœud ÉLÉMENT du nœud quand sa seule forme est une liste ; `undefined` sinon. */
+export function elementDuNoeud(noeud: unknown): unknown {
+  const n = seuleForme(noeud);
+  return defDe(n)?.type === 'array' ? enfantsDe(n).find((e) => e.segment === '[]')?.noeud : undefined;
+}
+
+/** Le champ de l'élément de rang `rang` de la liste du champ `liste` (`elementDuNoeud`) : nommé par la liste et son
+ *  rang, jamais vidable, puisqu'il se retire de sa liste. */
+export function champDeLElement(liste: FieldDesc, rang: number): FieldDesc {
+  const noeud = elementDuNoeud(liste.noeud);
+  const kind = kindDuNoeud('', noeud);
+  const bornes = kind === 'number' ? bornesDuNoeud(noeud) : undefined;
+  return { key: String(rang), label: `${liste.label} ${rang + 1}`, kind, nullable: false, noeud, ...(bornes ? { bornes } : {}) };
+}
+
+/** Une variante d'une union : la valeur de son discriminant, son libellé, son nœud (`undefined` : une op sans forme
+ *  déclarée, de `OPS_NON_TYPEES`, qui se saisit en JSON). */
+export interface VarianteDuNoeud { cle: string; libelle: string; noeud: unknown }
+
+/** Une union dont chaque variante est nommée : son nœud, son discriminant, ses variantes. */
+export interface UnionDuNoeud { noeud: unknown; discriminant: string; variantes: VarianteDuNoeud[] }
+
+/** Le nœud d'union de `noeud`, à travers ses enveloppes à un seul enfant transparent (optionnel, `lazy`…) : une union
+ *  discriminée, ou un nœud qui répartit ses enfants déclarés (`declarationDEnfants`) ; `undefined` sans lui. */
+function noeudDUnion(noeud: unknown): unknown {
+  const vus = new Set<unknown>();
+  for (let n = noeud; n && !vus.has(n);) {
+    if (declarationDEnfants(n) || defDe(n)?.discriminator !== undefined) return n;
+    vus.add(n);
+    const enfants = enfantsDe(n);
+    if (enfants.length !== 1 || enfants[0].segment !== '') return undefined;
+    n = enfants[0].noeud;
+  }
+  return undefined;
+}
+
+/** Le libellé de la branche `option`, de valeur `cle` au discriminant `discriminant` : celui de son nœud (`nommerNoeud`),
+ *  sinon celui de cette valeur dans l'énumération nommée qui porte son discriminant. */
+function libelleDeLaBranche(option: unknown, discriminant: string, cle: string): string | undefined {
+  return nomDeNoeud(option)?.label ?? ouverts(pasDeDonnee(ouverts([option]), discriminant)).map((n) => valeursDe(n)?.[cle]).find((l) => l !== undefined);
+}
+
+/** L'union du nœud, chacune de ses variantes nommée : d'une répartition d'ops (`payloads-op`), chaque op typée, nommée
+ *  par son payload, puis chaque op de `OPS_NON_TYPEES` (`OP_LABEL`) ; d'une union discriminée, chaque branche, de
+ *  l'unique valeur de son discriminant (`libelleDeLaBranche`). `undefined` hors d'une union, ou si une variante est
+ *  sans nom. */
+export function unionDuNoeud(noeud: unknown): UnionDuNoeud | undefined {
+  const n = noeudDUnion(noeud);
+  if (n === undefined) return undefined;
+  const declaration = declarationDEnfants(n);
+  const discriminant = declaration ? 'op' : defDe(n)!.discriminator!;
+  const variantes = declaration
+    ? [
+      ...declaration.enfants.map((e) => ({ cle: e.segment.slice(1), libelle: nomDeNoeud(e.noeud)?.label, noeud: e.noeud })),
+      ...OPS_NON_TYPEES.map((op) => ({ cle: op, libelle: OP_LABEL[op as GameOp['op']], noeud: undefined })),
+    ]
+    : enfantsDe(n).filter((e) => e.segment.startsWith('|')).map((e) => {
+      const admises = [...(valeursAdmises(e.noeud)[discriminant] ?? [])];
+      const cle = admises.length === 1 && typeof admises[0] === 'string' ? admises[0] : undefined;
+      return { cle, libelle: cle === undefined ? undefined : libelleDeLaBranche(e.noeud, discriminant, cle), noeud: e.noeud };
+    });
+  const nommees = variantes.filter((v): v is VarianteDuNoeud => v.cle !== undefined && v.libelle !== undefined);
+  return nommees.length === variantes.length ? { noeud: n, discriminant, variantes: nommees } : undefined;
+}
+
+/** La variante de l'union `u` où se lit la valeur `valeur` : celle de son discriminant, que sa co-descente ouvre
+ *  (`ouverts`) ; `undefined` sans elle. */
+export function varianteCourante(u: UnionDuNoeud, valeur: unknown): VarianteDuNoeud | undefined {
+  if (valeur === null || typeof valeur !== 'object') return undefined;
+  const lu = (valeur as Record<string, unknown>)[u.discriminant];
+  const ouvertes = ouverts([u.noeud], valeur);
+  return u.variantes.find((v) => v.cle === lu && (v.noeud === undefined || ouvertes.includes(v.noeud)));
+}
+
+/** Où s'écrivent les champs de la valeur `valeur` du nœud : à travers ses unions, le nœud de leur variante courante
+ *  (`varianteCourante`), et les discriminants que tiennent leurs choix ; `undefined` quand une union n'a pas de
+ *  variante courante à forme déclarée. */
+export function formeAuPoint(noeud: unknown, valeur: unknown): { noeud: unknown; tenus: string[] } | undefined {
+  const tenus: string[] = [];
+  let n = noeud;
+  for (let u = unionDuNoeud(n); u; u = unionDuNoeud(n)) {
+    const v = varianteCourante(u, valeur);
+    if (v?.noeud === undefined) return undefined;
+    tenus.push(u.discriminant);
+    n = v.noeud;
+  }
+  return { noeud: n, tenus };
+}
+
+/** La clé `cle`, de nœud `noeud`, s'écrit-elle au formulaire ? Une clé `id` qui n'est pas une référence `idDe` est une
+ *  identité, qui se change par son geste dédié, qui la propage. */
+export const cleOfferte = (cle: string, noeud: unknown): boolean => cle !== 'id' || ouverts([noeud]).some((n) => declarationDeFeuilleDId(n) !== undefined);
+
 /** La fermeture `ouverts` du nœud offre-t-elle une forme OBJET à clés déclarées qui porte toutes les
  *  clés de l'échantillon (pour une union, la variante objet que l'échantillon satisfait) ? */
 function admetUnObjetDeclare(noeud: unknown, echantillon: unknown): boolean {
@@ -310,4 +405,10 @@ export function inferFields(entries: Record<string, unknown>[], regime: RegimeDe
     const bornes = kind === 'number' ? bornesDuNoeud(noeud) : undefined;
     return { key, label: libelleDuChamp(key, regime), kind, nullable, noeud, ...(bornes ? { bornes } : {}) };
   });
+}
+
+/** Les champs qu'offre le formulaire de la valeur objet `donnee` du nœud `noeud` (`inferFields` au régime `profondeur`),
+ *  sans les discriminants `tenus` que tient le choix d'une variante (`formeAuPoint`), ni une identité (`cleOfferte`). */
+export function champsOfferts(noeud: unknown, donnee: Record<string, unknown>, tenus: readonly string[] = []): FieldDesc[] {
+  return inferFields([donnee], { noeud, niveau: 'profondeur' }).filter((f) => !tenus.includes(f.key) && cleOfferte(f.key, f.noeud));
 }

@@ -1,7 +1,8 @@
 /**
  * VALEURS NEUVES DE L'ATELIER (#3059) : l'op neuve d'un type (`newOp`), la formule d'une forme
- * (`formulaForShape`, `shapeOf`), l'effet neuf d'un type (`newEffect`) et la valeur neuve d'un nœud de schéma
- * (`valeurNeuveDe`). Fonctions pures, au noyau parce qu'elles lisent le moteur et le modèle du monde
+ * (`formulaForShape`, `shapeOf`), l'effet neuf d'un type (`newEffect`), la valeur neuve d'un nœud de schéma
+ * (`valeurNeuveDe`) et celle de chaque variante d'une union (`variantesAChoisir`). Fonctions pures, au noyau parce
+ * qu'elles lisent le moteur et le modèle du monde
  * (`terrainsElectifs`, `EFFECT_HANDLERS`) : tout hôte crée la même valeur que l'éditeur web.
  */
 import type { Formula, GameOp } from '../engine/ops';
@@ -10,9 +11,15 @@ import { opPsy } from '../engine/psych/opsPsy';
 import { OPTIONAL_RULES } from '../engine/policy';
 import { memoParVersion } from '../data';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
+import { OP_DEFS, OPS_NON_TYPEES } from '../data/schemas/grammaire/mecanique';
+import { classeDeProduit } from '../data/schemas/grammaire/produits';
+import { declarationDEnfants, ouverts } from '../data/schemas/grammaire/descente';
+import { declarationDeFeuilleDId } from '../data/schemas/grammaire/ref';
+import { CONDITION_TOUJOURS, recast } from '../data/valeursNeuves';
+import type { Condition } from '../engine/flowCore';
 import { terrainsElectifs } from './monde/terrain';
 import { EFFECT_HANDLERS } from './combatEffects';
-import { admetUneListe, bornesDuNoeud, champsDeclares, choixDuNoeud, kindDuNoeud, videDuNoeud } from './codex/editFields';
+import { admetUneListe, bornesDuNoeud, champsDeclares, choixDuNoeud, kindDuNoeud, unionDuNoeud, varianteCourante, videDuNoeud, type UnionDuNoeud, type VarianteDuNoeud } from './codex/editFields';
 
 
 /** Règles optionnelles NUMÉRIQUES (`kind: 'param'`) — seules éligibles au terme `{rule}` d'une Formula
@@ -95,6 +102,21 @@ function terrainDElectionParDefaut(): string {
   return t.id;
 }
 
+/** La valeur `valeur` du nœud `noeud`, chaque référence de catalogue (`idDe`) vidée : une op neuve n'élit aucune entrée
+ *  à la place de l'auteur. */
+function sansReferenceElue(noeud: unknown, valeur: unknown): unknown {
+  if (ouverts([noeud]).some((n) => declarationDeFeuilleDId(n) !== undefined)) return '';
+  const champs = champsDeclares(noeud);
+  if (!champs || valeur === null || typeof valeur !== 'object') return valeur;
+  return Object.fromEntries(Object.entries(valeur).map(([cle, v]) => {
+    const n = champs.find(([c]) => c === cle)?.[1];
+    return [cle, n === undefined ? v : sansReferenceElue(n, v)];
+  }));
+}
+
+/** L'op NEUVE `op` : celle de sa fabrique ; une op typée qui n'y est pas, la valeur neuve de son payload (`OP_DEFS`), ses
+ *  références vides (`sansReferenceElue`) ; une op de `OPS_NON_TYPEES` qui n'y est pas, son seul nom. Lève pour une op
+ *  inconnue des deux registres. */
 export function newOp(op: GameOp['op'] | string): GameOp {
   switch (op as GameOp['op']) {
     case 'wounds': return { op: 'wounds', amount: 5 };
@@ -215,7 +237,12 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'equipage': return { op: 'equipage', delta: 1 };
     case 'perilDeMer': return { op: 'perilDeMer', collision: { id: '' } };
     case 'navireHostile': return { op: 'navireHostile', navire: { id: '' }, equipage: { id: '', nombre: 1 } };
-    default: return { op: 'wounds', amount: 5 };
+    default: {
+      const payload = OP_DEFS[op];
+      if (payload) return sansReferenceElue(payload, valeurNeuveDe(payload)) as GameOp;
+      if (OPS_NON_TYPEES.includes(op)) return { op } as GameOp;
+      throw new Error(`newOp : op inconnue de OP_DEFS et de OPS_NON_TYPEES (${op})`);
+    }
   }
 }
 
@@ -225,9 +252,9 @@ export function newEffect(type: Effect['type']): Effect {
 }
 
 /** La valeur NEUVE du nœud de schéma `noeud` : d'un champ à choix, sa première valeur (`choixDuNoeud`) ; d'un objet,
- *  ses seuls champs dont le nœud n'admet pas le retrait (`videDuNoeud`), chacun à sa valeur neuve ; d'un nombre, 0, ou
- *  sa borne basse si elle est au-dessus ; d'un texte, '' ; d'une liste, [] ; `undefined` pour tout autre nœud, qu'un
- *  objet neuf ne porte pas. */
+ *  ses seuls champs dont le nœud n'admet pas le retrait (`videDuNoeud`), chacun à sa valeur neuve ; d'une union, celle
+ *  de sa première variante (`variantesAChoisir`) ; d'un nombre, 0, ou sa borne basse si elle est au-dessus ; d'un
+ *  texte, '' ; d'une liste, [] ; `undefined` pour tout autre nœud, qu'un objet neuf ne porte pas. */
 export function valeurNeuveDe(noeud: unknown): unknown {
   const choix = choixDuNoeud(noeud);
   if (choix) return choix[0]?.valeur;
@@ -236,9 +263,34 @@ export function valeurNeuveDe(noeud: unknown): unknown {
     const neuve = videDuNoeud(n) === undefined ? undefined : valeurNeuveDe(n);
     return neuve === undefined ? [] : [[cle, neuve]];
   }));
+  const variantes = variantesAChoisir(noeud, undefined);
+  if (variantes) return variantes[0]?.valeur;
   const bornes = bornesDuNoeud(noeud);
   if (bornes) return bornes.min !== null && bornes.min > 0 ? bornes.min : 0;
   const kind = kindDuNoeud('', noeud);
   if (kind === 'text' || kind === 'textarea') return '';
   return admetUneListe(noeud) ? [] : undefined;
+}
+
+/** La valeur NEUVE de la variante `v` de l'union `u`, depuis la valeur `actuelle` : d'une op, celle de sa fabrique
+ *  (`newOp`) ; d'une Condition, celle de `recast`, qui enveloppe l'actuelle sous ET, OU, NON ; de toute autre branche,
+ *  sa valeur neuve, son discriminant posé. */
+function neuveDeLaVariante(u: UnionDuNoeud, v: VarianteDuNoeud, actuelle: unknown): unknown {
+  if (declarationDEnfants(u.noeud)) return newOp(v.cle);
+  if (u.variantes.some((w) => classeDeProduit(w.noeud)?.fabrique === 'conditionDe')) return recast((actuelle as Condition | undefined) ?? CONDITION_TOUJOURS, v.cle as Condition['kind']);
+  return { ...(valeurNeuveDe(v.noeud) as object), [u.discriminant]: v.cle };
+}
+
+/** Une valeur du choix de la variante d'une union : la clé et le libellé de la variante, la valeur qu'elle pose, et si
+ *  elle est la courante. */
+export interface ValeurDeVariante { cle: string; libelle: string; valeur: unknown; courante: boolean }
+
+/** Les variantes à choisir de l'union du nœud (`unionDuNoeud`), de valeur actuelle `actuelle` : la courante
+ *  (`varianteCourante`) posant l'actuelle, toute autre sa valeur neuve (`neuveDeLaVariante`) ; `undefined` hors d'une
+ *  union dont chaque variante est nommée. */
+export function variantesAChoisir(noeud: unknown, actuelle: unknown): ValeurDeVariante[] | undefined {
+  const u = unionDuNoeud(noeud);
+  if (!u) return undefined;
+  const courante = varianteCourante(u, actuelle);
+  return u.variantes.map((v) => ({ cle: v.cle, libelle: v.libelle, valeur: v === courante ? actuelle : neuveDeLaVariante(u, v, actuelle), courante: v === courante }));
 }
