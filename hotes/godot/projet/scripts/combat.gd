@@ -1,5 +1,5 @@
 ## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il démarre la partie de
-## l'adresse de la page (`?scenario=<id>&graine=<n>`), pose au plateau le monde de sa scène (`monde`), à nouveau chaque
+## l'adresse de la page (`?scenario=<id>&graine=<n>`), ou la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), pose au plateau le monde de sa scène (`monde`), à nouveau chaque
 ## fois que la partie change de scène (`vue.projection.scene`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
 ## `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source
 ## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que la suite ajoute, `zones` : les lignes du journal) ;
@@ -35,7 +35,7 @@ func _ready() -> void:
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
 	await _indexer_les_modeles()
-	var entree := {scenario = _pont.parametre("scenario")}
+	var entree := {essai = true} if _pont.essai else {scenario = _pont.parametre("scenario")}
 	var graine := _pont.parametre("graine")
 	if graine.is_valid_int():
 		entree.graine = graine.to_int()
