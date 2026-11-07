@@ -280,6 +280,16 @@ export interface CampaignVessel {
   /** Enc de cargaison perdus au PROCHAIN déchargement dans le port de l'escale (op `cargaison`,
    *  `perteAuDechargement`) ; levé à l'accostage suivant. MDG 15 l.250 */
   perteAuDechargement?: number;
+  /** INFESTATION de la cale (op `infestation`) jusqu'à son extermination : `progres` DR cumulés au Test
+   *  étendu `crewTestType` ; `chaqueNuit` joue à chaque nuit en mer. MDG 15 l.159-164, l.174-178 ; MDG 14 l.98-104 */
+  infestation?: {
+    label: string;
+    crewTestType: string;
+    difficulty: import('../engine/types').Difficulty;
+    targetDR: number;
+    progres: number;
+    chaqueNuit: import('../engine/flowCore').Flow;
+  };
 }
 
 /** État réseau SÉRIALISABLE (dans l'état du jeu). `ownership` : heroId → siège (0 = hôte).

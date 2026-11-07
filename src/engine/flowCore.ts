@@ -54,7 +54,7 @@ export interface TemporalCondition {
 export interface EffectOp {
   type: 'ops';
   ops: GameOp[];
-  on?: 'party' | 'hero' | 'navire' | 'caster' | 'target' | CibleDeRole;
+  on?: 'party' | 'hero' | 'navire' | 'membreAuHasard' | 'caster' | 'target' | CibleDeRole | CibleDeVolontaires;
   heroId?: string;
   /** Échéance d'HORLOGE (minute `gameTime`) des effets DURABLES posés par ces ops — BAKÉE sur la feuille
    *  (durée d'un consommable résolue AU BOIRE, `bakeConsumableFlow`) pour SURVIVRE aux suspensions (une
@@ -71,6 +71,10 @@ export interface EffectOp {
 /** Cible d'une feuille de SCÈNE : le ou les marins ÉPINGLÉS au rôle d'équipage `role` (`Combatant.shipRole`),
  *  forme de `crewTargetSchema`. MDG 15 l.233 */
 export interface CibleDeRole { role: { id: Id<'crewRole'> } }
+
+/** Cible d'une feuille de SCÈNE : les héros qui choisissent d'en être, chacun à son siège, sous `volontaires`
+ *  (la question posée). MDG 15 l.196 */
+export interface CibleDeVolontaires { volontaires: string }
 
 /** OpsCtx d'une FEUILLE EffectOp : le contexte de l'appelant SURCHARGÉ par les champs bakés de la feuille
  *  (`untilTime` → durée d'horloge, `label` → source). SOURCE UNIQUE — tous les exécuteurs d'EffectOp
@@ -531,7 +535,9 @@ export interface FlowTest {
   exceptGroups?: string[];
   /** GATE générique : le Test n'a lieu QUE si cette Condition est vraie (sinon no-op — ni étape ni branche,
    *  comme `onlyGroups`). Généralise ces gates à l'algèbre de Conditions (Brisé : « pas
-   *  Engagé OU Cœur vaillant, ET pions restants »). Évaluée AVANT le jet par `resolveFlowTest`/`resolveInlineFlowTest`. */
+   *  Engagé OU Cœur vaillant, ET pions restants »). Évaluée AVANT le jet par `resolveFlowTest`/`resolveInlineFlowTest`,
+   *  par testeur ; dans un Flow de scène (`runFlow`), sur chaque héros : seuls ceux qui l'ouvrent peuvent jeter
+   *  (MDG 15 l.197, l.231). */
   gate?: Condition;
   /** SOUTIEN (LDB 12 l.197) — TRI-ÉTAT, jamais une denylist par id de Compétence/Caractéristique ;
    *  coupé à la source par `openSkillTest` (`combatEffects.ts`) :

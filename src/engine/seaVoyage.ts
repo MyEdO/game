@@ -78,11 +78,6 @@ interface ParametresDeBord {
   triton: { victoryRoll: QuantiteTiree; impressed: IssueDuTriton; wrathful: IssueDuTriton; impressedManann: EffetSigne; wrathfulManann: EffetSigne };
   'monstre-puissant': { roll: QuantiteTiree; creatures: string[] };
   culte: { allegianceRoll: QuantiteTiree; initiatesRoll: QuantiteTiree };
-  infestation: {
-    testType: string; difficulty: Difficulty; targetDR: number; spoilEncPerNight: QuantiteTiree;
-    diseaseChancePct: number; ratAttacks: QuantiteTiree; ratCC: number; ratWeapon: number;
-  };
-  'vaisseau-pestifere': { cargoCrates: QuantiteTiree; biscuitDays: QuantiteTiree; waterBarrels: QuantiteTiree; co: QuantiteTiree; resistDifficulty: Difficulty };
   'autres-voyageurs': SansParametre;
   'ile-inconnue': SansParametre;
 }
