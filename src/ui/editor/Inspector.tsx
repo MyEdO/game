@@ -214,13 +214,13 @@ export function Inspector({
   const panelRef = useRef<HTMLElement>(null);
   const selT = sel?.type === 'trigger' ? scene.triggers.find((t) => t.id === sel.id) ?? null : null;
   const zone = sel?.type === 'restZone' ? scene.restZones?.[sel.idx] ?? null : null;
-  const efz = sel?.type === 'effectZone' ? scene.effectZones?.[sel.idx] ?? null : null;
+  const efz = sel?.type === 'effectZone' ? scene.effectZones?.find((z) => z.id === sel.id) ?? null : null;
   // Identité STABLE de la zone sélectionnée : elle survit au renommage de son id (`EntryRename`).
   const clesZones = useClesDeRangees(scene.effectZones);
-  const cleZone = sel?.type === 'effectZone' ? clesZones[sel.idx] : undefined;
+  const cleZone = sel?.type === 'effectZone' ? clesZones[(scene.effectZones ?? []).findIndex((z) => z.id === sel.id)] : undefined;
   const setEfz = (z: SceneEffectZone) => {
     if (sel?.type !== 'effectZone') return;
-    setScene(replaceEffectZone(scene, sel.idx, z));
+    setScene(replaceEffectZone(scene, sel.id, z));
   };
   const entry = sel?.type === 'entry' ? scene.entryPoints?.[sel.id] ?? null : null;
   const selW = sel?.type === 'wall' ? scene.walls?.find((w) => w.x === sel.x && w.y === sel.y && w.side === sel.side && (w.z ?? 0) === sel.z) ?? null : null;
@@ -936,7 +936,13 @@ export function Inspector({
                     Nom
                     <input value={efz.label} onChange={(e) => setEfz({ ...efz, label: e.target.value })} />
                   </label>
-                  <EntryRename label={efz.id} caption="Identifiant (référencé par les façades — « Pièces révélées »)" onRename={(next) => setScene(renameEffectZone(scene, efz.id, next))} />
+                  <EntryRename label={efz.id} caption="Identifiant (référencé par les façades — « Pièces révélées »)" onRename={(next) => {
+                    const out = renameEffectZone(scene, efz.id, next);
+                    if (out !== scene) {
+                      setScene(out);
+                      setSel({ type: 'effectZone', id: next.trim() });
+                    }
+                  }} />
                   <label className="ed-field">
                     Nature
                     <select
@@ -1948,7 +1954,7 @@ function sceneContent(scene: Scene, narratif: NarratifBlock): ContentRow[] {
   const rows: ContentRow[] = [];
   for (const e of scene.entities)
     rows.push({ key: `ent:${e.id}`, icon: entIcon(e), label: nomDEntite(e, presetDuNarratif(narratif)) ?? e.id, at: `(${e.pos.x},${e.pos.y})`, z: e.z, sel: { type: 'entity', id: e.id } });
-  (scene.effectZones ?? []).forEach((efz, i) => {
+  (scene.effectZones ?? []).forEach((efz) => {
     const r = effectZoneRect(efz.area);
     rows.push({
       key: `zone:${efz.id}`,
@@ -1957,7 +1963,7 @@ function sceneContent(scene: Scene, narratif: NarratifBlock): ContentRow[] {
       at: `(${r.x},${r.y})`,
       tag: isDescriptiveZone(efz) ? undefined : 'mécanique',
       z: efz.z,
-      sel: { type: 'effectZone', idx: i },
+      sel: { type: 'effectZone', id: efz.id },
     });
   });
   for (const [name, pos] of Object.entries(scene.entryPoints ?? {}))

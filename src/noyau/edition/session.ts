@@ -101,8 +101,8 @@ function versLAvertissement(s: SessionDEdition, scene: Scene, w: Warning): Sessi
   });
   if (w.plan) {
     const at = w.plan.at;
-    const idx = at.kind === 'zone' ? (scene.effectZones ?? []).findIndex((z) => z.id === at.zoneId) : -1;
-    return vers(at.z, idx >= 0 ? { type: 'effectZone', idx } : null, { mode: 'select' }, planDefectKey(w.plan));
+    const zone = at.kind === 'zone' ? scene.effectZones?.find((z) => z.id === at.zoneId) : undefined;
+    return vers(at.z, zone ? { type: 'effectZone', id: zone.id } : null, { mode: 'select' }, planDefectKey(w.plan));
   }
   const archi = architectureSelectionForWarning(w);
   if (archi) {
@@ -654,10 +654,9 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     case 'zone':
       return ecrireSurLaSelection(s, patchZone(scene, s.sel, g.patch), zonesDe);
     case 'valeur': {
-      const zones = scene.effectZones ?? [];
-      const rang = zones.findIndex((z) => z.id === g.porteur.id);
-      const ecrite = rang < 0 ? undefined : zoneAvecLaValeur(zones[rang], g.chemin, g.valeur);
-      return ecrite ? ecrireSurLaSelection(s, replaceEffectZone(scene, rang, ecrite), (sc) => sc.effectZones) : s;
+      const zone = (scene.effectZones ?? []).find((z) => z.id === g.porteur.id);
+      const ecrite = zone && zoneAvecLaValeur(zone, g.chemin, g.valeur);
+      return ecrite ? ecrireSurLaSelection(s, replaceEffectZone(scene, g.porteur.id, ecrite), (sc) => sc.effectZones) : s;
     }
     case 'nommer': {
       const ent = entiteDeLaSelection(scene, s.sel);
@@ -696,9 +695,9 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     }
     case 'identifier': {
       if (s.sel === null) return sceneRenommee(s, scene, g.id);
-      const zone = s.sel?.type === 'effectZone' ? scene.effectZones?.[s.sel.idx] : undefined;
-      const renommee = zone ? renameEffectZone(scene, zone.id, g.id) : scene;
-      return renommee === scene ? s : ecrire(s, renommee, s.sel);
+      if (s.sel?.type !== 'effectZone') return s;
+      const renommee = renameEffectZone(scene, s.sel.id, g.id);
+      return renommee === scene ? s : ecrire(s, renommee, { type: 'effectZone', id: g.id.trim() });
     }
     case 'entree': {
       const sel = s.sel;
