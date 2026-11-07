@@ -13,6 +13,8 @@ import {
   refusDeSceneDeBataille, type MassBattleState,
 } from './massBattleFlow';
 import { BATTLE_HAZARDS, MIGHT_MAX } from '../engine/massBattle';
+import { formatDice } from '../engine/dice';
+import { massBattleHazardsDie } from '../data';
 import { fenetreDuJeu } from './combatAuto';
 import { garanti } from '../lib/garanti';
 import { t } from '../i18n';
@@ -91,7 +93,7 @@ export function batailleEnVue(s: Jeu): BatailleEnVue | null {
     menace: enRound ? massBattleThreatPenalty(mb) : 0,
     scenes: enRound ? scenesDuRound(s, mb) : [],
     alea: mb.hazard ? { libelle: mb.hazard.label, texte: mb.hazard.text } : null,
-    tirerAlea: aleaOuvert ? { libelle: t('mbf.tirerAlea'), geste: { verbe: 'massBattleHazard', args: [] }, refus: null } : null,
+    tirerAlea: aleaOuvert ? { libelle: t('mbf.tirerAlea', { die: formatDice(massBattleHazardsDie()) }), geste: { verbe: 'massBattleHazard', args: [] }, refus: null } : null,
     choisirAlea: aleaOuvert ? BATTLE_HAZARDS.map((h) => ({ libelle: h.label, geste: { verbe: 'massBattleHazard', args: [h.min] }, refus: null })) : [],
     gestes: !enRound ? [] : mb.awaitingNext
       ? [

@@ -1,10 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import artilleryMisfireJson from '../data/artillery-misfire.json';
-import { artilleryMisfireDie, deDeSalve } from '../data/artilleryMisfire';
+import { artilleryMisfireDie } from '../data/artilleryMisfire';
 import { deDeTirageDe } from '../data/rangees';
 import { RIVER_CRIT_SET } from '../data/shipCriticals';
 import { deDeLaTable, setDeDeTable, type DatasetKey } from '../data/overrides';
-import { parseDiceRequired } from '../engine/dice';
 import { rollShipCritical } from '../engine/shipCritical';
 import { rollStructureCritical } from '../engine/structureCritical';
 
@@ -17,7 +16,9 @@ function sousLeDe(cle: DatasetKey, die: string, corps: () => void): void {
 
 describe('dés authorés des tables — câblage aux lecteurs', () => {
   it.each(['2d10', 'd10+1'])('la Salve refuse une expression incompatible avec sa porte : %s', (die) => {
-    expect(() => deDeSalve(parseDiceRequired(die, 'fixture'), die)).toThrow('exige un dé unique sans modificateur');
+    sousLeDe('artilleryMisfire', die, () => {
+      expect(() => artilleryMisfireDie()).toThrow('exige un dé unique sans modificateur');
+    });
   });
   it('la Salve expose le dé authoré à sa porte', () => {
     expect(artilleryMisfireDie()).toEqual(deDeTirageDe(artilleryMisfireJson));

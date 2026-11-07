@@ -80,7 +80,7 @@ function estTableTiree(v) {
  *   leurs rangées, chaque manquant nommé `<id-du-document>.<id-de-la-rangée>`.
  * - `map-of-lists` : objet racine dont une ou plusieurs propriétés DIRECTES sont des tableaux
  *   d'objets ET dont AU MOINS UN item de ces tableaux cite déjà sa source individuellement —
- *   signe que ce dataset suit la convention PAR ENTRÉE (`sea-weather.json.table`,
+ *   signe que ce dataset suit la convention PAR ENTRÉE (`sea-weather.json.precipitations`,
  *   `mass-battle.json.powerEstimate`…) : chaque tableau est une CATÉGORIE de la même famille de
  *   table, les entrées sont les items de CES tableaux, jamais recursées plus profond (`ops`/
  *   `ranges` imbriqués ne comptent pas). Une propriété DIRECTE nœud `{ die, entries }` compte ses

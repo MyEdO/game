@@ -54,7 +54,7 @@ import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, find
 import { profilNavalDe } from '../engine/coque';
 import { installCost, rollSteamBreakdown, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
 import { estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
-import { deMonde, formatEffetSigne, roll as rollDice, tirer, tirerSigne, type EffetSigne, type QuantiteTiree, type RNG, type Tirage } from '../engine/dice';
+import { deMonde, formatDice, formatEffetSigne, roll as rollDice, tirer, tirerSigne, type EffetSigne, type QuantiteTiree, type RNG, type Tirage } from '../engine/dice';
 import { facesDuDe, findTableEntry } from '../engine/tables';
 import { rollTest, evaluateTest, isDoubleRoll, extendedTestStep, estJete, cibleMesuree } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
@@ -73,7 +73,7 @@ import {
   type SeaWeather, type WindDirection, type WindAspect, type SeaPrecipitationId,
 } from '../engine/seaWeather';
 import {
-  seaMilesPerDay, orientationOutcome, rollCourseChange, foulingEffects, weeklyFoulingLevel,
+  seaMilesPerDay, orientationOutcome, rollCourseChange, deDuChangementDeCap, foulingEffects, weeklyFoulingLevel,
   lighthouseSpotDifficulty, lighthouseOrientationDR, savoirOceansBonus, pursuitDistanceGain,
   pursuitLowMPenalty, forcePaceDifficulty, exhaustionDifficulty, REPARATION, overspeedRow, overspeedDamage,
 } from '../engine/seaNavigation';
@@ -83,7 +83,7 @@ import { addCondition } from '../engine/conditions';
 import { effectiveChar, blessuresPosees } from '../engine/characteristics';
 import { findWhirlpool, pickSeaHazard, strandingOccurs, strandingPenaltyLine, debrisEntangleFor } from '../engine/seaPerils';
 import {
-  evenementsDeBord, deDesEvenementsDeBord, rollPortEvent, rollDaysToNextEvent, addManann, MANANN_BASE, seaBoardEventById,
+  evenementsDeBord, deDesEvenementsDeBord, deDesEvenementsDePort, deDuVoyageRapide, rollPortEvent, rollDaysToNextEvent, addManann, MANANN_BASE, seaBoardEventById,
   removeCargo, spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, overloadMaxEnc, overloadMarks, resolveFastVoyage, FAST_VOYAGE_PALIERS,
   evenementDeBord, seulEvenementDeBord, seulEvenementDePort, rollRandomCargo, cargoBasePrice,
   type CargoOverload, type EvenementDeBord, type ManannMood, type PortProfile, type CargoLot,
@@ -1211,7 +1211,7 @@ function finalizeFastVoyage(get: Get, set: Set): void {
     const crewDR = fast.crewDR ?? 0;
     const manannTens = fast.manannTens ?? 0;
     tell(get, set, [
-      t('sv.fastResult', { roll: String(fast.roll), weeks: fast.weeks, crewDR: `${crewDR >= 0 ? '+' : ''}${crewDR}`, manann: `${manannTens >= 0 ? '+' : ''}${manannTens}`, result: String(fast.result), palier: palier.label }),
+      t('sv.fastResult', { die: formatDice(deDuVoyageRapide()), roll: String(fast.roll), weeks: fast.weeks, crewDR: `${crewDR >= 0 ? '+' : ''}${crewDR}`, manann: `${manannTens >= 0 ? '+' : ''}${manannTens}`, result: String(fast.result), palier: palier.label }),
       palier.desc,
     ]);
   }
@@ -2490,7 +2490,7 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
   const vessel = get().vessel;
   const mood = vesselManann(vessel);
   const { roll, hours, event } = rollPortEvent(mood.score, rng);
-  log(get, set, [t('sv.portEvent', { roll, label: event.label, hours }), event.desc]);
+  log(get, set, [t('sv.portEvent', { die: formatDice(deDesEvenementsDePort()), roll, label: event.label, hours }), event.desc]);
   // #150 : `travelPlan` est déjà remis à `null` par `continueSeaDayAfterCascade` avant cet appel (l'arrivée l'annule) —
   // le lire ici renverrait TOUJOURS `undefined`. La coque se reconstruit depuis l'état PERSISTANT
   // (`get().vessel`, comme `buildSeaPlan`/`effectiveSeaM` le font via `voyageShip`).
@@ -2844,7 +2844,7 @@ export const TABLES = {
       if (out.outcome === 'drift-minor') patchSea(get, set, { minorDrift: true });
       if (out.rollCourseChange) {
         const cc = rollCourseChange(rng, out.courseChangeBonus);
-        j.push(t('sv.courseChange', { roll: cc.roll, side: t(cc.side === 'tribord' ? 'sv.sideTribord' : 'sv.sideBabord'), desc: cc.desc }));
+        j.push(t('sv.courseChange', { die: formatDice(deDuChangementDeCap()), roll: cc.roll, side: t(cc.side === 'tribord' ? 'sv.sideTribord' : 'sv.sideBabord'), desc: cc.desc }));
         const plan2 = get().travelPlan!;
         const remaining = plan2.km - plan2.kmDone;
         if (cc.outcome === 'retard') set({ travelPlan: { ...plan2, km: plan2.km + remaining * (cc.delayPct / 100) } });

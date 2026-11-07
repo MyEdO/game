@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { document, tableTiree } from '../grammaire/document';
 import { EXPRESSION_DE_DE, ecartsDeCouverture, effetSigneSchema, plageOuverteSchema, quantiteTireeSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
+import { parseDice, totalDuDe } from '../../../engine/dice';
+import { deDeLaTableTiree, facesDuDe } from '../../../engine/tables';
 
 export const file = 'sea-events.json';
 export const famille = 'config';
@@ -53,7 +55,7 @@ const seaEventDef = nommerChamps(z.strictObject({
   source: { label: 'Source' },
 });
 
-/** Palier du VOYAGE RAPIDE (`FastVoyagePalier`, `src/engine/seaVoyage.ts`) — cran du d10 (l.33-37) :
+/** Palier du VOYAGE RAPIDE (`FastVoyagePalier`, `src/engine/seaVoyage.ts`) — cran du dé de sa table (l.33-37) :
  *  fourchette `[min,max]` (`findTableEntry`) + conséquences en % (équipage/cargaison/Blessures) et
  *  Coups Critiques. `desc` = verbatim RAW (règle 5). */
 const fastVoyagePalier = nommerChamps(z.strictObject({
@@ -95,8 +97,10 @@ const doc = document(
     }),
     /** MDG 15 l.134 */
     boardEvents: tableTiree(seaEventDef),
-    portEvents: listeCle(seaEventDef, 'id'),
-    fastVoyage: nommerChamps(z.strictObject({ source: sourceRefSchema, paliers: z.array(fastVoyagePalier) }), { source: { label: 'Source' }, paliers: { label: 'Paliers' } }),
+    /** MDG 15 l.243 */
+    portEvents: tableTiree(seaEventDef),
+    /** MDG 15 l.32 */
+    fastVoyage: tableTiree(fastVoyagePalier, { champs: { source: sourceRefSchema }, meta: { source: { label: 'Source' } } }),
   },
   {
     manann: { label: 'Humeur de Manann', hint: 'Score de départ + facteurs signés qui font varier l’humeur du dieu de la mer' },
@@ -109,7 +113,7 @@ const doc = document(
   },
   {
     codex: { keys: ['seaManannFactors', 'seaBoardEvents', 'seaPortEvents'] },
-    edit: { niche: { categories: { seaManannFactors: 'manann.factors', seaBoardEvents: 'boardEvents.entries', seaPortEvents: 'portEvents' } } },
+    edit: { niche: { categories: { seaManannFactors: 'manann.factors', seaBoardEvents: 'boardEvents.entries', seaPortEvents: 'portEvents.entries' } } },
   },
   {
     // MDG 15 l.137, l.235 (boardEvents) ; l.33, l.37 (fastVoyage) ; l.129, l.243-263 (portEvents) ;
@@ -117,12 +121,14 @@ const doc = document(
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
         type Bande = { id?: string; min?: number | null; max?: number | null };
-        const d = v as { boardEvents?: { entries?: Bande[] }; fastVoyage?: { paliers?: Bande[] }; portEvents?: Bande[]; manann?: { portEventMod?: number } };
+        type Table = { die: string; entries: Bande[] };
+        const d = v as { boardEvents?: Table; fastVoyage?: Table; portEvents?: Table; manann?: { portEventMod?: number } };
         const modDePort = d.manann?.portEventMod ?? 0;
+        const deDePort = d.portEvents && parseDice(d.portEvents.die) ? deDeLaTableTiree(d.portEvents) : null;
         const tables: [(string | number)[], string, Bande[], number | 'ouverte', number | 'ouverte'][] = [
           [['boardEvents', 'entries'], "le jet d'Événement de bord", d.boardEvents?.entries ?? [], 'ouverte', 'ouverte'],
-          [['fastVoyage', 'paliers'], 'le d10 du Voyage rapide', d.fastVoyage?.paliers ?? [], 'ouverte', 'ouverte'],
-          [['portEvents'], "le 2d10 de l'escale, Humeur de Manann comprise", d.portEvents ?? [], 2 - modDePort, 20 + modDePort],
+          [['fastVoyage', 'entries'], `le ${d.fastVoyage?.die} du Voyage rapide`, d.fastVoyage?.entries ?? [], 'ouverte', 'ouverte'],
+          ...(deDePort ? [[['portEvents', 'entries'], `le ${d.portEvents!.die} de l'escale, Humeur de Manann comprise`, d.portEvents!.entries, totalDuDe(deDePort, deDePort.n) - modDePort, facesDuDe(deDePort) + modDePort] as [(string | number)[], string, Bande[], number, number]] : []),
         ];
         for (const [path, domaine, bandes, depuis, jusqua] of tables) {
           const ecarts = ecartsDeCouverture(bandes, depuis, jusqua, (b) => `la bande « ${b.id} »`);

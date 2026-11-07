@@ -1,7 +1,7 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** ADE II 8. */
 import { z } from 'zod';
-import { document } from '../grammaire/document';
+import { document, tableTiree } from '../grammaire/document';
 import { moneySchema, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
 
@@ -100,7 +100,8 @@ const doc = document(
     mightModifiers: listeCle(mightModifierRowSchema, 'id'),
     warMachines: listeCle(warMachineRowSchema, 'id'),
     structures: listeCle(structureRowSchema, 'id'),
-    hazards: listeCle(hazardRowSchema, 'id'),
+    /** ADE II 08 l.311 */
+    hazards: tableTiree(hazardRowSchema),
   },
   {
     powerEstimate: { label: 'Estimation de Puissance', hint: "Table d'exemples de composition d'armée par valeur de Puissance" },
@@ -113,7 +114,7 @@ const doc = document(
     codex: {
       keys: ['massBattlePowerEstimate', 'massBattleMightModifiers', 'massBattleWarMachines', 'massBattleStructures', 'massBattleHazards'],
     },
-    edit: { niche: { categories: { massBattlePowerEstimate: 'powerEstimate', massBattleMightModifiers: 'mightModifiers', massBattleWarMachines: 'warMachines', massBattleStructures: 'structures', massBattleHazards: 'hazards' } } },
+    edit: { niche: { categories: { massBattlePowerEstimate: 'powerEstimate', massBattleMightModifiers: 'mightModifiers', massBattleWarMachines: 'warMachines', massBattleStructures: 'structures', massBattleHazards: 'hazards.entries' } } },
   },
 );
 

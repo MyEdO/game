@@ -7,9 +7,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { executeesDe } from '../grammaire/mecanique';
-import { ecartsDeCouverture, plageOuverteSchema } from '../grammaire/valeurs';
-import { facesDuDe } from '../../../engine/tables';
-import { parseDice, totalDuDe } from '../../../engine/dice';
+import { ecartsDuDeDeLaTable, plageOuverteSchema } from '../grammaire/valeurs';
 
 export const file = 'tables.json';
 export const famille = 'entite';
@@ -36,15 +34,12 @@ const doc = document(
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
         for (const [i, t] of (v as { id: string; die: string; entries: z.output<typeof rangee>[] }[]).entries()) {
-          const de = parseDice(t.die);
-          if (!de) continue;
-          const jusqua = t.entries.some((r) => r.max === null) ? 'ouverte' : facesDuDe(t.die);
-          const ecarts = ecartsDeCouverture(t.entries, totalDuDe(de, de.n), jusqua, (r) => `la rangée n° ${t.entries.indexOf(r) + 1}`);
+          const ecarts = ecartsDuDeDeLaTable(t, t.entries, (r) => `la rangée n° ${t.entries.indexOf(r) + 1}`);
           if (ecarts.length) {
             ctx.addIssue({
               code: 'custom',
               path: [i, 'entries'],
-              message: `tables.json › ${t.id} : les rangées ne couvrent pas le ${t.die} d'un seul tenant depuis ${totalDuDe(de, de.n)} — ${ecarts.join(' ; ')}.`,
+              message: `tables.json › ${t.id} : les rangées ne couvrent pas le ${t.die} d'un seul tenant — ${ecarts.join(' ; ')}.`,
             });
           }
         }

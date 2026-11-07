@@ -54,6 +54,7 @@ import { STRUCTURE_CRITICALS } from './structureCriticals';
 import { ARTILLERY_MISFIRE } from './artilleryMisfire';
 import miscastRawJson from './miscast.json';
 import { deDeTirageDe, rangeesDe } from './rangees';
+import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
 import type * as imparfaites from './schemas/defs/miscast';
 import type * as signesAstrologiques from './schemas/defs/stars';
 import type * as tableauDesOups from './schemas/defs/oups';
@@ -2236,7 +2237,7 @@ export interface StarData {
   source: SourceRef;
 }
 /** Demeure céleste (ADE II 3 l.502-512) : section du ciel gouvernée par un signe — thème astral
- *  facultatif de la création (flavor pur). `desc` = VERBATIM de la source ; `rand` = borne haute 1d10. */
+ *  facultatif de la création (flavor pur). `desc` = VERBATIM de la source ; `rand` = borne haute de sa bande imprimée (l.504-512). */
 export interface CelestialHouseData {
   /** id STABLE (slug du libellé) — `HeroDetails.dwellings[].house` stocke cet ID (libellé à l'affichage). */
   id: string;
@@ -2476,7 +2477,9 @@ export const massBattlePowerEstimate = massBattleJson.powerEstimate as PowerEsti
 export const massBattleMightModifiers = massBattleJson.mightModifiers as MightModifierRow[];
 export const massBattleWarMachines = massBattleJson.warMachines as WarMachineRow[];
 export const massBattleStructures = massBattleJson.structures as MassBattleStructureRow[];
-export const massBattleHazards = massBattleJson.hazards as HazardRow[];
+export const massBattleHazards = massBattleJson.hazards.entries as HazardRow[];
+/** Le dé des Facteurs environnementaux (ADE II 08 l.311), lu sur leur nœud à l'appel. */
+export const massBattleHazardsDie = (): DeDeTable => deDeLaTableTiree(massBattleJson.hazards);
 
 /** LES matières du monde (#1686) — donnée pure, UN document, le domaine PORTÉ par l'entrée. */
 export const materials = materialsJson as MaterialEntry[];
@@ -2877,11 +2880,11 @@ export const defautsDeCompilation = defautsDeCompilationJson as DefautsDeCompila
 /** Les rangées du Tableau des Signes astrologiques (`stars.json`). */
 export const stars = rangeesDe<typeof signesAstrologiques>(starsJson) as StarData[];
 /** Le dé du Tableau des Signes astrologiques, lu à l'appel. */
-export const starDie = (): DiceSpec => deDeTirageDe<typeof signesAstrologiques>(starsJson);
+export const starDie = (): DeDeTable => deDeTirageDe<typeof signesAstrologiques>(starsJson);
 /** Le dé qui départage les variantes d'un même seuil (`StarData.sub`), lu à l'appel. */
-export const starSubDie = (): DiceSpec => starsJson.sub.dice;
+export const starSubDie = (): DeDeTable => deDeLaTableTiree(starsJson.sub);
 /** Les 5 demeures célestes (ADE II 3 l.502-512, « Déterminer les demeures célestes ») — ossature
- *  narrative du thème astral (flavor pur, aucun effet mécanique). `rand` = borne haute du 1d10. */
+ *  narrative du thème astral (flavor pur, aucun effet mécanique). `rand` = borne haute de sa bande imprimée (l.504-512). */
 export const celestialHouses = astrologyJson as CelestialHouseData[];
 /** Apparences d'espèce (app-owned, éditable) — lues par le Codex (`noyau/codex/registry.ts`), la
  *  composition (`noyau/apparence/composition.ts`) et `scripts/personnage-3d/base/`. */

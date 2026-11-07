@@ -10,7 +10,8 @@ import type { Dir8 } from '../../../geometry/dir8';
 import type { FormuleSansTirage } from '../../../engine/ops';
 import { z } from 'zod';
 import { parseStatus } from '../../../engine/money';
-import { parseDice } from '../../../engine/dice';
+import { parseDice, totalDuDe } from '../../../engine/dice';
+import { deDeLaTableTiree, facesDuDe, type PorteurDeDe } from '../../../engine/tables';
 import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
 
 import { type Amateur, type ContexteDeTest, AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
@@ -1214,6 +1215,22 @@ export function ecartsDeCouverture<F extends { min?: number | null; max?: number
     ecarts.push(`la dernière fourchette s'arrête à ${attendu - 1} au lieu de ${jusqua}`);
   }
   return ecarts;
+}
+
+/**
+ * COUVERTURE DU DÉ d'une table tirée : ses fourchettes couvrent le dé que porte la table
+ * (`deDeLaTableTiree`, `src/engine/tables.ts`) d'un seul tenant, de son plus petit total à son plus
+ * grand (`facesDuDe`), ouverte en haut quand une fourchette l'est (`max: null`). Un dé illisible rend
+ * `[]` : son champ (`deDeTirageSchema`) le refuse déjà, nominativement.
+ */
+export function ecartsDuDeDeLaTable<F extends { min?: number | null; max?: number | null }>(
+  table: PorteurDeDe,
+  fourchettes: readonly F[],
+  nom: (f: F) => string,
+): string[] {
+  if ('die' in table && parseDice(table.die) === null) return [];
+  const de = deDeLaTableTiree(table);
+  return ecartsDeCouverture(fourchettes, totalDuDe(de, de.n), fourchettes.some((f) => f.max === null) ? 'ouverte' : facesDuDe(de), nom);
 }
 
 /**

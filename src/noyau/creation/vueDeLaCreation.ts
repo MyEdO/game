@@ -19,7 +19,7 @@ import {
 } from './brouillon';
 import {
   advancementLabel, armesChoisissables, careerLabelFor, careersForSpecies, charAbr, classes, DEFAULT_FABRICATION_ATOUT, fabricationAtouts,
-  findBookById, findCareerById, findQualityById, findSpellById, findStarById, findTalentById, libelleDeClasse, refLabel, species, specLabel, stars,
+  findBookById, findCareerById, findQualityById, findSpellById, findStarById, findTalentById, libelleDeClasse, refLabel, species, specLabel, starDie, stars,
   trappingRefLabel, type AdvancementRef, type CareerData, type SpeciesData,
 } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
@@ -28,7 +28,7 @@ import { speciesAllowed, XP_CAREER_FIRST, XP_SPECIES_ACCEPTED, XP_STAR_ROLLED } 
 import { refKey, talentMaxReached } from '../../engine/careerSlots';
 import { effectiveChar } from '../../engine/characteristics';
 import { formatMoney } from '../../engine/money';
-import { hashSeed } from '../../engine/dice';
+import { formatDice, hashSeed } from '../../engine/dice';
 import { brancheChoisie, emplacementsDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type EmplacementDeDotation } from '../../engine/trappingChoices';
 import type { AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { idsDeLaSousListe, type RefASpecialisation, type RefDesignee } from '../../data/schemas/grammaire/ref';
@@ -237,8 +237,8 @@ function pageDuSigne(d: CreatorDraft): RubriqueDeCreation[] {
   const signe = findStarById(d.star);
   return [
     d.starRollValue === undefined
-      ? gesteDe('tirage', t('crea.vue.tirerSigne', { px: XP_STAR_ROLLED }), geste('tirerLeSigne'))
-      : jet('tirage', t('crea.vue.tirageSigne'), String(d.starRollValue), findStarById(d.starRoll)?.label ?? null),
+      ? gesteDe('tirage', t('crea.vue.tirerSigne', { die: formatDice(starDie()), px: XP_STAR_ROLLED }), geste('tirerLeSigne'))
+      : jet('tirage', t('crea.vue.tirageSigne', { die: formatDice(starDie()) }), String(d.starRollValue), findStarById(d.starRoll)?.label ?? null),
     choix('signe', t('crea.vue.signe'), stars.map((s) => option(s.label, geste('signe', s.id), s.id === d.star))),
     ...(signe ? [valeur('signeChoisi', signe.label, null, signe.desc ?? null)] : []),
     ...px(starXp(d)),

@@ -4,10 +4,10 @@
  *
  * RAW modélisé :
  *  - Tirage QUOTIDIEN des 4 aspects (Précipitations / Température / Visibilité / Vents) : « Lancez le
- *    dé pour chaque aspect » (l.164), 1d10 + saison (« ajoutez 2 au résultat pour les mois d'automne
+ *    dé pour chaque aspect » (l.164), dé de la table (l.170) + saison (« ajoutez 2 au résultat pour les mois d'automne
  *    et de printemps et 4 pour l'hiver », l.164) ; mer chaude : « soustrayez 2 au résultat (minimum
  *    de 1) des lancers pour la Température et la Visibilité » (l.166).
- *  - Rose des vents (l.250-260) : 1-6 dominant, 7 nord, 8 sud, 9 ouest, 10 est.
+ *  - Rose des vents (l.250-260), au dé de sa table (l.252).
  *  - Vent relatif (l.262-270) : direction du vent COMPARÉE au cap du navire → vent arrière /
  *    latéral (bâbord-tribord) / de face.
  *  - Mise à jour du vent « à l'aube, à midi, au crépuscule et à minuit » (l.272) : 1d10, sur 1 le
@@ -29,10 +29,10 @@
  */
 import seaWeatherJson from '../data/sea-weather.json';
 import type { SeaWeatherData } from '../data/schemas/defs/sea-weather';
-import { findTableEntry } from './tables';
+import { deDeLaTableTiree, findTableEntry } from './tables';
 import { basculesDeForce } from './forceDuVent';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, type RNG } from './dice';
+import { d10, rollDice, type RNG } from './dice';
 import { WORK_PERIOD_HOURS } from './seaNavigation';
 import type { Difficulty } from './types';
 import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
@@ -90,14 +90,14 @@ export function seaWeatherLabel(w: SeaWeather): string {
   return `${precipitationDef(w.precipitations).label} · ${temperatureDef(w.temperature).label} · ${visibilityDef(w.visibilite).label} · ${windForceLabel(w.vent)}`;
 }
 
-/** Tire la météo du jour (l.164-166) : 1d10 + saison PAR ASPECT ; mer chaude → −2 (min 1) sur
+/** Tire la météo du jour (l.164-166) : dé de la table + saison PAR ASPECT ; mer chaude → −2 (min 1) sur
  *  Température et Visibilité. PUR (RNG injecté). */
 export function rollSeaWeather(season: Season, rng: RNG, warmSea = false): SeaWeather {
   const mod = DATA.seasonMod.saisons[season];
   const aspect = (warm: boolean): WeatherRow => {
-    let r = d10(rng) + mod;
+    let r = rollDice(deDeLaTableTiree(DATA.table), rng) + mod;
     if (warm) r = Math.max(1, r + DATA.warmSeaMod);
-    return findTableEntry(DATA.table, r);
+    return findTableEntry(DATA.table.entries, r);
   };
   return {
     precipitations: aspect(false).precipitations as SeaPrecipitationId,
@@ -110,7 +110,7 @@ export function rollSeaWeather(season: Season, rng: RNG, warmSea = false): SeaWe
 /** Direction du vent (rose des vents, l.250-260). `dominantDirection` = vents dominants du plan
  *  d'eau (Mer des Griffes : ouest, l.253 — paramétrable par carte). PUR. */
 export function rollWindDirection(rng: RNG, dominantDirection: WindDirection = 'ouest'): WindDirection {
-  const dir = findTableEntry(DATA.roseDesVents, d10(rng)).direction;
+  const dir = findTableEntry(DATA.roseDesVents.entries, rollDice(deDeLaTableTiree(DATA.roseDesVents), rng)).direction;
   return dir === 'dominant' ? dominantDirection : (dir as WindDirection);
 }
 
