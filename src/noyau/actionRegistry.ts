@@ -622,7 +622,7 @@ export const OFFRES_PAR_RUN: Readonly<Record<string, EntreeDOffre>> = {
   /** PORTE UNIQUE de la pause d'initiative (LDB 17 l.25) : le bandeau de phase de la console ET la
    *  touche du registre (`keybindings.round-start`) passent ICI : la validation de la pause, qui marque le siège
    *  PRÊT — c'est le quorum (sièges requis) qui lance, jamais un client ; en solo, le quorum est ce siège. */
-  roundStart: relais((get) => get().fenetreValider('roundStart')),
+  lancerLeRound: relais((get) => get().fenetreValider('roundStart')),
   /** Demande de pause au prochain Round — INTERRUPTEUR, lu dans l'état de l'émetteur : son siège l'a déjà posée, elle se
    *  retire (annulation gratuite), sinon elle se pose. */
   leverLaMain: relais((get) => {
@@ -634,11 +634,11 @@ export const OFFRES_PAR_RUN: Readonly<Record<string, EntreeDOffre>> = {
   //    balayage clôt l'étape-jet de la cascade).
   fermerLeBalayage: relais((get) => get().fenetreFermer('cleave')),
   renoncerALaSecondeFrappe: relais((get) => get().fenetreFermer('dualStrike')),
-  castPickTargetsOff: relais((get) => get().jetRegler('cast', 'carte', null)),
+  renoncerALaCarte: relais((get) => get().jetRegler('cast', 'carte', null)),
   /** Sortie du placeur de zone, ROUTÉE PAR LA SOURCE que mesure `placingZoneOf` — symétrique de
    *  `commitPlacedZone` (même aiguilleur pour poser et pour renoncer) : un sort revient à sa modale,
    *  un pilonnage referme son placeur. Une seule entrée d'interlude pour le mode `placing-zone`. */
-  placingZoneOff: relais((get) => {
+  renoncerALaZone: relais((get) => {
     const pz = placingZoneOf(get());
     if (!pz) return;
     switch (pz.source) {
@@ -647,11 +647,11 @@ export const OFFRES_PAR_RUN: Readonly<Record<string, EntreeDOffre>> = {
       default: pz.source satisfies never;
     }
   }),
-  batterySelectNone: relais((get) => get().desarmerLeMode()),
+  desarmerLaBatterie: relais((get) => get().desarmerLeMode()),
   /** Téléportation (`combatFlow.ts:5381` : `action: 'teleport'` + `reachable` = `flyReachable` depuis
    *  la case du lanceur, qui contient donc SA case au coût 0, `path.ts:318`) : la sortie de l'interlude
    *  est un ARRIVAGE sur place — le même commit que le clic-sol, par la même porte. */
-  teleportStay: relais((get) => {
+  resterSurPlace: relais((get) => {
     const active = actif(get);
     if (active?.pos) get().cliquerLaCase({ ...active.pos });
   }),
