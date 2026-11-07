@@ -148,7 +148,8 @@ import type { Get, Set } from './flowTypes';
 import type { PendingBase } from './rollFlowFactory';
 import { dataLabel } from '../data';
 import { t } from '../i18n';
-import { placeById, type WorldMap } from './worldMap';
+import { lieuDuGroupe, placeById, placeServices, type WorldMap } from './worldMap';
+import { sceneDuRegistre } from './monde/registreDesScenes';
 import { garanti } from '../lib/garanti';
 import { stepPrecision } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
@@ -613,6 +614,22 @@ export interface OpenRestOpts {
   travelMarch?: string[];
 }
 
+/** Le repos qu'offre l'endroit où se tient le groupe : à un lieu de la carte, l'auberge de ses services
+ *  (`placeServices`), à la qualité de la scène du lieu ; ailleurs, la scène à la position du groupe
+ *  (`restPlacesHere`) ; `null` : aucun. */
+export function reposDuLieu(get: Get): OpenRestOpts | null {
+  const s = get();
+  const ici = lieuDuGroupe(s);
+  if (ici) {
+    const scene = sceneDuRegistre(ici.scene);
+    const auberge = placeServices(ici, scene).find((svc) => svc.category === 'auberge' && svc.rest);
+    const quality = scene?.rest?.quality;
+    return auberge?.rest ? { places: auberge.rest, lieu: libelleOuAbsence(ici, 'lieu', ici.id), ...(quality ? { quality } : {}) } : null;
+  }
+  const scene = restPlacesHere(s);
+  return scene && { places: scene.places, lieu: sceneLieu(get), quality: scene.quality };
+}
+
 /** Ouvre la modale de Repos avec une OFFRE de lieux (effet, halte de voyage, bouton de Repos). */
 export function ouvrirLeRepos(get: Get, set: Set, opts: OpenRestOpts): void {
   const st = get();
@@ -753,7 +770,11 @@ export function validationsDuRepos(get: Get, set: Set) {
 
 export function creerActionsDuRepos(get: Get, set: Set) {
   return {
-    ouvrirLeRepos: (opts) => ouvrirLeRepos(get, set, opts),
+    ouvrirLeRepos: () => {
+      const repos = reposDuLieu(get);
+      if (repos) ouvrirLeRepos(get, set, repos);
+    },
+    offrirLeRepos: (opts) => ouvrirLeRepos(get, set, opts),
     // « Dormir » : sommeil de `days` journée(s) (défaut 1) — récup. (Exténué/Blessures) + cauchemars (LDB 16/18/21).
     reposerLeGroupe: (days = 1) => { sleepParty(get, set, days); },
   } satisfies FabriqueDuNoyau;

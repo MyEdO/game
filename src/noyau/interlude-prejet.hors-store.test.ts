@@ -65,7 +65,7 @@ const CIBLES: Record<string, (b: Banc, heroId: string) => CiblesChoisies> = {
   identify: () => ({ itemUid: 'art-1' }),
   'tester-objets-magiques': () => ({ itemUid: 'art-1' }),
   'entrainement-arme-inhabituelle': () => ({ itemUid: 'arme-1' }),
-  convalescence: () => ({ traitPsy: { type: 'peur' } }),
+  convalescence: () => ({ traitPsy: 'peur' }),
   mecenat: (b, id) => { b.actions.deposerALaBanque(id, 'mecenat', 1200); return { depotId: b.getState().bank[0]?.uid }; },
   'recherche-universitaire': (b, id) => ({ spellId: learnableSpells(héros(b, id)).find((x) => x.cost > 0)!.spell.id }),
 };
@@ -305,7 +305,7 @@ function premieresCibles(h: Combatant, def: ActivityDef): CiblesChoisies {
   if (c.armes[0]) return { itemUid: c.armes[0].uid };
   if (c.artefacts[0]) return { itemUid: c.artefacts[0].uid };
   if (c.sorts[0]) return { spellId: c.sorts[0].spell.id };
-  return c.traitsPsy[0] ? { traitPsy: c.traitsPsy[0].vise } : {};
+  return c.traitsPsy[0] ? { traitPsy: c.traitsPsy[0].cle } : {};
 }
 
 /** Ouvre `def` par le geste : refusé ⇔ aucun jet ; ouvert, le pré-jet rendu par le volet == le jet posé, cible lancée comprise. */

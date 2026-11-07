@@ -25,7 +25,7 @@ import { progresDActivite } from './progresEtendu';
 import { refuserGeste } from './refusVisible';
 import {
   ciblesDActivite, devisDeDepot, optionDApprentissage, optionDEntrainement, refusDActivite, refusDArtisanat,
-  refusDeCommande, refusDeConfirmerLActivite, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, opsCiblees, preJetDActivite, devisDeCloture, pertesDArgentDuTirage, effetsDeLaPeriode, revenusDeLaPeriode, activitesPerduesAuGroupe, verificationDeFaillite, type CiblesChoisies, type TraitPsyVise,
+  refusDeCommande, refusDeConfirmerLActivite, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, opsCiblees, viseDuTrait, preJetDActivite, devisDeCloture, pertesDArgentDuTirage, effetsDeLaPeriode, revenusDeLaPeriode, activitesPerduesAuGroupe, verificationDeFaillite, type CiblesChoisies, type TraitPsyVise,
 } from './verdictsDInterlude';
 import { resetInterruptedFavorProgress } from './favorFlow';
 import { confirmBattleActivity, engagerLaBataille, battlePrepEntries, soutienCouteUneActivite } from './massBattleFlow';
@@ -352,8 +352,8 @@ export interface PendingActivityFields extends PendingBase {
   spellId?: string;
   /** Retrait de Mécénat (ACE 12 l.49) : le dépôt `bank` soldé par le Test d'Évaluation. */
   depotId?: IdDeDepot;
-  /** Convalescence (ADE II 09 l.33) : clé d'INSTANCE (`identiteDeCiblage`) du Trait psychologique « de votre
-   *  choix » à éliminer. */
+  /** Convalescence (ADE II 09 l.33) : la visée du Trait psychologique « de votre choix » à éliminer
+   *  (`viseDuTrait`). */
   traitPsy?: TraitPsyVise;
   // ── Activité/Scène de BATAILLE de masse (ADE II 8 — contextes 'bataille'/'bataille-round') ──
   /** Activité de bataille : l'issue (delta de Puissance / modificateur de Test) porte sur l'ARMÉE, pas
@@ -550,7 +550,7 @@ export function openCatalogActivity(get: Get, set: Set, heroId: string, activity
       ...(opts.itemUid ? { itemUid: opts.itemUid } : {}),
       ...(opts.spellId ? { spellId: opts.spellId } : {}),
       ...(opts.depotId ? { depotId: opts.depotId } : {}),
-      ...(opts.traitPsy ? { traitPsy: opts.traitPsy } : {}),
+      ...(opts.traitPsy !== undefined ? { traitPsy: viseDuTrait(h, opts.traitPsy) } : {}),
       ...extra,
       difficulty: preJet.difficulty,
     },
@@ -1000,7 +1000,7 @@ function appliquerLActivite(get: Get, set: Set): void {
     const bands = (def.outcomes?.length
       ? matchOutcomes(def, { success: pa.success, sl: pa.sl, fumble })
       : pa.success && def.onSuccess?.length ? [{ ops: def.onSuccess }] : [])
-      .map((b) => (b.ops ? { ...b, ops: opsCiblees(b.ops, pa) } : b));
+      .map((b) => (b.ops ? { ...b, ops: opsCiblees(b.ops, pa.traitPsy) } : b));
     if (fumble && def.outcomes?.some((b) => b.on === 'fumble')) lines.push(msg('if.fumble', { name: h.label, roll: String(pa.roll) }));
     for (const band of bands) {
       if (band.note) lines.push(band.note); // résultat VERBATIM de la table source

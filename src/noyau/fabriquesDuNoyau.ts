@@ -75,7 +75,7 @@ type NomDeVerbe = NomDAction<ActionDuLexique>
  *  d'elles, chacune l'action d'un membre de `MachinerieDuNoyau`. Un verbe ne les prend pas. */
 type ActionDeLaMachinerie = ActionDuLexique | 'accorder' | 'aider' | 'ajouter' | 'amorcer' | 'annuler' | 'apprendre'
   | 'asperger' | 'basculer' | 'chanter' | 'charger' | 'declencher' | 'denouer' | 'enfoncer' | 'ensemencer' | 'entrer'
-  | 'eprouver' | 'faire' | 'frapper' | 'gagner' | 'interagir' | 'lancer' | 'manoeuvrer' | 'mettre' | 'monter' | 'orienter'
+  | 'eprouver' | 'faire' | 'frapper' | 'gagner' | 'interagir' | 'lancer' | 'manoeuvrer' | 'mettre' | 'monter' | 'offrir' | 'orienter'
   | 'pousser' | 'ramasser' | 'recharger' | 'relever' | 'remettre' | 'reposer' | 'sauter' | 'servir' | 'tenter' | 'terminer'
   | 'tirer' | 'virer';
 

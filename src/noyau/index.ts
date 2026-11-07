@@ -99,7 +99,7 @@ export { verbeDeJetDe, viseUneRangee } from './flowVerbs';
 export { FERMETURES_DITES } from './rollFlowFactory';
 export { effetDuGeste, reglagesDesElements, type Reglage, type ValeurDuReglage } from './reglages';
 export { declarationDuReglage, REGLAGE_DE_L_AXE, VERBE_DE_REGLAGE } from './reglagesDuJet';
-export { VERBE_DE_CHOIX } from './choixDesFenetres';
+export { VERBE_DE_CHOIX, declarationDuChoix } from './choixDesFenetres';
 export { reglagesDesChoix } from './choixDeFenetre';
 export { avecSigne } from '../engine/types';
 export { ROLES_D_ANIMATION, type RoleDAnimation } from './animation';

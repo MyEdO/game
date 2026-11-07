@@ -18,7 +18,10 @@ import type { BattleState, Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau, JeuDuNoyau } from './machinerieDuNoyau';
 import type { AttackKind } from '../engine/creatureAttacks';
-import type { IdDeCombattant, IdDEntiteDeScene, IdDObjet } from './designations';
+import type {
+  IdDAttaque, IdDeCombattant, IdDeCompetence, IdDeCondition, IdDeManoeuvre, IdDEntiteDeScene, IdDeSort, IdDePanoplie, IdDeTestDEquipage, IdDObjet,
+  IdDObjetRamassable,
+} from './designations';
 import { refuserGesteDuSiege } from './refusVisible';
 import { entityPickables } from './combatEffects';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
@@ -521,25 +524,25 @@ export interface ContexteDOffre {
   targetId?: IdDeCombattant;
   weaponUid?: IdDObjet;
   ammoUid?: IdDObjet;
-  spellId?: string;
+  spellId?: IdDeSort;
   /** Le PORTEUR du Sort à dissiper (`dissiperLeSort`). */
   casterId?: IdDeCombattant;
-  skillId?: string;
+  skillId?: IdDeCompetence;
   itemUid?: IdDObjet;
-  loadoutId?: string;
-  conditionId?: string;
-  maneuverId?: string;
-  attackId?: string;
-  attackKind?: string;
+  loadoutId?: IdDePanoplie;
+  conditionId?: IdDeCondition;
+  maneuverId?: IdDeManoeuvre;
+  attackId?: IdDAttaque;
+  attackKind?: AttackKind;
   entityId?: IdDEntiteDeScene;
-  pickKey?: string;
+  pickKey?: IdDObjetRamassable;
   /** COQUE visée (`hullId`) — bordée, chant, rechargement de pièce, service d'un poste. */
   shipId?: IdDeCombattant;
   /** MEMBRE D'ÉQUIPAGE qui agit sur la coque (`manoeuvrerLeNavire(crewId)`, `noyau/combatSlice.ts`) : c'est le
    *  barreur, pas le navire. Deux champs parce que ce sont deux entités — un seul mentait. */
   crewId?: IdDeCombattant;
   posteUid?: IdDObjet;
-  crewTestId?: string;
+  crewTestId?: IdDeTestDEquipage;
 }
 
 type Dispatcher = (get: Get<JeuDuNoyau>, ctx: ContexteDOffre, def: ActionDef) => void;
@@ -568,7 +571,7 @@ const actif = (get: Get<JeuDuNoyau>): Combatant | undefined => {
 export const OFFRES_PAR_RUN: Readonly<Record<string, EntreeDOffre>> = {
   armerLeMode: corps((get, _ctx, def) => get().armerLeMode((def.armed ?? null) as BattleActionMode | null)),
   armerLAttaque: corps((get, ctx) => get().armerLAttaque(ctx.attackId ?? 'arme')),
-  lancerLAttaqueDeZone: corps((get, ctx) => get().lancerLAttaqueDeZone(ctx.attackKind as AttackKind)),
+  lancerLAttaqueDeZone: corps((get, ctx) => { if (ctx.attackKind) get().lancerLAttaqueDeZone(ctx.attackKind); }),
   prendreLaVisee: corps((get) => get().prendreLaVisee()),
   rechargerLArme: corps((get, ctx) => get().rechargerLArme(ctx.weaponUid)),
   approvisionnerLArme: corps((get, ctx) => { if (ctx.ammoUid) get().approvisionnerLArme(ctx.ammoUid, ctx.weaponUid); }),

@@ -16,8 +16,10 @@ import type { PendingDesignationHeros, PendingExtendedTest } from './pendings';
 import type { Scene } from './monde/scene';
 import type { Pt } from './monde/path';
 import type {
-  IdDeCombattant, IdDeHeros, IdDePossession, IdDEntiteDeScene, IdDeTireurRapide, IdDObjet,
+  IdDeCombattant, IdDeHeros, IdDePossession, IdDEntiteDeScene, IdDeTireurRapide, IdDObjet, IdDAttaque, IdDeCompetence,
+  IdDeManoeuvre, IdDObjetRamassable, IdDeTestDEquipage,
 } from './designations';
+import type { OpenRestOpts } from './restFlow';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { BattleActionMode } from './actionRegistry';
 import type { BattleClickOpts, TileClickOpts } from './targetingModes';
@@ -45,6 +47,8 @@ export interface MachinerieDuNoyau {
    *  soigne des Blessures (l.380 volet a Résistance +20 → DR+BE, ET volet b +BE/jour) et déclenche les
    *  cauchemars des héros marqués (LDB 16/18/21). `days` par défaut = 1 (une nuit). */
   reposerLeGroupe: (days?: number) => void;
+  /** Ouvre la modale de Repos sur l'offre `opts` que l'appelant nomme (`ouvrirLeRepos`, `restFlow.ts`). */
+  offrirLeRepos: (opts: OpenRestOpts) => void;
   /** Reprise après un changement de Cadence de combat en plein combat (passage en Auto/Rapide) :
    *  ré-entre la boucle (auto-résolution de modale + tour de l'IA). No-op en manuel / hors combat. */
   reprendreLaCadence: () => void;
@@ -101,7 +105,7 @@ export interface MachinerieDuNoyau {
    *  l'Avantage adverse. `foeId` absent = 1er éligible (picker via réglage `battement.adversaire`). */
   faireUnBattement: (foeId?: IdDeCombattant) => void;
   /** Test d'équipage GÉNÉRIQUE (MDG 14) : ouvre la modale multi-jets du type `testTypeId` (Rude épreuve…). */
-  eprouverLEquipage: (shipId: IdDeCombattant, testTypeId: string) => void;
+  eprouverLEquipage: (shipId: IdDeCombattant, testTypeId: IdDeTestDEquipage) => void;
   /** « Sur la défensive » : utilise l'Action pour +20 en défense jusqu'au prochain tour. */
   prendreLaDefensive: () => void;
   /** Désengagement (LDB 15 l.43-68) : menu Sacrifier l'Avantage / Esquiver / Fuir / Renoncer. */
@@ -116,7 +120,7 @@ export interface MachinerieDuNoyau {
   entrerEnFrenesie: () => void;
   /** Action « cumuler l'Avantage » (LDB 09 l.305-308) : Test de la Compétence `skillId` (Intuition/
    *  Savoir/Survie/Prière) via la modale de Test standard ; sur réussite +1 Avantage plafonné. Coûte l'Action. */
-  gagnerLAvantage: (skillId: string) => void;
+  gagnerLAvantage: (skillId: IdDeCompetence) => void;
   /** « Quitter la pièce » (release) : libère le poste servi pour un autre — coûte l'Action. */
   quitterLePoste: () => void;
   /** « Servir cette pièce » (MDG 12) : le héros actif devient chef d'un poste de siège NON servi adjacent (arme octroyée) — coûte l'Action. KIND-AGNOSTIQUE. */
@@ -133,7 +137,7 @@ export interface MachinerieDuNoyau {
   /** Ramasser UN objet au sol pendant un Round (LDB 13 l.115-116) : applique au combattant
    *  actif un item ramassable d'un `prop` interactif adjacent. Consomme l'Action, pas d'auto-équipe.
    *  `key` = `eff:<index dans interact.effects>` (cf. entityPickables). */
-  ramasserLObjet: (entityId: string, key: string) => void;
+  ramasserLObjet: (entityId: IdDEntiteDeScene, key: IdDObjetRamassable) => void;
   /** « Pousser » un engin de siège CREWÉ à roues (ADE II 8 l.258, #156) : ouvre le mode de
    *  ciblage-CASE 'push' (le clic-sol suivant commet la translation de formation, `targetingModes.ts`).
    *  Chef d'un poste d'engin MOBILE, Action dispo, Équipe ≥ moitié requise (sinon no-op, comme un tir
@@ -145,10 +149,10 @@ export interface MachinerieDuNoyau {
   /** Arme une ATTAQUE (id d'`AttackOption` : 'arme'/'morsure'/'tentacule'/'pietinement'…) pour le clic-ennemi
    *  — source UNIQUE de l'attaque armée. Toggle → 'arme'.
    *  Le clic-ennemi résout l'attaque armée via l'approche-puis-frappe (cliquerLeCombattant). */
-  armerLAttaque: (id: string) => void;
+  armerLAttaque: (id: IdDAttaque) => void;
   /** Capacité SUR SOI octroyée par un trait (Métamorphose humain↔hybride de l'Enfant d'Ulric) : résout la
    *  manœuvre `targeting:'self'` sur l'acteur et consomme l'Action (la 2ᵉ vient du `loseTurn` de ses effets). */
-  manoeuvrerSurSoi: (maneuverId: string) => void;
+  manoeuvrerSurSoi: (maneuverId: IdDeManoeuvre) => void;
   /** Manœuvre navale (MDG 13) : ouvre la modale du Test de Navigation pour le navire que sert `crewId`. */
   manoeuvrerLeNavire: (crewId: IdDeCombattant) => void;
   /** Chanson de marin (Talent, MDG 09 l.32-40) : ouvre la modale du chanteur (choix de chanson + Test de Chant). */

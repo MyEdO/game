@@ -62,7 +62,7 @@ function rendMalade(id: string, maladie: string, jours = 0): Combatant {
 
 /** La nuit du joueur : auberge → « Dormir ». Rend les étapes de la cascade ouverte. */
 function dort(): CascadeStep[] {
-  banc.getState().ouvrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true } });
+  banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true } });
   banc.getState().fenetreValider('rest');
   return banc.getState().pendingCascade?.participants ?? [];
 }
@@ -177,7 +177,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     // Un second héros valide : la défaite (`checkPartyWiped`) ne peut pas être ce qui interrompt.
     banc.setState((s) => ({ party: [...s.party, hero({ id: 'h2', label: 'Hans' })] }));
     rendMalade('h1', 'pneumonie', 0);
-    banc.getState().ouvrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true } });
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true } });
     banc.getState().fenetreValider('rest');
     const vivant = banc.getState().pendingCascade;
     expect(vivant, 'une fenêtre de nuit est ouverte AVANT le sommeil multi-jours').toBeTruthy();

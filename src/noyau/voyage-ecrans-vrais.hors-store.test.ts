@@ -190,7 +190,7 @@ describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halt
 
   it('un repos déjà ouvert refuse la halte : le jour interrompu reste au log quand même', () => {
     const jour = jourInterrompu();
-    get().ouvrirLeRepos({ lieu: sceneLieu(get), places: { camp: true } });
+    get().offrirLeRepos({ lieu: sceneLieu(get), places: { camp: true } });
     get().reprendreLeVoyage();
     const plan = get().travelPlan!;
     expect(plan.log, 'le jour interrompu est perdu si sa clôture attend `ouvrirLeRepos`').toEqual([jour]);
@@ -231,7 +231,7 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
     setup(map({ km: 60, perils: brigands }));
     get().partirEnVoyage('r1', 'pied');
     interromptPuisVainc();
-    get().ouvrirLeRepos({ lieu: sceneLieu(get), places: { camp: true } });
+    get().offrirLeRepos({ lieu: sceneLieu(get), places: { camp: true } });
     get().fenetreValider('rest');
     draineCascade(get);
     get().reprendreLeVoyage();

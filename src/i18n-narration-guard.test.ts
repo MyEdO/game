@@ -158,7 +158,7 @@ function readString(body: string, from: number, quote: string): string | null {
  */
 function logDepth0Literals(body: string): string[] {
   const out: string[] = [];
-  const rx = /\.log\(/g;
+  const rx = /\.(?:log|ecrireAuJournal)\(/g;
   let m: RegExpExecArray | null;
   while ((m = rx.exec(body))) {
     let i = m.index + m[0].length;

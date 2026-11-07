@@ -1070,8 +1070,7 @@ function CatalogPane({ hero, def, etat, mene }: { hero: Combatant; def: Activity
   const uid = targetUid || weapons[0]?.uid || artefacts[0]?.uid || '';
   const spell = spellId || spellOptions[0]?.spell.id || '';
   const traitPsy = traitChoisi || traitsPsy[0]?.cle || '';
-  const traitVise = traitsPsy.find((x) => x.cle === traitPsy)?.vise;
-  const cible = { ...(uid ? { itemUid: uid } : {}), ...(spell ? { spellId: spell } : {}), ...(traitVise ? { traitPsy: traitVise } : {}) };
+  const cible = { ...(uid ? { itemUid: uid } : {}), ...(spell ? { spellId: spell } : {}), ...(traitPsy ? { traitPsy } : {}) };
   const verdict = refusDOuvertureDActivite(etat, hero.id, def, cible) ?? undefined;
   const blocked = mene ? undefined : verdict;
   const prejet = prejetDuVolet(preJetDActivite(etat, hero.id, def, cible), def.id);

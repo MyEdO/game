@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { creditBourse } from './bourseFlow';
+import { ouvrirLeMedecin } from './medicFlow';
 import { bourseOf } from '../engine/bourse';
 import type { Combatant } from '../engine/types';
 import { availableHealModes } from '../engine/healing';
@@ -490,7 +491,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.setState({ mode: 'exploration', battle: null, party: [al], pendingHeal: null, medic: null });
     creditBourse(banc.getState, banc.setState, 'al', { gold: 0, silver: 10, brass: 0 }); // bourse du groupe (seul membre) = 10 pistoles
     const purse = () => bourseOf(banc.getState().party.find((h) => h.id === 'al')!);
-    banc.getState().ouvrirLeMedecin({ npc: { id: 'med', label: 'Médecin', skill: { id: 'guerison', value: 55 }, intBonus: 4, acts: [{ act: 'wounds', cost: { silver: 5 } }] }, patientId: 'al' });
+    ouvrirLeMedecin(banc.getState, banc.setState, { npc: { id: 'med', label: 'Médecin', skill: { id: 'guerison', value: 55 }, intBonus: 4, acts: [{ act: 'wounds', cost: { silver: 5 } }] }, patientId: 'al' });
     banc.getState().soignerLePatient('wounds');
     expect(purse().silver).toBe(5); // débité de la bourse du GROUPE (`payFromGroup`) au lancement de l'acte
     expect(banc.getState().pendingHeal!.healerName).toBe('Médecin');
@@ -509,7 +510,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const bob = hero({ id: 'bob', skills: [] }); // porte la bourse du groupe
     banc.setState({ mode: 'exploration', battle: null, party: [al, bob], pendingHeal: null, medic: null });
     creditBourse(banc.getState, banc.setState, 'bob', { gold: 0, silver: 10, brass: 0 });
-    banc.getState().ouvrirLeMedecin({ npc: { id: 'med', label: 'Médecin', skill: { id: 'guerison', value: 55 }, intBonus: 4, acts: [{ act: 'wounds', cost: { silver: 5 } }] }, patientId: 'al' });
+    ouvrirLeMedecin(banc.getState, banc.setState, { npc: { id: 'med', label: 'Médecin', skill: { id: 'guerison', value: 55 }, intBonus: 4, acts: [{ act: 'wounds', cost: { silver: 5 } }] }, patientId: 'al' });
     banc.getState().soignerLePatient('wounds');
     // Le soin s'arme MALGRÉ la bourse vide du patient : le groupe a payé.
     expect(banc.getState().pendingHeal!.healerName).toBe('Médecin');

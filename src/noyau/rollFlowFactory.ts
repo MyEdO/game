@@ -444,6 +444,8 @@ export interface RollFlowHandlers {
    *  c'est ce qui permet à `RollShell` de dériver le sélecteur de dé pour TOUT flux. `null` si le
    *  pending est fermé ou le `pid` inconnu. */
   slotOf: (get: Get, pid?: string) => PendingBase | null;
+  /** Les ids des rangées du flux ouvert (`multi.idOf` de chaque slot) ; vide : un flux à un jet, ou fermé. */
+  rangees: (get: Get<Jeu>) => string[];
   /** Refus du slot `pid` d'un flux multi (`spec.multi.refusDuSlot`), `null` s'il se joue : le texte que TOUT verbe
    *  du slot dit en se refusant (`locate`), lu tel quel par la rangée qui ferme ses gestes. */
   refusDuSlot: (get: Get, pid?: string) => string | null;
@@ -835,6 +837,10 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       if (!spec.multi) return p as unknown as PendingBase;
       const slots = spec.multi.slots(p);
       return (pid != null ? slots.find((x) => spec.multi!.idOf(x) === pid) : slots[0]) ?? null;
+    },
+    rangees(get) {
+      const p = pendingOf(get());
+      return p && spec.multi ? spec.multi.slots(p).map(spec.multi.idOf) : [];
     },
     refusDuSlot: (get, pid) => (pid != null ? spec.multi?.refusDuSlot?.(get(), pid) ?? null : null),
     lancerSansRangee(get, set, duSiege) {

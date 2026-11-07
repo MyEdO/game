@@ -10,6 +10,7 @@
  * (références RAW en place). Ne rien y « simplifier » sans citer la source.
  */
 import type { Jeu } from './etat';
+import type { IdDeRangee } from './designations';
 import type { PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, TombantParticipant, PendingShipManeuver, ShipManeuverParticipant, PendingShipBattery, ShipBatteryParticipant, PendingCrewTest, PendingShanty, PendingFocus, PendingDispel, PendingFrenzy, PendingApproach, PendingWard, PendingReload, PendingStateRecovery, PendingTest, PendingSteamSave, PendingAppraise, PendingBargain, PendingHeal, PendingSurgery, PendingCorruption, PendingAttack, PendingHandGate, PendingDefense, PendingCast, PendingDisengage, FleeSlot, FleeBackstabSlot, PendingAuContact, PendingGrapple, PendingCounterspell, CounterParticipant, PendingExtendedTest, ExtendedTestRound, PendingForceDoor, PendingEtalLot, EtalLotRow, ForceDoorParticipant, PendingCastOpposition, OppositionParticipant, PendingCascade, CascadeStep, CascadeRoll, BatchParticipant } from './pendings';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import type { PendingActivity, PendingActivityFields, ActivityOppositionOn } from './interludeFlow';
@@ -270,16 +271,16 @@ function requeteDEtape(st: CascadeStep, rangee: { skill?: RefDesignee }): Revers
  *  (`FluxDuVerbe`), sur la rangée `pid` d'un flux à plusieurs jets (`viseUneRangee`). `jetImposerLeResultat` pose le dé
  *  `roll` ; `jetAnnuler` et `jetValider` agissent sur la fenêtre entière, sans rangée. */
 export interface VerbesDeJet {
-  [NOM_DU_VERBE_DE_JET.roll]: (flux: FluxDuVerbe<'roll'>, pid?: string) => void;
-  [NOM_DU_VERBE_DE_JET.reroll]: (flux: FluxDuVerbe<'reroll'>, pid?: string) => void;
-  [NOM_DU_VERBE_DE_JET.bonusSL]: (flux: FluxDuVerbe<'bonusSL'>, pid?: string) => void;
-  [NOM_DU_VERBE_DE_JET.darkPact]: (flux: FluxDuVerbe<'darkPact'>, pid?: string) => void;
-  [NOM_DU_VERBE_DE_JET.forceSuccess]: (flux: FluxDuVerbe<'forceSuccess'>, pid?: string) => void;
-  [NOM_DU_VERBE_DE_JET.setForcedRoll]: (flux: FluxDuVerbe<'setForcedRoll'>, roll: number, pid?: string) => void;
-  [NOM_DU_VERBE_DE_JET.resist]: (flux: FluxDuVerbe<'resist'>, pid?: string) => void;
-  [NOM_DU_VERBE_DE_JET.determine]: (flux: FluxDuVerbe<'determine'>, pid?: string) => void;
+  [NOM_DU_VERBE_DE_JET.roll]: (flux: FluxDuVerbe<'roll'>, pid?: IdDeRangee) => void;
+  [NOM_DU_VERBE_DE_JET.reroll]: (flux: FluxDuVerbe<'reroll'>, pid?: IdDeRangee) => void;
+  [NOM_DU_VERBE_DE_JET.bonusSL]: (flux: FluxDuVerbe<'bonusSL'>, pid?: IdDeRangee) => void;
+  [NOM_DU_VERBE_DE_JET.darkPact]: (flux: FluxDuVerbe<'darkPact'>, pid?: IdDeRangee) => void;
+  [NOM_DU_VERBE_DE_JET.forceSuccess]: (flux: FluxDuVerbe<'forceSuccess'>, pid?: IdDeRangee) => void;
+  [NOM_DU_VERBE_DE_JET.setForcedRoll]: (flux: FluxDuVerbe<'setForcedRoll'>, roll: number, pid?: IdDeRangee) => void;
+  [NOM_DU_VERBE_DE_JET.resist]: (flux: FluxDuVerbe<'resist'>, pid?: IdDeRangee) => void;
+  [NOM_DU_VERBE_DE_JET.determine]: (flux: FluxDuVerbe<'determine'>, pid?: IdDeRangee) => void;
   [NOM_DU_VERBE_DE_JET.cancel]: (flux: FluxDuVerbe<'cancel'>) => void;
-  [NOM_DU_VERBE_DE_JET.reverse]: (flux: FluxDuVerbe<'reverse'>, pid?: string) => void;
+  [NOM_DU_VERBE_DE_JET.reverse]: (flux: FluxDuVerbe<'reverse'>, pid?: IdDeRangee) => void;
   [NOM_DU_VERBE_DE_JET.confirm]: (flux: FluxDuVerbe<'confirm'>) => void;
 }
 

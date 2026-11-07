@@ -28,6 +28,7 @@ import { buildAuthorPerilSteps } from './authorPerils';
 const LAND_PERIL_INTERRUPT = 'travel-land';
 import { ouvrirLeRepos, placesOfKind, sceneLieu, routeLieu } from './restFlow';
 import type { Jeu } from './etat';
+import type { IdDeClasseDePassage } from './designations';
 import { arriverAuLieu, quitterLeLieu } from './lieuFlow';
 import { lieuDuGroupe, placeById, otherEnd, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
 import { billetApresDepart, offreDePassage, type OffreDePassage } from './billetFlow';
@@ -329,7 +330,7 @@ export function passagePayant(get: Get<Jeu>, route: MapRoute, mode: TravelMode):
 /** Réglages d'un départ choisis à la carte du monde : classe du billet, heures de route par jour, allure,
  *  rythme forcé et cadence en mer, traversée rapide. */
 export interface OptionsDeDepart {
-  classeId?: string; hoursPerDay?: number; allure?: Allure; seaPace?: number; fast?: boolean;
+  classeId?: IdDeClasseDePassage; hoursPerDay?: number; allure?: Allure; seaPace?: number; fast?: boolean;
   cadence?: import('./voyageCadence').VoyageCadence;
 }
 

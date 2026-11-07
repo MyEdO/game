@@ -11,21 +11,27 @@ import { scenesDuRegistre } from './monde/registreDesScenes';
 import { itemLabel } from '../engine/items';
 import { findMoraleFactor } from '../engine/crewMorale';
 import {
-  ACTIONS, NAVAL_TRAITS, apparences, careers, conditionIds, crewRoles, findConditionById, findCreatureById, findSeaShantyById,
-  findTrappingById, pregens, profilsStandard, shipStations, skills, spells, talents, trappingsInstanciables,
+  ACTIONS, NAVAL_TRAITS, apparences, careers, conditionIds, crewRoles, crewTestTypes, findConditionById, findCreatureById, findSeaShantyById,
+  findTrappingById, maneuvers, pregens, profilsStandard, shipStations, skills, spells, talents, trappingsInstanciables,
 } from '../data';
 import { ACTIVITIES, entrainementOptions, qualitesDArtisanat } from '../engine/activities';
+import { libelleDePsy } from '../engine/psych/ciblage';
 import { TAVERN_GAMES } from '../engine/tavernGame';
-import { travelVehicles } from '../engine/travel';
+import { travelVehicles, vehicleTravel } from '../engine/travel';
 import { actionsDe } from './monde/usable';
 import { creneauxDuHeros } from './partyFlow';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { actFirstIds } from './turnEconomy';
 import { preemptShooterIds } from './targeting';
 import { BENCHED, chansonsDuChanteur, choixDePaieOuverts } from './shipCrew';
-import { creaturesADepecer } from './combatEffects';
+import { creaturesADepecer, entityPickables } from './combatEffects';
+import { activeCombatant } from './combatFlow';
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
+import { FLOW_HANDLERS } from './rollFlowSpecs';
+import { FLOW_VERBS, type FlowKey } from './flowVerbs';
+import { traitsPsyChoisissables } from './verdictsDInterlude';
 import { actorIn } from './monde/combatants';
-import { adversairesADistraire, adversairesDuBattement } from './combatManeuvers';
+import { adversairesADistraire, adversairesDuBattement, availableAttacks } from './combatManeuvers';
 import { idsDuCoupleMonte } from './targetingModes';
 import { reponsesDuNoeud } from './dialogue';
 import { plaiesDeLOperation } from './medicFlow';
@@ -151,6 +157,28 @@ export type IdDeStation = string;
 export type IdDePoste = string;
 /** Un trait naval du catalogue (`naval-traits.json`) : Amélioration ou trait de navire. */
 export type IdDeTraitNaval = string;
+/** La rangée d'un flux de jet à plusieurs jets ouvert, par l'id de son slot (`RollFlowHandlers.rangees`). */
+export type IdDeRangee = string;
+/** Une Compétence du catalogue (`skills.json`). */
+export type IdDeCompetence = string;
+/** Une Manœuvre du catalogue (`maneuvers.json`). LDB 85 */
+export type IdDeManoeuvre = string;
+/** Une attaque que le combattant actif peut armer (`availableAttacks`, `combatManeuvers.ts`), par son `id`. */
+export type IdDAttaque = string;
+/** Un objet que le décor d'une entité de la scène courante donne à ramasser, par sa clé (`entityPickables`,
+ *  `combatEffects.ts`). */
+export type IdDObjetRamassable = string;
+/** Un Test d'équipage du catalogue (`crew-test-types.json`). MDG 13 */
+export type IdDeTestDEquipage = string;
+/** Un stade qu'un indice du carnet a franchi (`ClueState.historique`), son stade courant compris. */
+export type IdDeStadeDIndice = string;
+/** Un Trait psychologique porté par un héros du groupe, par sa clé d'instance (`traitsPsyChoisissables`,
+ *  `verdictsDInterlude.ts`). */
+export type IdDeTraitPsyPorte = string;
+/** Une classe de passage d'un véhicule à passage payant (`VehicleData.travel.classes`). */
+export type IdDeClasseDePassage = string;
+/** Une option d'une étape « choix » de la séquence ouverte, par sa clé (`CascadeStep.options`). */
+export type IdDOptionDEtape = string;
 
 /** Une désignation : son nom en mots, les ids valides qu'elle lit dans l'état, et le nom en mots du joueur de
  *  l'élément d'un id (`null` : l'élément n'a pas de nom). */
@@ -184,6 +212,16 @@ const formesConjurables = (s: Jeu): string[] => {
 };
 const labelDePossession = (s: Jeu, uid: string): string | null => s.possessions.find((p) => p.uid === uid)?.label ?? null;
 const lignesDuButin = (s: Jeu) => [...(s.pendingLoot?.gear ?? []), ...(s.pendingVictory?.gear ?? [])];
+const lesAttaques = (s: Jeu) => {
+  const actif = s.battle ? activeCombatant(s.battle) : undefined;
+  return actif && s.battle ? availableAttacks(actif, s.battle) : [];
+};
+const lesRamassables = (s: Jeu) =>
+  (s.scene?.entities ?? []).flatMap((e) => entityPickables(e, s.flags, objetDuNarratif(s.campaignNarratif)));
+const lesTraitsPsyPortes = (s: Jeu) => s.party.flatMap(traitsPsyChoisissables);
+const lesClassesDePassage = (): string[] => sansDoublon(travelVehicles().flatMap((v) => (vehicleTravel(v.id)?.classes ?? []).map((c) => c.id)));
+const lesOptionsDEtape = (s: Jeu) => (s.pendingCascade?.participants ?? []).flatMap((st) => st.options ?? []);
+const FLUX_A_RANGEES = (Object.keys(FLOW_VERBS) as FlowKey[]).filter((flux) => FLOW_VERBS[flux].kind === 'multi');
 
 /** Les désignations, par NOM d'alias. `mot` est un littéral : le générateur des
  *  verbes le lit au source. */
@@ -306,5 +344,34 @@ export const DESIGNATIONS = {
     },
   },
   IdDeTraitNaval: { mot: 'id de trait naval', lire: () => ids(NAVAL_TRAITS), nom: (_s, id) => labelParmi(NAVAL_TRAITS, id) },
+  IdDeRangee: { mot: 'id de rangée', lire: (s) => sansDoublon(FLUX_A_RANGEES.flatMap((flux) => FLOW_HANDLERS[flux].rangees(() => s))), nom: nomDeCombattant },
+  IdDeCompetence: { mot: 'id de Compétence', lire: () => ids(skills), nom: (_s, id) => labelParmi(skills, id) },
+  IdDeManoeuvre: { mot: 'id de Manœuvre', lire: () => ids(maneuvers), nom: (_s, id) => labelParmi(maneuvers, id) },
+  IdDAttaque: { mot: 'id d’attaque', lire: (s) => ids(lesAttaques(s)), nom: (s, id) => labelParmi(lesAttaques(s), id) },
+  IdDObjetRamassable: {
+    mot: 'id d’objet à ramasser',
+    lire: (s) => lesRamassables(s).map((p) => p.key),
+    nom: (s, cle) => lesRamassables(s).find((p) => p.key === cle)?.label ?? null,
+  },
+  IdDeTestDEquipage: { mot: 'id de Test d’équipage', lire: () => ids(crewTestTypes), nom: (_s, id) => labelParmi(crewTestTypes, id) },
+  IdDeStadeDIndice: {
+    mot: 'id de stade d’indice',
+    lire: (s) => sansDoublon(Object.values(s.clues).flatMap((c) => [c.stadeCourant, ...c.historique.map((h) => h.stade)])),
+    nom: () => null,
+  },
+  IdDeTraitPsyPorte: {
+    mot: 'id de Trait psychologique porté',
+    lire: (s) => sansDoublon(lesTraitsPsyPortes(s).map((x) => x.cle)),
+    nom: (s, cle) => {
+      const porte = lesTraitsPsyPortes(s).find((x) => x.cle === cle);
+      return porte ? libelleDePsy(porte.trait.type, porte.trait.cible) : null;
+    },
+  },
+  IdDeClasseDePassage: { mot: 'id de classe de passage', lire: lesClassesDePassage, nom: () => null },
+  IdDOptionDEtape: {
+    mot: 'id d’option d’étape',
+    lire: (s) => sansDoublon(lesOptionsDEtape(s).map((o) => o.key)),
+    nom: (s, cle) => lesOptionsDEtape(s).find((o) => o.key === cle)?.label ?? null,
+  },
   IdDIndice: { mot: 'id d’indice', lire: (s) => Object.keys(s.clues), nom: (s, id) => s.campaignNarratif?.indices.find((i) => i.id === id)?.titre ?? null },
 } satisfies Record<string, Designation>;

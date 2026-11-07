@@ -181,7 +181,7 @@ describe('les arguments de `jouer` se contrôlent contre le type du verbe', () =
   it.each([
     ['un Pt écrit en tableau', verbe('cliquerLaCase', [3, 6]), /pt : un objet JSON \{"x": nombre, "y": nombre, "z"\?: nombre\} attendu/],
     ['un Pt sans y', verbe('cliquerLaCase', { x: 3 }), /pt\.y manque/],
-    ['un pid nombre', verbe('jetRegler', 'cascade', 'choix', 'devier', 0), /pid : une chaîne attendue/],
+    ['un pid nombre', verbe('jetLancer', 'cascade', 0), /pid : une chaîne attendue/],
     ['un argument requis manquant', verbe('dissiperLeSort', 'sorciere'), /l’argument spellId manque/],
     ['un argument en trop', verbe('jetValider', 'cascade', 1), /1 argument\(s\) au plus/],
   ] as const)('%s lève `validation`', { timeout: 120_000 }, (_cas, geste, message) => {

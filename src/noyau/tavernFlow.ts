@@ -48,7 +48,7 @@ import { refuseSi } from './verrousDeFiche';
 import { refuserGeste } from './refusVisible';
 import { rule } from '../engine/policy';
 import type { Jeu } from './etat';
-import type { IdDeHeros, IdDeJeuDeTaverne, IdDeProfilStandard } from './designations';
+import type { IdDEntiteDeScene, IdDeHeros, IdDeJeuDeTaverne, IdDeProfilStandard } from './designations';
 import { bourseOf } from '../engine/bourse';
 import {
   freeCons, opposedAttackerLabel, monoStep, bandStep, choiceStep, quantityStep, rollStep, composeRollLabel, surfaceOf, effectiveTarget, tableStep, displayStep,
@@ -86,9 +86,9 @@ import type { FragmentDeTables, PartDeTable } from './tablesPosees';
  *  · `profil` : un habitué sans entité de scène, au profil standard choisi (`pnjAuProfil`, `LDB 77 l.7`).
  */
 export type TavernOpponent =
-  | { kind: 'hero'; id: string }
-  | { kind: 'npc'; id: string }
-  | { kind: 'profil'; id: string };
+  | { kind: 'hero'; id: IdDeHeros }
+  | { kind: 'npc'; id: IdDEntiteDeScene }
+  | { kind: 'profil'; id: IdDeProfilStandard };
 
 /** Résultat de la dernière partie (affiché dans la modale). Étend l'issue moteur des libellés/mise. */
 export interface TavernGamesResult extends TavernGameResult {

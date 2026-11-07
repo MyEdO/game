@@ -57,7 +57,7 @@ describe('#253 — FAIM du bilan : étape de cascade influençable, pas un jet t
     const a = hero({ id: 'A', label: 'Affamée', hunger: { days: 1, tests: 0, failures: 0 }, fortune: 2 });
     const b = hero({ id: 'B', label: 'Repue', items: [ration('r1')] }); // B mange sa ration → aucun jet
     banc.setState({ party: [a, b] });
-    banc.getState().ouvrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
     banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'A');
     banc.getState().fenetreChoisir('rest', 'pitance', 'ration', 'B');
     banc.getState().fenetreValider('rest');
@@ -93,7 +93,7 @@ describe('#253 — CONTAGION de promiscuité : étape de cascade influençable',
     expect(contagiousDiseases(a).length).toBe(1); // garde : la maladie est bien active + contagieuse (l.206)
     const b = hero({ id: 'B', label: 'Sain', fortune: 2 });
     banc.setState({ party: [a, b] });
-    banc.getState().ouvrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
     banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'A');
     banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'B');
     banc.getState().fenetreValider('rest');
@@ -193,7 +193,7 @@ describe('#253 — EXPOSITION de campement : étape de cascade influençable', (
     sc.weather = 'pluie'; // difficile → Tests d'Exposition ; aucune compétence Survie → pas d'abri, jets directs
     const a = hero({ id: 'A', label: 'Transi', fortune: 2 });
     banc.setState({ party: [a], scene: sc });
-    banc.getState().ouvrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
     banc.getState().fenetreChoisir('rest', 'couchage', 'dehors', 'A'); banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'A');
     banc.getState().fenetreValider('rest');
 
