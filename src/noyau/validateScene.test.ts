@@ -32,14 +32,14 @@ describe('validateScene', () => {
   });
 
   /** L'espèce d'apparence est jugée au schéma (`especeDApparenceSchema`, `grammaire/valeurs.ts`). */
-  it('apparence : espèce hors domaine → erreur nominative ; les trois catalogues du domaine passent', () => {
+  it('apparence : espèce hors domaine → erreur nominative ; les deux catalogues du domaine passent', () => {
     const avec = (appearance: object) => {
       const s = base();
       s.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, appearance });
       return msgs(validateScene([s]).filter((x) => x.scope === 'entity' && x.refId === 'pnj' && x.level === 'error'));
     };
     for (const faute of ['zorglub', 'rat-geants'])
-      expect(avec({ species: faute })).toEqual([`entité « pnj » › apparence › espèce : espèce « ${faute} » inconnue : ni espèce jouable, ni créature, ni race de rendu, ni forme de corps.`]);
+      expect(avec({ species: faute })).toEqual([`entité « pnj » › apparence › espèce : espèce « ${faute} » inconnue : ni espèce jouable, ni espèce du plan de bestiaire (planDeBestiaire.json).`]);
     for (const ok of [{ species: 'humains-reiklander' }, { species: 'amibe' }, { species: 'goule' }, { species: 'sangsue-geante' }])
       expect(avec(ok), JSON.stringify(ok)).toEqual([]);
   });

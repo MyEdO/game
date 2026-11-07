@@ -33,7 +33,7 @@ describe('lireDeclaration', () => {
   })
 
   it('refuse une race à plusieurs Tailles dans la donnée, en les nommant', async () => {
-    const donnee = { raceAppearance: [{ id: 'humain' }], gabarits: [{ id: 'moyen' }], taillesDeLaRace: () => ['moyenne', 'grande'] }
+    const donnee = { raceAppearance: [{ id: 'humain' }], planDeBestiaire: [{ id: 'humain', race: { id: 'humain' }, echelle: 1 }], gabarits: [{ id: 'moyen' }], taillesDeLaRace: () => ['moyenne', 'grande'] }
     await assert.rejects(jugerAvec('deux-tailles', { race: 'humain', gabarit: 'moyen' }, async () => donnee), /porteur\.taille moyenne, Taille de la race humain indéterminée dans la donnée \(moyenne, grande\)/)
   })
 
@@ -41,8 +41,8 @@ describe('lireDeclaration', () => {
     await assert.rejects(jugerAvec('echelle', { echelleDArt: 1.2 }), /porteur\.echelleDArt 1\.2, la donnée donne 1 à la race humain/)
   })
 
-  it('juge l’échelle d’art contre le `scale` de la race dans raceAppearance', async () => {
-    const donnee = { raceAppearance: [{ id: 'humain', scale: 1.2 }], gabarits: [{ id: 'moyen' }], taillesDeLaRace: () => ['moyenne'] }
+  it('juge l’échelle d’art contre l’`echelle` de la race au plan de bestiaire', async () => {
+    const donnee = { raceAppearance: [{ id: 'humain' }], planDeBestiaire: [{ id: 'humain', race: { id: 'humain' }, echelle: 1.2 }], gabarits: [{ id: 'moyen' }], taillesDeLaRace: () => ['moyenne'] }
     await assert.rejects(jugerAvec('echelle-de-race', { race: 'humain', gabarit: 'moyen' }, async () => donnee), /porteur\.echelleDArt 1, la donnée donne 1\.2 à la race humain/)
   })
 })
