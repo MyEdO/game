@@ -28,6 +28,7 @@ import type { StakeRef } from '../data';
 import type { Consequence } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
 import { resultLines, surfaceOf } from './rollSeam';
+import { canFixDie, influencesLocally } from './netOwnership';
 import { WORLD_STEP_OWNER } from './pendings';
 import { hoteOrphelin, hoteEnAttente, PENDING_BY_JET } from './slotsDeJet';
 import { toRecapLines, type RecapLine } from './recapLine';
@@ -1695,7 +1696,7 @@ function avanceUnPas(get: Get, set: Set): PendingCascade | null | typeof ENCORE 
  * qu'un pilote LANCÉ n'a pas. `null` : reparquée, ou interrompue par la clôture hors combat.
  */
 function piloterDepuisLeCurseur(get: Get, set: Set, p: PendingCascade, reprise: ReprisePilote): PendingCascade | null {
-  const ctx = reprise.sansContexte ? undefined : { title: p.title, purpose: p.purpose, rowSurface: reprise.rowSurface };
+  const ctx = reprise.sansContexte ? undefined : { title: p.title, purpose: p.purpose, rowSurface: reprise.rowSurface, auxVraisChoix: reprise.auxVraisChoix };
   const r = piloteImmediat(get, set, p.participants, ctx, p.cursor, p.seq, fusionnerLesBornes({ log: [] }, p));
   if (!r) return null;
   if (!r.clos) { assertBornesPortees(r.collectees); return null; }
@@ -1814,12 +1815,45 @@ export function runCascadeImmediate(get: Get, set: Set, steps: CascadeStep[], ct
   return r.clos ? r.steps : undefined;
 }
 
-type ContexteDuPilote = { title: string; purpose: PendingCascade['purpose']; log?: string[]; rowSurface?: RowSurface };
+type ContexteDuPilote = { title: string; purpose: PendingCascade['purpose']; log?: string[]; rowSurface?: RowSurface; auxVraisChoix?: true };
 
 /** Le contexte de lancement que la séquence parquée emporte (`ReprisePilote`). */
 function repriseDe(ctx: ContexteDuPilote | undefined): ReprisePilote {
   if (!ctx) return { sansContexte: true };
-  return ctx.rowSurface ? { rowSurface: ctx.rowSurface } : {};
+  return { ...(ctx.rowSurface ? { rowSurface: ctx.rowSurface } : {}), ...(ctx.auxVraisChoix ? { auxVraisChoix: true as const } : {}) };
+}
+
+/**
+ * L'étape attend-elle un VRAI CHOIX d'un siège humain (#3534) ? Le jet qu'un siège lance (puis sa Chance, son
+ * Pacte, sa Résilience), la rangée d'une bande qu'un siège tient, le tirage qu'un siège peut fixer (`canFixDie`)
+ * ou qu'un siège distant tient, le choix et la quantité. Une étape d'affichage, un tirage que le siège local tient
+ * sans le fixer n'en sont pas : ils s'appliquent et vont au journal. Jugé au porteur (`porteurDe`), comme toute
+ * surface.
+ */
+function attendUnVraiChoix(get: Get, st: CascadeStep): boolean {
+  const p = porteurDe(st);
+  const tirage = (tire: boolean) => !tire && surfaceOf(get, p) && (canFixDie(get(), p) || !influencesLocally(get(), p));
+  switch (stepInteraction(st)) {
+    case 'jet': return !st.result && surfaceOf(get, p);
+    case 'batch': return st.participants!.some((r) => r.interactive !== false && !r.result);
+    case 'table': return tirage(!!st.table!.result);
+    case 'de': return tirage(!!st.de!.result);
+    case 'choix': case 'quantite': return true;
+    case 'affichage': return false;
+  }
+}
+
+/**
+ * LA JOURNÉE DE ROUTE (#3534) — terre, fleuve et mer : ses étapes se jouent d'un trait par le pilote immédiat,
+ * qui ne s'arrête qu'aux vrais choix (`attendUnVraiChoix`) ; `commandee` (traversée sous ordres) : à aucun. Le
+ * jour allé au bout, son dénouement est la clôture de la cascade (`clotureDeCascade`), la même que celle d'une
+ * journée reprise après un arrêt.
+ */
+export function jouerLaJournee(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteDuPilote, commandee: boolean): void {
+  const c: ContexteDuPilote = commandee ? ctx : { ...ctx, auxVraisChoix: true };
+  const r = piloteImmediat(get, set, steps, c, 0, steps.length, { log: ctx.log ?? [] });
+  if (!r?.clos) return;
+  clotureDeCascade({ title: ctx.title, purpose: ctx.purpose, ...fusionnerLesBornes({ log: ctx.log ?? [] }, r.collectees), participants: r.steps, seq: r.seq, cursor: r.steps.length, piloteImmediat: repriseDe(c) });
 }
 
 /** Le pilote immédiat ALLÉ AU BOUT de son tableau : ses étapes, son compteur, les bornes que SES appliers
@@ -1843,6 +1877,10 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
 
   for (let i = depuis; i < cur.length; i++) {
     const st = cur[i];
+    if (ctx?.auxVraisChoix && attendUnVraiChoix(get, st)) {
+      set({ pendingCascade: curseurPose(get, parquee(i, ctx.title), i) });
+      return undefined;
+    }
     // Jet POSÉ PAR CE PILOTE : aucune fenêtre ne s'ouvrira dessus — le goulot (`commitStep`) en dérive
     // sa ligne de dé. Une étape qui ARRIVE déjà résolue (jet montré ailleurs) n'en reçoit pas.
     let unwitnessed = false;

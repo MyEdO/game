@@ -10,7 +10,7 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, batailleEnVue, carteEnVue, cleDuGeste, dayIndex, formatJourImperial, marchandEnVue, marcheEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
+  ACTIONS, avecSigne, batailleEnVue, carteEnVue, cleDuGeste, dayIndex, formatImperial, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
   type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RecapTone, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
@@ -199,6 +199,7 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     ...ecranDuLieu(etat),
     ...echoppe(etat),
     ...marche(etat),
+    ...voyage(etat),
     ...recitDuVoyage(etat),
     ...herosDeLInterlude(etat),
     ...champDeBataille(etat),
@@ -407,6 +408,22 @@ function echoppe(etat: Jeu): Element[] {
       elements: h.possessions.map((p) => boutonDeGeste(p.uid, avecPrix(p.nom, p.gain), p.basculer, p.refus, p.auLot)),
     })),
     boutonDeGeste('vendre', t('ecran.echoppe.vendre', { total: m.vente.total }), m.vente.vendre.geste, m.vente.vendre.refus),
+  ];
+}
+
+/** Le trajet en cours (`voyageEnVue`) : l'heure de jeu et la météo du jour, les km faits sur ceux du trajet par son
+ *  moyen, puis sa frise : le départ, chaque nuit passée en route et son km, l'arrivée. */
+function voyage(etat: Jeu): Element[] {
+  const v = voyageEnVue(etat);
+  if (!v) return [];
+  const km = (n: number) => t('ecran.voyage.km', { km: n });
+  return [
+    ligne('voyage/heure', formatImperial(v.heure)),
+    ...(v.meteo ? [ligne('voyage/meteo', v.meteo)] : []),
+    jauge('voyage/route', t('ecran.voyage.route', { moyen: v.moyen }), [v.fait, v.km]),
+    puce('voyage/etape/depart', v.de, km(0)),
+    ...v.nuits.map((n, i) => puce(`voyage/etape/nuit/${i}`, t('ecran.voyage.nuit', { nuit: i + 1 }), km(n))),
+    puce('voyage/etape/arrivee', v.vers, km(v.km)),
   ];
 }
 

@@ -2296,8 +2296,9 @@ export type RowSurface = 'pv';
 
 /** Contexte de lancement d'un pilote immédiat PARQUÉ, rejoué tel quel à sa reprise : `sansContexte` = lancé
  *  sans `ctx` (un combat ouvert en plein vol arrête la boucle sans rien empiler) ; `rowSurface` = la
- *  surface de rangées qu'il avait déclarée, que le dénouement de la séquence honore. */
-export type ReprisePilote = { sansContexte?: true; rowSurface?: RowSurface };
+ *  surface de rangées qu'il avait déclarée, que le dénouement de la séquence honore ; `auxVraisChoix` = il
+ *  s'arrête à chaque vrai choix d'un siège (`cascade.jouerLaJournee`, #3534). */
+export type ReprisePilote = { sansContexte?: true; rowSurface?: RowSurface; auxVraisChoix?: true };
 
 /**
  * CASCADE séquentielle influençable (régime choisi par l'utilisateur pour les jets de NUIT et de

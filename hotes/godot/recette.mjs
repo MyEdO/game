@@ -863,6 +863,16 @@ async function parcoursVoyage() {
   noter(`carte : ${points.map((p) => `${p.nom} [${p.ton}] (${p.elements.map((x) => `${x.libelle} : ${x.valeurs.map((b) => b.libelle).join(', ')}`).join(' ; ')})`).join(' | ')}`)
   await capturer('3328-l1-1-carte')
   await cliquerBouton('À pied · 2 j')
+  await attendreLaVue("v.disposition === 'voyage'")
+  v = await vue()
+  noter(`voyage : ${corps(v)}`)
+  await capturer('3534-voyage-1-jets')
+  for (let k = 0; k < 4; k++) {
+    await cliquerBouton('Lancer')
+    await attendreLaVue(`v.zones['fenetre.corps'].filter((e) => e.type === 'jet' && e.resultat).length > ${k}`)
+  }
+  noter(`jets tombés : ${corps(await vue())}`)
+  await capturer('3534-voyage-2-tombes')
   await avancer('recitDeVoyage')
   await attendreLaVue("v.projection.fenetre?.cle === 'recitDeVoyage'")
   v = await vue()

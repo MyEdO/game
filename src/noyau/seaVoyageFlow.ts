@@ -111,7 +111,7 @@ import type { CampaignVessel, Jeu } from './etat';
 import { refuserGeste } from './refusVisible';
 import { openWorldTest, composeRollLabel, openSequence, freeCons, rollLine, rollStep, monoStep, tableStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
-import { startCascade, runCascadeImmediate, pushStep, type TableStepDef } from './cascade';
+import { startCascade, jouerLaJournee, pushStep, type TableStepDef } from './cascade';
 import { checkPartyWiped } from './partyWipe';
 import { memoParVersion } from '../data/versionDataset';
 import { exposureWaveBand } from './nightBands';
@@ -726,7 +726,7 @@ function buildNavProgressionStep(get: Get): BuiltCascadeStep | undefined {
  *  Test d'équipage AU LIEU d'un Test de Navigation ») : aucune des deux voies ne se prend en silence.
  *  La voie Navigation que personne ne peut tenter reste OFFERTE, fermée avec son refus (LDB 09 l.30).
  *  `defaultChoice` = l'équipage, la voie du grand vaisseau — c'est elle qui s'applique en cadence
- *  COMMANDÉE (`runCascadeImmediate`), où le joueur n'est pas à la manœuvre. Le PORTEUR est le barreur
+ *  COMMANDÉE (`jouerLaJournee` commandée), où le joueur n'est pas à la manœuvre. Le PORTEUR est le barreur
  *  (`seaDecider`) : c'est lui que la décision engage. */
 function buildProgressionChoiceStep(get: Get): BuiltCascadeStep | undefined {
   if (!buildVoyageCrewStep(get, 'progression', 'progression')) return undefined;
@@ -1003,7 +1003,7 @@ const M_DU_COURANT = 1;
 const DRIFT_ALONG_ROUTE: Record<WindAspect, -1 | 0 | 1> = { arriere: 1, lateral: 0, face: -1 };
 const DRIFT_EFFECT_KEY = { 1: 'sv.driftAhead', 0: 'sv.driftAbeam', [-1]: 'sv.driftBack' } as const;
 
-/** Journée de PURE ROUTINE, seule résolue d'un bloc sous ordres (`runCascadeImmediate`) : ni crise, ni
+/** Journée de PURE ROUTINE, seule résolue d'un bloc sous ordres (`jouerLaJournee` commandée) : ni crise, ni
  *  infestation. #275 */
 function seaDayAllRoutine(get: Get): boolean {
   const sea = get().travelPlan!.sea!;
@@ -1040,7 +1040,7 @@ function dayEntriesFromStep(get: Get, step: CascadeStep): NightEntry[] {
   });
 }
 
-/** Pousse les entrées de PV des étapes RÉSOLUES (route COMMANDÉE, `runCascadeImmediate`) dans
+/** Pousse les entrées de PV des étapes RÉSOLUES (route COMMANDÉE, `jouerLaJournee`) dans
  *  `sea.entries` (accumulateur du jour, vidé par `continueSeaDayAfterCascade`). */
 function pushDayEntries(get: Get, set: Set, resolved: CascadeStep[]): void {
   const entries = resolved.flatMap((s) => dayEntriesFromStep(get, s));
@@ -1315,18 +1315,13 @@ function jouerLesEtapesDuJour(get: Get, set: Set, steps: BuiltCascadeStep[]): vo
   if (get().battle || get().travelPlan?.interrupted) return;
   // Journée sans jet : finalisée comme la cascade le ferait à sa clôture, défaite hors combat comprise.
   if (!steps.length) { if (!checkPartyWiped(get, set)) continueSeaDayAfterCascade(get, set); return; }
-  // Traversée sous ordres (`voyageCadence.traverseeCommandee`) + journée de PURE routine (#275 Ronde 2
-  // cran 3) : l'auto-pilote résout la cascade d'un bloc (mêmes appliers, mêmes conséquences), sans
-  // modale — lignes au journal. Un combat ouvert EN PLEIN VOL (embuscade ancrée) parque la journée derrière
-  // lui (`runCascadeImmediate` `ctx`) : sa reprise et son dénouement (`dispatchCascadeDone`) jouent la clôture.
-  if (traverseeCommandee(get()) && seaDayAllRoutine(get)) {
-    // `rowSurface: 'pv'` : les rangées des bandes du jour se montrent au PROCÈS-VERBAL (`pushDayEntries`
-    // à la clôture) — le journal ne redit pas leurs dés (#1291). Les monos du tableau y gardent leur ligne.
-    const resolved = runCascadeImmediate(get, set, steps, { title: t('sv.dayTitle'), purpose: 'travelDay', rowSurface: 'pv' });
-    if (resolved) continueSeaDayAfterCascade(get, set, resolved);
-    return;
-  }
-  startCascade(get, set, { title: t('sv.dayTitle'), icon: 'travel/wave', purpose: 'travelDay', steps });
+  // Traversée sous ordres (`voyageCadence.traverseeCommandee`) d'une journée de PURE routine (#275 Ronde 2
+  // cran 3) : aucun arrêt. Un combat ouvert EN PLEIN VOL (embuscade ancrée) parque la journée derrière lui :
+  // sa reprise et son dénouement (`dispatchCascadeDone`) jouent la clôture. `rowSurface: 'pv'` : les rangées
+  // des bandes du jour se montrent au PROCÈS-VERBAL (`pushDayEntries` à la clôture) — le journal ne redit pas
+  // leurs dés (#1291). Les monos du tableau y gardent leur ligne.
+  const commandee = traverseeCommandee(get()) && seaDayAllRoutine(get);
+  jouerLaJournee(get, set, steps, { title: t('sv.dayTitle'), purpose: 'travelDay', ...(commandee ? { rowSurface: 'pv' as const } : {}) }, commandee);
 }
 
 // ── Seam de jet (#275 Ronde 1) — appliers des sites de jet ouverts par `openRoll` ────────────────

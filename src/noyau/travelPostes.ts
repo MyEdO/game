@@ -298,7 +298,7 @@ export const GENRES_HOTES = ['stagePosteDone'] as const;
 /** Le BILAN de l'Étape, lu sur l'état une fois ses postes résolus : les rations que le fourrage cumulé donne aux
  *  héros qui n'en ont plus, les Exténués que chaque DR du camp retire, la progression des cartes (Test ÉTENDU
  *  inter-Étapes, jets cumulés dans l'ordre des rangées comme leurs barres), la catégorie de Rencontre due, et
- *  si un « Plein air » réussi dispense des Expositions. Lu par l'annonce de l'étape et par son application.
+ *  si un « Plein air » réussi dispense des Expositions. Lu par son application.
  *  EDOC 8 l.141, l.161, l.180, l.182-233 ; LDB 12 l.170-185 */
 function bilanDeLEtape(s: Jeu, stages: number) {
   const plan = s.travelPlan;
@@ -463,15 +463,6 @@ export const TABLES = {
       return { consequences: freeCons(j) };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
-  annonces: {
-    /** Ce que le bilan va appliquer, et la Rencontre qu'il va faire tirer. */
-    stageAggregate: (get, step) => {
-      const bilan = bilanDeLEtape(get(), Number(step.meta?.stages ?? 1));
-      if (!bilan) return [];
-      const lignes = [...lignesDuBilan(get(), bilan), ...(bilan.rencontre ? [t('tp.rencontreDue', { category: t(ENCOUNTER_KEY[bilan.rencontre]) })] : [])];
-      return lignes.length ? lignes : [t('tp.bilanSansSuite')];
-    },
-  } satisfies PartDeTable<'annonces', readonly ['stageAggregate']>,
   tablesTirables: Object.fromEntries(CATEGORIES_DE_RENCONTRE.map((c) => [tableDeRencontre(c), {
     label: t(ENCOUNTER_KEY[c]),
     get die() { return facesDuDe(encounterDie()); },
