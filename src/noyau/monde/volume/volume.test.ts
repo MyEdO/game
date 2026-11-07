@@ -118,6 +118,16 @@ describe('volumeDuMonde (#3476)', () => {
     const etage: Scene = { ...s, entities: [{ ...s.entities[0], z: 1 }], layers: [...s.layers, { z: 1, tiles: Array(9).fill('vide'), height: Array(9).fill(3) }] };
     expect(volumeDuMonde(etage, 0).surfaces.some((m) => m.matiere.startsWith('prop--'))).toBe(false);
   });
+
+  it('le décor que son terrain pose (le bois, ses arbres) se dresse sur chacune de ses cases', () => {
+    const s = emptyScene('scene-test', 3, 1);
+    s.layers[0].tiles = ['herbe', 'bois', 'herbe'];
+    const v = volumeDuMonde(s);
+    const decor = v.surfaces.filter((m) => m.matiere.startsWith('prop--'));
+    expect(decor.map((m) => m.matiere)).toContain('prop--feuillage');
+    const tris = triangles(v).filter((_, t) => decor.some((m) => m.debut <= t * 3 && t * 3 < m.fin));
+    expect(new Set(tris.map((t) => t.case.join(',')))).toEqual(new Set(['1,0,0']));
+  });
 });
 
 describe('toitsDuMonde, toitsLeves (#3476)', () => {

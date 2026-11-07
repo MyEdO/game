@@ -36,14 +36,13 @@ describe('régime vivant — `props.json` sans route d’édition', () => {
     expect(sceneEntitySchema.safeParse(entite('decor-neuf')).success).toBe(true);
   });
 
-  it('un `volume` posé par `setDataset` sur un décor plat rend son cap diagonal refusé', () => {
-    const plat = props.find((p) => !p.volume && !p.foot)!;
-    const volumique = props.find((p) => p.volume)!;
-    expect(refEstVolumique(plat.id)).toBe(false);
-    expect(sceneEntitySchema.safeParse(entite(plat.id, 'NE')).success).toBe(true);
-    setDataset('props', DECORS_LIVRES.map((p) => (p.id === plat.id ? { ...p, volume: volumique.volume } : p)));
-    expect(refEstVolumique(plat.id)).toBe(true);
-    const verdict = sceneEntitySchema.safeParse(entite(plat.id, 'NE'));
+  it('un décor posé par `setDataset` porte aussitôt sa recette : son cap diagonal est refusé', () => {
+    const base = props.find((p) => p.id === 'tonneau')!;
+    expect(refEstVolumique('decor-neuf')).toBe(false);
+    setDataset('props', [...DECORS_LIVRES, { ...base, id: 'decor-neuf', label: 'Décor neuf' }]);
+    expect(refEstVolumique('decor-neuf')).toBe(true);
+    expect(sceneEntitySchema.safeParse(entite('decor-neuf', 'E')).success).toBe(true);
+    const verdict = sceneEntitySchema.safeParse(entite('decor-neuf', 'NE'));
     expect(verdict.success).toBe(false);
     expect(verdict.error?.issues.map((i) => i.message).join('\n')).toMatch(/cap cardinal/);
   });

@@ -22,7 +22,7 @@
  * et le DÉCLARE par `Face.oriented` — la cuisson (`backends/webgl/sceneMeshes`) propage ce sens tel quel
  * pour la carte d'ombre au lieu de le re-dériver du centre de la carte.
  */
-import { findPropById, refEstVolumique } from '../../../data';
+import { findPropById } from '../../../data';
 import { capVolumique, polygonesDePrimitive, rotatePropLocal, type PropData } from '../../../data/props.types';
 import type { Dir4, Dir8 } from '../../../geometry/dir8';
 import type { Face, GP } from './types';
@@ -53,7 +53,7 @@ export interface AncrageVolume {
 export function buildPropVolumes(prop: PropData, ancrage: AncrageVolume, mpt: number): Face[] {
   const { ancre, facing, baseHeightM, entId } = ancrage;
   const out: Face[] = [];
-  for (const primitive of prop.volume?.primitives ?? []) {
+  for (const primitive of prop.volume.primitives) {
     const material = { domain: 'prop' as const, id: primitive.material };
     for (const poly of polygonesDePrimitive(primitive)) {
       const monde: GP[] = poly.map((p) => {
@@ -67,11 +67,11 @@ export function buildPropVolumes(prop: PropData, ancrage: AncrageVolume, mpt: nu
 }
 
 /** Les faces MONDE du décor de type `ref` posé par `ancrage`, au cap demandé (défaut : son cap d'identité,
- *  `capVolumique`) ; `null` quand il ne se dessine pas en volume : un type sans recette (`refEstVolumique`), ou un cap
+ *  `capVolumique`) ; `null` quand il ne se dessine pas en volume : un type que le catalogue ne résout pas (#877), ou un cap
  *  que la recette refuse. La SEULE décision volume ou non d'un décor, que lisent le volume du monde des hôtes et
  *  l'émetteur de décor du rendu web. */
 export function facesDuDecor(ref: string | undefined, ancrage: Omit<AncrageVolume, 'facing'> & { facing?: Dir8 }, mpt: number): Face[] | null {
-  const prop = refEstVolumique(ref) ? findPropById(ref!) : undefined;
+  const prop = findPropById(ref);
   const facing = capVolumique(ancrage.facing);
-  return prop?.volume && facing ? buildPropVolumes(prop, { ...ancrage, facing }, mpt) : null;
+  return prop && facing ? buildPropVolumes(prop, { ...ancrage, facing }, mpt) : null;
 }

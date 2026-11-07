@@ -781,8 +781,8 @@ describe('Inspector — orientation : les caps OFFERTS suivent le catalogue', ()
     expect(capsOfferts(h.container)).toEqual(['N', 'E', 'S', 'O']);
   });
 
-  it('décor BILLBOARD : les huit caps restent offerts', () => {
-    const h = mount({ id: 'brasero-1', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'brasero', facing: 'NE' });
+  it('décor HORS catalogue (repli #877, sans recette) : les huit caps restent offerts', () => {
+    const h = mount({ id: 'brasero-1', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'decor-hors-catalogue', facing: 'NE' });
     h.mount();
     expect(capsOfferts(h.container)).toEqual(['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO']);
   });

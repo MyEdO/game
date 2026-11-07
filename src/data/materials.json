@@ -81,6 +81,177 @@
     "metalness": 0
   },
   {
+    "id": "bois-mort",
+    "type": "materials",
+    "label": "Bois mort",
+    "domain": "prop",
+    "color": "#6b5d4c",
+    "roughness": 0.9,
+    "metalness": 0
+  },
+  {
+    "id": "os",
+    "type": "materials",
+    "label": "Os",
+    "domain": "prop",
+    "color": "#d6cbb0",
+    "roughness": 0.7,
+    "metalness": 0
+  },
+  {
+    "id": "sang-repandu",
+    "type": "materials",
+    "label": "Sang",
+    "domain": "prop",
+    "color": "#5e1010",
+    "roughness": 0.35,
+    "metalness": 0
+  },
+  {
+    "id": "eau-dormante",
+    "type": "materials",
+    "label": "Eau",
+    "domain": "prop",
+    "color": "#2f4a57",
+    "roughness": 0.15,
+    "metalness": 0
+  },
+  {
+    "id": "paille",
+    "type": "materials",
+    "label": "Paille",
+    "domain": "prop",
+    "color": "#b89a4a",
+    "roughness": 0.95,
+    "metalness": 0
+  },
+  {
+    "id": "toile-ecrue",
+    "type": "materials",
+    "label": "Toile écrue",
+    "domain": "prop",
+    "color": "#cbbd94",
+    "roughness": 0.95,
+    "metalness": 0
+  },
+  {
+    "id": "toile-chaos",
+    "type": "materials",
+    "label": "Toile du Chaos",
+    "domain": "prop",
+    "color": "#3e1b3f",
+    "roughness": 0.9,
+    "metalness": 0
+  },
+  {
+    "id": "pierre-chaos",
+    "type": "materials",
+    "label": "Pierre noire du Chaos",
+    "domain": "prop",
+    "color": "#2f2632",
+    "roughness": 0.8,
+    "metalness": 0
+  },
+  {
+    "id": "rune-chaos",
+    "type": "materials",
+    "label": "Rune ardente",
+    "domain": "prop",
+    "color": "#a8326a",
+    "roughness": 0.5,
+    "metalness": 0
+  },
+  {
+    "id": "ombre",
+    "type": "materials",
+    "label": "Ombre d’ouverture",
+    "domain": "prop",
+    "color": "#14110e",
+    "roughness": 1,
+    "metalness": 0
+  },
+  {
+    "id": "terre-battue",
+    "type": "materials",
+    "label": "Terre battue",
+    "domain": "prop",
+    "color": "#5a4630",
+    "roughness": 0.97,
+    "metalness": 0
+  },
+  {
+    "id": "roseau",
+    "type": "materials",
+    "label": "Roseau",
+    "domain": "prop",
+    "color": "#7c7a3c",
+    "roughness": 0.9,
+    "metalness": 0
+  },
+  {
+    "id": "soie",
+    "type": "materials",
+    "label": "Soie d’araignée",
+    "domain": "prop",
+    "color": "#d9d6cb",
+    "roughness": 0.8,
+    "metalness": 0
+  },
+  {
+    "id": "ecaille",
+    "type": "materials",
+    "label": "Écaille",
+    "domain": "prop",
+    "color": "#4c6a44",
+    "roughness": 0.45,
+    "metalness": 0.1
+  },
+  {
+    "id": "chapeau-rouge",
+    "type": "materials",
+    "label": "Chapeau de champignon",
+    "domain": "prop",
+    "color": "#9c2f22",
+    "roughness": 0.7,
+    "metalness": 0
+  },
+  {
+    "id": "drap-terne",
+    "type": "materials",
+    "label": "Drap terne",
+    "domain": "prop",
+    "color": "#57503f",
+    "roughness": 0.95,
+    "metalness": 0
+  },
+  {
+    "id": "peau-morte",
+    "type": "materials",
+    "label": "Peau morte",
+    "domain": "prop",
+    "color": "#6e5442",
+    "roughness": 0.85,
+    "metalness": 0
+  },
+  {
+    "id": "corde",
+    "type": "materials",
+    "label": "Corde",
+    "domain": "prop",
+    "color": "#8e7650",
+    "roughness": 0.95,
+    "metalness": 0
+  },
+  {
+    "id": "cuir-tanne",
+    "type": "materials",
+    "label": "Cuir",
+    "domain": "prop",
+    "color": "#6a4128",
+    "roughness": 0.75,
+    "metalness": 0
+  },
+  {
     "id": "tuile",
     "type": "materials",
     "label": "Tuile",

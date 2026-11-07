@@ -10,7 +10,7 @@
  * actuelle (pos = sa tuile), donc tout le code positionnel existant reste correct par défaut.
  *
  * Les fonctions de CRÉATURE (`sizeFootprint`…) restent des fonctions pures de leurs arguments ; celles
- * de DÉCOR (`propDeclaredFoot`/`propFootTiles`) LISENT le catalogue app-owned `props.json` (`../data`),
+ * de DÉCOR (`propFootTiles`) LISENT le catalogue app-owned `props.json` (`../data`),
  * vérité unique de l'empreinte d'un prop — ce module n'est donc pas sans dépendance de données.
  */
 import { findPropById } from '../../data';
@@ -48,12 +48,6 @@ export function occupiesTile(pos: Pt, n: number, x: number, y: number): boolean 
   return x >= pos.x && x < pos.x + side && y >= pos.y && y < pos.y + side;
 }
 
-/** Empreinte DÉCLARÉE du TYPE de décor (`props.json` `foot`, ancre = coin NO) — vérité UNIQUE des
- *  dimensions d'un prop : une instance de scène n'en redéclare aucune. Absente = le décor n'occupe
- *  que sa case et ne bloque que s'il est solide ou interactif (cf. `entityBlockedAt`). */
-export const propDeclaredFoot = (ref: string | undefined): { w: number; h: number } | undefined =>
-  (ref ? findPropById(ref)?.foot : undefined);
-
 /**
  * ANCRE MONDE d'un décor posé en `pos` — le point sur lequel TOUT ce que le décor projette se pose :
  * sa géométrie volumique (`buildPropVolumes`), son dessin billboard, et
@@ -73,11 +67,9 @@ export function decorAncre(pos: { x: number; y: number }, foot?: { w: number; h:
  * la COUTURE UNIQUE de l'empreinte effective d'un décor pour tous ses consommateurs de cases
  * (walkability `sceneRules`, Ligne de Vue `lineOfSight`, opacité de lumière `vision`, outillage).
  *
- * L'étendue vient de `empreinteDuProp` (`data/props.types.ts`) : le CORPS TOURNÉ pour un décor à
- * recette (#1509 — une table 2×1 au cap E couvre 1×2), l'empreinte DÉCLARÉE pour un billboard.
- * Ce que cette fonction rend, c'est une ÉTENDUE ; elle ne dit RIEN de la porte de blocage — un décor
- * qui ne bloque pas (`sceneRules` `entityBlockedAt`) ne se met pas à bloquer parce que ses cases sont
- * désormais dérivées.
+ * L'étendue vient de `empreinteDuProp` (`data/props.types.ts`) : le CORPS TOURNÉ de sa recette
+ * (#1509 — une table 2×1 au cap E couvre 1×2). Ce que cette fonction rend, c'est une ÉTENDUE ; elle ne
+ * dit RIEN de la porte de blocage (`sceneRules` `entityBlockedAt`).
  */
 export function propFootTiles(ref: string | undefined, pos: Pt, facing: Dir8 | undefined, mpt: number): Pt[] {
   const { w, h } = empreinteDuProp(findPropById(ref), facing, mpt);
@@ -87,8 +79,8 @@ export function propFootTiles(ref: string | undefined, pos: Pt, facing: Dir8 | u
 }
 
 /**
- * Géométrie d'un DÉCOR à empreinte rectangulaire (`PropData.foot {w,h}` pour un billboard, empreinte
- * DÉRIVÉE du corps tourné pour une recette, #1509 ; ancre = coin NO) : décalage fractionnaire vers le
+ * Géométrie d'un DÉCOR à empreinte rectangulaire (DÉRIVÉE du corps tourné de sa recette, #1509 ;
+ * ancre = coin NO) : décalage fractionnaire vers le
  * CENTRE du bloc (pour y poser le token), ÉTENDUE en cases sur chaque axe, et facteur d'échelle
  * visuel. Absent/1×1 ⇒ identité — le décor historique ne bouge pas.
  *

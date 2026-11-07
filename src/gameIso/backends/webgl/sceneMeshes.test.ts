@@ -58,9 +58,10 @@ import { spec as siegeSpec } from '../../../scenes/test-scenarios/siege-enceinte
 import { scenario as arene } from '../../../scenes/test-scenarios/arene';
 import { scenario as pontVitrine } from '../../../scenes/test-scenarios/pont-vitrine';
 import { scenario as diligence } from '../../../scenes/test-scenarios/diligence';
+import { REF_HORS_CATALOGUE } from '../../../noyau/monde/volume/decorVolumique.testkit';
 import { buildOperaFloorplan } from '../../../scenes/opera/floorplan';
 import { buildVitrineScene } from '../../../scenes/vitrine-batiments';
-import { emptyScene, sceneMetresPerTile, type Scene } from '../../../noyau/monde/scene';
+import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../../noyau/monde/scene';
 import type { Terrain } from '../../../data/schemas/defs-scenes/scene';
 import { PROPS, propSvg } from '../../catalog/decor';
 import { AMBIANCE, ambianceLuminance } from '../../catalog/ambiance';
@@ -224,8 +225,11 @@ describe('ORIENTATION — les triangles regardent DEHORS (la carte d’ombre en 
 
 describe('BILLBOARDS — sujets de la scène', () => {
   it('seul le décor est collecté, ancré aux pieds, avec son SVG isolé (#3160)', () => {
-    const els = wholeSceneBillboardEls(scene);
-    const subs = collectBillboards(scene, mpt, els);
+    // Chaque type du catalogue se cuit en volume (#3198) : seul le repli d'ERREUR d'une ref hors
+    // catalogue (#877) se sert encore en billboard.
+    const avecRepli: Scene = { ...scene, entities: [...scene.entities, { id: 'repli', kind: 'prop', pos: { x: 1, y: 1 }, ref: REF_HORS_CATALOGUE } as SceneEntity] };
+    const els = wholeSceneBillboardEls(avecRepli);
+    const subs = collectBillboards(avecRepli, mpt, els);
     expect(subs.length).toBeGreaterThan(0);
     expect(subs).toHaveLength(els.props.length);
     for (const [i, sub] of subs.entries()) {
