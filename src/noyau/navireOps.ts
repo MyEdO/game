@@ -13,7 +13,7 @@ import { MINUTES_PER_DAY, toDate } from '../engine/clock';
 import { estOpDuNavire, nomDeSource, resolveFormula, type GameOp, type OpDuNavire, type OpsCtx } from '../engine/ops';
 import type { EffectOp } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
-import { addManann, applyManannFactor, cargoBasePrice, meteosActives, modificateursActifs, rollRandomCargo, type ModificateurDuNavire } from '../engine/seaVoyage';
+import { addManann, applyManannFactor, cargoBasePrice, meteosActives, modificateursActifs, rollRandomCargo, spoilCargoByPct, type ModificateurDuNavire } from '../engine/seaVoyage';
 import { ajouterAuRoster } from '../engine/crewMorale';
 import { seasonOfMonth } from '../engine/travelStages';
 import { isRation } from '../engine/provisions';
@@ -65,7 +65,7 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
     case 'shipCritical': {
       const n = Math.max(0, Math.round(resolveFormula(o.count, coque, ctx.rng)));
       for (let i = 0; i < n; i++) {
-        applyVesselCritical(get, set, rollShipCritical(o.location === 'aleatoire' ? localisationAleatoire(ctx.rng) : o.location, ctx.rng));
+        applyVesselCritical(get, set, rollShipCritical(o.location === 'aleatoire' ? localisationAleatoire(ctx.rng) : o.location, ctx.rng), o.equipageEpargne);
       }
       return [];
     }
@@ -102,6 +102,11 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
     }
     case 'cargaison': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
+      if (o.perduePct !== undefined) {
+        const { lots, removed } = spoilCargoByPct(vessel.cargo ?? [], o.perduePct);
+        set({ vessel: { ...vessel, cargo: lots } });
+        return [t('eff.cargaisonPerdue', { pct: o.perduePct, enc: removed })];
+      }
       if (o.perteAuDechargement !== undefined) {
         const perte = Math.max(0, Math.round(resolveFormula(o.perteAuDechargement, coque, ctx.rng)));
         set({ vessel: { ...vessel, perteAuDechargement: perte } });
@@ -116,7 +121,9 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
     case 'provisions':
       return o.gateesPct !== undefined ? gaterLesProvisions(get, set, o.gateesPct) : ajouterDesVivres(get, set, joursTires(o.jours, coque, ctx));
     case 'equipage':
-      return changerLEquipage(get, set, Math.round(resolveFormula(o.delta, coque, ctx.rng)), o.role?.id, o.sansSolde);
+      return o.perdusPct !== undefined
+        ? changerLEquipage(get, set, -Math.round(shipboardSouls(get()).crew * o.perdusPct / 100), undefined, undefined)
+        : changerLEquipage(get, set, Math.round(resolveFormula(o.delta, coque, ctx.rng)), o.role?.id, o.sansSolde);
     case 'perilDeMer':
       return o.collision !== undefined ? heurterLePeril(get, set, coque, o.collision.id, ctx.rng) : entrerDansLeTourbillon(get, set, o.tourbillon.id, nomDeSource(ctx));
     case 'navireHostile':

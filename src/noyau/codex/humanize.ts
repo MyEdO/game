@@ -142,6 +142,7 @@ function formuleEnMots(f: Formula, regles: string[] | null): string {
   if ('stacks' in f) return t('codex.f.stacks');
   if ('engagedAdvantageGap' in f) return t('codex.f.engagedAdvantageGap');
   if ('woundsDealt' in f) return t('codex.f.woundsDealt');
+  if ('blessuresMax' in f) return t('codex.f.blessuresMax');
   if ('sl' in f) return t('codex.f.sl');
   // Les formes NON numériques (`flag`/`mode`) n'ont pas de nombre à montrer : elles se nomment, quel que
   // soit le rendu demandé. Un id hors du registre (brouillon d'éditeur) se nomme par son id : `ruleDef` le
@@ -576,7 +577,7 @@ export function humanizeOp(o: GameOp): string {
     case 'shipCritical': return t('codex.op.shipCritical', {
       n: humanizeFormula(o.count),
       loc: o.location === 'aleatoire' ? t('codex.op.shipCritical.aleatoire') : shipLocationLabel(o.location),
-    });
+    }) + (o.equipageEpargne ? t('codex.op.shipCritical.equipageEpargne') : '');
     case 'navireMod': return t('codex.op.navireMod', {
       axes: [
         ...(o.m !== undefined ? [t('eff.navireModM', { m: `${o.m >= 0 ? '+' : '−'}${Math.abs(o.m)}` })] : []),
@@ -591,8 +592,12 @@ export function humanizeOp(o: GameOp): string {
     });
     case 'cargaison': return o.perteAuDechargement !== undefined
       ? t('codex.op.cargaison.perte', { enc: humanizeFormula(o.perteAuDechargement) })
-      : t('codex.op.cargaison', { enc: humanizeFormula(o.enc) });
-    case 'equipage': return `${t('codex.op.equipage', { delta: humanizeFormula(o.delta) })}${o.role ? t('codex.op.equipage.role', { role: refLabel('crewRoles', o.role) }) : ''}${o.sansSolde ? t('codex.op.equipage.sansSolde') : ''}`;
+      : o.perduePct !== undefined
+        ? t('codex.op.cargaison.perduePct', { pct: o.perduePct })
+        : t('codex.op.cargaison', { enc: humanizeFormula(o.enc) });
+    case 'equipage': return o.perdusPct !== undefined
+      ? t('codex.op.equipage.perdusPct', { pct: o.perdusPct })
+      : `${t('codex.op.equipage', { delta: humanizeFormula(o.delta) })}${o.role ? t('codex.op.equipage.role', { role: refLabel('crewRoles', o.role) }) : ''}${o.sansSolde ? t('codex.op.equipage.sansSolde') : ''}`;
     case 'provisions': return o.gateesPct !== undefined
       ? t('codex.op.provisions.gatees', { pct: o.gateesPct })
       : t('codex.op.provisions.jours', { n: humanizeFormula(o.jours) });

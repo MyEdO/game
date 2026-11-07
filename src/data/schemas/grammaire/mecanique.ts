@@ -238,7 +238,8 @@ const DECLARATIONS_D_OPS = {
         : undefined;
     },
   }),
-  shipCritical: nommerChamps(z.strictObject({ op: z.literal('shipCritical'), location: z.union([shipLocationSchema, z.literal('aleatoire')]), count: formulaSchema }), { op: { label: "opération"  }, location: { label: "localisation" }, count: { label: "nombre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  /** `shipCritical` — MDG 15 l.153 ; `equipageEpargne` : MDG 15 l.49-51 */
+  shipCritical: nommerChamps(z.strictObject({ op: z.literal('shipCritical'), location: z.union([shipLocationSchema, z.literal('aleatoire')]), count: formulaSchema, equipageEpargne: z.literal(true).optional() }), { op: { label: "opération"  }, location: { label: "localisation" }, count: { label: "nombre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, equipageEpargne: { label: "équipage épargné" } }),
   /** `navireMod` — MDG 15 l.184-185, l.187-188, l.228, l.229 */
   navireMod: nommerChamps(z.strictObject({
     op: z.literal('navireMod'),
@@ -255,25 +256,37 @@ const DECLARATIONS_D_OPS = {
     ventInverse: z.literal(true).optional(),
     aggravation: nommerChamps(z.strictObject({ de: formulaSchema, seuil: z.number().int(), meteo: meteoImposeeSchema }), { de: { label: "dé de chaque matin" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, seuil: { label: "seuil" }, meteo: { label: "météo aggravée" } }).optional(),
   }).refine((v) => v.meteo !== undefined || v.ventInverse !== undefined, { message: 'meteoImposee VIDE : nommer « meteo » (axes imposés) ou « ventInverse ».' }), { op: { label: "opération"  }, jours: { label: "jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, meteo: { label: "météo imposée" }, ventInverse: { label: "vent inversé" }, aggravation: { label: "aggravation" } }),
-  /** `cargaison` — MDG 15 l.209-210, l.224-225 */
+  /** `cargaison` — MDG 15 l.209-210, l.224-225, l.250, l.33-36 */
   cargaison: z.union([
     nommerChamps(z.strictObject({ op: z.literal('cargaison'), enc: formulaSchema }), { op: { label: "opération"  }, enc: { label: "Encombrement" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
     nommerChamps(z.strictObject({ op: z.literal('cargaison'), perteAuDechargement: formulaSchema }), { op: { label: "opération"  }, perteAuDechargement: { label: "perte au déchargement" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ op: z.literal('cargaison'), perduePct: z.number().int().min(1).max(100) }), { op: { label: "opération"  }, perduePct: { label: "part perdue (%)" } }),
   ], {
     error: (iss) => {
-      const v = (iss.input ?? {}) as { enc?: unknown; perteAuDechargement?: unknown };
-      return (v.enc === undefined) === (v.perteAuDechargement === undefined)
-        ? 'Cargaison EXCLUSIVE : « enc » (cargaison trouvée) OU « perteAuDechargement » (Enc perdus au prochain déchargement) — exactement un des deux.'
+      const v = (iss.input ?? {}) as { enc?: unknown; perteAuDechargement?: unknown; perduePct?: unknown };
+      return [v.enc, v.perteAuDechargement, v.perduePct].filter((x) => x !== undefined).length !== 1
+        ? 'Cargaison EXCLUSIVE : « enc » (cargaison trouvée), « perteAuDechargement » (Enc perdus au prochain déchargement) OU « perduePct » (part de la cale perdue) — exactement un des trois.'
         : undefined;
     },
   }),
-  /** `equipage` — MDG 15 l.202-204, l.213-218, l.258 */
-  equipage: nommerChamps(z.strictObject({
-    op: z.literal('equipage'),
-    delta: formulaSchema,
-    role: ref('crewRole').optional(),
-    sansSolde: z.literal('jusquAuPort').optional(),
-  }), { op: { label: "opération"  }, delta: { label: "variation" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, role: { label: "rôle" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, sansSolde: { label: "sans solde" } }),
+  /** `equipage` : variation de l'effectif (`delta`) OU part des PNJ perdus (`perdusPct`), exclusifs.
+   *  MDG 15 l.202-204, l.213-218, l.258, l.33-35 */
+  equipage: z.union([
+    nommerChamps(z.strictObject({
+      op: z.literal('equipage'),
+      delta: formulaSchema,
+      role: ref('crewRole').optional(),
+      sansSolde: z.literal('jusquAuPort').optional(),
+    }), { op: { label: "opération"  }, delta: { label: "variation" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, role: { label: "rôle" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, sansSolde: { label: "sans solde" } }),
+    nommerChamps(z.strictObject({ op: z.literal('equipage'), perdusPct: z.number().int().min(1).max(100) }), { op: { label: "opération"  }, perdusPct: { label: "part perdue (%)" } }),
+  ], {
+    error: (iss) => {
+      const v = (iss.input ?? {}) as { delta?: unknown; perdusPct?: unknown };
+      return (v.delta === undefined) === (v.perdusPct === undefined)
+        ? 'Équipage EXCLUSIF : « delta » (variation de l’effectif) OU « perdusPct » (part des PNJ perdus) — exactement un des deux.'
+        : undefined;
+    },
+  }),
   /** `perilDeMer` : le navire heurte un péril (`collision`) OU entre dans un tourbillon (`tourbillon`), exclusifs.
    *  MDG 15 l.140-141, l.146, l.181-183 */
   perilDeMer: z.union([
