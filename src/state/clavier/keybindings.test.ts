@@ -197,14 +197,14 @@ describe('raccourcis — Retour arrière annule le déplacement', () => {
       } as never,
     });
 
-  it('un segment restaurable : la touche répond, et EXÉCUTE le dispatcher du registre', () => {
+  it('un segment restaurable : la touche répond, et joue le verbe que déclare l’offre du registre', () => {
     const b = binding('undo-move');
     expect(b.codes).toEqual(['Backspace']);
     const s = avecMouvement({ movementUsed: 2, moveSnapshot: { pos: { h1: { x: 5, y: 5 } }, facing: {}, movedPreAction: false } });
     expect(b.when(s)).toBe(true);
-    const jouerLOffre = vi.fn();
-    b.run(() => ({ ...s, jouerLOffre }) as never);
-    expect(jouerLOffre).toHaveBeenCalledWith('undo-move');
+    const annulerLeDeplacement = vi.fn();
+    b.run(() => ({ ...s, annulerLeDeplacement }) as never);
+    expect(annulerLeDeplacement).toHaveBeenCalledWith();
   });
 
   it('Mouvement dépensé SANS instantané (relevé) ou Action prise : la touche est MUETTE', () => {
@@ -245,13 +245,13 @@ describe('raccourcis — X commute le set d’armes', () => {
     // Set SUIVANT dans l'ordre de la colonne…
     const s1 = avecSets(['lo-a', 'lo-b', 'lo-c'], 'lo-a');
     const switch1 = vi.fn();
-    b.run(() => ({ ...s1, jouerLOffre: switch1 }) as never);
-    expect(switch1).toHaveBeenCalledWith('switch-loadout', { loadoutId: 'lo-b' });
+    b.run(() => ({ ...s1, prendreLaPanoplie: switch1 }) as never);
+    expect(switch1).toHaveBeenCalledWith('h1', 'lo-b');
     // … et retour au PREMIER depuis le dernier (rotation, pas une file).
     const s2 = avecSets(['lo-a', 'lo-b', 'lo-c'], 'lo-c');
     const switch2 = vi.fn();
-    b.run(() => ({ ...s2, jouerLOffre: switch2 }) as never);
-    expect(switch2).toHaveBeenCalledWith('switch-loadout', { loadoutId: 'lo-a' });
+    b.run(() => ({ ...s2, prendreLaPanoplie: switch2 }) as never);
+    expect(switch2).toHaveBeenCalledWith('h1', 'lo-a');
   });
 
   it('après un changement de set ce tour, la touche n’est plus offerte (gate `set-commutable`)', () => {
@@ -306,11 +306,11 @@ describe('raccourcis — Échap pendant un INTERLUDE de ciblage par la carte', (
     expect(escapes(combat({}))).toEqual(['toggle-menu']);
   });
 
-  it('la sortie EXÉCUTÉE est celle du registre : la bordée joue son offre de sortie, sans dispatcher recopié', () => {
-    const jouerLOffre = vi.fn();
+  it('la sortie EXÉCUTÉE est celle du registre : la bordée joue le verbe de son offre de sortie, sans geste recopié', () => {
+    const desarmerLeMode = vi.fn();
     const s = avecAction('battery');
-    binding('interlude-exit').run(() => ({ ...s, jouerLOffre }) as never);
-    expect(jouerLOffre).toHaveBeenCalledWith('battery-cancel');
+    binding('interlude-exit').run(() => ({ ...s, desarmerLeMode }) as never);
+    expect(desarmerLeMode).toHaveBeenCalledWith();
   });
 });
 

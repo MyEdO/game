@@ -78,15 +78,16 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
     nommeLEtat('après', att);
   });
 
+  // LDB 21 l.31, LDB 16 l.125
   it('Frénésie', () => {
-    const { H } = heroFaceAUnEnnemi(); sonne(H); H.traits = [{ id: 'frenesie' }];
+    const { H } = heroFaceAUnEnnemi(); H.conditions = [{ id: 'extenue', value: 3 }]; H.traits = [{ id: 'frenesie' }];
     g().entrerEnFrenesie();
     const att = cible(H, FM, 'intermediaire');
     act(() => root.render(createElement(FrenzyModal)));
-    nommeLEtat('avant', att);
+    nommeLEtat('avant', att, undefined, '−30 Exténué');
     act(() => { g().jetLancer('frenzy'); });
     expect(g().pendingFrenzy!.result!.target).toBe(att);
-    nommeLEtat('après', att);
+    nommeLEtat('après', att, undefined, '−30 Exténué');
   });
 
   it('Main ensanglantée', () => {

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { advanceTurn } from './combatFlow';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
@@ -38,7 +39,7 @@ describe('Entretien de Round en révélation (store)', () => {
     b.combatants.filter((c) => c.kind === 'enemy').forEach((e) => (e.dead = true));
     banc.setState({ battle: { ...b, order, turn: order.length - 1 } });
 
-    banc.getState().terminerLeTour(); // franchit le Round → entretien
+    advanceTurn(banc.getState, banc.setState); // franchit le Round → entretien
 
     const step = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'round');
     const round = step?.reveal;

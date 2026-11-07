@@ -53,13 +53,13 @@ describe('actions.json — l’arbitrage de coût est une RAISON, portée par le
     expect(schema.safeParse(m).success).toBe(true);
   });
 
-  it('les autres refines SURVIVENT à la mort du couple — une action sans dispatcher, intention ni dette reste refusée', () => {
+  it('les autres refines SURVIVENT à la mort du couple — une action sans geste ni dette reste refusée', () => {
     const m = copie();
     delete m[0].run;
     delete m[0].intent;
     delete m[0].blocked;
     const r = schema.safeParse(m);
     expect(r.success).toBe(false);
-    expect(JSON.stringify(r.success ? {} : r.error)).toContain('ni dispatcher (run), ni intention (intent), ni dette déclarée (blocked)');
+    expect(JSON.stringify(r.success ? {} : r.error)).toContain('ni geste (run), ni dette déclarée (blocked)');
   });
 });

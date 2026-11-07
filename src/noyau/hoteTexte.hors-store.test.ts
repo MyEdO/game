@@ -1,6 +1,6 @@
 /**
  * CE QUE LE NOYAU DOIT À UN HÔTE TEXTE (#2898), sans store : un hôte qui n'a que la surface (`./index`) et un
- * lancement construit lance un scénario de test par la partie, joue les offres du registre par `jouerLOffre`, et
+ * lancement construit lance un scénario de test par la partie, joue les offres du registre par le verbe que chacune déclare, et
  * lit sa vue par les lecteurs de la surface. Le scénario est `pastilles-entite` (combat direct, monture, pièce et
  * tas au sol).
  */
@@ -56,15 +56,15 @@ describe('Partie.lancer — le lancement d’un scénario est un appel de la par
   });
 });
 
-describe('jouerLOffre — la porte des offres, en intention', () => {
+describe('les verbes des offres, en intention', () => {
   it('une Charge jouée arme l’intention locale ; au nom d’un siège, elle ne voyage pas', () => {
     const partie = auTourDUnHeros();
     try {
       expect(actionGate('charge', contexte(partie)), 'témoin : la Charge est fermée').toEqual({ ok: true });
       expect(partie.etat().localIntent).toBeNull();
-      expect(partie.envoyer({ type: 'jouerLOffre', args: ['charge'], siege: 0 }).issue).toBe('refusee');
+      expect(partie.envoyer({ type: 'armerLIntention', args: ['charge'], siege: 0 }).issue, 'l’armement d’une intention est local à l’émetteur (classe `local`), jamais une intention de siège').toBe('hors-allowlist');
       expect(partie.etat().localIntent, 'une intention envoyée au nom d’un siège a couru').toBeNull();
-      expect(partie.envoyer({ type: 'jouerLOffre', args: ['charge'] }).issue).toBe('appliquee');
+      expect(partie.envoyer({ type: 'armerLIntention', args: ['charge'] }).issue).toBe('appliquee');
       expect(partie.etat().localIntent).toEqual({ actionId: 'charge' });
     } finally {
       partie.fermer();
@@ -76,7 +76,7 @@ describe('jouerLOffre — la porte des offres, en intention', () => {
     try {
       const actif = activeCombatant(partie.etat().battle!)!.id;
       expect(endTurnArmed(partie.etat().battle!), 'témoin : le garde-fou est déjà armé').toBe(false);
-      partie.envoyer({ type: 'jouerLOffre', args: ['end-turn'] });
+      partie.envoyer({ type: 'terminerLeTour', args: [] });
       expect(endTurnArmed(partie.etat().battle!)).toBe(true);
       expect(activeCombatant(partie.etat().battle!)!.id, 'le premier geste a fini le tour').toBe(actif);
     } finally {

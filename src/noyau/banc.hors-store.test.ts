@@ -58,7 +58,7 @@ describe('banc du noyau : ouverture et fermeture', () => {
   it('une fixture de tables posée après l’ouverture est restaurée avant la fermeture', () => {
     const banc = ouvrirLeBanc();
     avecLesTables({});
-    expect([jeuBranche()?.get, banc.getState().screen]).toEqual([banc.getState, 'menu']);
+    expect([jeuBranche()?.get, banc.getState().screen]).toEqual([banc.getState, 'campaign']);
   });
 
   it('l’ouverture suivante réussit : le test précédent a fermé son banc', () => {

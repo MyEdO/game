@@ -47,7 +47,6 @@ import { posteHullOf } from './siegePush';
 import { spellOps } from '../engine/flowCore';
 import { mountOf, mountMovement, attackGeomOf, combatGeomOf, pickAttackWeapon } from './mount';
 import { pilotedByHuman } from './netOwnership';
-import { lieuDeLOffre } from './actionRegistry';
 import { inBattleId } from './monde/combatants';
 import { detenteurDuCiblage } from './targetingHolder';
 import { approachMs } from './combatDirector';
@@ -994,8 +993,6 @@ export function ciblageEntiteArme(get: Get): boolean {
 type ElectionLocale = (get: Get, args: readonly unknown[]) => boolean;
 export const INTENT_ELECTION_LOCALE: Readonly<Record<string, ElectionLocale>> = {
   cliquerLaCase: (get, [, entite]) => typeof entite === 'string' && (currentTargetingMode(get).electionLocale?.(get, entite) ?? false),
-  // Un RELAIS ou une pure intention se joue chez l'émetteur (`lieuDeLOffre`) : son verbe voyage, l'offre ne voyage pas.
-  jouerLOffre: (_get, [id]) => lieuDeLOffre(id) === 'emetteur',
 } satisfies { readonly [A in ActionDeClasse<'invité'>]?: ElectionLocale };
 
 /** Ce geste se joue-t-il ENTIER chez l'émetteur (aucun intent à envoyer) ? */

@@ -1704,7 +1704,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
 
 // ── LA CONSOLE CONSOMME LE REGISTRE DES ACTIONS (spec HUD « Zone 12 », lot branchements) ────────
 // Plus aucune case n'est écrite à la main : chacune naît d'une entrée de `src/data/actions.json`
-// (libellé, icône, foyer de règle, verdict d'offre) et s'exécute par `jouerLOffre`. Ce bloc mesure le
+// (libellé, icône, foyer de règle, verdict d'offre) et s'exécute par le verbe qu'elle déclare. Ce bloc mesure le
 // CÂBLAGE sur le store réel — un clic qui ne bouge pas le moteur est une case morte.
 describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement)', () => {
   const caseAction = (id: string) => host.querySelector(`[data-action="${id}"]`) as HTMLButtonElement | null;
@@ -2314,7 +2314,7 @@ describe('CombatConsole — intention armée : aucune infobulle de règle au-des
  * Surincantation, pose de zone, bordée, téléportation) doit porter SA SORTIE à l'écran : sans elle, le
  * joueur a seulement le clic-carte pour quitter le mode. Le bandeau la tire du REGISTRE (entrées
  * `surface: 'interlude'`, appariées par leur `mode` au mode de ciblage courant) — la console ne nomme
- * aucun état de flux, et le dispatcher exécuté est celui du registre (`jouerLOffre`).
+ * aucun état de flux, et le verbe exécuté est celui que déclare le registre (`gesteDeLOffre`).
  */
 /** COÛT d'une attaque gratuite à la case (`AttackOption.cost`) : l'Action de Mouvement se dit dans la
  *  MÊME colonne de crans que l'Avantage. LDB 85 l.314 */
@@ -2438,18 +2438,18 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
   it('N-1 — la console VIT au tour de la coque : aucune bande d’attente, les cinq cases navales sont là', () => {
     monterNavire();
     expect(host.querySelector('.cc-phase'), 'le tour d’un acteur CONTRÔLÉ n’est pas une phase d’attente').toBeNull();
-    for (const id of ['maneuver-ship', 'battery', 'crew-test-rude-epreuve', 'sing-shanty', 'ship-reload']) {
+    for (const id of ['maneuver-ship', 'battery', 'sing-shanty', 'ship-reload']) {
       expect(caseAction(id), `case navale « ${id} » absente de la travée`).not.toBeNull();
     }
     // BRANCHÉES, pas seulement dessinées : le pont clavier ne publie que les cases qui portent un `run`.
     const publiees = [...host.querySelectorAll('.cc-grid-left .cc-cell:not(.cc-empty)')]
       .filter((c) => !(c as HTMLButtonElement).disabled)
       .map((c) => c.getAttribute('data-action'));
-    for (const id of ['maneuver-ship', 'battery', 'crew-test-rude-epreuve', 'ship-reload']) {
+    for (const id of ['maneuver-ship', 'battery', 'ship-reload']) {
       expect(publiees, `« ${id} » n’est pas branchée (aucun dispatcher publié)`).toContain(id);
     }
     // Manœuvrer / Bordée / Rude épreuve : Action du navire INTACTE → offertes (gates du registre).
-    for (const id of ['maneuver-ship', 'battery', 'crew-test-rude-epreuve']) {
+    for (const id of ['maneuver-ship', 'battery']) {
       expect(estFermee(caseAction(id)!), `« ${id} » est fermée alors que l’Action du navire est intacte`).toBe(false);
       expect(caseAction(id)!.hasAttribute('data-gated'), `« ${id} » porte une raison de refus`).toBe(false);
     }
@@ -2464,7 +2464,7 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
     act(() => {
       useGame.setState({ battle: { ...useGame.getState().battle!, combatants: [{ ...chariot, id: ship.id, kind: 'hero', pos: ship.pos, crewIds: ship.crewIds, postes: ship.postes }, ...useGame.getState().battle!.combatants.slice(1)] } });
     });
-    for (const id of ['maneuver-ship', 'battery', 'crew-test-rude-epreuve', 'sing-shanty']) {
+    for (const id of ['maneuver-ship', 'battery', 'sing-shanty']) {
       expect(caseAction(id), `case navale « ${id} » offerte au tour d’un chariot`).toBeNull();
     }
     expect(caseAction('ship-reload'), 'la recharge d’une pièce montée reste offerte (LDB 62 l.335)').not.toBeNull();

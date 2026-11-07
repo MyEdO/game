@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
-import { finishCombatEnd } from '../noyau/combatFlow';
+import { finishCombatEnd, advanceTurn } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { emptyScene } from '../noyau/monde/scene';
 import { seedBattleRng } from '../noyau/battleRng';
@@ -34,7 +34,7 @@ function duel(turn: 0 | 1) {
     combatants: [H, E], order: [E.id, H.id], turn, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   };
-  useGame.setState({ party: [H], mode: 'battle', battle, scene: emptyScene('scene-test', 8, 8), combatCursor: null, preemptAiming: null, pendingRoundStart: null, pendingAttack: null });
+  useGame.setState({ screen: 'campaign', party: [H], mode: 'battle', battle, scene: emptyScene('scene-test', 8, 8), combatCursor: null, preemptAiming: null, pendingRoundStart: null, pendingAttack: null });
   return { H, E };
 }
 
@@ -44,7 +44,7 @@ function pauseTirRapide() {
   H.talents = [{ talentId: 'tir-rapide', times: 1 }];
   H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
   rangedOf(H).loaded = true;
-  get().terminerLeTour();
+  advanceTurn(get, useGame.setState);
   expect(get().pendingRoundStart, 'témoin : la pause de Round est ouverte').not.toBeNull();
   seedBattleRng(1);
   get().armerLeTirPreventif(H.id);
@@ -70,7 +70,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
     duel(1);
     get().moveCursor('right');
     expect(get().combatCursor, 'témoin : le curseur est posé').not.toBeNull();
-    get().terminerLeTour();
+    advanceTurn(get, useGame.setState);
     expect(get().combatCursor).toBeNull();
   });
 
@@ -79,7 +79,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
     useGame.setState({ battle: { ...get().battle!, order: [H.id, E.id] } });
     get().moveCursor('right');
     expect(get().combatCursor, 'témoin : le curseur est posé').not.toBeNull();
-    get().terminerLeTour();
+    advanceTurn(get, useGame.setState);
     expect(get().battle!.round, 'témoin : le Round ne change pas').toBe(1);
     expect(get().battle!.turn, 'témoin : la main passe au suivant').toBe(1);
     expect(get().combatCursor).toBeNull();
@@ -99,7 +99,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
       turn: 2, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     };
-    useGame.setState({ party: [hero], mode: 'battle', battle, scene: testScene(), combatCursor: null, preemptAiming: null });
+    useGame.setState({ screen: 'campaign', party: [hero], mode: 'battle', battle, scene: testScene(), combatCursor: null, preemptAiming: null });
     get().moveCursor('right');
     const pose = get().combatCursor;
     expect(pose, 'témoin : le curseur est posé').not.toBeNull();

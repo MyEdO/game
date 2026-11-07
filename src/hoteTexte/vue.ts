@@ -297,8 +297,8 @@ function offresListees(offres: readonly Offre[], options: { id?: string; toutes:
   return offres.filter((o) => (!options.id || o.actionId === options.id) && (options.toutes || o.gate.ok));
 }
 
-/** Les offres de l'actif, une par ligne, en pages (`depuis`) : ouvertes, ou fermées comprises avec leur raison
- *  (`toutes`) ; pour un id, ses candidats et leurs arguments, ou la raison de l'absence (le gate de pertinence). */
+/** Les offres de l'actif, une par ligne, en pages (`depuis`), chacune avec le geste qui la joue : ouvertes, ou fermées
+ *  comprises avec leur raison (`toutes`) ; pour un id, ses candidats, ou la raison de l'absence (le gate de pertinence). */
 export function rendreLesOffres(etat: Jeu, offres: readonly Offre[], options: { id?: string; toutes: boolean; depuis?: number }): string[] {
   const choisies = offresListees(offres, options);
   if (!choisies.length) {
@@ -312,8 +312,8 @@ export function rendreLesOffres(etat: Jeu, offres: readonly Offre[], options: { 
   const { elements, suite } = page(choisies, options.depuis, 'debut', (k) => appelEcrit('lire', { quoi: 'offres', id: options.id, toutes: options.toutes || undefined, depuis: k }));
   const lignes = elements.map((o) => {
     const tete = `${o.actionId}${o.candidat ? `[${o.candidat}]` : ''} → ${o.cost ?? '—'}`;
-    const args = options.id && Object.keys(o.args).length ? ` · ctx ${JSON.stringify(o.args)}` : '';
-    return `${tete}${args} · ${o.gate.ok ? 'ouverte' : `fermée : ${o.gate.reason ?? 'sans raison'}`}`;
+    const geste = o.geste ? ` · ${JSON.stringify({ verbe: o.geste.verbe, ...(o.geste.args.length ? { args: o.geste.args } : {}) })}` : ' · paramètre de la case à choisir';
+    return `${tete}${geste} · ${o.gate.ok ? 'ouverte' : `fermée : ${o.gate.reason ?? 'sans raison'}`}`;
   });
   return borner([...lignes, ...suite], 'offres');
 }

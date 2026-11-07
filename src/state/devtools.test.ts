@@ -1053,7 +1053,6 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
       lieu: 'A',
       travelPlan: null,
       travelRecap: null,
-      pendingCrewTest: null,
       pendingRest: null,
       pendingCascade: null,
       pendingSeaActivities: null,

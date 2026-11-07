@@ -10,7 +10,7 @@ const dispatch = (code: string, s: ReturnType<typeof useGame.getState>, controlF
 async function ouvrirLeBelierAuTourDuSoldat() {
   const { scenario } = await import('../scenes/test-scenarios/42-belier-porte');
   const { party, scene } = scenario.construire();
-  useGame.setState({ party });
+  useGame.setState({ screen: 'campaign', party });
   useGame.getState().lancerLaScene(scene);
   useGame.getState().lancerLeCombat('siege-belier');
   useGame.getState().fenetreValider('roundStart');

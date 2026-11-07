@@ -67,9 +67,9 @@ const BASELINE: Record<string, string> = {
   focus: 'L2 — renvoi CodexRef vers la fiche du sort',
   // ACTIVITÉS — `activity` est SOLDÉ (L3 : `ActivityDef.stake`, dataset `activity`).
   bargain: 'L3 — négoce (marchand), lot des activités marchandes',
-  // ÉQUIPAGE & NAVIRE — jumeaux de `crewTest`, à doter avec leurs types de Test (même patron).
-  shipManeuver: 'L4 — jumeau de crewTest, entryId = type de Test',
-  shipBattery: 'L4 — jumeau de crewTest, entryId = type de Test',
+  // ÉQUIPAGE & NAVIRE — jumeaux, à doter avec leurs types de Test (même patron).
+  shipManeuver: 'L4 — Test d’équipage, entryId = type de Test',
+  shipBattery: 'L4 — Test d’équipage, entryId = type de Test',
   // Porte à enfoncer : les 5 candidats relevés au ticket #1117 sont INSTRUITS (L2, 2026-08-06) —
   // EDO 7 l.184 / PDT 9 l.285 posent un statbloc de porte, PDT 8 l.370 est de la prose de MJ,
   // Ubersreik 10 l.183 pose une procédure LOCALE divergente (Force +20), MSRC 7 n'en parle pas.

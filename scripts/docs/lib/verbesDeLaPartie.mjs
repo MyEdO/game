@@ -322,6 +322,36 @@ function axesLus(session, racine, designes, source, nom) {
   ]))
 }
 
+/** Le contexte d'une case de la barre (src/noyau/actionRegistry.ts) : ce que l'offre lit pour déclarer son geste, jamais
+ *  un paramètre de verbe, car l'hôte joue le verbe que l'offre déclare, avec ses arguments (#3610). */
+const CONTEXTE_D_OFFRE = 'ContexteDOffre'
+
+/** `type` nomme-t-il `ContexteDOffre`, lui-même, en membre d'union ou d'intersection, en argument de type
+ *  (`Partial<ContexteDOffre>`), en élément de tableau ou en champ, à toute profondeur ? */
+function nommeLeContexteDOffre(checker, type, vus = new Set()) {
+  if (!type || vus.has(type)) return false
+  vus.add(type)
+  if ((type.getSymbol()?.name ?? type.getAliasSymbol()?.name) === CONTEXTE_D_OFFRE) return true
+  const sous = [
+    ...(type.isUnionType() || type.isIntersectionType?.() ? type.getTypes() : []),
+    ...(type.getAliasTypeArguments?.() ?? []),
+    ...(type.isTypeReference?.() ? checker.getTypeArguments(type) : []),
+    ...(type.flags & TypeFlags.Object && !checker.getSignaturesOfType(type, SignatureKind.Call).length
+      ? checker.getPropertiesOfType(type).map((p) => checker.getTypeOfSymbol(p)) : []),
+  ]
+  return sous.some((t) => nommeLeContexteDOffre(checker, t, vus))
+}
+
+/** Les paramètres `verbe(param)` de `decl` dont le type nomme `ContexteDOffre` (`nommeLeContexteDOffre`). */
+function parametresDOffre(checker, decl) {
+  const trouves = []
+  for (const p of checker.getPropertiesOfType(checker.getTypeAtLocation(decl.name))) {
+    const [signature] = checker.getSignaturesOfType(checker.getTypeOfSymbol(p), SignatureKind.Call)
+    for (const q of signature?.getParameters() ?? []) if (nommeLeContexteDOffre(checker, checker.getTypeOfSymbol(q))) trouves.push(`${p.name}(${q.name})`)
+  }
+  return trouves
+}
+
 /** La partie lue de son type : ses verbes, par nom, ou les seuls `noms`, leurs paramètres dans l'ordre de l'appel
  *  (`ParametreDeVerbe`, src/hote/formes.ts), et la forme de la valeur de chaque réglage de jet et de chaque choix de
  *  fenêtre. */
@@ -334,6 +364,8 @@ export function partieLue(racine = process.cwd(), noms = null) {
     const designes = nomsDesignes(session, racine)
     const verbes = {}
     const nues = chainesNues(session, racine, decl, designes)
+    const dOffre = parametresDOffre(checker, decl)
+    if (dOffre.length) throw new Error(`verbesDeLaPartie : ${INTERFACE} prend un \`${CONTEXTE_D_OFFRE}\` en paramètre (l'offre déclare son geste { verbe, args }, l'hôte joue ce verbe) : ${dOffre.join(', ')}`)
     if (nues.length) throw new Error(`verbesDeLaPartie : ${INTERFACE} écrit \`string\` nu (un id se désigne par son \`IdDe…\` de ${SOURCE_DESIGNATIONS}, un texte du joueur par \`TexteLibre\`, ce que le geste crée par \`HorsDesignation\`) : ${nues.join(', ')}`)
     for (const p of checker.getPropertiesOfType(checker.getTypeAtLocation(decl.name))) {
       if (noms && !noms.includes(p.name)) continue

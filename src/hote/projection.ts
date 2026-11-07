@@ -6,7 +6,7 @@
  * `scripts/docs/build-hote-texte.mjs`). Chaque champ est une donnée, que chaque hôte met en forme à sa façon.
  */
 import { garanti } from '../lib/garanti';
-import { activeCombatant, offreArmee, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, porteeDuCombattant, porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, fermeturesDeLaFenetre, libelleDeLaFermeture, type Combatant, type EtatDeLaBarre, type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type Offre, type PorteeDeComposition, type Pt } from '../noyau/index';
+import { activeCombatant, offreArmee, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, porteeDuCombattant, porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, fermeturesDeLaFenetre, libelleDeLaFermeture, type Combatant, type EtatDeLaBarre, type GesteDExploration, type GesteDuJeu, type GesteDuNoyau, type Jeu, type JetEnVue, type Offre, type PorteeDeComposition, type Pt } from '../noyau/index';
 
 /** Un combattant projeté. */
 export interface CombattantProjete {
@@ -47,16 +47,21 @@ export interface OffreEnVue {
   refus: string | null;
   /** L'offre est armée (`offreArmee`) : son intention visée, ou son mode celui du combat. */
   armee: boolean;
+  /** Le geste qui joue l'offre sans argument (`Offre.geste`) ; `null` : elle s'offre par candidat, ou sa case attend un
+   *  paramètre que seule la console choisit. */
+  geste: GesteDuNoyau | null;
   /** Les candidats d'une offre qui s'offre par candidat (le sort, l'arme, l'attaque de trait), chacun nommé, le
-   *  contexte qui le désigne (`offreDesignee`) et la raison qui le refuse ; vide pour une offre sans argument. */
+   *  contexte qui le désigne (`offreDesignee`), le geste qui le joue et la raison qui le refuse ; vide pour une offre
+   *  sans argument. */
   candidats: CandidatEnVue[];
 }
 
-/** Un candidat d'une offre : son nom (`Offre.candidat`, sinon l'entité du champ qui le porte), son contexte, son refus,
- *  et s'il est armé (`offreArmee`). */
+/** Un candidat d'une offre : son nom (`Offre.candidat`, sinon l'entité du champ qui le porte), son contexte, le geste
+ *  qui le joue (`Offre.geste`), son refus, et s'il est armé (`offreArmee`). */
 export interface CandidatEnVue {
   nom: string;
   ctx: Offre['args'];
+  geste: GesteDuNoyau | null;
   refus: string | null;
   armee: boolean;
 }
@@ -183,13 +188,13 @@ function offresEnVue(etat: Jeu, offres: readonly Offre[]): OffreEnVue[] {
   const parId = new Map<string, OffreEnVue>();
   for (const o of offres) {
     const refus = o.gate.ok ? null : garanti(o.gate.reason, o.actionId, 'raison du refus de l’offre');
-    const vue = parId.get(o.actionId) ?? { id: o.actionId, n: 0, cout: o.cost, economie: o.def.coutAction, refus, armee: false, candidats: [] };
+    const vue = parId.get(o.actionId) ?? { id: o.actionId, n: 0, cout: o.cost, economie: o.def.coutAction, refus, armee: false, geste: null, candidats: [] };
     const armee = offreArmee(etat, o.def, o.args);
     vue.armee ||= armee;
     if (Object.keys(o.args).length) {
       const nom = o.candidat ?? (o.porteurId === undefined ? undefined : porteurParId(etat, o.porteurId)?.label);
-      vue.candidats.push({ nom: garanti(nom, o.actionId, 'nom du candidat de l’offre'), ctx: o.args, refus, armee });
-    }
+      vue.candidats.push({ nom: garanti(nom, o.actionId, 'nom du candidat de l’offre'), ctx: o.args, geste: o.geste, refus, armee });
+    } else vue.geste = o.geste;
     if (o.gate.ok) {
       vue.n++;
       vue.refus = null;

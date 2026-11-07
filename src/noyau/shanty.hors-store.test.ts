@@ -76,7 +76,7 @@ const singer = (): Combatant => mk('barde', {
 });
 const marin = (): Combatant => mk('marin', { skills: [{ id: 'voile', characteristic: 'agilite', advances: 10 } as SkillInstance] });
 const ship = (over: Partial<Combatant> = {}): Combatant =>
-  mk('ship', { kind: 'npc', bodyShape: 'vehicule', creatureId: 'coracle', crewIds: ['barde', 'marin'], ...over });
+  mk('ship', { kind: 'hero', bodyShape: 'vehicule', creatureId: 'coracle', crewIds: ['barde', 'marin'], ...over });
 
 function openShanty() {
   seedBattleRng(3);

@@ -25,7 +25,7 @@ beforeAll(() => {
 function souffleLance(gmSeat: number | undefined): Combatant {
   useGame.getState().ensemencerLeTirage(2);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-  useGame.setState({ party: [hero] });
+  useGame.setState({ screen: 'campaign', party: [hero] });
   useGame.getState().lancerLaScene(testScene());
   useGame.getState().lancerLeCombat('enc-mutants');
   useGame.getState().fenetreValider('roundStart');

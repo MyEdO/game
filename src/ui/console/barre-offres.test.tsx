@@ -68,6 +68,9 @@ const FIXTURES: Record<string, () => BattleState> = {
 /** Le corps et la défense : offerts à tout porteur, fermés pour une coque (`fantassin`) ; la Détermination ; la fin
  *  de tour. */
 const CORPS = ['course', 'mouvement', 'defend'];
+/** Cumuler l'Avantage par Intuition et Survie en extérieur, Compétences de base que tout porteur possède (LDB 09
+ *  l.305-308) : une offre par Compétence (`competences-avantage`). */
+const AVANTAGE = ['gain-advantage', 'gain-advantage'];
 const DETERMINATION = ['resolve-psych-immune', 'resolve-ignore-crit'];
 const FIN = ['undo-move', 'end-turn', 'raise-hand'];
 
@@ -75,15 +78,15 @@ const FIN = ['undo-move', 'end-turn', 'raise-hand'];
  *  celles d'un fantassin ; le geste d'état, celui de sa situation ; les cases navales, celles de la coque, qui
  *  sert aussi sa pièce de bord (`pieces-servables`). */
 const ATTENDU: Record<string, string[]> = {
-  'à pied': ['attaque', 'charge', ...CORPS, ...DETERMINATION, ...FIN],
-  'en selle': ['attaque', 'charge', ...CORPS, ...DETERMINATION, 'dismount', ...FIN],
-  'à un poste': ['attaque', 'charge', ...CORPS, ...DETERMINATION, 'leave-poste', ...FIN],
-  'une coque de navire': [...CORPS, ...DETERMINATION, 'man-poste', 'maneuver-ship', 'battery', 'crew-test-rude-epreuve', 'sing-shanty', 'ship-reload', ...FIN],
+  'à pied': ['attaque', 'charge', ...CORPS, ...AVANTAGE, ...DETERMINATION, ...FIN],
+  'en selle': ['attaque', 'charge', ...CORPS, ...AVANTAGE, ...DETERMINATION, 'dismount', ...FIN],
+  'à un poste': ['attaque', 'charge', ...CORPS, ...AVANTAGE, ...DETERMINATION, 'leave-poste', ...FIN],
+  'une coque de navire': [...CORPS, ...DETERMINATION, 'man-poste', 'maneuver-ship', 'battery', 'sing-shanty', 'ship-reload', ...FIN],
 };
 
 const enumeration = (battle: BattleState) => {
   const active = battle.combatants[0];
-  return offresDeLActif({ active, battle, netMode: 'local', gameTime: useGame.getState().gameTime }).map((o) => o.actionId);
+  return offresDeLActif({ active, battle, netMode: 'local', gameTime: useGame.getState().gameTime, state: useGame.getState() }).map((o) => o.actionId);
 };
 
 describe('l’énumérateur rend exactement les offres pertinentes du porteur', () => {
@@ -111,7 +114,7 @@ const casesDeLaBarre = () =>
   new Set([...host.querySelectorAll('.combat-console [data-action]')].map((c) => c.getAttribute('data-action')!));
 
 /** Les cases que la SITUATION ouvre : gestes d'état et cases navales. */
-const DE_SITUATION = ['dismount', 'leave-poste', 'maneuver-ship', 'battery', 'crew-test-rude-epreuve', 'sing-shanty', 'ship-reload'];
+const DE_SITUATION = ['dismount', 'leave-poste', 'maneuver-ship', 'battery', 'sing-shanty', 'ship-reload'];
 
 describe('la barre de la console lit l’énumérateur', () => {
   it.each(Object.keys(FIXTURES))('%s : une case n’existe que pour une offre, et chaque offre de situation a sa case', (nom) => {

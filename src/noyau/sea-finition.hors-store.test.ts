@@ -55,7 +55,6 @@ function freshState() {
     lieu: 'A',
     travelPlan: null,
     travelRecap: null,
-    pendingCrewTest: null,
     pendingRest: null,
     pendingSeaActivities: null,
     port: null,
