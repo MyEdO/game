@@ -27,7 +27,7 @@ import { rollTest, type TestResult } from './tests';
 import type { Difficulty } from './types';
 import type { ShipCritKey } from '../data/shipCriticals';
 import type { SeaWeather } from './seaWeather';
-import type { TestExige } from './flowCore';
+import type { JetFixe } from './flowCore';
 import type { Season } from './travelStages';
 // Tronc commun cargaison (partagé avec le commerce terrestre MSRC, `landCargo.ts`) — modèle de lot,
 // tirage saisonnier, prix de base. Re-exporté pour les importeurs historiques de ce module.
@@ -156,7 +156,7 @@ export const deDesEvenementsDeBord = (): DiceSpec => parseDiceRequired(EVENTS.bo
 const evenementsDePort = memoParVersion('seaPortEvents', () => tableOuverte(EVENTS.portEvents));
 const PALIERS_DE_VOYAGE_RAPIDE = tableOuverte(EVENTS.fastVoyage.paliers);
 /** `test` exige `skill` et `difficulty` au parse (`exigerDuTest`, `defs/sea-cargo.ts`). */
-export const OPPORTUNITE = CARGO.opportunite as SeaCargoData['opportunite'] & { test: TestExige<'skill' | 'difficulty'> };
+export const OPPORTUNITE = CARGO.opportunite as SeaCargoData['opportunite'] & { test: JetFixe<'skill' | 'difficulty'> };
 /** La table du Prix d'offre telle que `findTableEntry` la lit (`tableOuverte`, tronc commun — sa
  *  dernière bande est OUVERTE, MDG 15 l.383 « 4 ou plus »). */
 const bandesDuPrixDOffre = memoParVersion('seaCargo', () => tableOuverte(CARGO.sell.offerPrice));

@@ -29,6 +29,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { simpleTriggeredTestStep, withDerivedStake } from './combat/triggeredTest';
+import { combatConditionCtx } from './combat/flowEval';
 import { effectSourcesOf } from './triggeredEffects';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW } from '../engine/flowCore';
@@ -194,8 +195,10 @@ describe('#1262 V2 L6d — TOUT `FlowTest` de la donnée dit ce qui se joue', ()
     for (const n of noeuds) {
       const kind = KIND_PAR_FICHIER[n.fichier];
       if (!kind) continue; // dit par le test précédent
-      const ft = withDerivedStake(n.ft, { kind, id: n.entryId });
-      const step = simpleTriggeredTestStep(hero(), ft, BRANCHES, EMPTY_FLOW, 'intermediaire');
+      // L'enjeu se mesure sur chaque nœud : la porte (`gate`, Groupes) se juge à `resoudreFlowTest`.
+      const { gate: _gate, onlyGroups: _seuls, exceptGroups: _sauf, ...ouvert } = n.ft;
+      const ft = withDerivedStake(ouvert, { kind, id: n.entryId });
+      const step = simpleTriggeredTestStep(hero(), ft, combatConditionCtx(hero(), {}), BRANCHES, EMPTY_FLOW);
       if (!step?.stake) { muets.push(`${n.fichier}:${n.entryId} — étape sans enjeu`); continue; }
       const resolu = resolveStake(step.stake);
       const label = findById(CATEGORY_BY_SOURCE_KIND[kind], n.entryId)?.label;

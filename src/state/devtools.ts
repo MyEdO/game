@@ -678,7 +678,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!!spec.skill === !!spec.characteristic) throw new Error('__wfrp.testCompetence : fournir une compétence ou une caractéristique');
       if (!spec.stake) throw new Error('__wfrp.testCompetence : fournir l’enjeu du Test (stake)');
       if (g().pendingTest || g().pendingCascade) throw new Error('__wfrp.testCompetence : un Test est déjà ouvert');
-      if (!openSkillTest(g, useGame.setState, structuredClone(spec), EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW, { actorId }))
+      if (!openSkillTest(g, useGame.setState, structuredClone(spec), condCtx(g), EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW, { actorId }))
         throw new Error(`__wfrp.testCompetence : ouverture refusée pour « ${actorId} »`);
       return '✓ Test ouvert';
     },

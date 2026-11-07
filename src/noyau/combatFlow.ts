@@ -530,7 +530,7 @@ export function applySurprise(get: Get, set: SetFn, surprisedSide: 'party' | 'en
   // joueur qui roulera sa rangée. Les deux boucles lisent le MÊME prédicat : décaler l'une perdrait le
   // Test (ni rangée ni inline) ou le doublerait.
   const bande = surprised.filter((c) => surfaceOf(get, c.id));
-  const step = bande.length ? frozenOpposedBatchStep(bande, test, branches, EMPTY_FLOW, difficulty, sneak, aT) : undefined;
+  const step = bande.length ? frozenOpposedBatchStep(bande, test, branches, EMPTY_FLOW, sneak, aT) : undefined;
   if (step) pushCombatStep(set, step);
   for (const c of surprised) {
     if (surfaceOf(get, c.id)) continue; // sa rangée est dans la bande
@@ -7865,7 +7865,7 @@ export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, from
     // déclaration, et l'étape sort mintée du socle.
     const ft = testFor(indice);
     pushCombatStep(set, (index) => simpleBatchTestStep(
-      craintifs, ft, branches, EMPTY_FLOW, ft.difficulty, `approach-fear-${mover.id}-${indice}-${index}`,
+      craintifs, ft, branches, EMPTY_FLOW, `approach-fear-${mover.id}-${indice}-${index}`,
     ));
   }
   for (const d of dues) {

@@ -157,6 +157,7 @@ export function appliquerMortSubite(target: Combatant, log: string[]): void {
 function difficulteParDefaut(id: string): Difficulty | undefined {
   let defaut: Difficulty | undefined;
   for (const e of findConditionById(id)?.effects ?? []) {
+    // lecture déclarée : la Difficulté authorée est le défaut de l'argument d'instance (`argDifficulty`)
     walkFlow(e.flow, (n) => { if (!defaut && n.kind === 'test' && n.test.argDifficulty) defaut = n.test.difficulty; });
   }
   return defaut;

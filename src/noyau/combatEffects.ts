@@ -21,12 +21,11 @@ import { verdictApprentissage } from '../engine/grimoire';
 import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './monde/sceneNpc';
-import { partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue, actorHasSkill } from '../engine/skills';
+import { partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue } from '../engine/skills';
 import { statusCharmMod, statusCharmLabel, actorStatus, capriciousDR } from '../engine/social';
 import { statutDeDonnee } from '../engine/money';
-import { easeDifficulty } from '../engine/tests';
 import { restoreFortune } from '../engine/fortune';
-import { hasTalent } from '../engine/magic';
+import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { traumaOnImpossibleAmbition } from '../engine/psychology';
 import { grantPsychTrait } from '../engine/grantedTraits';
 import { contexteDeNaissanceDObjet, itemFromGive, giveTrappingLabel, avecObjet, type TrappingResolver } from '../engine/items';
@@ -61,7 +60,7 @@ import { computeStateVisible } from './visionState';
 import { placeCombatant } from './monde/spawn';
 import { refuserGeste } from './refusVisible';
 import { flowFromEffects, testFlow } from './monde/flow';
-import { type FlowTest, type EffectOp, type Condition, flowEffects, evalCondition, leafOpsCtx, EMPTY_FLOW } from '../engine/flowCore';
+import { type FlowTest, type ConditionCtx, type EffectOp, type Condition, flowEffects, evalCondition, leafOpsCtx, EMPTY_FLOW } from '../engine/flowCore';
 import { inRect, combatantsWithinRadius } from './monde/combatGeometry';
 import { removeEntity } from './combatPlacement';
 import { bus, EVT } from './bus';
@@ -790,7 +789,7 @@ export function messageCibleHorsScene(e: { label?: string; on?: string }, on: st
  *  branche (suite d'un `seq`). Choix du meilleur PJ effectif (malus social compris), candidats,
  *  `easierIf`, outil. Retourne false si aucun héros vivant ne peut tenter (le flux continue sans Test). */
 export function openSkillTest(
-  get: Get, set: SetFn, spec: FlowTest, onSuccess: Flow, onFailure: Flow, after: Flow,
+  get: Get, set: SetFn, spec: FlowTest, cc: ConditionCtx, onSuccess: Flow, onFailure: Flow, after: Flow,
   opts?: {
     actorId?: string;
     noOwnTestFailed?: boolean;
@@ -853,23 +852,16 @@ export function openSkillTest(
   // L'acteur imposé est un COMBATTANT (`actorIn`) : en combat, un ennemi mené par le siège MJ en est un.
   const restrictId = opts?.actorId;
   const imposed = restrictId ? actorIn(get(), restrictId) : undefined;
+  const decision = resoudreFlowTest(spec, { cc, ...(imposed ? { sujet: imposed } : {}), groupe: get().party });
+  if (!decision.joue) return false;
+  const { difficulty } = decision;
   const best = restrictId
     ? (imposed && !imposed.dead ? { actor: imposed } : null)
     : partyBest(get().party, spec, socialMod);
   if (!best) return false;
-  const baseDifficulty = spec.difficulty ?? 'intermediaire';
-  const eased = !!spec.easierIf && get().party.some((c) => !c.dead && (
-    (!!spec.easierIf!.hasSkill && actorHasSkill(c, spec.easierIf!.hasSkill)) ||
-    (!!spec.easierIf!.hasTalent && hasTalent(c, spec.easierIf!.hasTalent))
-  ));
-  const difficulty = eased ? easeDifficulty(baseDifficulty, spec.easierIf!.steps ?? 1) : baseDifficulty;
-  // L'allègement se NOMME : la difficulté affichée porte ce qui l'a permise (compétence ou talent
-  // présent dans le groupe), au lieu d'une difficulté plus douce sans origine lisible.
-  const easedBy = eased
-    ? (spec.easierIf!.hasSkill
-      ? refLabel('skills', { id: spec.easierIf!.hasSkill.id, spec: spec.easierIf!.hasSkill.spec })
-      : refLabel('talents', { id: spec.easierIf!.hasTalent! }))
-    : undefined;
+  // L'allègement se NOMME : la difficulté affichée porte ce qui l'a permise (compétence ou talent).
+  const cause = decision.allegePar;
+  const easedBy = cause ? ('skill' in cause ? refLabel('skills', cause.skill) : refLabel('talents', { id: cause.talent })) : undefined;
   const pont = activeSeaPrecipitation(get); // MDG 13 l.185
   // Pool des héros AVEC leur position à jour si un combat est en cours (`battle.combatants` — `party` seule
   // ne porte pas `pos`, LDB 12 l.196 « adjacent »). Même patron que `effectTargets` ci-dessus.
@@ -1017,8 +1009,8 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
       case 'test': {
         if (flush()) return confier(node);
         const after: Flow = { kind: 'seq', steps: stack.splice(0) };
-        // Personne ne peut tenter → on saute le Test et on reprend directement la continuation.
-        if (!openSkillTest(get, set, node.test, node.success, node.fail, after)) return runFlow(get, set, after, label, sl);
+        // Test non joué (`gate`) ou personne ne peut tenter → on reprend directement la continuation.
+        if (!openSkillTest(get, set, node.test, condCtx(get), node.success, node.fail, after)) return runFlow(get, set, after, label, sl);
         return undefined;
       }
     }

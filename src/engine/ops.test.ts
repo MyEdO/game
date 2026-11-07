@@ -409,7 +409,7 @@ describe('applyOps — opérations unitaires', () => {
 
   // (Un Test imbriqué est un nœud Flow `{kind:'test'}` résolu cadence-aware (héros manuel = jet
   //  influençable, ennemi = inline). Sa résolution + branches + gates sont couvertes par
-  //  `noyau/combat/run-combat-flow.hors-store.test.ts` et `noyau/combat/flowEval.test.ts`.)
+  //  `noyau/combat/run-combat-flow.hors-store.test.ts` et `engine/decisionDuTest.test.ts`.)
 
   // #153 — Aux Armes « −10 Agilité pendant 1d10 jours » (corps « Bleus aux côtes ») : durée d'HORLOGE
   // intrinsèque au charMod (même patron que `condition.durationHours`), résolue depuis `ctx.now`.

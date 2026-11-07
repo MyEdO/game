@@ -17,9 +17,9 @@
 import type { Combatant, ItemInstance, EffectSource } from '../engine/types';
 import { consommableDe, consumableUntilTime, bakeConsumableFlow } from '../engine/consumables';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { evalCondition, resolveTestDifficulty, type ConditionCtx } from '../engine/flowCore';
+import { evalCondition, type ConditionCtx } from '../engine/flowCore';
+import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { condCtx } from './bourseFlow';
-import { flowTestGated } from './combat/flowEval';
 import { buildActorView } from '../engine/actorView';
 import { runCombatFlow, withDerivedStake } from './combat/triggeredTest';
 import { openSkillTest, runFlow, applyLeafOps, confierLaSuite, jouerFlowEntier, OPS_DIFFEREES } from './combatEffects';
@@ -80,18 +80,18 @@ function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flo
       }
       case 'test': {
         const cc = drinkerCtx(get, hero);
-        // Gates op-level (Bonnet de fou : `exceptGroups: ['peau-verte']` — les peaux-vertes ne testent
-        // pas, LDB 71 l.20) : no-op → on continue la séquence.
-        if (flowTestGated(node.test, hero, cc)) break;
+        // Test non joué (Bonnet de fou : `exceptGroups: ['peau-verte']`, LDB 71 l.20) : la séquence
+        // continue dans CE marcheur.
+        if (!resoudreFlowTest(node.test, { cc, sujet: hero }).joue) break;
         const after: Flow = { kind: 'seq', steps: stack.splice(0) };
         // Le BUVEUR encaisse seul ce que le produit lui fait (LDB 12 l.197) — défaut de la VOIE,
         // tri-état : la donnée le rouvre là où le Test n'est pas une résistance (`noSupport:false`,
         // Nécessaire antipoison : Test de Guérison).
         // Enjeu DÉRIVÉ du PRODUIT bu quand la donnée n'en déclare pas (#1262 V2 L6d) : « ce qui se joue »
         // EST le consommable, et sa fiche Codex porte déjà sa règle verbatim.
-        const ft = { ...withDerivedStake(node.test, source), difficulty: resolveTestDifficulty(node.test, cc), noSupport: node.test.noSupport ?? true };
+        const ft = { ...withDerivedStake(node.test, source), noSupport: node.test.noSupport ?? true };
         // Modale RESTREINTE au buveur ; impossible (mort) → continuation directe.
-        if (!openSkillTest(get, set, ft, node.success, node.fail, after, { actorId: hero.id })) jouerFlowEntier(runFlow(get, set, after, label));
+        if (!openSkillTest(get, set, ft, cc, node.success, node.fail, after, { actorId: hero.id })) jouerFlowEntier(runFlow(get, set, after, label));
         return;
       }
       case 'choice': {

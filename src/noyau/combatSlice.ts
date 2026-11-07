@@ -42,6 +42,7 @@ import { chargeArmee, courseArmee, intentionDuProprietaire } from './localIntent
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refuseSi } from './verrousDeFiche';
 import { nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, drainPendingLog } from './combatEffects';
+import { combatConditionCtx } from './combat/flowEval';
 import type { MovementBlockReason } from './combatFlow';
 import { t } from '../i18n';
 import { combatValue, backstabWeapon, attackHandGate, issueAuJet, coupAApplique } from '../engine/combat';
@@ -1125,7 +1126,7 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ battle: { ...markActed(get, set), action: null } }); // le Test EST l'Action (réussite ou non)
       openSkillTest(get, set,
         { skill: { id: 'commandement' }, difficulty: 'intermediaire', label: t('cs.teamCommandTest'), stake: combatStakeRef('teamCommand') },
-        onSuccess, EMPTY_FLOW, EMPTY_FLOW, { actorId: active.id });
+        combatConditionCtx(active, {}), onSuccess, EMPTY_FLOW, EMPTY_FLOW, { actorId: active.id });
       bus.emit(EVT.SCENE_DIRTY);
     },
 
@@ -1988,7 +1989,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // Test est PERSONNEL — `noSupport` (LDB 09 l.308, LDB 12 l.197).
       openSkillTest(get, set,
         { skill: { id: skillId }, difficulty: 'intermediaire', label: t('cs.skillAdvantageTest'), noSupport: true, stake: combatStakeRef('skillAdvantage', { entryId: skillId, values: { capChar } }) },
-        EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW,
+        combatConditionCtx(active, {}), EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW,
         { actorId: active.id, combatAdvantage: { combatantId: active.id, cap }, cancellable: true });
     },
 
