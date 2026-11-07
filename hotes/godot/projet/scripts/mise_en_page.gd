@@ -59,10 +59,10 @@ static func au_dessus_de_la_case(case: Vector2i, sol: float) -> Vector3:
 	return Vector3(case.x + DEMI_CASE, sol + HAUTEUR_DU_NOM, case.y + DEMI_CASE)
 
 
-## Le centre d'une arête de `hauteur` debout sur le sol `sol`, dont le milieu est `milieu`, en coins de grille
-## (`areteDessinee`).
-static func centre_d_arete(milieu: Vector2, sol: float, hauteur: float) -> Vector3:
-	return Vector3(milieu.x + DEMI_CASE, sol + hauteur / 2.0, milieu.y + DEMI_CASE)
+## Le centre d'une arête de `hauteur` (unités du plateau) debout à son pied `pied` (mètres, `areteDessinee`) sur un
+## plateau de `metres_par_case` mètres par case, dont le milieu est `milieu`, en coins de grille.
+static func centre_d_arete(milieu: Vector2, pied: float, metres_par_case: float, hauteur: float) -> Vector3:
+	return Vector3(milieu.x + DEMI_CASE, hauteur_au_plateau(pied, metres_par_case) + hauteur / 2.0, milieu.y + DEMI_CASE)
 
 
 ## Le lacet d'une arête qui court selon `sens` sur le plateau.
