@@ -5,7 +5,8 @@
 ## (`aretesDegagees`), et ses couronnes crénelées, tombées avec leur mur (`couronnesAbattues`, `Monde.cacher_le_bati`),
 ## chaque combattant à sa case et sa couche (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, chacun sous son
 ## corps (`vue.corps`, aucun sous son `refus`) et son véhicule (`vue.corps.vehicules`), chaque navire de la scène sous le
-## modèle de son corps (`vue.corps.navires`, `MontageDeVehicule`), sous tout regard, et chaque entité de la scène nommée à sa case, les surbrillances des cases
+## modèle de son corps (`vue.corps.navires`, `MontageDeVehicule`), sous tout regard, coupé sous les ponts que le regard
+## retire (`plateau.coupesDesNavires`), sa mer bordée par sa coque (`Monde.border_la_mer`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le
 ## pointeur jusqu'au clic, chacun sur le sol de sa case ; aucun combattant sous l'œil de l'immersion. Il ne rend que la
 ## case cliquée : celle que le monde désigne sous le pointeur, ou que l'œil franchit ou vise ; et, au clic droit, la
@@ -63,7 +64,7 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 			_monde.suivre(_lieu(suivi[0].pos))
 	_immersion.montrer(vue)
 	if vue.plateau != null:
-		_poser_les_navires(vue.corps.navires, vue.plateau.metresParCase)
+		_poser_les_navires(vue.corps.navires, vue.plateau.coupesDesNavires, vue.plateau.metresParCase)
 	for c in dessines:
 		if c.pos == null:
 			continue
@@ -83,9 +84,10 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 	_peindre()
 
 
-## Chaque navire de `navires` (`vue.corps.navires`) monté sous `Navires` (`MontageDeVehicule.monter`) et posé
-## (`_poser_le_navire`) ; ceux que la vue ne sert plus, retirés.
-func _poser_les_navires(navires: Dictionary, metres_par_case: float) -> void:
+## Chaque navire de `navires` (`vue.corps.navires`) monté sous `Navires` (`_monter_le_navire`), coupé à la hauteur de
+## coupe du plus bas des sols que le regard lui retire (`coupes`, `plateau.coupesDesNavires`, `MiseEnPage.hauteur_de_coupe`),
+## entier sinon ; ceux que la vue ne sert plus, retirés.
+func _poser_les_navires(navires: Dictionary, coupes: Dictionary, metres_par_case: float) -> void:
 	for id: String in _navires_montes.keys():
 		if not navires.has(id):
 			_navires_montes[id].queue_free()
@@ -95,7 +97,18 @@ func _poser_les_navires(navires: Dictionary, metres_par_case: float) -> void:
 			var montage := MontageDeVehicule.new()
 			_navires.add_child(montage)
 			_navires_montes[id] = montage
-		_navires_montes[id].monter(navires[id].corps, _chargeur, _poser_le_navire.bind(navires[id], metres_par_case))
+		_navires_montes[id].couper(MiseEnPage.hauteur_de_coupe(coupes[id], metres_par_case) if coupes.has(id) else null)
+		_monter_le_navire(id, navires[id], metres_par_case)
+
+
+## Le corps du navire `navire` d'id `id` monté (`MontageDeVehicule.monter`) et posé (`_poser_le_navire`) ; posé, la mer de
+## sa flottaison bordée par ce que sa coque plonge sous la hauteur 0 de la scène (`MontageDeVehicule.contour_sous`,
+## `Monde.border_la_mer`).
+func _monter_le_navire(id: String, navire: Dictionary, metres_par_case: float) -> void:
+	var montage: MontageDeVehicule = _navires_montes[id]
+	var pose: bool = await montage.monter(navire.corps, _chargeur, _poser_le_navire.bind(navire, metres_par_case))
+	if pose and montage.scene != null:
+		_monde.border_la_mer(id, montage.contour_sous(MiseEnPage.hauteur_au_plateau(0.0, metres_par_case)))
 
 
 ## La scène nue `scene` du navire `navire` à l'échelle métrique du plateau de `metres_par_case`, sa proue, le +Z de son

@@ -200,17 +200,26 @@ export function poserLesNavires(scene: Scene): Scene {
 }
 
 /** Ce que les ponts des navires de `scene` y posent, par l'id de leur entité : leurs cases (clés `x,y,z`) et leurs arêtes
- *  (`edgeKey`). Un hôte les garde pour la marche et le pointage, et montre le navire par son modèle 3D
- *  (`naviresDeLaScene`). */
-export function provenanceDesNavires(scene: Scene): { cases: ReadonlyMap<string, string>; aretes: ReadonlyMap<string, string> } {
+ *  (`edgeKey`), qu'un hôte garde pour la marche et le pointage, le navire se montrant par son modèle 3D
+ *  (`naviresDeLaScene`) ; et sa flottaison : les cases (clés `x,y,z`) du rectangle de ses ponts à l'étage de son pont le
+ *  plus bas, la mer qui borde sa coque, sa flottaison étant à la hauteur 0 de la scène. */
+export function provenanceDesNavires(scene: Scene): { cases: ReadonlyMap<string, string>; aretes: ReadonlyMap<string, string>; flottaison: ReadonlyMap<string, string> } {
   const cases = new Map<string, string>();
   const aretes = new Map<string, string>();
+  const flottaison = new Map<string, string>();
   for (const pose of posesDe(scene)) {
-    const e = emprise(pontsCompiles(pose), pose);
+    const navire = pontsCompiles(pose);
+    const e = emprise(navire, pose);
     for (const c of e.cases) cases.set(`${c.x},${c.y},${c.z}`, pose.id);
     for (const { place } of e.aretes) aretes.set(edgeKey(place), pose.id);
+    const vers = versLaScene(navire, pose);
+    const { w, h } = navire.dimensions;
+    for (let i = 0; i < w * h; i++) {
+      const c = vers(i % w, Math.floor(i / w));
+      flottaison.set(`${c.x},${c.y},${pose.z}`, pose.id);
+    }
   }
-  return { cases, aretes };
+  return { cases, aretes, flottaison };
 }
 
 /** Les arêtes de `scene` hors de celles des ponts de ses navires (`provenanceDesNavires`) : celles qu'un hôte dessine. */

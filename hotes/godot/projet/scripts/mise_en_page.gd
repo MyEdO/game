@@ -5,7 +5,8 @@
 ## au sol, un vecteur rapporté à un repère, le repère d'un objet rangé à un emplacement, le coin d'une bulle au-dessus
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
-## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan et le coin de ce qui se pose sous lui. Seul script où l'arithmétique et la mesure sont permises
+## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan et le coin de ce qui se pose sous lui, la
+## coupe d'un navire et le compte des triangles d'une géométrie. Seul script où l'arithmétique et la mesure sont permises
 ## (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des fonctions statiques, chacune typée et sur au
 ## plus un vecteur, sans état.
 class_name MiseEnPage
@@ -55,6 +56,10 @@ const MARGE_DU_PLAN := 28.0
 const RAYON_DU_POINT := 7.0
 ## L'écart, en pixels, entre un point du plan et ce qui se pose sous lui.
 const ECART_SOUS_LE_POINT := 2.0
+## Ce que la coupe d'un navire ôte (m) sous le plus bas des sols qu'un regard lui retire (`hauteur_de_coupe`) : le
+## plancher de ce pont, les baux qui le portent et l'imprécision de la hauteur que porte chaque sommet
+## (`opacite_de_coupe`).
+const MARGE_DE_COUPE := 0.15
 
 
 ## La largeur du texte d'une bulle qui, sur une ligne, en prendrait `largeur` : la sienne, au pixel supérieur, au plus
@@ -134,6 +139,23 @@ static func lacet_de_proue(lacet: float) -> float:
 ## Une hauteur de `hauteur` mètres sur le plateau d'une scène de `metres_par_case`.
 static func hauteur_au_plateau(hauteur: float, metres_par_case: float) -> float:
 	return hauteur * echelle_metrique(metres_par_case)
+
+
+## La hauteur, sur le plateau d'une scène de `metres_par_case`, où se coupe le modèle d'un navire dont un regard retire
+## les ponts dès le sol `sol` (m) : `MARGE_DE_COUPE` sous lui.
+static func hauteur_de_coupe(sol: float, metres_par_case: float) -> float:
+	return hauteur_au_plateau(sol - MARGE_DE_COUPE, metres_par_case)
+
+
+## L'opacité d'un sommet à la hauteur `hauteur` d'un modèle qui s'étend de `bas` à `haut` : 1 en bas, 0 en haut,
+## linéaire, si bien qu'un fragment est au-dessus de la hauteur `h` quand son opacité est sous celle de `h`.
+static func opacite_de_coupe(hauteur: float, bas: float, haut: float) -> float:
+	return (haut - hauteur) / (haut - bas)
+
+
+## Le nombre de triangles que portent `sommets` sommets, trois par triangle.
+static func triangles(sommets: int) -> float:
+	return sommets / 3.0
 
 
 ## La hauteur du calque de référence posé sur le plan `plan` (mètres), décalé de `decalage` : juste au-dessus du sol
