@@ -21,8 +21,11 @@ import { garanti } from '../../lib/garanti';
 import { t } from '../../i18n';
 
 /** Ce qu'un siège engage au groupe : un brouillon de création, l'id du héros qu'il bâtit posé quand le roster du siège le
- *  garde (absent : un id neuf), ou un pré-tiré par son id. Le noyau en bâtit le héros (`herosDeLEngagement`). */
-export type HerosEngage = { brouillon: HorsDesignation<CreatorDraft>; id?: HorsDesignation<string> } | { pretire: IdDePretire };
+ *  garde (absent : un id neuf), et l'id de son entrée de roster quand ce n'est pas le sien (`Combatant.idDeRoster`) ; ou
+ *  un pré-tiré par son id. Le noyau en bâtit le héros (`herosDeLEngagement`). */
+export type HerosEngage =
+  | { brouillon: HorsDesignation<CreatorDraft>; id?: HorsDesignation<string>; idDeRoster?: HorsDesignation<IdDeHerosDuRoster> }
+  | { pretire: IdDePretire };
 
 /** La première étape invalide du brouillon `d` (`validateStep`) ; `null` s'il est complet. */
 const refusDuBrouillon = (d: CreatorDraft): string | null => stepIds().map((id) => validateStep(d, id)).find((e) => e !== null) ?? null;
@@ -45,7 +48,8 @@ export function verdictDEngagement(h: HerosEngage): { id: string | undefined } |
  *  (`pretireAvecRichesse`) ou le brouillon, aux ids de `idNeuf`. */
 export function herosDeLEngagement(h: HerosEngage, idNeuf: FabriqueDId): { hero: Combatant; wealth: Money } {
   if ('pretire' in h) return pretireAvecRichesse(garanti(pregens.find((p) => p.id === h.pretire), 'pré-tiré', String(h.pretire)), idNeuf);
-  return batirLeBrouillon(h.brouillon, idNeuf, h.id);
+  const bati = batirLeBrouillon(h.brouillon, idNeuf, h.id);
+  return h.idDeRoster ? { ...bati, hero: { ...bati.hero, idDeRoster: h.idDeRoster } } : bati;
 }
 
 /** Le refus d'un héros nouveau au groupe : le refus d'ajout du siège qui décide (`refusDAjoutAuGroupe`) ; `null` s'il

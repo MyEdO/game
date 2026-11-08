@@ -25,9 +25,14 @@ export interface RosterEntry {
 /** Un héros du roster : son id est un `IdDeHerosDuRoster`. */
 export type HerosDuRoster = Combatant & { id: IdDeHerosDuRoster };
 
-/** L'id de roster du héros `heroId` : celui de son entrée dans `heros`, ou celui de son pré-tiré ; `undefined` sinon. */
-export function idDeRosterDuHeros(heros: readonly RosterEntry[], heroId: string): IdDeHerosDuRoster | undefined {
-  return heros.find((e) => e.hero.id === heroId)?.hero.id ?? pregens.map((p) => idDuPretire(p.seed)).find((id) => id === heroId);
+/** L'id sous lequel le roster connaît le membre `h` du groupe : son `idDeRoster`, sinon son `id`. */
+export const idDeRosterDuMembre = (h: Combatant): string => h.idDeRoster ?? h.id;
+
+/** L'id de roster du membre `h` du groupe : celui de son entrée dans `heros`, ou celui de son pré-tiré ; `undefined`
+ *  sinon. */
+export function idDeRosterDuHeros(heros: readonly RosterEntry[], h: Combatant): IdDeHerosDuRoster | undefined {
+  const id = idDeRosterDuMembre(h);
+  return heros.find((e) => e.hero.id === id)?.hero.id ?? pregens.map((p) => idDuPretire(p.seed)).find((p) => p === id);
 }
 
 /** Le roster tel que stocké : `version` vaut `FORMAT_ROSTER` (#2404). */
@@ -65,11 +70,13 @@ export function ecrireLeRoster(heros: RosterEntry[]): string {
 /** Le roster `heros` dont l'entrée du héros `hero` porte `hero`, brouillon resynchronisé (motivation,
  *  ambitions) ; `null` quand `hero` n'y est pas : la mise à jour n'ajoute aucun héros. */
 export function rosterAvecLeHeros(heros: readonly RosterEntry[], hero: Combatant): RosterEntry[] | null {
-  const i = heros.findIndex((e) => e.hero.id === hero.id);
+  const i = heros.findIndex((e) => e.hero.id === idDeRosterDuMembre(hero));
   if (i < 0) return null;
   const prev = heros[i];
   const draft: CreatorDraft = { ...prev.draft, motivation: hero.motivation ?? '', ambitionShort: hero.details?.ambitionShort ?? '', ambitionLong: hero.details?.ambitionLong ?? '' };
-  return heros.map((e, j) => (j === i ? { ...prev, hero: { ...hero, id: prev.hero.id }, draft } : e));
+  const porte: HerosDuRoster = { ...hero, id: prev.hero.id };
+  delete porte.idDeRoster;
+  return heros.map((e, j) => (j === i ? { ...prev, hero: porte, draft } : e));
 }
 
 const EXPORT_KIND = 'wfrp4-hero';

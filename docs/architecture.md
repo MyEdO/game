@@ -341,7 +341,7 @@ src/web/                     Services d'exécution du NAVIGATEUR (`window`, `doc
                             graine (`graineDEntropie` : RNG de bataille posé par `seedBattleRng` au
                             branchement du store, brouillon de création, générateur de nom), id
                             d'entité unique d'un projet à l'autre (`idDEntropie` : scène, carte,
-                            projet, lieu, trajet — `emptyScene(id)`/`emptyWorldMap(id)` le reçoivent
+                            projet, lieu, trajet, héros de roster — `emptyScene(id)`/`emptyWorldMap(id)` le reçoivent
                             de l'hôte) ; `src/engine` et `src/noyau` n'en tirent jamais.
                             `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
                             sûr (`fileSlug`).

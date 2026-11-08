@@ -100,7 +100,7 @@ describe('la frontière lit le brouillon entier, à la forme du type du verbe', 
   it('une clé que l’objet ne déclare pas se refuse : `brouillon` et `pretire` ensemble ; chacun seul passe', () => {
     const pretire = pregens[0].id;
     expect(refus('recruterLeHeros', [{ brouillon: complet(), pretire }]))
-      .toContain('heros : vise plusieurs membres de HerosEngage (heros.pretire : clé inconnue (admises : brouillon, id) ; heros.brouillon : clé inconnue (admises : pretire))');
+      .toContain('heros : vise plusieurs membres de HerosEngage (heros.pretire : clé inconnue (admises : brouillon, id, idDeRoster) ; heros.brouillon : clé inconnue (admises : pretire))');
     expect(refus('recruterLeHeros', [{ brouillon: { ...complet(), zzz: 1 } }])).toContain('heros.brouillon.zzz : clé inconnue (admises : ');
     expect(lire('recruterLeHeros', [{ pretire }])).toHaveProperty('args');
     expect(lire('recruterLeHeros', [{ brouillon: complet() }])).toHaveProperty('args');

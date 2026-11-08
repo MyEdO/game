@@ -6,11 +6,12 @@
  */
 import { idsDeTest, rosterDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { ajouterAuRoster, chargerLeRoster, engagerLeHeros, importerAuRoster, mettreAJourLeRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from './roster';
+import { ajouterAuRoster, chargerLeRoster, engagerLeHeros, mettreAJourLeRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from './roster';
 import { ouvrirLeBanc, surUnBancHorsTest } from '../noyau/banc.testkit';
 import { newDraft } from '../noyau/creation/brouillon';
 import { createHero } from '../engine/character';
 import { ecrireLeRoster, type Combatant, type HerosDuRoster, type RosterEntry } from '../noyau/index';
+import { rosterExport, rosterImport } from '../noyau/persistance/roster';
 import { stockageEnMemoire, stockageQuiLeve } from '../lib/stockage.testkit';
 import { brouillonComplet } from '../noyau/creation/engagement.testkit';
 import { idDuPretire } from '../data/pregens';
@@ -113,13 +114,15 @@ describe('la procédure du roster sur un stockage', () => {
   });
 });
 
-describe('importer un héros au roster (#2907)', () => {
-  it('un héros dont l’id est déjà au roster y entre sous un id neuf, sans écraser l’autre', () => {
+describe('ré-importer un export (#2907)', () => {
+  it('l’export d’un héros du roster, ré-importé, met à jour son entrée ; un héros neuf s’ajoute', () => {
     const s = stockageEnMemoire();
-    ajouterAuRoster(s, entry('h1', 'Présent'));
-    importerAuRoster(s, entry('h1', 'Importé'), rosterDeTest('import'));
-    importerAuRoster(s, entry('h3', 'Neuf'), rosterDeTest('import'));
-    expect(chargerLeRoster(s).map((e) => `${e.hero.id}:${e.hero.label}`)).toEqual(['h1:Présent', 'import-hero-1:Importé', 'h3:Neuf']);
+    ajouterAuRoster(s, entry('h1', 'Avant'));
+    for (const e of [entry('h1', 'Après'), entry('h2', 'Neuf')]) {
+      const lu = rosterImport(rosterExport(e));
+      ajouterAuRoster(s, lu.entry!);
+    }
+    expect(chargerLeRoster(s).map((e) => `${e.hero.id}:${e.hero.label}`)).toEqual(['h1:Après', 'h2:Neuf']);
   });
 });
 
@@ -169,12 +172,23 @@ describe('engager un brouillon de création (#3059)', () => {
     expect(chargerLeRoster(s).map((e) => e.hero.id)).toEqual([auRoster.id, pretire.id]);
   });
 
-  it('en édition, un héros sans id de roster est remplacé en place sous un id de roster neuf', () => {
+  it('en édition, un héros sans id de roster garde son id : ce que l’état cite de lui pointe toujours vers lui ; une seule entrée de roster', () => {
     const s = stockageEnMemoire();
     const [a, b] = [membre(1), membre(2)];
-    const banc = ouvrirLeBanc({ etat: { party: [a, b] } });
-    expect(engagerLeHeros(s, banc.getState(), brouillonComplet(), rosterDeTest('session'), a.id)).toBeNull();
-    expect(banc.getState().party.map((h) => h.id)).toEqual(['session-hero-1', b.id]);
-    expect(chargerLeRoster(s).map((e) => e.hero.id)).toEqual(['session-hero-1']);
+    const banc = ouvrirLeBanc({ etat: {
+      party: [a, b],
+      possessions: [{ uid: 'pos-a', nature: 'bete', ownerId: a.id, location: { kind: 'avec-le-groupe' }, items: [], beastId: 'cheval-de-selle', label: 'Cheval' } as never],
+      etats: { sosie: a.id },
+      pendingOrders: [{ heroId: a.id, trappingId: 'corde' }],
+    } });
+    for (const label of ['Édité', 'Rééditée']) expect(engagerLeHeros(s, banc.getState(), brouillonComplet(label), rosterDeTest(label), a.id)).toBeNull();
+    const etat = banc.getState();
+    expect(etat.party.map((h) => h.id)).toEqual([a.id, b.id]);
+    const cites = [...etat.possessions.map((p) => p.ownerId), ...Object.values(etat.etats), ...etat.pendingOrders.map((o) => o.heroId)];
+    expect(cites).toEqual([a.id, a.id, a.id]);
+    const roster = chargerLeRoster(s);
+    expect(roster.map((e) => `${e.hero.id}:${e.hero.label}`)).toEqual(['Édité-hero-1:Rééditée']);
+    expect(etat.party[0].idDeRoster).toBe('Édité-hero-1');
+    expect(etat.party[0].label).toBe('Rééditée');
   });
 });
