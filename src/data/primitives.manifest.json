@@ -650,6 +650,15 @@
     "verrou": "src/data/schemas/grammaire/ref-typee.test.ts, src/ui/compendium/refField/ref-field-polymorphe.test.tsx"
   },
   {
+    "id": "porteeLocale",
+    "type": "primitives.manifest",
+    "label": "ref(portee)/ouvrirPortees/PorteeLocale",
+    "fichier": "src/data/schemas/grammaire/collection-cle.ts",
+    "concept": "une référence `{ id }` vers une entrée d'une collection du MÊME document (`ref(portee)`, `grammaire/ref.ts`), jugée au parse par l'objet qui porte cette liste à clé et OUVRE la portée (`ouvrirPortees`) ; un id local n'entre dans aucun espace de l'index des ids",
+    "perimetre": "tables arcaniques d'un phénomène (`arcane-phenomena.json › phenomena[].fluxTableId`, `› tableId`), clé `id` offerte au formulaire de l'atelier (`cleOfferte`), slots du parse de mesure (cible `local:<collection>`)",
+    "verrou": "src/data/schemas/defs/tables-arcaniques-portee-locale.test.ts, src/data/schemas/espaces-contrat.test.ts"
+  },
+  {
     "id": "refCouvre",
     "type": "primitives.manifest",
     "label": "refCouvre",
