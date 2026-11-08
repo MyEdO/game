@@ -303,7 +303,8 @@ def _poser_les_bras(bpy, rig, arme, mains, cadre, longueurs, precedents, peaux):
 
 
 def deriver(bpy, rig, reperes):
-    """Les actions de `CLIPS`, ajoutées au rig `rig` d'après ses clips sources, aux instants de chacun (`poids.instants`) ;
+    """Les actions de `CLIPS`, ajoutées au rig `rig` d'après ses clips sources, aux instants de chacun (`poids.instants`),
+    sur la peau aux poids corrigés et les clips sources posés au sol (après le point fixe de `humanoide.construire`) ;
     `reperes` : par prise `main` et `off`, son os et son repère dans celui de cet os (`anatomie.reperes_des_prises`)."""
     repos = {b.name: b.matrix_local.copy() for b in rig.data.bones}
     longueurs = {cote: ((repos[c].translation - repos[e].translation).length, (repos[m].translation - repos[c].translation).length)

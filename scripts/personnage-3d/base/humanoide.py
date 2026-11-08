@@ -12,7 +12,7 @@ DECLARATION = ICI / 'humanoide.json'
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from anatomie import PIEDS, gabarit, poser, reperes_des_prises  # noqa: E402
-from deux_mains import CLIPS as CLIPS_A_DEUX_MAINS, deriver as deriver_a_deux_mains  # noqa: E402
+from deux_mains import deriver as deriver_a_deux_mains  # noqa: E402
 from animation import assign_action, clear_animation, meshes_for  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
 from seuils import IMAGES_PAR_SECONDE  # noqa: E402
@@ -239,10 +239,6 @@ def construire(args):
     clips = retirer_sans_sol(fusionner(bpy, clips, clips2), sources, PELVIS)
     for action in clips:
         preparer(action)
-    for action in deriver_a_deux_mains(bpy, squelette, reperes_des_prises(squelette)):
-        sources[action.name] = sources[CLIPS_A_DEUX_MAINS[action.name][0]]
-        preparer(action)
-        clips.append(action)
     figee = {a.name: figer(a) for a in clips}
     poser_au_sol(bpy, squelette, peaux)
     corps, secondaires = corps_et_secondaires(peaux)
@@ -250,7 +246,7 @@ def construire(args):
     bornes = bornes_de_st()
     table = {**gabarit(squelette), 'st': bornes, 'bornes': bornes_du_gabarit()}
     declaration = json.loads(DECLARATION.read_text(encoding='utf-8'))
-    marches = [declaration['clips']['walk'], *(table['walk'] for table in declaration['clipsDeuxMains'].values())]
+    marches = [declaration['clips']['walk']]
     noms = [b.name for b in squelette.data.bones]
 
     rabot = None
@@ -377,6 +373,11 @@ def construire(args):
     finally:
         ressources.close()
     print('SOL tenu en', passes, 'passe(s)', flush=True)
+    clear_animation(squelette)
+    bpy.context.view_layer.update()
+    for action in deriver_a_deux_mains(bpy, squelette, reperes_des_prises(squelette)):
+        preparer(action)
+        clips.append(action)
     variantes = recoucher_les_variantes(bpy, squelette, peaux, squelette_f, objets_f, declaration.get('surfaces', []))
     for objet in [squelette_f, *objets_f]:
         bpy.data.objects.remove(objet, do_unlink=True)
