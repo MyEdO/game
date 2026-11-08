@@ -40,7 +40,7 @@ export interface GestesDeLObjet {
   donner: GesteAChoix<Carrier> | null;
   /** Un consommable d'un héros (`isConsumable`). */
   utiliser: GesteFermable | null;
-  /** Un objet non identifié d'un héros, qu'aucune Évaluation n'a tenté ce jour (`appraiseTriedDay`). */
+  /** Un objet non identifié d'un héros, refusé tant que court le délai de son Évaluation manquée (`refusDEvaluation`). */
   evaluer: GesteFermable | null;
   /** Un objet non identifié d'un héros, jamais détecté (LDB 10 l.336). */
   detecter: GesteFermable | null;

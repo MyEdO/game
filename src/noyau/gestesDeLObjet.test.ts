@@ -1,7 +1,7 @@
 /**
  * LES GESTES D'UN OBJET (#3328, `gestesDeLObjet`) : chaque geste n'existe que pour l'objet qu'il touche, et se ferme
  * par le verdict que son verbe applique : en combat, `refusDInventaire` ; l'Évaluation et la Détection, `refusDEvaluation`
- * (une tentative par jour, `appraiseTriedDay`, LDB 12 l.94 ; une tentative par détecteur, LDB 10 l.336), le geste
+ * (le délai maison après une Évaluation manquée, `market-evaluation-delai-jours` ; une tentative par détecteur, LDB 10 l.336), le geste
  * présent et refusé, sa raison dite.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -47,7 +47,7 @@ describe('les gestes d’un objet', () => {
     rosa.items!.find((i) => i.label === 'Pilon et Mortier')!.detectTriedBy = [rosa.id];
     const pilon = gestesDeLObjet(s, rosa.id, uid('Pilon et Mortier'))!;
     expect([pilon.evaluer, pilon.detecter?.refus]).toEqual([
-      { refus: t('mf.appraiseSameDay', { label: 'Pilon et Mortier' }), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier')] } },
+      { refus: t('mf.appraiseRetenter', { label: 'Pilon et Mortier', jours: 1 }), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier')] } },
       t('mf.detectDejaTentee', { label: 'Pilon et Mortier' }),
     ]);
     const veille = partie({ appraiseTriedDay: 2 });

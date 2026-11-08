@@ -4,7 +4,8 @@
  * les créatures que la victoire ouvre ; `approvisionnerLArme` refuse, et dit, une munition que le porteur de l'arme ne
  * porte pas, sans rien écrire. LDB 59 l.41, LDB 10 l.336, ZI 13.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { resetRule, setRule } from '../engine/policy';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';
@@ -73,10 +74,43 @@ describe('evaluerLObjet : chaque refus est dit, aucune évaluation ne s’ouvre'
     expect([dernier(), g().pendingAppraise]).toEqual([t('mf.detectDejaTentee', { label: 'Épée' }), null]);
   });
 
-  it('l’Évaluation d’une ligne déjà manquée ce jour (LDB 12 l.94)', () => {
+  it('l’Évaluation d’une ligne manquée ce jour, tant que court le délai maison (`market-evaluation-delai-jours`)', () => {
     banc.setState({ party: [heros('a')], pendingLoot: { title: 'Coffre', gear: [ligne('L0', { appraiseTriedDay: gameDay(g()) })] } } as never);
     g().evaluerLObjet('L0');
-    expect([dernier(), g().pendingAppraise]).toEqual([t('mf.appraiseSameDay', { label: 'Épée' }), null]);
+    expect([dernier(), g().pendingAppraise]).toEqual([t('mf.appraiseRetenter', { label: 'Épée', jours: 1 }), null]);
+  });
+});
+
+describe('après un échec d’Évaluation : nouvel essai à DR 0 (LDB 12 l.94), délai maison à DR négatif', () => {
+  /** Évalue la ligne `L0` du butin, et valide le jet à `sl`, raté. */
+  function manquer(sl: number) {
+    banc.setState({ party: [heros('a')], pendingLoot: { title: 'Coffre', gear: [ligne('L0')] } } as never);
+    g().evaluerLObjet('L0');
+    banc.setState({ pendingAppraise: { ...g().pendingAppraise!, roll: 95, success: false, sl } });
+    g().jetValider('appraise');
+  }
+  const retenter = () => { g().evaluerLObjet('L0'); const ouverte = !!g().pendingAppraise; banc.setState({ pendingAppraise: null }); return ouverte; };
+  afterEach(() => resetRule('market-evaluation-delai-jours'));
+
+  it('DR négatif : refusé jusqu’au lendemain, puis ouvert', () => {
+    manquer(-2);
+    expect([retenter(), dernier()]).toEqual([false, t('mf.appraiseRetenter', { label: 'Épée', jours: 1 })]);
+    g().avancerLeTemps(24 * 60);
+    expect(retenter()).toBe(true);
+  });
+
+  it('DR 0 : un nouvel essai, aussitôt', () => {
+    manquer(0);
+    expect(retenter()).toBe(true);
+  });
+
+  it('le délai se règle : 3 jours', () => {
+    setRule('market-evaluation-delai-jours', 3);
+    manquer(-1);
+    g().avancerLeTemps(24 * 60);
+    expect([retenter(), dernier()]).toEqual([false, t('mf.appraiseRetenter', { label: 'Épée', jours: 2 })]);
+    g().avancerLeTemps(2 * 24 * 60);
+    expect(retenter()).toBe(true);
   });
 });
 

@@ -943,12 +943,18 @@ function aEvaluer(s: Jeu, uid: string): { target: Parameters<typeof openAppraise
  *  manquée. */
 type CibleDEvaluation = CibleDeDetection & { label: string; appraiseTriedDay?: number };
 
-/** Refus de l'Évaluation (`evaluate`) ou de la Détection d'artefact (`detect`) de `cible` au jour `jour` : déjà
- *  manquée ce jour (LDB 12 l.94), personne ne peut la tenter (LDB 09 l.30), ou chaque détecteur l'a déjà tentée
- *  (LDB 10 l.336) ; `null` sinon. Le verbe et la fenêtre du butin le lisent. */
+/** Les jours qui restent, au jour `jour`, avant de retenter l'Évaluation manquée de `cible` (règle maison
+ *  `market-evaluation-delai-jours`) ; 0 : elle se retente. */
+const joursAvantDeRetenter = (cible: CibleDEvaluation, jour: number): number =>
+  (cible.appraiseTriedDay === undefined ? 0 : Math.max(0, cible.appraiseTriedDay + Number(rule('market-evaluation-delai-jours')) - jour));
+
+/** Refus de l'Évaluation (`evaluate`) ou de la Détection d'artefact (`detect`) de `cible` au jour `jour` : manquée trop
+ *  récemment (règle maison `market-evaluation-delai-jours`), personne ne peut la tenter (LDB 09 l.30), ou chaque
+ *  détecteur l'a déjà tentée (LDB 10 l.336) ; `null` sinon. Le verbe et la fenêtre du butin le lisent. */
 export function refusDEvaluation(party: Combatant[], cible: CibleDEvaluation, mode: ModeDEvaluation, jour: number): string | null {
   if (mode === 'detect') return refusDeDetection(party, cible);
-  return cible.appraiseTriedDay === jour ? t('mf.appraiseSameDay', { label: cible.label }) : appraiseRefus(party);
+  const jours = joursAvantDeRetenter(cible, jour);
+  return jours > 0 ? t('mf.appraiseRetenter', { label: cible.label, jours }) : appraiseRefus(party);
 }
 
 /** Évaluation (LDB 59 l.41) ou Détection d'artefact (LDB 10 l.336) d'un objet porté par un héros, ou d'une ligne de
@@ -1028,9 +1034,9 @@ function acquitterLEvaluation(get: Get, set: Set): void {
     return;
   }
   if (!pa.success) {
-    // Échec NET : pas de re-tentative le même jour (LDB 12 l.94 — seul un résultat marginal
-    // « permet de faire un nouvel essai » ; ADE II : re-tenter une identification coûte du temps).
-    patchAppraiseTarget(get, set, pa, { appraiseTriedDay: gameDay(get()) });
+    // Un échec à DR 0 offre un nouvel essai (LDB 12 l.94) ; à DR négatif, le délai de la règle maison
+    // `market-evaluation-delai-jours` court.
+    if (pa.sl < 0) patchAppraiseTarget(get, set, pa, { appraiseTriedDay: gameDay(get()) });
     get().ecrireAuJournal(t('mf.appraiseFail', { item: pa.itemName }));
     return;
   }

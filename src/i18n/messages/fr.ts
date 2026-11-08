@@ -2321,7 +2321,7 @@ export const fr = {
   'mf.boutiqueSansLieu': 'Le groupe ne se tient dans aucun lieu.',
   'mf.boutiqueInconnue': 'Ce lieu n’a pas d’échoppe « {service} ».',
   'mf.detectDejaTentee': '{label} a déjà été sondé par chaque héros qui a la Détection d’artefact.',
-  'mf.appraiseSameDay': "{label} a déjà été jaugé aujourd'hui sans succès — réessayez demain.",
+  'mf.appraiseRetenter': '{label} a déjà été jaugé sans succès — réessayez dans {jours} jour(s).',
   'mf.detectNothing': "{actor} ne perçoit rien de net en touchant {item} (Détection d'artefact : une seule tentative).",
   'mf.detectNotMagic': "{actor} sonde {item} : aucune aura — l'objet n'est pas magique.",
   'mf.detectAll': "{actor} sent l'aura de {item} — et en saisit les règles (DR {dr}) : objet identifié.",

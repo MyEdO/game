@@ -124,7 +124,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
       const manquee = [{ uid: 'L0', label: 'Épée', magic: false, effect: { type: 'giveTrapping', trappingId: 'epee', identified: false, appraiseTriedDay: jour } }, { uid: 'L1', label: 'Bouclier', magic: false, effect: { type: 'giveTrapping', trappingId: 'bouclier', identified: false } }] as never;
       const butin: Jeu = { ...etat, pendingRoundStart: null, battle: null, pendingLoot: { title: 'Coffre', gear: manquee } };
       expect(butin.party.some((h) => (h.talents ?? []).some((x) => x.talentId === 'detection-d-artefact')), 'témoin : aucun détecteur').toBe(false);
-      expect(argumentDe(butin, 'evaluerLObjet', 'uid').valeurs!.map((v) => [v.valeur, v.refus])).toEqual([['L0', t('mf.appraiseSameDay', { label: 'Épée' })], ['L1', null]]);
+      expect(argumentDe(butin, 'evaluerLObjet', 'uid').valeurs!.map((v) => [v.valeur, v.refus])).toEqual([['L0', t('mf.appraiseRetenter', { label: 'Épée', jours: 1 })], ['L1', null]]);
     });
   });
 

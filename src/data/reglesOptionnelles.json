@@ -623,6 +623,19 @@
     "hint": "complet = Disponibilité + Marchandage (RAW) ; sans-disponibilite = tout en stock (pas de Test) ; sans-marchandage = prix fixes (pas de jet opposé) ; simplifie = les deux désactivés."
   },
   {
+    "id": "market-evaluation-delai-jours",
+    "type": "reglesOptionnelles",
+    "label": "Délai avant de retenter une Évaluation (jours)",
+    "ref": "LDB 59 l.41",
+    "maison": "Le RAW ne borne pas les nouvelles tentatives d’Évaluation d’un objet (LDB 59 l.41) ; seul un échec à DR 0 offre un nouvel essai (LDB 12 l.94). Valeur maison : après un échec à DR négatif, le délai en jours avant qu’un héros retente l’Évaluation de cet objet ; 0 lève le verrou.",
+    "group": "Marché",
+    "kind": "param",
+    "default": 1,
+    "min": 0,
+    "max": 30,
+    "hint": "Après une Évaluation ratée à DR négatif, le nombre de jours avant une nouvelle tentative sur le même objet (1 = le lendemain). Un échec à DR 0 permet toujours un nouvel essai (LDB 12 l.94)."
+  },
+  {
     "id": "market-tenir-comptes",
     "type": "reglesOptionnelles",
     "label": "Tenir les comptes (Statut)",
