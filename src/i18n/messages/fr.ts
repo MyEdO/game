@@ -101,6 +101,7 @@ export const fr = {
   'jet.ferme.rienADeclarer': 'Aucune rangée à déclarer.',
   'jet.ferme.contreSortDu': 'Le Contre-sort se résout d’abord.',
   'jet.ferme.soinEnCours': 'Un soin est en cours : achève-le d’abord.',
+  'jet.ferme.acteAChanger': 'À l’infirmerie, l’acte se change : le soin ne s’annule pas.',
   'jet.ferme.paieDue': 'La paie de la semaine reste à arrêter.',
   'jet.ferme.halteDeVoyage': 'Une halte de voyage ne s’annule pas.',
   'jet.ferme.herosADesigner': 'Un héros vivant reste à désigner.',
@@ -133,6 +134,10 @@ export const fr = {
   'parcours.refus.competence': 'La Compétence « {competence} » ne désigne aucun emplacement à choix libre de « {carriere} ».',
   'parcours.refus.emplacement': '« {adresse} » n’est pas un emplacement de dotation de « {carriere} » au Niveau {niveau}.',
   'parcours.refus.valeur': '« {valeur} » n’est pas une valeur de l’emplacement de dotation « {adresse} ».',
+  // Ce qui refuse les sorts choisis pour un PNJ (`refusDesSortsChoisis`, `engine/sortsDuPnj.ts`).
+  'sortsDuPnj.refus.imprimes': 'Le profil imprime ses sorts : ils font foi, sans choix d’auteur.',
+  'sortsDuPnj.refus.horsListes': '« {sort} » n’est d’aucune liste qu’ouvrent les Talents et Traits de lanceur du PNJ.',
+  'sortsDuPnj.refus.quota': '« {sort} » dépasse le nombre de Sorts que donne {liste} : {n}.',
   'choix.refus.rangee': 'Ce choix ne vise pas la bonne rangée de la fenêtre.',
   'choix.refus.autreSiege': 'Ce héros est joué à un autre siège.',
   'jet.refus.gesteAbsent': 'Ce jet n’a pas ce geste.',
@@ -251,10 +256,8 @@ export const fr = {
   'verbe.marchand.repartition': 'Répartir',
   'verbe.victory.fermer': 'Continuer',
   'verbe.depecerLaCreature': 'Dépecer',
-  'verbe.soignerLePatient': 'Soigner',
   'verbe.medic.plaie': 'Blessure soignée',
   'verbe.mountTarget.fermer': 'Annuler',
-  'verbe.ouvrirLaChirurgie': 'Opérer (une passe)',
   'verbe.appraise.confirm': 'Conclure',
   'verbe.rest.fermer': 'Annuler',
   'verbe.promouvoirLeCombattant': 'Agir en premier',
@@ -597,6 +600,10 @@ export const fr = {
   'ecran.editeur.carriere.profil.talents': 'Talents : {liste}',
   'ecran.editeur.carriere.profil.possessions': 'Possessions : {liste}',
   'ecran.editeur.carriere.profil.aucun': 'aucune',
+  'ecran.editeur.sorts.imprimes': 'Sorts imprimés au profil : {liste}',
+  'ecran.editeur.sorts.retirer': 'Retirer',
+  'ecran.editeur.sorts.ajouter': 'Choisir un sort',
+  'ecran.editeur.sorts.connus': 'Sorts au combat : {liste}',
   'ecran.editeur.rencontre': 'Rencontre « {id} »',
   'ecran.editeur.rencontre.enrole': 'Enrôlé',
   'ecran.editeur.rencontre.ennemi': 'Ennemi',
@@ -3023,7 +3030,7 @@ export const fr = {
   'heal.sansBandages': 'Sans Bandages',
   'heal.bandagesDe': 'Bandages de {name}',
   'heal.bandageUtilise': '{name} utilise une unité de Bandages.',
-  'heal.modeFixeALInfirmerie': 'À l’infirmerie, l’acte se choisit avant le jet.',
+  'heal.soinNonArme': 'Le Soin n’est pas armé.',
 
   // ── #1318 V8c₃ — REPOS (`engine/rest.ts`, `rest.*`, LDB 16/18/20/21). La MALADIE citée vient de la
   // donnée (`diseaseLabel`) : les deux lignes de purge/bénédiction affichaient son id (« peste-noire »).
@@ -3542,7 +3549,7 @@ export const fr = {
   'medic.rienASoigner': '{name} n’a rien à soigner.',
   'medic.patientSansSoin': 'Rien à soigner.',
   'medic.aucunSoigneur': 'Aucun membre du groupe ne peut tenter un Test de Guérison.',
-  // Raisons d'un acte de l'infirmerie fermé (`refusDActeDeSoin`).
+  // Raisons d'un acte de l'infirmerie fermé (`refusDeLActeALInfirmerie`).
   'medic.fermee': 'L’infirmerie est fermée.',
   'medic.jetEnCours': 'Un jet de soin est déjà posé.',
   'medic.operationEnCours': 'Une opération est en cours.',

@@ -21,6 +21,8 @@ import { DIFFICULTY_LABELS, type Combatant } from '../engine/types';
 import { resetDismissLayers } from './useDismissLayer';
 import { useGameKeyboard } from './clavier/useGameKeyboard';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { combatDeModale } from './combattantDeModale.testkit';
+import { flowStakeRef } from '../data';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -62,7 +64,7 @@ describe('Guérison (HealModal) — la Difficulté vit sur la LIGNE', () => {
     const healer = mk('Soigneur');
     const patient = mk('Blessé');
     useGame.setState({
-      battle: null, party: [healer, patient],
+      battle: combatDeModale([healer, patient]), party: [healer, patient],
       pendingHeal: {
         healerId: healer.id, healerName: healer.label, targetId: patient.id, targetName: patient.label,
         mode: 'wounds', intBonus: 4, test: 'guerison', bandagesDe: null, skillValue: 45, difficulty: DIFF, ligne: { base: 45, mods: [], target: 65, difficulty: DIFF }, target: 65, roll: null, success: false, sl: 0,
@@ -85,7 +87,7 @@ describe('fenêtre de Guérison — le patient montre ses ÉTATS, et une seule f
   const bleeding = () => mk('Blessé', { conditions: [{ id: 'hemorragique', value: 2 }] } as never);
   const put = (patient: Combatant, healer: Combatant | null) => {
     useGame.setState({
-      battle: null, party: healer ? [healer, patient] : [patient],
+      battle: combatDeModale(healer ? [healer, patient] : [patient]), party: healer ? [healer, patient] : [patient],
       pendingHeal: {
         healerId: healer?.id ?? 'pnj-soigneur', healerName: healer?.label ?? 'Médecin',
         targetId: patient.id, targetName: patient.label,
@@ -106,7 +108,7 @@ describe('fenêtre de Guérison — le patient montre ses ÉTATS, et une seule f
   it('EMBARQUÉ dans l’infirmerie : aucun bandeau (la bande de patients porte déjà le patient)', () => {
     const patient = bleeding();
     put(patient, mk('Soigneur'));
-    useGame.setState({ medic: { patientId: patient.id } } as never);
+    useGame.setState({ battle: null, medic: { patientId: patient.id } } as never);
     act(() => root.render(<MedicModal />));
     expect(host.querySelectorAll('.rm-vs'), 'pas de second portrait du patient').toHaveLength(0);
   });
@@ -116,7 +118,7 @@ describe('Guérison par un PNJ tarifé — pas d’A→B sans fiche', () => {
   it('soigneur PNJ (id sentinelle, absent du groupe) : aucun bandeau, mais l’acte reste lisible', () => {
     const patient = mk('Blessé');
     useGame.setState({
-      battle: null, party: [patient],
+      battle: combatDeModale([patient]), party: [patient],
       pendingHeal: {
         healerId: 'pnj-soigneur', healerName: 'Médecin', targetId: patient.id, targetName: patient.label,
         mode: 'wounds', intBonus: 4, test: 'guerison', bandagesDe: null, skillValue: 45, difficulty: DIFF, ligne: { base: 45, mods: [], target: 65, difficulty: DIFF }, target: 65, roll: null, success: false, sl: 0,
@@ -153,7 +155,7 @@ describe('Chirurgie (MedicModal → useSurgeryJetProps) — la Difficulté vit s
 describe('dossier d’opération — l’A→B n’est rendu que s’il EXISTE', () => {
   const patient = () => mk('Opéré', { traumas: [{ label: 'Fracture', location: 'brasG', surgery: true }] } as never);
   /** Ouvre le dossier d'opération d'un patient, le chirurgien étant du GROUPE ou un PNJ tarifé
-   *  (`healerId` sentinelle posé par `medicFlow.soignerLePatient`, absent du groupe). */
+   *  (`healerId` sentinelle posé par `acteDeSoin.soinDeLActe`, absent du groupe). */
   const openSurgery = (healerId: string, party: Combatant[]) => {
     useGame.setState({
       battle: null, party, pendingSurgery: null,
@@ -192,8 +194,8 @@ describe('infirmerie — les gestes du jet posé sont au PIED de la boîte des s
   const piedsDeLaBoite = () => boite().querySelectorAll('.cadre-pied');
   const corps = () => boite().querySelector('.modal-body');
 
-  it('jet de soin posé : un seul pied, « Annuler » au début, « Lancer » à la fin ; aucun geste dans le corps', () => {
-    const healer = mk('Soigneur');
+  it('brouillon du soin : un seul pied, « Terminer » au début, « Lancer » à la fin ; aucun geste dans le corps', () => {
+    const healer = mk('Soigneur', { skills: [{ id: 'guerison', characteristic: 'intelligence', advances: 10 }] } as never);
     const patient = mk('Blessé');
     useGame.setState({
       battle: null, party: [healer, patient], medic: { patientId: patient.id },
@@ -204,7 +206,7 @@ describe('infirmerie — les gestes du jet posé sont au PIED de la boîte des s
     } as never);
     act(() => root.render(<MedicModal />));
     expect(piedsDeLaBoite(), 'la boîte n’a qu’un pied').toHaveLength(1);
-    expect(gestes(piedsDeLaBoite()[0]), 'le pied porte les gestes du jet').toEqual(['Annuler', 'Lancer']);
+    expect(gestes(piedsDeLaBoite()[0]), 'le pied porte la sortie et le lancer du brouillon').toEqual(['Terminer', 'Lancer']);
     expect(corps()?.querySelectorAll('.cadre-pied'), 'aucun pied ne défile dans le corps').toHaveLength(0);
   });
 
@@ -250,15 +252,16 @@ describe('infirmerie — Échap annule le jet posé, jamais l’opération qui l
 
   it('passe posée sur une opération qui a cumulé : Échap rend l’opération armée, cumul et patient intacts', () => {
     const surgeon = mk('Chirurgien');
-    const patient = mk('Opéré', { traumas: [{ label: 'Fracture', location: 'brasG', surgery: true }] } as never);
-    const operation = { kind: 'surgery', difficulty: DIFF, healerId: surgeon.id, healerName: surgeon.label, skill: 45, intBonus: 4, targetDR: 6, cumDR: 3, last: { roll: 12, sl: 3 } };
+    const patient = mk('Opéré', { conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] } as never);
+    const operation = { kind: 'surgery', difficulty: DIFF, healerId: surgeon.id, healerName: surgeon.label, skill: 45, intBonus: 4, targetDR: 6, cumDR: 3, last: { roll: 12, sl: 3 }, stake: flowStakeRef('surgery-roll', { values: { targetDR: 6 } }) };
     useGame.setState({
       screen: 'campaign', mode: 'exploration', gameMenuOpen: false, dialogue: null, battle: null,
       party: [surgeon, patient], pendingHeal: null, pendingSurgery: null,
       medic: { patientId: patient.id, surgery: operation },
     } as never);
     act(() => root.render(<MedicModal />));
-    act(() => useGame.getState().ouvrirLaChirurgie());
+    expect(useGame.getState().pendingHeal?.mode, 'le brouillon reprend l’opération armée').toBe('surgery');
+    act(() => useGame.getState().jetLancer('heal')); // il rouvre la passe
     expect(useGame.getState().pendingSurgery, 'la passe est posée').not.toBeNull();
 
     echap();
@@ -270,7 +273,7 @@ describe('infirmerie — Échap annule le jet posé, jamais l’opération qui l
     expect(st.medic?.surgery?.last, 'sa dernière passe aussi').toEqual({ roll: 12, sl: 3 });
     expect(st.medic?.patientId, 'le patient reste celui opéré').toBe(patient.id);
     const pied = gestesDuPied();
-    expect(pied.map((b) => (b.textContent ?? '').trim()), 'le pied reprend la sortie de l’opération armée').toEqual(['Arrêter l’opération', 'Opérer (une passe)']);
+    expect(pied.map((b) => (b.textContent ?? '').trim()), 'le pied reprend la sortie de l’opération armée et le lancer de sa reprise').toEqual(['Arrêter l’opération', 'Lancer']);
     expect(pied[0].className, 'arrêter après une passe aboutie est un abandon irréversible').toBe('btn btn-ghost danger');
   });
 
@@ -281,7 +284,7 @@ describe('infirmerie — Échap annule le jet posé, jamais l’opération qui l
   };
   const soigneur = () => mk('Soigneur', { skills: [{ id: 'guerison', characteristic: 'intelligence', advances: 10 }] } as never);
 
-  it('deux jets de soin de suite : chaque Échap annule le sien, le suivant ferme l’infirmerie', () => {
+  it('le brouillon du soin ne s’annule pas : Échap ferme l’infirmerie, et le brouillon part avec elle', () => {
     const patient = mk('Blessé', { wounds: { current: 4, max: 12 } } as never);
     useGame.setState({
       screen: 'campaign', mode: 'exploration', gameMenuOpen: false, dialogue: null, battle: null,
@@ -289,36 +292,30 @@ describe('infirmerie — Échap annule le jet posé, jamais l’opération qui l
     } as never);
     act(() => useGame.getState().ouvrirLeMedecin({ patientId: patient.id }));
     act(() => root.render(<MedicModal />));
-    for (const tour of [1, 2]) {
-      cliquer('Soigner les Blessures');
-      expect(useGame.getState().pendingHeal, `soin ${tour} posé`).not.toBeNull();
-      echap();
-      expect(useGame.getState().pendingHeal, `Échap ${tour} annule le soin`).toBeNull();
-      expect(useGame.getState().medic, `l’infirmerie reste après l’Échap ${tour}`).not.toBeNull();
-    }
+    cliquer('Soigner les Blessures');
+    expect(useGame.getState().pendingHeal?.mode, 'l’acte réglé sur le brouillon').toBe('wounds');
     echap();
-    expect(useGame.getState().medic, 'jet annulé : l’Échap suivant ferme l’infirmerie').toBeNull();
+    expect(useGame.getState().medic, 'Échap ferme l’infirmerie').toBeNull();
+    expect(useGame.getState().pendingHeal, 'le brouillon part avec elle').toBeNull();
   });
 
-  it('après une passe annulée par Échap puis l’opération arrêtée, Échap annule encore le soin', () => {
-    const patient = mk('Opéré', { wounds: { current: 4, max: 12 }, traumas: [{ label: 'Fracture', location: 'brasG', surgery: true }] } as never);
+  it('après une passe annulée par Échap puis l’opération arrêtée, le brouillon renaît sur un acte du patient', () => {
+    const patient = mk('Opéré', { wounds: { current: 4, max: 12 }, conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] } as never);
     const chir = soigneur();
-    const operation = { kind: 'surgery', difficulty: DIFF, healerId: chir.id, healerName: chir.label, skill: 45, intBonus: 4, targetDR: 6, cumDR: 3, last: { roll: 12, sl: 3 } };
+    const operation = { kind: 'surgery', difficulty: DIFF, healerId: chir.id, healerName: chir.label, skill: 45, intBonus: 4, targetDR: 6, cumDR: 3, last: { roll: 12, sl: 3 }, stake: flowStakeRef('surgery-roll', { values: { targetDR: 6 } }) };
     useGame.setState({
       screen: 'campaign', mode: 'exploration', gameMenuOpen: false, dialogue: null, battle: null,
       party: [chir, patient], pendingHeal: null, pendingSurgery: null,
       medic: { patientId: patient.id, surgery: operation },
     } as never);
     act(() => root.render(<MedicModal />));
-    cliquer('Opérer (une passe)');
+    act(() => useGame.getState().jetLancer('heal')); // la reprise de l'opération armée rouvre la passe
+    expect(useGame.getState().pendingSurgery, 'la passe est posée').not.toBeNull();
     echap();
     expect(useGame.getState().pendingSurgery, 'Échap annule la passe').toBeNull();
     cliquer('Arrêter l’opération');
     expect(useGame.getState().medic?.surgery, 'opération arrêtée').toBeFalsy();
-    cliquer('Soigner les Blessures');
-    expect(useGame.getState().pendingHeal, 'soin posé').not.toBeNull();
-    echap();
-    expect(useGame.getState().pendingHeal, 'l’Échap suivant annule le soin').toBeNull();
+    expect(useGame.getState().pendingHeal, 'le brouillon renaît').toMatchObject({ targetId: patient.id, roll: null });
     expect(useGame.getState().medic, 'l’infirmerie reste').not.toBeNull();
   });
 });

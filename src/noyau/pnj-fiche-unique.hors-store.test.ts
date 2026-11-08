@@ -50,11 +50,12 @@ describe('#1882 — un PNJ, une fiche, UN nom', () => {
     expect(activeSequence<{ opponentName: string }>(get)!.payload.opponentName).toBe(combat.label);
   });
 
-  it('sans nom d’entité, la fiche garde le sien, sur les deux chemins', () => {
+  it('sans nom d’entité, l’individu anonyme porte le même nom tiré sur les deux chemins (#3712)', () => {
     const anonyme: SceneEntity = { ...GERTA, label: undefined };
     pose([anonyme]);
-    expect(ficheDEntite(anonyme, presetPnjById).label).toBe('Humain');
-    expect(sceneNpc(get().scene, 'gerta', presetPnjById)!.label).toBe('Humain');
+    const combat = ficheDEntite(anonyme, presetPnjById).label;
+    expect(combat).not.toBe(findCreatureById('humain')!.label);
+    expect(sceneNpc(get().scene, 'gerta', presetPnjById)!.label).toBe(combat);
   });
 });
 

@@ -667,6 +667,34 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     expect(boutonDe(presser(boutonDe(voue, 'carriere/soldat/talents/1/frenesie')), 'carriere/soldat/talents/1/frenesie').presse).toBe(true);
   });
 
+  it('un personnage lanceur de sorts : un sort choisi, retiré ; au-delà du quota de Magie mineure, refusé ; les sorts au combat (#3715)', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ligneDe = (e: Edition, id: string) => (e.vue.zones['editeur.inspecteur'].find((el) => el.id === id) as Ligne | undefined)?.texte;
+    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/personnage'));
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const pnj = jouer({ geste: 'relache', point: point(1, 1) });
+    expect(ligneDe(pnj, 'sorts/connus'), 'sans Talent de lanceur, aucune section').toBeUndefined();
+    const niveau2 = presser(boutonDe(presser(boutonDe(pnj, 'carriere/ajouter/pyromancien')), 'carriere/pyromancien/niveau/2'));
+    const pyromancien = presser(boutonDe(presser(boutonDe(niveau2, 'carriere/pyromancien/talents/1/magie-mineure')), 'carriere/pyromancien/talents/2/magie-des-arcanes|feu'));
+    expect(ligneDe(pyromancien, 'sorts/connus'), 'les Sorts mineurs du quota, tirés').toMatch(/^Sorts au combat : [^,]+(, [^,]+)*$/);
+    const cauterise = presser(boutonDe(pyromancien, 'sorts/ajouter/cauteriser'));
+    expect(ligneDe(cauterise, 'sorts/connus')).toMatch(/Cautériser/);
+    expect(ligneDe(presser(boutonDe(cauterise, 'sorts/cauteriser/retirer')), 'sorts/connus')).not.toMatch(/Cautériser/);
+    let e = pyromancien;
+    const choisis: string[] = [];
+    for (const id of ['alerte', 'bruits', 'choc', 'conservation', 'drain', 'flechette']) {
+      if (boutonDe(e, `sorts/ajouter/${id}`).refus) break;
+      e = presser(boutonDe(e, `sorts/ajouter/${id}`));
+      choisis.push(id);
+    }
+    const refus = boutonDe(e, 'sorts/ajouter/flechette').refus;
+    expect(refus).toMatch(/Magie mineure : \d/);
+    expect(choisis).toHaveLength(Number(refus!.match(/: (\d)/)![1]));
+    expect(() => boutonDe(e, 'sorts/ajouter/destrier-d-ombre'), 'un sort d’aucune liste ouverte n’est pas offert').toThrow();
+  });
+
   it('un décor : sa lumière allumée, son rayon au pas, son ton ; son assise ouverte, une place tenue par un emplacement du groupe', () => {
     const { appel } = table();
     const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));

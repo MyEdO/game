@@ -3,8 +3,8 @@ extends SceneTree
 ## Les pièces des Améliorations d'un véhicule (#2987, `hotes/godot/pont/CONTRAT.md`, section « Corps d'un combattant »,
 ## `vehicules`, `ameliorations`) : montée à un ancrage, une pièce se pose à sa position dans le repère du véhicule, tournée
 ## comme lui ; montée à un poste, elle se tourne vers son bord, montre son nœud `montre` et cache son nœud `cache`
-## (`Combattant.monter_l_amelioration`) ; les nœuds de `caches`, du véhicule comme de ses pièces, se cachent, les autres
-## restent visibles (`Combattant.cacher_selon`).
+## (`MontageDeVehicule.monter_l_amelioration`) ; les nœuds de `caches`, du véhicule comme de ses pièces, se cachent, les autres
+## restent visibles (`MontageDeVehicule.cacher_selon`).
 
 const RECETTE_AUTONOME := true
 const OUVERT := "ouvert"
@@ -51,7 +51,7 @@ func _a_l_ancrage() -> void:
 	var coque := _scene([])
 	root.add_child(coque)
 	var piece := _scene([])
-	Combattant.monter_l_amelioration(coque, piece, {element = "figure-de-proue", position = [0.0, 4.0, 15.0]})
+	MontageDeVehicule.monter_l_amelioration(coque, piece, {element = "figure-de-proue", position = [0.0, 4.0, 15.0]})
 	if not piece.position.is_equal_approx(Vector3(0.0, 4.0, 15.0)):
 		_fautes.append("ancrage : pièce en %s, attendu (0, 4, 15)" % piece.position)
 	if not _sens(coque, piece).is_equal_approx(Vector3.BACK):
@@ -63,7 +63,7 @@ func _au_poste(montre: String, cache: String) -> void:
 	var coque := _scene([])
 	root.add_child(coque)
 	var piece := _scene([OUVERT, FERME])
-	Combattant.monter_l_amelioration(coque, piece, {element = "sabord", position = [-3.0, 2.0, 4.0], poste = {bord = "tribord", montre = montre, cache = cache}})
+	MontageDeVehicule.monter_l_amelioration(coque, piece, {element = "sabord", position = [-3.0, 2.0, 4.0], poste = {bord = "tribord", montre = montre, cache = cache}})
 	var cas := "poste, %s montré" % montre
 	var attendu := Basis(Vector3.UP, MiseEnPage.LACETS_DES_BORDS["tribord"]) * Vector3.BACK
 	if not _sens(coque, piece).is_equal_approx(attendu):
@@ -77,8 +77,8 @@ func _selon() -> void:
 	var coque := _scene(["sans-sabord", "avec-sabord"])
 	root.add_child(coque)
 	var piece := _scene(["sans-sabord"])
-	Combattant.monter_l_amelioration(coque, piece, {element = "blindage-fer", position = [3.0, 2.0, 0.0]})
-	Combattant.cacher_selon(coque, ["sans-sabord"])
+	MontageDeVehicule.monter_l_amelioration(coque, piece, {element = "blindage-fer", position = [3.0, 2.0, 0.0]})
+	MontageDeVehicule.cacher_selon(coque, ["sans-sabord"])
 	for noeud: Node3D in [coque.get_node("sans-sabord"), piece.get_node("sans-sabord"), coque.get_node("avec-sabord")]:
 		if noeud.visible != (noeud.name == "avec-sabord"):
 			_fautes.append("selon : %s visible %s" % [coque.get_path_to(noeud), noeud.visible])

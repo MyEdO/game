@@ -2,7 +2,7 @@ extends SceneTree
 
 ## La palette d'un véhicule et de ses pièces (#2987, `hotes/godot/pont/CONTRAT.md`, section « Corps d'un combattant »,
 ## `vehicules`) : chaque scène est peinte de sa propre palette, aux surfaces de son élément
-## (`Combattant.peindre_l_element`), avant que la pièce ne monte à son poste (`Combattant.monter_au_poste`). Une pièce
+## (`MontageDeVehicule.peindre_l_element`), avant que la pièce ne monte à son poste (`MontageDeVehicule.monter_au_poste`). Une pièce
 ## dont un matériau porte le même nom qu'un matériau du véhicule garde sa couleur ; une surface dont la palette ne
 ## colore pas l'emplacement garde l'albédo du GLB. Une surface dont la texture de la `matiere` est au projet s'en habille
 ## comme le monde, que la couleur de sa palette teint ; sans palette, son albédo est blanc. L'emblème du véhicule se pose sur ses seules surfaces `blason`
@@ -36,11 +36,11 @@ func _recetter() -> void:
 	var canon := _scene([BOIS, CUIR])
 	root.add_child(coque)
 	var embleme := ImageTexture.create_from_image(Image.create(2, 2, false, Image.FORMAT_RGBA8))
-	if not Combattant.peindre_l_element(coque, "coque", {bois = ROUGE}, embleme):
+	if not MontageDeVehicule.peindre_l_element(coque, "coque", {bois = ROUGE}, embleme):
 		_fautes.append("l'emblème du véhicule n'est posé sur aucune surface")
-	if Combattant.peindre_l_element(canon, "canon", {bois = VERT}, null):
+	if MontageDeVehicule.peindre_l_element(canon, "canon", {bois = VERT}, null):
 		_fautes.append("une pièce peinte sans emblème en porte un")
-	Combattant.monter_au_poste(coque, canon, {position = [0.0, 1.0, 0.0], bord = "tribord"})
+	MontageDeVehicule.monter_au_poste(coque, canon, {position = [0.0, 1.0, 0.0], bord = "tribord"})
 	_attendre(coque, 0, Color(ROUGE), "bois de la coque")
 	_attendre(coque, 1, GRIS, "cuir de la coque, que la palette ne colore pas")
 	_attendre(canon, 0, Color(VERT), "bois du canon monté sur la coque, sa matière sans texture")

@@ -14,6 +14,7 @@ import { emptyScene, type Scene, type SceneEntity } from '../../noyau/monde/scen
 import { creatureLabel, profilsStandard } from '../../data';
 import { fichesDePersonnage, type Tool } from '../../noyau/sceneEditLecture';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
+import { nomDEntite } from '../../noyau/monde/sceneNpc';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -120,10 +121,13 @@ describe('Inspecteur — aucun geste ne retire le dernier porteur de fiche (#188
     expect(h.entOf()).toMatchObject({ ref: 'gobelin', label: 'Brigand' });
   });
 
-  it('« Profil personnalisé… » prend le LIBELLÉ de la fiche, jamais son id ni un nom de repli', () => {
-    const h = inspecteur({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } });
+  it('« Profil personnalisé… » prend le NOM de l’entité (`nomDEntite`), jamais son id ni un nom de repli', () => {
+    const ent: SceneEntity = { id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } };
+    const nom = nomDEntite(ent, () => undefined);
+    const h = inspecteur(ent);
     act(() => h.bouton('Profil personnalisé')!.click());
-    expect(h.entOf().statblock?.label).toBe(creatureLabel('humain'));
+    expect(h.entOf().statblock?.label).toBe(nom);
+    expect(nom, 'un humain anonyme garde son nom tiré (#3712)').not.toBe('pnj');
   });
 });
 

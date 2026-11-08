@@ -15,7 +15,7 @@ import { inBattleId } from '../monde/combatants';
 import { canMove, defenseDodgeMods } from '../mount';
 import type { Jeu } from '../etat';
 import { defenseTargetMods, defenseValue, defenseValueModParts } from '../../engine/combat';
-import { rollLine, type RollLineParts } from '../rollSeam';
+import { rollLine, type RollLineParts } from '../ligneDeJet';
 import { refusActionDepensee, refusHorsDEtatDAgir, refusPriereImposee } from '../refusDuTour';
 
 /** Le porteur et son combat. */

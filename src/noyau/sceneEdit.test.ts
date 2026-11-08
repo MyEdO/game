@@ -202,7 +202,7 @@ describe('deriveArchitectureMasses — un corps, UN toit (#930)', () => {
       ambiance: 'exterieur',
       metresPerTile: 2,
       ambientLight: 'auto',
-      reliefDefaults: { cliff: 'terre', ramp: 'terre', deck: 'pierre', pilier: 'pilier' },
+      reliefDefaults: { cliff: { id: 'terre' }, ramp: { id: 'terre' }, deck: { id: 'pierre' }, pilier: { id: 'pilier' } },
       roofDefaults: { material: 'toit-ardoise', pitchDeg: 45, riseMaxStoreys: 1 },
       layers: [{ z: 0, tiles: new Array(64).fill('herbe') }],
       entities: [],
@@ -219,7 +219,7 @@ describe('deriveArchitectureMasses — un corps, UN toit (#930)', () => {
   it('`DEFAULT_RELIEF_DEFAULTS`/`DEFAULT_ROOF_DEFAULTS`/`DEFAULT_TERRAIN` sont les semences du dataset (#1716)', () => {
     expect(DEFAULT_RELIEF_DEFAULTS).toEqual(semencesDeScene.reliefDefaults);
     expect(DEFAULT_ROOF_DEFAULTS).toEqual(semencesDeScene.roofDefaults);
-    expect(DEFAULT_TERRAIN).toBe(semencesDeScene.terrain);
+    expect(DEFAULT_TERRAIN).toBe(semencesDeScene.terrain.id);
   });
 
   /** #1715 — la pente de RÉFÉRENCE est une donnée de la SCÈNE : la dérivation la lit, elle n'en

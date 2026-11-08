@@ -510,13 +510,21 @@ const acteurDEtape = (s: Jeu, seat: number, pid: string | undefined): boolean =>
  * résiduel reste dépensable par son porteur pendant qu'une modale prioritaire d'un autre siège est
  * ouverte.
  */
-const routeJet = (jet: JetOwnerRef): Route => ({
+const routeJet = (jet: JetOwnerRef, depense: boolean): Route => ({
   rule: (s, seat) => {
     const pending = (s as unknown as Record<string, Record<string, unknown> | null | undefined>)[jet.pending];
     const ownerId = pending && typeof pending[jet.field] === 'string' ? (pending[jet.field] as string) : undefined;
-    return !!ownerId && seatInfluences(s, seat, ownerId); // jet fermé/inconnu → personne ne dépense
+    if (!ownerId) return false; // jet fermé/inconnu → personne
+    // Un porteur qui n'est pas un combattant (le PNJ soigneur d'une scène) n'a aucune ressource à dépenser, et ne tient
+    // aucun siège : le geste qui ne dépense rien retombe sur le repli universel, comme la rangée sans acteur propre.
+    if (ownerId !== WORLD_STEP_OWNER && !porteurParId(s, ownerId)) return depense ? false : null;
+    return seatInfluences(s, seat, ownerId);
   },
 });
+
+/** Le geste de jet `verbe` dépense-t-il une ressource du porteur ? Tous, sauf le lancer et les verbes de fenêtre
+ *  (`estVerbeDeFenetre` : l'annulation et la clôture). */
+const depenseDuPorteur = (verbe: RollVerb): boolean => verbe !== 'roll' && !estVerbeDeFenetre(verbe);
 
 /** La rangée (`pid`) d'un geste de jet : son dernier argument (`VerbesDeJet` : après le dé posé de `jetImposerLeResultat`). */
 const rangeeDuGeste = (verbe: RollVerb, args: unknown[]): string | undefined => idArg(args[verbe === 'setForcedRoll' ? 2 : 1]);
@@ -524,7 +532,8 @@ const rangeeDuGeste = (verbe: RollVerb, args: unknown[]): string | undefined => 
 /**
  * Possession d'un geste de jet `verbe`, d'après le flux qu'il vise (1ᵉʳ argument) — un flux qui ne l'accepte pas :
  * personne.
- *  - flux MONO : le porteur du jet (`routeJet`) ;
+ *  - flux MONO : le porteur du jet (`routeJet`) ; un porteur non combattant : le repli universel pour le lancer et les
+ *    verbes de fenêtre, personne pour un verbe qui dépense (`depenseDuPorteur`) ;
  *  - Résistance et inversion d'une étape de `cascade` : l'acteur de l'étape (`acteurDEtape`) ;
  *  - flux MULTI dont la rangée porte SON acteur (`pidIsActor`) : le propriétaire de ce combattant ; le jet sans
  *    rangée (« Tout lancer », `rangeeFacultative`) : tout siège, il ne lance que les rangées du siège qui agit
@@ -537,7 +546,7 @@ const routeDuVerbeDeJet = (verbe: RollVerb): Route => ({
     const flux = args[0];
     if (!fluxAccepte(flux, verbe)) return false;
     const w: FlowVerbs = FLOW_VERBS[flux];
-    if (w.kind === 'mono') return routeJet(w.jetOwner).rule(s, seat, args);
+    if (w.kind === 'mono') return routeJet(w.jetOwner, depenseDuPorteur(verbe)).rule(s, seat, args);
     if (flux === 'cascade' && (verbe === 'resist' || verbe === 'reverse')) return acteurDEtape(s, seat, rangeeDuGeste(verbe, args));
     if (!w.pidIsActor || estVerbeDeFenetre(verbe)) return null;
     const rangee = rangeeDuGeste(verbe, args);
@@ -555,7 +564,7 @@ const routeDuVerbeDeJet = (verbe: RollVerb): Route => ({
  *  - un réglage de rangée (l'arme d'enfoncement, EDO 11 l.93) : le combattant de la rangée (`pid`) ; sans rangée, un
  *    réglage `toutes` (la déclaration du Contre-sort) : le siège qui tient une de ses rangées encore à régler ; la
  *    rangée d'un flux dont elle n'est pas un combattant (l'étape de cascade) : le repli universel ;
- *  - sur un flux MONO : le porteur du jet (`routeJet`), comme ses verbes de jet — sur le Sort d'un ennemi, dont la
+ *  - sur un flux MONO : le porteur du jet (`routeJet`), comme son lancer — sur le Sort d'un ennemi, dont la
  *    fenêtre est à tous (`'*'`), le siège qui joue l'ennemi, jamais un autre ;
  *  - un réglage de fenêtre sur un flux MULTI (le virage d'une manœuvre navale) : le repli universel (le owner de sa
  *    modale).
@@ -572,7 +581,7 @@ const ROUTE_DU_REGLAGE: Route = {
       if (w.kind === 'multi' && !w.pidIsActor) return null;
       return pid === undefined && declaration.toutes ? declaration.toutes(s).some((id) => seatInfluences(s, seat, id)) : seatInfluences(s, seat, idArg(pid));
     }
-    return w.kind === 'mono' ? routeJet(w.jetOwner).rule(s, seat, args) : null;
+    return w.kind === 'mono' ? routeJet(w.jetOwner, false).rule(s, seat, args) : null;
   },
 };
 

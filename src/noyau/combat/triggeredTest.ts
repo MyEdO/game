@@ -38,7 +38,8 @@ import { pushCombatStep, openSkillTest, applyLeafOps, drainPendingLog,
   confierLaSuite, porterOpsCtx, ctxRepris, comptePasDifferes, OPS_DIFFEREES, type Applique } from '../combatEffects';
 import { journaliser } from '../combatLog';
 
-import { freeCons, rollLine, rollStep, surfaceOf, bandStep, monoStep, choiceStep, pushChoice, pousseSi, opposedAttackerLabel } from '../rollSeam';
+import { freeCons, rollStep, surfaceOf, bandStep, monoStep, choiceStep, pushChoice, pousseSi, opposedAttackerLabel } from '../rollSeam';
+import { rollLine } from '../ligneDeJet';
 import { type BuiltCascadeStep } from '../stepBrand';
 import { recoveryGeometry, effectSourcesOf, fireOwnTestFailed } from '../triggeredEffects';
 import { emitCombatEvent } from '../combatEvents';

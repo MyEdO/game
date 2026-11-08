@@ -20,7 +20,8 @@ import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { apparencesObjetsDe, contexteDeNaissanceDObjet, deciderApparencesDesArmes, equipConflicts, hydratePoste, loadWeapon, objetsDeLInventaire, recomputeLoadout } from '../../engine/items';
-import { porterAuParcours, type ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
+import { argentDuPnj, porterAuParcours, type ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
+import { sortsDuPnj } from '../../engine/sortsDuPnj';
 import { blessuresReconciliees, blessuresPosees } from '../../engine/characteristics';
 import { indiceSurLeProfil } from '../../engine/formule';
 import { resizeBySteps, SIZE_ORDER, SizeCategory, sizeFromTraits } from '../../engine/size';
@@ -34,6 +35,7 @@ import { groupsFor } from '../../engine/groups';
 import { weaponsFromTraits, armourFromTraits, traitsDevantLEquipement } from '../../engine/creatureEquip';
 import { hashSeed } from '../../engine/dice';
 import { bodyShapeForSpecies } from '../../engine/bodyForm';
+import { estPoseParSesPonts } from '../planDeNavire';
 
 /**
  * Pose la position d'un combattant en RAFRAÎCHISSANT sa hauteur métrique (`pos.h`) depuis le relief de
@@ -42,7 +44,7 @@ import { bodyShapeForSpecies } from '../../engine/bodyForm';
  * distance de combat verticale et le −10 « en contrebas » resteraient faux après le mouvement.
  * `z` omis quand nul et `h` omis quand la surface est à 0 m → byte-identique au plan sur une scène plate.
  */
-export function placeCombatant(c: { pos?: { x: number; y: number; z?: number; h?: number }; traits?: Combatant['traits']; offTerrain?: boolean }, scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): void {
+export function placeCombatant(c: { id: string; pos?: { x: number; y: number; z?: number; h?: number }; traits?: Combatant['traits']; offTerrain?: boolean; surSesPonts?: boolean }, scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): void {
   const z = p.z ?? 0;
   const h = scene ? heightAt(scene, p.x, p.y, z) : 0;
   c.pos = { x: p.x, y: p.y, ...(z ? { z } : {}), ...(h ? { h } : {}) };
@@ -52,6 +54,9 @@ export function placeCombatant(c: { pos?: { x: number; y: number; z?: number; h?
   const req = c.traits ? requiredTerrains(c as Combatant) : [];
   if (req.length) c.offTerrain = !req.includes(tileAt2(scene ?? null, p.x, p.y, z));
   else if (c.offTerrain) delete c.offTerrain;
+  // Drapeau POSITIONNEL « navire sur ses ponts » (#3686) : re-dérivé au même chokepoint.
+  if (scene && estPoseParSesPonts(scene, c.id)) c.surSesPonts = true;
+  else if (c.surSesPonts) delete c.surSesPonts;
 }
 
 /** Terrain de la case, tolérant une scène absente : PAS de scène = pas de tuile, donc le terrain que le
@@ -199,7 +204,7 @@ export interface SpawnExtras {
   /** OPTIONNELS choisis (LDB 76 l.45) : Traits posés ordinaires (résolus et fusionnés avant dérivation) OU
    *  NOTES composées (joker « tous les traits », variante « swap » qui RETIRE des Traits + octroie un bonus). */
   optionals?: OptionalEntry[];
-  /** Sorts connus choisis par l'auteur (`combat.spells`) — priment sur ceux de la créature. */
+  /** Sorts choisis par l'auteur (`combat.spells`), complétés au spawn (`sortsDuPnj`). */
   spells?: string[];
   /** Caractéristiques aléatoires (LDB 77 l.108). */
   randomChars?: boolean;
@@ -325,10 +330,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
     ...(creature.corruption != null ? { corruption: creature.corruption } : {}), // EDO 01 l.504 ; LDB 19
     ...parsePsychTraits(traits), // Peur/Terreur/Immunité (Nuée, Fabriqué compris) + traits ciblés depuis les traits (LDB 21+85)
     ...(swarm ? { swarm: true } : {}), // LDB 85 l.253
-    // Sorts : ceux de la DONNÉE (PNJ nommés — Eusapia en a 12), surchargés par le choix d'auteur.
-    // Combatant.spells = IDS de sort, prouvés par le schéma de scène (`refs('spell')`) : au parse, et à
-    // `validateScene` pour une scène vivante de l'éditeur.
-    ...(extras?.spells?.length ? { spells: extras.spells } : creature.spells.length ? { spells: creature.spells } : {}),
+    ...(creature.spells.length ? { spells: creature.spells } : {}), // imprimés ; choix d'auteur et quotas : `sortsDuPnj`
     groups: groupsFor({ creature }), // Groupes déclarés par l'entrée et son genre ; Traits et culte lus en direct (`groupesDe`). LDB 21
     traits, // conservés (facultatifs inclus) → attaques gratuites de créature en combat
     skills,
@@ -459,6 +461,8 @@ export function spawnEnemy(
     : porteur.statblock ? statblockToCombatant(porteur.statblock, id, pos, opts?.appearance, opts)
     : ficheDeRef(porteur.ref, porteur.parcours, id, pos, opts);
   c.porteurDeFiche = porteur;
+  const sorts = sortsDuPnj(c, opts?.spells ?? []);
+  if (sorts.length) c.spells = sorts;
   if (opts?.crewIds) c.crewIds = opts.crewIds;
   if (opts?.postes) c.postes = opts.postes.map((a, i) => hydratePoste(a, `${id}-poste-${i}`)); // #222 — réf catalogue → base HYDRATÉE (couture unique)
   if (opts?.upgrades) c.upgrades = opts.upgrades;
@@ -477,6 +481,7 @@ export function spawnEnemy(
   // Tenue d'auteur (id) → `Combatant.career`, en combat comme en exploration.
   if (a?.tenue) c.career = a.tenue;
   if (c.items?.length || Object.keys(opts?.inventaire ?? {}).length) equiperDeLInventaire(c, opts?.inventaire ?? {});
+  if (porteur.parcours) argentDuPnj(c);
   deciderApparencesDesArmes(findTrappingById, c.weapons, c.appearanceOverride, c.creatureId, c.items);
   // Arme à distance CHARGÉE au spawn (miroir du héros dans lancerLeCombat) — LDB 62 l.335 : le `loaded` ne gate
   // que les armes à Recharge, un tireur fraîchement engagé peut donc tirer au 1er Round (pas de recharge à vide).

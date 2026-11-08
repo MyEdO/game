@@ -425,6 +425,63 @@ se livre comme tel avec ses contrôles NON VÉRIFIÉS. Ne pas annoncer la porte 
 procédure seule : elle demande, depuis une illustration neuve, une instance neuve produisant tête,
 vêtement et rigide, évalués, revus par l'utilisateur, puis montés dans le scénario L4.
 
+## 9. Véhicule : navire ou engin de siège
+
+Un véhicule (catégorie `vehicule`) et les pièces de ses Améliorations (catégorie `amelioration`) se construisent
+depuis le dépôt, sans base, par `scripts/personnage-3d/vehicule/` : la partie commune (`construire.py` : export,
+manifestes et dossiers de production ; `maille.py` : maille, poutre, objet ; `habillage.py` : matériaux et `surfaces` ;
+`revue.py` : configurations rendues dans le studio de `rendu.py`) et un dossier par modèle, `<modele>/donnees.py` (ses
+dimensions, nommées) et `<modele>/modele.py` (sa construction). Modèles livrés : `caraque` (coque, plan de jeu lu dans
+`src/noyau/planDeLaCaraque.ts`, seize pièces d'Améliorations dans `ameliorations.py`) et `canon` (un GLB pour
+`canon-grand`, `canon-moyen`, `canon-petit`).
+
+**Créer un type.** Le dossier `vehicule/<type>/` porte deux fichiers :
+
+- `donnees.py` : les ids de clé (`definition` d'une coque de `src/data/vehicles.json` ou d'un engin `armes-de-siege` de
+  `src/data/trappings.json`, ajoutée d'abord si elle manque) ; `MATERIAUX`, `{nom: (emplacement, matière)}`, l'emplacement
+  pris aux `SLOTS` de `src/lib/palette.ts`, la matière un id du domaine `prop` de `src/data/materials.json` (sa texture
+  vient du catalogue `hotes/godot/projet/textures/`), à défaut `(couleur linéaire, métal, rugosité)` ; `BLASONS`, les
+  matériaux qui reçoivent l'emblème ; chaque dimension en mètres, nommée, lue sur une illustration ou une donnée du jeu
+  (section 1), jamais enfouie dans `modele.py` ;
+- `modele.py` : `elements(D)`, qui produit un dict par GLB : `glb` (nom de la scène), `cles` (`[(categorie, cle)]`, une
+  clé par élément qui partage ce GLB), `materiaux`, `blasons`, et `construire`, qui bâtit la scène vide avec
+  `habillage.materiaux(...)` et les primitives de `maille.py`, puis rend les champs propres au manifeste : `postes` par
+  bord (`FIRE_ARCS`), `selon`, `ancrages`, `montage`.
+
+Le repère est celui de la section 2 : en Blender, l'avant vers -y, bâbord vers +x, l'origine au sol ou à la flottaison,
+l'emprise recentrée en x et y ; l'export place l'avant vers +z glTF. Ce qui se monte au véhicule (pièce d'artillerie,
+Amélioration) est son propre élément. Une primitive d'un autre modèle dont le type a besoin passe dans `maille.py`
+(deuxième cas réel), sans changer un octet des GLB publiés.
+
+**Construire**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt (refusé sinon) :
+
+```sh
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/construire.py <type> --sortie /atelier/<type>
+```
+
+Chaque clé reçoit son dossier de production `/atelier/<type>/<id>/` (`<id>` = `<categorie>--<valeur de clé>`) :
+`<id>.glb`, `<id>.element.json`, `manifest.json` et `LICENSE-CC0-1.0.txt`. La sortie imprime l'empreinte, les triangles
+et les nœuds de chaque GLB ; deux constructions donnent les mêmes octets.
+
+**Valider.** `npm run godot:valider -- /atelier/<type>/<id>/<id>.element.json /atelier/<type>/<id>/<id>.glb` pour chaque
+id ; `npm run personnage-3d:tests`, dont `test_vehicule.py` reconstruit chaque modèle et compare chaque manifeste, son
+empreinte comprise, à celui publié sous `hotes/godot/projet/modeles/` ; un véhicule ou une Amélioration publiés sans
+modèle y échouent. Rendre un GLB seul par `rendu.py --input` ; ses configurations par `revue.py`, d'après la `REVUE` des
+données (le véhicule, la pièce des postes, les configurations et les vues de l'intérieur), avec les textures que
+`npm run godot:sonde` dépose sous `hotes/godot/projet/textures/` :
+
+```sh
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/revue.py caraque --modeles /atelier/caraque --modeles /atelier/canon --catalogue hotes/godot/projet/textures --sortie /atelier/revue [--seules 01-nue] [--gros-plans]
+```
+
+Puis la porte artistique et la revue utilisateur de la section 7, consignée avant d'entériner.
+
+**Publier.** Chaque dossier de production s'importe (section « Importer une base et ses éléments ») :
+`node hotes/godot/importer.mjs /atelier/<type>/<id> <id> --sans-publier`, `--remplacer` pour un élément déjà importé.
+Les manifestes, provenances et licences déposés sous `hotes/godot/projet/modeles/` se committent avec la source ; les
+GLB vont à la Release `modeles-3d` par une branche `transfert/<x>` partie de `main` (`git add -f` des GLB nommés par leur
+empreinte), que `.github/workflows/transfert.yml` vérifie, verse et efface.
+
 ## Disponibilité à sonder avant chaque production
 
 Ces dépendances se vérifient dans le checkout utilisé, sans déduire leur livraison du design :

@@ -151,7 +151,7 @@ export function terrainsAvecGlyphe(): Readonly<Record<string, Terrain>> {
 
 /** Décor posé sur chaque tuile du terrain (id de `props.json`), ou undefined. */
 export function terrainOverlayProp(id: string): string | undefined {
-  return indexDesTerrains()[id]?.overlayProp;
+  return indexDesTerrains()[id]?.overlayProp?.id;
 }
 /** Hauteur (m) du BLOC PLEIN d'un terrain (rendu seulement — s'ajoute à `heightAt` pour l'AFFICHAGE), 0 sinon. */
 export function terrainSolidHeightM(id: string): number {
@@ -162,7 +162,7 @@ export function terrainSolidHeightM(id: string): number {
  *  schéma exige le champ si et seulement si `solidHeightM` est posée, l'appelant n'a donc à le
  *  demander que pour un bloc. */
 export function terrainMatiere(id: string): string | undefined {
-  return indexDesTerrains()[id]?.matiere;
+  return indexDesTerrains()[id]?.matiere?.id;
 }
 /** Recette de détail d'un terrain, RESTREINTE aux sections d'ACCENT (touffes, mouchetis) — `null`
  *  quand l'entrée n'en porte aucune. Deux consommateurs la lisent : l'affine (`authoring/floorsSvg.ts`)

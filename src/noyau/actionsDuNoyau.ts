@@ -6,7 +6,6 @@ import type { OptionDeDetermination } from './combatSlice';
 import type { OptionsDuClic } from './targetingModes';
 import type { IndiceAffiché } from './monde/clues';
 import type { HerosEngage } from './creation/engagement';
-import type { HealMode } from '../engine/healing';
 import type { VerbesDeJet } from './rollFlowSpecs';
 import type { VerbeDeReglage } from './reglagesDuJet';
 import type { VerbeDeChoix } from './choixDesFenetres';
@@ -318,13 +317,10 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  `mode:'detect'` = Détection d'artefact (LDB 10) : Intuition au toucher, une tentative par objet. */
   evaluerLObjet: (uid: IdDObjet, mode?: 'evaluate' | 'detect') => void;
 
-  /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients, actes
-   *  (Guérison/Hémorragie/Déchirure/Chirurgie) ; le PNJ payant s'ouvre par l'effet `medicalAid`. */
+  /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients (`fenetreChoisir('medic', …)`),
+   *  actes (`jetRegler('heal', 'mode', …)` sur le brouillon du soin, joué par `jetLancer('heal')`) ; le PNJ payant
+   *  s'ouvre par l'effet `medicalAid`. */
   ouvrirLeMedecin: (opts?: { patientId?: IdDeHeros }) => void;
-  /** Lance un acte sur le patient courant (surgery → ARME l'opération). */
-  soignerLePatient: (act: HealMode) => void;
-  /** OUVRE le jet INFLUENÇABLE d'une passe de Chirurgie (pendingSurgery) depuis l'opération armée. */
-  ouvrirLaChirurgie: () => void;
   /** REPOS (noyau/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance, `fenetreChoisir('rest', …)`,
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé ; le lieu de la nuit est celui où
    *  se tient le groupe (`reposDuLieu`). */

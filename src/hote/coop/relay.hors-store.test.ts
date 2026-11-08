@@ -3,8 +3,8 @@ import { roomWsUrl, RelayClient, RoomGuest, RoomHost } from './relay';
 import { FakeSocket, compressionFactice, minuterieDuTest, portsDuTest } from './relay.testkit';
 import { GuestSession, HostSession } from './session';
 import type { EtatDeJeu } from '../../noyau/etat';
-import type { Scene } from '../../noyau/monde/scene';
 import { resetSceneRegistry, sceneDuRegistre } from '../../noyau/monde/registreDesScenes';
+import { buildScene } from '../../noyau/mapSpec';
 
 const BASE = 'http://localhost:8787';
 
@@ -31,7 +31,7 @@ function resumedHostSession() {
   };
   const snapshot = { gameTime: 7 };
   const campaign: NonNullable<EtatDeJeu['pendingCampaign']> = {
-    id: 'campagne', label: 'Campagne', scenes: [{ id: 'relay-depart' } as Scene], startSceneId: 'relay-depart', worldMap: null,
+    id: 'campagne', label: 'Campagne', scenes: [buildScene({ id: 'relay-depart', label: 'Départ', size: [2, 2] })], startSceneId: 'relay-depart', worldMap: null,
     projet: { id: 'campagne' },
   };
   /** Chaque état reçu, et si le paquet de campagne l'a précédé (sa scène est au registre). */

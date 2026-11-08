@@ -12,6 +12,7 @@ import { HealModal } from './HealModal';
 import type { Combatant } from '../engine/types';
 import { itemFromTrappingById, unarmedWeapon } from '../engine/items';
 import { garanti } from '../lib/garanti';
+import { combatDeModale } from './combattantDeModale.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 beforeAll(() => {
@@ -47,7 +48,7 @@ function poser() {
   const doc = mk('Doc', { skills: [{ id: 'guerison', advances: 20, characteristic: 'intelligence' }] as never, items: [{ ...garanti(itemFromTrappingById('bandages', idsDeTest), 'bandages', 'Bandages'), uid: 'b1' }] });
   const al = mk('Al', { conditions: [{ id: 'hemorragique', value: 2 }] });
   useGame.setState({
-    battle: null, party: [doc, al],
+    battle: combatDeModale([doc, al]), party: [doc, al],
     pendingHeal: {
       healerId: 'Doc', healerName: 'Doc', targetId: 'Al', targetName: 'Al', mode: 'bleed', intBonus: 4, test: 'guerison', bandagesDe: null,
       skillValue: 60, difficulty: 'intermediaire', ligne: { base: 60, mods: [], target: 60, difficulty: 'intermediaire' }, target: 60, roll: null, success: false, sl: 0,
