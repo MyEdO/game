@@ -18,6 +18,7 @@ import { hashSeed, makeRNG, type RNG } from './dice';
 import { gagnerDeLArgent } from './activities';
 import { bourseOf, ensureBourseInstance } from './bourse';
 import { toBrass } from './money';
+import { t } from '../i18n';
 
 /** Le parcours d'un PNJ de carrière, tel que l'auteur l'écrit (`SceneEntity`). */
 export interface ParcoursDeCarriere {
@@ -110,25 +111,25 @@ function choixCompletes(dotations: Parameters<typeof emplacementsDeDotation>[0],
  *  emplacements de la carrière actuelle ou de leurs valeurs. */
 export function refusDuParcours(p: ParcoursDeCarriere): string | undefined {
   const ids = Object.keys(p.carrieres);
-  if (!ids.length) return 'aucune carrière au parcours';
+  if (!ids.length) return t('parcours.refus.vide');
   for (const [id, niveau] of Object.entries(p.carrieres)) {
-    if (!levelsForCareer(id).some((l) => l.level === niveau)) return `la carrière « ${id} » n'a pas de Niveau ${niveau}`;
+    if (!levelsForCareer(id).some((l) => l.level === niveau)) return t('parcours.refus.niveau', { carriere: id, niveau });
   }
   const absente = Object.keys(p.talentsDeCarriere ?? {}).find((id) => !ids.includes(id));
-  if (absente) return `Talents de la carrière « ${absente} », absente du parcours`;
+  if (absente) return t('parcours.refus.talentsHorsParcours', { carriere: absente });
   const [refuse] = talentsDuParcours(p).refuses;
-  if (refuse) return `le Talent « ${refKey(refuse.ref.id, refuse.ref.spec)} » n'est offert par aucun Niveau atteint de « ${refuse.carriere} »`;
+  if (refuse) return t('parcours.refus.talent', { ref: refKey(refuse.ref.id, refuse.ref.spec), carriere: refuse.carriere });
   for (const [id, refs] of Object.entries(p.competencesDeCarriere ?? {})) {
-    if (!ids.includes(id)) return `Compétences de la carrière « ${id} », absente du parcours`;
+    if (!ids.includes(id)) return t('parcours.refus.competencesHorsParcours', { carriere: id });
     const [r] = designationsDeCarriere(id, p.carrieres[id], refs).refusees;
-    if (r) return `la Compétence « ${refKey(r.id, r.spec)} » ne désigne aucun emplacement à choix libre de « ${id} »`;
+    if (r) return t('parcours.refus.competence', { competence: refKey(r.id, r.spec), carriere: id });
   }
   const actuelle = carriereActuelle(p)!;
   const emplacements = new Map(emplacementsDeDotation(dotationsDuPnj(actuelle.id, actuelle.niveau)).map((e) => [e.adresse as string, e]));
   for (const [adresse, v] of Object.entries(p.dotationsDeCarriere ?? {})) {
     const e = emplacements.get(adresse);
-    if (!e) return `« ${adresse} » n'est pas un emplacement de dotation de « ${actuelle.id} » au Niveau ${actuelle.niveau}`;
-    if (!valeursDeLEmplacement(e).includes(v)) return `« ${v} » n'est pas une valeur de l'emplacement de dotation « ${adresse} »`;
+    if (!e) return t('parcours.refus.emplacement', { adresse, carriere: actuelle.id, niveau: actuelle.niveau });
+    if (!valeursDeLEmplacement(e).includes(v)) return t('parcours.refus.valeur', { valeur: v, adresse });
   }
   return undefined;
 }

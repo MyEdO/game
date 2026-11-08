@@ -3,7 +3,7 @@
  * monnaie — types PURS, sans logique, tenus hors du store.
  * Le store les ré-exporte (les imports existants `from './store'` restent valides).
  */
-import type { CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource, ContexteDeTest } from '../engine/types';
+import type { Availability, CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource, ContexteDeTest } from '../engine/types';
 import type { DiceSpec } from '../engine/dice';
 import type { PorteurDeFiche } from '../engine/statblock';
 import type { ConjureForm } from '../engine/conjuredWeapons';
@@ -357,7 +357,7 @@ export interface PendingAppraise {
   /** Libellé de la compétence affiché en modale (« Évaluation » / « Intuition »). */
   skillLabel?: string;
   truePriceBrass: number; // valeur réelle de base (catalogue) en sous de cuivre
-  availability: string | null; // Disponibilité (Rare/Exotique → estimation ±10 %)
+  availability: Availability | 'ND' | null; // APPRAISED_AVAILABILITIES
   /** La ligne du jet, figée à l'ouverture (`rollLine`, Soutien LDB 12 compris) : ce que la fenêtre annonce et ce
    *  que le résolveur jette. */
   ligne: RollLineParts;

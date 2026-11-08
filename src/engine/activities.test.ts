@@ -29,21 +29,21 @@ function seq(values: number[]): RNG {
 
 describe('craftTarget — Artisanat (LDB 23 l.68-85)', () => {
   it('gammes de prix : Bronze 5 / Argent 10 / Or 15 DR', () => {
-    expect(craftTarget('bronze', 'Commune', 0, 0).dr).toBe(5);
-    expect(craftTarget('argent', 'Commune', 0, 0).dr).toBe(10);
-    expect(craftTarget('or', 'Commune', 0, 0).dr).toBe(15);
+    expect(craftTarget('bronze', 'commune', 0, 0).dr).toBe(5);
+    expect(craftTarget('argent', 'commune', 0, 0).dr).toBe(10);
+    expect(craftTarget('or', 'commune', 0, 0).dr).toBe(15);
   });
   it('chaque Défaut ÷2 (avant Atouts), chaque Atout +5 après', () => {
-    expect(craftTarget('argent', 'Commune', 0, 1).dr).toBe(5); // 10 ÷ 2
-    expect(craftTarget('argent', 'Commune', 0, 2).dr).toBe(3); // 10 ÷ 4 → arrondi sup (min 1)
-    expect(craftTarget('argent', 'Commune', 2, 0).dr).toBe(20); // 10 + 2×5
-    expect(craftTarget('argent', 'Commune', 1, 1).dr).toBe(10); // (10 ÷ 2) + 5 — Atouts APRÈS Défauts
+    expect(craftTarget('argent', 'commune', 0, 1).dr).toBe(5); // 10 ÷ 2
+    expect(craftTarget('argent', 'commune', 0, 2).dr).toBe(3); // 10 ÷ 4 → arrondi sup (min 1)
+    expect(craftTarget('argent', 'commune', 2, 0).dr).toBe(20); // 10 + 2×5
+    expect(craftTarget('argent', 'commune', 1, 1).dr).toBe(10); // (10 ÷ 2) + 5 — Atouts APRÈS Défauts
   });
   it('difficulté par Disponibilité (Commune +20 … Exotique −30)', () => {
-    expect(craftTarget('bronze', 'Commune', 0, 0).difficulty).toBe('accessible');
-    expect(craftTarget('bronze', 'Limitée', 0, 0).difficulty).toBe('intermediaire');
-    expect(craftTarget('bronze', 'Rare', 0, 0).difficulty).toBe('complexe');
-    expect(craftTarget('bronze', 'Exotique', 0, 0).difficulty).toBe('tresDifficile');
+    expect(craftTarget('bronze', 'commune', 0, 0).difficulty).toBe('accessible');
+    expect(craftTarget('bronze', 'limitee', 0, 0).difficulty).toBe('intermediaire');
+    expect(craftTarget('bronze', 'rare', 0, 0).difficulty).toBe('complexe');
+    expect(craftTarget('bronze', 'exotique', 0, 0).difficulty).toBe('tresDifficile');
   });
 });
 
@@ -140,9 +140,9 @@ describe('craftCatalog / orderCatalog', () => {
     expect(cat.length).toBeGreaterThan(0);
     for (const o of cat) expect(o.priceBrass).toBeGreaterThan(0);
     // Aucune Commune/Limitée/Rare : celles-là se tiennent en stock (LDB 59 l.17-19) → marchand.
-    expect(cat.filter((o) => AVAILABILITIES.filter((a) => a !== 'Exotique').includes(findTrappingById(o.id)!.availability as never))).toEqual([]);
+    expect(cat.filter((o) => AVAILABILITIES.filter((a) => a !== 'exotique').includes(findTrappingById(o.id)!.availability as never))).toEqual([]);
     // Tous les Exotiques chiffrés y sont (LDB 59 l.21).
-    const exotiques = trappings.filter((t) => t.availability === 'Exotique' && toBrass(priceToMoney(t.price)) > 0).map((t) => t.id);
+    const exotiques = trappings.filter((t) => t.availability === 'exotique' && toBrass(priceToMoney(t.price)) > 0).map((t) => t.id);
     const ids = new Set(cat.map((o) => o.id));
     for (const id of exotiques) expect(ids.has(id), `${id} (Exotique chiffré) doit être commandable`).toBe(true);
   });

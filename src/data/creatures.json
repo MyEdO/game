@@ -961,7 +961,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Rare"
+      "availability": "rare"
     },
     "appearance": {
       "species": "chien"
@@ -2060,8 +2060,8 @@
       "species": "geant"
     },
     "harvest": {
-      "rarity": "Rare",
-      "danger": "Menaçante",
+      "rarity": "rare",
+      "danger": "menacante",
       "uses": "Les ongles de pied de géant constituent des boucliers invincibles"
     },
     "grantGroups": [
@@ -2147,8 +2147,8 @@
       "species": "griffon"
     },
     "harvest": {
-      "rarity": "Rare",
-      "danger": "Inquiétante",
+      "rarity": "rare",
+      "danger": "inquietante",
       "uses": "Plumes porte-bonheur"
     },
     "grantGroups": [
@@ -2968,8 +2968,8 @@
       "species": "dragon"
     },
     "harvest": {
-      "rarity": "Rare",
-      "danger": "Menaçante",
+      "rarity": "rare",
+      "danger": "menacante",
       "uses": "Le venin de sa queue serait capable de tuer n'importe quelle créature"
     },
     "grantGroups": [
@@ -5487,7 +5487,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Limitée"
+      "availability": "limitee"
     },
     "appearance": {
       "species": "cheval"
@@ -5664,8 +5664,8 @@
       "page": 10
     },
     "harvest": {
-      "rarity": "Rare",
-      "danger": "Inquiétante",
+      "rarity": "rare",
+      "danger": "inquietante",
       "uses": "Cataplasme pour plus de longévité et de vitalité"
     },
     "appearance": {
@@ -5766,8 +5766,8 @@
       "species": "cheval"
     },
     "harvest": {
-      "rarity": "Unique",
-      "danger": "Menaçante",
+      "rarity": "unique",
+      "danger": "menacante",
       "uses": "Aurait un goût unique conféré par Taal"
     },
     "genre": {
@@ -5854,8 +5854,8 @@
       "species": "araignee-geante"
     },
     "harvest": {
-      "rarity": "Limitée",
-      "danger": "Menaçante",
+      "rarity": "limitee",
+      "danger": "menacante",
       "uses": "Les filières peuvent être broyées pour former une colle particulièrement résistante"
     },
     "grantGroups": [
@@ -5966,8 +5966,8 @@
       "species": "araignee-geante"
     },
     "harvest": {
-      "rarity": "Limitée",
-      "danger": "Menaçante",
+      "rarity": "limitee",
+      "danger": "menacante",
       "uses": "Ses glandes venimeuses produisent un poison indétectable"
     }
   },
@@ -6201,8 +6201,8 @@
       "species": "loup"
     },
     "harvest": {
-      "rarity": "Limitée",
-      "danger": "Inquiétante",
+      "rarity": "limitee",
+      "danger": "inquietante",
       "uses": "Une amulette confectionnée avec ses griffes permet d'éloigner les animaux plus faibles"
     }
   },
@@ -6278,8 +6278,8 @@
       "species": "loup"
     },
     "harvest": {
-      "rarity": "Unique",
-      "danger": "Menaçante",
+      "rarity": "unique",
+      "danger": "menacante",
       "uses": "Ingérer le foie d'un loup à deux têtes permet de doubler son espérance de vie"
     }
   },
@@ -6378,8 +6378,8 @@
       "species": "sanglier"
     },
     "harvest": {
-      "rarity": "Limitée",
-      "danger": "Inquiétante",
+      "rarity": "limitee",
+      "danger": "inquietante",
       "uses": "Son estomac peut être durci pour contenir n'importe quel liquide"
     },
     "grantGroups": [
@@ -6468,8 +6468,8 @@
       "species": "sanglier"
     },
     "harvest": {
-      "rarity": "Unique",
-      "danger": "Menaçante",
+      "rarity": "unique",
+      "danger": "menacante",
       "uses": "Le sang d'un grand razorgor provoque un état de Frénésie"
     },
     "genre": {
@@ -6579,8 +6579,8 @@
       "species": "serpent"
     },
     "harvest": {
-      "rarity": "Exotique",
-      "danger": "Menaçante",
+      "rarity": "exotique",
+      "danger": "menacante",
       "uses": "Les dents, les défenses et les cornes sont sublimes une fois polies"
     },
     "grantGroups": [
@@ -6678,8 +6678,8 @@
       "species": "ours"
     },
     "harvest": {
-      "rarity": "Limitée",
-      "danger": "Inquiétante",
+      "rarity": "limitee",
+      "danger": "inquietante",
       "uses": "La queue d'un rhinox éloigne les mouches"
     },
     "grantGroups": [
@@ -6757,8 +6757,8 @@
       "species": "ours"
     },
     "harvest": {
-      "rarity": "Unique",
-      "danger": "Mortelle",
+      "rarity": "unique",
+      "danger": "mortelle",
       "uses": "La corne broyée d'un grand rhinox guérit tous les maux"
     },
     "genre": {
@@ -6822,8 +6822,8 @@
       "species": "squig-des-cavernes"
     },
     "harvest": {
-      "rarity": "Limitée",
-      "danger": "Inoffensive",
+      "rarity": "limitee",
+      "danger": "inoffensive",
       "uses": "Les crottes de squig sont un excellent engrais"
     },
     "genre": {
@@ -7029,8 +7029,8 @@
       "species": "dragon"
     },
     "harvest": {
-      "rarity": "Exotique",
-      "danger": "Mortelle",
+      "rarity": "exotique",
+      "danger": "mortelle",
       "uses": "Ses écailles permettent de fabriquer une cape qui rend son porteur impossible à pister"
     }
   },
@@ -7155,8 +7155,8 @@
       "species": "dragon"
     },
     "harvest": {
-      "rarity": "Unique",
-      "danger": "Mortelle",
+      "rarity": "unique",
+      "danger": "mortelle",
       "uses": "Infinité d'usages pour les sorciers et les alchimistes"
     }
   },
@@ -7413,8 +7413,8 @@
       "page": 36
     },
     "harvest": {
-      "rarity": "Unique",
-      "danger": "Inoffensive",
+      "rarity": "unique",
+      "danger": "inoffensive",
       "uses": "On peut prédire l'avenir en jetant ses écailles dans l'eau"
     },
     "appearance": {
@@ -7628,8 +7628,8 @@
       "page": 37
     },
     "harvest": {
-      "rarity": "Exotique",
-      "danger": "Inquiétante",
+      "rarity": "exotique",
+      "danger": "inquietante",
       "uses": "Boire dans leur crâne permet de voir et d'entendre les morts"
     },
     "appearance": {
@@ -7806,8 +7806,8 @@
       "species": "rat-ogre"
     },
     "harvest": {
-      "rarity": "Exotique",
-      "danger": "Menaçante",
+      "rarity": "exotique",
+      "danger": "menacante",
       "uses": "Il est possible de prélever de la malepierre à partir de sa chair et de son sang"
     },
     "genre": {
@@ -8139,8 +8139,8 @@
       "page": 44
     },
     "harvest": {
-      "rarity": "Limitée",
-      "danger": "Inquiétante",
+      "rarity": "limitee",
+      "danger": "inquietante",
       "uses": "La gelée d'amibe est hautement inflammable"
     },
     "appearance": {
@@ -8365,8 +8365,8 @@
       "species": "serpent"
     },
     "harvest": {
-      "rarity": "Exotique",
-      "danger": "Inoffensive",
+      "rarity": "exotique",
+      "danger": "inoffensive",
       "uses": "On peut mélanger le venin des deux têtes pour guérir de n'importe quel poison"
     },
     "genre": {
@@ -8476,8 +8476,8 @@
       "species": "troll"
     },
     "harvest": {
-      "rarity": "Rare",
-      "danger": "Inquiétante",
+      "rarity": "rare",
+      "danger": "inquietante",
       "uses": "Consommer sa chair permet de régénérer un membre"
     }
   },
@@ -8595,8 +8595,8 @@
       "species": "troll"
     },
     "harvest": {
-      "rarity": "Rare",
-      "danger": "Menaçante",
+      "rarity": "rare",
+      "danger": "menacante",
       "uses": "Le filet d'une sorcière peut capturer et dissiper n'importe quelle malédiction"
     }
   },
@@ -8664,8 +8664,8 @@
       "page": 50
     },
     "harvest": {
-      "rarity": "Limitée",
-      "danger": "Inoffensive",
+      "rarity": "limitee",
+      "danger": "inoffensive",
       "uses": "Permet de créer une potion pour prendre l'apparence de quelqu'un d'autre"
     },
     "genre": {
@@ -8759,8 +8759,8 @@
       "page": 54
     },
     "harvest": {
-      "rarity": "Unique",
-      "danger": "Mortelle",
+      "rarity": "unique",
+      "danger": "mortelle",
       "uses": "Les écailles d'une telle créature permettent de fabriquer une cape qui rend son porteur presque invisible"
     },
     "appearance": {
@@ -8852,8 +8852,8 @@
       "species": "pegase"
     },
     "harvest": {
-      "rarity": "Exotique",
-      "danger": "Menaçante",
+      "rarity": "exotique",
+      "danger": "menacante",
       "uses": "Un oreiller de plumes apporte un sommeil léger aux âmes fautives"
     }
   },
@@ -8933,8 +8933,8 @@
       "page": 59
     },
     "harvest": {
-      "rarity": "Rare",
-      "danger": "Inquiétante",
+      "rarity": "rare",
+      "danger": "inquietante",
       "uses": "Une fois réduits en poudre, le bec et les serres arrêtent tout saignement"
     },
     "appearance": {
@@ -9030,8 +9030,8 @@
       "page": 60
     },
     "harvest": {
-      "rarity": "Exotique",
-      "danger": "Inquiétante",
+      "rarity": "exotique",
+      "danger": "inquietante",
       "uses": "La lame d'une épée dont la poignée a été taillée dans son bois sera toujours tranchante"
     },
     "appearance": {
@@ -9118,8 +9118,8 @@
       "page": 62
     },
     "harvest": {
-      "rarity": "Exotique",
-      "danger": "Menaçante",
+      "rarity": "exotique",
+      "danger": "menacante",
       "uses": "Un cataplasme préparé à partir de ses yeux macérés permet de guérir la cécité"
     },
     "appearance": {
@@ -9206,8 +9206,8 @@
       "page": 62
     },
     "harvest": {
-      "rarity": "Rare",
-      "danger": "Inquiétante",
+      "rarity": "rare",
+      "danger": "inquietante",
       "uses": "Les flèches dont l'empennage est fait de ses plumes atteignent toujours leur cible"
     },
     "appearance": {
@@ -9309,8 +9309,8 @@
       "page": 63
     },
     "harvest": {
-      "rarity": "Exotique",
-      "danger": "Mortelle",
+      "rarity": "exotique",
+      "danger": "mortelle",
       "uses": "Il est impossible de mentir quand on tient sa serre dans la main"
     },
     "appearance": {
@@ -9417,8 +9417,8 @@
       "page": 64
     },
     "harvest": {
-      "rarity": "Exotique",
-      "danger": "Menaçante",
+      "rarity": "exotique",
+      "danger": "menacante",
       "uses": "Ses yeux étourdissent quiconque croise son regard"
     },
     "appearance": {
@@ -9550,8 +9550,8 @@
       "page": 66
     },
     "harvest": {
-      "rarity": "Exotique",
-      "danger": "Mortelle",
+      "rarity": "exotique",
+      "danger": "mortelle",
       "uses": "Sa fourrure inspire la crainte chez les animaux qui lui ressemblent"
     },
     "appearance": {
@@ -9675,8 +9675,8 @@
       "page": 67
     },
     "harvest": {
-      "rarity": "Unique",
-      "danger": "Mortelle",
+      "rarity": "unique",
+      "danger": "mortelle",
       "uses": "Vaincre une grande chimère est un excellent moyen de se faire connaître, en bien comme en mal"
     },
     "genre": {
@@ -9925,8 +9925,8 @@
       "page": 70
     },
     "harvest": {
-      "rarity": "Exotique",
-      "danger": "Inquiétante",
+      "rarity": "exotique",
+      "danger": "inquietante",
       "uses": "La malédiction d'un peau-de-loup peut être levée en écorchant vif une autre de ces créatures"
     },
     "appearance": {
@@ -10029,8 +10029,8 @@
       "species": "minotaure"
     },
     "harvest": {
-      "rarity": "Rare",
-      "danger": "Menaçante",
+      "rarity": "rare",
+      "danger": "menacante",
       "uses": "La corne de taurus immunise contre le feu"
     },
     "grantGroups": [
@@ -10113,8 +10113,8 @@
       "page": 76
     },
     "harvest": {
-      "rarity": "Rare",
-      "danger": "Inquiétante",
+      "rarity": "rare",
+      "danger": "inquietante",
       "uses": "Son urine serait un répulsif pour les rats"
     },
     "appearance": {
@@ -10194,8 +10194,8 @@
       "page": 77
     },
     "harvest": {
-      "rarity": "Limitée",
-      "danger": "Inoffensive",
+      "rarity": "limitee",
+      "danger": "inoffensive",
       "uses": "On dit qu'un couteau fabriqué à partir de son bec peut couper n'importe quoi et ignore les PA des armures non-magiques"
     },
     "appearance": {
@@ -10296,8 +10296,8 @@
       "species": "serpent"
     },
     "harvest": {
-      "rarity": "Rare",
-      "danger": "Inquiétante",
+      "rarity": "rare",
+      "danger": "inquietante",
       "uses": "Sa peau permet de confectionner des vêtements raffinés"
     },
     "genre": {
@@ -10404,8 +10404,8 @@
       "page": 79
     },
     "harvest": {
-      "rarity": "Exotique",
-      "danger": "Menaçante",
+      "rarity": "exotique",
+      "danger": "menacante",
       "uses": "Ses plaques seraient impénétrables"
     },
     "appearance": {
@@ -10505,8 +10505,8 @@
       "page": 80
     },
     "harvest": {
-      "rarity": "Rare",
-      "danger": "Inquiétante",
+      "rarity": "rare",
+      "danger": "inquietante",
       "uses": "Les pointes de flèche faites avec ses dents percent n'importe quelle armure"
     },
     "appearance": {
@@ -10614,8 +10614,8 @@
       "page": 78
     },
     "harvest": {
-      "rarity": "Exotique",
-      "danger": "Menaçante",
+      "rarity": "exotique",
+      "danger": "menacante",
       "uses": "Son rugissement serait un remède contre la couardise"
     },
     "appearance": {
@@ -10717,8 +10717,8 @@
       "page": 82
     },
     "harvest": {
-      "rarity": "Commune",
-      "danger": "Inquiétante",
+      "rarity": "commune",
+      "danger": "inquietante",
       "uses": "Sa fourrure est très prisée"
     },
     "appearance": {
@@ -10822,8 +10822,8 @@
       "page": 97
     },
     "harvest": {
-      "rarity": "Unique",
-      "danger": "Menaçante",
+      "rarity": "unique",
+      "danger": "menacante",
       "uses": "Sa fourrure est un signe de la faveur d'Ulric"
     },
     "appearance": {
@@ -10940,8 +10940,8 @@
       "species": "griffon"
     },
     "harvest": {
-      "rarity": "Rare",
-      "danger": "Inquiétante",
+      "rarity": "rare",
+      "danger": "inquietante",
       "uses": "Plumes porte-bonheur"
     }
   },
@@ -11074,8 +11074,8 @@
       "species": "dragon"
     },
     "harvest": {
-      "rarity": "Rare",
-      "danger": "Menaçante",
+      "rarity": "rare",
+      "danger": "menacante",
       "uses": "Le venin de sa queue serait capable de tuer n'importe quelle créature"
     }
   },
@@ -11149,8 +11149,8 @@
       "page": 85
     },
     "harvest": {
-      "rarity": "Exotique",
-      "danger": "Mortelle",
+      "rarity": "exotique",
+      "danger": "mortelle",
       "uses": "Les os sculptés de léviathan confèrent des pouvoirs surnaturels"
     },
     "appearance": {
@@ -11237,8 +11237,8 @@
       "page": 85
     },
     "harvest": {
-      "rarity": "Unique",
-      "danger": "Mortelle",
+      "rarity": "unique",
+      "danger": "mortelle",
       "uses": "Sa carapace serait faite de pierres précieuses"
     },
     "appearance": {
@@ -11322,8 +11322,8 @@
       "page": 86
     },
     "harvest": {
-      "rarity": "Rare",
-      "danger": "Inquiétante",
+      "rarity": "rare",
+      "danger": "inquietante",
       "uses": "Une mèche de cheveux de sirène permet de respirer sous l'eau"
     },
     "appearance": {
@@ -11434,8 +11434,8 @@
       "species": "serpent"
     },
     "harvest": {
-      "rarity": "Exotique",
-      "danger": "Menaçante",
+      "rarity": "exotique",
+      "danger": "menacante",
       "uses": "Toucher un wyrm des mers permet de dissiper toute illusion"
     },
     "grantGroups": [
@@ -11533,8 +11533,8 @@
       "species": "dragon"
     },
     "harvest": {
-      "rarity": "Exotique",
-      "danger": "Mortelle",
+      "rarity": "exotique",
+      "danger": "mortelle",
       "uses": "Les plaies provoquées par ses écailles ne guérissent jamais"
     }
   },
@@ -11643,8 +11643,8 @@
       "species": "dragon"
     },
     "harvest": {
-      "rarity": "Unique",
-      "danger": "Mortelle",
+      "rarity": "unique",
+      "danger": "mortelle",
       "uses": "Le cœur d'un grand dragon barbelé est un rubis pur"
     }
   },
@@ -11743,8 +11743,8 @@
       "page": 93
     },
     "harvest": {
-      "rarity": "Rare",
-      "danger": "Inquiétante",
+      "rarity": "rare",
+      "danger": "inquietante",
       "uses": "Les os broyés de revenant permettent de ranimer temporairement n'importe quel cadavre"
     }
   },
@@ -20489,7 +20489,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Rare"
+      "availability": "rare"
     },
     "appearance": {
       "species": "chien"
@@ -20559,7 +20559,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Commune"
+      "availability": "commune"
     },
     "appearance": {
       "species": "cheval"
@@ -20633,7 +20633,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Limitée"
+      "availability": "limitee"
     },
     "appearance": {
       "species": "cheval"
@@ -20700,7 +20700,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Commune"
+      "availability": "commune"
     },
     "appearance": {
       "species": "boeuf"
@@ -20766,7 +20766,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Commune"
+      "availability": "commune"
     },
     "appearance": {
       "species": "cheval"
@@ -20855,7 +20855,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Commune"
+      "availability": "commune"
     },
     "appearance": {
       "species": "cheval"
@@ -20922,7 +20922,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Commune"
+      "availability": "commune"
     },
     "appearance": {
       "species": "cheval"
@@ -20989,7 +20989,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Commune"
+      "availability": "commune"
     },
     "appearance": {
       "species": "cheval"
@@ -21051,7 +21051,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Commune"
+      "availability": "commune"
     },
     "appearance": {
       "species": "cheval"
@@ -21128,7 +21128,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Exotique"
+      "availability": "exotique"
     },
     "maison": "Caractéristiques + traits d'espèce = profil du blaireau d'ADE III (Vol. III, chap. « Animal Familiars », profil PNJ VO, l.52-58). Taille portée à Moyenne : ADE III (VO) l.172 indique que le blaireau du Moot atteint la Taille (Moyenne) et sert de monture aux Halflings, SANS statbloc dédié de la variante montée → on reprend le profil du blaireau à cette Taille (seul choix maison de modélisation). Prix (100 CO) / disponibilité (Exotique) ancrés sur ADE III (VO) l.225 (animal doué mature, 100 GC, Exotic), appliqués au blaireau-monture reçu par dotation (ADE I 07 l.48), le RAW ne tarifant pas la monture elle-même. Folio 78 : non déterminable précisément dans l'extraction (pas de marqueur de page imprimée dans le fichier source, seule l'indication « Pages PDF 75-82 » du chapitre existe) — à affiner si une extraction paginée devient disponible.",
     "appearance": {
@@ -21161,7 +21161,7 @@
         "silver": 3,
         "brass": 0
       },
-      "availability": "Commune"
+      "availability": "commune"
     },
     "grantGroups": [
       "bete",
@@ -21194,7 +21194,7 @@
         "silver": 4,
         "brass": 0
       },
-      "availability": "Commune"
+      "availability": "commune"
     },
     "grantGroups": [
       "bete",

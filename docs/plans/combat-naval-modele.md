@@ -51,17 +51,18 @@ lieu ailleurs, les PJ étant 4 **parmi ~50 marins**. Le RAW (MDG) gère ça à *
 
 ### Bateau-prefab : le PONT est une facette du TYPE de navire
 
-Chaque type a son **pont propre**, authoré **une fois**, instancié dans un scénario **sans recréer** de scène :
-facette `deck` sur `VehicleData` (`vehicles.json`) — plan ASCII (`parseWalledAscii`) + emplacements de
-postes/équipage + arêtes de passerelle. Un scénario **pose des jetons-navires** (réf → type) ; le pont suit le
-type. À l'abordage, le Pont est **cousu à la volée** depuis les `deck` des navires engagés.
+Chaque type a ses **ponts propres**, authorés **une fois**, instanciés dans un scénario **sans recréer** de
+scène : un `MapSpec` à étages par type (un étage par pont, plan box-drawing, hauteurs, calque des pièces,
+échelles de trappe), compilé par `buildScene`, aucun lecteur parallèle (#3686). Un scénario **pose des
+jetons-navires** (réf → type) ; les ponts suivent le type. À l'abordage, le Pont est **cousu à la volée**
+depuis les ponts des navires engagés.
 
-> ✅ **Fondation posée** : le TYPE `ShipDeck`/`DeckPosteSlot` (PUR, `engine/types.ts`) + la facette `deck?`
-> sur `VehicleData` ; lecture en tuiles/murs par `parseDeck` (`state/shipDeck.ts`, réutilise `parseWalledAscii`,
-> aucun parseur parallèle) ; **deck de la cogue authoré** (pont 5×9 en planches, bastingage périmétrique, 3
-> emplacements de postes proue/tribord/bâbord) ; tests `state/ship-deck.test.ts`. ⚠ RAW : les `deck.postes` sont
-> des hints de RENDU (où dessiner pièce + servant), **pas** des slots fixes — le placement reste LIBRE (par bord +
-> poids vs Contenance, cf. `shipPostes.ts`). ⏳ Reste : arêtes de passerelle + couture du Pont à l'abordage (Phase 8).
+> ✅ **Fondation posée** : la caraque a ses quatre ponts relevés sur les plans de MDG p.99
+> (`PLAN_DE_LA_CARAQUE`, `noyau/planDeLaCaraque.ts` : cale, pont principal, pont supérieur, gaillard et plage
+> arrière ; 24 pièces légendées, 6 échelles de trappe) ; tests `noyau/planDeLaCaraque.test.ts`. Les
+> emplacements des pièces d'artillerie vivent au manifeste 3D (`postes`, #3672) : ce sont des indices de RENDU,
+> **pas** des slots fixes — le placement reste LIBRE (par bord + poids vs Contenance, cf. `shipPostes.ts`).
+> ⏳ Reste : scène d'un navire posée par référence au type (#3686 lot 2) + couture du Pont à l'abordage (Phase 8).
 
 ### Améliorations (MDG ch.12) — modifient PHYSIQUEMENT le navire et son pont
 
@@ -85,7 +86,7 @@ Accroches existantes : `ship.traits`/`hull.traits`, `ShipPoste.sabord`.
 > sont déjà finaux ; Man et « Peu maniable » sont des **colonnes DISTINCTES** de la table → se cumulent) :
 > **Bélier** dans `resolveCollision` (`l.221` : éperonnage de proue → +5 IC à la victime + 5 PA frontaux au
 > Bélier ; collision frontale → la proue de la victime profite aussi de SON Bélier) ; **Sabord** dans
-> `effectiveDeckPostes` (`l.362-364` : une coque à Sabord couvre TOUS ses emplacements → couvert total au
+> `couvertDuPoste` (`l.362-364` : une coque à Sabord couvre TOUS ses emplacements → couvert total au
 > servant) ; **Peu maniable (Indice)** dans `maneuverShip` (`l.173` : −1 DR/niveau sur le Test de Voile/Ramer,
 > via l'`extraDR` de `resolveShipManeuver`, cumulé au Man). Tests `engine/naval-traits.test.ts` +
 > `state/ship-maneuver.test.ts`.
@@ -210,9 +211,9 @@ dans l'éditeur, jouables via le menu 🧪.
    le virage dépend de la réussite) ; re-mappe les arcs. ⏳ Reste (UI = navigateur) : **modale `RollFlowShell`** du
    Test + **commande HUD « Manœuvrer »** + **init du cap au spawn** (`facing` depuis l'entité authorée) pour que
    l'arc soit réel en jeu.
-7. ⏳ **Fondation bateau-prefab + Améliorations** (§1bis) : ✅ facette `deck` sur `VehicleData` (TYPE pur +
-   `parseDeck` + deck de la cogue authoré + tests) ; ✅ premiers effets de Traits/Améliorations (`navalTraits.ts` :
-   **Bélier**→`resolveCollision`, **Sabord**→`effectiveDeckPostes`) ; ⏳ reste des améliorations (Blindage/Lissage/
+7. ⏳ **Fondation bateau-prefab + Améliorations** (§1bis) : ✅ ponts à étages de la caraque
+   (`PLAN_DE_LA_CARAQUE`, compilé par `buildScene` + tests, #3686) ; ✅ premiers effets de Traits/Améliorations (`navalTraits.ts` :
+   **Bélier**→`resolveCollision`, **Sabord**→`couvertDuPoste`) ; ⏳ reste des améliorations (Blindage/Lissage/
    Clinfoc/Nid-de-pie/Figure de proue/Vapeur) + catalogue DATA éditable au Codex + `upgrades[]` par instance.
 8. ⏳ **Composition du Pont + abordage** (collision → `engage` → coudre les ponts). **Critiques canon** :
    ✅ « Canon perdu » (`ch.13 l.765`) mécanisé — l'op `removeShipPoste` (`engine/ops.ts`) retire un poste de

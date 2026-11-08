@@ -11,7 +11,7 @@ import { MISSING_TONE } from './missing';
 import { buildFloors } from './floors';
 import { facesDuDecor } from './propVolumes';
 import { decorAncre } from '../footprint';
-import { findPropById } from '../../../data';
+import { findPropById, matieresDe } from '../../../data';
 import { empreinteDuProp } from '../../../data/props.types';
 import { couleurDeMatiere, recetteDeMatiere, tintVarFactor } from './matieres';
 import { faceDepthM } from './profondeur';
@@ -63,6 +63,9 @@ export interface NappeDuMonde extends GeometrieDuMonde {
 
 /** Le nom d'une matière dans le volume : son domaine et son id. */
 const nomDeMatiere = ({ domain, id }: MaterialRef): string => `${domain}--${id}`;
+
+/** Les noms des matières de décor du monde (domaine `prop` de `materials.json`), dont un modèle 3D habille ses surfaces. */
+export const matieresDeDecor = (): string[] => matieresDe('prop').map(({ id }) => nomDeMatiere({ domain: 'prop', id }));
 
 /** Trois décimales : le millimètre, et le millième d'un canal de couleur. */
 const arrondi = (v: number): number => Math.round(v * 1000) / 1000;
