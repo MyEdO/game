@@ -4,7 +4,7 @@
  * PX, bourse, Talents, Compétences), GRISÉE tant qu'un choix ne l'a pas renseignée, et se remplit
  * choix par choix. Elle ne gagne JAMAIS un bloc en cours de route (fin de l'apparition surprise).
  *
- * Source de vérité UNIQUE des Caractéristiques : la fiche montre le RÉSULTAT (via buildHero — talents
+ * Source de vérité UNIQUE des Caractéristiques : la fiche montre le RÉSULTAT (via apercuDuHeros — talents
  * +5 et Augmentations gratuites inclus), le centre montre l'ÉDITION. Le compteur PX recalcule `xpTotal`
  * à chaque changement du brouillon → un tirage accepté l'incrémente EN DIRECT.
  *
@@ -27,7 +27,7 @@ import { careerLabelFor, findStarById } from '../../data';
 import {
   CreatorDraft,
   StepId,
-  buildHero,
+  apercuDuHeros,
   draftSpecies,
   draftLevel,
   draftWealth,
@@ -51,7 +51,7 @@ const DIM: CSSProperties = { opacity: 0.38 };
 
 export function previewHero(d: CreatorDraft): Combatant | null {
   try {
-    return buildHero(d, 'preview');
+    return apercuDuHeros(d);
   } catch {
     return null;
   }

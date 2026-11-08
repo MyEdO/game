@@ -28,7 +28,7 @@ describe('combatantSections — une arme se lie au Codex par son id de catalogue
   });
 
   it('arme sans id de catalogue : pastille nue, sans lien', () => {
-    const w = buildWeapon({ label: 'Morsure', damage: { plusBF: true, flat: 2 }, natural: true });
+    const w = buildWeapon({ label: 'Morsure', damage: { plusBF: true, flat: 2 }, natural: true, uid: 'morsure' });
     const [row] = rangeesArmes([w]);
     expect(row).toMatchObject({ t: 'chip', label: 'Morsure' });
   });

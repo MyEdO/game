@@ -6,7 +6,7 @@ import { isRepairable } from '../engine/repair';
 import { Row } from './Layout';
 import { verdictDeVente } from '../noyau/flowOutcomes';
 import { compareEquip } from '../engine/equipCompare';
-import { itemFromTrappingById, isWeaponActive } from '../engine/items';
+import { gabaritDObjet, isWeaponActive, type GabaritDObjet } from '../engine/items';
 import { MERCHANT_COL_RENDERERS } from '../noyau/colonnesDuMarchand';
 import { describeQuality } from '../engine/qualities/describe';
 import { QualityChip } from './EntityChip';
@@ -130,13 +130,13 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   const dist = merchant.pendingDistribution ?? null;
 
   const previews = useMemo(() => {
-    const map: Record<string, ItemInstance> = {};
-    for (const l of inStock) { const it = itemFromTrappingById(l.id); if (it) map[l.id] = it; }
+    const map: Record<string, GabaritDObjet> = {};
+    for (const l of inStock) { const it = gabaritDObjet(l.id); if (it) map[l.id] = it; }
     return map;
   }, [inStock.map((l) => l.id).join('|')]);
 
   // Bloc de comparaison d'un héros (info : la neuve vs l'équipement actuel). Pas de bouton d'équipement (cart).
-  const heroCompareBlock = (item: ItemInstance, h: Combatant) => {
+  const heroCompareBlock = (item: GabaritDObjet, h: Combatant) => {
     const cmp = compareEquip(item, h);
     return (
       <div className="mc-hero" key={h.id}>
@@ -163,7 +163,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   };
 
   // Fiche de détail (clic sur le nom) : INFORMATIVE — Atouts/Défauts + description + comparaison.
-  const renderDetailCard = (item: ItemInstance) => {
+  const renderDetailCard = (item: GabaritDObjet) => {
     // Qualités : NOM = chip canonique (`EntityRef`, popover Codex → type Atout/Défaut + source) ;
     // la description d'achat reste sous le chip. Atouts d'abord, Défauts ensuite.
     const quals = resolveQualities(item)

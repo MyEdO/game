@@ -9,7 +9,7 @@ describe('apparences candidates — une résolution, apparence admise puis racin
     ['variante admise', itemFromGive({ trappingId: 'arme-simple', apparence: { id: 'hache_naine' } }), ['hache_naine', 'hache']],
     ['racine non admise', { ...itemFromGive({ trappingId: 'arme-simple' }), apparence: 'zweihander' }, ['epee']],
     ['apparence inconnue', { ...itemFromGive({ trappingId: 'arme-simple' }), apparence: 'inconnue' }, ['epee']],
-    ['arme invoquée', weaponItem({ label: 'Arme invoquée', damage: { plusBF: true, flat: 4 }, shape: findTrappingById('baton-de-combat')!.shape }), ['baton']],
+    ['arme invoquée', weaponItem({ label: 'Arme invoquée', damage: { plusBF: true, flat: 4 }, shape: findTrappingById('baton-de-combat')!.shape, uid: 'conjure-1' }), ['baton']],
     ['bouclier', itemFromGive({ trappingId: 'bouclier', apparence: { id: 'bouclier_pointes' } }), ['bouclier_pointes', 'rond']],
     ['variante non admise', { ...itemFromGive({ trappingId: 'bouclier' }), apparence: 'hache_naine' }, ['rond']],
     ['attaque naturelle', { ...itemFromGive({ trappingId: 'arme-simple' }), natural: true }, []],

@@ -137,7 +137,7 @@ describe('Souffle = la manœuvre `souffle` composée avec la règle de son Type'
     expect(cond(frappe('glace-fixture', undefined, 0), 'sonne')?.value).toBe(1);  // LDB 85 l.324
   });
   it('Corrosif (LDB 85 l.325) : chaque Armure et Arme portée subit 1 Dégât', () => {
-    const lame = buildWeapon({ label: 'Lame', damage: { plusBF: true, flat: 4 } });
+    const lame = buildWeapon({ label: 'Lame', damage: { plusBF: true, flat: 4 }, uid: 'lame' });
     const e = frappe('ronge-fixture', undefined, 15, { weapons: [lame] });
     expect(e.armour.corps).toBe(4);
     expect(lame.damageTaken).toBe(1);

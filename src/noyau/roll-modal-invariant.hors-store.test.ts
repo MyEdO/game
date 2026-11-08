@@ -219,7 +219,7 @@ function behavioralFloor(): void {
     seedBattleRng(1);
     const { H, E } = freshCombat();
     E.pos = { x: 11, y: 10 };
-    E.weapons = [buildWeapon({ label: 'Épée', attackKind: 'arme', damage: { plusBF: true, flat: 4 } })];
+    E.weapons = [buildWeapon({ label: 'Épée', attackKind: 'arme', damage: { plusBF: true, flat: 4 }, uid: 'epee' })];
     H.conditions = []; // pas Surpris → peut se défendre
     expect(maybeOpenDefense(get, set, E, H), 'attaque IA sur héros doit OUVRIR la défense').toBe(true);
     expect(get().pendingCascade?.participants.some((s) => s.kind === 'defenseJet' && s.actorId === H.id), 'défense réactive doit REMONTER').toBeTruthy();
@@ -293,7 +293,7 @@ describe('Surfaçage « remonte-à-un-humain » — flip local (c)', () => {
   it('la Maladresse d’un ENNEMI conduit (MJ) REMONTE en cascade via jetValider@attack (pas perdue — risque #2 du plan)', () => {
     const { H, E } = freshCombat();
     E.pos = { x: 10, y: 10 }; H.pos = { x: 11, y: 10 }; // adjacents (mêlée)
-    E.weapons = [buildWeapon({ label: 'Épée', attackKind: 'arme', damage: { plusBF: true, flat: 4 } })];
+    E.weapons = [buildWeapon({ label: 'Épée', attackKind: 'arme', damage: { plusBF: true, flat: 4 }, uid: 'epee' })];
     E.characteristics['capacite-de-combat'] = 20; // CC basse → un double ≥ 22 rate = Maladresse (LDB 14 l.48)
     set({ net: { ...get().net, gmSeat: 0 }, pendingCascade: null }); // rôle MJ → E est CONDUIT (controlsCombatant(E)=vrai)
     // Graine DÉTERMINISTE produisant une Maladresse de E (double raté) — via le VRAI résolveur d'attaque.
