@@ -30,10 +30,10 @@ describe('casterTalents — extraction des specs', () => {
       { talentId: 'magie-mineure', times: 1 },
     ] });
     expect(casterTalents(c)).toEqual([
-      { kind: 'invocation', spec: 'sigmar' },
-      { kind: 'arcane', spec: 'feu' },
-      { kind: 'beni', spec: undefined },
-      { kind: 'mineure', spec: undefined },
+      { kind: 'invocation', spec: 'sigmar', talentId: 'invocation', niveau: 1 },
+      { kind: 'arcane', spec: 'feu', talentId: 'magie-des-arcanes', niveau: 1 },
+      { kind: 'beni', spec: undefined, talentId: 'beni', niveau: 1 },
+      { kind: 'mineure', spec: undefined, talentId: 'magie-mineure', niveau: 1 },
     ]);
   });
 });
@@ -90,6 +90,14 @@ describe('coûts de mémorisation (Talents LDB 10)', () => {
     expect(spellCost(c, nurgle)).toBeNull(); // Domaine du Chaos d'un AUTRE dieu → inéligible
     const wild = hero({ talents: [{ talentId: 'magie-du-chaos', times: 1 }] }); // joker (non spécialisé)
     expect(spellCost(wild, nurgle)).toBe(100); // tout Sort du Chaos
+  });
+
+  it('Magie du Chaos (Tzeentch) : Sorts d’Arcane et d’Arcanes du Chaos aussi, à 100 PX, hors Domaines des Arcanes (EDOC 13 l.262)', () => {
+    const c = hero({ talents: [{ talentId: 'magie-du-chaos', spec: 'tzeentch', times: 1 }] });
+    expect(spellCost(c, sp('arme-aethyrique'))).toBe(100); // Sort d'Arcane
+    expect(spellCost(c, sp('aspect-sublime'))).toBe(100); // Sort d'Arcanes du Chaos
+    const feu = spells.find((s) => s.family === 'arcane' && s.domainId === 'feu')!;
+    expect(spellCost(c, feu)).toBeNull(); // Domaine des Arcanes
   });
 
   it('Béni (Culte) : les SIX Bénédictions du culte à 0 PX, les autres refusées', () => {

@@ -3,7 +3,8 @@ import { creatureToCombatant, statblockToCombatant, skillsFromBook, spawnEnemy, 
 import { armourFromTraits, weaponFromTrait, weaponsFromTraits } from '../../engine/creatureEquip';
 import type { CustomStatblock } from '../../engine/statblock';
 import { recomputeLoadout } from '../../engine/items';
-import { blessingsOf, findCreatureById, talentConcrete } from '../../data';
+import { blessingsOf, findCreatureById, findSpellById, miraclesOf, talentConcrete } from '../../data';
+import { pettySpellQuotaFor } from '../../engine/creation';
 import { CHAR_KEYS } from '../../engine/types';
 import { knowsCastingSkill, castingValue, incantationArcane } from '../../engine/magic';
 import { ficheDEntite } from './sceneNpc';
@@ -146,11 +147,6 @@ describe('creatureToCombatant — fidélité du profil du bestiaire (LDB 76/78)'
     // Blessures recalculées par la formule de Taille (le B imprimé valait pour la taille de base)
     const bf = Math.floor(big.characteristics.force / 10), be = Math.floor(big.characteristics.endurance / 10), bfm = Math.floor(big.characteristics['force-mentale'] / 10);
     expect(big.wounds.max).toBe((bf + 2 * be + bfm) * 2); // Grande = ×2 (LDB 85)
-  });
-
-  it('sorts d’auteur posés sur le Combattant (la donnée bestiaire n’en liste pas)', () => {
-    const c = creatureToCombatant(findCreatureById('mutant')!, 'e1', at, { spells: ['flechette'] });
-    expect(c.spells).toEqual(['flechette']); // SpawnExtras.spells = ids de sort (runtime)
   });
 
   describe('Caractéristiques aléatoires (LDB 77 l.108 : « soustrayez -10 et ajoutez 2d10 »)', () => {
@@ -446,5 +442,40 @@ describe('PNJ de carrière : la fiche d’une entité portée à son parcours (E
     expect(faute({ appearance: { tenue: 'medecin' } })).toEqual([expect.stringMatching(/tenue/)]);
     expect(faute({ carrieres: { medecin: 5 } })).toEqual([expect.stringMatching(/Niveau 5/)]);
     expect(faute({ carrieres: undefined, talentsDeCarriere: { medecin: [{ id: 'chirurgie' }] } })).toEqual([expect.stringMatching(/sans carrière/)]);
+  });
+});
+
+describe('les sorts d’un PNJ au spawn : choisis par l’auteur, complétés aux quotas du livre (#3715)', () => {
+  const sansPreset = () => undefined;
+  const at = { x: 0, y: 0 };
+  const famille = (id: string) => findSpellById(id)!.family;
+
+  it('un PNJ du Bestiaire à Invocation sans liste imprimée : un Miracle de son culte, avec ses Bénédictions (frère Bengt)', () => {
+    const c = spawnEnemy({ ref: 'frere-bengt' }, 'bengt', at);
+    const miracles = (c.spells ?? []).filter((id) => famille(id) === 'invocation');
+    expect(miracles).toHaveLength(1);
+    expect(miraclesOf('ulric')).toContain(miracles[0]);
+    expect(c.spells).toEqual(expect.arrayContaining(blessingsOf('ulric')));
+  });
+
+  it('un PNJ du Bestiaire à Magie des Arcanes et Magie mineure : les sorts choisis, et les Sorts mineurs du quota tirés (Yanni Weber)', () => {
+    const c = spawnEnemy({ ref: 'yanni-weber' }, 'yanni', at, { spells: ['la-lance-d-ambre'] });
+    expect(c.spells?.[0]).toBe('la-lance-d-ambre');
+    expect(c.spells?.slice(1).map(famille)).toEqual(Array(pettySpellQuotaFor(c)).fill('mineure'));
+  });
+
+  it('un PNJ de carrière : Magie mineure prise au Niveau 1 donne ses Sorts mineurs, Magie des Arcanes aucun (Pyromancien 2)', () => {
+    const c = ficheDEntite({ id: 'pyro', kind: 'personnage', pos: at, ref: 'humain', carrieres: { pyromancien: 2 }, talentsDeCarriere: { pyromancien: [{ id: 'magie-mineure' }, { id: 'magie-des-arcanes', spec: 'feu' }] } }, sansPreset);
+    expect(c.spells?.map(famille)).toEqual(Array(pettySpellQuotaFor(c)).fill('mineure'));
+  });
+
+  it('un PNJ de carrière : Invocation prise au Niveau 2 donne un Miracle du culte (Prêtre de Myrmidia 2)', () => {
+    const c = ficheDEntite({ id: 'pretre', kind: 'personnage', pos: at, ref: 'humain', carrieres: { 'pretre-de-myrmidia': 2 }, talentsDeCarriere: { 'pretre-de-myrmidia': [{ id: 'beni', spec: 'myrmidia' }, { id: 'invocation', spec: 'myrmidia' }] } }, sansPreset);
+    expect((c.spells ?? []).filter((id) => famille(id) === 'invocation').every((id) => miraclesOf('myrmidia').includes(id))).toBe(true);
+    expect((c.spells ?? []).filter((id) => famille(id) === 'invocation')).toHaveLength(1);
+  });
+
+  it('une liste imprimée fait foi : ni complétée, ni remplacée par un choix d’auteur (Eusapia)', () => {
+    expect(spawnEnemy({ ref: 'eusapia-balacanon' }, 'eusapia', at, { spells: ['choc'] }).spells).toEqual(findCreatureById('eusapia-balacanon')!.spells);
   });
 });

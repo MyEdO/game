@@ -93,7 +93,6 @@ const COUVERT_AILLEURS = new Map<string, string>([
 const JOURNAL_MJ = new Map<string, string>([
   ['Arboricole', 'bonus Escalade/Discrétion en forêt — pas de biome forêt mécanisé'],
   ['Limicole', 'pas de terrain marécageux à pénalité de Mouvement'],
-  ['Miracles', 'Miracles de PNJ — pas de liste dans la donnée (MJ)'],
   ['Increvable', 'recousue/ressuscitée post-combat — arbitrage MJ'],
   // Traits des Horreurs de Tzeentch (EDO) — flavor de statbloc sans système support, desc verbatim.
   ['Dédoublement', 'scission en 2 horreurs bleues à la mort/Critique — pas de spawn-on-death dans le moteur (MJ/auteur)'],
@@ -194,9 +193,12 @@ const DISPATCH = new Set<string>([
   // (`ai-climb.test.ts`). Canal dispatch.
   'Grimpant',
   // Lanceur de Sorts : capability `spellcaster` (donnée), lue par `knowsCastingSkill` (magic.ts:278) —
-  // la créature peut incanter sans posséder la Compétence en propre. Les sorts CONNUS restent un choix
-  // d'auteur (`spells` du statbloc/spawn), ce qui est une donnée de scène, pas un trou de câblage.
+  // la créature peut incanter sans posséder la Compétence en propre — et par `listesDeSorts`
+  // (`sortsDuPnj.ts`) : les Sorts que l'auteur peut lui choisir (#3715).
   'Lanceur de Sorts',
+  // Miracles : capability `castingKind` (donnée), lue par `listesDeSorts` (`sortsDuPnj.ts`) : les Miracles
+  // de la divinité de son `arg` que l'auteur peut lui choisir (#3715).
+  'Miracles',
   // Mort-vivant : capability `undead` (donnée), lue par `traitCapability(c.traits,'undead')` — exclusion
   // des cibles d'une manœuvre de zone (`combatManeuvers.ts:433`), ciblage du Hurlement fantomatique, et
   // exemption des contractions de maladie. Canal dispatch (marqueur INTERROGÉ, pas narratif).

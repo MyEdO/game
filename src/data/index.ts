@@ -1723,6 +1723,9 @@ export interface TraitCapabilities {
   /** Lanceur de Sorts (LDB 85 l.182-183 : « La créature peut lancer des Sorts ») — autorise
    *  l'incantation SANS Compétence avancée (statblocs du bestiaire), lu par `knowsCastingSkill`. */
   spellcaster?: boolean;
+  /** Famille d'incantation que le Trait ouvre, l'`arg` de l'instance en spécialisation, comme le `combat.castingKind`
+   *  d'un Talent : Miracles (Divers), LDB 85 l.233. */
+  castingKind?: import('../engine/combatFeatures/types').CastingKind;
   /** Porte le Trait Mort-vivant (LDB 85 l.239, lu par Hurlement fantomatique LDB 85 l.170 :
    *  « créatures vivantes (ne possédant pas le trait Mort-vivant) ») — le TRAIT, PAS le Groupe
    *  bestiaire (un folder « Morts sans repos » sans ce Trait, ex. Goule de crypte, N'EST PAS visé). */
