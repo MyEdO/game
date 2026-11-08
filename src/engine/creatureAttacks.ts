@@ -89,10 +89,10 @@ function regleDuType(regles: BreathTypeData[], difficulte: Difficulty | undefine
 }
 
 /** La cible n'a pas Immunité au Type de Dégâts `typeDeDegats`. LDB 85 l.174 */
-const sansImmunite = (typeDeDegats: string): Condition => ({ kind: 'not', of: { kind: 'has', who: 'target', what: 'immunity', value: typeDeDegats } });
+const sansImmunite = (typeDeDegats: { id: string }): Condition => ({ kind: 'not', of: { kind: 'has', who: 'target', what: 'immunity', value: typeDeDegats.id } });
 
 /** Une tranche de la feuille des Dégâts : ses ops, et le Type de Dégâts auquel une Immunité les annule. */
-interface Tranche { ops: GameOp[]; typeDeDegats?: string }
+interface Tranche { ops: GameOp[]; typeDeDegats?: { id: string } }
 
 /** La feuille `feuille` des Dégâts suivie des règles du Type : chaque tranche sous la porte d'Immunité de son
  *  Type de Dégâts, les tranches voisines d'un même Type dans une seule feuille, dans l'ordre (les règles
@@ -101,7 +101,7 @@ interface Tranche { ops: GameOp[]; typeDeDegats?: string }
 function feuilleTypee(feuille: Flow & { kind: 'do'; effect: EffectOp }, tranches: Tranche[]): Flow {
   const fusion = tranches.filter((tr) => tr.ops.length).reduce<Tranche[]>((acc, tr) => {
     const der = acc[acc.length - 1];
-    if (der && der.typeDeDegats === tr.typeDeDegats) der.ops.push(...tr.ops);
+    if (der && der.typeDeDegats?.id === tr.typeDeDegats?.id) der.ops.push(...tr.ops);
     else acc.push({ ops: [...tr.ops], typeDeDegats: tr.typeDeDegats });
     return acc;
   }, []);

@@ -87,13 +87,13 @@ func _recetter_la_vue(zones: Array[Zone], vue: Dictionary) -> void:
 		var cles := elements.map(func(e: Dictionary) -> String: return "%s/%s" % [e.type, e.id])
 		_verifier(dessines.map(func(n: Node) -> String: return n.get_meta(Zone.META)) == cles, "%s, %s : composants %s, éléments %s" % [vue.nom, zone.source, dessines.map(func(n: Node) -> String: return n.get_meta(Zone.META)), cles])
 		for n in dessines:
-			noeuds[n.get_meta(Zone.META)] = n
+			noeuds[_cle(zone.source, n.get_meta(Zone.META))] = n
 	for source in vue.zones:
 		for e in vue.zones[source]:
-			_verifier(noeuds.has("%s/%s" % [e.type, e.id]), "%s, %s : %s/%s n'a aucune zone" % [vue.nom, source, e.type, e.id])
+			_verifier(noeuds.has(_cle(source, Zone.cle(e))), "%s, %s : %s n'a aucune zone" % [vue.nom, source, Zone.cle(e)])
 	for zone in zones:
 		for e in vue.zones.get(zone.source, []):
-			var noeud: Node = noeuds.get("%s/%s" % [e.type, e.id])
+			var noeud: Node = noeuds.get(_cle(zone.source, Zone.cle(e)))
 			if noeud == null:
 				continue
 			var textes := _textes(noeud)
@@ -104,13 +104,18 @@ func _recetter_la_vue(zones: Array[Zone], vue: Dictionary) -> void:
 	var focus := root.gui_get_focus_owner()
 	for e in vue.zones.get("fenetre.gestes", []):
 		if e.focus:
-			var noeud: Node = noeuds.get("%s/%s" % [e.type, e.id])
+			var noeud: Node = noeuds.get(_cle("fenetre.gestes", Zone.cle(e)))
 			var attendu: Node = noeud.get_node(FOCUS[e.type])
 			_verifier(focus == attendu, "%s : le geste en focus %s n'a pas le focus (%s)" % [vue.nom, e.id, focus])
 	Zone.montrer_toutes(zones, vue.zones)
 	for zone in zones:
 		for n in _dessines(zone):
-			_verifier(noeuds.get(n.get_meta(Zone.META)) == n, "%s : %s redessiné au lieu d'être gardé" % [vue.nom, n.get_meta(Zone.META)])
+			_verifier(noeuds.get(_cle(zone.source, n.get_meta(Zone.META))) == n, "%s : %s redessiné au lieu d'être gardé" % [vue.nom, n.get_meta(Zone.META)])
+
+
+## La clé, dans la source `source`, du composant de clé `cle` (`Zone.cle`) : un id n'est stable que dans sa zone.
+func _cle(source: String, cle: String) -> String:
+	return "%s|%s" % [source, cle]
 
 
 func _zone_de(zones: Array[Zone], source: String) -> Zone:

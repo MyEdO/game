@@ -151,7 +151,6 @@ const NOMMES = [
   'might|startMight|allyTestMod|firstRoundBonus|planningBonus',
   'plus2|plus1|normal|minus1|half',
   'premier|courant|extreme',
-  'proue|tribord|poupe|babord',
   'psych|perilDesEaux|bandages|amateurDArt|amateurDeTheatre',
   'quadrupede|quadrupede-aile|oiseau|sans-jambes|theropode|arthropode-a-pinces|sans-membres|amorphe|arachnide|poisson|unique|cephalopode|squig',
   // `amateurSchema` : la contrepartie d'un Test de Sociabilité qu'une fiche déclare (ACE 12 l.60-62).

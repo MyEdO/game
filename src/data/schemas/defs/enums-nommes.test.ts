@@ -80,7 +80,7 @@ const MIGRES: readonly [string, unknown, Record<string, string>][] = [
     ingestion: 'Ingestion', immersion: 'Immersion',
   }],
   ['rigDuNavire (gréement dérivé)', rigSchema, { avirons: 'Avirons', voile: 'Voile', mixte: 'Mixte (voile et avirons)' }],
-  ['vehicles.deck.postes[].side', posteSideSchema, {
+  ['posteSideSchema (bord du poste, fiche de navire)', posteSideSchema, {
     proue: 'Proue', tribord: 'Tribord', poupe: 'Poupe', babord: 'Bâbord',
   }],
   ['maneuvers.kind', attackKindSchema, {

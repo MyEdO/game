@@ -1,8 +1,9 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
 [ext_resource type="Script" path="res://scripts/disposition.gd" id="2_disposition"]
 [ext_resource type="Theme" path="res://art/titre_de_fenetre.tres" id="3_titre"]
+[ext_resource type="Theme" path="res://art/statbloc.tres" id="4_statbloc"]
 
 [sub_resource type="Theme" id="Avis"]
 Label/font_sizes/font_size = 18
@@ -205,31 +206,32 @@ masque = NodePath("../../..")
 
 [node name="Fiche" type="PanelContainer" parent="Interface"]
 visible = false
-custom_minimum_size = Vector2(640, 440)
+custom_minimum_size = Vector2(720, 560)
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -320.0
-offset_top = -240.0
-offset_right = 320.0
-offset_bottom = 200.0
+offset_left = -360.0
+offset_top = -290.0
+offset_right = 360.0
+offset_bottom = 270.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_type_variation = &"Panneau"
+theme = ExtResource("4_statbloc")
+theme_type_variation = &"Statbloc"
 
 [node name="Pile" type="VBoxContainer" parent="Interface/Fiche"]
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
 
 [node name="Tete" type="HBoxContainer" parent="Interface/Fiche/Pile"]
 
-[node name="Heros" type="VBoxContainer" parent="Interface/Fiche/Pile/Tete"]
+[node name="Porteur" type="VBoxContainer" parent="Interface/Fiche/Pile/Tete"]
 size_flags_horizontal = 3
 
-[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Tete/Heros" node_paths=PackedStringArray("masque")]
+[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Tete/Porteur" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
-source = "fiche.heros"
+source = "fiche.porteur"
 masque = NodePath("../../../..")
 
 [node name="Fermer" type="VBoxContainer" parent="Interface/Fiche/Pile/Tete"]
@@ -237,27 +239,38 @@ masque = NodePath("../../../..")
 [node name="Zone" type="Node" parent="Interface/Fiche/Pile/Tete/Fermer"]
 script = ExtResource("1_zone")
 source = "fiche.gestes"
-ids = PackedStringArray("fermer")
-
-[node name="Onglets" type="HBoxContainer" parent="Interface/Fiche/Pile"]
-theme_override_constants/separation = 6
-
-[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Onglets"]
-script = ExtResource("1_zone")
-source = "fiche.gestes"
 
 [node name="Defilement" type="ScrollContainer" parent="Interface/Fiche/Pile"]
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="Corps" type="HFlowContainer" parent="Interface/Fiche/Pile/Defilement"]
+[node name="Statbloc" type="VBoxContainer" parent="Interface/Fiche/Pile/Defilement"]
 size_flags_horizontal = 3
-theme_override_constants/h_separation = 6
-theme_override_constants/v_separation = 6
+theme_override_constants/separation = 6
 
-[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Defilement/Corps"]
+[node name="Profil" type="PanelContainer" parent="Interface/Fiche/Pile/Defilement/Statbloc"]
+theme_type_variation = &"Profil"
+
+[node name="Colonnes" type="HFlowContainer" parent="Interface/Fiche/Pile/Defilement/Statbloc/Profil"]
+alignment = 1
+theme_override_constants/h_separation = 4
+
+[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Defilement/Statbloc/Profil/Colonnes"]
 script = ExtResource("1_zone")
-source = "fiche.corps"
+source = "fiche.profil"
+
+[node name="Sections" type="VBoxContainer" parent="Interface/Fiche/Pile/Defilement/Statbloc"]
+theme_override_constants/separation = 6
+
+[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Defilement/Statbloc/Sections"]
+script = ExtResource("1_zone")
+source = "fiche.sections"
+
+[node name="Source" type="VBoxContainer" parent="Interface/Fiche/Pile/Defilement/Statbloc"]
+
+[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Defilement/Statbloc/Source"]
+script = ExtResource("1_zone")
+source = "fiche.source"
 
 [node name="Objet" type="VBoxContainer" parent="Interface/Fiche/Pile"]
 

@@ -18,7 +18,7 @@ import { pointDeCase, tileKey } from './path';
 import { estAbsent, terrainHorsGrille } from './terrain';
 import { casesTenues, findFreeTile } from './combatGeometry';
 import { placeCombatant } from './spawn';
-import type { Combatant, ShipPoste, ShipDeck, FireArc, Weapon } from '../../engine/types';
+import type { Combatant, ShipPoste, FireArc, Weapon } from '../../engine/types';
 
 
 type Pt = { x: number; y: number };
@@ -177,9 +177,7 @@ function arcDir8(side: FireArc, heading: Dir8): Dir8 {
  * Position d'une pièce dans l'espace de la SCÈNE (index/rendu top-down uniquement, AUCUN effet combat — RAW :
  * placement libre, pas de slot fixe). Ordre de résolution :
  *   1. `poste.anchor` authoré (fait foi).
- *   2. slot de pont (`opts.deck.postes`) de même `side`, MAIS seulement hors échelle mer (les coords du pont ne
- *      valent que quand la scène rendue EST ce pont d'abordage, pas la coque à l'échelle mer).
- *   3. sinon la position de la coque, décalée vers le BORD par l'arc quand l'empreinte > 1 et que `side`+`heading`
+ *   2. sinon la position de la coque, décalée vers le BORD par l'arc quand l'empreinte > 1 et que `side`+`heading`
  *      sont connus (FireArc → Dir8-monde via le cap, pas × ~empreinte/2 depuis le centre). Plusieurs pièces d'un
  *      même bord peuvent partager une case (le composant les regroupe). Sinon la position de coque telle quelle.
  * `undefined` si la coque n'a pas de position. PUR.
@@ -187,13 +185,9 @@ function arcDir8(side: FireArc, heading: Dir8): Dir8 {
 export function posteAnchor(
   hull: Combatant,
   poste: ShipPoste,
-  opts?: { heading?: Dir8; deck?: ShipDeck; sea?: boolean },
+  opts?: { heading?: Dir8 },
 ): { x: number; y: number; z?: number } | undefined {
   if (poste.anchor) return poste.anchor;
-  if (opts?.deck && opts.sea !== true && poste.side) {
-    const slot = opts.deck.postes?.find((s) => s.side === poste.side);
-    if (slot) return { x: slot.pos.x, y: slot.pos.y };
-  }
   if (!hull.pos) return undefined;
   if (hull.footprint && hull.footprint > 1 && poste.side && opts?.heading) {
     const d = DIR8_DELTA[arcDir8(poste.side, opts.heading)];

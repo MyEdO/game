@@ -45,16 +45,17 @@ export interface Entite { type: 'entite'; id: string; ton: Ton; nom: string; ele
 /** Un verbe de la partie et ses arguments. */
 export interface Appel { type: string; args: unknown[] }
 
-/** Les onglets de la fiche d'un héros, dans l'ordre où elle les montre. */
-export const ONGLETS_DE_LA_FICHE = ['caracteristiques', 'competences', 'talents', 'possessions'] as const;
-
-/** La fiche qu'un hôte montre : le héros qu'elle décrit, par son id, son onglet, et sous l'onglet des possessions
- *  celle qu'il a choisie (`objet`, l'`uid` qui la désigne, `PossessionDeLaFiche`). Un état de l'hôte, jamais de la
- *  partie. */
-export interface FicheOuverte { heros: string; onglet: (typeof ONGLETS_DE_LA_FICHE)[number]; objet?: string }
+/** La fiche qu'un hôte montre, en statbloc : le combattant qu'elle décrit (`porteurParId` : un héros du groupe, ou
+ *  tout combattant en combat), par son id, et la possession qu'il a choisie (`objet`, l'`uid` qui la désigne,
+ *  `PossessionDeLaFiche`). Un état de l'hôte, jamais de la partie. */
+export interface FicheOuverte { porteur: string; objet?: string }
 
 /** La création d'un héros qu'un hôte tient : son brouillon et la page ouverte. Un état de l'hôte, jamais de la partie. */
 export interface CreationOuverte { brouillon: CreatorDraft; page: PageDeCreation }
+
+/** Le panneau qu'un hôte tient ouvert par-dessus la partie, un seul à la fois : la fiche d'un combattant ou la
+ *  création d'un héros ; `null` sans panneau. */
+export type PanneauDeLHote = { fiche: FicheOuverte } | { creation: CreationOuverte } | null;
 
 /** Un geste de la création : l'ouvrir sur un brouillon neuf, jouer un geste de son brouillon, aller à une page,
  *  engager le héros dans le groupe. */
@@ -63,8 +64,8 @@ export type GesteDeLaCreation = { geste: 'ouvrir'; args: [] } | { geste: 'engage
 /** L'intention qu'un geste joue : un verbe de la partie et ses arguments, celui d'une offre de l'actif compris
  *  (`Offre.geste`), une suite de verbes
  *  joués l'un après l'autre (un geste d'exploration : marcher jusqu'à une case, puis y agir), la fiche que l'hôte
- *  montre (`null` : aucune), qui ne touche pas la partie, un geste de la création d'un héros (`null` : la
- *  ferme), ou un geste de l'éditeur de carte (`editeur.ts`). */
+ *  montre (`null` : aucune), qui ne touche pas la partie, un geste de la création d'un héros (`null` : la ferme), ou
+ *  un geste de l'éditeur de carte (`editeur.ts`). */
 export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition };
 
 /** Un geste d'un clic. `presse` : la valeur courante d'un choix, ou l'offre que l'actif vise ; `focus` : le geste que

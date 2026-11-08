@@ -22,7 +22,7 @@ export { equipConflicts, isWearable, objetsDeLInventaire } from '../engine/items
 export { PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
 export { PARTS_RELIEF } from '../data/materials.types';
 export type { Cadence } from '../engine/cadence';
-export type { FabriqueDId } from '../engine/fabriqueDId';
+export type { FabriqueDId, FabriqueDuRoster } from '../engine/fabriqueDId';
 export { refusDesSurcharges, ruleOverrides, type RuleValue } from '../engine/policy';
 export { actionGate, offreArmee, offresDeLActif, offresParPorteur, etatDeLaBarre, type EtatDeLaBarre, type ActionCtx, type Offre } from './actionRegistry';
 export { ACTIONS } from '../data/index';
@@ -94,7 +94,7 @@ export { fenetreDIncantation, type FenetreDIncantation } from './fenetreDIncanta
 export { fenetreDuSoin } from './soin';
 export { difficultyText } from './difficultyText';
 export { fenetreDeDefense } from './fenetreDeDefense';
-export { ficheDuPorteur, type FicheDuPorteur } from './ficheDuPorteur';
+export { ficheDuPorteur, type EntreeDeLaFiche, type FicheDuPorteur } from './ficheDuPorteur';
 export { gestesDeLObjet, type GesteAChoix } from './gestesDeLObjet';
 export { carteEnVue, type TrajetEnVue } from './carteEnVue';
 export { lieuEnVue } from './lieuEnVue';
@@ -117,7 +117,7 @@ export { VERBE_DE_CHOIX, declarationDuChoix, type AxeDuChoix, type FenetreAChoix
 export { reglagesDesChoix } from './choixDeFenetre';
 export { avecSigne } from '../engine/types';
 export { ROLES_D_ANIMATION, type RoleDAnimation } from './animation';
-export { lireLeRoster, ecrireLeRoster, rosterAvecLeHeros, type RosterEntry } from './persistance/roster';
+export { lireLeRoster, ecrireLeRoster, idDeRosterDuHeros, rosterAvecLeHeros, type HerosDuRoster, type RosterEntry } from './persistance/roster';
 export { engagement, intentionDEngagement, refusDEngagement, refusDUnNouveauHeros } from './creation/engagement';
 export type { CreatorDraft } from './creation/brouillon';
 export { apresLeGeste, brouillonDeLaPartie, pagesDeCreation, refusDeLaPage, rubriquesDeLaPage, type GesteDuBrouillon, type PageDeCreation, type RubriqueDeCreation } from './creation/vueDeLaCreation';

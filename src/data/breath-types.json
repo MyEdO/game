@@ -9,7 +9,9 @@
     },
     "ignoreAP": true,
     "etat": "en-flammes",
-    "typeDeDegats": "feu"
+    "typeDeDegats": {
+      "id": "feu"
+    }
   },
   {
     "id": "froid",
@@ -42,7 +44,9 @@
     },
     "ignoreAP": true,
     "etat": "sonne",
-    "typeDeDegats": "electrique"
+    "typeDeDegats": {
+      "id": "electrique"
+    }
   },
   {
     "id": "poison",
@@ -54,7 +58,9 @@
     },
     "ignoreAP": true,
     "etat": "empoisonne",
-    "typeDeDegats": "poison"
+    "typeDeDegats": {
+      "id": "poison"
+    }
   },
   {
     "id": "fumee",
