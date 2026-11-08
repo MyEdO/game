@@ -16,6 +16,7 @@
  *                   surfaces + trémie, #780 — connexité verticale DÉRIVÉE, pas d'escalier au
  *                   pathfinding).
  *   4. walls      : murs d'arête (`setEdgeWall` + `patchWall` structure) / diagonales (`toggleDiagonalWall`).
+ *   4bis. navires : les ponts du type de chaque navire posé, avec ses Améliorations (`planDeNavire.ts`).
  *   5. architecture : `spec.architecture` copié tel quel (masses/façades) — non encore validé.
  *   6. entities   : `spec.entities` bruts + heroStart + interprétation du `bind` aux positions scannées.
  *   7. zones      : entryPoints / restZones / effectZones / triggers / dialogues.
@@ -71,6 +72,7 @@ import { seatAssignmentDefects, type SeatAssignments } from './monde/seating';
 import { massFootprintCells } from './monde/buildings';
 import { type Pt, setEdgeWall, patchWall, toggleDiagonalWall, paintHeight, paintCrenellated, paintTiles, fillTerrainRect, addLayer, putLayer, placeEmplacement, setPosteCrew, setPosteSide, pasteEntity, addRestZone, setSceneScalaires, setSceneFlags, realFloorAt, roofExclusionsByZ, deriveArchitectureMasses, bodyFootCellsByZ, bodyFootCells, adoptableOpeningsAt } from './sceneEdit';
 import { canonEdge, edgeWallState } from './sceneEditLecture';
+import { pontsDuNavire, poserLeNavire, type PoseDeNavire } from './planDeNavire';
 
 /** Hauteur (m) par défaut d'une ENCEINTE `cells` sans `height` explicite — chemin de ronde à ~4 m (un
  *  « niveau » de relief, cf. `METRES_PER_LEVEL`). */
@@ -254,6 +256,9 @@ export interface MapSpec {
   triggers?: Trigger[];
   dialogues?: Dialogue[];
   encounters?: EncounterSpec[];
+  /** NAVIRES posés : les ponts du plan de leur type et de leurs Améliorations (`pontsDuNavire`), à leur case, leur
+   *  cap et leur étage. */
+  navires?: PoseDeNavire[];
   /** Ancres AUTHORÉES des Scènes de bataille sur le plan (S2, Puissance de Bataille) — passées telles
    *  quelles sur la Scène construite (`Scene.stations`), consommées par `battleScenesToStations`. */
   stations?: SceneStationAnchor[];
@@ -775,6 +780,9 @@ export function buildScene(spec: MapSpec): Scene {
       ...(wall.appearance ? { appearance: wall.appearance } : {}),
     });
   }
+
+  // 4bis. navires : les ponts de leur type, posés à leur place, leur cap et leur étage (`poserLeNavire`).
+  for (const n of spec.navires ?? []) s = poserLeNavire(s, buildScene(pontsDuNavire(n.ref, n.upgrades ?? [])), n);
 
   // 5. architecture (copie non validée — la validation tourne en fin de fonction, §9, une fois les
   //    zones connues : les masses se valident contre le plancher RÉEL, pas contre elles-mêmes).
