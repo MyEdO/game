@@ -220,7 +220,7 @@ const lesAttaques = (s: Jeu) => {
   return actif && s.battle ? availableAttacks(actif, s.battle) : [];
 };
 const lesRamassables = (s: Jeu) =>
-  (s.scene?.entities ?? []).flatMap((e) => entityPickables(e, s.flags, objetDuNarratif(s.campaignNarratif)));
+  (s.scene?.entities ?? []).flatMap((e) => entityPickables(e, s.flags, objetDuNarratif(s.campaignNarratif), s.objetsAuSol));
 const lesTraitsPsyPortes = (s: Jeu) => s.party.flatMap(traitsPsyChoisissables);
 const lesClassesDePassage = (): string[] => sansDoublon(travelVehicles().flatMap((v) => (vehicleTravel(v.id)?.classes ?? []).map((c) => c.id)));
 const lesOptionsDEtape = (s: Jeu) => (s.pendingCascade?.participants ?? []).flatMap((st) => st.options ?? []);

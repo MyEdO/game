@@ -13,6 +13,8 @@ import { facesDuDecor } from './propVolumes';
 import { ancreDuDecor } from '../footprint';
 import { piedDuDecor } from '../poseDuDecor';
 import { matieresDe } from '../../../data';
+import { hash32 } from '../../../data/hash';
+import { jsonCanonique } from '../../../lib/jsonCanonique.mjs';
 import { couleurDeMatiere, recetteDeMatiere, tintVarFactor } from './matieres';
 import { faceDepthM } from './profondeur';
 import { crownFaces, cretesDePerimetre } from './creneaux';
@@ -97,6 +99,12 @@ function decorsVolumiques(scene: Scene, activeZ: number, mpt: number): FaceListe
     const faces = facesDuDecor(ent.ref, { ancre: ancreDuDecor(ent, mpt), ...(ent.facing ? { facing: ent.facing } : {}), baseHeightM: piedDuDecor(scene, ent), entId: ent.id }, mpt);
     return (faces ?? []).map((face) => ({ face, cell: { ...ent.pos, z } }));
   }));
+}
+
+/** L'empreinte des entités `prop` de la scène, celles que le volume pose (`decorsVolumiques`), chacune entière : elle
+ *  change quand un décor est ajouté, retiré ou changé en jeu. PUR. */
+export function empreinteDesDecors(scene: Scene): string {
+  return hash32(...scene.entities.flatMap((e) => (e.kind === 'prop' ? [jsonCanonique(e)] : []))).toString(36);
 }
 
 /** Les faces `listees` triangulées (`facesGeometry`), orientées (`trianglesOrientes`) et colorées depuis la donnée, chacune
