@@ -15,7 +15,7 @@ import type { NomDIndividu } from '../../engine/psych/ciblage';
 import type { Jeu } from '../etat';
 import { inBattleId } from './combatants';
 import { typeNonNomme } from '../../data/schemas/defs-scenes/scene';
-import { findCreatureById, findSpeciesById, isNamed, profilsStandard, refEntiteResolue } from '../../data';
+import { findCreatureById, findSpeciesById, isNamed, profilsStandard, refEntiteResolue, sexeDuPorteur } from '../../data';
 import { raceKeySchema, type RaceKey, type Sexe } from '../../data/schemas/grammaire/valeurs';
 import { generateName } from '../../engine/names';
 import { tirerLesDetails } from '../../engine/creation';
@@ -37,14 +37,14 @@ function porteurDeFiche(ent: SceneEntity, presetDe: ResolveurDePreset): { porteu
 
 /** L'individu ANONYME qu'est l'entité `ent` (#3712) : un personnage sans nom d'auteur, ni preset ni statbloc, d'une fiche
  *  du bestiaire qui n'est pas un individu nommé (`isNamed`) et dont l'espèce, celle de l'auteur sinon celle de la fiche,
- *  est d'une race (`RaceKey`) ; son sexe, celui de l'auteur sinon celui de la fiche, sinon `M` (#3253). */
+ *  est d'une race (`RaceKey`) ; son sexe (`sexeDuPorteur`, sinon `M`, #3253). */
 function individuAnonyme(ent: SceneEntity): { race: RaceKey; sexe: Sexe } | undefined {
   if (ent.kind !== 'personnage' || ent.label || ent.presetId || ent.statblock || ent.ref === undefined) return undefined;
   const creature = findCreatureById(ent.ref);
   if (!creature || isNamed(creature)) return undefined;
   const espece = ent.appearance?.species ?? creature.appearance?.species;
   const race = findSpeciesById(espece)?.refChar ?? raceKeySchema.safeParse(espece).data;
-  return race && { race, sexe: ent.appearance?.sex ?? creature.appearance?.sex ?? 'M' };
+  return race && { race, sexe: sexeDuPorteur({ appearanceOverride: ent.appearance, creatureId: creature.id }) ?? 'M' };
 }
 
 /**
