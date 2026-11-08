@@ -28,6 +28,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -55,7 +56,7 @@ const DOCUMENTS = {
   },
 };
 
-const estDocument = (v, enveloppe) => v !== null && typeof v === 'object' && !Array.isArray(v)
+const estDocument = (v, enveloppe) => estObjet(v)
   && Object.keys(enveloppe).every((k) => k in v) && v.type === enveloppe.type && Array.isArray(v.entries)
   && v.entries.every((l) => l !== null && typeof l === 'object' && !('type' in l));
 

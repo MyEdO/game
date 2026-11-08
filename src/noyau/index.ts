@@ -30,7 +30,7 @@ export { ecartsDeCleDElement, libelleDeCleDElement, type CodeDEcartDeCle } from 
 export { emplacementDePiece, estEmplacement, pieceRacine, emblemeDuPorteur, type EmblemeResolu } from './apparence/gardeRobe';
 export type { GabaritResolu } from './apparence/gabarit';
 export { cataloguesDeComposition, emplacementsDeRangement, lireComposition, lireSurchargesDEmblemes, porteeDeComposition, presetDeComposition, type Composition, type LectureAuSchema, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from './apparence/composition';
-export { porteeDuCombattant } from './apparence/combattant';
+export { porteeDuCombattant, vehiculeDuCombattant, type VehiculeDuCombattant } from './apparence/combattant';
 export type { Sexe } from '../data/schemas/grammaire/valeurs';
 export { SLOTS } from '../lib/palette';
 export { mouvementDuTour } from './mount';

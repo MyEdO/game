@@ -3,7 +3,7 @@
  * prend la couleur ; une surface `blason: true` reçoit au montage l'emblème choisi (#3111) et porte l'UV `TEXCOORD_0`.
  * Un élément (`element.ts`) et une base (`manifesteDeBase.ts`) les déclarent ; seul un élément admet le blason.
  */
-import { estObjet } from '../../../src/hote/formes.ts';
+import { estObjet } from '../../../src/lib/objet.mjs';
 import { SLOTS, type Slot } from '../../../src/lib/palette.ts';
 import type { ContenuGlb } from './glb.ts';
 

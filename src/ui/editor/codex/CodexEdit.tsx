@@ -74,6 +74,7 @@ import { VARIANT_RESOLVED_FIELDS as TALENT_VARIANT_FIELDS } from '../../../data/
 import { VARIANT_RESOLVED_FIELDS as SPELL_VARIANT_FIELDS } from '../../../data/schemas/defs/spells';
 import { Grid } from '../../Layout';
 import { entryKey, findTrappingById } from '../../../data';
+import { estObjet } from '../../../lib/objet.mjs';
 
 /** Catégories à VARIANTES réglées (#563/#564), avec les champs que leur résolution APPLIQUE — valeurs
  *  LUES des defs (`VARIANT_RESOLVED_FIELDS`), jamais recopiées : `VariantsField` en déduit les sous-
@@ -1913,7 +1914,7 @@ function GenericArrayField({ chemin, sujet, label, value, noeud, onChange, colum
     for (const f of cols) {
       if (f.kind !== 'json') continue;
       const pool = list.flatMap((r) => (Array.isArray(r[f.key]) ? (r[f.key] as Record<string, unknown>[]) : []));
-      if (pool.length && pool.every((x) => x != null && typeof x === 'object' && !Array.isArray(x))) map.set(f.key, inferFields(pool, { niveau: 'profondeur', noeud: noeudObjet(f.noeud) }));
+      if (pool.length && pool.every(estObjet)) map.set(f.key, inferFields(pool, { niveau: 'profondeur', noeud: noeudObjet(f.noeud) }));
     }
     return map;
   }, [list, cols]);

@@ -56,6 +56,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -98,7 +99,7 @@ const rapport = [];
       continue;
     }
     for (const [i, e] of brut.entries()) {
-      if (!e || typeof e !== 'object' || Array.isArray(e)) {
+      if (!estObjet(e)) {
         ecarts.push(`${fichier}[${i}] : entrée non-objet`);
         continue;
       }
@@ -138,7 +139,7 @@ for (const [fichier, type] of Object.entries(TYPES)) {
   const locales = [];
   let poses = 0;
   const apres = avant.map((e, i) => {
-    if (!e || typeof e !== 'object' || Array.isArray(e)) {
+    if (!estObjet(e)) {
       locales.push(`${fichier}[${i}] : entrée non-objet`);
       return e;
     }

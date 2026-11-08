@@ -10,6 +10,8 @@ export interface FieldReadHit {
   /** Le site est DANS la déclaration qui déclare la propriété (le `superRefine` du schéma qui valide
    *  son propre champ) — identité par nœud, jamais par nom. */
   auDeclarant: boolean;
+  /** Les champs demandés que le PORTEUR du site porte, typé au site : un `Pick<T, 'a'>` ne porte que `a`. */
+  champsDuPorteur: string[];
 }
 
 export function listProdFiles(dir: string): string[];

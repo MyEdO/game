@@ -1,14 +1,15 @@
 /**
- * LE MANIFESTE D'UN ÉLÉMENT (#2972, schéma 3) : la pièce sémantique qu'un GLB dessine pour une base, et sa validation
- * contre le manifeste de cette base (`manifesteDeBase.ts`). La catégorie fixe, par discriminant, la forme de
- * `cle` et de `liaison`, la présence de `couche`, `couvre`, `chaines`, `emplacements` et `silhouettes`, et si un mesh
- * rigide peut rester à la racine de la scène (`REGLES_DES_CATEGORIES`) ; une clé bien formée se résout contre la donnée
+ * LE MANIFESTE D'UN ÉLÉMENT (#2972, schéma 3) : la pièce sémantique qu'un GLB dessine, et sa validation contre le
+ * manifeste de la base pour laquelle il se construit (`manifesteDeBase.ts`). La catégorie fixe, par discriminant, la forme
+ * de `cle` et de `liaison`, la présence de `couche`, `couvre`, `chaines`, `emplacements` et `silhouettes`, et si
+ * l'élément a une base (`REGLES_DES_CATEGORIES`) : sans base (décor, véhicule, #2987), il ne nomme aucune base et ses
+ * meshes restent à la racine de sa scène ou sous ses propres nœuds ; une clé bien formée se résout contre la donnée
  * du jeu (`ecartsDeCleDElement`, surface du noyau). Ses surfaces (`surfaces.ts`) admettent le blason.
  * Un vêtement ou une armure offre des `emplacements`, ids de la garde-robe (`estEmplacement`, #3116) ; un accessoire
  * dont l'emplacement n'est offert ni par sa base ni par une pièce de cette base est rapporté, ni refusé ni servi
  * (`emplacementsNonOfferts`, `indexerModeles`).
  */
-import { estObjet } from '../../../src/hote/formes';
+import { estObjet } from '../../../src/lib/objet.mjs';
 import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, type CodeDEcartDeCle } from '../../../src/noyau/index.ts';
 import { ecartsAuGlb, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
@@ -37,12 +38,13 @@ interface RegleDeCategorie {
   readonly chaines: boolean;
   readonly emplacements: boolean;
   readonly silhouettes: boolean;
-  /** Un mesh rigide de l'élément peut rester à la racine de la scène (non tenu). */
-  readonly racine: boolean;
+  /** L'élément se construit pour une base : son manifeste la nomme, il se valide contre elle et ses meshes rigides pendent
+   *  à ses os. Sans base (décor, véhicule, #2987), ses meshes restent à la racine de sa scène ou sous ses propres nœuds. */
+  readonly base: boolean;
 }
 
-const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, racine: false } as const;
-const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, racine: false } as const;
+const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, base: true } as const;
+const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, base: true } as const;
 
 /** Les règles de chaque catégorie, seule source du type `ManifesteDElement` et de `validerElement`. */
 export const REGLES_DES_CATEGORIES = {
@@ -54,8 +56,8 @@ export const REGLES_DES_CATEGORIES = {
   accessoire: { ...SKINNE, cle: ['piece'], liaisons: ['rigide', 'surface'], couvre: 'optionnel' },
   rigide: { ...RIGIDE, cle: ['apparence'] },
   trait: { ...SKINNE, cle: ['trait'] },
-  decor: { ...RIGIDE, cle: ['prop'], racine: true },
-  vehicule: { ...RIGIDE, cle: ['definition'], racine: true },
+  decor: { ...RIGIDE, cle: ['prop'], base: false },
+  vehicule: { ...RIGIDE, cle: ['definition'], base: false },
 } as const satisfies Record<string, RegleDeCategorie>;
 
 type Regles = typeof REGLES_DES_CATEGORIES;
@@ -67,7 +69,8 @@ type Liste = readonly string[];
 
 type Selon<P, Requis, Optionnel> = P extends 'requis' ? Requis : P extends 'optionnel' ? Optionnel : Rien;
 
-type ChampsDe<C extends CategorieDElement> = (Regles[C]['couches'] extends readonly Couche[] ? { readonly couche: Regles[C]['couches'][number] } : Rien)
+type ChampsDe<C extends CategorieDElement> = (Regles[C]['base'] extends true ? { readonly base: string } : Rien)
+  & (Regles[C]['couches'] extends readonly Couche[] ? { readonly couche: Regles[C]['couches'][number] } : Rien)
   & Selon<Regles[C]['couvre'], { readonly couvre: Liste }, { readonly couvre?: Liste }>
   & (Regles[C]['chaines'] extends true ? { readonly chaines?: Liste } : Rien)
   & (Regles[C]['emplacements'] extends true ? { readonly emplacements?: Readonly<Record<string, Attache>> } : Rien)
@@ -76,7 +79,6 @@ type ChampsDe<C extends CategorieDElement> = (Regles[C]['couches'] extends reado
 export type ManifesteDElement = {
   [C in CategorieDElement]: {
     readonly schema: typeof VERSION_DU_SCHEMA_D_ELEMENT;
-    readonly base: string;
     readonly categorie: C;
     readonly cle: { readonly [K in Regles[C]['cle'][number]]: string };
     readonly liaison: { readonly mode: Regles[C]['liaisons'][number] };
@@ -118,12 +120,15 @@ export interface EcartDElement {
 
 export type VerdictDElement = { readonly ok: true; readonly manifeste: ManifesteDElement } | { readonly ok: false; readonly ecarts: readonly EcartDElement[] };
 
-const CHAMPS_COMMUNS = ['schema', 'base', 'categorie', 'cle', 'liaison', 'surfaces', 'glb'] as const;
+const CHAMPS_COMMUNS = ['schema', 'categorie', 'cle', 'liaison', 'surfaces', 'glb'] as const;
 const estCategorie = (v: unknown): v is CategorieDElement => typeof v === 'string' && Object.prototype.hasOwnProperty.call(REGLES_DES_CATEGORIES, v);
+/** Le manifeste `brut` est d'une catégorie qui ne se construit pour aucune base (`RegleDeCategorie.base`). */
+export const estSansBase = (brut: unknown): boolean => estObjet(brut) && estCategorie(brut.categorie) && !REGLES_DES_CATEGORIES[brut.categorie].base;
 const liste = (l: readonly string[]) => l.map((e) => `\`${e}\``).join(', ');
 
-/** Le manifeste `brut` réduit au schéma 3 et validé contre la base qu'il nomme et le GLB `octets`, lu en `glb` (`lireGlb`). */
-export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint8Array, glb: ContenuGlb): VerdictDElement {
+/** Le manifeste `brut` réduit au schéma 3 et validé contre la base qu'il nomme, `null` pour une catégorie sans base, et le
+ *  GLB `octets`, lu en `glb` (`lireGlb`). */
+export function validerElement(brut: unknown, base: BaseDUnElement | null, octets: Uint8Array, glb: ContenuGlb): VerdictDElement {
   const ecarts: EcartDElement[] = [];
   const refus = (code: CodeDEcartDElement, ou: string, detail: string) => ecarts.push({ code, ou, detail });
   if (!estObjet(brut)) return { ok: false, ecarts: [{ code: 'forme', ou: '', detail: 'le manifeste n’est pas un objet' }] };
@@ -135,17 +140,19 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
   const categorie = brut.categorie;
   const regle: RegleDeCategorie = REGLES_DES_CATEGORIES[categorie];
   const optionnels = [
-    ...(regle.couches ? ['couche'] : []), ...(regle.couvre === 'interdit' ? [] : ['couvre']),
+    ...(regle.base ? ['base'] : []), ...(regle.couches ? ['couche'] : []), ...(regle.couvre === 'interdit' ? [] : ['couvre']),
     ...(regle.chaines ? ['chaines'] : []), ...(regle.emplacements ? ['emplacements'] : []), ...(regle.silhouettes ? ['silhouettes'] : []),
   ];
   const admis = new Set<string>([...CHAMPS_COMMUNS, ...optionnels]);
   for (const champ of Object.keys(brut)) if (!admis.has(champ)) refus('champ-hors-categorie', champ, `un élément \`${categorie}\` ne porte pas \`${champ}\``);
-  const requis = [...CHAMPS_COMMUNS, ...(regle.couches ? ['couche'] : []), ...(regle.couvre === 'requis' ? ['couvre'] : [])];
+  const requis = [...CHAMPS_COMMUNS, ...(regle.base ? ['base'] : []), ...(regle.couches ? ['couche'] : []), ...(regle.couvre === 'requis' ? ['couvre'] : [])];
   for (const champ of requis) if (brut[champ] === undefined) refus('forme', champ, `champ requis pour un élément \`${categorie}\``);
 
-  if (brut.base !== undefined) {
+  const nomDeBase = base?.base ?? 'aucune';
+  const osDeBase = base?.os ?? [];
+  if (regle.base && brut.base !== undefined) {
     if (typeof brut.base !== 'string') refus('forme', 'base', 'chaîne attendue');
-    else if (brut.base !== base.base) refus('base-differente', 'base', `${brut.base}, construit pour une autre base que \`${base.base}\``);
+    else if (brut.base !== base?.base) refus('base-differente', 'base', `${brut.base}, construit pour une autre base que \`${nomDeBase}\``);
   }
 
   const cle = brut.cle;
@@ -163,8 +170,9 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
       if (glb.meshes.every((m) => m.skinne)) refus('rigide-sans-mesh', 'liaison.mode', 'le GLB ne porte aucun mesh rigide');
       for (const { nom: mesh, skinne, articulation, os } of glb.meshes) {
         if (skinne) refus('rigide-skinne', 'liaison.mode', `${mesh} porte un skin : un élément en liaison \`rigide\` ne monte que des meshes sans skin`);
-        else if (articulation === null) { if (!regle.racine) refus('rigide-a-la-racine', 'liaison.mode', `${mesh} ne pend directement à aucune articulation d’un skin : un élément \`${categorie}\` ne reste pas à la racine de la scène`); }
-        else if (os === null || !base.os.includes(os)) refus('rigide-sur-os-absent', 'liaison.mode', `${mesh} pend à ${os ?? `l’articulation sans nom noeud ${articulation}`}, qui n’est pas un os de la base \`${base.base}\``);
+        else if (articulation === null) { if (regle.base) refus('rigide-a-la-racine', 'liaison.mode', `${mesh} ne pend directement à aucune articulation d’un skin : un élément \`${categorie}\` ne reste pas à la racine de la scène`); }
+        else if (!regle.base) refus('rigide-sur-os-absent', 'liaison.mode', `${mesh} pend à ${os ?? `l’articulation sans nom noeud ${articulation}`}, mais un élément \`${categorie}\` n’a pas de base dont il serait un os`);
+        else if (os === null || !osDeBase.includes(os)) refus('rigide-sur-os-absent', 'liaison.mode', `${mesh} pend à ${os ?? `l’articulation sans nom noeud ${articulation}`}, qui n’est pas un os de la base \`${nomDeBase}\``);
       }
     }
   }
@@ -177,17 +185,17 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
     const v = brut[champ];
     if (v === undefined || !admis.has(champ)) return;
     if (!estListeDeChaines(v) || new Set(v).size !== v.length) return refus('forme', champ, 'liste de chaînes sans doublon attendue');
-    v.forEach((e, i) => { if (!connus.includes(e)) refus(code, `${champ}.${i}`, `${e} n’est pas ${quoi} de la base \`${base.base}\``); });
+    v.forEach((e, i) => { if (!connus.includes(e)) refus(code, `${champ}.${i}`, `${e} n’est pas ${quoi} de la base \`${nomDeBase}\``); });
   };
-  sousEnsemble('couvre', base.zones, 'zone-inconnue', 'une zone');
-  sousEnsemble('chaines', Object.keys(base.chaines), 'chaine-absente', 'une chaîne');
-  sousEnsemble('silhouettes', base.silhouettes, 'silhouette-absente', 'une shape key');
+  sousEnsemble('couvre', base?.zones ?? [], 'zone-inconnue', 'une zone');
+  sousEnsemble('chaines', Object.keys(base?.chaines ?? {}), 'chaine-absente', 'une chaîne');
+  sousEnsemble('silhouettes', base?.silhouettes ?? [], 'silhouette-absente', 'une shape key');
 
   if (regle.emplacements && brut.emplacements !== undefined) {
     if (!estObjet(brut.emplacements)) refus('forme', 'emplacements', 'objet attendu');
     else for (const [id, e] of Object.entries(brut.emplacements)) {
       if (!(estObjet(e) && typeof e.os === 'string' && estTriplet(e.position) && estTriplet(e.rotation) && Object.keys(e).length === 3)) refus('forme', `emplacements.${id}`, '`os` chaîne, `position` et `rotation` triplets de nombres attendus');
-      else if (!base.os.includes(e.os)) refus('emplacement-sur-os-absent', `emplacements.${id}.os`, `${e.os} n’est pas un os de la base \`${base.base}\``);
+      else if (!osDeBase.includes(e.os)) refus('emplacement-sur-os-absent', `emplacements.${id}.os`, `${e.os} n’est pas un os de la base \`${nomDeBase}\``);
       if (!estEmplacement(id)) refus('emplacement-inconnu', `emplacements.${id}`, `${id} n’est aucun emplacement de \`garde-robe.json\``);
     }
   }

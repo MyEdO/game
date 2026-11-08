@@ -141,7 +141,7 @@ export function catalogEntryOf(id: string): CatalogEntry | undefined {
  *  AUTOMATIQUEMENT chez tout archétype portant sa catégorie. SOURCE UNIQUE de cette dérivation. */
 function unitIdsOfKind(kind: UniteAchetable): string[] {
   if (kind === 'bete') return creatures.filter((c) => c.purchase).map((c) => c.id);
-  // `vehicule-terrestre` = sans coque (`!v.ship`, #748), prédicat lu par `entityConsumers.mjs` (MODE 2).
+  // `vehicule-terrestre` = sans coque (`!v.ship`, #748).
   return vehicles.filter((v) => v.purchase && !v.ship).map((v) => v.id);
 }
 

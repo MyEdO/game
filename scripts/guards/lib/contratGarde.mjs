@@ -15,6 +15,7 @@ import { dirname, relative, resolve, sep } from 'node:path'
 import { ancetreExistant, canoniser } from '../../docs/lib/chemin-mesure.mjs'
 import { arbrePrincipal, depotAuxPannes, depotDe, estIgnore, racineSurDisque } from './gitPorte.mjs'
 import { versCheminNatif } from './commandeShell.mjs'
+import { estObjet } from '../../../src/lib/objet.mjs'
 
 /** La commande shell d'une entrée de hook (`''` sans commande). */
 export const commandeDe = (entree) => entree?.tool_name === 'apply_patch' ? '' : String(entree?.tool_input?.command ?? '')
@@ -247,7 +248,7 @@ const opDe = (objet) => (typeof objet?.op === 'string' && Object.hasOwn(OPS_CTX_
 export const lotAmbigu = (input) =>
   input?.ops !== undefined &&
   (!Array.isArray(input.ops) ||
-    input.ops.some((op) => !op || typeof op !== 'object' || Array.isArray(op)) ||
+    input.ops.some((op) => !estObjet(op)) ||
     new Set(input.ops.map((op) => op.path ?? input.path)).size > 1 ||
     input.ops.some((op, i) => !opDe(op)?.deleguee && input.ops.slice(0, i).some((precedente) => opDe(precedente)?.deleguee)))
 
@@ -282,7 +283,7 @@ export function clesNonAdmises(input) {
   const tete = Object.keys(input).filter((cle) => cle !== 'ops' && !COMMUNES_TETE.includes(cle))
   const ops = Array.isArray(input.ops) ? input.ops : []
   const elements = ops.flatMap((op, i) =>
-    op && typeof op === 'object' && !Array.isArray(op) ? clesNonConsommees(op, COMMUNES_OP, true).map((cle) => `ops[${i}].${cle}`) : [],
+    estObjet(op) ? clesNonConsommees(op, COMMUNES_OP, true).map((cle) => `ops[${i}].${cle}`) : [],
   )
   return [...tete, ...elements]
 }

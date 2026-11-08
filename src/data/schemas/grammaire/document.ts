@@ -19,6 +19,7 @@ import { exigeSource } from './sans-livre';
 import { marquerProduit } from './interne/produits';
 import { champsProse, refineAdapteDe, refineProse, type PorteurDeProse } from './prose';
 import { marquerCollection, marqueDeListe, marqueDeRecord, refusDeCharge, type EspaceDeNoms } from './collection-cle';
+import { estObjet } from '../../../lib/objet.mjs';
 
 /** Les 3 EMBALLAGES de fichier d'un document : liste d'entrées, entrée seule, record clé → valeur.
  *  La CHARGE d'un document (ses rangées, `options.rangee`) est orthogonale à son emballage. */
@@ -366,7 +367,7 @@ function verifieExposition(type: string, exposition: Exposition): void {
   const e = exposition.edit as { dataset?: string; object?: string; niche?: { categories?: Readonly<Record<string, unknown>> }; none?: string };
   if (e.niche) {
     const carte = e.niche.categories;
-    const cats = carte !== null && typeof carte === 'object' && !Array.isArray(carte) ? Object.keys(carte) : [];
+    const cats = estObjet(carte) ? Object.keys(carte) : [];
     if (!(cats.length && cats.every((d) => d.length && typeof carte![d] === 'string' && (carte![d] as string).length))) {
       throw new Error(`document('${type}') : \`edit.niche.categories\` exige au moins une clé de catégorie routée, chacune vers sa suite nichée (chaînes non vides).`);
     }

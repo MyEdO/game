@@ -3,7 +3,7 @@
  *  pour se charger hors du graphe de l'hôte. */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { estObjet } from '../../../src/hote/formes.ts';
+import { estObjet } from '../../../src/lib/objet.mjs';
 
 /** Le seul nom fixe d'un dossier de production : son manifeste, qui nomme le reste. */
 export const MANIFESTE_DE_PRODUCTION = 'manifest.json';

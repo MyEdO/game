@@ -3,8 +3,10 @@ import { join } from 'node:path'
 import { arbrePrincipal, depotDe } from '../guards/lib/gitPorte.mjs'
 import { prendreVerrou } from './verrou.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
+import { estObjet } from '../../src/lib/objet.mjs'
+
 /** Les entrées `{ [fichier]: ms }` d'un objet dont la valeur est un nombre fini ≥ 0. PURE. */
-export const dureesValides = (lu) => lu !== null && typeof lu === 'object' && !Array.isArray(lu)
+export const dureesValides = (lu) => estObjet(lu)
   ? Object.fromEntries(Object.entries(lu).filter(([, ms]) => Number.isFinite(ms) && ms >= 0))
   : {}
 /** L'attente du verrou d'un mémo (`prendreVerrou`, #2400). */
@@ -43,7 +45,7 @@ export function mesuresDe(dossier) {
   return {
     lire: (nom, valider) => memoDe(dossier, nom, valider),
     ecrire: (nom, entrees, fusion) => sousVerrou(nom, () => fusion
-      ? fusion(memoDe(dossier, nom, (v) => v && typeof v === 'object' && !Array.isArray(v) ? v : {}), entrees)
+      ? fusion(memoDe(dossier, nom, (v) => estObjet(v) ? v : {}), entrees)
       : { ...memoDe(dossier, nom), ...entrees }),
     remplacer: (nom, valeur) => sousVerrou(nom, () => valeur),
   }

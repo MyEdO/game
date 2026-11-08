@@ -1,3 +1,5 @@
+import { estObjet } from './objet.mjs';
+
 /** Un stockage clé → chaîne, synchrone : le sous-ensemble de `Storage` que lisent et écrivent ses sites (#3041). */
 export type Stockage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
@@ -35,7 +37,7 @@ function lireLeJson(stockage: Stockage | null, cle: string): unknown {
  *  l'appelant, contre son registre (#2404). */
 export function lireDictionnaire(stockage: Stockage | null, cle: string): Readonly<Record<string, unknown>> | null {
   const o = lireLeJson(stockage, cle);
-  return o !== null && typeof o === 'object' && !Array.isArray(o) ? (o as Record<string, unknown>) : null;
+  return estObjet(o) ? o : null;
 }
 
 /** La valeur JSON de `cle` dans `stockage` quand c'est un tableau ; `null` sinon : absente, illisible, d'une autre

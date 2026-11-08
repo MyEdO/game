@@ -20,11 +20,11 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const FICHIER = 'sea-events.json';
 
-const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const clesExactes = (v, cles) => estObjet(v) && JSON.stringify(Object.keys(v)) === JSON.stringify(cles);
 const estEscale = (v) => clesExactes(v, ['die', 'entries']) && typeof v.die === 'string' && Array.isArray(v.entries);
 const estVoyageRapide = (v) => clesExactes(v, ['die', 'entries', 'source']) && typeof v.die === 'string' && Array.isArray(v.entries);

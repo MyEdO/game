@@ -23,7 +23,7 @@ import {
 import { pluriel, t } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
-import { estObjet } from './formes';
+import { estObjet } from '../lib/objet.mjs';
 import { elementsDesGestes, ligne, SANS_BORNE, type Bouton, type Choix, type Formulaire, type Ligne } from './elements';
 import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
 

@@ -28,6 +28,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const abs = (rel) => path.join(ROOT, rel);
@@ -78,7 +79,7 @@ function specDe(t, label, ou) {
   return null;
 }
 
-const estCibleTalent = (v) => !!v && typeof v === 'object' && !Array.isArray(v) && typeof v.id === 'string';
+const estCibleTalent = (v) => estObjet(v) && typeof v.id === 'string';
 
 const brut = fs.readFileSync(CIBLE, 'utf8');
 const doc = JSON.parse(brut);

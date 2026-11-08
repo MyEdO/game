@@ -2645,7 +2645,7 @@ tabac, casquette de porteur
 **Talents :** Caïd, Lire/Écrire, Menaçant, Numismate **Possessions :** bureau et personnel, nécessaire d'écriture
 
 
-*Les rivières sont le centre névralgique du commerce du Vieux Monde, et vous vivez en plein milieu de cette fourmilière.*
+<span id="page-97-0" data-folio="96"></span>*Les rivières sont le centre névralgique du commerce du Vieux Monde, et vous vivez en plein milieu de cette fourmilière.*
 
 Les berges fertiles des grandes rivières de l'Empire sont très fortement peuplées, et les habitants qui travaillent jour et nuit sur les eaux et dans les marais proches fournissent la grande majorité du poisson frais, des anguilles et des crustacés qui vont permettre de nourrir les villes et les cités avoisinantes. À l'inverse des villages situés à l'intérieur des terres, les étrangers, qui viennent commercer ou livrer, sont très nombreux dans les villages côtiers. Les Femmes du fleuve sont de ce fait très polyvalentes et bien souvent les premières à apprendre les nouvelles en provenance des terres lointaines. Les rivières sont pourvoyeuses de bien des métiers différents. Nombreux sont ceux qui récoltent les richesses du Reik : les pêcheurs (qui utilisent des cannes, des lances ou des filets), les chasseurs d'anguilles (qui utilisent des nasses) ou encore les plongeurs pour les coquillages. La plupart vivent dans les villages riverains, draguant les lits des rivières, tractant et entretenant les milliers de navires qui parcourent le Reik.
 
@@ -2665,7 +2665,7 @@ Une Femme du fleuve se sent chez elle lorsqu'elle se trouve à proximité d'une 
 |----|----|---|---|---|----|-----|-----|----|-----|
 |    |    |   | h |   | h  | h   |     |    |     |
 
-<span id="page-97-0" data-folio="96"></span># **Évolution de Carrière**
+# **Évolution de Carrière**
 
 h **Alevin – Bronze 2**
 
@@ -2710,7 +2710,7 @@ Savoir (Folklore)
 **Talents :** Obstiné, Orateur, Travailleur qualifié (Constructeur de bateaux), Vivacité **Possessions :** cabane *ou* bateau de transport fluvial
 
 
-*L'appel du large et une vie passée à parcourir les mers résonnent en vous, même si de nombreux Marins du Reikland n'ont jamais vu la mer.*
+<span id="page-98-0" data-folio="97"></span>*L'appel du large et une vie passée à parcourir les mers résonnent en vous, même si de nombreux Marins du Reikland n'ont jamais vu la mer.*
 
 Les Marins parcourent la haute mer dans la Marine impériale, ou se mettent au service de Marchands. Même si le Reikland ne possède aucune côte, le Reik, entre le Wasteland et Altdorf, est large de plusieurs kilomètres et emprunté par de nombreux navires de grande taille. La Première Flotte impériale, qui patrouille ces eaux, ne voit que très rarement la haute mer, en grande partie à cause du fait que les taxes à payer pour faire passer un navire de guerre par Marienburg sont exorbitantes.
 
@@ -2732,7 +2732,7 @@ Une fois Marienburg franchie, c'est le monde entier qui attend le Marin : la dan
 |----|----|---|---|---|----|-----|-----|----|-----|
 |    |    |   |   |   | h  | h   |     |    | h   |
 
-<span id="page-98-0" data-folio="97"></span># **Évolution de Carrière**
+# **Évolution de Carrière**
 
 h **Marin d'eau douce – Argent 1**
 

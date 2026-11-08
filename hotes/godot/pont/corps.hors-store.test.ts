@@ -4,23 +4,16 @@
  * devant plusieurs bases, elle refuse et aucun combattant n'a de corps ; un combattant sans portée n'en a pas ; une
  * apparence variante, née du contexte de carrière, monte l'élément de sa racine.
  */
-import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { baseDeTest } from '../asset/modeles.testkit.ts';
-import { listage } from '../servir.mjs';
-import { tableTotale } from '../../../src/lib/tableTotale';
-import { suiteDe, table, type Reponse } from './pont.testkit';
+import { modelesCommites, servirLesModeles, suiteDe, table, vueDe } from './pont.testkit';
 import type { CombattantProjete } from '../../../src/hote/projection';
 import type { VueDuPont } from './pont';
 
-/** Le listage des modèles commités du projet Godot, tel que `GET /modeles/` le sert. */
-const COMMITES = listage(join(import.meta.dirname, '../projet/modeles'));
+const COMMITES = modelesCommites();
 
 const { appel } = table();
-const vueDe = (r: Reponse): VueDuPont => (r as { vue: VueDuPont }).vue;
-/** `modeles` sur `manifestes`, chacun avec les os de ses meshes rigides au listage commité. */
-const servir = (manifestes: Record<string, unknown>) =>
-  expect(appel('modeles', { manifestes, osDesRigides: tableTotale(Object.keys(manifestes), (id) => COMMITES.osDesRigides[id] ?? []) })).toMatchObject({ ok: true });
+const servir = (manifestes: Record<string, unknown>) => servirLesModeles(appel, COMMITES, manifestes);
 
 describe('le corps des combattants dans la vue', () => {
   let vue: VueDuPont;

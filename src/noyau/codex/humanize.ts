@@ -676,7 +676,9 @@ export function humanizeFlow(f: Flow, etats: readonly EtatDeclare[]): string {
     }
     case 'test': {
       const who = testSkillLabel(f.test) ?? t('codex.flow.unTest');
-      const sujet = `${deElide(who)}${f.test.gate ? t('codex.flow.jetGate', { cond: humanizeCondition(f.test.gate, etats) }) : ''}`;
+      // lecture déclarée : la fiche Codex dit la Condition d'accès authorée
+      const { gate } = f.test;
+      const sujet = `${deElide(who)}${gate ? t('codex.flow.jetGate', { cond: humanizeCondition(gate, etats) }) : ''}`;
       return t(f.test.opposed ? 'codex.flow.jetOppose' : 'codex.flow.jet', { sujet, ok: humanizeFlow(f.success, etats), ko: humanizeFlow(f.fail, etats) });
     }
     case 'choice': {

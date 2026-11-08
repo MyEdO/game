@@ -15,6 +15,8 @@
  * encore `error` le voit juste rejeté par `parseMessage` (→ null) et retombe sur la fermeture
  * silencieuse préexistante ; un invité à jour affiche le motif précis.
  */
+import { estObjet } from '../../lib/objet.mjs';
+
 export const PROTOCOL_VERSION = 2;
 
 export type NetMessage =
@@ -37,8 +39,8 @@ export function parseMessage(raw: string): NetMessage | null {
   } catch {
     return null;
   }
-  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
-  const m = v as Record<string, unknown>;
+  if (!estObjet(v)) return null;
+  const m = v;
   switch (m.kind) {
     case 'hello':
       return typeof m.protocol === 'number' && typeof m.build === 'string' && typeof m.label === 'string'
@@ -49,8 +51,8 @@ export function parseMessage(raw: string): NetMessage | null {
         ? { kind: 'intent', action: m.action, args: m.args, seat: m.seat }
         : null;
     case 'snapshot':
-      return m.data != null && typeof m.data === 'object' && !Array.isArray(m.data)
-        ? { kind: 'snapshot', data: m.data as Record<string, unknown> }
+      return estObjet(m.data)
+        ? { kind: 'snapshot', data: m.data }
         : null;
     case 'paquetDeCampagne':
       return typeof m.label === 'string' && Array.isArray(m.scenes) && typeof m.startSceneId === 'string'

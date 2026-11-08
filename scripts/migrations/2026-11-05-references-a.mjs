@@ -16,11 +16,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const FICHIERS = ['src/data/traumas.json'];
 
-const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const fautes = [];
 let gestes = 0;
 
