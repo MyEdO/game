@@ -5,6 +5,8 @@
  *   `harvest.rarity`                                          idem, plus « Unique » → `unique`
  *   `harvest.danger`                                          « Inquiétante » → `inquietante`…
  *
+ * Entrées : `src/data/{trappings,creatures,vehicles,mass-battle,disponibilite}.json` (lues et réécrites).
+ *
  * La marque `ND` du livre (LDB 62 l.31) n'est pas un palier : jamais touchée.
  * Lecteurs : `availabilitySchema`, `dispoPctAvailabilitySchema`, `harvestRaritySchema`, `harvestDangerSchema`
  * (`src/data/schemas/grammaire/valeurs.ts`), dont les libellés d'affichage sont les anciennes valeurs.
