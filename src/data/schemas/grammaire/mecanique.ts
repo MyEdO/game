@@ -429,10 +429,10 @@ const DECLARATIONS_D_OPS = {
   /** `offTerrainMod` — passif POSITIONNEL : hors de son terrain d'ÉLECTION, le porteur subit un M
    *  IMPOSÉ (`mSet`, Créature marine MDG 16 l.17 « son M tombe à 1 » ; Aquatique MSRC 15 l.139 → 0),
    *  un malus de DR à TOUS ses Tests (`testDR`) et/ou la suffocation (`suffocates`). Le terrain se
-   *  nomme par un ID du registre (`idDe('terrain')`) : un terrain inconnu est refusé AU PARSE. */
+   *  désigne par `ref('terrain')` : un terrain inconnu est refusé AU PARSE. */
   offTerrainMod: nommerChamps(z.strictObject({
     op: z.literal('offTerrainMod'),
-    terrain: idDe('terrain'),
+    terrain: ref('terrain'),
     mSet: z.number().optional(),
     testDR: z.number().optional(),
     suffocates: z.boolean().optional(),

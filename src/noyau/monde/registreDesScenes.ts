@@ -1,17 +1,20 @@
 /**
  * Registre des scènes (pour les transitions de campagne) : les scènes d'une campagne y entrent
- * quand elle se lance (`chargerLeProjet`) ou se recharge (`reposerPaquetDeCampagne`), jamais à l'import.
+ * quand elle se lance (`chargerLeProjet`) ou se recharge (`reposerPaquetDeCampagne`), jamais à l'import, avec les ponts
+ * de ses navires posés (`poserLesNavires`, #3686).
  */
 import type { Scene } from './scene';
+import { poserLesNavires } from '../planDeNavire';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 
 const sceneRegistry: Record<string, Scene> = {};
 
-export function registerScene(s: Scene): void {
-  sceneRegistry[s.id] = s;
+/** Enregistre la scène `s`, les ponts de ses navires posés, et la rend telle qu'elle entre en jeu. */
+export function registerScene(s: Scene): Scene {
+  return (sceneRegistry[s.id] = poserLesNavires(s));
 }
 
-/** Document AUTHORED de la scène `id`, `undefined` si aucun paquet ne l'a enregistrée. */
+/** Document AUTHORED de la scène `id`, ses navires posés, `undefined` si aucun paquet ne l'a enregistrée. */
 export function sceneDuRegistre(id: string): Scene | undefined {
   return sceneRegistry[id];
 }

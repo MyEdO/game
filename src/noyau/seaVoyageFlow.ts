@@ -109,7 +109,8 @@ import type { Get, Set } from './flowTypes';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import type { CampaignVessel, Jeu } from './etat';
 import { refuserGeste } from './refusVisible';
-import { openWorldTest, composeRollLabel, openSequence, freeCons, rollLine, rollStep, monoStep, tableStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine } from './rollSeam';
+import { openWorldTest, composeRollLabel, openSequence, freeCons, rollStep, monoStep, tableStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine } from './rollSeam';
+import { rollLine } from './ligneDeJet';
 import { type BuiltCascadeStep } from './stepBrand';
 import { startCascade, jouerLaJournee, pushStep, type TableStepDef } from './cascade';
 import { checkPartyWiped } from './partyWipe';
@@ -252,7 +253,7 @@ export interface SeaRecapChrome {
 const SEA_WEEK_DAYS = 8;
 
 /** Précipitations du jour de mer ACTIF (MDG 13 l.185) — la déclaration `pont` d'une ligne de jet
- *  (`rollSeam.rollLine`) hors combat, et la source de `Combatant.envPrecipitation` à l'ouverture d'un combat. `undefined` hors
+ *  (`ligneDeJet.rollLine`) hors combat, et la source de `Combatant.envPrecipitation` à l'ouverture d'un combat. `undefined` hors
  *  voyage maritime. */
 export function activeSeaPrecipitation(get: Get): SeaPrecipitationId | undefined {
   return get().travelPlan?.sea?.weather.precipitations;
@@ -1942,7 +1943,7 @@ function sceneDuPont(coque: { ref: string; nom: string }, label: string, debut: 
     id: BOARDING_SCENE_ID,
     label,
     size: [18, 12],
-    terrain: defautsDeCompilation.pont,
+    terrain: defautsDeCompilation.pont.id,
     ambiance: 'exterieur',
     heroStart: [3, 7],
     startMessage: { texte: debut },

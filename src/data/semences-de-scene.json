@@ -5,12 +5,22 @@
   "maison": "Ce qu'une scène NEUVE reçoit à sa création : aucun folio n'imprime ni l'échelle d'une case, ni le sol de départ, ni la pente d'un toit. Valeurs d'authoring reprises à l'identique de ce que le code posait avant le lot #1716 — 2 m/case et l'éclairage suivi de l'horloge (#841 FU-A), les matières de relief de #1691, la toiture de #1715 (pente 45° et comble d'un étage lus sur la planche de La Diligence, art-ref/page012_img3.png). La façade d'un pan posé à l'éditeur (#3059) est reprise à l'identique de ce que le code posait : l'ossature de bois. Le libellé d'un lieu posé sur la carte du monde, celui d'une carte du monde neuve et celui d'un statbloc personnalisé d'une fiche sans nom sont repris à l'identique de ce que l'éditeur posait (#3059).",
   "ambiance": "exterieur",
   "metresPerTile": 2,
-  "terrain": "herbe",
+  "terrain": {
+    "id": "herbe"
+  },
   "reliefDefaults": {
-    "cliff": "terre",
-    "ramp": "terre",
-    "deck": "pierre",
-    "pilier": "pilier"
+    "cliff": {
+      "id": "terre"
+    },
+    "ramp": {
+      "id": "terre"
+    },
+    "deck": {
+      "id": "pierre"
+    },
+    "pilier": {
+      "id": "pilier"
+    }
   },
   "roofDefaults": {
     "material": "toit-ardoise",

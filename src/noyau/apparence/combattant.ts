@@ -11,7 +11,7 @@ import type { Dir8 } from '../../geometry/dir8';
 import { LOCALISATIONS_DE_COUP } from '../../engine/types';
 import { apparencesCandidates } from '../../engine/items';
 import { findTierEntry } from '../../engine/tables';
-import { findCreatureById, findFicheDeVehicule, findNavalTrait, findGroupeDArmureById, findPlanDEspeceById, findSpeciesById, findTenueDeCarriere, findTeteById, findVehicleById, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
+import { findCreatureById, findFicheDeVehicule, findNavalTrait, findGroupeDArmureById, findPlanDEspeceById, findSpeciesById, findTenueDeCarriere, findTeteById, findVehicleById, piecesDeLObjet, raceAppearance, sexeDuPorteur, weaponGroups, type GroupeDArmure } from '../../data';
 import { armesDuCombattant, emblemeDe } from '../equipementDessine';
 import { facteursDeComposition, porteesDeLaTenue, porteesDesObjets, teinteDeLObjet, type ObjetPorte, type Portee, type PorteeDeComposition } from './composition';
 import { pieceRacine, type EmblemeResolu } from './gardeRobe';
@@ -113,7 +113,7 @@ export function porteeDuCombattant(c: Combatant): PorteeDeComposition | null {
     ...couleursDuCombattant(c),
     facteurs: facteursDeComposition(undefined, race),
     // #3253
-    sex: c.appearance?.sex ?? 'M',
+    sex: sexeDuPorteur(c) ?? 'M',
   };
 }
 

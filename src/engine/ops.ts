@@ -328,7 +328,7 @@ function offTerrainOps(c: Combatant): Extract<GameOp, { op: 'offTerrainMod' }>[]
 /** Terrains d'ÉLECTION requis par les passifs `offTerrainMod` (`eau` pour Créature marine/Aquatique) —
  *  vide = aucune contrainte. Lu par le state (`placeCombatant`) pour poser le drapeau `offTerrain`. PUR. */
 export function requiredTerrains(c: Combatant): string[] {
-  return [...new Set(offTerrainOps(c).map((o) => o.terrain))];
+  return [...new Set(offTerrainOps(c).map((o) => o.terrain.id))];
 }
 
 /** Mouvement IMPOSÉ hors de son terrain (op `offTerrainMod.mSet` — Créature marine : « son M tombe à 1 »,
@@ -1106,7 +1106,7 @@ export type GameOp =
    *  hors du terrain, la créature suffoque (Créature marine : « sinon elles se mettent à suffoquer »,
    *  MDG 16 l.19) — lu par `offTerrainSuffocates`/`suffocationTick`. Inerte dans applyOps (passif pur,
    *  jamais « lancé »). */
-  | { op: 'offTerrainMod'; terrain: string; mSet?: number; testDR?: number; suffocates?: boolean }
+  | { op: 'offTerrainMod'; terrain: { id: string }; mSet?: number; testDR?: number; suffocates?: boolean }
   /** Modificateur d'un ATTRIBUT SECONDAIRE À MAXIMUM (≠ CharKey, ≠ Mouvement) : Blessures (Dur à cuire +BE),
    *  Chance (Chanceux), Détermination (Obstiné). `mod` = formule lue avant tout jet (`{bonusOf:'endurance'}`
    *  pour Dur à cuire). Passif : lu sur TOUT porteur du collecteur `passiveMods` (`sommeAttrMods`) par

@@ -91,11 +91,6 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // Le choix d'une fenêtre (`fenetreChoisir`) : routé sur la fenêtre de son 1ᵉʳ argument, par le siège que son choix
   // déclare (`CHOIX_DES_FENETRES`) ; le choix de l'hôte se refuse dans l'état d'un invité (`refusDuChoix`).
   fenetreChoisir: 'invité',
-  // Infirmerie (hors combat) : patients / actes / chirurgie — l'hôte valide.
-  // Chirurgie : ouvrirLaChirurgie POSE la passe, les verbes de jet sur `surgery` l'influencent,
-  // `jetValider('surgery')` applique, `jetAnnuler('surgery')` annule la passe, `fenetreChoisir('medic', 'abandon', true)`
-  // l'opération.
-  soignerLePatient: 'invité', ouvrirLaChirurgie: 'invité',
   // (Psychologie de COMBAT et à la rencontre : passent par les verbes de jet de la cascade.)
   promouvoirLeCombattant: 'invité',
   // Tir rapide (Talent « Tir rapide ») pendant la pause de début de Round : ARMER la visée depuis la
@@ -192,7 +187,7 @@ type FluxMono = { [K in keyof Table]: Table[K] extends { kind: 'mono' } ? K : ne
 type Ouvreurs<C extends ClasseCoop> = readonly [ActionDeClasse<C>, ...ActionDeClasse<C>[]];
 /**
  * OUVERTURE de chaque flux mono — total sur `FluxMono` : sans ouvreur atteignable, ses verbes exposés
- * sont une surface MORTE.
+ * sont une surface MORTE. Au moins un des trois champs, cumulables :
  *  - `parInvite` : ouvreurs qu'un invité doit pouvoir demander (classe `invité`) ;
  *  - `parHote` : ouvreurs d'un ÉCRAN piloté par l'hôte (classe `hôte`) — le jet, une fois ouvert, est
  *    joué ENTIER par le siège de son porteur (verbes de jet, clôture comprise, routes de `netOwnership`) ;
@@ -200,7 +195,8 @@ type Ouvreurs<C extends ClasseCoop> = readonly [ActionDeClasse<C>, ...ActionDeCl
  * Ses ouvreurs `parHote` fixent leur classe dans `TableDesClasses` : la table n'est donc vérifiée
  * qu'après sa déclaration (`_ouvertureTotale`).
  */
-export type Ouverture = { parInvite: Ouvreurs<'invité'>; interne?: SiteInterne } | { parHote: Ouvreurs<'hôte'> } | { interne: SiteInterne };
+export type Ouverture = { parInvite?: Ouvreurs<'invité'>; parHote?: Ouvreurs<'hôte'>; interne?: SiteInterne }
+  & ({ parInvite: unknown } | { parHote: unknown } | { interne: unknown });
 const OUVERTURE_DES_FLUX = {
   attack: { parInvite: ['cliquerLaCase'] },
   defense: { interne: 'réaction : combatFlow.maybeOpenDefense / openSurfacedDefense' },
@@ -222,8 +218,9 @@ const OUVERTURE_DES_FLUX = {
   frenzy: { parInvite: ['entrerEnFrenesie'] },
   approach: { parInvite: ['cliquerLaCase'] }, // gate de Peur (combatSlice.fearGateBlocks)
   ward: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
-  heal: { parInvite: ['cliquerLaCase', 'soignerLePatient'] }, // ciblage (targetingModes) ; infirmerie
-  surgery: { parInvite: ['ouvrirLaChirurgie'] },
+  // Combat : ciblage (targetingModes). Infirmerie : le brouillon de l'ouverture et du patient choisi (`brouillonTenu`).
+  heal: { parInvite: ['cliquerLaCase', 'fenetreChoisir'], parHote: ['ouvrirLeMedecin'] },
+  surgery: { interne: 'acteDeSoin.lancerLActeDeSoin (jetLancer d’un acte d’opération) et medicFlow.appliquerLaPasse (passe suivante)' },
   corruption: { interne: 'exposition/seuil : combatEffects (Effect) et corruptionFlow.gainCorruption' },
   test: { interne: 'combatEffects.openSkillTest (Effet de scène, dialogue, consommable)' },
   steamSave: { interne: 'panne de vapeur : seaVoyageFlow.openSteamSave' },

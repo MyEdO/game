@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase, combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -68,9 +68,10 @@ describe('jetForcerLaReussite@test — Résilience AVANT le jet', () => {
 
 describe('Résilience pré-jet — autres modales (synthèse de succès)', () => {
   it('soin : avant le jet → réussite garantie (01), 1 Résilience dépensée', () => {
+    // Hors combat, un soin sans jet est le brouillon de l'infirmerie ouverte sur son patient (`brouillonTenu`).
     banc.setState({
-      party: [combattantDeTest({ id: 'h1', label: 'Soigneur', resilience: 1 })],
-      battle: null,
+      party: [combattantDeTest({ id: 'h1', label: 'Soigneur', resilience: 1, wounds: blessuresDeBase(12, 4), skills: [{ id: 'guerison', advances: 10, characteristic: 'intelligence' }] })],
+      battle: null, medic: { patientId: 'h1' },
       pendingHeal: { healerId: 'h1', healerName: 'Soigneur', targetId: 'h1', targetName: 'Soigneur', mode: 'wounds', intBonus: 3, test: 'guerison', bandagesDe: null, sl: 0, success: false, roll: null, target: 50 } as any,
     });
     banc.getState().jetForcerLaReussite('heal');

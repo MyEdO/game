@@ -65,15 +65,19 @@ export function cannotStopOn(battle: BattleState, mover: Combatant): Set<string>
 
 /**
  * Cases TENUES par les combattants que `retenu` garde, en clés z-aware (`path.ts:tileKey`, un combattant
- * n'occupe que SON étage) : l'empreinte (LDB 15 l.12) de chaque combattant positionné et debout. Une
- * STRUCTURE de siège occupe une ARÊTE (mur), pas l'intérieur de sa case d'ancrage : sa `pos` n'est qu'un
- * point d'ancrage pour le CIBLAGE (`wallBetween`/`wallEdges` portent le blocage). Socle de `occupied`,
- * `cannotStopOn` et `translaterFormation`.
+ * n'occupe que SON étage) : l'empreinte (LDB 15 l.12) de chaque combattant positionné et debout. Un combattant
+ * dont la scène porte le corps n'en tient aucune, sa `pos` n'étant qu'un point d'ancrage pour le CIBLAGE : une
+ * STRUCTURE de siège occupe une ARÊTE (mur), pas l'intérieur de sa case d'ancrage (`wallBetween`/`wallEdges`
+ * portent le blocage) ; un navire sur ses ponts (`surSesPonts`, #3686) est ses ponts, où l'on marche (leurs
+ * cloisons portent le blocage). Socle de `occupied`, `cannotStopOn` et `translaterFormation`.
  */
+/** Le corps de `c` est-il porté par la scène : une structure de siège (ses arêtes), un navire sur ses ponts ? */
+const porteParLaScene = (c: Combatant): boolean => isStructure(c) || !!c.surSesPonts;
+
 export function casesTenues(combatants: readonly Combatant[], retenu: (c: Combatant) => boolean): Set<string> {
   const s = new Set<string>();
   for (const c of combatants) {
-    if (isOutOfAction(c) || !c.pos || isStructure(c) || !retenu(c)) continue;
+    if (isOutOfAction(c) || !c.pos || porteParLaScene(c) || !retenu(c)) continue;
     for (const t of footprintTiles(c.pos, footprintN(c))) s.add(tileKey(t.x, t.y, c.pos.z ?? 0));
   }
   return s;
@@ -104,10 +108,11 @@ export function moveEnv(battle: BattleState, mover: Combatant): MoveEnv {
  * cf. `occupied`) n'occupe PAS la case de CHEMIN DE RONDE z1 de mêmes (x,y). Sans ce filtre, survoler/
  * cliquer le dessus d'un rempart viserait la muraille en contrebas → « hors de portée » fantôme et
  * déplacement impossible. SOURCE UNIQUE de « qui est sous cette tuile » pour l'interaction
- * (survol/clic/curseur/clic droit) — remplace les `find(occupiesTile(...))` z-aveugles dispersés.
+ * (survol/clic/curseur/clic droit) — remplace les `find(occupiesTile(...))` z-aveugles dispersés. Un navire sur
+ * ses ponts (`surSesPonts`) n'est sous aucune : on y marche.
  */
 export function combatantAtTile(combatants: Combatant[], x: number, y: number, z = 0): Combatant | undefined {
-  return combatants.find((c) => c.pos && !isOutOfAction(c) && (c.pos.z ?? 0) === z && occupiesTile(c.pos, footprintN(c), x, y));
+  return combatants.find((c) => c.pos && !isOutOfAction(c) && !c.surSesPonts && (c.pos.z ?? 0) === z && occupiesTile(c.pos, footprintN(c), x, y));
 }
 
 /** Case walkable la plus proche du sol (Z-AWARE, #798) : parcourt les couches dans l'ORDRE authoré

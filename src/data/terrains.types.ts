@@ -61,17 +61,17 @@ export interface TerrainDef extends TerrainMeta {
   stops: TerrainStops;
   /** Recette de détail de surface (dallage/mouchetis/touffes), consommée par les deux backends. */
   detail?: DetailRecipe;
-  /** DÉCOR posé en BILLBOARD sur chaque tuile du terrain (id de `props.json`) — rendu par le chemin
-   *  billboard PARTAGÉ (`propSvg`) dans les DEUX backends : iso/éditeur ET POV. Ex. `bois → 'arbre'`.
+  /** DÉCOR posé en BILLBOARD sur chaque tuile du terrain (`ref('prop')`) — rendu par le chemin
+   *  billboard PARTAGÉ (`propSvg`) dans les DEUX backends : iso/éditeur ET POV. Ex. `bois → arbre`.
    *  PRÉSENTATION pure : la physique combat du terrain (walkable/opaque/cover) ne change pas. */
-  overlayProp?: string;
+  overlayProp?: { id: string };
   /** Le terrain est un BLOC PLEIN de cette hauteur (mètres). Sa hauteur d'AFFICHAGE (`buildFloors`)
    *  vaut `heightAt + solidHeightM` → faces verticales + dessus dérivés du relief EXISTANT, dans les
    *  2 backends. N'entre QUE dans le rendu — `heightAt` (vérité combat) reste inchangé. Le bloc
    *  s'AJOUTE à la hauteur propre de la tuile (opéra : mur à un étage). */
   solidHeightM?: number;
-  /** MATIÈRE des faces verticales du bloc plein (id de `materials.json` domaine `relief`, #1691) — le
+  /** MATIÈRE des faces verticales du bloc plein (`ref('material')`, sous-liste `relief`, #1691) — le
    *  builder de sols la LIT au lieu de choisir. EXIGÉE dès que `solidHeightM` est posée, INTERDITE
    *  sinon (un terrain sans bloc n'a pas de flanc à peindre) : le schéma le refine, nommément. */
-  matiere?: string;
+  matiere?: { id: string };
 }

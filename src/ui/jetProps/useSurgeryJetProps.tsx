@@ -33,7 +33,7 @@ export function useSurgeryJetProps(): ComponentProps<typeof RollShell> | null {
   const surgeon = party.find((c) => c.id === ps.healerId); // absent (PNJ médecin) → Chance/Résilience à 0
   const fortune = surgeon?.fortune ?? 0;
   const rolled = ps.roll != null;
-  // La ligne de la passe, figée à son ouverture (`ouvrirLaChirurgie`) : celle que le résolveur jette.
+  // La ligne de la passe, figée à son ouverture (`passeDeLOperation`) : celle que le résolveur jette.
   const l = ps.ligne;
   const actorRow: BuiltRollRow = buildRollRow({
     actor: surgeon,
