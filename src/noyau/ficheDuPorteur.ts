@@ -9,6 +9,7 @@
 import type { Jeu } from './etat';
 import { porteurParId } from './monde/combatants';
 import { nomDIndividu } from './monde/sceneNpc';
+import type { NomDIndividu } from '../engine/psych/ciblage';
 import { CHAR_KEYS, CHAR_LABELS, LOCALISATIONS_DE_COUP, locationLabel, type CharKey, type Combatant } from '../engine/types';
 import { effectiveArmourAt, effectiveChar, forceDuPorteur } from '../engine/characteristics';
 import { effectiveMovement } from '../engine/encumbrance';
@@ -102,10 +103,16 @@ const sortsConnus = (c: Combatant, priere: boolean): EntreeDeLaFiche[] =>
   });
 
 /** La fiche du porteur `id` (`porteurParId` : le combattant en combat, le héros du groupe hors combat), `null` sans
- *  lui ou pour une coque (navire, engin), qui n'a pas de profil de personnage. PUR. */
+ *  lui ou pour une coque (`ficheDuCombattant`). PUR. */
 export function ficheDuPorteur(s: Jeu, id: string): FicheDuPorteur | null {
   const c = porteurParId(s, id);
-  if (!c || isVehicle(c) || isEngin(c)) return null;
+  return c ? ficheDuCombattant(c, nomDIndividu(s)) : null;
+}
+
+/** La fiche du combattant `c`, les individus que nomment ses Traits par `nom` ; `null` pour une coque (navire,
+ *  engin), qui n'a pas de profil de personnage. PUR. */
+export function ficheDuCombattant(c: Combatant, nom: NomDIndividu): FicheDuPorteur | null {
+  if (isVehicle(c) || isEngin(c)) return null;
   const items = c.items ?? [];
   const possessions: PossessionDeLaFiche[] = [];
   for (const it of items) {
@@ -141,7 +148,7 @@ export function ficheDuPorteur(s: Jeu, id: string): FicheDuPorteur | null {
       const pa = effectiveArmourAt(c, l);
       return pa > 0 ? [{ localisation: locationLabel(l, c.bodyShape), pa }] : [];
     }),
-    traits: (c.traits ?? []).map((tp) => ({ libelle: traitLisible(tp, nomDIndividu(s)), desc: effectiveEntry(findTraitById(tp.id))?.desc ?? null })),
+    traits: (c.traits ?? []).map((tp) => ({ libelle: traitLisible(tp, nom), desc: effectiveEntry(findTraitById(tp.id))?.desc ?? null })),
     mutations: (c.mutations ?? []).map((m) => ({ libelle: m.label, desc: m.desc })),
     competences: c.skills.map((sk) => ({
       libelle: skillInstanceLabel(sk), valeur: testValue(c, { skill: sk }),

@@ -15,6 +15,7 @@ import type { Flow } from '../../data/schemas/defs-scenes/effets';
 // seul — aucun cycle runtime.
 import type { z } from 'zod';
 import type { InventaireDAuteur, ReliefDefaults, SceneRoofDefaults, Terrain } from '../../data/schemas/defs-scenes/scene';
+import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type {
   ambianceSchema, architectureBodySchema, architectureEdgeRefSchema, architecturePartSchema, architectureRectSchema,
   architectureStoreySchema, buildingMassSchema, dialogueChoiceSchema, dialogueNodeSchema,
@@ -108,6 +109,12 @@ export interface SceneEntity {
   anim?: RoleAmbiant;
   /** Inventaire d'auteur d'un personnage (`inventaireDAuteurSchema`) : les objets de son combattant au spawn. */
   inventaire?: InventaireDAuteur;
+  /** Parcours de carrière d'un personnage (`ParcoursDeCarriere`) : chaque carrière au Niveau atteint, la dernière
+   *  actuelle ; porté au spawn par `porterAuParcours`. EDO 11 l.17-21 */
+  carrieres?: ParcoursDeCarriere['carrieres'];
+  talentsDeCarriere?: ParcoursDeCarriere['talentsDeCarriere'];
+  competencesDeCarriere?: ParcoursDeCarriere['competencesDeCarriere'];
+  dotationsDeCarriere?: ParcoursDeCarriere['dotationsDeCarriere'];
   /** Source de lumière (brouillard de guerre) : rayon d'éclairage en MÈTRES, la même unité qu'au
    *  catalogue (`PropData.light`, #1507) — c'est `rayonEnCases` (`noyau/monde/vision.ts`) qui le ramène aux
    *  cases de la scène. Override de l'instance ; sinon le rayon vient du TYPE de prop

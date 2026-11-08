@@ -601,6 +601,30 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     expect([boutonDe(retiree, 'inventaire/chemise-de-mailles/porte').presse, retiree.vue.zones['editeur.inspecteur'].some((el) => el.id === 'inventaire/cotte-de-mailles')]).toEqual([true, false]);
   });
 
+  it('un personnage de carrière : une carrière ajoutée, son Niveau, un Talent désigné, une dotation choisie, son profil porté (#773)', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ligneDe = (e: Edition, id: string) => (e.vue.zones['editeur.inspecteur'].find((el) => el.id === id) as Ligne | undefined)?.texte;
+    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/personnage'));
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const pnj = jouer({ geste: 'relache', point: point(1, 1) });
+    expect(ligneDe(pnj, 'carriere/profil/statut'), 'sans carrière, aucun profil').toBeUndefined();
+    const medecin = presser(boutonDe(pnj, 'carriere/ajouter/medecin'));
+    const doktor = presser(boutonDe(medecin, 'carriere/medecin/niveau/3'));
+    expect(boutonDe(doktor, 'carriere/medecin/niveau/3').presse).toBe(true);
+    expect(ligneDe(doktor, 'carriere/profil/statut')).toMatch(/Argent 5/);
+    const chirurgien = presser(boutonDe(doktor, 'carriere/medecin/talents/2/chirurgie'));
+    expect(boutonDe(chirurgien, 'carriere/medecin/talents/2/chirurgie').presse).toBe(true);
+    expect(ligneDe(chirurgien, 'carriere/profil/talents')).toMatch(/Chirurgie/);
+    const soldat = presser(boutonDe(presser(boutonDe(chirurgien, 'carriere/medecin/retirer')), 'carriere/ajouter/soldat'));
+    const hallebardier = presser(boutonDe(presser(boutonDe(soldat, 'carriere/soldat/niveau/2')), 'carriere/dotation/dotation:3/hallebarde'));
+    expect([boutonDe(hallebardier, 'carriere/dotation/dotation:3/hallebarde').presse, boutonDe(hallebardier, 'carriere/dotation/dotation:3/tiree').presse]).toEqual([true, false]);
+    expect(ligneDe(hallebardier, 'carriere/profil/possessions')).toMatch(/Hallebarde/);
+    expect(boutonDe(presser(boutonDe(hallebardier, 'carriere/aleatoire')), 'carriere/aleatoire').presse).toBe(true);
+    expect(ligneDe(presser(boutonDe(hallebardier, 'carriere/soldat/retirer')), 'carriere/profil/statut'), 'sa seule carrière retirée, le profil part').toBeUndefined();
+  });
+
   it('un décor : sa lumière allumée, son rayon au pas, son ton ; son assise ouverte, une place tenue par un emplacement du groupe', () => {
     const { appel } = table();
     const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));

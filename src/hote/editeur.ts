@@ -20,6 +20,9 @@ import {
   type WallPaint, ZONE_VARIANTS, champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
   allMusicDefs, apparencesDeLOuverture, champDuMessage, ciblesDAncreDeBataille, groupesDuLieu,
   equipConflicts, isWearable, objetsDeLInventaire, trappingsInstanciables,
+  candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDEntite, ficheDuCombattant,
+  findCareerById, levelsForCareer, libelleDeLaValeur, parcoursDe, parcoursRetouche, parseRefKey, prisParLesAutres, refKey, refLabel, skillSlots, sousEmplacement, talentSlots,
+  trappingRefLabel, valeursDeLEmplacement, type EmplacementDeDotation, type ParcoursDeCarriere,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -266,8 +269,8 @@ const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: num
 
 /** L'inspecteur de l'entité sélectionnée de la session `s` : son nom ; le type d'un décor, la fiche d'un personnage du
  *  bestiaire ; son cap parmi ceux que son type admet ; sa couche ; la lumière et les places d'un décor ; le poste d'un
- *  emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son embuscade et ses
- *  rencontres ; la supprimer. */
+ *  emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son parcours de carrière, son
+ *  embuscade et ses rencontres ; la supprimer. */
 function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton | Formulaire)[] {
   const fiches = fichesDePersonnage();
   const types = ent.kind === 'prop' ? props : ent.kind === 'personnage' && fiches.some((f) => f.id === ent.ref) ? fiches : [];
@@ -283,7 +286,7 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
     ...(ent.postes?.length || (ent.ref && findVehicleById(ent.ref)?.hull)
       ? equipe(s, ent, 'equipage', ent.crewIds ?? [], (crewIds) => ({ geste: 'entite', patch: { crewIds } }))
       : []),
-    ...(ent.kind === 'personnage' ? [...inventaire(ent), ...rencontres(s, ent)] : []),
+    ...(ent.kind === 'personnage' ? [...inventaire(ent), ...carrieres(s, ent), ...rencontres(s, ent)] : []),
     bouton('entite/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }),
   ];
 }
@@ -405,6 +408,95 @@ function inventaire(ent: Scene['entities'][number]): (Choix | Ligne)[] {
       : [ligne('inventaire', t('ecran.editeur.inventaire.aucun'))]),
     choix('inventaire/ajouter', t('ecran.editeur.inventaire.ajouter'),
       trappingsInstanciables().filter((tr) => !(tr.id in objets)).map((tr) => bouton(`inventaire/ajouter/${tr.id}`, tr.label, ecrire({ ...objets, [tr.id]: false }))), 'liste'),
+  ];
+}
+
+/** Le parcours de carrière du personnage `ent` de la session `s`, s'il part d'une fiche du bestiaire (EDO 11 l.19) :
+ *  chaque carrière, la dernière actuelle, à son Niveau ou à retirer ; les Talents choisis de chacun de ses Niveaux
+ *  atteints ; la Compétence de chacun de ses emplacements à choix ; une carrière à ajouter, qui devient l'actuelle ;
+ *  chaque emplacement de dotation de l'actuelle, l'emplacement de la branche choisie dessous ; les Caractéristiques
+ *  tirées ; puis le profil calculé (`ficheDEntite`). Ce que l'auteur ne choisit pas se tire au spawn (« Tiré »).
+ *  Chaque bouton écrit le parcours entier, retouché (`parcoursRetouche`). */
+function carrieres(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
+  if (ent.statblock || ent.presetId || !fichesDePersonnage().some((f) => f.id === ent.ref)) return [];
+  const p: ParcoursDeCarriere = parcoursDe(ent) ?? { carrieres: {} };
+  const ecrire = (q: ParcoursDeCarriere): GesteDEdition => ({ geste: 'entite', patch: { parcours: parcoursRetouche(q) } });
+  const actuelle = carriereActuelle(p);
+  const refusDeTenue = ent.appearance?.tenue ? t('ecran.editeur.carriere.tenue') : null;
+  const tiree = (id: string, choisi: boolean, jeu: GesteDEdition) => bouton(`${id}/tiree`, t('ecran.editeur.carriere.tiree'), jeu, choisi);
+  const etapes = Object.entries(p.carrieres).flatMap(([id, niveau]) => {
+    const levels = levelsForCareer(id);
+    const cle = `carriere/${id}`;
+    const talents = p.talentsDeCarriere?.[id] ?? [];
+    const competences = p.competencesDeCarriere?.[id] ?? [];
+    const slots = skillSlots(levels, niveau);
+    const { designations } = designationsDeCarriere(id, niveau, competences);
+    const sans = <T>(table: Readonly<Record<string, T>> | undefined, cle: string) => Object.fromEntries(Object.entries(table ?? {}).filter(([c]) => c !== cle));
+    return [
+      choix(cle, t(id === actuelle?.id ? 'ecran.editeur.carriere.actuelle' : 'ecran.editeur.carriere', { carriere: findCareerById(id)!.label }), [
+        ...levels.map((l) => bouton(`${cle}/niveau/${l.level}`, t('ecran.editeur.carriere.niveau', { n: l.level, niveau: l.label }), ecrire({ ...p, carrieres: { ...p.carrieres, [id]: l.level } }), l.level === niveau)),
+        bouton(`${cle}/retirer`, t('ecran.editeur.carriere.retirer'), ecrire({ ...p, carrieres: sans(p.carrieres, id), ...(id === actuelle?.id ? { dotationsDeCarriere: undefined } : {}) })),
+      ]),
+      ...levels.filter((l) => l.level <= niveau).map((l) => {
+        const offerts = [...new Set(talentSlots(levels, l.level).flatMap(candidatsDuSlot))];
+        return choix(`${cle}/talents/${l.level}`, t('ecran.editeur.carriere.talents', { n: l.level }), offerts.map((k) => {
+          const pris = talents.some((r) => refKey(r.id, r.spec) === k);
+          const autres = talents.filter((r) => refKey(r.id, r.spec) !== k);
+          return bouton(`${cle}/talents/${l.level}/${k}`, refLabel('talents', parseRefKey(k)), ecrire({ ...p, talentsDeCarriere: { ...p.talentsDeCarriere, [id]: pris ? autres : [...talents, parseRefKey(k)] } }), pris);
+        }), 'liste');
+      }),
+      ...slots.filter((sl) => sl.needsChoice).map((sl) => {
+        const designee = designations[sl.key];
+        const pris = prisParLesAutres(sl, slots, designations);
+        const i = competences.findIndex((r) => refKey(r.id, r.spec) === designee);
+        const autres = competences.filter((_, j) => j !== i);
+        const poser = (refs: typeof competences) => ecrire({ ...p, competencesDeCarriere: { ...p.competencesDeCarriere, [id]: refs } });
+        const id_ = `${cle}/competence/${sl.key}`;
+        return choix(id_, sl.entry, [
+          tiree(id_, !designee, poser(autres)),
+          ...candidatsDuSlot(sl).filter((k) => k === designee || !pris.has(k)).map((k) => bouton(`${id_}/${k}`, refLabel('skills', parseRefKey(k)), poser([...autres, parseRefKey(k)]), k === designee)),
+        ], 'liste');
+      }),
+    ];
+  });
+  const choisis = p.dotationsDeCarriere ?? {};
+  const dotation = (e: EmplacementDeDotation): Choix[] => {
+    const v = choisis[e.adresse];
+    const sous = e.sorte === 'branches' && typeof v === 'number' ? sousEmplacement(e, v) : undefined;
+    const id = `carriere/dotation/${e.adresse}`;
+    const poser = (x?: number | string) => ecrire({ ...p, dotationsDeCarriere: { ...Object.fromEntries(Object.entries(choisis).filter(([a]) => a !== e.adresse)), ...(x === undefined ? {} : { [e.adresse]: x }) } });
+    return [choix(id, e.sorte === 'branches' ? t('ecran.editeur.carriere.dotation') : trappingRefLabel(e.ref), [
+      tiree(id, v === undefined, poser()),
+      ...valeursDeLEmplacement(e).map((x) => bouton(`${id}/${x}`, libelleDeLaValeur(e, x), poser(x), v === x)),
+    ], 'liste'), ...(sous ? dotation(sous) : [])];
+  };
+  return [
+    ...etapes,
+    choix('carriere/ajouter', t('ecran.editeur.carriere.ajouter'), careers.filter((c) => !(c.id in p.carrieres))
+      .map((c) => bouton(`carriere/ajouter/${c.id}`, c.label, ecrire({ ...p, carrieres: { ...p.carrieres, [c.id]: 1 }, dotationsDeCarriere: undefined }), false, refusDeTenue)), 'liste'),
+    ...(actuelle ? emplacementsDeDotation(dotationsDuPnj(actuelle.id, actuelle.niveau)).filter(estEmplacementRacine).flatMap(dotation) : []),
+    bouton('carriere/aleatoire', t('ecran.editeur.carriere.aleatoire'), { geste: 'entite', patch: { aleatoire: !ent.combat?.randomChars } }, !!ent.combat?.randomChars),
+    ...(actuelle ? profilDeCarriere(s, ent, actuelle) : []),
+  ];
+}
+
+/** Le profil calculé du personnage de carrière `ent` de la session `s` (`ficheDEntite`, `ficheDuCombattant`) : le Niveau
+ *  atteint de sa carrière actuelle et son Statut, ses Caractéristiques et ses Blessures, ses Compétences à la valeur de
+ *  leur Test, ses Talents et ses possessions. */
+function profilDeCarriere(s: SessionDEdition, ent: Scene['entities'][number], actuelle: { id: string; niveau: number }): Ligne[] {
+  const entites = sceneEditee(s).entities;
+  const fiche = ficheDuCombattant(ficheDEntite(ent, presetDuNarratif(s.projet.narratif)), (id) => {
+    const e = entites.find((x) => x.id === id);
+    return e && nomALEcran(s, e);
+  })!;
+  const niveau = levelsForCareer(actuelle.id).find((l) => l.level === actuelle.niveau)!;
+  const liste = (cle: 'competences' | 'talents' | 'possessions', elements: string[]) => ligne(`carriere/profil/${cle}`, t(`ecran.editeur.carriere.profil.${cle}`, { liste: elements.join(', ') || t('ecran.editeur.carriere.profil.aucun') }));
+  return [
+    ligne('carriere/profil/statut', t('ecran.editeur.carriere.profil.statut', { niveau: niveau.label, statut: niveau.status })),
+    ligne('carriere/profil/caracteristiques', t('ecran.editeur.carriere.profil.caracteristiques', { liste: fiche.caracteristiques.map((c) => `${c.abrege} ${c.valeur}`).join(' · '), blessures: fiche.blessures[1] })),
+    liste('competences', fiche.competences.map((c) => `${c.libelle} ${c.valeur}`)),
+    liste('talents', fiche.talents.map((x) => (x.fois > 1 ? `${x.libelle} ×${x.fois}` : x.libelle))),
+    liste('possessions', fiche.possessions.map((x) => (x.nombre > 1 ? `${x.libelle} (${x.nombre})` : x.libelle))),
   ];
 }
 

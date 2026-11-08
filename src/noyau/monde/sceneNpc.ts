@@ -9,6 +9,7 @@ import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { Scene, SceneEntity } from './scene';
 import { spawnEnemy } from './spawn';
 import type { PorteurDeFiche } from '../../engine/statblock';
+import { parcoursDe } from '../../engine/pnjDeCarriere';
 import { nomDePreset, presetDuNarratif, resolvePresetCreature, type ResolveurDePreset } from './resolveursDuNarratif';
 import type { NomDIndividu } from '../../engine/psych/ciblage';
 import type { Jeu } from '../etat';
@@ -17,15 +18,16 @@ import { typeNonNomme } from '../../data/schemas/defs-scenes/scene';
 import { findCreatureById, profilsStandard, refEntiteResolue } from '../../data';
 
 /** Le porteur de fiche d'une entité et l'apparence qui l'accompagne — preset de PNJ nommé (#671),
- *  statbloc, puis réf, dans cet ordre ; `undefined` si elle n'en porte aucun, ou si son preset ou sa réf
- *  ne se résout pas (#1882). `presetDe` résout un preset (`nomDEntite`). */
+ *  statbloc, puis réf, portée à son parcours de carrière s'il en a un (`parcoursDe`, #773), dans cet ordre ;
+ *  `undefined` si elle n'en porte aucun, ou si son preset ou sa réf ne se résout pas (#1882). `presetDe` résout
+ *  un preset (`nomDEntite`). */
 function porteurDeFiche(ent: SceneEntity, presetDe: ResolveurDePreset): { porteur: PorteurDeFiche; appearance?: EntityAppearance } | undefined {
   if (ent.presetId) { // `''` n'est pas un porteur (`typeNonNomme`, `defs-scenes/scene.ts`)
     const preset = resolvePresetCreature(ent.presetId, presetDe);
     return preset && { porteur: { presetCreature: preset.creature, presetId: ent.presetId }, appearance: { ...preset.apparence, ...ent.appearance } };
   }
   if (ent.statblock) return { porteur: { statblock: ent.statblock }, appearance: ent.appearance };
-  if (ent.ref) return refEntiteResolue(ent.ref) ? { porteur: { ref: ent.ref }, appearance: ent.appearance } : undefined;
+  if (ent.ref) return refEntiteResolue(ent.ref) ? { porteur: { ref: ent.ref, parcours: parcoursDe(ent) }, appearance: ent.appearance } : undefined;
   return undefined;
 }
 
