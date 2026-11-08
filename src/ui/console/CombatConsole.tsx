@@ -621,7 +621,7 @@ export function CombatConsole() {
     const couvertes = new Set(
       offres2e.filter((p) => candidats.includes(p.porteurId)).flatMap((p) => p.offres.map((o) => o.actionId)),
     );
-    return ACTIONS.filter((a) => a.surface === 'geste-secondaire' && a.hote === def.id && couvertes.has(a.id))
+    return ACTIONS.filter((a) => a.surface === 'geste-secondaire' && a.hote?.id === def.id && couvertes.has(a.id))
       .map((a) => cellFor(a.id, family, { key: `${a.id}-${candidats.join('-')}`, args, label: progres ? `${a.label} (${progres})` : undefined }))
       .filter((c): c is Cell => !!c);
   };

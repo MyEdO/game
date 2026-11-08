@@ -334,7 +334,9 @@
     "label": "Focaliser",
     "icon": "flag/focus",
     "surface": "geste-secondaire",
-    "hote": "cast-spell",
+    "hote": {
+      "id": "cast-spell"
+    },
     "gate": [
       "action-libre-hors-frenesie",
       "sort-focalisable"
