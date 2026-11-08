@@ -14,6 +14,11 @@ import math
 import time
 from pathlib import Path
 
+ETENDUE_DU_STUDIO = 1.82
+"""L'étendue, en mètres, pour laquelle les puissances des lumières du studio sont réglées : la hauteur du corps de la
+base humanoïde. Les lumières se placent à des distances proportionnelles à l'étendue du modèle ; leur puissance suit son
+carré, pour que l'éclairement d'un modèle ne dépende pas de sa taille."""
+
 
 def lire_silhouettes(texte):
     """Les poids de `--silhouettes`, `nom=poids[,nom=poids]` : {nom: poids}."""
@@ -145,7 +150,7 @@ def main():
 
     def area(name, location, power, size, color):
         lamp = bpy.data.lights.new(name, 'AREA')
-        lamp.energy = power
+        lamp.energy = power * (extent / ETENDUE_DU_STUDIO) ** 2
         lamp.shape = 'DISK'
         lamp.size = size
         lamp.color = color

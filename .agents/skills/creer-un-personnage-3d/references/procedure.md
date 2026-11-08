@@ -15,6 +15,13 @@ Ouvrir réellement l'illustration ; décrire ce qui est visible. Si elle manque 
 obtenir la référence avant de prétendre la reproduire. Illustration, contrat, captures et fiches
 de mesures restent hors dépôt. Garder provenance et licences des donneurs.
 
+La provenance cite chaque illustration par sa ligne de l'`INDEX.md` du recueil de référence (id
+de `src/data`, fichier, livre et page), jamais par une copie : les images restent hors dépôt,
+droits de l'éditeur. Chaque mesure se lit sur une illustration ou une donnée du jeu nommée (une
+longueur de `vehicles.json`, une échelle en pixels par mètre relevée sur le profil) ; une mesure
+qu'aucune ne donne est une **hypothèse**, listée comme telle dans la provenance avec sa valeur et
+sa raison, pour que la revue la tranche.
+
 Un élément est construit pour **une base identifiée**, avec son GLB, son manifeste complet haché
 et les preuves de sa porte d'animation L1. Sur l'humanoïde : squelette UAL, corps UBC compatible,
 chaînes et pistes cuites, zones, emplacements, prises, silhouettes et table de gabarit.
@@ -95,11 +102,19 @@ Lire la table exécutable des catégories avant d'écrire le manifeste :
 | rigide | apparence | `src/data/apparences.json` | rigide |
 | trait | trait | non résolu à l'import | squelette |
 | decor | prop | non résolu à l'import ; design : `src/data/props.json` | rigide |
-| vehicule | definition | non résolu à l'import | rigide |
+| vehicule | definition | coque de `src/data/vehicles.json` ou engin `armes-de-siege` de `src/data/trappings.json` | rigide |
 
 Chaque surface, quelle que soit la catégorie, nomme le matériau du GLB et l'emplacement de palette
 dont il prend la couleur (`{ "nom", "palette" }`, `SLOTS` de `src/lib/palette.ts`, `hotes/godot/asset/surfaces.ts`) ;
 la palette d'une composition donne à chaque emplacement une couleur du nuancier.
+
+Un élément sans base (`decor`, `vehicule`) se construit dans un repère fixe : en glTF, son avant
+vers +Z, sa gauche vers +X (bâbord d'un navire), son origine au sol ou, pour un navire, à la ligne
+de flottaison, son emprise recentrée en x et z ; l'hôte le pose sur son empreinte et le tourne vers
+son cap sans lire d'autre repère. Il se construit en mètres réels : l'hôte le réduit à son empreinte.
+Ce qui se monte, s'équipe ou s'améliore (arme, pièce d'artillerie, Amélioration de navire) n'est
+jamais modelé dans l'élément qui le porte : il est son propre élément, monté à un emplacement, ou à
+un poste d'un véhicule ; le porteur garde au plus son logement vide (sabord ouvert, fût de mât).
 
 Un champ de clé qui a sa ligne dans `CHAMPS` (`ecartsDeCleDElement`,
 `src/noyau/apparence/cleDElement.ts`) est résolu à l'import contre le fichier que nomme la colonne : absent, l'import le refuse `cle-inconnue` ; une pièce
@@ -124,7 +139,10 @@ accessoire ; ses ids viennent des zones de la base. Une couverture déclarée re
 Seuls un vêtement et une armure peuvent ajouter/déplacer des emplacements, ids d'emplacement de
 `src/data/garde-robe.json` (`emplacement-inconnu` sinon) ; un accessoire dont l'emplacement n'est
 offert ni par sa base ni par une pièce de cette base va au rapport de l'index (`emplacement-non-offert`,
-`hotes/godot/asset/modeles.ts`) : il s'importe et se publie, mais l'atelier ne le sert à aucun point. Chaînes et silhouettes optionnelles doivent exister dans la base. La liaison de manifeste ne contient que son mode.
+`hotes/godot/asset/modeles.ts`) : il s'importe et se publie, mais l'atelier ne le sert à aucun point. Seul un véhicule
+offre des `postes` : par bord (`proue`, `tribord`, `poupe`, `babord`, `FIRE_ARCS`), les positions `[x, y, z]` de sa scène, en
+mètres glTF, sa proue vers +Z et tribord vers -X, où se montent dans l'ordre les pièces des postes de ce bord, chacune
+tournée vers lui (`bord-inconnu` sinon). Chaînes et silhouettes optionnelles doivent exister dans la base. La liaison de manifeste ne contient que son mode.
 
 **`faceFlip`** : chaque tête porte la shape key `visage_inverse`. C'est une clé de la tête, pas de
 la base : elle ne se déclare pas parmi les silhouettes (`silhouette-absente`). Le design la fait

@@ -2,10 +2,11 @@
  * CE QUE PORTE UN COMBATTANT (#2972 J5, #3253, #3456) : un autre producteur des `Portee` d'une composition
  * (`porteeDeComposition`), lu sur son état : sa race de rendu, sa tête, ses armes tenues puis rangées, ses objets
  * équipés qui revêtent des pièces, son armure (`armuresDuCombattant`), chacun par le seul assembleur d'objet
- * (`porteesDesObjets`), la tenue de sa carrière, et son emblème ; ou, véhicule ou engin, sa fiche et son empreinte
- * (`vehiculeDuCombattant`, #2987).
+ * (`porteesDesObjets`), la tenue de sa carrière, et son emblème ; ou, véhicule ou engin, sa fiche, son empreinte, son
+ * cap et les pièces de ses postes à un bord (`vehiculeDuCombattant`, #2987).
  */
-import type { Combatant, HitLocation, ItemInstance } from '../../engine/types';
+import type { Combatant, FireArc, HitLocation, ItemInstance } from '../../engine/types';
+import type { Dir8 } from '../../geometry/dir8';
 import { LOCALISATIONS_DE_COUP } from '../../engine/types';
 import { apparencesCandidates } from '../../engine/items';
 import { findTierEntry } from '../../engine/tables';
@@ -106,14 +107,27 @@ export function porteeDuCombattant(c: Combatant): PorteeDeComposition | null {
   };
 }
 
+/** La pièce d'un poste à un bord d'un véhicule (`Combatant.postes`, MDG 12) : l'id de sa fiche (`item.trappingId`) et son
+ *  bord. */
+export interface PosteDuVehicule {
+  readonly definition: string;
+  readonly bord: FireArc;
+}
+
 /** Un véhicule ou un engin de siège au combat : l'id de sa fiche, que nomme la clé `definition` d'un élément 3D
- *  `vehicule`, et le côté N de son empreinte (`footprintN`). */
+ *  `vehicule`, le côté N de son empreinte (`footprintN`), son cap (`Jeu.facing`, le nord sans cap, comme au combat) et
+ *  les pièces de ses postes à un bord, dans leur ordre. */
 export interface VehiculeDuCombattant {
   readonly definition: string;
   readonly empreinte: number;
+  readonly cap: Dir8;
+  readonly postes: readonly PosteDuVehicule[];
 }
 
-/** Le véhicule que `c` est, si sa fiche est une coque ou un engin de siège (`findFicheDeVehicule`, #2987), sinon `null`. */
-export function vehiculeDuCombattant(c: Combatant): VehiculeDuCombattant | null {
-  return c.creatureId !== undefined && findFicheDeVehicule(c.creatureId) ? { definition: c.creatureId, empreinte: footprintN(c) } : null;
+/** Le véhicule que `c`, au cap `cap`, est, si sa fiche est une coque ou un engin de siège (`findFicheDeVehicule`, #2987),
+ *  sinon `null`. */
+export function vehiculeDuCombattant(c: Combatant, cap: Dir8 | undefined): VehiculeDuCombattant | null {
+  if (c.creatureId === undefined || !findFicheDeVehicule(c.creatureId)) return null;
+  const postes = (c.postes ?? []).flatMap(({ item, side }) => (side && item.trappingId ? [{ definition: item.trappingId, bord: side }] : []));
+  return { definition: c.creatureId, empreinte: footprintN(c), cap: cap ?? 'N', postes };
 }

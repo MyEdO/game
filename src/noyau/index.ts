@@ -14,7 +14,7 @@ export type { Jeton } from './plateforme';
 export { horlogeVirtuelle, type Programme } from './horlogeVirtuelle';
 export { argsAvecVerdictLocal, porteesDuTour, preparerLIntentLocal } from './localIntent';
 export { previewAttack, activeCombatant } from './combatFlow';
-export { DIFFICULTY_LABELS, LOCALISATIONS_DE_COUP, type Difficulty } from '../engine/types';
+export { DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_COUP, type Difficulty, type FireArc } from '../engine/types';
 export { formatMoney } from '../engine/money';
 export { dayIndex, formatImperial, formatJourImperial } from '../engine/clock';
 export { conditionLabel, findVehicleById, lightLevels, lightTones, matieresCouvrantes, matieresDe, props, siegeEngines, structureAppearances } from '../data';
@@ -32,7 +32,7 @@ export { ecartsDeCleDElement, libelleDeCleDElement, type CodeDEcartDeCle } from 
 export { emplacementDePiece, estEmplacement, pieceRacine, emblemeDuPorteur, type EmblemeResolu } from './apparence/gardeRobe';
 export type { GabaritResolu } from './apparence/gabarit';
 export { cataloguesDeComposition, emplacementsDeRangement, lireComposition, lireSurchargesDEmblemes, porteeDeComposition, presetDeComposition, type Composition, type LectureAuSchema, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from './apparence/composition';
-export { porteeDuCombattant, vehiculeDuCombattant, type VehiculeDuCombattant } from './apparence/combattant';
+export { porteeDuCombattant, vehiculeDuCombattant, type PosteDuVehicule, type VehiculeDuCombattant } from './apparence/combattant';
 export type { Sexe } from '../data/schemas/grammaire/valeurs';
 export { SLOTS } from '../lib/palette';
 export { mouvementDuTour } from './mount';

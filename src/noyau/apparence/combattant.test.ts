@@ -10,14 +10,14 @@ import { porteeDuCombattant, vehiculeDuCombattant } from './combattant';
 import { facteursDeComposition, porteesDeLaTenue } from './composition';
 import { piecesDEnsemble } from './gardeRobe';
 import { createHero } from '../../engine/character';
-import { itemFromGive, loadoutCreate, loadoutSetActive, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
+import { hydratePoste, itemFromGive, loadoutCreate, loadoutSetActive, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
 import { findCreatureById, findGroupeDArmureById, findPlanDEspeceById, findSpeciesById, findTenueDeCarriere, findTrappingById, piecesCouvrant, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
 import { findTierEntry } from '../../engine/tables';
 import { resetData, setDataset } from '../../data/overrides';
 import { localisationsDeLoc } from '../../engine/classementDeTrait';
 import { spawnEnemy } from '../monde/spawn';
 import { ficheDEntite } from '../monde/sceneNpc';
-import type { Combatant, ItemInstance } from '../../engine/types';
+import type { Combatant, FireArc, ItemInstance } from '../../engine/types';
 
 const REIKLANDER = 'humains-reiklander';
 
@@ -163,9 +163,14 @@ describe('porteeDuCombattant', () => {
 
 describe('vehiculeDuCombattant (#2987)', () => {
   const fiche = (ref: string): Combatant => spawnEnemy({ ref }, `${ref}-1`, { x: 0, y: 0 });
+  const poste = (trappingId: string, side?: FireArc) => hydratePoste({ trappingId, ...(side ? { side } : {}) }, 'poste-de-test');
   it.each([['caraque', 4], ['barque-fluviale', 1], ['canon-petit', 1], ['belier-ade2', 2]] as const)('%s, coque ou engin de siège : sa fiche et le côté de son empreinte, sans portée', (ref, empreinte) => {
     const c = fiche(ref);
-    expect([vehiculeDuCombattant(c), porteeDuCombattant(c)]).toEqual([{ definition: ref, empreinte }, null]);
+    expect([vehiculeDuCombattant(c, undefined), porteeDuCombattant(c)]).toEqual([{ definition: ref, empreinte, cap: 'N', postes: [] }, null]);
   });
-  it('une créature n’est pas un véhicule', () => expect(vehiculeDuCombattant(creature('loup'))).toBeNull());
+  it('son cap, et les pièces de ses seuls postes à un bord, dans leur ordre', () => {
+    const c = { ...fiche('caraque'), postes: [poste('canon-moyen', 'tribord'), poste('canon-petit'), poste('canon-grand', 'proue'), poste('canon-moyen', 'tribord')] };
+    expect(vehiculeDuCombattant(c, 'SE')).toEqual({ definition: 'caraque', empreinte: 4, cap: 'SE', postes: [{ definition: 'canon-moyen', bord: 'tribord' }, { definition: 'canon-grand', bord: 'proue' }, { definition: 'canon-moyen', bord: 'tribord' }] });
+  });
+  it('une créature n’est pas un véhicule', () => expect(vehiculeDuCombattant(creature('loup'), 'N')).toBeNull());
 });
