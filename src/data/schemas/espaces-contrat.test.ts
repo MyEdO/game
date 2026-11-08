@@ -20,7 +20,7 @@ import { IDS_PAR_ESPACE } from './_ids.generated';
 import { SCHEMA_DEFS } from './_registry.generated';
 import './_registry-scenes.generated';
 import '../index';
-import { dansLaSousListe, espacesDesignes, idDe, mesureDuParse, refOuSpec } from './grammaire/ref';
+import { dansLaSousListe, espacesDesignes, idDe, mesureDuParse, refOuSpec, TYPES } from './grammaire/ref';
 import { collectionsDuDocument, listeCle } from './grammaire/collection-cle';
 import { HORS_DE_LA_GRAPHIE, baseDe, cleDeLaLecture, cleFiltree, cleDesLibelles, cleDesSpecs, estPrefixeDeSuite, lireCleDEspace, pasDeLaSuite, porteLeChampMarqueur, suiteAvecPas, vocabulaireDuFichier, type PasDeSuite, type SousListeMarquee } from './grammaire/cle-d-espace';
 import { VOCABULAIRES } from './grammaire/vocabulaires';
@@ -125,9 +125,10 @@ describe('INDEX DES IDS — chaque cible a son espace', () => {
     expect(vues, 'une sous-liste dont le fichier n’est pas un document de src/data').toEqual(new Set(sousListes));
   });
 
-  it('un vocabulaire du moteur (`VOCABULAIRES`) est un espace indexé ssi une source le prend pour univers ou pool, ses ids dans l’ordre de sa table', () => {
+  it('un vocabulaire (`VOCABULAIRES`) est un espace indexé ssi une source le prend pour univers ou pool ou un type de `TYPES` pour espace, ses ids dans l’ordre de sa table', () => {
     const sources = Object.values(SOURCES_DE_SPECS as Record<string, SourceDeSpecs>);
-    const designes = new Set(sources.flatMap((s) => [s.univers, s.pool ?? s.univers]).filter((c) => vocabulaireDuFichier(c) !== undefined));
+    const designes = new Set([...sources.flatMap((s) => [s.univers, s.pool ?? s.univers]), ...Object.values(TYPES).map((t) => t.espace)].filter((c) => vocabulaireDuFichier(c) !== undefined));
+    expect(designes, 'un registre TS d’art déclaré espace d’un type (#2968 P-art)').toContain('vocabulaire:fonds');
     expect(CLES.filter((c) => vocabulaireDuFichier(c) !== undefined).sort()).toEqual([...designes].sort());
     for (const cle of designes) expect(IDS_PAR_ESPACE[cle], cle).toEqual(Object.keys(VOCABULAIRES[vocabulaireDuFichier(cle) as keyof typeof VOCABULAIRES]));
   });

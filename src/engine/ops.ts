@@ -702,7 +702,7 @@ export type GameOp =
    *  avec elle », enchantements de l'arme neutralisés). Porté par le PORTEUR
    *  (ActiveEffect.enchantRef) + l'objet (`ItemInstance.enchants`), replié dans l'arme à la résolution
    *  (`applyEnchants`). `damageBonus` résolu contre le LANCEUR (BSoc du prêtre). */
-  | { op: 'augmentWeapon'; /** ids STABLES de qualité (`QualityRef.id`) — relus par `parseQuality` ; jamais un libellé. */ addQualities?: string[]; damageBonus?: Formula; bypass?: ArmourBypass; requiresWeapon?: string[];
+  | { op: 'augmentWeapon'; /** ids STABLES de qualité (`QualityRef.id`), jamais un libellé. */ addQualities?: string[]; damageBonus?: Formula; bypass?: ArmourBypass; requiresWeapon?: string[];
       /** Qualités RETIRÉES par id STABLE (VDM 05 — Arme enchantée : « retirer 1 Défaut de l'arme »).
        *  Retire aussi les qualités de FAMILLE du Groupe d'arme, qui sont sur le même plan RAW. */
       removeQualities?: string[];

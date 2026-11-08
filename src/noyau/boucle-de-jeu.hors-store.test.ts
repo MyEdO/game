@@ -4,7 +4,7 @@
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { parseQualityInstance } from '../engine/qualities/normalize';
+import { parseQualityInstance } from '../data/refFormatLivre';
 import { resetFields } from './stateFields';
 import { acheterAuPanier } from './marchand.testkit';
 import type { BattleState } from './etat';

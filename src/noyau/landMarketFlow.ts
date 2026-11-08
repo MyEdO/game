@@ -131,7 +131,7 @@ function genererHalle(get: Get, set: Set, rng: RNG, phase: (label: string) => vo
   // surchargé PAR LIEU par le profil de marché — la halle a un visage et une voix comme le marchand.
   const marcheDef = findLieuServiceById('marche');
   const hostLine = market.hostLine ?? marcheDef?.hostLine;
-  const backdrop = market.backdrop ?? marcheDef?.backdrop;
+  const backdrop = (market.backdrop ?? marcheDef?.backdrop)?.id;
   set({ landMarket: { placeId: cur.placeId, label: cur.label, market: structuredClone(market), offers, hostLine, backdrop } }); // #2097
 }
 

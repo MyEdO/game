@@ -94,7 +94,7 @@ import { battleRng } from '../noyau/battleRng';
 import { applyOps } from '../engine/ops';
 import { acquerirTalent } from '../engine/careerSlots';
 import { grantTrait } from '../engine/grantedTraits';
-import { parseQualityInstance } from '../engine/qualities/normalize';
+import { parseQualityInstance } from '../data/refFormatLivre';
 import { formatImperial } from '../engine/clock';
 import { testScenarios } from '../scenes/test-scenarios';
 import type { TestScenario } from '../scenes/test-scenarios/_shared';

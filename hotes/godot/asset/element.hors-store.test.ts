@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { baseDeTest, elementSchema3, GLB_AU_POSTE, GLB_DE_BASE, GLB_D_ELEMENT, GLB_SANS_BASE, glbDElement, vehiculeDeTest } from './modeles.testkit.ts';
+import { baseDeTest, elementSchema3, GLB_AU_POSTE, GLB_DE_BASE, GLB_D_ELEMENT, GLB_SANS_BASE, glbANoeuds, glbDElement, vehiculeDeTest } from './modeles.testkit.ts';
 import { empreinte } from './empreinte.ts';
 import { CATEGORIES_D_ELEMENT, emplacementsNonOfferts, estSansBase, REGLES_DES_CATEGORIES, validerElement, type BaseDUnElement, type CategorieDElement, type CodeDEcartDElement } from './element.ts';
 import { ecrireGlb, lireGlb } from './glb.ts';
@@ -133,6 +133,11 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['forme', 'pièce d’Amélioration sans `montage`', manifeste('amelioration', { montage: undefined })],
   ['forme', 'montage inconnu', manifeste('amelioration', { montage: 'coque' })],
   ['etat-absent', 'pièce montée aux postes sans ses nœuds `ouvert` et `ferme`', manifeste('amelioration', { cle: { amelioration: 'sabord' }, montage: 'postes' })],
+  ['champ-hors-categorie', '`selon` sur un décor', manifeste('decor', { selon: {} })],
+  ['cle-inconnue', '`selon` d’un Trait naval, qui n’est pas une Amélioration', manifeste('vehicule', { selon: { robuste: {} } })],
+  ['forme', '`postes` au `selon` d’une pièce d’Amélioration, qui n’offre pas de postes', manifeste('amelioration', { selon: { sabord: { postes: {} } } })],
+  ['bord-inconnu', 'poste d’une Amélioration à un bord qui n’en est pas un', manifeste('vehicule', { selon: { sabord: { postes: { flanc: [[3, 0.3, 0]] } } } })],
+  ['selon-absent', 'nœud `sans-sabord` sans `selon.sabord`', ...surGlb('vehicule', { surfaces: [{ nom: 'metal', palette: 'metal' }] }, glbANoeuds(['coque', 'sans-sabord']))],
   ['forme', 'surface sans emplacement de palette', manifeste('rigide', { surfaces: [{ nom: 'plaque', teinte: true }] })],
   ['palette-inconnue', 'clé de palette inconnue', manifeste('trait', { surfaces: [{ nom: 'peau', palette: 'or' }] })],
   ['forme', 'blason autre que `true`', manifeste('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', blason: false }] })],
@@ -153,7 +158,7 @@ describe('validerElement : chaque refus nommé', () => {
     const attendus: Record<CodeDEcartDElement, true> = {
       forme: true, 'version-inconnue': true, 'categorie-inconnue': true, 'champ-hors-categorie': true, 'cle-mal-formee': true, 'cle-inconnue': true, 'piece-hors-categorie': true, 'base-differente': true,
       'liaison-hors-categorie': true, 'couche-hors-categorie': true, 'zone-inconnue': true, 'chaine-absente': true, 'emplacement-sur-os-absent': true, 'emplacement-inconnu': true,
-      'silhouette-absente': true, 'bord-inconnu': true, 'etat-absent': true, 'palette-inconnue': true, 'surface-absente': true, 'uv-absente': true, 'glb-different': true,
+      'silhouette-absente': true, 'bord-inconnu': true, 'etat-absent': true, 'selon-absent': true, 'palette-inconnue': true, 'surface-absente': true, 'uv-absente': true, 'glb-different': true,
       'rigide-sans-mesh': true, 'rigide-sur-os-absent': true, 'rigide-a-la-racine': true, 'rigide-skinne': true,
     };
     expect(new Set(REFUS.map(([code]) => code))).toEqual(new Set(Object.keys(attendus)));
@@ -235,6 +240,24 @@ describe('validerElement : une pièce d’Amélioration navale (#2987)', () => {
   it('sans ses états, les absents sont nommés', () => {
     expect(verdict(manifeste('amelioration', { cle: { amelioration: 'sabord' }, montage: 'postes' }))).toEqual({
       ok: false, ecarts: [{ code: 'etat-absent', ou: 'montage', detail: 'une pièce montée aux postes porte un nœud à mesh par état, `ouvert`, `ferme` : `ouvert`, `ferme` absent du GLB' }],
+    });
+  });
+});
+
+describe('validerElement : ce qui change selon une Amélioration (#2987)', () => {
+  const GLB = glbANoeuds(['coque', 'avec-sabord', 'sans-sabord']);
+  const SURFACES = [{ nom: 'metal', palette: 'metal' }];
+  it('un véhicule nomme à son `selon` l’Amélioration de ses nœuds `avec-` et `sans-`, et les postes qu’elle offre', () => {
+    const caraque = manifeste('vehicule', { surfaces: SURFACES, selon: { sabord: { postes: { babord: [[4, 0.3, 4]] } } } }, GLB);
+    expect(verdict(caraque, GLB)).toEqual({ ok: true, manifeste: caraque });
+  });
+  it('une pièce d’Amélioration, ses seuls nœuds', () => {
+    const blindage = manifeste('amelioration', { cle: { amelioration: 'blindage-fer' }, surfaces: SURFACES, selon: { sabord: {} } }, GLB);
+    expect(verdict(blindage, GLB)).toEqual({ ok: true, manifeste: blindage });
+  });
+  it('chaque nœud dont le `selon` ne nomme pas l’Amélioration est nommé', () => {
+    expect(verdict(manifeste('vehicule', { surfaces: SURFACES }, GLB), GLB)).toEqual({
+      ok: false, ecarts: ['avec-sabord', 'sans-sabord'].map((nom) => ({ code: 'selon-absent', ou: 'selon', detail: `${nom} change selon \`sabord\`, que \`selon\` ne nomme pas` })),
     });
   });
 });

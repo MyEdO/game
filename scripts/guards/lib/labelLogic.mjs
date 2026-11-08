@@ -515,13 +515,8 @@ export const DETTES_DE_LIBELLE = {
   'src/noyau/monde/clues.ts#label-literal': 2,
   'src/noyau/combatEffects.ts#label-literal': 1,
   'src/ui/CarnetScreen.tsx#label-literal': 3,
-  // #1924 — résolveur libellé→id (`qualityIdByLabel`) appelé depuis le moteur.
-  'src/engine/qualities/normalize.ts#label-entity-resolver-call': 1,
   // #1330 — `conditionIdInText` : le journal FR re-parsé par libellé d'État.
   'src/engine/conditions.ts#face-affichage-identite': 1,
-  // #2070 — scénarios de test résolus par libellé (`findSkill`/`findTalent`).
-  'src/scenes/test-scenarios/_casters.ts#label-entity-resolver-call': 2,
-  'src/scenes/test-scenarios/magie-hors-combat.ts#label-entity-resolver-call': 1,
   // #1632 — sort classé par libellé (`classifySpellByLabel`).
   'src/gameIso/fx/spellClips.ts#label-entity-resolver-call': 1,
 };
@@ -1004,6 +999,8 @@ export const RATCHET_EXCEPTIONS = {
     'Parseur de SAISIE « format livre » : le nom de Talent saisi retrouve son id (`findTalent`, #909).',
   'data/refFormatLivre.ts#idDeTraitSaisi#label-entity-resolver-call':
     'Parseur de SAISIE « format livre » : le nom de Trait saisi retrouve son id (`traitIdByLabel`, #909).',
+  'data/refFormatLivre.ts#parseQuality#label-entity-resolver-call':
+    'Parseur de SAISIE « format livre » : le nom de qualité saisi retrouve son id (`qualityIdByLabel`, #3691).',
   'data/refFormatLivre.ts#argDeTraitSaisi#label-entity-resolver-call':
     'Parseur de SAISIE « format livre » : l’argument saisi d’un Trait à registre retrouve son id (`specIdByLabel`, #909).',
   // Résolveurs par LIBELLÉ de la couture de chargement/saisie (#909) — chacun est reconnu par
