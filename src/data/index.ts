@@ -2207,6 +2207,9 @@ export interface SpellData {
   // IMPURES (`push`/`teleport`/`chain`, on:'caster') dans `effects`, résolus par combatFlow (cf. engine/ops).
   /** Sort « Souffle » (LDB 47 l.503) : délégué à l'attaque de ZONE du Trait Souffle. */
   breathAttack?: true;
+  /** Titre et livre VO d'un sort qu'un livre fan traduit — `schemas/defs/spells.ts` (#3666). */
+  titreVO?: string;
+  livreVO?: { id: string };
   /** OPPOSITION de la cible (multijet dans la modale d'incantation).
    *  `resist` : Test opposé par la caractéristique/compétence `characteristic`/`skill` de la cible.
    *  `contact` : Sort de Portée Contact — frappe via Test opposé de Corps à corps (Bagarre). */
