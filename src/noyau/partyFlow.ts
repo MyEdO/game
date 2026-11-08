@@ -7,7 +7,7 @@ import { Combatant, CharKey, CHAR_LABELS, ItemInstance } from '../engine/types';
 import { choisirApparenceDObjet, recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetSlot, equipConflicts, canStow, isOffHandEligible, setADeuxMains } from '../engine/items';
 import type { Possession } from '../engine/possession';
 import { possessionLabel } from '../engine/possession';
-import { resolveCarrier, porteurLocalise, porteurDeLObjet, refusSansPorteur, refusDuHerosPorteur } from './monde/carrier';
+import { resolveCarrier, porteurLocalise, porteurDeLObjet, refusSansPorteur, refusDuHerosPorteur, lotDeLObjet, sansLeLot, avecLeLot, ecrireLesPorteurs } from './monde/carrier';
 import { carriersColocated } from '../engine/cargo';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refusDepensePx, refusDInventaire, refusDuBackground, refuseSi } from './verrousDeFiche';
@@ -30,6 +30,7 @@ import {
   freeSlotFor,
   designateSlot,
   talentAcquisitions,
+  acquerirTalent,
 } from '../engine/careerSlots';
 import { applyTalentAcquisition, fortuneMax, resolveMax, competenceEnCarriere, talentEnCarriere } from '../engine/talentEffects';
 import { heroSessionXp, regainDetermination } from '../engine/session';
@@ -52,6 +53,7 @@ import { persisterLeHeros } from './plateforme';
 import { creditBourse, payWithAllocation, refusDeBourse, soloPayer } from './bourseFlow';
 import { ensureBourse, bourseOf, withBourseMoney } from '../engine/bourse';
 import { transmettreLaPossession } from './possessionsFlow';
+import { poserLObjet } from './objetsAuSol';
 
 import type { Get, Set } from './flowTypes';
 import { herosDeLEngagement, verdictDEngagement, type HerosEngage } from './creation/engagement';
@@ -302,50 +304,13 @@ export function transmettreLObjet(get: Get, set: Set, uid: string, toCarrierId: 
   if (!carriersColocated(porteurLocalise(from), porteurLocalise(to))) {
     return void refuserGeste(get, set, t('pf.giveNotColocated', { from: carrierLabel(from), to: carrierLabel(to), item: item.label }));
   }
-  const contents = item.container ? fromItems.filter((i) => i.inside === item.uid) : [];
+  const lot = lotDeLObjet(fromItems, uid);
   const fromLabel = carrierLabel(from);
   const toLabel = carrierLabel(to);
-  const movedUids = new Set([uid, ...contents.map((i) => i.uid)]);
-
-  set((s) => {
-    let patch: Partial<Pick<Jeu, 'party' | 'battle' | 'possessions'>> = {};
-    if (from.kind === 'hero' || to.kind === 'hero') {
-      const heros = [...(from.kind === 'hero' ? [fromCarrierId] : []), ...(to.kind === 'hero' ? [toCarrierId] : [])];
-      patch = ecrireActeur(s, heros, (h) => {
-        const c: Combatant = structuredClone(h);
-        if (h.id === fromCarrierId) c.items = (c.items ?? []).filter((i) => !movedUids.has(i.uid));
-        else {
-          c.items = [
-            ...(c.items ?? []),
-            { ...item, equipped: false, inside: undefined }, // arrive NON équipé, LIBRE
-            ...contents.map((i) => ({ ...i, equipped: false })), // contenu du contenant, lien `inside` préservé
-          ];
-        }
-        recomputeLoadout(c);
-        return c;
-      });
-    }
-    if (from.kind === 'possession' || to.kind === 'possession') {
-      patch.possessions = s.possessions.map((p) => {
-        if (from.kind === 'possession' && p.uid === fromCarrierId) {
-          const c: Possession = structuredClone(p);
-          c.items = c.items.filter((i) => !movedUids.has(i.uid));
-          return c;
-        }
-        if (to.kind === 'possession' && p.uid === toCarrierId) {
-          const c: Possession = structuredClone(p);
-          c.items = [
-            ...c.items,
-            { ...item, equipped: false, inside: undefined },
-            ...contents.map((i) => ({ ...i, equipped: false })),
-          ];
-          return c;
-        }
-        return p;
-      });
-    }
-    return patch;
-  });
+  set((s) => ecrireLesPorteurs(s, {
+    [fromCarrierId]: (items) => sansLeLot(items, lot),
+    [toCarrierId]: (items) => avecLeLot(items, lot, to.kind === 'hero'),
+  }));
   get().ecrireAuJournal(t('pf.give', { from: fromLabel, item: item.label, to: toLabel }));
 }
 
@@ -536,9 +501,9 @@ export function acheterLeTalent(get: Get, set: Set, heroId: string, talentId: st
 }
 
 /** Apprend/mémorise un sort (LDB 46 l.16-20 + Talents LDB 10) : coût en PX selon la
- *  famille (engine/grimoire.spellCost) ; un sort appris par Magie du Chaos inflige AUSSI
- *  +1 Point de Corruption (« le Sort s'insinue dans votre esprit ») — appliqué par
- *  l'appelant store (seuil → mutation). */
+ *  famille (engine/grimoire.spellCost) ; un sort payé par Magie du Chaos est une prise de plus du
+ *  Talent, bornée par son Maxi (`acquerirTalent`, LDB 10 l.704-708), et tout sort de Magie du Chaos
+ *  inflige AUSSI +1 Point de Corruption, appliqué par l'appelant store (seuil → mutation). */
 export function acheterLeSort(get: Get, set: Set, heroId: string, spellId: string, opts: { discountXp?: number } = {}): { ok: boolean; chaos?: boolean } {
   let msg = '';
   let result: { ok: boolean; chaos?: boolean } = { ok: false };
@@ -563,12 +528,18 @@ export function acheterLeSort(get: Get, set: Set, heroId: string, spellId: strin
       msg = manque;
       return h;
     }
+    const talent = eligibleTalent(clone, sp)!;
+    const chaos = talent.kind === 'chaos';
+    if (chaos && full > 0 && !acquerirTalent(clone, { id: talent.talentId, spec: talent.spec })) {
+      msg = t('adv.talentMax');
+      return h;
+    }
     clone.xp = (clone.xp ?? 0) - cost;
     clone.spells = [...(clone.spells ?? []), sp.id]; // runtime = id de sort (pas le libellé)
     msg = cost > 0
       ? t('pf.spellLearned', { name: clone.label, spell: sp.label, cost, remise: cost < full ? t('pf.fragSpellDiscount', { n: full - cost }) : '' })
       : t('pf.spellGranted', { name: clone.label, spell: sp.label });
-    result = { ok: true, chaos: eligibleTalent(clone, sp)?.kind === 'chaos' };
+    result = { ok: true, chaos };
     return clone;
   })) return { ok: false };
   if (msg) get().ecrireAuJournal(msg);
@@ -930,6 +901,7 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     supprimerLaPanoplie: (heroId, id) => supprimerLaPanoplie(get, set, heroId, id),
     garnirLaPanoplie: (heroId, id, slot, uid) => garnirLaPanoplie(get, set, heroId, id, slot, uid),
     transmettreLObjet: (uid, toHeroId) => transmettreLObjet(get, set, uid, toHeroId),
+    poserLObjet: (uid) => poserLObjet(get, set, uid),
     poserLApparence: (uid, apparence) => poserLApparence(get, set, uid, apparence),
     accorderLesPx: (heroId, amount) => accorderLesPx(get, set, heroId, amount),
     acheterLaCaracteristique: (heroId, char) => acheterLaCaracteristique(get, set, heroId, char),

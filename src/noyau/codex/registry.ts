@@ -31,6 +31,7 @@ import {
 import type { FoyerDeRegle, RaceKey, SourceRef } from '../../data/schemas/grammaire/valeurs';
 import { availabilitySchema, harvestDangerSchema, harvestRaritySchema, symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
 import { buildingAnchorSchema } from '../../data/schemas/defs/buildings';
+import { reliefDefaultsSchema } from '../../data/schemas/defs-scenes/scene';
 import type { EnveloppeDocument } from '../../data/schemas/grammaire/document';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { shipSizeSchema } from '../../data/schemas/grammaire/valeurs';
@@ -329,11 +330,11 @@ const damageFact = (t: { damage: import('../../engine/types').WeaponDamageSpec |
 
 /** Nom d'auteur d'un décor de `props.json` (le catalogue n'a pas de catégorie Codex et aucun écran ne
  *  l'écrit, `defs/props.ts`) — lecture VIVANTE du dataset ; l'id nu tient lieu de
- *  nom pour une référence hors catalogue, que le parse refuse nominativement (`idDe('prop')`). */
+ *  nom pour une référence hors catalogue, que le parse refuse nominativement (`ref('prop')`). */
 const propLabel = (id: string): string => props.find((p) => p.id === id)?.label ?? id;
 
 /** Nom d'auteur d'une matière de `materials.json` — lecture VIVANTE ; sa sous-liste se juge au parse
- *  (`idDe('material', …)`), l'id nu tient lieu de nom hors catalogue. */
+ *  (`ref('material', …)`), l'id nu tient lieu de nom hors catalogue. */
 const matiereLabel = (id: string): string => materials.find((m) => m.id === id)?.label ?? id;
 
 /** Famille d'une race/variante : « Humains (Reiklander) » → « Humains ». */
@@ -1631,6 +1632,7 @@ const CODEX_SPECS = {
         fact(tr('codex.fiche.cible'), s.target ? formatSpellTarget(s.target) : null),
         fact(tr('codex.fiche.duree'), s.duration ? formatSpellDuration(s.duration) : null),
         // Projectile magique (#2 data-driven) : Dégâts additifs + DR + BFM, ignore éventuellement PA/BE.
+        fact(tr('codex.fiche.origineVO'), s.titreVO ? join(s.titreVO, s.livreVO ? refLabel('books', s.livreVO) : null) : null),
         fact(tr('codex.fiche.projectile'), s.missile ? tr('codex.fiche.degatsDrBfm', { v: s.damage ? `${s.damage} + ` : '', v2: s.ignorePA ? tr('codex.fiche.ignorePa') : '', v3: s.ignoreBE ? tr('codex.fiche.ignoreBe') : '' }) : null),
       ),
       sections: sections(
@@ -1916,10 +1918,10 @@ const CODEX_SPECS = {
           { t: 'kv', k: tr('codex.fiche.metresParCase'), v: `${semencesDeScene.metresPerTile} m` },
           // Absent = `auto` : l’éclairage suit l’horloge (même convention que `Scene.ambientLight`).
           { t: 'kv', k: tr('codex.fiche.eclairage'), v: semencesDeScene.ambientLight ?? tr('codex.fiche.automatiqueSuitLHorloge') },
-          { t: 'kv', k: tr('codex.fiche.solDeDepart'), v: semencesDeScene.terrain.id },
-          { t: 'kv', k: tr('codex.fiche.matieresDeRelief'), v: Object.entries(semencesDeScene.reliefDefaults).map(([part, mat]) => `${part} : ${mat.id}`).join(' · ') },
-          { t: 'kv', k: tr('codex.fiche.toiture'), v: tr('codex.fiche.combleEtageS', { material: semencesDeScene.roofDefaults.material, pitchDeg: semencesDeScene.roofDefaults.pitchDeg, riseMaxStoreys: semencesDeScene.roofDefaults.riseMaxStoreys }) },
-        ] as CodexRow[],
+          { t: 'kv', k: tr('codex.fiche.solDeDepart'), v: refLabel('terrains', semencesDeScene.terrain) },
+          { t: 'kv', k: tr('codex.fiche.matieresDeRelief'), v: Object.entries(semencesDeScene.reliefDefaults).map(([part, mat]) => `${libelleDuChamp(part, { noeud: reliefDefaultsSchema, niveau: 'profondeur' })} : ${matiereLabel(mat.id)}`).join(' · ') },
+          { t: 'kv', k: tr('codex.fiche.toiture'), v: tr('codex.fiche.combleEtageS', { material: matiereLabel(semencesDeScene.roofDefaults.material.id), pitchDeg: semencesDeScene.roofDefaults.pitchDeg, riseMaxStoreys: semencesDeScene.roofDefaults.riseMaxStoreys }) },
+        ],
       }),
     }],
   },
@@ -1932,10 +1934,10 @@ const CODEX_SPECS = {
       sections: sections({
         title: tr('codex.fiche.ceQueLeCompilateurPoseA'), layout: 'list',
         rows: [
-          { t: 'kv', k: tr('codex.fiche.cheminDeRonde'), v: defautsDeCompilation.cheminDeRonde.id },
-          { t: 'kv', k: tr('codex.fiche.masseDUnMurPlein'), v: defautsDeCompilation.masse.id },
-          { t: 'kv', k: tr('codex.fiche.pontDeNavire'), v: defautsDeCompilation.pont.id },
-        ] as CodexRow[],
+          { t: 'kv', k: tr('codex.fiche.cheminDeRonde'), v: refLabel('terrains', defautsDeCompilation.cheminDeRonde) },
+          { t: 'kv', k: tr('codex.fiche.masseDUnMurPlein'), v: refLabel('terrains', defautsDeCompilation.masse) },
+          { t: 'kv', k: tr('codex.fiche.pontDeNavire'), v: refLabel('terrains', defautsDeCompilation.pont) },
+        ],
       }),
     }],
   },
@@ -2036,7 +2038,7 @@ const CODEX_SPECS = {
       const nom = (cle: string) => libelleDuChamp(cle, { meta });
       return buildings.map((b) => depuisEnveloppe(b, {
         meta: facts(
-          fact(nom('roofMaterial'), matiereLabel(b.roofMaterial)),
+          fact(nom('roofMaterial'), matiereLabel(b.roofMaterial.id)),
           fact(
             nom('features'),
             b.features?.length

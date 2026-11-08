@@ -325,22 +325,18 @@ export const sceneWeatherSchema = enumNomme(
 /** Côté d'égout bas (OBLIGATOIRE pour `shed`, ignoré sinon). */
 export const eaveSideSchema = z.enum(['N', 'E', 'S', 'O']);
 /**
- * Matière de COUVERTURE d'une masse : la porte est la fabrique canonique (`idDe('material', 'roof')`),
- * qui refine l'id AU PARSE contre la sous-liste `roof` de `materials.json` — une matière de décor ou de
- * relief posée sur un toit n'entre pas. La FORME DE SORTIE, elle, est DÉCLARÉE `string` et non inférée
- * (même patron que `RefASpecialisation`, `grammaire/ref.ts`) : `BuildingMass`/`RoofDefaults` sont des
- * `z.infer` LUS par l'éditeur et par la dérivation, où la matière est une valeur de `<select>` et un
- * littéral d'authoring — y faire remonter la marque de type imposerait un `as` à chaque site de saisie.
- * Que la matière COUVRE vraiment un pan (champ `couverture`) reste un sous-filtre de SCÈNE, dit par
- * `noyau/validateScene.ts` : le domaine `roof` porte aussi le « plan » vu du dessus.
+ * Matière de COUVERTURE d'une masse : `ref('material')` sur la sous-liste `roof` de `materials.json` (une
+ * matière de décor ou de relief posée sur un toit n'entre pas). La FORME DE SORTIE est DÉCLARÉE `{ id: string }`
+ * et non inférée (même patron que `RefASpecialisation`, `grammaire/ref.ts`) : `BuildingMass`/`RoofDefaults`
+ * sont des `z.infer` LUS par l'éditeur et par la dérivation, où la matière se pose depuis une valeur de
+ * `<select>` et un littéral d'authoring. Que la matière COUVRE vraiment un pan (champ `couverture`) reste un
+ * sous-filtre de SCÈNE, dit par `noyau/validateScene.ts` : le domaine `roof` porte aussi le « plan » vu du
+ * dessus.
  */
-const couvertureSchema: z.ZodType<string, string> = idDe('material', 'roof');
-/**
- * TYPE de bâtiment d'un corps architectural (`buildings.json`) : même porte et MÊME patron de sortie
- * que `couvertureSchema` ci-dessus — `ArchitectureBody` est un `z.infer` LU par l'éditeur, où le type
- * est une valeur de `<select>`, et par l'authoring TS des scénarios.
- */
-const typeDeBatimentSchema: z.ZodType<string, string> = idDe('building');
+const couvertureSchema: z.ZodType<{ id: string }, { id: string }> = ref('material', undefined, 'roof');
+/** TYPE de bâtiment d'un corps architectural : `ref('building')`, sortie élargie comme `couvertureSchema`
+ *  (`ArchitectureBody` est lu par l'éditeur et par l'authoring TS des scénarios). */
+const typeDeBatimentSchema: z.ZodType<{ id: string }, { id: string }> = ref('building');
 /** Matière de RELIEF — `ref('material')` sur la sous-liste `relief` de `materials.json` (une couverture de
  *  toit ou une matière de décor posée sur une falaise n'entre pas), sortie élargie comme `couvertureSchema`. */
 const matiereReliefSchema: z.ZodType<{ id: string }, { id: string }> = ref('material', undefined, 'relief');

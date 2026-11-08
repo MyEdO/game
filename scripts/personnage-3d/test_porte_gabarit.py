@@ -12,7 +12,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 from porte_gabarit import normaliser, verifier_gabarit  # noqa: E402
-from glb import ecrire_glb, lire_accesseur  # noqa: E402
+from glb import ecrire_glb, lire_accesseur, souder_les_normales_des_cibles  # noqa: E402
 
 
 class PorteGabarit(unittest.TestCase):
@@ -50,9 +50,11 @@ class PorteGabarit(unittest.TestCase):
     def tearDown(self):
         self.dossier.cleanup()
 
-    def verifier(self):
+    def verifier(self, souder=False):
         self.document['buffers'] = [{'byteLength': len(self.binaire)}]
         ecrire_glb(self.chemin, self.document, self.binaire)
+        if souder:
+            souder_les_normales_des_cibles(self.chemin)
         sortie = io.StringIO()
         with contextlib.redirect_stdout(sortie):
             verifier_gabarit(self.chemin, self.reference)
@@ -223,6 +225,38 @@ class PorteGabarit(unittest.TestCase):
     def test_coins_fusionnes_avec_positions_au_dessus_du_seuil_refusent_par_la_porte(self):
         self.fusionner_les_coins()
         self.reference['positions'][0, 3, 0] += 2e-5
+        with self.assertRaisesRegex(RuntimeError, 'porte refusée'):
+            self.verifier()
+
+    def couture(self):
+        """Une pièce `bras` contre `corps`, de couture le sommet (0, 0, 0) : la cible y penche la normale de chaque pièce
+        de son côté, et l'oracle porte la normale de chaque pièce (#3380)."""
+        p = np.array([[0, 0, 0], [-1, 0, 0], [0, -1, 0]], dtype=np.float32)
+        n = np.tile([0, 0, 1], (3, 1)).astype(np.float32)
+        d = np.tile([0, 0, .1], (3, 1)).astype(np.float32)
+        penche = np.zeros((3, 3), dtype=np.float32)
+        penche[0, 0] = -.3
+        self.perturber('NORMAL', .3)
+        bras = {'attributes': {'POSITION': self.acceder(p), 'NORMAL': self.acceder(n)},
+                'indices': self.acceder(np.arange(3, dtype=np.float32)),
+                'targets': [{'POSITION': self.acceder(d), 'NORMAL': self.acceder(penche)}]}
+        self.document['meshes'].append({'name': 'bras', 'extras': {'targetNames': ['gabarit_legs_moins']},
+                                        'primitives': [bras]})
+        self.reference['base'] = np.concatenate([self.reference['base'], p])
+        self.reference['triangles'] = np.array([[0, 1, 2], [3, 4, 5]])
+        self.reference['meshes'] = np.array(json.dumps([{'nom': 'corps', 'triangles': [0, 1], 'coins': [0, 3]},
+                                                        {'nom': 'bras', 'triangles': [1, 2], 'coins': [3, 6]}]))
+        self.reference['positions'] = np.concatenate([self.reference['positions'], [p + d]], axis=1)
+        self.reference['normales'] = np.tile([0., 0, 1], (1, 6, 1))
+        self.reference['normales'][0, [0, 3], 0] = [.3, -.3]
+        self.reference['normales_silhouettes'] = np.tile([0., 0, 1], (1, 6, 1))
+
+    def test_une_couture_soudee_passe_contre_l_oracle_soude_de_meme(self):
+        self.couture()
+        self.assertLess(self.verifier(souder=True)[0]['normale_max_deg'], 1e-4)
+
+    def test_une_couture_non_soudee_refuse(self):
+        self.couture()
         with self.assertRaisesRegex(RuntimeError, 'porte refusée'):
             self.verifier()
 

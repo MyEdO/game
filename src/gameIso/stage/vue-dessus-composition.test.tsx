@@ -44,7 +44,7 @@ const TOIT: BuildingMass = {
   profile: 'gable',
   ridge: 'x',
   pitchDeg: 45,
-  material: 'tuile',
+  material: { id: 'tuile' },
 };
 
 let root: Root | null = null;
@@ -66,7 +66,7 @@ function scèneDeCloisons(): Scene {
 /** La même, coiffée d'une masse : de quoi mesurer que les TOITS ne se dessinent pas non plus. */
 function scèneCoiffée(): Scene {
   const scene = scèneDeCloisons();
-  scene.architecture = [{ id: 'maison', label: 'Maison', style: 'maison', storeys: [], facades: [], masses: [TOIT] }];
+  scene.architecture = [{ id: 'maison', label: 'Maison', style: { id: 'maison' }, storeys: [], facades: [], masses: [TOIT] }];
   return scene;
 }
 

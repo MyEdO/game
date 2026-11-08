@@ -59,7 +59,7 @@ function options(cfg: RefFieldCfg, noeud: unknown): string[] {
 
 describe('sélecteur de feuille `idDe` — la sous-liste du schéma se lit sur le nœud du champ', () => {
   it('témoin : les champs restreints du Codex sont trouvés (Terrains › Matière, Bâtiments › Couverture)', () => {
-    expect(CHAMPS_RESTREINTS.map(([nom]) => nom)).toEqual(expect.arrayContaining(['terrains.matiere.id', 'buildings.roofMaterial']));
+    expect(CHAMPS_RESTREINTS.map(([nom]) => nom)).toEqual(expect.arrayContaining(['terrains.matiere.id', 'buildings.roofMaterial.id']));
   });
 
   it.each(CHAMPS_RESTREINTS)('%s : aucune fermeture `filter`, options = ids admis par la feuille au registre', (_nom, cfg, noeud, admis) => {

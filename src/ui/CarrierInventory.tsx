@@ -77,6 +77,7 @@ export function CarrierInventory({
   const party = useGame((s) => s.party);
   const possessions = useGame((s) => s.possessions);
   const gameTime = useGame((s) => s.gameTime);
+  const scene = useGame((s) => s.scene);
   // Registre (#492 lot POSSESSIONS B) : un clic ÉLIT une seule rangée à la fois (ré-clic désélectionne).
   const [selectedUid, setSelectedUid] = useState<string | null>(null);
   const carrier = { items };
@@ -102,7 +103,7 @@ export function CarrierInventory({
   const renderRow = (it: ItemInstance, indent = false): ReactNode => {
     const isProsthesis = it.subType === 'protheses'; // prothèse (LDB 73, Groupe id) : se PORTE pour annuler un malus d'amputation
     const isCape = isCapeItem(it); // cape/manteau : emplacement Cape (cosmétique, onglet Combat)
-    const gestes = gestesDeLObjet({ battle, party, possessions, gameTime }, carrierId, it.uid);
+    const gestes = gestesDeLObjet({ battle, party, possessions, gameTime, scene }, carrierId, it.uid);
     const isWeaponItem = it.kind === 'melee' || it.kind === 'ranged';
     const handLabel = isWeaponItem ? (weaponHandLabel?.(it) ?? null) : null;
     // Surbrillance « équipé » : arme tenue dans le set ACTIF (défaut `it.equipped`) ; sinon armure portée.

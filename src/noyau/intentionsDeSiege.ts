@@ -131,7 +131,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   retirerLaComposante: 'hôte', ecrireLHistorique: 'hôte', rompreLaFaveur: 'hôte',
   ouvrirLeMedecin: 'hôte', evaluerLObjet: 'hôte', evaluerLeButin: 'hôte',
   // ── Possessions / inventaire / équipement (lot coop non ouvert) ───────────────────────────────
-  equiperLObjet: 'hôte', rangerLObjet: 'hôte', transmettreLObjet: 'hôte', poserLApparence: 'hôte',
+  equiperLObjet: 'hôte', rangerLObjet: 'hôte', transmettreLObjet: 'hôte', poserLObjet: 'hôte', poserLApparence: 'hôte',
   garnirLaPanoplie: 'hôte', creerLaPanoplie: 'hôte', supprimerLaPanoplie: 'hôte',
   cederLaPossession: 'hôte', renommerLaPossession: 'hôte', recupererLaPossession: 'hôte',
   remiserLaPossession: 'hôte', embarquer: 'hôte', debarquer: 'hôte',

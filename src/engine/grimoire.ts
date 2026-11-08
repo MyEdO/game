@@ -119,6 +119,13 @@ export function talentOuvre(t: Pick<CasterTalent, 'kind' | 'spec'>, spell: Spell
   return true;
 }
 
+/** Sorts connus que seule la Magie du Chaos ouvre : un par prise du Talent (LDB 10 l.706-708). */
+function sortsDesPrises(c: Combatant): number {
+  const talents = casterTalents(c);
+  return (c.spells ?? []).map(findSpellById).filter((sp): sp is SpellData =>
+    sp !== undefined && talents.some((t) => t.kind === 'chaos' && talentOuvre(t, sp)) && !talents.some((t) => t.kind !== 'chaos' && talentOuvre(t, sp))).length;
+}
+
 /** Le Talent du héros qui rend CE sort apprenable (`talentOuvre`). */
 export function eligibleTalent(c: Combatant, spell: SpellData): CasterTalent | undefined {
   return casterTalents(c).find((t) => talentOuvre(t, spell));
@@ -164,14 +171,15 @@ export function verdictApprentissage(c: Combatant, spell: SpellData): VerdictApp
  *    à exactement BFM×N connus, le suivant est encore dans la bande N).
  *  - Arcanes : 100 × bande de BInt (mêmes bandes inclusives, rien d'inclus).
  *  - Invocation : le 1er Miracle est inclus au Talent (0), puis 100 × connus.
- *  - Chaos : 100 PX (et +1 Point de Corruption — appliqué par l'acheteur).
+ *  - Chaos : le Sort de chaque prise du Talent est inclus (0, `sortsDesPrises`) ; au-delà, 100 PX, une prise
+ *    de plus (LDB 10 l.706-708), et +1 Point de Corruption dans les deux cas — appliqués par l'acheteur.
  */
 export function spellCost(c: Combatant, spell: SpellData): number | null {
   if (verdictApprentissage(c, spell) !== 'ok') return null;
   if (spell.ritual) return ritualReduction(c, spell)?.xp ?? spell.ritual.xp;
   const fam = eligibleTalent(c, spell)!.kind;
   if (fam === 'beni') return 0;
-  if (fam === 'chaos') return 100;
+  if (fam === 'chaos') return sortsDesPrises(c) < eligibleTalent(c, spell)!.niveau ? 0 : 100;
   const known = knownCount(c, fam);
   if (fam === 'mineure') {
     const band = Math.max(1, bonus(effectiveChar(c, 'force-mentale')));

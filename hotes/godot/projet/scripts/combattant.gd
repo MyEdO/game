@@ -1,7 +1,8 @@
 ## Un combattant du plateau : son corps, la base composée que la vue lui donne (`vue.corps.combattants[id]`,
 ## `hotes/godot/pont/CONTRAT.md`), posée par son montage (`MontageDeComposition`, le nœud `Modele`) à l'échelle métrique
-## du plateau (`vue.plateau.metresParCase`) et animée par les clips de sa base selon leur rôle (`clips` de la réponse de `modeles`) ; son nom et ses
-## Points de Blessures (`pb`) en étiquette au-dessus de sa tête, l'anneau de l'actif. Il glisse vers sa nouvelle case,
+## du plateau (`vue.plateau.metresParCase`) et animée par les clips de sa base selon leur rôle (`clips` de la réponse de
+## `modeles`, ou `clipsDeuxMains` sous son maniement tant qu'il tient un objet des deux mains, `MontageDeComposition.clip`) ;
+## son nom et ses Points de Blessures (`pb`) en étiquette au-dessus de sa tête, l'anneau de l'actif. Il glisse vers sa nouvelle case,
 ## frappe vers une cible, accuse le coup qui le vise et tombe hors de combat. Sans corps, il garde son anneau et son
 ## étiquette, à la hauteur du nom d'une entité (`MiseEnPage.HAUTEUR_DU_NOM`). Véhicule ou engin (`vue.corps.vehicules[id]`,
 ## #2987), son corps se monte sous `Vehicule` (`MontageDeVehicule`), posé sur ses N×N cases, à sa taille réelle ou les
@@ -183,6 +184,7 @@ func _composer() -> void:
 		_montage.erreurs.append("os-absent : %s" % os)
 	_montage.poser_des_morphes(anciens.keys(), 0.0)
 	_montage.poser_les_morphes()
+	_rejouer()
 	_signaler()
 
 
@@ -190,7 +192,19 @@ func _composer() -> void:
 func _monter(id: String, element: String, embleme: String) -> void:
 	if await _montage.monter(id, element, _montage.erreurs):
 		_montage.choisir_l_embleme(id, embleme)
+	_rejouer()
 	_signaler()
+
+
+## Le clip en cours rejoué au clip que son rôle a maintenant (`MontageDeComposition.clip`), si la tenue à deux mains
+## l'a changé.
+func _rejouer() -> void:
+	var lecteur := _montage.lecteur
+	if lecteur == null:
+		return
+	var role: String = _montage.role_du_clip(lecteur.assigned_animation)
+	if role != "" and _montage.clip(role) != lecteur.assigned_animation:
+		_jouer(role)
 
 
 ## Chaque erreur du montage à la console, puis `habille`.
@@ -223,22 +237,24 @@ func _lecteur() -> AnimationPlayer:
 	return _vehicule.lecteur if _vehicule.scene != null else _montage.lecteur
 
 
-## Le clip du rôle `role` de son véhicule posé (`clips` de son corps), sinon de sa base posée, `""` sans corps ou sans
-## clip pour ce rôle.
+## Le clip du rôle `role` de son véhicule posé (`clips` de son corps), sinon de sa base posée sous sa tenue
+## (`MontageDeComposition.clip`), `""` sans corps ou sans clip pour ce rôle.
 func _clip(role: String) -> String:
 	if _vehicule.scene != null:
 		return _vehicule.clips.get(role, "")
-	return _montage.base.get("clips", {}).get(role, "")
+	return _montage.clip(role)
 
 
-## Ses clips de repos et de marche en boucle.
+## Ses clips de repos et de marche en boucle, ceux de chaque table de sa base (`MontageDeComposition.tables_de_clips`).
 func _boucler() -> void:
 	var lecteur := _lecteur()
 	if lecteur == null:
 		return
-	for role in [REPOS, MARCHE]:
-		if lecteur.has_animation(_clip(role)):
-			lecteur.get_animation(_clip(role)).loop_mode = Animation.LOOP_LINEAR
+	var tables: Array = [_vehicule.clips] if _vehicule.scene != null else _montage.tables_de_clips()
+	for table: Dictionary in tables:
+		for role in [REPOS, MARCHE]:
+			if lecteur.has_animation(table.get(role, "")):
+				lecteur.get_animation(table[role]).loop_mode = Animation.LOOP_LINEAR
 
 
 ## Le clip du rôle `role` joué, la file vidée ; rend s'il l'est.

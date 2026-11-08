@@ -69,7 +69,9 @@ absent, hors des dossiers ancêtres de sa source, vide, ou dont la licence décl
 `License:`, sinon titre) manque à `hotes/godot/asset/licences.json`. Après l'export, elle passe sa part du manifeste à `manifeste.mjs`, qui y ajoute la
 déclaration du corps (`scripts/personnage-3d/base/humanoide.json` : `base`, porteur de référence,
 `clips`, la table rôle d'animation → clip dont le rôle `walk` est la marche plantée, et `surfaces`, les matériaux du corps
-et leur emplacement de palette, sans `blason`), la vitesse au sol du clip du rôle `walk` mesurée par l'évaluateur, et
+et leur emplacement de palette, sans `blason`, chacun avec, en option, `parSexe` : par sexe, le matériau d'un corps
+donneur que la construction recouche sur les UV de la surface et exporte en variante `KHR_materials_variants` du nom du
+sexe, #3188), la vitesse au sol du clip du rôle `walk` mesurée par l'évaluateur, et
 l'empreinte du GLB. Le manifeste refusé par `validerModele` (`hotes/godot/asset/modeles.ts`) fait échouer la construction.
 Le dossier de la sortie devient le dossier de production de la base (`production.ts`) :
 `manifest.json` (le manifeste complet sous `manifeste`, `model`, `model_sha256`,
@@ -255,7 +257,14 @@ Ne pas réparer les clips ou déplacer les os de base dans l'élément.
 Placer la poignée dans le passage des **surfaces évaluées** de paume et doigts fermés, via la prise
 de la base. Parentage et centres articulaires prouvent le déplacement, pas le contact. Contrôler
 garde, pommeau et orientation de lame dans la silhouette entière, avec diamètre crédible.
+Le tranchant d'une arme tenue suit le +Z de sa prise, du poignet vers les jointures, comme une lame dans le poing.
 Une pose utile absente relève de la base et de sa porte, pas d'un nouveau clip embarqué par l'arme.
+Une arme à deux mains déclare `liaison.secondePrise`, le repère de prise de la main libre dans celui
+de sa prise, le long du manche vers le talon (`hotes/godot/asset/element.ts`) ; tenue à la prise
+`main`, Godot y pose la main `off` (`hotes/godot/projet/scripts/seconde_prise.gd`, #3319). Son côté
+et son roulis sont ceux du maniement de l'arme dans les clips dérivés (`SECONDES` de
+`scripts/personnage-3d/base/deux_mains.py`, test `SecondesPrises`). La vérifier au rendu Godot sur
+repos, attaque et marche : poing fermé sur le manche, bras sans torsion.
 
 Peau et gant restent distincts. Enveloppe fine, épaisseur bornée par courbure/arêtes, pas de
 gonflement global ; examiner paume, dos, dessous et creux. Pour une prise plate, regarder les deux

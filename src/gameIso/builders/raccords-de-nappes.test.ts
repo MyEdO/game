@@ -32,11 +32,11 @@ describe('raccords de nappes', () => {
     const scene = emptyScene('scene-test', 24, 20);
     scene.walls = perimeterWallSegs([CENTRE_C, AILE_E, BLOC]);
     scene.architecture = [{
-      id: 'corps', style: 'maison', storeys: [], facades: [],
+      id: 'corps', style: { id: 'maison' }, storeys: [], facades: [],
       masses: [
-        { id: 'aile-e', z: 0, footprint: [AILE_E], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 45, material: 'tuile' },
-        { id: 'centre', z: 0, footprint: [CENTRE_C], levels: 1, profile: 'gable', ridge: 'y', pitchDeg: 45, material: 'tuile' },
-        { id: 'bloc', z: 0, footprint: [BLOC], levels: 1, profile: 'hip', pitchDeg: 45, material: 'tuile' },
+        { id: 'aile-e', z: 0, footprint: [AILE_E], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 45, material: { id: 'tuile' } },
+        { id: 'centre', z: 0, footprint: [CENTRE_C], levels: 1, profile: 'gable', ridge: 'y', pitchDeg: 45, material: { id: 'tuile' } },
+        { id: 'bloc', z: 0, footprint: [BLOC], levels: 1, profile: 'hip', pitchDeg: 45, material: { id: 'tuile' } },
       ],
     }];
     coter(scene, 0, WALL_H_M, [...Array(BLOC.w * BLOC.h)].map((_, i) => ({

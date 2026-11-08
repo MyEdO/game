@@ -449,10 +449,10 @@ const HUB_ARCHITECTURE = [
       { id: 'forge-facade-ouest', z: 0, edges: [{ x: 2, y: 31, side: 'E' }], appearance: 'forge', roomZoneIds: ['piece-forge'], features: [{ id: 'cheminee-forge-du-bourg', kind: 'chimney', edge: { x: 2, y: 31, side: 'E' }, offset: 0.5 }] },
     ],
     masses: [
-      { id: 'taverne', z: 0, footprint: [{ x: 3, y: 3, w: 15, h: 10 }], levels: 1, profile: 'gable', pitchDeg: 30, material: 'tuile' },
-      { id: 'chapelle', z: 0, footprint: [{ x: 34, y: 3, w: 13, h: 11 }], levels: 1, profile: 'gable', pitchDeg: 30, material: 'toit-ardoise' },
-      { id: 'forge', z: 0, footprint: [{ x: 3, y: 27, w: 11, h: 9 }], levels: 1, profile: 'gable', pitchDeg: 30, material: 'toit-ardoise' },
-      { id: 'echoppe', z: 0, footprint: [{ x: 36, y: 27, w: 11, h: 9 }], levels: 1, profile: 'gable', pitchDeg: 38, material: 'chaume' },
+      { id: 'taverne', z: 0, footprint: [{ x: 3, y: 3, w: 15, h: 10 }], levels: 1, profile: 'gable', pitchDeg: 30, material: { id: 'tuile' } },
+      { id: 'chapelle', z: 0, footprint: [{ x: 34, y: 3, w: 13, h: 11 }], levels: 1, profile: 'gable', pitchDeg: 30, material: { id: 'toit-ardoise' } },
+      { id: 'forge', z: 0, footprint: [{ x: 3, y: 27, w: 11, h: 9 }], levels: 1, profile: 'gable', pitchDeg: 30, material: { id: 'toit-ardoise' } },
+      { id: 'echoppe', z: 0, footprint: [{ x: 36, y: 27, w: 11, h: 9 }], levels: 1, profile: 'gable', pitchDeg: 38, material: { id: 'chaume' } },
     ],
   },
 ];

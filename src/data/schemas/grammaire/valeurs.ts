@@ -16,6 +16,7 @@ import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjet
 
 import { type Amateur, type ContexteDeTest, type Availability, type TestedAvailability, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import type { Slot } from '../../../lib/palette';
+import type { Sexe as SexeDApparence } from '../../../lib/sexe';
 import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
@@ -899,10 +900,13 @@ export const countSpecSchema = z.union([
   nommerChamps(z.strictObject({ roll: diceSpecSchema }), { roll: { label: "jet" } }),
 ]);
 
+/** Le libellé de chaque sexe d'une apparence (`SEXES`, `src/lib/sexe.ts`). */
+const LIBELLES_DES_SEXES = { M: 'Masculin', F: 'Féminin' } as const satisfies Readonly<Record<SexeDApparence, string>>;
+
 /** Sexe d'une apparence — UNE déclaration pour `entityAppearanceSchema` et `defs/pregens.ts`.
  *  Chaque affichage lit le libellé par
  *  `libelleDeValeur(sexeSchema, v)`. */
-export const sexeSchema = enumNomme({ M: 'Masculin', F: 'Féminin' });
+export const sexeSchema = enumNomme(LIBELLES_DES_SEXES);
 export type Sexe = z.infer<typeof sexeSchema>;
 
 /** La main d'un objet tenu ou d'une arme, UNE déclaration : `defs/presets-de-personnage.ts` (`prises`) et
@@ -1019,6 +1023,8 @@ export const messageDeTermeDeJet = (f: unknown): string | undefined => {
 /** Le terme « bonus de caractéristique » de la grammaire d'une quantité, que composent aussi les champs
  *  qui n'admettent que lui (`max` d'un Talent). */
 export const termeBonusDe = nommerChamps(z.strictObject({ bonusOf: charKeySchema }), { bonusOf: { label: "bonus de caractéristique" } });
+/** Le Maxi d'un Talent « Nombre de Sorts disponibles dans le Domaine de Magie du Chaos choisi » (`LDB 10 l.704`). */
+export const maxiSortsDuDomaine = z.literal('sortsDuDomaine');
 
 /** Les options de la grammaire d'une quantité, dans l'ordre du sélecteur ; `soi` est le schéma
  *  récursif, `avecJet` admet les termes de jet. */

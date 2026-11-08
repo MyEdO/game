@@ -368,8 +368,8 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
         for (const part of mass.footprint)
           if (!validRect(part)) add('error', 'architecture', mass.id, `Masse « ${mass.id} » hors carte ou d’emprise invalide`, massRef);
         if (mass.profile === 'shed' && !mass.eaveSide) add('error', 'architecture', mass.id, `Masse « ${mass.id} » : profil appentis sans côté d’égout`, massRef);
-        if (nonCouvrantes.has(mass.material))
-          add('error', 'architecture', mass.id, `Masse « ${mass.id} » : « ${mass.material} » n’est pas une couverture de toit`, massRef);
+        if (nonCouvrantes.has(mass.material.id))
+          add('error', 'architecture', mass.id, `Masse « ${mass.id} » : « ${mass.material.id} » n’est pas une couverture de toit`, massRef);
         if (!Number.isInteger(mass.levels) || mass.levels < 1) add('error', 'architecture', mass.id, `Masse « ${mass.id} » : niveaux invalides`, massRef);
         if (mass.pitchDeg < PENTE_TOIT_DEG.min || mass.pitchDeg > PENTE_TOIT_DEG.max)
           add('error', 'architecture', mass.id, `Masse « ${mass.id} » : pente hors plage`, massRef);

@@ -2865,7 +2865,7 @@
     "id": "magie-du-chaos",
     "type": "talents",
     "label": "Magie du Chaos",
-    "max": 1,
+    "max": "sortsDuDomaine",
     "test": null,
     "specsSource": "cultChaos",
     "grantGroups": [

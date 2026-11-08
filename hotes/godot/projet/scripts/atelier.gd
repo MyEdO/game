@@ -254,7 +254,7 @@ func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement:
 	_poser_les_clips()
 	_poser_le_gabarit()
 	_montage.poser_les_morphes()
-	_marche.suivre(_montage.modele, _montage.lecteur, _montage.base.get("clips", {}).get("walk", ""), _montage.base.get("vitesseAuSol", 0.0))
+	_marche.suivre(_montage.modele, _montage.lecteur, _montage.clip.bind("walk"), _montage.base.get("vitesseAuSol", 0.0))
 	for aide in _aides:
 		_montrer_l_aide(_aides[aide], aide)
 	_montrer_l_etat()
@@ -307,7 +307,7 @@ func _choisir_le_vehicule(definition: String) -> void:
 	_remettre_a_zero()
 	_montage.poser_le_modele({}, null)
 	_montrer_ce_qu_il_reste_a_produire()
-	_marche.suivre(_vehicule, null, "", 0.0)
+	_marche.suivre(_vehicule, null, func() -> String: return "", 0.0)
 	_montrer_la_composition()
 	await _demander_le_vehicule()
 

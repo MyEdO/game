@@ -470,7 +470,7 @@ function voiesDuTest(
       const talent = findTalentById(cibles.talentId ?? '');
       if (!talent) return undefined;
       const tMax = effectiveEntry(talent).max;
-      const char: CharKey = tMax && typeof tMax !== 'number' ? tMax.bonusOf : 'intelligence';
+      const char: CharKey = tMax && typeof tMax === 'object' ? tMax.bonusOf : 'intelligence';
       const tentatives = fails[talent.id] ?? 0;
       return {
         voies: [{ test: { characteristic: char } }],

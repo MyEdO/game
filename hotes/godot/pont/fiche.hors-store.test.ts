@@ -83,8 +83,8 @@ describe('la fiche d’un combattant par le pont', () => {
     const [objet] = s.vue.zones['fiche.objet'];
     expect([objet.nom, objet.ton], 'la possession choisie se nomme, au ton d’une équipée').toEqual(['Bâton de combat', 'reussite']);
     const gestes = objet.elements.filter((e): e is Bouton | Choix => e.type === 'bouton' || e.type === 'liste');
-    expect(gestes.map((g) => [g.id, g.libelle]), 'une arme se tient dans une main du set actif, se range dans un sac où elle tient, se donne à un héros à ses côtés')
-      .toEqual([['main', 'Main principale'], ['off', 'Main secondaire'], ['ranger', 'Ranger dans'], ['donner', 'Donner à']]);
+    expect(gestes.map((g) => [g.id, g.libelle]), 'une arme se tient dans une main du set actif, se range dans un sac où elle tient, se donne à un héros à ses côtés, se pose au sol')
+      .toEqual([['main', 'Main principale'], ['off', 'Main secondaire'], ['ranger', 'Ranger dans'], ['donner', 'Donner à'], ['poser', 'Poser au sol']]);
     expect((gestes.find((g) => g.id === 'main') as Bouton | undefined)?.presse, 'la main qui la tient pressée').toBe(true);
     expect(gestes.every((g) => g.refus === 'En combat, l’équipement se gère depuis la barre d’action.'), 'en combat, chacun refusé, sa raison dite').toBe(true);
 

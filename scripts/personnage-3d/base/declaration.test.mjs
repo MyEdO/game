@@ -59,6 +59,11 @@ describe('champsDeclares', () => {
     assert.deepEqual(champsDeclares({ base: 'corps', porteur, clips, autre: 1 }), { base: 'corps', porteur, clips })
   })
 
+  it('y ajoute la table des rôles tenus à deux mains, déclarée', () => {
+    const clipsDeuxMains = { hampe: { idle: 'Hampe_Repos_Loop' } }
+    assert.deepEqual(champsDeclares({ base: 'corps', porteur, clips, clipsDeuxMains }), { base: 'corps', porteur, clips, clipsDeuxMains })
+  })
+
   it('y ajoute les surfaces déclarées', () => {
     const surfaces = [{ nom: 'Peau', palette: 'peau' }]
     assert.deepEqual(champsDeclares({ base: 'corps', porteur, clips, surfaces }), { base: 'corps', porteur, clips, surfaces })

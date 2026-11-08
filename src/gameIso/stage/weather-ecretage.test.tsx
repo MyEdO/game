@@ -39,7 +39,7 @@ const TOIT: BuildingMass = {
   profile: 'gable',
   ridge: 'x',
   pitchDeg: 45,
-  material: 'tuile',
+  material: { id: 'tuile' },
 };
 const SOUS_TOIT = { x: 4, y: 4 };
 /** Dehors, à l'écart du bâtiment. Une masse qui recouvre le groupe en PROJECTION n'est plus retirée
@@ -64,7 +64,7 @@ function hero(id: string, pos: { x: number; y: number }): Combatant {
 function scèneCouverte(): Scene {
   const scene = emptyScene('scene-test', 12, 12);
   scene.weather = 'pluie';
-  scene.architecture = [{ id: 'maison', label: 'Maison', style: 'maison', storeys: [], facades: [], masses: [TOIT] }];
+  scene.architecture = [{ id: 'maison', label: 'Maison', style: { id: 'maison' }, storeys: [], facades: [], masses: [TOIT] }];
   return scene;
 }
 

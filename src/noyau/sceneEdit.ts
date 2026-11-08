@@ -224,7 +224,7 @@ export function patchBuildingMass(scene: Scene, bodyId: string, massId: string, 
  *  volume (`resizeSel`) au lieu de partir d'un corps qui revendique toute la scène.
  *  `style` est le TYPE de bâtiment (`buildings.json`), OPTIONNEL au schéma : un corps qui n'en porte
  *  aucun est un bâti sans type (bourg, hameau, corps composite). */
-export function addArchitectureBody(scene: Scene, style: string | undefined, foot: Rect): { scene: Scene; id: string; storeyId: string } {
+export function addArchitectureBody(scene: Scene, style: ArchitectureBody['style'], foot: Rect): { scene: Scene; id: string; storeyId: string } {
   const id = nextEntityId('architecture', (scene.architecture ?? []).map((body) => body.id));
   const part: ArchitecturePart = { id: nextEntityId('part', []), foot: boundedRect(scene, foot) };
   const body: ArchitectureBody = { id, ...(style === undefined ? {} : { style }), storeys: [{ id: 'z0', z: 0, parts: [part], roomZoneIds: [] }], facades: [], masses: [] };
@@ -268,7 +268,7 @@ export function addArchitecturePart(scene: Scene, bodyId: string, storeyId: stri
 }
 
 /** Pose un pan de façade sur l'arête `edge` ; sa structure par défaut est la semence (`semences-de-scene.json`). */
-export function addFacadeSection(scene: Scene, bodyId: string, edge: ArchitectureEdgeRef, appearance: string = semencesDeScene.facade): { scene: Scene; id: string } | null {
+export function addFacadeSection(scene: Scene, bodyId: string, edge: ArchitectureEdgeRef, appearance: string = semencesDeScene.facade.id): { scene: Scene; id: string } | null {
   const body = scene.architecture?.find((candidate) => candidate.id === bodyId);
   if (!body) return null;
   const id = nextEntityId('facade', body.facades.map((facade) => facade.id));
@@ -1675,7 +1675,7 @@ export function roofExclusionsByZ(body: ArchitectureBody): Map<number, Set<strin
  * la PORTÉE, la pente se dérive.
  */
 export function toitureEffective(scene: Scene, body: ArchitectureBody): {
-  material: string;
+  material: SceneRoofDefaults['material'];
   riseMaxStoreys: number;
   penteReference: number;
   profile?: RoofDefaults['profile'];

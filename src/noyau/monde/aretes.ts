@@ -13,7 +13,7 @@ import { casesDeFace, heightAt, piedDeLArete, porteEnJeu, sceneMetresPerTile, st
 import type { Rot } from '../../geometry/iso';
 import { cutawayOverhead, frontFacadeCutaway, type ClearedSpace } from './volume/architectureVisibility';
 import { clearedSpace } from './volume/toits';
-import { toitsLeves, toutesLesNappes, volumeDuMonde, type VolumeDuMonde } from './volume/volume';
+import { empreinteDesDecors, toitsLeves, toutesLesNappes, volumeDuMonde, type VolumeDuMonde } from './volume/volume';
 import { aretesHorsDesNavires, provenanceDesNavires } from '../planDeNavire';
 
 /** La pièce qu'une arête porte : un mur plein, une porte fermée ou ouverte, une fenêtre aux volets ouverts ou clos, ou
@@ -141,7 +141,7 @@ export function volumeDuRegard(scene: Scene, allies: readonly Pt[], regard: Rega
 
 /** Le plateau d'une scène tel qu'un hôte le dessine sous le regard `regard` : ses dimensions, les arêtes de toutes ses
  *  couches hors des ponts de ses navires (`aretesHorsDesNavires`, `areteDessinee`), son échelle métrique (`sceneMetresPerTile`), la hauteur de l'œil au-dessus du sol
- *  (`EYE_H`), le regard et celui qui le suit dans `REGARDS`, la clé du volume que le regard demande (`cleDuMonde`, qui change quand `volumeDuRegard` ou `meteoDuRegard` changent), ce que
+ *  (`EYE_H`), le regard et celui qui le suit dans `REGARDS`, la clé du volume que le regard demande (`cleDuMonde`, qui change quand `volumeDuRegard` ou `meteoDuRegard` changent, décors posés ou retirés en jeu compris : `empreinteDesDecors`), ce que
  *  le regard retire pour le groupe posé sur `allies` : les nappes de toit (`toitsLeves` : en tactique, celles qu'il
  *  dégage ; au plateau, toutes), les arêtes (`aretesDegagees` : en tactique, celles qu'il dégage ; au plateau,
  *  celles des couches au-dessus de la sienne, sous tout cran) et le haut des navires (`coupesDesNavires`, la hauteur de
@@ -157,7 +157,7 @@ export function plateauDeLaScene(scene: Scene, allies: readonly Pt[], regard: Re
   };
   return {
     w, h, metresParCase: sceneMetresPerTile(scene), oeilM: EYE_H, regard, regardSuivant: REGARDS[(REGARDS.indexOf(regard) + 1) % REGARDS.length],
-    cleDuMonde: [regard, scene.weather ?? '', activeZ ?? '', ...couvercle].join('|'),
+    cleDuMonde: [regard, scene.weather ?? '', activeZ ?? '', empreinteDesDecors(scene), ...couvercle].join('|'),
     aretes: dessinees.map((seg) => areteDessinee(scene, seg)), aretesDegagees: aretesRetirees(),
     toitsLeves: regard === 'tactique' ? toitsLeves(scene, allies) : regard === 'plateau' ? toutesLesNappes(scene) : [],
     couronnesAbattues: couronnesAbattues(scene, dessinees),

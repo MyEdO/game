@@ -2,7 +2,8 @@
  * L'ÉVALUATEUR D'UNE BASE ET DE SES ÉLÉMENTS (#2972) : charge les GLB (`chargerScene`), monte les éléments sur le
  * squelette de la base, valide le manifeste de base, pose gabarit et silhouettes, mesure au repos les shape keys de la
  * base (`gardes/silhouettes.ts`), échantillonne les clips, puis appelle chaque garde de `gardes/` : `poids`,
- * `enroulement`, `budget`, `pistesDEchelle`, `echelleDuRigide`, `silhouettes`, `segments`, `appuis`, `piedsAuSol`, `etirement`, `suiviDuCorps`.
+ * `enroulement`, `budget`, `pistesDEchelle`, `chaines`, `echelleDuRigide`, `tranchantDuRigide`, `silhouettes`, `segments`, `appuis`,
+ * `piedsAuSol`, `etirement`, `suiviDuCorps`, `traversee`.
  * Le corps est l'ensemble des meshes de zone de la base (`extras.zone`) ; une base sans zone est un corps d'un seul
  * tenant : ses meshes skinnés.
  */
@@ -17,10 +18,12 @@ import { appliquerGabarit, poserFormes } from './gabarit.ts';
 import { poidsDeCarrure, poidsDuGabarit, poseDuGabarit } from '../gabarit.ts';
 import { FACTEURS_NEUTRES, sontNeutres } from '../facteursDuGabarit.ts';
 import { PREFIXE_DES_CLES_DU_GABARIT, validerManifesteDeBase, type ManifesteDeBase } from '../manifesteDeBase.ts';
+import { gardePistesDeChaine, suivreLesChaines, type MesureDeChaine } from './gardes/chaines.ts';
 import { gardeBudget, PLAFOND_ASSEMBLE, trianglesDe } from './gardes/budget.ts';
 import { mesurerAppuis, poserPieds, surfacesDesPieds, type AppuisDuClip, type PoseDuPied } from './gardes/appuis.ts';
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
 import { gardeEnroulement } from './gardes/enroulement.ts';
+import { gardeTranchantDuRigide } from './gardes/tranchantDuRigide.ts';
 import { aretesDe, gardeEtirement, gardeEtirementAuRepos, mesurerEtirement, piresAretes, type MesureDEtirement, type RapportDArete } from './gardes/etirement.ts';
 import { gardePiedsAuSol, plusBas, type NiveauDuCorps } from './gardes/piedsAuSol.ts';
 import { gardePistesDEchelle } from './gardes/pistesDEchelle.ts';
@@ -28,11 +31,22 @@ import { gardePoids } from './gardes/poids.ts';
 import { mesurerSilhouettes, sousLesFormes, type MesuresDesSilhouettes } from './gardes/silhouettes.ts';
 import { etenduesDesSegments, gardeSegments, type MesuresDesSegments } from './gardes/segments.ts';
 import { gardeSuiviDuCorps } from './gardes/suiviDuCorps.ts';
-import { meshesDuCorps } from './corps.ts';
+import { gardeTraversee, lierLesCouches, mesurerTraversee, sansLesZonesMasquees, type TraverseeDUnEchantillon } from './gardes/traversee.ts';
+import { COUCHES, RANG_DU_CORPS, type Couche } from '../element.ts';
+
+/** Ce qu'un élément déclare de sa place sur le corps : sa couche, et les zones du corps qu'il masque. */
+export interface CoucheDeLElement {
+  readonly couche: Couche;
+  readonly couvre: readonly string[];
+}
+import { meshesDuCorps, zoneDe } from './corps.ts';
 
 export interface EntreeDEvaluation {
   readonly base: Uint8Array;
   readonly elements?: readonly Uint8Array[];
+  /** La couche et les zones couvertes de chaque élément de `elements`, dans son ordre (`ManifesteDElement`), `null` pour
+   *  un élément sans couche ; sans elles, la traversée des couches n'est pas mesurée (`gardes/traversee.ts`). */
+  readonly couches?: readonly (CoucheDeLElement | null)[];
   /** Le manifeste de base brut, validé ici (`validerManifesteDeBase`) ; sans lui, ni gabarit ni prise, et seule la
    *  racine a une position animée. */
   readonly manifeste?: unknown;
@@ -72,6 +86,8 @@ export interface FicheDeMesures {
     readonly silhouettes: MesuresDesSilhouettes;
     /** Les segments du gabarit mesurés au repos ; `null` sans manifeste valide. */
     readonly segments: MesuresDesSegments | null;
+    /** Les chaînes du manifeste valide, leurs pistes et leurs rotations jouées ; aucune sans manifeste. */
+    readonly chaines: readonly MesureDeChaine[];
   };
 }
 
@@ -142,6 +158,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const base = await chargerScene(entree.base);
   const elements = await Promise.all((entree.elements ?? []).map(chargerScene));
   const corps = meshesDuCorps(base);
+  const zones = new Map([base, ...elements].flatMap((s) => s.meshes.map((m) => [m, zoneDe(m)] as const)));
   const racine = table?.racine ?? racineDu(base);
   for (const e of elements) monter(base, e);
   const meshes = [base, ...elements].flatMap((s) => s.meshes);
@@ -164,6 +181,8 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   if (inconnus.length) throw new Error(`évaluation : clip(s) absent(s) de la base : ${inconnus.join(', ')} ; clips : ${base.clips.map((c) => c.name).join(', ')}`);
   const clips = entree.clips ? base.clips.filter((c) => entree.clips?.includes(c.name)) : base.clips;
 
+  const chaines = manifeste?.chaines ?? {};
+  const pistesDeChaine = gardePistesDeChaine(base.scene, clips, chaines);
   ecarts.push(
     ...gardePoids({
       meshes: skinnes,
@@ -173,7 +192,9 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     ...gardeEnroulement(meshes, libelle),
     ...gardeBudget(meshes, libelle, entree.plafond ?? PLAFOND_ASSEMBLE),
     ...gardePistesDEchelle(base.scene, clips, racine, manifeste?.osAPositionAnimee ?? []),
+    ...pistesDeChaine.ecarts,
     ...gardeEchelleDuRigide(rigidesTenus(base.scene, new Set(manifeste?.prises ? [manifeste.prises.main.os, manifeste.prises.off.os] : [])), libelle),
+    ...(manifeste?.prises ? gardeTranchantDuRigide(base.scene, manifeste.prises.main, libelle) : []),
   );
 
   const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: corpsSkinne, silhouettes: nomsDesSilhouettes, st: table?.st, poidsDesFormes });
@@ -181,20 +202,30 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
 
   const sansCles = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes), poidsDesFormes);
   const repos = poseDeRepos(base.scene, meshes);
+  const suiviDesChaines = suivreLesChaines(base.scene, chaines, repos);
   const aretes = new Map(meshes.map((m) => [m, aretesDe(m)]));
   ecarts.push(...gardeEtirementAuRepos(aretes, libelle, sansCles, repos));
   const niveaux: NiveauDuCorps[] = [];
   const etirements: MesureDEtirement[] = [];
   const surfaces = manifeste ? surfacesDesPieds(corpsSkinne, manifeste.appuis.pieds) : [];
   const posesDesPieds: PoseDuPied[] = [];
+  const declarees = elements.flatMap((e, k) => {
+    const c = entree.couches?.[k];
+    return c ? [{ rang: COUCHES.indexOf(c.couche), meshes: e.skinnes, couvre: c.couvre }] : [];
+  });
+  const montre = sansLesZonesMasquees(declarees, (m) => zones.get(m) as string | undefined);
+  const couches = lierLesCouches(montre(corps, RANG_DU_CORPS), declarees.map((d) => ({ rang: d.rang, meshes: montre(d.meshes, d.rang) })), repos);
+  const traversees: TraverseeDUnEchantillon[] = [];
   for (const e of echantillonner(base.scene, meshes, clips, pas, gabarit)) {
+    traversees.push(...mesurerTraversee(couches, e));
     niveaux.push({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, corps) });
     etirements.push(mesurerEtirement(aretes, sansCles, e));
+    suiviDesChaines.echantillon(e);
     if (manifeste && e.clip === manifeste.clips.walk) posesDesPieds.push(...poserPieds(e, surfaces, racine));
   }
   const appuis = mesurerAppuis(posesDesPieds, manifeste ? { [manifeste.clips.walk]: manifeste.appuis.vitesseAuSol * (pose?.echelleDeVitesse ?? 1) } : {});
   ecarts.push(...appuis.ecarts);
-  ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle));
+  ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle), ...gardeTraversee(traversees, libelle));
 
   const parMesh = meshes.map((m) => ({ mesh: libelle(m), triangles: trianglesDe(m) }));
   return {
@@ -213,6 +244,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
       etirement: piresAretes(etirements, libelle),
       silhouettes: silhouettes.mesures,
       segments: segments?.mesures ?? null,
+      chaines: suiviDesChaines.mesures(pistesDeChaine.clipsPistes),
     },
   };
 }

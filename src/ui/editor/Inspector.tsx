@@ -386,8 +386,8 @@ export function Inspector({
                 <label className="ed-field">
                   Type de bâtiment
                   <select
-                    value={architectureBody.style ?? ''}
-                    onChange={(event) => patchBody({ style: event.target.value || undefined })}
+                    value={architectureBody.style?.id ?? ''}
+                    onChange={(event) => patchBody({ style: event.target.value ? { id: event.target.value } : undefined })}
                   >
                     <option value="" />
                     {Object.values(buildingsMeta()).map((meta) => <option key={meta.id} value={meta.id}>{meta.label}</option>)}
@@ -405,7 +405,7 @@ export function Inspector({
                   type de bâtiment, sinon la toiture de la scène ; le profil, lui, suit la portée.
                 </p>
                 <p className="hint">
-                  Appliqué en l'état : {matieresCouvrantes().find((m) => m.id === toiture.material)?.label ?? toiture.material},
+                  Appliqué en l'état : {matieresCouvrantes().find((m) => m.id === toiture.material.id)?.label ?? toiture.material.id},
                   pente de référence {toiture.penteReference}°, comble {toiture.riseMaxStoreys} étage{toiture.riseMaxStoreys > 1 ? 's' : ''}.
                 </p>
                 <label className="ed-field">
@@ -455,8 +455,8 @@ export function Inspector({
                 <label className="ed-field">
                   Couverture
                   <select
-                    value={architectureBody.roofDefaults?.material ?? ''}
-                    onChange={(event) => poseToiture('material', event.target.value || undefined)}
+                    value={architectureBody.roofDefaults?.material?.id ?? ''}
+                    onChange={(event) => poseToiture('material', event.target.value ? { id: event.target.value } : undefined)}
                   >
                     <option value="" />
                     {matieresCouvrantes().map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
@@ -703,7 +703,7 @@ export function Inspector({
                 </label>
                 <label className="ed-field">
                   Matériau
-                  <select value={roofSection.material} onChange={(event) => updateRoofSection({ material: event.target.value })}>
+                  <select value={roofSection.material.id} onChange={(event) => updateRoofSection({ material: { id: event.target.value } })}>
                     {matieresCouvrantes().map((material) => <option key={material.id} value={material.id}>{material.label}</option>)}
                   </select>
                 </label>
@@ -2164,8 +2164,8 @@ function SceneProps({
         <label className="ed-field">
           Couverture
           <select
-            value={scene.roofDefaults.material}
-            onChange={(e) => setScene(patchSceneRoofDefaults(scene, { material: e.target.value }))}
+            value={scene.roofDefaults.material.id}
+            onChange={(e) => setScene(patchSceneRoofDefaults(scene, { material: { id: e.target.value } }))}
           >
             {matieresCouvrantes().map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
           </select>

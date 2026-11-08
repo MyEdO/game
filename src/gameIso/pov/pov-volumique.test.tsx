@@ -59,12 +59,12 @@ const TOIT: BuildingMass = {
   profile: 'gable',
   ridge: 'x',
   pitchDeg: 45,
-  material: 'tuile',
+  material: { id: 'tuile' },
 };
 
 function scèneCouverte(): Scene {
   const scene = emptyScene('scene-test', 12, 12);
-  scene.architecture = [{ id: 'maison', label: 'Maison', style: 'maison', storeys: [], facades: [], masses: [TOIT] }];
+  scene.architecture = [{ id: 'maison', label: 'Maison', style: { id: 'maison' }, storeys: [], facades: [], masses: [TOIT] }];
   return scene;
 }
 

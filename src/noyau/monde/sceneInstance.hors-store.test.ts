@@ -56,6 +56,25 @@ describe('sceneInstance — helpers PURS (#707)', () => {
     expect(out.flags.__door_1_1_N_0).toBe(true);
   });
 
+  it('captureMutation garde l’entité ajoutée ou déplacée en jeu, à l’identique, et ignore l’ordre de ses clés', () => {
+    const authored = fixtureScene('s7');
+    const sac = { id: 'sol-1', kind: 'prop' as const, ref: 'bourse', pos: { x: 4, y: 4 } };
+    const deplace = { ...authored.entities.find((e) => e.id === 'decor-untouche')!, pos: { x: 5, y: 5 } };
+    const reordonne = (({ ref, pos, kind, id }) => ({ ref, pos, kind, id }))(authored.entities.find((e) => e.id === 'decor-retire')!);
+    const current: Scene = { ...authored, entities: [...authored.entities.map((e) => (e.id === deplace.id ? deplace : e.id === reordonne.id ? reordonne : e)), sac] };
+    expect(captureMutation(current, authored)).toEqual<SceneMutation>({ removedEntityIds: [], flags: {}, entitesChangees: [deplace, sac] });
+  });
+
+  it('applyMutation remplace l’entité changée à sa place et ajoute la nouvelle, sans partager leurs objets', () => {
+    const sac = { id: 'sol-1', kind: 'prop' as const, ref: 'bourse', pos: { x: 4, y: 4 } };
+    const deplace = { id: 'decor-untouche', kind: 'prop' as const, pos: { x: 5, y: 5 }, ref: 'tonneau' };
+    const mut: SceneMutation = { removedEntityIds: [], flags: {}, entitesChangees: [deplace, sac] };
+    const out = applyMutation(fixtureScene('s8'), mut);
+    expect(out.entities.map((e) => e.id)).toEqual(['hs', 'decor-untouche', 'decor-retire', 'sol-1']);
+    expect(out.entities.find((e) => e.id === 'decor-untouche')).toEqual(deplace);
+    expect(out.entities.find((e) => e.id === 'sol-1')).not.toBe(sac);
+  });
+
   it('applyMutation est un no-op si mutation absente', () => {
     const cloned = fixtureScene('s6');
     const out = applyMutation(cloned, undefined);

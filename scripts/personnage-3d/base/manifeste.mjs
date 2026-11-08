@@ -3,7 +3,7 @@
 // - construit par la construction Blender (`humanoide.py`), lu en JSON sur l'entrée standard : `os`, `chaines`,
 //   `zones`, `emplacements`, `prises`, `silhouettes`, `gabarit` (dont `st`, `silhouettes.bornes_de_st`), `appuis.pieds`,
 //   `osAPositionAnimee` ;
-// - déclaré par le corps (`<declaration.json>`, `champsDeclares`) : `base`, `porteur`, `clips` et `surfaces` ;
+// - déclaré par le corps (`<declaration.json>`, `champsDeclares`) : `base`, `porteur`, `clips`, `clipsDeuxMains` et `surfaces` ;
 // - mesuré par l'évaluateur (`appuis.ts`) : `appuis.vitesseAuSol`, celle du clip du rôle `walk` ;
 // - construit avant l'export (`domaineDuGabarit`, pont `gabarit.mjs`) : `gabarit.bornes` ;
 // - pris au GLB : `glb.sha256` et `glb.octets`.
