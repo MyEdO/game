@@ -17,8 +17,8 @@ import {
 import { listerArbre } from '../scripts/guards/lib/lister.mjs';
 import { couvertureDuBalayage } from '../scripts/guards/lib/stock.mjs';
 import { detenteur } from './lib/detenteur.testkit';
-import { skillRefLabel, talentRefLabel, talents } from './data';
-import { parseSkillRef, parseTalentRef, parseTraitInstance } from './data/refFormatLivre';
+import { skillRefLabel, talentRefLabel, talents, qualities, qualityRefLabel } from './data';
+import { parseSkillRef, parseTalentRef, parseTraitInstance, parseQualityInstance } from './data/refFormatLivre';
 import { formatTrait } from './engine/traits/dispatch';
 import type { TraitInstance } from './engine/statEntry';
 import type { TraitPose } from './data/schemas/grammaire/reference';
@@ -235,6 +235,14 @@ describe('coutures légitimes : chaque entrée de RATCHET_EXCEPTIONS est jugée 
         { id: 'haine', arg: 'homme-bete' },
         { id: 'morsure', value: 9 },
       ] as TraitInstance[]) expect(parseTraitInstance(formatTrait(trait))).toEqual(trait);
+    },
+    parseQualityInstance: () => {
+      const refs = qualities.map(({ id, indice }) => (indice ? { id, value: 2 } : { id }));
+      const faux = refs.filter((q) => JSON.stringify(parseQualityInstance(qualityRefLabel(q))) !== JSON.stringify(q))
+        .map((q) => `${q.id} → ${JSON.stringify(parseQualityInstance(qualityRefLabel(q)))}`);
+      expect(refs.length).toBeGreaterThan(0);
+      // Homonyme de libellé borné par `engine/qualities/dispatch.test.ts` (#2998).
+      expect(faux, faux.join('\n')).toEqual(['immobilisante-fixe → {"id":"immobilisante"}']);
     },
     nommeUnTrait: () => {
       for (const trait of [

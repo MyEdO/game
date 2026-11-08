@@ -1,7 +1,7 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { fixtureText } from '../../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { parseQualityInstance } from '../../engine/qualities/normalize';
+import { parseQualityInstance } from '../../data/refFormatLivre';
 import { isUnarmed } from '../../engine/items';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { pushChoice } from '../rollSeam';

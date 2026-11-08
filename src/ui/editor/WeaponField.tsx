@@ -6,7 +6,7 @@
 import type { Weapon, QualityInstance, ReachValue } from '../../engine/types';
 import { REACH_LABELS, REACH_VARIABLE } from '../../engine/types';
 import { damageString, parseDamage, REACH_IDS } from '../../engine/items';
-import { parseQualityInstance } from '../../engine/qualities/normalize';
+import { parseQualityInstance } from '../../data/refFormatLivre';
 import { qualityRefLabel } from '../../data';
 import { NumberField } from '../NumberField';
 import { RefField, REF_FIELD } from '../compendium/refField/RefField';

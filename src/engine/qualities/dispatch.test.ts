@@ -5,7 +5,7 @@ import { hasQuality, qualitySum, qualityCritTriggered, parryDRAdjust, isUnbreaka
 import { craftEncDelta } from './craftEconomy';
 import { findQualityById, findTrappingById, qualityRefLabel, trappings } from '../../data';
 import { itemFromTrappingById } from '../items';
-import { parseQualityInstance } from './normalize';
+import { parseQualityInstance } from '../../data/refFormatLivre';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 

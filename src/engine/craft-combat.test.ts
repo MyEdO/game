@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseQualityInstance } from './qualities/normalize';
+import { parseQualityInstance } from '../data/refFormatLivre';
 import { finishMelee } from './combat';
 import { evaluateTest } from './tests';
 import type { Combatant, Weapon } from './types';

@@ -3,7 +3,7 @@ import { wornArmourPenalty, wornSocialMod } from './wearPenalty';
 import { testValue, partyBest } from './skills';
 import { qualitySocMod } from './qualities/dispatch';
 import { totalEncumbrance } from './items';
-import { parseQualityInstance } from './qualities/normalize';
+import { parseQualityInstance } from '../data/refFormatLivre';
 import { slugId } from '../data/slug';
 import type { Combatant, QualityInstance } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
