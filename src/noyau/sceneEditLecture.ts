@@ -5,7 +5,7 @@
  * Les ÉCRIVAINS vivent dans `./sceneEdit` ; les deux modules sont au `BRIDGE_PATH` de
  * `scripts/guards/lib/sceneFieldEditability.mjs`.
  */
-import { type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type Trigger, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
+import { sceneMetresPerTile, type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type Trigger, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { faceDAreteSchema, sceneEffectZoneSchema, triggerSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { inferFields, type FieldDesc } from './codex/editFields';
@@ -16,7 +16,9 @@ import type { StructureData } from '../engine/types';
 import { creatures, profilsStandard, refEstVolumique, structureAppearances, structures, type CreatureData } from '../data';
 import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
 import { DIR8_ORDER, type Dir8 } from '../geometry/dir8';
-import { decorEnCaseEtage } from './monde/decorIndex';
+import { decorsEnCaseEtage, entitesEnCaseEtage } from './monde/decorIndex';
+import { ancreDuDecor } from './monde/footprint';
+import { portePar } from './monde/poseDuDecor';
 import { aretesA } from './monde/wallIndex';
 import type { Rect, Pt, EffectZoneSeed } from './sceneEdit';
 
@@ -149,14 +151,22 @@ export function dansLaCarte(scene: Scene, p: Pt): boolean {
  *  qui omettaient le filtre de couche (#835 FU-3) : `hitAt`/`eraseAt`/`addEnemyMember` et la pose
  *  directe (`entity`/`emplacement`) le partagent tous.
  *
- *  Un décor répond sur TOUTE son EMPREINTE (`noyau/monde/decorIndex.ts`, la même lecture que le picking du
- *  jeu) et rend son entité, donc sa case d'ANCRAGE : sans elle, la
- *  seconde case d'une table 2×1 ne se sélectionnait, ne s'effaçait et ne se déplaçait pas au canevas
- *  d'authoring, et un clic y posait une entité DANS le meuble. La pose EXACTE garde la priorité —
- *  un corps debout sur une case d'empreinte se désigne lui-même, pas le meuble sous ses pieds. */
-export function entityAt(scene: Scene, p: Pt, z = 0): SceneEntity | undefined {
-  return scene.entities.find((e) => e.pos.x === p.x && e.pos.y === p.y && (e.z ?? 0) === z)
-    ?? decorEnCaseEtage(scene, p.x, p.y, z);
+ *  Les candidates sont les entités ANCRÉES sur la case et les décors dont l'EMPREINTE la couvre
+ *  (`noyau/monde/decorIndex.ts`, la même lecture que le picking du jeu) : sans la seconde vue, la seconde case d'une
+ *  table 2×1 ne se sélectionnait, ne s'effaçait et ne se déplaçait pas, et un clic y posait une entité DANS le meuble.
+ *  Plusieurs choses tiennent dans une case (un coffre calé contre un mur et un tonneau dans le coin, une lettre sur la
+ *  table) : celle dont l'ANCRE est la plus proche du point visé `point` (cases continues, défaut le centre de la case)
+ *  se désigne, et à égalité celle qui est posée sur l'autre. Un corps debout sur une case d'empreinte se désigne donc
+ *  lui-même, pas le meuble sous ses pieds. */
+export function entityAt(scene: Scene, p: Pt, z = 0, point: Pt = p): SceneEntity | undefined {
+  const mpt = sceneMetresPerTile(scene);
+  const candidates = [...new Set([...entitesEnCaseEtage(scene, p.x, p.y, z), ...decorsEnCaseEtage(scene, p.x, p.y, z)])];
+  const ecart = (e: SceneEntity) => {
+    const a = e.kind === 'prop' ? ancreDuDecor(e, mpt) : e.pos;
+    return Math.hypot(a.x - point.x, a.y - point.y);
+  };
+  const porte = (a: SceneEntity, b: SceneEntity) => (portePar(scene, a, b.id) ? -1 : portePar(scene, b, a.id) ? 1 : 0);
+  return candidates.sort((a, b) => ecart(a) - ecart(b) || porte(a, b))[0];
 }
 
 /** Arête (case, side N/E/S/O) → forme CANONIQUE (case, N|E). */
@@ -209,10 +219,10 @@ export function sameSel(a: Sel, b: Sel): boolean {
  *  Architecture, #841 FU-C) : un clic qui ne touche aucune feuille désigne le CONTENEUR actif — l'étage
  *  à `currentLayer` s'il existe, sinon le corps lui-même (seul moyen de sélectionner/supprimer un corps
  *  ou un étage encore sans partie/masse/façade au clic). Jamais hors mode architecture (undefined). */
-export function hitAt(scene: Scene, p: Pt, layers: Layers, currentLayer = 0, activeBodyId?: string): Sel {
+export function hitAt(scene: Scene, p: Pt, layers: Layers, currentLayer = 0, activeBodyId?: string, point: Pt = p): Sel {
   // `entityAt` = prédicat UNIQUE position×couche (#835 FU-3) : une entité d'une AUTRE couche ne
   // masque plus le picking des couches d'annotation/toit sous-jacentes.
-  const ent = entityAt(scene, p, currentLayer);
+  const ent = entityAt(scene, p, currentLayer, point);
   if (ent && (layers.spawns || !ent.combat?.hiddenUntilCombat)) return { type: 'entity', id: ent.id };
   if (layers.entries)
     for (const [name, pos] of Object.entries(scene.entryPoints ?? {}))

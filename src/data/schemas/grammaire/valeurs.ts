@@ -832,9 +832,10 @@ export const EXPRESSION_DE_DE = /^\s*[+-]?\s*(\d+\s*\+\s*)?\d*\s*d\s*\d+\s*([+-]
  *  d'une place assise (`props.json`). */
 export const cell2Schema = nommerChamps(z.strictObject({ x: z.number().finite(), y: z.number().finite() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } });
 
-/** `{x,y}` en POUR CENT d'un canevas (0-100), point CONTINU et non case — un lieu sur la carte du monde,
- *  un point d'intérêt sur le plan de son lieu (`defs-scenes/worldmap.ts`). */
-export const pointDuCanevasSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } });
+/** `{x,y}` CONTINU du plan, point et non case, dans l'unité que nomme le champ qui le compose : pour cent d'un canevas
+ *  (0-100) pour un lieu sur la carte du monde ou un point d'intérêt sur le plan de son lieu (`defs-scenes/worldmap.ts`),
+ *  part du jeu libre d'un décor dans son empreinte (-1 à +1) pour son calage (`SceneEntity.calage`, `defs-scenes/scene.ts`). */
+export const pointDuPlanSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } });
 
 /**
  * `raceKey` — id STABLE des 7 espèces jouables (LDB + suppléments), patron `defs/characteristics`

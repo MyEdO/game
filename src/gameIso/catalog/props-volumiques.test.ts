@@ -45,7 +45,7 @@ describe('décor volumique — sa vignette et son corps monde, émis et cuits', 
     const el = buildProps(scene)[0] as { faces: { poly: { x: number; y: number; h: number }[] }[] };
     // L'ancre MONDE d'une place vient de la règle UNIQUE (`placesLocalesDuProp`), jamais d'un
     // `pos + anchor/mpt` recalculé ici : la géométrie est posée sur le CENTRE de l'empreinte
-    // (`decorAncre`), et une empreinte de plus d'une case décale ce centre d'une demi-case — la place
+    // (`ancreDuDecor`), et une empreinte de plus d'une case décale ce centre d'une demi-case — la place
     // se mesurait alors contre un plan de travail qui n'est pas là où le monde le cuit.
     const placesMonde = new Map(placesLocalesDuProp(findPropById(id), CAP_IDENTITE_PROP, METRES_PAR_CASE)
       .map((p) => [p.slot.id, { x: 3 + p.ancre.x, y: 4 + p.ancre.y }]));
@@ -69,7 +69,7 @@ describe('décor volumique — sa vignette et son corps monde, émis et cuits', 
    * meurt (`parseProject`).
    *
    * Ce que cette mesure suit, c'est la POSE dans le monde : le corps cuit part de l'ANCRE de
-   * l'empreinte DÉRIVÉE au cap (`decorAncre`), pas du coin NO ni d'une empreinte figée. Un builder qui
+   * l'empreinte DÉRIVÉE au cap (`ancreDuDecor`), pas du coin NO ni d'une empreinte figée. Un builder qui
    * calerait la recette sur un autre point la décalerait de la demi-case d'un 2×1 tourné.
    */
   it.each(IDS)('%s, cuit à chacun de ses caps, part de l’ancre de son empreinte dérivée et ne descend jamais sous le sol', (id) => {

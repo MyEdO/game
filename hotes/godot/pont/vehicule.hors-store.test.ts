@@ -30,6 +30,6 @@ describe('le véhicule des combattants dans la vue', () => {
     servir({ ...COMMITES.manifestes, 'barge-fluviale': vehiculeDeTest('barge-fluviale'), nain: baseDeTest('nain') });
     const { corps } = vueDe(appel('vue'));
     expect(corps.refus).toMatch(/^\[base-ambigue\] /);
-    expect(corps.vehicules).toEqual({ [barge.id]: { element: 'barge-fluviale', empreinte: 2, taille: 'empreinte', cap: 'E', palette: {}, postes: [], ameliorations: [], caches: [] } });
+    expect(corps.vehicules).toEqual({ [barge.id]: { element: 'barge-fluviale', empreinte: 2, taille: 'empreinte', cap: 'E', palette: {}, postes: [], ameliorations: [], caches: [], clips: {} } });
   });
 });

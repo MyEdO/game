@@ -106,14 +106,14 @@ function construireScene(): Scene {
     ...[5, 6, 7].map((y): SceneEntity => ({ id: `bal-g-${y}`, kind: 'prop', ref: 'balustrade-loge', pos: { x: 3, y }, facing: 'E', z: 1 })),
     { id: 'ft-g1', kind: 'prop', ref: 'fauteuil-loge', pos: { x: 1, y: 6 }, z: 1 },
     { id: 'ft-g2', kind: 'prop', ref: 'fauteuil-loge', pos: { x: 1, y: 8 }, z: 1 },
-    { id: 'app-g', kind: 'prop', ref: 'applique-murale', pos: { x: 1, y: 5 }, z: 1 },
+    { id: 'app-g', kind: 'prop', ref: 'applique-murale', pos: { x: 1, y: 5 }, calage: { x: 0, y: -1 }, z: 1 },
     { id: 'spect-g', kind: 'personnage', ref: 'humain', label: 'Spectatrice', pos: { x: 2, y: 7 }, z: 1, facing: 'E' },
 
     // Loges droite (z1).
     ...[5, 6, 7].map((y): SceneEntity => ({ id: `bal-d-${y}`, kind: 'prop', ref: 'balustrade-loge', pos: { x: 17, y }, facing: 'O', z: 1 })),
     { id: 'ft-d1', kind: 'prop', ref: 'fauteuil-loge', pos: { x: 19, y: 6 }, z: 1 },
     { id: 'ft-d2', kind: 'prop', ref: 'fauteuil-loge', pos: { x: 19, y: 8 }, z: 1 },
-    { id: 'app-d', kind: 'prop', ref: 'applique-murale', pos: { x: 19, y: 5 }, z: 1 },
+    { id: 'app-d', kind: 'prop', ref: 'applique-murale', pos: { x: 19, y: 5 }, calage: { x: 0, y: -1 }, z: 1 },
     { id: 'spect-d', kind: 'personnage', ref: 'humain', label: 'Spectateur', pos: { x: 18, y: 7 }, z: 1, facing: 'O' },
 
     // LOGE ROYALE (z1, fond-centre de la galerie) : balustrade face à la scène, fauteuil, la Comtesse, appliques.
@@ -121,8 +121,8 @@ function construireScene(): Scene {
     ...[6, 7, 8, 12, 13, 14].map((x): SceneEntity => ({ id: `bal-royale-${x}`, kind: 'prop', ref: 'balustrade-loge', pos: { x, y: 13 }, facing: 'N', z: 1 })),
     { id: 'fauteuil-royal', kind: 'prop', ref: 'fauteuil-loge', pos: { x: 10, y: 14 }, z: 1 },
     { id: 'comtesse', kind: 'personnage', ref: 'humain', label: 'Comtesse Emmanuelle', pos: { x: 10, y: 13 }, z: 1, facing: 'N', dialogueId: 'dlg-comtesse' },
-    { id: 'app-royale-g', kind: 'prop', ref: 'applique-murale', pos: { x: 7, y: 14 }, z: 1 },
-    { id: 'app-royale-d', kind: 'prop', ref: 'applique-murale', pos: { x: 13, y: 14 }, z: 1 },
+    { id: 'app-royale-g', kind: 'prop', ref: 'applique-murale', pos: { x: 7, y: 14 }, calage: { x: 0, y: -1 }, z: 1 },
+    { id: 'app-royale-d', kind: 'prop', ref: 'applique-murale', pos: { x: 13, y: 14 }, calage: { x: 0, y: -1 }, z: 1 },
     // INTRIGUE n°1 (source 08 l.131/166) : « grande plante en pot remplie de poudre à canon, détonateur
     // caché », livrée dans l'ANTICHAMBRE de la loge royale (z1). Désamorçage = retirer le détonateur.
     {

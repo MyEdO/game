@@ -12,18 +12,18 @@
  * sont canon ; la DONNÉE les porte en mètres et `rayonEnCases` les convertit à l'échelle de la scène
  * (`Scene.metresPerTile`, défaut `LDB 15 l.12`).
  */
-import { Scene, tileAt, heightAt, edgeOf, sceneMetresPerTile, areteOcculte } from './scene';
+import { Scene, type SceneEntity, tileAt, heightAt, edgeOf, sceneMetresPerTile, areteOcculte } from './scene';
 import { wallOnSight } from './lineOfSight';
 import { terrainOpaque, terrainSolidHeightM } from './terrain';
 import { METRES_PER_LEVEL } from './relief';
 import { sceneIsDark } from './sceneRules';
-import { propFootTiles, decorAncre } from './footprint';
+import { propFootTiles, ancreDuDecor } from './footprint';
+import { piedDuDecor } from './poseDuDecor';
 import { Pt } from './path';
 import { chebyshev } from '../../engine/grid';
 import { effectiveTalents, type PorteurDeTalents } from '../../engine/talentEffects';
 import { findLightLevelById, findTraitById, findPropById } from '../../data';
-import { empreinteDuProp, rotatePropLocal, CAP_IDENTITE_PROP, type PropData } from '../../data/props.types';
-import type { Dir8 } from '../../geometry/dir8';
+import { rotatePropLocal, CAP_IDENTITE_PROP, type PropData } from '../../data/props.types';
 import { memoByRef } from './sceneMemo';
 
 /** Un observateur : sa case, son rayon de vue (cases éclairées qu'il distingue) et sa portée de
@@ -54,17 +54,18 @@ export interface LightSource {
    *  vacillement). Le champ de lumière mécanique l'IGNORE : il ne connaît que le rayon (LDB 74) ; seul
    *  le rendu le résout. Absent = `flamme`. */
   tone?: string;
-  /** FOYER de la source, RELATIF à `pos` : le centre de la primitive que la recette du décor déclare
-   *  émettrice (`PropPrimitive.emet`, `data/props.types.ts`). `x`/`y` en CASES, `h` en MÈTRES au-dessus
-   *  du sol de la case — les mêmes unités que le MONDE, et il subit ICI la MÊME transformation rigide
+  /** FOYER de la source, RELATIF à `pos` : depuis l'ancre du décor (`ancreDuDecor`, calage compris), le centre de
+   *  la primitive que sa recette déclare émettrice (`PropPrimitive.emet`, `data/props.types.ts`), sinon l'ancre à la
+   *  hauteur par défaut (`FLAME_LIFT_M`), surélevée de son appui (`piedDuDecor`). `x`/`y` en CASES, `h` en MÈTRES
+   *  au-dessus du sol de la case — les mêmes unités que le MONDE, et il subit ICI la MÊME transformation rigide
    *  que la géométrie (division du plan par le `metresPerTile` de la scène, puis `rotatePropLocal` au cap
    *  de l'instance) : la lampe et le volume qu'elle éclaire tournent donc ensemble, et un déplacement de
    *  l'ancre les déplace tous deux.
    *
    *  Comme le `tone`, le champ de lumière MÉCANIQUE l'ignore : le couvert et la portée se comptent en
    *  cases depuis `pos`, et un décalage sous-métrique dans la case n'y change rien. Seul le RENDU le
-   *  lit. Absent = la source n'a pas de primitive déclarée (billboard, lampe portée) : le rendu applique
-   *  alors sa hauteur par défaut (`FLAME_LIFT_M`, `noyau/lumiereDeLaScene.ts`). */
+   *  lit. Absent = la source n'est pas un décor résolu (lampe portée, type inconnu) : le rendu la pose à
+   *  l'aplomb de `pos`, à la hauteur par défaut (`FLAME_LIFT_M`). */
   foyer?: { x: number; y: number; h: number };
 }
 
@@ -206,33 +207,42 @@ export function mapLights(scene: Scene): LightSource[] {
     const prop = e.ref ? findPropById(e.ref) : undefined;
     const type = prop?.light;
     const rM = inst?.radiusM ?? type?.radiusM;
-    if (rM && rM > 0) out.push({ pos: e.pos, z: e.z, radiusTiles: rayonEnCases(rM, mpt), srcId: e.id, tone: inst?.tone ?? type?.tone, ...foyerDe(prop, e.pos, e.facing, mpt) });
+    if (rM && rM > 0) out.push({ pos: e.pos, z: e.z, radiusTiles: rayonEnCases(rM, mpt), srcId: e.id, tone: inst?.tone ?? type?.tone, ...foyerDe(scene, e, prop, mpt) });
   }
   return out;
 }
 
+/** Hauteur (m) par DÉFAUT d'une flamme au-dessus du sol de sa case — le foyer d'un émetteur qui n'a
+ *  AUCUNE primitive déclarée : un billboard (dont le dessin n'a pas de volume monde où pointer) ou une
+ *  lampe PORTÉE (dont le foyer est une main, pas une recette). Un décor VOLUMIQUE, lui, déclare sa
+ *  primitive émettrice (`PropPrimitive.emet`) et sa source est posée à SON centre (`LightSource.foyer`,
+ *  `foyerDe`) : ce sont deux valeurs d'UN paramètre, pas deux régimes. Apparence, aucune règle. */
+export const FLAME_LIFT_M = 1;
+
 /**
- * FOYER d'un décor dont la recette DÉCLARE sa primitive émettrice (`emet`) : le centre de cette
- * primitive, exprimé RELATIVEMENT à `pos` comme le veut `LightSource.foyer`.
+ * FOYER d'un décor qui éclaire : le centre de sa primitive émettrice (`emet`), sinon `FLAME_LIFT_M` au-dessus de son
+ * ancre, exprimé RELATIVEMENT à `pos` et au sol de sa case comme le veut `LightSource.foyer`.
  *
- * Il se compose EXACTEMENT comme la géométrie, et depuis les MÊMES deux sources qu'elle :
- *  - l'ANCRE du décor (`decorAncre`, `noyau/monde/footprint.ts`) — le centre de son empreinte EFFECTIVE
- *    (`empreinteDuProp`, corps tourné depuis #1509), que
- *    le rendu lit pour poser la recette ; une empreinte 2×2 la décale d'une
- *    demi-case sur chaque axe, et une lampe calée sur `pos` seul s'en détacherait de 1,414 m ;
+ * Il se compose EXACTEMENT comme la géométrie, et depuis les MÊMES sources qu'elle :
+ *  - l'ANCRE du décor (`ancreDuDecor`, `noyau/monde/footprint.ts`) — le centre de son empreinte EFFECTIVE
+ *    (`empreinteDuProp`, corps tourné depuis #1509) décalé par son calage, que le rendu lit pour poser la recette ;
+ *    une empreinte 2×2 la décale d'une demi-case sur chaque axe, et une lampe calée sur `pos` seul s'en détacherait
+ *    de 1,414 m ;
+ *  - son PIED (`piedDuDecor`) : une lampe posée sur une table éclaire depuis le dessus de la table ;
  *  - la ROTATION au cap de l'instance (`rotatePropLocal`, `data/props.types.ts`), l'unique définition
  *    de ce que `SceneEntity.facing` fait subir à une géométrie de décor.
- * Aucun des deux n'est recalculé ici : un second calcul d'offset divergerait au premier changement
- * d'ancrage, et c'est précisément ce que ce foyer ne doit pas pouvoir faire.
+ * Aucun n'est recalculé ici : un second calcul d'offset divergerait au premier changement d'ancrage, et c'est
+ * précisément ce que ce foyer ne doit pas pouvoir faire.
  *
- * Rien à rendre sans type résolu ou sans `emet` : la source garde alors le défaut du rendu. PUR.
+ * Rien à rendre sans type résolu : la source garde alors le défaut du rendu. PUR.
  */
-function foyerDe(prop: PropData | undefined, pos: Pt, facing: Dir8 | undefined, mpt: number): { foyer?: LightSource['foyer'] } {
-  const emettrice = prop?.volume.primitives.find((p) => p.emet);
-  if (!emettrice) return {};
-  const ancre = decorAncre(pos, empreinteDuProp(prop, facing, mpt));
-  const [x, y] = rotatePropLocal(emettrice.center.xM / mpt, emettrice.center.yM / mpt, facing ?? CAP_IDENTITE_PROP);
-  return { foyer: { x: ancre.x - pos.x + x, y: ancre.y - pos.y + y, h: emettrice.center.hM } };
+function foyerDe(scene: Scene, ent: SceneEntity, prop: PropData | undefined, mpt: number): { foyer?: LightSource['foyer'] } {
+  if (!prop) return {};
+  const emettrice = prop.volume.primitives.find((p) => p.emet);
+  const ancre = ancreDuDecor(ent, mpt);
+  const [x, y] = emettrice ? rotatePropLocal(emettrice.center.xM / mpt, emettrice.center.yM / mpt, ent.facing ?? CAP_IDENTITE_PROP) : [0, 0];
+  const surleve = piedDuDecor(scene, ent) - heightAt(scene, ent.pos.x, ent.pos.y, ent.z ?? 0);
+  return { foyer: { x: ancre.x - ent.pos.x + x, y: ancre.y - ent.pos.y + y, h: surleve + (emettrice?.center.hM ?? FLAME_LIFT_M) } };
 }
 
 /** Source de lumière PORTÉE par un combattant/groupe : le plus grand rayon parmi ses émetteurs, émis depuis
