@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { describeQuality } from './describe';
 import { qualities } from '../../data';
-import { parseQualityInstance } from './normalize';
+import { parseQualityInstance } from '../../data/refFormatLivre';
 
 /** Décrit depuis un libellé/id saisi (authoring) : prose → `QualityInstance` → describe. Inconnu → id brut. */
 const dq = (raw: string) => describeQuality(parseQualityInstance(raw) ?? { id: raw });

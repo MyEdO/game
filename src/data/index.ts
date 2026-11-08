@@ -1903,7 +1903,7 @@ export interface TraitData {
 /** Drapeaux/marqueurs de CAPACITÉ IRRÉDUCTIBLES d'une qualité d'arme/armure/objet (LDB 62-63) — règles
  *  que le moteur INTERROGE (résolution de combat, économie d'artisanat) : NI un modificateur (`passive`)
  *  NI un effet déclenché (`effects`). Lus PAR ID par `engine/qualities/dispatch`.
- *  Les INDICES (Salve N, Protectrice N, Arme d'équipe N…) restent lus du RUNTIME string (`parseQuality().indice`)
+ *  Les INDICES (Salve N, Protectrice N, Arme d'équipe N…) sont portés par l'instance (`QualityInstance.value`)
  *  — la capability n'est qu'un marqueur de PRÉSENCE, jamais le porteur de l'Indice. Édité au Codex. */
 export interface QualityCapabilities {
   // Résolution de combat (mêlée)

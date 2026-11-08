@@ -7,7 +7,7 @@ import { spawnEnemy } from './monde/spawn';
 import { pickActiveModalKey } from './modalArbiter';
 import { avanceEtapeCascade } from './cascade.testkit';
 import { seedBattleRng } from './battleRng';
-import { parseQualityInstance } from '../engine/qualities/normalize';
+import { parseQualityInstance } from '../data/refFormatLivre';
 import { combatAdvanceBlocked } from './combatGate';
 import type { Weapon } from '../engine/types';
 

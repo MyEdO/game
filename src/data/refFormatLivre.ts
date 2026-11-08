@@ -6,13 +6,14 @@
  * `label-logic-guard.test.ts` (`ALLER_RETOUR`).
  *
  * Consommateurs : les éditeurs de statbloc (`StatblockEditor`, atelier du Codex `CodexEdit`,
- * `StructFields`, `OptionalTraitsPicker`) et l'éditeur d'op (`GameOpEditor`). `spec` rend un `id` dès
+ * `StructFields`, `OptionalTraitsPicker`), l'éditeur d'op (`GameOpEditor`) et celui d'arme (`WeaponField`,
+ * « Qualité Indice », inverse de `qualityRefLabel`). `spec` rend un `id` dès
  * qu'elle en RÉSOUT un — d'abord au catalogue de l'entrée, sinon au registre partagé (`specIdOf`) ; sur
  * un domaine à spécialisations OUVERTES, le verbatim saisi est conservé en dernier ressort
  * (« Savoir (Zorglub) » persiste « Zorglub »), faute d'id à désigner. Doctrine « toute LOGIQUE est
  * keyée par id STABLE » (AGENTS.md).
  */
-import { byId, caracDuSigle, findSkill, findTalent, findTalentById, findTraitById, specCatalogOf, specIdByLabel, specLabel, traitIdByLabel, emplacementsDesPiecesDuCatalogue, type SkillRef, type TalentRef, type TraitData } from './index';
+import { byId, caracDuSigle, findSkill, findTalent, findTalentById, findTraitById, qualityIdByLabel, specCatalogOf, specIdByLabel, specLabel, traitIdByLabel, emplacementsDesPiecesDuCatalogue, type SkillRef, type TalentRef, type TraitData } from './index';
 import { ARG_JOKER, traitAdmet } from './schemas/grammaire/reference';
 import { specAuCatalogue } from './schemas/grammaire/ref';
 import { slugId } from './slug';
@@ -21,7 +22,7 @@ import { classerParenthese, lireMatiere } from '../engine/classementDeTrait';
 import type { TraitPose } from './schemas/grammaire/reference';
 import { t } from '../i18n';
 import { norm } from '../lib/normalize';
-import { DIFFICULTY_NAMES, type Difficulty } from '../engine/types';
+import { DIFFICULTY_NAMES, type Difficulty, type QualityInstance } from '../engine/types';
 
 /** Saisie « (Au choix) » : un EMPLACEMENT, jamais une spécialisation (#1548). Le mot lu est celui que
  *  l'affichage compose (`ref.motAuChoix`, `choixLabel`). */
@@ -213,4 +214,29 @@ export function relireTraits(texts: readonly string[], avant: readonly TraitPose
     });
   }
   return relus.map((relu, i) => (appariees[i] ? relireTrait(texts[i], appariees[i]) : relu));
+}
+
+/** Sépare un éventuel Indice de fin (« X 3 » / « X (3) » / « X (1A) ») du libellé. L'UNITÉ qui suit la valeur
+ *  (`QualityData.indice.unite`, rendue par `qualityRefLabel`, `AA 08 l.136` « Taillade (1A) ») est absorbée :
+ *  sans ça, un aller-retour prose→structure perdrait l'Indice de Taillade. */
+export function splitIndice(raw: string): { label: string; indice?: number } {
+  const m = raw.trim().match(/^(.*?)\s*\(?(\d+)\s*[A-Za-zÀ-ÿ]*\)?\s*$/);
+  if (m && m[2] != null && m[1].trim()) return { label: m[1].trim(), indice: parseInt(m[2], 10) };
+  return { label: raw.trim() };
+}
+
+/** Parse une saisie « Qualité Indice » (« Solide 3 », « précise ») → son id stable et son Indice, ou `null` si
+ *  aucune qualité ne porte ce libellé (`qualityIdByLabel`, casse ignorée, ou l'id lui-même). */
+export function parseQuality(raw: string): { id: string; indice?: number } | null {
+  const { label, indice } = splitIndice(raw);
+  const id = qualityIdByLabel(label);
+  return id ? { id, indice } : null;
+}
+
+/** Parse une saisie « Qualité Indice » → `QualityInstance` (`{ id, value? }`), ou `null` si inconnue. Inverse de
+ *  `qualityRefLabel`. */
+export function parseQualityInstance(raw: string): QualityInstance | null {
+  const p = parseQuality(raw);
+  if (!p) return null;
+  return p.indice != null ? { id: p.id, value: p.indice } : { id: p.id };
 }

@@ -8,7 +8,7 @@ import { woundsFromHit, finishMelee, rollMeleeDefender } from '../combat';
 import { makeRNG } from '../dice';
 import { rollTest } from '../tests';
 import type { Combatant, Weapon } from '../types';
-import { parseQualityInstance } from './normalize';
+import { parseQualityInstance } from '../../data/refFormatLivre';
 import { blessuresSurLeProfil, blessuresDeBase } from '../combattantDeTest.testkit';
 
 /**
