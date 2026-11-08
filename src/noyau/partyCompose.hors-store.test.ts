@@ -6,7 +6,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
-import { makePregens } from '../data/pregens';
+import { makePregens, idDuPretire } from '../data/pregens';
 import type { Combatant } from '../engine/types';
 import { toBrass } from '../engine/money';
 import { partyMoneyTotal } from './bourseFlow';
@@ -49,7 +49,7 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
   it('recruterLeHeros : un pré-tiré se désigne par son id, le noyau le bâtit de la donnée', () => {
     const [def] = pregens;
     banc.getState().recruterLeHeros({ pretire: def.id });
-    expect(banc.getState().party.map((h) => [h.id, h.label])).toEqual([[`pregen-${def.seed}`, def.label]]);
+    expect(banc.getState().party.map((h) => [h.id, h.label])).toEqual([[idDuPretire(def.seed), def.label]]);
   });
 
   it('recruterLeHeros : refuse les doublons d’id et le groupe plein', () => {

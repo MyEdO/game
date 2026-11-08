@@ -1,6 +1,6 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { makePregens, makePregensWithWealth, makeShowcaseParty, pregen, pregenParty, PREGEN } from './pregens';
+import { makePregens, makePregensWithWealth, makeShowcaseParty, pregen, pregenParty, PREGEN, idDuPretire } from './pregens';
 import { skillInstanceLabel, talentConcrete, findSpellById, levelsForCareer, blessingsOf, especeDApparence, pregens as definitions } from './index';
 import { statutDeDonnee } from '../engine/money';
 import { validateDataset } from './schemas/validate';
@@ -202,7 +202,7 @@ describe('Sélection de groupe — pregen / pregenParty', () => {
       const livres = [...definitions];
       setDataset('pregens', [...livres, def]);
       try {
-        expect(makePregens(idsDeTest).some((h) => h.id === `pregen-${def.seed}`), 'le pré-tiré fautif a été construit').toBe(false);
+        expect(makePregens(idsDeTest).some((h) => h.id === idDuPretire(def.seed)), 'le pré-tiré fautif a été construit').toBe(false);
       } finally {
         setDataset('pregens', livres);
         console.error = orig;
