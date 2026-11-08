@@ -81,7 +81,7 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#details', ref: '.texts.age', occurrence: 1 },
   { fichier: 'src/data#disponibilite', ref: '.barterRatios[]', occurrence: 1 },
   { fichier: 'src/data#disponibilite', ref: '.barterRatios[].ratios', occurrence: 1 },
-  { fichier: 'src/data#disponibilite', ref: '.barterRatios[].ratios.Commune', occurrence: 1 },
+  { fichier: 'src/data#disponibilite', ref: '.barterRatios[].ratios.commune', occurrence: 1 },
   { fichier: 'src/data#disponibilite', ref: '.dispoPct[]', occurrence: 1 },
   { fichier: 'src/data#disponibilite', ref: '.dispoPct[].pct', occurrence: 1 },
   { fichier: 'src/data#domains', ref: '[].castBonus', occurrence: 1 },

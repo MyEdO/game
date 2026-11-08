@@ -16,7 +16,7 @@ describe('#61 — armes de corps à corps des ogres (ADE II 2 l.607-615)', () =>
     const e = q('massue-ogre');
     expect(e.price).toEqual({ gold: 1, silver: 0, brass: 0 });
     expect(e.enc).toBe(2);
-    expect(e.availability).toBe('Commune'); // « Courante » (ADE II) → enum de la donnée
+    expect(e.availability).toBe('commune'); // « Courante » (ADE II) → enum de la donnée
     expect(e.reach).toBe('Moyenne');
     expect(e.damage).toEqual({ plusBF: true, flat: 4 });
   });
