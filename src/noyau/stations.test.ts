@@ -4,7 +4,7 @@ import { postesToStations, battleScenesToStations } from './stations';
 import { posteAnchor, applyShipPostes } from './monde/shipPostes';
 import { battleSceneById } from './massBattleFlow';
 import { itemFromTrappingById } from '../engine/items';
-import type { Combatant, ShipPoste, ShipDeck, FireArc } from '../engine/types';
+import type { Combatant, ShipPoste, FireArc } from '../engine/types';
 import type { Scene } from './monde/scene';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -143,19 +143,9 @@ describe('posteAnchor — ordre de résolution', () => {
   const hull = (pos: { x: number; y: number; z?: number } | undefined, footprint?: number): Combatant =>
     ({ id: 'h', name: 'h', kind: 'enemy', pos, ...(footprint ? { footprint } : {}) }) as unknown as Combatant;
 
-  it('`poste.anchor` authoré fait foi (par-dessus deck-slot / empreinte)', () => {
+  it('`poste.anchor` authoré fait foi (par-dessus l’empreinte)', () => {
     const poste: ShipPoste = { item: itemFromTrappingById('baliste', idsDeTest)!, side: 'tribord', anchor: { x: 9, y: 9, z: 1 } };
-    const deck: ShipDeck = { ascii: [], postes: [{ pos: { x: 1, y: 1 }, side: 'tribord' }] };
-    expect(posteAnchor(hull({ x: 5, y: 5 }, 3), poste, { heading: 'N', deck })).toEqual({ x: 9, y: 9, z: 1 });
-  });
-
-  it('deck-slot du même bord utilisé HORS échelle mer seulement', () => {
-    const poste: ShipPoste = { item: itemFromTrappingById('baliste', idsDeTest)!, side: 'tribord' };
-    const deck: ShipDeck = { ascii: [], postes: [{ pos: { x: 2, y: 3 }, side: 'tribord' }, { pos: { x: 8, y: 3 }, side: 'babord' }] };
-    // hors mer : le slot du bord tribord fait foi
-    expect(posteAnchor(hull({ x: 5, y: 5 }), poste, { deck })).toEqual({ x: 2, y: 3 });
-    // échelle mer : coords de pont invalides → repli sur la coque
-    expect(posteAnchor(hull({ x: 5, y: 5 }), poste, { deck, sea: true })).toMatchObject({ x: 5, y: 5 });
+    expect(posteAnchor(hull({ x: 5, y: 5 }, 3), poste, { heading: 'N' })).toEqual({ x: 9, y: 9, z: 1 });
   });
 
   it('empreinte>1 + arc + cap → décalage HORS-CENTRE, deux bords donnent deux cases distinctes', () => {

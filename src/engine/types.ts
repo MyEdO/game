@@ -245,9 +245,6 @@ export interface VehicleData {
     oars?: ProfilDePropulsion;
     traits: NavalTraitRef[];
   };
-  /** Facette PONT (couche tactique, §1bis du modèle naval) : plan person-scale du pont, authoré une fois
-   *  par TYPE et réutilisé dans tout scénario (jamais redessiné) ; `postes` est lu par `noyau/monde/shipPostes.ts`. */
-  deck?: ShipDeck;
 }
 
 /**
@@ -1305,8 +1302,8 @@ export interface AuthoredShipPoste {
    *  arc relatif à l'orientation-monde DU CHEF de pièce (pas d'une coque). */
   side?: FireArc;
   /** COUVERT du servant à ce poste (`DeckCoverClass`) : gun-port (Sabord) → `totale`, Plat-bord → `moyenne`,
-   *  Murs blindés → `totale` ; absent = tir depuis le pont, à découvert. Stampé par `effectiveDeckPostes`
-   *  depuis les Améliorations de la coque (ou authoré pour un poste structurellement couvert). */
+   *  Murs blindés → `totale` ; absent = tir depuis le pont, à découvert. La coque y ajoute ses
+   *  Améliorations couvrantes au tir (`couvertDuPoste`). */
   cover?: DeckCoverClass;
   /** Équipage servant la pièce ; `crewIds[0]` = chef de pièce (nominé pour le Test, Arme d'équipe). */
   crewIds?: string[];
@@ -1347,34 +1344,6 @@ export interface ShipPoste extends Omit<AuthoredShipPoste, 'trappingId'> {
   /** L'arme HYDRATÉE (instance complète — base via `trappingId` + `qualities`/`enchants` propres). Jamais
    *  persistée : re-résolue à chaque spawn depuis la réf, cf. `hydratePoste`. */
   item: ItemInstance;
-}
-
-/** Emplacement de POSTE sur un gabarit de pont (`ShipDeck`) — un MOUNT POINT authoré (pos + arc), PAS une
- *  contrainte de règle : le placement des pièces reste LIBRE (par bord + poids vs Contenance, cf.
- *  `noyau/monde/shipPostes.ts`). Sert au RENDU / à l'aide d'authoring (où dessiner une pièce montée sur ce bord,
- *  où poster son servant), réutilisé tel quel à la composition du Pont à l'abordage. */
-export interface DeckPosteSlot {
-  /** Case du pont (coord de la grille `ascii`) où la pièce se rend et où se tient son servant. */
-  pos: { x: number; y: number };
-  /** Côté de montage relatif au cap → arc de bordée (`inFireArc`). */
-  side: FireArc;
-  /** COUVERT de l'emplacement (`DeckCoverClass`) — gun-port authoré (`totale`) ou stampé par les Améliorations
-   *  de la coque via `effectiveDeckPostes` ; absent = tir depuis le pont, à découvert. */
-  cover?: DeckCoverClass;
-}
-
-/** Facette PONT (couche tactique, §1bis du modèle naval) : le plan PERSON-SCALE du pont d'un TYPE de navire,
- *  AUTHORÉ une seule fois et réutilisé tel quel dans tout scénario (jamais redessiné). À l'abordage, le pont
- *  est instancié + cousu depuis ce gabarit. Le plan suit `parseWalledAscii` (authoring canon du projet :
- *  tuiles + murs d'arête, `:` = écoutille) ; les `postes` sont des emplacements de RENDU (cf. `DeckPosteSlot`).
- *  TYPE PUR (engine) — seul `postes` est lu à ce jour (`noyau/monde/shipPostes.ts`) ; le plan `ascii` est du gabarit
- *  authorable, sans lecteur de production depuis #1789. */
-export interface ShipDeck {
-  /** Plan du pont en box-drawing → tuiles + murs via `parseWalledAscii` ; la tuile de base est celle du
-   *  défaut de compilation (`defauts-de-compilation.json › pont`). */
-  ascii: string[];
-  /** Emplacements de postes d'artillerie (mount points authorés PAR TYPE — généralisent `AuthoredEnemy.postes`). */
-  postes?: DeckPosteSlot[];
 }
 
 /** Set d'armes nommé (les 2 mains). `off` ignoré si l'arme `main` est à 2 mains. uids → ItemInstance. */

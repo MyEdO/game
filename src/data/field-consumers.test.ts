@@ -415,7 +415,6 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
     'bladed', 'consumableDuration', 'container', 'defaultAmmo', 'indirect', 'minRangeBand', 'onHitEffects',
     'organicProjectile', 'requiresMastery', 'service', 'sizeFor', 'soloSimple',
   ],
-  VehicleData: ['deck'],
 };
 
 /** Raison d'un zéro LU hors du type de l'entrée, mesurée par la jointure (lecture reliée au dataset sous
