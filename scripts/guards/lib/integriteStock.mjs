@@ -35,6 +35,7 @@ export const MAISON_SANS_SOURCE = [
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["landRobberyLossPct","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["maladie-conscience-determination-minutes","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["market-cite-stock","maison","",""]', occurrence: 1 },
+  { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["market-evaluation-delai-jours","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["mendier-amende-sous","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["mendier-apparence-bonus","maison","",""]', occurrence: 1 },
   { famille: 'maison-sans-source', fichier: 'src/data/reglesOptionnelles.json', ref: '["mendier-discours","maison","",""]', occurrence: 1 },
