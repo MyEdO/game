@@ -29,3 +29,7 @@ Les PNJ gardés vivent dans le `localStorage` du navigateur (`pnj-saved`). Une s
 « Garder en troupe… » (menu de l'encadré) garde N copies du PNJ affiché, dans une rencontre au choix : noms tirés au hasard dans son groupe de noms (sinon numérotés), profils variés par `rollProfile` (LDB p.314). Les noms restent uniques dans Mes PNJ.
 
 Notes du MJ : `S.notes` (texte libre) et `S.notesOn` ; dans l'encadré, les copies et l'impression seulement si la case est cochée, toujours visibles et cherchables dans Mes PNJ. La recherche de Mes PNJ porte sur le nom, le sous-titre, la rencontre et les notes ; « Tout » et la case d'un groupe ne cochent que les PNJ affichés.
+
+## Impression (2026-11-08)
+
+Le cadre des artefacts claude.ai (`sandbox="allow-scripts allow-same-origin allow-forms"`, sans `allow-modals` ni, le plus souvent, `allow-popups`) ignore `window.print()` et bloque les onglets, sous Firefox comme sous Chromium. Imprimer tente `print()` (qui marche page ouverte seule) ; sinon il remplit la zone d'impression et invite à faire Ctrl+P. Le Ctrl+P de la page claude.ai imprime le cadre à la hauteur que le document lui a déclarée : la page se hausse donc à la zone d'impression dès qu'elle est remplie, et de `beforeprint` à `afterprint` ne montre qu'elle (l'encadré affiché, ou la sélection du dernier clic sur Imprimer). Vérifié sous Firefox headless, cadre claude.ai reproduit : un PNJ, et cinq PNJ de Mes PNJ sans coupure.

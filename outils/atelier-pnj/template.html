@@ -198,8 +198,10 @@ dialog .actions{margin-top:10px}dialog .hint{margin-top:8px}
 .saved .s{display:flex;gap:6px;align-items:center;justify-content:space-between;border-bottom:1px dotted var(--line);padding:3px 0}
 .saved .s label{display:flex;gap:6px;align-items:baseline;flex:1;min-width:0;overflow-wrap:anywhere;cursor:pointer}.saved .s label input{flex:none;width:auto;margin:0}.saved .s label span{flex:1;min-width:0}#selBar{margin-bottom:6px}
 .saved .s div{display:flex;gap:4px}.saved .g{margin-top:6px;padding:2px 0;border-bottom:1px solid var(--line)}.saved .g label{display:flex;gap:6px;align-items:baseline;cursor:pointer}.saved .g input{flex:none;width:auto;margin:0}#iRenc{width:14em;max-width:100%}#qSaved{flex:1 1 14em}#oSaved{flex:0 1 auto;width:auto}.saved .s .nt{display:block;color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#dTroop label{display:flex;gap:6px;align-items:center}#dTroop label input[type=checkbox]{width:auto;margin:0}#tN{width:5em}#dTroop .clr{flex:1 1 12em}
-#printArea{display:none}
-@media print{body>*:not(#printArea){display:none!important}#printArea{display:block}body{background:#fff!important;margin:0}}
+/* Zone d'impression : mesurée hors de l'écran à 180 mm, plus étroit que la page imprimée, pour que la hauteur mesurée couvre l'encadré. */
+#printArea{position:absolute;top:0;left:-250mm;width:180mm;visibility:hidden}
+@media screen{html{min-height:var(--haut-impression)}}.imprime body>*:not(#printArea){display:none!important}.imprime #printArea{position:static;width:auto;visibility:visible}
+@media print{body{background:#fff!important;margin:0}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -1123,8 +1125,8 @@ function wire(){
   $('bSelNone').addEventListener('click',()=>{SEL.clear();drawSaved()});
   $('cSelT').addEventListener('click',()=>copy(selNpcs().map(toText).join('\n')));
   $('cSelW').addEventListener('click',()=>{const L=selNpcs();copyHtml(L.map(toHtml).join('<p>&nbsp;</p>'),L.map(toText).join('\n'))});
-  $('bPrint').addEventListener('click',()=>printNpcs([S],'PNJ - '+(S.nom||'Sans nom')));
-  $('pSel').addEventListener('click',()=>printNpcs(selNpcs(),'Mes PNJ'));
+  $('bPrint').addEventListener('click',()=>printNpcs([S]));
+  $('pSel').addEventListener('click',()=>printNpcs(selNpcs()));
   $('xSel').addEventListener('click',()=>exportNpcs(selNpcs()));
   pickable($('iRenc'));pickable($('tRenc'));
   const tN=()=>Math.min(30,Math.max(2,Math.round(+$('tN').value)||2)),tLab=()=>{$('bTroopGo').textContent='Garder '+tN()+' PNJ'};
@@ -1163,7 +1165,7 @@ function randomNpc(){
   if(!L.Nom){S.nom=randomName(noms,genre);S.nomAuto=true}else{S.nom=nom;S.nomAuto=keepAuto}rollProfile(S);syncForm();
 }
 
-/* ---------- impression : la fenêtre d'impression si le cadre l'autorise, sinon un onglet prêt à imprimer ---------- */
+/* ---------- impression : la fenêtre d'impression si le cadre l'autorise ; sinon Ctrl+P sur la page, dont l'impression ne montre que la zone d'impression ---------- */
 const PRINT_CSS='.pnj{break-inside:avoid;page-break-inside:avoid;margin:0 0 8mm}.pnj>div{box-decoration-break:clone;-webkit-box-decoration-break:clone}'
   +'.pnj p,.pnj table{break-inside:avoid}.pnj p:has(+div){break-after:avoid}'
   +'.pnj.wide{page:paysage}.pnj.wide>div{column-count:2;column-gap:0;column-rule:2px solid #4a463f}'
@@ -1175,13 +1177,17 @@ function printBlock(st){
     return '<div class="pnj'+(mm>0.6*283?' wide':'')+'">'+m.innerHTML+'</div>'}
   finally{m.remove()}}
 const printBody=list=>'<style>'+PRINT_CSS+'</style>'+list.map(printBlock).join('');
-function printNpcs(list,name){
+/* Le cadre des artefacts claude.ai refuse window.print() (sandbox sans allow-modals) et les onglets ; le Ctrl+P de la page imprime ce cadre, à la hauteur que le document lui a déclarée au dernier redimensionnement. Le document se hausse donc à la zone d'impression dès qu'elle est remplie, et de beforeprint à afterprint ne montre qu'elle : l'encadré affiché, ou la liste du dernier clic sur Imprimer. */
+let printList=null;
+const docEl=document.documentElement;
+const fillPrint=list=>{$('printArea').innerHTML=printBody(list);docEl.style.setProperty('--haut-impression',$('printArea').offsetHeight+'px')};
+addEventListener('beforeprint',()=>{fillPrint(printList||[S]);docEl.classList.add('imprime')});
+addEventListener('afterprint',()=>{docEl.classList.remove('imprime');docEl.style.removeProperty('--haut-impression');$('printArea').innerHTML='';printList=null});
+function printNpcs(list){
+  printList=list;fillPrint(list);
   let opened=false;const mark=()=>{opened=true};addEventListener('beforeprint',mark,{once:true});
-  $('printArea').innerHTML=printBody(list);try{print()}catch(e){}
-  setTimeout(()=>{removeEventListener('beforeprint',mark);if(opened)return;
-    const doc='<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>'+esc(name)+'</title><style>body{margin:7mm;background:#fff;font:15px system-ui,sans-serif}.aide{margin:0 0 6mm;padding:8px 12px;background:#f3eee2;border-radius:6px}@media print{body{margin:0}.aide{display:none}}</style></head><body><p class="aide">Si la fenêtre d\'impression ne s\'ouvre pas, faites Ctrl+P (⌘P sur Mac).</p>'+printBody(list)+'<script>addEventListener("load",()=>print())<\/script></body></html>';
-    const url=URL.createObjectURL(new Blob([doc],{type:'text/html'}));try{window.open(url,'_blank')}catch(e){}setTimeout(()=>URL.revokeObjectURL(url),60000);
-    toast('Encadré ouvert dans un nouvel onglet, prêt à imprimer. Aucun onglet ? Copiez pour Word / Docs.')},400)}
+  try{print()}catch(e){}
+  setTimeout(()=>{removeEventListener('beforeprint',mark);if(!opened)toast('Faites Ctrl+P (⌘P sur Mac) pour imprimer : '+(list.length>1?'seuls les encadrés choisis s\'impriment.':'seul l\'encadré s\'imprime.'))},400)}
 
 /* ---------- copie et sauvegarde ---------- */
 /* Une fenêtre modale passe au premier plan : le message s'affiche dans celle qui est ouverte. */
