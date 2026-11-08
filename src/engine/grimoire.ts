@@ -20,8 +20,9 @@
  */
 import { Combatant } from './types';
 import { bonus, effectiveChar } from './characteristics';
-import { spells, blessingsOf, miraclesOf, chaosSpellsOf, findSpellById, type SpellData } from '../data'; // appartenance sort→dieu par IDS (dataset gods)
-import { featuresOf } from './combatFeatures/dispatch';
+import { spells, gods, blessingsOf, miraclesOf, chaosSpellsOf, findSpellById, type SpellData } from '../data'; // appartenance sort→dieu par IDS (dataset gods)
+import { castingKindOf } from './combatFeatures/dispatch';
+import { effectiveTalents } from './talentEffects';
 import type { CastingKind } from './combatFeatures/types';
 import { effectiveEntry } from './variants';
 import { itemCapability } from './capabilities';
@@ -30,17 +31,22 @@ export interface CasterTalent {
   kind: CastingKind;
   /** Domaine (Feu, Ombres, Nécromancie…) ou Culte (Sigmar…), si spécialisé. */
   spec?: string;
+  /** Le Talent par son id. */
+  talentId: string;
+  /** Nombre de prises du Talent (`times`). */
+  niveau: number;
 }
 
-/** Talents de lanceur du héros — lus du REGISTRE de talents (castingKind), specs = `ctx.spec`
+/** Talents de lanceur du porteur — lus du REGISTRE de talents (castingKind), specs = `spec` de l'instance
  *  (« Invocation (Sigmar) » → 'Sigmar'), jamais un name-match : ajouter un Talent de lanceur = une def. */
 export function casterTalents(c: Combatant): CasterTalent[] {
   const out: CasterTalent[] = [];
-  for (const { def, ctx } of featuresOf(c)) {
-    if (!def.castingKind) continue;
+  for (const t of effectiveTalents(c)) {
+    const kind = castingKindOf(t.talentId);
+    if (!kind) continue;
     // « (Au choix) » (libellé générique des carrières) = non encore spécialisé → joker.
-    const spec = ctx.spec;
-    out.push({ kind: def.castingKind, spec: spec && !/^au choix$/i.test(spec) ? spec : undefined });
+    const spec = t.spec;
+    out.push({ kind, spec: spec && !/^au choix$/i.test(spec) ? spec : undefined, talentId: t.talentId, niveau: t.times ?? 1 });
   }
   return out;
 }
@@ -89,24 +95,33 @@ export function arcaneDomainsOf(spell: SpellData): string[] | null {
   return spell.domainId != null ? [spell.domainId] : null;
 }
 
-/** Le héros a-t-il un Talent rendant CE sort apprenable ? */
-export function eligibleTalent(c: Combatant, spell: SpellData): CasterTalent | undefined {
+/** Le sort est-il un Sort d'Arcanes du Chaos : de la Magie du Chaos, d'aucun Dieu Sombre (`gods.json`). EDOC 13 l.264-266 */
+function estArcaneDuChaos(spell: SpellData): boolean {
+  return spell.family === 'chaos' && !gods.some((g) => g.chaosSpells?.includes(spell.id));
+}
+
+/** Le sort `spell` est-il d'une liste qu'ouvre le Talent de lanceur `t` ? Spec absente (« Au choix » non assigné) :
+ *  joker, toute la famille. LDB 10 ; LDB 46 l.12-14 ; EDOC 13 l.262 */
+export function talentOuvre(t: Pick<CasterTalent, 'kind' | 'spec'>, spell: SpellData): boolean {
   const fam = familyOf(spell);
-  const talents = casterTalents(c);
-  if (fam === 'mineure') return talents.find((t) => t.kind === 'mineure');
-  if (fam === 'arcane') {
-    // Sans Domaine admis (Sort d'Arcane commun) : n'importe quel Domaine connu. Sinon le Talent d'UN
-    // des Domaines admis (`t.spec` = id de domaine) ou un Talent non spécialisé.
-    const allowed = arcaneDomainsOf(spell);
-    return talents.find((t) => t.kind === 'arcane' && (allowed == null || t.spec == null || allowed.includes(t.spec)));
+  if (t.kind === 'chaos') {
+    if (fam === 'arcane') return !spell.ritual && arcaneDomainsOf(spell) == null;
+    return fam === 'chaos' && (t.spec == null || estArcaneDuChaos(spell) || chaosSpellsOf(t.spec).includes(spell.id));
   }
-  // Invocation/Béni/Chaos : la spec du Talent est un CULTE/Dieu (`gods.id`, id STABLE) ; l'appartenance
-  // sort→dieu est portée en IDS par `gods.json` (miracles/blessings/chaosSpells) — JAMAIS par le `subType`
-  // (libellé d'affichage). Spec absente (« Au choix » non assigné) = joker → tout sort de la famille.
-  if (fam === 'invocation') return talents.find((t) => t.kind === 'invocation' && (t.spec == null || miraclesOf(t.spec).includes(spell.id)));
-  if (fam === 'beni') return talents.find((t) => t.kind === 'beni' && (t.spec == null || blessingsOf(t.spec).includes(spell.id)));
-  if (fam === 'chaos') return talents.find((t) => t.kind === 'chaos' && (t.spec == null || chaosSpellsOf(t.spec).includes(spell.id)));
-  return undefined;
+  if (fam !== t.kind) return false;
+  if (fam === 'arcane') {
+    const allowed = arcaneDomainsOf(spell);
+    return allowed == null || t.spec == null || allowed.includes(t.spec);
+  }
+  // Culte ou Dieu par `gods.id` (miracles/blessings), JAMAIS le `subType` (libellé d'affichage).
+  if (fam === 'invocation') return t.spec == null || miraclesOf(t.spec).includes(spell.id);
+  if (fam === 'beni') return t.spec == null || blessingsOf(t.spec).includes(spell.id);
+  return true;
+}
+
+/** Le Talent du héros qui rend CE sort apprenable (`talentOuvre`). */
+export function eligibleTalent(c: Combatant, spell: SpellData): CasterTalent | undefined {
+  return casterTalents(c).find((t) => talentOuvre(t, spell));
 }
 
 /** Valeur réduite d'un Rituel (`SpellData['ritual']['reduced']`) et la clause qui l'ouvre. */
@@ -154,7 +169,7 @@ export function verdictApprentissage(c: Combatant, spell: SpellData): VerdictApp
 export function spellCost(c: Combatant, spell: SpellData): number | null {
   if (verdictApprentissage(c, spell) !== 'ok') return null;
   if (spell.ritual) return ritualReduction(c, spell)?.xp ?? spell.ritual.xp;
-  const fam = familyOf(spell)!;
+  const fam = eligibleTalent(c, spell)!.kind;
   if (fam === 'beni') return 0;
   if (fam === 'chaos') return 100;
   const known = knownCount(c, fam);

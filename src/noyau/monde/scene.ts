@@ -159,7 +159,8 @@ export interface SceneEntity {
     /** OPTIONNELS choisis (LDB 76 l.45) : Traits posés résolus au spawn OU notes composées
      *  (joker « tous les traits », variante « swap » retirant des Traits + octroyant un bonus, ZI). */
     optionals?: import('../../engine/statEntry').OptionalEntry[];
-    /** Sorts connus (ids de spells.json) — choix d'auteur, remplace ceux de la créature `ref` (`src/noyau/monde/spawn.ts` › `spells`). */
+    /** Sorts choisis par l'auteur (ids de spells.json), bornés par `refusDesSortsChoisis` et complétés au spawn
+     *  (`sortsDuPnj`, `engine/sortsDuPnj.ts`) ; un profil qui imprime ses sorts n'en prend aucun. #3715 */
     spells?: string[];
     /** Caractéristiques aléatoires au spawn (LDB 77 l.108 : −10 + 2d10, graine stable par id). */
     randomChars?: boolean;

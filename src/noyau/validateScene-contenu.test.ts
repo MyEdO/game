@@ -269,7 +269,7 @@ describe('le SCHÉMA de scène se joue sur une scène VIVANTE (#877, #1897)', ()
   /** Un personnage de la scène qui porte un sort d'auteur absent de `spells.json`. */
   const aSortMort = (): Scene => {
     const s = scene();
-    s.entities.push({ id: 'mage', kind: 'personnage', label: 'Mage', pos: { x: 2, y: 2 }, ref: REF_CREATURE, combat: { spells: ['sort-fantome'] } });
+    s.entities.push({ id: 'mage', kind: 'personnage', label: 'Mage', pos: { x: 2, y: 2 }, ref: 'pol-dankels', combat: { spells: ['sort-fantome'] } }); // Lanceur de Sorts : ouvre les Sorts mineurs (#3715)
     return s;
   };
   const erreurs = (s: Scene) => validateScene([s]).filter((w) => w.level === 'error');
@@ -286,7 +286,7 @@ describe('le SCHÉMA de scène se joue sur une scène VIVANTE (#877, #1897)', ()
     const s = aSortMort();
     expect(erreurs(s)).toHaveLength(1);
     try {
-      setDataset('spells', [...spells, { ...spells[0], id: 'sort-fantome' }]);
+      setDataset('spells', [...spells, { ...spells.find((sp) => sp.family === 'mineure')!, id: 'sort-fantome' }]);
       expect(erreurs(s)).toEqual([]);
     } finally {
       resetData();
