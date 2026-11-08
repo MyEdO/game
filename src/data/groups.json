@@ -785,5 +785,23 @@
       "page": 86,
       "note": "MSRC 15 l.40"
     }
+  },
+  {
+    "id": "ennemis-de-sigmar",
+    "type": "groups",
+    "label": "Ennemis de Sigmar",
+    "source": {
+      "book": "guide-frenchy",
+      "page": 89
+    }
+  },
+  {
+    "id": "ennemis-d-ulric",
+    "type": "groups",
+    "label": "Ennemis d’Ulric",
+    "source": {
+      "book": "guide-frenchy",
+      "page": 92
+    }
   }
 ]
