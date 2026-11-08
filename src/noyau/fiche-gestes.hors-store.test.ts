@@ -128,7 +128,7 @@ describe('transmettreLObjet et rangerLObjet — le verdict (`refusDInventaire`, 
     enCombat((partie, H) => {
       const lu = () => partie.etat().battle!.combatants.find((c) => c.id === H.id)!;
       const armure = (lu().items ?? []).find((i) => i.kind === 'armor' && i.equipped)!;
-      partie.envoyer({ type: 'transmettreLObjet', args: [armure.uid, H.id, 'pos-1'] });
+      partie.envoyer({ type: 'transmettreLObjet', args: [armure.uid, 'pos-1'] });
       expect(lu().items!.some((i) => i.uid === armure.uid), 'l’armure a quitté le héros en plein combat').toBe(true);
       expect(partie.etat().possessions[0].items).toEqual([]);
       expect(partie.etat().refus?.texte).toBe(refusDInventaire(partie.etat()));
@@ -141,7 +141,7 @@ describe('transmettreLObjet et rangerLObjet — le verdict (`refusDInventaire`, 
       const avant = structuredClone(lu().items);
       const objet = avant!.find((i) => !i.container)!;
       const sac = avant!.find((i) => i.container);
-      partie.envoyer({ type: 'rangerLObjet', args: [H.id, objet.uid, sac?.uid ?? null] });
+      partie.envoyer({ type: 'rangerLObjet', args: [objet.uid, sac?.uid ?? null] });
       expect(lu().items).toEqual(avant);
       expect(partie.etat().refus?.texte).toBe(t('pf.inventoryLocked'));
     });
@@ -151,10 +151,10 @@ describe('transmettreLObjet et rangerLObjet — le verdict (`refusDInventaire`, 
     const heros = heroDuDuel();
     const objet = (heros.items ?? [])[0];
     avecPartie({ ...etatInitialDuJeu(), party: [heros], possessions: [mule(heros.id, { kind: 'au-lieu', placeId: 'altdorf' })] }, (partie) => {
-      const loin = partie.envoyer({ type: 'transmettreLObjet', args: [objet.uid, heros.id, 'pos-1'] });
+      const loin = partie.envoyer({ type: 'transmettreLObjet', args: [objet.uid, 'pos-1'] });
       expect(partie.etat().possessions[0].items, 'l’objet a voyagé jusqu’à la mule laissée ailleurs').toEqual([]);
       expect(lignesDuJournal(loin)).toEqual([t('pf.giveNotColocated', { from: heros.label, to: possessionLabel(partie.etat().possessions[0]), item: objet.label })]);
-      const soi = partie.envoyer({ type: 'transmettreLObjet', args: [objet.uid, heros.id, heros.id] });
+      const soi = partie.envoyer({ type: 'transmettreLObjet', args: [objet.uid, heros.id] });
       expect(lignesDuJournal(soi)).toEqual([t('pf.giveSelf', { from: heros.label, item: objet.label })]);
       expect(partie.etat().party[0].items!.filter((i) => i.uid === objet.uid)).toHaveLength(1);
     });
@@ -171,8 +171,8 @@ describe('gestes d’objet et de fiche en combat — un verdict par famille, cel
       const lu = () => partie.etat().battle!.combatants.find((c) => c.id === H.id)!;
       const avant = structuredClone(lu().items);
       const gestes: [string, () => void][] = [
-        ['evaluerLObjet', () => partie.envoyer({ type: 'evaluerLObjet', args: [inconnu.uid, H.id] })],
-        ['evaluerLObjet (detect)', () => partie.envoyer({ type: 'evaluerLObjet', args: [inconnu.uid, H.id, 'detect'] })],
+        ['evaluerLObjet', () => partie.envoyer({ type: 'evaluerLObjet', args: [inconnu.uid] })],
+        ['evaluerLObjet (detect)', () => partie.envoyer({ type: 'evaluerLObjet', args: [inconnu.uid, 'detect'] })],
       ];
       for (const [nom, envoyer] of gestes) {
         expect(refusNeuf(partie, envoyer), `${nom} n’a pas prononcé son refus`).toBe(refusDInventaire(partie.etat()));
@@ -186,7 +186,7 @@ describe('gestes d’objet et de fiche en combat — un verdict par famille, cel
   it('l’apparence d’un objet, cosmétique, reste ouverte en combat : `poserLApparence` écrit les deux copies', () => {
     enCombat((partie, H) => {
       const objet = H.items!.find((i) => i.trappingId === 'arme-simple')!;
-      expect(refusNeuf(partie, () => partie.envoyer({ type: 'poserLApparence', args: [H.id, objet.uid, 'hache'] })), 'l’apparence a été refusée en combat').toBeUndefined();
+      expect(refusNeuf(partie, () => partie.envoyer({ type: 'poserLApparence', args: [objet.uid, 'hache'] })), 'l’apparence a été refusée en combat').toBeUndefined();
       const forme = (c: Combatant) => c.items!.find((i) => i.uid === objet.uid)!.shape;
       expect(forme(partie.etat().battle!.combatants.find((c) => c.id === H.id)!)).toEqual({ id: 'hache' });
       expect(forme(partie.etat().party.find((c) => c.id === H.id)!)).toEqual({ id: 'hache' });
@@ -224,7 +224,7 @@ describe('equiperLObjet — le verrou (`refusDInventaire`) est celui du geste', 
       const lu = () => partie.etat().battle!.combatants.find((c) => c.id === H.id)!;
       const armure = (lu().items ?? []).find((i) => i.kind === 'armor' && i.equipped);
       expect(armure, 'témoin : le héros du duel porte une armure').toBeTruthy();
-      partie.envoyer({ type: 'equiperLObjet', args: [H.id, armure!.uid] });
+      partie.envoyer({ type: 'equiperLObjet', args: [armure!.uid] });
       expect(lu().items!.find((i) => i.uid === armure!.uid)!.equipped, 'l’armure a été retirée en plein combat').toBe(true);
       expect(partie.etat().refus?.texte).toBe(refusDInventaire(partie.etat()));
     });

@@ -1,37 +1,36 @@
 import { describe, it, expect } from 'vitest';
 import { scanMarcheursDeFlow, marcheurLabel } from '../scripts/guards/lib/marcheursDeFlow.mjs';
-import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { readCorpus, sAppliqueA } from '../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
- * CLIQUET des marcheurs de Flow sous `src/state` et `src/noyau` (#1874, ticket § Lot B : « posé avec C0 à 4, cible 1 »).
- * Empreinte, critère et angles morts : en tête de `scripts/guards/lib/marcheursDeFlow.mjs`.
- *
- * Le PLAFOND vit ICI, jamais dans la lib (`scripts/guards/lib/stock.mjs`, INTERDITS). Il se tient à
- * l'ÉGALITÉ : un marcheur fusionné fait rougir la garde jusqu'à ce que le plafond descende dans le
- * même geste.
+ * UN SEUL MARCHEUR DE FLOW (#1874 DoD 4). Exécuter un Flow, c'est `executerFlow` : la marche décide `seq`
+ * et `if`, ses hôtes (`runFlow`, `runCombatFlow`, `runPureFlowLines`, le consommable) ne décident que ce
+ * qu'elle leur délègue. Le parcours de TOUT l'arbre (validation, chemins de nœud) est `walkFlow`. Les deux
+ * vivent dans le module du Flow, le FOYER ; hors de lui, aucun marcheur, sans exception.
+ * Empreinte et angles morts : en tête de `scripts/guards/lib/marcheursDeFlow.mjs`.
  */
-const PLAFOND = 4;
+const FOYER = 'src/engine/flowCore.ts';
+const MARCHE = { foyer: FOYER };
 
-const marcheursReels = (): string[] =>
-  scanMarcheursDeFlow(readCorpus(['src/state', 'src/noyau']).map(({ rel, text }) => ({ rel, text }))).map(marcheurLabel);
+const corpus = () => readCorpus(['src']).map(({ rel, text }) => ({ rel, text }));
+const horsFoyer = (fichiers: { rel: string; text: string }[]) =>
+  scanMarcheursDeFlow(fichiers.filter((f) => sAppliqueA(f, MARCHE))).map(marcheurLabel);
 
-describe('cliquet `marcheursDeFlow` — un seul marcheur de Flow à terme (#1874)', () => {
-  it(`au plus ${PLAFOND} marcheurs sous \`src/state\` et \`src/noyau\`, et le plafond suit la baisse`, { timeout: 60_000 }, () => {
-    const vus = marcheursReels();
-    expect(
-      vus.length,
-      `marcheurs mesurés :\n  ${vus.join('\n  ')}\n`
-      + (vus.length > PLAFOND
-        ? 'un marcheur de Flow NEUF : étendre un marcheur existant au lieu d’en écrire un parallèle.'
-        : `un marcheur a disparu : abaisser PLAFOND à ${vus.length} dans ce fichier.`),
-    ).toBe(PLAFOND);
+describe('marcheurs-de-flow-guard — un seul marcheur de Flow (#1874)', () => {
+  it('`src/` de production : aucun marcheur de Flow hors du foyer', { timeout: 60_000 }, () => {
+    expect(horsFoyer(corpus()), 'étendre l’hôte d’`executerFlow` au lieu d’écrire un marcheur parallèle').toEqual([]);
+  });
+
+  it('contrat positif : le foyer porte la marche d’exécution et le parcours', { timeout: 60_000 }, () => {
+    const auFoyer = scanMarcheursDeFlow(corpus().filter((f) => f.rel === FOYER)).map((s) => s.fn);
+    expect(auFoyer.sort()).toEqual(['executerFlow', 'walkFlow']);
   });
 });
 
-describe('cliquet `marcheursDeFlow` — l’empreinte sépare le MARCHEUR du PRÉDICAT', () => {
-  const scan = (text: string) => scanMarcheursDeFlow([{ rel: 'src/state/x.ts', text }]).map(marcheurLabel);
+describe('marcheurs-de-flow-guard — l’empreinte sépare le MARCHEUR du PRÉDICAT', () => {
+  const scan = (text: string, rel = 'src/noyau/x.ts') => horsFoyer([{ rel, text }]);
 
-  it('marcheur à PILE (patron `runFlow`) : vu', () => {
+  it('marcheur à PILE : vu', () => {
     expect(scan([
       'export function marche(flow: Flow): void {',
       '  const stack = [flow];',
@@ -40,10 +39,10 @@ describe('cliquet `marcheursDeFlow` — l’empreinte sépare le MARCHEUR du PR�
       "    switch (node.kind) { case 'seq': stack.unshift(...node.steps); break; case 'do': applique(node); break; }",
       '  }',
       '}',
-    ].join('\n'))).toEqual(['src/state/x.ts [marche]']);
+    ].join('\n'))).toEqual(['src/noyau/x.ts [marche]']);
   });
 
-  it('marcheur RÉCURSIF par fermeture interne (patron `runPureFlowLines`) : vu sous la déclaration de module', () => {
+  it('marcheur RÉCURSIF par fermeture interne : vu sous la déclaration de module', () => {
     expect(scan([
       'export function lignes(flow: Flow): string[] {',
       '  const out: string[] = [];',
@@ -51,7 +50,7 @@ describe('cliquet `marcheursDeFlow` — l’empreinte sépare le MARCHEUR du PR�
       '  walk(flow);',
       '  return out;',
       '}',
-    ].join('\n'))).toEqual(['src/state/x.ts [lignes]']);
+    ].join('\n'))).toEqual(['src/noyau/x.ts [lignes]']);
   });
 
   it('PRÉDICAT (patron `flowHasChoiceSeulement`) : clause `seq` qui rend — non vu', () => {
@@ -62,12 +61,9 @@ describe('cliquet `marcheursDeFlow` — l’empreinte sépare le MARCHEUR du PR�
     ].join('\n'))).toEqual([]);
   });
 
-  it('un 5ᵉ marcheur fait ROUGIR le cliquet', () => {
-    const corpus = readCorpus(['src/state', 'src/noyau']).map(({ rel, text }) => ({ rel, text }));
-    const cinquieme = {
-      rel: 'src/state/cinquieme.ts',
-      text: "export function cinquieme(f: Flow): void { switch (f.kind) { case 'seq': f.steps.forEach(cinquieme); break; } }",
-    };
-    expect(scanMarcheursDeFlow([...corpus, cinquieme]).length, 'le 5ᵉ marcheur n’est pas vu').toBe(PLAFOND + 1);
+  it('le foyer est exempt, tout autre module de `src/` est vu', () => {
+    const marcheur = "export function m(f: Flow): void { switch (f.kind) { case 'seq': f.steps.forEach(m); break; } }";
+    expect(scan(marcheur, FOYER)).toEqual([]);
+    expect(scan(marcheur, 'src/engine/autre.ts')).toEqual(['src/engine/autre.ts [m]']);
   });
 });

@@ -65,7 +65,7 @@ export interface MapPlace {
   poi?: PlacePoi[];
   /** Bande d'ambiance du hub de ce lieu (id du registre des fonds de l'hôte) — surcharge le défaut
    *  éventuel porté par le service (`lieux-services.json`, ex. auberge). Éditable dans `WorldMapEditor`. */
-  backdrop?: string;
+  backdrop?: { id: string };
   /** Le lieu EXISTE-t-il sur la carte (algèbre `Condition`, cf. `evalCondition`) — axe NŒUD du gating
    *  narratif : une destination n'apparaît qu'une fois RÉVÉLÉE par le récit (`setFlag`). Absente =
    *  toujours visible. Lue par `visiblePlaces` (le rendu et le cadrage consomment la liste FILTRÉE). */
@@ -384,11 +384,11 @@ export function placeServices(place: MapPlace, scene?: Scene, reposIci?: RestPla
   const out: ResolvedPlaceService[] = [];
   if (place.port) {
     const def = garanti(findLieuServiceById(SERVICE_CITE.port), SERVICE_CITE.port, 'service de lieu');
-    out.push({ id: 'port', category: 'port', label: def.label, icon: def.icon, desc: def.desc, port: place.port, hostLine: def.hostLine, backdrop: def.backdrop });
+    out.push({ id: 'port', category: 'port', label: def.label, icon: def.icon, desc: def.desc, port: place.port, hostLine: def.hostLine, backdrop: def.backdrop?.id });
   }
   if (place.market) {
     const def = garanti(findLieuServiceById(SERVICE_CITE.marche), SERVICE_CITE.marche, 'service de lieu');
-    out.push({ id: 'marche', category: 'marche', label: def.label, icon: def.icon, desc: def.desc, market: place.market, hostLine: def.hostLine, backdrop: def.backdrop });
+    out.push({ id: 'marche', category: 'marche', label: def.label, icon: def.icon, desc: def.desc, market: place.market, hostLine: def.hostLine, backdrop: def.backdrop?.id });
   }
   const declared = new Set<string>();
   for (const s of place.services ?? []) {
@@ -402,7 +402,7 @@ export function placeServices(place: MapPlace, scene?: Scene, reposIci?: RestPla
       desc: def?.desc,
       rest: auberge ? (s.rest ?? sceneAubergeOffer(scene)) : undefined,
       hostLine: def?.hostLine,
-      backdrop: def?.backdrop,
+      backdrop: def?.backdrop?.id,
       merchantArchetype: def?.merchantArchetype,
       opensScreen: def?.opensScreen,
       enterLabel: def?.enterLabel,
@@ -415,7 +415,7 @@ export function placeServices(place: MapPlace, scene?: Scene, reposIci?: RestPla
     const rest = sceneAubergeOffer(scene);
     if (rest) {
       const def = garanti(findLieuServiceById(SERVICE_CITE.auberge), SERVICE_CITE.auberge, 'service de lieu');
-      out.push({ id: 'auberge', category: 'auberge', label: def.label, icon: def.icon, desc: def.desc, rest, hostLine: def.hostLine, backdrop: def.backdrop });
+      out.push({ id: 'auberge', category: 'auberge', label: def.label, icon: def.icon, desc: def.desc, rest, hostLine: def.hostLine, backdrop: def.backdrop?.id });
     }
   }
   // Couchage À LA POSITION du groupe (`reposIci`, camp/maison) sans auberge : service « Repos » de repli.

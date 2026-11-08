@@ -60,7 +60,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
             <input value={place.label} onChange={(e) => updPlace(place.id, { label: e.target.value })} />
           </label>
           <IconField label="Icône" value={place.icon} onChange={(icon) => updPlace(place.id, { icon })} />
-          <BackdropField label="Fond d'ambiance" value={place.backdrop} onChange={(backdrop) => updPlace(place.id, { backdrop })} />
+          <BackdropField label="Fond d'ambiance" value={place.backdrop?.id} onChange={(id) => updPlace(place.id, { backdrop: id === undefined ? undefined : { id } })} />
           <RefSelect
             label="Scène liée"
             options={scenes}

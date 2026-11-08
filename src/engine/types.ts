@@ -1233,9 +1233,8 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   /** Aura magique DÉTECTÉE (Talent Détection d'artefact, LDB 10 l.336 : « vous sentez que
    *  l'objet est magique ») — s'affiche « magique » même tant que ses règles restent non identifiées. */
   magicKnown?: boolean;
-  /** Détection d'artefact déjà tentée sur cet objet (LDB 10 l.336 : « En principe, vous ne pouvez
-   *  tenter ce Test qu'une seule fois par artefact touché »). */
-  detectTried?: boolean;
+  /** Les héros qui ont tenté la Détection d'artefact sur cet objet. LDB 10 l.336 */
+  detectTriedBy?: string[];
   /** Jour de jeu de la dernière Évaluation RATÉE : pas de re-tentative le même jour (anti-spam —
    *  LDB 12 l.94 : seul un résultat marginal offre un nouvel essai ; ADE II : re-tenter coûte du temps). */
   appraiseTriedDay?: number;

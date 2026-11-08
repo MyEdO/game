@@ -17,7 +17,7 @@ import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteig
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { fenetreADessiner } from '../../../src/hote/gestes';
 import { lignesDuJournal, zonesDeLEcran, type ZonesDeLaSuite, type ZonesDeLEcran } from '../../../src/hote/ecran';
-import { ameliorationsMontees, emblemeMonte, modelesDeLAtelier, postesMontes, type AmeliorationMontee, type ModelesDeLAtelier, type PosteMonte } from './atelier';
+import { ameliorationsMontees, emblemeMonte, modelesDeLAtelier, noeudsCaches, postesMontes, type AmeliorationMontee, type ModelesDeLAtelier, type PosteMonte } from './atelier';
 import { composerSurLaBase, paletteDesCouleurs, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
 import { type CreationOuverte, type GesteDeLaCreation, type PanneauDeLHote } from '../../../src/hote/elements';
@@ -51,9 +51,9 @@ export interface CorpsDuCombat {
   /** Par id de combattant dessiné qui est un véhicule ou un engin (`CombattantProjete.vehicule`) dont un élément
    *  `vehicule` est servi (`ModelesDeLAtelier.vehicules`, #2987) : cet élément, le côté de son empreinte, sa taille, son cap, sa
    *  palette (`paletteDesCouleurs`), son emblème si l'élément porte une surface `blason` (`emblemeMonte`), les pièces
-   *  montées à ses postes (`postesMontes`) et celles de ses Améliorations (`ameliorationsMontees`), quelles que soient les
-   *  bases servies. */
-  vehicules: Record<string, { element: string; empreinte: number; taille: VehiculeDuCombattant['taille']; cap: VehiculeDuCombattant['cap']; palette: Record<string, string>; embleme?: EmblemeResolu; postes: PosteMonte[]; ameliorations: AmeliorationMontee[] }>;
+   *  montées à ses postes (`postesMontes`), celles de ses Améliorations (`ameliorationsMontees`) et les nœuds qu'elles
+   *  cachent (`noeudsCaches`), quelles que soient les bases servies. */
+  vehicules: Record<string, { element: string; empreinte: number; taille: VehiculeDuCombattant['taille']; cap: VehiculeDuCombattant['cap']; palette: Record<string, string>; embleme?: EmblemeResolu; postes: PosteMonte[]; ameliorations: AmeliorationMontee[]; caches: string[] }>;
 }
 
 /** La vue : la projection commune (`projeter`), les corps de ses combattants (`CorpsDuCombat`), la disposition de la
@@ -189,9 +189,10 @@ export function creerPont() {
         if (!element) return [];
         const palette = paletteDesCouleurs(vehicule.couleurs);
         const manifeste = modeles!.manifestes[element];
-        const postes = postesMontes(manifeste, vehicule.postes, modeles!.modeles.vehicules, palette);
+        const postes = postesMontes(manifeste, vehicule.ameliorations, vehicule.postes, modeles!.modeles.vehicules, palette);
         const ameliorations = ameliorationsMontees(manifeste, vehicule.ameliorations, postes, modeles!.modeles.ameliorations, modeles!.manifestes);
-        return [[id, { element, empreinte: vehicule.empreinte, taille: vehicule.taille, cap: vehicule.cap, palette, ...emblemeMonte(vehicule.embleme, manifeste), postes, ameliorations }]];
+        const caches = noeudsCaches(manifeste, vehicule.ameliorations, ameliorations, modeles!.manifestes);
+        return [[id, { element, empreinte: vehicule.empreinte, taille: vehicule.taille, cap: vehicule.cap, palette, ...emblemeMonte(vehicule.embleme, manifeste), postes, ameliorations, caches }]];
       })),
     };
   };

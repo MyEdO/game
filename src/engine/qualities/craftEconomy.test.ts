@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { craftPriceFactor, craftEncDelta, shiftAvailability, qualityClass, qualityClassLabel, craftAtoutCount, craftDefautCount } from './craftEconomy';
-import { parseQualityInstance } from './normalize';
+import { parseQualityInstance } from '../../data/refFormatLivre';
 
 /** Fixture : libellés FR (lisibles) → `QualityInstance[]` structurées via le parseur d'authoring. */
 const it_ = (qualities: string[]) => ({ qualities: qualities.map((q) => parseQualityInstance(q)!) });

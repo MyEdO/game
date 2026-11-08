@@ -142,7 +142,7 @@ describe('WorldMapEditor — panneau Lieu (#419)', () => {
     expect(lastMap!.places[0].icon).toBe('map-tool/door');
 
     pickRef("Fond d'ambiance", 'Taverne commune');
-    expect(lastMap!.places[0].backdrop).toBe('taverne-commune');
+    expect(lastMap!.places[0].backdrop).toEqual({ id: 'taverne-commune' });
 
     pickRef('Scène liée', 'Scène Deux');
     expect(lastMap!.places[0].scene).toBe('s2');

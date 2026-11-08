@@ -87,7 +87,7 @@ describe('CharacterSheet — Apparence sur l’objet', () => {
     expect(opts).not.toContain('Cape ouvragée');
     expect(opts).toHaveLength(new Set([...racines, findTrappingById('arme-simple')!.shape?.id]).size + 2);
     for (const a of apparencesAdmissiblesDObjet(h.items![0])) {
-      act(() => useGame.getState().poserLApparence(h.id, h.items![0].uid, a.id));
+      act(() => useGame.getState().poserLApparence(h.items![0].uid, a.id));
       expect(apparencesCandidates(useGame.getState().party[0].items![0])[0]).toBe(a.id);
     }
   });

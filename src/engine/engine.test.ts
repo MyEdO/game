@@ -2,7 +2,7 @@ import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { makeRNG } from './dice';
 import { addCondition, combatTestPenalty, meleeAttackerBonus, cannotDefend } from './conditions';
-import { parseQualityInstance } from './qualities/normalize';
+import { parseQualityInstance } from '../data/refFormatLivre';
 import { evaluateTest, resolveOpposed, reverseRoll } from './tests';
 import { bonus, maxWounds } from './characteristics';
 import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
