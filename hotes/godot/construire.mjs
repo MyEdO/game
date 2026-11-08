@@ -32,7 +32,7 @@ import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { chargerAssets } from './asset/charger.mjs'
-import { listage } from './servir.mjs'
+import { listage } from './listage.mjs'
 
 const { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, recupererEpingles, verifierSomme, figerVuesDeLEcran, figerLeVehicule } = await chargerAssets([
   "export { figerVuesDeLEcran } from '/hotes/godot/recettes/ecran.ts';",

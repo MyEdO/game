@@ -1,7 +1,7 @@
 /**
  * LE VÉHICULE FIGÉ DE L'ATELIER (#2987) : ce que la recette native de l'atelier (`projet/recettes/atelier-du-vehicule.gd`)
  * lit, figé par la sonde (`construire.mjs --sonde`) dans la copie du projet qu'elle importe. Le listage des véhicules et
- * des pièces d'Amélioration du dossier des modèles (`listage`, `servir.mjs`, réduit à ces deux catégories), la réponse du
+ * des pièces d'Amélioration du dossier des modèles (`listage`, `listage.mjs`, réduit à ces deux catégories), la réponse du
  * pont à `catalogues` et à `modeles` sur ce listage, et sa réponse à `vehicule` sur chaque entrée de `ENTREES`, sous la clé
  * de cette entrée (`cleDEntree`), celle que la recette calcule de l'entrée que l'atelier envoie.
  */
