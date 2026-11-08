@@ -22,6 +22,7 @@ import { seasonOfMonth } from '../engine/travelStages';
 import { isRation, LITRES_PAR_TONNEAU } from '../engine/provisions';
 import { newUid } from '../engine/items';
 import { rollShipCritical } from '../engine/shipCritical';
+import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { dataLabel, findCrewRoleById, voyageStakeRef } from '../data';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { applyShipMoraleDelta, applyVesselCrewLoss, shipboardSouls } from './shipCrew';
@@ -29,6 +30,7 @@ import { applyVesselCritical, buildVoyageCrewStep, combattreEnMer, coqueDuNavire
 import { findSeaHazard } from '../engine/seaPerils';
 import { applyLeafOps, OPS_DIFFEREES } from './combatEffects';
 import { startCascade } from './cascade';
+import { condCtx } from './bourseFlow';
 import type { Get, Set } from './flowTypes';
 
 /** La coque visée par `navire`, et l'écriture qui la persiste ; `null` sans navire de campagne à coque. */
@@ -236,9 +238,10 @@ const signe = (n: number): string => `${n >= 0 ? '+' : '−'}${Math.abs(n)}`;
  * apte à bord, l'appelant joue l'échec. MDG 14 l.39 ; MDG 15 l.144-145
  */
 export function ouvrirLeTestDEquipage(get: Get, set: Set, node: Extract<Flow, { kind: 'test' }>, after: Flow, label: string, sl?: number): boolean {
-  const { crewTestType, difficulty, stake } = node.test;
+  const { crewTestType, stake } = node.test;
   const type = garanti(crewTestType, label, 'type de Test d’équipage');
-  const st = buildVoyageCrewStep(get, type, 'flowCrewTest', { ...(difficulty ? { difficulty } : {}), stake: stake ?? voyageStakeRef(type) });
+  const { difficulty } = resoudreFlowTest(node.test, { cc: condCtx(get) });
+  const st = buildVoyageCrewStep(get, type, 'flowCrewTest', { difficulty, stake: stake ?? voyageStakeRef(type) });
   if (!st) return false;
   startCascade(get, set, {
     title: label, icon: 'travel/anchor', purpose: 'test',

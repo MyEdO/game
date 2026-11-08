@@ -21,12 +21,11 @@ import { verdictApprentissage } from '../engine/grimoire';
 import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './monde/sceneNpc';
-import { partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue, actorHasSkill } from '../engine/skills';
+import { partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue } from '../engine/skills';
 import { statusCharmMod, statusCharmLabel, actorStatus, capriciousDR } from '../engine/social';
 import { statutDeDonnee } from '../engine/money';
-import { easeDifficulty } from '../engine/tests';
 import { restoreFortune } from '../engine/fortune';
-import { hasTalent } from '../engine/magic';
+import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { traumaOnImpossibleAmbition } from '../engine/psychology';
 import { grantPsychTrait } from '../engine/grantedTraits';
 import { contexteDeNaissanceDObjet, itemFromGive, giveTrappingLabel, avecObjet, newUid, type TrappingResolver } from '../engine/items';
@@ -62,7 +61,7 @@ import { computeStateVisible } from './visionState';
 import { placeCombatant } from './monde/spawn';
 import { refuserGeste } from './refusVisible';
 import { flowFromEffects, testFlow } from './monde/flow';
-import { type FlowTest, type EffectOp, type CibleDeRole, type CibleDeVolontaires, type Condition, flowEffects, evalCondition, flowTestGateOpen, leafOpsCtx, lierLesTirages, EMPTY_FLOW } from '../engine/flowCore';
+import { type FlowTest, type ConditionCtx, type EffectOp, type CibleDeRole, type CibleDeVolontaires, type Condition, flowEffects, evalCondition, leafOpsCtx, lierLesTirages, EMPTY_FLOW } from '../engine/flowCore';
 import { buildActorView } from '../engine/actorView';
 import { inRect, combatantsWithinRadius } from './monde/combatGeometry';
 import { removeEntity } from './combatPlacement';
@@ -852,7 +851,7 @@ export function messageOpDuNavireHorsNavire(e: { on?: EffectOp['on']; ops: reado
  *  branche (suite d'un `seq`). Choix du meilleur PJ effectif (malus social compris), candidats,
  *  `easierIf`, outil. Retourne false si aucun héros vivant ne peut tenter (le flux continue sans Test). */
 export function openSkillTest(
-  get: Get, set: SetFn, spec: FlowTest, onSuccess: Flow, onFailure: Flow, after: Flow,
+  get: Get, set: SetFn, spec: FlowTest, cc: ConditionCtx, onSuccess: Flow, onFailure: Flow, after: Flow,
   opts?: {
     actorId?: string;
     noOwnTestFailed?: boolean;
@@ -923,19 +922,13 @@ export function openSkillTest(
     ? (imposed && !imposed.dead ? { actor: imposed } : null)
     : partyBest(get().party.filter(admis), spec, socialMod);
   if (!best) return false;
-  const baseDifficulty = spec.difficulty ?? 'intermediaire';
-  const eased = !!spec.easierIf && get().party.some((c) => !c.dead && (
-    (!!spec.easierIf!.hasSkill && actorHasSkill(c, spec.easierIf!.hasSkill)) ||
-    (!!spec.easierIf!.hasTalent && hasTalent(c, spec.easierIf!.hasTalent))
-  ));
-  const difficulty = eased ? easeDifficulty(baseDifficulty, spec.easierIf!.steps ?? 1) : baseDifficulty;
-  // L'allègement se NOMME : la difficulté affichée porte ce qui l'a permise (compétence ou talent
-  // présent dans le groupe), au lieu d'une difficulté plus douce sans origine lisible.
-  const easedBy = eased
-    ? (spec.easierIf!.hasSkill
-      ? refLabel('skills', { id: spec.easierIf!.hasSkill.id, spec: spec.easierIf!.hasSkill.spec })
-      : refLabel('talents', { id: spec.easierIf!.hasTalent! }))
-    : undefined;
+  // `parmi` : la `gate` s'est jugée par héros ; la décision se lit sur le testeur retenu, seul. MDG 15 l.197
+  const decision = resoudreFlowTest(spec, { cc: parmi ? ccDuTesteur(cc, best.actor) : cc, ...(imposed ? { sujet: imposed } : {}), groupe: get().party });
+  if (!decision.joue) return false;
+  const { difficulty } = decision;
+  // L'allègement se NOMME : la difficulté affichée porte ce qui l'a permise (compétence ou talent).
+  const cause = decision.allegePar;
+  const easedBy = cause ? ('skill' in cause ? refLabel('skills', cause.skill) : refLabel('talents', { id: cause.talent })) : undefined;
   const pont = activeSeaPrecipitation(get); // MDG 13 l.185
   // Pool des héros AVEC leur position à jour si un combat est en cours (`battle.combatants` — `party` seule
   // ne porte pas `pos`, LDB 12 l.196 « adjacent »). Même patron que `effectTargets` ci-dessus.
@@ -1098,9 +1091,10 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
           stack.unshift(node.fail, after);
           break;
         }
-        // Personne ne peut tenter → on saute le Test et on reprend directement la continuation.
+        // Test non joué ou personne ne peut tenter → on reprend directement la continuation.
+        // lecture déclarée : la `gate` d'un Test de scène se juge par héros, chacun par `resoudreFlowTest` (MDG 15 l.197)
         const parmi = node.test.gate ? testeursAdmis(get, node.test) : undefined;
-        if (!openSkillTest(get, set, node.test, node.success, node.fail, after, parmi ? { parmi } : undefined)) return runFlow(get, set, after, label, sl);
+        if (!openSkillTest(get, set, node.test, condCtx(get), node.success, node.fail, after, parmi ? { parmi } : undefined)) return runFlow(get, set, after, label, sl);
         return undefined;
       }
       case 'choice': {
@@ -1156,7 +1150,12 @@ function ouvrirLeChoixDuFlow(get: Get, set: SetFn, node: Extract<Flow, { kind: '
 /** Les héros vivants qui ouvrent la `gate` du Test, évaluée sur chacun seul. MDG 15 l.197, l.231 */
 function testeursAdmis(get: Get, test: FlowTest): string[] {
   const ctx = condCtx(get);
-  return get().party.filter((h) => !h.dead && flowTestGateOpen(test, { ...ctx, party: [h], target: buildActorView(h) })).map((h) => h.id);
+  return get().party.filter((h) => !h.dead && resoudreFlowTest(test, { cc: ccDuTesteur(ctx, h) }).joue).map((h) => h.id);
+}
+
+/** Le contexte de Condition réduit à UN testeur : groupe et cible, lui seul. MDG 15 l.197 */
+function ccDuTesteur(cc: ConditionCtx, h: Combatant): ConditionCtx {
+  return { ...cc, party: [h], target: buildActorView(h) };
 }
 
 /**

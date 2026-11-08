@@ -17,7 +17,7 @@ import { openSkillTest } from '../noyau/combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { sequenceAbandonOf } from '../noyau/sequenceCore';
 import { snapshotSave } from '../noyau/persistance/save';
-import { creditBourse } from '../noyau/bourseFlow';
+import { creditBourse, condCtx } from '../noyau/bourseFlow';
 import { avanceEtapeCascade } from '../noyau/cascade.testkit';
 import type { Combatant } from '../engine/types';
 
@@ -310,7 +310,7 @@ describe('ABANDON — servi par toute branche d’étape de séquence', () => {
     useGame.setState({ party: [a], suspendedCascades: [], pendingTest: null } as never);
     try {
       get().jouerALaTaverne({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
-      expect(openSkillTest(get, useGame.setState, { characteristic: 'force', label: 'Force' }, EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW)).toBe(true);
+      expect(openSkillTest(get, useGame.setState, { characteristic: 'force', label: 'Force' }, condCtx(get), EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW)).toBe(true);
       expect(get().pendingCascade!.purpose, 'fenêtre hébergée').not.toBe('sequence');
       expect(get().suspendedCascades.map((c) => c.purpose), 'la manche est parquée').toEqual(['sequence']);
       render();

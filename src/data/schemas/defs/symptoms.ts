@@ -29,7 +29,7 @@ const symptomCapabilitiesSchema = nommerChamps(z.strictObject({
 });
 
 /** LDB 20 l.212 */
-const noeudDuCycle = noeudTest(flowSchema, { difficulteRequise: true, echecSeulServi: true });
+const noeudDuCycle = noeudTest(flowSchema, { difficulteRequise: true, echecSeulServi: true, decisionAuPorteur: true });
 
 /** MSRC 16 l.142 */
 const onTickSchema = nommerChamps(z
