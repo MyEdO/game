@@ -26,8 +26,8 @@ import type { FenetreAValider, FenetreQuiSeFerme } from './modalArbiter';
 
 /** Un texte que le joueur écrit (un nom, une motivation) : jamais un id, que `DESIGNATIONS` désigne. */
 export type TexteLibre = string;
-/** Ce qu'un verbe reçoit entier sans le désigner, parce que le geste le crée : le brouillon d'un héros et l'id que
- *  son roster lui donne (`HerosEngage`). Le noyau en juge chaque champ (`herosDeLEngagement`). */
+/** Ce qu'un verbe reçoit sans le désigner, parce que le geste le crée : le brouillon d'un héros et l'id que son roster
+ *  lui donne (`HerosEngage`). Exempt de désignation seulement : l'hôte en lit chaque champ à sa forme (`lireALaForme`). */
 export type HorsDesignation<T> = T;
 /** L'Indice d'intérêts d'un placement en banque, choisi entre 1 et 10 (LDB 23 l.168). */
 export type IndiceDePlacement = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
