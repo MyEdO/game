@@ -1814,6 +1814,7 @@ export const fr = {
   'cs.surprised': '{name} est Surpris : ni Mouvement ni Action ce tour (Détermination possible).',
   'cs.stateLockFlee': '{name} est {etat} : il ne peut que fuir ou puiser dans sa Détermination.',
   'cs.useConsumable': '{name} utilise : {item}.',
+  'cs.horsDuTour': 'Ce n’est pas le tour de {name}.',
   'cs.consommableHorsDuTour': 'Ce n’est pas le tour de {name} : un objet s’utilise à son tour.',
   'cs.consommableHorsRencontre': '{name} n’est pas dans la rencontre : son objet ne s’y utilise pas.',
   'cs.objetNonConsommable': '{item} ne s’utilise pas.',
