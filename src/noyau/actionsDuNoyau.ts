@@ -29,7 +29,7 @@ export type TexteLibre = string;
 /** Ce qu'un verbe reçoit entier sans le désigner, parce que le geste le crée : le brouillon d'un héros et l'id que
  *  son roster lui donne (`HerosEngage`). Le noyau en juge chaque champ (`herosDeLEngagement`). */
 export type HorsDesignation<T> = T;
-/** L'Indice d'intérêts d'un placement en banque, choisi entre 1 et 10 (LDB 23 l.168 ; CRB 048 l.58). */
+/** L'Indice d'intérêts d'un placement en banque, choisi entre 1 et 10 (LDB 23 l.168). */
 export type IndiceDePlacement = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 /** Une Spécialisation de Compétence ou de Talent : un id du catalogue de l'entrée, ou, pour une entrée ouverte, un
  *  texte libre (`entreeOuverte`, LDB 09 l.40) ; le verbe la juge à l'entrée qu'il désigne. */
