@@ -14,6 +14,7 @@ import type { Rot } from '../../geometry/iso';
 import { cutawayOverhead, frontFacadeCutaway, type ClearedSpace } from './volume/architectureVisibility';
 import { clearedSpace } from './volume/toits';
 import { toitsLeves, toutesLesNappes, volumeDuMonde, type VolumeDuMonde } from './volume/volume';
+import { aretesHorsDesNavires } from '../planDeNavire';
 
 /** La pièce qu'une arête porte : un mur plein, une porte fermée ou ouverte, une fenêtre aux volets ouverts ou clos, ou
  *  la brèche d'une structure abattue. */
@@ -67,8 +68,8 @@ export function aretesDeLaCouche(scene: Scene, z: number): AreteDessinee[] {
 
 /** Les clés (`edgeKey`) des couronnes crénelées de `scene` (`couronnesDuMonde`) tombées avec leur mur abattu
  *  (`structureIsDown`) ; celle d'un corps de garde (`door`) reste sur le linteau de son passage. */
-function couronnesAbattues(scene: Scene): string[] {
-  return (scene.walls ?? []).filter((seg) => {
+function couronnesAbattues(scene: Scene, dessinees: readonly WallSeg[]): string[] {
+  return dessinees.filter((seg) => {
     const apparence = APPARENCES.get(apparenceDArete(scene, seg));
     return !!apparence?.parapet && !apparence.door && !!seg.structure && structureIsDown(scene, seg);
   }).map(edgeKey);
@@ -76,10 +77,10 @@ function couronnesAbattues(scene: Scene): string[] {
 
 /** Les arêtes de `scene` que l'espace dégagé `cleared` (`clearedSpace`, la loi de `architectureVisibility`) abat :
  *  celles au-dessus de la tête d'un allié, et celles qui bordent l'espace où il se tient. */
-function aretesDegagees(scene: Scene, cleared: ClearedSpace): AreteDegagee[] {
+function aretesDegagees(scene: Scene, dessinees: readonly WallSeg[], cleared: ClearedSpace): AreteDegagee[] {
   const facades = facadeEdges(scene);
   const { w, h } = scene.dimensions;
-  return (scene.walls ?? []).flatMap((seg): AreteDegagee[] => {
+  return dessinees.flatMap((seg): AreteDegagee[] => {
     const cle = edgeKey(seg);
     const panneau = { ...seg, roomZoneIds: facades.get(cle)?.roomZoneIds };
     const abattueSous = casesDeFace(seg, 'les-deux').some((c) => cutawayOverhead({ ...c, z: seg.z }, cleared))
@@ -120,7 +121,7 @@ export function volumeDuRegard(scene: Scene, allies: readonly Pt[], regard: Rega
 }
 
 /** Le plateau d'une scène tel qu'un hôte le dessine sous le regard `regard` : ses dimensions, les arêtes de toutes ses
- *  couches (`areteDessinee`), son échelle métrique (`sceneMetresPerTile`), la hauteur de l'œil au-dessus du sol
+ *  couches hors des ponts de ses navires (`aretesHorsDesNavires`, `areteDessinee`), son échelle métrique (`sceneMetresPerTile`), la hauteur de l'œil au-dessus du sol
  *  (`EYE_H`), le regard et celui qui le suit dans `REGARDS`, la clé du volume que le regard demande (`cleDuMonde`, qui change quand `volumeDuRegard` ou `meteoDuRegard` changent), ce que
  *  le regard retire pour le groupe posé sur `allies` : les nappes de toit (`toitsLeves` : en tactique, celles qu'il
  *  dégage ; au plateau, toutes) et les arêtes (`aretesDegagees` : en tactique, celles qu'il dégage ; au plateau,
@@ -129,16 +130,17 @@ export function volumeDuRegard(scene: Scene, allies: readonly Pt[], regard: Rega
 export function plateauDeLaScene(scene: Scene, allies: readonly Pt[], regard: Regard): { w: number; h: number; metresParCase: number; oeilM: number; regard: Regard; regardSuivant: Regard; cleDuMonde: string; aretes: AreteDessinee[]; aretesDegagees: AreteDegagee[]; toitsLeves: string[]; couronnesAbattues: string[] } {
   const { w, h } = scene.dimensions;
   const { activeZ, couvercle } = retraitDuRegard(scene, allies, regard);
+  const dessinees = aretesHorsDesNavires(scene);
   const aretesRetirees = (): AreteDegagee[] => {
-    if (regard === 'tactique') return aretesDegagees(scene, clearedSpace(scene, allies));
+    if (regard === 'tactique') return aretesDegagees(scene, dessinees, clearedSpace(scene, allies));
     if (regard === 'immersion') return [];
-    return (scene.walls ?? []).filter((seg) => (seg.z ?? 0) > coucheDuGroupe(allies)).map((seg) => ({ cle: edgeKey(seg), abattueSous: [...CRANS] }));
+    return dessinees.filter((seg) => (seg.z ?? 0) > coucheDuGroupe(allies)).map((seg) => ({ cle: edgeKey(seg), abattueSous: [...CRANS] }));
   };
   return {
     w, h, metresParCase: sceneMetresPerTile(scene), oeilM: EYE_H, regard, regardSuivant: REGARDS[(REGARDS.indexOf(regard) + 1) % REGARDS.length],
     cleDuMonde: [regard, scene.weather ?? '', activeZ ?? '', ...couvercle].join('|'),
-    aretes: (scene.walls ?? []).map((seg) => areteDessinee(scene, seg)), aretesDegagees: aretesRetirees(),
+    aretes: dessinees.map((seg) => areteDessinee(scene, seg)), aretesDegagees: aretesRetirees(),
     toitsLeves: regard === 'tactique' ? toitsLeves(scene, allies) : regard === 'plateau' ? toutesLesNappes(scene) : [],
-    couronnesAbattues: couronnesAbattues(scene),
+    couronnesAbattues: couronnesAbattues(scene, dessinees),
   };
 }

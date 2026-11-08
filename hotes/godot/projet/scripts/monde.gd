@@ -107,7 +107,7 @@ func _ready() -> void:
 
 ## Le volume du monde de la scène (`monde`) à l'échelle d'une unité par case, sa case (0, 0) sur la case (0, 0) du
 ## monde : son maillage, une surface par matière (sol, relief, décor), texturée ou colorée par sommet (`_matiere`),
-## rendu des deux côtés, le même en forme que le rayon du pointeur touche des deux côtés, le sol de chaque case de
+## rendu des deux côtés hors des surfaces d'un navire, et en forme entier, que le rayon du pointeur touche des deux côtés, le sol de chaque case de
 ## chaque couche, et la caméra centrée sur lui. Godot tient pour face avant le sens horaire, le volume le sens trigonométrique : chaque
 ## tableau retourné en entier retourne chaque triangle, et l'ordre des triangles avec lui, que suivent leurs cases.
 func poser(monde: Dictionary) -> void:
@@ -246,14 +246,17 @@ func _cacher_sous(parent: Node3D, cles: Array) -> void:
 
 
 ## Le maillage d'une géométrie du monde (`positions`, `normales`, `couleurs`, `surfaces`) : une surface par matière,
-## texturée ou colorée par sommet (`_matiere`), chaque tableau retourné en entier (`_retournes`).
+## texturée ou colorée par sommet (`_matiere`), chaque tableau retourné en entier (`_retournes`) ; sans les surfaces
+## d'un navire (`navire`), que le rayon du pointeur touche et que le modèle du navire montre.
 func _maillage_de(geometrie: Dictionary) -> ArrayMesh:
 	var sommets := PackedFloat32Array(geometrie.positions).to_byte_array().to_vector3_array()
 	var normales := PackedFloat32Array(geometrie.normales).to_byte_array().to_vector3_array()
 	var couleurs := PackedFloat32Array(geometrie.couleurs).to_byte_array().to_color_array()
 	var maillage := ArrayMesh.new()
-	for indice in geometrie.surfaces.size():
-		var surface: Dictionary = geometrie.surfaces[indice]
+	for surface: Dictionary in geometrie.surfaces:
+		if surface.has("navire"):
+			continue
+		var indice := maillage.get_surface_count()
 		var tableaux := []
 		tableaux.resize(Mesh.ARRAY_MAX)
 		tableaux[Mesh.ARRAY_VERTEX] = _retournes(sommets.slice(int(surface.debut), int(surface.fin)))
