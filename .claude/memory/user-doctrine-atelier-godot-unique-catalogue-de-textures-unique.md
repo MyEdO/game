@@ -7,10 +7,10 @@ metadata:
 
 Fil de projet de la caraque (#2987, #3686), revue des planches v4 du modèle.
 
-**Verbatims —** Clément (2026-11-08) :
-- « L atelier doit gérer tous les modèles du jeu, de la créature aux véhicules en passant par les engins et les decors »
-- « Tout ce qui est 3D doit pouvoir être affiché dans l atelier Godot. Biensur ces éléments peuvent avoir des particularités qui leurs sont propres »
-- sur les textures : « De souvenir les murs, le sol, et pleins de chose ont des textures. J espère que chacun ne fait pas un peu comme il veut »
+**Verbatims —** Clément :
+- (2026-11-08) « L atelier doit gérer tous les modèles du jeu, de la créature aux véhicules en passant par les engins et les decors »
+- (2026-11-08) « Tout ce qui est 3D doit pouvoir être affiché dans l atelier Godot. Biensur ces éléments peuvent avoir des particularités qui leurs sont propres »
+- (2026-11-08), sur les textures : « De souvenir les murs, le sol, et pleins de chose ont des textures. J espère que chacun ne fait pas un peu comme il veut »
 
 **Why :** un atelier par famille et une texture par modèle divergent (couleurs, provenance, rendu) ; le jeu n'a qu'un rendu.
 **How to apply :**
