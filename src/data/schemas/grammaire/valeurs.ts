@@ -1019,6 +1019,8 @@ export const messageDeTermeDeJet = (f: unknown): string | undefined => {
 /** Le terme « bonus de caractéristique » de la grammaire d'une quantité, que composent aussi les champs
  *  qui n'admettent que lui (`max` d'un Talent). */
 export const termeBonusDe = nommerChamps(z.strictObject({ bonusOf: charKeySchema }), { bonusOf: { label: "bonus de caractéristique" } });
+/** Le Maxi d'un Talent « Nombre de Sorts disponibles dans le Domaine de Magie du Chaos choisi » (`LDB 10 l.704`). */
+export const maxiSortsDuDomaine = z.literal('sortsDuDomaine');
 
 /** Les options de la grammaire d'une quantité, dans l'ordre du sélecteur ; `soi` est le schéma
  *  récursif, `avecJet` admet les termes de jet. */

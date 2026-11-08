@@ -30,6 +30,7 @@ import {
   freeSlotFor,
   designateSlot,
   talentAcquisitions,
+  acquerirTalent,
 } from '../engine/careerSlots';
 import { applyTalentAcquisition, fortuneMax, resolveMax, competenceEnCarriere, talentEnCarriere } from '../engine/talentEffects';
 import { heroSessionXp, regainDetermination } from '../engine/session';
@@ -536,9 +537,9 @@ export function acheterLeTalent(get: Get, set: Set, heroId: string, talentId: st
 }
 
 /** Apprend/mémorise un sort (LDB 46 l.16-20 + Talents LDB 10) : coût en PX selon la
- *  famille (engine/grimoire.spellCost) ; un sort appris par Magie du Chaos inflige AUSSI
- *  +1 Point de Corruption (« le Sort s'insinue dans votre esprit ») — appliqué par
- *  l'appelant store (seuil → mutation). */
+ *  famille (engine/grimoire.spellCost) ; un sort payé par Magie du Chaos est une prise de plus du
+ *  Talent, bornée par son Maxi (`acquerirTalent`, LDB 10 l.704-708), et tout sort de Magie du Chaos
+ *  inflige AUSSI +1 Point de Corruption, appliqué par l'appelant store (seuil → mutation). */
 export function acheterLeSort(get: Get, set: Set, heroId: string, spellId: string, opts: { discountXp?: number } = {}): { ok: boolean; chaos?: boolean } {
   let msg = '';
   let result: { ok: boolean; chaos?: boolean } = { ok: false };
@@ -563,12 +564,18 @@ export function acheterLeSort(get: Get, set: Set, heroId: string, spellId: strin
       msg = manque;
       return h;
     }
+    const talent = eligibleTalent(clone, sp)!;
+    const chaos = talent.kind === 'chaos';
+    if (chaos && full > 0 && !acquerirTalent(clone, { id: talent.talentId, spec: talent.spec })) {
+      msg = t('adv.talentMax');
+      return h;
+    }
     clone.xp = (clone.xp ?? 0) - cost;
     clone.spells = [...(clone.spells ?? []), sp.id]; // runtime = id de sort (pas le libellé)
     msg = cost > 0
       ? t('pf.spellLearned', { name: clone.label, spell: sp.label, cost, remise: cost < full ? t('pf.fragSpellDiscount', { n: full - cost }) : '' })
       : t('pf.spellGranted', { name: clone.label, spell: sp.label });
-    result = { ok: true, chaos: eligibleTalent(clone, sp)?.kind === 'chaos' };
+    result = { ok: true, chaos };
     return clone;
   })) return { ok: false };
   if (msg) get().ecrireAuJournal(msg);
