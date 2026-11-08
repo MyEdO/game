@@ -4,10 +4,14 @@
  * `x = 0`, tribord à `y = 0`, la hauteur en mètres depuis la flottaison (repère du modèle 3D de la caraque).
  * Un étage par pont : `z0` pont de cargaison, `z1` pont principal, `z2` pont supérieur (le château de poupe
  * à l'arrière), `z3` gaillard d'avant, passerelle et plage arrière. Une trappe est la case du pont du dessous
- * posée à la hauteur du pont du dessus (`hauteurs`, l'étage du dessus y est vide) ; son échelle est l'arête
+ * posée à la hauteur du pont du dessus (`elevate`, l'étage du dessus y est vide) ; son échelle est l'arête
  * escaladable qui la joint au pont (LDB 15 l.55). Le calque `zoneMap` nomme les pièces de la légende des plans.
+ * Les plans ne meublent pas leurs pièces : leur mobilier (`MOBILIER`) est une valeur d'adaptation (#3686), hamacs
+ * (MDG 09 l.87) et cabestan (MDG 12 l.213) compris.
  */
 import type { MapSpec, WallSpec } from './mapSpec';
+import type { SceneEntity } from './monde/scene';
+import type { Dir4 } from '../geometry/dir8';
 import type { ApportAuxPonts } from './planDeNavire';
 import { findVehicleById } from '../data';
 import { garanti } from '../lib/garanti';
@@ -138,6 +142,50 @@ const LEGENDE_DES_PIECES: NonNullable<MapSpec['zoneLegend']> = {
   U: { id: 'plage-arriere', label: 'Plage arrière', presentation: 'exterior' },
 };
 
+/** Le mobilier de chaque pièce intérieure, par lettre de la légende : le décor (`ref` de `props.json`), la case
+ *  du coin nord-ouest de son emprise et son cap (`S` par défaut). Une case de porte, de trappe ou de pied
+ *  d'échelle reste libre, et le garde-manger, dont la seule case est celle de sa porte, reste vide. */
+const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: number, y: number, facing?: Dir4])[]>> = {
+  C: [
+    ['tonneaux-pile', 5, 0], ['caisse', 6, 0], ['tonneau', 8, 0], ['caisse', 9, 0],
+    ['caisse', 5, 4], ['tonneaux-pile', 6, 4], ['caisse', 8, 4], ['tonneaux-pile', 9, 4], ['tonneau', 11, 4],
+  ],
+  I: [['lit', 11, 0], ['lit', 13, 0], ['etagere', 14, 1]],
+  R: [['etabli', 14, 3], ['caisse', 14, 4]],
+  J: [['banc', 16, 1], ['tas-foin', 16, 3]],
+  V: [['rouleau-de-cordage', 1, 2], ['rouleau-de-cordage', 2, 2]],
+  P: [
+    ['cabestan', 7, 2],
+    ['hamac', 10, 0], ['hamac', 11, 0], ['hamac', 12, 0], ['hamac', 10, 4], ['hamac', 11, 4], ['hamac', 12, 4],
+  ],
+  M: [['caisse', 13, 0], ['tonneau', 14, 0], ['caisse', 13, 1]],
+  N: [['tonneau', 13, 4]],
+  A: [['armoire', 14, 4, 'N']],
+  K: [['table', 16, 1], ['cheminee-interieure', 16, 2, 'O'], ['marmite', 16, 3], ['tonneau', 15, 4]],
+  O: [['rouleau-de-cordage', 1, 1], ['rouleau-de-cordage', 1, 3]],
+  Q: [['hamac', 2, 0], ['hamac', 3, 0], ['coffre', 2, 1], ['hamac', 2, 4], ['hamac', 3, 4]],
+  E: [['table', 10, 0], ['chaise', 11, 0, 'O'], ['chaise', 10, 1, 'N']],
+  F: [['lit', 12, 0], ['coffre', 13, 1]],
+  H: [['table-2x1', 10, 3], ['banc', 10, 4], ['banc', 11, 4]],
+  X: [['lit', 14, 0], ['bureau', 15, 1]],
+  Y: [['lit', 14, 4], ['coffre', 15, 3]],
+  B: [['barre-de-navire', 16, 1, 'E']],
+};
+
+/** Les décors de `MOBILIER`, chacun sur le pont de sa pièce, sous l'id de sa pièce suivi de son `ref` et de son rang. */
+const MEUBLES: SceneEntity[] = Object.entries(MOBILIER).flatMap(([lettre, meubles]) => {
+  const piece = garanti(LEGENDE_DES_PIECES[lettre], lettre, 'pièce meublée').id;
+  const etage = garanti(Object.keys(PIECES).find((e) => [PIECES[e]].flat().join('').includes(lettre)), lettre, 'pont de la pièce');
+  return meubles.map(([ref, x, y, facing = 'S'], i): SceneEntity => ({
+    id: `${piece}-${ref}-${meubles.slice(0, i + 1).filter(([r]) => r === ref).length}`,
+    kind: 'prop',
+    ref,
+    pos: { x, y },
+    z: Number(etage.slice(1)),
+    facing,
+  }));
+});
+
 /** La caraque en `MapSpec`. */
 export const PLAN_DE_LA_CARAQUE: MapSpec = {
   id: 'caraque',
@@ -152,6 +200,7 @@ export const PLAN_DE_LA_CARAQUE: MapSpec = {
   elevate: { a: PONTS.plageArriere, j: PONTS.principal, k: PONTS.superieur, g: PONTS.gaillard, h: PONTS.plageArriere },
   zoneMap: PIECES,
   zoneLegend: LEGENDE_DES_PIECES,
+  entities: MEUBLES,
   walls: [
     { x: 4, y: 2, side: 'O', z: 0, climb: { kind: 'ladder' } },
     { x: 10, y: 2, side: 'E', z: 0, climb: { kind: 'ladder' } },

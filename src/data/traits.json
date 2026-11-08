@@ -1251,6 +1251,9 @@
       "book": "livre-de-base",
       "page": 340
     },
+    "capabilities": {
+      "castingKind": "invocation"
+    },
     "alsoIn": [
       {
         "book": "zoo-imperial",

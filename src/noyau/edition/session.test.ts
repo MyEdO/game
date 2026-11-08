@@ -229,6 +229,15 @@ describe('session d’édition', () => {
     expect(ent(jouer(tire, { geste: 'entite', patch: { aleatoire: false } }))?.combat).toEqual({ hiddenUntilCombat: true });
   });
 
+  it('les sorts choisis d’un personnage s’écrivent à `combat.spells`, à côté de son embuscade ; vides, ils le quittent (#3715)', () => {
+    const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+    const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'humain' } }, { geste: 'appui', point: point(1, 1) });
+    const ent = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), pose.sel);
+    const choisis = jouer(pose, { geste: 'entite', patch: { embusque: true } }, { geste: 'entite', patch: { sorts: ['choc', 'flechette'] } });
+    expect(ent(choisis)?.combat).toEqual({ hiddenUntilCombat: true, spells: ['choc', 'flechette'] });
+    expect(ent(jouer(choisis, { geste: 'entite', patch: { sorts: [] } }))?.combat).toEqual({ hiddenUntilCombat: true });
+  });
+
   it('une troupe : N copies sur les cases libres les plus proches, ids neufs, profils tirés, rencontres héritées, un seul cran (#3704)', () => {
     const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
     const poser = (outil: Extract<GesteDEdition, { geste: 'outil' }>['outil'], x: number, y: number): GesteDEdition[] =>

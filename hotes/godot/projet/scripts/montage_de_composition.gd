@@ -486,15 +486,22 @@ static func _uv2_des_emblemes(piece: MeshInstance3D, par_nom: Dictionary) -> voi
 func couleurs_posees() -> Dictionary:
 	var couleurs := {}
 	for id in pieces:
-		var posees := {}
-		for piece: MeshInstance3D in pieces[id]:
-			for rang in piece.mesh.get_surface_count():
-				var local := piece.get_surface_override_material(rang) as BaseMaterial3D
-				if local != null:
-					posees[local.resource_name] = "#" + local.albedo_color.to_html(false)
+		var posees := couleurs_des_meshes(pieces[id])
 		if not posees.is_empty():
 			couleurs[id] = posees
 	return couleurs
+
+
+## Par nom du matériau du GLB, la couleur d'albédo `#rrggbb` du matériau propre de chaque surface de `meshes` qui en
+## porte un.
+static func couleurs_des_meshes(meshes: Array) -> Dictionary:
+	var posees := {}
+	for piece: MeshInstance3D in meshes:
+		for rang in piece.mesh.get_surface_count():
+			var local := piece.get_surface_override_material(rang) as BaseMaterial3D
+			if local != null:
+				posees[local.resource_name] = "#" + local.albedo_color.to_html(false)
+	return posees
 
 
 ## Le SVG de l'emblème `id`, offert par `emblemes` de la réponse de `modeles`, rastérisé à `LARGEUR_D_EMBLEME` pixels de

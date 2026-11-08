@@ -14,7 +14,7 @@
  * couture d'AFFICHAGE qui traverse le moteur, jamais un second canal de résolution.
  */
 import type { FabriqueDId } from './fabriqueDId';
-import { Combatant, VehicleData, type Difficulty, type ModLine } from './types';
+import { Combatant, DIFFICULTE_PAR_DEFAUT, VehicleData, type Difficulty, type ModLine } from './types';
 import { ligneDeRegle } from './reglesChiffrees';
 import { RNG, d10 } from './dice';
 import { applyOps } from './ops';
@@ -93,7 +93,7 @@ export function repairVehicleAttempt(p: VehicleRepairParams): VehicleRepairResul
   if (!p.materiaux || !p.outils || !p.installations) {
     return { possible: false, restaure: 0, heures: 0, degatsRestants: p.degatsSubis };
   }
-  const test = rollTest(p.valeurMetier, p.difficulty ?? 'intermediaire', p.rng);
+  const test = rollTest(p.valeurMetier, p.difficulty ?? DIFFICULTE_PAR_DEFAUT, p.rng);
   const restaure = test.success ? Math.min(p.degatsSubis, d10(p.rng) + test.sl) : 0;
   return { possible: true, test, restaure, heures: 1, degatsRestants: p.degatsSubis - restaure };
 }

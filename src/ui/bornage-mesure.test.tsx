@@ -63,7 +63,7 @@ function heroCoureur(): Combatant {
   g().lancerLaScene(testScene()); g().lancerLeCombat('enc-mutants'); g().fenetreValider('roundStart'); vi.clearAllTimers();
   const b = g().battle!; const H = b.combatants.find((c) => c.kind === 'hero')!;
   H.pos = { x: 10, y: 10 }; H.engagedWith = [];
-  useGame.setState({ battle: { ...b, turn: b.order.indexOf(H.id), acted: false, movementUsed: 0 }, pendingRun: null });
+  useGame.setState({ screen: 'campaign', battle: { ...b, turn: b.order.indexOf(H.id), acted: false, movementUsed: 0 }, pendingRun: null });
   g().ensemencerLeTirage(2);
   g().ouvrirLaCourse({ x: 16, y: 10 });
   return H;

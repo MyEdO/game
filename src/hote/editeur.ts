@@ -13,7 +13,7 @@ import {
   calqueDeLaCouche, calquesAStocker, coinsDuCalque, planDuCalque, type CalquesStockes,
   capDeLEntite, capsOfferts, entiteDeLaSelection, fichesDePersonnage, nomDEntite, presetDuNarratif, props,
   assoirALaPlace, findVehicleById, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
-  DIFFICULTY_LABELS, FACES_D_ARETE, FIRE_ARCS, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, scenesDeLaSession, secretAuteur,
+  DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FACES_D_ARETE, FIRE_ARCS, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, scenesDeLaSession, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
@@ -23,6 +23,7 @@ import {
   candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDEntite, ficheDuCombattant,
   findCareerById, levelsForCareer, libelleDeLaValeur, parcoursDe, parcoursRetouche, parseRefKey, prisParLesAutres, refKey, refLabel, skillSlots, sousEmplacement, talentsDuParcours,
   trappingRefLabel, valeursDeLEmplacement, type EmplacementDeDotation, type ParcoursDeCarriere,
+  findSpellById, listesDeSorts, refusDesSortsChoisis, sceneNpc, sortsImprimes, spells,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -276,8 +277,8 @@ const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: num
 
 /** L'inspecteur de l'entité sélectionnée de la session `s` : son nom ; le type d'un décor, la fiche d'un personnage du
  *  bestiaire ; son cap parmi ceux que son type admet ; sa couche ; la lumière et les places d'un décor ; le poste d'un
- *  emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son parcours de carrière, son
- *  embuscade et ses rencontres, et le formulaire qui en pose une troupe ; la supprimer. */
+ *  emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son parcours de carrière, ses
+ *  sorts, son embuscade et ses rencontres, et le formulaire qui en pose une troupe ; la supprimer. */
 function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton | Formulaire)[] {
   const fiches = fichesDePersonnage();
   const types = ent.kind === 'prop' ? props : ent.kind === 'personnage' && fiches.some((f) => f.id === ent.ref) ? fiches : [];
@@ -293,7 +294,7 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
     ...(ent.postes?.length || (ent.ref && findVehicleById(ent.ref)?.hull)
       ? equipe(s, ent, 'equipage', ent.crewIds ?? [], (crewIds) => ({ geste: 'entite', patch: { crewIds } }))
       : []),
-    ...(ent.kind === 'personnage' ? [...inventaire(ent), ...carrieres(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
+    ...(ent.kind === 'personnage' ? [...inventaire(ent), ...carrieres(s, ent), ...sorts(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
     bouton('entite/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }),
   ];
 }
@@ -505,6 +506,32 @@ function profilDeCarriere(s: SessionDEdition, ent: Scene['entities'][number], ac
     liste('competences', fiche.competences.map((c) => `${c.libelle} ${c.valeur}`)),
     liste('talents', fiche.talents.map((x) => (x.fois > 1 ? `${x.libelle} ×${x.fois}` : x.libelle))),
     liste('possessions', fiche.possessions.map((x) => (x.nombre > 1 ? `${x.libelle} (${x.nombre})` : x.libelle))),
+  ];
+}
+
+/** Les sorts du personnage `ent` de la session `s`, lus sur sa fiche (`sceneNpc`), s'il en a une : ceux que son profil imprime,
+ *  sur une ligne ; sinon, s'il a une liste de sorts (`listesDeSorts`), chaque sort choisi, à retirer, la raison qui
+ *  refuse les choix (`refusDesSortsChoisis`), en liste chaque sort d'une de ses listes qu'il n'a pas choisi, à ajouter,
+ *  refusé avec sa raison, puis ses sorts au spawn, choisis et tirés (`sortsDuPnj`). Chaque bouton écrit les sorts
+ *  choisis entiers. */
+function sorts(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne)[] {
+  const fiche = sceneNpc(sceneEditee(s), ent.id, presetDuNarratif(s.projet.narratif));
+  if (!fiche) return [];
+  const libelle = (id: string) => findSpellById(id)?.label ?? id;
+  const liste = (ids: readonly string[]) => ids.map(libelle).join(', ') || t('ecran.editeur.carriere.profil.aucun');
+  const imprimes = sortsImprimes(fiche.porteurDeFiche);
+  if (imprimes.length) return [ligne('sorts/imprimes', t('ecran.editeur.sorts.imprimes', { liste: liste(imprimes) }))];
+  const listes = listesDeSorts(fiche);
+  if (!listes.length) return [];
+  const choisis = ent.combat?.spells ?? [];
+  const ecrire = (ids: string[]): GesteDEdition => ({ geste: 'entite', patch: { sorts: ids } });
+  const refus = refusDesSortsChoisis(fiche, choisis);
+  return [
+    ...choisis.map((id) => choix(`sorts/${id}`, libelle(id), [bouton(`sorts/${id}/retirer`, t('ecran.editeur.sorts.retirer'), ecrire(choisis.filter((x) => x !== id)))])),
+    ...(refus ? [ligne('sorts/refus', refus, 'alerte')] : []),
+    choix('sorts/ajouter', t('ecran.editeur.sorts.ajouter'), spells.filter((sp) => !choisis.includes(sp.id) && listes.some((l) => l.admet(sp)))
+      .map((sp) => bouton(`sorts/ajouter/${sp.id}`, sp.label, ecrire([...choisis, sp.id]), false, refusDesSortsChoisis(fiche, [...choisis, sp.id]) ?? null)), 'liste'),
+    ligne('sorts/connus', t('ecran.editeur.sorts.connus', { liste: liste(fiche.spells ?? []) })),
   ];
 }
 
@@ -1028,7 +1055,7 @@ function inspecteurDArete(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   if (climb?.kind === 'surface') {
     elements.push(
       choix('arete/escalade/difficulte', t('ecran.editeur.inspecteur.escalade.difficulte'), (Object.entries(DIFFICULTY_LABELS) as [Difficulty, string][])
-        .map(([d, libelle]) => bouton(`arete/escalade/difficulte/${d}`, libelle, surLArete({ climb: { ...climb, difficulty: d } }), (climb.difficulty ?? 'intermediaire') === d)), 'liste'),
+        .map(([d, libelle]) => bouton(`arete/escalade/difficulte/${d}`, libelle, surLArete({ climb: { ...climb, difficulty: d } }), (climb.difficulty ?? DIFFICULTE_PAR_DEFAUT) === d)), 'liste'),
       bascule('grimpeur', !!climb.requiresGrimpeur, surLArete({ climb: { kind: 'surface', ...(climb.difficulty ? { difficulty: climb.difficulty } : {}), ...(climb.requiresGrimpeur ? {} : { requiresGrimpeur: true }) } })),
     );
   }
