@@ -3,7 +3,7 @@ import { garanti } from '../lib/garanti';
 import { buildScene } from './mapSpec';
 import { PLAN_DE_LA_CARAQUE } from './planDeLaCaraque';
 import { reachedFloors, unreachableDescriptiveZones, zoneWalkableCells } from './mapQC';
-import { heightAt, isDescriptiveZone, isWalkable, tileAt } from './monde/scene';
+import { areteOcculteEntre, edgeOf, heightAt, isDescriptiveZone, isWalkable, tileAt, wallBetween, type Scene } from './monde/scene';
 import { estAbsent } from './monde/terrain';
 import { reachable } from './monde/path';
 import { planClimb } from './monde/climbMove';
@@ -86,5 +86,52 @@ describe('la caraque posée dans une scène (poserLeNavire)', () => {
       const atteint = reachable(s, piece('c1-cale'), 400, { blocked: new Set(), traverse: { climb: true, climbFullSpeed: true } });
       expect([...atteint.keys()], cap).toContain(`${haut.x},${haut.y},${haut.z}`);
     }
+  });
+});
+
+describe('les Améliorations de la caraque à bord (pontsDuNavire)', () => {
+  const pose = (cap: 'N' | 'E' | 'S' | 'O', upgrades: string[]) =>
+    buildScene({ id: 'bassin', label: 'Bassin', size: [24, 24], terrain: 'eau', navires: [{ ref: 'caraque', id: 'c1', x: 3, y: 2, cap, upgrades: upgrades.map((id) => ({ id })) }] });
+  /** L'arête entre deux cases voisines du pont `z`, si elle porte un mur. */
+  const arete = (s: Scene, a: [number, number], b: [number, number], z: number) => {
+    const e = garanti(edgeOf(...a, ...b), `${a}|${b}`, 'arête');
+    return (s.walls ?? []).find((w) => w.x === e.x && w.y === e.y && w.side === e.side && (w.z ?? 0) === z);
+  };
+
+  it('depuis l’embelle découverte, on voit la mer par-dessus le plat-bord, sans le franchir', () => {
+    expect(areteOcculteEntre(scene, 6, 0, 6, -1, 2)).toBe(false);
+    expect(wallBetween(scene, 6, 0, 6, -1, 2)).toBe(true);
+  });
+
+  it('Nid-de-pie : la hune du grand mât se gagne par l’échelle des haubans, à tout cap', () => {
+    expect(isWalkable(pose('O', []), 9, 1, 3)).toBe(false);
+    for (const cap of ['N', 'E', 'S', 'O'] as const) {
+      const s = pose(cap, ['nid-de-pie']);
+      const hune = garanti(Array.from({ length: 24 * 24 }, (_, i) => ({ x: i % 24, y: Math.floor(i / 24), z: 3 }))
+        .find((c) => isWalkable(s, c.x, c.y, 3) && heightAt(s, c.x, c.y, 3) > 20), cap, 'hune');
+      const cale = zoneWalkableCells(s, garanti(s.effectZones?.find((zo) => zo.id === 'c1-cale'), cap, 'cale'))[0];
+      const atteint = reachable(s, cale, 600, { blocked: new Set(), traverse: { climb: true, climbFullSpeed: true } });
+      expect([...atteint.keys()], cap).toContain(`${hune.x},${hune.y},3`);
+    }
+  });
+
+  it('Embarcation de bord : le canot occupe deux cases de l’embelle, tourné avec le navire', () => {
+    expect(pose('O', []).entities.some((e) => e.id === 'c1-embarcation-de-bord')).toBe(false);
+    const canot = (cap: 'N' | 'O') => garanti(pose(cap, ['embarcation-de-bord']).entities.find((e) => e.id === 'c1-embarcation-de-bord'), cap, 'canot');
+    expect(canot('O')).toMatchObject({ pos: { x: 9, y: 4 }, z: 2, facing: 'S' });
+    // au cap N, la case (6..7, 2) du plan passe en x = 3 + 2, y = 2 + 6..7
+    expect(canot('N')).toMatchObject({ pos: { x: 5, y: 8 }, z: 2, facing: 'O' });
+  });
+
+  it('Sabord : sans lui la coque de la batterie est pleine ; avec, ses sabords sont des fenêtres closes', () => {
+    expect(arete(pose('O', []), [8, 2], [8, 1], 1)).toMatchObject({ side: 'N' });
+    expect(arete(pose('O', []), [8, 2], [8, 1], 1)?.window).toBeUndefined();
+    expect(arete(pose('O', ['sabord']), [8, 2], [8, 1], 1)).toMatchObject({ window: true, shuttered: true });
+    // au cap E, le sabord (5, 0) tribord du plan passe en x = 3 + 17 - 5, au sud : y = 2 + 4
+    expect(arete(pose('E', ['sabord']), [15, 6], [15, 7], 1)).toMatchObject({ window: true, shuttered: true });
+  });
+
+  it('une Amélioration inconnue est refusée', () => {
+    expect(() => pose('O', ['voile-magique'])).toThrow(/voile-magique/);
   });
 });

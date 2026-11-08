@@ -7,7 +7,8 @@
  * posée à la hauteur du pont du dessus (`hauteurs`, l'étage du dessus y est vide) ; son échelle est l'arête
  * escaladable qui la joint au pont (LDB 15 l.55). Le calque `zoneMap` nomme les pièces de la légende des plans.
  */
-import type { MapSpec } from './mapSpec';
+import type { MapSpec, WallSpec } from './mapSpec';
+import type { ApportAuxPonts } from './planDeNavire';
 import { findVehicleById } from '../data';
 import { garanti } from '../lib/garanti';
 import { terrainAbsent, terrainsAvecGlyphe } from './monde/terrain';
@@ -50,7 +51,7 @@ const PRINCIPAL = String.raw`
 `;
 
 const SUPERIEUR = String.raw`
-+ + +-+-+-+-+-+-+-+-+-+-+-+-+-+-+ + +
++ + +-+-+o+o+o+o+o+o+-+-+-+-+-+-+ + +
     |= =|= = = = = =|= =|= =|= =|
 + +-+ + + + + + + + + + + + + + +-+-+
   |=|= =|=   = = = =|= =|= =|= =|= =|
@@ -60,7 +61,7 @@ const SUPERIEUR = String.raw`
   |=|= g|= = = = =  |= = = h|= =|= =|
 + +-+ + + + + + + + + + + + + + +-+-+
     |= =|= = = = = =|= = = =|= =|
-+ + +-+-+-+-+-+-+-+-+-+-+-+-+-+-+ + +
++ + +-+-+o+o+o+o+o+o+-+-+-+-+-+-+ + +
 `;
 
 const HAUT = String.raw`
@@ -158,4 +159,43 @@ export const PLAN_DE_LA_CARAQUE: MapSpec = {
     { x: 3, y: 2, side: 'S', z: 2, climb: { kind: 'ladder' } },
     { x: 12, y: 3, side: 'E', z: 2, climb: { kind: 'ladder' } },
   ],
+};
+
+/** Un sabord fermé sur l'arête de coque (x, y, côté) du pont `z`. */
+const sabord = (x: number, y: number, side: WallSpec['side'], z: number): WallSpec => ({ x, y, side, z, window: true, shuttered: true });
+
+/** Hauteur (m) du plancher de la hune du grand mât, depuis la flottaison (modèle 3D de la caraque). */
+const HUNE = 23.9;
+
+/**
+ * Ce que chaque Amélioration ajoute aux ponts de la caraque, aux places du modèle 3D (manifeste de la caraque,
+ * `ancrages` et `selon.sabord.postes`) ramenées aux cases du plan :
+ * - Nid-de-pie (MDG p.99) : la hune du grand mât (case 9 de la longueur), au bout de l'échelle de ses haubans
+ *   depuis la passerelle, bordée de son garde-corps ;
+ * - Embarcation de bord (MDG p.97) : le canot de 5 m sur l'embelle, sur la trappe de fret ;
+ * - Sabord (MDG p.97) : les sabords fermés de la batterie du pont principal (deux par bord), du château (une
+ *   case de flanc chacun) et du tableau de poupe (deux).
+ */
+export const AMELIORATIONS_DE_LA_CARAQUE: Readonly<Record<string, ApportAuxPonts>> = {
+  'nid-de-pie': {
+    terrainRects: [{ rect: [9, 1, 1, 1], terrain: PLANCHER, z: 3 }],
+    relief: [{ cell: [9, 1], height: HUNE, z: 3 }],
+    walls: [
+      { x: 9, y: 2, side: 'N', z: 3, climb: { kind: 'ladder' } },
+      ...(['N', 'O', 'E'] as const).map((side): WallSpec => ({ x: 9, y: 1, side, z: 3, window: true })),
+    ],
+  },
+  'embarcation-de-bord': {
+    entities: [{ id: 'embarcation-de-bord', kind: 'prop', ref: 'barque', pos: { x: 6, y: 2 }, z: 2, facing: 'S' }],
+  },
+  sabord: {
+    walls: [
+      ...[5, 7].flatMap((x) => [sabord(x, 0, 'N', 1), sabord(x, 4, 'S', 1)]),
+      ...[12, 13, 14, 15].flatMap((x) => [sabord(x, 0, 'N', 2), sabord(x, 4, 'S', 2)]),
+      sabord(16, 1, 'N', 2),
+      sabord(16, 3, 'S', 2),
+      sabord(17, 1, 'E', 2),
+      sabord(17, 3, 'E', 2),
+    ],
+  },
 };

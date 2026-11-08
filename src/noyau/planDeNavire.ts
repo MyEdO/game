@@ -1,23 +1,40 @@
 /**
- * Les ponts d'un navire posés dans une scène (#3686, lot 2) : les ponts de son TYPE (`PLANS_DE_NAVIRE`), compilés
- * par `buildScene`, recopiés à une position, un cap et un étage de la scène hôte. Un pont devient l'étage
- * `z + rang`, ses hauteurs se décalent de `hauteur` ; ses cloisons, portes et échelles tournent avec lui ; ses
- * pièces prennent l'id de la pose en préfixe. Le plan d'un type a sa proue à `x = 0`, tribord à `y = 0` :
- * au cap `O`, il se pose tel quel.
+ * Les ponts d'un navire posés dans une scène (#3686, lots 2 et 2b) : les ponts de son TYPE (`PLANS_DE_NAVIRE`) et
+ * ce qu'y ajoutent ses Améliorations, compilés par `buildScene`, recopiés à une position, un cap et un étage de la
+ * scène hôte. Un pont devient l'étage `z + rang`, ses hauteurs se décalent de `hauteur` ; ses cloisons, portes,
+ * échelles et décors tournent avec lui ; ses pièces et ses décors prennent l'id de la pose en préfixe. Le plan
+ * d'un type a sa proue à `x = 0`, tribord à `y = 0` : au cap `O`, il se pose tel quel.
  */
-import type { CellSide, Scene, SceneEffectZone, WallSeg } from './monde/scene';
-import { edgeOf, heightAt, tileAt } from './monde/scene';
+import type { NavalTraitRef } from '../engine/types';
+import { findNavalTrait } from '../data';
+import { CAP_IDENTITE_PROP } from '../data/props.types';
+import { rotateDir8 } from '../geometry/dir8';
+import { garanti } from '../lib/garanti';
+import type { CellSide, Scene, SceneEffectZone, SceneEntity, WallSeg } from './monde/scene';
+import { edgeOf, heightAt, sceneMetresPerTile, tileAt } from './monde/scene';
+import { propFootTiles } from './monde/footprint';
 import { estAbsent } from './monde/terrain';
 import { addLayer, paintHeight, paintTiles, patchWall, setEdgeWall } from './sceneEdit';
 import type { MapSpec } from './mapSpec';
-import { PLAN_DE_LA_CARAQUE } from './planDeLaCaraque';
+import { AMELIORATIONS_DE_LA_CARAQUE, PLAN_DE_LA_CARAQUE } from './planDeLaCaraque';
 
-/** Les ponts de chaque type de navire qui en a, par id de véhicule. */
-export const PLANS_DE_NAVIRE: Readonly<Record<string, MapSpec>> = { caraque: PLAN_DE_LA_CARAQUE };
+/** Ce qu'une Amélioration ajoute aux ponts d'un type de navire. */
+export type ApportAuxPonts = Pick<MapSpec, 'terrainRects' | 'relief' | 'walls' | 'entities'>;
 
-/** Un navire posé : son type (`ref`, id de véhicule), l'id de la pose (préfixe de ses pièces), la case hôte du coin
- *  nord-ouest de son emprise, son cap (où pointe la proue), l'étage hôte de son pont le plus bas et le décalage
- *  de ses hauteurs (m). */
+/** Les ponts d'un type de navire, et ce que chacune de ses Améliorations (id de `naval-traits`) y ajoute. */
+interface PlanDeNavire {
+  ponts: MapSpec;
+  ameliorations: Readonly<Record<string, ApportAuxPonts>>;
+}
+
+/** Les plans de chaque type de navire qui en a, par id de véhicule. */
+const PLANS_DE_NAVIRE: Readonly<Record<string, PlanDeNavire>> = {
+  caraque: { ponts: PLAN_DE_LA_CARAQUE, ameliorations: AMELIORATIONS_DE_LA_CARAQUE },
+};
+
+/** Un navire posé : son type (`ref`, id de véhicule), l'id de la pose (préfixe de ses pièces et décors), la case
+ *  hôte du coin nord-ouest de son emprise, son cap (où pointe la proue), l'étage hôte de son pont le plus bas, le
+ *  décalage de ses hauteurs (m) et ses Améliorations d'instance. */
 export interface PoseDeNavire {
   ref: string;
   id: string;
@@ -26,7 +43,29 @@ export interface PoseDeNavire {
   cap: CellSide;
   z?: number;
   hauteur?: number;
+  upgrades?: NavalTraitRef[];
 }
+
+/** Les ponts du type `ref` avec ce qu'y ajoutent les Améliorations `upgrades` ; une Amélioration qui ne change
+ *  rien à bord (Bélier, Lissage…) n'y ajoute rien. */
+export function pontsDuNavire(ref: string, upgrades: readonly NavalTraitRef[]): MapSpec {
+  const plan = garanti(PLANS_DE_NAVIRE[ref], ref, 'plan de navire');
+  return upgrades.reduce<MapSpec>((ponts, { id }) => {
+    garanti(findNavalTrait(id), id, 'Amélioration de navire');
+    const apport = plan.ameliorations[id];
+    if (!apport) return ponts;
+    return {
+      ...ponts,
+      terrainRects: [...(ponts.terrainRects ?? []), ...(apport.terrainRects ?? [])],
+      relief: [...(ponts.relief ?? []), ...(apport.relief ?? [])],
+      walls: [...(ponts.walls ?? []), ...(apport.walls ?? [])],
+      entities: [...(ponts.entities ?? []), ...(apport.entities ?? [])],
+    };
+  }, plan.ponts);
+}
+
+/** Quarts de tour horaires du plan vers l'hôte, par cap. */
+const QUARTS: Record<CellSide, number> = { O: 0, N: 1, E: 2, S: 3 };
 
 /** Case hôte de la case (x, y) d'un plan de `w` × `h` au cap `cap` : tribord reste à la droite de la proue. */
 function versLHote(cap: CellSide, w: number, h: number): (x: number, y: number) => { x: number; y: number } {
@@ -48,7 +87,7 @@ function champsDeLArete(w: WallSeg): Partial<WallSeg> {
   return champs;
 }
 
-/** `hote` avec les ponts de `navire` (la scène compilée de son type) posés selon `pose`. */
+/** `hote` avec les ponts de `navire` (la scène compilée de `pontsDuNavire`) posés selon `pose`. */
 export function poserLeNavire(hote: Scene, navire: Scene, pose: PoseDeNavire): Scene {
   const { w, h } = navire.dimensions;
   const z0 = pose.z ?? 0;
@@ -90,5 +129,16 @@ export function poserLeNavire(hote: Scene, navire: Scene, pose: PoseDeNavire): S
       z: z0 + (zone.z ?? 0),
     };
   });
-  return { ...s, effectZones: [...(s.effectZones ?? []), ...pieces] };
+  // Un décor garde son emprise : son ancre est le coin nord-ouest de ses cases tournées.
+  const decors: SceneEntity[] = (navire.entities ?? []).map((e) => {
+    const cases = propFootTiles(e.ref, e.pos, e.facing, sceneMetresPerTile(navire)).map((c) => versHote(c.x, c.y));
+    return {
+      ...e,
+      id: `${pose.id}-${e.id}`,
+      pos: { x: Math.min(...cases.map((c) => c.x)), y: Math.min(...cases.map((c) => c.y)) },
+      z: z0 + (e.z ?? 0),
+      facing: rotateDir8(e.facing ?? CAP_IDENTITE_PROP, 2 * QUARTS[pose.cap]),
+    };
+  });
+  return { ...s, effectZones: [...(s.effectZones ?? []), ...pieces], entities: [...s.entities, ...decors] };
 }

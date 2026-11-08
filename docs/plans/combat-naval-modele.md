@@ -64,8 +64,11 @@ depuis les ponts des navires engagés.
 > **pas** des slots fixes — le placement reste LIBRE (par bord + poids vs Contenance, cf. `shipPostes.ts`).
 > Une scène pose un navire par référence à son type (`MapSpec.navires`, `noyau/planDeNavire.ts` : `PLANS_DE_NAVIRE`
 > par id de véhicule, `poserLeNavire` à une position, un cap et un étage hôte ; ses pièces prennent l'id de la pose
-> en préfixe) ; scénario de test `a-bord-de-la-caraque`.
-> ⏳ Reste : les Améliorations à bord (#3686 lot 2b) + couture du Pont à l'abordage (Phase 8).
+> en préfixe) avec ses Améliorations d'instance (`upgrades`) : `pontsDuNavire` ajoute aux ponts ce que chacune y
+> apporte (`AMELIORATIONS_DE_LA_CARAQUE` : sabords clos sur la coque, hune du Nid-de-pie, canot de l'Embarcation
+> de bord) ; scénario de test `a-bord-de-la-caraque`. Les sabords sont des croisées aux volets clos : les ouvrir
+> en jeu (une action, MDG p.97) attend son verbe (#3698).
+> ⏳ Reste : couture du Pont à l'abordage (Phase 8).
 
 ### Améliorations (MDG ch.12) — modifient PHYSIQUEMENT le navire et son pont
 
