@@ -911,7 +911,7 @@ function openAppraise(
     // Le libellé de la Compétence vient du REGISTRE, par id stable — jamais un nom écrit au call-site.
     mode, skillLabel: refLabel('skills', APPRAISE_SKILL[mode].skill),
     truePriceBrass: t ? toBrass(priceToMoney(t.price)) : 0,
-    availability: (t?.availability as string | undefined) ?? null,
+    availability: t?.availability ?? null,
     ligne, ...cibleMesuree(ligne), roll: null, success: false, sl: 0,
   } });
 }

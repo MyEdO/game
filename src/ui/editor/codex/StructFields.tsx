@@ -15,7 +15,7 @@ import type { DiseaseSymptom } from '../../../data/schemas/defs/maladies';
 import { formatDice, parseDice } from '../../../engine/dice';
 import type { CombatFeature, CastingKind } from '../../../engine/combatFeatures/types';
 import type { AdvancementRef, DotationDePossession, TrappingRef, CountSpec, DomainData, HarvestRarity, HarvestDanger, TalentTest, TestMatch, SpecEntry } from '../../../data';
-import { dispoSaisonniereSchema, harvestRaritySchema, matiereDArmureSchema, type MatiereDArmure } from '../../../data/schemas/grammaire/valeurs';
+import { dispoSaisonniereSchema, harvestDangerSchema, harvestRaritySchema, matiereDArmureSchema, type MatiereDArmure } from '../../../data/schemas/grammaire/valeurs';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
 import { optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { missileBypassSchema } from '../../../data/schemas/defs/domains';
@@ -837,8 +837,8 @@ export function OptionalsListField(
  *    Deux vocabulaires FERMÉS (selects) + un texte d'usage ; checkbox = présence.
  * ──────────────────────────────────────────────────────────────────────────── */
 
-const HARVEST_RARITIES = harvestRaritySchema.options;
-const HARVEST_DANGERS: HarvestDanger[] = ['Inoffensive', 'Inquiétante', 'Menaçante', 'Mortelle'];
+const HARVEST_RARITIES = optionsDuNoeud(harvestRaritySchema);
+const HARVEST_DANGERS = optionsDuNoeud(harvestDangerSchema);
 
 type Harvest = { rarity: HarvestRarity; danger: HarvestDanger; uses: string };
 
@@ -847,18 +847,18 @@ export function HarvestField({ value, onChange }: { value: Harvest | undefined; 
   return (
     <div className="ed-field">
       <span>récolte « Précieuses Entrailles » (ZI — rareté + dangerosité → valeur par Enc, usages des organes)</span>
-      <label className="dr"><input type="checkbox" checked={!!h} onChange={(e) => onChange(e.target.checked ? { rarity: 'Commune', danger: 'Inoffensive', uses: '' } : undefined)} /> récoltable</label>
+      <label className="dr"><input type="checkbox" checked={!!h} onChange={(e) => onChange(e.target.checked ? { rarity: 'commune', danger: 'inoffensive', uses: '' } : undefined)} /> récoltable</label>
       {h && (
         <>
           <div className="tf-row">
             <label className="dr">Rareté
               <select value={h.rarity} onChange={(e) => onChange({ ...h, rarity: e.target.value as HarvestRarity })}>
-                {HARVEST_RARITIES.map((r) => <option key={r} value={r}>{r}</option>)}
+                {HARVEST_RARITIES.map(([r, libelle]) => <option key={r} value={r}>{libelle}</option>)}
               </select>
             </label>
             <label className="dr">Dangerosité
               <select value={h.danger} onChange={(e) => onChange({ ...h, danger: e.target.value as HarvestDanger })}>
-                {HARVEST_DANGERS.map((d) => <option key={d} value={d}>{d}</option>)}
+                {HARVEST_DANGERS.map(([d, libelle]) => <option key={d} value={d}>{libelle}</option>)}
               </select>
             </label>
           </div>

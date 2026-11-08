@@ -6,58 +6,58 @@ import { findCreatureById } from '../data';
 describe('harvest — Précieuses Entrailles (ZI)', () => {
   it('profil porté par la créature (creatures.json), coût = rareté × dangerosité', () => {
     const p = harvestProfileFor('cockatrice')!; // Exotique, Menaçante
-    expect(p.rarity).toBe('Exotique');
-    expect(p.danger).toBe('Menaçante');
+    expect(p.rarity).toBe('exotique');
+    expect(p.danger).toBe('menacante');
     expect(formatMoney(costPerEnc(p))).toBe('6 CO');
   });
 
   it('exemple du livre : cockatrice Grande → 4 Enc, 24 CO (Conservé), 3 CO (Pourri)', () => {
     const p = harvestProfileFor('cockatrice')!;
-    const conserve = harvestYield(p, 'Grande', 0, 'Conservé');
+    const conserve = harvestYield(p, 'grande', 0, 'conserve');
     expect(conserve.enc).toBe(4);
     expect(formatMoney(conserve.total)).toBe('24 CO');
-    expect(formatMoney(harvestYield(p, 'Grande', 0, 'Pourri').total)).toBe('3 CO'); // 1/8, Exotique
+    expect(formatMoney(harvestYield(p, 'grande', 0, 'pourri').total)).toBe('3 CO'); // 1/8, Exotique
   });
 
   it('Frais double le prix standard', () => {
     const p = harvestProfileFor('cockatrice')!;
-    expect(formatMoney(harvestYield(p, 'Grande', 0, 'Frais').total)).toBe('48 CO');
+    expect(formatMoney(harvestYield(p, 'grande', 0, 'frais').total)).toBe('48 CO');
   });
 
   it('chaque DR d’échec au Savoir retire un cran de quantité', () => {
     const p = harvestProfileFor('cockatrice')!;
-    expect(harvestYield(p, 'Grande', 0, 'Conservé').enc).toBe(4); // Grande
-    expect(harvestYield(p, 'Grande', -1, 'Conservé').enc).toBe(2); // → Moyenne
-    expect(harvestYield(p, 'Grande', -2, 'Conservé').enc).toBe(1); // → Inf. Moyenne
-    expect(harvestYield(p, 'Grande', -5, 'Conservé').enc).toBe(1); // plancher
+    expect(harvestYield(p, 'grande', 0, 'conserve').enc).toBe(4); // Grande
+    expect(harvestYield(p, 'grande', -1, 'conserve').enc).toBe(2); // → Moyenne
+    expect(harvestYield(p, 'grande', -2, 'conserve').enc).toBe(1); // → Inf. Moyenne
+    expect(harvestYield(p, 'grande', -5, 'conserve').enc).toBe(1); // plancher
   });
 
   it('Pourri : les pièces non Exotiques/Uniques ne valent plus rien', () => {
     const troll = harvestProfileFor('troll-des-rivieres')!; // Rare
-    expect(formatMoney(harvestYield(troll, 'Grande', 0, 'Pourri').total)).toBe('0 sc');
+    expect(formatMoney(harvestYield(troll, 'grande', 0, 'pourri').total)).toBe('0 sc');
     const dragon = harvestProfileFor('dragon-de-la-foret')!; // Exotique
-    expect(harvestYield(dragon, 'Énorme', 0, 'Pourri').total.gold).toBeGreaterThan(0);
+    expect(harvestYield(dragon, 'enorme', 0, 'pourri').total.gold).toBeGreaterThan(0);
   });
 
   it('Taille de récolte : catégorie lue au Trait `taille` par son id (bestiaire RÉEL)', () => {
-    expect(harvestSizeOf(findCreatureById('cockatrice')!)).toBe('Grande');
-    expect(harvestSizeOf(findCreatureById('dragon-de-la-foret')!)).toBe('Énorme');
-    expect(harvestSizeOf({ traits: [{ id: 'taille', arg: 'monstrueuse' }] })).toBe('Monstrueuse');
+    expect(harvestSizeOf(findCreatureById('cockatrice')!)).toBe('grande');
+    expect(harvestSizeOf(findCreatureById('dragon-de-la-foret')!)).toBe('enorme');
+    expect(harvestSizeOf({ traits: [{ id: 'taille', arg: 'monstrueuse' }] })).toBe('monstrueuse');
   });
 
   it('« Inférieure à Moyenne » (ZI 13 l.306) regroupe les trois catégories sous Moyenne', () => {
-    expect(harvestSizeOf({ traits: [{ id: 'taille', arg: 'petite' }] })).toBe('InfMoyenne');
-    expect(harvestSizeOf({ traits: [{ id: 'taille', arg: 'tresPetite' }] })).toBe('InfMoyenne');
-    expect(harvestSizeOf({ traits: [{ id: 'taille', arg: 'minuscule' }] })).toBe('InfMoyenne');
+    expect(harvestSizeOf({ traits: [{ id: 'taille', arg: 'petite' }] })).toBe('inf-moyenne');
+    expect(harvestSizeOf({ traits: [{ id: 'taille', arg: 'tresPetite' }] })).toBe('inf-moyenne');
+    expect(harvestSizeOf({ traits: [{ id: 'taille', arg: 'minuscule' }] })).toBe('inf-moyenne');
   });
 
   it('sans Trait Taille, le Talent Petit (LDB 10 l.943) porte la Taille de récolte', () => {
-    expect(harvestSizeOf({ talents: [{ id: 'petit' }] })).toBe('InfMoyenne');
-    expect(harvestSizeOf({ traits: [{ id: 'taille', arg: 'grande' }], talents: [{ id: 'petit' }] })).toBe('Grande');
+    expect(harvestSizeOf({ talents: [{ id: 'petit' }] })).toBe('inf-moyenne');
+    expect(harvestSizeOf({ traits: [{ id: 'taille', arg: 'grande' }], talents: [{ id: 'petit' }] })).toBe('grande');
   });
 
   it('sans Trait Taille : défaut Moyenne (arbitrage `effectiveSize`)', () => {
-    expect(harvestSizeOf({ traits: [{ id: 'bestial' }, { id: 'vol' }] })).toBe('Moyenne');
-    expect(harvestSizeOf({})).toBe('Moyenne');
+    expect(harvestSizeOf({ traits: [{ id: 'bestial' }, { id: 'vol' }] })).toBe('moyenne');
+    expect(harvestSizeOf({})).toBe('moyenne');
   });
 });

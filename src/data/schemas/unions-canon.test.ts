@@ -30,7 +30,7 @@ import {
 import { corpusDesGardes } from '../../../scripts/guards/lib/commentPoison.mjs';
 import { AVAILABILITIES, STAKE_FORMS, type Availability, type StakeForm, type TestedAvailability } from '../../engine/types';
 import { availabilitySchema, harvestRaritySchema, stakeFormSchema } from './grammaire/valeurs';
-import { dispoPctAvailabilitySchema } from './defs/disponibilite';
+import { dispoPctAvailabilitySchema } from './grammaire/valeurs';
 import type { HarvestRarity } from '../index';
 import { wallSideSchema } from './defs-scenes/communs';
 import { weatherIdSchema } from './defs/weather';
@@ -69,7 +69,7 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
   });
 
   it('`harvestRaritySchema` = les paliers canon + le 5ᵉ palier RAW `Unique` (`ZI 13 l.286`)', () => {
-    expect(harvestRaritySchema.options).toEqual([...AVAILABILITIES, 'Unique']);
+    expect(harvestRaritySchema.options).toEqual([...AVAILABILITIES, 'unique']);
   });
 
   it('`stakeFormSchema` expose EXACTEMENT `STAKE_FORMS`', () => {
@@ -154,8 +154,8 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
   });
 
   it('`TestedAvailability` et sa sélection zod nomment le MÊME couple (le sous-ensemble n’a qu’un site)', () => {
-    expect(dispoPctAvailabilitySchema.options).toEqual(['Limitée', 'Rare']);
-    expect(AVAILABILITIES.filter((a) => !dispoPctAvailabilitySchema.options.includes(a as never))).toEqual(['Commune', 'Exotique']);
+    expect(dispoPctAvailabilitySchema.options).toEqual(['limitee', 'rare']);
+    expect(AVAILABILITIES.filter((a) => !dispoPctAvailabilitySchema.options.includes(a as never))).toEqual(['commune', 'exotique']);
   });
 
   it('le scan LIT L’AST : les six FORMES de recopie sont vues, quelle que soit la mise en page', () => {
@@ -168,16 +168,16 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
     expect(forme(`type F =
       | 'verbatim'
       | 'descripteur';`), 'union de types').toHaveLength(1);
-    expect(forme(`const rang = { Commune: 0, Limitée: 1, Rare: 2, Exotique: 3 };`), 'clés d’objet nues').toHaveLength(1);
-    expect(forme(`const s = z.strictObject({ Commune: r, Limitée: r, Rare: r, Exotique: r });`), 'clés d’un objet zod').toHaveLength(1);
-    expect(forme(`type T = { Commune: number; Exotique: number };`), 'membres de type').toHaveLength(1);
+    expect(forme(`const rang = { commune: 0, limitee: 1, rare: 2, exotique: 3 };`), 'clés d’objet nues').toHaveLength(1);
+    expect(forme(`const s = z.strictObject({ commune: r, limitee: r, rare: r, exotique: r });`), 'clés d’un objet zod').toHaveLength(1);
+    expect(forme(`type T = { commune: number; exotique: number };`), 'membres de type').toHaveLength(1);
     expect(forme(`switch (f) {
       case 'verbatim': return 1;
       case 'descripteur': return 2;
     }`), 'case d’un switch').toHaveLength(1);
-    expect(forme(`const ok = av === 'Rare' || av === 'Exotique';`), 'chaîne de comparaisons').toHaveLength(1);
+    expect(forme(`const ok = av === 'rare' || av === 'exotique';`), 'chaîne de comparaisons').toHaveLength(1);
     expect(forme(`const ko = f !== 'verbatim' && f !== 'descripteur';`), 'chaîne de NON-égalités').toHaveLength(1);
-    expect(forme(`const un = ['Rare'];`), 'UN seul membre n’est pas une union recopiée').toEqual([]);
+    expect(forme(`const un = ['rare'];`), 'UN seul membre n’est pas une union recopiée').toEqual([]);
   });
 
   it('`recopieDeCanon` : une forme hors des six lève en la nommant', () => {
@@ -186,10 +186,10 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
 
   it('ce que le COMPILATEUR borne déjà n’est pas une recopie — et rien d’autre ne se blanchit', () => {
     const forme = (text: string) => scanConstructionsReservees(fixture(text), CANONS);
-    expect(forme(`const s = grilleMaison.extract(['Limitée', 'Rare']);`), 'même appel sur un récepteur ÉTRANGER : rien n’est prouvé').toHaveLength(1);
-    expect(forme(`const t: Record<Availability, number> = { Commune: 0, Limitée: 1, Rare: 2, Exotique: 3 };`), 'table exhaustive keyée par l’union NOMMÉE').toEqual([]);
-    expect(forme(`const t: Record<string, number> = { Commune: 0, Limitée: 1, Rare: 2, Exotique: 3 };`), 'Record<string, …> n’exige aucune exhaustivité').toHaveLength(1);
-    expect(forme(`const t = { Commune: 0, Limitée: 1 } as Record<Availability, number>;`), 'une ASSERTION ne vérifie pas les clés manquantes').toHaveLength(1);
+    expect(forme(`const s = grilleMaison.extract(['limitee', 'rare']);`), 'même appel sur un récepteur ÉTRANGER : rien n’est prouvé').toHaveLength(1);
+    expect(forme(`const t: Record<Availability, number> = { commune: 0, limitee: 1, rare: 2, exotique: 3 };`), 'table exhaustive keyée par l’union NOMMÉE').toEqual([]);
+    expect(forme(`const t: Record<string, number> = { commune: 0, limitee: 1, rare: 2, exotique: 3 };`), 'Record<string, …> n’exige aucune exhaustivité').toHaveLength(1);
+    expect(forme(`const t = { commune: 0, limitee: 1 } as Record<Availability, number>;`), 'une ASSERTION ne vérifie pas les clés manquantes').toHaveLength(1);
   });
 
   /** Le récepteur d'une sélection se juge par sa LIAISON d'import (`estSelectionDerivee`) : chaque
@@ -197,20 +197,20 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
   const SELECTIONS: readonly (readonly [string, string, number])[] = [
     ['schéma DU canon importé', `import { availabilitySchema } from '../grammaire/valeurs';
 const s = availabilitySchema.extract([
-  'Limitée',
-  'Rare',
+  'limitee',
+  'rare',
 ]);`, 0],
     ['schéma du canon importé RENOMMÉ', `import { availabilitySchema as palier } from '../grammaire/valeurs';
-const s = palier.extract(['Limitée', 'Rare']).optional();`, 0],
+const s = palier.extract(['limitee', 'rare']).optional();`, 0],
     ['HOMONYME local du schéma, sans import', `const availabilitySchema = grilleMaison;
-const s = availabilitySchema.extract(['Limitée', 'Rare']);`, 1],
+const s = availabilitySchema.extract(['limitee', 'rare']);`, 1],
     ['homonyme importé d’un AUTRE module', `import { availabilitySchema } from '../defs/disponibilite';
-const s = availabilitySchema.extract(['Limitée', 'Rare']);`, 1],
+const s = availabilitySchema.extract(['limitee', 'rare']);`, 1],
     ['HORS DE PORTÉE : par un espace de noms', `import * as v from '../grammaire/valeurs';
-const s = v.availabilitySchema.extract(['Limitée', 'Rare']);`, 1],
+const s = v.availabilitySchema.extract(['limitee', 'rare']);`, 1],
     ['HORS DE PORTÉE : par un alias local', `import { availabilitySchema } from '../grammaire/valeurs';
 const alias = availabilitySchema;
-const s = alias.extract(['Limitée', 'Rare']);`, 1],
+const s = alias.extract(['limitee', 'rare']);`, 1],
   ];
 
   it.each(SELECTIONS)('sélection zod — %s', (_forme, text, recopies) => {
