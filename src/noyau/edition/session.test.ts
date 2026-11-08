@@ -7,7 +7,8 @@
  * sélection ; les entités se posent, se nomment, s'orientent parmi les caps de leur type, changent de type ou de
  * couche, se copient, se collent sur la case pointée de la couche éditée et se dupliquent sur leur couche ; une entrée
  * se renomme d'un nom libre et change de couche. La scène écrit par ses écrivains dédiés (#3606) sa musique, son
- * message d'introduction, ses ancres de bataille et ses groupes ; une ouverture de façade, son apparence.
+ * message d'introduction, ses ancres de bataille et ses groupes ; une ouverture de façade, son apparence ; un personnage, son inventaire d'auteur,
+ * et sa troupe de copies posées en un cran.
  */
 import { describe, expect, it } from 'vitest';
 import { emptyScene, heightAt, type Scene } from '../monde/scene';
@@ -20,6 +21,8 @@ import { allMusicDefs } from '../../data/sons/musique';
 import { entiteDeLaSelection, segmentDeLaSelection } from '../sceneEditLecture';
 import { seatSlotsOf } from '../monde/seating';
 import { props } from '../../data';
+import { adresseDeCreation } from '../../engine/adresseDeCreation';
+import { ficheDEntite } from '../monde/sceneNpc';
 
 const ouverteSur = (scene: Scene, duDepot = false): SessionDEdition => ouvrirLEdition({ scenes: [scene] } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
 const ouverte = (duDepot = false): SessionDEdition => ouverteSur(emptyScene('session', 4, 4), duDepot);
@@ -202,6 +205,55 @@ describe('session d’édition', () => {
     expect(membre(jouer(allie, { geste: 'membre', patch: { rencontre: enc, camp: 'enemy' } })), 'un ennemi n’est pas piloté').toMatchObject({ side: undefined, ai: undefined });
     expect(membre(jouer(allie, { geste: 'membre', patch: { rencontre: enc, enrole: false } }))).toBeUndefined();
     expect(jouer(enrole, { geste: 'membre', patch: { rencontre: enc, enrole: true } }), 'déjà membre : aucun cran').toBe(enrole);
+  });
+
+  it('un personnage : son inventaire d’auteur s’écrit entier, l’objet porté marqué ; vidé, le champ quitte l’entité (#3684)', () => {
+    const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+    const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'humain' } }, { geste: 'appui', point: point(1, 1) });
+    const ent = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), pose.sel);
+    const equipe = jouer(pose, { geste: 'entite', patch: { inventaire: { 'cotte-de-mailles': true, 'arme-simple': false } } });
+    expect(ent(equipe)?.inventaire).toEqual({ 'cotte-de-mailles': true, 'arme-simple': false });
+    expect(ent(jouer(equipe, { geste: 'entite', patch: { inventaire: {} } }))?.inventaire).toBeUndefined();
+  });
+
+  it('un personnage de carrière : son parcours s’écrit en ses quatre champs ; sans carrière, ils quittent l’entité ; ses Caractéristiques tirées, à côté de son embuscade (#773)', () => {
+    const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+    const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'humain' } }, { geste: 'appui', point: point(1, 1) });
+    const ent = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), pose.sel);
+    const parcours = { carrieres: { medecin: 2, soldat: 2 }, talentsDeCarriere: { medecin: [{ id: 'chirurgie' }] }, competencesDeCarriere: { soldat: [{ id: 'musicien', spec: 'fifre' }] }, dotationsDeCarriere: { [adresseDeCreation.dotation([3])]: 'hallebarde' } };
+    const porte = jouer(pose, { geste: 'entite', patch: { parcours } });
+    expect(ent(porte)).toMatchObject(parcours);
+    expect(ent(jouer(porte, { geste: 'entite', patch: { parcours: { carrieres: {} } } }))).toMatchObject({ carrieres: undefined, talentsDeCarriere: undefined, competencesDeCarriere: undefined, dotationsDeCarriere: undefined });
+    const tire = jouer(porte, { geste: 'entite', patch: { embusque: true } }, { geste: 'entite', patch: { aleatoire: true } });
+    expect(ent(tire)?.combat).toEqual({ hiddenUntilCombat: true, randomChars: true });
+    expect(ent(jouer(tire, { geste: 'entite', patch: { aleatoire: false } }))?.combat).toEqual({ hiddenUntilCombat: true });
+  });
+
+  it('une troupe : N copies sur les cases libres les plus proches, ids neufs, profils tirés, rencontres héritées, un seul cran (#3704)', () => {
+    const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+    const poser = (outil: Extract<GesteDEdition, { geste: 'outil' }>['outil'], x: number, y: number): GesteDEdition[] =>
+      [{ geste: 'outil', outil }, { geste: 'appui', point: point(x, y) }, { geste: 'relache', point: point(x, y) }];
+    const decor = jouer(ouverteSur(emptyScene('troupe', 8, 8)),
+      ...poser({ mode: 'tile', terrain: 'mur' }, 2, 3), ...poser({ mode: 'entity', kind: 'prop', ref: 'brasero' }, 4, 3),
+      ...poser({ mode: 'entity', kind: 'personnage', ref: 'humain' }, 3, 2), ...poser({ mode: 'entity', kind: 'personnage', ref: 'humain' }, 3, 3));
+    const original = entiteDeLaSelection(sceneEditee(decor), decor.sel)!;
+    const avant = jouer(decor, { geste: 'entite', patch: { inventaire: { 'arme-simple': true } } }, { geste: 'membre', patch: { rencontre: null, enrole: true } });
+    const enc = sceneEditee(avant).encounters[0].id;
+    const allie = jouer(avant, { geste: 'membre', patch: { rencontre: enc, camp: 'ally' } });
+    const troupe = jouer(allie, { geste: 'troupe', nombre: 5 });
+    const scene = sceneEditee(troupe);
+    const copies = scene.entities.filter((e) => !sceneEditee(allie).entities.some((a) => a.id === e.id));
+    expect(copies.map((c) => [c.pos.x, c.pos.y]), 'l’anneau autour de l’original, hors du mur, du décor et de l’autre personnage').toEqual([[2, 2], [4, 2], [2, 4], [3, 4], [4, 4]]);
+    expect(new Set([...scene.entities.map((e) => e.id)]).size).toBe(scene.entities.length);
+    expect(copies.every((c) => c.ref === 'humain' && c.inventaire?.['arme-simple'] && c.combat?.randomChars)).toBe(true);
+    const profils = [original, ...copies].map((c) => JSON.stringify(ficheDEntite(c, () => undefined).characteristics));
+    expect(new Set(profils).size, 'chaque copie tire son profil sur son id').toBe(6);
+    expect(scene.encounters[0].members?.filter((m) => copies.some((c) => c.id === m.entityId)).map((m) => m.side)).toEqual(Array(5).fill('ally'));
+    expect(troupe.sel, 'l’original reste sélectionné').toEqual(allie.sel);
+    expect(sceneEditee(jouer(troupe, { geste: 'annuler' })), 'une annulation défait la troupe entière').toBe(sceneEditee(allie));
+    const serree = jouer(ouverte(), ...poser({ mode: 'entity', kind: 'personnage', ref: 'humain' }, 1, 1), { geste: 'troupe', nombre: 30 });
+    expect(sceneEditee(serree).entities, 'la couche manque de cases : chacune reçoit sa copie').toHaveLength(16);
+    expect(jouer(ouverte(), ...poser({ mode: 'entity', kind: 'heroStart' }, 1, 1), { geste: 'troupe', nombre: 2 }).historique.passe, 'un départ des héros ne fait pas de troupe').toHaveLength(1);
   });
 });
 

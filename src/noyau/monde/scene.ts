@@ -14,7 +14,8 @@ import type { Flow } from '../../data/schemas/defs-scenes/effets';
 // optionalités, mécanique, réfs RAW —, les types ci-dessous les nomment par `z.infer`. Import de TYPE
 // seul — aucun cycle runtime.
 import type { z } from 'zod';
-import type { ReliefDefaults, SceneRoofDefaults, Terrain } from '../../data/schemas/defs-scenes/scene';
+import type { InventaireDAuteur, ReliefDefaults, SceneRoofDefaults, Terrain } from '../../data/schemas/defs-scenes/scene';
+import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type {
   ambianceSchema, architectureBodySchema, architectureEdgeRefSchema, architecturePartSchema, architectureRectSchema,
   architectureStoreySchema, buildingMassSchema, dialogueChoiceSchema, dialogueNodeSchema,
@@ -106,8 +107,14 @@ export interface SceneEntity {
   /** Apparence d'auteur (`EntityAppearance`). */
   appearance?: EntityAppearance;
   anim?: RoleAmbiant;
-  /** Arme ÉQUIPÉE : `trappingId` STABLE du catalogue d'armes — arme de combat au spawn. Ex. `'arbalete'`. Résolue par `weaponFromId` (lookup exact, warn si hors catalogue). */
-  weapon?: string;
+  /** Inventaire d'auteur d'un personnage (`inventaireDAuteurSchema`) : les objets de son combattant au spawn. */
+  inventaire?: InventaireDAuteur;
+  /** Parcours de carrière d'un personnage (`ParcoursDeCarriere`) : chaque carrière au Niveau atteint, la dernière
+   *  actuelle ; porté au spawn par `porterAuParcours`. EDO 11 l.17-21 */
+  carrieres?: ParcoursDeCarriere['carrieres'];
+  talentsDeCarriere?: ParcoursDeCarriere['talentsDeCarriere'];
+  competencesDeCarriere?: ParcoursDeCarriere['competencesDeCarriere'];
+  dotationsDeCarriere?: ParcoursDeCarriere['dotationsDeCarriere'];
   /** Source de lumière (brouillard de guerre) : rayon d'éclairage en MÈTRES, la même unité qu'au
    *  catalogue (`PropData.light`, #1507) — c'est `rayonEnCases` (`noyau/monde/vision.ts`) qui le ramène aux
    *  cases de la scène. Override de l'instance ; sinon le rayon vient du TYPE de prop

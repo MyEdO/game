@@ -60,7 +60,7 @@ import { idsDe } from '../../data/schemas/grammaire/ref';
 import { amateurSchema } from '../../data/schemas/grammaire/valeurs';
 import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfileSchema, sceneEffectZoneSchema, sceneSchema, sceneWeatherSchema, type ReliefDefaults } from '../../data/schemas/defs-scenes/scene';
 
-import { ApparencesObjetsField, ArmeEquipeeField, ReglagesApparence } from './ReglagesApparence';
+import { ApparencesObjetsField, ReglagesApparence } from './ReglagesApparence';
 import { armesDEntite, equipementDAuteurDe } from '../../noyau/equipementDessine';
 import { effectCtxOf } from './EffectList';
 import { ListeDIds, RefNarrativeField } from '../compendium/refField/RefField';
@@ -1397,7 +1397,6 @@ function EntityPanel({
                 {optionsDuNoeud(roleAmbiantSchema).map(([role, libelle]) => <option key={role} value={role}>{libelle}</option>)}
               </select>
             </label>
-            <ArmeEquipeeField weapon={ent.weapon} onWeapon={(w) => updateSel({ weapon: w })} />
             <ApparencesObjetsField resolveTrapping={objetDuNarratif(narratif)}
               appearance={ent.appearance ?? {}}
               onChange={(appearance) => updateSel({ appearance })}

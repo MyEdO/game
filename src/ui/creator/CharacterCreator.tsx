@@ -60,7 +60,7 @@ import { refKey, splitLabel } from '../../engine/careerSlots';
 import { BASE_HUMAINE, CAREER_SKILL_ADVANCES, MAX_ADV_PER_SKILL, baseDEspece, cleDOption, libreDEspece, poolDuJoker } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { bandeAuDe } from '../../engine/tables';
-import { brancheChoisie, emplacementsDeDotation, estEmplacementDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
+import { brancheChoisie, dotationsDuHeros, emplacementsDeDotation, estEmplacementDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
 import { idsDeLaSousListe, type RefDesignee } from '../../data/schemas/grammaire/ref';
 import { sexeSchema, type SourceRef } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
@@ -1907,7 +1907,7 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
   const bourse = draftWealth(d);
   const wealth = bourse.montant;
   const { rolling, landed, trigger, skip } = useRollFrisson(() => setD(rollDraftWealth(d)));
-  const emplacements = level ? emplacementsDeDotation(d.careerId, 1).filter(estEmplacementRacine) : [];
+  const emplacements = level ? emplacementsDeDotation(dotationsDuHeros(d.careerId)).filter(estEmplacementRacine) : [];
 
   const stepIdx = stepIds().indexOf('trappings');
   if (!level || !career) {

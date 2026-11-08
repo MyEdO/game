@@ -17,7 +17,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Rare"
+      "availability": "rare"
     },
     "travel": {
       "movement": 6,
@@ -65,7 +65,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Rare"
+      "availability": "rare"
     },
     "hull": {
       "char": {
@@ -94,7 +94,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Commune"
+      "availability": "commune"
     },
     "hull": {
       "char": {
@@ -123,7 +123,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Exotique"
+      "availability": "exotique"
     },
     "hull": {
       "char": {
@@ -260,7 +260,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Rare"
+      "availability": "rare"
     },
     "desc": "Nécessite trois membres d'équipage."
   },
@@ -307,7 +307,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Limitée"
+      "availability": "limitee"
     },
     "desc": "Un rameur est la norme."
   },
@@ -329,7 +329,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Commune"
+      "availability": "commune"
     },
     "hull": {
       "char": {
@@ -358,7 +358,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Commune"
+      "availability": "commune"
     },
     "hull": {
       "char": {
@@ -387,7 +387,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Commune"
+      "availability": "commune"
     },
     "hull": {
       "char": {
@@ -416,7 +416,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Commune"
+      "availability": "commune"
     },
     "hull": {
       "char": {
@@ -445,7 +445,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Commune"
+      "availability": "commune"
     },
     "hull": {
       "char": {
@@ -473,7 +473,7 @@
         "silver": 0,
         "brass": 0
       },
-      "availability": "Limitée"
+      "availability": "limitee"
     },
     "hull": {
       "char": {

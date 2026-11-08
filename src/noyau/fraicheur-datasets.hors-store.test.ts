@@ -297,15 +297,15 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
 
   it('la fiche Disponibilité & Troc ÉDITÉE : `rollAvailability` et `barterRatio` la lisent', () => {
     const fiche = structuredClone(datasetObject('disponibilite'));
-    expect(rollAvailability('Limitée', 'village', deFixe(1)).test!.target).toBe(30);
-    expect(barterRatio('Commune', 'Exotique')).toEqual({ give: 8, get: 1 });
+    expect(rollAvailability('limitee', 'village', deFixe(1)).test!.target).toBe(30);
+    expect(barterRatio('commune', 'exotique')).toEqual({ give: 8, get: 1 });
     setObjectDataset('disponibilite', {
       ...fiche,
-      dispoPct: fiche.dispoPct.map((e) => (e.availability === 'Limitée' ? { ...e, pct: { ...e.pct, village: 77 } } : e)),
-      barterRatios: fiche.barterRatios.map((r) => (r.give === 'Commune' ? { ...r, ratios: { ...r.ratios, Exotique: { give: 9, get: 1 } } } : r)),
+      dispoPct: fiche.dispoPct.map((e) => (e.availability === 'limitee' ? { ...e, pct: { ...e.pct, village: 77 } } : e)),
+      barterRatios: fiche.barterRatios.map((r) => (r.give === 'commune' ? { ...r, ratios: { ...r.ratios, exotique: { give: 9, get: 1 } } } : r)),
     });
-    expect(rollAvailability('Limitée', 'village', deFixe(1)).test!.target).toBe(77);
-    expect(barterRatio('Commune', 'Exotique')).toEqual({ give: 9, get: 1 });
+    expect(rollAvailability('limitee', 'village', deFixe(1)).test!.target).toBe(77);
+    expect(barterRatio('commune', 'exotique')).toEqual({ give: 9, get: 1 });
   });
 
   it('les phases du jour ÉDITÉES : aube, crépuscule, créneau de départ et arche solaire suivent', () => {

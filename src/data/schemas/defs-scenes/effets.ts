@@ -155,11 +155,11 @@ export const giveTrappingSchema = nommerChamps(z.strictObject({
    *  l'ItemInstance à la remise. */
   /** LDB 10 l.332-336 */
   magicKnown: z.boolean().optional(),
-  detectTried: z.boolean().optional(),
+  detectTriedBy: z.array(z.string()).optional(),
   appraiseTriedDay: z.number().optional(),
   /** Valeur de marché propre posée sur l'instance (ex. pièces de monstre récoltées, `ZI`). */
   price: moneyPartialSchema.optional(),
-}).superRefine(validerApparenceDonnee), { type: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, heroId: { label: "héros" , texte: { regime: "technique"} }, qualities: { label: "qualités" , texte: { regime: "technique"} }, identified: { label: "identifié" }, apparence: { label: "apparence" }, teinte: { label: "teinte", texte: { regime: 'technique', usage: 'couleurs de la palette de rendu' } }, magicKnown: { label: "magie connue" }, detectTried: { label: "détection tentée" }, appraiseTriedDay: { label: "jour de la dernière évaluation" }, price: { label: "prix" } });
+}).superRefine(validerApparenceDonnee), { type: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, heroId: { label: "héros" , texte: { regime: "technique"} }, qualities: { label: "qualités" , texte: { regime: "technique"} }, identified: { label: "identifié" }, apparence: { label: "apparence" }, teinte: { label: "teinte", texte: { regime: 'technique', usage: 'couleurs de la palette de rendu' } }, magicKnown: { label: "magie connue" }, detectTriedBy: { label: "détection tentée par", texte: { regime: "technique"} }, appraiseTriedDay: { label: "jour de la dernière évaluation" }, price: { label: "prix" } });
 
 /** Donne une POSSESSION (bête/serviteur/véhicule — le SOCLE POSSESSIONS #615, registre
  *  `GameState.possessions`) à un héros propriétaire (défaut : le premier — même patron que

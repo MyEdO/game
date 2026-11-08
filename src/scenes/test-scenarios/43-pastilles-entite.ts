@@ -1,4 +1,4 @@
-import { pregen, PREGEN } from '../../data/pregens';
+import { pregen, PREGEN, idDuPretire } from '../../data/pregens';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { crewFormationSlots } from '../../noyau/monde/shipPostes';
 import { buildScene } from '../../noyau/mapSpec';
@@ -30,7 +30,7 @@ const SOLDAT_POS = { x: 5, y: 6 };
 // Ids RÉELS des membres de rencontre : `enemy-<encounterId>-<index>` (`spawnEnemy`) — l'affût est
 // l'index 0, la monture l'index 1, les cinq servants les index 2 à 6. Le CHEF est le Soldat (héros).
 const RAM_CREW = [
-  `pregen-${PREGEN.soldat}`,
+  idDuPretire(PREGEN.soldat),
   'enemy-enc-pastilles-2', 'enemy-enc-pastilles-3', 'enemy-enc-pastilles-4', 'enemy-enc-pastilles-5', 'enemy-enc-pastilles-6',
 ];
 // Formation rigide autour de l'affût (jamais l'avant, où l'engin frappe) — on écarte la colonne du

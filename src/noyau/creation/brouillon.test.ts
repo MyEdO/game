@@ -47,7 +47,7 @@ import { especeDApparence, trappingRefLabel } from '../../data';
 import { pettySpellQuota, probeHero, draftFromHero, type CreatorDraft } from './brouillon';
 import { speciesSkillDefaults, designer, createHero, resolveSpeciesTalents } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
-import { emplacementsDeDotation } from '../../engine/trappingChoices';
+import { dotationsDuHeros, emplacementsDeDotation } from '../../engine/trappingChoices';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../../data/dotations.fixture';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { careerSkillAdditions } from '../../engine/talentEffects';
@@ -458,7 +458,7 @@ describe('buildHero — bout en bout', () => {
 });
 
 describe('Possessions — emplacement `{wildcard:\'arme\'}` (LDB 05 l.542-583, construct de choix d\'équipement)', () => {
-  const WEAPON_SLOT = emplacementsDeDotation('pretre-guerrier', 1).find((e) => e.sorte === 'joker')!.adresse;
+  const WEAPON_SLOT = emplacementsDeDotation(dotationsDuHeros('pretre-guerrier')).find((e) => e.sorte === 'joker')!.adresse;
 
   it('trappingChoices (id STABLE) résout l\'emplacement en l\'objet catalogue choisi', () => {
     // Prêtre Guerrier (Novice) : seule carrière du LDB à porter { wildcard: 'arme' } (l.1).

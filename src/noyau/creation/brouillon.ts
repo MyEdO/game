@@ -64,7 +64,7 @@ import {
   type CompetenceDeCarriere,
 } from '../../engine/character';
 import { adresseDeCreation, deFamille, tirageSous, type AdresseDeCreation } from '../../engine/adresseDeCreation';
-import { emplacementsDeDotation, emplacementTranche, estEmplacementRacine } from '../../engine/trappingChoices';
+import { dotationsDuHeros, emplacementsDeDotation, emplacementTranche, estEmplacementRacine } from '../../engine/trappingChoices';
 import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
 import { findSpeciesById, findTalentById, specPoolOf, careers, classes, careersForSpecies, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef } from '../../data';
 import { estSpecialisable, type RefDesignee, type RefASpecialisation, memeSpecialisation } from '../../data/schemas/grammaire/ref';
@@ -760,7 +760,7 @@ export function rollDraftWealth(d: CreatorDraft): CreatorDraft {
  *  (`emplacementTranche`) — gate de `validateStep('trappings')`. */
 export function unresolvedTrappingSlots(d: CreatorDraft): string[] {
   if (!draftLevel(d)) return [];
-  return emplacementsDeDotation(d.careerId, 1)
+  return emplacementsDeDotation(dotationsDuHeros(d.careerId))
     .filter((e) => estEmplacementRacine(e) && !emplacementTranche(e, d.trappingChoices ?? {}))
     .map((e) => trappingRefLabel(e.ref));
 }

@@ -56,7 +56,7 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     refuseLId(t, verbe('epinglerLIndice', 'ind-rumeur-forgeron'), /indiceId : "ind-rumeur-forgeron" n’est pas un id d’indice \(valides : aucun ici\)/);
     expect(t.jouer(verbe('cliquerLaCase', { x: 7, y: 6 })).erreur).toBeNull();
     const [indice] = refuseLId(t, verbe('epinglerLIndice', 'nobody'), /indiceId : "nobody" n’est pas un id d’indice \(valides : ind-rumeur-forgeron\)/);
-    refuseLId(t, verbe('marquerLesIndices', [{ id: 'nobody', étapes: 1, statut: 'réfuté', stadeCourant: 's1' }]), /affichés\[0\]\.id : "nobody" n’est pas un id d’indice/);
+    refuseLId(t, verbe('marquerLesIndices', [{ id: 'nobody', étapes: 1, statut: 'refute', stadeCourant: 's1' }]), /affichés\[0\]\.id : "nobody" n’est pas un id d’indice/);
     passeLeControle(t, verbe('epinglerLIndice', indice));
   });
   it('pré-tiré : `recruterLeHeros`, le noyau bâtit le héros de la donnée', { timeout: 120_000 }, () => {
@@ -64,11 +64,10 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     const [pretire] = refuseLId(t, verbe('recruterLeHeros', { pretire: 'nobody' }), /heros\.pretire : "nobody" n’est pas un id de pré-tiré \(valides : /);
     passeLeControle(t, verbe('recruterLeHeros', { pretire }));
   });
-  it('porteur et objet : `equiperLObjet`', { timeout: 120_000 }, () => {
+  it('objet : `equiperLObjet`, son porteur lu dans l’état', { timeout: 120_000 }, () => {
     const t = partie('revisit');
-    const [heros] = refuseLId(t, verbe('equiperLObjet', 'nobody', 'x'), /heroId : "nobody" n’est pas un id de porteur \(valides : /);
-    const [objet] = refuseLId(t, verbe('equiperLObjet', heros, 'nobody'), /uid : "nobody" n’est pas un id d’objet \(valides : /);
-    const r = t.jouer(verbe('equiperLObjet', heros, objet));
+    const [objet] = refuseLId(t, verbe('equiperLObjet', 'nobody'), /uid : "nobody" n’est pas un id d’objet \(valides : /);
+    const r = t.jouer(verbe('equiperLObjet', objet));
     expect(r.erreur, r.texte).toBeNull();
   });
   it('possession : `renommerLaPossession`, aucune ici', { timeout: 120_000 }, () => {

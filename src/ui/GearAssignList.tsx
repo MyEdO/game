@@ -1,7 +1,7 @@
 import { useGame } from '../state/store';
 import { type LootGear } from '../noyau/pendings';
 import { giveTrappingQualities } from '../engine/items';
-import { appraiseRefus } from '../noyau/merchantFlow';
+import { appraiseRefus, refusDeDetection } from '../noyau/merchantFlow';
 import { GatedAction, raisonSi } from './GatedAction';
 import { PortraitPicker } from './console/PortraitPicker';
 import { QualityChips } from './EntityChip';
@@ -25,7 +25,6 @@ export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
   const party = useGame((s) => s.party);
   const today = useGame((s) => Math.floor(s.gameTime / MINUTES_PER_DAY));
   const refusEval = appraiseRefus(party);
-  const refusDetect = appraiseRefus(party, 'detect');
   return (
     <ul className="gear-list">
       {gear.map((g, i) => {
@@ -36,6 +35,7 @@ export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
         // magiques portées par l'Effet — un objet catalogué (Bâton de combat : Assommante, Défensive)
         // porte ses qualités dans sa def. Masquées tant que non identifié (révélées par Évaluation).
         const quals = giveTrappingQualities(fx);
+        const refusDetect = refusDeDetection(party, { label: g.label, detectTriedBy: fx.detectTriedBy });
         return (
           <li key={`${g.label}-${i}`} className="gear-row">
             <span className="gear-name">
@@ -63,18 +63,16 @@ export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
                     btnClassName="gear-act"
                   />
                 )}
-                {!fx.detectTried && (
-                  <GatedAction
-                    id={`gear-detect-${i}`}
-                    label="Détecter"
-                    enabled={!refusDetect}
-                    {...raisonSi(refusDetect)}
-                    descOfferte="Détection d'artefact (Intuition, au toucher) : sentir l'aura — une seule tentative par objet"
-                    onClick={() => onAppraise(g.uid, 'detect')}
-                    primary={false}
-                    btnClassName="gear-act"
-                  />
-                )}
+                <GatedAction
+                  id={`gear-detect-${i}`}
+                  label="Détecter"
+                  enabled={!refusDetect}
+                  {...raisonSi(refusDetect)}
+                  descOfferte="Détection d'artefact (Intuition, au toucher) : sentir l'aura — une tentative par héros et par objet"
+                  onClick={() => onAppraise(g.uid, 'detect')}
+                  primary={false}
+                  btnClassName="gear-act"
+                />
               </span>
             )}
             <span className="gear-assign">

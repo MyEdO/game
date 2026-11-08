@@ -30,6 +30,8 @@ import { QtyStepper } from './QtyStepper';
 import { familleDeLArticle, rangDeRarete } from '../noyau/marchandEnVue';
 import { nomDEntite } from '../noyau/monde/sceneNpc';
 import { presetPnjById } from '../state/campaignData';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { availabilitySchema } from '../data/schemas/grammaire/valeurs';
 
 type MerchantState = NonNullable<ReturnType<typeof useGame.getState>['merchant']>;
 
@@ -69,9 +71,9 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   onRemoveSellCart: (uid: string) => void;
   onClearSellCart: () => void;
   onConfirmSell: () => void;
-  onRepair: (uid: string, heroId: string) => void;
+  onRepair: (uid: string) => void;
   onBargain: (mode: 'buy' | 'sell') => void;
-  onAppraise: (uid: string, heroId: string) => void;
+  onAppraise: (uid: string) => void;
   onClose: () => void;
   /** « Baisse des prix » à la vente (LDB 59 l.60) — optionnel (rendu sans si absent). */
   onSellHalving?: (uid: string, delta: number) => void;
@@ -458,11 +460,12 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
             {!refused && onSellHalving && (() => {
               const h = merchant.sellHalvings?.[it.uid] ?? 0;
               const av = sellBuyerAvailability(it, 0);
-              if ((av === 'Commune' || av === null) && h === 0) return null;
+              if ((av === 'commune' || av === null) && h === 0) return null;
+              const avBradee = sellBuyerAvailability(it, h);
               return (
                 <span className="sell-haggle" title="Baisser le prix de moitié augmente la Disponibilité d'un acheteur d'un cran">
                   <QtyStepper
-                    center={<span className="sell-av">acheteur {sellBuyerAvailability(it, h)}{h > 0 ? ` (÷${2 ** h})` : ''}</span>}
+                    center={<span className="sell-av">acheteur {avBradee && libelleDeValeur(availabilitySchema, avBradee)}{h > 0 ? ` (÷${2 ** h})` : ''}</span>}
                     onDec={() => onSellHalving(it.uid, -1)}
                     onInc={() => onSellHalving(it.uid, 1)}
                     decDisabled={h <= 0}
@@ -482,7 +485,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                 enabled={!refusEval}
                 {...raisonSi(refusEval)}
                 descOfferte="Test d'Évaluation : révèle les qualités cachées"
-                onClick={() => onAppraise(it.uid, activeSellId)}
+                onClick={() => onAppraise(it.uid)}
                 primary={false}
                 btnClassName="small"
               />
@@ -642,7 +645,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                   <GatedAction
                     id={`merch-repair-${it.uid}`} label="Réparer" ariaLabel={`Réparer ${it.label}`}
                     enabled={refusDeReparation(h, it, refusHote) == null} {...raisonSi(refusDeReparation(h, it, refusHote))}
-                    onClick={() => onRepair(it.uid, h.id)} primary={false} btnClassName="small"
+                    onClick={() => onRepair(it.uid)} primary={false} btnClassName="small"
                   />
                 </div>
               ))}

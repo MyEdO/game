@@ -56,7 +56,7 @@ describe('dédup trappings ⊥ vehicles (foyer unique)', () => {
 
   it('les 6 véhicules migrés (achat) portent prix + dispo verbatim LDB 70 l.7-27', () => {
     const dil = vehicles.find((v) => v.id === 'diligence')!;
-    expect(dil.purchase).toEqual({ price: { gold: 150, silver: 0, brass: 0 }, availability: 'Rare' });
+    expect(dil.purchase).toEqual({ price: { gold: 150, silver: 0, brass: 0 }, availability: 'rare' });
     const coracle = vehicles.find((v) => v.id === 'coracle')!;
     expect(coracle.enc).toBe(6);
     expect(coracle.purchase!.price.gold).toBe(2);

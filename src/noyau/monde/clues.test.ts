@@ -5,7 +5,7 @@ import { IND, IND_MONO, affichés } from './clues.fixture';
 describe('clues — helpers PURS (#670, mécanique maison)', () => {
   it('revealClue sur un indice absent : pose le PREMIER stade, historique à une entrée, statut révélé', () => {
     const out = revealClue({}, IND, 100);
-    expect(out['ind-lettre']).toEqual<ClueState>({ stadeCourant: 's1', statut: 'révélé', épinglé: undefined, historique: [{ stade: 's1', at: 100 }] });
+    expect(out['ind-lettre']).toEqual<ClueState>({ stadeCourant: 's1', statut: 'revele', épinglé: undefined, historique: [{ stade: 's1', at: 100 }] });
   });
 
   it('revealClue avec un stade explicite ultérieur : avance stadeCourant, ajoute une entrée d’historique', () => {
@@ -27,7 +27,7 @@ describe('clues — helpers PURS (#670, mécanique maison)', () => {
     const avancé = revealClue({}, IND, 100, 's2');
     const out = revealClue(avancé, IND, 200, 's1');
     expect(out['ind-lettre']).toEqual<ClueState>({
-      stadeCourant: 's2', statut: 'révélé', épinglé: undefined,
+      stadeCourant: 's2', statut: 'revele', épinglé: undefined,
       historique: [{ stade: 's2', at: 100 }, { stade: 's1', at: 200 }],
     });
   });
@@ -41,17 +41,17 @@ describe('clues — helpers PURS (#670, mécanique maison)', () => {
     const réfuté = discreditClue(revealClue(revealClue({}, IND, 100), IND, 200, 's2'), IND, 250);
     const out = revealClue(marquerVus(réfuté, affichés(réfuté, ['ind-lettre']), 0), IND, 300, 's1');
     expect(out['ind-lettre']).toEqual<ClueState>({
-      stadeCourant: 's2', statut: 'révélé', épinglé: undefined,
+      stadeCourant: 's2', statut: 'revele', épinglé: undefined,
       historique: [{ stade: 's1', at: 100 }, { stade: 's2', at: 200 }],
     });
   });
 
   it('revealClue : stadeCourant en retard sur un stade déjà lu → remis au plus avancé, sans doublon d’historique', () => {
     const hérité: Record<string, ClueState> = {
-      'ind-lettre': { stadeCourant: 's1', statut: 'révélé', historique: [{ stade: 's1', at: 100 }, { stade: 's2', at: 200 }] },
+      'ind-lettre': { stadeCourant: 's1', statut: 'revele', historique: [{ stade: 's1', at: 100 }, { stade: 's2', at: 200 }] },
     };
     expect(revealClue(hérité, IND, 300, 's2')['ind-lettre']).toEqual<ClueState>({
-      stadeCourant: 's2', statut: 'révélé', épinglé: undefined,
+      stadeCourant: 's2', statut: 'revele', épinglé: undefined,
       historique: [{ stade: 's1', at: 100 }, { stade: 's2', at: 200 }],
     });
   });
@@ -63,18 +63,18 @@ describe('clues — helpers PURS (#670, mécanique maison)', () => {
 
   it('revealClue ré-active une piste précédemment réfutée (garde l’historique)', () => {
     const discredited = discreditClue({}, IND, 100);
-    expect(discredited['ind-lettre'].statut).toBe('réfuté');
+    expect(discredited['ind-lettre'].statut).toBe('refute');
     const revived = revealClue(discredited, IND, 200, 's2');
-    expect(revived['ind-lettre'].statut).toBe('révélé');
+    expect(revived['ind-lettre'].statut).toBe('revele');
     expect(revived['ind-lettre'].historique).toEqual([{ stade: 's1', at: 100 }, { stade: 's2', at: 200 }]);
   });
 
   it('revealClue résurrecte un indice réfuté au MÊME stade (mono-stade) — statut repasse révélé', () => {
     const revealed = revealClue({}, IND_MONO, 100);
     const discredited = discreditClue(revealed, IND_MONO, 200);
-    expect(discredited['ind-mono'].statut).toBe('réfuté');
+    expect(discredited['ind-mono'].statut).toBe('refute');
     const revived = revealClue(discredited, IND_MONO, 300);
-    expect(revived['ind-mono'].statut).toBe('révélé');
+    expect(revived['ind-mono'].statut).toBe('revele');
     expect(revived['ind-mono'].stadeCourant).toBe('unique');
     expect(revived['ind-mono'].historique).toEqual([{ stade: 'unique', at: 100 }]); // pas de doublon
     // ré-appeler revealClue sur un indice DÉJÀ révélé au même stade : vrai no-op (Record identique).
@@ -86,12 +86,12 @@ describe('clues — helpers PURS (#670, mécanique maison)', () => {
     const revealed = revealClue({}, IND, 100);
     const pinned = togglePin(revealed, 'ind-lettre');
     const out = discreditClue(pinned, IND, 300);
-    expect(out['ind-lettre']).toEqual<ClueState>({ stadeCourant: 's1', statut: 'réfuté', épinglé: true, historique: [{ stade: 's1', at: 100 }] });
+    expect(out['ind-lettre']).toEqual<ClueState>({ stadeCourant: 's1', statut: 'refute', épinglé: true, historique: [{ stade: 's1', at: 100 }] });
   });
 
   it('discreditClue sur un indice ABSENT : créé d’abord révélé à son premier stade, puis réfuté (relisible)', () => {
     const out = discreditClue({}, IND, 100);
-    expect(out['ind-lettre']).toEqual<ClueState>({ stadeCourant: 's1', statut: 'réfuté', historique: [{ stade: 's1', at: 100 }] });
+    expect(out['ind-lettre']).toEqual<ClueState>({ stadeCourant: 's1', statut: 'refute', historique: [{ stade: 's1', at: 100 }] });
   });
 
   it('discreditClue sur un indice DÉJÀ réfuté : vrai no-op (Record identique, pas de re-journalisation)', () => {
@@ -142,7 +142,7 @@ describe('clues — nouveauté vue PAR SIÈGE (#2415)', () => {
 
   it('discreditClue RETIRE `vuParSiège` d’un indice déjà vu', () => {
     const réfuté = discreditClue(lu(revealClue({}, IND, 100), 'ind-lettre'), IND, 200);
-    expect(réfuté['ind-lettre'].statut).toBe('réfuté');
+    expect(réfuté['ind-lettre'].statut).toBe('refute');
     expect(réfuté['ind-lettre'].vuParSiège).toBeUndefined();
   });
 
@@ -156,13 +156,13 @@ describe('clues — nouveauté vue PAR SIÈGE (#2415)', () => {
   it('marquerVus marque les seuls indices nommés, et garde le reste de l’état', () => {
     const deux = revealClue(revealClue({}, IND, 100), IND_MONO, 100);
     const out = marquerVus(deux, affichés(deux, ['ind-lettre']), 0);
-    expect(out['ind-lettre']).toEqual<ClueState>({ stadeCourant: 's1', statut: 'révélé', épinglé: undefined, historique: [{ stade: 's1', at: 100 }], vuParSiège: { 0: true } });
+    expect(out['ind-lettre']).toEqual<ClueState>({ stadeCourant: 's1', statut: 'revele', épinglé: undefined, historique: [{ stade: 's1', at: 100 }], vuParSiège: { 0: true } });
     expect(out['ind-mono'].vuParSiège).toBeUndefined();
   });
 
   it('marquerVus déjà posé pour ce siège (ou id inconnu) : même Record', () => {
     const luAvant = lu(revealClue({}, IND, 100), 'ind-lettre');
-    const inconnu: IndiceAffiché = { id: 'ind-inconnu', étapes: 1, statut: 'révélé', stadeCourant: 's1' };
+    const inconnu: IndiceAffiché = { id: 'ind-inconnu', étapes: 1, statut: 'revele', stadeCourant: 's1' };
     expect(marquerVus(luAvant, [...affichés(luAvant, ['ind-lettre']), inconnu], 0)).toBe(luAvant);
   });
 
@@ -177,13 +177,13 @@ describe('clues — nouveauté vue PAR SIÈGE (#2415)', () => {
 
   it('marquerVus ignore un indice dont seul `stadeCourant` a remonté depuis son affichage (historique et statut identiques)', () => {
     const enRetard: Record<string, ClueState> = {
-      'ind-lettre': { stadeCourant: 's1', statut: 'révélé', historique: [{ stade: 's1', at: 100 }, { stade: 's2', at: 200 }] },
+      'ind-lettre': { stadeCourant: 's1', statut: 'revele', historique: [{ stade: 's1', at: 100 }, { stade: 's2', at: 200 }] },
     };
     const vuEnRetard = affichés(enRetard, ['ind-lettre']);
     const remonté = revealClue(enRetard, IND, 300, 's2');
     expect(remonté['ind-lettre'].stadeCourant, 'témoin : revealClue a remonté le stade courant').toBe('s2');
     expect(remonté['ind-lettre'].historique, 'témoin : même historique').toHaveLength(2);
-    expect(remonté['ind-lettre'].statut, 'témoin : même statut').toBe('révélé');
+    expect(remonté['ind-lettre'].statut, 'témoin : même statut').toBe('revele');
     expect(estNouveauPour(marquerVus(remonté, vuEnRetard, 1)['ind-lettre'], 1), 's2 courant marqué vu sur l’affichage de s1').toBe(true);
   });
 

@@ -22,6 +22,7 @@
 - [Utiliser les Tailles (agrandir/réduire)](#utiliser-les-tailles)
 - [Modificateurs de Taille en combat](#modificateurs-de-taille-en-combat)
 - [Caractéristiques aléatoires (LDB 77)](#caractéristiques-aléatoires)
+- [Créez le vôtre — PNJ de carrière (EDO 11)](#créez-le-vôtre--pnj-de-carrière-edo)
 - [Index des Traits de créature (renvois)](#index-des-traits-de-créature)
 - [Catalogue du bestiaire](#catalogue-du-bestiaire)
 - [Bilan de fidélité](#bilan-de-fidélité)
@@ -302,6 +303,41 @@ Les Caractéristiques inexistantes (« – » → 0) **ne sont pas tirées**.
 
 ---
 
+## Créez le vôtre — PNJ de carrière (EDO)
+
+**Source RAW** : `EDO 11 l.17-21` (Appendice 2, Nouvelles règles), exemple `EDO 11 l.21-40`
+
+Un PNJ part d'un profil du bestiaire (ou de son tirage aléatoire, [Caractéristiques aléatoires](#caractéristiques-aléatoires)) et franchit des niveaux de Carrière :
+
+> « Un moyen simple de créer un PNJ est d'utiliser les statistiques présentées dans le Bestiaire **WFJDR** (ou de les générer au hasard comme d'habitude) et d'attribuer au personnage certaines Carrières. Pour chaque niveau de Carrière que vous souhaitez que le PNJ atteigne, ajoutez +5 à toutes les Compétences et Caractéristiques disponibles, puis ajoutez au moins 1 Talent pour chaque niveau de Carrière terminé. Une fois cela fait, répertoriez simplement les équipements de la Carrière actuelle ainsi que tous les niveaux de Carrière inférieurs, et vous avez terminé ! » — `EDO 11 l.19`
+
+> « Pour créer rapidement un Doktor humain, diplômé de l'université, prenez l'humain de base (WFJDR page 311) et passez-le aux niveaux de carrière suivants : Étudiant en médecine (Médecin 1), Médecin (Médecin 2), Doktor (Médecin 3). Pour chaque niveau de carrière saisi, ajoutez +5 à chaque caractéristique et compétence disponibles, puis ajoutez un talent. » — `EDO 11 l.21`
+
+Lecture arbitrée (#773, arbitrages utilisateur R1 à R4 du 2026-11-08, verbatim au ticket) :
+
+- **R1** : le +5 se cumule Niveau par Niveau. Une Caractéristique ou une Compétence apparue au Niveau *k* d'une carrière portée au Niveau *N* reçoit 5 × (*N* − *k* + 1).
+- **R2** : sur plusieurs carrières, les bonus s'additionnent sur tous les Niveaux traversés. La dernière carrière est l'actuelle.
+- **R3** : les équipements sont des objets réels de l'inventaire du PNJ, et l'objet réel prend la place du Trait Arme ou Armure.
+- **R4** : les équipements sont ceux des Niveaux 1 à *N* de la carrière actuelle, sans ceux de la Classe.
+
+Arbitrages utilisateur du 2026-11-08 sur les ajouts de Talent et les montures (#773, verbatim au ticket) :
+
+- Une Compétence qu'un Talent ajoute aux carrières (« Ajoutez … à n'importe quelle Carrière que vous entamez », `LDB 10 l.70`, `l.745`, `l.891`) est une Compétence de carrière. Elle reçoit le +5 à chaque Niveau atteint à partir de celui où le Talent est pris, dans cette carrière puis dans les suivantes.
+- Un Talent qu'un Talent ajoute (« Le Talent Frénésie est ajouté à la liste des Talents de n'importe laquelle de vos Carrière », `LDB 10 l.467`) rejoint les Talents disponibles des Niveaux suivants.
+- Une dotation de possession (monture, véhicule) n'est pas posée avec le PNJ : l'auteur pose la monture à côté de lui.
+
+Jeu sans MJ (règle 7) : l'auteur du PNJ choisit dans l'éditeur ses Talents, ses Compétences « Au choix » et ses dotations au choix. Ce qu'il laisse libre est tiré d'une graine stable, l'id du PNJ.
+
+L'exemple ne se recalcule pas : son profil (`EDO 11 l.27-32`) ne se retrouve pas en appliquant la règle. Ce qui s'en vérifie, c'est le Statut du Niveau atteint (**Argent 5**, `EDO 11 l.27`) et les possessions de la carrière (`EDO 11 l.38-40`).
+
+L'argent des PNJ (`EDO 11 l.42-44`, jet de Gagner de l'argent au Statut) n'est pas couvert par cette entrée.
+
+**Voir aussi** : [Caractéristiques aléatoires](#caractéristiques-aléatoires) ; [Carrières](carrieres.md) — `carrieres.md`.
+
+**Implémente :** [État calculé](../implemente.generated.md#4ebestiairecreez-le-votre-pnj-de-carriere-edo)
+
+---
+
 ## Index des Traits de créature
 
 **Source RAW** : `LDB 85 l.1-447` (chapitres Traits de créature)
@@ -432,6 +468,7 @@ Indices observés dans le bestiaire MDG : Redoutable 1 (Baudroye, Hydre d'os, Sa
 | Utiliser les Tailles | `LDB 85 l.339-340` | ✅ verbatim |
 | Mods Taille en combat | `LDB 85 l.357-387` | ✅ |
 | Caractéristiques aléatoires | `LDB 77 l.108` | ✅ implémenté (`randomizeChars`) |
+| PNJ de carrière | `EDO 11 l.17-21` | ✅ implémenté (`porterAuParcours`, arbitrages #773) |
 | Index Traits — déclenchement | `LDB 85 l.83-455` | ✅ tableau de synthèse |
 
 ### Catalogue créatures — flagué
@@ -442,6 +479,7 @@ Les chapitres `LDB 77-83`, `ZI`, `EDO`, `MSR/MSRC`, `PDT`, `NADJ`, `ADE I/II` co
 
 - `src/engine/size.ts` — `LDB 85 l.343-406` (7 catégories, Blessures, mods combat).
 - `src/noyau/monde/spawn.ts` — `LDB 76 l.45` (Facultatifs), `LDB 77 l.108` (carac. aléatoires).
+- `src/engine/pnjDeCarriere.ts` — `EDO 11 l.17-21` (PNJ de carrière : +5 par Niveau, Talents, dotations de la carrière actuelle).
 - `src/engine/creatureAttacks.ts` — `LDB 85 traits` (grantsManeuvers par id).
 - `src/engine/creatureEquip.ts` — `LDB 85 l.405` (Tentacules, compte/attaques gratuites).
 - `src/engine/combat.ts` — `LDB 85 l.253` (Nuée : ignore les règles de Taille), `l.360-362` (Atouts, multiplicateur de Dégâts, Frappe Mortelle par Taille), `l.366` (+10 au plus petit), `l.370` (pénalité de Parade), `l.387` (Piétinement).

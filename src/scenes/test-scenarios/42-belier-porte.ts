@@ -1,4 +1,4 @@
-import { pregenParty, PREGEN } from '../../data/pregens';
+import { pregenParty, PREGEN, idDuPretire } from '../../data/pregens';
 import { buildScene } from '../../noyau/mapSpec';
 import { crewFormationSlots } from '../../noyau/monde/shipPostes';
 import { setEncounters } from './_shared';
@@ -30,7 +30,7 @@ import type { Scene } from '../../noyau/monde/scene';
  * cases de la formation, aucune sur la colonne des 3 autres héros ((3,9)/(3,10)/(3,11)) ni sur l'affût.
  */
 const RAM_CREW = [
-  `pregen-${PREGEN.soldat}`, // chef de pièce (crewIds[0]) : un héros, seul à manier le bélier
+  idDuPretire(PREGEN.soldat), // chef de pièce (crewIds[0]) : un héros, seul à manier le bélier
   'enemy-siege-belier-2', 'enemy-siege-belier-3', 'enemy-siege-belier-4', 'enemy-siege-belier-5', 'enemy-siege-belier-6', // 5 servants PNJ (Équipe 6, ADE II 8 l.233)
 ];
 

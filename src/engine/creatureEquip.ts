@@ -1,37 +1,16 @@
 /**
  * Dérivation PURE « traits → équipement » (armes jouables + armure en PA) d'une créature/statbloc.
- * SOURCE UNIQUE, partagée par le SPAWN de combat (`noyau/monde/spawn`) ET le RENDU d'exploration.
+ * SOURCE UNIQUE, partagée par le SPAWN de combat (`noyau/monde/spawn`), `recomputeLoadout` ET le RENDU d'exploration.
  * Vit dans `engine` (pur, ne dépend de rien d'en haut) → importable par le noyau ET par le rendu
  * (`scripts/guards/lib/couches.mjs`).
  */
 import type { Weapon, ArmourPoints } from './types';
 import type { TraitInstance, TraitList } from './statEntry';
-import { buildWeapon, cleDInstanceDeTrait, emptyArmour, gabaritDObjet, uidDArme, unarmedWeapon, weaponFromItem, type GabaritDObjet, type TrappingResolver } from './items';
+import { buildWeapon, cleDInstanceDeTrait, emptyArmour, estUneVraieArme, gabaritDObjet, peutEtreTenu, uidDArme, unarmedWeapon, weaponFromItem, type GabaritDObjet, type TrappingResolver } from './items';
 import { armureDuTrait } from './armourBypass';
 import type { WeaponDamageSpec } from './types';
 import { traitLabelById } from './traits/dispatch';
 import { findTraitById, findTrappingById, SPEC_SOURCES } from '../data/index';
-
-/** Arme depuis un `trappingId` d'authoring de scène (`SceneEntity.weapon`) : lookup EXACT au catalogue
- *  (`findTrappingById`) puis PROJECTION UNIQUE `weaponFromItem` (engine/items) — Dégâts, Portée (y compris
- *  la spec `{bf}` des armes de JET), Groupe (`subType`/`weaponGroup`), qualités, Recharge, mains, Allonge,
- *  forme, Taille prévue, effets à la touche et bande de portée MINIMALE viennent TOUS du catalogue, jamais
- *  d'un littéral : cette arme est jouable (bandes de tir `porteeDeTir`, Spécialisation
- *  `weaponGroupSkillMode`) autant que dessinée. Id introuvable OU trapping qui n'est pas une arme → `null`
- *  + `console.error` : l'entité reste désarmée, rien d'inventé (aucune arme devinée depuis un id mort). */
-export function weaponFromId(trappingId: string, resolveTrapping: TrappingResolver = findTrappingById): Weapon | null {
-  const trapping = resolveTrapping(trappingId);
-  if (!trapping) {
-    console.error(`[weapon] trappingId « ${trappingId} » introuvable au catalogue d'armes (#223) — entité désarmée, rien d'inventé.`);
-    return null;
-  }
-  if (trapping.categorie !== 'melee' && trapping.categorie !== 'ranged') {
-    console.error(`[weapon] trapping « ${trappingId} » (catégorie « ${trapping.categorie} ») n'est pas une arme — entité désarmée, rien d'inventé.`);
-    return null;
-  }
-  const it = gabaritDObjet(trappingId, resolveTrapping);
-  return it ? weaponFromItem({ ...it, uid: `w-${trappingId}` }) : null;
-}
 
 /**
  * Résout l'`arg` d'un trait `arme`/`a-distance` (`specsSource` `weaponsMelee`/`weaponsRanged`, cf.
@@ -139,4 +118,22 @@ export function weaponsFromTraits(traits: TraitList): Weapon[] {
 export function armourFromTraits(traits: TraitList): ArmourPoints {
   const armure = armureDuTrait(traits);
   return armure?.parLocalisation ? { ...armure.parLocalisation } : emptyArmour(armure?.value ?? 0);
+}
+
+/** Armes des Traits `traits` que compose `recomputeLoadout` : `renderWeaponsFromTraits`, hors des Traits dont la def
+ *  porte déjà l'arme en `grantNaturalWeapon`. */
+export const armesDuProfil = (traits: TraitList): Weapon[] =>
+  renderWeaponsFromTraits(traits.filter((t) => !findTraitById(t.id)?.passive?.some((op) => op.op === 'grantNaturalWeapon')));
+
+/** Les Traits `traits` qui restent devant les objets réels `objets` : le Trait Armure cède à une armure portée, un
+ *  Trait dont l'arme est une vraie arme (`estUneVraieArme`) cède à un objet tenu (`peutEtreTenu`) du même type.
+ *  LDB 85 l.31, l.39 ; arbitrage du 2026-11-08 (#773). */
+export function traitsDevantLEquipement(traits: readonly TraitInstance[], objets: readonly GabaritDObjet[], resolveTrapping: TrappingResolver = findTrappingById): TraitInstance[] {
+  const tenus = new Set(objets.filter(peutEtreTenu).map((o) => o.kind));
+  const armurePortee = objets.some((o) => o.equipped && o.kind === 'armor');
+  return traits.filter((t) => {
+    if (armurePortee && armureDuTrait([t])) return false;
+    const w = weaponFromTrait(t, resolveTrapping);
+    return !(w && estUneVraieArme(w) && tenus.has(w.type));
+  });
 }

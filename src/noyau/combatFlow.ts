@@ -13,7 +13,7 @@ import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type Effect
 import type { FateSaveSource } from '../engine/fortune';
 import { rule } from '../engine/policy';
 import { battleRng } from './battleRng';
-import { ev, evLines, journaliser, type CombatEventKind } from './combatLog';
+import { ev, evDEtat, evLines, journaliser, type CombatEventKind } from './combatLog';
 import { discreetPrayerDifficulty } from '../engine/prayer';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (cibles/jets)
 import { TEMPO } from './monde/tempo';
@@ -8251,15 +8251,10 @@ export function openRoundStartPsych(get: Get, set: SetFn): void {
  * et non plus héros par héros — une bande est UNE question posée à N héros, elle ne peut pas
  * s'entrelacer avec l'entretien de chacun d'eux. Appelée au franchissement de Round APRÈS
  * l'entretien/le Destin ; suspend l'IA jusqu'à résolution.
- *
- * Les conséquences d'upkeep RNG-free (retrait « caché » du Brisé, Exténué sans-Test) sont appliquées
- * DÉTERMINISTEment par le collecteur via le `sink` ci-dessous (journal de combat).
  */
 export function openRoundEndCascade(get: Get, set: SetFn): void {
   const battle = get().battle;
   if (!battle || battle.over || get().pendingFateSave) return; // une séquence en vol n'interdit rien : doctrine du slot (`startCascade`)
-  const upkeepLines: { line: string; id?: string }[] = [];
-  const sink = (line: string, c?: Combatant) => upkeepLines.push({ line, id: c?.id });
   const steps: BuiltCascadeStep[] = [];
   for (const c of get().battle!.combatants) {
     // SURFACE (#1262), pas affordance locale : le porteur d'un AUTRE siège entre dans la cascade — c'est
@@ -8269,13 +8264,7 @@ export function openRoundEndCascade(get: Get, set: SetFn): void {
     // (`openCombatEndCascade`) le fait tomber dans la voie INLINE — ÉCART AU RAW suivi par #1265
     // (Test d'entretien de fin de Round : LDB 16 l.68-78).
     if (!surfaceOf(get, c.id) || isOutOfAction(c)) continue;
-    steps.push(...collectHeroRoundEndUpkeep(get, c, sink));
-  }
-  // Lignes déterministes d'upkeep → journal de combat (les Tests influençables iront au journal de la
-  // cascade à leur validation). On applique AVANT d'ouvrir la cascade pour garder l'ordre de lecture.
-  if (upkeepLines.length) {
-    const b = get().battle!;
-    set({ battle: { ...b, log: [...b.log, ...upkeepLines.map((u) => ev('condition', u.line, u.id))] } });
+    steps.push(...collectHeroRoundEndUpkeep(get, c));
   }
   // Psychologie du Round qui se CLÔT (le franchissement a déjà incrémenté `round`). LDB 21 l.19, l.25, l.39
   steps.push(...combatPsychBands(passeDePsy(get, set, collectRoundEndPsych, battle.round - 1)));
@@ -8712,7 +8701,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       const line = removed > 0
         ? (action.state === COND.empetre ? tr('cf.enemyFreed', { name: enemy.label, removed }) : tr('cf.enemyDouses', { name: enemy.label, removed }))
         : (action.state === COND.empetre ? tr('cf.enemyStaysEmpetre', { name: enemy.label }) : tr('cf.enemyStaysFlames', { name: enemy.label }));
-      set({ battle: { ...battle, log: [...battle.log, ...struggleLines.map((l) => ev('condition', l, enemy.id)), ev('condition', line, enemy.id)] } });
+      set({ battle: { ...battle, log: [...battle.log, ...struggleLines.map((l) => ev('damage', l, enemy.id)), evDEtat(action.state, line, enemy.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
       armerLaSuite(get, set, enemy, { kind: 'avancer' }, beatHold(get, 'afterMove'));
       return;
