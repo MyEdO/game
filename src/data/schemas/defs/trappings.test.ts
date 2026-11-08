@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { schema } from './trappings';
 import trappingsJson from '../../trappings.json';
 
-type Entree = { id: string; categorie: string; subType: string | null; [k: string]: unknown };
+type Entree = { id: string; categorie: string; subType: { id: string } | null; [k: string]: unknown };
 const clone = (): Entree[] => structuredClone(trappingsJson) as unknown as Entree[];
 const refus = (doc: unknown): string[] => {
   const r = schema.safeParse(doc);
@@ -22,8 +22,8 @@ describe('trappings.json — une armure porte son type d’armure (#2948)', () =
 
   it.each([
     ['sans subType', null],
-    ['à subType de Groupe d’arme', 'escrime'],
-    ['à subType inconnu', 'rembourre'],
+    ['à subType de Groupe d’arme', { id: 'escrime' }],
+    ['à subType inconnu', { id: 'rembourre' }],
   ])('une armure %s est refusée, nommément', (_cas, subType) => {
     const doc = clone();
     const heaume = doc.find((t) => t.id === 'heaume')!;

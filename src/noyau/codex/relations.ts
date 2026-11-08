@@ -157,8 +157,8 @@ const graph = versionCached<ReverseGraph>(() => {
   // 7) Possessions → qualités + groupe d'objet.
   for (const t of trappings) {
     const by: Referrer = { category: 'trappings', id: t.id, label: t.label };
-    for (const r of resolveQualities({ qualities: t.qualities, subType: t.subType })) addReverse('qualities', r.id, by, 'Équipements ayant cette qualité');
-    addReverse('weaponGroups', t.subType, by, 'Objets du groupe');
+    for (const r of resolveQualities({ qualities: t.qualities, subType: t.subType?.id })) addReverse('qualities', r.id, by, 'Équipements ayant cette qualité');
+    addReverse('weaponGroups', t.subType?.id, by, 'Objets du groupe');
   }
 
   // 8) Classes → possessions de départ.

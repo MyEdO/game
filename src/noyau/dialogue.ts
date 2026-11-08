@@ -142,7 +142,7 @@ export function reponsesDuNoeud(s: Jeu): ReponseDeDialogue[] {
  * `seq` dans l'ordre, un `if` par la branche que sa Condition prend, et il s'arrête au PREMIER jet
  * rencontré — c'est le seul que le joueur déclenche en choisissant la réponse (les branches
  * `success`/`fail` d'un `test` sont APRÈS le jet ; ce qu'elles contiennent n'est pas annoncé).
- * Un nœud `test` s'annonce par la décision de son ouvreur (`resoudreFlowTest`, `engine/decisionDuTest`),
+ * Un nœud `test` et un Test étendu s'annoncent par la décision de leur ouvreur (`resoudreFlowTest`, `engine/decisionDuTest`),
  * sur le contexte que l'ouvreur reçoit. Un `choice` est une DÉCISION, pas un jet.
  */
 export function testAnnonce(flow: Flow | undefined, ctx: ContexteDuTest): TestAnnonce | undefined {
@@ -159,13 +159,8 @@ export function testAnnonce(flow: Flow | undefined, ctx: ContexteDuTest): TestAn
     case 'do': {
       const e = flow.effect;
       if (e.type !== 'extendedTest') return undefined;
-      // Défaut de difficulté : celui de l'APPLIER (`combatEffects.ts` `extendedTest`), jamais un autre.
-      return {
-        ...(e.skill ? { skill: e.skill } : {}),
-        ...(e.characteristic ? { characteristic: e.characteristic } : {}),
-        difficulty: e.difficulty ?? 'intermediaire',
-        targetDR: e.targetDR,
-      };
+      const decision = resoudreFlowTest(e, ctx);
+      return decision.joue ? { ...decision.sujet, difficulty: decision.difficulty, targetDR: e.targetDR } : undefined;
     }
     case 'choice':
       return undefined;

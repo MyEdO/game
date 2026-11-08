@@ -112,7 +112,7 @@ describe('Dissipation permanente — Action de combat', () => {
     const roundDR = (rule: boolean) => {
       const mage = freshMage();
       const battle = { combatants: [mage], order: ['mage'], turn: 0, round: 1, acted: false, over: false, log: [] } as unknown as BattleState;
-      banc.setState({ battle, pendingDispel: null });
+      banc.setState({ battle, pendingDispel: null, pendingVictory: null }); // la victoire du Round précédent ne tient plus la main
       if (rule) setRule('magic-vdm-incantation', true);
       banc.getState().dissiperLeSort('mage', 'malefice', 'mage');
       const pd = banc.getState().pendingDispel!;

@@ -445,9 +445,9 @@ describe('édition de scène — pose', () => {
 });
 
 describe('édition de scène — emplacement de siège (postes authorés à l’éditeur)', () => {
-  it('siegeEngines() sélectionne les engins posables du sous-type armes-de-siege (baliste présente)', () => {
+  it('siegeEngines() sélectionne les engins posables du Groupe armes-de-siege (baliste présente)', () => {
     expect(siegeEngines().length).toBeGreaterThan(0);
-    expect(siegeEngines().every((t) => t.subType === 'armes-de-siege')).toBe(true);
+    expect(siegeEngines().every((t) => t.subType?.id === 'armes-de-siege')).toBe(true);
     expect(siegeEngines().some((t) => t.id === 'baliste')).toBe(true);
   });
 

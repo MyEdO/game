@@ -23,7 +23,7 @@ describe("#40 — Armes de base AA (Aux Armes, folio 91)", () => {
       expect(t, `trapping ${c.id} doit exister`).toBeTruthy();
       expect(t!.label).toBe(c.label);
       expect(t!.categorie).toBe('melee');
-      expect(t!.subType).toBe('base'); // « TABLEAU DES ARMES DE BASE » → groupe d'arme Base
+      expect(t!.subType?.id).toBe('base'); // « TABLEAU DES ARMES DE BASE » → groupe d'arme Base
       expect(t!.enc).toBe(c.enc);
       expect(t!.availability).toBe(c.availability);
       expect(t!.reach).toBe(c.reach);
@@ -43,7 +43,7 @@ describe("#40 — Armes de base AA (Aux Armes, folio 91)", () => {
     const t = findTrappingById('griffe-de-tigre');
     expect(t, 'griffe-de-tigre doit exister (NADJ)').toBeTruthy();
     expect(t!.categorie).toBe('melee');
-    expect(t!.subType).toBe('bagarre'); // « utilisation se base sur Corps à corps (Bagarre) »
+    expect(t!.subType?.id).toBe('bagarre'); // « utilisation se base sur Corps à corps (Bagarre) »
     expect(t!.damage).toEqual({ plusBF: true, flat: 2 }); // « mêmes caractéristiques qu'une Dague »
     expect(t!.source).toEqual({ book: 'nuits-agitees-et-dures-journees', page: 67 });
   });

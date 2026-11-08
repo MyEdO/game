@@ -4,7 +4,8 @@
  *
  * GESTE, à la CLÉ du CHEMIN EXACT (jamais par mot) : chaque porteur déclare son document, la liste de ses
  * entrées (la racine, ou la collection au bout d'un chemin de champs, `worldMap.places`) et ses clés, chacune
- * avec le type de sa cible. La clé garde son rang, les autres clés le leur.
+ * avec le type de sa cible ; une clé pointée (`derivedWeapon.subType`) suit les objets de l'entrée. La clé
+ * garde son rang, les autres clés le leur.
  * IDEMPOTENT : un porteur déjà `{ id }`, absent ou `null` n'a aucun geste ; sans geste, rien ne s'écrit et
  * la sortie est 0.
  * FAIL-FAST — sortie 1 avant toute écriture : document hors de son formatage, entrées hors d'une liste,
@@ -20,8 +21,8 @@ import { estObjet } from '../../../src/lib/objet.mjs';
 
 /**
  * @typedef {{ collection?: string, cles: Record<string, string> }} Porteur
- * Les entrées d'un document (sa racine, ou sa `collection`, chemin de champs pointé) et leurs clés porteuses,
- * avec le type de leur cible.
+ * Les entrées d'un document (sa racine, ou sa `collection`, chemin de champs pointé) et leurs clés porteuses
+ * (chemin de champs pointé dans l'entrée), avec le type de leur cible.
  */
 
 /** Le texte du document `rel` : un projet de campagne à la forme dépôt, un dataset à la sienne. */
@@ -69,10 +70,11 @@ export function migrerLesIdsNus({ racine, lot, porteurs, catalogues, parPorteur,
     }
     let ici = 0;
     const suite = entrees.map((entree) => {
-      const sortie = { ...entree };
+      let sortie = entree;
       for (const [cle, type] of Object.entries(cles)) {
         const ou = `${rel} › ${entree.id} › ${cle}`;
-        const v = entree[cle];
+        const cheminDeCle = cle.split('.');
+        const v = cheminDeCle.reduce((x, champ) => (estObjet(x) ? x[champ] : undefined), entree);
         if (v === undefined || v === null) continue;
         if (estObjet(v) && Object.keys(v).length === 1 && typeof v.id === 'string') continue;
         if (typeof v !== 'string') {
@@ -83,7 +85,7 @@ export function migrerLesIdsNus({ racine, lot, porteurs, catalogues, parPorteur,
           fautes.push(`${ou} : « ${v} » absent du catalogue \`${type}\``);
           continue;
         }
-        sortie[cle] = { id: v };
+        sortie = remplacer(sortie, cheminDeCle, { id: v });
         const porteur = `${path.basename(rel)} › ${prefixe}${cle}`;
         gestesPar[porteur] = (gestesPar[porteur] ?? 0) + 1;
         ici += 1;
