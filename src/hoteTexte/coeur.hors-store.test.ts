@@ -193,8 +193,8 @@ describe('les arguments de `jouer` se contrôlent contre le type du verbe', () =
     refuse(t, verbe('actionnerLaPorte', 'door-open(2,3)'), 'validation', /porte : "door-open\(2,3\)" n’est pas un id de porte \(valides : 1:2,4:N:couloir:bureau\)/);
   });
   it('`null` omet un argument optionnel pour poser le suivant', { timeout: 120_000 }, () => {
-    const t = partie('revisit', verbe('quitterLaScene', 'test-revisit-couloir', null, { x: 1, y: 1 }));
-    expect(t.lire('vue').texte).toMatch(/^scène test-revisit-couloir [^]*\ngroupe \(1,1\)/);
+    const t = partie('revisit', verbe('cliquerLaCase', { x: 1, y: 0 }, null, { confirm: true }));
+    expect(t.lire('vue').texte).toMatch(/^scène test-revisit-reserve [^]*\ngroupe \(1,0\)/);
   });
 });
 
@@ -207,8 +207,8 @@ describe('les verbes et les scènes', () => {
     expect(tous.erreur).toBeNull();
     expect(tous.texte).toMatch(/\+\d+ : `lire \{"quoi":"verbes","depuis":80\}`/);
   });
-  it('toutes les scènes du scénario sont chargées : `quitterLaScene` mène à la scène sœur', { timeout: 120_000 }, () => {
-    const t = partie('revisit', verbe('quitterLaScene', 'test-revisit-couloir'));
+  it('toutes les scènes du scénario sont chargées : la sortie de la Réserve mène à la scène sœur', { timeout: 120_000 }, () => {
+    const t = partie('revisit', verbe('cliquerLaCase', { x: 5, y: 1 }));
     expect(t.lire('vue').texte).toMatch(/^scène test-revisit-couloir « Le Couloir »/);
   });
 });

@@ -13,11 +13,11 @@ import type { VerbeDeChoix } from './choixDesFenetres';
 import type * as tavernFlow from './tavernFlow';
 import type { Pt } from './monde/path';
 import type {
-  IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
+  IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet,
   IdDEntiteDeScene, IdDuClic, IdDeTireurRapide, IdDePorte, IdDIndice, IdDIntention, IdDeLigneDeButin,
   IdDeCargaison, IdDePorteurDeCargaison, IdDOffreDeCargaison, IdDeDepot, IdDeSort, IdDePanoplie, IdDeCondition, IdDeFaveur,
   IdDActivite, IdDObjetDuCatalogue, IdDAtoutDArtisanat, IdDeDefautDArtisanat, IdDApparence, IdDeTalent, IdDeCarriere, IdDeCreneau,
-  IdDeCompetenceOuDeTalent, IdDEntrainement, IdDePointDEntree, IdDActionDEntite, IdDeServiceDuLieu, IdDArticle, IdDeRoute,
+  IdDeCompetenceOuDeTalent, IdDEntrainement, IdDActionDEntite, IdDeServiceDuLieu, IdDePointDInteret, IdDArticle, IdDeRoute,
   IdDeModeDeVoyage, IdDeRoleABord, IdDeStation, IdDePoste, IdDeTraitNaval, IdDeCompetence, IdDAttaque, IdDeManoeuvre,
   IdDObjetRamassable,
 } from './designations';
@@ -244,7 +244,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   entrainerLaProthese: (heroId: IdDeHeros, uid: IdDObjet) => void;
   /** Change de Carrière/Niveau (validation LDB 07 l.137 / LDB 08 : complétion, +100 hors Classe). */
   changerDeCarriere: (heroId: IdDeHeros, newCareer: IdDeCarriere, newLevel: number) => void;
-  quitterLaScene: (sceneId: IdDeScene, entry?: IdDePointDEntree, pos?: Pt) => void;
   /** Le clic de la case `pt`, sur ce que le geste y désigne (`entite`), le combat lu dans `battle`. En combat, un
    *  combattant désigné se joue par `cliquerLeCombattant` (le mode de ciblage, le Tir rapide de la pause de Round), une
    *  case libre par `cliquerLaCaseDuCombat` ; `opts` porte la confirmation et les verdicts d'armement (`OptionsDuClic`).
@@ -285,6 +284,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Marchand de LIEU (#369) — l'échoppe du service `serviceId` du lieu où se tient le groupe (forgeron du hub de
    *  ville…) : même système marchand, keyé sur `placeServiceMerchantId` (`worldMap.ts`). */
   ouvrirLaBoutique: (serviceId: IdDeServiceDuLieu) => void;
+  /** Entre au point d'intérêt `poi` du plan du lieu où se tient le groupe : l'écran du lieu se ferme sur la scène où il
+   *  mène ; refus dit hors de l'écran du lieu ou hors de ses entrées (`refusDEntrerAuPoint`, `lieuFlow.ts`). */
+  entrerAuPointDInteret: (poi: IdDePointDInteret) => void;
   /** Recherche active de Disponibilité (LDB 59 l.50) : passer une journée entière + un Test de Ragot →
    *  réassort frais avec +10 % de Disponibilité si le Ragot réussit (avance l'horloge d'une journée). */
   chercherLaDisponibilite: () => void;

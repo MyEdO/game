@@ -3645,6 +3645,9 @@ export const fr = {
   // (le signe et l'issue sont portés par l'appelant) ; « Ragot » vient de `skills.json`.
   'lieu.repos': 'Repos',
   'lieu.entrer': 'Entrer',
+  'lieu.horsDeLEcran': 'Aucun écran de lieu ouvert.',
+  'lieu.pointInconnu': '« {poi} » n’est pas une entrée de ce lieu.',
+  'lieu.pointSansScene': '{poi} ne mène à aucune scène de la partie.',
   'lieu.dormir': 'Dormir',
   'lieu.informations': 'Recueillir des informations',
   'crew.paieHorsBourse': 'Bourse insuffisante.',
