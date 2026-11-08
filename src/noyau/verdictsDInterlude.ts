@@ -27,6 +27,8 @@ import {
   type ActivityDef, type EntrainementOption, type LearnOption, type ResolverOf, type TravelActivitySpec, type VoieDActivite,
 } from '../engine/activities';
 import { outOfTradeReason } from '../engine/disponibilite';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { availabilitySchema } from '../data/schemas/grammaire/valeurs';
 import { memeSpecialisation, refCouvre } from '../data/schemas/grammaire/ref';
 import type { Jeu } from './etat';
 import { refusDeBourse } from './bourseFlow';
@@ -212,7 +214,7 @@ export function refusDeCommande(s: EtatDInterlude, heroId: string, trappingId: s
   if (!tr) return t('if.trappingUnknown', { id: trappingId });
   const block = orderBlockOf(tr);
   if (block === 'sans-prix') return t('trade.orderRefused', { reason: outOfTradeReason(tr.label) });
-  if (block === 'stock-ordinaire') return t('if.orderInShops', { label: tr.label, availability: String(tr.availability) });
+  if (block === 'stock-ordinaire') return t('if.orderInShops', { label: tr.label, availability: libelleDeValeur(availabilitySchema, String(tr.availability)) });
   return refusDeBourse(h, priceToMoney(tr.price), 'if.orderTooExpensive');
 }
 

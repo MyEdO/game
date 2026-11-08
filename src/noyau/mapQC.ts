@@ -5,7 +5,7 @@
  */
 import { walkReachableFrom } from './monde/path';
 import { isDescriptiveZone, isWalkable, porteAuteur, setDoorOpen, setDoorRevealed, type Scene, type SceneEffectZone } from './monde/scene';
-import { zoneAreaTiles } from './monde/zones';
+import { sceneZoneTiles } from './monde/zones';
 
 const key = (x: number, y: number, z: number) => `${x},${y},${z}`;
 
@@ -19,13 +19,12 @@ export function reachableCells(scene: Scene, start: { x: number; y: number; z?: 
   return seen;
 }
 
-/** Cases MARCHABLES d'une zone descriptive (`zoneAreaTiles` 2D, filtrées par `isWalkable` à l'étage
- *  `zone.z ?? 0` de la zone). */
+/** Cases MARCHABLES d'une zone descriptive : son emprise (`sceneZoneTiles`), filtrée par `isWalkable` à
+ *  l'étage de chaque case. */
 export function zoneWalkableCells(scene: Scene, zone: SceneEffectZone): { x: number; y: number; z: number }[] {
-  const z = zone.z ?? 0;
-  return zoneAreaTiles(zone.area)
-    .filter((p) => isWalkable(scene, p.x, p.y, z))
-    .map((p) => ({ x: p.x, y: p.y, z }));
+  return sceneZoneTiles(zone)
+    .map((p) => ({ x: p.x, y: p.y, z: p.z ?? 0 }))
+    .filter((p) => isWalkable(scene, p.x, p.y, p.z));
 }
 
 /** La scène telle que l'AUTEUR la lit : chaque porte authorée (`porteAuteur`) est un PASSAGE — révélée si

@@ -4,6 +4,8 @@ import { mountProfileForCreature } from '../engine/mountTravel';
 import { rangeSpecLabel, ammoRangeModLabel } from '../engine/weaponStats';
 import type { WeaponDamageSpec, WeaponRangeSpec, AmmoRangeMod } from '../engine/types';
 import { catalogEntryOf } from './merchantFlow';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { availabilitySchema } from '../data/schemas/grammaire/valeurs';
 
 /** Colonnes de stats par famille (tableau comparatif). `get` prend directement l'`id` de la ligne —
  *  chaque famille fait SON lookup (trapping ou catalogue généralisé), aucune résolution par défaut
@@ -34,6 +36,6 @@ export const MERCHANT_COL_RENDERERS: Record<string, { label: string; get: (id: s
   range: { label: 'Portée', get: trapCol((t) => rangeSpecLabel(t.range) ?? (ammoRangeModLabel(t.ammoRangeMod) || DASH)) },
   protection: { label: 'Protection', get: trapCol((t) => { const q = (t.qualities ?? []).find((x) => x.id === 'protectrice'); return q ? `Protectrice ${q.value ?? ''}`.trim() : DASH; }) },
   pa: { label: 'PA', get: trapCol((t) => (t.pa != null ? String(t.pa) : DASH)) },
-  availability: { label: 'Disponibilité', get: (id) => catalogEntryOf(id)?.availability ?? DASH },
+  availability: { label: 'Disponibilité', get: (id) => { const av = catalogEntryOf(id)?.availability; return av ? libelleDeValeur(availabilitySchema, av) : DASH; } },
   capacity: { label: 'Capacité', get: unitCapacity },
 };

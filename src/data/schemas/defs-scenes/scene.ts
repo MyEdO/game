@@ -26,11 +26,13 @@ import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecan
 import { navalTraitRefSchema } from '../grammaire/reference';
 import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { sceneFlowSchema } from './effets';
-import { idDe, porteLeMarqueur, recordDIds, ref, refs } from '../grammaire/ref';
+import { idDe, porteLeMarqueur, recordDIds, ref, refOuSpec, refs } from '../grammaire/ref';
+import { champsDeChoix } from '../grammaire/choixDeCreation';
+import { parcoursDe, refusDuParcours } from '../../../engine/pnjDeCarriere';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
 import { proseNommee } from '../grammaire/prose';
-import { refEntiteResolue } from '../../index';
+import { findCreatureById, refEntiteResolue } from '../../index';
 import { capDecorAdmis } from '../../props.types';
 import { PARTS_RELIEF } from '../../materials.types';
 import type { AuthoredShipPoste } from '../../../engine/types';
@@ -119,6 +121,18 @@ export const offreDeTaverneSchema = ref('tavernGame', { stakeBrass: nommerNoeud(
 export const inventaireDAuteurSchema = recordDIds('trapping', nommerNoeud(z.boolean(), { nom: 'porté' }), INSTANCIABLE_PAR_ID);
 export type InventaireDAuteur = z.input<typeof inventaireDAuteurSchema>;
 
+/** La faute d'un personnage porté à un parcours de carrière (`parcoursDe`), `undefined` s'il est admis ou n'en porte
+ *  pas : un parcours part d'un profil du Bestiaire (`ref`), sans statbloc ni preset, et la carrière actuelle
+ *  l'habille, sans tenue d'auteur (EDO 11 l.19) ; puis `refusDuParcours`. Des choix de carrière sans carrière
+ *  sont refusés. */
+export function refusDuPnjDeCarriere(ent: z.output<typeof baseDEntiteSchema> & { ref?: string }): string | undefined {
+  const parcours = parcoursDe(ent);
+  if (!parcours) return ent.talentsDeCarriere || ent.competencesDeCarriere || ent.dotationsDeCarriere ? 'choix de carrière sans carrière' : undefined;
+  if (ent.statblock || ent.presetId || !findCreatureById(ent.ref)) return 'un PNJ de carrière part d’un profil du Bestiaire (« ref »), sans statbloc ni preset';
+  if (ent.appearance?.tenue) return 'un PNJ de carrière porte la tenue de sa carrière actuelle, sans tenue d’auteur';
+  return refusDuParcours(parcours);
+}
+
 /** Champs PARTAGÉS par les trois `kind` d'une entité de scène — le `ref`, lui, est propre à chaque branche. */
 const baseDEntiteSchema = nommerChamps(z.strictObject({
   id: z.string(),
@@ -140,6 +154,13 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   anim: roleAmbiantSchema.optional(),
   /** Inventaire d'auteur d'un personnage, objets du catalogue. */
   inventaire: inventaireDAuteurSchema.optional(),
+  /** Parcours de carrière d'un personnage (`ParcoursDeCarriere`, `engine/pnjDeCarriere.ts`) : chaque carrière au
+   *  Niveau atteint, la dernière actuelle ; les Talents choisis et les Compétences des emplacements à choix, par
+   *  carrière ; les choix de dotation de la carrière actuelle. EDO 11 l.17-21 */
+  carrieres: recordDIds('career', nommerNoeud(z.number().int().min(1), { nom: 'niveau' })).optional(),
+  talentsDeCarriere: recordDIds('career', z.array(refOuSpec('talent'))).optional(),
+  competencesDeCarriere: recordDIds('career', z.array(refOuSpec('skill'))).optional(),
+  dotationsDeCarriere: champsDeChoix.trappingChoices,
   /** Source de lumière : `radiusM` = rayon en MÈTRES (même unité qu'au catalogue, #1507) ;
    *  `tone` = id d'un `lightTones` (apparence seule). */
   light: nommerChamps(z.strictObject({ radiusM: z.number(), tone: idDe('lightTone').optional() }), { radiusM: { label: "rayon en mètres" }, tone: { label: "ton" , texte: { regime: "technique"} } }).optional(),
@@ -182,7 +203,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
     }), { optionals: { label: "options" }, spells: { label: "sorts" , texte: { regime: "technique"} }, randomChars: { label: "caractéristiques aléatoires" }, skills: { label: "Compétences" }, hiddenUntilCombat: { label: "caché jusqu’au combat" } })
     .optional(),
   couvre: couvreSchema.optional(),
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, pos: { label: "position" }, z: { label: "étage" }, facing: { label: "orientation"  }, label: { label: "libellé" , texte: { regime: "designation"} }, statblock: { label: "profil" }, presetId: { label: "profil précomposé" , texte: { regime: "technique"} }, crewIds: { label: "membres d’équipage" , texte: { regime: "technique"} }, postes: { label: "postes" }, upgrades: { label: "améliorations" }, dialogueId: { label: "dialogue" , texte: { regime: "technique"} }, amateur: { label: "amateur des arts", hint: "arbitrage maison (ACE 12 l.60-62) : contrepartie d’un Test de Sociabilité, lue par les jetons de Mécénat" }, appearance: { label: "apparence" }, anim: { label: "animation" , texte: { regime: "technique"} }, inventaire: { label: "inventaire" , texte: { regime: "technique"} }, light: { label: "lumière" }, merchant: { label: "marchand" }, tavernGame: { label: "jeu de taverne" }, usable: { label: "utilisable" }, combat: { label: "combat" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, pos: { label: "position" }, z: { label: "étage" }, facing: { label: "orientation"  }, label: { label: "libellé" , texte: { regime: "designation"} }, statblock: { label: "profil" }, presetId: { label: "profil précomposé" , texte: { regime: "technique"} }, crewIds: { label: "membres d’équipage" , texte: { regime: "technique"} }, postes: { label: "postes" }, upgrades: { label: "améliorations" }, dialogueId: { label: "dialogue" , texte: { regime: "technique"} }, amateur: { label: "amateur des arts", hint: "arbitrage maison (ACE 12 l.60-62) : contrepartie d’un Test de Sociabilité, lue par les jetons de Mécénat" }, appearance: { label: "apparence" }, anim: { label: "animation" , texte: { regime: "technique"} }, inventaire: { label: "inventaire" , texte: { regime: "technique"} }, carrieres: { label: "carrières", texte: { regime: "technique" } }, talentsDeCarriere: { label: "Talents de carrière", texte: { regime: "technique" } }, competencesDeCarriere: { label: "Compétences de carrière", texte: { regime: "technique" } }, dotationsDeCarriere: { label: "dotations de carrière", texte: { regime: "technique" } }, light: { label: "lumière" }, merchant: { label: "marchand" }, tavernGame: { label: "jeu de taverne" }, usable: { label: "utilisable" }, combat: { label: "combat" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
 
 /** Branche d'une entité de scène : les champs partagés, son `kind` et sa `ref`. Le littéral
  *  DISCRIMINE la branche, `entityKindSchema` en NOMME la valeur (vocabulaire à libellés). */
@@ -204,6 +225,8 @@ export const sceneEntitySchema = z.discriminatedUnion('kind', [
     if (absence) ctx.addIssue({ code: 'custom', path: ['ref'], message: absence });
     if (ent.ref && !refEntiteResolue(ent.ref))
       ctx.addIssue({ code: 'custom', path: ['ref'], message: `« ${ent.ref} » ni créature, ni coque de véhicule, ni engin de siège` });
+    const carriere = refusDuPnjDeCarriere(ent);
+    if (carriere) ctx.addIssue({ code: 'custom', path: ['carrieres'], message: carriere });
   }),
   brancheDEntite('prop', idDe('prop').optional()).superRefine((ent, ctx) => {
     // TYPE NOMMÉ — verrou AU PARSE (#877) : `PORTEURS_DU_TYPE` ; sa résolution au registre est celle de la

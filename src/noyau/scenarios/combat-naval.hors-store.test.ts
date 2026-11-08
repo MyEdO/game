@@ -11,7 +11,7 @@ import { applyShipPostes } from '../../noyau/monde/shipPostes';
 import { availableAttacks } from '../../noyau/combatManeuvers';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { layerTiles, sceneMetresPerTile } from '../../noyau/monde/scene';
-import { PREGEN } from '../../data/pregens';
+import { PREGEN, idDuPretire } from '../../data/pregens';
 import type { BattleState } from '../../noyau/etat';
 import type { Combatant } from '../../engine/types';
 import { presetDuNarratif } from '../monde/resolveursDuNarratif';
@@ -24,7 +24,7 @@ const presetPnjById = (id: string) => presetDuNarratif(banc.getState().campaignN
 
 /** Ids de PARTY pregen des 2 canonniers (Soldat + Chasseur) — chefs de pièce des pierriers de la barge amie.
  *  Couplage runtime `applyShipPostes` : ces ids ne changent PAS (ils réfèrent le groupe, pas la rencontre). */
-const GUNNER_IDS = [`pregen-${PREGEN.soldat}`, `pregen-${PREGEN.chasseur}`];
+const GUNNER_IDS: readonly string[] = [idDuPretire(PREGEN.soldat), idDuPretire(PREGEN.chasseur)];
 
 const scen = testScenarios.find((s) => s.id === 'combat-naval')!;
 const scenConstruit = scen.construire(idsDeTest);
