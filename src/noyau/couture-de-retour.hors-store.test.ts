@@ -152,7 +152,7 @@ describe('coutures du héros en combat (#2312)', () => {
   it('un effet en Rounds posé hors combat entre dans le combat avec ses Rounds restants (LDB 46 l.93)', () => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const base = effectiveChar(h, 'capacite-de-tir');
-    h.activeEffects = [{ label: 'Sort', char: 'capacite-de-tir', bonus: 10, duration: { scale: 'rounds', left: 3 } }];
+    h.activeEffects = [{ label: 'Sort', characteristic: 'capacite-de-tir', bonus: 10, duration: { scale: 'rounds', left: 3 } }];
     banc.setState({ battle: null, party: [h], pendingCascade: null, pendingRoundStart: null, journal: [] });
     banc.getState().startScene(testScene());
     banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true });

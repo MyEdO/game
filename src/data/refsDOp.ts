@@ -131,7 +131,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
 };
 
 /** Champ d'une op portant une RÉFÉRENCE de registre : `ds` = dataset où elle doit résoudre,
- *  `required` = l'op est inapplicable tant que rien n'est élu. Un champ à union FERMÉE (`char`,
+ *  `required` = l'op est inapplicable tant que rien n'est élu. Un champ à union FERMÉE (`characteristic`,
  *  `material`, `resource`, `level`…) n'en est pas une : TS y impose déjà l'un de ses N membres. `sauf` = le
  *  champ qui, posé, exclut la réf et la rend non requise (`endPsych.instance`). */
 export interface OpRefField { field: string; ds: DatasetKey; label: string; required: boolean; sauf?: string }

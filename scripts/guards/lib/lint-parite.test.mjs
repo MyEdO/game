@@ -550,7 +550,6 @@ test('murs/sujet-char : sous src, le sujet d’un Test ne reprend pas la clé `c
     ['src/noyau/parite-sujet-char-interface.ts',"export interface P {skillId?:string;'char'?:CharKey;difficulty:Difficulty}",1],
     ['src/engine/parite-sujet-char-union.ts',"export type D=({skill?:string;spec?:string;bonus:number}|{char:CharKey;bonus:number})[];",0],
     ['src/engine/parite-sujet-char-grammaire-type.ts',"export type T={skill?:string;characteristic?:CharKey;spec?:string};",0],
-    ['src/noyau/parite-sujet-char-caracteristique.ts',"export const op={op:'charMod',char:'force',mod:5};",0],
     ['src/noyau/parite-sujet-char-grammaire.ts',"export const t={skill:s,characteristic:c,difficulty:d};",0],
     ['src/noyau/parite-sujet-char-profil.ts',"export const t={skill:s,profil:{char:{force:30}}};",0],
     ['src/noyau/parite-sujet-char-motif.ts',"const {char,skill}=x; export const y=[char,skill];",0],

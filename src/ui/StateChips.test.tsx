@@ -25,7 +25,7 @@ describe('StateChips — pastilles de portrait', () => {
   it('État et buff informent par le MÊME mécanisme Codex que EffectChips', () => {
     const hero = mkHero((c) => {
       c.conditions = [cond('assourdi')];
-      c.activeEffects = [{ label: 'Bénédiction de courage', bonus: 10, char: 'capacite-de-combat', duration: { scale: 'rounds', left: 3 }, sourceSpellId: 'benediction-de-courage' } as ActiveEffect];
+      c.activeEffects = [{ label: 'Bénédiction de courage', bonus: 10, characteristic: 'capacite-de-combat', duration: { scale: 'rounds', left: 3 }, sourceSpellId: 'benediction-de-courage' } as ActiveEffect];
     });
     const html = renderToStaticMarkup(<StateChips c={hero} />);
     expect(html).not.toContain('title=');
@@ -170,7 +170,7 @@ describe('StateChips — rack d’alvéoles RÉSERVÉES (mode `reserve`)', () =>
  */
 describe('StateChips — effets posés par Caractéristique : UNE pastille comptée (#1117)', () => {
   const expo = (char: string): ActiveEffect =>
-    ({ label: 'Exposition (froid)', effectId: 'exposition-froid', char, bonus: -10, duration: { scale: 'permanent' } } as ActiveEffect);
+    ({ label: 'Exposition (froid)', effectId: 'exposition-froid', characteristic: char, bonus: -10, duration: { scale: 'permanent' } } as ActiveEffect);
 
   /** Les deux paliers du froid, tels que `applyExposureFailure` les pose (3 puis 7 caracs). */
   const deuxPaliers = ['capacite-de-tir', 'agilite', 'dexterite', 'capacite-de-combat', 'force', 'endurance', 'initiative', 'intelligence', 'force-mentale', 'sociabilite'].map(expo);
@@ -180,7 +180,7 @@ describe('StateChips — effets posés par Caractéristique : UNE pastille compt
     // se lisait −100 CT — mensonge. La pastille dit la PORTÉE réelle du bonus uniforme.
     const chip = summarizeEffects([], deuxPaliers, Infinity, combatantFlags(mkHero())).visible
       .find((v) => v.effectId === 'exposition-froid')!;
-    expect(chip.char, 'aucune carac unique pour un groupe hétérogène').toBeUndefined();
+    expect(chip.characteristic, 'aucune carac unique pour un groupe hétérogène').toBeUndefined();
     expect(chip.count, 'aucun ×N ambigu (il se lirait comme un cumul sur UNE carac)').toBeUndefined();
     expect(chip.charCount).toBe(10);
     expect(chipDetail(chip)).toBe('-10 sur 10 Caractéristiques');
@@ -192,29 +192,29 @@ describe('StateChips — effets posés par Caractéristique : UNE pastille compt
     const memeCarac = [expo('agilite'), expo('agilite'), expo('agilite')];
     const chip = summarizeEffects([], memeCarac, Infinity, combatantFlags(mkHero())).visible
       .find((v) => v.effectId === 'exposition-froid')!;
-    expect(chip.char).toBe('agilite');
+    expect(chip.characteristic).toBe('agilite');
     expect(chip.count).toBe(3);
     expect(chipDetail(chip)).toBe('-10 Agilité · ×3');
   });
 
   it('IVRESSE (malus multi-caracs, même `effectId`) : même forme honnête', () => {
     const ivre = (char: string, bonus: number) =>
-      ({ label: 'Ivresse', effectId: 'ivresse', char, bonus, duration: { scale: 'permanent' } } as ActiveEffect);
+      ({ label: 'Ivresse', effectId: 'ivresse', characteristic: char, bonus, duration: { scale: 'permanent' } } as ActiveEffect);
     const chip = summarizeEffects([], [ivre('agilite', -10), ivre('intelligence', -10), ivre('dexterite', -10)], Infinity, combatantFlags(mkHero())).visible
       .find((v) => v.effectId === 'ivresse')!;
-    expect(chip.char).toBeUndefined();
+    expect(chip.characteristic).toBeUndefined();
     expect(chipDetail(chip)).toBe('-10 sur 3 Caractéristiques');
   });
 
   it('bonus NON uniforme dans le groupe : aucun chiffre — l’identité seule (le détail vit au clic)', () => {
     const mixte = [
-      { label: 'Ivresse', effectId: 'ivresse', char: 'agilite', bonus: -10, duration: { scale: 'permanent' } } as ActiveEffect,
-      { label: 'Ivresse', effectId: 'ivresse', char: 'sociabilite', bonus: 10, duration: { scale: 'permanent' } } as ActiveEffect,
+      { label: 'Ivresse', effectId: 'ivresse', characteristic: 'agilite', bonus: -10, duration: { scale: 'permanent' } } as ActiveEffect,
+      { label: 'Ivresse', effectId: 'ivresse', characteristic: 'sociabilite', bonus: 10, duration: { scale: 'permanent' } } as ActiveEffect,
     ];
     const chip = summarizeEffects([], mixte, Infinity, combatantFlags(mkHero())).visible
       .find((v) => v.effectId === 'ivresse')!;
     expect(chip.bonus).toBeUndefined();
-    expect(chip.char).toBeUndefined();
+    expect(chip.characteristic).toBeUndefined();
     expect(chipDetail(chip)).toBe('');
   });
 
@@ -228,7 +228,7 @@ describe('StateChips — effets posés par Caractéristique : UNE pastille compt
   });
 
   it('deux effets DISTINCTS gardent chacun leur pastille (le regroupement ne fusionne pas tout)', () => {
-    const autre = { label: 'Bénédiction', effectId: 'benediction-bataille', char: 'capacite-de-combat', bonus: 10, duration: { scale: 'permanent' } } as ActiveEffect;
+    const autre = { label: 'Bénédiction', effectId: 'benediction-bataille', characteristic: 'capacite-de-combat', bonus: 10, duration: { scale: 'permanent' } } as ActiveEffect;
     const chips = summarizeEffects([], [...deuxPaliers, autre], Infinity, combatantFlags(mkHero())).visible;
     expect(chips.filter((v) => v.effectId === 'exposition-froid')).toHaveLength(1);
     expect(chips.filter((v) => v.effectId === 'benediction-bataille')).toHaveLength(1);

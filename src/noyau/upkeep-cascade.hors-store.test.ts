@@ -85,7 +85,7 @@ describe('#T3 — cascade d’horloge (maladies/convalescence/purge sur franchis
     const t0 = 12 * 60;
     const c = hero({});
     // Buff posé comme le ferait applyCast pour une durée « 1 heure » : durée d horloge (untilTime, sans sentinelle).
-    applyOps(c, [{ op: 'charMod', char: 'force', mod: 10 }], { rng: desDuTest,
+    applyOps(c, [{ op: 'charMod', characteristic: 'force', mod: 10 }], { rng: desDuTest,
       label: 'Tour de force', defaultUntilTime: t0 + 60,
     });
     banc.setState({ party: [c], gameTime: t0, lastUpkeepDay: 0 });

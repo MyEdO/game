@@ -263,7 +263,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
   // Bonus de caractéristique octroyé par une variante « swap » (Grand Loup +15 Soc, Griffon +20 Soc,
   // ZI) — appliqué sur la base (une carac. « – » = 0 devient la valeur du bonus).
   const swapGrants = swaps.flatMap((s) => s.grant);
-  for (const g of swapGrants) if ('char' in g) chars[g.char] += g.value;
+  for (const g of swapGrants) if ('characteristic' in g) chars[g.characteristic] += g.value;
   // Compétences/talents de la donnée (PNJ nommés : Eusapia, Horreurs…) — avances dérivées du profil IMPRIMÉ.
   // + compétences d'AUTEUR ajoutées (extras.skills : qualifier un servant de pièce pour le Groupe de
   // Projectiles de son engin, AA 10 l.142-146).

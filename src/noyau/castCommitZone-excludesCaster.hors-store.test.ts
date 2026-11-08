@@ -76,7 +76,7 @@ describe("castCommitZone — le lanceur dans sa propre Zone d'Effet", () => {
     const a = ally('ALLIE', 6, 5);
     setupBattle(c, [a, distantFoe()], 'regiment-monstrueux-de-merciw', false);
     castCommitZone(banc.getState, banc.setState, { x: 5, y: 5 });
-    expect(combatant('caster').activeEffects?.some((e) => e.char === 'force')).not.toBe(true);
-    expect(combatant('ALLIE').activeEffects?.some((e) => e.char === 'force')).toBe(true);
+    expect(combatant('caster').activeEffects?.some((e) => e.characteristic === 'force')).not.toBe(true);
+    expect(combatant('ALLIE').activeEffects?.some((e) => e.characteristic === 'force')).toBe(true);
   });
 });

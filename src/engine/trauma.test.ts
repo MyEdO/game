@@ -41,8 +41,8 @@ describe('traumaFromKind (LDB 18-Traumatisme)', () => {
   });
   it('Fracture Torse → F/Ag −30 + Mouvement ÷2', () => {
     const t = tk('fracture', 'majeur', 'corps');
-    expect(t.ops).toContainEqual({ op: 'charMod', char: 'force', mod: -30 });
-    expect(t.ops).toContainEqual({ op: 'charMod', char: 'agilite', mod: -30 });
+    expect(t.ops).toContainEqual({ op: 'charMod', characteristic: 'force', mod: -30 });
+    expect(t.ops).toContainEqual({ op: 'charMod', characteristic: 'agilite', mod: -30 });
     expect(t.ops?.some((o) => o.op === 'moveScale')).toBe(true);
     expect(t.label).toBe('Fracture (Majeure)');
   });
@@ -128,7 +128,7 @@ describe('Prothèses — annulation de la séquelle d’amputation de jambe (LDB
   });
 
   it('Nez doré annule le −20 Sociabilité de l’amputation du nez (charPenalty, LDB 73)', () => {
-    const nez: Trauma = { uid: 't1', label: 'Nez amputé', traumaId: 'nez-ampute', location: 'tete', ops: [{ op: 'charMod', char: 'sociabilite', mod: -20 }], prosthesis: [{ id: 'nez-dore', cancels: 'all' }] };
+    const nez: Trauma = { uid: 't1', label: 'Nez amputé', traumaId: 'nez-ampute', location: 'tete', ops: [{ op: 'charMod', characteristic: 'sociabilite', mod: -20 }], prosthesis: [{ id: 'nez-dore', cancels: 'all' }] };
     expect(traumaCharPenalties(fullCombatant({ traumas: [nez], items: [] }), 'sociabilite')).toEqual([-20]);
     expect(traumaCharPenalties(fullCombatant({ traumas: [nez], items: [item('nez-dore')] }), 'sociabilite')).toEqual([]);
   });
@@ -146,7 +146,7 @@ describe('consolidateAmputations — cumul doigts (l.251) & dents (l.247) ; pén
     expect(f.ops?.some((o) => o.op === 'charMod')).toBeFalsy(); // pénalité −5/doigt portée par amputationCombatPenalty
     const d = (c.traumas ?? []).find((t) => t.traumaId === 'dents-perdues')!;
     expect(d.count).toBe(3);
-    expect(d.ops).toContainEqual({ op: 'charMod', char: 'sociabilite', mod: -1 }); // floor(3/2) = 1 paire
+    expect(d.ops).toContainEqual({ op: 'charMod', characteristic: 'sociabilite', mod: -1 }); // floor(3/2) = 1 paire
   });
 
   it('deux pertes de doigts (même main) fusionnent en count 2, SANS charMod', () => {
@@ -183,18 +183,18 @@ describe('consolidateAmputations — escalade `ajoute` des organes pairés (LDB 
     const c = fullCombatant({ traumas: avecSequelles([], [eye()]) });
     expect(consolidateAmputations(c)).toHaveLength(0);
     expect((c.traumas ?? []).some((t) => t.traumaId === 'cecite')).toBe(false);
-    expect((c.traumas ?? []).find((t) => t.traumaId === 'oeil-perdu')!.ops).toContainEqual({ op: 'testMod', amount: -5, char: 'sociabilite' });
+    expect((c.traumas ?? []).find((t) => t.traumaId === 'oeil-perdu')!.ops).toContainEqual({ op: 'testMod', amount: -5, characteristic: 'sociabilite' });
   });
   it('deux yeux : Cécité EN PLUS de la séquelle comptée (−10 Soc pour 2 orbites) ; idempotent', () => {
     const c = fullCombatant({ traumas: avecSequelles([], [eye(), eye()]) });
     consolidateAmputations(c);
     const cec = (c.traumas ?? []).find((t) => t.traumaId === 'cecite')!;
     expect(cec.ops).toContainEqual({ op: 'skillMod', skill: { id: 'esquive' }, mod: -30 });
-    expect(cec.ops).toContainEqual({ op: 'testMod', amount: -30, char: 'capacite-de-combat' });
-    expect(cec.ops).toContainEqual({ op: 'testMod', amount: -30, char: 'capacite-de-tir' });
+    expect(cec.ops).toContainEqual({ op: 'testMod', amount: -30, characteristic: 'capacite-de-combat' });
+    expect(cec.ops).toContainEqual({ op: 'testMod', amount: -30, characteristic: 'capacite-de-tir' });
     const yeux = (c.traumas ?? []).find((t) => t.traumaId === 'oeil-perdu')!;
     expect(yeux.count).toBe(2);
-    expect(yeux.ops).toContainEqual({ op: 'testMod', amount: -10, char: 'sociabilite' });
+    expect(yeux.ops).toContainEqual({ op: 'testMod', amount: -10, characteristic: 'sociabilite' });
     expect(consolidateAmputations(c)).toHaveLength(0); // pas de doublon
     expect((c.traumas ?? []).filter((t) => t.traumaId === 'cecite')).toHaveLength(1);
   });

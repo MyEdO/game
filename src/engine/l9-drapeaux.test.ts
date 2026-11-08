@@ -44,7 +44,7 @@ describe('activeFlags — drapeaux portés par un ActiveEffect (Jalon 2.6 L9)', 
     const c = mk();
     c.activeEffects = [
       { label: 'Bénédiction de Chance', bonus: 0, duration: { scale: 'rounds', left: 6 }, freeReroll: true },
-      { label: 'Autre buff', bonus: 10, char: 'capacite-de-combat', duration: { scale: 'rounds', left: 6 } },
+      { label: 'Autre buff', bonus: 10, characteristic: 'capacite-de-combat', duration: { scale: 'rounds', left: 6 } },
     ];
     expect(consumeActiveFlag(c, 'freeReroll')).toBe('Bénédiction de Chance');
     expect(c.activeEffects).toHaveLength(1);

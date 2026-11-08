@@ -211,7 +211,7 @@ describe('Gate d’Action par Round (combat/turnHooks) — canal COMBAT « Test 
   it('base = valeur de Test de combat BRUTE, la pénalité d’États est comptée UNE fois et nommée', () => {
     const porteur = hero({
       id: 'po', label: 'Porteur', conditions: ETAT,
-      activeEffects: [{ id: 'racine', label: 'Racine de mandragore', actGate: { char: 'force-mentale' } }] as never,
+      activeEffects: [{ id: 'racine', label: 'Racine de mandragore', actGate: { characteristic: 'force-mentale' } }] as never,
     });
     setBattle([porteur], 'po');
 

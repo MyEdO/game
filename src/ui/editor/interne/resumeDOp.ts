@@ -67,10 +67,10 @@ export function opSummary(o: GameOp): string {
     case 'beginPsych': return `${libelleDePsy(o.type.id, o.cible && cibleDeRef(o.cible))}${o.indice != null ? ` ${formulaSummary(o.indice)}` : ''}`;
     case 'sbBonus': return `+${o.amount} au Bonus de Force`;
     case 'incomingSpellDRMod': return `${typeof o.amount === 'number' && o.amount >= 0 ? '+' : ''}${formulaSummary(o.amount)} DR de Sort / point`;
-    case 'charMod': return [`${o.mod >= 0 ? '+' : ''}${o.mod} ${CHAR_LABELS[o.char]}`, plancher(o), dureePropre(o)].filter(Boolean).join(', ');
+    case 'charMod': return [`${o.mod >= 0 ? '+' : ''}${o.mod} ${CHAR_LABELS[o.characteristic]}`, plancher(o), dureePropre(o)].filter(Boolean).join(', ');
     case 'skillMod': return `${o.mod >= 0 ? '+' : ''}${o.mod} ${refLabel('skills', o.skill)}`;
     case 'skillDRBonus': return `+${formulaSummary(o.bonus)} DR ${o.skill ? refOuChoix('skills', o.skill, 'compétence') : o.testType ? (findCrewTestTypeById(o.testType)?.label ?? o.testType) : '— compétence ou test à choisir —'}`;
-    case 'charDRBonus': return `+${formulaSummary(o.bonus)} DR ${CHAR_LABELS[o.char]}`;
+    case 'charDRBonus': return `+${formulaSummary(o.bonus)} DR ${CHAR_LABELS[o.characteristic]}`;
     case 'crewTestMod': return `${o.mod >= 0 ? '+' : ''}${o.mod} (Tests d’équipage)`;
     case 'fall': return `hauteur lue dans « ${findFallTable(o.hauteur.table.id)?.label ?? (o.hauteur.table.id || '— table à choisir —')} »`;
     case 'moveMod': return `${o.mod >= 0 ? '+' : ''}${o.mod} Mouvement`;
@@ -78,7 +78,7 @@ export function opSummary(o: GameOp): string {
     case 'offTerrainMod': return `hors ${terrainLabel(o.terrain)}${o.mSet != null ? ` : M ${o.mSet}` : ''}${o.testDR ? `, ${o.testDR} DR aux Tests` : ''}${o.suffocates ? ', suffoque' : ''}`;
     case 'attrMod': return `+${formulaSummary(o.mod)} ${({ wounds: 'Blessures', fortune: 'Chance', resolve: 'Détermination', fate: 'Destin', resilience: 'Résilience' } as const)[o.attr]}`;
     case 'ap': return `${typeof o.amount === 'number' && o.amount < 0 ? '' : '+'}${formulaSummary(o.amount)} PA${o.loc ? ` (${o.loc})` : ''}`;
-    case 'testMod': return `${o.amount >= 0 ? '+' : ''}${o.amount} aux Tests${o.char ? ` de ${CHAR_LABELS[o.char]}` : ''}`;
+    case 'testMod': return `${o.amount >= 0 ? '+' : ''}${o.amount} aux Tests${o.characteristic ? ` de ${CHAR_LABELS[o.characteristic]}` : ''}`;
     case 'ignoreStatePenalties': return 'ignore les pénalités d’État';
     case 'freeReroll': return 'relance gratuite';
     case 'critTwice': return 'deux lancers de Critique';
@@ -125,7 +125,7 @@ export function opSummary(o: GameOp): string {
     case 'aggravateSymptom': return `${refLabel('symptoms', { id: o.symptomId })} → ${o.severity} (${refLabel('maladies', { id: o.disease })})`;
     case 'attenuateSymptom': return `${refLabel('symptoms', { id: o.symptomId })} → échelon inférieur (${refLabel('maladies', { id: o.disease })})`;
     case 'grantSymptom': return `+ ${refLabel('symptoms', { id: o.symptomId })} (${refLabel('maladies', { id: o.disease })})`;
-    case 'actGate': return `Test de ${CHAR_LABELS[o.char]} chaque Round pour agir`;
+    case 'actGate': return `Test de ${CHAR_LABELS[o.characteristic]} chaque Round pour agir`;
     case 'delayed': return `${o.ops.length} op(s) différée(s)${o.afterDuration ? ' (à la dissipation)' : ''}`;
     case 'preventInfection': return 'pas d’infection';
     case 'aideMedicale': return 'Aide Médicale';

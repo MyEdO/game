@@ -164,7 +164,7 @@ export function applyExposureFailure(c: Combatant, failures: number, rng: RNG, k
   const effectId = kind === 'froid' ? 'exposition-froid' : 'exposition-chaleur';
   if (failures <= 2) {
     for (const k of (failures === 1 ? FIRST_FAIL : SECOND_FAIL)[kind]) {
-      applyActiveEffect(c, { label, effectId, char: k, bonus: -10, duration: { scale: 'permanent' }, expiresOnRespite: true });
+      applyActiveEffect(c, { label, effectId, characteristic: k, bonus: -10, duration: { scale: 'permanent' }, expiresOnRespite: true });
     }
     if (kind === 'chaleur') addCondition(c, 'extenue'); // « vous gagnez un État Exténué » (1ᵉʳ ET 2ᵉ échec, l.330)
     log.push(kind === 'froid'

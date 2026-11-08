@@ -1097,12 +1097,12 @@
           },
           {
             "op": "charMod",
-            "char": "force",
+            "characteristic": "force",
             "mod": -30
           },
           {
             "op": "charMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "mod": -30
           }
         ],
@@ -4101,7 +4101,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 2
             }
@@ -4148,7 +4148,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 1
             }
@@ -4202,7 +4202,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 2
             }
@@ -4249,7 +4249,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 1
             }
@@ -4502,7 +4502,7 @@
         "recoveryPenalty": [
           {
             "op": "testMod",
-            "char": "capacite-de-combat",
+            "characteristic": "capacite-de-combat",
             "amount": -10
           }
         ]
@@ -4567,7 +4567,7 @@
         "recoveryPenalty": [
           {
             "op": "testMod",
-            "char": "capacite-de-combat",
+            "characteristic": "capacite-de-combat",
             "amount": -10
           }
         ]
@@ -4633,12 +4633,12 @@
           },
           {
             "op": "charMod",
-            "char": "force",
+            "characteristic": "force",
             "mod": -30
           },
           {
             "op": "charMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "mod": -30
           }
         ],
@@ -4692,7 +4692,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 2
             }
@@ -4777,7 +4777,7 @@
         "recoveryPenalty": [
           {
             "op": "testMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "amount": -10,
             "movementOnly": true
           },
@@ -4832,7 +4832,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 2
             }
@@ -4917,7 +4917,7 @@
         "recoveryPenalty": [
           {
             "op": "testMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "amount": -10,
             "movementOnly": true
           },
@@ -5199,7 +5199,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -10,
         "durationRounds": {
           "dice": {
@@ -5274,7 +5274,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -10,
         "durationRounds": {
           "dice": {
@@ -6316,12 +6316,12 @@
           },
           {
             "op": "charMod",
-            "char": "force",
+            "characteristic": "force",
             "mod": -30
           },
           {
             "op": "charMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "mod": -30
           }
         ],
@@ -6367,12 +6367,12 @@
           },
           {
             "op": "charMod",
-            "char": "force",
+            "characteristic": "force",
             "mod": -30
           },
           {
             "op": "charMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "mod": -30
           }
         ],
@@ -6457,7 +6457,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -20,
         "durationRounds": {
           "dice": {
@@ -6544,7 +6544,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -20,
         "durationRounds": {
           "dice": {
@@ -6660,7 +6660,7 @@
         "recoveryPenalty": [
           {
             "op": "testMod",
-            "char": "capacite-de-combat",
+            "characteristic": "capacite-de-combat",
             "amount": -10
           }
         ]
@@ -6725,7 +6725,7 @@
         "recoveryPenalty": [
           {
             "op": "testMod",
-            "char": "capacite-de-combat",
+            "characteristic": "capacite-de-combat",
             "amount": -10
           }
         ]
@@ -6791,12 +6791,12 @@
           },
           {
             "op": "charMod",
-            "char": "force",
+            "characteristic": "force",
             "mod": -30
           },
           {
             "op": "charMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "mod": -30
           }
         ],
@@ -6850,7 +6850,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 2
             }
@@ -7038,7 +7038,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 2
             }
@@ -8713,7 +8713,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -10,
         "durationRounds": {
           "dice": {
@@ -8765,7 +8765,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -10,
         "durationRounds": {
           "dice": {
@@ -8959,7 +8959,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -20,
         "durationRounds": {
           "dice": {
@@ -8999,7 +8999,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -20,
         "durationRounds": {
           "dice": {
@@ -10141,7 +10141,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -10,
         "durationRounds": {
           "dice": {
@@ -10305,7 +10305,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -10,
         "durationRounds": {
           "dice": {
@@ -10699,7 +10699,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 2
             }
@@ -10746,7 +10746,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 1
             }
@@ -10800,7 +10800,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 2
             }
@@ -10847,7 +10847,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 1
             }
@@ -11399,7 +11399,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -20,
         "durationRounds": {
           "dice": {
@@ -11486,7 +11486,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -20,
         "durationRounds": {
           "dice": {
@@ -11738,7 +11738,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -20,
         "durationRounds": {
           "dice": {
@@ -11778,7 +11778,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -20,
         "durationRounds": {
           "dice": {
@@ -12048,7 +12048,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 2
             }
@@ -12095,7 +12095,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 1
             }
@@ -12149,7 +12149,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 2
             }
@@ -12196,7 +12196,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 1
             }
@@ -12636,7 +12636,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -10,
         "durationRounds": {
           "dice": {
@@ -12799,7 +12799,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -10,
         "durationRounds": {
           "dice": {
@@ -14544,7 +14544,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -20,
         "durationRounds": {
           "dice": {
@@ -14631,7 +14631,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -20,
         "durationRounds": {
           "dice": {
@@ -15558,7 +15558,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -10,
         "durationRounds": {
           "dice": {
@@ -15610,7 +15610,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -10,
         "durationRounds": {
           "dice": {
@@ -17097,7 +17097,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -10,
         "durationRounds": {
           "dice": {
@@ -17261,7 +17261,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -10,
         "durationRounds": {
           "dice": {
@@ -18263,7 +18263,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -20,
         "durationRounds": {
           "dice": {
@@ -18303,7 +18303,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -20,
         "durationRounds": {
           "dice": {
@@ -18567,7 +18567,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 2
             }
@@ -18614,7 +18614,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 1
             }
@@ -18668,7 +18668,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 2
             }
@@ -18715,7 +18715,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 1
             }
@@ -18916,7 +18916,7 @@
         "recoveryPenalty": [
           {
             "op": "testMod",
-            "char": "capacite-de-combat",
+            "characteristic": "capacite-de-combat",
             "amount": -10
           }
         ]
@@ -19014,7 +19014,7 @@
         "recoveryPenalty": [
           {
             "op": "testMod",
-            "char": "capacite-de-combat",
+            "characteristic": "capacite-de-combat",
             "amount": -10
           }
         ]
@@ -19102,12 +19102,12 @@
           },
           {
             "op": "charMod",
-            "char": "force",
+            "characteristic": "force",
             "mod": -30
           },
           {
             "op": "charMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "mod": -30
           }
         ],
@@ -19630,12 +19630,12 @@
           },
           {
             "op": "charMod",
-            "char": "force",
+            "characteristic": "force",
             "mod": -30
           },
           {
             "op": "charMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "mod": -30
           }
         ],
@@ -19681,12 +19681,12 @@
           },
           {
             "op": "charMod",
-            "char": "force",
+            "characteristic": "force",
             "mod": -30
           },
           {
             "op": "charMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "mod": -30
           }
         ],
@@ -19771,7 +19771,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -20,
         "durationRounds": {
           "dice": {
@@ -19858,7 +19858,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -20,
         "durationRounds": {
           "dice": {
@@ -20107,12 +20107,12 @@
           },
           {
             "op": "charMod",
-            "char": "force",
+            "characteristic": "force",
             "mod": -30
           },
           {
             "op": "charMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "mod": -30
           }
         ],
@@ -20518,7 +20518,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 2
             }
@@ -20565,7 +20565,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 1
             }
@@ -20619,7 +20619,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 2
             }
@@ -20666,7 +20666,7 @@
           "ops": [
             {
               "op": "charMod",
-              "char": "agilite",
+              "characteristic": "agilite",
               "mod": -10,
               "durationRounds": 1
             }
@@ -20859,7 +20859,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -20,
         "durationRounds": {
           "dice": {
@@ -20899,7 +20899,7 @@
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -20,
         "durationRounds": {
           "dice": {

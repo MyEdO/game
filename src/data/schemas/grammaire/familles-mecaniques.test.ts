@@ -45,8 +45,8 @@ const noeud = (file: string, champ: string): z.ZodType => {
   return n;
 };
 
-const plancher = { op: 'charMod', char: 'intelligence', mod: -40, min: 10 };
-const sansPlancher = { op: 'charMod', char: 'intelligence', mod: -40 };
+const plancher = { op: 'charMod', characteristic: 'intelligence', mod: -40, min: 10 };
+const sansPlancher = { op: 'charMod', characteristic: 'intelligence', mod: -40 };
 const effetPortant = (op: unknown) => [{ trigger: 'onDayStart', on: 'self', flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [op] } } }];
 
 describe('champ RÉSERVÉ au porteur — `charMod.min`, plancher de mutation (EDO 11 l.190 ; #1853)', () => {

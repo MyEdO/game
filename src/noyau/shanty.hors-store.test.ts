@@ -52,7 +52,7 @@ describe('Vocabulaire des chansons (ops génériques → ActiveEffect)', () => {
 
   it('charDRBonus Soc (« Camarades d’équipage », l.236) → charDRBonusOf', () => {
     const c = mk('m3');
-    applyOps(c, [{ op: 'charDRBonus', char: 'sociabilite', bonus: 1 }], { label: 'Chanson', rng: makeRNG(1), defaultUntilTime: 100 });
+    applyOps(c, [{ op: 'charDRBonus', characteristic: 'sociabilite', bonus: 1 }], { label: 'Chanson', rng: makeRNG(1), defaultUntilTime: 100 });
     expect(charDRBonusOf(c, 'sociabilite')).toBe(1);
     expect(charDRBonusOf(c, 'force-mentale')).toBe(0);
   });
@@ -140,7 +140,7 @@ describe('Flux « Chanson de marin » (Talent, MDG 09 l.32-40)', () => {
       expect((c.activeEffects ?? []).every((e) => e.effectId === shantyId)).toBe(true);
     }
     // DÉCOY : effet ÉTRANGER dont le LIBELLÉ collisionne avec celui de la chanson mais SANS le bon effectId.
-    marinC.activeEffects = [...(marinC.activeEffects ?? []), { label, bonus: 3, char: 'force-mentale', duration: { scale: 'permanent' } } as never];
+    marinC.activeEffects = [...(marinC.activeEffects ?? []), { label, bonus: 3, characteristic: 'force-mentale', duration: { scale: 'permanent' } } as never];
     endShanty(banc.getState, bard);
     expect((marinC.activeEffects ?? []).some((e) => e.label === label && e.bonus === 3)).toBe(true); // le décoy survit
     expect((marinC.activeEffects ?? []).some((e) => e.effectId === shantyId)).toBe(false); // le vrai effet de chant est parti

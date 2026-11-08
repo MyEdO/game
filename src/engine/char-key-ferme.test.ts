@@ -25,7 +25,7 @@ describe('CharKey fermé — les tokens courts ne s’écrivent pas (#311, #2724
     // @ts-expect-error TS7053
     const index = base['Soc'];
     // @ts-expect-error TS2322
-    const champ: { char: CharKey } = { char: 'Ag' };
+    const champ: { characteristic: CharKey } = { characteristic: 'Ag' };
     expect([cle, acces, index, champ]).toHaveLength(4);
   });
 
@@ -64,8 +64,8 @@ const creature = (champs: Record<string, unknown>) => [{
 describe('les champs de donnée qui nomment une Caractéristique refusent le token court (#2724)', () => {
   const cas: { nom: string; schema: { safeParse(v: unknown): { success: boolean; error?: { issues: unknown[] } } }; fixture: (carac: string) => unknown }[] = [
     { nom: 'creatures.char', schema: creaturesSchema, fixture: (carac) => creature({ char: { [carac]: 30 } }) },
-    { nom: 'creatures.optionals[].grant[].char', schema: creaturesSchema,
-      fixture: (carac) => creature({ optionals: [{ note: 'swap', label: 'Octroi fixture', remove: [], grant: [{ char: carac, value: 15 }] }] }) },
+    { nom: 'creatures.optionals[].grant[].characteristic', schema: creaturesSchema,
+      fixture: (carac) => creature({ optionals: [{ note: 'swap', label: 'Octroi fixture', remove: [], grant: [{ characteristic: carac, value: 15 }] }] }) },
     { nom: 'activities.tests[].characteristic', schema: activitiesSchema,
       fixture: (carac) => [{ id: 'activite-fixture', type: 'activities', label: 'Activité fixture', icon: 'nav/rest', contexts: ['voyage'], tests: [{ characteristic: carac }], source: SOURCE }] },
     { nom: 'miscast.entries[].test.test.characteristic', schema: miscastSchema,

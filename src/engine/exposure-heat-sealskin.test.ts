@@ -21,7 +21,7 @@ describe('applyExposureFailure — volet CHALEUR (LDB 18 l.330)', () => {
   it('1er échec : −10 Int/FM + 1 Exténué', () => {
     const c = dummy({});
     applyExposureFailure(c, 1, makeRNG(1), 'chaleur');
-    const chars = (c.activeEffects ?? []).map((e) => e.char).sort();
+    const chars = (c.activeEffects ?? []).map((e) => e.characteristic).sort();
     expect(chars).toEqual(['force-mentale', 'intelligence']);
     expect((c.conditions ?? []).some((x) => x.id === 'extenue')).toBe(true);
   });

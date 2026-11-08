@@ -132,7 +132,7 @@ export function traumaFicheById(id: string): TraumaFiche {
 function traumaOps(t: Trauma): OpPassive[] {
   return t.ops ?? [];
 }
-/** Filtre typé d'une liste d'ops par type d'op (narrowing — `.char`/`.skill`/`.hands` accessibles). */
+/** Filtre typé d'une liste d'ops par type d'op (narrowing — `.characteristic`/`.skill`/`.hands` accessibles). */
 function opsOfType<K extends GameOp['op']>(ops: GameOp[], op: K): Extract<GameOp, { op: K }>[] {
   return ops.filter((o): o is Extract<GameOp, { op: K }> => o.op === op);
 }
@@ -269,7 +269,7 @@ function fractureSequela(severity: string, location: HitLocation, shape?: BodySh
   const pen = severity === 'majeur' ? -10 : -5;
   const label = tr('tra.fractureSequelaLabel', { loc: locationLabel(location, shape) });
   if (location === 'tete') return { label, location, ops: [{ op: 'skillMod', skill: { id: 'langue' }, mod: pen }], desc: traumaFicheById('fracture-mal-ressoudee-tete').desc };
-  return { label, location, ops: [{ op: 'charMod', char: 'agilite', mod: pen }], desc: traumaFicheById('fracture-mal-ressoudee-membre').desc };
+  return { label, location, ops: [{ op: 'charMod', characteristic: 'agilite', mod: pen }], desc: traumaFicheById('fracture-mal-ressoudee-membre').desc };
 }
 
 /** Difficulté du Test de fin de fracture (LDB 18 l.202/212) selon la sévérité. */
@@ -441,7 +441,7 @@ function sequelleEffet(f: TraumaFiche): string {
   const parMod = new Map<number, string[]>();
   const autres: string[] = [];
   for (const o of f.ops ?? []) {
-    if (o.op === 'charMod') parMod.set(o.mod, [...(parMod.get(o.mod) ?? []), CHAR_LABELS[o.char]]);
+    if (o.op === 'charMod') parMod.set(o.mod, [...(parMod.get(o.mod) ?? []), CHAR_LABELS[o.characteristic]]);
     else if (o.op === 'skillMod') parMod.set(o.mod, [...(parMod.get(o.mod) ?? []), refLabel('skills', o.skill)]);
     else if (o.op === 'moveScale') autres.push(tr('tra.effetMouvement'));
     else if (o.op === 'maxWeaponHands') autres.push(tr('tra.effetUneMain'));
@@ -691,7 +691,7 @@ function armLocationHand(loc: HitLocation): 'main' | 'off' | undefined {
 
 /** Usage du membre RÉCUPÉRÉ (Test étendu de Guérison atteint) : retire la séquelle « membre désactivé »
  *  d'`uid` donné parmi `recoverableTraumas` (sans `uid` : la première) et renvoie ses `recoveryPenalty` (posées par l'appelant via
- *  `applyOps`, avec une durée d'horloge partagée 1d10 jours) + le journal. #193 : un `testMod{char:'capacite-de-combat'}`
+ *  `applyOps`, avec une durée d'horloge partagée 1d10 jours) + le journal. #193 : un `testMod{characteristic:'capacite-de-combat'}`
  *  de la `recoveryPenalty` (même donnée pour brasD/brasG) est ICI scopé à la main RÉELLE du membre — portée
  *  MEMBRE (« Tests effectués avec ce bras ») au lieu d'un `charMod` global historique. */
 export function recoverDisabledLimb(c: Combatant, uid?: string): { penalty: import('./ops').GameOp[]; log: string[] } {
@@ -700,7 +700,7 @@ export function recoverDisabledLimb(c: Combatant, uid?: string): { penalty: impo
   if (!t) return { penalty: [], log: [tr('tra.noLimbToRehab', { name: c.label })] };
   c.traumas = (c.traumas ?? []).filter((x) => x !== t);
   const hand = armLocationHand(t.location);
-  const penalty = (t.recoveryPenalty ?? []).map((o) => (hand && o.op === 'testMod' && o.char === 'capacite-de-combat' ? { ...o, weaponHand: hand } : { ...o }));
+  const penalty = (t.recoveryPenalty ?? []).map((o) => (hand && o.op === 'testMod' && o.characteristic === 'capacite-de-combat' ? { ...o, weaponHand: hand } : { ...o }));
   return { penalty, log: [tr('tra.limbRestored', { name: c.label, label: t.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) })] };
 }
 
@@ -931,7 +931,7 @@ function modSurvives(c: Combatant, kind: PassiveKind, t?: Trauma): boolean {
  *  - séquelle : `kind` dérivé du type d'op (`traumaOpKind`) ;
  *  - sort (ActiveEffect) : kind `magique` (expire, non annulable) ;
  *  - à terme trait/mutation/objet : poussent leurs `PassiveMod` (kind explicite) au point d'extension.
- * Le charMod de SORT reste lu par effectiveChar (e.char/e.bonus) → non émis ici (pas de double comptage).
+ * Le charMod de SORT reste lu par effectiveChar (e.characteristic/e.bonus) → non émis ici (pas de double comptage).
  */
 /** Multiplie la magnitude d'une op d'État par le nombre de pions (perStack — Exténué −10/pion). Seul
  *  `testMod` (la pénalité par pion) est concerné aujourd'hui ; les autres ops d'État ne sont pas perStack. */
@@ -975,15 +975,15 @@ export function passiveMods(c: Combatant): PassiveMod[] {
   }
   const faim = { kind: 'faim' as const, src: RULE_REF['faim-et-soif'] };
   if (c.hunger && modSurvives(c, 'faim')) {
-    for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of hungerCharPenalties(c, key)) out.push({ op: { op: 'charMod', char: key, mod }, ...faim });
+    for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of hungerCharPenalties(c, key)) out.push({ op: { op: 'charMod', characteristic: key, mod }, ...faim });
   }
   if (c.thirst && modSurvives(c, 'faim')) { // Soif (LDB 18 l.340) : même privation (kind `faim` — « Plus besoin de manger/boire »)
-    for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of thirstCharPenalties(c, key)) out.push({ op: { op: 'charMod', char: key, mod }, ...faim });
+    for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of thirstCharPenalties(c, key)) out.push({ op: { op: 'charMod', characteristic: key, mod }, ...faim });
   }
   // Ivresse (LDB 09 l.475) : kind `ivresse`. Gaté à la
   // SOURCE par la Détermination : « ignorer les modificateurs négatifs de l'ivresse » (flag `drunkIgnore`).
   if (c.drunk && !hasActiveFlag(c, 'drunkIgnore')) {
-    for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of drunkCharPenalties(c, key)) out.push({ op: { op: 'charMod', char: key, mod }, kind: 'ivresse', label: tr('tra.kindIvresse'), src: { category: 'skills', id: 'resistance-a-l-alcool' } });
+    for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of drunkCharPenalties(c, key)) out.push({ op: { op: 'charMod', characteristic: key, mod }, kind: 'ivresse', label: tr('tra.kindIvresse'), src: { category: 'skills', id: 'resistance-a-l-alcool' } });
   }
   // États (LDB 16) : leur `passive: OpPassive[]` (pénalité de Test → `testMod`, bonus à l'attaquant →
   // `incomingAttackMod`, échelle de Mouvement…) émis kind `etat` (pool NON-CUMUL, le pire seul, LDB 16 l.13).
@@ -1070,7 +1070,7 @@ export function sommeAttrMods(mods: readonly PassiveMod[], attr: 'wounds' | 'for
 /** Σ des `charMod` ADDITIFS (mutation/qualité, kind `intrinseque`) pour la Caractéristique `key` — sommés
  *  dans la BASE par `effectiveChar` (un corps transformé n'est pas un bonus magique : hors pool des Sorts). */
 export function passiveCharSum(c: Combatant, key: CharKey): number {
-  return pmods(c, 'charMod', true).filter((o) => o.char === key).reduce((s, o) => s + o.mod, 0);
+  return pmods(c, 'charMod', true).filter((o) => o.characteristic === key).reduce((s, o) => s + o.mod, 0);
 }
 
 /** Σ de TOUS les `moveMod` (modif ADDITIVE de Mouvement — mutation `intrinseque` + sort `magique`), additifs
@@ -1092,13 +1092,13 @@ export function passiveSkillSum(c: Combatant, skill?: string): number {
   return passiveSkillParts(c, skill).reduce((s, m) => s + (m.op as Extract<GameOp, { op: 'skillMod' }>).mod, 0);
 }
 
-/** Modificateurs de TEST char-qualifiés PASSIFS (`testMod{char}`) pour la Caractéristique `charKey` — mutation
+/** Modificateurs de TEST char-qualifiés PASSIFS (`testMod{characteristic}`) pour la Caractéristique `charKey` — mutation
  *  (Visage inversé −20 Soc), objet (Laid), symptôme (Fièvre, LDB 20 l.170), séquelle (Cécité, LDB 18 l.273).
  *  N'altèrent PAS la Caractéristique (≠ charMod, donc hors stats dérivées) : sommés au seul Test
  *  (LDB 14 l.95). Hors les pools États (LDB 16 l.13) et Sorts (LDB 46 l.119). Lus par `testValue` et
  *  `combatValueModParts`. */
 export function passiveTestModParts(c: Combatant, charKey: CharKey): PassiveMod[] {
-  return passiveMods(c).filter((m) => m.op.op === 'testMod' && m.op.char === charKey && m.kind !== 'etat' && m.kind !== 'magique');
+  return passiveMods(c).filter((m) => m.op.op === 'testMod' && m.op.characteristic === charKey && m.kind !== 'etat' && m.kind !== 'magique');
 }
 
 /** Σ de `passiveTestModParts` — SOURCE UNIQUE (l'affichage et le jet lisent les mêmes composantes). */
@@ -1106,7 +1106,7 @@ export function passiveTestMod(c: Combatant, charKey: CharKey): number {
   return passiveTestModParts(c, charKey).reduce((s, m) => s + (m.op as Extract<GameOp, { op: 'testMod' }>).amount, 0);
 }
 
-/** Les `testMod` GLOBAUX (sans `char`) portés par les MALADIES actives (kind `maladie`), UN PAR
+/** Les `testMod` GLOBAUX (sans `characteristic`) portés par les MALADIES actives (kind `maladie`), UN PAR
  *  symptôme émetteur — pénalité « −N à TOUS les Tests » (Crampes abdominales −20, MSRC 16 l.152). NON
  *  exprimable en `charMod` (qui fausserait les stats DÉRIVÉES — SB/BE/Mouvement/PB max). Additive et
  *  CUMULATIVE avec les États (les maladies ne sont pas dans le pool non-cumul des États, LDB 16 l.13) ;
@@ -1115,7 +1115,7 @@ export function passiveTestMod(c: Combatant, charKey: CharKey): number {
  *  (`combatTestPenaltyParts`, conditions.ts) : le `src` de chaque `PassiveMod` porte le symptôme. */
 export function passiveGlobalTestParts(c: Combatant): PassiveMod[] {
   return passiveMods(c)
-    .filter((m) => m.kind === 'maladie' && m.op.op === 'testMod' && (m.op as Extract<GameOp, { op: 'testMod' }>).char == null);
+    .filter((m) => m.kind === 'maladie' && m.op.op === 'testMod' && (m.op as Extract<GameOp, { op: 'testMod' }>).characteristic == null);
 }
 
 /** Σ de `passiveGlobalTestParts`. Consommée par `testStatePenalty`/`combatTestPenalty` (conditions.ts),
@@ -1151,7 +1151,7 @@ export function passivePartLine(m: PassiveMod, amount: number): { label: string;
  *  jusqu'à la modale d'attaque (`volatileCharLines`). Source UNIQUE : `traumaCharPenalties` en dérive. */
 export function traumaCharPenaltiesLabeled(c: Combatant, key: CharKey): { kind: PassiveKind; label: string; mod: number; ref?: CodexTarget; src?: CodexTarget }[] {
   return passiveMods(c)
-    .filter((m) => m.op.op === 'charMod' && !isAdditiveKind(m.kind) && m.op.char === key && m.op.mod < 0)
+    .filter((m) => m.op.op === 'charMod' && !isAdditiveKind(m.kind) && m.op.characteristic === key && m.op.mod < 0)
     .map((m) => {
       const kind = m.kind ?? 'intrinseque';
       const mod = (m.op as Extract<GameOp, { op: 'charMod' }>).mod;

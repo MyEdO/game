@@ -1,4 +1,4 @@
-import { nommerChamps, metaDesChamps, type MetaDesChamps } from './meta';
+import { nommerChamps, nommerNoeud, metaDesChamps, type MetaDesChamps } from './meta';
 /**
  * VALEURS de la grammaire de document (#1466 L1a) — les types de VALEUR partagés par tout document
  * de l'application : source, dés, formule, difficulté, caractéristique, localisation, apparence,
@@ -640,6 +640,13 @@ export const charKeySchema = z.enum([
   'capacite-de-combat', 'capacite-de-tir', 'force', 'endurance', 'initiative', 'agilite', 'dexterite',
   'intelligence', 'force-mentale', 'sociabilite',
 ]);
+
+/** Une Caractéristique et sa valeur IMPRIMÉE (`SwapGrant`, `src/engine/statEntry.ts`) : l'octroi d'une
+ *  variante « swap » (ZI 1 l.229). */
+export const caracteristiqueChiffreeSchema = nommerChamps(
+  z.strictObject({ characteristic: charKeySchema, value: nommerNoeud(z.number(), { nom: 'valeur' }) }),
+  { characteristic: { label: 'caractéristique' }, value: { label: 'valeur' } },
+);
 
 /**
  * Clés d'un PROFIL chiffré : les 10 Caractéristiques ∪ `M` (Déplacement) ∪ `B` (Blessures) — la

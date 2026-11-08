@@ -36,7 +36,7 @@ export const ATTACK_KIND_LABELS: Record<string, string> = valeursDe(attackKindSc
 /** Libellé du SUJET/valeur d'une comparaison : donnée fixe, valeur d'un État nommé, ou Caractéristique. */
 const subjectLabel = (s: CompareSubject): string =>
   'condition' in s ? `État « ${s.condition || '?'} »`
-    : 'char' in s ? `Carac. ${s.char}${s.bonus ? ' (Bonus)' : ''}`
+    : 'characteristic' in s ? `Carac. ${s.characteristic}${s.bonus ? ' (Bonus)' : ''}`
       : libelleDeValeur(actorFieldSchema, s.field);
 
 const pad = (n?: number) => (n == null ? '··' : String(n).padStart(2, '0'));

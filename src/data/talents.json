@@ -60,7 +60,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "sociabilite",
+        "characteristic": "sociabilite",
         "mod": 5
       }
     ]
@@ -1433,7 +1433,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "dexterite",
+        "characteristic": "dexterite",
         "mod": 5
       }
     ]
@@ -2293,7 +2293,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "capacite-de-combat",
+        "characteristic": "capacite-de-combat",
         "mod": 5
       }
     ]
@@ -2465,7 +2465,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "force-mentale",
+        "characteristic": "force-mentale",
         "mod": 5
       }
     ]
@@ -3773,7 +3773,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "intelligence",
+        "characteristic": "intelligence",
         "mod": 5
       }
     ]
@@ -4045,7 +4045,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": 5
       }
     ]
@@ -4995,7 +4995,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "capacite-de-tir",
+        "characteristic": "capacite-de-tir",
         "mod": 5
       }
     ]
@@ -5375,7 +5375,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "force",
+        "characteristic": "force",
         "mod": 5
       }
     ]
@@ -5396,7 +5396,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "endurance",
+        "characteristic": "endurance",
         "mod": 5
       }
     ]
@@ -5563,7 +5563,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "initiative",
+        "characteristic": "initiative",
         "mod": 5
       }
     ]

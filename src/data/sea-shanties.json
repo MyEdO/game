@@ -65,7 +65,7 @@
     "crewOps": [
       {
         "op": "charDRBonus",
-        "char": "sociabilite",
+        "characteristic": "sociabilite",
         "bonus": 1
       }
     ],
@@ -121,7 +121,7 @@
       {
         "op": "testMod",
         "amount": 20,
-        "char": "sociabilite"
+        "characteristic": "sociabilite"
       }
     ],
     "note": "Le +20 est posé sur le CAPITAINE (titulaire du rôle) pour ses Tests de Sociabilité ; la restriction « ciblant l'équipage » n'est pas suivie par le moteur — arbitrage MJ hors bord."

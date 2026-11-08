@@ -147,7 +147,7 @@ describe('racine-de-mandragore (LDB 71 l.35) — gate d’action par Round (actG
 
   it('applier actGate : échec du Test → étape de CHOIX ; « garder le Mouvement » consomme l’Action de la battle', () => {
     const h = hero('h1');
-    h.activeEffects = [{ label: 'Racine de mandragore', bonus: 0, duration: { scale: 'clock', until: 99999 }, actGate: { char: 'force-mentale' } }];
+    h.activeEffects = [{ label: 'Racine de mandragore', bonus: 0, duration: { scale: 'clock', until: 99999 }, actGate: { characteristic: 'force-mentale' } }];
     banc.setState({ party: [h], battle: battleWith(h), mode: 'battle' });
     const get = banc.getState;
     const set = banc.setState;

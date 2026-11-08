@@ -1293,7 +1293,7 @@
             "recoveryPenalty": [
               {
                 "op": "testMod",
-                "char": "capacite-de-combat",
+                "characteristic": "capacite-de-combat",
                 "amount": -10
               }
             ]
@@ -1797,7 +1797,7 @@
           },
           {
             "op": "charMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "mod": -10,
             "durationHours": {
               "times": {
@@ -2310,7 +2310,7 @@
               "ops": [
                 {
                   "op": "charMod",
-                  "char": "agilite",
+                  "characteristic": "agilite",
                   "mod": -10,
                   "durationRounds": 2
                 }
@@ -2341,7 +2341,7 @@
           },
           {
             "op": "charMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "mod": -10,
             "durationRounds": {
               "dice": {
@@ -2519,7 +2519,7 @@
           },
           {
             "op": "charMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "mod": -20,
             "durationRounds": {
               "dice": {
@@ -2952,7 +2952,7 @@
             "recoveryPenalty": [
               {
                 "op": "testMod",
-                "char": "agilite",
+                "characteristic": "agilite",
                 "amount": -10,
                 "movementOnly": true
               },
@@ -4251,7 +4251,7 @@
             "recoveryPenalty": [
               {
                 "op": "testMod",
-                "char": "capacite-de-combat",
+                "characteristic": "capacite-de-combat",
                 "amount": -10
               }
             ]
@@ -4733,7 +4733,7 @@
           },
           {
             "op": "charMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "mod": -10,
             "durationHours": {
               "times": {
@@ -5230,7 +5230,7 @@
               "ops": [
                 {
                   "op": "charMod",
-                  "char": "agilite",
+                  "characteristic": "agilite",
                   "mod": -10,
                   "durationRounds": 1
                 }
@@ -5299,7 +5299,7 @@
           },
           {
             "op": "charMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "mod": -10,
             "durationRounds": {
               "dice": {
@@ -5430,7 +5430,7 @@
           },
           {
             "op": "charMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "mod": -20,
             "durationRounds": {
               "dice": {
@@ -5813,7 +5813,7 @@
             "recoveryPenalty": [
               {
                 "op": "testMod",
-                "char": "agilite",
+                "characteristic": "agilite",
                 "amount": -10,
                 "movementOnly": true
               },

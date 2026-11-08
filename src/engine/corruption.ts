@@ -200,7 +200,7 @@ export function mutationLimitExceeded(c: Combatant): boolean {
 function resoudrePlancher(c: Combatant, op: OpPassive): OpPassive {
   if (op.op !== 'charMod' || op.min == null) return op;
   const { min, ...fige } = op;
-  const base = c.characteristics[op.char] + passiveCharSum(c, op.char);
+  const base = c.characteristics[op.characteristic] + passiveCharSum(c, op.characteristic);
   return { ...fige, mod: Math.max(op.mod, Math.min(0, min - base)) };
 }
 

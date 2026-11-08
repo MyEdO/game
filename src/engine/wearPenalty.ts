@@ -53,7 +53,7 @@ export function wornSocialMods(c: Combatant): PassiveMod[] {
   const out: PassiveMod[] = [];
   for (const piece of c.items ?? []) {
     if (!piece.equipped) continue;
-    for (const q of qualitySocMods(piece)) out.push({ op: { op: 'testMod', amount: q.amount, char: 'sociabilite' }, kind: 'intrinseque', src: { category: 'qualities', id: q.id } });
+    for (const q of qualitySocMods(piece)) out.push({ op: { op: 'testMod', amount: q.amount, characteristic: 'sociabilite' }, kind: 'intrinseque', src: { category: 'qualities', id: q.id } });
   }
   return out;
 }

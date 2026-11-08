@@ -32,7 +32,7 @@ describe('Dissipation permanente — Action de combat', () => {
     const allie = mk('allie', ['incarnation-de-wyssan'], { pos: { x: 2, y: 1 } }); // subType Bête → même Domaine
     const cible: Combatant = mk('cible', [], {
       kind: 'enemy', pos: { x: 5, y: 5 },
-      activeEffects: [{ label: 'Malédiction', char: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
+      activeEffects: [{ label: 'Malédiction', characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
         spell: { spellId: 'malefice', ni: 2, casterId: 'ennemi', label: 'Maléfice' } }],
     } as unknown as Combatant) as Combatant;
     const battle = { combatants: [mage, allie, cible], order: ['mage', 'allie', 'cible'], turn: 0, round: 1, acted: false, over: false, log: [] } as unknown as BattleState;
@@ -89,7 +89,7 @@ describe('Dissipation permanente — Action de combat', () => {
     const allie = mk('allie', ['incarnation-de-wyssan'], { pos: { x: 20, y: 20 } }); // même Domaine mais hors de portée
     const cible: Combatant = mk('cible', [], {
       kind: 'enemy', pos: { x: 5, y: 5 },
-      activeEffects: [{ label: 'Malédiction', char: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
+      activeEffects: [{ label: 'Malédiction', characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
         spell: { spellId: 'malefice', ni: 2, casterId: 'ennemi', label: 'Maléfice' } }],
     } as unknown as Combatant) as Combatant;
     const battle = { combatants: [mage, allie, cible], order: ['mage', 'allie', 'cible'], turn: 0, round: 1, acted: false, over: false, log: [] } as unknown as BattleState;
@@ -106,7 +106,7 @@ describe('Dissipation permanente — Action de combat', () => {
   // base (`LDB 46 l.154-162`, aucun bonus) ; le volet ON rougit si `dispelOwnSpellDR` se débranche.
   it('dissipe son propre Sort : +1 DR CUMULÉ seulement sous `magic-vdm-incantation`', () => {
     const freshMage = () => mk('mage', ['forme-bestiale'], {
-      activeEffects: [{ label: 'Malédiction', char: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
+      activeEffects: [{ label: 'Malédiction', characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
         spell: { spellId: 'malefice', ni: 3, casterId: 'mage', label: 'Maléfice' } }],
     });
     const roundDR = (rule: boolean) => {

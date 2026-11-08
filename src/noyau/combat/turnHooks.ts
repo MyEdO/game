@@ -87,9 +87,9 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
   const out: ActGateOutcome = { loseMovement: false, lines: [] };
   if (isOutOfAction(c) || !get().battle) return out;
   const gates = (c.activeEffects ?? []).filter((e) => e.actGate);
-  const chars = [...new Set(gates.map((e) => e.actGate!.char))];
+  const chars = [...new Set(gates.map((e) => e.actGate!.characteristic))];
   for (const char of chars) {
-    const gate = garanti(gates.find((e) => e.actGate!.char === char), char, 'gate d’action');
+    const gate = garanti(gates.find((e) => e.actGate!.characteristic === char), char, 'gate d’action');
     const label = gate.label;
     if (surfaceOf(get, c.id)) {
       // ENJEU (#1117) : le gabarit dit la mécanique du gate ; le RENVOI descend à l'ENTITÉ qui l'exige

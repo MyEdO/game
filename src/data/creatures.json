@@ -6176,7 +6176,7 @@
         ],
         "grant": [
           {
-            "char": "sociabilite",
+            "characteristic": "sociabilite",
             "value": 15
           }
         ],
@@ -10897,7 +10897,7 @@
         ],
         "grant": [
           {
-            "char": "sociabilite",
+            "characteristic": "sociabilite",
             "value": 20
           }
         ]
@@ -11018,15 +11018,15 @@
         ],
         "grant": [
           {
-            "char": "initiative",
+            "characteristic": "initiative",
             "value": 20
           },
           {
-            "char": "intelligence",
+            "characteristic": "intelligence",
             "value": 20
           },
           {
-            "char": "sociabilite",
+            "characteristic": "sociabilite",
             "value": 20
           },
           {

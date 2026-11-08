@@ -49,9 +49,9 @@ function resolvedCount(value: Formula | undefined, perSL: PerSL | undefined, sl:
 export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
   switch (o.op) {
     case 'charMod':
-      return { t: 'ref', category: 'characteristics', id: o.char, label: CHAR_LABELS[o.char], show: CHAR_LABELS[o.char], badge: [`${o.mod >= 0 ? '+' : ''}${o.mod}`, plancher(o), dureePropre(o)].filter((s): s is string => !!s).join(' · ') };
+      return { t: 'ref', category: 'characteristics', id: o.characteristic, label: CHAR_LABELS[o.characteristic], show: CHAR_LABELS[o.characteristic], badge: [`${o.mod >= 0 ? '+' : ''}${o.mod}`, plancher(o), dureePropre(o)].filter((s): s is string => !!s).join(' · ') };
     case 'charDRBonus':
-      return { t: 'ref', category: 'characteristics', id: o.char, label: CHAR_LABELS[o.char], show: CHAR_LABELS[o.char], badge: `+${humanizeFormula(o.bonus)} DR` };
+      return { t: 'ref', category: 'characteristics', id: o.characteristic, label: CHAR_LABELS[o.characteristic], show: CHAR_LABELS[o.characteristic], badge: `+${humanizeFormula(o.bonus)} DR` };
     // Mouvement voyage par sa propre famille d'ops (`moveMod`/`moveScale`, hors `CharKey`) mais
     // s'affiche COMME une Caractéristique (même entrée codex `characteristics/mouvement`, arbitrage
     // user 2026-07-17) — la sémantique moteur ne change pas, seul l'affichage converge.

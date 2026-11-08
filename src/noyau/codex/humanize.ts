@@ -202,7 +202,7 @@ function opWord(op: CompareOp, neg: boolean): string {
 function subjectNoun(s: CompareSubject): string {
   const who = whoLabel(s.who);
   if ('condition' in s) return t('codex.sujet.etats', { etat: stateItal(s.condition), qui: who });
-  if ('char' in s) return t(s.bonus ? 'codex.sujet.bonus' : 'codex.sujet.car', { car: CHAR_LABELS[s.char], qui: who });
+  if ('characteristic' in s) return t(s.bonus ? 'codex.sujet.bonus' : 'codex.sujet.car', { car: CHAR_LABELS[s.characteristic], qui: who });
   const FIELD: Record<typeof s.field, string> = {
     woundsCurrent: 'les PB', woundsMax: 'les PB maximum', size: 'la Taille', advantage: "l'Avantage",
   } as Record<typeof s.field, string>;
@@ -426,7 +426,7 @@ export function humanizeOp(o: GameOp): string {
     case 'removeCondition': return t('codex.op.perd', { quoi: `${o.id ? t('codex.op.etat', { etat: stateItal(o.id) }) : t('codex.op.etatAuChoix')}${o.valuePerSL ? ` (${humanizePerSL(o.valuePerSL)})` : ''}` });
     case 'endPsych': return 'instance' in o ? t('codex.op.endPsych.instance') : t('codex.op.endPsych', { nom: psychologyLabel(o.type.id) });
     case 'beginPsych': return t('codex.op.beginPsych', { psy: libelleDePsy(o.type.id, o.cible && cibleDeRef(o.cible)), indice: o.indice != null ? ` ${humanizeFormula(o.indice)}` : '' });
-    case 'charMod': return `${[t(o.mod >= 0 ? 'codex.op.mod.gagneEn' : 'codex.op.mod.subitEn', { mod: signe(o.mod), nom: CHAR_LABELS[o.char] }), plancher(o)].filter(Boolean).join(', ')}${pendant(o)}`;
+    case 'charMod': return `${[t(o.mod >= 0 ? 'codex.op.mod.gagneEn' : 'codex.op.mod.subitEn', { mod: signe(o.mod), nom: CHAR_LABELS[o.characteristic] }), plancher(o)].filter(Boolean).join(', ')}${pendant(o)}`;
     case 'ap': return o.loc ? t('codex.op.ap.loc', { n: humanizeFormula(o.amount), loc: HIT_LOCATION_LABELS[o.loc] }) : t('codex.op.ap', { n: humanizeFormula(o.amount) });
     case 'corruption': return t('codex.op.corruption', { n: signe(o.amount) });
     case 'sinMod': return t(o.amount >= 0 ? 'codex.op.sinMod.gagne' : 'codex.op.sinMod.perd', { n: Math.abs(o.amount) });
@@ -494,8 +494,8 @@ export function humanizeOp(o: GameOp): string {
     case 'noBreath': return t('codex.op.noBreath');
     case 'noHunger': return t('codex.op.noHunger');
     case 'ignoreAnimosity': return t('codex.op.ignoreAnimosity');
-    case 'testMod': return o.char
-      ? t(o.amount >= 0 ? 'codex.op.testMod.car.gagne' : 'codex.op.testMod.car.subit', { mod: signe(o.amount), car: CHAR_LABELS[o.char] })
+    case 'testMod': return o.characteristic
+      ? t(o.amount >= 0 ? 'codex.op.testMod.car.gagne' : 'codex.op.testMod.car.subit', { mod: signe(o.amount), car: CHAR_LABELS[o.characteristic] })
       : t(o.amount >= 0 ? 'codex.op.testMod.gagne' : 'codex.op.testMod.subit', { mod: signe(o.amount) });
     case 'weatherWard': return t('codex.op.weatherWard');
     case 'giveTrapping': return t('codex.op.giveTrapping', { fois: o.count && o.count > 1 ? `${o.count}× ` : '', objet: giveTrappingLabel(o) });
@@ -516,7 +516,7 @@ export function humanizeOp(o: GameOp): string {
       extra: o.extraRollsPerStep ? t('codex.op.rollTable.extra', { n: o.extraRollsPerStep }) : '',
     });
     case 'rollMutation': return t(o.duration === 'permanent' ? 'codex.op.rollMutation.permanente' : 'codex.op.rollMutation', { table: o.table });
-    case 'charDamage': return t('codex.op.charDamage', { n: humanizeFormula(o.amount), car: CHAR_LABELS[o.char] });
+    case 'charDamage': return t('codex.op.charDamage', { n: humanizeFormula(o.amount), car: CHAR_LABELS[o.characteristic] });
     case 'summon': return `${t('codex.op.summon', { n: humanizeFormula(o.count), nom: creatureLabel(o.ref) })}${o.allyOfCaster === false ? t('codex.op.summon.hostile') : ''}`;
     case 'scheduleRespawn': return t('codex.op.scheduleRespawn', { nom: creatureLabel(o.ref), n: humanizeFormula(o.delayDays) });
     case 'zone': return t('codex.op.zone', { forme: libelleDeValeur(zoneShapeSchema, o.shape), taille: deFormule((o.shape === 'wall' ? o.lengthMeters : o.radiusMeters) ?? 2) });
@@ -526,7 +526,7 @@ export function humanizeOp(o: GameOp): string {
     case 'lifeSteal': return t('codex.op.lifeSteal', { num: o.num, den: o.den });
     case 'skillMod': return t(o.mod >= 0 ? 'codex.op.mod.gagneEn' : 'codex.op.mod.subitEn', { mod: signe(o.mod), nom: refLabel('skills', o.skill) });
     case 'skillDRBonus': return t('codex.op.skillDRBonus', { n: humanizeFormula(o.bonus), quoi: o.skill ? refLabel('skills', o.skill) : t('codex.op.skillDRBonus.concernes') });
-    case 'charDRBonus': return t('codex.op.charDRBonus', { n: humanizeFormula(o.bonus), car: CHAR_LABELS[o.char] });
+    case 'charDRBonus': return t('codex.op.charDRBonus', { n: humanizeFormula(o.bonus), car: CHAR_LABELS[o.characteristic] });
     case 'crewTestMod': return t(o.mod >= 0 ? 'codex.op.crewTestMod.gagne' : 'codex.op.crewTestMod.subit', { mod: signe(o.mod) });
     case 'fall': return humanizeFall(o.hauteur.table.id);
     case 'incomingAttackMod': return t('codex.op.incomingAttackMod', { mod: signe(o.amount) });
@@ -548,7 +548,7 @@ export function humanizeOp(o: GameOp): string {
     case 'handGate': return t('codex.op.handGate');
     case 'senseLoss': return t('codex.op.perd', { quoi: libelleDeValeur(senseSchema, o.sense) });
     case 'loseTurn': return t('codex.op.perd', { quoi: o.what ? libelleDeValeur(loseTurnWhatSchema, o.what) : t('codex.op.loseTurn.tout') });
-    case 'actGate': return t('codex.op.actGate', { car: CHAR_LABELS[o.char] });
+    case 'actGate': return t('codex.op.actGate', { car: CHAR_LABELS[o.characteristic] });
     case 'diseaseTestMod': return t(o.amount >= 0 ? 'codex.op.diseaseTestMod.gagne' : 'codex.op.diseaseTestMod.subit', { mod: signe(o.amount) });
     case 'suppressSymptom': return t('codex.op.suppressSymptom', { nom: symptomLabel(o.symptomId) });
     case 'aggravateSymptom': return t('codex.op.aggravateSymptom', { nom: symptomLabel(o.symptomId) });

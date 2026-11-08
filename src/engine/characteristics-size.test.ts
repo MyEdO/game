@@ -35,7 +35,7 @@ const profil = (over: Partial<Combatant> = {}): Omit<Combatant, 'wounds'> =>
     activeEffects: [],
     ...over,
   }) as unknown as Omit<Combatant, 'wounds'>;
-const BUFF_E = [{ label: 'Soin', char: 'endurance' as const, bonus: 10, duration: { scale: 'rounds' as const, left: 3 } }];
+const BUFF_E = [{ label: 'Soin', characteristic: 'endurance' as const, bonus: 10, duration: { scale: 'rounds' as const, left: 3 } }];
 const ne = (over: Partial<Combatant> = {}, maximum?: number): Combatant => {
   const p = profil(over);
   return blessuresSurLeProfil({ ...p, wounds: blessuresPosees(p, maximum) }) as Combatant;
@@ -76,10 +76,10 @@ describe('effectiveMaxWounds — Fabriqué : le maximum suit le Bonus de Force, 
 
   it('sans buff : 3 + 6 + 3 = 12', () => expect(effectiveMaxWounds(fabrique())).toBe(12));
   it('buff +10 Force Mentale → SANS effet (Fabriqué ignore la FM pour les Blessures)', () => {
-    expect(effectiveMaxWounds({ ...fabrique(), activeEffects: [{ label: 'Buff', char: 'force-mentale', bonus: 10, duration: { scale: 'rounds', left: 3 } }] })).toBe(12);
+    expect(effectiveMaxWounds({ ...fabrique(), activeEffects: [{ label: 'Buff', characteristic: 'force-mentale', bonus: 10, duration: { scale: 'rounds', left: 3 } }] })).toBe(12);
   });
   it('buff +10 Force → +2 Blessures (terme F ET terme BFM substitué)', () => {
-    expect(effectiveMaxWounds({ ...fabrique(), activeEffects: [{ label: 'Buff', char: 'force', bonus: 10, duration: { scale: 'rounds', left: 3 } }] })).toBe(14);
+    expect(effectiveMaxWounds({ ...fabrique(), activeEffects: [{ label: 'Buff', characteristic: 'force', bonus: 10, duration: { scale: 'rounds', left: 3 } }] })).toBe(14);
   });
 });
 

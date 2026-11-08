@@ -153,7 +153,7 @@ export function traitPassiveMods(traits: TraitsDesignes | undefined): PassiveMod
  *  et le profil du spawn (`withTraitChars`). Extrait du vocab d'ops unifié. */
 export function traitCharMods(traits: TraitsDesignes | undefined): Partial<Record<CharKey, number>> {
   const out: Partial<Record<CharKey, number>> = {};
-  for (const m of traitPassiveMods(traits)) if (m.op.op === 'charMod') out[m.op.char] = (out[m.op.char] ?? 0) + m.op.mod;
+  for (const m of traitPassiveMods(traits)) if (m.op.op === 'charMod') out[m.op.characteristic] = (out[m.op.characteristic] ?? 0) + m.op.mod;
   return out;
 }
 

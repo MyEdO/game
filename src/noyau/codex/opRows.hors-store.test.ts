@@ -92,8 +92,8 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
    *  de la catégorie visée — une dérive id↔catégorie future (mauvais champ, mauvaise catégorie,
    *  dataset renommé) casse ce test au lieu de fuiter en silence sur une chip Codex morte. */
   const ANCHOR_FIXTURES: { kind: GameOp['op']; category: string; build: () => GameOp }[] = [
-    { kind: 'charMod', category: 'characteristics', build: () => ({ op: 'charMod', char: characteristics[0].id as CharKey, mod: -10 }) },
-    { kind: 'charDRBonus', category: 'characteristics', build: () => ({ op: 'charDRBonus', char: characteristics[0].id as CharKey, bonus: 1 }) },
+    { kind: 'charMod', category: 'characteristics', build: () => ({ op: 'charMod', characteristic: characteristics[0].id as CharKey, mod: -10 }) },
+    { kind: 'charDRBonus', category: 'characteristics', build: () => ({ op: 'charDRBonus', characteristic: characteristics[0].id as CharKey, bonus: 1 }) },
     // Mouvement/Blessure voyagent par leur propre famille d'ops (hors `CharKey`) mais s'affichent
     // COMME une Caractéristique (arbitrage user 2026-07-17) — même catégorie `characteristics`.
     { kind: 'moveMod', category: 'characteristics', build: () => ({ op: 'moveMod', mod: -1 }) },
@@ -295,7 +295,7 @@ describe('opRow — grantTrait à Portée (LDB 85 l.209 ; LDB 79 l.142)', () => 
 
 describe('pastille `charMod` — plancher et durée propre dits au producteur (EDO 11 l.190 ; #1853)', () => {
   const badge = (o: GameOp) => { const r = opRow(o); return r.t === 'ref' ? r.badge : undefined; };
-  const CRETIN: GameOp = { op: 'charMod', char: 'intelligence', mod: -40 };
+  const CRETIN: GameOp = { op: 'charMod', characteristic: 'intelligence', mod: -40 };
 
   it('le plancher est porté quand il est présent', () => {
     expect(badge({ ...CRETIN, min: 10 })).toBe('-40 · min 10');
