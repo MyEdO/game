@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { baseDeTest, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, GLB_SANS_BASE, glbDElement, vehiculeDeTest } from './modeles.testkit.ts';
+import { baseDeTest, elementSchema3, GLB_AU_POSTE, GLB_DE_BASE, GLB_D_ELEMENT, GLB_SANS_BASE, glbDElement, vehiculeDeTest } from './modeles.testkit.ts';
 import { empreinte } from './empreinte.ts';
 import { CATEGORIES_D_ELEMENT, emplacementsNonOfferts, estSansBase, REGLES_DES_CATEGORIES, validerElement, type BaseDUnElement, type CategorieDElement, type CodeDEcartDElement } from './element.ts';
 import { ecrireGlb, lireGlb } from './glb.ts';
@@ -45,7 +45,11 @@ const VALIDES: Record<CategorieDElement, Record<string, unknown>> = {
   rigide: { categorie: 'rigide', cle: { apparence: 'epee' }, liaison: { mode: 'rigide' }, surfaces: METAL },
   trait: { categorie: 'trait', cle: { trait: 'verrues' }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: ['torse'], surfaces: [{ nom: 'peau', palette: 'peau' }] },
   decor: { categorie: 'decor', cle: { prop: 'tonneau' }, liaison: { mode: 'rigide' }, surfaces: METAL },
-  vehicule: { categorie: 'vehicule', cle: { definition: 'caraque' }, liaison: { mode: 'rigide' }, postes: { tribord: [[-3, 1.95, 4], [-3, 1.95, 2]], proue: [[1.2, 5.6, 13.3]] }, surfaces: METAL },
+  vehicule: {
+    categorie: 'vehicule', cle: { definition: 'caraque' }, liaison: { mode: 'rigide' }, postes: { tribord: [[-3, 1.95, 4], [-3, 1.95, 2]], proue: [[1.2, 5.6, 13.3]] },
+    ancrages: { 'figure-de-proue': [[0, 4, 17]], ancre: [[-2, 3, 14], [2, 3, 14]] }, surfaces: METAL,
+  },
+  amelioration: { categorie: 'amelioration', cle: { amelioration: 'figure-de-proue' }, liaison: { mode: 'rigide' }, montage: 'ancrages', surfaces: METAL },
 };
 
 const aUneBase = (categorie: CategorieDElement) => REGLES_DES_CATEGORIES[categorie].base;
@@ -121,6 +125,14 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['champ-hors-categorie', '`postes` sur un décor', manifeste('decor', { postes: {} })],
   ['forme', 'poste sans triplet', manifeste('vehicule', { postes: { babord: [[3, 1.95]] } })],
   ['bord-inconnu', 'poste à un bord qui n’en est pas un', manifeste('vehicule', { postes: { flanc: [[3, 1.95, 0]] } })],
+  ['champ-hors-categorie', '`ancrages` sur un décor', manifeste('decor', { ancrages: {} })],
+  ['champ-hors-categorie', '`montage` sur un véhicule', manifeste('vehicule', { montage: 'ancrages' })],
+  ['forme', 'ancrage sans triplet', manifeste('vehicule', { ancrages: { ancre: [[3, 1.95]] } })],
+  ['cle-inconnue', 'ancrage d’un Trait naval, qui n’est pas une Amélioration', manifeste('vehicule', { ancrages: { robuste: [[0, 0, 0]] } })],
+  ['cle-inconnue', 'pièce d’un Trait naval, qui n’est pas une Amélioration', manifeste('amelioration', { cle: { amelioration: 'robuste' } })],
+  ['forme', 'pièce d’Amélioration sans `montage`', manifeste('amelioration', { montage: undefined })],
+  ['forme', 'montage inconnu', manifeste('amelioration', { montage: 'coque' })],
+  ['etat-absent', 'pièce montée aux postes sans ses nœuds `ouvert` et `ferme`', manifeste('amelioration', { cle: { amelioration: 'sabord' }, montage: 'postes' })],
   ['forme', 'surface sans emplacement de palette', manifeste('rigide', { surfaces: [{ nom: 'plaque', teinte: true }] })],
   ['palette-inconnue', 'clé de palette inconnue', manifeste('trait', { surfaces: [{ nom: 'peau', palette: 'or' }] })],
   ['forme', 'blason autre que `true`', manifeste('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', blason: false }] })],
@@ -141,7 +153,7 @@ describe('validerElement : chaque refus nommé', () => {
     const attendus: Record<CodeDEcartDElement, true> = {
       forme: true, 'version-inconnue': true, 'categorie-inconnue': true, 'champ-hors-categorie': true, 'cle-mal-formee': true, 'cle-inconnue': true, 'piece-hors-categorie': true, 'base-differente': true,
       'liaison-hors-categorie': true, 'couche-hors-categorie': true, 'zone-inconnue': true, 'chaine-absente': true, 'emplacement-sur-os-absent': true, 'emplacement-inconnu': true,
-      'silhouette-absente': true, 'bord-inconnu': true, 'palette-inconnue': true, 'surface-absente': true, 'uv-absente': true, 'glb-different': true,
+      'silhouette-absente': true, 'bord-inconnu': true, 'etat-absent': true, 'palette-inconnue': true, 'surface-absente': true, 'uv-absente': true, 'glb-different': true,
       'rigide-sans-mesh': true, 'rigide-sur-os-absent': true, 'rigide-a-la-racine': true, 'rigide-skinne': true,
     };
     expect(new Set(REFUS.map(([code]) => code))).toEqual(new Set(Object.keys(attendus)));
@@ -211,6 +223,18 @@ describe('validerElement : un décor ou un véhicule n’a pas de base (#2987)',
   it.each(['carrosse', 'cheval-de-monte'])('la `definition` %s, qui n’est ni coque ni engin de siège, est refusée', (definition) => {
     expect(verdict(manifeste('vehicule', { cle: { definition } }))).toEqual({
       ok: false, ecarts: [{ code: 'cle-inconnue', ou: 'cle.definition', detail: `${definition} n’est aucune coque de \`vehicles.json\` ni engin \`armes-de-siege\` de \`trappings.json\`` }],
+    });
+  });
+});
+
+describe('validerElement : une pièce d’Amélioration navale (#2987)', () => {
+  it('montée aux postes, elle porte un nœud à mesh par état', () => {
+    const sabord = manifeste('amelioration', { cle: { amelioration: 'sabord' }, montage: 'postes', surfaces: [{ nom: 'metal', palette: 'metal' }] }, GLB_AU_POSTE);
+    expect(verdict(sabord, GLB_AU_POSTE)).toEqual({ ok: true, manifeste: sabord });
+  });
+  it('sans ses états, les absents sont nommés', () => {
+    expect(verdict(manifeste('amelioration', { cle: { amelioration: 'sabord' }, montage: 'postes' }))).toEqual({
+      ok: false, ecarts: [{ code: 'etat-absent', ou: 'montage', detail: 'une pièce montée aux postes porte un nœud à mesh par état, `ouvert`, `ferme` : `ouvert`, `ferme` absent du GLB' }],
     });
   });
 });

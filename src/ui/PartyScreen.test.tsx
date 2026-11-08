@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { idsDeTest, rosterDeTest } from '../engine/idsDeTest.testkit';
+import type { HerosDuRoster } from '../noyau/persistance/roster';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -29,9 +30,9 @@ import type { HerosEngage } from '../noyau/creation/engagement';
 /** Le verdict de composition OUVERT pour chaque héros de `party` (vue pure, sans conteneur). */
 const ouverts = (party: Combatant[]) => Object.fromEntries(party.map((h) => [h.id, null]));
 
-function savedHero(): Combatant {
-  const h: Combatant = JSON.parse(JSON.stringify(makePregens(idsDeTest)[0]));
-  h.id = 'roster-test-1';
+function savedHero(): HerosDuRoster {
+  const h: HerosDuRoster = JSON.parse(JSON.stringify(makePregens(idsDeTest)[0]));
+  h.id = rosterDeTest('roster')('hero');
   h.label = 'Aventurière Sauvegardée';
   return h;
 }
@@ -123,7 +124,7 @@ describe('HeroSelector — le témoin d’un roster d’un autre format (#2404)'
     act(() => recruter().click());
     act(() => onglet(t('picker.tab.pregens')).click());
     act(() => recruter().click());
-    expect(choisis).toEqual([{ brouillon: d, id: 'roster-test-1' }, { pretire: pregens[0].id }]);
+    expect(choisis).toEqual([{ brouillon: d, id: 'roster-hero-1' }, { pretire: pregens[0].id }]);
   });
 });
 

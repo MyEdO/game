@@ -6,8 +6,9 @@
  * lève : le roster est vide, l'écriture ne se fait pas.
  */
 import {
-  cumulerLesRetraits, ecrireLeRoster, engagement, lireLesRetraits, lireLeRoster, refusDEngagement, rosterAvecLeHeros,
-  type Combatant, type CreatorDraft, type JeuDuNoyau, type RetraitsDElagage, type RosterEntry,
+  cumulerLesRetraits, ecrireLeRoster, engagement, idDeRosterDuHeros, lireLesRetraits, lireLeRoster, refusDEngagement,
+  rosterAvecLeHeros, type Combatant, type CreatorDraft, type FabriqueDuRoster, type JeuDuNoyau, type RetraitsDElagage,
+  type RosterEntry,
 } from '../noyau/index';
 import { lireLeTexte, retirerLaCle, type Stockage } from '../lib/stockage';
 import { prendreLeTemoin, temoigner, type FormeDeTemoin } from './temoin';
@@ -61,18 +62,26 @@ export function ajouterAuRoster(stockage: Stockage | null, entry: RosterEntry): 
   ecrire(stockage, [...chargerLeRoster(stockage).filter((e) => e.hero.id !== entry.hero.id), entry]);
 }
 
+/** Le jeu qu'engager lit et appelle, sans le compteur d'ids de l'état, que seul l'hôte écrit. */
+type JeuDeLEngagement = Omit<JeuDuNoyau, 'forgerUnId'>;
+
 /** ENGAGE le brouillon `d` dans le groupe de `jeu` (#3059) : refusé par `refusDEngagement`, rendu sans rien écrire ;
- *  sinon son entrée (`engagement`) entre au roster de `stockage`, puis le brouillon au groupe sous l'id de son entrée,
- *  où le noyau bâtit le héros, en place de `heroId` (`remplacerLeHeros`) ou ajouté avec sa Richesse (`recruterLeHeros`).
- *  `null` : engagé. */
-export function engagerLeHeros(stockage: Stockage | null, jeu: JeuDuNoyau, d: CreatorDraft, heroId?: string): string | null {
+ *  sinon son entrée (`engagement`) entre au roster de `stockage`, aux ids de `idDuRoster`, l'entropie de la plateforme
+ *  (#2907) : le roster traverse parties, sessions et sièges. Puis le brouillon entre au groupe, où le noyau bâtit le
+ *  héros : ajouté avec sa Richesse sous l'id de son entrée (`recruterLeHeros`), ou, en édition, en place du héros
+ *  `heroId` qui garde son id (`remplacerLeHeros`). Le héros édité garde son entrée de roster (`idDeRosterDuHeros`), ou
+ *  en reçoit une neuve, que son `idDeRoster` désigne quand son id n'est pas celui de l'entrée. `null` : engagé. */
+export function engagerLeHeros(stockage: Stockage | null, jeu: JeuDeLEngagement, d: CreatorDraft, idDuRoster: FabriqueDuRoster, heroId?: string): string | null {
   const refus = refusDEngagement(jeu, d, heroId);
   if (refus) return refus;
-  const entree = engagement(d, jeu.forgerUnId, heroId);
+  const edite = heroId === undefined ? undefined : jeu.party.find((h) => h.id === heroId);
+  const entree = engagement(d, idDuRoster, edite && idDeRosterDuHeros(chargerLeRoster(stockage), edite));
   ajouterAuRoster(stockage, entree);
-  const heros = { brouillon: d, id: entree.hero.id };
-  if (heroId) jeu.remplacerLeHeros(heroId, heros);
-  else jeu.recruterLeHeros(heros);
+  if (!heroId) {
+    jeu.recruterLeHeros({ brouillon: d, id: entree.hero.id });
+    return null;
+  }
+  jeu.remplacerLeHeros(heroId, { brouillon: d, id: heroId, ...(entree.hero.id === heroId ? {} : { idDeRoster: entree.hero.id }) });
   return null;
 }
 

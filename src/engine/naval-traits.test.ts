@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { shipHasNavalTrait, navalTraitLevel, navalTraitsDe, hullNavalTraits, vesselNavalTraits, navalPassiveOps, navalMoveMod, navalMoveMult, navalSkillTestDR, navalTestTypeDR, navalNavTestMod, navalNavTestDR, hullArmourBonus, belierRam, navalDeckCover, effectiveDeckPostes } from './navalTraits';
+import { shipHasNavalTrait, navalTraitLevel, navalTraitsDe, hullNavalTraits, vesselNavalTraits, navalPassiveOps, navalMoveMod, navalMoveMult, navalSkillTestDR, navalTestTypeDR, navalNavTestMod, navalNavTestDR, hullArmourBonus, belierRam, navalDeckCover, couvertDuPoste } from './navalTraits';
 import { resolveCollision } from './collision';
 import { installCost } from './shipBuild';
 import navalTraitsData from '../data/naval-traits.json';
 import { findVehicleById, findNavalTrait, findCrewTestTypeById } from '../data';
+import type { Combatant } from './types';
 
 /** Forme LUE du catalogue naval par ce fichier : la référence de Compétence d'une op y est EMBOÎTÉE. */
 type NavalEntree = { id: string; passive?: { op: string; skill?: { id: string }; bonus?: number }[] };
@@ -200,8 +201,6 @@ describe('Améliorations MSRC 12 (Personnalisation) — MÊME canal que MDG, ent
   });
   it('Murs blindés → deckCover totale (comme Sabord) sur le canal navalDeckCover', () => {
     expect(navalDeckCover([{ id: 'murs-blindes' }])).toBe('totale');
-    const postes = findVehicleById('cogue')!.deck!.postes!;
-    expect(effectiveDeckPostes(postes, navalDeckCover([{ id: 'murs-blindes' }])).every((p) => p.cover === 'totale')).toBe(true);
   });
   it('coût d’installation posé sur des PALIERS DE LONGUEUR (#277 — canal installCost EXISTANT) — pas de duplication d’un chantier', () => {
     // Grande barge (~25 m, bande ouverte) : Bouteur 120 CO / 95 Enc ; Murs blindés 300 CO / 160 Enc (MSRC 12 l.62/64, l.80/82).
@@ -237,7 +236,8 @@ describe('Améliorations MSRC 12 (Personnalisation) — MÊME canal que MDG, ent
 });
 
 describe('Sabord/Plat-bord → couvert GRADUÉ des postes (MDG 12 l.362-364, MSRC 12 l.85/111), data-driven', () => {
-  const postes = findVehicleById('cogue')!.deck!.postes!; // 3 emplacements, aucun couvert par défaut
+  /** Coque `cogue` portant les Améliorations `upgrades` (par instance, `hullNavalTraits`). */
+  const coque = (upgrades: { id: string }[]): Combatant => ({ id: 'h', creatureId: 'cogue', upgrades }) as unknown as Combatant;
 
   it('navalDeckCover lit le champ `deckCover` gradué (Sabord → totale ; Plat-bord → moyenne ; autre/absent → none)', () => {
     expect(navalDeckCover([{ id: 'sabord' }])).toBe('totale');
@@ -253,21 +253,18 @@ describe('Sabord/Plat-bord → couvert GRADUÉ des postes (MDG 12 l.362-364, MSR
     expect(navalDeckCover([{ id: 'plat-bord' }, { id: 'sabord' }])).toBe('totale');
   });
 
-  it('sans Amélioration couvrante : tir depuis le pont, aucun couvert (postes inchangés)', () => {
-    const eff = effectiveDeckPostes(postes, navalDeckCover([]));
-    expect(eff).toBe(postes); // identité : aucune copie inutile
-    expect(eff.every((p) => !p.cover)).toBe(true);
+  it('sans Amélioration couvrante : tir depuis le pont, aucun couvert', () => {
+    expect(findVehicleById('cogue')!.ship!.traits.some((t) => findNavalTrait(t.id)?.deckCover)).toBe(false);
+    expect(couvertDuPoste(coque([]), {})).toBe('none');
   });
 
-  it('Amélioration Sabord : TOUS les emplacements passent à couvert total (cover:totale)', () => {
-    const eff = effectiveDeckPostes(postes, navalDeckCover([{ id: 'sabord' }]));
-    expect(eff.every((p) => p.cover === 'totale')).toBe(true);
-    expect(postes.every((p) => !p.cover)).toBe(true); // le gabarit de TYPE n'est pas muté (copie)
+  it('Amélioration Sabord : le servant d’un poste est à couvert total', () => {
+    expect(couvertDuPoste(coque([{ id: 'sabord' }]), {})).toBe('totale');
   });
 
-  it('Amélioration Plat-bord : couvert MOYEN stampé sur tous les emplacements (cover:moyenne)', () => {
-    const eff = effectiveDeckPostes(postes, navalDeckCover([{ id: 'plat-bord' }]));
-    expect(eff.every((p) => p.cover === 'moyenne')).toBe(true);
+  it('Amélioration Plat-bord : couvert moyen ; un poste authoré plus couvert garde le sien', () => {
+    expect(couvertDuPoste(coque([{ id: 'plat-bord' }]), {})).toBe('moyenne');
+    expect(couvertDuPoste(coque([{ id: 'plat-bord' }]), { cover: 'totale' })).toBe('totale');
   });
 });
 

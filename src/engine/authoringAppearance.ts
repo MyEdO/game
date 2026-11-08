@@ -5,7 +5,7 @@
  * (#187, #2884). Structurels purs (aucune valeur de rendu).
  */
 
-import type { Sexe } from '../data/schemas/grammaire/valeurs';
+import type { Couleurs, Sexe } from '../data/schemas/grammaire/valeurs';
 
 /** Vocabulaire (marque NOMINALE, #406) : id d'espèce jouable, de créature ou de race d'apparence
  *  (`especeDApparenceSchema`) — jamais un `SpeciesData.label` (« Humains (Reiklander) »). UNE seule
@@ -29,6 +29,8 @@ export interface EntityAppearance {
   /** Apparence des objets sans instance : id de trapping → référence au catalogue des apparences. */
   apparencesObjets?: Record<string, { id: string }>;
   embleme?: { id: string };
+  /** Palette CHOISIE : id d'une couleur du nuancier par emplacement de palette (`couleursSchema`). */
+  couleurs?: Couleurs;
 }
 
 /** Descripteur d'apparence COSMÉTIQUE RÉSOLU (type pur ; l'engine ne le lit jamais). */

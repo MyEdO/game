@@ -18,6 +18,7 @@ import { Listbox, RadioGroup } from '../composites/GroupesDeChoix';
 import { NumberField } from '../NumberField';
 import { stockageDuRoster } from '../../state/roster';
 import { chargerLeRoster, engagerLeHeros } from '../../hote/roster';
+import { idDeRosterDuMembre } from '../../noyau/persistance/roster';
 import {
   classes,
   findCareerById,
@@ -71,7 +72,7 @@ import { rangeSpecLabel, ammoRangeModLabel } from '../../engine/weaponStats';
 import { formatSpellRange, formatSpellDuration } from '../../engine/spellRangeFormat';
 import { effectiveEntry } from '../../engine/variants';
 import { Coins } from '../Coins';
-import { graineDEntropie } from '../../web/entropie';
+import { graineDEntropie, idDEntropie } from '../../web/entropie';
 import { Icon } from '../Icon';
 import { OptionChooser } from '../OptionChooser';
 import { MediaSelect, type MediaOption } from '../MediaSelect';
@@ -247,7 +248,7 @@ export function CharacterCreator() {
     if (!editingHeroId) return null;
     const hero = party.find((h) => h.id === editingHeroId);
     if (!hero) return null;
-    const saved = chargerLeRoster(stockageDuRoster()).find((e) => e.hero.id === editingHeroId);
+    const saved = chargerLeRoster(stockageDuRoster()).find((e) => e.hero.id === idDeRosterDuMembre(hero));
     const draft = saved?.draft ?? draftFromHero(hero, graineDEntropie());
     return { heroId: hero.id, draft, lossless: !!saved };
   }, [editingHeroId, party]);
@@ -301,7 +302,7 @@ export function CharacterCreator() {
   };
 
   const create = () => {
-    if (engagerLeHeros(stockageDuRoster(), useGame.getState(), d, editing?.heroId) === null) closeCreator();
+    if (engagerLeHeros(stockageDuRoster(), useGame.getState(), d, idDEntropie, editing?.heroId) === null) closeCreator();
   };
 
   const stepProps: StepProps = { d, setD, skillsSub, setSkillsSub };

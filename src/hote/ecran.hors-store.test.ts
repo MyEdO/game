@@ -64,7 +64,7 @@ describe('la fenêtre du Destin (`fenetre.corps`, `fenetre.gestes`)', () => {
       const ecran = (source: NonNullable<Jeu['pendingFateSave']>['source']) => {
         const etat = { ...partie.etat(), pendingFateSave: { heroId: heros.id, source } };
         const fenetre = fenetreADessiner(etat);
-        return zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetre, null, null);
+        return zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetre, null);
       };
       const lent = ecran('slow');
       expect(lent['fenetre.corps'], 'l’enjeu en alerte, puis les Points de Destin du héros').toMatchObject([{ id: 'destin/enjeu', ton: 'alerte' }, { id: 'destin/points', valeur: String(heros.fate ?? 0) }]);
@@ -83,7 +83,7 @@ describe('la fenêtre de la victoire (`fenetre.corps`, `fenetre.gestes`)', () =>
     const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
     try {
       const etat: Jeu = { ...partie.etat(), pendingVictory: { xp: 30, gold: { gold: 0, silver: 5, brass: 0 }, defeated: [{ label: 'Gobelin', count: 2 }, { label: 'Chef', count: 1 }], messages: ['La foule acclame.'] } };
-      const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, null);
+      const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null);
       expect(zones['fenetre.corps'], 'en puces ce qui est gagné, puis les vaincus et les messages').toMatchObject([
         { id: 'victoire/xp', valeur: '+30' }, { id: 'victoire/argent', valeur: '5/–' },
         { id: 'victoire/vaincu/0', texte: 'Gobelin ×2' }, { id: 'victoire/vaincu/1', texte: 'Chef' }, { id: 'victoire/message/0', texte: 'La foule acclame.' },
@@ -103,7 +103,7 @@ describe('le panneau du combat (`combat.avis`)', () => {
       const avis = (battle: typeof b) => {
         const etat: Jeu = { ...partie.etat(), pendingRoundStart: null, battle };
         expect(fenetreADessiner(etat), 'témoin : aucune fenêtre ne tient la main').toBeNull();
-        return zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), null, null, null)['combat.avis'];
+        return zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), null, null)['combat.avis'];
       };
       expect(avis(b).map((l) => l.id)).not.toContain('finDeTourArmee');
       expect(avis({ ...b, endTurnArmed: turnEconomyStamp(b) }), 'le second geste finit le tour : l’écran le dit').toContainEqual(expect.objectContaining({ id: 'finDeTourArmee', ton: 'alerte', texte: t('ecran.finDeTourArmee') }));
@@ -118,7 +118,7 @@ describe('le début du Round (`fenetre.gestes`)', () => {
     const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
     try {
       const debut = partie.etat();
-      const gestes = (etat: Jeu) => zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, null)['fenetre.gestes'].map((g) => g.id);
+      const gestes = (etat: Jeu) => zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null)['fenetre.gestes'].map((g) => g.id);
       expect(debut.pendingRoundStart, 'le combat du dôme s’ouvre sur la pause de Round').not.toBeNull();
       expect(gestes(debut), 'seul : qui agit en premier, et le lancer').toEqual(['promouvoirLeCombattant', 'fenetreValider@roundStart']);
       expect(gestes({ ...debut, net: { ...debut.net, mode: 'host' } }), 'en réseau : le même geste, qui marque le siège prêt').toEqual(['promouvoirLeCombattant', 'fenetreValider@roundStart']);
@@ -139,7 +139,7 @@ describe('ce que l’étape de la cascade annonce (`fenetre.corps`)', () => {
       const parade = heros.weapons[0];
       const etape = choiceStep(choixPiegeLame({ defenderId: heros.id, attackerId: ennemi.id, weapon: lame, parryWeaponUid: parade.uid!, defSL: 2, roll: 34 }, heros, ennemi, parade))!;
       const etat: Jeu = { ...partie.etat(), pendingCascade: { title: t('step.paradePiegerLame'), icon: 'item/weapon', purpose: 'combat', cursor: 0, log: [], participants: [etape], seq: 1 } };
-      const corps = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, null)['fenetre.corps'];
+      const corps = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null)['fenetre.corps'];
       expect(corps.filter((e) => e.id.startsWith('issue/')).map((e) => 'texte' in e && e.texte), 'ses deux lignes, dans l’ordre du flux').toEqual(etape.outcome!.map((l) => l.text));
     } finally {
       partie.fermer();

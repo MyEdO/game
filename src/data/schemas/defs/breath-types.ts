@@ -27,7 +27,7 @@ const doc = document(
     /** EDOC 13 l.237 */
     types: z.array(ref('breathType')).optional(),
     /** LDB 85 l.174, l.326-328 ; VDM 10 l.153 */
-    typeDeDegats: idDe('damageType').optional(),
+    typeDeDegats: ref('damageType').optional(),
   },
   {
     ignoreAP: { label: 'Ignore les PA', hint: 'Toutes les Blessures infligées par le Souffle ignorent les Points d’Armure' },
