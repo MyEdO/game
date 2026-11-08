@@ -17,7 +17,7 @@ import { resolveCarrier, porteurLocalise, type Carrier } from './monde/carrier';
 import { refusDInventaire } from './verrousDeFiche';
 import { refusEmplacementDeMain } from './partyFlow';
 import { refusDeConsommer } from './consumableFlow';
-import { appraiseRefus, gameDay } from './merchantFlow';
+import { appraiseRefus, gameDay, refusDeDetection } from './merchantFlow';
 
 /** Une main du set actif : si elle tient l'objet (son geste la vide alors). */
 export interface MainDuSet extends GesteFermable { tenue: boolean }
@@ -74,16 +74,16 @@ export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' |
   };
   const inconnu = hero && it.identified === false;
   return {
-    porter: isWearable(it) && !consommable ? { ...sur('equiperLObjet', [porteurId, uid]), porte: it.equipped } : null,
+    porter: isWearable(it) && !consommable ? { ...sur('equiperLObjet', [uid]), porte: it.equipped } : null,
     mains: set ? { set: set.id, main: main('main'), off: main('off') } : null,
-    ranger: contenants.length ? { refus: verrou, choix: contenants.map((c) => ({ cible: c, libelle: itemLabel(c), geste: { verbe: 'rangerLObjet', args: [porteurId, uid, c.uid] } })) } : null,
-    sortir: it.inside ? sur('rangerLObjet', [porteurId, uid, null]) : null,
+    ranger: contenants.length ? { refus: verrou, choix: contenants.map((c) => ({ cible: c, libelle: itemLabel(c), geste: { verbe: 'rangerLObjet', args: [uid, c.uid] } })) } : null,
+    sortir: it.inside ? sur('rangerLObjet', [uid, null]) : null,
     donner: porteurs.length ? { refus: verrou, choix: porteurs.map((c) => {
       const [id, libelle] = porteurDit(c);
-      return { cible: c, libelle, geste: { verbe: 'transmettreLObjet', args: [uid, porteurId, id] } };
+      return { cible: c, libelle, geste: { verbe: 'transmettreLObjet', args: [uid, id] } };
     }) } : null,
-    utiliser: hero && consommable ? sur('utiliserLObjet', [porteurId, uid], refusDeConsommer(hero, it)) : null,
-    evaluer: inconnu && it.appraiseTriedDay !== gameDay(s) ? sur('evaluerLObjet', [uid, porteurId], appraiseRefus(s.party)) : null,
-    detecter: inconnu && !it.detectTried ? sur('evaluerLObjet', [uid, porteurId, 'detect'], appraiseRefus(s.party, 'detect')) : null,
+    utiliser: hero && consommable ? sur('utiliserLObjet', [uid], refusDeConsommer(hero, it)) : null,
+    evaluer: inconnu && it.appraiseTriedDay !== gameDay(s) ? sur('evaluerLObjet', [uid], appraiseRefus(s.party)) : null,
+    detecter: inconnu ? sur('evaluerLObjet', [uid, 'detect'], refusDeDetection(s.party, it)) : null,
   };
 }

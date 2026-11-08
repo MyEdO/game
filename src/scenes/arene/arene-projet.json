@@ -2801,7 +2801,9 @@
       "tenue": "repurgateur",
       "sex": "M"
      },
-     "weapon": "epee-batarde",
+     "inventaire": {
+      "epee-batarde": false
+     },
      "ref": "humain"
     },
     {
@@ -2819,7 +2821,9 @@
       "tenue": "soldat",
       "sex": "M"
      },
-     "weapon": "hallebarde",
+     "inventaire": {
+      "hallebarde": false
+     },
      "ref": "humain"
     },
     {
@@ -3338,7 +3342,9 @@
       "tenue": "artisan",
       "sex": "M"
      },
-     "weapon": "marteau-de-guerre",
+     "inventaire": {
+      "marteau-de-guerre": false
+     },
      "ref": "nain"
     },
     {
@@ -13458,7 +13464,9 @@
      "appearance": {
       "tenue": "mendiant"
      },
-     "weapon": "epee-batarde",
+     "inventaire": {
+      "epee-batarde": false
+     },
      "label": "Gladiateur enchaîné"
     },
     {
@@ -21599,7 +21607,9 @@
       "tenue": "hors-la-loi",
       "sex": "F"
      },
-     "weapon": "arc",
+     "inventaire": {
+      "arc": false
+     },
      "label": "Coupe-jarret de Bella",
      "combat": {
       "randomChars": true
@@ -21616,7 +21626,9 @@
      "appearance": {
       "tenue": "hors-la-loi"
      },
-     "weapon": "epee-batarde",
+     "inventaire": {
+      "epee-batarde": false
+     },
      "label": "Spadassin de Bella",
      "combat": {
       "randomChars": true

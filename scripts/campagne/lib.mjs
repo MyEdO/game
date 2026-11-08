@@ -54,11 +54,13 @@ function tenueId(id) {
   if (tenueFermeeSchema.safeParse(id).success) return id;
   throw new Error(`campagne : appearance.tenue — ${messageDeTenueInconnue(id)}`);
 }
-/** `weapon` d'entité de scène : `trappingId` STABLE du catalogue d'armes. Valide → passe ; tout le reste
- *  → throw (chercher au Compendium → Objets). */
-function weaponId(id) {
-  if (findTrappingById(id)) return id;
-  throw new Error(`campagne : weapon introuvable « ${id} » — attendu un trappingId du catalogue d'armes (Compendium → Objets).`);
+/** `inventaire` d'entité de scène : chaque clé est un `trappingId` STABLE du catalogue. Valide → passe ; tout le
+ *  reste → throw (chercher au Compendium → Objets). */
+function inventaire(objets) {
+  for (const id of Object.keys(objets)) {
+    if (!findTrappingById(id)) throw new Error(`campagne : objet d'inventaire introuvable « ${id} » — attendu un trappingId du catalogue (Compendium → Objets).`);
+  }
+  return objets;
 }
 
 function traitInstance(entry, field) {
@@ -92,14 +94,14 @@ function presetRef(id, knownPresetIds) {
   throw new Error(`campagne : presetId introuvable « ${id} » — attendu un id de narratif.presetsPnj (${[...knownPresetIds].join(', ') || 'aucun preset déclaré'}).`);
 }
 
-/** Un ennemi authored terse : VALIDE `ref`/`spells`/`weapon`/`appearance`/`presetId` (ids stables, throw
+/** Un ennemi authored terse : VALIDE `ref`/`spells`/`inventaire`/`appearance`/`presetId` (ids stables, throw
  *  sinon), ainsi que les ids structurés de `optionals`/`statblock.traits`. PUR (copie ; ne mute pas les statblocs
  *  partagés). `knownPresetIds` optionnel : fourni → `presetId` validé fail-fast, sinon accepté (parse runtime). */
 function validateEnemy(e, knownPresetIds) {
   const out = { ...e };
   if (out.ref) out.ref = creatureId(out.ref);
   if (out.presetId) out.presetId = presetRef(out.presetId, knownPresetIds);
-  if (out.weapon) out.weapon = weaponId(out.weapon);
+  if (out.inventaire) out.inventaire = inventaire(out.inventaire);
   if (out.optionals) out.optionals = out.optionals.map(optionalEntry);
   if (out.spells) out.spells = out.spells.map(spellId);
   if (out.appearance?.species != null || out.appearance?.tenue != null) out.appearance = validateAppearance(out.appearance);
@@ -201,13 +203,13 @@ export function resetIds() {
   posteSeq = 0;
 }
 
-/** Personnage (PNJ) : apparence/dialogue/marchand via opts. `weapon`/`appearance.species`/`appearance.tenue`
+/** Personnage (PNJ) : apparence/dialogue/marchand via opts. `inventaire`/`appearance.species`/`appearance.tenue`
  *  sont VALIDÉS (ids stables, fail-fast).
  *  FICHE (#1882) : sans `ref`/`statblock`/`presetId`, la `ref` est le profil standard de son espèce
  *  (`LDB 77 l.7`, `species.json › profilStandard`), posée en QUEUE ; une espèce sans profil → throw. */
 export function NPC(id, x, y, label, opts = {}, knownPresetIds) {
   const e = { id, kind: 'personnage', pos: { x, y }, label, ...opts };
-  if (e.weapon != null) e.weapon = weaponId(e.weapon);
+  if (e.inventaire != null) e.inventaire = inventaire(e.inventaire);
   if (e.presetId != null) e.presetId = presetRef(e.presetId, knownPresetIds); // #671 : PNJ nommé instancié base+surcharges
   if (e.appearance != null) e.appearance = validateAppearance(e.appearance);
   if (e.ref == null && e.statblock == null && e.presetId == null) e.ref = profilStandardDe(id, e.appearance?.species);

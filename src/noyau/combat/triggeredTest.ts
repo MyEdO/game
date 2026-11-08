@@ -27,8 +27,8 @@ import { type OpsCtx, nomDeSource } from '../../engine/ops';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import type { Combatant, Difficulty, EffectSource } from '../../engine/types';
 import { dataLabel, derivedStake, testSkillLabel } from '../../data';
-import type { Flow } from '../../data/schemas/defs-scenes/effets';
-import { type EffectOp, type FlowTest, type ConditionCtx, evalCondition, flowHasImpureOp, flowHasOpADe, flowHasTest, poserEnjeu, EMPTY_FLOW } from '../../engine/flowCore';
+import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
+import { type EffectOp, type FlowTest, type ConditionCtx, type ArretDeFlow, type PasDeFlow, type ResteDuFlow, executerFlow, flowHasImpureOp, flowHasOpADe, flowHasTest, poserEnjeu, EMPTY_FLOW } from '../../engine/flowCore';
 import { resoudreFlowTest } from '../../engine/decisionDuTest';
 import { combatConditionCtx, runPureFlowLines } from './flowEval';
 import type { Get, Set as SetFn } from '../flowTypes';
@@ -391,82 +391,70 @@ function suiteDeCombat(ctx: ExecCtx, porteur: Combatant, oc: OpsCtx, flow: Flow)
 }
 
 /**
- * EXÉCUTEUR à PILE d'un Flow EN COMBAT — calque `runFlow` (côté scène) pour porter la CONTINUATION : un
+ * Hôte de COMBAT d'`executerFlow` — comme `runFlow` (côté scène), il porte la CONTINUATION : un
  * nœud `test` enfoui suspend en empaquetant le reste de la pile dans `after` puis délègue à
  * `resolveFlowTest`. `do` ops → `applyOps` sur la bonne cible (`on:'caster'`/`target`) ; `if` → branche
  * sur `combatConditionCtx`. Le journal part dans la file différée (`pendingLogQueue`). Pas de boucle → termine.
  */
 export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
-  const stack: Flow[] = [structuredClone(flow)]; // #2097
   const oc: OpsCtx = { rng: battleRng(), idNeuf: ctx.get().forgerUnId, caster: ctx.caster, ...ctx.opsCtx };
-  while (stack.length) {
-    const node = stack.shift()!;
-    switch (node.kind) {
-      case 'seq': stack.unshift(...node.steps); break;
-      case 'do': {
-        if (node.effect.type === 'ops') {
-          const unit = node.effect.on === 'caster' ? ctx.caster : ctx.target;
-          // Trait psy envers une personne CHOISIE (VDM 10 l.327) : la personne est désignée AVANT `applyOps`.
-          if (unit && node.effect.ops.some(visePersonneChoisie)) {
-            if (designerLaPersonne(ctx, unit, node.effect, oc, stack)) return;
-            break;
-          }
-          if (unit) {
-            // Ops IMPURES `grantFreeAttack` : résolues par `accorderLAttaqueGratuite` (combatFlow) — la frappe
-            // vise le TIERS de `ctx.freeAttack` (chargeur/victime), pas `unit` (le porteur). `applyOps` les
-            // laisse inertes → on les passe quand même (no-op) pour garder le journal des autres ops.
-            // Une frappe qui SUSPEND (fenêtre de défense ouverte) arrête le dispatch : la suivante se
-            // déclarera à la fermeture, jamais par-dessus la fenêtre (#1852).
-            if (ctx.freeAttack) for (const op of node.effect.ops) if (op.op === 'grantFreeAttack' && accorderLAttaqueGratuite(ctx.get, ctx.set, unit, op, ctx.freeAttack)) break;
-            // Op IMPURE `interruptFocus` (LDB 46 l.144) : `applyFocusInterruption` (combatFlow) résout l'interruption
-            // sur `unit` (le focaliseur) — perte des DR + Imparfaite Mineure (qui peut appender sa propre étape).
-            for (const op of node.effect.ops) if (op.op === 'interruptFocus') applyFocusInterruption(ctx.get, ctx.set, unit);
-            // Op IMPURE `breakBlade` (LDB 62 l.280) : `applyBladeTrap` (combatFlow) désarme/brise la lame de
-            // l'attaquant ciblé (`ctx.bladeTrap`). `unit` = le défenseur piégeur ; son DR final (`ctx.opsCtx.sl`)
-            // alimente la marge nette (= victoire Stupéfiante → bris). Le hook EMPILE sa conséquence comme étape
-            // d'affichage propre (mirroir du Coup Critique) → rien à journaliser ici.
-            // La Sauvegarde Solide de la lame peut partir à la porte (#1508 T3b-4) : le reste du Flow est
-            // alors SA continuation, et le nœud re-entre PRIVÉ de l'op déjà jouée (jamais deux bris).
-            if (ctx.bladeTrap && node.effect.ops.some((op) => op.op === 'breakBlade')
-              && applyBladeTrap(ctx.get, ctx.set, unit, ctx.bladeTrap, ctx.opsCtx?.sl ?? 0) === OPS_DIFFEREES) {
-              const reste = { ...node, effect: { ...node.effect, ops: node.effect.ops.filter((op) => op.op !== 'breakBlade') } };
-              confierLaSuite(ctx.set, [suiteDeCombat(ctx, unit, oc, { kind: 'seq', steps: [reste, ...stack.splice(0)] })]);
-              return;
-            }
-            // `applyLeafOps` = SOURCE UNIQUE d'application d'une feuille : contexte de FEUILLE
-            // (untilTime/label bakés — consommable) + programmation des ops IMPURES `delayed`.
-            const lines = applyLeafOps(ctx.get, ctx.set, unit, node.effect, oc);
-            // Feuille partie à la PORTE (#1508) : le reste de la pile est SA continuation — MÊME geste
-            // que `case 'test'` ci-dessous, et pour la même raison. Poursuivre ici appliquerait les
-            // nœuds suivants AVANT la conséquence qui attend son dé, inversant l'ordre de l'auteur.
-            if (lines === OPS_DIFFEREES) {
-              const steps = stack.splice(0);
-              if (steps.length) confierLaSuite(ctx.set, [suiteDeCombat(ctx, unit, oc, { kind: 'seq', steps })]);
-              return;
-            }
-            ctx.set(touchActors(ctx.get())); queueLines(ctx.get, ctx.set, lines, unit.id);
-          }
-        }
-        break;
+  executerFlow<Effect, void>(structuredClone(flow), { // #2097
+    conditions: () => conditionsDuFlow(ctx),
+    feuille: (node, reste) => {
+      if (node.effect.type !== 'ops') return undefined;
+      const unit = node.effect.on === 'caster' ? ctx.caster : ctx.target;
+      if (!unit) return undefined;
+      // Trait psy envers une personne CHOISIE (VDM 10 l.327) : la personne est désignée AVANT `applyOps`.
+      if (node.effect.ops.some(visePersonneChoisie)) return designerLaPersonne(ctx, unit, node.effect, oc, reste);
+      // Ops IMPURES `grantFreeAttack` : résolues par `accorderLAttaqueGratuite` (combatFlow) — la frappe
+      // vise le TIERS de `ctx.freeAttack` (chargeur/victime), pas `unit` (le porteur). `applyOps` les
+      // laisse inertes → on les passe quand même (no-op) pour garder le journal des autres ops.
+      // Une frappe qui SUSPEND (fenêtre de défense ouverte) arrête le dispatch : la suivante se
+      // déclarera à la fermeture, jamais par-dessus la fenêtre (#1852).
+      if (ctx.freeAttack) for (const op of node.effect.ops) if (op.op === 'grantFreeAttack' && accorderLAttaqueGratuite(ctx.get, ctx.set, unit, op, ctx.freeAttack)) break;
+      // Op IMPURE `interruptFocus` (LDB 46 l.144) : `applyFocusInterruption` (combatFlow) résout l'interruption
+      // sur `unit` (le focaliseur) — perte des DR + Imparfaite Mineure (qui peut appender sa propre étape).
+      for (const op of node.effect.ops) if (op.op === 'interruptFocus') applyFocusInterruption(ctx.get, ctx.set, unit);
+      // Op IMPURE `breakBlade` (LDB 62 l.280) : `applyBladeTrap` (combatFlow) désarme/brise la lame de
+      // l'attaquant ciblé (`ctx.bladeTrap`). `unit` = le défenseur piégeur ; son DR final (`ctx.opsCtx.sl`)
+      // alimente la marge nette (= victoire Stupéfiante → bris). Le hook EMPILE sa conséquence comme étape
+      // d'affichage propre (mirroir du Coup Critique) → rien à journaliser ici.
+      // La Sauvegarde Solide de la lame peut partir à la porte (#1508 T3b-4) : le reste du Flow est
+      // alors SA continuation, et le nœud re-entre PRIVÉ de l'op déjà jouée (jamais deux bris).
+      if (ctx.bladeTrap && node.effect.ops.some((op) => op.op === 'breakBlade')
+        && applyBladeTrap(ctx.get, ctx.set, unit, ctx.bladeTrap, ctx.opsCtx?.sl ?? 0) === OPS_DIFFEREES) {
+        const prive = { ...node, effect: { ...node.effect, ops: node.effect.ops.filter((op) => op.op !== 'breakBlade') } };
+        confierLaSuite(ctx.set, [suiteDeCombat(ctx, unit, oc, { kind: 'seq', steps: [prive, ...reste().steps] })]);
+        return FIN_DU_FLOW;
       }
-      case 'if': {
-        const branch = evalCondition(node.cond, conditionsDuFlow(ctx)) ? node.then : node.else;
-        if (branch) stack.unshift(branch);
-        break;
+      // `applyLeafOps` = SOURCE UNIQUE d'application d'une feuille : contexte de FEUILLE
+      // (untilTime/label bakés — consommable) + programmation des ops IMPURES `delayed`.
+      const lines = applyLeafOps(ctx.get, ctx.set, unit, node.effect, oc);
+      // Feuille partie à la PORTE (#1508) : le reste de la pile est SA continuation — MÊME geste
+      // que le `test` ci-dessous, et pour la même raison. Poursuivre ici appliquerait les
+      // nœuds suivants AVANT la conséquence qui attend son dé, inversant l'ordre de l'auteur.
+      if (lines === OPS_DIFFEREES) {
+        const steps = reste().steps;
+        if (steps.length) confierLaSuite(ctx.set, [suiteDeCombat(ctx, unit, oc, { kind: 'seq', steps })]);
+        return FIN_DU_FLOW;
       }
-      case 'test': {
-        const after: Flow = { kind: 'seq', steps: stack.splice(0) };
-        resolveFlowTest(ctx, node, after);
-        return;
-      }
-      case 'choice': {
-        const after: Flow = { kind: 'seq', steps: stack.splice(0) };
-        resolveFlowChoice(ctx, node, after);
-        return;
-      }
-    }
-  }
+      ctx.set(touchActors(ctx.get())); queueLines(ctx.get, ctx.set, lines, unit.id);
+      return undefined;
+    },
+    test: (node, reste) => {
+      resolveFlowTest(ctx, node, reste());
+      return FIN_DU_FLOW;
+    },
+    choix: (node, reste) => {
+      resolveFlowChoice(ctx, node, reste());
+      return FIN_DU_FLOW;
+    },
+    fin: () => undefined,
+  });
 }
+
+/** Arrêt d'un Flow de combat : ce qui reste de la pile a été confié à une étape, une modale ou une reprise. */
+const FIN_DU_FLOW: ArretDeFlow<void> = { arret: undefined };
 
 /**
  * POINT DE DÉCISION UNIQUE sur un nœud `test`. `target` = le combattant qui jette (référent = la cible
@@ -663,16 +651,16 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
 
 /**
  * DÉSIGNE la personne d'une feuille portant un Trait psy `envers` (VDM 10 l.327, « nommer ou désigner ») :
- * le décideur (le lanceur) SURFACÉ la choisit à une étape `personneChoisie` — rend `true`, la pile restante
- * part avec elle ; sinon elle est désignée d'office (`personneDuDecideurAuto`, #3045) et la feuille
- * résolue (`fluxDEnvers`) reprend en tête de pile — rend `false`.
+ * le décideur (le lanceur) SURFACÉ la choisit à une étape `personneChoisie` — rend l'arrêt, le reste de
+ * la pile part avec elle ; sinon elle est désignée d'office (`personneDuDecideurAuto`, #3045) et rend la
+ * feuille résolue (`fluxDEnvers`), jouée en tête de pile.
  */
-function designerLaPersonne(ctx: ExecCtx, cible: Combatant, effet: EffectOp, oc: OpsCtx, stack: Flow[]): boolean {
+function designerLaPersonne(ctx: ExecCtx, cible: Combatant, effet: EffectOp, oc: OpsCtx, reste: ResteDuFlow<Effect>): PasDeFlow<Effect, void> {
   const decideur = ctx.caster ?? cible;
   const candidates = personnesCandidates(ctx.get(), cible);
   const auto = personneDuDecideurAuto(cible, candidates);
   if (candidates.length && surfaceOf(ctx.get, decideur.id)) {
-    const after: Flow = { kind: 'seq', steps: stack.splice(0) };
+    const after = reste();
     pushChoice(ctx.set, (i) => ({
       id: `personneChoisie-${decideur.id}-${i}`,
       kind: 'personneChoisie', actorId: decideur.id, icon: 'mechanic/mind',
@@ -681,11 +669,10 @@ function designerLaPersonne(ctx: ExecCtx, cible: Combatant, effet: EffectOp, oc:
       defaultChoice: (auto ?? candidates[0]).id,
       meta: { feuilleEnvers: { kind: 'do', effect: effet }, after, choiceTargetId: cible.id, opsDeCtx: porterOpsCtx(oc) },
     }));
-    return true;
+    return FIN_DU_FLOW;
   }
   queueLines(ctx.get, ctx.set, [ligneDeDesignation(cible, auto, oc)], cible.id);
-  stack.unshift(fluxDEnvers(effet, auto, !!auto && sontAmis(cible, auto)));
-  return false;
+  return fluxDEnvers(effet, auto, !!auto && sontAmis(cible, auto));
 }
 
 /** La ligne de journal qui dit la personne désignée pour `cible`, ou qu'il n'y en a aucune. */
@@ -718,8 +705,8 @@ export function routeTriggeredTest(get: Get, set: SetFn, target: Combatant, acto
     const ft = { ...withDerivedStake(flow.test, opsCtx?.source), noSupport: flow.test.noSupport ?? true };
     // Le pending porte le VOCABULAIRE de la branche (`target`/`caster`) : c'est lui qui, à la reprise,
     // envoie branche et continuation au marcheur d'ACTEUR (`reprendreTestSubi`) plutôt qu'à celui de
-    // scène. Ids seuls, même prédicat que l'`extraMeta` de l'étape de cascade (`runCombatFlow`,
-    // `case 'test'`) : le lanceur n'entre que lorsqu'il DIFFÈRE du sujet. Le libellé de la source voyage
+    // scène. Ids seuls, même prédicat que l'`extraMeta` de l'étape de cascade (`resolveFlowTest`,
+    // `extraMeta`) : le lanceur n'entre que lorsqu'il DIFFÈRE du sujet. Le libellé de la source voyage
     // avec : la reprise la nomme comme la porte en combat (`nomDeSource`, ci-dessous).
     const subi = {
       ...(actor.id !== target.id ? { casterId: actor.id } : {}),
@@ -736,7 +723,7 @@ export function routeTriggeredTest(get: Get, set: SetFn, target: Combatant, acto
  * REPRISE de la branche d'un Test SUBI (`PendingTest.subi`, posé par la porte ci-dessus) — le pendant
  * de la clôture `reprendreFlowDeCombat` (`combatFlow.ts`) pour la modale de Test : la branche et
  * la continuation d'un Test SUBI parlent `target`/`caster`, vocabulaire que seul `runCombatFlow`
- * honore (`case 'do'` : `on === 'caster'` → lanceur, sinon cible). Le contexte est RECONSTRUIT depuis
+ * honore (sa `feuille` : `on === 'caster'` → lanceur, sinon cible). Le contexte est RECONSTRUIT depuis
  * `get()` par ids — jamais capturé : entre l'ouverture et la reprise il y a une modale, donc
  * potentiellement une save, un rechargement ou un relais coop. La source se nomme comme à la porte en
  * combat (`nomDeSource`).

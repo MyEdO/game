@@ -77,7 +77,7 @@ function carte(): Scene {
     victoryCondition: { type: 'surviveRounds', rounds: 3 },
     enemies: [
       { ref: 'gobelin', pos: GOBELIN_VOISIN, facing: 'E' },
-      { ref: 'gobelin', pos: ARCHER, facing: 'E', weapon: 'arc' },
+      { ref: 'gobelin', pos: ARCHER, facing: 'E', inventaire: { arc: false } },
       { ref: 'gobelin', pos: GOBELIN_DERRIERE_MUR, facing: 'O' },
     ],
   });
