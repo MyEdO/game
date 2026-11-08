@@ -4,6 +4,7 @@
  * (LDB 13 l.45-47, `outOfCombatUpkeep`). À l'expiration, la donnée qu'il porte (`grantedMutation`,
  * `grantedTrait` — Allure démoniaque, EDOC 13 l.270-276) se détache par `removeActiveEffects`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { finalizeBattle } from './combatFlow';
@@ -19,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 describe('finalizeBattle — un effet en Rounds revient au groupe et s’écoule hors combat', () => {
   function setup() {
-    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
+    const W = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
     banc.setState({ party: [W] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

@@ -16,6 +16,7 @@
  * Le verdict se calcule donc chez l'ÉMETTEUR et voyage dans les args (`approche`/`courseArmee`),
  * exactement comme `confirm`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { argsAvecVerdictLocal } from './localIntent';
@@ -35,7 +36,7 @@ const get = () => banc.getState();
 
 /** Combat témoin : un héros au tour ENTIER, un ennemi placé à distance de Charge (hors d'Allonge). */
 function setup(opts: { peur?: boolean } = {}) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], screen: 'campaign' });
   get().lancerLaScene(testScene());
   get().lancerLeCombat('enc-mutants');

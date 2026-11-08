@@ -2,6 +2,7 @@
  * Zones persistantes (Jalon 2.6 L11) : géométrie, TTL, traversée (Mur de feu, LDB 47),
  * occupation par Round (Grands feux d'U'Zhul, LDB 47), mitigation des Dégâts (BE + PA corps).
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from '../../engine/types';
 import type { RNG } from '../../engine/dice';
@@ -60,7 +61,7 @@ describe('crossZones — « Quiconque traverse le mur de feu » (LDB 47)', () =>
   const caster = mk({ id: 'w', label: 'Pyromancien', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 } as Combatant['characteristics'] });
   it('chemin qui traverse : BFM Dégâts (mitigés BE) + En flammes, UNE fois par zone', () => {
     const m = mk({ id: 'm', label: 'Brigand' }); // E 30 → BE 3 ; FM lanceur 40 → 4 Dégâts → 1 PB
-    const lines = crossZones([wall], m, [{ x: 3, y: 5 }, { x: 4, y: 5 }, { x: 5, y: 5 }], () => caster, rng);
+    const lines = crossZones([wall], m, [{ x: 3, y: 5 }, { x: 4, y: 5 }, { x: 5, y: 5 }], () => caster, rng, idsDeTest);
     expect(m.wounds.current).toBe(11);
     expect(m.conditions.some((c) => c.id === 'en-flammes')).toBe(true);
     expect(lines.join(' ')).toMatch(/traverse Mur de feu/);
@@ -70,13 +71,13 @@ describe('crossZones — « Quiconque traverse le mur de feu » (LDB 47)', () =>
     const ops = findSpellById('mur-de-feu')!.effects as unknown as { steps: { effect: { ops: { onCross: BattleZone['onCross'] }[] } }[] };
     const murDuSort: BattleZone = { ...wall, onCross: ops.steps[0].effect.ops[0].onCross };
     const m = mk({ id: 'm3', label: 'Blindé', armour: { tete: 1, brasG: 1, brasD: 1, corps: 1, jambeG: 1, jambeD: 1 } as Combatant['armour'] }); // BE 3 + PA 1 = BFM 4
-    crossZones([murDuSort], m, [{ x: 3, y: 5 }, { x: 4, y: 5 }, { x: 5, y: 5 }], () => caster, rng);
+    crossZones([murDuSort], m, [{ x: 3, y: 5 }, { x: 4, y: 5 }, { x: 5, y: 5 }], () => caster, rng, idsDeTest);
     expect(m.wounds.current).toBe(12);
     expect(m.conditions.some((c) => c.id === 'en-flammes')).toBe(true);
   });
   it('chemin qui contourne : rien', () => {
     const m = mk({ id: 'm2' });
-    const lines = crossZones([wall], m, [{ x: 3, y: 8 }, { x: 4, y: 8 }, { x: 5, y: 8 }], () => caster, rng);
+    const lines = crossZones([wall], m, [{ x: 3, y: 8 }, { x: 4, y: 8 }, { x: 5, y: 8 }], () => caster, rng, idsDeTest);
     expect(m.wounds.current).toBe(12);
     expect(lines).toHaveLength(0);
   });
@@ -90,7 +91,7 @@ describe('zonesRoundTick — « Quiconque se trouve dans la ZdE au début d’un
   it('occupant : 1d10+6 Dégâts ignorant les PA (mitigés BE) + 1 En flammes', () => {
     const inZone = mk({ id: 'a', pos: { x: 6, y: 5 }, armour: { tete: 9, brasG: 9, brasD: 9, corps: 9, jambeG: 9, jambeD: 9 } as Combatant['armour'] });
     const outZone = mk({ id: 'b', pos: { x: 20, y: 20 } });
-    const ticks = zonesRoundTick([fire], [inZone, outZone], rng);
+    const ticks = zonesRoundTick([fire], [inZone, outZone], rng, idsDeTest);
     // d10 scripté = 5 → 11 Dégâts − BE 3 = 8 (PA 9 ignorées)
     expect(inZone.wounds.current).toBe(4);
     expect(inZone.conditions.some((c) => c.id === 'en-flammes')).toBe(true);
@@ -109,17 +110,17 @@ describe('GameOp[] dans une zone — wounds mitigé + condition unlessCondition 
   };
   it('crossZones : 8 − BE 3 − PA 2 = 3 Blessures + Brisé entretenu sans empiler', () => {
     const m = mk({ id: 'm', pos: { x: 4, y: 5 }, armour: { tete: 0, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 } as Combatant['armour'] });
-    crossZones([ward], m, [{ x: 4, y: 5 }, { x: 5, y: 5 }, { x: 6, y: 5 }], () => undefined, rng);
+    crossZones([ward], m, [{ x: 4, y: 5 }, { x: 5, y: 5 }, { x: 6, y: 5 }], () => undefined, rng, idsDeTest);
     expect(m.wounds.current).toBe(9); // 12 − 3
     expect(m.conditions.filter((c) => c.id === 'brise').reduce((a, c) => a + (c.value ?? 1), 0)).toBe(1);
-    crossZones([ward], m, [{ x: 4, y: 5 }, { x: 5, y: 5 }], () => undefined, rng);
+    crossZones([ward], m, [{ x: 4, y: 5 }, { x: 5, y: 5 }], () => undefined, rng, idsDeTest);
     expect(m.conditions.filter((c) => c.id === 'brise').reduce((a, c) => a + (c.value ?? 1), 0)).toBe(1); // unlessCondition : pas empilé
   });
   it('zonesRoundTick : même mitigation + Brisé entretenu pour l’occupant', () => {
     const c = mk({ id: 'a', pos: { x: 5, y: 5 }, armour: { tete: 0, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 } as Combatant['armour'] });
-    zonesRoundTick([ward], [c], rng);
+    zonesRoundTick([ward], [c], rng, idsDeTest);
     expect(c.wounds.current).toBe(9);
-    zonesRoundTick([ward], [c], rng);
+    zonesRoundTick([ward], [c], rng, idsDeTest);
     expect(c.wounds.current).toBe(6); // 2e tick : encore 3 Blessures
     expect(c.conditions.filter((x) => x.id === 'brise').reduce((a, x) => a + (x.value ?? 1), 0)).toBe(1); // entretenu
   });
@@ -161,18 +162,18 @@ describe('z-blind — zones authorées d’étage (#799)', () => {
   it('crossZones : inerte pour un mover au rez (z0), actif pour le même (x,y) à l’étage (z1)', () => {
     const [bz] = sceneZonesToBattle([trapUpstairs]);
     const ground = mk({ id: 'g', pos: { x: 4, y: 4 } });
-    crossZones([bz], ground, [{ x: 3, y: 4 }, { x: 4, y: 4 }, { x: 5, y: 4 }], () => undefined, rng);
+    crossZones([bz], ground, [{ x: 3, y: 4 }, { x: 4, y: 4 }, { x: 5, y: 4 }], () => undefined, rng, idsDeTest);
     expect(ground.wounds.current).toBe(12); // z0 non touché par une zone z1
 
     const upstairs = mk({ id: 'u', pos: { x: 4, y: 4, z: 1 } });
-    crossZones([bz], upstairs, [{ x: 3, y: 4, z: 1 }, { x: 4, y: 4, z: 1 }, { x: 5, y: 4, z: 1 }], () => undefined, rng);
+    crossZones([bz], upstairs, [{ x: 3, y: 4, z: 1 }, { x: 4, y: 4, z: 1 }, { x: 5, y: 4, z: 1 }], () => undefined, rng, idsDeTest);
     expect(upstairs.wounds.current).toBe(10); // 5 − BE 3 (E 30) = 2 Blessures, même (x,y) mais z1
   });
   it('zonesRoundTick : même partition z0/z1', () => {
     const [bz] = sceneZonesToBattle([trapUpstairs]);
     const ground = mk({ id: 'g', pos: { x: 4, y: 4 } });
     const upstairs = mk({ id: 'u', pos: { x: 4, y: 4, z: 1 } });
-    const ticks = zonesRoundTick([bz], [ground, upstairs], rng);
+    const ticks = zonesRoundTick([bz], [ground, upstairs], rng, idsDeTest);
     expect(ground.conditions.some((c) => c.id === 'en-flammes')).toBe(false);
     expect(upstairs.conditions.some((c) => c.id === 'en-flammes')).toBe(true);
     expect(ticks.every((t) => t.combatant.id === 'u')).toBe(true);

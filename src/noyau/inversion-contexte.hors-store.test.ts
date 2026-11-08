@@ -4,6 +4,7 @@
  * ADE II 09 l.33 (jeton de Convalescence), LDB 21 l.9/l.27, LDB 23 l.218, LDB 10 l.899/l.966,
  * EDOC 8 l.172, MDG 09 l.54
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { cascadeDeTest } from './cascade.testkit';
@@ -31,7 +32,7 @@ const heros = (id: string, over: Partial<Combatant> = {}): Combatant => blessure
 }) as unknown as Combatant;
 
 const jeton = (c: Combatant, op: Omit<Extract<GameOp, { op: 'grantReverseToken' }>, 'op'>, label = 'Source'): Combatant => {
-  applyOps(c, [{ op: 'grantReverseToken', ...op }], { rng: makeRNG(1), label });
+  applyOps(c, [{ op: 'grantReverseToken', ...op }], { idNeuf: idsDeTest, rng: makeRNG(1), label });
   return c;
 };
 const JETON_CONVALESCENCE = { skill: { id: 'calme' }, contexte: 'psych' } as const;

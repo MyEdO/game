@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { act } from 'react';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -139,7 +140,7 @@ function svgTémoin(el: HTMLElement): { svg: SVGSVGElement; capture: ReturnType<
 }
 
 // ── Fixtures des trois familles de porteurs ─────────────────────────────────────────────────────
-const mkPoste = (engineId: string, crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById(engineId)!, crewIds });
+const mkPoste = (engineId: string, crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById(engineId, idsDeTest)!, crewIds });
 
 const mkHull = (postes: ShipPoste[], pos = { x: 4, y: 3 }): Combatant =>
   combattantDeTest({ id: 'hull', label: 'Bélier', kind: 'enemy', pos, inert: true, wounds: blessuresDeBase(0), postes });

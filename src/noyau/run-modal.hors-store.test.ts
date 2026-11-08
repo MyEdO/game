@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -11,7 +12,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
   function setup(prep?: (hero: Combatant) => void) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     prep?.(hero);
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());

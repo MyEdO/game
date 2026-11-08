@@ -2,6 +2,7 @@
  * LE NŒUD `choice` HORS COMBAT (#1463 β2) : le lanceur du groupe tranche chaque choix d'un Sort, une fois
  * par lancer ; un choix qui coûte des Avantages n'est pas offert hors combat. LDB 14 l.219.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc } from './banc.testkit';
 import { draineEtapes } from './cascade.testkit';
@@ -25,7 +26,7 @@ describe('choix d’un Sort lancé hors combat', () => {
 
   for (const sort of sortsAChoixDirect) {
     it(`${sort.id} : le lanceur tranche, chaque étape une seule fois`, () => {
-      const [w, s] = pregenParty(PREGEN.sorcier, PREGEN.soldat);
+      const [w, s] = pregenParty(idsDeTest, PREGEN.sorcier, PREGEN.soldat);
       const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s] } });
       banc.getState().incanterLeSort(w.id, sort.id, s.id);
       banc.getState().jetLancer('cast');
@@ -50,7 +51,7 @@ describe('choix à coût d’Avantage hors combat (LDB 14 l.219)', () => {
   ] };
 
   it('n’est pas offert : la branche « non » puis la suite se jouent', () => {
-    const banc = ouvrirLeBanc({ graine: 7, etat: { party: pregenParty(PREGEN.soldat) } });
+    const banc = ouvrirLeBanc({ graine: 7, etat: { party: pregenParty(idsDeTest, PREGEN.soldat) } });
     const H = banc.getState().party[0];
     const avantages = H.advantage;
     runCombatFlow({ get: banc.getState, set: banc.setState, target: H, caster: H, label: 'Fixture' }, flux);

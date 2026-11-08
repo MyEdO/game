@@ -9,6 +9,7 @@
  *     En partie locale il n'est pas dessiné (comme la rangée de ready-check) ; le refus reste au
  *     registre (`gate: 'coop'`) pour la touche.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -30,7 +31,7 @@ beforeAll(() => {
 });
 
 function hero(id: string, label: string): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 9 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 9 });
   h.id = id;
   h.pos = { x: 5, y: 5 };
   return h;

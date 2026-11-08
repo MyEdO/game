@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { runFlow } from '../../noyau/combatEffects';
@@ -10,7 +11,7 @@ import { draineCascade } from '../../noyau/cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /**
  * « Effets scriptés » (#96/#97) : chaque `it` prouve qu'un déclencheur RÉEL du scénario (dialogue,
@@ -21,7 +22,7 @@ describe('Scénario « Effets scriptés » : moteurs orphelins câblés à un d�
   const scene = scenarioConstruit.scene;
 
   beforeEach(() => {
-    banc.setState({ battle: null, flags: {}, journal: [], mode: 'exploration', scene, party: scenario.construire().party });
+    banc.setState({ battle: null, flags: {}, journal: [], mode: 'exploration', scene, party: scenario.construire(idsDeTest).party });
     for (const [id, v] of Object.entries(scenario.rules ?? {})) setRule(id, v as never);
   });
   afterEach(() => { for (const id of Object.keys(scenario.rules ?? {})) resetRule(id); });

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { itemFromTrappingById } from '../../engine/items';
 import { computeVisible, computeLightField, ambientScalar, baseSightTiles, combatantLights, darkSightTiles, mapLights, rayonEnCases, type LightField } from './vision';
@@ -262,7 +263,7 @@ describe('combatantLights — la source PORTÉE suit son porteur : son ÉTAGE et
   const porteur = (z?: number) => ({
     id: 'h1',
     pos: { x: 2, y: 0, z },
-    items: [{ ...itemFromTrappingById('lanterne')!, uid: 'i1', equipped: true }],
+    items: [{ ...itemFromTrappingById('lanterne', idsDeTest)!, uid: 'i1', equipped: true }],
   });
 
   it('une lanterne portée à l’ÉTAGE inscrit son halo à cet étage, et laisse le sol noir', () => {

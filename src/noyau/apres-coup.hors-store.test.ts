@@ -9,6 +9,7 @@
  * état final. Les dés de suspension sont posés pour que le cas rejoigne l'état du témoin (sauvegarde et
  * sauvegarde Solide ratées, Critique subi).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { itemFromTrappingById, weaponFromItem } from '../engine/items';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -63,7 +64,7 @@ function monte(charge: Charge, susp: Suspension | null, temoin = false): void {
     e.characteristics['capacite-de-combat'] = 95;
     combattants.push(mk('h2', 'hero', { x: 1, y: 1 }, [arme('sw2', 'Épée')]));
   }
-  const bouclier = { ...weaponFromItem(itemFromTrappingById('bouclier')!), ...arme('sh', 'Bouclier', [{ id: 'protectrice', value: 2 }]) };
+  const bouclier = { ...weaponFromItem(itemFromTrappingById('bouclier', idsDeTest)!), ...arme('sh', 'Bouclier', [{ id: 'protectrice', value: 2 }]) };
   if (charge === 'reaction') {
     h.weapons = [h.weapons[0], bouclier];
     h.talents = [{ talentId: 'porte-bouclier', times: 1 }] as never;

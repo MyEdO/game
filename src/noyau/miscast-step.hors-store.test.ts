@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyMiscast } from './combatFlow';
@@ -65,7 +66,7 @@ function joueEnRetenant(max = 30): { des: number[]; lignes: string[] } {
 }
 
 function mageSolo(seed = 3): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed });
   h.wounds = blessuresDeBase(200, 200, h);
   banc.setState({ battle: null, party: [h], pendingCascade: null, suspendedCascades: [], pendingLogQueue: [] });
   return banc.getState().party[0];

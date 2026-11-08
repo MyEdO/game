@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { previewAttack, resolveGrappleWin } from './combatFlow';
 import { maneuverDefensePending } from './combatManeuvers';
@@ -30,7 +31,7 @@ const scene = (): Scene =>
     layers: [{ z: 0, tiles: new Array(100).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] }) as unknown as Scene;
 
 const armeDe = (c: Combatant, id: string): Weapon => {
-  const it: ItemInstance = { ...garanti(itemFromTrappingById(id), id, 'trapping'), uid: id, equipped: true };
+  const it: ItemInstance = { ...garanti(itemFromTrappingById(id, idsDeTest), id, 'trapping'), uid: id, equipped: true };
   c.items = [it];
   recomputeLoadout(c);
   return garanti(c.weapons.find((w) => w.uid === id), id, 'arme dérivée');
@@ -79,7 +80,7 @@ describe('Tout lecteur du Bonus de Force passe par bonusDe (LDB 21 l.33)', () =>
     const perte = (fr: boolean): number => {
       const foe = combattantDeTest({ id: 't', pos: { x: 1, y: 0 }, characteristics: { endurance: 10 } });
       foe.wounds = blessuresDeBase(30, 30, foe);
-      resolveGrappleWin(combattant(fr), foe, 'damage', 0, 50);
+      resolveGrappleWin(combattant(fr), foe, 'damage', 0, 50, idsDeTest);
       return 30 - foe.wounds.current;
     };
     expect(perte(true) - perte(false)).toBe(1);

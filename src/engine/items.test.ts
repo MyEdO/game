@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { apparencesCandidates, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, deviatableArmourAt, endommagerLEquipementPorte, buildWeapon, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, emplacementDArmure, emplacementDeCape, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, weaponFromItem, lacherLArme, tientUneArme, porteeDeTir } from './items';
 import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
@@ -16,14 +17,14 @@ const item = (o: Partial<ItemInstance>): ItemInstance =>
 
 describe('itemLabel — id STABLE → libellé FR (jamais l’id brut)', () => {
   it('un objet CATALOGUÉ rangé affiche le libellé FR, jamais son id kebab-case (même si name a dérivé)', () => {
-    const it = itemFromTrappingById('epee-batarde')!;
+    const it = itemFromTrappingById('epee-batarde', idsDeTest)!;
     it.label = 'epee-large'; // name FAUTIF (save ancienne / donnée corrompue) : ne doit PAS fuir à l'affichage
     it.inside = 'sac-1'; // objet RANGÉ dans un contenant
     expect(itemLabel(it)).toBe('Épée bâtarde');
     expect(itemLabel(it)).not.toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)+$/); // aucun id kebab-case rendu
   });
   it('objet CUSTOM (hors-base, sans trappingId) : repli sur le nom libre', () => {
-    expect(itemLabel(customTrapping('Fiole de sang'))).toBe('Fiole de sang');
+    expect(itemLabel(customTrapping('Fiole de sang', idsDeTest))).toBe('Fiole de sang');
   });
 });
 
@@ -40,28 +41,28 @@ describe('weaponHands (latéralité)', () => {
     expect(weaponHands(it_({ label: 'Epee', subType: 'Base' }))).toBe(1);
   });
   it('itemFromTrappingById pose `hands` depuis le champ typé — mêlée ET distance', () => {
-    expect(itemFromTrappingById('arc')?.hands).toBe(2);
-    expect(itemFromTrappingById('arbalete-de-poing')?.hands).toBe(1);
-    expect(itemFromTrappingById('pistolet')?.hands).toBe(1);
-    expect(itemFromTrappingById('hallebarde')?.hands).toBe(2);
+    expect(itemFromTrappingById('arc', idsDeTest)?.hands).toBe(2);
+    expect(itemFromTrappingById('arbalete-de-poing', idsDeTest)?.hands).toBe(1);
+    expect(itemFromTrappingById('pistolet', idsDeTest)?.hands).toBe(1);
+    expect(itemFromTrappingById('hallebarde', idsDeTest)?.hands).toBe(2);
   });
   it('Poudre noire/Ingénierie classées par le champ typé `hands` (LDB 62) : arquebuses 2 mains, pistolets 1 main', () => {
-    expect(itemFromTrappingById('arquebuse')?.hands).toBe(2);
-    expect(itemFromTrappingById('tromblon')?.hands).toBe(2);
-    expect(itemFromTrappingById('long-fusil-d-hochland')?.hands).toBe(2);
-    expect(itemFromTrappingById('pistolet-a-repetition')?.hands).toBe(1);
+    expect(itemFromTrappingById('arquebuse', idsDeTest)?.hands).toBe(2);
+    expect(itemFromTrappingById('tromblon', idsDeTest)?.hands).toBe(2);
+    expect(itemFromTrappingById('long-fusil-d-hochland', idsDeTest)?.hands).toBe(2);
+    expect(itemFromTrappingById('pistolet-a-repetition', idsDeTest)?.hands).toBe(1);
   });
 });
 
 describe('itemFromTrappingById — Allonge (mêlée) ⊥ Portée (distance), LDB 62', () => {
   it('arme à distance : reach nul, Portée dérivée en mètres (pas de doublon « Allonge 50 · Portée 50 »)', () => {
-    const arc = itemFromTrappingById('arc')!;
+    const arc = itemFromTrappingById('arc', idsDeTest)!;
     expect(arc.kind).toBe('ranged');
     expect(arc.reach).toBeNull(); // un projectile n'a pas d'Allonge
     expect(arc.range).toBe(50);
   });
   it('arme de mêlée : Allonge renseignée, pas de Portée', () => {
-    const hall = itemFromTrappingById('hallebarde')!;
+    const hall = itemFromTrappingById('hallebarde', idsDeTest)!;
     expect(hall.kind).toBe('melee');
     expect(hall.reach).toBe('Longue');
     expect(hall.range).toBeNull();
@@ -156,11 +157,11 @@ describe('isOffHandEligible (LDB 14 l.138 — main secondaire)', () => {
     expect(isOffHandEligible(melee(2))).toBe(false);
   });
   it('arme à distance NON-pistolet (Arc) → exclue', () => {
-    expect(isOffHandEligible(itemFromTrappingById('arc')!)).toBe(false);
+    expect(isOffHandEligible(itemFromTrappingById('arc', idsDeTest)!)).toBe(false);
   });
   it('pistolet (Atout Pistolet) → éligible ; Arbalète de poing (même Atout) aussi', () => {
-    expect(isOffHandEligible(itemFromTrappingById('pistolet')!)).toBe(true);
-    expect(isOffHandEligible(itemFromTrappingById('arbalete-de-poing')!)).toBe(true);
+    expect(isOffHandEligible(itemFromTrappingById('pistolet', idsDeTest)!)).toBe(true);
+    expect(isOffHandEligible(itemFromTrappingById('arbalete-de-poing', idsDeTest)!)).toBe(true);
   });
 });
 
@@ -269,7 +270,7 @@ describe('machine de guerre (Qualité `equipe` — ADE II 8 l.233) : jamais en l
        talents: [], skills: [], conditions: [], wounds: blessuresDeBase(10), advantage: 0, ...lo }) as unknown as Combatant);
 
   it('belier-ade2 (subType armes-de-siege) en `items` équipé : PAS d’arme dérivée — Mains nues seulement', () => {
-    const belier = itemFromTrappingById('belier-ade2')!;
+    const belier = itemFromTrappingById('belier-ade2', idsDeTest)!;
     belier.equipped = true;
     const c = heroWith([belier]);
     recomputeLoadout(c);
@@ -291,15 +292,15 @@ describe('machine de guerre (Qualité `equipe` — ADE II 8 l.233) : jamais en l
   });
 
   it('set par défaut : une baliste équipée n’amorce aucun set, l’arme ordinaire seule y entre', () => {
-    const epee = { ...itemFromTrappingById('arme-simple')!, uid: 'e', equipped: true };
-    const baliste = { ...itemFromTrappingById('baliste')!, uid: 'b', equipped: true };
+    const epee = { ...itemFromTrappingById('arme-simple', idsDeTest)!, uid: 'e', equipped: true };
+    const baliste = { ...itemFromTrappingById('baliste', idsDeTest)!, uid: 'b', equipped: true };
     const c = heroWith([epee, baliste]);
     recomputeLoadout(c);
     expect(c.loadouts!.map((lo) => [lo.main, lo.off])).toEqual([['e', undefined], [undefined, undefined]]);
   });
 
   it('élagage : un set qui désigne une baliste (sauvegarde existante) se vide au premier recalcul', () => {
-    const baliste = { ...itemFromTrappingById('baliste')!, uid: 'b', equipped: true };
+    const baliste = { ...itemFromTrappingById('baliste', idsDeTest)!, uid: 'b', equipped: true };
     const c = heroWith([baliste], { loadouts: [{ id: 'l', main: 'b', off: 'b' }], activeLoadoutId: 'l' });
     recomputeLoadout(c);
     expect(c.loadouts).toEqual([{ id: 'l' }]);
@@ -362,7 +363,7 @@ describe('ensureDefaultLoadout', () => {
 
   // Héros CRÉÉ (`createHero`) : le Set I se compose depuis `objetDeSlot` seul, sans lire `equipped`.
   const set1DeCarriere = (careerId: string) => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId, label: 'x', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId, label: 'x', seed: 1 });
     const tid = (uid?: string) => (uid ? h.items?.find((i) => i.uid === uid)?.trappingId : undefined);
     return { main: tid(h.loadouts?.[0].main), off: tid(h.loadouts?.[0].off) };
   };
@@ -384,17 +385,17 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
   const hero = (items: ItemInstance[]): Combatant => ({ id: 'h', items } as unknown as Combatant);
 
   it('armourLayer lit la donnée réelle : Cuir souple / Flexible (Mailles) / rigide (Cuir bouilli, Plate)', () => {
-    expect(armourLayer(itemFromTrappingById('justaucorps-de-cuir')!)).toBe('souple'); // subType Cuir souple (LDB 63 l.41)
-    expect(armourLayer(itemFromTrappingById('chemise-de-mailles')!)).toBe('flexible'); // qualité Flexible (l.105-106)
-    expect(armourLayer(itemFromTrappingById('plastron-de-cuir')!)).toBe('rigide'); // Cuir bouilli
-    expect(armourLayer(itemFromTrappingById('plastron')!)).toBe('rigide'); // Plate
+    expect(armourLayer(itemFromTrappingById('justaucorps-de-cuir', idsDeTest)!)).toBe('souple'); // subType Cuir souple (LDB 63 l.41)
+    expect(armourLayer(itemFromTrappingById('chemise-de-mailles', idsDeTest)!)).toBe('flexible'); // qualité Flexible (l.105-106)
+    expect(armourLayer(itemFromTrappingById('plastron-de-cuir', idsDeTest)!)).toBe('rigide'); // Cuir bouilli
+    expect(armourLayer(itemFromTrappingById('plastron', idsDeTest)!)).toBe('rigide'); // Plate
   });
 
   it('2 cuirs souples sur le Corps = conflit ; souple + maille + plate se superposent sans conflit', () => {
-    const justau = { ...itemFromTrappingById('justaucorps-de-cuir')!, equipped: true };
-    const veste = itemFromTrappingById('veste-de-cuir')!; // souple, Bras+Corps
-    const maille = { ...itemFromTrappingById('chemise-de-mailles')!, equipped: true };
-    const plastron = { ...itemFromTrappingById('plastron')!, equipped: true };
+    const justau = { ...itemFromTrappingById('justaucorps-de-cuir', idsDeTest)!, equipped: true };
+    const veste = itemFromTrappingById('veste-de-cuir', idsDeTest)!; // souple, Bras+Corps
+    const maille = { ...itemFromTrappingById('chemise-de-mailles', idsDeTest)!, equipped: true };
+    const plastron = { ...itemFromTrappingById('plastron', idsDeTest)!, equipped: true };
     const c = hero([justau, veste, maille, plastron]);
     expect(equipConflicts(c, veste).map((i) => i.trappingId)).toEqual(['justaucorps-de-cuir']); // même couche, loc commune
     expect(equipConflicts(c, justau)).toEqual([]); // déjà porté : maille/plate = autres couches
@@ -403,32 +404,32 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
   });
 
   it('pas de conflit sans localisation commune (calotte vs justaucorps, tous deux souples)', () => {
-    const calotte = { ...itemFromTrappingById('calotte-de-cuir')!, equipped: true };
-    const justau = itemFromTrappingById('justaucorps-de-cuir')!;
+    const calotte = { ...itemFromTrappingById('calotte-de-cuir', idsDeTest)!, equipped: true };
+    const justau = itemFromTrappingById('justaucorps-de-cuir', idsDeTest)!;
     expect(equipConflicts(hero([calotte, justau]), justau)).toEqual([]);
   });
 
   it('la cape du catalogue publie sa racine sans recopier le défaut sur l’instance', () => {
-    const cape = itemFromTrappingById('cape')!;
+    const cape = itemFromTrappingById('cape', idsDeTest)!;
     expect(apparencesCandidates(cape)).toEqual(['cape']);
     expect(apparencesAdmissiblesDObjet(cape).map((a) => a.id)).toContain('cape');
     expect(Object.prototype.hasOwnProperty.call(cape, 'apparence')).toBe(false);
   });
 
   it('isCapeItem reconnaît Cape/Manteau (trappings sans stats) ; une seule cape portée', () => {
-    const cape = { ...itemFromTrappingById('cape')!, equipped: true };
-    const manteau = itemFromTrappingById('manteau')!;
+    const cape = { ...itemFromTrappingById('cape', idsDeTest)!, equipped: true };
+    const manteau = itemFromTrappingById('manteau', idsDeTest)!;
     expect(isCapeItem(cape)).toBe(true);
     expect(isCapeItem(manteau)).toBe(true);
-    expect(isCapeItem(itemFromTrappingById('justaucorps-de-cuir')!)).toBe(false);
+    expect(isCapeItem(itemFromTrappingById('justaucorps-de-cuir', idsDeTest)!)).toBe(false);
     expect(equipConflicts(hero([cape, manteau]), manteau).map((i) => i.trappingId)).toEqual(['cape']);
   });
 
   it('emplacement couche × zone : la pièce portée de la couche, et les candidates qui couvrent la zone dans cette couche', () => {
-    const justau = { ...itemFromTrappingById('justaucorps-de-cuir')!, uid: 'justau', equipped: true }; // souple, Corps
-    const veste = { ...itemFromTrappingById('veste-de-cuir')!, uid: 'veste' }; // souple, Bras+Corps
-    const calotte = { ...itemFromTrappingById('calotte-de-cuir')!, uid: 'calotte' }; // souple, Tête
-    const maille = { ...itemFromTrappingById('chemise-de-mailles')!, uid: 'maille' }; // flexible, Corps
+    const justau = { ...itemFromTrappingById('justaucorps-de-cuir', idsDeTest)!, uid: 'justau', equipped: true }; // souple, Corps
+    const veste = { ...itemFromTrappingById('veste-de-cuir', idsDeTest)!, uid: 'veste' }; // souple, Bras+Corps
+    const calotte = { ...itemFromTrappingById('calotte-de-cuir', idsDeTest)!, uid: 'calotte' }; // souple, Tête
+    const maille = { ...itemFromTrappingById('chemise-de-mailles', idsDeTest)!, uid: 'maille' }; // flexible, Corps
     const items = [justau, veste, calotte, maille];
     const corpsSouple = emplacementDArmure(items, ['corps'], 'souple');
     expect(corpsSouple.porte?.uid).toBe('justau');
@@ -441,16 +442,16 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
   });
 
   it('emplacement Cape : la cape portée, et les autres capes ; jamais une armure', () => {
-    const cape = { ...itemFromTrappingById('cape')!, uid: 'cape', equipped: true };
-    const manteau = { ...itemFromTrappingById('manteau')!, uid: 'manteau' };
-    const justau = { ...itemFromTrappingById('justaucorps-de-cuir')!, uid: 'justau' };
+    const cape = { ...itemFromTrappingById('cape', idsDeTest)!, uid: 'cape', equipped: true };
+    const manteau = { ...itemFromTrappingById('manteau', idsDeTest)!, uid: 'manteau' };
+    const justau = { ...itemFromTrappingById('justaucorps-de-cuir', idsDeTest)!, uid: 'justau' };
     const e = emplacementDeCape([cape, manteau, justau]);
     expect(e.porte?.uid).toBe('cape');
     expect(e.candidats.map((i) => i.uid)).toEqual(['manteau']);
   });
 
   it('buildInventory n’équipe qu’UNE pièce par couche × localisation (meilleure PA)', () => {
-    const items = buildInventory(['justaucorps-de-cuir', 'veste-de-cuir', 'chemise-de-mailles', 'plastron'].map((id) => ({ id })), makeRNG(1));
+    const items = buildInventory(['justaucorps-de-cuir', 'veste-de-cuir', 'chemise-de-mailles', 'plastron'].map((id) => ({ id })), makeRNG(1), idsDeTest);
     const worn = items.filter((i) => i.equipped).map((i) => i.trappingId);
     // Justaucorps et Veste sont tous deux Cuir souple sur le Corps → une seule des deux portée.
     expect(worn).toContain('chemise-de-mailles');
@@ -459,7 +460,7 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
   });
 
   it('buildInventory fusionne les Atouts ATTACHÉS de la ref (`qualities`) aux qualités de base du catalogue (#657 Lot 1)', () => {
-    const [item] = buildInventory([{ id: 'epee-batarde', qualities: [{ id: 'solide' }] }], makeRNG(1));
+    const [item] = buildInventory([{ id: 'epee-batarde', qualities: [{ id: 'solide' }] }], makeRNG(1), idsDeTest);
     const ids = item.qualities.map((q) => q.id);
     expect(ids).toContain('solide'); // Atout ATTACHÉ (joker de qualité résolu)
     expect(ids).toContain('devastatrice'); // qualité de BASE du catalogue, conservée
@@ -467,19 +468,19 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
   });
 
   it('buildInventory préserve la `value` (Indice) d\'un Atout ATTACHÉ — « Solide 3 » (correctif juge Lot 1)', () => {
-    const [item] = buildInventory([{ id: 'epee-batarde', qualities: [{ id: 'solide', value: 3 }] }], makeRNG(1));
+    const [item] = buildInventory([{ id: 'epee-batarde', qualities: [{ id: 'solide', value: 3 }] }], makeRNG(1), idsDeTest);
     expect(item.qualities.find((q) => q.id === 'solide')).toEqual({ id: 'solide', value: 3 });
   });
 });
 
 describe('buildInventory — quantité d’une dotation (LDB 74 l.41 ; `merchantFlow`)', () => {
   it('« 1d10 Bandages » : autant d’objets que le dé tiré sur le RNG injecté (makeRNG(5) → 7), sans `qty`', () => {
-    const items = buildInventory([{ id: 'bandages', count: { roll: { n: 1, sides: 10 } } }], makeRNG(5));
+    const items = buildInventory([{ id: 'bandages', count: { roll: { n: 1, sides: 10 } } }], makeRNG(5), idsDeTest);
     expect(items.map((i) => [i.trappingId, i.qty])).toEqual(Array.from({ length: 7 }, () => ['bandages', undefined]));
     expect(new Set(items.map((i) => i.uid)).size).toBe(7);
   });
   it('une munition garde sa quantité en un seul paquet', () => {
-    const items = buildInventory([{ id: 'fleche', count: { fixed: 12 } }], makeRNG(5));
+    const items = buildInventory([{ id: 'fleche', count: { fixed: 12 } }], makeRNG(5), idsDeTest);
     expect(items.map((i) => i.qty)).toEqual([12]);
   });
 });
@@ -534,7 +535,7 @@ describe('items — recomputeLoadout / encombrement', () => {
     expect(c.weapons.map((w) => w.label)).toContain('Espadon'); // prothèse portée → arme à 2 mains de nouveau utilisable
   });
   it('Crochet porté (prothèse) fournit une arme « Dague » (+BF+2, LDB 73)', () => {
-    const c = { characteristics: { force: 30, endurance: 30 }, items: [{ ...itemFromTrappingById('crochet')!, equipped: true }] } as unknown as Combatant;
+    const c = { characteristics: { force: 30, endurance: 30 }, items: [{ ...itemFromTrappingById('crochet', idsDeTest)!, equipped: true }] } as unknown as Combatant;
     recomputeLoadout(c);
     const cr = c.weapons.find((w) => w.label === 'Crochet');
     expect(damageString(cr!.damage)).toBe('+BF+2');
@@ -646,7 +647,7 @@ describe('items — recomputeLoadout / encombrement', () => {
     expect(totalEncumbrance(noSizeFor)).toBe(1);
   });
   it("catalogue ogre réel (`massue-ogre`) : Enc au total = son Enc de catalogue tel quel (2), jamais doublé", () => {
-    const massue = itemFromTrappingById('massue-ogre')!;
+    const massue = itemFromTrappingById('massue-ogre', idsDeTest)!;
     expect(massue.sizeFor).toBe('grande');
     const c = { items: [{ ...massue, equipped: false }] } as unknown as Combatant;
     expect(totalEncumbrance(c)).toBe(2);
@@ -663,10 +664,10 @@ describe('items — recomputeLoadout / encombrement', () => {
     expect(totalEncumbrance(c)).toBe(0 + 1 + 2 + 1);
   });
   it('itemFromTrappingById : trapping inconnu → null', () => {
-    expect(itemFromTrappingById('objet-totalement-imaginaire-xyz')).toBeNull();
+    expect(itemFromTrappingById('objet-totalement-imaginaire-xyz', idsDeTest)).toBeNull();
   });
   it('itemFromTrappingById : objet du catalogue = identifié (qualités connues) (#2)', () => {
-    const it = itemFromTrappingById('hallebarde');
+    const it = itemFromTrappingById('hallebarde', idsDeTest);
     expect(it).toBeTruthy();
     expect(it!.identified).not.toBe(false); // connu (undefined = identifié par défaut)
   });
@@ -686,12 +687,12 @@ describe('isWearable — objet PORTABLE sur le corps (#640, LDB 61 l.21 / LDB 73
     expect(isWearable(item({ kind: 'misc', subType: 'possessions-diverses' }))).toBe(false);
   });
   it('contrat anti-exploit : un misc TRANSPORTÉ équipé ne réduit PAS son Enc, un vêtement équipé le réduit de 1 (LDB 61 l.21)', () => {
-    const corde = itemFromTrappingById('corde')!; // possessions-diverses, enc 1
+    const corde = itemFromTrappingById('corde', idsDeTest)!; // possessions-diverses, enc 1
     expect(corde.subType).toBe('possessions-diverses');
     const equippedCorde = { items: [{ ...corde, equipped: true }] } as unknown as Combatant;
     expect(totalEncumbrance(equippedCorde)).toBe(corde.enc); // pas de réduction : la corde se TRANSPORTE
 
-    const vetements = itemFromTrappingById('vetements')!; // vetements-et-accessoires, enc 1
+    const vetements = itemFromTrappingById('vetements', idsDeTest)!; // vetements-et-accessoires, enc 1
     expect(vetements.subType).toBe('vetements-et-accessoires');
     const equippedVetements = { items: [{ ...vetements, equipped: true }] } as unknown as Combatant;
     expect(totalEncumbrance(equippedVetements)).toBe(Math.max(0, vetements.enc - 1));
@@ -792,7 +793,7 @@ describe('endommagerLEquipementPorte — toutes les Armures et Armes portées su
     expect(tientUneArme(c.weapons)).toBe(false);
   });
   it('Arme improvisée du catalogue : inutile dès son premier Dégât (LDB 62 l.135)', () => {
-    const it0 = { ...itemFromTrappingById('arme-improvisee')!, uid: 'chaise', equipped: true };
+    const it0 = { ...itemFromTrappingById('arme-improvisee', idsDeTest)!, uid: 'chaise', equipped: true };
     const c = porteur([it0], 'chaise');
     expect(endommagerLEquipementPorte(c).armes).toBe(1);
     expect(c.items![0].destroyed).toBe(true);
@@ -867,7 +868,7 @@ describe('damageArmour — armure dérivée d’un héros sans pièce à la Loca
 
 describe('Munitions & rechargement', () => {
   it('itemFromTrappingById lit subType + qty (préfixe) pour une munition', () => {
-    const fleche = itemFromTrappingById('fleche')!;
+    const fleche = itemFromTrappingById('fleche', idsDeTest)!;
     expect(fleche.kind).toBe('ammo');
     expect(fleche.subType).toBe('arc'); // id de Groupe
     expect(fleche.qty).toBe(12);
@@ -875,21 +876,21 @@ describe('Munitions & rechargement', () => {
   });
   it('weaponWithAmmo combine Dégâts (concaténés) et fusionne les Atouts', () => {
     const arc: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [], subType: 'arc', reload: 0 };
-    const fleche = itemFromTrappingById('fleche')!;
+    const fleche = itemFromTrappingById('fleche', idsDeTest)!;
     const w = weaponWithAmmo(arc, fleche);
     expect(w.qualities.some((q) => q.id === 'empaleuse')).toBe(true); // runtime = id
     // La Flèche n'a pas de modificateur de Dégâts → reste +9.
     expect(damageString(w.damage)).toBe('+9');
   });
   it('compatibleAmmo filtre par subType et qty>0', () => {
-    const c = { items: [itemFromTrappingById('fleche'), itemFromTrappingById('carreau')] } as unknown as Combatant;
+    const c = { items: [itemFromTrappingById('fleche', idsDeTest), itemFromTrappingById('carreau', idsDeTest)] } as unknown as Combatant;
     const arc: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, qualities: [], subType: 'arc', reload: 0 };
     const list = compatibleAmmo(c, arc);
     expect(list.length).toBe(1);
     expect(list[0].label).toBe('Flèche');
   });
   it('compatibleAmmo : Poudre noire ET Ingénierie acceptent les munitions « Poudre noire et ingénierie » (LDB 62 l.120)', () => {
-    const c = { items: [itemFromTrappingById('balle-et-poudre')] } as unknown as Combatant;
+    const c = { items: [itemFromTrappingById('balle-et-poudre', idsDeTest)] } as unknown as Combatant;
     const pistolet: Weapon = { label: 'Pistolet', type: 'ranged', damage: { plusBF: false, flat: 8 }, qualities: [{ id: 'pistolet' }], subType: 'poudre-noire', reload: 1 };
     const arqRep: Weapon = { label: 'Arquebus à répétition', type: 'ranged', damage: { plusBF: false, flat: 9 }, qualities: [], subType: 'ingenierie', reload: 5 };
     expect(compatibleAmmo(c, pistolet).map((a) => a.label)).toContain('Balle et Poudre');
@@ -897,7 +898,7 @@ describe('Munitions & rechargement', () => {
   });
   it('recomputeLoadout dérive reload depuis « Recharge N » + subType', () => {
     const c = {
-      items: [{ ...itemFromTrappingById('tromblon')!, equipped: true }],
+      items: [{ ...itemFromTrappingById('tromblon', idsDeTest)!, equipped: true }],
       weapons: [],
       armour: emptyArmour(),
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -909,7 +910,7 @@ describe('Munitions & rechargement', () => {
   });
   it('munition à modificateur de Portée sélectionnée → la Portée (et la bande) de l’arme est modifiée (LDB 62)', () => {
     const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [], subType: 'arc', reload: 0 };
-    const heavy = { ...itemFromTrappingById('fleche')!, ammoRangeMod: { mult: 0.5 as number }, qty: 10 };
+    const heavy = { ...itemFromTrappingById('fleche', idsDeTest)!, ammoRangeMod: { mult: 0.5 as number }, qty: 10 };
     const c = { items: [heavy], ammoUid: heavy.uid } as unknown as Combatant;
     // selectedAmmo récupère la munition équipée et porte son modificateur.
     expect(selectedAmmo(c, bow)?.ammoRangeMod).toEqual({ mult: 0.5 });
@@ -924,7 +925,7 @@ describe('Munitions & rechargement', () => {
   });
   it('recomputeLoadout : Arc (sans « Recharge ») → reload 0', () => {
     const c = {
-      items: [{ ...itemFromTrappingById('arc')!, equipped: true }],
+      items: [{ ...itemFromTrappingById('arc', idsDeTest)!, equipped: true }],
       weapons: [],
       armour: emptyArmour(),
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -942,9 +943,9 @@ describe('hydratePoste (#222) — réf catalogue → arme hydratée, fail-fast',
   const chef = { characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 }, weapons: [] } as unknown as Combatant;
 
   it('forme NEUVE : `{ trappingId }` → item complet du catalogue, arme dérivée FONCTIONNELLE', () => {
-    const p = hydratePoste({ trappingId: 'canon-moyen', side: 'tribord', crewIds: ['g1'] });
+    const p = hydratePoste({ trappingId: 'canon-moyen', side: 'tribord', crewIds: ['g1'] }, 'poste-de-test');
     expect(p.item.trappingId).toBe('canon-moyen');
-    const cat = itemFromTrappingById('canon-moyen')!;
+    const cat = itemFromTrappingById('canon-moyen', idsDeTest)!;
     expect(p.item.damage).toEqual(cat.damage); // base RÉSOLUE (jamais copiée en donnée)
     expect(p.item.qualities.map((q) => q.id)).toEqual(cat.qualities.map((q) => q.id));
     expect(p.side).toBe('tribord');
@@ -955,13 +956,13 @@ describe('hydratePoste (#222) — réf catalogue → arme hydratée, fail-fast',
     expect(w.reload).toBeGreaterThan(0); // Recharge N (canon moyen)
   });
 
-  it('uid : préservé s’il est authoré, sinon frais', () => {
-    expect(hydratePoste({ trappingId: 'pierrier', uid: 'itm-fixe-1' }).item.uid).toBe('itm-fixe-1');
-    expect(hydratePoste({ trappingId: 'pierrier' }).item.uid).toBeTruthy();
+  it('uid : préservé s’il est authoré, sinon celui de sa place', () => {
+    expect(hydratePoste({ trappingId: 'pierrier', uid: 'itm-fixe-1' }, 'poste-de-test').item.uid).toBe('itm-fixe-1');
+    expect(hydratePoste({ trappingId: 'pierrier' }, 'poste-de-test').item.uid).toBe('poste-de-test');
   });
 
   it('fail-fast : `trappingId` inconnu → throw explicite', () => {
-    expect(() => hydratePoste({ trappingId: 'engin-inexistant-222' })).toThrow(/trappingId inconnu/);
+    expect(() => hydratePoste({ trappingId: 'engin-inexistant-222' }, 'poste-de-test')).toThrow(/trappingId inconnu/);
   });
 });
 
@@ -1042,7 +1043,7 @@ describe('isUnarmed — la marque intrinsèque naît avec l’arme', () => {
   });
 
   it('l’arme dérivée d’une instance garde sa marque', () => {
-    expect(isUnarmed(weaponFromItem(itemFromTrappingById('mains-nues')!))).toBe(true);
+    expect(isUnarmed(weaponFromItem(itemFromTrappingById('mains-nues', idsDeTest)!))).toBe(true);
   });
 
   it('une arme réelle du catalogue n’est jamais « mains nues », ni une arme sans identité', () => {
@@ -1066,7 +1067,7 @@ describe('lacherLArme — idempotent sur les Mains nues', () => {
 // Arme DÉRIVÉE d'un objet porté (`derivedWeapon`) : son objet source est l'objet porté ; détruit, il ne dérive plus rien.
 describe('arme dérivée (Crochet) — objet source et destruction', () => {
   it('l’arme porte `derivedFromItem`, et un Crochet détruit n’est plus dérivé', () => {
-    const crochet = { ...itemFromTrappingById('crochet')!, uid: 'crochet-1', equipped: true };
+    const crochet = { ...itemFromTrappingById('crochet', idsDeTest)!, uid: 'crochet-1', equipped: true };
     const c = { id: 'h', kind: 'hero', items: [crochet], weapons: [], traits: [], activeEffects: [] } as unknown as Combatant;
     recomputeLoadout(c);
     expect(c.weapons.find((w) => w.label === 'Crochet')?.derivedFromItem).toBe('crochet-1');
@@ -1079,7 +1080,7 @@ describe('arme dérivée (Crochet) — objet source et destruction', () => {
 // LDB 62 l.143 « Quand elles ne sont pas utilisées ainsi, toutes les armes à deux mains issues du Groupe d'armes de Cavalerie sont aussi considérées comme des armes à Deux Mains ».
 describe('Cavalerie (2M) tenue par un cavalier MONTÉ', () => {
   const cavalier = (monte: boolean): Combatant => {
-    const c = { id: 'h', kind: 'hero', label: 'Cavalier', characteristics: {}, conditions: [], traits: [], activeEffects: [], weapons: [], items: [{ ...itemFromTrappingById('marteau-a-bec-de-corbin')!, uid: 'm1', equipped: true }, { ...itemFromTrappingById('bouclier')!, uid: 'b1', equipped: true }], loadouts: [{ id: 'lo', off: 'b1' }], activeLoadoutId: 'lo' } as unknown as Combatant;
+    const c = { id: 'h', kind: 'hero', label: 'Cavalier', characteristics: {}, conditions: [], traits: [], activeEffects: [], weapons: [], items: [{ ...itemFromTrappingById('marteau-a-bec-de-corbin', idsDeTest)!, uid: 'm1', equipped: true }, { ...itemFromTrappingById('bouclier', idsDeTest)!, uid: 'b1', equipped: true }], loadouts: [{ id: 'lo', off: 'b1' }], activeLoadoutId: 'lo' } as unknown as Combatant;
     if (monte) c.mountId = 'cheval';
     return c;
   };
@@ -1111,7 +1112,7 @@ describe('porteeDeTir — la Portée de l’arme aux mains de SON tireur', () =>
   }) as Combatant;
   const arme = (range: Weapon['range']): Weapon => ({ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, qualities: [], range, subType: 'arc', reload: 0 });
   it('arc 60 m, flèche lourde {mult: 0.5} sélectionnée → 30 m', () => {
-    const fleche = { ...itemFromTrappingById('fleche')!, ammoRangeMod: { mult: 0.5 as number }, qty: 10 };
+    const fleche = { ...itemFromTrappingById('fleche', idsDeTest)!, ammoRangeMod: { mult: 0.5 as number }, qty: 10 };
     expect(porteeDeTir({ ...tireur([fleche]), ammoUid: fleche.uid } as Combatant, arme(60))).toBe(30);
   });
   it('arme de jet {bf: 3}, Force 40 (BF 4) → 12 m', () => {

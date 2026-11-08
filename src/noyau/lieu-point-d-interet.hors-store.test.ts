@@ -3,6 +3,7 @@
  * (`IdDePointDInteret`), le noyau en lit la scène ; hors de l'écran du lieu, hors de ses entrées ou vers une scène
  * absente du registre, il refuse et le dit (`refusDEntrerAuPoint`). L'écran du lieu le projette en geste (`lieuEnVue`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { resetSceneRegistry } from './monde/registreDesScenes';
@@ -41,7 +42,7 @@ describe('entrerAuPointDInteret', () => {
   beforeEach(() => {
     resetSceneRegistry();
     banc = ouvrirLeBanc();
-    g().fixerLeGroupe(makePregens());
+    g().fixerLeGroupe(makePregens(idsDeTest));
     g().chargerLeProjet({ scenes: [scene('poi-place'), scene('poi-cave')], entryId: 'poi-place', worldMap, projet: null });
     g().ouvrirLeLieu();
   });

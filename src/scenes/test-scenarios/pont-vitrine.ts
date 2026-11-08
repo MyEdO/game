@@ -120,5 +120,5 @@ export const scenario: TestScenario = {
     "et DESSUS (couche 1 'planches', h=2 m) ; accès par 2 RAMPES auto-dérivées (hauteurs 0→1→2, AUCUN escalier) ; " +
     'un plateau à 1 m ; une FALAISE (rebord h=3 m / creux h=0) infranchissable à pied (surfaceLink → cliff).',
   partyNote: 'Groupe vitrine (Soldat / Tueur / Sorcier / Chasseur) — promenade libre, aucun combat.',
-  construire: () => ({ party: makeShowcaseParty(), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: makeShowcaseParty(idNeuf), scene: construireScene() }),
 };

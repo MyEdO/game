@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
@@ -18,7 +19,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 // #2312 : un effet de jeu joué en combat écrit le combattant ET le héros du groupe (`ecrireActeur`).
 
-const SOLDAT = { speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 } as const;
+const SOLDAT = { idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 } as const;
 
 function poserGroupe(): Combatant {
   const hero = createHero(SOLDAT);

@@ -4,6 +4,7 @@
  * lit sa vue par les lecteurs de la surface. Le scénario est `pastilles-entite` (combat direct, monture, pièce et
  * tas au sol).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import {
   creerPartie, etatInitialDuJeu, activeCombatant, actionGate, endTurnArmed, offresDeLActif, offresParPorteur,
@@ -26,7 +27,7 @@ function auTourDUnHeros(): Partie {
     for (const e of r.evenements) if (e.type === 'programme') file.push(e.jeton);
     for (let pas = 0; file.length && pas < 500; pas++) jouer(partie.reprendre(file.shift()!));
   };
-  jouer(partie.lancer(lancementDuScenario(PASTILLES)));
+  jouer(partie.lancer(lancementDuScenario(PASTILLES, idsDeTest)));
   for (let pas = 0; pas < 20 && activeCombatant(partie.etat().battle!)?.kind !== 'hero'; pas++) jouer(partie.envoyer({ type: 'fenetreValider', args: ['roundStart'] }));
   expect(activeCombatant(partie.etat().battle!)?.kind, 'témoin : aucun héros n’est venu au tour').toBe('hero');
   return partie;
@@ -41,7 +42,7 @@ describe('Partie.lancer — le lancement d’un scénario est un appel de la par
   it('rend `arrivee_en_scene` et les lignes du lancement dans SON résultat ; l’appel suivant n’en rend aucune', () => {
     const partie = creerPartie(etatInitialDuJeu(), ENTREES);
     try {
-      const lancement = partie.lancer(lancementDuScenario(PASTILLES));
+      const lancement = partie.lancer(lancementDuScenario(PASTILLES, idsDeTest));
       expect(lancement.issue).toBe('appliquee');
       expect(emis(lancement), 'le lancement ne rend pas son entrée en scène').toContain('arrivee_en_scene');
       expect(lancement.journal.length, 'le lancement ne rend pas les lignes qu’il a écrites').toBeGreaterThan(0);

@@ -2,6 +2,7 @@
  * #T2 Voyage — flux du noyau : trajets sur la carte du monde (temps, rations, paiement, péripéties
  * d'auteur, interruption/reprise). RAW : section « Voyage » du LDB (`51 - Magie du Chaos.md`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { itemFromTrappingById } from '../engine/items';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -26,7 +27,7 @@ const ENTREES_DE_RENCONTRE = (['fortuites', 'dangereuses'] as const).flatMap((c)
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const ration = (uid: string): ItemInstance => ({ ...itemFromTrappingById('ration')!, uid, enc: 0 });
+const ration = (uid: string): ItemInstance => ({ ...itemFromTrappingById('ration', idsDeTest)!, uid, enc: 0 });
 
 const hero = (p: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
@@ -357,7 +358,7 @@ describe('récapitulatif de voyage (audit M4) — modale à l’arrivée/interru
     expect(banc.getState().pendingRest?.phase).toBe('setup');
     // Huit hallebardes (Enc 3) : 24 > 3 × (BF 3 + BE 4) — immobilisé (LDB 61 l.40).
     const h = banc.getState().party[0];
-    const hallebardes = Array.from({ length: 8 }, (_, i): ItemInstance => ({ ...itemFromTrappingById('hallebarde')!, uid: `hb${i}`, enc: 3 }));
+    const hallebardes = Array.from({ length: 8 }, (_, i): ItemInstance => ({ ...itemFromTrappingById('hallebarde', idsDeTest)!, uid: `hb${i}`, enc: 3 }));
     banc.setState({ party: [{ ...h, items: [...(h.items ?? []), ...hallebardes] }] });
     sleepThroughHalt();
     expect(banc.getState().travelRecap?.status).toBe('stalled');

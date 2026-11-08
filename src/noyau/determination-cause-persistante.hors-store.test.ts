@@ -6,6 +6,7 @@
  *
  * `src/noyau/battleRng.ts` ensemence par l'horloge à l'import : toute sonde sème (`seedBattleRng`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { runCombatHooks, type CombatHookCtx } from './combatHooks';
@@ -47,7 +48,7 @@ describe('Détermination contre une cause qui court (LDB 16 l.117) — chemin st
 
   /** Héros ACTIF en combat, frappé par le palier de « Purifier la chair » — le journal de pose est rendu. */
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -57,7 +58,7 @@ describe('Détermination contre une cause qui court (LDB 16 l.117) — chemin st
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     H.resolve = 1;
-    const pose = applyOps(H, opsDuPalier(), { rng: troisRounds, label: 'Purifier la chair' });
+    const pose = applyOps(H, opsDuPalier(), { idNeuf: idsDeTest, rng: troisRounds, label: 'Purifier la chair' });
     banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id) }, pendingCascade: null, pendingLogQueue: [] });
     return { H, pose };
   }

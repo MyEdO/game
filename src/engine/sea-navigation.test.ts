@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { itemFromTrappingById } from './items';
 import {
@@ -120,7 +121,7 @@ describe('Boussole — +1 DR aux Tests d’Orientation (MDG 14 l.275, passif d�
     const { skillDRBonus } = await import('./ops');
     const c = {
       ...hull(30), id: 'nav2',
-      items: [{ ...itemFromTrappingById('boussole')!, uid: 'u1' }],
+      items: [{ ...itemFromTrappingById('boussole', idsDeTest)!, uid: 'u1' }],
     } as unknown as Combatant;
     expect(skillDRBonus(c, { id: 'orientation' })).toBe(1);
     expect(skillDRBonus(c, { id: 'perception' })).toBe(0);

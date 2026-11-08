@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { firedAttackBlock } from './combatFlow';
 import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
@@ -76,7 +77,7 @@ function mountBattle(combatants: Combatant[]) {
 
 /** L'arme RÉELLE du catalogue, construite par le chemin de production (trapping → item → arme servie). */
 const flameCannon = (): Weapon => {
-  const item = itemFromTrappingById('canon-a-flammes-nain-ade2');
+  const item = itemFromTrappingById('canon-a-flammes-nain-ade2', idsDeTest);
   expect(item).not.toBeNull();
   const carrier = { id: 'crew', name: 'Servant', kind: 'hero', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } } as unknown as Combatant;
   const w = mannedPosteWeapon(carrier, { item: item as never, side: 'proue', crewIds: ['crew'] } as never);

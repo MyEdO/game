@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { makeRNG } from './dice';
 import { addCondition, combatTestPenalty, meleeAttackerBonus, cannotDefend } from './conditions';
@@ -252,7 +253,7 @@ describe('États en combat (LDB 16)', () => {
   it('Empoisonné : endOfRound n’applique PLUS les dégâts (migrés en données — effects onRoundEnd → wounds {stacks})', () => {
     const c = blessuresSurLeProfil({ name: 'x', conditions: [], characteristics: { endurance: 30 }, skills: [], wounds: blessuresDeBase(10) }) as unknown as Combatant;
     addCondition(c, 'empoisonne', 2);
-    endOfRound(c, desDuTest);
+    endOfRound(c, desDuTest, idsDeTest);
     // Dégâts de poison désormais data-driven (etats.json + fireConditionEffects, cf. state/etat-perround.test) :
     // endOfRound ne les applique plus → PB inchangés ici.
     expect(c.wounds.current).toBe(10);
@@ -266,7 +267,7 @@ describe('États en combat (LDB 16)', () => {
       wounds: blessuresDeBase(20),
     }) as unknown as Combatant;
     addCondition(c, 'en-flammes', 3);
-    endOfRound(c, deFixe(4)); // dégâts de feu désormais data-driven (cf. state/etat-perround.test)
+    endOfRound(c, deFixe(4), idsDeTest); // dégâts de feu désormais data-driven (cf. state/etat-perround.test)
     expect(c.wounds.current).toBe(20); // endOfRound seul : aucun dégât de feu
   });
   it('Sonné : endOfRound NE touche plus le Sonné — Test de Résistance migré en DONNÉES (l.125-127)', () => {
@@ -279,7 +280,7 @@ describe('États en combat (LDB 16)', () => {
       wounds: blessuresDeBase(10),
     }) as unknown as Combatant;
     addCondition(c, 'sonne', 2);
-    endOfRound(c, deFixe(5)); // la Résistance au Sonné est `effects: onRoundEnd test` (etats.json), résolue par le dispatcher
+    endOfRound(c, deFixe(5), idsDeTest); // la Résistance au Sonné est `effects: onRoundEnd test` (etats.json), résolue par le dispatcher
     expect(c.conditions.some((x) => x.id === 'sonne')).toBe(true);   // endOfRound ne retire aucun pion (cf. noyau/combat/round-upkeep-cascade.hors-store.test)
     expect(c.conditions.some((x) => x.id === 'extenue')).toBe(false);
   });
@@ -681,7 +682,7 @@ describe('Magie — effets actifs (buffs temporisés)', () => {
     const c = caster({ 'capacite-de-combat': 35 });
     const eff: ActiveEffect = { label: 'Bénédiction de Bataille', source: { kind: 'spell', id: 's-Bénédiction de Bataille' }, characteristic: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 1 } };
     c.activeEffects = [eff];
-    endOfRound(c, desDuTest);
+    endOfRound(c, desDuTest, idsDeTest);
     expect(c.activeEffects.length).toBe(0);
     expect(effectiveChar(c, 'capacite-de-combat')).toBe(35);
   });
@@ -876,7 +877,7 @@ describe('Magie — Incantations Imparfaites & Colère des dieux', () => {
 
 describe('Création de héros', () => {
   it('génère un personnage jouable et reproductible', () => {
-    const hero = createHero({
+    const hero = createHero({ idNeuf: idsDeTest,
       speciesId: 'humains-reiklander',
       careerId: 'agitateur',
       label: 'Test',

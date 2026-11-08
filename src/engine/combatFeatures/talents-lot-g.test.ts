@@ -1,3 +1,4 @@
+import { idsDeTest } from '../idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { itemFromTrappingById, weaponFromItem } from '../items';
 import {
@@ -106,7 +107,7 @@ describe('initiative / économie d’action (LDB 10)', () => {
 describe('défense / récupération (LDB 10)', () => {
   it('Porte-Bouclier (au bouclier seulement) / Riposte / Renversement', () => {
     const c = mk([{ name: 'Porte-Bouclier', times: 2 }]);
-    expect(shieldAdvantageLevel(c, w({ ...weaponFromItem(itemFromTrappingById('bouclier')!), label: 'Bouclier', qualities: [{ id: 'protectrice', value: 2 }] }))).toBe(2); // LDB 62 l.33
+    expect(shieldAdvantageLevel(c, w({ ...weaponFromItem(itemFromTrappingById('bouclier', idsDeTest)!), label: 'Bouclier', qualities: [{ id: 'protectrice', value: 2 }] }))).toBe(2); // LDB 62 l.33
     expect(shieldAdvantageLevel(c, w({ label: 'Épée' }))).toBe(0);
     expect(contreSurDefenseGagnee(mk([{ name: 'Riposte', times: 1 }]), w({ qualities: [{ id: 'rapide' }] }))).toEqual({ choisie: true, plafond: 1 }); // Riposte + arme Rapide
     expect(contreSurDefenseGagnee(mk([{ name: 'Riposte', times: 1 }]), w())).toBeNull(); // arme NON Rapide → pas de Riposte
@@ -114,7 +115,7 @@ describe('défense / récupération (LDB 10)', () => {
   });
   it('Endurci : niveau d’ignorance du saignement (la réduction des dégâts est data-driven)', () => {
     const c = mk([{ name: 'Endurci', times: 1 }], { conditions: [{ id: 'hemorragique', value: 2 }] });
-    endOfRound(c, makeRNG(3));
+    endOfRound(c, makeRNG(3), idsDeTest);
     expect(c.wounds.current).toBe(12); // endOfRound ne saigne plus (dégâts d'Hémorragique migrés en données)
     expect(bleedIgnoreLevel(c)).toBe(1); // 1 pion ignoré — lu par fireConditionEffects (stacksReducedBy)
   });

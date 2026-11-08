@@ -106,8 +106,8 @@ export const scenario: TestScenario = {
     "jusqu'à une VRAIE porte (structure brèchable, `Weapon.resolveChar`) puis l'assène : le jet se résout " +
     "sur sa Force, jamais sa CC ; seule la porte encaisse des Dégâts (Atout Bélier).",
   partyNote: 'Le Soldat sert le bélier (chef de pièce) ; 5 servants PNJ complètent l’Équipe requise.',
-  construire: () => ({
-    party: pregenParty(PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
+  construire: (idNeuf) => ({
+    party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
     scene: construireScene(),
   }),
   autoCombat: 'siege-belier',

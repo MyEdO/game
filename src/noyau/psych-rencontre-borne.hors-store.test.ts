@@ -10,6 +10,7 @@
  *   aimés » → l'immunité tient à la présence d'un aimé DÉFENDABLE (un mort ne se défend pas), et elle doit
  *   être atteignable là où le jeu la lit vraiment : `psychDRAdjust`, qui n'a AUCUN roster en portée.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { psychDRAdjust } from '../engine/combat';
@@ -39,7 +40,7 @@ const ARAI = (id: string) => ent({ id, statblock: { label: 'Araignée', char: { 
 
 /** Héros au Calme plancher (FM 1, aucune avance) : son Test de rencontre échoue de façon déterministe. */
 function phobique(label = 'H') {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 1 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 1 });
   h.characteristics['force-mentale'] = 1;
   h.skills = [];
   h.psychTraits = [{ type: 'phobie', cible: ciblePsy.groupe('bete'), indice: 1 }];
@@ -118,7 +119,7 @@ describe('#1224 — « tant que vous défendez les êtres aimés » (LDB 21 l.75
    *  Test gagné (+1 DR non dû à chaque attaque, immunité non due, bande re-proposée chaque Round). */
   it('Test d’Amour RÉUSSI + aimé présent : `active` RESTE false, aucun DR', () => {
     const h = C({ id: 'h', psychTraits: [{ type: 'amour', cible: ciblePsy.groupe('humain') }] });
-    applyOps(h, psychBranchOps({ kind: 'amour', cible: ciblePsy.groupe('humain'), sourceId: 'fam', indice: 0 }, { success: true }), { rng: desDuTest });
+    applyOps(h, psychBranchOps({ kind: 'amour', cible: ciblePsy.groupe('humain'), sourceId: 'fam', indice: 0 }, { success: true }), { idNeuf: idsDeTest, rng: desDuTest });
     expect(h.psychState).toEqual([expect.objectContaining({ type: 'amour', cible: ciblePsy.groupe('humain'), active: false })]);
 
     const aime = C({ id: 'fam', groups: ['humain'] });
@@ -134,7 +135,7 @@ describe('#1224 — « tant que vous défendez les êtres aimés » (LDB 21 l.75
   it('VIGILANCE — une pose AUTHORÉE d’Amour survit à la borne, et le refresh l’éteint hors combat', () => {
     const h = phobique();
     h.psychTraits = [{ type: 'amour', cible: ciblePsy.groupe('humain') }];
-    applyOps(h as unknown as Combatant, [opPsy.pose('amour', { cible: ciblePsy.groupe('humain'), active: true })], { rng: desDuTest });
+    applyOps(h as unknown as Combatant, [opPsy.pose('amour', { cible: ciblePsy.groupe('humain'), active: true })], { idNeuf: idsDeTest, rng: desDuTest });
     expect(h.psychState, 'pose authorée : aucun `fromTest`').toEqual([{ type: 'amour', cible: ciblePsy.groupe('humain'), active: true }]);
 
     banc.setState({ party: [h] });

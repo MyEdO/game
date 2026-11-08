@@ -5,6 +5,7 @@
  * de la carte du monde lit les mêmes fonctions. MDG 12 l.70-75 ; MDG 12 l.293 ; MDG 15 l.25 ;
  * MDG 15 l.57-70 ; MDG 15 l.76.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie } from './index';
 import { makePregens } from '../data/pregens';
@@ -34,7 +35,7 @@ function joursDeLaTraverseeRapide(navire: Navire, reglesMaison: Record<string, u
   const entrees: EntreesDeLaPartie = { graine: 7, reglesMaison, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
   const partie = creerPartie({
     ...etatInitialDuJeu(),
-    party: makePregens().slice(0, 3),
+    party: makePregens(idsDeTest).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     worldMap: carte,
     lieu: 'A',

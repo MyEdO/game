@@ -82,5 +82,5 @@ export const scenario: TestScenario = {
     "(murs d'arête + portes) sous un toit unique — révélation en cutaway (toit levé dès qu'un allié entre " +
     "dans l'empreinte), un nom par pièce, jamais au survol.",
   partyNote: 'Groupe vitrine (Soldat / Tueur / Sorcier / Chasseur) — promenade libre, aucun combat.',
-  construire: () => ({ party: makeShowcaseParty(), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: makeShowcaseParty(idNeuf), scene: construireScene() }),
 };

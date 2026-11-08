@@ -3,6 +3,7 @@
  * (`applyTriggeredEffects`) saute tout Flow `flowHasFreeAttack`, `resolveFreeAttacks` en est le seul
  * émetteur et lit la MÊME enveloppe d'effet (`ciblesDeLEffet`), avec l'arme de la touche.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -28,7 +29,7 @@ const TRAITS_LIVRES = [...traits];
 afterEach(() => { setDataset('traits', TRAITS_LIVRES as never); });
 
 function setup() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene, type Scene, type WallClimb } from './monde/scene';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
@@ -74,7 +75,7 @@ const dit = (cle: MsgKey, vars: Record<string, string | number> = {}) => expect(
 
 /** Combat : héros actif posté en `pos` sur `scene`, ennemis hors d'action (sauf `foe`, rendu vivant à la demande). */
 function combat(scene: Scene, pos: Pt, tour: { movementUsed?: number; acted?: boolean; movedPreAction?: boolean } = {}) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], net: NET0 });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');
@@ -133,7 +134,7 @@ describe('#2190, #3611 — la case de départ se lit dans l’état : une destin
   }
 
   it('exploration : le groupe ne se téléporte pas', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     for (const c of CAS) {
       banc.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: ailleurs, scene: c.scene(), pendingFall: null, dialogue: null, journal: [] });
       c.agir(c.vers);
@@ -167,7 +168,7 @@ describe('#3611 — toute destination hostile se refuse, dite, sans lever ni dé
     ['voisine, sans arête', { x: 2, y: 3 }],
     ['hors de la carte, coordonnée négative', { x: -3, y: 2 }],
   ] as const)('%s', (_cas, vers) => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const scene = emptyScene('scene-test', 6, 6);
     banc.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: { x: 2, y: 2 }, scene, pendingFall: null, dialogue: null, journal: [] });
     const plan = planFranchissement(scene, { x: 2, y: 2 }, vers);
@@ -243,7 +244,7 @@ describe('coûts et refus NOMMÉS (A4)', () => {
   });
 
   it('exploration : dialogue ouvert → refus NOMMÉ pour les trois gestes', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     for (const c of CAS) {
       banc.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: c.de, scene: c.scene(), pendingFall: null, dialogue: {} as never, journal: [] });
       expect('refus' in gesteDArete(g()), c.geste).toBe(true);
@@ -255,7 +256,7 @@ describe('coûts et refus NOMMÉS (A4)', () => {
   });
 
   it('plans refusés : sommet inaccessible, pas sans capacité (plan `none`) ; la croisée d’étage se lit en chute', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const explorer = (scene: Scene, pos: Pt) => banc.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: pos, scene, pendingFall: null, dialogue: null, journal: [] });
     const creux = falaise({ kind: 'ladder' });
     creux.layers[0].tiles[2] = 'vide' as Terrain;
@@ -341,8 +342,8 @@ describe('case d’arrivée occupée, en combat', () => {
 describe('Test d’Escalade (LDB 15 l.57) : celui du GRIMPEUR', () => {
   /** Deux héros : `H` (actif, sans Escalade) et `S` (fort en Escalade), `S` loin du pied. */
   function deuxHeros() {
-    const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    const S = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', seed: 2 });
+    const H = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const S = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', seed: 2 });
     S.skills = [...S.skills.filter((k) => k.id !== 'escalade'), { id: 'escalade', characteristic: 'force', advances: 60 }];
     H.skills = H.skills.filter((k) => k.id !== 'escalade');
     banc.setState({ party: [H, S], net: NET0 });

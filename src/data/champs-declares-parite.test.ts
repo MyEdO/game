@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { skills, traits, talents, trappings, crewTestTypes, lieuxServices } from './index';
 import { MORALE_FACTORS } from '../engine/crewMorale';
@@ -37,16 +38,16 @@ describe('#1318 E4/C4-δ2 — parité « le moteur ne nomme plus d’id, l’ent
 
   it('POSSESSIONS — `unarmed` : exactement les Mains nues, et le prédicat du moteur les lit', () => {
     expect(trappings.filter((t) => t.unarmed).map((t) => t.id)).toEqual(['mains-nues']);
-    expect(isUnarmed(itemFromTrappingById('mains-nues')!)).toBe(true);
-    expect(isUnarmed(itemFromTrappingById('arme-simple')!)).toBe(false);
-    expect(isUnarmed(customTrapping('Sonde'))).toBe(false);
+    expect(isUnarmed(itemFromTrappingById('mains-nues', idsDeTest)!)).toBe(true);
+    expect(isUnarmed(itemFromTrappingById('arme-simple', idsDeTest)!)).toBe(false);
+    expect(isUnarmed(customTrapping('Sonde', idsDeTest))).toBe(false);
   });
 
   it('POSSESSIONS — `improvised` : exactement l’Arme improvisée, et le prédicat du moteur la lit', () => {
     expect(trappings.filter((t) => t.improvised).map((t) => t.id)).toEqual(['arme-improvisee']);
-    expect(itemFromTrappingById('arme-improvisee')?.improvised).toBe(true);
-    expect(itemFromTrappingById('mains-nues')?.improvised).toBeUndefined();
-    expect(customTrapping('Sonde').improvised).toBeUndefined();
+    expect(itemFromTrappingById('arme-improvisee', idsDeTest)?.improvised).toBe(true);
+    expect(itemFromTrappingById('mains-nues', idsDeTest)?.improvised).toBeUndefined();
+    expect(customTrapping('Sonde', idsDeTest).improvised).toBeUndefined();
   });
 
   it('COMPÉTENCES — `specsSource: weaponGroupsMelee` : exactement Corps à corps (conjuredWeapons, combat.parryPenalty)', () => {

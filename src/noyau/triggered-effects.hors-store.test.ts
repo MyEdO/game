@@ -3,6 +3,7 @@
  * les Traits de créature (Toile) ET les Atouts d'arme (Immobilisante), via UN dispatcher (`fireTriggers`)
  * réutilisant l'exécuteur des sorts (`runPureFlowLines`), sans handler en dur par trait/atout.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { fireTriggers, applyTriggeredEffects } from './triggeredEffects';
 import { findConditionById } from '../data';
@@ -176,7 +177,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
 
   it('op loseTurn : pose les drapeaux lus au début du Round', () => {
     const c = mk();
-    runPureFlowLines(c, c, { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'loseTurn' }] } }, { rng: makeRNG(1), caster: c });
+    runPureFlowLines(c, c, { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'loseTurn' }] } }, { idNeuf: idsDeTest, rng: makeRNG(1), caster: c });
     expect(c.loseNextAction).toBe(true);
     expect(c.loseNextMovement).toBe(true);
   });
@@ -209,7 +210,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
 
   it('op rollThreshold : UN d10 → soin = la valeur du dé via Formula {rolled}', () => {
     const c = mk({ wounds: blessuresDeBase(20, 0) });
-    applyOps(c, [{ op: 'rollThreshold', sides: 10, thresholds: [{ atLeast: 1, ops: [{ op: 'heal', amount: { rolled: true } }] }] }], { rng: makeRNG(3) });
+    applyOps(c, [{ op: 'rollThreshold', sides: 10, thresholds: [{ atLeast: 1, ops: [{ op: 'heal', amount: { rolled: true } }] }] }], { idNeuf: idsDeTest, rng: makeRNG(3) });
     expect(c.wounds.current).toBeGreaterThanOrEqual(1); // a soigné le dé (1..10)
     expect(c.wounds.current).toBeLessThanOrEqual(10);
   });
@@ -234,7 +235,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     };
     const attacker = mk({ id: 'a' });
     const victim = mk({ id: 'v', wounds: blessuresDeBase(15) });
-    runPureFlowLines(victim, attacker, flow, { rng: makeRNG(3), caster: attacker });
+    runPureFlowLines(victim, attacker, flow, { idNeuf: idsDeTest, rng: makeRNG(3), caster: attacker });
     expect(victim.wounds.current).toBeLessThan(15); // 1d10 Dégâts appliqués (ignore BE/PA par défaut)
     expect(empetre(victim)?.value).toBe(1);
   });
@@ -292,7 +293,7 @@ describe('Aire source-agnostique — un TRAIT pose `on:{near}` → GameOps à TO
 describe('Affamé — Test de trigger onKill routé (cadence-aware)', () => {
   it('créature ENNEMIE Affamée tue → Test de FM inline ; échec (FM basse) → loseTurn', () => {
     seedBattleRng(1); // → jet de FM 97 / 21 → échec → festoie (loseTurn)
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -387,7 +388,7 @@ const addCrampes = (c: Combatant) => { c.diseases = [{ id: 'colique', phase: 'ac
 
 describe('onOwnTestFailed — cadence-aware + seam central de cascade (corrections coordinateur)', () => {
   function combat() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -438,7 +439,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
 
   it('SEAM CENTRAL `commitStep` (cumulard) : un Test d’ENTRETIEN raté déclenche les Crampes du porteur', () => {
     seedBattleRng(3);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     addCrampes(hero);
     banc.setState({
       party: [hero], battle: null,
@@ -460,7 +461,7 @@ import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTes
 
 describe('onOwnTestFailed — jets d’ATTAQUE (attaquant ET défenseur, MSRC 16)', () => {
   function combat() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -524,14 +525,14 @@ describe('Traits conférés par une attaque, Difficulté portée par l’État',
   });
   it('l’op `condition` fige sa Difficulté sur l’État posé', () => {
     const cible = mk({ id: 'ci' });
-    applyOps(cible, [{ op: 'condition', id: 'empoisonne', difficulte: 'difficile' }], { rng: makeRNG(1) });
+    applyOps(cible, [{ op: 'condition', id: 'empoisonne', difficulte: 'difficile' }], { idNeuf: idsDeTest, rng: makeRNG(1) });
     expect(cible.conditions.find((x) => x.id === 'empoisonne')?.difficulte).toBe('difficile');
   });
   // (#3060 ; LDB 16 l.70) Difficulté la plus dure des poisons cumulés.
   it('des poisons de Difficultés différentes laissent à l’État la plus dure, dans les deux ordres', () => {
     for (const ordre of [['facile', 'difficile'], ['difficile', 'facile']] as const) {
       const cible = mk({ id: 'ci' });
-      for (const difficulte of ordre) applyOps(cible, [{ op: 'condition', id: 'empoisonne', difficulte }], { rng: makeRNG(1) });
+      for (const difficulte of ordre) applyOps(cible, [{ op: 'condition', id: 'empoisonne', difficulte }], { idNeuf: idsDeTest, rng: makeRNG(1) });
       expect(cible.conditions.find((x) => x.id === 'empoisonne'), ordre.join(' puis ')).toMatchObject({ value: 2, difficulte: 'difficile' });
     }
   });

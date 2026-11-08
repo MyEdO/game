@@ -20,6 +20,7 @@
  *    au socle faute de siège ;
  *  - ce que l'appelant fera APRÈS le coup ne se joue qu'APRÈS le dé.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
@@ -658,7 +659,7 @@ describe('Épée + Cornes : l’épée casse → Mains nues, pour un statbloc co
   });
 
   it('héros (arme dérivée de son objet)', () => {
-    const base = itemFromTrappingById('arme-simple')!;
+    const base = itemFromTrappingById('arme-simple', idsDeTest)!;
     const objet = { ...base, uid: 'epee-h', equipped: true, qualities: [...(base.qualities ?? []), { id: 'bacle' }] };
     const hero = mk('hero', 'bretteur', { items: [objet], activeEffects: [{ id: 'fx-cornes', naturalWeapon: cornes() }] } as never);
     recomputeLoadout(hero);
@@ -692,7 +693,7 @@ describe('pièce SERVIE abîmée d’un Dégât : le chef de statbloc tient la p
   it('l’arme de la pièce porte le Dégât, et l’épée du statbloc est toujours là', () => {
     const epee = ({ uid: 'epee-s', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }) as unknown as Weapon;
     const chef = mk('enemy', 'canonnier', { weapons: [epee] });
-    const poste = hydratePoste({ trappingId: 'canon-a-repetition' } as never);
+    const poste = hydratePoste({ trappingId: 'canon-a-repetition' } as never, 'poste-de-test');
     poste.crewIds = ['canonnier'];
     serveChef(chef, poste);
     setBattle([chef, mk('hero', 'cible')]);
@@ -708,7 +709,7 @@ describe('pièce SERVIE abîmée d’un Dégât : le chef de statbloc tient la p
 // `LDB 62 l.280` (Piège-lame) : la lame arrachée d'un HÉROS quitte TOUS ses sets (`engine/items.lacherLArme`).
 describe('héros désarmé par Piège-lame : la lame quitte tous les sets et reste dans l’inventaire', () => {
   it('aucun set ne la référence, recomputeLoadout ne la rend pas, l’objet est toujours possédé', () => {
-    const objet = { ...itemFromTrappingById('arme-simple')!, uid: 'lame-h', equipped: true };
+    const objet = { ...itemFromTrappingById('arme-simple', idsDeTest)!, uid: 'lame-h', equipped: true };
     const heros = mk('hero', 'bretteur', { items: [objet], pos: { x: 1, y: 0 } });
     heros.loadouts = [{ id: 'l1', main: 'lame-h' }, { id: 'l2', main: 'lame-h' }];
     heros.activeLoadoutId = 'l1';

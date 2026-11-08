@@ -4,6 +4,7 @@
  * → attaque supplémentaire (coût Avantage ou Mouvement) ». Preuve que créer un talent qui DONNE une attaque
  * fonctionne de bout en bout depuis la donnée.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { resolveFreeAttacks } from './combatFlow';
@@ -28,7 +29,7 @@ const HIT: AttackResult = {
 
 describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => {
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

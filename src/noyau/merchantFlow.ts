@@ -6,7 +6,7 @@
 import type { Jeu } from './etat';
 import { toRecapLines } from './recapLine';
 import { Combatant, ItemInstance, type TestIds } from '../engine/types';
-import { recomputeLoadout, contexteDeNaissanceDObjet, itemFromTrappingById, avecObjet, newUid } from '../engine/items';
+import { recomputeLoadout, contexteDeNaissanceDObjet, itemFromTrappingById, avecObjet } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
 import { bargainBuyFactor, bargainSellFactor, bargainPct, type BargainOutcome } from '../engine/bargain';
 import { SL_ASTOUNDING, cibleMesuree, estJete } from '../engine/tests';
@@ -507,9 +507,9 @@ export function payerLesAchats(get: Get, set: Set): void {
   for (const c of cart) {
     const entry = catalogEntryOf(c.id);
     if (entry?.unit) {
-      for (let i = 0; i < c.qty; i++) staged.push({ uid: newUid(), unit: entry.unit, heroId: dest });
+      for (let i = 0; i < c.qty; i++) staged.push({ uid: get().forgerUnId('it'), unit: entry.unit, heroId: dest });
     } else {
-      for (let i = 0; i < c.qty; i++) { const it = itemFromTrappingById(c.id); if (it) staged.push({ uid: newUid(), item: it, heroId: dest }); }
+      for (let i = 0; i < c.qty; i++) { const it = itemFromTrappingById(c.id, get().forgerUnId); if (it) staged.push({ uid: get().forgerUnId('it'), item: it, heroId: dest }); }
     }
     newStock = newStock.map((l) => (l.id === c.id ? { ...l, qty: Math.max(0, l.qty - c.qty) } : l));
   }
@@ -680,7 +680,7 @@ export function troquerLesObjets(get: Get, set: Set, opts: DemandeDeTroc): void 
   const hero = garanti(get().party.find((h) => h.id === opts.giveHeroId), opts.giveHeroId, 'troc — héros cédant');
   const givable = exemplairesCedables(hero, opts.giveTrappingId);
   const soldUids = givable.slice(0, quote.giveCount).map((i) => i.uid);
-  const acquis = Array.from({ length: getCount }, () => itemFromTrappingById(opts.getStockId, undefined, contexteDeNaissanceDObjet(hero))).filter((i) => i !== null);
+  const acquis = Array.from({ length: getCount }, () => itemFromTrappingById(opts.getStockId, get().forgerUnId, undefined, contexteDeNaissanceDObjet(hero))).filter((i) => i !== null);
   const newStock = m.stock.map((l) => (l.id === opts.getStockId ? { ...l, qty: l.qty - getCount } : l));
   set((s) => {
     const eid = s.merchant!.entityId;

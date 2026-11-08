@@ -120,7 +120,7 @@ describe('Incident de Tir d’Artillerie par Salve (AA 10 l.270-277) — branche
 // (`engine/weaponLoad.objetSourceDeLArme`) : la destruction y persiste, et la pièce n'est plus dérivée.
 describe('pièce SERVIE en poste, détruite par l’Incident de tir par Salve', () => {
   it('`poste.item.destroyed` est posé, et `recomputeLoadout` ne dérive plus la pièce', () => {
-    const poste = hydratePoste({ trappingId: 'canon-a-repetition' } as never);
+    const poste = hydratePoste({ trappingId: 'canon-a-repetition' } as never, 'poste-de-test');
     const chef = mkHero('chef', { mannedPoste: poste });
     poste.crewIds = ['chef'];
     recomputeLoadout(chef);

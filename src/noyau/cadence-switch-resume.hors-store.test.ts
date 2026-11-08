@@ -5,20 +5,21 @@
  *  2. en AUTO, le joueur n'a AUCUNE affordance sur le héros actif — `controlsActive` est FAUX (la grille de
  *     déplacement, le réticule, la barre d'action et les raccourcis se gatent dessus).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makeShowcaseParty } from '../data/pregens';
 import { scenario as embuscade } from '../scenes/test-scenarios/embuscade';
 import { controlsActive } from './netOwnership';
 import { setCadence } from '../engine/cadence';
-const embuscadeConstruit = embuscade.construire();
+const embuscadeConstruit = embuscade.construire(idsDeTest);
 
 describe('Bascule de Cadence en plein combat', () => {
   let banc: Banc;
   beforeEach(() => { banc = ouvrirLeBanc(); });
 
   function startAtHeroTurn() {
-    banc.setState({ party: makeShowcaseParty() });
+    banc.setState({ party: makeShowcaseParty(idsDeTest) });
     banc.getState().lancerLaScene(embuscadeConstruit.scene);
     banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
     banc.getState().fenetreValider('roundStart');

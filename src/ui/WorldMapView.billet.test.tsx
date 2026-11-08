@@ -4,6 +4,7 @@
  * « Marchander » → modale du Marchandage → « Lancer » → « Conclure » → prix négocié affiché par classe →
  * « Payer et partir » → débit du groupe. L'estimation de l'écran et le débit du flux lisent la même offre.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { imposerLesD100 } from '../noyau/battleRng.testkit';
 import { act } from 'react';
@@ -54,7 +55,7 @@ const T2 = 'route-route-principale-sept-rayons';
 
 /** Le chapitre 1 lancé avec le groupe showcase et sa bourse, monté à bord (`edo-ch1-depart`). */
 function aBord(): void {
-  const groupe = makePregensWithWealth().filter((e) => SHOWCASE.includes(e.hero.id));
+  const groupe = makePregensWithWealth(idsDeTest).filter((e) => SHOWCASE.includes(e.hero.id));
   useGame.setState({ party: groupe.map((e) => e.hero) });
   expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
   for (const e of groupe) creditBourse(get, useGame.setState, e.hero.id, e.wealth);
@@ -75,7 +76,7 @@ async function cliquer(b: Element): Promise<void> {
 
 describe('billet de la diligence — chemin du joueur', () => {
   it('Marchander → Conclure → prix négocié par place → Payer et partir → 4 × 3/- débités', async () => {
-    const groupe = makePregensWithWealth().filter((e) => SHOWCASE.includes(e.hero.id));
+    const groupe = makePregensWithWealth(idsDeTest).filter((e) => SHOWCASE.includes(e.hero.id));
     useGame.setState({ party: groupe.map((e) => e.hero) });
     expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
     for (const e of groupe) creditBourse(get, useGame.setState, e.hero.id, e.wealth);

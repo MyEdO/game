@@ -778,10 +778,10 @@ export function partieEnCours(s: Pick<Jeu, 'scene' | 'pendingCampaign'>): boolea
 export function recruterLeHeros(get: Get, set: Set, heros: HerosEngage): void {
   const s = get();
   const seat = decidingSeat(s);
-  const bati = herosDeLEngagement(heros);
+  const bati = herosDeLEngagement(heros, get().forgerUnId);
   const refus = 'refus' in bati ? refusDAjoutAuGroupe(s, undefined, seat) ?? bati.refus : refusDAjoutAuGroupe(s, bati.hero.id, seat);
   if (compositionRefusee(get, set, refus) || 'refus' in bati) return;
-  const copy: Combatant = ensureBourse(bati.hero);
+  const copy: Combatant = ensureBourse(bati.hero, get().forgerUnId);
   const rangs = { ...rangsDuGroupe(s), [copy.id]: rangDAjout(s, seat)! };
   set({
     party: [...s.party, copy],
@@ -844,14 +844,14 @@ export function renvoyerLeHeros(get: Get, set: Set, heroId: string): void {
  *  « Remplacer » du slot. Le remplaçant porte la Bourse du remplacé (un remplacement n'est pas un recrutement) ; un id
  *  déjà au groupe est refusé et dit. */
 export function remplacerLeHeros(get: Get, set: Set, oldId: string, heros: HerosEngage): void {
-  const bati = herosDeLEngagement(heros);
+  const bati = herosDeLEngagement(heros, get().forgerUnId);
   if (compositionRefusee(get, set, refusDeComposerLeHeros(get(), oldId, decidingSeat(get())) ?? ('refus' in bati ? bati.refus : null)) || 'refus' in bati) return;
   const s = get();
   const idx = s.party.findIndex((h) => h.id === oldId);
   if (idx < 0) return;                                                    // l'ancien n'est plus là
   const doublon = bati.hero.id !== oldId ? s.party.find((h) => h.id === bati.hero.id) : undefined;
   if (compositionRefusee(get, set, doublon ? t('pf.partyDuplicate', { name: doublon.label }) : null)) return;
-  const copy = withBourseMoney(bati.hero, bourseOf(s.party[idx]));
+  const copy = withBourseMoney(bati.hero, bourseOf(s.party[idx]), get().forgerUnId);
   const ownership = { ...s.net.ownership };
   delete ownership[oldId];
   ownership[copy.id] = decidingSeat(s);

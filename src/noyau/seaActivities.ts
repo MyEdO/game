@@ -38,7 +38,7 @@ import { appliquerIssueActivite } from './activityIssue';
 import { peutTenter, refusNePeutTenter } from '../engine/skills';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { PlayerText } from '../i18n/playerText';
-import { contexteDeNaissanceDObjet, itemFromTrappingById, recomputeLoadout, autoStowNewItem, newUid } from '../engine/items';
+import { contexteDeNaissanceDObjet, itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO } from '../engine/money';
 import { payFromGroup, payWithAllocation, soloPayer, distributeCredit, totalDesBourses } from './bourseFlow';
 import { encLibreNominale } from './portFlow';
@@ -307,7 +307,7 @@ export const TABLES = {
       const stashGold = typeof step.meta?.stashGold === 'number' ? step.meta.stashGold : 0;
       const j: string[] = [];
       if (step.result.success) {
-        const it = itemFromTrappingById('carte-marine', undefined, contexteDeNaissanceDObjet(hero));
+        const it = itemFromTrappingById('carte-marine', get().forgerUnId, undefined, contexteDeNaissanceDObjet(hero));
         if (it) {
           it.price = { gold: Math.max(0, step.result.sl), silver: 0, brass: 0 };
           hero.items = [...(hero.items ?? []), it];
@@ -319,7 +319,7 @@ export const TABLES = {
         if (stashGold > 0) {
           const stashBrass = stashGold * PA_PER_CO;
           payWithAllocation(get, set, { debits: soloPayer(hero.id, fromBrass(stashBrass)), recipient: hero.id, purpose: 'planque cartographie' });
-          set({ bank: [...get().bank, { uid: newUid(), heroId: hero.id, kind: 'stash', brass: stashBrass, rate: 50, chartSecured: true }] });
+          set({ bank: [...get().bank, { uid: get().forgerUnId('it'), heroId: hero.id, kind: 'stash', brass: stashBrass, rate: 50, chartSecured: true }] });
           // MDG 15 l.292
           j.push(t('sact.stash', { name: hero.label, money: formatMoney(fromBrass(stashBrass)) }));
         }

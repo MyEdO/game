@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { EFFECT_HANDLERS, applyEffects, runFlow } from '../../noyau/combatEffects';
@@ -37,21 +38,21 @@ const zone1 = project.find((s) => s.id === 'arene-zone1')!;
 
 describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () => {
   it('chargerLeProjet démarre sur la zone d’entrée, sans combat', () => {
-    banc.getState().fixerLeGroupe(makeShowcaseParty());
+    banc.getState().fixerLeGroupe(makeShowcaseParty(idsDeTest));
     expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     expect(banc.getState().scene?.id).toBe('arene-zone1');
     expect(banc.getState().battle).toBeNull();
   });
 
   it('entrer sur le sol (dans le rect du trigger) DÉCLENCHE la rencontre', () => {
-    banc.getState().fixerLeGroupe(makeShowcaseParty());
+    banc.getState().fixerLeGroupe(makeShowcaseParty(idsDeTest));
     expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     poserLeGroupe(banc.getState, banc.setState, { x: 8, y: 8 }); // dans le rect de combat (x≥7) → checkTriggers
     expect(banc.getState().battle).not.toBeNull();
   });
 
   it('onVictory : argent + flag zone1_clear + transition vers le hub', () => {
-    banc.getState().fixerLeGroupe(makeShowcaseParty());
+    banc.getState().fixerLeGroupe(makeShowcaseParty(idsDeTest));
     expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     runFlow(banc.getState, banc.setState, zone1.encounters[0].onVictory!);
     expect(banc.getState().flags.zone1_clear).toBe(true);
@@ -59,7 +60,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
   });
 
   it('au hub, la porte des Ruines s’ouvre une fois la Cour nettoyée', () => {
-    banc.getState().fixerLeGroupe(makeShowcaseParty());
+    banc.getState().fixerLeGroupe(makeShowcaseParty(idsDeTest));
     expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     runFlow(banc.getState, banc.setState, zone1.encounters[0].onVictory!);
     const hub = banc.getState().scene!;
@@ -69,7 +70,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
   });
 
   it('ÉCHELLE COMPLÈTE : les 13 victoires enchaînées ouvrent chaque porte puis le titre de champion', () => {
-    banc.getState().fixerLeGroupe(makeShowcaseParty());
+    banc.getState().fixerLeGroupe(makeShowcaseParty(idsDeTest));
     expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     const dlgHub = project.find((s) => s.id === 'arene-hub')!.dialogues.find((d) => d.id === 'dlg-hub')!;
     const choices = dlgHub.nodes.flatMap((n) => n.choices);
@@ -92,7 +93,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
   });
 
   it('ARCHITECTURE : la taverne du Bourg est cernée de murs d’arête, franchissable par sa PORTE', () => {
-    banc.getState().fixerLeGroupe(makeShowcaseParty());
+    banc.getState().fixerLeGroupe(makeShowcaseParty(idsDeTest));
     expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-hub')).toBeNull();
     const hub = banc.getState().scene!;
     const bourg = hub.architecture?.find((body) => body.id === 'bourg');
@@ -118,7 +119,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
   });
 
   it('CONTRATS : la victoire au camp de Bella pose contrat_foret_fait → la prime du Maître se débloque', () => {
-    banc.getState().fixerLeGroupe(makeShowcaseParty());
+    banc.getState().fixerLeGroupe(makeShowcaseParty(idsDeTest));
     expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-hub')).toBeNull();
     const foret = project.find((s) => s.id === 'arene-exp-foret')!;
     const bande = foret.encounters.find((e) => e.id === 'enc-foret-bande')!;
@@ -170,7 +171,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
   });
 
   it('medicalAid ouvre l’infirmerie du PNJ : nom/id viennent de l’entité (pas codés en dur), jamais dans le groupe', () => {
-    const party = makeShowcaseParty();
+    const party = makeShowcaseParty(idsDeTest);
     party[1].wounds = { ...party[1].wounds, current: party[1].wounds.current - 6 };
     banc.setState({ party, scene: hub, battle: null, pendingHeal: null, medic: null });
     creditBourse(banc.getState, banc.setState, party[1].id, { gold: 1, silver: 10, brass: 0 }); // le patient (party[1]) paie son acte (soloPayer)
@@ -195,7 +196,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
   });
 
   it('PORTE : un soigneur sans fiche de Guérison n’ouvre AUCUNE infirmerie — rien à lire, rien à inventer (L2 #1548)', () => {
-    const party = makeShowcaseParty();
+    const party = makeShowcaseParty(idsDeTest);
     party[1].wounds = { ...party[1].wounds, current: party[1].wounds.current - 6 };
     banc.setState({ party, scene: hub, battle: null, pendingHeal: null, medic: null });
     // `fidele` est un figurant de la chapelle : aucune réf de bestiaire, donc aucune Guérison.
@@ -230,7 +231,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
         statblock: { type: 'statblock', label: 'Prêtre de Sigmar', char: { intelligence: 40 }, skills: [{ id: 'guerison', value: GUERISON }] },
       } as SceneEntity],
     };
-    const party = makeShowcaseParty();
+    const party = makeShowcaseParty(idsDeTest);
     party[1].wounds = { ...party[1].wounds, current: party[1].wounds.current - 6 };
     banc.setState({ party, scene: infirmerie, battle: null, pendingHeal: null, medic: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'wounds', cost: { silver: 5 } }], entityId: 'soigneur' }]);
@@ -242,7 +243,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
   });
 
   it('le JOUEUR choisit le patient dans l’infirmerie (choix `medic.patient`)', () => {
-    const party = makeShowcaseParty();
+    const party = makeShowcaseParty(idsDeTest);
     party[0].wounds = { ...party[0].wounds, current: party[0].wounds.current - 3 };
     party[2].wounds = { ...party[2].wounds, current: party[2].wounds.current - 8 };
     banc.setState({ party, scene: hub, battle: null, pendingHeal: null, medic: null });
@@ -253,7 +254,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
   });
 
   it('un acte sans patient pertinent est simplement refusé (pas de jet)', () => {
-    banc.setState({ party: makeShowcaseParty(), scene: hub, battle: null, pendingHeal: null, medic: null }); // groupe au max de PB
+    banc.setState({ party: makeShowcaseParty(idsDeTest), scene: hub, battle: null, pendingHeal: null, medic: null }); // groupe au max de PB
     applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'medecin' }]);
     banc.getState().soignerLePatient('wounds');
     expect(banc.getState().pendingHeal).toBeNull();

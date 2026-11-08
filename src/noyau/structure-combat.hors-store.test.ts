@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyAttackResult, applyStructureCriticalToTarget, applyCriticalToTarget, applyCast, checkBattleOver, collapseStructure, weaponContextOf, resolveRoundBoundary, STRUCTURE_CRIT_TABLE } from './combatFlow';
@@ -57,7 +58,7 @@ function sceneWithStructure(structId: string, down = false): Scene {
  *  enrôlée (undefined si `down`), un héros attaquant et le combat. */
 function start(structId: string, opts?: { down?: boolean; seed?: number }) {
   banc.getState().ensemencerLeTirage(opts?.seed ?? 1);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: opts?.seed ?? 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: opts?.seed ?? 1 });
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(sceneWithStructure(structId, opts?.down));
   banc.getState().lancerLeCombat('enc-mutants');
@@ -210,7 +211,7 @@ describe('Structures de siège — Critique de Structure (AA 10 l.112-127)', () 
     const { S, H } = start('mur-en-pierre');
     const log: string[] = [];
     const before = S!.wounds.current;
-    expect(applyStructureCriticalToTarget(banc.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, log, { forcedRoll: 98 }).destroyed).toBe(true);
+    expect(applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, log, { forcedRoll: 98 }).destroyed).toBe(true);
     expect(S!.wounds.current).toBe(before);
     expect(S!.criticalWounds).toBe(1);
     collapseStructure(banc.getState, banc.setState, S!);
@@ -221,7 +222,7 @@ describe('Structures de siège — Critique de Structure (AA 10 l.112-127)', () 
   it("ligne à Blessures (forcedRoll 40, Secouée = 1) → 1 Blessure retirée, comptée au cumul, Structure gardée", () => {
     const { S, H } = start('mur-en-pierre');
     const before = S!.wounds.current;
-    expect(applyStructureCriticalToTarget(banc.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, [], { forcedRoll: 40 }).destroyed).toBe(false);
+    expect(applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, [], { forcedRoll: 40 }).destroyed).toBe(false);
     expect(S!.wounds.current).toBe(before - 1);
     expect(S!.criticalWounds).toBe(1);
   });
@@ -229,14 +230,14 @@ describe('Structures de siège — Critique de Structure (AA 10 l.112-127)', () 
   it("Blessure Triviale (forcedRoll 10, Ébréchée) → 0 Blessure retirée, hors du cumul (AA 07 l.79)", () => {
     const { S, H } = start('mur-en-pierre');
     const before = S!.wounds.current;
-    applyStructureCriticalToTarget(banc.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, [], { forcedRoll: 10 });
+    applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, [], { forcedRoll: 10 });
     expect(S!.wounds.current).toBe(before);
     expect(S!.criticalWounds ?? 0).toBe(0);
   });
 
   it("le Critique empile une ÉTAPE À TABLE : le tirage est DÉCLARÉ (table + dé + ligne stable), la séquence l'affiche", () => {
     const { S, H } = start('mur-en-pierre');
-    applyStructureCriticalToTarget(banc.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, [], { forcedRoll: 40 });
+    applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, [], { forcedRoll: 40 });
     const steps = banc.getState().pendingCascade!.participants;
     const step = steps[steps.length - 1];
     expect(stepInteraction(step)).toBe('affichage'); // dé déjà tiré (le coup est résolu) → l'étape MONTRE
@@ -266,7 +267,7 @@ describe('Structures de siège — à 0, seul le 96+ effondre (AA 10 l.114, l.12
     const { S, H } = start('porte');
     applyAttackResult(banc.getState, banc.setState, H, S!, hache, hitRes(hache, S!, 20));
     const s = live(S!.id)!;
-    for (let i = 0; i < critiques; i++) applyStructureCriticalToTarget(banc.setState, s, {}, [], { forcedRoll: 40 });
+    for (let i = 0; i < critiques; i++) applyStructureCriticalToTarget(idsDeTest, banc.setState, s, {}, [], { forcedRoll: 40 });
     banc.setState({ pendingCascade: null });
     for (let r = 0; r < rounds; r++) {
       tickDeath(s);
@@ -291,7 +292,7 @@ describe('Structures de siège — à 0, seul le 96+ effondre (AA 10 l.114, l.12
     it(`mode '${mode}' : contrôle, un Critique au dé 96 l'effondre (retrait et brèche)`, () => {
       setRule('combat-aa-blessures', mode);
       const s = porteAZero(4, 4);
-      expect(applyStructureCriticalToTarget(banc.setState, s, {}, [], { forcedRoll: 96 }).destroyed).toBe(true);
+      expect(applyStructureCriticalToTarget(idsDeTest, banc.setState, s, {}, [], { forcedRoll: 96 }).destroyed).toBe(true);
       checkBattleOver(banc.getState, banc.setState);
       expect(live(s.id), 'retirée du combat').toBeUndefined();
       expect(structureIsDown(banc.getState().scene!, seg)).toBe(true);
@@ -323,7 +324,7 @@ describe('Structures de siège — le jet du Critique prend le modificateur du m
     setRule('combat-aa-blessures', 'aa');
     const { S, H } = start('porte');
     S!.wounds.current = 0;
-    const outcome = applyStructureCriticalToTarget(banc.setState, S!, heros(H), [], { overkill: Math.max(0, 6 - 2), forcedRoll: 60 });
+    const outcome = applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, heros(H), [], { overkill: Math.max(0, 6 - 2), forcedRoll: 60 });
     expect(derniereEtape().result).toMatchObject({ roll: 60, die: 100 });
     expect(outcome.destroyed).toBe(true);
   });
@@ -332,7 +333,7 @@ describe('Structures de siège — le jet du Critique prend le modificateur du m
     setRule('combat-aa-blessures', 'aa');
     const { S, H } = start('porte');
     S!.wounds.current = 0;
-    const outcome = applyStructureCriticalToTarget(banc.setState, S!, heros(H), [], { overkill: 3, forcedRoll: 70 });
+    const outcome = applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, heros(H), [], { overkill: 3, forcedRoll: 70 });
     expect(derniereEtape().result).toMatchObject({ roll: 70, die: 100 });
     expect(outcome.destroyed).toBe(true);
   });
@@ -349,11 +350,11 @@ describe('Structures de siège — le jet du Critique prend le modificateur du m
     setRule('combat-aa-blessures', 'ldb');
     const { S, H } = start('porte');
     S!.wounds.current = 0;
-    applyStructureCriticalToTarget(banc.setState, S!, heros(H), [], { overkill: 1, forcedRoll: 40 });
+    applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, heros(H), [], { overkill: 1, forcedRoll: 40 });
     expect(derniereEtape().result).toMatchObject({ roll: 40, die: 20, id: 'ebrechee' });
-    applyStructureCriticalToTarget(banc.setState, S!, heros(H), [], { overkill: 1, forcedRoll: 10 });
+    applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, heros(H), [], { overkill: 1, forcedRoll: 10 });
     expect(derniereEtape().result).toMatchObject({ roll: 10, die: 1, id: 'ebrechee' });
-    const outcome = applyStructureCriticalToTarget(banc.setState, S!, heros(H), [], { overkill: 1, forcedRoll: 100 });
+    const outcome = applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, heros(H), [], { overkill: 1, forcedRoll: 100 });
     expect(derniereEtape().result).toMatchObject({ roll: 100, die: 80, id: 'pluie-d-echardes' });
     expect(outcome.destroyed).toBe(false);
   });
@@ -363,7 +364,7 @@ describe('Structures de siège — le jet du Critique prend le modificateur du m
       setRule('combat-aa-blessures', 'ldb');
       const { S, H } = start('porte');
       S!.wounds.current = 0;
-      const outcome = applyStructureCriticalToTarget(banc.setState, S!, heros(H), [], { overkill, forcedRoll: 98 });
+      const outcome = applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, heros(H), [], { overkill, forcedRoll: 98 });
       expect(derniereEtape().result).toMatchObject({ roll: 98, die: 98, id: 'effondrement' });
       expect(outcome.destroyed).toBe(true);
     });
@@ -373,7 +374,7 @@ describe('Structures de siège — le jet du Critique prend le modificateur du m
     it(`mode '${mode}', contrôle : sans dépassement, le modificateur vaut 0 (dé 40 → Secouée)`, () => {
       setRule('combat-aa-blessures', mode);
       const { S, H } = start('porte');
-      applyStructureCriticalToTarget(banc.setState, S!, heros(H), [], { overkill: 0, forcedRoll: 40 });
+      applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, heros(H), [], { overkill: 0, forcedRoll: 40 });
       expect(derniereEtape().result).toMatchObject({ roll: 40, die: 40, id: 'secouee' });
     });
   }
@@ -437,7 +438,7 @@ describe('Structures de siège — CHEMIN DE CLIC joueur (overlay d’arête →
     const { S, H } = start('porte', { seed: 7 });
     const seg = { x: 2, y: 2, side: 'E' as const, structure: 'porte' };
     // Héros au CONTACT de l'ancrage (2,2), arme de mêlée, Combat/Force élevés → traverse les 8 Bl (BE 2).
-    const sword = itemFromTrappingById('arme-simple')!; sword.equipped = true;
+    const sword = itemFromTrappingById('arme-simple', idsDeTest)!; sword.equipped = true;
     H.items = [sword]; H.loadouts = undefined; H.activeLoadoutId = undefined; recomputeLoadout(H);
     H.characteristics['capacite-de-combat'] = 80; H.characteristics.force = 60;
     H.pos = { x: 1, y: 2 };
@@ -463,7 +464,7 @@ describe('Structures de siège — CHEMIN DE CLIC joueur (overlay d’arête →
 
 describe('weaponContextOf — exceptions hors-spécialisation dégradées (LDB 62 l.184/188, #472)', () => {
   const attacker = (spec: string) => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.skills = [{ id: 'projectiles', spec, characteristic: 'capacite-de-tir', advances: 5 }];
     return hero;
   };

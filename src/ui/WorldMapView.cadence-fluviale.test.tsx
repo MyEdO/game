@@ -6,6 +6,7 @@
  * L'`aria-pressed` du sélecteur dit la cadence TRANSMISE, même après une traversée rapide choisie en mer.
  * Mesuré depuis le CLIC jusqu'aux ordres du `TravelPlan` construit par `partirEnVoyage`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -28,7 +29,7 @@ const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
 
 function batelier(): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'c-gunnar' });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'c-gunnar' });
   for (const id of ['ramer', 'voile']) {
     const ex = h.skills.find((s) => s.id === id && !s.spec);
     if (ex) ex.advances = Math.max(ex.advances, 50);

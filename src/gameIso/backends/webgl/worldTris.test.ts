@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../../engine/idsDeTest.testkit';
 import { describe, expect, it } from 'vitest';
 import {
   COPLANAR_BIAS_M,
@@ -69,8 +70,8 @@ function batirTemoins() {
   const geomsOf = memoByRef((scene: Scene) => facesGeometry(facesOf(scene), sceneMetresPerTile(scene), faceDepthM));
   return {
     siege: buildScene(siegeSpec()),
-    arene: arene.construire().scene,
-    diligence: diligence.construire().scene,
+    arene: arene.construire(idsDeTest).scene,
+    diligence: diligence.construire(idsDeTest).scene,
     vitrine: buildVitrineScene(),
     opera: buildOperaFloorplan(),
     facesOf,

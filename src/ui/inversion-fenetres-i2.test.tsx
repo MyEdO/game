@@ -4,6 +4,7 @@
  * d'Entraînement au Combat LDB 23 l.209, LDB 10 l.103) et Test étendu (Studieux sur Recherche). Le bouton
  * annonce l'issue que le flux écrira.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -36,7 +37,7 @@ afterEach(() => {
 });
 
 const heros = (label: string, studieux: boolean): Combatant => {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 1 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 1 });
   h.talents = studieux ? [...(h.talents ?? []), { talentId: 'studieux', times: 1 }] : (h.talents ?? []).filter((t) => t.talentId !== 'studieux');
   return h;
 };
@@ -67,7 +68,7 @@ describe('Battement — bouton « Inverser »', () => {
     const h = heros('H1', false);
     const e = { ...heros('E1', false), id: 'E1', kind: 'enemy' as const };
     h.pos = { x: 1, y: 1 }; e.pos = { x: 2, y: 1 };
-    if (jeton) applyOps(h, [{ op: 'grantReverseToken', skill: { id: 'corps-a-corps' } }], { rng: makeRNG(1), label: 'Entraînement au Combat' });
+    if (jeton) applyOps(h, [{ op: 'grantReverseToken', skill: { id: 'corps-a-corps' } }], { idNeuf: idsDeTest, rng: makeRNG(1), label: 'Entraînement au Combat' });
     useGame.setState({
       battle: { combatants: [h, e], order: [h.id, e.id], turn: 0, round: 1, log: [], over: null } as never,
       pendingBattement: { attackerId: h.id, foeId: e.id, result: hydrateTR({ roll: 64, target: 55, base: 45, sl: -1, success: false }) },

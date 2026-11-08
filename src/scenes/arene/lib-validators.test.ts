@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 // @ts-expect-error — lib .mjs des générateurs de campagne, sans types (validateurs id-only branchés dans NPC/scene/poste).
 import { NPC, NUEE_DE_RATS, poste, scene } from '../../../scripts/campagne/lib.mjs';
@@ -14,7 +15,7 @@ it('les ambiances de toutes les scènes livrées appartiennent aux rôles ambian
   const scenes = [
     ...listerProjetsLivres().flatMap((rel) => (lireProjetLivre(rel) as { scenes: Scene[] }).scenes),
     ...testScenarios.flatMap((scenario) => {
-      const construit = scenario.construire();
+      const construit = scenario.construire(idsDeTest);
       return [construit.scene, ...(construit.extraScenes ?? [])];
     }),
   ];

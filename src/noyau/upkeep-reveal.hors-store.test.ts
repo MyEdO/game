@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { advanceTurn } from './combatFlow';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -11,7 +12,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 // Entretien de Round groupé (initiative + hémorragie + mort) en UNE révélation témoin.
 describe('Entretien de Round en révélation (store)', () => {
   it('le début de combat MONTRE le champ (plan d’ensemble) — pas de modale d’Initiative (R2)', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -23,7 +24,7 @@ describe('Entretien de Round en révélation (store)', () => {
   });
 
   it('un franchissement de Round avec hémorragie pousse UNE révélation « Fin du Round » groupée', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.conditions = [{ id: 'hemorragique', value: 2 }];
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());

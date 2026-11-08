@@ -3,6 +3,7 @@
  * La table « Armes à distance des ogres » du .md étant mutilée par l'extraction, les valeurs ont été
  * reconstituées depuis le PDF (p.29) — ce test fige les stats imprimées.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { findTrappingById, findCreatureById } from './index';
 import { itemFromTrappingById } from '../engine/items';
@@ -96,7 +97,7 @@ describe('#61 — munitions & armure des ogres (ADE II 2 l.635-652)', () => {
   });
   it('les 12 objets se construisent en ItemInstance (qualités du registre, aucune inconnue)', () => {
     for (const id of ['massue-ogre', 'poing-de-fer', 'grande-massue-ogre', 'lance-harpon', 'piege-a-chaines', 'grande-lance', 'canon-crache-plomb', 'pistolet-ogre', 'harpon', 'balle-crache-plomb', 'boulet-crache-plomb', 'pansiere-ogre']) {
-      expect(itemFromTrappingById(id), id).toBeTruthy();
+      expect(itemFromTrappingById(id, idsDeTest), id).toBeTruthy();
     }
   });
 });
@@ -111,7 +112,7 @@ describe('#61 — les 4 PNJ ogres nommés (ADE II 1 l.217/231 / ADE II 2 l.484/4
       const c = findCreatureById(cid)!;
       expect(c.trappings!.length, cid).toBeGreaterThan(0);
       for (const tr of c.trappings!) {
-        if ('id' in tr) expect(itemFromTrappingById(tr.id as string), `${cid} → ${(tr as { id: string }).id}`).toBeTruthy();
+        if ('id' in tr) expect(itemFromTrappingById(tr.id as string, idsDeTest), `${cid} → ${(tr as { id: string }).id}`).toBeTruthy();
       }
     }
   });

@@ -35,7 +35,7 @@ import { garanti } from '../lib/garanti';
 import { itemCapability } from './capabilities';
 import { loadRegister, objetSourceDeLArme, aRecharger, chambrePleine, type WeaponLoadState } from './weaponLoad';
 import { nextEntityId } from '../lib/entityId';
-import { sequence } from './sequences';
+import type { FabriqueDId } from './fabriqueDId';
 import type { TraitInstance } from './statEntry';
 
 /** Contexte explicite de la naissance d’un objet (#2948). */
@@ -77,11 +77,6 @@ function deciderApparenceALaNaissance<T extends GabaritDObjet>(
   candidates.sort((a, b) => b.specificite - a.specificite || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   if (candidates[0]) choisirApparenceDObjet(objet, candidates[0].id, resolveTrapping);
   return objet;
-}
-
-const prochainUid = sequence();
-export function newUid(): string {
-  return `it-${prochainUid.suivant()}`;
 }
 
 /** Convention d'AFFICHAGE des Dégâts (spec → chaîne) : la SEULE fonction qui décide « +BF » vs « +N »
@@ -387,13 +382,13 @@ export function gabaritDObjet(id: string, resolveTrapping: TrappingResolver = fi
 }
 
 /** L'objet du gabarit `g` qui ENTRE dans l'état, sous l'uid `uid`. */
-const instanceDuGabarit = (g: GabaritDObjet, uid: string = newUid()): ItemInstance => ({ uid, ...g });
+const instanceDuGabarit = (g: GabaritDObjet, uid: string): ItemInstance => ({ uid, ...g });
 
 /** Instance d'objet depuis le catalogue par son `id` STABLE : le gabarit (`gabaritDObjet`) qui entre dans
  *  l'état sous un uid neuf. Id inconnu → null. */
-export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolver = findTrappingById, contexte?: ContexteDeNaissanceDObjet): ItemInstance | null {
+export function itemFromTrappingById(id: string, idNeuf: FabriqueDId, resolveTrapping: TrappingResolver = findTrappingById, contexte?: ContexteDeNaissanceDObjet): ItemInstance | null {
   const g = gabaritDObjet(id, resolveTrapping, contexte);
-  return g ? instanceDuGabarit(g) : null;
+  return g ? instanceDuGabarit(g, idNeuf('it')) : null;
 }
 
 /**
@@ -405,11 +400,12 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
  */
 export function itemFromTrappingRef(
   ref: Extract<TrappingRef, { id: string; type?: never }>,
+  idNeuf: FabriqueDId,
   resolveTrapping: TrappingResolver = findTrappingById,
   contexte?: ContexteDeNaissanceDObjet,
 ): ItemInstance | null {
   const g = gabaritDeLaRef(ref, resolveTrapping, contexte);
-  return g ? instanceDuGabarit(g) : null;
+  return g ? instanceDuGabarit(g, idNeuf('it')) : null;
 }
 
 /** Le gabarit (`GabaritDObjet`) d'une `TrappingRef` résolue : la couture de `itemFromTrappingRef`, sans uid. */
@@ -436,8 +432,8 @@ export function objetDuTrapping(c: Pick<Combatant, 'items'>, trappingId: string)
 /** Objet « custom » minimal (trinket / objet de quête) quand le nom n'est PAS un vrai trapping de la
  *  base : permet de donner un objet au groupe via `giveTrapping` sans entrée de données (cf. retrait de
  *  l'inventaire de groupe — « donner un objet = un trapping custom OU réel »). kind `misc`, sans stats. */
-export function customTrapping(name: string): ItemInstance {
-  return instanceDuGabarit(gabaritCustom(name));
+export function customTrapping(name: string, idNeuf: FabriqueDId): ItemInstance {
+  return instanceDuGabarit(gabaritCustom(name), idNeuf('it'));
 }
 
 /** Le gabarit d'un objet custom (`customTrapping`). */
@@ -446,8 +442,8 @@ const gabaritCustom = (name: string): GabaritDObjet => ({ label: name, kind: 'mi
 /** Résout l'ItemInstance d'un Effet `giveTrapping` : objet de CATALOGUE (`trappingId`) sinon objet CUSTOM
  *  (`custom`, nom libre hors-base). SOURCE UNIQUE (applyEffects + ramassage de prop). `source` (optionnel) =
  *  entité déclenchante (sort/talent/…) — stampée sur l'instance pour l'ancrage de règle (`ItemInstance.source`). */
-export function itemFromGive(give: DonDObjet, source?: EffectSource, resolveTrapping: TrappingResolver = findTrappingById, contexte?: ContexteDeNaissanceDObjet): ItemInstance {
-  return instanceDuGabarit(gabaritDuDon(give, source, resolveTrapping, contexte));
+export function itemFromGive(give: DonDObjet, idNeuf: FabriqueDId, source?: EffectSource, resolveTrapping: TrappingResolver = findTrappingById, contexte?: ContexteDeNaissanceDObjet): ItemInstance {
+  return instanceDuGabarit(gabaritDuDon(give, source, resolveTrapping, contexte), idNeuf('it'));
 }
 
 /** Ce qu'un Effet `giveTrapping` donne (`itemFromGive`). */
@@ -964,15 +960,16 @@ export function mannedPosteWeapon(c: Combatant, poste: ShipPoste): Weapon | unde
 /**
  * HYDRATATION d'un poste AUTHORÉ (#222) — couture UNIQUE, appelée au spawn (`spawnEnemy`). Résout la base
  * de la pièce depuis `trappingId` (`itemFromTrappingById`, la couture existante — JAMAIS une base copiée),
- * puis re-pose l'état d'INSTANCE propre au poste (uid stable, enchants de dérogation). `trappingId`
+ * puis re-pose l'état d'INSTANCE propre au poste (uid stable, enchants de dérogation). Sans uid authoré, la pièce prend
+ * `uidDeLaPlace`, que l'appelant dérive de sa place sur la coque (#2907). `trappingId`
  * irrésoluble → throw explicite (fail-fast — une pièce fantôme est un défaut d'authoring, pas un silence).
  */
-export function hydratePoste(a: AuthoredShipPoste): ShipPoste {
+export function hydratePoste(a: AuthoredShipPoste, uidDeLaPlace: string): ShipPoste {
   const base = gabaritDObjet(a.trappingId);
   if (!base) throw new Error(`[poste] trappingId inconnu « ${a.trappingId} » — pièce non hydratable (#222)`);
   const item: ItemInstance = {
     ...base,
-    uid: a.uid ?? newUid(), // uid d'instance STABLE (liens hotbar/log)
+    uid: a.uid ?? uidDeLaPlace, // uid d'instance STABLE (liens hotbar/log)
     ...(a.enchants?.length ? { enchants: a.enchants } : {}), // dérogation de CETTE pièce (hors base catalogue)
   };
   const poste: ShipPoste = { item };
@@ -1267,13 +1264,13 @@ export function damageScore(d?: WeaponDamageSpec): number {
  *  carrière — déjà des refs par id). Un ref `{id}` à stats devient un objet ; son `count`
  *  (`compteDeLaDotation`, tiré sur `rng`) donne la quantité d'une munition, sinon autant d'objets, comme
  *  l'achat (`merchantFlow`). Une ref sans `id` est ignorée : `{text}` (flavor hors catalogue : « Réseau
- *  d'informateurs »), et un emplacement non tranché (`{choice}`, `{wildcard}`, `trappingChoices.ts`). `idDObjet` donne l'uid de
- *  chaque objet : un aperçu qui n'entre pas dans l'état passe une fabrique locale jetable (#2907). */
-export function buildInventory(refs: TrappingRef[], rng: RNG, contexte?: ContexteDeNaissanceDObjet, idDObjet: () => string = newUid): ItemInstance[] {
+ *  d'informateurs »), et un emplacement non tranché (`{choice}`, `{wildcard}`, `trappingChoices.ts`). `idNeuf` forge l'uid de
+ *  chaque objet (#2907). */
+export function buildInventory(refs: TrappingRef[], rng: RNG, idNeuf: FabriqueDId, contexte?: ContexteDeNaissanceDObjet): ItemInstance[] {
   const items: ItemInstance[] = [];
   const objet = (ref: Extract<TrappingRef, { id: string; type?: never }>): ItemInstance | null => {
     const g = gabaritDeLaRef(ref, findTrappingById, contexte);
-    return g ? instanceDuGabarit(g, idDObjet()) : null;
+    return g ? instanceDuGabarit(g, idNeuf('it')) : null;
   };
   for (const ref of refs) {
     if (!estDotationDObjet(ref)) continue; // possession (`possessionGrants.ts`), {text}, {choice} ou {wildcard} non tranché : aucun objet

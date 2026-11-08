@@ -1,3 +1,4 @@
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { pregen, PREGEN } from '../../data/pregens';
 import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../noyau/mapSpec';
@@ -14,14 +15,14 @@ import type { TestScenario } from './_shared';
  *    À Terre → Inconscient → mort (cascade de Traumatisme).
  *  - Frère Anselm (Prêtre) sait Guérison → Action Soigner / arrêt d'Hémorragie sur un allié qui tombe.
  */
-function groupe(): Combatant[] {
-  const sigmund = pregen(PREGEN.soldat); // Destin/Résilience intacts (sauvetage in extremis)
-  const grunni = pregen(PREGEN.tueur);
-  const anselm = pregen(PREGEN.pretre);
+function groupe(idNeuf: FabriqueDId): Combatant[] {
+  const sigmund = pregen(idNeuf, PREGEN.soldat); // Destin/Résilience intacts (sauvetage in extremis)
+  const grunni = pregen(idNeuf, PREGEN.tueur);
+  const anselm = pregen(idNeuf, PREGEN.pretre);
   if (!anselm.skills.some((s) => s.id === 'guerison')) {
     anselm.skills.push({ id: 'guerison', characteristic: 'intelligence', advances: 25 }); // sinon pas d'Action Soigner
   }
-  const klein = pregen(PREGEN.voleur); // Halfling fragile
+  const klein = pregen(idNeuf, PREGEN.voleur); // Halfling fragile
   klein.fate = 0;
   klein.fortune = 0;
   klein.resilience = 0;
@@ -214,6 +215,6 @@ export const scenario: TestScenario = {
     '(Klein, Destin 0 → cascade À Terre/Inconscient/mort), sauvetage par le Destin & Résilience (Sigmund), ' +
     "Action Soigner & arrêt d'Hémorragie (Frère Anselm) sur un allié qui tombe.",
   partyNote: 'Sigmund (Destin) · Tueur nain · Frère Anselm (soigneur) · Klein le Voleur (fragile, Destin 0)',
-  construire: () => ({ party: groupe(), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: groupe(idNeuf), scene: construireScene() }),
   // pas d'autoCombat : on entre en exploration, le trigger lance le dialogue puis le combat.
 };

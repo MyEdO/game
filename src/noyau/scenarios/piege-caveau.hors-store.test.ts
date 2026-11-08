@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { evalCondition, flowHasTest, flowEffects } from '../../engine/flowCore';
 import { validateScene } from '../../noyau/validateScene';
@@ -8,7 +9,7 @@ import { scenario } from '../../scenes/test-scenarios/piege-caveau';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /**
  * « Le Caveau piégé » est du CONTENU pur (données éditeur), produit par `buildScene(MapSpec)`
@@ -57,7 +58,7 @@ describe('Scénario « Le Caveau piégé » : vitrine Flow + Condition', () => {
   it('le levier pose son flag (runtime) ; la clé donne « Clé en fer » lu par la herse (hasItem)', () => {
     const levier = scene.entities.find((e) => e.id === 'levier')!;
     const cle = scene.entities.find((e) => e.id === 'cle')!;
-    banc.setState({ battle: null, flags: {}, party: scenario.construire().party, scene });
+    banc.setState({ battle: null, flags: {}, party: scenario.construire(idsDeTest).party, scene });
     runFlow(banc.getState, banc.setState, levier.usable!.actions![0].flow);
     expect(banc.getState().flags.levier_tire).toBe(true);
     // la fouille de la clé donne l'objet « Clé en fer » — c'est lui que la condition hasItem de la herse lit.
@@ -66,7 +67,7 @@ describe('Scénario « Le Caveau piégé » : vitrine Flow + Condition', () => {
 
   it('le coffre donne une ARME de catalogue (LDB 62 l.125-127), Précise et non identifiée, tenable en main', () => {
     const tresor = scene.entities.find((e) => e.id === 'tresor')!;
-    banc.setState({ battle: null, flags: {}, party: scenario.construire().party, scene, pendingLoot: null });
+    banc.setState({ battle: null, flags: {}, party: scenario.construire(idsDeTest).party, scene, pendingLoot: null });
     runFlow(banc.getState, banc.setState, tresor.usable!.actions![0].flow);
     const gear = banc.getState().pendingLoot!.gear;
     expect(gear.length).toBe(1);

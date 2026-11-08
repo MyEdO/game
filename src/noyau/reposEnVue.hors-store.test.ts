@@ -3,6 +3,7 @@
  * couchage et en pitance, chacun écrit en choix de la fenêtre (`fenetreChoisir('rest', …)`), ce qui l'attend cette nuit, et la note que les
  * bourses paient ; le verbe refuse en le disant ce que le lieu n'offre pas. LDB 66
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc } from './banc.testkit';
 import { reposEnVue } from './reposEnVue';
@@ -14,8 +15,8 @@ import { t } from '../i18n';
 
 /** Un banc dont le groupe, deux héros sans ration et une bourse de 2 pistoles, s'arrête à l'auberge du relais. */
 function relais() {
-  const a = withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Anna', seed: 11 }), { gold: 0, silver: 2, brass: 0 });
-  const b = createHero({ speciesId: 'nains', careerId: 'artisan', label: 'Borin', seed: 12 });
+  const a = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Anna', seed: 11 }), { gold: 0, silver: 2, brass: 0 }, idsDeTest);
+  const b = createHero({ idNeuf: idsDeTest, speciesId: 'nains', careerId: 'artisan', label: 'Borin', seed: 12 });
   for (const h of [a, b]) h.items = (h.items ?? []).filter((i) => !isRation(i));
   const banc = ouvrirLeBanc({ graine: 7, etat: { party: [a, b] } });
   banc.getState().offrirLeRepos({ lieu: fixtureText('Le relais'), places: { auberge: true } });

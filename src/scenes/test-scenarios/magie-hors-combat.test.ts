@@ -1,15 +1,16 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { scenario } from './magie-hors-combat';
 import { findSpellById } from '../../data';
 import { layerTiles } from '../../noyau/monde/scene';
 import { knowsCastingSkill, isArcaneSpell, isMagicMissile, castInfo } from '../../engine/magic';
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /** Le scénario doit être JOUABLE hors combat : les lanceurs maîtrisent réellement leur Compétence
  *  (sinon les boutons « Lancer/Focaliser » échoueraient sur « ne maîtrise pas »), et le groupe offre
  *  bien les 3 cas (sort d'Arcane focalisable, bénédiction de soin, Projectile magique combat-only). */
 describe('Scénario Magie hors combat', () => {
-  const party = scenario.construire().party;
+  const party = scenario.construire(idsDeTest).party;
   const [wiz, priest] = party; // groupe construit = [wiz, priest], ordre fixé (pregenParty)
 
   it('est un scénario d’EXPLORATION (pas d’autoCombat)', () => {

@@ -5,6 +5,7 @@
  * gratuite IA → `aiCreatureFreeAttacks`) : (1) ouvre l'étape influençable (Brisé DIFFÉRÉ), (2) SUSPEND
  * le tour, (3) reprend proprement à la fermeture (pas de double, pas d'orphelin).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { aiCreatureFreeAttacks } from './combatFlow';
@@ -21,8 +22,8 @@ describe('Hurlement fantomatique — Test de Résistance influençable (héros m
   beforeEach(() => { banc.setState({ battle: null, pendingCascade: null }); });
 
   function setup() {
-    const H1 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 });
-    const H2 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H2', seed: 2 });
+    const H1 = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 });
+    const H2 = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H2', seed: 2 });
     banc.setState({ party: [H1, H2] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

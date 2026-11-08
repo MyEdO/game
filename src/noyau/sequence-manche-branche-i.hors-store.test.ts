@@ -3,6 +3,7 @@
  * qu'il a résolues sur place quand aucun siège ne tient leurs porteurs. La manche est alors close :
  * le socle de séquence la clôt (`closeSequenceRound`) au lieu de rester ouverte sans fenêtre ni suite.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -27,7 +28,7 @@ describe('#1595 — une manche résolue en branche I se clôt', () => {
   });
 
   it('porteur sans siège (héros conduit par l’IA) : la manche s’ouvre, se résout ET se clôt', () => {
-    const h = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', seed: 12, id: 'seq-otto' }), aiControlled: true };
+    const h = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', seed: 12, id: 'seq-otto' }), aiControlled: true };
     set({ party: [h] } as never);
     const closes: number[] = [];
     avecLesTables({ appliers: { ...tablesDuJeu().appliers, sondeMancheI: () => undefined }, sequences: { ...tablesDuJeu().sequences, 'sonde-manche-branche-i': sequenceDeFixture<Record<string, never>>({

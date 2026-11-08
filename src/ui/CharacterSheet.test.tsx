@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
@@ -63,7 +64,7 @@ describe('CharacterSheet — Apparence sur l’objet', () => {
     useGame.setState({ party: [], battle: null });
   });
   const ouvrir = (...ids: string[]) => {
-    const h = { ...hero(), items: ids.map((id) => itemFromTrappingById(id)!) };
+    const h = { ...hero(), items: ids.map((id) => itemFromTrappingById(id, idsDeTest)!) };
     useGame.setState({ party: [h], sheetId: h.id });
     const { container } = monterRacine(<CharacterSheet heroId={h.id} onClose={() => {}} />);
     act(() => container.querySelector<HTMLElement>('.inv-item .plaque-row')!.click());
@@ -113,7 +114,7 @@ describe('CharacterSheet — Apparence sur l’objet', () => {
   });
 
   it('la variante courante vient des candidats et le sélecteur reste OUVERT en combat (cosmétique, `poserLApparence` sans verrou)', () => {
-    const h = { ...hero(), items: [{ ...itemFromTrappingById('arme-simple')!, apparence: 'choix-epee' }] };
+    const h = { ...hero(), items: [{ ...itemFromTrappingById('arme-simple', idsDeTest)!, apparence: 'choix-epee' }] };
     useGame.setState({ party: [h], sheetId: h.id });
     const { container } = monterRacine(<CharacterSheet heroId={h.id} onClose={() => {}} />);
     act(() => container.querySelector<HTMLElement>('.inv-item .plaque-row')!.click());
@@ -378,7 +379,7 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     expect(tiers.map((t) => t.label)).toEqual(['récupérer le dernier Point de Mouvement perdu', 'réapprendre à utiliser Esquive']);
     const porteur = {
       ...hero(),
-      items: [{ ...itemFromTrappingById('fausse-jambe')!, uid: 'fj', equipped: true }],
+      items: [{ ...itemFromTrappingById('fausse-jambe', idsDeTest)!, uid: 'fj', equipped: true }],
     } as unknown as Combatant;
     const html = renderToStaticMarkup(<AdvancementPanel hero={porteur} />);
     expect(html).toContain('Fausse jambe — récupérer le dernier Point de Mouvement perdu');
@@ -388,7 +389,7 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     const h = {
       ...hero(),
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 },
-      items: [{ ...itemFromTrappingById('chemise-de-mailles')!, uid: 'a1', equipped: true, damageTaken: 1 }],
+      items: [{ ...itemFromTrappingById('chemise-de-mailles', idsDeTest)!, uid: 'a1', equipped: true, damageTaken: 1 }],
     } as unknown as Combatant;
     useGame.setState({ party: [h], battle: null, sheetId: h.id, sheetTab: 'possessions' });
     mount(<CharacterSheet heroId={h.id} onClose={() => {}} />);
@@ -445,7 +446,7 @@ describe('Onglet Possessions — registre `Band`/`PlaqueRow` (#492 lot POSSESSIO
         { uid: 'a1', label: 'Cotte de mailles', kind: 'armor', subType: 'mailles', qualities: [], enc: 2, equipped: true, pa: 2, locs: ['corps'] },
         { uid: 'bag1', label: 'Sac à dos', kind: 'misc', qualities: [], enc: 1, equipped: false, container: { capacity: 10 } },
         { uid: 'n1', label: 'Gourde', kind: 'misc', qualities: [], enc: 1, equipped: false, inside: 'bag1' },
-        { ...itemFromTrappingById('crochet')!, uid: 'p1', equipped: true },
+        { ...itemFromTrappingById('crochet', idsDeTest)!, uid: 'p1', equipped: true },
       ],
       loadouts: [{ id: 'lo1', main: null, off: null }],
       activeLoadoutId: 'lo1',

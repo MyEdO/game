@@ -6,6 +6,7 @@
  * On pilote le VRAI flux (`faireUnBattement`/`tenterDeDistraire` → jetLancer(flux) → jetValider(flux)), avec des Caractéristiques rendant l'issue
  * déterministe, et on vérifie l'effet + le coût (Action pour Battement, Mouvement pour Distraire).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { actionGate } from './actionRegistry';
@@ -22,7 +23,7 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
   /** Un héros (avec les deux Talents) face à UN ennemi armé et pourvu d'Avantage, adjacent. */
   function setup() {
     banc.getState().ensemencerLeTirage(1);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.talents = [{ talentId: 'battement', times: 1 }, { talentId: 'distraire', times: 1 }] as Combatant['talents'];
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
@@ -118,7 +119,7 @@ describe('Battement & Distraire — le verdict d’offre porte la condition de C
   /** Un héros portant les deux Talents, face à UN ennemi armé, et la scène réelle du combat. */
   function terrain() {
     banc.getState().ensemencerLeTirage(1);
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     h.talents = [{ talentId: 'battement', times: 1 }, { talentId: 'distraire', times: 1 }] as Combatant['talents'];
     banc.setState({ party: [h] });
     banc.getState().lancerLaScene(testScene());

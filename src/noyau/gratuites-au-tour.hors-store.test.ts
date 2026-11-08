@@ -1,4 +1,5 @@
 /** LDB 13 l.14 ; LDB 85 l.43 ; LDB 85 l.387 — #1765. */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -17,7 +18,7 @@ const g = () => banc.getState();
  *  `applyTalentFreeAttack`) dont la défense se résout par `jetLancer('defense')` puis `jetValider('defense')`.
  *  `fileEpuisee` : la file du tour déjà vidée, état que pose `aiCreatureFreeAttacks` en fin de file. */
 function frappeGratuite(tourDe: 'heros' | 'creature', fileEpuisee = false) {
-  const A = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+  const A = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
   banc.setState({ party: [A] });
   g().ensemencerLeTirage(5);
   g().lancerLaScene(testScene());

@@ -4,6 +4,7 @@
  * Événements qui modifient la même valeur s'additionnent sur la même assiette. Les Événements sont tirés par
  * A, les effets lus sur B. LDB 22 l.5, l.32-123
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { avanceEtapeCascade } from './cascade.testkit';
@@ -28,8 +29,8 @@ const DE = {
  *  semaines, séquence dénouée. */
 function tirage(deA: number, carriereB = 'soldat', deB = DE.sansEffet, bank: (a: string, b: string) => BankDeposit[] = () => []): { banc: Banc; a: string; b: string; chance: number[] } {
   const party = [
-    withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 }), { gold: 10, silver: 0, brass: 0 }),
-    withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: carriereB, label: 'B', seed: 2 }), { gold: 10, silver: 0, brass: 0 }),
+    withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 }), { gold: 10, silver: 0, brass: 0 }, idsDeTest),
+    withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: carriereB, label: 'B', seed: 2 }), { gold: 10, silver: 0, brass: 0 }, idsDeTest),
   ];
   const chance = party.map((h) => h.fortune ?? 0);
   const banc = ouvrirLeBanc({ graine: 3, desFixes: true, etat: { party, scene: SCENE, worldMap: ALTDORF as never, bank: bank(party[0].id, party[1].id) } });

@@ -74,5 +74,5 @@ export const scenario: TestScenario = {
     'de la Réserve (disparaît) + ouvrir sa porte, transiter par le Couloir, revenir en Réserve — le coffre ' +
     'reste absent et la porte reste ouverte (sans capture/apply, `quitterLaScene` re-clonait la scène authored).',
   partyNote: 'Pré-tirés',
-  construire: () => ({ party: makePregens(), scene: construireReserve(), extraScenes: [construireCouloir()] }),
+  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireReserve(), extraScenes: [construireCouloir()] }),
 };

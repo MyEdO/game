@@ -8,6 +8,7 @@
  * Motif : label d'entité enrôlée, différent du nom de sa fiche, de plus de `MOTS_MAX` mots hors article initial.
  * Exemptés au SITE (`scène|entité`) : un nom propre plus long, avec sa raison.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
@@ -28,7 +29,7 @@ const legende = (label: string): boolean => label.trim().replace(ARTICLE, '').sp
 
 /** Chaque paquet de scènes avec le bloc narratif qui résout ses presets de PNJ. */
 function paquets(): { scenes: Scene[]; narratif?: NarratifBlock }[] {
-  const out: { scenes: Scene[]; narratif?: NarratifBlock }[] = testScenarios.map((s) => s.construire()).map((c) => ({ scenes: [c.scene, ...(c.extraScenes ?? [])], narratif: c.narratif }));
+  const out: { scenes: Scene[]; narratif?: NarratifBlock }[] = testScenarios.map((s) => s.construire(idsDeTest)).map((c) => ({ scenes: [c.scene, ...(c.extraScenes ?? [])], narratif: c.narratif }));
   for (const rel of listerProjetsLivres())
     out.push(parseProject(lireProjetLivre(rel)));
   return out;

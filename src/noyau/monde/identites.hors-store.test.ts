@@ -4,6 +4,7 @@
  * `nommer` substitue ses repères dans une prose de paquet. Chemin réel : Effet `designerHeros`, puis le
  * choix du héros au noyau.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createHero } from '../../engine/character';
 import { emptyNarratif } from './campaignNarratif';
@@ -41,7 +42,7 @@ const narratif = (): NarratifBlock => ({
 });
 
 const heros = (id: string, speciesId: string, sex?: 'M' | 'F') =>
-  ({ ...createHero({ speciesId, careerId: 'soldat', label: id, seed: 7, ...(sex ? { apparence: { sex } } : {}) }), id });
+  ({ ...createHero({ idNeuf: idsDeTest, speciesId, careerId: 'soldat', label: id, seed: 7, ...(sex ? { apparence: { sex } } : {}) }), id });
 /** L'engagement d'un brouillon complet de l'espèce `speciesId` et du sexe `sex`, sous l'id `id`. */
 const engageDe = (id: string, speciesId: string, sex: 'M' | 'F'): HerosEngage => {
   const d = fillDraftDefaults(withSpecies(newDraft(7), speciesId), 'presentation');

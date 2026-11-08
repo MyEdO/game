@@ -11,6 +11,7 @@
  * redevient normal. 76-80 : toute Action autre qu'une Prière est refusée avec sa raison (offre, incantation de
  * Sort, IA), le Mouvement reste libre, et la contrainte tombe après N Rounds.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineEtapes, poseSurDeNonTombe } from './cascade.testkit';
@@ -45,7 +46,7 @@ afterEach(() => resetDesFixes());
 
 /** Un prêtre de Sigmar (`beni` spécialisé) et un allié blessé. */
 function pretreEtAllie(peche: number) {
-  const [pretre, allie] = pregenParty(PREGEN.pretre, PREGEN.soldat);
+  const [pretre, allie] = pregenParty(idsDeTest, PREGEN.pretre, PREGEN.soldat);
   pretre.sinPoints = peche;
   allie.wounds.current = allie.wounds.max - 5;
   return { pretre, allie };
@@ -114,7 +115,7 @@ describe('Colère des dieux — 41-45 « Votre cause est indigne » (LDB 40 l.64
 describe('Colère des dieux — 76-80 « Vous avez péché contre moi » (LDB 40 l.74)', () => {
   /** Le prêtre en combat, au contact d'un ennemi, son tour ; la rangée 76-80 subie (1d10 = `de`). */
   function penitent(de: number) {
-    const [pretre] = pregenParty(PREGEN.pretre);
+    const [pretre] = pregenParty(idsDeTest, PREGEN.pretre);
     pretre.sinPoints = 2;
     banc.setState({ party: [pretre] });
     banc.getState().lancerLaScene(testScene());
@@ -125,7 +126,7 @@ describe('Colère des dieux — 76-80 « Vous avez péché contre moi » (LDB 40
     banc.setState(patch);
     const m = rollMiscast('colere', desEnSuite([de]), 2, undefined, 56); // 56 + 2 × 10 = 76
     expect(m.rowId).toBe('colere-vous-avez-peche-contre-moi');
-    applyOps(H, m.ops, { rng: desEnSuite([de]), label: m.label, now: MAINTENANT, source: miscastRowSource(miscastTableId('colere'), m.rowId) });
+    applyOps(H, m.ops, { idNeuf: idsDeTest, rng: desEnSuite([de]), label: m.label, now: MAINTENANT, source: miscastRowSource(miscastTableId('colere'), m.rowId) });
     return { H, E };
   }
   const gate = (H: Combatant, id: string, spellId?: string) =>

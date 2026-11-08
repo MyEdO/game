@@ -5,6 +5,7 @@
  * `runPureFlowLines(..., { sl: t.sl })`). Donnée réelle : Gesundheit (`trappings.json`, MSRC 4 l.186) —
  * `reduceDiseaseDays.daysPerSL` sur `blessure-purulente`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -17,12 +18,12 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function hero(name: string, over: Partial<Combatant> = {}): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1 });
   return { ...h, id: name, ...over } as Combatant;
 }
 
 function giveItem(h: Combatant, trappingId: string, uid: string): void {
-  const it = itemFromTrappingById(trappingId)!;
+  const it = itemFromTrappingById(trappingId, idsDeTest)!;
   it.uid = uid;
   h.items = [...(h.items ?? []), it];
 }

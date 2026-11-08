@@ -1,3 +1,4 @@
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { createHero } from '../../engine/character';
 import { itemFromTrappingById, recomputeLoadout } from '../../engine/items';
 import { especeDApparence } from '../../data';
@@ -21,10 +22,10 @@ const HERO_START = { x: 3, y: 4 };
 export const TEINTE = 'aethyrique';
 
 /** La Lame aethyrique : l'épée teinte tenue, les brassards portés. */
-function lameAethyrique(): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'agitateur', label: 'Lame aethyrique', motivation: 'Test', seed: 3456, id: 'lame-aethyrique' });
+function lameAethyrique(idNeuf: FabriqueDId): Combatant {
+  const h = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'agitateur', label: 'Lame aethyrique', motivation: 'Test', seed: 3456, id: 'lame-aethyrique' });
   const porte = (id: string) => {
-    const it = itemFromTrappingById(id)!;
+    const it = itemFromTrappingById(id, idNeuf)!;
     it.equipped = true;
     return it;
   };
@@ -53,6 +54,6 @@ export const scenario: TestScenario = {
     + '« Aethyrique », dont la palette colore l’élément qui la monte, et porte des brassards, revêtus de la pièce qui couvre '
     + 'leurs localisations ; l’orc, son armure de statbloc déclarée portée, revêt les pièces de ses localisations à PA.',
   partyNote: 'Lame aethyrique (épée teinte, brassards) · Chasseur',
-  construire: () => ({ party: [lameAethyrique(), pregen(PREGEN.chasseur)], scene: construireScene() }),
+  construire: (idNeuf) => ({ party: [lameAethyrique(idNeuf), pregen(idNeuf, PREGEN.chasseur)], scene: construireScene() }),
   autoCombat: 'enc-teinte',
 };

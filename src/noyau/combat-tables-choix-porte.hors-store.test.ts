@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import {
@@ -60,7 +61,7 @@ const live = (id: string) => banc.getState().battle!.combatants.find((c) => c.id
 function combat(nb: number, seed = 7, invites: number[] = []) {
   banc.getState().ensemencerLeTirage(seed);
   const heros = Array.from({ length: nb }, (_, i) =>
-    createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: seed + i }));
+    createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: seed + i }));
   banc.setState({ party: heros });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');

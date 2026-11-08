@@ -169,8 +169,8 @@ export const scenario: TestScenario = {
     'au chargement du narratif. Spawn (Josef), dialogue avec portrait de preset (Phillipe), et combat ' +
     '(Knud Cratinx) déclenché depuis le dialogue.',
   partyNote: 'Soldat · Chasseur · Prêtre',
-  construire: () => ({
-    party: pregenParty(PREGEN.soldat, PREGEN.chasseur, PREGEN.pretre),
+  construire: (idNeuf) => ({
+    party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur, PREGEN.pretre),
     scene: construireScene(),
     narratif: construireNarratif(),
   }),

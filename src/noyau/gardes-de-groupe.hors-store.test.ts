@@ -3,6 +3,7 @@
  * refuse — composition du groupe, Rassemblement, table de taverne, récupération de nuit, réponse de
  * dialogue. Oracles littéraux.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
@@ -31,7 +32,7 @@ const get = () => banc.getState();
 const dernier = () => get().journal[get().journal.length - 1];
 
 const heros = (n: number): Combatant[] =>
-  pregenParty(PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.pretre, PREGEN.chasseur).slice(0, n).map(ensureBourse);
+  pregenParty(idsDeTest, PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.pretre, PREGEN.chasseur).slice(0, n).map((h) => ensureBourse(h, idsDeTest));
 /** L'engagement du pré-tiré `h` par son id. */
 const pretireDe = (h: Combatant) => ({ pretire: pregens.find((p) => `pregen-${p.seed}` === h.id)!.id });
 
@@ -91,7 +92,7 @@ describe('table de taverne — `refusDeJouer` (NADJ 16 l.17)', () => {
 
   it('challenger à 11 sous de cuivre, mise de 11 sous : la partie s’ouvre, mise entière', () => {
     const [a] = heros(1);
-    setBourseBrass(a, 11);
+    setBourseBrass(a, 11, idsDeTest);
     banc.setState({ party: [a] });
     const reglage = alZahr(a.id, { stakeBrass: 11, tablePlayers: 3 });
     expect(refusDeJouer(get(), reglage)).toBeNull();
@@ -101,7 +102,7 @@ describe('table de taverne — `refusDeJouer` (NADJ 16 l.17)', () => {
 
   it('table de 12 joueurs : acceptée, douze sièges', () => {
     const [a] = heros(1);
-    setBourseBrass(a, 11);
+    setBourseBrass(a, 11, idsDeTest);
     banc.setState({ party: [a] });
     get().jouerALaTaverne(alZahr(a.id, { stakeBrass: 1, tablePlayers: 12 }));
     expect((get().sequence!.payload as { seats: unknown[] }).seats).toHaveLength(12);
@@ -193,7 +194,7 @@ describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () =
 
   it('bourse insuffisante pour la chambre : refusé, la raison dite', () => {
     const [a] = heros(1);
-    setBourseBrass(a, 0);
+    setBourseBrass(a, 0, idsDeTest);
     banc.setState({ party: [a] });
     ouvrir({ auberge: true });
     get().fenetreChoisir('rest', 'couchage', 'privee', a.id);
@@ -207,7 +208,7 @@ describe('dialogue — le refus d’une réponse est un TEXTE, dit par le choix 
 
   it('bourse trop courte : l’écran et le geste disent le même texte', () => {
     const [a] = heros(1);
-    setBourseBrass(a, 0);
+    setBourseBrass(a, 0, idsDeTest);
     banc.setState({ party: [a] });
     banc.setState({ screen: 'campaign', dialogue: ouvrirDialogue(get(), dlg) });
     expect(reponsesDuNoeud(get())[0].refus).toBe('Pas assez d’argent pour cette option.');

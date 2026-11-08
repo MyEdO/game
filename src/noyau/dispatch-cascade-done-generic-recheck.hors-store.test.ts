@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
@@ -36,7 +37,7 @@ describe('dispatchCascadeDone — re-check TOUT-PURPOSE de checkBattleOver (#345
 
   it('cascade purpose "test" (hypothétique) close en combat, dernier ennemi déjà mort → la Victoire s\'enchaîne (pas d\'écrasement, pas de silence)', () => {
     seedBattleRng(3);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const heroClone = { ...hero, kind: 'hero' as const };
     banc.setState({
       party: [hero],

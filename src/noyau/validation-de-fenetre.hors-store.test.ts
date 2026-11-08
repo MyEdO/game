@@ -4,6 +4,7 @@
  * disant ; en coop, elle suit le siège que le registre déclare (`netOwnership.ROUTES`). Une fenêtre à quorum
  * (validation ou sortie) marque prêt le siège qui l'appelle, et ne se joue qu'au quorum (`jouerOuMarquer`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
@@ -30,7 +31,7 @@ const FENETRES_DE_L_HOTE: readonly (readonly [FenetreAValider, Record<string, un
 
 /** Coop : l'hôte (siège 0) et un invité (siège 1), un héros chacun. */
 function hoteEtUnInvite(banc: Banc): void {
-  const [a, b] = pregenParty(PREGEN.soldat, PREGEN.tueur);
+  const [a, b] = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.tueur);
   banc.setState({ party: [a, b], net: { ...initialNet(), mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Invité' }, ownership: { [a.id]: 0, [b.id]: 1 }, slots: [1, 1, 0, 0] } });
 }
 
@@ -71,7 +72,7 @@ describe('fenetreValider', () => {
 describe('la fenêtre à quorum : chaque siège requis se dit prêt, le dernier la joue', () => {
   it('solo : le quorum est l’hôte seul, la victoire se ferme d’un appel', () => {
     const banc = ouvrirLeBanc();
-    banc.setState({ party: pregenParty(PREGEN.soldat), pendingVictory: VICTOIRE } as never);
+    banc.setState({ party: pregenParty(idsDeTest, PREGEN.soldat), pendingVictory: VICTOIRE } as never);
     banc.getState().fenetreFermer('victory');
     expect(banc.getState().pendingVictory).toBeNull();
   });

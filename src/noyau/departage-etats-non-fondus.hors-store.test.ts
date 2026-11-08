@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
@@ -95,7 +96,7 @@ describe('#1153 L2 — PORT : l’État ne se fond plus dans la grandeur du dép
   beforeEach(() => setRule('test-auto-bands', 'off'));
 
   it('la porte du seam pose la Compétence NUE en `base` et laisse l’État dans la CIBLE', () => {
-    const [leader] = makePregens();
+    const [leader] = makePregens(idsDeTest);
     marchandeurEmpoisonne(leader);
     setupPort([leader]);
     seedBattleRng(1);
@@ -107,7 +108,7 @@ describe('#1153 L2 — PORT : l’État ne se fond plus dans la grandeur du dép
   });
 
   it('ACHAT, DR égal : le marchandeur Empoisonné l’emporte par sa Compétence — remise, jamais surcoût', () => {
-    const [leader] = makePregens();
+    const [leader] = makePregens(idsDeTest);
     marchandeurEmpoisonne(leader);
     setupPort([leader]);
     const { seed, merchant, die, sl } = findSeed(probePort, NUE + ETAT);
@@ -132,7 +133,7 @@ const convoiPossession = (ownerId: string): Possession =>
   ({ uid: LAND_CARRIER, ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] }) as Possession;
 
 function setupLand(): Combatant {
-  const [leader] = makePregens();
+  const [leader] = makePregens(idsDeTest);
   marchandeurEmpoisonne(leader);
   set({
     party: [leader], scene, battle: null, vessel: null,

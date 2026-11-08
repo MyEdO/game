@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { servablePostes, serveAtPoste, leaveChef, isPosteManned, applyShipPostes, servingCrewPresent, serveTargetPoste, posteCrewSplit, isCrewQualified } from './monde/shipPostes';
 import { firedWeapon, resolveAttack, buildAiInput, runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
@@ -57,7 +58,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 5 }): Combatant =>
     inert: true, wounds: blessuresDeBase(0), advantage: 0, postes: [poste] }); // affût RAW-pur (AA 10 l.136-193) : 0 Blessure, immune
 
 const mkPoste = (engineId: string, crewIds: string[] = [], side?: FireArc): ShipPoste =>
-  ({ item: itemFromTrappingById(engineId)!, crewIds, ...(side ? { side } : {}) });
+  ({ item: itemFromTrappingById(engineId, idsDeTest)!, crewIds, ...(side ? { side } : {}) });
 
 const groundScene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 40, h: 40 }, ambiance: 'jour', metresPerTile: 2,

@@ -9,6 +9,7 @@
  * Le TTL est décrémenté à chaque frontière de Round (dissipation à 0) — même cadence que
  * l'ancienne fumée. La TÉLÉPORTATION ne « traverse » pas (apparition — exempte d'onCross).
  */
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import type { Pt } from './path';
 import type { Combatant, EffectSource } from '../../engine/types';
 import type { RNG } from '../../engine/dice';
@@ -197,6 +198,7 @@ export function crossZones(
   path: Pt[],
   resolveCaster: (id?: string) => Combatant | undefined,
   rng: RNG,
+  idNeuf: FabriqueDId,
 ): string[] {
   const lines: string[] = [];
   if (mover.dead || isOutOfAction(mover)) return lines;
@@ -205,7 +207,7 @@ export function crossZones(
     if (!path.some((p) => zoneCovers(z, p))) continue;
     if (zoneSansEffetSur(z, mover)) { lines.push(t('cf.spellDomainImmune', { name: mover.label, spell: z.label })); continue; }
     lines.push(`${mover.label} traverse ${z.label} !`);
-    lines.push(...applyOps(mover, z.onCross, { caster: resolveCaster(z.casterId), rng, label: z.label }));
+    lines.push(...applyOps(mover, z.onCross, { idNeuf, caster: resolveCaster(z.casterId), rng, label: z.label }));
   }
   return lines;
 }
@@ -217,6 +219,7 @@ export function zonesRoundTick(
   zones: BattleZone[] | undefined,
   combatants: Combatant[],
   rng: RNG,
+  idNeuf: FabriqueDId,
 ): { line: string; combatant: Combatant }[] {
   const out: { line: string; combatant: Combatant }[] = [];
   for (const z of zones ?? []) {
@@ -225,7 +228,7 @@ export function zonesRoundTick(
     for (const c of combatants) {
       if (!c.pos || c.dead || isOutOfAction(c)) continue;
       if (!zoneCovers(z, c.pos) || !zoneTargets(z, c) || zoneSansEffetSur(z, c)) continue; // `gate:'profane'` → seuls les profanes subissent
-      for (const line of applyOps(c, z.perRound, { caster, rng, label: z.label })) out.push({ line, combatant: c });
+      for (const line of applyOps(c, z.perRound, { idNeuf, caster, rng, label: z.label })) out.push({ line, combatant: c });
     }
   }
   return out;

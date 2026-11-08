@@ -8,6 +8,7 @@
  * fiche (`CampaignView.tsx:431`). L'infirmerie ouverte depuis la fiche est donc AVANT elle dans le
  * document ; monté dans l'ordre inverse, ce banc serait vert sur l'ordre du DOM.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { StrictMode, act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -350,7 +351,7 @@ describe('registre de raccourcis — il se tait sous un dialogue de la pile (mê
   /** Combat de la fixture, au tour du héros, un Mutant au contact : Tab a une cible valide. */
   function ouvrirCombat() {
     seedBattleRng(7);
-    const heros = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Héros', seed: 1 });
+    const heros = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Héros', seed: 1 });
     useGame.setState({ party: [heros], screen: 'campaign', gameMenuOpen: false, dialogue: null });
     useGame.getState().lancerLaScene(testScene());
     act(() => { useGame.getState().lancerLeCombat('enc-mutants'); });

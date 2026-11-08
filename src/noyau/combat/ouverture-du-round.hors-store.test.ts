@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { scenario } from '../../scenes/test-scenarios/22-dome';
@@ -10,7 +11,7 @@ import type { Combatant } from '../../engine/types';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /**
  * #2916 — chaque franchissement de Round ouvre le Round suivant une fois et une seule (pause de début de
@@ -21,7 +22,7 @@ const scenarioConstruit = scenario.construire();
 describe('Ouverture du Round après une révélation d’entretien (#2916)', () => {
   /** Combat du Dôme ouvert, au DERNIER tour du Round 1, l'Action et le Mouvement de l'actif déjà dépensés. */
   function dernierTourSaigne(enTete?: (b: Combatant[]) => string): { sorciere: Combatant } {
-    banc.setState({ party: scenario.construire().party });
+    banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('enc-dome');
     banc.getState().fenetreValider('roundStart');

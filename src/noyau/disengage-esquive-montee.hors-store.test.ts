@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -10,7 +11,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 // #1097 — l'Esquive de Désengagement (LDB 15 l.43) lit les lignes d'Esquive du contexte : monté −20 (LDB 14 l.184).
 describe('Désengagement : Esquive du cavalier', () => {
   function ouvrir(monte: boolean) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

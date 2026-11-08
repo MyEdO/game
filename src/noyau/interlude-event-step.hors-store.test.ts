@@ -9,6 +9,7 @@
  * pour qui tient le héros, résolution d'office sinon — et l'option n'ajoute que la POSE du dé. Le flux
  * d'aléa, lui, ne bouge pas (sonde différentielle ci-dessous).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { chargerSurLeBanc, sauverLeBanc } from './persistance/save.testkit';
@@ -38,8 +39,8 @@ let banc: Banc;
 
 /** Groupe de deux héros, bourses créditées — remis à neuf pour chaque sonde. */
 function groupe(): Combatant[] {
-  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
-  const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
+  const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+  const b = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
   banc.setState({ party: [a, b], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [], pendingCascade: null, suspendedCascades: [] });
   banc.getState().lancerLaScene(testScene());
   banc.abandonner();

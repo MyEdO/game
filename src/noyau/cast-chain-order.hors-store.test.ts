@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -18,7 +19,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('Chaîne d’incantation — le Contre-sort se règle avant l’opposition de cible', () => {
   /** Sorcier + une cible Démoniaque vivante (gate `onlyGroups` de Fauche-démon, Sort `opposed`). */
   function setup() {
-    const hero = createHero({
+    const hero = createHero({ idNeuf: idsDeTest,
       speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
       careerTalent: { id: 'magie-mineure' }, seed: 707,
     });

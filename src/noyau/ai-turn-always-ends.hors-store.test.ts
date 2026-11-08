@@ -1,8 +1,9 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { scenario } from '../scenes/test-scenarios/42-belier-porte';
 import { runEnemyAI } from './combatFlow';
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /**
  * Soft-lock recette (cluster bélier-porte #196-#199) — quand le DERNIER ennemi vivant meurt mais que
@@ -18,7 +19,7 @@ describe('un tour IA se termine TOUJOURS, même sans adversaire vivant et combat
   beforeEach(() => { banc = ouvrirLeBanc(); banc.setState({ battle: null }); });
 
   it('gobelin (dernier ennemi) mort, porte intacte : le tour du servant du bélier se clôt (advanceTurn), le combat continue', () => {
-    banc.setState({ party: scenario.construire().party });
+    banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('siege-belier');
     banc.getState().fenetreValider('roundStart');

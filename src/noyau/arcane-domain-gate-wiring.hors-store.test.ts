@@ -3,6 +3,7 @@
  * (`banc.getState().acheterLeTalent`, `partyFlow.ts`). La suite pure `careerSlots.test.ts` verrouille
  * le gate en isolation ; celle-ci verrouille qu'il est bien BRANCHÉ dans le noyau.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { pregen, PREGEN } from '../data/pregens';
@@ -16,7 +17,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const FEU_SPELLS = ['cauteriser', 'coeurs-ardents', 'couronne-de-flammes', 'grands-feux-d-u-zhul', 'l-egide-d-aqshy', 'l-epee-ardente-de-rhuin', 'mur-de-feu', 'purification'];
 
 function elfProphete(over: Partial<Combatant> = {}): Combatant {
-  const w = pregen(PREGEN.sorcier);
+  const w = pregen(idsDeTest, PREGEN.sorcier);
   return {
     ...w,
     species: 'hauts-elfes', // arcaneDomainsBonusOf: force-mentale → cap > 1
@@ -33,7 +34,7 @@ function elfProphete(over: Partial<Combatant> = {}): Combatant {
 
 // Carrière « Sorcier » Niveau 2 : emplacement « Magie des Arcanes (Au choix) », non désigné.
 function sorcierHumain(): Combatant {
-  const w = pregen(PREGEN.sorcier);
+  const w = pregen(idsDeTest, PREGEN.sorcier);
   return {
     ...w,
     species: 'humains-reiklander',

@@ -2,6 +2,7 @@
  * TRAIT PSY ACCORDÉ À DURÉE (#1463 β2) : l'op `grantPsychTrait.durationHours` pose son Trait sous un effet
  * d'horloge qui le retire à l'échéance, même pendant une suspension. VDM 10 l.324-332 ; LDB 43 l.70.
  */
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { applyOps, type GameOp } from './ops';
 import { removeActiveEffects } from './conditions';
@@ -19,7 +20,7 @@ const haineDe = (c: { psychTraits?: { type: string }[] }) => (c.psychTraits ?? [
 describe('grantPsychTrait.durationHours : le Trait vit sous un effet d’horloge (VDM 10 l.324)', () => {
   it('pose le Trait et un effet d’horloge à now + heures × 60', () => {
     const c = combattantDeTest();
-    applyOps(c, [haineDuRival(3)], { rng: desDuTest, now: 100, label: 'Colérique', source: SOURCE });
+    applyOps(c, [haineDuRival(3)], { idNeuf: idsDeTest, rng: desDuTest, now: 100, label: 'Colérique', source: SOURCE });
     expect(haineDe(c)).toHaveLength(1);
     const porteur = c.activeEffects!.find((e) => e.grantedPsychTrait);
     expect(porteur?.duration).toEqual({ scale: 'clock', until: 100 + 3 * 60 });
@@ -28,14 +29,14 @@ describe('grantPsychTrait.durationHours : le Trait vit sous un effet d’horloge
 
   it('sans durée, aucun effet porteur : le Trait est permanent', () => {
     const c = combattantDeTest();
-    applyOps(c, [{ op: 'grantPsychTrait', psychType: { id: 'frenesie' } }], { rng: desDuTest, now: 0 });
+    applyOps(c, [{ op: 'grantPsychTrait', psychType: { id: 'frenesie' } }], { idNeuf: idsDeTest, rng: desDuTest, now: 0 });
     expect(c.activeEffects ?? []).toHaveLength(0);
     expect(c.psychTraits).toEqual([{ type: 'frenesie' }]);
   });
 
   it('l’échéance retire le Trait et désactive l’affliction qu’il portait (VDM 10 l.332)', () => {
     const c = combattantDeTest({ psychTraits: [{ type: 'haine', cible: ciblePsy.groupe('skaven') }] });
-    applyOps(c, [haineDuRival(1)], { rng: desDuTest, now: 0, source: SOURCE });
+    applyOps(c, [haineDuRival(1)], { idNeuf: idsDeTest, rng: desDuTest, now: 0, source: SOURCE });
     c.psychState = [{ type: 'haine', cible: ciblePsy.individu('rival'), active: true }, { type: 'haine', cible: ciblePsy.groupe('skaven'), active: true }];
     expect(removeActiveEffects(c, echu(59))).toHaveLength(0);
     expect(haineDe(c)).toHaveLength(2);
@@ -48,8 +49,8 @@ describe('grantPsychTrait.durationHours : le Trait vit sous un effet d’horloge
 
   it('échu pendant une suspension (Baume, LDB 43 l.70), le Trait n’est pas restitué', () => {
     const c = combattantDeTest({ psychTraits: [{ type: 'frenesie' }] });
-    applyOps(c, [haineDuRival(1)], { rng: desDuTest, now: 0, source: SOURCE });
-    applyOps(c, [{ op: 'suppressPsych' }], { rng: desDuTest, now: 0, defaultDurationRounds: 5 });
+    applyOps(c, [haineDuRival(1)], { idNeuf: idsDeTest, rng: desDuTest, now: 0, source: SOURCE });
+    applyOps(c, [{ op: 'suppressPsych' }], { idNeuf: idsDeTest, rng: desDuTest, now: 0, defaultDurationRounds: 5 });
     expect(c.psychTraits ?? []).toHaveLength(0);
     removeActiveEffects(c, echu(60));
     removeActiveEffects(c, (e) => !!e.suppressedPsych);
@@ -58,16 +59,16 @@ describe('grantPsychTrait.durationHours : le Trait vit sous un effet d’horloge
 
   it('removePsychTrait retire aussi l’effet porteur : l’échéance ne retire plus rien', () => {
     const c = combattantDeTest();
-    applyOps(c, [haineDuRival(1)], { rng: desDuTest, now: 0, source: SOURCE });
-    applyOps(c, [{ op: 'removePsychTrait', psychType: { id: 'haine' } }], { rng: desDuTest });
+    applyOps(c, [haineDuRival(1)], { idNeuf: idsDeTest, rng: desDuTest, now: 0, source: SOURCE });
+    applyOps(c, [{ op: 'removePsychTrait', psychType: { id: 'haine' } }], { idNeuf: idsDeTest, rng: desDuTest });
     expect(c.activeEffects?.some((e) => e.grantedPsychTrait) ?? false).toBe(false);
-    applyOps(c, [{ op: 'grantPsychTrait', psychType: { id: 'haine' }, cible: refDeCible(ciblePsy.individu('rival')) }], { rng: desDuTest, source: SOURCE });
+    applyOps(c, [{ op: 'grantPsychTrait', psychType: { id: 'haine' }, cible: refDeCible(ciblePsy.individu('rival')) }], { idNeuf: idsDeTest, rng: desDuTest, source: SOURCE });
     removeActiveEffects(c, echu(60));
     expect(haineDe(c), 'le Trait reposé sans durée survit').toHaveLength(1);
   });
 
   it('une op `envers` non résolue lève : la personne se désigne avant applyOps', () => {
     const c = combattantDeTest();
-    expect(() => applyOps(c, [{ op: 'grantPsychTrait', psychType: { id: 'haine' }, envers: 'personneChoisie' }], { rng: desDuTest })).toThrow();
+    expect(() => applyOps(c, [{ op: 'grantPsychTrait', psychType: { id: 'haine' }, envers: 'personneChoisie' }], { idNeuf: idsDeTest, rng: desDuTest })).toThrow();
   });
 });

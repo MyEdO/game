@@ -20,6 +20,7 @@
  * Le `test.label` d'un `FlowTest` (« Intuition — quelque chose cloche chez Kramer ») est hors masque
  * PAR CONSTRUCTION : il n'est pas un `choices[].label`, et il nomme légitimement la fenêtre de jet.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -75,7 +76,7 @@ describe('#1869 — le libellé d’une réponse ne dit pas le Test de son propr
   });
 
   it('aucun scénario de test (documents `.ts`) ne lève l’avertissement de libellé à la validation', () => {
-    const trouves = testScenarios.flatMap((s) => { const c = s.construire(); return validateScene([c.scene, ...(c.extraScenes ?? [])], c.worldMap)
+    const trouves = testScenarios.flatMap((s) => { const c = s.construire(idsDeTest); return validateScene([c.scene, ...(c.extraScenes ?? [])], c.worldMap)
       .filter((w) => w.scope === 'dialogue' && w.message.startsWith(`Dialogue « ${w.refId} » : le libellé`))
       .map((w) => `${s.id} › ${w.message}`); });
     expect(trouves).toEqual([]);

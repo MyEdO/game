@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ItemIcon } from './ItemIcon';
@@ -13,7 +14,7 @@ const html = (item: ItemInstance | Weapon) => renderToStaticMarkup(<ItemIcon ite
 
 describe('ItemIcon : le glyphe de la catégorie de l’objet', () => {
   it('arme du catalogue → item/weapon', () => {
-    expect(html(itemFromTrappingById('hallebarde')!)).toContain(iconSvg('item/weapon'));
+    expect(html(itemFromTrappingById('hallebarde', idsDeTest)!)).toContain(iconSvg('item/weapon'));
   });
 
   it('arme de combat hors catalogue (`Weapon`) → item/weapon', () => {
@@ -22,11 +23,11 @@ describe('ItemIcon : le glyphe de la catégorie de l’objet', () => {
   });
 
   it('bouclier → item/armour', () => {
-    expect(html(itemFromTrappingById('bouclier')!)).toContain(iconSvg('item/armour'));
+    expect(html(itemFromTrappingById('bouclier', idsDeTest)!)).toContain(iconSvg('item/armour'));
   });
 
   it('armure → item/armour', () => {
-    expect(html(itemFromTrappingById('plastron')!)).toContain(iconSvg('item/armour'));
+    expect(html(itemFromTrappingById('plastron', idsDeTest)!)).toContain(iconSvg('item/armour'));
   });
 
   it('munition → item/ammo', () => {
@@ -34,7 +35,7 @@ describe('ItemIcon : le glyphe de la catégorie de l’objet', () => {
   });
 
   it('cape → item/cloak', () => {
-    expect(html(itemFromTrappingById('cape')!)).toContain(iconSvg('item/cloak'));
+    expect(html(itemFromTrappingById('cape', idsDeTest)!)).toContain(iconSvg('item/cloak'));
   });
 
   it('consommable (Flow du catalogue) → item/consumable', () => {

@@ -4,6 +4,7 @@
  * l'alvéole (`CombatConsole:ConsoleCell`) — clic droit, appui long (`useLongPress`), touche Menu ou
  * Maj+F10 —, annoncé dans le nom accessible ; l'appui long avale la salve native qui le suit.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -26,7 +27,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const gunnar = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
+const gunnar = () => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
 
 function tuile(props: { onClick?: () => void; onInspect?: () => void; decoratif?: boolean }): HTMLElement {
   host = document.createElement('div');

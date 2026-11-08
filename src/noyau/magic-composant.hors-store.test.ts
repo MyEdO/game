@@ -8,6 +8,7 @@
  * On pilote directement `applyMiscast` (gate de dégradation, façon miscast.hors-store.test.ts) ET la
  * consommation au point d'incantation via `useSpellComponent`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { avanceEtapeCascade } from './cascade.testkit';
@@ -24,7 +25,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const SPELL = 'mur-de-feu'; // un id de Sort de Domaine réel (Feu) — couvert par un composant
 
 function mageInBattle() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
@@ -73,7 +74,7 @@ describe('Composants d’incantation (LDB 46 l.107-113)', () => {
 
   it('composant consumé même sans Imparfaite (RAW « même si aucune Imparfaite n’a été obtenue »)', () => {
     setRule('magic-composant', true);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     hero.componentSpells = [SPELL];
     const lines: string[] = [];
     const used = useSpellComponent(hero, SPELL, lines);

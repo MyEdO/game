@@ -6,6 +6,7 @@
  * → jet inline par le même Flow. La conséquence PURE de l'échec (1 État Brisé) est une op `condition`
  * sur la branche `fail`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { approachFearTrigger, advanceTurn, finishPlayerAction } from './combatFlow';
@@ -199,7 +200,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
 
   /** Champ de bataille RÉEL (scène + combat + tour du héros) : un ennemi craint le héros, à l'est. */
   function field() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 2 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 2 });
     banc.setState({ party: [h] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

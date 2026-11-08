@@ -5,6 +5,7 @@
  *  - regain de Détermination pour un héros ayant agi selon sa Motivation (plafonné au max) ;
  *  - restauration de la Chance (couture `restoreFortune`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
@@ -21,8 +22,8 @@ describe('fenetreValider(\'finDeSeance\') (LDB 05 / LDB 17)', () => {
   beforeEach(() => { banc.setState({ party: [], journal: [], flags: {} }); });
 
   it('octroie +50/+500 PX d’Ambition (perso + groupe à chaque héros), puis ferme la fin de séance', () => {
-    const a = pregen(PREGEN.soldat); a.xp = 0;
-    const b = pregen(PREGEN.tueur); b.xp = 0;
+    const a = pregen(idsDeTest, PREGEN.soldat); a.xp = 0;
+    const b = pregen(idsDeTest, PREGEN.tueur); b.xp = 0;
     banc.setState({ party: [a, b] });
     banc.getState().ouvrirLaFinDeSeance();
     banc.getState().fenetreChoisir('finDeSeance', 'ambitionPersonnelleCourte', true, a.id);
@@ -38,7 +39,7 @@ describe('fenetreValider(\'finDeSeance\') (LDB 05 / LDB 17)', () => {
   });
 
   it('regagne 1 Point de Détermination pour un héros ayant agi selon sa Motivation (plafonné)', () => {
-    const a = pregen(PREGEN.tueur); a.resolve = 0;
+    const a = pregen(idsDeTest, PREGEN.tueur); a.resolve = 0;
     banc.setState({ party: [a] });
     banc.getState().ouvrirLaFinDeSeance();
     banc.getState().fenetreChoisir('finDeSeance', 'motivation', true, a.id);
@@ -48,7 +49,7 @@ describe('fenetreValider(\'finDeSeance\') (LDB 05 / LDB 17)', () => {
   });
 
   it('restaure la Chance du groupe au niveau du Destin', () => {
-    const a = pregen(PREGEN.soldat);
+    const a = pregen(idsDeTest, PREGEN.soldat);
     if (a.fate != null) a.fortune = 0; // dépensée
     banc.setState({ party: [a] });
     banc.getState().ouvrirLaFinDeSeance();
@@ -58,7 +59,7 @@ describe('fenetreValider(\'finDeSeance\') (LDB 05 / LDB 17)', () => {
   });
 
   it('le menu de jeu n’ouvre la fin de séance qu’en exploration et chez l’hôte : sinon refusée et dite', () => {
-    banc.setState({ party: [pregen(PREGEN.soldat)], mode: 'battle' });
+    banc.setState({ party: [pregen(idsDeTest, PREGEN.soldat)], mode: 'battle' });
     banc.getState().ouvrirLaFinDeSeance();
     expect(banc.getState().finDeSeance).toBeNull();
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('gameMenu.finDeSeance.horsExploration'));
@@ -72,7 +73,7 @@ describe('fenetreValider(\'finDeSeance\') (LDB 05 / LDB 17)', () => {
 describe('les cases de la fin de séance : celles du groupe sans héros, celles d’un héros sur sa rangée, à l’hôte', () => {
   /** Coop : l'hôte (siège 0) et un invité (siège 1), un héros chacun, la fin de séance ouverte. */
   function seance(): { a: string; b: string } {
-    const [a, b] = pregenParty(PREGEN.soldat, PREGEN.tueur);
+    const [a, b] = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.tueur);
     banc.setState({ party: [a, b], net: { ...initialNet(), mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Invité' }, ownership: { [a.id]: 0, [b.id]: 1 }, slots: [1, 1, 0, 0] } });
     banc.getState().ouvrirLaFinDeSeance();
     return { a: a.id, b: b.id };

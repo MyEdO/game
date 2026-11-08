@@ -18,6 +18,7 @@
  * `talentsRolled`, `wealthRoll`) ; le geste ne fait que DÉCOUVRIR un résultat déjà déterminé
  * (zéro savescum), et la validation d'étape EXIGE le geste.
  */
+import { fabriqueLocale, type FabriqueDId } from '../../engine/fabriqueDId';
 import { tableTotale } from '../../lib/tableTotale';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from '../../engine/types';
 import { garanti } from '../../lib/garanti';
@@ -872,9 +873,9 @@ export function validateStep(d: CreatorDraft, id: StepId): string | null {
 }
 
 // ── Construction finale ──
-/** Le héros que bâtit le brouillon `d`, sous l'id `id` (absent : un id neuf) ; `idDObjet` donne les uids de ses objets
- *  (`createHero`). */
-export function buildHero(d: CreatorDraft, id?: string, idDObjet?: () => string): Combatant {
+/** Le héros que bâtit le brouillon `d`, sous l'id `id` (absent : un id neuf de `idNeuf`) ; `idNeuf` forge aussi les uids de
+ *  ses objets (`createHero`). */
+export function buildHero(d: CreatorDraft, idNeuf: FabriqueDId, id?: string): Combatant {
   const sp = draftSpecies(d);
   if (!sp) throw new Error('Aucune race choisie'); // page blanche : previewHero catch → fiche grisée
   const defauts = speciesSkillDefaults(sp);
@@ -914,7 +915,7 @@ export function buildHero(d: CreatorDraft, id?: string, idDObjet?: () => string)
     motivation: d.motivation.trim() || undefined,
     apparence: d.apparence,
     id,
-    idDObjet,
+    idNeuf,
   });
   if (d.star) hero.star = d.star;
   return hero;
@@ -927,8 +928,7 @@ export const ID_D_APERCU = 'preview';
  *  n'entre jamais dans l'état. Il ne prend donc ni id de héros neuf ni uid d'objet à la source de l'état : ses objets
  *  tirent leurs uids d'une fabrique locale jetable. #2907 */
 export function apercuDuHeros(d: CreatorDraft): Combatant {
-  let n = 0;
-  return buildHero(d, ID_D_APERCU, () => `${ID_D_APERCU}-${++n}`);
+  return buildHero(d, fabriqueLocale(ID_D_APERCU), ID_D_APERCU);
 }
 
 /** Le total déjà alloué des 40 Augmentations de carrière. */

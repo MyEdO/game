@@ -6,6 +6,7 @@
  *  · (6) phases (mi-temps) — le découpage déclaré, et la BORNE qui en découle.
  * Le cumul (1) et les formules de camp (3) sont mesurés par `sequence-socle-naval.hors-store.test.ts`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -120,7 +121,7 @@ beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [JOU
 
 describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arrête au bout de ses phases', () => {
   beforeEach(() => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Jouteur', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Jouteur', seed: 1 });
     h.advantage = 0;
     banc.setState({ battle: null, party: [h], journal: [], pendingCascade: null, sequence: null });
     banc.getState().ensemencerLeTirage(9);
@@ -270,7 +271,7 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
 
 describe('la BORNE tient compte des phases déclarées', () => {
   beforeEach(() => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Jouteur', seed: 2 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Jouteur', seed: 2 });
     banc.setState({ battle: null, party: [h], journal: [], pendingCascade: null, sequence: null });
     banc.getState().ensemencerLeTirage(4);
     passes.length = 0;

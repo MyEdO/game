@@ -13,6 +13,7 @@
  *  5. la file de fin de combat est SCINDÉE par pilote : rangées manuelles influençables, témoins
  *     résolus d'office DANS LEUR PROPRE bande (jamais `interactive:false` dans la bande jouée).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
@@ -47,7 +48,7 @@ const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
 function h(id: string, over: Partial<Combatant> = {}): Combatant {
-  const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 4 });
+  const c = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 4 });
   c.id = id;
   Object.assign(c, over);
   return c;

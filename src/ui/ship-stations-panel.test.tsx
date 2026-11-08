@@ -11,6 +11,7 @@
  * Rendu jsdom (`createRoot`) : le panneau lit le store, et l'ouverture du panneau-paramètre est un
  * état React.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { describe, it, expect, afterEach } from 'vitest';
@@ -30,8 +31,8 @@ afterEach(() => { act(() => root?.unmount()); container?.remove(); root = null; 
 
 /** Deux héros au groupe. */
 function poserGroupe(): Combatant[] {
-  const gunnar = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 }), id: 'gunnar' };
-  const lise = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Lise', seed: 8 }), id: 'lise' };
+  const gunnar = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 }), id: 'gunnar' };
+  const lise = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Lise', seed: 8 }), id: 'lise' };
   // L'équipage vit AUSSI dans la bataille en mer (`affecterALaStation` patche les deux) : la fixture
   // porte donc une file de combat, sans quoi le contrat ne mesurerait que la moitié de l'action.
   const battle = { combatants: [gunnar, lise], log: [], round: 1, turn: 0 } as unknown as BattleState;

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { applyCriticalToTarget } from './combatFlow';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -57,7 +58,7 @@ describe("réglage attack.localisationDuCritique — « Je ne faillirai pas ! »
 
   /** Le héros attaque une cible à `current` Blessures, `paBrasG` PA au Bras gauche et `autresPA` ailleurs, `chanceux` ou sous Mort subite ; la graine fait rater son jet. */
   function attaqueRatee(current: number, paBrasG = 0, autresPA = 0, chanceux = true) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

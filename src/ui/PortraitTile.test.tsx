@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -9,7 +10,7 @@ import type { Combatant } from '../engine/types';
 import { teamRingDecor } from '../gameIso/builders/dynamicMarks';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
-const base = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
+const base = () => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
 const css = ['portrait-tile', 'initiative-strip'].map((nom) => readFileSync(`src/ui/styles/${nom}.css`, 'utf8')).join('\n').replace(/\/\*[\s\S]*?\*\//g, '');
 
 describe('PortraitTile', () => {

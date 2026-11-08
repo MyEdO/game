@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { traumaById, dechirureFractureFicheId, traumaMovementHalved, traumaDodgePenalty, traumaCharPenalties, traumaSkillPenalty, consolidateAmputations, treatTrauma, passiveTestMod, avecSequelles, applyFractureEnd, type SequelleNeuve } from './trauma';
-import { remettreLesSequencesAZero } from './sequences';
 import { effectiveChar } from './characteristics';
 import { effectiveMovement } from './encumbrance';
 import { defenseValue } from './combat';
@@ -288,7 +287,6 @@ describe('Trauma.uid — dérivé des séquelles du porteur, jamais d’un compt
   const portees = (): Trauma[] => [1, 2, 3].map((n) => ({ ...tk('dechirure', 'mineur', 'brasD'), uid: `trauma-${n}` }));
 
   it('une partie chargée qui porte trauma-1..3 : la séquelle neuve reçoit trauma-4, aucune collision', () => {
-    remettreLesSequencesAZero(); // le chargement passe par `creerPartie`, qui remet les séquences de module à zéro
     const heros = fullCombatant({ traumas: portees() });
     applyFractureEnd(heros, false, 'mineur', 'brasG', 'Fracture');
     expect(heros.traumas!.map((t) => t.uid)).toEqual(['trauma-1', 'trauma-2', 'trauma-3', 'trauma-4']);

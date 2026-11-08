@@ -9,6 +9,7 @@
  * En SOLO les deux prédicats coïncident : ces régressions y sont INVISIBLES — d'où le harnais à deux
  * sièges.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
@@ -32,7 +33,7 @@ const NET0 = initialNet();
 
 /** Combat RÉEL à deux sièges : le siège 1 (invité) possède H[0] ; l'hôte (siège 0) rend l'état. */
 function coop(vivants = 1): { H: Combatant[]; E: Combatant[] } {
-  const party = [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H0', seed: 1 })];
+  const party = [createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H0', seed: 1 })];
   set({ party });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');

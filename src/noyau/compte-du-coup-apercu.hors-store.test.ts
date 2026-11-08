@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { battleRng } from './battleRng';
@@ -29,7 +30,7 @@ interface Jet { seed: number; roll: number; paTouche?: number; pieces?: (lieu: H
 /** Le coup né au jet par la couture du jeu (`rederivePassiveAttack`), sur un ennemi important à 20 PB. */
 function auJet({ seed, roll, paTouche = 0, pieces, tenue, current = 20 }: Jet, lieu?: HitLocation) {
   banc.getState().ensemencerLeTirage(seed);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: tenue ? 0 : undefined } });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
@@ -156,7 +157,7 @@ describe('le verdict de relance naît sur la cible au compte', () => {
   function projectile(current: number, sauve = false): { journal: string; touche: string } {
     for (let seed = 1; seed < 100; seed++) {
       banc.getState().ensemencerLeTirage(seed);
-      const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
+      const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
       banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
       banc.getState().lancerLaScene(structuredClone(testScene()));
       banc.getState().lancerLeCombat('enc-mutants');
@@ -204,8 +205,8 @@ const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, 
  *  pose ; l'aperçu par l'expression de la fenêtre d'attaque (`noyau/fenetreDAttaque`), puis l'application par `jetValider('attack')`. */
 function devieePuisApplication(cas: 'tas' | 'melee') {
   banc.getState().ensemencerLeTirage(3);
-  const tireur = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Tireur', seed: 7 });
-  const allie = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Allie', seed: 8 });
+  const tireur = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Tireur', seed: 7 });
+  const allie = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Allie', seed: 8 });
   banc.setState({ party: [tireur, allie], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');

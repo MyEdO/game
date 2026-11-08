@@ -18,6 +18,7 @@
  * Ici, la CONDUITE du pilote sous le curseur (la pose lue à la fermeture du verbe de pose, `fermeturesDuFlux`), sa
  * FORME, et la surface des jets ouverts seuls (`surfaceDeLEtape`, possession).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { monoStep, worldStep, surfaceDeLEtape, surfaceOf, tableStep, displayStep } from './rollSeam';
 import { actorIn } from './monde/combatants';
@@ -64,7 +65,7 @@ const surfaceMono = (st: CascadeStep) => surfaceDeLEtape(get, st);
 
 /** Groupe d'UN héros, siège local, mode solo — l'état complet du cas, jamais hérité du voisin. */
 function montage(): string {
-  const h = makePregens()[0];
+  const h = makePregens(idsDeTest)[0];
   set({ party: [h], battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
   set({ net: { ...get().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
   return h.id;
@@ -167,7 +168,7 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
    * porteur sur lequel il n'a plus aucune prise.
    */
   it('POSSESSION — héros du groupe HORS de la file d’un combat ouvert : vu, influençable, posable', () => {
-    const [h1, h2] = makePregens();
+    const [h1, h2] = makePregens(idsDeTest);
     set({ party: [h1!, h2!], battle: null, pendingCascade: null, suspendedCascades: [] });
     set({ net: { ...get().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
     set({ battle: { combatants: [h1!], order: [h1!.id], turn: 0, round: 1, log: [], over: null } as never });

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { openRoundEndCascade } from '../combatFlow';
@@ -25,7 +26,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () => {
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -150,7 +151,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     const { H } = setup();
     addCondition(H, COND.empoisonne, 2);
     const hpBefore = H.wounds.current;
-    endOfRound(H, makeRNG(1));                             // endOfRound ne touche pas le poison (ni dégâts ni Test)
+    endOfRound(H, makeRNG(1), idsDeTest);                             // endOfRound ne touche pas le poison (ni dégâts ni Test)
     expect(H.wounds.current).toBe(hpBefore);              // endOfRound seul : rien
     // Sans `set` (= entretien HORS COMBAT) : le dispatcher applique les dégâts PUIS résout le Test inline.
     // RNG forcé à l'ÉCHEC (jet 99) → la Résistance rate, le poison persiste : on isole les dégâts.

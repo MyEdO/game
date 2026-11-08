@@ -4,6 +4,7 @@
  * `engine/tavernGame.ts`) : celle de la racine du jeu quand il n'offre pas d'options.
  * NADJ 16 l.90, l.105, l.125, l.145.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
@@ -18,7 +19,7 @@ beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REAC
 beforeEach(() => {
   useGame.setState(useGame.getInitialState(), true);
   setRule('tavern-games', true);
-  useGame.setState({ party: pregenParty(PREGEN.soldat) });
+  useGame.setState({ party: pregenParty(idsDeTest, PREGEN.soldat) });
 });
 afterEach(() => {
   demonterRacines();

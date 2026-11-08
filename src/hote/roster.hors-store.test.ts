@@ -4,6 +4,7 @@
  * par `prendreLesTemoinsDuRoster`, quel que soit le geste qui a chargé. Un stockage absent ou qui lève ne casse
  * aucun geste.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ajouterAuRoster, chargerLeRoster, engagerLeHeros, mettreAJourLeRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from './roster';
 import { ouvrirLeBanc } from '../noyau/banc.testkit';
@@ -101,7 +102,7 @@ describe('la procédure du roster sur un stockage', () => {
 });
 
 describe('engager un brouillon de création (#3059)', () => {
-  const membre = (i: number) => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `Membre ${i}`, seed: i });
+  const membre = (i: number) => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: `Membre ${i}`, seed: i });
 
   it('valide : l’entrée au roster garde le brouillon exact, le héros entre au groupe', () => {
     const s = stockageEnMemoire();

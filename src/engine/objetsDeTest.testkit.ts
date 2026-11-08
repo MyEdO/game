@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { itemFromTrappingById, weaponFromItem } from './items';
 import type { ItemInstance, Weapon } from './types';
 
@@ -5,7 +6,7 @@ type EtatDObjetDeTest = Partial<Pick<ItemInstance, 'uid' | 'equipped'>>;
 type EtatDArmeDeTest = EtatDObjetDeTest & Pick<Partial<Weapon>, 'hand'>;
 
 export function objetDeTest(id: string, etat: EtatDObjetDeTest = {}): ItemInstance {
-  const objet = itemFromTrappingById(id);
+  const objet = itemFromTrappingById(id, idsDeTest);
   if (!objet) throw new Error(`Objet de test inconnu : ${id}`);
   return Object.assign(objet, etat);
 }

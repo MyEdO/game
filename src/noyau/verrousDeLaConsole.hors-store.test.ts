@@ -3,6 +3,7 @@
  * (`actionGate`, lu par l'hôte texte et par la console) le refuse lui-même. Sans store : la partie lance un scénario,
  * et l'État se pose par la couture que le jeu appelle (`addCondition`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import {
   creerPartie, etatInitialDuJeu, activeCombatant, actionGate, offresDeLActif,
@@ -45,7 +46,7 @@ function jusquAuTour(partie: Partie, tenu: (c: Combatant) => boolean): Combatant
 function auTour(id: string, tenu: (c: Combatant) => boolean): Partie {
   const partie = creerPartie(etatInitialDuJeu(), ENTREES);
   try {
-    jouer(partie, partie.lancer(lancementDuScenario(testScenarios.find((s) => s.id === id)!)));
+    jouer(partie, partie.lancer(lancementDuScenario(testScenarios.find((s) => s.id === id)!, idsDeTest)));
     jusquAuTour(partie, tenu);
     return partie;
   } catch (e) {

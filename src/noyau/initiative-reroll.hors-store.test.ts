@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { advanceTurn } from './combatFlow';
@@ -19,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 describe('combat-init-reroll — relance de l’Initiative par Round (LDB 13 l.43)', () => {
   function openCombat() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     seedBattleRng(777);

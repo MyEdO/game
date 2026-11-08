@@ -3,6 +3,7 @@
  * désigné par son id), le héros que le noyau en bâtit, son verdict, lu par le geste ET par l'écran, et ce que
  * l'engagement d'un brouillon écrit au roster. La procédure sur le roster d'un hôte : `engagerLeHeros` (`hote/roster.ts`).
  */
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import type { Combatant } from '../../engine/types';
 import type { Money } from '../../engine/money';
 import type { Jeu } from '../etat';
@@ -25,17 +26,17 @@ export type HerosEngage = { brouillon: HorsDesignation<CreatorDraft>; id?: HorsD
 const refusDuBrouillon = (d: CreatorDraft): string | null => stepIds().map((id) => validateStep(d, id)).find((e) => e !== null) ?? null;
 
 /** Le héros que bâtit le brouillon `d` (l'id `id` posé) et sa Richesse de départ (`draftWealth`). */
-const batirLeBrouillon = (d: CreatorDraft, id?: string): { hero: Combatant; wealth: Money } => ({ hero: buildHero(d, id), wealth: draftWealth(d).montant });
+const batirLeBrouillon = (d: CreatorDraft, idNeuf: FabriqueDId, id?: string): { hero: Combatant; wealth: Money } => ({ hero: buildHero(d, idNeuf, id), wealth: draftWealth(d).montant });
 
 /** Le héros que le noyau bâtit de `h` et sa Richesse de départ : le brouillon complet (`refusDuBrouillon`), ou le pré-tiré
- *  de la donnée (`pretireAvecRichesse`) ; sinon la raison qui le refuse (étape invalide, pré-tiré inconnu). */
-export function herosDeLEngagement(h: HerosEngage): { hero: Combatant; wealth: Money } | { refus: string } {
+ *  de la donnée (`pretireAvecRichesse`), aux ids de `idNeuf` ; sinon la raison qui le refuse (étape invalide, pré-tiré inconnu). */
+export function herosDeLEngagement(h: HerosEngage, idNeuf: FabriqueDId): { hero: Combatant; wealth: Money } | { refus: string } {
   if ('pretire' in h) {
     const def = pregens.find((p) => p.id === h.pretire);
-    return def ? pretireAvecRichesse(def) : { refus: t('party.pretireInconnu', { id: String(h.pretire) }) };
+    return def ? pretireAvecRichesse(def, idNeuf) : { refus: t('party.pretireInconnu', { id: String(h.pretire) }) };
   }
   const refus = refusDuBrouillon(h.brouillon);
-  return refus ? { refus } : batirLeBrouillon(h.brouillon, h.id);
+  return refus ? { refus } : batirLeBrouillon(h.brouillon, idNeuf, h.id);
 }
 
 /** Le refus d'un héros nouveau au groupe : le refus d'ajout du siège qui décide (`refusDAjoutAuGroupe`) ; `null` s'il
@@ -51,8 +52,8 @@ export function refusDEngagement(s: Pick<Jeu, 'battle' | 'party' | 'net'>, d: Cr
 
 /** Ce que l'engagement de `d` écrit au roster : le héros (l'id `heroId` conservé en édition), sa Richesse de départ et
  *  le brouillon EXACT, que le roster garde pour rouvrir le héros sans perte et l'engager de nouveau. */
-export function engagement(d: CreatorDraft, heroId?: string): RosterEntry {
-  return { ...batirLeBrouillon(d, heroId), draft: d };
+export function engagement(d: CreatorDraft, idNeuf: FabriqueDId, heroId?: string): RosterEntry {
+  return { ...batirLeBrouillon(d, idNeuf, heroId), draft: d };
 }
 
 /** L'intention qui engage au groupe le héros nouveau de `d`, pour un hôte sans roster. */

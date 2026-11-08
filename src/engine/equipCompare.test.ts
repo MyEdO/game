@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { compareEquip } from './equipCompare';
 import type { Combatant, ItemInstance, Weapon } from './types';
@@ -97,8 +98,8 @@ describe('compareEquip (accordéon « équiper » du marchand)', () => {
   });
 
   it('bouclier (LDB 62 l.33-35) : compare la Protection (Protectrice N, LDB 62 l.296), exclut l’objet lui-même', () => {
-    const h = hero({ weapons: [{ ...weaponFromItem(itemFromTrappingById('bouclier-targe')!), uid: 'cur', label: 'Bouclier (Targe)', qualities: [{ id: 'protectrice', value: 1 }, { id: 'defensive' }] }] });
-    const grand = it_({ ...itemFromTrappingById('bouclier-grand')!, uid: 'new', label: 'Bouclier (Grand)', qualities: [{ id: 'protectrice', value: 3 }, { id: 'defensive' }] });
+    const h = hero({ weapons: [{ ...weaponFromItem(itemFromTrappingById('bouclier-targe', idsDeTest)!), uid: 'cur', label: 'Bouclier (Targe)', qualities: [{ id: 'protectrice', value: 1 }, { id: 'defensive' }] }] });
+    const grand = it_({ ...itemFromTrappingById('bouclier-grand', idsDeTest)!, uid: 'new', label: 'Bouclier (Grand)', qualities: [{ id: 'protectrice', value: 3 }, { id: 'defensive' }] });
     const c = compareEquip(grand, h);
     expect(c.slot).toBe('shield');
     expect(c.currentName).toBe('Bouclier (Targe)');
@@ -106,7 +107,7 @@ describe('compareEquip (accordéon « équiper » du marchand)', () => {
   });
 
   it('Atout Protectrice sans être un bouclier (ADE II 02 l.613) : comparé comme une arme de mêlée', () => {
-    const poing = itemFromTrappingById('poing-de-fer')!;
+    const poing = itemFromTrappingById('poing-de-fer', idsDeTest)!;
     expect(poing.qualities.some((q) => q.id === 'protectrice'), 'PRÉMISSE : porte Protectrice').toBe(true);
     const c = compareEquip(poing, hero({}));
     expect(c.slot).toBe('melee');
@@ -114,8 +115,8 @@ describe('compareEquip (accordéon « équiper » du marchand)', () => {
   });
 
   it('l’arme DÉRIVÉE d’un objet porté (Crochet, LDB 73) est l’arme actuelle comparée à un objet d’étal (#2907)', () => {
-    const h = pregen(PREGEN.soldat);
-    h.items = [...(h.items ?? []), { ...itemFromTrappingById('crochet')!, equipped: true }];
+    const h = pregen(idsDeTest, PREGEN.soldat);
+    h.items = [...(h.items ?? []), { ...itemFromTrappingById('crochet', idsDeTest)!, equipped: true }];
     for (const lo of h.loadouts ?? []) { lo.main = undefined; lo.off = undefined; }
     recomputeLoadout(h);
     const c = compareEquip(gabaritDObjet('arme-simple')!, h);

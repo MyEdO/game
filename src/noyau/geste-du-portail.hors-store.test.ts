@@ -3,6 +3,7 @@
  * d'en face, la marche fermée (dialogue) n'ouvre aucun geste. Les gestes d'exploration (`gestesDExploration`) le lisent ;
  * l'activation de l'écran aussi (`activatePortal`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -28,7 +29,7 @@ function couloir(): Scene {
 }
 
 function enExploration(): { fermee: RoomPortal; ouverte: RoomPortal } {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [h], battle: null, journal: [] });
   g().lancerLaScene(couloir());
   banc.setState({ partyPos: { x: 1, y: 1 } });

@@ -10,6 +10,7 @@
  * le tour suivant) le périme sans remise à zéro dispersée. L'annulation d'un déplacement, elle, REND
  * l'économie d'avant le segment : elle désarme explicitement (`annulerLeDeplacement`, inverse unique).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -27,7 +28,7 @@ beforeAll(() => {
 });
 
 function combattant(id: string, label: string, kind: Combatant['kind'] = 'hero'): Combatant {
-  const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 11 });
+  const c = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 11 });
   c.id = id;
   c.kind = kind;
   c.pos = { x: 4, y: 4 };

@@ -1,4 +1,5 @@
 /** LDB 18 l.346 ; LDB 41 */
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, expect, it } from 'vitest';
 import type { Combatant } from './types';
 import { objetDeTest } from './objetsDeTest.testkit';
@@ -192,7 +193,7 @@ describe('Effets curés — suffocation (lus de SpellData.effects)', () => {
   });
   it('op suffocate : pose l’effet porteur à la durée du sort', () => {
     const c = mk({ activeEffects: [] });
-    applyOps(c, [{ op: 'suffocate' }], { rng: desDuTest, label: 'Ombres étrangleuses', defaultDurationRounds: 4 });
+    applyOps(c, [{ op: 'suffocate' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Ombres étrangleuses', defaultDurationRounds: 4 });
     expect(c.activeEffects?.find((e) => e.suffocates)?.duration).toEqual({ scale: "rounds", left: 4 });
   });
 });

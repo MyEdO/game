@@ -2,6 +2,7 @@
  * Composants d'incantation offerts par la fiche (`composantsOfferts`) : un Sort offert est EXACTEMENT un
  * Sort connu que `refusAchatDeComposant` ne refuse pas, la bourse couvrant tout. LDB 46 l.107-113
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { composantsOfferts, refusAchatDeComposant } from './partyFlow';
 import { createHero } from '../engine/character';
@@ -12,8 +13,8 @@ import { toMoney } from '../engine/money';
 const CONNUS = ['mur-de-feu', 'allure-demoniaque', 'alerte', 'benediction-de-bataille', 'peau-d-ecorce-et-d-os', 'sort-inexistant'];
 
 function mageRiche() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
-  return { ...withBourseMoney(hero, toMoney({ gold: 100 })), spells: CONNUS };
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
+  return { ...withBourseMoney(hero, toMoney({ gold: 100 }), idsDeTest), spells: CONNUS };
 }
 
 describe('composantsOfferts — l’offre de la fiche est le verdict du geste (LDB 46 l.107-113)', () => {

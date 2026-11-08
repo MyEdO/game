@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import type { JSX } from 'react';
 // @vitest-environment jsdom
 /**
@@ -384,7 +385,7 @@ describe('Voile d’entrée en scène — les PROCHES le tiennent, le lointain n
  * aucun voile — sur la moitié du jeu.
  */
 describe('Vue de plateau — le centre de proximité vient des HÉROS', () => {
-  const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+  const HÉROS = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
   const héros = (id: string, x: number, y: number): ActorPose => ({ c: { ...HÉROS, id }, x, y, z: 0 });
   const ennemi = (id: string, x: number, y: number): ActorPose => ({ c: { ...HÉROS, id, kind: 'enemy' }, x, y, z: 0 });
 

@@ -4,6 +4,7 @@
  * AUTO-piloté (sans UI) ne la jouait jamais. Gate corrigé en `!aiDriven` : enemy + héros auto la jouent ;
  * un héros MANUEL la déclenche lui-même via l'affordance UI (donc `aiAvailableFreeAttack` reste un no-op pour lui).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makeShowcaseParty } from '../data/pregens';
@@ -15,13 +16,13 @@ import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
-const embuscadeConstruit = embuscade.construire();
+const embuscadeConstruit = embuscade.construire(idsDeTest);
 
 describe('Frénésie — attaque gratuite d’un héros (Auto-combat)', () => {
   beforeEach(() => { banc.getState().ensemencerLeTirage(7); });
 
   function frenziedHeroAdjacentToFoe() {
-    banc.setState({ party: makeShowcaseParty() });
+    banc.setState({ party: makeShowcaseParty(idsDeTest) });
     banc.getState().lancerLaScene(embuscadeConstruit.scene);
     banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
     banc.getState().fenetreValider('roundStart');

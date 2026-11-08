@@ -3,6 +3,7 @@
  * Fenêtres de Test ÉTENDU : la barre de DR annonce le cumul que le geste applique (`progresEtendu.ts`,
  * `issueDuRound`), règle optionnelle « DR 0 = ±1 » comprise. LDB 12 l.170-185
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -34,7 +35,7 @@ afterEach(() => {
 });
 
 const barres = () => [...host.querySelectorAll('.dr-bar-val')].map((n) => n.textContent?.replace(/\s+/g, ' ').trim());
-const heros = () => createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 1, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
+const heros = () => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 1, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
 
 describe('barre de DR des fenêtres de Test étendu', () => {
   it('Focalisation (LDB 46 l.130) : réserve 3, échec DR −2 sur NI 8 → 1 / 8 DR', () => {

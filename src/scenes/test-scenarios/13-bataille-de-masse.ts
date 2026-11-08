@@ -93,8 +93,8 @@ export const scenario: TestScenario = {
   // Interlude de 3 semaines AVANT la bataille : ses Activités (max 3 par héros, LDB 23) sont le budget
   // UNIQUE dans lequel puise la préparation de bataille (ADE II 8 l.65). Sans lui : Round 1 direct.
   interludeWeeks: 3,
-  construire: () => ({
-    party: pregenParty(PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
+  construire: (idNeuf) => ({
+    party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
     scene: construireScene(),
     massBattle: {
       enemyName: 'Horde ennemie',

@@ -21,8 +21,8 @@ export const scenario: TestScenario = {
     'caméra libres pour inspecter le rendu (rempart, rampe du flanc gauche, chemin de ronde à 4 m, parapet, ' +
     'toits, relief, brouillard). Le mode combat ne gêne plus l\'inspection de la carte.',
   partyNote: 'Explorez librement : montez au rempart par la rampe du flanc gauche, faites le tour de l\'enceinte. Aucune rencontre ne démarre.',
-  construire: () => ({
-    party: pregenParty(PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
+  construire: (idNeuf) => ({
+    party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
     scene: buildScene({ ...spec(), id: 'siege-explore', label: 'Siège — exploration (sans combat)' }),
   }),
 };

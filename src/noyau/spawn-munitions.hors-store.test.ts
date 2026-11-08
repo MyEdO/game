@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { testScenarios } from '../scenes/test-scenarios';
 import { ficheDEntite } from './monde/sceneNpc';
@@ -12,7 +13,7 @@ const geler = memoByRef((s: Scene) => s);
 const presetPnjById = presetDuNarratif(null);
 
 function coqueArmee(): { scene: Scene; ent: SceneEntity } {
-  const scene = testScenarios.find((s) => s.id === 'combat-naval')!.construire().scene;
+  const scene = testScenarios.find((s) => s.id === 'combat-naval')!.construire(idsDeTest).scene;
   const ent = scene.entities.find((e) => e.kind === 'personnage' && e.postes?.some((p) => p.ammo?.length))!;
   expect(ent, 'combat-naval : une entité porte un poste armé de munitions').toBeDefined();
   return { scene, ent };

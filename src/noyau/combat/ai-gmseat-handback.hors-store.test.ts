@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { runEnemyAI } from '../combatFlow';
@@ -22,7 +23,7 @@ describe('IA × siège MJ pris après planification — runEnemyAI rend la main 
   const prendreLeSiegeMJ = (seat: number) => banc.setState({ net: poserLeSiegeMJ(banc.getState().net, seat) });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     seedBattleRng(777);

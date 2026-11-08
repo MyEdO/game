@@ -6,6 +6,7 @@
  * (le choix `dialogue.reponse`) : le numéro est le RANG de la liste visible, la réponse masquée n'en consomme pas. Le 2ᵉ
  * passage naît de la FIN RÉELLE du 1ᵉʳ (le flag que la donnée pose), jamais d'un flag injecté.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { ouvrirDialogue, reponsesDuNoeud } from '../../noyau/dialogue';
@@ -13,7 +14,7 @@ import { scenario } from '../../scenes/test-scenarios/dialogue-multi';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 const tablee = scenarioConstruit.scene.dialogues.find((d) => d.id === 'dlg-tablee')!;
 const get = () => banc.getState();
@@ -40,7 +41,7 @@ describe('dialogue-multi — la reprise par `when` dans le dialogue de Gustav', 
   beforeEach(() => {
     banc.setState({
       screen: 'campaign', mode: 'exploration', battle: null, scene: scenarioConstruit.scene, flags: {},
-      party: scenario.construire().party, dialogueHistory: [], merchant: null, document: null, pendingTest: null,
+      party: scenario.construire(idsDeTest).party, dialogueHistory: [], merchant: null, document: null, pendingTest: null,
     });
     parlerAGustav();
   });

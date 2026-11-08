@@ -1,11 +1,10 @@
 import { makeShowcaseParty } from '../../data/pregens';
-import { itemFromTrappingById } from '../../engine/items';
+import { gabaritDObjet } from '../../engine/items';
 import type { SkillRef } from '../../data';
 import type { AuthoredShipPoste } from '../../engine/types';
 import type { Scene, SceneEntity } from '../../noyau/monde/scene';
 import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
-import { sequence } from '../../engine/sequences';
 
 // Banc du MODÈLE DEUX-ÉCHELLES couche MER (MDG 13-14, plan combat-naval-modele §1bis) : DEUX jetons-coques sur
 // l'eau ouverte à ~150 m (portée LONGUE du canon, MDG 12 l.401 → 15 cases à 10 m/case), l'équipage ABSTRAIT
@@ -13,15 +12,14 @@ import { sequence } from '../../engine/sequences';
 // la coque adverse est pilotée par l'IA de coque (`runShipAI` : manœuvre pour aligner sa bordée, puis feu). L'approche
 // se JOUE sur plusieurs Rounds (M du navire en Distance-points/Round, 1 point = 1 case à cette échelle).
 
-const prochaineMunition = sequence();
-function ammo(trappingId: string, qty: number) {
-  const base = itemFromTrappingById(trappingId)!;
-  return { ...base, uid: `duel-ammo-${trappingId}-${prochaineMunition.suivant()}`, qty };
+/** La munition `trappingId` du coffre du poste `side` du navire `navire` : son uid se dérive de sa place. */
+function ammo(navire: string, side: AuthoredShipPoste['side'], trappingId: string, qty: number) {
+  return { ...gabaritDObjet(trappingId)!, uid: `duel-ammo-${navire}-${side}-${trappingId}`, qty };
 }
 /** Poste d'artillerie ARMÉ (coffre à boulets, MDG 12 l.410-424). L'équipage abstrait le sert d'office à la Mer. */
-function canon(side: 'tribord' | 'babord' | 'proue' | 'poupe'): AuthoredShipPoste {
-  const a = ammo('boulet-et-poudre', 12);
-  const m = ammo('mitraille-et-poudre', 4);
+function canon(navire: string, side: 'tribord' | 'babord' | 'proue' | 'poupe'): AuthoredShipPoste {
+  const a = ammo(navire, side, 'boulet-et-poudre', 12);
+  const m = ammo(navire, side, 'mitraille-et-poudre', 4);
   return { trappingId: 'canon-moyen', side, ammo: [a, m], ammoUid: a.uid };
 }
 /** Marin d'équipage COMPÉTENT (passager, hors rendu à la Mer) — CustomStatblock sourcé (règle stricte 7 : aucune
@@ -50,12 +48,12 @@ const construireScene = (): Scene => buildScene({
   entities: [
     // Coque ALLIÉE (le Grimm) — cap EST, deux bordées de canons moyens + une chasse de proue ; passagers = 2 marins.
     { id: 'grimm-duel', kind: 'personnage', ref: 'loup-imperial', pos: { x: 3, y: 7 }, facing: 'E', label: 'Le Grimm',
-      crewIds: ['grimm-helm', 'grimm-gun'], postes: [canon('tribord'), canon('babord'), canon('proue')] } as SceneEntity,
+      crewIds: ['grimm-helm', 'grimm-gun'], postes: [canon('grimm', 'tribord'), canon('grimm', 'babord'), canon('grimm', 'proue')] } as SceneEntity,
     marine('grimm-helm', 'Timonier du Grimm', 3, 6, HELM),
     marine('grimm-gun', 'Maître canonnier du Grimm', 3, 8, GUN),
     // Coque ENNEMIE (cogue) — cap OUEST, deux bordées ; passagers = 2 marins pirates compétents.
     { id: 'cogue-duel', kind: 'personnage', ref: 'cogue', pos: { x: 18, y: 7 }, facing: 'O', label: 'La cogue pirate',
-      crewIds: ['cogue-helm', 'cogue-gun'], postes: [canon('tribord'), canon('babord'), canon('proue')] } as SceneEntity,
+      crewIds: ['cogue-helm', 'cogue-gun'], postes: [canon('cogue', 'tribord'), canon('cogue', 'babord'), canon('cogue', 'proue')] } as SceneEntity,
     marine('cogue-helm', 'Barreur pirate', 18, 6, HELM),
     marine('cogue-gun', 'Canonnier pirate', 18, 8, GUN),
   ],
@@ -89,6 +87,6 @@ export const scenario: TestScenario = {
     'manœuvre pour aligner sa bordée puis fait feu. Reddition à mi-coque. Le combat naval person-scale (abordage) ' +
     'reste le scénario « Combat naval ».',
   partyNote: 'Groupe d’arène embarqué (passagers du Grimm) ; l’équipage abstrait sert les pièces',
-  construire: () => ({ party: makeShowcaseParty(), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: makeShowcaseParty(idNeuf), scene: construireScene() }),
   autoCombat: 'duel',
 };

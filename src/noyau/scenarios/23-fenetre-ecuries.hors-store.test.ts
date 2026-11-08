@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene, heightAt, isWalkable, porteMasquee, startOf, type WallSeg } from '../../noyau/monde/scene';
 import { validateScene } from '../../noyau/validateScene';
@@ -19,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * (EDO 08 l.404) se lisent sur la Scène PRODUITE par `buildScene`, par les coutures du moteur.
  */
 describe('Scénario « La fenêtre sur les écuries »', () => {
-  const scene = scenario.construire().scene;
+  const scene = scenario.construire(idsDeTest).scene;
   const couloir = { x: 7, y: 2, z: 1 };
   const ecuries = { x: 8, y: 2 };
   const porte = (): WallSeg => scene.walls!.find((w) => w.x === 3 && w.y === 2 && w.side === 'E' && w.z === 1)!;
@@ -61,7 +62,7 @@ describe('Scénario « La fenêtre sur les écuries »', () => {
   });
 
   it('le départ du groupe est hors de la zone d’approche ; entrer au bureau en vue de la face ouvre le Test (Complexe)', () => {
-    banc.setState({ party: scenario.construire().party });
+    banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scene);
     banc.setState({ lightLevel: 1 });
     expect(startOf(scene)).toEqual({ x: 7, y: 6, z: 1 });
@@ -74,7 +75,7 @@ describe('Scénario « La fenêtre sur les écuries »', () => {
   });
 
   it('le groupe démarre à l’ÉTAGE du départ authored (`startOf`), par `lancerLaScene` comme par `quitterLaScene`', () => {
-    banc.setState({ party: scenario.construire().party });
+    banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scene);
     expect(banc.getState().partyPos).toEqual({ x: 7, y: 6, z: 1 });
     banc.getState().lancerLaScene(emptyScene('depart-sans-etage'));
@@ -94,10 +95,10 @@ describe('Scénario « La fenêtre sur les écuries »', () => {
 });
 
 describe('Scénario « La fenêtre sur les écuries » — formation de début de combat', () => {
-  const scene = scenario.construire().scene;
+  const scene = scenario.construire(idsDeTest).scene;
   /** Ouvre la rencontre de l'homme de main, le groupe en `partyPos` ; rend les cases des héros. */
   function formation(partyPos: { x: number; y: number; z?: number }) {
-    banc.setState({ party: scenario.construire().party });
+    banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scene);
     banc.setState({ partyPos });
     banc.getState().lancerLeCombat('enc-homme-de-main');
@@ -123,11 +124,11 @@ describe('Scénario « La fenêtre sur les écuries » — formation de début d
 });
 
 describe('Scénario « La fenêtre sur les écuries » — l’homme de main se bat à SON étage (#2139)', () => {
-  const scene = scenario.construire().scene;
+  const scene = scenario.construire(idsDeTest).scene;
 
   it('il s’approche sur le plancher de z1 et frappe un héros de l’étage', () => {
     const g = banc.getState;
-    banc.setState({ party: scenario.construire().party });
+    banc.setState({ party: scenario.construire(idsDeTest).party });
     g().lancerLaScene(scene);
     banc.setState({ partyPos: { x: 7, y: 6, z: 1 } });
     g().lancerLeCombat('enc-homme-de-main');

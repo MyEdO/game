@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
@@ -28,7 +29,7 @@ function battleEffect(spec: Partial<MassBattleSpec> = {}): Extract<Effect, { typ
 
 function apply(effects: Effect[]) {
   seedBattleRng(1234);
-  banc.setState({ party: pregenParty(PREGEN.soldat, PREGEN.chasseur), battle: null, massBattle: null });
+  banc.setState({ party: pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur), battle: null, massBattle: null });
   applyEffects(banc.getState, banc.setState, effects);
 }
 

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import type { JSX } from 'react';
 // @vitest-environment jsdom
 /**
@@ -41,7 +42,7 @@ vi.setConfig({ testTimeout: PLAFOND_ATTENTE_MS + 10_000 });
 const TAILLE = { w: 800, h: 600 };
 const SCENE: Scene = emptyScene('scene-test', 12, 12);
 const MPT = sceneMetresPerTile(SCENE);
-const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+const HÉROS = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
 const ACTEURS: ActorPose[] = [{ c: HÉROS, x: 4, y: 4, z: 0 }];
 /** Teinte et dégagement STABLES : le groupe de billboards se rebâtit sur l'IDENTITÉ de ses entrées —
  *  une lambda par rendu le remonterait à chaque image, et la mesure porterait sur le banc. */

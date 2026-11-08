@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { nouvelEntete, ouvrirLaPartie } from './partie';
 import { projeter } from './projection';
@@ -10,7 +11,7 @@ describe('projection d’un objet de campagne', () => {
     const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
     try {
       const base = partie.etat();
-      const { hero, narratif, candidats } = porteurDObjetDeCampagne('hache_naine');
+      const { hero, narratif, candidats } = porteurDObjetDeCampagne(idsDeTest, 'hache_naine');
       const ancien = base.battle!.combatants.find((c) => c.kind === 'hero')!;
       hero.id = ancien.id;
       hero.pos = ancien.pos;

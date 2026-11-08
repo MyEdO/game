@@ -2,6 +2,7 @@
  * Composition d'équipe coop (recruterLeHeros/renvoyerLeHeros + emplacements `net.slots`) :
  * point d'entrée unique de l'écran d'équipe — quota par siège, doublons, bourse, possession.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
@@ -23,7 +24,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function hero(id: string): Combatant {
-  const h: Combatant = JSON.parse(JSON.stringify(makePregens()[0]));
+  const h: Combatant = JSON.parse(JSON.stringify(makePregens(idsDeTest)[0]));
   h.id = id;
   h.label = `Héros ${id}`;
   return h;

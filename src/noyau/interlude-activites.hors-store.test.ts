@@ -5,6 +5,7 @@
  * n'en reste plus (LDB 23 l.5) ; engager un Artisanat et retirer une planque n'en consomment pas
  * (LDB 23 l.76, l.170) : seul le tirage les refuse.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
@@ -20,10 +21,10 @@ const TIRAGE_EN_ATTENTE = 'Vétéran ne peut rien entreprendre tant que les Év�
 
 /** Le héros du banc, riche et à Métier (l'Artisanat lui est ouvert). */
 function veteran() {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
   h.xp = 2000;
   if (!h.skills.some((s) => s.id === 'metier')) h.skills.push({ id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 10 });
-  return withBourseMoney(h, { gold: 20, silver: 0, brass: 0 });
+  return withBourseMoney(h, { gold: 20, silver: 0, brass: 0 }, idsDeTest);
 }
 
 /** Ce qu'une aventure précédente a laissé : une planque, un investissement, une Faveur Mineure due. */
@@ -163,7 +164,7 @@ describe('refusDuTirage — un geste qui ne consomme pas d’Activité', () => {
 describe('menerLActionDeBataille — la préparation de bataille est MENÉE par le héros nommé (ADE II 8 l.65)', () => {
   it('meneur sans Activité restante : refusé et dit, sans repli sur un autre héros, rien n’est consommé', () => {
     const veteranne = veteran();
-    const compagnon = withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Compagnon', seed: 1602 }), { gold: 1, silver: 0, brass: 0 });
+    const compagnon = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Compagnon', seed: 1602 }), { gold: 1, silver: 0, brass: 0 }, idsDeTest);
     const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [veteranne, compagnon] } });
     banc.actions.ouvrirLInterlude(1);
     draineCascade(banc.getState);

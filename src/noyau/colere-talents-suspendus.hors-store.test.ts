@@ -6,6 +6,7 @@
  * (`effectiveTalents`) ne les voit plus, une Prière de leur famille est refusée (LDB 10 l.109, l.625) ;
  * à l'échéance d'horloge, les Talents reviennent, acquis inchangés et sans PX.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { pregen, PREGEN } from '../data/pregens';
@@ -28,7 +29,7 @@ beforeEach(() => {
 
 /** Prêtre de Sigmar béni ET invocateur, avec de quoi prier. */
 function pretre(): Combatant {
-  const p = pregen(PREGEN.pretre);
+  const p = pregen(idsDeTest, PREGEN.pretre);
   acquerirTalent(p, { id: 'invocation', spec: 'sigmar' });
   const priere = p.skills.find((s) => s.id === 'priere');
   if (priere) priere.advances = Math.max(priere.advances, 5);
@@ -40,7 +41,7 @@ function pretre(): Combatant {
  *  au prêtre, les dés de durée étant `desDeDuree`. */
 function subirLaColere(p: Combatant, de: number, desDeDuree: number[]) {
   const m = rollMiscast('colere', aucunDe, PECHE, undefined, de);
-  const lignes = applyOps(p, m.ops, { rng: desEnSuite(desDeDuree), label: m.label, now: MAINTENANT, source: miscastRowSource(miscastTableId('colere'), m.rowId) });
+  const lignes = applyOps(p, m.ops, { idNeuf: idsDeTest, rng: desEnSuite(desDeDuree), label: m.label, now: MAINTENANT, source: miscastRowSource(miscastTableId('colere'), m.rowId) });
   return { m, lignes };
 }
 

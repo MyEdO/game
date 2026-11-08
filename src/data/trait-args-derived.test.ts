@@ -27,6 +27,7 @@
  * oppose les mêmes refus. Un `value` sans `indice` fait échouer cette garde en LISTANT les fautifs ; un
  * `arg` pris pour un libellé est refusé au parse (`refusDArgHorsRegistre`, `grammaire/reference.ts`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { traits, creatures, type TraitData } from './index';
 import { testScenarios } from '../scenes/test-scenarios';
@@ -53,7 +54,7 @@ interface Row { inst: RawTraitInstance; def: TraitData | undefined; where: strin
  *  d'instance qu'un scénario de test). Un projet d'éditeur reste une SOURCE de données comme un
  *  scénario ou le bestiaire : la même dérive (libellé tapé à la main au lieu de l'id) s'y produit
  *  (#146, même classe que #145/#142) — plus d'exclusion par nature de fichier. */
-const scenesToScan: Scene[] = [...testScenarios.map((s) => s.construire().scene), ...parseProject(areneProjetJson).scenes];
+const scenesToScan: Scene[] = [...testScenarios.map((s) => s.construire(idsDeTest).scene), ...parseProject(areneProjetJson).scenes];
 
 /** Statblocs D'AUTEUR des scénarios de test/projets d'éditeur — même schéma d'instance que le
  *  bestiaire (id-based), soumis au même invariant #1. Balaie

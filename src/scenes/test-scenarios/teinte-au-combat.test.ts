@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, expect, it } from 'vitest';
 import { TEINTE, scenario } from './teinte-au-combat';
 import { porteeDuCombattant } from '../../noyau/apparence/combattant';
@@ -5,7 +6,7 @@ import { piecesDeLObjet } from '../../data';
 import { spawnEnemy } from '../../noyau/monde/spawn';
 import { findCreatureById } from '../../data';
 
-const { party } = scenario.construire();
+const { party } = scenario.construire(idsDeTest);
 const lame = party.find((h) => h.id === 'lame-aethyrique')!;
 
 describe('scénario « Teinte et armure au combat » (#3456)', () => {

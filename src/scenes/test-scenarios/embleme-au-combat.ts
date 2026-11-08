@@ -1,3 +1,4 @@
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { createHero } from '../../engine/character';
 import { itemFromTrappingById, recomputeLoadout } from '../../engine/items';
 import { especeDApparence } from '../../data';
@@ -21,10 +22,10 @@ const HERO_START = { x: 3, y: 4 };
 export const EMBLEME = 'taureau-rouge';
 
 /** Le Porte-écu : épée et bouclier tenus, l'emblème de sa donnée. */
-function porteEcu(): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Porte-écu', motivation: 'Test', seed: 3253, id: 'porte-ecu' });
+function porteEcu(idNeuf: FabriqueDId): Combatant {
+  const h = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Porte-écu', motivation: 'Test', seed: 3253, id: 'porte-ecu' });
   const tenu = (id: string) => {
-    const it = itemFromTrappingById(id)!;
+    const it = itemFromTrappingById(id, idNeuf)!;
     it.equipped = true;
     return it;
   };
@@ -54,6 +55,6 @@ export const scenario: TestScenario = {
     + 'principale et le bouclier en main secondaire, et son apparence d’auteur nomme l’emblème « Tête de taureau rouge », '
     + 'posé sur la surface `blason` de l’élément qui monte le bouclier, comme à l’atelier. L’orc se compose sur la même base.',
   partyNote: 'Porte-écu (Soldat, épée et bouclier, emblème Tête de taureau rouge) · Chasseur',
-  construire: () => ({ party: [porteEcu(), pregen(PREGEN.chasseur)], scene: construireScene() }),
+  construire: (idNeuf) => ({ party: [porteEcu(idNeuf), pregen(idNeuf, PREGEN.chasseur)], scene: construireScene() }),
   autoCombat: 'enc-embleme',
 };

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { itemFromTrappingById, weaponFromItem } from '../engine/items';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -19,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * l'accordait à tort sur une défense GAGNÉE (advantageTo 'defender'). Fixe la fidélité RAW.
  */
 const chars = { 'capacite-de-combat': 50, 'capacite-de-tir': 30, force: 45, endurance: 40, initiative: 40, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-const SHIELD: Weapon = { ...weaponFromItem(itemFromTrappingById('bouclier')!), label: 'Bouclier', trappingId: 'bouclier', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'protectrice', value: 2 }] } as never;
+const SHIELD: Weapon = { ...weaponFromItem(itemFromTrappingById('bouclier', idsDeTest)!), label: 'Bouclier', trappingId: 'bouclier', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'protectrice', value: 2 }] } as never;
 const SWORD: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] } as never;
 
 function setup(defenderTalents: { talentId: string; times: number }[]): { attacker: Combatant; defender: Combatant } {

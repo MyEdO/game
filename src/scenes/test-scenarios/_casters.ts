@@ -6,6 +6,7 @@
  * « Complet » = roster DATA-DRIVEN entier de la donnée (toutes les Bénédictions ET Miracles d'un culte,
  * tous les Sorts des Domaines arcaniques) → l'IA refondue joue tout l'arsenal, pas un sous-ensemble.
  */
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { pregenParty, PREGEN } from '../../data/pregens';
 import { spells, blessingsOf, miraclesOf, findSkill, findTalent, especeDApparence } from '../../data';
 import { slugId } from '../../data/slug';
@@ -62,8 +63,8 @@ export const ARC_DOMAINS = ['Feu', 'Mort', 'Cieux', 'Bête', 'Vie'];
  * Haute Sorcière elfe MULTI-DOMAINE + Nécromancie (invocations) — arsenal arcane COMPLET (Magie mineure,
  * Arcanes communs, ses Domaines, Nécromancie). Self-contained (tire son propre pré-tiré sorcier).
  */
-export function makeSorceress(id: string, name: string, pos: { x: number; y: number }, domains: string[] = ARC_DOMAINS): Combatant {
-  const sorc = clone(pregenParty(PREGEN.sorcier)[0]);
+export function makeSorceress(idNeuf: FabriqueDId, id: string, name: string, pos: { x: number; y: number }, domains: string[] = ARC_DOMAINS): Combatant {
+  const sorc = clone(pregenParty(idNeuf, PREGEN.sorcier)[0]);
   sorc.id = id;
   sorc.label = name;
   setChars(sorc, { intelligence: 75, 'force-mentale': 70, agilite: 58, dexterite: 52, initiative: 62, endurance: 45 });
@@ -86,11 +87,11 @@ export function makeSorceress(id: string, name: string, pos: { x: number; y: num
  * Prêtre-guerrier FRÉNÉTIQUE (flagellant) : prêtre complet d'un culte + Frénésie + grande hache à deux
  * mains + Caractéristiques de combat — teste l'arbitrage IA invoquer/enchanter PUIS charger en Frénésie.
  */
-export function makeFlagellant(base: Combatant, id: string, name: string, cult: string, chars: Partial<Record<CharKey, number>>, pos: { x: number; y: number }): Combatant {
+export function makeFlagellant(idNeuf: FabriqueDId, base: Combatant, id: string, name: string, cult: string, chars: Partial<Record<CharKey, number>>, pos: { x: number; y: number }): Combatant {
   const f = makePriest(base, id, name, cult, chars);
   addTalents(f, ['Frénésie']);
   boostSkill(f, 'Corps à corps', "Armes d'hast", 'capacite-de-combat', 45);
-  const axe = itemFromTrappingById('hache-d-armes', undefined, contexteDeNaissanceDObjet(f));
+  const axe = itemFromTrappingById('hache-d-armes', idNeuf, undefined, contexteDeNaissanceDObjet(f));
   if (axe) {
     f.items = [...(f.items ?? []), axe] as ItemInstance[];
     recomputeLoadout(f);

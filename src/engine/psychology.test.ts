@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
 import { parsePsychTraits, peurTerreurFromSize, pasDePeur, psychBranchOps, isFrenzyCapable, resolveFrenzyEntry, targetedTrigger, resolveCalmeSimple, calmeDeLAnimositeAcquise, traumaOnImpossibleAmbition, effectivePsychTraits, calmeValue, sourceCombattant } from './psychology';
 import { makeRNG } from './dice';
@@ -45,7 +46,7 @@ describe('Psychologie (pur)', () => {
       id: 'c', label: 'c', kind: 'hero', characteristics: { 'force-mentale': 30 }, skills: [], talents: [], psychTraits: [], psychState: [], traits: [], groups: [],
       wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4, armour: {} as never, weapons: [],
     }) as unknown as Combatant;
-    applyOps(c, psychBranchOps({ kind: 'terreur', sourceId: 'o', indice: 3 }, { success: false }), { rng: makeRNG(2), sl: -2 });
+    applyOps(c, psychBranchOps({ kind: 'terreur', sourceId: 'o', indice: 3 }, { success: false }), { idNeuf: idsDeTest, rng: makeRNG(2), sl: -2 });
     expect(c.conditions.find((k) => k.id === 'brise')?.value).toBe(5);
     expect(c.psychState).toEqual([{ type: 'peur', sourceId: 'o', indice: 3, calmeDR: 0, surmontee: false }]);
   });

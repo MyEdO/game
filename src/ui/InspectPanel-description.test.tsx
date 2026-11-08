@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 /** #2206 — la `desc` de la fiche d'un PNJ atteint le joueur : onglet « Description » de `InspectPanel`. */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -79,7 +80,7 @@ const CITATION = ' La Peur le précède.';
  *  `chargerLeProjet` comme `poserScenario` le charge : EN CAMPAGNE sous le document `PROJET`, ou en
  *  SCÉNARIO (`projet: null`). */
 function poser(enCampagne: boolean): void {
-  const c = scenario.construire();
+  const c = scenario.construire(idsDeTest);
   const narratif = c.narratif!;
   const presetsPnj = narratif.presetsPnj.map((p) => (p.profil?.desc ? { ...p, profil: { ...p.profil, desc: p.profil.desc + CITATION } } : p));
   useGame.getState().fixerLeGroupe(c.party);
@@ -195,7 +196,7 @@ describe('InspectPanel — le geste d’inspection ouvre la fiche (geste réel, 
       el.dispatchEvent(new Event(el instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true }));
     });
     const titreDeFrise = (nom: string): HTMLElement | null => {
-      useGame.getState().fixerLeGroupe(makePregens().slice(0, 1));
+      useGame.getState().fixerLeGroupe(makePregens(idsDeTest).slice(0, 1));
       useGame.getState().chargerLeProjet({ scenes: [scene], entryId: scene.id, narratif, projet: null });
       useGame.getState().lancerLeCombat(pose.encId, undefined, { noSurprise: true });
       useGame.setState({ inspectId: null });
@@ -386,7 +387,7 @@ describe('proseDeFiche — provenance de la Description (#2206)', () => {
 describe('DoD #2206 — la Description d’un preset de `la-diligence`, portée par le projet', () => {
   it('campagne lancée par `lancerCampagne` : la desc de SON profil, rendue par `Prose` sous `narratif.presetsPnj[1].profil.desc`', () => {
     useGame.setState(useGame.getInitialState());
-    useGame.getState().fixerLeGroupe(makePregens().slice(0, 1));
+    useGame.getState().fixerLeGroupe(makePregens(idsDeTest).slice(0, 1));
     expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign))).toBeNull();
     const gustav = sceneNpc(sceneAuPreset('edo-gustav-fondleburger'), 'pnj', presetPnjById)!;
     const desc = presetPnjById('edo-gustav-fondleburger')!.profil!.desc!;
@@ -399,7 +400,7 @@ describe('DoD #2206 — la Description d’un preset de `la-diligence`, portée 
 
   it('même chemin pour `edo-mutant-terenz` (rang 14), dont la desc cite le Codex : liens armés', () => {
     useGame.setState(useGame.getInitialState());
-    useGame.getState().fixerLeGroupe(makePregens().slice(0, 1));
+    useGame.getState().fixerLeGroupe(makePregens(idsDeTest).slice(0, 1));
     expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign))).toBeNull();
     const terenz = sceneNpc(sceneAuPreset('edo-mutant-terenz'), 'pnj', presetPnjById)!;
     const desc = presetPnjById('edo-mutant-terenz')!.profil!.desc!;
@@ -433,7 +434,7 @@ describe('InspectPanel — sans prose, ni onglet ni bloc vide', () => {
   });
 
   it('un héros', () => {
-    sansOnglets(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 }));
+    sansOnglets(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 }));
   });
 });
 

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
@@ -23,7 +24,7 @@ const NET0 = { mode: 'local' as const, mySeat: 0, gmSeat: undefined, ownership: 
 
 /** Héros sorcier (Langue (Magick)) + ennemie contre-lanceuse façon Eusapia, à portée l'un de l'autre. */
 function setup() {
-  const hero = createHero({
+  const hero = createHero({ idNeuf: idsDeTest,
     speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
     careerTalent: { id: 'magie-mineure' }, seed: 707,
   });
@@ -135,7 +136,7 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
 
   it('D — Sort ENNEMI (IA) : chaque contre-lanceur héros garde SA rangée, à SON siège', () => {
     banc.getState().ensemencerLeTirage(3);
-    const w2 = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W2', careerTalent: { id: 'magie-mineure' }, seed: 101 });
+    const w2 = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W2', careerTalent: { id: 'magie-mineure' }, seed: 101 });
     w2.spells = ['flechette'];
     const { H, E } = setup();
     const b = banc.getState().battle!;

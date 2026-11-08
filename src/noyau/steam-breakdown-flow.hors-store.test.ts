@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -41,7 +42,7 @@ const entry = (id: string) => STEAM_BREAKDOWNS.find((b) => b.id === id)!;
 function steamAtSea(milesToday = 80) {
   seedBattleRng(1);
   banc.setState({
-    party: makePregens().slice(0, 3),
+    party: makePregens(idsDeTest).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null,
     worldMap: seaMap,
@@ -145,7 +146,7 @@ describe('Panne de Vapeur — déclenchée par le Test de Progression (MDG 12 l.
   it('un 99 sous une cible au-delà de 99 est une Maladresse : la table de panne est tirée', () => {
     seedBattleRng(1);
     banc.setState({
-      party: makePregens().slice(0, 3).map((h) => ({ ...h, characteristics: tableTotale(Object.keys(h.characteristics), () => 99) })),
+      party: makePregens(idsDeTest).slice(0, 3).map((h) => ({ ...h, characteristics: tableTotale(Object.keys(h.characteristics), () => 99) })),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null, worldMap: seaMap, lieu: 'A', travelPlan: null, travelRecap: null, pendingRest: null,
       pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0, pendingSteamSave: null, journal: [],

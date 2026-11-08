@@ -6,6 +6,7 @@
  * dépensé, `acted` selon l'activation, Dégâts/effets), Avantage variable du Regard (+DR → Pétrifié),
  * influence du jet d'attaquant (Résilience/Chance +1 DR).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -19,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

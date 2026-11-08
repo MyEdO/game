@@ -7,13 +7,13 @@
  * table de chaque livre y est la VOIE de ses entrées. Ces briques-ci (catalogue, modèle de lot, tirage
  * saisonnier, prix de base, Marchandage) NE SONT PAS dupliquées.
  */
+import type { FabriqueDId } from './fabriqueDId';
 import cargoesJson from '../data/cargoes.json';
 import { memoParVersion } from '../data/versionDataset';
 import { d100, rollDice, type DiceSpec, type RNG } from './dice';
 import { findTableEntryIndex } from './tables';
 import type { Season } from './travelStages';
 import type { PossessionLocation } from './possession';
-import { newUid } from './items';
 import { PA_PER_CO } from './money';
 
 /** La VOIE d'une cargaison : la table du livre qui la porte — maritime (MDG 15), terrestre et fluviale
@@ -290,7 +290,7 @@ export function carriersColocated(a: PorteurLocalise, b: PorteurLocalise): boole
  *  place LIBRE de la cible (plafond dur v1) et par le lot ; son prix est préservé, et la part séparée d'un lot
  *  qui reste chez la source naît avec son propre `uid`. Nouveaux porteurs. */
 export function transferCargo(
-  from: CargoCarrier, to: CargoCarrier, lotId: string, enc: number,
+  from: CargoCarrier, to: CargoCarrier, lotId: string, enc: number, idNeuf: FabriqueDId,
 ): { from: CargoCarrier; to: CargoCarrier; moved: number } {
   const lot = from.cargo.find((l) => l.uid === lotId);
   if (!lot || !carriersColocated(from, to)) return { from, to, moved: 0 };
@@ -299,7 +299,7 @@ export function transferCargo(
   if (!part) return { from, to, moved: 0 };
   return {
     from: { ...from, cargo: from.cargo.flatMap((l) => (l.uid === lotId ? remaining : [l])) },
-    to: { ...to, cargo: [...to.cargo, remaining.length ? { ...part, uid: newUid() } : part] },
+    to: { ...to, cargo: [...to.cargo, remaining.length ? { ...part, uid: idNeuf('it') } : part] },
     moved: part.enc,
   };
 }

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { recueillirLesRumeurs, innGatherInfoMinutes } from './innFlow';
@@ -27,7 +28,7 @@ function skill(c: Combatant, skillId: string, advances: number): void {
 }
 
 function hero(advances: number): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', seed: 11, id: 'h-artur' });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', seed: 11, id: 'h-artur' });
   skill(h, 'ragot', advances);
   return h;
 }

@@ -4,6 +4,7 @@
  * l'hôte diffuse et que l'invité applique (`appliquerLInstantane`) ; l'invité compose dans SON emplacement, et
  * l'attribution d'un emplacement lui est refusée.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { FakeTransport } from './transport.testkit';
 import { HostSession, GuestSession } from './session';
@@ -19,7 +20,7 @@ import { t } from '../../i18n';
 
 /** L'hôte (banc) d'une table à un invité au siège 1, qui remplit l'emplacement 2, relié par transport à l'invité. */
 function table() {
-  const [h1, g1] = makePregens();
+  const [h1, g1] = makePregens(idsDeTest);
   const hote = ouvrirLeBanc({ etat: { party: [h1], net: { ...initialNet(), mode: 'host', roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, slots: [0, 0, 1, 0] } } });
   // L'invité : son état de jeu, posé par chaque instantané reçu (un seul jeu se branche par test).
   const invite = { etat: { ...etatInitialDuJeu(), net: { ...initialNet(), mode: 'guest' as const, mySeat: 1, roomCode: 'ABCDEF' } } as EtatDeJeu };

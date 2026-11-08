@@ -1,3 +1,4 @@
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { makeShowcaseParty, PREGEN } from '../../data/pregens';
 import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../noyau/mapSpec';
@@ -12,8 +13,8 @@ import type { Scene } from '../../noyau/monde/scene';
 const CREW = [`pregen-${PREGEN.soldat}`, `pregen-${PREGEN.chasseur}`] as const;
 
 /** Le groupe de la vitrine, ses deux membres d'équipage postés SUR LE PONT (MSRC 07 l.78). */
-const groupe = (): Combatant[] =>
-  makeShowcaseParty().map((h) => (CREW.includes(h.id as (typeof CREW)[number]) ? { ...h, shipStation: 'pont' } : h));
+const groupe = (idNeuf: FabriqueDId): Combatant[] =>
+  makeShowcaseParty(idNeuf).map((h) => (CREW.includes(h.id as (typeof CREW)[number]) ? { ...h, shipStation: 'pont' } : h));
 
 /**
  * Embuscade fluviale (Mort sur le Reik – Compagnon, ch.5 + ch.12-13) — vitrine JOUABLE de la chaîne de
@@ -76,6 +77,6 @@ export const scenario: TestScenario = {
     'moteur naval MDG ; équipage exposé lié (crewIds) → Éclats/critique « Équipage » sur de vrais pirates ; ' +
     'bestiaire ch.13 : Anguille du Reik (Constricteur, Morsure +8, Taille Grande).',
   partyNote: 'Groupe d’arène ; 2 héros sont l’équipage exposé de la barge (Éclats / Test d’Initiative de pont)',
-  construire: () => ({ party: groupe(), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: groupe(idNeuf), scene: construireScene() }),
   autoCombat: 'enc-fluvial',
 };

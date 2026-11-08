@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { applyCriticalToTarget, aiHandGate } from './combatFlow';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -32,7 +33,7 @@ describe('op disarm d’un Critique : ses lignes vont au journal (applyCriticalT
 
   it('héros : la modale reprend la ligne de disarm, pas celle des Blessures que son bandeau résume', () => {
     seedBattleRng(1);
-    const heros = mk({ id: 'h', label: 'Héros', kind: 'hero', items: [{ ...itemFromTrappingById('arme-simple')!, uid: 'w1', equipped: true }], loadouts: [{ id: 'l1', main: 'w1' }] as never, activeLoadoutId: 'l1' });
+    const heros = mk({ id: 'h', label: 'Héros', kind: 'hero', items: [{ ...itemFromTrappingById('arme-simple', idsDeTest)!, uid: 'w1', equipped: true }], loadouts: [{ id: 'l1', main: 'w1' }] as never, activeLoadoutId: 'l1' });
     recomputeLoadout(heros);
     const crit = resolveCritique('ldb', heros, 'brasD', seq(5), { overkill: 0 });
     const log: string[] = [];

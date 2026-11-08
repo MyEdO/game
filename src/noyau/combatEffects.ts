@@ -28,7 +28,8 @@ import { restoreFortune } from '../engine/fortune';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { traumaOnImpossibleAmbition } from '../engine/psychology';
 import { grantPsychTrait } from '../engine/grantedTraits';
-import { contexteDeNaissanceDObjet, itemFromGive, giveTrappingLabel, avecObjet, newUid, type TrappingResolver } from '../engine/items';
+import type { FabriqueDId } from '../engine/fabriqueDId';
+import { contexteDeNaissanceDObjet, itemFromGive, giveTrappingLabel, avecObjet, type TrappingResolver } from '../engine/items';
 import type { IdDeLigneDeButin } from './designations';
 import { documentDuNarratif, indiceDuNarratif, objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { revealClue, discreditClue } from './monde/clues';
@@ -238,11 +239,11 @@ function enFlowDeDeclencheur(trig: Trigger): Flow {
 /** Sépare d'un lot d'Effets les giveTrapping ATTRIBUABLES (sans heroId) → lignes de butin
  *  « qui l'emporte ? ». Brique partagée écran de victoire / fenêtre de loot. Un giveTrapping
  *  AVEC heroId est un don d'auteur ciblé : il reste dans `rest` et s'applique directement. */
-export function gearFromEffects(effects: Effect[], objetDe: TrappingResolver): { gear: LootGear[]; rest: Effect[] } {
+export function gearFromEffects(effects: Effect[], objetDe: TrappingResolver, idNeuf: FabriqueDId): { gear: LootGear[]; rest: Effect[] } {
   const gear: LootGear[] = [];
   const rest: Effect[] = [];
   for (const e of effects) {
-    if (e.type === 'giveTrapping' && !e.heroId) gear.push({ uid: newUid(), label: giveTrappingLabel(e, objetDe), magic: !!e.qualities?.length || e.identified === false, effect: e });
+    if (e.type === 'giveTrapping' && !e.heroId) gear.push({ uid: idNeuf('it'), label: giveTrappingLabel(e, objetDe), magic: !!e.qualities?.length || e.identified === false, effect: e });
     else rest.push(e);
   }
   return { gear, rest };
@@ -255,7 +256,7 @@ export function gearFromEffects(effects: Effect[], objetDe: TrappingResolver): {
  *  strictement équivalent à applyEffects. Fenêtre déjà ouverte → le butin s'y AJOUTE. */
 export function applyEffectsLoot(get: Get, set: SetFn, effects: Effect[], title: string, sl?: number): Applique {
   if (get().battle) return applyEffects(get, set, effects, sl);
-  const { gear, rest } = gearFromEffects(structuredClone(effects), objetDuNarratif(get().campaignNarratif)); // #2097
+  const { gear, rest } = gearFromEffects(structuredClone(effects), objetDuNarratif(get().campaignNarratif), get().forgerUnId); // #2097
   // #2689
   const differe = applyEffects(get, set, rest, sl, title);
   if (differe) {
@@ -582,6 +583,7 @@ export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte, cible: Comba
   return {
     ...porte.gele,
     rng: battleRng(),
+    idNeuf: get().forgerUnId,
     onCorruption: (n, align) => gainCorruption(get, set, cible, n, align),
     ...campAdvantageHooks(get),
     ...(porte.creditAdverse && caster ? { onOpposingAdvantage: (n: number) => creditOpposingAdvantage(get, caster, n) } : {}),
@@ -1504,7 +1506,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Objet de CATALOGUE (`trappingId`) sinon objet CUSTOM (`custom`, misc) — source unique itemFromGive.
       // Résolveur campagne-D'ABORD (`objetDuNarratif`) : un objet de `narratif.objets` gagne (#767).
       const destinataire = env.hero(e.heroId);
-      const it = itemFromGive(e, undefined, objetDuNarratif(env.get().campaignNarratif), destinataire ? contexteDeNaissanceDObjet(destinataire) : undefined);
+      const it = itemFromGive(e, env.get().forgerUnId, undefined, objetDuNarratif(env.get().campaignNarratif), destinataire ? contexteDeNaissanceDObjet(destinataire) : undefined);
       // Butin MAGIQUE (optionnel) : qualités ajoutées, objet non identifié (qualités masquées jusqu'à
       // Évaluation, #2), teinte légendaire. Les qualités restent ACTIVES mécaniquement (registre).
       if (e.identified === false) it.identified = false;
@@ -1656,7 +1658,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const base = { rng: battleRng(), sl: env.sl };
       const e = bougerLaBourseDuGroupe(env, feuilleAuthoree, base.rng);
       if (!e) return;
-      if (on === 'navire') { appliquerAuNavire(env.get, env.set, e, { ...base, label: e.label ?? env.label }).forEach((l) => env.log(l)); return; }
+      if (on === 'navire') { appliquerAuNavire(env.get, env.set, e, { idNeuf: env.get().forgerUnId, ...base, label: e.label ?? env.label }).forEach((l) => env.log(l)); return; }
       if (typeof on === 'object' && 'volontaires' in on) throw new Error(t('eff.volontairesHorsFlow', { question: on.volontaires }));
       const targets = on === 'membreAuHasard' ? membreDuBordAuHasard(env.get, base.rng)
         : typeof on === 'object' ? marinsDuRole(env.targets('party'), on.role.id) : env.targets(on, e.heroId);
@@ -1672,7 +1674,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // à la résolution de son dé. Les autres s'appliquent normalement, dans l'ordre des cibles.
       const lines: string[] = [];
       for (const c of targets) {
-        const issue = applyLeafOps(env.get, env.set, c, feuille, { ...base, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get) });
+        const issue = applyLeafOps(env.get, env.set, c, feuille, { idNeuf: env.get().forgerUnId, ...base, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get) });
         if (issue !== OPS_DIFFEREES) lines.push(...issue);
       }
       env.set(touchActors(env.get()));
@@ -1712,7 +1714,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Hors combat, `applyOps` a muté les CLONES → on ré-applique aux héros réels par id.
       const lines = targets.flatMap((c) => {
         const real = inBattle ? c : env.get().party.find((h) => h.id === c.id) ?? c;
-        return applyOps(real, e.ops, { rng: battleRng() });
+        return applyOps(real, e.ops, { idNeuf: env.get().forgerUnId, rng: battleRng() });
       });
       env.set(touchActors(env.get()));
       env.log(t('eff.blast', { lines: lines.join(' · ') }));
@@ -1954,7 +1956,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       });
       if (!cible) return;
       const apres = { ...cible };
-      const lines = applyOps(apres, [{ op: 'sinMod', amount }], { rng: battleRng() });
+      const lines = applyOps(apres, [{ op: 'sinMod', amount }], { idNeuf: env.get().forgerUnId, rng: battleRng() });
       env.mutateHero(cible.id, (h) => ({ ...h, sinPoints: apres.sinPoints }));
       for (const l of lines) env.log(l);
     },

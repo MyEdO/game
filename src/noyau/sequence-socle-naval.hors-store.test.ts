@@ -12,6 +12,7 @@
  *     (coque, sillage en mètres, deux camps) déroule DEUX manches par la structure — cycle,
  *     accumulateur par camp, persistance entre les manches, borne, issue.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -156,7 +157,7 @@ beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [NAV
 
 describe('Structure d’orchestrateur — instanciable par une crise NAVALE (2 manches déroulées)', () => {
   beforeEach(() => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Barreur', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Barreur', seed: 1 });
     banc.setState({ battle: null, party: [h], journal: [], pendingCascade: null, sequence: null });
     banc.getState().ensemencerLeTirage(9);
   });

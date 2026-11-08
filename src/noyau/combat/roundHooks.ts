@@ -240,7 +240,7 @@ export const TABLES = {
       order: 10,
       run: ({ get, set, battle, sink }) => {
         for (const c of battle.combatants) {
-          endOfRound(c, battleRng()).forEach((l) => sink(l, c)); // machinerie : ops récurrentes + décrément des durées
+          endOfRound(c, battleRng(), get().forgerUnId).forEach((l) => sink(l, c)); // machinerie : ops récurrentes + décrément des durées
           // Dispatch UNIQUE des effets `onRoundEnd` (États : dégâts/dissipation ; Traits/Talents : réactions) —
           // fireTriggers réunit toutes les sources, aucun chemin par-kind. Inerte sans donnée. Pas de réaction
           // de fin de Round pour un combattant HORS COMBAT (un cadavre ne brûle/saigne plus — le dispatcher
@@ -424,7 +424,7 @@ export const TABLES = {
       id: 'zones-round-tick', // zones perRound (Grands feux d'U'Zhul, LDB 47 : « au début d'un Round »)
       phase: 'onRoundEnd',
       order: 79,
-      run: ({ battle, sink }) => { zonesRoundTick(battle.zones, battle.combatants, battleRng()).forEach((t) => sink(t.line, t.combatant)); },
+      run: ({ get, battle, sink }) => { zonesRoundTick(battle.zones, battle.combatants, battleRng(), get().forgerUnId).forEach((t) => sink(t.line, t.combatant)); },
     },
     {
       id: 'clear-psych-of-dead', // afflictions causées par une créature hors d'action → fin (toutes causes) ; #3045

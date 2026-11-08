@@ -12,6 +12,7 @@
  * On vérifie aussi l'invariant de SYMÉTRIE : un héros MANUEL passé par `jetValider('cast')` sur une ZdE non posée
  * RESTE en pose (attend le clic réel) — `jetValider('cast')` n'auto-pose QUE pour un lanceur `aiDriven`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { spawnEnemy } from './monde/spawn';
@@ -30,7 +31,7 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
 
   /** Un héros LANCEUR (Langue (Magick)) capable de Dissiper, posé en (x,y). */
   function dispeller(x: number, y: number, id: string): Combatant {
-    const h = pregen(PREGEN.sorcier);
+    const h = pregen(idsDeTest, PREGEN.sorcier);
     h.id = id; h.label = id; h.pos = { x, y };
     h.wounds = blessuresDeBase(99, 99, h);
     const sk = h.skills.find((s) => s.id === 'langue');

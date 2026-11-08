@@ -4,6 +4,7 @@
  * État (`degatsDeLEtatIgnores`). Immunité (Magie flamboyante) : Domaine du Feu, `immuneToSpellDomain`, lu
  * aussi par les zones persistantes (`zoneSansEffetSur`). ZI 08 l.28 ; VDM 10 l.153 ; VDM 13 l.24.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { runCombatHooks, type CombatHookCtx } from './combatHooks';
@@ -32,7 +33,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const immunitesDe = (id: string) => creatureToCombatant(findCreatureById(id)!, id, { x: 0, y: 0 }).traits!.filter((t) => t.id === 'immunite');
 
 function setup() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
@@ -158,15 +159,15 @@ function zoneDuSort(spellId: string, tiles: Pt[]): BattleZone {
 const creature = (id: string, pos: Pt): Combatant => creatureToCombatant(findCreatureById(id)!, id, pos);
 
 describe('Immunité (Magie flamboyante) — zones persistantes du Domaine du Feu (ZI 08 l.28)', () => {
-  const lanceur = () => { const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'L', seed: 1 }); h.characteristics['force-mentale'] = 90; return h; };
+  const lanceur = () => { const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'L', seed: 1 }); h.characteristics['force-mentale'] = 90; return h; };
 
   it('Mur de feu traversé : le grand taurus ne subit rien, le basilic brûle', () => {
     const mur = [zoneDuSort('mur-de-feu', [{ x: 1, y: 0 }])];
     const taurus = creature('grand-taurus', { x: 0, y: 0 });
     const basilic = creature('basilic', { x: 0, y: 0 });
     const avant = { taurus: taurus.wounds.current, basilic: basilic.wounds.current };
-    crossZones(mur, taurus, [{ x: 1, y: 0 }], lanceur, makeRNG(1));
-    crossZones(mur, basilic, [{ x: 1, y: 0 }], lanceur, makeRNG(1));
+    crossZones(mur, taurus, [{ x: 1, y: 0 }], lanceur, makeRNG(1), idsDeTest);
+    crossZones(mur, basilic, [{ x: 1, y: 0 }], lanceur, makeRNG(1), idsDeTest);
     expect(taurus.wounds.current).toBe(avant.taurus);
     expect(hasCondition(taurus, COND.enFlammes)).toBe(false);
     expect(basilic.wounds.current).toBeLessThan(avant.basilic);
@@ -178,7 +179,7 @@ describe('Immunité (Magie flamboyante) — zones persistantes du Domaine du Feu
     const taurus = creature('grand-taurus', { x: 1, y: 0 });
     const basilic = creature('basilic', { x: 2, y: 0 });
     const avant = { taurus: taurus.wounds.current, basilic: basilic.wounds.current };
-    const lignes = zonesRoundTick(feux, [taurus, basilic], makeRNG(1));
+    const lignes = zonesRoundTick(feux, [taurus, basilic], makeRNG(1), idsDeTest);
     expect(lignes.filter((l) => l.combatant === taurus)).toEqual([]);
     expect(taurus.wounds.current).toBe(avant.taurus);
     expect(hasCondition(taurus, COND.enFlammes)).toBe(false);

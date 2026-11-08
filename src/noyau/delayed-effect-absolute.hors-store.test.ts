@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects, fireScheduledEffects } from './combatEffects';
@@ -45,7 +46,7 @@ describe('delayedEffect — échéance en JOURS via le store réel', () => {
   beforeEach(() => banc.setState({ battle: null, flags: {}, scheduledEffects: [], gameTime: 5 * MINUTES_PER_DAY + 8 * 60 }));
 
   function lonePartyAt(wounds: number) {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     h.wounds = blessuresDeBase(wounds, wounds, h);
     banc.setState({ party: [h] });
     return h;

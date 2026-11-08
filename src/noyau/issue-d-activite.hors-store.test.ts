@@ -3,6 +3,7 @@
  * (`FLOWS.activity.outcomeOf`) d'un Test simple ouvert par l'interlude, le dé posé par l'option des dés fixés
  * (`jetImposerLeResultat`). La cible est bornée à 01-99 par la ligne du jet ; seules les bandes départagent le dé.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
@@ -16,7 +17,7 @@ import { FLOWS } from './rollFlowSpecs';
 /** Le Test de Revenus d'un héros dont chaque Caractéristique vaut `valeur`, Exténué de `extenue`, jeté puis fixé à `de`. */
 function revenusAuDe(valeur: number, extenue: number, de: number) {
   const banc = ouvrirLeBanc({ desFixes: true });
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1, manualChars: tableTotale(CHAR_KEYS, () => valeur) });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1, manualChars: tableTotale(CHAR_KEYS, () => valeur) });
   if (extenue) addCondition(h, 'extenue', extenue);
   banc.setState({ party: [h], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, journal: [] });
   banc.getState().lancerLaScene(testScene());

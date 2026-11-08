@@ -3,6 +3,7 @@
  * déclaré, le texte que tout verbe du slot `pid` dit en se refusant (`spec.multi.refusDuSlot`), `null` s'il se joue ou
  * sans `pid`. Témoin : le Contre-sort (LDB 46 l.156), dont la rangée se refuse une fois le sort dissipé par un autre.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { FLOW_HANDLERS } from './rollFlowSpecs';
@@ -18,7 +19,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('refusDuSlot — le refus de la rangée, lu par la poignée du flux', () => {
   function setup() {
     const mk = (name: string, seed: number) => {
-      const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: name, careerTalent: { id: 'magie-mineure' }, seed });
+      const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: name, careerTalent: { id: 'magie-mineure' }, seed });
       h.resilience = 2; h.fortune = 2; h.corruption = 0;
       return h;
     };

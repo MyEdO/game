@@ -5,6 +5,7 @@
  * détermine quel type d'attaque de Souffle correspond le mieux à votre Talent Magie des Arcanes. »
  * — délégué à l'attaque de ZONE du trait (applyAreaAttack), centrée sur la cible du sort.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyCast, castSpell } from './combatFlow';
@@ -20,7 +21,7 @@ const okRes = (sl: number): CastResult => ({ cast: true, roll: 30, target: 70, s
 
 describe('Souffle — délégation à l’attaque de zone du Trait (LDB 47 l.509)', () => {
   function setup() {
-    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
+    const W = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
     banc.setState({ party: [W] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

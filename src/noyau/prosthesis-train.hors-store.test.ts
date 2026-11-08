@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { itemFromTrappingById } from '../engine/items';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -9,7 +10,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const legSequela = { label: 'Membre inférieur amputé (jambeD)', location: 'jambeD' as const, ops: [{ op: 'moveScale' as const, num: 1, den: 2 }, { op: 'skillMod' as const, skill: { id: 'esquive' }, mod: -20 }], prosthesis: [{ id: 'fausse-jambe', cancels: 'movement' as const }] };
-const fausseJambe = (over: Partial<ItemInstance> = {}): ItemInstance => ({ ...itemFromTrappingById('fausse-jambe')!, uid: 'fj', equipped: true, ...over });
+const fausseJambe = (over: Partial<ItemInstance> = {}): ItemInstance => ({ ...itemFromTrappingById('fausse-jambe', idsDeTest)!, uid: 'fj', equipped: true, ...over });
 
 const hero = (p: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
@@ -94,7 +95,7 @@ describe('entrainerLaProthese — rachat PX en 2 paliers de la Fausse jambe (LDB
    *  Tests impliquant deux mains pour 100 PX pour chaque tranche de 5, soustraite de la pénalité, retirant
    *  la pénalité entière pour 400 PX ». 4 paliers DÉCLARÉS (`TrappingData.prosthesisTraining`). */
   it('Crochet : chaque tranche de 100 PX rachète 5 points de la pénalité de main perdue', () => {
-    const crochet: ItemInstance = { ...itemFromTrappingById('crochet')!, uid: 'cr', equipped: true };
+    const crochet: ItemInstance = { ...itemFromTrappingById('crochet', idsDeTest)!, uid: 'cr', equipped: true };
     const main = { uid: 't0', label: 'Main', traumaId: 'main-bras-ampute', location: 'brasD' as const, ops: [{ op: 'maxWeaponHands' as const, hands: 1 }] };
     const arme = { label: 'Épée', hands: 1, hand: 'main' } as never;
     const h = hero({ id: 'a', xp: 500, traumas: [main], items: [crochet] });
@@ -108,7 +109,7 @@ describe('entrainerLaProthese — rachat PX en 2 paliers de la Fausse jambe (LDB
   });
 
   it('Crochet : les 4 tranches (400 PX) retirent la pénalité ENTIÈRE et rétablissent les armes à deux mains', () => {
-    const crochet: ItemInstance = { ...itemFromTrappingById('crochet')!, uid: 'cr', equipped: true };
+    const crochet: ItemInstance = { ...itemFromTrappingById('crochet', idsDeTest)!, uid: 'cr', equipped: true };
     const arme = { label: 'Épée', hands: 1, hand: 'main' } as never;
     const h = hero({ id: 'a', xp: 500, traumas: [{ uid: 't1', label: 'Main', traumaId: 'main-bras-ampute', location: 'brasD', ops: [{ op: 'maxWeaponHands' as const, hands: 1 }] }], items: [crochet] });
     banc.setState({ party: [h] });

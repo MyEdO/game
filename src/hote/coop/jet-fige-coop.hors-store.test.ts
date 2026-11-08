@@ -5,6 +5,7 @@
  * masqué chez l'invité (`jetFigeRevele`), dans la fenêtre comme dans ses jets en vue (`jetsEnVue`) ; après, les deux côtés
  * voient la même ligne. En Défense, puis au Contre-sort.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { FakeTransport } from './transport.testkit';
 import { HostSession, GuestSession } from './session';
@@ -99,7 +100,7 @@ describe('Test opposé à jet figé en coop : masqué chez l’invité avant sa 
   });
 
   it('Contre-sort du héros de l’invité contre le sort que l’hôte jette au siège MJ', () => {
-    const L = pregen(PREGEN.sorcier);
+    const L = pregen(idsDeTest, PREGEN.sorcier);
     L.id = 'L'; L.label = 'L';
     const banc = ouvrirLeBanc({ desFixes: true, etat: { party: [L], net: NET('host', 0, 'L') } });
     banc.getState().lancerLaScene(testScene());

@@ -3,6 +3,7 @@
  * ¼ prix, achèvement → objet avec qualités), Opérations bancaires (invest/planque), blocages
  * d'événements par Classe.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
@@ -28,7 +29,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 describe('Activités d’interlude (LDB 23)', () => {
   beforeEach(() => {
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ party: [a] });
     banc.getState().lancerLaScene(testScene());
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, fromBrass(2000));
@@ -531,7 +532,7 @@ describe('Activités d’interlude (LDB 23)', () => {
 describe('#1874 C0 — Crampes abdominales hors combat : À Terre sur le MALADE, pas sur le groupe', () => {
   beforeEach(() => {
     const party = [1, 2, 3, 4].map((i) => ({
-      ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i }),
+      ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i }),
       id: `h${i}`,
     }));
     banc.setState({ party });

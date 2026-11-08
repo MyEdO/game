@@ -3,6 +3,7 @@
  * la chaîne (anti-backtracking), et producteurs des drapeaux que la carte et la clôture lisent.
  * Aucune donnée de fixture — la campagne committée est le sujet.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { makePregens } from '../../data/pregens';
@@ -17,7 +18,7 @@ import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
 
 let banc: Banc;
 // Le groupe qui part : un pré-tiré (un groupe vide ne se lance pas, `refusDeLancer`).
-beforeEach(() => { banc = ouvrirLeBanc({ etat: { party: makePregens().slice(0, 1) } }); });
+beforeEach(() => { banc = ouvrirLeBanc({ etat: { party: makePregens(idsDeTest).slice(0, 1) } }); });
 
 /** Désigne le sosie (EDO 02 l.91) puis ferme chaque document remis (EDO 02 l.93-95), comme le joueur : la suite du
  *  geste se joue après. */

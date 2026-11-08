@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { t } from '../i18n';
@@ -15,7 +16,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 describe('Désengagement après avoir attaqué (option A — LDB 15 l.47)', () => {
   it('héros Engagé ayant DÉJÀ agi peut se désengager en sacrifiant l’Avantage', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
     banc.getState().ensemencerLeTirage(3);
     banc.getState().lancerLaScene(testScene());

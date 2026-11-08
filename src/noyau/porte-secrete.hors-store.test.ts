@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import {
   doorAt, doorKey, emptyScene, porteAuteur, porteEnJeu, porteMasquee, porteNonSecrete, porteRevelee, secretAuteur, secretKey,
@@ -152,7 +153,7 @@ describe('porte secrète — enrôlement de sa Structure au combat (AA 10 l.94-1
     const s = structuredClone(testScene());
     s.walls = [{ x: 2, y: 2, side: 'E', door: true, closed: true, secret: SECRET, structure: 'solide-porte-en-bois' }];
     banc.getState().ensemencerLeTirage(1);
-    banc.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })] });
+    banc.setState({ party: [createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })] });
     banc.getState().lancerLaScene(reveler ? setDoorRevealed(s, 2, 2, 'E', 0, true) : s);
     banc.getState().lancerLeCombat('enc-mutants');
     return banc.getState().battle!.combatants.filter((c) => c.bodyShape === 'structure').length;

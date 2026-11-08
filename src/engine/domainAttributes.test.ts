@@ -1,6 +1,7 @@
 /**
  * Attributs de Domaine (LDB 48, intros des 8 Couleurs — L14). Citations dans domainAttributes.ts.
  */
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { Combatant, ItemInstance } from './types';
 import type { RNG } from './dice';
@@ -19,7 +20,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
  *  les vues d'acteur du lanceur/cible). `caster` adverse = camp ≠ (hero vs enemy). `domainId` = id STABLE. */
 const applyDomain = (caster: Combatant, target: Combatant, domainId: string, rng: RNG = seq([])): string[] => {
   const lines: string[] = [];
-  for (const eff of domainOnHitEffects({ domainId })) lines.push(...runPureFlowLines(target, caster, eff.flow, { rng, caster }));
+  for (const eff of domainOnHitEffects({ domainId })) lines.push(...runPureFlowLines(target, caster, eff.flow, { idNeuf: idsDeTest, rng, caster }));
   return lines;
 };
 
@@ -241,7 +242,7 @@ describe('Magie des mers (MDG 02 l.178-186) — 4 Domaines, seaModifier (DomainD
 describe('Bete — Peur 1 pour 1d10 Rounds apres un Sort de la Bete reussi (LDB 48 l.9)', () => {
   it('pose le Trait peur (value 1) + activeEffect (scale rounds, left = de tire) via applyOps', () => {
     const w = mk({ id: 'w', traits: [] });
-    const lines = domainCasterOps(w, { domainId: 'bete' }, seq([7]));
+    const lines = domainCasterOps(w, { domainId: 'bete' }, seq([7]), idsDeTest);
     expect(w.traits).toContainEqual({ id: 'peur', value: 1 });
     expect(w.activeEffects?.[0]).toMatchObject({
       grantedTrait: { id: 'peur', value: 1 },
@@ -251,7 +252,7 @@ describe('Bete — Peur 1 pour 1d10 Rounds apres un Sort de la Bete reussi (LDB 
   });
   it('aucun effet pour un Domaine sans casterOps', () => {
     const w = mk({ id: 'w' });
-    expect(domainCasterOps(w, { domainId: 'feu' }, seq([7]))).toEqual([]);
+    expect(domainCasterOps(w, { domainId: 'feu' }, seq([7]), idsDeTest)).toEqual([]);
   });
 });
 

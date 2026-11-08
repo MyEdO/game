@@ -15,6 +15,7 @@
  * toutes deux réelles : un INVITÉ qui possède un héros (`ownership`) et le siège MJ (`gmSeat`) qui
  * conduit les ennemis (bac-à-sable — `sieges.seatOwns`/`jetSurfaced`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
@@ -45,7 +46,7 @@ const g = () => banc.getState();
  * possession posée n'est pas la même).
  */
 function setupCoop(opts: { gmSeat?: number; vivants?: number } = {}): { H: Combatant; E: Combatant[] } {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');

@@ -11,6 +11,7 @@
  * Les DEUX régimes du chapitre coexistent : ce fichier mesure ce que la règle CHANGE (le jeu perd ses
  * règles propres et se résout en UN Test opposé) et ce qu'elle ne change pas quand elle est éteinte.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
@@ -29,7 +30,7 @@ const get = () => banc.getState();
 
 /** Un héros seul à la table, face à un adversaire de la salle. */
 function seul(): Combatant {
-  const a = makePregens()[0] as Combatant;
+  const a = makePregens(idsDeTest)[0] as Combatant;
   banc.setState({ battle: null, party: [a], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   return get().party[0];
 }

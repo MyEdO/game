@@ -1,3 +1,4 @@
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { makeShowcaseParty, pregenParty, PREGEN } from '../../data/pregens';
 import { mutationAt } from '../../data/mutations';
 import { battleRng } from '../../noyau/battleRng';
@@ -31,9 +32,9 @@ function mutate(c: Combatant, rolls: number[]): Combatant {
   return c;
 }
 
-function groupe(): Combatant[] {
-  const heroes = makeShowcaseParty().map((c, i) => mutate(c, LOTS[i] ?? [])); // 4 héros mutés
-  const ans = pregenParty(PREGEN.pretre)[0];
+function groupe(idNeuf: FabriqueDId): Combatant[] {
+  const heroes = makeShowcaseParty(idNeuf).map((c, i) => mutate(c, LOTS[i] ?? [])); // 4 héros mutés
+  const ans = pregenParty(idNeuf, PREGEN.pretre)[0];
   const shallya = makePriest(ans, 'h-shallya', 'Sœur Greta, Prêtresse de Shallya', 'shallya', { sociabilite: 66, 'force-mentale': 60, force: 40, endurance: 44 });
   return [...heroes, shallya];
 }
@@ -96,6 +97,6 @@ export const scenario: TestScenario = {
     '(Griffon), statblocs d’auteur (Pieuvre 8-tentacules, Sorcier mutant lanceur, Squelette facultatif Élite + ' +
     'Caractéristiques aléatoires), 19 mutations physiques sur les héros (calques/morpho/portraits), Psychologie.',
   partyNote: '4 pré-tirés MUTÉS (19 mutations) + Sœur Greta, Prêtresse de Shallya (purge)',
-  construire: () => ({ party: groupe(), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: groupe(idNeuf), scene: construireScene() }),
   autoCombat: 'enc-bestiaire',
 };

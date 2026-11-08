@@ -12,6 +12,7 @@
  * Ce fichier PROMEUT en contrat les sondes du juge du lot : la matrice des Tests de mer, le mono
  * qu'aucun humain ne tient (qui bloquait la cascade), et la bande que personne ne tient.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { tableTotale } from '../lib/tableTotale';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -58,7 +59,7 @@ function traversee(cadence: 'commande' | 'jour-par-jour', mode: 'sea' | 'river' 
 }
 
 beforeEach(() => {
-  set({ battle: null, party: makePregens().slice(0, 3), pendingCascade: null, suspendedCascades: [], travelPlan: null, journal: [] } as never);
+  set({ battle: null, party: makePregens(idsDeTest).slice(0, 3), pendingCascade: null, suspendedCascades: [], travelPlan: null, journal: [] } as never);
   set({ net: { ...NET0, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} } } as never);
 });
 

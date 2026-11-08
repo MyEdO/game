@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { vehicleCombatant } from '../engine/vehicle';
 import { shipHitLocation } from '../engine/combat';
@@ -36,7 +37,7 @@ describe('Modèle naval — chaîne complète rig → localisation → Critique 
     expect(crit.ops).toEqual([{ op: 'condition', id: 'voie-d-eau', value: 4 }]);
 
     // 3) L'appelant applique l'effet (langue unique) → l'État NAVAL data-driven se pose sur le navire.
-    applyOps(ship, crit.ops, { rng: desDuTest });
+    applyOps(ship, crit.ops, { idNeuf: idsDeTest, rng: desDuTest });
     expect(stacks(ship, 'voie-d-eau')).toBe(4);
 
     // 4) Chaque Round (endOfRound commun), l'Indice grossit le cumul d'Inondation ; aux seuils relatifs à

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { cleaveTargets, doAttack, autoCleave } from './combatFlow';
@@ -58,7 +59,7 @@ describe('Balayage en combat (store)', () => {
   /** Prépare un combat enc-mutants avec `nHeroes` héros, puis renvoie le state. */
   function setupBattle(nHeroes: number) {
     const party = Array.from({ length: nHeroes }, (_, i) =>
-      createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }),
+      createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }),
     );
     banc.setState({ party });
     banc.getState().lancerLaScene(testScene());

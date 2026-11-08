@@ -18,6 +18,7 @@
 import { Combatant } from '../engine/types';
 import { statutDeDonnee, type Money } from '../engine/money';
 import { createHero, fluxDeCreation, type ChoixDeCreation } from '../engine/character';
+import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { ChoixDesPretires } from './schemas/defs/pregens';
 import { rollInitialWealth, pettySpellQuotaFor, fillPettySpellsToQuota } from '../engine/creation';
 import { levelsForCareer, pregens } from './index';
@@ -46,7 +47,7 @@ export interface PregenDef extends Pick<ChoixDeCreation, ChoixDesPretires> {
  *  complète les Sorts de Magie mineure au quota BFM (`pettySpellQuotaFor`/`fillPettySpellsToQuota`,
  *  engine) — APPEND uniquement : les Bénédictions du Talent Béni, déjà octroyées par
  *  `applyTalentAcquisition` dans `createHero`, ne sont JAMAIS écrasées. */
-function buildPregenHero(d: PregenDef): Combatant {
+function buildPregenHero(d: PregenDef, idNeuf: FabriqueDId): Combatant {
   const { id: _id, type: _type, label, species, career, motivation, ambitionShort, ambitionLong, age, sex, ...choix } = d;
   const authoredIds = choix.pettySpells ?? [];
   const hero = createHero({
@@ -55,6 +56,7 @@ function buildPregenHero(d: PregenDef): Combatant {
     careerId: career,
     label,
     id: `pregen-${d.seed}`,
+    idNeuf,
     details: { age, ambitionShort, ambitionLong },
     motivation,
     apparence: { sex: sex ?? 'M' },
@@ -74,8 +76,8 @@ function buildPregenHero(d: PregenDef): Combatant {
 
 /** Le pré-tiré `d` et sa Richesse initiale (LDB 05 l.578, tirée par `rollInitialWealth` — même formule et même flux,
  *  `fluxDeCreation(seed, 'bourse')`, que le créateur). */
-export function pretireAvecRichesse(d: PregenDef): { id: string; hero: Combatant; wealth: Money } {
-  const hero = buildPregenHero(d);
+export function pretireAvecRichesse(d: PregenDef, idNeuf: FabriqueDId): { id: string; hero: Combatant; wealth: Money } {
+  const hero = buildPregenHero(d, idNeuf);
   const level = levelsForCareer(d.career).find((l) => l.level === 1);
   if (!level) throw new Error(`Pré-tiré « ${d.label} » : aucun Niveau 1 pour la carrière « ${d.career} ».`);
   return { id: d.id, hero, wealth: rollInitialWealth(statutDeDonnee(level.status), fluxDeCreation(d.seed, 'bourse')).montant };
@@ -83,11 +85,11 @@ export function pretireAvecRichesse(d: PregenDef): { id: string; hero: Combatant
 
 /** Fabrique tous les pré-tirés + leur Richesse initiale (`pretireAvecRichesse`). Résilient : un pré-tiré fautif est
  *  ignoré plutôt que de faire planter l'écran. */
-export function makePregensWithWealth(): { id: string; hero: Combatant; wealth: Money }[] {
+export function makePregensWithWealth(idNeuf: FabriqueDId): { id: string; hero: Combatant; wealth: Money }[] {
   const out: { id: string; hero: Combatant; wealth: Money }[] = [];
   for (const d of pregens) {
     try {
-      out.push(pretireAvecRichesse(d));
+      out.push(pretireAvecRichesse(d, idNeuf));
     } catch (e) {
       console.error(`Pré-tiré « ${d.label} » ignoré :`, e);
     }
@@ -97,8 +99,8 @@ export function makePregensWithWealth(): { id: string; hero: Combatant; wealth: 
 
 /** Les pré-tirés SANS leur Richesse — la plupart des consommateurs (scénarios, tests de combat) ne
  *  s'en soucient pas ; `PartyScreen` (recrutement, créditant la bourse) utilise `makePregensWithWealth`. */
-export function makePregens(): Combatant[] {
-  return makePregensWithWealth().map((e) => e.hero);
+export function makePregens(idNeuf: FabriqueDId): Combatant[] {
+  return makePregensWithWealth(idNeuf).map((e) => e.hero);
 }
 
 /**
@@ -131,22 +133,22 @@ export const PREGEN = {
 } as const;
 
 /** Groupe EXPLICITE par seeds (ordre = ordre des arguments) — la façon CANONIQUE de composer une équipe
- *  de scénario. Ex. `pregenParty(PREGEN.soldat, PREGEN.chasseur)`. Lève si un seed est inconnu (plutôt
+ *  de scénario. Ex. `pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur)`. Lève si un seed est inconnu (plutôt
  *  qu'un `undefined` silencieux d'un `find`/`slice` raté). */
-export function pregenParty(...seeds: number[]): Combatant[] {
+export function pregenParty(idNeuf: FabriqueDId, ...seeds: number[]): Combatant[] {
   return seeds.map((s) => {
     const d = pregens.find((p) => p.seed === s);
     if (!d) throw new Error(`Pré-tiré pregen-${s} introuvable (PREGEN/pregens.json)`);
-    return buildPregenHero(d);
+    return buildPregenHero(d, idNeuf);
   });
 }
 
-/** UN pré-tiré par son seed (copie fraîche). Ex. `pregen(PREGEN.soldat)`. */
-export function pregen(seed: number): Combatant {
-  return pregenParty(seed)[0];
+/** UN pré-tiré par son seed (copie fraîche). Ex. `pregen(idNeuf, PREGEN.soldat)`. */
+export function pregen(idNeuf: FabriqueDId, seed: number): Combatant {
+  return pregenParty(idNeuf, seed)[0];
 }
 
 /** Équipe « showcase » de l'Arène — les 4 piliers (cf. ci-dessus) couvrant un max de règles distinctes. */
-export function makeShowcaseParty(): Combatant[] {
-  return pregenParty(PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur);
+export function makeShowcaseParty(idNeuf: FabriqueDId): Combatant[] {
+  return pregenParty(idNeuf, PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur);
 }

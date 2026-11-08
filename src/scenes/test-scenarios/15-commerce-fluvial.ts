@@ -1,3 +1,4 @@
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { createHero } from '../../engine/character';
 import { contexteDeNaissanceDObjet, itemFromTrappingById } from '../../engine/items';
 import type { Combatant } from '../../engine/types';
@@ -28,8 +29,8 @@ import { adresseDeCreation } from '../../engine/adresseDeCreation';
 /** Quatre marchands ambulants. Berta tient le commerce : Marchandage (négocier l'achat/la vente),
  *  Ragot (dénicher une rumeur commerciale au marché, l.180) et Évaluation + Résistance à l'alcool
  *  (jauger la qualité secrète d'une cargaison de vin, l.95). Les trois autres sont l'équipage de barge. */
-function traders(): Combatant[] {
-  const berta = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Berta Kaufmann', motivation: 'Test', seed: 1501, id: 'com-berta' });
+function traders(idNeuf: FabriqueDId): Combatant[] {
+  const berta = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Berta Kaufmann', motivation: 'Test', seed: 1501, id: 'com-berta' });
   renforcerCompetence(berta, 'marchandage', 65);
   renforcerCompetence(berta, 'ragot', 55);
   renforcerCompetence(berta, 'evaluation', 50);
@@ -37,21 +38,21 @@ function traders(): Combatant[] {
   // Chariot de convoi (porteur RÉEL de la cargaison, #327) : la contenance devient un plafond réel — le
   // vrac vit sur `ItemInstance.cargo`, embarqué sur la barge à la descente (Décision 5, EDOC 7).
   const convoi = { uid: 'com-convoi', name: 'Chariot de convoi', trappingId: 'diligence', kind: 'misc', qualities: [], enc: 0, equipped: false } as never;
-  berta.items = [...(berta.items ?? []), itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(berta))!, itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(berta))!, convoi];
+  berta.items = [...(berta.items ?? []), itemFromTrappingById('ration', idNeuf, undefined, contexteDeNaissanceDObjet(berta))!, itemFromTrappingById('ration', idNeuf, undefined, contexteDeNaissanceDObjet(berta))!, convoi];
   berta.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F' };
 
   // Spécialisation Chaland de la Voile (Au choix) du Batelier : valeur d'ADAPTATION du scénario. LDB 09 l.40
   const voileDeCarriere = adresseDeCreation.carriereCompetence(firstLevel('batelier')!.skills.findIndex((r) => 'id' in r && r.id === 'voile'));
-  const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar le Batelier', motivation: 'Test', seed: 1502, id: 'com-gunnar', specChoices: { [voileDeCarriere]: 'chaland' } });
+  const gunnar = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar le Batelier', motivation: 'Test', seed: 1502, id: 'com-gunnar', specChoices: { [voileDeCarriere]: 'chaland' } });
   renforcerCompetence(gunnar, 'ramer', 50);
   renforcerCompetence(gunnar, 'voile', 40, 'chaland');
   gunnar.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
 
-  const otto = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto le Garde', motivation: 'Test', seed: 1503, id: 'com-otto' });
+  const otto = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto le Garde', motivation: 'Test', seed: 1503, id: 'com-otto' });
   renforcerCompetence(otto, 'intimidation', 40);
   otto.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
 
-  const lise = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Lise la Scribe', motivation: 'Test', seed: 1504, id: 'com-lise' });
+  const lise = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Lise la Scribe', motivation: 'Test', seed: 1504, id: 'com-lise' });
   renforcerCompetence(lise, 'metier', 40, 'cartographe');
   lise.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F' };
 
@@ -186,10 +187,10 @@ export const scenario: TestScenario = {
     // MSRC 16
     'hydrique : en approchant d’Altdorf, l’équipage risque une maladie de l’eau.',
   partyNote: 'Berta (Marchande — Marchandage/Ragot/Évaluation) · Gunnar (batelier) · Otto (garde) · Lise (scribe)',
-  construire: () => {
+  construire: (idNeuf) => {
     const { scenes, carte } = construireReik();
     return {
-      party: traders(),
+      party: traders(idNeuf),
       scene: scenes.find((s) => s.id === `quai-${START_ID}`)!,
       extraScenes: scenes.filter((s) => s.id !== `quai-${START_ID}`),
       worldMap: carte,

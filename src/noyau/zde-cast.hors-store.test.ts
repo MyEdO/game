@@ -3,6 +3,7 @@
  * clic-case en mode incantation → toutes les cibles du rayon visées par le
  * même jet, garde-fou de portée, et cible hors de portée refusée avant le routage de zone (LDB 47 l.27).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { pregen, PREGEN } from '../data/pregens';
@@ -17,7 +18,7 @@ import { jouerLeClicDeCase } from './combatOrParty';
 let banc: Banc;
 
 function wiz() {
-  const w = pregen(PREGEN.sorcier);
+  const w = pregen(idsDeTest, PREGEN.sorcier);
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 10);
   w.spells = ['explosion', ...(w.spells ?? [])]; // Explosion : Projectile magique ZdE (LDB 47 l.453)

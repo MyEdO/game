@@ -2,6 +2,7 @@
  * LA FORME PERSISTÉE (#3058) : ce que l'écriture d'une save porte (`snapshotSave`), ce que sa relecture refuse
  * (`lireSave`) et ce que son chargement lit (`chargerLaSave`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { etatInitialDuJeu } from './etat';
 import { testDeRegle } from '../engine/reglesChiffrees';
@@ -49,7 +50,7 @@ describe('forme persistée — ce que le chargement lit', () => {
   it('une `SkillInstance` s’apparie par `id` (#1548) : la graphie `skillId` perd ses Augmentations', () => {
     // Une instance à la graphie `skillId` n'est appariée par AUCUN Test — le moteur
     // apparie sur `id`, donc la valeur retombe sur la Caractéristique nue, Augmentations perdues.
-    const nu = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sonde', seed: 1 }), skills: [] };
+    const nu = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sonde', seed: 1 }), skills: [] };
     const avecAncienneGraphie = { ...nu, skills: [{ skillId: 'resistance', characteristic: 'endurance', advances: 20 }] } as unknown as typeof nu;
     const avecGraphieCourante = { ...nu, skills: [{ id: 'resistance', characteristic: 'endurance', advances: 20 }] } as unknown as typeof nu;
     expect(testValue(avecAncienneGraphie, { skill: { id: 'resistance' } })).toBe(testValue(nu, { skill: { id: 'resistance' } }));
@@ -82,8 +83,8 @@ describe('forme persistée — ce que le chargement lit', () => {
     expect(pruneSeatAssignments({ ...scene, seatAssignments: courant }, 4)).toEqual(courant);
   });
   it('une op de Talent hors grammaire (`grantTalent`) lève à `applyOps` (#1473)', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    expect(() => applyOps(h, [{ op: 'grantTalent', talentId: 'chanceux' } as never], { rng: makeRNG(1) })).toThrow();
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    expect(() => applyOps(h, [{ op: 'grantTalent', talentId: 'chanceux' } as never], { idNeuf: idsDeTest, rng: makeRNG(1) })).toThrow();
   });
   it('une chute se dérive de ses `participants` ; une chute à tombant unique lève (#700)', () => {
     const tombantUnique = { combatantId: 'h', to: { x: 1, y: 1 }, metres: 4, attempt: null, phase: 'choice', result: null };
@@ -106,7 +107,7 @@ describe('forme persistée — ce que le chargement lit', () => {
     const lumiere = spellEffectOps(findSpellById('lumiere')!.effects).find((o) => o.op === 'light')!;
     expect((lumiere as unknown as Record<string, unknown>).radiusTiles, 'graphie en cases ressuscitée').toBeUndefined();
     const porteur = hero38();
-    applyOps(porteur, [lumiere], { rng: desDuTest, label: 'Lumière' });
+    applyOps(porteur, [lumiere], { idNeuf: idsDeTest, rng: desDuTest, label: 'Lumière' });
     const effet = (porteur.activeEffects ?? []).find((e) => e.light)!;
     expect(effet.light!.radiusM, 'la forme PERSISTÉE porte les mètres du folio (LDB 74 l.58)').toBe(20);
     expect((effet.light as unknown as Record<string, unknown>).radiusTiles).toBeUndefined();

@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { rollShipCritical, resolveShipCriticalHit } from './shipCritical';
 import { applyOps } from './ops';
@@ -16,7 +17,7 @@ describe('rollShipCritical (MDG 13) — code générique sur ship-criticals.json
     expect(r.shrapnel).toBe(6);
     expect(r.ops).toEqual([{ op: 'condition', id: 'voie-d-eau', value: 1 }]);
     const c = ship();
-    applyOps(c, r.ops, { rng: desDuTest }); // l'appelant applique → l'État NAVAL data-driven se pose
+    applyOps(c, r.ops, { idNeuf: idsDeTest, rng: desDuTest }); // l'appelant applique → l'État NAVAL data-driven se pose
     expect(stacks(c, 'voie-d-eau')).toBe(1);
   });
 
@@ -24,7 +25,7 @@ describe('rollShipCritical (MDG 13) — code générique sur ship-criticals.json
     const fire1 = rollShipCritical('cargaison', makeRNG(1), 3);
     expect(fire1.ops).toEqual([{ op: 'condition', id: 'en-flammes-navire', value: 1 }]);
     const c = ship();
-    applyOps(c, fire1.ops, { rng: desDuTest });
+    applyOps(c, fire1.ops, { idNeuf: idsDeTest, rng: desDuTest });
     expect(stacks(c, 'en-flammes-navire')).toBe(1);
 
     const boom = rollShipCritical('cargaison', makeRNG(7), 10);

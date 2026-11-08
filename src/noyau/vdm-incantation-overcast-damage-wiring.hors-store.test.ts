@@ -9,6 +9,7 @@
  * `pc.overcast.damage` → `applyCast` se débranche, ce test rougit (les deux volets rendraient le
  * MÊME delta de Blessures).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -25,7 +26,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const RULE = 'magic-vdm-incantation';
 
 function setup() {
-  const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
+  const w = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
   w.spells = ['carreau'];
   banc.setState({ party: [w] });
   banc.getState().lancerLaScene(testScene());
@@ -74,7 +75,7 @@ describe('Câblage — axe Dégâts de la Surincantation VDM, Carreau, chemin de
   });
 
   it('sort NON-missile : l’axe Dégâts est refusé par le réglage `cast.surincantationDegats` (aucun axe hors Projectile)', () => {
-    const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
+    const w = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
     w.spells = ['armure-aethyrique'];
     banc.setState({ party: [w] });
     banc.getState().lancerLaScene(testScene());

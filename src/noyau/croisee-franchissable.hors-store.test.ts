@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene, type Scene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -59,7 +60,7 @@ const dedans = { x: 1, y: 1 };
 const dehors = { x: 2, y: 1 };
 
 function explorer(scene: Scene, pos: { x: number; y: number; z?: number }) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: pos, scene, pendingFall: null, flags: {} });
 }
 
@@ -193,7 +194,7 @@ describe('enjamber la croisée de plain-pied — exploration', () => {
 
 describe('enjamber la croisée — combat', () => {
   function setup(movementUsed = 0, tour: { acted?: boolean; movedPreAction?: boolean } = {}, sc = plainPied()) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -287,7 +288,7 @@ describe('sauter par la croisée : la rue lance une rencontre', () => {
     sc.encounters = [enc.encounter];
     sc.triggers = [{ ...piege(2, 1), flow: flowFromEffects([{ type: 'startCombat', encounter: 'enc-rue' }]) }];
     explorer(sc, { ...dedans, z: 1 });
-    const second = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'K', seed: 2 });
+    const second = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'K', seed: 2 });
     banc.setState({ party: [...banc.getState().party, second] });
     const [a, b] = banc.getState().party;
     banc.getState().franchirLArete(dehors);

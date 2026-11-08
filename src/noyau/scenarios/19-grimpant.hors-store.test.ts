@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { scenario } from '../../scenes/test-scenarios/19-grimpant';
@@ -5,7 +6,7 @@ import { runEnemyAI } from '../../noyau/combatFlow';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /**
  * GRIMPANT (#504) : preuve LIVE sur la scène RÉELLE du scénario — l'araignée géante (Trait Grimpant)
@@ -13,7 +14,7 @@ const scenarioConstruit = scenario.construire();
  * et arrive au contact du Chasseur en peu de tours (anti-grind).
  */
 function startGrimpant(): { spider: import('../../engine/types').Combatant } {
-  banc.setState({ party: scenario.construire().party });
+  banc.setState({ party: scenario.construire(idsDeTest).party });
   banc.getState().lancerLaScene(scenarioConstruit.scene);
   banc.getState().lancerLeCombat('enc-grimpant');
   banc.getState().fenetreValider('roundStart');
@@ -30,7 +31,7 @@ describe('Grimpant — l’araignée escalade (grimpant)', () => {
     expect(s.dimensions).toEqual({ w: 10, h: 10 });
     const climb = s.walls!.find((w) => w.climb);
     expect(climb).toMatchObject({ x: 5, y: 3, side: 'N' });
-    expect(banc.getState().party ?? scenario.construire().party).toBeTruthy();
+    expect(banc.getState().party ?? scenario.construire(idsDeTest).party).toBeTruthy();
   });
 
   it('l’araignée (Trait Grimpant) franchit la falaise SANS Test et atteint le plateau en ≤ 2 tours (anti-grind)', () => {

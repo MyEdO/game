@@ -15,6 +15,7 @@
  * ouvre le menu ; siège qui ne contrôle pas l'actif → menu direct (pas de vol d'Échap). L'état est
  * un VRAI combat (héros pregen, ennemis spawnés, scène posée) et la touche passe par le hook RÉEL.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -48,8 +49,8 @@ const arene = () => {
  * l'actif (`controlsActive`), donc si la touche lui appartient.
  */
 function table(action: BattleActionMode | null, { turn = 0, mySeat = 0, mode = 'local' as 'local' | 'guest' } = {}) {
-  const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
-  const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
+  const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
+  const ally = makePregens(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
   const e1 = spawnEnemy({ ref: 'moritz-valgeir' }, 'e1', { x: 7, y: 6 });
   const e2 = spawnEnemy({ ref: 'moritz-valgeir' }, 'e2', { x: 8, y: 6 });
   useGame.setState({

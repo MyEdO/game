@@ -1,7 +1,8 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { scenario } from './pont-vitrine';
 import { layerTiles } from '../../noyau/monde/scene';
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /** Valide la Scene PRODUITE par `buildScene(MapSpec)` : la migration doit être ÉQUIVALENTE en jeu à
  *  l'ancien DSL bespoke (mêmes dimensions, mêmes couches/tuiles/hauteurs, mêmes props, même heroStart). */

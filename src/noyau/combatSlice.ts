@@ -336,7 +336,7 @@ function applyAuContact(get: Get, set: Set, mover: Combatant, foe: Combatant, ch
 function applyGrapple(get: Get, set: Set, actor: Combatant, foe: Combatant, mode: 'damage' | 'entangle' | 'free', dr: number, forceRoll: number): void {
   // Application 100% en DONNÉE, PARTAGÉE avec le résolveur IA (`resolveGrappleWin`) : une SEULE voie d'issue,
   // deux orchestrations (cette modale joueur / instantané IA). Le flux n'orchestre ICI que la fermeture du pending.
-  const line = resolveGrappleWin(actor, foe, mode, dr, forceRoll);
+  const line = resolveGrappleWin(actor, foe, mode, dr, forceRoll, get().forgerUnId);
   set({ pendingGrapple: null, battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('attack', line, actor.id, foe.id)] } });
   bus.emit(EVT.SCENE_DIRTY);
 }
@@ -2757,7 +2757,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       }
       // Échec : l'objet glisse (op `disarm`, main gatée). Comme le gate de Bénédiction (`attackWardGate`),
       // rien d'AUTRE n'est consommé — le joueur choisit une autre cible ou Action (mais l'arme est perdue).
-      const lines = applyOps(attacker, [{ op: 'disarm' }], { rng: battleRng(), location: pg.hand === 'off' ? 'brasG' : 'brasD' });
+      const lines = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: pg.hand === 'off' ? 'brasG' : 'brasD' });
       const b1 = get().battle!;
       set({ battle: { ...touchActors(get()).battle!, log: [...b1.log, ...evLines(lines, 'attack', attacker.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
@@ -2775,7 +2775,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (!a) return;
       // Filets barbelés (Zoo Impérial p.29) : Dégâts ignorant l'armure à CHAQUE tentative, réussie ou ratée.
       const struggleLines = sr.struggleDamage != null
-        ? applyOps(a, [{ op: 'wounds', amount: sr.struggleDamage, ignoreTB: false }], { rng: battleRng(), caster: a })
+        ? applyOps(a, [{ op: 'wounds', amount: sr.struggleDamage, ignoreTB: false }], { idNeuf: get().forgerUnId, rng: battleRng(), caster: a })
         : [];
       const removed = recoveredStacks(sr.netSL, stacks(a, sr.state), sr.success); // 1 + DR, borné
       if (removed > 0) removeCondition(a, sr.state, removed);

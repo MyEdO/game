@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
@@ -21,7 +22,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 beforeEach(() => {
   banc.setState({
     battle: null, mode: 'exploration', journal: [], travelPlan: null, 
-    party: makePregens().slice(0, 1), gameTime: 0, lastUpkeepDay: 0, vessel: null,
+    party: makePregens(idsDeTest).slice(0, 1), gameTime: 0, lastUpkeepDay: 0, vessel: null,
   });
   seedBattleRng(7);
 });
@@ -101,7 +102,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
     // interne à `tickCampaignVesselWeek`), mais le texte apparaissait ×3 à l'écran.
     banc.setState({
       battle: null, mode: 'exploration', journal: [], travelPlan: null, pendingRest: null,
-      party: makePregens().slice(0, 1), gameTime: 7 * MINUTES_PER_DAY - 100, lastUpkeepDay: 6,
+      party: makePregens(idsDeTest).slice(0, 1), gameTime: 7 * MINUTES_PER_DAY - 100, lastUpkeepDay: 6,
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] },
     });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 10, silver: 0, brass: 0 });

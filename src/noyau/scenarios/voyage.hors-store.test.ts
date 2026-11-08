@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { setRule, resetRule } from '../../engine/policy';
@@ -9,7 +10,7 @@ import { scenario } from '../../scenes/test-scenarios/voyage';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /** Les 5 sous-scènes sont produites par `buildScene(MapSpec)` (WorldMap/extraScenes restent sur
  *  le TestScenario). Ce bloc verrouille l'équivalence en jeu des Scenes PRODUITES : dimensions, terrain,
@@ -58,7 +59,7 @@ describe('16-voyage — intégration Voyage par Étapes', () => {
   it('règle pré-activée → postes résolus, véhicule à coque bâti, météo d’Étape journalisée', () => {
     for (const [id, v] of Object.entries(scenario.rules ?? {})) setRule(id, v as any);
     seedBattleRng(7);
-    banc.getState().fixerLeGroupe(scenario.construire().party);
+    banc.getState().fixerLeGroupe(scenario.construire(idsDeTest).party);
     // La LONGUE route part du hameau : on entre à p-hameau pour la prendre en diligence.
     banc.getState().chargerLeProjet({ scenes: [scenarioConstruit.scene, ...(scenarioConstruit.extraScenes ?? [])], entryId: 'test-voyage-hameau', worldMap: scenarioConstruit.worldMap!, projet: null });
     if (scenario.money) distributeCredit(banc.getState, banc.setState, scenario.money); // bourses du groupe (SOCLE POSSESSIONS #531)

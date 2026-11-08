@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import type { JSX } from 'react';
 // @vitest-environment jsdom
 /**
@@ -76,7 +77,7 @@ const SCENE: Scene = emptyScene('scene-test', 12, 12);
 const MPT = sceneMetresPerTile(SCENE);
 const TINT: TintAt = () => 1;
 const KEEP = () => true;
-const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+const HÉROS = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
 
 /** Un décor orienté au cap SUD : sa clé de texture porte la vue et le cran d'atlas que l'écran choisit. */
 const TONNEAU: BillboardPropEl = {

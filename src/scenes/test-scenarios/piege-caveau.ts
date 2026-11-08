@@ -116,5 +116,5 @@ export const scenario: TestScenario = {
   title: 'Le Caveau piégé',
   tests: 'Vitrine Flow+Condition : interactions (levier/clé → flags), condition composée (clé OU levier) ET NON alarme pour la herse, dalle piégée = Test d’Athlétisme à branches (esquive / piques + À Terre + alarme).',
   partyNote: 'Pré-tirés',
-  construire: () => ({ party: makePregens(), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireScene() }),
 };

@@ -3,6 +3,7 @@
  * les pas AU RYTHME DU GLISSEMENT — un pas à la fois, chaque case est une arrivée, relâcher termine le
  * pas en cours et rien de plus, et une porte qui s'ouvre arrête la marche sur la case atteinte.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { bus, EVT } from '../noyau/bus';
@@ -175,7 +176,7 @@ describe('UN PAS À LA FOIS — la cadence est la durée du glissement', () => {
  */
 describe('MUR de la scène réelle (arene-hub) — la marche bute, elle ne meurt pas', () => {
   function entrerAuHub(): void {
-    useGame.setState({ party: makePregens().slice(0, 1) });
+    useGame.setState({ party: makePregens(idsDeTest).slice(0, 1) });
     expect(lancerCampagne(useGame.getState, campagneDuJeu(areneCampaign), 'arene-hub')).toBeNull();
     useGame.setState({
       screen: 'campaign', mode: 'exploration', partyPos: { x: 25, y: 23 },

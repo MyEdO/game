@@ -349,6 +349,8 @@ export interface EtatDeJeu {
    *  `battle` (il ne persiste pas au journal de combat), hors snapshot (le refus opposé au geste de
    *  l'hôte ne s'affiche pas chez ses invités). Projeté par `ui/CombatBanner`. */
   refus: RefusIHM | null;
+  /** Rang du prochain id du monde (`forgerUnId`, `idsDuMonde.ts`) : clé réservée, écrite par sa seule fabrique. #2907 */
+  prochainId: number;
   partyPos: Pt;
   /** Niveau de lumière de scène (mise en scène) : 0 = noir, 1 = plein jour ; null = auto
    *  (horloge/ambiance). Posé par l'Effet `setLight`, lu par le rendu (overlay d'assombrissement). */
@@ -704,6 +706,7 @@ export function etatInitialDuJeu(): EtatDeJeu {
     facing: {},
     localIntent: null,
     dispelCarrierId: null,
+    prochainId: 1,
     partyPos: { x: 0, y: 0 },
     lightLevel: null,
     flags: {},

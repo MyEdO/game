@@ -4,6 +4,7 @@
  * (rack d'alvéoles réservées) et les deux gouttières sont DESSINÉES quoi qu'il arrive. Montée pour de
  * vrai (`createRoot`/`act`) sur le VRAI store et de VRAIS héros (`createHero`) — aucun module mocké.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -48,7 +49,7 @@ beforeAll(() => {
 });
 
 function hero(id: string, label: string): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 7 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 7 });
   h.id = id;
   h.pos = { x: 5, y: 5 };
   return h;
@@ -1193,7 +1194,7 @@ describe('CombatConsole — case Recharger : le porteur de l’état est l’ARM
 describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapide', () => {
   /** Objet du CATALOGUE, uid stable pour que les sets le désignent. */
   function objet(id: string, uid: string, over: Partial<ItemInstance> = {}): ItemInstance {
-    const it = itemFromTrappingById(id);
+    const it = itemFromTrappingById(id, idsDeTest);
     expect(it, `catalogue : « ${id} » absent`).not.toBeNull();
     return Object.assign(it!, { uid }, over);
   }
@@ -1355,7 +1356,7 @@ describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapid
 // vide, lisibilité des vignettes, MATIÈRE UNIQUE du pont).
 describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-17)', () => {
   function objet(id: string, uid: string, over: Partial<ItemInstance> = {}): ItemInstance {
-    const it = itemFromTrappingById(id);
+    const it = itemFromTrappingById(id, idsDeTest);
     expect(it, `catalogue : « ${id} » absent`).not.toBeNull();
     return Object.assign(it!, { uid }, over);
   }
@@ -1996,7 +1997,7 @@ describe('CombatConsole — micro-rendu, 2ᵉ passe du juge vision (2026-08-17)'
     expect(parseFloat(decl(ruleOf(at560, ':root'), '--cc-fronton')!)).toBe(0);
     // … et la travée ne porte AUCUNE bande réservée : la munition vit dans l'EN-TÊTE, à côté du set
     // (arbitrage #1348 complément a — 47px de plaque NUE mesurés sous les travées avant la coupe).
-    const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) => Object.assign(itemFromTrappingById(id)!, { uid }, over);
+    const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) => Object.assign(itemFromTrappingById(id, idsDeTest)!, { uid }, over);
     const tireur = hero('h1', 'Gunnar');
     tireur.conditions = [];
     tireur.items = [objet('arbalete-lourde', 'i-arb', { loaded: false }), objet('carreau', 'i-c')];
@@ -2184,7 +2185,7 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
   });
 
   it('G-2 — la munition CHARGÉE vit dans l’en-tête de travée, lue au registre de l’arme', () => {
-    const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) => Object.assign(itemFromTrappingById(id)!, { uid }, over);
+    const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) => Object.assign(itemFromTrappingById(id, idsDeTest)!, { uid }, over);
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
     const arb = objet('arbalete-lourde', 'i-arb');
@@ -2702,7 +2703,7 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
  */
 describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHEUR du choix', () => {
   const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) =>
-    Object.assign(itemFromTrappingById(id)!, { uid }, over) as ItemInstance;
+    Object.assign(itemFromTrappingById(id, idsDeTest)!, { uid }, over) as ItemInstance;
 
   /** Arbalétrier au set de tir, avec DEUX munitions compatibles (même famille) dans sa besace. */
   function tireur(opts: { charge?: boolean; deuxMunitions?: boolean } = {}) {
@@ -3029,7 +3030,7 @@ describe('CombatConsole — l’allumage d’une case armée vient du REGISTRE',
  */
 describe('CombatConsole — deux armes à distance : une case, un paramètre à élire', () => {
   const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) =>
-    Object.assign(itemFromTrappingById(id)!, { uid }, over) as ItemInstance;
+    Object.assign(itemFromTrappingById(id, idsDeTest)!, { uid }, over) as ItemInstance;
 
   /** Bretteur à DEUX pistolets (Recharge 1 chacun) et deux munitions compatibles au sac. */
   function bretteur(opts: { deux?: boolean; charges?: boolean } = {}) {
@@ -3163,7 +3164,7 @@ describe('CombatConsole — contrat SURFACE ⇄ RENDEUR', () => {
   /** Un porteur de set d'armes, ayant DÉJÀ marché (la gouttière offre alors son geste d'annulation). */
   function porteurAyantMarche() {
     const h = hero('h1', 'Gunnar');
-    h.items = [Object.assign(itemFromTrappingById('epee-batarde')!, { uid: 'i-e1' }) as ItemInstance];
+    h.items = [Object.assign(itemFromTrappingById('epee-batarde', idsDeTest)!, { uid: 'i-e1' }) as ItemInstance];
     h.loadouts = [{ id: 'lo-1', main: 'i-e1' }];
     h.activeLoadoutId = 'lo-1';
     recomputeLoadout(h);
@@ -3653,7 +3654,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
   /** RENDEUR GÉNÉRIQUE (grief G2) : le calcul des gestes secondaires vit dans `cellFor`, pas au site
    *  des sorts — une entrée déclarée sur un AUTRE hôte est rendue SANS une ligne de code. */
   it('un geste secondaire déclaré sur `reload` (entrée FABRIQUÉE) est rendu par l’alvéole de SON hôte', () => {
-    const objet = (id: string, uid: string) => Object.assign(itemFromTrappingById(id)!, { uid }) as ItemInstance;
+    const objet = (id: string, uid: string) => Object.assign(itemFromTrappingById(id, idsDeTest)!, { uid }) as ItemInstance;
     const tireur = () => {
       const h = hero('h1', 'Gunnar');
       h.conditions = [];

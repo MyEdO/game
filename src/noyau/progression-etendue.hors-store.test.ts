@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { openRoundEndCascade } from './combatFlow';
@@ -31,7 +32,7 @@ describe('Peur de combat — la barre de la rangée = le cumul appliqué (LDB 21
   /** Combat à un héros face à une source de Peur, Peur ENTAMÉE (`calmeDR`) sur l'Indice `indice`. */
   function peurEntamee(indice: number, calmeDR: number, sansPeur = false) {
     banc.getState().ensemencerLeTirage(2);
-    banc.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 })] });
+    banc.setState({ party: [createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 })] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
@@ -133,7 +134,7 @@ describe('Règle optionnelle « DR 0 = ±1 » lue par le pas canonique (LDB 12 l
 
 describe('Focalisation — Test étendu, un échec cumule son DR négatif (LDB 46 l.130 ; LDB 12 l.174)', () => {
   it('réserve 3 sur NI 8, échec DR −2 : la réserve tombe à 1', () => {
-    const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 1, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
+    const w = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 1, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
     w.focus = { spell: 'manifestation-de-demon-mineur', dr: 3 };
     banc.setState({ party: [w] });
     banc.setState({ pendingFocus: { casterId: w.id, spellId: 'manifestation-de-demon-mineur', result: { dr: 0, success: false, sl: -2, isCritical: false, isFumble: false, roll: 87, target: 65, log: 'échec' } } });

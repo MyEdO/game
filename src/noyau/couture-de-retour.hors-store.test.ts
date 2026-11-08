@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
@@ -44,7 +45,7 @@ const cbt = (id: string) => inBattleId(banc.getState().battle, id)!;
 const fin = () => finalizeBattle(() => banc.getState(), banc.setState);
 
 function combat(): string {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   hero.talents.push({ talentId: 'magie-mineure', times: 1 });
   hero.spells = [];
   banc.setState({ battle: null, party: [hero], pendingCascade: null, pendingRoundStart: null, journal: [] });
@@ -149,7 +150,7 @@ describe('coutures du héros en combat (#2312)', () => {
   });
 
   it('un effet en Rounds posé hors combat entre dans le combat avec ses Rounds restants (LDB 46 l.93)', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const base = effectiveChar(h, 'capacite-de-tir');
     h.activeEffects = [{ label: 'Sort', characteristic: 'capacite-de-tir', bonus: 10, duration: { scale: 'rounds', left: 3 } }];
     banc.setState({ battle: null, party: [h], pendingCascade: null, pendingRoundStart: null, journal: [] });
@@ -161,7 +162,7 @@ describe('coutures du héros en combat (#2312)', () => {
   });
 
   it('un effet d’horloge posé hors combat (Exposition au froid) entre dans le combat', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const base = effectiveChar(h, 'capacite-de-tir');
     applyExposureFailure(h, 1, battleRng(), 'froid');
     expect(effectiveChar(h, 'capacite-de-tir')).toBeLessThan(base);
@@ -174,7 +175,7 @@ describe('coutures du héros en combat (#2312)', () => {
   });
 
   it('l’entrée en rencontre pose les valeurs d’entrée et ne garde que les États persistants', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     h.advantage = 3; h.tookCriticalThisFight = true; h.woundDressed = true; h.roundsAtZero = 2; h.soinRencontreUtilise = true;
     h.engagedWith = ['x']; h.conditions = [{ id: 'au-sol', value: 1 }, { id: 'extenue', value: 1 }] as never;
     const c = entreeEnRencontre(h);
@@ -185,7 +186,7 @@ describe('coutures du héros en combat (#2312)', () => {
   });
 
   it('le retour ne reporte que les champs classés comme sortant du combat', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const sortants = Object.entries(REPORT_DE_COMBATTANT).filter(([, r]) => r.sort !== false).map(([k]) => k);
     expect(Object.keys(carryOverState(h)).every((k) => sortants.includes(k))).toBe(true);
     expect(carryOverState({ ...h, pos: { x: 9, y: 9 } })).not.toHaveProperty('pos');
@@ -231,11 +232,11 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
   };
 
   const heros = (): Combatant => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     h.talents.push({ talentId: 'magie-mineure', times: 1 });
     h.spells = [];
     h.spells = learnableSpells(h).slice(0, 10).map((x) => x.spell.id); // au-delà des sorts inclus au Talent
-    h.items = [...(h.items ?? []), { ...itemFromTrappingById('fausse-jambe')!, equipped: true }];
+    h.items = [...(h.items ?? []), { ...itemFromTrappingById('fausse-jambe', idsDeTest)!, equipped: true }];
     h.xp = 5000;
     return h;
   };
@@ -379,7 +380,7 @@ describe('la composition du groupe ne change pas en combat (#2312)', () => {
 describe('markActed relit l’état vivant (ramasserLObjet, #2312)', () => {
   for (const eff of [{ type: 'giveTrapping', trappingId: 'tromblon' }, { type: 'giveMoney', montant: { gold: 1 } }]) {
     it(`${eff.type} : l’approche en attente est scellée sur l’objet vivant`, () => {
-      const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
+      const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
       hero.items = hero.items ?? [];
       hero.pos = { x: 0, y: 0 };
       const scene = emptyScene('scene-test', 8, 8);

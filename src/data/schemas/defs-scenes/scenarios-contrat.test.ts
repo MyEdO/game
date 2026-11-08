@@ -18,6 +18,7 @@
  * (18 entrées, 6 scènes) ; le 4ᵉ trou (`narratif.ts:objets`) n'est pas atteint par ce corpus.
  * Sous ces champs, `z.custom` accepte tout : le parse y est un passe-droit, pas une validation.
  */
+import { idsDeTest } from '../../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { SCENARIOS } from '../../../scenes/test-scenarios/_registry.generated';
 import { sceneSchema } from './scene';
@@ -27,7 +28,7 @@ import { worldMapSchema } from './worldmap';
 
 /** Toutes les scènes qu'un scénario apporte au projet : la scène d'entrée + ses destinations. */
 function scenesDe(s: (typeof SCENARIOS)[number]): { chemin: string; scene: unknown }[] {
-  const c = s.construire();
+  const c = s.construire(idsDeTest);
   const out = [{ chemin: `${s.id}.scene`, scene: c.scene as unknown }];
   (c.extraScenes ?? []).forEach((sc, i) => out.push({ chemin: `${s.id}.extraScenes[${i}] (${sc.id})`, scene: sc }));
   return out;
@@ -60,7 +61,7 @@ describe('sceneSchema — les scènes CONSTRUITES par les scénarios de test', (
 describe('références narratives des scénarios de test — résolues à LEUR narratif', () => {
   it('aucune référence pendante — le refus NOMME le scénario et le chemin', () => {
     const ko = SCENARIOS.flatMap((s) => {
-      const c = s.construire();
+      const c = s.construire(idsDeTest);
       const doc = { scenes: [c.scene, ...(c.extraScenes ?? [])], worldMap: c.worldMap };
       return refsNarrativesPendantes(doc, c.narratif ?? emptyNarratif()).map((f) => `${s.id} — ${f.chemin.join('.')}: ${f.message}`);
     });
@@ -70,7 +71,7 @@ describe('références narratives des scénarios de test — résolues à LEUR n
 
 describe('worldMapSchema — les cartes CONSTRUITES par les scénarios de test', () => {
   const cartes = SCENARIOS.flatMap((s) => {
-    const carte = s.construire().worldMap;
+    const carte = s.construire(idsDeTest).worldMap;
     return carte ? [{ chemin: `${s.id}.worldMap`, carte: carte as unknown }] : [];
   });
 

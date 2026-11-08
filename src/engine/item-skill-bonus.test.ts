@@ -1,4 +1,5 @@
 /** #51 ; #2967 ; LDB 67 */
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { itemFromTrappingById } from './items';
 import { testValue } from './skills';
@@ -6,7 +7,7 @@ import type { Combatant, ItemInstance } from './types';
 
 const CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const besicles = (equipped: boolean): ItemInstance =>
-  ({ ...itemFromTrappingById('besicles')!, uid: 'b1', enc: 0, equipped });
+  ({ ...itemFromTrappingById('besicles', idsDeTest)!, uid: 'b1', enc: 0, equipped });
 const mk = (items: ItemInstance[] = []): Combatant => ({ characteristics: CHARS, skills: [], items } as unknown as Combatant);
 
 describe('#51 — Bésicles : canal passive/skillMod gaté sur le port', () => {
@@ -35,7 +36,7 @@ describe('#51 — Bésicles : canal passive/skillMod gaté sur le port', () => {
 // NON gatée sur le port (les avoir dans le sac suffit — LDB 67 l.66 : « nécessaire pour utiliser la
 // Compétence Crochetage sans pénalité »).
 const lockpicks = (destroyed = false): ItemInstance =>
-  ({ ...itemFromTrappingById('outils-de-crochetage')!, uid: 'l1', enc: 0, ...(destroyed ? { destroyed: true } : {}) });
+  ({ ...itemFromTrappingById('outils-de-crochetage', idsDeTest)!, uid: 'l1', enc: 0, ...(destroyed ? { destroyed: true } : {}) });
 
 describe('#51 — Crochetage : −10 sans outils (SkillData.tool → capability lockpicks)', () => {
   it('sans outils : −10 (crochets improvisés supposés, LDB 09 l.168)', () => {

@@ -3,6 +3,7 @@
  * consécutives, reset si interruption), Importante jamais acquittable par Activité, rupture →
  * Niveau de Carrière −1 (min 0).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
@@ -16,7 +17,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function setup() {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [h], battle: null, interlude: null, bank: [], pendingOrders: [], favors: [], journal: [] });
   banc.getState().lancerLaScene(testScene());
   banc.abandonner();

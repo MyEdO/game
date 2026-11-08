@@ -16,6 +16,7 @@
  * symptôme, `dailyTest.test` d'une maladie) se joue par l'ENTRETIEN réel de la nuit (étape `diseaseTick`,
  * `engine/disease.ts` `tickDisease` → applier de `noyau/restFlow.ts`), jamais par `routeTriggeredTest`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -106,7 +107,7 @@ export function noeudsDeTest(): Noeud[] {
  *  (`h3`) — ni le premier du groupe (défaut de `effectTargets('hero')`), ni le meilleur au jet
  *  (défaut de `partyBest`) : une conséquence qui tombe sur h3 y est tombée par ROUTAGE. */
 export function groupeDeQuatre(): Combatant[] {
-  return [1, 2, 3, 4].map((i) => createHero({
+  return [1, 2, 3, 4].map((i) => createHero({ idNeuf: idsDeTest,
     speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, motivation: 'Sonde', seed: i, id: `h${i}`,
   }));
 }

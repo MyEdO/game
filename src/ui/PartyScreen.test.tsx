@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -29,7 +30,7 @@ import type { HerosEngage } from '../noyau/creation/engagement';
 const ouverts = (party: Combatant[]) => Object.fromEntries(party.map((h) => [h.id, null]));
 
 function savedHero(): Combatant {
-  const h: Combatant = JSON.parse(JSON.stringify(makePregens()[0]));
+  const h: Combatant = JSON.parse(JSON.stringify(makePregens(idsDeTest)[0]));
   h.id = 'roster-test-1';
   h.label = 'Aventurière Sauvegardée';
   return h;
@@ -311,7 +312,7 @@ describe('PartyScreen — présentation par le PERSONNAGE (plus de bouton « Qui
     );
 
   it('siège occupé : contrat scellé — portrait + nom + rôle + cartouche « Contrat N » + sceau, personnage cliquable', () => {
-    const heroes = makePregens().slice(0, 2);
+    const heroes = makePregens(idsDeTest).slice(0, 2);
     const html = render(heroes, initialNet());
     expect(html).toContain('seat-card');
     expect(html).toContain('seat-card-contract');
@@ -345,7 +346,7 @@ describe('PartyScreen — présentation par le PERSONNAGE (plus de bouton « Qui
   });
 
   it('groupe complet : 4 cartes de siège, aucun siège vide, aucune galerie', () => {
-    const heroes = makePregens().slice(0, 4);
+    const heroes = makePregens(idsDeTest).slice(0, 4);
     const full = render(heroes, initialNet());
     expect((full.match(/seat-card-contract/g) ?? []).length).toBe(4);
     for (const h of heroes) expect(full).toContain(h.label);
@@ -354,7 +355,7 @@ describe('PartyScreen — présentation par le PERSONNAGE (plus de bouton « Qui
   });
 
   it('sous-titre d’archétype : la CARRIÈRE d’abord, l’espèce ensuite (arbitrage user 2026-07-13)', () => {
-    const hero = makePregens()[0];
+    const hero = makePregens(idsDeTest)[0];
     const sub = heroSubtitle(hero);
     expect(sub).toContain(' — '); // « Carrière — Espèce »
     // la carrière précède l'espèce (séparateur em-dash entre les deux)
@@ -460,7 +461,7 @@ describe('PartyScreen — « Lancer » sans choix lance l’Arène par la porte 
 
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    useGame.setState({ pendingCampaign: null, scene: null, screen: 'party', party: makePregens().slice(0, 1), net: initialNet() });
+    useGame.setState({ pendingCampaign: null, scene: null, screen: 'party', party: makePregens(idsDeTest).slice(0, 1), net: initialNet() });
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -514,7 +515,7 @@ describe('PartyScreen — Modifier, Remplacer, Retirer suivent le verdict du noy
   afterEach(() => { demonterRacines(); vi.unstubAllGlobals(); });
 
   it('hôte : le héros de l’invité ferme ses gestes sur la raison du noyau, le sien les ouvre', () => {
-    const [mien, sien] = makePregens();
+    const [mien, sien] = makePregens(idsDeTest);
     useGame.setState({
       battle: null, scene: null, pendingCampaign: null, party: [mien, sien],
       net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Antoine' }, slots: [0, 1, 0, 0], ownership: { [mien.id]: 0, [sien.id]: 1 }, rangs: { [mien.id]: 0, [sien.id]: 1 } },
