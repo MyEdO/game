@@ -33,8 +33,8 @@ const protectrice = (q: QualityInstance[]): number => q.find((x) => x.id === 'pr
 
 export function compareEquip(item: GabaritDObjet, hero: Combatant): EquipComparison {
   const items = hero.items ?? [];
-  // « Actuellement équipé » pour une ARME = l'arme tenue dans le set actif (les Weapon dérivés `hero.weapons`),
-  // plus `it.equipped` (devenu le seul seed du loadout par défaut). L'armure, elle, reste pilotée par `equipped`.
+  // « Actuellement équipé » pour une ARME = l'arme tenue dans le set actif (les Weapon dérivés `hero.weapons`).
+  // L'armure, elle, est pilotée par `equipped`.
   const wielded = (hero.weapons ?? []).filter((w) => !isUnarmed(w));
 
   if (isShieldItem(item)) {

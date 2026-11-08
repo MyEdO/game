@@ -150,7 +150,8 @@ describe('IA : tir pur Engagé (LDB 14 l.41)', () => {
   it('un PNJ IA au set de tir pur, Engagé, ne TIRE pas (il se replace) — plus de coup de poing automatique', () => {
     const h = makePregens(idsDeTest)[0];
     h.pos = { x: 3, y: 3 };
-    const e = spawnEnemy({ ref: 'humain' }, 'e-tir', { x: 4, y: 3 });
+    // Un profil sans Trait Arme : celui d'un humain resterait à côté de l'arbalète (LDB 85, #3684).
+    const e = spawnEnemy({ statblock: { type: 'statblock', label: 'Arbalétrier', char: { 'capacite-de-tir': 40, B: 12 } } }, 'e-tir', { x: 4, y: 3 });
     e.items = [take('arbalete'), take('carreau', { equipped: false })];
     e.loadouts = [{ id: 'lo-tir', main: 'arbalete' }];
     e.activeLoadoutId = 'lo-tir';

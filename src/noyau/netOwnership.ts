@@ -7,6 +7,7 @@ import type { Jeu } from './etat';
 import type { Combatant } from '../engine/types';
 import { fenetreDuRegistre, modalOwnerOf, horsModalByPending, sortieDeLaFenetre, validationDeLaFenetre, type GesteDeFenetreDeclare, type HorsModalDef, type QuiValideLaFenetre } from './modalArbiter';
 import { inBattleId, porteurParId } from './monde/combatants';
+import { porteurDeLObjet } from './monde/carrier';
 import { seatOwns, jetSurfaced, siegeDuHeros, worldSeat } from './sieges';
 import { targetingHolder } from './targetingHolder';
 import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
@@ -432,6 +433,15 @@ const TOUJOURS: Route = { rule: () => true };
 const PAR_ARG0: Route = { rule: (s, seat, args) => seatOwns(s, seat, idArg(args[0])) };
 /** Possession du combattant désigné par le 2ᵉ argument. */
 const PAR_ARG1: Route = { rule: (s, seat, args) => seatOwns(s, seat, idArg(args[1])) };
+/** Possession du porteur de l'objet désigné par le 1ᵉʳ argument, lu dans l'état (`porteurDeLObjet`) ; objet sans
+ *  porteur → personne. */
+const PAR_PORTEUR_DE_L_OBJET: Route = {
+  rule: (s, seat, args) => {
+    const uid = idArg(args[0]);
+    const porteur = uid ? porteurDeLObjet(s, uid) : undefined;
+    return !!porteur && seatOwns(s, seat, porteur);
+  },
+};
 
 /**
  * CLIC DE CARTE pendant un ciblage détenu par une fenêtre HORS registre de modales (#1016) — c'est
@@ -624,6 +634,8 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['incanterLeSort', PAR_ARG0],
     ['focaliserLeSort', PAR_ARG0],
     ['dissiperLeSort', PAR_ARG0],
+    // Le geste d'un PORTEUR, en combat comme hors combat : le siège du porteur de l'objet, lu dans l'état.
+    ['utiliserLObjet', PAR_PORTEUR_DE_L_OBJET],
     ['cliquerLaCase', CLIC_DU_CHAMP],
     // Pause de début de Round (`pendingRoundStart`) : la FENÊTRE est à tous ('*' — ready-check par
     // siège), ses gestes ne le sont pas.

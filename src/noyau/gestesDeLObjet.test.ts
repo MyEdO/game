@@ -6,14 +6,14 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { gestesDeLObjet } from './gestesDeLObjet';
-import { appraiseRefus } from './merchantFlow';
+import { appraiseRefus, refusDeDetection } from './merchantFlow';
 import { PREGEN, pregenParty } from '../data/pregens';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { t } from '../i18n';
 import type { Jeu } from './etat';
 
 /** Deux pré-tirés hors combat, au jour 3 ; `rosa`, la seconde, porte un objet non identifié (`inconnu`). */
-function partie(inconnu: { appraiseTriedDay?: number; detectTried?: boolean } = {}) {
+function partie(inconnu: { appraiseTriedDay?: number; detectTriedBy?: string[] } = {}) {
   const party = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.apothicaire);
   const rosa = party[1];
   const pilon = rosa.items!.find((i) => i.label === 'Pilon et Mortier')!;
@@ -27,23 +27,25 @@ describe('les gestes d’un objet', () => {
     const { s, rosa, uid } = partie();
     const justaucorps = gestesDeLObjet(s, rosa.id, uid('Justaucorps de cuir'))!;
     expect([justaucorps.porter, justaucorps.mains, justaucorps.utiliser], 'une armure se porte, ne se tient ni ne s’utilise')
-      .toEqual([{ porte: true, refus: null, geste: { verbe: 'equiperLObjet', args: [rosa.id, uid('Justaucorps de cuir')] } }, null, null]);
+      .toEqual([{ porte: true, refus: null, geste: { verbe: 'equiperLObjet', args: [uid('Justaucorps de cuir')] } }, null, null]);
     const dague = gestesDeLObjet(s, rosa.id, uid('Dague'))!;
     expect([dague.porter, dague.mains?.main], 'une arme se tient ; tenue en main principale, son geste la lâche')
       .toEqual([null, { tenue: true, refus: null, geste: { verbe: 'garnirLaPanoplie', args: [rosa.id, dague.mains!.set, 'main', null] } }]);
-    expect(dague.donner?.choix.map((c) => c.geste), 'elle se donne à l’autre héros').toEqual([{ verbe: 'transmettreLObjet', args: [uid('Dague'), rosa.id, s.party[0].id] }]);
+    expect(dague.donner?.choix.map((c) => c.geste), 'elle se donne à l’autre héros').toEqual([{ verbe: 'transmettreLObjet', args: [uid('Dague'), s.party[0].id] }]);
     const pilon = gestesDeLObjet(s, rosa.id, uid('Pilon et Mortier'))!;
     expect([pilon.evaluer, pilon.detecter], 'un objet non identifié s’évalue et se détecte, au verdict de l’Évaluation').toEqual([
-      { refus: appraiseRefus(s.party), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier'), rosa.id] } },
-      { refus: appraiseRefus(s.party, 'detect'), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier'), rosa.id, 'detect'] } },
+      { refus: appraiseRefus(s.party), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier')] } },
+      { refus: refusDeDetection(s.party, rosa.items!.find((i) => i.label === 'Pilon et Mortier')!), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier'), 'detect'] } },
     ]);
     expect(gestesDeLObjet(s, rosa.id, 'personne'), 'sans l’objet, aucun geste').toBeNull();
   });
 
-  it('l’Évaluation tentée ce jour et la Détection tentée ne s’offrent plus', () => {
-    const { s, rosa, uid } = partie({ appraiseTriedDay: 3, detectTried: true });
+  it('l’Évaluation tentée ce jour ne s’offre plus ; la Détection tentée par chaque détecteur se ferme et le dit', () => {
+    const { s, rosa, uid } = partie({ appraiseTriedDay: 3 });
+    rosa.talents = [...(rosa.talents ?? []), { talentId: 'detection-d-artefact', times: 1 }];
+    rosa.items!.find((i) => i.label === 'Pilon et Mortier')!.detectTriedBy = [rosa.id];
     const pilon = gestesDeLObjet(s, rosa.id, uid('Pilon et Mortier'))!;
-    expect([pilon.evaluer, pilon.detecter]).toEqual([null, null]);
+    expect([pilon.evaluer, pilon.detecter?.refus]).toEqual([null, t('mf.detectDejaTentee', { label: 'Pilon et Mortier' })]);
     const veille = partie({ appraiseTriedDay: 2 });
     expect(gestesDeLObjet(veille.s, veille.rosa.id, veille.uid('Pilon et Mortier'))!.evaluer, 'tentée la veille, elle s’offre').not.toBeNull();
   });

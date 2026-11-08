@@ -18,9 +18,10 @@
  *    pas de risque de boucle infinie.
  *  - Les Conditions sont PURES (lisent l'état, ne le mutent pas) ; les effets sont les feuilles `do`.
  *
- * Ce module porte le MODÈLE + l'évaluation PURE des Conditions (remplace `condMet` +
- * `temporalConditionMet`). L'EXÉCUTION interactive (ouvrir une modale de Test, suspendre, reprendre)
- * vit dans le store (`runFlow`) — comme `applyEffects` aujourd'hui.
+ * Ce module porte le MODÈLE, l'évaluation PURE des Conditions (remplace `condMet` +
+ * `temporalConditionMet`) et la MARCHE d'exécution (`executerFlow` : `seq` et `if`). Ce que la marche
+ * délègue (appliquer une feuille, ouvrir une modale de Test, suspendre, reprendre) vit chez ses hôtes
+ * du noyau (`runFlow`, `runCombatFlow`…).
  */
 import { toDate } from './clock';
 import type { CharKey, Difficulty, EffectSource, HitLocation } from './types';
@@ -1116,4 +1117,45 @@ export function walkFlow<E = EffectOp>(flow: Flow<E>, visit: (node: Flow<E>, che
     case 'choice': walkFlow(flow.yes, visit, [...chemin, 'yes']); if (flow.no) walkFlow(flow.no, visit, [...chemin, 'no']); break;
     case 'do': break;
   }
+}
+
+/** Arrêt d'une exécution de Flow : `executerFlow` rend `arret` sans jouer le reste de sa pile. */
+export interface ArretDeFlow<R> { readonly arret: R }
+
+/** Ce qu'un hôte fait d'un nœud : rien (la marche poursuit), un Flow joué en TÊTE de la pile, ou l'arrêt. */
+export type PasDeFlow<E, R> = Flow<E> | ArretDeFlow<R> | undefined;
+
+/** Le reste de la pile, retiré d'elle : la CONTINUATION qu'un hôte qui suspend confie à sa reprise. */
+export type ResteDuFlow<E> = () => Extract<Flow<E>, { kind: 'seq' }>;
+
+/** Ce qu'`executerFlow` délègue à son HÔTE ; la marche décide seule `seq` et `if`. */
+export interface HoteDeFlow<E, R> {
+  /** Contexte des Conditions d'un `if`, lu au nœud : l'état vivant peut avoir bougé depuis le départ. */
+  conditions(): ConditionCtx;
+  feuille(noeud: Extract<Flow<E>, { kind: 'do' }>, reste: ResteDuFlow<E>): PasDeFlow<E, R>;
+  test(noeud: FlowTestNode<E>, reste: ResteDuFlow<E>): PasDeFlow<E, R>;
+  choix(noeud: Extract<Flow<E>, { kind: 'choice' }>, reste: ResteDuFlow<E>): PasDeFlow<E, R>;
+  /** Avant chaque DÉCISION (`if`, `test`, `choice`) ; le nœud, non consommé, n'est pas dans `reste()`. */
+  avantDecision?(noeud: Flow<E>, reste: ResteDuFlow<E>): ArretDeFlow<R> | undefined;
+  /** Valeur rendue quand la pile est épuisée. */
+  fin(): R;
+}
+
+/** EXÉCUTION d'un Flow, à PILE : `seq` empile ses étapes, `if` sa branche ; le reste va à l'hôte. */
+export function executerFlow<E, R>(flow: Flow<E>, hote: HoteDeFlow<E, R>): R {
+  const pile: Flow<E>[] = [flow];
+  const reste: ResteDuFlow<E> = () => ({ kind: 'seq', steps: pile.splice(0) });
+  for (let noeud = pile.shift(); noeud; noeud = pile.shift()) {
+    let pas: PasDeFlow<E, R>;
+    switch (noeud.kind) {
+      case 'seq': pile.unshift(...noeud.steps); continue;
+      case 'do': pas = hote.feuille(noeud, reste); break;
+      case 'if': pas = hote.avantDecision?.(noeud, reste) ?? (evalCondition(noeud.cond, hote.conditions()) ? noeud.then : noeud.else); break;
+      case 'test': pas = hote.avantDecision?.(noeud, reste) ?? hote.test(noeud, reste); break;
+      case 'choice': pas = hote.avantDecision?.(noeud, reste) ?? hote.choix(noeud, reste); break;
+    }
+    if (pas && 'arret' in pas) return pas.arret;
+    if (pas) pile.unshift(pas);
+  }
+  return hote.fin();
 }

@@ -5,7 +5,7 @@
  * Le geste est `utiliserLObjet` (combatSlice), en combat comme hors combat ; la voie suit le contexte :
  *  - EN COMBAT : délègue à `runCombatFlow` (héros manuel → un nœud `test` devient une
  *    étape de cascade INFLUENÇABLE ; cadence auto → jet inline) — la même voie que les sorts/triggers.
- *  - HORS COMBAT : walker de scène — un nœud `test` ouvre la modale de Test
+ *  - HORS COMBAT : hôte de scène d'`executerFlow` — un nœud `test` ouvre la modale de Test
  *    (`openSkillTest`) RESTREINTE AU BUVEUR (`actorId` : c'est LUI qui boit, pas le meilleur du groupe),
  *    branches + continuation reprises par `jetValider('test')`.
  *
@@ -16,8 +16,8 @@
  */
 import type { Combatant, ItemInstance, EffectSource } from '../engine/types';
 import { consommableDe, consumableUntilTime, bakeConsumableFlow } from '../engine/consumables';
-import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { evalCondition, type ConditionCtx } from '../engine/flowCore';
+import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
+import { executerFlow, type ArretDeFlow, type ConditionCtx } from '../engine/flowCore';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { condCtx } from './bourseFlow';
 import { buildActorView } from '../engine/actorView';
@@ -38,68 +38,57 @@ function drinkerCtx(get: Get, hero: Combatant): ConditionCtx {
   return { ...condCtx(get), target: view, caster: view };
 }
 
-/** Walker de SCÈNE du Flow baké d'un consommable — calque `runFlow` mais : feuilles appliquées au
+/** Hôte de SCÈNE (`executerFlow`) du Flow baké d'un consommable — comme `runFlow`, mais : feuilles appliquées au
  *  BUVEUR via `applyLeafOps` (durée bakée + `delayed` programmées), `if` évalués avec sa vue d'acteur,
  *  `test` gaté (`exceptGroups` du Bonnet de fou…) puis ouvert RESTREINT à lui (`actorId`). Un nœud
  *  `choice` (aucun consommable n'en porte) prend sa branche `no` — défaut conservateur, pas de décision
  *  silencieuse. Les branches d'un `test` suspendu sont reprises par `jetValider('test')`→`runFlow` : leurs
  *  feuilles BAKÉES (`on:'hero'` + untilTime) y retombent sur le handler `ops` (applyLeafOps). */
 function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flow, label: string, source?: EffectSource): void {
-  const stack: Flow[] = [flow];
-  while (stack.length) {
-    const node = stack.shift()!;
-    switch (node.kind) {
-      case 'do': {
-        if (node.effect.type === 'ops') {
-          const lines = applyLeafOps(get, set, hero, node.effect, { idNeuf: get().forgerUnId,
-            rng: battleRng(),
-            // PROVENANCE du produit bu : un poison qui enduit la lame (`augmentWeapon`) garde SON
-            // identité sur les effets fondus dans l'arme (`stampSource`, engine/ops) — sans elle, le
-            // Test qu'il exige nommerait l'ÉPÉE au lieu du poison (#1262 V2 L6d).
-            ...(source ? { source } : {}),
-            onCorruption: (n, align) => gainCorruption(get, set, hero, n, align),
-          });
-          // Feuille partie à la PORTE (#1508) : le reste de la pile est SA suite, exactement comme
-          // pour un nœud `test` ci-dessous — sans quoi la fin du produit s'appliquerait par-dessus un
-          // dé en vol. Reprise par le walker de SCÈNE : les feuilles bakées y retombent sur `ops`.
-          if (lines === OPS_DIFFEREES) {
-            const steps = stack.splice(0);
-            if (steps.length) confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: { kind: 'seq', steps }, label }]);
-            return;
-          }
-          set(touchActors(get()));
-          for (const l of lines) get().ecrireAuJournal(l);
-        }
-        break;
+  const fini: ArretDeFlow<void> = { arret: undefined };
+  executerFlow<Effect, void>(flow, {
+    conditions: () => drinkerCtx(get, hero),
+    feuille: (node, reste) => {
+      if (node.effect.type !== 'ops') return undefined;
+      const lines = applyLeafOps(get, set, hero, node.effect, { idNeuf: get().forgerUnId,
+        rng: battleRng(),
+        // PROVENANCE du produit bu : un poison qui enduit la lame (`augmentWeapon`) garde SON
+        // identité sur les effets fondus dans l'arme (`stampSource`, engine/ops) — sans elle, le
+        // Test qu'il exige nommerait l'ÉPÉE au lieu du poison (#1262 V2 L6d).
+        ...(source ? { source } : {}),
+        onCorruption: (n, align) => gainCorruption(get, set, hero, n, align),
+      });
+      // Feuille partie à la PORTE (#1508) : le reste de la pile est SA suite, exactement comme
+      // pour un nœud `test` ci-dessous — sans quoi la fin du produit s'appliquerait par-dessus un
+      // dé en vol. Reprise par `runFlow` : les feuilles bakées y retombent sur `ops`.
+      if (lines === OPS_DIFFEREES) {
+        const steps = reste().steps;
+        if (steps.length) confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: { kind: 'seq', steps }, label }]);
+        return fini;
       }
-      case 'seq': stack.unshift(...node.steps); break;
-      case 'if': {
-        const branch = evalCondition(node.cond, drinkerCtx(get, hero)) ? node.then : node.else;
-        if (branch) stack.unshift(branch);
-        break;
-      }
-      case 'test': {
-        const cc = drinkerCtx(get, hero);
-        // Test non joué (Bonnet de fou : `exceptGroups: ['peau-verte']`, LDB 71 l.20) : la séquence
-        // continue dans CE marcheur.
-        if (!resoudreFlowTest(node.test, { cc, sujet: hero }).joue) break;
-        const after: Flow = { kind: 'seq', steps: stack.splice(0) };
-        // Le BUVEUR encaisse seul ce que le produit lui fait (LDB 12 l.197) — défaut de la VOIE,
-        // tri-état : la donnée le rouvre là où le Test n'est pas une résistance (`noSupport:false`,
-        // Nécessaire antipoison : Test de Guérison).
-        // Enjeu DÉRIVÉ du PRODUIT bu quand la donnée n'en déclare pas (#1262 V2 L6d) : « ce qui se joue »
-        // EST le consommable, et sa fiche Codex porte déjà sa règle verbatim.
-        const ft = { ...withDerivedStake(node.test, source), noSupport: node.test.noSupport ?? true };
-        // Modale RESTREINTE au buveur ; impossible (mort) → continuation directe.
-        if (!openSkillTest(get, set, ft, cc, node.success, node.fail, after, { actorId: hero.id })) jouerFlowEntier(runFlow(get, set, after, label));
-        return;
-      }
-      case 'choice': {
-        if (node.no) stack.unshift(node.no);
-        break;
-      }
-    }
-  }
+      set(touchActors(get()));
+      for (const l of lines) get().ecrireAuJournal(l);
+      return undefined;
+    },
+    test: (node, reste) => {
+      const cc = drinkerCtx(get, hero);
+      // Test non joué (Bonnet de fou : `exceptGroups: ['peau-verte']`, LDB 71 l.20) : la séquence
+      // continue dans CETTE exécution.
+      if (!resoudreFlowTest(node.test, { cc, sujet: hero }).joue) return undefined;
+      const after = reste();
+      // Le BUVEUR encaisse seul ce que le produit lui fait (LDB 12 l.197) — défaut de la VOIE,
+      // tri-état : la donnée le rouvre là où le Test n'est pas une résistance (`noSupport:false`,
+      // Nécessaire antipoison : Test de Guérison).
+      // Enjeu DÉRIVÉ du PRODUIT bu quand la donnée n'en déclare pas (#1262 V2 L6d) : « ce qui se joue »
+      // EST le consommable, et sa fiche Codex porte déjà sa règle verbatim.
+      const ft = { ...withDerivedStake(node.test, source), noSupport: node.test.noSupport ?? true };
+      // Modale RESTREINTE au buveur ; impossible (mort) → continuation directe.
+      if (!openSkillTest(get, set, ft, cc, node.success, node.fail, after, { actorId: hero.id })) jouerFlowEntier(runFlow(get, set, after, label));
+      return fini;
+    },
+    choix: (node) => node.no,
+    fin: () => undefined,
+  });
 }
 
 /** Les ops que le Flow d'un consommable pose à son buveur quand tout réussit (Tests réussis, toutes les

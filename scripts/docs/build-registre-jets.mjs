@@ -1,5 +1,5 @@
-// REGISTRE des chemins de jet — GÉNÉRÉ depuis le module de gardes `scripts/guards/lib/rollSeam*.mjs`
-// (jamais une recopie à la main). Sortie : docs/registre-jets.md. Re-run :
+// REGISTRE des chemins de jet — GÉNÉRÉ depuis les modules de gardes `scripts/guards/lib/rollSeam*.mjs` et
+// `scripts/guards/lib/routeursDeTest.mjs` (jamais une recopie à la main). Sortie : docs/registre-jets.md. Re-run :
 // node scripts/docs/build-registre-jets.mjs (npm run docs:registre-jets).
 // Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
 //
@@ -23,6 +23,7 @@ import {
 } from '../guards/lib/rollSeamExclusivity.mjs'
 import { tableDesExports } from '../guards/lib/canonUnique.mjs'
 import { scanFlowTestEngineRoll } from '../guards/lib/flowTestEngineRoll.mjs'
+import { scanRouteursDeTest } from '../guards/lib/routeursDeTest.mjs'
 import { estFichierVitest, estKitDeTest } from '../guards/lib/fichierVitest.mjs'
 import {
   ROLL_SEAM_CORE, ROLL_SEAM_PHASE2_STOCK,
@@ -149,19 +150,40 @@ function rendu() {
   }
   const nonRoutesTotal = nonRoutes.reduce((n, [, c]) => n + c, 0)
 
-  // Les TROIS routeurs qui résolvent un nœud `test` de Flow — mesurés, pas supposés.
-  const ROUTEURS_AUTHORES = [
-    ['resolveFlowTest', 'src/noyau/combat/triggeredTest.ts', 'voie CADENCE-AWARE : ouvre `openSkillTest` (modale influençable) quand l\'acteur est piloté.'],
-    ['resolveInlineFlowTest', 'src/noyau/triggeredEffects.ts', 'jumeau store-free de la branche NON-interactive du précédent (jet résolu inline, journalisé).'],
-    ['bandeTriggeredTest', 'src/noyau/combat/triggeredTest.ts', 'MÊME porte, N TESTEURS (#1657) : une BANDE de N rangées pour les porteurs surfacés, la voie inline pour les autres.'],
+  // --- ROUTEURS d'un nœud `test` (#1874) : DÉRIVÉS du code qui route (`routeursDeTest.mjs`) ----------
+  // Le générateur ne déclare que le RÔLE de chacun, en prose ; leur liste, leur fichier et leurs portes
+  // viennent du scan. Un rôle sans routeur mesuré (routeur débranché) et un routeur sans rôle (code qui
+  // route en silence) font ÉCHOUER la génération.
+  const ROLES_DES_ROUTEURS = {
+    runFlow: 'hôte de SCÈNE d\'`executerFlow` : modale de Test au groupe, Test d\'équipage d\'un navire.',
+    runCombatFlow: 'hôte de COMBAT d\'`executerFlow` : remet le nœud et la continuation à `resolveFlowTest`.',
+    runSceneConsumableFlow: 'hôte du consommable bu HORS combat : modale restreinte au buveur.',
+    runPureFlowLines: 'hôte PUR des effets déclenchés sans voie de jet : il LÈVE sur un nœud `test`, jamais de branche muette.',
+    resolveFlowTest: 'voie CADENCE-AWARE en combat : étape de cascade influençable pour un acteur piloté, jet inline sinon.',
+    resolveInlineFlowTest: 'nœud `test` RACINE d\'un effet déclenché atteint sans store : jet inline, branche jouée par `runPureFlowLines`.',
+    bandeTriggeredTest: 'MÊME porte, N TESTEURS (#1657) : une BANDE de N rangées pour les porteurs surfacés.',
+    collectRoundEndTestSteps: 'Tests de FIN DE ROUND d\'un porteur surfacé : une étape influençable par source d\'effet.',
+    routeTriggeredTest: 'porte d\'un Test SUBI : hors combat, modale au sujet ; en combat, `runCombatFlow`.',
+    CORPS_DU_FRANCHISSEMENT: 'escalade d\'une arête en combat : modale restreinte au grimpeur (hors combat, `runFlow`).',
+  }
+  const routeurs = new Map()
+  for (const { file, fn, porte } of scanRouteursDeTest(prodFiles('src'))) {
+    const r = routeurs.get(fn) ?? { file, portes: [] }
+    r.portes.push(porte)
+    routeurs.set(fn, r)
+  }
+  const desyncRouteurs = [
+    ...Object.keys(ROLES_DES_ROUTEURS).filter((fn) => !routeurs.has(fn))
+      .map((fn) => `${fn} : rôle déclaré, mais aucun code ne lui remet de nœud \`test\` (routeur débranché ? retirer le rôle)`),
+    ...[...routeurs].filter(([fn]) => !Object.hasOwn(ROLES_DES_ROUTEURS, fn))
+      .map(([fn, r]) => `${fn} (${r.file}) : route un nœud \`test\` vers ${r.portes.join(', ')} sans rôle déclaré`),
   ]
-  const routeursManquants = ROUTEURS_AUTHORES.filter(([name, file]) =>
-    !new RegExp(`function\\s+${name}\\b`).test(readFileSync(join(ROOT, file), 'utf8')))
-  if (routeursManquants.length) {
-    console.error(`${TOOL} — routeur de nœud \`test\` authoré introuvable (la thèse « tout nœud test passe par ces routeurs » n'est plus mesurable) :`)
-    for (const [n, f] of routeursManquants) console.error(`  ${n} (${f})`)
+  if (desyncRouteurs.length) {
+    console.error(`${TOOL} — routeurs de nœud \`test\` désynchronisés (ROLES_DES_ROUTEURS) :`)
+    for (const l of desyncRouteurs) console.error(`  ${l}`)
     process.exit(1)
   }
+  const leves = [...routeurs].filter(([, r]) => r.portes.includes('(lève)')).map(([fn]) => `\`${fn}\``)
 
   // --- ASSERTION INVERSE (#1657) : « … et AUCUN AUTRE chemin » ---------------------------------
   // Vérifier que les routeurs EXISTENT dit qu'un chemin canonique est disponible ; ça ne dit pas qu'il
@@ -324,12 +346,18 @@ function rendu() {
   out += nonRoutesTotal
     ? `de \`src/data\` et \`src/scenes\` : **${authoredTests - nonRoutesTotal} ROUTÉS** par la porte, **${nonRoutesTotal} NON ROUTÉS** (résolus DANS le\nmoteur — mesure ci-dessous). Ce n'est pas un stock : la donnée n'a pas de call-site à router.\n\n`
     : `de \`src/data\` et \`src/scenes\`, **tous ROUTÉS** par la porte. Ce n'est pas un stock : la donnée n'a pas de\ncall-site à router.\n\n`
-  out += `### Les ${authoredTests - nonRoutesTotal} routés — ${ROUTEURS_AUTHORES.length} routeurs mesurés\n\n`
-  for (const [name, file, role] of ROUTEURS_AUTHORES) out += `- \`${name}\` (\`${file}\`) — ${role}\n`
-  out += `\nLe premier ouvre \`openSkillTest\` (famille canonique), le deuxième est sa branche non-interactive, le\n`
-  out += `troisième la même porte pour N testeurs à la fois. **Pour eux**,\n`
-  out += `un nœud \`test\` enfoui sans routeur cadence-aware lève (\`resolveInlineFlowTest\` : « un test enfoui exige un\n`
-  out += `routeur cadence-aware ») — c'est le fail-closed de la donnée.\n\n`
+  out += `### Les ${authoredTests - nonRoutesTotal} routés — ${routeurs.size} routeurs dérivés du code\n\n`
+  out += `Un routeur est la déclaration de module où un nœud \`test\` passe la main avec ses conséquences : le membre\n`
+  out += `\`test\` d'un hôte d'\`executerFlow\` (seul marcheur de Flow), un appel qui reçoit les deux branches d'un nœud,\n`
+  out += `ou une conditionnelle qui en choisit une (\`(inline)\`). Liste, fichiers et portes : \`scripts/guards/lib/routeursDeTest.mjs\`\n`
+  out += `(critère et angles morts en tête) ; le rôle seul est déclaré, et un rôle sans routeur comme un routeur sans rôle\n`
+  out += `font échouer la génération.\n\n`
+  out += `| Routeur | Fichier | Portes | Rôle |\n|---|---|---|---|\n`
+  for (const [fn, r] of [...routeurs].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
+    out += `| \`${fn}\` | \`${r.file}\` | ${r.portes.map((p) => `\`${p}\``).join(', ')} | ${esc(ROLES_DES_ROUTEURS[fn])} |\n`
+  }
+  out += `\nFail-closed de la donnée : ${leves.join(', ')} ${leves.length > 1 ? 'lèvent' : 'lève'} sur un nœud \`test\` — un hôte sans voie\n`
+  out += `de jet ne joue jamais une branche en silence.\n\n`
   out += `ASSERTION INVERSE (« … et aucun AUTRE chemin ») : la génération ÉCHOUE si un seul site de \`src/engine/**\`\n`
   out += `lit un nœud \`test\` et le roule (même scan que le garde \`flowTestEngineRoll\`). Exister ne suffit pas à une\n`
   out += `porte : elle doit être la SEULE.\n\n`

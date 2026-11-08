@@ -5623,7 +5623,8 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Bois"
+        "arg": "Bois",
+        "natural": true
       },
       {
         "id": "cornes",
@@ -5733,7 +5734,8 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Bois"
+        "arg": "Bois",
+        "natural": true
       },
       {
         "id": "cornes",
@@ -5813,7 +5815,8 @@
       {
         "id": "arme",
         "value": 9,
-        "arg": "Mandibules"
+        "arg": "Mandibules",
+        "natural": true
       },
       {
         "id": "morsure",
@@ -5908,7 +5911,8 @@
       {
         "id": "arme",
         "value": 6,
-        "arg": "Mandibules"
+        "arg": "Mandibules",
+        "natural": true
       },
       {
         "id": "morsure",
@@ -6247,7 +6251,8 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Crocs"
+        "arg": "Crocs",
+        "natural": true
       }
     ],
     "optionals": [],
@@ -6325,7 +6330,8 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Défenses"
+        "arg": "Défenses",
+        "natural": true
       },
       {
         "id": "cornes",
@@ -6434,7 +6440,8 @@
       {
         "id": "arme",
         "value": 11,
-        "arg": "Défenses"
+        "arg": "Défenses",
+        "natural": true
       },
       {
         "id": "cornes",
@@ -6524,7 +6531,8 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Gueule caverneuse"
+        "arg": "Gueule caverneuse",
+        "natural": true
       },
       {
         "id": "morsure",
@@ -6796,7 +6804,8 @@
       {
         "id": "arme",
         "value": 9,
-        "arg": "Gueule pleine de crocs"
+        "arg": "Gueule pleine de crocs",
+        "natural": true
       }
     ],
     "optionals": [],
@@ -7863,7 +7872,8 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Crocs acérés"
+        "arg": "Crocs acérés",
+        "natural": true
       }
     ],
     "optionals": [
@@ -8093,7 +8103,8 @@
       {
         "id": "arme",
         "value": 6,
-        "arg": "Fouet pseudopode"
+        "arg": "Fouet pseudopode",
+        "natural": true
       },
       {
         "id": "engloutir"
@@ -8187,7 +8198,8 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Fouet pseudopode"
+        "arg": "Fouet pseudopode",
+        "natural": true
       },
       {
         "id": "engloutir"
@@ -8306,7 +8318,8 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Crocs"
+        "arg": "Crocs",
+        "natural": true
       },
       {
         "id": "morsure",
@@ -8714,7 +8727,8 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Dents"
+        "arg": "Dents",
+        "natural": true
       },
       {
         "id": "constricteur"
@@ -8989,7 +9003,8 @@
       {
         "id": "arme",
         "value": 9,
-        "arg": "Crocs dentelés"
+        "arg": "Crocs dentelés",
+        "natural": true
       },
       {
         "id": "cornes",
@@ -9979,7 +9994,8 @@
       {
         "id": "arme",
         "value": 11,
-        "arg": "Sabots ardents"
+        "arg": "Sabots ardents",
+        "natural": true
       },
       {
         "id": "cornes",
@@ -10064,7 +10080,8 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Pinces antérieures"
+        "arg": "Pinces antérieures",
+        "natural": true
       },
       {
         "id": "morsure",
@@ -10235,7 +10252,8 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Enroulement écrasant"
+        "arg": "Enroulement écrasant",
+        "natural": true
       },
       {
         "id": "constricteur"
@@ -10336,7 +10354,8 @@
       {
         "id": "arme",
         "value": 12,
-        "arg": "Poids super-lourd"
+        "arg": "Poids super-lourd",
+        "natural": true
       },
       {
         "id": "attaque-caudale",
@@ -10973,7 +10992,8 @@
           {
             "id": "infecte"
           }
-        ]
+        ],
+        "natural": true
       },
       {
         "id": "attaque-caudale",
@@ -11103,7 +11123,8 @@
       {
         "id": "arme",
         "value": 12,
-        "arg": "Pinces"
+        "arg": "Pinces",
+        "natural": true
       },
       {
         "id": "morsure",
@@ -11192,7 +11213,8 @@
       {
         "id": "arme",
         "value": 13,
-        "arg": "Pince"
+        "arg": "Pince",
+        "natural": true
       },
       {
         "id": "morsure",
@@ -11371,7 +11393,8 @@
             "id": "venin",
             "arg": "complexe"
           }
-        ]
+        ],
+        "natural": true
       },
       {
         "id": "attaque-caudale",
@@ -17385,7 +17408,8 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Crocs horribles"
+        "arg": "Crocs horribles",
+        "natural": true
       }
     ],
     "optionals": [
@@ -17468,7 +17492,8 @@
       {
         "id": "arme",
         "value": 6,
-        "arg": "Pince"
+        "arg": "Pince",
+        "natural": true
       }
     ],
     "optionals": [
@@ -17547,7 +17572,8 @@
       {
         "id": "arme",
         "value": 8,
-        "arg": "Crocs"
+        "arg": "Crocs",
+        "natural": true
       },
       {
         "id": "morsure",
@@ -17626,7 +17652,8 @@
       {
         "id": "arme",
         "value": 7,
-        "arg": "Ailerons tranchants"
+        "arg": "Ailerons tranchants",
+        "natural": true
       }
     ],
     "optionals": [
@@ -17716,7 +17743,8 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Poings"
+        "arg": "Poings",
+        "natural": true
       }
     ],
     "optionals": [],
@@ -17794,7 +17822,8 @@
       {
         "id": "arme",
         "value": 11,
-        "arg": "Dents aiguisées comme des rasoirs"
+        "arg": "Dents aiguisées comme des rasoirs",
+        "natural": true
       }
     ],
     "optionals": [],
@@ -17881,7 +17910,8 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Crocs et griffes"
+        "arg": "Crocs et griffes",
+        "natural": true
       },
       {
         "id": "attaque-caudale",
@@ -18046,7 +18076,8 @@
       {
         "id": "arme",
         "value": 11,
-        "arg": "Mâchoires tenailles"
+        "arg": "Mâchoires tenailles",
+        "natural": true
       },
       {
         "id": "morsure",
@@ -18135,7 +18166,8 @@
       {
         "id": "arme",
         "value": 12,
-        "arg": "Mâchoires tenailles"
+        "arg": "Mâchoires tenailles",
+        "natural": true
       },
       {
         "id": "attaque-caudale",
@@ -18218,7 +18250,8 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Crocs gigantesques"
+        "arg": "Crocs gigantesques",
+        "natural": true
       }
     ],
     "optionals": [],
@@ -18288,7 +18321,8 @@
       {
         "id": "arme",
         "value": 16,
-        "arg": "Crocs gigantesques"
+        "arg": "Crocs gigantesques",
+        "natural": true
       },
       {
         "id": "attaque-caudale",
@@ -21369,7 +21403,8 @@
       {
         "id": "arme",
         "value": 10,
-        "arg": "Dents et cornes"
+        "arg": "Dents et cornes",
+        "natural": true
       },
       {
         "id": "constricteur"
@@ -22007,7 +22042,8 @@
       {
         "id": "arme",
         "value": 6,
-        "arg": "Griffes"
+        "arg": "Griffes",
+        "natural": true
       },
       {
         "id": "corruption",

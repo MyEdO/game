@@ -5,8 +5,8 @@
  * lire (`armeDeDessin`), keyés par ids stables.
  */
 import type { Combatant, Weapon } from '../engine/types';
-import { apparencesCandidates, deciderApparencesDesArmes, isWeaponActive, objetDeSlot, weaponFromItem, weaponHands, type ContexteDeManiement, type TrappingResolver, isShieldItem } from '../engine/items';
-import { renderWeaponsFromTraits, weaponFromId } from '../engine/creatureEquip';
+import { apparencesCandidates, apparencesObjetsDe, deciderApparencesDesArmes, isWeaponActive, objetDeSlot, objetsDeLInventaire, peutEtreTenu, weaponFromItem, weaponHands, type ContexteDeManiement, type TrappingResolver, isShieldItem } from '../engine/items';
+import { renderWeaponsFromTraits, traitsDevantLEquipement } from '../engine/creatureEquip';
 import type { TraitInstance } from '../engine/statEntry';
 import { porteurDuProfil, traitsDeLIndividu } from './monde/spawn';
 import type { TraitPose } from '../data/schemas/grammaire/reference';
@@ -82,11 +82,10 @@ export function armesDuCombattant(c: Combatant): { tenues: { arme: Weapon; hand:
   return { tenues, rangees: [...armesRangees(c, maniement), ...surplus] };
 }
 
-/** Ce qu'une ENTITÉ de scène déclare de ses armes : apparence d'auteur (`apparencesObjets`), arme d'authoring
- *  (`SceneEntity.weapon`), statbloc d'éditeur (`traits`), enrôlement. */
+/** Ce qu'une ENTITÉ de scène déclare de ses armes : apparence d'auteur (`apparencesObjets`), inventaire d'auteur
+ *  (`SceneEntity.inventaire`), statbloc d'éditeur (`traits`), enrôlement. */
 interface EquipementDAuteur extends Pick<EntityAppearance, 'apparencesObjets'> {
-  /** Arme d'authoring (`trappingId`). */
-  weapon?: string;
+  inventaire?: SceneEntity['inventaire'];
   traits?: readonly TraitPose[];
   /** Profil du statbloc d'éditeur : référent des Indices formulés de ses `traits`. */
   char?: Partial<Record<string, number | null>>;
@@ -96,10 +95,10 @@ interface EquipementDAuteur extends Pick<EntityAppearance, 'apparencesObjets'> {
   enrolled?: boolean;
 }
 
-/** Ce que déclare une entité de scène : son apparence d'auteur, son arme, son statbloc d'éditeur, son
+/** Ce que déclare une entité de scène : son apparence d'auteur, son inventaire, son statbloc d'éditeur, son
  *  enrôlement. */
-export const equipementDAuteurDe = (ent: Pick<SceneEntity, 'id' | 'appearance' | 'weapon' | 'statblock'>, enrolled?: boolean): EntityAppearance & EquipementDAuteur => ({
-  ...ent.appearance, weapon: ent.weapon, traits: ent.statblock?.traits, char: ent.statblock?.char, enrolled, porteur: ent.id,
+export const equipementDAuteurDe = (ent: Pick<SceneEntity, 'id' | 'appearance' | 'inventaire' | 'statblock'>, enrolled?: boolean): EntityAppearance & EquipementDAuteur => ({
+  ...ent.appearance, inventaire: ent.inventaire, traits: ent.statblock?.traits, char: ent.statblock?.char, enrolled, porteur: ent.id,
 });
 
 /** Traits du porteur d'auteur, statbloc d'éditeur sinon record, tirés pour lui comme à son spawn
@@ -110,14 +109,12 @@ function traitsDeLEntite(ref: string | undefined, opts: EquipementDAuteur): Trai
   return traitsDeLIndividu(poses, porteurDuProfil(opts.porteur ?? ref ?? '', (opts.traits ? opts.char : rec?.char) ?? {}));
 }
 
-/** Armes du porteur d’auteur : traits explicites ou d’une entité enrôlée, puis arme équipée
- *  si son type n’est pas déjà représenté (`spawn.ts`, #126/#145). */
+/** Armes du porteur d’auteur : celles de son inventaire, puis celles des traits explicites ou d’une entité enrôlée qui
+ *  restent devant lui (`traitsDevantLEquipement`), comme à son spawn (`spawn.ts`). */
 export function armesDEntite(resolveTrapping: TrappingResolver, ref: string | undefined, opts: EquipementDAuteur = {}): Weapon[] {
-  const traits = traitsDeLEntite(ref, opts);
-  const traitWeapons = renderWeaponsFromTraits(opts.traits || opts.enrolled ? traits : [], resolveTrapping);
-  const idWeaponInst = opts.weapon ? weaponFromId(opts.weapon, resolveTrapping) : undefined;
-  const idWeapon = idWeaponInst && !traitWeapons.some((w) => w.type === idWeaponInst.type) ? [idWeaponInst] : [];
-  const armes = [...idWeapon, ...traitWeapons];
-  deciderApparencesDesArmes(resolveTrapping, armes, opts, ref);
+  const objets = objetsDeLInventaire(opts.inventaire ?? {}, (t) => `${opts.porteur ?? ref}-objet-${t}`, apparencesObjetsDe(opts, ref), resolveTrapping);
+  const traits = traitsDevantLEquipement(traitsDeLEntite(ref, opts), objets, resolveTrapping);
+  const armes = [...objets.filter(peutEtreTenu).map((o) => weaponFromItem(o)), ...renderWeaponsFromTraits(opts.traits || opts.enrolled ? traits : [], resolveTrapping)];
+  deciderApparencesDesArmes(resolveTrapping, armes, opts, ref, objets);
   return armes;
 }

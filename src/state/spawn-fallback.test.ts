@@ -1,6 +1,6 @@
 /**
  * #223 — « seed + repli bruyant » : toute résolution qui ÉCHOUE crie (console) et laisse une trace
- * VISIBLE, jamais un clone silencieux. Une réf. irrésoluble LÈVE (#1882). Couvre l'arme d'authoring hors catalogue (console.error + AUCUNE arme devinée).
+ * VISIBLE, jamais un clone silencieux. Une réf. irrésoluble LÈVE (#1882).
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { RefIrresoluble, spawnEnemy } from '../noyau/monde/spawn';
@@ -8,6 +8,7 @@ import { ficheDEntite, FicheAbsente } from '../noyau/monde/sceneNpc';
 import type { SceneEntity } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
 import { inFiringBand } from '../noyau/combatFlow';
+import { weaponLoaded } from '../engine/weaponLoad';
 import { presetPnjById } from './campaignData';
 
 const POS = { x: 0, y: 0 };
@@ -53,36 +54,20 @@ describe('#1882 — réf. irrésoluble : aucun mannequin, le spawn LÈVE', () =>
   });
 });
 
-describe('#223/#258 — arme d’authoring (trappingId) au spawn de combat', () => {
-  it('trappingId inconnu → console.error, et AUCUNE arme fabriquée depuis l’id (rien d’inventé)', () => {
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const c = spawnEnemy({ statblock: { type: 'statblock', label: 'PNJ', char: { B: 10 } } }, 'w1', POS, { weapon: 'hache-inconnue' });
-    expect(err).toHaveBeenCalledWith(expect.stringContaining('« hache-inconnue »'));
-    expect(c.weapons.some((w) => w.label === 'hache-inconnue')).toBe(false);
-  });
-
-  it('trappingId de catalogue → aucune plainte, arme COMPLÈTE (Dégâts + Groupe du catalogue)', () => {
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const c = spawnEnemy({ statblock: { type: 'statblock', label: 'PNJ', char: { B: 10 } } }, 'w2', POS, { weapon: 'dague' });
-    expect(err).not.toHaveBeenCalled();
+describe('#3684 — objets d’inventaire d’auteur au spawn de combat', () => {
+  it('une arme du catalogue devient un objet du porteur et son arme COMPLÈTE (Dégâts + Groupe du catalogue)', () => {
+    const c = spawnEnemy({ statblock: { type: 'statblock', label: 'PNJ', char: { B: 10 } } }, 'w2', POS, { inventaire: { dague: false } });
     const dague = c.weapons.find((w) => w.trappingId === 'dague');
-    expect(dague?.damage).toEqual({ plusBF: true, flat: 2 });
-    expect(dague?.subType).toBe('base');
+    expect(c.items?.map((i) => i.uid)).toEqual(['w2-objet-dague']);
+    expect(dague).toMatchObject({ uid: 'w2-objet-dague', damage: { plusBF: true, flat: 2 }, subType: 'base' });
   });
 
-  it('#258 régression Olg (loup-et-saumure) — « hache-d-armes » résout SANS plainte au spawn de combat', () => {
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
-    spawnEnemy({ statblock: { type: 'statblock', label: 'Olg Blóðsalt', char: { B: 12 } } }, 'olg', POS, { weapon: 'hache-d-armes' });
-    expect(err).not.toHaveBeenCalled();
-  });
-
-  it('SYMPTÔME — une entité armée d’un `weapon:"arc"` a une cible DANS SA BANDE DE TIR (elle peut tirer)', () => {
-    const shooter = spawnEnemy({ ref: 'humain' }, 'archere', { x: 0, y: 0 }, { weapon: 'arc' });
+  it('une entité armée d’un arc d’inventaire a une cible DANS SA BANDE DE TIR (elle peut tirer)', () => {
+    const shooter = spawnEnemy({ ref: 'humain' }, 'archere', { x: 0, y: 0 }, { inventaire: { arc: false } });
     const cible = spawnEnemy({ ref: 'humain' }, 'cible', { x: 10, y: 0 });
-    const arc = shooter.weapons.find((w) => w.type === 'ranged'); // l'arme portée, quelle que soit sa provenance
-    expect(arc).toBeDefined();
-    expect(arc!.loaded).toBe(true);
+    const arc = shooter.weapons.find((w) => w.type === 'ranged');
+    expect(arc?.trappingId).toBe('arc');
+    expect(weaponLoaded(shooter, arc!)).toBe(true);
     expect(inFiringBand(shooter, cible, arc!)).toBe(true); // 10 cases = 20 m, Portée 50 m
-    expect(arc!.trappingId).toBe('arc');
   });
 });

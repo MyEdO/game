@@ -551,7 +551,7 @@ describe('buildScene — bind (marqueurs → poses)', () => {
     bind: {
       '@': 'heroStart',
       k: { emplacement: 'canon-petit', crew: 'crew-0' },
-      A: { kind: 'personnage', ref: 'brute', weapon: 'arc' },
+      A: { kind: 'personnage', ref: 'brute', inventaire: { arc: false } },
     },
   });
   it('interprète départ, emplacement+équipage et entité-modèle aux positions des marqueurs', () => {
@@ -561,7 +561,7 @@ describe('buildScene — bind (marqueurs → poses)', () => {
     expect(empl?.postes![0].crewIds).toEqual(['crew-0']);
     const garde = s.entities.find((e) => e.ref === 'brute');
     expect(garde?.pos).toEqual({ x: 4, y: 0 });
-    expect(garde?.weapon).toBe('arc');
+    expect(garde?.inventaire).toEqual({ arc: false });
     // les marqueurs ne laissent pas de terrain parasite (nettoyés → base 'herbe')
     expect(layerTiles(s, 0)[0]).toBe('herbe');
   });

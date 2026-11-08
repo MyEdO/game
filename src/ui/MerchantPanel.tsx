@@ -69,9 +69,9 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   onRemoveSellCart: (uid: string) => void;
   onClearSellCart: () => void;
   onConfirmSell: () => void;
-  onRepair: (uid: string, heroId: string) => void;
+  onRepair: (uid: string) => void;
   onBargain: (mode: 'buy' | 'sell') => void;
-  onAppraise: (uid: string, heroId: string) => void;
+  onAppraise: (uid: string) => void;
   onClose: () => void;
   /** « Baisse des prix » à la vente (LDB 59 l.60) — optionnel (rendu sans si absent). */
   onSellHalving?: (uid: string, delta: number) => void;
@@ -482,7 +482,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                 enabled={!refusEval}
                 {...raisonSi(refusEval)}
                 descOfferte="Test d'Évaluation : révèle les qualités cachées"
-                onClick={() => onAppraise(it.uid, activeSellId)}
+                onClick={() => onAppraise(it.uid)}
                 primary={false}
                 btnClassName="small"
               />
@@ -642,7 +642,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                   <GatedAction
                     id={`merch-repair-${it.uid}`} label="Réparer" ariaLabel={`Réparer ${it.label}`}
                     enabled={refusDeReparation(h, it, refusHote) == null} {...raisonSi(refusDeReparation(h, it, refusHote))}
-                    onClick={() => onRepair(it.uid, h.id)} primary={false} btnClassName="small"
+                    onClick={() => onRepair(it.uid)} primary={false} btnClassName="small"
                   />
                 </div>
               ))}

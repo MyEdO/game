@@ -73,8 +73,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   servirLePoste: 'invité', quitterLePoste: 'invité', pousserLEngin: 'invité', aiderLEquipe: 'invité',
   ramasserLObjet: 'invité', manoeuvrerLeNavire: 'invité', chanterLaChanson: 'invité',
   annulerLeDeplacement: 'invité', terminerLeTour: 'invité', desarmerLeMode: 'invité',
-  // Les gestes d'un lanceur et d'un porteur, en combat comme hors combat : routés par le siège du lanceur ou du porteur
-  // (1ᵉʳ argument, `netOwnership.ROUTES`).
+  // Les gestes d'un lanceur et d'un porteur, en combat comme hors combat : `netOwnership.ROUTES`.
   incanterLeSort: 'invité', focaliserLeSort: 'invité', dissiperLeSort: 'invité', utiliserLObjet: 'invité',
   prendreLaPanoplie: 'invité', depenserLaDetermination: 'invité',
   // Le franchissement d'une arête (escalade, chute volontaire, enjambement d'une croisée #700) : la possession de l'actif

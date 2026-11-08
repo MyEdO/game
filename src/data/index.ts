@@ -3401,7 +3401,7 @@ export function trappingDesObjetsPuisDuCatalogue(objets: ReadonlyMap<string, Tra
   return objets.get(id) ?? findTrappingById(id);
 }
 /** ARMES choisissables `{ id, label }` : toute Possession `melee`/`ranged` hors « Mains nues »
- *  (`TrappingData.unarmed`), triée au libellé. `id` = `trappingId` STABLE (`weaponFromId`). */
+ *  (`TrappingData.unarmed`), triée au libellé. `id` = `trappingId` STABLE. */
 export const armesChoisissables = memoParVersion('trappings', () => trappingsInstanciables()
   .filter((t) => (t.categorie === 'melee' || t.categorie === 'ranged') && !t.unarmed)
   .map((t) => ({ id: t.id, label: t.label }))
