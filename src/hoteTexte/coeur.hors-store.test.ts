@@ -184,6 +184,7 @@ describe('les arguments de `jouer` se contrôlent contre le type du verbe', () =
     ['un pid nombre', verbe('jetLancer', 'cascade', 0), /pid : une chaîne attendue/],
     ['un argument requis manquant', verbe('dissiperLeSort', 'sorciere'), /l’argument spellId manque/],
     ['un argument en trop', verbe('jetValider', 'cascade', 1), /1 argument\(s\) au plus/],
+    ['un taux de placement fourni au dépôt', verbe('deposerALaBanque', 'h', 'invest', 120, 10), /3 argument\(s\) au plus/],
   ] as const)('%s lève `validation`', { timeout: 120_000 }, (_cas, geste, message) => {
     refuse(partie('dome', verbe('fenetreValider', 'roundStart')), geste, 'validation', message);
   });

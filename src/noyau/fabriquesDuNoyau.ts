@@ -22,7 +22,7 @@ import { sortiesDuChapitre, validationsDuChapitre } from './chapitreRecap';
 import { choixDeCampagne, creerActionsDeCampagne, sortiesDeCampagne } from './campagne';
 import { creerActionsDEntreeEnScene } from './entreeEnScene';
 import { cloturesDInterlude, creerActionsDInterlude, validationsDInterlude } from './interludeFlow';
-import { creerActionsDeBatailleDeMasse, sortiesDeBatailleDeMasse } from './massBattleFlow';
+import { choixDeLaBataille, creerActionsDeBatailleDeMasse, sortiesDeBatailleDeMasse } from './massBattleFlow';
 import { creerActionsDesFaveurs } from './favorFlow';
 import { choixDeLaFinDeSeance, creerActionsDuGroupe, sortiesDuGroupe, validationsDuGroupe } from './partyFlow';
 import { creerActionsDesPossessions } from './possessionsFlow';
@@ -139,6 +139,7 @@ function choixDesFenetres(get: Get, set: SetDesClesReservees): CorpsDesChoix {
     ...choixDuMarchand(get, set),
     ...choixDuButin(get, set),
     ...choixDuRepos(get, set),
+    ...choixDeLaBataille(get, set),
   } satisfies CorpsDesChoix;
 }
 

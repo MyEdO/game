@@ -183,8 +183,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   affecterLeHeros: (activityId: IdDActivite, heroIds: IdDeHeros[]) => void;
   /** Ouvre le Test de Résistance de guérison du Rassemblement (l.122). */
   rallierLesTroupes: () => void;
-  /** Tire/choisit le facteur environnemental du Round (l.309, 1d10). */
-  affronterLePeril: (roll?: number) => void;
+  /** Tire le facteur environnemental du Round au RNG de la partie (l.309, 1d10) ; le choisir parmi la table se joue par
+   *  `fenetreChoisir('batailleDeMasse', 'alea', …)`. Refus dit hors Round, Round joué ou aléa déjà posé (`refusDAlea`). */
+  affronterLePeril: () => void;
   /** Résout le Test spectaculaire de Puissance du Round (l.120). */
   engagerLaMelee: () => void;
   /** Passe au Round suivant après le Rassemblement (l.124). */
@@ -192,7 +193,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Activités (LDB 23) : `craftStart` engage l'ouvrage (matériaux ¼ prix + `Combatant.craft`) ; le
    *  LANCER passe par `pratiquerLActivite('craft')`. Passer commande (Exotique) + banque restent dédiés. */
   fabriquerLObjet: (heroId: IdDeHeros, trappingId: IdDObjetDuCatalogue, atouts: IdDAtoutDArtisanat[], defauts: IdDeDefautDArtisanat[]) => void;
-  deposerALaBanque: (heroId: IdDeHeros, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number, rate?: number) => void;
+  deposerALaBanque: (heroId: IdDeHeros, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number) => void;
   retirerDeLaBanque: (depotId: IdDeDepot) => void;
   commanderLObjet: (heroId: IdDeHeros, trappingId: IdDObjetDuCatalogue) => void;
   /** Entraînement (ch.23 l.130-136) : Compétence/Caractéristique hors carrière, PX + tuteur 1D10 sc — sans jet. */

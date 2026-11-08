@@ -1059,7 +1059,7 @@ function appliquerLActivite(get: Get, set: Set): void {
 /** Opérations bancaires (LDB 23 l.164-170) — dépôt (1 Activité). Invest : Statut Or/Argent.
  *  `mecenat` (ACE 12 l.49) : variante d'Opération bancaire — « au moins 5 CO » (minInvest de
  *  la donnée), gate géographique de l'Activité ; le retrait se résout par un Test d'Évaluation. */
-export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number, rate?: number): void {
+export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number): void {
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
   if (refuseSi(get, set, (s) => (kind ? devisDeDepot(s, heroId, kind, amountBrass).refus : msg('interlude.choisir.depot')))) return;
@@ -1067,7 +1067,7 @@ export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' |
   const { debite: amount, depose: deposited } = devisDeDepot(get(), heroId, kind, amountBrass);
   const lines: string[] = [];
   for (const { label, fx } of effetsDeLaPeriode(get(), heroId)) if (fx.bankPct) lines.push(msg('if.eventBankPct', { pct: fx.bankPct, event: label }));
-  const r = kind === 'invest' ? Math.max(1, Math.min(10, rate ?? d10(battleRng()))) : 0;
+  const r = kind === 'invest' ? d10(battleRng()) : 0;
   payWithAllocation(get, set, { debits: soloPayer(heroId, fromBrass(amount)), recipient: heroId, purpose: 'dépôt-banque' });
   const uid = newUid();
   set({ bank: [...(get().bank ?? []), { uid, heroId, kind, brass: deposited, rate: r }] });
@@ -1195,7 +1195,7 @@ export function creerActionsDInterlude(get: Get, set: Set) {
   return {
     ouvrirLInterlude: (weeks) => ouvrirLInterlude(get, set, weeks),
     fabriquerLObjet: (heroId, trapping, atouts, defauts) => craftStart(get, set, heroId, trapping, atouts, defauts),
-    deposerALaBanque: (heroId, kind, amountBrass, rate) => bankDeposit(get, set, heroId, kind, amountBrass, rate),
+    deposerALaBanque: (heroId, kind, amountBrass) => bankDeposit(get, set, heroId, kind, amountBrass),
     retirerDeLaBanque: (depotId) => bankWithdraw(get, set, depotId),
     commanderLObjet: (heroId, trapping) => orderItem(get, set, heroId, trapping),
     suivreLEntrainement: (heroId, kind, id, spec) => entrainementStart(get, set, heroId, kind, id, spec),

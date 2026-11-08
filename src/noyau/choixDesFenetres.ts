@@ -10,7 +10,7 @@
  */
 import type { FateSaveOption } from '../engine/fortune';
 import type {
-  IdDActiviteEnMer, IdDArticle, IdDeChoixDePaie, IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDePlaieDeLOperation, IdDeReponseDeDialogue,
+  IdDActiviteEnMer, IdDAleaDeBataille, IdDArticle, IdDeChoixDePaie, IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDePlaieDeLOperation, IdDeReponseDeDialogue,
   IdDObjet, IdDuCoupleMonte,
 } from './designations';
 import type { RestFood, RestLodging } from './restFlow';
@@ -100,6 +100,10 @@ export interface ChoixDesFenetres {
     /** LDB 66 */
     pitance: RestFood;
   };
+  batailleDeMasse: {
+    /** ADE II 08 l.309 : la ligne de la table choisie au lieu du tirage (`affronterLePeril`). */
+    alea: IdDAleaDeBataille;
+  };
   finDeSeance: {
     /** LDB 05 l.837 */
     ambitionCourte: boolean;
@@ -165,6 +169,7 @@ export const CHOIX_DES_FENETRES = {
   loot: { ligne: duHerosParLHote },
   victory: { ligne: duHeros },
   rest: { couchage: duHeros, pitance: duHeros },
+  batailleDeMasse: { alea: clotParLHote },
   finDeSeance: { ambitionCourte: reprenableParLHote, ambitionLongue: reprenableParLHote, ambitionPersonnelleCourte: duHerosParLHote, ambitionPersonnelleLongue: duHerosParLHote, motivation: duHerosParLHote },
 } as const satisfies { [F in FenetreAChoix]: { [A in AxeDe<F>]: DeclarationDuChoix } };
 

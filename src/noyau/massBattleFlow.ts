@@ -40,8 +40,8 @@ import {
 import type { PendingActivity, PendingActivityFields, ActivityOppositionOn } from './interludeFlow';
 import {
   gapDifficulty, resolveClash, rallyHealAmount, battleOutcome, isDestroyed,
-  battleHazard, clampMight, initHoldState, resolveHoldRound, holdEnemyBonus,
-  type ClashResult, type BattleOutcome, type HoldState, type BattleHold, type MassBattleSpec,
+  BATTLE_HAZARDS, battleHazard, clampMight, initHoldState, resolveHoldRound, holdEnemyBonus,
+  type ClashResult, type HazardRow, type BattleOutcome, type HoldState, type BattleHold, type MassBattleSpec,
 } from '../engine/massBattle';
 import { t } from '../i18n';
 import { rule } from '../engine/policy';
@@ -49,6 +49,7 @@ import { refusDActivite, type EtatDInterlude } from './verdictsDInterlude';
 import { refuseSi } from './verrousDeFiche';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
+import type { CorpsDesChoix } from './choixDesFenetres';
 
 /** Une armée engagée dans la Puissance de Bataille, modélisée comme un COMBATTANT INANIMÉ à Blessures
  *  (même patron que les structures de siège `structureCombatant`) : `combatant.wounds.current` = Puissance
@@ -917,13 +918,32 @@ export function massBattleResumeCombat(get: Get, set: Set, kills: number, outcom
 
 // ── Aléa, Test spectaculaire, Rounds, issue (l.120-124/309) ──────────────────────────────────────
 
-/** Tire (ou choisit) le facteur environnemental du Round (ADE II 08 l.309-311). */
-export function massBattleSetHazard(get: Get, set: Set, roll?: number): void {
-  const mb = get().massBattle;
-  if (!mb || mb.phase !== 'round') return;
-  const h = battleHazard(roll ?? rollDice(massBattleHazardsDie(), battleRng()));
+/** Refus de poser le facteur environnemental du Round, tiré ou choisi : la raison, ou `null`. ADE II 08 l.309 */
+export function refusDAlea(s: Pick<Jeu, 'massBattle'>): string | null {
+  const mb = s.massBattle;
+  if (!mb || mb.phase !== 'round') return t('mbf.aleaHorsRound');
+  if (mb.awaitingNext) return t('mbf.roundJoue');
+  return mb.hazard ? t('mbf.aleaDejaPose', { label: mb.hazard.label }) : null;
+}
+
+/** Pose le facteur environnemental `h` du Round, que `refusDAlea` admet. */
+function poserLAlea(get: Get, set: Set, h: HazardRow): void {
+  const mb = get().massBattle!;
   set({ massBattle: { ...mb, hazard: { label: h.label, text: h.desc }, log: [...mb.log, t('mbf.hazardLog', { label: h.label })] } });
   get().ecrireAuJournal(t('mbf.hazard', { label: h.label }));
+}
+
+/** Tire le facteur environnemental du Round au RNG de la partie (ADE II 08 l.309-311). */
+export function massBattleSetHazard(get: Get, set: Set): void {
+  if (refuseSi(get, set, refusDAlea)) return;
+  poserLAlea(get, set, battleHazard(rollDice(massBattleHazardsDie(), battleRng())));
+}
+
+/** Le choix du facteur environnemental du Round parmi les lignes de la table, au lieu du tirage (ADE II 08 l.309). */
+export function choixDeLaBataille(get: Get, set: Set) {
+  return {
+    batailleDeMasse: { alea: (id: string) => poserLAlea(get, set, BATTLE_HAZARDS.find((h) => h.id === id)!) },
+  } satisfies Partial<CorpsDesChoix>;
 }
 
 /** Résout le Test spectaculaire de Puissance du Round (l.120) puis marque l'attente du Rassemblement /
@@ -1024,7 +1044,7 @@ export function creerActionsDeBatailleDeMasse(get: Get, set: Set) {
     jouerLaScene: (sceneId) => openMassBattleScene(get, set, sceneId),
     affecterLeHeros: (actionId, heroIds) => affecterLeHeros(get, set, actionId, heroIds),
     rallierLesTroupes: () => openMassBattleRally(get, set),
-    affronterLePeril: (roll) => massBattleSetHazard(get, set, roll),
+    affronterLePeril: () => massBattleSetHazard(get, set),
     engagerLaMelee: () => engagerLaMelee(get, set),
     avancerLaBataille: () => avancerLaBataille(get, set),
   } satisfies FabriqueDuNoyau;

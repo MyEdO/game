@@ -41,6 +41,7 @@ import { bulkCarriers, lotDeCargaison } from './carriers';
 import { offresDeCargaison } from './cargaison';
 import { libelleDuDepot } from './interludeEnVue';
 import { findCargoById } from '../engine/cargo';
+import { BATTLE_HAZARDS } from '../engine/massBattle';
 
 /** Un combattant : la file de combat et le groupe (`porteurParId`, `monde/combatants.ts`). */
 export type IdDeCombattant = string;
@@ -136,6 +137,8 @@ export type IdDEntrainement = string;
 export type IdDActionDEntite = string;
 /** Un service à échoppe du lieu où se tient le groupe (`placeServices`, `merchantArchetype`), par son `id`. */
 export type IdDeServiceDuLieu = string;
+/** Une ligne de la table des facteurs environnementaux de la bataille de masse (`mass-battle.json › hazards`). ADE II 08 l.309 */
+export type IdDAleaDeBataille = string;
 /** Un point d'intérêt du plan du lieu où se tient le groupe qui mène à une scène (`entreesDuLieu`, `lieuFlow.ts`). */
 export type IdDePointDInteret = string;
 /** Un jeu de taverne du catalogue (`tavern-games.json`). */
@@ -314,6 +317,7 @@ export const DESIGNATIONS = {
   IdDEntrainement: { mot: 'id d’Entraînement', lire: (s) => sansDoublon(ids(lesEntrainements(s))), nom: () => null },
   IdDActionDEntite: { mot: 'id d’offre d’entité', lire: (s) => sansDoublon(ids(lesActionsDEntite(s))), nom: (s, id) => labelParmi(lesActionsDEntite(s), id) },
   IdDeServiceDuLieu: { mot: 'id de service du lieu', lire: (s) => ids(echoppesDuLieu(s)), nom: (s, id) => labelParmi(echoppesDuLieu(s), id) },
+  IdDAleaDeBataille: { mot: 'id d’aléa de bataille', lire: () => ids(BATTLE_HAZARDS), nom: (_s, id) => labelParmi(BATTLE_HAZARDS, id) },
   IdDePointDInteret: { mot: 'id de point d’intérêt du lieu', lire: (s) => ids(entreesDuLieu(s)), nom: (s, id) => labelParmi(entreesDuLieu(s), id) },
   IdDeJeuDeTaverne: { mot: 'id de jeu de taverne', lire: () => ids(TAVERN_GAMES), nom: (_s, id) => labelParmi(TAVERN_GAMES, id) },
   IdDeProfilStandard: { mot: 'id de profil standard', lire: profilsStandard, nom: (_s, id) => findCreatureById(id)?.label ?? null },

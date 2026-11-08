@@ -94,7 +94,7 @@ export function batailleEnVue(s: Jeu): BatailleEnVue | null {
     scenes: enRound ? scenesDuRound(s, mb) : [],
     alea: mb.hazard ? { libelle: mb.hazard.label, texte: mb.hazard.text } : null,
     tirerAlea: aleaOuvert ? { libelle: t('mbf.tirerAlea', { die: formatDice(massBattleHazardsDie()) }), geste: { verbe: 'affronterLePeril', args: [] }, refus: null } : null,
-    choisirAlea: aleaOuvert ? BATTLE_HAZARDS.map((h) => ({ libelle: h.label, geste: { verbe: 'affronterLePeril', args: [h.min] }, refus: null })) : [],
+    choisirAlea: aleaOuvert ? BATTLE_HAZARDS.map((h) => ({ libelle: h.label, geste: { verbe: 'fenetreChoisir', args: ['batailleDeMasse', 'alea', h.id] }, refus: null })) : [],
     gestes: !enRound ? [] : mb.awaitingNext
       ? [
           { libelle: t('mbf.rallyLabel'), geste: { verbe: 'rallierLesTroupes', args: [] }, refus: refusDeRassemblement(s) },
