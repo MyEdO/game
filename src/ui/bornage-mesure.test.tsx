@@ -203,7 +203,7 @@ describe('bornage mesuré au constructeur — routes sans modale montée', () =>
     hero.characteristics = { ...hero.characteristics, agilite: 150 };
     const s = emptyScene('scene-test', 4, 4); const h = new Array(16).fill(0) as number[]; h[2] = 4; s.layers[0].height = h;
     useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: { x: 2, y: 0 }, scene: s, pendingFall: null, pendingCascade: null });
-    g().franchirLArete({ x: 2, y: 0 }, { x: 2, y: 1 });
+    g().franchirLArete({ x: 2, y: 1 });
     g().jetRegler('fall', 'tenter', true, hero.id);
     g().jetForcerLaReussite('fall', hero.id);
     const p = g().pendingFall!;

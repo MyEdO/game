@@ -39,7 +39,7 @@ describe('franchirLArete, escalade — aucun grimpeur (#1906)', () => {
     hero.wounds.current = 0;
     for (const climb of [{ kind: 'surface', requiresGrimpeur: true }, { kind: 'ladder' }] as WallClimb[]) {
       banc.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: foot, scene: cliffScene(climb), journal: [] });
-      expect(() => banc.getState().franchirLArete(foot, top)).not.toThrow();
+      expect(() => banc.getState().franchirLArete(top)).not.toThrow();
       expect(banc.getState().journal.slice(-1)[0]).toBe(t('geste.refus.personne'));
       expect(banc.getState().partyPos).toEqual(foot);
     }
@@ -54,13 +54,13 @@ describe('franchirLArete, escalade — exploration', () => {
 
   it('échelle : le groupe monte au sommet (z-transition, sans Test)', () => {
     banc.setState({ scene: cliffScene({ kind: 'ladder' }), partyPos: foot });
-    banc.getState().franchirLArete(foot, top);
+    banc.getState().franchirLArete(top);
     expect(banc.getState().partyPos).toEqual(top);
   });
 
   it('paroi exigeant Grimpeur, Talent absent : le groupe ne bouge pas (refus)', () => {
     banc.setState({ scene: cliffScene({ kind: 'surface', requiresGrimpeur: true }), partyPos: foot });
-    banc.getState().franchirLArete(foot, top);
+    banc.getState().franchirLArete(top);
     expect(banc.getState().partyPos).toEqual(foot);
   });
 
@@ -68,7 +68,7 @@ describe('franchirLArete, escalade — exploration', () => {
     const s = cliffScene({ kind: 'ladder' });
     s.walls = [{ x: 2, y: 1, side: 'N' }];
     banc.setState({ scene: s, partyPos: foot, journal: [] });
-    banc.getState().franchirLArete(foot, top);
+    banc.getState().franchirLArete(top);
     expect(banc.getState().partyPos).toEqual(foot);
     const plan = planFranchissement(s, foot, top);
     if (plan.kind !== 'none') throw new Error('le sens ascendant doit être un plan `none`');
@@ -100,7 +100,7 @@ describe('franchirLArete, escalade — combat', () => {
 
   it('échelle : le héros actif monte, le Mouvement est consommé, l’Action NON (pas de Test)', () => {
     const { H } = setup({ kind: 'ladder' });
-    banc.getState().franchirLArete(foot, top);
+    banc.getState().franchirLArete(top);
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 2, y: 0 });
     expect(b.movementUsed).toBeGreaterThan(0); // ½ vitesse sur 4 m (LDB 15 l.55)
@@ -109,7 +109,7 @@ describe('franchirLArete, escalade — combat', () => {
 
   it('paroi : le héros monte ET l’Action est consommée (Test requis, LDB 13 l.86-88)', () => {
     const { H } = setup({ kind: 'surface' });
-    banc.getState().franchirLArete(foot, top);
+    banc.getState().franchirLArete(top);
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 2, y: 0 });
     expect(b.acted).toBe(true);
@@ -117,7 +117,7 @@ describe('franchirLArete, escalade — combat', () => {
 
   it('paroi exigeant Grimpeur, Talent absent : le héros ne bouge pas', () => {
     const { H } = setup({ kind: 'surface', requiresGrimpeur: true });
-    banc.getState().franchirLArete(foot, top);
+    banc.getState().franchirLArete(top);
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.pos).toMatchObject({ x: 2, y: 1 });
     expect(b.acted).toBe(false);
@@ -129,7 +129,7 @@ describe('franchirLArete, escalade — combat', () => {
     const { H } = setup({ kind: 'surface', requiresGrimpeur: true });
     H.traits = [{ id: 'grimpant' }];
     banc.setState({ battle: { ...banc.getState().battle! } });
-    banc.getState().franchirLArete(foot, top);
+    banc.getState().franchirLArete(top);
     const b = banc.getState().battle!;
     const hc = b.combatants.find((c) => c.id === H.id)!;
     expect(hc.pos).toMatchObject({ x: 2, y: 0 });

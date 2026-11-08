@@ -61,7 +61,7 @@ describe('franchirLArete, chute — exploration, un tombant', () => {
   });
 
   it('ouvre l’étape : hauteur RÉELLE, une rangée non déclarée, phase dérivée `choice`', () => {
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     const p = g().pendingFall!;
     expect(p).toMatchObject({ metres: 4, initiateurId: H });
     expect(p.participants).toEqual([{ id: H, interactive: true, attempt: null, result: null }]);
@@ -69,14 +69,14 @@ describe('franchirLArete, chute — exploration, un tombant', () => {
   });
 
   it('« Tenter » fait AVANCER la phase dérivée de l’état : choice → roll (#1117)', () => {
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     g().jetRegler('fall', 'tenter', true, H);
     expect(phaseDeChute(g().pendingFall!), 'la phase se lit sur l’état, jamais au site UI').toBe('roll');
   });
 
   it('geste inapplicable (pas une falaise descendante) → refus NOMMÉ (la raison du plan `none`)', () => {
     banc.setState({ partyPos: foot, journal: [] });
-    g().franchirLArete(foot, top); // sens ascendant
+    g().franchirLArete(top); // sens ascendant
     expect(g().pendingFall).toBeNull();
     const plan = planFranchissement(cliffScene(), foot, top);
     if (plan.kind !== 'none') throw new Error('le sens ascendant doit être un plan `none`');
@@ -85,7 +85,7 @@ describe('franchirLArete, chute — exploration, un tombant', () => {
 
   it('sans scène, le saut est refusé EN LE DISANT (porteur du geste, `gesteDArete`)', () => {
     banc.setState({ scene: null, journal: [] });
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     expect(g().pendingFall).toBeNull();
     expect(g().journal.slice(-1)[0]).toBe(t('geste.refus.aucuneScene'));
   });
@@ -95,7 +95,7 @@ describe('franchirLArete, chute — exploration, un tombant', () => {
     g().jetRegler('fall', 'tenter', true, H);
     expect(g().journal.slice(-1)[0], 'aucun saut en attente').toBe(t('jet.ferme.sansJet'));
 
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     g().jetRegler('fall', 'tenter', true, 'etranger');
     expect(g().journal.slice(-1)[0], 'id hors des rangées, les tombants nommés avec leur id').toMatch(new RegExp(`^Déclaration refusée : etranger ne prend pas part à ce saut ; tombants : .*\\(${H}\\)`));
 
@@ -108,7 +108,7 @@ describe('franchirLArete, chute — exploration, un tombant', () => {
 
   it('« Sauter » (seule rangée) résout IMMÉDIATEMENT : chute PLEINE, le groupe atterrit au pied', () => {
     const before = g().party[0].wounds.current;
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     g().jetRegler('fall', 'tenter', false, H);
     expect(g().pendingFall).toBeNull();
     expect(g().partyPos).toEqual({ ...foot, z: 0 });
@@ -119,7 +119,7 @@ describe('franchirLArete, chute — exploration, un tombant', () => {
   });
 
   it('« Tenter » ouvre le Test — aucune résolution avant `jetValider(\'fall\')`', () => {
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     g().jetRegler('fall', 'tenter', true, H);
     expect(rangee(H)).toMatchObject({ attempt: true, result: null });
     g().jetValider('fall'); // sans jet : refusé
@@ -129,7 +129,7 @@ describe('franchirLArete, chute — exploration, un tombant', () => {
 
   it('Test réussi, réduction à 0 m ou moins → AUCUN Dégât (bypass, pas juste `applyFall(0,…)`)', () => {
     const before = g().party[0].wounds.current;
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     g().jetRegler('fall', 'tenter', true, H);
     poserResultat(H, { success: true, roll: 5, target: 90, dr: 6, effectiveMetres: 0 });
     g().jetValider('fall');
@@ -141,7 +141,7 @@ describe('franchirLArete, chute — exploration, un tombant', () => {
   });
 
   it('Test réussi, réduction partielle → la chute de `effectiveMetres`, pas la hauteur pleine', () => {
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     g().jetRegler('fall', 'tenter', true, H);
     poserResultat(H, { success: true, roll: 40, target: 90, dr: 2, effectiveMetres: 2 });
     g().jetValider('fall');
@@ -150,7 +150,7 @@ describe('franchirLArete, chute — exploration, un tombant', () => {
 
   it('jetLancer@fall résout via resolveDeliberateFall : effectiveMetres = max(0, metres − max(0,dr))', () => {
     g().ensemencerLeTirage(3);
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     g().jetRegler('fall', 'tenter', true, H);
     g().jetLancer('fall', H);
     const r = rangee(H).result!;
@@ -158,13 +158,13 @@ describe('franchirLArete, chute — exploration, un tombant', () => {
   });
 
   it('jetLancer@fall AVANT la déclaration (attempt=null) : le flux gate sur `attempt`, aucun jet', () => {
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     g().jetLancer('fall', H);
     expect(rangee(H).result).toBeNull();
   });
 
   it('jetAnnuler@fall : ferme la modale sans effet', () => {
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     g().jetAnnuler('fall');
     expect(g().pendingFall).toBeNull();
     expect(g().partyPos).toEqual(top);
@@ -184,7 +184,7 @@ describe('franchirLArete, chute — exploration, le groupe tombe (EDO 01 l.231)'
   afterEach(() => resetRule('chute-tombant-non-debout'));
 
   it('une rangée par tombant, le meneur en tête ; les jets restent verrouillés tant qu’une rangée n’a pas déclaré', () => {
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     expect(g().pendingFall!.participants.map((x) => x.id)).toEqual([A, B]);
     g().jetRegler('fall', 'tenter', true, A);
     expect(phaseDeChute(g().pendingFall!)).toBe('choice');
@@ -194,7 +194,7 @@ describe('franchirLArete, chute — exploration, le groupe tombe (EDO 01 l.231)'
 
   it('chacun est blessé selon SA déclaration : A saute (4 m pleins), B tente et réduit à 1 m', () => {
     const avant = g().party.map((h) => h.wounds.current);
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     g().jetRegler('fall', 'tenter', false, A);
     expect(g().pendingFall, 'B n’a pas déclaré : l’étape reste ouverte').not.toBeNull();
     g().jetRegler('fall', 'tenter', true, B);
@@ -210,7 +210,7 @@ describe('franchirLArete, chute — exploration, le groupe tombe (EDO 01 l.231)'
 
   it('un tombant réduit à 0 m ne subit rien, l’autre subit sa chute', () => {
     const avant = g().party.map((h) => h.wounds.current);
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     g().jetRegler('fall', 'tenter', true, A);
     g().jetRegler('fall', 'tenter', false, B);
     poserResultat(A, { success: true, roll: 5, target: 90, dr: 6, effectiveMetres: 0 });
@@ -222,7 +222,7 @@ describe('franchirLArete, chute — exploration, le groupe tombe (EDO 01 l.231)'
   });
 
   it('les deux sautent sans Test → résolution IMMÉDIATE, deux chutes pleines', () => {
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     g().jetRegler('fall', 'tenter', false, A);
     g().jetRegler('fall', 'tenter', false, B);
     expect(g().pendingFall).toBeNull();
@@ -231,7 +231,7 @@ describe('franchirLArete, chute — exploration, le groupe tombe (EDO 01 l.231)'
 
   it('maison `refus` (défaut) : un membre vivant non debout → refus NOMMÉ du geste', () => {
     banc.setState({ party: g().party.map((h) => (h.id === B ? blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } }) : h)) });
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     expect(g().pendingFall).toBeNull();
     expect(g().journal.slice(-1)[0]).toBe(t('fall.refus.nonDebout', { name: 'B' }));
     expect(g().partyPos).toEqual(top);
@@ -240,7 +240,7 @@ describe('franchirLArete, chute — exploration, le groupe tombe (EDO 01 l.231)'
   it('maison `chute-pleine` : le membre non debout est une rangée TÉMOIN qui tombe de toute la hauteur, sans Test', () => {
     setRule('chute-tombant-non-debout', 'chute-pleine');
     banc.setState({ party: g().party.map((h) => (h.id === B ? blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } }) : h)) });
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     expect(rangee(B)).toEqual({ id: B, interactive: false, attempt: false, result: null });
     g().jetRegler('fall', 'tenter', true, B);
     expect(rangee(B).attempt, 'une rangée témoin ne déclare pas').toBe(false);
@@ -277,7 +277,7 @@ describe('franchirLArete, chute — combat', () => {
 
   it('« Sauter » (chute PLEINE) : le héros atterrit au pied, l’Action N’EST PAS consommée (pas de Test)', () => {
     const { H } = setup();
-    banc.getState().franchirLArete(top, foot);
+    banc.getState().franchirLArete(foot);
     expect(banc.getState().pendingFall!.participants.map((x) => x.id), 'combat : un seul tombant, l’actif').toEqual([H.id]);
     banc.getState().jetRegler('fall', 'tenter', false, H.id);
     const b = banc.getState().battle!;
@@ -287,7 +287,7 @@ describe('franchirLArete, chute — combat', () => {
 
   it('« Tenter » : le Test consomme l’Action (LDB 13 l.86-88), une fois `jetValider(\'fall\')` appelé', () => {
     const { H } = setup();
-    banc.getState().franchirLArete(top, foot);
+    banc.getState().franchirLArete(foot);
     banc.getState().jetRegler('fall', 'tenter', true, H.id);
     poserResultat(H.id, { success: true, roll: 40, target: 90, dr: 2, effectiveMetres: 2 });
     banc.getState().jetValider('fall');
@@ -299,7 +299,7 @@ describe('franchirLArete, chute — combat', () => {
   it('geste inapplicable (pas de falaise adjacente) → refus NOMMÉ, aucune modale', () => {
     setup(foot);
     banc.setState({ journal: [] });
-    banc.getState().franchirLArete(foot, top); // ascendant depuis le pied
+    banc.getState().franchirLArete(top); // ascendant depuis le pied
     expect(banc.getState().pendingFall).toBeNull();
     const plan = planFranchissement(cliffScene(), foot, top);
     if (plan.kind !== 'none') throw new Error('le sens ascendant doit être un plan `none`');

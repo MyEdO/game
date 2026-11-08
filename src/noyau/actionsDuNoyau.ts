@@ -255,10 +255,10 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Ouvre ou ferme la porte d'un accès que le mobile du monde emprunte (`portesDuMobile`) : en combat toute porte,
    *  en exploration une porte fermée. Rend `true` si la porte a bougé. */
   actionnerLaPorte: (porte: IdDePorte) => boolean;
-  /** FRANCHIT l'arête de `de` (case du mobile) vers `vers` (case cardinale d'en face), selon la capacité qu'elle
-   *  porte (`capaciteDuPas`, `aretes.ts`). Porteur = le mobile de `gesteDArete` (exploration : le meneur, le groupe
-   *  suit ; combat : l'actif que ce siège mène, héros ou ennemi mené par le siège MJ) ; tout refus est NOMMÉ
-   *  (`refuserGeste`).
+  /** FRANCHIT l'arête de la case du mobile vers `vers` (case cardinale d'en face), selon la capacité qu'elle porte
+   *  (`capaciteDuPas`, `aretes.ts`). Porteur = le mobile de `gesteDArete`, dont la case se lit dans l'état
+   *  (exploration : le meneur, le groupe suit ; combat : l'actif que ce siège mène, héros ou ennemi mené par le siège
+   *  MJ) ; tout refus est NOMMÉ (`refuserGeste`), dont une destination sans arête franchissable depuis cette case.
    *  - `escalade` (`WallSeg.climb`, LDB 15 l.53-57) : `ladder` monte d'office (pas de Test) au coût du Mouvement à
    *    ½ vitesse ; `surface` déclenche un Test d'Escalade influençable (cascade RollShell) du mobile, dont l'échec
    *    fait chuter, et consomme l'Action en combat (LDB 13 l.86-88).
@@ -266,7 +266,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *    (Sauter / Tenter le Test `chute`).
    *  - `fenetre` (#700 ; LDB 15 l.55, allège `WallSeg.allege`) : enjamber une croisée de plain-pied ; exploration =
    *    le pas du groupe ; combat = Mouvement seul (1 case + l'allège à ½ vitesse), aucun Test, aucune Action. */
-  franchirLArete: (de: Pt, vers: Pt) => void;
+  franchirLArete: (vers: Pt) => void;
   /** POV : pivote le REGARD du meneur d'un cran de 45° (+1 = horaire/droite, -1 = anti-horaire/gauche) —
    *  aucun déplacement (donc pas de réorientation par `orienterSelonLeChemin`). */
   pivoterLeGroupe: (turn: 1 | -1) => void;

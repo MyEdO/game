@@ -1694,7 +1694,6 @@ export const fr = {
   'geste.refus.engage': '{name} est Engagé : il doit d’abord se désengager.',
   'geste.refus.mouvementEpuise': '{name} n’a plus de Mouvement ce Tour.',
   'geste.refus.mouvementEntrelace': '{name} ne peut plus se déplacer : il s’est déjà déplacé avant son Action ce Tour.',
-  'geste.refus.caseDuMobile': '{name} ne se tient pas sur la case d’où part ce geste.',
   'refus.personneNePeutTenter': 'Personne dans le groupe ne peut tenter {quoi}.',
   'refus.nePeutTenter': '{qui} ne peut pas tenter {quoi}.',
   'refus.quoiTest': 'le Test {de}',

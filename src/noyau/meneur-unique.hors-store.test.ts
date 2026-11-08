@@ -204,7 +204,7 @@ describe('un seul meneur — le Grimpeur lu est celui du meneur debout', () => {
 
   it('Talent porté par le héros AU SOL (premier du roster) : la paroi se refuse', () => {
     poser([hero('a', 0, [{ talentId: 'grimpeur', times: 1 }]), B_DEBOUT()], scèneDeFalaise({ kind: 'surface', requiresGrimpeur: true }), PIED);
-    banc.getState().franchirLArete(PIED, SOMMET);
+    banc.getState().franchirLArete(SOMMET);
     expect(banc.getState().partyPos).toMatchObject(PIED);
   });
 
@@ -215,19 +215,19 @@ describe('un seul meneur — le Grimpeur lu est celui du meneur debout', () => {
     a.wounds.current = 0;
     b.talents = [...(b.talents ?? []), { talentId: 'grimpeur', times: 1 }];
     poser([a, b], scèneDeFalaise({ kind: 'surface', requiresGrimpeur: true }), PIED);
-    banc.getState().franchirLArete(PIED, SOMMET);
+    banc.getState().franchirLArete(SOMMET);
     expect(banc.getState().partyPos).toMatchObject(SOMMET);
   });
 
   it('meneur INCONSCIENT (8 Blessures) porteur du Talent : la paroi se refuse — il ne grimpe pas', () => {
     poser([A_INCONSCIENT([{ talentId: 'grimpeur', times: 1 }]), B_DEBOUT()], scèneDeFalaise({ kind: 'surface', requiresGrimpeur: true }), PIED);
-    banc.getState().franchirLArete(PIED, SOMMET);
+    banc.getState().franchirLArete(SOMMET);
     expect(banc.getState().partyPos).toMatchObject(PIED);
   });
 
   it('GROUPE ENTIER à terre : la paroi se refuse — aucun meneur n’est fabriqué pour grimper', () => {
     poser([hero('a', 0, [{ talentId: 'grimpeur', times: 1 }]), hero('b', 0, [{ talentId: 'grimpeur', times: 1 }])], scèneDeFalaise({ kind: 'surface', requiresGrimpeur: true }), PIED);
-    banc.getState().franchirLArete(PIED, SOMMET);
+    banc.getState().franchirLArete(SOMMET);
     expect(banc.getState().partyPos).toMatchObject(PIED);
   });
 });
