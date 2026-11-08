@@ -1,5 +1,6 @@
 import { libelleEffet, type Effect, type Flow } from '../data/schemas/defs-scenes/effets';
 import type { Jeu } from './etat';
+import { objetDuSol } from './objetsAuSol';
 import type { Get, PatchDeFlux, Set as SetFn } from './flowTypes';
 import { armChapterRecapIfDue } from './chapitreRecap';
 import { ouvrirLaFinDeSeance } from './partyFlow';
@@ -161,12 +162,12 @@ export function pushCombatStep(set: SetFn, step: BuiltCascadeStep | ((index: num
   pushStep(set, step, 'combat');
 }
 
-/** Items ramassables d'un décor : un par feuille `do` « donneuse » de CHAQUE action authorée encore
- *  jouable (`actionsAuthorees`). `key` = `<actionId>:eff:<index dans flowEffects(action.flow)>` — elle
- *  porte l'action, parce que le ramassage épuise UNE action, pas un décor. Effets non-objet &
- *  branches (test) ignorés. */
-export function entityPickables(ent: SceneEntity, flags: Drapeaux, objetDe: TrappingResolver): { key: string; label: string }[] {
-  const out: { key: string; label: string }[] = [];
+/** Items ramassables d'un décor : l'objet posé au sol qu'il montre (`objetDuSol`, clé = son uid), puis un par feuille
+ *  `do` « donneuse » de CHAQUE action authorée encore jouable (`actionsAuthorees`). `key` =
+ *  `<actionId>:eff:<index dans flowEffects(action.flow)>` — elle porte l'action, parce que le ramassage épuise UNE
+ *  action, pas un décor. Effets non-objet & branches (test) ignorés. */
+export function entityPickables(ent: SceneEntity, flags: Drapeaux, objetDe: TrappingResolver, objetsAuSol: Jeu['objetsAuSol']): { key: string; label: string }[] {
+  const out: { key: string; label: string }[] = objetDuSol(ent, objetsAuSol);
   for (const a of actionsAuthorees(ent, flags))
     flowEffects(a.flow).forEach((e, i) => {
       if (flags[cleFeuilleRamassee(ent.id, a.id, i)]) return; // déjà pris, un objet à la fois
@@ -178,7 +179,7 @@ export function entityPickables(ent: SceneEntity, flags: Drapeaux, objetDe: Trap
 
 /**
  * Clé du drapeau qui ferme UNE feuille donneuse d'une action authorée : en combat, on ramasse un objet
- * à la fois (`LDB 13 l.115-116`), et ce qui est pris ne se redonne pas — ni au ramassage suivant, ni
+ * à la fois (`pickup` de `actions.json`), et ce qui est pris ne se redonne pas — ni au ramassage suivant, ni
  * à la fouille en exploration. `index` = rang de la feuille dans `flowEffects(action.flow)`, STABLE
  * parce que le document de scène n'est jamais réécrit : l'état de jeu vit dans les drapeaux.
  */

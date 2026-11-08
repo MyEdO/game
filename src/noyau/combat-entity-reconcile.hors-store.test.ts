@@ -114,10 +114,12 @@ describe('removeEntities — retrait par lot (brique partagée)', () => {
       dialogues: [], triggers: [], encounters: [], flags: {},
     };
     let stored: Scene = scene;
-    const get = (() => ({ scene: stored, party: [] })) as never;
-    const set = ((patch: { scene: Scene }) => { stored = patch.scene; }) as never;
+    let auSol: Record<string, unknown[]> = { a: [], b: [] };
+    const get = (() => ({ scene: stored, party: [], objetsAuSol: auSol })) as never;
+    const set = ((patch: { scene: Scene; objetsAuSol: Record<string, unknown[]> }) => { stored = patch.scene; auSol = patch.objetsAuSol; }) as never;
     removeEntities(get, set, ['a', 'c', 'inconnu']);
     expect(stored.entities.map((e) => e.id)).toEqual(['b']);
+    expect(Object.keys(auSol), 'l’objet au sol d’un décor retiré sort dans la même écriture').toEqual(['b']);
   });
 
   it('une suppression NETTOIE l’assise dans la MÊME écriture de scène (meuble ou corps)', () => {
@@ -134,7 +136,7 @@ describe('removeEntities — retrait par lot (brique partagée)', () => {
     });
     for (const retire of ['table-1', 'pnj-1']) {
       let stored: Scene = fixture();
-      const get = (() => ({ scene: stored, party: [] })) as never;
+      const get = (() => ({ scene: stored, party: [], objetsAuSol: {} })) as never;
       const set = ((patch: { scene: Scene }) => { stored = patch.scene; }) as never;
       removeEntities(get, set, [retire]);
       expect(seatPoseOf(stored, assis), `« ${retire} » retiré`).toBeNull();

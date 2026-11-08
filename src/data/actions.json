@@ -774,7 +774,7 @@
     "run": "ramasserLObjet",
     "candidates": "objets-au-sol",
     "coutAction": "action",
-    "maison": "ramasser n’exige aucun Test : l’imputation à l’Action est notre arbitrage.",
+    "maison": "ramasser n’exige aucun Test (LDB 13 l.106) ; une arme lâchée se reprend d’une Action (CRB 036 l.80) : l’imputation à l’Action est notre arbitrage.",
     "keys": [
       "pickup-"
     ]
