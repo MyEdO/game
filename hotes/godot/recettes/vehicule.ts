@@ -6,6 +6,8 @@
  * de cette entrée (`cleDEntree`), celle que la recette calcule de l'entrée que l'atelier envoie.
  */
 import { creerPont } from '../pont/pont';
+import { estObjet } from '../../../src/lib/objet.mjs';
+import { tableTotale } from '../../../src/lib/tableTotale';
 
 /** Les entrées de `vehicule` que l'atelier envoie, dans l'ordre des gestes de la recette : la caraque choisie, un canon
  *  moyen à la première place de tribord, le Sabord installé, la Figure de proue installée, le Sabord retiré, une couleur
@@ -26,13 +28,13 @@ export const ENTREES: readonly Record<string, unknown>[] = (() => {
 
 /** `valeur` en JSON, les clés de chaque objet triées, comme `JSON.stringify` de Godot les écrit. */
 export const cleDEntree = (valeur: unknown): string =>
-  JSON.stringify(valeur, (_cle, v: unknown) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : 1))) : v));
+  JSON.stringify(valeur, (_cle, v: unknown) => (estObjet(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : 1))) : v));
 
 /** Le véhicule figé : le listage réduit de `listage` (le listage du dossier des modèles), les réponses de `catalogues` et
  *  de `modeles`, et par clé d'entrée (`cleDEntree`), la réponse de `vehicule` à chacune de `ENTREES`. */
 export function figerLeVehicule(listage: { manifestes: Record<string, unknown>; osDesRigides: Record<string, string[]> }) {
   const ids = Object.keys(listage.manifestes).filter((id) => ['vehicule', 'amelioration'].includes((listage.manifestes[id] as { categorie?: string }).categorie ?? ''));
-  const reduit = { manifestes: Object.fromEntries(ids.map((id) => [id, listage.manifestes[id]])), osDesRigides: Object.fromEntries(ids.map((id) => [id, listage.osDesRigides[id]])), erreurs: [] };
+  const reduit = { manifestes: tableTotale(ids, (id) => listage.manifestes[id]), osDesRigides: tableTotale(ids, (id) => listage.osDesRigides[id]), erreurs: [] };
   const pont = creerPont();
   const appel = (methode: string, entree?: unknown): Record<string, unknown> => JSON.parse(pont.appeler(methode, entree === undefined ? undefined : JSON.stringify(entree)));
   const catalogues = appel('catalogues');

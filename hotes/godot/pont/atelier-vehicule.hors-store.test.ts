@@ -1,7 +1,7 @@
 /**
  * LE VÉHICULE DE L'ATELIER (#2987 ; `CONTRAT.md`, méthode `vehicule`) : une fiche servie, les pièces de ses postes, ses
- * Améliorations et son apparence donnent le corps que le combat compose pour la même coque (`corpsDuVehicule`), les places
- * de chacun de ses bords dans ses postes en vigueur et les fiches servies qui s'y montent.
+ * Améliorations et son apparence donnent le corps que le combat compose pour la même coque (`corpsDuVehicule`), chaque place
+ * de ses postes en vigueur, à son libellé, avec la pièce que le corps y monte, et les fiches servies qui s'y montent.
  */
 import { describe, expect, it } from 'vitest';
 import { erreurDe, modelesCommites, servirLesModeles, suiteDe, table } from './pont.testkit';
@@ -15,6 +15,7 @@ describe('le véhicule de l’atelier (`vehicule`)', () => {
   const CANONS = [...Array(3).fill({ definition: 'canon-moyen', bord: 'tribord' }), ...Array(3).fill({ definition: 'canon-moyen', bord: 'babord' }), { definition: 'canon-moyen', bord: 'proue' }, { definition: 'canon-moyen', bord: 'poupe' }];
   const AMELIORATIONS = ['sabord', 'figure-de-proue', 'ancre', 'nid-de-pie', 'clinfoc', 'fourquines', 'embarcation-de-bord', 'safran'];
   const reponse = (entree: unknown) => atelier('vehicule', entree) as unknown as VehiculeDeLAtelier & { ok: true };
+  const placesVides = (bords: [string, number, string][]) => bords.flatMap(([bord, n, libelle]) => Array.from({ length: n }, (_, rang) => ({ bord, rang, label: `${libelle} ${rang + 1}`, piece: null })));
 
   it('se refuse avant tout `modeles`', () => {
     expect(erreurDe(atelier('vehicule', { definition: 'caraque' }))).toEqual({ categorie: 'validation', message: 'vehicule : aucun modèle, appeler modeles d’abord' });
@@ -25,7 +26,7 @@ describe('le véhicule de l’atelier (`vehicule`)', () => {
     expect(reponse({ definition: 'caraque' })).toEqual({
       ok: true,
       vehicule: { element: 'vehicule--caraque', empreinte: 4, taille: 'empreinte', cap: 'N', palette: {}, postes: [], ameliorations: [], caches: ['avec-sabord'] },
-      postes: [{ bord: 'proue', label: 'Proue', places: 2 }, { bord: 'tribord', label: 'Tribord', places: 4 }, { bord: 'poupe', label: 'Poupe', places: 2 }, { bord: 'babord', label: 'Bâbord', places: 4 }],
+      places: placesVides([['proue', 2, 'Proue'], ['tribord', 4, 'Tribord'], ['poupe', 2, 'Poupe'], ['babord', 4, 'Bâbord']]),
       pieces: ['canon-grand', 'canon-moyen', 'canon-petit'],
       ameliorations: [],
     });
@@ -41,7 +42,8 @@ describe('le véhicule de l’atelier (`vehicule`)', () => {
 
   it('une Amélioration montée change les places de ses bords, les pièces qui y vont et les nœuds cachés ; retirée, tout revient', () => {
     const avec = reponse({ definition: 'caraque', postes: CANONS.slice(0, 1), ameliorations: ['sabord'] });
-    expect(avec.postes.map((p) => [p.bord, p.places])).toEqual([['proue', 2], ['tribord', 10], ['poupe', 2], ['babord', 10]]);
+    expect(['proue', 'tribord', 'poupe', 'babord'].map((bord) => avec.places.filter((p) => p.bord === bord).length)).toEqual([2, 10, 2, 10]);
+    expect(avec.places.filter((p) => p.piece !== null).map((p) => [p.bord, p.rang, p.piece])).toEqual([['tribord', 0, 'canon-moyen']]);
     expect([avec.ameliorations, avec.vehicule.caches]).toEqual([['sabord'], ['sans-sabord']]);
     const sabords = avec.vehicule.ameliorations.filter((a) => a.poste);
     expect(sabords).toHaveLength(22);
@@ -49,6 +51,13 @@ describe('le véhicule de l’atelier (`vehicule`)', () => {
     const sans = reponse({ definition: 'caraque', postes: CANONS.slice(0, 1), ameliorations: [] });
     expect([sans.vehicule.ameliorations, sans.vehicule.caches]).toEqual([[], ['avec-sabord']]);
     expect(sans.vehicule.postes[0].position).not.toEqual(avec.vehicule.postes[0].position);
+  });
+
+  it('chaque place dit la pièce que le corps y monte : une place vide prend la pièce suivante de son bord, une pièce sans place ne se monte pas', () => {
+    const tribord = (definition: string) => ({ definition, bord: 'tribord' });
+    const { places, vehicule } = reponse({ definition: 'caraque', postes: [tribord('canon-petit'), tribord('canon-grand'), ...Array(3).fill(tribord('canon-moyen'))] });
+    expect(places.filter((p) => p.bord === 'tribord').map((p) => p.piece)).toEqual(['canon-petit', 'canon-grand', 'canon-moyen', 'canon-moyen']);
+    expect(vehicule.postes).toHaveLength(4);
   });
 
   it('la palette et l’emblème de son apparence', () => {

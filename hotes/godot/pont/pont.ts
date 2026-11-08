@@ -82,11 +82,20 @@ function corpsDuVehicule(vehicule: VehiculeDuCombattant, servis: { manifestes: R
   return { element, empreinte: vehicule.empreinte, taille: vehicule.taille, cap: vehicule.cap, palette, ...emblemeMonte(vehicule.embleme, manifeste), postes, ameliorations, caches };
 }
 
-/** Le véhicule de l'atelier (`vehicule`) : son corps, les places de chacun de ses bords dans ses postes en vigueur
- *  (`postesEnVigueur`), les fiches servies qui se montent à un poste, et ses Améliorations. */
+/** Une place d'un bord du véhicule de l'atelier : son bord, son rang parmi les places de ce bord (compté de 0), son libellé
+ *  (`libelleDuBord`, puis le rang compté de 1) et la fiche de la pièce qui s'y monte (`null` : aucune). */
+export interface PlaceDuVehicule {
+  bord: FireArc;
+  rang: number;
+  label: string;
+  piece: string | null;
+}
+
+/** Le véhicule de l'atelier (`vehicule`) : son corps, les places de ses bords dans ses postes en vigueur
+ *  (`postesEnVigueur`), dans l'ordre de `FIRE_ARCS`, les fiches servies qui se montent à un poste, et ses Améliorations. */
 export interface VehiculeDeLAtelier {
   vehicule: CorpsDuVehicule;
-  postes: { bord: FireArc; label: string; places: number }[];
+  places: PlaceDuVehicule[];
   pieces: string[];
   ameliorations: readonly string[];
 }
@@ -414,7 +423,10 @@ export function creerPont() {
       const enVigueur = postesEnVigueur(servis.manifestes[servis.modeles.vehicules[vehicule.definition]], vehicule.ameliorations) ?? {};
       return {
         vehicule: corpsDuVehicule(vehicule, servis)!,
-        postes: FIRE_ARCS.flatMap((bord) => (enVigueur[bord]?.length ? [{ bord, label: libelleDuBord(bord), places: enVigueur[bord].length }] : [])),
+        places: FIRE_ARCS.flatMap((bord) => {
+          const montees = vehicule.postes.filter((p) => p.bord === bord);
+          return (enVigueur[bord] ?? []).map((_, rang) => ({ bord, rang, label: `${libelleDuBord(bord)} ${rang + 1}`, piece: montees[rang]?.definition ?? null }));
+        }),
         pieces,
         ameliorations: vehicule.ameliorations,
       };

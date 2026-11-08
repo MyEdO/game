@@ -7,8 +7,8 @@ extends SceneTree
 ## retiré, une couleur et un emblème posés : à chaque geste, l'atelier envoie l'entrée attendue, et son montage
 ## (`MontageDeVehicule`) porte le corps que le pont a rendu : chaque pièce de poste à sa position, tournée vers son bord,
 ## chaque pièce d'Amélioration à la sienne, celle d'un poste montrant son nœud `montre` et cachant son nœud `cache`, les
-## nœuds de `caches` cachés et chaque autre nœud `avec-`/`sans-` visible, les places de chaque bord offertes à l'onglet
-## Équipement, la palette et l'emblème sur ses surfaces.
+## nœuds de `caches` cachés et chaque autre nœud `avec-`/`sans-` visible, chaque place de la réponse offerte à l'onglet
+## Équipement sur la pièce qui y est montée, la palette et l'emblème sur ses surfaces.
 
 const RECETTE_AUTONOME := true
 const FIGE := "res://recettes/vues/vehicule.json"
@@ -144,11 +144,12 @@ func _conforme(atelier: Node, reponse: Dictionary, geste: String) -> void:
 			_verifier(not (noeud as Node3D).visible, "%s : %s visible, attendu caché" % [geste, nom])
 		elif nom.begins_with("avec-") or nom.begins_with("sans-"):
 			_verifier((noeud as Node3D).visible, "%s : %s caché, attendu visible" % [geste, nom])
-	var places := 0
-	for poste in reponse.postes:
-		places += int(poste.places)
 	var listes := atelier.find_children("*", "OptionButton", true, false).filter(func(o: Node) -> bool: return String(o.get_meta("cle", "")).begins_with("poste/"))
-	_verifier(listes.size() == places, "%s : %d places de poste à l'écran, attendu %d" % [geste, listes.size(), places])
+	_verifier(listes.size() == reponse.places.size(), "%s : %d places de poste à l'écran, attendu %d" % [geste, listes.size(), reponse.places.size()])
+	for place in reponse.places:
+		var liste := _controle(atelier, "poste/%s/%d" % [place.bord, place.rang]) as OptionButton
+		var attendue: String = MontageDeComposition.VIDE if place.piece == null else place.piece
+		_verifier(liste != null and liste.get_item_metadata(liste.selected) == attendue, "%s : %s sur %s, attendu %s" % [geste, place.label, null if liste == null else liste.get_item_metadata(liste.selected), attendue])
 	for amelioration in atelier.find_children("*", "CheckButton", true, false).filter(func(c: Node) -> bool: return String(c.get_meta("cle", "")).begins_with("amelioration/")):
 		var id := String(amelioration.get_meta("cle")).trim_prefix("amelioration/")
 		_verifier((amelioration as CheckButton).button_pressed == (id in reponse.ameliorations), "%s : case %s %s" % [geste, id, (amelioration as CheckButton).button_pressed])

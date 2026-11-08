@@ -108,8 +108,8 @@ var _axes: Array = []
 ## Par champ d'axe, son sélecteur : la liste d'un axe `ref` ou `valeur`, la glissière d'un axe `plage`.
 var _selecteurs_d_axe: Dictionary = {}
 var _onglet := "personnage"
-## Le véhicule demandé (#2987) : sa fiche (`null` : aucun), les pièces de ses postes (`{ definition, bord }`, bord après
-## bord dans l'ordre des postes de la réponse) et ses Améliorations installées, dans l'ordre de `ameliorations` de la
+## Le véhicule demandé (#2987) : sa fiche (`null` : aucun), les pièces de ses postes (`{ definition, bord }`, dans l'ordre
+## des `places` de la réponse) et ses Améliorations installées, dans l'ordre de `ameliorations` de la
 ## réponse de `modeles`.
 var _definition_du_vehicule: Variant = null
 var _postes_du_vehicule: Array = []
@@ -341,28 +341,25 @@ func _poser_au_sol(scene: Node3D) -> void:
 	scene.position = Vector3(-boite.get_center().x, -boite.position.y, -boite.get_center().z)
 
 
-## L'onglet Équipement du véhicule, d'après la dernière réponse de `vehicule` : ses pièces gardées aux places de ses
-## postes en vigueur (bord après bord, chacun ses premières pièces) ; « Postes », une rangée par place de chaque bord
-## (`<label> <rang>`), sa liste de clé `poste/<bord>/<rang>` offrant « Aucun » puis chaque fiche de `pieces` par le libellé
-## de son élément ; « Améliorations », une case par Amélioration servie (`ameliorations` de `modeles`, de clé
+## L'onglet Équipement du véhicule, d'après la dernière réponse de `vehicule` : ses pièces, celles que la réponse monte à
+## ses `places` ; « Postes », une rangée par place, à son libellé, sa liste de clé `poste/<bord>/<rang>` offrant « Aucun »
+## puis chaque fiche de `pieces` par le libellé de son élément, sur la pièce de la place ; « Améliorations », une case par Amélioration servie (`ameliorations` de `modeles`, de clé
 ## `amelioration/<id>`), cochée si le véhicule la porte ; « Emblème », si son élément porte une surface `blason`, la liste
 ## de clé `vehicule/embleme` : « Aucun », puis chaque emblème.
 func _poser_le_panneau_du_vehicule() -> void:
 	Controles.vider(_panneau_des_emplacements)
 	_sections.clear()
 	var offre := _offre_du_vehicule
-	var gardees := []
 	var choix: Array = [{id = VIDE, texte = AUCUN}]
 	for definition in offre.pieces:
 		choix.append({id = definition, texte = MontageDeComposition.modeles.libelles[MontageDeComposition.modeles.vehicules[definition]]})
-	for poste in offre.postes:
-		var du_bord := _postes_du_vehicule.filter(func(piece: Dictionary) -> bool: return piece.bord == poste.bord).slice(0, int(poste.places))
-		gardees.append_array(du_bord)
-		for rang in int(poste.places):
-			var liste := _liste_deroulante("poste/%s/%d" % [poste.bord, rang], choix, _choisir_la_piece.bind(poste.bord, rang))
-			_rangee("%s %d" % [poste.label, rang + 1], _section("poste")).add_child(liste)
-			_selectionner(liste, du_bord[rang].definition if rang < du_bord.size() else VIDE)
-	_postes_du_vehicule = gardees
+	_postes_du_vehicule = []
+	for place in offre.places:
+		var liste := _liste_deroulante("poste/%s/%d" % [place.bord, place.rang], choix, _choisir_la_piece.bind(place.bord, int(place.rang)))
+		_rangee(place.label, _section("poste")).add_child(liste)
+		_selectionner(liste, VIDE if place.piece == null else place.piece)
+		if place.piece != null:
+			_postes_du_vehicule.append({definition = place.piece, bord = place.bord})
 	for amelioration in MontageDeComposition.modeles.ameliorations:
 		var case := CheckButton.new()
 		case.text = MontageDeComposition.modeles.libelles[MontageDeComposition.modeles.ameliorations[amelioration]]
@@ -381,19 +378,17 @@ func _poser_le_panneau_du_vehicule() -> void:
 		_selectionner(liste, offre.vehicule.get("embleme", {}).get("id", VIDE))
 
 
-## La pièce de fiche `definition` (« vide » : aucune) à la place `rang` du bord `bord` : les pièces de ce bord gardent leur
-## ordre, et une place vide prend la pièce suivante, comme aux postes d'un combattant (`postesMontes`) ; puis le véhicule
-## recomposé.
+## La pièce de fiche `definition` (« vide » : aucune) à la place de rang `rang` du bord `bord`, puis le véhicule recomposé
+## sur la pièce de chaque place qui en a une, dans l'ordre des `places` de la dernière réponse : le noyau les monte
+## (`postesMontes`), et sa réponse dit où.
 func _choisir_la_piece(definition: String, bord: String, rang: int) -> void:
 	var postes := []
-	for poste in _offre_du_vehicule.postes:
-		var du_bord := _postes_du_vehicule.filter(func(piece: Dictionary) -> bool: return piece.bord == poste.bord)
-		if poste.bord == bord:
-			if rang < du_bord.size():
-				du_bord.remove_at(rang)
-			if definition != VIDE:
-				du_bord.insert(mini(rang, du_bord.size()), {definition = definition, bord = bord})
-		postes.append_array(du_bord)
+	for place in _offre_du_vehicule.places:
+		var piece: Variant = place.piece
+		if place.bord == bord and place.rang == rang:
+			piece = null if definition == VIDE else definition
+		if piece != null:
+			postes.append({definition = piece, bord = place.bord})
 	_postes_du_vehicule = postes
 	await _demander_le_vehicule()
 
