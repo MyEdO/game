@@ -23,7 +23,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 
 /** Harnais MINIMAL (get/set) sur un état réduit à `party` — même patron que `partyFlow.test.ts`. */
 function makeHarness(party: Combatant[]): { get: Get; set: Set } {
-  let state = { party, flags: {}, gameTime: 0, ecrireAuJournal: () => {} } as unknown as JeuDuNoyau;
+  let state = { party, flags: {}, gameTime: 0, ecrireAuJournal: () => {}, forgerUnId: idsDeTest } as unknown as JeuDuNoyau;
   const get: Get = () => state;
   const set: Set = (p) => { state = { ...state, ...(typeof p === 'function' ? p(state) : p) }; };
   return { get, set };

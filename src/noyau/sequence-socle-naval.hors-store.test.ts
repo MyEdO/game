@@ -88,7 +88,7 @@ describe('Structure d’orchestrateur — garde structurelle (elle ne connaît a
       expect.arrayContaining(AUTORISES),
     );
     const lus = new Set([...CODE.matchAll(/get\(\)\.(\w+)/g)].map((m) => m[1]));
-    for (const champ of lus) expect([...AUTORISES, 'pendingCascade', 'ecrireAuJournal']).toContain(champ);
+    for (const champ of lus) expect([...AUTORISES, 'pendingCascade', 'ecrireAuJournal', 'forgerUnId']).toContain(champ);
   });
 });
 
