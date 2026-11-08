@@ -16,8 +16,8 @@
  *      `beforeEach` : sans ce filet, il lit l'état du DERNIER test du fichier précédent du worker
  *      (un `gmSeat` posé y surface les ennemis, #1765).
  *    - les SINGLETONS DE MODULE du moteur et du noyau (règles optionnelles, « Dés fixés », RNG de combat semé à 1,
- *      drapeau `onOwnTestFailed`) : `remettreLesSingletons` (`singletons.testkit.ts`), partagé avec le setup du
- *      noyau, avant chaque test ET en fin de FICHIER, pour la même raison que le store.
+ *      drapeau `onOwnTestFailed`) : `remettreLesSingletons` (`singletons.testkit.ts`), avant chaque test ET en fin
+ *      de FICHIER, pour la même raison que le store ; le setup du noyau ne l'appelle qu'en fin de fichier.
  *    - le REGISTRE DES SCÈNES (`sceneRegistry`, `noyau/monde/registreDesScenes`) : peuplé par `registerScene`/`chargerLeProjet`
  *      — donc aussi par des TESTS. Vidé en `afterEach` (`resetSceneRegistry`) : la pollution INTER-fichiers meurt. PORTÉE RÉELLE, mesurée et gardée par
  *      `test-setup-registre-des-scenes.test.ts` : un enregistrement de TÊTE DE FICHIER (module,
