@@ -130,7 +130,7 @@ describe('poserLApparence — apparence d’un objet', () => {
     expect((after.items ?? []).find((i: ItemInstance) => i.uid === uid)?.apparence).toBe('hache');
   });
 
-  it.each(['zweihander', 'apparence-inconnue'])('ignore une apparence refusée : %s', (apparence) => {
+  it.each(['zweihander', 'apparence-inconnue'])('refuse une apparence non admise, l’objet garde la sienne : %s', (apparence) => {
     const hero = heroWithArmeSimple();
     const uid = hero.items![0].uid;
     const { get, set } = makeHarness([hero]);

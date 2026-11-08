@@ -199,3 +199,88 @@ describe('coop : le geste d’un porteur revient au siège de ce porteur, lu dan
     expect(appliquerLIntentionDUnSiege(g, 1, 'utiliserLObjet', ['personne'])).toBe('refusee');
   });
 });
+
+describe('poserLApparence : chaque refus est dit', () => {
+  it('un objet hors du catalogue n’a pas d’apparence à choisir', () => {
+    banc.setState({ party: [heros('a', { items: [objet({ uid: 'caillou', label: 'Caillou' })] })] });
+    g().poserLApparence('caillou', 'hache');
+    expect(dernier()).toBe(t('pf.apparenceSansCatalogue', { item: 'Caillou' }));
+  });
+
+  it('une apparence que l’objet n’admet pas : refusée, l’objet garde la sienne', () => {
+    const arme = { ...itemFromTrappingById('arme-simple', idsDeTest)!, uid: 'arme', apparence: 'hache' };
+    banc.setState({ party: [heros('a', { items: [arme] })] });
+    g().poserLApparence('arme', 'zweihander');
+    expect([dernier(), objetDe('a', 'arme')?.apparence]).toEqual([t('pf.apparenceNonAdmise', { item: arme.label }), 'hache']);
+  });
+});
+
+describe('evaluerLObjet : chaque refus est dit', () => {
+  it('la Détection déjà tentée sur cet objet (LDB 10 l.336)', () => {
+    banc.setState({ party: [heros('a', { items: [objet({ uid: 'inconnu', label: 'Anneau', identified: false, detectTried: true })] })] });
+    g().evaluerLObjet('inconnu', 'detect');
+    expect([dernier(), g().pendingAppraise]).toEqual([t('mf.detectDejaTentee', { label: 'Anneau' }), null]);
+  });
+});
+
+describe('utiliserLObjet : chaque refus est dit', () => {
+  const potion = (uid: string) => objet({ uid, label: 'Potion de guérison', trappingId: 'potion-de-guerison' });
+  const enBataille = (combattants: Combatant[], over: Record<string, unknown> = {}) => banc.setState({
+    party: combattants.filter((c) => c.kind === 'hero'), refus: null,
+    battle: { combatants: combattants, order: combattants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [], over: null, ...over } as never,
+  });
+  const refus = () => g().refus?.texte;
+
+  it('hors combat, un objet qui ne s’utilise pas', () => {
+    banc.setState({ party: [heros('a', { items: [objet({ uid: 'corde', label: 'Corde' })] })] });
+    g().utiliserLObjet('corde');
+    expect(dernier()).toBe(t('cs.objetNonConsommable', { item: 'Corde' }));
+  });
+
+  it('en combat, le porteur n’est pas l’actif', () => {
+    enBataille([heros('a', { wounds: blessuresDeBase(12, 6) }), heros('b', { wounds: blessuresDeBase(12, 6), items: [potion('pb')] })]);
+    g().utiliserLObjet('pb');
+    expect([refus(), g().battle!.combatants[1].items!.length]).toEqual([t('cs.consommableHorsDuTour', { name: 'B' }), 1]);
+  });
+
+  it('en combat, l’actif n’est pas piloté', () => {
+    enBataille([heros('e1', { kind: 'enemy' }), heros('a', { items: [potion('pa')] })]);
+    g().utiliserLObjet('pa');
+    expect(refus()).toBe(t('barre.nonPilote', { name: 'E1' }));
+  });
+
+  it('en combat clos, personne n’agit', () => {
+    enBataille([heros('a', { wounds: blessuresDeBase(12, 6), items: [potion('pa')] })], { over: 'victory' });
+    g().utiliserLObjet('pa');
+    expect(refus()).toBe(t('barre.personneNAgit'));
+  });
+
+  it.each([
+    ['un Sort qui désigne ses cibles', 'pendingCast', { casterId: 'a', spellId: 'x', pickingTargets: true }],
+    ['un Sort qui pose sa zone', 'pendingCast', { casterId: 'a', spellId: 'x', zone: { placing: true } }],
+    ['une seconde frappe', 'pendingDualStrike', { attackerId: 'a' }],
+  ])('en combat, %s tient la main', (_cas, cle, val) => {
+    enBataille([heros('a', { wounds: blessuresDeBase(12, 6), items: [potion('pa')] })]);
+    banc.setState({ [cle]: val } as never);
+    g().utiliserLObjet('pa');
+    expect(refus()).toBe(t('barre.mainTenue'));
+  });
+  it('en combat, un ciblage en cours tient la main', () => {
+    enBataille([heros('a', { wounds: blessuresDeBase(12, 6), items: [potion('pa')] })]);
+    banc.setState({ pendingCleave: { attackerId: 'a' } as never });
+    g().utiliserLObjet('pa');
+    expect([refus(), g().battle!.combatants[0].items!.length]).toEqual([t('barre.mainTenue'), 1]);
+  });
+});
+
+describe('quitterLaScene : une scène absente du registre est refusée et dite', () => {
+  it('le groupe reste dans sa scène', () => {
+    resetSceneRegistry();
+    const place = emptyScene('scene-test', 6, 6); place.id = 'place';
+    place.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
+    g().fixerLeGroupe([heros('a')]);
+    g().chargerLeProjet({ scenes: [place], entryId: 'place', worldMap: null, projet: null });
+    g().quitterLaScene('nulle-part');
+    expect([dernier(), g().scene?.id]).toEqual([t('store.sceneMissing', { scene: 'nulle-part' }), 'place']);
+  });
+});

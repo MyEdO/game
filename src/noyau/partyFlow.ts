@@ -354,10 +354,11 @@ export function poserLApparence(get: Get, set: Set, uid: string, apparence: stri
   const heroId = herosPorteur(get, set, uid);
   if (!heroId) return;
   const resolveTrapping = objetDuNarratif(get().campaignNarratif);
+  const it = actorIn(get(), heroId)!.items!.find((i) => i.uid === uid)!;
+  if (!it.trappingId) return void refuserGeste(get, set, t('pf.apparenceSansCatalogue', { item: it.label }));
+  if (!choisirApparenceDObjet({ ...it }, apparence, resolveTrapping)) return void refuserGeste(get, set, t('pf.apparenceNonAdmise', { item: it.label }));
   mutLoadout(set, heroId, (c) => {
-    const it = (c.items ?? []).find((i) => i.uid === uid);
-    if (!it?.trappingId) return;
-    choisirApparenceDObjet(it, apparence, resolveTrapping);
+    choisirApparenceDObjet(c.items!.find((i) => i.uid === uid)!, apparence, resolveTrapping);
   });
 }
 

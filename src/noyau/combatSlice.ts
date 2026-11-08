@@ -6,7 +6,7 @@
 import type { Get, Set } from './flowTypes';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
-import { ACTION_GATES, actionGate, armeADistanceParDefaut, refusDeLOffreHorsDuTour, type ContexteDOffre, type BattleActionMode } from './actionRegistry';
+import { ACTION_GATES, actionGate, armeADistanceParDefaut, etatDeLaBarre, refusDeLOffreHorsDuTour, type ContexteDOffre, type BattleActionMode } from './actionRegistry';
 import type { CounterParticipant, CounterDeclaration, SuiteDeCoup, PendingAttack, EnchainementDuCoup } from './pendings';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import { SceneEntity, porteMasquee, structureIsDown } from './monde/scene';
@@ -1728,15 +1728,22 @@ export function createCombatSlice(get: Get, set: Set) {
      *  l'actif à sa barre ; hors combat, un héros du groupe depuis sa fiche. */
     utiliserLObjet: (uid: string) => {
       const porteurId = porteurDeLObjet(get(), uid);
-      if (!porteurId) return void refuserGeste(get, set, t('pf.objetSansPorteur'));
+      if (!porteurId) return void refuserGesteDuSiege(get, set, t('pf.objetSansPorteur'));
       const s = get();
       const battle = s.battle;
-      if (battle && (combatBusy(s) || battle.over || activeCombatant(battle)?.id !== porteurId)) return;
       const porteur = actorIn(s, porteurId);
-      if (!porteur) return void refuserGeste(get, set, t('pf.objetHorsDesHeros'));
-      if (battle && !controlsCombatant(s, porteur)) return;
+      if (!porteur) return void refuserGesteDuSiege(get, set, t('pf.objetHorsDesHeros'));
+      if (battle) {
+        // La barre (`etatDeLaBarre`) ; un Sort qui désigne ses cibles ou pose sa zone, qu'elle ne compte pas ; l'actif.
+        const barre = etatDeLaBarre(s);
+        const refus = barre.forme !== 'ouverte' ? barre.raison
+          : s.pendingCast ? t('barre.mainTenue')
+          : barre.active.id !== porteurId ? t('cs.consommableHorsDuTour', { name: porteur.label })
+          : null;
+        if (refus) return void refuserGesteDuSiege(get, set, refus);
+      }
       const it = (porteur.items ?? []).find((i) => i.uid === uid)!;
-      if (!isConsumable(it)) return;
+      if (!isConsumable(it)) return void refuserGesteDuSiege(get, set, t('cs.objetNonConsommable', { item: it.label }));
       if (refuseSi(get, set, () => refusDeConsommer(porteur, it))) return;
       porteur.items = (porteur.items ?? []).filter((i) => i.uid !== uid);
       porteur.aiming = false; // une autre action que le tir gâche la visée

@@ -912,11 +912,8 @@ export function evaluerLObjet(get: Get, set: Set, uid: string, mode: 'evaluate' 
   if (refuseSi(get, set, refusDInventaire)) return;
   if (refuseSi(get, set, (s) => refusDuHerosPorteur(s, uid))) return;
   const item = actorIn(get(), porteurDeLObjet(get(), uid)!)!.items!.find((i) => i.uid === uid)!;
-  if (mode === 'detect' && item.detectTried) return; // une seule tentative par artefact (LDB 10 l.336)
-  if (mode === 'evaluate' && item.appraiseTriedDay === gameDay(get())) {
-    get().ecrireAuJournal(t('mf.appraiseSameDay', { label: item.label }));
-    return;
-  }
+  if (mode === 'detect' && item.detectTried) return void refuserGeste(get, set, t('mf.detectDejaTentee', { label: item.label })); // LDB 10 l.336
+  if (mode === 'evaluate' && item.appraiseTriedDay === gameDay(get())) return void refuserGeste(get, set, t('mf.appraiseSameDay', { label: item.label }));
   openAppraise(get, set, { itemUid: uid }, item.label, mode, item.trappingId);
 }
 
