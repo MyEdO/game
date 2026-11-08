@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
 import { elireBinding } from './clavier/keybindings';
@@ -9,7 +10,7 @@ const dispatch = (code: string, s: ReturnType<typeof useGame.getState>, controlF
 /** Ouvre le combat de l'arène 42-belier-porte et pose le tour NEUF du Soldat, chef de pièce du bélier. */
 async function ouvrirLeBelierAuTourDuSoldat() {
   const { scenario } = await import('../scenes/test-scenarios/42-belier-porte');
-  const { party, scene } = scenario.construire();
+  const { party, scene } = scenario.construire(idsDeTest);
   useGame.setState({ screen: 'campaign', party });
   useGame.getState().lancerLaScene(scene);
   useGame.getState().lancerLeCombat('siege-belier');

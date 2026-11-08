@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { presetDuNarratif, resolvePresetCreature } from '../../noyau/monde/resolveursDuNarratif';
 import { creatureToCombatant } from '../../noyau/monde/spawn';
@@ -5,7 +6,7 @@ import { testValue } from '../../engine/skills';
 import { savoirVoiesFluvialesBonus } from '../../engine/riverNavigation';
 import { scenario } from './96-presets-edo';
 import type { Combatant } from '../../engine/types';
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 /** Le résolveur de preset du narratif du scénario. */
 const presetPnjById = presetDuNarratif(scenarioConstruit.narratif ?? null);
 

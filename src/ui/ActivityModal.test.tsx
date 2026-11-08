@@ -7,6 +7,7 @@
  * Rendu jsdom (`createRoot`) et non `renderToStaticMarkup` : `ActivityModal` lit le store, et le
  * rendu SSR d'un store zustand sert l'état INITIAL (cf. en-tête d'`InterludeScreen.test.tsx`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { describe, it, expect, afterEach } from 'vitest';
@@ -24,7 +25,7 @@ const ARMEE = 'Horde du Chaos';
 
 /** Pending de tenue DÉJÀ jeté (la rangée témoin de l'ennemi n'est montrée que post-jet). */
 function holdPending(over: Partial<PendingActivity> = {}): PendingActivity {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 42 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 42 });
   useGame.setState({ party: [hero], battle: null, massBattle: null, interlude: null, journal: [] });
   useGame.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3, enemyName: ARMEE });
   return {
@@ -78,7 +79,7 @@ describe('ActivityModal — rangée de l’ennemi d’une Scène « Tenez votre 
 
 describe('ActivityModal — l’issue d’un Test simple est celle du flux (LDB 12 l.25-28)', () => {
   it('03 contre une cible sous 1 est une réussite : la Résilience n’est pas offerte (LDB 17 l.68)', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 42 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 42 });
     hero.resilience = 1;
     useGame.setState({ party: [hero], battle: null, massBattle: null, interlude: null, journal: [] });
     const txt = renderWith({
@@ -90,7 +91,7 @@ describe('ActivityModal — l’issue d’un Test simple est celle du flux (LDB 
   });
 
   it('97 contre une cible au-delà de 99 est un échec : la Résilience est offerte (LDB 17 l.68)', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 42 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 42 });
     hero.resilience = 1;
     useGame.setState({ party: [hero], battle: null, massBattle: null, interlude: null, journal: [] });
     const txt = renderWith({

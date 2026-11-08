@@ -1,10 +1,11 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { foodOptions, nourrituresDeTroupe, type RestPlaces } from './restFlow';
 import { itemFromTrappingById } from '../engine/items';
 import type { Combatant } from '../engine/types';
 
 const sansRation = { items: [] } as unknown as Combatant;
-const avecRation = { items: [itemFromTrappingById('ration')!] } as unknown as Combatant;
+const avecRation = { items: [itemFromTrappingById('ration', idsDeTest)!] } as unknown as Combatant;
 const LIEUX: [string, RestPlaces][] = [['auberge', { auberge: true }], ['maison', { maison: true }], ['plein air', { camp: true }], ['auberge et maison', { auberge: true, maison: true }]];
 
 describe('pitances du repos : le choix de troupe et celui du héros ont une source (#3059)', () => {

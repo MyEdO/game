@@ -5,6 +5,7 @@
  * (« Si le Test de Résistance est raté, lancez un dé … avec un modificateur de +10 pour chaque DR
  * négatif ») — jamais un second Test de Contraction.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
@@ -27,7 +28,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const seq = (vals: number[]): RNG => desEnSuite(vals, { ensuite: vals[vals.length - 1] });
 
 function hero(name: string, over: Partial<Combatant> = {}): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 17 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 17 });
   return blessuresSurLeProfil({ ...h, id: name, ...over }) as Combatant;
 }
 

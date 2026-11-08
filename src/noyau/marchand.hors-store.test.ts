@@ -4,6 +4,7 @@
  * ≤ Statut du groupe coûte 0 au débit ET au devis. La réparation débite `coutDeReparation`, le Troc
  * refusé dit le refus de `devisDeTroc`. LDB 59 l.9-11 ; LDB 59 l.43 ; LDB 59 l.64-76 ; LDB 62 l.135.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type Partie } from './index';
 import { makePregens } from '../data/pregens';
@@ -26,7 +27,7 @@ function ouvrir(tenirComptes: boolean, objets: ItemInstance[] = [], mode: 'local
   const entrees: EntreesDeLaPartie = { graine: 4, reglesMaison: { 'market-tenir-comptes': tenirComptes }, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
   const partie = creerPartie({
     ...etatInitialDuJeu(),
-    party: makePregens().slice(0, 1).map((h) => withBourseMoney({ ...h, career, careerLevel, items: [...(h.items ?? []), ...objets] }, { gold: 50, silver: 0, brass: 0 })),
+    party: makePregens(idsDeTest).slice(0, 1).map((h) => withBourseMoney({ ...h, career, careerLevel, items: [...(h.items ?? []), ...objets] }, { gold: 50, silver: 0, brass: 0 }, idsDeTest)),
     scene,
     net: { ...etatInitialDuJeu().net, mode },
   }, entrees);
@@ -93,7 +94,7 @@ describe('#3059 — prix d’achat : une seule fonction pour l’écran et le d�
 
 describe('#3059 — réparation et Troc : le geste lit la fonction de l’écran', () => {
   it('réparation : le débit est `coutDeReparation` de l’objet endommagé', () => {
-    const hallebarde = { ...itemFromTrappingById('hallebarde')!, uid: 'abimee', damageTaken: 2, equipped: false };
+    const hallebarde = { ...itemFromTrappingById('hallebarde', idsDeTest)!, uid: 'abimee', damageTaken: 2, equipped: false };
     const { partie } = ouvrir(false, [hallebarde]);
     try {
       const heros = partie.etat().party[0];
@@ -133,8 +134,8 @@ describe('#3059 — réparation et Troc : le geste lit la fonction de l’écran
 
 describe('#3059 — vente au panier : le crédit est le total du devis de l’écran', () => {
   it('deux objets au panier de vente : crédit = `devisDeVente(...).total` = somme des `sellGain`', () => {
-    const a = { ...itemFromTrappingById('hallebarde')!, uid: 'v1', equipped: false };
-    const b = { ...itemFromTrappingById('hallebarde')!, uid: 'v2', equipped: false };
+    const a = { ...itemFromTrappingById('hallebarde', idsDeTest)!, uid: 'v1', equipped: false };
+    const b = { ...itemFromTrappingById('hallebarde', idsDeTest)!, uid: 'v2', equipped: false };
     const { partie } = ouvrir(false, [a, b]);
     try {
       partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'ajouterALaVente', 'v1'] });
@@ -156,8 +157,8 @@ describe('#3059 — vente au panier : le crédit est le total du devis de l’é
 
 describe('#3059 — siège invité : l’invité compose le panier, l’encaissement est à l’hôte', () => {
   it('ajout au panier ouvert ; paiement, réparation, vente et Troc refusés, sans écriture', () => {
-    const abimee = { ...itemFromTrappingById('hallebarde')!, uid: 'abimee', damageTaken: 2, equipped: false };
-    const avendre = { ...itemFromTrappingById('hallebarde')!, uid: 'avendre', equipped: false };
+    const abimee = { ...itemFromTrappingById('hallebarde', idsDeTest)!, uid: 'abimee', damageTaken: 2, equipped: false };
+    const avendre = { ...itemFromTrappingById('hallebarde', idsDeTest)!, uid: 'avendre', equipped: false };
     const { partie } = ouvrir(false, [abimee, avendre], 'guest');
     try {
       const s = partie.etat();

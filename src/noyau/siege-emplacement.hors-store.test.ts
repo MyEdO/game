@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { applyShipPostes, serveAtPoste } from './monde/shipPostes';
 import { firedWeapon, firedAttackBlock, resolveAttack } from './combatFlow';
@@ -53,7 +54,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 7 }): Combatant =>
     inert: true, wounds: blessuresDeBase(0), advantage: 0, postes: [poste] }); // affût RAW-pur (AA 10 l.175-193) : 0 Blessure, immune
 
 const mkPoste = (engineId: string, crewIds: string[], side?: FireArc): ShipPoste =>
-  ({ item: itemFromTrappingById(engineId)!, crewIds, ...(side ? { side } : {}) });
+  ({ item: itemFromTrappingById(engineId, idsDeTest)!, crewIds, ...(side ? { side } : {}) });
 
 /** Scène terrestre minimale (40×40 d'herbe, 2 m/case) — PAS de merScale/metresPerTile « Mer ». */
 const groundScene = (): Scene =>
@@ -145,7 +146,7 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
     // crewedFireWeapon est la SOURCE UNIQUE de la dégradation (réutilisée par firedWeapon) — éprouvée sur
     // l'arme dérivée du poste (le mortier n'a PAS le Défaut Imprécise de base → la pénalité l'AJOUTE).
     const chef = mkGunner('chef', 'hero', { x: 5, y: 5 });
-    const w0 = mannedPosteWeapon(chef, { item: itemFromTrappingById('mortier')!, crewIds: ['chef'] } as ShipPoste)!;
+    const w0 = mannedPosteWeapon(chef, { item: itemFromTrappingById('mortier', idsDeTest)!, crewIds: ['chef'] } as ShipPoste)!;
     const w = crewedFireWeapon(w0, 1); // présent 1, Indice 3 → déficit 2
     expect(w.reload).toBe(8); // Recharge 4 ×2
     expect(w.qualities.some((q) => q.id === 'imprecise')).toBe(true); // Défaut AJOUTÉ par le sous-effectif
@@ -156,7 +157,7 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
 //     LDB 13 l.106, arbitrage #3595 du 2026-11-07), soutenu par un servant adjacent (MDG 12 l.462).
 describe('(D) Recharge — Test étendu du chef rechargeant l’emplacement au sol (rechargerLArme/jetValider@reload)', () => {
   const setup = (order = ['chef', 'emplacement', 's1']) => {
-    const item = itemFromTrappingById('baliste')!; // Recharge 3, Indice 2
+    const item = itemFromTrappingById('baliste', idsDeTest)!; // Recharge 3, Indice 2
     const poste: ShipPoste = { item, crewIds: [], loaded: false, reloadProgress: 2 };
     const chef = mkGunner('chef', 'hero', { x: 5, y: 6 }, 80);
     chef.skills = [{ id: 'projectiles', spec: 'arbalete', characteristic: 'capacite-de-tir', advances: 20 }] as never;
@@ -207,8 +208,8 @@ describe('(E) AoE — mortier + bombe explosion frappe un groupe au sol (branche
   it('toutes les cibles dans le rayon Indice subissent DR+Dégâts ; hors rayon = épargné', () => {
     seedBattleRng(7);
     const chef = mkGunner('chef', 'hero', { x: 0, y: 0 });
-    const mortier = mannedPosteWeapon(chef, { item: itemFromTrappingById('mortier')!, crewIds: ['chef'] })!;
-    const bomb = itemFromTrappingById('bombe-de-mortier')!; // Explosion Indice 5, Dégâts 12
+    const mortier = mannedPosteWeapon(chef, { item: itemFromTrappingById('mortier', idsDeTest)!, crewIds: ['chef'] })!;
+    const bomb = itemFromTrappingById('bombe-de-mortier', idsDeTest)!; // Explosion Indice 5, Dégâts 12
     const w: Weapon = weaponWithAmmo(mortier, bomb); // arme effective : la qualité a-explosion est fusionnée
     expect(w.qualities.some((q) => q.id === 'a-explosion')).toBe(true);
 
@@ -236,7 +237,7 @@ describe('(E) AoE — mortier + bombe explosion frappe un groupe au sol (branche
 describe('(F) Arc — emplacement au sol : omni sans side, sinon arc relatif au facing du CHEF', () => {
   /** Chef-héros au sol servant une pièce, SANS coque dans le combat (→ `shipOfCrew` rate → fallback chef). */
   const groundGunner = (side?: FireArc): { gunner: Combatant; uid: string } => {
-    const item = itemFromTrappingById('pierrier')!;
+    const item = itemFromTrappingById('pierrier', idsDeTest)!;
     const w = mannedPosteWeapon(mkGunner('g', 'hero', { x: 5, y: 5 }), { item, crewIds: ['g'], ...(side ? { side } : {}) } as ShipPoste)!;
     delete (w as { reload?: number }).reload; // isole la garde d'ARC (pas le gate Recharge/munition)
     delete (w as { subType?: string }).subType; // pas de famille de munition → pas de gate 'noammo'

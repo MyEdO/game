@@ -7,6 +7,7 @@
  * (`../stairFlight`) et au calque (`./calque`) ; aucun
  * n'écrit de règle de scène. L'éditeur Godot la reçoit par le pont.
  */
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import type { ArchitectureBody, ArchitectureStorey, BuildingMass, FacadeFeature, RoofDefaults, Scene, SceneEntity, SceneStationAnchor, WallSecret, WallSeg } from '../monde/scene';
 import { apparencesDeLOuverture } from '../monde/facades';
 import type { ReliefDefaults, SceneRoofDefaults } from '../../data/schemas/defs-scenes/scene';
@@ -413,10 +414,10 @@ export function texteAEnregistrer(s: SessionDEdition) {
 export function essaiDeLaScene(s: SessionDEdition) {
   const { scenes: _scenes, worldMap, activeAxes, narratif, ...identite } = s.projet;
   const doc = documentDeProjet(identite, scenesDeLaSession(s), { worldMap, activeAxes, narratif });
-  return aLaPorte('test', (): (() => LancementDeScenario) => {
+  return aLaPorte('test', (): ((idNeuf: FabriqueDId) => LancementDeScenario) => {
     const projet = parseProject(doc);
-    return () => ({
-      party: makeShowcaseParty(), scene: projet.scenes.find((sc) => sc.id === s.sceneId)!, extraScenes: projet.scenes.filter((sc) => sc.id !== s.sceneId),
+    return (idNeuf) => ({
+      party: makeShowcaseParty(idNeuf), scene: projet.scenes.find((sc) => sc.id === s.sceneId)!, extraScenes: projet.scenes.filter((sc) => sc.id !== s.sceneId),
       ...(projet.worldMap ? { worldMap: projet.worldMap } : {}), narratif: projet.narratif,
     });
   });

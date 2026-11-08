@@ -5,6 +5,7 @@
  * sinon, et à la confirmation avant tout débit. Rien n'est débité, aucune Activité consommée.
  * LDB 23 l.66-72, l.132-136, l.228-234
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
@@ -28,7 +29,7 @@ const TALENT_AU_MAXI = 'affable';
 
 /** Un banc sur un interlude d'une semaine, dés d'Événement posés, dont le héros a `xp` PX et `bourse`. */
 function apresLeTirage(xp: number, bourse: Money): { banc: Banc; heroId: string } {
-  const h = withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 }), bourse);
+  const h = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 }), bourse, idsDeTest);
   h.xp = xp;
   const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [h] } });
   banc.actions.ouvrirLInterlude(1);
@@ -199,7 +200,7 @@ describe('Mécénat — hors de son lieu', () => {
 
 describe('Réputation — le Standing gagné vaut pour la PROCHAINE aventure, pas pour l’interlude (LDB 23 l.234)', () => {
   it('Réputation réussie puis Revenus et seconde Réputation dans le même interlude : Standing de carrière', () => {
-    const h = withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 }), { gold: 20, silver: 0, brass: 0 });
+    const h = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 }), { gold: 20, silver: 0, brass: 0 }, idsDeTest);
     const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [h] } });
     banc.actions.ouvrirLInterlude(3);
     draineCascade(banc.getState);
@@ -221,7 +222,7 @@ describe('Réputation — le Standing gagné vaut pour la PROCHAINE aventure, pa
 /** Un banc sur un interlude de trois semaines, dés posés, dont le Soldat (Argent 1) a tenté une Réputation
  *  posée à `roll`/`sl`. */
 function apresUneReputation(success: boolean, sl: number): { banc: Banc; heroId: string } {
-  const h = withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 }), { gold: 20, silver: 0, brass: 0 });
+  const h = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 }), { gold: 20, silver: 0, brass: 0 }, idsDeTest);
   const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [h] } });
   banc.actions.ouvrirLInterlude(3);
   draineCascade(banc.getState);

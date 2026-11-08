@@ -6,6 +6,7 @@
  *  · Une réf. de personnage MORTE (scène vivante de l'éditeur, que la porte `parseProject` n'a pas vue)
  *    ne donne AUCUNE fiche : aucun lecteur ne reçoit un mannequin, chacun DIT le refus.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
@@ -31,7 +32,7 @@ const set: Banc['setState'] = (e) => banc.setState(e);
 const presetPnjById = (id: string) => presetDuNarratif(get().campaignNarratif)(id);
 
 function pose(entities: SceneEntity[]): void {
-  set({ party: makePregens().slice(0, 1) as Combatant[], scene: { ...emptyScene('scene-test'), entities }, battle: null, sequence: null, pendingCascade: null, medic: null } as never);
+  set({ party: makePregens(idsDeTest).slice(0, 1) as Combatant[], scene: { ...emptyScene('scene-test'), entities }, battle: null, sequence: null, pendingCascade: null, medic: null } as never);
 }
 
 const GERTA: SceneEntity = { id: 'gerta', kind: 'personnage', pos: { x: 1, y: 1 }, label: 'Gerta la Rusée', ref: 'humain', tavernGame: { id: 'dominos' } };

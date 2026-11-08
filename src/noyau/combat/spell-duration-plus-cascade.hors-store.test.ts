@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { openRoundEndCascade } from '../combatFlow';
@@ -18,7 +19,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 describe('Durée « + » — offre de prolongation en cascade héros (#543)', () => {
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -29,7 +30,7 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
     b.combatants.filter((c) => c.kind === 'enemy').forEach((e) => (e.dead = true)); // aucun ennemi actif
     // Effet actif d'un sort marqué « + » (arme-aethyrique, LDB 47 l.319), sur le point d'expirer.
     H.activeEffects = [{ label: 'Arme aethyrique', bonus: 0, duration: { scale: 'rounds', left: 1 }, sourceSpellId: 'arme-aethyrique' }];
-    endOfRound(H, desDuTest); // simule le décompte de fin de Round → effet GELÉ (awaitingExtension)
+    endOfRound(H, desDuTest, idsDeTest); // simule le décompte de fin de Round → effet GELÉ (awaitingExtension)
     expect(pendingPlusExtensions(H)).toHaveLength(1);
     banc.setState({ battle: { ...b }, pendingCascade: null });
     return { H };

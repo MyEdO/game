@@ -13,6 +13,7 @@
  *  (3) le portrait affecté se retire au clic, et il porte son geste dans l'arbre d'accessibilité ;
  *  (4) une Scène FIGÉE (Round résolu / attente) n'offre plus d'ajout.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { describe, it, expect, afterEach, beforeEach } from 'vitest';
@@ -33,7 +34,7 @@ afterEach(() => { act(() => root?.unmount()); container?.remove(); root = null; 
  *  posées sur le plan par leurs ancres authorées), par la porte du jeu `amorcerLaBataille`. */
 beforeEach(() => {
   seedBattleRng(1234);
-  const { party, scene, massBattle } = scenario.construire();
+  const { party, scene, massBattle } = scenario.construire(idsDeTest);
   useGame.setState({
     party, scene, battle: null, interlude: null,
     journal: [], partyPos: { x: 3, y: 8 },

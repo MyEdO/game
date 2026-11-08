@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { ouvrirLeMarche, vendreALaHalle } from './landMarketFlow';
@@ -51,7 +52,7 @@ const CARRIER_ID = 'convoi-1';
  *  POSSESSIONS #617/#618) — `launchAtA` le pose après `chargerLeProjet` (le registre est vidé+re-semé au
  *  démarrage de scène, `lancerLaScene`/`seedStartingPossessions`). */
 function trader(): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', seed: 11, id: 't-artur' });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', seed: 11, id: 't-artur' });
   h.characteristics = { ...h.characteristics, Fel: 60 } as Combatant['characteristics'];
   skill(h, 'ragot', 60);
   skill(h, 'marchandage', 60);

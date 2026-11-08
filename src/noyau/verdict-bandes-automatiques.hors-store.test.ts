@@ -5,6 +5,7 @@
  * (`engine/tests.ts`) : un site qui relit un jet posé (Chance, Résilience, `jetsEnVue`, Contre-sort, taverne)
  * rend le même verdict que lui. Cibles bornées 1..99 : 97 contre 99 est un échec, 03 contre 1 une réussite.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -24,7 +25,7 @@ const get = () => banc.getState();
 
 /** Le Test de scène posé comme `resolve` le pose : dé, cible bornée, et le verdict d'`evaluateTest`. */
 function testPose(roll: number, cible: number, fortune = 1) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
   hero.fortune = fortune;
   const t = evaluateTest(roll, cible);
   banc.setState({
@@ -59,7 +60,7 @@ describe('Chance et +1 DR : l’issue canonique du seam est celle d’`evaluateT
   });
 
   it('incantation 97 contre 99 (`cleanRollOutcome`) : issue ratée', () => {
-    const [h] = makePregens() as Combatant[];
+    const [h] = makePregens(idsDeTest) as Combatant[];
     banc.setState({
       party: [h], battle: { combatants: [h], log: [] } as never,
       pendingCast: { casterId: h.id, targetId: h.id, spellId: 'drain', missile: false, focused: false, result: { cast: false, roll: 97, target: 99, sl: -1, isCritical: false, isFumble: false, log: '' } },
@@ -77,7 +78,7 @@ describe('`jetsEnVue` annonce le verdict du résolveur', () => {
   });
 
   it('Focalisation réussie à 0 DR : la ligne est réussie (LDB 12 l.174)', () => {
-    const [h] = makePregens() as Combatant[];
+    const [h] = makePregens(idsDeTest) as Combatant[];
     banc.setState({
       party: [h], battle: { combatants: [h], log: [] } as never,
       pendingFocus: { casterId: h.id, spellId: 'drain', result: { dr: 0, success: true, isCritical: false, isFumble: false, roll: 40, target: 45, sl: 0, log: '' } },
@@ -95,7 +96,7 @@ describe('Magie : le Test d’Incantation figé du Contre-sort (LDB 46 l.156)', 
 
 describe('Taverne : le lancer de volée relit le verdict du d100 (NADJ 16 l.70)', () => {
   it('l’Arène, 97 contre une cible au-delà de 99 : échec, aucun point', () => {
-    const a = makePregens()[0] as Combatant;
+    const a = makePregens(idsDeTest)[0] as Combatant;
     a.characteristics = { ...a.characteristics, 'capacite-de-tir': 95 };
     banc.setState({ battle: null, party: [a], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     get().jouerALaTaverne({ gameId: 'arene', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });

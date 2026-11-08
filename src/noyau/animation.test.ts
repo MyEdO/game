@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { maniementDe } from './animation';
 import type { Maniement } from '../data/schemas/grammaire/valeurs';
@@ -8,7 +9,7 @@ import type { Weapon } from '../engine/types';
 
 /** #2967 */
 const w = (id: string, type: 'melee' | 'ranged' = 'melee'): FormeDArme => {
-  const objet = itemFromTrappingById(id, findTrappingById);
+  const objet = itemFromTrappingById(id, idsDeTest, findTrappingById);
   const arme = objet ? weaponFromItem(objet) : buildWeapon({ label: id, type, damage: { plusBF: false, flat: 4 }, uid: id });
   return armeDeDessin({ ...arme, type });
 };

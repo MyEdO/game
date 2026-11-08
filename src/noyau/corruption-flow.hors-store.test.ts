@@ -2,6 +2,7 @@
  * Corruption — flux du noyau (LDB 19) : exposition par modale (Effet d'éditeur),
  * gain → seuil → mutation → limites (damné), Sombre Pacte (relance à +1 Corruption).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
@@ -19,9 +20,9 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function party2() {
-  const all = makePregens();
+  const all = makePregens(idsDeTest);
   // Sans Talent aléatoire (`talentsRolled: false`) : aucun tirage d'Âme pure (LDB 10 l.52).
-  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: all[0].id, seed: PREGEN.soldat, talentsRolled: false });
+  const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: all[0].id, seed: PREGEN.soldat, talentsRolled: false });
   const b = all[1];
   return { a, b, party: [a, b] as Combatant[] };
 }

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { runFlow } from './combatEffects';
@@ -20,7 +21,7 @@ describe('Test de Sociabilité vs groupe haï (dialogue) — malus psy appliqué
   });
 
   function hero(name: string, soc: number, traits: PsychTrait[] = []) {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1, speciesTalentChoices: PERSPICACE });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1, speciesTalentChoices: PERSPICACE });
     h.characteristics.sociabilite = soc;
     h.skills = []; // pas d'avances → testValue = Soc brut
     h.psychTraits = traits;

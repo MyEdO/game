@@ -3,6 +3,7 @@
  * l'inspection, et la remise à zéro d'une partie à l'autre sous ses gardes (`GARDES_D_UNE_PARTIE_A_L_AUTRE`). La boucle de
  * jeu elle-même se joue au banc du noyau (`src/noyau/boucle-de-jeu.hors-store.test.ts`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { advanceTurn } from '../noyau/combatFlow';
 import { GARDES_D_UNE_PARTIE_A_L_AUTRE, useGame } from './store';
@@ -60,7 +61,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
   });
 
   function endOfRoundBattle(heroFortune: number) {
-    const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
+    const H = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
     H.fortune = heroFortune;
     H.pos = { x: 0, y: 0 };
     const E: Combatant = JSON.parse(JSON.stringify(H));

@@ -1,8 +1,9 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, expect, it } from 'vitest';
 import { EMBLEME, scenario } from './embleme-au-combat';
 import { porteeDuCombattant } from '../../noyau/apparence/combattant';
 
-const { party } = scenario.construire();
+const { party } = scenario.construire(idsDeTest);
 const porteEcu = party.find((h) => h.id === 'porte-ecu')!;
 
 describe('scénario « Emblème au combat » (#3253)', () => {

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { flowEffects, EMPTY_FLOW } from '../../engine/flowCore';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { validateScene } from '../../noyau/validateScene';
@@ -15,7 +16,7 @@ import type { Difficulty } from '../../engine/types';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /**
  * La salle est COMPILÉE depuis un `MapSpec` par `buildScene` (headless-editor) : la grille
@@ -136,7 +137,7 @@ describe('Opéra — Théâtre : intrigue n°1 (la bombe de la loge royale)', ()
 
   beforeEach(() => banc.setState({ battle: null, flags: {}, scheduledEffects: [], gameTime: 20 * 60, partyPos: { x: 10, y: 14, z: 1 } }));
   function lonePartyAt(wounds: number) {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     h.wounds = blessuresDeBase(wounds, wounds, h);
     banc.setState({ party: [h] });
     return h;

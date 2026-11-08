@@ -2,6 +2,7 @@
  * Les SPÉCIAUX d'un jeu de taverne au FLUX (NADJ 16 l.82) : figés à l'ouverture par siège, ils règlent
  * la Difficulté des Tests du SEUL joueur qui a le Talent — jamais celle de son vis-à-vis.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
@@ -19,7 +20,7 @@ const get = () => banc.getState();
 
 /** Un pré-tiré, avec ou sans Tireur d'élite. */
 function heros(rang: number, tireur: boolean): Combatant {
-  const h = makePregens()[rang] as Combatant;
+  const h = makePregens(idsDeTest)[rang] as Combatant;
   const autres = (h.talents ?? []).filter((t) => t.talentId !== 'tireur-d-elite');
   return { ...h, talents: tireur ? [...autres, { talentId: 'tireur-d-elite', times: 1 }] : autres };
 }

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { act, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -76,8 +77,8 @@ describe('en combat : clic droit et appui long INSPECTENT, le clic gauche attaqu
   const px = (x: number, y: number) => tileCenter(x, y, dims);
 
   function combat() {
-    const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 3, y: 4 };
-    const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 1, y: 1 };
+    const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 3, y: 4 };
+    const ally = makePregens(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 1, y: 1 };
     const enemy: Combatant = spawnEnemy({ ref: 'humain' }, 'e1', { x: 4, y: 4 }); // adjacent au héros
     const battle = {
       combatants: [hero, ally, enemy], order: ['h1', 'h2', 'e1'], baseOrder: ['h1', 'h2', 'e1'],

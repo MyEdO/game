@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -28,7 +29,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 
 const bandHero = (id: string, over: Partial<Combatant> = {}): Combatant => {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 2 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 2 });
   h.id = id;
   h.characteristics.endurance = 43; // Bonus d'Endurance = 4 (DR imposé de la Résistance)
   Object.assign(h, over);

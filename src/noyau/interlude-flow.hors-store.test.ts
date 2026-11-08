@@ -3,6 +3,7 @@
  * min(3, semaines)), clôture (« Avec le pouvoir », Argent à gaspiller, Revenus, le temps passe),
  * Effet d'éditeur `interlude`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
@@ -27,8 +28,8 @@ function eventOf(st: { eventRoll?: number }) {
 }
 describe('Interlude — flux start/end', () => {
   beforeEach(() => {
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
-    const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
+    const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const b = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
     banc.setState({ party: [a, b] });
     banc.getState().lancerLaScene(testScene());
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, fromBrass(1000)); // bourse perso de départ (#531)
@@ -139,7 +140,7 @@ describe('Interlude — flux start/end', () => {
   });
 
   it('interlude-elf-duty (défaut) : un elfe ≥3 semaines perd 1 Activité (devoir)', () => {
-    const elf = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 });
+    const elf = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 });
     elf.species = 'hauts-elfes';
     banc.setState({ party: [elf], interlude: null });
     banc.getState().ouvrirLInterlude(3);
@@ -151,7 +152,7 @@ describe('Interlude — flux start/end', () => {
 
   it('interlude-elf-duty OFF : l’elfe garde son Activité', () => {
     setRule('interlude-elf-duty', false);
-    const elf = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 });
+    const elf = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 });
     elf.species = 'hauts-elfes';
     banc.setState({ party: [elf], interlude: null });
     banc.getState().ouvrirLInterlude(3);
@@ -164,7 +165,7 @@ describe('Interlude — flux start/end', () => {
 
   it('le devoir suit le groupe `elfe` de l’espèce (`grantGroups`), pas son id : groupe retiré → pas de devoir', () => {
     setDataset('species', species.map((s) => (s.id === 'hauts-elfes' ? { ...s, grantGroups: s.grantGroups.filter((g) => g !== 'elfe') } : s)));
-    const elf = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 });
+    const elf = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 });
     elf.species = 'hauts-elfes';
     banc.setState({ party: [elf], interlude: null });
     banc.getState().ouvrirLInterlude(3);

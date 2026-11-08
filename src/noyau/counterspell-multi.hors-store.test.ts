@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
@@ -23,7 +24,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () => {
   function setup() {
     const mk = (name: string, seed: number) => {
-      const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: name, careerTalent: { id: 'magie-mineure' }, seed });
+      const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: name, careerTalent: { id: 'magie-mineure' }, seed });
       h.spells = ['flechette'];
       h.resilience = 1; // pour les tests de Résilience
       return h;

@@ -12,6 +12,7 @@
  * bouton « Soins » de `CharacterSheet.tsx`), n'avance pas le temps. Sans soigneur au Talent ni Destin,
  * l'agonie ci-dessus va à son terme.
  */
+import type { FabriqueDId } from '../engine/fabriqueDId';
 import { Combatant } from '../engine/types';
 import { RNG } from '../engine/dice';
 import { endOfRound, bleedDeathRoll, tickDeath, hasCondition } from '../engine/conditions';
@@ -50,7 +51,7 @@ function hasRoundTick(c: Combatant): boolean {
  * S'arrête dès que plus personne n'a besoin d'entretien (évite les longues boucles sur de grands sauts de
  * temps). Un héros qui mourrait par hémorragie est sauvé par un Point de Destin s'il en a. Retourne le journal.
  */
-export function outOfCombatUpkeep(party: Combatant[], rounds: number, rng: RNG): string[] {
+export function outOfCombatUpkeep(party: Combatant[], rounds: number, rng: RNG, idNeuf: FabriqueDId): string[] {
   const log: string[] = [];
   for (let r = 0; r < rounds; r++) {
     let active = false;
@@ -62,11 +63,11 @@ export function outOfCombatUpkeep(party: Combatant[], rounds: number, rng: RNG):
         // réservé aux causes de `needsUpkeep`.
         if (!hasRoundTick(c)) continue;
         active = true;
-        endOfRound(c, rng).forEach((l) => log.push(l));
+        endOfRound(c, rng, idNeuf).forEach((l) => log.push(l));
         continue;
       }
       active = true;
-      endOfRound(c, rng).forEach((l) => log.push(l)); // MÊME tic que ci-dessus (ops récurrentes + durées)
+      endOfRound(c, rng, idNeuf).forEach((l) => log.push(l)); // MÊME tic que ci-dessus (ops récurrentes + durées)
       // Dégâts périodiques d'État (Empoisonné/En Flammes/Hémorragique) MIGRÉS en données (effects: onRoundEnd
       // → wounds) : MÊME chemin qu'en combat, ils tickent AUSSI hors-combat. La cible 'self' ne touche pas
       // `battle` (targetsFor) → `get` stub suffit ; pas de `set` (flow sans test interactif hors combat).

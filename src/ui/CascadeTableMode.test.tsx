@@ -11,6 +11,7 @@
  * poserait « 48 » en UN événement ne verrait ni le dé intermédiaire « 4 », ni un champ démonté après
  * la pose, ni le geste TERMINAL qui commet seul (#955).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
@@ -540,7 +541,7 @@ describe('Après la pose — l’étape reste lisible à l’état résolu (verd
  */
 describe('bandes successives — le corps ne rend QUE la bande courante', () => {
   const heroOf = (id: string) => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 1 });
     h.id = id;
     return h;
   };

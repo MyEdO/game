@@ -3,6 +3,7 @@
  * joue les gestes de l'équipement, de l'avancement et des possessions. Chaque verdict que l'écran web
  * affiche est celui que le geste applique : le geste refusé ne change rien et dit pourquoi.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type EtatDeJeu, type Partie, type ResultatDeLAppel } from './index';
 import { auContact, heroDuDuel } from './combatDeTest.testkit';
@@ -68,7 +69,7 @@ describe('garnirLaPanoplie — le verdict de main (`refusEmplacementDeMain`) est
 
   it('hors combat, une arme inéligible n’entre pas en seconde main (LDB 14 l.138)', () => {
     const heros = heroDuDuel();
-    const arc = { ...itemFromTrappingById('arc-long')!, uid: 'arc-du-test' };
+    const arc = { ...itemFromTrappingById('arc-long', idsDeTest)!, uid: 'arc-du-test' };
     heros.items = [...(heros.items ?? []), arc];
     avecPartie({ ...etatInitialDuJeu(), party: [heros] }, (partie) => {
       const lu = () => partie.etat().party[0];
@@ -163,7 +164,7 @@ describe('transmettreLObjet et rangerLObjet — le verdict (`refusDInventaire`, 
 describe('gestes d’objet et de fiche en combat — un verdict par famille, celui des gestes', () => {
   it('evaluerLObjet : refusé en combat (`refusDInventaire`), rien ne change', () => {
     const H0 = heroDuDuel();
-    const inconnu = { ...itemFromTrappingById('arme-simple')!, uid: 'inconnu-1', identified: false };
+    const inconnu = { ...itemFromTrappingById('arme-simple', idsDeTest)!, uid: 'inconnu-1', identified: false };
     H0.items = [...(H0.items ?? []), inconnu];
     H0.skills = [...H0.skills, { id: 'evaluation', characteristic: 'intelligence', advances: 10 }, { id: 'intuition', characteristic: 'initiative', advances: 10 }];
     enCombat((partie, H) => {
@@ -232,7 +233,7 @@ describe('equiperLObjet — le verrou (`refusDInventaire`) est celui du geste', 
 
 describe('buildAdvancementView — chaque achat porte le refus que son geste rend', () => {
   it('règle « mentor » active, sans mentor : la Caractéristique hors carrière n’est pas offerte, et le geste la refuse', () => {
-    const heros = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 5000 };
+    const heros = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 5000 };
     avecPartie({ ...etatInitialDuJeu(), party: [heros], flags: {} }, (partie) => {
       const vue = buildAdvancementView(partie.etat(), partie.etat().party[0]);
       const hors = vue.chars.find((c) => !c.inCareer)!;
@@ -248,7 +249,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
   });
 
   it('à 0 PX : la vue refuse l’Augmentation au coût près, et le geste ne dépense rien', () => {
-    const heros = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 0 };
+    const heros = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 0 };
     avecPartie({ ...etatInitialDuJeu(), party: [heros], flags: {} }, (partie) => {
       const vue = buildAdvancementView(partie.etat(), partie.etat().party[0]);
       const c = vue.chars.find((x) => x.inCareer)!;
@@ -261,7 +262,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
   });
 
   it('à 0 PX, chaque achat de la vue porte EXACTEMENT le refus que rend son geste (Caractéristique, Compétence, Talent, Carrière)', () => {
-    const heros = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 0 };
+    const heros = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 0 };
     avecPartie({ ...etatInitialDuJeu(), party: [heros], flags: {} }, (partie) => {
       const v = buildAdvancementView(partie.etat(), partie.etat().party[0]);
       const c = v.chars.find((x) => x.inCareer)!;
@@ -283,7 +284,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
   });
 
   it('changement de carrière libre : la vue porte le refus COMPLET du geste (validation, puis PX)', () => {
-    const heros = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 0 };
+    const heros = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 0 };
     avecPartie({ ...etatInitialDuJeu(), party: [heros], flags: {} }, (partie) => {
       const v = buildAdvancementView(partie.etat(), partie.etat().party[0]);
       for (const cible of ['agitateur', 'carriere-inconnue']) {
@@ -302,7 +303,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
   });
 
   it('un Talent au Maxi n’est pas offert : la ligne porte le refus que rend `acheterLeTalent`', () => {
-    const heros = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 5000 };
+    const heros = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 5000 };
     avecPartie({ ...etatInitialDuJeu(), party: [heros], flags: {} }, (partie) => {
       let ligne = buildAdvancementView(partie.etat(), partie.etat().party[0]).talents.find((r) => r.talentId && !r.maxReached)!;
       for (let pas = 0; !ligne.maxReached && pas < 10; pas++) {

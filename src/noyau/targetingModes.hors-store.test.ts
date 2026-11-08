@@ -3,6 +3,7 @@
  * les modes à liste exposent les bonnes `candidates` (soin = alliés soignables ; Surincantation =
  * overcastTargetCandidates ; attaque = ennemis via l'affordance par défaut).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { currentTargetingMode, spellAffinity, TILE_MODES, TARGETING_MODES } from './targetingModes';
 import { combatantClickActs, intentionDuClicDeCase, jouerLeClicDeCase, cliquerSurLeCombattant } from './combatOrParty';
@@ -25,8 +26,8 @@ const arena = () => {
 
 /** Combat 2 héros + 2 ennemis, héros actif au centre. `over` patche le `battle`. */
 function combat(over: Record<string, unknown> = {}) {
-  const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
-  const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
+  const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
+  const ally = makePregens(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
   const e1 = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 6 }); // adjacent
   const e2 = spawnEnemy({ ref: 'humain' }, 'e2', { x: 8, y: 6 });
   const battle = {

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { advanceTurn } from './combatFlow';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -30,7 +31,7 @@ const etape = () => { const c = g().pendingCascade; return c?.participants[c.cur
  *  E1 a pris le talent deux fois : il tire d'abord (LDB 11 l.103). */
 function finDeRound(gmSeat?: number) {
   const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant => {
-    const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 3 });
+    const c = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 3 });
     c.id = id; c.label = id; c.kind = kind; c.pos = pos; c.fortune = 0;
     c.wounds = blessuresDeBase(200, 200, c);
     return c;

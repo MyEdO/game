@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -45,7 +46,7 @@ let banc: Banc;
 const g = () => banc.getState();
 
 function heros(): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1, talentsRolled: false });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1, talentsRolled: false });
   for (const k of ['agilite', 'force-mentale', 'endurance'] as const) h.characteristics[k] = 70;
   return h;
 }
@@ -71,7 +72,7 @@ function auCombat(): { H: Combatant; E: Combatant } {
  *  Mouvement intact. `dejaEnSelle` : en selle avant son Tour (`mountUp`, comme une rencontre qui pose un
  *  cavalier), sinon le cheval attend à une case. */
 function enSelle({ dejaEnSelle = true } = {}): { R: Combatant; monture: Combatant } {
-  lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(testScenarios.find((sc) => sc.id === 'entrainement')!));
+  lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(testScenarios.find((sc) => sc.id === 'entrainement')!, idsDeTest));
   if (!g().battle) g().lancerLeCombat('enc-entrainement');
   if (g().pendingRoundStart) g().fenetreValider('roundStart');
   banc.abandonner();

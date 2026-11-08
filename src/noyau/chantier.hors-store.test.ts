@@ -4,6 +4,7 @@
  * refus d'appareiller et l'effectif présent (`shipboardSouls`). MDG 13 l.643 ; MDG 13 l.150-159 ;
  * MDG 12 l.70-75 ; MDG 14 l.238 ; MDG 12 l.195-364 ; MDG 15 l.319.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type EtatDeJeu, type Partie } from './index';
 import { makePregens } from '../data/pregens';
@@ -28,7 +29,7 @@ function aQuai(vessel: CampaignVessel, bourse: Money, mode: 'local' | 'guest' = 
   const entrees: EntreesDeLaPartie = { graine: 2, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
   return creerPartie({
     ...etatInitialDuJeu(),
-    party: makePregens().slice(0, 1).map((h) => withBourseMoney(h, bourse)),
+    party: makePregens(idsDeTest).slice(0, 1).map((h) => withBourseMoney(h, bourse, idsDeTest)),
     scene: { ...emptyScene('port', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     gameTime: 8 * 60,
     vessel,
@@ -81,7 +82,7 @@ describe('#3059 — chantier naval : un seul devis pour l’écran et le geste',
 describe('#3059 — dossier du navire : composé des sources du noyau', () => {
   it('cale au-delà du plafond dur : le dossier porte le refus d’appareiller du départ en mer', () => {
     const vessel = navire({ cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: 2 * COGUE.ship!.capacity, basePriceGold: 10 }], crewLost: 1 });
-    const party = makePregens().slice(0, 2);
+    const party = makePregens(idsDeTest).slice(0, 2);
     const dossier = dossierDuNavire(vessel, party)!;
     expect(dossier.refusDAppareiller).toBe(raisonDuRefusDAppareiller(refusDAppareiller(vessel)!));
     expect(dossier.crewCount).toBe(shipboardSouls({ party, vessel }).crew);
@@ -89,7 +90,7 @@ describe('#3059 — dossier du navire : composé des sources du noyau', () => {
   });
 
   it('cale nominale : aucun refus d’appareiller', () => {
-    expect(dossierDuNavire(navire(), makePregens().slice(0, 1))!.refusDAppareiller).toBeNull();
+    expect(dossierDuNavire(navire(), makePregens(idsDeTest).slice(0, 1))!.refusDAppareiller).toBeNull();
   });
 });
 
@@ -129,7 +130,7 @@ describe('#3059 — Amélioration et entrée au port : le geste applique le verd
     const entrees: EntreesDeLaPartie = { graine: 2, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
     const partie = creerPartie({
       ...etatInitialDuJeu(),
-      party: makePregens().slice(0, 1),
+      party: makePregens(idsDeTest).slice(0, 1),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       worldMap: { id: 'm', label: 'Mer', places: [{ id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a', port: { taille: 4, richesse: 4, production: ['commerce-mer'] } as never }], routes: [] },
       lieu: 'A',
@@ -240,7 +241,7 @@ describe('#3059 — escale : embauche et débarquement jugés au noyau', () => {
 
 describe('#3059 — Activités en mer : valider la semaine est une décision d’hôte (MDG 15 l.266-306)', () => {
   it('siège invité : `fenetreValider(\'seaActivities\')` refusé en tête, aucune cascade ouverte, bourses intactes', () => {
-    const heros = makePregens().slice(0, 2).map((h) => withBourseMoney(h, { gold: 100, silver: 0, brass: 0 }));
+    const heros = makePregens(idsDeTest).slice(0, 2).map((h) => withBourseMoney(h, { gold: 100, silver: 0, brass: 0 }, idsDeTest));
     const partie = creerPartie({
       ...etatInitialDuJeu(),
       party: heros,
@@ -265,7 +266,7 @@ describe('#3059 — Activités en mer : valider la semaine est une décision d�
   });
 
   it('plafond de planque : la bourse du héros (7 CO)', () => {
-    const hero = withBourseMoney(makePregens()[0], { gold: 7, silver: 0, brass: 0 });
+    const hero = withBourseMoney(makePregens(idsDeTest)[0], { gold: 7, silver: 0, brass: 0 }, idsDeTest);
     expect(plafondDePlanque({ party: [hero], pendingSeaActivities: null }, hero)).toBe(7);
   });
 });

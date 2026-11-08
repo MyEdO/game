@@ -4,6 +4,7 @@
  * après le geste ne se perd. Chemin réel : `runFlow` / `applyEffects`, puis le geste de clôture du noyau.
  * EDO 02 l.91 (désignation) ; LDB 12 l.172-174 (Test étendu) ; EDO Appendice 2 (porte).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -15,7 +16,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const get = () => banc.getState();
 const heros = (label: string, seed: number) => {
-  const h = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed }), id: `h-${seed}` };
+  const h = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed }), id: `h-${seed}` };
   h.fortune = 2; h.resilience = 2; h.characteristics.force = 45;
   return h;
 };

@@ -118,7 +118,7 @@ export function applyZoneCrossings(get: Get, set: SetFn, mover: Combatant, path:
   const battle = get().battle;
   if (!battle?.zones?.length || !path.length) return;
   const resolveCaster = (id?: string) => (id ? actorIn(get(), id) : undefined);
-  const lines = crossZones(battle.zones, mover, path, resolveCaster, battleRng());
+  const lines = crossZones(battle.zones, mover, path, resolveCaster, battleRng(), get().forgerUnId);
   for (const l of lines) battle.log.push(ev('condition', l, mover.id));
   if (lines.length) bus.emit(EVT.SCENE_DIRTY);
   if (mover.dead || isOutOfAction(mover)) return;

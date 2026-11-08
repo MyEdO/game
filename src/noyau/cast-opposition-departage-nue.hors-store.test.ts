@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -24,7 +25,7 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
   /** Sorcier (Langue (Magick) NUE 44) chargé de 3 Avantage → valeur TESTÉE 74. Cible d'Intelligence
    *  NUE 90 chargée de 2 Exténué → valeur TESTÉE 70 : les deux ordres sont INVERSÉS. */
   function setup() {
-    const hero = createHero({
+    const hero = createHero({ idNeuf: idsDeTest,
       speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
       careerTalent: { id: 'magie-mineure' }, seed: 13,
     });

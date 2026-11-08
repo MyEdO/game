@@ -2,6 +2,7 @@
  * La réaction de Porte-Bouclier dans la fenêtre de Défense (`AA 13 l.84`, variante « Avantage de groupe ») : une fois
  * par Round, 2 Avantages, Dégâts ou poussée ; ses refus se lisent par `fenetreDeDefense(...).porteBouclier`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet, type BattleState } from './etat';
@@ -28,7 +29,7 @@ const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, w
     weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, ...over }) as unknown as Combatant);
 const epee: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'ep', qualities: [] } as unknown as Weapon;
-const bouclier: Weapon = { ...weaponFromItem(itemFromTrappingById('bouclier')!), uid: 'sh', hand: 'off' };
+const bouclier: Weapon = { ...weaponFromItem(itemFromTrappingById('bouclier', idsDeTest)!), uid: 'sh', hand: 'off' };
 
 /** L'ennemi frappe le héros Porte-Bouclier qui pare au bouclier ; `avantage` dans la réserve des alliés, `projete`
  *  sur le héros (la même valeur hors de la fenêtre où une op a écrit la projection avant `reconcileAdvantageToPool`). */

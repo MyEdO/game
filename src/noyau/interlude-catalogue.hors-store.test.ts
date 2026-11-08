@@ -6,6 +6,7 @@
  * aucune Activité consommée, aucun jet en attente. Aucune Activité d'interlude n'est MUETTE.
  * ACE 12 l.13-55, ADE II 09 l.33, LDB 23 l.147-151, ADE II 8 l.67
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
@@ -34,7 +35,7 @@ interface Fiche { items?: ItemInstance[]; psychTraits?: PsychTrait[]; magie?: { 
 
 /** Un banc au lieu `lieu` (Altdorf par défaut), dés d'Événement posés, dont le Vétéran porte `fiche` et doit `favors`. */
 function auLieu(fiche: Fiche = {}, favors: (heroId: string) => Favor[] = () => [], lieu = 'altdorf'): { banc: Banc; heroId: string } {
-  const h = withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 }), { gold: 20, silver: 0, brass: 0 });
+  const h = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 }), { gold: 20, silver: 0, brass: 0 }, idsDeTest);
   h.items = [...(h.items ?? []), ...(fiche.items ?? [])];
   if (fiche.psychTraits) h.psychTraits = fiche.psychTraits;
   h.skills.push(...(fiche.competences ?? []));
@@ -183,7 +184,7 @@ describe('Convalescence — le Trait psychologique est une cible choisie (ADE II
     banc.actions.pratiquerLActivite(heroId, 'convalescence', { traitPsy: 'peur' });
     expect(banc.getState().pendingActivity?.activityId, 'témoin : le jet s’ouvre').toBe('convalescence');
     const h = heros(banc, heroId);
-    applyOps(h, [{ op: 'removePsychTrait', psychType: { id: 'peur' } }], { rng: makeRNG(1) }); // la Peur part entre l'ouverture et la confirmation
+    applyOps(h, [{ op: 'removePsychTrait', psychType: { id: 'peur' } }], { idNeuf: idsDeTest, rng: makeRNG(1) }); // la Peur part entre l'ouverture et la confirmation
     banc.setState((s) => ({ party: [...s.party] }));
     const avant = banc.getState().journal.length;
     confirmer(banc, true, 1);

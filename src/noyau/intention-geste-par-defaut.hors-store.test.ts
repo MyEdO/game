@@ -15,6 +15,7 @@
  * L'approche vers l'ennemi cliqué s'arme donc par la CHARGE : sans elle le clic ne s'approche plus,
  * avec elle la case Charge garde son effet (une affordance qui ne fait rien serait morte).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { computeRunReach, displayedReach } from './combatFlow';
@@ -25,7 +26,7 @@ import { porteesDuTour } from './localIntent';
 
 /** Même combat témoin que `intention-portee.hors-store.test.ts` : un héros au tour ENTIER, ennemis parqués loin. */
 function setup() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], screen: 'campaign' });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');

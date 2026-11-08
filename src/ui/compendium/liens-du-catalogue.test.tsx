@@ -10,6 +10,7 @@
  * Le compte des liens PAR ÉMETTEUR (catégorie | section) est imprimé : c'est le chiffre publié au
  * pilotage, et la trace qui rend un futur écart lisible au lieu d'être une surprise.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Prose } from '../Prose';
@@ -53,7 +54,7 @@ const RANGEES: Rangee[] = (() => {
   }
   // Statbloc d'inspection : rendu SANS entrée (un combattant n'est pas une entrée de dataset).
   for (const key of Object.keys(PREGEN) as (keyof typeof PREGEN)[]) {
-    const c = pregen(PREGEN[key]);
+    const c = pregen(idsDeTest, PREGEN[key]);
     for (const s of combatantSections(c)) balaye(s.rows, 'combattant', String(key), s.title, undefined, acc);
   }
   return acc;

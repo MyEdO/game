@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -87,7 +88,7 @@ const seaMap: WorldMap = {
 function freshState() {
   seedBattleRng(1); // jour 1 navigable → le Test de Progression se joue
   set({
-    party: makePregens().slice(0, 3),
+    party: makePregens(idsDeTest).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null,
     worldMap: seaMap,
@@ -367,7 +368,7 @@ describe('Carte marine (MDG 15) — Orientation & Planque (#147)', () => {
   }
 
   it('un héros portant une Carte marine → +2 DR au Test d’Orientation quotidien (règle maison sea-chart-orientation-dr)', () => {
-    const chart = itemFromTrappingById('carte-marine')!;
+    const chart = itemFromTrappingById('carte-marine', idsDeTest)!;
     set({ party: get().party.map((h, i) => (i === 0 ? { ...h, items: [...(h.items ?? []), chart] } : h)) } as never);
     get().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
     expect(driveDayCaptureOrientation()).toBe(2); // +2 DR de la carte (défaut de la règle éditable)
@@ -396,7 +397,7 @@ describe('Carte marine (MDG 15) — Orientation & Planque (#147)', () => {
 
     // (a) le héros GARDE la carte → EN SÛRETÉ : le trésor est récupéré malgré rate 100. Le retrait est
     // recrédité au DÉPOSITAIRE (interludeFlow `bankWithdrawInner`, SOCLE POSSESSIONS #531) — SA bourse.
-    const chart = itemFromTrappingById('carte-marine')!;
+    const chart = itemFromTrappingById('carte-marine', idsDeTest)!;
     set({ party: get().party.map((h, i) => (i === 0 ? { ...h, items: [chart] } : h)), bank: [deposit] } as never);
     bankWithdraw(get, set, 'depot-1');
     expect(get().bank).toHaveLength(0);
@@ -482,7 +483,7 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
 
   function freshLighthouseState() {
     seedBattleRng(1);
-    const [a, b] = makePregens();
+    const [a, b] = makePregens(idsDeTest);
     const vigie = { ...a, skills: [{ id: 'perception', characteristic: 'initiative', advances: 0 }], traumas: [traumaById('surdite', undefined, 'tete')] };
     const timonier = { ...b, skills: [{ id: 'voile', spec: 'cogue', characteristic: 'dexterite', advances: 30 }], traumas: [] };
     set({
@@ -740,7 +741,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
   function freshAmbush(worldMap: WorldMap = abordageMap) {
     seedBattleRng(1); // RNG semé : le jour joué directement à l'étape 'embuscade' ne tire AUCUN événement de bord
     set({
-      party: makePregens().slice(0, 3), battle: null, travelPlan: null, travelRecap: null,
+      party: makePregens(idsDeTest).slice(0, 3), battle: null, travelPlan: null, travelRecap: null,
       pendingRest: null, pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [],
     } as never);
@@ -1018,7 +1019,7 @@ describe('Traversée rapide × embuscade ANCRÉE (#212) : interruption puis repr
   beforeEach(() => {
     seedBattleRng(1);
     set({
-      party: makePregens().slice(0, 3), battle: null, travelPlan: null, travelRecap: null,
+      party: makePregens(idsDeTest).slice(0, 3), battle: null, travelPlan: null, travelRecap: null,
       pendingRest: null, pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [],
     } as never);
@@ -1113,7 +1114,7 @@ describe('Cogue pirate (#327 A5.3) — l’op `navireHostile` PRÉSENTE les 3 ch
   });
 
   it('équipage SANS compétence navale : la manche de Poursuite se JOUE quand même (plancher de Manque de bras, MDG 14 l.55), jamais droppée en silence (#383)', () => {
-    set({ party: makePregens().slice(0, 3).map((h) => ({ ...h, skills: [] })) } as never);
+    set({ party: makePregens(idsDeTest).slice(0, 3).map((h) => ({ ...h, skills: [] })) } as never);
     forceHail();
     const cur = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     get().jetRegler('cascade', 'choix', 'fuir', cur.id);
@@ -1474,7 +1475,7 @@ describe('Épuisement — les impliqués testent à la fin de la Période de tra
   /** Groupe de prétirés, poste ÉPINGLÉ par index (`shipRole`, le geste du roster) ; Voile aux index
    *  `voile`, aucun autre porteur de Voile ni de Ramer. */
   function equipage(postes: (string | undefined)[], voile: number[]): Combatant[] {
-    const party = makePregens().slice(0, postes.length).map((h, i) => ({
+    const party = makePregens(idsDeTest).slice(0, postes.length).map((h, i) => ({
       ...h,
       ...(postes[i] ? { shipRole: postes[i] } : {}),
       skills: [...h.skills.filter((sk) => sk.id !== 'voile' && sk.id !== 'ramer'), ...(voile.includes(i) ? [{ id: 'voile', spec: 'cogue', characteristic: 'agilite' as const, advances: 10 }] : [])],
@@ -2624,14 +2625,14 @@ describe('Test d’équipage — la chanson de marin est NOMMÉE sur la rangée 
 describe('#1341 (site maritime) — `engineerOf` demande la spec Métier par ID, jamais par LABEL', () => {
   /** Un ingénieur : Intelligence figée à 30, +25 avances en Métier (Ingénieur). */
   function ingenieur(): Combatant {
-    const h = makePregens()[0];
+    const h = makePregens(idsDeTest)[0];
     h.characteristics.intelligence = 30;
     h.skills = [{ id: 'metier', characteristic: 'intelligence', advances: 25, spec: 'ingenieur' }];
     return h;
   }
   /** Un badaud : même Intelligence, aucune compétence de Métier. */
   function badaud(): Combatant {
-    const h = makePregens()[1];
+    const h = makePregens(idsDeTest)[1];
     h.characteristics.intelligence = 30;
     h.skills = [];
     return h;
@@ -2789,7 +2790,7 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
       septiemeJour();
       return jusquAuxSalissures(5)?.target;
     };
-    const [a, b, c, d] = makePregens();
+    const [a, b, c, d] = makePregens(idsDeTest);
     const faible = cible([{ ...a!, characteristics: { ...a!.characteristics, endurance: 20 } }]);
     expect(faible).toBeDefined();
     expect(cible([b!, c!, { ...d!, characteristics: { ...d!.characteristics, endurance: 70 } }])).toBe(faible);

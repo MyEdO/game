@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { jouerLaSemaine } from './semaineEnMer.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -33,7 +34,7 @@ const sommeMods = (mods: ModLine[] | undefined): number => (mods ?? []).reduce((
 function freshState() {
   seedBattleRng(7);
   banc.setState({
-    party: makePregens().slice(0, 3),
+    party: makePregens(idsDeTest).slice(0, 3),
     battle: null,
     travelPlan: null,
     travelRecap: null,
@@ -54,7 +55,7 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
     (cartographe as Combatant).skills = [{ id: 'metier', spec: 'cartographe', advances: 20 } as never];
     (cartographe as Combatant).characteristics = { ...cartographe.characteristics, dexterite: 40 };
     // La planque est bornée par la bourse du cartographe (MDG 15 l.292).
-    set({ party: get().party.map((h) => (h.id === cartographe.id ? withBourseMoney(h, { gold: 7, silver: 0, brass: 0 }) : h)), pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } } } as never);
+    set({ party: get().party.map((h) => (h.id === cartographe.id ? withBourseMoney(h, { gold: 7, silver: 0, brass: 0 }, idsDeTest) : h)), pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } } } as never);
 
     jouerLaSemaine(get, { [cartographe.id]: { activityId: 'cartographie', stashGold: 7 } });
 

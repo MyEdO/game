@@ -8,6 +8,7 @@
  *  (d) le rayon PORTÉ par la donnée est en MÈTRES (#1507) : ce sont les CASES rendues qui suivent
  *      l'échelle de la scène — la même bougie éclaire 5 cases à terre et 1 case en mer.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { combatantLights } from '../noyau/monde/vision';
 import { spellEffectOps } from '../engine/flowCore';
@@ -32,7 +33,7 @@ const target = (): Combatant => combattantDeTest({ id: 't', label: 'Cible' });
 
 describe('op light — OBJET passif gaté sur le port', () => {
   it('lanterne PORTÉE (equipped) → émet une LightSource (rayon du passive)', () => {
-    const lant = itemFromTrappingById('lanterne')!;
+    const lant = itemFromTrappingById('lanterne', idsDeTest)!;
     lant.equipped = true;
     const sources = combatantLights({ pos, items: [lant] }, MPT_TERRE);
     expect(sources).toHaveLength(1);
@@ -41,13 +42,13 @@ describe('op light — OBJET passif gaté sur le port', () => {
   });
 
   it('lanterne NON portée (rangée dans le sac) → AUCUNE lumière (gate)', () => {
-    const lant = itemFromTrappingById('lanterne')!; // equipped:false par défaut, hors loadout
+    const lant = itemFromTrappingById('lanterne', idsDeTest)!; // equipped:false par défaut, hors loadout
     expect(combatantLights({ pos, items: [lant] }, MPT_TERRE)).toEqual([]);
   });
 
   it('bougie PORTÉE éclaire moins (rayon 5) ; le MAX des émetteurs gagne', () => {
-    const bougie = itemFromTrappingById('bougie')!; bougie.equipped = true;
-    const lant = itemFromTrappingById('lanterne')!; lant.equipped = true;
+    const bougie = itemFromTrappingById('bougie', idsDeTest)!; bougie.equipped = true;
+    const lant = itemFromTrappingById('lanterne', idsDeTest)!; lant.equipped = true;
     expect(combatantLights({ pos, items: [bougie] }, MPT_TERRE)[0].radiusTiles).toBe(5);
     expect(combatantLights({ pos, items: [bougie, lant] }, MPT_TERRE)[0].radiusTiles).toBe(10); // max
   });
@@ -73,7 +74,7 @@ describe('op light — le rayon est en MÈTRES dans la donnée, en cases à l’
     return op!.radiusM;
   };
   const portees = (id: string, mpt: number) => {
-    const it = itemFromTrappingById(id)!;
+    const it = itemFromTrappingById(id, idsDeTest)!;
     it.equipped = true;
     return combatantLights({ pos, items: [it] }, mpt)[0].radiusTiles;
   };
@@ -103,7 +104,7 @@ describe('sort « lumiere » — parité d\'émission', () => {
   it('appliquer les ops du sort pousse un ActiveEffect.light (temporisé)', () => {
     const c = target();
     const ops = spellEffectOps(findSpellById('lumiere')!.effects);
-    applyOps(c, ops, { rng: desDuTest, label: 'Lumière' });
+    applyOps(c, ops, { idNeuf: idsDeTest, rng: desDuTest, label: 'Lumière' });
     const eff = (c.activeEffects ?? []).find((e) => e.light);
     expect(eff, 'un ActiveEffect.light doit être posé').toBeTruthy();
     expect(eff!.light!.radiusM).toBe(20);

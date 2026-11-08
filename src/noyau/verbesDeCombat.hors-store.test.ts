@@ -3,6 +3,7 @@
  * publics du Soin, de la Focalisation et de la Dissipation se jouent sans store, sur le duel de
  * `combatDeTest.testkit.ts`. Chaque État se pose par la couture que le jeu appelle (`addCondition`, `engage`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { creerPartie, etatInitialDuJeu, activeCombatant, actionGate, type ActionCtx, type EntreesDeLaPartie, type Jeton, type Partie, type ResultatDeLAppel } from './index';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
@@ -160,7 +161,7 @@ describe('Course : un seul verdict pour l’offre, le geste et la zone (`refusDe
   it('cavalier Sprinter : le Mouvement de la monture (LDB 14 l.179) + le Sprinter du cavalier (LDB 11 l.41-47)', () => {
     const partie = creerPartie(etatInitialDuJeu(), ENTREES);
     try {
-      jouer(partie, partie.lancer({ ...lancementDuScenario(testScenarios.find((s) => s.id === 'entrainement')!), combatDirect: 'enc-entrainement' }));
+      jouer(partie, partie.lancer({ ...lancementDuScenario(testScenarios.find((s) => s.id === 'entrainement')!, idsDeTest), combatDirect: 'enc-entrainement' }));
       for (let pas = 0; pas < 40 && !(activeCombatant(partie.etat().battle!)?.kind === 'hero'); pas++) {
         const e = partie.etat();
         const intentions: Intention[] = e.pendingDefense

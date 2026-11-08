@@ -4,6 +4,7 @@
  * mod injecté aux Tests d'Incantation/Focalisation (`jetLancer('cast')`/`jetLancer('focus')`), détection Seconde vue.
  * Le moteur PUR (table, tirage seedé, `hasSecondeVue`) est couvert par `engine/windsOfMagic.test.ts`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { advanceTurn } from './combatFlow';
@@ -17,7 +18,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function wizardWithSecondeVue(): Combatant {
-  const w = pregen(PREGEN.sorcier);
+  const w = pregen(idsDeTest, PREGEN.sorcier);
   w.skills = (w.skills as Combatant['skills']).filter((s) => s.id !== 'langue');
   w.skills.push({ id: 'langue', spec: 'magick', advances: 30 } as never);
   w.skills.push({ id: 'focalisation', spec: 'cieux', advances: 30 } as never); // domaine du sort de test (arc-de-t-essla)

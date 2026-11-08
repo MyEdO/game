@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
@@ -20,7 +21,7 @@ describe('Tranche verticale — la bombe compose en données (Lot 0 + Lot 3)', (
   beforeEach(() => banc.setState({ gameTime: 20 * 60 + 2 }));
 
   function lonePartyAt(wounds: number) {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     h.wounds = blessuresDeBase(wounds, wounds, h);
     banc.setState({ party: [h] });
     return h;

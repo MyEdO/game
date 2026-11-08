@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { battleRng } from './battleRng';
@@ -21,7 +22,7 @@ const jet = { label: 'Test', roll: 37, target: 90, success: true, sl: 5, isDoubl
 
 function combat(current: number): { H: Combatant; cible: Combatant } {
   banc.getState().ensemencerLeTirage(5);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');

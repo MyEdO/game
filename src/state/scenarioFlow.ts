@@ -9,12 +9,12 @@ import type { Get, Set } from '../noyau/flowTypes';
 
 /** POSE du scénario (`poserLeLancement`) ; rend le lancement construit. */
 export function poserScenario(get: Get, sc: TestScenario): LancementDeScenario {
-  const lancement = lancementDuScenario(sc);
+  const lancement = lancementDuScenario(sc, get().forgerUnId);
   poserLeLancement(get, lancement);
   return lancement;
 }
 
 /** Lancement complet (`lancerLeScenario`). */
 export function lancerScenario(get: Get, set: Set, sc: TestScenario): void {
-  lancerLeScenario(get, set, lancementDuScenario(sc));
+  lancerLeScenario(get, set, lancementDuScenario(sc, get().forgerUnId));
 }

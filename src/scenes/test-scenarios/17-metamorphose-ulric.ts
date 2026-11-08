@@ -59,8 +59,8 @@ export const scenario: TestScenario = {
     "(delta de profil RAW + Traits + apparence tête-de-loup, persistant, réversible) au prix de deux Actions ; " +
     "auto-transformation de l'IA (self-buff valorisé data-driven).",
   partyNote: 'Groupe standard (Soldat · Sorcière · Tueur nain · Répurgateur) face à deux lycanthropes.',
-  construire: () => ({
-    party: [pregen(PREGEN.soldat), pregen(PREGEN.sorcier), pregen(PREGEN.tueur), pregen(PREGEN.repurgateur)],
+  construire: (idNeuf) => ({
+    party: [pregen(idNeuf, PREGEN.soldat), pregen(idNeuf, PREGEN.sorcier), pregen(idNeuf, PREGEN.tueur), pregen(idNeuf, PREGEN.repurgateur)],
     scene: construireScene(),
   }),
 };

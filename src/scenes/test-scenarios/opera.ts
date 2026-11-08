@@ -316,5 +316,5 @@ export const scenario: TestScenario = {
     '→ zoneBlast, désamorçage facilité par la Poudre noire, cancelFlag), pétards + vol des clés par Glimbrin ' +
     '(Test caché à deux issues), étudiants saboteurs (combat optionnel), dialogue gaté de la Comtesse, PX canoniques.',
   partyNote: 'Pré-tirés',
-  construire: () => ({ party: makePregens(), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireScene() }),
 };

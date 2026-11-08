@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { lancerLeScenario } from '../lancementDeScenario';
@@ -21,12 +22,12 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * → revendre à Altdorf (Florissant R 5, +10 %) avec PROFIT (l.11-13, l.150-156).
  */
 const scen = testScenarios.find((s) => s.id === 'commerce-fluvial')!;
-const scenConstruit = scen.construire();
+const scenConstruit = scen.construire(idsDeTest);
 const get = () => banc.getState();
 
 /** Lance le scénario par le lanceur du menu (`lancerLeScenario`). */
 function launch() {
-  lancerLeScenario(get, banc.setState, lancementDuScenario(scen));
+  lancerLeScenario(get, banc.setState, lancementDuScenario(scen, idsDeTest));
 }
 
 /** Descend le fleuve par une route de barge jusqu'à l'arrivée (travelPlan retombé à null). Route directe

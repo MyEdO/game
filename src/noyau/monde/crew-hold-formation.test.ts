@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { crewPosteOf } from './shipPostes';
 import { chooseEnemyAction, type EnemyTurnInput } from './ai';
@@ -32,7 +33,7 @@ const mkHull = (poste: ShipPoste, pos = { x: 5, y: 10 }): Combatant =>
   }) as unknown as Combatant;
 
 const mkPoste = (crewIds: string[] = []): ShipPoste =>
-  ({ item: itemFromTrappingById('belier-ade2')!, crewIds });
+  ({ item: itemFromTrappingById('belier-ade2', idsDeTest)!, crewIds });
 
 const mkEnemyHero = (id: string, x: number, y: number): Combatant =>
   (blessuresSurLeProfil({

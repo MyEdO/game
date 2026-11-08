@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -15,7 +16,7 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
 
   function heroes() {
     const mk = (name: string, seed: number) => {
-      const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed });
+      const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed });
       h.fortune = 2; h.resilience = 2; h.characteristics.force = 45; // Bonus de Force 4
       return h;
     };

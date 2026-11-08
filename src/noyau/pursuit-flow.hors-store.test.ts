@@ -4,6 +4,7 @@
  * DR le plus haut des poursuivants et fait varier la Distance ; issue par `pursuitOutcome` (semé/rattrapé).
  * Réutilise les primitives PARTAGÉES `engine/pursuit` et la CASCADE (noyau/cascade), pas un flux parallèle.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { t } from '../i18n';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -36,8 +37,8 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function heroes() {
-  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
-  const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brun', seed: 2 });
+  const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
+  const b = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brun', seed: 2 });
   banc.setState({ party: [a, b] });
   return [a, b];
 }

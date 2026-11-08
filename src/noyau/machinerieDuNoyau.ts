@@ -5,6 +5,7 @@
  * flux qui les appellent.
  */
 import type { Combatant, CharKey } from '../engine/types';
+import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { SupportDetail } from '../engine/skills';
 import type { StakeRef } from '../data';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
@@ -22,6 +23,9 @@ import type { BattleClickOpts, TileClickOpts } from './targetingModes';
 import type { EtatDeJeu, Jeu, PaquetALancer, PendingInteract } from './etat';
 
 export interface MachinerieDuNoyau {
+  // ── Ids du monde ──
+  /** Forge un id du monde au compteur de l'état (`idsDuMonde.ts`, #2907). */
+  forgerUnId: FabriqueDId;
   // ── Horloge ──
   /** Écrivain UNIQUE de l'avance de `gameTime` : pose l'horloge, tire les effets programmés échus
    *  (`fireScheduledEffects`, #668) puis dissipe les effets à durée d'horloge échus (`purgeSurAvanceDHorloge`, #1599). */

@@ -5,6 +5,7 @@
  *
  * La clause du jeu remplace le départage général (NADJ 16 l.105 ; #1921 c.6233078802) : à DR égal, la valeur ne départage pas.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -29,7 +30,7 @@ const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;
 const get = () => banc.getState();
 
 function heros(): Combatant {
-  return makePregens()[0] as Combatant;
+  return makePregens(idsDeTest)[0] as Combatant;
 }
 
 /** Séquence de partie en cours, telle que `jouerALaTaverne` la pose. */

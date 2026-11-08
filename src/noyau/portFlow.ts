@@ -57,7 +57,7 @@ import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { IdDeCargaison, IdDePorteurDeCargaison } from './designations';
 import { CAMPAIGN_VESSEL_CARRIER_ID } from './carriers';
-import { newUid } from '../engine/items';
+
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
@@ -220,7 +220,7 @@ function finalizePortBuy(get: Get, set: Set, cargoId: string, want: number, base
   const price = prixDuLotEnPort(enc, basePrice, pct);
   const cost = toMoney({ gold: price });
   if (!canAfford(partyMoneyTotal(get), cost)) return [t('cargo.purseShort', { price, label: offer.label, bargain: bargainLine })];
-  const cargo: CargoLot = { uid: newUid(), cargoId, enc, basePriceGold: basePrice };
+  const cargo: CargoLot = { uid: get().forgerUnId('it'), cargoId, enc, basePriceGold: basePrice };
   const nextCargo = [...(vessel.cargo ?? []), cargo];
   payFromGroup(get, set, cost, { purpose: 'cargaison navire' });
   set({

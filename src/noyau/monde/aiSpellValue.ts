@@ -11,6 +11,7 @@
  * ZÉRO `battleRng()`/`rollTest`/entropie : le planning doit rester déterministe (coop/tests
  * reproductibles). Les magnitudes de dés sont des MOYENNES (`formulaExpectation`), jamais tirées.
  */
+import { fabriqueLocale } from '../../engine/fabriqueDId';
 import { tableTotale } from '../../lib/tableTotale';
 import { Combatant, Weapon, ArmourPoints, CHAR_KEYS } from '../../engine/types';
 import { bonus, effectiveChar, blessuresPosees, forceDuPorteur } from '../../engine/characteristics';
@@ -184,7 +185,7 @@ function bestAttackEV(c: Combatant, foe: Combatant | null): number {
  *  `GRAINE_DU_CLONE`). Sert au BÉNÉFICE MARGINAL d'un buff (delta réel de l'EV d'attaque). */
 function applyOpClone(c: Combatant, op: GameOp): Combatant {
   const clone = structuredClone(c);
-  applyOps(clone, [op], { caster: c, rng: makeRNG(GRAINE_DU_CLONE) });
+  applyOps(clone, [op], { idNeuf: fabriqueLocale('simulation'), caster: c, rng: makeRNG(GRAINE_DU_CLONE) });
   return clone;
 }
 

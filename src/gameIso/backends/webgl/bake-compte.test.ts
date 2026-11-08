@@ -36,6 +36,7 @@
  *    existe pour rendre impossible : la valeur REÇUE que l'échec affiche est la mesure courante, mais
  *    elle ne devient un témoin qu'accompagnée de la raison du déplacement.
  */
+import { idsDeTest } from '../../../engine/idsDeTest.testkit';
 import { describe, expect, it } from 'vitest';
 import { bakeWorldGeometry } from './sceneMeshes';
 import { parseProject } from '../../../noyau/worldMap';
@@ -122,7 +123,7 @@ const ETALONS: [string, () => Scene, { sommets: number; triangles: number; spans
 const SANS_CHIFFRE: [string, () => Scene, string][] = [
   ['arene-zone13', () => sceneDuProjet('arene-zone13'), 'carte livrée (générateur d’auteur)'],
   ['arene-hub', () => sceneDuProjet('arene-hub'), 'carte livrée (générateur d’auteur)'],
-  ['la-diligence', () => diligence.construire().scene, 'carte livrée (authoring au studio)'],
+  ['la-diligence', () => diligence.construire(idsDeTest).scene, 'carte livrée (authoring au studio)'],
   ['fixture-salle-meublee', salleMeublee, 'pose des décors du catalogue vivant `props.json`'],
 ];
 

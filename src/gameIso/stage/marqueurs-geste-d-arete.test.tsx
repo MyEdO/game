@@ -5,6 +5,7 @@
  * répondre différemment. POINT D'OBSERVATION : l'offre que l'écran publie (`getStageFrame().aretes()`),
  * celle que le picking consulte.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -68,7 +69,7 @@ const capacites = (): string[] => (getStageFrame()?.aretes() ?? []).map((p) => p
 /** Combat : l'actif (héros, ou le premier ennemi si `actif = 'enemy'`) posté au sommet de la corniche. */
 function combat(actif: 'hero' | 'enemy' = 'hero') {
   vi.useFakeTimers();
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero], net: NET0, battle: null });
   useGame.getState().lancerLaScene(testScene());
   useGame.getState().lancerLeCombat('enc-mutants');
@@ -93,7 +94,7 @@ function combat(actif: 'hero' | 'enemy' = 'hero') {
 
 describe('marqueurs de geste d’arête — l’écran monté répond comme l’action', () => {
   it('exploration : la chute est offerte, et ne l’est plus sous un dialogue ouvert', async () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({
       screen: 'campaign', scene: corniche(), mode: 'exploration', partyPos: sommet, party: [hero], battle: null, dialogue: null,
       explored: {}, facing: {}, camRot: 0, viewMode: 'iso', camEdge: false, povActive: false,

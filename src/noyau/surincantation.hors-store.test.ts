@@ -5,6 +5,7 @@
  * Axes : `LDB 47 l.15`, `l.17`, `l.27`, `l.28` ; `LDB 41 l.21-27` ; `LDB 42 l.11` ; `VDM 02 l.199`.
  * Budget : `LDB 47 l.17`, `l.21` ; `LDB 46 l.31`, `l.156`. Décision #3059 (issuecomment-6452965421).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type Partie } from './index';
 import { pregen, PREGEN } from '../data/pregens';
@@ -45,7 +46,7 @@ afterAll(() => { setDataset('spells', original); });
 
 /** Lanceur maîtrisant Langue (Magick) et Prière : le dé fixé 03 réussit largement les deux. */
 function lanceur() {
-  const h = pregen(PREGEN.sorcier);
+  const h = pregen(idsDeTest, PREGEN.sorcier);
   h.id = 'L'; h.label = 'L';
   h.skills = [
     ...h.skills.filter((s) => s.id !== 'langue' && s.id !== 'priere'),

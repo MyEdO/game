@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { emptyScene, type Scene } from './monde/scene';
@@ -45,7 +46,7 @@ describe('store — actions POV (pivoterLeGroupe / avancerDUnPas)', () => {
   let banc: Banc;
   /** Groupe minimal + scène ouverte, meneur posé au centre, mode exploration. */
   function setup(facing: Dir8 = 'S') {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({
       screen: 'campaign',
       party: [hero],

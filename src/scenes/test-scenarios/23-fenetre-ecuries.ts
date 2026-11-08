@@ -167,5 +167,5 @@ export const scenario: TestScenario = {
   partyNote:
     'Pré-tirés, à l’étage. Gestes : sauter/se suspendre à la croisée (hors combat, puis en combat via l’homme de main) · ' +
     'remonter par l’escalier de la salle basse · entrer au bureau (découverte à l’approche) · Fouiller la pièce.',
-  construire: () => ({ party: makePregens(), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireScene() }),
 };

@@ -8,6 +8,7 @@
  * Le jet sur le Tableau est DÉCLINABLE (l.276 « vous POUVEZ ») — le réglage `cast.jetsDeTable` borne le
  * nombre de jets sans jamais raccourcir la prolongation de durée (couplage ASYMÉTRIQUE).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -20,7 +21,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerStep (feuille on:target, non-missile)', () => {
   it('2 pas alloués (modale, réglage `cast.surincantationDuree`) → 3 octrois sur le Tableau ET durée ×3, « à la fois » (EDOC 13 l.276)', () => {
-    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
+    const W = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
     W.talents = [...(W.talents ?? []), { talentId: 'magie-du-chaos', spec: 'nurgle', times: 1 }];
     W.spells = ['allure-demoniaque'];
     W.characteristics.sociabilite = 40; // Bonus 4 → durée de base non nulle, la prolongation ×3 est mesurable
@@ -52,7 +53,7 @@ describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerS
   });
 
   const setup = () => {
-    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
+    const W = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
     W.talents = [...(W.talents ?? []), { talentId: 'magie-du-chaos', spec: 'nurgle', times: 1 }];
     W.spells = ['allure-demoniaque'];
     W.characteristics.sociabilite = 40;

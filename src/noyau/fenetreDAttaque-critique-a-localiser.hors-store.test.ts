@@ -2,6 +2,7 @@
  * La fenêtre d'attaque offre de LOCALISER le Coup Critique après « Je ne faillirai pas ! » (`LDB 17 l.68`) :
  * `fenetreDAttaque(...).critiqueALocaliser`, lu par la seule surface du noyau.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { fenetreDAttaque } from './fenetreDAttaque';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -21,7 +22,7 @@ beforeEach(() => {
 
 /** Le héros attaque une cible à `current` Blessures ; la graine fait rater, puis le résultat est choisi (21, sans double). */
 function attaqueForcee(current: number) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');

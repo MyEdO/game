@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { applyCrewHit } from './shipCritical';
 import { applyOps } from './ops';
@@ -30,7 +31,7 @@ describe('op removeShipPoste — Canon perdu (MDG 13 l.765)', () => {
 
   it('retire le poste de la coque ET démancipe son chef (mannedPoste + arme du poste)', () => {
     const { hull, chef } = setup();
-    applyOps(hull, [{ op: 'removeShipPoste' }], { crew: [chef], rng: rng0 });
+    applyOps(hull, [{ op: 'removeShipPoste' }], { idNeuf: idsDeTest, crew: [chef], rng: rng0 });
     expect(hull.postes).toHaveLength(0); // passé par-dessus bord
     expect(chef.mannedPoste).toBeUndefined(); // il ne sert plus rien
     expect(chef.weapons.find((w) => w.uid === 'p1')).toBeUndefined(); // l'arme du poste disparaît du loadout
@@ -39,13 +40,13 @@ describe('op removeShipPoste — Canon perdu (MDG 13 l.765)', () => {
   // `LDB 62 l.28` : le chef qui ne tenait que la pièce frappe aux Mains nues (`items.lacherLArme`).
   it('le chef qui ne tenait que la pièce tient les Mains nues', () => {
     const { hull, chef } = setup();
-    applyOps(hull, [{ op: 'removeShipPoste' }], { crew: [chef], rng: rng0 });
+    applyOps(hull, [{ op: 'removeShipPoste' }], { idNeuf: idsDeTest, crew: [chef], rng: rng0 });
     expect(chef.weapons.map(isUnarmed)).toEqual([true]);
   });
 
   it('coque sans poste → inerte (aucun retrait fantôme)', () => {
     const hull = combattantDeTest({ id: 'hull', postes: [] });
-    applyOps(hull, [{ op: 'removeShipPoste' }], { crew: [], rng: rng0 });
+    applyOps(hull, [{ op: 'removeShipPoste' }], { idNeuf: idsDeTest, crew: [], rng: rng0 });
     expect(hull.postes).toHaveLength(0);
   });
 
@@ -53,7 +54,7 @@ describe('op removeShipPoste — Canon perdu (MDG 13 l.765)', () => {
     const { hull, chef } = setup();
     const autre: ShipPoste = { item: { uid: 'p2', name: 'Canon' } as never, side: 'babord', crewIds: ['chef'] };
     chef.mannedPoste = autre; // le chef sert un AUTRE poste
-    applyOps(hull, [{ op: 'removeShipPoste' }], { crew: [chef], rng: rng0 }); // retire `poste` (p1)
+    applyOps(hull, [{ op: 'removeShipPoste' }], { idNeuf: idsDeTest, crew: [chef], rng: rng0 }); // retire `poste` (p1)
     expect(chef.mannedPoste).toBe(autre); // intact : il ne servait pas le poste perdu
     expect(chef.weapons.find((w) => w.uid === 'p1')).toBeDefined();
   });
@@ -91,7 +92,7 @@ describe('applyCrewHit — Canon détaché (data-driven, MDG 13 l.763-764)', () 
   it('l’équipage du poste est DÉSIGNÉ et le nœud RENDU — rien n’est appliqué, rien n’est jeté', () => {
     const { hull } = hullWith(['m1']);
     const m1 = sailor('m1');
-    const out = applyCrewHit(hull, [m1], detachTest, rngPoste);
+    const out = applyCrewHit(hull, [m1], detachTest, rngPoste, idsDeTest);
     expect(out.victims).toEqual(['m1']);
     expect(out.testFlow).toBe(detachTest.test); // le nœud AUTHORÉ part tel quel à la porte
     expect(out.hits).toEqual([]);               // aucune conséquence : l'issue n'est pas encore jouée
@@ -102,25 +103,25 @@ describe('applyCrewHit — Canon détaché (data-driven, MDG 13 l.763-764)', () 
     const { hull } = hullWith(['m1']);
     const tirages: [number, number][] = [];
     const rng = deSelonLaPlage((min, max) => { tirages.push([min, max]); return 0; });
-    applyCrewHit(hull, [sailor('m1')], detachTest, rng);
+    applyCrewHit(hull, [sailor('m1')], detachTest, rng, idsDeTest);
     expect(tirages, 'un d100 est encore tiré dans le moteur — le Test échapperait à la porte').toEqual([[0, 0]]);
   });
 
   it('coque sans poste → personne de visé (rien à détacher)', () => {
     const hull = combattantDeTest({ id: 'hull', postes: [] });
-    expect(applyCrewHit(hull, [], detachTest, rngPoste).victims).toEqual([]);
+    expect(applyCrewHit(hull, [], detachTest, rngPoste, idsDeTest).victims).toEqual([]);
   });
 
   it('servants déjà hors de combat (mort / 0 PB) ignorés', () => {
     const { hull } = hullWith(['mort', 'ko']);
     const mort = sailor('mort', { dead: true });
     const ko = sailor('ko', { wounds: blessuresDeBase(13, 0) });
-    expect(applyCrewHit(hull, [mort, ko], detachTest, rngPoste).victims).toEqual([]);
+    expect(applyCrewHit(hull, [mort, ko], detachTest, rngPoste, idsDeTest).victims).toEqual([]);
   });
 
   it('coup CERTAIN (`ops`, MSRC 07 l.82) : appliqué sur place au rameur ÉPINGLÉ, aucun nœud à ouvrir', () => {
     const m1 = sailor('m1', { shipStation: 'avirons' });
-    const out = applyCrewHit({ id: 'hull' } as unknown as Combatant, [m1], echardes, rngPoste);
+    const out = applyCrewHit({ id: 'hull' } as unknown as Combatant, [m1], echardes, rngPoste, idsDeTest);
     expect(out.testFlow).toBeUndefined();
     expect(out.hits).toEqual([{ crewId: 'm1' }]);
     expect(m1.wounds.current).toBe(13 - (5 - 3)); // 5 − BE(3) − PA(0) = 2 PB perdus

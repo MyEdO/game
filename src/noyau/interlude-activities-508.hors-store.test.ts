@@ -3,6 +3,7 @@
  * (#510) : gate de Classe générique appliqué au chemin réel, bout-en-bout pour 3 Activités
  * représentatives (Entraînement au Combat, Réputation, Semer la dissension), tables du Remaniement.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
@@ -21,7 +22,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function setup(careerId: string) {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId, label: 'H', seed: 1 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId, label: 'H', seed: 1 });
   banc.setState({ party: [h], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, journal: [] });
   banc.getState().lancerLaScene(testScene());
   creditBourse(banc.getState, banc.setState, h.id, fromBrass(20000));

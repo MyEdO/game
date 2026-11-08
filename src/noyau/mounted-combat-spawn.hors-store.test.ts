@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { checkBattleOver } from './combatFlow';
@@ -19,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 
 function makeHero() {
-  return createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  return createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
 }
 
 function startFixtureCombat(hero: ReturnType<typeof makeHero>, possessions: Possession[]) {

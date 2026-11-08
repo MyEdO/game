@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { itemFromTrappingById } from '../engine/items';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -289,7 +290,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
   it('Exposition : la pénalité « sans manteau » est SUR LA CIBLE et nommée (tente + tempête)', () => {
     const transi = campeur({
       id: 'tra', label: 'Transi',
-      items: [{ ...itemFromTrappingById('tente')!, uid: 't', enc: 2, equipped: false }] as never,
+      items: [{ ...itemFromTrappingById('tente', idsDeTest)!, uid: 't', enc: 2, equipped: false }] as never,
     });
     fresh([transi]);
     set({ scene: { ...scene, weather: 'tempete' } } as never);

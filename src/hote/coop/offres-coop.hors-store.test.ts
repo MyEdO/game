@@ -4,6 +4,7 @@
  * `leverLaMain`) ; un verbe joué chez l'hôte dont l'offre arme une intention (`armerLAttaque`) l'arme chez l'émetteur
  * (`preparerLIntentLocal`) ; un sort hors combat se route au propriétaire de son lanceur.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { FakeTransport } from './transport.testkit';
 import { HostSession, GuestSession } from './session';
@@ -25,7 +26,7 @@ const NET: NetState = {
 
 /** Un sorcier en Langue (Magick) 60, qui connaît l'Arme aethyrique. */
 function sorcier(id: string): Combatant {
-  const h = pregen(PREGEN.sorcier);
+  const h = pregen(idsDeTest, PREGEN.sorcier);
   h.id = id; h.label = id;
   h.spells = ['arme-aethyrique'];
   h.skills = [...h.skills.filter((s) => s.id !== 'langue'), { id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 60 }] as typeof h.skills;

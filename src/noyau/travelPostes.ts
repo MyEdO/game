@@ -391,7 +391,7 @@ export const TABLES = {
         const res = part.result;
         if (!hero || !res || res.success) { part.outcome = []; continue; }
         const op: GameOp = { op: 'condition', id: 'extenue', value: 1 }; // EDOC 8 l.86/127
-        applyOps(hero, [op], { rng: battleRng() });
+        applyOps(hero, [op], { idNeuf: get().forgerUnId, rng: battleRng() });
         const lines = resultLines([{ ops: [op] }]);
         part.outcome = lines;
         for (const l of lines) get().ecrireAuJournal(l.text);
@@ -408,7 +408,7 @@ export const TABLES = {
       const party = get().party;
       for (const heroId of bilan.rations) {
         const h = party.find((x) => x.id === heroId)!;
-        const ration = itemFromGive({ trappingId: 'ration' }, undefined, undefined, contexteDeNaissanceDObjet(h));
+        const ration = itemFromGive({ trappingId: 'ration' }, get().forgerUnId, undefined, undefined, contexteDeNaissanceDObjet(h));
         h.items = [...(h.items ?? []), ration];
         autoStowNewItem(h, ration); // #204 : rangement par défaut
       }

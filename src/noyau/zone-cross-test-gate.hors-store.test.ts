@@ -6,6 +6,7 @@
  * data-only `l11-sorts-zones.hors-store.test.ts`, ba77a269) : héros manuel → cascade influençable ; exemption par
  * Talent → aucun jet ; IA/auto → jet inline journalisé (jamais silencieux).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyZoneCrossings } from './combatPlacement';
@@ -37,7 +38,7 @@ const CROSS_TEST_ZONE: BattleZone = {
 
 describe('#500 — BattleZone.crossTest : Forêt d’épines (LDB 48 l.749)', () => {
   function setup(heroTalents: Combatant['talents'] = []) {
-    const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const H = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     H.talents = [...H.talents, ...heroTalents];
     banc.setState({ party: [H] });
     banc.getState().lancerLaScene(testScene());

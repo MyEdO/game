@@ -3,6 +3,7 @@
  * Revenus d'un héros dont l'Événement bloque la Classe est refusé en tête par `refusDeRevenus`, dit au
  * journal, sans consommer d'Activité ni ouvrir de jet. LDB 22, LDB 08 l.105-120
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade, poseSurDeNonTombe } from './cascade.testkit';
@@ -14,7 +15,7 @@ const REPRESSION_DU_CRIME = 20;
 
 /** Un banc sur un interlude d'une semaine dont l'Événement est tombé à `REPRESSION_DU_CRIME`. */
 function apresLaRepression(careerId: string, label: string): { banc: Banc; heroId: string } {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId, label, seed: 1701 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId, label, seed: 1701 });
   const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [h] } });
   banc.actions.ouvrirLInterlude(1);
   draineCascade(banc.getState, 200, poseSurDeNonTombe(REPRESSION_DU_CRIME));

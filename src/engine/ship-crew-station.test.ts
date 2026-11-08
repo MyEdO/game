@@ -19,6 +19,7 @@
  *
  * Le RNG est SEEDÉ (`makeRNG`) : ces contrats ne dépendent d'aucune horloge.
  */
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { applyCrewHit, applyHullCritical, rollShipCritical, shipStationOuverte } from './shipCritical';
 import { makeRNG } from './dice';
@@ -44,7 +45,7 @@ const coque = (vehicleId: string): Combatant => combattantDeTest({ id: 'hull', c
 const rangee = (jeu: ShipCritSet, loc: ShipCritKey, min: number) => rollShipCritical(loc, makeRNG(1), min, jeu);
 
 const victimes = (hull: Combatant, crew: Combatant[], loc: ShipCritKey, min: number, jeu: ShipCritSet) =>
-  applyCrewHit(hull, crew, rangee(jeu, loc, min).crewHit!, makeRNG(1));
+  applyCrewHit(hull, crew, rangee(jeu, loc, min).crewHit!, makeRNG(1), idsDeTest);
 
 describe('coup à l’équipage — la STATION est ÉPINGLÉE, jamais déduite (#1657 B3-2b-a)', () => {
   it('1. « Bancs fracassés » (MDG 13 l.756) vise qui se TROUVE aux avirons — pas qui SAIT ramer', () => {
@@ -105,7 +106,7 @@ describe('coup à l’équipage — la STATION est ÉPINGLÉE, jamais déduite (
 
     // Localisation « Équipage » forcée (d100 = 1 sur la table `navire`), équipage VIDE.
     const hull = coque('cogue');
-    const out = applyHullCritical(hull, [], 'voile', makeRNG(7), 1, 1);
+    const out = applyHullCritical(hull, [], 'voile', makeRNG(7), idsDeTest, 1, 1);
     expect(out.location, 'le coup se perdait en silence (`shipCrit.crewNoneExposed` + abandon)').toBe('coque');
     expect(out.lines[0], 'le repli n’est pas DIT au joueur').toContain('aucun marin exposé');
     expect(out.lines[1], 'aucune rangée de coque n’a été résolue derrière le repli').toContain('Critique navire');
@@ -127,7 +128,7 @@ describe('coup à l’équipage — la STATION est ÉPINGLÉE, jamais déduite (
     const enHaut = marin('vigie', { shipStation: 'nid-de-pie' });
     const surLePont = marin('matelot', { shipStation: 'pont' });
     const hit = { crewTarget: { stations: ['nid-de-pie', 'pont'] }, ops: [] } as unknown as Parameters<typeof applyCrewHit>[2];
-    const out = applyCrewHit(coque('barque-fluviale'), [enHaut, surLePont], hit, makeRNG(1));
+    const out = applyCrewHit(coque('barque-fluviale'), [enHaut, surLePont], hit, makeRNG(1), idsDeTest);
     expect(out.victims, 'le pont touche, le nid-de-pie absent n’emporte pas le reste').toEqual(['matelot']);
     expect(out.stationsFermees).toEqual(['nid-de-pie']);
   });

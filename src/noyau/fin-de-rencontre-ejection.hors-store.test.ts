@@ -11,6 +11,7 @@
  * exclu de tout ce qui filtre le groupe hors combat — dont le QUORUM des ready-checks (nuit de repos)
  * et le carry-in du combat suivant (`lancerLeCombat`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { finalizeBattle } from './combatFlow';
@@ -24,7 +25,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function hero(id: string, label: string): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 13 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 13 });
   h.id = id;
   h.pos = { x: 3, y: 3 };
   return h;

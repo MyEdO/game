@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -12,9 +13,9 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 // Panier de VENTE (#22b) : parité avec l'achat, sans dupliquer la logique (prix via `sellGain`).
 describe('Panier de vente (#22b)', () => {
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    const a = itemFromTrappingById('hallebarde')!;
-    const b = itemFromTrappingById('dague')!;
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const a = itemFromTrappingById('hallebarde', idsDeTest)!;
+    const b = itemFromTrappingById('dague', idsDeTest)!;
     hero.items = [a, b];
     const merchant: MerchantState = {
       entityId: 'm', archetype: 'armurier', settlement: 'ville', resaleRate: 0.5, stock: [], cart: [], bargainLocked: false,

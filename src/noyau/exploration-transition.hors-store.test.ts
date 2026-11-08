@@ -4,6 +4,7 @@
  * `exploreeVue`), sans stage ni appel d'hôte. Couloir d'une rangée : à `lightLevel` 0 le groupe ne voit que
  * sa case, la nuit (`gameTime` 0) six cases devant lui, le jour toute la rangée (`visionState.test.ts`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ouvrirLeBanc, surUnBancHorsTest, type Banc } from './banc.testkit';
 import { emptyScene, type Scene } from './monde/scene';
@@ -15,7 +16,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 
 const MIDI = 12 * 60;
-const HEROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 7 });
+const HEROS = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 7 });
 
 afterEach(() => resetSceneRegistry());
 

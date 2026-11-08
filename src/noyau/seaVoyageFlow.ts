@@ -396,7 +396,7 @@ export function setVesselHull(get: Get, set: Set, current: number, max: number):
  *  double chemin : certains sites persistaient au coup par coup, d'autres seulement en fin de jour, la
  *  fenêtre entre les deux pouvait écraser une valeur plus fraîche écrite ailleurs, ex. fin de combat naval). */
 export function damageVesselHull(get: Get, set: Set, hull: Combatant, amount: number): string[] {
-  const j = damageHull(hull, amount);
+  const j = damageHull(hull, amount, get().forgerUnId);
   const plan = get().travelPlan;
   if (plan) set({ travelPlan: { ...plan } }); // bump de référence : la mutation en place de `hull` doit se voir
   persistHullWounds(get, set);
@@ -411,7 +411,7 @@ export function damageCampaignVessel(get: Get, set: Set, amount: number): string
   if (coque) return damageVesselHull(get, set, coque, amount);
   const ship = voyageShip(get);
   if (!ship) return null;
-  const journal = damageHull(ship.hull, amount);
+  const journal = damageHull(ship.hull, amount, get().forgerUnId);
   setVesselHull(get, set, ship.hull.wounds.current, ship.hull.wounds.max);
   return journal;
 }
@@ -419,7 +419,7 @@ export function damageCampaignVessel(get: Get, set: Set, amount: number): string
 /** Restaure `amount` Blessures à la coque de TRAJET et PERSISTE aussitôt sur `vessel.wounds` — pendant
  *  de `damageVesselHull` pour les soins. */
 export function healVesselHull(get: Get, set: Set, hull: Combatant, amount: number): string[] {
-  const j = healHull(hull, amount);
+  const j = healHull(hull, amount, get().forgerUnId);
   const plan = get().travelPlan;
   if (plan) set({ travelPlan: { ...plan } });
   persistHullWounds(get, set);
@@ -588,7 +588,7 @@ export function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEt
   const contributors = crewTestContributors(ship, party, testTypeId, new Set(party.map((h) => h.id)), navigation, opts.sense);
   if (!contributors.length) return undefined;
   const testType = findCrewTestTypeById(testTypeId);
-  const essentialRoleId = testType?.essential;
+  const essentialRoleId = testType?.essential.id;
   const pont = activeSeaPrecipitation(get); // MDG 13 l.185
   // Le flux propriétaire (naval) RÉSOUT la présentation (rôle tenu) et DÉCLARE le jet de chaque
   // contributeur au MONTEUR CANONIQUE (`rollStep`) — le séquenceur/modale génériques n'y liront QUE
@@ -1823,7 +1823,7 @@ export function applySteamBreakdown(get: Get, set: Set, b: SteamBreakdownEntry, 
   if (b.compartmentDamage != null && eng) {
     const boiler = buildWeapon({ label: t('sv.boilerBlast'), damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'perforante' }], uid: 'chaudiere' }); // Dégâts passés directement (weaponHit) → la spec ne sert qu'aux qualités
 
-    const lines = applyOps(eng, [{ op: 'wounds', amount: b.compartmentDamage, weaponHit: true }], { rng, weapon: boiler, location: 'corps' });
+    const lines = applyOps(eng, [{ op: 'wounds', amount: b.compartmentDamage, weaponHit: true }], { idNeuf: get().forgerUnId, rng, weapon: boiler, location: 'corps' });
     set({ party: [...get().party] });
     tell(get, set, [t('sv.blastWave', { name: eng.label, dmg: b.compartmentDamage }), ...lines]);
   }
@@ -1878,7 +1878,7 @@ export function resolveSteamSave(get: Get, set: Set, p: PendingSteamSave): void 
   const eng = get().party.find((h) => h.id === p.actorId);
   // Le jet est DÉJÀ affiché par la rangée de `SteamSaveModal` (`p.roll`/`p.target`) — pas de re-print (#295 Lot 5).
   if (eng && !p.success) {
-    const lines = applyOps(eng, p.scaldOps, { rng: battleRng(), now: get().gameTime });
+    const lines = applyOps(eng, p.scaldOps, { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime });
     set({ party: [...get().party] });
     tell(get, set, [t('sv.scalded', { name: eng.label }), ...lines]);
   } else if (eng) {
@@ -2102,7 +2102,7 @@ export function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolv
   const coque = get().travelPlan?.vehicle;
   if (!coque) return;
   const equipage = exposedCrew(get().party);
-  const coup = applyCrewHit(coque, equipage, crit.crewHit, battleRng());
+  const coup = applyCrewHit(coque, equipage, crit.crewHit, battleRng(), get().forgerUnId);
   if (coup.hits.length) {
     set({ party: [...get().party] });
     tell(get, set, [t('shipCrit.crewTakes', { n: coup.hits.length, label: crit.label })]);
@@ -2110,7 +2110,7 @@ export function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolv
   if (!coup.testFlow) return;
   const victimes = coup.victims.map((id) => equipage.find((c) => c.id === id)).filter(Boolean) as Combatant[];
   pushStep(set, (index) => bandeTriggeredTest(
-    get, set, victimes, coup.testFlow!, `sea-crew-hit-${crit.id}-${index}`, { rng: battleRng(), label: crit.label, hull: coque },
+    get, set, victimes, coup.testFlow!, `sea-crew-hit-${crit.id}-${index}`, { idNeuf: get().forgerUnId, rng: battleRng(), label: crit.label, hull: coque },
   ), 'travelDay');
   // Voie INLINE (personne à bord sans siège) : ses lignes partent dans la file différée — la mer n'a
   // pas de `battle.log`, on les déverse dans le journal du voyage (source unique `drainPendingLog`).

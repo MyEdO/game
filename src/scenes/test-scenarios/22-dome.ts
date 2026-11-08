@@ -1,3 +1,4 @@
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { pregen, PREGEN } from '../../data/pregens';
 import { makeSorceress } from './_casters';
 import { arena, setEncounters } from './_shared';
@@ -29,10 +30,10 @@ const HERO_START = { x: 3, y: 5 };
 const SORTS_ILYANWE = ['dome', 'bouclier-anti-fleches', 'flechette', 'lumiere'];
 
 /** La Sorcière (lanceuse du Dôme) et la protégée qu'on vient voir encaisser — ou pas. */
-function groupe() {
-  const sorciere = makeSorceress('sorciere', 'Ilyanwe la Voilée', { ...HERO_START });
+function groupe(idNeuf: FabriqueDId) {
+  const sorciere = makeSorceress(idNeuf, 'sorciere', 'Ilyanwe la Voilée', { ...HERO_START });
   sorciere.spells = [...SORTS_ILYANWE];
-  const protegee = pregen(PREGEN.soldat);
+  const protegee = pregen(idNeuf, PREGEN.soldat);
   protegee.id = 'protegee';
   // Un nom, rien de plus : la couverture par le dôme est CALCULÉE par le moteur au moment du coup, un
   // nom qui l'écrirait la peindrait avant le lancer.
@@ -78,6 +79,6 @@ export const scenario: TestScenario = {
     + 'sauvegarde et le journal nomme le Trait qui a sauvé ; un coup de MÊLÉE sous la voûte n’en ouvre '
     + 'aucune ; deux dômes (ou un dôme sur qui porte déjà le Trait) ne donnent qu’UN dé.',
   partyNote: 'Ilyanwe (Haute Sorcière, 4 sorts posés par la scène — le Dôme en tête) · Berta (Soldat), la protégée',
-  construire: () => ({ party: groupe(), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: groupe(idNeuf), scene: construireScene() }),
   autoCombat: 'enc-dome',
 };

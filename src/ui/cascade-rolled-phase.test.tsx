@@ -11,6 +11,7 @@
  * `rolled` pilote se LIT à l'écran — bouton « Lancer » avant, cycle d'influence après. Une
  * dérivation fausse inverse l'un ou l'autre.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -32,7 +33,7 @@ const jetStep = (actorId: string, result: CascadeRoll | null): CascadeStep =>
   ({ id: 'j1', kind: 'tally', actorId, label: 'Résistance', rollLabel: 'Résistance', base: 40, target: 40, result, interactive: true } as unknown as CascadeStep);
 
 function ouvrir(result: CascadeRoll | null) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 1 });
   useGame.setState({
     battle: null, party: [hero], suspendedCascades: [], journal: [],
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,

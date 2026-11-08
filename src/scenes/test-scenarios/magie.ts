@@ -1,7 +1,8 @@
-import { pregenParty, PREGEN } from '../../data/pregens';
+import type { FabriqueDId } from '../../engine/fabriqueDId';
+import { pregen, PREGEN } from '../../data/pregens';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
-import { clone, makePriest, makeSorceress, makeFlagellant } from './_casters';
+import { makePriest, makeSorceress, makeFlagellant } from './_casters';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 import type { Combatant, CharKey } from '../../engine/types';
@@ -94,29 +95,27 @@ const PRIESTS: { id: string; label: string; cult: string; chars: Partial<Record<
  * combat + 1 flagellant + Grunni le Tueur. Tweaks Jalon 2 : Aelindra proche du seuil de Corruption et dotée
  * de PX (mémorisation) + d'Explosion (ZdE) ; le Grand Prêtre porte 3 Péchés (Colère des dieux).
  */
-function makeMagicParty(): Combatant[] {
-  const ans = pregenParty(PREGEN.pretre)[0]; // base prêtre (clonée par makePriest/makeFlagellant)
-
-  const sorc = makeSorceress('sc-elfe', 'Aelindra, Haute Sorcière', { x: 2, y: 11 });
+function makeMagicParty(idNeuf: FabriqueDId): Combatant[] {
+  const sorc = makeSorceress(idNeuf, 'sc-elfe', 'Aelindra, Haute Sorcière', { x: 2, y: 11 });
   if (!sorc.spells?.includes('explosion')) sorc.spells = ['explosion', ...(sorc.spells ?? [])]; // ZdE au clic-case
   sorc.xp = 300; // de quoi mémoriser un sort dans la fiche (Avancement)
   sorc.corruption = 5; // proche du seuil BFM+BE → l'Influence corruptrice peut faire MUTER
 
   const priests = PRIESTS.map((p) => {
-    const pr = makePriest(ans, p.id, p.label, p.cult, p.chars);
+    const pr = makePriest(idNeuf, p.id, p.label, p.cult, p.chars);
     pr.pos = { ...p.pos };
     return pr;
   });
   priests[0].sinPoints = 3; // Grand Prêtre de Sigmar : ~30 % de Colère par Prière (dé des unités ≤ 3)
-  // Varie l'apparence des prêtres (sinon clones visuels de la même base) — alterne sexe et carrure.
+  // Varie l'apparence des prêtres (sinon jumeaux visuels du même pré-tiré) — alterne sexe et carrure.
   priests.forEach((pr, i) => {
     if (!pr.appearance) return;
     pr.appearance.sex = sexeSchema.options[i % sexeSchema.options.length];
   });
 
-  const flagellant = makeFlagellant(ans, 'pr-flagellant', 'Konrad le Flagellant', 'ulric', { sociabilite: 60, 'force-mentale': 56, 'capacite-de-combat': 60, force: 52, endurance: 50 }, { x: 6, y: 10 });
+  const flagellant = makeFlagellant(idNeuf, 'pr-flagellant', 'Konrad le Flagellant', 'ulric', { sociabilite: 60, 'force-mentale': 56, 'capacite-de-combat': 60, force: 52, endurance: 50 }, { x: 6, y: 10 });
 
-  const grunni = clone(pregenParty(PREGEN.tueur)[0]);
+  const grunni = pregen(idNeuf, PREGEN.tueur);
   grunni.pos = { x: 6, y: 12 };
 
   return [sorc, ...priests, flagellant, grunni];
@@ -134,6 +133,6 @@ export const scenario: TestScenario = {
     'clic-case + Surincantation, Péché → Colère (Prêtre, 3 Péchés), Corruption (zone de Malepierre → mutation, ' +
     'Aelindra proche du seuil), mémorisation aux PX.',
   partyNote: 'Aelindra (Haute Sorcière + Nécromancie) + 10 Prêtres (un par dieu de combat) + flagellant + Tueur',
-  construire: () => ({ party: makeMagicParty(), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: makeMagicParty(idNeuf), scene: construireScene() }),
   // pas d'autoCombat : exploration (mémorisation, exposition à la Corruption) PUIS combat via le trigger.
 };

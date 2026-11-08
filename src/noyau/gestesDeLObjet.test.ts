@@ -3,6 +3,7 @@
  * par le verdict que son verbe applique : en combat, `refusDInventaire` ; l'Évaluation, une tentative par jour
  * (`appraiseTriedDay`) ; la Détection, une tentative par objet (LDB 10 l.336).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { gestesDeLObjet } from './gestesDeLObjet';
 import { appraiseRefus } from './merchantFlow';
@@ -13,7 +14,7 @@ import type { Jeu } from './etat';
 
 /** Deux pré-tirés hors combat, au jour 3 ; `rosa`, la seconde, porte un objet non identifié (`inconnu`). */
 function partie(inconnu: { appraiseTriedDay?: number; detectTried?: boolean } = {}) {
-  const party = pregenParty(PREGEN.soldat, PREGEN.apothicaire);
+  const party = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.apothicaire);
   const rosa = party[1];
   const pilon = rosa.items!.find((i) => i.label === 'Pilon et Mortier')!;
   Object.assign(pilon, { identified: false, ...inconnu });

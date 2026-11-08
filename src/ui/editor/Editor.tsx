@@ -1,3 +1,4 @@
+import { fabriqueLocale } from '../../engine/fabriqueDId';
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
 import { Scene, emptyScene, tileAt, type CellSide } from '../../noyau/monde/scene';
@@ -756,7 +757,7 @@ export function Editor({
     setScreen('campaign');
   }
   function loadScenario(sc: TestScenario) {
-    const construit = sc.construire();
+    const construit = sc.construire(fabriqueLocale('editeur'));
     setVoisines({ avant: [], apres: (construit.extraScenes ?? []).map(clone) });
     setWorldMap(construit.worldMap ? clone(construit.worldMap) : null);
     setActiveAxes(undefined);

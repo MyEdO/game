@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { openRoundStartPsych, openRoundEndCascade } from './combatFlow';
@@ -41,7 +42,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
   /** Combat à `n` héros face à UNE source ennemie de Taille `enemySize` (LdV dégagée). */
   function setup(enemySize: Combatant['size'], n = 1) {
     const party = Array.from({ length: n }, (_, i) =>
-      createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i + 1}`, seed: i + 1 }));
+      createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i + 1}`, seed: i + 1 }));
     banc.setState({ party });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -268,7 +269,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
   /** Combat à 2 héros face à 2 ennemis (LdV dégagée), sans Peur de Taille par défaut. */
   function duo() {
     const party = [1, 2].map((i) =>
-      createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i }));
+      createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i }));
     banc.setState({ party });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

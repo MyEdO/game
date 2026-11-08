@@ -7,6 +7,7 @@
  * 26-30 les frappe toutes pour des HEURES, 56-60 une seule tirée au hasard pour des JOURS ; à l'échéance
  * d'horloge, le malus tombe. Sans divinité ou sans liste, la rangée est sans effet et le dit.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { pregen, PREGEN } from '../data/pregens';
@@ -29,7 +30,7 @@ beforeEach(() => {
   banc.setState({ gameTime: MAINTENANT });
 });
 
-const pretre = (): Combatant => pregen(PREGEN.pretre) as Combatant;
+const pretre = (): Combatant => pregen(idsDeTest, PREGEN.pretre) as Combatant;
 
 /** Les Compétences associées au dieu du prêtre, lues dans la donnée. */
 function associees(p: Combatant): string[] {
@@ -40,7 +41,7 @@ function associees(p: Combatant): string[] {
 /** Tire la rangée de Colère dont le dé NATUREL est `de` sous `peche` Points de Péché, puis l'applique. */
 function subirLaColere(p: Combatant, peche: number, de: number, rng: RNG) {
   const m = rollMiscast('colere', aucunDe, peche, undefined, de);
-  const lignes = applyOps(p, m.ops, { rng, label: m.label, now: MAINTENANT, source: miscastRowSource(miscastTableId('colere'), m.rowId) });
+  const lignes = applyOps(p, m.ops, { idNeuf: idsDeTest, rng, label: m.label, now: MAINTENANT, source: miscastRowSource(miscastTableId('colere'), m.rowId) });
   return { m, lignes };
 }
 
@@ -91,7 +92,7 @@ describe('Colère des dieux — malus aux Compétences associées à la divinit�
   });
 
   it('sans divinité : la rangée est sans effet, aucun dé tiré, et le journal le dit', () => {
-    const soldat = pregen(PREGEN.soldat) as Combatant;
+    const soldat = pregen(idsDeTest, PREGEN.soldat) as Combatant;
     expect(priestCult(soldat)).toBeUndefined();
     const effets = structuredClone(soldat.activeEffects ?? []);
     const { lignes } = subirLaColere(soldat, 1, 16, aucunDe);

@@ -27,14 +27,15 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
       const start = scene.entities.find((e) => e.kind === 'heroStart');
       const pos = startOf(scene) ?? findFreeTile(scene);
       // Démarrage d'une partie / d'un scénario : on repart de l'état NEUF du jeu (`etatInitialDuJeu`). On ne
-      // conserve QUE l'écran, le groupe (posé par `fixerLeGroupe`) et la SESSION COOP (net : héberger une partie
+      // conserve QUE l'écran, le groupe (posé par `fixerLeGroupe`), le compteur des ids du monde que ses objets ont consommé
+      // (`prochainId`, #2907) et la SESSION COOP (net : héberger une partie
       // PUIS la lancer ne doit pas dissoudre le salon — Jalon 7). L'interface se remet chez son hôte, à
       // l'entrée en scène (`EVT.ARRIVEE_EN_SCENE`).
-      const { screen, party, net } = get();
+      const { screen, party, net, prochainId } = get();
       const capEntrant = start?.facing ?? spawnFacing(pos, scene.dimensions);
       set({
         ...etatInitialDuJeu(),
-        screen, party, net,
+        screen, party, net, prochainId,
         scene: JSON.parse(JSON.stringify(scene)),
         mode: 'exploration',
         partyPos: pos,

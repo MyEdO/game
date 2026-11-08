@@ -1,6 +1,7 @@
 /**
  * `OP_DEFS` (`grammaire/mecanique.ts`) — payload strict par op, repli nominatif, rouge au SITE.
  */
+import { idsDeTest } from '../../../engine/idsDeTest.testkit';
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { conditionSchema, gameOpSchema, OP_DEFS, OPS_NON_TYPEES, mecaniqueDe } from './mecanique';
@@ -61,7 +62,7 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     expect(() => applyOps(
       blessuresSurLeProfil({ id: 'c', label: 'Cobaye', kind: 'hero', characteristics: {}, wounds: blessuresDeBase(5), advantage: 0, conditions: [], movement: 4, weapons: [], armour: {}, skills: [], talents: [] }) as unknown as Combatant,
       [{ op: 'condition', id: 'inconscient', perRound: true, durationHours: 1 }],
-      { rng: desDuTest },
+      { idNeuf: idsDeTest, rng: desDuTest },
     ), 'le PARSE et l’APPLICATION disent le même refus').toThrow(messageRecurrenceHorloge('inconscient'));
   });
 

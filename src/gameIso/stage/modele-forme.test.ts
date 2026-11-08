@@ -15,6 +15,7 @@
  * Cinquième clause, sur l'autre canal de modelé : les flaques de lampe (#1245) sont ÉTEINTES dans un
  * intérieur par défaut — le FAIT que ce lot ne change pas, et qui décide de ce qu'il restait à faire.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, expect, it } from 'vitest';
 import { AMBIANCE } from '../catalog/ambiance';
 import { applyVisibilityTint, bakeWorldGeometry, shadeSousSoleil, worldBakeDeps, type BakedWorld } from '../backends/webgl/sceneMeshes';
@@ -26,8 +27,8 @@ import { stageLightScalars } from './stageLights';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import { scenario as arene } from '../../scenes/test-scenarios/arene';
 import { scenario as opera } from '../../scenes/test-scenarios/opera';
-const operaConstruit = opera.construire();
-const areneConstruit = arene.construire();
+const operaConstruit = opera.construire(idsDeTest);
+const areneConstruit = arene.construire(idsDeTest);
 
 /** Le bake d'une scène, RETENU par son read-set réel (`worldBakeDeps`) — le patron de l'écran
  *  (`GameStage3D.tsx`, `memoByRefDeps`). L'arène et l'opéra sont recuits par plusieurs `it` de ce

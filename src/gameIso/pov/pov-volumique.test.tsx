@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import type { JSX } from 'react';
 // @vitest-environment jsdom
 import { act } from 'react';
@@ -80,7 +81,7 @@ function trianglesDuMonde(scene: THREE.Scene): number {
 }
 
 function poser(): { scene: Scene; heroId: string } {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
   const scene = scèneCouverte();
   useGame.setState({
     screen: 'campaign', mode: 'exploration', party: [hero], scene,
@@ -247,9 +248,9 @@ describe('POV volumique — le marcheur suivi et la cote sous l’œil (#1176 P3
   const FRAME_MS = STEP_MS / 10;
 
   it('l’œil suit le MENEUR VALIDE, pas la première case du roster', () => {
-    const mort = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Mort', seed: 2 });
+    const mort = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Mort', seed: 2 });
     mort.dead = true;
-    const debout = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Debout', seed: 3 });
+    const debout = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Debout', seed: 3 });
     const scene = scèneCouverte();
     useGame.setState({
       screen: 'campaign', mode: 'exploration', party: [mort, debout], scene,

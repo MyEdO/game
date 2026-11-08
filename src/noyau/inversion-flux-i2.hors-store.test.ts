@@ -3,6 +3,7 @@
  * son passage vise. Studieux LDB 11 l.55, Lecture rapide LDB 10 l.634, Sociable LDB 11 l.25, Entraînement
  * au Combat LDB 23 l.209, Battement LDB 10 l.103, À sang-froid LDB 85 l.13, Mécénat ACE 12 l.60-62.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { cascadeDeTest } from './cascade.testkit';
@@ -33,7 +34,7 @@ const heros = (id: string, over: Partial<Combatant> = {}): Combatant => blessure
 }) as unknown as Combatant;
 const talent = (id: string) => ({ talents: [{ talentId: id, times: 1 }] } as Partial<Combatant>);
 const jeton = (c: Combatant, op: Omit<Extract<GameOp, { op: 'grantReverseToken' }>, 'op'>): Combatant => {
-  applyOps(c, [{ op: 'grantReverseToken', ...op }], { rng: makeRNG(1), label: 'Source' });
+  applyOps(c, [{ op: 'grantReverseToken', ...op }], { idNeuf: idsDeTest, rng: makeRNG(1), label: 'Source' });
   return c;
 };
 const jetons = (c: Combatant) => (c.activeEffects ?? []).filter((e) => e.reverseToken);
@@ -174,7 +175,7 @@ describe('Mécénat (ACE 12 l.60-62) : jeton de Sociabilité face à l’amateur
   it('+6 DR : jeton de Sociabilité face à un amateur de théâtre, jamais consommé', () => {
     const banc = ouvrirLeBanc();
     const h = heros('H');
-    applyOps(h, bande(6).ops!, { rng: makeRNG(1), label: 'Mécénat' });
+    applyOps(h, bande(6).ops!, { idNeuf: idsDeTest, rng: makeRNG(1), label: 'Mécénat' });
     expect(jetons(h).map((e) => e.reverseToken)).toEqual([{ characteristic: 'sociabilite', contexte: 'amateurDeTheatre', illimite: true }]);
     banc.setState({ battle: null, party: [h], pendingTest: testSocial('charme', 'amateurDeTheatre') });
     expect(FLOWS.test.reversePreview(banc.getState)).toEqual(INVERSE);
@@ -186,7 +187,7 @@ describe('Mécénat (ACE 12 l.60-62) : jeton de Sociabilité face à l’amateur
   it('+6 DR : non offert face à un simple amateur d’art, ni sans contrepartie', () => {
     const banc = ouvrirLeBanc();
     const h = heros('H');
-    applyOps(h, bande(6).ops!, { rng: makeRNG(1), label: 'Mécénat' });
+    applyOps(h, bande(6).ops!, { idNeuf: idsDeTest, rng: makeRNG(1), label: 'Mécénat' });
     banc.setState({ battle: null, party: [h], pendingTest: testSocial('charme', 'amateurDArt') });
     expect(FLOWS.test.reverseAvailable(banc.getState)).toBe(false);
     banc.setState({ pendingTest: testSocial('charme') });
@@ -196,7 +197,7 @@ describe('Mécénat (ACE 12 l.60-62) : jeton de Sociabilité face à l’amateur
   it('+3 à +5 DR : jeton d’amateur d’art, offert face à un amateur de théâtre, consommé', () => {
     const banc = ouvrirLeBanc();
     const h = heros('H');
-    applyOps(h, bande(3).ops!, { rng: makeRNG(1), label: 'Mécénat' });
+    applyOps(h, bande(3).ops!, { idNeuf: idsDeTest, rng: makeRNG(1), label: 'Mécénat' });
     banc.setState({ battle: null, party: [h], pendingTest: testSocial('charme', 'amateurDeTheatre') });
     expect(FLOWS.test.reversePreview(banc.getState)).toEqual(INVERSE);
     banc.getState().jetInverser('test');
@@ -206,7 +207,7 @@ describe('Mécénat (ACE 12 l.60-62) : jeton de Sociabilité face à l’amateur
   it('un Test de Perception face à l’amateur : non offert (pas un Test de Sociabilité)', () => {
     const banc = ouvrirLeBanc();
     const h = heros('H');
-    applyOps(h, bande(3).ops!, { rng: makeRNG(1), label: 'Mécénat' });
+    applyOps(h, bande(3).ops!, { idNeuf: idsDeTest, rng: makeRNG(1), label: 'Mécénat' });
     banc.setState({ battle: null, party: [h], pendingTest: testSocial('perception', 'amateurDArt') });
     expect(FLOWS.test.reverseAvailable(banc.getState)).toBe(false);
   });

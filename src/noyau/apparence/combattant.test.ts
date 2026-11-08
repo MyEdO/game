@@ -4,6 +4,7 @@
  * de ses objets, la tenue de sa carrière et son emblème, par le même assembleur d'objet qu'une composition. Les attendus
  * se lisent au catalogue, jamais recopiés.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { afterEach, describe, expect, it } from 'vitest';
 import { porteeDuCombattant, vehiculeDuCombattant } from './combattant';
 import { facteursDeComposition, porteesDeLaTenue } from './composition';
@@ -21,9 +22,9 @@ import type { Combatant, FireArc, ItemInstance } from '../../engine/types';
 const REIKLANDER = 'humains-reiklander';
 
 const heros = (opts: Partial<Parameters<typeof createHero>[0]> = {}): Combatant =>
-  createHero({ speciesId: REIKLANDER, careerId: 'soldat', label: 'Porteur', seed: 3, ...opts });
+  createHero({ idNeuf: idsDeTest, speciesId: REIKLANDER, careerId: 'soldat', label: 'Porteur', seed: 3, ...opts });
 
-const objet = (trappingId: string): ItemInstance => ({ ...itemFromGive({ trappingId }), uid: trappingId });
+const objet = (trappingId: string): ItemInstance => ({ ...itemFromGive({ trappingId }, idsDeTest), uid: trappingId });
 
 /** Un héros qui tient `tenue` en main directrice, et range `rangee` dans un second set. */
 function herosArme(tenue: string, rangee: string): Combatant {
@@ -162,7 +163,7 @@ describe('porteeDuCombattant', () => {
 
 describe('vehiculeDuCombattant (#2987)', () => {
   const fiche = (ref: string): Combatant => spawnEnemy({ ref }, `${ref}-1`, { x: 0, y: 0 });
-  const poste = (trappingId: string, side?: FireArc) => hydratePoste({ trappingId, ...(side ? { side } : {}) });
+  const poste = (trappingId: string, side?: FireArc) => hydratePoste({ trappingId, ...(side ? { side } : {}) }, 'poste-de-test');
   it.each([['caraque', 4], ['barque-fluviale', 1], ['canon-petit', 1], ['belier-ade2', 2]] as const)('%s, coque ou engin de siège : sa fiche et le côté de son empreinte, sans portée', (ref, empreinte) => {
     const c = fiche(ref);
     expect([vehiculeDuCombattant(c, undefined), porteeDuCombattant(c)]).toEqual([{ definition: ref, empreinte, cap: 'N', postes: [] }, null]);

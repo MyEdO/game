@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import type { JSX } from 'react';
 // @vitest-environment jsdom
 import { act } from 'react';
@@ -38,7 +39,7 @@ brancherArdoise();
 
 /** Pose une scène jouable au store — `interieur` bascule le MILIEU (c'est `isIndoor` qui tranche). */
 function poser(ambiance: Scene['ambiance']): Scene {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
   const scene = emptyScene('scene-test', 12, 12);
   scene.ambiance = ambiance;
   useGame.setState({

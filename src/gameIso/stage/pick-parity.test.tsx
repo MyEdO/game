@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { act, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { Vector3, type OrthographicCamera, type PerspectiveCamera } from 'three';
@@ -25,8 +26,8 @@ import { buildPropVolumes, type AncrageVolume } from '../../noyau/monde/volume/p
 import { findPropById, props, refEstVolumique } from '../../data';
 import { capVolumique, polygonesDePrimitive, type PropData } from '../../data/props.types';
 import type { SceneEntity } from '../../noyau/monde/scene';
-const siegeConstruit = siege.construire();
-const pontConstruit = pont.construire();
+const siegeConstruit = siege.construire(idsDeTest);
+const pontConstruit = pont.construire(idsDeTest);
 
 /**
  * PARITÉ DU PICKING DE TUILE ENTRE LES DEUX VOIES (#1176, lot P2-3).

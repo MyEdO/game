@@ -5,6 +5,7 @@
  * pas le rapport de naufrage ; chez l'invité, le masque vaut pour UNE remise. Chemin réel : Effet
  * `designerHeros` puis choix au store ; `remettreLeDocument`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act, Profiler } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -30,7 +31,7 @@ const narratif: NarratifBlock = {
     lignes: [{ espece: 'nain', sexe: 'F', valeurs: [{ repere: 'sal', valeur: 'Chère Frau Linkassniz', adapteDe: P27 }, { repere: 'complet', valeur: 'Kallar Linkassniz', source: P27 }] }],
   } } }],
 };
-const heros = (id: string, speciesId: string, sex: 'M' | 'F') => ({ ...createHero({ speciesId, careerId: 'soldat', label: id, seed: 7, apparence: { sex } }), id });
+const heros = (id: string, speciesId: string, sex: 'M' | 'F') => ({ ...createHero({ idNeuf: idsDeTest, speciesId, careerId: 'soldat', label: id, seed: 7, apparence: { sex } }), id });
 const get = () => useGame.getState();
 let container: HTMLDivElement | undefined;
 let root: Root | undefined;

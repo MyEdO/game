@@ -3,6 +3,7 @@
  * LE CAP DU GROUPE, SUR L'ÉCRAN MONTÉ (#1362 L1a) — l'hôte réel (`MondeDeCampagne`) dérive le jeton de
  * groupe (`partyTokenOf`), et le disque de la vue du dessus en porte le quartier de cap.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -40,7 +41,7 @@ afterEach(() => {
 });
 
 const héros = (label: string, graine: number): Combatant =>
-  ({ ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: graine }), id: label }) as Combatant;
+  ({ ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: graine }), id: label }) as Combatant;
 
 function scène(): Scene {
   return emptyScene('scene-test', 12, 12);

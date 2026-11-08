@@ -1,5 +1,6 @@
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { makeShowcaseParty, PREGEN } from '../../data/pregens';
-import { itemFromTrappingById, loadWeapon } from '../../engine/items';
+import { gabaritDObjet, loadWeapon } from '../../engine/items';
 import type { AuthoredShipPoste, Combatant } from '../../engine/types';
 import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
@@ -16,10 +17,9 @@ const GUNNERS = [`pregen-${PREGEN.soldat}`, `pregen-${PREGEN.chasseur}`] as cons
  * `applyShipPostes` la sert au chef (`mannedPoste`) → l'attaque dédiée « Servir le pierrier ».
  */
 function pierrierPoste(chefId: string): AuthoredShipPoste {
-  const balles = itemFromTrappingById('balles-et-poudre-pierrier')!;
-  balles.qty = 10; // de quoi bombarder plusieurs Rounds (Recharge entre chaque tir)
-  const mitraille = itemFromTrappingById('petites-munitions-et-poudre-pierrier')!;
-  mitraille.qty = 6;
+  // Les uids des munitions se dérivent de leur place : le coffre du poste que sert `chefId`.
+  const balles = { ...gabaritDObjet('balles-et-poudre-pierrier')!, uid: `pierrier-${chefId}-balles`, qty: 10 }; // de quoi bombarder plusieurs Rounds (Recharge entre chaque tir)
+  const mitraille = { ...gabaritDObjet('petites-munitions-et-poudre-pierrier')!, uid: `pierrier-${chefId}-mitraille`, qty: 6 };
   return { trappingId: 'pierrier', side: 'tribord', crewIds: [chefId], ammo: [balles, mitraille], ammoUid: balles.uid };
 }
 
@@ -28,8 +28,8 @@ function pierrierPoste(chefId: string): AuthoredShipPoste {
  * vivent dans le COFFRE du poste (cf. `pierrierPoste`), le canon reste un poste de la barge (servi au
  * combat par `applyShipPostes`). Les 2 autres (Tueur + Sorcier) gardent leur arme de mêlée pour l'abordage.
  */
-function makeNavalParty(): Combatant[] {
-  const party = makeShowcaseParty();
+function makeNavalParty(idNeuf: FabriqueDId): Combatant[] {
+  const party = makeShowcaseParty(idNeuf);
   for (const id of GUNNERS) {
     const g = party.find((h) => h.id === id);
     // Chargé d'emblée → tir dès le 1er Round. L'état de charge vit sur CHAQUE arme (arbitrage 2026-08-16).
@@ -93,6 +93,6 @@ export const scenario: TestScenario = {
     'équipage lié (crewIds) → Éclats / critique « Équipage » sur de vrais marins ; le Tueur + le Sorcier abordent. ' +
     'L’échelle de la scène (metresPerTile) est éditable : à 10 m/case, vue « mer ouverte » où chaque navire occupe sa Taille.',
   partyNote: 'Groupe d’arène ; le Soldat + le Chasseur servent les pierriers, le Tueur + le Sorcier abordent',
-  construire: () => ({ party: makeNavalParty(), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: makeNavalParty(idNeuf), scene: construireScene() }),
   autoCombat: 'enc-naval',
 };

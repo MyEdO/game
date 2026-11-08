@@ -6,6 +6,7 @@
  * contre Gunnar et Hultz. LDB 51 l.178 : le tronçon Sept Rayons → Altdorf, sans billet d'auteur, se
  * paie au km. LDB 10 l.818, arbitrage #2547 (2026-10-09) : Négociateur au prix du palier.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { imposerLesD100 } from '../../noyau/battleRng.testkit';
 import { setRule, resetRule } from '../../engine/policy';
@@ -44,7 +45,7 @@ const SHOWCASE = [PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur].
 
 /** Lance le chapitre 1 avec le groupe showcase et sa bourse, et fait monter à bord (`edo-ch1-depart`). */
 function aBord(): void {
-  const groupe = makePregensWithWealth().filter((e) => SHOWCASE.includes(e.hero.id));
+  const groupe = makePregensWithWealth(idsDeTest).filter((e) => SHOWCASE.includes(e.hero.id));
   expect(groupe).toHaveLength(4);
   banc.setState({ party: groupe.map((e) => e.hero) });
   expect(lancerCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();

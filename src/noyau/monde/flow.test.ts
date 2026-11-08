@@ -2,6 +2,7 @@
  * FLOW — modèle + évaluation pure des Conditions (source unique, remplace condMet/temporalConditionMet)
  * + aplatissage des branches `if`/`seq`/`do`. L'exécution interactive (`test`) est testée via le store.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
 import { flowFromEffects } from './flow';
@@ -122,7 +123,7 @@ describe('evalCondition — Conditions PARTY-level (#711 : skill/career/species/
     expect(evalCondition({ kind: 'species', id: 'nains', who: 'all' }, { ...base, party: [{ species: 'nains' }, { species: 'nains' }] })).toBe(true);
   });
   it('status : dérivé d’un VRAI Combatant (createHero) — carrière/niveau réels', () => {
-    const hero = createHero({ speciesId: REIK, careerId: 'soldat', label: 'T', seed: 3 }); // niveau 1 → « Argent 1 »
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: REIK, careerId: 'soldat', label: 'T', seed: 3 }); // niveau 1 → « Argent 1 »
     const party = [hero];
     expect(evalCondition({ kind: 'status', atLeast: 'Bronze 1' }, { ...base, party })).toBe(true); // Échelon supérieur
     expect(evalCondition({ kind: 'status', atLeast: 'Argent 1' }, { ...base, party })).toBe(true); // seuil atteint pile
@@ -171,7 +172,7 @@ describe('evalCondition — états de campagne (#2539 : Condition `etat`, sélec
     const designe = { etat: 'campagne-sosie-heros' };
     expect(evalCondition({ kind: 'species', id: REIK, who: designe }, c)).toBe(true);
     expect(evalCondition({ kind: 'species', id: 'nains', who: designe }, c)).toBe(false); // l'autre héros ne compte pas
-    const hero = { ...createHero({ speciesId: REIK, careerId: 'soldat', label: 'S', seed: 3 }), id: 'h-sosie' };
+    const hero = { ...createHero({ idNeuf: idsDeTest, speciesId: REIK, careerId: 'soldat', label: 'S', seed: 3 }), id: 'h-sosie' };
     expect(evalCondition({ kind: 'status', atLeast: 'Argent 1', who: designe }, ctx({ 'campagne-sosie-heros': 'h-sosie' }, [hero]))).toBe(true);
     expect(evalCondition({ kind: 'status', atLeast: 'Or 1', who: designe }, ctx({ 'campagne-sosie-heros': 'h-sosie' }, [hero]))).toBe(false);
   });

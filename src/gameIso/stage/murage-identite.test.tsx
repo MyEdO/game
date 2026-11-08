@@ -31,6 +31,7 @@
  *  - les gestes de l'ÉDITEUR (tick d'authoring, curseur d'opacité du décalque) ne sont pas couverts :
  *    ils ne vivent pas sous cet hôte (voir `TODO_NOMMÉS`).
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -258,7 +259,7 @@ function murage(nom: string, avant: Relevé, après: Relevé): { fautes: string[
 // LES DEUX THÉÂTRES
 // ————————————————————————————————————————————————
 
-const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 7 });
+const HÉROS = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 7 });
 
 /** La scène RÉELLE du jeu (le hub de l'arène) : bâtiments, toitures, une soixantaine de sujets. Sur une
  *  carte nue, « rien n'a bougé » serait vrai sans rien prouver. */

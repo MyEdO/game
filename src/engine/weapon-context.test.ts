@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { effectiveWeapon, effectiveWeaponDamage } from './weaponDamage';
 import { resolveMelee, hasWeaponGroupSkill, combatValue, attackTestOf } from './combat';
@@ -14,7 +15,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 //  - 43.1b Fléau sans la Spécialisation → Défaut Dangereuse, aucun autre Atout (l.146-147)
 //  - 43.1a Cavalerie (2M) à pied → vraie arme à Deux Mains (l.142-143)
 
-const lance = (): Weapon => weaponFromItem(itemFromTrappingById('lance-de-cavalerie')!);
+const lance = (): Weapon => weaponFromItem(itemFromTrappingById('lance-de-cavalerie', idsDeTest)!);
 const fleau = (): Weapon => ({
   label: 'Fléau', type: 'melee', subType: 'fleau', reach: 'Moyenne',
   damage: { plusBF: true, flat: 5 }, qualities: [{ id: 'perturbante' }, { id: 'a-enroulement' }],
@@ -32,7 +33,7 @@ const combatant = (p: Partial<Combatant>): Combatant => (blessuresSurLeProfil({
 describe('43.1c — Lance de cavalerie hors Charge → Arme improvisée (LDB 62 l.58)', () => {
   /** #2967 ; LDB 62 l.58 ; AA 08 l.212 */
   it.each(['lance-de-cavalerie', 'demi-lance-de-cavalerie'])('la %s née conserve ses profils de Charge quand son libellé change', (id) => {
-    const item = itemFromTrappingById(id)!;
+    const item = itemFromTrappingById(id, idsDeTest)!;
     item.label = 'Présent du duc';
     const arme = weaponFromItem(item);
     arme.label = 'Présent du duc';
@@ -148,7 +149,7 @@ describe('43.1a — Cavalerie (2M) à pied → Deux Mains (LDB 62 l.142-143)', (
     expect(weaponHands({ subType: 'cavalerie', hands: 1 }, { mounted: false })).toBe(1); // lance 1-main inchangée
   });
   it('recomputeLoadout : Marteau à bec-de-corbin dérive 2 mains à pied, 1 main monté', () => {
-    const marteau = itemFromTrappingById('marteau-a-bec-de-corbin')!;
+    const marteau = itemFromTrappingById('marteau-a-bec-de-corbin', idsDeTest)!;
     expect(marteau.subType).toBe('cavalerie');
     expect(marteau.hands).toBe(2);
     const onFoot = combatant({ items: [{ ...marteau, equipped: true }] });
@@ -166,8 +167,8 @@ const cac = (spec: string, advances: number): SkillInstance => ({ id: 'corps-a-c
 const qualitesManiees = (c: Combatant, w: Weapon) => resolveQualities(effectiveWeapon(w, { maniement: maniementRetenu(c, w, w.hands) })).map((q) => q.id).sort();
 
 describe('Arme de Cavalerie maniée à pied : Groupe de Corps à corps et Atouts du maniement', () => {
-  const sabre = (): Weapon => weaponFromItem(itemFromTrappingById('sabre')!);
-  const marteau = (): Weapon => weaponFromItem(itemFromTrappingById('marteau-a-bec-de-corbin')!);
+  const sabre = (): Weapon => weaponFromItem(itemFromTrappingById('sabre', idsDeTest)!);
+  const marteau = (): Weapon => weaponFromItem(itemFromTrappingById('marteau-a-bec-de-corbin', idsDeTest)!);
   const taillade = (c: Combatant, w: Weapon) =>
     effectiveWeapon(w, { maniement: maniementRetenu(c, w, w.hands) }).qualities.find((q) => q.id === 'taillade')?.value;
 
@@ -233,7 +234,7 @@ describe('Arme de Cavalerie maniée à pied : Groupe de Corps à corps et Atouts
 /** AA 08 l.343 */
 describe('Épée bâtarde à une main avec Corps à Corps (Base) : Épuisante et Lente', () => {
   const porteur = (skills: SkillInstance[], ids = ['epee-batarde', 'bouclier']): Combatant => {
-    const c = combatant({ skills, items: ids.map((id) => ({ ...itemFromTrappingById(id)!, equipped: true })) });
+    const c = combatant({ skills, items: ids.map((id) => ({ ...itemFromTrappingById(id, idsDeTest)!, equipped: true })) });
     recomputeLoadout(c);
     return c;
   };
@@ -288,7 +289,7 @@ describe('Épée bâtarde à une main avec Corps à Corps (Base) : Épuisante et
   });
 
   it('hors de tout porteur, l’arme de catalogue reste à deux mains et dans son Groupe', () => {
-    const w = weaponFromItem(itemFromTrappingById('epee-batarde')!);
+    const w = weaponFromItem(itemFromTrappingById('epee-batarde', idsDeTest)!);
     expect(w.hands).toBe(2);
     expect(maniementRetenu(combatant({ skills: [cac('base', 10)] }), w, w.hands)).toBeUndefined();
   });
@@ -296,7 +297,7 @@ describe('Épée bâtarde à une main avec Corps à Corps (Base) : Épuisante et
 
 /** AA 08 l.194 ; AA 08 l.314 */
 describe('Arme d’escrime ou main gauche maniée en Corps à Corps (Base)', () => {
-  const arme = (id: string): Weapon => weaponFromItem(itemFromTrappingById(id)!);
+  const arme = (id: string): Weapon => weaponFromItem(itemFromTrappingById(id, idsDeTest)!);
 
   it.each([
     ['la seule Base : Test de Base, qualités de la rapière', [cac('base', 10)], 'base'],
@@ -311,7 +312,7 @@ describe('Arme d’escrime ou main gauche maniée en Corps à Corps (Base)', () 
 
   it('toute arme du Groupe Escrime, sans ligne par arme : le fleuret en Base', () => {
     const c = combatant({ skills: [cac('base', 10)] });
-    expect(itemFromTrappingById('fleuret')!.manieAussi).toBeUndefined();
+    expect(itemFromTrappingById('fleuret', idsDeTest)!.manieAussi).toBeUndefined();
     expect(attackTestOf(c, arme('fleuret'), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'base' } });
   });
 

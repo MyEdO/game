@@ -4,6 +4,7 @@
  * (`freeAttackWeapon` via `armeDeLaGratuite`).
  * LDB 85 l.387 ; LDB 85 l.237 ; LDB 85 l.47 — #1765.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { hoverTargeting } from './targeting';
@@ -28,7 +29,7 @@ const nomDeLaManoeuvre = (kind: string): string => attaqueNaturelle(TRAITS, kind
 
 /** Héros Énorme au contact d'un ennemi Moyen ; `tourDe` porte les traits et le tour. */
 function engage(tourDe: 'heros' | 'creature'): { H: Combatant; E: Combatant } {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
   g().ensemencerLeTirage(5);
   g().lancerLaScene(testScene());

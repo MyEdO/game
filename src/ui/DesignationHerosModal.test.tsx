@@ -3,6 +3,7 @@
  * Câblage de la DÉSIGNATION d'un héros (Effet `designerHeros`, EDO 02 l.91) : l'Effet ouvre la modale, le
  * clic sur un portrait pose l'état ; un héros mort n'y figure pas ; aucun geste de sortie.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
 import { act } from 'react';
 import { DesignationHerosModal } from './DesignationHerosModal';
@@ -23,7 +24,7 @@ const campaignNarratif = {
   ],
 };
 
-const heros = (label: string, seed: number) => ({ ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed }), id: `h-${seed}` });
+const heros = (label: string, seed: number) => ({ ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed }), id: `h-${seed}` });
 
 describe('DesignationHerosModal — clic sur un portrait → état posé', () => {
   it('l’Effet ouvre la modale ; le portrait du vivant pose l’état ; le mort n’est pas proposé', () => {

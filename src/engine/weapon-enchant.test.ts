@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { effectiveWeaponDamage } from './weaponDamage';
 import { recomputeLoadout, parseDamage, itemFromGive } from './items';
@@ -53,10 +54,10 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
     ['brise-epee', undefined, 'epee-de-justice', false],
     ['rapiere', undefined, 'epee-de-justice', true],
   ] as const)('forme résolue : %s (%s) sous %s → Magique %s', (trappingId, apparence, spellId, magique) => {
-    const item = itemFromGive({ trappingId, ...(apparence ? { apparence: { id: apparence } } : {}) });
+    const item = itemFromGive({ trappingId, ...(apparence ? { apparence: { id: apparence } } : {}) }, idsDeTest);
     const c = wielder(item);
     const sp = findSpellById(spellId)!;
-    const lignes = applyOps(c, spellOps(sp.effects, 'target'), {
+    const lignes = applyOps(c, spellOps(sp.effects, 'target'), { idNeuf: idsDeTest,
       rng: desDuTest, caster: c, label: sp.label, sourceSpellId: spellId,
       source: { kind: 'spell', id: spellId }, defaultDurationRounds: 4,
     });
@@ -70,7 +71,7 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
 
   it('B. de Droiture : l’arme tenue devient Magique (isMagicWeapon → touche l’Éthéré), objet non muté', () => {
     const c = wielder(weaponItem('w', 'Épée', '+BF+4'));
-    applyOps(c, [{ op: 'augmentWeapon', addQualities: ['magique'] }], { rng: desDuTest, label: 'Bénédiction de Droiture', defaultDurationRounds: 6 });
+    applyOps(c, [{ op: 'augmentWeapon', addQualities: ['magique'] }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Bénédiction de Droiture', defaultDurationRounds: 6 });
     expect(isMagicWeapon(c.weapons[0])).toBe(true); // arme active enchantée
     expect(heldEnchants(c)).toHaveLength(1); // l'enchant vit sur l'OBJET
     expect(c.items![0].qualities).toEqual([]); // les qualités de base de l'objet ne sont pas mutées
@@ -82,23 +83,23 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
     applyOps(fighter, [{
       op: 'augmentWeapon', addQualities: ['magique'], damageBonus: { bonusOf: 'sociabilite' },
       onHitEffects: [onHitFlow([{ op: 'condition', id: 'en-flammes' }, { op: 'condition', id: 'a-terre' }])],
-    }], { rng: desDuTest, label: 'Marteau ardent de Sigmar', caster: priest, defaultDurationRounds: 4 });
+    }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Marteau ardent de Sigmar', caster: priest, defaultDurationRounds: 4 });
     expect(effectiveWeaponDamage(fighter.weapons[0], { bf: 3, passif: 0 })).toBe(3 + 4 + 4); // BF 3 + arme 4 + BSoc 4 du prêtre
     expect(isMagicWeapon(fighter.weapons[0])).toBe(true);
     // L'onHit est replié sur l'arme (weapon.onHitEffects) ; exécuté par le dispatcher → 2 États sur la cible.
     const victim = dummy({ id: 'v' });
-    runPureFlowLines(victim, fighter, fighter.weapons[0].onHitEffects![0].flow, { rng: desDuTest });
+    runPureFlowLines(victim, fighter, fighter.weapons[0].onHitEffects![0].flow, { idNeuf: idsDeTest, rng: desDuTest });
     expect(victim.conditions.map((c) => c.id).sort()).toEqual(['en-flammes', 'a-terre'].sort());
   });
 
   it('Épée ardente de Rhuin : +6 et Percutante s’apposent, et l’enchantement EXPIRE (objet nettoyé)', () => {
     const c = wielder(weaponItem('w', 'Épée', '+BF+4'));
-    applyOps(c, [{ op: 'augmentWeapon', addQualities: ['percutante'], damageBonus: 6, onHitEffects: [onHitFlow([{ op: 'condition', id: 'en-flammes' }])] }], { rng: desDuTest,
+    applyOps(c, [{ op: 'augmentWeapon', addQualities: ['percutante'], damageBonus: 6, onHitEffects: [onHitFlow([{ op: 'condition', id: 'en-flammes' }])] }], { idNeuf: idsDeTest, rng: desDuTest,
       label: 'Épée ardente de Rhuin', defaultDurationRounds: 1,
     });
     expect(c.weapons[0].qualities.some((q) => q.id === 'percutante')).toBe(true);
     expect(effectiveWeaponDamage(c.weapons[0], { bf: 3, passif: 0 })).toBe(3 + 4 + 6);
-    endOfRound(c, desDuTest); // Round écoulé → dissipation
+    endOfRound(c, desDuTest, idsDeTest); // Round écoulé → dissipation
     expect(c.weapons[0].qualities.some((q) => q.id === 'percutante')).toBe(false);
     expect(effectiveWeaponDamage(c.weapons[0], { bf: 3, passif: 0 })).toBe(3 + 4);
     expect(heldEnchants(c)).toBeUndefined(); // enchant retiré de l'objet
@@ -106,11 +107,11 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
 
   it('Épée de justice : bypass « all » lie l’ÉPÉE tenue (requiresWeapon) ; un marteau tenu → fizzle', async () => {
     const { woundsFromHit } = await import('./combat');
-    const c = wielder({ ...itemFromGive({ trappingId: 'arme-simple' }), uid: 'w' });
-    applyOps(c, [{ op: 'augmentWeapon', requiresWeapon: ['epee'], addQualities: ['magique'], bypass: 'all' }], { rng: desDuTest, label: 'Épée de justice', defaultDurationRounds: 4 });
+    const c = wielder({ ...itemFromGive({ trappingId: 'arme-simple' }, idsDeTest), uid: 'w' });
+    applyOps(c, [{ op: 'augmentWeapon', requiresWeapon: ['epee'], addQualities: ['magique'], bypass: 'all' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Épée de justice', defaultDurationRounds: 4 });
     expect(c.weapons[0].bypass).toBe('all'); // épée tenue → enchantée
-    const hammerGuy = wielder({ ...itemFromGive({ trappingId: 'marteau-de-guerre' }), uid: 'w' }, { id: 'h' });
-    applyOps(hammerGuy, [{ op: 'augmentWeapon', requiresWeapon: ['epee'], addQualities: ['magique'], bypass: 'all' }], { rng: desDuTest, label: 'Épée de justice', defaultDurationRounds: 4 });
+    const hammerGuy = wielder({ ...itemFromGive({ trappingId: 'marteau-de-guerre' }, idsDeTest), uid: 'w' }, { id: 'h' });
+    applyOps(hammerGuy, [{ op: 'augmentWeapon', requiresWeapon: ['epee'], addQualities: ['magique'], bypass: 'all' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Épée de justice', defaultDurationRounds: 4 });
     expect(hammerGuy.weapons[0].bypass).toBeUndefined(); // pas d'épée tenue → fizzle
     expect(heldEnchants(hammerGuy)).toBeUndefined();
     const armored = dummy({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 5, jambeG: 0, jambeD: 0 } }); // 5 PA corps, BE 3
@@ -133,14 +134,14 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
     applyOps(c, [{
       op: 'augmentWeapon', addQualities: ['magique'],
       onHitEffects: [{ trigger: 'onHit', on: 'victim', flow: justiceTest }],
-    }], { rng: desDuTest, label: 'Épée de justice', defaultDurationRounds: 4 });
+    }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Épée de justice', defaultDurationRounds: 4 });
     const node = c.weapons[0].onHitEffects![0].flow;
     expect(node.kind).toBe('test');
     if (node.kind === 'test') {
       expect(node.test.skill).toEqual({ id: 'resistance' });
       expect(node.test.onlyGroups).toEqual(['criminel']); // gate porté par le FlowTest
     }
-    endOfRound(c, desDuTest); endOfRound(c, desDuTest); endOfRound(c, desDuTest); endOfRound(c, desDuTest);
+    endOfRound(c, desDuTest, idsDeTest); endOfRound(c, desDuTest, idsDeTest); endOfRound(c, desDuTest, idsDeTest); endOfRound(c, desDuTest, idsDeTest);
     expect(heldEnchants(c)).toBeUndefined(); // dissipé avec l'enchantement
   });
 });

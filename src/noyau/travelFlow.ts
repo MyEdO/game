@@ -1177,7 +1177,7 @@ function applyVehicleProblemToTravel(get: Get, set: Set, out: Pick<ForcedPaceDay
 function applyVehicleProblemEffects(get: Get, set: Set, entry: ReturnType<typeof rollVehicleProblem>, lines: string[]): { vehicleOut: boolean; vehicleLame: boolean } {
   const vehicle = get().travelPlan?.vehicle;
   if (!vehicle) return { vehicleOut: false, vehicleLame: false };
-  const r = applyVehicleProblem(vehicle, entry.min, battleRng());
+  const r = applyVehicleProblem(vehicle, entry.min, battleRng(), get().forgerUnId);
   lines.push(...r.lines);
   // Dégâts aux occupants (Cassé : 1 Blessure ignorant BE et PA ; Accident : 2d10 − BE − PA, min 1) —
   // langue unique GameOp, portée par la table (`occupantOps`).
@@ -1185,7 +1185,7 @@ function applyVehicleProblemEffects(get: Get, set: Set, entry: ReturnType<typeof
     const opLines: string[] = [];
     for (const h of get().party) {
       if (h.dead || h.outOfRencontre) continue;
-      opLines.push(...applyOps(h, r.entry.occupantOps, { rng: battleRng() }));
+      opLines.push(...applyOps(h, r.entry.occupantOps, { idNeuf: get().forgerUnId, rng: battleRng() }));
     }
     set({ party: [...get().party] });
     lines.push(...opLines);

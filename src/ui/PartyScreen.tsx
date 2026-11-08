@@ -1,3 +1,4 @@
+import { fabriqueLocale } from '../engine/fabriqueDId';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { emplacementsDuGroupe, nomDuSiege, siegesDeLaTable } from '../noyau/sieges';
 import { useGame, type GameState } from '../state/store';
@@ -627,7 +628,7 @@ export function CandidatePool({
   /** Ouvre le créateur (carte-action « Créer un personnage »). */
   onCreate?: () => void;
 }) {
-  const allPregens = useState(() => makePregensWithWealth())[0];
+  const allPregens = useState(() => makePregensWithWealth(fabriqueLocale('vivier')))[0]; // l'étal : le noyau rebâtit le pré-tiré engagé
   const [roster, setRoster] = useState(() => chargerLeRoster(stockageDuRoster()));
   const [tab, setTab] = useState<'roster' | 'pregens'>(roster.length ? 'roster' : 'pregens');
   const [importErr, setImportErr] = useState<string | null>(null);

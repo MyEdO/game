@@ -10,6 +10,7 @@
  * La loi n'est pas relue depuis l'implémentation : les attendus se RE-DÉRIVENT ici, de la couleur nue
  * du span × sa variance × le champ échantillonné à la position du sommet × la porte du modelé.
  */
+import { idsDeTest } from '../../../engine/idsDeTest.testkit';
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import {
@@ -26,7 +27,7 @@ import { tintOf, visibilityField } from './visibilityTint';
 import { scenario as arene } from '../../../scenes/test-scenarios/arene';
 import { buildVitrineScene } from '../../../scenes/vitrine-batiments';
 import { sceneMetresPerTile, type Scene } from '../../../noyau/monde/scene';
-const areneConstruit = arene.construire();
+const areneConstruit = arene.construire(idsDeTest);
 
 const scene = areneConstruit.scene;
 const mpt = sceneMetresPerTile(scene);

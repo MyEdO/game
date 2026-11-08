@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from '../engine/types';
 import { evalCondition, spellFlowFor } from '../engine/flowCore';
@@ -62,7 +63,7 @@ describe('Allure démoniaque — Flow end-to-end (RNG figé)', () => {
 
   it('Nurgle : sélectionne la colonne Nurgle, octroie le Trait AVEC Indice pour la durée du Sort', () => {
     const c = caster('nurgle');
-    runPureFlowLines(c, c, spellFlow(), { rng: fixed(3), caster: c, defaultDurationRounds: 3, label: 'Allure démoniaque' });
+    runPureFlowLines(c, c, spellFlow(), { idNeuf: idsDeTest, rng: fixed(3), caster: c, defaultDurationRounds: 3, label: 'Allure démoniaque' });
     const eff = (c.activeEffects ?? []).filter((e) => e.grantedTrait);
     expect(eff).toHaveLength(1); // die=3 → Nurgle 3 = Démoniaque (7)
     expect(eff[0].grantedTrait!.id).toBe('demoniaque');
@@ -72,7 +73,7 @@ describe('Allure démoniaque — Flow end-to-end (RNG figé)', () => {
 
   it('Tzeentch : colonne différente (die=1 → Souffle +9 (Feu))', () => {
     const c = caster('tzeentch');
-    runPureFlowLines(c, c, spellFlow(), { rng: fixed(1), caster: c, defaultDurationRounds: 3, label: 'Allure démoniaque' });
+    runPureFlowLines(c, c, spellFlow(), { idNeuf: idsDeTest, rng: fixed(1), caster: c, defaultDurationRounds: 3, label: 'Allure démoniaque' });
     const eff = (c.activeEffects ?? []).filter((e) => e.grantedTrait);
     expect(eff[0].grantedTrait!.id).toBe('souffle');
     expect(eff[0].grantedTrait!.value).toBe(9);
@@ -83,7 +84,7 @@ describe('Allure démoniaque — Flow end-to-end (RNG figé)', () => {
     // Un DR ≠ NI positif (ici SL=4) ne suffit PAS à multiplier les jets : le RAW couple « refaire un
     // jet » au pas de Surincantation ALLOUÉ à la Durée (choix du joueur), jamais au DR brut du Test.
     const c = caster('nurgle');
-    runPureFlowLines(c, c, spellFlow(), { rng: fixed(3), caster: c, sl: 4, defaultDurationRounds: 3, label: 'Allure démoniaque' });
+    runPureFlowLines(c, c, spellFlow(), { idNeuf: idsDeTest, rng: fixed(3), caster: c, sl: 4, defaultDurationRounds: 3, label: 'Allure démoniaque' });
     expect((c.activeEffects ?? []).filter((e) => e.grantedTrait)).toHaveLength(1);
   });
 
@@ -91,7 +92,7 @@ describe('Allure démoniaque — Flow end-to-end (RNG figé)', () => {
     const c = caster('nurgle');
     // `defaultDurationRounds` porte ici la durée DÉJÀ prolongée par l'allocation (calculée par `overcastDurationParts`
     // côté `applyCast`, hors périmètre de ce Flow pur) — seule la multiplicité des jets est sous test.
-    runPureFlowLines(c, c, spellFlow(), { rng: fixed(3), caster: c, overcastDurationSteps: 2, defaultDurationRounds: 9, label: 'Allure démoniaque' });
+    runPureFlowLines(c, c, spellFlow(), { idNeuf: idsDeTest, rng: fixed(3), caster: c, overcastDurationSteps: 2, defaultDurationRounds: 9, label: 'Allure démoniaque' });
     const eff = (c.activeEffects ?? []).filter((e) => e.grantedTrait);
     expect(eff).toHaveLength(3); // 1 + 2 pas
     expect(eff.every((e) => e.duration)).toBe(true);
@@ -100,7 +101,7 @@ describe('Allure démoniaque — Flow end-to-end (RNG figé)', () => {
 
   it('rangée Mutation (Nurgle 8) → mutation attachée POUR LA DURÉE DU SORT (EDOC 13 l.276-277)', () => {
     const c = caster('nurgle');
-    runPureFlowLines(c, c, spellFlow(), { rng: fixed(8), caster: c, defaultDurationRounds: 3, label: 'Allure démoniaque' });
+    runPureFlowLines(c, c, spellFlow(), { idNeuf: idsDeTest, rng: fixed(8), caster: c, defaultDurationRounds: 3, label: 'Allure démoniaque' });
     expect((c.mutations ?? []).length).toBe(1); // die=8 → Nurgle 8 = Mutation → rollMutation edoc-phys-nurgle
     const eff = (c.activeEffects ?? []).filter((e) => e.grantedMutation);
     expect(eff).toHaveLength(1); // porteur temporisé (≠ Corruption permanente)
@@ -109,7 +110,7 @@ describe('Allure démoniaque — Flow end-to-end (RNG figé)', () => {
 
   it('lanceur sans Domaine du Chaos → aucun effet (no-op propre, jamais un mauvais Trait)', () => {
     const c = caster();
-    const lines = runPureFlowLines(c, c, spellFlow(), { rng: fixed(3), caster: c, defaultDurationRounds: 3, label: 'Allure démoniaque' });
+    const lines = runPureFlowLines(c, c, spellFlow(), { idNeuf: idsDeTest, rng: fixed(3), caster: c, defaultDurationRounds: 3, label: 'Allure démoniaque' });
     expect(lines).toEqual([]);
     expect((c.activeEffects ?? []).filter((e) => e.grantedTrait)).toHaveLength(0);
     expect((c.mutations ?? []).length).toBe(0);

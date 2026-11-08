@@ -3,6 +3,7 @@
  * schéma refuse ce qu'aucune pose ne peut nommer, l'upsert ne garde d'une entrée que ce que la pose ne
  * redit pas (#1463, #3045). Entrées de donnée choisies par leur forme, jamais par leur nom.
  */
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import {
   psychBranchOps, sousPeur, isAfflictionActive, endEncounterPsych, type PsychAffliction, type PsychType,
@@ -22,7 +23,7 @@ const porteur = (psychState: PsychAffliction[] = []): Combatant => (blessuresSur
 }) as unknown as Combatant);
 
 const devenant = psychologies.find((p) => !!p.becomes);
-const devenue = psychologies.find((p) => p.id === devenant?.becomes);
+const devenue = psychologies.find((p) => p.id === devenant?.becomes?.id);
 const etendue = psychologies.find((p) => p.resolution === 'extended');
 const ciblee = psychologies.find((p) => p.cibles && !p.targetCauses);
 const nonCiblee = psychologies.find((p) => !p.cibles && !p.becomes);
@@ -84,7 +85,7 @@ describe('upsert de la pose (LDB 21 l.9, l.25, l.54-56)', () => {
 
   it('une pose d’auteur remet sous la Peur une Peur surmontée, et son Test étendu repart de zéro', () => {
     const c = porteur([{ type: type(), indice: 2, calmeDR: 2, surmontee: true }]);
-    applyOps(c, [opPsy.pose(type(), { indice: 2 })], { rng: desDuTest });
+    applyOps(c, [opPsy.pose(type(), { indice: 2 })], { idNeuf: idsDeTest, rng: desDuTest });
     expect(c.psychState).toHaveLength(1);
     expect(sousPeur(c.psychState![0])).toBe(true);
     expect(c.psychState![0].calmeDR).toBeUndefined();
@@ -92,14 +93,14 @@ describe('upsert de la pose (LDB 21 l.9, l.25, l.54-56)', () => {
 
   it('une pose d’auteur sur une entrée née d’un Test n’est pas bornée à la rencontre', () => {
     const c = porteur([{ type: type(), indice: 2, fromTest: true }]);
-    applyOps(c, [opPsy.pose(type(), { indice: 2 })], { rng: desDuTest });
+    applyOps(c, [opPsy.pose(type(), { indice: 2 })], { idNeuf: idsDeTest, rng: desDuTest });
     endEncounterPsych(c);
     expect(c.psychState).toHaveLength(1);
   });
 
   it('la Peur héritée, fusionnée sur une entrée née d’un Test de même source, garde la mémoire « déjà affrontée »', () => {
     const c = porteur([{ type: devenue!.id as PsychType, sourceId: 'src', indice: 1, calmeDR: 0, surmontee: false, fromTest: true }]);
-    applyOps(c, psychBranchOps({ kind: devenant!.id as PsychType, sourceId: 'src', indice: 3 }, { success: true }), { rng: desDuTest, sl: 1 });
+    applyOps(c, psychBranchOps({ kind: devenant!.id as PsychType, sourceId: 'src', indice: 3 }, { success: true }), { idNeuf: idsDeTest, rng: desDuTest, sl: 1 });
     expect(c.psychState).toHaveLength(1);
     expect(c.psychState![0].fromTest).toBeUndefined();
     endEncounterPsych(c);
@@ -108,19 +109,19 @@ describe('upsert de la pose (LDB 21 l.9, l.25, l.54-56)', () => {
 
   it('la pose d’un Test garde sa provenance et son cumul', () => {
     const c = porteur();
-    applyOps(c, psychBranchOps({ kind: type(), sourceId: 'src', indice: 3 }, { success: false, calmeDR: 1, surmontee: false }), { rng: desDuTest });
+    applyOps(c, psychBranchOps({ kind: type(), sourceId: 'src', indice: 3 }, { success: false, calmeDR: 1, surmontee: false }), { idNeuf: idsDeTest, rng: desDuTest });
     expect(c.psychState![0]).toMatchObject({ fromTest: true, calmeDR: 1, surmontee: false });
   });
 
   it('une pose d’auteur d’un Trait ciblé le fait subir', () => {
     const c = porteur();
-    applyOps(c, [opPsy.pose(ciblee!.id, { cible: ciblePsy.groupe(groupe.id) })], { rng: desDuTest });
+    applyOps(c, [opPsy.pose(ciblee!.id, { cible: ciblePsy.groupe(groupe.id) })], { idNeuf: idsDeTest, rng: desDuTest });
     expect(isAfflictionActive(c.psychState![0])).toBe(true);
   });
 
   it('une pose ciblée qui dit `active: false` reste un marqueur résisté', () => {
     const c = porteur();
-    applyOps(c, [opPsy.pose(ciblee!.id, { cible: ciblePsy.groupe(groupe.id), active: false })], { rng: desDuTest });
+    applyOps(c, [opPsy.pose(ciblee!.id, { cible: ciblePsy.groupe(groupe.id), active: false })], { idNeuf: idsDeTest, rng: desDuTest });
     expect(isAfflictionActive(c.psychState![0])).toBe(false);
   });
 });

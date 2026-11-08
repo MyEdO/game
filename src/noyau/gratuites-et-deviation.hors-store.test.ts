@@ -2,6 +2,7 @@
  * Les gratuites d'un tour survivent à une étape de Blessure critique (#1595 7d, #1858) : LDB 63 l.30 ;
  * LDB 16 l.139 ; LDB 85 l.41-43.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { aiCreatureFreeAttacks } from './combatFlow';
@@ -21,7 +22,7 @@ const harnois = (): ItemInstance =>
   ({ uid: 'harnois', name: 'Harnois', kind: 'armor', equipped: true, pa: 3, locs: [...LIEUX], qualities: [] } as unknown as ItemInstance);
 
 function monte() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');

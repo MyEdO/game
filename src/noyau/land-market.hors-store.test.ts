@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -57,7 +58,7 @@ const landMap: WorldMap = {
 };
 
 function freshState(withCarrier = true) {
-  const party = makePregens().slice(0, 3);
+  const party = makePregens(idsDeTest).slice(0, 3);
   const possessions: Possession[] = withCarrier ? [dili(party[0].id)] : [];
   banc.setState({
     party, possessions,

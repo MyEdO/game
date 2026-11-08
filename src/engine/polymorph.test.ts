@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { polymorphOps } from './polymorph';
 import { applyOps } from './ops';
@@ -27,7 +28,7 @@ describe('polymorphOps — Forme bestiale (Ours)', () => {
   it('remplace F/E/Ag/Dex par celles de l’Ours et accorde ses Traits (sauf Bestial)', () => {
     const ours = findCreatureById('ours')!;
     const c = dummy({});
-    applyOps(c, polymorphOps(c, 'ours'), { rng: desDuTest, label: 'Forme bestiale', defaultDurationRounds: 3 });
+    applyOps(c, polymorphOps(c, 'ours'), { idNeuf: idsDeTest, rng: desDuTest, label: 'Forme bestiale', defaultDurationRounds: 3 });
     expect(effectiveChar(c, 'force')).toBe(ours.char.force); // 55
     expect(effectiveChar(c, 'endurance')).toBe(ours.char.endurance); // 45
     expect(effectiveChar(c, 'agilite')).toBe(ours.char.agilite); // 25
@@ -37,8 +38,8 @@ describe('polymorphOps — Forme bestiale (Ours)', () => {
 
   it('reprend sa vraie forme à l’expiration (Caractéristiques restaurées, Traits retirés)', () => {
     const c = dummy({});
-    applyOps(c, polymorphOps(c, 'Ours'), { rng: desDuTest, label: 'Forme bestiale', defaultDurationRounds: 1 });
-    endOfRound(c, desDuTest); // 1 Round écoulé → l'effet expire
+    applyOps(c, polymorphOps(c, 'Ours'), { idNeuf: idsDeTest, rng: desDuTest, label: 'Forme bestiale', defaultDurationRounds: 1 });
+    endOfRound(c, desDuTest, idsDeTest); // 1 Round écoulé → l'effet expire
     expect(effectiveChar(c, 'force')).toBe(30); // base restaurée
     expect(effectiveChar(c, 'agilite')).toBe(40);
     expect(hasTraitKey(c.traits, 'morsure')).toBe(false); // Trait retiré
@@ -54,17 +55,17 @@ describe('polymorphOps — Blessures recalculées sur le profil ET la Taille de 
   ] as const)('%s : 10/14 → maximum %i, 4 Points perdus conservés ; la fin du Sort rend 10/14', (ref, max) => {
     const c = dummy();
     c.wounds = { ...c.wounds, current: 10 };
-    applyOps(c, polymorphOps(c, ref), { rng: desDuTest, label: 'Forme bestiale', defaultDurationRounds: 1 });
+    applyOps(c, polymorphOps(c, ref), { idNeuf: idsDeTest, rng: desDuTest, label: 'Forme bestiale', defaultDurationRounds: 1 });
     expect(c.wounds).toEqual({ current: max - 4, max, ecart: 1 });
-    endOfRound(c, desDuTest);
+    endOfRound(c, desDuTest, idsDeTest);
     expect(c.wounds).toEqual({ current: 10, max: 14, ecart: 1 });
   });
 
   it('un Trait Nuée accordé multiplie par 5 les Blessures d’une créature type, écart du livre compris (LDB 85 l.253)', () => {
     const c = dummy();
-    applyOps(c, [{ op: 'grantTrait', trait: { id: 'nuee' } }], { rng: desDuTest, label: 'Nuée', defaultDurationRounds: 1 });
+    applyOps(c, [{ op: 'grantTrait', trait: { id: 'nuee' } }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Nuée', defaultDurationRounds: 1 });
     expect(c.wounds).toEqual({ current: (13 + 1) * 5, max: (13 + 1) * 5, ecart: 1 });
-    endOfRound(c, desDuTest);
+    endOfRound(c, desDuTest, idsDeTest);
     expect(c.wounds).toEqual({ current: 14, max: 14, ecart: 1 });
   });
 });

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { emptyScene, tileAt, type Scene } from '../../noyau/monde/scene';
 import { terrainSolidHeightM } from '../../noyau/monde/terrain';
@@ -7,7 +8,7 @@ import type { Dims } from '../../geometry/iso';
 import { wallLayerObjs, wallTraitObjs } from './layers';
 import { scenario as entrainement } from '../../scenes/test-scenarios/entrainement';
 import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
-const entrainementConstruit = entrainement.construire();
+const entrainementConstruit = entrainement.construire(idsDeTest);
 
 /**
  * Couche des MURS au trait (plan de station, aperçu d'éditeur). Les couches de SOLS et de TOITS

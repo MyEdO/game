@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { buildFloors } from './floors';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../../scenes/campaign';
@@ -22,7 +23,7 @@ import { matieresDe } from '../../../data';
 
 /** Toutes les scènes LIVRÉES : un scénario du registre porte sa scène, une campagne les siennes. */
 const scenesLivrees = (): { nom: string; scene: Scene }[] => [
-  ...testScenarios.map((s) => ({ nom: `scenario:${s.id}`, scene: s.construire().scene })),
+  ...testScenarios.map((s) => ({ nom: `scenario:${s.id}`, scene: s.construire(idsDeTest).scene })),
   ...allBuiltinCampaigns.flatMap((c) => paquetDuJeu(c).scenes.map((scene) => ({ nom: `campagne:${c.id}/${scene.id}`, scene }))),
 ];
 

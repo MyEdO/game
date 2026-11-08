@@ -16,6 +16,7 @@
  * aucune fin de partie ; elle nomme en revanche l'image de celui qui « roule sous la table » (l.88),
  * d'où l'arrêt anticipé sur un joueur Inconscient.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -45,7 +46,7 @@ const CEREVIS = findTavernGameById('cerevis')!;
 const OPPONENT = 40;
 
 function seul(): Combatant {
-  const a = makePregens()[0] as Combatant;
+  const a = makePregens(idsDeTest)[0] as Combatant;
   banc.setState({ battle: null, party: [a], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   return get().party[0];
 }
@@ -135,7 +136,7 @@ describe('Le Cerevis — la donnée porte la règle, et dit ce qui est maison', 
   });
 
   it('héros CONTRE héros : CHAQUE rangée de la bande porte SA seconde lecture', () => {
-    const [a, b] = makePregens() as Combatant[];
+    const [a, b] = makePregens(idsDeTest) as Combatant[];
     banc.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     get().jouerALaTaverne({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     const bande = get().pendingCascade!.participants[0];

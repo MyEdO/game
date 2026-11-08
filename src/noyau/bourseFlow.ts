@@ -5,6 +5,7 @@
  * une ALLOCATION sur une ou plusieurs bourses — la bande peut se cotiser (`payWithAllocation`), le
  * bénéficiaire d'un achat est INDÉPENDANT des payeurs. Miroir de `creditPartyMoney`/`merchantFlow`.
  */
+import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { Combatant, ItemInstance } from '../engine/types';
 import { add as moneyAdd, subtract as moneySub, canAfford, toBrass, fromBrass, formatMoney, type Money } from '../engine/money';
 import { bourseInstanceOf, bourseOf, withBourseMoney } from '../engine/bourse';
@@ -51,11 +52,11 @@ export function condCtx(get: Get<Jeu>): ConditionCtx {
 
 /** Pose les Bourses : le montant se calcule UNE fois sur l'acteur lu (`actorIn`), l'instance Bourse
  *  se garantit UNE fois, puis la même s'écrit sur chaque copie (contrat d'`ecrireActeur`, #2312). */
-function ecrireBourses(s: Jeu, montants: Record<string, (actuel: Money) => Money>): ReturnType<typeof ecrireActeur> {
+function ecrireBourses(s: Jeu, idNeuf: FabriqueDId, montants: Record<string, (actuel: Money) => Money>): ReturnType<typeof ecrireActeur> {
   const bourses: Record<string, ItemInstance> = {};
   for (const [id, montant] of Object.entries(montants)) {
     const lu = actorIn(s, id);
-    const bourse = lu && bourseInstanceOf(withBourseMoney(lu, montant(bourseOf(lu))));
+    const bourse = lu && bourseInstanceOf(withBourseMoney(lu, montant(bourseOf(lu)), idNeuf));
     if (bourse) bourses[id] = bourse;
   }
   return ecrireActeur(s, Object.keys(bourses), (h) => {
@@ -67,15 +68,15 @@ function ecrireBourses(s: Jeu, montants: Record<string, (actuel: Money) => Money
 }
 
 /** Crédite la Bourse d'UN héros (atomique, jamais refusée — créditer ne peut pas échouer). */
-export function creditBourse(_get: Get, set: Set, heroId: string, m: Money): void {
-  set((s) => ecrireBourses(s, { [heroId]: (actuel) => moneyAdd(actuel, m) }));
+export function creditBourse(get: Get, set: Set, heroId: string, m: Money): void {
+  set((s) => ecrireBourses(s, get().forgerUnId, { [heroId]: (actuel) => moneyAdd(actuel, m) }));
 }
 
 /** Débite la Bourse d'UN héros — refusé (aucune mutation) si insolvable. Renvoie le succès. */
 export function debitBourse(get: Get, set: Set, heroId: string, m: Money): boolean {
   const hero = actorIn(get(), heroId);
   if (!hero || !canAfford(bourseOf(hero), m)) return false;
-  set((s) => ecrireBourses(s, { [heroId]: (actuel) => moneySub(actuel, m)! }));
+  set((s) => ecrireBourses(s, get().forgerUnId, { [heroId]: (actuel) => moneySub(actuel, m)! }));
   return true;
 }
 
@@ -101,7 +102,7 @@ export function payWithAllocation(
     const hero = actorIn(get(), heroId);
     if (!hero || !consent(heroId) || !canAfford(bourseOf(hero), m)) return false;
   }
-  set((s) => ecrireBourses(s, Object.fromEntries(Object.entries(opts.debits).map(([id, m]) => [id, (actuel: Money) => moneySub(actuel, m)!]))));
+  set((s) => ecrireBourses(s, get().forgerUnId, Object.fromEntries(Object.entries(opts.debits).map(([id, m]) => [id, (actuel: Money) => moneySub(actuel, m)!]))));
   return true;
 }
 
@@ -157,7 +158,7 @@ export function distributeCredit(get: Get, set: Set, m: Money, allocation?: Reco
   const party = get().party;
   if (!party.length) return;
   const alloc = allocation ?? perHead(party, m);
-  set((s) => ecrireBourses(s, Object.fromEntries(Object.entries(alloc).map(([id, m]) => [id, (actuel: Money) => moneyAdd(actuel, m)]))));
+  set((s) => ecrireBourses(s, get().forgerUnId, Object.fromEntries(Object.entries(alloc).map(([id, m]) => [id, (actuel: Money) => moneyAdd(actuel, m)]))));
 }
 
 /** Allocation « un seul payeur » (achat personnel) — utilitaire pour `payWithAllocation`. */

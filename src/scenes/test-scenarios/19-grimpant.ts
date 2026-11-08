@@ -50,6 +50,6 @@ export const scenario: TestScenario = {
     "vitesse pleine — pathing (`reachable`/`pathTo`, `MoveEnv.traverse`) et IA (`chooseEnemyAction`) " +
     "exploitent l'arête automatiquement ; le groupe (hors du Talent Grimpeur) reste bloqué en bas.",
   partyNote: 'Chasseur solo, posté sur le plateau (hors d’atteinte au sol).',
-  construire: () => ({ party: pregenParty(PREGEN.chasseur), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: pregenParty(idNeuf, PREGEN.chasseur), scene: construireScene() }),
   autoCombat: 'enc-grimpant',
 };

@@ -10,6 +10,7 @@
  * retardataire décale la variation de Distance d'EXACTEMENT (DR du deuxième plus lent − DR du plus
  * lent). Les deux lignes de journal (manche, puis recalcul) le donnent à l'unité près.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -25,9 +26,9 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function heroes(): Combatant[] {
-  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
-  const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brun', seed: 2 });
-  const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Cott', seed: 3 });
+  const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
+  const b = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brun', seed: 2 });
+  const c = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Cott', seed: 3 });
   // Mouvements ÉGAUX : aucun DR de vitesse (l.105-108) ne vient troubler l'arithmétique mesurée ici ;
   // le plus lent se départage alors au DR de la manche (`pursuitLaggard`).
   for (const h of [a, b, c]) h.movement = 4;

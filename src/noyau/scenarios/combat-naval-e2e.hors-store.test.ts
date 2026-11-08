@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { lancerLeScenario } from '../lancementDeScenario';
@@ -31,7 +32,7 @@ const COGUE = 'enemy-enc-naval-0';
  *  attente sur le banc, qui ne les reprend pas : on PILOTE le combat pas à pas (jets déterministes). */
 function launch(seed = 7): BattleState {
   seedBattleRng(seed);
-  lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(scen));
+  lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(scen, idsDeTest));
   if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('roundStart');
   return banc.getState().battle!;
 }

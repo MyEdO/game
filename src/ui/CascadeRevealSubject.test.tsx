@@ -5,6 +5,7 @@
  *  le CONCERNÉ (`RevealEntry.subjectId`) porte son portrait dans la fenêtre — contrat de
  *  `RevealEntry.subjectId` (noyau/pendings.ts) : « on sait toujours à qui ça s'applique ».
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
@@ -23,7 +24,7 @@ beforeAll(() => {
 let host: HTMLDivElement;
 let root: Root;
 
-const HERO = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 1 });
+const HERO = () => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 1 });
 
 /** Ouvre une séquence d'affichage à UNE étape portant l'entrée bâtie par `make` (forme exacte de
  *  `revealToStep` : `actorId` = le sujet). */

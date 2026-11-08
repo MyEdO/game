@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { emptyScene, type Scene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -55,7 +56,7 @@ function drainerChutes(): (readonly [string | undefined, unknown])[] {
 describe('franchirLArete, chute — exploration, un tombant', () => {
   let H = '';
   beforeEach(() => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     H = hero.id;
     banc.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: top, scene: cliffScene(), pendingFall: null, pendingCascade: null });
   });
@@ -175,8 +176,8 @@ describe('franchirLArete, chute — exploration, le groupe tombe (EDO 01 l.231)'
   let A = '';
   let B = '';
   beforeEach(() => {
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
-    const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
+    const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const b = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
     A = a.id;
     B = b.id;
     banc.setState({ battle: null, party: [a, b], mode: 'exploration', partyPos: top, scene: cliffScene(), pendingFall: null, pendingCascade: null, journal: [] });
@@ -259,7 +260,7 @@ describe('franchirLArete, chute — combat', () => {
   });
 
   function setup(atPos = top) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

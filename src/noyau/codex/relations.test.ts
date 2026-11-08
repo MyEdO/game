@@ -54,10 +54,10 @@ describe('relations — graphe inverse id-based', () => {
   it('lieux : tout `parent` est un id qui RÉSOUT (migration id-based, zéro orphelin)', () => {
     for (const l of locations) {
       expect(typeof l.id, l.label).toBe('string');
-      if (l.parent) expect(findLocationById(l.parent), `${l.label} → parent ${l.parent}`).toBeTruthy();
+      if (l.parent) expect(findLocationById(l.parent.id), `${l.label} → parent ${l.parent.id}`).toBeTruthy();
     }
     // Au moins un lieu-parent expose ses sous-lieux (inversion vivante).
-    const parent = locations.find((l) => locations.some((c) => c.parent === l.id));
+    const parent = locations.find((l) => locations.some((c) => c.parent?.id === l.id));
     expect(parent && reverseGroups('locations', parent.id).some((g) => g.category === 'locations')).toBe(true);
   });
 

@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { effectiveWeaponDamage, effectiveRange, applyAmmoMod, effectiveWeaponRange, isImprovised, damageWeapon, effectiveWeapon, improvisedProfile, solideSaveThreshold } from './weaponDamage';
 import { recomputeLoadout, damageString, itemFromTrappingById, weaponFromItem } from './items';
@@ -10,7 +11,7 @@ const bow = (over: Partial<Weapon> = {}): Weapon => ({ label: 'Arc', type: 'rang
 /** LDB 62 l.58 ; AA 08 l.212 */
 describe('profil hors Charge des armes nées au catalogue', () => {
   it.each(['lance-de-cavalerie', 'demi-lance-de-cavalerie'])('%s déclare sa capacité et la projette', (id) => {
-    const item = itemFromTrappingById(id)!;
+    const item = itemFromTrappingById(id, idsDeTest)!;
     const arme = weaponFromItem(item);
     expect(item.capabilities?.improvisedWithoutCharge).toBe(true);
     expect(arme.capabilities?.improvisedWithoutCharge).toBe(true);
@@ -199,7 +200,7 @@ describe('improvisedProfile — profil LU dans la donnée (`arme-improvisee`)', 
   it('les 4 branches improvisées d’`effectiveWeapon` rendent TOUTES ce même profil de donnée', () => {
     const ref = improvisedProfile(sword());
     const usure = effectiveWeapon(sword({ damageTaken: 9 }));                                   // l.178
-    const lance = effectiveWeapon(weaponFromItem(itemFromTrappingById('lance-de-cavalerie')!), { charged: false }); // l.59
+    const lance = effectiveWeapon(weaponFromItem(itemFromTrappingById('lance-de-cavalerie', idsDeTest)!), { charged: false }); // l.59
     const contact = effectiveWeapon(sword({ reach: 'Longue' }), { auContact: true });            // l.176
     const funnel = effectiveWeapon(sword(), { improvised: true });                               // ADE II 8 l.249
     for (const eff of [usure, lance, contact, funnel]) {

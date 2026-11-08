@@ -1,3 +1,4 @@
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
@@ -18,22 +19,22 @@ import type { Scene } from '../../noyau/monde/scene';
  */
 /** Quatre héros, chacun à son POSTE de voyage (Étapes EDOC) ; Greta cumule le « mauvais état » qui fait
  *  parler le bilan de nuit (blessée, sans rations, Vérole contagieuse, cauchemars). */
-function groupe(): Combatant[] {
+function groupe(idNeuf: FabriqueDId): Combatant[] {
   // Chasseur — Plein air (Survie) : sa réussite dispense le groupe d'Exposition. Porte les rations du groupe.
-  const bjorn = createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Bjorn (test)', motivation: 'Test', seed: 2401, id: 'bjorn' });
+  const bjorn = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Bjorn (test)', motivation: 'Test', seed: 2401, id: 'bjorn' });
   bjorn.travelRole = { activityId: 'plein-air' };
   renforcerCompetence(bjorn, 'survie-en-exterieur', 60);
-  bjorn.items = [...(bjorn.items ?? []), itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(bjorn))!, itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(bjorn))!, itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(bjorn))!];
+  bjorn.items = [...(bjorn.items ?? []), itemFromTrappingById('ration', idNeuf, undefined, contexteDeNaissanceDObjet(bjorn))!, itemFromTrappingById('ration', idNeuf, undefined, contexteDeNaissanceDObjet(bjorn))!, itemFromTrappingById('ration', idNeuf, undefined, contexteDeNaissanceDObjet(bjorn))!];
   bjorn.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
 
   // Éclaireuse — Rester aux aguets (Perception) : le groupe ne peut être surpris cette Étape.
-  const mira = createHero({ speciesId: 'humains-reiklander', careerId: 'eclaireur', label: 'Mira (test)', motivation: 'Test', seed: 2402, id: 'mira' });
+  const mira = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'eclaireur', label: 'Mira (test)', motivation: 'Test', seed: 2402, id: 'mira' });
   mira.travelRole = { activityId: 'rester-aux-aguets' };
   renforcerCompetence(mira, 'perception', 50);
   mira.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F' };
 
   // Érudit — Établir des cartes (Métier Cartographe) : Test étendu cumulé ; PX pour l'Apprentissage (interlude).
-  const aldric = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Aldric (test)', motivation: 'Test', seed: 2403, id: 'aldric' });
+  const aldric = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Aldric (test)', motivation: 'Test', seed: 2403, id: 'aldric' });
   aldric.travelRole = { activityId: 'etablir-cartes' };
   renforcerCompetence(aldric, 'metier', 70, 'cartographe');
   aldric.xp = 300;
@@ -41,7 +42,7 @@ function groupe(): Combatant[] {
 
   // Soldate — Approvisionnement (Survie FAIBLE → Rencontres dangereuses) ET « mauvais état » : blessée,
   // SANS rations (faim RAW), Vérole Urticante contagieuse (LDB 20), cauchemars (Test de Calme/nuit).
-  const greta = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Greta Hartmann', motivation: 'Ramener sa compagnie vivante — quel qu’en soit le prix.', seed: 1502, id: 'greta' });
+  const greta = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Greta Hartmann', motivation: 'Ramener sa compagnie vivante — quel qu’en soit le prix.', seed: 1502, id: 'greta' });
   greta.travelRole = { activityId: 'approvisionnement' };
   renforcerCompetence(greta, 'survie-en-exterieur', 0);
   greta.wounds.current = Math.max(1, greta.wounds.max - 6);
@@ -222,8 +223,8 @@ export const scenario: TestScenario = {
     'les Activités d’Altdorf (ACE Annexe I : Pénitence, Entraînement inhabituel, Tester des objets, Mécénat, ' +
     'Recherche universitaire), gatées `where`, y deviennent atteignables.',
   partyNote: 'Bjorn (plein air) · Mira (aguets) · Aldric (cartographe, 300 PX) · Greta (fourrage faible, blessée, Vérole, cauchemars)',
-  construire: () => ({
-    party: groupe(),
+  construire: (idNeuf) => ({
+    party: groupe(idNeuf),
     scene: construireVillage(),
     extraScenes: [construireHameau(), construireBourg(), construireCite(), construireEmbuscade()],
     worldMap: construireCarte(),

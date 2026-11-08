@@ -6,6 +6,7 @@
  * (`preJetDeBatailleRendu`) est celle du jet posé, Soutien et Test combiné compris.
  * LDB 09 l.30, LDB 12 l.187-206, LDB 23 l.66-72, LDB 23 l.197, ADE II 8 l.65-106
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
@@ -34,7 +35,7 @@ const SORTS_DE_FEU = spells.filter((sp) => sp.family === 'arcane' && sp.subType 
 /** Le Vétéran (soldat), sorcier du Feu instruit en Savoir (Magie), forgeron, riche de 1000 PX, qui porte une arme inhabituelle, un artefact,
  *  une Peur et un Péché : chaque Activité du catalogue trouve sa cible. */
 function vétéran(seed = 1601, instruit = false): Combatant {
-  const h = withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed }), { gold: 20, silver: 0, brass: 0 });
+  const h = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed }), { gold: 20, silver: 0, brass: 0 }, idsDeTest);
   h.items = [...(h.items ?? []), COUTEAU_DE_HARALD, AMULETTE];
   h.psychTraits = [{ type: 'peur' }];
   h.sinPoints = 1;
@@ -206,7 +207,7 @@ describe('Pré-jet de préparation de bataille — la cible rendue par le volet 
   it('Planification soutenue par le Second : Savoir (Guerre) soutenu, cible rendue == cible posée', () => {
     const instruit = (h: Combatant, advances: number) => { h.skills.push({ id: 'savoir', spec: 'guerre', characteristic: 'intelligence', advances } as never); return h; };
     const meneur = instruit(vétéran(), 10);
-    const second = instruit(withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Second', seed: 1602 }), { gold: 1, silver: 0, brass: 0 }), 5);
+    const second = instruit(withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Second', seed: 1602 }), { gold: 1, silver: 0, brass: 0 }, idsDeTest), 5);
     const b = banc([meneur, second]);
     b.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
     b.actions.affecterLeHeros('planification', [meneur.id, second.id]);
@@ -223,7 +224,7 @@ describe('Pré-jet de préparation de bataille — la cible rendue par le volet 
   it.each(CARRIERES)('%s : chaque préparation tentable, Soutien, Test combiné et réservoir compris', (careerId) => {
     const i = CARRIERES.indexOf(careerId);
     const instruit = (id: string, seed: number): Combatant => {
-      const x = withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: id, label: id, seed }), { gold: 1, silver: 0, brass: 0 });
+      const x = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: id, label: id, seed }), { gold: 1, silver: 0, brass: 0 }, idsDeTest);
       x.skills.push({ id: 'savoir', spec: 'guerre', characteristic: 'intelligence', advances: 3 + (seed % 7) } as never);
       return x;
     };
@@ -278,7 +279,7 @@ describe('Pré-jet d’Activité — les `testMods` de la donnée entrent au pr�
 /** Une variante de fiche : brute, Exténuée, sans aucune Augmentation, ou sorcier forgeron dont un Métier non
  *  augmenté précède le bon. */
 function variante(careerId: string, seed: number, n: number): Combatant {
-  const h = withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId, label: careerId, seed }), { gold: 30, silver: 0, brass: 0 });
+  const h = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId, label: careerId, seed }), { gold: 30, silver: 0, brass: 0 }, idsDeTest);
   h.items = [...(h.items ?? []), COUTEAU_DE_HARALD, AMULETTE];
   h.psychTraits = [{ type: 'peur' }];
   h.sinPoints = 1;
@@ -370,7 +371,7 @@ describe('Pré-jet d’Activité — sur toute carrière et toute fiche, le vole
 
 describe('Revenus — la Compétence de carrière se tente (LDB 08 l.110, LDB 09 l.30)', () => {
   it('conseiller sans aucune Augmentation : le Test se joue sur une Compétence de Niveau 1 qu’il possède', () => {
-    const h = withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'conseiller', label: 'Conseiller', seed: 4001 }), { gold: 5, silver: 0, brass: 0 });
+    const h = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'conseiller', label: 'Conseiller', seed: 4001 }), { gold: 5, silver: 0, brass: 0 }, idsDeTest);
     h.skills = h.skills.map((k) => ({ ...k, advances: 0 }));
     const b = banc([h]);
     b.actions.pratiquerLActivite(h.id, 'revenus');

@@ -124,6 +124,6 @@ export const scenario: TestScenario = {
     'messager), `fall`+`inflictTrauma` (trappe vermoulue, repositionnement), `openCharacterCreator` (avis ' +
     'd’enrôlement : la création s’ouvre sur un héros neuf).',
   partyNote: 'Pré-tirés',
-  construire: () => ({ party: makePregens(), scene: construireVillage() }),
+  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireVillage() }),
   rules: { 'prayer-petites': true, 'psych-acquisition-optional': true },
 };

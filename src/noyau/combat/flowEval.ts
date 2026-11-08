@@ -19,7 +19,7 @@ import type { Flow } from '../../data/schemas/defs-scenes/effets';
  *  d'arène, sl/location/woundsDealt, verdict de Cible en vue…). `target` = le combattant visé ou qui jette
  *  (absent hors cible) ; `caster` = le porteur (`ctx.caster`). Toute clé d'`OpsCtx` lue par une Condition
  *  passe ICI, pour toutes les voies (cascade, inline, nœud `if` de `runCombatFlow`). */
-export function combatConditionCtx(c: Combatant | undefined, ctx: Omit<OpsCtx, 'rng'>): ConditionCtx {
+export function combatConditionCtx(c: Combatant | undefined, ctx: Omit<OpsCtx, 'rng' | 'idNeuf'>): ConditionCtx {
   return {
     flags: {}, gameTime: ctx.now ?? 0, party: c ? [c] : [], sl: ctx.sl,
     location: ctx.location, woundsDealt: ctx.woundsDealt, engagedAdvantageGap: ctx.engagedAdvantageGap, engagedAdvantageLead: ctx.engagedAdvantageLead,

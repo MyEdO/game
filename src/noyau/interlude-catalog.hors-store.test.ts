@@ -8,6 +8,7 @@
  *  - Mécénat : dépôt ≥ 5 CO, retrait par Test d'Évaluation (bandes payoutPct) ;
  *  - Recherche universitaire : mémorisation avec remise (achat immédiat).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
@@ -23,7 +24,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', () => {
   beforeEach(() => {
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     // Prière et Recherche sont avancées : le héros les a apprises pour tenter Pénitence et l'étude (LDB 09 l.30).
     a.skills.push({ id: 'priere', characteristic: 'sociabilite', advances: 5 }, { id: 'recherche', characteristic: 'intelligence', advances: 5 });
     banc.setState({ party: [a] });

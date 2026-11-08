@@ -11,6 +11,7 @@
  * Le porteur est un héros quelconque et le `kind` est synthétique : si l'un de ces cas ne tenait que
  * par un jeu de taverne, l'extension ne serait pas générique.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -28,7 +29,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const get = () => banc.getState();
 
 function hero() {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
   banc.setState({ party: [h], battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
   return get().party[0];
 }

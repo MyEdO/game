@@ -2,6 +2,7 @@
  * Lot 6 — Ciblage de Zone d'Effet (LDB 47 l.28), côté web : le clic du curseur de combat (`commitCursor`) sur une
  * cible hors de portée. Le reste se joue au banc du noyau (`src/noyau/zde-cast.hors-store.test.ts`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { pregen, PREGEN } from '../data/pregens';
@@ -9,7 +10,7 @@ import { spawnEnemy } from '../noyau/monde/spawn';
 import { currentTargetingMode } from '../noyau/targetingModes';
 
 function wiz() {
-  const w = pregen(PREGEN.sorcier);
+  const w = pregen(idsDeTest, PREGEN.sorcier);
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 10);
   w.spells = ['explosion', ...(w.spells ?? [])]; // Explosion : Projectile magique ZdE (LDB 47 l.453)

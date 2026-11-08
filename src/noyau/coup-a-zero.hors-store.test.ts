@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
@@ -34,7 +35,7 @@ const coque = (ref: string, id: string, current: number): Combatant => {
   return c;
 };
 const tireur = (): Combatant => {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Tireur', seed: 1 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Tireur', seed: 1 });
   h.pos = { x: 5, y: 5 };
   return h;
 };
@@ -119,7 +120,7 @@ describe('Personnage : Critique par les Blessures et Mort subite selon combat-aa
   beforeEach(() => { seedBattleRng(7); });
 
   const figurant = (current: number): Combatant => {
-    const f = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Figurant', seed: 2 });
+    const f = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Figurant', seed: 2 });
     f.id = 'fig'; f.kind = 'enemy'; f.important = false; f.pos = { x: 6, y: 5 };
     f.items = []; f.loadouts = undefined; f.activeLoadoutId = undefined; recomputeLoadout(f); // sans armure : aucune Déviation (LDB 63 l.30)
     f.wounds = { ...f.wounds, current };

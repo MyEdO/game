@@ -10,6 +10,7 @@
  * ne sélectionne l'entrée. `note` documente une exception explicite (maquette statique plutôt que
  * vivante) — jamais une exclusion silencieuse : la garde compte aussi les entrées notées.
  */
+import { fabriqueLocale } from '../../engine/fabriqueDId';
 import { tableTotale } from '../../lib/tableTotale';
 import { type ComponentType, type Dispatch, type SetStateAction, useRef, useState } from 'react';
 import { ScreenMeta } from '../ScreenMeta';
@@ -143,7 +144,7 @@ export const sectionsDEspeces = memoParVersion('species', (): PickGridSection[] 
 export const carriereExemple = memoParVersion('careers', () => careers.find((c) => c.id === 'agitateur') ?? careers[0]);
 export const niveauxDeLaCarriereExemple = memoParVersion(['careers', 'careerLevels'], () => levelsForCareer(carriereExemple().id));
 export const signeAstralExemple = memoParVersion('stars', () => stars[0]);
-export const herosExemples = memoParVersion('pregens', () => makePregens());
+export const herosExemples = memoParVersion('pregens', () => makePregens(fabriqueLocale('galerie')));
 export const herosExemple = () => herosExemples()[0];
 export const herosExempleB = () => herosExemples()[1] ?? herosExemples()[0];
 

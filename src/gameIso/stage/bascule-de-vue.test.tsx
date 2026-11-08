@@ -12,6 +12,7 @@
  *  4. les quads SURVIVENT — la bascule ne change pas la population des billboards du décor : aucun
  *     quad perdu.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -115,7 +116,7 @@ afterEach(() => {
   useGame.setState({ povActive: false });
 });
 
-const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 7 });
+const HÉROS = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 7 });
 
 /** Scène d'ARÈNE : douze décors semés autour du groupe — assez de sujets pour qu'un remontage se
  *  voie ; aucune toiture, donc aucun décor sous espace dégagé (la population ne varie pas). */

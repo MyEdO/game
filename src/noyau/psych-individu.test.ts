@@ -3,6 +3,7 @@
  * Une Cible `@id` vise le combattant de cet id et lui seul, de tout `kind`, à chaque lecteur.
  * Fiches fabriquées ; les entrées de donnée sont choisies par leur forme, jamais par leur nom.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import {
   ciblesDePulsion, psychBranchOps, psychImmuneToFrom, sansCiblesPsyInconnues, targetedTrigger, vise, sourceCombattant, type PsychType,
@@ -158,7 +159,7 @@ describe('le statbloc de scène à `@id` (EDOC 11 l.648), jusqu’à la rencontr
   it('le Test de Calme qu’il déclenche pose l’affliction envers l’individu, et lui seul', () => {
     const obs = mk('o', 'hero', { psychTraits: parsePsychTraits([pose('@p')]).psychTraits });
     const tt = targetedTrigger(obs, [sourceCombattant(mk('p', 'enemy'))])!;
-    applyOps(obs, psychBranchOps({ kind: tt.type, sourceId: tt.sourceId, cible: tt.cible, indice: 0 }, { success: false }), { rng: makeRNG(1) });
+    applyOps(obs, psychBranchOps({ kind: tt.type, sourceId: tt.sourceId, cible: tt.cible, indice: 0 }, { success: false }), { idNeuf: idsDeTest, rng: makeRNG(1) });
     expect(obs.psychState).toMatchObject([{ type: mixte!.id, cible: ciblePsy.individu('p'), active: true }]);
   });
 });

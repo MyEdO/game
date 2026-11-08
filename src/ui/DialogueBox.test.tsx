@@ -7,6 +7,7 @@
  * repo pour les tests interactifs (`createRoot`/`act`, cf. `EtatPanel.behavior.test.tsx`) —
  * `@testing-library` n'est pas une dépendance de ce dépôt.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, afterEach, beforeAll, beforeEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -160,7 +161,7 @@ describe('DialogueBox — la fenêtre suit l’état sans que la conversation bo
   let container: HTMLDivElement;
   let root: Root;
   const hero = (gold: number) =>
-    withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), { gold, silver: 0, brass: 0 });
+    withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), { gold, silver: 0, brass: 0 }, idsDeTest);
 
   beforeEach(() => {
     useGame.setState({

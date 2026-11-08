@@ -5,6 +5,7 @@
  * fenêtre et l'embuscade ne serait jamais dite. Mesuré sur le chemin RÉEL (`lancerLeCombat` d'une
  * rencontre `surprise: 'party'`, aucun pending forgé).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -29,7 +30,7 @@ const mot = () => host.querySelector('.combat-splash .display-title');
 
 /** Ouvre le combat de la fixture ; `surprise` rend la rencontre EMBUSQUÉE (le groupe est surpris). */
 function ouvrir(surprise?: 'party') {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   // Guetteur aveugle : l'opposition de Surprise est perdue quel que soit le dé.
   const guetteur = { ...hero, skills: [], characteristics: { ...hero.characteristics, initiative: 1 } };
   useGame.setState({ party: [guetteur] });

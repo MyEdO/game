@@ -3,6 +3,7 @@
  * écriture : le maximum des Blessures suit ses porteurs (LDB 05 l.1001, LDB 48 l.23), à chaque chemin de combattant
  * de l'état, et le courant suit le delta (LDB 48 l.27).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
@@ -38,7 +39,7 @@ describe('mutation de Corruption (LDB 19 l.76, l.83) : la transition réconcilie
   it('la dernière étape à table attache la mutation : le maximum et le courant du héros suivent', () => {
     setDataset('mutations', [...datasetArray('mutations'), { id: ID_DE_PORTEUR, type: 'mutations', label: 'Mutation de test', desc: '', kind: 'physique', passive: plus3() }] as never);
     setDataset('mutationTables', (datasetArray('mutationTables') as MutationTable[]).map((t) => ({ ...t, entries: [{ min: 1, max: 100, mutation: ID_DE_PORTEUR }] })) as never);
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 4 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 4 });
     h.corruption = 6;
     banc.setState({ party: [h] });
     const { max, current } = banc.getState().party[0].wounds;

@@ -3,6 +3,7 @@
  * SCOPED à la manœuvre (via `maneuverEffectsOf` + `applyTriggeredEffects`), chacun sous sa propre
  * Condition. LDB 85 l.47 ; LDB 85 l.405 ; LDB 85 l.213
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { applyFreeAttackEffects, applyWail } from './combatFlow';
 import { applyTriggeredEffects, maneuverEffectsOf } from './triggeredEffects';
@@ -102,7 +103,7 @@ describe('effets onHit des manœuvres de zone/action (data) — appliqués par l
 describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-aware)', () => {
   it('banshee ENNEMIE hurle sur le HÉROS → étape triggeredTest (after = 3 Assourdi), rejouée à la résolution', () => {
     seedBattleRng(5);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -146,7 +147,7 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
    */
   it('cible une créature de Groupe « mort-vivant » (Groupe déclaré seul, sans le Trait) — exclut le PORTEUR du Trait', () => {
     seedBattleRng(5);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -186,7 +187,7 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
    */
   it('un ALLIÉ vivant de la banshee, à portée, subit le hurlement (aucun camp) — l’émettrice non', () => {
     seedBattleRng(5);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

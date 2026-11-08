@@ -6,6 +6,7 @@
  * Chaque cas est mesuré OPTION OFF puis ON sur le MÊME appel : le volet OFF est la garde de
  * non-régression du Livre de base, le volet ON rougit si le point de lecture est débranché.
  */
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
 import { setRule, resetRule } from './policy';
 import { malevolentInfluenceSeverity, focusCriticalDR, dispelOwnSpellDR, malepierreDR, malepierreCharge, malepierreReserveOf, consumeMalepierre } from './magic';
@@ -210,7 +211,7 @@ describe('Malepierre — `LDB 46 l.173`, règle INCONDITIONNELLE du Livre de bas
 
 describe('Malepierre — réserve FINIE de NI (`VDM 02 l.165`, seul apport de l’option)', () => {
   const caster = (niReserve: number | undefined): Combatant => ({
-    items: [{ ...itemFromTrappingById('malepierre-brute')!, uid: 'u1', ...(niReserve != null ? { niReserve } : {}) }],
+    items: [{ ...itemFromTrappingById('malepierre-brute', idsDeTest)!, uid: 'u1', ...(niReserve != null ? { niReserve } : {}) }],
   } as unknown as Combatant);
 
   it('option OFF : réserve `Infinity` tant qu’un objet est porté — ARBITRAGE MAISON (`data/trappings.json` `maison`), `LDB 46 l.173` ne dit RIEN sur un épuisement', () => {

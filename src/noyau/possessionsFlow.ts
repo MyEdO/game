@@ -37,15 +37,9 @@ export function seedStartingPossessions(get: Get, set: Set): void {
   }
 }
 
-/** Attribue un `uid` `pos-N` par SCAN du registre (anti-collision — jamais un compteur-module, cf.
- *  `newUid`/`it-N` de `engine/items.ts` qui ne convient qu'aux items). Ajoute au registre, renvoie l'uid. */
+/** Ajoute `p` au registre sous un `uid` neuf (`forgerUnId`, #2907) ; renvoie l'uid. */
 export function ajouterLaPossession(get: Get, set: Set, p: PossessionInput): string {
-  const existing = get().possessions;
-  const maxN = existing.reduce((max, cur) => {
-    const m = /^pos-(\d+)$/.exec(cur.uid);
-    return m ? Math.max(max, Number(m[1])) : max;
-  }, 0);
-  const uid = `pos-${maxN + 1}`;
+  const uid = get().forgerUnId('pos');
   const full = { ...p, uid } as Possession;
   set((s) => ({ possessions: [...s.possessions, full] }));
   return uid;

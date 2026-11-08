@@ -4,6 +4,7 @@
  * est refusé, ET le dit, avant toute consommation ; avec son objet, le produit se boit. La raison est celle du
  * prédicat unique `opSansObjet`, que l'application des ops tait. LDB 16, MSRC 04 l.184-186
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -14,8 +15,8 @@ import type { Combatant } from '../engine/types';
 
 /** Un banc dont le Vétéran porte le produit `trappingId` (uid `produit`), sa fiche ajustée par `fiche`. */
 function avecLeProduit(trappingId: string, fiche: (h: Combatant) => void = () => {}): { banc: Banc; heroId: string } {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
-  h.items = [...(h.items ?? []), { ...itemFromTrappingById(trappingId)!, uid: 'produit' }];
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
+  h.items = [...(h.items ?? []), { ...itemFromTrappingById(trappingId, idsDeTest)!, uid: 'produit' }];
   fiche(h);
   return { banc: ouvrirLeBanc({ graine: 7, etat: { party: [h] } }), heroId: h.id };
 }

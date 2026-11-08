@@ -5,6 +5,7 @@
  *  · Cerevis, l.90 : le compte de chouettes, le plus bas l'emporte, sans cible ;
  *  · Alvatafl, l.20, l.25-28 : 48 nains contre 12 elfes, la cible d'un camp est plus de la moitié des pièces d'en face.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
@@ -19,7 +20,7 @@ const get = () => banc.getState();
 
 /** Un héros seul à la table lance `gameId` face à un habitué de la salle ; rend le tableau. */
 function partie(gameId: string) {
-  const a = makePregens()[0] as Combatant;
+  const a = makePregens(idsDeTest)[0] as Combatant;
   banc.setState({ battle: null, party: [a], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   get().jouerALaTaverne({ gameId, challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
   const board = sequenceBoardOf(get);

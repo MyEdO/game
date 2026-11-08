@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -23,7 +24,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero], screen: 'campaign' });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -144,7 +145,7 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
  */
 describe('G5 — postures et KIND du tireur (parité stricte avec `attackEnv`)', () => {
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
     banc.setState({ party: [hero], screen: 'campaign' });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -193,7 +194,7 @@ describe('G5 — postures et KIND du tireur (parité stricte avec `attackEnv`)',
 describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
   /** `serre` : deux badauds AU CONTACT de la cible → groupe de 3 avec elle (seuil `crowdMod`). */
   function setup(serre: boolean) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 5 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 5 });
     banc.setState({ party: [hero], screen: 'campaign' });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

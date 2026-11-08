@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { tableTotale } from '../lib/tableTotale';
 import { t } from '../i18n';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -80,7 +81,7 @@ describe('(i) le moteur DEMANDE ses dés — `demandesDeDes` sur les ops RÉELLE
   const ops = opsDeChute();
 
   it('un gabier sur une coque MOYENNE : DEUX dés — la hauteur (2d10 m) puis les Dégâts (1d10)', () => {
-    const d = demandesDeDes(ops, marin('gabier', { shipStation: 'greement' } as Partial<Combatant>), { rng: desDuTest, hull: coque() });
+    const d = demandesDeDes(ops, marin('gabier', { shipStation: 'greement' } as Partial<Combatant>), { idNeuf: idsDeTest, rng: desDuTest, hull: coque() });
     expect(d.map((x) => x.cle)).toEqual([cleDeDe(0, 'hauteur'), cleDeDe(0, 'degats')]);
     expect(d[0].spec, 'MDG 13 l.687 : Moyenne à Grande → 2d10 mètres').toEqual({ n: 2, sides: 10 });
     expect(d[0].unite).toBe('m');
@@ -89,13 +90,13 @@ describe('(i) le moteur DEMANDE ses dés — `demandesDeDes` sur les ops RÉELLE
   });
 
   it('depuis le NID-DE-PIE la hauteur est un ENTIER (25 m) : UN seul dé, celui des Dégâts', () => {
-    const d = demandesDeDes(ops, marin('vigie', { shipStation: 'nid-de-pie' } as Partial<Combatant>), { rng: desDuTest, hull: coque() });
+    const d = demandesDeDes(ops, marin('vigie', { shipStation: 'nid-de-pie' } as Partial<Combatant>), { idNeuf: idsDeTest, rng: desDuTest, hull: coque() });
     expect(d.map((x) => x.cle)).toEqual([cleDeDe(0, 'degats')]);
   });
 
   it('ÉNUMÉRATION PURE : aucune Blessure posée, aucun État — rien n’est joué en la demandant', () => {
     const gabier = marin('gabier', { shipStation: 'greement' } as Partial<Combatant>);
-    demandesDeDes(ops, gabier, { rng: desDuTest, hull: coque() });
+    demandesDeDes(ops, gabier, { idNeuf: idsDeTest, rng: desDuTest, hull: coque() });
     expect(gabier.wounds.current).toBe(200);
     expect(gabier.conditions).toEqual([]);
   });
@@ -105,13 +106,13 @@ describe('(ii) le dé POSÉ remplace le tirage — `OpsCtx.des` lu par l’op `f
   it('hauteur 13 + Dégâts 7 posés → 3×13 + 7 − BE, et AUCUN dé n’est retiré', () => {
     const gabier = marin('gabier', { shipStation: 'greement' } as Partial<Combatant>);
     const des = new Map([[cleDeDe(0, 'hauteur'), 13], [cleDeDe(0, 'degats'), 7]]);
-    applyOps(gabier, opsDeChute(), { rng: makeRNG(99), hull: coque(), des });
+    applyOps(gabier, opsDeChute(), { idNeuf: idsDeTest, rng: makeRNG(99), hull: coque(), des });
     expect(200 - gabier.wounds.current).toBe(3 * 13 + 7 - BE);
   });
 
   it('SANS pose, l’op tire elle-même à la MÊME position du rng (pilote headless inchangé)', () => {
     const gabier = marin('gabier', { shipStation: 'greement' } as Partial<Combatant>);
-    applyOps(gabier, opsDeChute(), { rng: makeRNG(5), hull: coque() });
+    applyOps(gabier, opsDeChute(), { idNeuf: idsDeTest, rng: makeRNG(5), hull: coque() });
     // Le rng est consommé dans l'ORDRE de l'op : hauteur (2d10) puis Dégâts (1d10).
     const oracle = makeRNG(5);
     const metres = rollDes(2, 10, oracle);
@@ -123,7 +124,7 @@ describe('(ii) le dé POSÉ remplace le tirage — `OpsCtx.des` lu par l’op `f
     const parLOp = marin('op', { shipStation: 'greement' } as Partial<Combatant>);
     const parLaBrique = marin('brique');
     const des = new Map([[cleDeDe(0, 'hauteur'), 6], [cleDeDe(0, 'degats'), 9]]);
-    applyOps(parLOp, opsDeChute(), { rng: makeRNG(1), hull: coque(), des });
+    applyOps(parLOp, opsDeChute(), { idNeuf: idsDeTest, rng: makeRNG(1), hull: coque(), des });
     applyFall(parLaBrique, 6, 9);
     expect(parLOp.wounds.current).toBe(parLaBrique.wounds.current);
     expect(hasCondition(parLOp, 'a-terre')).toBe(hasCondition(parLaBrique, 'a-terre'));
@@ -140,7 +141,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
     });
   });
 
-  const ouvrir = () => applyLeafOps(banc.getState, banc.setState, gabier(), feuille(opsDeChute()), { rng: desDuTest, hull: coque() });
+  const ouvrir = () => applyLeafOps(banc.getState, banc.setState, gabier(), feuille(opsDeChute()), { idNeuf: idsDeTest, rng: desDuTest, hull: coque() });
 
   it('rien n’est encaissé à l’application : la porte ouvre la HAUTEUR d’abord', () => {
     expect(ouvrir(), 'la feuille est DIFFÉRÉE : elle n’a pas de journal, elle n’est pas encore jouée').toBe(OPS_DIFFEREES);
@@ -187,7 +188,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
   it('depuis le NID-DE-PIE (hauteur entière), UNE seule étape suffit', () => {
     banc.setState({ party: [marin('vigie', { kind: 'hero', shipStation: 'nid-de-pie' } as Partial<Combatant>), coque()] });
     const vigie = banc.getState().party[0];
-    applyLeafOps(banc.getState, banc.setState, vigie, feuille(opsDeChute()), { rng: desDuTest, hull: coque() });
+    applyLeafOps(banc.getState, banc.setState, vigie, feuille(opsDeChute()), { idNeuf: idsDeTest, rng: desDuTest, hull: coque() });
     const st = banc.getState().pendingCascade!.participants[0];
     expect(st.de!.spec).toEqual({ n: 1, sides: 10 });
     banc.getState().jetImposerLeResultat('cascadeTirage', 6, st.id);
@@ -214,7 +215,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
     });
     banc.getState().ensemencerLeTirage(21);
     const matelot = banc.getState().party[0];
-    applyLeafOps(banc.getState, banc.setState, matelot, feuille(opsDeChute()), { rng: desDuTest, hull: coque() });
+    applyLeafOps(banc.getState, banc.setState, matelot, feuille(opsDeChute()), { idNeuf: idsDeTest, rng: desDuTest, hull: coque() });
     const st = banc.getState().pendingCascade!.participants[0];
     expect(st.de!.result, 'aucun siège ne le tient : le socle le tire à l’ouverture').not.toBeNull();
     expect(draineCascade(banc.getState)).toContain('opsDe');
@@ -234,7 +235,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
         marin('B', { kind: 'hero', shipStation: 'greement' } as Partial<Combatant>), coque()],
     });
     const par = (id: string) => banc.getState().party.find((c) => c.id === id)!;
-    const CTX = { rng: desDuTest, hull: coque(), now: 1000 }; // MÊME instant de jeu pour les deux feuilles
+    const CTX = { idNeuf: idsDeTest, rng: desDuTest, hull: coque(), now: 1000 }; // MÊME instant de jeu pour les deux feuilles
     applyLeafOps(banc.getState, banc.setState, par('A'), feuille(opsDeChute()), CTX);
     applyLeafOps(banc.getState, banc.setState, par('B'), feuille(opsDeChute()), CTX);
     expect(banc.getState().pendingCascade!.participants.map((s) => s.actorId)).toEqual(['A', 'B']);
@@ -429,12 +430,12 @@ describe('(vi) CONTEXTE de la feuille : la reprise applique le MÊME contexte qu
 
   it('`{woundsDealt}` (EDO 11 l.222) survit à la porte : même perte des deux côtés', () => {
     const direct = marin('direct', { shipStation: 'nid-de-pie' } as Partial<Combatant>);
-    applyOps(direct, ops(), { rng: makeRNG(4), ...CTX(), des: new Map([[cleDeDe(0, 'degats'), 5]]) });
+    applyOps(direct, ops(), { idNeuf: idsDeTest, rng: makeRNG(4), ...CTX(), des: new Map([[cleDeDe(0, 'degats'), 5]]) });
 
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
       party: [marin('porte', { kind: 'hero', shipStation: 'nid-de-pie' } as Partial<Combatant>), coque()] });
     const parLaPorte = banc.getState().party[0];
-    applyLeafOps(banc.getState, banc.setState, parLaPorte, feuille(ops()), { rng: makeRNG(4), ...CTX() });
+    applyLeafOps(banc.getState, banc.setState, parLaPorte, feuille(ops()), { idNeuf: idsDeTest, rng: makeRNG(4), ...CTX() });
     const st = banc.getState().pendingCascade!.participants[0];
     banc.getState().jetImposerLeResultat('cascadeTirage', 5, st.id);
     banc.getState().jetValider('cascade');
@@ -464,8 +465,8 @@ describe('(vii) DETTE DITE : les dés d’une op IMBRIQUÉE ne passent pas encor
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
       party: [marin('gabier', { kind: 'hero', shipStation: 'greement' } as Partial<Combatant>), coque()] });
     const gabier = banc.getState().party[0];
-    expect(demandesDeDes(imbriquee(), gabier, { rng: desDuTest, hull: coque() }), 'niveau 1 : rien à annoncer').toEqual([]);
-    applyLeafOps(banc.getState, banc.setState, gabier, feuille(imbriquee()), { rng: desDuTest, hull: coque() });
+    expect(demandesDeDes(imbriquee(), gabier, { idNeuf: idsDeTest, rng: desDuTest, hull: coque() }), 'niveau 1 : rien à annoncer').toEqual([]);
+    applyLeafOps(banc.getState, banc.setState, gabier, feuille(imbriquee()), { idNeuf: idsDeTest, rng: desDuTest, hull: coque() });
     expect(banc.getState().pendingCascade, 'aucune étape de dé — la dette est ICI').toBeNull();
     expect(banc.getState().party[0].wounds.current, 'les deux dés sont tombés sous `applyOps`').toBeLessThan(200);
   });
@@ -476,7 +477,7 @@ describe('(viii) un contexte que la reprise ne saurait pas rebâtir REFUSE de se
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
       party: [marin('gabier', { kind: 'hero', shipStation: 'greement' } as Partial<Combatant>), coque()] });
     const gabier = banc.getState().party[0];
-    expect(() => applyLeafOps(banc.getState, banc.setState, gabier, feuille(opsDeChute()), { rng: desDuTest,
+    expect(() => applyLeafOps(banc.getState, banc.setState, gabier, feuille(opsDeChute()), { idNeuf: idsDeTest, rng: desDuTest,
       hull: coque(), onCondition: () => {},
     })).toThrow(/onCondition/);
   });
@@ -485,8 +486,8 @@ describe('(viii) un contexte que la reprise ne saurait pas rebâtir REFUSE de se
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
       party: [marin('gabier', { kind: 'hero' } as Partial<Combatant>)] });
     const gabier = banc.getState().party[0];
-    expect(ctxRepris(banc.getState, banc.setState, porterOpsCtx({ rng: desDuTest, caster: gabier }), gabier)?.onOpposingAdvantage).toBeUndefined();
-    expect(() => porterOpsCtx({ rng: desDuTest, onOpposingAdvantage: () => [] })).toThrow(/onOpposingAdvantage/);
+    expect(ctxRepris(banc.getState, banc.setState, porterOpsCtx({ idNeuf: idsDeTest, rng: desDuTest, caster: gabier }), gabier)?.onOpposingAdvantage).toBeUndefined();
+    expect(() => porterOpsCtx({ idNeuf: idsDeTest, rng: desDuTest, onOpposingAdvantage: () => [] })).toThrow(/onOpposingAdvantage/);
   });
 
   it('rebâti après un aller-retour JSON, il crédite la réserve ADVERSE du porteur ennemi (MDG 16 l.13)', () => {
@@ -496,7 +497,7 @@ describe('(viii) un contexte que la reprise ne saurait pas rebâtir REFUSE de se
       const porteur = marin('e1', { kind: 'enemy' } as Partial<Combatant>);
       banc.setState({ battle: { combatants: [heros, porteur], advantagePools: { allies: 0, foes: 0 } } as unknown as BattleState,
         pendingCascade: null, suspendedCascades: [], journal: [], party: [heros] });
-      const porte = JSON.parse(JSON.stringify(porterOpsCtx({ rng: desDuTest, caster: porteur, onOpposingAdvantage: () => [] })));
+      const porte = JSON.parse(JSON.stringify(porterOpsCtx({ idNeuf: idsDeTest, rng: desDuTest, caster: porteur, onOpposingAdvantage: () => [] })));
       const lignes = ctxRepris(banc.getState, banc.setState, porte, heros)!.onOpposingAdvantage!(2);
       expect(banc.getState().battle!.advantagePools, 'les alliés, camp adverse du porteur, gagnent +2').toEqual({ allies: 2, foes: 0 });
       expect([heros.advantage, porteur.advantage]).toEqual([2, 0]);
@@ -970,7 +971,7 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
   const ouvrirLaBande = (victimes: Combatant[], purpose: 'combat' | 'travelDay'): void => {
     const { test, label } = noeudCrewHit();
     const bande = (index: number) => bandeTriggeredTest(
-      banc.getState, banc.setState, victimes, test, `crew-hit-${index}`, { rng: desDuTest, label, hull: coqueMoyenne() },
+      banc.getState, banc.setState, victimes, test, `crew-hit-${index}`, { idNeuf: idsDeTest, rng: desDuTest, label, hull: coqueMoyenne() },
     );
     if (purpose === 'combat') pushCombatStep(banc.setState, bande);
     else pushStep(banc.setState, bande, 'travelDay');
@@ -1140,13 +1141,13 @@ describe('(xiv) OP `fall` SANS TABLE : le refus est NOMMÉ, jamais un silence', 
   const victime = (): Combatant => marin('ott', { shipStation: 'greement' } as Partial<Combatant>);
 
   it('`demandesDeDes` LÈVE en nommant la table et son fichier', () => {
-    expect(() => demandesDeDes(sansTable(), victime(), { rng: desDuTest })).toThrow(/table de hauteur inconnue/);
-    expect(() => demandesDeDes(sansTable(), victime(), { rng: desDuTest })).toThrow(/ship-criticals\.json/);
+    expect(() => demandesDeDes(sansTable(), victime(), { idNeuf: idsDeTest, rng: desDuTest })).toThrow(/table de hauteur inconnue/);
+    expect(() => demandesDeDes(sansTable(), victime(), { idNeuf: idsDeTest, rng: desDuTest })).toThrow(/ship-criticals\.json/);
   });
 
   it('`applyOps` LÈVE de la même façon — aucune Blessure posée à moitié', () => {
     const c = victime();
-    expect(() => applyOps(c, sansTable(), { rng: desDuTest })).toThrow(/table de hauteur inconnue/);
+    expect(() => applyOps(c, sansTable(), { idNeuf: idsDeTest, rng: desDuTest })).toThrow(/table de hauteur inconnue/);
     expect(c.wounds.current, 'rien n’a été appliqué avant le refus').toBe(200);
   });
 });
@@ -1163,14 +1164,14 @@ describe('(xv) WALKER PUR : une op à DÉ y LÈVE — aucune magnitude tirée en
 
   it('`runPureFlowLines` LÈVE en nommant la porte', () => {
     const c = victime();
-    expect(() => runPureFlowLines(c, c, flowFall(), { rng: desDuTest, hull: coque() })).toThrow(/op à DÉ|porte/);
+    expect(() => runPureFlowLines(c, c, flowFall(), { idNeuf: idsDeTest, rng: desDuTest, hull: coque() })).toThrow(/op à DÉ|porte/);
     expect(c.wounds.current, 'rien n’a été appliqué avant le refus').toBe(200);
   });
 
   it('un `fall` ENFOUI dans une `seq` lève aussi — le walker inspecte tout l’arbre', () => {
     const c = victime();
     const seq = { kind: 'seq', steps: [{ kind: 'seq', steps: [flowFall()] }] } as unknown as Flow;
-    expect(() => runPureFlowLines(c, c, seq, { rng: desDuTest, hull: coque() })).toThrow(/op à DÉ|porte/);
+    expect(() => runPureFlowLines(c, c, seq, { idNeuf: idsDeTest, rng: desDuTest, hull: coque() })).toThrow(/op à DÉ|porte/);
   });
 });
 

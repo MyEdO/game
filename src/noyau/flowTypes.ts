@@ -10,9 +10,9 @@ import type { JeuDuNoyau } from './machinerieDuNoyau';
 export type Get<E = JeuDuNoyau> = () => E;
 /** Les clés RÉSERVÉES : aucun flux ne les écrit par son patch. `journal` a pour écrivains `ecrireAuJournal`
  *  (`journal.ts`) et `lancerLaScene` (`entreeEnScene.ts`) (#319, #2724) ; `gameTime`, `avancerLHorloge`
- *  (`horloge.ts`, #668, #2817 D7). Tous passent par `SetDesClesReservees`, et le remplacement d'état par
+ *  (`horloge.ts`, #668, #2817 D7) ; `prochainId`, `forgerUnId` (`idsDuMonde.ts`, #2907). Tous passent par `SetDesClesReservees`, et le remplacement d'état par
  *  `RemplacerLEtat`. */
-export type CleReservee = 'journal' | 'gameTime';
+export type CleReservee = 'journal' | 'gameTime' | 'prochainId';
 /** Le patch d'un flux : aucune clé réservée n'y figure. */
 export type PatchDeFlux<E = Jeu> = Partial<Omit<E, CleReservee>> & { [K in CleReservee]?: never };
 /** Un patch ou un updater qui écrit une clé hors de `K` devient `never`, littéral ou non : le compilateur

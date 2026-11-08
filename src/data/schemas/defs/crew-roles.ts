@@ -27,10 +27,13 @@ const doc = document(
       maison: { label: 'arbitrage maison' },
     })
       .optional(),
+    /** Rôle tenu par défaut par tout membre que le Test d'équipage n'emploie pas (MDG 14 l.15). */
+    parDefaut: z.literal(true).optional(),
   },
   {
     skills: { label: 'Compétences du rôle', hint: 'Compétence (+ spécialisation optionnelle) qui couvre ce rôle d’équipage' },
     wage: { label: 'Solde', hint: 'Coût quotidien et hebdomadaire d’un mercenaire tenant ce rôle' },
+    parDefaut: { label: 'Rôle par défaut', hint: 'Rôle tenu par tout membre que le Test d’équipage n’emploie pas à un autre poste' },
   },
   {
     codex: { keys: ['crewRoles'] },

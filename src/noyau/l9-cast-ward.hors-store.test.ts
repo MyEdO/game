@@ -4,6 +4,7 @@
  * Langue (Magick), en plus de toute autre pénalité. » — aura `castWard` du porteur, consommée
  * au CALCUL du Test d'incantation (jetLancer('cast')/jetRelancer('cast')/jetPactiser('cast')).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -18,8 +19,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 describe('castWard — pénalité −20 aux Sorts ciblant la zone du prêtre', () => {
   function setup(priestPos: { x: number; y: number }) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    const priest = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'P', seed: 2 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const priest = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'P', seed: 2 });
     banc.setState({ party: [hero, priest] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

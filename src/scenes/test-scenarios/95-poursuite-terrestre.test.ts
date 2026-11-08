@@ -2,15 +2,16 @@
  * Scénario « Poursuite terrestre » (#95) : parse + l'Effet `startPursuit` est posé au trigger d'entrée
  * + ses réfs (compétence, créature du secours) résolvent contre les VRAIS enregistrements.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { flowEffects } from '../../engine/flowCore';
 import { byId, findCreatureById } from '../../data';
 import { scenario } from './95-poursuite-terrestre';
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 describe('Scénario 95 — Poursuite terrestre', () => {
   it('un groupe fixe (pré-tirés) part de la scène', () => {
-    expect(scenario.construire().party.length).toBeGreaterThan(0);
+    expect(scenario.construire(idsDeTest).party.length).toBeGreaterThan(0);
     expect(scenarioConstruit.scene.entities.find((e) => e.kind === 'heroStart')).toBeTruthy();
   });
 

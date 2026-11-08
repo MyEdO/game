@@ -2,6 +2,7 @@
  * Le lancement d'un scénario de test (#1692, `lancerLeScenario`) lit la fiche ET le contenu construit, dont
  * `interludeWeeks` (ADE II 8 l.65).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { seedBattleRng } from './battleRng';
 import { lancerLeScenario } from './lancementDeScenario';
@@ -18,7 +19,7 @@ beforeEach(() => {
 
 /** Lance le scénario `id` par l'unique séquence que joue aussi le menu. */
 function lancer(id: string): void {
-  lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(testScenarios.find((s) => s.id === id)!));
+  lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(testScenarios.find((s) => s.id === id)!, idsDeTest));
 }
 
 describe('menu des scénarios de test → lancerScenario', () => {
@@ -30,7 +31,7 @@ describe('menu des scénarios de test → lancerScenario', () => {
     expect(s.interlude?.weeks).toBe(3);
     expect(s.screen).toBe('interlude');
     expect(s.massBattle?.round).toBe(1);
-    expect(s.party.map((h) => h.id)).toEqual(sc.construire().party.map((h) => h.id));
+    expect(s.party.map((h) => h.id)).toEqual(sc.construire(idsDeTest).party.map((h) => h.id));
     expect(s.scene?.id).toBe('test-bataille-de-masse');
   });
 

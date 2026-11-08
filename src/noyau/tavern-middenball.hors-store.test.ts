@@ -11,6 +11,7 @@
  * au code qu'elle règle (`noyau/tavernFlow.ts`, section « JEUX D'ÉQUIPE »). L'effectif (11) est RAW et
  * vit en donnée ; seule la VALEUR des figurants est maison, et elle est éditable.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
@@ -32,7 +33,7 @@ const get = () => banc.getState();
 const MIDDENBALL = findTavernGameById('middenball')!;
 
 function equipe(n: number): Combatant[] {
-  const party = makePregens().slice(0, n) as Combatant[];
+  const party = makePregens(idsDeTest).slice(0, n) as Combatant[];
   party.forEach((h) => { h.advantage = 0; });
   banc.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   return party;

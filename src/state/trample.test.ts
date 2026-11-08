@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { availableAttacks } from '../noyau/combatManeuvers';
@@ -22,7 +23,7 @@ describe('Piétinement en combat (store)', () => {
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ screen: 'campaign', party: [hero] });
     useGame.getState().lancerLaScene(testScene());
     useGame.getState().lancerLeCombat('enc-mutants');

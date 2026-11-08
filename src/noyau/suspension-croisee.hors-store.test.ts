@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene, type Scene } from './monde/scene';
 import { wallSegSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
@@ -127,8 +128,8 @@ describe('exploration : chaque tombant déclare SA hauteur', () => {
   let A = '';
   let B = '';
   beforeEach(() => {
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
-    const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
+    const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const b = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
     A = a.id;
     B = b.id;
     banc.setState({ party: [a, b], partyPos: chambre, scene: etage(2) });
@@ -177,7 +178,7 @@ describe('exploration : chaque tombant déclare SA hauteur', () => {
 
 describe('combat : l’allège et la hauteur descendue en se suspendant se paient en Mouvement', () => {
   function setup(movementUsed = 0, sc = etage(2)) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     g().lancerLaScene(testScene());
     g().lancerLeCombat('enc-mutants');

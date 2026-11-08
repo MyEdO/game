@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
@@ -41,7 +42,7 @@ describe('Chrome de jeton — les alvéoles d’États sont RÉSERVÉES, jamais 
   });
 
   it('le rang tient dans SA réserve : le report « +N » occupe la dernière place', () => {
-    const c: Combatant = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
+    const c: Combatant = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
     c.conditions = conditionIds().slice(0, CHROME_SLOTS + 1).map((id) => ({ id, value: 1 })) as Combatant['conditions'];
     const chrome = tokenChrome(c, { ghostIds: new Set(), hoveredId: null });
     expect(chrome.iconsMore, 'la sonde ne mesure rien sans débordement').toBeGreaterThan(0);

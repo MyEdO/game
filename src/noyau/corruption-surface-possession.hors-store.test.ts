@@ -5,6 +5,7 @@
  * mutation appliquée d'office, sans que SON joueur ait jamais vu la fenêtre. En SOLO les deux
  * prédicats coïncident : la régression y est invisible, d'où le harnais à deux sièges.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { gainCorruption } from './corruptionFlow';
@@ -22,7 +23,7 @@ const NET0 = initialNet();
 
 /** Héros dont le seuil BFM+BE vaut 0 : le moindre gain le franchit. */
 function heroAuSeuil(): Combatant {
-  const h = makePregens()[0];
+  const h = makePregens(idsDeTest)[0];
   h.characteristics.endurance = 1;
   h.characteristics['force-mentale'] = 1;
   h.corruption = 10;

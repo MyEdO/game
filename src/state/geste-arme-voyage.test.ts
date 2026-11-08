@@ -4,6 +4,7 @@
  * remplace chez l'invité. La règle (ré-entrée, verdict joint aux args, refus local) se joue au banc
  * du noyau, `src/noyau/geste-arme-voyage.hors-store.test.ts`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
@@ -13,7 +14,7 @@ const get = () => useGame.getState();
 
 /** Combat témoin : un héros au tour ENTIER, un ennemi placé à distance de Charge (hors d'Allonge). */
 function setup() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   get().lancerLaScene(testScene());
   get().lancerLeCombat('enc-mutants');

@@ -37,12 +37,12 @@ describe('Catalogue des rôles d’équipage + types de Test (MDG 14) — donné
 
   it('chaque type de Test référence des rôles existants, dont son rôle ESSENTIEL', () => {
     for (const tt of crewTestTypes) {
-      expect(tt.roles).toContain(tt.essential);
+      expect(tt.roles).toContain(tt.essential.id);
       for (const roleId of tt.roles) expect(findCrewRoleById(roleId)).toBeDefined();
     }
     // Tir de batterie → Artilleur essentiel (MDG 14).
     const batt = crewTestTypes.find((t) => t.id === 'batterie')!;
-    expect(batt.essential).toBe('artilleur');
+    expect(batt.essential.id).toBe('artilleur');
   });
 });
 

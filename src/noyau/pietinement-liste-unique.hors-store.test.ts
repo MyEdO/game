@@ -4,6 +4,7 @@
  * (`attaquesNaturelles`) alimente la barre d'attaques, la porte d'action et la file de l'IA.
  * LDB 85 l.387 ; LDB 85 l.344 ; LDB 85 l.350-351 ; LDB 85 l.314 — #1765.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { aiCreatureFreeAttacks } from './combatFlow';
@@ -25,7 +26,7 @@ const PIETINEMENT = findManeuverById('pietinement')!;
 
 /** Héros au contact d'un ennemi ; le tour est donné à `tourDe`. */
 function engage(tourDe: 'heros' | 'creature', o: { tailleE: SizeCategory; tailleH: SizeCategory; traitsE?: TraitList; traitsH?: TraitList; movementUsed?: number; advantageE?: number }): { H: Combatant; E: Combatant } {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
   g().ensemencerLeTirage(2);
   g().lancerLaScene(testScene());

@@ -201,12 +201,16 @@
       "page": 191
     },
     "resolution": "terreur",
-    "failCondition": "brise",
+    "failCondition": {
+      "id": "brise"
+    },
     "failAmount": {
       "base": "indice",
       "perDegreeOfFailure": 1
     },
-    "becomes": "peur",
+    "becomes": {
+      "id": "peur"
+    },
     "test": {
       "skill": {
         "id": "calme"

@@ -13,6 +13,7 @@
  * La consommation de dés n'est pas jugée « > 0 » (qui passe sur n'importe quoi) mais comparée à un
  * SNAPSHOT MESURÉ : le journal des tirages (bornes → valeur) à graine fixée.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyAttackResult } from './combatFlow';
@@ -55,7 +56,7 @@ const critHit = (woundsLost = 2): AttackResult => ({
 function startFight(seed: number, opts: { pa?: ArmourPoints; gmSeat?: number } = {}) {
   banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [] });
   banc.getState().ensemencerLeTirage(seed);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');

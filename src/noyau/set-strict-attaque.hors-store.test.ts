@@ -5,6 +5,7 @@
  * mêlée, l'attaque part ; (c) l'Atout Pistolet (`LDB 62 l.284-285`) tire Engagé sans commuter ; (d) set
  * SANS arme = combattant désarmé → Mains nues et frappe ; (e) statbloc sans loadout : arsenal intact.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
@@ -22,14 +23,14 @@ const emptyScene = (w = 16, h = 12) =>
      entities: [], dialogues: [], triggers: [], encounters: [] }) as never;
 
 const take = (id: string, over: Partial<ItemInstance> = {}): ItemInstance => {
-  const it = itemFromTrappingById(id);
+  const it = itemFromTrappingById(id, idsDeTest);
   if (!it) throw new Error(`trapping introuvable : ${id}`);
   return { ...it, uid: id, equipped: true, ...over };
 };
 
 /** Héros RÉEL (pré-tiré) porteur d'une arme à distance (set 1) et d'une épée (set 2), arme de tir CHARGÉE. */
 function shooter(rangedId: string) {
-  const h = makePregens()[0];
+  const h = makePregens(idsDeTest)[0];
   const ranged = take(rangedId);
   const epee = take('arme-simple');
   const ammo = take(rangedId === 'arbalete' ? 'carreau' : 'balle-et-poudre', { equipped: false });
@@ -147,7 +148,7 @@ describe('invariant « jamais sans arme » + statbloc', () => {
 
 describe('IA : tir pur Engagé (LDB 14 l.41)', () => {
   it('un PNJ IA au set de tir pur, Engagé, ne TIRE pas (il se replace) — plus de coup de poing automatique', () => {
-    const h = makePregens()[0];
+    const h = makePregens(idsDeTest)[0];
     h.pos = { x: 3, y: 3 };
     const e = spawnEnemy({ ref: 'humain' }, 'e-tir', { x: 4, y: 3 });
     e.items = [take('arbalete'), take('carreau', { equipped: false })];

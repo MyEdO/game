@@ -34,5 +34,5 @@ export const scenario: TestScenario = {
   title: 'La porte close',
   tests: 'Ouverture d’une porte FERMÉE en exploration (`actionnerLaPorte`), puis le passage du groupe : la porte s’ouvre au geste, le pas la franchit.',
   partyNote: 'Pré-tirés',
-  construire: () => ({ party: makePregens(), scene: construire() }),
+  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construire() }),
 };

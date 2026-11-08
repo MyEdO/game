@@ -7,6 +7,7 @@
  *
  * Le switch est SYNCHRONE en tête de `runEnemyAI` (avant tout timer) → on le lit juste après l'appel.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makeShowcaseParty } from '../data/pregens';
@@ -15,11 +16,11 @@ import { runEnemyAI } from './combatFlow';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
-const embuscadeConstruit = embuscade.construire();
+const embuscadeConstruit = embuscade.construire(idsDeTest);
 
 describe('IA — sélection de loadout tir/mêlée (Chasseur fronde)', () => {
   function setup() {
-    banc.setState({ party: makeShowcaseParty() });
+    banc.setState({ party: makeShowcaseParty(idsDeTest) });
     banc.getState().lancerLaScene(embuscadeConstruit.scene);
     banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
     banc.getState().fenetreValider('roundStart');

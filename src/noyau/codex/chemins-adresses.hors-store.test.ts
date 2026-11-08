@@ -3,6 +3,7 @@
  * Codex (`CODEX`, sections d'un statbloc de combattant `combatantSections`), puis ⇄ sites de déclaration
  * des chemins de PROJET dans les defs de scène. #1392
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { CODEX, combatantSections, type CodexRow, type CodexSection } from './registry';
 import { CHEMINS_ADRESSES } from './chemins-adresses';
@@ -32,7 +33,7 @@ function porteursEmis(): Porteur[] {
     }
   }
   for (const key of Object.keys(PREGEN) as (keyof typeof PREGEN)[]) {
-    for (const s of combatantSections(pregen(PREGEN[key]))) balaye(s.rows);
+    for (const s of combatantSections(pregen(idsDeTest, PREGEN[key]))) balaye(s.rows);
   }
   return acc;
 }

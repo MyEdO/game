@@ -3,6 +3,7 @@
  * c.6068818868. Puis les Documents 3 et 4 remis l'un après l'autre (EDO 02 l.93-95), et l'indice qui les garde
  * relisibles. Chemin RÉEL : l'action `fouiller` du paquet `la-diligence`, jouée sur le banc du noyau.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { createHero } from '../../engine/character';
@@ -19,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const paquet = paquetDuJeu(diligenceCampaign);
 const SOSIE = 'campagne-sosie-heros';
 const get = () => banc.getState();
-const heros = (label: string, seed: number) => ({ ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed }), id: `h-${seed}` });
+const heros = (label: string, seed: number) => ({ ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed }), id: `h-${seed}` });
 
 beforeEach(() => {
   get().fixerLeGroupe([heros('Vivant', 1), { ...heros('Tombé', 2), dead: true }, heros('Autre', 3)]);
@@ -73,7 +74,7 @@ describe('EDO 02 l.91 — la fouille du cadavre ouvre la désignation du sosie',
 });
 
 describe('EDO 02 l.93-127 — les Documents 3 et 4 nomment le sosie, l’indice les garde', () => {
-  const naine = () => ({ ...createHero({ speciesId: 'nains', careerId: 'soldat', label: 'Naine', seed: 9, apparence: { sex: 'F' } }), id: 'h-9' });
+  const naine = () => ({ ...createHero({ idNeuf: idsDeTest, speciesId: 'nains', careerId: 'soldat', label: 'Naine', seed: 9, apparence: { sex: 'F' } }), id: 'h-9' });
 
   beforeEach(() => {
     get().fixerLeGroupe([heros('Vivant', 1), naine()]);

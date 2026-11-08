@@ -7,6 +7,7 @@
  * erreurs de la page s'y relèvent. Une partie par contexte JS : les tests de ce fichier jouent, dans l'ordre, sur un
  * même pont.
  */
+import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 import { afterAll, describe, it, expect, vi } from 'vitest';
 import { drainer, erreurDe, fautesDeLaFenetre, suiteDe, table } from './pont.testkit';
 import type { VueDuPont } from './pont';
@@ -78,7 +79,7 @@ describe('le pont et sa partie', () => {
 
   it('la vue porte le plateau de la scène, chaque verbe de sa fenêtre en geste, et les clics du champ', () => {
     const v = vue();
-    const depart = scenario.construire();
+    const depart = scenario.construire(idsDeTest);
     expect(v.plateau, 'le plateau de la scène du scénario, sans toit à lever').toEqual(plateauDeLaScene(depart.scene, [], 'tactique'));
     expect(plateauDeLaScene({ ...depart.scene, metresPerTile: 1.5 }, [], 'tactique').metresParCase, 'l’échelle que la scène déclare').toBe(1.5);
     expect(fautesDeLaFenetre(v), 'chaque verbe de la fenêtre ouverte, dessinable').toEqual([]);

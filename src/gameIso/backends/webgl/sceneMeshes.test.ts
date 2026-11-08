@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../../engine/idsDeTest.testkit';
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import {
@@ -69,9 +70,9 @@ import { schema as ambianceSchema } from '../../../data/schemas/defs/ambiance';
 import { fogAt, fogCurveOf } from '../../pov/camera';
 import { memoByRef, memoByRefDeps } from '../../../noyau/monde/sceneMemo';
 import { srgbToLinear, toHex } from '../../../lib/ombrage';
-const diligenceConstruit = diligence.construire();
-const pontVitrineConstruit = pontVitrine.construire();
-const areneConstruit = arene.construire();
+const diligenceConstruit = diligence.construire(idsDeTest);
+const pontVitrineConstruit = pontVitrine.construire(idsDeTest);
+const areneConstruit = arene.construire(idsDeTest);
 
 const scene = buildScene(siegeSpec());
 const mpt = sceneMetresPerTile(scene);

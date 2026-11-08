@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
@@ -16,7 +17,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  *  incantation — IA (ennemi → héros) et action joueur (héros → ennemi), un seul par Round. */
 describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
   function setup() {
-    const hero = createHero({
+    const hero = createHero({ idNeuf: idsDeTest,
       speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
       careerTalent: { id: 'magie-mineure' }, seed: 707,
     });

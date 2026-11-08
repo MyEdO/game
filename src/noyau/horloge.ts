@@ -39,7 +39,7 @@ export function creerActionsDHorloge(get: Get, set: Set) {
         const rounds = Math.floor(minutes / TIME_COST.combatRound);
         if (rounds > 0) {
           const party = get().party;
-          const log = outOfCombatUpkeep(party, rounds, battleRng());
+          const log = outOfCombatUpkeep(party, rounds, battleRng(), get().forgerUnId);
           if (log.length) { set({ party: [...party] }); get().ecrireAuJournal(log); }
           // L'agonie hors combat est la SEULE voie par laquelle un corps assis s'éteint sans combat :
           // la couture unique de libération y est appelée (no-op si personne n'est assis).

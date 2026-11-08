@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 /** #1176 */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { act } from 'react';
 import { useGame } from '../state/store';
@@ -171,7 +172,7 @@ describe('CampaignView — le portrait du dock route le ciblage d’ENTITÉ', ()
     demonterRacines();
     // `hoverClickCommits` (pointerCaps) interroge le pointeur : jsdom n'a pas `matchMedia`.
     vi.stubGlobal('matchMedia', (media: string) => ({ matches: false, media, addEventListener() {}, removeEventListener() {} }));
-    const [h1, h2] = makePregens();
+    const [h1, h2] = makePregens(idsDeTest);
     h1.id = 'h1'; h1.pos = { x: 6, y: 6 };
     h2.id = 'h2'; h2.pos = { x: 5, y: 6 };
     (h2 as { activeEffects?: unknown[] }).activeEffects = [1, 2].map((i) => ({
@@ -243,7 +244,7 @@ describe('CampaignView — le refus du repli de défaite vit le temps de la moda
     demonterRacines();
     vi.stubGlobal('matchMedia', (media: string) => ({ matches: false, media, addEventListener() {}, removeEventListener() {} }));
     const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const party = makePregens().slice(0, 1);
+    const party = makePregens(idsDeTest).slice(0, 1);
     const avant = [...datasetArray('props')];
     useGame.setState({ screen: 'campaign', scene: null, mode: 'battle', povActive: false, massBattle: null, party, battle: defaite(party) });
     setDataset('props', avant.map((p) => (p.id === 'tonneau' ? { ...p, id: 'tonneau-renomme' } : p)));
@@ -275,7 +276,7 @@ describe('CampaignView — « Réduire » le hub de voyage pendant une halte (#2
   /** Hub de voyage actif ; `halte` = une nuit de halte attend (étape incrustée, hub forcé ouvert). */
   function monterHub(halte: boolean) {
     demonterRacines();
-    const [heros] = makePregens();
+    const [heros] = makePregens(idsDeTest);
     useGame.setState({
       screen: 'campaign', scene: testScene(), mode: 'exploration', povActive: false, battle: null,
       party: [heros], worldMapOpen: false, travelRecap: null, pendingCascade: null, pendingShoreLeave: null,

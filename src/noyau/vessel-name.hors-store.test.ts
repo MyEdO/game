@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { buildSeaPlan } from './seaVoyageFlow';
@@ -48,7 +49,7 @@ describe('#230 — réconciliation combat : le nom d’instance ne touche QUE la
   });
 
   it('la coque « creatureId === vessel.vehicleId » prend le nom d’instance ; l’ennemie d’un autre vehicleId garde son label de type', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero], battle: null });
     banc.getState().lancerLaScene(scene()); // remet l'état à neuf → poser le vessel APRÈS
     banc.setState({ vessel: vessel({ label: 'Le Cormoran' }) });

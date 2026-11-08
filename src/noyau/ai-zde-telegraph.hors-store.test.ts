@@ -11,6 +11,7 @@
  * effective de la zone par le chemin PARTAGÉ `jetValider('cast')` est couverte par `ai-zde-counterspell.hors-store.test.ts`.
  * Le moteur (`src/engine`) n'est PAS touché.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { runEnemyAI } from './combatFlow';
@@ -32,7 +33,7 @@ describe('ZdE ennemie — télégraphe visuel actorAoe (pose pendant le télégr
 
   /** Une cible héros minimale (sans Dissipation : aucune fenêtre de Contre-sort ne s'ouvre). */
   function target(x: number, y: number, id: string): Combatant {
-    const h = pregen(PREGEN.sorcier);
+    const h = pregen(idsDeTest, PREGEN.sorcier);
     h.id = id; h.label = id; h.pos = { x, y };
     h.wounds = blessuresDeBase(30, 30, h);
     h.skills = []; // pas de Langue (Magick) → ne peut pas Dissiper → pas de pendingCounterspell

@@ -136,8 +136,8 @@ export const scenario: TestScenario = {
     'à la liasse ; deux stades d’un indice de fixture croisent les Documents 8 et 9 (`IndiceStade.documentId`) ' +
     'et sont révélés au Carnet par `revealClue`.',
   partyNote: 'Pré-tirés',
-  construire: () => {
+  construire: (idNeuf) => {
     const { documents } = paquetDuJeu(diligenceCampaign).narratif;
-    return { party: makePregens(), scene: construireScene(documents), narratif: construireNarratif(documents) };
+    return { party: makePregens(idNeuf), scene: construireScene(documents), narratif: construireNarratif(documents) };
   },
 };
