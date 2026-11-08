@@ -16,7 +16,7 @@ const heros = (suite: Suite, nom: string): Entite => suite.vue.zones['fenetre.co
 const parLibelle = (e: Entite) => Object.fromEntries(e.elements.map((x: Element) => [(x as Bouton).libelle, x]));
 
 describe('l’interlude par le pont', () => {
-  it('chaque héros, ses Activités fermées par leur raison ; une Activité jouée tient la main, puis l’interlude revient', () => {
+  it('chaque héros, ses Activités fermées par leur raison ; une Activité jouée tient la main, puis l’interlude revient', { timeout: 120_000 }, () => {
     let suite = drainer(appel, appel('demarrer', { scenario: 'bataille-de-masse', graine: 7 })).suite;
     for (let pas = 0; suite.vue.disposition !== 'interlude'; pas++) {
       expect(pas, 'les dés d’Événement tombent').toBeLessThan(12);

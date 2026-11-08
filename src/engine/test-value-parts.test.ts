@@ -147,7 +147,7 @@ function withArmureCustom(): Combatant {
  *  l'objet COMPLET, donc son nom tient ; seul le lien Codex manque. */
 const MUTATION_PERIMEE = { id: 'trogne-de-goret', label: 'Trogne de goret' };
 function withMutationPerimee(): Combatant {
-  return hero({ mutations: [{ ...MUTATION_PERIMEE, desc: '', kind: 'physique', roll: 1, passive: [{ op: 'testMod', amount: -15, char: CK }] }] as unknown as Combatant['mutations'] });
+  return hero({ mutations: [{ ...MUTATION_PERIMEE, desc: '', kind: 'physique', roll: 1, passive: [{ op: 'testMod', amount: -15, characteristic: CK }] }] as unknown as Combatant['mutations'] });
 }
 
 /**
@@ -293,7 +293,7 @@ describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socl
    * et par `skillMod` (→ `testValueParts`). Les deux doivent dire « Fracture », pas « Séquelle ».
    */
   it('D1 — un même octroyeur porte le MÊME nom sur les canaux charMod ET skillMod', () => {
-    const fracture = { label: 'Fracture', ops: [{ op: 'charMod', char: 'capacite-de-combat', mod: -30 }, { op: 'skillMod', skill: { id: 'marchandage' }, mod: -30 }] };
+    const fracture = { label: 'Fracture', ops: [{ op: 'charMod', characteristic: 'capacite-de-combat', mod: -30 }, { op: 'skillMod', skill: { id: 'marchandage' }, mod: -30 }] };
     const c = hero({ traumas: [fracture] as unknown as Combatant['traumas'] });
     const canalCharMod = volatileCharLines(c, 'capacite-de-combat').map((l) => l.label);
     const canalSkillMod = testValueParts(c, { skill: { id: 'marchandage' } }).map((p) => p.label);

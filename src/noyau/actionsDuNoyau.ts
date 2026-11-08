@@ -13,11 +13,11 @@ import type { VerbeDeChoix } from './choixDesFenetres';
 import type * as tavernFlow from './tavernFlow';
 import type { Pt } from './monde/path';
 import type {
-  IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
+  IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet,
   IdDEntiteDeScene, IdDuClic, IdDeTireurRapide, IdDePorte, IdDIndice, IdDIntention, IdDeLigneDeButin,
   IdDeCargaison, IdDePorteurDeCargaison, IdDOffreDeCargaison, IdDeDepot, IdDeSort, IdDePanoplie, IdDeCondition, IdDeFaveur,
   IdDActivite, IdDObjetDuCatalogue, IdDAtoutDArtisanat, IdDeDefautDArtisanat, IdDApparence, IdDeTalent, IdDeCarriere, IdDeCreneau,
-  IdDeCompetenceOuDeTalent, IdDEntrainement, IdDePointDEntree, IdDActionDEntite, IdDeServiceDuLieu, IdDArticle, IdDeRoute,
+  IdDeCompetenceOuDeTalent, IdDEntrainement, IdDActionDEntite, IdDeServiceDuLieu, IdDePointDInteret, IdDArticle, IdDeRoute,
   IdDeModeDeVoyage, IdDeRoleABord, IdDeStation, IdDePoste, IdDeTraitNaval, IdDeCompetence, IdDAttaque, IdDeManoeuvre,
   IdDObjetRamassable,
 } from './designations';
@@ -29,6 +29,8 @@ export type TexteLibre = string;
 /** Ce qu'un verbe reçoit sans le désigner, parce que le geste le crée : le brouillon d'un héros et l'id que son roster
  *  lui donne (`HerosEngage`). Exempt de désignation seulement : l'hôte en lit chaque champ à sa forme (`lireALaForme`). */
 export type HorsDesignation<T> = T;
+/** L'Indice d'intérêts d'un placement en banque, choisi entre 1 et 10 (LDB 23 l.168). */
+export type IndiceDePlacement = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 /** Une Spécialisation de Compétence ou de Talent : un id du catalogue de l'entrée, ou, pour une entrée ouverte, un
  *  texte libre (`entreeOuverte`, LDB 09 l.40) ; le verbe la juge à l'entrée qu'il désigne. */
 type Specialisation = TexteLibre;
@@ -183,8 +185,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   affecterLeHeros: (activityId: IdDActivite, heroIds: IdDeHeros[]) => void;
   /** Ouvre le Test de Résistance de guérison du Rassemblement (l.122). */
   rallierLesTroupes: () => void;
-  /** Tire/choisit le facteur environnemental du Round (l.309, 1d10). */
-  affronterLePeril: (roll?: number) => void;
+  /** Tire le facteur environnemental du Round au RNG de la partie (l.309, 1d10) ; le choisir parmi la table se joue par
+   *  `fenetreChoisir('batailleDeMasse', 'alea', …)`. Refus dit hors Round, Round joué ou aléa déjà posé (`refusDAlea`). */
+  affronterLePeril: () => void;
   /** Résout le Test spectaculaire de Puissance du Round (l.120). */
   engagerLaMelee: () => void;
   /** Passe au Round suivant après le Rassemblement (l.124). */
@@ -192,7 +195,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Activités (LDB 23) : `craftStart` engage l'ouvrage (matériaux ¼ prix + `Combatant.craft`) ; le
    *  LANCER passe par `pratiquerLActivite('craft')`. Passer commande (Exotique) + banque restent dédiés. */
   fabriquerLObjet: (heroId: IdDeHeros, trappingId: IdDObjetDuCatalogue, atouts: IdDAtoutDArtisanat[], defauts: IdDeDefautDArtisanat[]) => void;
-  deposerALaBanque: (heroId: IdDeHeros, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number, rate?: number) => void;
+  /** Opérations bancaires (LDB 23 l.164-170) : `indice` choisi pour un placement (`invest`), tiré au d10 s'il est absent
+   *  (LDB 23 l.168) ; refusé et dit sur un autre dépôt. */
+  deposerALaBanque: (heroId: IdDeHeros, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number, indice?: IndiceDePlacement) => void;
   retirerDeLaBanque: (depotId: IdDeDepot) => void;
   commanderLObjet: (heroId: IdDeHeros, trappingId: IdDObjetDuCatalogue) => void;
   /** Entraînement (ch.23 l.130-136) : Compétence/Caractéristique hors carrière, PX + tuteur 1D10 sc — sans jet. */
@@ -244,7 +249,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   entrainerLaProthese: (heroId: IdDeHeros, uid: IdDObjet) => void;
   /** Change de Carrière/Niveau (validation LDB 07 l.137 / LDB 08 : complétion, +100 hors Classe). */
   changerDeCarriere: (heroId: IdDeHeros, newCareer: IdDeCarriere, newLevel: number) => void;
-  quitterLaScene: (sceneId: IdDeScene, entry?: IdDePointDEntree, pos?: Pt) => void;
   /** Le clic de la case `pt`, sur ce que le geste y désigne (`entite`), le combat lu dans `battle`. En combat, un
    *  combattant désigné se joue par `cliquerLeCombattant` (le mode de ciblage, le Tir rapide de la pause de Round), une
    *  case libre par `cliquerLaCaseDuCombat` ; `opts` porte la confirmation et les verdicts d'armement (`OptionsDuClic`).
@@ -255,10 +259,10 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Ouvre ou ferme la porte d'un accès que le mobile du monde emprunte (`portesDuMobile`) : en combat toute porte,
    *  en exploration une porte fermée. Rend `true` si la porte a bougé. */
   actionnerLaPorte: (porte: IdDePorte) => boolean;
-  /** FRANCHIT l'arête de `de` (case du mobile) vers `vers` (case cardinale d'en face), selon la capacité qu'elle
-   *  porte (`capaciteDuPas`, `aretes.ts`). Porteur = le mobile de `gesteDArete` (exploration : le meneur, le groupe
-   *  suit ; combat : l'actif que ce siège mène, héros ou ennemi mené par le siège MJ) ; tout refus est NOMMÉ
-   *  (`refuserGeste`).
+  /** FRANCHIT l'arête de la case du mobile vers `vers` (case cardinale d'en face), selon la capacité qu'elle porte
+   *  (`capaciteDuPas`, `aretes.ts`). Porteur = le mobile de `gesteDArete`, dont la case se lit dans l'état
+   *  (exploration : le meneur, le groupe suit ; combat : l'actif que ce siège mène, héros ou ennemi mené par le siège
+   *  MJ) ; tout refus est NOMMÉ (`refuserGeste`), dont une destination sans arête franchissable depuis cette case.
    *  - `escalade` (`WallSeg.climb`, LDB 15 l.53-57) : `ladder` monte d'office (pas de Test) au coût du Mouvement à
    *    ½ vitesse ; `surface` déclenche un Test d'Escalade influençable (cascade RollShell) du mobile, dont l'échec
    *    fait chuter, et consomme l'Action en combat (LDB 13 l.86-88).
@@ -266,7 +270,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *    (Sauter / Tenter le Test `chute`).
    *  - `fenetre` (#700 ; LDB 15 l.55, allège `WallSeg.allege`) : enjamber une croisée de plain-pied ; exploration =
    *    le pas du groupe ; combat = Mouvement seul (1 case + l'allège à ½ vitesse), aucun Test, aucune Action. */
-  franchirLArete: (de: Pt, vers: Pt) => void;
+  franchirLArete: (vers: Pt) => void;
   /** POV : pivote le REGARD du meneur d'un cran de 45° (+1 = horaire/droite, -1 = anti-horaire/gauche) —
    *  aucun déplacement (donc pas de réorientation par `orienterSelonLeChemin`). */
   pivoterLeGroupe: (turn: 1 | -1) => void;
@@ -285,6 +289,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Marchand de LIEU (#369) — l'échoppe du service `serviceId` du lieu où se tient le groupe (forgeron du hub de
    *  ville…) : même système marchand, keyé sur `placeServiceMerchantId` (`worldMap.ts`). */
   ouvrirLaBoutique: (serviceId: IdDeServiceDuLieu) => void;
+  /** Entre au point d'intérêt `poi` du plan du lieu où se tient le groupe : l'écran du lieu se ferme sur la scène où il
+   *  mène ; refus dit hors de l'écran du lieu ou hors de ses entrées (`refusDEntrerAuPoint`, `lieuFlow.ts`). */
+  entrerAuPointDInteret: (poi: IdDePointDInteret) => void;
   /** Recherche active de Disponibilité (LDB 59 l.50) : passer une journée entière + un Test de Ragot →
    *  réassort frais avec +10 % de Disponibilité si le Ragot réussit (avance l'horloge d'une journée). */
   chercherLaDisponibilite: () => void;

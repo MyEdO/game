@@ -63,7 +63,7 @@ export interface EffectChip {
   rounds?: number;
   /** Bonus du buff (ex. +10). */
   bonus?: number;
-  char?: CharKey;
+  characteristic?: CharKey;
 }
 
 interface CondMeta { icon: IconId; severity: number; important: boolean; }
@@ -89,7 +89,7 @@ export function charIcon(char: CharKey | undefined, repli: IconId = 'action/aim'
   return (char && BUFF_CHAR_ICON[char]) || repli;
 }
 function buffIcon(e: ActiveEffect): IconId {
-  return charIcon(e.char, 'action/cast'); // buff sans carac = effet de sort/bénédiction
+  return charIcon(e.characteristic, 'action/cast'); // buff sans carac = effet de sort/bénédiction
 }
 
 function malusChips(conditions: ConditionInstance[]): EffectChip[] {
@@ -127,10 +127,10 @@ function buffChips(effects: ActiveEffect[]): EffectChip[] {
   return [...groups].map(([key, list]): EffectChip => {
     const e = list[0];
     const n = list.length;
-    const sameChar = list.every((x) => x.char === e.char);
+    const sameChar = list.every((x) => x.characteristic === e.characteristic);
     const sameBonus = list.every((x) => x.bonus === e.bonus);
     // Faits affichables du GROUPE (cf. en-tête) — au-delà, rien n'est chiffré.
-    const detail = n === 1 || (sameChar && sameBonus) ? { bonus: e.bonus, char: e.char, ...(n > 1 ? { count: n, indice: n } : {}) }
+    const detail = n === 1 || (sameChar && sameBonus) ? { bonus: e.bonus, characteristic: e.characteristic, ...(n > 1 ? { count: n, indice: n } : {}) }
       : sameBonus ? { bonus: e.bonus, charCount: n }
         : {};
     return {
@@ -155,7 +155,7 @@ export function chipDetail(c: EffectChip): string {
   // Le bonus se dit AVEC sa portée RÉELLE : sa carac (effet unique/groupe homogène), ou le NOMBRE de
   // Caractéristiques touchées (groupe hétérogène) — jamais la carac du premier effet d'un groupe.
   if (c.bonus) {
-    const portee = c.char ? ` ${CHAR_LABELS[c.char]}` : c.charCount ? ` sur ${c.charCount} Caractéristiques` : '';
+    const portee = c.characteristic ? ` ${CHAR_LABELS[c.characteristic]}` : c.charCount ? ` sur ${c.charCount} Caractéristiques` : '';
     parts.push(`${c.bonus > 0 ? '+' : ''}${c.bonus}${portee}`);
   }
   if (c.rounds != null) parts.push(`${roundsLabel(c.rounds)} restant${c.rounds > 1 ? 's' : ''}`);

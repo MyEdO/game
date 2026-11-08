@@ -169,13 +169,13 @@ const DECLARATIONS_D_OPS = {
    *  seul `attachMutation` le résout (`engine/corruption.ts`). */
   charMod: declarerPayload({
     op: z.literal('charMod'),
-    char: charKeySchema,
+    characteristic: charKeySchema,
     mod: z.number(),
     min: reserve(z.number().optional()),
     durationRounds: formulaSchema.optional(),
     durationMinutes: formulaSchema.optional(),
     durationHours: formulaSchema.optional(),
-  }, { op: { label: "opération" }, char: { label: "caractéristiques" }, mod: { label: "modificateur" }, min: { label: "minimum" }, durationRounds: { label: 'durée en Rounds' }, durationMinutes: { label: 'durée en minutes' }, durationHours: { label: 'durée en heures' } }),
+  }, { op: { label: "opération" }, characteristic: { label: "caractéristique" }, mod: { label: "modificateur" }, min: { label: "minimum" }, durationRounds: { label: 'durée en Rounds' }, durationMinutes: { label: 'durée en minutes' }, durationHours: { label: 'durée en heures' } }),
   corruptionExposure: nommerChamps(z.strictObject({
     op: z.literal('corruptionExposure'),
     level: exposureLevelSchema.optional(),
@@ -458,7 +458,9 @@ const DECLARATIONS_D_OPS = {
         : messageDeTermeDeJet(v.bonus);
     },
   }),
-  charDRBonus: nommerChamps(z.strictObject({ op: z.literal('charDRBonus'), char: charKeySchema, bonus: formuleSansTirageSchema }), { op: { label: "opération"  }, char: { label: "caractéristique" }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  charDRBonus: nommerChamps(z.strictObject({ op: z.literal('charDRBonus'), characteristic: charKeySchema, bonus: formuleSansTirageSchema }), { op: { label: "opération"  }, characteristic: { label: "caractéristique" }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  charDamage: nommerChamps(z.strictObject({ op: z.literal('charDamage'), characteristic: charKeySchema, amount: formulaSchema }), { op: { label: "opération"  }, characteristic: { label: "caractéristique" }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  actGate: nommerChamps(z.strictObject({ op: z.literal('actGate'), characteristic: charKeySchema }), { op: { label: "opération"  }, characteristic: { label: "caractéristique" } }),
   incomingSpellDRMod: nommerChamps(z.strictObject({ op: z.literal('incomingSpellDRMod'), amount: formuleSansTirageSchema }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   castPenalty: nommerChamps(z.strictObject({
     op: z.literal('castPenalty'),
@@ -560,13 +562,13 @@ const DECLARATIONS_D_OPS = {
   testMod: nommerChamps(z.strictObject({
     op: z.literal('testMod'),
     amount: z.number(),
-    char: charKeySchema.optional(),
+    characteristic: charKeySchema.optional(),
     movementOnly: z.boolean().optional(),
     sense: senseSchema.optional(),
     diseases: refs('maladie').optional(),
     exceptSkills: z.array(ref('skill')).optional(),
     weaponHand: mainSchema.optional(),
-  }), { op: { label: "opération"  }, amount: { label: "quantité" }, char: { label: "caractéristiques"  }, movementOnly: { label: "Mouvement uniquement" }, sense: { label: "sens"  }, diseases: { label: "maladies" , texte: { regime: "technique"} }, exceptSkills: { label: "Compétences exclues" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, weaponHand: { label: "main de l’arme"  } }),
+  }), { op: { label: "opération"  }, amount: { label: "quantité" }, characteristic: { label: "caractéristique" }, movementOnly: { label: "Mouvement uniquement" }, sense: { label: "sens"  }, diseases: { label: "maladies" , texte: { regime: "technique"} }, exceptSkills: { label: "Compétences exclues" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, weaponHand: { label: "main de l’arme"  } }),
   incomingAttackMod: nommerChamps(z.strictObject({
     op: z.literal('incomingAttackMod'),
     mode: porteeDAssautSchema,
@@ -692,8 +694,8 @@ export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur> & Re
  * Une entrée ne se retire que par le commit qui TYPE l'op dans `OP_DEFS`.
  */
 export const OPS_NON_TYPEES: readonly string[] = [
-  'actGate', 'ap', 'armourPierce', 'arrowWard', 'attackKeyword', 'attackWardFM', 'attrMod',
-  'breakBlade', 'chain', 'charDamage', 'condition',
+  'ap', 'armourPierce', 'arrowWard', 'attackKeyword', 'attackWardFM', 'attrMod',
+  'breakBlade', 'chain', 'condition',
   'crewTestMod', 'critOnRoll', 'critTwice', 'cureCriticalWound', 'cureDisease', 'damageArmour', 'disarm',
   'endTransform', 'freeReroll', 'gainResource', 'grantFreeAttack',
   'grantNaturalWeapon', 'handGate', 'ignoreAnimosity',
@@ -861,7 +863,7 @@ export const hasConditionSchema = z.discriminatedUnion('what', [
 ]);
 
 
-const charRefSchema = nommerChamps(z.strictObject({ who: actorRefSchema, char: charKeySchema, bonus: z.boolean().optional() }), { who: { label: "acteur"  }, char: { label: "caractéristiques"  }, bonus: { label: "bonus" } });
+const charRefSchema = nommerChamps(z.strictObject({ who: actorRefSchema, characteristic: charKeySchema, bonus: z.boolean().optional() }), { who: { label: "acteur"  }, characteristic: { label: "caractéristique" }, bonus: { label: "bonus" } });
 const compareSubjectSchema = z.union([
   nommerChamps(z.strictObject({ who: actorRefSchema, field: actorFieldSchema }), { who: { label: "acteur"  }, field: { label: "champ"  } }),
   nommerChamps(z.strictObject({ who: actorRefSchema, condition: z.string() }), { who: { label: "acteur"  }, condition: { label: "condition" , texte: { regime: "technique"} } }),
@@ -870,7 +872,7 @@ const compareSubjectSchema = z.union([
 /** `CompareSubject & { factor?: number }` (`engine/flowCore.ts:131`) — un `z.intersection` d'un
  *  `z.union` de `strictObject` NE FONCTIONNE PAS avec zod (chaque branche strict rejette les clés des
  *  autres, cf. `domains.ts` avant ce rewire : `z.intersection(compareSubjectSchema, …)` échouait sur
- *  `etats.json` #14 « inondation » — `{who,char:'endurance',factor:0.5}` — vérifié en isolation). La forme
+ *  `etats.json` #14 « inondation » — `{who,characteristic:'endurance',factor:0.5}` — vérifié en isolation). La forme
  *  fidèle est donc l'UNION des 3 branches de `CompareSubject`, chacune portant son `factor`. */
 const compareValueSchema = z.union([
   z.number(),
@@ -880,7 +882,7 @@ const compareValueSchema = z.union([
     factor: z.number().optional(),
   }), { who: { label: "acteur"  }, field: { label: "champ"  }, factor: { label: "facteur" } }),
   nommerChamps(z.strictObject({ who: actorRefSchema, condition: z.string(), factor: z.number().optional() }), { who: { label: "acteur"  }, condition: { label: "condition" , texte: { regime: "technique"} }, factor: { label: "facteur" } }),
-  nommerChamps(z.strictObject({ who: actorRefSchema, char: charKeySchema, bonus: z.boolean().optional(), factor: z.number().optional() }), { who: { label: "acteur"  }, char: { label: "caractéristiques"  }, bonus: { label: "bonus" }, factor: { label: "facteur" } }),
+  nommerChamps(z.strictObject({ who: actorRefSchema, characteristic: charKeySchema, bonus: z.boolean().optional(), factor: z.number().optional() }), { who: { label: "acteur"  }, characteristic: { label: "caractéristique" }, bonus: { label: "bonus" }, factor: { label: "facteur" } }),
 ]);
 
 /** Condition `skill` : sa Compétence et sa spécialisation résolvent au catalogue (`refOuSpec`). Le nœud de la

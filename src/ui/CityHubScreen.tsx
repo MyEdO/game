@@ -75,7 +75,7 @@ export function CityHubScreen({
   const ouvrirLeMarche = useGame((s) => s.ouvrirLeMarche);
   const ouvrirLaBoutique = useGame((s) => s.ouvrirLaBoutique);
   const recueillirLesRumeurs = useGame((s) => s.recueillirLesRumeurs);
-  const quitterLaScene = useGame((s) => s.quitterLaScene);
+  const entrerAuPointDInteret = useGame((s) => s.entrerAuPointDInteret);
 
   const services = placeServices(place, scene, rest?.places);
   const [selId, setSelId] = useState<string | null>(services[0]?.id ?? null);
@@ -277,7 +277,7 @@ export function CityHubScreen({
         icon={poiIcon(poiSel, services)}
         title={poiSel.label}
         desc="Ce point mène à un autre endroit."
-        actions={<button type="button" className="btn btn-primary" onClick={() => enter(() => quitterLaScene(poiSel.sceneId!))}>Entrer</button>}
+        actions={<button type="button" className="btn btn-primary" onClick={() => entrerAuPointDInteret(poiSel.id)}>Entrer</button>}
       />
     );
   } else {

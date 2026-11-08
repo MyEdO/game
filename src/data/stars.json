@@ -28,17 +28,17 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "sociabilite",
+          "characteristic": "sociabilite",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "initiative",
+          "characteristic": "initiative",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "intelligence",
+          "characteristic": "intelligence",
           "mod": -3
         }
       ],
@@ -61,17 +61,17 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "force",
+          "characteristic": "force",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "force-mentale",
+          "characteristic": "force-mentale",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "initiative",
+          "characteristic": "initiative",
           "mod": -3
         }
       ],
@@ -94,17 +94,17 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "capacite-de-tir",
+          "characteristic": "capacite-de-tir",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "agilite",
+          "characteristic": "agilite",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "capacite-de-combat",
+          "characteristic": "capacite-de-combat",
           "mod": -3
         }
       ],
@@ -127,17 +127,17 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "endurance",
+          "characteristic": "endurance",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "force-mentale",
+          "characteristic": "force-mentale",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "intelligence",
+          "characteristic": "intelligence",
           "mod": -3
         }
       ],
@@ -160,17 +160,17 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "force-mentale",
+          "characteristic": "force-mentale",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "sociabilite",
+          "characteristic": "sociabilite",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "dexterite",
+          "characteristic": "dexterite",
           "mod": -3
         }
       ],
@@ -193,17 +193,17 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "intelligence",
+          "characteristic": "intelligence",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "initiative",
+          "characteristic": "initiative",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "force-mentale",
+          "characteristic": "force-mentale",
           "mod": -3
         }
       ],
@@ -226,17 +226,17 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "capacite-de-combat",
+          "characteristic": "capacite-de-combat",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "force-mentale",
+          "characteristic": "force-mentale",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "sociabilite",
+          "characteristic": "sociabilite",
           "mod": -3
         }
       ],
@@ -259,17 +259,17 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "initiative",
+          "characteristic": "initiative",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "intelligence",
+          "characteristic": "intelligence",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "sociabilite",
+          "characteristic": "sociabilite",
           "mod": -3
         }
       ],
@@ -292,7 +292,7 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "force-mentale",
+          "characteristic": "force-mentale",
           "mod": -3
         },
         {
@@ -321,7 +321,7 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "intelligence",
+          "characteristic": "intelligence",
           "mod": -3
         },
         {
@@ -351,7 +351,7 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "initiative",
+          "characteristic": "initiative",
           "mod": -3
         },
         {
@@ -380,7 +380,7 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "force-mentale",
+          "characteristic": "force-mentale",
           "mod": -3
         },
         {
@@ -409,17 +409,17 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "sociabilite",
+          "characteristic": "sociabilite",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "dexterite",
+          "characteristic": "dexterite",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "capacite-de-combat",
+          "characteristic": "capacite-de-combat",
           "mod": -3
         }
       ],
@@ -442,7 +442,7 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "initiative",
+          "characteristic": "initiative",
           "mod": -3
         },
         {
@@ -471,7 +471,7 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "force-mentale",
+          "characteristic": "force-mentale",
           "mod": -3
         },
         {
@@ -501,7 +501,7 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "endurance",
+          "characteristic": "endurance",
           "mod": -3
         },
         {
@@ -530,7 +530,7 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "agilite",
+          "characteristic": "agilite",
           "mod": -3
         },
         {
@@ -559,7 +559,7 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "sociabilite",
+          "characteristic": "sociabilite",
           "mod": -3
         },
         {
@@ -588,17 +588,17 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "intelligence",
+          "characteristic": "intelligence",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "sociabilite",
+          "characteristic": "sociabilite",
           "mod": 2
         },
         {
           "op": "charMod",
-          "char": "capacite-de-combat",
+          "characteristic": "capacite-de-combat",
           "mod": -3
         }
       ],
@@ -649,7 +649,7 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "force",
+          "characteristic": "force",
           "mod": -3
         },
         {
@@ -682,7 +682,7 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "force",
+          "characteristic": "force",
           "mod": -3
         },
         {
@@ -715,7 +715,7 @@
       "ops": [
         {
           "op": "charMod",
-          "char": "force",
+          "characteristic": "force",
           "mod": -5
         },
         {

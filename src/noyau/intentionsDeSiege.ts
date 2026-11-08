@@ -128,7 +128,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // ── Exploration (miroir V1) ───────────────────────────────────────────────────────────────────
   ouvrirLaCarte: 'hôte', ouvrirLeLieu: 'hôte', partirEnVoyage: 'hôte',
   marchanderLeBillet: 'hôte', reprendreLeVoyage: 'hôte',
-  fixerLaCadence: 'hôte', quitterLaScene: 'hôte', fouillerLaPiece: 'hôte',
+  fixerLaCadence: 'hôte', entrerAuPointDInteret: 'hôte', fouillerLaPiece: 'hôte',
   // Le groupe en exploration : offre d'une entité (pastille), porte, pas et pivot du regard.
   jouerAction: 'hôte', actionnerLaPorte: 'hôte', avancerDUnPas: 'hôte', pivoterLeGroupe: 'hôte',
   // ── Fiche de personnage : progression (PX), équipement, sorts hors combat ─────────────────────

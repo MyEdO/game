@@ -405,7 +405,7 @@ function concatOperand(src: string, from: number): string {
 
 /** Sites où la parenthèse précise un MODIFICATEUR, pas une Action : clé `fichier — expression`. */
 const PARENTHESE_HORS_ACTION = new Map<string, string>([
-  ['src/engine/ops.ts — CHAR_LABELS[o.char]', 'op.testMod : « +10 (Force) » nomme la Caractéristique du modificateur, aucun jet n’est libellé'],
+  ['src/engine/ops.ts — CHAR_LABELS[o.characteristic]', 'op.testMod : « +10 (Force) » nomme la Caractéristique du modificateur, aucun jet n’est libellé'],
 ]);
 
 /** Le Test de Navigation (MDG 13 l.18-19) : nom de famille du Test de Voile/Ramer, qu'une parenthèse

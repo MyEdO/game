@@ -1,13 +1,15 @@
 /**
  * LE LIEU EN VUE (#3534) — ce qu'un hôte montre de l'écran du lieu qui tient la main : le nom du lieu, chacun de ses
- * services (`placeServices`) et ce qu'on y fait, écrit en verbe du noyau avec ce qui le ferme maintenant, puis les
- * trajets qui en partent (`trajetsDepuis`). Lecteur PUR, lu par les hôtes du noyau (`hote/ecran.ts`).
+ * services (`placeServices`) et ce qu'on y fait, écrit en verbe du noyau avec ce qui le ferme maintenant, les points
+ * d'intérêt de son plan qui mènent à une scène (`entreesDuLieu`, #3611), puis les trajets qui en partent
+ * (`trajetsDepuis`). Lecteur PUR, lu par les hôtes du noyau (`hote/ecran.ts`).
  */
 import type { Jeu } from './etat';
 import type { GesteDuNoyau } from './actionsDuNoyau';
 import { lieuDuGroupe, placeServices, type ResolvedPlaceService } from './worldMap';
 import { trajetsDepuis, type TrajetEnVue } from './carteEnVue';
 import { refusDEntrerAuPort } from './portFlow';
+import { entreesDuLieu, refusDEntrerAuPoint } from './lieuFlow';
 import { sceneDuRegistre } from './monde/registreDesScenes';
 import { fenetreDuJeu } from './combatAuto';
 import { t } from '../i18n';
@@ -18,8 +20,11 @@ export interface GesteDuService { id: string; libelle: string; geste: GesteDuNoy
 /** Un service du lieu et ce qu'on y fait. */
 export interface ServiceEnVue { id: string; nom: string; gestes: GesteDuService[] }
 
-/** L'écran du lieu : son nom, ses services, ses trajets. */
-export interface LieuEnVue { nom: string; services: ServiceEnVue[]; trajets: TrajetEnVue[] }
+/** Un point d'intérêt du plan du lieu qui mène à une scène, et le geste d'y entrer. */
+export interface PointDInteretEnVue { id: string; nom: string; geste: GesteDuService }
+
+/** L'écran du lieu : son nom, ses services, ses points d'intérêt, ses trajets. */
+export interface LieuEnVue { nom: string; services: ServiceEnVue[]; pointsDInteret: PointDInteretEnVue[]; trajets: TrajetEnVue[] }
 
 /** Ce qu'on fait au service `svc` du lieu : y dormir et y recueillir des informations à l'auberge, y entrer
  *  ailleurs (le port, le marché, l'échoppe de son marchand) ; rien pour un service sans écran. */
@@ -42,5 +47,9 @@ export function lieuEnVue(s: Jeu): LieuEnVue | null {
   const services = placeServices(ici, sceneDuRegistre(ici.scene))
     .map((svc): ServiceEnVue => ({ id: svc.id, nom: svc.label, gestes: gestesDuService(s, svc) }))
     .filter((svc) => svc.gestes.length > 0);
-  return { nom: ici.label, services, trajets: trajetsDepuis(s, s.worldMap, ici) };
+  const pointsDInteret = entreesDuLieu(s).map((p): PointDInteretEnVue => ({
+    id: p.id, nom: p.label,
+    geste: { id: 'entrer', libelle: t('lieu.entrer'), geste: { verbe: 'entrerAuPointDInteret', args: [p.id] }, refus: refusDEntrerAuPoint(s, p.id) },
+  }));
+  return { nom: ici.label, services, pointsDInteret, trajets: trajetsDepuis(s, s.worldMap, ici) };
 }

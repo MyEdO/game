@@ -60,7 +60,7 @@ function setupBattle(c: Combatant, others: Combatant[], spellId: string) {
 }
 
 const combatant = (id: string) => banc.getState().battle!.combatants.find((cc) => cc.id === id)!;
-const boosted = (id: string) => combatant(id).activeEffects?.some((e) => e.char === 'force') === true;
+const boosted = (id: string) => combatant(id).activeEffects?.some((e) => e.characteristic === 'force') === true;
 
 /** Pose la Cible du Sort d'épreuve par le seam des datasets (restaurée en `afterEach`). */
 function setTarget(t: SpellTarget): void {

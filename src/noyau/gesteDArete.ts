@@ -48,14 +48,14 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 const GESTES_DEPLACANTS = ['escalade', 'chute', 'fenetre'] as const satisfies readonly CapaciteArete[];
 export type GesteDeplacant = (typeof GESTES_DEPLACANTS)[number];
 
-/** Le geste d'un dénivelé : `franchirLArete`, de l'ancrage à la case d'en face. */
-export type GesteDeDenivele = { verbe: 'franchirLArete'; args: [de: Pt, vers: Pt] };
+/** Le geste d'un dénivelé : `franchirLArete`, de la case du mobile (l'ancrage) à la case d'en face. */
+export type GesteDeDenivele = { verbe: 'franchirLArete'; args: [vers: Pt] };
 
 const estDeplacant = (c: CapaciteArete): c is GesteDeplacant => (GESTES_DEPLACANTS as readonly CapaciteArete[]).includes(c);
 
 /** Le geste d'une arête qui déplace le mobile, `null` pour une autre capacité. */
 export const gesteDeDenivele = (a: AreteUtilisable): GesteDeDenivele | null =>
-  estDeplacant(a.capacite) ? { verbe: 'franchirLArete', args: [a.ancrage, caseOpposee(a)] } : null;
+  estDeplacant(a.capacite) ? { verbe: 'franchirLArete', args: [caseOpposee(a)] } : null;
 
 /** Le geste qu'une arête offre, en verbe du noyau : un dénivelé (`gesteDeDenivele`), le geste de l'accès
  *  (`gesteDuPortail`), la structure qu'on frappe par le clic de son Combattant, sur sa case (`cliquerLaCase`). */
@@ -134,17 +134,6 @@ export function gesteDArete(s: Jeu): GesteOuvert | RefusGeste {
   if ('refus' in v) return v;
   if (isRider(v.mobile) || isMount(v.mobile)) return refus(REFUS_MONTE, { action: libelleDescendre() });
   return { ...v, scene, battle };
-}
-
-/** Le geste part-il de la case du mobile ? (#2190 : un `from` falsifié téléportait l'actif.) */
-export function gesteDepuis(s: Jeu, from: Pt): GesteOuvert | RefusGeste {
-  const v = gesteDArete(s);
-  if ('refus' in v) return v;
-  const c = v.case;
-  if (c.x !== from.x || c.y !== from.y || (c.z ?? 0) !== (from.z ?? 0)) {
-    return refus('geste.refus.caseDuMobile', { name: v.mobile.label });
-  }
-  return v;
 }
 
 /** Le Test de chute tenté consomme l'Action (LDB 13 l.86-88) : refusé quand elle est déjà prise.
@@ -240,7 +229,7 @@ function soldeDeLAction(get: Get, set: Set, actionSpent: boolean, mouvement: num
   bus.emit(EVT.SCENE_DIRTY);
 }
 
-/** Le corps de chaque geste déplaçant, le geste accordé (`gesteDepuis`). */
+/** Le corps de chaque geste déplaçant, le geste accordé (`gesteDArete`), depuis la case du mobile. */
 type CorpsDuFranchissement = (get: Get, set: Set, verdict: GesteOuvert, from: Pt, to: Pt) => void;
 
 const CORPS_DU_FRANCHISSEMENT: Readonly<Record<GesteDeplacant, CorpsDuFranchissement>> = {
@@ -330,9 +319,10 @@ const CORPS_DU_FRANCHISSEMENT: Readonly<Record<GesteDeplacant, CorpsDuFranchisse
 
 export function creerActionsDeFranchissement(get: Get, set: Set) {
   return {
-    franchirLArete: (de, vers) => {
-      const verdict = gesteDepuis(get(), de);
+    franchirLArete: (vers) => {
+      const verdict = gesteDArete(get());
       if ('refus' in verdict) return void refuserGeste(get, set, t(verdict.refus, verdict.vars));
+      const de = verdict.case;
       const capacite = capaciteDuPas(verdict.scene, de, vers);
       if (capacite && estDeplacant(capacite)) return CORPS_DU_FRANCHISSEMENT[capacite](get, set, verdict, de, vers);
       const plan = planFranchissement(verdict.scene, de, vers);

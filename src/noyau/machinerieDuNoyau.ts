@@ -36,6 +36,9 @@ export interface MachinerieDuNoyau {
    *  monde du projet (#T2, projet v2) — null/absent : pas de voyage dans ce projet. */
   chargerLeProjet: (paquet: PaquetALancer) => void;
   fixerLeGroupe: (p: Combatant[]) => void;
+  /** Change de scène vers `sceneId` du registre, au point d'entrée `entry` ou à la case `pos` (`transitionBack`) ;
+   *  appelé par les Effets de scène, l'arrivée d'un trajet, la mer et l'entrée à un point d'intérêt du lieu. */
+  quitterLaScene: (sceneId: string, entry?: string, pos?: Pt) => void;
   /** Ouvre un interlude de N semaines (Effet d'éditeur `interlude` ou appel direct). */
   ouvrirLInterlude: (weeks?: number) => void;
   /** « Dormir / Se reposer N jours » (hors combat) : repos de `days` journée(s) — retire l'Exténué,

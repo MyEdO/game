@@ -8,7 +8,7 @@ import { DIFFICULTY_LABELS } from '../engine/types';
 import { poserFicheDeTest, restaurerFiche, testDeFiche } from '../engine/ficheDeTest.testkit';
 
 const cond = (name: string, value = 1): ConditionInstance => ({ id: name, value });
-const buff = (label: string, bonus: number, roundsLeft: number, char?: CharKey): ActiveEffect => ({ label, bonus, duration: { scale: "rounds", left: roundsLeft }, char });
+const buff = (label: string, bonus: number, roundsLeft: number, char?: CharKey): ActiveEffect => ({ label, bonus, duration: { scale: "rounds", left: roundsLeft }, characteristic: char });
 
 describe('conditionMeta', () => {
   it('donne une icône et marque les états incapacitants comme importants', () => {

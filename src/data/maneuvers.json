@@ -716,42 +716,42 @@
                 "ops": [
                   {
                     "op": "charMod",
-                    "char": "capacite-de-combat",
+                    "characteristic": "capacite-de-combat",
                     "mod": 10
                   },
                   {
                     "op": "charMod",
-                    "char": "force",
+                    "characteristic": "force",
                     "mod": 10
                   },
                   {
                     "op": "charMod",
-                    "char": "endurance",
+                    "characteristic": "endurance",
                     "mod": 10
                   },
                   {
                     "op": "charMod",
-                    "char": "initiative",
+                    "characteristic": "initiative",
                     "mod": 10
                   },
                   {
                     "op": "charMod",
-                    "char": "agilite",
+                    "characteristic": "agilite",
                     "mod": 10
                   },
                   {
                     "op": "charMod",
-                    "char": "dexterite",
+                    "characteristic": "dexterite",
                     "mod": -10
                   },
                   {
                     "op": "charMod",
-                    "char": "intelligence",
+                    "characteristic": "intelligence",
                     "mod": -10
                   },
                   {
                     "op": "charMod",
-                    "char": "sociabilite",
+                    "characteristic": "sociabilite",
                     "mod": -20
                   },
                   {
