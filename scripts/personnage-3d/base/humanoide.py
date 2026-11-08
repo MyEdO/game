@@ -38,6 +38,7 @@ import numpy as np  # noqa: E402
 from selection_appuis import etats_des_appuis, selectionner_appuis
 from porte_gabarit import verifier_gabarit  # noqa: E402
 from glb import souder_les_normales_des_cibles  # noqa: E402
+from reprises import Reprises, empreinte_de_construction  # noqa: E402
 from materiaux_par_sexe import declarer_les_variantes, recoucher_les_variantes  # noqa: E402
 
 PELVIS = 'pelvis'
@@ -248,6 +249,12 @@ def construire(args):
     declaration = json.loads(DECLARATION.read_text(encoding='utf-8'))
     marches = [declaration['clips']['walk']]
     noms = [b.name for b in squelette.data.bones]
+    reprises = None if args.reprises is None else Reprises(
+        args.reprises, empreinte_de_construction(ICI.parents[2], {k: v for k, v in vars(args).items() if k not in ('reprises', 'sortie')}),
+        lambda chemin: bpy.ops.wm.save_as_mainfile(filepath=str(chemin), copy=True, relative_remap=False, compress=False),
+        lambda chemin: bpy.ops.wm.open_mainfile(filepath=str(chemin), load_ui=False))
+    noms_des_objets = {'squelette': squelette.name, 'squelette_f': squelette_f.name, 'objets_f': [o.name for o in objets_f],
+                       'peaux': [p.name for p in peaux], 'clips': [a.name for a in clips]}
 
     rabot = None
 
@@ -354,8 +361,21 @@ def construire(args):
         if fini:
             return {'aretes': 0, 'phase': 0}
         a_preparer = True
+        if reprises is not None:
+            ecrire_la_reprise(f'passe-{passe:04d}', passe)
         return {'sommets': retouches, 'phase': 1,
                 'ecartCles': ecart_cles if ecart_cles > TOLERANCE_JUMEAUX_POSITION_M else 0}
+
+    def ecrire_la_reprise(nom, passe):
+        ressources.close()
+        clear_animation(squelette)
+        bpy.context.view_layer.update()
+        for image in bpy.data.images:
+            if image.has_data:
+                image.pack()
+        reprises.ecrire(nom, {'passe': passe, 'phase': phase, 'renouveler': renouveler, 'etats_silhouettes': etats_silhouettes,
+                              'references': references, 'precedentes': precedentes, 'captures': captures,
+                              'contraintes': contraintes, 'rabot': rabot, 'objets': noms_des_objets})
 
     def refuser(passe, reste):
         raison = f'construction : point fixe absent après {passe} passes, phase {phase_actuelle}, reste {reste}'
@@ -368,10 +388,26 @@ def construire(args):
                 erreurs.append(erreur)
         raise erreurs[0]
 
-    try:
-        passes = atteindre_le_point_fixe(construire_tour, PASSES_MAX, refuser)
-    finally:
-        ressources.close()
+    reprise = None if reprises is None else reprises.lire()
+    if reprise is not None:
+        objets_lus = reprise['objets']
+        squelette, squelette_f = bpy.data.objects[objets_lus['squelette']], bpy.data.objects[objets_lus['squelette_f']]
+        objets_f = [bpy.data.objects[n] for n in objets_lus['objets_f']]
+        peaux = [bpy.data.objects[n] for n in objets_lus['peaux']]
+        clips = [bpy.data.actions[n] for n in objets_lus['clips']]
+        corps, secondaires = corps_et_secondaires(peaux)
+        corps_f, _ = corps_et_secondaires(meshes_for(bpy, squelette_f))
+        phase, renouveler, etats_silhouettes = reprise['phase'], reprise['renouveler'], reprise['etats_silhouettes']
+        references, precedentes, captures = reprise['references'], reprise['precedentes'], reprise['captures']
+        contraintes, rabot, passes = reprise['contraintes'], reprise['rabot'], reprise['passe']
+    if reprise is None or phase != 'fini':
+        try:
+            passes = atteindre_le_point_fixe(construire_tour, PASSES_MAX, refuser, depuis=1 if reprise is None else passes + 1)
+        finally:
+            ressources.close()
+        if reprises is not None:
+            phase = 'fini'
+            ecrire_la_reprise('point-fixe', passes)
     print('SOL tenu en', passes, 'passe(s)', flush=True)
     clear_animation(squelette)
     bpy.context.view_layer.update()
@@ -433,6 +469,8 @@ def main():
                         help='dossier `data` de MPFB (3dobjs, targets) : donneur de la clé `corpulence`')
     parser.add_argument('--sortie', type=Path, required=True, help='humanoide.glb produit')
     parser.add_argument('--os', type=int, default=65, help="nombre d'os du squelette UAL")
+    parser.add_argument('--reprises', type=Path, help='dossier des reprises (`reprises.py`) : écrites à chaque fin de phase '
+                        'du point fixe et à sa fin, la dernière relue au lancement')
     construire(parser.parse_args())
 
 

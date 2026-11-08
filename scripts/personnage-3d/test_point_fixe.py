@@ -30,8 +30,8 @@ def doublures_de_la_construction(peau, journal):
         correction['hors'][:] = False
         correction['retouches'].add(0)
 
-    def atteindre(construire_tour, passes_max, refuser):
-        for passe in range(1, passes_max + 1):
+    def atteindre(construire_tour, passes_max, refuser, depuis=1):
+        for passe in range(depuis, passes_max + 1):
             construire_tour(passe)
 
     nul = mock.MagicMock()
@@ -72,7 +72,7 @@ class PhaseSilhouettes(unittest.TestCase):
         sortie = io.StringIO()
         with mock.patch.multiple(humanoide, **doublures), mock.patch.dict(sys.modules, {'bpy': mock.MagicMock()}), \
                 contextlib.redirect_stdout(sortie), self.assertRaises(Cuisson):
-            humanoide.construire(mock.MagicMock(os=1))
+            humanoide.construire(mock.MagicMock(os=1, reprises=None))
         phases = [ligne.split()[1] for ligne in sortie.getvalue().splitlines()
                   if ligne.startswith('CONSTRUCTION_PHASE')]
         self.assertEqual(phases, ['neutre', 'silhouettes', 'silhouettes'])
@@ -95,7 +95,7 @@ class PhaseSilhouettes(unittest.TestCase):
         doublures['refuser_correction'] = mock.MagicMock(side_effect=Cuisson)
         with mock.patch.multiple(humanoide, **doublures), mock.patch.dict(sys.modules, {'bpy': mock.MagicMock()}), \
                 contextlib.redirect_stdout(io.StringIO()), self.assertRaises(Cuisson):
-            humanoide.construire(mock.MagicMock(os=1))
+            humanoide.construire(mock.MagicMock(os=1, reprises=None))
         self.assertEqual(doublures['refuser_correction'].call_count, 1)
         self.assertEqual(doublures['refuser_correction'].call_args.args[2], 'entrée de pied')
         self.assertEqual(doublures['cuire_gabarit'].call_count, 0)
@@ -153,6 +153,17 @@ class PointFixeCommun(unittest.TestCase):
     def test_une_borne_sans_tour_est_refusee(self):
         with self.assertRaises(ToursSansTour):
             atteindre_le_point_fixe(lambda _: self.fail(), 0, self.fail)
+        with self.assertRaises(ToursSansTour):
+            atteindre_le_point_fixe(lambda _: self.fail(), 4, self.fail, depuis=5)
+
+    def test_une_reprise_continue_au_numero_de_passe_suivant(self):
+        passes = []
+
+        def construire(passe):
+            passes.append(passe)
+            return {'aretes': 0 if passe == 6 else 1}
+        self.assertEqual(atteindre_le_point_fixe(construire, 9, self.fail, depuis=4), 6)
+        self.assertEqual(passes, [4, 5, 6])
 
 
 if __name__ == '__main__':
