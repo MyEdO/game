@@ -1,0 +1,13 @@
+{
+  "model": "vehicule--trebuchet-ade2.glb",
+  "model_sha256": "956e46ef35bf4529080aca5be0c2164df27e3648eedc95261b68af6f897813e0",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

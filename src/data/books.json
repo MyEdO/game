@@ -147,6 +147,22 @@
     "folder": "Cadre de campagne"
   },
   {
+    "id": "tribes-and-tribulations",
+    "type": "books",
+    "label": "Tribes and Tribulations",
+    "abbr": "TT",
+    "language": "VO",
+    "folder": "Cadre de campagne"
+  },
+  {
+    "id": "deft-steps-light-fingers",
+    "type": "books",
+    "label": "Deft Steps, Light Fingers",
+    "abbr": "DSLF",
+    "language": "VO",
+    "folder": "Cadre de campagne"
+  },
+  {
     "id": "ennemi-dans-l-ombre-compagnon",
     "type": "books",
     "label": "L'Ennemi dans l'Ombre — Compagnon",

@@ -105,7 +105,7 @@ describe('les pièces montées aux postes d’un navire', () => {
     expect(vueDe(appel('vue')).corps.vehicules[id]).toEqual({
       element: NAVIRE, empreinte: 4, taille: 'empreinte', cap: 'E', palette: {},
       postes: [{ element: 'canon-moyen', bord: 'tribord', position: TRIBORD[0], palette: {} }, { element: 'canon-moyen', bord: 'proue', position: PROUE[0], palette: {} }],
-      ameliorations: [], caches: [],
+      ameliorations: [], caches: [], clips: {},
     });
   });
 

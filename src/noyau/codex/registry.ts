@@ -1631,6 +1631,7 @@ const CODEX_SPECS = {
         fact(tr('codex.fiche.cible'), s.target ? formatSpellTarget(s.target) : null),
         fact(tr('codex.fiche.duree'), s.duration ? formatSpellDuration(s.duration) : null),
         // Projectile magique (#2 data-driven) : Dégâts additifs + DR + BFM, ignore éventuellement PA/BE.
+        fact(tr('codex.fiche.origineVO'), s.titreVO ? join(s.titreVO, s.livreVO ? refLabel('books', s.livreVO) : null) : null),
         fact(tr('codex.fiche.projectile'), s.missile ? tr('codex.fiche.degatsDrBfm', { v: s.damage ? `${s.damage} + ` : '', v2: s.ignorePA ? tr('codex.fiche.ignorePa') : '', v3: s.ignoreBE ? tr('codex.fiche.ignoreBe') : '' }) : null),
       ),
       sections: sections(

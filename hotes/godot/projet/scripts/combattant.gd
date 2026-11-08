@@ -5,7 +5,8 @@
 ## frappe vers une cible, accuse le coup qui le vise et tombe hors de combat. Sans corps, il garde son anneau et son
 ## étiquette, à la hauteur du nom d'une entité (`MiseEnPage.HAUTEUR_DU_NOM`). Véhicule ou engin (`vue.corps.vehicules[id]`,
 ## #2987), son corps se monte sous `Vehicule` (`MontageDeVehicule`), posé sur ses N×N cases, à sa taille réelle ou les
-## remplissant (`poser_sur_l_empreinte`), et tourné vers son cap (`tourner_au_cap`).
+## remplissant (`poser_sur_l_empreinte`), tourné vers son cap (`tourner_au_cap`) et animé par les clips de son élément
+## (`clips` de son corps), comme un corps par ceux de sa base.
 class_name Combattant
 extends Node3D
 
@@ -19,6 +20,7 @@ const VIDE := MontageDeComposition.VIDE
 const REPOS := "idle"
 const MARCHE := "walk"
 const ATTAQUE := "melee"
+const TIR := "ranged"
 const COUP := "hit"
 const MORT := "death"
 
@@ -62,6 +64,8 @@ func montrer(c: Dictionary, lieu: Vector3, actif: bool, corps: Variant, vehicule
 		_aller(lieu)
 	_vetir(corps)
 	if await _vehicule.monter(vehicule, _montage, _poser_le_vehicule.bind(vehicule, metres_par_case)):
+		_boucler()
+		_jouer(REPOS)
 		_signaler()
 
 
@@ -90,10 +94,11 @@ static func tourner_au_cap(scene: Node3D, cap: String, empreinte: int) -> void:
 	scene.transform = scene.transform.translated(-milieu).rotated(Vector3.UP, MiseEnPage.lacet_de_proue(MiseEnPage.LACETS_DES_CAPS[cap])).translated(milieu)
 
 
-## Tourné vers `cible` (une position du plateau), il frappe.
+## Tourné vers `cible` (une position du plateau), il frappe : le clip de son rôle d'attaque, `ranged` si sa table en
+## porte un (une pièce de tir), `melee` sinon.
 func agir_vers(cible: Vector3) -> void:
 	_tourner_vers(cible)
-	_jouer_puis_repos(ATTAQUE)
+	_jouer_puis_repos(TIR if _clip(TIR) != "" else ATTAQUE)
 
 
 ## Visé par un coup, il l'accuse, s'il tient encore debout.
@@ -134,9 +139,7 @@ func _vetir(corps: Variant) -> void:
 	_montage.vider()
 	_montage.poser_le_modele(_base(corps.base), scene)
 	if _montage.lecteur != null:
-		for role in [REPOS, MARCHE]:
-			if _montage.lecteur.has_animation(_clip(role)):
-				_montage.lecteur.get_animation(_clip(role)).loop_mode = Animation.LOOP_LINEAR
+		_boucler()
 		_jouer(MORT if _hors_combat else REPOS)
 	if _montage.gabarit != null:
 		_montage.gabarit.mesure.connect(_hausser_l_etiquette)
@@ -215,14 +218,32 @@ func _hausser_l_etiquette() -> void:
 	_etiquette.position.y = MiseEnPage.hauteur_au_gabarit(_hauteur_de_tete, mesures.repos.sommet, mesures.neutre.sommet)
 
 
-## Le clip du rôle `role` de la base posée, `""` sans corps ou sans clip pour ce rôle.
+## Le lecteur de ses clips : celui de son véhicule posé, sinon celui de sa base (`null` : aucun).
+func _lecteur() -> AnimationPlayer:
+	return _vehicule.lecteur if _vehicule.scene != null else _montage.lecteur
+
+
+## Le clip du rôle `role` de son véhicule posé (`clips` de son corps), sinon de sa base posée, `""` sans corps ou sans
+## clip pour ce rôle.
 func _clip(role: String) -> String:
+	if _vehicule.scene != null:
+		return _vehicule.clips.get(role, "")
 	return _montage.base.get("clips", {}).get(role, "")
+
+
+## Ses clips de repos et de marche en boucle.
+func _boucler() -> void:
+	var lecteur := _lecteur()
+	if lecteur == null:
+		return
+	for role in [REPOS, MARCHE]:
+		if lecteur.has_animation(_clip(role)):
+			lecteur.get_animation(_clip(role)).loop_mode = Animation.LOOP_LINEAR
 
 
 ## Le clip du rôle `role` joué, la file vidée ; rend s'il l'est.
 func _jouer(role: String) -> bool:
-	var lecteur := _montage.lecteur
+	var lecteur := _lecteur()
 	if lecteur == null or not lecteur.has_animation(_clip(role)):
 		return false
 	lecteur.clear_queue()
@@ -232,8 +253,8 @@ func _jouer(role: String) -> bool:
 
 ## Le clip du rôle `role` joué, puis celui du repos.
 func _jouer_puis_repos(role: String) -> void:
-	if _jouer(role) and _montage.lecteur.has_animation(_clip(REPOS)):
-		_montage.lecteur.queue(_clip(REPOS))
+	if _jouer(role) and _lecteur().has_animation(_clip(REPOS)):
+		_lecteur().queue(_clip(REPOS))
 
 
 func _aller(lieu: Vector3) -> void:

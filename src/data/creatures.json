@@ -31061,7 +31061,8 @@
       "frisson-du-givre",
       "fureur-d-ulric",
       "peau-de-loup-d-hiver",
-      "morsure-de-l-hiver"
+      "morsure-de-l-hiver",
+      "courage-du-loup"
     ],
     "source": {
       "book": "guide-frenchy",
@@ -34521,7 +34522,8 @@
       "benediction-de-vivacite",
       "yeux-de-chat",
       "grace-de-ranald",
-      "invitation"
+      "invitation",
+      "piste-froide"
     ],
     "source": {
       "book": "guide-frenchy",
@@ -51726,7 +51728,9 @@
       "drain",
       "murmures",
       "choc",
-      "consentement"
+      "consentement",
+      "cacophonie-scabreuse",
+      "langue-aceree"
     ],
     "source": {
       "book": "guide-frenchy",
@@ -51892,7 +51896,9 @@
       "choc",
       "secousse",
       "consentement",
-      "pouvoir-du-chaos"
+      "pouvoir-du-chaos",
+      "cacophonie-scabreuse",
+      "langue-aceree"
     ],
     "source": {
       "book": "guide-frenchy",
@@ -52058,7 +52064,9 @@
       "choc",
       "secousse",
       "consentement",
-      "pouvoir-du-chaos"
+      "pouvoir-du-chaos",
+      "cacophonie-scabreuse",
+      "langue-aceree"
     ],
     "source": {
       "book": "guide-frenchy",
@@ -52671,7 +52679,9 @@
       "feux-follets",
       "putrefaction",
       "choc",
-      "pouvoir-du-chaos"
+      "pouvoir-du-chaos",
+      "arme-souillee",
+      "nuee-de-mouches"
     ],
     "source": {
       "book": "guide-frenchy",
@@ -52830,7 +52840,10 @@
       "feux-follets",
       "putrefaction",
       "choc",
-      "pouvoir-du-chaos"
+      "pouvoir-du-chaos",
+      "arme-souillee",
+      "nuee-de-mouches",
+      "haleine-fetide"
     ],
     "source": {
       "book": "guide-frenchy",
@@ -52989,7 +53002,10 @@
       "feux-follets",
       "putrefaction",
       "choc",
-      "pouvoir-du-chaos"
+      "pouvoir-du-chaos",
+      "arme-souillee",
+      "nuee-de-mouches",
+      "haleine-fetide"
     ],
     "source": {
       "book": "guide-frenchy",
@@ -56775,7 +56791,13 @@
         "id": "jezail-a-malepierre"
       }
     ],
-    "spells": [],
+    "spells": [
+      "flamme-verdatre",
+      "hebetement",
+      "crepitement-funeste",
+      "depecage",
+      "bouclier-hcvm"
+    ],
     "source": {
       "book": "guide-frenchy",
       "page": 360
@@ -56999,7 +57021,14 @@
         "id": "jezail-a-malepierre"
       }
     ],
-    "spells": [],
+    "spells": [
+      "flamme-verdatre",
+      "hebetement",
+      "crepitement-funeste",
+      "depecage",
+      "bouclier-hcvm",
+      "rafale-hurlante"
+    ],
     "source": {
       "book": "guide-frenchy",
       "page": 363
@@ -57250,7 +57279,14 @@
         "id": "jezail-a-malepierre"
       }
     ],
-    "spells": [],
+    "spells": [
+      "flamme-verdatre",
+      "hebetement",
+      "crepitement-funeste",
+      "depecage",
+      "bouclier-hcvm",
+      "rafale-hurlante"
+    ],
     "source": {
       "book": "guide-frenchy",
       "page": 366
@@ -57629,7 +57665,10 @@
         "text": "Shurikens Skavens"
       }
     ],
-    "spells": [],
+    "spells": [
+      "rage-meurtriere-hcvm",
+      "poudre-d-escampette"
+    ],
     "source": {
       "book": "guide-frenchy",
       "page": 372
@@ -57883,7 +57922,11 @@
         "text": "Bombe Fumigène"
       }
     ],
-    "spells": [],
+    "spells": [
+      "armure-d-obscurite",
+      "rage-meurtriere-hcvm",
+      "poudre-d-escampette"
+    ],
     "source": {
       "book": "guide-frenchy",
       "page": 375
@@ -58165,7 +58208,12 @@
         "text": "Bombe Fumigène"
       }
     ],
-    "spells": [],
+    "spells": [
+      "armure-d-obscurite",
+      "rage-meurtriere-hcvm",
+      "pattes-gluantes",
+      "poudre-d-escampette"
+    ],
     "source": {
       "book": "guide-frenchy",
       "page": 378
@@ -58495,7 +58543,11 @@
         "text": "Encensoir de la Peste"
       }
     ],
-    "spells": [],
+    "spells": [
+      "flamme-verdatre",
+      "hebetement",
+      "immuno-deficience"
+    ],
     "source": {
       "book": "guide-frenchy",
       "page": 385
@@ -58694,7 +58746,12 @@
         "text": "Encensoir de la Peste"
       }
     ],
-    "spells": [],
+    "spells": [
+      "flamme-verdatre",
+      "hebetement",
+      "immuno-deficience",
+      "nuee-de-mouches"
+    ],
     "source": {
       "book": "guide-frenchy",
       "page": 388
@@ -58911,7 +58968,12 @@
         "text": "Encensoir de la Peste"
       }
     ],
-    "spells": [],
+    "spells": [
+      "flamme-verdatre",
+      "hebetement",
+      "immuno-deficience",
+      "nuee-de-mouches"
+    ],
     "source": {
       "book": "guide-frenchy",
       "page": 391
@@ -60734,7 +60796,16 @@
         "id": "arme-simple"
       }
     ],
-    "spells": [],
+    "spells": [
+      "armure-d-obscurite",
+      "poudre-d-escampette",
+      "flamme-verdatre",
+      "hebetement",
+      "depecage",
+      "immuno-deficience",
+      "nuee-de-mouches",
+      "avatar-du-rat-cornu"
+    ],
     "source": {
       "book": "guide-frenchy",
       "page": 415
@@ -61000,7 +61071,16 @@
         "id": "arme-simple"
       }
     ],
-    "spells": [],
+    "spells": [
+      "armure-d-obscurite",
+      "poudre-d-escampette",
+      "flamme-verdatre",
+      "hebetement",
+      "depecage",
+      "immuno-deficience",
+      "nuee-de-mouches",
+      "avatar-du-rat-cornu"
+    ],
     "source": {
       "book": "guide-frenchy",
       "page": 420
@@ -62972,7 +63052,8 @@
     "spells": [
       "flechette",
       "choc",
-      "secousse"
+      "secousse",
+      "crepitements-vengeurs"
     ],
     "source": {
       "book": "guide-frenchy",
@@ -63192,7 +63273,8 @@
       "tendre-l-oreille",
       "choc",
       "secousse",
-      "enchevetrement"
+      "enchevetrement",
+      "crepitements-vengeurs"
     ],
     "source": {
       "book": "guide-frenchy",
@@ -63430,7 +63512,9 @@
       "choc",
       "alerte",
       "secousse",
-      "enchevetrement"
+      "enchevetrement",
+      "crepitements-vengeurs",
+      "lune-de-malheur"
     ],
     "source": {
       "book": "guide-frenchy",
@@ -65001,7 +65085,10 @@
       "flamme-magique",
       "feux-follets",
       "bruits",
-      "explosion"
+      "explosion",
+      "prise-de-tete",
+      "z-oeils-de-mork",
+      "coup-d-boule"
     ],
     "source": {
       "book": "guide-frenchy",
@@ -65212,7 +65299,10 @@
       "feux-follets",
       "bruits",
       "enchevetrement",
-      "explosion"
+      "explosion",
+      "prise-de-tete",
+      "z-oeils-de-mork",
+      "coup-d-boule"
     ],
     "source": {
       "book": "guide-frenchy",
@@ -65445,7 +65535,12 @@
       "bruits",
       "alerte",
       "enchevetrement",
-      "explosion"
+      "explosion",
+      "prise-de-tete",
+      "z-oeils-de-mork",
+      "coup-d-boule",
+      "soleil-noir",
+      "waaagh"
     ],
     "source": {
       "book": "guide-frenchy",
@@ -66750,6 +66845,13 @@
         "id": "rapide"
       },
       {
+        "id": "regeneration"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
         "id": "peur",
         "value": 1
       },
@@ -66941,7 +67043,10 @@
       "carreau",
       "enchevetrement",
       "poussee",
-      "mauvais-oeil"
+      "mauvais-oeil",
+      "algues-cruelles",
+      "vague-scelerate",
+      "brume-mystique-magie-du-marais"
     ],
     "source": {
       "book": "guide-frenchy",
@@ -68198,7 +68303,9 @@
       "relever-les-morts",
       "reanimation",
       "l-appel-de-vanhel",
-      "agressivite-de-la-maresang"
+      "agressivite-de-la-maresang",
+      "forme-spectrale",
+      "invocation-d-un-colosse-necrofex"
     ],
     "source": {
       "book": "guide-frenchy",
@@ -71761,7 +71868,8 @@
       "deplacement-d-objet",
       "armure-aethyrique",
       "relever-les-morts",
-      "reanimation"
+      "reanimation",
+      "forme-spectrale"
     ],
     "source": {
       "book": "guide-frenchy",
@@ -72073,7 +72181,8 @@
       "armure-aethyrique",
       "relever-les-morts",
       "reanimation",
-      "l-appel-de-vanhel"
+      "l-appel-de-vanhel",
+      "forme-spectrale"
     ],
     "source": {
       "book": "guide-frenchy",
@@ -72444,7 +72553,9 @@
       "armure-aethyrique",
       "relever-les-morts",
       "reanimation",
-      "l-appel-de-vanhel"
+      "l-appel-de-vanhel",
+      "forme-spectrale",
+      "perturber-la-magie"
     ],
     "source": {
       "book": "guide-frenchy",

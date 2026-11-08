@@ -976,7 +976,7 @@ export interface TalentData {
   /** Maxi d'acquisitions (LDB 10 « Schéma des Talents ») : un nombre fixe, ou le BONUS d'une
    *  caractéristique (`{bonusOf}`, structuré — remplace la chaîne « Bonus de X » re-parsée par regex),
    *  ou `null` = sans limite (ex-« Aucun »). */
-  max: number | { bonusOf: import('../engine/types').CharKey } | null;
+  max: number | { bonusOf: import('../engine/types').CharKey } | 'sortsDuDomaine' | null;
   /** Ligne « Tests » recodée : `{ raw verbatim (Codex), matches[] structuré (logique) }`. `null` = le
    *  talent ne se rapporte à aucun Test. */
   test: TalentTest | null;
@@ -2207,6 +2207,9 @@ export interface SpellData {
   // IMPURES (`push`/`teleport`/`chain`, on:'caster') dans `effects`, résolus par combatFlow (cf. engine/ops).
   /** Sort « Souffle » (LDB 47 l.503) : délégué à l'attaque de ZONE du Trait Souffle. */
   breathAttack?: true;
+  /** Titre et livre VO d'un sort qu'un livre fan traduit — `schemas/defs/spells.ts` (#3666). */
+  titreVO?: string;
+  livreVO?: { id: string };
   /** OPPOSITION de la cible (multijet dans la modale d'incantation).
    *  `resist` : Test opposé par la caractéristique/compétence `characteristic`/`skill` de la cible.
    *  `contact` : Sort de Portée Contact — frappe via Test opposé de Corps à corps (Bagarre). */
