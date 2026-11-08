@@ -2034,7 +2034,7 @@ describe('Utiliser un consommable en combat (store) — Action gratuite, LDB 13 
       items: [potion('p1', 'potion-de-guerison')],
     });
     banc.setState({ mode: 'battle', battle: mkBattle(h) });
-    banc.getState().utiliserLObjet(h.id, 'p1');
+    banc.getState().utiliserLObjet('p1');
     const b = banc.getState().battle!;
     expect(b.combatants[0].wounds.current).toBe(8); // 5 + BE(35) = 8
     expect(b.combatants[0].items!.find((i) => i.uid === 'p1')).toBeUndefined();
@@ -2047,7 +2047,7 @@ describe('Utiliser un consommable en combat (store) — Action gratuite, LDB 13 
       items: [potion('p2', 'potion-de-vitalite')],
     });
     banc.setState({ mode: 'battle', battle: mkBattle(h) });
-    banc.getState().utiliserLObjet(h.id, 'p2');
+    banc.getState().utiliserLObjet('p2');
     const b = banc.getState().battle!;
     expect(b.combatants[0].conditions.find((c) => c.id === 'extenue')).toBeUndefined();
     expect(b.acted).toBe(false);
@@ -2058,7 +2058,7 @@ describe('Utiliser un consommable en combat (store) — Action gratuite, LDB 13 
       items: [potion('p4', 'potion-de-vitalite')],
     });
     banc.setState({ mode: 'battle', battle: mkBattle(h), refus: null });
-    banc.getState().utiliserLObjet(h.id, 'p4');
+    banc.getState().utiliserLObjet('p4');
     const b = banc.getState().battle!;
     expect(banc.getState().refus?.texte).toBe(`${h.label} n’a aucun pion Exténué qui puisse être retiré. Potion de vitalité ne lui apporterait rien : l’objet est gardé.`);
     expect(b.combatants[0].items!.find((i) => i.uid === 'p4'), 'pas consommée').toBeTruthy();
@@ -2071,7 +2071,7 @@ describe('Utiliser un consommable en combat (store) — Action gratuite, LDB 13 
       items: [potion('p3', 'potion-de-guerison')],
     });
     banc.setState({ mode: 'battle', battle: mkBattle(h, { acted: true }) });
-    banc.getState().utiliserLObjet(h.id, 'p3');
+    banc.getState().utiliserLObjet('p3');
     const b = banc.getState().battle!;
     expect(b.combatants[0].wounds.current).toBe(8);
     expect(b.combatants[0].items!.find((i) => i.uid === 'p3')).toBeUndefined();
@@ -3350,18 +3350,18 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     banc.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
     banc.getState().ouvrirLeMarchand('pnj');
     const before = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().reparerLObjet('a', 'h');
+    banc.getState().reparerLObjet('a');
     const st = banc.getState();
     expect(st.party[0].items!.find((i) => i.uid === 'a')!.damageTaken).toBe(0); // réparé
     expect(toBrass(partyMoneyTotal(banc.getState))).toBeLessThan(before); // débité
   });
 
-  it('reparerLObjet : ignore une armure intacte (damageTaken 0) — pas de débit', () => {
+  it('reparerLObjet : refuse une armure intacte (damageTaken 0) — pas de débit', () => {
     const h = hero(); h.items = [{ uid: 'b', label: 'Chemise de mailles', kind: 'armor', pa: 3, damageTaken: 0, qualities: [], enc: 1, equipped: true } as any];
     banc.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
     banc.getState().ouvrirLeMarchand('pnj');
     const before = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().reparerLObjet('b', 'h');
+    banc.getState().reparerLObjet('b');
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(before); // rien à réparer
   });
 
@@ -3370,7 +3370,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     banc.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
     banc.getState().ouvrirLeMarchand('pnj');
     const before = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().reparerLObjet('w', 'h');
+    banc.getState().reparerLObjet('w');
     const st = banc.getState();
     expect(st.party[0].items!.find((i) => i.uid === 'w')!.damageTaken).toBe(0); // réparée
     expect(toBrass(partyMoneyTotal(banc.getState))).toBeLessThan(before); // débité
@@ -3482,7 +3482,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
   it('evaluerLObjet : crée un pendingAppraise sur l’objet non identifié (#2e)', () => {
     banc.setState({ party: [appraiser()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().evaluerLObjet('m', 'h');
+    banc.getState().evaluerLObjet('m');
     const pa = banc.getState().pendingAppraise!;
     expect(pa).toBeTruthy();
     expect(pa.itemUid).toBe('m');
@@ -3493,7 +3493,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     const profane = { ...appraiser(), skills: [] } as Combatant;
     banc.setState({ party: [profane], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().evaluerLObjet('m', 'h');
+    banc.getState().evaluerLObjet('m');
     expect(banc.getState().pendingAppraise).toBeNull();
     expect(banc.getState().journal.slice(-1)[0]).toBe('Personne dans le groupe ne peut tenter le Test d’Évaluation.');
   });
@@ -3501,7 +3501,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
   it('jetValider@appraise : succès → identified=true (révèle l’objet) (#2e)', () => {
     banc.setState({ party: [appraiser()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().evaluerLObjet('m', 'h');
+    banc.getState().evaluerLObjet('m');
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 10, success: true, sl: 2 } });
     banc.getState().jetValider('appraise');
@@ -3512,7 +3512,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
   it('jetValider@appraise : échec → l’objet reste non identifié (#2e)', () => {
     banc.setState({ party: [appraiser()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().evaluerLObjet('m', 'h');
+    banc.getState().evaluerLObjet('m');
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 90, success: false, sl: -3 } });
     banc.getState().jetValider('appraise');
@@ -3559,18 +3559,18 @@ describe('transmettreLObjet — donner un objet à un autre héros', () => {
   it('déplace l’objet (retiré de la source, ajouté NON équipé chez la cible)', () => {
     const a = h('a', [{ uid: 'x', label: 'Épée bâtarde', kind: 'melee', qualities: [], enc: 2, equipped: true }]);
     banc.setState({ party: [a, h('b')] });
-    banc.getState().transmettreLObjet('x', 'a', 'b');
+    banc.getState().transmettreLObjet('x', 'b');
     const st = banc.getState();
     expect(st.party.find((c) => c.id === 'a')!.items!.find((i) => i.uid === 'x')).toBeUndefined();
     const moved = st.party.find((c) => c.id === 'b')!.items!.find((i) => i.uid === 'x');
     expect(moved).toBeTruthy();
     expect(moved!.equipped).toBe(false); // arrive non équipé chez le destinataire
   });
-  it('no-op si même héros ou objet absent', () => {
+  it('refusé si même héros ou objet que personne ne porte', () => {
     const a = h('a', [{ uid: 'x', label: 'Dague', kind: 'melee', qualities: [], enc: 0, equipped: false }]);
     banc.setState({ party: [a, h('b')] });
-    banc.getState().transmettreLObjet('x', 'a', 'a'); // même héros
-    banc.getState().transmettreLObjet('zzz', 'a', 'b'); // objet inexistant
+    banc.getState().transmettreLObjet('x', 'a'); // même héros
+    banc.getState().transmettreLObjet('zzz', 'b'); // objet inexistant
     expect(banc.getState().party.find((c) => c.id === 'a')!.items!.length).toBe(1);
     expect(banc.getState().party.find((c) => c.id === 'b')!.items!.length).toBe(0);
   });

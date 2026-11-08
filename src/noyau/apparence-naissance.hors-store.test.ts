@@ -50,7 +50,7 @@ describe('la naissance est câblée aux flux réels', () => {
     donner('nain');
     const objet = banc.getState().party[0].items!.find((i) => i.trappingId === 'arme-simple')!;
     expect(objet.apparence).toBe('naissance-naine');
-    banc.getState().transmettreLObjet(objet.uid, 'nain', 'humain');
+    banc.getState().transmettreLObjet(objet.uid, 'humain');
     expect(banc.getState().party[0].items?.some((i) => i.uid === objet.uid)).toBe(false);
     expect(banc.getState().party[1].items?.find((i) => i.uid === objet.uid)?.apparence).toBe('naissance-naine');
   });

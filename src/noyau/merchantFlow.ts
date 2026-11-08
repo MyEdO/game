@@ -52,6 +52,7 @@ import type { CorpsDesChoix } from './choixDesFenetres';
 import type { IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition } from './designations';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { refusDInventaire, refuseSi } from './verrousDeFiche';
+import { porteurDeLObjet, refusDuHerosPorteur } from './monde/carrier';
 
 /** Boutique OUVERTE (état de la visite en cours). Le stock persistant vit dans `merchantStocks`. */
 export interface MerchantState {
@@ -403,7 +404,8 @@ export function echoppesDuLieu(s: Jeu): ResolvedPlaceService[] {
 export function ouvrirLaBoutique(get: Get, set: Set, serviceId: string): void {
   const ici = lieuDuGroupe(get());
   const svc = echoppesDuLieu(get()).find((x) => x.id === serviceId);
-  if (!ici || !svc?.merchantArchetype) return;
+  if (!ici) return void refuserGeste(get, set, t('mf.boutiqueSansLieu'));
+  if (!svc?.merchantArchetype) return void refuserGeste(get, set, t('mf.boutiqueInconnue', { service: serviceId }));
   openMerchantByArchetype(get, set, placeServiceMerchantId(ici.id, svc.id), svc.merchantArchetype, undefined, svc.backdrop);
 }
 
@@ -767,13 +769,15 @@ export function refusDeReparation(hero: Combatant, item: ItemInstance, refusHote
 }
 
 /** Réparation d'un objet chez un artisan — armure (LDB 63 l.64) OU arme (LDB 62 l.135), au coût
- *  `coutDeReparation`. Une arme réduite à l'état improvisé est irréparable (isRepairable). Le refus de
- *  `refusDeReparation` tombe avant tout débit. */
-export function reparerLObjet(get: Get, set: Set, uid: string, heroId: string): void {
-  const m = get().merchant; if (!m) return;
-  const hero = get().party.find((h) => h.id === heroId);
-  const item = hero?.items?.find((i) => i.uid === uid);
-  if (!hero || !item || !isRepairable(item)) return;
+ *  `coutDeReparation`, aux frais de son porteur (`porteurDeLObjet`). Une arme réduite à l'état improvisé est irréparable
+ *  (isRepairable). Chaque refus est dit avant tout débit. */
+export function reparerLObjet(get: Get, set: Set, uid: string): void {
+  if (!get().merchant) return void refuserGeste(get, set, t('mf.repairNoMerchant'));
+  if (refuseSi(get, set, (s) => refusDuHerosPorteur(s, uid))) return;
+  const heroId = porteurDeLObjet(get(), uid)!;
+  const hero = get().party.find((h) => h.id === heroId)!;
+  const item = hero.items!.find((i) => i.uid === uid)!;
+  if (!isRepairable(item)) return void refuserGeste(get, set, t((item.damageTaken ?? 0) > 0 ? 'mf.repairIrreparable' : 'mf.repairIntact', { label: item.label }));
   const refus = refusDeReparation(hero, item, refusDeGesteSurLeGroupe(get()));
   if (refus) { refuserGeste(get, set, refus); return; }
   const cost = coutDeReparation(item);
@@ -904,10 +908,10 @@ export function gameDay(s: Pick<Jeu, 'gameTime'>): number {
   return Math.floor(s.gameTime / MINUTES_PER_DAY);
 }
 
-export function evaluerLObjet(get: Get, set: Set, uid: string, heroId: string, mode: 'evaluate' | 'detect' = 'evaluate'): void {
+export function evaluerLObjet(get: Get, set: Set, uid: string, mode: 'evaluate' | 'detect' = 'evaluate'): void {
   if (refuseSi(get, set, refusDInventaire)) return;
-  const hero = actorIn(get(), heroId);
-  const item = hero?.items?.find((i) => i.uid === uid); if (!item) return;
+  if (refuseSi(get, set, (s) => refusDuHerosPorteur(s, uid))) return;
+  const item = actorIn(get(), porteurDeLObjet(get(), uid)!)!.items!.find((i) => i.uid === uid)!;
   if (mode === 'detect' && item.detectTried) return; // une seule tentative par artefact (LDB 10 l.336)
   if (mode === 'evaluate' && item.appraiseTriedDay === gameDay(get())) {
     get().ecrireAuJournal(t('mf.appraiseSameDay', { label: item.label }));
@@ -1013,9 +1017,9 @@ export function creerActionsDuMarchand(get: Get, set: Set) {
     refuserLeMarche: (mode) => refuserLeMarche(get, set, mode),
     payerLesAchats: () => payerLesAchats(get, set),
     vendreLeLot: () => vendreLeLot(get, set),
-    reparerLObjet: (uid, heroId) => reparerLObjet(get, set, uid, heroId),
+    reparerLObjet: (uid) => reparerLObjet(get, set, uid),
     marchanderLePrix: (mode) => marchanderLePrix(get, set, mode),
-    evaluerLObjet: (uid, heroId, mode) => evaluerLObjet(get, set, uid, heroId, mode),
+    evaluerLObjet: (uid, mode) => evaluerLObjet(get, set, uid, mode),
     evaluerLeButin: (scope, uid, mode) => evaluerLeButin(get, set, scope, uid, mode),
     troquerLesObjets: (opts) => troquerLesObjets(get, set, opts),
   } satisfies FabriqueDuNoyau;
@@ -1035,7 +1039,7 @@ export function choixDuMarchand(get: Get, set: Set) {
       oterDuPanier: (id) => ecrire((m) => ({ cart: m.cart.map((c) => (c.id === id ? { ...c, qty: c.qty - 1 } : c)).filter((c) => c.qty > 0) })),
       retirerDuPanier: (id) => ecrire((m) => ({ cart: m.cart.filter((c) => c.id !== id) })),
       viderLePanier: () => ecrire(() => ({ cart: [] })),
-      ajouterALaVente: (uid) => ecrire((m) => ({ sellCart: [...(m.sellCart ?? []), { uid, heroId: garanti(porteurDeLObjet(get(), uid), uid, 'porteur de l’objet vendu').id }] })),
+      ajouterALaVente: (uid) => ecrire((m) => ({ sellCart: [...(m.sellCart ?? []), { uid, heroId: garanti(porteurDeLObjet(get(), uid), uid, 'porteur de l’objet vendu') }] })),
       retirerDeLaVente: (uid) => ecrire((m) => ({ sellCart: (m.sellCart ?? []).filter((c) => c.uid !== uid) })),
       viderLaVente: () => ecrire(() => ({ sellCart: [] })),
       baisserLePrix: (uid) => baisses(uid, 1),
@@ -1045,8 +1049,6 @@ export function choixDuMarchand(get: Get, set: Set) {
   } satisfies Partial<CorpsDesChoix>;
 }
 
-/** Le héros du groupe qui porte l'objet `uid`. */
-const porteurDeLObjet = (s: Jeu, uid: string): Combatant | undefined => s.party.find((h) => (h.items ?? []).some((i) => i.uid === uid));
 
 export function sortiesDuMarchand(get: Get, set: Set) {
   return { marchand: () => quitterLeMarchand(get, set) } satisfies Partial<SortiesDeFenetre>;

@@ -103,7 +103,7 @@ describe('#3059 — réparation et Troc : le geste lit la fonction de l’écran
       const cout = 96;
       expect(toBrass(coutDeReparation(abimee))).toBe(cout);
       const avant = bourseDuGroupe(partie);
-      partie.envoyer({ type: 'reparerLObjet', args: ['abimee', heros.id] });
+      partie.envoyer({ type: 'reparerLObjet', args: ['abimee'] });
       expect(avant - bourseDuGroupe(partie)).toBe(cout);
       expect(partie.etat().party[0].items!.find((i) => i.uid === 'abimee')!.damageTaken).toBe(0);
     } finally {
@@ -171,7 +171,7 @@ describe('#3059 — siège invité : l’invité compose le panier, l’encaisse
       partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'ajouterAuPanier', ligne.id] });
       expect(partie.etat().merchant!.cart).toEqual([{ id: ligne.id, qty: 1 }]);
       partie.envoyer({ type: 'payerLesAchats', args: [] });
-      partie.envoyer({ type: 'reparerLObjet', args: ['abimee', heros.id] });
+      partie.envoyer({ type: 'reparerLObjet', args: ['abimee'] });
       partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'ajouterALaVente', 'avendre'] });
       partie.envoyer({ type: 'vendreLeLot', args: [] });
       partie.envoyer({ type: 'troquerLesObjets', args: [{ giveHeroId: heros.id, giveTrappingId: 'hallebarde', getStockId: ligne.id, getCount: 1 }] });

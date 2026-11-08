@@ -27,15 +27,15 @@ describe('les gestes d’un objet', () => {
     const { s, rosa, uid } = partie();
     const justaucorps = gestesDeLObjet(s, rosa.id, uid('Justaucorps de cuir'))!;
     expect([justaucorps.porter, justaucorps.mains, justaucorps.utiliser], 'une armure se porte, ne se tient ni ne s’utilise')
-      .toEqual([{ porte: true, refus: null, geste: { verbe: 'equiperLObjet', args: [rosa.id, uid('Justaucorps de cuir')] } }, null, null]);
+      .toEqual([{ porte: true, refus: null, geste: { verbe: 'equiperLObjet', args: [uid('Justaucorps de cuir')] } }, null, null]);
     const dague = gestesDeLObjet(s, rosa.id, uid('Dague'))!;
     expect([dague.porter, dague.mains?.main], 'une arme se tient ; tenue en main principale, son geste la lâche')
       .toEqual([null, { tenue: true, refus: null, geste: { verbe: 'garnirLaPanoplie', args: [rosa.id, dague.mains!.set, 'main', null] } }]);
-    expect(dague.donner?.choix.map((c) => c.geste), 'elle se donne à l’autre héros').toEqual([{ verbe: 'transmettreLObjet', args: [uid('Dague'), rosa.id, s.party[0].id] }]);
+    expect(dague.donner?.choix.map((c) => c.geste), 'elle se donne à l’autre héros').toEqual([{ verbe: 'transmettreLObjet', args: [uid('Dague'), s.party[0].id] }]);
     const pilon = gestesDeLObjet(s, rosa.id, uid('Pilon et Mortier'))!;
     expect([pilon.evaluer, pilon.detecter], 'un objet non identifié s’évalue et se détecte, au verdict de l’Évaluation').toEqual([
-      { refus: appraiseRefus(s.party), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier'), rosa.id] } },
-      { refus: appraiseRefus(s.party, 'detect'), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier'), rosa.id, 'detect'] } },
+      { refus: appraiseRefus(s.party), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier')] } },
+      { refus: appraiseRefus(s.party, 'detect'), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier'), 'detect'] } },
     ]);
     expect(gestesDeLObjet(s, rosa.id, 'personne'), 'sans l’objet, aucun geste').toBeNull();
   });

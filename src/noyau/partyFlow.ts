@@ -7,7 +7,7 @@ import { Combatant, CharKey, CHAR_LABELS, ItemInstance } from '../engine/types';
 import { choisirApparenceDObjet, recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetSlot, equipConflicts, canStow, isOffHandEligible, setADeuxMains } from '../engine/items';
 import type { Possession } from '../engine/possession';
 import { possessionLabel } from '../engine/possession';
-import { resolveCarrier, porteurLocalise } from './monde/carrier';
+import { resolveCarrier, porteurLocalise, porteurDeLObjet, refusSansPorteur, refusDuHerosPorteur } from './monde/carrier';
 import { carriersColocated } from '../engine/cargo';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refusDepensePx, refusDInventaire, refusDuBackground, refuseSi } from './verrousDeFiche';
@@ -118,11 +118,24 @@ function applyToggleEquip(items: ItemInstance[], uid: string, label: string): st
   return msg;
 }
 
-/** Équipe/déséquipe un objet d'un PORTEUR (héros de `party` OU possession de `possessions`, doctrine
+/** L'id du porteur de l'objet `uid` (`porteurDeLObjet`), `undefined` après son refus dit (`refusSansPorteur`). Hors combat
+ *  (`refusDInventaire` d'abord), ce porteur est un héros du groupe ou une possession. */
+function porteurDuGroupe(get: Get, set: Set, uid: string): string | undefined {
+  return refuseSi(get, set, (s) => refusSansPorteur(s, uid)) ? undefined : porteurDeLObjet(get(), uid);
+}
+
+/** L'id du héros du groupe qui porte l'objet `uid`, `undefined` après son refus dit (`refusDuHerosPorteur`). */
+function herosPorteur(get: Get, set: Set, uid: string): string | undefined {
+  return refuseSi(get, set, (s) => refusDuHerosPorteur(s, uid)) ? undefined : porteurDeLObjet(get(), uid);
+}
+
+/** Équipe/déséquipe un objet de son PORTEUR (héros de `party` OU possession de `possessions`, doctrine
  *  « porteur unique » #614/#620) — un héros recalcule aussi ses armes/armure actives (`recomputeLoadout`,
  *  réservé aux Combatant : une possession n'a pas de loadout d'arme). */
-export function equiperLObjet(get: Get, set: Set, carrierId: string, uid: string): void {
+export function equiperLObjet(get: Get, set: Set, uid: string): void {
   if (refuseSi(get, set, refusDInventaire)) return;
+  const carrierId = porteurDuGroupe(get, set, uid);
+  if (!carrierId) return;
   let msg = '';
   set((s) => {
     const carrier = resolveCarrier(s, carrierId);
@@ -171,8 +184,10 @@ function applyStow(items: ItemInstance[], uid: string, containerUid: string | nu
 }
 
 /** Même patron qu'`equiperLObjet` (clone + recomputeLoadout réservé au héros) — porteur héros OU possession. */
-export function rangerLObjet(get: Get, set: Set, carrierId: string, uid: string, containerUid: string | null): void {
+export function rangerLObjet(get: Get, set: Set, uid: string, containerUid: string | null): void {
   if (refuseSi(get, set, refusDInventaire)) return;
+  const carrierId = porteurDuGroupe(get, set, uid);
+  if (!carrierId) return;
   let msg = '';
   set((s) => {
     const carrier = resolveCarrier(s, carrierId);
@@ -269,18 +284,20 @@ function carrierLabel(carrier: { kind: 'hero'; hero: Combatant } | { kind: 'poss
   return carrier.kind === 'hero' ? carrier.hero.label : possessionLabel(carrier.possession);
 }
 
-/** Donne un objet d'un PORTEUR (héros ou possession) à un autre — #620 généralise le don héros→héros
+/** Donne un objet de son PORTEUR (héros ou possession) à un autre — #620 généralise le don héros→héros
  *  aux 4 combinaisons (héros↔héros, héros↔possession, possession↔possession). `recomputeLoadout`
  *  reste réservé aux Combatant (armes actives) — une possession n'a pas de loadout. En combat, rien ne
  *  change de mains (`refusDInventaire`) : un don à sa mule contournerait le verrou d'`equiperLObjet`. */
-export function transmettreLObjet(get: Get, set: Set, uid: string, fromCarrierId: string, toCarrierId: string): void {
+export function transmettreLObjet(get: Get, set: Set, uid: string, toCarrierId: string): void {
   if (refuseSi(get, set, refusDInventaire)) return;
+  const fromCarrierId = porteurDuGroupe(get, set, uid);
+  if (!fromCarrierId) return;
   const state = get();
-  const from = resolveCarrier(state, fromCarrierId);
+  const from = resolveCarrier(state, fromCarrierId)!;
   const to = resolveCarrier(state, toCarrierId);
-  const fromItems = !from ? [] : from.kind === 'hero' ? (from.hero.items ?? []) : from.possession.items;
-  const item = fromItems.find((i) => i.uid === uid);
-  if (!from || !to || !item) return void refuserGeste(get, set, t('pf.giveNotFound'));
+  const fromItems = from.kind === 'hero' ? (from.hero.items ?? []) : from.possession.items;
+  const item = fromItems.find((i) => i.uid === uid)!;
+  if (!to) return void refuserGeste(get, set, t('pf.giveNotFound'));
   if (fromCarrierId === toCarrierId) return void refuserGeste(get, set, t('pf.giveSelf', { from: carrierLabel(from), item: item.label }));
   if (!carriersColocated(porteurLocalise(from), porteurLocalise(to))) {
     return void refuserGeste(get, set, t('pf.giveNotColocated', { from: carrierLabel(from), to: carrierLabel(to), item: item.label }));
@@ -333,7 +350,9 @@ export function transmettreLObjet(get: Get, set: Set, uid: string, fromCarrierId
 }
 
 /** #2967 */
-export function poserLApparence(get: Get, set: Set, heroId: string, uid: string, apparence: string): void {
+export function poserLApparence(get: Get, set: Set, uid: string, apparence: string): void {
+  const heroId = herosPorteur(get, set, uid);
+  if (!heroId) return;
   const resolveTrapping = objetDuNarratif(get().campaignNarratif);
   mutLoadout(set, heroId, (c) => {
     const it = (c.items ?? []).find((i) => i.uid === uid);
@@ -679,7 +698,9 @@ export function retirerLaComposante(_get: Get, set: Set, heroId: string, spellId
 /** Rachat PX d'une prothèse (LDB 73) : les PALIERS sont DÉCLARÉS sur l'entrée de catalogue
  *  (`TrappingData.prosthesisTraining`) et joués dans l'ordre par `nextProsthesisTier` — ce flux ne nomme
  *  aucune prothèse. Fausse jambe : 100 PX (Mouvement) puis 200 PX (Esquive) ; Crochet : 400 PX (l.23). */
-export function entrainerLaProthese(get: Get, set: Set, heroId: string, uid: string): void {
+export function entrainerLaProthese(get: Get, set: Set, uid: string): void {
+  const heroId = herosPorteur(get, set, uid);
+  if (!heroId) return;
   let msg = '';
   if (!depenserPx(get, set, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
@@ -902,13 +923,13 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     recruterLeHeros: (heros) => recruterLeHeros(get, set, heros),
     renvoyerLeHeros: (heroId) => renvoyerLeHeros(get, set, heroId),
     remplacerLeHeros: (oldId, heros) => remplacerLeHeros(get, set, oldId, heros),
-    equiperLObjet: (heroId, uid) => equiperLObjet(get, set, heroId, uid),
-    rangerLObjet: (heroId, uid, containerUid) => rangerLObjet(get, set, heroId, uid, containerUid),
+    equiperLObjet: (uid) => equiperLObjet(get, set, uid),
+    rangerLObjet: (uid, containerUid) => rangerLObjet(get, set, uid, containerUid),
     creerLaPanoplie: (heroId) => creerLaPanoplie(get, set, heroId),
     supprimerLaPanoplie: (heroId, id) => supprimerLaPanoplie(get, set, heroId, id),
     garnirLaPanoplie: (heroId, id, slot, uid) => garnirLaPanoplie(get, set, heroId, id, slot, uid),
-    transmettreLObjet: (uid, fromHeroId, toHeroId) => transmettreLObjet(get, set, uid, fromHeroId, toHeroId),
-    poserLApparence: (heroId, uid, apparence) => poserLApparence(get, set, heroId, uid, apparence),
+    transmettreLObjet: (uid, toHeroId) => transmettreLObjet(get, set, uid, toHeroId),
+    poserLApparence: (uid, apparence) => poserLApparence(get, set, uid, apparence),
     accorderLesPx: (heroId, amount) => accorderLesPx(get, set, heroId, amount),
     acheterLaCaracteristique: (heroId, char) => acheterLaCaracteristique(get, set, heroId, char),
     acheterLaCompetence: (heroId, skill) => acheterLaCompetence(get, set, heroId, skill),
@@ -933,7 +954,7 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
       if (refus) refuserGeste(get, set, refus);
       else ouvrirLaFinDeSeance(set);
     },
-    entrainerLaProthese: (heroId, uid) => entrainerLaProthese(get, set, heroId, uid),
+    entrainerLaProthese: (uid) => entrainerLaProthese(get, set, uid),
     changerDeCarriere: (heroId, newCareer, newLevel) => changerDeCarriere(get, set, heroId, newCareer, newLevel),
     fixerLeGroupe: (p) => set({ party: p }),
     // Longues Séances de Jeu (LDB 17 l.47) : réutilise l'Effet `restoreFortune` (NE DUPLIQUE PAS la

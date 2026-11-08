@@ -104,6 +104,7 @@ import { sceneZonesToBattle } from './monde/zones';
 import { resetFields } from './stateFields';
 import { seaMagicContext, touchActors } from './combatOrParty';
 import { actorIn, inBattleId } from './monde/combatants';
+import { porteurDeLObjet } from './monde/carrier';
 import { garanti } from '../lib/garanti';
 import { armeDuJetDeRecharge, progresDeDissipation, progresDeFocalisation } from './progresEtendu';
 import { aPorteeDe } from './monde/exploreNav';
@@ -1721,18 +1722,21 @@ export function createCombatSlice(get: Get, set: Set) {
       castSpell(get, set, lanceur, cible, spellId, fromGrimoire); // pose `pendingCast` (missile:false, focused selon caster.focus)
     },
 
-    /** Le porteur `porteurId` utilise le consommable `uid` de son inventaire (potion, drogue, bandage), Action gratuite
+    /** Le porteur du consommable `uid` (`porteurDeLObjet`) l'utilise (potion, drogue, bandage), Action gratuite
      *  (LDB 13 l.106) : consommé AVANT l'effet (dose unique), son Flow joué par la voie du contexte (`runConsumable` : un
      *  Test « au boire » devient en combat une étape de cascade influençable, hors combat il ouvre sa modale). En combat,
      *  l'actif à sa barre ; hors combat, un héros du groupe depuis sa fiche. */
-    utiliserLObjet: (porteurId: string, uid: string) => {
+    utiliserLObjet: (uid: string) => {
+      const porteurId = porteurDeLObjet(get(), uid);
+      if (!porteurId) return void refuserGeste(get, set, t('pf.objetSansPorteur'));
       const s = get();
       const battle = s.battle;
       if (battle && (combatBusy(s) || battle.over || activeCombatant(battle)?.id !== porteurId)) return;
       const porteur = actorIn(s, porteurId);
-      if (!porteur || (battle && !controlsCombatant(s, porteur))) return;
-      const it = (porteur.items ?? []).find((i) => i.uid === uid);
-      if (!it || !isConsumable(it)) return;
+      if (!porteur) return void refuserGeste(get, set, t('pf.objetHorsDesHeros'));
+      if (battle && !controlsCombatant(s, porteur)) return;
+      const it = (porteur.items ?? []).find((i) => i.uid === uid)!;
+      if (!isConsumable(it)) return;
       if (refuseSi(get, set, () => refusDeConsommer(porteur, it))) return;
       porteur.items = (porteur.items ?? []).filter((i) => i.uid !== uid);
       porteur.aiming = false; // une autre action que le tir gâche la visée
