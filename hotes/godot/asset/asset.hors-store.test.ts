@@ -16,7 +16,7 @@ import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 import { baseDeTest, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, GLB_SANS_BASE, LICENCE_DE_PRODUCTION, productionDeTest, deposerModeleDeTest, TEXTE_DE_LICENCE_DE_PRODUCTION, vehiculeDeTest } from './modeles.testkit.ts';
 import {
   DOSSIER_DES_MODELES, modelesEpingles, AssetIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
-  suivisHorsRelease, TAG, urlDAsset, type AssetAPublier, type Gh,
+  suivisHorsRelease, TAG, urlDAsset, DEPOT, URL_API_DE_LA_RELEASE, type AssetAPublier, type Gh,
 } from './release.ts';
 import { fichiersDuModele, validerModele } from './modeles';
 import { epinglesAPublier, recupererEpingles } from './epingles.ts';
@@ -727,6 +727,31 @@ describe('recupererModeles', () => {
     ['sur un corps coupé après un 200', async () => ({ ok: true, status: 200, arrayBuffer: async () => { throw new TypeError('terminated'); } })],
   ])('lève ReleaseInjoignable %s, le cache vide', async (_, telecharger) => {
     await expect(recupererModeles({ dossier: dossierDeModeles(), cache: temporaire(), telecharger, journal: muet })).rejects.toThrow(ReleaseInjoignable);
+  });
+  /** Une Release dont le lien direct répond `statut`, et dont l'API liste `listes` (nom → octets) ; consigne chaque
+   *  demande avec son en-tête `accept`. */
+  const releaseEnPanne = (statut: number, listes: Record<string, Uint8Array>) => {
+    const demandes: string[] = [];
+    const telecharger = async (url: string, init?: { readonly headers: Readonly<Record<string, string>> }) => {
+      demandes.push(`${url} ${init?.headers.accept ?? '-'}`);
+      const api = `https://api.github.com/repos/${DEPOT}/releases/assets/`;
+      const octets = url === URL_API_DE_LA_RELEASE
+        ? new TextEncoder().encode(JSON.stringify({ assets: Object.keys(listes).map((name, i) => ({ name, url: `${api}${i}` })) }))
+        : url.startsWith(api) ? Object.values(listes)[Number(url.slice(api.length))] : undefined;
+      return { ok: !!octets, status: octets ? 200 : statut, arrayBuffer: async () => (octets ?? new Uint8Array()).slice().buffer };
+    };
+    return { demandes, telecharger };
+  };
+  it('se replie sur le point d’API quand le lien direct répond 504 (#3680)', async () => {
+    const dossier = dossierDeModeles();
+    const { demandes, telecharger } = releaseEnPanne(504, { [nomDAsset(EMPREINTE, 'glb')]: GLB_DE_BASE });
+    await recupererModeles({ dossier, cache: temporaire(), telecharger, journal: muet });
+    expect(readFileSync(join(dossier, 'Essai.glb'))).toEqual(Buffer.from(GLB_DE_BASE));
+    expect(demandes).toEqual([`${urlDAsset(nomDAsset(EMPREINTE, 'glb'))} -`, `${URL_API_DE_LA_RELEASE} application/vnd.github+json`,
+      `https://api.github.com/repos/${DEPOT}/releases/assets/0 application/octet-stream`]);
+  });
+  it('lève AssetIntrouvable quand le repli ne trouve pas le fichier dans la liste de la Release', async () => {
+    await expect(recupererModeles({ dossier: dossierDeModeles(), cache: temporaire(), telecharger: releaseEnPanne(504, {}).telecharger, journal: muet })).rejects.toThrow(AssetIntrouvable);
   });
   it('accepte hors ligne le GLB_DE_BASE du projet à la somme épinglée et en amorce le cache', async () => {
     const dossier = dossierDeModeles();

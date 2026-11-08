@@ -4,7 +4,7 @@
  * que soldée, et la dernière engage le héros, qui rejoint le groupe de la partie avec les valeurs tirées et choisies.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, erreurDe, suiteDe, table } from './pont.testkit';
+import { drainer, erreurDe, sectionDeLaFiche, suiteDe, table } from './pont.testkit';
 import type { Suite } from './pont';
 import type { Bouton, Choix, Element, Jet, Puce } from '../../../src/hote/elements';
 
@@ -111,7 +111,7 @@ describe('la création d’un héros par le pont', () => {
 
     // Présentation, puis l'engagement.
     expect(titre(s)).toBe('Présentation · 10/10');
-    const valeurs = (x: Suite, zone: 'creation.corps' | 'fiche.corps') => Object.fromEntries((x.vue.zones[zone] as Element[]).filter((e): e is Puce => e.type === 'puce').map((p) => [p.id, p.valeur]));
+    const valeurs = (x: Suite, zone: 'creation.corps' | 'fiche.profil') => Object.fromEntries((x.vue.zones[zone] as Element[]).filter((e): e is Puce => e.type === 'puce').map((p) => [p.id, p.valeur]));
     const presentation = valeurs(s, 'creation.corps');
     expect((s.vue.zones['creation.corps'] as Puce[]).slice(0, 3).map((p) => p.libelle), 'le héros se présente : son nom, sa race, sa carrière').toEqual([nom, espece, carriere]);
     expect(s.vue.projection.pas, 'la création n’a joué aucun geste de la partie').toBe(pas);
@@ -124,12 +124,11 @@ describe('la création d’un héros par le pont', () => {
     expect(fin.zones['journal.lignes'].some((l) => l.texte.includes(nom)), 'sa bourse de départ au journal').toBe(true);
 
     s = suiteDe(appel('fiche', fin.vue.zones['groupe.heros'].find((b) => b.libelle === nom)!.jeu));
-    const fiche = valeurs(s, 'fiche.corps');
+    const fiche = valeurs(s, 'fiche.profil');
     const caracs = Object.fromEntries(Object.entries(presentation).filter(([id]) => id.startsWith('carac/')));
-    expect(fiche, 'ses dix Caractéristiques, celles que la présentation disait').toEqual(caracs);
+    expect(Object.fromEntries(Object.entries(fiche).filter(([id]) => id.startsWith('carac/'))), 'ses dix Caractéristiques, celles que la présentation disait').toEqual(caracs);
     const augmentee = augmentations[0].id.slice('augmentation/'.length);
     expect(Number(fiche[`carac/${augmentee}`]) - caracteristiques[augmentee], 'la Caractéristique augmentée porte ses 5 Augmentations').toBeGreaterThanOrEqual(5);
-    s = suiteDe(appel('fiche', s.vue.zones['fiche.gestes'].find((b) => b.id === 'onglet/talents')!.jeu));
-    expect((s.vue.zones['fiche.corps'] as Puce[]).map((p) => p.libelle), 'son Talent de carrière').toContain(talent);
+    expect((sectionDeLaFiche(s.vue, 'talents') as Puce[]).map((p) => p.libelle), 'son Talent de carrière').toContain(talent);
   });
 });

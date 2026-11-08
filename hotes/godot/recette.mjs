@@ -61,10 +61,10 @@
 // - `bataille` (`--scenario bataille-de-masse`) : l'interlude clos, la bataille montre ses armées et les Scènes du
 //   Round ; « Résoudre » ouvre le jet de la première Scène à postes, lancé à l'Entrée puis appliqué : la Scène se
 //   ferme ; le Test spectaculaire ouvre l'entre-deux-Rounds, « Round suivant » le Round 2.
-// - `fiche` : la fenêtre du round à l'Entrée, puis la fiche du premier héros ouverte par son bouton, chacun de ses
-//   onglets cliqué, un Talent survolé (sa description en bulle), et la fiche fermée par son bouton « Fermer ».
-// - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, la fiche de Rosa Brandt à
-//   ses possessions, son armure choisie puis ôtée par « Porter », sa potion choisie.
+// - `fiche` : la fenêtre du round à l'Entrée, puis le statbloc du premier héros ouvert par son bouton, celui d'un ennemi
+//   ouvert au clic droit sur sa case, et la fiche fermée par son bouton « Fermer ».
+// - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, le statbloc de Rosa Brandt,
+//   son armure choisie dans ses possessions puis ôtée par « Porter », sa potion choisie.
 // - `creation` (`--scenario marche-equipement`) : l'entrée de la scène poursuivie à l'Entrée, « Nouveau héros » ouvre
 //   la création sur la race, sans résultat ni suivante avant le d100 ; le d100 tiré, la suivante à l'Entrée ; la
 //   carrière tirée, puis les Caractéristiques ; « Nouveau héros » pressé ferme la création sans héros nouveau.
@@ -152,7 +152,7 @@ import { crc32, deflateSync } from 'node:zlib'
 import { servir } from './servir.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
-import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, poserFichier, realKey, realKeyDown, realKeyUp, shot, sleep, survoler, waitFor } from '../../scripts/recette/lib.mjs'
+import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, poserFichier, realKey, realKeyDown, realKeyUp, shot, sleep, waitFor } from '../../scripts/recette/lib.mjs'
 
 import { chargerAssets } from './asset/charger.mjs'
 
@@ -1072,25 +1072,23 @@ async function parcoursFiche() {
   assert.ok(heros, 'chaque héros du groupe a son bouton')
   await cliquerBouton(bouton(heros))
   v = await vue()
-  assert.equal(zone(v, 'fiche.heros')[0]?.nom, heros.libelle, 'son bouton ouvre la fiche du héros')
-  noter(`bouton « ${heros.libelle} » : fiche ouverte ; ${zone(v, 'fiche.corps').map((p) => `${p.libelle} ${p.valeur}`).join(' · ')}`)
-  await capturer('3328-fiche-1-caracteristiques')
-  for (const [i, onglet] of ['competences', 'talents', 'possessions'].entries()) {
-    await cliquerBouton({ element: `bouton/onglet/${onglet}` })
-    v = await vue()
-    assert.equal(zone(v, 'fiche.gestes').find((b) => b.presse)?.id, `onglet/${onglet}`, `l’onglet ${onglet} cliqué est ouvert`)
-    noter(`onglet ${onglet} : ${zone(v, 'fiche.corps').length} entrées`)
-    await capturer(`3328-fiche-${i + 2}-${onglet}`)
-    if (onglet === 'talents') {
-      const premier = trouver((await ecran()).boutons, { element: 'bouton/onglet/caracteristiques' })
-      await survoler(session, { surface: 'canvas', x: premier.x, y: premier.y + 100 }, { attenteMs: 1500 })
-      await capturer('3328-fiche-3b-talent-survole')
-    }
-  }
+  assert.equal(zone(v, 'fiche.porteur')[0]?.nom, heros.libelle, 'son bouton ouvre le statbloc du héros')
+  noter(`bouton « ${heros.libelle} » : ${zone(v, 'fiche.profil').map((p) => `${p.libelle} ${p.valeur}`).join(' · ')} ; ${zone(v, 'fiche.sections').map((s) => s.nom).join(', ')}`)
+  await capturer('3678-statbloc-1-heros')
+  const [cle, ennemi] = Object.entries(v.occupants).find(([, id]) => element(v, 'combat.ordre', `ordre/${id}`)?.ton === 'echec')
+  const [x, y, z] = cle.split(',').map(Number)
+  const [px, py] = (await ecran()).cases[`${x},${y},${z}`]
+  await marquer()
+  await geste(session, { surface: 'canvas', x: px, y: py }, { qui: `clic droit (${Math.round(px)}, ${Math.round(py)})` }, clic({ bouton: 'right' }))
+  await nouvelEcran()
+  v = await vue()
+  assert.equal(v.zones['fiche.porteur'][0]?.id, ennemi, 'le clic droit sur sa case ouvre le statbloc de l’ennemi')
+  noter(`clic droit sur ${cle} : ${zone(v, 'fiche.porteur')[0].nom} ; ${zone(v, 'fiche.sections').map((s) => s.nom).join(', ')} ; ${zone(v, 'fiche.source').map((l) => l.texte).join('')}`)
+  await capturer('3678-statbloc-2-ennemi')
   await cliquerBouton({ element: 'bouton/fermer' })
   v = await vue()
-  assert.deepEqual(zone(v, 'fiche.heros'), [], 'le bouton « Fermer » ferme la fiche')
-  await capturer('3328-fiche-5-fermee')
+  assert.deepEqual(zone(v, 'fiche.porteur'), [], 'le bouton « Fermer » ferme la fiche')
+  await capturer('3678-statbloc-3-fermee')
 }
 
 async function parcoursInventaire() {
@@ -1106,9 +1104,8 @@ async function parcoursInventaire() {
   const heros = zone(v, 'groupe.heros').find((b) => b.libelle === 'Rosa Brandt')
   assert.ok(heros, 'Rosa Brandt a son bouton')
   await cliquerBouton(bouton(heros))
-  await cliquerBouton({ element: 'bouton/onglet/possessions' })
   v = await vue()
-  const possession = (libelle) => zone(v, 'fiche.corps').find((b) => b.libelle === libelle)
+  const possession = (libelle) => element(v, 'fiche.sections', 'section/possessions').elements.find((b) => b.libelle === libelle)
   await cliquerBouton(bouton(possession('Justaucorps de cuir')))
   await attendreLaVue(`v.zones['fiche.objet'][0]?.nom === 'Justaucorps de cuir'`)
   v = await vue()

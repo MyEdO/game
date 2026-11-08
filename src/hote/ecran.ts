@@ -3,22 +3,22 @@
  * l'écran et ses éléments (`elements.ts`). La fenêtre qui tient la main (son titre, son étape, son corps : qui agit
  * contre qui, ses jets, le DR net, l'issue ; ses réglages, les options du coup, puis ses gestes), le panneau du
  * combat (le round et le tour, l'ordre du tour, l'actif, ce que la barre et l'aperçu disent, la fin du combat, la barre des offres) et
- * le journal ; en exploration, les gestes du groupe ; chaque héros du groupe, qui ouvre sa fiche, et la fiche ouverte ;
- * la création d'un héros (`creation.ts`).
+ * le journal ; en exploration, les gestes du groupe ; chaque héros du groupe, qui ouvre sa fiche ; le panneau que
+ * l'hôte tient ouvert : la fiche d'un combattant, en statbloc, ou la création d'un héros (`creation.ts`).
  * À l'écran, ce qui se lit d'un coup d'œil ; le reste au détail d'un élément, montré à la demande.
  * Chaque texte vient du catalogue (`t()`) et des lecteurs du noyau ; l'hôte n'écrit aucun libellé, et le joueur ne lit
  * aucun id.
  */
 import {
   ACTIONS, avecSigne, batailleEnVue, carteEnVue, cleDuGeste, dayIndex, formatImperial, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
-  type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RecapTone, type RollBreakdown, type TrajetEnVue,
+  type CombatEvent, type EntreeDeLaFiche, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RecapTone, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import type { Projection } from './projection';
 import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
-import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, resume, type Bouton, type Choix, type CreationOuverte, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type Puce, type Saisie, type Ton } from './elements';
+import { elementsDesGestes, ligne, resume, type Bouton, type Choix, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type PanneauDeLHote, type Puce, type Saisie, type Ton } from './elements';
 
 /** Chaque zone de l'écran et ses éléments, dans l'ordre où elle les montre, la création comprise. Une zone vide n'a
  *  rien à montrer. */
@@ -40,9 +40,11 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation {
   'dialogue.reponses': Bouton[];
   'journal.titre': Ligne[];
   'groupe.heros': Bouton[];
-  'fiche.heros': Entite[];
+  'fiche.porteur': Entite[];
   'fiche.gestes': Bouton[];
-  'fiche.corps': (Puce | Bouton)[];
+  'fiche.profil': Puce[];
+  'fiche.sections': Entite[];
+  'fiche.source': Ligne[];
   'fiche.objet': Entite[];
 }
 
@@ -641,56 +643,95 @@ const boutonDeFiche = (id: string, libelle: string, fiche: FicheOuverte | null, 
   type: 'bouton', id, libelle, jeu: { fiche }, presse, focus: false, refus: null,
 });
 
-/** Chaque héros du groupe en bouton qui ouvre sa fiche, à l'onglet de la fiche ouverte ; celui dont la fiche est
- *  ouverte, pressé, la ferme. */
+/** Chaque héros du groupe en bouton qui ouvre sa fiche ; celui dont la fiche est ouverte, pressé, la ferme. */
 const herosDuGroupe = (etat: Jeu, ouverte: FicheOuverte | null): Bouton[] =>
   etat.party.map((h) => {
-    const presse = ouverte?.heros === h.id;
-    return boutonDeFiche(`fiche/${h.id}`, h.label, presse ? null : { heros: h.id, onglet: ouverte?.onglet ?? ONGLETS_DE_LA_FICHE[0] }, presse);
+    const presse = ouverte?.porteur === h.id;
+    return boutonDeFiche(`fiche/${h.id}`, h.label, presse ? null : { porteur: h.id }, presse);
   });
-
-/** Le héros de la fiche : son nom, ses Blessures en jauge, ses Points de Destin, de Chance, de Résilience et de
- *  Détermination, puis chacun de ses États en puces. */
-const herosDeLaFiche = (f: FicheDuPorteur): Entite => ({
-  type: 'entite', id: f.id, ton: 'neutre', nom: f.nom,
-  elements: [
-    jauge('blessures', t('ecran.jauge.blessures'), f.blessures),
-    puce('destin', t('ecran.destin'), String(f.destin)),
-    puce('chance', t('ecran.fiche.chance'), String(f.chance)),
-    puce('resilience', t('ecran.fiche.resilience'), String(f.resilience)),
-    puce('determination', t('ecran.fiche.determination'), String(f.determination)),
-    ...f.etats.map((e) => puce(`etat/${e.id}`, conditionLabel(e.id), String(e.valeur), null, 'alerte')),
-  ],
-});
 
 /** Un nombre d'exemplaires, dit quand il y en a plusieurs. */
 const nombre = (n: number): string | null => (n > 1 ? t('ecran.fiche.nombre', { nombre: n }) : null);
 
-/** L'onglet ouvert de la fiche `f`, chaque entrée en puce : une Caractéristique par son abréviation, son nom au
- *  détail ; une Compétence et la valeur de son Test, sa Caractéristique et ses Augmentations au détail, par nom ; un
- *  Talent et son niveau, le premier paragraphe de sa description au détail. Chaque possession en bouton qui la nomme,
- *  son nombre s'il y en a plusieurs, les équipées d'abord : il la choisit ; la choisie, pressée, se laisse. */
-function corpsDeLaFiche(f: FicheDuPorteur, ouverte: FicheOuverte): (Puce | Bouton)[] {
-  switch (ouverte.onglet) {
-    case 'caracteristiques': return f.caracteristiques.map((c) => puce(`carac/${c.cle}`, c.abrege, String(c.valeur), c.libelle));
-    case 'competences': {
-      const carac = new Map(f.caracteristiques.map((c) => [c.cle, c]));
-      return f.competences
-        .map((c, i) => {
-          const k = carac.get(c.caracteristique)!;
-          return puce(`competence/${i}`, c.libelle, String(c.valeur), t('ecran.fiche.competence', { carac: k.abrege, base: k.valeur, avances: c.avances }));
-        })
-        .sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr'));
-    }
-    case 'talents': return f.talents.map((x, i) => puce(`talent/${i}`, x.libelle, nombre(x.fois), resume(x.desc)));
-    case 'possessions': return [...f.possessions]
+/** Le porteur de la fiche, la tête de son statbloc : son nom ; son espèce et sa carrière, chacune en ligne ; ses Blessures en jauge ;
+ *  ses Points de Destin, de Chance, de Résilience et de Détermination, s'il en a ; chacun de ses États en puce. */
+function porteurDeLaFiche(f: FicheDuPorteur): Entite {
+  const points = ([['destin', t('ecran.destin'), f.destin], ['chance', t('ecran.fiche.chance'), f.chance], ['resilience', t('ecran.fiche.resilience'), f.resilience], ['determination', t('ecran.fiche.determination'), f.determination]] as const)
+    .flatMap(([id, libelle, valeur]) => (valeur === null ? [] : [puce(id, libelle, String(valeur))]));
+  return {
+    type: 'entite', id: f.id, ton: 'neutre', nom: f.nom,
+    elements: [
+      ...(f.espece === null ? [] : [ligne('espece', f.espece)]),
+      ...(f.carriere === null ? [] : [ligne('carriere', f.carriere)]),
+      jauge('blessures', t('ecran.jauge.blessures'), f.blessures),
+      ...points,
+      ...f.etats.map((e) => puce(`etat/${e.id}`, conditionLabel(e.id), String(e.valeur), null, 'alerte')),
+    ],
+  };
+}
+
+/** Le profil du statbloc de `f`, une puce par colonne, son nom au détail : le Mouvement, chaque Caractéristique par
+ *  son abréviation, les Blessures à leur maximum. */
+const profilDeLaFiche = (f: FicheDuPorteur): Puce[] => [
+  puce('profil/m', t('ecran.statbloc.m'), String(f.mouvement), t('ecran.jauge.mouvement')),
+  ...f.caracteristiques.map((c) => puce(`carac/${c.cle}`, c.abrege, String(c.valeur), c.libelle)),
+  puce('profil/b', t('ecran.statbloc.b'), String(f.blessures[1]), t('ecran.jauge.blessures')),
+];
+
+/** Les sections du statbloc, dans l'ordre où il les montre (l'Atelier des PNJ, #3678), et la clé du catalogue de
+ *  leur bandeau. */
+const SECTIONS_DU_STATBLOC = {
+  attaques: 'ecran.statbloc.attaques',
+  armure: 'ecran.statbloc.armure',
+  traits: 'ecran.statbloc.traits',
+  mutations: 'ecran.statbloc.mutations',
+  competences: 'ecran.statbloc.competences',
+  talents: 'ecran.statbloc.talents',
+  sorts: 'ecran.statbloc.sorts',
+  prieres: 'ecran.statbloc.prieres',
+  possessions: 'ecran.statbloc.possessions',
+} as const;
+
+/** Une entrée nommée du profil en puce, le premier paragraphe de sa description au détail. */
+const entrees = (id: string, liste: readonly EntreeDeLaFiche[]): Puce[] => liste.map((x, i) => puce(`${id}/${i}`, x.libelle, null, resume(x.desc)));
+
+/** Chaque section du statbloc de `f`, ses termes en éléments : chaque arme en entité, la valeur de son Test, ses Dégâts et
+ *  son Allonge ou sa Portée, ses Atouts et Défauts, chacun en puce ; les Points d'Armure de chaque localisation qui en
+ *  porte ; ses Traits et ses Mutations ; ses Compétences, la valeur de leur Test, leur Caractéristique et leurs
+ *  Augmentations au détail, par nom ; ses Talents et leur niveau ; ses sorts ; ses prières ; chacune de ses
+ *  possessions en bouton qui la nomme, les équipées d'abord : il la choisit (`ouverte.objet`) ; la choisie, pressée,
+ *  se laisse. Le premier paragraphe d'une description au détail. */
+function sectionsDeLaFiche(f: FicheDuPorteur, ouverte: FicheOuverte): Record<keyof typeof SECTIONS_DU_STATBLOC, (Puce | Bouton | Entite)[]> {
+  const carac = new Map(f.caracteristiques.map((c) => [c.cle, c]));
+  return {
+    attaques: f.armes.map((a, i) => ({
+      type: 'entite', id: `arme/${i}`, ton: 'neutre', nom: a.libelle,
+      elements: [
+        puce('test', t('ecran.statbloc.test'), String(a.valeur)),
+        ...a.stats.map((x, j) => puce(`stat/${j}`, x, null)),
+        ...a.qualites.map((x, j) => puce(`qualite/${j}`, x, null)),
+      ],
+    })),
+    armure: f.armure.map((a, i) => puce(`armure/${i}`, a.localisation, String(a.pa))),
+    traits: entrees('trait', f.traits),
+    mutations: entrees('mutation', f.mutations),
+    competences: f.competences
+      .map((c, i) => {
+        const k = carac.get(c.caracteristique)!;
+        return puce(`competence/${i}`, c.libelle, String(c.valeur), t('ecran.fiche.competence', { carac: k.abrege, base: k.valeur, avances: c.avances }));
+      })
+      .sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr')),
+    talents: f.talents.map((x, i) => puce(`talent/${i}`, x.libelle, nombre(x.fois), resume(x.desc))),
+    sorts: entrees('sort', f.sorts),
+    prieres: entrees('priere', f.prieres),
+    possessions: [...f.possessions]
       .sort((a, b) => Number(b.equipee) - Number(a.equipee))
       .map((p) => {
         const choisie = ouverte.objet === p.uid;
         const libelle = p.nombre > 1 ? t('ecran.fiche.possession', { libelle: p.libelle, nombre: p.nombre }) : p.libelle;
-        return boutonDeFiche(`possession/${p.uid}`, libelle, { heros: f.id, onglet: 'possessions', ...(choisie ? {} : { objet: p.uid }) }, choisie);
-      });
-  }
+        return boutonDeFiche(`possession/${p.uid}`, libelle, { porteur: f.id, ...(choisie ? {} : { objet: p.uid }) }, choisie);
+      }),
+  };
 }
 
 /** Un geste du noyau (`GesteDuNoyau`) en bouton, pressé quand il dit l'état courant, refusé avec sa raison. */
@@ -712,7 +753,7 @@ const listeDObjet = (id: string, libelle: string, g: GesteAChoix<unknown>): Choi
  *  (`gestesDeLObjet`), refusé avec sa raison : la porter, la tenir dans une main, l'utiliser, la ranger dans un
  *  contenant ou l'en sortir, la donner à un porteur à ses côtés, l'évaluer, la détecter. */
 function objetDeLaFiche(etat: Jeu, f: FicheDuPorteur, ouverte: FicheOuverte): Entite[] {
-  const p = ouverte.onglet === 'possessions' ? f.possessions.find((x) => x.uid === ouverte.objet) : undefined;
+  const p = f.possessions.find((x) => x.uid === ouverte.objet);
   const g = p && gestesDeLObjet(etat, f.id, p.uid);
   if (!p || !g) return [];
   const simple = (id: 'porter' | 'utiliser' | 'sortir' | 'evaluer' | 'detecter', presse = false): Bouton | null => {
@@ -735,25 +776,28 @@ function objetDeLaFiche(etat: Jeu, f: FicheDuPorteur, ouverte: FicheOuverte): En
   return [{ type: 'entite', id: p.uid, ton: p.equipee ? 'reussite' : 'neutre', nom: p.libelle, elements: elements.filter((e): e is Element => e !== null) }];
 }
 
-/** Les zones de la fiche `ouverte` : son héros, ses onglets et sa fermeture, l'onglet ouvert, la possession choisie ;
- *  vides sans fiche ou sans son héros. */
-function zonesDeLaFiche(etat: Jeu, ouverte: FicheOuverte | null): Pick<ZonesDeLEcran, 'fiche.heros' | 'fiche.gestes' | 'fiche.corps' | 'fiche.objet'> {
-  const f = ouverte && ficheDuPorteur(etat, ouverte.heros);
-  if (!ouverte || !f) return { 'fiche.heros': [], 'fiche.gestes': [], 'fiche.corps': [], 'fiche.objet': [] };
+/** Les zones de la fiche `ouverte`, le statbloc de son porteur : sa tête, sa fermeture, son profil, chaque section
+ *  non vide en entité (son bandeau pour nom), la source de son profil, la possession choisie ; vides sans fiche ou sans
+ *  son porteur. */
+function zonesDeLaFiche(etat: Jeu, ouverte: FicheOuverte | null): Pick<ZonesDeLEcran, 'fiche.porteur' | 'fiche.gestes' | 'fiche.profil' | 'fiche.sections' | 'fiche.source' | 'fiche.objet'> {
+  const f = ouverte && ficheDuPorteur(etat, ouverte.porteur);
+  if (!ouverte || !f) return { 'fiche.porteur': [], 'fiche.gestes': [], 'fiche.profil': [], 'fiche.sections': [], 'fiche.source': [], 'fiche.objet': [] };
+  const sections = sectionsDeLaFiche(f, ouverte);
   return {
-    'fiche.heros': [herosDeLaFiche(f)],
-    'fiche.gestes': [
-      ...ONGLETS_DE_LA_FICHE.map((o) => boutonDeFiche(`onglet/${o}`, t(`ecran.fiche.onglet.${o}`), { heros: f.id, onglet: o }, o === ouverte.onglet)),
-      boutonDeFiche('fermer', t('ecran.fiche.fermer'), null, false),
-    ],
-    'fiche.corps': corpsDeLaFiche(f, ouverte),
+    'fiche.porteur': [porteurDeLaFiche(f)],
+    'fiche.gestes': [boutonDeFiche('fermer', t('ecran.fiche.fermer'), null, false)],
+    'fiche.profil': profilDeLaFiche(f),
+    'fiche.sections': (Object.keys(SECTIONS_DU_STATBLOC) as (keyof typeof SECTIONS_DU_STATBLOC)[]).flatMap((k): Entite[] =>
+      sections[k].length ? [{ type: 'entite', id: `section/${k}`, ton: 'neutre', nom: t(SECTIONS_DU_STATBLOC[k]), elements: sections[k] }] : []),
+    'fiche.source': f.source === null ? [] : [ligne('source', t('ecran.statbloc.source', { source: f.source }))],
     'fiche.objet': objetDeLaFiche(etat, f, ouverte),
   };
 }
 
-/** Les zones de l'écran de la partie `etat`, de sa projection `p`, de la fenêtre qui tient la main `fenetre`, de la
- *  fiche que l'hôte montre `fiche` et de la création qu'il tient `creation` (`zonesDeLaCreation`). */
-export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessiner | null, fiche: FicheOuverte | null, creation: CreationOuverte | null): ZonesDeLEcran {
+/** Les zones de l'écran de la partie `etat`, de sa projection `p`, de la fenêtre qui tient la main `fenetre` et du
+ *  panneau que l'hôte tient ouvert `panneau` : la fiche ou la création (`zonesDeLaCreation`). */
+export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessiner | null, panneau: PanneauDeLHote): ZonesDeLEcran {
+  const fiche = panneau && 'fiche' in panneau ? panneau.fiche : null;
   const c = p.combat;
   const gestes = fenetre ? elementsDesGestes(fenetre.gestes) : [];
   const corps = fenetre ? corpsDeLaFenetre(etat) : [];
@@ -779,7 +823,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'journal.titre': c ? [ligne('journal', t('ecran.journal'))] : [],
     'groupe.heros': herosDuGroupe(etat, fiche),
     ...zonesDeLaFiche(etat, fiche),
-    ...zonesDeLaCreation(etat, creation),
+    ...zonesDeLaCreation(etat, panneau && 'creation' in panneau ? panneau.creation : null),
   };
 }
 

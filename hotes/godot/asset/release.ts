@@ -55,6 +55,9 @@ export const nomDAsset = (empreinte: string, extension: ExtensionDAsset): string
 /** L'URL publique du fichier `nom` de la Release. */
 export const urlDAsset = (nom: string): string => `https://github.com/${DEPOT}/releases/download/${TAG}/${nom}`;
 
+/** Le point d'API de la Release `TAG` : ses fichiers, chacun avec l'URL d'API de ses octets (#3680). */
+export const URL_API_DE_LA_RELEASE = `https://api.github.com/repos/${DEPOT}/releases/tags/${TAG}`;
+
 /** Le dossier des modèles du projet Godot : l'import y dépose, `recupererModeles` y tire les GLB. */
 export const DOSSIER_DES_MODELES = fileURLToPath(new URL('../projet/modeles', import.meta.url));
 
@@ -187,8 +190,8 @@ export interface FichierEpingle {
 
 /** Un fichier absent de la Release : elle répond 404 sur son empreinte. */
 export class AssetIntrouvable extends Error {
-  constructor({ fichier, empreinte }: FichierEpingle, url: string) {
-    super(`${fichier} (${empreinte}) : HTTP 404 sur ${url}, absent de la Release ${TAG} de ${DEPOT}`);
+  constructor({ fichier, empreinte }: FichierEpingle, url: string, constat = 'HTTP 404') {
+    super(`${fichier} (${empreinte}) : ${constat} sur ${url}, absent de la Release ${TAG} de ${DEPOT}`);
     this.name = 'AssetIntrouvable';
   }
 }
@@ -201,26 +204,57 @@ export class ReleaseInjoignable extends Error {
   }
 }
 
-export type Telecharger = (url: string) => Promise<{ readonly ok: boolean; readonly status: number; arrayBuffer(): Promise<ArrayBuffer> }>;
+export type Telecharger = (url: string, init?: { readonly headers: Readonly<Record<string, string>> }) => Promise<{ readonly ok: boolean; readonly status: number; arrayBuffer(): Promise<ArrayBuffer> }>;
 
-/** Les octets de `epingle`, d'extension `extension`, tirés de la Release : `AssetIntrouvable` sur un 404,
- *  `ReleaseInjoignable` sur une erreur réseau, avant ou pendant le corps de la réponse, ou tout autre statut. */
+/** Les octets rendus par `url`, `{ status }` sur un statut autre que 2xx, `{ raison }` sur une erreur réseau avant ou
+ *  pendant le corps de la réponse. */
+async function demander(telecharger: Telecharger, url: string, headers: Readonly<Record<string, string>> = {}): Promise<Uint8Array | { readonly status?: number; readonly raison: string }> {
+  try {
+    const reponse = await telecharger(url, { headers });
+    if (!reponse.ok) return { status: reponse.status, raison: `HTTP ${reponse.status}` };
+    try {
+      return new Uint8Array(await reponse.arrayBuffer());
+    } catch (e) {
+      return { raison: `corps de la réponse interrompu : ${(e as Error).message}` };
+    }
+  } catch (e) {
+    return { raison: (e as Error).message };
+  }
+}
+
+/** La liste des fichiers de la Release (`URL_API_DE_LA_RELEASE`), lue une fois par `Telecharger` : nom → URL d'API de
+ *  ses octets, ou `{ raison }` quand l'API ne répond pas. */
+const listesDeLaRelease = new WeakMap<Telecharger, Promise<ReadonlyMap<string, string> | { readonly raison: string }>>();
+const listeDeLaRelease = (telecharger: Telecharger) => {
+  const lue = listesDeLaRelease.get(telecharger) ?? demander(telecharger, URL_API_DE_LA_RELEASE, { accept: 'application/vnd.github+json' }).then((reponse) => {
+    if (!(reponse instanceof Uint8Array)) return reponse;
+    const release: unknown = JSON.parse(new TextDecoder().decode(reponse));
+    const assets: unknown[] = estObjet(release) && Array.isArray(release.assets) ? release.assets : [];
+    return new Map(assets.flatMap((a) => (estObjet(a) && typeof a.name === 'string' && typeof a.url === 'string' ? [[a.name, a.url] as const] : [])));
+  });
+  listesDeLaRelease.set(telecharger, lue);
+  return lue;
+};
+
+/** Les octets de `epingle`, d'extension `extension`, tirés de la Release : par son lien direct, puis, sur toute autre
+ *  réponse qu'un 404 ou une erreur réseau, par le point d'API de la Release (`URL_API_DE_LA_RELEASE`, #3680) ;
+ *  `AssetIntrouvable` sur un 404 ou un fichier que la Release ne liste pas, `ReleaseInjoignable` quand les deux chemins
+ *  échouent. */
 export async function tirerDeLaRelease(epingle: FichierEpingle, extension: ExtensionDAsset, telecharger: Telecharger, journal: (ligne: string) => void): Promise<Uint8Array> {
-  const url = urlDAsset(nomDAsset(epingle.empreinte, extension));
+  const nom = nomDAsset(epingle.empreinte, extension);
+  const url = urlDAsset(nom);
   journal(`[release] ${epingle.fichier} : téléchargement de ${url}`);
-  let reponse: Awaited<ReturnType<Telecharger>>;
-  try {
-    reponse = await telecharger(url);
-  } catch (e) {
-    throw new ReleaseInjoignable(epingle, url, (e as Error).message);
-  }
-  if (reponse.status === 404) throw new AssetIntrouvable(epingle, url);
-  if (!reponse.ok) throw new ReleaseInjoignable(epingle, url, `HTTP ${reponse.status}`);
-  try {
-    return new Uint8Array(await reponse.arrayBuffer());
-  } catch (e) {
-    throw new ReleaseInjoignable(epingle, url, `corps de la réponse interrompu : ${(e as Error).message}`);
-  }
+  const direct = await demander(telecharger, url);
+  if (direct instanceof Uint8Array) return direct;
+  if (direct.status === 404) throw new AssetIntrouvable(epingle, url);
+  journal(`[release] ${epingle.fichier} : ${direct.raison} sur le lien direct, nouvel essai par ${URL_API_DE_LA_RELEASE}`);
+  const liste = await listeDeLaRelease(telecharger);
+  if ('raison' in liste) throw new ReleaseInjoignable(epingle, url, `${direct.raison} ; API : ${liste.raison}`);
+  const urlDAPI = liste.get(nom);
+  if (urlDAPI === undefined) throw new AssetIntrouvable(epingle, URL_API_DE_LA_RELEASE, `${nom} non listé`);
+  const octets = await demander(telecharger, urlDAPI, { accept: 'application/octet-stream' });
+  if (!(octets instanceof Uint8Array)) throw new ReleaseInjoignable(epingle, url, `${direct.raison} ; API : ${octets.raison}`);
+  return octets;
 }
 
 /** Dépose dans `dossier` le GLB de chaque modèle épinglé et le garde dans le cache `cache` : le GLB du projet s'il a
