@@ -275,11 +275,11 @@ export function valeurNeuveDe(noeud: unknown): unknown {
 
 /** La valeur NEUVE de la variante `v` de l'union `u`, depuis la valeur `actuelle` : d'une op, celle de sa fabrique
  *  (`newOp`) ; d'une Condition, celle de `recast`, qui enveloppe l'actuelle sous ET, OU, NON ; de toute autre branche,
- *  sa valeur neuve, son discriminant posé. */
+ *  sa valeur neuve, son discriminant posé, sauf pour la variante qui ne le porte pas (clé vide). */
 function neuveDeLaVariante(u: UnionDuNoeud, v: VarianteDuNoeud, actuelle: unknown): unknown {
   if (declarationDEnfants(u.noeud)) return newOp(v.cle);
   if (u.variantes.some((w) => classeDeProduit(w.noeud)?.fabrique === 'conditionDe')) return recast((actuelle as Condition | undefined) ?? CONDITION_TOUJOURS, v.cle as Condition['kind']);
-  return { ...(valeurNeuveDe(v.noeud) as object), [u.discriminant]: v.cle };
+  return { ...(valeurNeuveDe(v.noeud) as object), ...(v.cle === '' ? {} : { [u.discriminant]: v.cle }) };
 }
 
 /** Une valeur du choix de la variante d'une union : la clé et le libellé de la variante, la valeur qu'elle pose, et si

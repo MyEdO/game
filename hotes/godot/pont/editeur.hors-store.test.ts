@@ -6,7 +6,9 @@
  * entités et les entrées de la couche éditée se repèrent en surcouche ; le formulaire de l'inspecteur les nomme. Le
  * formulaire tiré du schéma écrit la condition d'entrée d'un déclencheur, le Test de traversée et les effets d'une zone d'effet (#3606).
  * Les écrivains dédiés de la scène y passent aussi : sa musique, son message d'introduction saisi sur plusieurs lignes,
- * ses ancres de bataille, ses groupes, et l'apparence d'une ouverture de façade (#3606).
+ * ses ancres de bataille, ses groupes, et l'apparence d'une ouverture de façade (#3606). Le formulaire tiré du schéma
+ * d'un personnage écrit son rôle au combat, ses options au contexte de sa fiche, et ses onglets se partagent ses
+ * éléments (#3606 M1a).
  */
 import { describe, expect, it } from 'vitest';
 import { erreurDe, table, type Reponse } from './pont.testkit';
@@ -14,9 +16,11 @@ import type { AreteDessinee, Scene, VolumeDuMonde } from '../../../src/noyau/ind
 import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
 import type { Bouton, Choix, Formulaire, Ligne } from '../../../src/hote/elements';
 import type { CalqueAffiche, SurcoucheDeLEdition, ZonesDeLEditeur } from '../../../src/hote/editeur';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { findCreatureById, traits } from '../../../src/data';
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
 
@@ -609,20 +613,57 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/personnage'));
     jouer({ geste: 'appui', point: point(1, 1) });
     const pnj = jouer({ geste: 'relache', point: point(1, 1) });
-    expect(ligneDe(pnj, 'carriere/profil/statut'), 'sans carrière, aucun profil').toBeUndefined();
+    expect(ligneDe(pnj, 'profil/statut'), 'sans carrière, aucun profil').toBeUndefined();
     const medecin = presser(boutonDe(pnj, 'carriere/ajouter/medecin'));
     const doktor = presser(boutonDe(medecin, 'carriere/medecin/niveau/3'));
     expect(boutonDe(doktor, 'carriere/medecin/niveau/3').presse).toBe(true);
-    expect(ligneDe(doktor, 'carriere/profil/statut')).toMatch(/Argent 5/);
+    expect(ligneDe(doktor, 'profil/statut')).toMatch(/Argent 5/);
     const chirurgien = presser(boutonDe(doktor, 'carriere/medecin/talents/2/chirurgie'));
     expect(boutonDe(chirurgien, 'carriere/medecin/talents/2/chirurgie').presse).toBe(true);
-    expect(ligneDe(chirurgien, 'carriere/profil/talents')).toMatch(/Chirurgie/);
+    expect(ligneDe(chirurgien, 'profil/talents')).toMatch(/Chirurgie/);
     const soldat = presser(boutonDe(presser(boutonDe(chirurgien, 'carriere/medecin/retirer')), 'carriere/ajouter/soldat'));
     const hallebardier = presser(boutonDe(presser(boutonDe(soldat, 'carriere/soldat/niveau/2')), 'carriere/dotation/dotation:3/hallebarde'));
     expect([boutonDe(hallebardier, 'carriere/dotation/dotation:3/hallebarde').presse, boutonDe(hallebardier, 'carriere/dotation/dotation:3/tiree').presse]).toEqual([true, false]);
-    expect(ligneDe(hallebardier, 'carriere/profil/possessions')).toMatch(/Hallebarde/);
-    expect(boutonDe(presser(boutonDe(hallebardier, 'carriere/aleatoire')), 'carriere/aleatoire').presse).toBe(true);
-    expect(ligneDe(presser(boutonDe(hallebardier, 'carriere/soldat/retirer')), 'carriere/profil/statut'), 'sa seule carrière retirée, le profil part').toBeUndefined();
+    expect(ligneDe(hallebardier, 'profil/possessions')).toMatch(/Hallebarde/);
+    const tirees = (e: Edition) => valeursDeLInspecteur(e, 'valeur/combat/randomChars').find((b) => (b.jeu as { args: unknown[] }).args[2] === true)!;
+    expect(tirees(presser(tirees(presser(boutonDe(hallebardier, 'valeur/combat/ajouter'))))).presse, 'ses Caractéristiques tirées au formulaire de son rôle au combat').toBe(true);
+    expect(ligneDe(presser(boutonDe(hallebardier, 'carriere/soldat/retirer')), 'profil/statut'), 'sa seule carrière retirée, le profil part').toBeUndefined();
+  });
+
+  it('un personnage du Bestiaire : son profil porté, son rôle au combat au formulaire tiré du schéma, ses options au contexte de sa fiche, ses onglets sans id commun (#3606 M1a)', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ligneDe = (e: Edition, id: string) => (e.vue.zones['editeur.inspecteur'].find((el) => el.id === id) as Ligne | undefined)?.texte;
+    const valeurJouee = (b: Bouton) => (b.jeu as { args: unknown[] }).args[2];
+    presser(boutonDe(presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/personnage')), 'personnage/griffon-zoo-imperial'));
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const griffon = jouer({ geste: 'relache', point: point(1, 1) });
+    expect(ligneDe(griffon, 'profil/caracteristiques'), 'le profil porté se lit sans carrière').toMatch(/Blessures/);
+    expect(ligneDe(griffon, 'profil/statut')).toBeUndefined();
+    const ajouter = boutonDe(presser(boutonDe(griffon, 'valeur/combat/ajouter')), 'valeur/combat/optionals/ajouter');
+    expect(ajouter.libelle).toBe('Ajouter : options');
+    const option = presser(ajouter);
+    const offerts = valeursDeLInspecteur(option, 'valeur/combat/optionals/0/id').map(valeurJouee);
+    const fiche = findCreatureById('griffon-zoo-imperial')!;
+    const facultatifs = fiche.optionals.flatMap((o) => ('id' in o && offerts.includes(o.id) ? [o.id] : []));
+    const standard = traits.filter((t) => t.standard && !facultatifs.includes(t.id)).map((t) => t.id);
+    expect(offerts).toHaveLength(128);
+    expect(facultatifs.length, 'la fiche a des Traits facultatifs').toBeGreaterThan(0);
+    expect(offerts.slice(0, facultatifs.length + standard.length), 'les Facultatifs de la fiche, puis les Traits standard (LDB 76 l.35)').toEqual([...facultatifs, ...standard]);
+    const note = fiche.optionals.find((o) => 'note' in o);
+    const variantes = valeursDeLInspecteur(option, 'valeur/combat/optionals/0/note');
+    expect(variantes.map((b) => [b.presse, valeurJouee(b)]), 'le Trait posé, ou la note « swap » de la fiche, entière').toEqual([[true, { id: 'a-distance' }], [false, note]]);
+    const swap = presser(variantes[1]);
+    expect(ligneDe(swap, 'valeur/combat/optionals/0/remove'), 'posée, la note s’édite').toBeDefined();
+    const ecran = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../projet/scenes/Editeur.tscn'), 'utf8');
+    const zones = [...ecran.matchAll(/source = "editeur\.inspecteur"(?:\nids = PackedStringArray\(([^)]*)\))?/g)].map((m) => (m[1] ? [...m[1].matchAll(/"([^"]*)"/g)].map((i) => i[1]) : null));
+    expect(zones.filter((ids) => ids === null), 'un onglet montre le reste').toHaveLength(1);
+    const nomme = (ids: readonly string[], id: string) => ids.some((i) => i === id || (i.endsWith('/') && id.startsWith(i)));
+    for (const e of [griffon, option, swap].flatMap((x) => x.vue.zones['editeur.inspecteur'])) {
+      expect(zones.filter((ids) => ids && nomme(ids, e.id)).length, e.id).toBeLessThanOrEqual(1);
+    }
+    expect(zones.filter((ids) => ids && nomme(ids, 'valeur/combat/optionals/0/id')).length).toBe(1);
   });
 
   it('une troupe : le formulaire borné pose N copies sur des cases libres, ids neufs, profils tirés, rencontre héritée ; une annulation la défait (#3704)', () => {
@@ -648,7 +689,8 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     jouer({ geste: 'appui', point: point(copies[0].x, copies[0].y) });
     const copie = jouer({ geste: 'relache', point: point(copies[0].x, copies[0].y) });
     expect(copie.surcouche.reperes.find((r) => r.choisi)?.id).toBe(copies[0].id);
-    expect([boutonDe(copie, 'carriere/aleatoire').presse, boutonDe(copie, `${enc}/enrole`).presse], 'ses Caractéristiques tirées, enrôlée dans la rencontre de l’original').toEqual([true, true]);
+    const tirees = valeursDeLInspecteur(copie, 'valeur/combat/randomChars').find((b) => b.presse);
+    expect([(tirees?.jeu as { args: unknown[] } | undefined)?.args[2], boutonDe(copie, `${enc}/enrole`).presse], 'ses Caractéristiques tirées, enrôlée dans la rencontre de l’original').toEqual([true, true]);
     const annulee = presser(boutonDe(copie, 'annuler'));
     expect(annulee.surcouche.reperes.map((r) => r.id), 'un seul cran : l’annulation retire les quatre').toEqual(avant.map((r) => r.id));
   });

@@ -23,12 +23,12 @@ import { z } from 'zod';
 import { roleAmbiantSchema } from '../grammaire/valeurs';
 import { amateurSchema, cell2Schema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
 import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
-import { navalTraitRefSchema } from '../grammaire/reference';
+import { navalTraitRefSchema, optionalSwapSchema, traitInstanceSchema } from '../grammaire/reference';
 import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { sceneFlowSchema } from './effets';
 import { idDe, porteLeMarqueur, recordDIds, ref, refOuSpec, refs } from '../grammaire/ref';
 import { champsDeChoix } from '../grammaire/choixDeCreation';
-import { parcoursDe, refusDuParcours } from '../../../engine/pnjDeCarriere';
+import { parcoursDe, refusDuParcours, type ParcoursDeCarriere } from '../../../engine/pnjDeCarriere';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
 import { proseNommee } from '../grammaire/prose';
@@ -36,7 +36,6 @@ import { findCreatureById, refEntiteResolue } from '../../index';
 import { capDecorAdmis } from '../../props.types';
 import { PARTS_RELIEF } from '../../materials.types';
 import type { AuthoredShipPoste } from '../../../engine/types';
-import { optionalEntrySchema } from '../defs/creatures';
 
 /** Un terrain est un id de catalogue (cf. src/noyau/monde/terrain.ts). L'intersection vide garde l'alias
  *  VISIBLE au checker (type contextuel d'un littéral) sans rien refuser à `string` (#1789). */
@@ -125,13 +124,18 @@ export type InventaireDAuteur = z.input<typeof inventaireDAuteurSchema>;
  *  pas : un parcours part d'un profil du Bestiaire (`ref`), sans statbloc ni preset, et la carrière actuelle
  *  l'habille, sans tenue d'auteur (EDO 11 l.19) ; puis `refusDuParcours`. Des choix de carrière sans carrière
  *  sont refusés. */
-export function refusDuPnjDeCarriere(ent: z.output<typeof baseDEntiteSchema> & { ref?: string }): string | undefined {
+export function refusDuPnjDeCarriere(ent: Partial<ParcoursDeCarriere> & { statblock?: unknown; presetId?: string; ref?: string; appearance?: { tenue?: string } }): string | undefined {
   const parcours = parcoursDe(ent);
   if (!parcours) return ent.talentsDeCarriere || ent.competencesDeCarriere || ent.dotationsDeCarriere ? 'choix de carrière sans carrière' : undefined;
   if (ent.statblock || ent.presetId || !findCreatureById(ent.ref)) return 'un PNJ de carrière part d’un profil du Bestiaire (« ref »), sans statbloc ni preset';
   if (ent.appearance?.tenue) return 'un PNJ de carrière porte la tenue de sa carrière actuelle, sans tenue d’auteur';
   return refusDuParcours(parcours);
 }
+
+/** Un élément de `combat.optionals` d'une entité de scène (`LDB 76 l.45`) : un Trait posé, ou une note « swap » du
+ *  Bestiaire, posée entière. */
+export const optionalDeSceneSchema = z.union([traitInstanceSchema, optionalSwapSchema]);
+export type OptionalDeScene = z.output<typeof optionalDeSceneSchema>;
 
 /** Champs PARTAGÉS par les trois `kind` d'une entité de scène — le `ref`, lui, est propre à chaque branche. */
 const baseDEntiteSchema = nommerChamps(z.strictObject({
@@ -193,7 +197,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   combat: nommerChamps(z
     .strictObject({
       /** OPTIONNELS choisis (`LDB 76 l.45`). */
-      optionals: z.array(optionalEntrySchema).optional(),
+      optionals: z.array(optionalDeSceneSchema).optional(),
       spells: refs('spell').optional(),
       /** Caractéristiques aléatoires au spawn (`LDB 77 l.108`). */
       randomChars: z.boolean().optional(),
@@ -212,37 +216,41 @@ const brancheDEntite = <R extends z.ZodType>(kind: EntityKindId, ref: R) =>
 
 type EntityKindId = z.infer<typeof entityKindSchema>;
 
+/** Une faute CROISÉE d'une entité de scène : le champ où elle se dit, et ce qu'elle dit. */
+export interface FauteDEntite { champ: 'ref' | 'carrieres' | 'facing'; message: string }
+
+/** Les fautes CROISÉES de l'entité `ent`, que le `superRefine` de sa branche de `sceneEntitySchema` dit au parse, et que
+ *  l'éditeur refuse à l'écriture (`sceneAvecLaValeur`) : le type NOMMÉ (`porteurAbsent`, #877, #1882) ; d'un personnage,
+ *  la résolution de sa `ref` au catalogue (`refEntiteResolue`) et le parcours de carrière (`refusDuPnjDeCarriere`) ; d'un
+ *  décor, le cap d'un décor volumique (#1680 ligne 3 : `capDecorAdmis`, la sous-liste lue au régime vivant, sinon au
+ *  registre généré, `porteLeMarqueur`). Source unique. */
+export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & { kind: string }): FauteDEntite[] {
+  const absence = porteurAbsent(ent);
+  const fautes: FauteDEntite[] = absence ? [{ champ: 'ref', message: absence }] : [];
+  if (ent.kind === 'personnage') {
+    if (ent.ref && !refEntiteResolue(ent.ref)) fautes.push({ champ: 'ref', message: `« ${ent.ref} » ni créature, ni coque de véhicule, ni engin de siège` });
+    const carriere = refusDuPnjDeCarriere(ent);
+    if (carriere) fautes.push({ champ: 'carrieres', message: carriere });
+  }
+  if (ent.kind === 'prop' && !capDecorAdmis(ent.ref !== undefined && estVolumique(ent.ref), ent.facing)) {
+    fautes.push({ champ: 'facing', message: `décor volumique « ${ent.ref} » au cap ${ent.facing} — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)` });
+  }
+  return fautes;
+}
+
+/** Le `superRefine` d'une branche d'entité : chaque faute de `refusDeLEntite`, dite à son champ. */
+const fautesDeLaBranche = (ent: Parameters<typeof refusDeLEntite>[0], ctx: z.RefinementCtx) => {
+  for (const f of refusDeLEntite(ent)) ctx.addIssue({ code: 'custom', path: [f.champ], message: f.message });
+};
+
 /** `SceneEntity` (`noyau/monde/scene.ts:98`). `id` = identité STABLE partagée avec le `Combatant` au spawn.
  *  Union DISCRIMINÉE par `kind` : la `ref` d'un DÉCOR résout au registre `props.json` (`idDe('prop')`,
  *  #877) ; celle d'un personnage au catalogue (`refEntiteResolue`, #1882). Le `superRefine` d'une branche
- *  porte ses invariants CROSS-CHAMP : le type NOMMÉ (`PORTEURS_DU_TYPE`), et pour un décor le cap d'un
- *  décor volumique. */
+ *  dit ses fautes CROSS-CHAMP (`refusDeLEntite`). */
 export const sceneEntitySchema = z.discriminatedUnion('kind', [
   brancheDEntite('heroStart', z.string().optional()),
-  brancheDEntite('personnage', z.string().optional()).superRefine((ent, ctx) => {
-    // TYPE NOMMÉ — verrou AU PARSE (#1882) : `PORTEURS_DU_TYPE`. L'absence se DIT ici ; rien ne la remplace.
-    const absence = porteurAbsent(ent);
-    if (absence) ctx.addIssue({ code: 'custom', path: ['ref'], message: absence });
-    if (ent.ref && !refEntiteResolue(ent.ref))
-      ctx.addIssue({ code: 'custom', path: ['ref'], message: `« ${ent.ref} » ni créature, ni coque de véhicule, ni engin de siège` });
-    const carriere = refusDuPnjDeCarriere(ent);
-    if (carriere) ctx.addIssue({ code: 'custom', path: ['carrieres'], message: carriere });
-  }),
-  brancheDEntite('prop', idDe('prop').optional()).superRefine((ent, ctx) => {
-    // TYPE NOMMÉ — verrou AU PARSE (#877) : `PORTEURS_DU_TYPE` ; sa résolution au registre est celle de la
-    // feuille `idDe('prop')`. Une ref absente se DIT ici.
-    const absence = porteurAbsent(ent);
-    if (absence) ctx.addIssue({ code: 'custom', path: ['ref'], message: absence });
-    // CAP D'UN DÉCOR VOLUMIQUE — verrou AU PARSE (#1680 ligne 3) : un décor dont le TYPE porte une
-    // recette ne prend qu'un cap CARDINAL : `data/props.types.ts` `capVolumique`. La sous-liste se lit au
-    // régime vivant, sinon au registre généré (`porteLeMarqueur`).
-    if (capDecorAdmis(ent.ref !== undefined && estVolumique(ent.ref), ent.facing)) return;
-    ctx.addIssue({
-      code: 'custom',
-      path: ['facing'],
-      message: `décor volumique « ${ent.ref} » au cap ${ent.facing} — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)`,
-    });
-  }),
+  brancheDEntite('personnage', z.string().optional()).superRefine(fautesDeLaBranche),
+  brancheDEntite('prop', idDe('prop').optional()).superRefine(fautesDeLaBranche),
 ]);
 
 // ── Architecture ────────────────────────────────────────────────────────────────────────────────

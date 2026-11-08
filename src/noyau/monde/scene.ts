@@ -14,7 +14,7 @@ import type { Flow } from '../../data/schemas/defs-scenes/effets';
 // optionalités, mécanique, réfs RAW —, les types ci-dessous les nomment par `z.infer`. Import de TYPE
 // seul — aucun cycle runtime.
 import type { z } from 'zod';
-import type { InventaireDAuteur, ReliefDefaults, SceneRoofDefaults, Terrain } from '../../data/schemas/defs-scenes/scene';
+import type { InventaireDAuteur, OptionalDeScene, ReliefDefaults, SceneRoofDefaults, Terrain } from '../../data/schemas/defs-scenes/scene';
 import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type {
   ambianceSchema, architectureBodySchema, architectureEdgeRefSchema, architecturePartSchema, architectureRectSchema,
@@ -156,9 +156,8 @@ export interface SceneEntity {
    *  enrôlé dans une rencontre (cf. EncounterMember). Porte les choix d'auteur qui DÉCRIVENT la
    *  personne au combat — son profil (ref/statblock) et son apparence vivent déjà sur l'entité. */
   combat?: {
-    /** OPTIONNELS choisis (LDB 76 l.45) : Traits posés résolus au spawn OU notes composées
-     *  (joker « tous les traits », variante « swap » retirant des Traits + octroyant un bonus, ZI). */
-    optionals?: import('../../engine/statEntry').OptionalEntry[];
+    /** OPTIONNELS choisis (LDB 76 l.45) : Traits posés résolus au spawn OU notes « swap » (ZI). */
+    optionals?: OptionalDeScene[];
     /** Sorts connus (ids de spells.json) — choix d'auteur, remplace ceux de la créature `ref` (`src/noyau/monde/spawn.ts` › `spells`). */
     spells?: string[];
     /** Caractéristiques aléatoires au spawn (LDB 77 l.108 : −10 + 2d10, graine stable par id). */

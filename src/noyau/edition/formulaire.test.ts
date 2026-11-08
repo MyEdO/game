@@ -4,7 +4,9 @@
  * leurs listes élément par élément (`elementDuNoeud`, `champDeLElement`, `gestesDeLaListe`), la valeur neuve d'un nœud
  * et d'une op (`valeurNeuveDe`, `newOp`), et le geste `valeur` de la session, qui écrit, change de variante, ajoute,
  * retire et monte un élément de liste, retire (un conteneur vidé part avec son dernier champ), refuse ce que le
- * formulaire n'offre pas en disant pourquoi (`refusDeLaValeur`), et entre dans l'historique.
+ * formulaire n'offre pas en disant pourquoi (`refusDeLaValeur`), et entre dans l'historique. Les choix d'une union
+ * réunissent ceux de ses feuilles, énumérations et littéraux ; une union se lit aussi à la présence de son discriminant
+ * (`optionalEntrySchema`, #3606 M1a).
  */
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
@@ -22,6 +24,8 @@ import { DIFFICULTY_LABELS } from '../../engine/types';
 import type { Condition } from '../../engine/flowCore';
 import type { GameOp } from '../../engine/ops';
 import { choixDeLaFeuilleDId } from '../../data';
+import { especeDApparenceSchema, tenueFermeeSchema } from '../../data/schemas/grammaire/valeurs';
+import { optionalEntrySchema } from '../../data/schemas/defs/creatures';
 
 type Zone = NonNullable<Scene['effectZones']>[number];
 type Declencheur = Scene['triggers'][number];
@@ -297,5 +301,51 @@ describe('le geste `valeur` de la session', () => {
     expect(refusDeLaValeur(avecHas, geste(surTrig, ['when', 'what'], ['trait'])), 'un discriminant se change par le choix de la variante').toBe('nonOffert');
     expect(refusDeLaValeur(avecHas, geste(surTrig, ['flow'], [{ kind: 'seq', steps: [] }])), 'le flux n’est pas offert').toBe('nonOffert');
     expect(refusDeLaValeur(avecHas, geste(surTrig, ['when', 'who'], ['caster']))).toBeNull();
+  });
+});
+
+describe('les choix d’une union réunissent ses références, ses énumérations et ses littéraux (#3606 M1a)', () => {
+  const ids = (type: 'species' | 'planDeBestiaire' | 'career' | 'trait') => choixDeLaFeuilleDId({ type }).map((e) => e.id);
+
+  it('l’espèce d’une apparence : les 27 espèces puis les 102 du plan de bestiaire', () => {
+    const choix = choixDuNoeud(especeDApparenceSchema)!.map((o) => o.valeur);
+    expect([ids('species').length, ids('planDeBestiaire').length]).toEqual([27, 102]);
+    expect(choix).toEqual([...ids('species'), ...ids('planDeBestiaire')]);
+    expect(choix).toHaveLength(129);
+  });
+
+  it('la tenue : les 108 carrières puis « nu »', () => {
+    const choix = choixDuNoeud(tenueFermeeSchema)!.map((o) => o.valeur);
+    expect(choix).toEqual([...ids('career'), 'nu']);
+    expect(choix).toHaveLength(109);
+  });
+
+  it('les choix d’une feuille unique et sa valeur neuve sont inchangés : la difficulté d’un Test de traversée, le Trait d’une condition d’entrée', () => {
+    const z = zone({ crossTest: { characteristic: 'force' } });
+    const difficulte = champ(formulaireDe('zone', z), z, 'crossTest', 'difficulty').noeud;
+    expect(choixDuNoeud(difficulte)).toEqual(Object.entries(DIFFICULTY_LABELS).map(([valeur, libelle]) => ({ valeur, libelle })));
+    expect(valeurNeuveDe(difficulte)).toBe(Object.keys(DIFFICULTY_LABELS)[0]);
+    const d = declencheur({ kind: 'has', who: 'target', what: 'trait', value: 'a-distance' } as Condition);
+    const trait = champ(formulaireDe('declencheur', d), d, 'when', 'value').noeud;
+    expect(choixDuNoeud(trait)).toEqual(choixDeLaFeuilleDId({ type: 'trait' }).map((e) => ({ valeur: e.id, libelle: e.label })));
+    expect(valeurNeuveDe(trait)).toBe(ids('trait')[0]);
+  });
+});
+
+describe('une union se lit à la présence de son discriminant : les options d’un statbloc (LDB 76 ; #3606 M1a)', () => {
+  const u = unionDuNoeud(optionalEntrySchema)!;
+  const note = { note: 'swap', label: 'Remplacer Bestial par un bonus de +20 en Soc', remove: ['bestial'], grant: [{ characteristic: 'sociabilite', value: 20 }] };
+
+  it('reconnaît le Trait, sans `note`, et chaque note par sa valeur', () => {
+    expect([u.discriminant, u.variantes.map((v) => [v.cle, v.libelle])]).toEqual(['note', [['', 'Trait'], ['all-traits', 'tous les Traits'], ['swap', 'remplacement de Traits']]]);
+    expect(varianteCourante(u, { id: 'rapide' })?.cle).toBe('');
+    expect(varianteCourante(u, note)?.cle).toBe('swap');
+    expect(formeAuPoint(optionalEntrySchema, note)?.tenus, 'la note se tient par le choix de sa variante').toEqual(['note']);
+  });
+
+  it('la variante Trait se pose sans `note` ; une note posée entière se garde à son choix', () => {
+    const variantes = variantesAChoisir(optionalEntrySchema, note)!;
+    expect(variantes.find((v) => v.cle === '')?.valeur).toEqual({ id: choixDeLaFeuilleDId({ type: 'trait' })[0].id });
+    expect(variantes.find((v) => v.cle === 'swap')).toMatchObject({ courante: true, valeur: note });
   });
 });

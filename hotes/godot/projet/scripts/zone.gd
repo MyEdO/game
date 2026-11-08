@@ -5,7 +5,8 @@
 ## pied, montré par le défilement qui le contient. Chaque élément se pose sur son composant : chaque `Liaison`, `Geste`
 ## et `Saisie` le reçoit, et chaque zone imbriquée y lit le champ que sa `source` nomme, son geste relayé par celle-ci.
 ## `masque` se cache quand aucune des zones qui le nomment n'a rien à montrer. Sous un `TabContainer`, chaque élément
-## est un onglet, titré de son nom (`nom`, sinon `libelle`), qui ne le redit pas (son `Nom` caché).
+## est un onglet, titré de son nom (`nom`, sinon `libelle`), qui ne le redit pas (son `Nom` caché) ; une zone portée par
+## une page d'un `TabContainer` en cache l'onglet quand elle n'a rien à montrer.
 ##
 ## La source d'une zone de l'écran est une clé de `vue.zones` (`CONTRAT.md`). Une zone qui nomme des `ids` n'en montre
 ## que les éléments de ces ids, dans l'ordre de la source, un id fini par `/` nommant chaque id qui commence par lui (une
@@ -59,6 +60,9 @@ func montrer(elements: Array) -> void:
 				dessines[cle].queue_free()
 	if ajout and dernier != null:
 		_montrer_le_pied(dernier)
+	if conteneur.get_parent() is TabContainer:
+		var pages := conteneur.get_parent() as TabContainer
+		pages.set_tab_hidden(pages.get_tab_idx_from_control(conteneur as Control), not conteneur.get_children().any(func(n: Node) -> bool: return n.has_meta(META)))
 
 
 ## La clé de l'élément `e`, que porte son composant (`META`) : son type et son id.

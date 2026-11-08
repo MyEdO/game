@@ -6,8 +6,8 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { availabilitySchema, caracteristiqueChiffreeSchema, harvestDangerSchema, harvestRaritySchema, entityAppearanceSchema, moneySchema, profilChiffreSchema } from '../grammaire/valeurs';
-import { talentRefSchema, trappingRefSchema, traitInstanceSchema } from '../grammaire/reference';
+import { availabilitySchema, harvestDangerSchema, harvestRaritySchema, entityAppearanceSchema, moneySchema, profilChiffreSchema } from '../grammaire/valeurs';
+import { optionalSwapSchema, talentRefSchema, trappingRefSchema, traitInstanceSchema } from '../grammaire/reference';
 import { ref, refOuSpec, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 
@@ -18,31 +18,19 @@ export const famille = 'entite';
  *  `TraitPose` ordinaire, soit une NOTE composée irréductible à un trait (discriminée par `note`) :
  *  joker « tous les traits » (Mutant, LDB 83 l.91) ou variante « remplacer des Traits par un bonus »
  *  (Grand Loup ZI 1 l.229, Griffon ZI). La note porte son `label` source VERBATIM + les champs d'application. */
-const optionalWildcardSchema = nommerChamps(z.strictObject({
+const optionalWildcardSchema = nommerNoeud(nommerChamps(z.strictObject({
   note: z.literal('all-traits'),
   label: z.string(),
-}), { note: { label: "note" }, label: { label: "libellé" } });
-const swapGrantSchema = z.union([
-  caracteristiqueChiffreeSchema,
-  refOuSpec('skill', { value: nommerNoeud(z.number(), { nom: 'valeur' }) }),
-]);
-const optionalSwapSchema = nommerChamps(z.strictObject({
-  note: z.literal('swap'),
-  label: z.string(),
-  remove: z.array(z.string()),
-  /** Un ou plusieurs octrois (Vouivre ZI : 4 — 3 caractéristiques + 1 compétence). */
-  grant: z.array(swapGrantSchema),
-  size: z.string().optional(),
-  wounds: z.number().optional(),
-}), { note: { label: "note" }, label: { label: "libellé" }, remove: { label: "retirer" }, grant: { label: "ajouts" }, size: { label: "Taille" }, wounds: { label: "Blessures" } });
-/** `OptionalEntry` (`engine/statEntry.ts`) — un Trait OPTIONNEL du statbloc (`LDB 76 l.45`) ou une note composée.
- *  Composé aussi par les entités de scène (`defs-scenes/scene.ts`, `combat.optionals`). */
+}), { note: { label: "note" }, label: { label: "libellé" } }), { label: 'tous les Traits' });
+/** `OptionalEntry` (`engine/statEntry.ts`) — un Trait OPTIONNEL du statbloc (`LDB 76 l.45`) ou une note composée. Les
+ *  entités de scène en composent le Trait et la note « swap » (`optionalSwapSchema`, `defs-scenes/scene.ts`,
+ *  `combat.optionals`). */
 export const optionalEntrySchema = z.union([traitInstanceSchema, optionalWildcardSchema, optionalSwapSchema]);
 
 /** `SkillRef` (`src/data/index.ts`) — la réf de Compétence de la GRAMMAIRE (`refOuSpec`, régime
  *  `specOuChoixFacultatifs` : un statbloc porte des EMPLACEMENTS, désignés au spawn) composée avec la
  *  charge utile du statbloc : `value`, le nombre IMPRIMÉ (#1463, « `value` = le seul nom du NOMBRE
- *  IMPRIMÉ au statbloc »). MÊME nœud que `swapGrantSchema` ci-dessus, dont l'octroi DÉSIGNE (régime
+ *  IMPRIMÉ au statbloc »). MÊME nœud que l'octroi d'une note « swap » (`grammaire/reference.ts`), dont l'octroi DÉSIGNE (régime
  *  par défaut) — une seule graphie de Compétence dans ce document. */
 const competenceChiffreeAEmplacementSchema = refOuSpec('skill', { value: nommerNoeud(z.number(), { nom: 'valeur' }) }, 'specOuChoixFacultatifs');
 

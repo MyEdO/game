@@ -12,7 +12,7 @@
 import type { AuMoinsUnPorteurDeFiche, EncounterDef, EncounterMember, SceneEntity, VictoryCondition } from './scene';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
-import type { OptionalEntry } from '../../engine/statEntry';
+import type { OptionalDeScene } from '../../data/schemas/defs-scenes/scene';
 import type { AuthoredShipPoste, NavalTraitRef } from '../../engine/types';
 import type { SkillRef } from '../../data';
 import type { Dir8 } from '../../geometry/dir8';
@@ -35,7 +35,7 @@ export type AuthoredEnemy = AuMoinsUnPorteurDeFiche & {
   mount?: boolean;
   /** Index (dans `enemies`) de la monture chevauchée au spawn. */
   rides?: number;
-  optionals?: OptionalEntry[];
+  optionals?: OptionalDeScene[];
   spells?: string[];
   randomChars?: boolean;
   /** Compétences d'AUTEUR ajoutées (réfs `SkillRef`) — fusionnées au spawn (servant de pièce : Projectiles

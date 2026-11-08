@@ -10,14 +10,15 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
 import type { ArchitectureBody, ArchitectureStorey, BuildingMass, FacadeFeature, RoofDefaults, Scene, SceneEntity, SceneStationAnchor, WallSecret, WallSeg } from '../monde/scene';
 import { apparencesDeLOuverture } from '../monde/facades';
-import type { ReliefDefaults, SceneRoofDefaults } from '../../data/schemas/defs-scenes/scene';
+import { refusDeLEntite, type ReliefDefaults, type SceneRoofDefaults } from '../../data/schemas/defs-scenes/scene';
+import { inventaireApres, type IntentionDObjet } from '../../engine/items';
 import type { Dir8 } from '../../geometry/dir8';
 import type { FireArc } from '../../engine/types';
 import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
-import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, editEntity, editEntry, pasteEntity, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, replaceEffectZone, avecLaValeurDuPorteur, patchTrigger, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, type PatchDeZone, type Pt } from '../sceneEdit';
+import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, pasteEntity, sansVide, TypeNonNomme, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, replaceEffectZone, avecLaValeurDuPorteur, patchTrigger, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, type PatchDeZone, type Pt } from '../sceneEdit';
 import { entiteDeLaSelection, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type Layers, type Sel, type SorteDePorteur, type Tool } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
@@ -228,21 +229,19 @@ export interface PatchDOuverture {
 export type PatchDArete = { [K in Exclude<keyof WallSeg, 'x' | 'y' | 'side' | 'z'>]?: WallSeg[K] | null };
 
 /** Ce que l'inspecteur écrit sur l'entité sélectionnée : son type (décor ou fiche), son cap, sa couche ; la lumière
- *  d'un décor (`null` l'éteint), son assise ; l'embuscade, l'inventaire, le parcours de carrière et le tirage des
- *  Caractéristiques d'un personnage ; l'équipage exposé à bord. */
+ *  d'un décor (`null` l'éteint), son assise ; un objet de l'inventaire d'un personnage (`inventaireApres`), son
+ *  parcours de carrière ; l'équipage exposé à bord ; les entrées de fiche qu'elle couvre (`null` : aucune). */
 export interface PatchDEntite {
   ref?: string;
   facing?: Dir8;
   z?: number;
   light?: NonNullable<SceneEntity['light']> | null;
   assise?: boolean;
-  embusque?: boolean;
-  inventaire?: NonNullable<SceneEntity['inventaire']>;
+  objet?: IntentionDObjet;
   /** Le parcours de carrière entier ; sans carrière, il est retiré. */
   parcours?: ParcoursDeCarriere;
-  /** Caractéristiques tirées au hasard au spawn (`combat.randomChars`, LDB 77 l.108). */
-  aleatoire?: boolean;
   crewIds?: string[];
+  couvre?: string[] | null;
 }
 
 /** Le nombre de copies d'une troupe (`{ geste: 'troupe' }`), bornes comprises. */
@@ -565,28 +564,29 @@ function ecrireSurLaSelection<T>(s: SessionDEdition, scene: Scene, lire: (sc: Sc
   return jsonCanonique(lire(scene)) === jsonCanonique(lire(sceneEditee(s))) ? s : { ...s, historique: poser(s.historique, scene, true) };
 }
 
-/** Le patch `patch` de l'inspecteur en patch d'entité pour `ent` : le type d'un décor avec ses défauts de pose
- *  (`propRefPatch`), la couche 0 comme son absence, un inventaire, un parcours sans carrière ou un équipage vide
- *  comme son absence. */
+/** Le patch `patch` de l'inspecteur en patch d'entité pour `ent`, chaque absence posée par `champs` (`editEntity`) : le
+ *  type d'un décor avec ses défauts de pose (`propRefPatch`), la couche au sol (`coucheEcrite`), la lumière éteinte, l'assise
+ *  sans action, un parcours sans carrière, et un inventaire, un équipage ou des entrées couvertes vides (`sansVide`) ;
+ *  l'inventaire après l'intention sur un objet (`inventaireApres`). */
 function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEntity> {
-  const { ref, z, light, assise, embusque, inventaire, parcours, aleatoire, crewIds, ...reste } = patch;
+  const { ref, z, light, assise, objet, parcours, crewIds, couvre, ...reste } = patch;
   const avecCarrieres = parcours && Object.keys(parcours.carrieres).length ? parcours : undefined;
   const usable = { ...ent.usable, assise: assise || undefined };
   return {
     ...reste,
     ...(ref === undefined ? {} : ent.kind === 'prop' ? propRefPatch(ref, ent) : { ref }),
-    ...(z === undefined ? {} : { z: z || undefined }),
+    ...(z === undefined ? {} : { z: coucheEcrite(z) }),
     ...(light === undefined ? {} : { light: light ?? undefined }),
     ...(assise === undefined ? {} : { usable: usable.assise || usable.actions?.length ? usable : undefined }),
-    ...(embusque === undefined && aleatoire === undefined ? {} : { combat: { ...ent.combat, ...(embusque === undefined ? {} : { hiddenUntilCombat: embusque || undefined }), ...(aleatoire === undefined ? {} : { randomChars: aleatoire || undefined }) } }),
     ...(parcours === undefined ? {} : {
       carrieres: avecCarrieres?.carrieres,
       talentsDeCarriere: avecCarrieres?.talentsDeCarriere,
       competencesDeCarriere: avecCarrieres?.competencesDeCarriere,
       dotationsDeCarriere: avecCarrieres?.dotationsDeCarriere,
     }),
-    ...(inventaire === undefined ? {} : { inventaire: Object.keys(inventaire).length ? inventaire : undefined }),
-    ...(crewIds === undefined ? {} : { crewIds: crewIds.length ? crewIds : undefined }),
+    ...(objet === undefined ? {} : { inventaire: sansVide(inventaireApres(ent.inventaire ?? {}, objet)) }),
+    ...(crewIds === undefined ? {} : { crewIds: sansVide(crewIds) }),
+    ...(couvre === undefined ? {} : { couvre: sansVide(couvre) }),
   };
 }
 
@@ -621,10 +621,32 @@ function revenir(s: SessionDEdition, historique: Historique): SessionDEdition {
   return { ...s, historique, z, sel: null, geste: null, brouillon: null };
 }
 
+/** La scène `scene` où l'entité `ent` porte le champ de premier niveau `cle` de `ecrite`, par sa porte (`editEntity`) ;
+ *  ou son refus, dit : la règle qu'enfreint l'entité écrite et que l'entité d'avant n'enfreignait pas (`TypeNonNomme`,
+ *  `refusDeLEntite`), une entité déjà fautive restant éditable. */
+function sceneAvecLEntite(scene: Scene, ent: SceneEntity, cle: string, ecrite: SceneEntity): EcritureDeValeur<Scene> {
+  let apres: Scene;
+  try {
+    apres = editEntity(scene, ent.id, Object.fromEntries([[cle, Object.entries(ecrite).find(([k]) => k === cle)?.[1]]]) as Partial<SceneEntity>);
+  } catch (e) {
+    if (e instanceof TypeNonNomme) return { ok: false, refus: { regle: e.message } };
+    throw e;
+  }
+  const avant = new Set(refusDeLEntite(ent).map((f) => f.message));
+  const neuve = apres.entities.filter((e) => e.id === ent.id).flatMap(refusDeLEntite).find((f) => !avant.has(f.message));
+  return neuve ? { ok: false, refus: { regle: neuve.message } } : { ok: true, valeur: apres };
+}
+
 /** La scène `scene` où le geste `g` écrit sa valeur au formulaire de son porteur (`avecLaValeurDuPorteur`) : la zone
- *  d'effet remplacée, la condition d'entrée du déclencheur patchée (`patchTrigger`) ; ou son refus, un porteur absent
- *  n'offrant aucun chemin. */
+ *  d'effet remplacée, la condition d'entrée du déclencheur patchée (`patchTrigger`), le champ de l'entité posé par sa
+ *  porte (`sceneAvecLEntite`) ; ou son refus, un porteur absent n'offrant aucun chemin. */
 function sceneAvecLaValeur(scene: Scene, g: Extract<GesteDEdition, { geste: 'valeur' }>): EcritureDeValeur<Scene> {
+  if (g.porteur.sorte === 'entite') {
+    const ent = scene.entities.find((e) => e.id === g.porteur.id);
+    if (!ent) return { ok: false, refus: 'nonOffert' };
+    const ecrite = avecLaValeurDuPorteur('entite', ent, g.chemin, g.valeur);
+    return ecrite.ok ? sceneAvecLEntite(scene, ent, String(g.chemin[0]), ecrite.valeur) : ecrite;
+  }
   if (g.porteur.sorte === 'zone') {
     const zone = (scene.effectZones ?? []).find((z) => z.id === g.porteur.id);
     const ecrite = zone ? avecLaValeurDuPorteur('zone', zone, g.chemin, g.valeur) : { ok: false as const, refus: 'nonOffert' as const };
@@ -728,7 +750,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       return ecrireSurLaSelection(s, patchZone(scene, s.sel, g.patch), zonesDe);
     case 'valeur': {
       const ecrite = sceneAvecLaValeur(scene, g);
-      return ecrite.ok ? ecrireSurLaSelection(s, ecrite.valeur, (sc) => [sc.effectZones, sc.triggers]) : s;
+      return ecrite.ok ? ecrireSurLaSelection(s, ecrite.valeur, (sc) => [sc.effectZones, sc.triggers, sc.entities]) : s;
     }
     case 'nommer': {
       const ent = entiteDeLaSelection(scene, s.sel);

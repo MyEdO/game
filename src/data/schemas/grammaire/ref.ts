@@ -898,6 +898,9 @@ export function specRef<T extends TypeEntite, E extends Record<string, z.ZodType
   return noeudASpecialisation(type, extra, 'specOuChoix');
 }
 
+/** Ce que la charge utile `extra` d'une référence ajoute à sa forme, à la sortie du parse ; rien sans elle. */
+type ExtraDe<E extends Record<string, z.ZodType>> = [keyof E] extends [never] ? unknown : z.output<z.ZodObject<E>>;
+
 /**
  * Référence dont la spécialisation est FACULTATIVE : `{ id }` (aucune spécialisation visée) OU
  * `{ id, spec }` — et `{ id, choix }` pour un porteur d'EMPLACEMENT, qui ouvre le régime
@@ -908,17 +911,17 @@ export function specRef<T extends TypeEntite, E extends Record<string, z.ZodType
 export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra?: E,
-): z.ZodType<RefDesignee>;
+): z.ZodType<RefDesignee & ExtraDe<E>>;
 export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra: E | undefined,
   regime: 'specOuChoixFacultatifs',
-): z.ZodType<RefASpecialisation>;
+): z.ZodType<RefASpecialisation & ExtraDe<E>>;
 export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra: E | undefined,
   regime: RegimeDePorteur,
-): z.ZodType<RefASpecialisation>;
+): z.ZodType<RefASpecialisation & ExtraDe<E>>;
 export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
   type: T,
   extra?: E,

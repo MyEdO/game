@@ -6,9 +6,9 @@ import { libelleDeValeur, nommerChamps, nommerNoeud } from './meta';
  * la migration de la donnée se font aux lots L2/L3 (#1463).
  */
 import { z } from 'zod';
-import { countSpecSchema, difficultySchema, enumNomme, formuleSansTirageSchema, maisonSchema, matiereDArmureSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
+import { caracteristiqueChiffreeSchema, countSpecSchema, difficultySchema, enumNomme, formuleSansTirageSchema, maisonSchema, matiereDArmureSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sizeCategorySchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
 import { marquerProduit } from './interne/produits';
-import { idDe, idsDe, marqueurDeLaForme, messageDeRefusDeSpec, porteLeMarqueur, recordDIds, ref, refMorte, refs, refTypee, refusDeSpec } from './ref';
+import { idDe, idsDe, marqueurDeLaForme, messageDeRefusDeSpec, porteLeMarqueur, recordDIds, ref, refMorte, refOuSpec, refs, refTypee, refusDeSpec } from './ref';
 import { findTraitById, psychologyLabel } from '../../index';
 import { cibleDeLArg, individusNommes, varianteAdmise, varianteDe } from '../../../engine/psych/ciblage';
 
@@ -173,7 +173,27 @@ const poseDeTrait = (regime: RegimeDeCible): z.ZodType<TraitPose> => {
 };
 
 /** Le Trait posé d'un document du CATALOGUE : la Cible d'un Trait psy y est un Groupe. */
-export const traitInstanceSchema = poseDeTrait('catalogue');
+export const traitInstanceSchema = nommerNoeud(poseDeTrait('catalogue'), { label: 'Trait' });
+
+/** Un octroi d'une note « swap » (`SwapGrant`, `engine/statEntry.ts`) : un bonus sur une Caractéristique, ou une
+ *  Compétence à la valeur de Test imprimée. */
+const swapGrantSchema = z.union([
+  caracteristiqueChiffreeSchema,
+  refOuSpec('skill', { value: nommerNoeud(z.number(), { nom: 'valeur' }) }),
+]);
+
+/** `OptionalSwap` (`engine/statEntry.ts`) — la note « swap » d'un statbloc (Grand Loup ZI 1 l.229, Griffon ZI) : son
+ *  `label` source VERBATIM et ses champs d'application. Composée par les `optionals` du Bestiaire (`defs/creatures.ts`)
+ *  et par ceux d'une entité de scène (`defs-scenes/scene.ts`). */
+export const optionalSwapSchema = nommerNoeud(nommerChamps(z.strictObject({
+  note: z.literal('swap'),
+  label: z.string(),
+  remove: z.array(z.string()),
+  /** Un ou plusieurs octrois (Vouivre ZI : 4 — 3 caractéristiques + 1 compétence). */
+  grant: z.array(swapGrantSchema),
+  size: sizeCategorySchema.optional(),
+  wounds: z.number().optional(),
+}), { note: { label: "note" }, label: { label: "libellé" }, remove: { label: "retirer" }, grant: { label: "ajouts" }, size: { label: "Taille" }, wounds: { label: "Blessures" } }), { label: 'remplacement de Traits' });
 
 /** Le Trait posé du statbloc d'une SCÈNE : la Cible d'un Trait psy y est aussi un individu (`@id`, EDOC 11
  *  l.648), dont `validateScene` juge l'existence. #3045 */
