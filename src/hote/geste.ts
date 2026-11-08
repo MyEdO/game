@@ -12,7 +12,7 @@ import {
 import { estObjet, lireALaForme, signature, type Designes, type Forme, type ParametreDeVerbe } from './formes';
 import { ErreurDeGeste, valider } from './partie';
 import { offresDeLaBarreOuverte } from './projection';
-import { CHOIX, REGLAGES, VERBES } from './verbes.generated';
+import { CHOIX, FORMES, REGLAGES, VERBES } from './verbes.generated';
 
 /** Un geste écrit : un verbe de la partie et ses arguments, joué au nom d'un siège s'il est posé. Une offre de l'actif se
  *  joue par le verbe qu'elle déclare (`Offre.geste`). */
@@ -83,7 +83,7 @@ export function argumentsDuVerbe(etat: Jeu, verbe: string, args: readonly unknow
     const p = parametres[i];
     // JSON n'a pas d'`undefined` : `null` omet un paramètre optionnel, pour en poser un suivant.
     if (brut === null && p.optionnel) return brut;
-    const lu = lireALaForme(brut, p.forme, p.nom, designesDe(etat));
+    const lu = lireALaForme(brut, p.forme, p.nom, designesDe(etat), FORMES);
     if ('ecart' in lu) throw new ErreurDeGeste('validation', `${verbe} : ${lu.ecart} (${signature(verbe, parametres)})`);
     return lu.valeur;
   });

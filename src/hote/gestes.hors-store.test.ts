@@ -26,7 +26,7 @@ function fautesDesValeurs(verbe: string, nom: string, f: Forme, ou: string): str
     case 'chaine': return f.designe && !(f.designe.cle in DESIGNATIONS) ? [`${ou} : désignation ${f.designe.cle} hors de DESIGNATIONS`] : [];
     case 'tableau': return fautesDesValeurs(verbe, nom, f.element, ou);
     case 'union': return f.membres.filter((m) => m.genre !== 'objet').flatMap((m) => fautesDesValeurs(verbe, nom, m, ou));
-    case 'objet': return (f.champs ?? []).flatMap((c) => fautes(verbe, c.nom, c.forme, `${ou}.${c.nom}`));
+    case 'objet': return f.champs.flatMap((c) => fautes(verbe, c.nom, c.forme, `${ou}.${c.nom}`));
     default: return [];
   }
 }
