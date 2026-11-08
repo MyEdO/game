@@ -355,6 +355,11 @@ dialog .actions{margin-top:10px}dialog .hint{margin-top:8px}
   <div class="dlgh"><h2 id="hInfo"></h2><button type="button" class="ghost" id="bCloseInfo" aria-label="Fermer">×</button></div>
   <div class="info" id="info"></div>
 </dialog>
+<dialog id="dPrint" aria-labelledby="hPrint">
+  <div class="dlgh"><h2 id="hPrint">Imprimer</h2><button type="button" class="ghost" id="bClosePrint" aria-label="Fermer">×</button></div>
+  <p id="printHow"></p>
+  <p class="hint">Dans claude.ai, le bouton Imprimer ne peut pas ouvrir lui-même la fenêtre d'impression.</p>
+</dialog>
 <div class="toast" id="toast" role="status"></div>
 <div id="printArea"></div>
 
@@ -1181,13 +1186,14 @@ const printBody=list=>'<style>'+PRINT_CSS+'</style>'+list.map(printBlock).join('
 let printList=null,printScroll=0;
 const docEl=document.documentElement;
 const fillPrint=list=>{$('printArea').innerHTML=printBody(list);docEl.style.setProperty('--haut-impression',$('printArea').offsetHeight+'px')};
-addEventListener('beforeprint',()=>{fillPrint(printList||[S]);printScroll=scrollY;docEl.classList.add('imprime');scrollTo(0,0)});
+addEventListener('beforeprint',()=>{$('dPrint').close();fillPrint(printList||[S]);printScroll=scrollY;docEl.classList.add('imprime');scrollTo(0,0)});
 addEventListener('afterprint',()=>{docEl.classList.remove('imprime');docEl.style.removeProperty('--haut-impression');$('printArea').innerHTML='';printList=null;scrollTo(0,printScroll)});
 function printNpcs(list){
   printList=list;fillPrint(list);
   let opened=false;const mark=()=>{opened=true};addEventListener('beforeprint',mark,{once:true});
   try{print()}catch(e){}
-  setTimeout(()=>{removeEventListener('beforeprint',mark);if(!opened)toast((matchMedia('(pointer:coarse)').matches?'Imprimez depuis le navigateur (Partager, puis Imprimer) : ':'Faites Ctrl+P (⌘P sur Mac) pour imprimer : ')+(list.length>1?'seuls les encadrés choisis s\'impriment.':'seul l\'encadré s\'imprime.'))},400)}
+  setTimeout(()=>{removeEventListener('beforeprint',mark);if(opened)return;
+    $('printHow').textContent=(matchMedia('(pointer:coarse)').matches?'Touchez Partager, puis Imprimer, dans votre navigateur':'Faites Ctrl+P (⌘P sur Mac)')+' : '+(list.length>1?'seuls les encadrés choisis s\'impriment.':'seul l\'encadré s\'imprime.');$('dPrint').showModal()},400)}
 
 /* ---------- copie et sauvegarde ---------- */
 /* Une fenêtre modale passe au premier plan : le message s'affiche dans celle qui est ouverte. */
@@ -1262,6 +1268,7 @@ narrow.addEventListener('change',()=>setTab(TAB));
   document.addEventListener('click',e=>{const el=e.target.closest(OPEN);if(el&&el.dataset.tip)open(el)});
   document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches&&e.target.matches(OPEN)&&e.target.dataset.tip){e.preventDefault();open(e.target)}});
   $('bCloseInfo').addEventListener('click',()=>$('dInfo').close());
+  $('bClosePrint').addEventListener('click',()=>$('dPrint').close());
   $('dInfo').addEventListener('click',e=>{if(e.target===$('dInfo'))$('dInfo').close()});
   const hide=()=>{cur=null;box.hidden=true};
   document.addEventListener('mouseover',e=>{const el=e.target.closest('[title],[data-tip]');if(el)show(el,e.clientX,e.clientY);else hide()});
