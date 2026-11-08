@@ -780,7 +780,7 @@ const avec = <T>(valeur: T | undefined, jouer: (v: T) => GesteDuNoyau): GesteDuN
 /** Les entrées des offres qui déclarent un verbe hors de `VerbesDeLaBarre`, par leur `run` : un verbe que d'autres gestes
  *  jouent aussi, son porteur l'actif, ou la sortie d'une phase. */
 const ENTREES_HORS_DES_VERBES_DE_LA_BARRE: Readonly<Record<string, EntreeDOffre>> = {
-  utiliserLObjet: duTour((o) => avec(o.args.itemUid, (uid) => geste('utiliserLObjet', idDeLActif(o), uid))),
+  utiliserLObjet: duTour((o) => avec(o.args.itemUid, (uid) => geste('utiliserLObjet', uid))),
   /** L'alvéole d'un sort ARME le mode d'incantation sur CE sort (`armed`) : le re-clic le désarme (`desarmerLeMode`),
    *  comme toute case à mode armé — annulation gratuite, rien n'est engagé avant le clic-cible. */
   incanterLeSort: duTour((o) => avec(o.args.spellId, (sort) => geste('incanterLeSort', idDeLActif(o), sort))),

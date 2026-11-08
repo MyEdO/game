@@ -77,9 +77,9 @@ describe('poserLApparence — apparence d’un objet', () => {
     const { get, set } = makeHarness([hero]);
     set({ campaignNarratif: narratif });
     const uid = hero.items![0].uid;
-    poserLApparence(get, set, hero.id, uid, 'hache_naine');
+    poserLApparence(get, set, uid, 'hache_naine');
     expect(get().party[0].items![0].apparence).toBe('hache_naine');
-    poserLApparence(get, set, hero.id, uid, 'hache');
+    poserLApparence(get, set, uid, 'hache');
     expect(get().party[0].items![0]).not.toHaveProperty('apparence');
   });
 
@@ -87,7 +87,7 @@ describe('poserLApparence — apparence d’un objet', () => {
     const hero = heroWithArmeSimple();
     const uid = hero.items![0].uid;
     const { get, set } = makeHarness([hero]);
-    poserLApparence(get, set, hero.id, uid, 'hache_naine');
+    poserLApparence(get, set, uid, 'hache_naine');
     expect(get().party[0].items![0].apparence).toBe('hache_naine');
     expect(activeWeapon(get().party[0], uid)?.apparence).toBe('hache_naine');
     expect(get().party[0].items![0]).toHaveProperty('shape', { id: 'hache' });
@@ -100,8 +100,8 @@ describe('poserLApparence — apparence d’un objet', () => {
     const hero = heroWithArmeSimple();
     const uid = hero.items![0].uid;
     const { get, set } = makeHarness([hero]);
-    poserLApparence(get, set, hero.id, uid, 'hache_naine');
-    poserLApparence(get, set, hero.id, uid, 'epee');
+    poserLApparence(get, set, uid, 'hache_naine');
+    poserLApparence(get, set, uid, 'epee');
     expect(get().party[0].items![0]).not.toHaveProperty('apparence');
     expect(activeWeapon(get().party[0], uid)).not.toHaveProperty('apparence');
     expect(formeResolue(activeWeapon(get().party[0], uid)!)).toBe('epee');
@@ -111,7 +111,7 @@ describe('poserLApparence — apparence d’un objet', () => {
     editerArmeSimple({ formChoices: undefined });
     const hero = heroWithArmeSimple();
     const { get, set } = makeHarness([hero]);
-    poserLApparence(get, set, hero.id, hero.items![0].uid, 'epee_sertie');
+    poserLApparence(get, set, hero.items![0].uid, 'epee_sertie');
     expect(get().party[0].items![0].apparence).toBe('epee_sertie');
     expect(formeResolue(activeWeapon(get().party[0], hero.items![0].uid)!)).toBe('epee');
   });
@@ -125,17 +125,17 @@ describe('poserLApparence — apparence d’un objet', () => {
     const hero = heroWithArmeSimple();
     const uid = hero.items![0].uid;
     const { get, set } = makeHarness([hero]);
-    poserLApparence(get, set, hero.id, uid, 'hache');
+    poserLApparence(get, set, uid, 'hache');
     const after = get().party[0];
     expect((after.items ?? []).find((i: ItemInstance) => i.uid === uid)?.apparence).toBe('hache');
   });
 
-  it.each(['zweihander', 'apparence-inconnue'])('ignore une apparence refusée : %s', (apparence) => {
+  it.each(['zweihander', 'apparence-inconnue'])('refuse une apparence non admise, l’objet garde la sienne : %s', (apparence) => {
     const hero = heroWithArmeSimple();
     const uid = hero.items![0].uid;
     const { get, set } = makeHarness([hero]);
-    poserLApparence(get, set, hero.id, uid, 'hache_naine');
-    poserLApparence(get, set, hero.id, uid, apparence);
+    poserLApparence(get, set, uid, 'hache_naine');
+    poserLApparence(get, set, uid, apparence);
     const after = get().party[0];
     expect((after.items ?? []).find((i: ItemInstance) => i.uid === uid)?.apparence).toBe('hache_naine');
   });
@@ -145,7 +145,7 @@ describe('poserLApparence — apparence d’un objet', () => {
     const uid = hero.items![0].uid;
     expect(formeResolue(activeWeapon(hero, uid)!)).toBe('epee'); // état initial : épée
     const { get, set } = makeHarness([hero]);
-    poserLApparence(get, set, hero.id, uid, 'masse');
+    poserLApparence(get, set, uid, 'masse');
     const after = get().party[0];
     expect(activeWeapon(after, uid)?.apparence).toBe('masse');
     expect(formeResolue(activeWeapon(after, uid)!)).toBe('masse');
@@ -155,7 +155,7 @@ describe('poserLApparence — apparence d’un objet', () => {
     const hero = heroWithArmeSimple();
     const uid = hero.items![0].uid;
     const { get, set } = makeHarness([hero]);
-    poserLApparence(get, set, hero.id, uid, 'masse');
+    poserLApparence(get, set, uid, 'masse');
     editerArmeSimple({ shape: { id: 'hache' } });
     const arme = activeWeapon(get().party[0], uid)!;
     expect(formeResolue(itemFromTrappingById('arme-simple', idsDeTest)!), 'la sonde mord : une nouvelle naissance prend la nouvelle forme').toBe('hache');
@@ -166,7 +166,7 @@ describe('poserLApparence — apparence d’un objet', () => {
     const hero = heroWithArmeSimple();
     const uid = hero.items![0].uid;
     const { get, set } = makeHarness([hero]);
-    poserLApparence(get, set, hero.id, uid, 'masse');
+    poserLApparence(get, set, uid, 'masse');
     editerArmeSimple({ formChoices: ['epee', 'hache'] });
     expect(formeResolue(activeWeapon(get().party[0], uid)!)).toBe('masse');
   });
@@ -197,7 +197,7 @@ describe('transmettreLObjet — contenants et objets rangés (#612)', () => {
     const { from, to } = twoHeroes([sac, rations, corde]);
     const { get, set } = makeHarness([from, to]);
 
-    transmettreLObjet(get, set, 'sac', 'h1', 'h2');
+    transmettreLObjet(get, set, 'sac', 'h2');
 
     const after = get().party;
     const afterFrom = after.find((h) => h.id === 'h1')!;
@@ -219,7 +219,7 @@ describe('transmettreLObjet — contenants et objets rangés (#612)', () => {
     const { from, to } = twoHeroes([sac, rations]);
     const { get, set } = makeHarness([from, to]);
 
-    transmettreLObjet(get, set, 'rations', 'h1', 'h2');
+    transmettreLObjet(get, set, 'rations', 'h2');
 
     const after = get().party;
     const afterFrom = after.find((h) => h.id === 'h1')!;
@@ -234,7 +234,7 @@ describe('transmettreLObjet — contenants et objets rangés (#612)', () => {
 });
 
 describe('généralisation porteur (#620 SOCLE POSSESSIONS T1-e) — héros OU possession', () => {
-  it('equiperLObjet(carrierId=hero.id) : comportement héros INCHANGÉ (arme équipée + recomputeLoadout)', () => {
+  it('equiperLObjet sur l’objet d’un héros : son porteur lu dans l’état (arme équipée + recomputeLoadout)', () => {
     // Héros SANS loadout encore posé (`ensureDefaultLoadout` ne dérive qu'AU 1er recompute, LDB) : l'item
     // part non-équipé, aucun `weapons` actif tant qu'equiperLObjet n'a pas tourné.
     const it = itemFromTrappingById('arme-simple', idsDeTest)!;
@@ -246,19 +246,19 @@ describe('généralisation porteur (#620 SOCLE POSSESSIONS T1-e) — héros OU p
     const uid = it.uid;
     const { get, set } = makeHarness([hero]);
 
-    equiperLObjet(get, set, hero.id, uid);
+    equiperLObjet(get, set, uid);
 
     const after = get().party[0];
     expect((after.items ?? []).find((i) => i.uid === uid)?.equipped).toBe(true);
     expect(activeWeapon(after, uid)).toBeDefined(); // recomputeLoadout a bien tourné (héros)
   });
 
-  it('equiperLObjet(carrierId=possession.uid) : bascule equipped sur la possession, SANS recomputeLoadout', () => {
+  it('equiperLObjet sur l’objet d’une possession : bascule equipped sur la possession, SANS recomputeLoadout', () => {
     const it: ItemInstance = { uid: 'selle', label: 'Selle', kind: 'misc', qualities: [], enc: 2, equipped: false } as unknown as ItemInstance;
     const mule = makeMulePossession([it]);
     const { get, set } = makeHarness([], [mule]);
 
-    equiperLObjet(get, set, mule.uid, 'selle');
+    equiperLObjet(get, set, 'selle');
 
     const after = get().possessions[0];
     expect(after.items.find((i) => i.uid === 'selle')?.equipped).toBe(true);
@@ -271,7 +271,7 @@ describe('généralisation porteur (#620 SOCLE POSSESSIONS T1-e) — héros OU p
     const mule = makeMulePossession([]);
     const { get, set } = makeHarness([hero], [mule]);
 
-    transmettreLObjet(get, set, 'lanterne', hero.id, mule.uid);
+    transmettreLObjet(get, set, 'lanterne', mule.uid);
 
     const afterHero = get().party.find((h) => h.id === hero.id)!;
     const afterMule = get().possessions.find((p) => p.uid === mule.uid)!;
@@ -285,7 +285,7 @@ describe('généralisation porteur (#620 SOCLE POSSESSIONS T1-e) — héros OU p
     const mule = makeMulePossession([sac, rations]);
     const { get, set } = makeHarness([], [mule]);
 
-    rangerLObjet(get, set, mule.uid, 'rations', 'bat');
+    rangerLObjet(get, set, 'rations', 'bat');
 
     const after = get().possessions[0];
     expect(after.items.find((i) => i.uid === 'rations')?.inside).toBe('bat');
@@ -299,7 +299,7 @@ describe('transmettreLObjet — invariant de CO-LOCALISATION (#723, garde store,
     const mule = makeMulePossession([]); // location par défaut : avec-le-groupe
     const { get, set } = makeHarness([hero], [mule]);
 
-    transmettreLObjet(get, set, 'lanterne', hero.id, mule.uid);
+    transmettreLObjet(get, set, 'lanterne', mule.uid);
 
     expect(get().party.find((h) => h.id === hero.id)!.items ?? []).toHaveLength(0);
     expect(get().possessions.find((p) => p.uid === mule.uid)!.items.map((i) => i.uid)).toEqual(['lanterne']);
@@ -311,7 +311,7 @@ describe('transmettreLObjet — invariant de CO-LOCALISATION (#723, garde store,
     const mule = { ...makeMulePossession([]), location: { kind: 'au-lieu', placeId: 'altdorf' } } as Possession;
     const { get, set } = makeHarness([hero], [mule]);
 
-    transmettreLObjet(get, set, 'lanterne', hero.id, mule.uid);
+    transmettreLObjet(get, set, 'lanterne', mule.uid);
 
     expect(get().party.find((h) => h.id === hero.id)!.items ?? []).toHaveLength(1); // reste chez le héros
     expect(get().possessions.find((p) => p.uid === mule.uid)!.items).toHaveLength(0);
@@ -323,7 +323,7 @@ describe('transmettreLObjet — invariant de CO-LOCALISATION (#723, garde store,
     const mule = { ...makeMulePossession([]), location: { kind: 'embarquee', hostUid: 'pos-navire' } } as Possession;
     const { get, set } = makeHarness([hero], [mule]);
 
-    transmettreLObjet(get, set, 'lanterne', hero.id, mule.uid);
+    transmettreLObjet(get, set, 'lanterne', mule.uid);
 
     expect(get().party.find((h) => h.id === hero.id)!.items ?? []).toHaveLength(1);
     expect(get().possessions.find((p) => p.uid === mule.uid)!.items).toHaveLength(0);
@@ -340,7 +340,7 @@ describe('rangerLObjet — ranger l’arme TENUE dans un sac', () => {
     recomputeLoadout(hero);
     expect(activeWeapon(hero, epee.uid)).toBeDefined();
     const { get, set } = makeHarness([hero]);
-    rangerLObjet(get, set, 'h1', epee.uid, 'sac-1');
+    rangerLObjet(get, set, epee.uid, 'sac-1');
     const apres = get().party[0];
     expect(apres.items!.find((i) => i.uid === epee.uid)?.inside, 'l’épée est rangée').toBe('sac-1');
     expect(activeWeapon(apres, epee.uid), 'elle n’est plus en main').toBeUndefined();

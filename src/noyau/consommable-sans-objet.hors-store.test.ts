@@ -14,11 +14,11 @@ import { MINUTES_PER_DAY } from '../engine/clock';
 import type { Combatant } from '../engine/types';
 
 /** Un banc dont le Vétéran porte le produit `trappingId` (uid `produit`), sa fiche ajustée par `fiche`. */
-function avecLeProduit(trappingId: string, fiche: (h: Combatant) => void = () => {}): { banc: Banc; heroId: string } {
+function avecLeProduit(trappingId: string, fiche: (h: Combatant) => void = () => {}): { banc: Banc } {
   const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
   h.items = [...(h.items ?? []), { ...itemFromTrappingById(trappingId, idsDeTest)!, uid: 'produit' }];
   fiche(h);
-  return { banc: ouvrirLeBanc({ graine: 7, etat: { party: [h] } }), heroId: h.id };
+  return { banc: ouvrirLeBanc({ graine: 7, etat: { party: [h] } }) };
 }
 
 const produit = (banc: Banc) => banc.getState().party[0].items?.find((i) => i.uid === 'produit');
@@ -32,31 +32,31 @@ function journalDe(banc: Banc, geste: () => void): string[] {
 
 describe('Consommable — refusé sans objet, avant de le boire', () => {
   it('Potion de vitalité sans Exténué : refusée et dite, l’objet est gardé', () => {
-    const { banc, heroId } = avecLeProduit('potion-de-vitalite');
-    expect(journalDe(banc, () => banc.actions.utiliserLObjet(heroId, 'produit')))
+    const { banc } = avecLeProduit('potion-de-vitalite');
+    expect(journalDe(banc, () => banc.actions.utiliserLObjet('produit')))
       .toEqual(['Vétéran n’a aucun pion Exténué qui puisse être retiré. Potion de vitalité ne lui apporterait rien : l’objet est gardé.']);
     expect(produit(banc), 'l’objet est gardé').toBeTruthy();
   });
 
   it('Potion de vitalité, Exténué : bue, l’État part', () => {
-    const { banc, heroId } = avecLeProduit('potion-de-vitalite', (h) => addCondition(h, 'extenue', 2));
-    banc.actions.utiliserLObjet(heroId, 'produit');
+    const { banc } = avecLeProduit('potion-de-vitalite', (h) => addCondition(h, 'extenue', 2));
+    banc.actions.utiliserLObjet('produit');
     expect(produit(banc), 'consommée').toBeUndefined();
     expect(banc.getState().party[0].conditions.some((c) => c.id === 'extenue')).toBe(false);
   });
 
   it('Gesundheit sans Blessure purulente : refusé et dit avant le Test au boire, l’objet est gardé', () => {
-    const { banc, heroId } = avecLeProduit('gesundheit');
-    expect(journalDe(banc, () => banc.actions.utiliserLObjet(heroId, 'produit')))
+    const { banc } = avecLeProduit('gesundheit');
+    expect(journalDe(banc, () => banc.actions.utiliserLObjet('produit')))
       .toEqual(['Vétéran : aucune maladie active à soulager (ciblée). Gesundheit ne lui apporterait rien : l’objet est gardé.']);
     expect(produit(banc), 'l’objet est gardé').toBeTruthy();
   });
 
   it('Gesundheit, Blessure purulente : bu même si son effet dépend du DR du Test à venir', () => {
-    const { banc, heroId } = avecLeProduit('gesundheit', (h) => {
+    const { banc } = avecLeProduit('gesundheit', (h) => {
       h.diseases = [{ id: 'blessure-purulente', symptoms: [], phase: 'active', minutesLeft: 5 * MINUTES_PER_DAY, durationMinutes: 10 * MINUTES_PER_DAY }];
     });
-    banc.actions.utiliserLObjet(heroId, 'produit');
+    banc.actions.utiliserLObjet('produit');
     expect(produit(banc), 'consommé').toBeUndefined();
   });
 });
