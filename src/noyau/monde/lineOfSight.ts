@@ -10,7 +10,7 @@
 import { Scene, tileAt, areteOcculteEntre, heightAt, sceneMetresPerTile, edgeOf, structureAt, structureIsDown } from './scene';
 import { terrainOpaque } from './terrain';
 import { findPropById, findStructureById } from '../../data';
-import { decorEnCase } from './decorIndex';
+import { decorsEnCase } from './decorIndex';
 import { pointDeCase, type Pt } from './path';
 import type { Combatant, CoverClass } from '../../engine/types';
 import { couvertDepuisDifficulte, couvertLePlusProtecteur, cranDeCouvertEnMoins } from '../../engine/cover';
@@ -97,8 +97,7 @@ export function smokeZone(from: Pt, center: Pt, radius: number): Pt[] {
  *  `WallSeg`, pas une tuile opaque. */
 export function tileBlocksSight(scene: Scene, x: number, y: number): boolean {
   if (terrainOpaque(tileAt(scene, x, y))) return true;
-  const dc = decorEnCase(scene, x, y);
-  return !!dc && !!findPropById(dc.ref)?.opaque;
+  return decorsEnCase(scene, x, y).some((dc) => !!findPropById(dc.ref)?.opaque);
 }
 
 /**
@@ -208,7 +207,6 @@ export function lineOfSightCover(
   let cover: CoverClass = couvertDArete(scene, from, to);
   for (const t of tilesBetween(from, to)) {
     const terr = tileAt(scene, t.x, t.y);
-    const decor = decorEnCase(scene, t.x, t.y);
     if (tileBlocksSight(scene, t.x, t.y)) {
       if (adjacent(t, to)) {
         cover = worst(cover, 'totale'); // cible collée au couvert → −30, tir possible
@@ -217,8 +215,10 @@ export function lineOfSightCover(
       return { blocked: true, cover: 'totale' }; // bloqueur à distance → pas de Ligne de Vue
     }
     if (TERRAIN_COVER[terr]) cover = worst(cover, TERRAIN_COVER[terr]);
-    const dcov = decor && decorCover(decor.ref);
-    if (dcov) cover = worst(cover, dcov);
+    for (const decor of decorsEnCase(scene, t.x, t.y)) {
+      const dcov = decorCover(decor.ref);
+      if (dcov) cover = worst(cover, dcov);
+    }
     if (occupants.some((o) => o.x === t.x && o.y === t.y)) cover = worst(cover, 'imparfaite');
   }
   return { blocked: false, cover };

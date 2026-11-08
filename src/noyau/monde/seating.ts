@@ -38,9 +38,10 @@ import { findPropById } from '../../data';
 import { caseDe, cransDepuisCapIdentite, placesLocalesDuProp } from '../../data/props.types';
 import { DIR8_DELTA, DIR8_ORDER, rotateDir8, type Dir8 } from '../../geometry/dir8';
 import { PARTY_MAX } from './combatants';
-import { heightAt, isWalkable, sceneMetresPerTile, wallBetween, type Scene, type SceneEntity } from './scene';
+import { isWalkable, sceneMetresPerTile, wallBetween, type Scene, type SceneEntity } from './scene';
 import { memoByRef } from './sceneMemo';
 import type { Pt } from './path';
+import { piedDuDecor } from './poseDuDecor';
 
 /**
  * Qui occupe une place : un EMPLACEMENT du groupe, ou un PNJ de la scène (authoré).
@@ -135,17 +136,17 @@ function placesPartielles(scene: Scene): PlacePartielle[] {
     const facing = ent.facing ?? 'S';
     const crans = cransDepuisCapIdentite(facing);
     const z = ent.z ?? 0;
-    // ALTITUDE : le PIED du décor, à sa case `ent.pos` — la même que le rendu des décors
-    // pose sous la recette (`solM`). C'est ce qui colle l'assise au tabouret DESSINÉ : la lire à la
-    // case du siège l'en décollerait dès qu'une marche traverse l'empreinte. Le PLAN, lui, part de
-    // l'ancre du décor — les deux ne répondent pas à la même question.
-    const sol = heightAt(scene, ent.pos.x, ent.pos.y, z);
+    // ALTITUDE : le PIED du décor (`piedDuDecor`) — celui sur lequel le volume du monde pose sa
+    // recette. C'est ce qui colle l'assise au tabouret DESSINÉ : la lire à la case du siège l'en
+    // décollerait dès qu'une marche traverse l'empreinte. Le PLAN, lui, part de l'ancre du décor —
+    // les deux ne répondent pas à la même question.
+    const sol = piedDuDecor(scene, ent);
     // PLAN : ancre, siège et abord viennent de la règle UNIQUE `placesLocalesDuProp`
     // (`data/props.types.ts`), en offsets depuis `ent.pos`, et le validateur de catalogue lit la
-    // MÊME. Elle part de l'ancre du DÉCOR (`decorAncre`/`offsetAncre`), celle de la géométrie et du
-    // foyer d'une lampe, jamais du coin NO : au-delà d'un meuble 1×1, une place ancrée sur le coin
-    // se décale d'une demi-case par axe étendu et le corps assis quitte sa chaise dessinée.
-    for (const place of placesLocalesDuProp(prop, facing, mpt)) {
+    // MÊME. Elle part de l'ancre du DÉCOR (`offsetAncre` décalé par son `calage`, celle d'`ancreDuDecor`),
+    // celle de la géométrie et du foyer d'une lampe, jamais du coin NO : au-delà d'un meuble 1×1, une
+    // place ancrée sur le coin se décale d'une demi-case par axe étendu et le corps assis quitte sa chaise dessinée.
+    for (const place of placesLocalesDuProp(prop, facing, mpt, ent.calage)) {
       out.push({
         propId: ent.id,
         slotId: place.slot.id,

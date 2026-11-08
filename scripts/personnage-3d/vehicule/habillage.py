@@ -60,3 +60,13 @@ def surfaces(utilises, table, blasons):
              **({"matiere": f"{DOMAINE}--{matiere}"} if isinstance(matiere, str) else {}),
              **({"blason": True} if nom in blasons else {})}
             for nom, (palette, matiere) in table.items() if palette and nom in utilises]
+
+
+def pieces(D, pieces, construire):
+    """Un élément par pièce `(glb, cle, piece)` de `pieces` : une clé `vehicule` par engin des `definitions` de `D[cle]`,
+    les matériaux communs `D["MATERIAUX"]` complétés des siens, bâti par `construire(D, materiaux, piece)`."""
+    for glb, cle, piece in pieces:
+        materiaux = {**D["MATERIAUX"], **D[cle].get("materiaux", {})}
+        yield {"glb": glb, "cles": [("vehicule", {"definition": d}) for d in D[cle]["definitions"]],
+               "materiaux": materiaux, "blasons": (),
+               "construire": lambda piece=piece, materiaux=materiaux: construire(D, materiaux, piece)}

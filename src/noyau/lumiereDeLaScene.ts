@@ -12,16 +12,9 @@ import { sceneBrume, sceneWeatherFx } from './monde/meteo';
 import { heightAt, isIndoor, type Scene } from './monde/scene';
 import { catalogEntry, MISSING_ID, MISSING_LABEL, MISSING_TONE } from './monde/volume/missing';
 import { shelterField, shelterSectionAt } from './monde/volume/toits';
-import { ambientScalar } from './monde/vision';
+import { ambientScalar, FLAME_LIFT_M } from './monde/vision';
 import { sceneSun } from './monde/soleil';
 import { sceneLightSources, type VisionInput } from './visionState';
-
-/** Hauteur (m) par DÉFAUT d'une flamme au-dessus du sol de sa case — le foyer d'un émetteur qui n'a
- *  AUCUNE primitive déclarée : un billboard (dont le dessin n'a pas de volume monde où pointer) ou une
- *  lampe PORTÉE (dont le foyer est une main, pas une recette). Un décor VOLUMIQUE, lui, déclare sa
- *  primitive émettrice (`PropPrimitive.emet`) et sa source est posée à SON centre (`LightSource.foyer`,
- *  `noyau/monde/vision.ts`) : ce sont deux valeurs d'UN paramètre, pas deux régimes. Apparence, aucune règle. */
-export const FLAME_LIFT_M = 1;
 
 /** Énergie du soleil haut, et l'élévation (degrés) sous laquelle il s'allume en fondu depuis l'horizon. */
 const ENERGIE_DU_SOLEIL = 1.3;
