@@ -647,7 +647,9 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
   asset/                    le contrat d'asset d'un personnage 3D (lecteur GLB, manifeste, import par `importer.mjs`) ;
                             le manifeste d'élément du schéma 3 et sa validation contre la base et la donnée du jeu (`asset/element.ts`) ;
                             les GLB vivent dans la Release `modeles-3d`, nommés par leur SHA-256, que la provenance
-                            commitée épingle (`asset/release.ts` : `recupererModeles` avant Godot, `publierAssets` à l'import).
+                            commitée épingle (`asset/release.ts` : `recupererModeles` avant Godot, `publierAssets` à l'import) ;
+                            depuis le cloud, une branche `transfert/<x>` qui porte les fichiers et leur provenance les y
+                            verse au push (`.github/workflows/transfert.yml`, `epingles.mjs`), puis s'efface.
   projet/                   le projet Godot 4.7 (GDScript, scènes, manifestes et provenances des modèles 3D, leurs licences) : il dessine la
                             vue et rend chaque geste en intention, sans règle, l'arithmétique de la mise en page dans
                             le seul `hotes/godot/projet/scripts/mise_en_page.gd` (gardes `src/hote/derive-du-noyau.hors-store.test.ts`,

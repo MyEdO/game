@@ -29,7 +29,7 @@ import {
 // façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
 // importés directement d'`engine/massBattle`).
 import type { FoyerDeRegle, RaceKey, SourceRef } from '../../data/schemas/grammaire/valeurs';
-import { symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
+import { availabilitySchema, harvestDangerSchema, harvestRaritySchema, symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
 import { buildingAnchorSchema } from '../../data/schemas/defs/buildings';
 import type { EnveloppeDocument } from '../../data/schemas/grammaire/document';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
@@ -903,7 +903,7 @@ function ruleValueLabel(v: RuleValue): string {
 function dispoPctSection(rows: (typeof disponibilite)['dispoPct']): CodexSection {
   const rowsOut: CodexRow[] = [];
   for (const r of rows) {
-    rowsOut.push({ t: 'sub', label: r.availability } as CodexRow);
+    rowsOut.push({ t: 'sub', label: libelleDeValeur(availabilitySchema, r.availability) } as CodexRow);
     rowsOut.push({ t: 'kv', k: tr('codex.fiche.village'), v: `${r.pct.village} %` } as CodexRow);
     rowsOut.push({ t: 'kv', k: tr('codex.fiche.ville'), v: `${r.pct.ville} %` } as CodexRow);
     rowsOut.push({ t: 'kv', k: tr('codex.fiche.cite'), v: `${r.pct.cite} %` } as CodexRow);
@@ -916,10 +916,10 @@ function dispoPctSection(rows: (typeof disponibilite)['dispoPct']): CodexSection
 function barterRatiosSection(rows: (typeof disponibilite)['barterRatios']): CodexSection {
   const rowsOut: CodexRow[] = [];
   for (const r of rows) {
-    rowsOut.push({ t: 'sub', label: tr('codex.fiche.donne', { give: r.give }) } as CodexRow);
+    rowsOut.push({ t: 'sub', label: tr('codex.fiche.donne', { give: libelleDeValeur(availabilitySchema, r.give) }) } as CodexRow);
     for (const acquired of AVAILABILITIES) {
       const ratio = r.ratios[acquired];
-      rowsOut.push({ t: 'kv', k: tr('codex.fiche.acquis', { acquired: acquired }), v: `${ratio.give} : ${ratio.get}` } as CodexRow);
+      rowsOut.push({ t: 'kv', k: tr('codex.fiche.acquis', { acquired: libelleDeValeur(availabilitySchema, acquired) }), v: `${ratio.give} : ${ratio.get}` } as CodexRow);
     }
   }
   return { title: tr('codex.fiche.ratiosDeTrocDonneAcquis'), layout: 'list', rows: rowsOut };
@@ -1463,7 +1463,7 @@ const CODEX_SPECS = {
         : fact(tr('codex.fiche.allonge'), t.reach);
       return depuisEnveloppe(t, {
         sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.subType?.id) || undefined),
-        meta: facts(fact(tr('codex.fiche.prix'), priceLabel(t.price)), fact(tr('codex.fiche.enc2'), t.enc), fact(tr('codex.fiche.disponibilite'), t.availability), fact(tr('codex.fiche.emplacement'), t.loc), fact(tr('codex.fiche.degats'), damageFact(t)), fact('PA', t.pa), reachFact),
+        meta: facts(fact(tr('codex.fiche.prix'), priceLabel(t.price)), fact(tr('codex.fiche.enc2'), t.enc), fact(tr('codex.fiche.disponibilite'), t.availability && libelleDeValeur(availabilitySchema, t.availability)), fact(tr('codex.fiche.emplacement'), t.loc), fact(tr('codex.fiche.degats'), damageFact(t)), fact('PA', t.pa), reachFact),
         sections: sections(
           chips(tr('codex.fiche.qualites'), resolveQualities({ qualities: t.qualities, subType: t.subType?.id }).map((r) => idRefRow('qualities', r.id, undefined, qualityRefLabel({ id: r.id, value: r.indice })))),
           props.length ? { title: tr('codex.fiche.proprietes'), layout: 'list', rows: [{ t: 'text', text: props.join(' · ') }] } : null,
@@ -1478,7 +1478,7 @@ const CODEX_SPECS = {
     build: () => siegeEngines().map((t) => depuisEnveloppe(t, {
       sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.subType?.id) || undefined),
       meta: facts(
-        fact(tr('codex.fiche.prix'), priceLabel(t.price)), fact(tr('codex.fiche.enc2'), t.enc), fact(tr('codex.fiche.disponibilite'), t.availability),
+        fact(tr('codex.fiche.prix'), priceLabel(t.price)), fact(tr('codex.fiche.enc2'), t.enc), fact(tr('codex.fiche.disponibilite'), t.availability && libelleDeValeur(availabilitySchema, t.availability)),
         fact(tr('codex.fiche.degats'), damageFact(t)), fact('PA', t.pa),
         fact(tr('codex.fiche.portee'), rangeSpecLabel(t.range) ?? ammoRangeModLabel(t.ammoRangeMod)),
       ),
@@ -1684,8 +1684,8 @@ const CODEX_SPECS = {
               title: tr('codex.fiche.recoltePrecieusesEntrailles'),
               layout: 'list',
               rows: [
-                { t: 'kv', k: tr('codex.fiche.rarete'), v: c.harvest.rarity },
-                { t: 'kv', k: tr('codex.fiche.dangerosite'), v: c.harvest.danger },
+                { t: 'kv', k: tr('codex.fiche.rarete'), v: libelleDeValeur(harvestRaritySchema, c.harvest.rarity) },
+                { t: 'kv', k: tr('codex.fiche.dangerosite'), v: libelleDeValeur(harvestDangerSchema, c.harvest.danger) },
                 { t: 'kv', k: tr('codex.fiche.valeur1EncConserve'), v: formatMoney(costPerEnc(c.harvest)) },
                 { t: 'text', text: c.harvest.uses, porteur: { chemin: 'harvest.uses' } },
               ],
@@ -1873,7 +1873,7 @@ const CODEX_SPECS = {
     label: 'codex.fiche.batailleDeMasseMachinesDeGuerre', group: 'tables', cluster: 'codex.fiche.batailleDeMasse',
     build: () => WAR_MACHINES.map((w) => depuisEnveloppe(w, {
       meta: facts(
-        fact(tr('codex.fiche.prix'), formatMoney(w.price)), fact(tr('codex.fiche.equipe'), w.crew), fact(tr('codex.fiche.disponibilite'), w.availability),
+        fact(tr('codex.fiche.prix'), formatMoney(w.price)), fact(tr('codex.fiche.equipe'), w.crew), fact(tr('codex.fiche.disponibilite'), libelleDeValeur(availabilitySchema, w.availability)),
         fact(tr('codex.fiche.portee'), w.range), fact(tr('codex.fiche.degats'), w.damage), fact(tr('codex.fiche.atouts'), w.traits),
       ),
     })),
@@ -2051,7 +2051,7 @@ const CODEX_SPECS = {
     label: 'codex.fiche.vehicules', group: 'monde',
     build: () => vehicles.map((v) => depuisEnveloppe(v, {
       meta: facts(
-        fact(tr('codex.fiche.prix'), priceLabel(v.purchase?.price)), fact(tr('codex.fiche.disponibilite'), v.purchase?.availability ?? null),
+        fact(tr('codex.fiche.prix'), priceLabel(v.purchase?.price)), fact(tr('codex.fiche.disponibilite'), v.purchase?.availability ? libelleDeValeur(availabilitySchema, v.purchase.availability) : null),
         fact(tr('codex.fiche.enc2'), v.enc), fact(tr('codex.fiche.mouvementVoyage'), v.travel?.movement),
         fact(tr('codex.fiche.endurance'), v.hull?.char.endurance), fact(tr('codex.fiche.blessures'), v.hull?.char.B),
       ),

@@ -1,9 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { creatureToCombatant, statblockToCombatant, skillsFromBook, spawnEnemy, entitySize } from './spawn';
-import { weaponFromTrait } from '../../engine/creatureEquip';
+import { armourFromTraits, weaponFromTrait, weaponsFromTraits } from '../../engine/creatureEquip';
+import type { CustomStatblock } from '../../engine/statblock';
+import { recomputeLoadout } from '../../engine/items';
 import { blessingsOf, findCreatureById, talentConcrete } from '../../data';
 import { CHAR_KEYS } from '../../engine/types';
 import { knowsCastingSkill, castingValue, incantationArcane } from '../../engine/magic';
+import { ficheDEntite } from './sceneNpc';
+import { actorStatus } from '../../engine/social';
+import { adresseDeCreation } from '../../engine/adresseDeCreation';
+import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
+import type { SceneEntity } from './scene';
 
 
 /** Traits d'arme FR vérifiés dans L'ennemi dans l'Ombre ch.2 (Knud Cratinx & co). */
@@ -46,18 +53,63 @@ describe('weaponFromTrait — armement des monstres dans les Traits (FR)', () =>
   });
 });
 
-describe('spawnEnemy — arme d’AUTHORING (weapon:) vs arme de TRAIT : pas de doublon (#145 / #126)', () => {
-  it('statbloc À distance (arbalète) + weapon:"arbalete" (trappingId) → UNE seule arme à distance, avec Recharge', () => {
-    // Régression #145 : l'arme de RENDU (weaponFromId, sans reload) était PRÉPENDÉE devant celle du
-    // Trait (avec Recharge), et l'IA prenait la 1re → Recharge ennemie (#126) inerte. `weapon:` ne doit
-    // plus s'ajouter quand un Trait produit déjà une arme du même type. `weapon:` = trappingId (#258).
-    const sb = { label: 'Tireur', char: { M: 4, 'capacite-de-combat': 36, 'capacite-de-tir': 43, force: 39, endurance: 32, B: 12 }, traits: [
-      { id: 'a-distance', value: 9, arg: 'arbalete', range: 60 }, { id: 'arme', value: 7, arg: 'arme-simple' },
-    ] } as any;
-    const c = spawnEnemy({ statblock: sb }, 'e-tireur', { x: 0, y: 0 }, { weapon: 'arbalete' });
+describe('spawnEnemy — l’objet réel fait céder le Trait qui le résumait (LDB 85 ; #773, #3684)', () => {
+  const tireur: CustomStatblock = { type: 'statblock', label: 'Tireur', char: { M: 4, 'capacite-de-combat': 36, 'capacite-de-tir': 43, force: 39, endurance: 32, B: 12 }, traits: [
+    { id: 'a-distance', value: 9, arg: 'arbalete', range: 60 }, { id: 'arme', value: 7, arg: 'arme-simple' }, { id: 'armure', value: 2 },
+  ] };
+
+  it('une cotte de mailles portée donne ses PA, et le Trait Armure cède', () => {
+    const c = spawnEnemy({ ref: 'gobelin' }, 'g-maille', { x: 0, y: 0 }, { inventaire: { 'cotte-de-mailles': true } });
+    expect(c.armour).toEqual({ tete: 0, brasG: 2, brasD: 2, corps: 2, jambeG: 0, jambeD: 0 });
+    expect(c.traits?.some((t) => t.id === 'armure')).toBe(false);
+  });
+
+  it('une cotte de mailles NON portée ne fait pas céder le Trait Armure', () => {
+    const c = spawnEnemy({ ref: 'gobelin' }, 'g-sac', { x: 0, y: 0 }, { inventaire: { 'cotte-de-mailles': false } });
+    expect(c.armour).toEqual(spawnEnemy({ ref: 'gobelin' }, 'g-nu', { x: 0, y: 0 }).armour);
+  });
+
+  it('une arme simple tenue remplace l’arme du Trait Arme', () => {
+    const c = spawnEnemy({ ref: 'gobelin' }, 'g-arme', { x: 0, y: 0 }, { inventaire: { 'arme-simple': false } });
+    expect(c.weapons.map((w) => w.uid)).toEqual(['g-arme-objet-arme-simple']);
+    expect(c.traits?.some((t) => t.id === 'arme')).toBe(false);
+  });
+
+  it('il garde l’arme naturelle de ses Traits et ce que lui donnent ses mutations', () => {
+    const sb: CustomStatblock = { type: 'statblock', label: 'Homme-bête', char: { B: 12, force: 40 }, traits: [{ id: 'arme', value: 7 }, { id: 'morsure', value: 6 }, { id: 'mutation', arg: 'cornes-asymetriques' }] };
+    const c = spawnEnemy({ statblock: sb }, 'hb', { x: 0, y: 0 }, { inventaire: { 'arme-simple': false } });
+    expect(c.weapons.map((w) => w.label)).toEqual(['Arme simple', 'Morsure', 'Cornes']);
+    expect(c.armour.tete).toBe(1);
+  });
+
+  it('un Trait Arme naturel (Crocs) reste devant une arme tenue', () => {
+    const sb: CustomStatblock = { type: 'statblock', label: 'Bête', char: { B: 12, force: 40 }, traits: [{ id: 'arme', value: 7, arg: 'Crocs', natural: true }] };
+    const c = spawnEnemy({ statblock: sb }, 'bete', { x: 0, y: 0 }, { inventaire: { 'arme-simple': false } });
+    expect(c.weapons.map((w) => w.label)).toEqual(['Arme simple', 'Crocs']);
+    expect(c.traits?.map((t) => t.id)).toEqual(['arme']);
+  });
+
+  it('recomposé (`recomputeLoadout`), un PNJ sans inventaire garde les armes et l’armure de ses Traits', () => {
+    const c = spawnEnemy({ ref: 'gobelin' }, 'g-recompose', { x: 0, y: 0 });
+    const { weapons, armour } = structuredClone(c);
+    recomputeLoadout(c);
+    expect(c.weapons).toEqual(weapons);
+    expect(c.armour).toEqual(armour);
+  });
+
+  it('un PNJ sans inventaire garde les armes et l’armure de ses Traits, sans objet', () => {
+    const c = spawnEnemy({ statblock: tireur }, 'e-nu', { x: 0, y: 0 });
+    expect(c.items).toBeUndefined();
+    expect(c.weapons).toEqual(weaponsFromTraits(c.traits ?? []).map((w) => expect.objectContaining({ uid: w.uid, label: w.label })));
+    expect(c.armour).toEqual(armourFromTraits(c.traits ?? []));
+  });
+
+  it('une arbalète d’inventaire fait céder le Trait À distance : UNE arme à distance, l’objet, avec Recharge', () => {
+    const c = spawnEnemy({ statblock: tireur }, 'e-tireur', { x: 0, y: 0 }, { inventaire: { arbalete: false } });
     const ranged = c.weapons.filter((w) => w.type === 'ranged');
-    expect(ranged).toHaveLength(1); // aucun doublon rendu/jeu
-    expect(ranged[0].reload).toBeGreaterThan(0); // arme de JEU : Recharge dérivée de l'arbalète (LDB 62 l.333) → l'IA suit son cycle (#126)
+    expect(ranged.map((w) => w.uid)).toEqual(['e-tireur-objet-arbalete']);
+    expect(ranged[0].reload).toBeGreaterThan(0);
+    expect(c.traits?.map((t) => t.id)).toEqual(['arme', 'armure']);
   });
 });
 
@@ -359,5 +411,40 @@ describe('spawnEnemy — engin du sous-type armes-de-siege (#210)', () => {
     const c = spawnEnemy({ ref: 'baliste' }, 'bal1', at);
     expect(c.species).toBeUndefined();
     expect(c.footprint).toBeUndefined();
+  });
+});
+
+describe('PNJ de carrière : la fiche d’une entité portée à son parcours (EDO 11 l.17-21 ; #773)', () => {
+  const sansPreset = () => undefined;
+  const langstrasse: SceneEntity = { id: 'langstrasse', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', carrieres: { medecin: 3 } };
+
+  it('l’humain de base porté Doktor (Médecin 3) : Statut Argent 5 et les possessions de l’exemple (EDO 11 l.27, l.33-35)', () => {
+    const c = ficheDEntite(langstrasse, sansPreset);
+    expect(actorStatus(c)).toEqual({ tier: 'argent', standing: 5 });
+    expect(c.items?.map((i) => i.trappingId)).toEqual(['bandages', 'potion-de-guerison', 'livre-medecine', 'licence-de-guilde', 'outils-professionnels-medecin', 'atelier']);
+    expect(c.wounds.max).toBe(13);
+    expect(c.porteurDeFiche).toEqual({ ref: 'humain', parcours: { carrieres: { medecin: 3 } } });
+  });
+
+  it('l’arme de dotation choisie est tenue et fait céder le Trait Arme ; l’armure de dotation est portée', () => {
+    const soldat: SceneEntity = { id: 'soldat', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', carrieres: { soldat: 2 }, dotationsDeCarriere: { [adresseDeCreation.dotation([3])]: 'hallebarde' } };
+    const c = ficheDEntite(soldat, sansPreset);
+    expect(c.weapons.map((w) => w.label)).toContain('Hallebarde');
+    expect(c.traits?.some((t) => t.id === 'arme')).toBe(false);
+    expect(c.armour.corps).toBeGreaterThan(0);
+  });
+
+  it('un objet d’inventaire porté par l’auteur ôte la dotation qu’il chevauche', () => {
+    const c = ficheDEntite({ id: 'garde', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', carrieres: { soldat: 1 }, inventaire: { plastron: true } }, sansPreset);
+    expect(c.items?.filter((i) => i.trappingId === 'plastron-de-cuir' || i.trappingId === 'plastron').map((i) => [i.uid, i.equipped])).toEqual([['garde-dotation-1', false], ['garde-objet-plastron', true]]);
+  });
+
+  it('le schéma refuse un parcours sans profil du Bestiaire, avec une tenue d’auteur, ou à un Niveau absent', () => {
+    expect(sceneEntitySchema.safeParse(langstrasse).success).toBe(true);
+    const faute = (ent: object) => sceneEntitySchema.safeParse({ ...langstrasse, ...ent }).error?.issues.map((i) => i.message);
+    expect(faute({ ref: undefined, statblock: { type: 'statblock', label: 'X', char: {} } })).toEqual([expect.stringMatching(/Bestiaire/)]);
+    expect(faute({ appearance: { tenue: 'medecin' } })).toEqual([expect.stringMatching(/tenue/)]);
+    expect(faute({ carrieres: { medecin: 5 } })).toEqual([expect.stringMatching(/Niveau 5/)]);
+    expect(faute({ carrieres: undefined, talentsDeCarriere: { medecin: [{ id: 'chirurgie' }] } })).toEqual([expect.stringMatching(/sans carrière/)]);
   });
 });

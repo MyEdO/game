@@ -86,11 +86,11 @@ describe('Interlude — flux start/end', () => {
     banc.getState().ouvrirLInterlude(1);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     const h = banc.getState().party[0];
-    h.craft = { trappingId: 'dague', tier: 'bronze', avail: 'Commune', atouts: [], defauts: [], drDone: 3, drTarget: 5, difficulty: 'accessible' };
+    h.craft = { trappingId: 'dague', tier: 'bronze', avail: 'commune', atouts: [], defauts: [], drDone: 3, drTarget: 5, difficulty: 'accessible' };
     h.ritual = { spellId: 'graver-une-pierre-d-ogham', drDone: 7, drTarget: 25 };
     banc.getState().fenetreValider('interlude');
     expect(banc.getState().interlude).toBeNull(); // clôture EFFECTIVE (`interlude` reconstruit à neuf au prochain `ouvrirLInterlude`)
-    expect(banc.getState().party[0].craft).toEqual({ trappingId: 'dague', tier: 'bronze', avail: 'Commune', atouts: [], defauts: [], drDone: 3, drTarget: 5, difficulty: 'accessible' });
+    expect(banc.getState().party[0].craft).toEqual({ trappingId: 'dague', tier: 'bronze', avail: 'commune', atouts: [], defauts: [], drDone: 3, drTarget: 5, difficulty: 'accessible' });
     expect(banc.getState().party[0].ritual).toEqual({ spellId: 'graver-une-pierre-d-ogham', drDone: 7, drTarget: 25 });
     banc.getState().ouvrirLInterlude(1); // réouverture : `perHero` neuf, `craft`/`ritual` restent au héros
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités

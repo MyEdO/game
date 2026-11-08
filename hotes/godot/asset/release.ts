@@ -10,7 +10,7 @@
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
 import { CLE_HORS_RELEASE, FICHIER_DE_LICENCE } from './dossierDeProduction.ts';
@@ -293,6 +293,14 @@ export interface AssetAPublier {
   readonly nom: string;
 }
 
+/** Le GLB de chaque modèle épinglé de `dossier` que la Release porte, sous le nom de son empreinte ; un modèle tenu hors
+ *  Release n'y va pas. Lève sur les modèles mal épinglés. */
+export function modelesAPublier(dossier: string = DOSSIER_DES_MODELES): AssetAPublier[] {
+  const { modeles, erreurs } = modelesEpingles(dossier);
+  if (erreurs.length) throw new Error(`modèles mal épinglés :\n  ${erreurs.join('\n  ')}`);
+  return modeles.filter((m) => m.hors_release === undefined).map((m) => ({ chemin: join(dossier, m.model), nom: nomDAsset(m.empreinte, 'glb') }));
+}
+
 /** Lance `gh` avec `args` : son code de sortie et ses sorties. */
 export type Gh = (args: readonly string[]) => { readonly status: number | null; readonly stdout: string; readonly stderr: string };
 
@@ -302,7 +310,8 @@ const ghReel: Gh = (args) => {
 };
 
 /** Verse dans la Release `TAG` (créée au premier appel, en préversion) les `assets` qu'elle ne porte pas encore. Rend les
- *  noms versés ; lève, avec la sortie de `gh`, à son premier échec. */
+ *  noms versés ; lève, avant tout versement, sur un fichier dont l'empreinte n'est pas celle de son nom, et, avec la
+ *  sortie de `gh`, à son premier échec. */
 export function publierAssets(assets: readonly AssetAPublier[], gh: Gh = ghReel): readonly string[] {
   const appeler = (args: readonly string[]) => {
     const r = gh(args);
@@ -318,6 +327,10 @@ export function publierAssets(assets: readonly AssetAPublier[], gh: Gh = ghReel)
   } else throw new Error(`gh release view ${TAG} : code ${String(vue.status)}\n${vue.stderr.trim()}`);
   const aVerser = assets.filter((a) => !presents.has(a.nom));
   if (!aVerser.length) return [];
+  for (const a of aVerser) {
+    const empreinte = sha256(readFileSync(a.chemin));
+    if (a.nom !== `${empreinte}${extname(a.nom)}`) throw new Error(`${a.chemin} : empreinte ${empreinte}, ${a.nom} attendu`);
+  }
   const etape = mkdtempSync(join(tmpdir(), 'wfrp-modeles-3d-'));
   try {
     const chemins = aVerser.map((a) => {

@@ -1,12 +1,12 @@
 import { analyserCorpus } from './dialecte.mjs';
-// Mécanique de scan du CLIQUET des marcheurs de Flow sous `src/state` et `src/noyau` (#1874, ticket § Lot B : posé
-// avec C0 à 4, cible 1). Le verdict et le PLAFOND vivent dans le test (`src/marcheurs-de-flow-guard.test.ts`).
+// Mécanique de scan de la garde des marcheurs de Flow (#1874 DoD 4 : un seul marcheur). Le verdict, le
+// périmètre et le FOYER vivent dans le test (`src/marcheurs-de-flow-guard.test.ts`).
 //
 // EMPREINTE d'un MARCHEUR : un `switch (<x>.kind)` dont la clause `case 'seq'` DESCEND la séquence
 // (pile ou récursion) au lieu de RENDRE un verdict. Un marcheur exécute ses nœuds ; un prédicat
 // (`flowHasChoiceSeulement`, `noyau/triggeredEffects.ts`) les lit et rend — sa clause `seq` commence par
-// `return`. Le site rendu est la déclaration de NIVEAU MODULE qui porte le `switch` : `runPureFlowLines`
-// marche par une fermeture `walk` interne, c'est lui le marcheur.
+// `return`. Le site rendu est la déclaration de NIVEAU MODULE qui porte le `switch` : un marcheur à
+// fermeture interne (`const walk = …`) est rendu sous la fonction qui la déclare.
 //
 // ANGLES MORTS assumés (faux négatifs préférés au bruit — doctrine des gardes du dépôt) :
 //  - un marcheur qui descend la séquence par `if (f.kind === 'seq')`, sans `switch` ;
@@ -41,7 +41,7 @@ function declarationDeModule(node, sf) {
 /**
  * Les MARCHEURS de Flow d'un corpus : un site par déclaration de module qui porte au moins un
  * `switch (<x>.kind)` à clause `seq` descendante. Rendu TRIÉ (fichier, nom).
- * @param {{ rel: string, text: string }[]} files corpus `src/state/**` et `src/noyau/**` (hors tests)
+ * @param {{ rel: string, text: string }[]} files corpus de production (hors tests)
  * @returns {{ file: string, line: number, fn: string }[]}
  */
 export function scanMarcheursDeFlow(files) {

@@ -4,11 +4,11 @@ import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CharacterCreator, CareerScreen, CharScreen, SpeciesRaceScreen, SkillsScreen, StarScreen, TrappingsScreen, DetailsScreen, PresentationScreen, PettySpellsSection, careerLevelTalentsTitle, TrappingChoiceSlot } from './CharacterCreator';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
-import { emplacementsDeDotation, emplacementTranche } from '../../engine/trappingChoices';
+import { dotationsDuHeros, emplacementsDeDotation, emplacementTranche } from '../../engine/trappingChoices';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../../data/dotations.fixture';
 
 const dot = adresseDeCreation.dotation;
-const emplacementA = (adresse: string) => emplacementsDeDotation(CARRIERE_FIXTURE, 1).find((e) => e.adresse === adresse)!;
+const emplacementA = (adresse: string) => emplacementsDeDotation(dotationsDuHeros(CARRIERE_FIXTURE)).find((e) => e.adresse === adresse)!;
 import { CreatorSummary } from './CreatorSummary';
 import {
   newDraft,

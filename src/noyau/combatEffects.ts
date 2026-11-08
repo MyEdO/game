@@ -62,7 +62,7 @@ import { computeStateVisible } from './visionState';
 import { placeCombatant } from './monde/spawn';
 import { refuserGeste } from './refusVisible';
 import { flowFromEffects, testFlow } from './monde/flow';
-import { type FlowTest, type ConditionCtx, type EffectOp, type CibleDeRole, type CibleDeVolontaires, type Condition, flowEffects, evalCondition, leafOpsCtx, lierLesTirages, EMPTY_FLOW } from '../engine/flowCore';
+import { type FlowTest, type ConditionCtx, type EffectOp, type CibleDeRole, type CibleDeVolontaires, type Condition, flowEffects, evalCondition, executerFlow, leafOpsCtx, lierLesTirages, EMPTY_FLOW, type ArretDeFlow, type ResteDuFlow } from '../engine/flowCore';
 import { buildActorView } from '../engine/actorView';
 import { inRect, combatantsWithinRadius } from './monde/combatGeometry';
 import { removeEntity } from './combatPlacement';
@@ -316,8 +316,8 @@ export function harvestVictoryCreature(get: Get, set: SetFn, creatureId: string)
   const p = garanti(harvestProfileFor(creatureId), creatureId, 'profil de récolte');
   const name = c.label; // affichage depuis le record (résolu par id)
   const size = harvestSizeOf(c);
-  const full = harvestYield(p, size, 0, 'Frais');
-  const lo = harvestYield(p, size, -1, 'Frais');
+  const full = harvestYield(p, size, 0, 'frais');
+  const lo = harvestYield(p, size, -1, 'frais');
   const part = (enc: number) => t('eff.harvestPart', { creature: name, enc }); // objet CUSTOM (hors catalogue)
   const titre = stepDetail(t('eff.harvest'), dataLabel(name));
   set({ pendingVictory: { ...pv, harvested: [...(pv.harvested ?? []), creatureId] } }); // grise le bouton
@@ -1044,73 +1044,58 @@ function ouvrirGeste(get: Get, set: SetFn, e: Effect, suite: Flow, sl?: number):
  * la conséquence aura produit).
  */
 export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff.flowTitle'), sl?: number): Applique {
-  const stack: Flow[] = [lierLesTirages(structuredClone(flow), (de) => Math.round(resolveFormula(de, referentDeScene(get, set), battleRng())))]; // #2097
   const batch: Effect[] = [];
   const flush = (): Applique => {
     return batch.length ? applyEffectsLoot(get, set, batch.splice(0), label, sl) : undefined;
   };
   /** Le lot vient d'ouvrir un dé : `node` (non consommé) et le reste de la pile deviennent SA suite. */
-  const confier = (node?: Flow): Applique => {
-    const steps = [...(node ? [node] : []), ...stack.splice(0)];
-    if (steps.length) confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: { kind: 'seq', steps }, label, ...(sl !== undefined ? { sl } : {}) }]);
-    return OPS_DIFFEREES;
+  const vidange = (node: Flow, reste: ResteDuFlow<Effect>): ArretDeFlow<Applique> | undefined => {
+    if (!flush()) return undefined;
+    confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: { kind: 'seq', steps: [node, ...reste().steps] }, label, ...(sl !== undefined ? { sl } : {}) }]);
+    return { arret: OPS_DIFFEREES };
   };
-  while (stack.length) {
-    const node = stack.shift()!;
-    switch (node.kind) {
-      case 'do': {
-        // Les VOLONTAIRES décident avant la feuille : même patron que le `choice` ci-dessous.
-        const volontaires = node.effect.type === 'ops' && typeof node.effect.on === 'object' && 'volontaires' in node.effect.on ? node.effect.on.volontaires : undefined;
-        if (volontaires !== undefined) {
-          if (flush()) return confier(node);
-          const after: Flow = { kind: 'seq', steps: stack.splice(0) };
-          if (demanderLesVolontaires(get, set, node.effect as EffectOp, volontaires, after, label, sl)) return undefined;
-          stack.unshift(after);
-          break;
-        }
-        // GESTE JOUEUR (`suspensif`) : même patron que le `test` ci-dessous — le lot se vide d'abord, le
-        // reste de la pile devient la suite que son pending rejouera.
-        if (!(EFFECT_HANDLERS[node.effect.type] as EffectHandler).suspensif) { batch.push(node.effect); break; }
-        if (flush()) return confier(node);
-        const after: Flow = { kind: 'seq', steps: stack.splice(0) };
-        if (ouvrirGeste(get, set, node.effect, after, sl)) return undefined;
-        stack.unshift(after);
-        break;
+  const suspendu: ArretDeFlow<Applique> = { arret: undefined };
+  return executerFlow<Effect, Applique>(lierLesTirages(structuredClone(flow), (de) => Math.round(resolveFormula(de, referentDeScene(get, set), battleRng()))), { // #2097
+    conditions: () => condCtx(get),
+    avantDecision: vidange,
+    feuille: (node, reste) => {
+      // Les VOLONTAIRES décident avant la feuille : même patron que le `choice` ci-dessous.
+      const volontaires = node.effect.type === 'ops' && typeof node.effect.on === 'object' && 'volontaires' in node.effect.on ? node.effect.on.volontaires : undefined;
+      if (volontaires !== undefined) {
+        const differe = vidange(node, reste);
+        if (differe) return differe;
+        const after = reste();
+        return demanderLesVolontaires(get, set, node.effect as EffectOp, volontaires, after, label, sl) ? suspendu : after;
       }
-      case 'seq': stack.unshift(...node.steps); break;
-      case 'if': {
-        if (flush()) return confier(node);
-        const branch = evalCondition(node.cond, condCtx(get)) ? node.then : node.else;
-        if (branch) stack.unshift(branch);
-        break;
+      // GESTE JOUEUR (`suspensif`) : même patron que le `test` ci-dessous — le lot se vide d'abord, le
+      // reste de la pile devient la suite que son pending rejouera.
+      if (!(EFFECT_HANDLERS[node.effect.type] as EffectHandler).suspensif) { batch.push(node.effect); return undefined; }
+      const differe = vidange(node, reste);
+      if (differe) return differe;
+      const after = reste();
+      return ouvrirGeste(get, set, node.effect, after, sl) ? suspendu : after;
+    },
+    test: (node, reste) => {
+      const after = reste();
+      if (node.test.crewTestType) {
+        if (ouvrirLeTestDEquipage(get, set, node, after, label, sl)) return suspendu;
+        // Aucun marin apte à bord : aucun DR au total, échec. MDG 14 l.13
+        return { kind: 'seq', steps: [node.fail, after] };
       }
-      case 'test': {
-        if (flush()) return confier(node);
-        const after: Flow = { kind: 'seq', steps: stack.splice(0) };
-        if (node.test.crewTestType) {
-          if (ouvrirLeTestDEquipage(get, set, node, after, label, sl)) return undefined;
-          // Aucun marin apte à bord : aucun DR au total, échec. MDG 14 l.13
-          stack.unshift(node.fail, after);
-          break;
-        }
-        // Test non joué ou personne ne peut tenter → on reprend directement la continuation.
-        // lecture déclarée : la `gate` d'un Test de scène se juge par héros, chacun par `resoudreFlowTest` (MDG 15 l.197)
-        const parmi = node.test.gate ? testeursAdmis(get, node.test) : undefined;
-        if (!openSkillTest(get, set, node.test, condCtx(get), node.success, node.fail, after, parmi ? { parmi } : undefined)) return runFlow(get, set, after, label, sl);
-        return undefined;
-      }
-      case 'choice': {
-        if (flush()) return confier(node);
-        const after: Flow = { kind: 'seq', steps: stack.splice(0) };
-        if (ouvrirLeChoixDuFlow(get, set, node, after, label, sl)) return undefined;
-        stack.unshift(node.no ?? EMPTY_FLOW, after);
-        break;
-      }
-    }
-  }
-  // Vidange FINALE : la pile est vide, il n'y a plus de suite à confier — le signal est rendu tel quel
-  // à l'appelant, à qui de décider (c'est lui qui sait s'il enchaîne quelque chose).
-  return flush();
+      // Test non joué ou personne ne peut tenter → on reprend directement la continuation.
+      // lecture déclarée : la `gate` d'un Test de scène se juge par héros, chacun par `resoudreFlowTest` (MDG 15 l.197)
+      const parmi = node.test.gate ? testeursAdmis(get, node.test) : undefined;
+      return openSkillTest(get, set, node.test, condCtx(get), node.success, node.fail, after, parmi ? { parmi } : undefined) ? suspendu : after;
+    },
+    choix: (node, reste) => {
+      const after = reste();
+      if (ouvrirLeChoixDuFlow(get, set, node, after, label, sl)) return suspendu;
+      return { kind: 'seq', steps: [node.no ?? EMPTY_FLOW, after] };
+    },
+    // Vidange FINALE : la pile est vide, il n'y a plus de suite à confier — le signal est rendu tel quel
+    // à l'appelant, à qui de décider (c'est lui qui sait s'il enchaîne quelque chose).
+    fin: flush,
+  });
 }
 
 /** Ce que fait une branche de choix, en prose joueur : la conséquence chiffrée (valeurs liées déjà tirées) se
@@ -1371,7 +1356,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const clues = revealClue(env.get().clues, ind, env.get().gameTime, e.stade);
       if (clues === env.get().clues) return;
       env.set({ clues });
-      const key = before?.statut === 'réfuté' ? 'eff.clueReactivate' : before ? 'eff.clueAdvance' : 'eff.clueReveal';
+      const key = before?.statut === 'refute' ? 'eff.clueReactivate' : before ? 'eff.clueAdvance' : 'eff.clueReveal';
       env.log(t(key, { titre: ind.titre }));
     },
   },
@@ -1511,7 +1496,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Évaluation, #2), teinte légendaire. Les qualités restent ACTIVES mécaniquement (registre).
       if (e.identified === false) it.identified = false;
       if (e.magicKnown) it.magicKnown = true; // aura détectée en fenêtre de loot → suit l'objet
-      if (e.detectTried) it.detectTried = true;
+      if (e.detectTriedBy) it.detectTriedBy = [...e.detectTriedBy];
       if (e.appraiseTriedDay != null) it.appraiseTriedDay = e.appraiseTriedDay;
       if (e.price) it.price = { gold: e.price.gold ?? 0, silver: e.price.silver ?? 0, brass: e.price.brass ?? 0 };
       const who = env.mutateHero(e.heroId, (h) => avecObjet(h, it)); // arrive NON équipé
@@ -2328,7 +2313,7 @@ export function applyEffects(get: Get, set: SetFn, effects: Effect[], sl?: numbe
     const e = file.shift()!;
     const handler = EFFECT_HANDLERS[e.type] as EffectHandler;
     // CONTINUATION (#1508) : si l'effet OUVRE un dé (la conséquence attend la porte), le reste du lot
-    // est SA suite — même geste que le `case 'test'` du walker de Flow, qui empaquette sa pile. Le
+    // est SA suite — même geste que le `test` d'un hôte d'`executerFlow`, qui empaquette le reste de la pile. Le
     // signal REMONTE ensuite : ce qui suit CET appel est lui aussi la suite du dé, pas la suite immédiate.
     const differesAvant = comptePasDifferes(get());
     const issue = handler.apply(e, env, handler.suspensif ? flowFromEffects(file) : EMPTY_FLOW);

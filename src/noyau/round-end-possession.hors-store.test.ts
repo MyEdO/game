@@ -207,9 +207,9 @@ describe('#1262 lot 2 — les deux prédicats du circuit sont COUPLÉS (le déca
     expect(humanControlled(g(), h), 'affordance LOCALE : chez l’hôte, il ne pilote pas ce héros').toBe(false);
     expect(surfaceOf(g, h.id), 'SURFACE : un siège humain le tient, donc son jet remonte').toBe(true);
 
-    const collecteurRegate = humanControlled(g(), h) ? collectHeroRoundEndUpkeep(g, h, () => {}) : [];
+    const collecteurRegate = humanControlled(g(), h) ? collectHeroRoundEndUpkeep(g, h) : [];
     expect(collecteurRegate, 'le Test n’est nulle part : perdu entre les deux voies').toHaveLength(0);
-    expect(collectHeroRoundEndUpkeep(g, h, () => {}).length, 'le collecteur RÉEL, lui, le produit').toBeGreaterThan(0);
+    expect(collectHeroRoundEndUpkeep(g, h).length, 'le collecteur RÉEL, lui, le produit').toBeGreaterThan(0);
   });
 });
 
@@ -246,7 +246,7 @@ describe('#1262 lot 4 — les producteurs mintés : la CIBLE ne bouge pas, la ba
     H.wounds.current = 0;
     addCondition(H, COND.hemorragique, 1);
 
-    const step = collectHeroRoundEndUpkeep(g, H, () => {}).find((s) => s.kind === 'aaBleedUnconscious')!;
+    const step = collectHeroRoundEndUpkeep(g, H).find((s) => s.kind === 'aaBleedUnconscious')!;
     expect(step, 'l’étape est produite').toBeTruthy();
     expect(step.target, 'CIBLE inchangée : celle du montage manuscrit (`base: res, target: res`)').toBe(testValue(H, { skill: { id: 'resistance' } }));
     expect(step.base, 'la base n’est plus la valeur fondue : c’est le Niveau de Compétence NU').toBeGreaterThan(step.target!);
@@ -263,7 +263,7 @@ describe('#1262 lot 4 — les producteurs mintés : la CIBLE ne bouge pas, la ba
     const H = porteurCharge();
     H.effortRounds = 9;
 
-    const step = collectHeroRoundEndUpkeep(g, H, () => {}).find((s) => s.kind === 'fatigue')!;
+    const step = collectHeroRoundEndUpkeep(g, H).find((s) => s.kind === 'fatigue')!;
     expect(step, 'l’étape est produite').toBeTruthy();
     expect(step.target, 'CIBLE inchangée : celle du montage manuscrit (`base: res, target: res`)').toBe(testValue(H, { skill: { id: 'resistance' } }));
     expect(step.base).toBeGreaterThan(step.target!);
@@ -282,7 +282,7 @@ describe('#1262 lot 4 — les producteurs mintés : la CIBLE ne bouge pas, la ba
       { label: 'Ailes de l’aigle', sourceSpellId: 'ailes-de-l-aigle', awaitingExtension: true, duration: { scale: 'rounds', left: 0 } },
     ] as Combatant['activeEffects'];
 
-    const step = collectHeroRoundEndUpkeep(g, H, () => {}).find((s) => s.kind === 'spellPlusChoice')!;
+    const step = collectHeroRoundEndUpkeep(g, H).find((s) => s.kind === 'spellPlusChoice')!;
     expect(step, 'l’étape est produite').toBeTruthy();
     expect({ target: step.target, base: step.base }, 'un choix ne lance aucun dé : ni cible ni base')
       .toEqual({ target: undefined, base: undefined });

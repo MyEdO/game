@@ -3,7 +3,8 @@ extends SceneTree
 ## Les pièces des Améliorations d'un véhicule (#2987, `hotes/godot/pont/CONTRAT.md`, section « Corps d'un combattant »,
 ## `vehicules`, `ameliorations`) : montée à un ancrage, une pièce se pose à sa position dans le repère du véhicule, tournée
 ## comme lui ; montée à un poste, elle se tourne vers son bord, montre son nœud `montre` et cache son nœud `cache`
-## (`Combattant.monter_l_amelioration`).
+## (`Combattant.monter_l_amelioration`) ; les nœuds de `caches`, du véhicule comme de ses pièces, se cachent, les autres
+## restent visibles (`Combattant.cacher_selon`).
 
 const RECETTE_AUTONOME := true
 const OUVERT := "ouvert"
@@ -20,6 +21,7 @@ func _recetter() -> void:
 	_a_l_ancrage()
 	for montre in [OUVERT, FERME]:
 		_au_poste(montre, FERME if montre == OUVERT else OUVERT)
+	_selon()
 	for faute in _fautes:
 		push_error("[ameliorations-du-vehicule] " + faute)
 	print("[ameliorations-du-vehicule] erreurs=", _fautes.size())
@@ -68,4 +70,16 @@ func _au_poste(montre: String, cache: String) -> void:
 		_fautes.append("%s : pièce vers %s, attendu tribord %s" % [cas, _sens(coque, piece), attendu])
 	if not ((piece.get_node(montre) as Node3D).visible and not (piece.get_node(cache) as Node3D).visible):
 		_fautes.append("%s : %s visible %s, %s visible %s" % [cas, montre, (piece.get_node(montre) as Node3D).visible, cache, (piece.get_node(cache) as Node3D).visible])
+	coque.queue_free()
+
+
+func _selon() -> void:
+	var coque := _scene(["sans-sabord", "avec-sabord"])
+	root.add_child(coque)
+	var piece := _scene(["sans-sabord"])
+	Combattant.monter_l_amelioration(coque, piece, {element = "blindage-fer", position = [3.0, 2.0, 0.0]})
+	Combattant.cacher_selon(coque, ["sans-sabord"])
+	for noeud: Node3D in [coque.get_node("sans-sabord"), piece.get_node("sans-sabord"), coque.get_node("avec-sabord")]:
+		if noeud.visible != (noeud.name == "avec-sabord"):
+			_fautes.append("selon : %s visible %s" % [coque.get_path_to(noeud), noeud.visible])
 	coque.queue_free()

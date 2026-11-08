@@ -5,8 +5,8 @@
 ## frappe vers une cible, accuse le coup qui le vise et tombe hors de combat. Sans corps, il garde son anneau et son
 ## étiquette, à la hauteur du nom d'une entité (`MiseEnPage.HAUTEUR_DU_NOM`). Véhicule ou engin (`vue.corps.vehicules[id]`,
 ## #2987), le GLB de son élément se pose sous `Vehicule`, sur ses N×N cases, à sa taille réelle ou les remplissant (`poser_sur_l_empreinte`), les pièces de ses
-## postes montées à leur bord (`monter_au_poste`), celles de ses Améliorations à leur place (`monter_l_amelioration`), le
-## tout tourné vers son cap (`tourner_au_cap`).
+## postes montées à leur bord (`monter_au_poste`), celles de ses Améliorations à leur place (`monter_l_amelioration`), les
+## nœuds que changent ses Améliorations cachés (`cacher_selon`), le tout tourné vers son cap (`tourner_au_cap`).
 class_name Combattant
 extends Node3D
 
@@ -138,6 +138,14 @@ static func monter_l_amelioration(scene: Node3D, piece: Node3D, montee: Dictiona
 	piece.find_child(montee.poste.cache, true, false).visible = false
 
 
+## Les nœuds de la scène `scene` d'un véhicule, pièces montées comprises, dont le nom est l'un de `caches` (`caches` de
+## `vue.corps.vehicules[id]`), cachés.
+static func cacher_selon(scene: Node3D, caches: Array) -> void:
+	for nom: String in caches:
+		for noeud in scene.find_children(nom, "Node3D", true, false):
+			(noeud as Node3D).visible = false
+
+
 ## La scène `scene` d'un véhicule posée sur ses `empreinte` × `empreinte` cases (`poser_sur_l_empreinte`), tournée autour
 ## du milieu de son empreinte pour que sa proue, le +Z de son repère, regarde le cap `cap` (`Dir8`).
 static func tourner_au_cap(scene: Node3D, cap: String, empreinte: int) -> void:
@@ -205,7 +213,8 @@ func _vetir(corps: Variant) -> void:
 ## (`poser_sur_l_empreinte`), à l'échelle métrique du plateau de `metres_par_case` s'il a sa `taille` réelle, à la place
 ## de la précédente, le GLB de chacune de ses pièces peint de la sienne et monté à son
 ## poste (`monter_au_poste`), le GLB de chacune de ses Améliorations peint de la palette du véhicule et monté à sa place
-## (`monter_l_amelioration`), puis le tout tourné vers son cap (`tourner_au_cap`). Chacun est peint avant d'être monté :
+## (`monter_l_amelioration`), les nœuds que changent ses Améliorations cachés (`cacher_selon`), puis le tout tourné vers
+## son cap (`tourner_au_cap`). Chacun est peint avant d'être monté :
 ## une pièce n'est pas habillée des surfaces du véhicule.
 func _equiper(vehicule: Variant, metres_par_case: float) -> void:
 	var recu := JSON.stringify(vehicule)
@@ -254,6 +263,7 @@ func _equiper(vehicule: Variant, metres_par_case: float) -> void:
 				peindre_l_element(ameliorations[i], vehicule.ameliorations[i].element, vehicule.palette, null)
 				monter_l_amelioration(scene, ameliorations[i], vehicule.ameliorations[i])
 				_ameliorations_montees.append(vehicule.ameliorations[i].element)
+		cacher_selon(scene, vehicule.caches)
 		tourner_au_cap(scene, vehicule.cap, int(vehicule.empreinte))
 		_element_du_vehicule = vehicule.element
 	_signaler()

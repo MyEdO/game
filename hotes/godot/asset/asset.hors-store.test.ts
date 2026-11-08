@@ -15,7 +15,7 @@ import { depotDe, INDEX, listerImage } from '../../../scripts/guards/lib/gitPort
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 import { baseDeTest, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, GLB_SANS_BASE, LICENCE_DE_PRODUCTION, productionDeTest, deposerModeleDeTest, TEXTE_DE_LICENCE_DE_PRODUCTION, vehiculeDeTest } from './modeles.testkit.ts';
 import {
-  DOSSIER_DES_MODELES, modelesEpingles, AssetIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
+  DOSSIER_DES_MODELES, modelesAPublier, modelesEpingles, AssetIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
   suivisHorsRelease, TAG, urlDAsset, DEPOT, URL_API_DE_LA_RELEASE, type AssetAPublier, type Gh,
 } from './release.ts';
 import { fichiersDuModele, validerModele } from './modeles';
@@ -634,6 +634,21 @@ describe('modelesEpingles', () => {
   });
 });
 
+describe('modelesAPublier', () => {
+  it('rend le GLB de chaque modèle épinglé sous le nom de son empreinte', () => {
+    const d = dossierDeModeles();
+    expect(modelesAPublier(d)).toEqual([{ chemin: join(d, 'Essai.glb'), nom: `${EMPREINTE}.glb` }]);
+  });
+  it('laisse un modèle tenu hors Release', () => {
+    expect(modelesAPublier(dossierDeModeles({ model: 'Essai.glb', model_sha256: EMPREINTE, hors_release: 'essai' }))).toEqual([]);
+  });
+  it('lève sur des modèles mal épinglés', () => {
+    const d = dossierDeModeles();
+    rmSync(join(d, 'Essai.provenance.json'));
+    expect(() => modelesAPublier(d)).toThrow(/modèles mal épinglés :\n {2}.*provenance Essai\.provenance\.json absente/);
+  });
+});
+
 describe('recupererEpingles', () => {
   const COULEUR = new Uint8Array(Buffer.from('couleur de l’herbe'));
   const KIT = new Uint8Array(Buffer.from('le kit des arêtes'));
@@ -830,6 +845,12 @@ describe('publierAssets', () => {
   it('lève, avec la sortie de gh, quand la vue échoue autrement que par une Release absente', () => {
     const { appels, gh } = ghSimule({ status: 4, stderr: 'HTTP 401: Bad credentials' });
     expect(() => publierAssets([asset()], gh)).toThrow(`gh release view ${TAG} : code 4\nHTTP 401: Bad credentials`);
+    expect(appels).toHaveLength(1);
+  });
+  it('lève sans rien verser sur un fichier dont l’empreinte n’est pas celle de son nom', () => {
+    const { appels, gh } = ghSimule([]);
+    const faux = `${'0'.repeat(64)}.glb`;
+    expect(() => publierAssets([{ ...asset(), nom: faux }], gh)).toThrow(`empreinte ${EMPREINTE}, ${faux} attendu`);
     expect(appels).toHaveLength(1);
   });
   it('lève, avec la sortie de gh, quand le versement échoue', () => {

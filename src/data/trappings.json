@@ -9,7 +9,7 @@
       "id": "armes-d-hast"
     },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -51,7 +51,7 @@
       "id": "armes-d-hast"
     },
     "enc": 3,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -97,7 +97,7 @@
       "id": "armes-d-hast"
     },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Très longue",
     "loc": null,
     "pa": null,
@@ -136,7 +136,7 @@
       "id": "armes-d-hast"
     },
     "enc": 4,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": "Considérable",
     "loc": null,
     "pa": null,
@@ -203,7 +203,7 @@
       "id": "bagarre"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Personnelle",
     "loc": null,
     "pa": null,
@@ -266,7 +266,7 @@
       "id": "base"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -309,7 +309,7 @@
     },
     "shield": true,
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Très courte",
     "loc": null,
     "pa": null,
@@ -355,7 +355,7 @@
     },
     "shield": true,
     "enc": 3,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Très courte",
     "loc": null,
     "pa": null,
@@ -401,7 +401,7 @@
     },
     "shield": true,
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Personnelle",
     "loc": null,
     "pa": null,
@@ -446,7 +446,7 @@
       "id": "base"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Très courte",
     "loc": null,
     "pa": null,
@@ -485,7 +485,7 @@
       "id": "base"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Très courte",
     "loc": null,
     "pa": null,
@@ -520,7 +520,7 @@
       "id": "base"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Courte",
     "loc": null,
     "pa": null,
@@ -568,7 +568,7 @@
       "id": "base"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Très courte",
     "loc": null,
     "pa": null,
@@ -621,7 +621,7 @@
       "id": "base"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -663,7 +663,7 @@
       "id": "base"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -705,7 +705,7 @@
       "id": "cavalerie"
     },
     "enc": 3,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": "Très longue",
     "loc": null,
     "pa": null,
@@ -751,7 +751,7 @@
       "id": "cavalerie"
     },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -795,7 +795,7 @@
       "id": "deux-mains"
     },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -851,7 +851,7 @@
       "id": "deux-mains"
     },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -897,7 +897,7 @@
       "id": "deux-mains"
     },
     "enc": 3,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -942,7 +942,7 @@
       "id": "deux-mains"
     },
     "enc": 3,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -987,7 +987,7 @@
       "id": "deux-mains"
     },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -1029,7 +1029,7 @@
       "id": "escrime"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -1071,7 +1071,7 @@
       "id": "escrime"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -1106,7 +1106,7 @@
       "id": "fleau"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -1140,7 +1140,7 @@
       "id": "fleau"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -1179,7 +1179,7 @@
       "id": "fleau"
     },
     "enc": 2,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -1220,7 +1220,7 @@
       "id": "parade"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Courte",
     "loc": null,
     "pa": null,
@@ -1259,7 +1259,7 @@
       "id": "parade"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": "Très courte",
     "loc": null,
     "pa": null,
@@ -1302,7 +1302,7 @@
       "id": "arbalete"
     },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": 60,
     "loc": null,
@@ -1343,7 +1343,7 @@
       "id": "arbalete"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 10,
     "loc": null,
@@ -1384,7 +1384,7 @@
       "id": "arbalete"
     },
     "enc": 3,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 100,
     "loc": null,
@@ -1429,7 +1429,7 @@
       "id": "arc"
     },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": 50,
     "loc": null,
@@ -1466,7 +1466,7 @@
       "id": "arc"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": 20,
     "loc": null,
@@ -1503,7 +1503,7 @@
       "id": "arc"
     },
     "enc": 2,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 150,
     "loc": null,
@@ -1547,7 +1547,7 @@
       "id": "arc"
     },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 100,
     "loc": null,
@@ -1587,7 +1587,7 @@
       "id": "entraves"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": 6,
     "loc": null,
@@ -1627,7 +1627,7 @@
       "id": "entraves"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": {
       "bf": 2
@@ -1666,7 +1666,7 @@
       "id": "entraves"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": 6,
     "loc": null,
@@ -1702,7 +1702,7 @@
       "id": "explosifs"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": {
       "bf": 1
@@ -1750,7 +1750,7 @@
       "id": "explosifs"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": {
       "bf": 1
@@ -1795,7 +1795,7 @@
       "id": "fronde"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": 60,
     "loc": null,
@@ -1831,7 +1831,7 @@
       "id": "fronde"
     },
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 100,
     "loc": null,
@@ -1866,7 +1866,7 @@
       "id": "lancer"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": {
       "bf": 3
@@ -1908,7 +1908,7 @@
       "id": "lancer"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": {
       "bf": 2
@@ -1945,7 +1945,7 @@
       "id": "lancer"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": {
       "bf": 2
@@ -1986,7 +1986,7 @@
       "id": "lancer"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": {
       "bf": 2
@@ -2027,7 +2027,7 @@
       "id": "lancer"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": {
       "bf": 3
@@ -2069,7 +2069,7 @@
       "id": "lancer"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": {
       "bf": 3
@@ -2101,7 +2101,7 @@
       "id": "ingenierie"
     },
     "enc": 3,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 30,
     "loc": null,
@@ -2154,7 +2154,7 @@
       "id": "ingenierie"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 10,
     "loc": null,
@@ -2211,7 +2211,7 @@
       "id": "poudre-noire"
     },
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 50,
     "loc": null,
@@ -2261,7 +2261,7 @@
       "id": "poudre-noire"
     },
     "enc": 3,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 100,
     "loc": null,
@@ -2313,7 +2313,7 @@
       "id": "poudre-noire"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 20,
     "loc": null,
@@ -2363,7 +2363,7 @@
       "id": "poudre-noire"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 20,
     "loc": null,
@@ -2417,7 +2417,7 @@
       "id": "arbalete"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -2447,7 +2447,7 @@
       "id": "arc"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -2476,7 +2476,7 @@
       "id": "arc"
     },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "ammoRangeMod": {
       "add": 50
@@ -2518,7 +2518,7 @@
       "id": "fronde"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "ammoRangeMod": {
       "add": -10
@@ -2554,7 +2554,7 @@
       "id": "fronde"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -2584,7 +2584,7 @@
       "id": "poudre-noire-et-ingenierie"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -2619,7 +2619,7 @@
       "id": "poudre-noire-et-ingenierie"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "ammoRangeMod": {
       "mult": 0.5
@@ -2647,7 +2647,7 @@
       "id": "poudre-noire-et-ingenierie"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -2676,7 +2676,7 @@
       "id": "cuir-souple"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": "Tête",
     "pa": 1,
@@ -2709,7 +2709,7 @@
       "id": "cuir-souple"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": "Jambes",
     "pa": 1,
@@ -2738,7 +2738,7 @@
       "id": "cuir-souple"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": "Corps",
     "pa": 1,
@@ -2767,7 +2767,7 @@
       "id": "cuir-souple"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": "Bras, Corps",
     "pa": 1,
@@ -2796,7 +2796,7 @@
       "id": "cuir-bouilli"
     },
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": "Corps",
     "pa": 2,
@@ -2828,7 +2828,7 @@
       "id": "mailles"
     },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": "Jambes",
     "pa": 2,
@@ -2864,7 +2864,7 @@
       "id": "mailles"
     },
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": "Corps",
     "pa": 2,
@@ -2900,7 +2900,7 @@
       "id": "mailles"
     },
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": "Tête",
     "pa": 2,
@@ -2943,7 +2943,7 @@
       "id": "mailles"
     },
     "enc": 3,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": "Bras, Corps",
     "pa": 2,
@@ -2979,7 +2979,7 @@
       "id": "plate"
     },
     "enc": 3,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": "Bras",
     "pa": 2,
@@ -3018,7 +3018,7 @@
       "id": "plate"
     },
     "enc": 2,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": "Tête",
     "pa": 2,
@@ -3061,7 +3061,7 @@
       "id": "plate"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": "Tête",
     "pa": 2,
@@ -3101,7 +3101,7 @@
       "id": "plate"
     },
     "enc": 3,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": "Jambes",
     "pa": 2,
@@ -3140,7 +3140,7 @@
       "id": "plate"
     },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": "Corps",
     "pa": 2,
@@ -3179,7 +3179,7 @@
       "id": "sacs-et-contenants"
     },
     "enc": 6,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3208,7 +3208,7 @@
       "id": "sacs-et-contenants"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3237,7 +3237,7 @@
       "id": "sacs-et-contenants"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3265,7 +3265,7 @@
       "id": "sacs-et-contenants"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3290,7 +3290,7 @@
       "id": "sacs-et-contenants"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3319,7 +3319,7 @@
       "id": "sacs-et-contenants"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3344,7 +3344,7 @@
       "id": "sacs-et-contenants"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3370,7 +3370,7 @@
       "id": "sacs-et-contenants"
     },
     "enc": 4,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3398,7 +3398,7 @@
       "id": "sacs-et-contenants"
     },
     "enc": 3,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3430,7 +3430,7 @@
       "id": "sacs-et-contenants"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3459,7 +3459,7 @@
       "id": "sacs-et-contenants"
     },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3488,7 +3488,7 @@
       "id": "sacs-et-contenants"
     },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3517,7 +3517,7 @@
       "id": "sacs-et-contenants"
     },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3546,7 +3546,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3571,7 +3571,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3593,7 +3593,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3618,7 +3618,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3650,7 +3650,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3675,7 +3675,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3700,7 +3700,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3725,7 +3725,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3751,7 +3751,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3776,7 +3776,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3802,7 +3802,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3828,7 +3828,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3853,7 +3853,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3878,7 +3878,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3903,7 +3903,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3932,7 +3932,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3958,7 +3958,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3983,7 +3983,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4008,7 +4008,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4033,7 +4033,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4059,7 +4059,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4084,7 +4084,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4109,7 +4109,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4134,7 +4134,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4159,7 +4159,7 @@
       "id": "nourriture-boisson-et-hebergement"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4208,7 +4208,7 @@
       "id": "nourriture-boisson-et-hebergement"
     },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4234,7 +4234,7 @@
       "id": "nourriture-boisson-et-hebergement"
     },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4260,7 +4260,7 @@
       "id": "nourriture-boisson-et-hebergement"
     },
     "enc": null,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4287,7 +4287,7 @@
       "id": "nourriture-boisson-et-hebergement"
     },
     "enc": null,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4314,7 +4314,7 @@
       "id": "nourriture-boisson-et-hebergement"
     },
     "enc": null,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4340,7 +4340,7 @@
       "id": "nourriture-boisson-et-hebergement"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4365,7 +4365,7 @@
       "id": "nourriture-boisson-et-hebergement"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4390,7 +4390,7 @@
       "id": "nourriture-boisson-et-hebergement"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4415,7 +4415,7 @@
       "id": "nourriture-boisson-et-hebergement"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4440,7 +4440,7 @@
       "id": "nourriture-boisson-et-hebergement"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4493,7 +4493,7 @@
       "id": "nourriture-boisson-et-hebergement"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4519,7 +4519,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4544,7 +4544,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4569,7 +4569,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4594,7 +4594,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4636,7 +4636,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4661,7 +4661,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4686,7 +4686,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4711,7 +4711,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4736,7 +4736,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4761,7 +4761,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4787,7 +4787,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4812,7 +4812,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4837,7 +4837,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4862,7 +4862,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4887,7 +4887,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4913,7 +4913,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4939,7 +4939,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4964,7 +4964,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4989,7 +4989,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5015,7 +5015,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5040,7 +5040,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5093,7 +5093,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5119,7 +5119,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5145,7 +5145,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5174,7 +5174,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5199,7 +5199,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5224,7 +5224,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 3,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5250,7 +5250,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5275,7 +5275,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5301,7 +5301,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5326,7 +5326,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5351,7 +5351,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5376,7 +5376,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5401,7 +5401,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5426,7 +5426,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5451,7 +5451,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5476,7 +5476,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5504,7 +5504,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5529,7 +5529,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5554,7 +5554,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5579,7 +5579,7 @@
       "id": "livres-et-documents"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5604,7 +5604,7 @@
       "id": "livres-et-documents"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5652,7 +5652,7 @@
       "id": "livres-et-documents"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5678,7 +5678,7 @@
       "id": "livres-et-documents"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5704,7 +5704,7 @@
       "id": "livres-et-documents"
     },
     "enc": 1,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5730,7 +5730,7 @@
       "id": "livres-et-documents"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5756,7 +5756,7 @@
       "id": "livres-et-documents"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5782,7 +5782,7 @@
       "id": "livres-et-documents"
     },
     "enc": 1,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5808,7 +5808,7 @@
       "id": "livres-et-documents"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5834,7 +5834,7 @@
       "id": "livres-et-documents"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5863,7 +5863,7 @@
       "id": "livres-et-documents"
     },
     "enc": 1,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5889,7 +5889,7 @@
       "id": "livres-et-documents"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5914,7 +5914,7 @@
       "id": "livres-et-documents"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5939,7 +5939,7 @@
       "id": "livres-et-documents"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5964,7 +5964,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": "ND",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5990,7 +5990,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": "ND",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6016,7 +6016,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": "ND",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6042,7 +6042,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": "ND",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6068,7 +6068,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": "ND",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6094,7 +6094,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": "ND",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6120,7 +6120,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": "ND",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6146,7 +6146,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": "ND",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6172,7 +6172,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": "ND",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6198,7 +6198,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6224,7 +6224,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6250,7 +6250,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6276,7 +6276,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6302,7 +6302,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6328,7 +6328,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6354,7 +6354,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6380,7 +6380,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6406,7 +6406,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6432,7 +6432,7 @@
       "id": "outils-professionnels-et-ateliers"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6458,7 +6458,7 @@
       "id": "animaux-et-vehicules"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6483,7 +6483,7 @@
       "id": "animaux-et-vehicules"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6508,7 +6508,7 @@
       "id": "animaux-et-vehicules"
     },
     "enc": 4,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6533,7 +6533,7 @@
       "id": "animaux-et-vehicules"
     },
     "enc": 2,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6559,7 +6559,7 @@
       "id": "animaux-et-vehicules"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6584,7 +6584,7 @@
       "id": "drogues-et-poisons"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6634,7 +6634,7 @@
       "id": "drogues-et-poisons"
     },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6744,7 +6744,7 @@
       "id": "drogues-et-poisons"
     },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6808,7 +6808,7 @@
       "id": "drogues-et-poisons"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6900,7 +6900,7 @@
       "id": "drogues-et-poisons"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7006,7 +7006,7 @@
       "id": "drogues-et-poisons"
     },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7186,7 +7186,7 @@
       "id": "drogues-et-poisons"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7258,7 +7258,7 @@
       "id": "drogues-et-poisons"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7321,7 +7321,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7385,7 +7385,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7425,7 +7425,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7464,7 +7464,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7516,7 +7516,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7555,7 +7555,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7603,7 +7603,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7642,7 +7642,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7687,7 +7687,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7744,7 +7744,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7866,7 +7866,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7918,7 +7918,7 @@
       "id": "protheses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7967,7 +7967,7 @@
       "id": "protheses"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8007,7 +8007,7 @@
       "id": "protheses"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8045,7 +8045,7 @@
       "id": "protheses"
     },
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8071,7 +8071,7 @@
       "id": "protheses"
     },
     "enc": 1,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8097,7 +8097,7 @@
       "id": "protheses"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8123,7 +8123,7 @@
       "id": "protheses"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8149,7 +8149,7 @@
       "id": "possessions-diverses"
     },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8174,7 +8174,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8199,7 +8199,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8224,7 +8224,7 @@
       "id": "possessions-diverses"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8249,7 +8249,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8274,7 +8274,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8311,7 +8311,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8336,7 +8336,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8361,7 +8361,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8386,7 +8386,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8419,7 +8419,7 @@
       "id": "possessions-diverses"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8444,7 +8444,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8469,7 +8469,7 @@
       "id": "possessions-diverses"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8495,7 +8495,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8520,7 +8520,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8545,7 +8545,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8570,7 +8570,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8595,7 +8595,7 @@
       "id": "possessions-diverses"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8621,7 +8621,7 @@
       "id": "possessions-diverses"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8647,7 +8647,7 @@
       "id": "possessions-diverses"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8673,7 +8673,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8706,7 +8706,7 @@
       "id": "possessions-diverses"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8739,7 +8739,7 @@
       "id": "possessions-diverses"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8772,7 +8772,7 @@
       "id": "possessions-diverses"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8797,7 +8797,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8822,7 +8822,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8847,7 +8847,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8872,7 +8872,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8897,7 +8897,7 @@
       "id": "possessions-diverses"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8923,7 +8923,7 @@
       "id": "possessions-diverses"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8951,7 +8951,7 @@
       "id": "possessions-diverses"
     },
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8978,7 +8978,7 @@
     },
     "shield": true,
     "enc": 4,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -9022,7 +9022,7 @@
       "id": "parade"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": "Courte",
     "loc": null,
     "pa": null,
@@ -9088,7 +9088,7 @@
     },
     "soloSimple": true,
     "enc": 20,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 150,
     "loc": null,
@@ -9134,7 +9134,7 @@
     },
     "indirect": true,
     "enc": 25,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 75,
     "loc": null,
@@ -9183,7 +9183,7 @@
     },
     "indirect": true,
     "enc": 40,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 100,
     "loc": null,
@@ -9232,7 +9232,7 @@
     },
     "indirect": true,
     "enc": 65,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 175,
     "loc": null,
@@ -9280,7 +9280,7 @@
       "id": "ingenierie"
     },
     "enc": 75,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 185,
     "loc": null,
@@ -9343,7 +9343,7 @@
       "id": "ingenierie"
     },
     "enc": 5,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 50,
     "loc": null,
@@ -9388,7 +9388,7 @@
       "id": "ingenierie"
     },
     "enc": 85,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 100,
     "loc": null,
@@ -9440,7 +9440,7 @@
       "id": "boulet-et-poudre"
     },
     "enc": 30,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 50,
     "loc": null,
@@ -9492,7 +9492,7 @@
       "id": "boulet-et-poudre"
     },
     "enc": 50,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 75,
     "loc": null,
@@ -9544,7 +9544,7 @@
       "id": "boulet-et-poudre"
     },
     "enc": 75,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 150,
     "loc": null,
@@ -9597,7 +9597,7 @@
     },
     "indirect": true,
     "enc": 50,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 100,
     "loc": null,
@@ -9642,7 +9642,7 @@
       "id": "balles-et-poudre-pierrier"
     },
     "enc": 5,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 30,
     "loc": null,
@@ -9680,7 +9680,7 @@
       "id": "cavalerie"
     },
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -9725,7 +9725,7 @@
       "id": "cavalerie"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -9780,7 +9780,7 @@
       "id": "escrime"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Courte",
     "loc": null,
     "pa": null,
@@ -9820,7 +9820,7 @@
       "id": "bagarre"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Courte",
     "loc": null,
     "pa": null,
@@ -9859,7 +9859,7 @@
       "id": "bagarre"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Personnelle",
     "loc": null,
     "pa": null,
@@ -9898,7 +9898,7 @@
       "id": "bagarre"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Très courte",
     "loc": null,
     "pa": null,
@@ -9931,7 +9931,7 @@
       "id": "bagarre"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Personnelle",
     "loc": null,
     "pa": null,
@@ -9971,7 +9971,7 @@
       "id": "bagarre"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": "Personnelle",
     "loc": null,
     "pa": null,
@@ -10016,7 +10016,7 @@
       "id": "parade"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Courte",
     "loc": null,
     "pa": null,
@@ -10066,7 +10066,7 @@
       "id": "armes-d-hast"
     },
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Très longue",
     "loc": null,
     "pa": null,
@@ -10109,7 +10109,7 @@
       "id": "armes-d-hast"
     },
     "enc": 3,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -10152,7 +10152,7 @@
       "id": "armes-d-hast"
     },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -10209,7 +10209,7 @@
       "id": "armes-d-hast"
     },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -10264,7 +10264,7 @@
       "id": "armes-d-hast"
     },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -10318,7 +10318,7 @@
       "id": "deux-mains"
     },
     "enc": 3,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -10365,7 +10365,7 @@
       "id": "munitions"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "ammoRangeMod": {
       "mult": 0.5
@@ -10408,7 +10408,7 @@
       "id": "munitions"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -10443,7 +10443,7 @@
       "id": "munitions"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -10477,7 +10477,7 @@
       "id": "munitions"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "ammoRangeMod": {
       "add": -10
@@ -10513,7 +10513,7 @@
       "id": "munitions"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "ammoRangeMod": {
       "add": -10
@@ -10553,7 +10553,7 @@
       "id": "poudre-noire"
     },
     "enc": 3,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 50,
     "loc": null,
@@ -10602,7 +10602,7 @@
       "id": "poudre-noire"
     },
     "enc": 2,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 50,
     "loc": null,
@@ -10647,7 +10647,7 @@
       "id": "poudre-noire"
     },
     "enc": 1,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 30,
     "loc": null,
@@ -10695,7 +10695,7 @@
       "id": "poudre-noire"
     },
     "enc": 3,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 30,
     "loc": null,
@@ -10743,7 +10743,7 @@
       "id": "poudre-noire"
     },
     "enc": 3,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 40,
     "loc": null,
@@ -10790,7 +10790,7 @@
       "id": "poudre-noire"
     },
     "enc": 1,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 10,
     "loc": null,
@@ -10839,7 +10839,7 @@
       "id": "poudre-noire"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 20,
     "loc": null,
@@ -10887,7 +10887,7 @@
       "id": "poudre-noire"
     },
     "enc": 1,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 10,
     "loc": null,
@@ -10935,7 +10935,7 @@
       "id": "poudre-noire"
     },
     "enc": 3,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 30,
     "loc": null,
@@ -10982,7 +10982,7 @@
       "id": "poudre-noire"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 10,
     "loc": null,
@@ -11033,7 +11033,7 @@
       "id": "munitions"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -11072,7 +11072,7 @@
       "id": "munitions"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -11112,7 +11112,7 @@
       "id": "munitions"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -11148,7 +11148,7 @@
       "id": "munitions"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -11187,7 +11187,7 @@
       "id": "munitions"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "ammoRangeMod": {
       "mult": 0.5
@@ -11226,7 +11226,7 @@
       "id": "munitions"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "ammoRangeMod": {
       "mult": 0.5
@@ -11265,7 +11265,7 @@
       "id": "munitions"
     },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "ammoRangeMod": {
       "add": 10
@@ -11306,7 +11306,7 @@
     "subType": {
       "id": "poudre-noire"
     },
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -11356,7 +11356,7 @@
     "subType": {
       "id": "ingenierie"
     },
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -11412,7 +11412,7 @@
     "subType": {
       "id": "poudre-noire"
     },
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -11472,7 +11472,7 @@
       "id": "drogues-et-poisons"
     },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 12,
       "silver": 0,
@@ -11494,7 +11494,7 @@
       "id": "drogues-et-poisons"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 3,
       "silver": 0,
@@ -11516,7 +11516,7 @@
       "id": "drogues-et-poisons"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 3,
       "silver": 0,
@@ -11538,7 +11538,7 @@
       "id": "drogues-et-poisons"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 1,
       "silver": 10,
@@ -11560,7 +11560,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 4,
       "silver": 10,
@@ -11582,7 +11582,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "price": {
       "gold": 1,
       "silver": 0,
@@ -11604,7 +11604,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "price": {
       "gold": 0,
       "silver": 10,
@@ -11626,7 +11626,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 3,
       "silver": 0,
@@ -11648,7 +11648,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 18,
       "silver": 0,
@@ -11670,7 +11670,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 3,
       "silver": 0,
@@ -11692,7 +11692,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 15,
       "silver": 0,
@@ -11714,7 +11714,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 3,
       "silver": 0,
@@ -11736,7 +11736,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 1,
       "silver": 10,
@@ -11758,7 +11758,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 6,
       "silver": 0,
@@ -11780,7 +11780,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 36,
       "silver": 0,
@@ -11802,7 +11802,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 9,
       "silver": 0,
@@ -11824,7 +11824,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 4,
       "silver": 10,
@@ -11846,7 +11846,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 27,
       "silver": 0,
@@ -11868,7 +11868,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 1,
       "silver": 0,
@@ -11890,7 +11890,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 3,
       "silver": 0,
@@ -11912,7 +11912,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 1,
       "silver": 10,
@@ -11934,7 +11934,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 1,
       "silver": 0,
@@ -11956,7 +11956,7 @@
       "id": "herbes-et-potions"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 18,
       "silver": 0,
@@ -11977,7 +11977,7 @@
     "subType": {
       "id": "base"
     },
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 8,
       "silver": 0,
@@ -12013,7 +12013,7 @@
     "subType": {
       "id": "plate"
     },
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -12053,7 +12053,7 @@
     "subType": {
       "id": "base"
     },
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 6,
       "silver": 0,
@@ -12089,7 +12089,7 @@
     "subType": {
       "id": "possessions-diverses"
     },
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 20,
       "silver": 0,
@@ -12110,7 +12110,7 @@
     "subType": {
       "id": "base"
     },
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 8,
       "silver": 0,
@@ -12147,7 +12147,7 @@
     "subType": {
       "id": "arbalete"
     },
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 4,
       "silver": 0,
@@ -12181,7 +12181,7 @@
     "subType": {
       "id": "arc"
     },
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 1,
       "silver": 0,
@@ -12224,7 +12224,7 @@
     "subType": {
       "id": "arc"
     },
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 3,
       "silver": 0,
@@ -12255,7 +12255,7 @@
     "subType": {
       "id": "deux-mains"
     },
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -12300,7 +12300,7 @@
     "subType": {
       "id": "base"
     },
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -12341,7 +12341,7 @@
       "id": "base"
     },
     "shield": true,
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -12387,7 +12387,7 @@
     "subType": {
       "id": "vetements-et-accessoires"
     },
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -12408,7 +12408,7 @@
     "subType": {
       "id": "vetements-et-accessoires"
     },
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -12429,7 +12429,7 @@
     "subType": {
       "id": "possessions-diverses"
     },
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -12450,7 +12450,7 @@
     "subType": {
       "id": "possessions-diverses"
     },
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -12472,7 +12472,7 @@
       "id": "munition-de-siege"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -12504,7 +12504,7 @@
       "id": "munition-de-siege"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -12539,7 +12539,7 @@
       "id": "munition-de-siege"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -12572,7 +12572,7 @@
       "id": "munition-de-siege"
     },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "ammoRangeMod": {
       "mult": 0.25
@@ -12608,7 +12608,7 @@
       "id": "munition-de-siege"
     },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -12647,7 +12647,7 @@
       "id": "munition-de-siege"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "ammoRangeMod": {
       "mult": 0.5
@@ -12684,7 +12684,7 @@
       "id": "munition-de-siege"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -12723,7 +12723,7 @@
       "id": "munition-de-siege"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -12754,7 +12754,7 @@
     },
     "sizeFor": "grande",
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -12790,7 +12790,7 @@
     },
     "sizeFor": "grande",
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Courte",
     "loc": null,
     "pa": null,
@@ -12838,7 +12838,7 @@
     },
     "sizeFor": "grande",
     "enc": 6,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -12879,7 +12879,7 @@
     },
     "sizeFor": "grande",
     "enc": 5,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 20,
     "loc": null,
@@ -12928,7 +12928,7 @@
     },
     "sizeFor": "grande",
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": {
       "bf": 2
@@ -12971,7 +12971,7 @@
     },
     "sizeFor": "grande",
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": {
       "bf": 3
@@ -13016,7 +13016,7 @@
     },
     "sizeFor": "grande",
     "enc": 8,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 50,
     "loc": null,
@@ -13061,7 +13061,7 @@
     },
     "sizeFor": "grande",
     "enc": 3,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 20,
     "loc": null,
@@ -13106,7 +13106,7 @@
       "id": "entraves"
     },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -13136,7 +13136,7 @@
       "id": "poudre-noire"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "ammoRangeMod": {
       "mult": 0.5
@@ -13170,7 +13170,7 @@
       "id": "poudre-noire"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -13210,7 +13210,7 @@
     },
     "sizeFor": "grande",
     "enc": 4,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": "Corps",
     "pa": 3,
@@ -13277,7 +13277,7 @@
       "id": "nourriture-boisson-et-hebergement"
     },
     "enc": 9,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -13303,7 +13303,7 @@
       "id": "nourriture-boisson-et-hebergement"
     },
     "enc": 9,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -13329,7 +13329,7 @@
       "id": "nourriture-boisson-et-hebergement"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -13358,7 +13358,7 @@
       "id": "nourriture-boisson-et-hebergement"
     },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -13387,7 +13387,7 @@
       "id": "nourriture-boisson-et-hebergement"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -13417,7 +13417,7 @@
       "id": "outils-et-necessaires"
     },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -13483,7 +13483,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -13512,7 +13512,7 @@
       "id": "possessions-diverses"
     },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -13547,7 +13547,7 @@
       "id": "carreau-de-baliste"
     },
     "minRangeBand": "courte",
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 150,
     "loc": null,
@@ -13601,7 +13601,7 @@
     "weaponGroup": {
       "id": "machine-de-guerre"
     },
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Moyenne",
     "range": null,
     "loc": null,
@@ -13651,7 +13651,7 @@
       "id": "machine-de-guerre"
     },
     "minRangeBand": "courte",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 200,
     "loc": null,
@@ -13709,7 +13709,7 @@
       "id": "machine-de-guerre"
     },
     "minRangeBand": "courte",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 100,
     "loc": null,
@@ -13774,7 +13774,7 @@
       "id": "boulet-et-poudre"
     },
     "minRangeBand": "courte",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 120,
     "loc": null,
@@ -13835,7 +13835,7 @@
       "id": "machine-de-guerre"
     },
     "minRangeBand": "courte",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 60,
     "loc": null,
@@ -13917,7 +13917,7 @@
     },
     "indirect": true,
     "minRangeBand": "courte",
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 60,
     "loc": null,
@@ -13973,7 +13973,7 @@
     },
     "indirect": true,
     "minRangeBand": "courte",
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 100,
     "loc": null,
@@ -14029,7 +14029,7 @@
     },
     "indirect": true,
     "minRangeBand": "moyenne",
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 150,
     "loc": null,
@@ -14088,7 +14088,7 @@
     },
     "indirect": true,
     "minRangeBand": "moyenne",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 200,
     "loc": null,
@@ -14149,7 +14149,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "qualities": [],
     "passive": [
       {
@@ -14180,7 +14180,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 2,
-    "availability": "Exotique",
+    "availability": "exotique",
     "qualities": [],
     "passive": [
       {
@@ -14211,7 +14211,7 @@
       "id": "vetements-et-accessoires"
     },
     "enc": 4,
-    "availability": "Exotique",
+    "availability": "exotique",
     "qualities": [],
     "passive": [
       {

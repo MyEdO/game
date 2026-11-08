@@ -123,7 +123,7 @@ describe('trappings — Disponibilité : les 4 classes, la marque « ND », ou r
   it('le schéma ACCEPTE « ND » et `null`, REFUSE toute autre marque (vocabulaire fermé, fail-fast)', () => {
     const gabarit = (availability: unknown) => [{ ...rows.find((t) => t.id === 'hallebarde')!, availability }];
     expect(validateDataset('trappings.json', gabarit(null))).toBeNull();
-    expect(validateDataset('trappings.json', gabarit('Rare'))).toBeNull();
+    expect(validateDataset('trappings.json', gabarit('rare'))).toBeNull();
     expect(validateDataset('trappings.json', gabarit('ND'))).toBeNull();
     const err = validateDataset('trappings.json', gabarit('Introuvable'));
     expect(err).not.toBeNull();

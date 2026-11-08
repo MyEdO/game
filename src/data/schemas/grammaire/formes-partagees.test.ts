@@ -42,7 +42,7 @@ import vehicles from '../../vehicles.json';
 import traits from '../../traits.json';
 import { corruptionExposureSchema } from '../defs-scenes/effets';
 import { menaceIds } from '../../../engine/menace';
-import { resolveTrappingChoices } from '../../../engine/trappingChoices';
+import { dotationsDuHeros, resolveTrappingChoices } from '../../../engine/trappingChoices';
 import { adresseDeCreation } from '../../../engine/adresseDeCreation';
 import { avecDotations, CARRIERE_FIXTURE } from '../../dotations.fixture';
 import type { TrappingRef } from '../../index';
@@ -89,7 +89,7 @@ describe('trappingRefSchema — branches de TrappingRef', () => {
   it('{choice} migré (Arbalète de poing ou pistolet) résout la 2e branche via resolveTrappingChoices', () => {
     const ref: TrappingRef = { choice: [{ id: 'arbalete-de-poing' }, { id: 'pistolet' }] };
     const resolues = avecDotations(CARRIERE_FIXTURE, { classe: [], niveau: [ref] }, () =>
-      resolveTrappingChoices(CARRIERE_FIXTURE, 1, { [adresseDeCreation.dotation([0])]: 1 }));
+      resolveTrappingChoices(dotationsDuHeros(CARRIERE_FIXTURE), { [adresseDeCreation.dotation([0])]: 1 }));
     expect(resolues).toEqual([{ id: 'pistolet' }]);
   });
 });

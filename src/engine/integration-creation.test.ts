@@ -8,7 +8,7 @@ import { featuresOf } from './combatFeatures/dispatch';
 import { rationCount, dailyFoodUpkeep } from './provisions';
 import { itemLabel } from './items';
 import { bonus } from './characteristics';
-import { emplacementsDeDotation } from './trappingChoices';
+import { dotationsDuHeros, emplacementsDeDotation } from './trappingChoices';
 
 /**
  * Verrouillage de l'INTÉGRATION création ↔ {Magie (Jalon 2), règles 2.5, Voyage #T2} :
@@ -104,7 +104,7 @@ describe('création ↔ dotation à branches non tranchée', () => {
   const artiste = (trappingChoices?: Parameters<typeof createHero>[0]['trappingChoices']) =>
     createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'artiste', label: 'A', seed: 7, trappingChoices });
   const adresse = () =>
-    emplacementsDeDotation('artiste', 1).find((e) => e.sorte === 'branches' && e.ref.choice.some((b) => 'id' in b && b.id === 'pinceau'))!.adresse;
+    emplacementsDeDotation(dotationsDuHeros('artiste')).find((e) => e.sorte === 'branches' && e.ref.choice.some((b) => 'id' in b && b.id === 'pinceau'))!.adresse;
 
   it('sans choix, aucun objet des branches n’entre au sac', () => {
     expect((artiste().items ?? []).map((i) => i.trappingId).filter((id) => BRANCHES.includes(id!))).toEqual([]);

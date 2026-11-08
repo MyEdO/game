@@ -597,7 +597,7 @@ scenes.push(scene({
       [{ id: 'proue-idole-de-stromfels' }]),
     { id: 'norse-1', kind: 'personnage', ref: 'humain', pos: { x: 18, y: 6 }, label: 'Norse' },
     { id: 'norse-2', kind: 'personnage', ref: 'humain', pos: { x: 18, y: 8 }, label: 'Norse' },
-    { id: 'olg', kind: 'personnage', ref: 'olg-blodsalt', pos: { x: 19, y: 7 }, label: 'Olg Blóðsalt', weapon: 'hache-d-armes' },
+    { id: 'olg', kind: 'personnage', ref: 'olg-blodsalt', pos: { x: 19, y: 7 }, label: 'Olg Blóðsalt', inventaire: { 'hache-d-armes': false } },
     marinDuGrimm('serpent-helm', 18, 5, 'Barreur du Serpent-de-Sel', HELM_SKILLS, MARIN_APPEARANCE),
     marinDuGrimm('serpent-gun', 18, 9, 'Canonnier du Serpent-de-Sel', GUN_SKILLS, ARTILLEUR_APPEARANCE),
   ],

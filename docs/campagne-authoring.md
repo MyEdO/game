@@ -33,7 +33,7 @@ est de l'affichage multilangue — AGENTS.md, encadré « id STABLE ») ; **pers
   non authorable à la main, jamais à un projet de campagne : `barge-du-sel` et `loup-et-saumure` sont la
   dette #1601 (« Campagnes possédées par un GÉNÉRATEUR … statuer la migration vers MANUSCRIT »), `arene`
   vit sous le même régime (#1601). Les validateurs id-only de la lib (`creatureId`/`skillId`/`spellId`/`speciesId`/
-  `tenueId`/`weaponId`) FAIL-FAST pour ses seuls consommateurs.
+  `tenueId`/`inventaire`) FAIL-FAST pour ses seuls consommateurs.
 
 ## 2. Navire de campagne (`state.vessel`)
 
@@ -444,6 +444,16 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   partagé par plusieurs PNJ = UN preset ; un statbloc complet porte `optionals: []` ; sa prose est une
   ADRESSE (`profil.descRef`, dérivée par `judge`, `scripts/source/derive-decoupes.mjs`) dans le livre de
   `source`, jamais le texte recopié.
+- **Porter un PNJ à une carrière (`carrieres`, #773, `EDO 11 l.17-21`).** Une `SceneEntity` personnage dont `ref`
+  est une créature du bestiaire, sans `statblock`, `presetId` ni `appearance.tenue`, porte `carrieres`, un record
+  ordonné carrière → Niveau atteint dont la dernière clé est la carrière actuelle. Elle porte aussi, par carrière,
+  `talentsDeCarriere` et `competencesDeCarriere` (refs `{ id, spec? }` désignées par l'auteur), et `dotationsDeCarriere`,
+  les choix de dotation de la carrière actuelle par adresse `dotation:<chemin>` sur ses Niveaux 1 à N, sans la Classe.
+  `refusDuPnjDeCarriere` (`src/data/schemas/defs-scenes/scene.ts`) refuse au parse ce que les Niveaux atteints n'offrent
+  pas. Au spawn, `ficheDeRef` (`src/noyau/monde/spawn.ts`) applique `porterAuParcours` (`src/engine/pnjDeCarriere.ts`) :
+  le +5 par Niveau, un Talent par Niveau, les dotations matérialisées en objets réels. L'inventaire d'auteur s'y ajoute,
+  et ce que l'auteur fait porter ôte la dotation qui chevauche. Ce que l'auteur laisse libre est tiré de la graine,
+  l'id de l'entité. Ces champs s'éditent dans la section « Carrières » de l'inspecteur Godot (`src/hote/editeur.ts`).
 - **Prose adressée : forme dépôt, forme servie.** Sur le disque, un nœud adressé ne porte que `descRef` ;
   le plugin `wfrp:prose-source` (`scripts/source/prose-source-plugin.mjs`) matérialise son `desc` dans le
   module servi, pour tout document de `RACINES_PROSE` (catalogues ET projets livrés). `parseProject`
@@ -527,7 +537,7 @@ variantes que chaque type admet sont déclarées dans `psychology.json` (`cibles
 
 ## 11. Règles d'or
 
-- **IDS partout** — `ref`/`skill`/`spell`/`weapon`/`species`/`tenue`/`trappingId`/`factorId`/`roleId` sont
+- **IDS partout** — `ref`/`skill`/`spell`/`inventaire`/`species`/`tenue`/`trappingId`/`factorId`/`roleId` sont
   des ids STABLES. Un libellé est un défaut silencieux (poison). Doctrine : AGENTS.md, encadré « id STABLE ».
 - **Personne ne lit le journal** — tout dénouement pertinent est une surface VISIBLE au moment (dialogue,
   modale, effet à l'écran), le `journal` ne fait que rappeler.

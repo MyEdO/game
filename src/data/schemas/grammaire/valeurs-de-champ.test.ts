@@ -119,6 +119,12 @@ const NOMMES = [
   'melee|ranged|zone|allFoes|allAround|self',
   'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent|bois|corne|fourrure|plume',
   'physique|mentale',
+  // `availabilitySchema`, `dispoPctAvailabilitySchema`, `harvestRaritySchema`, `harvestDangerSchema` (#3691) :
+  // Disponibilité (LDB 59) et récolte (ZI 13 l.286), en ids nommés.
+  'commune|limitee|rare|exotique',
+  'limitee|rare',
+  'commune|limitee|rare|exotique|unique',
+  'inoffensive|inquietante|menacante|mortelle',
   // `natureDInfluenceSchema` (#2779) : la nature d'une Influence corruptrice, portée par `corruptionExposure`.
   'physique|spirituelle',
   'prop|roof|relief|objet|couleur',
@@ -208,10 +214,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   '5m|10m|unite',
   '>=|<=|==|<|>',
   'CC|CT|F|E|I|Ag|Dex|Int|FM|Soc',
-  'Commune|Limitée|Rare|Exotique',
-  'Commune|Limitée|Rare|Exotique|Unique',
-  'Inoffensive|Inquiétante|Menaçante|Mortelle',
-  'Limitée|Rare',
   'N|E|S|O',
   'N|E|\\|/',
   'Variable|Personnelle|Très courte|Courte|Moyenne|Longue|Très longue|Considérable',
@@ -417,7 +419,7 @@ describe('un sous-univers se déclare par son propre enumNomme, jamais par .extr
   });
 
   it('une sélection sur un enum NU (jamais nommé) reste légitime', () => {
-    const copie: Fichier[] = [{ chemin: 'a.ts', source: "const s = availabilitySchema.extract(['Limitée']);\n" }];
+    const copie: Fichier[] = [{ chemin: 'a.ts', source: "const s = nuSchema.extract(['a']);\n" }];
     expect(selectionsSurEnumNomme(copie)).toEqual([]);
   });
 });
