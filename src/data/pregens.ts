@@ -142,7 +142,7 @@ export const PREGEN = {
 export function pregenParty(idNeuf: FabriqueDId, ...seeds: number[]): Combatant[] {
   return seeds.map((s) => {
     const d = pregens.find((p) => p.seed === s);
-    if (!d) throw new Error(`Pré-tiré pregen-${s} introuvable (PREGEN/pregens.json)`);
+    if (!d) throw new Error(`Pré-tiré ${idDuPretire(s)} introuvable (PREGEN/pregens.json)`);
     return buildPregenHero(d, idNeuf);
   });
 }

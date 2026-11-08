@@ -13,7 +13,7 @@ import { WorldMapView } from './WorldMapView';
 import { BargainModal } from './BargainModal';
 import { useGame } from '../state/store';
 import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../scenes/campaign';
-import { makePregensWithWealth, PREGEN } from '../data/pregens';
+import { makePregensWithWealth, PREGEN, idDuPretire } from '../data/pregens';
 import { creditBourse, partyMoneyTotal } from '../noyau/bourseFlow';
 import { toBrass } from '../engine/money';
 import { setRule, resetRule } from '../engine/policy';
@@ -28,7 +28,7 @@ const paquet = paquetDuJeu(diligenceCampaign);
 const get = () => useGame.getState();
 const bourse = () => toBrass(partyMoneyTotal(get));
 const NET_INITIAL = useGame.getState().net;
-const SHOWCASE = [PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur].map((s) => `pregen-${s}`);
+const SHOWCASE: readonly string[] = [PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur].map((s) => idDuPretire(s));
 
 let container: HTMLDivElement;
 let root: Root;
