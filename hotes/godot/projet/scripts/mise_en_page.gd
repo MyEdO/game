@@ -37,6 +37,9 @@ const DUREE_D_UNE_IMAGE_DE_MARCHE := 0.1
 const TANGAGE_DE_L_OEIL := 1.4
 ## Le lacet d'une caméra qui regarde vers chaque cap (`Dir8`) du plateau : le nord vers -Z, l'ouest vers -X.
 const LACETS_DES_CAPS := {N = 0.0, NO = PI / 4.0, O = PI / 2.0, SO = 3.0 * PI / 4.0, S = PI, SE = -3.0 * PI / 4.0, E = -PI / 2.0, NE = -PI / 4.0}
+## Le lacet, dans le repère d'un véhicule dont la proue est le +Z, d'une pièce dont l'avant est son +Z montée à chaque bord
+## (`FIRE_ARCS`, `src/engine/types.ts`) : tournée vers lui, tribord à droite de la proue, vers -X.
+const LACETS_DES_BORDS := {proue = 0.0, tribord = -PI / 2.0, poupe = PI, babord = PI / 2.0}
 ## L'écart, en pixels, entre une bulle et le point de l'écran qu'elle désigne.
 const ECART_DE_BULLE := 12.0
 ## La largeur, en pixels, au-delà de laquelle le texte d'une bulle se replie au mot (`Bulle`).
@@ -109,8 +112,20 @@ static func echelle_d_empreinte(taille: Vector3, empreinte: int) -> float:
 ## L'origine qui, sous l'échelle `echelle`, centre sur une empreinte de `empreinte` cases depuis la case de son parent,
 ## son coin nord-ouest, une boîte de centre `centre` dans ce parent, l'origine gardée au sol (#2987).
 static func origine_sur_l_empreinte(centre: Vector3, echelle: float, empreinte: int) -> Vector3:
+	var milieu := milieu_de_l_empreinte(empreinte)
+	return Vector3(milieu.x - centre.x * echelle, 0.0, milieu.z - centre.z * echelle)
+
+
+## Le milieu au sol d'une empreinte de `empreinte` cases de côté, depuis la case de son parent, son coin nord-ouest (#2987).
+static func milieu_de_l_empreinte(empreinte: int) -> Vector3:
 	var milieu := (empreinte - 1) * DEMI_CASE
-	return Vector3(milieu - centre.x * echelle, 0.0, milieu - centre.z * echelle)
+	return Vector3(milieu, 0.0, milieu)
+
+
+## Le lacet qui tourne vers un cap un modèle dont l'avant est son +Z, depuis le `lacet` d'une caméra qui regarde vers ce
+## cap (`LACETS_DES_CAPS`, l'avant d'une caméra étant son -Z).
+static func lacet_de_proue(lacet: float) -> float:
+	return lacet + PI
 
 
 ## Une hauteur de `hauteur` mètres sur le plateau d'une scène de `metres_par_case`.

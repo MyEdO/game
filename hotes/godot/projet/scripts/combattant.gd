@@ -4,7 +4,8 @@
 ## Points de Blessures (`pb`) en étiquette au-dessus de sa tête, l'anneau de l'actif. Il glisse vers sa nouvelle case,
 ## frappe vers une cible, accuse le coup qui le vise et tombe hors de combat. Sans corps, il garde son anneau et son
 ## étiquette, à la hauteur du nom d'une entité (`MiseEnPage.HAUTEUR_DU_NOM`). Véhicule ou engin (`vue.corps.vehicules[id]`,
-## #2987), le GLB de son élément se pose sous `Vehicule`, sur ses N×N cases (`poser_sur_l_empreinte`).
+## #2987), le GLB de son élément se pose sous `Vehicule`, sur ses N×N cases (`poser_sur_l_empreinte`), les pièces de ses
+## postes montées à leur bord (`monter_au_poste`), le tout tourné vers son cap (`tourner_au_cap`).
 class_name Combattant
 extends Node3D
 
@@ -39,9 +40,11 @@ var _base_demandee: Variant = null
 var _chargement: RefCounted = null
 ## La hauteur, dans son repère, du plus haut point d'accroche de sa base au repos, sans gabarit.
 var _hauteur_de_tete := 0.0
-## Le dernier véhicule reçu, en JSON, l'id de l'élément posé sous `Vehicule` (`null` : aucun), et son chargement retenu.
+## Le dernier véhicule reçu, en JSON, l'id de l'élément posé sous `Vehicule` (`null` : aucun), les ids des éléments montés
+## à ses postes, et son chargement retenu.
 var _vehicule_recu := ""
 var _element_du_vehicule: Variant = null
+var _postes_montes: Array[String] = []
 var _chargement_du_vehicule: RefCounted = null
 
 
@@ -68,10 +71,10 @@ func montrer(c: Dictionary, lieu: Vector3, actif: bool, corps: Variant, vehicule
 
 
 ## Ce que son corps porte, lu de son montage : l'id de sa base posée (`null` sans corps), chaque élément monté, par
-## emplacement l'emblème posé, par emplacement les couleurs posées (`MontageDeComposition.couleurs_posees`), et l'id de
-## l'élément de son véhicule posé (`null` : aucun).
+## emplacement l'emblème posé, par emplacement les couleurs posées (`MontageDeComposition.couleurs_posees`), l'id de
+## l'élément de son véhicule posé (`null` : aucun) et ceux des éléments montés à ses postes.
 func corps() -> Dictionary:
-	return {base = null if _montage.modele == null else _montage.base.id, elements = _montage.montes.values(), emblemes = _montage.emblemes.duplicate(), couleurs = _montage.couleurs_posees(), vehicule = _element_du_vehicule}
+	return {base = null if _montage.modele == null else _montage.base.id, elements = _montage.montes.values(), emblemes = _montage.emblemes.duplicate(), couleurs = _montage.couleurs_posees(), vehicule = _element_du_vehicule, postes = _postes_montes.duplicate()}
 
 
 ## La scène `scene` d'un véhicule, dans l'arbre sous un nœud à la case de son combattant, posée sur ses `empreinte` ×
@@ -99,6 +102,22 @@ static func _boite(noeud: Node, dans: Node3D) -> Variant:
 		if sous != null:
 			boite = sous if boite == null else (boite as AABB).merge(sous)
 	return boite
+
+
+## La scène `piece` d'une pièce montée sous la scène `scene` de son véhicule, au poste `poste` (`postes` de
+## `vue.corps.vehicules[id]`) : à sa `position` dans le repère du véhicule, dont elle prend l'échelle, tournée vers son
+## `bord` (`MiseEnPage.LACETS_DES_BORDS`).
+static func monter_au_poste(scene: Node3D, piece: Node3D, poste: Dictionary) -> void:
+	scene.add_child(piece)
+	var lieu: Array = poste.position
+	piece.transform = Transform3D(Basis(Vector3.UP, MiseEnPage.LACETS_DES_BORDS[poste.bord]), Vector3(lieu[0], lieu[1], lieu[2]))
+
+
+## La scène `scene` d'un véhicule posée sur ses `empreinte` × `empreinte` cases (`poser_sur_l_empreinte`), tournée autour
+## du milieu de son empreinte pour que sa proue, le +Z de son repère, regarde le cap `cap` (`Dir8`).
+static func tourner_au_cap(scene: Node3D, cap: String, empreinte: int) -> void:
+	var milieu := MiseEnPage.milieu_de_l_empreinte(empreinte)
+	scene.transform = scene.transform.translated(-milieu).rotated(Vector3.UP, MiseEnPage.lacet_de_proue(MiseEnPage.LACETS_DES_CAPS[cap])).translated(milieu)
 
 
 ## Tourné vers `cible` (une position du plateau), il frappe.
@@ -156,7 +175,8 @@ func _vetir(corps: Variant) -> void:
 
 
 ## Le véhicule `vehicule`, s'il a changé : aucun, la scène posée sous `Vehicule` est retirée ; sinon le GLB de son
-## élément est tiré de `modeles/` et posé sur son empreinte (`poser_sur_l_empreinte`) à la place de la précédente.
+## élément est tiré de `modeles/` et posé sur son empreinte (`poser_sur_l_empreinte`) à la place de la précédente, le GLB
+## de chacune de ses pièces monté à son poste (`monter_au_poste`), puis le tout tourné vers son cap (`tourner_au_cap`).
 func _equiper(vehicule: Variant) -> void:
 	var recu := JSON.stringify(vehicule)
 	if recu == _vehicule_recu:
@@ -165,16 +185,29 @@ func _equiper(vehicule: Variant) -> void:
 	var chargement := RefCounted.new()
 	_chargement_du_vehicule = chargement
 	var scene: Node3D = null if vehicule == null else await _montage.scene_du_glb(vehicule.element, _montage.erreurs)
+	var pieces: Array[Node3D] = []
+	if scene != null:
+		for poste in vehicule.postes:
+			pieces.append(await _montage.scene_du_glb(poste.element, _montage.erreurs))
 	if chargement != _chargement_du_vehicule:
+		for piece in pieces:
+			if piece != null:
+				piece.free()
 		if scene != null:
 			scene.free()
 		return
 	for ancienne in _vehicule.get_children():
 		ancienne.queue_free()
 	_element_du_vehicule = null
+	_postes_montes.clear()
 	if scene != null:
 		_vehicule.add_child(scene)
 		poser_sur_l_empreinte(scene, int(vehicule.empreinte))
+		for i in pieces.size():
+			if pieces[i] != null:
+				monter_au_poste(scene, pieces[i], vehicule.postes[i])
+				_postes_montes.append(vehicule.postes[i].element)
+		tourner_au_cap(scene, vehicule.cap, int(vehicule.empreinte))
 		_element_du_vehicule = vehicule.element
 	_signaler()
 

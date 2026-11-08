@@ -45,7 +45,7 @@ const VALIDES: Record<CategorieDElement, Record<string, unknown>> = {
   rigide: { categorie: 'rigide', cle: { apparence: 'epee' }, liaison: { mode: 'rigide' }, surfaces: METAL },
   trait: { categorie: 'trait', cle: { trait: 'verrues' }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: ['torse'], surfaces: [{ nom: 'peau', palette: 'peau' }] },
   decor: { categorie: 'decor', cle: { prop: 'tonneau' }, liaison: { mode: 'rigide' }, surfaces: METAL },
-  vehicule: { categorie: 'vehicule', cle: { definition: 'caraque' }, liaison: { mode: 'rigide' }, surfaces: METAL },
+  vehicule: { categorie: 'vehicule', cle: { definition: 'caraque' }, liaison: { mode: 'rigide' }, postes: { tribord: [[-3, 1.95, 4], [-3, 1.95, 2]], proue: [[1.2, 5.6, 13.3]] }, surfaces: METAL },
 };
 
 const aUneBase = (categorie: CategorieDElement) => REGLES_DES_CATEGORIES[categorie].base;
@@ -118,6 +118,9 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['emplacement-sur-os-absent', 'emplacement sur un os inconnu', manifeste('vetement', { emplacements: { cimier: { os: 'chapeau', position: [0, 0, 0], rotation: [0, 0, 0] } } })],
   ['emplacement-inconnu', 'emplacement absent de la garde-robe', manifeste('armure', { emplacements: { nombril: { os: 'spine_01', position: [0, 0, 0], rotation: [0, 0, 0] } } })],
   ['silhouette-absente', 'shape key que la base ne porte pas', manifeste('tete', { silhouettes: ['visage_inverse'] })],
+  ['champ-hors-categorie', '`postes` sur un décor', manifeste('decor', { postes: {} })],
+  ['forme', 'poste sans triplet', manifeste('vehicule', { postes: { babord: [[3, 1.95]] } })],
+  ['bord-inconnu', 'poste à un bord qui n’en est pas un', manifeste('vehicule', { postes: { flanc: [[3, 1.95, 0]] } })],
   ['forme', 'surface sans emplacement de palette', manifeste('rigide', { surfaces: [{ nom: 'plaque', teinte: true }] })],
   ['palette-inconnue', 'clé de palette inconnue', manifeste('trait', { surfaces: [{ nom: 'peau', palette: 'or' }] })],
   ['forme', 'blason autre que `true`', manifeste('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', blason: false }] })],
@@ -138,7 +141,7 @@ describe('validerElement : chaque refus nommé', () => {
     const attendus: Record<CodeDEcartDElement, true> = {
       forme: true, 'version-inconnue': true, 'categorie-inconnue': true, 'champ-hors-categorie': true, 'cle-mal-formee': true, 'cle-inconnue': true, 'piece-hors-categorie': true, 'base-differente': true,
       'liaison-hors-categorie': true, 'couche-hors-categorie': true, 'zone-inconnue': true, 'chaine-absente': true, 'emplacement-sur-os-absent': true, 'emplacement-inconnu': true,
-      'silhouette-absente': true, 'palette-inconnue': true, 'surface-absente': true, 'uv-absente': true, 'glb-different': true,
+      'silhouette-absente': true, 'bord-inconnu': true, 'palette-inconnue': true, 'surface-absente': true, 'uv-absente': true, 'glb-different': true,
       'rigide-sans-mesh': true, 'rigide-sur-os-absent': true, 'rigide-a-la-racine': true, 'rigide-skinne': true,
     };
     expect(new Set(REFUS.map(([code]) => code))).toEqual(new Set(Object.keys(attendus)));
