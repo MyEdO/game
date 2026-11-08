@@ -18,6 +18,8 @@ extends Node3D
 signal cadrage_change
 
 const DUREE_QUART_S := 0.25
+## Netteté de la projection d'une texture de matière sur les trois axes (`texturer`).
+const NETTETE_DU_MOTIF := 4.0
 ## Le tangage de la caméra au regard `tactique`, plongeante de biais.
 const TANGAGE_TACTIQUE := -0.9
 ## Une hauteur sous tout monde, où finit le rayon qui cherche le sol sous un lieu.
@@ -268,24 +270,36 @@ func _retournes(tableau: Variant) -> Variant:
 	return tableau
 
 
-## La matière de rendu des surfaces de la matière `nom` (`<domaine>--<id>`, `CONTRAT.md`, section « Monde ») : sa
-## texture (`res://textures/<nom>.jpg`) et son relief (`<nom>.normale.jpg`) s'ils sont au projet, sinon la couleur de
-## ses sommets.
+## La matière de rendu des surfaces de la matière `nom` (`<domaine>--<id>`, `CONTRAT.md`, section « Monde ») : texturée
+## (`texturer`) si sa texture est au projet, sinon la couleur de ses sommets.
 func _matiere(nom: String) -> Material:
 	if not _matieres.has(nom):
-		var couleur := "res://textures/%s.jpg" % nom
-		if ResourceLoader.exists(couleur):
-			var matiere := matiere_texturee.duplicate() as StandardMaterial3D
-			matiere.albedo_texture = load(couleur)
-			matiere.uv1_scale = MiseEnPage.echelle_de_motif()
-			var relief := "res://textures/%s.normale.jpg" % nom
-			if ResourceLoader.exists(relief):
-				matiere.normal_enabled = true
-				matiere.normal_texture = load(relief)
-			_matieres[nom] = matiere
-		else:
-			_matieres[nom] = couleur_des_sommets
+		var matiere := matiere_texturee.duplicate() as StandardMaterial3D
+		_matieres[nom] = matiere if texturer(matiere, nom) else couleur_des_sommets
 	return _matieres[nom]
+
+
+## Le chemin de la texture de la matière `nom` au projet.
+static func texture_de(nom: String) -> String:
+	return "res://textures/%s.jpg" % nom
+
+
+## `materiau` habillé de la matière `nom` si sa texture (`res://textures/<nom>.jpg`) est au projet : la texture et son
+## relief (`<nom>.normale.jpg`) s'il y est, projetés sur les trois axes du repère du mesh, un motif tous les
+## `MiseEnPage.METRES_PAR_MOTIF` ; rend si la texture y est.
+static func texturer(materiau: BaseMaterial3D, nom: String) -> bool:
+	var couleur := texture_de(nom)
+	if not ResourceLoader.exists(couleur):
+		return false
+	materiau.albedo_texture = load(couleur)
+	materiau.uv1_triplanar = true
+	materiau.uv1_triplanar_sharpness = NETTETE_DU_MOTIF
+	materiau.uv1_scale = MiseEnPage.echelle_de_motif()
+	var relief := "res://textures/%s.normale.jpg" % nom
+	if ResourceLoader.exists(relief):
+		materiau.normal_enabled = true
+		materiau.normal_texture = load(relief)
+	return true
 
 
 ## Les couches du dernier monde posé.

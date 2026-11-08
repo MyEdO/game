@@ -37,8 +37,8 @@ function baseQty(settlement: Settlement, rng: RNG): number {
  *  Disponibilité (objet HORS COMMERCE forcé en stock par `curated`) ne module rien : aucune classe, donc
  *  aucun facteur — jamais un repli sur Commune, qui inventerait le ×2 le plus favorable. */
 function classQty(av: Availability | null, base: number): number {
-  if (av === 'Commune') return base * 2;
-  if (av === 'Rare') return Math.ceil(base / 2);
+  if (av === 'commune') return base * 2;
+  if (av === 'rare') return Math.ceil(base / 2);
   return base;
 }
 
@@ -61,8 +61,8 @@ export function outOfTradeReason(label: string): string {
 }
 
 export function rollAvailability(av: Availability, settlement: Settlement, rng: RNG, pctBonus = 0): { inStock: boolean; qty: number; test?: { roll: number; target: number } } {
-  if (av === 'Commune') return { inStock: true, qty: classQty('Commune', baseQty(settlement, rng)) };
-  if (av === 'Exotique') return { inStock: false, qty: 0 };
+  if (av === 'commune') return { inStock: true, qty: classQty('commune', baseQty(settlement, rng)) };
+  if (av === 'exotique') return { inStock: false, qty: 0 };
   // « Les pourcentages de Disponibilité peuvent être augmentés de +10 % ou +20 % » (LDB 59 l.50) —
   // recherche active (personnage assidu / Carrière cohérente / journée entière + Ragot).
   const target = Math.min(99, dispoPct()[av][settlement] + Math.max(0, pctBonus));
@@ -132,7 +132,7 @@ export function fullStock(catalog: CatalogItem[], settlement: Settlement, rng: R
       out.push({ id: it.id, label: it.label, qty: Math.max(1, classQty(av, baseQty(settlement, rng))) });
       continue;
     }
-    if (!isTradable(av) || av === 'Exotique') continue;
+    if (!isTradable(av) || av === 'exotique') continue;
     out.push({ id: it.id, label: it.label, qty: Math.max(1, classQty(av, baseQty(settlement, rng))) });
   }
   return out;

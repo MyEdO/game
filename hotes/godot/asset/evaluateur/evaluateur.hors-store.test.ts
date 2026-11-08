@@ -908,6 +908,7 @@ describe('validerManifesteDeBase', () => {
     ['palette-inconnue', (m) => ({ ...m, surfaces: [{ nom: 'peau', palette: 'or' }] })],
     ['surface-absente', (m) => ({ ...m, surfaces: [{ nom: 'cuir', palette: 'cuir' }] })],
     ['forme', (m) => ({ ...m, surfaces: [{ nom: 'peau', palette: 'peau', blason: true }] })],
+    ['forme', (m) => ({ ...m, surfaces: [{ nom: 'peau', palette: 'peau', matiere: 'prop--os' }] })],
   ])('refuse par le code %s', (code, alterer) => {
     expect(codes(alterer(valide()))).toEqual([code]);
   });

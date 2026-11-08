@@ -74,7 +74,7 @@ describe('curated garanti QUEL QUE SOIT le mode de marché (chemin réel `ouvrir
   for (const mode of ['simplifie', 'sans-disponibilite'] as const) {
     it(`mode « ${mode} » : la mitraille (Exotique, curatée par l’avitailleur) reste en stock`, () => {
       expect(findMerchantArchetypeById('avitailleur')?.curated).toContain('mitraille-et-poudre');
-      expect(trappings.find((t) => t.id === 'mitraille-et-poudre')!.availability).toBe('Exotique');
+      expect(trappings.find((t) => t.id === 'mitraille-et-poudre')!.availability).toBe('exotique');
       banc.setState({ party: [hero()], scene: sceneWithAvitailleur(mode) });
       banc.getState().ouvrirLeMarchand('pnj');
       expect(banc.getState().merchant!.stock.map((l) => l.id)).toContain('mitraille-et-poudre');

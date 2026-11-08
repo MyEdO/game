@@ -28,7 +28,7 @@ describe('clues — câblage noyau (#670)', () => {
     banc.setState({ party: [hero()] });
     banc.getState().chargerLeProjet({ scenes: [fixtureScene('scene-b')], entryId: 'scene-b', narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'discreditClue', indiceId: 'ind-lettre' }]);
-    expect(banc.getState().clues['ind-lettre'].statut).toBe('réfuté');
+    expect(banc.getState().clues['ind-lettre'].statut).toBe('refute');
     expect(banc.getState().journal.some((l) => l.includes('fausse piste écartée'))).toBe(true);
   });
 
@@ -104,7 +104,7 @@ describe('clues — câblage noyau (#670)', () => {
       applyEffects(banc.getState, banc.setState, [{ type: 'discreditClue', indiceId: 'ind-mono' }]);
       const before = banc.getState().clues;
       expect(before['ind-lettre'].épinglé).toBe(true);
-      expect(before['ind-mono'].statut).toBe('réfuté');
+      expect(before['ind-mono'].statut).toBe('refute');
       const texte = sauverLeBanc(banc);
       banc.setState({ clues: {} }); // « nouvelle partie » — état écrasé avant le chargement
       expect(banc.getState().clues).toEqual({});

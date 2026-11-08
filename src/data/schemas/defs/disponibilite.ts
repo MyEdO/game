@@ -3,14 +3,11 @@ import { nommerChamps, libelleDeValeur } from '../grammaire/meta';
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { availabilitySchema, sourceRefSchema } from '../grammaire/valeurs';
+import { availabilitySchema, dispoPctAvailabilitySchema, sourceRefSchema } from '../grammaire/valeurs';
 import { AVAILABILITIES } from '../../../engine/types';
 
 export const file = 'disponibilite.json';
 export const famille = 'config';
-
-/** LDB 59 l.25-30. */
-export const dispoPctAvailabilitySchema = availabilitySchema.extract(['Limitée', 'Rare']);
 
 const ratioSchema = nommerChamps(z.strictObject({ give: z.number(), get: z.number() }), { give: { label: 'donné' }, get: { label: 'reçu' } });
 

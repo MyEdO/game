@@ -323,7 +323,9 @@ réellement définie ; remplacer empreinte et octets par ceux du GLB final) :
 ```
 
 Pour les autres catégories, appliquer la table et les champs de la section 2. Chaque nom de surface
-est le nom d'un matériau de l'export ; `blason`, s'il est présent, vaut `true`. Ne pas ajouter
+est le nom d'un matériau de l'export ; `blason`, s'il est présent, vaut `true` ; `matiere`, s'il est
+présent, nomme la matière de décor du monde dont la surface s'habille (`prop--<id>`, `matiere-inconnue`) : sa
+texture vient du catalogue unique `hotes/godot/projet/textures/`, jamais du GLB. Ne pas ajouter
 provenance, captures, chemin du GLB ou décision utilisateur dans ce JSON fermé : fichier séparé.
 
 La CLI canonique appelle validerElement avec les octets du GLB pour vérifier forme, ids de clé
@@ -452,7 +454,7 @@ L'import refuse `[pack-source-mal-forme]` un `packs_sources` ou une entrée qui 
 Elles alimentent la provenance ; elles n'entrent pas dans le manifeste déposé. Une production sans
 composant licencié ni `LICENSE*.txt` est refusée `[licence-absente]`.
 
-Importer la base avant ses éléments, dans la même destination : publier un élément verse aussi le GLB de sa base épinglée ; `--sans-publier` reste le régime du poste (atelier, essais). Une session cloud, sans `gh release`, importe aussi en `--sans-publier` et remet le GLB à l'utilisateur pour le versement.
+Importer la base avant ses éléments, dans la même destination : publier un élément verse aussi le GLB de sa base épinglée ; `--sans-publier` reste le régime du poste (atelier, essais). Une session cloud, sans `gh release`, importe aussi en `--sans-publier`, puis pousse une branche `transfert/<x>` partie de `main` qui porte la provenance et les fichiers ajoutés par `git add -f` (GLB nommés par leur empreinte, textures du catalogue) : `.github/workflows/transfert.yml` vérifie chaque empreinte, verse sans écraser (`npm run godot:epingles`) et efface la branche, que le proxy du cloud ne peut pas supprimer lui-même.
 
 ```sh
 node hotes/godot/importer.mjs /atelier/base humanoide --destination /atelier/modeles --sans-publier

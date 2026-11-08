@@ -16,8 +16,8 @@
  * pour un véhicule, les postes qu'elle offre, qui remplacent ceux de chaque bord qu'elle nomme (MDG p.97, Sabord).
  */
 import { estObjet } from '../../../src/lib/objet.mjs';
-import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, FIRE_ARCS, type CodeDEcartDeCle, type FireArc } from '../../../src/noyau/index.ts';
-import { ecartsAuGlb, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
+import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, FIRE_ARCS, matieresDeDecor, type CodeDEcartDeCle, type FireArc } from '../../../src/noyau/index.ts';
+import { ecartsAuGlb, ecartsAuxMatieres, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';
 import type { ContenuGlb } from './glb.ts';
@@ -283,7 +283,7 @@ export function validerElement(brut: unknown, base: BaseDUnElement | null, octet
 
   if (brut.surfaces !== undefined) {
     const { surfaces, ecarts: deForme } = lireSurfaces(brut.surfaces, true);
-    for (const e of [...deForme, ...ecartsAuGlb(surfaces, glb)]) refus(e.code, e.ou, e.detail);
+    for (const e of [...deForme, ...ecartsAuxMatieres(surfaces, matieresDeDecor()), ...ecartsAuGlb(surfaces, glb)]) refus(e.code, e.ou, e.detail);
   }
 
   if (brut.glb !== undefined) {

@@ -1,5 +1,5 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import { makeShowcaseParty, PREGEN } from '../../data/pregens';
+import { makeShowcaseParty, PREGEN, idDuPretire } from '../../data/pregens';
 import { gabaritDObjet, loadWeapon } from '../../engine/items';
 import type { AuthoredShipPoste, Combatant } from '../../engine/types';
 import { buildScene } from '../../noyau/mapSpec';
@@ -7,7 +7,7 @@ import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 
 // Ids STABLES des 2 canonniers (le Soldat + le Chasseur du groupe d'arène) qui SERVENT les pierriers.
-const GUNNERS = [`pregen-${PREGEN.soldat}`, `pregen-${PREGEN.chasseur}`] as const;
+const GUNNERS = [idDuPretire(PREGEN.soldat), idDuPretire(PREGEN.chasseur)] as const;
 
 /**
  * Un poste de PIERRIER (canon léger de pont, MDG 12) monté à tribord de la barge, servi par `chefId`,

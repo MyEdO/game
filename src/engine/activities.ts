@@ -795,10 +795,10 @@ export function stageAssignmentFromRoles(party: Combatant[]): Record<string, Sta
 
 const CRAFT_BASE_DR: Record<StatusTier, number> = { bronze: 5, argent: 10, or: 15 };
 const CRAFT_DIFFICULTY: Record<Availability, Difficulty> = {
-  Commune: 'accessible',
-  Limitée: 'intermediaire',
-  Rare: 'complexe',
-  Exotique: 'tresDifficile',
+  commune: 'accessible',
+  limitee: 'intermediaire',
+  rare: 'complexe',
+  exotique: 'tresDifficile',
 };
 
 /** Cible d'un Test étendu d'Artisanat : DR requis + Difficulté (LDB 23 l.78-95). */
@@ -1036,7 +1036,7 @@ export function learnableTalents(hero: Combatant): LearnOption[] {
  *  coûte 15 CO » (VDM 12 l.42) sans porter de Disponibilité. */
 export function orderBlockOf(t: Pick<TrappingData, 'price' | 'availability'>): 'sans-prix' | 'stock-ordinaire' | null {
   if (listedBrass(t.price) <= 0) return 'sans-prix';
-  if (isTradable(t.availability) && t.availability !== 'Exotique') return 'stock-ordinaire';
+  if (isTradable(t.availability) && t.availability !== 'exotique') return 'stock-ordinaire';
   return null;
 }
 
