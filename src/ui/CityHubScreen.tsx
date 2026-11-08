@@ -297,7 +297,7 @@ export function CityHubScreen({
       meta={{ time: gameTime, money }}
       actions={scene?.weather && <span className="city-hub-weather">· {libelleDeValeur(sceneWeatherSchema, scene.weather)}</span>}
       tabs={screenTabs.length > 1 ? <Tabs tabs={screenTabs} active={screenTab} onChange={setScreenTab} label={`Onglets de ${place.label}`} /> : undefined}
-      backdrop={place.backdrop ?? sel?.backdrop}
+      backdrop={place.backdrop?.id ?? sel?.backdrop}
       body="centered"
     >
       <div className="city-hub-body">

@@ -1,18 +1,18 @@
 /**
- * L'INVENTAIRE D'UN HÉROS PAR LE PONT (#3328) : hors combat, sous l'onglet des possessions de sa fiche, une possession
- * choisie dit ses gestes (`gestesDeLObjet`) ; chacun se joue par le pont comme Godot le joue et change la partie : une
+ * L'INVENTAIRE D'UN HÉROS PAR LE PONT (#3328) : hors combat, dans la section des possessions de sa fiche, une
+ * possession choisie dit ses gestes (`gestesDeLObjet`) ; chacun se joue par le pont comme Godot le joue et change la partie : une
  * armure ôtée puis portée, une arme lâchée puis reprise en main, un objet rangé dans un sac puis sorti, donné à un
  * autre héros, un consommable utilisé.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, suiteDe, table } from './pont.testkit';
+import { drainer, sectionDeLaFiche, suiteDe, table } from './pont.testkit';
 import type { Suite } from './pont';
 import type { Bouton, Choix, Entite, Jeu } from '../../../src/hote/elements';
 
 const { appel } = table();
 
 /** Les possessions de la fiche ouverte, chacune son bouton. */
-const possessions = (s: Suite): Bouton[] => s.vue.zones['fiche.corps'] as Bouton[];
+const possessions = (s: Suite): Bouton[] => sectionDeLaFiche(s.vue, 'possessions') as Bouton[];
 
 /** La possession choisie, en entité. */
 const choisie = (s: Suite): Entite | undefined => (s.vue.zones['fiche.objet'] as Entite[])[0];
@@ -40,7 +40,6 @@ describe('l’inventaire d’un héros par le pont', () => {
     while (s.vue.projection.fenetre) s = jouer(s.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu);
     const rosa = s.vue.zones['groupe.heros'].find((b) => b.libelle === 'Rosa Brandt')!;
     s = suiteDe(appel('fiche', rosa.jeu));
-    s = suiteDe(appel('fiche', s.vue.zones['fiche.gestes'].find((b) => b.id === 'onglet/possessions')!.jeu));
 
     s = choisir(s, 'Justaucorps de cuir');
     expect(choisie(s)?.ton, 'une armure portée se dit au ton d’une équipée').toBe('reussite');

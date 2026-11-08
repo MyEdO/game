@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { wornArmourPoints, ignoredArmourAP, impenetrableAt } from '../items';
-import { parseQualityInstance } from './normalize';
+import { parseQualityInstance } from '../../data/refFormatLivre';
 import type { Combatant, ItemInstance } from '../types';
 import { blessuresDeBase, blessuresSurLeProfil } from '../combattantDeTest.testkit';
 

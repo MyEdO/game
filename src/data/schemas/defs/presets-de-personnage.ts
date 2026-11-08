@@ -29,7 +29,7 @@ import { document, type EnveloppeDocument } from '../grammaire/document';
 import { nommerChamps } from '../grammaire/meta';
 import { recordDIds, ref, refs } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
-import { apparencesDObjetsSchema, emblemeSchema, mainSchema, sexeSchema, slotSchema } from '../grammaire/valeurs';
+import { apparencesDObjetsSchema, couleursSchema, emblemeSchema, mainSchema, sexeSchema } from '../grammaire/valeurs';
 import { findEnsembleParHabille, findVarianteById, piecesDeLObjet } from '../../index';
 import type { HabilleDEnsemble, TenueId } from './garde-robe';
 
@@ -51,7 +51,7 @@ const champs = {
   prises: z.partialRecord(mainSchema, ref('trapping', undefined, INSTANCIABLE_PAR_ID)).optional(),
   apparencesObjets: apparencesDObjetsSchema.optional(),
   embleme: emblemeSchema.optional(),
-  couleurs: z.partialRecord(slotSchema, ref('material', undefined, 'couleur')).optional(),
+  couleurs: couleursSchema.optional(),
 };
 
 const metaDesChampsDuPreset = {
