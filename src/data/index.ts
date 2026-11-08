@@ -1607,8 +1607,8 @@ export interface DetailsData {
 /**
  * SEMENCES d'une scène NEUVE (#1716) — ce que `emptyScene` (`noyau/monde/scene.ts`) pose à la création.
  * Chaque champ porte le TYPE du champ de scène qu'il alimente : une semence n'est pas un vocabulaire
- * parallèle, c'est la valeur de départ du champ homonyme. `terrain` est le seul sans homonyme —
- * c'est le sol dont la couche 0 est remplie.
+ * parallèle, c'est la valeur de départ du champ homonyme. Les champs sans homonyme sur la scène sont dits
+ * au schéma (`schemas/defs/semences-de-scene.ts`).
  */
 export interface SemencesDeSceneData {
   ambiance: z.infer<typeof ambianceSchema>;
@@ -1620,7 +1620,7 @@ export interface SemencesDeSceneData {
   reliefDefaults: ReliefDefaults;
   roofDefaults: SceneRoofDefaults;
   /** Structure d'un pan de façade posé à l'éditeur (`addFacadeSection`). */
-  facade: string;
+  facade: { id: string };
   /** Libellé d'un lieu posé sur la carte du monde (`ajouterLieu`). */
   lieu: string;
   /** Libellé d'une carte du monde neuve (`emptyWorldMap`). */

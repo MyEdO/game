@@ -64,7 +64,7 @@ describe('lumiereDeLaScene', () => {
 
   it('en immersion sous un toit, la brume d’intérieur, que la météo ne resserre pas', () => {
     const s: Scene = { ...emptyScene('scene-test', 8, 8), weather: 'brouillard' };
-    s.architecture = [{ id: 'maison', label: 'Maison', style: 'maison', storeys: [], facades: [], masses: [{ id: 'toit', z: 0, footprint: [{ x: 2, y: 2, w: 3, h: 3 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 45, material: 'tuile' }] }];
+    s.architecture = [{ id: 'maison', label: 'Maison', style: { id: 'maison' }, storeys: [], facades: [], masses: [{ id: 'toit', z: 0, footprint: [{ x: 2, y: 2, w: 3, h: 3 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 45, material: { id: 'tuile' } }] }];
     const dessous = lumiereDeLaScene({ ...etat(s, MIDI), partyPos: { x: 3, y: 3 } }, 'immersion');
     const dehors = lumiereDeLaScene({ ...etat(s, MIDI), partyPos: { x: 6, y: 6 } }, 'immersion');
     const salle = lumiereDeLaScene(etat({ ...emptyScene('scene-test', 4, 4), ambiance: 'interieur' }, MIDI), 'immersion');

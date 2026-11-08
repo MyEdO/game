@@ -630,7 +630,7 @@ function inspecteurDArchitecture(s: SessionDEdition): (Choix | Ligne | Bouton | 
       formulaireDuNom(corps.label, true),
       choix('corps/style', t('ecran.editeur.corps.style'), [
         bouton('corps/style/aucun', t('ecran.editeur.corps.style.aucun'), { geste: 'architecture', patch: { style: null } }, corps.style === undefined),
-        ...styles.map((m) => bouton(`corps/style/${m.id}`, m.label, { geste: 'architecture', patch: { style: m.id } }, corps.style === m.id)),
+        ...styles.map((m) => bouton(`corps/style/${m.id}`, m.label, { geste: 'architecture', patch: { style: { id: m.id } } }, corps.style?.id === m.id)),
       ], 'liste'),
       ligne('corps/etages', t('ecran.editeur.corps.etages', { n: corps.storeys.length, s: pluriel(corps.storeys.length) })),
       ...toitureDuCorps(scene, corps),
@@ -687,10 +687,10 @@ const choixDEgout = (id: string, cote: string | undefined, jeu: (c: (typeof COTE
 
 /** La couverture `material` : le bouton qui la fait suivre, s'il est donné (pressé sans couverture), puis chaque matière
  *  couvrante. */
-const choixDeCouverture = (id: string, material: string | undefined, jeu: (m: string) => GesteDEdition, suit: GesteDEdition | null): Choix =>
+const choixDeCouverture = (id: string, material: { id: string } | undefined, jeu: (m: { id: string }) => GesteDEdition, suit: GesteDEdition | null): Choix =>
   choix(id, t('ecran.editeur.toiture.couverture'), [
     ...(suit ? [bouton(`${id}/suit`, t('ecran.editeur.toiture.suit'), suit, material === undefined)] : []),
-    ...matieresCouvrantes().map((m) => bouton(`${id}/${m.id}`, m.label, jeu(m.id), material === m.id)),
+    ...matieresCouvrantes().map((m) => bouton(`${id}/${m.id}`, m.label, jeu({ id: m.id }), material?.id === m.id)),
   ], 'liste');
 
 /** La toiture du corps `corps` : celle qui s'applique, puis chaque champ de son intention, profil, côté d'égout d'un
@@ -700,7 +700,7 @@ function toitureDuCorps(scene: Scene, corps: Corps): (Choix | Ligne | Bouton)[] 
   const effective = toitureEffective(scene, corps);
   const rd = corps.roofDefaults;
   const sur = (toiture: Toiture): GesteDEdition => ({ geste: 'architecture', patch: { toiture } });
-  const couverture = matieresCouvrantes().find((m) => m.id === effective.material)?.label ?? effective.material;
+  const couverture = matieresCouvrantes().find((m) => m.id === effective.material.id)?.label ?? effective.material.id;
   return [
     ligne('toiture', t('ecran.editeur.toiture', { couverture, pente: effective.penteReference, comble: effective.riseMaxStoreys })),
     choix('toiture/profil', t('ecran.editeur.toiture.profil'), [

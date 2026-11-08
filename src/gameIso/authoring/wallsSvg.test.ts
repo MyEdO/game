@@ -142,7 +142,7 @@ describe('wallSvg — apparence de façade authorée', () => {
     s.walls = [{ x: 2, y: 2, side: 'E' }];
     s.architecture = [{
       id: 'corps-auberge',
-      style: 'taverne',
+      style: { id: 'taverne' },
       storeys: [],
       facades: [{
         id: 'facade-rue',
@@ -171,7 +171,7 @@ describe('wallSvg — apparence de façade authorée', () => {
     const s = emptyScene('scene-test', 6, 6);
     s.walls = [{ x: 2, y: 2, side: 'E' }];
     s.architecture = [{
-      id: 'corps', style: 'taverne', storeys: [], masses: [],
+      id: 'corps', style: { id: 'taverne' }, storeys: [], masses: [],
       facades: [{
         id: 'rue', z: 0, edges: [{ x: 2, y: 2, side: 'E' }], appearance: 'auberge-relais-imperiale',
         features: [
@@ -190,7 +190,7 @@ describe('wallSvg — apparence de façade authorée', () => {
     const s = emptyScene('scene-test', 6, 6);
     s.walls = [{ x: 2, y: 2, side: 'N' }];
     s.architecture = [{
-      id: 'corps', style: 'taverne', storeys: [], masses: [],
+      id: 'corps', style: { id: 'taverne' }, storeys: [], masses: [],
       facades: [{
         id: 'rue', z: 0, edges: [{ x: 2, y: 2, side: 'N' }], appearance: 'auberge-relais-imperiale',
         features: [{ id: 'pignon', kind: 'gable', edge: { x: 2, y: 2, side: 'N' }, width: 0.8 }],

@@ -15,7 +15,7 @@ import { nommerNoeud } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { enumNomme } from '../grammaire/valeurs';
-import { idDe, ref } from '../grammaire/ref';
+import { ref } from '../grammaire/ref';
 
 export const file = 'buildings.json';
 export const famille = 'entite';
@@ -31,7 +31,7 @@ const doc = document(
   'buildings',
   famille,
   {
-    roofMaterial: idDe('material', 'roof'),
+    roofMaterial: ref('material', undefined, 'roof'),
     features: z.array(ref('prop', { anchor: nommerNoeud(buildingAnchorSchema, { nom: 'ancrage' }) })).optional(),
   },
   {

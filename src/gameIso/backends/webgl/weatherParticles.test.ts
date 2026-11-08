@@ -36,14 +36,14 @@ const masse = (patch: Partial<BuildingMass> = {}): BuildingMass => ({
   profile: 'gable',
   ridge: 'x',
   pitchDeg: 45,
-  material: 'tuile',
+  material: { id: 'tuile' },
   ...patch,
 });
 
 const sceneAvecToit = (masses: BuildingMass[]): Scene => {
   const scene = emptyScene('scene-test', 12, 12);
   scene.weather = 'pluie';
-  scene.architecture = [{ id: 'corps', label: 'Corps', style: 'maison', storeys: [], facades: [], masses }];
+  scene.architecture = [{ id: 'corps', label: 'Corps', style: { id: 'maison' }, storeys: [], facades: [], masses }];
   return scene;
 };
 
@@ -249,7 +249,7 @@ describe('Semis de précipitation — la DENSITÉ AU SOL ne dépend pas du bâti
   const carte = (masses: BuildingMass[]): Scene => {
     const scene = emptyScene('scene-test', 16, 16);
     scene.weather = 'pluie';
-    scene.architecture = [{ id: 'corps', label: 'Corps', style: 'maison', storeys: [], facades: [], masses }];
+    scene.architecture = [{ id: 'corps', label: 'Corps', style: { id: 'maison' }, storeys: [], facades: [], masses }];
     return scene;
   };
   /** Une halle de 8×8 cases — le quart de la carte sous un même toit. */

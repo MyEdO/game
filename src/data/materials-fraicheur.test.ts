@@ -71,8 +71,8 @@ describe('matières — toute vue du document est VIVANTE (aucun index figé à 
       ...emptyScene('scene-test'),
       id: 'toiture', label: 'Toiture',
       architecture: [{
-        id: 'corps', style: 'colombage', storeys: [], facades: [],
-        masses: [{ id: 'toit', z: 0, footprint: [{ x: 0, y: 0, w: 2, h: 2 }], levels: 1, profile: 'gable', pitchDeg: 40, material: materiau, ridge: 'x' }],
+        id: 'corps', storeys: [], facades: [],
+        masses: [{ id: 'toit', z: 0, footprint: [{ x: 0, y: 0, w: 2, h: 2 }], levels: 1, profile: 'gable', pitchDeg: 40, material: { id: materiau }, ridge: 'x' }],
       }],
     });
     const erreursDeCouverture = (materiau: string) =>

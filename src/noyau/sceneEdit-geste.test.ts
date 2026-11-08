@@ -110,7 +110,7 @@ describe('architecture — la convention du noyau', () => {
   it('un pan de façade sans structure nommée reçoit celle de la semence', () => {
     const corps = addArchitectureBody(vide(), undefined, { x: 0, y: 0, w: 1, h: 1 });
     const out = addFacadeSection(corps.scene, corps.id, { x: 0, y: 0, side: 'N' })!;
-    expect(out.scene.architecture![0].facades[0].appearance).toBe(semencesDeScene.facade);
+    expect(out.scene.architecture![0].facades[0].appearance).toBe(semencesDeScene.facade.id);
   });
 });
 

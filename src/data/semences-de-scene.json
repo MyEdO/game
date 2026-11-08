@@ -23,11 +23,15 @@
     }
   },
   "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+      "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
   },
-  "facade": "mur-a-ossature-en-bois",
+  "facade": {
+    "id": "mur-a-ossature-en-bois"
+  },
   "lieu": "Nouveau lieu",
   "carte": "Carte du monde",
   "profil": "Profil personnalisé"

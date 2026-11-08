@@ -72,7 +72,7 @@ function authoredGable(pitch = 0.5): RoofEl[] {
   const scene = emptyScene('scene-test', 10, 10);
   scene.architecture = [{
     id: 'corps',
-    style: 'maison',
+    style: { id: 'maison' },
     storeys: [],
     facades: [],
     masses: [{
@@ -83,7 +83,7 @@ function authoredGable(pitch = 0.5): RoofEl[] {
       profile: 'gable',
       ridge: 'x',
       pitchDeg: pitchDegFor(pitch),
-      material: 'tuile',
+      material: { id: 'tuile' },
     }],
   }];
   return buildRoofs(scene);
@@ -93,7 +93,7 @@ function authoredProfile(profile: 'hip' | 'shed', ridge: 'x' | 'y'): RoofEl[] {
   const scene = emptyScene('scene-test', 10, 10);
   scene.architecture = [{
     id: 'corps',
-    style: 'maison',
+    style: { id: 'maison' },
     storeys: [],
     facades: [],
     masses: [{
@@ -105,7 +105,7 @@ function authoredProfile(profile: 'hip' | 'shed', ridge: 'x' | 'y'): RoofEl[] {
       ridge,
       ...(profile === 'shed' ? { eaveSide: (ridge === 'x' ? 'N' : 'O') as 'N' | 'O' } : {}),
       pitchDeg: pitchDegFor(0.5),
-      material: 'tuile',
+      material: { id: 'tuile' },
     }],
   }];
   return buildRoofs(scene);
@@ -359,8 +359,8 @@ describe('roofDepth — une fermeture de comble passe sous le retour d’égout 
     const s = emptyScene('scene-test', 16, 16);
     s.walls = [4, 8].flatMap((x) => [3, 4].map((y) => ({ x, y, side: 'E' as const, structure: 'mur-en-bois' })));
     s.architecture = [{
-      id: 'corps', style: 'maison', storeys: [], facades: [],
-      masses: [{ id: 'nef', z: 0, footprint: [{ x: 5, y: 3, w: 4, h: 2 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 40, material: 'tuile' }],
+      id: 'corps', style: { id: 'maison' }, storeys: [], facades: [],
+      masses: [{ id: 'nef', z: 0, footprint: [{ x: 5, y: 3, w: 4, h: 2 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 40, material: { id: 'tuile' } }],
     }];
     return s;
   })();
