@@ -14,7 +14,11 @@
  * racine `root` d'un dataset : le def dit son fichier, le registre dit d'où il vient).
  * `json` (option PAR registre) : les entrées sont les fichiers `.json` de tout l'arbre de `dir`, pas des modules de
  * def ; le registre est l'objet `{ <chemin relatif à dir>: <document> }`, sans `type` ni `typeFrom`.
- * @type {{ dir:string, out:string, exportName?:string, arrayName:string, type?:string, typeFrom?:string, importDir?:string, idUnion?:{ typeName:string, field:string, out?:string }, fields?:string[], constFields?:Record<string,string>, json?:true }[]}
+ * `vocabulaire` (option PAR registre, #2968 P-art) : la table `id → libellé` de ses defs, lue aux champs
+ * littéraux `id` et `libelle` (`vocabulaireDuRegistre`, `scripts/gen-registry.mjs`), s'écrit sous `nom` dans
+ * `SORTIE_VOCABULAIRES_D_ART` : un VOCABULAIRE (`src/data/schemas/grammaire/vocabulaires.ts`), donc l'espace
+ * `vocabulaire:<nom>` de l'index des ids, que `TYPES` (`src/data/schemas/grammaire/ref.ts`) peut déclarer.
+ * @type {{ dir:string, out:string, exportName?:string, arrayName:string, type?:string, typeFrom?:string, importDir?:string, idUnion?:{ typeName:string, field:string, out?:string }, vocabulaire?:{ nom:string, id:string, libelle:string }, fields?:string[], constFields?:Record<string,string>, json?:true }[]}
  */
 export const REGISTRIES = [
   {
@@ -55,6 +59,7 @@ export const REGISTRIES = [
     arrayName: 'BACKDROP_DEFS',
     type: 'BackdropDef',
     typeFrom: './types',
+    vocabulaire: { nom: 'fonds', id: 'id', libelle: 'label' },
   },
   {
     // Sons (assets CC0 Kenney dans public/audio) : 1 son (avec variantes) = 1 fichier defs/.
@@ -110,8 +115,12 @@ export const SORTIES_DES_ESPACES = {
   racines: 'src/data/schemas/_racines-vivantes.generated.ts',
 };
 
+/** La sortie des VOCABULAIRES D'ART (option `vocabulaire`), écrite par la phase 1, que lisent
+ *  `grammaire/vocabulaires.ts` et `grammaire/ref.ts`. */
+export const SORTIE_VOCABULAIRES_D_ART = 'src/data/schemas/_vocabulaires-d-art.generated.ts';
+
 /** Tous les fichiers que ce générateur écrit EN ENTIER, phase 2 comprise — ses cibles dans `GENERATORS` (build-all.mjs). */
-export const SORTIES = [...REGISTRIES.flatMap((r) => [r.out, ...(r.idUnion?.out ? [r.idUnion.out] : [])]), ...Object.values(SORTIES_DES_ESPACES)];
+export const SORTIES = [...REGISTRIES.flatMap((r) => [r.out, ...(r.idUnion?.out ? [r.idUnion.out] : [])]), SORTIE_VOCABULAIRES_D_ART, ...Object.values(SORTIES_DES_ESPACES)];
 
 export const SORTIE_FORMATS = 'src/noyau/persistance/formats.generated.ts'
 

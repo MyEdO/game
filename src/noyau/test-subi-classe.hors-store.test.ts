@@ -192,7 +192,7 @@ function jouerParSaPorte(n: Noeud, sujet: Combatant, issue: boolean, branchesVid
       if (!it) return { jouee: false, poses };
       it.uid = 'sonde-1';
       set({ party: get().party.map((c) => (c.id === 'h3' ? { ...c, items: [...(c.items ?? []), it] } : c)) as never });
-      get().utiliserLObjet('h3', 'sonde-1');
+      get().utiliserLObjet('sonde-1');
       return { jouee: true, poses };
     }
     default: {

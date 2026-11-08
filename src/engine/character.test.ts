@@ -278,6 +278,17 @@ describe('createHero — applique compétences et talents raciaux', () => {
   });
 });
 
+describe('createHero — sorts de Magie mineure par id (LDB 10 l.714)', () => {
+  const sorcier = (pettySpells: string[]) => createHero({ idNeuf: idsDeTest, speciesId: REIK, careerId: 'sorcier', label: 'S', seed: 3, careerTalent: { id: 'magie-mineure' }, pettySpells });
+  it('un sort mineur choisi est appris par son id', () => {
+    expect(sorcier(['alerte']).spells).toContain('alerte');
+  });
+  it('un id hors des sorts mineurs lève, nommé, au lieu de s’écrire sur le héros', () => {
+    expect(() => sorcier(['zorglub'])).toThrow(/« zorglub »/);
+    expect(() => sorcier(['benediction-de-bataille'])).toThrow(/« benediction-de-bataille »/);
+  });
+});
+
 describe('createHero — Trait racial + Taille par talent (#572)', () => {
   it('un héros Ogre porte le trait racial `ogre` (encombrance/consommation ×2) et sa Taille est Grande', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'ogres', careerId: 'ratier', label: 'Grosminet', seed: 3 });

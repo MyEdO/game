@@ -33,6 +33,7 @@ import {
   specPoolOf,
   talents as talentTable,
   especeDApparence,
+  findSpellById,
   type AdvancementRef,
 } from '../data';
 import type { RefDesignee, RefASpecialisation } from '../data/schemas/grammaire/ref';
@@ -505,6 +506,8 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   // Sorts de Magie mineure (LDB 10 l.714), après les Bénédictions déjà octroyées par
   // `applyTalentAcquisition`.
   const quota = pettySpellQuotaFor(hero);
+  const horsMagieMineure = (opts.pettySpells ?? []).filter((id) => findSpellById(id)?.family !== 'mineure');
+  if (horsMagieMineure.length) throw new Error(`Sorts de Magie mineure « ${horsMagieMineure.join(', ')} » : absents du catalogue des sorts mineurs (LDB 10 l.714).`);
   if (quota && opts.pettySpells?.length) {
     const appris = opts.pettySpells.slice(0, quota).filter((id) => !(hero.spells ?? []).includes(id));
     hero.spells = [...(hero.spells ?? []), ...appris];

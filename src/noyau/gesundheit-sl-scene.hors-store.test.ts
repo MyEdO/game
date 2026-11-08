@@ -48,7 +48,7 @@ describe('Gesundheit hors combat (#458) — le DR du Test de scène atteint redu
     giveItem(h, 'gesundheit', 'g1');
     banc.setState({ party: [h] });
 
-    banc.getState().utiliserLObjet('h1', 'g1');
+    banc.getState().utiliserLObjet('g1');
     const pt = banc.getState().pendingTest!;
     expect(pt).toBeTruthy();
     expect(pt.actorId).toBe('h1');
@@ -66,7 +66,7 @@ describe('Gesundheit hors combat (#458) — le DR du Test de scène atteint redu
     giveItem(h, 'gesundheit', 'g1');
     banc.setState({ party: [h] });
 
-    banc.getState().utiliserLObjet('h1', 'g1');
+    banc.getState().utiliserLObjet('g1');
     const pt = banc.getState().pendingTest!;
     const before = banc.getState().party.find((c) => c.id === 'h1')!.diseases![0].minutesLeft;
     banc.setState({ pendingTest: { ...pt, roll: 1, success: true, sl: 0 } });

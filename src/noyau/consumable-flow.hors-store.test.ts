@@ -44,7 +44,7 @@ describe('belladone (LDB 72 l.18) — Test au boire RESTREINT au buveur, sommeil
     giveItem(h2, 'belladone', 'bel1');
     banc.setState({ party: [h1, h2] });
 
-    banc.getState().utiliserLObjet('h2', 'bel1');
+    banc.getState().utiliserLObjet('bel1');
     const pt = banc.getState().pendingTest!;
     expect(pt).toBeTruthy();
     expect(pt.actorId).toBe('h2'); // restreint au buveur (pas partyBest)
@@ -76,7 +76,7 @@ describe('belladone (LDB 72 l.18) — Test au boire RESTREINT au buveur, sommeil
     const h2 = hero('h2');
     giveItem(h2, 'belladone', 'bel1');
     banc.setState({ party: [h2] });
-    banc.getState().utiliserLObjet('h2', 'bel1');
+    banc.getState().utiliserLObjet('bel1');
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 1, success: true, sl: 3 } });
     banc.getState().jetValider('test');
     expect(banc.getState().scheduledEffects).toHaveLength(0);
@@ -88,7 +88,7 @@ describe('mystracine (LDB 71 l.33) — durée « 1d10 × 10 minutes » bakée, p
     const h = hero('h1');
     giveItem(h, 'mystracine', 'mys1');
     banc.setState({ party: [h] });
-    banc.getState().utiliserLObjet('h1', 'mys1');
+    banc.getState().utiliserLObjet('mys1');
     const p = banc.getState().party.find((c) => c.id === 'h1')!;
     const fx = (p.activeEffects ?? []).filter((e) => e.testModChar);
     expect(fx).toHaveLength(5); // +10 E/FM, −10 Ag/I/Int (LDB 71 l.33)
@@ -107,7 +107,7 @@ describe('bonnet-de-fou (LDB 71 l.20) — +4 Blessures (attrMod exécutable) + p
     giveItem(h, 'bonnet-de-fou', 'bf1');
     banc.setState({ party: [h] });
     const maxBefore = h.wounds.max;
-    banc.getState().utiliserLObjet('h1', 'bf1');
+    banc.getState().utiliserLObjet('bf1');
     const p = banc.getState().party.find((c) => c.id === 'h1')!;
     // « +4 Blessures » au total, Force +10 comprise (#3060).
     expect((p.activeEffects ?? []).find((e) => e.attrMods?.wounds)?.attrMods?.wounds).toBe(4);

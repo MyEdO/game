@@ -6,7 +6,7 @@ import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, witnessRow, type BuiltRollRow } from './rollRowBuild';
 import { opposedLines } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
-import { ev } from '../noyau/combatLog';
+import { evDEtat } from '../noyau/combatLog';
 import { describeStateRecovery } from '../noyau/flowOutcomes';
 import { remedeDeLEtat } from '../noyau/actionRegistry';
 import { conditionLabel } from '../data';
@@ -84,7 +84,7 @@ export function StateRecoveryModalView({
       subtitle={<>{sub} · {sr.stacks} pion{sr.stacks > 1 ? 's' : ''}</>}
       rows={witness ? [actorRow, witness] : [actorRow]}
       rolled={rolled}
-      outcome={rolled ? [recapLineOfEvent(ev('condition', describeStateRecovery(sr, sr.actorName), sr.actorId))] : undefined}
+      outcome={rolled ? [recapLineOfEvent(evDEtat(sr.state, describeStateRecovery(sr, sr.actorName), sr.actorId))] : undefined}
       actions={actions}
       onCancel={rolled ? undefined : onCancel}
     />

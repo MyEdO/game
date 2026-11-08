@@ -18,8 +18,9 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { estFichierVitest, estKitDeTest } from './guards/lib/fichierVitest.mjs';
 import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs';
+import { litteralJs } from './guards/lib/litteralJs.mjs';
 
-import { REGISTRIES } from './docs/lib/cibles-registres.mjs';
+import { REGISTRIES, SORTIE_VOCABULAIRES_D_ART } from './docs/lib/cibles-registres.mjs';
 export { REGISTRIES, SORTIES_DES_ESPACES, SORTIES } from './docs/lib/cibles-registres.mjs';
 
 
@@ -193,6 +194,46 @@ export function unionDesIds(dir, files, field) {
   return [...new Set(ids)].sort();
 }
 
+/**
+ * VOCABULAIRE D'ART d'un registre (option `vocabulaire`, #2968 P-art) : `{ id: libellé }` des defs de `dir`,
+ * dans l'ordre de ses modules (`modulesDeDefs`). Chaque def porte EXACTEMENT un `id` et un libellé
+ * littéraux (`champsLitteraux`) ; un id que deux defs déclarent LÈVE en les nommant.
+ * @param {string} dir @param {{ id: string, libelle: string }} vocabulaire @returns {Record<string, string>}
+ */
+export function vocabulaireDuRegistre(dir, { id, libelle }) {
+  const table = new Map();
+  for (const f of modulesDeDefs(dir)) {
+    const def = join(dir, f);
+    const src = readFileSync(def, 'utf8');
+    const [cle] = champsLitteraux(src, id, def, 'un');
+    const [nom] = champsLitteraux(src, libelle, def, 'un');
+    if (table.has(cle)) throw new Error(`gen-registry: ${def} : l'id « ${cle} » est déjà déclaré par ${table.get(cle).def}.`);
+    table.set(cle, { nom, def });
+  }
+  return Object.fromEntries([...table].map(([cle, { nom }]) => [cle, nom]));
+}
+
+/** Le module des VOCABULAIRES D'ART (`SORTIE_VOCABULAIRES_D_ART`) : la table de chaque registre à option
+ *  `vocabulaire`, et le dossier de defs qui la porte. */
+function renduDesVocabulairesDArt() {
+  const registres = REGISTRIES.filter((r) => r.vocabulaire);
+  return (
+    `// GÉNÉRÉ par scripts/gen-registry.mjs — NE PAS ÉDITER À LA MAIN.\n` +
+    `// Régénérer : \`npm run gen\` (option \`vocabulaire\` d'un registre, scripts/docs/lib/cibles-registres.mjs).\n\n` +
+    `/** VOCABULAIRES D'ART : la table \`id → libellé\` de chaque registre qui en déclare un, lue à ses defs — des\n` +
+    ` *  VOCABULAIRES (\`grammaire/vocabulaires.ts\`). */\n` +
+    `export const VOCABULAIRES_D_ART = {\n` +
+    registres
+      .map((r) => `  ${litteralJs(r.vocabulaire.nom)}: {\n${Object.entries(vocabulaireDuRegistre(r.dir, r.vocabulaire)).map(([cle, nom]) => `    ${litteralJs(cle)}: ${litteralJs(nom)},\n`).join('')}  },\n`)
+      .join('') +
+    `} as const;\n\n` +
+    `/** Le dossier de defs de chaque vocabulaire d'art : le registre que nomme le refus d'une référence (\`refMorte\`). */\n` +
+    `export const REGISTRE_DU_VOCABULAIRE_D_ART: Readonly<Record<string, string>> = {\n` +
+    registres.map((r) => `  ${litteralJs(r.vocabulaire.nom)}: ${litteralJs(r.dir)},\n`).join('') +
+    `};\n`
+  );
+}
+
 /** Un processus enfant `node --import tsx <args>` à la racine du dépôt : la PHASE 2 (`scripts/gen-espaces.mts`)
  *  parse les documents par leurs schémas TypeScript. */
 const sousTsx = (args, options) =>
@@ -216,6 +257,7 @@ export function rendre() {
     rendu.set(r.out, c.body);
     if (c.union) rendu.set(c.union.out, c.union.body);
   }
+  rendu.set(SORTIE_VOCABULAIRES_D_ART, renduDesVocabulairesDArt());
   for (const [chemin, texte] of espacesRendus()) rendu.set(chemin, texte);
   return rendu;
 }
@@ -276,6 +318,10 @@ export function genAll(verbose = false, { check = false } = {}) {
   if (!verbose && unchangedCount > 0) {
     console.log(`gen-registry: ${unchangedCount} registre${unchangedCount > 1 ? 's' : ''} à jour`);
   }
+  jouer(() => {
+    const changed = !ecrireOuVerifier({ out: renduDesVocabulairesDArt(), path: SORTIE_VOCABULAIRES_D_ART, check, ...MESSAGES_DE(SORTIE_VOCABULAIRES_D_ART) });
+    if (changed || verbose) console.log(libelle('VOCABULAIRES_D_ART', SORTIE_VOCABULAIRES_D_ART, changed));
+  });
   genEspaces(verbose, check);
 }
 

@@ -22,6 +22,8 @@ export interface CombatEvent {
   text: string;
   actorId?: string;
   targetId?: string;
+  /** L'État que nomme un évènement `condition`, par son id. #1330 */
+  etat?: string;
 }
 
 /** Télégraphe d'intention d'un combattant IA (réticule + ligne sur la carte) : qui vise qui, et de
@@ -37,6 +39,11 @@ export interface ActorAim {
 /** Construit un événement. */
 export function ev(kind: CombatEventKind, text: string, actorId?: string, targetId?: string): CombatEvent {
   return { kind, text, actorId, targetId };
+}
+
+/** L'évènement `condition` de la ligne `text`, qui nomme l'État `etat`. */
+export function evDEtat(etat: string, text: string, actorId?: string): CombatEvent {
+  return { kind: 'condition', text, actorId, etat };
 }
 
 /**
@@ -111,19 +118,19 @@ const IMPORTANT: Set<CombatEventKind> = new Set([
   'defensive', 'aim', 'focus', 'frenzy', 'crit', 'fear', 'death', 'round',
 ]);
 
-/** Un évènement `condition`/`detail` est important s'il applique un État INCAPACITANT (Sonné, À terre…
- *  — sévérité ≥ 50, `conditionSeverity`). Le texte est en FRANÇAIS (journal) : l'État nommé se retrouve
- *  par `conditionIdInText` (`engine/conditions`, scan UNIQUE partagé avec la bannière),
- *  et tout ce qui suit ne manipule qu'un id. */
-function isImportantConditionText(text: string): boolean {
-  const id = conditionIdInText(text);
+/** Un évènement `condition` est important s'il nomme un État INCAPACITANT (Sonné, À terre…
+ *  — sévérité ≥ 50, `conditionSeverity`). L'État est son `etat` ; un évènement d'un site encore sans id le
+ *  retrouve dans son texte (`conditionIdInText`, scan partagé avec la bannière, stock de
+ *  `condition-event-counter.test.ts`, #1330). */
+function isImportantCondition(e: CombatEvent): boolean {
+  const id = e.etat ?? conditionIdInText(e.text);
   return id !== undefined && conditionSeverity(id) >= 50;
 }
 
 /** Un évènement est-il un « temps fort » (bandeau haut ET cadence) ? */
 export function isImportantEvent(e: CombatEvent): boolean {
   if (IMPORTANT.has(e.kind)) return true;
-  if (e.kind === 'condition') return isImportantConditionText(e.text);
+  if (e.kind === 'condition') return isImportantCondition(e);
   return false;
 }
 

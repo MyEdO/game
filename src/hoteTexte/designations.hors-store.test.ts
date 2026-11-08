@@ -64,11 +64,10 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     const [pretire] = refuseLId(t, verbe('recruterLeHeros', { pretire: 'nobody' }), /heros\.pretire : "nobody" n’est pas un id de pré-tiré \(valides : /);
     passeLeControle(t, verbe('recruterLeHeros', { pretire }));
   });
-  it('porteur et objet : `equiperLObjet`', { timeout: 120_000 }, () => {
+  it('objet : `equiperLObjet`, son porteur lu dans l’état', { timeout: 120_000 }, () => {
     const t = partie('revisit');
-    const [heros] = refuseLId(t, verbe('equiperLObjet', 'nobody', 'x'), /heroId : "nobody" n’est pas un id de porteur \(valides : /);
-    const [objet] = refuseLId(t, verbe('equiperLObjet', heros, 'nobody'), /uid : "nobody" n’est pas un id d’objet \(valides : /);
-    const r = t.jouer(verbe('equiperLObjet', heros, objet));
+    const [objet] = refuseLId(t, verbe('equiperLObjet', 'nobody'), /uid : "nobody" n’est pas un id d’objet \(valides : /);
+    const r = t.jouer(verbe('equiperLObjet', objet));
     expect(r.erreur, r.texte).toBeNull();
   });
   it('possession : `renommerLaPossession`, aucune ici', { timeout: 120_000 }, () => {

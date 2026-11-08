@@ -3,7 +3,7 @@
  * parcours sur les carrières réelles du Livre de base.
  */
 import { describe, it, expect } from 'vitest';
-import { carriereActuelle, parcoursRetouche, porterAuParcours, refusDuParcours, type ParcoursDeCarriere } from './pnjDeCarriere';
+import { carriereActuelle, parcoursRetouche, porterAuParcours, refusDuParcours, talentsDuParcours, type ParcoursDeCarriere } from './pnjDeCarriere';
 import { combattantDeTest } from './combattantDeTest.testkit';
 import { actorStatus } from './social';
 import { adresseDeCreation } from './adresseDeCreation';
@@ -60,6 +60,39 @@ describe('au moins un Talent par Niveau atteint (EDO 11 l.19)', () => {
   });
   it('le tirage suit la graine : le même porteur tire les mêmes Talents', () => {
     expect(porte({ carrieres: { medecin: 3 } }, 'a').talents).toEqual(porte({ carrieres: { medecin: 3 } }, 'a').talents);
+  });
+});
+
+describe('ce qu’un Talent ajoute aux carrières est de carrière dès le Niveau où il est pris (LDB 10 l.70, l.467, l.745, l.891 ; arbitrage du 2026-11-08, #773)', () => {
+  const voyageur = (carrieres: ParcoursDeCarriere['carrieres']) => porte({ carrieres, talentsDeCarriere: { flagellant: [{ id: 'voyageur-aguerri' }] } });
+  it('Voyageur aguerri pris au Niveau 3 du Flagellant : Savoir (Région) reçoit +5 aux Niveaux 3 et 4, puis à chaque Niveau des carrières suivantes', () => {
+    expect(avances(voyageur({ flagellant: 3 }), 'savoir', 'region')).toBe(5);
+    expect(avances(voyageur({ flagellant: 4 }), 'savoir', 'region')).toBe(10);
+    expect(avances(voyageur({ flagellant: 4, soldat: 2 }), 'savoir', 'region')).toBe(20);
+    expect(avances(porte({ carrieres: { flagellant: 2, soldat: 2 } }), 'savoir', 'region')).toBeUndefined();
+  });
+  it('un Talent tenu avant le parcours ajoute dès le Niveau 1 ; une Compétence « au choix » ajoutée reçoit une spécialisation', () => {
+    const tenu = (talentId: string) => {
+      const c = combattantDeTest({ id: 'pnj', talents: [{ talentId, times: 1 }] });
+      porterAuParcours(c, { carrieres: { medecin: 2 } });
+      return c;
+    };
+    expect(avances(tenu('voyageur-aguerri'), 'savoir', 'region')).toBe(10);
+    expect(tenu('artiste').skills.filter((s) => s.id === 'art').map((s) => [typeof s.spec, s.advances])).toEqual([['string', 10]]);
+  });
+  const flagellant: ParcoursDeCarriere = { carrieres: { flagellant: 2, soldat: 2 }, talentsDeCarriere: { flagellant: [{ id: 'lire-ecrire' }, { id: 'flagellant' }], soldat: [{ id: 'frenesie' }] } };
+  it('Frénésie, ajoutée par Flagellant, est un Talent offert des Niveaux suivants : l’auteur la choisit au Soldat', () => {
+    expect(refusDuParcours(flagellant)).toBeUndefined();
+    expect(talentsDuParcours(flagellant).niveaux.soldat.map((n) => n.offerts.includes('frenesie'))).toEqual([true, true]);
+    expect(refusDuParcours({ carrieres: { soldat: 2 }, talentsDeCarriere: { soldat: [{ id: 'frenesie' }] } })).toMatch(/frenesie/);
+    expect(parcoursRetouche({ ...flagellant, talentsDeCarriere: { soldat: [{ id: 'frenesie' }] } }).talentsDeCarriere).toBeUndefined();
+    expect(porte(flagellant).talents.map((t) => t.talentId)).toContain('frenesie');
+  });
+  it('sans choix de l’auteur, Frénésie compte parmi les Talents tirés aux Niveaux du Soldat qui suivent Flagellant', () => {
+    const tirent = (talents: ParcoursDeCarriere['talentsDeCarriere']) => Array.from({ length: 30 }, (_, i) => porte({ carrieres: { flagellant: 2, soldat: 2 }, talentsDeCarriere: talents }, `pnj-${i}`))
+      .filter((c) => c.talents.some((t) => t.talentId === 'frenesie')).length;
+    expect(tirent({ flagellant: [{ id: 'lire-ecrire' }, { id: 'flagellant' }] })).toBeGreaterThan(0);
+    expect(tirent({ flagellant: [{ id: 'lire-ecrire' }, { id: 'endurci' }] })).toBe(0);
   });
 });
 

@@ -139,8 +139,8 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   focaliserLeSort: (lanceurId: IdDeCombattant, spellId: IdDeSort) => void;
   /** Dissipe le Sort permanent `spellId` que porte `porteurId`, pour l'Action de `lanceurId` (LDB 46 l.158-162). */
   dissiperLeSort: (lanceurId: IdDeCombattant, spellId: IdDeSort, porteurId: IdDeCombattant) => void;
-  /** Le porteur `porteurId` utilise le consommable `uid` de son inventaire, Action gratuite (LDB 13 l.106). */
-  utiliserLObjet: (porteurId: IdDePorteur, uid: IdDObjet) => void;
+  /** Le porteur du consommable `uid` (`porteurDeLObjet`) l'utilise, Action gratuite (LDB 13 l.106). */
+  utiliserLObjet: (uid: IdDObjet) => void;
   /** Prend le set d'armes `loadoutId` de `heroId`, Action gratuite (LDB 13 l.106), 1×/tour en combat. */
   prendreLaPanoplie: (heroId: IdDeHeros, loadoutId: IdDePanoplie) => void;
   /** Dépense un Point de Détermination de `combattantId` pour l'une de ses trois options, l'État `etat` pour le
@@ -215,17 +215,17 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  transférée au siège qui possédait `oldId` ; ne touche pas la bourse) — créateur (édition) et bouton « Remplacer »
    *  du slot. */
   remplacerLeHeros: (oldId: IdDeHeros, heros: HerosEngage) => void;
-  equiperLObjet: (heroId: IdDePorteur, uid: IdDObjet) => void;
-  /** Range (`containerUid`) ou sort (null) un objet d'un héros d'un contenant (LDB 64). */
-  rangerLObjet: (heroId: IdDePorteur, uid: IdDObjet, containerUid: IdDObjet | null) => void;
+  equiperLObjet: (uid: IdDObjet) => void;
+  /** Range (`containerUid`) ou sort (null) un objet de son porteur d'un contenant (LDB 64). */
+  rangerLObjet: (uid: IdDObjet, containerUid: IdDObjet | null) => void;
   creerLaPanoplie: (heroId: IdDeHeros) => void;
   supprimerLaPanoplie: (heroId: IdDeHeros, loadoutId: IdDePanoplie) => void;
   garnirLaPanoplie: (heroId: IdDeHeros, loadoutId: IdDePanoplie, slot: 'main' | 'off', uid: IdDObjet | null) => void;
-  /** Donne un objet d'un héros à un autre (transfert d'inventaire). Arrive NON équipé chez le
+  /** Donne un objet de son porteur à `toHeroId` (transfert d'inventaire). Arrive NON équipé chez le
    *  destinataire ; recalcule les deux loadouts. Permet de confier une arme/armure au bon porteur. */
-  transmettreLObjet: (uid: IdDObjet, fromHeroId: IdDePorteur, toHeroId: IdDePorteur) => void;
+  transmettreLObjet: (uid: IdDObjet, toHeroId: IdDePorteur) => void;
   /** Choisit un id du catalogue d’apparences admis par l’objet ; le défaut retire la clé (#2113). */
-  poserLApparence: (heroId: IdDeHeros, uid: IdDObjet, apparence: IdDApparence) => void;
+  poserLApparence: (uid: IdDObjet, apparence: IdDApparence) => void;
   /** Achète une Augmentation de Caractéristique (coût in/hors-carrière auto, recalc Blessures). */
   acheterLaCaracteristique: (heroId: IdDeHeros, char: CharKey) => void;
   /** Achète une Augmentation de Compétence (identité skillId+spec) ; acquiert la Compétence de
@@ -246,7 +246,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Ouvre la fin de séance depuis le menu de jeu : refusée et dite hors exploration et chez l'invité (`refusDeFinDeSeance`). */
   ouvrirLaFinDeSeance: () => void;
   /** Entraîne une prothèse portée par dépense de PX (Fausse jambe → réapprendre l'Esquive, 200 PX, LDB 73). */
-  entrainerLaProthese: (heroId: IdDeHeros, uid: IdDObjet) => void;
+  entrainerLaProthese: (uid: IdDObjet) => void;
   /** Change de Carrière/Niveau (validation LDB 07 l.137 / LDB 08 : complétion, +100 hors Classe). */
   changerDeCarriere: (heroId: IdDeHeros, newCareer: IdDeCarriere, newLevel: number) => void;
   /** Le clic de la case `pt`, sur ce que le geste y désigne (`entite`), le combat lu dans `battle`. En combat, un
@@ -311,12 +311,12 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   vendreLeLot: () => void;
   /** Réparation chez l'artisan : remet damageTaken à 0 contre le coût unifié — armure 10 %/PA (LDB 63 l.64)
    *  ou arme 10 %/point de Dégâts (LDB 62 l.135). Arme improvisée = irréparable. */
-  reparerLObjet: (uid: IdDObjet, heroId: IdDeHeros) => void;
+  reparerLObjet: (uid: IdDObjet) => void;
   /** Marchandage (LDB 59 l.43) : ouvre un Test opposé (1/visite) ; réduit ensuite les prix (`bargainBuyFactor`). */
   marchanderLePrix: (mode: 'buy' | 'sell') => void;
   /** Évaluation (LDB 59 l.41) : Test d'Évaluation (Int) ; un succès révèle l'objet + estime son prix.
    *  `mode:'detect'` = Détection d'artefact (LDB 10) : Intuition au toucher, une tentative par objet. */
-  evaluerLObjet: (uid: IdDObjet, heroId: IdDeHeros, mode?: 'evaluate' | 'detect') => void;
+  evaluerLObjet: (uid: IdDObjet, mode?: 'evaluate' | 'detect') => void;
 
   /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients, actes
    *  (Guérison/Hémorragie/Déchirure/Chirurgie) ; le PNJ payant s'ouvre par l'effet `medicalAid`. */

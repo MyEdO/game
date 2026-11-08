@@ -2,13 +2,14 @@
  * LE PNJ DE CARRIÈRE (#773) : un profil de base, celui du Bestiaire ou son tirage, porté au Niveau atteint d'une ou
  * plusieurs carrières. EDO 11 l.17-21 ; arbitrages R1-R4 au ticket #773 (2026-11-08). L'auteur choisit les Talents,
  * les Compétences des emplacements à choix et les dotations à choix ; ce qu'il laisse se tire sur une graine stable,
- * l'id du porteur.
+ * l'id du porteur. Une Compétence ou un Talent qu'un Talent ajoute aux carrières (LDB 10 l.70, l.467, l.745, l.891)
+ * est de carrière dès le Niveau où ce Talent est pris : arbitrage du 2026-11-08 au ticket #773.
  */
 import type { Combatant } from './types';
-import type { RefDesignee } from '../data/schemas/grammaire/ref';
-import { levelsForCareer, type CareerLevelData } from '../data';
-import { acquerirTalent, availableChars, freeSlotFor, parseRefKey, prisParLesAutres, refKey, skillSlots, slotCovers, talentMaxReached, talentSlots, talentSlotsUpTo, wildcardSpecs, type CareerSlot } from './careerSlots';
-import { applyTalentAcquisition } from './talentEffects';
+import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
+import { levelsForCareer } from '../data';
+import { acquerirTalent, availableChars, freeSlotFor, parseRefKey, prisParLesAutres, refKey, skillSlots, slotCovers, talentMaxReached, talentSlots, wildcardSpecs, type CareerSlot } from './careerSlots';
+import { applyTalentAcquisition, competencesAjouteesPar, deplierAjouts, talentsAjoutesALaCarriere, talentsAjoutesPar } from './talentEffects';
 import { augmenterLaCompetence } from './character';
 import { blessuresReconciliees } from './characteristics';
 import { buildInventory, contexteDeNaissanceDObjet } from './items';
@@ -19,7 +20,7 @@ import { hashSeed, makeRNG, type RNG } from './dice';
 export interface ParcoursDeCarriere {
   /** Chaque carrière par son id, au Niveau atteint, dans l'ordre du parcours : la dernière est la carrière actuelle. */
   carrieres: Readonly<Record<string, number>>;
-  /** Talents choisis, par carrière : chacun compte pour le plus bas Niveau atteint qui l'offre (`niveauDuTalent`). */
+  /** Talents choisis, par carrière : chacun compte pour le premier Niveau atteint qui l'offre (`talentsDuParcours`). */
   talentsDeCarriere?: Readonly<Record<string, readonly RefDesignee[]>>;
   /** Compétences des emplacements à choix, par carrière, chacune sur le premier emplacement libre qui la couvre. */
   competencesDeCarriere?: Readonly<Record<string, readonly RefDesignee[]>>;
@@ -39,10 +40,28 @@ export function carriereActuelle(p: ParcoursDeCarriere): { id: string; niveau: n
   return derniere && { id: derniere[0], niveau: derniere[1] };
 }
 
-/** Le plus bas Niveau atteint (1 à `niveau`) dont un emplacement de Talent couvre `ref` (`slotCovers`), `undefined`
- *  sans lui. */
-export function niveauDuTalent(levels: CareerLevelData[], niveau: number, ref: RefDesignee): number | undefined {
-  return talentSlotsUpTo(levels, niveau).find((s) => slotCovers(s, ref.id, ref.spec))?.level;
+/** Les Talents de chaque Niveau atteint du parcours `p`, carrière par carrière dans son ordre. `offerts` (`refKey`) :
+ *  ceux des emplacements du Niveau (`talentSlots`), et ceux qu'ajoute un Talent choisi à un Niveau antérieur
+ *  (`talentsAjoutesPar`, LDB 10 l.467). `choisis` : les Talents choisis de la carrière dont c'est le premier Niveau
+ *  qui les offre ; `refuses`, ceux qu'aucun n'offre. */
+export function talentsDuParcours(p: ParcoursDeCarriere): { niveaux: Record<string, { offerts: string[]; choisis: RefDesignee[] }[]>; refuses: { carriere: string; ref: RefDesignee }[] } {
+  const ajoutes: string[] = [];
+  const niveaux: Record<string, { offerts: string[]; choisis: RefDesignee[] }[]> = {};
+  const refuses: { carriere: string; ref: RefDesignee }[] = [];
+  for (const [id, niveau] of Object.entries(p.carrieres)) {
+    const levels = levelsForCareer(id);
+    let restants = [...(p.talentsDeCarriere?.[id] ?? [])];
+    niveaux[id] = [];
+    for (let n = 1; n <= niveau; n++) {
+      const slots = talentSlots(levels, n);
+      const choisis = restants.filter((r) => slots.some((s) => slotCovers(s, r.id, r.spec)) || ajoutes.includes(refKey(r.id, r.spec)));
+      restants = restants.filter((r) => !choisis.includes(r));
+      niveaux[id].push({ offerts: [...new Set([...slots.flatMap(candidatsDuSlot), ...ajoutes])], choisis });
+      ajoutes.push(...choisis.flatMap((r) => deplierAjouts(talentsAjoutesPar(r.id), 'talent')).map((r) => refKey(r.id, r.spec)));
+    }
+    refuses.push(...restants.map((ref) => ({ carriere: id, ref })));
+  }
+  return { niveaux, refuses };
 }
 
 /** Les désignations des emplacements de Compétence à choix de `carriere` au Niveau `niveau` (slotKey → `refKey`) :
@@ -92,11 +111,10 @@ export function refusDuParcours(p: ParcoursDeCarriere): string | undefined {
   for (const [id, niveau] of Object.entries(p.carrieres)) {
     if (!levelsForCareer(id).some((l) => l.level === niveau)) return `la carrière « ${id} » n'a pas de Niveau ${niveau}`;
   }
-  for (const [id, refs] of Object.entries(p.talentsDeCarriere ?? {})) {
-    if (!ids.includes(id)) return `Talents de la carrière « ${id} », absente du parcours`;
-    const r = refs.find((t) => niveauDuTalent(levelsForCareer(id), p.carrieres[id], t) === undefined);
-    if (r) return `le Talent « ${refKey(r.id, r.spec)} » n'est offert par aucun Niveau atteint de « ${id} »`;
-  }
+  const absente = Object.keys(p.talentsDeCarriere ?? {}).find((id) => !ids.includes(id));
+  if (absente) return `Talents de la carrière « ${absente} », absente du parcours`;
+  const [refuse] = talentsDuParcours(p).refuses;
+  if (refuse) return `le Talent « ${refKey(refuse.ref.id, refuse.ref.spec)} » n'est offert par aucun Niveau atteint de « ${refuse.carriere} »`;
   for (const [id, refs] of Object.entries(p.competencesDeCarriere ?? {})) {
     if (!ids.includes(id)) return `Compétences de la carrière « ${id} », absente du parcours`;
     const [r] = designationsDeCarriere(id, p.carrieres[id], refs).refusees;
@@ -124,6 +142,7 @@ export function parcoursRetouche(p: ParcoursDeCarriere): ParcoursDeCarriere {
     return Object.keys(out).length ? out : undefined;
   };
   const actuelle = carriereActuelle(p);
+  const { refuses } = talentsDuParcours(p);
   const emplacements = new Map(actuelle ? emplacementsDeDotation(dotationsDuPnj(actuelle.id, actuelle.niveau)).map((e) => [e.adresse as string, e]) : []);
   const dotations = Object.fromEntries(Object.entries(p.dotationsDeCarriere ?? {}).filter(([a, v]) => {
     const e = emplacements.get(a);
@@ -131,7 +150,7 @@ export function parcoursRetouche(p: ParcoursDeCarriere): ParcoursDeCarriere {
   }));
   return {
     carrieres: p.carrieres,
-    talentsDeCarriere: garder(p.talentsDeCarriere, (id, refs) => refs.filter((t) => niveauDuTalent(levelsForCareer(id), p.carrieres[id], t) !== undefined)),
+    talentsDeCarriere: garder(p.talentsDeCarriere, (id, refs) => refs.filter((t) => !refuses.some((r) => r.carriere === id && r.ref === t))),
     competencesDeCarriere: garder(p.competencesDeCarriere, (id, refs) => {
       const refusees = new Set(designationsDeCarriere(id, p.carrieres[id], refs).refusees);
       return refs.filter((r) => !refusees.has(r));
@@ -140,10 +159,10 @@ export function parcoursRetouche(p: ParcoursDeCarriere): ParcoursDeCarriere {
   };
 }
 
-/** Un Talent du Niveau `slots` tiré sur `rng` : un emplacement qui en offre un dont le Maxi n'est pas atteint
- *  (`talentMaxReached`), puis l'un de ceux-là. */
-function talentTire(c: Combatant, slots: CareerSlot[], rng: RNG): RefDesignee | undefined {
-  const offerts = slots.map((s) => candidatsDuSlot(s).map(parseRefKey).filter((r) => !talentMaxReached(c, r.id, r.spec))).filter((l) => l.length);
+/** Un Talent du Niveau `slots` tiré sur `rng` : un emplacement, ou les Talents `ajoutes` aux carrières, qui en offre
+ *  un dont le Maxi n'est pas atteint (`talentMaxReached`), puis l'un de ceux-là. */
+function talentTire(c: Combatant, slots: CareerSlot[], ajoutes: readonly RefDesignee[], rng: RNG): RefDesignee | undefined {
+  const offerts = [...slots.map((s) => candidatsDuSlot(s).map(parseRefKey)), [...ajoutes]].map((l) => l.filter((r) => !talentMaxReached(c, r.id, r.spec))).filter((l) => l.length);
   return tirer(tirer(offerts, rng) ?? [], rng);
 }
 
@@ -152,9 +171,31 @@ function talentTire(c: Combatant, slots: CareerSlot[], rng: RNG): RefDesignee | 
  *  carrière actuelle et son Niveau (Statut, LDB 08 l.9), les dotations de ses Niveaux 1 à N en objets (R3, R4), et ses
  *  Blessures recalées sur le profil (`blessuresReconciliees`). Mute `c`. */
 export function porterAuParcours(c: Combatant, p: ParcoursDeCarriere): void {
-  for (const [id, niveau] of Object.entries(p.carrieres)) {
+  const carrieres = Object.entries(p.carrieres);
+  for (const [id, niveau] of carrieres) {
     const levels = levelsForCareer(id);
     for (let n = 1; n <= niveau; n++) for (const k of new Set(availableChars(levels, n))) c.characteristics[k] += 5;
+  }
+  // Compétences ajoutées par un Talent : `rang` de la carrière où il est pris (-1 : tenu avant le parcours), `niveau`.
+  const rngAjouts = fluxDuPnj(c.id, '', 'ajouts');
+  const ajoutee = (ref: RefASpecialisation) => tirer(deplierAjouts([ref], 'skill'), rngAjouts);
+  const ajouts = c.talents.flatMap(competencesAjouteesPar).flatMap((ref) => ajoutee(ref) ?? []).map((ref) => ({ ref, rang: -1, niveau: 1 }));
+  const { niveaux } = talentsDuParcours(p);
+  for (const [rang, [id]] of carrieres.entries()) {
+    const levels = levelsForCareer(id);
+    const rngTalents = fluxDuPnj(c.id, id, 'talents');
+    for (const [i, { choisis }] of niveaux[id].entries()) {
+      const tire = choisis.length ? undefined : talentTire(c, talentSlots(levels, i + 1), talentsAjoutesALaCarriere(c), rngTalents);
+      for (const t of tire ? [tire] : choisis) {
+        const tenus = c.talents.length;
+        if (!acquerirTalent(c, t)) continue;
+        if (c.talents.length > tenus) ajouts.push(...competencesAjouteesPar(c.talents[tenus]).flatMap((ref) => ajoutee(ref) ?? []).map((ref) => ({ ref, rang, niveau: i + 1 })));
+        applyTalentAcquisition(c, t.id, t.spec);
+      }
+    }
+  }
+  for (const [rang, [id, niveau]] of carrieres.entries()) {
+    const levels = levelsForCareer(id);
     const slots = skillSlots(levels, niveau);
     const { designations } = designationsDeCarriere(id, niveau, p.competencesDeCarriere?.[id] ?? []);
     const rngCompetences = fluxDuPnj(c.id, id, 'competences');
@@ -165,21 +206,13 @@ export function porterAuParcours(c: Combatant, p: ParcoursDeCarriere): void {
       if (k) designations[s.key] = k;
     }
     const premierNiveau = new Map<string, number>();
+    const poser = (k: string, depuis: number) => premierNiveau.set(k, Math.min(depuis, premierNiveau.get(k) ?? depuis));
     for (const s of slots) {
       const k = s.needsChoice ? designations[s.key] : candidatsDuSlot(s)[0];
-      if (k && !premierNiveau.has(k)) premierNiveau.set(k, s.level);
+      if (k) poser(k, s.level);
     }
+    for (const a of ajouts) if (a.rang <= rang) poser(refKey(a.ref.id, a.ref.spec), a.rang === rang ? a.niveau : 1);
     for (const [k, depuis] of premierNiveau) augmenterLaCompetence(c.skills, parseRefKey(k), 5 * (niveau - depuis + 1));
-  }
-  for (const [id, niveau] of Object.entries(p.carrieres)) {
-    const levels = levelsForCareer(id);
-    const choisis = p.talentsDeCarriere?.[id] ?? [];
-    const rngTalents = fluxDuPnj(c.id, id, 'talents');
-    for (let n = 1; n <= niveau; n++) {
-      const ici = choisis.filter((t) => niveauDuTalent(levels, niveau, t) === n);
-      const tire = ici.length ? undefined : talentTire(c, talentSlots(levels, n), rngTalents);
-      for (const t of tire ? [tire] : ici) if (acquerirTalent(c, t)) applyTalentAcquisition(c, t.id, t.spec);
-    }
   }
   const actuelle = carriereActuelle(p)!;
   c.career = actuelle.id;

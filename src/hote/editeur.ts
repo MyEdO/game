@@ -21,7 +21,7 @@ import {
   allMusicDefs, apparencesDeLOuverture, champDuMessage, ciblesDAncreDeBataille, groupesDuLieu,
   equipConflicts, isWearable, objetsDeLInventaire, trappingsInstanciables,
   candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDEntite, ficheDuCombattant,
-  findCareerById, levelsForCareer, libelleDeLaValeur, parcoursDe, parcoursRetouche, parseRefKey, prisParLesAutres, refKey, refLabel, skillSlots, sousEmplacement, talentSlots,
+  findCareerById, levelsForCareer, libelleDeLaValeur, parcoursDe, parcoursRetouche, parseRefKey, prisParLesAutres, refKey, refLabel, skillSlots, sousEmplacement, talentsDuParcours,
   trappingRefLabel, valeursDeLEmplacement, type EmplacementDeDotation, type ParcoursDeCarriere,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
@@ -431,6 +431,7 @@ function carrieres(s: SessionDEdition, ent: Scene['entities'][number]): (Choix |
   const actuelle = carriereActuelle(p);
   const refusDeTenue = ent.appearance?.tenue ? t('ecran.editeur.carriere.tenue') : null;
   const tiree = (id: string, choisi: boolean, jeu: GesteDEdition) => bouton(`${id}/tiree`, t('ecran.editeur.carriere.tiree'), jeu, choisi);
+  const parTalents = talentsDuParcours(p).niveaux;
   const etapes = Object.entries(p.carrieres).flatMap(([id, niveau]) => {
     const levels = levelsForCareer(id);
     const cle = `carriere/${id}`;
@@ -445,7 +446,7 @@ function carrieres(s: SessionDEdition, ent: Scene['entities'][number]): (Choix |
         bouton(`${cle}/retirer`, t('ecran.editeur.carriere.retirer'), ecrire({ ...p, carrieres: sans(p.carrieres, id), ...(id === actuelle?.id ? { dotationsDeCarriere: undefined } : {}) })),
       ]),
       ...levels.filter((l) => l.level <= niveau).map((l) => {
-        const offerts = [...new Set(talentSlots(levels, l.level).flatMap(candidatsDuSlot))];
+        const { offerts } = parTalents[id][l.level - 1];
         return choix(`${cle}/talents/${l.level}`, t('ecran.editeur.carriere.talents', { n: l.level }), offerts.map((k) => {
           const pris = talents.some((r) => refKey(r.id, r.spec) === k);
           const autres = talents.filter((r) => refKey(r.id, r.spec) !== k);
