@@ -174,6 +174,13 @@ describe('creatureToCombatant — fidélité du profil du bestiaire (LDB 76/78)'
       expect(p.characteristics.intelligence).toBeLessThanOrEqual(10);
       expect(p.characteristics['capacite-de-tir']).toBe(0); // inexistante : pas tirée
     });
+    it('le tirage demandé par l’entité vaut aussi pour son statbloc d’auteur, seedé sur son id (#3704)', () => {
+      const sb = { type: 'statblock' as const, label: 'Garde', char: { M: 4, 'capacite-de-combat': 40, 'capacite-de-tir': 35, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 12 } };
+      const rond = statblockToCombatant(sb, 'garde-0', at);
+      const [a, b] = ['garde-0', 'garde-1'].map((id) => statblockToCombatant(sb, id, at, undefined, { randomChars: true }));
+      expect(CHAR_KEYS.some((k) => a.characteristics[k] !== rond.characteristics[k]), 'tiré, le profil quitte le rond').toBe(true);
+      expect(CHAR_KEYS.some((k) => a.characteristics[k] !== b.characteristics[k]), 'deux ids, deux profils').toBe(true);
+    });
     it('Blessures recalculées par la formule (le B imprimé valait pour le profil rond)', () => {
       const c = creatureToCombatant(mutant, 'enemy-0', at, { randomChars: true });
       const bf = Math.floor(c.characteristics.force / 10), be = Math.floor(c.characteristics.endurance / 10), bfm = Math.floor(c.characteristics['force-mentale'] / 10);
