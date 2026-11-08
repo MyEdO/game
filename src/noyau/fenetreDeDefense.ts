@@ -13,7 +13,7 @@ import { defenseSubOf, parryWeaponOf } from './rollFlowSpecs';
 import { ligneDeDefense } from './combatFlow';
 import { defenseDodgeMods } from './mount';
 import { difficultyText } from './difficultyText';
-import type { RollLineParts } from './rollSeam';
+import type { RollLineParts } from './ligneDeJet';
 import { DEFENSE_LABEL, coupAApplique, issueAuJet, type DefenseMode } from '../engine/combat';
 import { combatSubstitute } from '../engine/skillCombatApps';
 import { isUnarmed } from '../engine/items';

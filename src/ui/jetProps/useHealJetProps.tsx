@@ -1,6 +1,5 @@
 import { cibleMesuree } from '../../engine/tests';
 import { useGame } from '../../state/store';
-import { flowStakeRef } from '../../data';
 import { enjeuDuSoin, fenetreDuSoin } from '../../noyau/soin';
 import type { ComponentProps } from 'react';
 import { RollShell, type RollAction } from '../RollShell';
@@ -26,8 +25,8 @@ import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
  *  - en COMBAT : modale autonome (`HealModal`, via la console — un acte = une Action) ;
  *  - hors combat : l'infirmerie (`MedicModal`, `embedded`), qui pose le jet dans SA boîte
  *    (`useRollShell`) et reste ouverte après « Appliquer ».
- * Le soigneur peut être un PNJ payant : sa Chance/Résilience valent 0 (boutons inertes), et
- * « Annuler » avant le jet rembourse l'acte (jetAnnuler('heal')).
+ * Le soigneur peut être un PNJ payant : sa Chance/Résilience valent 0 (boutons inertes) ; son tarif se débite au
+ * lancer, et le brouillon de l'infirmerie ne s'annule pas (`FLOWS.heal.annulation`).
  */
 export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {}): ComponentProps<typeof RollShell> | null {
   const ph = useGame((s) => s.pendingHeal);
@@ -90,14 +89,14 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
 
   return {
     flowKey: 'heal',
-    stake: flowStakeRef(enjeuDuSoin(ph)),
+    stake: enjeuDuSoin(useGame.getState(), ph),
     title: wounds ? <><Icon id="journal/heal" size="sm" /> Soigner les Blessures</> : trauma ? <><Icon id="medical/tear" size="sm" /> Soigner une déchirure</> : ammo ? <><Icon id="item/ammo" size="sm" /> Retirer une munition</> : <><Icon id="condition/bleeding" size="sm" /> Arrêter l’Hémorragie</>,
     /* A→B canonique (décision utilisateur 2026-08-04) : portraits + flèche annotée de l'acte —
        plus AUCUNE phrase « A soigne B » en sous-titre. Le patient est en `full` : ses pastilles
        d'ÉTATS sont ce que le jet fait bouger (suivre l'Hémorragie passe par passe). EMBARQUÉ
        (infirmerie) : aucun bandeau — la bande `.medic-patients` porte déjà le patient en full et
        l'acte est le bouton qu'on vient de cliquer. Soigneur PNJ tarifé (`healerId` sentinelle de
-       `medicFlow.soignerLePatient`, aucune fiche) : pas de bandeau dégénéré, l'acte se dit en note (son
+       `acteDeSoin.soinDeLActe`, aucune fiche) : pas de bandeau dégénéré, l'acte se dit en note (son
        nom est au titre de l'infirmerie). La Difficulté reste la donnée de la LIGNE (#1072). */
     extra: embedded ? undefined : healer
       ? <VsHeader actor={healer} target={target} label={acte.label} verb={acte.icon} targetVariant="full" />

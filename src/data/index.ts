@@ -3216,12 +3216,20 @@ export function entryKey(e: Record<string, unknown>): PlayerText {
 export function displayLabelForSex(sex: Sexe | undefined, label: string, labelF?: string): PlayerText {
   return dataLabel(sex === 'F' && labelF ? labelF : label);
 }
+/** Ce qui porte le sexe d'un personnage : son apparence résolue (héros), celle que pose l'auteur (`appearanceOverride`),
+ *  sa fiche du bestiaire. */
+export interface PorteurDeSexe { readonly appearance?: { readonly sex?: Sexe }; readonly appearanceOverride?: { readonly sex?: Sexe }; readonly creatureId?: string }
+/** LE sexe d'un personnage, source unique du nom, du corps et du libellé de Carrière (#3724) : celui de son apparence
+ *  résolue, sinon celui que pose l'auteur, sinon celui de sa fiche du bestiaire. */
+export function sexeDuPorteur(c: PorteurDeSexe): Sexe | undefined {
+  return c.appearance?.sex ?? c.appearanceOverride?.sex ?? findCreatureById(c.creatureId)?.appearance?.sex;
+}
 /** Libellé de Carrière à AFFICHER pour un personnage (forme féminine si sexe F). Bord UI — le
  *  retour est du texte d'affichage, JAMAIS une clé. */
-export function careerLabelFor(c: { career?: string; appearance?: { sex?: Sexe } }): PlayerText {
+export function careerLabelFor(c: { career?: string } & PorteurDeSexe): PlayerText {
   const career = findCareerById(c.career);
   if (!career) return dataLabel(c.career);
-  return displayLabelForSex(c.appearance?.sex, career.label, career.labelF);
+  return displayLabelForSex(sexeDuPorteur(c), career.label, career.labelF);
 }
 const classeParId = indexParId('classes', classes);
 /** Résout une Classe par son `id` STABLE (= `CareerData.class`). */

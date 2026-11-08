@@ -7,7 +7,7 @@ import { attackTestOf } from '../engine/combat';
 import { effectiveWeaponDamage } from '../engine/weaponDamage';
 import { bonusDeForce, forceDuPorteur } from '../engine/characteristics';
 import type { ForceDoorParticipant, PendingForceDoor } from './pendings';
-import { rollLine, type RollLineParts } from './rollSeam';
+import { rollLine, type RollLineParts } from './ligneDeJet';
 
 /** EDO 11 l.93. */
 const TEST_A_MAINS_NUES = { skill: { id: 'corps-a-corps', spec: 'bagarre' } } as const;

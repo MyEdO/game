@@ -3,7 +3,8 @@ import { creatureToCombatant, statblockToCombatant, skillsFromBook, spawnEnemy, 
 import { armourFromTraits, weaponFromTrait, weaponsFromTraits } from '../../engine/creatureEquip';
 import type { CustomStatblock } from '../../engine/statblock';
 import { recomputeLoadout } from '../../engine/items';
-import { blessingsOf, findCreatureById, findSpellById, miraclesOf, names, talentConcrete } from '../../data';
+import { blessingsOf, careerLabelFor, findCareerById, findCreatureById, findSpellById, miraclesOf, names, talentConcrete } from '../../data';
+import { porteeDuCombattant } from '../apparence/combattant';
 import { pettySpellQuotaFor } from '../../engine/creation';
 import { CHAR_KEYS } from '../../engine/types';
 import { knowsCastingSkill, castingValue, incantationArcane } from '../../engine/magic';
@@ -492,6 +493,14 @@ describe('PNJ anonyme : nom, âge, taille, yeux et cheveux tirés à la graine d
     const nain = nomDEntite(humain('client', { ref: 'nain', appearance: { species: 'nains' } }), sansPreset)!;
     expect(pool('nain').maleFirstNames).toContain(nain.split(' ')[0]);
     expect(pool('nain').lastNameSuffixes!.M.some((x) => nain.endsWith(x)), 'patronyme nain, LDB 05 l.627-633').toBe(true);
+  });
+
+  it('le sexe que pose l’auteur fait le nom, le corps et le libellé de Carrière (#3724)', () => {
+    const villageoise = ficheDEntite(humain('villageoise', { appearance: { sex: 'F' } }), sansPreset);
+    expect(pool('humain').femaleFirstNames).toContain(villageoise.label.split(' ')[0]);
+    expect(porteeDuCombattant(villageoise)?.sex).toBe('F');
+    expect(careerLabelFor({ ...villageoise, career: 'artisan' })).toBe(findCareerById('artisan')!.labelF);
+    expect(porteeDuCombattant(ficheDEntite(humain('garde-1'), sansPreset))?.sex, 'sans sexe posé : M, #3253').toBe('M');
   });
 
   it('son âge, sa taille, ses yeux et ses cheveux sont tirés sur les tables de sa race, les mêmes pour un même id', () => {

@@ -103,7 +103,7 @@ export type HealMode = 'wounds' | 'bleed' | 'trauma' | 'surgery' | 'recovery' | 
 export const HEAL_MODES: readonly HealMode[] = ['wounds', 'bleed', 'ammo', 'trauma', 'surgery', 'recovery'];
 
 /** Pourquoi `target` n'offre pas le mode de soin `mode` : la raison affichée, ou `null` (le mode s'offre).
- *  Verdict du PATIENT seul — le soigneur, l'offre et la bourse relèvent de `refusDActeDeSoin` (noyau). */
+ *  Verdict du PATIENT seul — le soigneur, l'offre et la bourse relèvent de `refusDeLActeALInfirmerie` (noyau). */
 export function raisonDeModeDeSoin(target: Combatant, mode: HealMode): string | null {
   switch (mode) {
     case 'wounds':

@@ -101,6 +101,7 @@ export const fr = {
   'jet.ferme.rienADeclarer': 'Aucune rangée à déclarer.',
   'jet.ferme.contreSortDu': 'Le Contre-sort se résout d’abord.',
   'jet.ferme.soinEnCours': 'Un soin est en cours : achève-le d’abord.',
+  'jet.ferme.acteAChanger': 'À l’infirmerie, l’acte se change : le soin ne s’annule pas.',
   'jet.ferme.paieDue': 'La paie de la semaine reste à arrêter.',
   'jet.ferme.halteDeVoyage': 'Une halte de voyage ne s’annule pas.',
   'jet.ferme.herosADesigner': 'Un héros vivant reste à désigner.',
@@ -255,10 +256,8 @@ export const fr = {
   'verbe.marchand.repartition': 'Répartir',
   'verbe.victory.fermer': 'Continuer',
   'verbe.depecerLaCreature': 'Dépecer',
-  'verbe.soignerLePatient': 'Soigner',
   'verbe.medic.plaie': 'Blessure soignée',
   'verbe.mountTarget.fermer': 'Annuler',
-  'verbe.ouvrirLaChirurgie': 'Opérer (une passe)',
   'verbe.appraise.confirm': 'Conclure',
   'verbe.rest.fermer': 'Annuler',
   'verbe.promouvoirLeCombattant': 'Agir en premier',
@@ -3031,7 +3030,7 @@ export const fr = {
   'heal.sansBandages': 'Sans Bandages',
   'heal.bandagesDe': 'Bandages de {name}',
   'heal.bandageUtilise': '{name} utilise une unité de Bandages.',
-  'heal.modeFixeALInfirmerie': 'À l’infirmerie, l’acte se choisit avant le jet.',
+  'heal.soinNonArme': 'Le Soin n’est pas armé.',
 
   // ── #1318 V8c₃ — REPOS (`engine/rest.ts`, `rest.*`, LDB 16/18/20/21). La MALADIE citée vient de la
   // donnée (`diseaseLabel`) : les deux lignes de purge/bénédiction affichaient son id (« peste-noire »).
@@ -3550,7 +3549,7 @@ export const fr = {
   'medic.rienASoigner': '{name} n’a rien à soigner.',
   'medic.patientSansSoin': 'Rien à soigner.',
   'medic.aucunSoigneur': 'Aucun membre du groupe ne peut tenter un Test de Guérison.',
-  // Raisons d'un acte de l'infirmerie fermé (`refusDActeDeSoin`).
+  // Raisons d'un acte de l'infirmerie fermé (`refusDeLActeALInfirmerie`).
   'medic.fermee': 'L’infirmerie est fermée.',
   'medic.jetEnCours': 'Un jet de soin est déjà posé.',
   'medic.operationEnCours': 'Une opération est en cours.',
