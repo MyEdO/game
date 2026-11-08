@@ -106,13 +106,22 @@ function porteursDesUids(etat: object): Map<string, Set<string>> {
   return porteurs;
 }
 
+/** Les uids que la désignation d'objet ou de poste lit plus d'une fois dans `etat`, nommés sous `lieu`. */
+function lusPlusDUneFois(lieu: string, etat: Parameters<typeof DESIGNATIONS.IdDObjet.lire>[0]): string[] {
+  return (['IdDObjet', 'IdDePoste'] as const).flatMap((nom) => {
+    const lus = DESIGNATIONS[nom].lire(etat);
+    return [...new Set(lus.filter((u, i) => lus.indexOf(u) !== i))].map((uid) => `${lieu} ${uid} : lu plus d’une fois par ${nom}`);
+  });
+}
+
 describe('un uid du monde n’a qu’un porteur (#2907)', () => {
-  it('sur chaque scénario lancé', () => {
+  it('sur chaque scénario lancé, chaque uid lu une fois par la désignation d’objet ou de poste', () => {
     const doublons: string[] = [];
     for (const sc of testScenarios) {
       const { partie } = ouvrirLaPartie(nouvelEntete(sc.id, { graine: 7 }), () => {});
       try {
         for (const [uid, porteurs] of porteursDesUids(partie.etat())) if (porteurs.size > 1) doublons.push(`${sc.id} ${uid} : ${[...porteurs].join(', ')}`);
+        doublons.push(...lusPlusDUneFois(sc.id, partie.etat()));
       } finally {
         partie.fermer();
       }
@@ -120,7 +129,7 @@ describe('un uid du monde n’a qu’un porteur (#2907)', () => {
     expect(doublons).toEqual([]);
   }, 120_000);
 
-  it('sur chaque partie committée de l’hôte texte rejouée jusqu’au bout ; la désignation d’objet lit chaque uid une fois', () => {
+  it('sur chaque partie committée de l’hôte texte rejouée jusqu’au bout, chaque uid lu une fois par la désignation d’objet ou de poste', () => {
     const dossier = new URL('../hoteTexte/', import.meta.url);
     const fichiers = listerDossier(fileURLToPath(dossier)).filter((f) => f.endsWith('.jsonl'));
     expect(fichiers.length).toBeGreaterThan(0);
@@ -131,8 +140,7 @@ describe('un uid du monde n’a qu’un porteur (#2907)', () => {
       try {
         const etat = r.partie.etat();
         for (const [uid, porteurs] of porteursDesUids(etat)) if (porteurs.size > 1) doublons.push(`${f} ${uid} : ${[...porteurs].join(', ')}`);
-        const lus = DESIGNATIONS.IdDObjet.lire(etat);
-        for (const uid of new Set(lus.filter((u, i) => lus.indexOf(u) !== i))) doublons.push(`${f} ${uid} : lu plus d’une fois`);
+        doublons.push(...lusPlusDUneFois(f, etat));
       } finally {
         r.partie.fermer();
       }

@@ -19,6 +19,7 @@ import { Combatant } from '../engine/types';
 import { statutDeDonnee, type Money } from '../engine/money';
 import { createHero, fluxDeCreation, type ChoixDeCreation } from '../engine/character';
 import type { FabriqueDId } from '../engine/fabriqueDId';
+import type { IdDeHerosDuRoster } from '../lib/idDeHerosDuRoster';
 import type { ChoixDesPretires } from './schemas/defs/pregens';
 import { rollInitialWealth, pettySpellQuotaFor, fillPettySpellsToQuota } from '../engine/creation';
 import { levelsForCareer, pregens } from './index';
@@ -44,7 +45,7 @@ export interface PregenDef extends Pick<ChoixDeCreation, ChoixDesPretires> {
 }
 
 /** L'id STABLE du héros du pré-tiré de seed `seed`. */
-export const idDuPretire = (seed: number): string => `pregen-${seed}`;
+export const idDuPretire = (seed: number): IdDeHerosDuRoster => `pregen-${seed}` as IdDeHerosDuRoster;
 
 /** Construit le héros d'un pré-tiré via `createHero` (identité authorée posée en `opts`), puis
  *  complète les Sorts de Magie mineure au quota BFM (`pettySpellQuotaFor`/`fillPettySpellsToQuota`,

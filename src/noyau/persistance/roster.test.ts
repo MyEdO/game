@@ -4,10 +4,9 @@
  * `FORMAT_EXPORT_HEROS`.
  */
 import { describe, it, expect } from 'vitest';
-import { ecrireLeRoster, lireLeRoster, rosterAvecLeHeros, rosterExport, rosterImport, type RosterEntry } from './roster';
+import { ecrireLeRoster, lireLeRoster, rosterAvecLeHeros, rosterExport, rosterImport, type HerosDuRoster, type RosterEntry } from './roster';
 import { FORMAT_EXPORT_HEROS, FORMAT_ROSTER } from './formats.generated';
 import { nommerLesRetraits } from './elagage';
-import type { Combatant } from '../../engine/types';
 import { t } from '../../i18n';
 import { ciblePsy } from '../../engine/psych/ciblage';
 
@@ -18,10 +17,10 @@ const ETAT_INCONNU = 'etat-hors-registre';
 const GROUPE_CONNU = 'skaven';
 const GROUPE_INCONNU = 'groupe-hors-registre';
 
-const hero = (id: string, label = 'Héros'): Combatant => ({ id, label, kind: 'hero' }) as unknown as Combatant;
+const hero = (id: string, label = 'Héros'): HerosDuRoster => ({ id, label, kind: 'hero' }) as unknown as HerosDuRoster;
 const BROUILLON = { label: 'Brouillon', motivation: '', ambitionShort: '', ambitionLong: '' } as unknown as RosterEntry['draft'];
 const entry = (id: string): RosterEntry => ({ hero: hero(id), wealth: { gold: 1, silver: 2, brass: 3 }, draft: BROUILLON });
-const porteur = (id: string, ...etats: string[]): RosterEntry => ({ ...entry(id), hero: { ...hero(id), conditions: etats.map((e) => ({ id: e, value: 1 })) } as unknown as Combatant });
+const porteur = (id: string, ...etats: string[]): RosterEntry => ({ ...entry(id), hero: { ...hero(id), conditions: etats.map((e) => ({ id: e, value: 1 })) } as unknown as HerosDuRoster });
 
 describe('roster — lecture et écriture sous `FORMAT_ROSTER`', () => {
   it('écrit sous son format et se relit à l’identique, brouillon du créateur compris, sans retrait', () => {
@@ -55,7 +54,7 @@ describe('roster — Trait psychologique à Cible hors de `groups.json` (#1463 L
     hero: {
       ...hero('h1'), conditions: [{ id: ETAT_CONNU, value: 1 }], psychTraits: [...traits, { type: 'trauma' }],
       psychState: [...traits.map((x) => ({ ...x, active: true })), peur], activeEffects: [{ id: 'baume', suppressedPsych: traits }],
-    } as unknown as Combatant,
+    } as unknown as HerosDuRoster,
   });
 
   it('roster lu ET export importé : le Trait est retiré ENTIER (Traits, afflictions, Traits suspendus), Cible nommée, le reste intact', () => {
@@ -76,7 +75,7 @@ describe('roster — Trait psychologique à Cible hors de `groups.json` (#1463 L
   });
 
   it('porteur mal formé (listes non-listes, entrées `null`) : relu sans lever, le Trait à Cible inconnue retiré et nommé', () => {
-    const malForme = (champs: object): RosterEntry => ({ ...entry('h1'), hero: { ...hero('h1'), ...champs } as unknown as Combatant });
+    const malForme = (champs: object): RosterEntry => ({ ...entry('h1'), hero: { ...hero('h1'), ...champs } as unknown as HerosDuRoster });
     const cas: [object, object][] = [
       [{ psychTraits: [inconnu], psychState: 'x' }, { psychTraits: [], psychState: 'x' }],
       [{ psychTraits: [inconnu], activeEffects: [null] }, { psychTraits: [], activeEffects: [null] }],
@@ -103,7 +102,7 @@ describe('roster — Trait psychologique à Cible hors de `groups.json` (#1463 L
 
 describe('roster — mise à jour d’une entrée (`rosterAvecLeHeros`)', () => {
   it('porte le héros édité à son entrée, brouillon resynchronisé (motivation, ambitions), les autres intactes', () => {
-    const edited = { ...hero('h1'), motivation: 'Foi', details: { ambitionShort: 'Survivre', ambitionLong: 'Régner' } } as unknown as Combatant;
+    const edited = { ...hero('h1'), motivation: 'Foi', details: { ambitionShort: 'Survivre', ambitionLong: 'Régner' } } as unknown as HerosDuRoster;
     const apres = rosterAvecLeHeros([entry('h1'), entry('h2')], edited);
     expect(apres?.map((e) => e.hero.id)).toEqual(['h1', 'h2']);
     expect(apres?.[0].hero).toBe(edited);

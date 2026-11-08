@@ -332,7 +332,7 @@ export const DESIGNATIONS = {
   IdDeStation: { mot: 'id de station', lire: () => ids(shipStations), nom: (_s, id) => labelParmi(shipStations, id) },
   IdDePoste: {
     mot: 'id de poste',
-    lire: (s) => sansDoublon(lesPostes(s).map((p) => p.item.uid)),
+    lire: (s) => lesPostes(s).map((p) => p.item.uid),
     nom: (s, uid) => {
       const poste = lesPostes(s).find((p) => p.item.uid === uid);
       return poste ? itemLabel(poste.item) : null;

@@ -4,19 +4,30 @@
  * entrée, et l'export/import d'un héros sous `FORMAT_EXPORT_HEROS`. La procédure sur un stockage : `hote/roster.ts`.
  */
 import type { Combatant } from '../../engine/types';
+import type { IdDeHerosDuRoster } from '../../lib/idDeHerosDuRoster';
 import type { Money } from '../../engine/money';
 import type { CreatorDraft } from '../creation/brouillon';
 import { t } from '../../i18n';
 import { FORMAT_EXPORT_HEROS, FORMAT_ROSTER } from './formats.generated';
 import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './elagage';
+import { pregens } from '../../data';
+import { idDuPretire } from '../../data/pregens';
 
 /** Un personnage du roster, tel que sorti du créateur : le héros, sa Richesse initiale (absente du Combatant), et
  *  `draft`, le brouillon EXACT du créateur qui le rouvre sans perte et que le geste engage au groupe, où le noyau
  *  rebâtit le héros (`HerosEngage`). */
 export interface RosterEntry {
-  hero: Combatant;
+  hero: HerosDuRoster;
   wealth: Money;
   draft: CreatorDraft;
+}
+
+/** Un héros du roster : son id est un `IdDeHerosDuRoster`. */
+export type HerosDuRoster = Combatant & { id: IdDeHerosDuRoster };
+
+/** L'id de roster du héros `heroId` : celui de son entrée dans `heros`, ou celui de son pré-tiré ; `undefined` sinon. */
+export function idDeRosterDuHeros(heros: readonly RosterEntry[], heroId: string): IdDeHerosDuRoster | undefined {
+  return heros.find((e) => e.hero.id === heroId)?.hero.id ?? pregens.map((p) => idDuPretire(p.seed)).find((id) => id === heroId);
 }
 
 /** Le roster tel que stocké : `version` vaut `FORMAT_ROSTER` (#2404). */
@@ -42,7 +53,7 @@ export function lireLeRoster(brut: string): RosterLu | null {
   }
   if (doc?.version !== FORMAT_ROSTER || !Array.isArray(doc.heros)) return null;
   const { porteurs, retraits } = elaguerLePersiste({ porteurs: doc.heros.map((e) => e.hero) });
-  return { heros: doc.heros.map((e, i) => ({ ...e, hero: porteurs[i] })), retraits: rienDElague(retraits) ? null : retraits };
+  return { heros: doc.heros.map((e, i) => ({ ...e, hero: { ...porteurs[i], id: e.hero.id } })), retraits: rienDElague(retraits) ? null : retraits };
 }
 
 /** Le texte stocké du roster `heros`, sous `FORMAT_ROSTER`. */
@@ -58,7 +69,7 @@ export function rosterAvecLeHeros(heros: readonly RosterEntry[], hero: Combatant
   if (i < 0) return null;
   const prev = heros[i];
   const draft: CreatorDraft = { ...prev.draft, motivation: hero.motivation ?? '', ambitionShort: hero.details?.ambitionShort ?? '', ambitionLong: hero.details?.ambitionLong ?? '' };
-  return heros.map((e, j) => (j === i ? { ...prev, hero, draft } : e));
+  return heros.map((e, j) => (j === i ? { ...prev, hero: { ...hero, id: prev.hero.id }, draft } : e));
 }
 
 const EXPORT_KIND = 'wfrp4-hero';
@@ -67,7 +78,7 @@ const EXPORT_KIND = 'wfrp4-hero';
 export interface ExportDeHeros {
   kind: typeof EXPORT_KIND;
   version: string;
-  hero: Combatant;
+  hero: HerosDuRoster;
   wealth: Money;
   draft: CreatorDraft;
 }
@@ -97,5 +108,5 @@ export function rosterImport(str: string): RosterImportResult {
   if (doc.version !== FORMAT_EXPORT_HEROS) return { error: t('picker.import.error.autreFormat') };
   if (!doc.hero || typeof doc.hero.id !== 'string' || !doc.wealth || !doc.draft) return { error: t('picker.import.error') };
   const { porteurs: [hero], retraits } = elaguerLePersiste({ porteurs: [doc.hero] });
-  return { entry: { hero, wealth: doc.wealth, draft: doc.draft }, ...(rienDElague(retraits) ? {} : { retraits }) };
+  return { entry: { hero: { ...hero, id: doc.hero.id }, wealth: doc.wealth, draft: doc.draft }, ...(rienDElague(retraits) ? {} : { retraits }) };
 }

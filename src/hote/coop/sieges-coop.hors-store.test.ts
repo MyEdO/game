@@ -4,7 +4,7 @@
  * l'hôte diffuse et que l'invité applique (`appliquerLInstantane`) ; l'invité compose dans SON emplacement, et
  * l'attribution d'un emplacement lui est refusée.
  */
-import { idsDeTest } from '../../engine/idsDeTest.testkit';
+import { idsDeTest, rosterDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { FakeTransport } from './transport.testkit';
 import { HostSession, GuestSession } from './session';
@@ -21,7 +21,6 @@ import { engagerLeHeros } from '../roster';
 import { creerFabriqueDIds } from '../../noyau/idsDuMonde';
 import { brouillonComplet } from '../../noyau/creation/engagement.testkit';
 import { stockageEnMemoire } from '../../lib/stockage.testkit';
-import { fabriqueLocale } from '../../engine/fabriqueDId';
 
 /** L'hôte (banc) d'une table à un invité au siège 1, qui remplit l'emplacement 2, relié par transport à l'invité. */
 function table() {
@@ -78,8 +77,8 @@ describe('Engager en coop : le héros de chaque siège entre au groupe (#2907 S3
       recruterLeHeros: (h: unknown) => guest.sendIntent('recruterLeHeros', [h]),
       remplacerLeHeros: (id: string, h: unknown) => guest.sendIntent('remplacerLeHeros', [id, h]),
     } as unknown as Parameters<typeof engagerLeHeros>[1];
-    expect(engagerLeHeros(stockageEnMemoire(), hote.getState(), brouillonComplet('Hôte'), fabriqueLocale('entropie-hote'))).toBeNull();
-    expect(engagerLeHeros(stockageEnMemoire(), jeuDeLInvite, brouillonComplet('Invité'), fabriqueLocale('entropie-invite'))).toBeNull();
+    expect(engagerLeHeros(stockageEnMemoire(), hote.getState(), brouillonComplet('Hôte'), rosterDeTest('entropie-hote'))).toBeNull();
+    expect(engagerLeHeros(stockageEnMemoire(), jeuDeLInvite, brouillonComplet('Invité'), rosterDeTest('entropie-invite'))).toBeNull();
     host.broadcastSnapshot();
     expect(hote.getState().party.map((h) => h.label).slice(1).sort()).toEqual(['Hôte', 'Invité']);
     expect(lecture(invite.etat)).toEqual(lecture(hote.getState()));

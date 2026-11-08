@@ -3,7 +3,8 @@
  * désigné par son id), le héros que le noyau en bâtit, son verdict, lu par le geste ET par l'écran, et ce que
  * l'engagement d'un brouillon écrit au roster. La procédure sur le roster d'un hôte : `engagerLeHeros` (`hote/roster.ts`).
  */
-import type { FabriqueDId } from '../../engine/fabriqueDId';
+import type { FabriqueDId, FabriqueDuRoster } from '../../engine/fabriqueDId';
+import type { IdDeHerosDuRoster } from '../../lib/idDeHerosDuRoster';
 import type { Combatant } from '../../engine/types';
 import type { Money } from '../../engine/money';
 import type { Jeu } from '../etat';
@@ -58,10 +59,13 @@ export function refusDEngagement(s: Pick<Jeu, 'battle' | 'party' | 'net'>, d: Cr
   return (heroId ? refusDeComposerLeHeros(s, heroId, decidingSeat(s)) : refusDUnNouveauHeros(s)) ?? refusDuBrouillon(d);
 }
 
-/** Ce que l'engagement de `d` écrit au roster : le héros (l'id `heroId` conservé en édition), sa Richesse de départ et
- *  le brouillon EXACT, que le roster garde pour rouvrir le héros sans perte et l'engager de nouveau. */
-export function engagement(d: CreatorDraft, idNeuf: FabriqueDId, heroId?: string): RosterEntry {
-  return { ...batirLeBrouillon(d, idNeuf, heroId), draft: d };
+/** Ce que l'engagement de `d` écrit au roster : le héros (l'id `heroId` conservé en édition, sinon un id neuf de
+ *  `idDuRoster`), sa Richesse de départ et le brouillon EXACT, que le roster garde pour rouvrir le héros sans perte et
+ *  l'engager de nouveau. */
+export function engagement(d: CreatorDraft, idDuRoster: FabriqueDuRoster, heroId?: IdDeHerosDuRoster): RosterEntry {
+  const id = heroId ?? idDuRoster('hero');
+  const { hero, wealth } = batirLeBrouillon(d, idDuRoster, id);
+  return { hero: { ...hero, id }, wealth, draft: d };
 }
 
 /** L'intention qui engage au groupe le héros nouveau de `d`, pour un hôte sans roster. */
