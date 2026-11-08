@@ -1,0 +1,13 @@
+{
+  "model": "vehicule--pierrier.glb",
+  "model_sha256": "a21bba047a5d6e28146b796c9b14ec76c35a4c4845445f4e2650d027bf2896cb",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

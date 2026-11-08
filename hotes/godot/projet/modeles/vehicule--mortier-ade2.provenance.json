@@ -1,0 +1,13 @@
+{
+  "model": "vehicule--mortier-ade2.glb",
+  "model_sha256": "13fdac91a9c3397c5df842569b31397c9abed8d4a7eca677d7cf7aa14b5c8e8d",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

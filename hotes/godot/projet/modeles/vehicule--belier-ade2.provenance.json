@@ -1,0 +1,13 @@
+{
+  "model": "vehicule--belier-ade2.glb",
+  "model_sha256": "1a0ccfcd42dc8d22698978f8e153ee1bd6d0e53e0c8b1af020defa4bb2f204c7",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

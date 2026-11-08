@@ -1,0 +1,13 @@
+{
+  "model": "vehicule--baliste-ade2.glb",
+  "model_sha256": "d03e14c99c9531d56e90a8252c7ebcc719a30239d3304e07f25f46be389f0d53",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

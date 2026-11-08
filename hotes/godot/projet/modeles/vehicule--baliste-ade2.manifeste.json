@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "vehicule",
+  "cle": {
+    "definition": "baliste-ade2"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "cordage",
+      "palette": "cuir",
+      "matiere": "prop--corde"
+    }
+  ],
+  "glb": {
+    "sha256": "d03e14c99c9531d56e90a8252c7ebcc719a30239d3304e07f25f46be389f0d53",
+    "octets": 52076
+  }
+}

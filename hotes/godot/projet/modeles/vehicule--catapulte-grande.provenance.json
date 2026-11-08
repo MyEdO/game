@@ -1,0 +1,13 @@
+{
+  "model": "vehicule--catapulte-grande.glb",
+  "model_sha256": "03335ff0e58e9cb2b28754794da16911e9f11787e636efc2507bf0488d7ea572",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

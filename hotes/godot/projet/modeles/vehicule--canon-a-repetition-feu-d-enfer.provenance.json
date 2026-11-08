@@ -1,0 +1,13 @@
+{
+  "model": "vehicule--canon-a-repetition-feu-d-enfer.glb",
+  "model_sha256": "a7a88fde0a74327fb36ba52c6b9c3e12c2934822200d3fb88f8aec92400ec544",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

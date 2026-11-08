@@ -420,11 +420,17 @@ vêtement et rigide, évalués, revus par l'utilisateur, puis montés dans le sc
 
 Un véhicule (catégorie `vehicule`) et les pièces de ses Améliorations (catégorie `amelioration`) se construisent
 depuis le dépôt, sans base, par `scripts/personnage-3d/vehicule/` : la partie commune (`construire.py` : export,
-manifestes et dossiers de production ; `maille.py` : maille, poutre, objet ; `habillage.py` : matériaux et `surfaces` ;
-`revue.py` : configurations rendues dans le studio de `rendu.py`) et un dossier par modèle, `<modele>/donnees.py` (ses
-dimensions, nommées) et `<modele>/modele.py` (sa construction). Modèles livrés : `caraque` (coque, plan de jeu lu dans
-`src/noyau/planDeLaCaraque.ts`, seize pièces d'Améliorations dans `ameliorations.py`) et `canon` (un GLB pour
-`canon-grand`, `canon-moyen`, `canon-petit`).
+manifestes et dossiers de production ; `maille.py` : maille, solides (révolution, cylindre, boîte, plaque, poutre, tube,
+tore, roue, treuil), bascule autour d'un axe, recentrage de l'emprise, objet ; `habillage.py` : matériaux, `surfaces` et
+éléments d'un modèle à plusieurs pièces ; `revue.py` : configurations rendues dans le studio de `rendu.py`) et un dossier
+par modèle, `<modele>/donnees.py` (ses dimensions, nommées) et `<modele>/modele.py` (sa construction). Modèles livrés :
+`caraque` (coque, plan de jeu lu dans `src/noyau/planDeLaCaraque.ts`, seize pièces d'Améliorations dans
+`ameliorations.py`) ; les engins `armes-de-siege`, une clé par engin, les doublons d'ADE II (`-ade2`) sur le GLB de leur
+engin : `affut` (l'affût de campagne et ses roues sous le canon, le mortier, le canon à répétition feu d'enfer, la
+batterie tonnerre de feu et le canon à flammes nain), `trepied` (pierrier, canon à répétition), `baliste`, `catapulte`
+(catapultes et mangonneau ; onagre), `trebuchet` et `belier`. Une référence trouvée hors du corpus (photographie de
+figurine) se range hors dépôt avec sa source (`vehicules-3d/references-armes-de-siege/SOURCES.md` du dossier du
+projet) et se cite dans la docstring des données ; sans référence, la docstring dit les proportions d'adaptation.
 
 **Créer un type.** Le dossier `vehicule/<type>/` porte deux fichiers :
 
@@ -462,7 +468,7 @@ données (le véhicule, la pièce des postes, les configurations et les vues de 
 `npm run godot:sonde` dépose sous `hotes/godot/projet/textures/` :
 
 ```sh
-node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/revue.py caraque --modeles /atelier/caraque --modeles /atelier/canon --catalogue hotes/godot/projet/textures --sortie /atelier/revue [--seules 01-nue] [--gros-plans]
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/revue.py caraque --modeles /atelier/caraque --modeles /atelier/affut --catalogue hotes/godot/projet/textures --sortie /atelier/revue [--seules 01-nue] [--gros-plans]
 ```
 
 Puis la porte artistique et la revue utilisateur de la section 7, consignée avant d'entériner.
