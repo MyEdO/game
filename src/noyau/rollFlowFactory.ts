@@ -20,7 +20,8 @@
  * `roll-modal-invariant.hors-store.test.ts` continue de vérifier.
  */
 import type { Jeu } from './etat';
-import { refuserGeste } from './refusVisible';
+import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
+import { libelleDeLaFermeture } from './libelles';
 import type { Combatant, Difficulty, ReverseQuery } from '../engine/types';
 import { canReroll } from '../engine/fortune';
 import { availableResistance, markResistanceUsed, resistanceForcedSL, resistanceImproves, type MenaceId } from '../engine/menace';
@@ -983,7 +984,9 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       if (!p) return; // rien d'ouvert : no-op (pas d'undo à jouer, pas de cascade à toucher)
       const refus = spec.refusDAnnuler?.(get(), p);
       if (refus) { refuserGeste(get, set, refus); return; }
-      if (fermetureDeLAnnulation(get(), p)) return; // le jet posé (ou imposé) engage la fenêtre (`clotures.cancel`)
+      // Le jet posé (ou imposé) engage la fenêtre (`clotures.cancel`), ou la déclaration du flux la ferme : le refus se dit.
+      const fermee = fermetureDeLAnnulation(get(), p);
+      if (fermee) { refuserGesteDuSiege(get, set, libelleDeLaFermeture(fermee)); return; }
       // Undo métier présent ⇒ il OWN toute la fermeture. SINON teardown par défaut : le pending, et
       // la cascade seulement si ce pending porte l'une de ses étapes-jets (`PORTEURS_D_ETAPE`) ; une
       // cascade étrangère au flux reste ouverte.

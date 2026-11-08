@@ -10,6 +10,7 @@ import { initialNet } from './etat';
 import { intentAllowedFor } from './netOwnership';
 import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { modalOwnerOf } from './modalArbiter';
+import { libelleDeLaFermeture } from './libelles';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { fenetreADessiner } from '../hote/gestes';
 import { toBrass, toMoney } from '../engine/money';
@@ -98,6 +99,19 @@ describe('R3-A — soin lancé par un soigneur PNJ : la fenêtre au patient, son
     expect(parSiege('jetValider', ['heal'])).toEqual([false, true, false]);
     expect(parSiege('fenetreFermer', ['medic'])).toEqual([false, true, false]); // au propriétaire ; la sortie elle-même se ferme (`soinEnCours`)
     expect(parSiege('jetRelancer', ['heal'])).toEqual([false, false, false]);
+  });
+});
+
+describe('le brouillon ne s’annule pas : l’annulation fermée se dit', () => {
+  it('hors combat, `jetAnnuler(heal)` sur le brouillon est refusé, dit `jet.ferme.acteAChanger`, et l’état ne bouge pas', () => {
+    poser([mk('doc', { skills: GUERISON }), blesse('p')], { doc: 0, p: 1 });
+    g().ouvrirLeMedecin({ patientId: 'p' });
+    const brouillon = g().pendingHeal;
+    const medic = g().medic;
+    g().jetAnnuler('heal');
+    expect(g().pendingHeal).toBe(brouillon);
+    expect(g().medic).toBe(medic);
+    expect(g().journal[g().journal.length - 1]).toBe(libelleDeLaFermeture('acteAChanger'));
   });
 });
 
