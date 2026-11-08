@@ -23,6 +23,7 @@
 - [Modificateurs de Taille en combat](#modificateurs-de-taille-en-combat)
 - [Caractéristiques aléatoires (LDB 77)](#caractéristiques-aléatoires)
 - [Créez le vôtre — PNJ de carrière (EDO 11)](#créez-le-vôtre--pnj-de-carrière-edo)
+- [L'argent des PNJ (EDO 11)](#largent-des-pnj-edo)
 - [Index des Traits de créature (renvois)](#index-des-traits-de-créature)
 - [Catalogue du bestiaire](#catalogue-du-bestiaire)
 - [Bilan de fidélité](#bilan-de-fidélité)
@@ -348,11 +349,43 @@ Lecture d'ingénierie, révisable : la parenthèse du Trait Lanceur de Sorts est
 
 L'exemple ne se recalcule pas : son profil (`EDO 11 l.27-32`) ne se retrouve pas en appliquant la règle. Ce qui s'en vérifie, c'est le Statut du Niveau atteint (**Argent 5**, `EDO 11 l.27`) et les possessions de la carrière (`EDO 11 l.38-40`).
 
-L'argent des PNJ (`EDO 11 l.42-44`, jet de Gagner de l'argent au Statut) n'est pas couvert par cette entrée.
+Son argent : [L'argent des PNJ](#largent-des-pnj-edo).
 
 **Voir aussi** : [Caractéristiques aléatoires](#caractéristiques-aléatoires) ; [Carrières](carrieres.md) — `carrieres.md`.
 
 **Implémente :** [État calculé](../implemente.generated.md#4ebestiairecreez-le-votre-pnj-de-carriere-edo)
+
+---
+
+## L'argent des PNJ (EDO)
+
+**Source RAW** : `EDO 11 l.42-44` (Appendice 2, Nouvelles règles), exemple `EDO 11 l.46`, renvoi à `LDB 08 l.105-118`
+
+> « La plupart des personnages de l'Empire utilisent des pièces de monnaie. Pour déterminer au hasard ce que possède un PNJ, faites un jet de Gagner de l'argent en utilisant le Statut du Personnage, comme indiqué dans **WFJDR**, page 51. Les PNJ ayant de l'argent indiqué dans leur équipement ignorent cette option. » — `EDO 11 l.44`
+
+> « *Helga Langstrasse, le Doktor, a un Statut Argent 5, elle possède donc 5d10 pièces d'argent.* » — `EDO 11 l.46`
+
+La page 51 du Livre de base ouvre « Gagner de l'argent grâce au Statut » (`LDB 08 l.105`, folio 51), et non la Richesse initiale de la création (`LDB 05 l.574-583`, folio 37). Ce passage joue un Test avant la somme du Statut :
+
+> « Lorsque vous Gagnez de l'argent, effectuez un Test **Spectaculaire Accessible (+20)** (voir page 152) contre votre Compétence de Carrière vous permettant de Gagner de l'argent (la Compétence indiquée en italique du premier Niveau de Carrière). Sur un succès, vous gagnez l'argent indiqué dans le tableau ci-dessous. Sur un Échec, vous ne gagnez que la moitié de la somme. Sur un Échec Stupéfiant (-6), vous avez passé une très mauvaise semaine et vous n'avez rien gagné (ou alors l'argent vous a été volé, ou vous avez vécu une mésaventure similaire). » — `LDB 08 l.110`
+
+| Échelon | Somme gagnée par Standing |
+|---------|---------------------------|
+| Bronze  | 2d10 sous de cuivre       |
+| Argent  | 1d10 pistoles d'argent    |
+| Or      | 1 couronne d'or           |
+
+— `LDB 08 l.114-118`
+
+Arbitrage utilisateur du 2026-11-08, verbatim au ticket #3712 : le PNJ reçoit les dés seuls du tableau à son Statut, comme l'exemple (`EDO 11 l.46`) ; le Test Spectaculaire Accessible de `LDB 08 l.110` (la moitié sur un Échec, rien sur un Échec Stupéfiant) est écarté.
+
+Jeu sans MJ (règle 7) : le PNJ à Statut est le PNJ de carrière ([Créez le vôtre](#créez-le-vôtre--pnj-de-carrière-edo)), dont le Statut est celui du Niveau atteint. Ses dés se tirent à son apparition, sur la graine de son id, et l'argent va dans sa Bourse.
+
+L'argent qu'une dotation de carrière indique en texte (les « Pistoles d'argent » du Marchand 1, les « 50 pistoles d'argent » du Colporteur 4) ne devient aucun objet : ce PNJ tire sa bourse comme s'il n'en portait pas.
+
+**Voir aussi** : [Revenus](activites.md#revenus) — `activites.md` ; [Créez le vôtre](#créez-le-vôtre--pnj-de-carrière-edo).
+
+**Implémente :** [État calculé](../implemente.generated.md#4ebestiairel-argent-des-pnj-edo)
 
 ---
 
@@ -487,6 +520,7 @@ Indices observés dans le bestiaire MDG : Redoutable 1 (Baudroye, Hydre d'os, Sa
 | Mods Taille en combat | `LDB 85 l.357-387` | ✅ |
 | Caractéristiques aléatoires | `LDB 77 l.108` | ✅ implémenté (`randomizeChars`) |
 | PNJ de carrière | `EDO 11 l.17-21` | ✅ implémenté (`porterAuParcours`, arbitrages #773) |
+| L'argent des PNJ | `EDO 11 l.42-46` | ✅ implémenté (`argentDuPnj`, `statusIncome`), arbitrage du 2026-11-08 |
 | Sorts d'un PNJ lanceur de sorts | `LDB 10 l.625`, `l.706-714`, `EDOC 13 l.262` | ✅ implémenté (`sortsDuPnj`, arbitrage #3715) |
 | Index Traits — déclenchement | `LDB 85 l.83-455` | ✅ tableau de synthèse |
 
@@ -498,7 +532,7 @@ Les chapitres `LDB 77-83`, `ZI`, `EDO`, `MSR/MSRC`, `PDT`, `NADJ`, `ADE I/II` co
 
 - `src/engine/size.ts` — `LDB 85 l.343-406` (7 catégories, Blessures, mods combat).
 - `src/noyau/monde/spawn.ts` — `LDB 76 l.45` (Facultatifs), `LDB 77 l.108` (carac. aléatoires).
-- `src/engine/pnjDeCarriere.ts` — `EDO 11 l.17-21` (PNJ de carrière : +5 par Niveau, Talents, dotations de la carrière actuelle).
+- `src/engine/pnjDeCarriere.ts` — `EDO 11 l.17-21` (PNJ de carrière : +5 par Niveau, Talents, dotations de la carrière actuelle), `EDO 11 l.42-46` (son argent, `argentDuPnj`).
 - `src/engine/sortsDuPnj.ts` — `LDB 10 l.625`, `l.706-714`, `EDOC 13 l.262` (sorts d'un PNJ : choix de l'auteur, quotas de Magie mineure, Invocation et Magie du Chaos).
 - `src/engine/creatureAttacks.ts` — `LDB 85 traits` (grantsManeuvers par id).
 - `src/engine/creatureEquip.ts` — `LDB 85 l.405` (Tentacules, compte/attaques gratuites).

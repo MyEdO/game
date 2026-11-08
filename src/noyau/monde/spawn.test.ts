@@ -3,15 +3,18 @@ import { creatureToCombatant, statblockToCombatant, skillsFromBook, spawnEnemy, 
 import { armourFromTraits, weaponFromTrait, weaponsFromTraits } from '../../engine/creatureEquip';
 import type { CustomStatblock } from '../../engine/statblock';
 import { recomputeLoadout } from '../../engine/items';
-import { blessingsOf, findCreatureById, findSpellById, miraclesOf, talentConcrete } from '../../data';
+import { blessingsOf, findCreatureById, findSpellById, miraclesOf, names, talentConcrete } from '../../data';
 import { pettySpellQuotaFor } from '../../engine/creation';
 import { CHAR_KEYS } from '../../engine/types';
 import { knowsCastingSkill, castingValue, incantationArcane } from '../../engine/magic';
-import { ficheDEntite } from './sceneNpc';
+import { ficheDEntite, nomDEntite } from './sceneNpc';
 import { actorStatus } from '../../engine/social';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
-import type { SceneEntity } from './scene';
+import { emptyScene, type SceneEntity } from './scene';
+import { poserUneTroupe } from '../sceneEdit';
+import { bourseOf } from '../../engine/bourse';
+import { toBrass } from '../../engine/money';
 
 
 /** Traits d'arme FR vérifiés dans L'ennemi dans l'Ombre ch.2 (Knud Cratinx & co). */
@@ -424,7 +427,7 @@ describe('PNJ de carrière : la fiche d’une entité portée à son parcours (E
   it('l’humain de base porté Doktor (Médecin 3) : Statut Argent 5 et les possessions de l’exemple (EDO 11 l.27, l.33-35)', () => {
     const c = ficheDEntite(langstrasse, sansPreset);
     expect(actorStatus(c)).toEqual({ tier: 'argent', standing: 5 });
-    expect(c.items?.map((i) => i.trappingId)).toEqual(['bandages', 'potion-de-guerison', 'livre-medecine', 'licence-de-guilde', 'outils-professionnels-medecin', 'atelier']);
+    expect(c.items?.map((i) => i.trappingId)).toEqual(['bandages', 'potion-de-guerison', 'livre-medecine', 'licence-de-guilde', 'outils-professionnels-medecin', 'atelier', 'bourse']);
     expect(c.wounds.max).toBe(13);
     expect(c.porteurDeFiche).toEqual({ ref: 'humain', parcours: { carrieres: { medecin: 3 } } });
   });
@@ -449,6 +452,74 @@ describe('PNJ de carrière : la fiche d’une entité portée à son parcours (E
     expect(faute({ appearance: { tenue: 'medecin' } })).toEqual([expect.stringMatching(/tenue/)]);
     expect(faute({ carrieres: { medecin: 5 } })).toEqual([expect.stringMatching(/Niveau 5/)]);
     expect(faute({ carrieres: undefined, talentsDeCarriere: { medecin: [{ id: 'chirurgie' }] } })).toEqual([expect.stringMatching(/sans carrière/)]);
+  });
+});
+
+describe('L’argent des PNJ : les dés du Statut, sans Test, dans la Bourse (EDO 11 l.42-46 ; #3712)', () => {
+  const sansPreset = () => undefined;
+  const doktor = (id: string): SceneEntity => ({ id, kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', carrieres: { medecin: 3 } });
+
+  it('le PNJ de carrière porte une Bourse de 5d10 pistoles d’argent (Argent 5, EDO 11 l.46), la même pour un même id', () => {
+    const argent = (id: string) => toBrass(bourseOf(ficheDEntite(doktor(id), sansPreset)));
+    const pistoles = argent('langstrasse') / 12;
+    expect(Number.isInteger(pistoles), 'des pistoles entières').toBe(true);
+    expect(pistoles).toBeGreaterThanOrEqual(5);
+    expect(pistoles).toBeLessThanOrEqual(50);
+    expect(argent('langstrasse')).toBe(argent('langstrasse'));
+    expect(new Set(['a', 'b', 'c', 'd', 'e'].map(argent)).size, 'cinq ids, au moins deux bourses différentes').toBeGreaterThan(1);
+  });
+
+  it('un PNJ sans carrière n’a pas de Statut : il n’en tire aucune', () => {
+    expect(ficheDEntite({ id: 'badaud', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain' }, sansPreset).items ?? []).toEqual([]);
+  });
+});
+
+describe('PNJ anonyme : nom, âge, taille, yeux et cheveux tirés à la graine de son id (LDB 05 l.701-768 ; #3712)', () => {
+  const sansPreset = () => undefined;
+  const humain = (id: string, ent: Partial<SceneEntity> = {}): SceneEntity => ({ id, kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', ...ent });
+  const pool = (race: string) => names.find((n) => n.id === race)!;
+
+  it('le personnage sans nom d’auteur porte un nom de sa race, le même pour un même id, un autre pour un autre id', () => {
+    const nom = nomDEntite(humain('garde-1'), sansPreset)!;
+    expect(pool('humain').maleFirstNames).toContain(nom.split(' ')[0]);
+    expect(nomDEntite(humain('garde-1'), sansPreset)).toBe(nom);
+    expect(nomDEntite(humain('garde-2'), sansPreset)).not.toBe(nom);
+    expect(ficheDEntite(humain('garde-1'), sansPreset).label, 'la fiche porte le nom de l’entité').toBe(nom);
+  });
+
+  it('le nom suit le sexe et l’espèce que l’auteur pose', () => {
+    expect(pool('humain').femaleFirstNames).toContain(nomDEntite(humain('villageoise', { appearance: { sex: 'F' } }), sansPreset)!.split(' ')[0]);
+    const nain = nomDEntite(humain('client', { ref: 'nain', appearance: { species: 'nains' } }), sansPreset)!;
+    expect(pool('nain').maleFirstNames).toContain(nain.split(' ')[0]);
+    expect(pool('nain').lastNameSuffixes!.M.some((x) => nain.endsWith(x)), 'patronyme nain, LDB 05 l.627-633').toBe(true);
+  });
+
+  it('son âge, sa taille, ses yeux et ses cheveux sont tirés sur les tables de sa race, les mêmes pour un même id', () => {
+    const { details } = ficheDEntite(humain('garde-1'), sansPreset);
+    expect(details?.age).toBeGreaterThanOrEqual(16); // 15 + 1d10, LDB 05 l.711
+    expect(details?.age).toBeLessThanOrEqual(25);
+    expect(details?.height).toBeGreaterThanOrEqual(150); // 145 + 5d10 cm, LDB 05 l.724
+    expect(details?.height).toBeLessThanOrEqual(195);
+    expect(details?.eyes).toBeTruthy();
+    expect(details?.hair).toBeTruthy();
+    expect(ficheDEntite(humain('garde-1'), sansPreset).details).toEqual(details);
+  });
+
+  it('ce que l’auteur pose prime : son nom, un statbloc, un individu nommé du bestiaire', () => {
+    const nomme = ficheDEntite(humain('garde', { label: 'Garde du Bourg' }), sansPreset);
+    expect([nomme.label, nomme.details]).toEqual(['Garde du Bourg', undefined]);
+    expect(nomDEntite(humain('eusapia', { ref: 'eusapia-balacanon' }), sansPreset)).toBe(findCreatureById('eusapia-balacanon')!.label);
+    expect(nomDEntite(humain('timonier', { ref: undefined, statblock: { type: 'statblock', label: 'Timonier', char: {} } }), sansPreset)).toBe('Timonier');
+    expect(nomDEntite(humain('loup', { ref: 'loup' }), sansPreset), 'une créature sans race garde le nom de sa fiche').toBe(findCreatureById('loup')!.label);
+  });
+
+  it('une troupe (#3704) donne des noms et des visages différents sans rien régler', () => {
+    const scene = emptyScene('troupe', 8, 8);
+    const garde = humain('garde', { pos: { x: 3, y: 3 } });
+    const { scene: posee, ids } = poserUneTroupe({ ...scene, entities: [garde] }, garde, 5);
+    const copies = posee.entities.filter((e) => ids.includes(e.id));
+    expect(new Set([garde, ...copies].map((e) => nomDEntite(e, sansPreset))).size).toBe(6);
+    expect(new Set([garde, ...copies].map((e) => JSON.stringify(ficheDEntite(e, sansPreset).details))).size).toBeGreaterThan(1);
   });
 });
 
