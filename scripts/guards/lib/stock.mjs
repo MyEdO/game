@@ -32,9 +32,7 @@
 // autres, sans court-circuit : un cliquet tenu à zéro est un cliquet, il rend ses `neuves`.
 //
 // INTERDITS gravés — chacun est un trou déjà payé dans ce dépôt :
-//   - jamais le PLAFOND. Il vit dans le TEST, jamais dans la lib du stock ni ici
-//     (`src/data/entity-orphans.test.ts:18-21`, verbatim : « sans lui, le chemin le plus court pour
-//     "solder" une orpheline neuve resterait d'ajouter une ligne au stock, CI verte ») — un plafond
+//   - jamais le PLAFOND. Il vit dans le TEST, jamais dans la lib du stock ni ici : un plafond
 //     servi depuis la lib se relèverait dans le même geste que l'append qu'il doit rendre visible.
 //   - jamais le VERDICT : aucun `expect`, aucun `throw`, aucun exit.
 //   - jamais le DISQUE : aucune lecture, aucun chemin — l'appelant apporte l'observé.
@@ -138,7 +136,7 @@ export function naissanceDu(quoi, familles) {
  * l'OCCURRENCE (ordinal du site parmi ses homonymes), joints par `SEPARATEUR_DE_CLE`. Même clé des
  * deux côtés de `ecartsDeStock`. C'est la forme d'entrée de TOUT stock de sites du dépôt — les stocks
  * JSON de `scripts/raw` (lus par `stockDeSites.mjs`) comme les stocks `.mjs` de gardes
- * (`entityOrphanStock.mjs`).
+ * (`folioLineAlignStock.mjs`).
  * Ce que la clé EXCLUT : la ligne du FICHIER PORTEUR (celle où le site est écrit) — elle dérive à
  * chaque édition du fichier et rendrait la moitié du stock périmée à chaque commit.
  * Ce que la clé INCLUT, sur les volets à RÉF CITÉE (`reanchor-low`, `dead-refs`, `empty-line`,

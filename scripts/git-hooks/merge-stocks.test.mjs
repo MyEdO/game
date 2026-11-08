@@ -10,7 +10,7 @@ import { threeWay } from './three-way.mjs'
 import { FORMAT_JSON, FORMAT_MJS, formatDe } from '../guards/lib/stockDeSites.mjs'
 import { ecartDuVolet, groupeDeSite, refusDeCroissance, sitesEnEntrees } from '../guards/lib/stock.mjs'
 
-const STOCK_MJS = 'scripts/guards/lib/entityOrphanStock.mjs'
+const STOCK_MJS = 'scripts/guards/lib/spellNarratifStock.mjs'
 const TABLES = 'scripts/raw/source-tables-stock.json'
 const FORMAT = 'scripts/raw/source-format-stock.json'
 const lu = (chemin) => readFileSync(chemin, 'utf8')
@@ -43,7 +43,7 @@ test('deux soldes disjoints → les deux', () => {
 test('un ajout d’un seul côté → gardé', () => {
   const O = lu(STOCK_MJS)
   const [g1] = groupes(entrees(STOCK_MJS, O))
-  const neuf = { fichier: 'src/data/creatures.json', ref: 'neuf', occurrence: 1 }
+  const neuf = { fichier: 'src/data/spells.json', ref: 'neuf', occurrence: 1 }
   const r = fusion(STOCK_MJS, O, varie(STOCK_MJS, O, (es) => [...es, neuf]), varie(STOCK_MJS, O, sans(g1)))
   assert.equal(r.conflict, false)
   assert.equal(r.text, varie(STOCK_MJS, O, (es) => [...sans(g1)(es), neuf]))
@@ -58,7 +58,7 @@ test('un retrait des deux côtés du même site → une fois', () => {
 })
 
 test('homonymes : le groupe se recompte par ordinal, la porte reste verte, la régénération répare', () => {
-  const site = { file: 'src/data/creatures.json', ref: 'homonyme' }
+  const site = { file: 'src/data/spells.json', ref: 'homonyme' }
   const avec = (n) => (es) => [...es, ...sitesEnEntrees(Array.from({ length: n }, () => site))]
   const O = varie(STOCK_MJS, lu(STOCK_MJS), avec(3))
   for (const [nA, nB, attendu, code] of [[2, 4, 3, 3], [2, 2, 2, 1]]) {

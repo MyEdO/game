@@ -1,6 +1,6 @@
 // STOCK NOMINATIF DATÉ (2026-08-25) des sites qui RE-TAPENT une forme de la grammaire, ou qui
 // ÉTENDENT une de ses portes — le dénominateur de la garde `src/data/grammaire-guard.test.ts`
-// (#1466 L1a). Patron whitelist-en-lib du dépôt (`tableConsumerStock.mjs`, `horsStrateStock.mjs`).
+// (#1466 L1a). Patron whitelist-en-lib du dépôt (`horsStrateStock.mjs`).
 //
 // Clé = `<fichier>:<symbole>[.<champ>]|<motif>|<detail>` — jamais un numéro de ligne : une ligne
 // bouge à chaque édition du module et ferait rougir la garde sans qu'aucune forme n'ait changé

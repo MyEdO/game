@@ -1,7 +1,6 @@
 // Détecteur de consommateurs PAR CHAMP (#903 — « qui lit le champ `spec` sur une référence de
-// dotation ? »). Distinct de `entityConsumers.mjs` (qui répond « qui cite cet ID d'entité »,
-// consommé par `build-entity-orphans.mjs`) : ici, la question porte sur un CHAMP d'un TYPE de
-// donnée structuré (`TrappingRef.spec`), pas sur un id de catalogue.
+// dotation ? ») : la question porte sur un CHAMP d'un TYPE de donnée structuré (`TrappingRef.spec`),
+// pas sur un id de catalogue.
 //
 // Le détecteur travaille au VÉRIFICATEUR DE TYPES (`ts.Program`/`TypeChecker`, #1620) — pas au
 // texte des annotations. IDENTITÉ PAR SYMBOLE de bout en bout, AUCUN nom n'entre dans un crédit :

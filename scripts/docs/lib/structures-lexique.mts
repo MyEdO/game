@@ -910,9 +910,8 @@ export const CLES_PROSE_SANS_REFERENCE = ['label', 'nom', 'desc', 'title'] as co
  * `defs-scenes/effets.ts` : `transitionSchema`) nomme un point d'arrivée de la scène visée par le
  * `scene` qui l'accompagne — et un point d'arrivée est une CLÉ de `scenes[].entryPoints`
  * (`defs-scenes/scene.ts`), un record : le scan n'indexe que des VALEURS porteuses d'identité, si
- * bien qu'aucun nom de point d'arrivée n'entre jamais à l'index (même constat que
- * `scripts/guards/lib/entityConsumers.mjs` : « `entryPoints` … est un RECORD dont les identités sont
- * les CLÉS, que le scan par VALEURS ne collecte jamais »). Toute résolution de `entry` contre l'index
+ * bien qu'aucun nom de point d'arrivée n'entre jamais à l'index : `entryPoints` est un RECORD dont les
+ * identités sont les CLÉS, que le scan par VALEURS ne collecte jamais. Toute résolution de `entry` contre l'index
  * est donc une HOMONYMIE PAR CONSTRUCTION — mesurée le 2026-09-06 : `arene-projet.json › entry:
  * "route"` classé référence vers `terrains.json` à l'entrée du dataset des sols (#1690), le seul
  * remède eût été de renommer un point d'arrivée d'auteur pour contenter la MESURE.
