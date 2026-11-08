@@ -5,7 +5,7 @@ import {
   AnimationClip, Bone, BufferAttribute, BufferGeometry, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Skeleton, SkinnedMesh,
   Matrix4, QuaternionKeyframeTrack, Uint16BufferAttribute, Vector3, VectorKeyframeTrack,
 } from 'three';
-import { ecrireGlb, lireGlb } from '../glb.ts';
+import { ecrireGlb, lireConteneur, lireGlb } from '../glb.ts';
 import { chargerScene } from './chargement.ts';
 import { echantillonner, instants, poseDeRepos } from './echantillonnage.ts';
 import { evaluer, monter, poidsDesFormesDe } from './evaluer.ts';
@@ -776,6 +776,37 @@ describe('validerManifesteDeBase', () => {
     const m = { ...valide(), surfaces: [{ nom: 'peau', palette: 'peau' }] };
     expect(validerManifesteDeBase(m, octets)).toEqual({ ok: true, manifeste: m });
     expect(validerManifesteDeBase(valide(), octets)).toEqual({ ok: true, manifeste: valide() });
+  });
+
+  describe('parSexe (#3188) : le matériau d’un sexe est, sur chaque primitive de la surface, sa variante `KHR_materials_variants` du nom du sexe', () => {
+    /** Le GLB de `glbFabrique` à deux primitives `peau`, plus le matériau `peau_f`, variante `variante` des primitives
+     *  de rang `portees`. */
+    const avecVariante = (portees: readonly number[], variante = 'F') => {
+      const { json: lu, bin } = lireConteneur(glbFabrique({ clips: { Repos: [0, 0] }, primitives: 2 }));
+      const json = lu as { meshes: { primitives: Record<string, unknown>[] }[]; materials: { name: string }[]; [cle: string]: unknown };
+      json.materials.push({ name: 'peau_f' });
+      json.extensions = { KHR_materials_variants: { variants: [{ name: variante }] } };
+      json.extensionsUsed = ['KHR_materials_variants'];
+      portees.forEach((j) => { json.meshes[0].primitives[j].extensions = { KHR_materials_variants: { mappings: [{ material: 1, variants: [0] }] } }; });
+      return ecrireGlb(json, bin);
+    };
+    const parSexe = (octets: Uint8Array, surface: Record<string, unknown>) => {
+      const v = validerManifesteDeBase({ ...manifesteDe(octets), surfaces: [surface] }, octets);
+      return v.ok ? [] : v.ecarts.map(({ code, ou }) => [code, ou]);
+    };
+    it('accepte la variante portée par chaque primitive ; `lireGlb` la lit', () => {
+      const octets = avecVariante([0, 1]);
+      expect(lireGlb(octets).variantes).toEqual(new Map([['peau', new Map([['F', 'peau_f']])]]));
+      expect(parSexe(octets, { nom: 'peau', palette: 'peau', parSexe: { F: 'peau_f' } })).toEqual([]);
+    });
+    it.each<[string, Uint8Array, Record<string, unknown>, string[][]]>([
+      ['une primitive sans la variante', avecVariante([0]), { nom: 'peau', palette: 'peau', parSexe: { F: 'peau_f' } }, [['surface-absente', 'surfaces.0.parSexe.F']]],
+      ['une variante d’un autre nom', avecVariante([0, 1], 'M'), { nom: 'peau', palette: 'peau', parSexe: { F: 'peau_f' } }, [['surface-absente', 'surfaces.0.parSexe.F']]],
+      ['un autre matériau', avecVariante([0, 1]), { nom: 'peau', palette: 'peau', parSexe: { F: 'peau' } }, [['surface-absente', 'surfaces.0.parSexe.F']]],
+      ['un sexe inconnu', avecVariante([0, 1]), { nom: 'peau', palette: 'peau', parSexe: { X: 'peau_f' } }, [['forme', 'surfaces.0.parSexe']]],
+      ['un nom vide', avecVariante([0, 1]), { nom: 'peau', palette: 'peau', parSexe: { F: '' } }, [['forme', 'surfaces.0.parSexe']]],
+      ['une table vide', avecVariante([0, 1]), { nom: 'peau', palette: 'peau', parSexe: {} }, [['forme', 'surfaces.0.parSexe']]],
+    ])('refuse %s', (_cas, octets, surface, attendus) => expect(parSexe(octets, surface)).toEqual(attendus));
   });
 
   it('accepte une enveloppe avec un demi-domaine neutre', () => {

@@ -16,6 +16,10 @@ export interface ContenuGlb {
   readonly materiaux: ReadonlySet<string>;
   /** Les noms des matériaux dont une primitive, sous tout nœud à mesh, n'a pas d'attribut `TEXCOORD_0`. */
   readonly materiauxSansUv: ReadonlySet<string>;
+  /** Par nom de matériau des primitives de tout nœud à mesh, par nom de variante `KHR_materials_variants`, le nom du
+   *  matériau que chacune de ces primitives y porte ; une variante que l'une d'elles ne porte pas, ou porte d'un autre
+   *  matériau, n'y est pas. */
+  readonly variantes: ReadonlyMap<string, ReadonlyMap<string, string>>;
   /** Le nombre d'images que le GLB embarque. */
   readonly images: number;
   /** Par zone (`extras.zone` d'un nœud à mesh), les noms des nœuds qui la portent. */
@@ -56,7 +60,8 @@ interface JsonGltf {
   nodes?: { name?: unknown; mesh?: number; skin?: number; children?: number[]; extras?: { zone?: unknown } }[];
   scenes?: { nodes?: number[] }[];
   scene?: number;
-  meshes?: { primitives: { material?: number; attributes?: Record<string, number> }[]; extras?: { targetNames?: unknown } }[];
+  meshes?: { primitives: { material?: number; attributes?: Record<string, number>; extensions?: { KHR_materials_variants?: { mappings?: unknown } } }[]; extras?: { targetNames?: unknown } }[];
+  extensions?: { KHR_materials_variants?: { variants?: unknown } };
   materials?: { name?: string }[];
   skins?: { joints: number[] }[];
   animations?: { name?: unknown }[];
@@ -194,6 +199,19 @@ function arborescence(json: JsonGltf): ReadonlyMap<number, number> {
   return parents;
 }
 
+/** Par nom de variante `KHR_materials_variants` (`noms`, ceux de la racine), le nom du matériau que la primitive `p` de
+ *  `json` y porte ; une correspondance mal formée n'en donne aucun. */
+function variantesDeLaPrimitive(p: NonNullable<JsonGltf['meshes']>[number]['primitives'][number], json: JsonGltf, noms: readonly (string | null)[]): Map<string, string> {
+  const correspondances = p.extensions?.KHR_materials_variants?.mappings;
+  return new Map((Array.isArray(correspondances) ? correspondances : []).flatMap((c: { material?: unknown; variants?: unknown }) => {
+    const materiau = dans(c?.material, json.materials?.length ?? 0) ? nomDe((json.materials ?? [])[c.material as number]) : null;
+    return materiau === null || !Array.isArray(c.variants) ? [] : c.variants.flatMap((v): [string, string][] => {
+      const nom = dans(v, noms.length) ? noms[v as number] : null;
+      return nom === null ? [] : [[nom, materiau]];
+    });
+  }));
+}
+
 /** Ce que le contrat d'asset et l'évaluateur lisent du GLB `octets`, dont la forme est refusée hors du glTF
  *  (`arborescence`). */
 export function lireGlb(octets: Uint8Array): ContenuGlb {
@@ -204,6 +222,8 @@ export function lireGlb(octets: Uint8Array): ContenuGlb {
   const meshes: MeshDuGlb[] = [];
   const materiaux = new Set<string>();
   const materiauxSansUv = new Set<string>();
+  const variantesDesPrimitives = new Map<string, Map<string, string>[]>();
+  const nomsDesVariantes = tableau(json.extensions?.KHR_materials_variants?.variants, 'KHR_materials_variants : variants').map((v) => nomDe(v as { name?: unknown }));
   const zones = new Map<string, string[]>();
   noeuds.forEach((n, i) => {
     if (n.mesh === undefined) return;
@@ -214,6 +234,7 @@ export function lireGlb(octets: Uint8Array): ContenuGlb {
       const materiau = nomDe((json.materials ?? [])[p.material]) ?? '';
       materiaux.add(materiau);
       if (p.attributes?.TEXCOORD_0 === undefined) materiauxSansUv.add(materiau);
+      variantesDesPrimitives.set(materiau, [...(variantesDesPrimitives.get(materiau) ?? []), variantesDeLaPrimitive(p, json, nomsDesVariantes)]);
     }
     if (typeof n.extras?.zone === 'string') zones.set(n.extras.zone, [...(zones.get(n.extras.zone) ?? []), nom]);
     const parent = parents.get(i);
@@ -221,8 +242,10 @@ export function lireGlb(octets: Uint8Array): ContenuGlb {
     meshes.push({ nom, skinne: n.skin !== undefined, articulation, os: articulation === null ? null : nomDe(noeuds[articulation]) });
   });
   const formes = new Set((json.meshes ?? []).flatMap(m => (Array.isArray(m.extras?.targetNames) ? m.extras.targetNames : []).filter((t): t is string => typeof t === 'string')));
+  const variantes = new Map([...variantesDesPrimitives].map(([materiau, [premiere, ...autres]]) => [materiau,
+    new Map([...premiere].filter(([variante, nom]) => autres.every((a) => a.get(variante) === nom)))]));
   return {
-    meshes, materiaux, materiauxSansUv, zones, formes,
+    meshes, materiaux, materiauxSansUv, variantes, zones, formes,
     images: json.images?.length ?? 0,
     animations: nomsDe(json.animations ?? []),
     os: nomsDe((json.skins ?? []).flatMap(s => s.joints.map(i => noeuds[i]))),

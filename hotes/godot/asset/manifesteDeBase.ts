@@ -237,7 +237,7 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
   };
   if (estObjet(brut.appuis) && estListeDeChaines(a.pieds) && !appuis.pieds.length) forme('appuis.pieds', 'au moins un pied attendu');
   const osAPositionAnimee = liste(brut.osAPositionAnimee, 'osAPositionAnimee');
-  const lues = brut.surfaces === undefined ? undefined : lireSurfaces(brut.surfaces, false);
+  const lues = brut.surfaces === undefined ? undefined : lireSurfaces(brut.surfaces, 'base');
   ecarts.push(...(lues?.ecarts ?? []));
   const glb = objet(brut.glb, 'glb');
   const empreinte = { sha256: chaine(glb.sha256, 'glb.sha256'), octets: nombre(glb.octets, 'glb.octets') };

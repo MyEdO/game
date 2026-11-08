@@ -139,13 +139,18 @@ def lier(x, os_de_x, surface, faces, os_des_faces, voisinage):
         if point is None:
             raise RuntimeError(f'point {i} : aucune face de son os ni de ses voisins')
         face[i], points[i], distances[i] = parties[v][local], point, distance
-    a, b, c = (surface[faces[face, k]] for k in range(3))
+    return face, barycentres(points, *(surface[faces[face, k]] for k in range(3))), distances
+
+
+def barycentres(points, a, b, c):
+    """Les coordonnées barycentriques (points, 3) de chaque point de `points` projeté dans le plan du triangle (`a`,
+    `b`, `c`, chacun (points, 3)), hors du triangle comprises."""
     u, v, q = b - a, c - a, points - a
     uu, uv, vv = (u * u).sum(1), (u * v).sum(1), (v * v).sum(1)
     qu, qv = (q * u).sum(1), (q * v).sum(1)
     det = uu * vv - uv * uv
     beta, gamma = (vv * qu - uv * qv) / det, (uu * qv - uv * qu) / det
-    return face, numpy.stack([1.0 - beta - gamma, beta, gamma], axis=1), distances
+    return numpy.stack([1.0 - beta - gamma, beta, gamma], axis=1)
 
 
 def transporter(champ, faces, face, barycentres):
