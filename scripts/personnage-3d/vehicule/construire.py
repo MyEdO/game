@@ -8,7 +8,7 @@ l'élément, son dossier de production `<sortie>/<id>/` :
 L'id est `<categorie>--<valeur de la clé>` (`vehicule--caraque`, `amelioration--sabord`). Un élément est un dict :
 `glb` (nom de la scène), `cles` [(categorie, cle)], `materiaux` (table `{nom: (emplacement, matière)}`, `habillage.py`),
 `blasons` (matériaux qui reçoivent l'emblème, exportés avec leurs UV), `construire` (bâtit la scène vide, rend les
-champs du manifeste propres à l'élément : `postes`, `selon`, `ancrages`, `montage`).
+champs du manifeste propres à l'élément : `postes`, `selon`, `ancrages`, `montage`, `clips` (`clips.py`)).
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/construire.py <modele> --sortie <dossier neuf hors du dépôt>
 """
@@ -47,7 +47,8 @@ def dossier_de_sortie(chemin):
 
 def exporter(chemin, avec_uv):
     bpy.ops.export_scene.gltf(
-        filepath=str(chemin), export_format="GLB", export_yup=True, export_apply=True, export_animations=False,
+        filepath=str(chemin), export_format="GLB", export_yup=True, export_apply=True, export_animations=True,
+        export_animation_mode="NLA_TRACKS", export_optimize_animation_keep_anim_object=True,
         export_skins=False, export_morph=False, export_texcoords=avec_uv, export_normals=True,
         export_materials="EXPORT", export_cameras=False, export_lights=False, export_extras=False, use_selection=False,
     )

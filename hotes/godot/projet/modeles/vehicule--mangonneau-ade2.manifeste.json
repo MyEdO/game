@@ -1,0 +1,41 @@
+{
+  "schema": 3,
+  "categorie": "vehicule",
+  "cle": {
+    "definition": "mangonneau-ade2"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "clips": {
+    "idle": "repos",
+    "walk": "marche",
+    "ranged": "tir"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "corde",
+      "palette": "cuir",
+      "matiere": "prop--corde"
+    },
+    {
+      "nom": "cuir",
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
+    }
+  ],
+  "glb": {
+    "sha256": "70b96264a4ddec54c529d62700006c8aeecffa81718de0cd60a2e3612e5ff6f1",
+    "octets": 50784
+  }
+}

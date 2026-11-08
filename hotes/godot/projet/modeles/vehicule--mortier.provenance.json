@@ -1,0 +1,13 @@
+{
+  "model": "vehicule--mortier.glb",
+  "model_sha256": "a1ecb0f00fb004f4bf0d2881e1b5c7b775b9747aab3b500aad688c0b544f6a33",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

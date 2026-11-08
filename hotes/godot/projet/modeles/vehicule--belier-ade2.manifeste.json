@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "vehicule",
+  "cle": {
+    "definition": "belier-ade2"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "clips": {
+    "idle": "repos",
+    "walk": "marche",
+    "melee": "coup"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    }
+  ],
+  "glb": {
+    "sha256": "ae8c258a3abfe66392e4717687352d6994e86a825dc8ad8c06a657bf097ad878",
+    "octets": 182340
+  }
+}

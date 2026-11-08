@@ -43,10 +43,11 @@ export const elementSchema3 = (base = 'humanoide') => ({
 /** Le GLB d'un élément sans base (#2987) : son mesh reste à la racine de la scène. */
 export const GLB_SANS_BASE = glbDElement(null);
 /** Le GLB d'un élément sans base (#2987) dont chaque nom de `noms` est un nœud à mesh, à la racine de la scène, de
- *  matériau `metal`. */
-export const glbANoeuds = (noms: readonly string[]) => ecrireGlb({
+ *  matériau `metal`, et qui porte les clips `clips`. */
+export const glbANoeuds = (noms: readonly string[], clips: readonly string[] = []) => ecrireGlb({
   asset: { version: '2.0' }, nodes: noms.map((name) => ({ name, mesh: 0 })),
   meshes: [{ primitives: [{ material: 0 }] }], materials: [{ name: 'metal' }],
+  ...(clips.length ? { animations: clips.map((name) => ({ name })) } : {}),
 }, null);
 /** Le GLB d'une pièce montée aux postes (#2987) : un nœud à mesh par état (`ETATS_AU_POSTE`). */
 export const GLB_AU_POSTE = glbANoeuds(['ouvert', 'ferme']);
