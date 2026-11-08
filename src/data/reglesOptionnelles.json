@@ -627,6 +627,10 @@
     "type": "reglesOptionnelles",
     "label": "Délai avant de retenter une Évaluation (jours)",
     "ref": "LDB 59 l.41",
+    "source": {
+      "book": "livre-de-base",
+      "page": 291
+    },
     "maison": "Le RAW ne borne pas les nouvelles tentatives d’Évaluation d’un objet (LDB 59 l.41) ; seul un échec à DR 0 offre un nouvel essai (LDB 12 l.94). Valeur maison : après un échec à DR négatif, le délai en jours avant qu’un héros retente l’Évaluation de cet objet ; 0 lève le verrou.",
     "group": "Marché",
     "kind": "param",
