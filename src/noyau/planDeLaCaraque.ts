@@ -1,5 +1,5 @@
 /**
- * Les ponts de la caraque, relevés sur ses plans (MDG p.99, « Caraque », plans de ses ponts), en `MapSpec` que
+ * Les ponts de la caraque, relevés sur ses plans (MDG 12 l.286, planche « Caraque », plans de ses ponts), en `MapSpec` que
  * `buildScene` compile (#3686) : une case de 2 m, 18 × 5 cases pour les 35 m de `ship.lengthM`, la proue à
  * `x = 0`, tribord à `y = 0`, la hauteur en mètres depuis la flottaison (repère du modèle 3D de la caraque).
  * Un étage par pont : `z0` pont de cargaison, `z1` pont principal, `z2` pont supérieur (le château de poupe
@@ -170,10 +170,10 @@ const HUNE = 23.9;
 /**
  * Ce que chaque Amélioration ajoute aux ponts de la caraque, aux places du modèle 3D (manifeste de la caraque,
  * `ancrages` et `selon.sabord.postes`) ramenées aux cases du plan :
- * - Nid-de-pie (MDG p.99) : la hune du grand mât (case 9 de la longueur), au bout de l'échelle de ses haubans
+ * - Nid-de-pie (MDG 12 l.297) : la hune du grand mât (case 9 de la longueur), au bout de l'échelle de ses haubans
  *   depuis la passerelle, bordée de son garde-corps ;
- * - Embarcation de bord (MDG p.97) : le canot de 5 m sur l'embelle, sur la trappe de fret ;
- * - Sabord (MDG p.97) : les sabords fermés de la batterie du pont principal (deux par bord), du château (une
+ * - Embarcation de bord (MDG 12 l.266) : le canot de 5 m sur l'embelle, sur la trappe de fret ;
+ * - Sabord (MDG 12 l.364) : les sabords fermés de la batterie du pont principal (deux par bord), du château (une
  *   case de flanc chacun) et du tableau de poupe (deux).
  */
 export const AMELIORATIONS_DE_LA_CARAQUE: Readonly<Record<string, ApportAuxPonts>> = {

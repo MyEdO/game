@@ -15,7 +15,7 @@ const calques = garanti(PLAN_DE_LA_CARAQUE.zoneMap, 'caraque', 'calque des pièc
 /** La première case marchable de la pièce `id`. */
 const caseDe = (id: string) => zoneWalkableCells(scene, garanti(scene.effectZones?.find((zo) => zo.id === id), id, 'pièce'))[0];
 
-describe('ponts de la caraque (MDG p.99), compilés par buildScene', () => {
+describe('ponts de la caraque (MDG 12 l.286), compilés par buildScene', () => {
   it('un étage par pont, de la cale à la plage arrière, chacun à sa hauteur', () => {
     expect(scene.layers.map((l) => l.z)).toEqual([0, 1, 2, 3]);
     expect([0, 1, 2, 3].map((z) => heightAt(scene, 8, 2, z))).toEqual([-2, 0, 1.95, 5.6]);
