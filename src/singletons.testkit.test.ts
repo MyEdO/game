@@ -20,16 +20,19 @@ describe('remise à zéro des singletons de module', () => {
     expect(desFixes()).toBe(DES_FIXES_DEFAULT);
   });
 
+  // Commentaires retirés : un appel commenté ne remet rien.
+  const appelleDans = (texte: string, crochet: string): boolean =>
+    texte.split(`${crochet}(`).slice(1)
+      .map((suite) => suite.slice(0, suite.indexOf('\n});')).replace(/\/\/.*$/gm, ''))
+      .some((corps) => corps.includes('remettreLesSingletons()'));
+
+  it('src/test-setup.ts l’appelle avant chaque test et en fin de fichier', () => {
+    const texte = readFileSync('src/test-setup.ts', 'utf8');
+    for (const crochet of ['beforeEach', 'afterAll']) expect(appelleDans(texte, crochet), crochet).toBe(true);
+  });
+
   // Le noyau ne l'appelle pas avant chaque test : l'ouverture du propriétaire pose ces singletons pour tout son fichier.
-  it.each([
-    ['src/test-setup.ts', ['beforeEach', 'afterAll']],
-    ['src/test-setup-noyau.ts', ['afterAll']],
-  ] as const)('%s l’appelle dans %j', (setup, crochets) => {
-    const texte = readFileSync(setup, 'utf8');
-    for (const crochet of crochets) {
-      // Commentaires retirés : un appel commenté ne remet rien.
-      const corps = texte.split(`${crochet}(`).slice(1).map((suite) => suite.slice(0, suite.indexOf('\n});')).replace(/\/\/.*$/gm, ''));
-      expect(corps.some((c) => c.includes('remettreLesSingletons()')), `${setup} › ${crochet}`).toBe(true);
-    }
+  it('src/test-setup-noyau.ts l’appelle en fin de fichier', () => {
+    expect(appelleDans(readFileSync('src/test-setup-noyau.ts', 'utf8'), 'afterAll')).toBe(true);
   });
 });
