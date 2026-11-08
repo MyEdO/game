@@ -768,7 +768,7 @@ describe('REGISTRE des chemins de jet (#1066) — familles CANONIQUES énuméré
 /**
  * CLIQUET « le calcul de ligne ne se réécrit plus à la main » (#1153 L2bis) — l'arithmétique de cible
  * (`DIFFICULTY_MODIFIERS[…]` ET `DIFFICULTY_MODIFIERS.…`, écrêtage `Math.min(99, …)`) n'a de place que
- * dans `src/engine/**` (les formules), dans le MONTEUR canonique (`rollSeam.rollLine`) et chez ses
+ * dans `src/engine/**` (les formules), dans le MONTEUR canonique (`ligneDeJet.rollLine`) et chez ses
  * LECTEURS d'affichage (`ui/breakdown.ts`, `ui/RollLine.tsx`, harnais de test) — partout ailleurs,
  * elle signe un monteur local qui refait la ligne et peut donc mentir (base fondue, chip fantôme,
  * cible NaN). Les DEUX notations sont mordues : indexer par crochets ou par point est le même geste,
@@ -795,7 +795,7 @@ const TOTAL_DECLARE = Object.values(LIGNE_A_LA_MAIN_STOCK).reduce((s, n) => s + 
 
 describe('CLIQUET — l’arithmétique de ligne vit dans le monteur, pas dans les flux (#1153)', () => {
   const LIGNE_RX = /DIFFICULTY_MODIFIERS\s*[.[]|Math\.min\(99/g;
-  const HORS_CLIQUET = ['src/engine/', 'src/noyau/rollSeam.ts', 'src/ui/breakdown.ts', 'src/ui/RollLine.tsx'];
+  const HORS_CLIQUET = ['src/engine/', 'src/noyau/ligneDeJet.ts', 'src/ui/breakdown.ts', 'src/ui/RollLine.tsx'];
 
   it('aucun NOUVEAU site ne recalcule une cible à la main (le stock ne peut que décroître)', () => {
     const mesure: Record<string, number> = {};
@@ -807,7 +807,7 @@ describe('CLIQUET — l’arithmétique de ligne vit dans le monteur, pas dans l
     const ecarts: string[] = [];
     for (const [file, n] of Object.entries(mesure)) {
       const attendu = LIGNE_A_LA_MAIN_STOCK[file];
-      if (attendu === undefined) ecarts.push(`${file} : ${n} occurrence(s) NOUVELLE(S) — monter la ligne par \`rollLine\` (rollSeam.ts)`);
+      if (attendu === undefined) ecarts.push(`${file} : ${n} occurrence(s) NOUVELLE(S) — monter la ligne par \`rollLine\` (ligneDeJet.ts)`);
       else if (n > attendu) ecarts.push(`${file} : ${n} > ${attendu} déclaré(s) — le cliquet ne remonte pas`);
     }
     expect(ecarts, `Arithmétique de ligne réécrite à la main :\n${ecarts.join('\n')}`).toEqual([]);

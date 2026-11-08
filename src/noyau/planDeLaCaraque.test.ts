@@ -10,6 +10,7 @@ import { planClimb } from './monde/climbMove';
 import { propFootTiles } from './monde/footprint';
 import { sceneZoneTiles } from './monde/zones';
 import { findPropById } from '../data';
+import { bassinDeLaCaraque } from './planDeNavire.testkit';
 
 const scene = buildScene(PLAN_DE_LA_CARAQUE);
 const legende = garanti(PLAN_DE_LA_CARAQUE.zoneLegend, 'caraque', 'pièces du plan');
@@ -97,23 +98,21 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
   });
 });
 
-describe('la caraque posée dans une scène (poserLeNavire)', () => {
-  const bassin = (cap: 'N' | 'E' | 'S' | 'O') =>
-    buildScene({ id: 'bassin', label: 'Bassin', size: [24, 24], terrain: 'eau', navires: [{ ref: 'caraque', id: 'c1', x: 3, y: 2, cap, hauteur: 1 }] });
+describe('la caraque posée dans une scène (poserLesNavires)', () => {
 
-  it('au cap O, ses ponts se posent tels quels, décalés de la pose', () => {
-    const s = bassin('O');
+  it('au cap O, ses ponts se posent tels quels, à leurs hauteurs, décalés de leur coin', () => {
+    const s = bassinDeLaCaraque('O');
     for (const z of [0, 1, 2, 3])
       for (let y = 0; y < 5; y++)
         for (let x = 0; x < 18; x++)
-          if (!estAbsent(tileAt(scene, x, y, z))) expect(heightAt(s, 3 + x, 2 + y, z), `${x},${y},${z}`).toBe(heightAt(scene, x, y, z) + 1);
+          if (!estAbsent(tileAt(scene, x, y, z))) expect(heightAt(s, 3 + x, 2 + y, z), `${x},${y},${z}`).toBe(heightAt(scene, x, y, z));
     expect(tileAt(s, 0, 0, 0)).toBe('eau');
   });
 
-  it('au cap N, la proue au nord et tribord à l’est ; ses pièces prennent l’id de la pose', () => {
-    const s = bassin('N');
+  it('au cap N, la proue au nord et tribord à l’est ; ses pièces prennent l’id du navire', () => {
+    const s = bassinDeLaCaraque('N');
     // la case de cale (8, 2) du plan, au centre : x = 3 + (5 - 1 - 2), y = 2 + 8
-    expect(heightAt(s, 5, 10, 0)).toBe(-1);
+    expect(heightAt(s, 5, 10, 0)).toBe(-2);
     // l'infirmerie, à tribord de la cale (y = 0..1 du plan), passe à l'est (x = 3 + 3..4)
     const infirmerie = garanti(s.effectZones?.find((z) => z.id === 'c1-infirmerie'), 'c1-infirmerie', 'pièce posée');
     expect(new Set(infirmerie.tiles!.map((t) => t.x))).toEqual(new Set([6, 7]));
@@ -121,7 +120,7 @@ describe('la caraque posée dans une scène (poserLeNavire)', () => {
 
   it('à tout cap, les échelles mènent encore de la cale à la plage arrière', () => {
     for (const cap of ['N', 'E', 'S', 'O'] as const) {
-      const s = bassin(cap);
+      const s = bassinDeLaCaraque(cap);
       const piece = (id: string) => zoneWalkableCells(s, garanti(s.effectZones?.find((zo) => zo.id === id), id, 'pièce'))[0];
       const haut = piece('c1-plage-arriere');
       const atteint = reachable(s, piece('c1-cale'), 400, { blocked: new Set(), traverse: { climb: true, climbFullSpeed: true } });
@@ -131,8 +130,6 @@ describe('la caraque posée dans une scène (poserLeNavire)', () => {
 });
 
 describe('les Améliorations de la caraque à bord (pontsDuNavire)', () => {
-  const pose = (cap: 'N' | 'E' | 'S' | 'O', upgrades: string[]) =>
-    buildScene({ id: 'bassin', label: 'Bassin', size: [24, 24], terrain: 'eau', navires: [{ ref: 'caraque', id: 'c1', x: 3, y: 2, cap, upgrades: upgrades.map((id) => ({ id })) }] });
   /** L'arête entre deux cases voisines du pont `z`, si elle porte un mur. */
   const arete = (s: Scene, a: [number, number], b: [number, number], z: number) => {
     const e = garanti(edgeOf(...a, ...b), `${a}|${b}`, 'arête');
@@ -145,9 +142,9 @@ describe('les Améliorations de la caraque à bord (pontsDuNavire)', () => {
   });
 
   it('Nid-de-pie : la hune du grand mât se gagne par l’échelle des haubans, à tout cap', () => {
-    expect(isWalkable(pose('O', []), 9, 1, 3)).toBe(false);
+    expect(isWalkable(bassinDeLaCaraque('O', []), 9, 1, 3)).toBe(false);
     for (const cap of ['N', 'E', 'S', 'O'] as const) {
-      const s = pose(cap, ['nid-de-pie']);
+      const s = bassinDeLaCaraque(cap, ['nid-de-pie']);
       const hune = garanti(Array.from({ length: 24 * 24 }, (_, i) => ({ x: i % 24, y: Math.floor(i / 24), z: 3 }))
         .find((c) => isWalkable(s, c.x, c.y, 3) && heightAt(s, c.x, c.y, 3) > 20), cap, 'hune');
       const cale = zoneWalkableCells(s, garanti(s.effectZones?.find((zo) => zo.id === 'c1-cale'), cap, 'cale'))[0];
@@ -157,22 +154,22 @@ describe('les Améliorations de la caraque à bord (pontsDuNavire)', () => {
   });
 
   it('Embarcation de bord : le canot occupe deux cases de l’embelle, tourné avec le navire', () => {
-    expect(pose('O', []).entities.some((e) => e.id === 'c1-embarcation-de-bord')).toBe(false);
-    const canot = (cap: 'N' | 'O') => garanti(pose(cap, ['embarcation-de-bord']).entities.find((e) => e.id === 'c1-embarcation-de-bord'), cap, 'canot');
+    expect(bassinDeLaCaraque('O', []).entities.some((e) => e.id === 'c1-embarcation-de-bord')).toBe(false);
+    const canot = (cap: 'N' | 'O') => garanti(bassinDeLaCaraque(cap, ['embarcation-de-bord']).entities.find((e) => e.id === 'c1-embarcation-de-bord'), cap, 'canot');
     expect(canot('O')).toMatchObject({ pos: { x: 9, y: 4 }, z: 2, facing: 'S' });
     // au cap N, la case (6..7, 2) du plan passe en x = 3 + 2, y = 2 + 6..7
     expect(canot('N')).toMatchObject({ pos: { x: 5, y: 8 }, z: 2, facing: 'O' });
   });
 
   it('Sabord : sans lui la coque de la batterie est pleine ; avec, ses sabords sont des fenêtres closes', () => {
-    expect(arete(pose('O', []), [8, 2], [8, 1], 1)).toMatchObject({ side: 'N' });
-    expect(arete(pose('O', []), [8, 2], [8, 1], 1)?.window).toBeUndefined();
-    expect(arete(pose('O', ['sabord']), [8, 2], [8, 1], 1)).toMatchObject({ window: true, shuttered: true });
+    expect(arete(bassinDeLaCaraque('O', []), [8, 2], [8, 1], 1)).toMatchObject({ side: 'N' });
+    expect(arete(bassinDeLaCaraque('O', []), [8, 2], [8, 1], 1)?.window).toBeUndefined();
+    expect(arete(bassinDeLaCaraque('O', ['sabord']), [8, 2], [8, 1], 1)).toMatchObject({ window: true, shuttered: true });
     // au cap E, le sabord (5, 0) tribord du plan passe en x = 3 + 17 - 5, au sud : y = 2 + 4
-    expect(arete(pose('E', ['sabord']), [15, 6], [15, 7], 1)).toMatchObject({ window: true, shuttered: true });
+    expect(arete(bassinDeLaCaraque('E', ['sabord']), [15, 6], [15, 7], 1)).toMatchObject({ window: true, shuttered: true });
   });
 
   it('une Amélioration inconnue est refusée', () => {
-    expect(() => pose('O', ['voile-magique'])).toThrow(/voile-magique/);
+    expect(() => bassinDeLaCaraque('O', ['voile-magique'])).toThrow(/voile-magique/);
   });
 });

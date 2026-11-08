@@ -1,14 +1,13 @@
 /**
  * Les décors libres dans la case au pointeur de l'éditeur (#3731), le chemin que joue l'éditeur Godot : poser au point
  * touché, sur la table qui s'y trouve ; plaquer un coffre au mur d'un glissé ; deux décors dans une case, chacun
- * désigné par le point ; la table qui emmène sa lettre ; le support retiré qui la fait retomber. Puis ce qu'en disent
- * le validateur et la pose d'un navire.
+ * désigné par le point ; la table qui emmène sa lettre ; le support retiré qui la fait retomber. Puis ce qu'en dit le
+ * validateur.
  */
 import { describe, expect, it } from 'vitest';
 import { emptyScene, type Scene, type SceneEntity } from '../monde/scene';
 import { piedDuDecor } from '../monde/poseDuDecor';
 import { validateScene } from '../validateScene';
-import { poserLeNavire } from '../planDeNavire';
 import type { Layers, Tool } from '../sceneEditLecture';
 import { appuyer, glisser, relacher, type ContexteDuPointeur, type PointDeCarte } from './pointeur';
 
@@ -88,21 +87,5 @@ describe('appui d’un décor hors de l’éditeur', () => {
     expect(validateScene([s]).filter((w) => w.refId === 'lettre-1')).toEqual([
       expect.objectContaining({ level: 'error', scope: 'entity', message: expect.stringMatching(/posé sur « absente »/) }),
     ]);
-  });
-
-  it('un navire posé tourne le calage de ses décors avec son pont et préfixe leurs appuis', () => {
-    const navire: Scene = {
-      ...emptyScene('navire', 4, 2),
-      entities: [
-        { id: 'table', kind: 'prop', ref: 'table', pos: { x: 1, y: 0 } },
-        { id: 'coffre', kind: 'prop', ref: 'coffre', pos: { x: 0, y: 0 }, calage: { x: -1, y: 0 } },
-        { id: 'lettre', kind: 'prop', ref: 'lettre', pos: { x: 1, y: 0 }, sur: 'table' },
-      ],
-    };
-    const s = poserLeNavire(emptyScene('hote', 8, 8), navire, { ref: 'caraque', id: 'n1', x: 1, y: 1, cap: 'N' });
-    const pose = (id: string) => s.entities.find((e) => e.id === `n1-${id}`)!;
-    expect(pose('coffre').calage).toEqual({ x: 0, y: -1 });
-    expect(pose('lettre').sur).toBe('n1-table');
-    expect(validateScene([s]).filter((w) => w.scope === 'entity')).toEqual([]);
   });
 });

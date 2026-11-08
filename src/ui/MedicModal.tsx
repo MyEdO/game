@@ -15,7 +15,9 @@ import { useHealJetProps } from './jetProps/useHealJetProps';
 import { EmbeddedShell, useRollShell } from './RollShell';
 import { lodgedAmmoCount, HEAL_MODES, type HealMode } from '../engine/healing';
 import { stacks } from '../engine/conditions';
-import { bestHealerFor, plaiesNommees, refusDActeDeSoin, HEAL_STAKE } from '../noyau/medicFlow';
+import { plaiesNommees } from '../noyau/medicFlow';
+import { bestHealerFor, refusDeLActeALInfirmerie, HEAL_STAKE } from '../noyau/acteDeSoin';
+import { refusDuModeDuSoin } from '../noyau/soin';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { toMoney } from '../engine/money';
 import { Icon } from './Icon';
@@ -38,10 +40,11 @@ const ACT_META: Record<HealMode, { icon: ReactNode; label: string }> = {
  * et les pastilles d'États SONT le diagnostic) → dossier du patient (actes : Guérison / Hémorragie /
  * Déchirure / Chirurgie, tarifés chez un PNJ `medicalAid`) → zone de jet embarquée (`useHealJetProps`,
  * `useSurgeryJetProps`), dont la boîte des soins pose les gestes dans SON pied (`useRollShell`).
- * Elle ne se ferme pas après un jet : on enchaîne actes et patients. Le pied porte la sortie de
- * l'état courant (`docs/charte-ui.md`, `.cadre-pied`) : « Terminer » au repos, les gestes du jet
- * posé (Échap annule le jet, jamais l'opération), « Arrêter l'opération » pendant une opération armée,
- * en `.danger` dès qu'une passe a abouti (LDB 10 l.184). La CHIRURGIE est « armée » : DrBar +
+ * L'acte règle le brouillon du soin (`jetRegler('heal', 'mode')`), que « Lancer » joue. Elle ne se ferme
+ * pas après un jet : on enchaîne actes et patients. Le pied porte la sortie de l'état courant
+ * (`docs/charte-ui.md`, `.cadre-pied`) : au brouillon, « Terminer » (ou « Arrêter l'opération » pendant une
+ * opération armée, en `.danger` dès qu'une passe a abouti, LDB 10 l.184) et « Lancer » ; les gestes du jet
+ * lancé ou de la passe (Échap annule la passe, jamais l'opération). La CHIRURGIE est « armée » : DrBar +
  * passes, et Bander/Hémorragie restent des actes normaux du même patient entre deux passes.
  */
 export function MedicModal() {
@@ -53,8 +56,7 @@ export function MedicModal() {
   const choisir = useGame((s) => s.fenetreChoisir);
   const sortieFermee = useGame((s) => fermetureDeLaSortie(s, 'medic'));
   const refusDuPatient = useGame(useShallow((s) => Object.fromEntries(s.party.map((h) => [h.id, refusDuChoix(s, 'medic', 'patient', h.id)]))));
-  const act = useGame((s) => s.soignerLePatient);
-  const openPass = useGame((s) => s.ouvrirLaChirurgie);
+  const regler = useGame((s) => s.jetRegler);
   const fermer = useGame((s) => s.fenetreFermer);
   const close = () => fermer('medic');
   const soin = useHealJetProps({ embedded: true });
@@ -66,25 +68,25 @@ export function MedicModal() {
   const npc = medic.npc;
   const paid = npc?.acts.some((a) => a.cost);
 
-  // Les actes proposés : ceux du PNJ (tarifés) ou tous ceux du groupe — grisés avec la raison du geste (`refusDActeDeSoin`).
+  // Les actes proposés : ceux du PNJ (tarifés) ou tous ceux du groupe — grisés avec la raison du réglage `heal.mode`
+  // du brouillon (`refusDuModeDuSoin`), ou de l'infirmerie sans brouillon (`refusDeLActeALInfirmerie`).
   const offers: { act: HealMode; cost?: { gold?: number; silver?: number; brass?: number } }[] =
     npc ? npc.acts : HEAL_MODES.map((a) => ({ act: a }));
 
-  // PIED de la fenêtre (`docs/charte-ui.md`, `.cadre-pied`) : les gestes du jet posé ; ceux d'une
-  // opération armée ; sinon, la sortie.
-  const footer = jet ? jet.gestes : sg ? (
-    <>
-      <button className={sg.last ? 'btn btn-ghost danger' : 'btn btn-ghost'} onClick={() => choisir('medic', 'abandon', true)} title={sg.last ? 'Le cumul de DR est perdu' : 'Renoncer (acte remboursé)'}>
-        {sg.kind === 'recovery' ? 'Arrêter la rééducation' : 'Arrêter l’opération'}
-      </button>
-      <button className="btn btn-primary" onClick={openPass}><Icon id={HEAL_ACT[sg.kind].icon} size="sm" /> {sg.kind === 'recovery' ? 'Rééduquer (une passe)' : 'Opérer (une passe)'}</button>
-    </>
+  // PIED de la fenêtre (`docs/charte-ui.md`, `.cadre-pied`) : les gestes du jet lancé ; au brouillon du soin, ses gestes
+  // et la sortie de l'état courant (l'arrêt d'une opération armée, sinon « Terminer »).
+  const brouillon = !!ph && ph.roll == null;
+  const sortie = sg ? (
+    <button className={sg.last ? 'btn btn-ghost danger' : 'btn btn-ghost'} onClick={() => choisir('medic', 'abandon', true)} title={sg.last ? 'Le cumul de DR est perdu' : 'Renoncer (acte remboursé)'}>
+      {sg.kind === 'recovery' ? 'Arrêter la rééducation' : 'Arrêter l’opération'}
+    </button>
   ) : (
     <button className="btn" onClick={close}>Terminer</button>
   );
+  const footer = <>{(!jet || brouillon) && sortie}{jet?.gestes}</>;
 
   return (
-    <Modal title={npc ? <><Icon id="journal/heal" size="sm" /> Soins — {npc.label}</> : <><Icon id="journal/heal" size="sm" /> Soins</>} onClose={jet ? jet.escClose : sortieFermee ? undefined : close} footer={footer} etape={`${medic.patientId ?? ''}:${sg?.kind ?? ''}`}>
+    <Modal title={npc ? <><Icon id="journal/heal" size="sm" /> Soins — {npc.label}</> : <><Icon id="journal/heal" size="sm" /> Soins</>} onClose={jet && !brouillon ? jet.escClose : sortieFermee ? undefined : close} footer={footer} etape={`${medic.patientId ?? ''}:${sg?.kind ?? ''}`}>
       {paid && <span className="medic-purse hint">Bourse <Coins money={money} ton="discret" /></span>}
 
       {/* Bandeau PATIENTS : tuile full (jauge + États = le diagnostic), sélection or. */}
@@ -109,13 +111,13 @@ export function MedicModal() {
           un jet de soin, il reste MONTÉ, masqué et `inert` : l'acte qui a posé le jet est l'invocateur
           auquel le jet rend le focus (`EmbeddedShell`). */}
       {patient && (
-        <div className="medic-dossier" hidden={!!ph} inert={!!ph}>
+        <div className="medic-dossier" hidden={!!ph && !brouillon} inert={!!ph && !brouillon}>
           {sg && (() => {
             const recovery = sg.kind === 'recovery';
             const plaies = plaiesNommees(useGame.getState());
             const acte = HEAL_ACT[sg.kind];
             // Le chirurgien n'est un `Combatant` que s'il est du GROUPE : un PNJ tarifé (`healerId`
-            // sentinelle, `medicFlow.soignerLePatient`) n'a ni portrait ni fiche — son nom EST le titre de la
+            // sentinelle, `acteDeSoin.soinDeLActe`) n'a ni portrait ni fiche — son nom EST le titre de la
             // fenêtre (« Soins — <PNJ> »). Sans acteur, `VsHeader` n'a pas d'A→B à rendre (il tairait
             // aussi son `label`) : l'acte et le patient se disent alors en note.
             const surgeon = sg.healerId ? party.find((c) => c.id === sg.healerId) : undefined;
@@ -158,14 +160,15 @@ export function MedicModal() {
           })()}
           <div className="medic-acts">
             {offers.map(({ act: a, cost }) => {
-              const raison = refusDActeDeSoin({ medic, party, pendingHeal: ph, pendingSurgery: ps }, a) ?? undefined;
+              const etat = { medic, party, pendingHeal: ph, pendingSurgery: ps, battle: null };
+              const raison = (ph ? refusDuModeDuSoin(etat, a) : refusDeLActeALInfirmerie(etat, a)) ?? undefined;
               const healer = npc ? undefined : bestHealerFor(party, a)?.actor;
               const meta = ACT_META[a];
               const pions = a === 'bleed' ? stacks(patient, 'hemorragique') : a === 'ammo' ? lodgedAmmoCount(patient) : 0;
               // L'acte est SA propre porte de règle (#1078) : le bouton s'englobe dans `CodexRef wrap`,
               // dont la cible est le FOYER de l'enjeu de CE jet (`HEAL_STAKE`) et l'`instance` le nom de
               // l'acte. Un acte qui ARME une opération (`surgery`/`recovery`) n'a pas de cible au Codex avant
-              // l'armement, où naît la valeur de son enjeu (`targetDR`, `soignerLePatient`) : le même `CodexRef`
+              // l'armement, où naît la valeur de son enjeu (`targetDR`, `lancerLActeDeSoin`) : le même `CodexRef`
               // reste monté, `category`/`id` absents, et ne s'ouvre que s'il a quelque chose à dire — la
               // raison d'un refus (`refus`), sinon rien.
               const stake = a === 'surgery' || a === 'recovery' ? undefined : flowStakeRef(HEAL_STAKE[a]);
@@ -186,7 +189,7 @@ export function MedicModal() {
                   ariaLabel={meta.label}
                   descOfferte={npc ? `Soigné par ${npc.label} · ${skillRefLabel(npc.skill)}` : healer ? `Soigné par ${healer.label}` : undefined}
                   enabled={!raison}
-                  onClick={() => act(a)}
+                  onClick={() => regler('heal', 'mode', a)}
                   primary={false}
                   btnClassName="medic-act"
                 />

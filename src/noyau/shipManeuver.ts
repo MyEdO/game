@@ -15,7 +15,7 @@
  */
 import { battleRng } from './battleRng';
 import { rollTest, evaluateTest, easeDifficulty, bestForcedRoll, ECHEC_SANS_JET, ligneSansJet, type EchecSansJet } from '../engine/tests';
-import { rollLine, type RollLineParts } from './rollSeam';
+import { rollLine, type RollLineParts } from './ligneDeJet';
 import { testValue, partyBest, peutTenter, refusNePeutTenter, refusPersonneNePeutTenter } from '../engine/skills';
 import { resolveShipManeuver, type ShipManeuverOutcome } from '../engine/shipNavigation';
 import { navalMoveMod, navalMoveMult, navalSkillTestDR, navalTestTypeDR, navalNavTestDR, hullNavalTraits } from '../engine/navalTraits';

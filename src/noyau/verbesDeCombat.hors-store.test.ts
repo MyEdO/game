@@ -359,7 +359,7 @@ describe('Commits publics sous un État qui verrouille l’Action (LDB 16 l.52) 
   it('ouvrirLaGuerison, que commet le clic du Soin : le Brisé est refusé par le verdict de son entrée', () => {
     const { banc, H } = duelSurLeBanc();
     addCondition(H, 'brise');
-    banc.getState().ouvrirLaGuerison(H.id, 'wounds');
+    banc.getState().ouvrirLaGuerison(H.id);
     expect(banc.getState().pendingHeal).toBeNull();
     expect(banc.getState().refus?.texte).toBe(refusVerrouDAction(H));
   });

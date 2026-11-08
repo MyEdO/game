@@ -56,7 +56,7 @@ describe('quarantaine d’import — canal météo « Tests physiques » (#341)'
   it(`'${PRECIP_SYMBOL}' n’est importé QUE par le monteur canonique et le moteur de combat (${PRECIP_ALLOWED.join(', ')})`, () => {
     expect(
       offendersFor(PRECIP_SYMBOL, PRECIP_ALLOWED),
-      'Précipitations câblées site par site — déclarer `pont` sur la ligne de jet (`rollSeam.rollLine`, MDG 13 l.185), ou ÉDITER la whitelist (revue).',
+      'Précipitations câblées site par site — déclarer `pont` sur la ligne de jet (`ligneDeJet.rollLine`, MDG 13 l.185), ou ÉDITER la whitelist (revue).',
     ).toEqual([]);
   });
 

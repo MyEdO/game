@@ -1481,6 +1481,10 @@ export interface Combatant {
    *  lu par les consommateurs purs `offTerrainMoveCap`/`offTerrainTestDR` (trauma.ts). Re-dérivé au
    *  placement suivant (jamais une vérité à maintenir à la main). */
   offTerrain?: boolean;
+  /** Drapeau POSITIONNEL dérivé « navire dont la scène pose les ponts » (#3686) : ses ponts portent son corps, il ne
+   *  tient donc aucune case de son empreinte (`casesTenues`, `combatantAtTile`). Posé par `placeCombatant` à CHAQUE
+   *  placement, comme `offTerrain`. */
+  surSesPonts?: boolean;
   /** Catégorie de Taille (LDB 85). Optionnel ; défaut Moyenne au point de lecture (`effectiveSize`). */
   size?: import('./size').SizeCategory;
   /** EMPREINTE de grille (côté N×N), DÉCOUPLÉE de la Taille créature `size` (lue par `footprintN`). Pour les

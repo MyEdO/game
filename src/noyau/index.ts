@@ -38,6 +38,7 @@ export { emplacementDePiece, estEmplacement, pieceRacine, emblemeDuPorteur, type
 export type { GabaritResolu } from './apparence/gabarit';
 export { cataloguesDeComposition, emplacementsDeRangement, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, porteeDeComposition, presetDeComposition, type Composition, type LectureAuSchema, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from './apparence/composition';
 export { porteeDuCombattant, vehiculeDuCombattant, type PosteDuVehicule, type VehiculeDuCombattant } from './apparence/combattant';
+export { naviresDeLaScene, type NavireDeLaScene } from './planDeNavire';
 export type { Sexe } from '../data/schemas/grammaire/valeurs';
 export { SLOTS } from '../lib/palette';
 export { mouvementDuTour } from './mount';

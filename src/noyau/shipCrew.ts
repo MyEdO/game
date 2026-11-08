@@ -20,7 +20,7 @@ import { estNavire, profilNavalDe } from '../engine/coque';
 import { exposedCrew } from '../engine/shipCritical';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
 import { partyBest, peutTenter, testValue } from '../engine/skills';
-import { rollLine, type RollLineParts } from './rollSeam';
+import { rollLine, type RollLineParts } from './ligneDeJet';
 import { maxBy } from '../engine/pick';
 import { applyOps } from '../engine/ops';
 import { removeActiveEffects, isOutOfAction } from '../engine/conditions';
