@@ -4007,6 +4007,7 @@ export const fr = {
   'slot.takenByOther': 'déjà pris par un autre emplacement de ce Niveau de Carrière',
   'slot.maxNone': 'Aucun',
   'slot.maxBonusOf': 'Bonus de {char}',
+  'slot.maxSortsDuDomaine': 'Sorts du Domaine choisi',
   'slot.darkOnlyOne': 'un seul Domaine sombre autorisé en plus des autres Domaines',
   'slot.darkNeedsNormal': "un Domaine sombre ne s'apprend qu'en plus d'un autre Domaine",
   'slot.domainCap': 'plafond de Domaines magiques atteint ({cap})',

@@ -81,19 +81,21 @@ describe('coûts de mémorisation (Talents LDB 10)', () => {
     expect(spellCost(c, ulric)).toBeNull(); // autre culte
   });
 
-  it('Magie du Chaos (Tzeentch) : Sorts du Dieu Sombre choisi à 100 PX ; autre dieu refusé (par id, jamais le libellé)', () => {
-    const c = hero({ talents: [{ talentId: 'magie-du-chaos', spec: 'tzeentch', times: 1 }] });
+  it('Magie du Chaos (Tzeentch) : le Sort de la prise inclus, les suivants du Dieu Sombre choisi à 100 PX ; autre dieu refusé (LDB 10 l.706-708)', () => {
     const tzeentch = spells.filter((s) => s.family === 'chaos' && s.subType === 'Tzeentch');
-    expect(tzeentch.length).toBeGreaterThan(0);
-    expect(spellCost(c, tzeentch[0])).toBe(100); // « chaque sort = 100 PX (+1 Corruption) »
+    expect(tzeentch.length).toBeGreaterThan(1);
+    const neuf = hero({ talents: [{ talentId: 'magie-du-chaos', spec: 'tzeentch', times: 1 }] });
+    expect(spellCost(neuf, tzeentch[0])).toBe(0); // « vous confère immédiatement l'accès à un seul Sort »
+    const c = hero({ talents: [{ talentId: 'magie-du-chaos', spec: 'tzeentch', times: 1 }], spells: [tzeentch[1].id] });
+    expect(spellCost(c, tzeentch[0])).toBe(100); // « qui coûte à chaque fois 100 PX, vous apprenez un autre Sort »
     const nurgle = spells.find((s) => s.family === 'chaos' && s.subType === 'Nurgle')!;
     expect(spellCost(c, nurgle)).toBeNull(); // Domaine du Chaos d'un AUTRE dieu → inéligible
-    const wild = hero({ talents: [{ talentId: 'magie-du-chaos', times: 1 }] }); // joker (non spécialisé)
+    const wild = hero({ talents: [{ talentId: 'magie-du-chaos', times: 1 }], spells: [tzeentch[1].id] }); // joker (non spécialisé)
     expect(spellCost(wild, nurgle)).toBe(100); // tout Sort du Chaos
   });
 
-  it('Magie du Chaos (Tzeentch) : Sorts d’Arcane et d’Arcanes du Chaos aussi, à 100 PX, hors Domaines des Arcanes (EDOC 13 l.262)', () => {
-    const c = hero({ talents: [{ talentId: 'magie-du-chaos', spec: 'tzeentch', times: 1 }] });
+  it('Magie du Chaos (Tzeentch) : Sorts d’Arcane et d’Arcanes du Chaos aussi, à 100 PX au-delà du Sort de la prise, hors Domaines des Arcanes (EDOC 13 l.262)', () => {
+    const c = hero({ talents: [{ talentId: 'magie-du-chaos', spec: 'tzeentch', times: 1 }], spells: ['trahison-de-tzeentch'] });
     expect(spellCost(c, sp('arme-aethyrique'))).toBe(100); // Sort d'Arcane
     expect(spellCost(c, sp('aspect-sublime'))).toBe(100); // Sort d'Arcanes du Chaos
     const feu = spells.find((s) => s.family === 'arcane' && s.domainId === 'feu')!;
