@@ -3,7 +3,7 @@ extends SceneTree
 ## Les pièces montées aux postes d'un véhicule, tourné vers son cap (#2987, `hotes/godot/pont/CONTRAT.md`, section
 ## « Corps d'un combattant », `vehicules`) : posé sur son empreinte (`Combattant.poser_sur_l_empreinte`), chaque pièce
 ## montée à sa position dans le repère du véhicule, dont elle prend l'échelle, tournée vers son bord
-## (`Combattant.monter_au_poste`), puis le tout tourné autour du milieu de son empreinte, sa proue vers son cap
+## (`MontageDeVehicule.monter_au_poste`), puis le tout tourné autour du milieu de son empreinte, sa proue vers son cap
 ## (`Combattant.tourner_au_cap`). Le véhicule reste centré sur son empreinte, quel que soit son cap ; une pièce de tribord
 ## regarde la droite de la proue.
 
@@ -66,7 +66,7 @@ func _verifier(cap: String, bord: String) -> void:
 	case.add_child(coque)
 	Combattant.poser_sur_l_empreinte(coque, EMPREINTE, null)
 	var piece := _boite(PIECE)
-	Combattant.monter_au_poste(coque, piece, {position = [2.0, 1.95, -4.0], bord = bord})
+	MontageDeVehicule.monter_au_poste(coque, piece, {position = [2.0, 1.95, -4.0], bord = bord})
 	Combattant.tourner_au_cap(coque, cap, EMPREINTE)
 	var cas := "cap %s, bord %s" % [cap, bord]
 	var milieu := case.to_global(Vector3((EMPREINTE - 1) * 0.5, 0.0, (EMPREINTE - 1) * 0.5))

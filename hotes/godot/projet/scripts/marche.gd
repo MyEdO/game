@@ -4,7 +4,8 @@
 ## gabarit posé ; le clip du rôle `walk` (`clips.walk`) se joue par le lecteur de l'atelier pendant le déplacement ; à
 ## l'arrêt, le clip reste engagé en pause à son début et le squelette revient à sa pose de repos. La caméra orbite
 ## autour de la racine au glissé du bouton droit de la souris, s'en rapproche ou s'en éloigne à la molette hors de
-## l'interface, et la suit ; l'atelier la cadre sur le corps posé.
+## l'interface, et la suit ; l'atelier la cadre sur le corps posé, ou sur la boîte d'un véhicule (`cadrer_la_boite`), et le
+## zoom se borne autour de ce cadre.
 class_name MarcheDeLAtelier
 extends Node
 
@@ -14,6 +15,7 @@ signal marche_commencee(clip: String)
 signal marche_arretee
 
 const ACTIONS: Array[StringName] = [&"avant", &"arriere", &"gauche", &"droite"]
+## Les bornes du zoom, rapportées à l'échelle du cadre posé.
 const ECHELLE_MINIMALE := 0.3
 const ECHELLE_MAXIMALE := 3.0
 ## L'échelle de l'orbite qui cadre le corps neutre de la base, celle de la caméra de la scène.
@@ -36,6 +38,8 @@ var _vitesse := 0.0
 var _echelle_de_vitesse := VITESSE_NEUTRE
 var _en_marche := false
 var _echelle := CADRE_NEUTRE
+## L'échelle du dernier cadre posé (`cadrer`), autour de laquelle le zoom se borne.
+var _cadre := CADRE_NEUTRE
 ## Les actions de la marche dont l'appui a atteint `_input`, tant qu'elles restent tenues.
 var _prises: Dictionary = {}
 var _position_de_la_camera := Vector3.ZERO
@@ -123,7 +127,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## La caméra d'un pas de zoom plus loin de la racine (`sens` 1) ou plus près (-1).
 func _zoomer(sens: float) -> void:
-	cadrer(MiseEnPage.distance_zoomee(_echelle, sens, ECHELLE_MINIMALE, ECHELLE_MAXIMALE))
+	_echelle = MiseEnPage.distance_zoomee(_echelle, sens, ECHELLE_MINIMALE * _cadre, ECHELLE_MAXIMALE * _cadre)
+	camera.position = MiseEnPage.position_a_l_echelle(_position_de_la_camera, _echelle)
 
 
 ## L'échelle de l'orbite.
@@ -133,5 +138,12 @@ func echelle() -> float:
 
 ## L'orbite à l'échelle `echelle` (`CADRE_NEUTRE` : la caméra de la scène, qui cadre le corps neutre), le zoom repris de là.
 func cadrer(echelle: float) -> void:
+	_cadre = echelle
 	_echelle = echelle
 	camera.position = MiseEnPage.position_a_l_echelle(_position_de_la_camera, _echelle)
+
+
+## L'orbite à l'échelle où la diagonale de `boite` tient dans la hauteur que la caméra de la scène voit au pivot
+## (`MiseEnPage.echelle_de_la_boite`).
+func cadrer_la_boite(boite: AABB) -> void:
+	cadrer(MiseEnPage.echelle_de_la_boite(boite.size.length(), _position_de_la_camera.length(), camera.fov))

@@ -307,6 +307,12 @@ static func echelle_de_cadrage(sommet: float, sommet_neutre: float) -> float:
 	return sommet / sommet_neutre
 
 
+## L'échelle de l'orbite où une longueur `longueur` tient dans la hauteur que voit, au pivot, une caméra à `distance` de
+## lui sous l'angle vertical `fov` (degrés), à l'échelle 1.
+static func echelle_de_la_boite(longueur: float, distance: float, fov: float) -> float:
+	return longueur / (2.0 * distance * tan(deg_to_rad(fov) / 2.0))
+
+
 ## L'entrée de la marche sur le sol, de force `gauche`, `droite`, `avant` et `arriere` par action.
 static func entree_de_marche(gauche: float, droite: float, avant: float, arriere: float) -> Vector2:
 	return Vector2(droite - gauche, arriere - avant)

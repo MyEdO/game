@@ -4,7 +4,10 @@
 ## `hotes/godot/pont/composition.ts`), le colore au nuancier, monte un élément par point d'accroche ou par ligne de pièce,
 ## joue les clips de la base image par image, fait marcher la base au clavier (`MarcheDeLAtelier`), montre les aides
 ## (os, emplacements, prises) et recharge les GLB réexportés sans relancer l'atelier. La base et ce qui s'y monte sont
-## ceux de son montage (`MontageDeComposition`, le nœud `Modele`), que l'atelier offre au joueur.
+## ceux de son montage (`MontageDeComposition`, le nœud `Modele`), que l'atelier offre au joueur. À côté des bases, il pose
+## un véhicule ou un engin servi (#2987), tel que le pont le compose (`vehicule`) : les pièces de ses postes, ses
+## Améliorations, la palette de la composition et l'emblème de ses voiles, montés par son montage (`MontageDeVehicule`, le
+## nœud `Vehicule`), au sol et cadrés à sa taille.
 ## Chaque geste mis en page, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`).
 extends Node3D
 
@@ -30,7 +33,13 @@ const SECTIONS := [
 	{id = "piece", titre = "Vêtements et armures"},
 	{id = "emplacement", titre = "Accessoires"},
 	{id = "prise", titre = "Objets tenus"},
+	{id = "poste", titre = "Postes"},
+	{id = "amelioration", titre = "Améliorations"},
+	{id = "pavillon", titre = "Emblème"},
 ]
+## L'emplacement d'emblème d'un véhicule : ses voiles et son pavillon, les surfaces `blason` de son élément.
+const PAVILLON := "vehicule"
+
 const COULEUR_D_ERREUR := Color(1.0, 0.55, 0.5)
 ## Le texte du choix d'une couleur absente de la composition : la matière du modèle.
 const PAR_DEFAUT := "Par défaut"
@@ -41,6 +50,7 @@ const COTE_DE_LA_PASTILLE := 16
 @onready var _montage: MontageDeComposition = $Modele
 @onready var _interface: CanvasLayer = $Interface
 @onready var _marche: MarcheDeLAtelier = $Marche
+@onready var _vehicule: MontageDeVehicule = $Vehicule
 @onready var _etat: Label = %Etat
 @onready var _corps: HFlowContainer = %Corps
 @onready var _panneau_des_emplacements: VBoxContainer = %Emplacements
@@ -69,7 +79,8 @@ var _surcharges_des_emblemes: Dictionary = {}
 var _lignes_des_emblemes: Dictionary = {}
 ## Par id de section de l'onglet Équipement, la colonne de ses rangées.
 var _sections: Dictionary = {}
-var _boutons_des_bases: Dictionary = {}
+## Par id de base, puis par `vehicule/<fiche>` de véhicule, sa bascule à l'onglet Outils.
+var _boutons_des_modeles: Dictionary = {}
 var _boutons_des_emblemes: Dictionary = {}
 ## Par emplacement de palette (`couleurs` de `catalogues`), sa liste au panneau Couleurs.
 var _listes_des_couleurs: Dictionary = {}
@@ -97,6 +108,14 @@ var _axes: Array = []
 ## Par champ d'axe, son sélecteur : la liste d'un axe `ref` ou `valeur`, la glissière d'un axe `plage`.
 var _selecteurs_d_axe: Dictionary = {}
 var _onglet := "personnage"
+## Le véhicule demandé (#2987) : sa fiche (`null` : aucun), les pièces de ses postes (`{ definition, bord }`, bord après
+## bord dans l'ordre des postes de la réponse) et ses Améliorations installées, dans l'ordre de `ameliorations` de la
+## réponse de `modeles`.
+var _definition_du_vehicule: Variant = null
+var _postes_du_vehicule: Array = []
+var _ameliorations_du_vehicule: Array = []
+## La dernière réponse de `vehicule`.
+var _offre_du_vehicule: Dictionary = {}
 
 
 func _ready() -> void:
@@ -155,26 +174,34 @@ func _charger(montes: Dictionary, emblemes: Dictionary) -> void:
 	%Rapport.text = "\n".join(PackedStringArray(reponse.rapport))
 	%Rapport.visible = not reponse.rapport.is_empty()
 	Controles.vider(_corps)
-	_boutons_des_bases = {}
+	_boutons_des_modeles = {}
 	var groupe := ButtonGroup.new()
 	var retenue: Variant = null
 	for base in reponse.bases:
-		_boutons_des_bases[base.id] = _bascule(base.id, groupe, _corps, _choisir_la_base.bind(base.id))
+		_boutons_des_modeles[base.id] = _bascule(base.id, groupe, _corps, _choisir_la_base.bind(base.id))
 		if retenue == null or base.id == _base_demandee:
 			retenue = base
+	for definition in reponse.vehicules:
+		_boutons_des_modeles[_cle_du_vehicule(definition)] = _bascule(reponse.libelles[reponse.vehicules[definition]], groupe, _corps, _choisir_le_vehicule.bind(definition))
+	if reponse.vehicules.has(_definition_du_vehicule):
+		_vehicule.oublier()
+		await _demander_le_vehicule()
+		return
+	_definition_du_vehicule = null
 	_base_demandee = null if retenue == null else retenue.id
 	await _poser(retenue, montes, emblemes, chargement)
 
 
-## La base `id` demandée : le dernier clic gagne, contre la base posée comme contre celle en chargement.
+## La base `id` demandée : le dernier clic gagne, contre le modèle posé comme contre celui en chargement.
 func _choisir_la_base(id: String) -> void:
-	_marquer(_boutons_des_bases, _montage.base.get("id"))
+	_marquer(_boutons_des_modeles, _modele_pose())
 	if id == _base_demandee:
 		_publier()
 		return
 	for base in MontageDeComposition.modeles.bases:
 		if base.id == id:
 			_base_demandee = id
+			_definition_du_vehicule = null
 			_surcharges_des_emblemes.clear()
 			_reprise = {}
 			_montage.composee = {}
@@ -206,7 +233,7 @@ func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement:
 		return
 	_remettre_a_zero()
 	_montage.poser_le_modele({} if base == null else base, scene)
-	_marquer(_boutons_des_bases, _montage.base.get("id"))
+	_marquer(_boutons_des_modeles, _montage.base.get("id"))
 	if _montage.squelette != null:
 		_montage.squelette.skeleton_updated.connect(_memoriser_la_pose)
 		_montage.gabarit.mesure.connect(_cadrer)
@@ -233,10 +260,11 @@ func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement:
 	_montrer_l_etat()
 
 
-## L'écran ramené à aucun modèle : le montage vidé (`MontageDeComposition.vider`), ni pose d'os, ni emplacement, ni
-## clip, ni repère, ni rangée d'emblèmes.
+## L'écran ramené à aucun modèle : le montage vidé (`MontageDeComposition.vider`), aucun véhicule
+## (`MontageDeVehicule.vider`), ni pose d'os, ni emplacement, ni clip, ni repère, ni rangée d'emblèmes.
 func _remettre_a_zero() -> void:
 	_montage.vider()
+	_vehicule.vider()
 	_pose_des_os = {}
 	_pas = 0.0
 	Controles.vider(_panneau_des_emplacements)
@@ -246,6 +274,166 @@ func _remettre_a_zero() -> void:
 	_emplacements.clear()
 	_lignes_des_emblemes.clear()
 	_boutons_des_emblemes = {}
+
+
+## Le modèle posé ou demandé, par sa clé dans `_boutons_des_modeles` : le véhicule demandé, sinon la base posée.
+func _modele_pose() -> Variant:
+	return _montage.base.get("id") if _definition_du_vehicule == null else _cle_du_vehicule(_definition_du_vehicule)
+
+
+func _cle_du_vehicule(definition: String) -> String:
+	return "vehicule/%s" % definition
+
+
+## Le véhicule de fiche `definition` demandé (#2987) : le dernier clic gagne, contre le modèle posé comme contre celui en
+## chargement ; ni base ni pièce, ni Amélioration, ni surcharge d'emblème, la marche sans clip ni vitesse, puis le
+## véhicule composé (`_demander_le_vehicule`).
+func _choisir_le_vehicule(definition: String) -> void:
+	_marquer(_boutons_des_modeles, _modele_pose())
+	if definition == _definition_du_vehicule:
+		_publier()
+		return
+	_definition_du_vehicule = definition
+	_postes_du_vehicule = []
+	_ameliorations_du_vehicule = []
+	_base_demandee = null
+	_chargement = RefCounted.new()
+	_surcharges_des_emblemes.clear()
+	_reprise = {}
+	_montage.composee = {}
+	_refus_de_composition = ""
+	_erreurs_de_composition = []
+	_erreurs_du_gabarit = []
+	_remettre_a_zero()
+	_montage.poser_le_modele({}, null)
+	_montrer_ce_qu_il_reste_a_produire()
+	_marche.suivre(_vehicule, null, "", 0.0)
+	_montrer_la_composition()
+	await _demander_le_vehicule()
+
+
+## Le véhicule demandé composé par `vehicule` (`CONTRAT.md`, « Atelier 3D ») : ses pièces, ses Améliorations, les
+## couleurs de la composition courante et l'emblème de ses voiles (`_embleme_de_l_emplacement`) ; son panneau reposé
+## (`_poser_le_panneau_du_vehicule`), puis son corps monté par son montage (`MontageDeVehicule.monter`), au sol
+## (`_poser_au_sol`) et cadré à sa taille (`MarcheDeLAtelier.cadrer_la_boite`). Un refus va aux erreurs (`_signaler`).
+func _demander_le_vehicule() -> void:
+	var entree := {definition = _definition_du_vehicule, postes = _postes_du_vehicule, ameliorations = _ameliorations_du_vehicule}
+	if _composition.has("couleurs"):
+		entree.couleurs = _composition.couleurs
+	var embleme := _embleme_de_l_emplacement(PAVILLON)
+	if embleme != VIDE:
+		entree.embleme = {id = embleme}
+	var reponse := _pont.appeler("vehicule", entree)
+	if reponse.get("ok") != true:
+		return
+	_offre_du_vehicule = reponse
+	_poser_le_panneau_du_vehicule()
+	if await _vehicule.monter(reponse.vehicule, _montage, _poser_au_sol):
+		if _vehicule.scene != null:
+			_marche.cadrer_la_boite(MontageDeVehicule.boite(_vehicule.scene, _vehicule))
+	_marquer(_boutons_des_modeles, _modele_pose())
+	_montrer_l_etat()
+
+
+## La scène nue `scene` du véhicule au sol : sa boîte centrée sur l'origine, son dessous sur le sol.
+func _poser_au_sol(scene: Node3D) -> void:
+	var boite: AABB = MontageDeVehicule.boite(scene, _vehicule)
+	scene.position = Vector3(-boite.get_center().x, -boite.position.y, -boite.get_center().z)
+
+
+## L'onglet Équipement du véhicule, d'après la dernière réponse de `vehicule` : ses pièces gardées aux places de ses
+## postes en vigueur (bord après bord, chacun ses premières pièces) ; « Postes », une rangée par place de chaque bord
+## (`<label> <rang>`), sa liste de clé `poste/<bord>/<rang>` offrant « Aucun » puis chaque fiche de `pieces` par le libellé
+## de son élément ; « Améliorations », une case par Amélioration servie (`ameliorations` de `modeles`, de clé
+## `amelioration/<id>`), cochée si le véhicule la porte ; « Emblème », si son élément porte une surface `blason`, la liste
+## de clé `vehicule/embleme` : « Aucun », puis chaque emblème.
+func _poser_le_panneau_du_vehicule() -> void:
+	Controles.vider(_panneau_des_emplacements)
+	_sections.clear()
+	var offre := _offre_du_vehicule
+	var gardees := []
+	var choix: Array = [{id = VIDE, texte = AUCUN}]
+	for definition in offre.pieces:
+		choix.append({id = definition, texte = MontageDeComposition.modeles.libelles[MontageDeComposition.modeles.vehicules[definition]]})
+	for poste in offre.postes:
+		var du_bord := _postes_du_vehicule.filter(func(piece: Dictionary) -> bool: return piece.bord == poste.bord).slice(0, int(poste.places))
+		gardees.append_array(du_bord)
+		for rang in int(poste.places):
+			var liste := _liste_deroulante("poste/%s/%d" % [poste.bord, rang], choix, _choisir_la_piece.bind(poste.bord, rang))
+			_rangee("%s %d" % [poste.label, rang + 1], _section("poste")).add_child(liste)
+			_selectionner(liste, du_bord[rang].definition if rang < du_bord.size() else VIDE)
+	_postes_du_vehicule = gardees
+	for amelioration in MontageDeComposition.modeles.ameliorations:
+		var case := CheckButton.new()
+		case.text = MontageDeComposition.modeles.libelles[MontageDeComposition.modeles.ameliorations[amelioration]]
+		case.set_meta("cle", "amelioration/%s" % amelioration)
+		case.set_pressed_no_signal(amelioration in offre.ameliorations)
+		case.toggled.connect(_basculer_l_amelioration.bind(amelioration))
+		_section("amelioration").add_child(case)
+	if MontageDeComposition.porte_un_blason(offre.vehicule.element):
+		var emblemes: Array = [{id = VIDE, texte = AUCUN}]
+		for offert in MontageDeComposition.modeles.emblemes:
+			emblemes.append({id = offert.id, texte = offert.label})
+		var liste := _liste_deroulante("%s/embleme" % PAVILLON, emblemes, func(choisi: String) -> void:
+			_surcharges_des_emblemes[PAVILLON] = null if choisi == VIDE else {id = choisi}
+			_demander_le_vehicule())
+		_rangee("Voiles et pavillon", _section("pavillon")).add_child(liste)
+		_selectionner(liste, offre.vehicule.get("embleme", {}).get("id", VIDE))
+
+
+## La pièce de fiche `definition` (« vide » : aucune) à la place `rang` du bord `bord` : les pièces de ce bord gardent leur
+## ordre, et une place vide prend la pièce suivante, comme aux postes d'un combattant (`postesMontes`) ; puis le véhicule
+## recomposé.
+func _choisir_la_piece(definition: String, bord: String, rang: int) -> void:
+	var postes := []
+	for poste in _offre_du_vehicule.postes:
+		var du_bord := _postes_du_vehicule.filter(func(piece: Dictionary) -> bool: return piece.bord == poste.bord)
+		if poste.bord == bord:
+			if rang < du_bord.size():
+				du_bord.remove_at(rang)
+			if definition != VIDE:
+				du_bord.insert(mini(rang, du_bord.size()), {definition = definition, bord = bord})
+		postes.append_array(du_bord)
+	_postes_du_vehicule = postes
+	await _demander_le_vehicule()
+
+
+## L'Amélioration `amelioration` installée (`installee`) ou retirée, puis le véhicule recomposé.
+func _basculer_l_amelioration(installee: bool, amelioration: String) -> void:
+	var installees := []
+	for offerte in MontageDeComposition.modeles.ameliorations:
+		if (installee and offerte == amelioration) or (offerte != amelioration and offerte in _ameliorations_du_vehicule):
+			installees.append(offerte)
+	_ameliorations_du_vehicule = installees
+	await _demander_le_vehicule()
+
+
+## Ce que l'écran montre du véhicule demandé, `null` sans lui : sa fiche, ce que son montage a posé (l'élément, l'emblème,
+## les éléments de ses pièces et de ses Améliorations, les couleurs de ses surfaces), les noms des nœuds cachés sous sa
+## scène, pièces comprises, chacun une fois, la taille de sa boîte, et l'entrée demandée (pièces et Améliorations).
+func _vehicule_publie() -> Variant:
+	if _definition_du_vehicule == null:
+		return null
+	var caches := {}
+	var taille: Variant = null
+	if _vehicule.scene != null:
+		for noeud in _vehicule.scene.find_children("*", "Node3D", true, false):
+			if not (noeud as Node3D).visible:
+				caches[String(noeud.name)] = true
+		taille = _en_liste((MontageDeVehicule.boite(_vehicule.scene, _vehicule) as AABB).size)
+	var noms := caches.keys()
+	noms.sort()
+	return {
+		definition = _definition_du_vehicule,
+		element = _vehicule.element,
+		embleme = _vehicule.embleme,
+		postes = _vehicule.postes,
+		ameliorations = _vehicule.ameliorations,
+		couleurs = _vehicule.couleurs_posees(),
+		caches = noms,
+		taille = taille,
+		demande = {postes = _postes_du_vehicule, ameliorations = _ameliorations_du_vehicule},
+	}
 
 
 ## L'emplacement de montage `id`, de clé publiée `cle` dans `publie` (`montes` ou `lignes`), qui offre `elements` : son
@@ -621,6 +809,8 @@ func _montrer_l_etat() -> void:
 	var lignes: Array[String] = []
 	if not _montage.base.is_empty():
 		lignes.append("%s · %s" % [_montage.base.id, str(_montage.base.empreinte).left(DEBUT_D_EMPREINTE)])
+	if _vehicule.element != null:
+		lignes.append(str(_vehicule.element))
 	var erreurs := _toutes_les_erreurs()
 	lignes.append_array(erreurs)
 	_etat.text = "\n".join(PackedStringArray(lignes))
@@ -774,6 +964,8 @@ func _composer_la_courante() -> void:
 	%Entree.text = ""
 	if _montage.base.is_empty():
 		_montrer_la_composition()
+		if _definition_du_vehicule != null:
+			_demander_le_vehicule()
 		return
 	var reponse := _pont.appeler("composer", {base = _montage.base.id, composition = _composition, emblemes = _surcharges_des_emblemes})
 	if reponse.get("ok") == true:
@@ -935,6 +1127,7 @@ func _publier_l_ecran() -> void:
 			peaux = _peaux(),
 			morphes = _morphes_des_meshes(),
 			couleurs = _montage.couleurs_posees(),
+			vehicule = _vehicule_publie(),
 		},
 	})
 

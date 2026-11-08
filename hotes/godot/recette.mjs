@@ -124,7 +124,11 @@
 //   sa vitesse réglée ; puis `--reexport` importé à la place de la base (`importer.mjs --remplacer`), l'élément qui la
 //   référence revalidé contre elle et laissé en place, « Recharger les modèles » sans relancer la page : l'empreinte
 //   publiée devient celle du manifeste réimporté, l'état (clip, instant, pause, vitesse, montés, emblèmes, aides) est
-//   gardé.
+//   gardé. Sans `--modeles`, le véhicule (#2987) sur le dossier des modèles du projet, à deviceScaleFactor 2 : la
+//   caraque choisie à côté des bases, cadrée à sa taille, capturée de trois quarts ; un canon moyen à deux places de
+//   tribord, deux de bâbord et une de proue (onglet Équipement), le Sabord installé, puis d'autres Améliorations, une
+//   couleur et l'emblème de ses voiles, enfin le Sabord retiré : à chaque geste, le véhicule publié est celui que le pont
+//   compose pour la même entrée (`vehicule`).
 // - `composition` : Soldat, manquants et copie validée côté Node ; une couleur changée à l'onglet Couleurs, posée dans
 //   la composition et sur les matériaux de la pièce ; pièce skinnée montée et démontée, courtaud, corpulence aux
 //   bornes, marche au clavier au corps neutre et couplage de la racine au temps du clip, puis repos.
@@ -142,6 +146,7 @@
 //   node hotes/godot/recette.mjs --parcours creation --scenario marche-equipement --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours vehicule --scenario caraque --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours dialogue --scenario dialogue-multi --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours atelier --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours atelier --web <export> --captures <dossier> --modeles <dossier neuf>
 //     --base <production> --element <production> --reexport <production> [--clip Sword_Attack]
 //   node hotes/godot/recette.mjs --parcours composition --web <export> --captures <dossier> --modeles <dossier neuf>
@@ -166,7 +171,7 @@ const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
 if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|vehicule|brume|fiche|inventaire|creation|editeur|atelier|composition]')
-if (o.parcours === 'atelier' && !(o.modeles && o.base && o.element && o.reexport)) throw new Error('--parcours atelier attend --modeles <dossier neuf> --base, --element et --reexport <dossier de production>')
+if (o.parcours === 'atelier' && o.modeles && !(o.base && o.element && o.reexport)) throw new Error('--parcours atelier avec --modeles <dossier neuf> attend --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
 if (['atelier', 'composition', 'combat'].includes(o.parcours) && o.modeles && existsSync(o.modeles)) throw new Error(`--modeles ${o.modeles} existe : le parcours importe dans un dossier neuf`)
@@ -1880,7 +1885,105 @@ async function poserLesEmblemes(elementId) {
   return offerts
 }
 
+/** La fiche du véhicule que le parcours `atelier` pose sans `--modeles`, et les Améliorations qu'il installe, le Sabord en
+ *  tête : il change les places de tribord et de bâbord. */
+const VEHICULE_DE_L_ATELIER = { definition: 'caraque', libelle: 'Caraque' }
+const AMELIORATIONS_DE_L_ATELIER = ['sabord', 'figure-de-proue', 'ancre', 'nid-de-pie', 'clinfoc', 'embarcation-de-bord', 'safran', 'fourquines']
+/** Les places de poste que le parcours arme d'une pièce, par clé de leur liste (`poste/<bord>/<rang>`). */
+const PLACES_ARMEES = ['poste/tribord/0', 'poste/tribord/1', 'poste/babord/0', 'poste/babord/1', 'poste/proue/0']
+/** Le glissé au bouton droit qui tourne l'orbite de l'atelier de trois quarts sur le véhicule. */
+const TROIS_QUARTS = { x: 900, y: 360, dx: -220 }
+
+/** Le véhicule de l'atelier publié conforme à ce que le pont compose pour son entrée (`vehicule`, appelé de la page sur
+ *  la fiche, les pièces et les Améliorations demandées, la palette de la composition courante et l'emblème posé) : son
+ *  élément, son emblème, les éléments de ses pièces et de ses Améliorations, et les nœuds cachés, ceux de `caches`
+ *  compris, sans erreur. Le corps composé. */
+async function prouverLeVehicule() {
+  const a = await atelier()
+  const entree = { definition: a.vehicule.definition, ...a.vehicule.demande, ...(a.composition.courante.couleurs ? { couleurs: a.composition.courante.couleurs } : {}), ...(a.vehicule.embleme ? { embleme: { id: a.vehicule.embleme } } : {}) }
+  const { vehicule: corps } = JSON.parse(await evaluate(session, `wfrpPont.appeler('vehicule', ${JSON.stringify(JSON.stringify(entree))})`))
+  assert.deepEqual(a.erreurs, [], 'le véhicule posé sans erreur')
+  assert.deepEqual([a.vehicule.element, a.vehicule.embleme, a.vehicule.postes, a.vehicule.ameliorations], [corps.element, corps.embleme?.id ?? null, corps.postes.map((x) => x.element), corps.ameliorations.map((x) => x.element)], 'le véhicule posé est celui que le pont compose')
+  assert.ok(corps.caches.every((nom) => a.vehicule.caches.includes(nom)), `les nœuds ${corps.caches.join(', ')} cachés : ${a.vehicule.caches.join(', ')}`)
+  noter(`« ${corps.element} » : ${corps.postes.length} pièces de poste, ${corps.ameliorations.length} pièces d’Amélioration, emblème ${corps.embleme?.id ?? 'aucun'}, cachés ${a.vehicule.caches.join(', ') || 'aucun'} ; boîte ${a.vehicule.taille.map((x) => x.toFixed(1)).join(' × ')} m, orbite ×${a.cadre.toFixed(2)}`)
+  return corps
+}
+
+/** Le bouton `quoi` du panneau de l'atelier amené à l'écran, la molette tournée vers le bas, puis vers le haut : le
+ *  panneau d'un véhicule se repose à chaque corps reçu. */
+async function chercher(quoi) {
+  try {
+    return await amener(quoi, 1)
+  } catch {
+    return amener(quoi, -1)
+  }
+}
+
+/** L'atelier publié quand son véhicule a reçu le corps que `condition` (une expression sur `v`, le véhicule publié) attend. */
+const attendreLeVehicule = (condition) => attendreLAtelier(`(() => { const v = a.vehicule; return !!v && !!(${condition}) })()`, 180000)
+
+/** Sans `--modeles`, le véhicule dans l'atelier (#2987), sur le dossier des modèles du projet, la page à
+ *  deviceScaleFactor 2 : la caraque choisie à l'onglet Outils, à côté des bases, posée et cadrée à sa taille ; à l'onglet
+ *  Équipement, une pièce à chaque place de `PLACES_ARMEES`, puis chaque Amélioration de `AMELIORATIONS_DE_L_ATELIER`
+ *  installée ; une couleur à l'onglet Couleurs et un emblème sur ses voiles ; puis le Sabord retiré. À chaque étape, le
+ *  véhicule publié est celui que le pont compose (`prouverLeVehicule`), capturé de trois quarts. */
+async function parcoursAtelierDuVehicule() {
+  await session.rpc('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 2, mobile: false })
+  await session.rpc('Page.reload')
+  await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  await cliquerBouton('Atelier')
+  await attendreLAtelier('Array.isArray(a.erreurs)', 120000)
+  await cliquerBouton('Outils')
+  await cliquerAmene(VEHICULE_DE_L_ATELIER.libelle, 1)
+  await attendreLeVehicule(`v.element !== null && v.definition === ${JSON.stringify(VEHICULE_DE_L_ATELIER.definition)}`)
+  const nue = await prouverLeVehicule()
+  assert.deepEqual([nue.postes, nue.ameliorations], [[], []], 'la coque nue, sans pièce ni Amélioration')
+  assert.ok(Math.max(...(await atelier()).vehicule.taille) > 30 && (await atelier()).cadre > 5, 'la coque d’une trentaine de mètres cadrée à sa taille')
+  await geste(session, { surface: 'canvas', x: TROIS_QUARTS.x, y: TROIS_QUARTS.y }, { qui: 'orbite de trois quarts' }, clic({ bouton: 'right', trajet: [{ x: TROIS_QUARTS.dx, y: 0 }] }))
+  await capturer('2987-atelier-1-caraque-nue')
+
+  await cliquerBouton('Équipement')
+  for (const [n, cle] of PLACES_ARMEES.entries()) {
+    const liste = await chercher({ cle })
+    await choisirDansLaListe(cle, liste.choix.find((texte) => /moyen/i.test(texte)))
+    await attendreLeVehicule(`v.postes.length === ${n + 1}`)
+  }
+  await prouverLeVehicule()
+  await capturer('2987-atelier-2-canons-au-pont')
+  for (const [n, amelioration] of AMELIORATIONS_DE_L_ATELIER.entries()) {
+    await chercher({ cle: `amelioration/${amelioration}` })
+    await cliquerBouton({ cle: `amelioration/${amelioration}` })
+    await attendreLeVehicule(`v.demande.ameliorations.length === ${n + 1} && v.ameliorations.length > 0`)
+    if (amelioration === 'sabord') {
+      const corps = await prouverLeVehicule()
+      assert.ok(corps.caches.includes('sans-sabord') && corps.ameliorations.some((x) => x.poste?.montre === 'ouvert'), 'le Sabord installé : le pont du canon caché, les canons aux sabords ouverts')
+      await capturer('2987-atelier-3-sabords')
+    }
+  }
+  await prouverLeVehicule()
+  await capturer('2987-atelier-4-ameliorations')
+
+  await cliquerBouton('Couleurs')
+  const { nuancier } = JSON.parse(await evaluate(session, `wfrpPont.appeler('catalogues')`))
+  await choisirDansLaListe('couleur/vet1', nuancier.at(-1).label)
+  await attendreLeVehicule(`v.couleurs.toile === ${JSON.stringify(nuancier.at(-1).couleur.toLowerCase())}`)
+  await cliquerBouton('Équipement')
+  const emblemes = await chercher({ cle: 'vehicule/embleme' })
+  await choisirDansLaListe('vehicule/embleme', emblemes.choix[1])
+  await attendreLeVehicule('v.embleme !== null')
+  await prouverLeVehicule()
+  await capturer('2987-atelier-5-voiles-et-pavillon')
+
+  await chercher({ cle: 'amelioration/sabord' })
+  await cliquerBouton({ cle: 'amelioration/sabord' })
+  await attendreLeVehicule(`!v.demande.ameliorations.includes('sabord') && v.caches.includes('avec-sabord')`)
+  const sans = await prouverLeVehicule()
+  assert.ok(sans.caches.includes('avec-sabord') && !sans.ameliorations.some((x) => x.poste), 'le Sabord retiré : ses pièces démontées, les canons rendus au pont')
+  await capturer('2987-atelier-6-sabord-retire')
+}
+
 async function parcoursAtelier() {
+  if (!o.modeles) return parcoursAtelierDuVehicule()
   const [p0, element, p1] = [production(o.base), production(o.element), production(o.reexport)]
   const base = p0.manifeste.base
   const elementId = element.manifeste.cle.apparence
