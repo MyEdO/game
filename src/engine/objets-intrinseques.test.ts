@@ -46,7 +46,7 @@ describe('propriétés intrinsèques de l’objet (#2967)', () => {
   it('la racine fournie à l’invocation reste fixée après édition de sa fiche', () => {
     const item = objets.weaponItem({
       label: 'Arme invoquée', damage: { plusBF: true, flat: 4 },
-      shape: findTrappingById('baton-de-combat')!.shape, apparence: 'hache_naine',
+      shape: findTrappingById('baton-de-combat')!.shape, apparence: 'hache_naine', uid: 'conjure-1',
     });
     expect(item).toHaveProperty('shape', { id: 'baton' });
     setDataset('trappings', catalogue.map((t) => t.id === 'baton-de-combat' ? { ...t, shape: { id: 'hache' } } : t));
@@ -108,7 +108,7 @@ describe('propriétés intrinsèques de l’objet (#2967)', () => {
     const arme = objets.weaponFromItem(item);
     expect(arme).toHaveProperty('organicProjectile', true);
     expect(arme).toHaveProperty('shield', true);
-    const directe = objets.buildWeapon({ label: 'Sonde', damage: { plusBF: true, flat: 1 }, ...{ organicProjectile: true, shield: true } });
+    const directe = objets.buildWeapon({ label: 'Sonde', damage: { plusBF: true, flat: 1 }, uid: 'sonde', ...{ organicProjectile: true, shield: true } });
     expect(directe).toHaveProperty('shield', true);
     expect(directe).toHaveProperty('organicProjectile', true);
     expect(objets.CLES_INTRINSEQUES_D_OBJET).toHaveProperty('organicProjectile', true);

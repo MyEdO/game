@@ -480,7 +480,7 @@ function voiesDuTest(
       if (!item) return undefined;
       // L'arme synthétique n'a pas d'uid retrouvable : le gate de maîtrise est inerte pour ce Test.
       const kind = item.kind === 'ranged' ? ('ranged' as const) : ('melee' as const);
-      const valeur = combatValue(h, kind, buildWeapon({ label: item.label, type: kind, damage: item.damage ?? { plusBF: true, flat: 0 }, subType: item.subType }));
+      const valeur = combatValue(h, kind, buildWeapon({ label: item.label, type: kind, damage: item.damage ?? { plusBF: true, flat: 0 }, subType: item.subType, uid: `entrainement-${item.uid}` }));
       return { voies: [{ test: { skill: { id: weaponSkillId(kind) } }, valeur }] };
     }
     case 'identify': {

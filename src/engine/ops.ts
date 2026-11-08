@@ -47,7 +47,7 @@ import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmpu
 import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
-import { contexteDeNaissanceDObjet, damageLeatherArmour, endommagerLEquipementPorte, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive } from './items';
+import { contexteDeNaissanceDObjet, damageLeatherArmour, endommagerLEquipementPorte, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive, uidDArme } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
@@ -2874,7 +2874,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'grantNaturalWeapon': {
         const n = Math.max(0, formuleDuCtx(o.damage, ref, ctx) + (o.damagePlus ?? 0));
-        const weapon = armeNaturelleAccordee(o, n, { uid: o.uid ?? { prefix: `nat-${norm(o.label)}` }, source });
+        const accordees = (target.activeEffects ?? []).flatMap((e) => (e.naturalWeapon ? [e.naturalWeapon] : []));
+        const weapon = armeNaturelleAccordee(o, n, { uid: o.uid ?? uidDArme(`nat-sort-${norm(o.label)}`, accordees), source }); // #2907
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
           label: ctx.label ?? o.label, bonus: 0,
@@ -2890,7 +2891,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const flat = Math.max(0, formuleDuCtx(o.damage, ref, ctx) + (o.damagePlus ?? 0));
         // #2967
         const form = o.chooseForm ? (ctx.conjureForm ?? conjureFormOptions(ref)[0]) : null;
-        const item = weaponItem(specDArmeInvoquee(findTrappingById, o, flat, source, form));
+        const item = weaponItem(specDArmeInvoquee(findTrappingById, o, flat, source, form, `conjure-${newUid()}`));
         // SET d'armes DÉDIÉ rendu actif (réutilise les loadouts) — le joueur peut rebasculer sur ses
         // armes ; à l'expiration, le set d'origine est restauré (engine/conjuredWeapons).
         // Effets « à la touche » (Épée ardente → En flammes) PORTÉS PAR L'OBJET invoqué (enchant) ;

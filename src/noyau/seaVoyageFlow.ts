@@ -1821,7 +1821,7 @@ export function applySteamBreakdown(get: Get, set: Set, b: SteamBreakdownEntry, 
   // « Explosion » (l.351-352) : quiconque dans le compartiment du moteur (la personne au moteur, équipage
   // abstrait) subit `compartmentDamage` Dégâts avec l'Atout Perforante.
   if (b.compartmentDamage != null && eng) {
-    const boiler = buildWeapon({ label: t('sv.boilerBlast'), damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'perforante' }] }); // Dégâts passés directement (weaponHit) → la spec ne sert qu'aux qualités
+    const boiler = buildWeapon({ label: t('sv.boilerBlast'), damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'perforante' }], uid: 'chaudiere' }); // Dégâts passés directement (weaponHit) → la spec ne sert qu'aux qualités
 
     const lines = applyOps(eng, [{ op: 'wounds', amount: b.compartmentDamage, weaponHit: true }], { rng, weapon: boiler, location: 'corps' });
     set({ party: [...get().party] });

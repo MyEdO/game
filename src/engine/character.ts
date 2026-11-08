@@ -291,7 +291,10 @@ export interface CreateHeroOptions extends ChoixDeCreation {
   motivation?: string;
   /** Apparence du héros sans son espèce de rendu, dérivée ici de `speciesId` (`especeDApparence`). Absente = aucune. */
   apparence?: Omit<NonNullable<Combatant['appearance']>, 'species'>;
+  /** Id du héros ; absent = un id neuf. */
   id?: string;
+  /** Source des uids de ses objets (`buildInventory`) : un aperçu qui n'entre pas dans l'état en passe une locale. #2907 */
+  idDObjet?: () => string;
 }
 
 const prochainHeros = sequence();
@@ -413,13 +416,12 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   //    stats → ignorées par buildInventory (un libellé non catalogué n'est pas trouvé). Les emplacements
   //    de dotation se résolvent par `opts.trappingChoices` AVANT `buildInventory`.
   const rawTrappings = resolveTrappingChoices(opts.careerId, 1, opts.trappingChoices ?? {});
-  const items = buildInventory(rawTrappings, fluxDeCreation(opts.seed, 'possessions'), contexteDeNaissanceDObjet({ species: opts.speciesId, career: opts.careerId }));
+  const items = buildInventory(rawTrappings, fluxDeCreation(opts.seed, 'possessions'), contexteDeNaissanceDObjet({ species: opts.speciesId, career: opts.careerId }), opts.idDObjet);
 
   // Trait RACIAL de l'espèce (#572) — Ogre `{id:'ogre'}` (encombrance/consommation ×2, ADE2 « Ogres
   // et Mutations » l.708 « Un Lourd Fardeau ») : résolu et posé sur `Combatant.traits` (MÊME résolution
   // que le spawn de créature bestiaire, #513).
-  const numero = prochainHeros.suivant();
-  const id = opts.id ?? `hero-${numero}`;
+  const id = opts.id ?? `hero-${prochainHeros.suivant()}`;
   const speciesTraits = traitsDuPorteur(sp.traits ?? [], { id, indice: indiceSurLeProfil((k) => chars[k]) });
 
   // Taille (LDB 85 l.344-354) — portée par `TalentData.size` (#572) : `sizeFromTalents` sur les talents

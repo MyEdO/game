@@ -799,8 +799,8 @@ describe('endommagerLEquipementPorte — toutes les Armures et Armes portées su
     expect(tientUneArme(c.weapons)).toBe(false);
   });
   it('statbloc sans objet : l’armure plate perd 1 PA à chaque Localisation qui en a ; les attaques naturelles sont épargnées', () => {
-    const griffe = buildWeapon({ label: 'Griffes', natural: true, damage: { plusBF: true, flat: 3 } });
-    const lame = buildWeapon({ label: 'Lame', damage: { plusBF: true, flat: 4 } });
+    const griffe = buildWeapon({ label: 'Griffes', natural: true, damage: { plusBF: true, flat: 3 }, uid: 'griffes' });
+    const lame = buildWeapon({ label: 'Lame', damage: { plusBF: true, flat: 4 }, uid: 'lame' });
     const c = { items: [], weapons: [griffe, lame], armour: { ...emptyArmour(), tete: 2, corps: 1 } } as unknown as Combatant;
     expect(endommagerLEquipementPorte(c)).toEqual({ localisations: 2, armes: 1 });
     expect(c.armour).toMatchObject({ tete: 1, corps: 0, brasG: 0 });

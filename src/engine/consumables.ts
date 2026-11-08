@@ -23,13 +23,13 @@ export interface ConsumableDuration {
 
 /** Le Flow consommable de l'objet, lu au CATALOGUE par son `trappingId` (une seule source : une donnée éditée vaut
  *  pour les objets déjà portés) ; `undefined` pour un objet hors catalogue ou non consommable. */
-export function consommableDe(item: ItemInstance): Flow | undefined {
+export function consommableDe(item: Pick<ItemInstance, 'trappingId'>): Flow | undefined {
   return item.trappingId ? findTrappingById(item.trappingId)?.consumable : undefined;
 }
 
 /** L'objet est-il un consommable utilisable ? Flow présent et NON VIDE (un `seq` sans étape = rien à
  *  boire). Sert l'icône et tout filtre « utilisable » sans Combatant sous la main. */
-export function isConsumable(item: ItemInstance): boolean {
+export function isConsumable(item: Pick<ItemInstance, 'trappingId'>): boolean {
   const f = consommableDe(item);
   return !!f && !(f.kind === 'seq' && f.steps.length === 0);
 }
