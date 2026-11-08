@@ -100,6 +100,12 @@ static func echelle_metrique(metres_par_case: float) -> float:
 	return 1.0 / metres_par_case
 
 
+## L'échelle qui porte un modèle dont la boîte mesure `taille` sur une empreinte de `empreinte` cases de côté : sa plus
+## grande dimension horizontale y vaut l'empreinte (#2987).
+static func echelle_d_empreinte(taille: Vector3, empreinte: int) -> float:
+	return empreinte / maxf(taille.x, taille.z)
+
+
 ## Une hauteur de `hauteur` mètres sur le plateau d'une scène de `metres_par_case`.
 static func hauteur_au_plateau(hauteur: float, metres_par_case: float) -> float:
 	return hauteur * echelle_metrique(metres_par_case)

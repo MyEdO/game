@@ -3,7 +3,8 @@
 ## du plateau (`vue.plateau.metresParCase`) et animée par les clips de sa base selon leur rôle (`clips` de la réponse de `modeles`) ; son nom et ses
 ## Points de Blessures (`pb`) en étiquette au-dessus de sa tête, l'anneau de l'actif. Il glisse vers sa nouvelle case,
 ## frappe vers une cible, accuse le coup qui le vise et tombe hors de combat. Sans corps, il garde son anneau et son
-## étiquette, à la hauteur du nom d'une entité (`MiseEnPage.HAUTEUR_DU_NOM`).
+## étiquette, à la hauteur du nom d'une entité (`MiseEnPage.HAUTEUR_DU_NOM`). Véhicule ou engin (`vue.corps.vehicules[id]`,
+## #2987), le GLB de son élément se pose sous `Vehicule`, sur ses N×N cases (`poser_sur_l_empreinte`).
 class_name Combattant
 extends Node3D
 
@@ -23,6 +24,7 @@ const MORT := "death"
 @onready var _montage: MontageDeComposition = $Modele
 @onready var _selection: MeshInstance3D = $Selection
 @onready var _etiquette: Label3D = $Etiquette
+@onready var _vehicule: Node3D = $Vehicule
 
 ## L'id du combattant (`c.id`).
 var _id := ""
@@ -37,6 +39,10 @@ var _base_demandee: Variant = null
 var _chargement: RefCounted = null
 ## La hauteur, dans son repère, du plus haut point d'accroche de sa base au repos, sans gabarit.
 var _hauteur_de_tete := 0.0
+## Le dernier véhicule reçu, en JSON, l'id de l'élément posé sous `Vehicule` (`null` : aucun), et son chargement retenu.
+var _vehicule_recu := ""
+var _element_du_vehicule: Variant = null
+var _chargement_du_vehicule: RefCounted = null
 
 
 func _ready() -> void:
@@ -44,8 +50,8 @@ func _ready() -> void:
 
 
 ## `c` : un combattant projeté (`voisins`) ; `lieu` : le centre de sa case ; `corps` : son corps (`null` : aucun) ;
-## `metres_par_case` : l'échelle du plateau (`vue.plateau.metresParCase`).
-func montrer(c: Dictionary, lieu: Vector3, actif: bool, corps: Variant, metres_par_case: float) -> void:
+## `vehicule` : son véhicule (`null` : aucun) ; `metres_par_case` : l'échelle du plateau (`vue.plateau.metresParCase`).
+func montrer(c: Dictionary, lieu: Vector3, actif: bool, corps: Variant, vehicule: Variant, metres_par_case: float) -> void:
 	_id = c.id
 	var echelle := MiseEnPage.echelle_metrique(metres_par_case)
 	_montage.scale = Vector3(echelle, echelle, echelle)
@@ -58,12 +64,38 @@ func montrer(c: Dictionary, lieu: Vector3, actif: bool, corps: Variant, metres_p
 	if not lieu.is_equal_approx(position):
 		_aller(lieu)
 	_vetir(corps)
+	_equiper(vehicule)
 
 
 ## Ce que son corps porte, lu de son montage : l'id de sa base posée (`null` sans corps), chaque élément monté, par
-## emplacement l'emblème posé, et par emplacement les couleurs posées (`MontageDeComposition.couleurs_posees`).
+## emplacement l'emblème posé, par emplacement les couleurs posées (`MontageDeComposition.couleurs_posees`), et l'id de
+## l'élément de son véhicule posé (`null` : aucun).
 func corps() -> Dictionary:
-	return {base = null if _montage.modele == null else _montage.base.id, elements = _montage.montes.values(), emblemes = _montage.emblemes.duplicate(), couleurs = _montage.couleurs_posees()}
+	return {base = null if _montage.modele == null else _montage.base.id, elements = _montage.montes.values(), emblemes = _montage.emblemes.duplicate(), couleurs = _montage.couleurs_posees(), vehicule = _element_du_vehicule}
+
+
+## La scène `scene` d'un véhicule, enfant d'un nœud à la case de son combattant, posée sur ses `empreinte` × `empreinte`
+## cases, depuis cette case, son coin nord-ouest (`footprintTiles`, #2987) : sa plus grande dimension horizontale vaut
+## l'empreinte (`MiseEnPage.echelle_d_empreinte`), sa boîte centrée sur elle, son origine au sol.
+static func poser_sur_l_empreinte(scene: Node3D, empreinte: int) -> void:
+	var boite: AABB = _boite(scene, scene.transform)
+	var echelle := MiseEnPage.echelle_d_empreinte(boite.size, empreinte)
+	var centre := boite.get_center() * echelle
+	var milieu := (empreinte - 1) * MiseEnPage.DEMI_CASE
+	scene.transform = Transform3D(Basis.from_scale(Vector3.ONE * echelle), Vector3(milieu - centre.x, 0.0, milieu - centre.z)) * scene.transform
+
+
+## La boîte des meshes sous `noeud`, dans le repère où `noeud` se pose par `repere` ; `null` sans mesh.
+static func _boite(noeud: Node, repere: Transform3D) -> Variant:
+	var boite: Variant = null
+	if noeud is MeshInstance3D and (noeud as MeshInstance3D).mesh != null:
+		boite = repere * (noeud as MeshInstance3D).get_aabb()
+	for enfant in noeud.get_children():
+		if enfant is Node3D:
+			var sous: Variant = _boite(enfant, repere * (enfant as Node3D).transform)
+			if sous != null:
+				boite = sous if boite == null else (boite as AABB).merge(sous)
+	return boite
 
 
 ## Tourné vers `cible` (une position du plateau), il frappe.
@@ -118,6 +150,30 @@ func _vetir(corps: Variant) -> void:
 		_montage.gabarit.mesure.connect(_hausser_l_etiquette)
 		_poser_l_etiquette()
 	_composer()
+
+
+## Le véhicule `vehicule`, s'il a changé : aucun, la scène posée sous `Vehicule` est retirée ; sinon le GLB de son
+## élément est tiré de `modeles/` et posé sur son empreinte (`poser_sur_l_empreinte`) à la place de la précédente.
+func _equiper(vehicule: Variant) -> void:
+	var recu := JSON.stringify(vehicule)
+	if recu == _vehicule_recu:
+		return
+	_vehicule_recu = recu
+	var chargement := RefCounted.new()
+	_chargement_du_vehicule = chargement
+	var scene: Node3D = null if vehicule == null else await _montage.scene_du_glb(vehicule.element, _montage.erreurs)
+	if chargement != _chargement_du_vehicule:
+		if scene != null:
+			scene.free()
+		return
+	for ancienne in _vehicule.get_children():
+		ancienne.queue_free()
+	_element_du_vehicule = null
+	if scene != null:
+		_vehicule.add_child(scene)
+		poser_sur_l_empreinte(scene, int(vehicule.empreinte))
+		_element_du_vehicule = vehicule.element
+	_signaler()
 
 
 ## La base `id` de la réponse de `modeles` retenue.
