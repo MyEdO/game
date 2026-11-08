@@ -11,9 +11,11 @@
  * (`asset/surfaces.ts`), où se posent au montage la palette de la composition et les emblèmes de la garde-robe (#3111) ;
  * la table rôle → clip de chaque base et la vitesse au sol de son rôle `walk` ; chaque véhicule servi, élément sans base
  * (#2987), sous la fiche que nomme sa clé `definition` ; le rapport de l'index, dont l'élément n'est servi nulle part.
+ * Monté, un véhicule porte ses pièces aux postes en vigueur (`postesEnVigueur`), celles de ses Améliorations, et cache
+ * les nœuds que ses Améliorations montées ou non changent (`noeudsCaches`).
  */
 import type { Attache } from '../asset/attache';
-import { ETATS_AU_POSTE, type ManifesteDElement } from '../asset/element';
+import { ETATS_AU_POSTE, noeudSelon, type ManifesteDElement } from '../asset/element';
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
@@ -173,12 +175,21 @@ export interface PosteMonte {
   palette: Record<string, string>;
 }
 
-/** Les pièces de `postes` montées sur le véhicule de manifeste `manifeste` et de palette `palette` : chacune à la position
- *  de son bord qui suit celles des pièces précédentes de ce bord, si le manifeste l'offre et qu'un élément de `vehicules`
- *  (fiche → élément servi) dessine sa fiche, à la palette du véhicule où la palette de sa teinte (`findTeinteById`) colore ;
- *  une autre ne se monte pas. */
-export function postesMontes(manifeste: unknown, postes: readonly PosteDuVehicule[], vehicules: Readonly<Record<string, string>>, palette: Readonly<Record<string, string>>): PosteMonte[] {
-  const offertes = (manifeste as Extract<ManifesteDElement, { categorie: 'vehicule' }>).postes ?? {};
+type ManifesteDeVehicule = Extract<ManifesteDElement, { categorie: 'vehicule' }>;
+
+/** Les postes du véhicule de manifeste `manifeste` qui porte les Améliorations `ameliorations` : ceux de son manifeste,
+ *  chaque bord que nomme `selon.<amelioration>.postes` d'une Amélioration montée remplacé par les siens (MDG p.97). */
+export const postesEnVigueur = (manifeste: unknown, ameliorations: readonly string[]): ManifesteDeVehicule['postes'] => {
+  const { postes, selon } = manifeste as ManifesteDeVehicule;
+  return Object.assign({}, postes, ...ameliorations.map((a) => selon?.[a]?.postes));
+};
+
+/** Les pièces de `postes` montées sur le véhicule de manifeste `manifeste`, de palette `palette`, qui porte les
+ *  Améliorations `ameliorations` : chacune à la position de son bord qui suit celles des pièces précédentes de ce bord,
+ *  si ses postes en vigueur (`postesEnVigueur`) l'offrent et qu'un élément de `vehicules` (fiche → élément servi) dessine
+ *  sa fiche, à la palette du véhicule où la palette de sa teinte (`findTeinteById`) colore ; une autre ne se monte pas. */
+export function postesMontes(manifeste: unknown, ameliorations: readonly string[], postes: readonly PosteDuVehicule[], vehicules: Readonly<Record<string, string>>, palette: Readonly<Record<string, string>>): PosteMonte[] {
+  const offertes = postesEnVigueur(manifeste, ameliorations) ?? {};
   const rangs = new Map<FireArc, number>();
   return postes.flatMap(({ definition, bord, teinte }) => {
     const rang = rangs.get(bord) ?? 0;
@@ -202,16 +213,24 @@ export interface AmeliorationMontee {
 /** Les pièces des `ameliorations` montées sur le véhicule de manifeste `manifeste`, dont `montes` sont les pièces de ses
  *  postes (`postesMontes`) : pour chaque Amélioration dont un élément de `pieces` (Amélioration → élément servi, de manifeste
  *  dans `manifestes`) est servi, une pièce à chacun de ses `ancrages` dans le manifeste du véhicule, ou, montée aux postes,
- *  à chaque poste qu'il offre, `ouvert` devant une pièce montée, `ferme` sinon. */
+ *  à chaque poste que l'Amélioration offre (`selon.<amelioration>.postes`), `ouvert` devant une pièce montée, `ferme` sinon. */
 export function ameliorationsMontees(manifeste: unknown, ameliorations: readonly string[], montes: readonly PosteMonte[], pieces: Readonly<Record<string, string>>, manifestes: Readonly<Record<string, unknown>>): AmeliorationMontee[] {
-  const vehicule = manifeste as Extract<ManifesteDElement, { categorie: 'vehicule' }>;
+  const vehicule = manifeste as ManifesteDeVehicule;
   return ameliorations.flatMap((amelioration) => {
     const element = pieces[amelioration];
     if (!element) return [];
     if ((manifestes[element] as Extract<ManifesteDElement, { categorie: 'amelioration' }>).montage === 'ancrages') return (vehicule.ancrages?.[amelioration] ?? []).map((position) => ({ element, position }));
-    return Object.entries(vehicule.postes ?? {}).flatMap(([bord, positions]) => positions.map((position) => {
+    return Object.entries(vehicule.selon?.[amelioration]?.postes ?? {}).flatMap(([bord, positions]) => positions.map((position) => {
       const arme = montes.some((m) => m.bord === bord && m.position === position);
       return { element, position, poste: { bord: bord as FireArc, montre: arme ? ETATS_AU_POSTE.arme : ETATS_AU_POSTE.vide, cache: arme ? ETATS_AU_POSTE.vide : ETATS_AU_POSTE.arme } };
     }));
   });
+}
+
+/** Les nœuds à cacher du véhicule de manifeste `manifeste`, qui porte les Améliorations `ameliorations`, et de ses pièces
+ *  d'Amélioration `montees` (`ameliorationsMontees`, de manifeste dans `manifestes`) : pour chaque Amélioration que nomme
+ *  leur `selon`, ses nœuds `sans-` si elle est montée, `avec-` sinon (`noeudSelon`). */
+export function noeudsCaches(manifeste: unknown, ameliorations: readonly string[], montees: readonly AmeliorationMontee[], manifestes: Readonly<Record<string, unknown>>): string[] {
+  const nommees = new Set([manifeste, ...montees.map((m) => manifestes[m.element])].flatMap((m) => Object.keys((m as Extract<ManifesteDElement, { categorie: 'vehicule' | 'amelioration' }>).selon ?? {})));
+  return [...nommees].map((a) => noeudSelon(ameliorations.includes(a) ? 'sans' : 'avec', a));
 }
