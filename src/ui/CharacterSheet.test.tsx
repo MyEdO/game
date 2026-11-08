@@ -13,6 +13,7 @@ import { apparencesCandidates, itemFromTrappingById } from '../engine/items';
 import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
+import { gameDay } from '../noyau/merchantFlow';
 import { refusDeSoins } from '../noyau/medicFlow';
 import { combatantRingDecor } from '../gameIso/builders/dynamicMarks';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
@@ -471,6 +472,11 @@ describe('Onglet Possessions — registre `Band`/`PlaqueRow` (#492 lot POSSESSIO
     it('« Évaluer » : fermé et NOMMÉ sans Augmentation', () => {
       const profane = { ...hero(), id: 'p', items: [inconnu] } as unknown as Combatant;
       expect(etat(profane, 'Évaluer', 'sheet-eval-u1')).toEqual({ rendu: true, ferme: 'true', raison: 'Personne dans le groupe ne peut tenter le Test d’Évaluation.' });
+    });
+
+    it('« Évaluer » : manquée ce jour, reste rendu, fermé et NOMMÉ (LDB 12 l.94)', () => {
+      const evaluateur = { ...hero(), id: 'e', items: [{ ...inconnu, appraiseTriedDay: gameDay(useGame.getState()) }], skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 5 }] } as unknown as Combatant;
+      expect(etat(evaluateur, 'Évaluer', 'sheet-eval-u1')).toEqual({ rendu: true, ferme: 'true', raison: t('mf.appraiseSameDay', { label: 'Épée' }) });
     });
 
     it('« Détecter » : offert quand un héros porte le Talent Détection d’artefact (LDB 10 l.336)', () => {
