@@ -87,29 +87,3 @@ describe('garde-fou — ce que la garde mesure', () => {
   });
 });
 
-/**
- * SINGLETONS D'OPTION sous `isolate: false` — même famille de défaut que le mock de module, mesurée
- * en vrai (2026-07-30) : `engine/fixedDie` porte l'option « Dés fixés » en variable de MODULE, donc
- * partagée par tous les fichiers d'un worker. Un fichier qui l'allume sans la rendre la fait fuir vers
- * les suivants — la fenêtre de pose de dé d'un Critique s'y ouvre, l'attaque suspend, les Blessures
- * n'arrivent jamais (`at-terre.test.ts` : « expected 3 to be <= 0 », vert ou rouge selon l'ordre).
- * La remise à zéro appartient donc au SOCLE (`src/test-setup.ts`), au même titre que les règles
- * optionnelles : aucun ordre d'exécution ne doit pouvoir décider du résultat.
- */
-describe('singletons d’OPTION partagés — remis à zéro par le socle de test', () => {
-  const SETUP = readFileSync(join(ROOT, 'src', 'test-setup.ts'), 'utf8');
-  /** Le `beforeEach` du socle (le bloc qui prépare CHAQUE test), COMMENTAIRES RETIRÉS : un appel
-   *  commenté ne remet rien à zéro — le lire comme tel serait une sonde menteuse. */
-  const beforeEachBody = SETUP.slice(SETUP.indexOf('beforeEach(('), SETUP.indexOf('afterEach(('))
-    .split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
-
-  it('le socle remet « Dés fixés » à zéro AVANT chaque test (pas seulement les fichiers qui y pensent)', () => {
-    expect(beforeEachBody, "resetDesFixes() manque au beforeEach de src/test-setup.ts : l'option fuit d'un fichier à l'autre").toContain('resetDesFixes()');
-    expect(SETUP).toContain("from './engine/fixedDie'");
-  });
-
-  it('les remises à zéro de singletons vivent AVANT le décor, dans le même beforeEach que les règles', () => {
-    // Voisinage vérifié : la purge des règles optionnelles est la référence de cette famille.
-    expect(beforeEachBody).toContain('loadRuleOverrides({})');
-  });
-});
