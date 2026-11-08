@@ -36,7 +36,8 @@ export interface InanimateSpec {
   hull?: HullProfile;
   /** Atouts d'objet (Résistant/Impénétrable d'une structure) — réfs par id. Omis pour un véhicule/engin. */
   traits?: TraitList;
-  /** Empreinte de grille (navire). Posé seulement si fourni (la clé reste absente pour structure/engin). */
+  /** Empreinte de grille (`footprintN`) : navire (`ship.footprint`), engin qui en déclare une (`siegeFootprint`). Posée
+   *  seulement si fournie. */
   footprint?: number;
   /** Pièce SERVIE explicitement inerte (affût d'artillerie) : pas de tour propre, pas de PV. */
   inert?: boolean;

@@ -4,9 +4,9 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { baseDeTest, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, glbDElement } from './modeles.testkit.ts';
+import { baseDeTest, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, GLB_SANS_BASE, glbDElement, vehiculeDeTest } from './modeles.testkit.ts';
 import { empreinte } from './empreinte.ts';
-import { CATEGORIES_D_ELEMENT, emplacementsNonOfferts, validerElement, type BaseDUnElement, type CategorieDElement, type CodeDEcartDElement } from './element.ts';
+import { CATEGORIES_D_ELEMENT, emplacementsNonOfferts, estSansBase, REGLES_DES_CATEGORIES, validerElement, type BaseDUnElement, type CategorieDElement, type CodeDEcartDElement } from './element.ts';
 import { ecrireGlb, lireGlb } from './glb.ts';
 
 const BASE: BaseDUnElement = {
@@ -21,6 +21,8 @@ const BASE: BaseDUnElement = {
 const MATERIAUX = ['tissu', 'cuir', 'plaque', 'poil', 'peau'];
 const glbAvec = (os: string | null, sansUv: readonly string[] = []) => glbDElement(os, MATERIAUX, sansUv);
 const OCTETS = glbAvec('hand_r');
+/** Le GLB dont le mesh reste à la racine de la scène, celui d'un élément sans base. */
+const A_LA_RACINE = glbAvec(null);
 const GLB = empreinte(OCTETS);
 const PALETTE = [{ nom: 'tissu', palette: 'vet1' }];
 const METAL = [{ nom: 'plaque', palette: 'metal' }];
@@ -43,14 +45,17 @@ const VALIDES: Record<CategorieDElement, Record<string, unknown>> = {
   rigide: { categorie: 'rigide', cle: { apparence: 'epee' }, liaison: { mode: 'rigide' }, surfaces: METAL },
   trait: { categorie: 'trait', cle: { trait: 'verrues' }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: ['torse'], surfaces: [{ nom: 'peau', palette: 'peau' }] },
   decor: { categorie: 'decor', cle: { prop: 'tonneau' }, liaison: { mode: 'rigide' }, surfaces: METAL },
-  vehicule: { categorie: 'vehicule', cle: { definition: 'carrosse' }, liaison: { mode: 'rigide' }, surfaces: METAL },
+  vehicule: { categorie: 'vehicule', cle: { definition: 'caraque' }, liaison: { mode: 'rigide' }, surfaces: METAL },
 };
 
-const manifeste = (categorie: CategorieDElement, surcharge: Record<string, unknown> = {}, octets = OCTETS) => ({ schema: 3, base: 'humanoide', ...VALIDES[categorie], glb: empreinte(octets), ...surcharge });
-const verdict = (brut: unknown, octets = OCTETS) => validerElement(brut, BASE, octets, lireGlb(octets));
+const aUneBase = (categorie: CategorieDElement) => REGLES_DES_CATEGORIES[categorie].base;
+const manifeste = (categorie: CategorieDElement, surcharge: Record<string, unknown> = {}, octets = aUneBase(categorie) ? OCTETS : A_LA_RACINE) =>
+  ({ schema: 3, ...(aUneBase(categorie) ? { base: 'humanoide' } : {}), ...VALIDES[categorie], glb: empreinte(octets), ...surcharge });
+/** Le verdict de `brut` contre `BASE`, ou seul s'il est sans base, comme `validerModele`. */
+const verdict = (brut: unknown, octets = estSansBase(brut) ? A_LA_RACINE : OCTETS) => validerElement(brut, estSansBase(brut) ? null : BASE, octets, lireGlb(octets));
 /** Le manifeste de `categorie` pour le GLB `octets`, suivi de ces octets. */
 const surGlb = (categorie: CategorieDElement, surcharge: Record<string, unknown>, octets: Uint8Array) => [manifeste(categorie, surcharge, octets), octets] as const;
-const codes = (brut: unknown, octets = OCTETS) => {
+const codes = (brut: unknown, octets = estSansBase(brut) ? A_LA_RACINE : OCTETS) => {
   const v = verdict(brut, octets);
   return v.ok ? [] : v.ecarts.map((e) => e.code);
 };
@@ -177,14 +182,33 @@ describe('validerElement : un mesh rigide se monte sous un os de la base', () =>
     asset: { version: '2.0' }, nodes: [{ children: [1] }, { name: 'lame', mesh: 0 }], skins: [{ joints: [0] }],
     meshes: [{ primitives: [{ material: 0, attributes: { TEXCOORD_0: 0 } }] }], materials: [{ name: 'plaque' }],
   }, null);
-  it.each(['rigide', 'decor'] as const)('un `%s` pendu à une articulation sans nom est refusé, même quand la base a un os au libellé de ce nœud', (categorie) => {
+  it('un rigide pendu à une articulation sans nom est refusé, même quand la base a un os au libellé de ce nœud', () => {
     const octets = SOUS_ARTICULATION_SANS_NOM;
-    expect(validerElement(manifeste(categorie, {}, octets), { ...BASE, os: [...BASE.os, 'noeud 0'] }, octets, lireGlb(octets))).toEqual({
+    expect(validerElement(manifeste('rigide', {}, octets), { ...BASE, os: [...BASE.os, 'noeud 0'] }, octets, lireGlb(octets))).toEqual({
       ok: false, ecarts: [{ code: 'rigide-sur-os-absent', ou: 'liaison.mode', detail: 'lame pend à l’articulation sans nom noeud 0, qui n’est pas un os de la base `humanoide`' }],
     });
   });
+});
+
+describe('validerElement : un décor ou un véhicule n’a pas de base (#2987)', () => {
   it.each(['decor', 'vehicule'] as const)('un `%s` garde son mesh à la racine', (categorie) => {
-    expect(verdict(...surGlb(categorie, {}, glbAvec(null))).ok).toBe(true);
+    expect(verdict(manifeste(categorie)).ok).toBe(true);
+  });
+  it.each(['decor', 'vehicule'] as const)('un `%s` qui nomme une base est refusé', (categorie) => {
+    expect(codes(manifeste(categorie, { base: 'humanoide' }))).toEqual(['champ-hors-categorie']);
+  });
+  it.each(['decor', 'vehicule'] as const)('un `%s` dont un mesh pend à une articulation est refusé, faute de base', (categorie) => {
+    expect(verdict(...surGlb(categorie, {}, glbAvec('hand_r')))).toEqual({
+      ok: false, ecarts: [{ code: 'rigide-sur-os-absent', ou: 'liaison.mode', detail: `lame pend à hand_r, mais un élément \`${categorie}\` n’a pas de base dont il serait un os` }],
+    });
+  });
+  it.each(['caraque', 'barge', 'canon-petit', 'trebuchet-ade2'])('la `definition` %s, coque ou engin de siège, se résout', (definition) => {
+    expect(verdict(manifeste('vehicule', { cle: { definition } })).ok).toBe(true);
+  });
+  it.each(['carrosse', 'cheval-de-monte'])('la `definition` %s, qui n’est ni coque ni engin de siège, est refusée', (definition) => {
+    expect(verdict(manifeste('vehicule', { cle: { definition } }))).toEqual({
+      ok: false, ecarts: [{ code: 'cle-inconnue', ou: 'cle.definition', detail: `${definition} n’est aucune coque de \`vehicles.json\` ni engin \`armes-de-siege\` de \`trappings.json\`` }],
+    });
   });
 });
 
@@ -224,5 +248,14 @@ describe('CLI godot:valider : base validée avant l’élément', () => {
     else if (cas === 'cle-inconnue-tete') expect(r.stdout + r.stderr).toContain('[cle-inconnue] cle.tete : humain-m-1');
     else if (cas === 'cle-inconnue-tete-monstrueuse') expect(r.stdout + r.stderr).toContain('[cle-inconnue] cle.tete : rat');
     else if (!accepte) expect(r.stdout + r.stderr).toContain(cas === 'base-absente' ? 'glb-de-base-absent' : cas);
+  }, 65000);
+  it.each([['vehicule', 0], ['vehicule-avec-base', 1]] as const)('%s : un élément sans base se valide sans manifeste de base', (cas, statut) => {
+    const d = mkdtempSync(join(tmpdir(), 'element-cli-'));
+    dossiers.push(d);
+    writeFileSync(join(d, 'element.json'), JSON.stringify(cas === 'vehicule' ? vehiculeDeTest() : { ...vehiculeDeTest(), base: 'humanoide' }));
+    writeFileSync(join(d, 'element.glb'), GLB_SANS_BASE);
+    const r = spawnSync(process.execPath, ['hotes/godot/asset/valider.mjs', join(d, 'element.json'), join(d, 'element.glb')], { encoding: 'utf8', timeout: 60000 });
+    expect(r.status, r.stderr + r.stdout).toBe(statut);
+    if (statut) expect(r.stdout).toContain('[champ-hors-categorie] base');
   }, 65000);
 });

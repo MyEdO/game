@@ -13,7 +13,7 @@ import { cheminsAbsolus } from './manifeste.ts';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import { depotDe, INDEX, listerImage } from '../../../scripts/guards/lib/gitPorte.mjs';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
-import { baseDeTest, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, LICENCE_DE_PRODUCTION, productionDeTest, deposerModeleDeTest, TEXTE_DE_LICENCE_DE_PRODUCTION } from './modeles.testkit.ts';
+import { baseDeTest, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, GLB_SANS_BASE, LICENCE_DE_PRODUCTION, productionDeTest, deposerModeleDeTest, TEXTE_DE_LICENCE_DE_PRODUCTION, vehiculeDeTest } from './modeles.testkit.ts';
 import {
   DOSSIER_DES_MODELES, modelesEpingles, AssetIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
   suivisHorsRelease, TAG, urlDAsset, type AssetAPublier, type Gh,
@@ -254,6 +254,14 @@ describe('import et chargement des modèles modulaires', () => {
     deposerModeleDeTest(d, 'a-element', elementSchema3(), GLB_D_ELEMENT);
     const r = await recupererModeles({ dossier: d, cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet });
     expect(r.map(m => m.id).sort()).toEqual(['a-element', 'z-base']);
+  });
+  it('un véhicule, élément sans base, s’importe et se charge sans aucune base (#2987)', async () => {
+    const d = temporaire();
+    expect(importer(d, vehiculeDeTest(), GLB_SANS_BASE, 'caraque')).toMatchObject({ ok: true, rapport: [] });
+    const r = importer(d, vehiculeDeTest(), GLB_SANS_BASE, 'caraque-bis');
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.refus.join('\n')).toContain('[cle-en-doublon]');
+    expect((await recupererModeles({ dossier: d, cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).map(m => m.id)).toEqual(['caraque']);
   });
   it.each(['cle-en-doublon', 'base-en-doublon', 'base-absente', 'forme', 'os-inconnu'] as const)('refuse %s au chargement', async code => {
     const d = temporaire();
