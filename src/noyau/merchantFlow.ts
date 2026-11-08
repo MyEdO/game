@@ -911,7 +911,7 @@ export function gameDay(s: Pick<Jeu, 'gameTime'>): number {
 export function evaluerLObjet(get: Get, set: Set, uid: string, mode: 'evaluate' | 'detect' = 'evaluate'): void {
   if (refuseSi(get, set, refusDInventaire)) return;
   if (refuseSi(get, set, (s) => refusDuHerosPorteur(s, uid))) return;
-  const item = actorIn(get(), porteurDeLObjet(get(), uid)!)!.items!.find((i) => i.uid === uid)!;
+  const item = get().party.find((h) => h.id === porteurDeLObjet(get(), uid))!.items!.find((i) => i.uid === uid)!;
   if (mode === 'detect' && item.detectTried) return void refuserGeste(get, set, t('mf.detectDejaTentee', { label: item.label })); // LDB 10 l.336
   if (mode === 'evaluate' && item.appraiseTriedDay === gameDay(get())) return void refuserGeste(get, set, t('mf.appraiseSameDay', { label: item.label }));
   openAppraise(get, set, { itemUid: uid }, item.label, mode, item.trappingId);

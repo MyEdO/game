@@ -284,3 +284,22 @@ describe('quitterLaScene : une scène absente du registre est refusée et dite',
     expect([dernier(), g().scene?.id]).toEqual([t('store.sceneMissing', { scene: 'nulle-part' }), 'place']);
   });
 });
+
+describe('un héros hors de la rencontre, pendant un combat : son porteur se lit au groupe', () => {
+  const enCombatSans = (absent: Combatant) => {
+    const a = heros('a');
+    banc.setState({ party: [a, absent], refus: null, battle: { combatants: [structuredClone(a), heros('e1', { kind: 'enemy' })], order: ['a', 'e1'], turn: 0, round: 1, acted: false, log: [], over: null } as never });
+  };
+
+  it('poserLApparence pose l’apparence de son objet', () => {
+    enCombatSans(heros('c', { items: [{ ...itemFromTrappingById('arme-simple', idsDeTest)!, uid: 'arme' }], outOfRencontre: true } as Partial<Combatant>));
+    g().poserLApparence('arme', 'hache');
+    expect(objetDe('c', 'arme')?.apparence).toBe('hache');
+  });
+
+  it('utiliserLObjet est refusé : son porteur n’est pas dans la rencontre', () => {
+    enCombatSans(heros('c', { items: [objet({ uid: 'pc', label: 'Potion de guérison', trappingId: 'potion-de-guerison' })], outOfRencontre: true } as Partial<Combatant>));
+    g().utiliserLObjet('pc');
+    expect([g().refus?.texte, objetDe('c', 'pc')?.uid]).toEqual([t('cs.consommableHorsRencontre', { name: 'C' }), 'pc']);
+  });
+});

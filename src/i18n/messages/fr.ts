@@ -1786,6 +1786,7 @@ export const fr = {
   'cs.stateLockFlee': '{name} est {etat} : il ne peut que fuir ou puiser dans sa Détermination.',
   'cs.useConsumable': '{name} utilise : {item}.',
   'cs.consommableHorsDuTour': 'Ce n’est pas le tour de {name} : un objet s’utilise à son tour.',
+  'cs.consommableHorsRencontre': '{name} n’est pas dans la rencontre : son objet ne s’y utilise pas.',
   'cs.objetNonConsommable': '{item} ne s’utilise pas.',
   'cs.consommableSansObjet': '{raison} {item} ne lui apporterait rien : l’objet est gardé.',
   'cs.sigmarWard': "{name} : −20 en Langue (Magick) — la cible est sous la protection de Sigmar (N'écoutez point la Sorcière).",

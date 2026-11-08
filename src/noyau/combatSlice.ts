@@ -1732,7 +1732,10 @@ export function createCombatSlice(get: Get, set: Set) {
       const s = get();
       const battle = s.battle;
       const porteur = actorIn(s, porteurId);
-      if (!porteur) return void refuserGesteDuSiege(get, set, t('pf.objetHorsDesHeros'));
+      if (!porteur) {
+        const heros = s.party.find((h) => h.id === porteurId);
+        return void refuserGesteDuSiege(get, set, heros ? t('cs.consommableHorsRencontre', { name: heros.label }) : t('pf.objetHorsDesHeros'));
+      }
       if (battle) {
         // La barre (`etatDeLaBarre`) ; un Sort qui désigne ses cibles ou pose sa zone, qu'elle ne compte pas ; l'actif.
         const barre = etatDeLaBarre(s);
