@@ -1,4 +1,5 @@
 /** Types partagés du moteur de règles WFRP v4. */
+import type { IdDeHerosDuRoster } from '../lib/idDeHerosDuRoster';
 import type { AttackKind } from './creatureAttacks';
 import type { HitLocation } from './localisations';
 import { t } from '../i18n';
@@ -1433,6 +1434,9 @@ export interface TerreurSubie {
 
 export interface Combatant {
   id: string;
+  /** L'id de l'entrée de roster du héros, quand son `id` n'en est pas un (un héros de save ou de scénario édité au
+   *  créateur, #2907) : son entrée de roster le retrouve, son `id` reste celui que l'état cite. */
+  idDeRoster?: IdDeHerosDuRoster;
   label: string;
   kind: 'hero' | 'enemy' | 'npc';
   /** Ce combattant suit-il les règles de PERSONNAGE (#143) — axe DISTINCT du camp (`kind`, ci-dessus)
