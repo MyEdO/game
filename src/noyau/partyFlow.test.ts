@@ -116,7 +116,7 @@ describe('poserLApparence — apparence d’un objet', () => {
   });
 
   it('l’arme invoquée garde priorité sur l’apparence', () => {
-    const arme = weaponItem({ label: 'Arme invoquée', damage: { plusBF: true, flat: 4 }, trappingId: 'arme-simple', apparence: 'hache_naine', shape: findTrappingById('baton-de-combat')!.shape });
+    const arme = weaponItem({ label: 'Arme invoquée', damage: { plusBF: true, flat: 4 }, trappingId: 'arme-simple', apparence: 'hache_naine', shape: findTrappingById('baton-de-combat')!.shape, uid: 'conjure-1' });
     expect(formeResolue(arme)).toBe('baton');
   });
 

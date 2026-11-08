@@ -123,7 +123,7 @@ export function makePregens(): Combatant[] {
  * accrétés (`makePregens().slice(0, n)` qui dépend de l'ordre du JSON et donne le groupe SANS arme à
  * distance dénoncé ci-dessus ; `find(p => p.name...)` par nom ; indexation ad hoc de `makePregens()`).
  * Les pré-tirés portent un seed STABLE (`id = pregen-<seed>`) ; on les nomme par les clés lisibles de
- * `PREGEN` (une par carrière du roster). `pregenParty(...)` construit le roster UNE fois.
+ * `PREGEN` (une par carrière du roster). `pregenParty(...)` ne bâtit que les pré-tirés demandés (#2907).
  */
 export const PREGEN = {
   soldat: 101, tueur: 202, sorcier: 707, pretre: 808,
@@ -134,11 +134,10 @@ export const PREGEN = {
  *  de scénario. Ex. `pregenParty(PREGEN.soldat, PREGEN.chasseur)`. Lève si un seed est inconnu (plutôt
  *  qu'un `undefined` silencieux d'un `find`/`slice` raté). */
 export function pregenParty(...seeds: number[]): Combatant[] {
-  const all = makePregens();
   return seeds.map((s) => {
-    const h = all.find((p) => p.id === `pregen-${s}`);
-    if (!h) throw new Error(`Pré-tiré pregen-${s} introuvable (PREGEN/pregens.json)`);
-    return h;
+    const d = pregens.find((p) => p.seed === s);
+    if (!d) throw new Error(`Pré-tiré pregen-${s} introuvable (PREGEN/pregens.json)`);
+    return buildPregenHero(d);
   });
 }
 

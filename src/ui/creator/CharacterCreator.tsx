@@ -64,7 +64,7 @@ import { idsDeLaSousListe, type RefDesignee } from '../../data/schemas/grammaire
 import { sexeSchema, type SourceRef } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { CHAR_KEYS, CharKey, CHAR_LABELS, Characteristics, Combatant } from '../../engine/types';
-import { damageString, itemFromTrappingById, itemLabel } from '../../engine/items';
+import { damageString, gabaritDObjet, itemLabel } from '../../engine/items';
 import { skillBaseValue } from '../../engine/skills';
 import { effectiveChar } from '../../engine/characteristics';
 import { rangeSpecLabel, ammoRangeModLabel } from '../../engine/weaponStats';
@@ -1815,7 +1815,7 @@ export function PettySpellsSection({ d, setD }: StepProps) {
 function WeaponWildcardPicker({ value, onChange }: { value?: string; onChange: (v: string) => void }) {
   const { search, setSearch, filtered } = useFilteredList(armesChoisissables(), (w) => w.label);
   const options: MediaOption[] = filtered.map((w) => {
-    const item = itemFromTrappingById(w.id);
+    const item = gabaritDObjet(w.id);
     return { key: w.id, media: item ? <ItemIcon item={item} size="sm" /> : undefined, label: w.label };
   });
   return (

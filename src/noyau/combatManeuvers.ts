@@ -269,15 +269,17 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
       cost: { action: a.trigger === 'action', advantage: prix, ...(cout.movement ? { movement: true } : {}) },
     });
   }
-  // (2) Arme `nat-tentacule` du trait Tentacules (LDB 85 l.405) : plafond du trait qui l'octroie (`plafondParTour`,
-  //     compteur partagé), 0 Avantage. Comme toute attaque de mêlée, elle s'APPROCHE (charge/rejoindre) → dispo dès
-  //     qu'un ennemi existe (adjacence non requise).
+  // (2) Arme de Tentacule qu'un TRAIT accorde (`recomputeLoadout`, LDB 85 l.405), retrouvée par sa source : plafond du
+  //     trait qui l'octroie (`plafondParTour`, compteur partagé), 0 Avantage. Comme toute attaque de mêlée, elle
+  //     s'APPROCHE (charge/rejoindre) → dispo dès qu'un ennemi existe (adjacence non requise).
+  const tentacule = active.weapons.find((w) => w.natural && w.attackKind === 'tentacules' && w.source?.kind === 'trait');
   if (
+    tentacule?.uid != null &&
     gratuitesRestantes(active, 'tentacules', creatureAttacks(active.traits ?? []).find((a) => a.kind === 'tentacules')) > 0 &&
-    active.weapons.some((w) => w.uid === 'nat-tentacule') && !!active.pos &&
+    !!active.pos &&
     battle.combatants.some((c) => c.kind !== active.kind && !isOutOfAction(c) && c.pos)
   )
-    out.push({ id: 'tentacule', kind: 'tentacules', label: 'Tentacule', icon: 'creature/tentacles', targeting: 'melee', reach: 1, forceMelee: true, weaponUid: 'nat-tentacule', freeKind: 'tentacules', cost: { action: false, advantage: 0 } });
+    out.push({ id: 'tentacule', kind: 'tentacules', label: 'Tentacule', icon: 'creature/tentacles', targeting: 'melee', reach: 1, forceMelee: true, weaponUid: tentacule.uid, freeKind: 'tentacules', cost: { action: false, advantage: 0 } });
   // (3) Poste d'artillerie SERVI (`mannedPoste`, MDG 12-13) : « servir la pièce » = attaque DÉDIÉE portant
   //     l'arme du poste (`weaponUid` → canon ÉPINGLÉ, même si le servant porte une arme perso de mêlée pour
   //     l'abordage). Arc + portée INTRINSÈQUES (firedAttackBlock garde déjà l'arc de `w.mountSide`). Coûte

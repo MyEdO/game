@@ -9,7 +9,7 @@
 import { Combatant, ItemInstance, type EffectSource } from './types';
 import type { GameOp } from './ops';
 import type { TrappingResolver, WeaponSpec } from './items';
-import { recomputeLoadout, itemFromTrappingById, ensureDefaultLoadout, newLoadoutId, isUnarmed, isShieldItem } from './items';
+import { recomputeLoadout, gabaritDObjet, ensureDefaultLoadout, newLoadoutId, isUnarmed, isShieldItem } from './items';
 import { hasQuality } from './qualities/dispatch';
 import { trappingsInstanciables, byId } from '../data';
 
@@ -22,6 +22,7 @@ export function specDArmeInvoquee(
   flat: number,
   source: EffectSource | undefined,
   form: ConjureForm | null,
+  uid: string,
 ): WeaponSpec & { conjured: true } {
   const modele = form ? resolveTrapping(form.weapon) : op.form ? resolveTrapping(op.form.id) : undefined;
   return {
@@ -32,7 +33,7 @@ export function specDArmeInvoquee(
     hands: form ? (modele?.hands ?? 1) : (op.hands ?? 1),
     qualities: (op.qualities ?? []).map((id) => ({ id })),
     conjured: true,
-    uid: { prefix: 'conjure' },
+    uid,
     ...(op.teinte ? { teinte: op.teinte.id } : {}),
     shape: modele?.shape,
     source,
@@ -112,7 +113,7 @@ export function conjureFormOptions(caster: Pick<Combatant, 'skills'>): ConjureFo
   if (!groupAdv.size) groupAdv.set('base', 0); // mage sans Spé → armes de base
   const out: { weapon: string; group: string; adv: number }[] = [];
   for (const t of trappingsInstanciables()) {
-    const it = itemFromTrappingById(t.id);
+    const it = gabaritDObjet(t.id);
     if (it?.kind !== 'melee' || !it.subType || !isConjurableWeapon(it)) continue;
     // groupAdv est keyé par id de Groupe ; it.subType EST l'id de Groupe de l'arme → match direct.
     const adv = groupAdv.get(it.subType);

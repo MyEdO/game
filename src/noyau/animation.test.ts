@@ -9,7 +9,7 @@ import type { Weapon } from '../engine/types';
 /** #2967 */
 const w = (id: string, type: 'melee' | 'ranged' = 'melee'): FormeDArme => {
   const objet = itemFromTrappingById(id, findTrappingById);
-  const arme = objet ? weaponFromItem(objet) : buildWeapon({ label: id, type, damage: { plusBF: false, flat: 4 } });
+  const arme = objet ? weaponFromItem(objet) : buildWeapon({ label: id, type, damage: { plusBF: false, flat: 4 }, uid: id });
   return armeDeDessin({ ...arme, type });
 };
 
@@ -56,7 +56,7 @@ describe('maniementDe — dérivé de la FORME, pas du Groupe de règles', () =>
   });
 
   it('#2113 S3 — arme invoquée : le maniement suit la forme résolue de `form`, comme son dessin', () => {
-    const invoquee: Weapon = buildWeapon({ label: 'Arme aethyrique', type: 'melee', damage: { plusBF: false, flat: 4 }, shape: findTrappingById('arbalete')!.shape });
+    const invoquee: Weapon = buildWeapon({ label: 'Arme aethyrique', type: 'melee', damage: { plusBF: false, flat: 4 }, shape: findTrappingById('arbalete')!.shape, uid: 'conjure-1' });
     expect(findTrappingById('arbalete')?.shape?.id, 'la sonde mord : le gabarit a une forme d’arbalète').toBe('arbalete');
     expect(maniementDe(armeDeDessin(invoquee))).toBe('arbalete');
   });

@@ -881,7 +881,9 @@ export function validateStep(d: CreatorDraft, id: StepId): string | null {
 }
 
 // ── Construction finale ──
-export function buildHero(d: CreatorDraft, id?: string): Combatant {
+/** Le héros que bâtit le brouillon `d`, sous l'id `id` (absent : un id neuf) ; `idDObjet` donne les uids de ses objets
+ *  (`createHero`). */
+export function buildHero(d: CreatorDraft, id?: string, idDObjet?: () => string): Combatant {
   const sp = draftSpecies(d);
   if (!sp) throw new Error('Aucune race choisie'); // page blanche : previewHero catch → fiche grisée
   const defauts = speciesSkillDefaults(sp);
@@ -921,9 +923,21 @@ export function buildHero(d: CreatorDraft, id?: string): Combatant {
     motivation: d.motivation.trim() || undefined,
     apparence: d.apparence,
     id,
+    idDObjet,
   });
   if (d.star) hero.star = d.star;
   return hero;
+}
+
+/** Id du héros d'un aperçu de création (`apercuDuHeros`). */
+export const ID_D_APERCU = 'preview';
+
+/** Le héros que le brouillon `d` bâtirait, pour un APERÇU (fiche vivante, page de présentation) : une lecture, qui
+ *  n'entre jamais dans l'état. Il ne prend donc ni id de héros neuf ni uid d'objet à la source de l'état : ses objets
+ *  tirent leurs uids d'une fabrique locale jetable. #2907 */
+export function apercuDuHeros(d: CreatorDraft): Combatant {
+  let n = 0;
+  return buildHero(d, ID_D_APERCU, () => `${ID_D_APERCU}-${++n}`);
 }
 
 /** Le total déjà alloué des 40 Augmentations de carrière. */

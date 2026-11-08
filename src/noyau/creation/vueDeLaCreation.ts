@@ -6,7 +6,7 @@
  * qu'un geste tant que le joueur ne l'a pas fait ; son résultat ne se dit qu'après.
  */
 import {
-  buildHero, careerCharKeys, careerRollPool, careerSkillEntries, careerTalentOptions, careerXp, careerXpDuProchainJet, charRolls, charsXp,
+  apercuDuHeros, careerCharKeys, careerRollPool, careerSkillEntries, careerTalentOptions, careerXp, careerXpDuProchainJet, charRolls, charsXp,
   charsXpDeLaMethode, coastalSwapAvailable, draftChars, draftLevel, draftSpecies, draftWealth, newDraft, pettySpellQuota, probeHero, repartition,
   rerollDraftChars, rerollDraftTalent, rollDraftCareer, rollDraftChars, rollDraftDetails, rollDraftName, rollDraftSpecies, rollDraftStar,
   rollDraftTalents, rollDraftWealth, skillsSubDone, skillsSubMessage, speciesSkillPick, speciesSkillRefs, speciesSkillTier,
@@ -371,10 +371,10 @@ function pageDeLIdentite(d: CreatorDraft): RubriqueDeCreation[] {
   ];
 }
 
-/** 7) La présentation : le héros que le brouillon construit (`buildHero`), son espèce, sa carrière, ses PX de création
+/** 7) La présentation : le héros que le brouillon construit (`apercuDuHeros`), son espèce, sa carrière, ses PX de création
  *  et ses Caractéristiques. */
 function pageDeLaPresentation(d: CreatorDraft): RubriqueDeCreation[] {
-  const h = buildHero(d);
+  const h = apercuDuHeros(d);
   return [
     valeur('nom', h.label, null),
     valeur('espece', draftSpecies(d)!.label, null),

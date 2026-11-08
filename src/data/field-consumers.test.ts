@@ -312,7 +312,7 @@ describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
     expect(
       specLecteurs,
       'TrappingRef.spec devrait avoir EXACTEMENT 2 lecteurs : la résolution de choix et la matérialisation',
-    ).toEqual(['src/engine/items.ts @itemFromTrappingRef', 'src/engine/trappingChoices.ts @spec']);
+    ).toEqual(['src/engine/items.ts @gabaritDeLaRef', 'src/engine/trappingChoices.ts @spec']);
     expect(specSites.size, `un site lecteur par symbole — sites : ${[...specSites].join(', ')}`).toBe(2);
     expect(
       hits.some((h) => h.file.includes('data/index.ts')),
