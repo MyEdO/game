@@ -219,9 +219,10 @@ func _equiper(vehicule: Variant, metres_par_case: float) -> void:
 		for montee in vehicule.ameliorations:
 			ameliorations.append(await _montage.scene_du_glb(montee.element, _montage.erreurs))
 	if chargement != _chargement_du_vehicule:
-		for piece in pieces + ameliorations:
-			if piece != null:
-				piece.free()
+		for lot in [pieces, ameliorations]:
+			for piece in lot:
+				if piece != null:
+					piece.free()
 		if scene != null:
 			scene.free()
 		return
