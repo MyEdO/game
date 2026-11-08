@@ -88,11 +88,13 @@ function repartir(listes: readonly ListeDeSorts[], choisis: readonly string[]): 
 }
 
 /** Le refus des sorts `choisis` par l'auteur pour `c`, `undefined` s'il les admet : un profil qui imprime ses sorts,
- *  un sort d'aucune liste que `c` ouvre (`listesDeSorts`), un sort au-delà du quota de chaque liste qui l'admet. */
+ *  un sort d'aucune liste que `c` ouvre (`listesDeSorts`), un sort au-delà du quota de chaque liste qui l'admet. Un id
+ *  absent du catalogue n'est pas le sien : le schéma de la scène le refuse déjà (`refs('spell')`). */
 export function refusDesSortsChoisis(c: Combatant, choisis: readonly string[]): PlayerText | undefined {
-  if (!choisis.length) return undefined;
+  const connus = choisis.filter((id) => findSpellById(id));
+  if (!connus.length) return undefined;
   if (sortsImprimes(c.porteurDeFiche).length) return t('sortsDuPnj.refus.imprimes');
-  return repartir(listesDeSorts(c), choisis).refus;
+  return repartir(listesDeSorts(c), connus).refus;
 }
 
 /** Les sorts du PNJ `c` : ceux qu'imprime son profil (`sortsImprimes`), tels quels ; sinon ses sorts déjà connus
