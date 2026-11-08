@@ -502,8 +502,6 @@ export function scanCallResultLiteralCompare(relPath, contenu, sourceFile) {
  * @type {Readonly<Record<string, number>>}
  */
 export const DETTES_DE_LIBELLE = {
-  // #1924 — résolveur libellé→id (`qualityIdByLabel`) appelé depuis le moteur.
-  'src/engine/qualities/normalize.ts#label-entity-resolver-call': 1,
   // #1330 — `conditionIdInText` : le journal FR re-parsé par libellé d'État.
   'src/engine/conditions.ts#face-affichage-identite': 1,
   // #1632 — sort classé par libellé (`classifySpellByLabel`).
@@ -989,6 +987,8 @@ export const RATCHET_EXCEPTIONS = {
     'Parseur de SAISIE « format livre » : le nom de Talent saisi retrouve son id (`findTalent`, #909).',
   'data/refFormatLivre.ts#idDeTraitSaisi#label-entity-resolver-call':
     'Parseur de SAISIE « format livre » : le nom de Trait saisi retrouve son id (`traitIdByLabel`, #909).',
+  'data/refFormatLivre.ts#parseQuality#label-entity-resolver-call':
+    'Parseur de SAISIE « format livre » : le nom de qualité saisi retrouve son id (`qualityIdByLabel`, #3691).',
   'data/refFormatLivre.ts#argDeTraitSaisi#label-entity-resolver-call':
     'Parseur de SAISIE « format livre » : l’argument saisi d’un Trait à registre retrouve son id (`specIdByLabel`, #909).',
   // Résolveurs par LIBELLÉ de la couture de chargement/saisie (#909) — chacun est reconnu par

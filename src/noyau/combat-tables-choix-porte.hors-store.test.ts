@@ -9,7 +9,7 @@ import { stepInteraction, tableStepPosee } from './cascade';
 import { fixtureText } from '../i18n/fixtureText';
 import { t } from '../i18n';
 import { combatStakeRef } from '../data';
-import { parseQualityInstance } from '../engine/qualities/normalize';
+import { parseQualityInstance } from '../data/refFormatLivre';
 import { setDesFixes } from '../engine/fixedDie';
 import { seedBattleRng } from './battleRng';
 import { createHero } from '../engine/character';

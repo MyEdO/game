@@ -13,7 +13,7 @@ import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionCondCtxSchema } from '../grammaire/campagne';
 import { enumNomme, pointDuCanevasSchema } from '../grammaire/valeurs';
 import { routeBilletSchema, provenancesDeRouteSchema } from '../grammaire/route';
-import { idDe, recordDIds, refs } from '../grammaire/ref';
+import { idDe, recordDIds, ref, refs } from '../grammaire/ref';
 import { refuserLesIndividus } from '../grammaire/reference';
 import { listeCle, marquerCollection, marqueDeRecord } from '../grammaire/collection-cle';
 import { couvreSchema } from './communs';
@@ -77,8 +77,8 @@ export const landMarketProfileSchema = nommerChamps(z.strictObject({
   /** Régions à Vin/Eau-de-vie supérieurs (`MSRC 13 l.95`). */
   wineBonusEchelons: z.number().optional(),
   hostLine: z.string().optional(),
-  backdrop: z.string().optional(),
-}), { taille: { label: "taille" }, richesse: { label: "richesse" }, produits: { label: "produits" , texte: { regime: "technique"} }, demande: { label: "demande" , texte: { regime: "technique"} }, commerceRichesse: { label: "richesse commerciale" }, wineBonusEchelons: { label: "bonus du vin" }, hostLine: { label: "ligne d’accueil" , texte: { regime: "narration",horsContrat: { motif: "sans-saisie-campagne",preuve: "src/ui/editor/WorldMapPlacePanel.tsx:WorldMapPlacePanel"}} }, backdrop: { label: "fond" , texte: { regime: "technique"} } });
+  backdrop: ref('fond').optional(),
+}), { taille: { label: "taille" }, richesse: { label: "richesse" }, produits: { label: "produits" , texte: { regime: "technique"} }, demande: { label: "demande" , texte: { regime: "technique"} }, commerceRichesse: { label: "richesse commerciale" }, wineBonusEchelons: { label: "bonus du vin" }, hostLine: { label: "ligne d’accueil" , texte: { regime: "narration",horsContrat: { motif: "sans-saisie-campagne",preuve: "src/ui/editor/WorldMapPlacePanel.tsx:WorldMapPlacePanel"}} }, backdrop: { label: "fond" } });
 
 /** `PlaceService` — service extensible d'un lieu (`kind` = id de `lieux-services.json`), hors
  *  port/marché qui portent leur schéma riche. `rest` = offre de couchage PROPRE au lieu. */
@@ -130,13 +130,13 @@ export const mapPlaceSchema = nommerChamps(z.strictObject({
   market: landMarketProfileSchema.optional(),
   services: z.array(placeServiceSchema).optional(),
   poi: listeCle(placePoiSchema, 'id').optional(),
-  /** Bande d'ambiance du hub (id du registre `src/ui/backdrops`). */
-  backdrop: z.string().optional(),
+  /** Bande d'ambiance du hub. */
+  backdrop: ref('fond').optional(),
   /** EXISTENCE du lieu sur la carte (algèbre `Condition`, cf. `evalCondition`) — axe NŒUD du gating
    *  narratif : la destination n'apparaît qu'une fois révélée. Absente = toujours visible. */
   when: conditionCondCtxSchema.optional(),
   couvre: couvreSchema.optional(),
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} }, icon: { label: "icône" , texte: { regime: "technique"} }, port: { label: "port" }, market: { label: "marché" }, services: { label: "services" }, poi: { label: "points d’intérêt" }, backdrop: { label: "fond" , texte: { regime: "technique"} }, when: { label: "condition" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} }, icon: { label: "icône" , texte: { regime: "technique"} }, port: { label: "port" }, market: { label: "marché" }, services: { label: "services" }, poi: { label: "points d’intérêt" }, backdrop: { label: "fond" }, when: { label: "condition" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
 
 /** `RoutePeril` — péripétie d'AUTEUR tirée chaque jour de voyage à `chancePct` %. */
 export const routePerilSchema = nommerChamps(z.strictObject({

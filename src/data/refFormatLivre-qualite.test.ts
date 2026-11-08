@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { parseQuality, splitIndice } from './normalize';
+import { parseQuality, splitIndice } from './refFormatLivre';
 
-describe('normalize — parseQuality (résolution en id STABLE + Indice)', () => {
+describe('saisie de qualité — parseQuality (résolution en id STABLE + Indice)', () => {
   it('label exact → `id` du catalogue', () => {
     expect(parseQuality('Précise')).toEqual({ id: 'precise' });
     expect(parseQuality('Perforante')).toEqual({ id: 'perforante' });
@@ -26,7 +26,7 @@ describe('normalize — parseQuality (résolution en id STABLE + Indice)', () =>
   });
 });
 
-describe('normalize — splitIndice', () => {
+describe('saisie de qualité — splitIndice', () => {
   it('sépare l’Indice de fin (« X N » / « X (N) ») et conserve les labels sans Indice', () => {
     expect(splitIndice('Solide 3')).toEqual({ label: 'Solide', indice: 3 });
     expect(splitIndice('Recharge (2)')).toEqual({ label: 'Recharge', indice: 2 });
