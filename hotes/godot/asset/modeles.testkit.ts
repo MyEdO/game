@@ -42,6 +42,11 @@ export const elementSchema3 = (base = 'humanoide') => ({
 });
 /** Le GLB d'un élément sans base (#2987) : son mesh reste à la racine de la scène. */
 export const GLB_SANS_BASE = glbDElement(null);
+/** Le GLB d'une pièce montée aux postes (#2987) : un nœud à mesh par état (`ETATS_AU_POSTE`), à la racine de la scène. */
+export const GLB_AU_POSTE = ecrireGlb({
+  asset: { version: '2.0' }, nodes: [{ name: 'ouvert', mesh: 0 }, { name: 'ferme', mesh: 0 }],
+  meshes: [{ primitives: [{ material: 0 }] }], materials: [{ name: 'metal' }],
+}, null);
 /** Le manifeste d'un véhicule, élément sans base, de la coque `definition`, pour `GLB_SANS_BASE`. */
 export const vehiculeDeTest = (definition = 'caraque') => ({
   schema: 3, categorie: 'vehicule', cle: { definition }, liaison: { mode: 'rigide' }, surfaces: [{ nom: 'metal', palette: 'metal' }], glb: empreinte(GLB_SANS_BASE),
