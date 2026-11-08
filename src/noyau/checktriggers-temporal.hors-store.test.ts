@@ -11,7 +11,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  *  qu'en étant DANS la zone ET DANS la fenêtre horaire. On observe un effet `journal` (évite la
  *  question du flag) et on pilote `gameTime` au cran près. */
 const sceneWith = (trigger: Trigger): Scene => ({
-  type: 'scene', id: 't', label: 't', dimensions: { w: 5, h: 5 }, ambiance: 'interieur', reliefDefaults: structuredClone(DEFAULT_RELIEF_DEFAULTS), roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
+  type: 'scene', id: 't', label: 't', dimensions: { w: 5, h: 5 }, ambiance: 'interieur', reliefDefaults: structuredClone(DEFAULT_RELIEF_DEFAULTS), roofDefaults: structuredClone(DEFAULT_ROOF_DEFAULTS),
   layers: [{ z: 0, tiles: new Array(25).fill('sol') }], entities: [], dialogues: [], triggers: [trigger], encounters: [], flags: {},
 });
 

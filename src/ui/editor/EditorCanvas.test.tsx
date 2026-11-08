@@ -156,18 +156,18 @@ describe('EditorCanvas — pelure d’oignon des TOITS (#835 FU-2)', () => {
       {
         id: 'appentis',
         label: 'Appentis',
-        style: 'maison',
+        style: { id: 'maison' },
         storeys: [],
         facades: [],
-        masses: [{ id: 'toit-rez', z: 0, footprint: [{ x: 1, y: 1, w: 3, h: 3 }], levels: 1, profile: 'hip', pitchDeg: 28, material: 'tuile' }],
+        masses: [{ id: 'toit-rez', z: 0, footprint: [{ x: 1, y: 1, w: 3, h: 3 }], levels: 1, profile: 'hip', pitchDeg: 28, material: { id: 'tuile' } }],
       },
       {
         id: 'tour',
         label: 'Beffroi',
-        style: 'maison',
+        style: { id: 'maison' },
         storeys: [],
         facades: [],
-        masses: [{ id: 'toit-etage', z: 1, footprint: [BEFFROI], levels: 2, profile: 'hip', pitchDeg: 28, material: 'tuile' }],
+        masses: [{ id: 'toit-etage', z: 1, footprint: [BEFFROI], levels: 2, profile: 'hip', pitchDeg: 28, material: { id: 'tuile' } }],
       },
     ];
     return scene;

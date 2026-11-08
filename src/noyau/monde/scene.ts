@@ -905,7 +905,7 @@ export function emptyScene(id: string, w = 20, h = 15): Scene {
     metresPerTile: semencesDeScene.metresPerTile,
     ambientLight: semencesDeScene.ambientLight ?? 'auto',
     reliefDefaults: structuredClone(semencesDeScene.reliefDefaults), // #2097
-    roofDefaults: { ...semencesDeScene.roofDefaults },
+    roofDefaults: structuredClone(semencesDeScene.roofDefaults), // #2097
     layers: coucheDeSemence(w, h),
     entities: [],
     dialogues: [],

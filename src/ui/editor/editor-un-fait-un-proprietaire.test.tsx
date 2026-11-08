@@ -130,7 +130,7 @@ function sceneAvecCorps(masses: Scene['architecture'] extends undefined ? never 
     architecture: [{
       id: 'corps',
       label: 'La Diligence',
-      style: 'maison',
+      style: { id: 'maison' },
       storeys: [{ id: 'z0', z: 0, parts: [{ id: 'part-0', foot: { x: 1, y: 1, w: 4, h: 4 } }], roomZoneIds: [] }],
       facades: [],
       masses,
@@ -180,7 +180,7 @@ describe('un CORPS d’architecture : la palette VISE et CRÉE, l’inspecteur �
 describe('une MASSE de toiture n’est une cible d’édition que si elle est AUTHORÉE', () => {
   // Emprise HORS de la partie du plan (1,1,4×4) : c'est la masse seule qui décide du picking ici.
   const emprise = [{ x: 7, y: 7, w: 3, h: 3 }];
-  const quadruplet = { levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: 'tuile' } as const;
+  const quadruplet = { levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: { id: 'tuile' } } as const;
 
   it('sous une masse authorée, le clic sélectionne la masse', () => {
     const scene = sceneAvecCorps([{ id: 'masse-0', z: 0, footprint: emprise, ...quadruplet }]);
