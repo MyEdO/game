@@ -1616,7 +1616,7 @@ export interface SemencesDeSceneData {
   /** ABSENT = `auto` : l’éclairage suit l’horloge via `ambiance` — la sentinelle est l’absence,
    *  jamais une valeur du champ typé (`idDe('lightLevel')`, `schemas/defs/semences-de-scene.ts`). */
   ambientLight?: z.infer<typeof sceneSchema>['ambientLight'];
-  terrain: Terrain;
+  terrain: { id: Terrain };
   reliefDefaults: ReliefDefaults;
   roofDefaults: SceneRoofDefaults;
   /** Structure d'un pan de façade posé à l'éditeur (`addFacadeSection`). */
@@ -1634,9 +1634,9 @@ export interface SemencesDeSceneData {
  * fondent une scène neuve, ceux-là remplissent une déclaration déjà écrite.
  */
 export interface DefautsDeCompilationData {
-  cheminDeRonde: Terrain;
-  masse: Terrain;
-  pont: Terrain;
+  cheminDeRonde: { id: Terrain };
+  masse: { id: Terrain };
+  pont: { id: Terrain };
 }
 /** MANŒUVRE de combat (attaque naturelle activée — LDB 85) — ENTITÉ ÉDITABLE de PREMIÈRE CLASSE (au
  *  même titre qu'un Sort) : son propre dataset `maneuvers.json`, sa catégorie Codex, ses effets

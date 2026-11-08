@@ -814,7 +814,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
         {op.op === 'offTerrainMod' && (
           <>
             <label className="dr">Terrain d’élection
-              <select aria-label="Terrain d’élection" value={o.terrain ?? ''} onChange={(e) => upd({ terrain: e.target.value })}>
+              <select aria-label="Terrain d’élection" value={o.terrain?.id ?? ''} onChange={(e) => upd({ terrain: { id: e.target.value } })}>
                 {terrainsElectifs().map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
               </select>
             </label>

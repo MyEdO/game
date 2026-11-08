@@ -225,21 +225,21 @@ describe('buildFloors — bloc PLEIN d’un terrain (solidHeightM, ex. mur) : RE
 describe('buildFloors — la matière de relief est LUE dans la donnée (#1691)', () => {
   it('falaise : la matière est celle que la SCÈNE pose pour `cliff`', () => {
     const s = withHeight();
-    s.reliefDefaults = { ...s.reliefDefaults, cliff: 'pierre' }; // ≠ le défaut `terre` d'une scène neuve
+    s.reliefDefaults = { ...s.reliefDefaults, cliff: { id: 'pierre' } }; // ≠ le défaut `terre` d'une scène neuve
     setH(s, 1, 1, 4);
     const faces = reliefParts(elAt(buildFloors(s), 1, 1));
     expect(faces.length).toBeGreaterThan(0);
     expect(faces.every((f) => f.material.part === 'cliff')).toBe(true);
-    expect(faces.every((f) => f.material.id === s.reliefDefaults.cliff)).toBe(true);
+    expect(faces.every((f) => f.material.id === s.reliefDefaults.cliff.id)).toBe(true);
   });
 
   it('talus : là où deux pentes naturelles ne se rejoignent pas, la paroi prend la matière que la SCÈNE pose pour `ramp`', () => {
     const s = emptyScene('scene-test', 2, 2); // herbe : sol naturel
     s.layers[0].height = [0, 1, -1, 1.5]; // (1,0) rejoint (0,0) et (1,1) ; (0,1) rejoint (0,0) mais pas (1,1)
-    s.reliefDefaults = { ...s.reliefDefaults, ramp: 'pierre' };
+    s.reliefDefaults = { ...s.reliefDefaults, ramp: { id: 'pierre' } };
     const talus = buildFloors(s).flatMap((e) => reliefParts(e)).filter((f) => f.material.part === 'ramp');
     expect(talus.length).toBeGreaterThan(0);
-    expect(talus.every((f) => f.material.id === s.reliefDefaults.ramp)).toBe(true);
+    expect(talus.every((f) => f.material.id === s.reliefDefaults.ramp.id)).toBe(true);
   });
 
   it('dalle de tablier et pilier : les matières que la SCÈNE pose pour `deck` et `pilier`', () => {
@@ -249,14 +249,14 @@ describe('buildFloors — la matière de relief est LUE dans la donnée (#1691)'
     s.layers.push({ z: 1, tiles: new Array(16).fill('vide'), height: new Array(16).fill(0) });
     s.layers[1].tiles[1 * 4 + 1] = 'planches';
     s.layers[1].height![1 * 4 + 1] = 4;
-    s.reliefDefaults = { ...s.reliefDefaults, deck: 'terre', pilier: 'terre' }; // ≠ défauts `pierre`/`pilier`
+    s.reliefDefaults = { ...s.reliefDefaults, deck: { id: 'terre' }, pilier: { id: 'terre' } }; // ≠ défauts `pierre`/`pilier`
     const el = elAt(buildFloors(s, undefined, { activeZ: 1 }), 1, 1, 1)!;
     const decks = el.faces.filter((f) => f.material.part === 'deck');
     const piliers = el.faces.filter((f) => f.material.part === 'pilier');
     expect(decks.length).toBeGreaterThan(0);
     expect(piliers.length).toBeGreaterThan(0);
-    expect(decks.every((f) => f.material.id === s.reliefDefaults.deck)).toBe(true);
-    expect(piliers.every((f) => f.material.id === s.reliefDefaults.pilier)).toBe(true);
+    expect(decks.every((f) => f.material.id === s.reliefDefaults.deck.id)).toBe(true);
+    expect(piliers.every((f) => f.material.id === s.reliefDefaults.pilier.id)).toBe(true);
   });
 
   it('flanc d’un BLOC PLEIN : la matière est celle de son TERRAIN, pas celle de la scène', () => {

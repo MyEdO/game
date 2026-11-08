@@ -1942,7 +1942,7 @@ function sceneDuPont(coque: { ref: string; nom: string }, label: string, debut: 
     id: BOARDING_SCENE_ID,
     label,
     size: [18, 12],
-    terrain: defautsDeCompilation.pont,
+    terrain: defautsDeCompilation.pont.id,
     ambiance: 'exterieur',
     heroStart: [3, 7],
     startMessage: { texte: debut },

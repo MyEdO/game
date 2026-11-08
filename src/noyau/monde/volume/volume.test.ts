@@ -91,7 +91,7 @@ describe('volumeDuMonde (#3476)', () => {
 
   it('une surface par matière, nommée par son domaine et son id, qui se suivent : le terrain du dessus, le relief de la paroi', () => {
     const s = marche();
-    s.reliefDefaults = { ...s.reliefDefaults, cliff: 'pierre' };
+    s.reliefDefaults = { ...s.reliefDefaults, cliff: { id: 'pierre' } };
     s.layers[0].height = [0, 3];
     const v = volumeDuMonde(s);
     expect(v.surfaces.map((m) => m.debut)).toEqual([0, ...v.surfaces.slice(0, -1).map((m) => m.fin)]);

@@ -6,7 +6,9 @@
     "maison": "le sous-bois d’une forêt vu du dessus — le couvert des arbres, pas le sol qu’ils cachent ; aucun folio n’imprime de catalogue de sols, donc ce que ce terrain est et ce qu’il vaut en jeu comme à l’écran sont des arbitrages maison.",
     "walkable": false,
     "priority": 1,
-    "overlayProp": "arbre",
+    "overlayProp": {
+      "id": "arbre"
+    },
     "swatch": "#2f4d20",
     "stops": {
       "0%": "#4d7a38",
@@ -247,7 +249,9 @@
       "0%": "#6b5d4f",
       "100%": "#52463a"
     },
-    "matiere": "pierre"
+    "matiere": {
+      "id": "pierre"
+    }
   },
   {
     "id": "neige",

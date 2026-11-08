@@ -23,7 +23,7 @@ export function testScene(): Scene {
   });
   return {
     type: 'scene',
-    reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS }, roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
+    reliefDefaults: structuredClone(DEFAULT_RELIEF_DEFAULTS), roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
     id: 'test-fixture',
     label: 'Terrain de test',
     desc: 'Scène neutre pour les tests de combat.',
