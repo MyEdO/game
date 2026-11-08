@@ -1443,8 +1443,8 @@ export interface StatusData {
 export interface EtatData extends StatusData {
   /** Ids de `groups.json` accordés au porteur tant qu'il porte l'État (`groupesDe`). Absent = aucun Groupe. */
   grantGroups?: string[];
-  /** Type de Dégâts (`damage-types.json`) des `effects` de l'État, lu par `degatsDeLEtatIgnores`. LDB 85 l.174 ; VDM 10 l.153 */
-  typeDeDegats?: string;
+  /** Type de Dégâts (`DamageTypeData.id`) des `effects` de l'État, lu par `degatsDeLEtatIgnores`. LDB 85 l.174 ; VDM 10 l.153 */
+  typeDeDegats?: { id: string };
   /** Les magnitudes du `passive` sont-elles multipliées par le nombre de pions (Exténué −10/pion, LDB 16
    *  l.90) ? Appliqué à l'émission par le collecteur `passiveMods`. Défaut (absent) : magnitude fixe. */
   perStack?: boolean;
@@ -2231,12 +2231,12 @@ export interface StarData {
   id: string;
   label: string;
   rand: number;
-  signe: string | null;
-  classique: string | null;
-  ascendant: string | null;
-  dates: string | null;
-  dieux: string | null;
-  apparence: string | null;
+  signe: string;
+  classique: string;
+  ascendant: string;
+  dates: string;
+  dieux: string;
+  apparence: string;
   /** Effet ADE II appliqué AUX ATTRIBUTS DE DÉPART (ch.03 l.38) — donnée éditable au Codex
    *  (`GameOpEditor`) : `charMod` (±carac) et/ou `grantTalent` (talent octroyé). Appliqué une
    *  fois à la création (cf. `applyStarOps`), pas collecté en passif continu. */
@@ -3345,7 +3345,7 @@ export interface BreathTypeData {
   endommageLEquipement?: boolean;
   fumee?: boolean;
   types?: { id: string }[];
-  typeDeDegats?: string;
+  typeDeDegats?: { id: string };
 }
 export const breathTypes = breathTypesJson as BreathTypeData[];
 const typeSouffleParId = indexParId('breathTypes', breathTypes);

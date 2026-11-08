@@ -245,7 +245,7 @@ export function immunityTypes(traits: TraitList | undefined): string[] {
 /** Les Dégâts de l'État `etatId` (son `typeDeDegats`) sont-ils ignorés par une Immunité portée ? SOURCE
  *  UNIQUE — lue par le déclenchement des effets d'État, l'IA et l'entretien hors combat. LDB 85 l.174 */
 export function degatsDeLEtatIgnores(traits: TraitList | undefined, etatId: string): boolean {
-  const type = findConditionById(etatId)?.typeDeDegats;
+  const type = findConditionById(etatId)?.typeDeDegats?.id;
   return type != null && immunityTypes(traits).includes(type);
 }
 
