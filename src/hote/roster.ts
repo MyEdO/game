@@ -69,8 +69,8 @@ export function importerAuRoster(stockage: Stockage | null, entry: RosterEntry, 
   ecrire(stockage, [...heros, { ...entry, hero }]);
 }
 
-/** Ce qu'engager lit et appelle du jeu : ni le compteur d'ids de l'état, que seul l'hôte écrit, ni rien d'autre. */
-type JeuDeLEngagement = Pick<JeuDuNoyau, 'battle' | 'party' | 'net' | 'recruterLeHeros' | 'remplacerLeHeros'>;
+/** Le jeu qu'engager lit et appelle, sans le compteur d'ids de l'état, que seul l'hôte écrit. */
+type JeuDeLEngagement = Omit<JeuDuNoyau, 'forgerUnId'>;
 
 /** ENGAGE le brouillon `d` dans le groupe de `jeu` (#3059) : refusé par `refusDEngagement`, rendu sans rien écrire ;
  *  sinon son entrée (`engagement`) entre au roster de `stockage`, aux ids de `idDuRoster`, l'entropie de la plateforme

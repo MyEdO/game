@@ -77,7 +77,7 @@ describe('Engager en coop : le héros de chaque siège entre au groupe (#2907 S3
       ...creerFabriqueDIds(lireLeMiroir as never, ecrireLeMiroir),
       recruterLeHeros: (h: unknown) => guest.sendIntent('recruterLeHeros', [h]),
       remplacerLeHeros: (id: string, h: unknown) => guest.sendIntent('remplacerLeHeros', [id, h]),
-    };
+    } as unknown as Parameters<typeof engagerLeHeros>[1];
     expect(engagerLeHeros(stockageEnMemoire(), hote.getState(), brouillonComplet('Hôte'), fabriqueLocale('entropie-hote'))).toBeNull();
     expect(engagerLeHeros(stockageEnMemoire(), jeuDeLInvite, brouillonComplet('Invité'), fabriqueLocale('entropie-invite'))).toBeNull();
     host.broadcastSnapshot();
