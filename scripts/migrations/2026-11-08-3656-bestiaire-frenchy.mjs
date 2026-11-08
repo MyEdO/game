@@ -11,7 +11,7 @@
  * (`31b6c588b^`, retirée par #3015) dans `DEGATS_IMPRIMES` et `ARMURES_IMPRIMEES` ; le multiplicateur
  * imprimé des grandes Tailles (« (DR + Dé Unités + 12) x 2 ») est celui du Trait Taille, l'Indice est le nombre.
  *
- * GESTES, tous joués une seule fois (NO-OP dès que `books.json` porte le livre) :
+ * GESTES, tous joués une seule fois (NO-OP dès que `books.json` porte le livre ou qu'un statbloc le cite) :
  *  1. `books.json` : le livre `guide-frenchy`, sans `dir` (aucune extraction : les profils se citent par page) ;
  *  2. `planDeBestiaire.json` : les espèces d'apparence que le plan n'a pas (`ESPECES_NEUVES`) ;
  *  3. `groups.json` : les Groupes que nomme une spécialisation imprimée et que le registre n'a pas ;
@@ -433,8 +433,9 @@ const lire = (rel) => JSON.parse(fs.readFileSync(DATA(rel), 'utf8'));
 const norm = (s) => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, ' ').trim();
 
 const books = charger('books.json');
-if (books.some((b) => b.id === LIVRE)) {
-  console.log(`#3656 — le livre ${LIVRE} est au registre : rien à écrire.`);
+const creatures = charger('creatures.json');
+if (books.some((b) => b.id === LIVRE) || creatures.some((c) => c.source?.book === LIVRE)) {
+  console.log(`#3656 — le livre ${LIVRE} est au registre ou cité au bestiaire : rien à écrire.`);
   process.exit(0);
 }
 
@@ -442,7 +443,6 @@ const profils = JSON.parse(fs.readFileSync(ENTREE, 'utf8'));
 const plan = charger('planDeBestiaire.json');
 const groups = charger('groups.json');
 const skills = charger('skills.json');
-const creatures = charger('creatures.json');
 const talents = charger('talents.json');
 const traits = lire('traits.json');
 const trappings = new Map(lire('trappings.json').map((t) => [t.id, t]));
