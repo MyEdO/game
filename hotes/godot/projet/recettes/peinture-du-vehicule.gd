@@ -6,12 +6,14 @@ extends SceneTree
 ## dont un matériau porte le même nom qu'un matériau du véhicule garde sa couleur ; une surface dont la palette ne
 ## colore pas l'emplacement garde l'albédo du GLB. Une surface dont la texture de la `matiere` est au projet s'en habille
 ## comme le monde, que la couleur de sa palette teint ; sans palette, son albédo est blanc. L'emblème du véhicule se pose sur ses seules surfaces `blason`
-## (voiles, pavillon), en couche de détail ; une pièce peinte sans emblème n'en reçoit aucun.
+## (voiles, pavillon), en couche de détail aux UV du GLB : en UV2 sur une surface à matière texturée, dont l'UV1 est
+## projeté sur les trois axes ; une pièce peinte sans emblème n'en reçoit aucun.
 
 const RECETTE_AUTONOME := true
 const BOIS := "bois"
 const CUIR := "cuir"
 const TOILE := "toile"
+const PAVILLON := "pavillon"
 const GRIS := Color(0.5, 0.5, 0.5)
 ## Une matière dont le projet porte la texture, épinglée sous `textures/`.
 const PLANCHES := "terrain--planches"
@@ -27,10 +29,10 @@ func _initialize() -> void:
 func _recetter() -> void:
 	print("[peinture-du-vehicule] version=", Engine.get_version_info().string)
 	MontageDeComposition.modeles = {surfaces = {
-		coque = [{nom = BOIS, palette = BOIS, matiere = PLANCHES}, {nom = CUIR, palette = CUIR}, {nom = TOILE, palette = "vet1", blason = true}],
+		coque = [{nom = BOIS, palette = BOIS, matiere = PLANCHES}, {nom = CUIR, palette = CUIR}, {nom = TOILE, palette = "vet1", blason = true, matiere = PLANCHES}, {nom = PAVILLON, palette = "vet1", blason = true}],
 		canon = [{nom = BOIS, palette = BOIS, matiere = "prop--sans-texture"}, {nom = CUIR, palette = CUIR, matiere = PLANCHES}],
 	}}
-	var coque := _scene([BOIS, CUIR, TOILE])
+	var coque := _scene([BOIS, CUIR, TOILE, PAVILLON])
 	var canon := _scene([BOIS, CUIR])
 	root.add_child(coque)
 	var embleme := ImageTexture.create_from_image(Image.create(2, 2, false, Image.FORMAT_RGBA8))
@@ -48,6 +50,8 @@ func _recetter() -> void:
 	_attendre_la_matiere(canon, 1, planches, "cuir du canon, sa matière texturée")
 	_attendre_la_matiere(canon, 0, null, "bois du canon, sa matière sans texture")
 	_attendre_l_embleme(coque, 2, embleme, "toile de la coque, surface blason")
+	_attendre_les_uv_de_l_embleme(coque, 2, BaseMaterial3D.DETAIL_UV_2, "toile de la coque, blason à matière texturée")
+	_attendre_les_uv_de_l_embleme(coque, 3, BaseMaterial3D.DETAIL_UV_1, "pavillon de la coque, blason sans matière")
 	_attendre_l_embleme(coque, 0, null, "bois de la coque, sans blason")
 	for faute in _fautes:
 		push_error("[peinture-du-vehicule] " + faute)
@@ -94,3 +98,15 @@ func _attendre_l_embleme(scene: Node3D, rang: int, texture: ImageTexture, quoi: 
 	var pose: Texture2D = materiau.detail_albedo if materiau.detail_enabled else null
 	if pose != texture:
 		_fautes.append("%s : emblème %s, %s attendu" % [quoi, pose, texture])
+
+
+## La couche de détail de la surface `rang` du mesh de `scene` lit le jeu d'UV `couche`, et l'UV2 d'une couche en UV2
+## reprend les UV du mesh.
+func _attendre_les_uv_de_l_embleme(scene: Node3D, rang: int, couche: BaseMaterial3D.DetailUV, quoi: String) -> void:
+	var mesh := scene.get_child(0) as MeshInstance3D
+	var materiau := mesh.get_active_material(rang) as BaseMaterial3D
+	if materiau.detail_uv_layer != couche:
+		_fautes.append("%s : emblème en UV%d, UV%d attendu" % [quoi, materiau.detail_uv_layer + 1, couche + 1])
+	var tableaux := mesh.mesh.surface_get_arrays(rang)
+	if couche == BaseMaterial3D.DETAIL_UV_2 and tableaux[Mesh.ARRAY_TEX_UV2] != tableaux[Mesh.ARRAY_TEX_UV]:
+		_fautes.append("%s : l'UV2 ne reprend pas les UV du mesh" % quoi)

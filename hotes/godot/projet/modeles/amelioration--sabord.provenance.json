@@ -1,0 +1,13 @@
+{
+  "model": "amelioration--sabord.glb",
+  "model_sha256": "3ff7e4768e3cebc6a8c2156f15a36dd448ac91c2504e2036aa3dacbe0f702f49",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

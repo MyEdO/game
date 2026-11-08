@@ -1,0 +1,13 @@
+{
+  "model": "amelioration--clinfoc.glb",
+  "model_sha256": "f225418e8dc6c2c36e02414cc0b3f7f8e7e029219df5456bdb2e4757aa6eeda7",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

@@ -1,0 +1,13 @@
+{
+  "model": "amelioration--proue-idole-de-stromfels.glb",
+  "model_sha256": "5a09612264ccf3a9a355d21c7902f491324a206f390ee0d9cc61332c9d68019b",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

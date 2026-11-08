@@ -1,0 +1,22 @@
+{
+  "schema": 3,
+  "categorie": "amelioration",
+  "cle": {
+    "amelioration": "proue-idole-de-stromfels"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "montage": "ancrages",
+  "surfaces": [
+    {
+      "nom": "dorure",
+      "palette": "accent",
+      "matiere": "prop--laiton-dore"
+    }
+  ],
+  "glb": {
+    "sha256": "5a09612264ccf3a9a355d21c7902f491324a206f390ee0d9cc61332c9d68019b",
+    "octets": 17900
+  }
+}

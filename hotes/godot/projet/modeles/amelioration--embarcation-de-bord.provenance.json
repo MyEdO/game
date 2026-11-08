@@ -1,0 +1,13 @@
+{
+  "model": "amelioration--embarcation-de-bord.glb",
+  "model_sha256": "652ba6e8805e48028ec7ac96d6fd63c6c67f1f4016b7d66883bfa01049a78331",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}
