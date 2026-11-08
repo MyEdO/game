@@ -62,7 +62,9 @@ absent, hors des dossiers ancêtres de sa source, vide, ou dont la licence décl
 `License:`, sinon titre) manque à `hotes/godot/asset/licences.json`. Après l'export, elle passe sa part du manifeste à `manifeste.mjs`, qui y ajoute la
 déclaration du corps (`scripts/personnage-3d/base/humanoide.json` : `base`, porteur de référence,
 `clips`, la table rôle d'animation → clip dont le rôle `walk` est la marche plantée, et `surfaces`, les matériaux du corps
-et leur emplacement de palette, sans `blason`), la vitesse au sol du clip du rôle `walk` mesurée par l'évaluateur, et
+et leur emplacement de palette, sans `blason`, chacun avec, en option, `parSexe` : par sexe, le matériau d'un corps
+donneur que la construction recouche sur les UV de la surface et exporte en variante `KHR_materials_variants` du nom du
+sexe, #3188), la vitesse au sol du clip du rôle `walk` mesurée par l'évaluateur, et
 l'empreinte du GLB. Le manifeste refusé par `validerModele` (`hotes/godot/asset/modeles.ts`) fait échouer la construction.
 Le dossier de la sortie devient le dossier de production de la base (`production.ts`) :
 `manifest.json` (le manifeste complet sous `manifeste`, `model`, `model_sha256`,

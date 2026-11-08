@@ -2,8 +2,8 @@
  * LA COMPOSITION D'UN PERSONNAGE SUR UNE BASE (#3086, D2 et son amendement ; `CONTRAT.md`, section « Composition d'un
  * personnage ») : ce que porte un corps (`PorteeDeComposition`, d'une composition ou d'un combattant, surface du noyau),
  * résolu en éléments de la base sur ses lignes et ses points (`modelesDeLAtelier`), avec la pose de son gabarit (`poseDuGabarit`), les poids de ses
- * silhouettes (`poidsDeSilhouettes`) et sa palette résolue au nuancier (`findCouleurById`), chaque élément monté à la palette
- * de sa teinte (`findTeinteById`, #3456).
+ * silhouettes (`poidsDeSilhouettes`), ses matériaux par sexe (`parSexe` des surfaces de la base, #3188) et sa palette
+ * résolue au nuancier (`findCouleurById`), chaque élément monté à la palette de sa teinte (`findTeinteById`, #3456).
  */
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import { poidsDeSilhouettes, poseDuGabarit, type PoseDuGabarit } from '../asset/gabarit';
@@ -39,6 +39,9 @@ export interface CompositionSurLaBase {
   gabarit?: PoseDuGabarit;
   /** Vide sur un corps sans table de gabarit. */
   morphes: Record<string, number>;
+  /** Par matériau du GLB de la base qu'une surface remplace pour le sexe du corps (`Surface.parSexe`), le nom du
+   *  matériau du GLB qui le remplace. */
+  materiaux: Record<string, string>;
   /** La couleur `#rrggbb` de chaque emplacement de palette que la composition colore (`couleurs`). */
   palette: Record<string, string>;
 }
@@ -79,13 +82,14 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
     montes.push({ ligne, element: element ?? null, ...(porteUnBlason && embleme ? { embleme } : {}), ...(teinte ? { palette: { ...teinte.palette } } : {}) });
     if (element === undefined) manquants.push({ ligne, champ: p.cle.champ, id: p.cle.id, label: p.label, ...(p.par ? { par: p.par } : {}) });
   }
-  const { gabarit, appuis } = manifestes[base.id] as ManifesteDeBase;
+  const { gabarit, appuis, surfaces = [] } = manifestes[base.id] as ManifesteDeBase;
   return {
     montes,
     manquants,
     rapport: portee.rapport,
     ...(gabarit ? { gabarit: poseDuGabarit({ gabarit, appuis }, portee.facteurs) } : {}),
     morphes: gabarit ? poidsDeSilhouettes({ sex: portee.sex, build: portee.build ?? BUILD_NEUTRE, st: portee.facteurs.st }, gabarit) : {},
+    materiaux: Object.fromEntries(surfaces.flatMap(({ nom, parSexe }) => (parSexe?.[portee.sex] ? [[nom, parSexe[portee.sex]!]] : []))),
     palette: Object.fromEntries(Object.entries(portee.couleurs ?? {}).map(([slot, { id }]) => [slot, findCouleurById(id)!.color])),
   };
 }

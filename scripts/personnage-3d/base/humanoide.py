@@ -1,4 +1,4 @@
-"""#2972 ; #3101 issuecomment-6535025119 ; #3104 issuecomment-6549354475."""
+"""#2972 ; #3101 issuecomment-6535025119 ; #3104 issuecomment-6549354475 ; #3188."""
 import argparse
 import json
 import sys
@@ -38,6 +38,7 @@ import numpy as np  # noqa: E402
 from selection_appuis import etats_des_appuis, selectionner_appuis
 from porte_gabarit import verifier_gabarit  # noqa: E402
 from glb import souder_les_normales_des_cibles  # noqa: E402
+from materiaux_par_sexe import declarer_les_variantes, recoucher_les_variantes  # noqa: E402
 
 PELVIS = 'pelvis'
 OS_A_POSITION = ('root', PELVIS)
@@ -221,6 +222,7 @@ def construire(args):
     squelette, objets, _ = importer(bpy, args.corps)
     resoudre_images(bpy, args.corps)
     squelette_f, objets_f, _ = importer(bpy, args.corps_feminin)
+    resoudre_images(bpy, args.corps_feminin)
     reference = hierarchie(rig1)
     if len(reference) != args.os:
         raise RuntimeError(f'{args.ual1.name} : {len(reference)} os, {args.os} attendus')
@@ -375,6 +377,7 @@ def construire(args):
     finally:
         ressources.close()
     print('SOL tenu en', passes, 'passe(s)', flush=True)
+    variantes = recoucher_les_variantes(bpy, squelette, peaux, squelette_f, objets_f, declaration.get('surfaces', []))
     for objet in [squelette_f, *objets_f]:
         bpy.data.objects.remove(objet, do_unlink=True)
     clear_animation(squelette)
@@ -397,6 +400,7 @@ def construire(args):
     for image in bpy.data.images:
         if image.has_data:
             image.pack()
+    declarer_les_variantes(bpy, [o for o in bpy.data.objects if o.type == 'MESH'], variantes)
     assign_action(squelette, clips[0])
     args.sortie.parent.mkdir(parents=True, exist_ok=True)
     bpy.ops.export_scene.gltf(filepath=str(args.sortie), export_format='GLB', export_animations=True,
@@ -419,7 +423,7 @@ def main():
     parser.add_argument('--ual2', type=Path, required=True, help='UAL2_Standard.glb : clips sur le même squelette')
     parser.add_argument('--corps', type=Path, required=True, help="corps UBC (.gltf/.glb) skinné aux os d'UAL")
     parser.add_argument('--corps-feminin', type=Path, required=True,
-                        help="corps UBC féminin (.gltf/.glb) aux mêmes os : source de la clé `feminin`")
+                        help="corps UBC féminin (.gltf/.glb) aux mêmes os : source de la clé `feminin` et des matériaux `parSexe`")
     for pack in PACKS:
         option = pack.replace('_', '-')
         parser.add_argument(f'--licence-{option}', type=Path, required=True,

@@ -203,7 +203,7 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
   }
 
   if (brut.surfaces !== undefined) {
-    const { surfaces, ecarts: deForme } = lireSurfaces(brut.surfaces, true);
+    const { surfaces, ecarts: deForme } = lireSurfaces(brut.surfaces, 'element');
     for (const e of [...deForme, ...ecartsAuGlb(surfaces, glb)]) refus(e.code, e.ou, e.detail);
   }
 
