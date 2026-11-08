@@ -131,7 +131,7 @@ describe('Zone 11 — les 7 ouvreurs vivent SUR le pont, avec leurs conditions',
       affaires: [{ id: 'aff', titre: 'Affaire' }],
       indices: [{ id: 'ind', affaireId: 'aff', kind: 'indice', titre: 'Indice', stades: [{ id: 's1', prose: 'Prose.' }] }],
     } satisfies NarratifBlock;
-    const neuf = { stadeCourant: 's1', statut: 'révélé' as const, historique: [{ stade: 's1', at: 0 }] };
+    const neuf = { stadeCourant: 's1', statut: 'revele' as const, historique: [{ stade: 's1', at: 0 }] };
     const net = useGame.getState().net;
     useGame.setState({ campaignNarratif: enquete, clues: { ind: { ...neuf, vuParSiège: { 0: true } } }, net: { ...net, mySeat: 0 } });
     monter();

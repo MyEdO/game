@@ -16,7 +16,7 @@ import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { DotationDePossession } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';
-import { symptomSeveritySchema } from './schemas/grammaire/valeurs';
+import { symptomSeveritySchema, type harvestRaritySchema, type harvestDangerSchema } from './schemas/grammaire/valeurs';
 import { LIBELLE_AU_LABEL, resoutEnEntree, SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
 import { libelleDeValeur } from './schemas/grammaire/meta';
 import type { MerchantArchetypeDef } from './merchants.types';
@@ -1349,9 +1349,9 @@ export interface MerchantFamilyData {
   columns: string[];
 }
 export const merchantFamilies = merchantFamiliesJson as MerchantFamilyData[];
-/** Rareté de récolte/trophée = `Availability` (LDB 59) ÉTENDUE de `'Unique'` (pièce de bestiaire singulière). */
-export type HarvestRarity = Availability | 'Unique';
-export type HarvestDanger = 'Inoffensive' | 'Inquiétante' | 'Menaçante' | 'Mortelle';
+/** Rareté de récolte/trophée = `Availability` (LDB 59) ÉTENDUE de `'unique'` (pièce de bestiaire singulière). */
+export type HarvestRarity = z.infer<typeof harvestRaritySchema>;
+export type HarvestDanger = z.infer<typeof harvestDangerSchema>;
 
 export interface CreatureData {
   /** `id` STABLE (slug) — clé de résolution runtime/données (scènes, encounters). « Plus de label » :
@@ -1405,7 +1405,7 @@ export interface CreatureData {
   /** EDO 01 l.504 ; LDB 19. */
   corruption?: number;
   /** Facette ACHAT (marché/possession de carrière) — LDB 70, EDOC 07. */
-  purchase?: { price: Money; availability?: string };
+  purchase?: { price: Money; availability?: Availability };
   /** Arbitrage NON-verbatim documentant un ou plusieurs champs (ex. `char`/`purchase` approximés
    *  faute de statbloc imprimé) — même patron que `ActivityData.maison`, `TraumaData.maison`. */
   maison?: string;

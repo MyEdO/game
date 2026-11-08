@@ -44,7 +44,7 @@ export function shiftAvailability(base: Availability, c: QualityCarrier | undefi
     idx -= defauts; // les Défauts réduisent la dispo
   } else {
     idx += atouts;
-    if (base !== 'Exotique') idx -= defauts; // Exotique : non rendu plus courant par un Défaut
+    if (base !== 'exotique') idx -= defauts; // Exotique : non rendu plus courant par un Défaut
   }
   return AVAILABILITIES[Math.max(0, Math.min(AVAILABILITIES.length - 1, idx))];
 }

@@ -316,8 +316,8 @@ export function harvestVictoryCreature(get: Get, set: SetFn, creatureId: string)
   const p = garanti(harvestProfileFor(creatureId), creatureId, 'profil de récolte');
   const name = c.label; // affichage depuis le record (résolu par id)
   const size = harvestSizeOf(c);
-  const full = harvestYield(p, size, 0, 'Frais');
-  const lo = harvestYield(p, size, -1, 'Frais');
+  const full = harvestYield(p, size, 0, 'frais');
+  const lo = harvestYield(p, size, -1, 'frais');
   const part = (enc: number) => t('eff.harvestPart', { creature: name, enc }); // objet CUSTOM (hors catalogue)
   const titre = stepDetail(t('eff.harvest'), dataLabel(name));
   set({ pendingVictory: { ...pv, harvested: [...(pv.harvested ?? []), creatureId] } }); // grise le bouton
@@ -1371,7 +1371,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const clues = revealClue(env.get().clues, ind, env.get().gameTime, e.stade);
       if (clues === env.get().clues) return;
       env.set({ clues });
-      const key = before?.statut === 'réfuté' ? 'eff.clueReactivate' : before ? 'eff.clueAdvance' : 'eff.clueReveal';
+      const key = before?.statut === 'refute' ? 'eff.clueReactivate' : before ? 'eff.clueAdvance' : 'eff.clueReveal';
       env.log(t(key, { titre: ind.titre }));
     },
   },

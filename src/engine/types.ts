@@ -147,20 +147,20 @@ export function locationLabel(loc: HitLocation, shape: BodyShape = 'humanoide'):
  *  donc la donnée et le type ne peuvent plus diverger d'un palier. L'ORDRE porte l'échelle de rareté
  *  (indice 0 = le plus courant) : le Troc (`LDB 59 l.66-76`) et la « Baisse des prix » (`l.60`) s'y
  *  indexent, l'artisanat y décale d'un cran (`craftEconomy`) — aucune échelle recopiée à côté. */
-export const AVAILABILITIES = ['Commune', 'Limitée', 'Rare', 'Exotique'] as const;
+export const AVAILABILITIES = ['commune', 'limitee', 'rare', 'exotique'] as const;
 /** Disponibilité d'un objet/équipement (LDB 59 « Disponibilité ») — FOYER UNIQUE du concept :
  *  Test de Disponibilité au marché (`disponibilite`), Difficulté d'Artisanat (`activities`),
- *  décalage par qualité (`craftEconomy`). `HarvestRarity` l'étend de `'Unique'` (récolte/trophées). */
+ *  décalage par qualité (`craftEconomy`). `HarvestRarity` l'étend de `'unique'` (récolte/trophées). */
 export type Availability = (typeof AVAILABILITIES)[number];
 /** Les Disponibilités qui se TESTENT au d100 (LDB 59 l.25-30) : Commune est toujours en stock,
  *  Exotique jamais — seules ces deux-là portent un %. Sous-ensemble NOMMÉ dérivé du canon : c'est le
  *  SEUL site qui nomme ce couple, et `unions-canon.test.ts` verrouille son égalité avec le schéma zod
- *  qui le sélectionne (`availabilitySchema.extract([…])`). */
-export type TestedAvailability = Extract<Availability, 'Limitée' | 'Rare'>;
+ *  qui le nomme (`dispoPctAvailabilitySchema`). */
+export type TestedAvailability = Extract<Availability, 'limitee' | 'rare'>;
 /** Les Disponibilités dont l'Évaluation ne rend qu'une FOURCHETTE (LDB 59 l.41) — 2ᵉ et dernier
  *  sous-ensemble MÉTIER du canon, nommé ICI comme le premier : `satisfies` le tuple, donc un palier
  *  renommé ou retiré ne compile plus. Consommé par `engine/appraisal`. */
-export const APPRAISED_AVAILABILITIES = ['Rare', 'Exotique'] as const satisfies readonly Availability[];
+export const APPRAISED_AVAILABILITIES = ['rare', 'exotique'] as const satisfies readonly Availability[];
 
 /** Propulsion d'un véhicule/embarcation — pilote la table de localisation des dégâts (terre : roues/
  *  attelage ; fleuve/mer : voiles/avirons/coque). EDOC 7 (terrestre), MoR ch.5 (fluvial), MDG 13 (maritime). */
@@ -211,7 +211,7 @@ export interface VehicleData {
   desc?: string;
   /** Facette ACHAT (marché / possession de carrière). `availability` absent pour les navires (MDG ne
    *  donne pas de Disponibilité). */
-  purchase?: { price: Money; availability?: string };
+  purchase?: { price: Money; availability?: Availability };
   /** Facette VOYAGE (passage payant, LDB 51 l.178-189). `movement` = Déplacement du véhicule (km/h).
    *  `medium` = milieu du TRAJET PAYÉ — INDÉPENDANT de `hull.propulsion` (un véhicule peut être
    *  bi-milieu : la Barge navigue le fleuve, LDB 51 l.185/197, tout en figurant à la table navale MDG 12

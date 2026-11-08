@@ -64,12 +64,12 @@ describe('garde « logique par libellé » : un corpus, une composition, deux st
     expect(drift, drift.join('\n')).toEqual([]);
   });
 
-  it('VOLETS SANS STOCK : aucune clé du stock ne porte `label-logic` ni `label-as-id-arg`, quel que soit le fichier', () => {
+  it('VOLETS SANS STOCK : aucune clé du stock ne porte un volet de `VOLETS_SANS_STOCK`, quel que soit le fichier', () => {
     const interdites = clesInterditesAuStock();
     expect(interdites, interdites.join('\n')).toEqual([]);
     expect(clesInterditesAuStock({
-      'src/ui/sonde.tsx#label-logic': 1, 'src/data/sonde.ts#label-as-id-arg': 1, 'src/ui/sonde.tsx#label-literal': 1,
-    }).map((e) => e.split(' : ')[0])).toEqual(['src/ui/sonde.tsx#label-logic', 'src/data/sonde.ts#label-as-id-arg']);
+      'src/ui/sonde.tsx#label-logic': 1, 'src/data/sonde.ts#label-as-id-arg': 1, 'src/ui/sonde.tsx#label-literal': 1, 'src/ui/sonde.tsx#label-entity-resolver-call': 1,
+    }).map((e) => e.split(' : ')[0])).toEqual(['src/ui/sonde.tsx#label-logic', 'src/data/sonde.ts#label-as-id-arg', 'src/ui/sonde.tsx#label-literal']);
     expect(ecartsAuxDettesDeLibelle(new Map([['src/ui/sonde.tsx#label-logic', 1]]))).toHaveLength(1);
   });
 
@@ -162,11 +162,11 @@ describe('garde « logique par libellé » : un corpus, une composition, deux st
     expect(scanLabelLogicFichier(rel, `\n\n\n${porteur(resolution)}`, ctx).map((s) => s.statut), 'une insertion en amont ne périme pas la couture').toEqual(['couture']);
     expect(scanLabelLogicFichier(rel, porteur(resolution + resolution), ctx).map((s) => s.statut), 'une clé de couture désigne UN site').toEqual(['nu', 'nu']);
     expect(scanLabelLogicFichier(rel, `export function autre(label: string): Sonde | undefined {\n${resolution}}\n`, ctx).map((s) => s.statut)).toEqual(['nu']);
-    const faute = "x.label === 'Épée';"; // deux volets : `label-logic`, puis `label-literal`
-    const dette = Object.keys(DETTES_DE_LIBELLE).find((k) => k.endsWith('#label-literal'))!;
-    expect(DETTES_DE_LIBELLE[`${fichierDeDette(dette)}#label-logic`]).toBeUndefined();
-    const sites = scanLabelLogicFichier(fichierDeDette(dette), faute, ctx);
-    expect(sites.map((s) => [cleDeDette(s), s.statut])).toEqual([[`${fichierDeDette(dette)}#label-logic`, 'nu'], [dette, 'dette']]);
+    const faute = "x.label === 'Épée';"; // deux volets sans stock : `label-logic`, puis `label-literal`
+    const dette = Object.keys(DETTES_DE_LIBELLE).find((k) => k.endsWith('#label-entity-resolver-call'))!;
+    const f = fichierDeDette(dette);
+    const sites = scanLabelLogicFichier(f, `${faute}\nresoudre(nom);\n`, { ...ctx, resolveurs: new Set(['resoudre']) });
+    expect(sites.map((s) => [cleDeDette(s), s.statut])).toEqual([[`${f}#label-logic`, 'nu'], [`${f}#label-literal`, 'nu'], [dette, 'dette']]);
     expect(scanLabelLogicFichier('src/scenes/sonde.ts', faute, ctx).map((s) => s.statut)).toEqual(['nu', 'nu']);
   });
 
