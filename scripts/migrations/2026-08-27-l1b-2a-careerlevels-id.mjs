@@ -16,10 +16,11 @@
  *
  * ENTRÉES : `src/data/careerLevels.json` (la seule donnée lue et écrite).
  *
- * IDEMPOTENT / NO-OP TOLÉRANT À LA FORME : une entrée portant DÉJÀ l'`id` accordé à sa paire est
- * reconnue migrée ; rejouée sur l'état final, la migration n'écrit rien et sort 0.
- * FAIL-FAST : `career`/`level` absent ou de mauvais type, `id` présent mais DÉSACCORDÉ de la paire,
- * composite en collision → rien n'est écrit, sortie 1.
+ * FORME D'AVANT SEULE (`lib/formeDAvant.mjs`) : seule une entrée SANS `id` reçoit le sien ; une entrée
+ * qui en porte un (forme d'après, ou `career` révisé depuis, #2968 L03) passe sans faute. Rejouée sur
+ * l'état final, la migration n'écrit rien et sort 0.
+ * FAIL-FAST : sur une entrée sans `id`, `career`/`level` absent ou de mauvais type ; composite en
+ * collision avec un `id` présent ou posé → rien n'est écrit, sortie 1.
  * FORMATAGE PRÉSERVÉ : le fichier est EXACTEMENT `JSON.stringify(doc, null, 2)` (vérifié avant toute
  * écriture — une forme non canonique fait sortir 1 plutôt que reflower le document en silence), donc
  * la réécriture structurée est byte-exacte hors les clés ajoutées.
@@ -47,7 +48,13 @@ const migres = [];
 const dejaMigres = [];
 const vus = new Map();
 
+for (const [i, e] of data.entries()) if (e?.id !== undefined) vus.set(e.id, i);
+
 const sortie = data.map((e, i) => {
+  if (e?.id !== undefined) {
+    dejaMigres.push(e.id);
+    return e;
+  }
   if (typeof e?.career !== 'string' || !e.career) {
     echecs.push(`entrée #${i} : \`career\` absente ou non-chaîne`);
     return e;
@@ -63,12 +70,6 @@ const sortie = data.map((e, i) => {
     return e;
   }
   vus.set(id, i);
-
-  if (e.id !== undefined) {
-    if (e.id === id) dejaMigres.push(id);
-    else echecs.push(`entrée #${i} : \`id\` = ${JSON.stringify(e.id)} DÉSACCORDÉ de sa paire (attendu \`${id}\`)`);
-    return e;
-  }
   migres.push(id);
   // `id` en PREMIÈRE clé — l'identité ouvre l'entrée, comme partout ailleurs dans `src/data`.
   return { id, ...e };
@@ -83,16 +84,16 @@ if (echecs.length) {
 const out = JSON.stringify(sortie, null, 2);
 if (out !== brut) fs.writeFileSync(CIBLE, out, 'utf8');
 
-// PREUVE post-écriture : chaque entrée porte un `id` accordé à sa paire, et tous sont distincts.
+// PREUVE post-écriture : chaque entrée porte un `id`, et tous sont distincts.
 const apres = JSON.parse(out);
-const desaccordes = apres.filter((e) => e.id !== idDe(e));
+const sansId = apres.filter((e) => e.id === undefined);
 const distincts = new Set(apres.map((e) => e.id)).size;
-if (desaccordes.length || distincts !== apres.length) {
-  console.error(`VÉRIFICATION POST-ÉCRITURE ROUGE : ${desaccordes.length} désaccordé(s), ${distincts}/${apres.length} id(s) distinct(s)`);
+if (sansId.length || distincts !== apres.length) {
+  console.error(`VÉRIFICATION POST-ÉCRITURE ROUGE : ${sansId.length} sans id, ${distincts}/${apres.length} id(s) distinct(s)`);
   process.exit(1);
 }
 
 console.log(`careerLevels.json — \`id\` composite \`<career>-<level>\` posé : ${migres.length}`);
 console.log(`Déjà migrées (no-op) : ${dejaMigres.length}`);
-console.log(`Entrées : ${apres.length} ; ids distincts : ${distincts}/${apres.length} ; désaccordés : 0`);
+console.log(`Entrées : ${apres.length} ; ids distincts : ${distincts}/${apres.length}`);
 console.log(`Fichier ${out !== brut ? 'réécrit' : 'INCHANGÉ'} : src/data/careerLevels.json`);

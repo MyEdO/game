@@ -115,11 +115,11 @@ const graph = versionCached<ReverseGraph>(() => {
   }
 
   // 2) Carrières (cat `careers`) → classe.
-  for (const c of careers) addReverse('classes', c.class, { category: 'careers', id: c.id, label: c.label }, 'Carrières de la classe');
+  for (const c of careers) addReverse('classes', c.class.id, { category: 'careers', id: c.id, label: c.label }, 'Carrières de la classe');
 
   // 3) Niveaux de carrière → compétences/talents/possessions/caractéristiques (référant = la CARRIÈRE, rang en détail).
   for (const lv of careerLevels) {
-    const career = findCareerById(lv.career);
+    const career = findCareerById(lv.career.id);
     if (!career) continue;
     const by: Referrer = { category: 'careers', id: career.id, label: career.label, detail: `N${lv.level}` };
     for (const id of advancementIds(lv.skills)) addReverse('skills', id, by, 'Carrières (par rang)');

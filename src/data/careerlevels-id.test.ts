@@ -11,8 +11,8 @@ import { careerLevels } from './index';
 describe('careerLevels — identité composite `<career>-<level>` (#1467 L1b V-P1)', () => {
   it('chaque niveau porte un `id` ACCORDÉ à sa paire `career`+`level`', () => {
     const desaccordes = careerLevels
-      .filter((lv) => lv.id !== `${lv.career}-${lv.level}`)
-      .map((lv) => `${lv.label} : id « ${lv.id} » ≠ « ${lv.career}-${lv.level} »`);
+      .filter((lv) => lv.id !== `${lv.career.id}-${lv.level}`)
+      .map((lv) => `${lv.label} : id « ${lv.id} » ≠ « ${lv.career.id}-${lv.level} »`);
     expect(desaccordes, 'id désaccordé de la paire qui le compose').toEqual([]);
     expect(careerLevels.length).toBe(432);
   });

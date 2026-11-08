@@ -12,7 +12,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { refCareerIdSchema } from '../grammaire/valeurs';
-import { idDe, refs } from '../grammaire/ref';
+import { ref, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 
 export const file = 'careers.json';
@@ -22,8 +22,8 @@ const doc = document(
   'careers',
   famille,
   {
-    /** `id` de la Classe (`ClassData.id`). */
-    class: idDe('classe'),
+    /** Classe (`ClassData.id`). */
+    class: ref('classe'),
     /** Ids de `groups.json` accordés au titulaire de cette carrière (`groupesDe`), en plus de ceux de
      *  sa Classe. Absent = la carrière n'ouvre aucun Groupe d'appartenance. */
     grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),

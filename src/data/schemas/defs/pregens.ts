@@ -1,7 +1,7 @@
 /** LDB 05 l.730-736 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { idDe } from '../grammaire/ref';
+import { ref } from '../grammaire/ref';
 import { champsDeChoix, metaDesChoix } from '../grammaire/choixDeCreation';
 import type { ChoixDeCreation } from '../../../engine/character';
 import { sexeSchema } from '../grammaire/valeurs';
@@ -20,10 +20,8 @@ const doc = document(
   'pregens',
   famille,
   {
-    /** `id` STABLE de l'espèce (`idDe('species')`). */
-    species: idDe('species'),
-    /** `id` STABLE de la carrière (`idDe('career')`). */
-    career: idDe('career'),
+    species: ref('species'),
+    career: ref('career'),
     ...desPretires(champsDeChoix),
     motivation: z.string(),
     /** LDB 05 l.730-736 */
