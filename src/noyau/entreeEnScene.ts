@@ -23,8 +23,8 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 
 export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
   return {
-    lancerLaScene: (scene, narratif) => {
-      registerScene(scene);
+    lancerLaScene: (authored, narratif) => {
+      const scene = registerScene(authored);
       const start = scene.entities.find((e) => e.kind === 'heroStart');
       const pos = startOf(scene) ?? findFreeTile(scene);
       // Démarrage d'une partie / d'un scénario : on repart de l'état NEUF du jeu (`etatInitialDuJeu`). On ne

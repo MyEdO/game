@@ -10,7 +10,7 @@
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, meteoDuRegard, aretesDeLaCouche, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, type NavireDeLaScene, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -51,6 +51,14 @@ export interface CorpsDuCombat {
   /** Par id de combattant dessiné qui est un véhicule ou un engin (`CombattantProjete.vehicule`) dont un élément
    *  `vehicule` est servi : son corps (`corpsDuVehicule`), quelles que soient les bases servies. */
   vehicules: Record<string, CorpsDuVehicule>;
+  /** Par id de pose de chaque navire de la scène (`naviresDeLaScene`) dont un élément `vehicule` est servi : son corps
+   *  (`corpsDuVehicule`), le point de la scène sous l'origine de son modèle et la hauteur de cette origine. */
+  navires: Record<string, NavireServi>;
+}
+
+/** Un navire de la scène servi (#3686) : son corps, et où se pose l'origine de son modèle (`NavireDeLaScene`). */
+export interface NavireServi extends Pick<NavireDeLaScene, 'centre'> {
+  corps: CorpsDuVehicule;
 }
 
 /** Le corps d'un véhicule servi (#2987) : l'élément `vehicule` qui dessine sa fiche (`ModelesDeLAtelier.vehicules`), le
@@ -216,10 +224,11 @@ export function creerPont() {
     return ouverte;
   };
 
-  /** Les corps des combattants dessinés de `projection`, chacun sa portée composée sur l'unique base servie, et leurs
-   *  véhicules servis. */
-  const corpsDe = (projection: Projection): CorpsDuCombat => {
+  /** Les corps des combattants dessinés de `projection`, chacun sa portée composée sur l'unique base servie, leurs
+   *  véhicules servis, hors des navires de `scene`, et les navires servis de `scene`. */
+  const corpsDe = (projection: Projection, scene: Scene | null): CorpsDuCombat => {
     const dessines = projection.combat?.voisins.liste ?? projection.exploration?.heros ?? [];
+    const navires = scene ? naviresDeLaScene(scene) : [];
     const bases = modeles?.modeles.bases ?? [];
     const refus = !modeles
       ? '[sans-modeles] aucun modeles appelé'
@@ -229,8 +238,12 @@ export function creerPont() {
       refus,
       combattants: Object.fromEntries(dessines.map(({ id, portee }) => [id, base && portee ? { base: base.id, ...composerSurLaBase(base, modeles!.manifestes, portee) } : null])),
       vehicules: Object.fromEntries(dessines.flatMap(({ id, vehicule }) => {
-        const corps = vehicule && modeles && corpsDuVehicule(vehicule, modeles);
+        const corps = vehicule && modeles && !navires.some((n) => n.id === id) && corpsDuVehicule(vehicule, modeles);
         return corps ? [[id, corps]] : [];
+      })),
+      navires: Object.fromEntries(navires.flatMap(({ id, vehicule, centre }) => {
+        const corps = modeles && corpsDuVehicule(vehicule, modeles);
+        return corps ? [[id, { corps, centre }]] : [];
       })),
     };
   };
@@ -242,7 +255,7 @@ export function creerPont() {
     const fenetre = fenetreADessiner(etat);
     return {
       projection,
-      corps: corpsDe(projection),
+      corps: corpsDe(projection, etat.scene),
       disposition: fenetre?.disposition ?? null,
       zones: zonesDeLEcran(etat, projection, fenetre, o.panneau),
       cases: casesAtteignables(etat),

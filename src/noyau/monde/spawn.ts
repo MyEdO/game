@@ -35,6 +35,7 @@ import { groupsFor } from '../../engine/groups';
 import { weaponsFromTraits, armourFromTraits, traitsDevantLEquipement } from '../../engine/creatureEquip';
 import { hashSeed } from '../../engine/dice';
 import { bodyShapeForSpecies } from '../../engine/bodyForm';
+import { estPoseParSesPonts } from '../planDeNavire';
 
 /**
  * Pose la position d'un combattant en RAFRAÎCHISSANT sa hauteur métrique (`pos.h`) depuis le relief de
@@ -43,7 +44,7 @@ import { bodyShapeForSpecies } from '../../engine/bodyForm';
  * distance de combat verticale et le −10 « en contrebas » resteraient faux après le mouvement.
  * `z` omis quand nul et `h` omis quand la surface est à 0 m → byte-identique au plan sur une scène plate.
  */
-export function placeCombatant(c: { pos?: { x: number; y: number; z?: number; h?: number }; traits?: Combatant['traits']; offTerrain?: boolean }, scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): void {
+export function placeCombatant(c: { id: string; pos?: { x: number; y: number; z?: number; h?: number }; traits?: Combatant['traits']; offTerrain?: boolean; surSesPonts?: boolean }, scene: Scene | null | undefined, p: { x: number; y: number; z?: number }): void {
   const z = p.z ?? 0;
   const h = scene ? heightAt(scene, p.x, p.y, z) : 0;
   c.pos = { x: p.x, y: p.y, ...(z ? { z } : {}), ...(h ? { h } : {}) };
@@ -53,6 +54,9 @@ export function placeCombatant(c: { pos?: { x: number; y: number; z?: number; h?
   const req = c.traits ? requiredTerrains(c as Combatant) : [];
   if (req.length) c.offTerrain = !req.includes(tileAt2(scene ?? null, p.x, p.y, z));
   else if (c.offTerrain) delete c.offTerrain;
+  // Drapeau POSITIONNEL « navire sur ses ponts » (#3686) : re-dérivé au même chokepoint.
+  if (scene && estPoseParSesPonts(scene, c.id)) c.surSesPonts = true;
+  else if (c.surSesPonts) delete c.surSesPonts;
 }
 
 /** Terrain de la case, tolérant une scène absente : PAS de scène = pas de tuile, donc le terrain que le
