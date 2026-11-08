@@ -73,6 +73,10 @@ describe('validerElement : un manifeste valide par catégorie', () => {
     const blason = manifeste(categorie, { surfaces: [{ nom, palette, blason: true }] });
     expect(verdict(blason)).toEqual({ ok: true, manifeste: blason });
   });
+  it('une surface d’élément déclare en option la matière de décor du monde dont elle s’habille', () => {
+    const matiere = manifeste('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', matiere: 'prop--fer-noirci' }] });
+    expect(verdict(matiere)).toEqual({ ok: true, manifeste: matiere });
+  });
 });
 
 describe('validerElement : les surfaces se lisent sur tout nœud à mesh, pas seulement le mesh pendu', () => {
@@ -141,6 +145,8 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['forme', 'surface sans emplacement de palette', manifeste('rigide', { surfaces: [{ nom: 'plaque', teinte: true }] })],
   ['palette-inconnue', 'clé de palette inconnue', manifeste('trait', { surfaces: [{ nom: 'peau', palette: 'or' }] })],
   ['forme', 'blason autre que `true`', manifeste('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', blason: false }] })],
+  ['forme', 'matière qui n’est pas un nom', manifeste('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', matiere: 3 }] })],
+  ['matiere-inconnue', 'matière hors des matières de décor du monde', manifeste('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', matiere: 'terrain--planches' }] })],
   ['forme', 'blason sans emplacement de palette', manifeste('armure', { surfaces: [{ nom: 'plaque', blason: true }] })],
   ['surface-absente', 'surface qu’aucun matériau du GLB ne nomme', manifeste('rigide', { surfaces: [{ nom: 'bois', palette: 'bois' }] })],
   ['uv-absente', 'blason sur une surface sans `TEXCOORD_0`', ...surGlb('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', blason: true }] }, glbAvec('hand_r', ['plaque']))],
@@ -158,7 +164,7 @@ describe('validerElement : chaque refus nommé', () => {
     const attendus: Record<CodeDEcartDElement, true> = {
       forme: true, 'version-inconnue': true, 'categorie-inconnue': true, 'champ-hors-categorie': true, 'cle-mal-formee': true, 'cle-inconnue': true, 'piece-hors-categorie': true, 'base-differente': true,
       'liaison-hors-categorie': true, 'couche-hors-categorie': true, 'zone-inconnue': true, 'chaine-absente': true, 'emplacement-sur-os-absent': true, 'emplacement-inconnu': true,
-      'silhouette-absente': true, 'bord-inconnu': true, 'etat-absent': true, 'selon-absent': true, 'palette-inconnue': true, 'surface-absente': true, 'uv-absente': true, 'glb-different': true,
+      'silhouette-absente': true, 'bord-inconnu': true, 'etat-absent': true, 'selon-absent': true, 'matiere-inconnue': true, 'palette-inconnue': true, 'surface-absente': true, 'uv-absente': true, 'glb-different': true,
       'rigide-sans-mesh': true, 'rigide-sur-os-absent': true, 'rigide-a-la-racine': true, 'rigide-skinne': true,
     };
     expect(new Set(REFUS.map(([code]) => code))).toEqual(new Set(Object.keys(attendus)));

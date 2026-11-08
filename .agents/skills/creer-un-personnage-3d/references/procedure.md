@@ -324,7 +324,9 @@ réellement définie ; remplacer empreinte et octets par ceux du GLB final) :
 ```
 
 Pour les autres catégories, appliquer la table et les champs de la section 2. Chaque nom de surface
-est le nom d'un matériau de l'export ; `blason`, s'il est présent, vaut `true`. Ne pas ajouter
+est le nom d'un matériau de l'export ; `blason`, s'il est présent, vaut `true` ; `matiere`, s'il est
+présent, nomme la matière de décor du monde dont la surface s'habille (`prop--<id>`, `matiere-inconnue`) : sa
+texture vient du catalogue unique `hotes/godot/projet/textures/`, jamais du GLB. Ne pas ajouter
 provenance, captures, chemin du GLB ou décision utilisateur dans ce JSON fermé : fichier séparé.
 
 La CLI canonique appelle validerElement avec les octets du GLB pour vérifier forme, ids de clé
