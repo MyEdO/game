@@ -3,10 +3,13 @@ import { garanti } from '../lib/garanti';
 import { buildScene } from './mapSpec';
 import { PLAN_DE_LA_CARAQUE } from './planDeLaCaraque';
 import { reachedFloors, unreachableDescriptiveZones, zoneWalkableCells } from './mapQC';
-import { areteOcculteEntre, edgeOf, heightAt, isDescriptiveZone, isWalkable, tileAt, wallBetween, type Scene } from './monde/scene';
+import { areteOcculteEntre, edgeOf, heightAt, isDescriptiveZone, isWalkable, porteAuteur, sceneMetresPerTile, tileAt, wallBetween, type Scene } from './monde/scene';
 import { estAbsent } from './monde/terrain';
 import { reachable } from './monde/path';
 import { planClimb } from './monde/climbMove';
+import { propFootTiles } from './monde/footprint';
+import { sceneZoneTiles } from './monde/zones';
+import { findPropById } from '../data';
 
 const scene = buildScene(PLAN_DE_LA_CARAQUE);
 const legende = garanti(PLAN_DE_LA_CARAQUE.zoneLegend, 'caraque', 'pièces du plan');
@@ -53,6 +56,44 @@ describe('ponts de la caraque (MDG 12 l.286), compilés par buildScene', () => {
       const vers = { x: e.x + (e.side === 'E' ? 1 : e.side === 'O' ? -1 : 0), y: e.y + (e.side === 'S' ? 1 : e.side === 'N' ? -1 : 0), z };
       expect(planClimb(scene, { x: e.x, y: e.y, z }, vers, false), `z${z} (${e.x},${e.y})`).toEqual({ kind: 'free' });
     }
+  });
+});
+
+describe('le mobilier des pièces de la caraque (#3686)', () => {
+  const k = (c: { x: number; y: number; z: number }) => `${c.x},${c.y},${c.z}`;
+  const pieces = (scene.effectZones ?? []).filter(isDescriptiveZone);
+  const meubles = scene.entities.filter((e) => e.kind === 'prop');
+  /** Les meubles d'une pièce : ceux dont l'id est le sien suivi de leur `ref` et de leur rang. */
+  const meublesDe = (piece: string) => meubles.filter((e) => new RegExp(`^${piece}-${e.ref}-\\d+$`).test(e.id));
+  /** Les cases qu'un meuble couvre, sur son pont. */
+  const casesDu = (e: (typeof meubles)[number]) =>
+    propFootTiles(e.ref, e.pos, e.facing, sceneMetresPerTile(scene)).map((t) => ({ ...t, z: e.z ?? 0 }));
+  /** Les deux cases de chaque arête de porte ou d'échelle : une trappe et le pied de son échelle, les deux côtés d'une porte. */
+  const libres = new Set((scene.walls ?? []).filter((w) => porteAuteur(w) || w.climb).flatMap((w) => {
+    const z = w.z ?? 0;
+    return [{ x: w.x, y: w.y, z }, w.side === 'N' ? { x: w.x, y: w.y - 1, z } : { x: w.x + 1, y: w.y, z }].map(k);
+  }));
+
+  it('chaque pièce intérieure est meublée, sauf le garde-manger dont la seule case est celle de sa porte', () => {
+    expect(pieces.filter((p) => meublesDe(p.id).length > 0).map((p) => p.id).sort())
+      .toEqual(pieces.filter((p) => p.presentation === 'interior' && p.id !== 'garde-manger').map((p) => p.id).sort());
+    expect(pieces.flatMap((p) => meublesDe(p.id)).length, 'meuble sans pièce').toBe(meubles.length);
+  });
+
+  it('chaque meuble est un décor du catalogue, dans les cases de sa pièce, sans boucher porte, trappe ni pied d’échelle', () => {
+    for (const piece of pieces) {
+      const siennes = new Set(sceneZoneTiles(piece).map((t) => k({ x: t.x, y: t.y, z: t.z ?? piece.z ?? 0 })));
+      for (const e of meublesDe(piece.id)) {
+        expect(findPropById(e.ref), e.id).toBeDefined();
+        expect(casesDu(e).filter((c) => !siennes.has(k(c))), `${e.id} hors de sa pièce`).toEqual([]);
+        expect(casesDu(e).filter((c) => libres.has(k(c))), `${e.id} bouche un passage`).toEqual([]);
+      }
+    }
+  });
+
+  it('deux meubles ne se chevauchent pas', () => {
+    const cases = meubles.flatMap((e) => casesDu(e).map(k));
+    expect(cases.filter((c, i) => cases.indexOf(c) !== i)).toEqual([]);
   });
 });
 
