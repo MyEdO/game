@@ -625,6 +625,20 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     expect(ligneDe(presser(boutonDe(hallebardier, 'carriere/soldat/retirer')), 'carriere/profil/statut'), 'sa seule carrière retirée, le profil part').toBeUndefined();
   });
 
+  it('un personnage de carrière : un Talent qu’ajoute un Talent choisi est offert aux Niveaux suivants (LDB 10 l.467 ; #773)', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/personnage'));
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const pnj = jouer({ geste: 'relache', point: point(1, 1) });
+    const flagellant = presser(boutonDe(presser(boutonDe(pnj, 'carriere/ajouter/flagellant')), 'carriere/flagellant/niveau/2'));
+    const soldat = presser(boutonDe(flagellant, 'carriere/ajouter/soldat'));
+    expect(() => boutonDe(soldat, 'carriere/soldat/talents/1/frenesie'), 'sans Flagellant, Frénésie n’est pas offerte au Soldat').toThrow();
+    const voue = presser(boutonDe(soldat, 'carriere/flagellant/talents/2/flagellant'));
+    expect(boutonDe(presser(boutonDe(voue, 'carriere/soldat/talents/1/frenesie')), 'carriere/soldat/talents/1/frenesie').presse).toBe(true);
+  });
+
   it('un décor : sa lumière allumée, son rayon au pas, son ton ; son assise ouverte, une place tenue par un emplacement du groupe', () => {
     const { appel } = table();
     const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));

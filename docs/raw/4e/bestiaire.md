@@ -320,6 +320,12 @@ Lecture arbitrée (#773, arbitrages utilisateur R1 à R4 du 2026-11-08, verbatim
 - **R3** : les équipements sont des objets réels de l'inventaire du PNJ, et l'objet réel prend la place du Trait Arme ou Armure.
 - **R4** : les équipements sont ceux des Niveaux 1 à *N* de la carrière actuelle, sans ceux de la Classe.
 
+Arbitrages utilisateur du 2026-11-08 sur les ajouts de Talent et les montures (#773, verbatim au ticket) :
+
+- Une Compétence qu'un Talent ajoute aux carrières (« Ajoutez … à n'importe quelle Carrière que vous entamez », `LDB 10 l.70`, `l.745`, `l.891`) est une Compétence de carrière. Elle reçoit le +5 à chaque Niveau atteint à partir de celui où le Talent est pris, dans cette carrière puis dans les suivantes.
+- Un Talent qu'un Talent ajoute (« Le Talent Frénésie est ajouté à la liste des Talents de n'importe laquelle de vos Carrière », `LDB 10 l.467`) rejoint les Talents disponibles des Niveaux suivants.
+- Une dotation de possession (monture, véhicule) n'est pas posée avec le PNJ : l'auteur pose la monture à côté de lui.
+
 Jeu sans MJ (règle 7) : l'auteur du PNJ choisit dans l'éditeur ses Talents, ses Compétences « Au choix » et ses dotations au choix. Ce qu'il laisse libre est tiré d'une graine stable, l'id du PNJ.
 
 L'exemple ne se recalcule pas : son profil (`EDO 11 l.27-32`) ne se retrouve pas en appliquant la règle. Ce qui s'en vérifie, c'est le Statut du Niveau atteint (**Argent 5**, `EDO 11 l.27`) et les possessions de la carrière (`EDO 11 l.38-40`).
