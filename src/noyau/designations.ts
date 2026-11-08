@@ -188,8 +188,13 @@ interface Designation {
 
 const ids = (xs: readonly { id: string }[]): string[] => xs.map((x) => x.id);
 const sansDoublon = (xs: readonly string[]): string[] => [...new Set(xs)];
-const lesCombattants = (s: Jeu) => [...(s.battle?.combatants ?? []), ...s.party];
-const combattants = (s: Jeu): string[] => sansDoublon(ids(lesCombattants(s)));
+/** Chaque combattant une fois par id : sa copie de bataille d'abord, puis les héros du groupe hors de la bataille. */
+const lesCombattants = (s: Jeu) => {
+  const enBataille = s.battle?.combatants ?? [];
+  const engages = new Set(ids(enBataille));
+  return [...enBataille, ...s.party.filter((h) => !engages.has(h.id))];
+};
+const combattants = (s: Jeu): string[] => ids(lesCombattants(s));
 /** Le `label` de l'élément d'id `id` parmi `xs`. */
 const labelParmi = (xs: readonly { id: string; label?: string }[], id: string): string | null => xs.find((x) => x.id === id)?.label ?? null;
 const nomDeCombattant = (s: Jeu, id: string): string | null => labelParmi(lesCombattants(s), id);
@@ -230,7 +235,7 @@ export const DESIGNATIONS = {
   IdDePossession: { mot: 'id de possession', lire: (s) => s.possessions.map((p) => p.uid), nom: labelDePossession },
   IdDObjet: {
     mot: 'id d’objet',
-    lire: (s) => sansDoublon(lesObjets(s).map((i) => i.uid)),
+    lire: (s) => lesObjets(s).map((i) => i.uid),
     nom: (s, uid) => {
       const objet = lesObjets(s).find((i) => i.uid === uid);
       return objet ? itemLabel(objet) : null;
