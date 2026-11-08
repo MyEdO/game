@@ -283,7 +283,7 @@ export function withSpecies(d: CreatorDraft, id: string): CreatorDraft {
 // ── 2) Carrière ──
 /** Couples (Classe remplaçante, Classe remplacée) déclarés en donnée (`ClassData.remplace`,
  *  MDG 09 l.9). */
-const remplacementsDeClasse = classes.flatMap((k) => (k.remplace ? [{ par: k.id, de: k.remplace.id }] : []));
+const remplacementsDeClasse = (): { par: string; de: string }[] => classes.flatMap((k) => (k.remplace ? [{ par: k.id, de: k.remplace.id }] : []));
 
 /** La colonne `col` du tableau tire-t-elle au moins une carrière de la Classe `classe` ? */
 const colonneTireLaClasse = (col: NonNullable<SpeciesData['refCareer']>, classe: string): boolean =>
@@ -295,7 +295,7 @@ const colonneTireLaClasse = (col: NonNullable<SpeciesData['refCareer']>, classe:
 const remplacementsOfferts = (d: CreatorDraft): { par: string; de: string }[] => {
   const col = draftSpecies(d)?.refCareer;
   if (!col) return [];
-  return remplacementsDeClasse.filter(({ par, de }) => colonneTireLaClasse(col, de) && colonneTireLaClasse(col, par));
+  return remplacementsDeClasse().filter(({ par, de }) => colonneTireLaClasse(col, de) && colonneTireLaClasse(col, par));
 };
 
 /** Le remplacement Riverains → Côtiers (MDG 09 l.9) s'offre-t-il à cette espèce ? */
