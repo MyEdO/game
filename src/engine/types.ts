@@ -1188,6 +1188,9 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   weaponGroup?: string;
   /** Munition REPRÉSENTATIVE d'une arme de siège (cf. `Weapon.defaultAmmo`) — propagé à l'arme dérivée. */
   defaultAmmo?: string;
+  /** Arme DÉRIVÉE conférée tant que l'objet est équipé (`TrappingData.derivedWeapon`, armée à la naissance
+   *  par `armeDeLaDonnee`). */
+  derivedWeapon?: Weapon;
   /** Pièce « relativement simple » (baliste, cf. `Weapon.soloSimple`) — propagé à l'arme dérivée. */
   soloSimple?: boolean;
   /** Pièce à TIR INDIRECT (mortier/catapulte, cf. `Weapon.indirect`) — propagé à l'arme dérivée. */

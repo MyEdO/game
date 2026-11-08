@@ -144,7 +144,7 @@ describe('MediaSelect (listbox popup)', () => {
 
 /** Arme de mêlée à une main NOMMÉE du banc, écrite à la main : seule sa catégorie porte le contrat. */
 const armeDeBanc = (id: string, label: string): TrappingData => ({
-  id, label, categorie: 'melee', subType: 'base', enc: 0, availability: 'Commune', reach: 'Moyenne',
+  id, label, categorie: 'melee', subType: { id: 'base' }, enc: 0, availability: 'Commune', reach: 'Moyenne',
   loc: null, pa: null, damage: { plusBF: true, flat: 1 }, qualities: [], price: { gold: 0, silver: 1, brass: 0 },
   source: { book: 'livre-de-base', page: 1 },
 });

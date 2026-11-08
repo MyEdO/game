@@ -53,7 +53,7 @@ import type { ManeuverDef, ManeuverMeasure } from '../../../data';
 import { SYMPTOM_SEVERITIES } from '../../../data';
 import type { AttackKind } from '../../../engine/creatureAttacks';
 import { WeaponField } from '../WeaponField';
-import type { Weapon } from '../../../engine/types';
+import type { ArmeDerivee } from '../../../data';
 import { SymptomsField, SymptomTickField, DiseaseDailyTestField, type DiseaseDailyTest, ShipCrewHitField, type ShipCrewHitValue, TalentTestField, CombatField, AdvancementRefField, TrappingRefField, CharKeysField, DispoSaisonniereField, DomainEffectsField, TraitListField, OptionalsListField, HarvestField, SpecsField, RuleValueField, RuleActionField, type RuleShape } from './StructFields';
 import { AlsoInField } from '../../AlsoInField';
 import type { OptionalRule } from '../../../engine/policy';
@@ -604,7 +604,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {isManeuver && <ManeuverDefField entry={entry} edit={edit} />}
         {isMutationTable && <MutationTableField domaine={domaineDuDe(entry.die)} value={entry.entries as MutationRange[] | undefined} onChange={(v) => edit('entries', v)} />}
         {isWeather && <WeatherRangesField domaine={domaineDuDe(entry.die)} value={entry.entries as { min: number; max: number; weather: string }[] | undefined} onChange={(v) => edit('entries', v)} />}
-        {hasDerivedWeapon && <WeaponField value={entry.derivedWeapon as Weapon | undefined} onChange={(v) => edit('derivedWeapon', v)} />}
+        {hasDerivedWeapon && <WeaponField value={entry.derivedWeapon as ArmeDerivee | undefined} onChange={(v) => edit('derivedWeapon', v)} />}
         {hasConsumable && (
           <div className="ed-field">
             <span>effet d’un CONSOMMABLE (potion/drogue/bandage) — Flow appliqué au buveur (ops, branches, Tests « au boire »)</span>

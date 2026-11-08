@@ -170,7 +170,7 @@ export function porteeDeComposition(composition: Composition): PorteeDeCompositi
   liste.push(...portees(composition.pieces ?? [], variantesPieces));
   const objet = (id: Id<'trapping'>, prise?: string): ObjetPorte => {
     const rangement = composition.rangementsObjets?.[id]?.id;
-    const teinte = teinteDeLObjet({ subType: findTrappingById(id)?.subType });
+    const teinte = teinteDeLObjet({ subType: findTrappingById(id)?.subType?.id });
     return { nom: id, trappingId: id, candidats: candidatsDeLObjet(composition, id), ...(prise ? { prise } : {}), ...(rangement ? { rangement } : {}), ...(teinte ? { teinte } : {}) };
   };
   const objets = porteesDesObjets(
