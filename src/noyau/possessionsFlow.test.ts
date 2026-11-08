@@ -21,6 +21,7 @@ import { initialNet } from './etat';
 import type { JeuDuNoyau } from './machinerieDuNoyau';
 import type { Get, Set } from './flowTypes';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { creerFabriqueDIds } from './idsDuMonde';
 
 /** Harnais MINIMAL (get/set) — même patron que `bourseFlow.test.ts`/`partyFlow.test.ts`. */
 function makeHarness(party: Combatant[], possessions: Possession[] = []): { get: Get; set: Set } {
@@ -32,11 +33,13 @@ function makeHarness(party: Combatant[], possessions: Possession[] = []): { get:
     lieu: 'lieu-1',
     ecrireAuJournal: () => {},
     net: initialNet(),
+    prochainId: 1,
   } as unknown as JeuDuNoyau;
   const get: Get = () => state;
   const set: Set = (p) => {
     state = { ...state, ...(typeof p === 'function' ? p(state) : p) };
   };
+  state = { ...state, ...creerFabriqueDIds(get, set as never) };
   return { get, set };
 }
 
@@ -85,7 +88,7 @@ const mule = (ownerId: string): Omit<BetePossession, 'uid'> => ({
 });
 
 describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
-  it('ajouterLaPossession attribue pos-1 puis pos-2 par scan du registre', () => {
+  it('ajouterLaPossession attribue pos-1 puis pos-2 par le compteur de l’état (#2907)', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
     const uid1 = ajouterLaPossession(get, set, mule('h1'));
     const uid2 = ajouterLaPossession(get, set, mule('h1'));
@@ -94,7 +97,7 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
     expect(get().possessions).toHaveLength(2);
   });
 
-  it('anti-collision par SCAN : pos-1 encore présent → un 3e ajout prend pos-3, jamais pos-1', () => {
+  it('anti-collision : pos-1 encore présent → un 3e ajout prend pos-3, jamais pos-1', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
     ajouterLaPossession(get, set, mule('h1')); // pos-1
     ajouterLaPossession(get, set, mule('h1')); // pos-2
@@ -102,14 +105,14 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
     expect(uid3).toBe('pos-3');
   });
 
-  it('anti-collision par SCAN : pos-1 retiré du registre → le prochain ajout reste au-delà du max restant', () => {
+  it('anti-collision : pos-1 retiré du registre → le prochain ajout ne le réutilise pas', () => {
     const { get, set } = makeHarness([makeHero('h1')]);
     ajouterLaPossession(get, set, mule('h1')); // pos-1
     ajouterLaPossession(get, set, mule('h1')); // pos-2
     // pos-1 retiré directement (simule une consommation externe du registre)
     set((s) => ({ possessions: s.possessions.filter((p) => p.uid !== 'pos-1') }));
     const uid3 = ajouterLaPossession(get, set, mule('h1'));
-    expect(uid3).toBe('pos-3'); // scanne le MAX (pos-2), pas un compteur qui réutiliserait pos-1
+    expect(uid3).toBe('pos-3');
   });
 
   it('renommerLaPossession pose le label d’instance', () => {
