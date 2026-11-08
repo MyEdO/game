@@ -2293,7 +2293,7 @@
     "label": "Récolte de pièces de créature",
     "cascade": "combat",
     "cle": "harvestCreature",
-    "template": "Réussite : vous reconnaissez les parties prisées — {encPlein} Enc de pièces prélevées. Échec : la quantité exploitable descend d’un cran — {encEchec} Enc.",
+    "template": "Réussite : vous reconnaissez les parties prisées — {encPlein} Enc de pièces prélevées. Échec : la quantité exploitable descend d’un cran par Degré d’échec, jusqu’à rien.",
     "form": "descripteur",
     "rule": {
       "id": "precieuses-entrailles",
@@ -2301,8 +2301,8 @@
     },
     "source": {
       "book": "zoo-imperial",
-      "page": 99,
-      "note": "ZI 13 l.314-316 — le moteur retire UN cran fixe à l'échec, le RAW en retire un PAR Degré d'échec : écart ouvert en #1136"
+      "page": 100,
+      "note": "ZI 13 l.320-322"
     }
   },
   {

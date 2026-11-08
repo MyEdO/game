@@ -18,6 +18,7 @@ import { fenetreDuButin } from './fenetreDuButin';
 import { intentAllowedFor } from './netOwnership';
 import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { t } from '../i18n';
+import { findCreatureById } from '../data';
 
 let banc: Banc;
 const g = () => banc.getState();
@@ -106,6 +107,39 @@ describe('victory.depecer : le dépeçage est un choix de la victoire, à l’h�
     expect(reglageDuChoixDeFenetre(g(), 'victory', 'depecer').valeurs).toEqual([{ valeur: 'griffon', libelle: 'Griffon', refus: t('eff.dejaDepecee') }]);
     g().fenetreChoisir('victory', 'depecer', 'griffon');
     expect([dernier(), g().pendingVictory?.harvested]).toEqual([t('eff.dejaDepecee'), ['griffon']]);
+  });
+});
+
+describe('victory.depecer : la récolte suit le DR du jet, et le récolteur sa meilleure Compétence admise (ZI 13 l.320-322)', () => {
+  /** Dépèce `creatureId`, puis valide le jet ouvert à `roll` contre `target` : les pièces que reçoit la fenêtre du butin. */
+  function recolter(creatureId: string, roll: number, target: number, h: Combatant = heros('a', { skills: [{ id: 'savoir', spec: 'betes-sauvages', characteristic: 'intelligence', advances: 10 }] as never })) {
+    banc.setState({ party: [h], pendingVictory: victoire({ defeated: [{ label: 'X', count: 1, creatureId }] }) } as never);
+    g().fenetreChoisir('victory', 'depecer', creatureId);
+    const pt = g().pendingTest!;
+    const sl = Math.floor(target / 10) - Math.floor(roll / 10);
+    banc.setState({ pendingTest: { ...pt, roll, target, success: roll <= target, sl } });
+    g().jetValider('test');
+    return (g().pendingLoot?.gear ?? []).map((l) => l.label);
+  }
+  const pieces = (creatureId: string, enc: number) => t('eff.harvestPart', { creature: findCreatureById(creatureId)!.label, enc });
+
+  it('Énorme à −2 DR : 2 Enc', () => {
+    expect(recolter('dragon-de-la-foret', 52, 30)).toEqual([pieces('dragon-de-la-foret', 2)]);
+  });
+
+  it('un échec à DR 0 : la pleine quantité', () => {
+    expect(recolter('dragon-de-la-foret', 35, 30)).toEqual([pieces('dragon-de-la-foret', 8)]);
+  });
+
+  it('assez de Degrés d’échec : rien à prélever', () => {
+    expect(recolter('griffon', 99, 30)).toEqual([]);
+  });
+
+  it('une créature venimeuse : le récolteur joue Métier (Empoisonneur), sa meilleure Compétence admise', () => {
+    const empoisonneur = heros('a', { skills: [{ id: 'savoir', spec: 'betes-sauvages', characteristic: 'intelligence', advances: 5 }, { id: 'metier', spec: 'empoisonneur', characteristic: 'dexterite', advances: 30 }] as never });
+    banc.setState({ party: [empoisonneur], pendingVictory: victoire({ defeated: [{ label: 'Vouivre', count: 1, creatureId: 'vouivre' }] }) } as never);
+    g().fenetreChoisir('victory', 'depecer', 'vouivre');
+    expect(g().pendingTest?.sujet).toEqual({ skill: { id: 'metier', spec: 'empoisonneur' } });
   });
 });
 

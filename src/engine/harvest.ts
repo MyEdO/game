@@ -9,6 +9,8 @@ import { findCreatureById, tailleDuProfil } from '../data';
 import { fromBrass, type Money, PA_PER_SC, PA_PER_CO } from './money';
 import type { TraitsDesignes } from './statEntry';
 import { type SizeCategory } from './size';
+import type { TestDesigne } from './skills';
+import { hasTraitKey } from './traits/dispatch';
 
 export type Rarity = HarvestRarity;
 export type Danger = HarvestDanger;
@@ -56,6 +58,21 @@ export function harvestSizeOf(creature: { traits?: TraitsDesignes; talents?: rea
   return HARVEST_SIZE_BY_CATEGORY[tailleDuProfil(creature)];
 }
 
+/** Savoir (Bêtes) : la spécialité des bêtes de `skills.json`. */
+const SAVOIR_BETES: TestDesigne = { skill: { id: 'savoir', spec: 'betes-sauvages' } };
+const SAVOIR_REMEDES: TestDesigne = { skill: { id: 'savoir', spec: 'remedes' } };
+const METIER_EMPOISONNEUR: TestDesigne = { skill: { id: 'metier', spec: 'empoisonneur' } };
+const SAVOIR_MAGIE: TestDesigne = { skill: { id: 'savoir', spec: 'magie' } };
+
+/** Le Test qu'ouvre un Trait de la créature, par id : vénéneuse ou venimeuse se lit au Trait `venin`, « mystique » au
+ *  Trait `magique` (lecture d'ingénierie de l'orchestrateur). ZI 13 l.322 */
+const TEST_PAR_TRAIT: Readonly<Record<string, TestDesigne>> = { venin: METIER_EMPOISONNEUR, magique: SAVOIR_MAGIE };
+
+/** Les Tests qui reconnaissent les pièces de `creature`. ZI 13 l.322 */
+export function testsDeRecolte(creature: { traits?: TraitsDesignes }): TestDesigne[] {
+  return [SAVOIR_BETES, SAVOIR_REMEDES, ...Object.entries(TEST_PAR_TRAIT).flatMap(([trait, test]) => (hasTraitKey(creature.traits, trait) ? [test] : []))];
+}
+
 /** Coût de base d'1 Enc de pièces de cette créature = rareté × dangerosité. */
 export function costPerEnc(p: HarvestProfile): Money {
   return fromBrass(RARITY_BASE[p.rarity] * DANGER_MULT[p.danger]);
@@ -71,9 +88,8 @@ export interface HarvestResult {
 }
 
 /**
- * Récolte des pièces d'un cadavre.
- * @param savoirDR  DR du Test de Savoir (Bêtes/Remèdes/Magie). ≥0 = réussite (quantité pleine) ;
- *                  chaque DR négatif retire 1 cran sur l'échelle de Taille.
+ * Récolte des pièces d'un cadavre. ZI 13 l.307-313, l.320-321
+ * @param savoirDR  DR du Test de reconnaissance des pièces (`testsDeRecolte`), réussi ou non.
  */
 export function harvestYield(
   p: HarvestProfile,
@@ -81,9 +97,8 @@ export function harvestYield(
   savoirDR: number,
   conservation: Conservation = 'frais',
 ): HarvestResult {
-  let idx = SIZE_LADDER.indexOf(size);
-  if (savoirDR < 0) idx = Math.max(0, idx + savoirDR); // un cran de moins par DR d'échec
-  const enc = SIZE_QTY[SIZE_LADDER[idx]];
+  const idx = SIZE_LADDER.indexOf(size) + Math.min(0, savoirDR);
+  const enc = idx < 0 ? 0 : SIZE_QTY[SIZE_LADDER[idx]];
   const perEncBrass = RARITY_BASE[p.rarity] * DANGER_MULT[p.danger];
   // Pourri : seules les pièces Exotiques/Uniques conservent de la valeur.
   const noValue = conservation === 'pourri' && p.rarity !== 'exotique' && p.rarity !== 'unique';
