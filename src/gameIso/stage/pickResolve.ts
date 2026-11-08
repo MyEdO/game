@@ -13,7 +13,7 @@
 import { isWalkable, liftDe, type Scene } from '../../noyau/monde/scene';
 import { metricToLift } from '../../noyau/monde/relief';
 import { memoByRef } from '../../noyau/monde/sceneMemo';
-import { decorEnCaseEtage } from '../../noyau/monde/decorIndex';
+import { decorsEnCaseEtage } from '../../noyau/monde/decorIndex';
 import { resolveCursorZ } from '../../state/combatCursor';
 import { walkNeighbors, type Pt } from '../../noyau/monde/path';
 import { sceneAUnPropVolumique } from '../builders/props';
@@ -160,7 +160,7 @@ export function meubleDessine(scene: Scene, cadre: CadreDePick, g: PointStage, z
     // PREMIÈRE case dessinée sous le pixel (lift le plus haut) : c'est celle qu'on VOIT, et elle
     // décide seule — porte-t-elle un meuble ou non. Continuer à sonder les lifts plus bas
     // rendrait un meuble d'AILLEURS, la maladie même qu'on soigne.
-    const meuble = decorEnCaseEtage(scene, x, y, z);
+    const meuble = decorsEnCaseEtage(scene, x, y, z)[0];
     return meuble ? { x: meuble.pos.x, y: meuble.pos.y, z } : null;
   }
   return null;

@@ -151,6 +151,8 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['cle-inconnue', '`selon` d’un Trait naval, qui n’est pas une Amélioration', manifeste('vehicule', { selon: { robuste: {} } })],
   ['forme', '`postes` au `selon` d’une pièce d’Amélioration, qui n’offre pas de postes', manifeste('amelioration', { selon: { sabord: { postes: {} } } })],
   ['bord-inconnu', 'poste d’une Amélioration à un bord qui n’en est pas un', manifeste('vehicule', { selon: { sabord: { postes: { flanc: [[3, 0.3, 0]] } } } })],
+  ['champ-hors-categorie', '`clips` sur un décor', manifeste('decor', { clips: { idle: 'repos' } })],
+  ['forme', 'clip qui n’est pas un nom', manifeste('vehicule', { clips: { ranged: 3 } })],
   ['selon-absent', 'nœud `sans-sabord` sans `selon.sabord`', ...surGlb('vehicule', { surfaces: [{ nom: 'metal', palette: 'metal' }] }, glbANoeuds(['coque', 'sans-sabord']))],
   ['forme', 'surface sans emplacement de palette', manifeste('rigide', { surfaces: [{ nom: 'plaque', teinte: true }] })],
   ['palette-inconnue', 'clé de palette inconnue', manifeste('trait', { surfaces: [{ nom: 'peau', palette: 'or' }] })],

@@ -28,20 +28,30 @@ describe('appliquerOutil — un outil appliqué à une case', () => {
     expect(out?.sel).toBeUndefined();
   });
 
-  it('la pose d’un décor le désigne ; sur une entité déjà posée, l’outil la désigne sans rien écrire', () => {
+  it('l’outil décor pose toujours, même sur une case occupée, et désigne ce qu’il pose ; l’outil personnage désigne ce qui est déjà là', () => {
     const outil = { mode: 'entity', kind: 'prop', ref: 'tonneau' } as const;
     const pose = appliquerOutil(vide(), outil, { x: 1, y: 1 }, GESTE)!;
     expect(pose.scene.entities).toHaveLength(1);
     expect(pose.sel).toEqual({ type: 'entity', id: pose.scene.entities[0].id });
     const encore = appliquerOutil(pose.scene, outil, { x: 1, y: 1 }, GESTE)!;
-    expect(encore.scene).toBe(pose.scene);
-    expect(encore.sel).toEqual(pose.sel);
+    expect(encore.scene.entities).toHaveLength(2);
+    expect(encore.sel).toEqual({ type: 'entity', id: encore.scene.entities[1].id });
+    const pnj = appliquerOutil(encore.scene, { mode: 'entity', kind: 'personnage', ref: 'mutant' }, { x: 1, y: 1 }, GESTE)!;
+    expect(pnj.scene).toBe(encore.scene);
   });
 
   it('l’outil de rencontre pose un ennemi et rend la rencontre qu’il a complétée', () => {
     const out = appliquerOutil(vide(), { mode: 'encounter' }, { x: 3, y: 2 }, GESTE)!;
     expect(out.encId).toBe(out.scene.encounters[0].id);
     expect(out.sel).toEqual({ type: 'entity', id: out.scene.encounters[0].members![0].entityId });
+  });
+
+  it('l’outil de rencontre sur un décor pose un ennemi à côté de lui, sans enrôler le décor', () => {
+    const tonneau = appliquerOutil(vide(), { mode: 'entity', kind: 'prop', ref: 'tonneau' }, { x: 3, y: 2 }, GESTE)!.scene;
+    const out = appliquerOutil(tonneau, { mode: 'encounter' }, { x: 3, y: 2 }, GESTE)!;
+    const membre = out.scene.entities.find((e) => e.id === out.scene.encounters[0].members![0].entityId)!;
+    expect(membre.kind).toBe('personnage');
+    expect(out.scene.entities).toHaveLength(2);
   });
 
   it('l’outil murs exige l’arête visée, et bascule le mur de cette arête', () => {

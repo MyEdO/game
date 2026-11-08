@@ -1,0 +1,13 @@
+{
+  "model": "vehicule--catapulte-petite.glb",
+  "model_sha256": "70b96264a4ddec54c529d62700006c8aeecffa81718de0cd60a2e3612e5ff6f1",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

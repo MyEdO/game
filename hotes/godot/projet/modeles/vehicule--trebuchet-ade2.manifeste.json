@@ -1,0 +1,41 @@
+{
+  "schema": 3,
+  "categorie": "vehicule",
+  "cle": {
+    "definition": "trebuchet-ade2"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "clips": {
+    "idle": "repos",
+    "walk": "marche",
+    "ranged": "tir"
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "corde",
+      "palette": "cuir",
+      "matiere": "prop--corde"
+    },
+    {
+      "nom": "cuir",
+      "palette": "cuir",
+      "matiere": "prop--cuir-tanne"
+    }
+  ],
+  "glb": {
+    "sha256": "956e46ef35bf4529080aca5be0c2164df27e3648eedc95261b68af6f897813e0",
+    "octets": 59004
+  }
+}

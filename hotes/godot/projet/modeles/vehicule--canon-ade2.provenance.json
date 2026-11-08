@@ -1,0 +1,13 @@
+{
+  "model": "vehicule--canon-ade2.glb",
+  "model_sha256": "7cd8ed88aba0a734b91da27f5820ae17a18f9aec68a9f0f873c6b3e394609ab2",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

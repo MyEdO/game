@@ -13,7 +13,8 @@
  * son Amélioration offre, où elle montre son nœud `ouvert` si une pièce y est montée, `ferme` sinon (#2987). Un véhicule
  * ou une pièce d'Amélioration dit, `selon` une Amélioration montée, ce qui change : ses nœuds `avec-<amelioration>`
  * (`noeudSelon`), montrés seulement quand elle est montée, `sans-<amelioration>` seulement quand elle ne l'est pas, et,
- * pour un véhicule, les postes qu'elle offre, qui remplacent ceux de chaque bord qu'elle nomme (MDG p.97, Sabord).
+ * pour un véhicule, les postes qu'elle offre, qui remplacent ceux de chaque bord qu'elle nomme (MDG p.97, Sabord). Un
+ * véhicule s'anime de ses `clips` : par rôle d'animation, le clip du GLB qu'il joue, comme une base.
  */
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, FIRE_ARCS, matieresDeDecor, type CodeDEcartDeCle, type FireArc } from '../../../src/noyau/index.ts';
@@ -22,6 +23,7 @@ import { estListeDeChaines, estRepere, estTriplet, type Attache, type Repere } f
 import { EMPREINTE, sha256 } from './empreinte.ts';
 import type { ContenuGlb } from './glb.ts';
 import type { ManifesteDeBase } from './manifesteDeBase.ts';
+import type { TableDeClips } from './clips.ts';
 
 const VERSION_DU_SCHEMA_D_ELEMENT = 3;
 
@@ -61,10 +63,13 @@ interface RegleDeCategorie {
   readonly base: boolean;
   /** L'élément tenu peut déclarer, dans le repère de sa prise, celle de la main libre (`liaison.secondePrise`, #3319). */
   readonly secondePrise: boolean;
+  /** L'élément s'anime : par rôle d'animation, le nom de son clip dans le GLB (`TableDeClips`, jugée par `ecartsDeClips`
+   *  dans le graphe de l'hôte). */
+  readonly clips: boolean;
 }
 
-const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, postes: false, ancrages: false, montage: false, selon: false, base: true, secondePrise: false } as const;
-const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, postes: false, ancrages: false, montage: false, selon: false, base: true, secondePrise: false } as const;
+const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, postes: false, ancrages: false, montage: false, selon: false, base: true, secondePrise: false, clips: false } as const;
+const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, postes: false, ancrages: false, montage: false, selon: false, base: true, secondePrise: false, clips: false } as const;
 
 /** Les règles de chaque catégorie, seule source du type `ManifesteDElement` et de `validerElement`. */
 export const REGLES_DES_CATEGORIES = {
@@ -77,7 +82,7 @@ export const REGLES_DES_CATEGORIES = {
   rigide: { ...RIGIDE, cle: ['apparence'], secondePrise: true },
   trait: { ...SKINNE, cle: ['trait'] },
   decor: { ...RIGIDE, cle: ['prop'], base: false },
-  vehicule: { ...RIGIDE, cle: ['definition'], postes: true, ancrages: true, selon: true, base: false },
+  vehicule: { ...RIGIDE, cle: ['definition'], postes: true, ancrages: true, selon: true, base: false, clips: true },
   amelioration: { ...RIGIDE, cle: ['amelioration'], montage: true, selon: true, base: false },
 } as const satisfies Record<string, RegleDeCategorie>;
 
@@ -115,6 +120,7 @@ type ChampsDe<C extends CategorieDElement> = (Regles[C]['base'] extends true ? {
   & (Regles[C]['postes'] extends true ? { readonly postes?: Postes } : Rien)
   & (Regles[C]['ancrages'] extends true ? { readonly ancrages?: Readonly<Record<string, readonly Triplet[]>> } : Rien)
   & (Regles[C]['montage'] extends true ? { readonly montage: Montage } : Rien)
+  & (Regles[C]['clips'] extends true ? { readonly clips?: TableDeClips } : Rien)
   & (Regles[C]['selon'] extends true ? { readonly selon?: Readonly<Record<string, Regles[C]['postes'] extends true ? { readonly postes?: Postes } : Rien>> } : Rien);
 
 export type ManifesteDElement = {
@@ -188,7 +194,7 @@ export function validerElement(brut: unknown, base: BaseDUnElement | null, octet
     ...(regle.base ? ['base'] : []), ...(regle.couches ? ['couche'] : []), ...(regle.couvre === 'interdit' ? [] : ['couvre']),
     ...(regle.chaines ? ['chaines'] : []), ...(regle.emplacements ? ['emplacements'] : []), ...(regle.silhouettes ? ['silhouettes'] : []),
     ...(regle.postes ? ['postes'] : []), ...(regle.ancrages ? ['ancrages'] : []), ...(regle.montage ? ['montage'] : []),
-    ...(regle.selon ? ['selon'] : []),
+    ...(regle.selon ? ['selon'] : []), ...(regle.clips ? ['clips'] : []),
   ];
   const admis = new Set<string>([...CHAMPS_COMMUNS, ...optionnels]);
   for (const champ of Object.keys(brut)) if (!admis.has(champ)) refus('champ-hors-categorie', champ, `un élément \`${categorie}\` ne porte pas \`${champ}\``);
@@ -281,6 +287,10 @@ export function validerElement(brut: unknown, base: BaseDUnElement | null, octet
       for (const e of ecartsDeCleDElement('amelioration', { amelioration })) refus(e.code, `ancrages.${amelioration}`, e.detail);
       if (!(Array.isArray(positions) && positions.every(estTriplet))) refus('forme', `ancrages.${amelioration}`, 'liste de triplets de nombres attendue');
     }
+  }
+
+  if (regle.clips && brut.clips !== undefined) {
+    if (!estObjet(brut.clips) || !Object.values(brut.clips).every((nom) => typeof nom === 'string' && nom !== '')) refus('forme', 'clips', 'objet rôle → nom de clip non vide attendu');
   }
 
   if (regle.montage && brut.montage !== undefined) {
