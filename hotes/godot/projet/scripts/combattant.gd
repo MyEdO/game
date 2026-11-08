@@ -74,27 +74,30 @@ func corps() -> Dictionary:
 	return {base = null if _montage.modele == null else _montage.base.id, elements = _montage.montes.values(), emblemes = _montage.emblemes.duplicate(), couleurs = _montage.couleurs_posees(), vehicule = _element_du_vehicule}
 
 
-## La scène `scene` d'un véhicule, enfant d'un nœud à la case de son combattant, posée sur ses `empreinte` × `empreinte`
-## cases, depuis cette case, son coin nord-ouest (`footprintTiles`, #2987) : sa plus grande dimension horizontale vaut
-## l'empreinte (`MiseEnPage.echelle_d_empreinte`), sa boîte centrée sur elle, son origine au sol.
+## La scène `scene` d'un véhicule, dans l'arbre sous un nœud à la case de son combattant, posée sur ses `empreinte` ×
+## `empreinte` cases, depuis cette case, son coin nord-ouest (`footprintTiles`, #2987) : sa plus grande dimension
+## horizontale vaut l'empreinte (`MiseEnPage.echelle_d_empreinte`), sa boîte centrée sur elle
+## (`MiseEnPage.origine_sur_l_empreinte`), son origine au sol.
 static func poser_sur_l_empreinte(scene: Node3D, empreinte: int) -> void:
-	var boite: AABB = _boite(scene, scene.transform)
+	var boite: AABB = _boite(scene, scene.get_parent_node_3d())
 	var echelle := MiseEnPage.echelle_d_empreinte(boite.size, empreinte)
-	var centre := boite.get_center() * echelle
-	var milieu := (empreinte - 1) * MiseEnPage.DEMI_CASE
-	scene.transform = Transform3D(Basis.from_scale(Vector3.ONE * echelle), Vector3(milieu - centre.x, 0.0, milieu - centre.z)) * scene.transform
+	scene.transform = scene.transform.scaled(Vector3(echelle, echelle, echelle)).translated(MiseEnPage.origine_sur_l_empreinte(boite.get_center(), echelle, empreinte))
 
 
-## La boîte des meshes sous `noeud`, dans le repère où `noeud` se pose par `repere` ; `null` sans mesh.
-static func _boite(noeud: Node, repere: Transform3D) -> Variant:
+## La boîte des meshes sous `noeud`, dans le repère de `dans`, son ancêtre : celle des huit coins de chacun
+## (`AABB.expand`) ; `null` sans mesh.
+static func _boite(noeud: Node, dans: Node3D) -> Variant:
 	var boite: Variant = null
 	if noeud is MeshInstance3D and (noeud as MeshInstance3D).mesh != null:
-		boite = repere * (noeud as MeshInstance3D).get_aabb()
+		var piece := noeud as MeshInstance3D
+		var locale := piece.get_aabb()
+		for coin in range(8):
+			var point := dans.to_local(piece.to_global(locale.get_endpoint(coin)))
+			boite = AABB(point, Vector3.ZERO) if boite == null else (boite as AABB).expand(point)
 	for enfant in noeud.get_children():
-		if enfant is Node3D:
-			var sous: Variant = _boite(enfant, repere * (enfant as Node3D).transform)
-			if sous != null:
-				boite = sous if boite == null else (boite as AABB).merge(sous)
+		var sous: Variant = _boite(enfant, dans)
+		if sous != null:
+			boite = sous if boite == null else (boite as AABB).merge(sous)
 	return boite
 
 
