@@ -326,19 +326,17 @@ function rendu() {
   out += `(\`user-arbitrage-de-de-monde-affiche-comme-un-critique\`, #1508). Ce qui suit est donc une\n`
   out += `**dette à cible zéro**, pas un registre d'équilibre.\n\n`
   out += `Un SITE = un appel **où le dé tombe** : une primitive de \`engine/dice\` IMPORTÉE dans ce fichier, un\n`
-  out += `\`.int(\` de RNG, ou un export de \`src/engine\` derrière lequel le dé tombe **sans franchir d'autre\n`
-  out += `frontière exportée** (\`engineDiceRollers\` : corps de l'export, ou helper module-local qu'il appelle —\n`
-  out += `\`rollStock\` → \`fullStock\` → \`rollDice\`, \`rollEyes\` → \`rollDetail\` → \`roll\`). La clôture\n`
-  out += `transitive COMPLÈTE, elle, remonterait jusqu'aux helpers génériques (\`createHero\`, \`contractDisease\`,\n`
-  out += `\`spellRangeTiles\`, \`zdeRadiusTiles\`, \`durationClockMinutes\`…) : 423 sites « où un dé pourrait tomber »\n`
-  out += `au lieu de ceux où il tombe, et un stock qui ne peut plus descendre à zéro.\n`
+  out += `\`.int(\` de RNG, ou un export de \`src/engine\` derrière lequel le dé tombe (\`engineDiceRollers\` : corps\n`
+  out += `de l'export, helper module-local ou autre export du moteur qu'il appelle — \`rollStock\` → \`fullStock\` →\n`
+  out += `\`rollDice\`, \`tirerLesDetails\` → \`rollAge\` → \`rollDice\`). Le moteur n'est pas scanné : l'appel consommateur\n`
+  out += `de l'export qui compose est le seul site où ce dé se voit (#3725).\n`
   out += `Périmètre : hors \`src/engine/**\` et hors \`ROLL_SEAM_CORE\`.\n\n`
   out += `| Fichier | Sites | Nature | Primitives / rouleurs appelés | Justification |\n|---|---|---|---|---|\n`
   for (const [rel, dec] of DES_HORS_PORTE_STOCK) {
     const noms = [...new Set(desHorsPorte.get(rel).map((s) => s.name))].sort()
     out += `| \`${rel}\` | ${dec.n} | ${dec.kind} | ${noms.map((n) => `\`${n}\``).join(', ')} | ${esc(dec.why)} |\n`
   }
-  out += `\n_${total(desHorsPorte)} dés mesurés dans ${desHorsPorte.size} fichiers, pour ${exportsQuiTirent.size} exports de \`src/engine\` derrière lesquels un dé tombe sans franchir d'autre frontière exportée — par nature : ${parNature(DES_HORS_PORTE_STOCK)}._\n\n`
+  out += `\n_${total(desHorsPorte)} dés mesurés dans ${desHorsPorte.size} fichiers, pour ${exportsQuiTirent.size} exports de \`src/engine\` derrière lesquels un dé tombe — par nature : ${parNature(DES_HORS_PORTE_STOCK)}._\n\n`
 
   // --- population authorée ---
   out += `## Population AUTHORÉE (donnée, pas code)\n\n`

@@ -1135,30 +1135,40 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
   });
 
   /**
-   * MORSURE DU HELPER PRIVÉ — le dé ne tombe pas dans le corps de l'export, mais dans un helper
-   * MODULE-LOCAL qu'il appelle : c'est la forme RÉELLE de `merchantFlow.rollStock` → `fullStock` →
-   * `rollDice` et de `rollEyes`/`rollHair` → `rollDetail` → `roll`.
-   * Un critère à UN SAUT les rendait invisibles (10 sites réels, dont `merchantFlow.ts` en entier —
-   * que `ENGINE_DELEGATED_ROLL_STOCK` classait pourtant déjà en dette : deux stocks du même dé ne
-   * peuvent pas se contredire). La frontière est l'EXPORT, pas le nombre de sauts.
+   * MORSURE DE LA COMPOSITION — le dé ne tombe pas dans le corps de l'export appelé, mais derrière un
+   * helper MODULE-LOCAL (`merchantFlow.rollStock` → `fullStock` → `rollDice`) ou derrière un AUTRE
+   * export du moteur (`creation.tirerLesDetails` → `rollAge`, `pnjDeCarriere.argentDuPnj` →
+   * `statusIncome`, d'un module à l'autre). Le moteur n'est pas scanné : l'appel consommateur de
+   * l'export composé est le seul site où ce dé se voit (#3725).
    */
-  it('MORSURE : un dé derrière un helper PRIVÉ du moteur entre dans la clôture — et un export intermédiaire l’ARRÊTE', () => {
-    const moteur = [{
-      rel: 'src/engine/combat.ts',
-      text: [
-        "import { roll } from './dice';",
-        'function tirageInterne(rng) { return roll(2, 10, rng); }', // helper MODULE-LOCAL
-        'export function magnitudeCachee(rng) { return tirageInterne(rng); }',
-        'export function viaExport(rng) { return magnitudeCachee(rng); }', // franchit une frontière EXPORTÉE
-      ].join('\n'),
-    }];
+  it('MORSURE : un export qui compose un export tireur entre dans la clôture, et son appelant consommateur est compté', () => {
+    const moteur = [
+      {
+        rel: 'src/engine/combat.ts',
+        text: [
+          "import { roll } from './dice';",
+          'function tirageInterne(rng) { return roll(2, 10, rng); }', // helper MODULE-LOCAL
+          'export function magnitudeCachee(rng) { return tirageInterne(rng); }',
+        ].join('\n'),
+      },
+      {
+        rel: 'src/engine/creation.ts',
+        text: [
+          "import { magnitudeCachee } from './combat';",
+          'export function composeLesTirages(rng) { return [magnitudeCachee(rng), magnitudeCachee(rng)]; }', // export tireur d'un AUTRE module
+          'export function lectureSansDe(n) { return n * 2; }',
+        ].join('\n'),
+      },
+    ];
     const rouleurs = engineDiceRollers(moteur);
-    const exports = rouleurs['src/engine/combat.ts'];
-    expect(exports, 'le dé tombe derrière un helper privé : l’export compte').toContain('magnitudeCachee');
-    expect(exports, 'son appelant franchit une frontière EXPORTÉE : il ne contamine plus').not.toContain('viaExport');
-    expect(exports, 'un helper non exporté n’est pas un site d’appel visible').not.toContain('tirageInterne');
-    const appelant = "import { magnitudeCachee } from '../engine/combat';\nexport function f(rng) { return magnitudeCachee(rng); }\n";
-    expect(scanDesHorsPorte('src/state/x.ts', appelant, rouleurs).map((s) => s.name)).toEqual(['magnitudeCachee']);
+    expect(rouleurs['src/engine/combat.ts'], 'le dé tombe derrière un helper privé : l’export compte, le helper n’est pas un site visible').toEqual(['magnitudeCachee']);
+    expect(rouleurs['src/engine/creation.ts'], 'il compose un export tireur : il compte, son voisin sans dé non').toEqual(['composeLesTirages']);
+    const appelant = [
+      "import { composeLesTirages } from '../engine/creation';",
+      "import { magnitudeCachee } from '../engine/combat';",
+      'export function f(rng) { return [...composeLesTirages(rng), magnitudeCachee(rng)]; }',
+    ].join('\n');
+    expect(scanDesHorsPorte('src/state/x.ts', appelant, rouleurs).map((s) => s.name), 'chaque appel consommateur d’un export tireur est un site').toEqual(['composeLesTirages', 'magnitudeCachee']);
   });
 
   it('ALIAS résolu : `import { roll as rollDice }` compte sous son nom D’ORIGINE, et un alias inconnu ne se perd plus', () => {
