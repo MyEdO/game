@@ -309,8 +309,8 @@ const ghReel: Gh = (args) => {
   return { status: r.error ? null : r.status, stdout: r.stdout ?? '', stderr: r.error ? r.error.message : (r.stderr ?? '') };
 };
 
-/** Verse dans la Release `TAG` (créée au premier appel, en préversion) les `assets` qu'elle ne porte pas encore. Rend les
- *  noms versés ; lève, avant tout versement, sur un fichier dont l'empreinte n'est pas celle de son nom, et, avec la
+/** Verse dans la Release `TAG` (créée au premier appel, en préversion) les `assets` qu'elle ne porte pas encore, une fois
+ *  par nom (plusieurs modèles peuvent partager un GLB). Rend les noms versés ; lève, avant tout versement, sur un fichier dont l'empreinte n'est pas celle de son nom, et, avec la
  *  sortie de `gh`, à son premier échec. */
 export function publierAssets(assets: readonly AssetAPublier[], gh: Gh = ghReel): readonly string[] {
   const appeler = (args: readonly string[]) => {
@@ -325,7 +325,7 @@ export function publierAssets(assets: readonly AssetAPublier[], gh: Gh = ghReel)
     appeler(['release', 'create', TAG, '--repo', DEPOT, '--prerelease', '--latest=false', '--title', 'Modèles 3D', '--notes', 'Modèles 3D du projet Godot, nommés par leur SHA-256 (#2948). Chaque fichier est épinglé par la provenance commitée hotes/godot/projet/modeles/<id>.provenance.json.']);
     presents = new Set();
   } else throw new Error(`gh release view ${TAG} : code ${String(vue.status)}\n${vue.stderr.trim()}`);
-  const aVerser = assets.filter((a) => !presents.has(a.nom));
+  const aVerser = [...new Map(assets.filter((a) => !presents.has(a.nom)).map((a) => [a.nom, a])).values()];
   if (!aVerser.length) return [];
   for (const a of aVerser) {
     const empreinte = sha256(readFileSync(a.chemin));
