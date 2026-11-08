@@ -1811,7 +1811,6 @@ export const fr = {
   'cs.pickup': '{name} ramasse : {label}.',
   'cs.freeAttack': "{name} : attaque d'arme libre (Action préservée).",
   'cs.combatStart': 'Le combat commence ! (Round 1)',
-  'cs.surprised': '{name} est Surpris : ni Mouvement ni Action ce tour (Détermination possible).',
   'cs.stateLockFlee': '{name} est {etat} : il ne peut que fuir ou puiser dans sa Détermination.',
   'cs.useConsumable': '{name} utilise : {item}.',
   'cs.horsDuTour': 'Ce n’est pas le tour de {name}.',

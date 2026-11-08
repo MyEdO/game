@@ -69,7 +69,7 @@ import { teamCommandTargets } from './monde/commandTeam';
 import { isConsumable } from '../engine/consumables';
 import { refusDeConsommer, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, peutEntrerEnFrenesie, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, refusDeDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
+import { isOutOfAction, addCondition, removeCondition, canTakeAction, peutEntrerEnFrenesie, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, refusDeDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
 import { raisonDeModeDeSoinEnCombat, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, applyHealWounds, soinDOuverture, refusDuTestDeSoin, difficulteDuSoin, actePanse, retirerUnBandage, IDS_DU_TEST_DE_SOIN, type HealMode } from '../engine/healing';
 import { jetDuSoigneur, refusDesBandages, refusDuModeDuSoin, refusDuTestDuSoin } from './soin';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
@@ -1633,10 +1633,9 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!verrou.ok && a !== null) return void refuserGesteDuSiege(get, set, garanti(verrou.reason, 'hors-verrou-d-etat', 'refus du mode'));
       // Pas d'Action ce tour (Sonné LDB 16 l.125 / Surpris l.135 — lu en DONNÉES via `canTakeAction`/gating,
       // jamais une branche par-nom) ; les manœuvres gratuites (Se relever, Se désengager…) sont des slots
-      // DIRECTS qui n'appellent pas armerLeMode. Surpris : message dédié (UX).
-      if (a !== null && !canTakeAction(active)) {
-        return void refuserGesteDuSiege(get, set, hasCondition(active, COND.surpris) ? t('cs.surprised', { name: active.label }) : t('agate.unableToAct'));
-      }
+      // DIRECTS qui n'appellent pas armerLeMode.
+      const horsDEtat = a !== null ? refusHorsDEtatDAgir(active) : null;
+      if (horsDEtat) return void refuserGesteDuSiege(get, set, horsDEtat);
       // Quitter le mode incantation oublie le sort sélectionné. Le déplacement et l'attaque sont
       // implicites au clic (cliquerLaCaseDuCombat/cliquerLeCombattant), sans mode : le reachable stocké ne
       // porte que les budgets spéciaux (Course, post-Désengagement), on ne le touche pas ici.
