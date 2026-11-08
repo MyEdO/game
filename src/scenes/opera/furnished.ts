@@ -76,8 +76,8 @@ export function scenarioEntities(): SceneEntity[] {
     { id: 'foy-plante-2', kind: 'prop', ref: 'plante-pot', pos: { x: 32, y: 50 } },
     { id: 'foy-banc-g', kind: 'prop', ref: 'banc', pos: { x: 18, y: 51 } },
     { id: 'foy-banc-d', kind: 'prop', ref: 'banc', pos: { x: 25, y: 51 } },
-    { id: 'foy-app-g', kind: 'prop', ref: 'applique-murale', pos: { x: 2, y: 48 } },
-    { id: 'foy-app-d', kind: 'prop', ref: 'applique-murale', pos: { x: 41, y: 48 } },
+    { id: 'foy-app-g', kind: 'prop', ref: 'applique-murale', pos: { x: 2, y: 48 }, calage: { x: 0, y: -1 } },
+    { id: 'foy-app-d', kind: 'prop', ref: 'applique-murale', pos: { x: 41, y: 48 }, calage: { x: 0, y: -1 } },
 
     // 6 VESTIAIRE ET VENTE DES BILLETS (coins de la façade) : comptoir de billetterie. Face au NORD :
     // le public le borde depuis le foyer, le guichetier tient le vestiaire derrière lui (rangée 57).
@@ -211,17 +211,17 @@ export function scenarioEntities(): SceneEntity[] {
     // travée de `balustrade-loge` par case de RIVE, cap sur le puits — la liste vient de `puitsRim`, seule
     // lecture de l'ovale, et l'id de chaque travée est celui de sa case.
     ...puitsRim().map(({ x, y, facing }): SceneEntity => ({ id: `bal-${x}-${y}`, kind: 'prop', ref: 'balustrade-loge', pos: { x, y }, facing, z: 1 })),
-    { id: 'et-app-Lg1', kind: 'prop', ref: 'applique-murale', pos: { x: 2, y: 20 }, z: 1 },
-    { id: 'et-app-Lg2', kind: 'prop', ref: 'applique-murale', pos: { x: 2, y: 28 }, z: 1 },
-    { id: 'et-app-Rg1', kind: 'prop', ref: 'applique-murale', pos: { x: 41, y: 20 }, z: 1 },
-    { id: 'et-app-Rg2', kind: 'prop', ref: 'applique-murale', pos: { x: 41, y: 28 }, z: 1 },
+    { id: 'et-app-Lg1', kind: 'prop', ref: 'applique-murale', pos: { x: 2, y: 20 }, calage: { x: 0, y: -1 }, z: 1 },
+    { id: 'et-app-Lg2', kind: 'prop', ref: 'applique-murale', pos: { x: 2, y: 28 }, calage: { x: 0, y: -1 }, z: 1 },
+    { id: 'et-app-Rg1', kind: 'prop', ref: 'applique-murale', pos: { x: 41, y: 20 }, calage: { x: 0, y: -1 }, z: 1 },
+    { id: 'et-app-Rg2', kind: 'prop', ref: 'applique-murale', pos: { x: 41, y: 28 }, calage: { x: 0, y: -1 }, z: 1 },
 
     // 30 LOGE ROYALE (flanc GAUCHE, contre 32 Antichambre ducale) + 29 LOGE DES NOBLES (un flanc chacune).
     { id: 'royale-canape-g', kind: 'prop', ref: 'canape', pos: { x: 7, y: 3 }, facing: 'E', z: 1 },
     { id: 'royale-canape-d', kind: 'prop', ref: 'canape', pos: { x: 11, y: 3 }, facing: 'E', z: 1 },
     { id: 'royale-fauteuil', kind: 'prop', ref: 'fauteuil-loge', pos: { x: 9, y: 2 }, facing: 'E', z: 1 },
-    { id: 'royale-app-g', kind: 'prop', ref: 'applique-murale', pos: { x: 6, y: 1 }, z: 1 },
-    { id: 'royale-app-d', kind: 'prop', ref: 'applique-murale', pos: { x: 12, y: 1 }, z: 1 },
+    { id: 'royale-app-g', kind: 'prop', ref: 'applique-murale', pos: { x: 6, y: 1 }, calage: { x: 0, y: -1 }, z: 1 },
+    { id: 'royale-app-d', kind: 'prop', ref: 'applique-murale', pos: { x: 12, y: 1 }, calage: { x: 0, y: -1 }, z: 1 },
     { id: 'noble-g-1', kind: 'prop', ref: 'fauteuil-loge', pos: { x: 10, y: 7 }, facing: 'E', z: 1 },
     // Second fauteuil de chaque loge des nobles : la loge ne couvre PAS tout son rectangle (le puits en
     // mange le flanc) : il se pose sur une case de PLANCHER de la pièce, jamais sur le vide du puits.

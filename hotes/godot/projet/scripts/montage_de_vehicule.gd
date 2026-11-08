@@ -16,6 +16,10 @@ var postes: Array[String] = []
 var ameliorations: Array[String] = []
 ## La scène de l'élément posé, `null` sans élément, et ses meshes, relevés avant toute pièce.
 var scene: Node3D = null
+## Le lecteur des clips de l'élément posé, relevé avant toute pièce (`null` : aucun), et sa table rôle → clip (`clips` du
+## corps).
+var lecteur: AnimationPlayer = null
+var clips: Dictionary = {}
 var _meshes: Array[MeshInstance3D] = []
 ## Le dernier corps reçu, en JSON.
 var _recu := ""
@@ -29,7 +33,8 @@ var _chargement: RefCounted = null
 ## `placer` joué sur sa scène nue, avant toute pièce ; le GLB de chacune de ses pièces peint de la sienne et monté à son
 ## poste (`monter_au_poste`), le GLB de chacune de ses Améliorations peint de la palette du véhicule et monté à sa place
 ## (`monter_l_amelioration`), les nœuds que changent ses Améliorations cachés (`cacher_selon`). Chacun est peint avant
-## d'être monté : une pièce n'est pas habillée des surfaces du véhicule. Rend s'il a posé ce corps.
+## d'être monté : une pièce n'est pas habillée des surfaces du véhicule. Son lecteur de clips et sa table `clips` sont
+## retenus. Rend s'il a posé ce corps.
 func monter(vehicule: Variant, montage: MontageDeComposition, placer: Callable) -> bool:
 	var recu := JSON.stringify(vehicule)
 	if recu == _recu:
@@ -62,6 +67,10 @@ func monter(vehicule: Variant, montage: MontageDeComposition, placer: Callable) 
 	add_child(posee)
 	scene = posee
 	_meshes.assign(posee.find_children("*", "MeshInstance3D", true, false))
+	for candidat in posee.find_children("*", "AnimationPlayer", true, false):
+		lecteur = candidat as AnimationPlayer
+		break
+	clips = vehicule.clips
 	placer.call(posee)
 	for i in pieces.size():
 		if pieces[i] != null:
@@ -94,6 +103,8 @@ func _retirer() -> void:
 	for ancienne in get_children():
 		ancienne.queue_free()
 	scene = null
+	lecteur = null
+	clips = {}
 	_meshes.clear()
 	element = null
 	embleme = null

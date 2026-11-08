@@ -13,12 +13,13 @@
  * re-balaierait les mêmes empreintes ; la seconde vue est donc un second `Map` rempli dans la MÊME
  * passe.
  *
- * PRÉSÉANCE : deux décors sur une même case, c'est le PREMIER du tableau d'entités qui répond —
- * l'ordre du document, déterministe, le même dans les deux vues.
+ * PLUSIEURS DÉCORS sur une même case (un coffre calé contre le mur et un tonneau dans le coin, une lettre sur la table) :
+ * chaque vue les rend TOUS, dans l'ordre du document ; c'est au lecteur de dire lequel compte (l'opacité de l'un
+ * suffit, le pire couvert l'emporte, le plus proche du point visé se désigne).
  *
  * POURQUOI CET INDEX N'EST PAS CELUI DE LA MARCHABILITÉ (`sceneRules.ts`, `buildEntityBlockIndex`) :
- * le blocage est l'UNION des cases des décors qui passent la PORTE (`interact || solid`), l'étendue est le PREMIER décor du tableau — un index unique portant un drapeau rendrait
- * une case libre dès qu'un décor traversable en couvre un bloquant.
+ * le blocage est l'UNION des cases des décors qui passent la PORTE (`interact || solid`), une question fermée qu'un
+ * ensemble de clés tranche sans relire les décors.
  *
  * Mémoïsé par IDENTITÉ de `scene.entities` (patron `noyau/monde/sceneMemo.ts`), avec l'ÉCHELLE en
  * dépendance : l'empreinte d'un décor à recette en dépend (#1509), la même liste d'entités à une
@@ -30,9 +31,9 @@ import { sceneMetresPerTile, type Scene, type SceneEntity } from './scene';
 
 interface IndexDecor {
   /** Clé `x,y` — la vue COUVERTURE, SANS étage. */
-  parCase: ReadonlyMap<string, SceneEntity>;
+  parCase: ReadonlyMap<string, readonly SceneEntity[]>;
   /** Clé `x,y,z` — la vue COUVERTURE, PAR étage. */
-  parCaseEtage: ReadonlyMap<string, SceneEntity>;
+  parCaseEtage: ReadonlyMap<string, readonly SceneEntity[]>;
   /** Clé `x,y,z` — la vue ANCRAGE : TOUTES les entités dont la POSE tombe sur la case, dans l'ordre
    *  du document. */
   ancrees: ReadonlyMap<string, readonly SceneEntity[]>;
@@ -41,20 +42,21 @@ interface IndexDecor {
 const AUCUNE: readonly SceneEntity[] = Object.freeze([]); // #2097
 
 function bati(entities: readonly SceneEntity[], mpt: number): IndexDecor {
-  const parCase = new Map<string, SceneEntity>();
-  const parCaseEtage = new Map<string, SceneEntity>();
+  const parCase = new Map<string, SceneEntity[]>();
+  const parCaseEtage = new Map<string, SceneEntity[]>();
   const ancrees = new Map<string, SceneEntity[]>();
+  const ranger = (index: Map<string, SceneEntity[]>, cle: string, e: SceneEntity) => {
+    const deja = index.get(cle);
+    if (deja) deja.push(e);
+    else index.set(cle, [e]);
+  };
   for (const e of entities) {
     const z = e.z ?? 0;
-    const cleAncre = `${e.pos.x},${e.pos.y},${z}`;
-    const deja = ancrees.get(cleAncre);
-    if (deja) deja.push(e);
-    else ancrees.set(cleAncre, [e]);
+    ranger(ancrees, `${e.pos.x},${e.pos.y},${z}`, e);
     if (e.kind !== 'prop') continue;
     for (const t of propFootTiles(e.ref, e.pos, e.facing, mpt)) {
-      const cle = `${t.x},${t.y}`;
-      if (!parCase.has(cle)) parCase.set(cle, e);
-      if (!parCaseEtage.has(`${cle},${z}`)) parCaseEtage.set(`${cle},${z}`, e);
+      ranger(parCase, `${t.x},${t.y}`, e);
+      ranger(parCaseEtage, `${t.x},${t.y},${z}`, e);
     }
   }
   return { parCase, parCaseEtage, ancrees };
@@ -67,13 +69,13 @@ const indexDe = (scene: Scene): IndexDecor => {
   return index(scene.entities, [mpt], () => bati(scene.entities, mpt));
 };
 
-/** Le décor dont l'empreinte couvre la case (x, y), TOUS étages confondus. */
-export const decorEnCase = (scene: Scene, x: number, y: number): SceneEntity | undefined =>
-  indexDe(scene).parCase.get(`${x},${y}`);
+/** Les décors dont l'empreinte couvre la case (x, y), TOUS étages confondus, dans l'ordre du document. */
+export const decorsEnCase = (scene: Scene, x: number, y: number): readonly SceneEntity[] =>
+  indexDe(scene).parCase.get(`${x},${y}`) ?? AUCUNE;
 
-/** Le décor dont l'empreinte couvre la case (x, y) À l'étage `z`. */
-export const decorEnCaseEtage = (scene: Scene, x: number, y: number, z: number): SceneEntity | undefined =>
-  indexDe(scene).parCaseEtage.get(`${x},${y},${z}`);
+/** Les décors dont l'empreinte couvre la case (x, y) À l'étage `z`, dans l'ordre du document. */
+export const decorsEnCaseEtage = (scene: Scene, x: number, y: number, z: number): readonly SceneEntity[] =>
+  indexDe(scene).parCaseEtage.get(`${x},${y},${z}`) ?? AUCUNE;
 
 /** TOUTES les entités ANCRÉES sur la case (x, y, z) — toutes natures, dans l'ordre du document. C'est
  *  la lecture PAR POSITION du picking : le rayon nomme ce

@@ -421,11 +421,17 @@ vêtement et rigide, évalués, revus par l'utilisateur, puis montés dans le sc
 
 Un véhicule (catégorie `vehicule`) et les pièces de ses Améliorations (catégorie `amelioration`) se construisent
 depuis le dépôt, sans base, par `scripts/personnage-3d/vehicule/` : la partie commune (`construire.py` : export,
-manifestes et dossiers de production ; `maille.py` : maille, poutre, objet ; `habillage.py` : matériaux et `surfaces` ;
-`revue.py` : configurations rendues dans le studio de `rendu.py`) et un dossier par modèle, `<modele>/donnees.py` (ses
-dimensions, nommées) et `<modele>/modele.py` (sa construction). Modèles livrés : `caraque` (coque, plan de jeu lu dans
-`src/noyau/planDeLaCaraque.ts`, seize pièces d'Améliorations dans `ameliorations.py`) et `canon` (un GLB pour
-`canon-grand`, `canon-moyen`, `canon-petit`).
+manifestes et dossiers de production ; `maille.py` : maille, solides (révolution, cylindre, boîte, plaque, poutre, tube,
+tore, roue, treuil), bascule autour d'un axe, recentrage de l'emprise, objet ; `habillage.py` : matériaux, `surfaces` et
+éléments d'un modèle à plusieurs pièces ; `revue.py` : configurations rendues dans le studio de `rendu.py`) et un dossier
+par modèle, `<modele>/donnees.py` (ses dimensions, nommées) et `<modele>/modele.py` (sa construction). Modèles livrés :
+`caraque` (coque, plan de jeu lu dans `src/noyau/planDeLaCaraque.ts`, seize pièces d'Améliorations dans
+`ameliorations.py`) ; les engins `armes-de-siege`, une clé par engin, les doublons d'ADE II (`-ade2`) sur le GLB de leur
+engin : `affut` (l'affût de campagne et ses roues sous le canon, le mortier, le canon à répétition feu d'enfer, la
+batterie tonnerre de feu et le canon à flammes nain), `trepied` (pierrier, canon à répétition), `baliste`, `catapulte`
+(catapultes et mangonneau ; onagre), `trebuchet` et `belier`. Une référence trouvée hors du corpus (photographie de
+figurine) se range hors dépôt avec sa source (`vehicules-3d/references-armes-de-siege/SOURCES.md` du dossier du
+projet) et se cite dans la docstring des données ; sans référence, la docstring dit les proportions d'adaptation.
 
 **Créer un type.** Le dossier `vehicule/<type>/` porte deux fichiers :
 
@@ -438,7 +444,14 @@ dimensions, nommées) et `<modele>/modele.py` (sa construction). Modèles livré
 - `modele.py` : `elements(D)`, qui produit un dict par GLB : `glb` (nom de la scène), `cles` (`[(categorie, cle)]`, une
   clé par élément qui partage ce GLB), `materiaux`, `blasons`, et `construire`, qui bâtit la scène vide avec
   `habillage.materiaux(...)` et les primitives de `maille.py`, puis rend les champs propres au manifeste : `postes` par
-  bord (`FIRE_ARCS`), `selon`, `ancrages`, `montage`.
+  bord (`FIRE_ARCS`), `selon`, `ancrages`, `montage`, et `clips`, la table rôle → clip que rend `clips.animer`.
+
+Un engin est une unité : il s'anime comme une créature (`clips.py`). Chaque pièce mobile est son propre nœud, à son
+pivot (roue à son essieu, bras à son axe, fût à ses tourillons, chaîne à son attache), et `clips.animer` clé ses clips :
+`idle` (repos), `walk` (déplacement en boucle : `rouler` tourne les roues à la vitesse d'une case par pas du plateau,
+`cahoter` secoue un engin sans roues que ses servants portent ou traînent) et son attaque, `ranged` (`tirer` : recul,
+ressaut, barillet qui tourne ; ou la course d'un bras, d'une verge) ou `melee` (le bélier). Les durées et amplitudes
+sont des données nommées de `donnees.py`.
 
 Le repère est celui de la section 2 : en Blender, l'avant vers -y, bâbord vers +x, l'origine au sol ou à la flottaison,
 l'emprise recentrée en x et y ; l'export place l'avant vers +z glTF. Ce qui se monte au véhicule (pièce d'artillerie,
@@ -463,7 +476,7 @@ données (le véhicule, la pièce des postes, les configurations et les vues de 
 `npm run godot:sonde` dépose sous `hotes/godot/projet/textures/` :
 
 ```sh
-node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/revue.py caraque --modeles /atelier/caraque --modeles /atelier/canon --catalogue hotes/godot/projet/textures --sortie /atelier/revue [--seules 01-nue] [--gros-plans]
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/revue.py caraque --modeles /atelier/caraque --modeles /atelier/affut --catalogue hotes/godot/projet/textures --sortie /atelier/revue [--seules 01-nue] [--gros-plans]
 ```
 
 Puis la porte artistique et la revue utilisateur de la section 7, consignée avant d'entériner.

@@ -93,6 +93,7 @@ import { actionsAuthorees, type Drapeaux } from './monde/usable';
 import type { SceneEntity } from './monde/scene';
 import { campAdvantageHooks, creditOpposingAdvantage } from './combat/advantagePool';
 import { poserLeGroupe } from './marcheDuGroupe';
+import { emporterLesObjets, normaliserLesAppuis } from './monde/poseDuDecor';
 
 /**
  * Effets de scène/campagne (`Effect[]`) appliqués par le store : le grand `applyEffects`
@@ -1485,7 +1486,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (!sc) return;
       const ent = sc.entities.find((x) => x.id === e.id);
       if (!ent) return; // entité introuvable → no-op
-      if (e.to) env.set({ scene: { ...sc, entities: sc.entities.map((x) => (x.id === e.id ? { ...x, pos: { x: e.to!.x, y: e.to!.y }, z: e.to!.z ?? x.z } : x)) } });
+      // Ce que l'entité porte la suit, et ce qui ne tient plus sur elle (une autre couche) retombe au sol.
+      if (e.to) env.set({ scene: normaliserLesAppuis(emporterLesObjets(sc, { ...sc, entities: sc.entities.map((x) => (x.id === e.id ? { ...x, pos: { x: e.to!.x, y: e.to!.y }, z: e.to!.z ?? x.z } : x)) }, e.id)) });
       if (e.remove) removeEntity(env.get, env.set, e.id); // APRÈS le repositionnement (fuite-puis-disparition)
     },
   },

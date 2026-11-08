@@ -1,0 +1,13 @@
+{
+  "model": "vehicule--canon-a-flammes-nain-ade2.glb",
+  "model_sha256": "125e8a044ad80a6627dc919786daa8bcbdf80809b3c81af1af7a75e4de1ae4e4",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

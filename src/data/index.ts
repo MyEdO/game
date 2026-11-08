@@ -976,7 +976,7 @@ export interface TalentData {
   /** Maxi d'acquisitions (LDB 10 « Schéma des Talents ») : un nombre fixe, ou le BONUS d'une
    *  caractéristique (`{bonusOf}`, structuré — remplace la chaîne « Bonus de X » re-parsée par regex),
    *  ou `null` = sans limite (ex-« Aucun »). */
-  max: number | { bonusOf: import('../engine/types').CharKey } | null;
+  max: number | { bonusOf: import('../engine/types').CharKey } | 'sortsDuDomaine' | null;
   /** Ligne « Tests » recodée : `{ raw verbatim (Codex), matches[] structuré (logique) }`. `null` = le
    *  talent ne se rapporte à aucun Test. */
   test: TalentTest | null;

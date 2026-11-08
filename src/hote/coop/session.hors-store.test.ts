@@ -10,10 +10,12 @@ import { PROTOCOL_VERSION, parseMessage, serializeMessage } from './protocol';
 import type { EtatDeJeu } from '../../noyau/etat';
 import type { Scene } from '../../noyau/monde/scene';
 import { resetSceneRegistry, sceneDuRegistre } from '../../noyau/monde/registreDesScenes';
+import { buildScene } from '../../noyau/mapSpec';
 
 /** Le paquet d'une campagne à une scène, `campagne-de-test-depart`. */
+const DEPART = buildScene({ id: 'campagne-de-test-depart', label: 'Départ', size: [2, 2] });
 const paquetDUneScene = (): NonNullable<EtatDeJeu['pendingCampaign']> => ({
-  id: 'campagne-de-test', label: 'Campagne de test', scenes: [{ id: 'campagne-de-test-depart' } as Scene],
+  id: 'campagne-de-test', label: 'Campagne de test', scenes: [DEPART],
   startSceneId: 'campagne-de-test-depart', worldMap: null, projet: { id: 'campagne-de-test' },
 });
 
@@ -162,7 +164,7 @@ describe('session coop (hote/coop/session)', () => {
     const [a, b] = FakeTransport.pair();
     host.addGuest(a, 1);
     new GuestSession({ build: 'test', label: 'A', applySnapshot: () => sceneAuPremierEtat.push(sceneDuRegistre('campagne-de-test-depart')) }).connect(b);
-    expect(sceneAuPremierEtat).toEqual([{ id: 'campagne-de-test-depart' }]);
+    expect(sceneAuPremierEtat).toEqual([DEPART]);
   });
 
   it('paquet de campagne chargé APRÈS le join : rattrapé une fois, à la diffusion suivante', () => {

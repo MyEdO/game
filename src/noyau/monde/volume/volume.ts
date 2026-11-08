@@ -10,9 +10,9 @@ import { parseHex } from '../../../lib/couleurHex';
 import { MISSING_TONE } from './missing';
 import { buildFloors } from './floors';
 import { facesDuDecor } from './propVolumes';
-import { decorAncre } from '../footprint';
-import { findPropById, matieresDe } from '../../../data';
-import { empreinteDuProp } from '../../../data/props.types';
+import { ancreDuDecor } from '../footprint';
+import { piedDuDecor } from '../poseDuDecor';
+import { matieresDe } from '../../../data';
 import { couleurDeMatiere, recetteDeMatiere, tintVarFactor } from './matieres';
 import { faceDepthM } from './profondeur';
 import { crownFaces, cretesDePerimetre } from './creneaux';
@@ -22,15 +22,25 @@ import { WALL_H_M } from '../iso';
 import { centreDeLaCarte, facesGeometry, trianglesOrientes } from './worldTris';
 import { buildRoofs, nappeKey } from './toits';
 import { spaceCellKey } from './architectureVisibility';
+import { aretesHorsDesNavires, provenanceDesNavires } from '../../planDeNavire';
 import type { Face } from './types';
 import type { MaterialRef } from '../../../data/materials.types';
 
 /** Les triangles d'une matière du volume, nommée `<domaine>--<id>` (`nomDeMatiere`) : ses sommets de `debut` inclus à
- *  `fin` exclu. */
+ *  `fin` exclu ; `navire`, l'id de l'entité du navire dont les ponts les posent (`provenanceDesNavires`), que l'hôte
+ *  touche sans les peindre, le navire se montrant par son modèle 3D. */
 interface SurfaceDuVolume {
   matiere: string;
   debut: number;
   fin: number;
+  navire?: string;
+}
+
+/** Une face listée du volume : sa case et sa couche, et le navire dont les ponts la posent. */
+interface FaceListee {
+  face: Face;
+  cell: { x: number; y: number; z: number };
+  navire?: string;
 }
 
 /** Des faces du monde triangulées, en tableaux plats que l'hôte charge tels quels. */
@@ -72,8 +82,9 @@ const arrondi = (v: number): number => Math.round(v * 1000) / 1000;
 
 /** Les faces des décors volumiques de la scène (`facesDuDecor`), chacune avec sa case, jusqu'à la couche `activeZ` :
  *  le décor que son terrain pose sur chaque case (`terrainOverlayProp`, le bois et ses arbres), au centre de la case, et
- *  les entités `prop`, ancrées au centre de leur empreinte à leur cap (`decorAncre`), sur le sol de leur case. */
-function decorsVolumiques(scene: Scene, activeZ: number, mpt: number): { face: Face; cell: { x: number; y: number; z: number } }[] {
+ *  les entités `prop`, à leur ancre (`ancreDuDecor`) et à leur cap, sur leur pied (`piedDuDecor` : le sol de leur case ou
+ *  le dessus de leur support). */
+function decorsVolumiques(scene: Scene, activeZ: number, mpt: number): FaceListee[] {
   const { w, h } = scene.dimensions;
   const duTerrain = scene.layers.filter((l) => l.z <= activeZ).flatMap(({ z }) =>
     Array.from({ length: w * h }, (_, i) => ({ x: i % w, y: Math.floor(i / w), z })).flatMap((cell) => {
@@ -83,31 +94,31 @@ function decorsVolumiques(scene: Scene, activeZ: number, mpt: number): { face: F
   return duTerrain.concat(scene.entities.flatMap((ent) => {
     const z = ent.z ?? 0;
     if (ent.kind !== 'prop' || z > activeZ) return [];
-    const ancre = decorAncre(ent.pos, empreinteDuProp(findPropById(ent.ref), ent.facing, mpt));
-    const faces = facesDuDecor(ent.ref, { ancre, ...(ent.facing ? { facing: ent.facing } : {}), baseHeightM: heightAt(scene, ent.pos.x, ent.pos.y, z), entId: ent.id }, mpt);
+    const faces = facesDuDecor(ent.ref, { ancre: ancreDuDecor(ent, mpt), ...(ent.facing ? { facing: ent.facing } : {}), baseHeightM: piedDuDecor(scene, ent), entId: ent.id }, mpt);
     return (faces ?? []).map((face) => ({ face, cell: { ...ent.pos, z } }));
   }));
 }
 
 /** Les faces `listees` triangulées (`facesGeometry`), orientées (`trianglesOrientes`) et colorées depuis la donnée, chacune
  *  à la variance de teinte de sa case, les triangles d'une même matière à la suite. */
-function emballer(scene: Scene, listees: readonly { face: Face; cell: { x: number; y: number; z: number } }[]): GeometrieDuMonde {
+function emballer(scene: Scene, listees: readonly FaceListee[]): GeometrieDuMonde {
   const mpt = sceneMetresPerTile(scene);
   const geoms = facesGeometry(listees.map((f) => f.face), mpt, faceDepthM);
   const centre = centreDeLaCarte(scene.dimensions, mpt);
-  const parMatiere = new Map<string, number[]>();
+  const parMatiere = new Map<string, { matiere: string; navire?: string; faces: number[] }>();
   geoms.forEach((_, i) => {
-    const nom = nomDeMatiere(listees[i].face.material);
-    const faces = parMatiere.get(nom) ?? [];
-    faces.push(i);
-    parMatiere.set(nom, faces);
+    const { face, navire } = listees[i];
+    const matiere = nomDeMatiere(face.material);
+    const cle = `${navire ?? ''}|${matiere}`;
+    const groupe = parMatiere.get(cle) ?? parMatiere.set(cle, { matiere, ...(navire ? { navire } : {}), faces: [] }).get(cle)!;
+    groupe.faces.push(i);
   });
   const positions: number[] = [];
   const normales: number[] = [];
   const couleurs: number[] = [];
   const cases: [number, number, number][] = [];
   const surfaces: SurfaceDuVolume[] = [];
-  for (const [matiere, faces] of parMatiere) {
+  for (const { matiere, navire, faces } of parMatiere.values()) {
     const debut = positions.length / 3;
     for (const i of faces) {
       const m = listees[i].face.material;
@@ -125,7 +136,7 @@ function emballer(scene: Scene, listees: readonly { face: Face; cell: { x: numbe
         }
       }
     }
-    surfaces.push({ matiere, debut, fin: positions.length / 3 });
+    surfaces.push({ matiere, debut, fin: positions.length / 3, ...(navire ? { navire } : {}) });
   }
   return { positions, normales, couleurs, cases, surfaces };
 }
@@ -133,11 +144,17 @@ function emballer(scene: Scene, listees: readonly { face: Face; cell: { x: numbe
 /** Le volume du monde de `scene` : le sol de la couche `activeZ` et de celles du dessous (terrain, relief, raccords,
  *  piliers), les crêtes de ses zones crénelées (`cretesDePerimetre`) et les décors volumiques qui s'y posent, sans les
  *  surplombs fantômes des couches au-dessus ; sans `activeZ`, de toutes ses couches ; sans les cases du `couvercle`
- *  (clés `x,y,z`, `volumeDuRegard`). PUR. */
+ *  (clés `x,y,z`, `volumeDuRegard`). Le sol et les crêtes d'une case que les ponts d'un navire posent portent ce
+ *  navire (`provenanceDesNavires`) ; ses décors, non. PUR. */
 export function volumeDuMonde(scene: Scene, activeZ = Math.max(...scene.layers.map((l) => l.z)), couvercle: ReadonlySet<string> = new Set()): VolumeDuMonde {
   const mpt = sceneMetresPerTile(scene);
-  const sol = buildFloors(scene, undefined, { activeZ }).filter((el) => !el.states.ghost).flatMap((el) => el.faces.map((face) => ({ face, cell: el.cell })));
-  const cretes = cretesDePerimetre(scene).filter((c) => c.case.z <= activeZ).flatMap((c) => c.faces.map((face) => ({ face, cell: c.arete })));
+  const navires = provenanceDesNavires(scene).cases;
+  const duNavire = (cell: { x: number; y: number; z: number }): { navire?: string } => {
+    const navire = navires.get(spaceCellKey(cell.x, cell.y, cell.z));
+    return navire ? { navire } : {};
+  };
+  const sol = buildFloors(scene, undefined, { activeZ }).filter((el) => !el.states.ghost).flatMap((el) => el.faces.map((face) => ({ face, cell: el.cell, ...duNavire(el.cell) })));
+  const cretes = cretesDePerimetre(scene).filter((c) => c.case.z <= activeZ).flatMap((c) => c.faces.map((face) => ({ face, cell: c.arete, ...duNavire(c.case) })));
   const listees = [...sol, ...cretes, ...decorsVolumiques(scene, activeZ, mpt)].filter(({ cell }) => !couvercle.has(spaceCellKey(cell.x, cell.y, cell.z)));
   const geometrie = emballer(scene, listees);
   const { w, h } = scene.dimensions;
@@ -147,7 +164,7 @@ export function volumeDuMonde(scene: Scene, activeZ = Math.max(...scene.layers.m
 
 /** Les nappes de toit de `scene`, une par masse de bâtiment (`nappeKey`), chacune de ses pans et de ses pignons. PUR. */
 export function toitsDuMonde(scene: Scene): NappeDuMonde[] {
-  const parNappe = new Map<string, { face: Face; cell: { x: number; y: number; z: number } }[]>();
+  const parNappe = new Map<string, FaceListee[]>();
   for (const el of buildRoofs(scene)) {
     const cle = nappeKey(el.bodyId!, el.sectionId!);
     const faces = parNappe.get(cle) ?? parNappe.set(cle, []).get(cle)!;
@@ -167,13 +184,13 @@ export function toutesLesNappes(scene: Scene): string[] {
   return [...new Set(buildRoofs(scene).map((el) => nappeKey(el.bodyId!, el.sectionId!)))];
 }
 
-/** Les couronnes crénelées des murs fortifiés de `scene`, de toutes ses couches (`crownFaces`, apparence à `parapet`),
- *  une par arête, nommée par sa clé (`edgeKey`), posée au sommet de la face pleine du mur dressé à son pied
- *  (`piedDeLArete`, `wallHeightM`, sinon un étage) : l'hôte cache celles qui tombent avec leur mur
- *  (`couronnesAbattues`). PUR. */
+/** Les couronnes crénelées des murs fortifiés de `scene` hors des ponts de ses navires (`aretesHorsDesNavires`), de
+ *  toutes ses couches (`crownFaces`, apparence à `parapet`), une par arête, nommée par sa clé (`edgeKey`), posée au
+ *  sommet de la face pleine du mur dressé à son pied (`piedDeLArete`, `wallHeightM`, sinon un étage) : l'hôte cache
+ *  celles qui tombent avec leur mur (`couronnesAbattues`). PUR. */
 export function couronnesDuMonde(scene: Scene): NappeDuMonde[] {
   const facades = facadeEdges(scene);
-  return (scene.walls ?? []).flatMap((seg) => {
+  return aretesHorsDesNavires(scene).flatMap((seg) => {
     const app = edgeAppearance(facades.get(edgeKey(seg)), seg);
     if (!app.parapet) return [];
     const [a, b] = wallEnds(seg);

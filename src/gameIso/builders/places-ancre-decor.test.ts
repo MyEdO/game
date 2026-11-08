@@ -12,7 +12,7 @@ import type { Dir4 } from '../../geometry/dir8';
 /**
  * L'ANCRE D'UNE PLACE EST CELLE DU DÉCOR (#1509 L5′).
  *
- * Une place assise se pose sur `decorAncre` (`noyau/monde/footprint.ts`) — le centre de l'empreinte
+ * Une place assise se pose sur `ancreDuDecor` (`noyau/monde/footprint.ts`) — le centre de l'empreinte
  * effective du meuble — exactement comme la géométrie de sa recette (`gameIso/builders/props.ts`) et
  * comme le foyer de la lampe qu'il porte (`noyau/monde/vision.ts`). Ce fichier tient les deux faces de
  * cette affirmation, sur des scènes CONSTRUITES pour ce contrat (#1709 — aucune carte de campagne
@@ -28,7 +28,7 @@ const n6 = (v: number) => v.toFixed(6);
 /**
  * ANCRE MONDE que la GÉOMÉTRIE emploie pour un décor POSÉ, MESURÉE sur les faces émises : la recette
  * bâtie à l'origine (`ancre` (0,0)) et la recette du décor posé ne diffèrent que d'une TRANSLATION
- * rigide, et cette translation EST l'ancre. Rien n'est relu de `decorAncre` ici — sinon ces contrats
+ * rigide, et cette translation EST l'ancre. Rien n'est relu de `ancreDuDecor` ici — sinon ces contrats
  * répéteraient la formule qu'ils jugent au lieu de la confronter au monde dessiné.
  */
 function ancreGeometrique(sc: Scene, entId: string): { x: number; y: number; sol: number } {
