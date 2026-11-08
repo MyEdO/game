@@ -5,7 +5,7 @@
  * se lisent au catalogue, jamais recopiés.
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import { porteeDuCombattant } from './combattant';
+import { porteeDuCombattant, vehiculeDuCombattant } from './combattant';
 import { facteursDeComposition, porteesDeLaTenue } from './composition';
 import { piecesDEnsemble } from './gardeRobe';
 import { createHero } from '../../engine/character';
@@ -158,4 +158,13 @@ describe('porteeDuCombattant', () => {
     expect(porteeDuCombattant(heros({ apparence: { sex: 'F' } }))!.sex).toBe('F');
     expect(porteeDuCombattant(heros())!.sex).toBe('M');
   });
+});
+
+describe('vehiculeDuCombattant (#2987)', () => {
+  const fiche = (ref: string): Combatant => spawnEnemy({ ref }, `${ref}-1`, { x: 0, y: 0 });
+  it.each([['caraque', 4], ['barque-fluviale', 1], ['canon-petit', 1], ['belier-ade2', 2]] as const)('%s, coque ou engin de siège : sa fiche et le côté de son empreinte, sans portée', (ref, empreinte) => {
+    const c = fiche(ref);
+    expect([vehiculeDuCombattant(c), porteeDuCombattant(c)]).toEqual([{ definition: ref, empreinte }, null]);
+  });
+  it('une créature n’est pas un véhicule', () => expect(vehiculeDuCombattant(creature('loup'))).toBeNull());
 });

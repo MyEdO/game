@@ -16,7 +16,7 @@ paths:
 - Élargir une garde, c'est migrer ce qu'elle révèle.
 - Supprimer une garde ou une assertion peut laisser mort l'export qu'elle seule lisait : `npm run deps:unused` le nomme, et l'export part dans le même commit. `scripts/ops/knip-exports-ratchet.mjs` #3305
 - Une classe de contournement se rend incompilable par la STRUCTURE (module, exports minimaux, types, règle de couche du lint) ; aucune garde neuve. Là où la structure semble ne pas pouvoir porter l'invariant, cherche encore, sinon dis-le à l'utilisateur. Doctrine « structure avant garde » (`docs/doctrines.md`).
-- Les gardes FK, orphelins et consommateurs (`scripts/guards/lib/integriteStock.mjs`, `scripts/guards/lib/tableConsumerAudit.ts`) résolvent contre l'index des ids : `.claude/rules/donnees.md`.
+- Les gardes FK et de forme de référence (`scripts/guards/lib/integriteStock.mjs`) résolvent contre l'index des ids : `.claude/rules/donnees.md`.
 - Une directive qui redéfinit un invariant (qui contrôle, qui possède, ce qui compte comme X) re-juge dans le même lot les exemptions STRUCTURELLES accordées sous l'ancien. Grep les exclusions de principe des scanners et juge-les une à une : reconfirmée, elle se re-date ; caduque, elle devient le stock du lot suivant (#1728). `scripts/guards/lib/rollSeamExclusivity.mjs:141` (`isWorldDie`)
 - Avant de juger l'utilité d'une garde, mesure ce qui l'a déclenchée ET ce que l'utilisateur en a fait, jamais un simple compte. Une garde qui n'a rien arrêté de réel se supprime, sans conversion en `deny`.
 - Ne déduis jamais l'arbre visé du texte d'une commande : `~/.claude/projects/<slug>/memory` est une jonction vers `Game/.claude/memory`. #2125

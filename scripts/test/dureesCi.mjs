@@ -7,6 +7,7 @@ import { coursesCi, journalDe, lignesDuJournal } from '../guards/lib/coursesCi.m
 import { SUFFIXE_SUITE } from '../guards/lib/fichierVitest.mjs'
 import { fait, indisponible } from '../guards/lib/gitPorte.mjs'
 import { dureesValides } from './mesures.mjs'
+import { estObjet } from '../../src/lib/objet.mjs'
 
 /** Le mémo des durées de la CI, sous `dossierDesMesures` : `{ run, attempt, sha, date, vitest, node }`. */
 export const DUREES_CI = 'durees-ci.json'
@@ -64,7 +65,7 @@ export function dureesDuJournal(journal) {
  * @returns {{ run: number, attempt: number | null, sha: string, date: string, vitest: Record<string, number>, node: Record<string, number> } | {}}
  */
 export function memoCiDe(lu) {
-  if (lu === null || typeof lu !== 'object' || Array.isArray(lu)) return {}
+  if (!estObjet(lu)) return {}
   const { run, attempt, sha, date, vitest, node } = lu
   if (!Number.isSafeInteger(run) || !(attempt === null || Number.isSafeInteger(attempt)) || typeof sha !== 'string' || typeof date !== 'string') return {}
   return { run, attempt, sha, date, vitest: dureesValides(vitest), node: dureesValides(node) }

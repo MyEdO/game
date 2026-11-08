@@ -15,7 +15,7 @@ import type { StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
 import { etatConnu } from '../../../engine/conditions';
 import { t } from '../../../i18n';
-import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
+import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
 import { chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, meteoImposeeSchema, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refusDeLId, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
@@ -1106,6 +1106,25 @@ export function exigerDuTest(...champs: readonly ChampExigibleDuTest[]) {
   };
 }
 
+/** Refuse au Test de `porteur` tout champ de DÉCISION (`CHAMPS_DE_DECISION`) : c'est le porteur qui la tient. */
+function refuserLaDecision(porteur: Readonly<Record<string, unknown>>, ctx: z.RefinementCtx, raison: string): void {
+  const test = porteur.test;
+  if (typeof test !== 'object' || test === null) return;
+  for (const champ of CHAMPS_DE_DECISION)
+    if (Reflect.get(test, champ) !== undefined)
+      ctx.addIssue({ code: 'custom', path: ['test', champ], message: `Test : \`${champ}\` refusé — ${raison}` });
+}
+
+/** Le Test que son PORTEUR fixe (`JetFixe`, `engine/flowCore.ts`) : les `champs` exigés (`exigerDuTest`),
+ *  aucun champ de décision — sa Difficulté est celle qu'il déclare. */
+export function fixerLeTest(...champs: readonly ChampExigibleDuTest[]) {
+  const exiger = exigerDuTest(...champs);
+  return (porteur: Readonly<Record<string, unknown>>, ctx: z.RefinementCtx): void => {
+    exiger(porteur, ctx);
+    refuserLaDecision(porteur, ctx, 'ce porteur fixe sa Difficulté, il ne la décide pas.');
+  };
+}
+
 /** Test ÉTENDU (`LDB 12 l.172-174`) : un acteur cumule des DR Round par Round jusqu'à sa cible
  *  (`cibleEtendueSchema`) (crocheter une serrure, forcer un mécanisme…). `flag` posé à la réussite (gate la suite). */
 export const extendedTestSchema = nommerChamps(z.strictObject({
@@ -1139,6 +1158,11 @@ export interface OptionsNoeudTest {
    * `spellOps` APLATIRAIT les ops — promises quelle que soit l'issue. Le contrat les REFUSE.
    */
   readonly echecSeulServi?: boolean;
+  /**
+   * La Difficulté du nœud se décide au PORTEUR (`difficultyBySeverity` du cycle de maladie, lu par
+   * `engine/disease.ts`) : le Test ne porte aucun champ de décision (`NoeudDecideAuPorteur`).
+   */
+  readonly decisionAuPorteur?: boolean;
 }
 
 /**
@@ -1167,7 +1191,10 @@ function kindDEmbranchement(flow: unknown): string | null {
  */
 export function noeudTest<B extends z.ZodType>(branche: B, options: OptionsNoeudTest = {}) {
   const marque = marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('test'), test: flowTestSchema, success: branche, fail: branche }), { kind: { label: "type"  }, test: { label: "Test" }, success: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, fail: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } }), 'noeudTest', 'test');
-  const noeud = options.difficulteRequise ? marque.superRefine(exigerDuTest('difficulty')) : marque;
+  const exige = options.difficulteRequise ? marque.superRefine(exigerDuTest('difficulty')) : marque;
+  const noeud = options.decisionAuPorteur
+    ? exige.superRefine((v, ctx) => refuserLaDecision(v, ctx, 'la Difficulté de ce nœud se décide au porteur.'))
+    : exige;
   if (!options.echecSeulServi) return noeud;
   return noeud.superRefine((valeur, ctx) => {
     // La branche est GÉNÉRIQUE (`B extends z.ZodType`) : son type de sortie est opaque ici, seule la
@@ -1561,7 +1588,7 @@ function construire(regimes: Regimes) {
       riderTest: marquerProduit(nommerChamps(z.strictObject({
         test: flowTestSchema,
         fallM: z.number(),
-      }).superRefine(exigerDuTest('skill', 'difficulty')), { test: { label: "Test" }, fallM: { label: "hauteur de chute" } }), 'construire', 'travelTableEntry.mount.riderTest').optional(),
+      }).superRefine(fixerLeTest('skill', 'difficulty')), { test: { label: "Test" }, fallM: { label: "hauteur de chute" } }), 'construire', 'travelTableEntry.mount.riderTest').optional(),
       /** Modificateur PERSISTANT aux Tests de Chevaucher tant que la séquelle dure (l.174 : −20). */
       ridingPenalty: z.number().optional(),
       /** Allure MAXIMALE imposée à la bête tant que la séquelle dure (Perte d'un fer : le pas). */

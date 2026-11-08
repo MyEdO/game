@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
 import { chargerLicences, CLE_HORS_RELEASE, FICHIER_DE_LICENCE, licenceDeclaree, MANIFESTE_DE_PRODUCTION } from './dossierDeProduction.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';
-import { estObjet } from '../../../src/hote/formes.ts';
+import { estObjet } from '../../../src/lib/objet.mjs';
 import { cheminsAbsolus, ligneDErreur, type Brut } from './manifeste.ts';
 import {
   estBase, fichiersDuModele, indexerModeles, validerModele, verdictsDesModeles,

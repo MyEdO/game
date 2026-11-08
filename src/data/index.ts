@@ -2004,7 +2004,7 @@ export interface SymptomData {
    *  du nœud inchangée. Lu par `symptomOnTick`. `afterDays`/`once` cadencent le cycle sur la phase
    *  ACTIVE (Vers de carie : Test quotidien À PARTIR de J+7, MSRC 16 l.90 ; Vers du Reik : 7ᵉ jour). */
   onTick?: {
-    test?: import('../engine/flowCore').FlowTestNode;
+    test?: import('../engine/flowCore').NoeudDecideAuPorteur;
     ops?: import('../engine/ops').GameOp[];
     difficultyBySeverity?: Partial<Record<'moderee' | 'grave', import('../engine/types').Difficulty>>;
     /** Ne se déclenche qu'à partir du Nᵉ jour de PHASE ACTIVE (1 = premier jour actif). Absent = dès le 1ᵉʳ. */
@@ -2349,7 +2349,7 @@ export interface TestDeRegleData {
   id: string;
   label: string;
   source: SourceRef;
-  test: import('../engine/flowCore').TestExige<'skill' | 'difficulty'>;
+  test: import('../engine/flowCore').JetFixe<'skill' | 'difficulty'>;
 }
 export interface RangeeDeRegleData {
   id: string;
@@ -3092,7 +3092,15 @@ export function profilsStandard(): string[] {
  *  SOURCE UNIQUE de la famille (#1882) : la porte du schéma (`sceneEntitySchema`), `validateScene` et le
  *  spawn (`spawnEnemy`) la lisent ici. */
 export function refEntiteResolue(ref: string): boolean {
-  return !!(findCreatureById(ref) || findVehicleById(ref)?.hull || siegeEngines().some((t) => t.id === ref));
+  return !!(findCreatureById(ref) || findFicheDeVehicule(ref));
+}
+/** La fiche spawnable non créature que désigne `id` : coque de `vehicles.json` (facette `hull`, MDG 13) ou engin du
+ *  sous-type `armes-de-siege` (`trappings.json`, AA 10), réduite à son libellé ; la clé `definition` d'un élément 3D
+ *  `vehicule` la nomme (#2987). */
+export function findFicheDeVehicule(id: string): { readonly label: string } | undefined {
+  const coque = findVehicleById(id);
+  const fiche = (coque?.hull ? coque : undefined) ?? siegeEngines().find((t) => t.id === id);
+  return fiche && { label: fiche.label };
 }
 /**
  * Ce qu'un pinceau ou un effet neuf porte AVANT tout choix d'auteur : le PREMIER élément OFFERT par son

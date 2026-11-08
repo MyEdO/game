@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { listerArbre, listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { estObjet } from '../lib/objet.mjs';
 
 /**
  * Garde-fou « l'id d'un document de RACINE est unique » (#1467 L1b V-FLIP-CONFIG).
@@ -84,7 +85,7 @@ function documentsConfig(): (Porteur & { type: string })[] {
       } catch {
         return [];
       }
-      if (Array.isArray(racine) || !racine || typeof racine !== 'object') return [];
+      if (!estObjet(racine)) return [];
       const o = racine as Record<string, unknown>;
       return typeof o.id === 'string' && typeof o.label === 'string'
         ? [{ id: o.id, ou: `src/data/${f}`, type: typeof o.type === 'string' ? o.type : '' }]

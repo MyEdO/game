@@ -37,6 +37,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -111,7 +112,7 @@ const FICHIERS = [...new Set(CHEMINS.map((c) => c.fichier))].sort();
 /** Un nœud PORTE-T-IL une référence de Compétence encore à plat ? (`skill` chaîne, ou tableau de
  *  chaînes). Le `skill` NOMBRE / `null` / déjà emboîté n'en est pas une. */
 function estPorteur(n) {
-  if (!n || typeof n !== 'object' || Array.isArray(n) || !Object.hasOwn(n, 'skill')) return false;
+  if (!estObjet(n) || !Object.hasOwn(n, 'skill')) return false;
   const v = n.skill;
   return typeof v === 'string' || (Array.isArray(v) && v.length > 0 && v.every((x) => typeof x === 'string'));
 }
@@ -171,7 +172,7 @@ function versPlat(noeud) {
   for (const [k, v] of Object.entries(noeud)) {
     if (k === 'skill' && Array.isArray(v) && v.every((x) => x && typeof x === 'object' && typeof x.id === 'string')) {
       sortie.skill = v.map((x) => x.id);
-    } else if (k === 'skill' && v && typeof v === 'object' && !Array.isArray(v) && typeof v.id === 'string') {
+    } else if (k === 'skill' && estObjet(v) && typeof v.id === 'string') {
       sortie.skill = v.id;
       if (Object.hasOwn(v, 'spec')) sortie.spec = v.spec;
     } else if (k === 'skill' && typeof v === 'string' && Object.hasOwn(noeud, 'spec')) {

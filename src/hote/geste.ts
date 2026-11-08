@@ -9,7 +9,8 @@ import {
   DESIGNATIONS, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, cleDuGeste, argsAvecVerdictLocal, etatDeLaBarre, fenetreDuJeu, porteurParId,
   quiTientLaMain, siegeDe, type Intention, type Jeu, type Offre, type Partie, type ResultatDeLAppel,
 } from '../noyau/index';
-import { estObjet, lireALaForme, signature, type Designes, type Forme, type ParametreDeVerbe } from './formes';
+import { estObjet } from '../lib/objet.mjs';
+import { lireALaForme, signature, type Designes, type Forme, type ParametreDeVerbe } from './formes';
 import { ErreurDeGeste, valider } from './partie';
 import { offresDeLaBarreOuverte } from './projection';
 import { CHOIX, FORMES, REGLAGES, VERBES } from './verbes.generated';

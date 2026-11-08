@@ -19,6 +19,7 @@ import { croissancesDeLaPlage, lectureDeLaPlage, raisonDeRefusDePlage, refusDeLa
 import { SOUS_LA_PORTE } from '../guards/lib/occurrencesStock.mjs'
 import { PORTEURS_SOUS_LA_PORTE } from '../guards/lib/porteursDesComptes.mjs'
 import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
+import { estObjet } from '../../src/lib/objet.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const git = gitDeLArbreReel(RACINE)
@@ -95,7 +96,7 @@ test('périmètre — les porteurs de stock, et eux seuls', () => {
  *  NOMMER un porteur oublié, jamais à requalifier une donnée de jeu. */
 function porteUnStockParSaForme(json) {
   const estChemin = (s) => /^(?:src|scripts|docs)\/[^\s]+\.(?:ts|tsx|mjs|mts|json|md|css)$/.test(s)
-  if (!json || typeof json !== 'object' || Array.isArray(json)) return false
+  if (!estObjet(json)) return false
   const cles = Object.keys(json)
   if (cles.length > 0 && cles.every(estChemin)) return true
   return ['entrees', 'sites', 'trous'].some((rubrique) => {
@@ -1019,8 +1020,6 @@ test('stocks `.mjs` de garde à la forme NOMINATIVE — la porte voit CHAQUE ent
   // Une assertion PAR stock converti : sans elles, la mesure serait verte par VACUITÉ le jour où une
   // conversion se défait (le module sort du corpus sans un mot).
   for (const nom of [
-    'entityOrphanStock.mjs',
-    'tableConsumerStock.mjs',
     'folioLineAlignStock.mjs',
     'horsStrateStock.mjs',
     'spellNarratifStock.mjs',
@@ -1050,7 +1049,7 @@ test('stocks `.mjs` de garde à la forme NOMINATIVE — la porte voit CHAQUE ent
 // (`'apothicaire:tete:back#0'`), et `net 1` dès que l'entrée porte son def. Le cas ANCRE ses hunks :
 // il affirme d'abord où `entreesNominatives` pose les entrées de chaque image.
 test('stock `.mjs` nominatif — une entrée AJOUTÉE est vue par la porte de plage (net 1, exemple nommant)', () => {
-  const f = 'scripts/guards/lib/entityOrphanStock.mjs'
+  const f = 'scripts/guards/lib/spellNarratifStock.mjs'
   const entree = (occ) => `  { fichier: 'src/data/creatures.json', ref: 'bailli', occurrence: ${occ} },`
   const image = (...lignes) => [
     "/** @type {import('./stock.mjs').EntreeDeSite[]} */",

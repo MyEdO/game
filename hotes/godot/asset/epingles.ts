@@ -9,7 +9,7 @@ import { copyFileSync, existsSync, readFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { EMPREINTE, sha256 } from './empreinte.ts';
-import { estObjet } from '../../../src/hote/formes';
+import { estObjet } from '../../../src/lib/objet.mjs';
 import { DOSSIER_DU_KIT } from './kit.ts';
 import { CACHE_DES_MODELES, EXTENSIONS_D_ASSET, enCacheOuTire, nomDAsset, tirerDeLaRelease, type AssetAPublier, type FichierEpingle, type Telecharger } from './release.ts';
 

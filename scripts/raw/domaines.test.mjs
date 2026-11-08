@@ -22,6 +22,7 @@ import { coeursDeDomaines, coeursDuRegistre, domainesDe, pagesDeLAtlas, readText
 import { listerArbre } from '../guards/lib/lister.mjs'
 import { enTeteDeFiche } from './assemble-domain.mjs'
 import { RAWDIR } from './build-atlas-index.mjs'
+import { estObjet } from '../../src/lib/objet.mjs'
 
 // Ce banc est LUI-MÊME au corpus du détecteur de lecteurs : le nom du registre s'y compose en
 // morceaux, sans quoi chaque message d'assertion le dénoncerait comme un second lecteur.
@@ -213,7 +214,7 @@ test('#1825 : aucun export de `_lib.mjs` ne rend une forme où deux cœurs coexi
   const fuites = []
   for (const [nom, valeur] of Object.entries(lib)) {
     const cles = valeur instanceof Map ? [...valeur.keys()]
-      : (valeur && typeof valeur === 'object' && !Array.isArray(valeur)) ? Object.keys(valeur)
+      : estObjet(valeur) ? Object.keys(valeur)
         : []
     if (cles.length && cles.every((k) => coeurs.has(k))) fuites.push(nom)
   }

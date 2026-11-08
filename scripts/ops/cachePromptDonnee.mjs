@@ -5,6 +5,7 @@
 // Rien n'est jeté en silence : un type de ligne hors `TYPES_CONNUS` devient un événement `inconnu`.
 import { coutDollars } from './cachePromptAnalyses.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
+import { estObjet } from '../../src/lib/objet.mjs'
 
 /** Résumé d'événement gardé dans `avant` d'une requête, au plus. */
 export const AVANT_MAX = 20
@@ -85,7 +86,7 @@ function scalaires(objet, max, exclues = new Set(), profondeur = 0, prefixe = ''
     if (typeof v === 'string') r[cle] = couper(uneLigne(v), k === 'command' ? COMMANDE_MAX : max)
     else if (typeof v === 'number' || typeof v === 'boolean') r[cle] = v
     else if (Array.isArray(v) && v.every((x) => typeof x === 'string')) r[cle] = couper(v.join(' '), max)
-    else if (profondeur > 0 && v && typeof v === 'object' && !Array.isArray(v)) Object.assign(r, scalaires(v, max, new Set(), profondeur - 1, `${cle}.`))
+    else if (profondeur > 0 && estObjet(v)) Object.assign(r, scalaires(v, max, new Set(), profondeur - 1, `${cle}.`))
   }
   return r
 }

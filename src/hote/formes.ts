@@ -1,11 +1,11 @@
 /**
  * LES FORMES DES ARGUMENTS D'UN VERBE (#2898 lot C, #2928), communes aux hôtes du noyau : la forme JSON d'un paramètre
  * de verbe, lue du TYPE du noyau par `scripts/docs/lib/verbesDeLaPartie.mjs`, sa lecture contrôlée (`lireALaForme`) et
- * son écriture (`formeEcrite`, `signature`). Module feuille, sans import : le générateur du doc
- * (`scripts/docs/build-hote-texte.mjs`) l'écrit par la même lecture que l'hôte.
+ * son écriture (`formeEcrite`, `signature`). Module sans autre import que le prédicat d'objet (`src/lib/objet.mjs`) : le
+ * générateur du doc (`scripts/docs/build-hote-texte.mjs`) l'écrit par la même lecture que l'hôte.
  */
 
-export const estObjet = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+import { estObjet } from '../lib/objet.mjs';
 
 /** La forme JSON d'un argument de verbe, lue du TYPE du paramètre (`scripts/docs/lib/verbesDeLaPartie.mjs`), entière à
  *  toute profondeur : `designe`, la désignation du noyau (`DESIGNATIONS`, src/noyau/designations.ts) dont la chaîne est

@@ -41,6 +41,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const MER = path.join(ROOT, 'src/data/sea-cargo.json');
@@ -129,7 +130,7 @@ function confronter(doc, attendu, nom, cardinal) {
   for (const c of entrees) {
     for (const [i, saison] of SAISONS.entries()) {
       const f = c.avail?.[saison];
-      if (!f || typeof f !== 'object' || Array.isArray(f) || typeof f.min !== 'number' || typeof f.max !== 'number') {
+      if (!estObjet(f) || typeof f.min !== 'number' || typeof f.max !== 'number') {
         arrets.push(`${nom} › ${c.id} › ${saison} : ${JSON.stringify(f)} hors forme \`{min, max}\``);
         continue;
       }

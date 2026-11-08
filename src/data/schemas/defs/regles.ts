@@ -14,7 +14,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { document } from '../grammaire/document';
 import { difficultySchema, enumNomme, palierSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
-import { exigerDuTest, flowTestSchema } from '../grammaire/mecanique';
+import { fixerLeTest, flowTestSchema } from '../grammaire/mecanique';
 
 export const file = 'regles.json';
 export const famille = 'entite';
@@ -56,7 +56,7 @@ const testDeRegleSchema = nommerChamps(z.strictObject({
   label: z.string().min(1),
   source: sourceRefSchema,
   test: flowTestSchema,
-}).superRefine(exigerDuTest('skill', 'difficulty')).superRefine((t, ctx) => {
+}).superRefine(fixerLeTest('skill', 'difficulty')).superRefine((t, ctx) => {
   if (t.test.label !== undefined)
     ctx.addIssue({ code: 'custom', path: ['test', 'label'], message: `test « ${t.id} » : le libellé est celui de l'entrée (\`label\`), pas du Test.` });
 }), {

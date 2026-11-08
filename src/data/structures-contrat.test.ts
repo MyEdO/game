@@ -50,6 +50,7 @@ import { lireCleDEspace } from './schemas/grammaire/cle-d-espace';
 
 import { STRUCTURES_CIBLES, STRUCTURES_REDECLARATIONS } from '../../scripts/guards/lib/structuresStock.mjs';
 import { sujetDuJetSchema } from './schemas/grammaire/mecanique';
+import { estObjet } from '../lib/objet.mjs';
 
 /**
  * EN-TÊTE STRUCTURÉ de la garde (#1475).
@@ -724,7 +725,6 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
  * des deux racines, co-descendue avec ses defs.
  */
 describe('le lexique reconnaît un concept à sa POSE de grammaire (#3012)', () => {
-  const estObjet = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
   const brutParNom = new Map<string, unknown>(listerDocuments(ROOT).map((d) => [d.nom, JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8'))]));
   const poses = posesDesObjets(DEFS, brutParNom);
   const objets: { site: string; dataset: string; champ: string; o: Record<string, unknown> }[] = [];

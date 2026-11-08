@@ -5,9 +5,11 @@
  * l'ordre lexical reconnaît au rejeu la forme que cette POSTÉRIEURE produit.
  */
 
+import { estObjet } from '../../../src/lib/objet.mjs'
+
 /** `racine` est-elle un document mono-table ? @param {unknown} racine @returns {boolean} */
 export const estMonoTable = (racine) =>
-  racine !== null && typeof racine === 'object' && !Array.isArray(racine) && Array.isArray(/** @type {{ entries?: unknown }} */ (racine).entries);
+  estObjet(racine) && Array.isArray(/** @type {{ entries?: unknown }} */ (racine).entries);
 
 /** Les LIGNES d'un tableau racine, à sa forme d'avant (la racine) ou d'après (ses `entries`).
  *  @param {any} racine @returns {any[]} */

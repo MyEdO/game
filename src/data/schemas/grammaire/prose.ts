@@ -18,6 +18,7 @@ import { estExtrait } from './livres-extraits';
 import { PROSE_INLINE_TOLEREE } from './prose-inline';
 import { PROSES_NOMMEES, type CheminProseDeScene, type ProseNommee } from './champs-prose-de-scene';
 import { nommerChamps, metaDesChamps, type MetaDesChamps } from './meta';
+import { estObjet } from '../../../lib/objet.mjs';
 
 export const META_PROSE = { desc: { label: 'texte' }, descRef: { label: 'adresse du texte' } };
 export const META_ADAPTE_DE = { adapteDe: { label: 'adapté de' } };
@@ -191,8 +192,6 @@ export function refineAdapteDe(v: unknown, refine: z.RefinementCtx): void {
   });
 }
 
-const estObjetSimple = (v: unknown): v is Record<string | number, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
-
 /**
  * `source` HÉRITÉE d'un point de donnée : celle du plus proche ANCÊTRE qui en porte une, le point exclu
  * La racine n'est pas héritée ; une déclaration locale coupe la recherche, même sans référence.
@@ -202,9 +201,9 @@ export function sourceHeritee(p: PointDeDonnee): Record<string | number, unknown
   for (let a = p.parent; a; a = a.parent) {
     if (a.chemin.length === 0) return undefined;
     if (a.noeuds.some((n) => declarationProseNommee(n) !== undefined)) return undefined;
-    if (!estObjetSimple(a.valeur)) continue;
+    if (!estObjet(a.valeur)) continue;
     if (a.valeur.adapteDe !== undefined) return undefined;
-    if (estObjetSimple(a.valeur.source)) return a.valeur.source;
+    if (estObjet(a.valeur.source)) return a.valeur.source;
     if (a.noeuds.some((n) => enfantsDe(n).some((enfant) => enfant.cle === 'source' || enfant.cle === 'adapteDe'))) return undefined;
   }
   return undefined;

@@ -16,6 +16,7 @@ import { refusSession, rejouer, BORNES_DE_REJEU, DELAI_FERMETURE_MS, FENETRE_RES
 import { lancerPontCodex, envoyerCodex, veillerCodex, ANNEXES_CODEX } from './session-codex.mjs'
 import { lireTransitions, ANNEXES_CLAUDE } from './session-transitions.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
+import { estObjet } from '../../src/lib/objet.mjs'
 
 export const PRODUCTEUR = 'ops:session'
 const terminaux = new Set(['fermee', 'echec-reservation', 'echec-controle'])
@@ -106,7 +107,7 @@ export function lancerAgent(plan, carte, { journal, lancer = spawn, echo = (morc
 
 const cheminComparable = (chemin) => process.platform === 'win32' ? resolve(chemin).toLowerCase() : resolve(chemin)
 
-const TYPES_DE_SCHEMA = Object.assign(Object.create(null), { string: (v) => typeof v === 'string', integer: Number.isInteger, null: (v) => v === null, object: (v) => !!v && typeof v === 'object' && !Array.isArray(v) })
+const TYPES_DE_SCHEMA = Object.assign(Object.create(null), { string: (v) => typeof v === 'string', integer: Number.isInteger, null: (v) => v === null, object: estObjet })
 const MOTS_DE_SCHEMA = new Set(['type', 'pattern', 'required', 'properties', 'additionalProperties'])
 
 export function validateurDeSchema(schema) {
@@ -151,7 +152,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
   const annexe = (id, cle) => annexeDe(dossier, id, cle)
   const stop = (id) => annexe(id, 'stop'), bootstrap = (id) => annexe(id, 'bootstrap'), recu = (id) => annexe(id, 'recu')
   const validerCarte = (brut, fichier) => {
-    if (!brut || typeof brut !== 'object' || Array.isArray(brut) || typeof brut.producteur !== 'string' || !brut.producteur) throw erreur('panne', `CARTE INVALIDE : ${fichier}`)
+    if (!estObjet(brut) || typeof brut.producteur !== 'string' || !brut.producteur) throw erreur('panne', `CARTE INVALIDE : ${fichier}`)
     if (brut.producteur !== PRODUCTEUR) return brut
     const vu = CarteSession.safeParse(brut)
     if (!vu.success || nomDeCarte(brut.sessionId) !== fichier) throw erreur('panne', `CARTE INVALIDE : ${fichier}${vu.success ? ' — identité/fichier divergent' : ` — ${vu.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ')}`}`)

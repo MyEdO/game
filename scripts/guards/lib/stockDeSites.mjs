@@ -25,6 +25,7 @@ import {
   survieDeLecheance,
 } from './stock.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
+import { estObjet } from '../../../src/lib/objet.mjs'
 
 /** Contenu JSON d'un fichier de stock, ou `{}` s'il est ABSENT (un stock soldé : rien de toléré,
  *  l'écart fait le reste). Lecteur partagé : `reconcile.mjs` en tire ses `trous`. */
@@ -93,7 +94,7 @@ export const FORMAT_JSON = Object.freeze({
   lire(texte) {
     let brut
     try { brut = JSON.parse(texte) } catch { return null }
-    if (brut === null || typeof brut !== 'object' || Array.isArray(brut)) return null
+    if (!estObjet(brut)) return null
     const cles = Object.keys(brut)
     if (cles.length !== 2 || !cles.includes('quoi') || !cles.includes('entrees') || !Array.isArray(brut.entrees)) return null
     return { horsCollections: brut.quoi, collections: new Map([['entrees', brut.entrees]]) }

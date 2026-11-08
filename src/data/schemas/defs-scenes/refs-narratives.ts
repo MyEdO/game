@@ -20,6 +20,7 @@
 import { aucunDe, inconnuDe, nomDe, REFERENCES_NARRATIVES, type RegistreReference } from './registres-narratifs';
 import { noeudsDeCondition, sitesDeLaCarte, sitesDeLaScene, sitesDuNarratifDuPaquet, type SitesDuPaquet } from './sites-de-paquet';
 import { FORMES_D_ETAT, LIBELLE_D_USAGE, type FormeDEtatKind, type UsageDEtat } from './formes-d-etat';
+import { estObjet } from '../../../lib/objet.mjs';
 
 type Chemin = readonly (string | number)[];
 
@@ -78,7 +79,7 @@ const SOUS_ENTREES: { readonly [R in RegistreReference]?: (e: NarratifAReference
 const NOM_DE_SOUS_ENTREE: { readonly [K in CleDeSousReference]: string } = { stade: 'stade inconnu', valeur: 'valeur non déclarée', value: 'valeur non déclarée' };
 
 const liste = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
-const objet = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
+const objet = (v: unknown): Record<string, unknown> => (estObjet(v) ? v : {});
 
 /** Ce que vaut une référence VIDE chez un porteur : une `absence` chez un porteur dont la référence est
  *  FACULTATIVE (entité, #1882 ; stade d'indice) — son propre schéma en juge la forme ; une `faute` chez

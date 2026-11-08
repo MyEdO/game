@@ -36,6 +36,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { estObjet } from '../lib/objet.mjs';
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -257,7 +258,6 @@ describe('vague 12b — la donnée porte son `type` et RIEN d’autre n’a boug
  * les 41 satisfont le même contrat, sur la RACINE au lieu de chaque entrée.
  */
 describe('enveloppe — les `.json` de `src/data`, partitionnés SANS reste', () => {
-  const estObjet = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 
   const FICHIERS = listerDossier(join(RACINE, 'src', 'data')).filter((f) => f.endsWith('.json'));
   const DOCS = FICHIERS.map((f) => [f, JSON.parse(readFileSync(join(RACINE, 'src', 'data', f), 'utf8')) as unknown] as const);

@@ -27,6 +27,7 @@ import { cheminsDeDocument } from '../scripts/guards/lib/structuresLocales.mts';
 import { commitDe, depotDe, reussi, shaDe } from '../scripts/guards/lib/gitPorte.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { CHEMINS_EXPORTES } from '../scripts/migrations/replay-head.mjs';
+import { estObjet } from './lib/objet.mjs';
 
 const comptes = (entrees: Partial<Record<string, object[]>>): Comptes => new Map(Object.entries(entrees)) as Comptes;
 
@@ -353,7 +354,6 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
     return n;
   };
   type Objet = Record<string, unknown>;
-  const estObjet = (v: unknown): v is Objet => !!v && typeof v === 'object' && !Array.isArray(v);
   /** Les collections d'ENTRÉES d'un document selon son régime (`scanDuCorpus`) : sa liste racine, la carte d'un record
    *  (sous `entries` quand il est enveloppé), ou chaque liste d'objets d'une config, projets de scène compris. */
   const entreesDe = (donnee: unknown, regime: string): (unknown[] | Objet)[] => {

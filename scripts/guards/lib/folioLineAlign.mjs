@@ -23,6 +23,7 @@ import { livreDuSigle, sigleDe } from '../../raw/_lib.mjs'
 import { fichierDuChapitre } from '../../../src/data/source/decoupe.ts'
 import { FOLIO_ATTR } from '../../../src/data/source/ancre-vide.ts'
 import { join } from 'node:path'
+import { estObjet } from '../../../src/lib/objet.mjs'
 
 /** Citation à la ligne : `LDB 12 l.28`, `ADE II 09 l.3`, `AA 07 l.1-185`, `MDG 14 l.13-19`… Le
  *  numéro de chapitre y est de LARGEUR QUELCONQUE, comme dans `refRe` (`scripts/raw/_lib.mjs`). */
@@ -137,7 +138,7 @@ export function citedEntries(data, file) {
     if (Array.isArray(node)) return node.forEach((v, i) => walk(v, `${path}[${i}]`))
     if (!node || typeof node !== 'object') return
     const s = node.source
-    if (s && typeof s === 'object' && !Array.isArray(s) && typeof s.book === 'string' && typeof s.page === 'number') {
+    if (estObjet(s) && typeof s.book === 'string' && typeof s.page === 'number') {
       const cite = typeof s.note === 'string' ? s.note : typeof node.ref === 'string' ? node.ref : null
       if (cite) out.push({ file, id: typeof node.id === 'string' ? node.id : path || '(racine)', book: s.book, page: s.page, cite })
     }

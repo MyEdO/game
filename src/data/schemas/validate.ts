@@ -15,7 +15,7 @@ import type { z } from 'zod';
 import { SCHEMA_DEFS } from './_registry.generated';
 import { SCHEMA_DEFS_SCENES } from './_registry-scenes.generated';
 import type { SchemaDef } from './types';
-import { defDe, descendre, enfantsDe, ouverts, pasDeDonnee } from './grammaire/descente';
+import { defDe, descendre, enfantsDe, estConteneur, ouverts, pasDeDonnee } from './grammaire/descente';
 import { atteindre, champDeCharge, collectionDe, noeudsDeLElement, type EspaceDeNoms } from './grammaire/collection-cle';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } from './exposition-derivee';
 import { valeursDe, metaDesChamps, nomDeNoeud, type MetaChamp } from './grammaire/meta';
@@ -41,14 +41,12 @@ export type Faute = {
   readonly code: string;
 };
 
-const estObjet = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object';
-
 /** #2432 */
 export function lieuDe(schema: unknown, valeur: unknown, chemin: readonly (string | number)[]): SegmentDeLieu[] {
   const lieu: SegmentDeLieu[] = [];
   let noeuds = ouverts([schema], valeur);
   for (const segment of chemin) {
-    const enfant = estObjet(valeur) ? valeur[segment] : undefined;
+    const enfant = estConteneur(valeur) ? valeur[segment] : undefined;
     const suivants = ouverts(pasDeDonnee(noeuds, segment), enfant);
     const precedent = lieu[lieu.length - 1];
     if (typeof segment === 'number') {
@@ -59,7 +57,7 @@ export function lieuDe(schema: unknown, valeur: unknown, chemin: readonly (strin
       const liste = precedent?.genre === 'champ' ? precedent.cle : '';
       if (precedent?.genre === 'champ') lieu.pop();
       if (cle === undefined) lieu.push({ genre: 'rang', rang: segment + 1, nom });
-      else lieu.push({ genre: 'element', liste, cle, nom, ...(estObjet(enfant) && typeof enfant.label === 'string' ? { libelle: enfant.label } : {}) });
+      else lieu.push({ genre: 'element', liste, cle, nom, ...(estConteneur(enfant) && typeof enfant.label === 'string' ? { libelle: enfant.label } : {}) });
     } else {
       const metas = noeuds.map(n => metaDesChamps(n)?.[segment]).filter((m): m is MetaChamp => !!m);
       const declares = noeuds.filter(n => enfantsDe(n).some(e => e.cle === segment));

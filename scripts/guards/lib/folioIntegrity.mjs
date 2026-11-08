@@ -60,6 +60,7 @@ import { join, dirname, basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { livreDuSigle, sigleDe } from '../../raw/_lib.mjs'
 import { resoudreProse } from '../../source/resoudre.mjs'
+import { estObjet } from '../../../src/lib/objet.mjs'
 
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
@@ -453,7 +454,7 @@ export function citedEntriesOf(data) {
     }
     const rec = /** @type {Record<string, unknown>} */ (node)
     const src = rec.source
-    if (src && typeof src === 'object' && !Array.isArray(src)) {
+    if (estObjet(src)) {
       const s = /** @type {Record<string, unknown>} */ (src)
       const cite = typeof s.book === 'string' && typeof s.page === 'number'
       const prose = !cite
@@ -504,7 +505,7 @@ export function secondaryEntriesOf(data) {
       const ownerId = typeof rec.id === 'string' ? rec.id : path || '?'
       const ownerLabel = typeof rec.label === 'string' ? rec.label : undefined
       also.forEach((ref, i) => {
-        if (!ref || typeof ref !== 'object' || Array.isArray(ref)) return
+        if (!estObjet(ref)) return
         const r = /** @type {Record<string, unknown>} */ (ref)
         if (typeof r.book === 'string' && typeof r.page === 'number') {
           out.push({

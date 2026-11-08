@@ -10,6 +10,7 @@ import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 import { refusSession, rejouer, BORNES_DE_REJEU } from './session-rejeu.mjs'
 import { lireTransitions, transitionDe } from './session-transitions.mjs'
+import { estObjet } from '../../src/lib/objet.mjs'
 
 export const MAX_MESSAGE_CODEX = 64 * 1024
 export const ANNEXES_CODEX = Object.freeze({ journalCodex: 'codex.jsonl', stderrCodex: 'codex.stderr.log', socketCodex: 'codex.sock' })
@@ -19,7 +20,7 @@ const empreinte = (s) => createHash('sha256').update(s).digest('hex')
 const OUTILS = ['commandExecution', 'fileChange', 'mcpToolCall', 'dynamicToolCall', 'collabAgentToolCall', 'webSearch', 'imageView', 'imageGeneration', 'sleep']
 const CHAMPS_OUTILS = Object.freeze({ commandExecution: ['command', 'status'], fileChange: ['status'], mcpToolCall: ['server', 'tool', 'status'], dynamicToolCall: ['tool', 'status'], collabAgentToolCall: ['tool', 'status'], webSearch: [], imageView: [], imageGeneration: ['status'], sleep: [] })
 const NOTIFICATIONS_LUES = new Set(['turn/started', 'turn/completed', 'item/started', 'item/completed', 'thread/tokenUsage/updated', 'thread/status/changed', 'error'])
-const FORMES_LUES = Object.freeze({ chaine: (v) => typeof v === 'string', booleen: (v) => typeof v === 'boolean', entier: Number.isInteger, tableau: Array.isArray, objet: (v) => v !== null && typeof v === 'object' && !Array.isArray(v) })
+const FORMES_LUES = Object.freeze({ chaine: (v) => typeof v === 'string', booleen: (v) => typeof v === 'boolean', entier: Number.isInteger, tableau: Array.isArray, objet: estObjet })
 const nature = (v) => v === undefined ? 'absent' : v === null ? 'null' : Array.isArray(v) ? 'tableau' : typeof v
 function lu(methode, racine, chemin, forme, { nul = false } = {}) {
   const valeur = chemin.split('.').reduce((o, k) => (o !== null && typeof o === 'object' ? o[k] : undefined), racine)
