@@ -118,36 +118,41 @@ export function rollInitialWealth(status: Status, rng: RNG): TirageDeRichesse {
   return { faces, montant: enPieces(unite, faces.reduce((a, f) => a + f, de.plus ?? 0)) };
 }
 
-/** Âge, colonne `refChar` de l'espèce. LDB 05 l.711 ; NADJ 15 l.80 ; ADE II 02 l.278 */
-export function rollAge(sp: SpeciesData, rng: RNG): number {
-  return rollDice(detailTables.age[sp.refChar], rng);
+/** Âge, colonne de la race `race`. LDB 05 l.711 ; NADJ 15 l.80 ; ADE II 02 l.278 */
+export function rollAge(race: RaceKey, rng: RNG): number {
+  return rollDice(detailTables.age[race], rng);
 }
 
-/** Taille en cm, colonne `refChar` de l'espèce. LDB 05 l.724, l.728 ; NADJ 15 l.112 ; ADE II 02 l.315 */
-export function rollHeight(sp: SpeciesData, rng: RNG): number {
-  return rollDice(detailTables.taille[sp.refChar], rng);
+/** Taille en cm, colonne de la race `race`. LDB 05 l.724, l.728 ; NADJ 15 l.112 ; ADE II 02 l.315 */
+export function rollHeight(race: RaceKey, rng: RNG): number {
+  return rollDice(detailTables.taille[race], rng);
 }
 
-/** Couleur des yeux (2d10, table LDB 05 l.742-754) pour la colonne d'espèce (refChar). */
-export function rollEyes(sp: SpeciesData, rng: RNG): string {
-  return rollDetail(eyesTable, sp, rng);
+/** Couleur des yeux (2d10, table LDB 05 l.742-754), colonne de la race `race`. */
+export function rollEyes(race: RaceKey, rng: RNG): string {
+  return rollDetail(eyesTable, race, rng);
 }
 
 /** Couleur des cheveux (2d10, table LDB 05 l.756-768). */
-export function rollHair(sp: SpeciesData, rng: RNG): string {
-  return rollDetail(hairsTable, sp, rng);
+export function rollHair(race: RaceKey, rng: RNG): string {
+  return rollDetail(hairsTable, race, rng);
+}
+
+/** Âge, taille, yeux et cheveux de la race `race`, tirés dans cet ordre sur `rng`. LDB 05 l.701-768 */
+export function tirerLesDetails(race: RaceKey, rng: RNG): { age: number; height: number; eyes: string; hair: string } {
+  return { age: rollAge(race, rng), height: rollHeight(race, rng), eyes: rollEyes(race, rng), hair: rollHair(race, rng) };
 }
 
 function rollDetail(
   table: { rand: number; randByRace?: Partial<Record<RaceKey, number>>; color: Partial<Record<RaceKey, string>> }[],
-  sp: SpeciesData,
+  race: RaceKey,
   rng: RNG,
 ): string {
   const r = roll(2, 10, rng);
-  const randFor = (e: { rand: number; randByRace?: Partial<Record<RaceKey, number>> }) => e.randByRace?.[sp.refChar] ?? e.rand;
+  const randFor = (e: { rand: number; randByRace?: Partial<Record<RaceKey, number>> }) => e.randByRace?.[race] ?? e.rand;
   const sorted = [...table].sort((a, b) => randFor(a) - randFor(b));
   const entry = sorted.find((e) => r <= randFor(e)) ?? sorted[sorted.length - 1];
-  return entry.color[sp.refChar] ?? entry.color.humain ?? '';
+  return entry.color[race] ?? entry.color.humain ?? '';
 }
 
 /** Signe astral (Tableau des Signes astrologiques, ADE II 3 l.40) → `id` STABLE du signe (≠ libellé —

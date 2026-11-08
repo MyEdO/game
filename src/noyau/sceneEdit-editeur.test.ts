@@ -388,7 +388,7 @@ describe('édition de scène — pose', () => {
     const ent = scene.entities.find((e) => e.id === id)!;
     expect(ent).toMatchObject({ kind: 'personnage', ref: 'humain' });
     expect(ent).not.toHaveProperty('label');
-    expect(nomDEntite(ent, () => undefined)).toBe(creatureLabel('humain'));
+    expect(nomDEntite(ent, () => undefined), 'un humain anonyme reçoit un nom tiré sur son id (#3712)').not.toBe(creatureLabel('humain'));
     expect(ent.appearance).toBeUndefined();
     expect(validateScene([scene]).filter((w) => w.scope === 'entity' && w.level === 'error')).toEqual([]);
   });
@@ -422,7 +422,7 @@ describe('édition de scène — pose', () => {
     const ent = r.scene.entities.find((e) => e.id === r.entityId)!;
     expect(findCreatureById(ent.ref)).toBeDefined();
     expect(ent).not.toHaveProperty('label');
-    expect(nomDEntite(ent, () => undefined)).toBe(creatureLabel('humain'));
+    expect(nomDEntite(ent, () => undefined), 'un humain anonyme reçoit un nom tiré sur son id (#3712)').not.toBe(creatureLabel('humain'));
     // Un LIBELLÉ passé à la place d'un id est refusé net — le résolveur valide, il ne normalise pas.
     expect(() => addEnemyMember(emptyScene('scene-test', 10, 10), '', 'Villageois', { x: 2, y: 2 })).toThrow(/id de créature/);
   });
@@ -445,9 +445,9 @@ describe('édition de scène — pose', () => {
 });
 
 describe('édition de scène — emplacement de siège (postes authorés à l’éditeur)', () => {
-  it('siegeEngines() sélectionne les engins posables du sous-type armes-de-siege (baliste présente)', () => {
+  it('siegeEngines() sélectionne les engins posables du Groupe armes-de-siege (baliste présente)', () => {
     expect(siegeEngines().length).toBeGreaterThan(0);
-    expect(siegeEngines().every((t) => t.subType === 'armes-de-siege')).toBe(true);
+    expect(siegeEngines().every((t) => t.subType?.id === 'armes-de-siege')).toBe(true);
     expect(siegeEngines().some((t) => t.id === 'baliste')).toBe(true);
   });
 

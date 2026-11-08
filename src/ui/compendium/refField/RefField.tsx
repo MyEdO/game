@@ -72,7 +72,6 @@ export const REF_FIELD: Record<string, RefFieldCfg> = {
   // Atouts d'une Structure de siège : réfs NUES de Trait (`ref('trait')`, ADE II 8), sans Indice ni pose.
   'structures.traits': { ds: 'traits' },
   // ── single (dataset réel) ───────────────────────────────────────────────────
-  'trappings.subType': { ds: 'weaponGroups', single: true },
   // Caractéristique d'une compétence : SÉLECTEUR (pas d'input libre) — `skills.json` stocke l'`id` du
   // dataset `characteristics` (mesuré : 10/10 valeurs distinctes résolues par `id`, 0/10 par `abr` ou
   // `label`), donc valeur d'option = `id` (défaut). `abr` y est vide sur 7 des 19 entrées.
@@ -93,7 +92,7 @@ export function refFieldCfg(categoryKey: string, fieldKey: string): RefFieldCfg 
 
 /** Config `single` d'une référence de `type` : le dataset qui porte l'espace du type
  *  (`datasetDeLEspaceDuType`), `undefined` s'il n'en a pas. */
-function cfgDuType(type: TypeEntite): (RefDatasetCfg & { single: true }) | undefined {
+export function cfgDuType(type: TypeEntite): (RefDatasetCfg & { single: true }) | undefined {
   const ds = datasetDeLEspaceDuType(type);
   return ds === undefined ? undefined : { ds: ds as DatasetKey, single: true };
 }

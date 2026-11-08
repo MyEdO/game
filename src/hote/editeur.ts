@@ -13,9 +13,9 @@ import {
   calqueDeLaCouche, calquesAStocker, coinsDuCalque, planDuCalque, type CalquesStockes,
   capDeLEntite, capsOfferts, entiteDeLaSelection, fichesDePersonnage, nomDEntite, presetDuNarratif, props,
   assoirALaPlace, findVehicleById, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
-  DIFFICULTY_LABELS, FACES_D_ARETE, FIRE_ARCS, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, scenesDeLaSession, secretAuteur,
+  DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FACES_D_ARETE, FIRE_ARCS, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, scenesDeLaSession, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
-  ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
+  ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
   type WallPaint, ZONE_VARIANTS, champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
   allMusicDefs, apparencesDeLOuverture, champDuMessage, ciblesDAncreDeBataille, groupesDuLieu,
@@ -23,6 +23,7 @@ import {
   candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDEntite, ficheDuCombattant,
   findCareerById, levelsForCareer, libelleDeLaValeur, parcoursDe, parcoursRetouche, parseRefKey, prisParLesAutres, refKey, refLabel, skillSlots, sousEmplacement, talentsDuParcours,
   trappingRefLabel, valeursDeLEmplacement, type EmplacementDeDotation, type ParcoursDeCarriere,
+  findSpellById, listesDeSorts, refusDesSortsChoisis, sceneNpc, sortsImprimes, spells,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -233,6 +234,13 @@ const formulaireAUnChamp = (verbe: string, libelle: string, nom: string, intitul
   champs: [{ type: 'saisieTexte', id: `${verbe}/${nom}`, ton: 'neutre', nom, optionnel, libelle: intitule, valeur }],
 });
 
+/** Le formulaire qui pose une troupe du personnage sélectionné (`{ type: 'troupe', args: [nombre] }`), son nombre de
+ *  copies entre `BORNES_DE_LA_TROUPE`. */
+const formulaireDeLaTroupe = (): Formulaire => ({
+  type: 'formulaire', id: 'troupe', libelle: t('ecran.editeur.troupe'), verbe: 'troupe', focus: false, refus: null,
+  champs: [{ type: 'saisieNombre', id: 'troupe/nombre', ton: 'neutre', nom: 'nombre', optionnel: false, libelle: t('ecran.editeur.troupe.nombre'), valeur: BORNES_DE_LA_TROUPE.min, ...BORNES_DE_LA_TROUPE, pas: 1 }],
+});
+
 /** Le formulaire qui change l'identifiant `id` de la sélection, ou de la scène sans elle. */
 const formulaireDeLIdentifiant = (id: string): Formulaire =>
   formulaireAUnChamp('identifier', t('ecran.editeur.identifier'), 'id', t('ecran.editeur.identifiant'), id, false);
@@ -269,8 +277,8 @@ const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: num
 
 /** L'inspecteur de l'entité sélectionnée de la session `s` : son nom ; le type d'un décor, la fiche d'un personnage du
  *  bestiaire ; son cap parmi ceux que son type admet ; sa couche ; la lumière et les places d'un décor ; le poste d'un
- *  emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son parcours de carrière, son
- *  embuscade et ses rencontres ; la supprimer. */
+ *  emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son parcours de carrière, ses
+ *  sorts, son embuscade et ses rencontres, et le formulaire qui en pose une troupe ; la supprimer. */
 function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton | Formulaire)[] {
   const fiches = fichesDePersonnage();
   const types = ent.kind === 'prop' ? props : ent.kind === 'personnage' && fiches.some((f) => f.id === ent.ref) ? fiches : [];
@@ -286,7 +294,7 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
     ...(ent.postes?.length || (ent.ref && findVehicleById(ent.ref)?.hull)
       ? equipe(s, ent, 'equipage', ent.crewIds ?? [], (crewIds) => ({ geste: 'entite', patch: { crewIds } }))
       : []),
-    ...(ent.kind === 'personnage' ? [...inventaire(ent), ...carrieres(s, ent), ...rencontres(s, ent)] : []),
+    ...(ent.kind === 'personnage' ? [...inventaire(ent), ...carrieres(s, ent), ...sorts(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
     bouton('entite/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }),
   ];
 }
@@ -498,6 +506,32 @@ function profilDeCarriere(s: SessionDEdition, ent: Scene['entities'][number], ac
     liste('competences', fiche.competences.map((c) => `${c.libelle} ${c.valeur}`)),
     liste('talents', fiche.talents.map((x) => (x.fois > 1 ? `${x.libelle} ×${x.fois}` : x.libelle))),
     liste('possessions', fiche.possessions.map((x) => (x.nombre > 1 ? `${x.libelle} (${x.nombre})` : x.libelle))),
+  ];
+}
+
+/** Les sorts du personnage `ent` de la session `s`, lus sur sa fiche (`sceneNpc`), s'il en a une : ceux que son profil imprime,
+ *  sur une ligne ; sinon, s'il a une liste de sorts (`listesDeSorts`), chaque sort choisi, à retirer, la raison qui
+ *  refuse les choix (`refusDesSortsChoisis`), en liste chaque sort d'une de ses listes qu'il n'a pas choisi, à ajouter,
+ *  refusé avec sa raison, puis ses sorts au spawn, choisis et tirés (`sortsDuPnj`). Chaque bouton écrit les sorts
+ *  choisis entiers. */
+function sorts(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne)[] {
+  const fiche = sceneNpc(sceneEditee(s), ent.id, presetDuNarratif(s.projet.narratif));
+  if (!fiche) return [];
+  const libelle = (id: string) => findSpellById(id)?.label ?? id;
+  const liste = (ids: readonly string[]) => ids.map(libelle).join(', ') || t('ecran.editeur.carriere.profil.aucun');
+  const imprimes = sortsImprimes(fiche.porteurDeFiche);
+  if (imprimes.length) return [ligne('sorts/imprimes', t('ecran.editeur.sorts.imprimes', { liste: liste(imprimes) }))];
+  const listes = listesDeSorts(fiche);
+  if (!listes.length) return [];
+  const choisis = ent.combat?.spells ?? [];
+  const ecrire = (ids: string[]): GesteDEdition => ({ geste: 'entite', patch: { sorts: ids } });
+  const refus = refusDesSortsChoisis(fiche, choisis);
+  return [
+    ...choisis.map((id) => choix(`sorts/${id}`, libelle(id), [bouton(`sorts/${id}/retirer`, t('ecran.editeur.sorts.retirer'), ecrire(choisis.filter((x) => x !== id)))])),
+    ...(refus ? [ligne('sorts/refus', refus, 'alerte')] : []),
+    choix('sorts/ajouter', t('ecran.editeur.sorts.ajouter'), spells.filter((sp) => !choisis.includes(sp.id) && listes.some((l) => l.admet(sp)))
+      .map((sp) => bouton(`sorts/ajouter/${sp.id}`, sp.label, ecrire([...choisis, sp.id]), false, refusDesSortsChoisis(fiche, [...choisis, sp.id]) ?? null)), 'liste'),
+    ligne('sorts/connus', t('ecran.editeur.sorts.connus', { liste: liste(fiche.spells ?? []) })),
   ];
 }
 
@@ -1021,7 +1055,7 @@ function inspecteurDArete(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   if (climb?.kind === 'surface') {
     elements.push(
       choix('arete/escalade/difficulte', t('ecran.editeur.inspecteur.escalade.difficulte'), (Object.entries(DIFFICULTY_LABELS) as [Difficulty, string][])
-        .map(([d, libelle]) => bouton(`arete/escalade/difficulte/${d}`, libelle, surLArete({ climb: { ...climb, difficulty: d } }), (climb.difficulty ?? 'intermediaire') === d)), 'liste'),
+        .map(([d, libelle]) => bouton(`arete/escalade/difficulte/${d}`, libelle, surLArete({ climb: { ...climb, difficulty: d } }), (climb.difficulty ?? DIFFICULTE_PAR_DEFAUT) === d)), 'liste'),
       bascule('grimpeur', !!climb.requiresGrimpeur, surLArete({ climb: { kind: 'surface', ...(climb.difficulty ? { difficulty: climb.difficulty } : {}), ...(climb.requiresGrimpeur ? {} : { requiresGrimpeur: true }) } })),
     );
   }
@@ -1128,7 +1162,7 @@ function inspecteurDeScene(s: SessionDEdition): (Choix | Ligne | Bouton | Formul
     ...musiqueDeLaScene(scene),
     formulaireDuMessage(scene),
     ...PARTS_RELIEF.map((part) => choix(`scene/relief/${part}`, t(`ecran.editeur.scene.relief.${part}`), matieresDe('relief').map((m) =>
-      bouton(`scene/relief/${part}/${m.id}`, m.label, sur({ relief: { [part]: m.id } }), scene.reliefDefaults[part] === m.id)), 'liste')),
+      bouton(`scene/relief/${part}/${m.id}`, m.label, sur({ relief: { [part]: { id: m.id } } }), scene.reliefDefaults[part].id === m.id)), 'liste')),
     ligne('scene/toiture', t('ecran.editeur.scene.toiture')),
     choixDeCouverture('scene/toiture/couverture', toit.material, (m) => sur({ toiture: { material: m } }), null),
     ...reglette('scene/toiture/pente', t('ecran.editeur.toiture.pente', { v: toit.pitchDeg }), toit.pitchDeg, PAS_DE_PENTE, (v) => sur({ toiture: { pitchDeg: v } })),
@@ -1366,7 +1400,8 @@ const estNombre = (v: unknown): v is number => typeof v === 'number' && Number.i
  *  celui qui change l'identifiant de la zone d'effet (`formulaireDeLIdentifiant`), `{ geste: 'identifier', id }` ; celui
  *  qui décrit la scène, sa description, retirée si elle est laissée vide ; celui qui écrit le message d'introduction de
  *  la scène, son texte tel quel, retiré s'il est laissé vide ; celui qui ajoute un drapeau de départ à la
- *  scène, vrai ; celui qui écrit une valeur d'un formulaire tiré du schéma (`elementDeValeur`), `args` son porteur,
+ *  scène, vrai ; celui qui pose une troupe du personnage sélectionné, `{ geste: 'troupe', nombre }`, un entier entre
+ *  `BORNES_DE_LA_TROUPE` ; celui qui écrit une valeur d'un formulaire tiré du schéma (`elementDeValeur`), `args` son porteur,
  *  son chemin et la valeur saisie, `{ geste: 'valeur', porteur, chemin, valeur }`, quand un formulaire des zones porte
  *  ce porteur et ce chemin, ou qu'une valeur d'un de leurs choix joue ce geste même ; `undefined` si les zones ne
  *  portent pas ce formulaire ou si `args` n'est pas ce qu'il saisit. */
@@ -1380,6 +1415,11 @@ export function gesteDuFormulaire(z: ZonesDeLEditeur, jeu: unknown): GesteDEditi
     const offert = formulaires.some((f) => jsonCanonique(f.champs.slice(0, 2).map((c) => (c.type === 'fixe' ? c.valeur : undefined))) === pose)
       || z['editeur.inspecteur'].some((e) => (e.type === 'choix' || e.type === 'liste') && e.valeurs.some((b) => jsonCanonique(b.jeu) === joue));
     return offert && valeur.length <= 1 ? { geste: 'valeur', porteur: porteur as PorteurDeValeur, chemin: chemin as Segment[], ...(valeur.length ? { valeur: valeur[0] } : {}) } : undefined;
+  }
+  if (jeu.type === 'troupe') {
+    const [nombre, ...reste] = jeu.args as unknown[];
+    const borne = estEntier(nombre) && nombre >= BORNES_DE_LA_TROUPE.min && nombre <= BORNES_DE_LA_TROUPE.max;
+    return formulaires.length && !reste.length && borne ? { geste: 'troupe', nombre } : undefined;
   }
   const [valeur, ...reste] = jeu.args as unknown[];
   const vide = valeur === undefined || valeur === null;
@@ -1404,7 +1444,7 @@ export function refusDeLaValeurDit(s: SessionDEdition, g: Extract<GesteDEdition,
 }
 
 /** Les verbes des formulaires de l'inspecteur. */
-const VERBES_DE_FORMULAIRE: readonly string[] = ['nommer', 'identifier', 'decrire', 'introduire', 'drapeau', 'valeur'];
+const VERBES_DE_FORMULAIRE: readonly string[] = ['nommer', 'identifier', 'decrire', 'introduire', 'drapeau', 'valeur', 'troupe'];
 
 /** Si `g` est l'issue de l'écriture d'un enregistrement au dépôt : `{ geste: 'enregistrement', reussi }`, rien de plus. */
 export function estLIssueDUnEnregistrement(g: unknown): g is Extract<GesteDEdition, { geste: 'enregistrement' }> {

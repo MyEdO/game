@@ -16,7 +16,7 @@ import { clampTarget, exactDifficultyFromModifier } from '../engine/tests';
 import { rule, setRule } from '../engine/policy';
 import { findCrewRoleById } from '../data';
 import { RULE_REF } from '../engine/ruleRefs';
-import { DIFFICULTY_MODIFIERS, DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
+import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_MODIFIERS, DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
@@ -410,7 +410,7 @@ describe('SONDES PROMUES (#1153 L1b) — ce que le monteur NE fait PAS encore', 
 
     const l = rollLine({ difficulty: 'intermediaire', valeur: 60, surLaCible: mods, plafond: 'difficultes' });
     expect(l.target).toBe(clampTarget(60 + attendu).target);
-    expect(l.difficulty, 'la Difficulté annoncée par la ligne').toBe(palier ?? 'intermediaire');
+    expect(l.difficulty, 'la Difficulté annoncée par la ligne').toBe(palier ?? DIFFICULTE_PAR_DEFAUT);
     expect(l.difficultyCombined, 'le modificateur COMBINÉ ne paraît que hors des crans').toBe(combine);
     if (palier || combine != null) {
       // Difficulté COMPOSÉE : les circonstances (et l'écart du plafond) la font — elles quittent les

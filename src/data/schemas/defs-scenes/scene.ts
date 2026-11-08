@@ -194,6 +194,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
     .strictObject({
       /** OPTIONNELS choisis (`LDB 76 l.45`). */
       optionals: z.array(optionalEntrySchema).optional(),
+      /** Sorts choisis par l'auteur (`sortsDuPnj`, `engine/sortsDuPnj.ts`). #3715 */
       spells: refs('spell').optional(),
       /** Caractéristiques aléatoires au spawn (`LDB 77 l.108`). */
       randomChars: z.boolean().optional(),
@@ -330,9 +331,9 @@ const couvertureSchema: z.ZodType<string, string> = idDe('material', 'roof');
  * est une valeur de `<select>`, et par l'authoring TS des scénarios.
  */
 const typeDeBatimentSchema: z.ZodType<string, string> = idDe('building');
-/** Matière de RELIEF — même porte que `couvertureSchema`, sur la sous-liste `relief` de
- *  `materials.json` : une couverture de toit ou une matière de décor posée sur une falaise n'entre pas. */
-const matiereReliefSchema: z.ZodType<string, string> = idDe('material', 'relief');
+/** Matière de RELIEF — `ref('material')` sur la sous-liste `relief` de `materials.json` (une couverture de
+ *  toit ou une matière de décor posée sur une falaise n'entre pas), sortie élargie comme `couvertureSchema`. */
+const matiereReliefSchema: z.ZodType<{ id: string }, { id: string }> = ref('material', undefined, 'relief');
 /**
  * MATIÈRES DE RELIEF de la scène, UNE par PARTIE émise (#1691) : falaise, rampe, dalle de tablier,
  * pilier. Les clés sont EXACTEMENT le vocabulaire `PARTS_RELIEF` de la couche donnée — celui que
@@ -663,7 +664,7 @@ export const layerSchema = nommerChamps(z.strictObject({
   z: z.number(),
   /** Ids de TERRAIN résolus contre `terrains.json` (#1690) : une tuile qui nomme un sol absent du
    *  dataset est refusée AU PARSE, nommément, au lieu de peindre le repli d'alarme en silence. */
-  tiles: z.array(idDe('terrain')),
+  tiles: refs('terrain'),
   height: z.array(z.number()).optional(),
   /** CRÉNELURE (RENDU PUR) : parallèle à `tiles` (`y·w+x`). `null` = pas de crénelure ; une chaîne = id de
    *  structure crénelée (`structureAppearance.json`) → la crénelure (`cretesDePerimetre`) en dérive des MERLONS

@@ -75,7 +75,7 @@ import { SeatAssignmentsField } from './SeatAssignmentsField';
 import { type Sel, type Tool, capDeLEntite, capsOfferts, effectZoneRect, lumiereAllumee, effectZoneArea, flowEffectCount } from '../../noyau/sceneEditLecture';
 import { scrollElementIntoPort } from './useEditorView';
 import type { FireArc, StructureData, NavalTraitRef } from '../../engine/types';
-import { DIFFICULTY_LABELS, type Difficulty } from '../../engine/types';
+import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, type Difficulty } from '../../engine/types';
 import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structures';
 import { RefField } from '../compendium/refField/RefField';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
@@ -1181,7 +1181,7 @@ export function Inspector({
                   <>
                     <div className="ed-field">
                       <span>Difficulté du Test</span>
-                      <select value={selW.climb.difficulty ?? 'intermediaire'} onChange={(e) => patchSelW({ climb: { ...selW.climb!, difficulty: e.target.value as Difficulty } })}>
+                      <select value={selW.climb.difficulty ?? DIFFICULTE_PAR_DEFAUT} onChange={(e) => patchSelW({ climb: { ...selW.climb!, difficulty: e.target.value as Difficulty } })}>
                         {Object.entries(DIFFICULTY_LABELS).map(([k, lbl]) => (<option key={k} value={k}>{lbl}</option>))}
                       </select>
                     </div>
@@ -2147,8 +2147,8 @@ function SceneProps({
           <label key={part} className="ed-field">
             {LIBELLE_DE_PARTIE[part]}
             <select
-              value={scene.reliefDefaults[part]}
-              onChange={(e) => setScene(setReliefDefault(scene, part, e.target.value))}
+              value={scene.reliefDefaults[part].id}
+              onChange={(e) => setScene(setReliefDefault(scene, part, { id: e.target.value }))}
             >
               {matieresDe('relief').map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>

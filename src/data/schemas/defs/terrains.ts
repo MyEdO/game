@@ -21,7 +21,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { GLYPHES_RESERVES, glyphesReservesEnClair } from '../grammaire/carte-ascii';
 import { couleurHexSchema, detailRecipeSchema } from '../grammaire/valeurs';
-import { idDe } from '../grammaire/ref';
+import { ref } from '../grammaire/ref';
 
 export const file = 'terrains.json';
 export const famille = 'entite';
@@ -57,9 +57,9 @@ const doc = document(
       message: 'une rampe porte au moins DEUX arrêts (un seul est un aplat — c’est `swatch`)',
     }),
     detail: detailRecipeSchema.optional(),
-    overlayProp: idDe('prop').optional(),
+    overlayProp: ref('prop').optional(),
     solidHeightM: z.number().positive().optional(),
-    matiere: idDe('material', 'relief').optional(),
+    matiere: ref('material', undefined, 'relief').optional(),
   },
   {
     walkable: { label: 'Franchissable', hint: 'Le terrain se traverse à pied' },

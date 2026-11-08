@@ -159,7 +159,8 @@ export interface SceneEntity {
     /** OPTIONNELS choisis (LDB 76 l.45) : Traits posés résolus au spawn OU notes composées
      *  (joker « tous les traits », variante « swap » retirant des Traits + octroyant un bonus, ZI). */
     optionals?: import('../../engine/statEntry').OptionalEntry[];
-    /** Sorts connus (ids de spells.json) — choix d'auteur, remplace ceux de la créature `ref` (`src/noyau/monde/spawn.ts` › `spells`). */
+    /** Sorts choisis par l'auteur (ids de spells.json), bornés par `refusDesSortsChoisis` et complétés au spawn
+     *  (`sortsDuPnj`, `engine/sortsDuPnj.ts`) ; un profil qui imprime ses sorts n'en prend aucun. #3715 */
     spells?: string[];
     /** Caractéristiques aléatoires au spawn (LDB 77 l.108 : −10 + 2d10, graine stable par id). */
     randomChars?: boolean;
@@ -217,7 +218,7 @@ export type EncounterMember = z.infer<typeof encounterMemberSchema>;
 
 export type EncounterDef = z.infer<typeof encounterDefSchema>;
 
-/** Une COUCHE. `tiles` est ÉLARGI à `Terrain` (= `string`) : `idDe('terrain')` BRANDE l'id qu'il rend,
+/** Une COUCHE. `tiles` est ÉLARGI à `Terrain` (= `string`) : `refs('terrain')` BRANDE les ids qu'il rend,
  *  et cette marque est un verdict de PARSE (une tuile hors de `terrains.json` est refusée nommément) —
  *  l'authoring TS (`asciiMap`, `legend`, `terrainRects`) n'est pas parsé et écrit des chaînes nues.
  *  Même patron d'élargissement que `EnveloppeDocument` (`grammaire/document.ts`) et `AxesData`. */
@@ -878,7 +879,7 @@ export const DEFAULT_ROOF_DEFAULTS: SceneRoofDefaults = semencesDeScene.roofDefa
  * `MapSpec` sans `terrain` déclaré, le redimensionnement de l'éditeur, le pinceau par défaut de la
  * palette et le repli de la légende d'export ASCII le lisent ICI — jamais un `'…'` de leur cru.
  */
-export const DEFAULT_TERRAIN: Terrain = semencesDeScene.terrain;
+export const DEFAULT_TERRAIN: Terrain = semencesDeScene.terrain.id;
 
 /** Scène neuve — pose les défauts EXPLICITES au lieu de laisser `undefined` : le contrôle d'inspecteur
  *  affiche alors la valeur RÉELLEMENT effective (2 m, horloge) au lieu d'un simple placeholder vide qui
@@ -891,7 +892,7 @@ export const DEFAULT_TERRAIN: Terrain = semencesDeScene.terrain;
  *  unique (`idDEntropie`, `src/web/entropie.ts`, #2817). */
 /** Le sol d'une scène neuve : une couche au terrain de la semence (`semences-de-scene.json`). */
 function coucheDeSemence(w: number, h: number): Scene['layers'] {
-  return [{ z: 0, tiles: new Array(w * h).fill(semencesDeScene.terrain) }];
+  return [{ z: 0, tiles: new Array<Terrain>(w * h).fill(semencesDeScene.terrain.id) }];
 }
 
 export function emptyScene(id: string, w = 20, h = 15): Scene {
@@ -903,7 +904,7 @@ export function emptyScene(id: string, w = 20, h = 15): Scene {
     ambiance: semencesDeScene.ambiance,
     metresPerTile: semencesDeScene.metresPerTile,
     ambientLight: semencesDeScene.ambientLight ?? 'auto',
-    reliefDefaults: { ...semencesDeScene.reliefDefaults },
+    reliefDefaults: structuredClone(semencesDeScene.reliefDefaults), // #2097
     roofDefaults: { ...semencesDeScene.roofDefaults },
     layers: coucheDeSemence(w, h),
     entities: [],

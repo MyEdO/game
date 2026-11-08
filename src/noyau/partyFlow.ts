@@ -39,7 +39,7 @@ import { bonus, effectiveChar } from '../engine/characteristics';
 import { castingKindOf } from '../engine/combatFeatures/dispatch';
 import { toMoney, Money, formatMoney } from '../engine/money';
 import { isArcaneSpell } from '../engine/magic';
-import { spellCost, verdictApprentissage } from '../engine/grimoire';
+import { eligibleTalent, spellCost, verdictApprentissage } from '../engine/grimoire';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { levelsForCareer, byId, findCareerById, findSpellById, findTrappingById, refLabel, dataLabel, type SpellData } from '../data/index';
 import { t } from '../i18n';
@@ -536,7 +536,7 @@ export function acheterLeTalent(get: Get, set: Set, heroId: string, talentId: st
 }
 
 /** Apprend/mémorise un sort (LDB 46 l.16-20 + Talents LDB 10) : coût en PX selon la
- *  famille (engine/grimoire.spellCost) ; un sort de Magie du Chaos inflige AUSSI
+ *  famille (engine/grimoire.spellCost) ; un sort appris par Magie du Chaos inflige AUSSI
  *  +1 Point de Corruption (« le Sort s'insinue dans votre esprit ») — appliqué par
  *  l'appelant store (seuil → mutation). */
 export function acheterLeSort(get: Get, set: Set, heroId: string, spellId: string, opts: { discountXp?: number } = {}): { ok: boolean; chaos?: boolean } {
@@ -568,7 +568,7 @@ export function acheterLeSort(get: Get, set: Set, heroId: string, spellId: strin
     msg = cost > 0
       ? t('pf.spellLearned', { name: clone.label, spell: sp.label, cost, remise: cost < full ? t('pf.fragSpellDiscount', { n: full - cost }) : '' })
       : t('pf.spellGranted', { name: clone.label, spell: sp.label });
-    result = { ok: true, chaos: sp.family === 'chaos' };
+    result = { ok: true, chaos: eligibleTalent(clone, sp)?.kind === 'chaos' };
     return clone;
   })) return { ok: false };
   if (msg) get().ecrireAuJournal(msg);

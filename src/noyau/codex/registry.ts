@@ -1462,10 +1462,10 @@ const CODEX_SPECS = {
         ? fact(tr('codex.fiche.portee'), rangeSpecLabel(t.range) ?? ammoRangeModLabel(t.ammoRangeMod))
         : fact(tr('codex.fiche.allonge'), t.reach);
       return depuisEnveloppe(t, {
-        sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.subType) || undefined),
+        sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.subType?.id) || undefined),
         meta: facts(fact(tr('codex.fiche.prix'), priceLabel(t.price)), fact(tr('codex.fiche.enc2'), t.enc), fact(tr('codex.fiche.disponibilite'), t.availability && libelleDeValeur(availabilitySchema, t.availability)), fact(tr('codex.fiche.emplacement'), t.loc), fact(tr('codex.fiche.degats'), damageFact(t)), fact('PA', t.pa), reachFact),
         sections: sections(
-          chips(tr('codex.fiche.qualites'), resolveQualities({ qualities: t.qualities, subType: t.subType }).map((r) => idRefRow('qualities', r.id, undefined, qualityRefLabel({ id: r.id, value: r.indice })))),
+          chips(tr('codex.fiche.qualites'), resolveQualities({ qualities: t.qualities, subType: t.subType?.id }).map((r) => idRefRow('qualities', r.id, undefined, qualityRefLabel({ id: r.id, value: r.indice })))),
           props.length ? { title: tr('codex.fiche.proprietes'), layout: 'list', rows: [{ t: 'text', text: props.join(' · ') }] } : null,
           ...reverseSections('trappings', t.id),
         ),
@@ -1474,9 +1474,9 @@ const CODEX_SPECS = {
   },
   siegeEngines: {
     label: 'codex.fiche.enginsDeSiege', group: 'equipement',
-    // Trappings du sous-type `armes-de-siege`, sélectionnés par `siegeEngines` comme dans la palette.
+    // Trappings d'un Groupe d'engins de siège, sélectionnés par `siegeEngines` comme dans la palette.
     build: () => siegeEngines().map((t) => depuisEnveloppe(t, {
-      sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.subType) || undefined),
+      sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.subType?.id) || undefined),
       meta: facts(
         fact(tr('codex.fiche.prix'), priceLabel(t.price)), fact(tr('codex.fiche.enc2'), t.enc), fact(tr('codex.fiche.disponibilite'), t.availability && libelleDeValeur(availabilitySchema, t.availability)),
         fact(tr('codex.fiche.degats'), damageFact(t)), fact('PA', t.pa),
@@ -1916,8 +1916,8 @@ const CODEX_SPECS = {
           { t: 'kv', k: tr('codex.fiche.metresParCase'), v: `${semencesDeScene.metresPerTile} m` },
           // Absent = `auto` : l’éclairage suit l’horloge (même convention que `Scene.ambientLight`).
           { t: 'kv', k: tr('codex.fiche.eclairage'), v: semencesDeScene.ambientLight ?? tr('codex.fiche.automatiqueSuitLHorloge') },
-          { t: 'kv', k: tr('codex.fiche.solDeDepart'), v: semencesDeScene.terrain },
-          { t: 'kv', k: tr('codex.fiche.matieresDeRelief'), v: Object.entries(semencesDeScene.reliefDefaults).map(([part, mat]) => `${part} : ${mat}`).join(' · ') },
+          { t: 'kv', k: tr('codex.fiche.solDeDepart'), v: semencesDeScene.terrain.id },
+          { t: 'kv', k: tr('codex.fiche.matieresDeRelief'), v: Object.entries(semencesDeScene.reliefDefaults).map(([part, mat]) => `${part} : ${mat.id}`).join(' · ') },
           { t: 'kv', k: tr('codex.fiche.toiture'), v: tr('codex.fiche.combleEtageS', { material: semencesDeScene.roofDefaults.material, pitchDeg: semencesDeScene.roofDefaults.pitchDeg, riseMaxStoreys: semencesDeScene.roofDefaults.riseMaxStoreys }) },
         ] as CodexRow[],
       }),
@@ -1932,9 +1932,9 @@ const CODEX_SPECS = {
       sections: sections({
         title: tr('codex.fiche.ceQueLeCompilateurPoseA'), layout: 'list',
         rows: [
-          { t: 'kv', k: tr('codex.fiche.cheminDeRonde'), v: defautsDeCompilation.cheminDeRonde },
-          { t: 'kv', k: tr('codex.fiche.masseDUnMurPlein'), v: defautsDeCompilation.masse },
-          { t: 'kv', k: tr('codex.fiche.pontDeNavire'), v: defautsDeCompilation.pont },
+          { t: 'kv', k: tr('codex.fiche.cheminDeRonde'), v: defautsDeCompilation.cheminDeRonde.id },
+          { t: 'kv', k: tr('codex.fiche.masseDUnMurPlein'), v: defautsDeCompilation.masse.id },
+          { t: 'kv', k: tr('codex.fiche.pontDeNavire'), v: defautsDeCompilation.pont.id },
         ] as CodexRow[],
       }),
     }],
@@ -2007,8 +2007,8 @@ const CODEX_SPECS = {
           fact(nom('opaque'), t.opaque ? tr('codex.fiche.oui') : null),
           fact(nom('built'), t.built ? tr('codex.fiche.oui') : null),
           fact(nom('solidHeightM'), t.solidHeightM != null ? `${t.solidHeightM} m` : null),
-          fact(nom('matiere'), t.matiere ? matiereLabel(t.matiere) : null),
-          fact(nom('overlayProp'), t.overlayProp ? propLabel(t.overlayProp) : null),
+          fact(nom('matiere'), t.matiere ? matiereLabel(t.matiere.id) : null),
+          fact(nom('overlayProp'), t.overlayProp ? propLabel(t.overlayProp.id) : null),
         ),
         // Les DEUX porteurs de couleur du terrain (teinte d'aperçu + arrêts de la rampe) tiennent la
         // MÊME section : ce sont des couleurs, rendues par la même rangée `couleur` (pastille peinte +

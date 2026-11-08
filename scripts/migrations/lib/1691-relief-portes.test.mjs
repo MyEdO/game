@@ -10,8 +10,8 @@
  *
  * L'état d'AVANT n'existe plus dans l'arbre et AUCUNE révision ne sert de fixture : il est
  * reconstruit par projection INVERSE des documents VIVANTS (matière retirée, marqueur de plan
- * retiré). Les cardinaux se LISENT sur les documents,
- * jamais récités ici.
+ * retiré), et l'état que la migration produit par celle de la matière en id nu (#2968 L11). Les
+ * cardinaux se LISENT sur les documents, jamais récités ici.
  *
  * Ce banc vit sous `lib/` : `replay.mjs` scanne le dossier des migrations à PLAT et n'y admet que
  * des `.mjs` à préfixe DATÉ.
@@ -33,18 +33,20 @@ const MATERIALS_DOC = JSON.parse(TEXTE_MATERIALS);
 /** Cardinaux LUS sur les documents migrés — jamais récités. */
 const BLOCS = TERRAINS_DOC.filter((e) => e.solidHeightM !== undefined);
 assert.ok(BLOCS.length > 0, 'aucun terrain à bloc plein — la fixture ne mesure rien');
-assert.ok(BLOCS.every((e) => typeof e.matiere === 'string'), 'un bloc plein sans `matiere` : l’arbre n’est pas migré');
+assert.ok(BLOCS.every((e) => typeof e.matiere?.id === 'string'), 'un bloc plein sans `matiere` : l’arbre n’est pas migré');
 assert.equal(MATERIALS_DOC.filter((e) => e.vueDeDessus === true).length, 1, 'le plan vu du dessus n’est pas déclaré');
 
 /** PROJECTION INVERSE de `terrains.json` : la matière des flancs retirée. */
 const terrainsAvant = () => TERRAINS_DOC.map(({ matiere: _pose, ...reste }) => reste);
+/** `terrains.json` tel que la migration le produit : la matière des flancs en id nu. */
+const terrainsApres = () => TERRAINS_DOC.map((e) => (e.matiere === undefined ? e : { ...e, matiere: e.matiere.id }));
 /** PROJECTION INVERSE de `materials.json` : marqueur de plan retiré. */
 const materialsAvant = () => MATERIALS_DOC.map(({ vueDeDessus: _pose, ...reste }) => reste);
 
 const depotData = (terrains, materials) =>
   ({ ...depot({ [TERRAINS]: terrains, [MATERIALS]: materials }), migration: MIGRATION_DATA });
 
-test('(a) ALLER-RETOUR data : l’état d’avant projeté → terrains.json ET materials.json BYTE-IDENTIQUES à l’arbre', (t) => {
+test('(a) ALLER-RETOUR data : l’état d’avant projeté → materials.json BYTE-IDENTIQUE à l’arbre, terrains.json à sa matière en id nu près', (t) => {
   const d = depotData(serialise(terrainsAvant(), FORME_DATA), serialise(materialsAvant(), FORME_DATA));
   t.after(() => efface(d.racine));
 
@@ -56,7 +58,7 @@ test('(a) ALLER-RETOUR data : l’état d’avant projeté → terrains.json ET 
     `la migration ne DIT pas que le domaine relief est intact : ${sortie.slice(0, 800)}`,
   );
   assert.match(sortie, /plan vu du dessus déclaré/, `le marqueur de plan ne se DIT pas : ${sortie.slice(0, 800)}`);
-  assert.equal(lireDans(d.racine, TERRAINS), TEXTE_TERRAINS, 'terrains.json produit ≠ arbre');
+  assert.equal(lireDans(d.racine, TERRAINS), serialise(terrainsApres(), FORME_DATA), 'terrains.json produit ≠ arbre');
   assert.equal(lireDans(d.racine, MATERIALS), TEXTE_MATERIALS, 'materials.json produit ≠ arbre');
 });
 

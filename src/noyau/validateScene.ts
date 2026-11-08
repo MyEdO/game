@@ -22,6 +22,7 @@ import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, typ
 // Registre des effets : les réfs que chaque handler valide (`handler.refs`).
 import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from './combatEffects';
 import { nomDEntite, sceneNpc } from './monde/sceneNpc';
+import { refusDesSortsChoisis } from '../engine/sortsDuPnj';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
 import { placeServices, type WorldMap } from './worldMap';
 import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
@@ -247,6 +248,9 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       if (e.dialogueId && !dlgIds.has(e.dialogueId)) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} → dialogue inexistant « ${e.dialogueId} »`);
       if (!within(e.pos.x, e.pos.y)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} hors carte (${e.pos.x},${e.pos.y})`);
       if (e.z && !layerZs.has(e.z)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} sur étage ${e.z} inexistant`);
+      const npc = e.combat?.spells?.length ? sceneNpc(s, e.id, presetDe) : undefined;
+      const refusDesSorts = npc && refusDesSortsChoisis(npc, e.combat?.spells ?? []);
+      if (refusDesSorts) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} → ${refusDesSorts}`);
     }
     // Point d'entrée hors de la convention de pose du noyau (`borneALaCarte`) : une scène chargée, importée
     // ou écrite à la main n'est pas passée par `editEntry`.

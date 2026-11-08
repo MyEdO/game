@@ -61,7 +61,7 @@ function scenePlanFautive(): Scene {
   const w = 4, h = 2;
   return {
     type: 'scene',
-    reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS }, roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
+    reliefDefaults: structuredClone(DEFAULT_RELIEF_DEFAULTS), roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
     id: 'sc-fautive',
     label: 'Cour prise pour une salle',
     dimensions: { w, h },

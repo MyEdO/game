@@ -1,0 +1,13 @@
+{
+  "model": "amelioration--blindage-bronze.glb",
+  "model_sha256": "cab6ad3b51841d44dd8645d6248f2819c57853d7e876503f9987b849a391870c",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

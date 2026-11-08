@@ -3,12 +3,14 @@
  * parcours sur les carrières réelles du Livre de base.
  */
 import { describe, it, expect } from 'vitest';
-import { carriereActuelle, parcoursRetouche, porterAuParcours, refusDuParcours, talentsDuParcours, type ParcoursDeCarriere } from './pnjDeCarriere';
+import { argentDuPnj, carriereActuelle, parcoursRetouche, porterAuParcours, refusDuParcours, talentsDuParcours, type ParcoursDeCarriere } from './pnjDeCarriere';
 import { combattantDeTest } from './combattantDeTest.testkit';
 import { actorStatus } from './social';
 import { adresseDeCreation } from './adresseDeCreation';
 import { levelsForCareer } from '../data';
 import type { Combatant } from './types';
+import { bourseOf, bourseInstanceOf, setBourseBrass } from './bourse';
+import { toBrass } from './money';
 
 const porte = (p: ParcoursDeCarriere, id = 'pnj'): Combatant => {
   const c = combattantDeTest({ id });
@@ -136,5 +138,24 @@ describe('refusDuParcours et parcoursRetouche', () => {
   it('retouché, le parcours perd ce que ses Niveaux n’offrent plus', () => {
     const p: ParcoursDeCarriere = { carrieres: { medecin: 1 }, talentsDeCarriere: { medecin: [{ id: 'chirurgie' }, { id: 'lire-ecrire' }], soldat: [{ id: 'guerrier-ne' }] } };
     expect(parcoursRetouche(p)).toEqual({ carrieres: { medecin: 1 }, talentsDeCarriere: { medecin: [{ id: 'lire-ecrire' }] }, competencesDeCarriere: undefined, dotationsDeCarriere: undefined });
+  });
+});
+
+describe('argentDuPnj — l’argent du PNJ qui n’en porte pas, dans sa Bourse (EDO 11 l.42-46)', () => {
+  const tire = (id: string) => {
+    const c = porte({ carrieres: { medecin: 3 } }, id);
+    argentDuPnj(c);
+    return bourseInstanceOf(c);
+  };
+  it('le Doktor (Argent 5) porte 5d10 pistoles d’argent, sans Test (EDO 11 l.46), à la graine de son id', () => {
+    const pistoles = ['langstrasse', 'a', 'b', 'c', 'd', 'e'].map((id) => toBrass(tire(id)!.money!) / 12);
+    expect(pistoles.every((p) => Number.isInteger(p) && p >= 5 && p <= 50), pistoles.join(', ')).toBe(true);
+    expect(tire('langstrasse')).toEqual(tire('langstrasse'));
+  });
+  it('le PNJ qui porte déjà de l’argent ne tire rien', () => {
+    const c = porte({ carrieres: { medecin: 3 } }, 'langstrasse');
+    setBourseBrass(c, 7, () => 'langstrasse-bourse');
+    argentDuPnj(c);
+    expect([toBrass(bourseOf(c)), c.items!.filter((i) => i.trappingId === 'bourse').length]).toEqual([7, 1]);
   });
 });

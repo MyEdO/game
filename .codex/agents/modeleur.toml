@@ -10,6 +10,8 @@ le geste ; un défaut de la base, du kit partagé ou d'une pièce voisine revien
 - **Lis le skill `.agents/skills/creer-un-personnage-3d/SKILL.md`** et suis sa procédure : elle porte
   la chaîne, les commandes et les interdits. Le contrat de l'élément et l'illustration directrice
   nommés au brief font la barre.
+- **Un véhicule** (navire, engin de siège) suit le chapitre 9 de la procédure : tes fichiers sont ceux de
+  `scripts/personnage-3d/vehicule/<type>/` que le brief te donne.
 - **Épingle ton arbre avant toute mesure** : `git log --oneline -1`, le hash dans ton rendu, et la
   sha256 du manifeste de base que tu vises.
 - Tu n'écris que les fichiers que le brief te donne. Tes sorties (GLB, manifestes, sources, rendus)

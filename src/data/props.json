@@ -11744,6 +11744,129 @@
     }
   },
   {
+    "id": "hamac",
+    "type": "props",
+    "label": "Hamac",
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.9,
+            "yM": 0,
+            "hM": 0.55
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 1.1
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.9,
+            "yM": 0,
+            "hM": 0.55
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 1.1
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.8
+          },
+          "size": {
+            "xM": 1.24,
+            "yM": 0.72,
+            "hM": 0.08
+          },
+          "material": "toile-ecrue"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.73
+          },
+          "size": {
+            "xM": 0.7,
+            "yM": 0.6,
+            "hM": 0.06
+          },
+          "material": "toile-ecrue"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.64,
+            "yM": 0,
+            "hM": 0.86
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 0.8,
+            "hM": 0.05
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.64,
+            "yM": 0,
+            "hM": 0.86
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 0.8,
+            "hM": 0.05
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.76,
+            "yM": 0,
+            "hM": 0.9
+          },
+          "size": {
+            "xM": 0.18,
+            "yM": 0.05,
+            "hM": 0.05
+          },
+          "material": "corde"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.76,
+            "yM": 0,
+            "hM": 0.9
+          },
+          "size": {
+            "xM": 0.18,
+            "yM": 0.05,
+            "hM": 0.05
+          },
+          "material": "corde"
+        }
+      ]
+    }
+  },
+  {
     "id": "lanterne-de-poupe",
     "type": "props",
     "label": "Lanterne de poupe",

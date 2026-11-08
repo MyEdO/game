@@ -8,6 +8,8 @@
  */
 import { choixDeLaFeuilleDId, matieresDe, findApparenceById, findCoiffureById, findEnsembleParHabille, findGroupeDArmureById, findPresetDePersonnageById, findTeteById, findTrappingById, piecesDeLObjet, presetsDePersonnage, raceAppearance, trappingsInstanciables, type GabaritId } from '../../data';
 import type { HitLocation } from '../../engine/types';
+import type { EntityAppearance } from '../../engine/authoringAppearance';
+import { entityAppearanceSchema } from '../../data/schemas/grammaire/valeurs';
 import { serializeDataset } from '../../data/serialize';
 import { candidatsDApparenceDObjet } from '../../data/apparencesObjets';
 import { racineDesCandidats } from '../../engine/items';
@@ -60,6 +62,9 @@ const lireAuSchema = <T>(schema: Parameters<typeof validateDocument>[0], brut: u
 
 /** `brut` lu au schéma de la composition (`compositionSchema`, ses règles comprises). */
 export const lireComposition = (brut: unknown): LectureAuSchema<Composition> => lireAuSchema(compositionSchema, brut);
+
+/** `brut` lu au schéma de l'apparence d'auteur (`entityAppearanceSchema`). */
+export const lireApparenceDAuteur = (brut: unknown): LectureAuSchema<EntityAppearance> => lireAuSchema(entityAppearanceSchema, brut);
 
 /** Par emplacement de montage, l'emblème choisi à l'atelier, `null` pour une surface sans emblème. */
 export type SurchargesDEmblemes = typeof surchargesDEmblemesSchema._output;
@@ -170,7 +175,7 @@ export function porteeDeComposition(composition: Composition): PorteeDeCompositi
   liste.push(...portees(composition.pieces ?? [], variantesPieces));
   const objet = (id: Id<'trapping'>, prise?: string): ObjetPorte => {
     const rangement = composition.rangementsObjets?.[id]?.id;
-    const teinte = teinteDeLObjet({ subType: findTrappingById(id)?.subType });
+    const teinte = teinteDeLObjet({ subType: findTrappingById(id)?.subType?.id });
     return { nom: id, trappingId: id, candidats: candidatsDeLObjet(composition, id), ...(prise ? { prise } : {}), ...(rangement ? { rangement } : {}), ...(teinte ? { teinte } : {}) };
   };
   const objets = porteesDesObjets(

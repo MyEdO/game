@@ -28,7 +28,7 @@ export function specDArmeInvoquee(
   return {
     label: form ? `${op.label} (${modele?.label ?? form.weapon})` : op.label,
     damage: { plusBF: !!op.plusBF, flat },
-    subType: form ? (modele?.subType ?? undefined) : op.subType?.id,
+    subType: form ? modele?.subType?.id : op.subType?.id,
     reach: form ? modele?.reach : (op.reach ?? null),
     hands: form ? (modele?.hands ?? 1) : (op.hands ?? 1),
     qualities: (op.qualities ?? []).map((id) => ({ id })),

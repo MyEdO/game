@@ -1,0 +1,27 @@
+{
+  "schema": 3,
+  "categorie": "amelioration",
+  "cle": {
+    "amelioration": "ancre"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "montage": "ancrages",
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    }
+  ],
+  "glb": {
+    "sha256": "b4507acee5d47e9dce3601d50c41826549a60cace78a49082d03242576afcb2b",
+    "octets": 10820
+  }
+}

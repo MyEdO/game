@@ -10,6 +10,7 @@
  * re-set `battle` + émet SCENE_DIRTY — MÊME convention que `mount.ts`.
  */
 import type { Combatant, ShipPoste, Weapon } from '../engine/types';
+import { groupeDeSiege } from '../data';
 import type { BattleState } from './etat';
 import { mannedPosteWeapon } from '../engine/items';
 import { warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
@@ -27,13 +28,13 @@ export function posteHullOf(poste: ShipPoste, combatants: Combatant[]): Combatan
   return combatants.find((h) => h.postes?.some((p) => p.item.uid === poste.item.uid));
 }
 
-/** L'arme dérivée d'un poste est-elle un engin de siège MOBILE (ADE II 8) : catalogue « armes de
- *  siège » (`subType`) portant la Qualité `equipe` (l.233 — l'Équipe requise, réutilisée comme seuil de
+/** L'arme dérivée d'un poste est-elle un engin de siège MOBILE (ADE II 8) : Groupe d'engins de siège
+ *  (`groupeDeSiege`) portant la Qualité `equipe` (l.233 — l'Équipe requise, réutilisée comme seuil de
  *  poussée). Un poste NAVAL (bordée de navire, MDG 12) n'a jamais cette combinaison → jamais poussable
  *  ici — la coque, elle, avance par `avancerLeNavire` (cap + Manœuvre), mécanisme DISTINCT jamais mêlé à
  *  celui-ci. PUR. */
 export function isPushableEngine(w: Pick<Weapon, 'subType' | 'qualities'>): boolean {
-  return w.subType === 'armes-de-siege' && warMachineCrewRequired(w) > 0;
+  return groupeDeSiege(w.subType) && warMachineCrewRequired(w) > 0;
 }
 
 /** L'arme d'un poste servi est-elle une machine de guerre de MÊLÉE (ADE II 8 l.233 — « Toutes les

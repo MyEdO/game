@@ -82,6 +82,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/grantedTraits.ts', 'Traits octroyés'],
   ['src/engine/grapple.ts', 'Empoignade, entrave'],
   ['src/engine/grimoire.ts', 'Grimoire, sorts connus'],
+  ['src/engine/sortsDuPnj.ts', "Grimoire : sorts d'un PNJ, choix d'auteur et quotas du livre"],
   ['src/engine/groups.ts', 'Groupes de créatures/joueurs'],
   ['src/engine/harvest.ts', 'Récolte (ingrédients)'],
   ['src/engine/healing.ts', 'Soin, guérison'],

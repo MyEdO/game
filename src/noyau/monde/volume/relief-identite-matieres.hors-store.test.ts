@@ -42,8 +42,8 @@ function ecarts(nom: string, scene: Scene): { fautes: string[]; faces: number; i
       idsEmis.add(f.material.id);
       const part = f.material.part;
       const attendu = part === 'pilier'
-        ? scene.reliefDefaults.pilier
-        : solidBlock ? terrainMatiere(terrain) : scene.reliefDefaults[part as 'cliff' | 'ramp' | 'deck'];
+        ? scene.reliefDefaults.pilier.id
+        : solidBlock ? terrainMatiere(terrain) : scene.reliefDefaults[part as 'cliff' | 'ramp' | 'deck'].id;
       if (f.material.id !== attendu) fautes.push(`${nom} (${x},${y},${z}) ${part} ${f.side} : ${f.material.id} ≠ ${attendu}`);
     }
   }

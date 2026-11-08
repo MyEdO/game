@@ -11,13 +11,14 @@ import type { FabriqueDId } from '../../engine/fabriqueDId';
 import type { ArchitectureBody, ArchitectureStorey, BuildingMass, FacadeFeature, RoofDefaults, Scene, SceneEntity, SceneStationAnchor, WallSecret, WallSeg } from '../monde/scene';
 import { apparencesDeLOuverture } from '../monde/facades';
 import type { ReliefDefaults, SceneRoofDefaults } from '../../data/schemas/defs-scenes/scene';
+import { PARTS_RELIEF } from '../../data/materials.types';
 import type { Dir8 } from '../../geometry/dir8';
 import type { FireArc } from '../../engine/types';
 import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
-import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, editEntity, editEntry, pasteEntity, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, replaceEffectZone, avecLaValeurDuPorteur, patchTrigger, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, type PatchDeZone, type Pt } from '../sceneEdit';
+import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, editEntity, editEntry, pasteEntity, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, replaceEffectZone, avecLaValeurDuPorteur, patchTrigger, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, type PatchDeZone, type Pt } from '../sceneEdit';
 import { entiteDeLaSelection, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type Layers, type Sel, type SorteDePorteur, type Tool } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
@@ -173,7 +174,10 @@ function scenePatchee(scene: Scene, patch: PatchDeScene): Scene {
   if (patch.scalaires) sc = setSceneScalaires(sc, Object.fromEntries(Object.entries(patch.scalaires).map(([k, v]) => [k, v ?? undefined])));
   if (patch.dimensions) sc = resizeGrid(sc, patch.dimensions.w, patch.dimensions.h);
   if (patch.nord !== undefined) sc = setNorthDeg(sc, patch.nord ?? undefined);
-  for (const [part, matiere] of Object.entries(patch.relief ?? {}) as [keyof ReliefDefaults, string][]) sc = setReliefDefault(sc, part, matiere);
+  for (const part of PARTS_RELIEF) {
+    const matiere = patch.relief?.[part];
+    if (matiere) sc = setReliefDefault(sc, part, matiere);
+  }
   if (patch.toiture) sc = patchSceneRoofDefaults(sc, patch.toiture);
   if (patch.repos) sc = setSceneRest(sc, { ...patch.repos.lieux, ...(patch.repos.pietre !== undefined && { quality: patch.repos.pietre ? 'pietre' : undefined }) });
   for (const [cle, valeur] of Object.entries(patch.drapeaux ?? {})) sc = valeur === null ? removeSceneFlag(sc, cle) : setSceneFlags(sc, { [cle]: valeur });
@@ -228,8 +232,8 @@ export interface PatchDOuverture {
 export type PatchDArete = { [K in Exclude<keyof WallSeg, 'x' | 'y' | 'side' | 'z'>]?: WallSeg[K] | null };
 
 /** Ce que l'inspecteur écrit sur l'entité sélectionnée : son type (décor ou fiche), son cap, sa couche ; la lumière
- *  d'un décor (`null` l'éteint), son assise ; l'embuscade, l'inventaire, le parcours de carrière et le tirage des
- *  Caractéristiques d'un personnage ; l'équipage exposé à bord. */
+ *  d'un décor (`null` l'éteint), son assise ; l'embuscade, l'inventaire, le parcours de carrière, le tirage des
+ *  Caractéristiques et les sorts choisis d'un personnage ; l'équipage exposé à bord. */
 export interface PatchDEntite {
   ref?: string;
   facing?: Dir8;
@@ -242,8 +246,13 @@ export interface PatchDEntite {
   parcours?: ParcoursDeCarriere;
   /** Caractéristiques tirées au hasard au spawn (`combat.randomChars`, LDB 77 l.108). */
   aleatoire?: boolean;
+  /** Les sorts choisis entiers (`combat.spells`, `sortsDuPnj`) ; vides, ils sont retirés. */
+  sorts?: string[];
   crewIds?: string[];
 }
+
+/** Le nombre de copies d'une troupe (`{ geste: 'troupe' }`), bornes comprises. */
+export const BORNES_DE_LA_TROUPE = { min: 2, max: 30 } as const;
 
 /** Ce que l'inspecteur écrit sur le poste d'un emplacement de siège : son engin, son arc (`null` : omni), ses servants,
  *  le chef de pièce en tête. */
@@ -315,7 +324,8 @@ export interface SessionDEdition {
  *  déclencheur, la zone d'effet ou le corps sélectionné, ou la scène sans sélection (`nom` absent : l'entité reprend le nom de sa fiche) ; changer l'identifiant de la zone
  *  d'effet sélectionnée, ou de la scène sans sélection ; éditer une autre scène du projet, en ajouter une vide, dupliquer
  *  ou retirer l'éditée ; changer la couche de l'entrée sélectionnée ; copier l'entité sélectionnée, la coller
- *  sur la case pointée, la dupliquer ; supprimer la sélection ; annuler, rétablir ; enregistrer au dépôt, puis l'issue de cette écriture ;
+ *  sur la case pointée, la dupliquer ; poser une troupe de `nombre` copies du personnage sélectionné (`poserUneTroupe`,
+ *  `nombre` entre `BORNES_DE_LA_TROUPE`) ; supprimer la sélection ; annuler, rétablir ; enregistrer au dépôt, puis l'issue de cette écriture ;
  *  mettre la scène à l'essai, que l'hôte joue (`essaiDeLaScene`), la session telle quelle ;
  *  demander la planche du calque de la couche éditée, puis l'issue de son chargement, l'image lue ou rien ; régler ce
  *  calque, le caler, le retirer. */
@@ -349,6 +359,7 @@ export type GesteDEdition =
   | { geste: 'copier' }
   | { geste: 'coller' }
   | { geste: 'dupliquer' }
+  | { geste: 'troupe'; nombre: number }
   | { geste: 'supprimer' }
   | { geste: 'effacerVolee' }
   | { geste: 'annuler' }
@@ -561,10 +572,10 @@ function ecrireSurLaSelection<T>(s: SessionDEdition, scene: Scene, lire: (sc: Sc
 }
 
 /** Le patch `patch` de l'inspecteur en patch d'entité pour `ent` : le type d'un décor avec ses défauts de pose
- *  (`propRefPatch`), la couche 0 comme son absence, un inventaire, un parcours sans carrière ou un équipage vide
- *  comme son absence. */
+ *  (`propRefPatch`), la couche 0 comme son absence, un inventaire, un parcours sans carrière, des sorts ou un équipage
+ *  vides comme leur absence. */
 function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEntity> {
-  const { ref, z, light, assise, embusque, inventaire, parcours, aleatoire, crewIds, ...reste } = patch;
+  const { ref, z, light, assise, embusque, inventaire, parcours, aleatoire, sorts, crewIds, ...reste } = patch;
   const avecCarrieres = parcours && Object.keys(parcours.carrieres).length ? parcours : undefined;
   const usable = { ...ent.usable, assise: assise || undefined };
   return {
@@ -573,7 +584,12 @@ function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEnt
     ...(z === undefined ? {} : { z: z || undefined }),
     ...(light === undefined ? {} : { light: light ?? undefined }),
     ...(assise === undefined ? {} : { usable: usable.assise || usable.actions?.length ? usable : undefined }),
-    ...(embusque === undefined && aleatoire === undefined ? {} : { combat: { ...ent.combat, ...(embusque === undefined ? {} : { hiddenUntilCombat: embusque || undefined }), ...(aleatoire === undefined ? {} : { randomChars: aleatoire || undefined }) } }),
+    ...(embusque === undefined && aleatoire === undefined && sorts === undefined ? {} : { combat: {
+      ...ent.combat,
+      ...(embusque === undefined ? {} : { hiddenUntilCombat: embusque || undefined }),
+      ...(aleatoire === undefined ? {} : { randomChars: aleatoire || undefined }),
+      ...(sorts === undefined ? {} : { spells: sorts.length ? sorts : undefined }),
+    } }),
     ...(parcours === undefined ? {} : {
       carrieres: avecCarrieres?.carrieres,
       talentsDeCarriere: avecCarrieres?.talentsDeCarriere,
@@ -641,11 +657,12 @@ export function refusDeLaValeur(s: SessionDEdition, g: Extract<GesteDEdition, { 
  *  le calage, l'appui cale le calque et le glissé n'ouvre aucun geste ; demander une planche l'abandonne, cacher le
  *  calque aussi. Écrire sur l'entité, l'entrée, la zone sélectionnée la garde sélectionnée, l'entrée et le déclencheur sous
  *  leur nouveau nom ;
- *  coller ou dupliquer sélectionne l'entité posée. Un geste sans objet (retirer la couche 0, une couche absente, poser
+ *  coller ou dupliquer sélectionne l'entité posée ; poser une troupe garde l'original sélectionné, ses copies sur un seul
+ *  cran. Un geste sans objet (retirer la couche 0, une couche absente, poser
  *  une volée que son plan refuse, écrire sans arête, entité ou entrée sélectionnée, écrire une valeur que refuse
  *  `refusDeLaValeur`, renommer une entrée ou un déclencheur, ou
  *  réidentifier une zone d'effet, d'un nom vide ou déjà pris, copier sans entité sélectionnée, coller sans copie ou sans case pointée sur la couche éditée,
- *  dupliquer sans entité sélectionnée, supprimer sans sélection, enregistrer hors du dépôt, l'issue d'un enregistrement ou
+ *  dupliquer sans entité sélectionnée, poser une troupe sans personnage sélectionné ou sans case où en poser une copie, supprimer sans sélection, enregistrer hors du dépôt, l'issue d'un enregistrement ou
  *  d'un chargement qui n'est pas en cours, demander une planche pendant un chargement, régler ou retirer un calque
  *  absent) la rend telle quelle. */
 function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
@@ -783,6 +800,11 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       if (!ent) return s;
       const out = dupliquerLEntite(scene, ent);
       return ecrire(s, out.scene, { type: 'entity', id: out.id });
+    }
+    case 'troupe': {
+      const ent = entiteDeLaSelection(scene, s.sel);
+      const out = ent?.kind === 'personnage' ? poserUneTroupe(scene, ent, g.nombre) : null;
+      return out?.ids.length ? ecrire(s, out.scene, s.sel) : s;
     }
     case 'supprimer':
       return s.sel ? ecrire(s, deleteSel(scene, s.sel)) : s;

@@ -4,7 +4,7 @@
 import { RNG } from './dice';
 import { effectiveChar } from './characteristics';
 import { loseWounds, addCondition } from './conditions';
-import type { Combatant, Difficulty } from './types';
+import { DIFFICULTE_PAR_DEFAUT, type Combatant, type Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { rollTest, cibleMesuree, type CibleMesuree, type TestResult } from './tests';
 import { effectiveMovement } from './encumbrance';
@@ -150,7 +150,7 @@ export function resolveSurfaceClimb(
   if (surfaceClimbImpossible(!!opts.requiresGrimpeur, !!opts.hasGrimpeur)) {
     return { success: false, roll: 0, target: 0, dr: 0, metres: 0, impossible: true };
   }
-  const t = rollTest(escalade, opts.difficulty ?? 'intermediaire', rng);
+  const t = rollTest(escalade, opts.difficulty ?? DIFFICULTE_PAR_DEFAUT, rng);
   return { success: t.success, roll: t.roll, target: t.target, dr: t.sl, metres: t.success ? Math.max(0, Math.floor(movement / 2) + t.sl) : 0, impossible: false };
 }
 

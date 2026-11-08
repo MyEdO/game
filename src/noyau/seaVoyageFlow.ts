@@ -103,7 +103,7 @@ import { drainPendingLog, jouerFlowEntier, runFlow } from './combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { ShipCritKey } from '../data/shipCriticals';
 import { contractDisease, applyContraction, contractionDue, diseaseDefs, maladieDeclaree } from '../engine/disease';
-import { DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty, type NavalTraitRef, type ContexteDeTest } from '../engine/types';
+import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty, type NavalTraitRef, type ContexteDeTest } from '../engine/types';
 import type { PendingSteamSave, PendingCascade, CascadeStep } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { CorpsDesChoix } from './choixDesFenetres';
@@ -1365,7 +1365,7 @@ function buildBarrelSteps(get: Get, sea: SeaVoyageState, vessel: CampaignVessel 
   const test: RollRequest['test'] = { skill: { id: 'resistance' }, characteristic: 'endurance' };
   if (sea.waterContaminated) {
     const diseaseId = sea.waterContaminated.diseaseId;
-    const diff: Difficulty = diseaseDefs()[diseaseId]?.contractDifficulty ?? 'intermediaire';
+    const diff: Difficulty = diseaseDefs()[diseaseId]?.contractDifficulty ?? DIFFICULTE_PAR_DEFAUT;
     for (const h of get().party.filter((c) => !c.dead && contractionDue(c, diseaseId))) {
       pousseSi(out, monoStep({
         id: `sea-tonneau-expose-${h.id}`, kind: 'sea-tonneau-expose', actor: h,
@@ -1540,7 +1540,7 @@ export function continueSeaDayAfterScorbut(get: Get, set: Set, doneSteps?: Casca
   const tdef = temperatureDef(sea.weather.temperature);
   const expCount = seaExposureTestsPerDay(sea.weather.temperature);
   if (tdef.exposure && expCount > 0) {
-    const expDiff = tdef.difficulty ?? 'intermediaire';
+    const expDiff = tdef.difficulty ?? DIFFICULTE_PAR_DEFAUT;
     const pont = activeSeaPrecipitation(get); // MDG 13 l.185
     const steps: BuiltCascadeStep[] = [];
     for (const h of get().party) {
@@ -1943,7 +1943,7 @@ function sceneDuPont(coque: { ref: string; nom: string }, label: string, debut: 
     id: BOARDING_SCENE_ID,
     label,
     size: [18, 12],
-    terrain: defautsDeCompilation.pont,
+    terrain: defautsDeCompilation.pont.id,
     ambiance: 'exterieur',
     heroStart: [3, 7],
     startMessage: { texte: debut },

@@ -1102,13 +1102,13 @@ export interface TrappingData {
   /** CATÉGORIE de catalogue — vocabulaire FERMÉ `TrappingTypeId`, miroir de l'enum du def.
    *  ≠ `Weapon.type` (moteur) et ≠ `ItemInstance.kind` : le pont est `kindOf()` (traduction). */
   categorie: TrappingTypeId;
-  /** `id` du Groupe d'objet (`WeaponGroupData.id`) : Groupe d'arme (Base/Escrime…), famille de munition
-   *  (Arc/Poudre noire…), type d'armure (Plate/Mailles…) ou catégorie d'inventaire — réf d'entité, ≠ libellé. */
-  subType: string | null;
-  /** Groupe de Projectiles qui OPÈRE une arme de siège (`WeaponGroupData.id` : arbalete/catapulte/ingenierie/
+  /** Groupe d'objet (`WeaponGroupData`) : Groupe d'arme (Base/Escrime…), famille de munition
+   *  (Arc/Poudre noire…), type d'armure (Plate/Mailles…) ou catégorie d'inventaire. */
+  subType: { id: string } | null;
+  /** Groupe de Projectiles qui OPÈRE une arme de siège (`WeaponGroupData` : arbalete/catapulte/ingenierie/
    *  poudre-noire, AA 10 l.178-193) quand `subType` = catégorie de catalogue (« armes-de-siege »). Pilote
    *  la Spé de tir (`acceptableSpecs`) et le décompte d'équipage (Projectiles appropriée, AA 10 l.230). */
-  weaponGroup?: string;
+  weaponGroup?: { id: string };
   /** Pièce d'artillerie « relativement simple » (la baliste, AA 10 l.148) : tirée par UN seul servant
    *  valide → perd tous ses Atouts (garde ses Défauts). Lu par `crewedFireWeapon`. */
   soloSimple?: boolean;
@@ -1131,12 +1131,12 @@ export interface TrappingData {
    *  `'moyenne'` (« distance inférieure à leur Portée Courte » interdite, l.251). Propagé jusqu'à `Weapon`,
    *  lu par `firedAttackBlock` (`belowMinRangeBand`). Absent = pas de minimale. */
   minRangeBand?: import('../engine/types').RangeBandId;
-  /** `id` de munition REPRÉSENTATIVE (`TrappingData.id`, `categorie:'ammunition'`) d'une arme de siège — les
+  /** Munition REPRÉSENTATIVE (`TrappingData`, `categorie:'ammunition'`) d'une arme de siège — les
    *  familles `armes-de-siege`/`munition-de-siege` (`ammoFamily`) regroupent des munitions non-interchangeables
    *  (carreau de baliste ≠ boulet de canon ≠ bombe de mortier ≠ balles de pierrier, MDG 12 l.410-424) ; le
    *  `subType` seul ne discrimine pas la bonne famille pour le hint joueur. Propagé jusqu'à `Weapon`,
    *  résolu en libellé FR par `ammoFamilyLabel`. Absent = hint générique de la famille (`ammoFamilyLabel`). */
-  defaultAmmo?: string;
+  defaultAmmo?: { id: string };
   /** EMPREINTE de grille (côté N×N) de l'affût POSÉ en combat — recopiée sur `Combatant.footprint`
    *  (`footprintN`), MÊME champ que `VehicleData.ship.footprint`. ADE II 8 l.239/258 (profil + description
    *  physique du tronc suspendu sur portique à roues) ne chiffre aucune Taille en cases : la valeur posée
@@ -1241,7 +1241,7 @@ export interface TrappingData {
   /** Arme DÉRIVÉE conférée tant que l'objet est ÉQUIPÉ (prothèse-arme, LDB 73 : le Crochet « est
    *  considéré comme une Dague » en mêlée). Lue par recomputeLoadout : ajouter une prothèse-arme =
    *  remplir ce champ dans la donnée, jamais un name-match `i.name === 'Crochet'`. */
-  derivedWeapon?: Weapon;
+  derivedWeapon?: ArmeDerivee;
   /** Capacités IRRÉDUCTIBLES de l'objet (drapeaux NON exprimables en GameOp) — canal `capabilities`,
    *  MÊME logique que `TraitCapabilities`/`QualityCapabilities` : règles que le moteur INTERROGE par id
    *  (`engine/capabilities`), jamais par le nom FR de l'objet. Couvre les 5 marqueurs de catégorie :
@@ -1257,6 +1257,9 @@ export interface TrappingData {
    *  reste la source de PRIX de son consommateur (référencée par id) et visible au Codex/Compendium. */
   service?: boolean;
 }
+/** Profil d'arme d'une DONNÉE (`TrappingData.derivedWeapon`) : la `Weapon` du moteur, ses Groupes désignés
+ *  par `ref('weaponGroup')`. Le moteur l'arme par `armeDeLaDonnee` (`engine/items.ts`). */
+export type ArmeDerivee = Omit<Weapon, 'subType' | 'weaponGroup'> & { subType?: { id: string }; weaponGroup?: { id: string } };
 /** Groupe d'objet (taxonomie `subType` id-ifiée) : Groupe d'ARME (Base, Escrime, Deux-mains, Armes
  *  d'hast…), famille de MUNITION (Arc, Arbalète, Poudre noire…), type d'ARMURE (Plate, Mailles, Cuir
  *  souple/bouilli) ou catégorie d'INVENTAIRE (Outils, Possessions diverses…). `id` = cible de
@@ -1279,6 +1282,8 @@ export interface GroupeDArme extends GroupeDObjet {
   combat?: 'melee' | 'ranged';
   maniement: Maniement;
   poudre?: true;
+  /** AA 10 l.136 */
+  siege?: true;
   /** Maniements de TOUTE arme du Groupe dans d'autres Groupes de Corps à corps (`TrappingData.manieAussi`).
    *  AA 08 l.194 */
   manieAussi?: Record<string, ManiementAlternatif>;
@@ -1611,7 +1616,7 @@ export interface SemencesDeSceneData {
   /** ABSENT = `auto` : l’éclairage suit l’horloge via `ambiance` — la sentinelle est l’absence,
    *  jamais une valeur du champ typé (`idDe('lightLevel')`, `schemas/defs/semences-de-scene.ts`). */
   ambientLight?: z.infer<typeof sceneSchema>['ambientLight'];
-  terrain: Terrain;
+  terrain: { id: Terrain };
   reliefDefaults: ReliefDefaults;
   roofDefaults: SceneRoofDefaults;
   /** Structure d'un pan de façade posé à l'éditeur (`addFacadeSection`). */
@@ -1629,9 +1634,9 @@ export interface SemencesDeSceneData {
  * fondent une scène neuve, ceux-là remplissent une déclaration déjà écrite.
  */
 export interface DefautsDeCompilationData {
-  cheminDeRonde: Terrain;
-  masse: Terrain;
-  pont: Terrain;
+  cheminDeRonde: { id: Terrain };
+  masse: { id: Terrain };
+  pont: { id: Terrain };
 }
 /** MANŒUVRE de combat (attaque naturelle activée — LDB 85) — ENTITÉ ÉDITABLE de PREMIÈRE CLASSE (au
  *  même titre qu'un Sort) : son propre dataset `maneuvers.json`, sa catégorie Codex, ses effets
@@ -1723,6 +1728,9 @@ export interface TraitCapabilities {
   /** Lanceur de Sorts (LDB 85 l.182-183 : « La créature peut lancer des Sorts ») — autorise
    *  l'incantation SANS Compétence avancée (statblocs du bestiaire), lu par `knowsCastingSkill`. */
   spellcaster?: boolean;
+  /** Famille d'incantation que le Trait ouvre, l'`arg` de l'instance en spécialisation, comme le `combat.castingKind`
+   *  d'un Talent : Miracles (Divers), LDB 85 l.233. */
+  castingKind?: import('../engine/combatFeatures/types').CastingKind;
   /** Porte le Trait Mort-vivant (LDB 85 l.239, lu par Hurlement fantomatique LDB 85 l.170 :
    *  « créatures vivantes (ne possédant pas le trait Mort-vivant) ») — le TRAIT, PAS le Groupe
    *  bestiaire (un folder « Morts sans repos » sans ce Trait, ex. Goule de crypte, N'EST PAS visé). */
@@ -2455,9 +2463,12 @@ export function mutationLabel(id: string | null | undefined): PlayerText {
   return dataLabel(id ? (mutationParId(id)?.label ?? id) : '');
 }
 
-/** Engins de siège posables : trappings du sous-type `armes-de-siege`. Foyer du filtre partagé par
- *  les emplacements, les références d'entité et la catégorie du Codex. */
-export const siegeEngines = memoParVersion('trappings', () => trappings.filter((t) => t.subType === 'armes-de-siege'));
+const marqueDeSiege = porteLeMarqueur('weaponGroup', 'siege');
+/** Groupe d'engins de siège : marqueur `siege` de `weaponGroups.json`. AA 10 l.136 */
+export const groupeDeSiege = (id: string | null | undefined): boolean => !!id && marqueDeSiege(id);
+/** Engins de siège posables : trappings d'un Groupe d'engins de siège (`groupeDeSiege`). Foyer du filtre
+ *  partagé par les emplacements, les références d'entité et la catégorie du Codex. */
+export const siegeEngines = memoParVersion(['trappings', 'weaponGroups'], () => trappings.filter((t) => groupeDeSiege(t.subType?.id)));
 /** Trappings que le moteur INSTANCIE par leur id (`INSTANCIABLE_PAR_ID`, `dansLaSousListe`) : la vue que
  *  lit tout producteur d'ids d'objet (fabrication, commande, stock marchand, conjuration, armes
  *  choisissables, galeries). Le catalogue brut ne se lit qu'aux sites que nomme `trappings-vue-guard.test.ts`. */
@@ -3302,7 +3313,7 @@ export function qualityTypeLabel(id: string | null | undefined): PlayerText {
   return dataLabel(id ? typeQualiteParId(id)?.label : '', id ?? '');
 }
 const groupeObjetParId = indexParId('weaponGroups', weaponGroups);
-/** Résout un Groupe d'objet par son `id` STABLE (= `subType` d'un trapping/Weapon/ItemInstance). */
+/** Résout un Groupe d'objet par son `id` STABLE (`subType` d'un Weapon/ItemInstance, `subType.id` d'un trapping). */
 export function findWeaponGroupById(id: string | null | undefined): WeaponGroupData | undefined {
   return groupeObjetParId(id);
 }

@@ -407,14 +407,17 @@ func habiller_la_base() -> void:
 ## (`materiau_local`) si `palette` colore son emplacement de palette, si elle est `blason` et `texture` n'est pas
 ## nulle, ou si la texture de sa `matiere` est au projet : celle-ci l'habille comme le monde (`Monde.texturer`),
 ## l'albédo à blanc ; la couleur remplace l'albédo du GLB, texture comprise, pour que la tête et le corps d'une même
-## peau aient la même couleur, ou teint la texture de sa matière ; `texture` devient la couche de détail, en UV1 et en
-## mélange. Toute autre surface garde le matériau du GLB. Rend si `texture` est posée sur une surface au moins.
+## peau aient la même couleur, ou teint la texture de sa matière ; `texture` devient la couche de détail, en mélange,
+## lue aux UV du GLB : l'UV1, ou l'UV2 où la matière projette l'UV1 sur les trois axes (`_uv2_des_emblemes`). Toute autre
+## surface garde le matériau du GLB. Rend si `texture` est posée sur une surface au moins.
 static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary) -> bool:
 	var par_nom := {}
 	for surface in surfaces:
 		par_nom[surface.nom] = surface
 	var posee := false
 	for piece: MeshInstance3D in meshes:
+		if texture != null:
+			_uv2_des_emblemes(piece, par_nom)
 		for rang in piece.mesh.get_surface_count():
 			piece.set_surface_override_material(rang, null)
 			var materiau := piece.get_active_material(rang)
@@ -423,8 +426,8 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 				continue
 			var couleur: Variant = palette.get(surface.palette)
 			var blason: bool = texture != null and surface.get("blason", false)
-			var matiere: String = surface.get("matiere", "")
-			var texturee := not matiere.is_empty() and ResourceLoader.exists(Monde.texture_de(matiere))
+			var matiere := _matiere_texturee(surface)
+			var texturee := not matiere.is_empty()
 			if couleur == null and not blason and not texturee:
 				continue
 			var local := materiau_local(piece, rang)
@@ -440,10 +443,42 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 			if blason:
 				local.detail_enabled = true
 				local.detail_albedo = texture
-				local.detail_uv_layer = BaseMaterial3D.DETAIL_UV_1
+				local.detail_uv_layer = BaseMaterial3D.DETAIL_UV_2 if texturee else BaseMaterial3D.DETAIL_UV_1
 				local.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MIX
 				posee = true
 	return posee
+
+
+## La matière texturée d'une `surface` de `peindre`, ou "" : sa texture est au projet.
+static func _matiere_texturee(surface: Dictionary) -> String:
+	var matiere: String = surface.get("matiere", "")
+	return matiere if not matiere.is_empty() and ResourceLoader.exists(Monde.texture_de(matiere)) else ""
+
+
+## Le mesh de `piece` recopié, chaque surface `blason` de `par_nom` à matière texturée recevant en UV2 les UV du GLB : la
+## matière projette l'UV1 sur les trois axes (`Monde.texturer`), l'emblème garde son placement en UV2. Une pièce sans
+## telle surface, ou déjà recopiée, garde son mesh.
+static func _uv2_des_emblemes(piece: MeshInstance3D, par_nom: Dictionary) -> void:
+	var source := piece.mesh as ArrayMesh
+	var rangs := range(source.get_surface_count()).filter(func(rang: int) -> bool:
+		var materiau := source.surface_get_material(rang)
+		var surface: Dictionary = {} if materiau == null else par_nom.get(materiau.resource_name, {})
+		return surface.get("blason", false) and not _matiere_texturee(surface).is_empty() \
+			and source.surface_get_format(rang) & Mesh.ARRAY_FORMAT_TEX_UV2 == 0)
+	if rangs.is_empty():
+		return
+	var copie := ArrayMesh.new()
+	copie.blend_shape_mode = source.blend_shape_mode
+	for forme in source.get_blend_shape_count():
+		copie.add_blend_shape(source.get_blend_shape_name(forme))
+	for rang in source.get_surface_count():
+		var tableaux := source.surface_get_arrays(rang)
+		if rang in rangs:
+			tableaux[Mesh.ARRAY_TEX_UV2] = tableaux[Mesh.ARRAY_TEX_UV]
+		copie.add_surface_from_arrays(source.surface_get_primitive_type(rang), tableaux, source.surface_get_blend_shape_arrays(rang))
+		copie.surface_set_material(rang, source.surface_get_material(rang))
+		copie.surface_set_name(rang, source.surface_get_name(rang))
+	piece.mesh = copie
 
 
 ## Par emplacement monté dont une surface porte un matériau propre, la couleur d'albédo `#rrggbb` de ce matériau, par nom
@@ -451,15 +486,22 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 func couleurs_posees() -> Dictionary:
 	var couleurs := {}
 	for id in pieces:
-		var posees := {}
-		for piece: MeshInstance3D in pieces[id]:
-			for rang in piece.mesh.get_surface_count():
-				var local := piece.get_surface_override_material(rang) as BaseMaterial3D
-				if local != null:
-					posees[local.resource_name] = "#" + local.albedo_color.to_html(false)
+		var posees := couleurs_des_meshes(pieces[id])
 		if not posees.is_empty():
 			couleurs[id] = posees
 	return couleurs
+
+
+## Par nom du matériau du GLB, la couleur d'albédo `#rrggbb` du matériau propre de chaque surface de `meshes` qui en
+## porte un.
+static func couleurs_des_meshes(meshes: Array) -> Dictionary:
+	var posees := {}
+	for piece: MeshInstance3D in meshes:
+		for rang in piece.mesh.get_surface_count():
+			var local := piece.get_surface_override_material(rang) as BaseMaterial3D
+			if local != null:
+				posees[local.resource_name] = "#" + local.albedo_color.to_html(false)
+	return posees
 
 
 ## Le SVG de l'emblème `id`, offert par `emblemes` de la réponse de `modeles`, rastérisé à `LARGEUR_D_EMBLEME` pixels de
