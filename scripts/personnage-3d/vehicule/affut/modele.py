@@ -1,9 +1,10 @@
-"""Les pièces sur l'affût de campagne (#2987) : un GLB par pièce, aux nœuds `affut`, la pièce (pivot à l'axe des
-tourillons), `roue_g`, `roue_d` (meshes sans skin ni armature), l'emprise recentrée ; une clé par engin de ses
-`definitions`."""
+"""Les pièces sur l'affût de campagne (#2987) : un GLB par pièce, aux nœuds `affut`, ceux de la pièce (pivot à l'axe des
+tourillons), `roue_g`, `roue_d` (meshes sans skin ni armature), l'emprise recentrée, et ses clips (`clips.py`) : repos,
+roulage, tir ; une clé par engin de ses `definitions`."""
 import math
 
 import habillage
+from clips import REPOS, animer, rouler, tirer
 from maille import Maille, basculer_maille, boite, cylindre, lineaire, objet, plaque, poutre, recentrer, roue, tore, tour, tube
 
 
@@ -42,7 +43,7 @@ def canon(D, mats):
     tour(fut, F["profil"], "y", (0.0, 0.0, z), F["segments"], "bronze")
     tourillons(fut, A, F["embase"], "bronze")
     anses(fut, F, z)
-    return "fut", fut
+    return {"fut": fut}, F["tir"]
 
 
 def mortier(D, mats):
@@ -54,7 +55,7 @@ def mortier(D, mats):
     tourillons(fut, A, F["embase"], "bronze")
     anses(fut, F, z)
     basculer_maille(fut, (y, z), F["elevation"])
-    return "fut", fut
+    return {"fut": fut}, F["tir"]
 
 
 def affut_et_roues(D, mats):
@@ -97,25 +98,28 @@ def affut_et_roues(D, mats):
 
 
 def construire(D, materiaux, piece):
-    """La pièce `piece(D, mats)` → (nom, maille) sur l'affût et ses roues, l'emprise recentrée en x et y (le sol reste
-    z = 0) ; la pièce pivote à l'axe des tourillons."""
+    """La pièce `piece(D, mats)` → ({nœud: maille}, table de tir) sur l'affût et ses roues, l'emprise recentrée en x et y
+    (le sol reste z = 0) ; ses nœuds pivotent à l'axe des tourillons."""
     mats = habillage.materiaux(materiaux)
-    nom, maille = piece(D, mats)
+    mailles, tir = piece(D, mats)
     affut, roues = affut_et_roues(D, mats)
-    dx, dy = recentrer([maille, affut] + [r for r, _ in roues.values()])
+    dx, dy = recentrer([*mailles.values(), affut] + [r for r, _ in roues.values()])
     ty, tz = D["AFFUT"]["tourillons"]
     objet("affut", affut, (0.0, 0.0, 0.0), 35)
-    objet(nom, maille, (dx, ty + dy, tz), 35)
+    for nom, maille in mailles.items():
+        objet(nom, maille, (dx, ty + dy, tz), 35)
     for nom_roue, (r, c) in roues.items():
         objet(nom_roue, r, (c[0] + dx, c[1] + dy, c[2]), 35)
-    return {}
+    rayon = D["ROUE"]["bandage"][1]
+    return animer([REPOS, rouler(rayon, roues), tirer(tir, D["TIR"], ["affut"], mailles, roues, rayon)])
 
 
 def feu_d_enfer(D, mats):
-    """Le barillet du canon à répétition feu d'enfer : trois rangées de trois canons serrées de frettes autour de
-    l'arbre, le tambour des tourillons et la manivelle circulaire."""
+    """Le canon à répétition feu d'enfer : le tambour des tourillons (`fut`) et le barillet qui tourne dans son axe,
+    trois rangées de trois canons serrées de frettes autour de l'arbre et la manivelle circulaire."""
     F, A = D["FEU_D_ENFER"], D["AFFUT"]
     barillet = Maille([mats["bronze"], mats["fer"]])
+    fut = Maille([mats["fer"]])
     y, z = A["tourillons"]
     rb = F["rangee_rayon"]
     longueur, epaisseur = F["frette"]
@@ -129,8 +133,8 @@ def feu_d_enfer(D, mats):
             b_ = (centre[0] - longueur / 2 * s, fy, centre[2] + longueur / 2 * c)
             poutre(barillet, a_, b_, largeur, epaisseur, (c, 0, s), "fer")
     rt, lt = F["tambour"]
-    cylindre(barillet, -lt / 2, lt / 2, rt, "y", (0.0, y, z), 16, "fer")
-    tourillons(barillet, A, F["embase"], "fer")
+    cylindre(fut, -lt / 2, lt / 2, rt, "y", (0.0, y, z), 16, "fer")
+    tourillons(fut, A, F["embase"], "fer")
     ra, a0, a1 = F["arbre"]
     cylindre(barillet, a0, a1, ra, "y", (0.0, 0.0, z), 10, "fer")
     vy, vr, vs, n, rayons = F["volant"]
@@ -140,7 +144,7 @@ def feu_d_enfer(D, mats):
         tube(barillet, [(0.0, vy, z), (vr * math.cos(t), vy, z + vr * math.sin(t))], vs * 0.8, 6, "fer")
     pr, pl = F["poignee"]
     cylindre(barillet, vy, vy + pl, pr, "y", (vr, 0.0, z), 8, "fer")
-    return "barillet", barillet
+    return {"fut": fut, "barillet": barillet}, F["tir"]
 
 
 def batterie(D, mats):
@@ -171,7 +175,7 @@ def batterie(D, mats):
             tour(cadre, [(ogive, 0), (ogive, r), (pointe, 0)], "y", centre, B["segments"], "pointe")
     tourillons(cadre, A, B["embase"], "fer")
     basculer_maille(cadre, (y, z), B["elevation"])
-    return "cadre", cadre
+    return {"cadre": cadre}, B["tir"]
 
 
 def flammes(D, mats):
@@ -193,7 +197,7 @@ def flammes(D, mats):
     tore(fut, "z", (0.0, vy, z + v1), vr, vs, 16, 6, "fer")
     chemin, tr = F["tuyau"]
     tube(fut, [(x, cy, z + cz) for x, cy, cz in chemin], tr, 8, "cuivre")
-    return "fut", fut
+    return {"fut": fut}, F["tir"]
 
 
 PIECES = (("canon", "CANON", canon), ("mortier", "MORTIER", mortier), ("feu-d-enfer", "FEU_D_ENFER", feu_d_enfer), ("batterie", "BATTERIE", batterie),

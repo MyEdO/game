@@ -12,6 +12,10 @@ MATERIAUX = {"bois": ("bois", "bois-chene"), "fer": ("metal", "fer-noirci"), "co
 
 PIVOT_Z = 0.84                  # dessus de la platine : pivot vertical de la baliste
 
+# Le tir (`clips.tirer`) : la détente fait cabrer l'arme sur son pivot (degrés), aux temps de `clips.coup` (secondes).
+TIR = {"recul": 0.0, "ressaut": 3}
+TIR_TEMPS = (0.05, 0.05, 0.40)
+
 PIED = {
     "croix": (0.85, 0.08, 0.14),        # deux poutres croisées au sol : demi-longueur, demi-largeur, hauteur
     "poteau": (0.10, 0.80),             # demi-côté, z du sommet

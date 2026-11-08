@@ -23,6 +23,9 @@ ROUE = {
     "segments_moyeu": 10,
 }
 
+# Temps du coup de chaque tir (`clips.coup`) : départ, tenue, remise en batterie par les servants, en secondes.
+TIR = (0.06, 0.05, 0.90)
+
 # Le canon (AA p.121) ; `canon-ade2` (ADE II p.88) est le même engin.
 CANON = {
     "definitions": ("canon-grand", "canon-moyen", "canon-petit", "canon-ade2"),
@@ -44,6 +47,7 @@ CANON = {
     "anses": [(0.14, -0.14, 0.24, 0.15, 0.030), (-0.14, -0.14, 0.24, 0.15, 0.030)],
     "anse_pied": 0.24,                 # hauteur du pied des anses au-dessus de l'axe,
     "anse_segments": 7,
+    "tir": {"recul": 0.45, "ressaut": 4},   # recul de l'affût (m), bouche levée au départ (degrés) : `clips.tirer`
 }
 
 AFFUT = {
@@ -86,6 +90,7 @@ MORTIER = {
     "anses": [(0.12, -0.02, -0.30, 0.10, 0.025), (-0.12, -0.02, -0.30, 0.10, 0.025)],  # comme celles du canon
     "anse_pied": 0.28,
     "anse_segments": 6,
+    "tir": {"recul": 0.15, "ressaut": 3},
 }
 
 # AA p.123 ; ADE II p.88 ; d'après la photographie du Helblaster Volley Gun de Games Workshop : trois rangées de trois
@@ -106,6 +111,7 @@ FEU_D_ENFER = {
     "arbre": (0.050, -1.02, 0.44),         # arbre de la manivelle : rayon, y de début et de fin
     "volant": (0.44, 0.20, 0.020, 24, 6),  # manivelle circulaire : y, rayon, rayon de section, segments, rayons
     "poignee": (0.022, 0.12),              # poignée au bord du volant : rayon, longueur vers l'arrière
+    "tir": {"recul": 0.12, "ressaut": 1, "tourne": "barillet", "tours": 1},   # le barillet tourne à la manivelle
 }
 
 # AA p.122 ; ADE II p.88 ; d'après l'illustration de AA p.129 (scène du gnome artilleur, INDEX.md des illustrations)
@@ -125,6 +131,7 @@ BATTERIE = {
     "fusee": (0.055, 0.45, -0.80, -1.10),  # rayon, y du culot, de la base de l'ogive, de la pointe
     "segments": 10,
     "embase": (0.090, 0.33),
+    "tir": {"recul": 0.08, "ressaut": 2},
 }
 
 # ADE II p.88 ; la photographie du Flame Cannon de Games Workshop montre un réservoir de cuivre à manomètres sur
@@ -146,4 +153,5 @@ FLAMMES = {
     "vanne": (0.55, 0.020, 0.24, 0.36, 0.085, 0.014),  # y, rayon de la tige, z bas et haut, rayon et section du volant
     # tuyau du réservoir au talon de la lance : points (x, y, z), rayon
     "tuyau": ([(0.10, -0.05, 0.25), (0.13, -0.30, 0.24), (0.13, -0.50, 0.14), (0.08, -0.60, 0.07)], 0.025),
+    "tir": {"recul": 0.03, "ressaut": 1},
 }

@@ -1,7 +1,10 @@
-"""Le bélier (#2987) : les nœuds `charpente`, `tronc` (pivot au point de suspension, sous la faîtière), `roue_avg`,
-`roue_avd`, `roue_arg`, `roue_ard` (meshes sans skin ni armature), l'emprise recentrée ; un GLB pour les clés de
-`DEFINITIONS`."""
+"""Le bélier (#2987) : les nœuds `charpente`, `tronc`, `chaine_av` et `chaine_ar` (pivot à leur attache au chapeau),
+`roue_avg`, `roue_avd`, `roue_arg`, `roue_ard` (meshes sans skin ni armature), l'emprise recentrée, et ses clips
+(`clips.py`) : repos, roulage, coup ; un GLB pour les clés de `DEFINITIONS`."""
+import math
+
 import habillage
+from clips import REPOS, animer, lisse, montee, rouler
 from maille import Maille, boite, cylindre, objet, poutre, recentrer, roue, tore, tour
 
 
@@ -37,6 +40,8 @@ def charpente(D, bois, fer):
 
 
 def tronc(D, bois, fer):
+    """Le tronc, sa tête de fer et ses colliers, puis la chaîne de chaque portique, du chapeau au collier, maillons
+    alternés : (tronc, [chaîne]), une chaîne par y de `portiques`."""
     T, C = D["TRONC"], D["CHARPENTE"]
     m = Maille([bois, fer])
     z = T["axe_z"]
@@ -46,16 +51,35 @@ def tronc(D, bois, fer):
     for y in ys:
         tore(m, "y", (0, y, z), T["fut"][1][1] - 0.01, rs, T["segments"], 4, "fer")
 
-    # une chaîne par portique, du chapeau au collier, maillons alternés
     ra, rm, pas = T["maillon"]
     haut = C["poteau"][1]
     bas = z + T["fut"][1][1] + rs
+    chaines = []
     for y in C["portiques"]:
+        chaine = Maille([fer])
         k = 0
         while haut - ra - k * pas - ra >= bas - ra:
-            tore(m, "x" if k % 2 else "y", (0, y, haut - ra - k * pas), ra, rm, 8, 4, "fer")
+            tore(chaine, "x" if k % 2 else "y", (0, y, haut - ra - k * pas), ra, rm, 8, 4, "fer")
             k += 1
-    return m
+        chaines.append(chaine)
+    return m, chaines
+
+
+def balance(T, longueur):
+    """Le clip `melee` : le tronc tiré en arrière, lancé en avant, ramené au repos (`balance` : degrés en arrière, en
+    avant, temps de chaque mouvement), en parallélogramme sous ses chaînes de `longueur`, qui tournent à leur attache."""
+    arriere, avant, (a, b, c) = (math.radians(T["balance"][0]), math.radians(T["balance"][1]), T["balance"][2])
+
+    def angle(t):
+        if t < a:
+            return arriere * lisse(t / a)
+        if t < a + b:
+            return arriere - (arriere + avant) * montee((t - a) / b)
+        return -avant * (1 - lisse((t - a - b) / c))
+
+    chaine = lambda t: ((0, 0, 0), (angle(t), 0, 0))
+    tronc_ = lambda t: ((0, longueur * math.sin(angle(t)), longueur * (1 - math.cos(angle(t)))), (0, 0, 0))
+    return ("melee", "coup", a + b + c, {"tronc": tronc_, "chaine_av": chaine, "chaine_ar": chaine})
 
 
 def construire(D):
@@ -63,7 +87,7 @@ def construire(D):
     bois, fer = mats["bois"], mats["fer"]
     R, zE = D["ROUE"], D["ESSIEU_Z"]
     bati = charpente(D, bois, fer)
-    belier = tronc(D, bois, fer)
+    belier, chaines = tronc(D, bois, fer)
     y_av, y_ar = D["ESSIEUX_Y"]
     roues = {nom: (roue(R, signe * R["voie"], zE, signe, bois, fer), (signe * R["voie"], y, zE))
              for nom, signe, y in (("roue_avg", 1, y_av), ("roue_avd", -1, y_av), ("roue_arg", 1, y_ar), ("roue_ard", -1, y_ar))}
@@ -71,12 +95,17 @@ def construire(D):
         r.v = [(px, py + y, pz) for px, py, pz in r.v]
 
     # emprise recentrée en x et y ; le sol reste z = 0
-    dx, dy = recentrer([bati, belier] + [r for r, _ in roues.values()])
+    dx, dy = recentrer([bati, belier, *chaines] + [r for r, _ in roues.values()])
+    haut = D["CHARPENTE"]["poteau"][1]
     objet("charpente", bati, (0.0, 0.0, 0.0), 35)
-    objet("tronc", belier, (dx, dy, D["CHARPENTE"]["poteau"][1]), 35)
+    objet("tronc", belier, (dx, dy, haut), 35)
+    for nom, chaine, y in zip(("chaine_av", "chaine_ar"), chaines, D["CHARPENTE"]["portiques"]):
+        objet(nom, chaine, (dx, y + dy, haut), 35)
     for nom, (r, c) in roues.items():
         objet(nom, r, (c[0] + dx, c[1] + dy, c[2]), 35)
-    return {}
+    T = D["TRONC"]
+    longueur = haut - T["axe_z"] - T["fut"][1][1]
+    return animer([REPOS, rouler(R["bandage"][1], roues), balance(T, longueur)])
 
 
 def elements(D):

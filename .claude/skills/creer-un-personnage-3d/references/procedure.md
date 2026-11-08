@@ -443,7 +443,14 @@ projet) et se cite dans la docstring des données ; sans référence, la docstri
 - `modele.py` : `elements(D)`, qui produit un dict par GLB : `glb` (nom de la scène), `cles` (`[(categorie, cle)]`, une
   clé par élément qui partage ce GLB), `materiaux`, `blasons`, et `construire`, qui bâtit la scène vide avec
   `habillage.materiaux(...)` et les primitives de `maille.py`, puis rend les champs propres au manifeste : `postes` par
-  bord (`FIRE_ARCS`), `selon`, `ancrages`, `montage`.
+  bord (`FIRE_ARCS`), `selon`, `ancrages`, `montage`, et `clips`, la table rôle → clip que rend `clips.animer`.
+
+Un engin est une unité : il s'anime comme une créature (`clips.py`). Chaque pièce mobile est son propre nœud, à son
+pivot (roue à son essieu, bras à son axe, fût à ses tourillons, chaîne à son attache), et `clips.animer` clé ses clips :
+`idle` (repos), `walk` (déplacement en boucle : `rouler` tourne les roues à la vitesse d'une case par pas du plateau,
+`cahoter` secoue un engin sans roues que ses servants portent ou traînent) et son attaque, `ranged` (`tirer` : recul,
+ressaut, barillet qui tourne ; ou la course d'un bras, d'une verge) ou `melee` (le bélier). Les durées et amplitudes
+sont des données nommées de `donnees.py`.
 
 Le repère est celui de la section 2 : en Blender, l'avant vers -y, bâbord vers +x, l'origine au sol ou à la flottaison,
 l'emprise recentrée en x et y ; l'export place l'avant vers +z glTF. Ce qui se monte au véhicule (pièce d'artillerie,

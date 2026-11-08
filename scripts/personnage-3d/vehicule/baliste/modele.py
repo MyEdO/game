@@ -1,10 +1,11 @@
 """La baliste (#2987) : les nœuds `pied` et `baliste` (pivot à l'axe vertical, sur la platine), meshes sans skin ni
-armature, l'emprise recentrée ; un GLB pour les clés de `DEFINITIONS`."""
+armature, l'emprise recentrée, et ses clips (`clips.py`) : repos, portage, tir ; un GLB pour les clés de `DEFINITIONS`."""
 import math
 
 from mathutils import Vector
 
 import habillage
+from clips import REPOS, animer, cahoter, tirer
 from maille import Maille, boite, cylindre, objet, plaque, poutre, recentrer, tour, tube
 
 
@@ -122,7 +123,7 @@ def construire(D):
     dx, dy = recentrer([socle, arme])
     objet("pied", socle, (0.0, 0.0, 0.0), 35)
     objet("baliste", arme, (dx, dy, D["PIVOT_Z"]), 35)
-    return {}
+    return animer([REPOS, cahoter(["pied", "baliste"]), tirer(D["TIR"], D["TIR_TEMPS"], [], ["baliste"])])
 
 
 def elements(D):

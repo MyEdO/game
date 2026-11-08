@@ -1,8 +1,10 @@
 """Les engins à bras de torsion (#2987) : un GLB par engin, aux nœuds `chassis` et `bras` (pivot à l'axe de l'écheveau),
-l'emprise recentrée ; la catapulte et le mangonneau portent la poche rigide, l'onagre la fronde."""
+l'emprise recentrée, et ses clips (`clips.py`) : repos, halage, tir ; la catapulte et le mangonneau portent la poche
+rigide, l'onagre la fronde."""
 import math
 
 import habillage
+from clips import REPOS, animer, cahoter, coup
 from maille import Maille, basculer, basculer_maille, boite, cylindre, objet, poutre, recentrer, tore, tour, treuil, tube
 
 
@@ -121,7 +123,21 @@ def construire(D, extremite):
     dx, dy = recentrer([ch, br])
     objet("chassis", ch, (0.0, 0.0, 0.0), 35)
     objet("bras", br, (dx, pivot[0] + dy, pivot[1]), 35)
-    return {}
+    return animer([REPOS, cahoter(["chassis", "bras"]), tir(D)])
+
+
+def tir(D):
+    """Le clip `ranged` : le bras lâché contre le coussin du butoir, puis ramené au treuil (`TIR`, temps de `coup`).
+    Sa course va du repos au contact de la face de son dessus avec la face arrière du coussin, à mi-hauteur."""
+    B, R = D["BUTOIR"], D["BRAS"]
+    ay, az = D["ECHEVEAU"]["axe"]
+    _, cz0, cz1, cep = B["coussin"]
+    y = B["y"] + B["traverse"][2] / 2 + cep - ay
+    z = (cz0 + cz1) / 2 - az
+    contact = math.atan2(z, y) - math.asin(R["section"][1] / 2 / math.hypot(y, z))
+    course = contact + math.radians(R["repos"])
+    temps = D["TIR"]
+    return ("ranged", "tir", sum(temps), {"bras": lambda t: ((0, 0, 0), (course * coup(t, temps), 0, 0))})
 
 
 def elements(D):

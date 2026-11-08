@@ -7,6 +7,11 @@
   "liaison": {
     "mode": "rigide"
   },
+  "clips": {
+    "idle": "repos",
+    "walk": "marche",
+    "ranged": "tir"
+  },
   "surfaces": [
     {
       "nom": "bois",
@@ -30,7 +35,7 @@
     }
   ],
   "glb": {
-    "sha256": "03335ff0e58e9cb2b28754794da16911e9f11787e636efc2507bf0488d7ea572",
-    "octets": 45716
+    "sha256": "70b96264a4ddec54c529d62700006c8aeecffa81718de0cd60a2e3612e5ff6f1",
+    "octets": 50784
   }
 }

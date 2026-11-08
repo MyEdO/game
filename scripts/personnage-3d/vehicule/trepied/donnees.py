@@ -9,6 +9,9 @@ porteur. Repère de `maille.py` : la bouche vers l'avant ; l'emprise est recentr
 # fourche (`habillage.py`), communs aux deux pièces. Le bronze se montre en fer noirci (#2987 : « canon marron », refusé).
 MATERIAUX = {"bronze": ("metal", "fer-noirci"), "bois": ("bois", "bois-chene"), "fer": ("metal", "fer-noirci")}
 
+# Temps du coup de chaque tir (`clips.coup`) : départ, tenue, retour, en secondes. La pièce ne recule pas sur son pivot.
+TIR = (0.05, 0.05, 0.50)
+
 TREPIED = {
     "moyeu": (0.10, 0.70, 0.90),        # tête de bois : rayon, z bas, z haut
     "frettes": [0.74, 0.86],            # z des frettes de fer qui ceinturent la tête
@@ -44,6 +47,7 @@ PIERRIER = {
     "queue": [(0.27, 0.0), (0.52, -0.035), (0.80, -0.090)],   # chemin (y, z) de la queue de fer
     "queue_section": 0.022,
     "pommeau": (0.040, 0.06),           # boule de la queue : rayon, longueur en y
+    "tir": {"recul": 0.0, "ressaut": 6},   # bouche levée au départ (degrés) : `clips.tirer`
 }
 
 # Le canon à répétition (AA p.123) : sept canons en barillet hexagonal, manivelle circulaire, leviers, crosse d'épaule.
@@ -64,4 +68,5 @@ CANON_A_REPETITION = {
                (0.40, -0.13), (0.18, -0.08), (0.10, -0.07)],
     "crosse_epaisseur": 0.030,
     "plaque_de_couche": (0.70, 0.74),   # y de la plaque de fer au talon de la crosse
+    "tir": {"recul": 0.0, "ressaut": 2, "tourne": "barillet", "tours": 2},   # le barillet tourne à la manivelle
 }

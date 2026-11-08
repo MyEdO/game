@@ -7,6 +7,11 @@
   "liaison": {
     "mode": "rigide"
   },
+  "clips": {
+    "idle": "repos",
+    "walk": "marche",
+    "ranged": "tir"
+  },
   "surfaces": [
     {
       "nom": "bronze",
@@ -25,7 +30,7 @@
     }
   ],
   "glb": {
-    "sha256": "763a078a07520f89f1e4c2976f7c5d8a5ebcce4c0d955b967e02ff3ea25e9c7f",
-    "octets": 101332
+    "sha256": "7cd8ed88aba0a734b91da27f5820ae17a18f9aec68a9f0f873c6b3e394609ab2",
+    "octets": 109988
   }
 }

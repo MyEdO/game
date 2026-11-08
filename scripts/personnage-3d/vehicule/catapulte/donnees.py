@@ -36,6 +36,9 @@ BUTOIR = {
     "jambe": (0.12, 0.14),              # largeur, épaisseur
 }
 
+# Temps du coup du tir (`clips.coup`) : la détente du bras jusqu'au butoir, son arrêt, le retour au treuil, en secondes.
+TIR = (0.22, 0.30, 1.80)
+
 TREUIL = {
     "y": 1.85, "z": 0.33,               # axe du treuil sous le bras armé, sur deux chevalets posés sur les longerons
     "rayon": 0.08, "demi_longueur": 0.70,

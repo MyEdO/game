@@ -1,6 +1,10 @@
 """Le trébuchet à contrepoids (#2987) : les nœuds `chassis`, `verge` (pivot à l'axe, fronde comprise) et `contrepoids`
-(pivot à sa goupille), l'emprise recentrée ; un GLB pour les clés de `DEFINITIONS`."""
+(pivot à sa goupille), l'emprise recentrée, et ses clips (`clips.py`) : repos, halage, tir ; un GLB pour les clés de
+`DEFINITIONS`."""
+import math
+
 import habillage
+from clips import REPOS, animer, cahoter, coup
 from maille import Maille, basculer, basculer_maille, boite, cylindre, objet, poutre, recentrer, tour, treuil, tube
 
 
@@ -124,7 +128,20 @@ def construire(D):
     objet("chassis", ch, (0.0, 0.0, 0.0), 35)
     objet("verge", vg, (dx, dy, pivot[1]), 35)
     objet("contrepoids", cp, (dx, goupille[1] + dy, goupille[2]), 35)
-    return {}
+    return animer([REPOS, cahoter(["chassis", "verge", "contrepoids"]), tir(D, goupille[1], goupille[2] - pivot[1])])
+
+
+def tir(D, gy, gz):
+    """Le clip `ranged` : la verge lâchée de `course` (degrés) par la chute du contrepoids, pendu d'aplomb à sa goupille
+    (`gy`, `gz` depuis l'axe), puis ramenée au treuil (`TIR`, temps de `coup`)."""
+    temps, course = D["TIR"], math.radians(D["VERGE"]["course"])
+    angle = lambda t: course * coup(t, temps)
+
+    def goupille(t):
+        c, s = math.cos(angle(t)), math.sin(angle(t))
+        return (0, gy * c - gz * s - gy, gy * s + gz * c - gz), (0, 0, 0)
+
+    return ("ranged", "tir", sum(temps), {"verge": lambda t: ((0, 0, 0), (angle(t), 0, 0)), "contrepoids": goupille})
 
 
 def elements(D):

@@ -26,6 +26,9 @@ MONTANTS = {
     "etai": (0.18, 0.18),
 }
 
+# Temps du coup du tir (`clips.coup`) : la chute du contrepoids, l'arrêt, le retour au treuil, en secondes.
+TIR = (0.60, 0.30, 2.50)
+
 AXE = {"z": 4.00, "rayon": 0.09, "demi_longueur": 1.00}   # axe de la verge, à y = 0
 
 VERGE = {
@@ -33,6 +36,7 @@ VERGE = {
     "long": 4.40,                       # bras de la fronde, vers l'arrière
     "section": (0.26, 0.30),            # largeur, épaisseur
     "repos": 52.0,                      # degrés : bras long baissé vers l'arrière, armé
+    "course": 150.0,                    # degrés du lâcher : le bras long passe la verticale, le contrepoids en bas
     "bandes": [-1.10, -0.35, 0.35, 1.40, 2.70, 3.90],   # distances à l'axe des frettes, vers l'arrière positif
     "bande": (0.07, 0.014),
     "goupille": (0.06, 0.40),           # axe du contrepoids au bout du bras court : rayon, demi-longueur

@@ -47,4 +47,5 @@ TRONC = {
     "fut": [(-1.62, 0.0), (-1.62, 0.20), (1.55, 0.18), (1.70, 0.16), (1.72, 0.0)],
     "colliers": ([-0.85, 0.85, 1.45], 0.022),               # y des colliers de fer, rayon de section (sur le tronc)
     "maillon": (0.035, 0.009, 0.055),                       # rayon, rayon de section, pas des maillons
+    "balance": (20, 12, (0.70, 0.15, 0.60)),                # degrés en arrière, en avant, temps de chaque mouvement (s)
 }
