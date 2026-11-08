@@ -297,7 +297,7 @@ export function attribuerLaLigne(get: Get, set: SetFn, key: 'pendingLoot' | 'pen
   set(retrait);
 }
 
-/** Les créatures que `depecerLaCreature` accepte : les vaincues de `pendingVictory` à profil de récolte, pas encore
+/** Les créatures que le choix `victory.depecer` accepte : les vaincues de `pendingVictory` à profil de récolte, pas encore
  *  récoltées. ZI 13. */
 export function creaturesADepecer(s: Jeu): string[] {
   const pv = s.pendingVictory;
@@ -310,8 +310,7 @@ export function creaturesADepecer(s: Jeu): string[] {
  *  l'échec une quantité réduite (un cran de Taille en moins). Les pièces portent leur valeur de marché
  *  (`giveTrapping.price`), revendable au marchand / composant ZI. */
 export function harvestVictoryCreature(get: Get, set: SetFn, creatureId: string) {
-  const pv = get().pendingVictory;
-  if (!pv || !creaturesADepecer(get()).includes(creatureId)) return;
+  const pv = garanti(get().pendingVictory, creatureId, 'écran de victoire (`refusDuChoix`)');
   const c = garanti(findCreatureById(creatureId), creatureId, 'créature à dépecer');
   const p = garanti(harvestProfileFor(creatureId), creatureId, 'profil de récolte');
   const name = c.label; // affichage depuis le record (résolu par id)

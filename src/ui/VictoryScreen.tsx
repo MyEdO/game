@@ -30,8 +30,7 @@ export function VictoryScreen() {
   const party = useGame((s) => s.party);
   const net = useGame((s) => s.net);
   const choisir = useGame((s) => s.fenetreChoisir);
-  const harvest = useGame((s) => s.depecerLaCreature);
-  const evaluerLeButin = useGame((s) => s.evaluerLeButin);
+  const evaluerLObjet = useGame((s) => s.evaluerLObjet);
   const fermer = useGame((s) => s.fenetreFermer);
   const dismiss = () => fermer('victory');
   const state = useGame();
@@ -71,7 +70,7 @@ export function VictoryScreen() {
           gear={gear}
           assignable={assignable}
           onAssign={(uid, heroId) => choisir('victory', 'ligne', uid, heroId)}
-          onAppraise={net.mode === 'guest' ? undefined : (i, mode) => evaluerLeButin('victory', i, mode)}
+          onAppraise={net.mode === 'guest' ? undefined : evaluerLObjet}
         />
       ),
     });
@@ -97,7 +96,7 @@ export function VictoryScreen() {
                     enabled={!done}
                     reason="Ces pièces ont déjà été récoltées."
                     descOfferte="Récolter les pièces de monstre (Test de Savoir (Bêtes))"
-                    onClick={() => harvest(d.creatureId!)}
+                    onClick={() => choisir('victory', 'depecer', d.creatureId!)}
                     primary={false}
                     btnClassName="btn-ghost"
                   />

@@ -182,7 +182,11 @@ export const OUVERTS_DU_CHOIX = {
     repartition: reglage('marchand', 'repartition', (s, pid) => (duGroupe(s, pid) ? (s.merchant?.pendingDistribution ?? []).map((d) => ouverte(d.uid, libelleDeLaRepartition(d))) : [])),
   },
   loot: { ligne: lignesDuButin('loot', (s) => s.pendingLoot?.gear) },
-  victory: { ligne: lignesDuButin('victory', (s) => s.pendingVictory?.gear) },
+  // ZI 13
+  victory: {
+    ligne: lignesDuButin('victory', (s) => s.pendingVictory?.gear),
+    depecer: reglage('victory', 'depecer', (s) => DESIGNATIONS.IdDeCreatureADepecer.lire(s).map((id) => ouverte(id, garanti(DESIGNATIONS.IdDeCreatureADepecer.nom(s, id), id, 'créature à dépecer')))),
+  },
   // LDB 66
   rest: {
     couchage: reglage('rest', 'couchage', (s, pid) => {

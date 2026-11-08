@@ -49,7 +49,7 @@ function fautes(verbe: string, nom: string, f: Forme, ou: string): string[] {
 
 describe('chaque argument d’un verbe de fenêtre se dessine en mots du joueur', () => {
   it('le relevé couvre les verbes des fenêtres', () => {
-    expect(VERBES_DES_FENETRES.size, 'témoin : les verbes des fenêtres, les réglages des jets en un seul (#3368), les validations et sorties des fenêtres en deux, leurs choix en un seul (#3369), les axes des flux en réglages (#3369 lot 3), les deux clics du champ en un seul (#3371 lot 3), butin, échoppe et repos en choix (#3371 lot 4), l’infirmerie sans verbe propre (#3612 L1)').toBeGreaterThan(19);
+    expect(VERBES_DES_FENETRES.size, 'témoin : les verbes des fenêtres, les réglages des jets en un seul (#3368), les validations et sorties des fenêtres en deux, leurs choix en un seul (#3369), les axes des flux en réglages (#3369 lot 3), les deux clics du champ en un seul (#3371 lot 3), butin, échoppe et repos en choix (#3371 lot 4), l’infirmerie sans verbe propre (#3612 L1), l’évaluation en un verbe général et le dépeçage en choix (#3612 L2)').toBeGreaterThan(18);
     expect([...VERBES_DES_FENETRES].filter((v) => !(v in VERBES)), 'verbe de fenêtre hors de VERBES').toEqual([]);
   });
 
@@ -70,13 +70,14 @@ describe('chaque argument d’un verbe de fenêtre se dessine en mots du joueur'
 
 describe('un argument qui désigne un élément de l’état se choisit parmi ses éléments nommés (#2937)', () => {
   it.each([
-    ['depecerLaCreature', 'creatureId', 'IdDeCreatureADepecer'],
     ['promouvoirLeCombattant', 'heroId', 'IdDeCombattantPromouvable'],
     ['armerLeTirPreventif', 'heroId', 'IdDeTireurRapide'],
-  ])('%s.%s désigne %s', (verbe, nom, cle) => {
+    // Une union de désignations : chacune garde la sienne (`verbesDeLaPartie.mjs`, `designee`).
+    ['evaluerLObjet', 'uid', 'IdDObjet,IdDeLigneDeButin'],
+  ])('%s.%s désigne %s', (verbe, nom, cles) => {
     const p = VERBES[verbe].find((x) => x.nom === nom)!;
     const membres = p.forme.genre === 'union' ? p.forme.membres : [p.forme];
-    expect(membres.flatMap((m) => (m.genre === 'chaine' && m.designe ? [m.designe.cle] : []))).toEqual([cle]);
+    expect(membres.flatMap((m) => (m.genre === 'chaine' && m.designe ? [m.designe.cle] : []))).toEqual(cles.split(','));
   });
 
   it.each([
@@ -95,6 +96,7 @@ describe('un argument qui désigne un élément de l’état se choisit parmi se
     ['council', 'paie', 'IdDeChoixDePaie'],
     ['mountTarget', 'cible', 'IdDuCoupleMonte'],
     ['medic', 'patient', 'IdDeHeros'],
+    ['victory', 'depecer', 'IdDeCreatureADepecer'],
   ])('choix %s.%s désigne %s', (fenetre, axe, cle) => {
     const f = CHOIX[fenetre][axe];
     const membres = f.genre === 'union' ? f.membres : [f];

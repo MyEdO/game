@@ -81,8 +81,12 @@ function designee(f, noeud, designes) {
   }
   if (ts.isUnionTypeNode(noeud)) {
     const designants = noeud.types.filter((t) => designee({ genre: 'chaine' }, t, designes).designe)
-    if (designants.length !== 1) return f
-    return f.genre === 'union' ? { ...f, membres: f.membres.map((m) => designee(m, designants[0], designes)) } : designee(f, designants[0], designes)
+    if (!designants.length) return f
+    if (designants.length === 1) return f.genre === 'union' ? { ...f, membres: f.membres.map((m) => designee(m, designants[0], designes)) } : designee(f, designants[0], designes)
+    // Plusieurs désignations : le type les rabat en une chaîne, la forme les rend en union, une chaîne désignée chacune.
+    const chaines = designants.map((t) => designee({ genre: 'chaine' }, t, designes))
+    if (f.genre === 'chaine') return { genre: 'union', membres: chaines }
+    return f.genre === 'union' ? { ...f, membres: f.membres.flatMap((m) => (m.genre === 'chaine' ? chaines : [m])) } : f
   }
   return f
 }
@@ -286,13 +290,14 @@ function chainesNuesDuType(checker, type, noeud, chemin, designes, vus, nues) {
     if (designes.has(nom) || nom === TEXTE_LIBRE) return
   }
   if (!type) throw new Error(`chainesNues : type introuvable à ${chemin} (${deplie ? ts.SyntaxKind[deplie.kind] : '-'})`)
+  // Une union déclarée se lit membre à membre, même rabattue en un seul type (`IdDObjet | IdDeLigneDeButin` : `string`).
+  if (deplie && ts.isUnionTypeNode(deplie)) {
+    for (const m of deplie.types) chainesNuesDuType(checker, checker.getTypeFromTypeNode(m), m, chemin, designes, vus, nues)
+    return
+  }
   const f = type.flags
   if (f & (TypeFlags.String | TypeFlags.TemplateLiteral | TypeFlags.StringMapping)) { nues.push(chemin); return }
   if (type.isUnionType() || type.isIntersectionType?.() && !(f & TypeFlags.Object)) {
-    if (type.isUnionType() && deplie && ts.isUnionTypeNode(deplie)) {
-      for (const m of deplie.types) chainesNuesDuType(checker, checker.getTypeFromTypeNode(m), m, chemin, designes, vus, nues)
-      return
-    }
     if (type.isUnionType()) {
       for (const t of type.getTypes()) chainesNuesDuType(checker, t, t.flags & (TypeFlags.Undefined | TypeFlags.Null) ? undefined : deplie, chemin, designes, vus, nues)
       return

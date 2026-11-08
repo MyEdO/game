@@ -50,7 +50,7 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { CorpsDesChoix } from './choixDesFenetres';
-import type { IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition } from './designations';
+import type { IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDObjet } from './designations';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { refusDInventaire, refuseSi } from './verrousDeFiche';
 import { porteurDeLObjet, refusDuHerosPorteur } from './monde/carrier';
@@ -903,8 +903,7 @@ function openAppraise(
   target: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; uid: IdDeLigneDeButin } },
   itemName: string, mode: 'evaluate' | 'detect', trappingId?: string, cible: CibleDeDetection = {},
 ): void {
-  const best = appraiseLeader(get().party, mode, cible);
-  if (!best) { get().ecrireAuJournal(appraiseNobody(mode)); return; }
+  const best = garanti(appraiseLeader(get().party, mode, cible), itemName, 'meneur de l’évaluation (`refusDEvaluation`)');
   const t = trappingId ? findTrappingById(trappingId) : undefined;
   const ligne = rollLine({ actor: best.actor, test: APPRAISE_SKILL[mode], difficulty: 'intermediaire', valeur: best.value, ...(best.support.bonus > 0 ? { soutien: best.support } : {}) });
   set({ pendingAppraise: {
@@ -922,26 +921,43 @@ export function gameDay(s: Pick<Jeu, 'gameTime'>): number {
   return Math.floor(s.gameTime / MINUTES_PER_DAY);
 }
 
-export function evaluerLObjet(get: Get, set: Set, uid: string, mode: 'evaluate' | 'detect' = 'evaluate'): void {
-  if (refuseSi(get, set, refusDInventaire)) return;
-  if (refuseSi(get, set, (s) => refusDuHerosPorteur(s, uid))) return;
-  const item = get().party.find((h) => h.id === porteurDeLObjet(get(), uid))!.items!.find((i) => i.uid === uid)!;
-  if (mode === 'detect' && refuseSi(get, set, (s) => refusDeDetection(s.party, item))) return;
-  if (mode === 'evaluate' && item.appraiseTriedDay === gameDay(get())) return void refuserGeste(get, set, t('mf.appraiseSameDay', { label: item.label }));
-  openAppraise(get, set, { itemUid: uid }, item.label, mode, item.trappingId, item);
+/** Ce qu'évalue `evaluerLObjet` : l'objet qu'un héros du groupe porte, sinon la ligne d'un butin encore en fenêtre
+ *  (`loot` puis `victory`) ; sa cible ouverte (`openAppraise`) et ce que lisent ses refus. `null` : l'uid ne désigne ni
+ *  l'un ni l'autre. */
+function aEvaluer(s: Jeu, uid: string): { target: Parameters<typeof openAppraise>[2]; cible: CibleDEvaluation; trappingId?: string } | null {
+  const item = s.party.find((h) => h.id === porteurDeLObjet(s, uid))?.items?.find((i) => i.uid === uid);
+  if (item) return { target: { itemUid: uid }, cible: item, trappingId: item.trappingId };
+  for (const scope of ['loot', 'victory'] as const) {
+    const ligne = ligneDuButin(s, scope, uid);
+    if (ligne) return { target: { gear: { scope, uid } }, cible: { ...ligne.effect, label: ligne.label }, trappingId: ligne.effect.trappingId };
+  }
+  return null;
+}
+
+/** Ce que lit le refus d'une Évaluation : le nom de la cible, la Détection déjà tentée et le jour de l'Évaluation
+ *  manquée. */
+type CibleDEvaluation = CibleDeDetection & { label: string; appraiseTriedDay?: number };
+
+/** Refus de l'Évaluation (`evaluate`) ou de la Détection d'artefact (`detect`) de `cible` au jour `jour` : déjà
+ *  manquée ce jour (LDB 12 l.94), personne ne peut la tenter (LDB 09 l.30), ou chaque détecteur l'a déjà tentée
+ *  (LDB 10 l.336) ; `null` sinon. Le verbe et la fenêtre du butin le lisent. */
+export function refusDEvaluation(party: Combatant[], cible: CibleDEvaluation, mode: 'evaluate' | 'detect', jour: number): string | null {
+  if (mode === 'detect') return refusDeDetection(party, cible);
+  return cible.appraiseTriedDay === jour ? t('mf.appraiseSameDay', { label: cible.label }) : appraiseRefus(party);
+}
+
+/** Évaluation (LDB 59 l.41) ou Détection d'artefact (LDB 10 l.336) d'un objet porté par un héros, ou d'une ligne de
+ *  butin ENCORE en fenêtre, révélée avant de choisir qui l'emporte. Chaque refus est dit. */
+export function evaluerLObjet(get: Get, set: Set, uid: IdDObjet | IdDeLigneDeButin, mode: 'evaluate' | 'detect' = 'evaluate'): void {
+  if (porteurDeLObjet(get(), uid) && (refuseSi(get, set, refusDInventaire) || refuseSi(get, set, (s) => refusDuHerosPorteur(s, uid)))) return;
+  const cible = aEvaluer(get(), uid);
+  if (!cible) return void refuserGeste(get, set, t('pf.objetSansPorteur'));
+  if (refuseSi(get, set, (s) => refusDEvaluation(s.party, cible.cible, mode, gameDay(s)))) return;
+  openAppraise(get, set, cible.target, cible.cible.label, mode, cible.trappingId, cible.cible);
 }
 
 /** La ligne `uid` du butin `scope` encore en fenêtre. */
-const ligneDuButin = (s: Jeu, scope: 'loot' | 'victory', uid: IdDeLigneDeButin) => (scope === 'loot' ? s.pendingLoot : s.pendingVictory)?.gear?.find((g) => g.uid === uid);
-
-/** Évaluation/Détection d'une ligne de butin ENCORE en fenêtre (loot ou victoire) — révéler AVANT
- *  de choisir qui l'emporte (demande utilisateur). */
-export function evaluerLeButin(get: Get, set: Set, scope: 'loot' | 'victory', uid: IdDeLigneDeButin, mode: 'evaluate' | 'detect' = 'evaluate'): void {
-  const line = ligneDuButin(get(), scope, uid); if (!line) return;
-  if (mode === 'detect' && refuseSi(get, set, (s) => refusDeDetection(s.party, { label: line.label, detectTriedBy: line.effect.detectTriedBy }))) return;
-  if (mode === 'evaluate' && line.effect.appraiseTriedDay === gameDay(get())) return void refuserGeste(get, set, t('mf.appraiseSameDay', { label: line.label }));
-  openAppraise(get, set, { gear: { scope, uid } }, line.label, mode, line.effect.trappingId, line.effect);
-}
+const ligneDuButin = (s: Jeu, scope: 'loot' | 'victory', uid: string) => (scope === 'loot' ? s.pendingLoot : s.pendingVictory)?.gear?.find((g) => g.uid === uid);
 
 /** Patch la cible de l'Évaluation/Détection — objet porté (party) ou ligne de butin en fenêtre. */
 function patchAppraiseTarget(get: Get, set: Set, pa: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; uid: IdDeLigneDeButin } },
@@ -1033,7 +1049,6 @@ export function creerActionsDuMarchand(get: Get, set: Set) {
     reparerLObjet: (uid) => reparerLObjet(get, set, uid),
     marchanderLePrix: (mode) => marchanderLePrix(get, set, mode),
     evaluerLObjet: (uid, mode) => evaluerLObjet(get, set, uid, mode),
-    evaluerLeButin: (scope, uid, mode) => evaluerLeButin(get, set, scope, uid, mode),
     troquerLesObjets: (opts) => troquerLesObjets(get, set, opts),
   } satisfies FabriqueDuNoyau;
 }
