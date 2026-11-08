@@ -5,6 +5,7 @@
  * repos, l'os nommé comme `AnimationMixer` le trouve dans la scène (`PropertyBinding.findNode`, `chargement.ts`).
  */
 import { InterpolateLinear, Matrix4, PropertyBinding, Quaternion, Vector3, type AnimationClip, type Object3D } from 'three';
+import { tableTotale } from '../../../../../src/lib/tableTotale.ts';
 import type { Ecart } from '../ecart.ts';
 import type { Pose } from '../echantillonnage.ts';
 
@@ -22,7 +23,7 @@ export interface MesureDeChaine {
 /** Les écarts des pistes de chaîne de `clips`, et par chaîne le nombre de clips qui les portent toutes. */
 export function gardePistesDeChaine(scene: Object3D, clips: readonly AnimationClip[], chaines: Readonly<Record<string, readonly string[]>>): { ecarts: Ecart[]; clipsPistes: Record<string, number> } {
   const ecarts: Ecart[] = [];
-  const clipsPistes: Record<string, number> = Object.fromEntries(Object.keys(chaines).map((c) => [c, 0]));
+  const clipsPistes: Record<string, number> = tableTotale(Object.keys(chaines), () => 0);
   for (const clip of clips) {
     const pistes = new Map<string, boolean>();
     for (const piste of clip.tracks) {
