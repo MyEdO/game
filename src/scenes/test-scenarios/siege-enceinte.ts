@@ -228,12 +228,12 @@ export function spec(): MapSpec {
       '@': 'heroStart',
       // Archers défenseurs (z1, arcs) : PNJ alliés-IA (agissent seuls).
       A: {
-        entity: { kind: 'personnage', ref: 'brute', weapon: 'arc', facing: 'N', z: 1, label: 'Archer du guet' },
+        entity: { kind: 'personnage', ref: 'brute', inventaire: { arc: false }, facing: 'N', z: 1, label: 'Archer du guet' },
         member: { enc: 'assaut', side: 'ally', ai: true },
       },
       // Guetteur au-dessus du tunnel de la porte (chemin de ronde continu au-dessus de la brèche).
       G: {
-        entity: { kind: 'personnage', ref: 'brute', weapon: 'arc', facing: 'N', z: 1 },
+        entity: { kind: 'personnage', ref: 'brute', inventaire: { arc: false }, facing: 'N', z: 1 },
         member: { enc: 'assaut', side: 'ally', ai: true },
       },
       // Pièces de REMPART : affûts INERTES (pas d'`ai`), servis par leur équipage QUALIFIÉ (crew), sur le chemin de ronde (z1).

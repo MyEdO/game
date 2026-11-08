@@ -18,7 +18,7 @@ import type { Scene } from '../../noyau/monde/scene';
  * complet (211 sorts) ne montre que ses premiers sorts alphabétiques et le Dôme n'est PAS cliquable.
  * La scène fixe donc les sorts d'Ilyanwe en DONNÉE, pour que le geste de recette existe à l'écran.
  *
- * L'ARCHER porte son arc en DONNÉE (`weapon: 'arc'`, patron `ecuries-clayonnage`) : la créature
+ * L'ARCHER porte son arc en DONNÉE (`inventaire`, patron `ecuries-clayonnage`) : la créature
  * `gobelin` n'a AUCUNE arme à distance dans son statbloc (trait `arme` = mêlée, aucun
  * `trappings`), et sans arc l'IA n'a que la Course — la condition « provenant de l'extérieur » ne se
  * produisait jamais. Les trois gestes de recette sont dans `docs/recette-navigateur.md`.
@@ -55,7 +55,7 @@ function construireScene(): Scene {
         // TIREUR, volontairement LOIN et ARMÉ d'un arc : le dôme ne couvre que ce qui vient de
         // l'extérieur, donc l'attaquant doit rester hors du rayon pour que la sauvegarde s'offre — et il
         // n'y reste que s'il a de quoi TIRER (sans arme à distance, l'IA ferme la distance).
-        { ref: 'gobelin', pos: { x: 17, y: 5 }, facing: 'O', weapon: 'arc', label: 'Tireur gobelin' },
+        { ref: 'gobelin', pos: { x: 17, y: 5 }, facing: 'O', inventaire: { arc: false }, label: 'Tireur gobelin' },
         // FRAPPEUR de mêlée : il vient AU CONTACT, donc sous la voûte — aucune sauvegarde ne lui répond.
         { ref: 'orc', pos: { x: 7, y: 5 }, facing: 'O' },
       ],

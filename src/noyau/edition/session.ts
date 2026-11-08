@@ -227,7 +227,7 @@ export interface PatchDOuverture {
 export type PatchDArete = { [K in Exclude<keyof WallSeg, 'x' | 'y' | 'side' | 'z'>]?: WallSeg[K] | null };
 
 /** Ce que l'inspecteur écrit sur l'entité sélectionnée : son type (décor ou fiche), son cap, sa couche ; la lumière
- *  d'un décor (`null` l'éteint), son assise ; l'embuscade d'un personnage ; l'équipage exposé à bord. */
+ *  d'un décor (`null` l'éteint), son assise ; l'embuscade et l'inventaire d'un personnage ; l'équipage exposé à bord. */
 export interface PatchDEntite {
   ref?: string;
   facing?: Dir8;
@@ -235,6 +235,7 @@ export interface PatchDEntite {
   light?: NonNullable<SceneEntity['light']> | null;
   assise?: boolean;
   embusque?: boolean;
+  inventaire?: NonNullable<SceneEntity['inventaire']>;
   crewIds?: string[];
 }
 
@@ -554,9 +555,9 @@ function ecrireSurLaSelection<T>(s: SessionDEdition, scene: Scene, lire: (sc: Sc
 }
 
 /** Le patch `patch` de l'inspecteur en patch d'entité pour `ent` : le type d'un décor avec ses défauts de pose
- *  (`propRefPatch`), la couche 0 comme son absence. */
+ *  (`propRefPatch`), la couche 0 comme son absence, un inventaire ou un équipage vide comme son absence. */
 function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEntity> {
-  const { ref, z, light, assise, embusque, crewIds, ...reste } = patch;
+  const { ref, z, light, assise, embusque, inventaire, crewIds, ...reste } = patch;
   const usable = { ...ent.usable, assise: assise || undefined };
   return {
     ...reste,
@@ -565,6 +566,7 @@ function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEnt
     ...(light === undefined ? {} : { light: light ?? undefined }),
     ...(assise === undefined ? {} : { usable: usable.assise || usable.actions?.length ? usable : undefined }),
     ...(embusque === undefined ? {} : { combat: { ...ent.combat, hiddenUntilCombat: embusque || undefined } }),
+    ...(inventaire === undefined ? {} : { inventaire: Object.keys(inventaire).length ? inventaire : undefined }),
     ...(crewIds === undefined ? {} : { crewIds: crewIds.length ? crewIds : undefined }),
   };
 }
