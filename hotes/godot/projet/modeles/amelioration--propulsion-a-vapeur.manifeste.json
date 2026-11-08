@@ -1,0 +1,31 @@
+{
+  "schema": 3,
+  "categorie": "amelioration",
+  "cle": {
+    "amelioration": "propulsion-a-vapeur"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "montage": "ancrages",
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "peinture",
+      "palette": "vet1"
+    }
+  ],
+  "glb": {
+    "sha256": "e4f2bd56118b7a6e1d38e779a2060cf1e74417a872f71f99fe820b2188081aca",
+    "octets": 18212
+  }
+}

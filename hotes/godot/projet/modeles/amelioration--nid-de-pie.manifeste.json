@@ -1,0 +1,22 @@
+{
+  "schema": 3,
+  "categorie": "amelioration",
+  "cle": {
+    "amelioration": "nid-de-pie"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "montage": "ancrages",
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    }
+  ],
+  "glb": {
+    "sha256": "9b69fc4a995e064b6bcaf06156c923c2ad83bd1149d399b156f64f799c0951b7",
+    "octets": 4716
+  }
+}
