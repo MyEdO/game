@@ -128,7 +128,7 @@ export function useStagePointer({
     const st = useGame.getState();
     const sc = st.scene;
     const e = sc && t ? entiteDuGeste(sc, v, t) : undefined;
-    return sc && e && estUtilisable(sc, e, st.flags) ? e.id : null;
+    return sc && e && estUtilisable(sc, e, st) ? e.id : null;
   };
 
   // Recette (DEV) : pilotage PROGRAMMATIQUE du survol — __wfrp.hover('id') passe par ce hook,

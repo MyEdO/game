@@ -48,7 +48,7 @@ import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmpu
 import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
-import { contexteDeNaissanceDObjet, damageLeatherArmour, endommagerLEquipementPorte, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive, uidDArme } from './items';
+import { contexteDeNaissanceDObjet, damageLeatherArmour, endommagerLEquipementPorte, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, activeLoadout, damageString, autoStowNewItem, lacherLArme, laisserTomber, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive, uidDArme } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
@@ -1497,6 +1497,10 @@ export interface OpsCtx {
    *  `campGain` : seul point de gain en combat, AA 11 l.11-13, LDB 10 l.364). Absent : primitif
    *  `engine/advantage.gainAdvantage`. */
   onGainAdvantage?: (c: Combatant, n: number) => void;
+  /** Branché par la couche state en combat : reçoit l'objet de l'inventaire qu'un combattant LÂCHE (op `disarm`), déjà
+   *  retiré de lui (`laisserTomber`), pour le déposer au sol à sa case. Sans crochet (moteur pur, hors combat), l'arme
+   *  quitte la main et reste à son porteur (`lacherLArme`). */
+  onLacher?: (c: Combatant, objet: ItemInstance) => void;
   /** Clause d'Avantage de groupe (AA) du Trait Redoutable (`MDG 16 l.13`) : branché par le store
    *  (`noyau/combat/advantagePool.ts` `creditOpposingAdvantage`, fourni par `turnHooks.fireTurnEdgeTriggers`
    *  pour `onTurnStart`) sur l'op `topUpAdvantage{feedOpposingPool:true}` — crédite `n` (l'Indice PLEIN) à la
@@ -1791,7 +1795,7 @@ export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
 /** REBÂTIS à la reprise par un chemin NOMMÉ : le rng et la fabrique d'ids de la partie, les hooks de Corruption et d'Avantage
  *  branchés sur l'état (`onOpposingAdvantage` sur le porteur `caster`), et les dés eux-mêmes (relus sur
  *  les étapes sœurs — jamais recopiés). */
-export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'onCorruption', 'onGainAdvantage', 'onOpposingAdvantage', 'des'] as const;
+export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'onCorruption', 'onGainAdvantage', 'onOpposingAdvantage', 'onLacher', 'des'] as const;
 /** HORS CANAL : hooks qu'aucun chemin ne sait rebâtir. Leur PRÉSENCE dans un contexte PORTÉ
  *  (`noyau/combatEffects.porterOpsCtx` : feuille à dé, Test ou choix surfacé) est un fail-fast NOMMÉ,
  *  jamais une perte muette. Ils ne sont posés que par des appels directs à `applyOps`, qui ne portent
@@ -3183,7 +3187,11 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           // Poing de fer ogre (ADE II 02 l.694-698) : « solidement fixé... il ne pourra pas en être désarmé ».
           lines.push(t('op.disarmImmune', { name: target.label, item: objet.label }));
         } else if (tenue) {
-          lacherLArme(target, tenue);
+          if (!ctx.onLacher) lacherLArme(target, tenue);
+          else {
+            const tombe = laisserTomber(target, tenue);
+            if (tombe) ctx.onLacher(target, tombe);
+          }
           lines.push(t('op.disarm', { name: target.label, item: tenue.label }));
         } else {
           lines.push(t('op.disarmNothing', { name: target.label }));

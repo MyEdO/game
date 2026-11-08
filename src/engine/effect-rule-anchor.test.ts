@@ -145,7 +145,7 @@ const BASELINE: string[] = [
   'engine/shipCritical.ts | extra.ops | { rng, idNeuf }', // ops d'un critique de navire supplémentaire
   "noyau/monde/aiSpellValue.ts | [op] | { idNeuf: fabriqueLocale('simulation'), caster: c, rng: makeRNG(GRAINE_DU_CLONE) }", // simulation d'IA sur un CLONE — jamais affichée au joueur
   'noyau/combatEffects.ts | e.ops | { idNeuf: env.get().forgerUnId, rng: battleRng() }', // ops d'un Souffle de zone (effet de scène)
-  'noyau/combatFlow.ts | crit.ops | { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime, location: loc, surLigne }', // ops d'une Blessure critique en combat
+  'noyau/combatFlow.ts | crit.ops | { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime, location: loc, surLigne, ...crochetDuSol(get, set) }', // ops d'une Blessure critique en combat
   'noyau/combatFlow.ts | outcome.ops | { idNeuf, rng: battleRng() }', // ops de l'issue d'une manœuvre
   'noyau/medicFlow.ts | penalty | { idNeuf: get().forgerUnId, rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }', // pénalité posée par un soin raté
   'noyau/seaVoyageFlow.ts | p.scaldOps | { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime }', // brûlure de vapeur (scaldOps) d'une pièce de machine

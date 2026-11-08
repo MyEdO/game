@@ -643,8 +643,9 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['incanterLeSort', PAR_ARG0],
     ['focaliserLeSort', PAR_ARG0],
     ['dissiperLeSort', PAR_ARG0],
-    // Le geste d'un PORTEUR, en combat comme hors combat : le siège du porteur de l'objet, lu dans l'état.
+    // Les gestes d'un PORTEUR, en combat comme hors combat : le siège du porteur de l'objet, lu dans l'état.
     ['utiliserLObjet', PAR_PORTEUR_DE_L_OBJET],
+    ['poserLObjet', PAR_PORTEUR_DE_L_OBJET],
     ['cliquerLaCase', CLIC_DU_CHAMP],
     // Pause de début de Round (`pendingRoundStart`) : la FENÊTRE est à tous ('*' — ready-check par
     // siège), ses gestes ne le sont pas.

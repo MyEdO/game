@@ -42,7 +42,7 @@ import { libelleDeTest, libelleDuTestNomme } from './jetsEnVue';
 import { chargeArmee, courseArmee, intentionDuProprietaire } from './localIntent';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refuseSi } from './verrousDeFiche';
-import { ramasserDuSol, ramasserHorsCombat } from './objetsAuSol';
+import { crochetDuSol, ramasserDuSol, ramasserHorsCombat } from './objetsAuSol';
 import { nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, drainPendingLog } from './combatEffects';
 import { combatConditionCtx } from './combat/flowEval';
 import type { MovementBlockReason } from './combatFlow';
@@ -2781,7 +2781,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       }
       // Échec : l'objet glisse (op `disarm`, main gatée). Comme le gate de Bénédiction (`attackWardGate`),
       // rien d'AUTRE n'est consommé — le joueur choisit une autre cible ou Action (mais l'arme est perdue).
-      const lines = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: pg.hand === 'off' ? 'brasG' : 'brasD' });
+      const lines = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: pg.hand === 'off' ? 'brasG' : 'brasD', ...crochetDuSol(get, set) });
       const b1 = get().battle!;
       set({ battle: { ...touchActors(get()).battle!, log: [...b1.log, ...evLines(lines, 'attack', attacker.id)] } });
       bus.emit(EVT.SCENE_DIRTY);

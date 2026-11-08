@@ -706,9 +706,9 @@ describe('pièce SERVIE abîmée d’un Dégât : le chef de statbloc tient la p
   });
 });
 
-// `LDB 62 l.280` (Piège-lame) : la lame arrachée d'un HÉROS quitte TOUS ses sets (`engine/items.lacherLArme`).
-describe('héros désarmé par Piège-lame : la lame quitte tous les sets et reste dans l’inventaire', () => {
-  it('aucun set ne la référence, recomputeLoadout ne la rend pas, l’objet est toujours possédé', () => {
+// `LDB 62 l.280` (Piège-lame), CRB 036 l.80 : la lame arrachée d'un HÉROS quitte TOUS ses sets et tombe au sol (`engine/items.laisserTomber`).
+describe('héros désarmé par Piège-lame : la lame quitte tous les sets et tombe à sa case', () => {
+  it('aucun set ne la référence, recomputeLoadout ne la rend pas, l’objet gît au sol', () => {
     const objet = { ...itemFromTrappingById('arme-simple', idsDeTest)!, uid: 'lame-h', equipped: true };
     const heros = mk('hero', 'bretteur', { items: [objet], pos: { x: 1, y: 0 } });
     heros.loadouts = [{ id: 'l1', main: 'lame-h' }, { id: 'l2', main: 'lame-h' }];
@@ -722,6 +722,8 @@ describe('héros désarmé par Piège-lame : la lame quitte tous les sets et res
     heros.activeLoadoutId = 'l2';
     recomputeLoadout(heros);
     expect(heros.weapons.some((w) => w.uid === 'lame-h'), 'la lame reste lâchée').toBe(false);
-    expect(heros.items!.some((i) => i.uid === 'lame-h'), 'et reste possédée').toBe(true);
+    expect(heros.items!.some((i) => i.uid === 'lame-h'), 'elle quitte son porteur').toBe(false);
+    const sol = banc.getState().scene!.entities.find((e) => e.id in banc.getState().objetsAuSol);
+    expect([sol?.pos, banc.getState().objetsAuSol[sol!.id].map((i) => i.uid)], 'et gît à sa case').toEqual([{ x: 1, y: 0 }, ['lame-h']]);
   });
 });

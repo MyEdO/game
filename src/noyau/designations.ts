@@ -205,7 +205,7 @@ const lesObjets = (s: Jeu) => [
 const lesPostes = (s: Jeu) => lesCombattants(s).flatMap((c) => c.postes ?? []);
 const lesPanoplies = (s: Jeu) => lesCombattants(s).flatMap((c) => c.loadouts ?? []);
 const lesEntites = (s: Jeu) => s.scene?.entities ?? [];
-const lesActionsDEntite = (s: Jeu) => (s.scene ? lesEntites(s).flatMap((e) => actionsDe(s.scene!, e, s.flags)) : []);
+const lesActionsDEntite = (s: Jeu) => (s.scene ? lesEntites(s).flatMap((e) => actionsDe(s.scene!, e, s)) : []);
 const lesModesDeVoyage = (): { id: string; label?: string }[] => [{ id: 'pied' }, { id: 'monture' }, ...travelVehicles()];
 const lesEntrainements = (s: Jeu) => s.party.flatMap(entrainementOptions);
 /** Les armes dont le lanceur du Sort en attente peut donner la forme (`conjureFormOptions`), LDB 47. */

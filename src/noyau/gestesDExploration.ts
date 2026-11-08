@@ -3,7 +3,7 @@
  * arguments, pour un hôte qui les donne prêts à jouer. Les arêtes qu'il borde (`aretesUtilisables`, offertes comme à
  * l'écran : `aretesOffertes`), les sauts (`atterrissagesDeSaut`), les sorties de scène (déclencheurs à transition,
  * `triggersEnJeu`), les offres des entités à sa portée (`offresDExploration` : parler, commercer, s'asseoir, une action
- * authorée), refusées avec leur raison, les objets posés au sol à sa portée (`objetDuSol`, `ramasserLObjet`), la carte du monde quand le groupe est à l'un de ses lieux ou en voyage (`ouvrirLaCarte`), l'écran du lieu où il se tient
+ * authorée, un objet posé au sol à ramasser), refusées avec leur raison, la carte du monde quand le groupe est à l'un de ses lieux ou en voyage (`ouvrirLaCarte`), l'écran du lieu où il se tient
  * (`ouvrirLeLieu`), puis les dénivelés qu'il borderait ailleurs à son étage (`gesteDeDenivele`), le plus proche de chaque libellé, du
  * plus proche au plus lointain. Ce qui ne se joue pas depuis sa case se rejoint par le chemin du groupe (`exploreMovePlan`), joué par
  * le clic de sa case (`cliquerLaCase`), comme un saut.
@@ -13,8 +13,7 @@ import { aretesOffertes, gesteDeDenivele, gesteDeLArete, gestesDeplacantsOuverts
 import { cheminMarchable, marcheOuverte } from './marcheDuGroupe';
 import { triggersEnJeu } from './monde/decouvertePorteSecrete';
 import { offresDExploration } from './interactionsDExploration';
-import { aPorteeDe, exploreMovePlan, optionsDeCheminDuGroupe } from './monde/exploreNav';
-import { objetDuSol } from './objetsAuSol';
+import { exploreMovePlan, optionsDeCheminDuGroupe } from './monde/exploreNav';
 import { memeCase } from './monde/seating';
 import { atterrissagesDeSaut, type Pt } from './monde/path';
 import { computeStateVisible } from './visionState';
@@ -71,9 +70,6 @@ export function gestesDExploration(s: Jeu): GesteDExploration[] {
         ...(o.gate.ok ? {} : { refus: o.gate.reason }),
       });
     }
-  }
-  for (const ent of scene.entities.filter((e) => aPorteeDe(partyPos, e))) {
-    for (const o of objetDuSol(ent, s.objetsAuSol)) out.push({ libelle: t('exploration.ramasser', { objet: o.label }), gestes: [{ verbe: 'ramasserLObjet', args: [ent.id, o.key] }] });
   }
   if (s.worldMap && (s.lieu || s.travelPlan)) out.push({ libelle: t('exploration.carte'), gestes: [{ verbe: 'ouvrirLaCarte', args: [] }] });
   if (s.lieu && !s.travelPlan) out.push({ libelle: t('exploration.lieu'), gestes: [{ verbe: 'ouvrirLeLieu', args: [] }] });

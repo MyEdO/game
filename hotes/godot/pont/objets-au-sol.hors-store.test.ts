@@ -38,10 +38,10 @@ describe('les objets au sol par le pont', () => {
     s = suiteDe(appel('fiche', { fiche: null }));
     expect(s.vue.plateau!.cleDuMonde, 'un décor est né : le monde se redessine').not.toBe(avant);
 
-    const ramasser = s.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Ramasser Dague');
+    const ramasser = s.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Dague : Ramasser');
     expect(ramasser, 'l’exploration offre de la ramasser').toBeDefined();
     s = jouer(ramasser!.jeu);
-    expect(s.vue.zones['exploration.gestes'].map((b) => b.libelle), 'ramassée, l’offre sort').not.toContain('Ramasser Dague');
+    expect(s.vue.zones['exploration.gestes'].map((b) => b.libelle), 'ramassée, l’offre sort').not.toContain('Dague : Ramasser');
     expect(s.vue.plateau!.cleDuMonde, 'et son décor avec elle').toBe(avant);
     const heros = s.vue.zones['groupe.heros'].map((b) => b.libelle);
     expect(heros.flatMap((h) => possessionsDe(s, h)), 'elle revient sur un héros du groupe').toContain('Dague');
