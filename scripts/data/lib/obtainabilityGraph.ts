@@ -22,11 +22,6 @@ import {
   type AdvancementRef, type TalentData,
 } from '../../../src/data/index';
 
-/** Talents MÉTA — une ligne de TABLE RAW transcrite en entrée de catalogue pour son vocabulaire de
- *  tirage (`talent-aleatoire`, LDB 05 l.484 : motif « N Talent(s) aléatoire(s) » consommé par
- *  `resolveSpeciesTalents`, `src/engine/character.ts`), jamais un Talent POSSÉDABLE. */
-const META_TALENTS: ReadonlySet<string> = new Set(['talent-aleatoire']);
-
 export interface CasterInfo { obtainable: boolean; specs: Set<string>; anyUnspecialized: boolean }
 export interface SpellVerdict { id: string; label: string; reachable: boolean; via: string[] }
 export interface ObtainabilityResult {
@@ -86,9 +81,8 @@ export function computeObtainability(root: string): ObtainabilityResult {
   }
 
   // #326 : un Talent `codexOnly` (contenu de référence PNJ/campagne, cf. `TalentData.codexOnly`) est
-  // EXPLIQUÉ par sa donnée — jamais compté comme une dette d'obtenabilité oubliée. Un Talent de
-  // `META_TALENTS` reçoit la même exemption.
-  const talentNever = talents.filter((t) => !talentSources.has(t.id) && !t.codexOnly && !META_TALENTS.has(t.id));
+  // EXPLIQUÉ par sa donnée — jamais compté comme une dette d'obtenabilité oubliée.
+  const talentNever = talents.filter((t) => !talentSources.has(t.id) && !t.codexOnly);
 
   // Les Talents de LANCEUR sont ceux qui DÉCLARENT la famille de Sort qu'ils ouvrent
   // (`combat.castingKind`, `TalentData` — même union fermée que `SpellData.family`). Aucune liste

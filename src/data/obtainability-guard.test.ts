@@ -31,8 +31,7 @@ import { computeObtainability } from '../../scripts/data/lib/obtainabilityGraph'
  *   `pouvoir-du-chaos`, `flot-de-corruption`) + `consentement` : exemptés via le même flag
  *   (`obtainabilityGraph.ts` exclut la famille `chaos` de `spellNever` quand `magie-du-chaos` est
  *   `codexOnly`), pas un silence par-sort.
- * - `talent-aleatoire` (LDB 05 l.484) : entrée MÉTA, exemptée via `META_TALENTS`
- *   (`scripts/data/lib/obtainabilityGraph.ts`).
+ * - `talent-aleatoire` (LDB 05 l.484) : entrée MÉTA de la table de tirage, `codexOnly:true`.
  *
  * Curation VDM (#734, 2026-07-26) — +8 : `assistant-magique` (`VDM 13 l.487`) et les 7 `empreint-*`
  * neufs (`VDM 13 l.461`), sans source d'octroi à leur arrivée : plafond monté de 1 → 9, DETTE
@@ -48,7 +47,7 @@ import { computeObtainability } from '../../scripts/data/lib/obtainabilityGraph'
  * `VDM 04 l.156` … `VDM 11 l.142`) octroient chacune son Talent *Empreint* en rangée 10 (op
  * `grantTalent`) → 8 → 1. Le graphe lit désormais `tables.json` comme source d'octroi
  * (`obtainabilityGraph.ts`, tag `table:<id>`) ; câblage prouvé par `vdm-marques-arcaniques.test.ts`.
- * `talent-aleatoire` désormais exempté via `META_TALENTS` (cf. ci-dessus) → 1 → 0.
+ * `talent-aleatoire` désormais `codexOnly` (cf. ci-dessus) → 1 → 0.
  *
  * Toute RÉGRESSION (compte qui grimpe sans nouveau `codexOnly` justifié) fait échouer la garde ; une
  * baisse (contenu réellement câblé) doit ABAISSER ce nombre ici — jamais l'inverse.
