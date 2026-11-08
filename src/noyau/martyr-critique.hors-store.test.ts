@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyAttackResult } from './combatFlow';
@@ -26,7 +27,7 @@ interface Coup { sl: number; critical: boolean; martyr?: boolean; fenetre?: bool
  *  de Blessure critique et RÉ-ENTRE `applyAttackResult`. */
 function touche({ sl, critical, martyr = true, fenetre = false, arme = epee, endurance, endurancePretre, pa = 0 }: Coup) {
   banc.getState().ensemencerLeTirage(7);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [] });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { battleRng, seedBattleRng } from './battleRng';
@@ -36,7 +37,7 @@ interface Coup { seed?: number; roll?: number; double?: boolean; current?: numbe
  *  `arme` = l'arme du coup ; `retenu` = Retenir ses coups (LDB 18 l.30 ; AA 07 l.59) ; `vehicule` = la cible est ce véhicule, tel que le jeu le fait naître ; `grapple` = une Empoignade (LDB 14 l.159). */
 function coup({ seed = 7, roll = 44, double = true, current = 2, important = true, chanceux = false, pa = 0, endurance, pieces = [], de = 1, tenu = false, choisir, martyr = false, demoniaque, sousAttaque = false, arme = epee, retenu = false, vehicule, grapple = false }: Coup = {}) {
   banc.getState().ensemencerLeTirage(seed);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: tenu ? 'host' : 'local', mySeat: 0, gmSeat: tenu ? 1 : undefined } });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
@@ -461,7 +462,7 @@ describe('véhicule routier : la coque refuse le Critique (EDOC 07 l.334)', () =
 
 /** Un sorcier à Carreau face à un ennemi de la rencontre, le combat ouvert par le banc. */
 function carreauEnCombat(): { mage: Combatant; cible: Combatant } {
-  const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
+  const w = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
   w.spells = ['carreau'];
   banc.setState({ party: [w], battle: null, pendingCast: null, pendingCascade: null, suspendedCascades: [] });
   banc.getState().lancerLaScene(structuredClone(testScene()));
@@ -823,7 +824,7 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
   const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] } as unknown as Weapon;
 
   it('une touche au hasard : la phrase du tas et la ligne de la victime, une fois chacune', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
     banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
     banc.getState().lancerLaScene(structuredClone(testScene()));
     banc.getState().lancerLeCombat('enc-mutants');
@@ -852,7 +853,7 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
   });
 
   it('tir dévié dans la mêlée (LDB 14 l.116) : la phrase de la déviation et la ligne de l’allié touché, une fois chacune', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
     banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
     banc.getState().lancerLaScene(structuredClone(testScene()));
     banc.getState().lancerLeCombat('enc-mutants');

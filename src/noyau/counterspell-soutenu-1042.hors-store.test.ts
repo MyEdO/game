@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
@@ -30,7 +31,7 @@ const NET0 = { mode: 'local' as const, mySeat: 0, gmSeat: undefined, ownership: 
 /** Trois héros lanceurs (deux du Domaine du Feu, un de la Mort) face à une ennemie qui incante. */
 function setup() {
   const mk = (label: string, seed: number, advances: number, domain: string) => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label, careerTalent: { id: 'magie-mineure' }, seed });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label, careerTalent: { id: 'magie-mineure' }, seed });
     h.spells = ['flechette'];
     h.characteristics.intelligence = 40;
     h.characteristics['force-mentale'] = 60;

@@ -4,6 +4,7 @@
  * modale montée (`DocumentModal`) sur le store : chemin RÉEL de la fouille du paquet `la-diligence`. La désignation,
  * la remise des documents et l'indice se jouent au banc du noyau (`src/noyau/scenarios/edo-ch1-sosie.hors-store.test.ts`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, beforeAll, afterEach } from 'vitest';
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -15,14 +16,14 @@ import { poserLeGroupe } from '../noyau/marcheDuGroupe';
 
 const paquet = paquetDuJeu(diligenceCampaign);
 const get = useGame.getState;
-const heros = (label: string, seed: number) => ({ ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed }), id: `h-${seed}` });
+const heros = (label: string, seed: number) => ({ ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed }), id: `h-${seed}` });
 
 describe('EDO 02 l.93-127 — les Documents 3 et 4 nomment le sosie', () => {
   beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
   let container: HTMLDivElement | undefined;
   let root: Root | undefined;
   afterEach(() => { if (root) act(() => root!.unmount()); container?.remove(); root = undefined; container = undefined; });
-  const naine = () => ({ ...createHero({ speciesId: 'nains', careerId: 'soldat', label: 'Naine', seed: 9, apparence: { sex: 'F' } }), id: 'h-9' });
+  const naine = () => ({ ...createHero({ idNeuf: idsDeTest, speciesId: 'nains', careerId: 'soldat', label: 'Naine', seed: 9, apparence: { sex: 'F' } }), id: 'h-9' });
 
   beforeEach(() => {
     get().fixerLeGroupe([heros('Vivant', 1), naine()]);

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { barrierTilesFor, zonesRoundTick, type BattleZone } from './monde/zones';
 import { isProfane } from '../engine/corruption';
@@ -63,26 +64,26 @@ describe('Protection de Phâ — barrière : seuls les profanes ne peuvent entre
 describe('Protection de Phâ — Brisé entretenu aux profanes présents (sans empiler)', () => {
   it('un profane dans la Zone gagne 1 Brisé ; re-tick → reste à 1 (unlessCondition)', () => {
     const demon = mk({ id: 'd', traits: [{ id: 'demoniaque' }] as never, pos: { x: 5, y: 5 } as never });
-    zonesRoundTick([ward()], [demon], makeRNG(1));
+    zonesRoundTick([ward()], [demon], makeRNG(1), idsDeTest);
     expect(stacks(demon, COND.brise)).toBe(1);
-    zonesRoundTick([ward()], [demon], makeRNG(1));
+    zonesRoundTick([ward()], [demon], makeRNG(1), idsDeTest);
     expect(stacks(demon, COND.brise)).toBe(1); // entretenu, pas empilé
   });
   it('un vivant dans la Zone ne gagne PAS de Brisé (gate profane)', () => {
     const hero = mk({ id: 'h', kind: 'hero', pos: { x: 5, y: 5 } as never });
-    zonesRoundTick([ward()], [hero], makeRNG(1));
+    zonesRoundTick([ward()], [hero], makeRNG(1), idsDeTest);
     expect(hasCondition(hero, COND.brise)).toBe(false);
   });
   it('un profane HORS de la Zone n’est pas affecté', () => {
     const demon = mk({ id: 'd', traits: [{ id: 'demoniaque' }] as never, pos: { x: 99, y: 99 } as never });
-    zonesRoundTick([ward()], [demon], makeRNG(1));
+    zonesRoundTick([ward()], [demon], makeRNG(1), idsDeTest);
     expect(hasCondition(demon, COND.brise)).toBe(false);
   });
 });
 
 describe('Protection de Phâ — incantation pose la Zone (intégration applyCast)', () => {
   it('cast self → Zone sacrée centrée sur le lanceur (barrière profane + Brisé + noCorruption + durée BFM)', () => {
-    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
+    const W = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
     banc.setState({ party: [W] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

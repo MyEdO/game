@@ -4,6 +4,7 @@
  * revient à la liasse, et les deux stades croisés de l'indice de fixture résolvent leur document et se
  * révèlent au Carnet. La liasse s'ouvre par l'exécuteur unique des gestes (`jouerAction`), portée comprise.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { documentDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
@@ -38,7 +39,7 @@ const A_COTE = { x: 2, y: 2 };
 
 /** Scène et narratif construits, chargés par la chaîne réelle, à l'écran de jeu, carte d'entrée refermée. */
 function charger(): void {
-  const { party, scene, narratif } = scenario.construire();
+  const { party, scene, narratif } = scenario.construire(idsDeTest);
   banc.setState({ party, scene: null, dialogue: null, document: null, clues: {}, dialogueHistory: [] });
   banc.getState().chargerLeProjet({ scenes: [scene], entryId: scene.id, narratif, projet: null });
   banc.setState({ screen: 'campaign', pendingCascade: null });
@@ -79,7 +80,7 @@ beforeEach(() => {
 describe('documents-edo — la liasse sert le registre du paquet EDO', () => {
   it('les 11 documents du livre sont au registre du paquet, et le narratif du scénario PREND ce registre', () => {
     expect(paquet.map((d) => d.id)).toEqual(expect.arrayContaining([...DOCUMENTS_EDO]));
-    const { narratif } = scenario.construire();
+    const { narratif } = scenario.construire(idsDeTest);
     expect(narratif?.documents).toEqual(paquet);
   });
 

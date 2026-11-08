@@ -16,6 +16,7 @@
  *  5. l'ENJEU est posé par le PRODUCTEUR (`rollShipCritical`) et renvoie à SA rangée dans la
  *     catégorie Codex de la Localisation touchée.
  */
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -175,7 +176,7 @@ describe('coup à l’équipage — le moteur DÉSIGNE et REND, il ne roule plus
         const rng = rngCompteur(seed);
         const rngTemoin = rngCompteur(seed);
 
-        const out = applyCrewHit(coqueAvecPostes(ids), equipage, hit, rng);
+        const out = applyCrewHit(coqueAvecPostes(ids), equipage, hit, rng, idsDeTest);
         const attendues = 'poste' in cible
           ? posteCrewAttendu(coqueAvecPostes(ids), temoins, rngTemoin)
           : exposedCrew(temoins).filter((c) => ('role' in cible

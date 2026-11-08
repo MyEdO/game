@@ -8,6 +8,7 @@
  *     appliqués depuis le Flow. L'invocation (`summon`) est couverte de bout en bout par
  *     `summon-flow.test.ts` ; on vérifie ici qu'elle vit dans le Flow.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyCast } from './combatFlow';
@@ -56,7 +57,7 @@ describe('effets « lourds » présents dans le Flow éditable (données app-own
 
 describe('résolution au lancement depuis le Flow', () => {
   it('Forme bestiale : la métamorphose (op polymorph) remplace les Caractéristiques du lanceur', () => {
-    const w = pregen(PREGEN.sorcier);
+    const w = pregen(idsDeTest, PREGEN.sorcier);
     banc.setState({ party: [w] as Combatant[] });
     const ours = findCreatureById('ours')!;
     expect(typeof ours.char.force).toBe('number');
@@ -68,7 +69,7 @@ describe('résolution au lancement depuis le Flow', () => {
   });
 
   it('Vol de vie : l’op lifeSteal (on:caster) draine une fraction des Blessures infligées', () => {
-    const [w, cible] = pregenParty(PREGEN.sorcier, PREGEN.soldat);
+    const [w, cible] = pregenParty(idsDeTest, PREGEN.sorcier, PREGEN.soldat);
     w.wounds.current = w.wounds.max - 5;
     cible.wounds.current = cible.wounds.max; // ≥ 3 PB encaissables
     banc.setState({ party: [w, cible] as Combatant[] });

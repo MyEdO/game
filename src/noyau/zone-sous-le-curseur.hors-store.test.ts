@@ -3,6 +3,7 @@
  * zone EN POSE (`placingZoneOf`) ou aperçu du sort de ZdE sélectionné — que le gabarit du plateau peint.
  * Portée et Ligne de Vue : LDB 46 l.121.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { zoneSousLeCurseur } from './combatFlow';
@@ -23,7 +24,7 @@ function wallScene() {
 
 /** Lanceuse en (2,0), Force Mentale `fm`, au tour de jeu ; `explosion` sélectionnée, sans modale. */
 function poser(fm: number, battle: Record<string, unknown> = {}): Combatant {
-  const w = pregen(PREGEN.sorcier);
+  const w = pregen(idsDeTest, PREGEN.sorcier);
   w.pos = { x: 2, y: 0 };
   w.characteristics['force-mentale'] = fm;
   const e = spawnEnemy({ ref: 'humain' }, 'e-1', { x: 16, y: 0 });

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { scenario } from '../../scenes/test-scenarios/ecuries-clayonnage';
 import { scenario as diligence } from '../../scenes/test-scenarios/diligence';
@@ -17,8 +18,8 @@ import { pregen, PREGEN } from '../../data/pregens';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
-const diligenceConstruit = diligence.construire();
-const scenarioConstruit = scenario.construire();
+const diligenceConstruit = diligence.construire(idsDeTest);
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /**
  * OPACITÉ DÉCLARÉE PAR STRUCTURE (#1680, #1709) — les contrats du MOTEUR, sur une carte CONSTRUITE
@@ -90,7 +91,7 @@ function carte(): Scene {
   } as Scene;
 }
 
-const groupe = () => [pregen(PREGEN.chasseur), pregen(PREGEN.soldat)];
+const groupe = () => [pregen(idsDeTest, PREGEN.chasseur), pregen(idsDeTest, PREGEN.soldat)];
 
 /** Ouvre le combat de la fixture sur une carte NEUVE et rend l'état de bataille. */
 function ouvrirCombat() {
@@ -258,7 +259,7 @@ describe('IA — le mémo de Ligne de Vue du tour est PORTEUR (clé from→to)',
  */
 describe('scénario de recette « écuries » — armement du tireur et non-contamination', () => {
   it('arme le tireur du groupe d’une arme à DISTANCE (l’arc en main, pas la fronde rangée)', () => {
-    const tireur = scenario.construire().party[0];
+    const tireur = scenario.construire(idsDeTest).party[0];
     expect(tireur.weapons.some((w) => w.type === 'ranged')).toBe(true);
   });
 

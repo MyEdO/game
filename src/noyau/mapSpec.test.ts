@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { buildScene, type MapSpec } from './mapSpec';
 import { layerTiles, isWalkable, wallBetween, setStructureDown, heightAt, tileAt, type BuildingMass } from './monde/scene';
@@ -10,7 +11,7 @@ import { perimeterEdges } from './sceneEdit.testkit';
 import { PENTE_TOIT_DEG, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { builtTerrains, groundTerrains } from './planDefects';
 import { tousLesTerrains } from './monde/terrain';
-const zonesPiecesConstruit = zonesPieces.construire();
+const zonesPiecesConstruit = zonesPieces.construire(idsDeTest);
 
 /** GOLDEN = spécification exécutable du format `MapSpec`. Chaque bloc verrouille une section de la
  *  compilation `buildScene` (headless-editor). L'ordre de compilation est figé par ces attentes. */

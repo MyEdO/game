@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
@@ -258,15 +259,15 @@ describe('#1657 B3-1b — le Test d’AMPUTATION naît comme une étape, à la v
 
     // Gate RÉUSSI (l.171 : la perte n'a lieu que « sur un échec ») — aucune conséquence, pas même un État.
     const sauf = mk('h', 'hero');
-    runPureFlowLines(sauf, sauf, gate.success, { rng: desDuTest, sl: 3 });
+    runPureFlowLines(sauf, sauf, gate.success, { idNeuf: idsDeTest, rng: desDuTest, sl: 3 });
     expect(sauf.traumas).toEqual([]);
     expect(stacks(sauf, 'a-terre')).toBe(0);
 
     // Gate RATÉ → le Test d'Amputation (l.237) ; RATÉ à −2 DR → À Terre + Sonné + la perte de l'orteil.
     const [interne, perte] = etapes(gate.fail);
     const touche = mk('h', 'hero');
-    runPureFlowLines(touche, touche, noeudDeTest(interne).fail, { rng: desDuTest, sl: -2 });
-    runPureFlowLines(touche, touche, perte, { rng: desDuTest, sl: -2 });
+    runPureFlowLines(touche, touche, noeudDeTest(interne).fail, { idNeuf: idsDeTest, rng: desDuTest, sl: -2 });
+    runPureFlowLines(touche, touche, perte, { idNeuf: idsDeTest, rng: desDuTest, sl: -2 });
     expect(stacks(touche, 'a-terre')).toBe(1);
     expect(stacks(touche, 'sonne')).toBe(1);
     expect(stacks(touche, 'inconscient'), 'l’Inconscient n’arrive qu’à −4 DR').toBe(0);

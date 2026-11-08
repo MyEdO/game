@@ -5,6 +5,7 @@
  * Combatant) est refusé — pas de pseudo-combat inventé. `mode:'forceSuccess'` (arbitrage d'auteur)
  * joue le Flow du sort à DR = NI, sans jet, en combat comme hors combat.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
@@ -17,8 +18,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('Effet castSpell (#98)', () => {
   describe('EN COMBAT', () => {
     function setup() {
-      const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
-      const ally = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 13 });
+      const wiz = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
+      const ally = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 13 });
       banc.setState({ party: [wiz, ally] });
       banc.getState().lancerLaScene(testScene());
       banc.getState().lancerLeCombat('enc-mutants');
@@ -77,7 +78,7 @@ describe('Effet castSpell (#98)', () => {
 
   describe('HORS COMBAT (couture D)', () => {
     it('un héros du groupe route par `incanterLeSort` (jet réel, `pendingCast` ouvert)', () => {
-      const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
+      const wiz = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
       banc.setState({ party: [wiz], battle: null, pendingCast: null });
       applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: wiz.id, spellId: 'chute' }]);
       const pc = banc.getState().pendingCast;
@@ -87,7 +88,7 @@ describe('Effet castSpell (#98)', () => {
     });
 
     it('un PNJ (pas un héros du groupe, pas en combat) est refusé — pas de pseudo-combat inventé', () => {
-      const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
+      const wiz = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
       banc.setState({ party: [wiz], battle: null, pendingCast: null, journal: [] });
       applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: 'pnj-rituel', spellId: 'chute' }]);
       expect(banc.getState().pendingCast).toBeNull();
@@ -95,8 +96,8 @@ describe('Effet castSpell (#98)', () => {
     });
 
     it('mode "forceSuccess" HORS COMBAT : applique les effets du sort directement (aucun `pendingCast`)', () => {
-      const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
-      const ally = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 13 });
+      const wiz = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
+      const ally = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 13 });
       ally.wounds.current = Math.max(0, ally.wounds.current - 3);
       const before = ally.wounds.current;
       banc.setState({ party: [wiz, ally], battle: null, pendingCast: null, journal: [] });
@@ -110,7 +111,7 @@ describe('Effet castSpell (#98)', () => {
   });
 
   it('sort introuvable → refus journalisé', () => {
-    const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
+    const wiz = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
     banc.setState({ party: [wiz], battle: null, pendingCast: null, journal: [] });
     applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: wiz.id, spellId: 'inexistant' }]);
     expect(banc.getState().journal.some((l) => /introuvable/i.test(l))).toBe(true);

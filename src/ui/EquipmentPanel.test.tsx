@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { EquipmentPanel } from './EquipmentPanel';
@@ -7,7 +8,7 @@ import type { Combatant, ItemInstance } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Résolveur de test : libellé → instance par id (authoring). */
-const itemFromTrapping = (label: string) => itemFromTrappingById(trappings.find((t) => t.label === label)!.id);
+const itemFromTrapping = (label: string) => itemFromTrappingById(trappings.find((t) => t.label === label)!.id, idsDeTest);
 
 /** Héros de test : cuir souple + maille PORTÉS (couches superposées), plate et cape au sac,
  *  arme simple en main + hallebarde (2M) au sac. Armure/armes/loadouts dérivés par recompute. */

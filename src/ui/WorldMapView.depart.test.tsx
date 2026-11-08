@@ -3,6 +3,7 @@
  * Panneau de départ de la carte du monde (#3059) : le bouton `worldmap-depart` lit le refus du geste
  * (`refusDeDepart`), les rations affichées lisent le devis (`devisDeTrajet`). Le lieu se choisit au clic.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -30,11 +31,11 @@ const carte = (route: Partial<MapRouteTrace>): WorldMap => ({
   routes: [{ id: 'r1', a: 'pa', b: 'pb', km: 90, modes: ['pied'], perilDie: 0, ...route }],
 });
 
-const dixRations = (): ItemInstance[] => Array.from({ length: 10 }, (_, i) => ({ ...itemFromTrappingById('ration')!, uid: `r${i}`, enc: 0 }));
+const dixRations = (): ItemInstance[] => Array.from({ length: 10 }, (_, i) => ({ ...itemFromTrappingById('ration', idsDeTest)!, uid: `r${i}`, enc: 0 }));
 
 /** Marcheur M4 : 90 km à 24 km/jour, quatre jours, trois nuits en route. */
 const marcheur = (p: Partial<Combatant> = {}): Combatant => ({
-  ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Marcheur', seed: 3059 }),
+  ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Marcheur', seed: 3059 }),
   movement: 4, items: dixRations(), ...p,
 });
 

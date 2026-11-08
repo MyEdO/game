@@ -103,6 +103,6 @@ export const scenario: TestScenario = {
     'avec sa raison (`equipage-suffisant` si l’Équipe du bélier fond), l’annulation gratuite (Échap, ' +
     're-clic sur « Pousser »), et le picking : cliquer la pastille ne vaut jamais un clic-monde.',
   partyNote: 'Soldat solo, chef de pièce du bélier — cheval et coffre à une case.',
-  construire: () => ({ party: [pregen(PREGEN.soldat)], scene: construireScene() }),
+  construire: (idNeuf) => ({ party: [pregen(idNeuf, PREGEN.soldat)], scene: construireScene() }),
   autoCombat: 'enc-pastilles',
 };

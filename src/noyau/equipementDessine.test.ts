@@ -2,6 +2,7 @@
  * LES ARMES DESSINÉES, lues sur l'état (#2948) : les candidats d'apparence d'une arme tenue ou rangée, la main que
  * lui donne la seule attribution des mains, et les armes qu'une entité de scène déclare.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { armeDeDessin, armesDEntite, armesDuCombattant } from './equipementDessine';
 import { apparencesCandidates, deciderApparencesDesArmes, emptyArmour, itemFromGive, loadoutSetActive, loadoutSetSlot, recomputeLoadout, weaponFromItem } from '../engine/items';
@@ -17,14 +18,14 @@ import { porteurDObjetDeCampagne } from '../scenes/fixtures/objetDeCampagne';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 
 const porteur = (over: Partial<Combatant>): Combatant => ({ weapons: [], items: [], armour: emptyArmour(0), ...over }) as unknown as Combatant;
-const porte = (trappingId: string, apparence?: string): ItemInstance => ({ ...itemFromGive({ trappingId, ...(apparence ? { apparence: { id: apparence } } : {}) }), equipped: true });
+const porte = (trappingId: string, apparence?: string): ItemInstance => ({ ...itemFromGive({ trappingId, ...(apparence ? { apparence: { id: apparence } } : {}) }, idsDeTest), equipped: true });
 /** Les candidats de la première arme tenue de `c`. */
 const candidatsTenus = (c: Combatant) => apparencesCandidates(armesDuCombattant(c).tenues[0].arme);
 const candidatsDe = (armes: readonly Weapon[]) => armes.map((w) => apparencesCandidates(w));
 
 describe('apparences d’objets des porteurs sans instance (#2948)', () => {
   it('la naissance et le dessin partagent les candidats de l’objet de campagne à plusieurs formes', () => {
-    const { objet, item, hero, candidats, resolveTrapping } = porteurDObjetDeCampagne('hache_naine');
+    const { objet, item, hero, candidats, resolveTrapping } = porteurDObjetDeCampagne(idsDeTest, 'hache_naine');
     expect(findTrappingById(objet.id)).toBeUndefined();
     expect(objet.formChoices).toEqual(['epee', 'hache']);
     expect(item.apparence).toBe('hache_naine');
@@ -34,18 +35,18 @@ describe('apparences d’objets des porteurs sans instance (#2948)', () => {
   });
 
   it('le dessin conserve le bouclier né dans la campagne après édition de sa fiche', () => {
-    const { objet, hero, narratif } = porteurDObjetDeCampagne('hache_naine', { shield: true });
+    const { objet, hero, narratif } = porteurDObjetDeCampagne(idsDeTest, 'hache_naine', { shield: true });
     expect(findTrappingById(objet.id)).toBeUndefined();
     expect(armeDeDessin(armesDuCombattant(hero).tenues[0].arme).bouclier).toBe(true);
     const apresEdition = objetDuNarratif({ ...narratif, objets: [{ ...objet, shield: undefined }] });
-    expect(itemFromGive({ trappingId: objet.id }, undefined, apresEdition).shield).toBeUndefined();
+    expect(itemFromGive({ trappingId: objet.id }, idsDeTest, undefined, apresEdition).shield).toBeUndefined();
     expect(armeDeDessin(armesDuCombattant(hero).tenues[0].arme).bouclier).toBe(true);
   });
 
   it('le dessin conserve la forme racine née malgré une édition de shape et des formes proposées', () => {
-    const { objet, hero, narratif } = porteurDObjetDeCampagne('hache_naine');
+    const { objet, hero, narratif } = porteurDObjetDeCampagne(idsDeTest, 'hache_naine');
     const apresEdition = objetDuNarratif({ ...narratif, objets: [{ ...objet, shape: { id: 'epee' }, formChoices: ['epee'] }] });
-    expect(itemFromGive({ trappingId: objet.id }, undefined, apresEdition).shape).toEqual({ id: 'epee' });
+    expect(itemFromGive({ trappingId: objet.id }, idsDeTest, undefined, apresEdition).shape).toEqual({ id: 'epee' });
     expect(candidatsTenus(hero)).toEqual(['hache_naine', 'hache']);
   });
 

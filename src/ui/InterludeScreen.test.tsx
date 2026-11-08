@@ -4,6 +4,7 @@
  * (pied FIXE : pré-jet visible AVANT « Entreprendre »), clôture récapitulative confirmée (M3).
  * Rendu statique : le store SSR sert l'état initial, d'où le seam (même pattern que WorldMapView).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { useGame } from '../state/store';
@@ -45,9 +46,9 @@ const entreeFermee = (html: string, key: string) => html.match(new RegExp(`<butt
 const raisonDe = (html: string, key: string) => raisonDId(html, `interlude-act-${key}-reason`);
 
 function buildSeam(weeks = 3, groupe?: Combatant[]): InterludeSeam {
-  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
+  const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
   a.xp = 300;
-  const b = createHero({ speciesId: 'nains', careerId: 'artisan', label: 'Forgeron', seed: 1602 });
+  const b = createHero({ idNeuf: idsDeTest, speciesId: 'nains', careerId: 'artisan', label: 'Forgeron', seed: 1602 });
   if (!b.skills.some((s) => s.id === 'metier')) b.skills.push({ id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 10 });
   useGame.setState({ party: groupe ?? [a, b], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [] });
   useGame.getState().lancerLaScene(testScene());
@@ -252,8 +253,8 @@ describe('InterludeScreen — refonte LOT 6', () => {
     const [a, b] = seam.party;
     // Vétéran : Niveau 3, a entrepris Revenus (120 sous) ; Forgeron : Niveau 4, sans Revenus, mort pendant la période.
     const party = [
-      withBourseMoney({ ...a, careerLevel: 3 }, { gold: 1, silver: 0, brass: 0 }),
-      withBourseMoney({ ...b, careerLevel: 4, dead: true }, { gold: 0, silver: 5, brass: 0 }),
+      withBourseMoney({ ...a, careerLevel: 3 }, { gold: 1, silver: 0, brass: 0 }, idsDeTest),
+      withBourseMoney({ ...b, careerLevel: 4, dead: true }, { gold: 0, silver: 5, brass: 0 }, idsDeTest),
     ];
     const interlude = { ...seam.interlude, perHero: {
       [a.id]: { ...seam.interlude.perHero[a.id], didRevenus: true, revenueBrass: 120 },
@@ -512,9 +513,9 @@ describe('InterludeScreen — Revenus bloqués par l’Événement : entrée et 
 
   /** Un Larron (roublard, Voleur N2) et un Vétéran (guerrier) dont l'Événement est « Répression du crime » (d100 20). */
   function apresLaRepression(): InterludeSeam {
-    const larron = createHero({ speciesId: 'humains-reiklander', careerId: 'voleur', label: 'Larron', seed: 1701 });
+    const larron = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'voleur', label: 'Larron', seed: 1701 });
     larron.careerLevel = 2; // Voleur N2 : Bronze 3
-    const veteran = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
+    const veteran = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
     useGame.setState({ party: [larron, veteran], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [] });
     useGame.getState().lancerLaScene(testScene());
     vi.clearAllTimers();
@@ -819,7 +820,7 @@ describe('InterludeScreen — la porte de chaque volet dédié est celle du gest
   const CARRIERES = (careers as { id: string }[]).map((c) => c.id);
   /** Variantes : 0 valide, 1 Inconscient (LDB 16 l.113 : il ne peut tenter aucun Test). */
   it.each(CARRIERES.flatMap((c) => [0, 1].map((n) => [c, n] as const)))('%s, variante %s : Revenus, ouvrage en cours, Apprentissage', (careerId, n) => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId, label: careerId, seed: 3000 + CARRIERES.indexOf(careerId) });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId, label: careerId, seed: 3000 + CARRIERES.indexOf(careerId) });
     h.xp = 2000;
     if (n === 1) h.conditions = [{ id: 'inconscient', value: 1 }];
     const seam = buildSeam(3, [h]);

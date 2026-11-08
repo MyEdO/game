@@ -8,6 +8,7 @@
  *    `extendedTest` avec son DR cumulé) ; un flux sans jet n'annonce rien ;
  *  · une CONVERSATION naît avec sa `session`, monotone et au-dessus de ce qui est déjà archivé.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { reponsesDuNoeud, testAnnonce, ouvrirDialogue } from './dialogue';
 import { conditionCtx } from '../engine/flowCore';
@@ -23,7 +24,7 @@ const cc = conditionCtx({ flags: {}, gameTime: campaignStart() });
 
 /** Héros porteur d'une bourse — la solvabilité d'une réponse payante se lit sur le GROUPE. */
 const hero = (brass: number): Combatant =>
-  withBourseMoney({ id: 'h1', name: 'Hero', kind: 'hero', chars: {}, items: [] } as unknown as Combatant, { gold: 0, silver: 0, brass });
+  withBourseMoney({ id: 'h1', name: 'Hero', kind: 'hero', chars: {}, items: [] } as unknown as Combatant, { gold: 0, silver: 0, brass }, idsDeTest);
 
 const noeud = (choices: DialogueNode['choices']): Dialogue => ({ id: 'd', start: 'n1', nodes: [{ id: 'n1', desc: '…', choices }] } as Dialogue);
 

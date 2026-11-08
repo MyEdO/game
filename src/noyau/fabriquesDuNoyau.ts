@@ -42,6 +42,7 @@ import { cloturesDuLotDEtal } from './etalLotFlow';
 import { choixDeCorruption, cloturesDeCorruption, reglagesDeCorruption } from './corruptionFlow';
 import { creerActionsDuJournal } from './journal';
 import { creerActionsDAvanceeDHorloge, creerActionsDHorloge } from './horloge';
+import { creerFabriqueDIds } from './idsDuMonde';
 import { creerActionsDuVoyage, sortiesDuVoyage, validationsDuVoyage } from './travelFlow';
 import { creerActionsDuLieu, sortiesDuLieu } from './lieuFlow';
 import { creerActionsDesPostesDeVoyage } from './travelPostes';
@@ -78,7 +79,7 @@ type NomDeVerbe = NomPronominal<ActionDuLexique>
 /** Les actions propres à la machinerie (#3605) : une écriture du noyau se nomme dans le lexique des verbes ou par l'une
  *  d'elles, chacune l'action d'un membre de `MachinerieDuNoyau`. Un verbe ne les prend pas. */
 type ActionDeLaMachinerie = ActionDuLexique | 'accorder' | 'ajouter' | 'amorcer' | 'apprendre' | 'charger' | 'declencher'
-  | 'denouer' | 'enfoncer' | 'ensemencer' | 'frapper' | 'interagir' | 'offrir' | 'orienter' | 'reposer' | 'sauter' | 'tirer'
+  | 'denouer' | 'enfoncer' | 'ensemencer' | 'forger' | 'frapper' | 'interagir' | 'offrir' | 'orienter' | 'reposer' | 'sauter' | 'tirer'
   | 'virer';
 
 /** Un nom formé sur les actions `A` : `<action>` ou `<action><Complément>`. */
@@ -220,6 +221,7 @@ export function creerActionsDuNoyau(get: Get<JeuDuNoyau>, set: SetDesClesReserve
     ...creerActionsDesTestsDeScene(get, set),
     ...creerActionsDuJournal(get, set),
     ...creerActionsDAvanceeDHorloge(get, set),
+    ...creerFabriqueDIds(get, set),
     ...creerActionsDHorloge(get, set),
     ...creerActionsDuVoyage(get, set),
     ...creerActionsDuLieu(get, set),

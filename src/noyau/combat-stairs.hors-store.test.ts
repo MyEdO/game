@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene, type Scene } from './monde/scene';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
@@ -36,7 +37,7 @@ describe('combat multi-couche — rampe : portée/aperçu/clic z-aware', () => {
 
   // Démarre un combat sur testScene() puis SUBSTITUE la scène à rampe et place le héros actif.
   function setup(heroPos: { x: number; y: number; z?: number }) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, expect, it } from 'vitest';
 import { Vector3 } from 'three';
 import { stage3dFramingFor, viewBoxScreen } from './stage3dCamera';
@@ -7,7 +8,7 @@ import { stageSize, tileCenter, type Dims, type Rot } from '../../geometry/iso';
 import { metricToLift } from '../../noyau/monde/relief';
 import { sceneMetresPerTile } from '../../noyau/monde/scene';
 import { scenario } from '../../scenes/test-scenarios/zones-pieces';
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /**
  * CADRE GÉNÉRALISÉ (#1176, P3-3) — la SECONDE convention d'écran du dépôt : le VIEWBOX MOBILE de

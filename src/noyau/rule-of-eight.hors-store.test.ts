@@ -3,6 +3,7 @@
  * Corruption (flag de scène/campagne `corruption`), un Test de Langue (Magick) dont le dé des unités
  * vaut 8 déclenche une Incantation Imparfaite Mineure, même si le Sort réussit par ailleurs.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineEtLit } from './cascade.testkit';
@@ -27,21 +28,21 @@ describe('Règle du 8 — câblage store (LDB 46 l.89)', () => {
   beforeEach(() => { banc.getState().ensemencerLeTirage(7); });
 
   it('dé des unités = 8 près d’une Corruption → Incantation Imparfaite', () => {
-    const mage = pregen(PREGEN.sorcier);
+    const mage = pregen(idsDeTest, PREGEN.sorcier);
     banc.setState({ party: [mage] });
     castFrozen(mage.id, 'flechette', 38, true); // réussite, unités 8, lieu corrompu
     expect(draineEtLit(banc.getState).join('\n')).toMatch(/Imparfaite/);
   });
 
   it('même dé, mais AUCUNE Corruption à proximité → pas d’Imparfaite', () => {
-    const mage = pregen(PREGEN.sorcier);
+    const mage = pregen(idsDeTest, PREGEN.sorcier);
     banc.setState({ party: [mage] });
     castFrozen(mage.id, 'flechette', 38, false);
     expect(draineEtLit(banc.getState).join('\n')).not.toMatch(/Imparfaite/);
   });
 
   it('Corruption à proximité mais dé des unités ≠ 8 → pas d’Imparfaite', () => {
-    const mage = pregen(PREGEN.sorcier);
+    const mage = pregen(idsDeTest, PREGEN.sorcier);
     banc.setState({ party: [mage] });
     castFrozen(mage.id, 'flechette', 37, true);
     expect(draineEtLit(banc.getState).join('\n')).not.toMatch(/Imparfaite/);

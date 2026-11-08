@@ -3,6 +3,7 @@
  *  - `applyCriticalToTarget` l'APPEND à chaque résolution (le point unique d'application) ;
  *  - il PERSISTE par la save (`snapshotSave` → `chargerLaSave`) : il arme l'escalade `onRepeat`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { applyCriticalToTarget } from './combatFlow';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -46,7 +47,7 @@ describe('#194 — applyCriticalToTarget appende l\'entrée subie à critEntries
 
 describe('#194 — persistance save/load de l\'historique de critiques', () => {
   beforeEach(() => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sourd', seed: 4 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sourd', seed: 4 });
     banc.setState({ party: [hero], battle: null });
     banc.getState().lancerLaScene(testScene());
   });

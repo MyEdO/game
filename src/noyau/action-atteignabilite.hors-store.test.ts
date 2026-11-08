@@ -3,6 +3,7 @@
  * de code déclaré à `actions.json` se résout, tout mode de ciblage a son action porteuse, `BattleState.action` se type
  * depuis le registre) et les sorties d'interlude, chacune par SON dispatcher.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -116,7 +117,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('sorties d’interlude — le dispatcher mutualisé est inexprimable (témoin mesuré)', () => {
   /** Combat minimal réel : un héros ACTIF, une scène, le mode de bordée armé. */
   function combatArme(over: Partial<BattleState> = {}) {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
     h.id = 'h1';
     h.pos = { x: 5, y: 5 };
     banc.setState({

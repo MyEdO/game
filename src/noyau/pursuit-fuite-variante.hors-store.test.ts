@@ -5,6 +5,7 @@
  * d'autant à la clôture de la manche. La preuve se mesure sur le chemin RÉEL (la clôture de manche du
  * socle de séquence, `closeSequenceRound`, le même que le jeu emprunte), à jets FIGÉS des deux côtés : seule la règle optionnelle change.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -23,7 +24,7 @@ const RULE = 'combat-aa-avantage-groupe';
 
 /** Un héros unique, porteur (ou non) de Fuite !, de Mouvement fixé à 4 comme l'adversaire. */
 function hero(withTalent: boolean): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
   h.movement = 4;
   h.talents = withTalent ? [{ talentId: 'fuite', times: 1 }] : [];
   h.items = [];

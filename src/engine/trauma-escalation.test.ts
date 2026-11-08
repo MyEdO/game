@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { receiveMedicalAid, tickTraumaEscalation, tickTraumaRecovery, stampCriticalEscalation,
   recoverableTraumas, hasRecoverableTrauma, hasLimbAwaitingAid, recoverDisabledLimb, cannotWieldTwoHanded,
@@ -47,10 +48,10 @@ describe('#166/#167 — Aide Médicale reçue (LDB 18 l.307-312) : flag partagé
   it('les formes op (sort/prière = heal ; bandage/cataplasme = aideMedicale) lèvent le flag via applyOps', () => {
     const gate = (): Trauma => plaie('brasD', { awaitingMedicalAid: true, perRound: FINGER_PER_ROUND });
     const cHeal = C({ wounds: blessuresDeBase(10, 3), traumas: [gate()] });
-    applyOps(cHeal, [{ op: 'heal', amount: 2 }], { rng: desDuTest });
+    applyOps(cHeal, [{ op: 'heal', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest });
     expect(cHeal.traumas!.every((t) => !t.awaitingMedicalAid)).toBe(true);
     const cBandage = C({ traumas: [gate()] });
-    applyOps(cBandage, [{ op: 'aideMedicale' }], { rng: desDuTest });
+    applyOps(cBandage, [{ op: 'aideMedicale' }], { idNeuf: idsDeTest, rng: desDuTest });
     expect(cBandage.traumas!.every((t) => !t.awaitingMedicalAid)).toBe(true);
   });
 });

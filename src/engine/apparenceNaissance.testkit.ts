@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { apparences } from '../data';
 import { setDataset } from '../data/overrides';
 import { createHero } from './character';
@@ -21,5 +22,5 @@ export function restaurerApparencesDeNaissance(): void {
 }
 
 export function herosDeNaissance(speciesId = 'nains', careerId = 'soldat') {
-  return createHero({ speciesId, careerId, label: 'Porteur de naissance', seed: 3 });
+  return createHero({ idNeuf: idsDeTest, speciesId, careerId, label: 'Porteur de naissance', seed: 3 });
 }

@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
 import { advantageCap, advantageCapFor, gainAdvantage, avantageApresPerte } from './advantage';
 import { setRule, resetRule } from './policy';
@@ -56,31 +57,31 @@ describe('Plafond d’Avantage = Bonus d’Initiative (LDB 14 l.197, règle opti
 /** Les verbes d'Avantage du vocabulaire d'ops (`engine/ops.ts`), joués SANS couche state (aucun hook). */
 describe('ops d’Avantage — gain additif, complétion, perte totale', () => {
   afterEach(() => resetRule('combat-advantage-cap'));
-  const heros = () => { const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Lutteur', seed: 1 }); h.advantage = 0; return h; };
+  const heros = () => { const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Lutteur', seed: 1 }); h.advantage = 0; return h; };
 
   it('`gainAdvantage` S’ADDITIONNE (NADJ 16 l.34, LDB 14 l.204-209) et s’arrête au plafond (l.198)', () => {
     setRule('combat-advantage-cap', 3);
     const h = heros();
-    for (let i = 0; i < 2; i++) applyOps(h, [{ op: 'gainAdvantage', amount: 1 }], { rng: desDuTest, caster: h });
+    for (let i = 0; i < 2; i++) applyOps(h, [{ op: 'gainAdvantage', amount: 1 }], { idNeuf: idsDeTest, rng: desDuTest, caster: h });
     expect(h.advantage).toBe(2);
-    applyOps(h, [{ op: 'gainAdvantage', amount: 5 }], { rng: desDuTest, caster: h });
+    applyOps(h, [{ op: 'gainAdvantage', amount: 5 }], { idNeuf: idsDeTest, rng: desDuTest, caster: h });
     expect(h.advantage).toBe(3);
   });
 
   it('`topUpAdvantage` COMPLÈTE jusqu’à `amount`, sans jamais retirer (MDG 16 l.11)', () => {
     const h = heros();
-    applyOps(h, [{ op: 'topUpAdvantage', amount: 2 }], { rng: desDuTest, caster: h });
-    applyOps(h, [{ op: 'topUpAdvantage', amount: 2 }], { rng: desDuTest, caster: h });
+    applyOps(h, [{ op: 'topUpAdvantage', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest, caster: h });
+    applyOps(h, [{ op: 'topUpAdvantage', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest, caster: h });
     expect(h.advantage).toBe(2);
     h.advantage = 4;
-    applyOps(h, [{ op: 'topUpAdvantage', amount: 2 }], { rng: desDuTest, caster: h });
+    applyOps(h, [{ op: 'topUpAdvantage', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest, caster: h });
     expect(h.advantage).toBe(4);
   });
 
   it('`spendAdvantage` sans `amount` fait perdre TOUS les Avantages (LDB 14 l.219)', () => {
     const h = heros();
     h.advantage = 4;
-    applyOps(h, [{ op: 'spendAdvantage' }], { rng: desDuTest, caster: h });
+    applyOps(h, [{ op: 'spendAdvantage' }], { idNeuf: idsDeTest, rng: desDuTest, caster: h });
     expect(h.advantage).toBe(0);
   });
 });

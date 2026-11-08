@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { recruterLEquipage, renvoyerLEquipage } from './portFlow';
 import { weeklyCrewWageBrass } from '../engine/crewMorale';
@@ -15,7 +16,7 @@ import { initialNet } from './etat';
  * l'entretien hebdomadaire) — la bourse ne bouge donc jamais ici ; seule la solde hebdomadaire recalcule.
  */
 function mkStore(vessel: CampaignVessel | null) {
-  const hero = ensureBourse({ id: 'h1', label: 'h1', items: [] } as unknown as Combatant);
+  const hero = ensureBourse({ id: 'h1', label: 'h1', items: [] } as unknown as Combatant, idsDeTest);
   bourseInstanceOf(hero)!.money = fromBrass(100000);
   let state = { vessel, party: [hero], journal: [] as string[], net: initialNet() };
   const log = (msg: string | string[]) => {

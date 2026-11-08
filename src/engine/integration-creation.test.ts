@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { createHero } from './character';
 import { makeRNG } from './dice';
@@ -17,7 +18,7 @@ import { emplacementsDeDotation } from './trappingChoices';
  */
 describe('création ↔ Magie (grimoire, LDB 10/41/46)', () => {
   it('un Prêtre créé (Béni) reçoit AUTOMATIQUEMENT les six Bénédictions de son culte (LDB 41)', () => {
-    const h = createHero({
+    const h = createHero({ idNeuf: idsDeTest,
       speciesId: 'humains-reiklander', careerId: 'pretre', label: 'P', seed: 7,
       careerTalent: { id: 'beni', spec: 'sigmar' },
     });
@@ -26,7 +27,7 @@ describe('création ↔ Magie (grimoire, LDB 10/41/46)', () => {
   });
 
   it('un Sorcier créé (Magie mineure) peut mémoriser des sorts via le grimoire (coûts par bandes)', () => {
-    const h = createHero({
+    const h = createHero({ idNeuf: idsDeTest,
       speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'S', seed: 7,
       careerTalent: { id: 'magie-mineure' }, // le talent de carrière choisi (1 seul au Niveau 1)
     });
@@ -41,7 +42,7 @@ describe('création ↔ Magie (grimoire, LDB 10/41/46)', () => {
 
 describe('création ↔ règles 2.5 (registre combatFeatures, LDB 10)', () => {
   it('un Ratier créé (Coup puissant, Frappe assommante) résout dans le registre des talents câblés', () => {
-    const h = createHero({
+    const h = createHero({ idNeuf: idsDeTest,
       speciesId: 'humains-reiklander', careerId: 'ratier', label: 'R', seed: 7,
       careerTalent: { id: 'coup-puissant' },
     });
@@ -53,7 +54,7 @@ describe('création ↔ règles 2.5 (registre combatFeatures, LDB 10)', () => {
 describe('création ↔ Voyage & Nourriture (#T2, LDB 18 l.337-343)', () => {
   it('les Rations des trappings de classe sont vues par le système de faim et consommées', () => {
     // Classe « Ruraux » (Villageois…) : « Rations (1 jour) » dans les trappings de classe.
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'villageois', label: 'V', seed: 7 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'villageois', label: 'V', seed: 7 });
     const before = rationCount(h);
     expect(before).toBeGreaterThan(0); // le créateur produit des objets compatibles isRation
     const r = dailyFoodUpkeep(h, 50, bonus(h.characteristics.endurance), makeRNG(1));
@@ -71,7 +72,7 @@ describe('création ↔ Voyage & Nourriture (#T2, LDB 18 l.337-343)', () => {
  * ref forgée : c'est entre la ref résolue et l'objet de sac que la spécialisation se perdait.
  */
 describe('création ↔ dotation spécialisée (LDB 08 l.1130)', () => {
-  const ecuyer = () => createHero({ speciesId: 'humains-reiklander', careerId: 'chevalier', label: 'E', seed: 7 });
+  const ecuyer = () => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'chevalier', label: 'E', seed: 7 });
 
   it('l’Écuyer sort du créateur avec la spéc PORTÉE PAR L’OBJET, et l’affiche', () => {
     const outils = (ecuyer().items ?? []).find((i) => i.trappingId === 'outils-professionnels');
@@ -101,7 +102,7 @@ describe('création ↔ dotation spécialisée (LDB 08 l.1130)', () => {
 describe('création ↔ dotation à branches non tranchée', () => {
   const BRANCHES = ['pinceau', 'ciseau', 'plume-d-oie'];
   const artiste = (trappingChoices?: Parameters<typeof createHero>[0]['trappingChoices']) =>
-    createHero({ speciesId: 'humains-reiklander', careerId: 'artiste', label: 'A', seed: 7, trappingChoices });
+    createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'artiste', label: 'A', seed: 7, trappingChoices });
   const adresse = () =>
     emplacementsDeDotation('artiste', 1).find((e) => e.sorte === 'branches' && e.ref.choice.some((b) => 'id' in b && b.id === 'pinceau'))!.adresse;
 

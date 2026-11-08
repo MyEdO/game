@@ -2,6 +2,7 @@
  * Le gabarit de ZdE peint le verdict du noyau (`noyau/combatFlow.ts:zoneSousLeCurseur`, #3059) : teinte de la pose
  * valide ou invalide, bloc de (2r+1)² cases au rayon rendu.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it } from 'vitest';
 import { useGame } from '../../state/store';
@@ -25,7 +26,7 @@ afterEach(() => useGame.setState({ battle: vierge.battle, scene: vierge.scene, m
 
 /** Un servant en (2,0) arme un pilonnage de rayon 1, sans cap de portée ; rend le gabarit peint sous `hover`. */
 function peindre(hover: { x: number; y: number }): string {
-  const w = pregen(PREGEN.sorcier);
+  const w = pregen(idsDeTest, PREGEN.sorcier);
   w.pos = { x: 2, y: 0 };
   const battle = { combatants: [w], order: [w.id], baseOrder: [w.id], turn: 0, round: 1, action: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as unknown as BattleState;
   const pendingSiegeAim = { gunnerId: w.id, weaponUid: 'canon', radius: 1, rangeTiles: null };

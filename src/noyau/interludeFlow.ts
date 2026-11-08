@@ -16,7 +16,7 @@ import { freeCons, type RollLineParts } from './rollSeam';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { fromBrass, toBrass, formatMoney, priceToMoney, PA_PER_SC } from '../engine/money';
 import { payWithAllocation, soloPayer, creditBourse, debitBourse, refusDeBourse } from './bourseFlow';
-import { contexteDeNaissanceDObjet, itemFromTrappingRef, itemFromTrappingById, recomputeLoadout, autoStowNewItem, newUid } from '../engine/items';
+import { contexteDeNaissanceDObjet, itemFromTrappingRef, itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
 import type { IdDeDepot } from './designations';
 import { sleepParty } from './restFlow';
 import { purgeAdventureEffects } from './upkeep';
@@ -198,7 +198,7 @@ export function ouvrirLInterlude(get: Get, set: Set, weeks = 1): void {
   // les commandes du cycle précédent sont livrées à l'ouverture de CET interlude.
   for (const o of get().pendingOrders ?? []) {
     const hero = party.find((h) => h.id === o.heroId);
-    const it = hero ? itemFromTrappingById(o.trappingId, undefined, contexteDeNaissanceDObjet(hero)) : null;
+    const it = hero ? itemFromTrappingById(o.trappingId, get().forgerUnId, undefined, contexteDeNaissanceDObjet(hero)) : null;
     if (hero && it) {
       hero.items = [...(hero.items ?? []), it];
       autoStowNewItem(hero, it); // #204 : rangement par défaut
@@ -616,7 +616,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       if (!h.craft) return { lines: [] };
       const { total: drDone, done } = garanti(progresDActivite(pa), h.id, 'cible d’Artisanat');
       if (done) {
-        const it = itemFromTrappingRef({ id: h.craft.trappingId, qualities: [...h.craft.atouts, ...h.craft.defauts].map((id) => ({ id })) }, undefined, contexteDeNaissanceDObjet(h));
+        const it = itemFromTrappingRef({ id: h.craft.trappingId, qualities: [...h.craft.atouts, ...h.craft.defauts].map((id) => ({ id })) }, get().forgerUnId, undefined, contexteDeNaissanceDObjet(h));
         if (it) {
           h.items = [...(h.items ?? []), it];
           autoStowNewItem(h, it); // #204 : rangement par défaut
@@ -784,7 +784,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       if (!pa.chosenSkill) return { lines: [] };
       const skillLabel = refLabel('skills', pa.chosenSkill);
       if (!pa.success) return { lines: [msg('if.combatTrainingKo', { name: h.label, skill: skillLabel })] };
-      return { lines: applyOps(h, [{ op: 'grantReverseToken', skill: pa.chosenSkill }], { rng: battleRng(), label: pa.label, source: activitySource(pa) }) };
+      return { lines: applyOps(h, [{ op: 'grantReverseToken', skill: pa.chosenSkill }], { idNeuf: get().forgerUnId, rng: battleRng(), label: pa.label, source: activitySource(pa) }) };
     }
     case 'punchausen': {
       // Fabuleuse Vente du comte de Punchausen (AA 12 l.45-49) : « vous recevez 2d10 pistoles et […]
@@ -794,7 +794,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       const pistoles = roll(2, 10, battleRng());
       const gain = fromBrass(pistoles * PA_PER_SC);
       // Jeton posé AVANT le crédit : `creditBourse` clone le groupe et capte la mutation de `h`.
-      const tokenLines = applyOps(h, [{ op: 'grantReverseToken', skill: pa.chosenSkill }], { rng: battleRng(), label: pa.label, source: activitySource(pa) });
+      const tokenLines = applyOps(h, [{ op: 'grantReverseToken', skill: pa.chosenSkill }], { idNeuf: get().forgerUnId, rng: battleRng(), label: pa.label, source: activitySource(pa) });
       creditBourse(get, set, h.id, gain); // revenu PERSO (vente du récit DE ce héros), pas partagé par tête
       return { lines: [msg('if.punchausenOk', { name: h.label, money: formatMoney(gain) }), ...tokenLines] };
     }
@@ -1014,7 +1014,7 @@ function appliquerLActivite(get: Get, set: Set): void {
       const immediate = (band.ops ?? []).filter((o) => o.op !== 'condition');
       closeOps.push(...(band.ops ?? []).filter((o) => o.op === 'condition'));
       if (immediate.length) {
-        lines.push(...applyOps(h, immediate, {
+        lines.push(...applyOps(h, immediate, { idNeuf: get().forgerUnId,
           rng: battleRng(), label: def.label, now: get().gameTime, source, sl: pa.sl,
           onCorruption: (n: number, align?: ChaosAlign) => gainCorruption(get, set, h, n, align),
           onCorruptionExposure: (level: ExposureLevel, nature?: NatureDInfluence) => {
@@ -1044,7 +1044,7 @@ function appliquerLActivite(get: Get, set: Set): void {
   itl.perHero[pa.heroId] = {
     ...st,
     left: st.left - 1,
-    ...(closeOps.length ? { closeOps: [...(st.closeOps ?? []), { ops: closeOps, ctx: gelerOpsCtx({ rng: battleRng(), label: def.label, source, sl: pa.sl }) }] } : {}),
+    ...(closeOps.length ? { closeOps: [...(st.closeOps ?? []), { ops: closeOps, ctx: gelerOpsCtx({ idNeuf: get().forgerUnId, rng: battleRng(), label: def.label, source, sl: pa.sl }) }] } : {}),
     ...patch,
   };
   set({ interlude: { ...itl }, party: [...get().party] });
@@ -1077,7 +1077,7 @@ export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' |
   for (const { label, fx } of effetsDeLaPeriode(get(), heroId)) if (fx.bankPct) lines.push(msg('if.eventBankPct', { pct: fx.bankPct, event: label }));
   const r = kind === 'invest' ? indice ?? d10(battleRng()) : 0;
   payWithAllocation(get, set, { debits: soloPayer(heroId, fromBrass(amount)), recipient: heroId, purpose: 'dépôt-banque' });
-  const uid = newUid();
+  const uid = get().forgerUnId('it');
   set({ bank: [...(get().bank ?? []), { uid, heroId, kind, brass: deposited, rate: r }] });
   const itl = get().interlude!;
   itl.perHero[heroId] = { ...st, left: st.left - 1 };
@@ -1178,7 +1178,7 @@ function cloreLInterlude(get: Get, set: Set): void {
     for (const { heroId, lots } of devis.lots) {
       const h = get().party.find((x) => x.id === heroId);
       if (!h) continue;
-      for (const lot of lots) after.push(...applyOps(h, lot.ops, { ...lot.ctx, rng: battleRng(), now: get().gameTime }));
+      for (const lot of lots) after.push(...applyOps(h, lot.ops, { idNeuf: get().forgerUnId, ...lot.ctx, rng: battleRng(), now: get().gameTime }));
     }
     set({ party: [...get().party] });
     for (const l of after) get().ecrireAuJournal(l);

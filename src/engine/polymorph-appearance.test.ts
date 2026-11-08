@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { applyOps, type OpsCtx } from './ops';
 import { liveMorphRef } from './polymorph';
@@ -19,7 +20,7 @@ function combatant(over: Partial<Combatant> = {}): Combatant {
 describe('#17 polymorph → apparence', () => {
   it('pose un morphRef temporisé sur la durée du sort', () => {
     const c = combatant();
-    applyOps(c, [{ op: 'polymorph', ref: 'loup-blanc' }], { caster: c, defaultDurationRounds: 6 } as OpsCtx);
+    applyOps(c, [{ op: 'polymorph', ref: 'loup-blanc' }], { idNeuf: idsDeTest, caster: c, defaultDurationRounds: 6 } as OpsCtx);
     expect(liveMorphRef(c)).toBe('loup-blanc');
     expect(c.activeEffects!.some((e) => e.morphRef === 'loup-blanc' && e.duration.scale === 'rounds')).toBe(true);
   });

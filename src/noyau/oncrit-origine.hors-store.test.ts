@@ -2,6 +2,7 @@
  * `onCrit` à chaque Blessure critique non létale, avec son origine ; le filtre `coupCritique` réserve un
  * effet au Coup Critique (`estUnCoupCritique`). LDB 62 l.248-250 ; AA 08 l.87 ; #1595 C6.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -18,7 +19,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Un arc qui porte Taillade (toute Blessure critique) et Empaleuse (le seul Coup Critique). */
 function arcTailladeEmpaleuse(): Weapon {
-  const arc = weaponFromItem(itemFromTrappingById('arc')!);
+  const arc = weaponFromItem(itemFromTrappingById('arc', idsDeTest)!);
   return { ...arc, qualities: [...(arc.qualities ?? []), { id: 'taillade', value: 1 }, { id: 'empaleuse' }] };
 }
 
@@ -31,7 +32,7 @@ describe('onCrit : chaque Blessure critique non létale, le filtre coupCritique 
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -82,7 +83,7 @@ describe('onCrit : chaque Blessure critique non létale, le filtre coupCritique 
   });
 
   it('Poings d’ignominie : maladie au seul Coup Critique, rien au dépassement (VDM 12 l.910, l.916)', () => {
-    const poings = () => weaponFromItem(itemFromTrappingById('poings-d-ignominie')!);
+    const poings = () => weaponFromItem(itemFromTrappingById('poings-d-ignominie', idsDeTest)!);
     let { H, E } = setup(); E.pos = { x: 11, y: 10 }; E.wounds.current = 2;
     applyAttackResult(banc.getState, banc.setState, H, E, poings(), touche({ woundsLost: 3 }));
     draineCascade(banc.getState);

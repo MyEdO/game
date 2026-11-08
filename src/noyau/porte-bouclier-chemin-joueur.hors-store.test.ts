@@ -2,6 +2,7 @@
  * Porte-bouclier au chemin JOUEUR (AA 13 l.84 ; LDB 13 l.151) : popin de Défense, parade au Bouclier
  * déclarée, « Dégâts » déclarés, Défense gagnée par le jet nu, le dé fixé ou le forçage. #1093.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { itemFromTrappingById, weaponFromItem } from '../engine/items';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -18,7 +19,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const chars = { 'capacite-de-combat': 50, 'capacite-de-tir': 30, force: 45, endurance: 40, initiative: 40, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-const SHIELD: Weapon = { ...weaponFromItem(itemFromTrappingById('bouclier')!), name: 'Bouclier', label: 'Bouclier', uid: 'sh1', trappingId: 'bouclier', type: 'melee', damage: { plusBF: true, flat: 2, bare: false }, qualities: [] } as never;
+const SHIELD: Weapon = { ...weaponFromItem(itemFromTrappingById('bouclier', idsDeTest)!), name: 'Bouclier', label: 'Bouclier', uid: 'sh1', trappingId: 'bouclier', type: 'melee', damage: { plusBF: true, flat: 2, bare: false }, qualities: [] } as never;
 const SWORD: Weapon = { name: 'Épée', label: 'Épée', uid: 'sw1', type: 'melee', damage: { plusBF: true, flat: 4, bare: false }, qualities: [] } as never;
 const ARM0 = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
 const PB_ORQUE = 20;

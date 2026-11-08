@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { resumeSuspendedAI } from './combatFlow';
@@ -15,7 +16,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 function setupBattle(nHeroes: number) {
   const party = Array.from({ length: nHeroes }, (_, i) =>
-    createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }));
+    createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }));
   banc.setState({ party });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');

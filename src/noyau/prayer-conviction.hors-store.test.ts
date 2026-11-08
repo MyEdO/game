@@ -2,6 +2,7 @@
  * « Prêchez, ma sœur ! » (LDB 40 l.40-42) — câblage cast : une Prière murmurée (`discreet`) subit une
  * Difficulté d'un cran plus dure quand l'option `prayer-conviction` est active.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { pregen, PREGEN } from '../data/pregens';
@@ -12,7 +13,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function priest(): Combatant {
-  const p = pregen(PREGEN.pretre);
+  const p = pregen(idsDeTest, PREGEN.pretre);
   const sk = p.skills.find((s) => s.id === 'priere');
   if (sk) sk.advances = Math.max(sk.advances, 5);
   else p.skills.push({ id: 'priere', characteristic: 'sociabilite', advances: 5 } as never);

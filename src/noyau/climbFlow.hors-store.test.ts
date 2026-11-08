@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene, type Scene, type WallClimb } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -35,7 +36,7 @@ const top = { x: 2, y: 0 };
 
 describe('franchirLArete, escalade — aucun grimpeur (#1906)', () => {
   it('seul héros à 0 PB, conscient : refus NOMMÉ au journal, le groupe ne bouge pas, rien ne lève', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.wounds.current = 0;
     for (const climb of [{ kind: 'surface', requiresGrimpeur: true }, { kind: 'ladder' }] as WallClimb[]) {
       banc.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: foot, scene: cliffScene(climb), journal: [] });
@@ -48,7 +49,7 @@ describe('franchirLArete, escalade — aucun grimpeur (#1906)', () => {
 
 describe('franchirLArete, escalade — exploration', () => {
   beforeEach(() => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: foot, scene: cliffScene({ kind: 'ladder' }) });
   });
 
@@ -82,7 +83,7 @@ describe('franchirLArete, escalade — combat', () => {
   });
 
   function setup(climb: WallClimb, atPos = foot) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

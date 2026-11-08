@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { openCastCascade } from './combatFlow'; // effet de bord : installe l'applier `triggeredTest` + le routeur de Test
@@ -24,9 +25,9 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
   /** Groupe : un sorcier (lanceur) + un second héros (cible « manuelle » du Test). Combat sur la scène
    *  de test (rencontre `enc-mutants`) → un ennemi disponible comme cible « inline ». */
   function setup() {
-    const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
+    const wiz = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
     wiz.spells = ['chute', ...(wiz.spells ?? [])];
-    const ally = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 13 });
+    const ally = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 13 });
     banc.setState({ party: [wiz, ally] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

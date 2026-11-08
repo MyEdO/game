@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { scenario } from './embuscade';
 import { layerTiles } from '../../noyau/monde/scene';
@@ -5,7 +6,7 @@ import { findTrappingById } from '../../data/index';
 import { weaponFromTrait } from '../../engine/creatureEquip';
 import { traitsDuPorteur } from '../../engine/statEntry';
 import { porteurDuProfil } from '../../noyau/monde/spawn';
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /**
  * Verrouille la Scene PRODUITE par `buildScene` dans `embuscade.ts` : dimensions, terrain case-à-case

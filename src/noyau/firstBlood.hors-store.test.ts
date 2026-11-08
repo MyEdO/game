@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
@@ -20,7 +21,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 
 function setup(scene: Scene = testScene()) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], battle: null });
   banc.getState().lancerLaScene(scene);
   banc.getState().lancerLeCombat('enc-mutants');

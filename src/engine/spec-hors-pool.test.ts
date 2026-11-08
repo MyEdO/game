@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { byId, specPoolOf, specCatalogOf, specLabel } from '../data';
 import { specAuCatalogue } from '../data/schemas/grammaire/ref';
@@ -50,7 +51,7 @@ describe('#1342 L3 — spécialisation hors pool : valide partout, jamais propos
   });
 
   it('un héros créé sur « Savoir (Local) » stocke l\'id de la spécialisation', () => {
-    const h = createHero({
+    const h = createHero({ idNeuf: idsDeTest,
       speciesId: 'humains-reiklander', careerId: 'erudit', label: 'É', seed: 7,
       specChoices: { [adresseDeCreation.carriereCompetence(7)]: HORS_POOL.specId }, // erudit : « Savoir (Au choix) »
     });

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { expect, it, vi } from 'vitest';
 import { makePregens } from '../data/pregens';
 import { deDeLaTable, setDeDeTable } from '../data/overrides';
@@ -10,9 +11,9 @@ it('le chemin de combat tire le dé de structure authoré', () => {
   setDeDeTable('structureCriticals', 'd6');
   try {
     const banc = ouvrirLeBanc();
-    const target = { ...makePregens()[0], kind: 'enemy' as const, id: 'mur' };
+    const target = { ...makePregens(idsDeTest)[0], kind: 'enemy' as const, id: 'mur' };
     const int = vi.spyOn(battleRng(), 'int').mockReturnValue(3);
-    applyStructureCriticalToTarget(banc.setState, target, {}, []);
+    applyStructureCriticalToTarget(idsDeTest, banc.setState, target, {}, []);
     expect(int).toHaveBeenCalledExactlyOnceWith(1, 6);
   } finally {
     setDeDeTable('structureCriticals', imprime);

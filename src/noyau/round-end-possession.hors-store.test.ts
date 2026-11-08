@@ -16,6 +16,7 @@
  * invisible. Chaque cas vérifie l'EXCLUSIVITÉ : rien n'a été résolu inline ET l'étape existe (ni perdu, ni
  * doublé).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
@@ -43,7 +44,7 @@ const g = () => banc.getState();
 
 /** Monte un combat réel, puis pose les sièges : HÔTE au siège 0, le héros appartient au siège 1 (invité). */
 function setupCoop(withTalent = false): Combatant {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   if (withTalent) hero.talents = [...hero.talents, { talentId: 'controle-de-la-frenesie', times: 1 }];
   banc.setState({ party: [hero] });
   g().lancerLaScene(testScene());

@@ -5,6 +5,7 @@
  * attribut de la cuisson n'est ré-écrit, l'index seul l'est), PARITÉ de rendu avec le bake filtré
  * qu'il remplace, idempotence, et accents de sol emportés par la nappe qui les porte.
  */
+import { idsDeTest } from '../../../engine/idsDeTest.testkit';
 import { describe, expect, it } from 'vitest';
 import type * as THREE from 'three';
 import {
@@ -25,7 +26,7 @@ import type { SceneEl } from '../../builders/types';
 import { scenario as arene } from '../../../scenes/test-scenarios/arene';
 import { buildVitrineScene } from '../../../scenes/vitrine-batiments';
 import { sceneMetresPerTile, type Scene } from '../../../noyau/monde/scene';
-const areneConstruit = arene.construire();
+const areneConstruit = arene.construire(idsDeTest);
 
 const scene = areneConstruit.scene;
 const mpt = sceneMetresPerTile(scene);

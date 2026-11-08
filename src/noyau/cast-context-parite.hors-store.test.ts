@@ -5,6 +5,7 @@
  * (Ghyran, LDB 48 l.690). Avant ce lot, le bonus d'environnement n'était appliqué QU'À LA RELANCE :
  * relancer un Sort de Vie en zone rurale changeait la cible sous le joueur.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -22,7 +23,7 @@ const SPELL = 'ecorce'; // Domaine Vie (Ghyran), NI 3, portée Contact
 
 describe('Incantation — le contexte est le MÊME au premier jet et à la relance', () => {
   function setup() {
-    const mage = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'M', seed: 3 });
+    const mage = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'M', seed: 3 });
     banc.setState({ party: [mage] });
     banc.getState().lancerLaScene({ ...testScene(), environment: 'rural' } as never);
     banc.getState().lancerLeCombat('enc-mutants');

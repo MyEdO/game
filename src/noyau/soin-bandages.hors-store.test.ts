@@ -4,6 +4,7 @@
  * LDB 10 l.19, l.897-899 ; LDB 23 l.209. Valeurs de lacune (orchestrateur, 2026-11-03) : une unité s'use, la Dextérité
  * retire 1 État, Intermédiaire (+0).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { FLOWS } from './rollFlowSpecs';
@@ -22,7 +23,7 @@ import type { Combatant, ItemInstance } from '../engine/types';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const bandage = (uid: string): ItemInstance => ({ ...garanti(itemFromTrappingById('bandages'), 'bandages', 'Bandages'), uid });
+const bandage = (uid: string): ItemInstance => ({ ...garanti(itemFromTrappingById('bandages', idsDeTest), 'bandages', 'Bandages'), uid });
 const GUERISON = [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] as never;
 
 function hero(p: Partial<Combatant>): Combatant {
@@ -162,7 +163,7 @@ describe('+DR des Talents « Tests : » et inversion sur le soin (LDB 10 l.19, l
 
   it('jeton « Pratiquer » Guérison : inverse le soin raté (82 → 28), +1 DR de Pansement de fortune en combat', () => {
     const doc = hero({ id: 'doc', skills: GUERISON, talents: [{ talentId: 'pansement-de-fortune', times: 1 }] as never });
-    applyOps(doc, [{ op: 'grantReverseToken', skill: { id: 'guerison' } }], { rng: makeRNG(1), label: 'Pratiquer' });
+    applyOps(doc, [{ op: 'grantReverseToken', skill: { id: 'guerison' } }], { idNeuf: idsDeTest, rng: makeRNG(1), label: 'Pratiquer' });
     combat([doc, hero({ id: 'al', label: 'Al', wounds: blessuresDeBase(12, 3), pos: { x: 2, y: 1 } })]);
     banc.getState().ouvrirLaGuerison('al', 'wounds');
     const ph = banc.getState().pendingHeal!;
@@ -175,7 +176,7 @@ describe('+DR des Talents « Tests : » et inversion sur le soin (LDB 10 l.19, l
   it('hors Round de combat : Chirurgie donne +1 DR, Pansement de fortune rien (LDB 10 l.182, l.897)', () => {
     for (const [talentId, sl] of [['chirurgie', 3], ['pansement-de-fortune', 2]] as const) {
       const doc = hero({ id: 'doc', skills: GUERISON, talents: [{ talentId, times: 1 }] as never });
-      applyOps(doc, [{ op: 'grantReverseToken', skill: { id: 'guerison' } }], { rng: makeRNG(1), label: 'Pratiquer' });
+      applyOps(doc, [{ op: 'grantReverseToken', skill: { id: 'guerison' } }], { idNeuf: idsDeTest, rng: makeRNG(1), label: 'Pratiquer' });
       const al = hero({ id: 'al', label: 'Al', wounds: blessuresDeBase(12, 3) });
       banc.setState({
         battle: null, party: [doc, al], medic: { patientId: 'al' },

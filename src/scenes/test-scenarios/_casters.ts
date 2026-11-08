@@ -6,7 +6,8 @@
  * « Complet » = roster DATA-DRIVEN entier de la donnée (toutes les Bénédictions ET Miracles d'un culte,
  * tous les Sorts des Domaines arcaniques) → l'IA refondue joue tout l'arsenal, pas un sous-ensemble.
  */
-import { pregenParty, PREGEN } from '../../data/pregens';
+import type { FabriqueDId } from '../../engine/fabriqueDId';
+import { pregen, PREGEN } from '../../data/pregens';
 import { spells, blessingsOf, miraclesOf, findSkill, findTalent, especeDApparence } from '../../data';
 import { slugId } from '../../data/slug';
 import { refCouvre, memeSpecialisation } from '../../data/schemas/grammaire/ref';
@@ -14,9 +15,6 @@ import { acquerirTalent, splitLabel } from '../../engine/careerSlots';
 import { contexteDeNaissanceDObjet, itemFromTrappingById, recomputeLoadout } from '../../engine/items';
 import type { Combatant, CharKey, SkillInstance, ItemInstance } from '../../engine/types';
 import { blessuresPosees } from '../../engine/characteristics';
-
-/** Deep-clone d'un pré-tiré (données pures) pour le bricoler sans toucher la base. */
-export const clone = (c: Combatant): Combatant => JSON.parse(JSON.stringify(c)) as Combatant;
 
 /** Monte (ou ajoute) une Compétence à un niveau d'avances donné. */
 export function boostSkill(c: Combatant, name: string, spec: string | undefined, characteristic: CharKey, advances: number): void {
@@ -43,9 +41,10 @@ export function addTalents(c: Combatant, names: string[]): void {
 export const spellsOf = (ecole: string, subTypes?: (string | null)[]): string[] =>
   spells.filter((s) => s.ecole === ecole && (!subTypes || subTypes.includes(s.subType ?? null))).map((s) => s.id);
 
-/** Prêtre COMPLET d'un culte : Prière + Béni/Invocation (Culte) + TOUTES ses Bénédictions ET Miracles. */
-export function makePriest(base: Combatant, id: string, name: string, cult: string, chars: Partial<Record<CharKey, number>>): Combatant {
-  const p = clone(base);
+/** Prêtre COMPLET d'un culte, bâti sur un pré-tiré prêtre neuf (ses objets aux ids de `idNeuf`) : Prière +
+ *  Béni/Invocation (Culte) + TOUTES ses Bénédictions ET Miracles. */
+export function makePriest(idNeuf: FabriqueDId, id: string, name: string, cult: string, chars: Partial<Record<CharKey, number>>): Combatant {
+  const p = pregen(idNeuf, PREGEN.pretre);
   p.id = id; p.label = name;
   setChars(p, chars);
   p.fate = 3; p.fortune = 3;
@@ -62,8 +61,8 @@ export const ARC_DOMAINS = ['Feu', 'Mort', 'Cieux', 'Bête', 'Vie'];
  * Haute Sorcière elfe MULTI-DOMAINE + Nécromancie (invocations) — arsenal arcane COMPLET (Magie mineure,
  * Arcanes communs, ses Domaines, Nécromancie). Self-contained (tire son propre pré-tiré sorcier).
  */
-export function makeSorceress(id: string, name: string, pos: { x: number; y: number }, domains: string[] = ARC_DOMAINS): Combatant {
-  const sorc = clone(pregenParty(PREGEN.sorcier)[0]);
+export function makeSorceress(idNeuf: FabriqueDId, id: string, name: string, pos: { x: number; y: number }, domains: string[] = ARC_DOMAINS): Combatant {
+  const sorc = pregen(idNeuf, PREGEN.sorcier);
   sorc.id = id;
   sorc.label = name;
   setChars(sorc, { intelligence: 75, 'force-mentale': 70, agilite: 58, dexterite: 52, initiative: 62, endurance: 45 });
@@ -86,11 +85,11 @@ export function makeSorceress(id: string, name: string, pos: { x: number; y: num
  * Prêtre-guerrier FRÉNÉTIQUE (flagellant) : prêtre complet d'un culte + Frénésie + grande hache à deux
  * mains + Caractéristiques de combat — teste l'arbitrage IA invoquer/enchanter PUIS charger en Frénésie.
  */
-export function makeFlagellant(base: Combatant, id: string, name: string, cult: string, chars: Partial<Record<CharKey, number>>, pos: { x: number; y: number }): Combatant {
-  const f = makePriest(base, id, name, cult, chars);
+export function makeFlagellant(idNeuf: FabriqueDId, id: string, name: string, cult: string, chars: Partial<Record<CharKey, number>>, pos: { x: number; y: number }): Combatant {
+  const f = makePriest(idNeuf, id, name, cult, chars);
   addTalents(f, ['Frénésie']);
   boostSkill(f, 'Corps à corps', "Armes d'hast", 'capacite-de-combat', 45);
-  const axe = itemFromTrappingById('hache-d-armes', undefined, contexteDeNaissanceDObjet(f));
+  const axe = itemFromTrappingById('hache-d-armes', idNeuf, undefined, contexteDeNaissanceDObjet(f));
   if (axe) {
     f.items = [...(f.items ?? []), axe] as ItemInstance[];
     recomputeLoadout(f);

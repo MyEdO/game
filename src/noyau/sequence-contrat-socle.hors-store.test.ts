@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
@@ -65,7 +66,7 @@ function sequenceDe(premierKind: GenreDeCascade): BuiltCascadeStep[] {
 beforeEach(() => {
   apples = 0;
   seedBattleRng(7);
-  const party = makePregens().slice(0, 1).map((h) => ({ ...h, aiControlled: true }));
+  const party = makePregens(idsDeTest).slice(0, 1).map((h) => ({ ...h, aiControlled: true }));
   set({ party, battle: null, pendingCascade: null, suspendedCascades: [], journal: [] } as never);
   set({ net: { ...NET0, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} } } as never);
 });

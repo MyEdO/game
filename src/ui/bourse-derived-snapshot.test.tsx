@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { act, StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
@@ -10,7 +11,7 @@ import { SeaActivitiesModal } from './SeaActivitiesModal';
 import { PortView } from './PortView';
 
 const initial = useGame.getState();
-const hero = (gold: number) => withBourseMoney(makePregens()[0], toMoney({ gold }));
+const hero = (gold: number) => withBourseMoney(makePregens(idsDeTest)[0], toMoney({ gold }), idsDeTest);
 const vessel = { vehicleId: 'cogue', label: 'Navire de test', morale: { score: 75, lastMoraleWeek: 0, factors: [] } };
 const port = {
   placeId: 'port-test', label: 'Port de test',

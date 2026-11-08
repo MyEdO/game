@@ -3,6 +3,7 @@
  * d'un autre format est refusée, une save chargée ouvre une partie (`creerPartie`) avec ses règles maison, et le
  * refus d'écrire se décide ici.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { chargerLaSave, creerPartie, etatInitialDuJeu, exporterLaSauvegarde, lireSave, metaDeSave, refusDeSauvegarde, snapshotSave, type EtatDeJeu, type SaveGame } from '../index';
 import { initialNet, type BattleState } from '../etat';
@@ -57,7 +58,7 @@ describe('lireSave — la porte des scènes (`parseSceneDeProjet`)', () => {
   /** Le texte d'une save dont la scène courante ET le paquet portent la scène du scénario « Conditions étendues »,
    *  dont un choix de dialogue est gardé par `{ kind: 'status', atLeast: 'Argent 1' }`. */
   const texteDeSave = (): string => {
-    const scene = conditionsEtendues.construire().scene;
+    const scene = conditionsEtendues.construire(idsDeTest).scene;
     const campaignDoc = { scenes: [scene], narratif: { presetsPnj: [] }, startSceneId: scene.id, projet: null };
     return exporterLaSauvegarde(snapshotSave({ ...etatInitialDuJeu(), scene, campaignDoc } as unknown as EtatDeJeu, 'x'));
   };

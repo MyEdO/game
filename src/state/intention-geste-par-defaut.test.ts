@@ -4,6 +4,7 @@
  * (option 3 de la spec), et l'annulation par Échap reste GRATUITE. Les gestes du champ (clic-sol, clic-ennemi, mode de
  * ciblage sous une intention) se jouent au banc du noyau (`src/noyau/intention-geste-par-defaut.hors-store.test.ts`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { combatHighlightsView } from '../gameIso/stage/highlightLayer';
@@ -13,7 +14,7 @@ import { testScene } from '../scenes/test-fixture';
 
 /** Même combat témoin que `intention-portee.hors-store.test.ts` : un héros au tour ENTIER, ennemis parqués loin. */
 function setup() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero], screen: 'campaign' });
   useGame.getState().lancerLaScene(testScene());
   useGame.getState().lancerLeCombat('enc-mutants');

@@ -30,5 +30,5 @@ export const scenario: TestScenario = {
   title: 'Le brouillard',
   tests: 'La brume de la météo en nappes au-dessus du sol en tactique, et la brume de profondeur resserrée en immersion.',
   partyNote: 'Pré-tirés',
-  construire: () => ({ party: makePregens(), scene: construire() }),
+  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construire() }),
 };

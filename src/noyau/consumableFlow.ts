@@ -51,7 +51,7 @@ function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flo
     switch (node.kind) {
       case 'do': {
         if (node.effect.type === 'ops') {
-          const lines = applyLeafOps(get, set, hero, node.effect, {
+          const lines = applyLeafOps(get, set, hero, node.effect, { idNeuf: get().forgerUnId,
             rng: battleRng(),
             // PROVENANCE du produit bu : un poison qui enduit la lame (`augmentWeapon`) garde SON
             // identité sur les effets fondus dans l'arme (`stampSource`, engine/ops) — sans elle, le

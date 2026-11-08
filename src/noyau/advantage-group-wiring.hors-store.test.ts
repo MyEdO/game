@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { resolveRoundBoundary } from './combatFlow';
@@ -17,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * quelqu'un les appelle en jeu. Ici, la seule entrée est `lancerLeCombat` / le franchissement de Round.
  */
 function startFixtureCombat() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   seedBattleRng(777);

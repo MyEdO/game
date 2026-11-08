@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { scenario } from './taverne-profil-standard';
 import { findSpeciesById } from '../../data';
@@ -6,7 +7,7 @@ import { sceneNpc } from '../../noyau/monde/sceneNpc';
 import { tavernGameValue, tavernNpcOffers } from '../../noyau/tavernFlow';
 import { validateScene } from '../../noyau/validateScene';
 import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 /** Aucun narratif chargé : aucun preset ne se résout. */
 const presetPnjById = presetDuNarratif(null);
 

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { moveReachFor } from './monde/path';
 import type { Scene } from './monde/scene';
@@ -82,7 +83,7 @@ describe('contribution psy d’un Trait accordé : retrait PAR PROVENANCE (#1853
 describe('op grantTrait (ops) + expiration de fin de Round', () => {
   it('Effrayant : Peur 1 (+1 par +3 DR) — Indice échelonné au DR du jet', () => {
     const c = dummy({});
-    applyOps(c, [{ op: 'grantTrait', trait: { id: 'peur', value: 1 }, indicePerSL: { every: 3, amount: 1 } }], { rng: desDuTest,
+    applyOps(c, [{ op: 'grantTrait', trait: { id: 'peur', value: 1 }, indicePerSL: { every: 3, amount: 1 } }], { idNeuf: idsDeTest, rng: desDuTest,
       label: 'Effrayant', defaultDurationRounds: 4, sl: 6,
     });
     expect(c.traits).toContainEqual({ id: 'peur', value: 3 }); // 1 + ⌊6/3⌋
@@ -92,12 +93,12 @@ describe('op grantTrait (ops) + expiration de fin de Round', () => {
 
   it('Envol : Vol (Agilité) — l’Indice est l’Agilité du lanceur ; expire en fin de Round', () => {
     const c = dummy({}); // Ag 35
-    applyOps(c, [{ op: 'grantTrait', trait: { id: 'vol', value: { charOf: 'agilite' } } }], { rng: desDuTest,
+    applyOps(c, [{ op: 'grantTrait', trait: { id: 'vol', value: { charOf: 'agilite' } } }], { idNeuf: idsDeTest, rng: desDuTest,
       label: 'Envol', defaultDurationRounds: 1,
     });
     expect(hasTrait(c.traits, 'vol')).toBe(true);
     expect(c.traits).toContainEqual({ id: 'vol', value: 35 });
-    endOfRound(c, desDuTest); // 1 Round écoulé → l'effet expire et retire le trait
+    endOfRound(c, desDuTest, idsDeTest); // 1 Round écoulé → l'effet expire et retire le trait
     expect(hasTrait(c.traits, 'vol')).toBe(false);
     expect(c.activeEffects ?? []).toHaveLength(0);
   });
@@ -123,13 +124,13 @@ describe('op grantTalent — talents temporisés (Flambeau de Vertu / Cœurs ard
     const c = dummy({});
     const ogre = dummy({ id: 'o', causesPeur: 2, groups: ['Ogre'] });
     expect(fearSourceFor(c, sourceCombattant(ogre))?.kind).toBe('peur'); // avant le sort : la Peur mord
-    applyOps(c, [{ op: 'grantTalent', talent: { id: 'sans-peur' } }], { rng: desDuTest, label: 'Flambeau de Vertu', defaultDurationRounds: 1 });
+    applyOps(c, [{ op: 'grantTalent', talent: { id: 'sans-peur' } }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Flambeau de Vertu', defaultDurationRounds: 1 });
     expect(sansPeurVs(c, sourceCombattant(ogre))).toBe(true); // le talent (temporisé) est détecté
     // RAW (LDB 10 l.1051) : Sans Peur n'immunise PAS d'office — la source RESTE détectée, le porteur
     // la teste par un seul Calme Accessible (+20).
     expect(fearSourceFor(c, sourceCombattant(ogre))?.kind).toBe('peur');
     expect(c.talents).toHaveLength(0); // PAS posé dans les talents possédés (fiche intacte)
-    endOfRound(c, desDuTest);
+    endOfRound(c, desDuTest, idsDeTest);
     expect(sansPeurVs(c, sourceCombattant(ogre))).toBe(false); // dissipé avec l'effet
   });
 
@@ -143,7 +144,7 @@ describe('op grantTalent — talents temporisés (Flambeau de Vertu / Cœurs ard
   it('Cœur vaillant accordé (Cœurs ardents) : la capacité braveheart est active via featuresOf', async () => {
     const { featuresOf } = await import('../engine/combatFeatures/dispatch');
     const c = dummy({});
-    applyOps(c, [{ op: 'grantTalent', talent: { id: 'coeur-vaillant' } }], { rng: desDuTest, label: 'Cœurs ardents', defaultDurationRounds: 3 });
+    applyOps(c, [{ op: 'grantTalent', talent: { id: 'coeur-vaillant' } }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Cœurs ardents', defaultDurationRounds: 3 });
     expect(featuresOf(c).some(({ def }) => def.braveheart)).toBe(true);
   });
 });

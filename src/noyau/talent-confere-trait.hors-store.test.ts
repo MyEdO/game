@@ -3,6 +3,7 @@
  * (`acheterLeTalent`, `partyFlow.ts`) puis entrée de scène (`lancerLaScene`, psychologie de rencontre).
  * Flagellant Niveau 2 : Haine (Hérétiques), LDB 08 l.1718.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -22,7 +23,7 @@ const scene = (id: string): Scene => ({
 }) as unknown as Scene;
 
 function flagellant2() {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'flagellant', label: 'Flagellant', seed: 1 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'flagellant', label: 'Flagellant', seed: 1 });
   return { ...h, careerLevel: 2, xp: 1000 };
 }
 

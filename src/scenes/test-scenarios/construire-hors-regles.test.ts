@@ -3,6 +3,7 @@
  * le contenu AVANT que `poserLeLancement` ne pose les règles de la fiche. Un scénario dont `construire` lirait
  * une de ses règles se construirait sous les règles d'avant.
  */
+import { fabriqueLocale } from '../../engine/fabriqueDId';
 import { describe, it, expect, afterEach } from 'vitest';
 import { testScenarios } from './index';
 import { resetRule, setRule } from '../../engine/policy';
@@ -23,9 +24,9 @@ describe('construire, hors des règles de la fiche', () => {
   });
 
   it.each(aRegles.map((sc) => [sc.id, sc] as const))('%s se construit à l’identique sous ses règles', (_id, sc) => {
-    const sansRegles = forme(sc.construire());
-    expect(forme(sc.construire()), 'témoin : deux constructions sans règles diffèrent').toBe(sansRegles);
+    const sansRegles = forme(sc.construire(fabriqueLocale('test')));
+    expect(forme(sc.construire(fabriqueLocale('test'))), 'témoin : deux constructions sans règles diffèrent').toBe(sansRegles);
     for (const [id, v] of Object.entries(sc.rules!)) setRule(id, v);
-    expect(forme(sc.construire()), 'la construction lit une règle de la fiche').toBe(sansRegles);
+    expect(forme(sc.construire(fabriqueLocale('test'))), 'la construction lit une règle de la fiche').toBe(sansRegles);
   });
 });

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { applyCast } from '../noyau/combatFlow';
@@ -16,7 +17,7 @@ const pastilleDePenalite = (html: string): string | undefined => html.match(/<sp
 describe('pénalité d’incantation : sa pastille d’état mène à la fiche de son sort, par id', () => {
   it('Couronne de Flammes lancée : la pénalité porte la source du sort, et sa pastille ouvre la fiche', () => {
     useGame.getState().ensemencerLeTirage(51);
-    const [lanceur, cible] = pregenParty(PREGEN.sorcier, PREGEN.soldat);
+    const [lanceur, cible] = pregenParty(idsDeTest, PREGEN.sorcier, PREGEN.soldat);
     useGame.setState({ party: [lanceur, cible] as Combatant[], battle: null });
     applyCast(useGame.getState, useGame.setState, lanceur, cible, findSpellById('couronne-de-flammes')!, reussi, false, false);
 

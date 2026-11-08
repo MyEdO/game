@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { makeRNG, type RNG } from './dice';
 import { findVehicleById } from '../data';
@@ -36,7 +37,7 @@ describe('véhicule-à-coque (Combatant à PV)', () => {
   it('Problème « Accident » (96-100) inflige 2d10 − Bonus d\'Endurance à la coque (min 1)', () => {
     const c = vehicleCombatant(findVehicleById('diligence')!)!; // BE = 4
     // makeRNG seedé : l'`applyOps`/`wounds` consomme le même flux que le test — on vérifie le RÉSULTAT.
-    const r = applyVehicleProblem(c, 96, makeRNG(7));
+    const r = applyVehicleProblem(c, 96, makeRNG(7), idsDeTest);
     expect(r.entry.id).toBe('accident');
     const dealt = 50 - c.wounds.current;
     expect(dealt).toBeGreaterThanOrEqual(1); // 2d10 (2..20) − 4, plancher 1
@@ -45,14 +46,14 @@ describe('véhicule-à-coque (Combatant à PV)', () => {
 
   it('Problème « Incontrôlable » (1-50) n\'endommage PAS la coque', () => {
     const c = vehicleCombatant(findVehicleById('diligence')!)!;
-    const r = applyVehicleProblem(c, 10, makeRNG(1));
+    const r = applyVehicleProblem(c, 10, makeRNG(1), idsDeTest);
     expect(r.entry.id).toBe('incontrolable');
     expect(c.wounds.current).toBe(50); // aucun vehicleWounds
   });
 
   it('Problème « Cassé » (80-95) applique 1d10 − BE (min 1) et journalise', () => {
     const c = vehicleCombatant(findVehicleById('charrette')!)!; // E25/B10, BE = 2
-    const r = applyVehicleProblem(c, 85, makeRNG(3));
+    const r = applyVehicleProblem(c, 85, makeRNG(3), idsDeTest);
     expect(r.entry.id).toBe('casse');
     expect(c.wounds.current).toBeLessThan(10);
     expect(c.wounds.current).toBeGreaterThanOrEqual(0);

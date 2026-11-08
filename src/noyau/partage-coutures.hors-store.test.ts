@@ -1,4 +1,5 @@
 // #2097
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import * as donnees from '../data';
 import { species } from '../data';
@@ -49,7 +50,7 @@ describe('coutures donnée → état (#2097)', () => {
     geler(scene);
     const gele = (scene as unknown as { triggers: { flow: { effect: typeof eff } }[] }).triggers[0].flow.effect;
     expect(Object.isFrozen(gele.teinte)).toBe(true);
-    banc.setState({ party: [pregen(PREGEN.soldat)], scene });
+    banc.setState({ party: [pregen(idsDeTest, PREGEN.soldat)], scene });
     applyEffects(banc.getState, banc.setState, [gele as never]);
     expect(banc.getState().party[0].items!.some((i) => i.trappingId === 'dague' && i.teinte === 'aethyrique')).toBe(true);
     expect(partagesDe(banc.getState().party, [scene])).toEqual([]);
@@ -65,7 +66,7 @@ describe('coutures donnée → état (#2097)', () => {
       vues.add(cle);
       ops.push(o as GameOp);
     }
-    const base = enJeu(pregen(PREGEN.sorcier));
+    const base = enJeu(pregen(idsDeTest, PREGEN.sorcier));
     const fautes = new Map<string, string[]>();
     let appliquees = 0;
     for (const op of ops) {
@@ -73,7 +74,7 @@ describe('coutures donnée → état (#2097)', () => {
       for (const v of des) {
         const c = structuredClone(base);
         try {
-          applyOps(c, [op], { rng: v ? deConstant(v) : makeRNG(7), source: SOURCE, defaultDurationRounds: 3 });
+          applyOps(c, [op], { idNeuf: idsDeTest, rng: v ? deConstant(v) : makeRNG(7), source: SOURCE, defaultDurationRounds: 3 });
         } catch (e) {
           if (ecritDansLaDonnee(e)) fautes.set(`${op.op}${v ? ` (dé ${v})` : ''} : ${JSON.stringify(op).slice(0, 80)}`, [(e as Error).message]);
           continue;
@@ -94,14 +95,14 @@ describe('coutures donnée → état (#2097)', () => {
     for (const sp of species) {
       let h: Combatant;
       try {
-        h = createHero({ speciesId: sp.id, careerId: 'soldat', label: 'X', seed: 1 });
+        h = createHero({ idNeuf: idsDeTest, speciesId: sp.id, careerId: 'soldat', label: 'X', seed: 1 });
       } catch {
         continue;
       }
       crees++;
       fautes.push(...partagesDe(h).map((p) => `${sp.id} : ${p}`));
     }
-    for (const id of Object.values(PREGEN)) fautes.push(...partagesDe(pregen(id)).map((p) => `${id} : ${p}`));
+    for (const id of Object.values(PREGEN)) fautes.push(...partagesDe(pregen(idsDeTest, id)).map((p) => `${id} : ${p}`));
     expect(crees).toBeGreaterThan(0);
     expect(fautes).toEqual([]);
   });
@@ -115,18 +116,18 @@ describe('coutures donnée → état (#2097)', () => {
     geler(scene);
     const gelees = (scene as unknown as { effectZones: { onCross: GameOp[] }[] }).effectZones[0].onCross;
     expect(Object.isFrozen(gelees)).toBe(true);
-    const c = enJeu(pregen(PREGEN.soldat));
-    for (const op of gelees) applyOps(c, [op], { rng: desDuTest, source: SOURCE, defaultDurationRounds: 3 });
+    const c = enJeu(pregen(idsDeTest, PREGEN.soldat));
+    for (const op of gelees) applyOps(c, [op], { idNeuf: idsDeTest, rng: desDuTest, source: SOURCE, defaultDurationRounds: 3 });
     expect(c.items!.some((i) => i.label === 'Lame de zone')).toBe(true);
     expect(partagesDe(c, [scene])).toEqual([]);
   });
 
   it('aura — `recompute-auras` : la cible ne reçoit pas les ops du catalogue par référence', () => {
-    const src = enJeu(pregen(PREGEN.soldat));
+    const src = enJeu(pregen(idsDeTest, PREGEN.soldat));
     src.id = 'src';
     src.kind = 'enemy';
     src.traits = [{ id: 'perturbant' }];
-    const cible = pregen(PREGEN.sorcier);
+    const cible = pregen(idsDeTest, PREGEN.sorcier);
     cible.id = 'cible';
     cible.pos = { x: 2, y: 1 };
     const battle = { combatants: [src, cible], order: ['src', 'cible'], turn: 0, round: 1, log: [], over: null };
@@ -140,7 +141,7 @@ describe('coutures donnée → état (#2097)', () => {
   // partagé (#3412). Les comptes s'accumulent sur les lots, et le dernier test les juge.
   const lots: { nom: string; scenes: Scene[]; narratif: NarratifBlock | null }[] = [
     ...testScenarios.map((s) => {
-      const b = s.construire();
+      const b = s.construire(idsDeTest);
       return { nom: `scénario ${s.id}`, scenes: [b.scene, ...(b.extraScenes ?? [])], narratif: b.narratif ?? null };
     }),
     ...allBuiltinCampaigns.map((c) => {
@@ -148,7 +149,7 @@ describe('coutures donnée → état (#2097)', () => {
       return { nom: `campagne ${c.id}`, scenes: p.scenes, narratif: p.narratif ?? null };
     }),
   ];
-  const heros = pregen(PREGEN.soldat);
+  const heros = pregen(idsDeTest, PREGEN.soldat);
   let effets = 0;
   let ops = 0;
 
@@ -174,7 +175,7 @@ describe('coutures donnée → état (#2097)', () => {
         } else if (typeof x.op === 'string') {
           const c = enJeu(structuredClone(heros));
           try {
-            applyOps(c, [o as GameOp], { rng: makeRNG(7), source: SOURCE, defaultDurationRounds: 3 });
+            applyOps(c, [o as GameOp], { idNeuf: idsDeTest, rng: makeRNG(7), source: SOURCE, defaultDurationRounds: 3 });
           } catch (e) {
             if (ecritDansLaDonnee(e)) fautes.push(`${lot.nom} / ${chemin} (${x.op}) : ${(e as Error).message}`);
             continue;
@@ -193,7 +194,7 @@ describe('coutures donnée → état (#2097)', () => {
   });
 
   it.each(allBuiltinCampaigns.map((c) => [c.id, c] as const))('campagne %s lancée par `lancerCampagne` : rien de partagé, ouverture comprise', (_id, c) => {
-    banc.setState({ party: [pregen(PREGEN.soldat)] });
+    banc.setState({ party: [pregen(idsDeTest, PREGEN.soldat)] });
     expect(lancerCampagne(banc.getState, campagneDuJeu(c))).toBeNull();
     expect(partagesDeLEtat(banc.getState(), scenesDuRegistre())).toEqual([]);
   });

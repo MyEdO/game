@@ -7,6 +7,7 @@
  * Le CÂBLAGE de la frise est mesuré ici aussi : au navigateur, l'acteur au trait ne change pas de
  * tour tant que la cascade de Défense gèle le combat (#1852).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, afterEach, beforeAll, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -31,9 +32,9 @@ const noop = () => {};
 const HAND = { label: 'Pause', ariaLabel: 'Pause au prochain Round', raised: false, onToggle: noop };
 
 function fixtures() {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
   h.id = 'h1';
-  const foe = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brigand', seed: 5 }), id: 'e1', kind: 'enemy' as Combatant['kind'] };
+  const foe = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brigand', seed: 5 }), id: 'e1', kind: 'enemy' as Combatant['kind'] };
   return { h, foe };
 }
 

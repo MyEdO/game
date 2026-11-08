@@ -11,6 +11,7 @@
  *  3. la RAFALE de seuils de Corruption (LDB 19 l.70, Test `corrompu`) : le slot `pendingCorruption` est UNIQUE, et une bande fait déborder N
  *     héros d'un seul applier : une file les sert tous, aucun Test roulé en silence.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { openCombatEndCascade } from './combatFlow';
@@ -39,7 +40,7 @@ const bandes = (k: string) => etapes().filter((s) => s.kind === k);
 function setupCoop(opts: { heros?: number; invites?: number[] } = {}): { H: Combatant[]; E: Combatant[] } {
   const n = opts.heros ?? 1;
   const party = Array.from({ length: n }, (_, i) =>
-    createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }));
+    createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }));
   banc.setState({ party });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');

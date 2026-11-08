@@ -4,6 +4,7 @@
  * invité ne clôt pas, et les pertes d'argent des Événements frappent la bourse que l'Événement désigne.
  * LDB 23 l.15, l.33, l.191 ; LDB 22 l.5, l.36, l.115
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { avanceEtapeCascade } from './cascade.testkit';
@@ -27,7 +28,7 @@ const PREVOT = 22; // « Le Prévôt arrive »
 const KLEPTO = 83; // « Kleptomane »
 
 const heros = (label: string, seed: number, careerLevel: number, bourse: Money): Combatant =>
-  withBourseMoney({ ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed }), careerLevel }, bourse);
+  withBourseMoney({ ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed }), careerLevel }, bourse, idsDeTest);
 
 /** Un banc à Altdorf, dés d'Événement POSÉS (`des`, un par héros), séquence dénouée. */
 function apresLeTirage(party: Combatant[], des: number[]): Banc {

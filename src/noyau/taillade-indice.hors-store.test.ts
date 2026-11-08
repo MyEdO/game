@@ -10,6 +10,7 @@
  * `combatFlow` fait sur un Critique) → `resolveFlowChoice` → étape de cascade `triggeredChoice` →
  * `jetRegler('cascade', 'choix')` → dépense d'Avantage + 2ᵉ État.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { emitCombatEvent } from './combatEvents';
@@ -27,7 +28,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** L'arme du catalogue, telle que le combat la porte (Atouts résolus depuis `trappings.json`). */
 function armeDuCatalogue(id: string): Weapon {
-  return weaponFromItem(itemFromTrappingById(id)!);
+  return weaponFromItem(itemFromTrappingById(id, idsDeTest)!);
 }
 
 /** Nombre d'États Hémorragique portés (l'op `condition` empile la valeur du même État). */
@@ -59,7 +60,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -129,7 +130,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
 
   /** AA 08 l.190 : le sabre que le héros tient, à pied, avec la seule Spé de Corps à corps `spec`. */
   function sabreAPied(H: Combatant, spec: string): Weapon {
-    H.items = [{ ...itemFromTrappingById('sabre')!, equipped: true }];
+    H.items = [{ ...itemFromTrappingById('sabre', idsDeTest)!, equipped: true }];
     H.loadouts = [];
     H.skills = [...H.skills.filter((s) => s.id !== 'corps-a-corps'), { id: 'corps-a-corps', characteristic: 'capacite-de-combat', spec, advances: 10 }];
     recomputeLoadout(H);
@@ -257,7 +258,7 @@ describe('Déstabilisante — le choix à coût LITTÉRAL reste offert et libell
   });
 
   it('une touche avec un fléau d’armes ouvre le choix « Renverser (2 Av) »', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -267,7 +268,7 @@ describe('Déstabilisante — le choix à coût LITTÉRAL reste offert et libell
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const E = b.combatants.find((c) => c.kind === 'enemy')!;
     H.advantage = 3;
-    const arme = weaponFromItem(itemFromTrappingById('serpe-de-guerre')!); // Défensive, Taille, Déstabilisante
+    const arme = weaponFromItem(itemFromTrappingById('serpe-de-guerre', idsDeTest)!); // Défensive, Taille, Déstabilisante
     emitCombatEvent('onHit', {
       get: banc.getState, set: banc.setState, battle: banc.getState().battle!, self: H, sink: () => {},
       triggerCtx: { victim: E, weapon: arme, location: 'corps', woundsDealt: 3, attackType: arme.type, rng: battleRng() },

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { advanceTurn } from './combatFlow';
 import { statblockToCombatant } from './monde/spawn';
@@ -85,7 +86,7 @@ function nueeScene(avecTrait = true): { scene: Scene; nueeId: string; temoinId: 
 }
 
 function startNuee(scene: Scene) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], battle: null, pendingDisengage: null });
   banc.getState().lancerLaScene(scene);
   banc.getState().lancerLeCombat(ENC_NUEE);

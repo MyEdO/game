@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { lancerLeScenario } from './lancementDeScenario';
@@ -34,7 +35,7 @@ const defenseEchoue = (id: string) => {
 };
 
 function monte() {
-  lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(testScenarios.find((sc) => sc.id === 'entrainement')!));
+  lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(testScenarios.find((sc) => sc.id === 'entrainement')!, idsDeTest));
   setRule('combat-frappe-mortelle', true);
   setRule('combat-critical-deflect', true);
   g().lancerLeCombat('enc-entrainement');

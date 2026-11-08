@@ -83,5 +83,5 @@ export const scenario: TestScenario = {
     '`species`, `status` — gate de choix de dialogue sur les VIVANTS du groupe, convention ' +
     'de préfixe « [Descripteur] » côté prose.',
   partyNote: 'Pré-tirés',
-  construire: () => ({ party: makePregens(), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireScene() }),
 };

@@ -8,6 +8,7 @@
 export { creerPartie, type Partie, type Intention, type EntreesDeLaPartie, type ResultatDeLAppel, type LigneDuJournal } from './partie';
 export type { LancementDeScenario } from './lancementDeScenario';
 export { etatInitialDuJeu, initialNet, type EtatDeJeu, type Jeu, type NetState } from './etat';
+export type { JeuDuNoyau } from './machinerieDuNoyau';
 export type { Get, Set } from './flowTypes';
 export type { Jeton } from './plateforme';
 export { horlogeVirtuelle, type Programme } from './horlogeVirtuelle';
@@ -20,6 +21,7 @@ export { conditionLabel, findVehicleById, lightLevels, lightTones, matieresCouvr
 export { PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
 export { PARTS_RELIEF } from '../data/materials.types';
 export type { Cadence } from '../engine/cadence';
+export type { FabriqueDId } from '../engine/fabriqueDId';
 export { refusDesSurcharges, ruleOverrides, type RuleValue } from '../engine/policy';
 export { actionGate, offreArmee, offresDeLActif, offresParPorteur, etatDeLaBarre, type EtatDeLaBarre, type ActionCtx, type Offre } from './actionRegistry';
 export { ACTIONS } from '../data/index';

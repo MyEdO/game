@@ -2,6 +2,7 @@
  * Semis des Possessions de dotation au démarrage d'une partie neuve (#617/#618 SOCLE POSSESSIONS
  * Lot 1) — seam `lancerLaScene` (`noyau/entreeEnScene.ts`), JAMAIS le chargement (la save restaure `data.possessions`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { chargerSurLeBanc, sauverLeBanc } from './persistance/save.testkit';
@@ -19,7 +20,7 @@ describe('Semis de Possessions — lancerLaScene (#617/#618 Lot 1)', () => {
   });
 
   it('dotation {vehicleId} (contrebandier niv.2 → barque-fluviale, careerLevels.json) → possession vehicule avec-le-groupe, owner = héros', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'contrebandier', label: 'Contreb.', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'contrebandier', label: 'Contreb.', seed: 1 });
     hero.careerLevel = 2; // la dotation barque-fluviale est portée par ce Niveau, pas le 1
     banc.getState().fixerLeGroupe([hero]);
     const sc = emptyScene('scene-test', 6, 6);
@@ -43,7 +44,7 @@ describe('Semis de Possessions — lancerLaScene (#617/#618 Lot 1)', () => {
   });
 
   it('loadGame NE redéclenche PAS le semis — la save fait foi, jamais de doublon (#617/#618 §3)', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'contrebandier', label: 'Contreb.', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'contrebandier', label: 'Contreb.', seed: 1 });
     hero.careerLevel = 2;
     banc.getState().fixerLeGroupe([hero]);
     const sc = emptyScene('scene-test', 6, 6);

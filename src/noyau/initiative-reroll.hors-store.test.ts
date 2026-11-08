@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { advanceTurn } from './combatFlow';
@@ -19,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 describe('combat-init-reroll — relance de l’Initiative par Round (LDB 13 l.43)', () => {
   function openCombat() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     seedBattleRng(777);
@@ -69,9 +70,9 @@ describe('combat-init-reroll — relance de l’Initiative par Round (LDB 13 l.4
   });
 
   it('ON : deux ouvertures identiques (même graine) re-tirent le MÊME ordre de Round 2 (reproductible)', () => {
-    // Le compteur d'id de héros est GLOBAL (hero-1, hero-2…) → on le normalise ; seule la structure de
-    // l'ordre re-tiré importe pour la reproductibilité de la relance.
-    const norm = (order: string[]) => order.map((id) => (id.startsWith('hero-') ? 'HERO' : id));
+    // La fabrique de test avance d'une ouverture à l'autre (`idsDeTest`) → l'id de héros se normalise ; seule la
+    // structure de l'ordre re-tiré importe pour la reproductibilité de la relance.
+    const norm = (order: string[]) => order.map((id) => (/(^|-)hero-\d+$/.test(id) ? 'HERO' : id));
     const run = () => {
       setRule('combat-init-reroll', true);
       setRule('combat-init-method', 'roll-i');

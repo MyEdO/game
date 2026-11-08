@@ -1,3 +1,4 @@
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { pregen, PREGEN } from '../../data/pregens';
 import { contexteDeNaissanceDObjet, itemFromTrappingById } from '../../engine/items';
 import { arena, setEncounters } from './_shared';
@@ -23,9 +24,9 @@ import type { Scene } from '../../noyau/monde/scene';
  * la recette) : `lancerLeCombat` place le héros SOLO à `(heroStart.x − 1, heroStart.y)`
  * (`combatSlice.ts:2425`) — l'anguille est posée exactement à `heroStart`, donc à distance 1.
  */
-function porteurDOutre() {
-  const h = pregen(PREGEN.soldat);
-  const outre = itemFromTrappingById('outre-a-eau', undefined, contexteDeNaissanceDObjet(h))!;
+function porteurDOutre(idNeuf: FabriqueDId) {
+  const h = pregen(idNeuf, PREGEN.soldat);
+  const outre = itemFromTrappingById('outre-a-eau', idNeuf, undefined, contexteDeNaissanceDObjet(h))!;
   h.items = [...(h.items ?? []), outre];
   return h;
 }
@@ -63,6 +64,6 @@ export const scenario: TestScenario = {
     "poche (`hasWaterContainer`), l'asperge (`aspergerDEau` pose `wateredThisRound`, aucun jet, consomme " +
     "l'Action) ; `waterSprayCandidates` filtre STRICTEMENT par `kind` identique à l'aspergeur.",
   partyNote: 'Soldat solo, outre à eau en poche.',
-  construire: () => ({ party: [porteurDOutre()], scene: construireScene() }),
+  construire: (idNeuf) => ({ party: [porteurDOutre(idNeuf)], scene: construireScene() }),
   autoCombat: 'enc-aspersion',
 };

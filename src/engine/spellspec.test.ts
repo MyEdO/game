@@ -3,6 +3,7 @@
  * Les specs curées vivent dans SpellData (spells.json). Ces tests vérifient que la résolution
  * applique bien les effets curés directement sur les données JSON.
  */
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from './types';
 import { applyOps, resolveFormula } from './ops';
@@ -27,7 +28,7 @@ function hero(p: Partial<Combatant> = {}): Combatant {
  *  résolue contre le lanceur). La durée et les effets vivent désormais sur SpellData (données JSON). */
 function castVia(spell: SpellData, caster: Combatant, target: Combatant): string[] {
   const rounds = spell.duration?.kind === 'rounds' ? resolveFormula(spell.duration.value, caster, desDuTest) : null;
-  return applyOps(target, spellOps(spell.effects, 'target'), { rng: desDuTest, caster, label: spell.label, ...(rounds != null ? { defaultDurationRounds: rounds } : {}) });
+  return applyOps(target, spellOps(spell.effects, 'target'), { idNeuf: idsDeTest, rng: desDuTest, caster, label: spell.label, ...(rounds != null ? { defaultDurationRounds: rounds } : {}) });
 }
 
 describe('specs curées — résolution', () => {

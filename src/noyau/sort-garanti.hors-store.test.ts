@@ -2,6 +2,7 @@
  * Effet d'auteur `castSpell` `mode:'forceSuccess'` (#98) : le Flow du Sort se joue par le walker
  * d'acteur (`lancerLeSortGaranti`), à DR = NI, choix, paliers et durée compris.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc } from './banc.testkit';
 import { draineEtapes } from './cascade.testkit';
@@ -19,7 +20,7 @@ const bfm = (lanceur: Combatant) => resolveFormula({ bonusOf: 'force-mentale' },
 
 describe('castSpell forceSuccess : le Flow du Sort, à DR = NI', () => {
   it('Colérique (VDM 10 l.324-332) : un seul palier, envers la personne désignée, avec sa durée', () => {
-    const [w, s, p] = pregenParty(PREGEN.sorcier, PREGEN.soldat, PREGEN.pretre);
+    const [w, s, p] = pregenParty(idsDeTest, PREGEN.sorcier, PREGEN.soldat, PREGEN.pretre);
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s, p] } });
     const maintenant = banc.getState().gameTime;
     jouerFlowEntier(runFlow(banc.getState, banc.setState, garanti(w.id, 'colerique', s.id)));
@@ -35,7 +36,7 @@ describe('castSpell forceSuccess : le Flow du Sort, à DR = NI', () => {
   });
 
   it('un Sort à durée en Rounds : l’effet dure (BFM) Rounds et porte son identité dissipable (LDB 46 l.158)', () => {
-    const [w, s] = pregenParty(PREGEN.sorcier, PREGEN.soldat);
+    const [w, s] = pregenParty(idsDeTest, PREGEN.sorcier, PREGEN.soldat);
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s] } });
     jouerFlowEntier(runFlow(banc.getState, banc.setState, garanti(w.id, 'ecorce', s.id)));
     const effets = banc.getState().party.find((c) => c.id === s.id)!.activeEffects ?? [];

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
@@ -13,7 +14,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function combat(heroOver: Partial<Combatant> = {}) {
-  const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
+  const H = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
   H.fortune = 0; H.resolve = 0; H.resilience = 0; H.advantage = 0;
   Object.assign(H, heroOver);
   const E: Combatant = JSON.parse(JSON.stringify(H));

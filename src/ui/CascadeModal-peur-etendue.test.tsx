@@ -3,6 +3,7 @@
  * Bande de Peur de combat (LDB 21 l.25) rendue par `CascadeBody` : la barre de DR de la rangée annonce le
  * cumul APRÈS le jet que l'applier de la bande pose (`cumulEtenduDeRangee`). LDB 12 l.170-185
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -31,7 +32,7 @@ afterEach(() => {
 
 describe('Peur de combat entamée — barre de la rangée', () => {
   it('échec DR −2 sur un cumul de 3 (Indice 5) : la barre annonce 1 / 5 DR', () => {
-    useGame.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 })], pendingCascade: null });
+    useGame.setState({ party: [createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 })], pendingCascade: null });
     useGame.getState().lancerLaScene(testScene());
     useGame.getState().lancerLeCombat('enc-mutants');
     useGame.getState().fenetreValider('roundStart');

@@ -4,6 +4,7 @@
  * la Faveur et la préparation de bataille de SON héros, est refusé sur celles du héros d'un autre siège, et ne
  * décide pas des jeux de taverne, ni chez l'hôte ni dans son propre store.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, vi } from 'vitest';
 import { FakeTransport } from './transport.testkit';
 import { HostSession, GuestSession } from './session';
@@ -23,9 +24,9 @@ const HOTE_SEUL = 'L’hôte seul ouvre la table de jeu.';
 
 /** Un héros riche, à PX, qui doit une Faveur Mineure. */
 function heros(label: string, seed: number): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed });
   h.xp = 2000;
-  return withBourseMoney(h, { gold: 20, silver: 0, brass: 0 });
+  return withBourseMoney(h, { gold: 20, silver: 0, brass: 0 }, idsDeTest);
 }
 
 const NET_DE_L_HOTE = (invite: string): NetState => ({

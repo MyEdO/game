@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { Combatant } from '../engine/types';
 import { customTrapping } from '../engine/items';
@@ -50,7 +51,7 @@ describe('Mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.677, #476
   });
 
   it('objet custom SANS capacité ropeMode → le toggle est ignoré même posé', () => {
-    const otherItem = { ...customTrapping('Autre'), uid: 'hp', equipped: true };
+    const otherItem = { ...customTrapping('Autre', idsDeTest), uid: 'hp', equipped: true };
     const atk = mk({ weapons: [harpoon], items: [otherItem] });
     const ctx = weaponContextOf(atk, harpoon, target, { harpoonRopeCut: true });
     expect(ctx.harpoonRopeCut).toBe(false);

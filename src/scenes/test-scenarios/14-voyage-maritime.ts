@@ -1,3 +1,4 @@
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { createHero } from '../../engine/character';
 import { contexteDeNaissanceDObjet, itemFromTrappingById } from '../../engine/items';
 import type { Combatant } from '../../engine/types';
@@ -19,22 +20,22 @@ import { especeDApparence } from '../../data';
 /** Quatre marins couvrant les RÔLES d'équipage essentiels des Tests de voyage (MDG 14) : Capitaine
  *  (Progression), Timonier/Mousse (Manœuvre/Affaler/Entretien), Navigateur (Orientation), Vigie
  *  (Perception au phare). `shipRole` ÉPINGLE le rôle de chacun pour un défaut d'équipage lisible. */
-function crew(): Combatant[] {
-  const cap = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Capitaine Brenner', motivation: 'Test', seed: 4801, id: 'mar-cap' });
+function crew(idNeuf: FabriqueDId): Combatant[] {
+  const cap = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Capitaine Brenner', motivation: 'Test', seed: 4801, id: 'mar-cap' });
   cap.shipRole = 'capitaine';
   renforcerCompetence(cap, 'commandement', 50);
   renforcerCompetence(cap, 'voile', 40, 'cogue');
-  cap.items = [...(cap.items ?? []), itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(cap))!, itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(cap))!];
+  cap.items = [...(cap.items ?? []), itemFromTrappingById('ration', idNeuf, undefined, contexteDeNaissanceDObjet(cap))!, itemFromTrappingById('ration', idNeuf, undefined, contexteDeNaissanceDObjet(cap))!];
   cap.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
 
-  const timo = createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Timonière Hilda', motivation: 'Test', seed: 4802, id: 'mar-timo' });
+  const timo = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Timonière Hilda', motivation: 'Test', seed: 4802, id: 'mar-timo' });
   timo.shipRole = 'timonier';
   renforcerCompetence(timo, 'voile', 55, 'cogue');
   renforcerCompetence(timo, 'ramer', 45);
   renforcerCompetence(timo, 'metier', 40, 'charpentier'); // entretien de la coque au soir
   timo.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F' };
 
-  const navi = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Navigateur Ansmann', motivation: 'Test', seed: 4803, id: 'mar-navi' });
+  const navi = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Navigateur Ansmann', motivation: 'Test', seed: 4803, id: 'mar-navi' });
   navi.shipRole = 'navigateur';
   renforcerCompetence(navi, 'orientation', 55);
   renforcerCompetence(navi, 'savoir', 40, 'oceans'); // bonus d'Orientation au phare (MDG 13 l.335)
@@ -45,7 +46,7 @@ function crew(): Combatant[] {
   navi.spells = ['bienfait-de-bel-shanaar'];
   navi.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
 
-  const vigie = createHero({ speciesId: 'humains-reiklander', careerId: 'eclaireur', label: 'Vigie Perla', motivation: 'Test', seed: 4804, id: 'mar-vigie' });
+  const vigie = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'eclaireur', label: 'Vigie Perla', motivation: 'Test', seed: 4804, id: 'mar-vigie' });
   vigie.shipRole = 'vigie';
   renforcerCompetence(vigie, 'perception', 55);
   renforcerCompetence(vigie, 'voile', 35, 'cogue');
@@ -134,8 +135,8 @@ export const scenario: TestScenario = {
     'Navigateur/Vigie).',
   partyNote: 'Équipage : Capitaine Brenner (Commandement) · Timonière Hilda (Voile/Charpentier) · Navigateur Ansmann (Orientation + Astromancien : Bienfait de Bel Shanaar) · Vigie Perla (Perception)',
   money: { gold: 40, silver: 0, brass: 0 }, // de quoi réparer la coque au port
-  construire: () => ({
-    party: crew(),
+  construire: (idNeuf) => ({
+    party: crew(idNeuf),
     scene: construireDepart(),
     extraScenes: [construireArrivee()],
     worldMap: construireCarte(),

@@ -11,6 +11,7 @@
  * la portée du moteur, et Échap (registre clavier `intent-cancel`) dissout l'intention. Le reste du
  * patron se joue au banc du noyau (`src/noyau/intention-portee.hors-store.test.ts`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { computeRunReach } from '../noyau/combatFlow';
@@ -23,7 +24,7 @@ import { testScene } from '../scenes/test-fixture';
 
 /** Combat témoin : un héros au tour ENTIER, les ennemis parqués au loin (grille libre autour de lui). */
 function setup() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero], screen: 'campaign' });
   useGame.getState().lancerLaScene(testScene());
   useGame.getState().lancerLeCombat('enc-mutants');

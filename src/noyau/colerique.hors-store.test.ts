@@ -3,6 +3,7 @@
  * l'amitié ouvre le Test de Calme Accessible, la durée suit le palier et l'horloge retire le Trait.
  * VDM 10 l.324-332. Décideur non surfacé et lecture d'« amis » : #3045.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineEtapes } from './cascade.testkit';
@@ -45,7 +46,7 @@ const accordes = (c: Combatant) => ({
 
 describe('Colérique hors combat — le lanceur du groupe tranche tout (VDM 10 l.324-330)', () => {
   function auCamp() {
-    const [w, s, p] = pregenParty(PREGEN.sorcier, PREGEN.soldat, PREGEN.pretre);
+    const [w, s, p] = pregenParty(idsDeTest, PREGEN.sorcier, PREGEN.soldat, PREGEN.pretre);
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s, p] } });
     banc.getState().incanterLeSort(w.id, 'colerique', s.id);
     const heros = (id: string) => banc.getState().party.find((c) => c.id === id)!;
@@ -118,7 +119,7 @@ describe('Colérique hors combat — le lanceur du groupe tranche tout (VDM 10 l
 
 describe('Colérique en combat', () => {
   function enCombat(lanceur: number) {
-    const [a, s, p] = pregenParty(lanceur, PREGEN.soldat, PREGEN.pretre);
+    const [a, s, p] = pregenParty(idsDeTest, lanceur, PREGEN.soldat, PREGEN.pretre);
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [a, s, p] } });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -156,7 +157,7 @@ describe('Colérique en combat', () => {
   });
 
   it('un lanceur PNJ sans allié de la cible à désigner : le Trait reste sans effet', () => {
-    const [s] = pregenParty(PREGEN.soldat);
+    const [s] = pregenParty(idsDeTest, PREGEN.soldat);
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [s] } });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

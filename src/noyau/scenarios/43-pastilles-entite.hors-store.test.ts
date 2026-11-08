@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { scenario } from '../../scenes/test-scenarios/43-pastilles-entite';
@@ -8,7 +9,7 @@ import { chebyshev } from '../../engine/grid';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /**
  * PASTILLES D'ENTITÉ — le scénario COUVRE-T-IL vraiment les gestes qu'il annonce ? (#1411 P2-C, R3)
@@ -19,7 +20,7 @@ const scenarioConstruit = scenario.construire();
  * familles d'entités offrent bien leurs gestes à l'actif, à une case, sans un pas de déplacement.
  */
 function ouvrir() {
-  banc.setState({ party: scenario.construire().party });
+  banc.setState({ party: scenario.construire(idsDeTest).party });
   banc.getState().lancerLaScene(scenarioConstruit.scene);
   banc.getState().lancerLeCombat('enc-pastilles');
   banc.getState().fenetreValider('roundStart');

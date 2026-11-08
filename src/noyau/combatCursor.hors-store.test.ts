@@ -3,6 +3,7 @@
  * `jouerLeClicDuCombattant` / `jouerLeClicDeCase` : le geste joué, lu par le commit du curseur, le clic-sol
  * (`useStagePointer.performClick`), la frappe d'une structure et la frise.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { intentionDuClicDeCase, jouerLeClicDeCase, jouerLeClicDuCombattant } from './combatOrParty';
@@ -19,8 +20,8 @@ describe('intentionDuClicDeCase — clic-sol et commit du curseur (mode-aware)',
   let banc: Banc;
   beforeEach(() => { banc = ouvrirLeBanc(); });
   function makeState() {
-    const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
-    const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 10 };
+    const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
+    const ally = makePregens(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 10 };
     const enemy = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 10 }); // adjacent au héros
     const battle = {
       combatants: [hero, ally, enemy], order: ['h1', 'h2', 'e1'], baseOrder: ['h1', 'h2', 'e1'],
@@ -64,8 +65,8 @@ describe('jouerLeClicDuCombattant / jouerLeClicDeCase — le geste du clic, lu d
   beforeEach(() => { banc = ouvrirLeBanc(); });
   /** Le verbe du champ remplacé DANS L'ÉTAT, comme l'enrobage d'intention de l'invité coop (`hote/coop/salon.ts`, `emettreIntentInvite`). */
   function poser() {
-    const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
-    const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 10 };
+    const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
+    const ally = makePregens(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 10 };
     const enemy = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 10 });
     const battle = {
       combatants: [hero, ally, enemy], order: ['h1', 'h2', 'e1'], baseOrder: ['h1', 'h2', 'e1'],

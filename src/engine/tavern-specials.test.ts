@@ -2,6 +2,7 @@
  * Les SPÉCIAUX d'un jeu de taverne (NADJ 16 l.82) et la clause d'égalité déclarée (NADJ 16 l.105),
  * au MOTEUR : `specialsApplicables`, `difficulteDuJoueur`, `resolveTavernRound`, `fastTavernGame`.
  */
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, expect, it } from 'vitest';
 import { makePregens } from '../data/pregens';
 import {
@@ -15,7 +16,7 @@ const cran = (crans: number): TavernSpecial => ({ effet: 'cran', hasTalent: 'tir
 
 /** Un héros, avec ou sans Tireur d'élite. */
 function heros(tireur: boolean): Combatant {
-  const h = makePregens()[0] as Combatant;
+  const h = makePregens(idsDeTest)[0] as Combatant;
   const autres = (h.talents ?? []).filter((t) => t.talentId !== 'tireur-d-elite');
   return { ...h, talents: tireur ? [...autres, { talentId: 'tireur-d-elite', times: 1 }] : autres };
 }

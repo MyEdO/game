@@ -7,6 +7,7 @@
  * nuit `sleepParty` (chemin EAGER — cheat `reposerLeGroupe`, clôture d'interlude) reste testé par
  * rest.hors-store.test / upkeep-cascade.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { itemFromTrappingById } from '../engine/items';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -34,7 +35,7 @@ import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTes
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const ration = (uid: string): ItemInstance => ({ ...itemFromTrappingById('ration')!, uid, enc: 0 });
+const ration = (uid: string): ItemInstance => ({ ...itemFromTrappingById('ration', idsDeTest)!, uid, enc: 0 });
 
 /** Pose la bourse de la BANDE à un montant EXACT : purge toute bourse existante, puis crédite le doyen
  *  (les tests de repos ne vérifient que le TOTAL du groupe, qu'il tienne sur une ou plusieurs bourses). */
@@ -213,7 +214,7 @@ describe('ouvrirLeRepos / choix par héros', () => {
     const sc = emptyScene('scene-test', 10, 10);
     sc.weather = 'pluie';
     banc.setState({ scene: sc });
-    banc.getState().party[1].items!.push({ ...itemFromTrappingById('tente')!, uid: 't', enc: 2, equipped: false });
+    banc.getState().party[1].items!.push({ ...itemFromTrappingById('tente', idsDeTest)!, uid: 't', enc: 2, equipped: false });
     banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
     banc.getState().fenetreValider('rest');
     const cas = banc.getState().pendingCascade!;

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -17,7 +18,7 @@ describe('InspectPanel', () => {
   const render = (c: Parameters<typeof InspectPanel>[0]['combatant']) =>
     renderToStaticMarkup(<InspectPanel combatant={c} onClose={() => {}} />);
 
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
 
   it('un Béni sans Bénédiction mémorisée porte le badge « Lanceur de sorts » (#3059)', () => {
     const beni = { ...hero, spells: [], talents: [{ talentId: 'beni', spec: 'sigmar', times: 1 }] };

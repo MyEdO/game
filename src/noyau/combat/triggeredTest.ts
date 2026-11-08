@@ -74,7 +74,7 @@ export interface ExecCtx {
   /** Libellé de source (journal / ActiveEffect). */
   label: string;
   /** Contexte d'incantation des ops (combat) : sl/durée/location/woundsDealt… (cf. `OpsCtx`). */
-  opsCtx?: Omit<OpsCtx, 'rng'>;
+  opsCtx?: Omit<OpsCtx, 'rng' | 'idNeuf'>;
   /** Jet d'ATTAQUANT DÉJÀ FIGÉ pour les nœuds `test` OPPOSÉS de ce Flow : le producteur l'a jeté
    *  lui-même (`rollFrozenOpposedAttacker`) parce qu'UNE opposition vaut pour N défenseurs — l'embuscade
    *  oppose le MÊME Test de Discrétion à tous les guetteurs (LDB 13 l.77). Absent ⇒ `resolveFlowTest`
@@ -115,23 +115,23 @@ const conditionsDuFlow = (ctx: ExecCtx): ConditionCtx => combatConditionCtx(ctx.
  *    l'y envoyer serait une exception en pleine résolution. */
 export function applyTriggeredTestBranch(
   c: Combatant, t: Pick<TestResult, 'success' | 'sl'>, branches: { onSuccess: Flow; onFail: Flow },
-  exec?: { get: Get; set: SetFn; opsCtx?: ExecCtx['opsCtx']; freeAttack?: ExecCtx['freeAttack']; bladeTrap?: ExecCtx['bladeTrap'] },
+  exec: { get: Get; set: SetFn; opsCtx?: ExecCtx['opsCtx']; freeAttack?: ExecCtx['freeAttack']; bladeTrap?: ExecCtx['bladeTrap'] },
 ): string[] {
   const branch = t.success ? branches.onSuccess : branches.onFail;
   // Référent des Formules (« votre Force Mentale » — Forêt d'épines LDB 48 l.749) : le LANCEUR d'origine
   // (`exec.opsCtx.caster`) quand il est connu (zone de Sort posée par un tiers), sinon `c` lui-même
   // (Mâchoires/Contrôle de la Frénésie : effet auto-porté).
-  const caster = exec?.opsCtx?.caster ?? c;
+  const caster = exec.opsCtx?.caster ?? c;
   // Le contexte d'ops du Flow qui a posé le Test suit sa branche (horloge, libellé, source, durées…) ;
   // `sl` y devient le DR de CE Test.
-  const oc: Omit<OpsCtx, 'rng'> = { ...exec?.opsCtx, caster, sl: t.sl };
+  const oc: Omit<OpsCtx, 'rng' | 'idNeuf'> = { ...exec.opsCtx, caster, sl: t.sl };
   // TROIS raisons de passer par le walker de COMBAT plutôt que par le chemin PUR : une op IMPURE
   // (adossée à un hook), un Test imbriqué (cadence-aware), et — #1508 — une op qui DEMANDE UN DÉ à la
   // porte. Le chemin pur applique par `applyOps` : il tirerait hauteur et Dégâts en silence, alors que
   // le walker passe par `applyLeafOps`, qui les ANNONCE et défère. C'est ici, et nulle part ailleurs,
   // que la branche d'un Test déclenché choisit son chemin : les quatre appelants (bande d'équipage,
   // mono déclenché, traversée de zone, fin de Round) y convergent déjà.
-  if (exec && (flowHasImpureOp(branch) || flowHasTest(branch) || flowHasOpADe(branch))) {
+  if (flowHasImpureOp(branch) || flowHasTest(branch) || flowHasOpADe(branch)) {
     // L'ENTITÉ PORTEUSE (`source`) voyage dans la branche : un SECOND Test qui y est enfoui dérive son
     // enjeu de la même entité que le premier (#1262 V2 L6d).
     runCombatFlow({ get: exec.get, set: exec.set, target: c, caster, label: nomDeSource(oc), opsCtx: oc, ...(exec.freeAttack ? { freeAttack: exec.freeAttack } : {}), ...(exec.bladeTrap ? { bladeTrap: exec.bladeTrap } : {}) }, branch);
@@ -139,7 +139,7 @@ export function applyTriggeredTestBranch(
   }
   // La branche pure relaie le MÊME contexte : un effet actif y est posé ancré à sa source, comme partout
   // ailleurs (`condition` récurrente d'une rangée de Colère, `LDB 40 l.75`).
-  return runPureFlowLines(c, caster, branch, { ...oc, rng: battleRng() });
+  return runPureFlowLines(c, caster, branch, { ...oc, rng: battleRng(), idNeuf: exec.get().forgerUnId });
 }
 
 /** IDENTITÉ d'une étape `triggeredTest` — SOURCE UNIQUE des deux fabriques. La SITUATION entre dans
@@ -298,7 +298,7 @@ export function frozenOpposedBatchStep(
  */
 export function simpleBatchTestStep(
   testers: Combatant[], ft: FlowTest, branches: { onSuccess: Flow; onFail: Flow }, after: Flow,
-  id: string, opsCtx: Omit<OpsCtx, 'rng'> = {},
+  id: string, opsCtx: Omit<OpsCtx, 'rng' | 'idNeuf'> = {},
 ): BuiltCascadeStep | undefined {
   const skillLabel = testSkillLabel(ft) ?? 'Test';
   const participants: BatchParticipant[] = [];
@@ -352,7 +352,7 @@ export function collectRoundEndTestSteps(get: Get, c: Combatant): BuiltCascadeSt
           options: [{ key: 'yes', label: dataLabel(prompt) }, { key: 'no', label: t('opt.renoncer') }],
           defaultChoice: 'no',
           // ENTITÉ PORTEUSE (ids) : le OUI ouvre LE Test — il en dérive son enjeu (#1262 V2 L6d).
-          meta: { choiceYes: eff.flow, choiceNo: EMPTY_FLOW, after: EMPTY_FLOW, opsDeCtx: porterOpsCtx({ rng: battleRng(), caster: c, ...(eff.source ? { source: eff.source } : {}) }) },
+          meta: { choiceYes: eff.flow, choiceNo: EMPTY_FLOW, after: EMPTY_FLOW, opsDeCtx: porterOpsCtx({ idNeuf: get().forgerUnId, rng: battleRng(), caster: c, ...(eff.source ? { source: eff.source } : {}) }) },
         });
         pousseSi(optional, choix);
         continue;
@@ -362,7 +362,7 @@ export function collectRoundEndTestSteps(get: Get, c: Combatant): BuiltCascadeSt
       // l'État/le Trait/le Talent/le symptôme qui l'exige, jamais une fiche générique. C'est AUSSI
       // l'entité dont l'étape DÉRIVE son enjeu quand la donnée n'en déclare pas (#1262 V2 L6d).
       const step = simpleTriggeredTestStep(c, withDerivedStake(ft, eff.source), cc, { onSuccess: eff.flow.success, onFail: eff.flow.fail }, EMPTY_FLOW,
-        { opsDeCtx: porterOpsCtx({ rng: battleRng(), caster: c, ...(eff.source ? { source: eff.source } : {}) }) });
+        { opsDeCtx: porterOpsCtx({ idNeuf: get().forgerUnId, rng: battleRng(), caster: c, ...(eff.source ? { source: eff.source } : {}) }) });
       pousseSi(steps, step);
     }
   }
@@ -398,7 +398,7 @@ function suiteDeCombat(ctx: ExecCtx, porteur: Combatant, oc: OpsCtx, flow: Flow)
  */
 export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
   const stack: Flow[] = [structuredClone(flow)]; // #2097
-  const oc: OpsCtx = { rng: battleRng(), caster: ctx.caster, ...ctx.opsCtx };
+  const oc: OpsCtx = { rng: battleRng(), idNeuf: ctx.get().forgerUnId, caster: ctx.caster, ...ctx.opsCtx };
   while (stack.length) {
     const node = stack.shift()!;
     switch (node.kind) {
@@ -533,7 +533,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     // qui survit à la cadence asynchrone du héros).
     // Le contexte d'ops PORTÉ (`porterOpsCtx`) voyage aussi dans le `meta` : la branche et la continuation
     // rejouées par l'applier gardent l'horloge, la source et le porteur du Flow (#1262 V2 L6d ; #1463).
-    const extraMeta = { opsDeCtx: porterOpsCtx({ rng: battleRng(), ...oc }), ...(ctx.freeAttack ? { freeAttack: ctx.freeAttack } : {}), ...(btFreeze ? { bladeTrap: btFreeze } : {}), ...(ctx.opsCtx?.noReentryOwnTestFailed ? { noOwnTestFailed: true } : {}) };
+    const extraMeta = { opsDeCtx: porterOpsCtx({ idNeuf: ctx.get().forgerUnId, rng: battleRng(), ...oc }), ...(ctx.freeAttack ? { freeAttack: ctx.freeAttack } : {}), ...(btFreeze ? { bladeTrap: btFreeze } : {}), ...(ctx.opsCtx?.noReentryOwnTestFailed ? { noOwnTestFailed: true } : {}) };
     const step = aT && attacker
       ? monoStep({
         id: triggeredTestStepId(c, ft.label, skillLabel), kind: 'triggeredTest', icon: 'nav/dice', rollLabel: skillLabel,
@@ -648,7 +648,7 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
         // CONTEXTE d'ops PORTÉ (sl, horloge, libellé, sort et ENTITÉ PORTEUSE) : la branche le retrouve
         // à la reprise — sans lui, un Test ouvert par le OUI perdrait son enjeu (#1262 V2 L6d) et un effet
         // posé, sa source et sa durée.
-        opsDeCtx: porterOpsCtx({ rng: battleRng(), caster: ctx.caster, ...ctx.opsCtx }),
+        opsDeCtx: porterOpsCtx({ idNeuf: ctx.get().forgerUnId, rng: battleRng(), caster: ctx.caster, ...ctx.opsCtx }),
         ...(ctx.freeAttack ? { freeAttack: ctx.freeAttack } : {}),
       },
     });
@@ -802,7 +802,7 @@ export function bandeTriggeredTest(
  *  ses lignes dans `pendingLogQueue`, SOURCE UNIQUE) — no-op pour la voie cascade (héros manuel, aucune
  *  ligne encore produite au retour de `routeTriggeredTest`, elle en poussera à la résolution du jet). */
 export function testerLaTraverseeDeZone(get: Get, set: SetFn, mover: Combatant, caster: Combatant, flow: Flow, label: string, source?: EffectSource): void {
-  routeTriggeredTest(get, set, mover, caster, flow, { rng: battleRng(), label, ...(source ? { source } : {}) });
+  routeTriggeredTest(get, set, mover, caster, flow, { idNeuf: get().forgerUnId, rng: battleRng(), label, ...(source ? { source } : {}) });
   const battle = get().battle;
   if (!battle) return;
   const drained = drainPendingLog(get, set);

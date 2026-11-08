@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { InitiativeStrip, initiativePhase } from './InitiativeStrip';
@@ -8,10 +9,10 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 function fixtures() {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
   h.id = 'h1';
   h.initiative = 42;
-  const foe = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brigand', seed: 5 }), id: 'e1', kind: 'enemy' as Combatant['kind'], initiative: 31 };
+  const foe = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brigand', seed: 5 }), id: 'e1', kind: 'enemy' as Combatant['kind'], initiative: 31 };
   return { h, foe };
 }
 const noop = () => {};

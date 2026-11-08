@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { areGrappling, setGrapple, clearGrapple, grappleTierMod, grappleEnvMod, peutEtreEmpoigne } from './grapple';
 import { combineMods } from './combat';
@@ -108,7 +109,7 @@ describe('Empoignade — option Dégâts en DONNÉE (GRAPPLE.win.damage) : BF + 
     const actor = C('actor', { characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 50, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } as Combatant['characteristics'] });
     const target = C('target', { characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } as Combatant['characteristics'] });
     const before = target.wounds.current;
-    applyOps(target, GRAPPLE.win.damage, { rng: desDuTest, caster: actor, sl: 3 }); // BF(5) + DR(3) = 8, − BE(3) = 5
+    applyOps(target, GRAPPLE.win.damage, { idNeuf: idsDeTest, rng: desDuTest, caster: actor, sl: 3 }); // BF(5) + DR(3) = 8, − BE(3) = 5
     expect(before - target.wounds.current).toBe(5);
   });
   it('une cible BLINDÉE subit AUTANT qu’une cible nue (PA ignorés)', () => {
@@ -118,8 +119,8 @@ describe('Empoignade — option Dégâts en DONNÉE (GRAPPLE.win.damage) : BF + 
       characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } as Combatant['characteristics'],
       armour: { tete: 5, brasG: 5, brasD: 5, corps: 5, jambeG: 5, jambeD: 5 },
     });
-    const dn = naked.wounds.current; applyOps(naked, GRAPPLE.win.damage, { rng: desDuTest, caster: actor, sl: 3 });
-    const da = armoured.wounds.current; applyOps(armoured, GRAPPLE.win.damage, { rng: desDuTest, caster: actor, sl: 3 });
+    const dn = naked.wounds.current; applyOps(naked, GRAPPLE.win.damage, { idNeuf: idsDeTest, rng: desDuTest, caster: actor, sl: 3 });
+    const da = armoured.wounds.current; applyOps(armoured, GRAPPLE.win.damage, { idNeuf: idsDeTest, rng: desDuTest, caster: actor, sl: 3 });
     expect(dn - naked.wounds.current).toBe(da - armoured.wounds.current); // PA ignorés → même perte
     expect(da - armoured.wounds.current).toBe(5);
   });
@@ -144,14 +145,14 @@ describe('peutEtreEmpoigne', () => {
   it('GRAPPLE.init contre une Structure ne pose ni Empoignade ni Empêtré', () => {
     const lutteur = C('lutteur');
     const mur = C('mur', { bodyShape: 'structure' } as Partial<Combatant>);
-    applyOps(mur, GRAPPLE.init, { rng: desDuTest, caster: lutteur });
+    applyOps(mur, GRAPPLE.init, { idNeuf: idsDeTest, rng: desDuTest, caster: lutteur });
     expect(areGrappling(lutteur, mur)).toBe(false);
     expect(mur.conditions).toEqual([]);
   });
   it('GRAPPLE.init contre un humanoïde pose Empoignade et Empêtré', () => {
     const lutteur = C('lutteur');
     const proie = C('proie', { bodyShape: 'humanoide' } as Partial<Combatant>);
-    applyOps(proie, GRAPPLE.init, { rng: desDuTest, caster: lutteur });
+    applyOps(proie, GRAPPLE.init, { idNeuf: idsDeTest, rng: desDuTest, caster: lutteur });
     expect(areGrappling(lutteur, proie)).toBe(true);
     expect(proie.conditions.map((c) => c.id)).toContain('empetre');
   });

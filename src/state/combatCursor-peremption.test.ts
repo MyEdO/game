@@ -5,6 +5,7 @@
  * garde la main. Chaque cas passe par le flux que le
  * jeu appelle ; le curseur se pose par ses actions (`moveCursor`, `snapCursorToTarget`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
@@ -23,7 +24,7 @@ const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'ran
 
 /** Duel sur scène vide : le héros H joue au tour `turn` de l'ordre [H, E]. */
 function duel(turn: 0 | 1) {
-  const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
+  const H = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
   H.pos = { x: 0, y: 0 };
   const E: Combatant = JSON.parse(JSON.stringify(H));
   E.id = 'enemy-0';
@@ -86,7 +87,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
   });
 
   it('enfourcher une monture Nerveux qui précède le cavalier décale le tour, pas la main : le curseur survit', () => {
-    const hero = makePregens()[0];
+    const hero = makePregens(idsDeTest)[0];
     hero.pos = { x: 5, y: 5 };
     const horse = spawnEnemy({ ref: 'cheval' }, 'horse', { x: 6, y: 5 });
     horse.traits = [{ id: 'nerveux' }, { id: 'taille', arg: 'Grande' }] as never;

@@ -7,6 +7,7 @@
  * (`campaignNarratif`). Le reload se simule par `resetSceneRegistry()` (#777) : le registre repart de zéro,
  * scene-b n'y est réenregistrée que par le chargement de la save.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { resetSceneRegistry } from './monde/registreDesScenes';
@@ -76,7 +77,7 @@ describe('#766 — save de campagne auto-suffisante et rejouable', () => {
 
   it('reload (registre vidé) : campaignDoc re-registre la scène B → quitterLaScene réussit', () => {
     // 1. Charge un projet MULTI-scènes par le chemin réel, puis sauve.
-    banc.setState({ party: makePregens().slice(0, 1), battle: null });
+    banc.setState({ party: makePregens(idsDeTest).slice(0, 1), battle: null });
     banc.getState().chargerLeProjet({ scenes: [scene('scene-a'), scene('scene-b')], entryId: 'scene-a', worldMap, narratif, projet: null });
     expect(banc.getState().scene?.id).toBe('scene-a');
     expect(banc.getState().campaignDoc?.scenes.map((s) => s.id)).toEqual(['scene-a', 'scene-b']);
@@ -84,7 +85,7 @@ describe('#766 — save de campagne auto-suffisante et rejouable', () => {
 
     // 2. Reload : `sceneRegistry` reparti de zéro, scene-b INCONNUE.
     resetSceneRegistry();
-    banc.setState({ party: makePregens().slice(0, 1) });
+    banc.setState({ party: makePregens(idsDeTest).slice(0, 1) });
     banc.getState().chargerLeProjet({ scenes: [scene('scene-solo')], entryId: 'scene-solo', projet: null });
     banc.getState().quitterLaScene('scene-b');
     expect(banc.getState().scene?.id).toBe('scene-solo'); // scene-b introuvable → transition ignorée
@@ -102,7 +103,7 @@ describe('#766 — save de campagne auto-suffisante et rejouable', () => {
   });
 
   it('l’Arène lancée sans choix (#1692) : sa save porte son paquet, et ses zones résolvent au rechargement', () => {
-    banc.setState({ party: makePregens().slice(0, 1), battle: null });
+    banc.setState({ party: makePregens(idsDeTest).slice(0, 1), battle: null });
     const arene = campagneALancer(null);
     expect(lancerCampagne(banc.getState, null)).toBeNull();
     expect(banc.getState().campaignDoc?.scenes.map((s) => s.id)).toEqual(arene.scenes.map((s) => s.id));
@@ -122,7 +123,7 @@ describe('#2206 — l’identité du projet et la provenance du document remis s
 
   /** Un projet `snap-projet` chargé par le chemin réel, son document remis par l'effet `document`. */
   function charger(): void {
-    banc.setState({ party: makePregens().slice(0, 1), battle: null });
+    banc.setState({ party: makePregens(idsDeTest).slice(0, 1), battle: null });
     banc.getState().chargerLeProjet({ scenes: [scene('scene-a')], entryId: 'scene-a', narratif: avecDocument, projet: { id: 'snap-projet' } });
     applyEffects(banc.getState, banc.setState, [{ type: 'document', documentId: 'snap-doc' }]);
   }

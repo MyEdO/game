@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { sceneFearSources, openScriptedPsych } from './encounterPsychFlow';
@@ -50,7 +51,7 @@ function scene(entities: SceneEntity[]): Scene {
 
 /** Héros au Calme bas (FM 1, 0 avance) → Test simple raté de façon déterministe (cible basse). */
 function timoreux(name: string, fm = 1) {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1 });
   h.characteristics['force-mentale'] = fm;
   h.skills = []; // pas d'avance de Calme → calmeValue = FM brut
   return h;

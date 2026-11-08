@@ -3,6 +3,7 @@
  * Fenêtre de soin (`HealModal` → `useHealJetProps`) : le Test (Guérison / Dextérité) et les Bandages engagés, lus de
  * `fenetreDuSoin`, chaque option fermée avec sa raison ; la ligne du jet nomme le Test déclaré. LDB 74 l.41.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -43,7 +44,7 @@ const bouton = (texte: string) => garanti([...host.querySelectorAll('button')].f
 const raison = (b: HTMLButtonElement) => document.getElementById(b.getAttribute('aria-describedby') ?? '')?.textContent ?? null;
 
 function poser() {
-  const doc = mk('Doc', { skills: [{ id: 'guerison', advances: 20, characteristic: 'intelligence' }] as never, items: [{ ...garanti(itemFromTrappingById('bandages'), 'bandages', 'Bandages'), uid: 'b1' }] });
+  const doc = mk('Doc', { skills: [{ id: 'guerison', advances: 20, characteristic: 'intelligence' }] as never, items: [{ ...garanti(itemFromTrappingById('bandages', idsDeTest), 'bandages', 'Bandages'), uid: 'b1' }] });
   const al = mk('Al', { conditions: [{ id: 'hemorragique', value: 2 }] });
   useGame.setState({
     battle: null, party: [doc, al],

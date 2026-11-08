@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { useGame } from '../../state/store';
 import { scenario } from '../../scenes/test-scenarios/siege-enceinte';
@@ -5,7 +6,7 @@ import { buildTokens } from './tokens';
 import { isOverhang, capsSolid } from '../../noyau/monde/volume/floors';
 import { computeStateVisibleAndLight } from '../../noyau/visionState';
 
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 describe('Siège — défendre la muraille (siege-enceinte)', () => {
   /**
@@ -15,7 +16,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
    * l'écran : brouillard réel et `activeZ` du combattant actif.
    */
   it('RENDU : depuis la cour, la garnison du chemin de ronde (défenseurs ET pièces servies) sort en jetons', () => {
-    useGame.setState({ party: scenario.construire().party });
+    useGame.setState({ party: scenario.construire(idsDeTest).party });
     useGame.getState().lancerLaScene(scenarioConstruit.scene);
     useGame.getState().lancerLeCombat('assaut');
     useGame.getState().fenetreValider('roundStart');

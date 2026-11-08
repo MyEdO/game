@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyCast } from './combatFlow';
@@ -25,7 +26,7 @@ beforeEach(() => {
 
 describe('Vol de vie — lifeSteal + casterOps', () => {
   it('le lanceur draine ⌈dégâts/2⌉ Blessures et perd son propre État Exténué', () => {
-    const [w, cible] = pregenParty(PREGEN.sorcier, PREGEN.soldat);
+    const [w, cible] = pregenParty(idsDeTest, PREGEN.sorcier, PREGEN.soldat);
     w.wounds.current = w.wounds.max - 6;
     w.conditions = [{ id: 'extenue', value: 1 }];
     banc.setState({ party: [w, cible] as Combatant[] });
@@ -40,7 +41,7 @@ describe('Vol de vie — lifeSteal + casterOps', () => {
 
 describe('Caresse de Laniph — lifeSteal ⌊dégâts/2⌋', () => {
   it('le lanceur récupère la moitié (arrondie au plancher) des Blessures infligées', () => {
-    const [w, cible] = pregenParty(PREGEN.sorcier, PREGEN.soldat);
+    const [w, cible] = pregenParty(idsDeTest, PREGEN.sorcier, PREGEN.soldat);
     w.wounds.current = w.wounds.max - 4;
     banc.setState({ party: [w, cible] as Combatant[] });
     const res: CastResult & Partial<MissileResult> = { ...ok(1), hit: true, location: 'corps', damage: 6, woundsLost: 5, defenderDefeated: false };
@@ -52,10 +53,10 @@ describe('Caresse de Laniph — lifeSteal ⌊dégâts/2⌋', () => {
 
 describe('zone de soin (op:heal) — Sang de la Terre', () => {
   it('rend (BFM) Blessures à qui stationne dans la zone, sans dépasser le max', () => {
-    const caster = pregen(PREGEN.sorcier); // BFM connu via ses caracs
+    const caster = pregen(idsDeTest, PREGEN.sorcier); // BFM connu via ses caracs
     const victim = blessuresSurLeProfil({ ...caster, id: 'v', label: 'V', wounds: blessuresDeBase(30, 5) }) as Combatant;
     const bfm = Math.floor(caster.characteristics['force-mentale'] / 10);
-    const log = applyOps(victim, [{ op: 'heal', amount: { bonusOf: 'force-mentale' } }], { rng: desDuTest, caster, label: 'Sang de la Terre' });
+    const log = applyOps(victim, [{ op: 'heal', amount: { bonusOf: 'force-mentale' } }], { idNeuf: idsDeTest, rng: desDuTest, caster, label: 'Sang de la Terre' });
     expect(victim.wounds.current).toBe(5 + bfm);
     expect(log.join(' ')).toContain('regagne');
   });

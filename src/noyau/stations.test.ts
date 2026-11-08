@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { postesToStations, battleScenesToStations } from './stations';
 import { posteAnchor, applyShipPostes } from './monde/shipPostes';
@@ -19,7 +20,7 @@ const mkCrew = (id: string): Combatant =>
     wounds: blessuresDeBase(12) })) as unknown as Combatant;
 
 const mkPoste = (engineId: string, crewIds: string[], side?: FireArc): ShipPoste =>
-  ({ item: itemFromTrappingById(engineId)!, crewIds, ...(side ? { side } : {}) });
+  ({ item: itemFromTrappingById(engineId, idsDeTest)!, crewIds, ...(side ? { side } : {}) });
 
 const mkHull = (id: string, kind: Combatant['kind'], postes: ShipPoste[], pos = { x: 5, y: 7 }, footprint?: number): Combatant =>
   (blessuresSurLeProfil({ id, name: id, kind, pos, conditions: [], skills: [], talents: [], weapons: [], postes,
@@ -143,13 +144,13 @@ describe('posteAnchor — ordre de résolution', () => {
     ({ id: 'h', name: 'h', kind: 'enemy', pos, ...(footprint ? { footprint } : {}) }) as unknown as Combatant;
 
   it('`poste.anchor` authoré fait foi (par-dessus deck-slot / empreinte)', () => {
-    const poste: ShipPoste = { item: itemFromTrappingById('baliste')!, side: 'tribord', anchor: { x: 9, y: 9, z: 1 } };
+    const poste: ShipPoste = { item: itemFromTrappingById('baliste', idsDeTest)!, side: 'tribord', anchor: { x: 9, y: 9, z: 1 } };
     const deck: ShipDeck = { ascii: [], postes: [{ pos: { x: 1, y: 1 }, side: 'tribord' }] };
     expect(posteAnchor(hull({ x: 5, y: 5 }, 3), poste, { heading: 'N', deck })).toEqual({ x: 9, y: 9, z: 1 });
   });
 
   it('deck-slot du même bord utilisé HORS échelle mer seulement', () => {
-    const poste: ShipPoste = { item: itemFromTrappingById('baliste')!, side: 'tribord' };
+    const poste: ShipPoste = { item: itemFromTrappingById('baliste', idsDeTest)!, side: 'tribord' };
     const deck: ShipDeck = { ascii: [], postes: [{ pos: { x: 2, y: 3 }, side: 'tribord' }, { pos: { x: 8, y: 3 }, side: 'babord' }] };
     // hors mer : le slot du bord tribord fait foi
     expect(posteAnchor(hull({ x: 5, y: 5 }), poste, { deck })).toEqual({ x: 2, y: 3 });
@@ -158,7 +159,7 @@ describe('posteAnchor — ordre de résolution', () => {
   });
 
   it('empreinte>1 + arc + cap → décalage HORS-CENTRE, deux bords donnent deux cases distinctes', () => {
-    const item = itemFromTrappingById('baliste')!;
+    const item = itemFromTrappingById('baliste', idsDeTest)!;
     const tribord: ShipPoste = { item, side: 'tribord' };
     const babord: ShipPoste = { item, side: 'babord' };
     const h = hull({ x: 10, y: 10 }, 3); // step = floor(3/2) = 1
@@ -170,7 +171,7 @@ describe('posteAnchor — ordre de résolution', () => {
   });
 
   it('sans empreinte/side/cap → pos de coque telle quelle ; sans pos → undefined', () => {
-    const poste: ShipPoste = { item: itemFromTrappingById('baliste')! };
+    const poste: ShipPoste = { item: itemFromTrappingById('baliste', idsDeTest)! };
     expect(posteAnchor(hull({ x: 4, y: 6 }), poste)).toMatchObject({ x: 4, y: 6 });
     expect(posteAnchor(hull(undefined), poste)).toBeUndefined();
   });

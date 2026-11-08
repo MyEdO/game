@@ -3,6 +3,7 @@
  * Bande de Peur de combat (LDB 21 l.25) rendue par `CascadeBody` : la rangée d'un héros qui porte le jeton de
  * Convalescence offre l'inversion, et le bouton annonce l'issue que la rangée écrira. ADE II 09 l.33, LDB 12 l.42
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -33,7 +34,7 @@ afterEach(() => {
 
 /** Bande de Peur ouverte par le producteur du jeu, la rangée du héros posée à cible 55, dé 64. */
 function bandeDePeur(jeton: boolean): void {
-  useGame.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 })], pendingCascade: null });
+  useGame.setState({ party: [createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 })], pendingCascade: null });
   useGame.getState().lancerLaScene(testScene());
   useGame.getState().lancerLeCombat('enc-mutants');
   useGame.getState().fenetreValider('roundStart');
@@ -46,7 +47,7 @@ function bandeDePeur(jeton: boolean): void {
   H.pos = { x: 10, y: 10 };
   E.pos = { x: 11, y: 10 };
   H.psychState = [{ type: 'peur', sourceId: E.id, indice: 5, calmeDR: 3, lastTestRound: b.round - 2 }];
-  if (jeton) applyOps(H, [{ op: 'grantReverseToken', skill: { id: 'calme' }, contexte: 'psych' }], { rng: makeRNG(1), label: 'Convalescence' });
+  if (jeton) applyOps(H, [{ op: 'grantReverseToken', skill: { id: 'calme' }, contexte: 'psych' }], { idNeuf: idsDeTest, rng: makeRNG(1), label: 'Convalescence' });
   useGame.setState({ battle: { ...b, turn: b.order.indexOf(H.id) }, pendingCascade: null });
   openRoundEndCascade(useGame.getState, useGame.setState);
   const pc = useGame.getState().pendingCascade!;

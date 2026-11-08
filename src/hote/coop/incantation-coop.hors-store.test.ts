@@ -4,6 +4,7 @@
  * masque près (les refus qui jugent le siège) ; l'hôte est refusé sur l'Incantation Critique du lanceur de l'invité,
  * l'invité la tranche. LDB 46 l.26-32.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { FakeTransport } from './transport.testkit';
 import { HostSession, GuestSession } from './session';
@@ -24,7 +25,7 @@ const NET = (mode: 'host' | 'guest', mySeat: number, invite: string): NetState =
 
 /** Un sorcier en Langue (Magick) 60 : le dé 11 est un double réussi. */
 function sorcier(id: string): Combatant {
-  const h = pregen(PREGEN.sorcier);
+  const h = pregen(idsDeTest, PREGEN.sorcier);
   h.id = id; h.label = id;
   h.spells = ['arme-aethyrique'];
   h.skills = [...h.skills.filter((s) => s.id !== 'langue'), { id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 60 }] as typeof h.skills;

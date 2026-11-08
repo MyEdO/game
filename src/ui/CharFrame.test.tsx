@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as relations from '../engine/relations';
 import { createHero } from '../engine/character';
@@ -21,7 +22,7 @@ afterEach(() => {
 });
 
 function heros(id: string): Combatant {
-  return { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 3 }), id, pos: { x: 1, y: 1 } };
+  return { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 3 }), id, pos: { x: 1, y: 1 } };
 }
 
 describe('CharFrame — identité du repère de sol', () => {

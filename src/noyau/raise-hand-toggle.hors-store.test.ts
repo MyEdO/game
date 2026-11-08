@@ -6,6 +6,7 @@
  * le snapshot, tous les clients le voient — ce que le test de RÉPLICATION ci-dessous mesure sur le
  * sérialiseur réel.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { actionGate } from './actionRegistry';
 import { ROUTES, intentAllowedFor, withActingSeat } from './netOwnership';
@@ -19,7 +20,7 @@ import { serializeMessage, parseMessage } from '../hote/coop/protocol';
 import type { Combatant } from '../engine/types';
 
 function combat(mode: 'local' | 'host' | 'guest' = 'host') {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 4 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 4 });
   h.id = 'h1';
   h.pos = { x: 2, y: 2 };
   banc.setState({

@@ -1243,7 +1243,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       }
       const s = g();
       if (seed != null) s.ensemencerLeTirage(seed);
-      s.fixerLeGroupe(makeShowcaseParty()); // campagnes built-in sans pré-tirés propres — groupe canonique (4 piliers)
+      s.fixerLeGroupe(makeShowcaseParty(s.forgerUnId)); // campagnes built-in sans pré-tirés propres — groupe canonique (4 piliers)
       s.setPendingCampaign(lancee);
       const refus = lancerCampagne(g, lancee, sceneId);
       if (refus) return `✗ campagne « ${c.label} » refusée — ${refus}`;
@@ -1269,7 +1269,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const s = g();
       if (s.battle) return '✗ combat en cours — impossible d\'ouvrir un interlude (voir __wfrp.killEnemies())';
       if (s.interlude) return `interlude déjà ouvert (${Object.keys(s.interlude.perHero).length} héros) — écran 'interlude', à conduire à la main`;
-      if (!s.party.length) s.fixerLeGroupe(makeShowcaseParty()); // pas de groupe chargé → 4 piliers canoniques
+      if (!s.party.length) s.fixerLeGroupe(makeShowcaseParty(s.forgerUnId)); // pas de groupe chargé → 4 piliers canoniques
       s.ouvrirLInterlude(weeks);
       const after = useGame.getState();
       if (!after.interlude) return '✗ interlude non ouvert — voir __wfrp.state()/__wfrp.log()';
@@ -1565,7 +1565,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         const pv = useGame.getState().pendingVictory;
         const t = trappingsInstanciables().find((x) => x.qualities?.length);
         if (pv && t) {
-          const { gear } = gearFromEffects([{ type: 'giveTrapping', trappingId: t.id }], objetDuNarratif(useGame.getState().campaignNarratif));
+          const { gear } = gearFromEffects([{ type: 'giveTrapping', trappingId: t.id }], objetDuNarratif(useGame.getState().campaignNarratif), useGame.getState().forgerUnId);
           useGame.setState({ pendingVictory: { ...pv, gear: [...(pv.gear ?? []), ...gear] } });
           lootNote = ` — butin qualité ajouté : ${t.label} (${t.qualities.map((q) => q.id).join(', ')})`;
         } else if (!pv) {
@@ -1585,7 +1585,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!target) return `✗ « ${id} » introuvable dans le combat — voir __wfrp.battle()`;
       if (typeof n !== 'number' || !Number.isFinite(n)) return `✗ Dégâts « ${String(n)} » : un nombre fini est attendu`;
       const caster = s.battle.combatants.find((c) => c.kind === 'hero' && !isOutOfAction(c)) ?? target;
-      const lines = applyOps(target, [{ op: 'wounds', amount: n }], { rng: battleRng(), caster });
+      const lines = applyOps(target, [{ op: 'wounds', amount: n }], { idNeuf: useGame.getState().forgerUnId, rng: battleRng(), caster });
       useGame.setState({
         battle: { ...s.battle, log: [...s.battle.log, ev('info', `Recette : ${n} Dégâts infligés à ${target.label}.`), ...lines.map((l) => ev('info', l))] },
       });

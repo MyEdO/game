@@ -5,6 +5,7 @@
  * le prix plancher au meilleur Marchandage). MDG 12 l.195-364 ; MDG 12 l.70-75 ; MDG 15 l.319-349 ; MDG 15 l.335 ;
  * LDB 59 l.43.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -35,7 +36,7 @@ const COGUE = findVehicleById('cogue')!;
 function ouvrir(vessel: CampaignVessel): void {
   const port = structuredClone(carte.places[0].port!);
   useGame.setState({
-    party: makePregens().slice(0, 1).map((h) => ({ ...h, talents: [], items: (h.items ?? []).filter((i) => i.trappingId !== 'bourse') })),
+    party: makePregens(idsDeTest).slice(0, 1).map((h) => ({ ...h, talents: [], items: (h.items ?? []).filter((i) => i.trappingId !== 'bourse') })),
     possessions: [], vessel, worldMap: carte, journal: [], battle: null, travelPlan: null,
     port: { placeId: 'A', label: 'Salzenmund', port, offers: [{ cargoId: 'bois-mer', label: 'Bois', enc: 5, basePrice: 10, surplus: false }] },
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },

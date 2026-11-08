@@ -82,7 +82,7 @@ export function jouerUnGeste(r: PartieRejouee, lu: Geste): LigneNumerotee[] {
   // Le moteur mute en place (combattants, scène) : l'empreinte se prend AVANT l'appel, jamais sur l'état d'avant relu après.
   const avant = r.partie.etat();
   const faitsAvant = empreinteDesFaits(avant);
-  const refusAvant = avant.refus?.nonce;
+  const refusAvant = avant.refus;
   const resultat = envoyerLIntention(r.partie, intention);
   // Un geste a un effet s'il change les FAITS ou programme une suite ; un événement émis seul (`move_blocked`) informe.
   if (!resultat.evenements.some((e) => e.type === 'programme') && empreinteDesFaits(r.partie.etat()) === faitsAvant) {
@@ -140,8 +140,8 @@ const empreinteDesFaits = (etat: Jeu): string => empreinte({ ...etat, ...tableTo
 
 /** Ce que le jeu a dit d'un geste sans effet : le refus neuf, sinon les lignes du journal de la partie, sinon les événements
  *  informatifs émis (`move_blocked`). */
-function ceQueDitLeJeu(refusAvant: number | undefined, apres: Jeu, resultat: ResultatDeLAppel): string {
-  if (apres.refus && apres.refus.nonce !== refusAvant) return ` : ${apres.refus.texte}`;
+function ceQueDitLeJeu(refusAvant: Jeu['refus'], apres: Jeu, resultat: ResultatDeLAppel): string {
+  if (apres.refus && apres.refus !== refusAvant) return ` : ${apres.refus.texte}`;
   const dites = resultat.journal.flatMap((l) => (l.de === 'journal' ? [l.texte] : []));
   if (dites.length) return ` : ${dites.join(' ')}`;
   const emis = resultat.evenements.flatMap((e) => (e.type === 'emis' ? [e.evt] : []));

@@ -2,6 +2,7 @@
  * Lot E — compléments Corruption : Âme pure (LDB 10, seuil +niveau), « Je te renie ! »
  * (LDB 17 l.67, refus de mutation contre 1 Résilience), exposition par le Trait Corruption.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { gainCorruption } from './corruptionFlow';
@@ -17,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Sans Talent aléatoire (`talentsRolled: false`) : aucun tirage d'Âme pure (LDB 10 l.52). */
 function hero(): Combatant {
-  return createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: `pregen-${PREGEN.soldat}`, seed: PREGEN.soldat, talentsRolled: false });
+  return createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: `pregen-${PREGEN.soldat}`, seed: PREGEN.soldat, talentsRolled: false });
 }
 
 beforeEach(() => {

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import type { JSX } from 'react';
 // @vitest-environment jsdom
 /**
@@ -62,7 +63,7 @@ afterEach(() => {
 // LE PAS, AU CHEMIN RÉEL — `MondeDeCampagne` monté sur le store, pas clavier compris
 // ————————————————————————————————————————————————————————————————
 
-const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 7 });
+const HÉROS = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 7 });
 
 /** Scène d'ARÈNE : douze décors semés autour du groupe (assez de sujets pour qu'un rebuild se voie)
  *  et un MUR qui coupe la vue — sans lui, tout est vu dès le montage et un pas ne découvre RIEN : le

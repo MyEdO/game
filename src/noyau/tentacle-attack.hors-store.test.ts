@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { availableAttacks } from './combatManeuvers';
@@ -25,7 +26,7 @@ const mutCornes = () => rollMutation('physique', deFixe(83)); // Cornes asymétr
 
 describe('armes naturelles de mutation (recomputeLoadout)', () => {
   it('trait Tentacules → arme Tentacule (+BF) ; Cornes asymétriques → arme Cornes (+BF)', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     attachMutation(hero, mutTentacule(), desDuTest);
     attachMutation(hero, mutCornes(), desDuTest);
     recomputeLoadout(hero);
@@ -40,7 +41,7 @@ describe('armes naturelles de mutation (recomputeLoadout)', () => {
   });
 
   it('sans mutation : aucune arme naturelle dérivée', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     recomputeLoadout(hero);
     expect(hero.weapons.some((w) => w.natural)).toBe(false);
   });
@@ -48,7 +49,7 @@ describe('armes naturelles de mutation (recomputeLoadout)', () => {
 
 describe('Attaque gratuite de Tentacule (store)', () => {
   function setup(withTentacle = true) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

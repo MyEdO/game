@@ -4,6 +4,7 @@
  * de combat. Le pendant `kind:'entity'` (PNJ authoré) vit dans `combat-entity-reconcile.hors-store.test.ts` ; le
  * volet persistance (save/reload, élagage au chargement) dans `seating-persistence`/`sceneInstance`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { emptyScene, type Scene, type SceneEntity } from './monde/scene';
@@ -133,7 +134,7 @@ describe('mort / indisponibilité d’un occupant', () => {
   });
 
   it('un PNJ attablé mis hors de combat libère sa place par `notifySlain`', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [h], battle: null, journal: [] });
     banc.getState().lancerLaScene(testScene());
     const sc = banc.getState().scene!;
@@ -153,7 +154,7 @@ describe('mort / indisponibilité d’un occupant', () => {
 
 describe('ouverture de combat — le MENEUR assis se lève avec les autres enrôlés', () => {
   it('sa place est libérée dans l’écriture de pose du combat', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [h], battle: null });
     banc.getState().lancerLaScene(testScene());
     const sc = banc.getState().scene!;

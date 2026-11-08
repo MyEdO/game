@@ -4,6 +4,7 @@
  * le siège que sa déclaration nomme (`CHOIX_DES_FENETRES`, `netOwnership.ROUTES`) : l'hôte seul, ou le propriétaire de
  * la fenêtre nommée, jamais celui de la modale qui tient la main.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
@@ -20,7 +21,7 @@ import type { Combatant } from '../engine/types';
 
 /** Coop : l'hôte (siège 0) et un invité (siège 1), un héros chacun. */
 function hoteEtUnInvite(banc: Banc): { a: string; b: string } {
-  const [a, b] = pregenParty(PREGEN.soldat, PREGEN.tueur);
+  const [a, b] = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.tueur);
   banc.setState({ party: [a, b], net: { ...initialNet(), mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Invité' }, ownership: { [a.id]: 0, [b.id]: 1 }, slots: [1, 1, 0, 0] } });
   return { a: a.id, b: b.id };
 }
@@ -117,7 +118,7 @@ describe('fenetreChoisir', () => {
     function semaine(banc: Banc, bourse = 5): { a: string; b: string } {
       const { a, b } = hoteEtUnInvite(banc);
       banc.setState({
-        party: banc.getState().party.map((h) => withBourseMoney(h.id === a ? { ...h, skills: [...h.skills, { id: 'metier', spec: 'cartographe', advances: 10 }] } as Combatant : h, { gold: bourse, silver: 0, brass: 0 })),
+        party: banc.getState().party.map((h) => withBourseMoney(h.id === a ? { ...h, skills: [...h.skills, { id: 'metier', spec: 'cartographe', advances: 10 }] } as Combatant : h, { gold: bourse, silver: 0, brass: 0 }, idsDeTest)),
         vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [] },
         pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } },
       } as never);
@@ -186,7 +187,7 @@ describe('fenetreChoisir', () => {
       ferme();
       banc.getState().fenetreChoisir('seaActivities', 'activite', 'commerce-opportunite', a);
       banc.getState().fenetreChoisir('seaActivities', 'investir', 10, a);
-      reedite(withBourseMoney(heros(), { gold: 0, silver: 0, brass: 0 }));
+      reedite(withBourseMoney(heros(), { gold: 0, silver: 0, brass: 0 }, idsDeTest));
       ferme();
       banc.getState().fenetreChoisir('seaActivities', 'investir', 5, a);
       expect(refusDeLaValidation(banc.getState(), 'seaActivities'), 'la mise reprise dans la bourse qui reste').toBeNull();

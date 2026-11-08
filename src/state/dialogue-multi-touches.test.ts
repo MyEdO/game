@@ -4,13 +4,14 @@
  * donnée. La reprise par `when` et le rang des réponses se jouent au banc du noyau
  * (`src/noyau/scenarios/dialogue-multi.hors-store.test.ts`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
 import { ouvrirDialogue } from '../noyau/dialogue';
 import { runBindingById } from './clavier/keybindings';
 import { scenario } from '../scenes/test-scenarios/dialogue-multi';
 
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 const tablee = scenarioConstruit.scene.dialogues.find((d) => d.id === 'dlg-tablee')!;
 const get = useGame.getState;
 
@@ -23,7 +24,7 @@ describe('dialogue-multi — la touche du rang choisit la réponse visible', () 
   it('2ᵉ passage : Digit1 choisit la 1ʳᵉ réponse visible', () => {
     useGame.setState({
       screen: 'campaign', mode: 'exploration', battle: null, scene: scenarioConstruit.scene, flags: {},
-      party: scenario.construire().party, dialogueHistory: [], merchant: null, document: null, pendingTest: null,
+      party: scenario.construire(idsDeTest).party, dialogueHistory: [], merchant: null, document: null, pendingTest: null,
     });
     parlerAGustav();
     for (const noeud of ['a1', 'a2', 'a3', 'a4']) {

@@ -68,5 +68,5 @@ export const scenario: TestScenario = {
     "influençable purpose:'pursuite', UNE bande par manche — une rangée par coureur) dès l'entrée ; rattrapage " +
     '(Distance ≤ 0) bascule en combat contre les mêmes brigands, évasion (Distance ≥ 10) se dénoue au récit.',
   partyNote: 'Groupe fixe (pré-tirés)',
-  construire: () => ({ party: makePregens(), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireScene() }),
 };

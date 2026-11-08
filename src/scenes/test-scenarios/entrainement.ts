@@ -1,3 +1,4 @@
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { createHero } from '../../engine/character';
 import { acquerirTalent } from '../../engine/careerSlots';
 import { contexteDeNaissanceDObjet, itemFromTrappingById, loadoutCreate, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
@@ -34,8 +35,8 @@ const MANNEQUIN: CustomStatblock = { type: 'statblock',
 };
 
 /** Tireur humain : arbalète (Recharge 1 → modale de rechargement) + carreaux + LANTERNE portée (halo). */
-function tireur(): Combatant {
-  const h = createHero({
+function tireur(idNeuf: FabriqueDId): Combatant {
+  const h = createHero({ idNeuf,
     speciesId: 'humains-reiklander',
     careerId: 'soldat',
     label: 'Tireur (entraînement)',
@@ -43,10 +44,10 @@ function tireur(): Combatant {
     seed: 3101,
     id: 'tr-tireur',
   });
-  const arb = itemFromTrappingById('arbalete', undefined, contexteDeNaissanceDObjet(h))!; // Recharge 1 + Empaleuse
+  const arb = itemFromTrappingById('arbalete', idNeuf, undefined, contexteDeNaissanceDObjet(h))!; // Recharge 1 + Empaleuse
   arb.equipped = true;
-  const carreaux = itemFromTrappingById('carreau', undefined, contexteDeNaissanceDObjet(h))!;
-  const lant = itemFromTrappingById('lanterne', undefined, contexteDeNaissanceDObjet(h))!;
+  const carreaux = itemFromTrappingById('carreau', idNeuf, undefined, contexteDeNaissanceDObjet(h))!;
+  const lant = itemFromTrappingById('lanterne', idNeuf, undefined, contexteDeNaissanceDObjet(h))!;
   lant.equipped = true; // PORTÉE → halo de lumière qui le suit (gate : un objet rangé n'éclaire pas)
   h.items = [arb, carreaux, lant];
   h.loadouts = undefined;
@@ -62,14 +63,14 @@ function tireur(): Combatant {
 const BRETTEUR = 'Bretteur (entraînement)';
 
 /** Bretteur : deux armes de mêlée 1 main (Arme simple à FORME changeable + Dague) + talent dédié. */
-function bretteur(): Combatant {
-  const h = pregen(PREGEN.soldat);
+function bretteur(idNeuf: FabriqueDId): Combatant {
+  const h = pregen(idNeuf, PREGEN.soldat);
   h.label = BRETTEUR;
   if (!h.talents.some((t) => t.talentId === 'maniement-de-deux-armes')) {
     acquerirTalent(h, { id: 'maniement-de-deux-armes' });
   }
-  const main = itemFromTrappingById('arme-simple', undefined, contexteDeNaissanceDObjet(h)); // formChoices (épée→hache/masse/…), forme résolue au catalogue
-  const off = itemFromTrappingById('dague', undefined, contexteDeNaissanceDObjet(h));
+  const main = itemFromTrappingById('arme-simple', idNeuf, undefined, contexteDeNaissanceDObjet(h)); // formChoices (épée→hache/masse/…), forme résolue au catalogue
+  const off = itemFromTrappingById('dague', idNeuf, undefined, contexteDeNaissanceDObjet(h));
   h.items = [...(h.items ?? []), main, off].filter(Boolean) as ItemInstance[];
   if (main && off) {
     const id = loadoutCreate(h);
@@ -166,9 +167,9 @@ export const scenario: TestScenario = {
     `désengagement & deux armes sur sparring-partners, forme d’arme (fiche « ${BRETTEUR} »), combat monté (monture ` +
     'libre, +20 vs plus petit), Explosion en zone (Sorcière).',
   partyNote: 'Tireur (arbalète + lanterne) · Bretteur (deux armes, forme changeable) · Tueur nain (vision nocturne) · Sorcière (Lumière/Explosion)',
-  construire: () => {
-    const sorciere = pregen(PREGEN.sorcier);
+  construire: (idNeuf) => {
+    const sorciere = pregen(idNeuf, PREGEN.sorcier);
     sorciere.spells = ['lumiere', 'explosion', 'bouclier-magique', ...(sorciere.spells ?? [])];
-    return { party: [tireur(), bretteur(), pregen(PREGEN.tueur), sorciere], scene: construireScene() };
+    return { party: [tireur(idNeuf), bretteur(idNeuf), pregen(idNeuf, PREGEN.tueur), sorciere], scene: construireScene() };
   },
 };

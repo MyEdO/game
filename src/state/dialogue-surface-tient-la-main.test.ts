@@ -5,6 +5,7 @@
  * ouvre une fenêtre en RESTANT au nœud. Le verdict par surface se joue au banc du noyau
  * (`src/noyau/dialogue-surface-tient-la-main.hors-store.test.ts`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
 import type { GameState } from './store';
@@ -29,7 +30,7 @@ const dlg: Dialogue = {
 function temoin(over: Partial<GameState> = {}) {
   useGame.setState({
     screen: 'campaign', mode: 'exploration', battle: null, scene: null, flags: {}, journal: [],
-    party: makeShowcaseParty(), dialogueHistory: [], merchant: null, tavernGames: null,
+    party: makeShowcaseParty(idsDeTest), dialogueHistory: [], merchant: null, tavernGames: null,
     document: null, pendingLoot: null, pendingTest: null, pendingLogQueue: [], pendingOrders: [],
     gameMenuOpen: false, codexOverlay: null, sheetId: null, worldMapOpen: false, port: null, landMarket: null,
     dialogue: { dialogue: dlg, nodeId: 'n1', session: 1 },
@@ -62,7 +63,7 @@ describe('dlg-kramer-nuit-du-chat — la touche 2 sous le document que la répon
   const nuitDuChat = quai.dialogues.find((d) => d.id === 'dlg-kramer-nuit-du-chat')!;
 
   it('Test → document ouvert → touche 2 inerte → document fermé → touche 2 joue', () => {
-    useGame.setState({ party: makeShowcaseParty() });
+    useGame.setState({ party: makeShowcaseParty(idsDeTest) });
     expect(lancerCampagne(useGame.getState, campagneDuJeu(builtinCampaigns.find((c) => c.id === 'loup-et-saumure')!), quai.id)).toBeNull();
     temoin({ scene: quai, document: null, dialogue: ouvrirDialogue({ dialogueHistory: [] }, nuitDuChat) });
     const get = useGame.getState;

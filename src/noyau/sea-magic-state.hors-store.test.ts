@@ -5,6 +5,7 @@
  * aux deux call-sites (`jetLancer('cast')`, `rollFlowSpecs` spec `cast`/`focus`) et l'exception
  * Harmonisation aethyrique de Vie (`combatSlice.jetValider('focus')`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineEtLit } from './cascade.testkit';
@@ -15,7 +16,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function wizard(domainId: string): Combatant {
-  const w = pregen(PREGEN.sorcier);
+  const w = pregen(idsDeTest, PREGEN.sorcier);
   w.skills = (w.skills as Combatant['skills']).filter((s) => s.id !== 'langue' && s.id !== 'focalisation');
   w.skills.push({ id: 'langue', spec: 'magick', advances: 30 } as never);
   w.skills.push({ id: 'focalisation', spec: domainId, advances: 30 } as never);

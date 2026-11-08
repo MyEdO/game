@@ -11,6 +11,7 @@
  * verbes ouvreurs de la barre : `faireUnBattement` (offre `battement`, exposé par #1017) et `rompreLEngagement` (offre
  * `disengage`, d'une autre famille — la même garde les sert, ce qui prouve que la CLASSE est fermée, pas un cas).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
@@ -121,7 +122,7 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
     expect(banc.getState().journal).toEqual(['Action refusée : elle ne revient pas au joueur qui l’a demandée.']);
   });
 
-  const pregen = (id: string): Combatant => ({ ...JSON.parse(JSON.stringify(makePregens()[0])), id, label: id });
+  const pregen = (id: string): Combatant => ({ ...JSON.parse(JSON.stringify(makePregens(idsDeTest)[0])), id, label: id });
   const hoteEtUnInvite = () => banc.setState({
     party: [], journal: [], net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Invité' }, slots: [1, 0, 0, 0] },
   });
@@ -178,7 +179,7 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
 describe('#2903 — Annuler un jet par intention : seul le siège du porteur referme', () => {
   /** Interlude coop : le héros du siège 1 ouvre son Activité « Revenus » par SA propre intention. */
   function activiteOuverte() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ net: NET0, party: [h], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, pendingCascade: null, journal: [] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().ensemencerLeTirage(13);

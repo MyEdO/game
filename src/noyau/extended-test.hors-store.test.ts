@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -16,7 +17,7 @@ describe('Test Étendu séquentiel (porte DR cumulé)', () => {
   beforeEach(() => { banc.setState({ battle: null, pendingExtendedTest: null }); });
 
   function hero() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
     h.fortune = 2; h.resilience = 1;
     banc.setState({ party: [h] });
     return h;
@@ -98,7 +99,7 @@ describe('Test Étendu — règle « DR 0 = ±1 minimum » (LDB 12 l.185)', () =
   beforeEach(() => { banc.setState({ battle: null, pendingExtendedTest: null }); });
 
   function setRound(total: number, sl: number, success: boolean) {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 1 });
     banc.setState({ party: [h] });
     banc.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'X', skillLabel: 'Force', target: 50, targetDR: 30 });
     const p = banc.getState().pendingExtendedTest!;

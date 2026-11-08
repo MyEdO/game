@@ -4,6 +4,7 @@
  * ce choix après un Test qui a échoué »). Sans jet posé, le flux `cast` résout le geste
  * contre la cible que le jet naturel aurait employée (`castTestTarget`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { pregen, PREGEN } from '../data/pregens';
@@ -16,7 +17,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const SPELL = 'armure-aethyrique';
 
 function sorcier(): Combatant {
-  const w = pregen(PREGEN.sorcier);
+  const w = pregen(idsDeTest, PREGEN.sorcier);
   w.characteristics = { ...w.characteristics, intelligence: 55 };
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 10);

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, assert } from 'vitest';
 import { testScenarios } from './index';
 import { validateScene } from '../../noyau/validateScene';
@@ -17,7 +18,7 @@ describe('Batterie de scénarios de test', () => {
   it.each(testScenarios.map((s) => [s.id, s] as const))(
     'le scénario %s a un groupe de héros non vide et une scène cohérente',
     (_id, s) => {
-      const { party, scene } = s.construire();
+      const { party, scene } = s.construire(idsDeTest);
       expect(party.length).toBeGreaterThanOrEqual(1);
       expect(party.every((h) => h.kind === 'hero')).toBe(true);
       if (s.autoCombat) expect(scene.encounters.find((e) => e.id === s.autoCombat)).toBeTruthy();
@@ -28,7 +29,7 @@ describe('Batterie de scénarios de test', () => {
    * scène ne les voit — la porte est celle de la grammaire (`refs('spell')`). DÉRIVÉE.
    */
   it.each(testScenarios.map((s) => [s.id, s] as const))('les sorts des héros du scénario %s existent dans `spells.json`', (_id, s) => {
-    const verdict = refs('spell').safeParse(s.construire().party.flatMap((h) => h.spells ?? []));
+    const verdict = refs('spell').safeParse(s.construire(idsDeTest).party.flatMap((h) => h.spells ?? []));
     expect(verdict.success ? [] : verdict.error.issues.map((i) => i.message)).toEqual([]);
   });
 
@@ -37,7 +38,7 @@ describe('Batterie de scénarios de test', () => {
     expect(testScenarios.find((s) => s.id === 'magie')).toBeTruthy();
   });
   it('résout l’espèce des cinq mutants de l’Embuscade', () => {
-    const embuscade = testScenarios.find((s) => s.id === 'embuscade')!.construire().scene;
+    const embuscade = testScenarios.find((s) => s.id === 'embuscade')!.construire(idsDeTest).scene;
     const encounter = embuscade.encounters.find((e) => e.id === 'enc-mutants')!;
     const entities = new Map(embuscade.entities.map((e) => [e.id, e]));
     assert(encounter.members?.length, 'enc-mutants doit contenir ses cinq membres');
@@ -60,7 +61,7 @@ describe('Batterie de scénarios de test', () => {
   it.each(testScenarios.map((s) => [s.id, s] as const))(
     'le scénario %s passe validateScene sans erreur',
     (id, s) => {
-      const c = s.construire();
+      const c = s.construire(idsDeTest);
       const project = [c.scene, ...(c.extraScenes ?? [])];
       const errors = validateScene(project, c.worldMap).filter((w) => w.level === 'error');
       expect(errors, `scénario « ${id} » : ${errors.map((e) => `[${e.scope}${e.refId ? `:${e.refId}` : ''}] ${e.message}`).join(' | ')}`).toEqual([]);

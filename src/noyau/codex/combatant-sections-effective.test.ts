@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { combatantSections } from './registry';
 import { pregen, PREGEN } from '../../data/pregens';
@@ -12,7 +13,7 @@ import { charAbr } from '../../data';
  * CC) — un pregen SANS talent à charMod ne prouverait rien (effective === brute par coïncidence).
  */
 describe('combatantSections — affichage carac/compétence = moteur (#498)', () => {
-  const sigmund = pregen(PREGEN.soldat);
+  const sigmund = pregen(idsDeTest, PREGEN.soldat);
 
   it('fixture pertinente : Sigmund porte un talent à charMod sur CC (effective > brute)', () => {
     expect(effectiveChar(sigmund, 'capacite-de-combat')).toBeGreaterThan(sigmund.characteristics['capacite-de-combat']);

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { startCascade, pushStep, suspendActiveCascade, resumeSuspendedCascade, stepInteraction, stepReady } from '../noyau/cascade';
@@ -94,7 +95,7 @@ interface Observation {
 
 /** Groupe d'UN héros, siège local, mode solo — l'état complet du cas, jamais hérité du voisin. */
 function montage(): string {
-  const h = makePregens()[0];
+  const h = makePregens(idsDeTest)[0];
   set({ party: [h], battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
   set({ net: { ...get().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
   return h.id;

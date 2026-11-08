@@ -6,6 +6,7 @@
  *  - un verbe appelé sans son argument omissible est jugé comme le candidat que son corps prend par défaut ;
  *  - un argument hors de tout candidat (id inconnu, combattant de l'autre camp) est refusé.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc } from './banc.testkit';
 import { lancerLeScenario } from './lancementDeScenario';
@@ -93,7 +94,7 @@ describe('#3610 — refusDuGeste : l’offre est la projection du refus de son g
   it.each(testScenarios.filter((sc) => sc.autoCombat).map((sc) => [sc.id] as const))('scénario %s : chaque tour piloté', (id) => {
     const banc = ouvrirLeBanc();
     seedBattleRng(1);
-    lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(testScenarios.find((sc) => sc.id === id)!));
+    lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(testScenarios.find((sc) => sc.id === id)!, idsDeTest));
     const ecarts: string[] = [];
     for (let pas = 0; pas < 8 && banc.getState().battle && !banc.getState().battle!.over; pas++) {
       const s = banc.getState();

@@ -24,12 +24,11 @@ export function CombatBanner() {
   const battle = useGame((s) => s.battle);
   const aim = useGame((s) => s.actorAim);
   const refus = useGame((s) => s.refus);
-  const nonce = refus?.nonce ?? null;
   useEffect(() => {
-    if (nonce == null) return;
-    const id = scheduleFlowTimer(() => eteindreRefus(useGame.getState, useGame.setState, nonce), REFUS_MS);
+    if (!refus) return;
+    const id = scheduleFlowTimer(() => eteindreRefus(useGame.getState, useGame.setState, refus), REFUS_MS);
     return () => clearTrackedTimer(id);
-  }, [nonce]);
+  }, [refus]);
   if (!battle || battle.over) return null;
   const line = refus ? narrateRefus(refus, battle.combatants)
     : aim ? narrateIntent(aim, battle.combatants)

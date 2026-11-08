@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { allBuiltinCampaigns, paquetDuJeu } from './campaign';
 import { testScenarios } from './test-scenarios';
@@ -21,7 +22,7 @@ import { sceneMetresPerTile, type Scene, type SceneEntity } from '../noyau/monde
 function scenesLivrees(): { source: string; scene: Scene }[] {
   return [
     ...allBuiltinCampaigns.flatMap((c) => paquetDuJeu(c).scenes.map((scene) => ({ source: c.id, scene }))),
-    ...testScenarios.map((s) => ({ source: `test-scenarios/${s.id}`, scene: s.construire().scene })),
+    ...testScenarios.map((s) => ({ source: `test-scenarios/${s.id}`, scene: s.construire(idsDeTest).scene })),
   ];
 }
 

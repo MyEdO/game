@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { afterEach, describe, it, expect } from 'vitest';
 import { poserLApparence, transmettreLObjet, equiperLObjet, rangerLObjet, garnirLaPanoplie } from './partyFlow';
 import { itemFromTrappingById, recomputeLoadout, totalEncumbrance, avecObjet, activeLoadout, formeResolue, choisirApparenceDObjet, weaponItem } from '../engine/items';
@@ -31,7 +32,7 @@ function makeMulePossession(items: ItemInstance[]): Possession {
 
 /** Héros porteur d'une « Arme simple » ÉQUIPÉE (shape par défaut `epee`), loadout dérivé par recompute. */
 function heroWithArmeSimple(): Combatant {
-  const it = itemFromTrappingById('arme-simple')!;
+  const it = itemFromTrappingById('arme-simple', idsDeTest)!;
   it.equipped = true;
   const hero = blessuresSurLeProfil({
     id: 'h1', name: 'Test', kind: 'hero', characteristics: { force: 30, endurance: 30 } as Combatant['characteristics'],
@@ -50,7 +51,7 @@ describe('poserLApparence — apparence d’un objet', () => {
     setDataset('trappings', trappings.map((t) => (t.id === 'arme-simple' ? { ...t, ...patch } : t)));
 
   it('une « Arme simple » créée via itemFromTrappingById ne porte aucun choix : sa forme résolue est celle du catalogue', () => {
-    const it = itemFromTrappingById('arme-simple')!;
+    const it = itemFromTrappingById('arme-simple', idsDeTest)!;
     expect(it.apparence).toBeUndefined();
     expect(formeResolue(it)).toBe('epee');
   });
@@ -62,7 +63,7 @@ describe('poserLApparence — apparence d’un objet', () => {
     ['zweihander', 'epee'],
     ['apparence-inconnue', 'epee'],
   ])('cas canonique : apparence %s → forme %s', (apparence, forme) => {
-    const objet = itemFromTrappingById('arme-simple')!;
+    const objet = itemFromTrappingById('arme-simple', idsDeTest)!;
     if (apparence) choisirApparenceDObjet(objet, apparence, findTrappingById);
     expect(formeResolue(objet)).toBe(forme);
   });
@@ -71,7 +72,7 @@ describe('poserLApparence — apparence d’un objet', () => {
     const hero = heroWithArmeSimple();
     const objet = { ...findTrappingById('arme-simple')!, id: 'hache-de-campagne', shape: { id: 'hache' }, formChoices: ['hache'] };
     const narratif = { ...emptyNarratif(), objets: [objet] };
-    hero.items = [{ ...itemFromTrappingById(objet.id, objetDuNarratif(narratif))!, uid: hero.items![0].uid, equipped: true }];
+    hero.items = [{ ...itemFromTrappingById(objet.id, idsDeTest, objetDuNarratif(narratif))!, uid: hero.items![0].uid, equipped: true }];
     recomputeLoadout(hero);
     const { get, set } = makeHarness([hero]);
     set({ campaignNarratif: narratif });
@@ -157,7 +158,7 @@ describe('poserLApparence — apparence d’un objet', () => {
     poserLApparence(get, set, hero.id, uid, 'masse');
     editerArmeSimple({ shape: { id: 'hache' } });
     const arme = activeWeapon(get().party[0], uid)!;
-    expect(formeResolue(itemFromTrappingById('arme-simple')!), 'la sonde mord : une nouvelle naissance prend la nouvelle forme').toBe('hache');
+    expect(formeResolue(itemFromTrappingById('arme-simple', idsDeTest)!), 'la sonde mord : une nouvelle naissance prend la nouvelle forme').toBe('hache');
     expect(formeResolue(arme)).toBe('masse');
   });
 
@@ -236,7 +237,7 @@ describe('généralisation porteur (#620 SOCLE POSSESSIONS T1-e) — héros OU p
   it('equiperLObjet(carrierId=hero.id) : comportement héros INCHANGÉ (arme équipée + recomputeLoadout)', () => {
     // Héros SANS loadout encore posé (`ensureDefaultLoadout` ne dérive qu'AU 1er recompute, LDB) : l'item
     // part non-équipé, aucun `weapons` actif tant qu'equiperLObjet n'a pas tourné.
-    const it = itemFromTrappingById('arme-simple')!;
+    const it = itemFromTrappingById('arme-simple', idsDeTest)!;
     it.equipped = false;
     const hero = blessuresSurLeProfil({
       id: 'h1', name: 'Test', kind: 'hero', characteristics: { force: 30, endurance: 30 } as Combatant['characteristics'],
@@ -334,7 +335,7 @@ describe('rangerLObjet — ranger l’arme TENUE dans un sac', () => {
   it('l’épée rangée n’est plus en main, et les Mains nues la remplacent', () => {
     const hero = heroWithArmeSimple();
     const epee = hero.items![0];
-    const sac = { ...itemFromTrappingById('sac')!, uid: 'sac-1', equipped: true };
+    const sac = { ...itemFromTrappingById('sac', idsDeTest)!, uid: 'sac-1', equipped: true };
     hero.items!.push(sac);
     recomputeLoadout(hero);
     expect(activeWeapon(hero, epee.uid)).toBeDefined();
@@ -350,9 +351,9 @@ describe('rangerLObjet — ranger l’arme TENUE dans un sac', () => {
 // Un objet mis en main sort de son contenant : l'arme achetée (rangée d'office, `autoStowNewItem`) se choisit au set.
 describe('garnirLaPanoplie — une arme ACHETÉE, rangée dans un sac, choisie au set', () => {
   it('elle est en main, et n’est plus dans le sac', () => {
-    const base = blessuresSurLeProfil({ id: 'h1', label: 'Test', kind: 'hero', characteristics: { force: 30, endurance: 30 }, items: [{ ...itemFromTrappingById('sac')!, uid: 'sac-1', equipped: true }], weapons: [], talents: [], skills: [], traits: [], activeEffects: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10) }) as unknown as Combatant;
+    const base = blessuresSurLeProfil({ id: 'h1', label: 'Test', kind: 'hero', characteristics: { force: 30, endurance: 30 }, items: [{ ...itemFromTrappingById('sac', idsDeTest)!, uid: 'sac-1', equipped: true }], weapons: [], talents: [], skills: [], traits: [], activeEffects: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10) }) as unknown as Combatant;
     recomputeLoadout(base);
-    const hero = avecObjet(base, itemFromTrappingById('arme-simple')!);
+    const hero = avecObjet(base, itemFromTrappingById('arme-simple', idsDeTest)!);
     const achat = hero.items!.find((i) => i.kind === 'melee')!;
     expect(achat.inside, 'rangée d’office à l’achat').toBe('sac-1');
     const { get, set } = makeHarness([hero]);

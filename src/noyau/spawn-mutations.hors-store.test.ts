@@ -6,6 +6,7 @@
  * Garde de PROPRIÉTÉ sur TOUT statbloc livré qui porte un trait de mutation au spawn : bestiaire
  * (`creatures.json`), presets des projets livrés, statblocs et presets des scénarios de test.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
@@ -82,7 +83,7 @@ function tousLesPorteurs(): Porteur[] {
     for (const sc of projet.scenes) out.push(...porteursDeScene(rel, sc));
   }
   for (const s of SCENARIOS) {
-    const built = s.construire();
+    const built = s.construire(idsDeTest);
     if (built.narratif) out.push(...porteursDuNarratif(`scénario ${s.id}`, built.narratif));
     for (const sc of [built.scene, ...(built.extraScenes ?? [])]) out.push(...porteursDeScene(`scénario ${s.id}`, sc));
   }

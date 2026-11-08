@@ -438,7 +438,7 @@ export function spawnEnemy(
     : ficheDeRef(porteur.ref, id, pos, opts);
   c.porteurDeFiche = porteur;
   if (opts?.crewIds) c.crewIds = opts.crewIds;
-  if (opts?.postes) c.postes = opts.postes.map(hydratePoste); // #222 — réf catalogue → base HYDRATÉE (couture unique)
+  if (opts?.postes) c.postes = opts.postes.map((a, i) => hydratePoste(a, `${id}-poste-${i}`)); // #222 — réf catalogue → base HYDRATÉE (couture unique)
   if (opts?.upgrades) c.upgrades = opts.upgrades;
   // Blindage (MDG 12 l.234/236) : PA de coque depuis les Traits du TYPE (`ship.traits`) + les Améliorations
   // d'INSTANCE (`upgrades`). Self-contained → posé ici (pas de post-pass type `applyShipPostes`). Consommé par

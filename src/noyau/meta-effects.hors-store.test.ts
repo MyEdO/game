@@ -2,6 +2,7 @@
  * Méta-flux comme Effets de scène (#83) : `sessionEnd` ouvre la fin de séance (`finDeSeance`, aucune case cochée).
  * `openCharacterCreator` : `combatEffects-heros-a-creer.hors-store.test.ts`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
@@ -11,7 +12,7 @@ let banc: Banc;
 
 describe('Méta-effets de scène (#83)', () => {
   beforeEach(() => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc = ouvrirLeBanc({ etat: { party: [h], journal: [] } });
   });
 

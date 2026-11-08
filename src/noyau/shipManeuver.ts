@@ -316,7 +316,7 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
         const opp = rotateDir8(dir, 4);
         const vf = facing[victim.id];
         const frontal = vf === opp || vf === rotateDir8(opp, 1) || vf === rotateDir8(opp, -1);
-        for (const line of applyShipCollision(hull, victim, milieuDuVoyage(get().travelPlan), { ramProue: true, frontal }, battleRng()).lines) get().ecrireAuJournal(line);
+        for (const line of applyShipCollision(hull, victim, milieuDuVoyage(get().travelPlan), { ramProue: true, frontal }, battleRng(), get().forgerUnId).lines) get().ecrireAuJournal(line);
       }
       if (moved > 0 || victim) { set({ battle: { ...battle } }); bus.emit(EVT.SCENE_DIRTY); }
       return moved;

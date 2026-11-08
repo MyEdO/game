@@ -20,7 +20,7 @@ import { addManann, applyManannFactor, cargoBasePrice, meteosActives, modificate
 import { ajouterAuRoster } from '../engine/crewMorale';
 import { seasonOfMonth } from '../engine/travelStages';
 import { isRation, LITRES_PAR_TONNEAU } from '../engine/provisions';
-import { newUid } from '../engine/items';
+
 import { rollShipCritical } from '../engine/shipCritical';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { dataLabel, findCrewRoleById, voyageStakeRef } from '../data';
@@ -139,7 +139,7 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
       const enc = Math.max(0, Math.round(resolveFormula(o.enc, ref, ctx.rng)));
       const season = seasonOfMonth(toDate(get().gameTime).month);
       const cargo = rollRandomCargo(season, ctx.rng);
-      set({ vessel: { ...vessel, cargo: [...(vessel.cargo ?? []), { uid: newUid(), cargoId: cargo.id, enc, basePriceGold: cargoBasePrice(cargo, season, ctx.rng) }] } });
+      set({ vessel: { ...vessel, cargo: [...(vessel.cargo ?? []), { uid: get().forgerUnId('it'), cargoId: cargo.id, enc, basePriceGold: cargoBasePrice(cargo, season, ctx.rng) }] } });
       return [t('eff.cargaison', { enc, cargo: cargo.label })];
     }
     case 'provisions':

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { fillDraftDefaults } from './defauts';
 import { newDraft, validateStep, stepIds, talentsDone, skillsSubMessage, buildHero, type CreatorDraft } from './brouillon';
@@ -14,7 +15,7 @@ describe('brouillon restauré : Talent de carrière joker sans spécialisation',
     const d = pretreComplet();
     expect(d.careerId).toBe('pretre');
     expect(premierRefus(d)).toBeUndefined();
-    expect(() => buildHero(d)).not.toThrow();
+    expect(() => buildHero(d, idsDeTest)).not.toThrow();
   });
 
   it('« Béni » nu : refusé à l’étape des Talents, avant toute construction, message affiché', () => {

@@ -3,6 +3,7 @@
  * la Portée ×3 est REFUSÉ au clic (journal) — aucune modale ne s'ouvre sur un raté garanti qui
  * consommerait l'Action.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
@@ -21,7 +22,7 @@ function wallScene() {
 }
 
 function setup() {
-  const a = makePregens()[0];
+  const a = makePregens(idsDeTest)[0];
   a.pos = { x: 2, y: 0 };
   a.weapons = [{ name: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 12, qualities: [] }] as never; // ×3 = 36 m = 18 cases
   const seen = spawnEnemy({ ref: 'humain' }, 'e-vu', { x: 6, y: 0 });

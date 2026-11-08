@@ -19,6 +19,7 @@
  * Les jets sont POSÉS (aucun dé) : ce qui est mesuré est la règle, jamais le RNG — sauf le run à
  * GRAINE RÉELLE, qui déroule une partie entière sans rien poser.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -56,7 +57,7 @@ const ALVATAFL = findTavernGameById('alvatafl')!;
 
 /** Un héros seul à la table, face à un adversaire de la salle. */
 function seul(): Combatant {
-  const a = makePregens()[0] as Combatant;
+  const a = makePregens(idsDeTest)[0] as Combatant;
   banc.setState({ battle: null, party: [a], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   return get().party[0];
 }
@@ -518,7 +519,7 @@ describe('Plafond de DR et départage — les deux juges', () => {
    *  tranche (famille 1bis) — sans quoi un jeu de lancers N+1 verrait son `tieBreak` ignoré. */
   it('à SCORE ÉGAL, la volée passe par le départage DÉCLARÉ (jamais une égalité recodée)', () => {
     avecLesTables({ departages: { ...tablesDuJeu().departages, 'test-le-defiant-gagne': { departage: () => 'a' } } });
-    const [a, b] = makePregens().slice(0, 2) as Combatant[];
+    const [a, b] = makePregens(idsDeTest).slice(0, 2) as Combatant[];
     banc.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     get().jouerALaTaverne({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     banc.setState({ sequence: { ...get().sequence!, params: { ...get().sequence!.params, tieBreak: cleDeFixture('test-le-defiant-gagne') } } });
@@ -529,7 +530,7 @@ describe('Plafond de DR et départage — les deux juges', () => {
   });
 
   it('le départage RAW des boules reste le match nul (l.57)', () => {
-    const [a, b] = makePregens().slice(0, 2) as Combatant[];
+    const [a, b] = makePregens(idsDeTest).slice(0, 2) as Combatant[];
     banc.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     get().jouerALaTaverne({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     for (let i = 0; i < 6; i++) poseLancer(12, 4);

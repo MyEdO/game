@@ -2,6 +2,7 @@
  * Effet `givePossession` (#617/#618 Lot 1) — donne
  * une possession (bête/serviteur/véhicule) à un héros via le registre `GameState.possessions` (#615).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { EFFECT_HANDLERS, applyEffects } from './combatEffects';
@@ -12,7 +13,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 describe('Effet givePossession (#617/#618 Lot 1)', () => {
   beforeEach(() => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [h] });
   });
 

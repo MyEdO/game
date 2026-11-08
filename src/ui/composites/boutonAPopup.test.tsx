@@ -5,6 +5,7 @@
  * d'arme de la fiche héros. Le clavier entre dans le popup, la fermeture rend le focus au déclencheur,
  * Échap ne ferme que le popup.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
@@ -156,8 +157,8 @@ describe('Emplacement d’arme de la fiche héros (onglet Possessions)', () => {
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [], movement: 4, xp: 0,
       items: [
-        { ...itemFromTrappingById('arme-de-banc-1')!, uid: 'main', equipped: true },
-        { ...itemFromTrappingById('arme-de-banc-2')!, uid: 'seconde', equipped: false },
+        { ...itemFromTrappingById('arme-de-banc-1', idsDeTest)!, uid: 'main', equipped: true },
+        { ...itemFromTrappingById('arme-de-banc-2', idsDeTest)!, uid: 'seconde', equipped: false },
       ],
     }) as unknown as Combatant;
     recomputeLoadout(c);

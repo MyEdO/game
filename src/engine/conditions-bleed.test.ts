@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
 import { bleedDeathRoll, loseWounds, applyZeroWounds, hasCondition, removeCondition } from './conditions';
 import { applyOps } from './ops';
@@ -60,7 +61,7 @@ describe('Hémorragique à 0 Blessure (LDB 16 l.105)', () => {
 
   it('atteindre 0 par le saignement (op `wounds` des pions) → Inconscient', () => {
     const c = ilyanweSaignee(2);
-    applyOps(c, [{ op: 'wounds', amount: 2 }], { rng: desDuTest });
+    applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest });
     expect(c.wounds.current).toBe(0);
     expect(hasCondition(c, 'inconscient')).toBe(true);
   });
@@ -87,8 +88,8 @@ describe('Hémorragique à 0 Blessure (LDB 16 l.105)', () => {
 
   it('journal de l\'op `wounds` : les Blessures réellement perdues, rien à 0 PB', () => {
     const c = ilyanweSaignee(1);
-    expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { rng: desDuTest })).toEqual(['Ilyanwe subit 1 Blessure(s) (ignorant BE et PA).']);
-    expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { rng: desDuTest })).toEqual([]);
+    expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest })).toEqual(['Ilyanwe subit 1 Blessure(s) (ignorant BE et PA).']);
+    expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest })).toEqual([]);
   });
 });
 

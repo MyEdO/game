@@ -1,3 +1,4 @@
+import { idsDeTest } from '../idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { Weapon } from '../types';
 import { hasQuality, qualitySum, qualityCritTriggered, parryDRAdjust, isUnbreakable, attackDRAdjust, dangerousNine, reloadDRTarget, magazineSize, resolveQualities, qualityArmourBypasses } from './dispatch';
@@ -253,7 +254,7 @@ describe('Indice d’un Atout — il atteint le COÛT du choix et le libellé IM
   });
 
   it('l’Indice survit à la matérialisation en OBJET DE SAC et au round-trip JSON', () => {
-    const item = itemFromTrappingById('zweihander-flamberge')!;
+    const item = itemFromTrappingById('zweihander-flamberge', idsDeTest)!;
     const porte = item.qualities.find((q) => q.id === 'taillade')!;
     expect(porte.value, 'l’Indice est perdu à la matérialisation (`qualityInstance`)').toBe(2);
     const relu = JSON.parse(JSON.stringify(item)) as typeof item;

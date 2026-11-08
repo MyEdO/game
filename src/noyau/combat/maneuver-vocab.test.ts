@@ -5,6 +5,7 @@
  *  - Condition `{slThreshold, atLeast}` : « si la marge ≥ N DR » (`ctx.sl`) → issues échelonnées d'une
  *    manœuvre (Regard pétrifiant : ≥6 → Pétrifié) authorées en Flow `if`.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { resolveFormula, applyOps } from '../../engine/ops';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
@@ -30,12 +31,12 @@ describe('Formula {indiceOf} — Dégâts « Indice » en GameOp', () => {
   });
   it('wounds {indiceOf} applique l’Indice, mitigé par les drapeaux', () => {
     const t = mk();
-    applyOps(t, [{ op: 'wounds', amount: { indiceOf: true }, ignoreTB: true, ignoreAP: true }], { rng: desDuTest, indice: 10 });
+    applyOps(t, [{ op: 'wounds', amount: { indiceOf: true }, ignoreTB: true, ignoreAP: true }], { idNeuf: idsDeTest, rng: desDuTest, indice: 10 });
     expect(t.wounds.current).toBe(10); // 10 Dégâts ignorant BE+PA
   });
   it('wounds {indiceOf} déduit BE si ignoreTB:false', () => {
     const t = mk(); // BE = 3
-    applyOps(t, [{ op: 'wounds', amount: { indiceOf: true }, ignoreTB: false, ignoreAP: false }], { rng: desDuTest, indice: 10 });
+    applyOps(t, [{ op: 'wounds', amount: { indiceOf: true }, ignoreTB: false, ignoreAP: false }], { idNeuf: idsDeTest, rng: desDuTest, indice: 10 });
     expect(t.wounds.current).toBe(13); // 10 − BE 3 − PA 0
   });
 });
@@ -53,10 +54,10 @@ describe('Condition {slThreshold} — issue échelonnée sur la marge', () => {
       else: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'sonne' }] } },
     };
     const hi = mk({ id: 'h' });
-    runPureFlowLines(hi, mk({ id: 'a' }), flow, { rng: desDuTest, sl: 6 });
+    runPureFlowLines(hi, mk({ id: 'a' }), flow, { idNeuf: idsDeTest, rng: desDuTest, sl: 6 });
     expect(hi.conditions.find((c) => c.id === 'petrifie')).toBeTruthy();
     const lo = mk({ id: 'l' });
-    runPureFlowLines(lo, mk({ id: 'a' }), flow, { rng: desDuTest, sl: 3 });
+    runPureFlowLines(lo, mk({ id: 'a' }), flow, { idNeuf: idsDeTest, rng: desDuTest, sl: 3 });
     expect(lo.conditions.find((c) => c.id === 'sonne')).toBeTruthy();
     expect(lo.conditions.find((c) => c.id === 'petrifie')).toBeUndefined();
   });

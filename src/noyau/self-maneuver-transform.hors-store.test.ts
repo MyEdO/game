@@ -5,6 +5,7 @@
  * consomme l'Action du tour ET la prochaine (loseTurn) = prix de DEUX actions, et se toggle proprement.
  * (L'IA sait spawn un Enfant d'Ulric hybride prêt ; s'auto-transformer côté IA reste à câbler — cf. note.)
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
@@ -22,7 +23,7 @@ const applicableIds = (c: Parameters<typeof selfManeuversOf>[0]) =>
 
 describe('manoeuvrerSurSoi — Métamorphose (activation joueur)', () => {
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

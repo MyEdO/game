@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
 import {
   advantageCampOf, emptyPools, addToPool, mirrorPools, initialAdvantagePools, outnumberAdvantage,
@@ -121,7 +122,7 @@ describe('CombatFeature — variante AA lue selon le toggle (aucun code ne nomme
   });
 
   it('Porte-Bouclier : gain d’Avantage LDB, désactivé en mode groupe (variante AA)', () => {
-    const shield = weaponFromItem(itemFromTrappingById('bouclier-targe')!);
+    const shield = weaponFromItem(itemFromTrappingById('bouclier-targe', idsDeTest)!);
     const c = withTalent('porte-bouclier');
     expect(shieldAdvantageLevel(c, shield)).toBe(1);
     setRule('combat-aa-avantage-groupe', true);

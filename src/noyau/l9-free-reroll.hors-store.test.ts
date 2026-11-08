@@ -3,6 +3,7 @@
  * échoue. Le second résultat doit être conservé. » — drapeau `freeReroll` (ActiveEffect),
  * consommé AU POINT DE RELANCE des flux de jet, sans dépenser de Point de Chance.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -21,7 +22,7 @@ function reset() {
 }
 
 function blessedHero(fortune = 0) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Béni', seed: 5 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Béni', seed: 5 });
   hero.fortune = fortune;
   hero.activeEffects = [{ label: 'Bénédiction de Chance', bonus: 0, duration: { scale: 'rounds', left: 6 }, freeReroll: true }];
   return hero;
@@ -55,7 +56,7 @@ describe('Bénédiction de Chance — relance gratuite au point de relance (roll
   });
 
   it('fortune 0 SANS drapeau : la relance reste impossible', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sec', seed: 6 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sec', seed: 6 });
     hero.fortune = 0;
     banc.setState({ party: [hero] });
     openFailedTest(hero.id, hero.label);

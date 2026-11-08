@@ -13,6 +13,7 @@
  * citation est portée par la spec/table qui l'emploie ; ce qui n'est pas
  * modélisable reste une op `narrative` (journalisée, arbitrage MJ, rien d'inventé).
  */
+import type { FabriqueDId } from './fabriqueDId';
 import { RNG, roll, type DiceSpec, type EffetSigne, rollDice, totalDuDe } from './dice';
 import { bonus, effectiveChar, effectiveArmourAt, blessuresReconciliees } from './characteristics';
 import { LOCALISATIONS_DE_COUP } from './localisations';
@@ -47,7 +48,7 @@ import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmpu
 import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
-import { contexteDeNaissanceDObjet, damageLeatherArmour, endommagerLEquipementPorte, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive, uidDArme } from './items';
+import { contexteDeNaissanceDObjet, damageLeatherArmour, endommagerLEquipementPorte, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive, uidDArme } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
@@ -1349,6 +1350,8 @@ export interface PassiveMod {
 
 export interface OpsCtx {
   rng: RNG;
+  /** Forge les uids des objets donnés, des armes invoquées et des enchantements (#2907). */
+  idNeuf: FabriqueDId;
   /** Référent des formules « (Bonus de X) » (le lanceur d'un sort) ; défaut : la cible. */
   caster?: Combatant;
   /** Équipage d'une COQUE (`crewIds` résolus en Combattants) — pour les ops de navire : `removeShipPoste`
@@ -1785,10 +1788,10 @@ export const OPS_CTX_GELES = [
 ] as const;
 /** PAR RÉFÉRENCE : des Combattants — leur ID voyage, l'état les redonne (`actorIn`/`coqueParId`). */
 export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
-/** REBÂTIS à la reprise par un chemin NOMMÉ : le rng de la partie, les hooks de Corruption et d'Avantage
+/** REBÂTIS à la reprise par un chemin NOMMÉ : le rng et la fabrique d'ids de la partie, les hooks de Corruption et d'Avantage
  *  branchés sur l'état (`onOpposingAdvantage` sur le porteur `caster`), et les dés eux-mêmes (relus sur
  *  les étapes sœurs — jamais recopiés). */
-export const OPS_CTX_REBATIS = ['rng', 'onCorruption', 'onGainAdvantage', 'onOpposingAdvantage', 'des'] as const;
+export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'onCorruption', 'onGainAdvantage', 'onOpposingAdvantage', 'des'] as const;
 /** HORS CANAL : hooks qu'aucun chemin ne sait rebâtir. Leur PRÉSENCE dans un contexte PORTÉ
  *  (`noyau/combatEffects.porterOpsCtx` : feuille à dé, Test ou choix surfacé) est un fail-fast NOMMÉ,
  *  jamais une perte muette. Ils ne sont posés que par des appels directs à `applyOps`, qui ne portent
@@ -2425,7 +2428,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           lines.push(t('op.noWeaponToEnchant', { name: target.label, src: nomDeSource(ctx) }));
           break;
         }
-        const enchantId = newUid();
+        const enchantId = ctx.idNeuf('it');
         item.enchants = [
           ...(item.enchants ?? []),
           {
@@ -2789,7 +2792,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const n = Math.max(1, (o.count ?? 1) + slBonus(ctx.sl, o.perSL));
         target.items = target.items ?? [];
         for (let i = 0; i < n; i++) {
-          const it = itemFromGive(o, source, undefined, contexteDeNaissanceDObjet(target));
+          const it = itemFromGive(o, ctx.idNeuf, source, undefined, contexteDeNaissanceDObjet(target));
           target.items.push(it);
           autoStowNewItem(target, it); // #204 : rangement par défaut
         }
@@ -2801,7 +2804,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const n = Math.round(formuleDuCtx(o.montant.brass, ref, ctx));
         if (n === 0) break;
         const avant = bourseBrass(target);
-        const apres = setBourseBrass(target, avant + n); // plancher 0 : on ne doit jamais d'argent
+        const apres = setBourseBrass(target, avant + n, ctx.idNeuf); // plancher 0 : on ne doit jamais d'argent
         const delta = apres - avant;
         if (delta === 0) break;
         lines.push(t('op.money', {
@@ -2891,13 +2894,13 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const flat = Math.max(0, formuleDuCtx(o.damage, ref, ctx) + (o.damagePlus ?? 0));
         // #2967
         const form = o.chooseForm ? (ctx.conjureForm ?? conjureFormOptions(ref)[0]) : null;
-        const item = weaponItem(specDArmeInvoquee(findTrappingById, o, flat, source, form, `conjure-${newUid()}`));
+        const item = weaponItem(specDArmeInvoquee(findTrappingById, o, flat, source, form, `conjure-${ctx.idNeuf('it')}`));
         // SET d'armes DÉDIÉ rendu actif (réutilise les loadouts) — le joueur peut rebasculer sur ses
         // armes ; à l'expiration, le set d'origine est restauré (engine/conjuredWeapons).
         // Effets « à la touche » (Épée ardente → En flammes) PORTÉS PAR L'OBJET invoqué (enchant) ;
         // equipConjuredWeapon recompose le loadout → repliés dans l'arme active. Pas d'enchantRef :
         // l'objet est retiré en bloc à l'expiration (dropExpiredGrantedWeapons).
-        if (o.onHitEffects?.length) item.enchants = [{ id: newUid(), onHitEffects: stampSource(o.onHitEffects, source) }];
+        if (o.onHitEffects?.length) item.enchants = [{ id: ctx.idNeuf('it'), onHitEffects: stampSource(o.onHitEffects, source) }];
         const conjuredSet = equipConjuredWeapon(target, item);
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({

@@ -4,6 +4,7 @@
  * DIZAINES du lancer, et cette DR sert à allouer les pas. Passe par la VRAIE action de modale
  * (réglages `cast.effetCritique` et `cast.surincantationDuree`) — aucun budget recalculé à la main dans le test.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -22,7 +23,7 @@ const RULE = 'magic-vdm-incantation';
 const critRes: CastResult = { cast: true, roll: 44, target: 90, sl: 8, isCritical: true, isFumble: false, niRequired: 8, log: 'critique' };
 
 function openCast() {
-  const W = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
+  const W = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
   W.talents = [...(W.talents ?? []), { talentId: 'magie-du-chaos', spec: 'nurgle', times: 1 }];
   W.spells = ['allure-demoniaque'];
   W.characteristics.sociabilite = 40;

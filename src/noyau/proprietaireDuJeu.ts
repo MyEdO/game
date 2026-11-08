@@ -20,7 +20,6 @@ import { seedBattleRng } from './battleRng';
 import { loadRuleOverrides } from '../engine/policy';
 import { setCadence } from '../engine/cadence';
 import { setDesFixes } from '../engine/fixedDie';
-import { remettreLesSequencesAZero } from '../engine/sequences';
 
 /** Un écrit de zustand : un objet, ou une fonction de l'état, fusionné au premier niveau. */
 export type Ecrit = Partial<JeuDuNoyau> | ((s: JeuDuNoyau) => Partial<JeuDuNoyau>);
@@ -65,7 +64,6 @@ export function ouvrirLeProprietaire(
   let etat: JeuDuNoyau = { ...etatInitial, ...actions };
 
   brancherLeJeu(get, set, tablesDuJeu());
-  remettreLesSequencesAZero();
   seedBattleRng(entrees.graine);
   loadRuleOverrides(entrees.reglesMaison);
   setCadence(entrees.cadence);

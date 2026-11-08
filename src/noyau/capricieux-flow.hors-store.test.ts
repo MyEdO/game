@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { runFlow } from './combatEffects';
@@ -24,7 +25,7 @@ const PERSPICACE = { [adresseDeCreation.especeTalent(0)]: { id: 'perspicace' } }
  */
 describe('Capricieux — delta de DR sur le Test de Sociabilité résolu (MSRC 15 l.149-159)', () => {
   function openCharme(vsCapricieux?: boolean) {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Felix', seed: 1, speciesTalentChoices: PERSPICACE });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Felix', seed: 1, speciesTalentChoices: PERSPICACE });
     h.characteristics.sociabilite = 60;
     h.skills = []; // pas d'avances → testValue = Sociabilité brute
     banc.setState({ party: [h], pendingTest: null, battle: null });

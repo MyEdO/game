@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
@@ -11,7 +12,7 @@ import { AdvancementPanel } from './CharacterSheet';
 
 /** Soldat FM 50, Force 30, Intimidation +10, Exténué ; Intimidation sur la Force Mentale (LDB 09 l.294). */
 function soldat(): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sold', seed: 3 }) as Combatant;
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sold', seed: 3 }) as Combatant;
   h.characteristics.force = 30;
   h.characteristics['force-mentale'] = 50;
   h.skills = [...h.skills.filter((s) => s.id !== 'intimidation'), { id: 'intimidation', characteristic: 'force', advances: 10 }];

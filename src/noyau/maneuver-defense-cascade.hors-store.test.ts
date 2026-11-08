@@ -10,6 +10,7 @@
  * Le garde statique `roll-modal-invariant` exempte en bloc combatFlow/combatManeuvers (scan incapable de
  * distinguer défenseur héros vs IA) — d'où ce garde COMPORTEMENTAL complémentaire.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { aiCreatureFreeAttacks, applyAreaAttack } from './combatFlow';
@@ -27,8 +28,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('Défense de manœuvre de zone — cascade influençable (héros) vs silence (IA)', () => {
   /** Groupe de 2 héros NON surpris (donc capables de se défendre) + 1 ennemi à Souffle (Feu) à portée. */
   function setup() {
-    const H1 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 });
-    const H2 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H2', seed: 2 });
+    const H1 = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 });
+    const H2 = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H2', seed: 2 });
     banc.setState({ party: [H1, H2] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

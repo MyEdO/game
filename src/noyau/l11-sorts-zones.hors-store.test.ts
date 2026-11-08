@@ -3,6 +3,7 @@
  * gagne 1 État En flammes et subit une frappe de BFM Dégâts ») et Grands feux d'U'Zhul
  * (« le feu continue de brûler dans la ZdE pour la durée du Sort »).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyCast, zoneRadiusTilesAt } from './combatFlow';
@@ -20,7 +21,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 describe('L11 — zones persistantes posées par les sorts', () => {
   function setup() {
-    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
+    const W = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
     banc.setState({ party: [W] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

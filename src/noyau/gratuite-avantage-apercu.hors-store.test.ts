@@ -3,6 +3,7 @@
  * l'Avantage RESTANT après le débit (`avantageApresDepense`, le solde que `campSpend` pose au commit).
  * LDB 85 l.387
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { hoverTargeting } from './targeting';
@@ -19,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const g = () => banc.getState();
 
 function engage(): { H: Combatant; E: Combatant } {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');

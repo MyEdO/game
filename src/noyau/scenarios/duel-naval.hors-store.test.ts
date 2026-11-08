@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { seedBattleRng } from '../../noyau/battleRng';
@@ -16,14 +17,14 @@ import { draineCascade, poseSurDeNonTombe } from '../../noyau/cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /** Lance le scénario duel dans le store (comme `__wfrp.scenario`), Round 1 acquitté, RNG SEMÉE. */
 function launch(seed: number) {
   const g = banc.getState();
   g.ensemencerLeTirage(seed);
   seedBattleRng(seed);
-  g.fixerLeGroupe(scenario.construire().party);
+  g.fixerLeGroupe(scenario.construire(idsDeTest).party);
   g.lancerLaScene(scenarioConstruit.scene);
   g.lancerLeCombat('duel');
   if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('roundStart');

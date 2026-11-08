@@ -18,6 +18,7 @@
  *  (d) COOP : l'intention est LOCALE — elle survit au snapshot de l'hôte, ne voyage pas dans ce
  *      snapshot, et son armement n'est pas un intent réseau.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { computeChargeReach, computeRunReach, displayedReach } from './combatFlow';
@@ -32,7 +33,7 @@ import { cliquerSurLeCombattant } from './combatOrParty';
 
 /** Combat témoin : un héros au tour ENTIER, les ennemis parqués au loin (grille libre autour de lui). */
 function setup() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], screen: 'campaign' });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');

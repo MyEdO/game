@@ -3,6 +3,7 @@
  * allocation du surplus de DR (Durée ×n, +Cibles), décrément des États posés par
  * sort, ré-application « un par Round » via effet actif porteur.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyCast, overcastTargetCandidates } from './combatFlow';
@@ -23,7 +24,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const okRes = (sl: number): CastResult => ({ cast: true, roll: 21, target: 70, sl, isCritical: false, isFumble: false, log: 'lancé' });
 
 function pair() {
-  const [priest, ally] = pregenParty(PREGEN.pretre, PREGEN.soldat);
+  const [priest, ally] = pregenParty(idsDeTest, PREGEN.pretre, PREGEN.soldat);
   return { priest, ally };
 }
 
@@ -36,9 +37,9 @@ describe('États à durée (ConditionInstance.roundsLeft)', () => {
     const c = pair().ally;
     addTimedCondition(c, 'sonne', 1, 2);
     expect(c.conditions.find((x) => x.id === 'sonne')?.roundsLeft).toBe(2);
-    endOfRound(c, makeRNG(1));
+    endOfRound(c, makeRNG(1), idsDeTest);
     expect(hasCondition(c, 'sonne')).toBe(true);
-    const log = endOfRound(c, makeRNG(1));
+    const log = endOfRound(c, makeRNG(1), idsDeTest);
     expect(hasCondition(c, 'sonne')).toBe(false);
     expect(log.join('\n')).toMatch(/Sonné \(sort\) se dissipe/);
   });
@@ -52,7 +53,7 @@ describe('États à durée (ConditionInstance.roundsLeft)', () => {
 
   it('op condition.durationRounds → addTimedCondition (Régurgitation : Sonné 1d10 Rounds)', () => {
     const c = pair().ally;
-    applyOps(c, [{ op: 'condition', id: 'sonne', durationRounds: { dice: { n: 1, sides: 10 } } }], { rng: makeRNG(2) });
+    applyOps(c, [{ op: 'condition', id: 'sonne', durationRounds: { dice: { n: 1, sides: 10 } } }], { idNeuf: idsDeTest, rng: makeRNG(2) });
     const inst = c.conditions.find((x) => x.id === 'sonne')!;
     expect(inst.roundsLeft).toBeGreaterThanOrEqual(1);
     expect(inst.roundsLeft).toBeLessThanOrEqual(10);
@@ -62,13 +63,13 @@ describe('États à durée (ConditionInstance.roundsLeft)', () => {
 describe('États récurrents (« un par Round »)', () => {
   it('op condition.perRound : ré-appliqué chaque fin de Round pendant la durée du sort', () => {
     const c = pair().ally;
-    applyOps(c, [{ op: 'condition', id: 'hemorragique', perRound: true }], { rng: desDuTest, label: 'Malédiction', defaultDurationRounds: 2 });
+    applyOps(c, [{ op: 'condition', id: 'hemorragique', perRound: true }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Malédiction', defaultDurationRounds: 2 });
     expect(hasCondition(c, 'hemorragique')).toBe(false); // récurrent : agit en fin de Round
-    endOfRound(c, makeRNG(1));
+    endOfRound(c, makeRNG(1), idsDeTest);
     // fin de Round 1 : +1 Hémorragique (le saignement immédiat tick aussi via endOfRound → PB)
     expect(c.conditions.find((x) => x.id === 'hemorragique')?.value).toBeGreaterThanOrEqual(1);
     const v1 = c.conditions.find((x) => x.id === 'hemorragique')!.value;
-    endOfRound(c, makeRNG(1));
+    endOfRound(c, makeRNG(1), idsDeTest);
     const v2 = c.conditions.find((x) => x.id === 'hemorragique')?.value ?? 0;
     expect(v2).toBeGreaterThanOrEqual(v1); // ré-appliqué au Round 2 (dernier de l'effet)
     expect(c.activeEffects?.length ?? 0).toBe(0); // l'effet porteur expiré
@@ -79,11 +80,11 @@ describe('États récurrents (« un par Round »)', () => {
     c.items = [];
     // Durée 1 Round portée à 3 par Surincantation de Durée → 3 Rations (1 par Round actif).
     applyOps(c, [{ op: 'perRound', ops: [{ op: 'giveTrapping', custom: 'Ration (1 jour)' }] }],
-      { rng: desDuTest, label: 'Récolte de Rhya', defaultDurationRounds: 3 });
+      { idNeuf: idsDeTest, rng: desDuTest, label: 'Récolte de Rhya', defaultDurationRounds: 3 });
     expect((c.items ?? []).filter((it) => /^ration/i.test(it.label)).length).toBe(0); // rien à l'incantation
-    endOfRound(c, makeRNG(1));
-    endOfRound(c, makeRNG(1));
-    endOfRound(c, makeRNG(1));
+    endOfRound(c, makeRNG(1), idsDeTest);
+    endOfRound(c, makeRNG(1), idsDeTest);
+    endOfRound(c, makeRNG(1), idsDeTest);
     expect((c.items ?? []).filter((it) => /^ration/i.test(it.label)).length).toBe(3);
     expect(c.activeEffects?.length ?? 0).toBe(0); // effet porteur dissipé après 3 Rounds
   });
@@ -129,7 +130,7 @@ describe('overcastTargetCandidates — cibles supplémentaires proposables (moda
 
 describe('Surincantation (LDB 47 l.28-31)', () => {
   it('un réglage d’après le jet (`apresLeJet`) joué avant le dé se refuse au journal, avec ce qui le ferme', () => {
-    const wiz = pregen(PREGEN.sorcier);
+    const wiz = pregen(idsDeTest, PREGEN.sorcier);
     banc.setState({ party: [wiz] as Combatant[], pendingCast: { casterId: wiz.id, targetId: wiz.id, spellId: 'armure-aethyrique', missile: false, focused: false, result: null } });
     banc.getState().jetRegler('cast', 'surincantationDuree', 1);
     expect(banc.getState().pendingCast!.overcast).toBeUndefined();
@@ -138,7 +139,7 @@ describe('Surincantation (LDB 47 l.28-31)', () => {
 
   it('les pas de Surincantation respectent le budget (+2 DR par allocation, au-delà du NI)', () => {
     const { priest, ally } = pair();
-    const wiz = pregen(PREGEN.sorcier);
+    const wiz = pregen(idsDeTest, PREGEN.sorcier);
     banc.setState({ party: [wiz, priest, ally] as Combatant[] });
     // Armure Aethyrique : NI 2 ; DR 6 → surplus 4 → budget 2 allocations.
     banc.setState({ pendingCast: { casterId: wiz.id, targetId: wiz.id, spellId: 'armure-aethyrique', missile: false, focused: false, result: { ...okRes(6), niRequired: 2 } } }); // NI figé au jet (`evaluateCasting`)
@@ -164,7 +165,7 @@ describe('Surincantation (LDB 47 l.28-31)', () => {
 
   it('durée ×(1+n) et cible supplémentaire appliquées par applyCast', () => {
     const { priest, ally } = pair();
-    const wiz = pregen(PREGEN.sorcier);
+    const wiz = pregen(idsDeTest, PREGEN.sorcier);
     banc.setState({ party: [wiz, priest, ally] as Combatant[] });
     const sort = { ...findSpellById('benediction-de-bataille')!, type: 'Magie des Arcanes', cn: 0 }; // gabarit +10 CC 6 rounds en SORT
     applyCast(banc.getState, banc.setState, wiz, priest, sort, okRes(4), false, false, undefined, {

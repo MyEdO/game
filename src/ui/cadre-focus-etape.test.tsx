@@ -6,6 +6,7 @@
  * puis dans une zone EMBARQUÉE (`EmbeddedShell`) dont l'entrée est au pied de l'hôte, hors de sa boîte.
  * L'invocateur appartient à l'ouverture (APG, Dialog (Modal) Pattern), l'entrée à l'étape (`focus.ts`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { StrictMode, act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -37,8 +38,8 @@ beforeEach(() => {
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
-  sigmund = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', seed: 1 });
-  aelindra = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Aelindra', seed: 2 });
+  sigmund = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', seed: 1 });
+  aelindra = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Aelindra', seed: 2 });
   useGame.setState({
     battle: null, party: [sigmund, aelindra], suspendedCascades: [], journal: [], pendingCascade: null,
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} },

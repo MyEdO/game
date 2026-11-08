@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { creatureToCombatant, statblockToCombatant } from './spawn';
 import { createHero } from '../../engine/character';
@@ -40,7 +41,7 @@ describe('spawn — Groupes & traits psy ciblés (P3)', () => {
     expect(c.psychTraits).toEqual([{ type: 'animosite', cible: ciblePsy.groupe('elfe') }]);
   });
   it('createHero : Groupes effectifs = racial(espèce) + carrière (ids)', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     expect(groupesDe(h)).toEqual(expect.arrayContaining(['humain', 'soldat']));
   });
   it('creatureToCombatant : Talent Béni(Sigmar/Ulric) de la donnée → Groupe religieux (fixe le trou Phase 2)', () => {

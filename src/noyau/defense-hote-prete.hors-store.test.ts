@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { scenario } from '../scenes/test-scenarios/entrainement';
@@ -23,7 +24,7 @@ const g = () => banc.getState();
 
 function setup(seed: number) {
   seedBattleRng(seed);
-  const built = scenario.construire();
+  const built = scenario.construire(idsDeTest);
   banc.setState({ battle: null, party: built.party });
   g().lancerLaScene(built.scene);
   g().lancerLeCombat('enc-entrainement', undefined, { noSurprise: true });
