@@ -47,7 +47,8 @@ func _verifier(cas: String, clips: Dictionary, attaque: String) -> void:
 		if lecteur.get_animation(clips[role]).loop_mode != Animation.LOOP_LINEAR:
 			_fautes.append("%s : %s ne boucle pas" % [cas, clips[role]])
 	combattant.agir_vers(Vector3(3.0, 0.0, 0.0))
-	if lecteur.current_animation != attaque or Array(lecteur.get_queue()) != ["repos"]:
+	var file := lecteur.get_queue()
+	if lecteur.current_animation != attaque or file.size() != 1 or String(file[0]) != "repos":
 		_fautes.append("%s : attaque %s puis %s, attendu %s puis repos" % [cas, lecteur.current_animation, lecteur.get_queue(), attaque])
 	combattant._aller(Vector3(2.0, 0.0, 0.0))
 	if lecteur.current_animation != "marche":
