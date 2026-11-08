@@ -215,14 +215,17 @@ describe('infirmerie réelle (`MedicModal`) — le focus d’un cadre n’ouvre 
     expect(bulles(), 'un focus de navigation ouvre la bulle').toBe(1);
   });
 
-  it('soin lancé puis validé : le brouillon renaît sur l’acte suivant, sans bulle', () => {
+  it('soin lancé puis validé : le brouillon renaît sur l’acte suivant, le focus sur son premier contrôle, sans bulle', async () => {
     act(() => root.render(<MedicModal />));
     expect(useGame.getState().pendingHeal?.mode, 'le brouillon : les Blessures').toBe('wounds');
     act(() => useGame.getState().jetLancer('heal')); // le « Lancer » de la coquille joue ce verbe après son frisson (`useRollFrisson`)
     expect(useGame.getState().pendingHeal?.roll, 'le soin est lancé').not.toBeNull();
     act(() => bouton('Appliquer').click());
     expect(useGame.getState().pendingHeal, 'le brouillon renaît sur l’Hémorragie').toMatchObject({ mode: 'bleed', roll: null });
-    expect(bulles(), 'aucune bulle ne s’ouvre').toBe(0);
+    await act(async () => { await tacheSuivante(); }); // le sauvetage du cadre se lit à la tâche suivante
+    const brouillon = host.querySelector<HTMLElement>('.rs-embedded')!;
+    expect(document.activeElement, 'le focus va au premier contrôle du brouillon renaissant, jamais à <body>').toBe(visibleFocusables(brouillon)[0]);
+    expect(bulles(), 'le retour du focus n’ouvre pas la bulle').toBe(0);
   });
 });
 
