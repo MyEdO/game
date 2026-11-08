@@ -54,7 +54,7 @@ function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnIn
 // 1. BUFF de combat = bénéfice MARGINAL réel (op charMod), pas une liste de carac
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 describe('opValue — un buff de combat vaut son bénéfice marginal (armé > 0, désarmé ≈ 0)', () => {
-  const buff = { op: 'charMod', char: 'capacite-de-combat', mod: 10 } as never;
+  const buff = { op: 'charMod', characteristic: 'capacite-de-combat', mod: 10 } as never;
   it('combattant ARMÉ : +10 CC améliore l’EV d’attaque → valeur > 0', () => {
     const e = caster('e', { x: 0, y: 0 });
     const armed = caster('a', { x: 1, y: 0 }, { weapons: [MELEE] });
@@ -123,7 +123,7 @@ describe('chooseEnemyAction — soin & anti-spam (op-driven)', () => {
 
   it('Unicité buff : buff déjà ACTIF → ne réapplique pas → attaque', () => {
     const e = caster('e', { x: 5, y: 5 }, { weapons: [MELEE] });
-    const buffSelf = castable({ id: 'benediction', shape: 'self', range: 0, active: true, data: spellData({ id: 'benediction', effects: doOps([{ op: 'charMod', char: 'capacite-de-combat', mod: 10 }], 'caster') }) });
+    const buffSelf = castable({ id: 'benediction', shape: 'self', range: 0, active: true, data: spellData({ id: 'benediction', effects: doOps([{ op: 'charMod', characteristic: 'capacite-de-combat', mod: 10 }], 'caster') }) });
     const h = foeAt('h', 5, 6);
     expect(chooseEnemyAction(input(e, [h], { spells: [buffSelf] }))).toEqual({ kind: 'melee', targetId: 'h' });
   });

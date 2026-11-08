@@ -6,7 +6,7 @@
  * ont été éliminés au profit du vocabulaire `GameOp` unifié).
  *
  * Sémantique des passifs de Caractéristique (clés STABLES, ≠ libellés — multilangue ; descriptions LDB 10) :
- *  - `charMod{char,mod:5}` : « Vous gagnez un bonus permanent de +5 à votre Caractéristique X de
+ *  - `charMod{characteristic,mod:5}` : « Vous gagnez un bonus permanent de +5 à votre Caractéristique X de
  *    départ (ne compte pas comme des Augmentations) » — Guerrier né, Tireur de précision, Très fort,
  *    Très résistant, Vivacité, Réflexes foudroyants, Doigts de fée, Perspicace, Imperturbable, Affable ;
  *  - `attrMod{attr:'wounds',mod:{bonusOf:'endurance'}}` (Dur à cuire) : « autant de Points de Blessure
@@ -48,7 +48,7 @@ export function baseWithTalents(c: Combatant, key: CharKey): number {
   let val = c.characteristics[key] ?? 0;
   for (const t of c.talents ?? []) {
     for (const op of findTalentById(t.talentId)?.passive ?? []) {
-      if (op.op === 'charMod' && op.char === key) val += op.mod * (t.times ?? 1);
+      if (op.op === 'charMod' && op.characteristic === key) val += op.mod * (t.times ?? 1);
     }
   }
   return val;
@@ -56,11 +56,11 @@ export function baseWithTalents(c: Combatant, key: CharKey): number {
 
 /**
  * Caractéristique « +5 de départ » conférée par un talent (clé courte), sinon null, par `id`.
- * Lit le premier `charMod{char, mod}` dont `char` est une CharKey dans `passive` du talent.
+ * Lit le premier `charMod{characteristic, mod}` dont `characteristic` est une CharKey dans `passive` du talent.
  */
 export function talentCharBonusById(talentId: string): CharKey | null {
   for (const op of findTalentById(talentId)?.passive ?? []) {
-    if (op.op === 'charMod' && (CHAR_KEYS as readonly string[]).includes(op.char)) return op.char as CharKey;
+    if (op.op === 'charMod' && (CHAR_KEYS as readonly string[]).includes(op.characteristic)) return op.characteristic as CharKey;
   }
   return null;
 }

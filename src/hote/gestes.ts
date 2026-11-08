@@ -188,7 +188,7 @@ function argument(etat: Jeu, verbe: string, p: { nom: string; optionnel: boolean
   const base = { nom: p.nom, optionnel: p.optionnel, libelle, valeur: reglage?.courant ?? null, bornes: reglage?.bornes ?? null, note: reglage?.note ?? null, champs: null };
   const valeurs = reglage?.valeurs ?? (reglage?.bornes ? null : valeursDeLaForme(etat, regle?.nom ?? p.nom, p.forme));
   if (valeurs) return { ...base, saisie: 'choix', valeurs };
-  if (p.forme.genre === 'objet' && p.forme.champs) return { ...base, saisie: 'objet', valeurs: null, champs: p.forme.champs.map((c) => argument(etat, verbe, c, undefined)) };
+  if (p.forme.genre === 'objet') return { ...base, saisie: 'objet', valeurs: null, champs: p.forme.champs.map((c) => argument(etat, verbe, c, undefined)) };
   return { ...base, saisie: SAISIE_DE_LA_FORME[p.forme.genre] ?? 'json', valeurs: null };
 }
 

@@ -36,7 +36,7 @@ describe('dissipation au répit — politique de durée DÉCLARÉE sur l’effet
 
   it('un effet permanent qui ne la déclare PAS reste permanent', () => {
     const c = hero();
-    c.activeEffects = [{ label: 'Bénédiction', bonus: 10, char: 'force', duration: { scale: 'permanent' } }];
+    c.activeEffects = [{ label: 'Bénédiction', bonus: 10, characteristic: 'force', duration: { scale: 'permanent' } }];
     expireOnRespite(c, 5000);
     expect(c.activeEffects[0].duration).toEqual({ scale: 'permanent' });
   });

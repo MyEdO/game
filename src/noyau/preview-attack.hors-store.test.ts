@@ -152,7 +152,7 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
   });
 
   it('issue #202 — buff de Caractéristique (Bénédiction de Bataille +10 CC) : target INCHANGÉ, base amputé, ligne étiquetée `famille: \'jet\'`', () => {
-    const a = combatant({ id: 'A', activeEffects: [{ ...BENEDICTION, char: 'capacite-de-combat', bonus: 10 }] as never });
+    const a = combatant({ id: 'A', activeEffects: [{ ...BENEDICTION, characteristic: 'capacite-de-combat', bonus: 10 }] as never });
     const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 } });
     const withoutBuff = previewAttack(mkGet([combatant({ id: 'A' }), b]), combatant({ id: 'A' }), b);
     const withBuff = previewAttack(mkGet([a, b]), a, b);
@@ -261,7 +261,7 @@ describe('previewAttack — plafond des Difficultés NOMMÉ et cible écrêtée 
     const belier = { label: 'Bélier', type: 'melee', damage: { plusBF: true, flat: 4 }, reach: 'Moyenne', qualities: [], resolveChar: 'force' } as never;
     const a = combatant({
       id: 'A', weapons: [belier], traumas: [trauma] as never,
-      activeEffects: [{ ...BENEDICTION, char: 'force', bonus: 10 }] as never,
+      activeEffects: [{ ...BENEDICTION, characteristic: 'force', bonus: 10 }] as never,
     } as never);
     const b = foe();
     const lignes = volatileCharLines(a, 'force');

@@ -46,7 +46,7 @@ describe('resolveFormula', () => {
   });
 
   it('(Bonus de X) se résout contre la caractéristique EFFECTIVE (buffs compris)', () => {
-    const c = hero({ activeEffects: [{ label: 'Buff', char: 'force-mentale', bonus: 10, duration: { scale: 'rounds', left: 3 } }] });
+    const c = hero({ activeEffects: [{ label: 'Buff', characteristic: 'force-mentale', bonus: 10, duration: { scale: 'rounds', left: 3 } }] });
     expect(resolveFormula({ bonusOf: 'force-mentale' }, c, desDuTest)).toBe(4); // 38+10 → 48 → bonus 4
   });
 });
@@ -106,7 +106,7 @@ describe('`{parTranche, of}` — le nombre de tranches entières d’une valeur'
 describe('AUCUN plancher de durée au moteur — toute échelle rend ce que la formule dit', () => {
   it('horloge d’une op (`durationMinutes`/`durationHours`) : l’échéance est `now`, pas `now + 1`', () => {
     const c = hero();
-    applyOps(c, [{ op: 'charMod', char: 'agilite', mod: -10, durationMinutes: 0 }], { rng: desDuTest, label: 'Écorce', now: 100 });
+    applyOps(c, [{ op: 'charMod', characteristic: 'agilite', mod: -10, durationMinutes: 0 }], { rng: desDuTest, label: 'Écorce', now: 100 });
     expect(c.activeEffects![0].duration).toEqual({ scale: 'clock', until: 100 });
   });
 
@@ -311,30 +311,30 @@ describe('applyOps — opérations unitaires', () => {
     const lines = applyOps(
       c,
       [
-        { op: 'charMod', char: 'agilite', mod: -10 },
-        { op: 'charMod', char: 'dexterite', mod: -10 },
+        { op: 'charMod', characteristic: 'agilite', mod: -10 },
+        { op: 'charMod', characteristic: 'dexterite', mod: -10 },
       ],
       { rng: desDuTest, label: 'Écorce', defaultDurationRounds: 6 },
     );
     expect(c.activeEffects).toHaveLength(2);
-    expect(c.activeEffects![0]).toMatchObject({ label: 'Écorce', char: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 6 } });
+    expect(c.activeEffects![0]).toMatchObject({ label: 'Écorce', characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 6 } });
     expect(lines).toHaveLength(1);
     expect(lines[0]).toBe('Cobaye : Écorce (-10 Agilité, -10 Dextérité, 6 rounds).');
   });
 
   it('sourceSpell : marque les ActiveEffect POSÉS du sort (NI/identité), pas les pré-existants (Dissipation LDB 46)', () => {
-    const c = hero({ activeEffects: [{ label: 'Vieux buff', char: 'force-mentale', bonus: 10, duration: { scale: 'rounds', left: 3 } }] });
+    const c = hero({ activeEffects: [{ label: 'Vieux buff', characteristic: 'force-mentale', bonus: 10, duration: { scale: 'rounds', left: 3 } }] });
     const spell = { spellId: 'ecorce', ni: 4, casterId: 'mage-1', label: 'Écorce' };
-    applyOps(c, [{ op: 'charMod', char: 'agilite', mod: -10 }], { rng: desDuTest, label: 'Écorce', defaultDurationRounds: 6, sourceSpell: spell });
+    applyOps(c, [{ op: 'charMod', characteristic: 'agilite', mod: -10 }], { rng: desDuTest, label: 'Écorce', defaultDurationRounds: 6, sourceSpell: spell });
     const old = c.activeEffects!.find((e) => e.label === 'Vieux buff')!;
-    const posed = c.activeEffects!.find((e) => e.char === 'agilite')!;
+    const posed = c.activeEffects!.find((e) => e.characteristic === 'agilite')!;
     expect(old.spell).toBeUndefined(); // pré-existant : non marqué
     expect(posed.spell).toEqual(spell); // posé par CE sort : marqué (identité + NI)
   });
 
   it('charMod : durée permanente par défaut → « durée hors combat » au journal', () => {
     const c = hero();
-    const lines = applyOps(c, [{ op: 'charMod', char: 'endurance', mod: 20 }], { rng: desDuTest, label: 'Armure' });
+    const lines = applyOps(c, [{ op: 'charMod', characteristic: 'endurance', mod: 20 }], { rng: desDuTest, label: 'Armure' });
     expect(c.activeEffects![0].duration).toEqual({ scale: "permanent" });
     expect(lines[0]).toMatch(/durée hors combat/);
   });
@@ -398,8 +398,8 @@ describe('applyOps — opérations unitaires', () => {
   // lus par combatValue/defenseValue/testValue (cf. weapon-spec.test.ts pour la consommation).
   it("testMod : weaponHand/movementOnly COPIÉS sur l'ActiveEffect (testModHand/testModMovementOnly)", () => {
     const c = hero();
-    applyOps(c, [{ op: 'testMod', char: 'capacite-de-combat', amount: -10, weaponHand: 'main' }], { rng: desDuTest, defaultDurationRounds: 9999 });
-    applyOps(c, [{ op: 'testMod', char: 'agilite', amount: -10, movementOnly: true }], { rng: desDuTest, defaultDurationRounds: 9999 });
+    applyOps(c, [{ op: 'testMod', characteristic: 'capacite-de-combat', amount: -10, weaponHand: 'main' }], { rng: desDuTest, defaultDurationRounds: 9999 });
+    applyOps(c, [{ op: 'testMod', characteristic: 'agilite', amount: -10, movementOnly: true }], { rng: desDuTest, defaultDurationRounds: 9999 });
     expect(c.activeEffects).toHaveLength(2);
     expect(c.activeEffects![0]).toMatchObject({ testMod: -10, testModChar: 'capacite-de-combat', testModHand: 'main' });
     expect(c.activeEffects![0].testModMovementOnly).toBeUndefined();
@@ -416,7 +416,7 @@ describe('applyOps — opérations unitaires', () => {
   describe('charMod : durationHours/durationMinutes (#153)', () => {
     it('durationHours → ActiveEffect à durée CLOCK (until = ctx.now + heures×60), indépendant de defaultDurationRounds', () => {
       const c = hero();
-      applyOps(c, [{ op: 'charMod', char: 'agilite', mod: -10, durationHours: 240 }], { rng: desDuTest, now: 1000, defaultDurationRounds: 3 });
+      applyOps(c, [{ op: 'charMod', characteristic: 'agilite', mod: -10, durationHours: 240 }], { rng: desDuTest, now: 1000, defaultDurationRounds: 3 });
       expect(c.activeEffects).toHaveLength(1);
       expect(c.activeEffects![0].duration).toEqual({ scale: 'clock', until: 1000 + 240 * 60 });
     });
@@ -424,13 +424,13 @@ describe('applyOps — opérations unitaires', () => {
     it('durationHours en Formula (1d10 × 24, « 1d10 jours ») résolue au seed', () => {
       const c = hero();
       const rng: RNG = deFixe(1); // 1d10 au plus bas → 1 jour = 24 h = 1440 min
-      applyOps(c, [{ op: 'charMod', char: 'agilite', mod: -10, durationHours: { times: { of: { dice: { n: 1, sides: 10 } }, factor: 24 } } }], { now: 0, rng });
+      applyOps(c, [{ op: 'charMod', characteristic: 'agilite', mod: -10, durationHours: { times: { of: { dice: { n: 1, sides: 10 } }, factor: 24 } } }], { now: 0, rng });
       expect(c.activeEffects![0].duration).toEqual({ scale: 'clock', until: 1440 });
     });
 
     it('sans durationRounds/durationHours → comportement INCHANGÉ (durée du ctx)', () => {
       const c = hero();
-      applyOps(c, [{ op: 'charMod', char: 'agilite', mod: -10 }], { rng: desDuTest, defaultDurationRounds: 5 });
+      applyOps(c, [{ op: 'charMod', characteristic: 'agilite', mod: -10 }], { rng: desDuTest, defaultDurationRounds: 5 });
       expect(c.activeEffects![0].duration).toEqual({ scale: 'rounds', left: 5 });
     });
   });
@@ -576,7 +576,7 @@ describe('applyActiveEffect — pose réelle (applyOps charMod) puis effectiveCh
   const sort = (id: string, casterId = 'm') => ({ source: { kind: 'spell' as const, id }, sourceSpell: { spellId: id, ni: 5, casterId, label: id } });
   /** ctx de `runCastFlow` (`src/noyau/combatFlow.ts`) : `source.kind` vaut `spell` pour TOUT lancement. */
   const priere = (id: string) => ({ source: { kind: 'spell' as const, id }, sourceSpellId: id });
-  const pose = (c: Combatant, mod: number, ctx: object) => applyOps(c, [{ op: 'charMod', char: 'force', mod }], { rng: desDuTest, label: 'Effet', defaultDurationRounds: 6, ...ctx });
+  const pose = (c: Combatant, mod: number, ctx: object) => applyOps(c, [{ op: 'charMod', characteristic: 'force', mod }], { rng: desDuTest, label: 'Effet', defaultDurationRounds: 6, ...ctx });
   it('deux Prières DIFFÉRENTES se somment ; la MÊME Prière ne se cumule pas (LDB 40 l.19)', () => {
     const c = hero(); pose(c, 10, priere('benediction-de-bataille')); pose(c, 10, priere('prouesses-martiales'));
     expect(effectiveChar(c, 'force')).toBe(50);
@@ -608,14 +608,14 @@ describe('applyActiveEffect — pose réelle (applyOps charMod) puis effectiveCh
   });
   it('un même Sort d’un même lanceur n’est actif qu’une fois : la nouvelle pose remplace (LDB 46 l.119)', () => {
     const c = hero(); pose(c, 10, sort('s')); pose(c, 20, sort('s'));
-    expect(c.activeEffects!.filter((e) => e.char === 'force').map((e) => e.bonus)).toEqual([20]);
+    expect(c.activeEffects!.filter((e) => e.characteristic === 'force').map((e) => e.bonus)).toEqual([20]);
   });
 
   it('buff de F/E/FM recale les Blessures max (LDB 05 l.1001)', () => {
     const c = hero();
     c.wounds = blessuresPosees(c);
     expect(c.wounds.max).toBe(14); // 3 + 2×4 + 3
-    applyActiveEffect(c, { label: 'Vigueur', char: 'endurance', bonus: 10, duration: { scale: 'rounds', left: 6 } });
+    applyActiveEffect(c, { label: 'Vigueur', characteristic: 'endurance', bonus: 10, duration: { scale: 'rounds', left: 6 } });
     expect(c.wounds.max).toBe(16); // E 45→55 : BE 4→5 → +2 PB (2×BE)
   });
 });
@@ -719,7 +719,7 @@ describe("op:'rollTable' — tirage sur table par fourchette (findTableEntry, so
   const table = (extra: Partial<Extract<import('./ops').GameOp, { op: 'rollTable' }>> = {}) => ({
     op: 'rollTable' as const, die: 'd10' as const,
     entries: [
-      { min: 1, max: 2, ops: [{ op: 'charDamage' as const, char: 'initiative' as const, amount: { dice: { n: 1, sides: 10 } } }] },
+      { min: 1, max: 2, ops: [{ op: 'charDamage' as const, characteristic: 'initiative' as const, amount: { dice: { n: 1, sides: 10 } } }] },
       { min: 3, max: 8, ops: [{ op: 'condition' as const, id: 'sonne' }] },
       { min: 9, max: 9, ops: [{ op: 'grantTrait' as const, trait: { id: 'nerveux' } }] },
       { min: 10, max: 99, ops: [{ op: 'kill' as const }] },
@@ -778,13 +778,13 @@ describe("op:'rollTable' — tirage sur table par fourchette (findTableEntry, so
 describe("op:'charDamage' — perte PERMANENTE de Caractéristique (jamais sous 0)", () => {
   it('décrémente la BASE (pas un effet actif temporisé)', () => {
     const c = hero({ characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 45, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 38, sociabilite: 30 } });
-    applyOps(c, [{ op: 'charDamage', char: 'sociabilite', amount: 5 }], { rng: makeRNG(1) });
+    applyOps(c, [{ op: 'charDamage', characteristic: 'sociabilite', amount: 5 }], { rng: makeRNG(1) });
     expect(c.characteristics.sociabilite).toBe(25);
     expect((c.activeEffects ?? []).length).toBe(0); // permanent, pas d'ActiveEffect
   });
   it('plancher 0 : une perte supérieure à la base clampe à 0', () => {
     const c = hero({ characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 45, initiative: 3, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 38, sociabilite: 30 } });
-    applyOps(c, [{ op: 'charDamage', char: 'initiative', amount: 10 }], { rng: makeRNG(1) });
+    applyOps(c, [{ op: 'charDamage', characteristic: 'initiative', amount: 10 }], { rng: makeRNG(1) });
     expect(c.characteristics.initiative).toBe(0);
   });
 });
@@ -828,8 +828,8 @@ describe('OpsCtx.surLigne — les lignes d’une application, par rang d’op', 
   const cible = (): Combatant => (blessuresSurLeProfil({ id: 't', label: 'Cible', kind: 'enemy', characteristics: profilDeTest({ agilite: 40 }), wounds: blessuresDeBase(10), conditions: [], skills: [], talents: [], traits: [], activeEffects: [], weapons: [], items: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
   const ops = [
     { op: 'wounds', amount: 2, ignoreTB: true, ignoreAP: true },
-    { op: 'charMod', char: 'agilite', mod: -10, durationRounds: 3 },
-    { op: 'charMod', char: 'endurance', mod: -10, durationRounds: 3 },
+    { op: 'charMod', characteristic: 'agilite', mod: -10, durationRounds: 3 },
+    { op: 'charMod', characteristic: 'endurance', mod: -10, durationRounds: 3 },
     { op: 'condition', id: 'sonne', value: 1 },
   ] as never[];
 

@@ -1086,7 +1086,7 @@
       {
         "op": "testMod",
         "amount": -10,
-        "char": "sociabilite"
+        "characteristic": "sociabilite"
       }
     ]
   },

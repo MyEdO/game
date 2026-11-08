@@ -113,8 +113,8 @@ export type ActorRef = 'target' | 'caster';
 export type ActorField = 'woundsCurrent' | 'woundsMax' | 'size' | 'advantage';
 /** Référence à UNE Caractéristique EFFECTIVE d'un acteur (`bonus:true` → son Bonus). Toutes les
  *  Caractéristiques sont exposées (pas de champ ad hoc) — lues par les seuils relatifs, ex. Voie d'eau
- *  « coule à Endurance » ⇔ `{who:'target', char:'endurance'}` (MDG 13). */
-export type CharRef = { who: ActorRef; char: CharKey; bonus?: boolean };
+ *  « coule à Endurance » ⇔ `{who:'target', characteristic:'endurance'}` (MDG 13). */
+export type CharRef = { who: ActorRef; characteristic: CharKey; bonus?: boolean };
 /** SUJET d'une comparaison `compare` : `who` (cible/lanceur) × (une donnée fixe, la valeur/stacks d'un
  *  État nommé, ou une Caractéristique — 0 si absent → « la cible a l'État X » ⇔ `{who:'target', condition:X} >= 1`). */
 export type CompareSubject = { who: ActorRef; field: ActorField } | { who: ActorRef; condition: string } | CharRef;
@@ -132,7 +132,7 @@ export interface ActorView {
   /** États PSYCHOLOGIQUES actifs portés (`psychState` — types dont l'affliction n'est pas résistée) —
    *  lus par `has what:'psych'` (gate « porteur en Frénésie » du Contrôle de la Frénésie, LDB 10). */
   psych?: string[];
-  /** Caractéristiques EFFECTIVES (toutes), lues par la Condition `compare` via `{who, char}` (+ `bonus`). */
+  /** Caractéristiques EFFECTIVES (toutes), lues par la Condition `compare` via `{who, characteristic}` (+ `bonus`). */
   chars: Record<CharKey, number>;
   /** Niveau des CAPACITÉS de combat (`CombatFeature` agrégées) — lu par la Condition `capability`
    *  (Cœur vaillant `braveheart`…). Absent → toute capacité vaut 0. */
@@ -187,7 +187,7 @@ export type Condition =
    *  CONSTANTE ou le champ d'un AUTRE acteur (« cible plus petite que l'attaquant » ⇔
    *  `{who:'target',field:'size'} '<' {who:'caster',field:'size'}`). Régénération « PB > 0 » ⇔
    *  `{who:'target',field:'woundsCurrent'} >= 1`. Acteur absent → false. `factor` met à l'échelle la valeur
-   *  référencée (« la MOITIÉ de l'Endurance » ⇔ `{who:'target',char:'endurance',factor:0.5}`, Voie d'eau). */
+   *  référencée (« la MOITIÉ de l'Endurance » ⇔ `{who:'target',characteristic:'endurance',factor:0.5}`, Voie d'eau). */
   | { kind: 'compare'; subject: CompareSubject; op: CompareOp; value: number | (CompareSubject & { factor?: number }) }
   /** Seuil de MARGE / DR du contexte (`ctx.sl`) : vrai si `sl ≥ atLeast`. Permet d'authorer les issues
    *  échelonnées d'une manœuvre (Regard pétrifiant : « si la marge atteint 6 DR → Pétrifié », LDB 85
@@ -399,7 +399,7 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
         const a = sel.who === 'caster' ? ctx.caster : ctx.target;
         if (!a) return undefined;
         if ('condition' in sel) return a.conditions[sel.condition] ?? 0;
-        if ('char' in sel) { const v = a.chars[sel.char]; return sel.bonus ? Math.floor(v / 10) : v; }
+        if ('characteristic' in sel) { const v = a.chars[sel.characteristic]; return sel.bonus ? Math.floor(v / 10) : v; }
         return a[sel.field];
       };
       const lhs = read(cond.subject);

@@ -7,7 +7,7 @@ import type { Combatant, CharKey, EffectSource } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Combatant minimal : seuls `characteristics` et `activeEffects` importent ici (pool non-cumul). */
-function mk(activeEffects: { char: CharKey; bonus: number; label?: string; source?: EffectSource }[] = [], F = 40, over: Partial<Combatant> = {}): Combatant {
+function mk(activeEffects: { characteristic: CharKey; bonus: number; label?: string; source?: EffectSource }[] = [], F = 40, over: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
     id: 'c', label: 'c', kind: 'enemy', advantage: 0, conditions: [],
     characteristics: { force: F, agilite: 30, 'capacite-de-combat': 40 } as never,
@@ -27,44 +27,44 @@ describe('effectiveChar — pools de non-cumul (LDB 46 l.119, LDB 40 l.19) ; le 
     expect(effectiveChar(mk(), 'force')).toBe(40);
   });
   it('Sorts : seul le MEILLEUR bonus s’applique (+20, +10 → +20)', () => {
-    expect(effectiveChar(mk([{ char: 'force', bonus: 20, source: SORT('a') }, { char: 'force', bonus: 10, source: SORT('b') }]), 'force')).toBe(60);
+    expect(effectiveChar(mk([{ characteristic: 'force', bonus: 20, source: SORT('a') }, { characteristic: 'force', bonus: 10, source: SORT('b') }]), 'force')).toBe(60);
   });
   it('Sorts : seule la PIRE pénalité s’applique (−10, −20 → −20)', () => {
-    expect(effectiveChar(mk([{ char: 'force', bonus: -10, source: SORT('a') }, { char: 'force', bonus: -20, source: SORT('b') }]), 'force')).toBe(20);
+    expect(effectiveChar(mk([{ characteristic: 'force', bonus: -10, source: SORT('a') }, { characteristic: 'force', bonus: -20, source: SORT('b') }]), 'force')).toBe(20);
   });
   it('Sorts : meilleur bonus + pire pénalité (+20, +10, −10 → +10 net)', () => {
-    expect(effectiveChar(mk([{ char: 'force', bonus: 20, source: SORT('a') }, { char: 'force', bonus: 10, source: SORT('b') }, { char: 'force', bonus: -10, source: SORT('c') }]), 'force')).toBe(50);
+    expect(effectiveChar(mk([{ characteristic: 'force', bonus: 20, source: SORT('a') }, { characteristic: 'force', bonus: 10, source: SORT('b') }, { characteristic: 'force', bonus: -10, source: SORT('c') }]), 'force')).toBe(50);
   });
   it('la MÊME Prière ne se cumule pas ; deux Prières différentes se somment ; Prière + Sort se somment', () => {
-    expect(effectiveChar(mk([{ char: 'force', bonus: 10, source: SORT('benediction-de-bataille') }, { char: 'force', bonus: 10, source: SORT('benediction-de-bataille') }]), 'force')).toBe(50);
-    expect(effectiveChar(mk([{ char: 'force', bonus: 10, source: SORT('benediction-de-bataille') }, { char: 'force', bonus: 10, source: SORT('prouesses-martiales') }]), 'force')).toBe(60);
-    expect(effectiveChar(mk([{ char: 'force', bonus: 10, source: SORT('benediction-de-bataille') }, { char: 'force', bonus: -20, source: SORT('malediction-d-anraheir') }]), 'force')).toBe(30);
+    expect(effectiveChar(mk([{ characteristic: 'force', bonus: 10, source: SORT('benediction-de-bataille') }, { characteristic: 'force', bonus: 10, source: SORT('benediction-de-bataille') }]), 'force')).toBe(50);
+    expect(effectiveChar(mk([{ characteristic: 'force', bonus: 10, source: SORT('benediction-de-bataille') }, { characteristic: 'force', bonus: 10, source: SORT('prouesses-martiales') }]), 'force')).toBe(60);
+    expect(effectiveChar(mk([{ characteristic: 'force', bonus: 10, source: SORT('benediction-de-bataille') }, { characteristic: 'force', bonus: -20, source: SORT('malediction-d-anraheir') }]), 'force')).toBe(30);
   });
   it('effets hors pool (non magiques) : sommés', () => {
-    expect(effectiveChar(mk([{ char: 'force', bonus: -10 }, { char: 'force', bonus: -20 }]), 'force')).toBe(10);
+    expect(effectiveChar(mk([{ characteristic: 'force', bonus: -10 }, { characteristic: 'force', bonus: -20 }]), 'force')).toBe(10);
   });
   it('effets ciblant une AUTRE caractéristique → ignorés', () => {
-    expect(effectiveChar(mk([{ char: 'agilite', bonus: 30 }]), 'force')).toBe(40);
+    expect(effectiveChar(mk([{ characteristic: 'agilite', bonus: 30 }]), 'force')).toBe(40);
   });
 });
 
 describe('volatileCharLines — décomposition étiquetée des contributions retenues (issue #202)', () => {
   it('invariant : Σ(lines.value) = effectiveChar − characteristics − passiveCharSum, pour tout combattant', () => {
-    const c = mk([{ char: 'capacite-de-combat', bonus: 20, label: 'Bénédiction de Bataille', source: SORT('a') }, { char: 'capacite-de-combat', bonus: 10, label: 'Autre buff', source: SORT('b') }, { char: 'capacite-de-combat', bonus: -10, label: 'Malédiction' }]);
+    const c = mk([{ characteristic: 'capacite-de-combat', bonus: 20, label: 'Bénédiction de Bataille', source: SORT('a') }, { characteristic: 'capacite-de-combat', bonus: 10, label: 'Autre buff', source: SORT('b') }, { characteristic: 'capacite-de-combat', bonus: -10, label: 'Malédiction' }]);
     const sum = volatileCharLines(c, 'capacite-de-combat').reduce((s, l) => s + l.value, 0);
     expect(sum).toBe(effectiveChar(c, 'capacite-de-combat') - c.characteristics['capacite-de-combat'] - passiveCharSum(c, 'capacite-de-combat'));
   });
 
   it('un seul buff +10 CC → une ligne étiquetée, `famille: jet` (hors table des Difficultés)', () => {
-    const buff = { char: 'capacite-de-combat' as const, bonus: 10, label: 'Bénédiction de Bataille' };
+    const buff = { characteristic: 'capacite-de-combat' as const, bonus: 10, label: 'Bénédiction de Bataille' };
     expect(volatileCharLines(mk([buff]), 'capacite-de-combat')).toEqual([{ label: buff.label, value: 10, famille: 'jet' }]);
   });
 
   it('Sorts +20/+10/−10 même carac → seules les lignes gagnantes (+20 et −10), le +10 dominé absent', () => {
     const c = mk([
-      { char: 'capacite-de-combat', bonus: 20, label: 'Sort A', source: SORT('a') },
-      { char: 'capacite-de-combat', bonus: 10, label: 'Sort B', source: SORT('b') },
-      { char: 'capacite-de-combat', bonus: -10, label: 'Sort C', source: SORT('c') },
+      { characteristic: 'capacite-de-combat', bonus: 20, label: 'Sort A', source: SORT('a') },
+      { characteristic: 'capacite-de-combat', bonus: 10, label: 'Sort B', source: SORT('b') },
+      { characteristic: 'capacite-de-combat', bonus: -10, label: 'Sort C', source: SORT('c') },
     ]);
     const lines = volatileCharLines(c, 'capacite-de-combat');
     expect(lines.map((l) => [l.ref, l.value])).toEqual([[{ category: 'spells', id: 'a' }, 20], [{ category: 'spells', id: 'c' }, -10]]);
@@ -83,7 +83,7 @@ describe('volatileCharLines — décomposition étiquetée des contributions ret
     const lines = volatileCharLines(c, 'force');
     expect(lines).toEqual([{ label: trauma.label, value: -30, famille: 'jet', ref: undefined }]);
     expect(effectiveChar(c, 'force')).toBe(40 - 30);
-    const maudit = mk([{ char: 'force', bonus: -10, label: 'Sort', source: SORT('a') }], 40, { traumas: avecSequelles([], [trauma]) });
+    const maudit = mk([{ characteristic: 'force', bonus: -10, label: 'Sort', source: SORT('a') }], 40, { traumas: avecSequelles([], [trauma]) });
     expect(effectiveChar(maudit, 'force')).toBe(40 - 30 - 10);
   });
 });
@@ -106,7 +106,7 @@ describe('Fièvre : pénalité aux TESTS, jamais une baisse de Caractéristique 
 
 describe('ActiveEffect.passive : le pool suit l’entité SOURCE, pas le canal (LDB 46 l.119, LDB 14 l.95)', () => {
   const porteur = (kind: 'spell' | 'trapping') => mk([], 40, {
-    activeEffects: ['a', 'b'].map((id) => ({ label: id, bonus: 0, duration: { scale: 'rounds', left: 3 }, source: { kind, id }, passive: [{ op: 'charMod', char: 'force', mod: -10 }] })) as never,
+    activeEffects: ['a', 'b'].map((id) => ({ label: id, bonus: 0, duration: { scale: 'rounds', left: 3 }, source: { kind, id }, passive: [{ op: 'charMod', characteristic: 'force', mod: -10 }] })) as never,
   });
   it('deux objets : leurs réductions se somment', () => {
     expect(effectiveChar(porteur('trapping'), 'force')).toBe(20);

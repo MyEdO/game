@@ -6242,7 +6242,7 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "force",
+                "characteristic": "force",
                 "mod": 10
               },
               {
@@ -6413,22 +6413,22 @@
           },
           {
             "op": "charMod",
-            "char": "force",
+            "characteristic": "force",
             "mod": 10
           },
           {
             "op": "charMod",
-            "char": "endurance",
+            "characteristic": "endurance",
             "mod": 10
           },
           {
             "op": "charMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "mod": 10
           },
           {
             "op": "charMod",
-            "char": "capacite-de-combat",
+            "characteristic": "capacite-de-combat",
             "mod": 10
           },
           {
@@ -6442,22 +6442,22 @@
               },
               {
                 "op": "charMod",
-                "char": "capacite-de-combat",
+                "characteristic": "capacite-de-combat",
                 "mod": -20
               },
               {
                 "op": "charMod",
-                "char": "endurance",
+                "characteristic": "endurance",
                 "mod": -20
               },
               {
                 "op": "charMod",
-                "char": "force",
+                "characteristic": "force",
                 "mod": -20
               },
               {
                 "op": "charMod",
-                "char": "agilite",
+                "characteristic": "agilite",
                 "mod": -20
               }
             ]
@@ -6778,27 +6778,27 @@
           {
             "op": "testMod",
             "amount": 10,
-            "char": "endurance"
+            "characteristic": "endurance"
           },
           {
             "op": "testMod",
             "amount": 10,
-            "char": "force-mentale"
+            "characteristic": "force-mentale"
           },
           {
             "op": "testMod",
             "amount": -10,
-            "char": "agilite"
+            "characteristic": "agilite"
           },
           {
             "op": "testMod",
             "amount": -10,
-            "char": "initiative"
+            "characteristic": "initiative"
           },
           {
             "op": "testMod",
             "amount": -10,
-            "char": "intelligence"
+            "characteristic": "intelligence"
           }
         ]
       }
@@ -6859,7 +6859,7 @@
           },
           {
             "op": "actGate",
-            "char": "force-mentale"
+            "characteristic": "force-mentale"
           }
         ]
       }
@@ -13507,7 +13507,7 @@
         "ops": [
           {
             "op": "charDRBonus",
-            "char": "sociabilite",
+            "characteristic": "sociabilite",
             "bonus": -2
           }
         ]
@@ -13536,12 +13536,12 @@
         "ops": [
           {
             "op": "charDRBonus",
-            "char": "sociabilite",
+            "characteristic": "sociabilite",
             "bonus": -2
           },
           {
             "op": "charDRBonus",
-            "char": "dexterite",
+            "characteristic": "dexterite",
             "bonus": -2
           },
           {
@@ -13584,7 +13584,7 @@
         "ops": [
           {
             "op": "charDRBonus",
-            "char": "sociabilite",
+            "characteristic": "sociabilite",
             "bonus": 1
           }
         ]
@@ -13878,12 +13878,12 @@
         "ops": [
           {
             "op": "charDRBonus",
-            "char": "force",
+            "characteristic": "force",
             "bonus": 2
           },
           {
             "op": "charDRBonus",
-            "char": "endurance",
+            "characteristic": "endurance",
             "bonus": 2
           },
           {
@@ -13963,12 +13963,12 @@
         "ops": [
           {
             "op": "charDRBonus",
-            "char": "intelligence",
+            "characteristic": "intelligence",
             "bonus": 1
           },
           {
             "op": "charDRBonus",
-            "char": "force-mentale",
+            "characteristic": "force-mentale",
             "bonus": 1
           },
           {
@@ -14794,7 +14794,7 @@
               "ops": [
                 {
                   "op": "charMod",
-                  "char": "sociabilite",
+                  "characteristic": "sociabilite",
                   "mod": -30,
                   "durationHours": 24
                 }

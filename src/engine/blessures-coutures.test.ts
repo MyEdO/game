@@ -48,7 +48,7 @@ describe('fin d’`applyOps` : tout porteur écrit avant l’application y est r
 describe('`applyActiveEffect` et `removeActiveEffects`', () => {
   it.each([
     ['Blessures plates', effet({ attrMods: { wounds: 3 } }), 3],
-    ['Endurance +10 (BE 4)', effet({ char: 'endurance', bonus: 10 }), 2],
+    ['Endurance +10 (BE 4)', effet({ characteristic: 'endurance', bonus: 10 }), 2],
     ['passif porté', effet({ passive: PLUS_3 }), 3],
   ] as const)('%s : la pose déplace le maximum et le courant, le retrait les rend', (_, e, n) => {
     const c = blesse();
@@ -97,7 +97,7 @@ describe('le maximum suit le profil courant : Talent, Caractéristique, Trait (L
 
   it('Dégâts de Caractéristique (`charDamage` E −20, E 35 → 15) : 12 → 8', () => {
     const c = heros();
-    applyOps(c, [{ op: 'charDamage', char: 'endurance', amount: 20 }], { rng: desDuTest });
+    applyOps(c, [{ op: 'charDamage', characteristic: 'endurance', amount: 20 }], { rng: desDuTest });
     expect(c.wounds).toMatchObject({ max: 8, current: 8 });
   });
 
@@ -129,7 +129,7 @@ describe('la part perdue sous 0 s’éteint dès que le courant remonte au-dessu
 
   it('effet E −20 (BE 1) : 0/8, soigné à 2, frappé à 0, son expiration en fin de Round rend 4/12', () => {
     const c = blesseDeTest(1, { kind: 'hero' });
-    applyActiveEffect(c, effet({ char: 'endurance', bonus: -20, duration: { scale: 'rounds', left: 1 } }));
+    applyActiveEffect(c, effet({ characteristic: 'endurance', bonus: -20, duration: { scale: 'rounds', left: 1 } }));
     expect(c.wounds).toEqual({ current: 0, max: 8, ecart: 0, perduesSousZero: 3 });
     soigneEtFrappe(c);
     endOfRound(c, desDuTest);

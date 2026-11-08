@@ -366,11 +366,11 @@ export function charDRBonusOf(c: Combatant, char: CharKey | undefined): number {
   let n = 0;
   for (const t of c.traits ?? []) {
     for (const op of findTraitById(t.id)?.passive ?? []) {
-      if (op.op === 'charDRBonus' && op.char === char) n += valeurSansTirage(op.bonus, c);
+      if (op.op === 'charDRBonus' && op.characteristic === char) n += valeurSansTirage(op.bonus, c);
     }
   }
-  for (const m of c.auraMods ?? []) if (m.op.op === 'charDRBonus' && m.op.char === char) n += valeurSansTirage(m.op.bonus, c);
-  for (const e of c.activeEffects ?? []) for (const b of e.drBonus ?? []) if ('char' in b && b.char === char) n += b.bonus;
+  for (const m of c.auraMods ?? []) if (m.op.op === 'charDRBonus' && m.op.characteristic === char) n += valeurSansTirage(m.op.bonus, c);
+  for (const e of c.activeEffects ?? []) for (const b of e.drBonus ?? []) if ('characteristic' in b && b.characteristic === char) n += b.bonus;
   return n;
 }
 
@@ -558,7 +558,7 @@ export type GameOp =
    *  MAINTENANT depuis `ctx.now`, purgée par `purgeClockEffects`. Exclusif de `durationRounds`.
    *  `min` : plancher d'une PERTE de mutation (EDO 11 l.190), résolu en `mod` figé par `attachMutation`
    *  (`engine/corruption.ts`) ; aucune instance attachée ne le porte, aucun autre lecteur ne le voit. */
-  | { op: 'charMod'; char: CharKey; mod: number; min?: number; durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }
+  | { op: 'charMod'; characteristic: CharKey; mod: number; min?: number; durationRounds?: Formula; durationMinutes?: Formula; durationHours?: Formula }
   /** PA à une Localisation (`loc`) ou à TOUTES (`loc` absent — Armure Aethyrique « +1 PA à toutes les
    *  Localisations »). Flow de sort → `ActiveEffect` temporisé (apAll/apAt) lu par effectiveArmourAt ;
    *  `passive` de mutation/trait → armure naturelle permanente lue par mutationArmourBonus.
@@ -826,18 +826,18 @@ export type GameOp =
   /** « Vous êtes mon meilleur ami ! » (Ivresse 3-4, LDB 09 l.480) : ignore Préjugés et Animosités
    *  existants tant que l'effet dure — flag `ActiveEffect.ignoreAnimosity`. */
   | { op: 'ignoreAnimosity' }
-  /** Modificateur de Test du porteur (Malédiction de malchance : −10 global). Sans `char` = GLOBAL (tous les
-   *  Tests, porté par un effet actif, STACKE sur les États, lu par `combat/testStatePenalty`). AVEC `char` =
+  /** Modificateur de Test du porteur (Malédiction de malchance : −10 global). Sans `characteristic` = GLOBAL (tous les
+   *  Tests, porté par un effet actif, STACKE sur les États, lu par `combat/testStatePenalty`). AVEC `characteristic` =
    *  modificateur de TEST qualifié par Caractéristique (Visage inversé −20 Soc, objet Laid −20 Soc), émis par
    *  le collecteur passif et lu par `testValue/passiveTestMod` — n'altère PAS la Caractéristique (≠ charMod).
    *  EXÉCUTÉ via `applyOps` (≠ passif d'État) : porte aussi `movementOnly`/`weaponHand`, portée MEMBRE d'une
    *  pénalité de récupération (#193, Épaule luxée/Genou démis LDB+AA, « Tests effectués avec ce bras »/« cette
-   *  jambe ») — `weaponHand` restreint un `char:'capacite-de-combat'` à l'arme tenue dans CETTE main (lu par `combatValue`/
-   *  `defenseValue` parade uniquement, JAMAIS l'autre main) ; `movementOnly` restreint (`char:'agilite'` typiquement)
+   *  jambe ») — `weaponHand` restreint un `characteristic:'capacite-de-combat'` à l'arme tenue dans CETTE main (lu par `combatValue`/
+   *  `defenseValue` parade uniquement, JAMAIS l'autre main) ; `movementOnly` restreint (`characteristic:'agilite'` typiquement)
    *  aux Tests classés « déplacement » (`SkillData.movement` — Athlétisme/Chevaucher/Escalade/Esquive/Natation,
    *  MÊME catégorie que l'État À Terre/Empêtré) — lu par `testValue`/`defenseValue` (Esquive). Absent des deux
    *  = comportement historique (global, comme avant #193). */
-  | { op: 'testMod'; amount: number; char?: CharKey; movementOnly?: boolean; sense?: PairedSense; diseases?: string[]; exceptSkills?: { id: string }[]; weaponHand?: 'main' | 'off' }
+  | { op: 'testMod'; amount: number; characteristic?: CharKey; movementOnly?: boolean; sense?: PairedSense; diseases?: string[]; exceptSkills?: { id: string }[]; weaponHand?: 'main' | 'off' }
   /** Immunité à l'EXPOSITION météo (froid/pluie/neige/tempête) tant que le Sort dure — Peau de loup
    *  d'hiver (Ulric), Protection contre la pluie. Lu par `exposureNight` (engine/exposure). */
   | { op: 'weatherWard' }
@@ -965,7 +965,7 @@ export type GameOp =
    *  la Caractéristique de BASE (`c.characteristics`), jamais sous 0 — irréversible « sauf par des moyens
    *  magiques ou miraculeux » (l.103). `amount` = Formula (1d10). Distincte de `charMod` (temporisé, effet
    *  actif) : ceci ronge le profil lui-même (comme les mutations `passive`, mais soustractif direct). */
-  | { op: 'charDamage'; char: CharKey; amount: Formula }
+  | { op: 'charDamage'; characteristic: CharKey; amount: Formula }
   /** INVOCATION de créature(s) (Nécromancie « Réanimation/Relever les morts », Ulric « Hurlement du
    *  loup », Démonologie « Manifestation », Taal « Roi de la Nature »…). Effet IMPUR (grille +
    *  initiative) RÉSOLU par la couche state (`noyau/summonFlow.applySummon`) ; `applyOps` (moteur pur)
@@ -1050,7 +1050,7 @@ export type GameOp =
   /** +N DR aux Tests d'une CARACTÉRISTIQUE (chanson « Camarades d'équipage » : +1 DR sur tout Test de
    *  Sociabilité, MDG 09 l.236) — variante par carac de `skillDRBonus`. Exécutée → `ActiveEffect.drBonus`
    *  temporisé ; lisible aussi en PASSIF (trait/aura). Consommée par `charDRBonusOf` sur un Test RÉUSSI. */
-  | { op: 'charDRBonus'; char: CharKey; bonus: FormuleSansTirage }
+  | { op: 'charDRBonus'; characteristic: CharKey; bonus: FormuleSansTirage }
   /** Modificateur aux Tests INDIVIDUELS composant un TEST D'ÉQUIPAGE (MDG 14) — chanson « Naviguons
    *  tous ensemble » : « +10 sur les Tests individuels de chaque membre d'équipage impliqué dans un Test
    *  d'équipage » (MDG 09 l.224). Exécutée → `ActiveEffect.crewTestMod`, lu par `crewRoleValue`
@@ -1153,7 +1153,7 @@ export type GameOp =
    *  `ActiveEffect.actGate` vérifié au DÉBUT du tour du porteur en combat (cadence-aware : héros manuel =
    *  étape de cascade influençable + choix Action/Mouvement ; IA/auto = jet inline, l'Action est gardée).
    *  Hors combat (pas de Rounds) : inerte. */
-  | { op: 'actGate'; char: CharKey }
+  | { op: 'actGate'; characteristic: CharKey }
   /** Bonus/malus aux Tests LIÉS À UNE MALADIE (contraction, cycle quotidien, Test de fin) —
    *  Fleur de lune « +30 à tous les Tests associés pour résister à la [Peste noire] » (LDB 71 l.26),
    *  Racine de terre +10 (LDB 72 l.28), Tonique digestif +20 (l.32). `diseases` = ids ciblés (absent =
@@ -1608,7 +1608,7 @@ function pushPerRound(target: Combatant, ops: GameOp[], ctx: OpsCtx, duration?: 
 export function applyActiveEffect(target: Combatant, effect: ActiveEffect) {
   target.activeEffects = target.activeEffects ?? [];
   const sp = effect.spell;
-  const idx = sp ? target.activeEffects.findIndex((e) => e.char === effect.char && e.spell?.spellId === sp.spellId && e.spell.casterId === sp.casterId) : -1;
+  const idx = sp ? target.activeEffects.findIndex((e) => e.characteristic === effect.characteristic && e.spell?.spellId === sp.spellId && e.spell.casterId === sp.casterId) : -1;
   if (idx >= 0) target.activeEffects[idx] = effect;
   else target.activeEffects.push(effect);
   target.wounds = blessuresReconciliees(target);
@@ -2230,13 +2230,13 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'charMod': {
         const dur: Duration = durationFromOp(o, ctx, ref);
         applyActiveEffect(target, {
-          label: nomDeSource(ctx), char: o.char, bonus: o.mod, duration: dur,
+          label: nomDeSource(ctx), characteristic: o.characteristic, bonus: o.mod, duration: dur,
           ...(blessuresAuTotal ? { blessuresAuTotal } : {}),
           ...(ctx.sourceSpell ? { spell: ctx.sourceSpell } : {}),
           ...(ctx.sourceSpellId ? { sourceSpellId: ctx.sourceSpellId } : {}),
           ...(source ? { source } : {}),
         });
-        charParts.push(`${o.mod >= 0 ? '+' : ''}${o.mod} ${CHAR_LABELS[o.char]}`);
+        charParts.push(`${o.mod >= 0 ? '+' : ''}${o.mod} ${CHAR_LABELS[o.characteristic]}`);
         charRounds = dur.scale === 'rounds' ? dur.left : null;
         // Le fragment de durée en minutes ne se compose que d'une échéance INTRINSÈQUE : une horloge héritée
         // du contexte (`ctx.defaultUntilTime`) est une date, pas un décompte — elle se dit « hors combat ».
@@ -2688,7 +2688,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'testMod': {
-        // `char` présent = modificateur QUALIFIÉ (Mystracine « +10 aux Tests d'Endurance et de FM,
+        // `characteristic` présent = modificateur QUALIFIÉ (Mystracine « +10 aux Tests d'Endurance et de FM,
         // −10 Ag/I/Int », LDB 71 l.33) → `testModChar`, lu par `testValue` pour les seuls Tests de cette
         // Caractéristique ; absent = mod GLOBAL (lu par `effectGlobalTestMod`, qui EXCLUT les qualifiés).
         target.activeEffects = target.activeEffects ?? [];
@@ -2696,11 +2696,11 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           label: nomDeSource(ctx), bonus: 0,
           duration: durationFromCtx(ctx),
           testMod: o.amount,
-          ...(o.char ? { testModChar: o.char } : {}),
+          ...(o.characteristic ? { testModChar: o.characteristic } : {}),
           ...(o.weaponHand ? { testModHand: o.weaponHand } : {}),
           ...(o.movementOnly ? { testModMovementOnly: true } : {}),
         });
-        lines.push(t('op.testMod', { name: target.label, mod: `${o.amount >= 0 ? '+' : ''}${o.amount}${o.char ? ` (${CHAR_LABELS[o.char]})` : ''}`, src: nomDeSource(ctx) }));
+        lines.push(t('op.testMod', { name: target.label, mod: `${o.amount >= 0 ? '+' : ''}${o.amount}${o.characteristic ? ` (${CHAR_LABELS[o.characteristic]})` : ''}`, src: nomDeSource(ctx) }));
         break;
       }
       case 'attrMod': {
@@ -2760,9 +2760,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         target.activeEffects.push({
           label: nomDeSource(ctx), bonus: 0,
           duration: durationFromCtx(ctx),
-          actGate: { char: o.char },
+          actGate: { characteristic: o.characteristic },
         });
-        lines.push(t('op.actGate', { name: target.label, char: CHAR_LABELS[o.char], src: nomDeSource(ctx) }));
+        lines.push(t('op.actGate', { name: target.label, char: CHAR_LABELS[o.characteristic], src: nomDeSource(ctx) }));
         break;
       }
       case 'noBreath': {
@@ -2866,9 +2866,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // Perte PERMANENTE de Caractéristique de BASE (Vers de carie, MSRC 16 l.94-103) — jamais sous 0.
         const n = Math.max(0, formuleDuCtx(o.amount, ref, ctx));
         if (n > 0) {
-          const before = target.characteristics[o.char];
-          target.characteristics[o.char] = Math.max(0, before - n);
-          lines.push(t('op.charDamage', { name: target.label, n: before - target.characteristics[o.char], char: CHAR_LABELS[o.char] }));
+          const before = target.characteristics[o.characteristic];
+          target.characteristics[o.characteristic] = Math.max(0, before - n);
+          lines.push(t('op.charDamage', { name: target.label, n: before - target.characteristics[o.characteristic], char: CHAR_LABELS[o.characteristic] }));
         }
         break;
       }
@@ -3113,9 +3113,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
           label: nomDeSource(ctx), bonus: 0, duration: durationFromCtx(ctx),
-          drBonus: [{ char: o.char, bonus: formuleDuCtx(o.bonus, ref, ctx) }],
+          drBonus: [{ characteristic: o.characteristic, bonus: formuleDuCtx(o.bonus, ref, ctx) }],
         });
-        lines.push(t('op.drBonus', { name: target.label, what: CHAR_LABELS[o.char], src: nomDeSource(ctx) }));
+        lines.push(t('op.drBonus', { name: target.label, what: CHAR_LABELS[o.characteristic], src: nomDeSource(ctx) }));
         break;
       }
       // Modificateur aux Tests INDIVIDUELS d'un Test d'équipage (« Naviguons tous ensemble », MDG 09 l.224).

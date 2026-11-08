@@ -100,6 +100,19 @@ static func echelle_metrique(metres_par_case: float) -> float:
 	return 1.0 / metres_par_case
 
 
+## L'échelle qui porte un modèle dont la boîte mesure `taille` sur une empreinte de `empreinte` cases de côté : sa plus
+## grande dimension horizontale y vaut l'empreinte (#2987).
+static func echelle_d_empreinte(taille: Vector3, empreinte: int) -> float:
+	return empreinte / maxf(taille.x, taille.z)
+
+
+## L'origine qui, sous l'échelle `echelle`, centre sur une empreinte de `empreinte` cases depuis la case de son parent,
+## son coin nord-ouest, une boîte de centre `centre` dans ce parent, l'origine gardée au sol (#2987).
+static func origine_sur_l_empreinte(centre: Vector3, echelle: float, empreinte: int) -> Vector3:
+	var milieu := (empreinte - 1) * DEMI_CASE
+	return Vector3(milieu - centre.x * echelle, 0.0, milieu - centre.z * echelle)
+
+
 ## Une hauteur de `hauteur` mètres sur le plateau d'une scène de `metres_par_case`.
 static func hauteur_au_plateau(hauteur: float, metres_par_case: float) -> float:
 	return hauteur * echelle_metrique(metres_par_case)

@@ -50,7 +50,7 @@ describe('opValue — SOIN plafonné aux PB manquants', () => {
 });
 
 describe('opValue — BUFF de combat = bénéfice marginal (armé > 0, désarmé = 0)', () => {
-  const buff = op({ op: 'charMod', char: 'capacite-de-combat', mod: 10 });
+  const buff = op({ op: 'charMod', characteristic: 'capacite-de-combat', mod: 10 });
   const ref = combatant({ id: 'h', kind: 'hero', pos: { x: 2, y: 0 } });
   it('subject ARMÉ → +10 CC améliore l’EV d’attaque → > 0', () => {
     expect(opValue(buff, combatant(), combatant({ id: 's', weapons: [MELEE] }), ctxOf(ref))).toBeGreaterThan(0);
@@ -59,7 +59,7 @@ describe('opValue — BUFF de combat = bénéfice marginal (armé > 0, désarmé
     expect(opValue(buff, combatant(), combatant({ id: 's', weapons: [] }), ctxOf(ref))).toBe(0);
   });
   it('charMod NÉGATIF (débuff) sur un ennemi → valeur de contrôle > 0 (magnitude)', () => {
-    expect(opValue(op({ op: 'charMod', char: 'capacite-de-combat', mod: -20 }), combatant(), combatant({ id: 'h' }), ctxOf())).toBeGreaterThan(0);
+    expect(opValue(op({ op: 'charMod', characteristic: 'capacite-de-combat', mod: -20 }), combatant(), combatant({ id: 'h' }), ctxOf())).toBeGreaterThan(0);
   });
 });
 
