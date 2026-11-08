@@ -1,5 +1,5 @@
 /**
- * Les ponts de la caraque, relevés sur ses plans (MDG p.99, « Caraque », plans de ses ponts), en `MapSpec` que
+ * Les ponts de la caraque, relevés sur ses plans (MDG 12 l.286, planche « Caraque », plans de ses ponts), en `MapSpec` que
  * `buildScene` compile (#3686) : une case de 2 m, 18 × 5 cases pour les 35 m de `ship.lengthM`, la proue à
  * `x = 0`, tribord à `y = 0`, la hauteur en mètres depuis la flottaison (repère du modèle 3D de la caraque).
  * Un étage par pont : `z0` pont de cargaison, `z1` pont principal, `z2` pont supérieur (le château de poupe
