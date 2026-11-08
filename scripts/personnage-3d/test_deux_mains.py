@@ -3,7 +3,8 @@ ramène une cible hors de portée sur la sphère de portée ; les clés de geste
 repos, sauf à une clé d'élan, la prise `main` à la moitié de l'écart du milieu de chaque clé ; le repère de l'arme porte
 son +Y vers le fer et son +X au plus près du flanc donné ; chaque clip dérivé a une clé au début et une à la fin, et un
 maniement dont la seconde prise est déclarée ; le bras ne se tord pas et l'avant-bras porte la torsion dans ses bornes ;
-une peau déplacée d'un bloc garde ses longueurs, un os plié étire l'arête à cheval ; la seconde
+une peau déplacée d'un bloc garde ses longueurs, un os plié étire l'arête à cheval, l'écrasement ne lit que les arêtes
+que meuvent les os libres ; la seconde
 prise de chaque arme tourne comme celle des clips de son maniement."""
 import json
 import math
@@ -93,7 +94,7 @@ class Peau(unittest.TestCase):
     def etirement(self, *matrices):
         peau = self.peau()
         fixe = peau_fixe(peau, numpy.repeat(numpy.eye(4)[None], 2, axis=0), [0, 1])
-        return etirement_du_bras(peau, fixe, [(i, numpy.array([numpy.array(m)])) for i, m in enumerate(matrices)])[0]
+        return etirement_du_bras(peau, fixe, [(i, numpy.array([numpy.array(m)])) for i, m in enumerate(matrices)])[0][0]
 
     def test_une_peau_deplacee_d_un_bloc_garde_ses_longueurs(self):
         bloc = Matrix.Translation((0.3, -0.2, 1.0)) @ Matrix.Rotation(1.1, 4, Vector((1, 2, 3)).normalized())
@@ -103,6 +104,12 @@ class Peau(unittest.TestCase):
     def test_le_second_os_plie_etire_l_arete_a_cheval(self):
         pli = Matrix.Rotation(math.radians(150), 4, 'Z')
         self.assertGreater(self.etirement(Matrix.Identity(4), pli), 2.0)
+
+    def test_l_ecrasement_ne_lit_que_les_aretes_que_meuvent_les_os_libres(self):
+        peau = self.peau()
+        fixe = peau_fixe(peau, numpy.array([numpy.diag([0.1, 0.1, 0.1, 1.0]), numpy.eye(4)]), [1])
+        ecrase = etirement_du_bras(peau, fixe, [(1, numpy.array([numpy.diag([0.5, 0.5, 0.5, 1.0])]))])[1][0]
+        self.assertAlmostEqual(ecrase, 0.5, places=6)
 
 
 class Interpolation(unittest.TestCase):

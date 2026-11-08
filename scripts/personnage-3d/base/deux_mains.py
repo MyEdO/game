@@ -51,10 +51,12 @@ desquels une pose de bras se paie, et l'échelle du roulis de l'arme autour de s
 torsion au-delà de `torsion_max` ou une flexion au-delà de `flexion_max` se paient comme une limite, et refusent le clip. Dans les clips sources, la torsion
 et la flexion de la main restent sous 60° et 50° à 95 % des images, sous 80° de flexion à 99 %, et l'axe de flexion du
 coude s'écarte de son +X de moins de 45° à 90 %."""
-PEAU = {'marge': 0.15, 'echelle': 0.02}
+PEAU = {'marge': 0.25, 'echelle': 0.02, 'plancher': 0.2, 'echelle_plancher': 0.01}
 """L'étirement des arêtes de la peau que meut un bras (`etirement_du_bras`), mesuré sur le corps neutre, se paie au-delà de
-la borne haute de `ETIREMENT_EN_CLIP` moins `marge`, par pas d'`echelle` : la marge couvre les silhouettes et les états du
-gabarit, que la mesure ne parcourt pas."""
+la borne haute de `ETIREMENT_EN_CLIP` moins `marge`, par pas d'`echelle`, et son écrasement en deçà de `plancher`, par pas
+d'`echelle_plancher` : la marge et le plancher couvrent les silhouettes et les états du gabarit, que la mesure ne parcourt
+pas, sous lesquels une arête du poignet écrasée à 0,07 sur le corps neutre passe sous la borne basse, et l'aisselle et le
+haut de l'épaule, tenus à 0,12 sur le corps neutre, passent sous elle sous les silhouettes combinées (#3319)."""
 
 
 def cle(u, milieu, direction, flexion=0.0, torsion=0.0, elan=False):
@@ -69,8 +71,9 @@ GARDE = ((0.04, -0.33, 1.05), (0.525, 0.279, -0.804))
 """Les mains devant le ventre, la hache dressée, penchée vers l'épaule droite, le tranchant vers l'adversaire."""
 LEVEE = ((-0.12, -0.21, 1.18), (0.482, -0.269, -0.834))
 """Les mains montées devant la poitrine, côté droit, le fer dressé au-dessus de l'épaule droite."""
-ARME = ((-0.2, -0.16, 1.5), (0.3, -0.94, -0.15))
-"""Les mains devant le front, la hache armée derrière la tête, le tranchant vers le haut."""
+ARME = ((-0.22, -0.12, 1.42), (0.12, -0.98, -0.15))
+"""Les mains montées à droite du menton, la hache armée au-dessus de l'épaule droite, le manche le long de la tête et non
+devant le visage, le tranchant vers le haut."""
 COUP = ((0.14, -0.32, 1.0), (0.31, 0.91, -0.45))
 """Les mains abaissées devant le ventre, le fer abattu devant, à hauteur de poitrine, le tranchant vers le bas."""
 
@@ -167,13 +170,16 @@ def peau_fixe(peau, matrices, libres):
 
 
 def etirement_du_bras(peau, fixe, libres):
-    """Par pose, le plus grand rapport de longueur à la longueur de repos des arêtes de `peau` (`PeauDuBras`) : `fixe`
-    (`peau_fixe`), plus la part de chaque os de `libres`, couples d'indice d'os et de ses matrices de peau par pose
-    (poses, 4, 4)."""
+    """Par pose, le plus grand rapport de longueur à la longueur de repos des arêtes de `peau` (`PeauDuBras`), et le plus
+    petit de celles qu'un os de `libres` meut : `fixe` (`peau_fixe`), plus la part de chaque os de `libres`, couples
+    d'indice d'os et de ses matrices de peau par pose (poses, 4, 4). Le poing fermé des clips sources, que les os libres
+    ne meuvent pas, n'y entre pas."""
     y = fixe[None] + sum(peau.w[None, :, os_, None] * numpy.einsum('nj,kij->kni', peau.x, matrices)[..., :3]
                          for os_, matrices in libres)
     a, b = peau.aretes[:, 0], peau.aretes[:, 1]
-    return (numpy.linalg.norm(y[:, a] - y[:, b], axis=2) / peau.longueurs[None]).max(axis=1)
+    rapports = numpy.linalg.norm(y[:, a] - y[:, b], axis=2) / peau.longueurs[None]
+    meues = (peau.w[:, [os_ for os_, _ in libres]].sum(axis=1) > POIDS_NEGLIGEABLE)[peau.aretes].any(axis=1)
+    return rapports.max(axis=1), rapports[:, meues].min(axis=1)
 
 
 def bras(epaule, axes_epaule, main, longueurs, pole, rel_avant_bras, rel_main, pronation, precedent=None, peau=None):
@@ -210,7 +216,7 @@ def bras(epaule, axes_epaule, main, longueurs, pole, rel_avant_bras, rel_main, p
 
     def essais(tours):
         gestes = [geste(t) for t in tours]
-        etires = numpy.ones(len(gestes))
+        etires, ecrases = numpy.ones(len(gestes)), numpy.ones(len(gestes))
         if peau is not None:
             peau_, fixe, (os_bras, inverse_bras), (os_avant_bras, inverse_avant_bras) = peau
             matrices = {os_bras: [], os_avant_bras: []}
@@ -220,9 +226,10 @@ def bras(epaule, axes_epaule, main, longueurs, pole, rel_avant_bras, rel_main, p
                     pose_ = axes.to_4x4()
                     pose_.translation = origine
                     matrices[os_].append(numpy.array(pose_ @ inverse))
-            etires = etirement_du_bras(peau_, fixe, [(os_, numpy.array(m)) for os_, m in matrices.items()])
-        return [(g[0] + (max(0.0, e - ETIREMENT_EN_CLIP[1] + PEAU['marge']) / PEAU['echelle']) ** 2, *g[1:5], (*g[5], float(e)))
-                for g, e in zip(gestes, etires)]
+            etires, ecrases = etirement_du_bras(peau_, fixe, [(os_, numpy.array(m)) for os_, m in matrices.items()])
+        return [(g[0] + (max(0.0, e - ETIREMENT_EN_CLIP[1] + PEAU['marge']) / PEAU['echelle']) ** 2
+                 + (max(0.0, PEAU['plancher'] - c) / PEAU['echelle_plancher']) ** 2, *g[1:5], (*g[5], float(e), float(c)))
+                for g, e, c in zip(gestes, etires, ecrases)]
 
     meilleur = min(essais(range(-120, 121, 6)), key=lambda e: e[0])
     for pas in (2, 0.5):
@@ -348,11 +355,11 @@ def deriver(bpy, rig, reperes):
                      'l': Matrix.Translation((0, cote, 0)) @ Matrix.Rotation(math.radians(tour_seconde), 4, 'Y') @ prise_off.inverted()}
             reste, tours, details = _poser_les_bras(bpy, rig, arme, mains, cadre, longueurs, tours, peaux)
             ecart = max(ecart, reste)
-            for cote_, (torsion_, tourne, flexion_, _, etire) in details.items():
+            for cote_, (torsion_, tourne, flexion_, _, etire, ecrase) in details.items():
                 if abs(torsion_ - tourne) > POIGNET['torsion_max'] or flexion_ > POIGNET['flexion_max']:
                     raise ValueError(f'{nom} image {image} : poignet {cote_} tordu de {torsion_ - tourne}°, plié de {flexion_}°')
-                if etire > ETIREMENT_EN_CLIP[1]:
-                    raise ValueError(f'{nom} image {image} : peau du coude {cote_} étirée à {etire:.2f}')
+                if etire > ETIREMENT_EN_CLIP[1] or ecrase < ETIREMENT_EN_CLIP[0]:
+                    raise ValueError(f'{nom} image {image} : peau du bras {cote_} étirée à {etire:.2f}, écrasée à {ecrase:.3f}')
                 poignets = {'torsion': max(poignets['torsion'], abs(torsion_ - tourne)), 'flexion': max(poignets['flexion'], flexion_),
                             'coude': round(max(poignets['coude'], etire), 2)}
             for n in animes:
