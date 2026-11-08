@@ -13,7 +13,7 @@ import {
   calqueDeLaCouche, calquesAStocker, coinsDuCalque, planDuCalque, type CalquesStockes,
   capDeLEntite, capsOfferts, entiteDeLaSelection, fichesDePersonnage, nomDEntite, presetDuNarratif, props,
   assoirALaPlace, findVehicleById, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
-  DIFFICULTY_LABELS, FACES_D_ARETE, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, scenesDeLaSession, secretAuteur,
+  DIFFICULTY_LABELS, FACES_D_ARETE, FIRE_ARCS, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, scenesDeLaSession, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
@@ -361,9 +361,6 @@ function places(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Bo
   ];
 }
 
-/** Les arcs d'un créneau directionnel, dans l'ordre horaire depuis la proue. */
-const ARCS = ['proue', 'tribord', 'poupe', 'babord'] as const;
-
 /** Le poste de l'emplacement de siège `ent` de la session `s` : son engin, son arc (omni ou l'un des quatre), ses
  *  servants, et parmi eux le chef de pièce, en tête. */
 function poste(s: SessionDEdition, ent: Scene['entities'][number], p: NonNullable<Scene['entities'][number]['postes']>[number]): (Choix | Ligne)[] {
@@ -374,7 +371,7 @@ function poste(s: SessionDEdition, ent: Scene['entities'][number], p: NonNullabl
     choix('poste/engin', t('ecran.editeur.poste.engin'), siegeEngines().map((e) => bouton(`poste/engin/${e.id}`, e.label, { geste: 'poste', patch: { engin: e.id } }, p.trappingId === e.id)), 'liste'),
     choix('poste/arc', t('ecran.editeur.poste.arc'), [
       bouton('poste/arc/omni', t('ecran.editeur.poste.arc.omni'), { geste: 'poste', patch: { arc: null } }, !p.side),
-      ...ARCS.map((a) => bouton(`poste/arc/${a}`, t(`ecran.editeur.poste.arc.${a}`), { geste: 'poste', patch: { arc: a } }, p.side === a)),
+      ...FIRE_ARCS.map((a) => bouton(`poste/arc/${a}`, t(`ecran.editeur.poste.arc.${a}`), { geste: 'poste', patch: { arc: a } }, p.side === a)),
     ]),
     ...equipe(s, ent, 'poste/servants', servants, (ids) => ({ geste: 'poste', patch: { servants: ids } })),
     ...(servants.length ? [choix('poste/chef', t('ecran.editeur.poste.chef'), servants.map((id) =>

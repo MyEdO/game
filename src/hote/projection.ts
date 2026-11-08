@@ -145,7 +145,7 @@ export const proprietaireDeLaFenetre = (etat: Jeu, id: string | undefined | null
   return { genre: 'porteur', nom: porteurParId(etat, id)?.label ?? null };
 };
 
-function combattant(c: Combatant, actif: Combatant | undefined): CombattantProjete {
+function combattant(c: Combatant, actif: Combatant | undefined, facing: Jeu['facing']): CombattantProjete {
   const d = actif ? combatDistance(actif, c) : Infinity;
   return {
     id: c.id,
@@ -159,7 +159,7 @@ function combattant(c: Combatant, actif: Combatant | undefined): CombattantProje
     etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
     horsCombat: !!c.dead || !!c.outOfRencontre,
     portee: porteeDuCombattant(c),
-    vehicule: vehiculeDuCombattant(c),
+    vehicule: vehiculeDuCombattant(c, facing[c.id]),
   };
 }
 
@@ -169,7 +169,7 @@ export function combattantsTries(etat: Jeu): CombattantProjete[] {
   if (!b) return [];
   const actif = activeCombatant(b);
   const rangDe = (c: CombattantProjete): number => (c.id === actif?.id ? -2 : c.engage ? -1 : (c.distance ?? Infinity));
-  return b.combatants.map((c) => combattant(c, actif)).sort((x, y) => rangDe(x) - rangDe(y));
+  return b.combatants.map((c) => combattant(c, actif, etat.facing)).sort((x, y) => rangDe(x) - rangDe(y));
 }
 
 /** Les gestes de la fenêtre que son jet ferme maintenant (`fermeturesDeLaFenetre`), par leur identité (`cleDuGeste`),
@@ -258,7 +258,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
           tour: b.turn < 0 ? null : b.turn + 1,
           tours: b.order.length,
           fin: b.over,
-          actif: actif && mvt ? { ...combattant(actif, actif), action: b.acted ? 'prise' : 'libre', mouvement: [mvt.restant, mvt.total] } : null,
+          actif: actif && mvt ? { ...combattant(actif, actif, etat.facing), action: b.acted ? 'prise' : 'libre', mouvement: [mvt.restant, mvt.total] } : null,
           apercu: apercuDe(etat),
           barre: { forme: barre.forme, raison: barre.forme === 'ouverte' ? null : barre.raison },
           intention: etat.localIntent?.actionId ?? null,
@@ -274,7 +274,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
           groupe: [etat.partyPos.x, etat.partyPos.y],
           etage: etat.scene.layers.length > 1 ? (etat.partyPos.z ?? 0) : null,
           cap: capDuGroupe(etat),
-          heros: etat.party.map((h) => ({ ...combattant(h, undefined), pos: [etat.partyPos.x, etat.partyPos.y, etat.partyPos.z ?? 0] })),
+          heros: etat.party.map((h) => ({ ...combattant(h, undefined, etat.facing), pos: [etat.partyPos.x, etat.partyPos.y, etat.partyPos.z ?? 0] })),
           gestes: tranche(gestesDExploration(etat), bornes.gestes),
           entites: tranche(etat.scene.entities.map((e) => ({ id: e.id, genre: e.kind, nom: e.label ?? null, pos: [e.pos.x, e.pos.y, e.z ?? 0] })), bornes.entites),
         },

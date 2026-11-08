@@ -17,7 +17,7 @@ import type { ManifesteDElement } from '../asset/element';
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
-import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, libelleDeCleDElement, pieceRacine, type EmblemeDef } from '../../../src/noyau/index';
+import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, libelleDeCleDElement, pieceRacine, type EmblemeDef, type FireArc, type PosteDuVehicule } from '../../../src/noyau/index';
 
 /** Un point d'accroche d'une base : un emplacement ou une prise, son libellé, son repère, et les ids des éléments qui s'y
  *  montent. */
@@ -155,4 +155,27 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     return m.categorie === 'vehicule' ? [[m.cle.definition, servir([e])[0]]] : [];
   }));
   return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, emblemes, vehicules };
+}
+
+/** Une pièce montée sur un véhicule : l'élément `vehicule` servi qui dessine sa fiche, son bord et sa position dans la
+ *  scène du véhicule (`postes` de son manifeste). */
+export interface PosteMonte {
+  element: string;
+  bord: FireArc;
+  position: readonly [number, number, number];
+}
+
+/** Les pièces de `postes` montées sur le véhicule de manifeste `manifeste` : chacune à la position de son bord qui suit
+ *  celles des pièces précédentes de ce bord, si le manifeste l'offre et qu'un élément de `vehicules` (fiche → élément
+ *  servi) dessine sa fiche ; une autre ne se monte pas. */
+export function postesMontes(manifeste: unknown, postes: readonly PosteDuVehicule[], vehicules: Readonly<Record<string, string>>): PosteMonte[] {
+  const offertes = (manifeste as Extract<ManifesteDElement, { categorie: 'vehicule' }>).postes ?? {};
+  const rangs = new Map<FireArc, number>();
+  return postes.flatMap(({ definition, bord }) => {
+    const rang = rangs.get(bord) ?? 0;
+    rangs.set(bord, rang + 1);
+    const position = offertes[bord]?.[rang];
+    const element = vehicules[definition];
+    return position && element ? [{ element, bord, position }] : [];
+  });
 }
