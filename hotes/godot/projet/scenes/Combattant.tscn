@@ -1,7 +1,8 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/combattant.gd" id="1_combattant"]
 [ext_resource type="Script" path="res://scripts/montage_de_composition.gd" id="2_montage"]
+[ext_resource type="Script" path="res://scripts/montage_de_vehicule.gd" id="3_vehicule"]
 
 [sub_resource type="StandardMaterial3D" id="Materiau_selection"]
 shading_mode = 0
@@ -19,6 +20,7 @@ script = ExtResource("1_combattant")
 script = ExtResource("2_montage")
 
 [node name="Vehicule" type="Node3D" parent="."]
+script = ExtResource("3_vehicule")
 
 [node name="Selection" type="MeshInstance3D" parent="."]
 visible = false

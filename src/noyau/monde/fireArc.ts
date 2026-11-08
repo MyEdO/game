@@ -12,7 +12,11 @@
  */
 import { facingToward, rotateDir8, DIR8_ORDER, type Dir8 } from '../../geometry/dir8';
 import type { FireArc } from '../../engine/types';
+import { posteSideSchema } from '../../data/schemas/defs/vehicles';
+import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 
+/** Le libellé du bord `bord` d'un poste (`posteSideSchema`). */
+export const libelleDuBord = (bord: FireArc): string => libelleDeValeur(posteSideSchema, bord);
 
 type Pt = { x: number; y: number };
 
