@@ -205,6 +205,8 @@ describe('décor volumique — chaque recette du catalogue et son corps monde', 
       'detritus', 'banniere-chaos', 'etendard', 'rack-lances', 'tas-or', 'bourse', 'cle', 'lettre', 'panneau',
       'pieu', 'grille', 'roue-dentee', 'enclume', 'cuve-brasserie', 'stalle-ecurie', 'rouleau-de-cordage',
       'ecoutille', 'canon-de-pont', 'barre-de-navire', 'cabestan', 'mat-de-navire', 'ancre-de-navire',
+      // #3686 — le hamac de l'équipage, montants compris, tient sous les 2 m d'une case.
+      'hamac',
     ], () => ({ ns: [1, 1], eo: [1, 1] })),
     // #3198 — les grands décors gardent, par leur corps, les cases que leur billboard déclarait.
     ...tableTotale(['abreuvoir', 'barque', 'lit', 'cheval-mort', 'passerelle-d-embarquement'], () => ({ ns: [2, 1], eo: [1, 2] })),
