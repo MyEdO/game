@@ -3,7 +3,7 @@ import { garanti } from '../lib/garanti';
 import { buildScene } from './mapSpec';
 import { PLAN_DE_LA_CARAQUE } from './planDeLaCaraque';
 import { reachedFloors, unreachableDescriptiveZones, zoneWalkableCells } from './mapQC';
-import { heightAt, isDescriptiveZone } from './monde/scene';
+import { heightAt, isDescriptiveZone, isWalkable } from './monde/scene';
 import { reachable } from './monde/path';
 import { planClimb } from './monde/climbMove';
 
@@ -36,10 +36,14 @@ describe('ponts de la caraque (MDG p.99), compilés par buildScene', () => {
     });
   });
 
-  it('par les échelles de trappe, la cale mène jusqu’à la plage arrière', () => {
-    const atteint = reachable(scene, caseDe('cale'), 200, { blocked: new Set(), traverse: { climb: true, climbFullSpeed: true } });
-    const haut = caseDe('plage-arriere');
-    expect([...atteint.keys()]).toContain(`${haut.x},${haut.y},${haut.z}`);
+  it('par les échelles de trappe, la cale dessert chaque case du navire jusqu’à la plage arrière', () => {
+    const depart = caseDe('cale');
+    const atteint = new Set([...reachable(scene, depart, 400, { blocked: new Set(), traverse: { climb: true, climbFullSpeed: true } }).keys()]
+      .map((k) => (k.split(',').length === 2 ? `${k},0` : k)));
+    atteint.add(`${depart.x},${depart.y},${depart.z}`);
+    const isolees = scene.layers.flatMap(({ z }) => Array.from({ length: 18 * 5 }, (_, i) => ({ x: i % 18, y: Math.floor(i / 18), z })))
+      .filter((c) => isWalkable(scene, c.x, c.y, c.z) && !atteint.has(`${c.x},${c.y},${c.z}`));
+    expect(isolees).toEqual([]);
   });
 
   it('une échelle se gravit sans Test (LDB 15 l.55)', () => {

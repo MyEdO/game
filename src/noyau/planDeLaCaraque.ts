@@ -10,10 +10,13 @@
 import type { MapSpec } from './mapSpec';
 import { findVehicleById } from '../data';
 import { garanti } from '../lib/garanti';
-import { terrainAbsent } from './monde/terrain';
+import { terrainAbsent, terrainsAvecGlyphe } from './monde/terrain';
 
 /** Hauteur (m) du plancher de chaque pont, de la cale à la plage arrière. */
 const PONTS = { cale: -2, principal: 0, superieur: 1.95, gaillard: 5.6, plageArriere: 5.85 } as const;
+
+/** Le plancher des ponts : le terrain du glyphe `=` des plans. */
+const PLANCHER = garanti(terrainsAvecGlyphe()['='], '=', 'terrain du plancher');
 
 const W = 18;
 const H = 5;
@@ -23,9 +26,9 @@ const CALE = String.raw`
         |= = = = = = =|= = = =|
 + + + +-+ + + + + + + + + + + +-+-+ +
       |= = = = = = = =|= = = =|= =|
-+ + +-+ + + + + + + + +-+:+-+-+ + + +
-    |= j = = = = = = = j = = =:= =|
-+ + +-+ + + + + + + + + + +-+-+ + + +
++ + + + + + + + + + + +-+:+-+-+ + + +
+      |j = = = = = = = j = = =:= =|
++ + + + + + + + + + + + + +-+-+ + + +
       |= = = = = = = = = =:= =|= =|
 + + + +-+ + + + + + + + + + + +-+-+ +
         |= = = = = = = = =|= =|
@@ -79,7 +82,7 @@ const PIECES: NonNullable<MapSpec['zoneMap']> = {
   z0: [
     '....CCCCCCCIIII...',
     '...CCCCCCCCIIIIJJ.',
-    '..CCCCCCCCCCCCCJJ.',
+    '...CCCCCCCCCCCCJJ.',
     '...CCCCCCCCCCRRJJ.',
     '....CCCCCCCCCRR...',
   ],
@@ -140,8 +143,8 @@ export const PLAN_DE_LA_CARAQUE: MapSpec = {
   size: [W, H],
   terrain: terrainAbsent(),
   // `a` : plage arrière ; `j`, `k`, `g`, `h` : trappes vers le pont principal, le pont supérieur, le gaillard
-  // et la plage arrière.
-  legend: { a: 'planches', j: 'planches', k: 'planches', g: 'planches', h: 'planches' },
+  // et la plage arrière ; toutes du plancher des ponts (`=`).
+  legend: Object.fromEntries([...'ajkgh'].map((ch) => [ch, PLANCHER])),
   walled: { z0: CALE, z1: PRINCIPAL, z2: SUPERIEUR, z3: HAUT },
   relief: [PONTS.cale, PONTS.principal, PONTS.superieur, PONTS.gaillard].map((height, z) => ({ rect: [0, 0, W - 1, H - 1], height, z })),
   elevate: { a: PONTS.plageArriere, j: PONTS.principal, k: PONTS.superieur, g: PONTS.gaillard, h: PONTS.plageArriere },
