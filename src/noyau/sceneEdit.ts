@@ -1360,7 +1360,7 @@ export function patchStartMessage(scene: Scene, patch: Partial<NonNullable<Scene
 }
 
 /** Pose la matière de la partie de relief `part`. */
-export function setReliefDefault(scene: Scene, part: keyof ReliefDefaults, matiere: string): Scene {
+export function setReliefDefault(scene: Scene, part: keyof ReliefDefaults, matiere: ReliefDefaults[keyof ReliefDefaults]): Scene {
   return { ...scene, reliefDefaults: { ...scene.reliefDefaults, [part]: matiere } };
 }
 

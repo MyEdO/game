@@ -29,7 +29,7 @@ const sceneMinimale = (over: Jouet = {}): Jouet => ({
   dimensions: { w: 4, h: 4 },
   // EXIGÉ (#1691) : la matière de chaque partie de relief vient de la scène, le rendu n'en devine
   // aucune — une scène qui n'en porte pas est refusée ici même.
-  reliefDefaults: { cliff: 'terre', ramp: 'terre', deck: 'pierre', pilier: 'pilier' },
+  reliefDefaults: { cliff: { id: 'terre' }, ramp: { id: 'terre' }, deck: { id: 'pierre' }, pilier: { id: 'pilier' } },
   // EXIGÉE (#1715) : la couverture, la pente de référence et la borne de comble des toitures
   // dérivées viennent de la scène — même refus nominatif si elle manque.
   roofDefaults: { material: 'toit-ardoise', pitchDeg: 45, riseMaxStoreys: 1 },

@@ -37,16 +37,16 @@ describe('placeCombatant — drapeau positionnel offTerrain (op offTerrainMod, M
 
 /**
  * PAYLOAD STRICT de l'op (#1789) — `offTerrainMod` est une op TYPÉE (`OP_DEFS`) : son terrain
- * d'ÉLECTION est un `idDe('terrain')`, refusé AU PARSE s'il ne résout pas. Sans cette porte, un id
+ * d'ÉLECTION est un `ref('terrain')`, refusé AU PARSE s'il ne résout pas. Sans cette porte, un id
  * fantaisiste rendrait `requiredTerrains` non vide et `offTerrain` VRAI sur TOUTE case — un malus
  * permanent, muet.
  */
 describe('offTerrainMod — le terrain d’élection est un id du registre, tenu au parse (#1789)', () => {
   it('accepte un id de `terrains.json` et refuse un id inconnu, en le NOMMANT', () => {
-    const ok = gameOpSchema.safeParse({ op: 'offTerrainMod', terrain: 'eau', mSet: 1, testDR: -2, suffocates: true });
+    const ok = gameOpSchema.safeParse({ op: 'offTerrainMod', terrain: { id: 'eau' }, mSet: 1, testDR: -2, suffocates: true });
     expect(ok.success, JSON.stringify(ok.error?.issues)).toBe(true);
 
-    const ko = gameOpSchema.safeParse({ op: 'offTerrainMod', terrain: 'lac-de-biere', mSet: 1 });
+    const ko = gameOpSchema.safeParse({ op: 'offTerrainMod', terrain: { id: 'lac-de-biere' }, mSet: 1 });
     expect(ko.success).toBe(false);
     expect(JSON.stringify(ko.error?.issues)).toContain('lac-de-biere');
   });

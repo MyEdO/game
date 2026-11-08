@@ -5,11 +5,11 @@
  * qu'une SECTION d'un `MapSpec` déjà écrit rend quand elle laisse le terrain implicite. Deux
  * documents parce que ce sont deux moments : créer une scène, compiler une déclaration.
  *
- * Chaque champ est un `idDe('terrain')` : un défaut hors registre est refusé AU PARSE, jamais au
+ * Chaque champ est un `ref('terrain')` : un défaut hors registre est refusé AU PARSE, jamais au
  * premier rendu. N+1 défaut de compilateur = un champ de plus ici, zéro littéral de plus en code.
  */
 import { document } from '../grammaire/document';
-import { idDe } from '../grammaire/ref';
+import { ref } from '../grammaire/ref';
 
 export const file = 'defauts-de-compilation.json';
 export const famille = 'config';
@@ -18,9 +18,9 @@ const doc = document(
   'defauts-de-compilation',
   famille,
   {
-    cheminDeRonde: idDe('terrain'),
-    masse: idDe('terrain'),
-    pont: idDe('terrain'),
+    cheminDeRonde: ref('terrain'),
+    masse: ref('terrain'),
+    pont: ref('terrain'),
   },
   {
     cheminDeRonde: { label: 'Chemin de ronde', hint: 'Terrain MARCHABLE du chemin de ronde auto-posé par une `cells` d’enceinte (dessus du mur plein)' },

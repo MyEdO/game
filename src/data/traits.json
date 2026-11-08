@@ -85,7 +85,9 @@
     "passive": [
       {
         "op": "offTerrainMod",
-        "terrain": "eau"
+        "terrain": {
+          "id": "eau"
+        }
       },
       {
         "op": "skillDRBonus",
@@ -2621,7 +2623,9 @@
     "passive": [
       {
         "op": "offTerrainMod",
-        "terrain": "eau",
+        "terrain": {
+          "id": "eau"
+        },
         "mSet": 1,
         "testDR": -2,
         "suffocates": true
@@ -2742,7 +2746,9 @@
     "passive": [
       {
         "op": "offTerrainMod",
-        "terrain": "eau",
+        "terrain": {
+          "id": "eau"
+        },
         "mSet": 0
       }
     ]

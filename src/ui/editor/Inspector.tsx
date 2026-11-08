@@ -2147,8 +2147,8 @@ function SceneProps({
           <label key={part} className="ed-field">
             {LIBELLE_DE_PARTIE[part]}
             <select
-              value={scene.reliefDefaults[part]}
-              onChange={(e) => setScene(setReliefDefault(scene, part, e.target.value))}
+              value={scene.reliefDefaults[part].id}
+              onChange={(e) => setScene(setReliefDefault(scene, part, { id: e.target.value }))}
             >
               {matieresDe('relief').map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>

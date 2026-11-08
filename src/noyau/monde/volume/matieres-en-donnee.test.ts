@@ -349,7 +349,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
    * `BARE_GROUND`, que le vocabulaire dérivé de `terrains.json` rend inutile.
    */
   it('la SEMENCE de terrain ne se nomme nulle part : le sol d’une scène neuve vient de la donnée (#1716)', () => {
-    const semence = semencesDeScene.terrain;
+    const semence = semencesDeScene.terrain.id;
     expect(terrains.some((t) => t.id === semence), `la semence « ${semence} » n’est pas un terrain : la garde mesure un vocabulaire mort.`).toBe(true);
     const cite = (id: string) => new RegExp(`(['"\`])${id}\\1`);
     const fautes: string[] = [];

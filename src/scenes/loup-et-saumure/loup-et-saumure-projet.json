@@ -52,10 +52,18 @@
    "metresPerTile": 2,
    "ambientLight": "auto",
    "reliefDefaults": {
-    "cliff": "terre",
-    "ramp": "terre",
-    "deck": "pierre",
-    "pilier": "pilier"
+    "cliff": {
+     "id": "terre"
+    },
+    "ramp": {
+     "id": "terre"
+    },
+    "deck": {
+     "id": "pierre"
+    },
+    "pilier": {
+     "id": "pilier"
+    }
    },
    "roofDefaults": {
     "material": "toit-ardoise",
@@ -991,10 +999,18 @@
    "metresPerTile": 10,
    "ambientLight": "auto",
    "reliefDefaults": {
-    "cliff": "terre",
-    "ramp": "terre",
-    "deck": "pierre",
-    "pilier": "pilier"
+    "cliff": {
+     "id": "terre"
+    },
+    "ramp": {
+     "id": "terre"
+    },
+    "deck": {
+     "id": "pierre"
+    },
+    "pilier": {
+     "id": "pilier"
+    }
    },
    "roofDefaults": {
     "material": "toit-ardoise",
@@ -1930,10 +1946,18 @@
    "metresPerTile": 2,
    "ambientLight": "auto",
    "reliefDefaults": {
-    "cliff": "terre",
-    "ramp": "terre",
-    "deck": "pierre",
-    "pilier": "pilier"
+    "cliff": {
+     "id": "terre"
+    },
+    "ramp": {
+     "id": "terre"
+    },
+    "deck": {
+     "id": "pierre"
+    },
+    "pilier": {
+     "id": "pilier"
+    }
    },
    "roofDefaults": {
     "material": "toit-ardoise",
@@ -2408,10 +2432,18 @@
    "metresPerTile": 10,
    "ambientLight": "auto",
    "reliefDefaults": {
-    "cliff": "terre",
-    "ramp": "terre",
-    "deck": "pierre",
-    "pilier": "pilier"
+    "cliff": {
+     "id": "terre"
+    },
+    "ramp": {
+     "id": "terre"
+    },
+    "deck": {
+     "id": "pierre"
+    },
+    "pilier": {
+     "id": "pilier"
+    }
    },
    "roofDefaults": {
     "material": "toit-ardoise",
@@ -3351,10 +3383,18 @@
    "metresPerTile": 2,
    "ambientLight": "auto",
    "reliefDefaults": {
-    "cliff": "terre",
-    "ramp": "terre",
-    "deck": "pierre",
-    "pilier": "pilier"
+    "cliff": {
+     "id": "terre"
+    },
+    "ramp": {
+     "id": "terre"
+    },
+    "deck": {
+     "id": "pierre"
+    },
+    "pilier": {
+     "id": "pilier"
+    }
    },
    "roofDefaults": {
     "material": "toit-ardoise",
