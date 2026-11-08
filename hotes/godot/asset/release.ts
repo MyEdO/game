@@ -247,7 +247,7 @@ export async function tirerDeLaRelease(epingle: FichierEpingle, extension: Exten
   const direct = await demander(telecharger, url);
   if (direct instanceof Uint8Array) return direct;
   if (direct.status === 404) throw new AssetIntrouvable(epingle, url);
-  journal(`[release] ${epingle.fichier} : ${direct.raison} sur le lien direct, repli sur ${URL_API_DE_LA_RELEASE}`);
+  journal(`[release] ${epingle.fichier} : ${direct.raison} sur le lien direct, nouvel essai par ${URL_API_DE_LA_RELEASE}`);
   const liste = await listeDeLaRelease(telecharger);
   if ('raison' in liste) throw new ReleaseInjoignable(epingle, url, `${direct.raison} ; API : ${liste.raison}`);
   const urlDAPI = liste.get(nom);
