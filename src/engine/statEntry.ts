@@ -236,7 +236,7 @@ export type TraitsDesignes = readonly Pick<TraitInstance, 'id' | 'arg'>[];
 /** Un octroi ÉLÉMENTAIRE d'une variante « swap » : bonus signé sur UNE caractéristique, OU une
  *  compétence à valeur de Test IMPRIMÉE (verbatim, pas une avance calculée). Une variante composite
  *  (Vouivre ZI : « +20 en I, Int et Soc » + « Discrétion (Rurale) 65 ») en cumule PLUSIEURS. */
-export type SwapGrant = { char: CharKey; value: number } | { id: string; spec?: string; value: number };
+export type SwapGrant = { characteristic: CharKey; value: number } | { id: string; spec?: string; value: number };
 export interface OptionalWildcard {
   note: 'all-traits';
   /** Texte source VERBATIM (« Tous les traits »). */

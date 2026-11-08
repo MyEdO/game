@@ -32,7 +32,7 @@ export function polymorphOps(target: Combatant, ref: string): GameOp[] {
     const v = cr.char[k];
     if (typeof v === 'number') {
       const diff = v - baseWithTraits(target, k);
-      if (diff !== 0) ops.push({ op: 'charMod', char: k, mod: diff });
+      if (diff !== 0) ops.push({ op: 'charMod', characteristic: k, mod: diff });
     }
   }
   // `TraitData.nonTransferable` (LDB 48 l.23). L'op accorde le Trait posé de la créature, résolu pour la cible.

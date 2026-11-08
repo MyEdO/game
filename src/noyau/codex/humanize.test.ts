@@ -138,12 +138,12 @@ describe('humanize — registre JOUEUR', () => {
   it('`condition` et `charMod` disent leur durée propre à ses trois échelles, accordée au réel', () => {
     expect(humanizeOp({ op: 'condition', id: 'sonne', durationHours: 2 } as GameOp)).toBe("gagne l'État *Sonné* pendant 2 heures");
     expect(humanizeOp({ op: 'condition', id: 'sonne', durationRounds: 1 } as GameOp)).toBe("gagne l'État *Sonné* pendant 1 Round");
-    expect(humanizeOp({ op: 'charMod', char: 'intelligence', mod: -40, durationMinutes: 30 } as GameOp)).toBe('subit -40 en Intelligence pendant 30 minutes');
+    expect(humanizeOp({ op: 'charMod', characteristic: 'intelligence', mod: -40, durationMinutes: 30 } as GameOp)).toBe('subit -40 en Intelligence pendant 30 minutes');
   });
 
   it('`charMod` dit son plancher, et rien sans lui (EDO 11 l.190)', () => {
-    expect(humanizeOp({ op: 'charMod', char: 'intelligence', mod: -40, min: 10 } as GameOp)).toBe('subit -40 en Intelligence, min 10');
-    expect(humanizeOp({ op: 'charMod', char: 'intelligence', mod: -40 } as GameOp)).toBe('subit -40 en Intelligence');
+    expect(humanizeOp({ op: 'charMod', characteristic: 'intelligence', mod: -40, min: 10 } as GameOp)).toBe('subit -40 en Intelligence, min 10');
+    expect(humanizeOp({ op: 'charMod', characteristic: 'intelligence', mod: -40 } as GameOp)).toBe('subit -40 en Intelligence');
   });
 
   it('humanizeOp : État en libellé italique, jamais l’id', () => {

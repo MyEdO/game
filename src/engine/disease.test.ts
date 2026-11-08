@@ -206,7 +206,7 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
   it('diseasePassiveOps : fièvre = −10 aux TESTS Physiques/Sociaux, rien au Mental (LDB 20 l.170)', () => {
     const c = sick({ diseases: [contractDisease('blessure-purulente', seq([]), { incubation: 0, duration: 5 })!] });
     const ops = diseasePassiveOps(c).map((m) => m.op).filter((o): o is Extract<GameOp, { op: 'testMod' }> => o.op === 'testMod');
-    const modOf = (char: string) => ops.filter((o) => o.char === char).map((o) => o.amount);
+    const modOf = (char: string) => ops.filter((o) => o.characteristic === char).map((o) => o.amount);
     expect(modOf('force')).toEqual([-10]);
     expect(modOf('sociabilite')).toEqual([-10]);
     expect(modOf('intelligence')).toEqual([]); // Mental non touché
@@ -362,13 +362,13 @@ describe('MSRC 16 — Vers du Reik : −10 Soc GATÉ visibilité (l.140) + écla
     const vis = fullSick({ diseases: [contractDisease('vers-du-reik', seq([]), { incubation: 1 })!] });
     tickDisease(vis, MINUTES_PER_DAY, seq([5]), ignore); // transition → localisation 5 = Tête (VISIBLE)
     expect(vis.diseases![0].blisterLocation).toBe('tete');
-    expect(diseasePassiveOps(vis).map((m) => m.op)).toContainEqual({ op: 'testMod', amount: -5, char: 'agilite' });
-    expect(diseasePassiveOps(vis).map((m) => m.op)).toContainEqual({ op: 'testMod', amount: -10, char: 'sociabilite' });
+    expect(diseasePassiveOps(vis).map((m) => m.op)).toContainEqual({ op: 'testMod', amount: -5, characteristic: 'agilite' });
+    expect(diseasePassiveOps(vis).map((m) => m.op)).toContainEqual({ op: 'testMod', amount: -10, characteristic: 'sociabilite' });
     const cov = fullSick({ diseases: [contractDisease('vers-du-reik', seq([]), { incubation: 1 })!] });
     tickDisease(cov, MINUTES_PER_DAY, seq([50]), ignore); // transition → localisation 50 = Corps (COUVERT)
     expect(cov.diseases![0].blisterLocation).toBe('corps');
-    expect(diseasePassiveOps(cov).map((m) => m.op)).toContainEqual({ op: 'testMod', amount: -5, char: 'agilite' });
-    expect(diseasePassiveOps(cov).some(({ op: o }) => o.op === 'testMod' && o.char === 'sociabilite')).toBe(false);
+    expect(diseasePassiveOps(cov).map((m) => m.op)).toContainEqual({ op: 'testMod', amount: -5, characteristic: 'agilite' });
+    expect(diseasePassiveOps(cov).some(({ op: o }) => o.op === 'testMod' && o.characteristic === 'sociabilite')).toBe(false);
   });
 
   it('éclatement au 7ᵉ jour actif (inconditionnel) : 1 Blessure + État Sonné', () => {

@@ -18,10 +18,10 @@ import { desDuTest } from './dice.testkit';
  * Le `tag` groupe tous les effets → retrait atomique. Générique (aucun nom d'entité en dur dans le moteur).
  */
 const HYBRIDE_ULRIC: GameOp[] = [
-  { op: 'charMod', char: 'capacite-de-combat', mod: 10 }, { op: 'charMod', char: 'force', mod: 10 },
-  { op: 'charMod', char: 'endurance', mod: 10 }, { op: 'charMod', char: 'initiative', mod: 10 },
-  { op: 'charMod', char: 'agilite', mod: 10 }, { op: 'charMod', char: 'dexterite', mod: -10 },
-  { op: 'charMod', char: 'intelligence', mod: -10 }, { op: 'charMod', char: 'sociabilite', mod: -20 },
+  { op: 'charMod', characteristic: 'capacite-de-combat', mod: 10 }, { op: 'charMod', characteristic: 'force', mod: 10 },
+  { op: 'charMod', characteristic: 'endurance', mod: 10 }, { op: 'charMod', characteristic: 'initiative', mod: 10 },
+  { op: 'charMod', characteristic: 'agilite', mod: 10 }, { op: 'charMod', characteristic: 'dexterite', mod: -10 },
+  { op: 'charMod', characteristic: 'intelligence', mod: -10 }, { op: 'charMod', characteristic: 'sociabilite', mod: -20 },
   { op: 'moveMod', mod: 1 },
   { op: 'grantTrait', trait: { id: 'arme', value: { sum: [{ bonusOf: 'force' }, 4] } } },
   { op: 'grantTrait', trait: { id: 'morsure', value: { sum: [{ bonusOf: 'force' }, 3] } } }, { op: 'grantTrait', trait: { id: 'armure', value: 2 } },
@@ -99,7 +99,7 @@ describe('transform / endTransform — Métamorphose Enfant d’Ulric (delta RAW
   it('effectId (pas le libellé) porte l’IDENTITÉ de la transformation — pose ET retrait complets, robustes à une collision de libellé', () => {
     const c = human();
     // Effet ÉTRANGER pré-existant dont le LIBELLÉ collisionne avec le tag (décoy) — jamais touché par transform/endTransform.
-    const decoy = { label: TAG, bonus: 5, char: 'force-mentale' as const, duration: { scale: 'permanent' as const } };
+    const decoy = { label: TAG, bonus: 5, characteristic: 'force-mentale' as const, duration: { scale: 'permanent' as const } };
     c.activeEffects = [decoy];
 
     applyOps(c, [{ op: 'transform', tag: TAG, ops: HYBRIDE_ULRIC, morphRef: 'enfant-d-ulric' }], { rng: desDuTest });

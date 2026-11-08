@@ -102,7 +102,7 @@ const CLE_DU_SUJET = 'Property:matches([key.name=/^(skill|skillId|difficulty|spe
 const SPREAD_CONDITIONNEL = 'SpreadElement > :matches(ConditionalExpression, LogicalExpression) > ObjectExpression';
 const CHAMP_CHAR = 'TSPropertySignature:matches([key.name="char"], [key.value="char"])';
 const CHAMP_DU_SUJET = 'TSPropertySignature:matches([key.name=/^(skill|skillId|difficulty|spec)$/], [key.value=/^(skill|skillId|difficulty|spec)$/])';
-const MSG_SUJET_CHAR = 'Sujet d’un Test (#3012, LDB 12 l.7) : il se nomme `characteristic`, comme `sujetDuJetSchema`. Une clé `char` à côté de `skill`/`skillId`/`difficulty`/`spec`, dans un littéral ou un type, en est l’ancienne graphie, que tsc laisse passer sur un objet non frais, un spread conditionnel ou un cast. `char` reste la Caractéristique seule (`charMod`, `actGate`, `CharRef`…).';
+const MSG_SUJET_CHAR = 'Sujet d’un Test (#3012, LDB 12 l.7) : il se nomme `characteristic`, comme `sujetDuJetSchema`. Une clé `char` à côté de `skill`/`skillId`/`difficulty`/`spec`, dans un littéral ou un type, en est l’ancienne graphie, que tsc laisse passer sur un objet non frais, un spread conditionnel ou un cast. La Caractéristique seule se nomme aussi `characteristic` (`charMod`, `actGate`, `CharRef`…, #1658) : `char` ne nomme plus que le profil chiffré d’un statblock.';
 const VERROU_SUJET_CHAR = [
   `ObjectExpression:has(> ${CLE_CHAR}):has(> ${CLE_DU_SUJET})`,
   `ObjectExpression:has(> ${CLE_DU_SUJET}) > ${SPREAD_CONDITIONNEL} > ${CLE_CHAR}`,

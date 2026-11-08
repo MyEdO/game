@@ -39,9 +39,9 @@ describe('castSpell forceSuccess : le Flow du Sort, à DR = NI', () => {
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s] } });
     jouerFlowEntier(runFlow(banc.getState, banc.setState, garanti(w.id, 'ecorce', s.id)));
     const effets = banc.getState().party.find((c) => c.id === s.id)!.activeEffects ?? [];
-    expect(effets.map((e) => ({ char: e.char, bonus: e.bonus, duree: e.duration, sort: e.spell?.spellId, id: e.sourceSpellId }))).toEqual(
+    expect(effets.map((e) => ({ characteristic: e.characteristic, bonus: e.bonus, duree: e.duration, sort: e.spell?.spellId, id: e.sourceSpellId }))).toEqual(
       ['endurance', 'agilite', 'dexterite'].map((char, i) => ({
-        char, bonus: [20, -10, -10][i], duree: { scale: 'rounds', left: bfm(w) }, sort: 'ecorce', id: 'ecorce',
+        characteristic: char, bonus: [20, -10, -10][i], duree: { scale: 'rounds', left: bfm(w) }, sort: 'ecorce', id: 'ecorce',
       })),
     );
   });

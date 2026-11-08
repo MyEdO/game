@@ -989,7 +989,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     saisir('valeur/onCross/0/amount', 2);
     presser('valeur/onCross/ajouter');
     choisir('valeur/onCross/1/op', 'Modif. de caractéristique');
-    choisir('valeur/onCross/1/char', 'Agilité');
+    choisir('valeur/onCross/1/characteristic', 'Agilité');
     saisir('valeur/onCross/1/mod', -5);
     presser('valeur/onCross/1/monter');
     expect(option('valeur/onCross/0/op', 'Modif. de caractéristique').presse, 'montée, la seconde op passe première').toBe(true);
@@ -1011,7 +1011,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     expect(neuve.triggers.find((t) => t.id === declencheur.id)?.when).toEqual({ kind: 'all', of: [{ kind: 'flag', expr: 'porte' }, { kind: 'not', of: { kind: 'foeInLoS' } }] });
     expect(neuve.effectZones!.find((z) => z.id === zone.id)).toMatchObject({
       crossTest: { characteristic: 'force' },
-      onCross: [{ op: 'charMod', char: 'agilite', mod: -5 }, { op: 'corruption', amount: 2 }],
+      onCross: [{ op: 'charMod', characteristic: 'agilite', mod: -5 }, { op: 'corruption', amount: 2 }],
     });
     rouvrir('editer', boutonDe(rouverte, `scenes/${neuve.id}`).jeu);
     rouvrir('editer', { edition: { geste: 'appui', point: point(0, 0) } });
@@ -1021,7 +1021,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     expect(formulaire('valeur/when/of/0/expr').champs[2]).toMatchObject({ valeur: 'porte' });
     rouvrir('editer', { edition: { geste: 'appui', point: point(3, 3) } });
     e = editionDe(rouvrir('editer', { edition: { geste: 'relache', point: point(3, 3) } }));
-    expect(option('valeur/onCross/0/char', 'Agilité').presse, 'rouverte, les ops de la zone').toBe(true);
+    expect(option('valeur/onCross/0/characteristic', 'Agilité').presse, 'rouverte, les ops de la zone').toBe(true);
     expect(formulaire('valeur/onCross/1/amount').champs[2]).toMatchObject({ valeur: 2 });
     expect(validation(), 'rouverte du dépôt, la validation ne dit aucune erreur').toMatch(sansErreur);
   });

@@ -31,7 +31,7 @@ describe('Dissipation permanente — hors combat (couture D, #461)', () => {
     const mage = mk('mage', ['forme-bestiale']);
     const allie = mk('allie', ['incarnation-de-wyssan']);
     const cible = mk('cible', [], {
-      activeEffects: [{ label: 'Malédiction', char: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
+      activeEffects: [{ label: 'Malédiction', characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
         spell: { spellId: 'malefice', ni: 1, casterId: 'ennemi', label: 'Maléfice' } }],
     });
     banc.setState({ party: [mage, allie, cible] });
@@ -73,7 +73,7 @@ describe('Dissipation permanente — hors combat (couture D, #461)', () => {
   // (`pendingDispel.value`, en points — un DR vaut une dizaine, `tests.ts:98`).
   it('dissipe son propre Sort hors combat : +1 DR CUMULÉ seulement sous `magic-vdm-incantation`', () => {
     const freshMage = () => mk('mage', ['forme-bestiale'], {
-      activeEffects: [{ label: 'Malédiction', char: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
+      activeEffects: [{ label: 'Malédiction', characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
         spell: { spellId: 'malefice', ni: 3, casterId: 'mage', label: 'Maléfice' } }],
     });
     const roundDR = (rule: boolean) => {
@@ -94,7 +94,7 @@ describe('Dissipation permanente — hors combat (couture D, #461)', () => {
   it('sans la compétence Langue (Magick) : refus journalisé, aucun pending', () => {
     const mage = mk('mage', ['forme-bestiale'], { skills: [] });
     const cible = mk('cible', [], {
-      activeEffects: [{ label: 'Malédiction', char: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
+      activeEffects: [{ label: 'Malédiction', characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
         spell: { spellId: 'malefice', ni: 1, casterId: 'ennemi', label: 'Maléfice' } }],
     });
     banc.setState({ party: [mage, cible] });

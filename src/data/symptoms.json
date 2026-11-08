@@ -8,37 +8,37 @@
       {
         "op": "testMod",
         "amount": -10,
-        "char": "capacite-de-combat"
+        "characteristic": "capacite-de-combat"
       },
       {
         "op": "testMod",
         "amount": -10,
-        "char": "capacite-de-tir"
+        "characteristic": "capacite-de-tir"
       },
       {
         "op": "testMod",
         "amount": -10,
-        "char": "force"
+        "characteristic": "force"
       },
       {
         "op": "testMod",
         "amount": -10,
-        "char": "endurance"
+        "characteristic": "endurance"
       },
       {
         "op": "testMod",
         "amount": -10,
-        "char": "agilite"
+        "characteristic": "agilite"
       },
       {
         "op": "testMod",
         "amount": -10,
-        "char": "dexterite"
+        "characteristic": "dexterite"
       },
       {
         "op": "testMod",
         "amount": -10,
-        "char": "sociabilite"
+        "characteristic": "sociabilite"
       }
     ],
     "passiveBySeverity": {
@@ -69,37 +69,37 @@
       {
         "op": "testMod",
         "amount": -10,
-        "char": "capacite-de-combat"
+        "characteristic": "capacite-de-combat"
       },
       {
         "op": "testMod",
         "amount": -10,
-        "char": "capacite-de-tir"
+        "characteristic": "capacite-de-tir"
       },
       {
         "op": "testMod",
         "amount": -10,
-        "char": "force"
+        "characteristic": "force"
       },
       {
         "op": "testMod",
         "amount": -10,
-        "char": "endurance"
+        "characteristic": "endurance"
       },
       {
         "op": "testMod",
         "amount": -10,
-        "char": "agilite"
+        "characteristic": "agilite"
       },
       {
         "op": "testMod",
         "amount": -10,
-        "char": "dexterite"
+        "characteristic": "dexterite"
       },
       {
         "op": "testMod",
         "amount": -10,
-        "char": "sociabilite"
+        "characteristic": "sociabilite"
       }
     ],
     "source": {
@@ -116,32 +116,32 @@
       {
         "op": "testMod",
         "amount": -10,
-        "char": "capacite-de-combat"
+        "characteristic": "capacite-de-combat"
       },
       {
         "op": "testMod",
         "amount": -10,
-        "char": "capacite-de-tir"
+        "characteristic": "capacite-de-tir"
       },
       {
         "op": "testMod",
         "amount": -10,
-        "char": "force"
+        "characteristic": "force"
       },
       {
         "op": "testMod",
         "amount": -10,
-        "char": "endurance"
+        "characteristic": "endurance"
       },
       {
         "op": "testMod",
         "amount": -10,
-        "char": "agilite"
+        "characteristic": "agilite"
       },
       {
         "op": "testMod",
         "amount": -10,
-        "char": "dexterite"
+        "characteristic": "dexterite"
       }
     ],
     "passiveBySeverity": {
@@ -149,32 +149,32 @@
         {
           "op": "testMod",
           "amount": -20,
-          "char": "capacite-de-combat"
+          "characteristic": "capacite-de-combat"
         },
         {
           "op": "testMod",
           "amount": -20,
-          "char": "capacite-de-tir"
+          "characteristic": "capacite-de-tir"
         },
         {
           "op": "testMod",
           "amount": -20,
-          "char": "force"
+          "characteristic": "force"
         },
         {
           "op": "testMod",
           "amount": -20,
-          "char": "endurance"
+          "characteristic": "endurance"
         },
         {
           "op": "testMod",
           "amount": -20,
-          "char": "agilite"
+          "characteristic": "agilite"
         },
         {
           "op": "testMod",
           "amount": -20,
-          "char": "dexterite"
+          "characteristic": "dexterite"
         }
       ]
     },
@@ -193,7 +193,7 @@
       {
         "op": "testMod",
         "amount": -10,
-        "char": "sociabilite"
+        "characteristic": "sociabilite"
       }
     ],
     "source": {
@@ -309,7 +309,7 @@
       {
         "op": "testMod",
         "amount": -10,
-        "char": "sociabilite"
+        "characteristic": "sociabilite"
       }
     ],
     "capabilities": {
@@ -554,7 +554,7 @@
                     "ops": [
                       {
                         "op": "charDamage",
-                        "char": "initiative",
+                        "characteristic": "initiative",
                         "amount": {
                           "dice": {
                             "n": 1,
@@ -570,7 +570,7 @@
                     "ops": [
                       {
                         "op": "charDamage",
-                        "char": "intelligence",
+                        "characteristic": "intelligence",
                         "amount": {
                           "dice": {
                             "n": 1,
@@ -586,7 +586,7 @@
                     "ops": [
                       {
                         "op": "charDamage",
-                        "char": "force-mentale",
+                        "characteristic": "force-mentale",
                         "amount": {
                           "dice": {
                             "n": 1,
@@ -602,7 +602,7 @@
                     "ops": [
                       {
                         "op": "charDamage",
-                        "char": "sociabilite",
+                        "characteristic": "sociabilite",
                         "amount": {
                           "dice": {
                             "n": 1,
@@ -683,14 +683,14 @@
       {
         "op": "testMod",
         "amount": -5,
-        "char": "agilite"
+        "characteristic": "agilite"
       }
     ],
     "visiblePassive": [
       {
         "op": "testMod",
         "amount": -10,
-        "char": "sociabilite"
+        "characteristic": "sociabilite"
       }
     ],
     "visibleLocations": [

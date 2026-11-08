@@ -93,12 +93,12 @@
       },
       {
         "op": "charMod",
-        "char": "force",
+        "characteristic": "force",
         "mod": -30
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -30
       }
     ],
@@ -123,12 +123,12 @@
       },
       {
         "op": "charMod",
-        "char": "force",
+        "characteristic": "force",
         "mod": -30
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -30
       }
     ],
@@ -291,12 +291,12 @@
         "ops": [
           {
             "op": "charMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "mod": -1
           },
           {
             "op": "charMod",
-            "char": "capacite-de-combat",
+            "characteristic": "capacite-de-combat",
             "mod": -1
           }
         ]
@@ -424,7 +424,7 @@
     "ops": [
       {
         "op": "charMod",
-        "char": "sociabilite",
+        "characteristic": "sociabilite",
         "mod": -20
       }
     ],
@@ -460,7 +460,7 @@
           {
             "op": "testMod",
             "amount": -5,
-            "char": "sociabilite"
+            "characteristic": "sociabilite"
           }
         ]
       },
@@ -506,7 +506,7 @@
           {
             "op": "testMod",
             "amount": -5,
-            "char": "sociabilite"
+            "characteristic": "sociabilite"
           }
         ]
       },
@@ -541,7 +541,7 @@
         "ops": [
           {
             "op": "charMod",
-            "char": "sociabilite",
+            "characteristic": "sociabilite",
             "mod": -1
           }
         ]
@@ -569,12 +569,12 @@
       {
         "op": "testMod",
         "amount": -30,
-        "char": "capacite-de-combat"
+        "characteristic": "capacite-de-combat"
       },
       {
         "op": "testMod",
         "amount": -30,
-        "char": "capacite-de-tir"
+        "characteristic": "capacite-de-tir"
       },
       {
         "op": "skillMod",

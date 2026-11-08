@@ -172,7 +172,7 @@ describe('ancrage de règle des ActiveEffect posés', () => {
 
   it('applyOps stampe l’ENTITÉ SOURCE du ctx sur les effets qu’il pose (ancrage général)', () => {
     const target = blessuresSurLeProfil({ id: 'c', name: 'C', characteristics: profilDeTest(), conditions: [], activeEffects: [], wounds: blessuresDeBase(10) }) as unknown as Combatant;
-    applyOps(target, [{ op: 'charMod', char: 'force', mod: 10 }], { rng: desDuTest,
+    applyOps(target, [{ op: 'charMod', characteristic: 'force', mod: 10 }], { rng: desDuTest,
       label: 'Force du taureau', source: { kind: 'spell', id: 'benediction-de-puissance' },
     });
     expect(target.activeEffects?.[0].source).toEqual({ kind: 'spell', id: 'benediction-de-puissance' });

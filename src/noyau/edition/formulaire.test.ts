@@ -82,7 +82,7 @@ describe('la description du formulaire d’une zone d’effet', () => {
   });
 
   it('une op se choisit parmi toutes, chacune nommée, neuve par `newOp` ; typée, elle se décrit champ par champ, son `op` tenu par le choix', () => {
-    const z = zone({ onCross: [{ op: 'charMod', char: 'force', mod: -10 }] as never });
+    const z = zone({ onCross: [{ op: 'charMod', characteristic: 'force', mod: -10 }] as never });
     const champs = formulaireDe('zone', z);
     const op = champ(champs, z, 'onCross', 0);
     expect(op).toMatchObject({ key: '0', label: 'à la traversée 1', nullable: false });
@@ -92,7 +92,7 @@ describe('la description du formulaire d’une zone d’effet', () => {
     expect(variantes.find((v) => v.cle === 'corruption')!.valeur).toEqual(newOp('corruption'));
     expect(variantes.find((v) => v.courante), 'la courante pose sa valeur').toMatchObject({ cle: 'charMod', valeur: z.onCross![0] });
     expect(formeAuPoint(op.noeud, z.onCross![0])?.tenus).toEqual(['op']);
-    expect(choixDuNoeud(champ(champs, z, 'onCross', 0, 'char').noeud)?.map((o) => o.valeur)).toContain('force');
+    expect(choixDuNoeud(champ(champs, z, 'onCross', 0, 'characteristic').noeud)?.map((o) => o.valeur)).toContain('force');
     expect(champ(champs, z, 'onCross', 0, 'mod')).toMatchObject({ kind: 'number' });
   });
 
@@ -111,7 +111,7 @@ describe('`newOp`', () => {
     expect(newOp('incomingAttackMod')).toEqual(valeurNeuveDe(OP_DEFS.incomingAttackMod));
     expect(newOp('contractDisease'), 'aucune Maladie élue à la place de l’auteur').toEqual({ op: 'contractDisease', disease: '' });
     expect(newOp('incomingAttackMod')).toMatchObject({ op: 'incomingAttackMod' });
-    expect(newOp('charDamage')).toEqual({ op: 'charDamage' });
+    expect(newOp('intoxicate')).toEqual({ op: 'intoxicate' });
     expect(() => newOp('pas-une-op')).toThrow(/pas-une-op/);
   });
 });
@@ -238,8 +238,8 @@ describe('le geste `valeur` de la session', () => {
     const corruption = jouer(ajoutee, ['onCross', 0], newOp('corruption'));
     expect(laZone(corruption).onCross, 'changer de variante pose l’op neuve choisie').toEqual([newOp('corruption')]);
     const deux = jouer(jouer(corruption, ['onCross'], gestesDeLaListe(laZone(corruption).onCross!, neuve).ajouter), ['onCross', 1], newOp('charMod'));
-    const remplie = jouer(jouer(deux, ['onCross', 0, 'amount'], 3), ['onCross', 1, 'char'], 'agilite');
-    expect(laZone(remplie).onCross).toEqual([{ ...newOp('corruption'), amount: 3 }, { ...newOp('charMod'), char: 'agilite' }]);
+    const remplie = jouer(jouer(deux, ['onCross', 0, 'amount'], 3), ['onCross', 1, 'characteristic'], 'agilite');
+    expect(laZone(remplie).onCross).toEqual([{ ...newOp('corruption'), amount: 3 }, { ...newOp('charMod'), characteristic: 'agilite' }]);
     expect(jouer(remplie, ['onCross', 1, 'op'], 'corruption'), 'le discriminant se change par le choix de la variante').toBe(remplie);
     const ops = laZone(remplie).onCross!;
     const montee = jouer(remplie, ['onCross'], gestesDeLaListe(ops, neuve).elements[1].monter);

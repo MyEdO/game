@@ -46,7 +46,7 @@ const spell = (domainId: string) =>
       kind: 'seq',
       steps: [{
         kind: 'do',
-        effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'aveugle' }, { op: 'charMod', char: 'capacite-de-combat', mod: -10 }] },
+        effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'aveugle' }, { op: 'charMod', characteristic: 'capacite-de-combat', mod: -10 }] },
       }],
     },
     family: 'arcane',

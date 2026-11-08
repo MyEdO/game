@@ -150,7 +150,7 @@ function fautesDuPorteur(p: Porteur): string[] {
   }
   // (g) un plancher de `charMod` est résolu à l'attache : aucune instance ne le porte (EDO 11 l.190).
   for (const m of mutations) for (const op of m.passive ?? []) {
-    if (op.op === 'charMod' && op.min != null) fautes.push(`${p.ou} : (g) charMod « ${op.char} » de « ${m.id} » porte encore son plancher`);
+    if (op.op === 'charMod' && op.min != null) fautes.push(`${p.ou} : (g) charMod « ${op.characteristic} » de « ${m.id} » porte encore son plancher`);
   }
   // (e) Blessures dérivées.
   if (c.wounds.max !== effectiveMaxWounds(c)) fautes.push(`${p.ou} : (e) wounds.max ${c.wounds.max} ≠ effectiveMaxWounds ${effectiveMaxWounds(c)}`);

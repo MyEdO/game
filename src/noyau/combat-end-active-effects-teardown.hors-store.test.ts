@@ -61,7 +61,7 @@ describe('finalizeBattle — un effet en Rounds revient au groupe et s’écoule
   it('effets PERMANENT et d’HORLOGE : reviennent au groupe intacts', () => {
     const caster = setup();
     caster.activeEffects = [
-      { label: 'Buff permanent', bonus: 0, duration: { scale: 'permanent' }, char: 'force' },
+      { label: 'Buff permanent', bonus: 0, duration: { scale: 'permanent' }, characteristic: 'force' },
       { label: 'Contrecoup', bonus: 0, duration: { scale: 'clock', until: 999999 } },
     ];
     finalizeBattle(banc.getState, banc.setState);

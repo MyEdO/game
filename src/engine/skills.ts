@@ -83,7 +83,7 @@ export function testValue(c: Combatant, sujet: SujetDuJet, sense?: PairedSense):
   // (`passiveSkillSum` : Groin poilu +10 Pistage, −N% en X du port d'armure) + mods de Test char-qualifiés
   // (`passiveTestMod` : mutation Visage inversé −20 Soc, objet Laid −Soc).
   const passive = passiveSkillSum(c, skill) + passiveTestMod(c, ck);
-  // Mods de Test char-QUALIFIÉS d'effets ACTIFS (op `testMod{char}` exécutée — Mystracine « +10 aux
+  // Mods de Test char-QUALIFIÉS d'effets ACTIFS (op `testMod{characteristic}` exécutée — Mystracine « +10 aux
   // Tests d'E et de FM, −10 Ag/I/Int », LDB 71 l.33) : sommés pour la seule carac testée ; les mods
   // GLOBAUX (sans char) sont déjà comptés via `testStatePenalty`. `movementOnly`
   // (#193, Genou démis « Tests impliquant cette jambe ») restreint aux Tests classés « déplacement ».
