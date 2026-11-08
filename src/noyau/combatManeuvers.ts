@@ -16,7 +16,7 @@
 import type { Get, Set as SetFn } from './flowTypes';
 import type { BattleState, Jeu } from './etat';
 import { facingToward } from '../geometry/dir8';
-import { Combatant, type Difficulty, CHAR_LABELS } from '../engine/types';
+import { Combatant, DIFFICULTE_PAR_DEFAUT, type Difficulty, CHAR_LABELS } from '../engine/types';
 import { battleRng } from './battleRng';
 import { evLines } from './combatLog';
 import type { RNG } from '../engine/dice';
@@ -332,14 +332,14 @@ export function selectedAttackOption(active: Combatant, battle: BattleState): At
  *  bonus d'attaquant propre à la manœuvre (Vomissement : Facile +40 à courte distance, LDB 85 l.445) ;
  *  Intermédiaire par défaut. Hurlement n'a PAS de jet d'attaquant (chaque cible teste sa Résistance)
  *  → `stat` absent : `rollManeuverAttacker` n'est jamais appelé pour lui. */
-export function rollManeuverAttacker(attacker: Combatant, stat: 'capacite-de-combat' | 'capacite-de-tir', rng: RNG, difficulty: Difficulty = 'intermediaire'): TestResult {
+export function rollManeuverAttacker(attacker: Combatant, stat: 'capacite-de-combat' | 'capacite-de-tir', rng: RNG, difficulty: Difficulty = DIFFICULTE_PAR_DEFAUT): TestResult {
   const kind = stat === 'capacite-de-combat' ? 'melee' : 'ranged';
   return { ...rollTest(combatValue(attacker, kind), difficulty, rng), base: combatBaseValue(attacker, kind) }; // LDB 12 l.160
 }
 
 /** Ligne du jet d'attaquant d'une manœuvre (`rollLine`, canal de combat, même valeur que
  *  `rollManeuverAttacker`) — lue par les fenêtres de Manœuvre et de Battement. LDB 85 l.445. */
-export function ligneDAttaquantDeManoeuvre(attacker: Combatant, stat: 'capacite-de-combat' | 'capacite-de-tir', difficulty: Difficulty = 'intermediaire'): RollLineParts {
+export function ligneDAttaquantDeManoeuvre(attacker: Combatant, stat: 'capacite-de-combat' | 'capacite-de-tir', difficulty: Difficulty = DIFFICULTE_PAR_DEFAUT): RollLineParts {
   return rollLine({ actor: attacker, combat: { kind: stat === 'capacite-de-combat' ? 'melee' : 'ranged' }, difficulty });
 }
 

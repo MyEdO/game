@@ -1033,6 +1033,14 @@ export const jetSchema = nommerChamps(z.strictObject({
  *  (`MenaceId`, `engine/menace.ts`). */
 export const menaceSchema = specFermeeDe('talent', 'resistance');
 
+/** La DÉCISION authorée d'un Test (`CHAMPS_DE_DECISION`, `engine/flowCore.ts`), lue par `resoudreFlowTest` seul :
+ *  forme partagée du Test de flux et du Test étendu, sans refine. */
+export const decisionDuTestSchema = nommerChamps(z.strictObject({
+  easierIf: facilitationSchema.optional(),
+  gate: conditionSchema.optional(),
+  difficultyBy: z.array(nommerChamps(z.strictObject({ cond: conditionSchema, difficulty: difficultySchema }), { cond: { label: "condition" }, difficulty: { label: "difficulté"  } })).optional(),
+}), { easierIf: { label: "facilité conditionnelle" }, gate: { label: "condition d’accès" }, difficultyBy: { label: "difficultés conditionnelles" } });
+
 export const flowTestSchema = nommerChamps(z.strictObject({
   /** ENJEU du Test (#1117) — cf. `stakeRefSchema`. */
   stake: stakeRefSchema.optional(),
@@ -1047,18 +1055,16 @@ export const flowTestSchema = nommerChamps(z.strictObject({
   vsStatus: statutSchema.optional(),
   begging: z.boolean().optional(),
   vsCapricieux: z.boolean().optional(),
-  easierIf: facilitationSchema.optional(),
+  ...decisionDuTestSchema.shape,
   argDifficulty: z.boolean().optional(),
   onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
   exceptGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
-  gate: conditionSchema.optional(),
   /** SOUTIEN (LDB 12 l.197) — TRI-ÉTAT authoré : absent = défaut de la VOIE qui ouvre le Test (scène/
    *  dialogue : soutenable ; effet déclenché / consommable : non soutenable) ; `true` = jamais
    *  soutenable ; `false` = soutenable malgré la voie (Test de soin d'un nécessaire). */
   noSupport: z.boolean().optional(),
   /** Tag MENACE du talent « Résistance (Menace) » (LDB 10 l.1016-1020). */
   menace: menaceSchema.optional(),
-  difficultyBy: z.array(nommerChamps(z.strictObject({ cond: conditionSchema, difficulty: difficultySchema }), { cond: { label: "condition" }, difficulty: { label: "difficulté"  } })).optional(),
   opposed: nommerChamps(z
     .strictObject({
       attacker: charKeySchema,
@@ -1089,7 +1095,7 @@ export const flowTestSchema = nommerChamps(z.strictObject({
     message: 'jet SANS compétence ni caractéristique : la porte le jouerait sur une valeur de 0 '
       + '(auto-échec muet). Nommer `skill` (id de compétence), `characteristic`, ou `crewTestType`.',
   });
-}), { stake: { label: "enjeu" }, ...metaDesChamps(jetSchema, { exigees: true }), sense: { label: "sens"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, requireSL: { label: "DR requis" }, label: { label: "libellé" , texte: { regime: "designation"} }, tool: { label: "outil" , texte: { regime: "technique"} }, vsGroups: { label: "contre les groupes" , texte: { regime: "technique"} }, vsStatus: { label: "contre le statut" , texte: { regime: "technique"} }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" }, easierIf: { label: "facilité conditionnelle" }, argDifficulty: { label: "difficulté de l’argument" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, exceptGroups: { label: "groupes exclus" , texte: { regime: "technique"} }, gate: { label: "condition d’accès" }, noSupport: { label: "sans assistance" }, menace: { label: "menace" , texte: { regime: "technique"} }, difficultyBy: { label: "difficultés conditionnelles" }, opposed: { label: "opposition" } });
+}), { stake: { label: "enjeu" }, ...metaDesChamps(jetSchema, { exigees: true }), sense: { label: "sens"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, requireSL: { label: "DR requis" }, label: { label: "libellé" , texte: { regime: "designation"} }, tool: { label: "outil" , texte: { regime: "technique"} }, vsGroups: { label: "contre les groupes" , texte: { regime: "technique"} }, vsStatus: { label: "contre le statut" , texte: { regime: "technique"} }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" }, ...metaDesChamps(decisionDuTestSchema, { exigees: true }), argDifficulty: { label: "difficulté de l’argument" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, exceptGroups: { label: "groupes exclus" , texte: { regime: "technique"} }, noSupport: { label: "sans assistance" }, menace: { label: "menace" , texte: { regime: "technique"} }, opposed: { label: "opposition" } });
 
 
 /** Champ que `flowTestSchema` laisse FACULTATIF et qu'un porteur peut exiger. */
@@ -1128,17 +1134,19 @@ export function fixerLeTest(...champs: readonly ChampExigibleDuTest[]) {
 }
 
 /** Test ÉTENDU (`LDB 12 l.172-174`) : un acteur cumule des DR Round par Round jusqu'à sa cible
- *  (`cibleEtendueSchema`) (crocheter une serrure, forcer un mécanisme…). `flag` posé à la réussite (gate la suite). */
+ *  (`cibleEtendueSchema`) (crocheter une serrure, forcer un mécanisme…). `flag` posé à la réussite (gate la suite).
+ *  Sa décision est celle d'un Test de flux (`decisionDuTestSchema`). */
 export const extendedTestSchema = nommerChamps(z.strictObject({
   type: z.literal('extendedTest'),
   ...jetSchema.shape,
+  ...decisionDuTestSchema.shape,
   label: z.string(),
   ...cibleEtendueSchema.shape,
   flag: z.string().optional(),
   /** ENJEU du Test (#1117) — référence de donnée, résolue par `resolveStake` et affichée par la
    *  modale du Round. Authorable par site ; à défaut, l'applier pose celui du Test étendu. */
   stake: stakeRefSchema.optional(),
-}), { type: { label: "type"  }, ...metaDesChamps(jetSchema, { exigees: true }), label: { label: "libellé" , texte: { regime: "designation"} }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }), flag: { label: "drapeau" , texte: { regime: "technique"} }, stake: { label: "enjeu" } });
+}), { type: { label: "type"  }, ...metaDesChamps(jetSchema, { exigees: true }), ...metaDesChamps(decisionDuTestSchema, { exigees: true }), label: { label: "libellé" , texte: { regime: "designation"} }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }), flag: { label: "drapeau" , texte: { regime: "technique"} }, stake: { label: "enjeu" } });
 
 /** Options de `noeudTest` — ce qu'un document RESSERRE sur le nœud partagé, jamais un spread. */
 export interface OptionsNoeudTest {

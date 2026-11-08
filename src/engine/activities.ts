@@ -24,7 +24,7 @@ import { memoParVersion } from '../data/versionDataset';
 import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';
 import { competenceEnCarriere, talentEnCarriere } from './talentEffects';
-import { CHAR_KEYS, CHAR_LABELS } from './types';
+import { CHAR_KEYS, CHAR_LABELS, DIFFICULTE_PAR_DEFAUT } from './types';
 import { isTradable } from './disponibilite';
 import activitiesJson from '../data/activities.json';
 import { parLibelle } from '../lib/ordre.mjs';
@@ -509,7 +509,7 @@ export function classGatedDifficulty(
   def: { difficulty?: Difficulty; classGate?: { classes: string[]; outsidePenalty: number; scope?: 'current' | 'ever' } },
   hero: Pick<Combatant, 'career' | 'careerHistory'>,
 ): Difficulty {
-  const base = def.difficulty ?? 'intermediaire';
+  const base = def.difficulty ?? DIFFICULTE_PAR_DEFAUT;
   const gate = def.classGate;
   if (!gate) return base;
   const covered = gate.scope === 'ever'

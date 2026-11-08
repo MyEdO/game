@@ -4,6 +4,7 @@ import { flowFromEffects } from './flow';
 import { EMPTY_FLOW } from '../../engine/flowCore';
 import type { Pt } from './path';
 import { surfaceClimbImpossible } from '../../engine/movement';
+import { DIFFICULTE_PAR_DEFAUT } from '../../engine/types';
 import { combatStakeRef } from '../../data';
 
 /**
@@ -45,7 +46,7 @@ export function planClimb(scene: Scene, from: Pt, to: Pt, hasGrimpeur: boolean, 
     kind: 'test',
     flow: {
       kind: 'test',
-      test: { skill: { id: 'escalade' }, difficulty: c.difficulty ?? 'intermediaire', label: 'Escalade', stake: combatStakeRef('climbTest', { values: { metres } }) },
+      test: { skill: { id: 'escalade' }, difficulty: c.difficulty ?? DIFFICULTE_PAR_DEFAUT, label: 'Escalade', stake: combatStakeRef('climbTest', { values: { metres } }) },
       success: EMPTY_FLOW,
       fail: flowFromEffects([fall]),
     },
