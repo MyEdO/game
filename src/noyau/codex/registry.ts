@@ -1403,7 +1403,7 @@ const CODEX_SPECS = {
   stars: {
     label: 'codex.fiche.etoiles', group: 'personnage',
     build: () => stars.map((s) => depuisEnveloppe(s, {
-      sub: s.signe ?? undefined,
+      sub: s.signe,
       meta: facts(fact(tr('codex.fiche.dates'), s.dates), fact(tr('codex.fiche.dieu'), s.dieux), fact(tr('codex.fiche.ascendant'), s.ascendant)),
       sections: sections(passiveSection(s.ops, tr('codex.fiche.effetDuSigne'))),
     })),
