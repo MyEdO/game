@@ -2677,8 +2677,8 @@ export interface LieuServiceData {
   desc?: string;
   /** Réplique de boniment (saveur maison) du bandeau d'interlocuteur statique (`SpeakerBanner`). */
   hostLine?: string;
-  /** Bande d'ambiance par défaut (id du registre des bandes d'ambiance). */
-  backdrop?: string;
+  /** Bande d'ambiance par défaut. */
+  backdrop?: { id: string };
   /** Archétype marchand ouvert par ce service (`src/data/merchants.json`, #369). */
   merchantArchetype?: string;
   /** Écran plein-champ EXISTANT vers lequel ce service PORTE (#369) : `port` = l'écran de port
