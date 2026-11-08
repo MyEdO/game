@@ -11,7 +11,7 @@ import { CAP_IDENTITE_PROP } from '../data/props.types';
 import { rotateDir8 } from '../geometry/dir8';
 import { garanti } from '../lib/garanti';
 import type { CellSide, Scene, SceneEffectZone, SceneEntity, WallSeg } from './monde/scene';
-import { edgeOf, heightAt, sceneMetresPerTile, tileAt } from './monde/scene';
+import { edgeOf, heightAt, porteAuteur, sceneMetresPerTile, tileAt } from './monde/scene';
 import { propFootTiles } from './monde/footprint';
 import { estAbsent } from './monde/terrain';
 import { addLayer, paintHeight, paintTiles, patchWall, setEdgeWall } from './sceneEdit';
@@ -80,9 +80,9 @@ function versLHote(cap: CellSide, w: number, h: number): (x: number, y: number) 
 const casesDeLArete = (w: WallSeg): [{ x: number; y: number }, { x: number; y: number }] =>
   w.side === 'N' ? [{ x: w.x, y: w.y }, { x: w.x, y: w.y - 1 }] : [{ x: w.x, y: w.y }, { x: w.x + 1, y: w.y }];
 
-/** Les champs d'une arête au-delà de sa place et de son état mur/porte. */
+/** Les champs d'une arête au-delà de sa place. */
 function champsDeLArete(w: WallSeg): Partial<WallSeg> {
-  const { x: _x, y: _y, side: _side, z: _z, door: _door, ...champs } = w;
+  const { x: _x, y: _y, side: _side, z: _z, ...champs } = w;
   return champs;
 }
 
@@ -113,7 +113,7 @@ export function poserLeNavire(hote: Scene, navire: Scene, pose: PoseDeNavire): S
     const [a, b] = casesDeLArete(arete).map((c) => versHote(c.x, c.y));
     const e = edgeOf(a.x, a.y, b.x, b.y)!;
     const z = z0 + (arete.z ?? 0);
-    s = patchWall(setEdgeWall(s, e.x, e.y, e.side, z, arete.door ? 'door' : 'wall'), e.x, e.y, e.side, z, champsDeLArete(arete));
+    s = patchWall(setEdgeWall(s, e.x, e.y, e.side, z, porteAuteur(arete) ? 'door' : 'wall'), e.x, e.y, e.side, z, champsDeLArete(arete));
   }
   const pieces: SceneEffectZone[] = (navire.effectZones ?? []).map((zone) => {
     const tiles = (zone.tiles ?? []).map((t) => ({ ...versHote(t.x, t.y), z: z0 + (t.z ?? zone.z ?? 0) }));
