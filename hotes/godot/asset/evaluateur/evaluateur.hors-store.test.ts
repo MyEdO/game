@@ -715,6 +715,14 @@ describe('libellesDesMeshes (#3229)', () => {
     expect(fiche.mesures.corps).toEqual(libelles);
     expect(fiche.ecarts.find((e) => e.garde === 'budget')?.detail).toBe(`4 triangles (${libelles.map((l) => `${l} 1`).join(', ')})`);
   });
+
+  it('le plafond assemblé ne compte que la base visible : la zone que couvre un élément sort du compte (#3743)', async () => {
+    const octets = glbFabrique({ clips: { Repos: [0, 0] } });
+    const budget = async (couches: Parameters<typeof evaluer>[0]['couches']) =>
+      (await evaluer({ base: octets, elements: [octets], couches, pas: 0.5, plafond: 1 })).ecarts.filter((e) => e.garde === 'budget').map((e) => e.valeur);
+    expect(await budget([null])).toEqual([2]);
+    expect(await budget([{ couche: 'tenue', couvre: ['torse'] }])).toEqual([]);
+  });
 });
 
 describe('les os sous leur nom glTF (#3233)', () => {

@@ -40,3 +40,16 @@ test('--etats-gabarit évalue chaque état de `etatsDuGabarit` sous ses facteurs
     rmSync(dossier, { recursive: true, force: true });
   }
 }, 120_000);
+
+test('avec --base, refuse un élément sans manifeste d’élément voisin : sa couche ferait défaut à la traversée', () => {
+  const dossier = mkdtempSync(join(tmpdir(), 'evaluer-sans-manifeste-'));
+  try {
+    const element = join(dossier, 'humanoide--vetement--robe.glb');
+    writeFileSync(element, glbFabrique());
+    const resultat = spawnSync(process.execPath, [script, element, '--base', 'base.glb'], { cwd: racine, encoding: 'utf8', windowsHide: true });
+    expect(resultat.status, resultat.stderr).toBe(2);
+    expect(resultat.stderr).toContain(`sans manifeste d’élément voisin (<id>.element.json ou <id>.manifeste.json) : ${element}`);
+  } finally {
+    rmSync(dossier, { recursive: true, force: true });
+  }
+});

@@ -468,10 +468,9 @@ export const ECRIT_LU = {
     ecritFerme: {
       'scripts/personnage-3d/__pycache__/':
         'le bytecode que CPython écrit à l’import des modules de la chaîne 3D, ignoré par `__pycache__/` (.gitignore) : ' +
-        'absent des listes que les gates tirent de git (`listerImage`, `git ls-files`) et du step « Arbre inchangé »',
-      'scripts/personnage-3d/vehicule/__pycache__/':
-        'le bytecode de `construire.py` et `habillage.py`, importés par `test_vehicule.py`, ignoré par `__pycache__/` ' +
-        '(.gitignore) ; les constructions que le test lance en sous-processus n’en écrivent pas (`PYTHONDONTWRITEBYTECODE`)',
+        'absent des listes que les gates tirent de git (`listerImage`, `git ls-files`) et du step « Arbre inchangé » ; ' +
+        'les constructions que `test_vehicule.py` et `test_element.py` lancent en sous-processus n’en écrivent pas ' +
+        '(`PYTHONDONTWRITEBYTECODE`)',
     },
     lit: ['scripts/personnage-3d/', 'hotes/godot/asset/evaluateur/gardes/seuils.json', 'hotes/godot/projet/modeles/', 'package.json',
       'src/data/materials.json', 'src/data/vehicles.json'],
@@ -482,8 +481,10 @@ export const ECRIT_LU = {
       'les `test_*.py` et les modules qu’ils importent, base/ compris), `seuils.json` de l’évaluateur (lu à l’import de ' +
       '`seuils.py`) ; `test_vehicule.py` reconstruit les véhicules ' +
       'de `vehicule/` sous `tempfile.TemporaryDirectory()`, d’après les matières de `src/data/materials.json` et les ponts ' +
-      'de la caraque (`ponts` de sa fiche dans `src/data/vehicles.json`), compare leurs manifestes à ceux commités sous ' +
-      'hotes/godot/projet/modeles/ et mesure les écarts entre la caraque bâtie et ses ponts',
+      'de la caraque (`ponts` de sa fiche dans `src/data/vehicles.json`) et mesure les écarts entre la caraque bâtie et ses ' +
+      'ponts, et `test_element.py` les éléments sur base d’`element/`, sur les GLB épinglés lus dans le cache ' +
+      '`~/.cache/wfrp-modeles-3d/` (hors de l’arbre, rempli par `godot:sonde` avant elle dans la lane) ; les deux comparent ' +
+      'leurs manifestes à ceux commités sous hotes/godot/projet/modeles/',
     delegueeAuPerimetre:
       'le CPython de `environnement.mjs` et son venv de bpy (roue win_amd64 de 338 Mo à la première installation) : ' +
       'à venv chaud, 31 s de mur sur le poste, mesuré le 2026-10-29',

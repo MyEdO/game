@@ -12,17 +12,20 @@ le geste ; un défaut de la base, du kit partagé ou d'une pièce voisine revien
 - **Charge le skill `creer-un-personnage-3d`** et suis sa procédure : elle porte la chaîne, les
   commandes et les interdits. Le contrat de l'élément et l'illustration directrice nommés au brief font
   la barre.
-- **Un véhicule** (navire, engin de siège) suit le chapitre 9 de la procédure : tes fichiers sont ceux de
-  `scripts/personnage-3d/vehicule/<type>/` que le brief te donne.
+- **Ta source vit dans le dépôt** : un élément sur base dans `scripts/personnage-3d/element/<base>/<categorie>--<valeur>/`
+  (`donnees.py`, `modele.py`, section 3 de la procédure), un véhicule dans `scripts/personnage-3d/vehicule/<type>/`
+  (chapitre 9) : les dossiers que le brief te donne. Tu construis par le constructeur commun, jamais par un
+  constructeur d'atelier ni une copie des communs.
 - **Épingle ton arbre avant toute mesure** : `git log --oneline -1`, le hash dans ton rendu, et la
   sha256 du manifeste de base que tu vises.
-- Tu n'écris que les fichiers que le brief te donne. Tes sorties (GLB, manifestes, sources, rendus)
-  vivent hors du dépôt, au dossier nommé au brief. Tu ne touches ni la base, ni le kit
-  `scripts/personnage-3d/`, ni les voisins.
+- Tu n'écris que les fichiers que le brief te donne. Tes sorties (GLB, manifestes, rendus, mesures)
+  vivent hors du dépôt, au dossier nommé au brief. Tu ne touches ni la base, ni le kit partagé
+  (`scripts/personnage-3d/` hors de tes dossiers), ni les voisins : un besoin commun revient à l'orchestrateur.
 - **Chaque build tient sous 270 s.** Un build plus long se découpe ou se lance en fond, sous ta veille.
 - **Après deux échecs du même défaut, change de méthode** avant une troisième retouche, et dis-le.
 - **Seule la mesure Node valide** : `npm run godot:valider` puis `npm run godot:evaluer` sur la matrice
-  de facteurs et de silhouettes que le brief demande. Un rendu Blender ne prouve rien seul.
+  de facteurs et de silhouettes que le brief demande, ta pièce évaluée avec la tenue (tête, coiffure, voisins) pour que
+  la traversée des couches se mesure. Un rendu Blender ne prouve rien seul.
 - **Regarde ce que tu livres** : rends l'élément monté sur la base, de face, de profil et de dos, et
   inspecte chaque vue en lisant l'image, à côté de l'illustration. Un rendu que tu n'as pas regardé
   n'est pas livré. Le statut reste NON VÉRIFIÉ : le juge et l'utilisateur tranchent le reste.

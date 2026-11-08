@@ -181,6 +181,16 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   if (inconnus.length) throw new Error(`évaluation : clip(s) absent(s) de la base : ${inconnus.join(', ')} ; clips : ${base.clips.map((c) => c.name).join(', ')}`);
   const clips = entree.clips ? base.clips.filter((c) => entree.clips?.includes(c.name)) : base.clips;
 
+  const declarees = elements.flatMap((e, k) => {
+    const c = entree.couches?.[k];
+    return c ? [{ rang: COUCHES.indexOf(c.couche), meshes: e.skinnes, couvre: c.couvre }] : [];
+  });
+  const montre = sansLesZonesMasquees(declarees, (m) => zones.get(m) as string | undefined);
+  const corpsMontre = montre(corps, RANG_DU_CORPS);
+  const declareesMontrees = declarees.map((d) => ({ rang: d.rang, meshes: montre(d.meshes, d.rang) }));
+  const visibles = new Set([...corpsMontre, ...declareesMontrees.flatMap((d) => d.meshes)]);
+  const masques = new Set([...corps, ...declarees.flatMap((d) => d.meshes)].filter((m) => !visibles.has(m)));
+
   const chaines = manifeste?.chaines ?? {};
   const pistesDeChaine = gardePistesDeChaine(base.scene, clips, chaines);
   ecarts.push(
@@ -190,7 +200,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
       libelle,
     }),
     ...gardeEnroulement(meshes, libelle),
-    ...gardeBudget(meshes, libelle, entree.plafond ?? PLAFOND_ASSEMBLE),
+    ...gardeBudget(meshes.filter((m) => !masques.has(m)), libelle, entree.plafond ?? PLAFOND_ASSEMBLE),
     ...gardePistesDEchelle(base.scene, clips, racine, manifeste?.osAPositionAnimee ?? []),
     ...pistesDeChaine.ecarts,
     ...gardeEchelleDuRigide(rigidesTenus(base.scene, new Set(manifeste?.prises ? [manifeste.prises.main.os, manifeste.prises.off.os] : [])), libelle),
@@ -209,12 +219,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const etirements: MesureDEtirement[] = [];
   const surfaces = manifeste ? surfacesDesPieds(corpsSkinne, manifeste.appuis.pieds) : [];
   const posesDesPieds: PoseDuPied[] = [];
-  const declarees = elements.flatMap((e, k) => {
-    const c = entree.couches?.[k];
-    return c ? [{ rang: COUCHES.indexOf(c.couche), meshes: e.skinnes, couvre: c.couvre }] : [];
-  });
-  const montre = sansLesZonesMasquees(declarees, (m) => zones.get(m) as string | undefined);
-  const couches = lierLesCouches(montre(corps, RANG_DU_CORPS), declarees.map((d) => ({ rang: d.rang, meshes: montre(d.meshes, d.rang) })), repos);
+  const couches = lierLesCouches(corpsMontre, declareesMontrees, repos);
   const traversees: TraverseeDUnEchantillon[] = [];
   for (const e of echantillonner(base.scene, meshes, clips, pas, gabarit)) {
     traversees.push(...mesurerTraversee(couches, e));

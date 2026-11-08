@@ -199,6 +199,20 @@
     "categorie": "vetement"
   },
   {
+    "id": "robe",
+    "type": "garde-robe",
+    "label": "Robe",
+    "kind": "piece",
+    "categorie": "vetement"
+  },
+  {
+    "id": "capuche",
+    "type": "garde-robe",
+    "label": "Capuche",
+    "kind": "piece",
+    "categorie": "vetement"
+  },
+  {
     "id": "insigne",
     "type": "garde-robe",
     "label": "Insigne",

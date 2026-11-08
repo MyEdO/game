@@ -1,9 +1,9 @@
-"""Primitives de maillage des véhicules (#2987), communes aux modèles de `vehicule/<modele>/modele.py` : la maille
-accumulée en coordonnées du monde, l'interpolation des tables de forme, les solides (révolution, boîte, poutre, tube,
-tore, roue) et l'objet Blender final.
+"""Primitives de maillage des éléments rigides (#2987, #3743), communes aux modèles de `vehicule/<modele>/modele.py` et
+d'`element/<base>/<id>/modele.py` : la maille accumulée en coordonnées du monde, l'interpolation des tables de forme, les
+solides (révolution, boîte, poutre, tube, tore, roue) et l'objet Blender final.
 
-Repère Blender de construction : z vers le haut, l'avant vers -y, la gauche (bâbord) vers +x ; l'export glTF (y vers le
-haut) place l'avant vers +z.
+Repère Blender d'un véhicule : z vers le haut, l'avant vers -y, la gauche (bâbord) vers +x ; l'export glTF (y vers le
+haut) place l'avant vers +z. Un élément tenu se construit dans le repère de sa prise (`element/construire.py`).
 """
 import math
 

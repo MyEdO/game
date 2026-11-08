@@ -1,6 +1,6 @@
 """Construction des véhicules (#2987) : chaque modèle de `vehicule/` reconstruit depuis le dépôt les GLB et les
 manifestes publiés sous `hotes/godot/projet/modeles/`, octet pour octet (l'empreinte du manifeste) ; chaque véhicule et
-chaque Amélioration publiés y ont leur modèle ; une sortie dans le dépôt est refusée. La caraque suit ses ponts
+chaque Amélioration publiés y ont leur modèle. La caraque suit ses ponts
 (`ponts` de sa fiche, #3686) à une épaisseur de cloison près, et une caraque allongée dans la source aussi."""
 import copy
 import hashlib
@@ -193,19 +193,6 @@ class Ponts(unittest.TestCase):
         P = plan_de_jeu.depuis(fiche)
         self.assertEqual(P['W'], plan_de_jeu.depuis(self.fiche())['W'] + 3)
         self.verifier(fiche)
-
-
-class Sortie(unittest.TestCase):
-
-    def test_refuse_le_depot(self):
-        with self.assertRaises(ValueError):
-            construire.dossier_de_sortie(construire.habillage.DEPOT / 'hotes' / 'godot' / 'sortie-de-vehicule')
-
-    def test_refuse_un_dossier_occupe(self):
-        with tempfile.TemporaryDirectory() as dossier:
-            (Path(dossier) / 'autre.glb').write_bytes(b'')
-            with self.assertRaises(ValueError):
-                construire.dossier_de_sortie(dossier)
 
 
 if __name__ == '__main__':

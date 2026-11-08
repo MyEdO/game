@@ -1,12 +1,14 @@
 // L'ÉVALUATEUR EN LIGNE DE COMMANDE (#2972) : `evaluateur/evaluer.ts` sur un GLB, chargé comme les assets
 // (`chargerEvaluateur`, `charger.mjs`). Une ligne par écart ; code de sortie 1 s'il y a un écart ou
 // si la base ne porte pas un clip, une silhouette ou la carrure demandés, 0 sinon.
-//   npm run godot:evaluer -- <glb> [--base <glb>] [--manifeste <json>]
+//   npm run godot:evaluer -- <glb>... [--base <glb>] [--manifeste <json>]
 //     [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1]
 //     [--pas 0.0416] [--clips a,b] [--json <sortie>] [--etats-gabarit]
-// Avec `--base`, `<glb>` est un élément monté sur cette base ; sans lui, `<glb>` est la base. Sans `--manifeste`, seule
+// Avec `--base`, chaque `<glb>` est un élément monté sur cette base, ensemble (une tenue), sa couche et ses zones lues
+// dans le manifeste d'élément voisin (`<id>.element.json` d'un dossier de production, `<id>.manifeste.json` d'un import) :
+// la traversée des couches se mesure (#3743). Sans `--base`, l'unique `<glb>` est la base. Sans `--manifeste`, seule
 // la racine a une position animée (`osAPositionAnimee` du manifeste de base).
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { chargerEvaluateur } from './charger.mjs'
 
@@ -46,8 +48,12 @@ try {
   console.error(erreur.message)
   process.exit(2)
 }
-if (positionals.length !== 1) {
-  console.error('usage : npm run godot:evaluer -- <glb> [--base <glb>] [--manifeste <json>] [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1] [--pas 0.0416] [--clips a,b] [--json <sortie>] [--etats-gabarit]')
+/** Le manifeste d'élément voisin du GLB `glb`, ou `undefined`. */
+const manifesteVoisin = (glb) => [glb.replace(/\.glb$/, '.element.json'), glb.replace(/\.glb$/, '.manifeste.json')].find(existsSync)
+const sansManifeste = values.base ? positionals.filter((g) => !manifesteVoisin(g)) : []
+if (values.base ? positionals.length === 0 || sansManifeste.length : positionals.length !== 1) {
+  if (sansManifeste.length) console.error(`sans manifeste d’élément voisin (<id>.element.json ou <id>.manifeste.json) : ${sansManifeste.join(', ')}`)
+  console.error('usage : npm run godot:evaluer -- <glb>... [--base <glb>] [--manifeste <json>] [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1] [--pas 0.0416] [--clips a,b] [--json <sortie>] [--etats-gabarit]')
   console.error('  sans --manifeste : ni gabarit ni prise, et seule la racine a une position animée')
   process.exit(2)
 }
@@ -62,10 +68,14 @@ const ligneDEcart = (e) =>
   `[${e.garde}/${e.code}]${e.mesh ? ` ${e.mesh}` : ''}${e.clip ? ` ${e.clip}` : ''}${e.t === undefined ? '' : ` t=${e.t.toFixed(3)}`} : ${e.detail} (valeur ${typeof e.valeur === 'number' ? +e.valeur.toPrecision(6) : e.valeur}, seuil ${e.seuil ?? '—'})`
 
 const { evaluer } = await chargerEvaluateur()
-const [glb] = positionals
+const couche = (glb) => {
+  const { couche, couvre } = JSON.parse(readFileSync(manifesteVoisin(glb), 'utf8'))
+  return couche ? { couche, couvre } : null
+}
 const entree = {
-  base: readFileSync(values.base ?? glb),
-  elements: values.base ? [readFileSync(glb)] : [],
+  base: readFileSync(values.base ?? positionals[0]),
+  elements: values.base ? positionals.map((g) => readFileSync(g)) : [],
+  ...(values.base ? { couches: positionals.map(couche) } : {}),
   ...(values.manifeste ? { manifeste: JSON.parse(readFileSync(values.manifeste, 'utf8')) } : {}),
   ...(facteurs === undefined ? {} : { facteurs }),
   ...(silhouettes === undefined ? {} : { silhouettes }),

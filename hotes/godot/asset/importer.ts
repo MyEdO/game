@@ -12,6 +12,7 @@
  */
 import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
 import { chargerLicences, CLE_HORS_RELEASE, FICHIER_DE_LICENCE, licenceDeclaree, MANIFESTE_DE_PRODUCTION } from './dossierDeProduction.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';
@@ -137,6 +138,17 @@ function refusDeRemplacement({ destination, id, candidat, octets, entrees }: {
  *  même licence (deux packs CC0) ne se disputent pas un nom. */
 const nomDeLicence = (spdx: string, octets: Uint8Array): string => `LICENSE-${spdx}-${sha256(octets).slice(0, 16)}.txt`;
 
+/** Les constructions des éléments sur base, `<base>/<categorie>--<valeur de clé>/modele.py` (`scripts/personnage-3d/element/`). */
+export const CONSTRUCTIONS_DES_ELEMENTS = fileURLToPath(new URL('../../../scripts/personnage-3d/element', import.meta.url));
+
+/** Le `modele.py` qui manque à l'élément sur base `candidat` sous `constructions`, ou `null` (une base, un élément sans base, ou
+ *  un élément dont la construction est dans le dépôt). */
+function constructionManquante(candidat: Brut, constructions: string): string | null {
+  if (estBase(candidat) || typeof candidat.base !== 'string' || !estObjet(candidat.cle)) return null;
+  const chemin = join(constructions, candidat.base, `${String(candidat.categorie)}--${String(Object.values(candidat.cle)[0])}`, 'modele.py');
+  return existsSync(chemin) ? null : chemin;
+}
+
 const lireJson = (chemin: string): unknown => JSON.parse(readFileSync(chemin, 'utf8'));
 const enJson = (v: unknown): string => `${JSON.stringify(v, null, 2)}\n`;
 
@@ -148,13 +160,14 @@ const enJson = (v: unknown): string => `${JSON.stringify(v, null, 2)}\n`;
  *  les textes de licence que l'ancienne provenance était seule à nommer se retirent (`retires`). Un import réussi rend le
  *  `rapport` de l'index (`indexerModeles`)
  *  des modèles déposés et du candidat, qui ne bloque rien. */
-export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODELES, date, publier, remplacer = false }: {
+export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODELES, date, publier, remplacer = false, constructions = CONSTRUCTIONS_DES_ELEMENTS }: {
   dossier: string;
   id: string;
   destination?: string;
   date: string;
   publier: ((assets: readonly AssetAPublier[]) => readonly string[]) | null;
   remplacer?: boolean;
+  constructions?: string;
 }): ResultatDImport {
   if (!ID_DE_MODELE.test(id)) return { ok: false, refus: [`id de modèle « ${id} » : lettres, chiffres, _ et - seulement`] };
   if (!existsSync(join(dossier, MANIFESTE_DE_PRODUCTION))) return { ok: false, refus: [`fichier de production absent : ${MANIFESTE_DE_PRODUCTION}`] };
@@ -228,6 +241,8 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
   if (publier && horsRelease !== undefined) return { ok: false, refus: [`[hors-release] ${horsRelease} : import sans publication seulement (--sans-publier)`] };
   const verdict = validerModele(candidat, octets, bases);
   if (!verdict.ok) return verdict;
+  const construction = horsRelease === undefined ? constructionManquante(candidat, constructions) : null;
+  if (construction) return { ok: false, refus: [`[construction-absente] ${id} : ${construction}, la construction de l’élément dans le dépôt attendue`] };
   const casses = remplacement ? refusDeRemplacement(remplacement) : [];
   if (casses.length) return { ok: false, refus: casses };
 

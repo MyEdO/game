@@ -202,30 +202,43 @@ Anatomie, coupe et raccords précèdent plis et matières. Conserver le donneur 
 simplification ; protéger frontières, articulations et doigts. Une triangulation aléatoire
 ne crée pas un style. Pas de coque moulée pour robe, manteau ou cape de silhouette.
 
-Écrire **un fichier Python de données par élément**, dans le dossier de production local :
-identité base/catégorie/clé, paramètres de volumes, surfaces colorables et dépendances de base.
-Séparer le fichier de données des preuves et du manifeste livré. Le kit fournit des primitives,
-pas encore un format de données ni un constructeur universel d'éléments : l'auteur compose
-un point d'entrée bpy local qui lit son fichier et appelle le kit. Ne pas annoncer un chargeur
-par découverte AST disponible ; il appartient à la chaîne prévue par le design.
+Un élément sur base se construit **dans le dépôt**, comme un véhicule (#3743) : un dossier
+`scripts/personnage-3d/element/<base>/<categorie>--<valeur de clé>/` et deux fichiers.
 
-Réutiliser `scripts/personnage-3d/geometrie.py` pour mesh, shell, closed_shell, double_shell,
-thick_grid ; surface_tree, surface_hit, section_points et opening interrogent le porteur.
-Ces requêtes placent la géométrie ; elles ne valident rien. Dériver les placements des os et
-surfaces réelles, sans coordonnées d'un ancien personnage. Emprunter les poids du porteur au
-repos, puis ceux des chaînes requises. Un élément skinné reçoit les silhouettes déclarées ET
-toutes les clés `gabarit_*` de la base, celles-ci non déclarées au manifeste, par
-`transferer_les_cles(source, cible, noms)` (`scripts/personnage-3d/formes.py`) ; la source est la
-zone porteuse, ou la copie jointe des zones que la pièce traverse (pièce à cheval sur deux zones :
-la source est un seul objet). `npm run godot:evaluer` (garde `suiviDuCorps`) refuse par `cle-inerte`
-une pièce qui ne suit pas un corps qui bouge sous elle, clé absente comprise, et par `cle-non-suivie`
-une pièce dont l'écart au corps dépasse son jeu. Vérifier d'abord que les helpers nécessaires
-existent : ne pas confondre une extension prévue du kit avec une API livrée.
+- `donnees.py` : `MANIFESTE`, les champs publiés propres à l'élément (`categorie`, `cle`, `liaison`, et pour une pièce
+  skinnée `couche`, `couvre`, `chaines`) ; `MATERIAUX`, `{nom: (emplacement de palette, matière)}` (`habillage.py`,
+  section 9), en gris de construction ; `BUDGET_TRIANGLES` (section 7) ; `PRISE` pour un rigide ; chaque dimension en
+  mètres, nommée, avec sa source (illustration, base, donnée du jeu ou HYPOTHÈSE à trancher en revue), jamais enfouie
+  dans `modele.py`. Un élément qui en contourne un publié (capuche sur la tête et la coiffure) nomme ses ids.
+- `modele.py` : la construction seule. Un rigide : `construire(D, materiaux)` rend ses objets, bâtis dans le repère de
+  sa prise. Une pièce skinnée : `construire(D, materiaux, base)` rend la pièce jointe, ses clés transférées.
+
+Le constructeur commun `element/construire.py` ouvre la base épinglée, appelle le modèle, contrôle le budget, pend le
+rigide à l'os de sa prise ou découpe la pièce par zone, exporte l'élément seul et écrit son dossier de production
+(section 6). Les communs ne se forkent pas et ne se recopient pas dans un atelier : un besoin commun (deuxième cas réel)
+revient à l'orchestrateur, qui l'ajoute au kit. Les preuves (rendus, mesures, contrat, illustration) restent hors dépôt.
+
+Le kit : `element/tissu.py` pour une pièce skinnée (`Base` : repères d'os, surfaces porteuses, coupes des zones,
+éléments publiés contournés, transfert des clés, découpe par zone ; `anneau`, `Maillage`, `emprunter`, `lisser`,
+`joindre`, `Base.nappe`), `maille.py` pour un solide rigide (cylindre, tour, boîte, tube, tore…), `formes.py` pour les
+clés. Ces requêtes placent la géométrie ; elles ne valident rien. Dériver les placements des os et surfaces réelles,
+sans coordonnées d'un ancien personnage. Emprunter les poids du porteur au repos, puis ceux des chaînes requises. Un
+élément skinné reçoit les silhouettes déclarées ET toutes les clés `gabarit_*` de la base, celles-ci non déclarées au
+manifeste, par `Base.transferer(piece, zones)` depuis la copie jointe des zones que la pièce traverse ; une pièce longue
+dont le corps se tasse sous une clé (robe jusqu'aux chevilles sous `gabarit_legs_moins`) passe ses `bornes`.
+`npm run godot:evaluer` (garde `suiviDuCorps`) refuse par `cle-inerte` une pièce qui ne suit pas un corps qui bouge
+sous elle, clé absente comprise, et par `cle-non-suivie` une pièce dont l'écart au corps dépasse son jeu.
+
+Pièges mesurés au Sorcier (#3743) : la nappe intérieure d'une double nappe est en retrait de l'épaisseur, le jeu au
+corps se vise sur elle ; une pièce qui couvre `cou` cache le cou sous l'hôte et doit couvrir la couture cou/torse de la
+base, en dents de scie ; sous le menton, des anneaux trop proches s'étirent en clip (écart vertical minimal entre
+anneaux) ; un vêtement de tête se pose par une marche du dehors vers le centre en distance aux surfaces contournées, les
+rayons depuis un centre glissant par les coutures ouvertes du cou.
 
 Pour un personnage complet, trois agents `modeleur` à fichiers/sorties disjoints : tête et pilosité ;
 corps, vêtements et armure ; rigides et accessoires. Chaque brief donne base hachée, éléments,
-budget et fichiers possédés. Aucun agent ne modifie le kit partagé ni les voisins ; une adaptation
-nécessaire revient à l'orchestrateur. Sérialiser les builds lourds, chacun borné à **moins de 270 s**.
+budget et dossiers `element/<base>/<id>/` possédés. Aucun agent ne modifie le kit partagé ni les voisins ; une
+adaptation nécessaire revient à l'orchestrateur. Sérialiser les builds lourds, chacun borné à **moins de 270 s**.
 Le lanceur d'environnement n'impose pas cette borne : le processus appelant doit l'imposer.
 
 ## 4. Construire une modularité réelle
@@ -259,11 +272,15 @@ garde, pommeau et orientation de lame dans la silhouette entière, avec diamètr
 Le tranchant d'une arme tenue suit le +Z de sa prise, du poignet vers les jointures, comme une lame dans le poing.
 Une pose utile absente relève de la base et de sa porte, pas d'un nouveau clip embarqué par l'arme.
 Une arme à deux mains déclare `liaison.secondePrise`, le repère de prise de la main libre dans celui
-de sa prise, le long du manche vers le talon (`hotes/godot/asset/element.ts`) ; tenue à la prise
+de sa prise, le long du manche : au-dessus sur le +Y (vers le fer) pour une hampe, au-dessous vers le talon pour une
+arme lourde (`hotes/godot/asset/element.ts`) ; tenue à la prise
 `main`, Godot y pose la main `off` (`hotes/godot/projet/scripts/seconde_prise.gd`, #3319). Son côté
 et son roulis sont ceux du maniement de l'arme dans les clips dérivés (`SECONDES` de
 `scripts/personnage-3d/base/deux_mains.py`, test `SecondesPrises`). La vérifier au rendu Godot sur
-repos, attaque et marche : poing fermé sur le manche, bras sans torsion.
+repos, attaque et marche : poing fermé sur le manche, bras sans torsion. Un rendu Blender des clips montre la main
+gauche ouverte à la cote du clip : seul Godot la ferme et la ramène sur la seconde prise (`seconde_prise.gd`). Le poing
+fermé de la base r24 ne laisse qu'un passage d'environ 7 mm de rayon, et l'origine de la prise `main` est sur la paume :
+centrer le manche au meilleur passage (`AXE_DANS_LA_PRISE` du bâton) et consigner l'écart restant.
 
 Peau et gant restent distincts. Enveloppe fine, épaisseur bornée par courbure/arêtes, pas de
 gonflement global ; examiner paume, dos, dessous et creux. Pour une prise plate, regarder les deux
@@ -304,20 +321,18 @@ revoir les interfaces de même classe et les tenues concernées dans le périmè
 
 ### Commandes utilisables
 
-Depuis la racine du dépôt, après avoir écrit le constructeur local et son fichier de données :
+Depuis la racine du dépôt, vers un dossier neuf hors du dépôt (refusé sinon) :
 
 ```sh
-node scripts/personnage-3d/environnement.mjs /atelier/construire.py --donnees /atelier/humanoide--rigide--epee.py --base /atelier/base/humanoide.glb --sortie /atelier/humanoide--rigide--epee.glb
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/element/construire.py humanoide/rigide--baton --sortie /atelier/baton
 ```
 
-Les options après le script sont **l'interface à écrire par l'auteur dans son constructeur local**,
-pas une commande de construction fournie par le dépôt. Le lanceur transmet ces arguments.
-Le constructeur importe le kit depuis la racine résolue du dépôt. Garder source éditable et
-paramètres avec la sortie ; ne pas copier un kit privé en parallèle.
-
-L'auteur écrit aujourd'hui le manifeste à la main, ou dans son constructeur local ; aucun écrivain
-de manifeste d'élément schéma 3 n'est fourni. Exemple minimal d'élément rigide (choisir une clé
-réellement définie ; remplacer empreinte et octets par ceux du GLB final) :
+Le constructeur lit les GLB dans le cache des modèles (`~/.cache/wfrp-modeles-3d/`, `--cache` pour un autre), chacun
+sous l'empreinte que le dépôt épingle dans `hotes/godot/projet/modeles/<id>.manifeste.json` : la base et les éléments
+contournés ; `npm run godot:sonde` y tire ceux qui manquent. Il écrit `/atelier/baton/<id>/` : `<id>.glb`,
+`<id>.element.json` (le manifeste schéma 3, empreinte et taille du GLB comprises), `manifest.json` (l'enveloppe de
+l'import) et les licences des packs de la base, et imprime l'empreinte et les triangles. Deux constructions donnent les
+mêmes octets. Exemple du manifeste qu'il écrit pour un rigide :
 
 ```json
 {
@@ -327,7 +342,7 @@ réellement définie ; remplacer empreinte et octets par ceux du GLB final) :
   "cle": { "apparence": "epee" },
   "liaison": { "mode": "rigide" },
   "surfaces": [{ "nom": "metal", "palette": "metal" }, { "nom": "plat", "palette": "metal", "blason": true }],
-  "glb": { "sha256": "REMPLACER_PAR_64_CARACTERES_HEXADECIMAUX", "octets": 1 }
+  "glb": { "sha256": "<64 caractères hexadécimaux>", "octets": 1 }
 }
 ```
 
@@ -344,7 +359,7 @@ empreinte SHA-256 et taille. Fournir manifeste d'élément, manifeste complet de
 puis GLB d'élément, depuis la racine du dépôt :
 
 ```sh
-npm run godot:valider -- /atelier/humanoide--rigide--epee.element.json /atelier/modeles/humanoide.manifeste.json /atelier/humanoide--rigide--epee.glb
+npm run godot:valider -- /atelier/epee/humanoide--rigide--epee/humanoide--rigide--epee.element.json hotes/godot/projet/modeles/humanoide.manifeste.json /atelier/epee/humanoide--rigide--epee/humanoide--rigide--epee.glb
 ```
 
 Sorties : 0 si la validation passe ; 1 si refus ou erreur de lecture ; 2 si usage incorrect.
@@ -352,12 +367,16 @@ Une empreinte ou une taille différente reçoit le code glb-different du validat
 Cette validation ne remplace pas l'évaluation géométrique du GLB.
 
 Évaluer ensuite le GLB final sur la base ; **--manifeste désigne ici le manifeste de BASE**, pas
-celui d'élément. Le dossier du rapport doit déjà exister :
+celui d'élément. Chaque GLB d'élément porte son manifeste voisin (`<id>.element.json` du dossier de production, ou
+`<id>.manifeste.json` d'un import), d'où l'évaluateur lit sa couche et ses zones ; plusieurs GLB s'évaluent ensemble,
+et c'est ainsi que la traversée des couches se mesure : évaluer la tenue (tête, coiffure, vêtements, rigides), pas la
+pièce seule. Les GLB publiés sous `hotes/godot/projet/modeles/` y sont déposés par `npm run godot:sonde`. Le dossier du
+rapport doit déjà exister :
 
 ```sh
-npm run godot:evaluer -- /atelier/humanoide--rigide--epee.glb --base /atelier/modeles/humanoide.glb --manifeste /atelier/modeles/humanoide.manifeste.json --json /atelier/mesures/neutre.json
-npm run godot:evaluer -- /atelier/humanoide--rigide--epee.glb --base /atelier/modeles/humanoide.glb --manifeste /atelier/modeles/humanoide.manifeste.json --facteurs sl=1,legs=1,arms=1,head=1,st=1 --json /atelier/mesures/gabarit.json
-npm run godot:evaluer -- /atelier/humanoide--rigide--epee.glb --base /atelier/modeles/humanoide.glb --manifeste /atelier/modeles/humanoide.manifeste.json --silhouettes feminin=1,corpulence=1,carrure_moins=0,carrure_plus=1 --json /atelier/mesures/silhouettes.json
+npm run godot:evaluer -- /atelier/robe/humanoide--vetement--robe/humanoide--vetement--robe.glb hotes/godot/projet/modeles/humanoide--tete--humain.glb --base hotes/godot/projet/modeles/humanoide.glb --manifeste hotes/godot/projet/modeles/humanoide.manifeste.json --json /atelier/mesures/neutre.json
+npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --facteurs sl=1,legs=1,arms=1,head=1,st=1 --json /atelier/mesures/gabarit.json
+npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --silhouettes feminin=1,corpulence=1,carrure_moins=0,carrure_plus=1 --json /atelier/mesures/silhouettes.json
 ```
 
 La deuxième ligne montre la syntaxe des facteurs ; les remplacer par chaque ligne de
@@ -414,8 +433,11 @@ Un rendu Blender ne prouve pas Godot ; garder ce dernier contrôle ouvert jusqu'
 
 ## 8. Livrer et définir le fini
 
-Livrer fichier de données, constructeur local et source éditable, GLB unique de l'élément,
-manifeste schéma 3, provenance/licences et rapport lié aux empreintes exactes. Garder hors dépôt
+Livrer, dans le même commit, le dossier `element/<base>/<id>/` (données et modèle), les manifeste, provenance et
+licences que dépose l'import sous `hotes/godot/projet/modeles/`, puis le GLB à la Release (section « Importer une base et
+ses éléments ») ; `npm run personnage-3d:tests` (`test_element.py`) reconstruit chaque élément d'`element/` et compare son
+manifeste, empreinte comprise, au publié, et l'import refuse `[construction-absente]` un élément sur base dont le dossier
+manque. Garder un rapport lié aux empreintes exactes. Garder hors dépôt
 illustration, contrat, captures et fiches de mesures ; ne pas réattribuer d'anciennes preuves à
 un nouvel export. Les voisins restent identiques, signatures à l'appui.
 
@@ -428,10 +450,11 @@ vêtement et rigide, évalués, revus par l'utilisateur, puis montés dans le sc
 ## 9. Véhicule : navire ou engin de siège
 
 Un véhicule (catégorie `vehicule`) et les pièces de ses Améliorations (catégorie `amelioration`) se construisent
-depuis le dépôt, sans base, par `scripts/personnage-3d/vehicule/` : la partie commune (`construire.py` : export,
-manifestes et dossiers de production ; `maille.py` : maille, solides (révolution, cylindre, boîte, plaque, poutre, tube,
-tore, roue, treuil), bascule autour d'un axe, recentrage de l'emprise, objet ; `habillage.py` : matériaux, `surfaces` et
-éléments d'un modèle à plusieurs pièces ; `revue.py` : configurations rendues dans le studio de `rendu.py`) et un dossier
+depuis le dépôt, sans base, par `scripts/personnage-3d/vehicule/` : la partie commune (`construire.py` : export et
+manifestes ; `revue.py` : configurations rendues dans le studio de `rendu.py`), celle qu'il partage avec les éléments
+sur base (section 3) dans `scripts/personnage-3d/` (`production.py` : dossiers de production ; `maille.py` : maille,
+solides (révolution, cylindre, boîte, plaque, poutre, tube, tore, roue, treuil), bascule autour d'un axe, recentrage de
+l'emprise, objet ; `habillage.py` : matériaux, `surfaces` et éléments d'un modèle à plusieurs pièces), et un dossier
 par modèle, `<modele>/donnees.py` (ses dimensions, nommées) et `<modele>/modele.py` (sa construction). Modèles livrés :
 `caraque` (coque bâtie sur ses ponts, la source unique `ponts` de sa fiche dans `src/data/vehicles.json` que lit
 aussi le noyau, seize pièces d'Améliorations dans `ameliorations.py`) ; les engins `armes-de-siege`, une clé par engin, les doublons d'ADE II (`-ade2`) sur le GLB de leur
@@ -503,7 +526,7 @@ Ces dépendances se vérifient dans le checkout utilisé, sans déduire leur liv
 |---|---|---|
 | base hachée et porte complète, chaînes/silhouettes et matrice | constructeur humanoïde, manifeste livré, rapports et revue | L1 |
 | garde-robe (têtes, coiffures, pièces, ensembles) résolvant la clé | données du jeu et identité publiée par le noyau | T |
-| constructeur par données, découverte AST et extensions du kit | kit personnage-3d, point d'entrée de construction | chaîne L1/L2, méthode L5 |
+| constructeur de l'élément (rigide, skinné ; tête à venir) | `scripts/personnage-3d/element/` (`construire.py`, `tissu.py`) | #3743, migration des éléments publiés |
 | couverture, liaison et autres gardes complètes | appels de gardes de l'évaluateur Node | L1 |
 | import contrôlé schéma 3, unicité, rapport de couverture | importeur d'assets et ses tests | L3 |
 | montage par ids, couches et emplacements, contrôles de retrait | pont et hôte Godot | L4 |
