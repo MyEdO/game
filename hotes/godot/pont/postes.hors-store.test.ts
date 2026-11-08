@@ -36,13 +36,13 @@ describe('les pièces montées aux postes d’un navire', () => {
     const { vue } = suiteDe(appel('demarrer', { scenario: 'duel-naval', graine: 7 }));
     const grimm = vue.projection.combat!.voisins.liste.find((c) => c.vehicule?.definition === NAVIRE)!;
     id = grimm.id;
-    expect(grimm.vehicule).toEqual({ definition: NAVIRE, empreinte: 4, cap: 'E', postes: [{ definition: 'canon-moyen', bord: 'tribord' }, { definition: 'canon-moyen', bord: 'babord' }, { definition: 'canon-moyen', bord: 'proue' }] });
+    expect(grimm.vehicule).toEqual({ definition: NAVIRE, empreinte: 4, taille: 'empreinte', cap: 'E', postes: [{ definition: 'canon-moyen', bord: 'tribord' }, { definition: 'canon-moyen', bord: 'babord' }, { definition: 'canon-moyen', bord: 'proue' }] });
   });
 
   it('chaque pièce dont un élément est servi se monte à la position suivante de son bord, si son navire l’offre', () => {
     servir({ ...COMMITES.manifestes, [NAVIRE]: { ...vehiculeDeTest(NAVIRE), postes: { tribord: TRIBORD, proue: PROUE } }, 'canon-moyen': vehiculeDeTest('canon-moyen') });
     expect(vueDe(appel('vue')).corps.vehicules[id]).toEqual({
-      element: NAVIRE, empreinte: 4, cap: 'E', palette: {},
+      element: NAVIRE, empreinte: 4, taille: 'empreinte', cap: 'E', palette: {},
       postes: [{ element: 'canon-moyen', bord: 'tribord', position: TRIBORD[0], palette: {} }, { element: 'canon-moyen', bord: 'proue', position: PROUE[0], palette: {} }],
     });
   });

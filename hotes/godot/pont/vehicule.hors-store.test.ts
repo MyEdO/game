@@ -21,7 +21,7 @@ describe('le véhicule des combattants dans la vue', () => {
   });
 
   it('une coque se projette en véhicule, sa fiche, son empreinte, son cap et ses postes, sans portée', () => {
-    expect([barge.vehicule, barge.portee]).toEqual([{ definition: 'barge-fluviale', empreinte: 2, cap: 'E', postes: [] }, null]);
+    expect([barge.vehicule, barge.portee]).toEqual([{ definition: 'barge-fluviale', empreinte: 2, taille: 'empreinte', cap: 'E', postes: [] }, null]);
   });
 
   it('sans élément de sa fiche servi, aucun véhicule ; servi, son élément et son empreinte, même sous refus de base', () => {
@@ -30,6 +30,6 @@ describe('le véhicule des combattants dans la vue', () => {
     servir({ ...COMMITES.manifestes, 'barge-fluviale': vehiculeDeTest('barge-fluviale'), nain: baseDeTest('nain') });
     const { corps } = vueDe(appel('vue'));
     expect(corps.refus).toMatch(/^\[base-ambigue\] /);
-    expect(corps.vehicules).toEqual({ [barge.id]: { element: 'barge-fluviale', empreinte: 2, cap: 'E', palette: {}, postes: [] } });
+    expect(corps.vehicules).toEqual({ [barge.id]: { element: 'barge-fluviale', empreinte: 2, taille: 'empreinte', cap: 'E', palette: {}, postes: [] } });
   });
 });

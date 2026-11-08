@@ -179,19 +179,19 @@ describe('porteeDuCombattant', () => {
 describe('vehiculeDuCombattant (#2987)', () => {
   const fiche = (ref: string): Combatant => spawnEnemy({ ref }, `${ref}-1`, { x: 0, y: 0 });
   const poste = (trappingId: string, side?: FireArc) => hydratePoste({ trappingId, ...(side ? { side } : {}) }, 'poste-de-test');
-  it.each([['caraque', 4], ['barque-fluviale', 1], ['canon-petit', 1], ['belier-ade2', 2]] as const)('%s, coque ou engin de siège : sa fiche et le côté de son empreinte, sans portée', (ref, empreinte) => {
+  it.each([['caraque', 4, 'empreinte'], ['barque-fluviale', 1, 'empreinte'], ['canon-petit', 2, 'reelle'], ['belier-ade2', 2, 'reelle']] as const)('%s, coque ou engin de siège : sa fiche, le côté de son empreinte et sa taille, sans portée', (ref, empreinte, taille) => {
     const c = fiche(ref);
-    expect([vehiculeDuCombattant(c, undefined), porteeDuCombattant(c)]).toEqual([{ definition: ref, empreinte, cap: 'N', postes: [] }, null]);
+    expect([vehiculeDuCombattant(c, undefined), porteeDuCombattant(c)]).toEqual([{ definition: ref, empreinte, taille, cap: 'N', postes: [] }, null]);
   });
   it('son cap, et les pièces de ses seuls postes à un bord, dans leur ordre', () => {
     const c = { ...fiche('caraque'), postes: [poste('canon-moyen', 'tribord'), poste('canon-petit'), poste('canon-grand', 'proue'), poste('canon-moyen', 'tribord')] };
-    expect(vehiculeDuCombattant(c, 'SE')).toEqual({ definition: 'caraque', empreinte: 4, cap: 'SE', postes: [{ definition: 'canon-moyen', bord: 'tribord' }, { definition: 'canon-grand', bord: 'proue' }, { definition: 'canon-moyen', bord: 'tribord' }] });
+    expect(vehiculeDuCombattant(c, 'SE')).toEqual({ definition: 'caraque', empreinte: 4, taille: 'empreinte', cap: 'SE', postes: [{ definition: 'canon-moyen', bord: 'tribord' }, { definition: 'canon-grand', bord: 'proue' }, { definition: 'canon-moyen', bord: 'tribord' }] });
   });
   it('ses couleurs, celles de son apparence d’auteur, et la teinte de chaque pièce', () => {
     const teinte = { ...poste('canon-moyen', 'tribord'), item: { ...poste('canon-moyen', 'tribord').item, teinte: 'aethyrique' } };
     const c = { ...fiche('caraque'), appearanceOverride: { couleurs: couleurs({ bois: 'peau-brune' }) }, postes: [teinte, poste('canon-grand', 'proue')] };
     expect(vehiculeDuCombattant(c, 'N')).toEqual({
-      definition: 'caraque', empreinte: 4, cap: 'N', couleurs: { bois: { id: 'peau-brune' } },
+      definition: 'caraque', empreinte: 4, taille: 'empreinte', cap: 'N', couleurs: { bois: { id: 'peau-brune' } },
       postes: [{ definition: 'canon-moyen', bord: 'tribord', teinte: 'aethyrique' }, { definition: 'canon-grand', bord: 'proue' }],
     });
   });

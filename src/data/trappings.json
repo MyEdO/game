@@ -8900,7 +8900,8 @@
     "source": {
       "book": "aux-armes",
       "page": 123
-    }
+    },
+    "siegeFootprint": 2
   },
   {
     "id": "canon-moyen",
@@ -8945,7 +8946,8 @@
     "source": {
       "book": "aux-armes",
       "page": 123
-    }
+    },
+    "siegeFootprint": 2
   },
   {
     "id": "canon-grand",
@@ -8990,7 +8992,8 @@
     "source": {
       "book": "aux-armes",
       "page": 123
-    }
+    },
+    "siegeFootprint": 2
   },
   {
     "id": "mortier",

@@ -48,10 +48,10 @@ export interface CorpsDuCombat {
    *  portée sur elle (`composerSurLaBase`), `null` si sa portée est `null` (corps sans base de ce plan) ou sous refus. */
   combattants: Record<string, (CompositionSurLaBase & { base: string }) | null>;
   /** Par id de combattant dessiné qui est un véhicule ou un engin (`CombattantProjete.vehicule`) dont un élément
-   *  `vehicule` est servi (`ModelesDeLAtelier.vehicules`, #2987) : cet élément, le côté de son empreinte, son cap, sa
+   *  `vehicule` est servi (`ModelesDeLAtelier.vehicules`, #2987) : cet élément, le côté de son empreinte, sa taille, son cap, sa
    *  palette (`paletteDesCouleurs`) et les pièces montées à ses postes (`postesMontes`), quelles que soient les bases
    *  servies. */
-  vehicules: Record<string, { element: string; empreinte: number; cap: VehiculeDuCombattant['cap']; palette: Record<string, string>; postes: PosteMonte[] }>;
+  vehicules: Record<string, { element: string; empreinte: number; taille: VehiculeDuCombattant['taille']; cap: VehiculeDuCombattant['cap']; palette: Record<string, string>; postes: PosteMonte[] }>;
 }
 
 /** La vue : la projection commune (`projeter`), les corps de ses combattants (`CorpsDuCombat`), la disposition de la
@@ -187,7 +187,7 @@ export function creerPont() {
         const element = vehicule && modeles?.modeles.vehicules[vehicule.definition];
         if (!element) return [];
         const palette = paletteDesCouleurs(vehicule.couleurs);
-        return [[id, { element, empreinte: vehicule.empreinte, cap: vehicule.cap, palette, postes: postesMontes(modeles!.manifestes[element], vehicule.postes, modeles!.modeles.vehicules, palette) }]];
+        return [[id, { element, empreinte: vehicule.empreinte, taille: vehicule.taille, cap: vehicule.cap, palette, postes: postesMontes(modeles!.manifestes[element], vehicule.postes, modeles!.modeles.vehicules, palette) }]];
       })),
     };
   };

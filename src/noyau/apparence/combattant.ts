@@ -11,7 +11,7 @@ import type { Dir8 } from '../../geometry/dir8';
 import { LOCALISATIONS_DE_COUP } from '../../engine/types';
 import { apparencesCandidates } from '../../engine/items';
 import { findTierEntry } from '../../engine/tables';
-import { findCreatureById, findFicheDeVehicule, findGroupeDArmureById, findPlanDEspeceById, findSpeciesById, findTenueDeCarriere, findTeteById, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
+import { findCreatureById, findFicheDeVehicule, findGroupeDArmureById, findPlanDEspeceById, findSpeciesById, findTenueDeCarriere, findTeteById, findVehicleById, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
 import { armesDuCombattant, emblemeDe } from '../equipementDessine';
 import { facteursDeComposition, porteesDeLaTenue, porteesDesObjets, teinteDeLObjet, type ObjetPorte, type Portee, type PorteeDeComposition } from './composition';
 import { pieceRacine } from './gardeRobe';
@@ -125,11 +125,14 @@ export interface PosteDuVehicule {
 }
 
 /** Un véhicule ou un engin de siège au combat : l'id de sa fiche, que nomme la clé `definition` d'un élément 3D
- *  `vehicule`, le côté N de son empreinte (`footprintN`), son cap (`Jeu.facing`, le nord sans cap, comme au combat), ses
- *  couleurs, celles de son apparence d'auteur, et les pièces de ses postes à un bord, dans leur ordre. */
+ *  `vehicule`, le côté N de son empreinte (`footprintN`), sa taille, son cap (`Jeu.facing`, le nord sans cap, comme au
+ *  combat), ses couleurs, celles de son apparence d'auteur, et les pièces de ses postes à un bord, dans leur ordre. Un
+ *  engin de siège a sa taille réelle ; une coque remplit son empreinte, sa taille réelle à terre étant le plateau de son
+ *  pont (arbitrage de Clément du 2026-11-08, #2987). */
 export interface VehiculeDuCombattant extends Pick<EntityAppearance, 'couleurs'> {
   readonly definition: string;
   readonly empreinte: number;
+  readonly taille: 'reelle' | 'empreinte';
   readonly cap: Dir8;
   readonly postes: readonly PosteDuVehicule[];
 }
@@ -139,5 +142,6 @@ export interface VehiculeDuCombattant extends Pick<EntityAppearance, 'couleurs'>
 export function vehiculeDuCombattant(c: Combatant, cap: Dir8 | undefined): VehiculeDuCombattant | null {
   if (c.creatureId === undefined || !findFicheDeVehicule(c.creatureId)) return null;
   const postes = (c.postes ?? []).flatMap(({ item, side }) => (side && item.trappingId ? [{ definition: item.trappingId, bord: side, ...saTeinte(item) }] : []));
-  return { definition: c.creatureId, empreinte: footprintN(c), cap: cap ?? 'N', ...couleursDuCombattant(c), postes };
+  const taille = findVehicleById(c.creatureId)?.hull ? 'empreinte' : 'reelle';
+  return { definition: c.creatureId, empreinte: footprintN(c), taille, cap: cap ?? 'N', ...couleursDuCombattant(c), postes };
 }

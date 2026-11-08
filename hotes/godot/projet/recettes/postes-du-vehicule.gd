@@ -64,7 +64,7 @@ func _verifier(cap: String, bord: String) -> void:
 	root.add_child(case)
 	var coque := _boite(COQUE)
 	case.add_child(coque)
-	Combattant.poser_sur_l_empreinte(coque, EMPREINTE)
+	Combattant.poser_sur_l_empreinte(coque, EMPREINTE, null)
 	var piece := _boite(PIECE)
 	Combattant.monter_au_poste(coque, piece, {position = [2.0, 1.95, -4.0], bord = bord})
 	Combattant.tourner_au_cap(coque, cap, EMPREINTE)
