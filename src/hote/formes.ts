@@ -99,11 +99,23 @@ function membreVise(v: unknown, membres: readonly Forme[], formes: FormesNommees
   return vises.length === 1 ? vises[0] : -1;
 }
 
-/** La valeur JSON `v` lue à sa forme `f`, au chemin `ou`, à toute profondeur : un id désigné se contrôle contre les ids
- *  de l'état (`designes`), une `ref` à la forme que `formes` nomme ; rend la valeur lue, ou l'écart. Dans une union
- *  d'objets, l'écart est celui du membre que la valeur vise (`membreVise`). */
-export function lireALaForme(v: unknown, f: Forme, ou: string, designes: Designes, formes: FormesNommees): Lecture {
-  const lire: Lire = (x, g, o) => lireALaForme(x, g, o, designes, formes);
+/** L'écart d'une valeur qu'aucun membre de l'union `f` n'admet : une énumération de littéraux nomme ses valeurs. */
+function horsDeLUnion(v: unknown, f: Extract<Forme, { genre: 'union' }>, ou: string): Lecture {
+  const valeurs = f.membres.flatMap((m) => (m.genre === 'litteral' ? [JSON.stringify(m.valeur)] : []));
+  if (valeurs.length < f.membres.length) return { ecart: `${ou} : ${formeEcrite(f)} attendu` };
+  return { ecart: `${ou} : ${JSON.stringify(v)} n’est pas ${f.type ?? 'une valeur admise'} (admises : ${valeurs.join(', ')})` };
+}
+
+/** Nombre de lectures imbriquées au-delà duquel une valeur se refuse : une forme récursive (`ref`) n'a pas de fond. */
+const PROFONDEUR_LUE = 256;
+
+/** La valeur JSON `v` lue à sa forme `f`, au chemin `ou`, à toute profondeur, bornée (`PROFONDEUR_LUE`) : un id désigné
+ *  se contrôle contre les ids de l'état (`designes`), une `ref` à la forme que `formes` nomme ; rend la valeur lue, ou
+ *  l'écart. Dans une union d'objets, l'écart est celui du membre que la valeur vise (`membreVise`). `profondeur` : le
+ *  nombre de lectures qui l'englobent. */
+export function lireALaForme(v: unknown, f: Forme, ou: string, designes: Designes, formes: FormesNommees, profondeur = 0): Lecture {
+  if (profondeur > PROFONDEUR_LUE) return { ecart: `${ou} : plus de ${PROFONDEUR_LUE} niveaux d’imbrication` };
+  const lire: Lire = (x, g, o) => lireALaForme(x, g, o, designes, formes, profondeur + 1);
   const attendu = (quoi: string): Lecture => ({ ecart: `${ou} : ${quoi} attendu` });
   switch (f.genre) {
     case 'absent': return v === undefined ? { valeur: v } : { ecart: `${ou} : aucune valeur attendue` };
@@ -118,7 +130,7 @@ export function lireALaForme(v: unknown, f: Forme, ou: string, designes: Designe
     case 'union': {
       const lectures = f.membres.map((m) => lire(v, m, ou));
       const vise = membreVise(v, f.membres, formes);
-      return lectures.find((l) => 'valeur' in l) ?? lectures.find((l) => 'inconnu' in l) ?? (vise >= 0 ? lectures[vise] : attendu(formeEcrite(f)));
+      return lectures.find((l) => 'valeur' in l) ?? lectures.find((l) => 'inconnu' in l) ?? (vise >= 0 ? lectures[vise] : horsDeLUnion(v, f, ou));
     }
     case 'tableau': {
       if (!Array.isArray(v)) return { ecart: `${ou} : un tableau JSON attendu` };
@@ -155,7 +167,8 @@ export function lireALaForme(v: unknown, f: Forme, ou: string, designes: Designe
         if ('ecart' in k) return k;
         const l = lire(x, f.valeur, `${ou}[${JSON.stringify(cle)}]`);
         if ('ecart' in l) return l;
-        valeur[cle] = l.valeur;
+        // Une clé `__proto__` reste une propriété propre, sans toucher au prototype.
+        Object.defineProperty(valeur, cle, { value: l.valeur, enumerable: true, writable: true, configurable: true });
       }
       return lireLesChamps(v, f.champs ?? [], formeEcrite(f), ou, lire, valeur) ?? { valeur };
     }

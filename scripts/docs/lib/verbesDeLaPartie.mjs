@@ -24,17 +24,20 @@ const SOURCE_REGLAGES = 'src/noyau/reglagesDuJet.ts'
 const INTERFACE_REGLAGES = 'ReglagesDuJet'
 const SOURCE_CHOIX = 'src/noyau/choixDesFenetres.ts'
 const INTERFACE_CHOIX = 'ChoixDesFenetres'
-/** Nombre de littéraux au-delà duquel une union de littéraux (un id du catalogue) se contrôle par son genre primitif :
- *  le verbe du noyau refuse lui-même un id inconnu. */
-const LITTERAUX_ENUMERES = 16
 /** Longueur au-delà de laquelle un type anonyme ne s'écrit plus déplié, mais par son genre. */
 const LONGUEUR_D_UN_NOM = 40
+
+/** Le nom DÉCLARÉ d'un type : son alias, son interface ou sa classe ; `null` : anonyme. */
+function nomDeclare(type) {
+  const nom = type.getAliasSymbol()?.name ?? type.getSymbol()?.name
+  return nom && !nom.startsWith('__') ? nom : null
+}
 
 /** Le NOM d'un type : son alias (`Flow`), son interface ou sa classe (`Scene`), sinon son écriture courte ; un type
  *  anonyme long s'écrit par son genre (`objet`, `fonction`), jamais déplié. */
 function nomDuType(checker, type) {
-  const nomme = type.getAliasSymbol()?.name ?? type.getSymbol()?.name
-  if (nomme && !nomme.startsWith('__')) return nomme
+  const nomme = nomDeclare(type)
+  if (nomme) return nomme
   const ecrit = checker.typeToString(type)
   if (ecrit.length <= LONGUEUR_D_UN_NOM) return ecrit
   if (!(type.flags & TypeFlags.Object)) return 'type'
@@ -64,11 +67,14 @@ function nomsDesignes(session, racine) {
 }
 
 /** La forme `f` annotée du nom de désignation que son nœud déclaré écrit : une référence à une clé de la table sur
- *  une chaîne, à travers parenthèses, `readonly`, tableaux et unions. */
+ *  une chaîne, à travers parenthèses, `readonly`, tableaux, tuples et unions. */
 function designee(f, noeud, designes) {
   if (!noeud) return f
   if (ts.isParenthesizedTypeNode(noeud) || ts.isTypeOperatorNode(noeud)) return designee(f, noeud.type, designes)
   if (ts.isArrayTypeNode(noeud)) return f.genre === 'tableau' ? { ...f, element: designee(f.element, noeud.elementType, designes) } : f
+  if (ts.isTupleTypeNode(noeud)) {
+    return f.genre === 'tuple' ? { ...f, elements: f.elements.map((e, i) => designee(e, ts.isNamedTupleMember(noeud.elements[i]) ? noeud.elements[i].type : noeud.elements[i], designes)) } : f
+  }
   if (ts.isTypeReferenceNode(noeud)) {
     const nom = ts.isIdentifier(noeud.typeName) ? noeud.typeName.text : null
     return nom && designes.has(nom) && f.genre === 'chaine' ? { ...f, designe: { cle: nom, mot: designes.get(nom) } } : f
@@ -81,16 +87,10 @@ function designee(f, noeud, designes) {
   return f
 }
 
-/** Le nom qu'une référence de forme (`{ genre: 'ref' }`) porte : l'alias ou l'interface de `type` ; `null` : anonyme. */
-function nomDeReferenceDeForme(type) {
-  const nom = type.getAliasSymbol()?.name ?? type.getSymbol()?.name
-  return nom && !nom.startsWith('__') ? nom : null
-}
-
 /** La référence au type récursif `type`, rencontré au chemin `ou` alors qu'il est déjà ouvert : sa forme se pose une fois
  *  dans `refs` (nom → type), lue par `formesReferencees`. Un type récursif anonyme, ou deux types de même nom, lèvent. */
 function reference(type, ou, refs) {
-  const nom = nomDeReferenceDeForme(type)
+  const nom = nomDeclare(type)
   if (!nom) throw new Error(`verbesDeLaPartie : ${ou} : type récursif anonyme, sans nom pour s'y référer`)
   if (refs.has(nom) && refs.get(nom) !== type) throw new Error(`verbesDeLaPartie : ${ou} : deux types récursifs nommés \`${nom}\``)
   refs.set(nom, type)
@@ -98,8 +98,9 @@ function reference(type, ou, refs) {
 }
 
 /** La forme JSON de `type`, au chemin `ou`, à toute profondeur : un type déjà ouvert sur le chemin (`pile`) se lit en
- *  référence (`reference`), une signature d'index en dictionnaire, une chaîne marquée en chaîne ; un type sans forme
- *  JSON (fonction, `any`, `unknown`, intersection d'objets) lève en nommant son chemin. */
+ *  référence (`reference`), une signature d'index à clé chaîne en dictionnaire, une chaîne marquée en chaîne ; un type
+ *  sans forme JSON qui le contrôle (fonction, `any`, `unknown`, `{}`, gabarit de chaîne, intersection d'objets) lève en
+ *  nommant son chemin. */
 function forme(checker, type, designes, refs, ou, pile = new Set()) {
   const f = type.flags
   const indescriptible = (quoi) => { throw new Error(`verbesDeLaPartie : ${ou} : ${quoi} (\`${checker.typeToString(type)}\`) n'a pas de forme JSON`) }
@@ -107,6 +108,7 @@ function forme(checker, type, designes, refs, ou, pile = new Set()) {
   if (f & TypeFlags.StringLiteral) return { genre: 'litteral', valeur: type.value }
   if (f & TypeFlags.NumberLiteral) return { genre: 'litteral', valeur: type.value }
   if (f & TypeFlags.BooleanLiteral) return { genre: 'litteral', valeur: checker.typeToString(type) === 'true' }
+  if (f & (TypeFlags.TemplateLiteral | TypeFlags.StringMapping)) indescriptible('gabarit de chaîne')
   if (f & TypeFlags.StringLike) return { genre: 'chaine' }
   if (f & TypeFlags.NumberLike) return { genre: 'nombre' }
   if (f & TypeFlags.BooleanLike) return { genre: 'booleen' }
@@ -142,12 +144,18 @@ function forme(checker, type, designes, refs, ou, pile = new Set()) {
   }))
   const index = checker.getIndexInfosOfType(type)
   if (index.length > 1) indescriptible('plusieurs signatures d’index')
-  if (!index.length) return { genre: 'objet', type: nomDuType(checker, type), champs }
+  if (!index.length) {
+    if (!champs.length) indescriptible('objet sans champ')
+    return { genre: 'objet', type: nomDuType(checker, type), champs }
+  }
   const [{ keyType, valueType }] = index
+  const cle = forme(checker, keyType, designes, refs, `${ou}[clé]`, dedans)
+  // Une clé JSON est une chaîne.
+  if (cle.genre !== 'chaine') indescriptible('dictionnaire à clé non chaîne')
   return {
     genre: 'dictionnaire',
     type: nomDuType(checker, type),
-    cle: forme(checker, keyType, designes, refs, `${ou}[clé]`, dedans),
+    cle,
     valeur: forme(checker, valueType, designes, refs, `${ou}[…]`, dedans),
     ...(champs.length ? { champs } : {}),
   }
@@ -171,13 +179,6 @@ function unionDe(membresBruts, alias) {
   const booleens = membres.filter((m) => m.genre === 'litteral' && typeof m.valeur === 'boolean').length
   const reste = booleens === 2 ? [{ genre: 'booleen' }, ...membres.filter((m) => !(m.genre === 'litteral' && typeof m.valeur === 'boolean'))] : membres
   if (reste.length === 1) return reste[0]
-  const litteraux = reste.filter((m) => m.genre === 'litteral')
-  if (litteraux.length > LITTERAUX_ENUMERES) {
-    const genres = [...new Set(litteraux.map((m) => (typeof m.valeur === 'number' ? 'nombre' : 'chaine')))].map((genre) => ({ genre }))
-    const autres = reste.filter((m) => m.genre !== 'litteral' && !genres.some((g) => g.genre === m.genre && Object.keys(m).length === 1))
-    const membresReduits = [...genres, ...autres]
-    return membresReduits.length === 1 ? membresReduits[0] : { genre: 'union', membres: membresReduits, ...(alias ? { type: alias } : {}) }
-  }
   return { genre: 'union', membres: reste, ...(alias ? { type: alias } : {}) }
 }
 

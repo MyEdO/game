@@ -12,22 +12,29 @@ import { describe, it, expect } from 'vitest';
 import { DESIGNATIONS, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, libelleDuChoix, libelleDuLitteral, libelleDuParametre, libelleDuReglage } from '../noyau/index';
 import { VERBES_DES_FENETRES } from '../noyau/fenetres.testkit';
 import type { Forme } from './formes';
-import { CHOIX, REGLAGES, VERBES } from './verbes.generated';
+import { CHOIX, FORMES, REGLAGES, VERBES } from './verbes.generated';
 import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
 
 /** Les paramètres que la fenêtre pose d'office (`argumentsPosesDuGeste`) : aucun ne se saisit. */
 const POSES = new Set(['pid', 'flux', 'fenetre']);
 
 /** Ce qui manque aux valeurs de la forme `f` de l'argument `ou`, dont les littéraux se nomment par `nom`, pour se
- *  dessiner. */
-function fautesDesValeurs(verbe: string, nom: string, f: Forme, ou: string): string[] {
+ *  dessiner ; une `ref` se lit une fois par chemin (`vus`). */
+function fautesDesValeurs(verbe: string, nom: string, f: Forme, ou: string, vus: ReadonlySet<string> = new Set()): string[] {
   switch (f.genre) {
     case 'litteral': return libelleDuLitteral(f.valeur, nom) === null ? [`${ou} : valeur ${JSON.stringify(f.valeur)} sans \`valeur.${nom}.<v>\` ni \`valeur.<v>\``] : [];
     case 'chaine': return f.designe && !(f.designe.cle in DESIGNATIONS) ? [`${ou} : désignation ${f.designe.cle} hors de DESIGNATIONS`] : [];
-    case 'tableau': return fautesDesValeurs(verbe, nom, f.element, ou);
-    case 'union': return f.membres.filter((m) => m.genre !== 'objet').flatMap((m) => fautesDesValeurs(verbe, nom, m, ou));
+    case 'tableau': return fautesDesValeurs(verbe, nom, f.element, ou, vus);
+    case 'tuple': return f.elements.flatMap((e, i) => fautesDesValeurs(verbe, nom, e, `${ou}[${i}]`, vus));
+    case 'union': return f.membres.filter((m) => m.genre !== 'objet').flatMap((m) => fautesDesValeurs(verbe, nom, m, ou, vus));
     case 'objet': return f.champs.flatMap((c) => fautes(verbe, c.nom, c.forme, `${ou}.${c.nom}`));
-    default: return [];
+    case 'dictionnaire': return [
+      ...fautesDesValeurs(verbe, nom, f.cle, `${ou}[clé]`, vus),
+      ...fautesDesValeurs(verbe, nom, f.valeur, `${ou}[…]`, vus),
+      ...(f.champs ?? []).flatMap((c) => fautes(verbe, c.nom, c.forme, `${ou}.${c.nom}`)),
+    ];
+    case 'ref': return vus.has(f.type) ? [] : fautesDesValeurs(verbe, nom, FORMES[f.type], ou, new Set(vus).add(f.type));
+    case 'nombre': case 'booleen': case 'null': case 'absent': return [];
   }
 }
 
