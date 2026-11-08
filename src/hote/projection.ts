@@ -6,7 +6,7 @@
  * `scripts/docs/build-hote-texte.mjs`). Chaque champ est une donnée, que chaque hôte met en forme à sa façon.
  */
 import { garanti } from '../lib/garanti';
-import { activeCombatant, offreArmee, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, porteeDuCombattant, porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, fermeturesDeLaFenetre, libelleDeLaFermeture, type Combatant, type EtatDeLaBarre, type GesteDExploration, type GesteDuJeu, type GesteDuNoyau, type Jeu, type JetEnVue, type Offre, type PorteeDeComposition, type Pt } from '../noyau/index';
+import { activeCombatant, offreArmee, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, porteeDuCombattant, vehiculeDuCombattant, porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, fermeturesDeLaFenetre, libelleDeLaFermeture, type Combatant, type EtatDeLaBarre, type GesteDExploration, type GesteDuJeu, type GesteDuNoyau, type Jeu, type JetEnVue, type Offre, type PorteeDeComposition, type Pt, type VehiculeDuCombattant } from '../noyau/index';
 
 /** Un combattant projeté. */
 export interface CombattantProjete {
@@ -26,6 +26,8 @@ export interface CombattantProjete {
   horsCombat: boolean;
   /** Ce qu'il porte (`porteeDuCombattant`) ; `null` : son espèce n'a aucune race de rendu. */
   portee: PorteeDeComposition | null;
+  /** Le véhicule ou l'engin qu'il est (`vehiculeDuCombattant`) ; `null` : ni l'un ni l'autre. */
+  vehicule: VehiculeDuCombattant | null;
 }
 
 /** Une entité de la scène en exploration : id, genre, nom, case et couche (`SceneEntity.z`, absent : 0). */
@@ -157,6 +159,7 @@ function combattant(c: Combatant, actif: Combatant | undefined): CombattantProje
     etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
     horsCombat: !!c.dead || !!c.outOfRencontre,
     portee: porteeDuCombattant(c),
+    vehicule: vehiculeDuCombattant(c),
   };
 }
 

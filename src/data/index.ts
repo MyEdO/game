@@ -3092,7 +3092,15 @@ export function profilsStandard(): string[] {
  *  SOURCE UNIQUE de la famille (#1882) : la porte du schéma (`sceneEntitySchema`), `validateScene` et le
  *  spawn (`spawnEnemy`) la lisent ici. */
 export function refEntiteResolue(ref: string): boolean {
-  return !!(findCreatureById(ref) || findVehicleById(ref)?.hull || siegeEngines().some((t) => t.id === ref));
+  return !!(findCreatureById(ref) || findFicheDeVehicule(ref));
+}
+/** La fiche spawnable non créature que désigne `id` : coque de `vehicles.json` (facette `hull`, MDG 13) ou engin du
+ *  sous-type `armes-de-siege` (`trappings.json`, AA 10), réduite à son libellé ; la clé `definition` d'un élément 3D
+ *  `vehicule` la nomme (#2987). */
+export function findFicheDeVehicule(id: string): { readonly label: string } | undefined {
+  const coque = findVehicleById(id);
+  const fiche = (coque?.hull ? coque : undefined) ?? siegeEngines().find((t) => t.id === id);
+  return fiche && { label: fiche.label };
 }
 /**
  * Ce qu'un pinceau ou un effet neuf porte AVANT tout choix d'auteur : le PREMIER élément OFFERT par son

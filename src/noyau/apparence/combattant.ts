@@ -2,16 +2,18 @@
  * CE QUE PORTE UN COMBATTANT (#2972 J5, #3253, #3456) : un autre producteur des `Portee` d'une composition
  * (`porteeDeComposition`), lu sur son état : sa race de rendu, sa tête, ses armes tenues puis rangées, ses objets
  * équipés qui revêtent des pièces, son armure (`armuresDuCombattant`), chacun par le seul assembleur d'objet
- * (`porteesDesObjets`), la tenue de sa carrière, et son emblème.
+ * (`porteesDesObjets`), la tenue de sa carrière, et son emblème ; ou, véhicule ou engin, sa fiche et son empreinte
+ * (`vehiculeDuCombattant`, #2987).
  */
 import type { Combatant, HitLocation, ItemInstance } from '../../engine/types';
 import { LOCALISATIONS_DE_COUP } from '../../engine/types';
 import { apparencesCandidates } from '../../engine/items';
 import { findTierEntry } from '../../engine/tables';
-import { findCreatureById, findGroupeDArmureById, findPlanDEspeceById, findSpeciesById, findTenueDeCarriere, findTeteById, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
+import { findCreatureById, findFicheDeVehicule, findGroupeDArmureById, findPlanDEspeceById, findSpeciesById, findTenueDeCarriere, findTeteById, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
 import { armesDuCombattant, emblemeDe } from '../equipementDessine';
 import { facteursDeComposition, porteesDeLaTenue, porteesDesObjets, teinteDeLObjet, type ObjetPorte, type Portee, type PorteeDeComposition } from './composition';
 import { pieceRacine } from './gardeRobe';
+import { footprintN } from '../monde/footprint';
 
 /** La race de rendu d'une espèce : celle que le plan de bestiaire (`findPlanDEspeceById`, #2993) donne à la race
  *  d'apparence d'une espèce jouable (`refChar`), sinon à l'espèce ; aucune si l'espèce n'y porte pas la base humanoïde. */
@@ -102,4 +104,16 @@ export function porteeDuCombattant(c: Combatant): PorteeDeComposition | null {
     // #3253
     sex: c.appearance?.sex ?? 'M',
   };
+}
+
+/** Un véhicule ou un engin de siège au combat : l'id de sa fiche, que nomme la clé `definition` d'un élément 3D
+ *  `vehicule`, et le côté N de son empreinte (`footprintN`). */
+export interface VehiculeDuCombattant {
+  readonly definition: string;
+  readonly empreinte: number;
+}
+
+/** Le véhicule que `c` est, si sa fiche est une coque ou un engin de siège (`findFicheDeVehicule`, #2987), sinon `null`. */
+export function vehiculeDuCombattant(c: Combatant): VehiculeDuCombattant | null {
+  return c.creatureId !== undefined && findFicheDeVehicule(c.creatureId) ? { definition: c.creatureId, empreinte: footprintN(c) } : null;
 }
