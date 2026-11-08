@@ -3,7 +3,7 @@ trois-quarts, portrait du personnage, échelles, isométrique), cadré sur la ha
 ou sur la plus grande dimension de l'élément, et studio Workbench de QA. Le GLB source n'est jamais modifié.
 `--silhouettes` pose, avant le rendu, les shape keys nommées sur tout mesh qui les porte, à la syntaxe de
 `npm run godot:evaluer -- --silhouettes` (`hotes/godot/asset/evaluer.mjs`) ; un nom qu'aucun mesh ne porte arrête le
-rendu.
+rendu. `bornes` et `studio` cadrent et éclairent aussi la revue d'un véhicule (`vehicule/revue.py`).
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <fichier.glb> --output <dossier vide> [--isometric-only] [--silhouettes feminin=1,corpulence=0.5]
 """
@@ -54,77 +54,20 @@ def poser_les_silhouettes(bpy, poids):
     return poses
 
 
-def qa_studio(bpy):
-    from mathutils import Vector
-    scene = bpy.context.scene
-    scene.render.engine = 'BLENDER_WORKBENCH'
-    scene.display.shading.light = 'STUDIO'
-    scene.display.shading.color_type = 'TEXTURE'
-    scene.display.shading.show_shadows = True
-    scene.display.shading.show_cavity = True
-    scene.world = bpy.data.worlds.new('QA world')
-    scene.world.color = (.13, .13, .13)
-    scene.render.resolution_x, scene.render.resolution_y = 640, 720
-    scene.render.resolution_percentage = 100
-    camera_data = bpy.data.cameras.new('QA camera')
-    camera = bpy.data.objects.new('QA camera', camera_data)
-    scene.collection.objects.link(camera)
-    camera.location = (2.6, -4.8, 2.2)
-    camera.rotation_euler = (Vector((0, 0, .9)) - camera.location).to_track_quat('-Z', 'Y').to_euler()
-    camera_data.type, camera_data.ortho_scale = 'ORTHO', 2.6
-    scene.camera = camera
-    return camera
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--input', required=True)
-    parser.add_argument('--output', required=True)
-    parser.add_argument('--isometric-only', action='store_true', help='Render only 45-degree overhead views at 512, 40, 64 and 128 pixels high')
-    parser.add_argument('--silhouettes', type=lire_silhouettes, default={},
-                        help='nom=poids[,nom=poids] : shape keys posées sur tout mesh qui les porte avant le rendu')
-    args = parser.parse_args()
-    source = Path(args.input).resolve(strict=True)
-    output = Path(args.output).resolve()
-    if output.exists() and any(output.iterdir()):
-        raise ValueError('Output must be new or empty')
-    output.mkdir(parents=True, exist_ok=True)
-    digest = hashlib.sha256(source.read_bytes()).hexdigest()
-    import bpy
+def bornes(bpy, objets):
+    """Les coins bas et haut de l'emprise des sommets évalués des `objets`, dans le monde."""
     import numpy as np
     from mathutils import Vector
     from mesure import world_vertices
-    start = time.monotonic()
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=str(source))
-    silhouettes = poser_les_silhouettes(bpy, args.silhouettes)
-    meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
-    skinned = [obj for obj in meshes if any(mod.type == 'ARMATURE' for mod in obj.modifiers)]
-    actors = skinned or meshes
-    if not actors:
-        raise ValueError('No meshes found')
     bpy.context.view_layer.update()
-    coordinates = np.concatenate(list(world_vertices(bpy, actors).values()))
-    low = Vector(coordinates.min(axis=0).tolist())
-    high = Vector(coordinates.max(axis=0).tolist())
-    height = high.z - low.z
-    extent = height if skinned else max(high.x - low.x, high.y - low.y, height)
-    center = (low + high) / 2
-    materials = []
-    for material in bpy.data.materials:
-        inputs = []
-        images = []
-        if material.node_tree:
-            for node in material.node_tree.nodes:
-                if node.type == 'TEX_IMAGE' and node.image:
-                    images.append({'node': node.name, 'image': node.image.name, 'size': list(node.image.size), 'alpha_mode': node.image.alpha_mode, 'color_space': node.image.colorspace_settings.name})
-                if node.type == 'BSDF_PRINCIPLED':
-                    for key in ('Base Color', 'Metallic', 'Roughness', 'Alpha', 'Normal'):
-                        socket = node.inputs[key]
-                        value = socket.default_value
-                        inputs.append({'input': key, 'value': list(value) if hasattr(value, '__len__') else value, 'links': [{'node': link.from_node.name, 'socket': link.from_socket.name} for link in socket.links]})
-        materials.append({'name': material.name, 'surface_render_method': material.surface_render_method, 'images': images, 'inputs': inputs})
-    report = {'input': source.name, 'sha256_before': digest, 'bounds': {'min': list(low), 'max': list(high), 'height': height, 'extent': extent}, 'meshes': [{'name': obj.name, 'vertices': len(obj.data.vertices), 'polygons': len(obj.data.polygons), 'materials': [slot.material.name if slot.material else None for slot in obj.material_slots]} for obj in actors], 'materials': materials, 'silhouettes': {nom: {'poids': args.silhouettes[nom], 'meshes': objets} for nom, objets in silhouettes.items()}, 'render_engine': 'CYCLES', 'samples': 16}
+    coordinates = np.concatenate(list(world_vertices(bpy, objets).values()))
+    return Vector(coordinates.min(axis=0).tolist()), Vector(coordinates.max(axis=0).tolist())
+
+
+def studio(bpy, low, center, extent, output, start):
+    """Studio Cycles de contrôle, à l'échelle de l'étendue `extent` du modèle : monde, sol sous `low`, trois lumières
+    visant `center` (`ETENDUE_DU_STUDIO`), caméra orthographique ; rend la fonction qui rend une vue dans `output`."""
+    from mathutils import Vector
     scene = bpy.context.scene
     scene.render.engine = 'CYCLES'
     scene.cycles.device = 'CPU'
@@ -179,6 +122,76 @@ def main():
         bpy.ops.render.render(write_still=True)
         print('RENDERED', name, round(time.monotonic() - start, 2), flush=True)
 
+    return render
+
+
+def qa_studio(bpy):
+    from mathutils import Vector
+    scene = bpy.context.scene
+    scene.render.engine = 'BLENDER_WORKBENCH'
+    scene.display.shading.light = 'STUDIO'
+    scene.display.shading.color_type = 'TEXTURE'
+    scene.display.shading.show_shadows = True
+    scene.display.shading.show_cavity = True
+    scene.world = bpy.data.worlds.new('QA world')
+    scene.world.color = (.13, .13, .13)
+    scene.render.resolution_x, scene.render.resolution_y = 640, 720
+    scene.render.resolution_percentage = 100
+    camera_data = bpy.data.cameras.new('QA camera')
+    camera = bpy.data.objects.new('QA camera', camera_data)
+    scene.collection.objects.link(camera)
+    camera.location = (2.6, -4.8, 2.2)
+    camera.rotation_euler = (Vector((0, 0, .9)) - camera.location).to_track_quat('-Z', 'Y').to_euler()
+    camera_data.type, camera_data.ortho_scale = 'ORTHO', 2.6
+    scene.camera = camera
+    return camera
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input', required=True)
+    parser.add_argument('--output', required=True)
+    parser.add_argument('--isometric-only', action='store_true', help='Render only 45-degree overhead views at 512, 40, 64 and 128 pixels high')
+    parser.add_argument('--silhouettes', type=lire_silhouettes, default={},
+                        help='nom=poids[,nom=poids] : shape keys posées sur tout mesh qui les porte avant le rendu')
+    args = parser.parse_args()
+    source = Path(args.input).resolve(strict=True)
+    output = Path(args.output).resolve()
+    if output.exists() and any(output.iterdir()):
+        raise ValueError('Output must be new or empty')
+    output.mkdir(parents=True, exist_ok=True)
+    digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    import bpy
+    from mathutils import Vector
+    start = time.monotonic()
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    bpy.ops.import_scene.gltf(filepath=str(source))
+    silhouettes = poser_les_silhouettes(bpy, args.silhouettes)
+    meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
+    skinned = [obj for obj in meshes if any(mod.type == 'ARMATURE' for mod in obj.modifiers)]
+    actors = skinned or meshes
+    if not actors:
+        raise ValueError('No meshes found')
+    low, high = bornes(bpy, actors)
+    height = high.z - low.z
+    extent = height if skinned else max(high.x - low.x, high.y - low.y, height)
+    center = (low + high) / 2
+    materials = []
+    for material in bpy.data.materials:
+        inputs = []
+        images = []
+        if material.node_tree:
+            for node in material.node_tree.nodes:
+                if node.type == 'TEX_IMAGE' and node.image:
+                    images.append({'node': node.name, 'image': node.image.name, 'size': list(node.image.size), 'alpha_mode': node.image.alpha_mode, 'color_space': node.image.colorspace_settings.name})
+                if node.type == 'BSDF_PRINCIPLED':
+                    for key in ('Base Color', 'Metallic', 'Roughness', 'Alpha', 'Normal'):
+                        socket = node.inputs[key]
+                        value = socket.default_value
+                        inputs.append({'input': key, 'value': list(value) if hasattr(value, '__len__') else value, 'links': [{'node': link.from_node.name, 'socket': link.from_socket.name} for link in socket.links]})
+        materials.append({'name': material.name, 'surface_render_method': material.surface_render_method, 'images': images, 'inputs': inputs})
+    report = {'input': source.name, 'sha256_before': digest, 'bounds': {'min': list(low), 'max': list(high), 'height': height, 'extent': extent}, 'meshes': [{'name': obj.name, 'vertices': len(obj.data.vertices), 'polygons': len(obj.data.polygons), 'materials': [slot.material.name if slot.material else None for slot in obj.material_slots]} for obj in actors], 'materials': materials, 'silhouettes': {nom: {'poids': args.silhouettes[nom], 'meshes': objets} for nom, objets in silhouettes.items()}, 'render_engine': 'CYCLES', 'samples': 16}
+    render = studio(bpy, low, center, extent, output, start)
     if args.isometric_only:
         report['camera_elevation_degrees'] = 45
         report['camera_direction'] = [1, -1, 2 ** 0.5]
