@@ -506,9 +506,6 @@ export const DETTES_DE_LIBELLE = {
   'src/engine/qualities/normalize.ts#label-entity-resolver-call': 1,
   // #1330 — `conditionIdInText` : le journal FR re-parsé par libellé d'État.
   'src/engine/conditions.ts#face-affichage-identite': 1,
-  // #2070 — scénarios de test résolus par libellé (`findSkill`/`findTalent`).
-  'src/scenes/test-scenarios/_casters.ts#label-entity-resolver-call': 2,
-  'src/scenes/test-scenarios/magie-hors-combat.ts#label-entity-resolver-call': 1,
   // #1632 — sort classé par libellé (`classifySpellByLabel`).
   'src/gameIso/fx/spellClips.ts#label-entity-resolver-call': 1,
 };

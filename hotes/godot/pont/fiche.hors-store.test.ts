@@ -54,7 +54,7 @@ describe('la fiche d’un combattant par le pont', () => {
 
     expect(s.vue.zones['fiche.sections'].map((e) => e.nom), 'chaque section non vide, dans l’ordre du statbloc').toEqual(['Attaques', 'Compétences', 'Talents', 'Sorts', 'Possessions']);
     const competences = puces(s, 'competences');
-    expect(competences.length, 'chacune de ses Compétences').toBe(19);
+    expect(competences.length, 'chacune de ses Compétences, une par spécialisation').toBe(18);
     expect(competences.map((p) => p.libelle), 'par nom').toEqual(competences.map((p) => p.libelle).sort((a, b) => a.localeCompare(b, 'fr')));
     expect(competences.every((p) => /^\d+$/.test(p.valeur!) && /^\S+ \d+ \+ \d+$/.test(p.detail!)), 'la valeur de son Test, sa Caractéristique et ses Augmentations au survol').toBe(true);
     const [baton] = armes(s);
