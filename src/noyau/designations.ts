@@ -34,7 +34,7 @@ import { actorIn } from './monde/combatants';
 import { adversairesADistraire, adversairesDuBattement, availableAttacks } from './combatManeuvers';
 import { idsDuCoupleMonte } from './targetingModes';
 import { reponsesDuNoeud } from './dialogue';
-import { plaiesDeLOperation } from './medicFlow';
+import { plaiesDeLOperation } from './acteDeSoin';
 import { seaActivitiesCatalog } from './seaActivities';
 import { catalogEntryOf, echoppesDuLieu, libelleDeLaRepartition } from './merchantFlow';
 import { bulkCarriers, lotDeCargaison } from './carriers';
@@ -80,7 +80,7 @@ export type IdDuCoupleMonte = string;
 export type IdDActiviteEnMer = string;
 /** Une réponse VISIBLE du nœud de dialogue courant, par son `id` (`reponsesDuNoeud`, `dialogue.ts`). */
 export type IdDeReponseDeDialogue = string;
-/** Une Blessure Critique que l'opération armée peut viser, par son `uid` (`plaiesDeLOperation`, `medicFlow.ts`). */
+/** Une Blessure Critique que l'opération armée ou son brouillon peut viser, par son `uid` (`plaiesDeLOperation`, `acteDeSoin.ts`). */
 export type IdDePlaieDeLOperation = string;
 /** Un accès de pièce que le mobile du monde emprunte, par son `id` (`portesDuMobile`, `marcheDuGroupe.ts`). */
 export type IdDePorte = string;

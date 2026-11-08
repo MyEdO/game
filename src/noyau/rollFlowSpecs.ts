@@ -64,8 +64,7 @@ import { t } from '../i18n';
 import { libelleDeLaFermeture } from './libelles';
 import { influencesLocally } from './netOwnership';
 import { reprendreLaSuite } from './combatEffects';
-import { distributeCredit } from './bourseFlow';
-import { toMoney } from '../engine/money';
+import { lancerLActeDeSoin } from './acteDeSoin';
 import { describeTest, describeBargain, describeReload, describeStateRecovery, describeFrenzy } from './flowOutcomes';
 import { findSpellById, byId } from '../data/index';
 
@@ -211,6 +210,9 @@ function jetDeSoin(s: Jeu, cible: number, actor: Combatant | undefined, test: Te
   const res = evaluateTest(d100(battleRng()), cible);
   return jetPose({ ...res, ...issueDuSoin(s, actor, test, res) });
 }
+
+/** Le jet du soin déclaré `p` (`FLOWS.heal`) ; le soigneur peut être un PNJ hors `actorIn` : le jet se fait sans acteur live. */
+const jetDuSoin = (s: Jeu, p: PendingHeal, actor: Combatant | undefined): JetPose => jetDeSoin(s, cibleDuTest(p.skillValue, p.difficulty), actor, p.test);
 
 /** Issue d'un dé du soin (tiré, fixé, renversé) : le dé, +DR de réussite du soigneur combattant (`drDeReussiteDuTest`) —
  *  SOURCE UNIQUE du jet, du dé fixé et de l'inversion. */
@@ -2379,15 +2381,19 @@ export const FLOWS = paresseux({
    *  multi-passes) a son propre flux `surgery` ci-dessous (une passe = une modale influençable). */
   heal: () => makeRollFlow<PendingHeal>({
     key: 'pendingHeal',
-    // Acte PAYANT d'un PNJ (infirmerie), annulé avant le jet : remboursé au GROUPE (débit `payFromGroup`, LDB 75).
-    onCancel: (get, set, p) => {
-      if (p.paidCost) distributeCredit(get, set, toMoney(p.paidCost));
-      set({ pendingHeal: null });
+    // Hors combat, le jet part de l'infirmerie (`lancerLActeDeSoin` : refus de l'acte, tarif du PNJ, opération armée) ;
+    // son brouillon se change d'acte (`heal.mode`) et ne s'annule pas.
+    onRoll: (get, set, p) => {
+      if (!get().battle && !lancerLActeDeSoin(get, set, p)) return;
+      const s = get();
+      const patch = jetDuSoin(s, p, actorIn(s, p.healerId));
+      if (patch) set({ pendingHeal: { ...p, ...patch } });
     },
+    annulation: (_p, s) => (s.battle ? null : 'acteAChanger'),
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.healerId),
     caps: { forced: true },
-    resolve: (s, p, actor) => jetDeSoin(s, cibleDuTest(p.skillValue, p.difficulty), actor, p.test), // le soigneur peut être un PNJ hors actorIn : le jet se fait sans acteur live
+    resolve: (s, p, actor) => jetDuSoin(s, p, actor),
     outcome: (p) => rollOutcome(p.roll, p.target, p.sl),
     // Résilience GLOBALE via la lentille plate ; le garde du forceSuccess (déjà réussi OU mode chirurgie :
     // rien à forcer) vit dans `dieTarget` (→ null), pas dans `actorTR` (qui sert aussi le `bonusSL`).

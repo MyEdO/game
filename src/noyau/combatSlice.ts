@@ -70,8 +70,9 @@ import { isConsumable } from '../engine/consumables';
 import { refusDeConsommer, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
 import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, peutEntrerEnFrenesie, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, refusDeDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
-import { raisonDeModeDeSoinEnCombat, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, applyHealWounds, soinDOuverture, refusDuTestDeSoin, difficulteDuSoin, actePanse, retirerUnBandage, IDS_DU_TEST_DE_SOIN, type HealMode } from '../engine/healing';
+import { modesDOuverture, HEAL_MODES, raisonDeModeDeSoinEnCombat, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, applyHealWounds, soinDOuverture, refusDuTestDeSoin, difficulteDuSoin, actePanse, retirerUnBandage, IDS_DU_TEST_DE_SOIN } from '../engine/healing';
 import { jetDuSoigneur, refusDesBandages, refusDuModeDuSoin, refusDuTestDuSoin } from './soin';
+import { soinDeLActe } from './acteDeSoin';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { treatTrauma, receiveMedicalAid, poseDeterminationCanceller } from '../engine/trauma';
 import { suspendSource } from '../engine/suspension';
@@ -1643,15 +1644,18 @@ export function createCombatSlice(get: Get, set: Set) {
     // Accessible (+20) au lieu d'Intermédiaire (+0) — le soin de Blessures reste Intermédiaire dans
     // les deux versions. Gaté par la règle optionnelle `combat-aa-blessures` (policy.ts).
 
-    ouvrirLaGuerison: (targetId: string, mode: HealMode) => {
-      if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
-      const { battle } = get();
-      if (!battle) return;
-      const healer = activeCombatant(battle);
-      if (!healer || !controlsCombatant(get(), healer) || refuseParSonEntree(get, set, 'heal', healer, battle)) return;
-      if (battle.action !== 'heal') return; // le commit du mode armé (`HEAL_MODE`)
+    ouvrirLaGuerison: (targetId: string) => {
+      // La barre (`etatDeLaBarre`) ; un Sort qui désigne ses cibles ou pose sa zone, qu'elle ne compte pas ; le Soin armé.
+      const barre = etatDeLaBarre(get());
+      if (barre.forme !== 'ouverte') return void refuserGesteDuSiege(get, set, barre.raison);
+      const { active: healer, battle } = barre;
+      if (get().pendingCast) return void refuserGesteDuSiege(get, set, t('barre.mainTenue'));
+      if (refuseParSonEntree(get, set, 'heal', healer, battle)) return;
+      if (battle.action !== 'heal') return void refuserGesteDuSiege(get, set, t('heal.soinNonArme')); // le commit du mode armé (`HEAL_MODE`)
       const target = inBattleId(battle, targetId);
-      if (!target) return;
+      if (!target) return void refuserGesteDuSiege(get, set, t('medic.patientIntrouvable'));
+      // L'acte d'ouverture : le premier que le soigneur ouvre sur la cible ; il se change par `jetRegler('heal', 'mode')`.
+      const mode = modesDOuverture(target, healer)[0] ?? HEAL_MODES[0];
       const ouverture = soinDOuverture(healer, mode);
       const raison = raisonDeModeDeSoinEnCombat(target, mode) ?? (ouverture ? null : refusDuTestDeSoin(healer, mode, { test: 'guerison', bandages: false }));
       if (raison || !ouverture) return void refuserGesteDuSiege(get, set, garanti(raison, mode, 'refus du soin'));
@@ -1668,16 +1672,6 @@ export function createCombatSlice(get: Get, set: Set) {
         battle: { ...battle, action: null },
       });
     },
-
-
-
-
-    // ── Infirmerie (hors combat) : modale de soins PERSISTANTE — cf. noyau/medicFlow ──
-
-    // Chirurgie : jet INFLUENÇABLE d'une passe (le chirurgien peut être un héros) — jetValider('surgery') applique
-    // (medicFlow), jetAnnuler('surgery') annule la passe, `fenetreChoisir('medic', 'abandon', true)` l'opération.
-    // ouvrirLaChirurgie POSE la passe (`creerActionsDuMedecin`, noyau/medicFlow.ts).
-
 
     // ── Contre-mesure « Asperger d'eau » (MDG 16 l.19, #497) — Créature marine hors de l'eau ──
 
@@ -2059,15 +2053,15 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
       },
     },
     heal: {
-      /** La Difficulté dépend du mode (variante AA, cf. `healDifficulty`) → recalculée avec `mode`. */
+      /** Jugé par `refusDuModeDuSoin`. Hors combat, l'acte recalcule son soin entier (`soinDeLActe` : soigneur,
+       *  ligne, Difficulté) ; en combat, la Difficulté dépend du mode (variante AA, cf. `healDifficulty`). */
       mode: (mode) => {
-        const ph = get().pendingHeal;
-        if (!ph) return;
-        if (!actorIn(get(), ph.targetId)) return;
-        const soigneur = actorIn(get(), ph.healerId);
+        const ph = garanti(get().pendingHeal, mode, 'soin de l’acte');
         const raison = refusDuModeDuSoin(get(), mode);
         if (raison) return void refuserGesteDuSiege(get, set, raison);
         const bandagesDe = actePanse(mode) ? ph.bandagesDe : null;
+        if (!get().battle) return void set({ pendingHeal: { ...soinDeLActe(get(), mode), bandagesDe } });
+        const soigneur = actorIn(get(), ph.healerId);
         const difficulty = difficulteDuSoin(ph.test, mode);
         const ligne = rollLine({
           actor: soigneur, ...(soigneur ? { test: IDS_DU_TEST_DE_SOIN[ph.test] } : {}),

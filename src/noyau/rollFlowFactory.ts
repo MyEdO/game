@@ -62,7 +62,7 @@ export type FermetureDuJet =
   | 'sansChance' | 'sansResilience' | 'sansDetermination' | 'reserveAuxHeros'
   | 'deNonFixable' | 'desFixesInactifs' | 'sansVoieDInversion' | 'sansMenace' | 'sansResistance' | 'sansMalusPsy'
   | 'declarationsDues' | 'oppositionsDues' | 'choixCritiqueDu' | 'actionEngagee'
-  | 'choixDu' | 'etapesDues' | 'etapesJouees' | 'rienADeclarer' | 'contreSortDu' | 'soinEnCours' | 'paieDue' | 'halteDeVoyage' | 'herosADesigner'
+  | 'choixDu' | 'etapesDues' | 'etapesJouees' | 'rienADeclarer' | 'contreSortDu' | 'soinEnCours' | 'acteAChanger' | 'paieDue' | 'halteDeVoyage' | 'herosADesigner'
   | 'quorumAttendu' | 'noteNonCouverte' | 'evenementsATirer' | 'rienARepartir' | 'seanceDuChapitre' | 'choixAReprendre';
 
 /** Les fermetures qui attendent une DÉCISION du joueur : le verbe se montre refusé, sa raison dite, au lieu de se taire. */
@@ -403,8 +403,8 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    *  (`jetPose`) et l'annulation tant qu'aucun jet n'est lancé ; `toujours`, à tout moment de la fenêtre. Les gardes
    *  de `cancel` et de `confirm` (`fermetures(…)`) lisent cette déclaration. */
   clotures?: { confirm?: 'toujours'; cancel?: 'toujours' };
-  /** Ce qui ferme l'annulation du pending au-delà de son jet (`null` : rien). Absent : rien. */
-  annulation?: (p: P) => FermetureDuJet | null;
+  /** Ce qui ferme l'annulation du pending au-delà de son jet, lu sur l'état `s` (`null` : rien). Absent : rien. */
+  annulation?: (p: P, s: Jeu) => FermetureDuJet | null;
   /** Ce qui ferme la clôture (`confirm`) du jet posé, lu sur l'état `s` (`null` : rien). Absent : rien. */
   cloture?: (p: P, s: Jeu) => FermetureDuJet | null;
   /** Test OPPOSÉ : le slot PERD l'opposition, jet propre réussi compris (`RollInfluenceView.lost`, LDB 17 l.68). */
@@ -728,7 +728,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
    *  (`clotures.cancel`) : tant qu'aucun jet de la fenêtre n'est lancé ; avant le jet, l'action engagée
    *  (`refusDAnnuler`, refus dit au joueur) puis le jet imposé la ferment. */
   const fermetureDeLAnnulation = (s: Jeu, p: P): FermetureDuJet | null => {
-    const propre = spec.annulation?.(p);
+    const propre = spec.annulation?.(p, s);
     if (propre) return propre;
     const toujours = spec.clotures?.cancel === 'toujours';
     if (!toujours && (spec.multi ? spec.multi.slots(p).some(spec.rolled) : spec.rolled(p as unknown as Slot))) return 'jetLance';

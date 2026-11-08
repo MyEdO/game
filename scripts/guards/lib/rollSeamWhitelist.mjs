@@ -122,11 +122,11 @@ export function rollSeamExcluded(rel) {
  * @type {Map<string, StockEntry>}
  */
 export const PENDING_JET_FABRICATION_STOCK = new Map([
+  ['src/noyau/acteDeSoin.ts', { n: 1, kind: 'dette', why: '`pendingHeal` de l\'acte de l\'infirmerie (`soinDeLActe`, brouillon hors combat, soigneur PNJ compris) -> #1064.' }],
   ['src/noyau/combatEffects.ts', { n: 1, kind: 'canonique', why: 'canonique : le corps d\'`openSkillTest` (combatEffects.ts:321) — LA fabrique du `pendingTest` de la famille Flow authorée, le pending y est monté UNE fois pour tous ses appelants.' }],
   ['src/noyau/combatSlice.ts', { n: 2, kind: 'dette', why: '4 -> 2 (#3595 : les deux `pendingReload`, pièce servie et poste de navire, deviennent `jetDeRecharge` de combatFlow, partagé avec le tour de l\'IA). 1 `pendingStateRecovery` et 1 `pendingHeal`, montés à la main -> #1064.' }],
   ['src/noyau/interludeFlow.ts', { n: 1, kind: 'dette', why: '`pendingActivity` du catalogue d\'Activités (`openCatalogActivity`) — fabrique UNIQUE de toutes les Activités à jet d\'interlude -> #1064.' }],
   ['src/noyau/massBattleFlow.ts', { n: 1, kind: 'dette', why: '`openBattleActivity` — fabrique PARTAGÉE, atteinte par 6 call-sites (prep ×3/round ×2/resistance) -> #1067 (surfaçage massBattle).' }],
-  ['src/noyau/medicFlow.ts', { n: 1, kind: 'dette', why: '`pendingHeal` du soigneur PNJ hors combat -> #1064.' }],
   ['src/noyau/seaVoyageFlow.ts', { n: 1, kind: 'dette', why: '`pendingSteamSave` (`openSteamSave`, Test d\'Initiative de l\'ingénieur) : le flux a bien sa spec canonique (`rollFlowSpecs.ts` `steamSave`, `makeRollFlow`), c\'est la FABRIQUE du pending qui reste montée à la main -> #1474.' }],
   ['src/noyau/testsDeScene.ts', { n: 1, kind: 'canonique', why: 'canonique : re-ciblage d\'un `pendingTest` EXISTANT (`{ ...pt, … }`) sur un autre candidat — `target` recopié du candidat DÉJÀ calculé par la fabrique, aucun jet neuf décrit.' }],
 ]);
