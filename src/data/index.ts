@@ -312,7 +312,7 @@ export interface ActionDef {
   /** L'action fait naître un panneau-paramètre de SON alvéole : la surface y pose l'ancre. */
   panneau?: boolean;
   /** Entrée HÔTE d'un `surface: 'geste-secondaire'` : l'alvéole de CETTE action porte le geste. */
-  hote?: string;
+  hote?: { id: string };
 }
 export const ACTIONS = actionsJson as ActionDef[];
 /** Action par id STABLE (jamais par libellé). */
@@ -1552,16 +1552,16 @@ export interface PsychologyData extends StatusData {
    *  puis pose l'état `becomes` (Terreur → Peur, l.55-57) ; `'binary'` = Test BINAIRE activant l'affliction
    *  CIBLÉE (traits ciblés). Absent (Frénésie/trauma) = pas de Test de résolution surmontable. */
   resolution?: 'extended' | 'terreur' | 'binary';
-  /** (résolution `'terreur'`) État infligé à l'ÉCHEC (l'id de l'état, p.ex. `'brise'`) ; la QUANTITÉ est
-   *  déclarée par `failAmount` (défaut = Indice + |DR négatifs|, LDB 21 l.54). */
-  failCondition?: string;
+  /** (résolution `'terreur'`) État infligé à l'ÉCHEC (`EtatData.id`) ; la QUANTITÉ est déclarée par
+   *  `failAmount` (défaut = Indice + |DR négatifs|, LDB 21 l.54). */
+  failCondition?: { id: string };
   /** (résolution `'terreur'`) QUANTITÉ d'état infligée à l'échec, EN DONNÉES (`failConditionAmount`) :
    *  `base` (l'Indice de l'affliction via `'indice'`, ou un nombre FIXE) + `perDegreeOfFailure` par DR
    *  négatif. Défauts `{ base:'indice', perDegreeOfFailure:1 }` = la règle Brisé Terreur — plus de calcul
    *  codé : un nouvel État/Psy déclare ICI sa quantité (fixe, ou par degrés seuls). */
   failAmount?: { base?: 'indice' | number; perDegreeOfFailure?: number };
   /** (résolution `'terreur'`) État psychologique SUBSÉQUENT au Test (la Terreur devient une Peur, l.55). */
-  becomes?: string;
+  becomes?: { id: string };
   /** Paramètres du Test de Psychologie (LDB 21) : `skill` (compétence stable, défaut `calme` — la valeur
    *  NUE est lue par `skillBaseValue`) + `difficulty` (défaut Intermédiaire +0). Lu par `psychStepFor`/
    *  l'encounter, plus de Calme/Intermédiaire codé : un nouvel État/Psy déclare ICI son Test (ex. testé en
@@ -2264,8 +2264,8 @@ export interface LocationData {
   id: string;
   type: 'locations';
   label: string;
-  /** `id` du lieu parent (`LocationData.id`), ou null si racine — réf d'entité, ≠ libellé. */
-  parent: string | null;
+  /** Lieu parent (`LocationData.id`), ou null si racine. */
+  parent: { id: string } | null;
   prefix: string | null;
   suffix: string | null;
   desc?: string;
@@ -2736,13 +2736,15 @@ export interface CrewRoleData {
   skills: RefDesignee[];
   desc: string;
   wage?: CrewWage;
+  /** Rôle tenu par défaut par tout membre que le Test d'équipage n'emploie pas (MDG 14 l.15). */
+  parDefaut?: true;
 }
 /** Type de Test d'équipage — MDG 14. */
 export interface CrewTestTypeData {
   id: string;
   label: string;
   roles: string[];
-  essential: string;
+  essential: { id: string };
   /** FOYER de la règle qui ADRESSE le passage MDG 14 de ce Test d'équipage — la règle est à un clic
    *  depuis sa fiche Codex (`cibleCodex`). L'ENJEU AFFICHÉ, lui, est le descripteur d'EFFET du `kind`
    *  joué (`stakes.json`, cascade `voyage`, `voyageStakeRef`) : deux natures, deux datasets. */

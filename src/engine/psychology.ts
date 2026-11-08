@@ -228,7 +228,7 @@ export function fearSourceFor(self: Combatant, s: SourcePsy, selfSizeForSize?: S
  *  UNIQUE de l'applier `combatPsych` et du picker de Round : plus de `kind === 'terreur'` codé par-nom. */
 export function psychResolution(kind: PsychType): { mode?: 'extended' | 'terreur' | 'binary'; failCondition?: string; failAmount?: { base?: 'indice' | number; perDegreeOfFailure?: number }; becomes?: PsychType } {
   const d = findPsychologyById(kind);
-  return { mode: d?.resolution, failCondition: d?.failCondition, failAmount: d?.failAmount, becomes: d?.becomes as PsychType | undefined };
+  return { mode: d?.resolution, failCondition: d?.failCondition?.id, failAmount: d?.failAmount, becomes: d?.becomes?.id as PsychType | undefined };
 }
 
 /** Le Test de Psychologie d'un état, lu en DONNÉES (`psychology.json` `test`) — SOURCE UNIQUE du Test de

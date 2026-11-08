@@ -88,7 +88,7 @@ const INTERLUDE_KEYS = INTERLUDE_BRANCHE ? ACTIONS.filter((a) => a.surface === '
  *  au DOM dans `CombatConsole.test.tsx` : débrancher le rendeur y vire rouge. */
 const GESTE_2E_BRANCHE = /surface === 'geste-secondaire'/.test(CONSOLE_SRC);
 const GESTE_2E_KEYS = GESTE_2E_BRANCHE
-  ? ACTIONS.filter((a) => a.surface === 'geste-secondaire' && a.hote && CONSOLE_KEYS.includes(a.hote)).map((a) => a.id)
+  ? ACTIONS.filter((a) => a.surface === 'geste-secondaire' && a.hote && CONSOLE_KEYS.includes(a.hote.id)).map((a) => a.id)
   : [];
 
 /** Un REMÈDE D'ÉTAT (Se relever, Se rouler, Se libérer) n'a plus d'id cité au site : sa PERTINENCE

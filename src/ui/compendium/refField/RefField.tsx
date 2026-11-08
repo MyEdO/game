@@ -4,7 +4,7 @@ import type { JSX } from 'react';
  *  - `liste`    : `Ref[]` = {id, value?} (sorts d'une créature, Qualités d'une possession), ou ids NUS quand
  *                 l'élément du nœud est une feuille `idDe` (`refs` : Bénédictions/Miracles d'un dieu, Groupes) —
  *                 choix dans le dataset cible, LIBELLÉ affiché mais `id` STABLE stocké ;
- *  - `single`   : UN `<select>` (sous-type d'arme, classe d'une carrière, espèce/carrière d'un pré-tiré…),
+ *  - `single`   : UN `<select>` (sous-type d'arme…),
  *                 sur un dataset OU sur des entrées fournies (`entrees` : registre du narratif d'un
  *                 projet, `RefNarrativeField`) ;
  *  - `freeText` : `single` + `<input list>`/`<datalist>` (au lieu d'un `<select>` strict) — pioche par
@@ -73,7 +73,6 @@ export const REF_FIELD: Record<string, RefFieldCfg> = {
   'structures.traits': { ds: 'traits' },
   // ── single (dataset réel) ───────────────────────────────────────────────────
   'trappings.subType': { ds: 'weaponGroups', single: true },
-  'locations.parent': { ds: 'locations', single: true },
   // Caractéristique d'une compétence : SÉLECTEUR (pas d'input libre) — `skills.json` stocke l'`id` du
   // dataset `characteristics` (mesuré : 10/10 valeurs distinctes résolues par `id`, 0/10 par `abr` ou
   // `label`), donc valeur d'option = `id` (défaut). `abr` y est vide sur 7 des 19 entrées.

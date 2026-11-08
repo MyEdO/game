@@ -15,7 +15,7 @@ import type { BattleState, CampaignVessel, Jeu } from './etat';
 import type { NightEntry } from './restFlow';
 import type { PendingBase } from './rollFlowFactory';
 import type { PairedSense } from '../engine/ops';
-import { findCrewRoleById, findCrewTestTypeById, findVehicleById, findSeaShantyById } from '../data';
+import { crewRoles, findCrewRoleById, findCrewTestTypeById, findVehicleById, findSeaShantyById } from '../data';
 import { estNavire, profilNavalDe } from '../engine/coque';
 import { exposedCrew } from '../engine/shipCritical';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
@@ -72,9 +72,10 @@ export function shipDefaultRoles(crew: Combatant[], testTypeId: string, navigati
   const apte = exposedCrew(crew);
   const free = new Set<string>();
   for (const c of apte) { if (c.shipRole) out.set(c.id, c.shipRole); else free.add(c.id); } // épinglés respectés (dont 'repos')
-  // Rôles SPÉCIFIQUES (hors Mousse), ESSENTIEL d'abord : UN titulaire chacun = le meilleur marin FORMÉ encore libre.
-  const specific = testType.roles.filter((r) => r !== 'mousse')
-    .sort((a, b) => (a === testType.essential ? -1 : b === testType.essential ? 1 : 0));
+  const parDefaut = crewRoles.find((r) => r.parDefaut)?.id;
+  // Rôles SPÉCIFIQUES (hors rôle par défaut), ESSENTIEL d'abord : UN titulaire chacun = le meilleur marin FORMÉ encore libre.
+  const specific = testType.roles.filter((r) => r !== parDefaut)
+    .sort((a, b) => (a === testType.essential.id ? -1 : b === testType.essential.id ? 1 : 0));
   for (const roleId of specific) {
     if ([...out.values()].includes(roleId)) continue; // déjà tenu (épinglé)
     const role = findCrewRoleById(roleId)!;
@@ -84,10 +85,10 @@ export function shipDefaultRoles(crew: Combatant[], testTypeId: string, navigati
     const winner = partyBest(candidates, {}, (c) => crewRoleValue(c, role, navigation).value ?? -Infinity)?.actor;
     if (winner) { out.set(winner.id, roleId); free.delete(winner.id); }
   }
-  // Le reste → Mousse (rôle par défaut, l.15) s'il sait Voile/Ramer.
-  if (testType.roles.includes('mousse')) for (const id of free) {
+  // Le reste → rôle par défaut (MDG 14 l.15) s'il en a la formation.
+  if (parDefaut && testType.roles.includes(parDefaut)) for (const id of free) {
     const c = apte.find((x) => x.id === id)!;
-    if (peutTenter(c) && trainedForRole(c, 'mousse', navigation)) out.set(id, 'mousse');
+    if (peutTenter(c) && trainedForRole(c, parDefaut, navigation)) out.set(id, parDefaut);
   }
   return out;
 }

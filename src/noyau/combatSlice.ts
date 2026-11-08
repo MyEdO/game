@@ -182,7 +182,7 @@ function openCrewTestPending(get: Get, ship: Combatant, testTypeId: string): {
   const navigation = navigationDuNavire(get, ship);
   const contributors = crewTestContributors(ship, battle.combatants, testTypeId, partyIds, navigation);
   if (!contributors.length) return null;
-  const essentialRoleId = findCrewTestTypeById(testTypeId)?.essential;
+  const essentialRoleId = findCrewTestTypeById(testTypeId)?.essential.id;
   const participants: ShipManeuverParticipant[] = contributors.map((a) => {
     const role = findCrewRoleById(a.roleId);
     // LDB 09 l.30 ; #2588 Q1.
