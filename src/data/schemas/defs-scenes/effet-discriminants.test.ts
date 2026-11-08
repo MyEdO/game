@@ -12,10 +12,11 @@ import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
  *
  * Le contrat tenu ici est une ÉGALITÉ D'ENSEMBLE, mesurée des DEUX côtés du pont :
  * — côté TYPE : les membres de l'union manuscrite `Effect` (`effets.ts`), lus à l'AST —
- *   composition mince de `z.infer<typeof xSchema>` + 3 corps manuscrits (`DelayedEffect`,
- *   `PetitePriere`, `EffectOp`). Le discriminant d'un membre `z.infer` est relu à l'AST du schéma
- *   NOMMÉ (son module de schémas), celui d'un corps manuscrit à l'AST de sa déclaration — jamais
- *   une liste recopiée, qui mourrait au premier ajout ;
+ *   composition mince de `z.infer<typeof xSchema>`, d'alias d'`effets.ts` qui composent un tel
+ *   `z.infer` (`TestEtendu`) et de 3 corps manuscrits (`DelayedEffect`, `PetitePriere`, `EffectOp`).
+ *   Le discriminant d'un membre qui compose un schéma est relu à l'AST du schéma NOMMÉ (son module
+ *   de schémas), celui d'un corps manuscrit à l'AST de sa déclaration — jamais une liste recopiée,
+ *   qui mourrait au premier ajout ;
  * — côté SCHÉMA : les discriminants réels des options d'`effectSchema`, par INTROSPECTION zod (le
  *   `z.lazy` est déroulé — la seule façon de voir ce que la porte accepte VRAIMENT).
  * Manquants et en-trop sont NOMMÉS dans les deux sens.
@@ -53,17 +54,40 @@ function membresDEffect(sf: ts.SourceFile): readonly ts.TypeNode[] {
   return membres;
 }
 
-/** Le schéma que compose un membre `z.infer<typeof xSchema>`, `undefined` pour un autre membre. */
-function schemaDuMembre(m: ts.TypeNode): string | undefined {
+/** Le schéma d'un nœud `z.infer<typeof xSchema>`, `undefined` pour un autre nœud. */
+function schemaDuInfer(m: ts.Node): string | undefined {
   const arg = ts.isTypeReferenceNode(m) ? m.typeArguments?.[0] : undefined;
   return arg && ts.isTypeQueryNode(arg) && ts.isIdentifier(arg.exprName) ? arg.exprName.text : undefined;
+}
+
+/** Les alias de type déclarés dans un fichier source, par nom. */
+function aliasDe(sf: ts.SourceFile): Map<string, ts.TypeNode> {
+  const out = new Map<string, ts.TypeNode>();
+  sf.forEachChild((n) => { if (ts.isTypeAliasDeclaration(n)) out.set(n.name.text, n.type); });
+  return out;
+}
+
+/** Le schéma que compose un membre : `z.infer<typeof xSchema>`, ou l'alias de `alias` dont le corps en compose
+ *  un (`TestEtendu`) ; `undefined` pour un autre membre. */
+function schemaDuMembre(m: ts.TypeNode, alias: ReadonlyMap<string, ts.TypeNode>): string | undefined {
+  const direct = schemaDuInfer(m);
+  const corps = direct === undefined && ts.isTypeReferenceNode(m) ? alias.get(m.typeName.getText()) : undefined;
+  if (!corps) return direct;
+  let trouve: string | undefined;
+  const chercher = (n: ts.Node): void => {
+    trouve ??= schemaDuInfer(n);
+    if (trouve === undefined) n.forEachChild(chercher);
+  };
+  chercher(corps);
+  return trouve;
 }
 
 /** Modules où vit un schéma composé par un membre `z.infer<…>` de l'union `Effect` : `effets.ts`, et
  *  chaque module relatif dont il importe un nom de membre. */
 function modulesDesSchemas(): string[] {
   const sf = source(EFFETS);
-  const membres = new Set(membresDEffect(sf).map(schemaDuMembre));
+  const alias = aliasDe(sf);
+  const membres = new Set(membresDEffect(sf).map((m) => schemaDuMembre(m, alias)));
   const modules = new Set<string>();
   sf.forEachChild((n) => {
     if (!ts.isImportDeclaration(n) || !ts.isStringLiteral(n.moduleSpecifier) || !n.moduleSpecifier.text.startsWith('.')) return;
@@ -157,14 +181,15 @@ function typesDuType(texteUnion?: string): string[] {
   const schemas = litterauxDesSchemas();
   const manuscrits = new Map([...corpsManuscrits(EFFETS), ...corpsManuscrits(FLOW_CORE)]);
   const sf = texteUnion ? ast({ rel: EFFETS, text: texteUnion })! : source(EFFETS);
+  const alias = aliasDe(sf);
   const types: string[] = [];
   for (const m of membresDEffect(sf)) {
     if (!ts.isTypeReferenceNode(m)) {
       types.push(`<non-référence: ${m.getText().slice(0, 40)}>`);
       continue;
     }
-    // `z.infer<typeof xSchema>` — le membre COMPOSE un schéma nommé d'un module de schémas.
-    const nom = schemaDuMembre(m);
+    // `z.infer<typeof xSchema>`, nu ou sous un alias — le membre COMPOSE un schéma nommé d'un module de schémas.
+    const nom = schemaDuMembre(m, alias);
     if (nom !== undefined) {
       // DEUX causes distinctes, deux libellés : le schéma n'existe dans aucun module de
       // `modulesDesSchemas`, ou il y existe mais ne porte aucun `type: z.literal(…)`. Les

@@ -45,7 +45,7 @@ import { wornArmourPoints } from './items';
 import { LOCALISATIONS_DE_COUP } from './localisations';
 import type { MatiereDArmure } from '../data/schemas/grammaire/valeurs';
 import { MINUTES_PER_DAY, minutesUntilNext, dawnMinute } from './clock';
-import { ALL_MAGIC, Combatant, HitLocation, Difficulty, CharKey, CastPenalty, type ItemInstance } from './types';
+import { ALL_MAGIC, Combatant, DIFFICULTE_PAR_DEFAUT, HitLocation, Difficulty, CharKey, CastPenalty, type ItemInstance } from './types';
 import { findTraitById, findTalentById, findDomainById, findGodById, matiereDuGroupe, type TestMatch } from '../data';
 import { effectiveTalents, talentPassiveMods } from './talentEffects';
 import { effectiveEntry } from './variants';
@@ -693,7 +693,7 @@ export function resolveCasting(
   caster: Combatant,
   spell: SpellLike,
   rng: RNG,
-  difficulty: Difficulty = 'intermediaire',
+  difficulty: Difficulty = DIFFICULTE_PAR_DEFAUT,
   focusedNI0 = false,
   /** Modificateur ponctuel au Test, calculé par l'ÉTAT qui connaît la géométrie (ex.
    *  « N'écoutez point la Sorcière », LDB 42 : −20 si le Sort cible la zone du prêtre). */
@@ -746,7 +746,7 @@ export function resolveCasting(
 export function castTestTarget(
   caster: Combatant,
   spell: SpellLike,
-  difficulty: Difficulty = 'intermediaire',
+  difficulty: Difficulty = DIFFICULTE_PAR_DEFAUT,
   extraMod = 0,
 ): number {
   const info = castInfo(spell);
@@ -1182,7 +1182,7 @@ export function resolveFocus(
   caster: Combatant,
   spell: SpellLike,
   rng: RNG,
-  difficulty: Difficulty = 'intermediaire',
+  difficulty: Difficulty = DIFFICULTE_PAR_DEFAUT,
   atSea = false,
   /** Vents Tourbillonnants (LDB 46 l.179-190, option `vents-tourbillonnants`) : modificateur de la
    *  force des Vents CE Round, calculé par l'ÉTAT (`windsMagicModOf`, hors du moteur pur). */

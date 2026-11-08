@@ -10,8 +10,9 @@ import { detenteur } from './lib/detenteur.testkit';
 /**
  * LA DÉCISION D'UN TEST A UNE SOURCE (#1874) — `resoudreFlowTest` (`src/engine/decisionDuTest.ts`) est le
  * seul lecteur de `difficulty`, `gate`, `difficultyBy` et `easierIf` d'un `FlowTest` qui PEUT porter une
- * décision. Le champ se lit au VÉRIFICATEUR DE TYPES (`scanFieldReads`) : identité par symbole de la
- * propriété, porteur typé au site (`champsDuPorteur`).
+ * décision, Test étendu compris (`TestEtendu`, `defs-scenes/effets.ts`, qui les tient de `FlowTest`). Le champ
+ * se lit au VÉRIFICATEUR DE TYPES (`scanFieldReads`) : identité par symbole de la propriété, porteur typé au
+ * site (`champsDuPorteur`).
  */
 const GARDE = {
   question:
@@ -79,15 +80,16 @@ describe('decision-du-test-guard', () => {
     expect([...lus].sort()).toEqual([...CHAMPS].sort());
   }, 150_000);
 
-  /** Contre-épreuve sur fixture : la garde MORD une lecture à cru, laisse passer un porteur sans décision,
-   *  honore un marqueur et refuse un marqueur orphelin. */
-  it('contre-épreuve : morsure, porteur sans décision, marqueur, marqueur orphelin', () => {
+  /** Contre-épreuve sur fixture : la garde MORD une lecture à cru, celle d'un porteur qui tient sa décision de
+   *  `FlowTest` (Test étendu), laisse passer un porteur sans décision, honore un marqueur et refuse un marqueur
+   *  orphelin. */
+  it('contre-épreuve : morsure, Test étendu, porteur sans décision, marqueur, marqueur orphelin', () => {
     const fixtures: Record<string, string> = {
       'src/engine/flowCore.ts': `export interface FlowTest { difficulty?: string; gate?: boolean; difficultyBy?: string[]; easierIf?: { steps?: number } }
 export type JetFixe = Omit<FlowTest, 'gate' | 'difficultyBy' | 'easierIf'>;
 `,
       'src/engine/decisionDuTest.ts': `import type { FlowTest } from './flowCore';
-export const resoudre = (ft: FlowTest) => ft.gate !== false && (ft.difficulty ?? 'intermediaire');
+export const resoudre = (ft: FlowTest) => ft.gate !== false && ft.difficulty;
 `,
       'src/ouvreur.ts': `import type { FlowTest, JetFixe } from './engine/flowCore';
 export const aCru = (ft: FlowTest) => ft.difficulty;
@@ -96,13 +98,15 @@ export const fixe = (j: JetFixe) => j.difficulty;
 export const editeur = (ft: FlowTest) => ft.easierIf;
 // lecture déclarée : marqueur qui ne couvre aucune lecture
 export const rien = 1;
+type Etendu = { type: 'extendedTest'; targetDR: number } & Pick<FlowTest, 'difficulty' | 'gate' | 'difficultyBy' | 'easierIf'>;
+export const etendu = (e: Etendu) => e.difficulty;
 `,
     };
     const programme = virtualProgram(fixtures);
     try {
       const hits = scanFieldReads(CIBLE, CHAMPS, Object.keys(fixtures).map((rel) => join(VIRTUAL_ROOT, rel)), VIRTUAL_ROOT, new Map(), programme);
       const { fautes, orphelins } = juger(hits, new Map(Object.entries(fixtures)), RESOLUTION);
-      expect(fautes.map((f) => f.slice(0, f.indexOf(' ')))).toEqual(['src/ouvreur.ts:2']);
+      expect(fautes.map((f) => f.slice(0, f.indexOf(' ')))).toEqual(['src/ouvreur.ts:2', 'src/ouvreur.ts:9']);
       expect(orphelins).toEqual(['src/ouvreur.ts:6']);
     } finally { programme.dispose(); }
   });

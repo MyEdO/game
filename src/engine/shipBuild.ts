@@ -35,7 +35,7 @@ import { roll, rollDice, type RNG, type Tirage } from './dice';
 import { deDeTirageDe, rangeesDe } from '../data/rangees';
 import type * as panneDeVapeur from '../data/schemas/defs/steam-breakdown';
 import { rollTest } from './tests';
-import type { Difficulty } from './types';
+import { DIFFICULTE_PAR_DEFAUT, type Difficulty } from './types';
 import type { JetFixe } from './flowCore';
 import type { CibleEtendue } from '../data/schemas/grammaire/valeurs';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -286,7 +286,7 @@ export interface RepairTick { roll: number; target: number; success: boolean; wo
  *  navires), ou Métier (Charpentier) déjà pénalisé de −10 par l'appelant (l.641). `lissage` : le coût
  *  monte de 50 % (ch.12 l.295). PUR (RNG injecté). */
 export function rollPortRepair(skillValue: number, woundsMissing: number, rng: RNG, opts: { lissage?: boolean; difficulty?: Difficulty } = {}): RepairTick {
-  const t = rollTest(skillValue, opts.difficulty ?? 'intermediaire', rng);
+  const t = rollTest(skillValue, opts.difficulty ?? DIFFICULTE_PAR_DEFAUT, rng);
   const hours = roll(1, 10, rng);
   if (!t.success) return { roll: t.roll, target: t.target, success: false, wounds: 0, hours, costGold: 0 };
   const wounds = Math.min(woundsMissing, roll(1, 10, rng));
