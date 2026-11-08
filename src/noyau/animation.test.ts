@@ -1,6 +1,6 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { maniementDe } from './animation';
+import { maniementDe, maniementDeLaForme } from './animation';
 import type { Maniement } from '../data/schemas/grammaire/valeurs';
 import { findTrappingById } from '../data';
 import { buildWeapon, itemFromTrappingById, weaponFromItem } from '../engine/items';
@@ -60,5 +60,14 @@ describe('maniementDe — dérivé de la FORME, pas du Groupe de règles', () =>
     const invoquee: Weapon = buildWeapon({ label: 'Arme aethyrique', type: 'melee', damage: { plusBF: false, flat: 4 }, shape: findTrappingById('arbalete')!.shape, uid: 'conjure-1' });
     expect(findTrappingById('arbalete')?.shape?.id, 'la sonde mord : le gabarit a une forme d’arbalète').toBe('arbalete');
     expect(maniementDe(armeDeDessin(invoquee))).toBe('arbalete');
+  });
+});
+
+describe('maniementDeLaForme — celui que déclare la racine de la forme', () => {
+  it('une racine donne le sien ; une variante, celui de sa racine ; aucune déclaration, aucun', () => {
+    expect(maniementDeLaForme('hallebarde')).toBe('hampe');
+    expect(maniementDeLaForme('grande_hache')).toBe('lourde2m');
+    expect(maniementDeLaForme('epee_soldat')).toBeUndefined();
+    expect(maniementDeLaForme('inconnue')).toBeUndefined();
   });
 });

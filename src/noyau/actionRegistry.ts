@@ -447,7 +447,7 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
       // L'ÉPUISEMENT n'est plus une garde séparée : `entityPickables` ne rend que les feuilles des
       // actions ENCORE jouables (`actionsAuthorees` filtre les drapeaux), donc un décor épuisé sort
       // avec zéro candidat sans qu'une seconde garde ait à redire la même chose.
-      .flatMap((e) => entityPickables(e, flags, objetDuNarratif(state.campaignNarratif)).map((p) => ({ entityId: e.id, ...p })));
+      .flatMap((e) => entityPickables(e, flags, objetDuNarratif(state.campaignNarratif), state.objetsAuSol).map((p) => ({ entityId: e.id, ...p })));
   },
 };
 
@@ -695,7 +695,6 @@ const ARGUMENTS_DE_LA_BARRE: { readonly [V in keyof VerbesDeLaBarre]: LectureDuV
   quitterLePoste: {},
   pousserLEngin: {},
   aiderLEquipe: {},
-  ramasserLObjet: { args: [{ cle: 'entityId' }, { cle: 'pickKey' }], requis: ['entityId', 'pickKey'] },
   // La barre : le barreur la tient, ou la coque elle-même (`manoeuvrerLeNavire` accepte l'un ou l'autre).
   manoeuvrerLeNavire: { args: [{ cle: 'crewId', defaut: lActif }] },
   chanterLaChanson: { args: [{ cle: 'shipId', defaut: lActif }] },
@@ -781,6 +780,7 @@ const avec = <T>(valeur: T | undefined, jouer: (v: T) => GesteDuNoyau): GesteDuN
  *  jouent aussi, son porteur l'actif, ou la sortie d'une phase. */
 const ENTREES_HORS_DES_VERBES_DE_LA_BARRE: Readonly<Record<string, EntreeDOffre>> = {
   utiliserLObjet: duTour((o) => avec(o.args.itemUid, (uid) => geste('utiliserLObjet', uid))),
+  ramasserLObjet: duTour((o) => (o.args.entityId && o.args.pickKey ? geste('ramasserLObjet', o.args.entityId, o.args.pickKey) : null)),
   /** L'alvéole d'un sort ARME le mode d'incantation sur CE sort (`armed`) : le re-clic le désarme (`desarmerLeMode`),
    *  comme toute case à mode armé — annulation gratuite, rien n'est engagé avant le clic-cible. */
   incanterLeSort: duTour((o) => avec(o.args.spellId, (sort) => geste('incanterLeSort', idDeLActif(o), sort))),

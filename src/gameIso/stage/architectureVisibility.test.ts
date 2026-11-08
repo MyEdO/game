@@ -90,9 +90,9 @@ describe('dégagement — une seule loi pour toits et façades, sur un bâti SAN
     const scene = emptyScene('scene-test', 12, 12);
     const emprise = { x: 3, y: 3, w: 4, h: 4 };
     const masse: BuildingMass = {
-      id: 'toit-hangar', z: 0, footprint: [emprise], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 45, material: 'tuile',
+      id: 'toit-hangar', z: 0, footprint: [emprise], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 45, material: { id: 'tuile' },
     };
-    scene.architecture = [{ id: 'hangar', label: 'Hangar', style: 'maison', storeys: [], facades: [], masses: [masse] }];
+    scene.architecture = [{ id: 'hangar', label: 'Hangar', style: { id: 'maison' }, storeys: [], facades: [], masses: [masse] }];
     const murs: WallSeg[] = [];
     for (let x = emprise.x; x < emprise.x + emprise.w; x++) {
       murs.push({ x, y: emprise.y, side: 'N' }); // arête nord de l'emprise
@@ -228,7 +228,7 @@ describe('vue — une nappe se peint quand le groupe la VOIT (#950)', () => {
     scene.ambientLight = 'jour';
     const corps = (id: string, emprise: { x: number; y: number; w: number; h: number }) => {
       const masse: BuildingMass = {
-        id: `toit-${id}`, z: 0, footprint: [emprise], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 45, material: 'tuile',
+        id: `toit-${id}`, z: 0, footprint: [emprise], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 45, material: { id: 'tuile' },
       };
       const murs: WallSeg[] = [];
       for (let x = emprise.x; x < emprise.x + emprise.w; x++) {
@@ -239,7 +239,7 @@ describe('vue — une nappe se peint quand le groupe la VOIT (#950)', () => {
         murs.push({ x: emprise.x - 1, y, side: 'E' });
         murs.push({ x: emprise.x + emprise.w - 1, y, side: 'E' });
       }
-      scene.architecture = [...(scene.architecture ?? []), { id, style: 'maison', storeys: [], facades: [], masses: [masse] }];
+      scene.architecture = [...(scene.architecture ?? []), { id, style: { id: 'maison' }, storeys: [], facades: [], masses: [masse] }];
       scene.walls = [...(scene.walls ?? []), ...murs];
       return masse;
     };

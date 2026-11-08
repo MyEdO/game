@@ -2,7 +2,7 @@
 ## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
 ## pas de la marche de l'atelier, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
-## au sol, un vecteur rapporté à un repère, le repère d'un objet rangé à un emplacement, le coin d'une bulle au-dessus
+## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, le coin d'une bulle au-dessus
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
 ## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan et le coin de ce qui se pose sous lui. Seul script où l'arithmétique et la mesure sont permises
@@ -335,6 +335,16 @@ static func entree_de_marche(gauche: float, droite: float, avant: float, arriere
 ## Le vecteur `vecteur` rapporté au repère de base `base` (`Basis.inverse`).
 static func dans_la_base(base: Basis, vecteur: Vector3) -> Vector3:
 	return base.inverse() * vecteur
+
+
+## L'axe unité (±X, ±Y ou ±Z) le plus proche de `vecteur` posé dans le repère de base `base` : celui de sa plus grande
+## composante, à son signe (`SecondePrise`, #3319).
+static func axe_le_plus_proche(base: Basis, vecteur: Vector3) -> Vector3:
+	var pose := base * vecteur
+	var axe := pose.abs().max_axis_index()
+	var unite := Vector3.ZERO
+	unite[axe] = signf(pose[axe])
+	return unite
 
 
 ## L'axe `axe` (`Vector3.AXIS_X`, `AXIS_Y` ou `AXIS_Z`) du repère de prise d'un objet rangé à l'emplacement de base

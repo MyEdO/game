@@ -2,7 +2,7 @@
  * LA COMPOSITION D'UN PERSONNAGE SUR UNE BASE (#3086, D2 ; `CONTRAT.md`, section « Composition d'un personnage ») : le
  * Soldat de `catalogues` sur une base sans élément est tout entier manquant, chaque chose nommée par sa clé et par ce qui
  * l'apporte ; un plastron skinné et un accessoire de la base le montent sous la clé de leur ligne au panneau ; une
- * apparence variante monte son élément, à défaut celui de sa racine ; un élément monté prend la palette de la teinte de sa chose ; le sexe pose `feminin`, un gabarit non neutre change l'échelle de la racine, ses pieds sont ceux des appuis ;
+ * apparence variante monte son élément, à défaut celui de sa racine ; un élément monté prend la palette de la teinte de sa chose ; le sexe pose `feminin` et choisit le matériau `parSexe` de chaque surface de la base, un gabarit non neutre change l'échelle de la racine, ses pieds sont ceux des appuis ;
  * le pont sert `composer` après `modeles`, `catalogues` et ses axes, et `presetDeComposition`, l'enveloppe du preset nommé
  * reprise, et refuse en `validation` une composition absente ou fautive, au chemin de la faute, et un preset inconnu.
  */
@@ -83,6 +83,14 @@ describe('composerSurLaBase', () => {
     expect(composer({ humanoide }, { ...soldat, gabarit: { id: 'brute' } }).gabarit?.racine.echelle).toBe(1.35);
   });
 
+  it('le sexe choisit, par surface de la base, le matériau que nomme son `parSexe` (#3188) ; sans entrée pour ce sexe, aucun', () => {
+    const peau = { nom: 'Peau_M', palette: 'peau', parSexe: { F: 'Peau_F' } };
+    const parSexe = { ...humanoide, surfaces: [peau, { nom: 'Yeux', palette: 'yeux' }] };
+    expect(composer({ humanoide: parSexe }, soldat).materiaux).toEqual({ Peau_M: 'Peau_F' });
+    expect(composer({ humanoide: parSexe }, { ...soldat, sex: 'M' }).materiaux).toEqual({});
+    expect(composer({ humanoide }, soldat).materiaux).toEqual({});
+  });
+
   it('une apparence variante monte l’élément qui la désigne, à défaut celui de sa racine ; sans l’un ni l’autre, le manquant garde son id', () => {
     const epee = { ...elementSchema3('humanoide'), cle: { apparence: 'epee' } };
     const epeeDeSoldat = { ...elementSchema3('humanoide'), cle: { apparence: 'epee_soldat' } };
@@ -107,7 +115,7 @@ describe('le pont : composer, catalogues, presetDeComposition', () => {
     expect(appeler('composer', { base: 'humanoide', composition: soldat }).erreur.message).toMatch(/modeles d’abord/);
     appeler('modeles', { manifestes: { humanoide }, osDesRigides: { humanoide: [] } });
     expect(appeler('composer', { base: 'autre', composition: soldat }).erreur.categorie).toBe('validation');
-    expect(Object.keys(appeler('composer', { base: 'humanoide', composition: soldat })).sort()).toEqual(['gabarit', 'manquants', 'montes', 'morphes', 'ok', 'palette', 'rapport']);
+    expect(Object.keys(appeler('composer', { base: 'humanoide', composition: soldat })).sort()).toEqual(['gabarit', 'manquants', 'materiaux', 'montes', 'morphes', 'ok', 'palette', 'rapport']);
   });
 
   it('un élément monté prend la palette de la teinte de sa chose portée (#3456) ; une chose sans élément, aucune', () => {

@@ -88,7 +88,7 @@ function mount(scene: Scene, sel: Sel) {
 function sceneAvecCorps(): Scene {
   return encloseRect({
     ...emptyScene('scene-test', 12, 12),
-    architecture: [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [] }],
+    architecture: [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [] }],
   }, { x: 1, y: 1, w: 4, h: 4 });
 }
 
@@ -142,7 +142,7 @@ describe('Inspecteur — l’INTENTION de toiture atteint le rendu (#829/#841)',
     expect(parDefaut.every((el) => el.profile === 'gable')).toBe(true);
     // Le corps ne déclare aucune couverture : c'est celle de son TYPE de bâtiment qui s'applique
     // (`buildings.json › maison › roofMaterial`), devant celle de la scène (#1715).
-    expect(parDefaut.every((el) => el.material === buildingRoofMaterial('maison'))).toBe(true);
+    expect(parDefaut.every((el) => el.material === buildingRoofMaterial({ id: 'maison' })?.id)).toBe(true);
 
     const profil = selectByLabel(h.container, 'Profil');
     await setSelect(profil, 'hip');
@@ -266,12 +266,12 @@ describe('Inspecteur — l’INTENTION de toiture atteint le rendu (#829/#841)',
     expect(h.sceneOf().architecture![0].roofDefaults).toBeUndefined();
 
     await setSelect(selectByLabel(h.container, 'Couverture'), 'chaume');
-    expect(h.sceneOf().architecture![0].roofDefaults).toEqual({ material: 'chaume' });
+    expect(h.sceneOf().architecture![0].roofDefaults).toEqual({ material: { id: 'chaume' } });
 
     // …et le champ se RETIRE quand l'auteur rend la main : le corps ne surcharge plus rien.
     await setSelect(selectByLabel(h.container, 'Couverture'), '');
     expect(h.sceneOf().architecture![0].roofDefaults).toBeUndefined();
-    expect(buildRoofs(h.sceneOf()).every((el) => el.material === buildingRoofMaterial('maison'))).toBe(true);
+    expect(buildRoofs(h.sceneOf()).every((el) => el.material === buildingRoofMaterial({ id: 'maison' })?.id)).toBe(true);
 
     await h.unmount();
   });
@@ -344,7 +344,7 @@ describe('Inspecteur — la NATURE d’une zone atteint le PLAN (#881)', () => {
   const sceneAvecCour = (): Scene => ({
     ...encloseRect({
       ...emptyScene('scene-test', 12, 12),
-      architecture: [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [] }],
+      architecture: [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [] }],
     }, { x: 1, y: 1, w: 6, h: 6 }),
     effectZones: [{ id: 'cour', label: 'Cour', area: { kind: 'rect', x: 3, y: 3, w: 2, h: 2 }, z: 0, presentation: 'interior' }],
   });
@@ -475,7 +475,7 @@ function sceneFacade(): Scene {
     ...emptyScene('scene-test', 10, 10),
     walls: [{ x: 3, y: 3, side: 'N' }],
     architecture: [{
-      id: 'corps', style: 'taverne', storeys: [{ id: 'rez', z: 0, parts: [], roomZoneIds: [] }],
+      id: 'corps', style: { id: 'taverne' }, storeys: [{ id: 'rez', z: 0, parts: [], roomZoneIds: [] }],
       facades: [{
         id: 'sud', z: 0, edges: [{ x: 3, y: 3, side: 'N' }], appearance: 'auberge-relais-imperiale',
         features: [{ id: 'pignon', kind: 'gable', edge: { x: 3, y: 3, side: 'N' } }],

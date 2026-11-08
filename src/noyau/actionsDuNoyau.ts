@@ -109,10 +109,6 @@ export interface VerbesDeLaBarre {
   /** « Diriger l'équipe » (Commandant d'équipe, AA) : Test de Commandement (+0) pour aider une équipe d'Arme
    *  d'équipe à portée de voix — sur réussite, elle tire au score de Projectiles du commandant. Coûte l'Action. */
   aiderLEquipe: () => void;
-  /** Ramasser UN objet au sol pendant un Round (LDB 13 l.115-116) : applique au combattant
-   *  actif un item ramassable d'un `prop` interactif adjacent. Consomme l'Action, pas d'auto-équipe.
-   *  `key` = `eff:<index dans interact.effects>` (cf. entityPickables). */
-  ramasserLObjet: (entityId: IdDEntiteDeScene, key: IdDObjetRamassable) => void;
   /** Manœuvre navale (MDG 13) : ouvre la modale du Test de Navigation pour le navire que sert `crewId`. */
   manoeuvrerLeNavire: (crewId: IdDeCombattant) => void;
   /** Chanson de marin (Talent, MDG 09 l.32-40) : ouvre la modale du chanteur (choix de chanson + Test de Chant). */
@@ -141,6 +137,11 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   dissiperLeSort: (lanceurId: IdDeCombattant, spellId: IdDeSort, porteurId: IdDeCombattant) => void;
   /** Le porteur du consommable `uid` (`porteurDeLObjet`) l'utilise, Action gratuite (LDB 13 l.106). */
   utiliserLObjet: (uid: IdDObjet) => void;
+  /** Ramasse UN objet d'un décor à portée, sans l'équiper (`entityPickables`). En combat : le combattant actif, au prix de
+   *  son Action (`pickup` de `actions.json`), un objet posé au sol ou une feuille donneuse d'une action authorée (`key` =
+   *  `<actionId>:eff:<index>`). Hors combat : un objet posé au sol seulement (un décor authoré se fouille,
+   *  `jouerAction`), que le héros `pid` reçoit, le meneur sans lui. */
+  ramasserLObjet: (entityId: IdDEntiteDeScene, key: IdDObjetRamassable, pid?: IdDeHeros) => void;
   /** Prend le set d'armes `loadoutId` de `heroId`, Action gratuite (LDB 13 l.106), 1×/tour en combat. */
   prendreLaPanoplie: (heroId: IdDeHeros, loadoutId: IdDePanoplie) => void;
   /** Dépense un Point de Détermination de `combattantId` pour l'une de ses trois options, l'État `etat` pour le
@@ -219,6 +220,8 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Donne un objet de son porteur à `toHeroId` (transfert d'inventaire). Arrive NON équipé chez le
    *  destinataire ; recalcule les deux loadouts. Permet de confier une arme/armure au bon porteur. */
   transmettreLObjet: (uid: IdDObjet, toHeroId: IdDePorteur) => void;
+  /** Pose au sol, à la case du groupe, un objet d'un porteur du groupe et le contenu de son contenant (`objetsAuSol.ts`). */
+  poserLObjet: (uid: IdDObjet) => void;
   /** Choisit un id du catalogue d’apparences admis par l’objet ; le défaut retire la clé (#2113). */
   poserLApparence: (uid: IdDObjet, apparence: IdDApparence) => void;
   /** Achète une Augmentation de Caractéristique (coût in/hors-carrière auto, recalc Blessures). */

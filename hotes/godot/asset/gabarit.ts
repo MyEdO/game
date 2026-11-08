@@ -6,6 +6,7 @@
  */
 import type { GabaritResolu, Sexe } from '../../../src/noyau/index.ts';
 import { BUILD_NEUTRE } from '../../../src/lib/corpulence.ts';
+import { SEXES } from '../../../src/lib/sexe.ts';
 import { tableTotale } from '../../../src/lib/tableTotale.ts';
 import { CARRURE_MOINS, CARRURE_PLUS, FEMININ, CORPULENCE, NOMS_DES_SILHOUETTES, estSilhouette } from './silhouettes.ts';
 import { CLES_DU_GABARIT, PREFIXE_DES_CLES_DU_GABARIT, fauteDeBornesDuGabarit, type BornesDuGabarit, type ManifesteDeBase, type TableDeGabarit } from './manifesteDeBase.ts';
@@ -105,7 +106,7 @@ export function cellulesDeSilhouettesAtteignables(table: TableDeGabarit, silhoue
     const valeurs = poidsDeSilhouettes({ sex, build, st }, table);
     return tableTotale(silhouettes, (nom) => valeurs[nom]);
   };
-  return (['M', 'F'] as const).flatMap((sex) => [table.st.min, table.st.max].map((st, branche) => {
+  return SEXES.flatMap((sex) => [table.st.min, table.st.max].map((st, branche) => {
     const origine = poids(sex, BUILD_NEUTRE, FACTEURS_NEUTRES.st);
     const [corpulence, carrure] = [poids(sex, 1, FACTEURS_NEUTRES.st), poids(sex, BUILD_NEUTRE, st)]
       .map((bout) => tableTotale(silhouettes, (nom) => bout[nom] - origine[nom]));

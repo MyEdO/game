@@ -122,7 +122,8 @@ export { declarationDuReglage, REGLAGE_DE_L_AXE, VERBE_DE_REGLAGE } from './regl
 export { VERBE_DE_CHOIX, declarationDuChoix, type AxeDuChoix, type FenetreAChoix } from './choixDesFenetres';
 export { reglagesDesChoix } from './choixDeFenetre';
 export { avecSigne } from '../engine/types';
-export { ROLES_D_ANIMATION, type RoleDAnimation } from './animation';
+export { MANIEMENTS, ROLES_D_ANIMATION, maniementDeLaForme, type RoleDAnimation } from './animation';
+export type { Maniement } from '../data/schemas/grammaire/valeurs';
 export { lireLeRoster, ecrireLeRoster, idDeRosterDuHeros, rosterAvecLeHeros, type HerosDuRoster, type RosterEntry } from './persistance/roster';
 export { engagement, intentionDEngagement, refusDEngagement, refusDUnNouveauHeros } from './creation/engagement';
 export type { CreatorDraft } from './creation/brouillon';

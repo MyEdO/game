@@ -387,8 +387,8 @@ function propRecipeDeps(scene: Scene): readonly unknown[] {
 function matiereDeps(scene: Scene): readonly unknown[] {
   return depsUniques((ajouter) => {
     for (const body of scene.architecture ?? []) {
-      ajouter(roofMaterial(toitureEffective(scene, body).material));
-      for (const mass of body.masses) ajouter(roofMaterial(mass.material));
+      ajouter(roofMaterial(toitureEffective(scene, body).material.id));
+      for (const mass of body.masses) ajouter(roofMaterial(mass.material.id));
     }
     for (const matiere of matieresDe('relief')) ajouter(matiere);
   });

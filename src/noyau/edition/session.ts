@@ -199,13 +199,13 @@ function stationsPatchees(scene: Scene, p: NonNullable<PatchDeScene['stations']>
  *  les pièces que révèle l'étage ou la façade, l'apparence de la façade ; l'étage de la façade ou de la masse ; un
  *  champ de la masse (`null` : le champ se retire). */
 export interface PatchDArchitecture {
-  style?: string | null;
+  style?: ArchitectureBody['style'] | null;
   toiture?: { [K in keyof RoofDefaults]?: RoofDefaults[K] | null };
   retirerExclusion?: number;
   pieces?: string[];
   apparence?: string;
   z?: number;
-  masse?: { levels?: number; profile?: BuildingMass['profile']; pitchDeg?: number; material?: string; ridge?: 'x' | 'y' | null; eaveSide?: BuildingMass['eaveSide'] | null };
+  masse?: { levels?: number; profile?: BuildingMass['profile']; pitchDeg?: number; material?: BuildingMass['material']; ridge?: 'x' | 'y' | null; eaveSide?: BuildingMass['eaveSide'] | null };
 }
 
 /** Les profils de toit et leur libellé (`roofProfileSchema`). */

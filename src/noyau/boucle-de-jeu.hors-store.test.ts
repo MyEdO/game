@@ -2232,7 +2232,7 @@ describe('Détermination (Resolve) — retirer un État (LDB 17 l.59-61)', () =>
   });
 });
 
-describe('Ramasser un objet au sol en combat (un à la fois, LDB 13 l.115-116)', () => {
+describe('Ramasser un objet au sol en combat (un à la fois, `pickup` de `actions.json`)', () => {
   beforeEach(() => reset());
 
   function setup() {
@@ -2280,7 +2280,24 @@ describe('Ramasser un objet au sol en combat (un à la fois, LDB 13 l.115-116)',
     const feuilles = flowEffects(corps.usable!.actions![0].flow);
     expect(feuilles.some((e) => e.type === 'giveTrapping' && e.trappingId === 'tromblon')).toBe(true);
     expect(feuilles.some((e) => e.type === 'giveTrapping' && e.trappingId === 'dague')).toBe(true);
-    expect(entityPickables(corps, st.flags, objetDuNarratif(st.campaignNarratif)).map((p) => p.key)).toEqual(['fouiller:eff:1']);
+    expect(entityPickables(corps, st.flags, objetDuNarratif(st.campaignNarratif), st.objetsAuSol).map((p) => p.key)).toEqual(['fouiller:eff:1']);
+  });
+
+  it('un objet posé au sol (`objetsAuSol`) se ramasse d’une Action : il revient intact, son décor disparaît', () => {
+    const bh = setup();
+    const [objet, ...reste] = bh.items!;
+    const sol = { id: 'sol-1', kind: 'prop' as const, ref: 'bourse', pos: { x: 1, y: 0 } };
+    const sansObjet = (c: Combatant): Combatant => ({ ...c, items: reste });
+    banc.setState((st) => ({
+      party: st.party.map(sansObjet), battle: { ...st.battle!, combatants: st.battle!.combatants.map(sansObjet) },
+      scene: { ...st.scene!, entities: [...st.scene!.entities, sol] }, objetsAuSol: { 'sol-1': [{ ...objet, equipped: false }] },
+    }));
+    banc.getState().ramasserLObjet('sol-1', objet.uid);
+    const st = banc.getState();
+    expect(st.battle!.combatants[0].items!.find((i) => i.uid === objet.uid), 'sur le combattant').toEqual({ ...objet, equipped: false, inside: undefined });
+    expect(st.party[0].items!.some((i) => i.uid === objet.uid), 'et sur le héros').toBe(true);
+    expect(st.battle!.acted, 'il coûte l’Action').toBe(true);
+    expect([st.scene!.entities.some((e) => e.id === 'sol-1'), st.objetsAuSol], 'son décor et son entrée sortent ensemble').toEqual([false, {}]);
   });
 
   it('refusé si l’Action est déjà consommée', () => {

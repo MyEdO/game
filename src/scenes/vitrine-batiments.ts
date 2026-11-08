@@ -34,9 +34,9 @@ function vitrinePerimeterWalls(
 function vitrineBody(
   id: string,
   label: string,
-  style: string,
+  style: { id: string },
   foot: { x: number; y: number; w: number; h: number },
-  material: string,
+  material: { id: string },
 ) {
   const roomId = `piece-${id}`;
   return {
@@ -50,11 +50,11 @@ function vitrineBody(
 }
 
 const VITRINE_BODIES = [
-  { id: 'vit-taverne', label: 'Taverne', style: 'taverne', foot: { x: 3, y: 3, w: 15, h: 10 }, material: 'tuile', door: { x: 10, y: 12, side: 'S' as const } },
-  { id: 'vit-maison', label: 'Maison', style: 'maison', foot: { x: 21, y: 4, w: 7, h: 7 }, material: 'tuile', door: { x: 24, y: 10, side: 'S' as const } },
-  { id: 'vit-forge', label: 'Forge', style: 'forge', foot: { x: 5, y: 16, w: 10, h: 5 }, material: 'toit-ardoise', door: { x: 9, y: 16, side: 'N' as const } },
-  { id: 'vit-chapelle', label: 'Chapelle', style: 'chapelle', foot: { x: 20, y: 14, w: 4, h: 5 }, material: 'toit-ardoise', door: { x: 21, y: 18, side: 'S' as const } },
-  { id: 'vit-echoppe', label: 'Échoppe', style: 'echoppe', foot: { x: 25, y: 16, w: 3, h: 3 }, material: 'chaume', door: { x: 26, y: 18, side: 'S' as const } },
+  { id: 'vit-taverne', label: 'Taverne', style: { id: 'taverne' }, foot: { x: 3, y: 3, w: 15, h: 10 }, material: { id: 'tuile' }, door: { x: 10, y: 12, side: 'S' as const } },
+  { id: 'vit-maison', label: 'Maison', style: { id: 'maison' }, foot: { x: 21, y: 4, w: 7, h: 7 }, material: { id: 'tuile' }, door: { x: 24, y: 10, side: 'S' as const } },
+  { id: 'vit-forge', label: 'Forge', style: { id: 'forge' }, foot: { x: 5, y: 16, w: 10, h: 5 }, material: { id: 'toit-ardoise' }, door: { x: 9, y: 16, side: 'N' as const } },
+  { id: 'vit-chapelle', label: 'Chapelle', style: { id: 'chapelle' }, foot: { x: 20, y: 14, w: 4, h: 5 }, material: { id: 'toit-ardoise' }, door: { x: 21, y: 18, side: 'S' as const } },
+  { id: 'vit-echoppe', label: 'Échoppe', style: { id: 'echoppe' }, foot: { x: 25, y: 16, w: 3, h: 3 }, material: { id: 'chaume' }, door: { x: 26, y: 18, side: 'S' as const } },
 ];
 
 /** RUINE de vitrine — la rangée d'arêtes qui porte les parties de BRÈCHE qu'aucune scène-témoin du

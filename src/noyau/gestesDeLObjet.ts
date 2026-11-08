@@ -2,7 +2,7 @@
  * LES GESTES D'UN OBJET (#3328) — ce qu'un porteur peut faire d'un de ses objets depuis sa fiche, chaque geste écrit en
  * verbe du noyau, et ce qui le ferme maintenant : le porter (`equiperLObjet`), le tenir dans une main du set actif
  * (`garnirLaPanoplie`), le ranger dans un contenant ou l'en sortir (`rangerLObjet`), le donner à un porteur à ses côtés
- * (`transmettreLObjet`), l'utiliser (`utiliserLObjet`), l'évaluer ou le détecter (`evaluerLObjet`). Chaque refus est le verdict
+ * (`transmettreLObjet`), le poser au sol (`poserLObjet`), l'utiliser (`utiliserLObjet`), l'évaluer ou le détecter (`evaluerLObjet`). Chaque refus est le verdict
  * que le verbe applique. Lecteur PUR, lu par la fiche de personnage et par les
  * hôtes du noyau (`hote/ecran.ts`).
  */
@@ -18,6 +18,7 @@ import { refusDInventaire } from './verrousDeFiche';
 import { refusEmplacementDeMain } from './partyFlow';
 import { refusDeConsommer } from './consumableFlow';
 import { gameDay, refusDEvaluation } from './merchantFlow';
+import { refusDePoser } from './objetsAuSol';
 
 /** Une main du set actif : si elle tient l'objet (son geste la vide alors). */
 export interface MainDuSet extends GesteFermable { tenue: boolean }
@@ -38,6 +39,8 @@ export interface GestesDeLObjet {
   sortir: GesteFermable | null;
   /** Chacun des autres porteurs à ses côtés (`carriersColocated`) : héros du groupe, possessions intactes. */
   donner: GesteAChoix<Carrier> | null;
+  /** Tout objet : le poser au sol, à la case du groupe. */
+  poser: GesteFermable;
   /** Un consommable d'un héros (`isConsumable`). */
   utiliser: GesteFermable | null;
   /** Un objet non identifié d'un héros, refusé tant que court le délai de son Évaluation manquée (`refusDEvaluation`). */
@@ -51,7 +54,7 @@ const porteurDit = (c: Carrier): [id: string, libelle: string] => (c.kind === 'h
 
 /** Les gestes de l'objet `uid` du porteur `porteurId` (`resolveCarrier` : un héros du groupe ou une possession),
  *  `null` sans lui ou sans l'objet. PUR. */
-export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' | 'gameTime'>, porteurId: string, uid: string): GestesDeLObjet | null {
+export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' | 'gameTime' | 'scene'>, porteurId: string, uid: string): GestesDeLObjet | null {
   const porteur = resolveCarrier(s, porteurId);
   const items = !porteur ? [] : porteur.kind === 'hero' ? (porteur.hero.items ?? []) : porteur.possession.items;
   const it = items.find((i) => i.uid === uid);
@@ -82,6 +85,7 @@ export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' |
       const [id, libelle] = porteurDit(c);
       return { cible: c, libelle, geste: { verbe: 'transmettreLObjet', args: [uid, id] } };
     }) } : null,
+    poser: { geste: { verbe: 'poserLObjet', args: [uid] }, refus: refusDePoser(s, uid) },
     utiliser: hero && consommable ? sur('utiliserLObjet', [uid], refusDeConsommer(hero, it)) : null,
     evaluer: inconnu ? sur('evaluerLObjet', [uid], refusDEvaluation(s.party, it, 'evaluate', gameDay(s))) : null,
     detecter: inconnu ? sur('evaluerLObjet', [uid, 'detect'], refusDEvaluation(s.party, it, 'detect', gameDay(s))) : null,

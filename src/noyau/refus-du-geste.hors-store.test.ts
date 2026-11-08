@@ -52,7 +52,7 @@ function horsCandidat(a: Combatant, b: BattleState): GesteDuNoyau[] {
     ['armerLAttaque', [X]], ['lancerLAttaqueDeZone', [X]], ['rechargerLArme', [X]], ['approvisionnerLArme', [X]],
     ['approvisionnerLArme', [munition, X]], ['aspergerDEau', [X]], ['aspergerDEau', [autre]], ['gagnerLAvantage', [X]],
     ['faireUnBattement', [X]], ['tenterDeDistraire', [X]], ['manoeuvrerSurSoi', [X]], ['monterEnSelle', [X]],
-    ['servirLePoste', [{ hullId: X, posteUid: X }]], ['ramasserLObjet', [X, X]], ['manoeuvrerLeNavire', [autre]],
+    ['servirLePoste', [{ hullId: X, posteUid: X }]], ['manoeuvrerLeNavire', [autre]],
     ['chanterLaChanson', [autre]], ['chanterLaChanson', [X]],
   ];
   return gestes.map(([verbe, args]) => ({ verbe, args }) as GesteDuNoyau);

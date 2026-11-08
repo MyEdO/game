@@ -36,7 +36,7 @@ const construireScene = (): Scene => buildScene({
   architecture: [{
     id: 'masure',
     label: 'Masure',
-    style: 'maison',
+    style: { id: 'maison' },
     storeys: [{ id: 'masure-z0', z: 0, parts: [], roomZoneIds: ROOM_IDS }],
     facades: [],
     masses: [{
@@ -46,7 +46,7 @@ const construireScene = (): Scene => buildScene({
       levels: 1,
       profile: 'gable',
       pitchDeg: 42,
-      material: 'tuile',
+      material: { id: 'tuile' },
       ridge: 'x',
     }],
   }],

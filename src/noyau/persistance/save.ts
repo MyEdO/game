@@ -18,6 +18,7 @@ import { reposerPaquetDeCampagne } from '../monde/registreDesScenes';
 import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './elagage';
 import { FORMAT_SAVE } from './formats.generated';
 import { exigerUnRefus, parseSceneDeProjet } from '../worldMap';
+import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 
 export interface SaveMeta {
   version: string;
@@ -128,9 +129,12 @@ export function lireSave(brut: string): SaveGame | ObsoleteCause {
 }
 
 /** Une scène de `data` (la courante, celles du paquet de campagne) est-elle refusée par la porte des scènes
- *  (`parseSceneDeProjet`) ? */
+ *  (`parseSceneDeProjet`), ou une entité qu'une instance de scène réinjecte (`SceneMutation.entitesChangees`) par la porte
+ *  des entités (`sceneEntitySchema`) ? */
 function scenesRefusees(data: DonneesDeSave): boolean {
   const scenes = [...(data.scene ? [data.scene] : []), ...(data.campaignDoc?.scenes ?? [])];
+  const entites = Object.values(data.sceneInstances ?? {}).flatMap((m) => m.entitesChangees ?? []);
+  if (!entites.every((e) => sceneEntitySchema.safeParse(e).success)) return true;
   try {
     for (const s of scenes) parseSceneDeProjet(s);
     return false;

@@ -3767,7 +3767,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -13380,7 +13382,9 @@
     {
      "id": "diligence",
      "label": "La Diligence",
-     "style": "maison",
+     "style": {
+      "id": "maison"
+     },
      "storeys": [
       {
        "id": "diligence-z0",
@@ -20569,7 +20573,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -20846,7 +20852,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -24080,7 +24088,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -33594,7 +33604,9 @@
     {
      "id": "sept-rayons",
      "label": "Auberge des Sept Rayons",
-     "style": "maison",
+     "style": {
+      "id": "maison"
+     },
      "storeys": [
       {
        "id": "sept-rayons-z0",

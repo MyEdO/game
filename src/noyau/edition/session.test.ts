@@ -312,7 +312,7 @@ describe('session d’édition, les écrivains dédiés de la scène (#3606)', (
   });
 
   it('une ouverture de façade : son apparence parmi celles de sa sorte, puis le défaut du rendu ; une ouverture absente laisse la session', () => {
-    const corps = addArchitectureBody(emptyScene('session', 6, 6), 'maison', { x: 1, y: 1, w: 2, h: 2 });
+    const corps = addArchitectureBody(emptyScene('session', 6, 6), { id: 'maison' }, { x: 1, y: 1, w: 2, h: 2 });
     const pan = addFacadeSection(corps.scene, corps.id, { x: 1, y: 1, side: 'N' })!;
     const pose = addFacadeFeature(pan.scene, corps.id, pan.id)!;
     const s = { ...ouverteSur(pose.scene), sel: { type: 'facadeSection' as const, bodyId: corps.id, id: pan.id } };

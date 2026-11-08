@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { formulaSchema, formuleSansTirageSchema, maisonSchema } from '../grammaire/valeurs';
 import { conditionSchema, mecaniqueDe, sujetDuJetSchema } from '../grammaire/mecanique';
-import { idDe } from '../grammaire/ref';
+import { idDe, ref } from '../grammaire/ref';
 import { messagePorteSansDuree } from '../../../engine/ops';
 
 export const file = 'spells.json';
@@ -128,6 +128,9 @@ const champs = {
     kind: z.enum(['resist', 'contact']),
     ...sujetDuJetSchema.shape,
   }), { kind: { label: 'Type' }, skill: { label: 'Compétence' }, characteristic: { label: 'Caractéristique' } }).optional(),
+  /** #3666 */
+  titreVO: z.string().optional(),
+  livreVO: ref('book').optional(),
   /** Famille des sorts : le Trait psy d'un sort vise une personne choisie, à durée d'horloge (VDM 10 l.327-330). */
   effects: mecaniqueDe({ 'grantPsychTrait.envers': 'admis', 'grantPsychTrait.resistanceSiAmis': 'admis', 'grantPsychTrait.durationHours': 'admis' }).flow.optional(),
 };
@@ -178,6 +181,8 @@ const doc = document(
     ignoreBE: { label: 'Ignore le Bonus d’Endurance', hint: 'Le projectile magique ignore le Bonus d’Endurance de la cible' },
     breathAttack: { label: 'Sort Souffle', hint: 'Délégué à l’attaque de zone du Trait Souffle' },
     opposed: { label: 'Test opposé', hint: 'Le sort exige un Test de résistance ou de contact de la cible' },
+    titreVO: { label: 'Titre VO', hint: 'Titre VO d’un sort qu’un livre fan traduit : sa VF officielle le remplacera' },
+    livreVO: { label: 'Livre VO', hint: 'Livre VO que le livre fan nomme pour ce sort' },
     effects: { label: 'Effets déclenchés' },
   },
   {

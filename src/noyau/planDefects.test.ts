@@ -12,7 +12,7 @@ import { validateScene } from './validateScene';
 function makeScene(w: number, h: number, layers: { z: number; tiles: string[]; height?: number[] }[], zones: SceneEffectZone[], walls: WallSeg[] = []): Scene {
   return {
     type: 'scene',
-    reliefDefaults: structuredClone(DEFAULT_RELIEF_DEFAULTS), roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
+    reliefDefaults: structuredClone(DEFAULT_RELIEF_DEFAULTS), roofDefaults: structuredClone(DEFAULT_ROOF_DEFAULTS),
     id: 'fixture',
     label: 'Fixture de plan',
     dimensions: { w, h },
