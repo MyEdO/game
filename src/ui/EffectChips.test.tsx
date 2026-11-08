@@ -9,7 +9,7 @@ const cond = (name: string, value = 1): ConditionInstance => ({ id: name, value 
 const buff = (over: Partial<ActiveEffect> = {}): ActiveEffect => ({
   label: 'Bénédiction de courage',
   bonus: 10,
-  char: 'capacite-de-combat',
+  characteristic: 'capacite-de-combat',
   duration: { scale: 'rounds', left: 3 },
   ...over,
 } as ActiveEffect);

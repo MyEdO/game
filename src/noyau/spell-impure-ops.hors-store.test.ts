@@ -64,7 +64,7 @@ describe('résolution au lancement depuis le Flow', () => {
     const after = banc.getState().party.find((h) => h.id === w.id)!;
     // F/E/Ag/Dex atteignent la valeur de la créature (charMod différentiel auto-restitué à l'expiration).
     expect(effectiveChar(after, 'force')).toBe(ours.char.force);
-    expect((after.activeEffects ?? []).some((e) => e.char != null)).toBe(true);
+    expect((after.activeEffects ?? []).some((e) => e.characteristic != null)).toBe(true);
   });
 
   it('Vol de vie : l’op lifeSteal (on:caster) draine une fraction des Blessures infligées', () => {

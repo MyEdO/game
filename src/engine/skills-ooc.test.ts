@@ -36,7 +36,7 @@ describe('testValue HORS COMBAT — mêmes modulations qu’en combat (audit, LD
   });
 
   it('Caractéristique EFFECTIVE : un malus actif (effet/Traumatisme via effectiveChar) baisse la valeur (LDB 18)', () => {
-    const c = mk({ activeEffects: [{ char: 'force', bonus: -10 }] as never });
+    const c = mk({ activeEffects: [{ characteristic: 'force', bonus: -10 }] as never });
     expect(testValue(c, { characteristic: 'force' })).toBe(20); // 30 − 10 (effectiveChar)
   });
 

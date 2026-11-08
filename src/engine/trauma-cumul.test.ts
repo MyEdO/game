@@ -70,20 +70,20 @@ describe('AXE `parPalier` — l’effet est l’op déclarée, à l’échelle d
   it('dents : palier de 2 (l.247 « pour chaque paire ») — 1 dent = rien, 3 = −1 Soc, 4 = −2 Soc', () => {
     const fiche = traumaFicheById('dents-perdues');
     expect(traumaCumulOps(fiche, 1)).toEqual([]);
-    expect(traumaCumulOps(fiche, 3)).toEqual([{ op: 'charMod', char: 'sociabilite', mod: -1 }]);
-    expect(traumaCumulOps(fiche, 4)).toEqual([{ op: 'charMod', char: 'sociabilite', mod: -2 }]);
+    expect(traumaCumulOps(fiche, 3)).toEqual([{ op: 'charMod', characteristic: 'sociabilite', mod: -1 }]);
+    expect(traumaCumulOps(fiche, 4)).toEqual([{ op: 'charMod', characteristic: 'sociabilite', mod: -2 }]);
   });
 
   it('orteils : palier de 1 (l.281) — 3 orteils = −3 Ag ET −3 CC', () => {
     const ops = traumaCumulOps(traumaFicheById('orteil-ampute'), 3);
-    expect(ops).toContainEqual({ op: 'charMod', char: 'agilite', mod: -3 });
-    expect(ops).toContainEqual({ op: 'charMod', char: 'capacite-de-combat', mod: -3 });
+    expect(ops).toContainEqual({ op: 'charMod', characteristic: 'agilite', mod: -3 });
+    expect(ops).toContainEqual({ op: 'charMod', characteristic: 'capacite-de-combat', mod: -3 });
   });
 
   it('les ops de BASE (non palières) survivent au comptage : l’œil garde sa perte de sens', () => {
     const ops = traumaCumulOps(traumaFicheById('oeil-perdu'), 2);
     expect(ops).toContainEqual({ op: 'senseLoss', sense: 'vue' });
-    expect(ops).toContainEqual({ op: 'testMod', amount: -10, char: 'sociabilite' }); // −5 par orbite vide (l.273)
+    expect(ops).toContainEqual({ op: 'testMod', amount: -10, characteristic: 'sociabilite' }); // −5 par orbite vide (l.273)
   });
 });
 

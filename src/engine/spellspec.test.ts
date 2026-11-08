@@ -49,9 +49,9 @@ describe('specs curées — résolution', () => {
   it('Écorce : +2 BE (charMod E +20) et −10 en Agilité/Dextérité — effets lus de spell.effects', () => {
     const spell = findSpellById('ecorce')!;
     expect(spellOps(spell.effects, 'target')).toEqual([
-      { op: 'charMod', char: 'endurance', mod: 20 },
-      { op: 'charMod', char: 'agilite', mod: -10 },
-      { op: 'charMod', char: 'dexterite', mod: -10 },
+      { op: 'charMod', characteristic: 'endurance', mod: 20 },
+      { op: 'charMod', characteristic: 'agilite', mod: -10 },
+      { op: 'charMod', characteristic: 'dexterite', mod: -10 },
     ]);
   });
 });

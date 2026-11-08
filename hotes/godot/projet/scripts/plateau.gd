@@ -4,7 +4,7 @@
 ## ses nappes de toit retirées (`toitsLeves`), ses arêtes retirées, abattues sous le cran de la caméra
 ## (`aretesDegagees`), et ses couronnes crénelées, tombées avec leur mur (`couronnesAbattues`, `Monde.cacher_le_bati`),
 ## chaque combattant à sa case et sa couche (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, chacun sous son
-## corps (`vue.corps`, aucun sous son `refus`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
+## corps (`vue.corps`, aucun sous son `refus`) et son véhicule (`vue.corps.vehicules`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le
 ## pointeur jusqu'au clic, chacun sur le sol de sa case ; aucun combattant sous l'œil de l'immersion. Il ne rend que la
 ## case cliquée : celle que le monde désigne sous le pointeur, ou que l'œil franchit ou vise.
@@ -63,7 +63,7 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 			_combattants.add_child(modele)
 			modele.habille.connect(habille.emit)
 			_modeles[c.id] = modele
-		_modeles[c.id].montrer(c, lieu, c.id == actif, null if vue.corps.refus != null else vue.corps.combattants.get(c.id), vue.plateau.metresParCase)
+		_modeles[c.id].montrer(c, lieu, c.id == actif, null if vue.corps.refus != null else vue.corps.combattants.get(c.id), vue.corps.vehicules.get(c.id), vue.plateau.metresParCase)
 	for ligne in journal:
 		var e: Variant = ligne.get("evenement")
 		if e != null and _modeles.has(e.get("actorId", "")) and _modeles.has(e.get("targetId", "")) and e.actorId != e.targetId:

@@ -82,33 +82,33 @@ describe('reponsesDuNoeud — l’OFFRE, verdict partagé par le clic et par la 
 
 describe('testAnnonce — le jet vient du FLUX, en ids stables', () => {
   it('nœud `test` : la Compétence et la difficulté DÉCLARÉES', () => {
-    expect(testAnnonce(testDIntuition, cc)).toEqual({ skill: { id: 'intuition' }, difficulty: 'difficile' });
+    expect(testAnnonce(testDIntuition, { cc })).toEqual({ skill: { id: 'intuition' }, difficulty: 'difficile' });
   });
 
   it('`seq` : le PREMIER jet rencontré — le seul que le clic déclenche', () => {
     const flow = { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'x' } }, testDIntuition] } as Flow;
-    expect(testAnnonce(flow, cc)?.skill).toEqual({ id: 'intuition' });
+    expect(testAnnonce(flow, { cc })?.skill).toEqual({ id: 'intuition' });
   });
 
   it('`if` : le jet de la branche que la Condition PREND', () => {
     const flow = (expr: string) => ({ kind: 'if', cond: { kind: 'flag', expr }, then: testDIntuition } as Flow);
-    expect(testAnnonce(flow('jamais'), cc)).toBeUndefined();
-    expect(testAnnonce(flow('!jamais'), cc)?.skill).toEqual({ id: 'intuition' });
+    expect(testAnnonce(flow('jamais'), { cc })).toBeUndefined();
+    expect(testAnnonce(flow('!jamais'), { cc })?.skill).toEqual({ id: 'intuition' });
   });
 
   it('effet `extendedTest` : Compétence spécialisée, difficulté par DÉFAUT de l’applier, DR cumulé', () => {
     const flow = { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'extendedTest', skill: { id: 'metier', spec: 'charpentier' }, label: 'Réparation', targetDR: 5 } }] } as Flow;
-    expect(testAnnonce(flow, cc)).toEqual({ skill: { id: 'metier', spec: 'charpentier' }, difficulty: 'intermediaire', targetDR: 5 });
+    expect(testAnnonce(flow, { cc })).toEqual({ skill: { id: 'metier', spec: 'charpentier' }, difficulty: 'intermediaire', targetDR: 5 });
   });
 
   it('flux SANS jet (ou absent) : aucun tag à annoncer', () => {
-    expect(testAnnonce(undefined, cc)).toBeUndefined();
-    expect(testAnnonce({ kind: 'seq', steps: [{ kind: 'do', effect: { type: 'endDialogue' } }] } as Flow, cc)).toBeUndefined();
+    expect(testAnnonce(undefined, { cc })).toBeUndefined();
+    expect(testAnnonce({ kind: 'seq', steps: [{ kind: 'do', effect: { type: 'endDialogue' } }] } as Flow, { cc })).toBeUndefined();
   });
 
   it('nœud `test` dont le `gate` est FERMÉ : l’annonce suit la Condition du flux — aucun tag', () => {
     const ferme = { ...testDIntuition, test: { ...(testDIntuition as { test: object }).test, gate: { kind: 'flag', expr: 'jamais' } } } as Flow;
-    expect(testAnnonce(ferme, cc)).toBeUndefined();
+    expect(testAnnonce(ferme, { cc })).toBeUndefined();
   });
 
   it('le tag SORT dans la réponse : la fenêtre n’a rien à recalculer', () => {

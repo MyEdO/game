@@ -15,7 +15,7 @@ import type { StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
 import { etatConnu } from '../../../engine/conditions';
 import { t } from '../../../i18n';
-import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
+import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
 import { chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, meteoImposeeSchema, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refusDeLId, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
@@ -169,13 +169,13 @@ const DECLARATIONS_D_OPS = {
    *  seul `attachMutation` le résout (`engine/corruption.ts`). */
   charMod: declarerPayload({
     op: z.literal('charMod'),
-    char: charKeySchema,
+    characteristic: charKeySchema,
     mod: z.number(),
     min: reserve(z.number().optional()),
     durationRounds: formulaSchema.optional(),
     durationMinutes: formulaSchema.optional(),
     durationHours: formulaSchema.optional(),
-  }, { op: { label: "opération" }, char: { label: "caractéristiques" }, mod: { label: "modificateur" }, min: { label: "minimum" }, durationRounds: { label: 'durée en Rounds' }, durationMinutes: { label: 'durée en minutes' }, durationHours: { label: 'durée en heures' } }),
+  }, { op: { label: "opération" }, characteristic: { label: "caractéristique" }, mod: { label: "modificateur" }, min: { label: "minimum" }, durationRounds: { label: 'durée en Rounds' }, durationMinutes: { label: 'durée en minutes' }, durationHours: { label: 'durée en heures' } }),
   corruptionExposure: nommerChamps(z.strictObject({
     op: z.literal('corruptionExposure'),
     level: exposureLevelSchema.optional(),
@@ -458,7 +458,9 @@ const DECLARATIONS_D_OPS = {
         : messageDeTermeDeJet(v.bonus);
     },
   }),
-  charDRBonus: nommerChamps(z.strictObject({ op: z.literal('charDRBonus'), char: charKeySchema, bonus: formuleSansTirageSchema }), { op: { label: "opération"  }, char: { label: "caractéristique" }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  charDRBonus: nommerChamps(z.strictObject({ op: z.literal('charDRBonus'), characteristic: charKeySchema, bonus: formuleSansTirageSchema }), { op: { label: "opération"  }, characteristic: { label: "caractéristique" }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  charDamage: nommerChamps(z.strictObject({ op: z.literal('charDamage'), characteristic: charKeySchema, amount: formulaSchema }), { op: { label: "opération"  }, characteristic: { label: "caractéristique" }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  actGate: nommerChamps(z.strictObject({ op: z.literal('actGate'), characteristic: charKeySchema }), { op: { label: "opération"  }, characteristic: { label: "caractéristique" } }),
   incomingSpellDRMod: nommerChamps(z.strictObject({ op: z.literal('incomingSpellDRMod'), amount: formuleSansTirageSchema }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   castPenalty: nommerChamps(z.strictObject({
     op: z.literal('castPenalty'),
@@ -560,13 +562,13 @@ const DECLARATIONS_D_OPS = {
   testMod: nommerChamps(z.strictObject({
     op: z.literal('testMod'),
     amount: z.number(),
-    char: charKeySchema.optional(),
+    characteristic: charKeySchema.optional(),
     movementOnly: z.boolean().optional(),
     sense: senseSchema.optional(),
     diseases: refs('maladie').optional(),
     exceptSkills: z.array(ref('skill')).optional(),
     weaponHand: mainSchema.optional(),
-  }), { op: { label: "opération"  }, amount: { label: "quantité" }, char: { label: "caractéristiques"  }, movementOnly: { label: "Mouvement uniquement" }, sense: { label: "sens"  }, diseases: { label: "maladies" , texte: { regime: "technique"} }, exceptSkills: { label: "Compétences exclues" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, weaponHand: { label: "main de l’arme"  } }),
+  }), { op: { label: "opération"  }, amount: { label: "quantité" }, characteristic: { label: "caractéristique" }, movementOnly: { label: "Mouvement uniquement" }, sense: { label: "sens"  }, diseases: { label: "maladies" , texte: { regime: "technique"} }, exceptSkills: { label: "Compétences exclues" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, weaponHand: { label: "main de l’arme"  } }),
   incomingAttackMod: nommerChamps(z.strictObject({
     op: z.literal('incomingAttackMod'),
     mode: porteeDAssautSchema,
@@ -692,8 +694,8 @@ export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur> & Re
  * Une entrée ne se retire que par le commit qui TYPE l'op dans `OP_DEFS`.
  */
 export const OPS_NON_TYPEES: readonly string[] = [
-  'actGate', 'ap', 'armourPierce', 'arrowWard', 'attackKeyword', 'attackWardFM', 'attrMod',
-  'breakBlade', 'chain', 'charDamage', 'condition',
+  'ap', 'armourPierce', 'arrowWard', 'attackKeyword', 'attackWardFM', 'attrMod',
+  'breakBlade', 'chain', 'condition',
   'crewTestMod', 'critOnRoll', 'critTwice', 'cureCriticalWound', 'cureDisease', 'damageArmour', 'disarm',
   'endTransform', 'freeReroll', 'gainResource', 'grantFreeAttack',
   'grantNaturalWeapon', 'handGate', 'ignoreAnimosity',
@@ -861,7 +863,7 @@ export const hasConditionSchema = z.discriminatedUnion('what', [
 ]);
 
 
-const charRefSchema = nommerChamps(z.strictObject({ who: actorRefSchema, char: charKeySchema, bonus: z.boolean().optional() }), { who: { label: "acteur"  }, char: { label: "caractéristiques"  }, bonus: { label: "bonus" } });
+const charRefSchema = nommerChamps(z.strictObject({ who: actorRefSchema, characteristic: charKeySchema, bonus: z.boolean().optional() }), { who: { label: "acteur"  }, characteristic: { label: "caractéristique" }, bonus: { label: "bonus" } });
 const compareSubjectSchema = z.union([
   nommerChamps(z.strictObject({ who: actorRefSchema, field: actorFieldSchema }), { who: { label: "acteur"  }, field: { label: "champ"  } }),
   nommerChamps(z.strictObject({ who: actorRefSchema, condition: z.string() }), { who: { label: "acteur"  }, condition: { label: "condition" , texte: { regime: "technique"} } }),
@@ -870,7 +872,7 @@ const compareSubjectSchema = z.union([
 /** `CompareSubject & { factor?: number }` (`engine/flowCore.ts:131`) — un `z.intersection` d'un
  *  `z.union` de `strictObject` NE FONCTIONNE PAS avec zod (chaque branche strict rejette les clés des
  *  autres, cf. `domains.ts` avant ce rewire : `z.intersection(compareSubjectSchema, …)` échouait sur
- *  `etats.json` #14 « inondation » — `{who,char:'endurance',factor:0.5}` — vérifié en isolation). La forme
+ *  `etats.json` #14 « inondation » — `{who,characteristic:'endurance',factor:0.5}` — vérifié en isolation). La forme
  *  fidèle est donc l'UNION des 3 branches de `CompareSubject`, chacune portant son `factor`. */
 const compareValueSchema = z.union([
   z.number(),
@@ -880,7 +882,7 @@ const compareValueSchema = z.union([
     factor: z.number().optional(),
   }), { who: { label: "acteur"  }, field: { label: "champ"  }, factor: { label: "facteur" } }),
   nommerChamps(z.strictObject({ who: actorRefSchema, condition: z.string(), factor: z.number().optional() }), { who: { label: "acteur"  }, condition: { label: "condition" , texte: { regime: "technique"} }, factor: { label: "facteur" } }),
-  nommerChamps(z.strictObject({ who: actorRefSchema, char: charKeySchema, bonus: z.boolean().optional(), factor: z.number().optional() }), { who: { label: "acteur"  }, char: { label: "caractéristiques"  }, bonus: { label: "bonus" }, factor: { label: "facteur" } }),
+  nommerChamps(z.strictObject({ who: actorRefSchema, characteristic: charKeySchema, bonus: z.boolean().optional(), factor: z.number().optional() }), { who: { label: "acteur"  }, characteristic: { label: "caractéristique" }, bonus: { label: "bonus" }, factor: { label: "facteur" } }),
 ]);
 
 /** Condition `skill` : sa Compétence et sa spécialisation résolvent au catalogue (`refOuSpec`). Le nœud de la
@@ -1106,6 +1108,25 @@ export function exigerDuTest(...champs: readonly ChampExigibleDuTest[]) {
   };
 }
 
+/** Refuse au Test de `porteur` tout champ de DÉCISION (`CHAMPS_DE_DECISION`) : c'est le porteur qui la tient. */
+function refuserLaDecision(porteur: Readonly<Record<string, unknown>>, ctx: z.RefinementCtx, raison: string): void {
+  const test = porteur.test;
+  if (typeof test !== 'object' || test === null) return;
+  for (const champ of CHAMPS_DE_DECISION)
+    if (Reflect.get(test, champ) !== undefined)
+      ctx.addIssue({ code: 'custom', path: ['test', champ], message: `Test : \`${champ}\` refusé — ${raison}` });
+}
+
+/** Le Test que son PORTEUR fixe (`JetFixe`, `engine/flowCore.ts`) : les `champs` exigés (`exigerDuTest`),
+ *  aucun champ de décision — sa Difficulté est celle qu'il déclare. */
+export function fixerLeTest(...champs: readonly ChampExigibleDuTest[]) {
+  const exiger = exigerDuTest(...champs);
+  return (porteur: Readonly<Record<string, unknown>>, ctx: z.RefinementCtx): void => {
+    exiger(porteur, ctx);
+    refuserLaDecision(porteur, ctx, 'ce porteur fixe sa Difficulté, il ne la décide pas.');
+  };
+}
+
 /** Test ÉTENDU (`LDB 12 l.172-174`) : un acteur cumule des DR Round par Round jusqu'à sa cible
  *  (`cibleEtendueSchema`) (crocheter une serrure, forcer un mécanisme…). `flag` posé à la réussite (gate la suite). */
 export const extendedTestSchema = nommerChamps(z.strictObject({
@@ -1139,6 +1160,11 @@ export interface OptionsNoeudTest {
    * `spellOps` APLATIRAIT les ops — promises quelle que soit l'issue. Le contrat les REFUSE.
    */
   readonly echecSeulServi?: boolean;
+  /**
+   * La Difficulté du nœud se décide au PORTEUR (`difficultyBySeverity` du cycle de maladie, lu par
+   * `engine/disease.ts`) : le Test ne porte aucun champ de décision (`NoeudDecideAuPorteur`).
+   */
+  readonly decisionAuPorteur?: boolean;
 }
 
 /**
@@ -1167,7 +1193,10 @@ function kindDEmbranchement(flow: unknown): string | null {
  */
 export function noeudTest<B extends z.ZodType>(branche: B, options: OptionsNoeudTest = {}) {
   const marque = marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('test'), test: flowTestSchema, success: branche, fail: branche }), { kind: { label: "type"  }, test: { label: "Test" }, success: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, fail: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } }), 'noeudTest', 'test');
-  const noeud = options.difficulteRequise ? marque.superRefine(exigerDuTest('difficulty')) : marque;
+  const exige = options.difficulteRequise ? marque.superRefine(exigerDuTest('difficulty')) : marque;
+  const noeud = options.decisionAuPorteur
+    ? exige.superRefine((v, ctx) => refuserLaDecision(v, ctx, 'la Difficulté de ce nœud se décide au porteur.'))
+    : exige;
   if (!options.echecSeulServi) return noeud;
   return noeud.superRefine((valeur, ctx) => {
     // La branche est GÉNÉRIQUE (`B extends z.ZodType`) : son type de sortie est opaque ici, seule la
@@ -1561,7 +1590,7 @@ function construire(regimes: Regimes) {
       riderTest: marquerProduit(nommerChamps(z.strictObject({
         test: flowTestSchema,
         fallM: z.number(),
-      }).superRefine(exigerDuTest('skill', 'difficulty')), { test: { label: "Test" }, fallM: { label: "hauteur de chute" } }), 'construire', 'travelTableEntry.mount.riderTest').optional(),
+      }).superRefine(fixerLeTest('skill', 'difficulty')), { test: { label: "Test" }, fallM: { label: "hauteur de chute" } }), 'construire', 'travelTableEntry.mount.riderTest').optional(),
       /** Modificateur PERSISTANT aux Tests de Chevaucher tant que la séquelle dure (l.174 : −20). */
       ridingPenalty: z.number().optional(),
       /** Allure MAXIMALE imposée à la bête tant que la séquelle dure (Perte d'un fer : le pas). */

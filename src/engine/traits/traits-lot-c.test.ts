@@ -145,14 +145,14 @@ describe('câblages moteur', () => {
     expect(isPsychImmune(c)).toBe(false); // sans contexte d'adversaire, le trait est inerte
   });
   it('Insensible à la douleur : pénalités de Critique ignorées (hors amputations)', () => {
-    const t = { label: 'Déchirure musculaire (Majeure)', location: 'jambeG', ops: [{ op: 'charMod', char: 'agilite', mod: -10 }] } as any;
+    const t = { label: 'Déchirure musculaire (Majeure)', location: 'jambeG', ops: [{ op: 'charMod', characteristic: 'agilite', mod: -10 }] } as any;
     const douillet = mk({ traumas: [t] });
     const stoique = mk({ traumas: [t], traits: [{ id: 'insensible-a-la-douleur' }] });
     expect(traumaCharPenalties(douillet, 'agilite')).toEqual([-10]);
     expect(traumaCharPenalties(stoique, 'agilite')).toEqual([]);
     // … mais une AMPUTATION reste pénalisante (LDB 85 l.195) — keyée par `traumaId` (`doigt-ampute`
     // porte `amputation: true` dans `traumas.json`), jamais par le `label`.
-    const ampute = mk({ traumas: [{ label: 'Doigts amputés', traumaId: 'doigt-ampute', location: 'brasD', ops: [{ op: 'charMod', char: 'capacite-de-combat', mod: -5 }] } as any], traits: [{ id: 'insensible-a-la-douleur' }] });
+    const ampute = mk({ traumas: [{ label: 'Doigts amputés', traumaId: 'doigt-ampute', location: 'brasD', ops: [{ op: 'charMod', characteristic: 'capacite-de-combat', mod: -5 }] } as any], traits: [{ id: 'insensible-a-la-douleur' }] });
     expect(traumaCharPenalties(ampute, 'capacite-de-combat')).toEqual([-5]);
   });
 });

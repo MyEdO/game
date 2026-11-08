@@ -58,7 +58,7 @@ describe('Immunité psy → AUCUN modificateur de combat psy (psychDRAdjust, LDB
 });
 
 describe('Détermination « ignorer modifs de critique » (LDB 17 l.60) annule les pénalités de trauma', () => {
-  const trauma = () => C({ traumas: [{ ops: [{ op: 'charMod', char: 'force', mod: -30 }, { op: 'skillMod', skill: { id: 'esquive' }, mod: -20 }, { op: 'moveScale', num: 1, den: 2 }] } as never] });
+  const trauma = () => C({ traumas: [{ ops: [{ op: 'charMod', characteristic: 'force', mod: -30 }, { op: 'skillMod', skill: { id: 'esquive' }, mod: -20 }, { op: 'moveScale', num: 1, den: 2 }] } as never] });
   it('actif : pénalités normales', () => {
     const c = trauma();
     expect(traumaCharPenalties(c, 'force')).toEqual([-30]);

@@ -12,9 +12,9 @@ import { desDuTest } from './dice.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /** Pénalité aux TESTS d'une Caractéristique due aux maladies actives (LDB 20 l.151-176 : « pénalité […] à
- *  tous vos Tests ») — lit les `testMod{char}` passifs des symptômes. */
+ *  tous vos Tests ») — lit les `testMod{characteristic}` passifs des symptômes. */
 const pen = (c: Combatant, char: string): number[] =>
-  diseasePassiveOps(c).map((m) => m.op).filter((o): o is Extract<GameOp, { op: 'testMod' }> => o.op === 'testMod' && o.char === char).map((o) => o.amount);
+  diseasePassiveOps(c).map((m) => m.op).filter((o): o is Extract<GameOp, { op: 'testMod' }> => o.op === 'testMod' && o.characteristic === char).map((o) => o.amount);
 
 /** Lot D — complément Maladies (LDB 20) : la Litanie de la Pestilence au complet + nouveaux symptômes. */
 

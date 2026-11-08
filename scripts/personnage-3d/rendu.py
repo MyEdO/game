@@ -1,7 +1,9 @@
-"""Rendus de contrôle d'un personnage : studio Cycles (vues trois-quarts, portrait, échelles, isométrique) et studio
-Workbench de QA. Le GLB source n'est jamais modifié. `--silhouettes` pose, avant le rendu, les shape keys nommées sur
-tout mesh qui les porte, à la syntaxe de `npm run godot:evaluer -- --silhouettes` (`hotes/godot/asset/evaluer.mjs`) ;
-un nom qu'aucun mesh ne porte arrête le rendu.
+"""Rendus de contrôle d'un personnage ou d'un élément rigide sans skin (véhicule, décor) : studio Cycles (vues
+trois-quarts, portrait du personnage, échelles, isométrique), cadré sur la hauteur des meshes skinnés du personnage
+ou sur la plus grande dimension de l'élément, et studio Workbench de QA. Le GLB source n'est jamais modifié.
+`--silhouettes` pose, avant le rendu, les shape keys nommées sur tout mesh qui les porte, à la syntaxe de
+`npm run godot:evaluer -- --silhouettes` (`hotes/godot/asset/evaluer.mjs`) ; un nom qu'aucun mesh ne porte arrête le
+rendu.
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <fichier.glb> --output <dossier vide> [--isometric-only] [--silhouettes feminin=1,corpulence=0.5]
 """
@@ -91,14 +93,17 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=str(source))
     silhouettes = poser_les_silhouettes(bpy, args.silhouettes)
-    actors = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH' and any(mod.type == 'ARMATURE' for mod in obj.modifiers)]
+    meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
+    skinned = [obj for obj in meshes if any(mod.type == 'ARMATURE' for mod in obj.modifiers)]
+    actors = skinned or meshes
     if not actors:
-        raise ValueError('No skinned character meshes found')
+        raise ValueError('No meshes found')
     bpy.context.view_layer.update()
     coordinates = np.concatenate(list(world_vertices(bpy, actors).values()))
     low = Vector(coordinates.min(axis=0).tolist())
     high = Vector(coordinates.max(axis=0).tolist())
     height = high.z - low.z
+    extent = height if skinned else max(high.x - low.x, high.y - low.y, height)
     center = (low + high) / 2
     materials = []
     for material in bpy.data.materials:
@@ -114,7 +119,7 @@ def main():
                         value = socket.default_value
                         inputs.append({'input': key, 'value': list(value) if hasattr(value, '__len__') else value, 'links': [{'node': link.from_node.name, 'socket': link.from_socket.name} for link in socket.links]})
         materials.append({'name': material.name, 'surface_render_method': material.surface_render_method, 'images': images, 'inputs': inputs})
-    report = {'input': source.name, 'sha256_before': digest, 'bounds': {'min': list(low), 'max': list(high), 'height': height}, 'meshes': [{'name': obj.name, 'vertices': len(obj.data.vertices), 'polygons': len(obj.data.polygons), 'materials': [slot.material.name if slot.material else None for slot in obj.material_slots]} for obj in actors], 'materials': materials, 'silhouettes': {nom: {'poids': args.silhouettes[nom], 'meshes': objets} for nom, objets in silhouettes.items()}, 'render_engine': 'CYCLES', 'samples': 16}
+    report = {'input': source.name, 'sha256_before': digest, 'bounds': {'min': list(low), 'max': list(high), 'height': height, 'extent': extent}, 'meshes': [{'name': obj.name, 'vertices': len(obj.data.vertices), 'polygons': len(obj.data.polygons), 'materials': [slot.material.name if slot.material else None for slot in obj.material_slots]} for obj in actors], 'materials': materials, 'silhouettes': {nom: {'poids': args.silhouettes[nom], 'meshes': objets} for nom, objets in silhouettes.items()}, 'render_engine': 'CYCLES', 'samples': 16}
     scene = bpy.context.scene
     scene.render.engine = 'CYCLES'
     scene.cycles.device = 'CPU'
@@ -149,9 +154,9 @@ def main():
         obj.location = location
         obj.rotation_euler = (center - obj.location).to_track_quat('-Z', 'Y').to_euler()
 
-    area('Key', (height * 1.4, -height * 1.7, height * 2.2), 500, height * 1.5, (1, 0.93, 0.85))
-    area('Fill', (-height * 1.5, -height * 0.6, height * 1.3), 240, height * 1.6, (0.82, 0.9, 1))
-    area('Back', (height * 0.5, height * 1.5, height * 1.8), 350, height * 1.1, (1, 1, 1))
+    area('Key', (extent * 1.4, -extent * 1.7, extent * 2.2), 500, extent * 1.5, (1, 0.93, 0.85))
+    area('Fill', (-extent * 1.5, -extent * 0.6, extent * 1.3), 240, extent * 1.6, (0.82, 0.9, 1))
+    area('Back', (extent * 0.5, extent * 1.5, extent * 1.8), 350, extent * 1.1, (1, 1, 1))
     camera_data = bpy.data.cameras.new('StudioCamera')
     camera = bpy.data.objects.new('StudioCamera', camera_data)
     scene.collection.objects.link(camera)
@@ -160,7 +165,7 @@ def main():
     camera_data.lens = 70
 
     def render(name, direction, target, scale, width, image_height):
-        camera.location = target + Vector(direction).normalized() * height * 4
+        camera.location = target + Vector(direction).normalized() * extent * 4
         camera.rotation_euler = (target - camera.location).to_track_quat('-Z', 'Y').to_euler()
         camera_data.ortho_scale = scale
         scene.render.resolution_x = width
@@ -173,14 +178,15 @@ def main():
         report['camera_elevation_degrees'] = 45
         report['camera_direction'] = [1, -1, 2 ** 0.5]
         for size in (512, 40, 64, 128):
-            render('isometrique-' + str(size) + 'px.png', (1, -1, 2 ** 0.5), center, height * 1.12, size, size)
+            render('isometrique-' + str(size) + 'px.png', (1, -1, 2 ** 0.5), center, extent * 1.12, size, size)
     else:
-        render('face-trois-quarts.png', (0.65, -1, 0.17), center, height * 1.12, 1000, 1200)
-        render('dos-trois-quarts.png', (-0.65, 1, 0.17), center, height * 1.12, 1000, 1200)
-        portrait_target = Vector((center.x, center.y, low.z + height * 0.86))
-        render('portrait.png', (0.3, -1, 0.05), portrait_target, height * 0.32, 768, 768)
+        render('face-trois-quarts.png', (0.65, -1, 0.17), center, extent * 1.12, 1000, 1200)
+        render('dos-trois-quarts.png', (-0.65, 1, 0.17), center, extent * 1.12, 1000, 1200)
+        if skinned:
+            portrait_target = Vector((center.x, center.y, low.z + height * 0.86))
+            render('portrait.png', (0.3, -1, 0.05), portrait_target, height * 0.32, 768, 768)
         for size in (40, 64, 128):
-            render('echelle-' + str(size) + 'px.png', (0.65, -1, 0.17), center, height * 1.12, round(size * 1000 / 1200), size)
+            render('echelle-' + str(size) + 'px.png', (0.65, -1, 0.17), center, extent * 1.12, round(size * 1000 / 1200), size)
     report['elapsed_seconds'] = time.monotonic() - start
     report['sha256_after'] = hashlib.sha256(source.read_bytes()).hexdigest()
     if digest != report['sha256_after']:

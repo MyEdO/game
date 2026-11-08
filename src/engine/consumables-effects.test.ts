@@ -117,7 +117,7 @@ describe('bave (LDB 71 l.18)', () => {
 describe('bonnet-de-fou (LDB 71 l.20)', () => {
   it('« +10 en Force, +4 Blessures et le Talent Frénésie » + perte 1d10 PB à la dissipation (delayed afterDuration)', () => {
     const ops = consumableOps(consommableDe(itemFromTrappingById('bonnet-de-fou')!));
-    expect(ops).toContainEqual({ op: 'charMod', char: 'force', mod: 10 });
+    expect(ops).toContainEqual({ op: 'charMod', characteristic: 'force', mod: 10 });
     expect(ops).toContainEqual({ op: 'attrMod', attr: 'wounds', mod: 4, auTotal: true }); // #3060
     expect(ops).toContainEqual({ op: 'grantTalent', talent: { id: 'frenesie' } });
     const delayed = ops.find((o) => o.op === 'delayed') as Extract<import('./ops').GameOp, { op: 'delayed' }>;
@@ -140,12 +140,12 @@ describe('delice-de-ranald (LDB 71 l.24)', () => {
   it('+1 M, +10 F/E/Ag/CC pendant 3 h ; puis −2 M, −20 CC/E/F/Ag (delayed afterHours 3, pénalité 21 h — « Durée : 1 jour » = l\'épisode)', () => {
     const ops = consumableOps(consommableDe(itemFromTrappingById('delice-de-ranald')!));
     expect(ops).toContainEqual({ op: 'moveMod', mod: 1 });
-    for (const char of ['force', 'endurance', 'agilite', 'capacite-de-combat']) expect(ops).toContainEqual({ op: 'charMod', char, mod: 10 });
+    for (const char of ['force', 'endurance', 'agilite', 'capacite-de-combat']) expect(ops).toContainEqual({ op: 'charMod', characteristic: char, mod: 10 });
     const delayed = ops.find((o) => o.op === 'delayed') as Extract<import('./ops').GameOp, { op: 'delayed' }>;
     expect(delayed.afterHours).toBe(3);
     expect(delayed.forHours).toBe(21);
     expect(delayed.ops).toContainEqual({ op: 'moveMod', mod: -2 });
-    for (const char of ['capacite-de-combat', 'endurance', 'force', 'agilite']) expect(delayed.ops).toContainEqual({ op: 'charMod', char, mod: -20 });
+    for (const char of ['capacite-de-combat', 'endurance', 'force', 'agilite']) expect(delayed.ops).toContainEqual({ op: 'charMod', characteristic: char, mod: -20 });
     expect(itemFromTrappingById('delice-de-ranald')!.consumableDuration).toEqual({ hours: 3 });
   });
 });
@@ -202,7 +202,7 @@ describe('racine-de-mandragore (LDB 71 l.35)', () => {
     drinkPure(c, 'racine-de-mandragore');
     expect(c.activeEffects!.some((e) => e.passive?.some((op) => op.op === 'moveScale' && op.num === 1 && op.den === 2))).toBe(true);
     expect(c.activeEffects!.some((e) => e.passive?.some((op) => op.op === 'skillMod' && op.skill.id === 'calme' && op.mod === 20))).toBe(true);
-    expect(c.activeEffects!.some((e) => e.actGate?.char === 'force-mentale')).toBe(true);
+    expect(c.activeEffects!.some((e) => e.actGate?.characteristic === 'force-mentale')).toBe(true);
   });
 });
 

@@ -1,6 +1,7 @@
 // scripts/gen-verbes.mjs — LES VERBES DE LA PARTIE et leurs paramètres (#2898 lot C), dérivés du TYPE que
-// `Partie.envoyer` accepte (`partieLue`), et la forme de la valeur de chaque réglage de jet (`REGLAGES`) et de chaque
-// choix de fenêtre (`CHOIX`) : une cible de CODE de `GENERATORS` (scripts/docs/build-all.mjs),
+// `Partie.envoyer` accepte (`partieLue`), la forme de la valeur de chaque réglage de jet (`REGLAGES`) et de chaque
+// choix de fenêtre (`CHOIX`), et celle de chaque type récursif qu'une forme référence (`FORMES`) : une cible de CODE de
+// `GENERATORS` (scripts/docs/build-all.mjs),
 // `src/hote/verbes.generated.ts`, jamais commitée. Les hôtes du noyau y lisent les paramètres qu'ils contrôlent
 // (`argumentsDuVerbe`, src/hote/geste.ts) ; le doc `docs/hote-texte.md` écrit sa table par la même lecture.
 //
@@ -14,8 +15,9 @@ import { partieLue } from './docs/lib/verbesDeLaPartie.mjs'
 const lignesDesAxes = (table) => Object.entries(table).map(([cle, formes]) => `  ${JSON.stringify(cle)}: ${JSON.stringify(formes)},\n`).join('')
 
 /** Le texte de la cible : un verbe par ligne, ses paramètres en JSON ; un flux de jet par ligne, la forme de la valeur
- *  de chacun de ses réglages ; une fenêtre par ligne, la forme de la valeur de chacun de ses choix. */
-const texteDeSortie = ({ verbes, reglages, choix }) =>
+ *  de chacun de ses réglages ; une fenêtre par ligne, la forme de la valeur de chacun de ses choix ; un type récursif
+ *  par ligne, sa forme. */
+const texteDeSortie = ({ verbes, reglages, choix, formes }) =>
   `// GÉNÉRÉ par scripts/gen-verbes.mjs (#2898) — jamais édité, jamais commité.\n`
   + `import type { Forme, ParametreDeVerbe } from './formes';\n\n`
   + `/** Les paramètres de chaque verbe de la partie, lus du type de \`ActionsDuNoyau\`. */\n`
@@ -29,6 +31,10 @@ const texteDeSortie = ({ verbes, reglages, choix }) =>
   + `/** La forme de la valeur de chaque choix de chaque fenêtre, lue du type de \`ChoixDesFenetres\`. */\n`
   + `export const CHOIX: Readonly<Record<string, Readonly<Record<string, Forme>>>> = {\n`
   + lignesDesAxes(choix)
+  + `};\n\n`
+  + `/** La forme de chaque type récursif qu'une forme référence (\`{ genre: 'ref' }\`), par nom. */\n`
+  + `export const FORMES: Readonly<Record<string, Forme>> = {\n`
+  + Object.entries(formes).map(([nom, f]) => `  ${JSON.stringify(nom)}: ${JSON.stringify(f)},\n`).join('')
   + `};\n`
 
 /** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */

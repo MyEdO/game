@@ -85,7 +85,7 @@ describe('outOfCombatUpkeep — États qui tickent HORS COMBAT (couture A, LDB 1
     const etats = () => [{ id: 'sonne', value: 2 }, { id: 'aveugle', value: 1 }];
     const sansBuff = mk({ current: 8, conditions: etats() });
     const avecBuff = mk({ current: 8, conditions: etats() });
-    avecBuff.activeEffects = [{ label: 'Bénédiction', bonus: 10, char: 'capacite-de-combat', duration: { scale: 'rounds', left: 6 } }];
+    avecBuff.activeEffects = [{ label: 'Bénédiction', bonus: 10, characteristic: 'capacite-de-combat', duration: { scale: 'rounds', left: 6 } }];
     const sans = outOfCombatUpkeep([sansBuff], 3, fixed(5)); // jet 5 : la Résistance PASSERAIT si le Test avait lieu
     const avec = outOfCombatUpkeep([avecBuff], 3, fixed(5));
     expect(sans).toEqual([]);
@@ -100,7 +100,7 @@ describe('outOfCombatUpkeep — États qui tickent HORS COMBAT (couture A, LDB 1
   /** Effet GELÉ en attente de prolongation (`awaitingExtension`, durée « + » `LDB 47 l.311`) : sa durée
    *  ne s'écoule plus et ses ops ne se rejouent plus — il ne doit donc PAS faire tourner la boucle. */
   it('un effet GELÉ (attente de prolongation) ne fait jouer AUCUN Round, même sur un grand saut d’horloge', () => {
-    const gele = { label: 'Bénédiction', bonus: 10, char: 'capacite-de-combat', duration: { scale: 'rounds', left: 0 }, awaitingExtension: true };
+    const gele = { label: 'Bénédiction', bonus: 10, characteristic: 'capacite-de-combat', duration: { scale: 'rounds', left: 0 }, awaitingExtension: true };
     const c = mk({ current: 8 });
     const sonde = espionneEffets(c, [{ ...gele }]);
     expect(outOfCombatUpkeep([c], 480, fixed(5))).toEqual([]);
@@ -116,7 +116,7 @@ describe('outOfCombatUpkeep — États qui tickent HORS COMBAT (couture A, LDB 1
 
   it('un effet de 6 Rounds EXPIRE hors combat (sa durée s’écoule à l’horloge) sans toucher aux États', () => {
     const c = mk({ current: 8, conditions: [{ id: 'sonne', value: 2 }] });
-    c.activeEffects = [{ label: 'Bénédiction', bonus: 10, char: 'capacite-de-combat', duration: { scale: 'rounds', left: 6 } }];
+    c.activeEffects = [{ label: 'Bénédiction', bonus: 10, characteristic: 'capacite-de-combat', duration: { scale: 'rounds', left: 6 } }];
     const log = outOfCombatUpkeep([c], 6, fixed(5));
     expect(c.activeEffects).toHaveLength(0);
     expect(log.filter((l) => l.includes('Bénédiction'))).toHaveLength(1);

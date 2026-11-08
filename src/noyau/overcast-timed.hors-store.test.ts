@@ -173,8 +173,8 @@ describe('Surincantation (LDB 47 l.28-31)', () => {
     });
     const p = banc.getState().party.find((h) => h.id === priest.id)!;
     const a = banc.getState().party.find((h) => h.id === ally.id)!;
-    expect(p.activeEffects?.[0]).toMatchObject({ char: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 12 } }); // 6 ×2
-    expect(a.activeEffects?.[0]).toMatchObject({ char: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 12 } }); // cible étendue
+    expect(p.activeEffects?.[0]).toMatchObject({ characteristic: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 12 } }); // 6 ×2
+    expect(a.activeEffects?.[0]).toMatchObject({ characteristic: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 12 } }); // cible étendue
     expect(banc.getState().journal.join('\n')).toMatch(/Surincantation/);
   });
 });

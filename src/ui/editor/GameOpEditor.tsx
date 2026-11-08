@@ -700,7 +700,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
           <>
             <label className="dr">Modif.<NumberField variant="nu" label="Modificateur de Test" value={o.amount ?? 0} onChange={(amount) => upd({ amount })} /></label>
             <label className="dr">Carac.
-              <select value={o.char ?? ''} onChange={(e) => upd({ char: (e.target.value || undefined) as CharKey | undefined })}>
+              <select value={o.characteristic ?? ''} onChange={(e) => upd({ characteristic: (e.target.value || undefined) as CharKey | undefined })}>
                 <option value="">— tous les Tests —</option>
                 {CHARS.map((c) => <option key={c} value={c}>{CHAR_LABELS[c]}</option>)}
               </select>
@@ -765,7 +765,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
         )}
         {op.op === 'charMod' && (
           <>
-            <select value={o.char} onChange={(e) => upd({ char: e.target.value as CharKey })}>
+            <select value={o.characteristic} onChange={(e) => upd({ characteristic: e.target.value as CharKey })}>
               {CHARS.map((c) => <option key={c} value={c}>{CHAR_LABELS[c]}</option>)}
             </select>
             <label className="dr">Modif.<NumberField variant="nu" label="Modificateur de caractéristique" value={o.mod} onChange={(mod) => upd({ mod })} /></label>

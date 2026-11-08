@@ -158,7 +158,7 @@ describe('chooseEnemyAction — sorts (énumération op-driven)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [MELEE], characteristics: C });
     const foe = mk('h', 'hero', { x: 5, y: 14 }, { characteristics: C }); // ennemi très loin (rien à frapper/approcher d'utile)
     const ally = mk('a', 'enemy', { x: 5, y: 6 }, { weapons: [MELEE], characteristics: C }); // allié armé adjacent
-    const buff = castable({ id: 'prouesses', shape: { area: { radius: 2 } }, range: null, data: spellData({ id: 'prouesses', effects: doOps([{ op: 'charMod', char: 'capacite-de-combat', mod: 20 }]) }) });
+    const buff = castable({ id: 'prouesses', shape: { area: { radius: 2 } }, range: null, data: spellData({ id: 'prouesses', effects: doOps([{ op: 'charMod', characteristic: 'capacite-de-combat', mod: 20 }]) }) });
     const a = chooseEnemyAction(input(e, [foe], { spells: [buff], squad: [ally] }));
     expect(a.kind).toBe('castArea'); // le buff de zone couvre soi + l'allié armé → bénéfice marginal > 0
     if (a.kind === 'castArea') expect(a.spell).toBe('prouesses');

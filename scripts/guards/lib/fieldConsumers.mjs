@@ -329,9 +329,26 @@ function symboleEnglobant(node) {
   return '(module)'
 }
 
+/** Les champs de `fields` que le PORTEUR du site porte, typé AU SITE (narrowing compris, `null`/`undefined`
+ *  ôtés) : ceux dont une déclaration de la cible est celle de la propriété du porteur. Un `Pick<T, 'a'>`
+ *  ne porte que `a` ; un `T` les porte tous. Mémoïsé sur le site. */
+function champsDuPorteur(ctx, site, fields, toutes) {
+  if (site.champs) return site.champs
+  const { checker } = ctx
+  const expr = ts.isBindingElement(site.node) ? site.node.parent : site.node.expression
+  const type = checker.getNonNullableType(checker.getTypeAtLocation(expr))
+  // Membres d'union seuls : les arguments d'un alias (`Pick<T, 'a'>` → `T`) ne sont pas portés.
+  const membres = type.isUnionType() ? type.getTypes() : [type]
+  site.champs = fields.filter((f) => {
+    const attendues = toutes.get(f) ?? new Set()
+    return membres.some((m) => (checker.getPropertyOfType(m, f)?.declarations ?? []).some((d) => attendues.has(d.resolve())))
+  })
+  return site.champs
+}
+
 /**
  * Sites de lecture de `fields` sur la cible `{ type, home }` (cibles de `build-field-consumers.mts`), à travers
- * `files` (chemins absolus, `listProdFiles`). Rend `[{ field, file, line, symbole, auDeclarant }]` — `file`
+ * `files` (chemins absolus, `listProdFiles`). Rend `[{ field, file, line, symbole, auDeclarant, champsDuPorteur }]` — `file`
  * relatif à `rootDir` ; `auDeclarant` : le site est DANS la déclaration qui déclare la propriété (le
  * `superRefine` du schéma qui valide son propre champ, identité par nœud). Le `cache` porte le Program et l'index : le fournir une fois pour toutes les cibles
  * d'un rapport, et le laisser mourir avec l'appel. `programme` INJECTE le Program (fixtures en
@@ -367,7 +384,7 @@ export function scanFieldReads(cibleVisee, fields, files, rootDir, cache, progra
       }
       if (!resolue) continue
       if (!propreAuSite && !porteurDe(ctx, site).has(decl)) continue
-      hits.push({ field, file: site.file, line: site.line, symbole: symboleEnglobant(site.node), auDeclarant })
+      hits.push({ field, file: site.file, line: site.line, symbole: symboleEnglobant(site.node), auDeclarant, champsDuPorteur: champsDuPorteur(ctx, site, fields, toutes) })
     }
   }
   // ORDRE TOTAL du résultat : (fichier en unités de code, ligne NUMÉRIQUE). L'ordre de récolte est

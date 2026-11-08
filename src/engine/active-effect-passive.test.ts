@@ -110,7 +110,7 @@ describe('ActiveEffect.passive — les ops d’un effet portent leur source', ()
   it('PLANCHER de Rounds : porté par la FORMULE de l’entrée, jamais par le site d’appel', () => {
     // « Durée : (Bonus de Force Mentale) Rounds » (VDM 15 l.406) — aucun minimum : à FM < 10, zéro Round.
     const faible = hero({ characteristics: { ...hero().characteristics, 'force-mentale': 9 } });
-    applyOps(faible, [{ op: 'charMod', char: 'agilite', mod: -10, durationRounds: { bonusOf: 'force-mentale' } }], { rng: desDuTest, label: 'Écorce' });
+    applyOps(faible, [{ op: 'charMod', characteristic: 'agilite', mod: -10, durationRounds: { bonusOf: 'force-mentale' } }], { rng: desDuTest, label: 'Écorce' });
     expect(faible.activeEffects![0].duration).toEqual({ scale: 'rounds', left: 0 });
 
     // « inutilisable pour 1d10 − (Bonus d'Endurance) Rounds (minimum de 1) » (AA 07 l.113) : BE 10, d10 = 1.
@@ -127,11 +127,11 @@ describe('ActiveEffect.passive — les ops d’un effet portent leur source', ()
 
   it('journal d’un `charMod` : fragment de durée en minutes seulement si l’op porte SON horloge', () => {
     const herite = hero();
-    const ligneHeritee = applyOps(herite, [{ op: 'charMod', char: 'agilite', mod: -10 }], { rng: desDuTest, label: 'Écorce', defaultUntilTime: 600 });
+    const ligneHeritee = applyOps(herite, [{ op: 'charMod', characteristic: 'agilite', mod: -10 }], { rng: desDuTest, label: 'Écorce', defaultUntilTime: 600 });
     expect(ligneHeritee[0]).toMatch(/durée hors combat/); // échéance du CONTEXTE : une date, pas un décompte
 
     const propre = hero();
-    const lignePropre = applyOps(propre, [{ op: 'charMod', char: 'agilite', mod: -10, durationHours: 1 }], { rng: desDuTest, label: 'Écorce', now: 0 });
+    const lignePropre = applyOps(propre, [{ op: 'charMod', characteristic: 'agilite', mod: -10, durationHours: 1 }], { rng: desDuTest, label: 'Écorce', now: 0 });
     expect(lignePropre[0]).toMatch(/1 heure/);
   });
 

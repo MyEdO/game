@@ -655,7 +655,7 @@ describe('Boucle de jeu (store)', () => {
     const after = st.battle!.combatants.find((c) => c.id === heroC.id)!;
     const failed = st.battle!.log.some((l) => l.text.includes('échoue'));
     if (!failed) {
-      expect(after.activeEffects?.some((e) => e.char === 'capacite-de-combat' && e.bonus === 10)).toBe(true);
+      expect(after.activeEffects?.some((e) => e.characteristic === 'capacite-de-combat' && e.bonus === 10)).toBe(true);
     }
     expect(st.battle!.acted).toBe(true);
   });

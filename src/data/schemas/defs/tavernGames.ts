@@ -3,7 +3,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { charKeySchema, difficultySchema, maisonSchema, plageSchema } from '../grammaire/valeurs';
-import { executeesDe, exigerDuTest, flowTestSchema, jetSchema, sujetDuJetSchema } from '../grammaire/mecanique';
+import { executeesDe, fixerLeTest, flowTestSchema, jetSchema, sujetDuJetSchema } from '../grammaire/mecanique';
 import { specialSchema } from '../grammaire/jeu-de-taverne';
 import { DEPARTAGES, EFFETS_DE_POT, LANCERS, SCORES_DE_SEQUENCE } from '../../../engine/sequenceVocab';
 
@@ -69,7 +69,7 @@ const doc = document(
       test: flowTestSchema,
       /** LDB 14 l.215 */
       combatTest: z.boolean().optional(),
-    }).superRefine(exigerDuTest('difficulty')), {
+    }).superRefine(fixerLeTest('difficulty')), {
       test: { label: 'Test' },
       combatTest: { label: 'Test de combat' },
     })).min(2).optional(),
@@ -172,7 +172,7 @@ const doc = document(
         echec: { label: 'Échec' },
         balayage: { label: 'Balayage' },
       }).optional(),
-    }).superRefine(exigerDuTest('difficulty')), {
+    }).superRefine(fixerLeTest('difficulty')), {
       test: { label: 'Test' },
       label: { label: 'Libellé' },
       points: { label: 'Points' },

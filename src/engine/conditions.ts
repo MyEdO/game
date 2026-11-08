@@ -157,6 +157,7 @@ export function appliquerMortSubite(target: Combatant, log: string[]): void {
 function difficulteParDefaut(id: string): Difficulty | undefined {
   let defaut: Difficulty | undefined;
   for (const e of findConditionById(id)?.effects ?? []) {
+    // lecture déclarée : la Difficulté authorée est le défaut de l'argument d'instance (`argDifficulty`)
     walkFlow(e.flow, (n) => { if (!defaut && n.kind === 'test' && n.test.argDifficulty) defaut = n.test.difficulty; });
   }
   return defaut;
@@ -634,7 +635,7 @@ export function combatTestPenaltyParts(c: Combatant, ctx: EtatTestCtx = {}): Mod
   // Auras de combat (`auraMods`, hook `recompute-auras`) : un TRAIT, pas un État — hors du gate
   // `ignoreStatePenalties` (LDB 42) et dans leur PROPRE pool (LDB 85 l.262).
   const auras: PoolCandidate[] = [];
-  for (const m of c.auraMods ?? []) if (m.op.op === 'testMod' && m.op.char == null) auras.push({ amount: m.op.amount, nature: t('cond.natureAura'), src: m.src });
+  for (const m of c.auraMods ?? []) if (m.op.op === 'testMod' && m.op.characteristic == null) auras.push({ amount: m.op.amount, nature: t('cond.natureAura'), src: m.src });
   const out: ModLine[] = [];
   for (const best of [poolWinner(cand), poolWinner(auras)]) {
     if (best?.amount) out.push({ label: srcLabel(best.src, best.nature), value: best.amount, famille: 'jet', ref: best.src });
@@ -681,7 +682,7 @@ function etatScopeApplies(op: Extract<GameOp, { op: 'testMod' }>, ctx: EtatTestC
   return !op.diseases || (ctx.disease != null && op.diseases.includes(ctx.disease));
 }
 
-/** Σ des `testMod` char-QUALIFIÉS ACTIFS (op `testMod{char}` exécutée, #193) pour la Caractéristique
+/** Σ des `testMod` char-QUALIFIÉS ACTIFS (op `testMod{characteristic}` exécutée, #193) pour la Caractéristique
  *  `ck` — POINT UNIQUE partagé par `testValue` (Tests hors-combat), `combatValue`/`defenseValue`
  *  parade (Tests d'arme, `weaponHand` gaté) et `defenseValue` Esquive (`movement:true`). `weaponHand`/
  *  `movement` : contexte du Test COURANT, opposé aux gates portés par l'effet (`testModHand`/

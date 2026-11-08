@@ -128,7 +128,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'beginPsych': return opPsy.pose('');
     case 'sbBonus': return { op: 'sbBonus', amount: 1 };
     case 'incomingSpellDRMod': return { op: 'incomingSpellDRMod', amount: -1 };
-    case 'charMod': return { op: 'charMod', char: 'force', mod: -10 };
+    case 'charMod': return { op: 'charMod', characteristic: 'force', mod: -10 };
     case 'ap': return { op: 'ap', amount: 1 };
     case 'testMod': return { op: 'testMod', amount: -10 };
     case 'ignoreStatePenalties': return { op: 'ignoreStatePenalties' };
@@ -171,7 +171,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'aggravateSymptom': return { op: 'aggravateSymptom', disease: '', symptomId: '', severity: 'grave' };
     case 'attenuateSymptom': return { op: 'attenuateSymptom', disease: '', symptomId: '' };
     case 'grantSymptom': return { op: 'grantSymptom', disease: '', symptomId: '' };
-    case 'actGate': return { op: 'actGate', char: 'force-mentale' };
+    case 'actGate': return { op: 'actGate', characteristic: 'force-mentale' };
     case 'delayed': return { op: 'delayed', afterHours: 1, ops: [] };
     case 'preventInfection': return { op: 'preventInfection' };
     case 'aideMedicale': return { op: 'aideMedicale' };
@@ -202,7 +202,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'light': return { op: 'light', radiusM: 10 };
     case 'skillMod': return { op: 'skillMod', skill: { id: '' }, mod: -10 };
     case 'skillDRBonus': return { op: 'skillDRBonus', skill: { id: '' }, bonus: 1 };
-    case 'charDRBonus': return { op: 'charDRBonus', char: 'sociabilite', bonus: 1 };
+    case 'charDRBonus': return { op: 'charDRBonus', characteristic: 'sociabilite', bonus: 1 };
     case 'crewTestMod': return { op: 'crewTestMod', mod: 10 };
     // Aucun id EN DUR : la table se choisit, comme une table référencée de `rollTable` (`tableId: ''`).
     case 'fall': return { op: 'fall', hauteur: { table: { id: '' } } };

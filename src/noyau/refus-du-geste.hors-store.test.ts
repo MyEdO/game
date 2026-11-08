@@ -117,7 +117,7 @@ describe('#3610 — Dissiper : le mode s’offre une fois, chaque Sort dissipabl
 
   it('dispel une fois, dispel-spell par Sort, son geste admis par le corps qu’il déclare', () => {
     const banc = ouvrirLeBanc();
-    const sort = (spellId: string, casterId: string) => ({ label: spellId, char: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 }, spell: { spellId, ni: 2, casterId, label: spellId } });
+    const sort = (spellId: string, casterId: string) => ({ label: spellId, characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 }, spell: { spellId, ni: 2, casterId, label: spellId } });
     const cible = mk('cible', { kind: 'enemy', pos: { x: 5, y: 5 }, activeEffects: [sort('malefice', 'e1'), sort('aveuglement', 'e2')] } as never);
     banc.setState({ battle: { combatants: [mk('mage'), cible], order: ['mage', 'cible'], turn: 0, round: 1, acted: false, over: null, log: [], reachable: new Map(), movementUsed: 0 } as never });
     const s = banc.getState();

@@ -92,7 +92,7 @@ describe('Convalescence des Blessures critiques (LDB 18)', () => {
     finDeFracture(c, specs, false); // issue INJECTÉE : Test de fin RATÉ
     expect(c.traumas!.length).toBe(1); // la fracture part, mais une séquelle reste
     expect(c.traumas![0].label).toMatch(/mal ressoudée/);
-    expect(c.traumas![0].ops).toContainEqual({ op: 'charMod', char: 'agilite', mod: -5 });
+    expect(c.traumas![0].ops).toContainEqual({ op: 'charMod', characteristic: 'agilite', mod: -5 });
     expect(c.traumas![0].recoveryDays).toBeUndefined(); // permanente
   });
 

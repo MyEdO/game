@@ -784,8 +784,8 @@ export interface ActiveEffect {
    *  (« Exposition (froid) » → 'exposition-froid') plutôt que par libellé. Le `label` reste l'affichage. */
   effectId?: string;
   /** Caractéristique modifiée, le cas échéant. */
-  char?: CharKey;
-  /** Posé par un `charMod` dont la liste d'ops porte un `attrMod` de Blessures `auTotal` (#3060) : `char`
+  characteristic?: CharKey;
+  /** Posé par un `charMod` dont la liste d'ops porte un `attrMod` de Blessures `auTotal` (#3060) : `characteristic`
    *  compte partout, sauf dans le recalcul des Blessures max (`effectiveMaxWounds`). */
   blessuresAuTotal?: true;
   /** Valeur du bonus (ex. +10). */
@@ -897,9 +897,9 @@ export interface ActiveEffect {
    *  L'Anguille » : « peut ignorer un État », MDG 09 l.244). Lu par combatTestPenalty/testStatePenalty. */
   ignoreStatesCount?: number;
   /** +DR temporisés (ops `skillDRBonus`/`charDRBonus` exécutées — chansons de marin, MDG 09) : par
-   *  Compétence (`skill`, Spécialisation comprise) OU par Caractéristique (`char`), `bonus` déjà résolu numérique.
+   *  Compétence (`skill`, Spécialisation comprise) OU par Caractéristique (`characteristic`), `bonus` déjà résolu numérique.
    *  Lus par `skillDRBonus`/`charDRBonusOf` (engine/ops) sur un Test RÉUSSI. */
-  drBonus?: ({ skill?: RefDesignee; bonus: number } | { char: CharKey; bonus: number })[];
+  drBonus?: ({ skill?: RefDesignee; bonus: number } | { characteristic: CharKey; bonus: number })[];
   /** Modificateur aux Tests INDIVIDUELS d'un Test d'équipage (op `crewTestMod` — « Naviguons tous
    *  ensemble », MDG 09 l.224 : +10). Lu par `crewRoleValue` (engine/crewMorale). */
   crewTestMod?: number;
@@ -933,7 +933,7 @@ export interface ActiveEffect {
    *  futures : +N) — STACKE par-dessus la pénalité d'État (≠ État, donc non soumis au non-cumul ni à
    *  `ignoreStatePenalties`). Lu par `combatTestPenalty`/`testStatePenalty` (engine/conditions). */
   testMod?: number;
-  /** QUALIFIE `testMod` par Caractéristique (op `testMod{char}` exécutée — Mystracine « +10 aux Tests
+  /** QUALIFIE `testMod` par Caractéristique (op `testMod{characteristic}` exécutée — Mystracine « +10 aux Tests
    *  d'Endurance et de FM, −10 Ag/I/Int », LDB 71 l.33) : le mod ne s'applique qu'aux Tests de cette
    *  carac, lu par `testValue` (engine/skills) ; EXCLU des `testMod` GLOBAUX (`effectGlobalTestMod`). */
   testModChar?: CharKey;
@@ -969,9 +969,9 @@ export interface ActiveEffect {
    *  symptôme n'est jamais mutée. Miroir de `suppressedSource`, nommé par instance de MALADIE. */
   attenuatedSymptom?: { disease: string; symptomId: string };
   /** GATE d'action par Round (op `actGate` — Racine de mandragore, LDB 71 l.35) : au début du tour du
-   *  porteur en combat, un Test de `char` décide s'il garde Action ET Mouvement (réussite) ou UN seul
+   *  porteur en combat, un Test de `characteristic` décide s'il garde Action ET Mouvement (réussite) ou UN seul
    *  au choix (échec). Résolu cadence-aware par `resolveActGates` (noyau/combatFlow). */
-  actGate?: { char: CharKey };
+  actGate?: { characteristic: CharKey };
   /** Le porteur doit effectuer des Tests de Prière pour son Action (op `prayerForAction`, lu par
    *  `prayerForActionBy`). LDB 40 l.74 */
   prayerForAction?: true;

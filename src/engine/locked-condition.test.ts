@@ -179,7 +179,7 @@ describe('Données — verrous & escapeStrength câblés (RAW)', () => {
  * portait que `target.conditions`.
  */
 describe('le verrou s’évalue contre la vue COMPLÈTE du porteur (#1599)', () => {
-  const forceAuMoins30: Condition = { kind: 'compare', subject: { who: 'target', char: 'force' }, op: '>=', value: 30 };
+  const forceAuMoins30: Condition = { kind: 'compare', subject: { who: 'target', characteristic: 'force' }, op: '>=', value: 30 };
 
   it('verrou sur une CARACTÉRISTIQUE : verrouillé tant qu’elle n’atteint pas le seuil', () => {
     const c = mk();

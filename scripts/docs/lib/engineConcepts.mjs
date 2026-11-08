@@ -56,6 +56,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/crewMorale.ts', "Moral d'équipage naval"],
   ['src/engine/crewedWeapon.ts', "Arme d'équipe, poste d'artillerie"],
   ['src/engine/critical.ts', 'Coups Critiques (tables, localisation)'],
+  ['src/engine/decisionDuTest.ts', "Décision d'un Test de Flow : joué ou non, Difficulté effective"],
   ['src/engine/dice.ts', 'Dés : tirage, expressions'],
   ['src/engine/disease.ts', 'Maladies : contraction, symptômes, guérison'],
   ['src/engine/suspension.ts', "Suspension d'une source passive (à durée)"],

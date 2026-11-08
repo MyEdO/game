@@ -38,7 +38,7 @@ const champs = {
   /** MDG 14 l.209. */
   contaminatesWaterBarrel: z.boolean().optional(),
   /** EDOC 08 l.104-108. */
-  dailyTest: nommerChamps(z.strictObject({ test: noeudTest(flowSchema, { difficulteRequise: true, echecSeulServi: true }), symptomId: idDe('symptome') }), { test: { label: 'Test' }, symptomId: { label: 'symptôme' } }).optional(),
+  dailyTest: nommerChamps(z.strictObject({ test: noeudTest(flowSchema, { difficulteRequise: true, echecSeulServi: true, decisionAuPorteur: true }), symptomId: idDe('symptome') }), { test: { label: 'Test' }, symptomId: { label: 'symptôme' } }).optional(),
   /** EDOC 08 l.122. */
   mutation: nommerChamps(z.strictObject({ afterDays: z.number(), into: idDe('maladie') }), { afterDays: { label: 'délai en jours' }, into: { label: 'maladie résultante' } }).optional(),
   /** EDOC 08 l.122. */
