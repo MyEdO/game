@@ -1,0 +1,54 @@
+name: Transfert
+
+# LE VERSEMENT À LA RELEASE DES MODÈLES (#2987) : une branche `transfert/<x>` porte, en plus de ce qu'elle reprend de
+# `main`, des fichiers épinglés que la Release ne porte pas encore (textures et kit sous leur dossier épinglé, GLB sous
+# `hotes/godot/projet/modeles/`), ajoutés de force, et la provenance qui les épingle. Au push, `hotes/godot/epingles.mjs`
+# verse chaque fichier épinglé absent de la Release sous le nom de son empreinte, après l'avoir vérifiée, sans rien
+# écraser (`publierAssets`), puis la branche est supprimée : elle n'est qu'un véhicule, la provenance se fusionne par PR.
+on:
+  push:
+    branches: ['transfert/**']
+
+concurrency:
+  group: transfert
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  verser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          check-latest: true
+          cache: npm
+      - run: npm ci
+      - name: Verser les fichiers épinglés absents de la Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node hotes/godot/epingles.mjs
+      - name: Supprimer la branche de transfert
+        run: git push origin --delete "$GITHUB_REF_NAME"
+
+      # Ce workflow n'a pas de porte : il se NOMME en rougissant — registre scripts/gates/workflowsDuDepot.mjs
+      # (#1779). Le signaleur est posé par `actions/checkout` et n'importe que `node:*`.
+      - name: Se nommer en rougissant
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          STATUT: ${{ job.status }}
+        run: |
+          RAPPORT="$RUNNER_TEMP/transfert-rapport.md"
+          echo "Run $RUN_URL ($GITHUB_REF_NAME) : job \`$STATUT\`" > "$RAPPORT"
+          node scripts/ops/signaler-rouge.mjs \
+            --titre "Transfert vers la Release rouge" \
+            --label canari \
+            --corps "$RAPPORT" \
+            --verdict "$([ "$STATUT" = success ] && echo vert || echo rouge)"
