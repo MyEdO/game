@@ -11,7 +11,7 @@ import type { FormeDArme } from './equipementDessine';
 import { racineDesCandidats } from '../engine/items';
 import { findApparenceById, findWeaponGroupById } from '../data';
 import type { Maniement } from '../data/schemas/grammaire/valeurs';
-import { roleAmbiantSchema } from '../data/schemas/grammaire/valeurs';
+import { maniementSchema, roleAmbiantSchema } from '../data/schemas/grammaire/valeurs';
 
 /** Rôles de combat : un clip chacun. */
 export const ROLES_DE_COMBAT = Object.freeze(['melee', 'ranged', 'cast', 'dodge', 'parry', 'hit', 'walk', 'idle'] as const);
@@ -22,6 +22,16 @@ export type StyleDeSort = (typeof STYLES_DE_SORT)[number];
 
 export const ROLES_D_ANIMATION = Object.freeze([...ROLES_DE_COMBAT, 'death', ...roleAmbiantSchema.options, ...STYLES_DE_SORT] as const);
 export type RoleDAnimation = (typeof ROLES_D_ANIMATION)[number];
+
+/** Les maniements, dans l'ordre de leur déclaration (`maniementSchema`). */
+export const MANIEMENTS: readonly Maniement[] = maniementSchema.options;
+
+/** Le maniement que déclare la racine de la forme `forme` (`apparences.json`), elle-même ou celle dont elle est une
+ *  variante (`forme`), aucun sans déclaration. */
+export function maniementDeLaForme(forme: string): Maniement | undefined {
+  const apparence = findApparenceById(forme);
+  return (apparence?.forme ? findApparenceById(apparence.forme.id) : apparence)?.maniement;
+}
 
 /** Arme naturelle typée (`Weapon.attackKind`, id stable du trait) → maniement dédié. */
 const MANIEMENT_NATUREL: Readonly<Record<string, Maniement>> = {
@@ -39,7 +49,7 @@ export function maniementDe(w?: FormeDArme): Maniement {
     if (nat) return nat;
   }
   const forme = racineDesCandidats(w.candidats);
-  const deLaForme = forme ? findApparenceById(forme)?.maniement : undefined;
+  const deLaForme = forme ? maniementDeLaForme(forme) : undefined;
   if (deLaForme) return deLaForme;
   const groupe = findWeaponGroupById(w.subType);
   if (groupe?.kind === 'weapon') return groupe.maniement;

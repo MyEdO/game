@@ -1,4 +1,4 @@
-"""#2972 ; #3101 issuecomment-6535025119 ; #3104 issuecomment-6549354475."""
+"""#2972 ; #3101 issuecomment-6535025119 ; #3104 issuecomment-6549354475 ; #3188."""
 import argparse
 import json
 import sys
@@ -11,12 +11,14 @@ DECLARATION = ICI / 'humanoide.json'
 """La déclaration du corps : `base`, porteur de référence et table rôle → clip, dont `walk`, la marche plantée."""
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from anatomie import PIEDS, gabarit, poser  # noqa: E402
+from anatomie import PIEDS, gabarit, poser, reperes_des_prises  # noqa: E402
+from deux_mains import deriver as deriver_a_deux_mains  # noqa: E402
 from animation import assign_action, clear_animation, meshes_for  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
 from seuils import IMAGES_PAR_SECONDE  # noqa: E402
 from pistes import sacs  # noqa: E402
 from script_node import lancer  # noqa: E402
+from chaines import ajouter_chaines, cuire_chaines  # noqa: E402
 from corpulence import ajouter_corpulence  # noqa: E402
 from diagnostic_poids import imprimer_retournements  # noqa: E402
 from poids import (PASSES_MAX, peau_lineaire, etats_ponderes, sommets_des_surfaces,  # noqa: E402
@@ -36,6 +38,8 @@ import numpy as np  # noqa: E402
 from selection_appuis import etats_des_appuis, selectionner_appuis
 from porte_gabarit import verifier_gabarit  # noqa: E402
 from glb import souder_les_normales_des_cibles  # noqa: E402
+from reprises import Reprises, empreinte_de_construction  # noqa: E402
+from materiaux_par_sexe import declarer_les_variantes, recoucher_les_variantes  # noqa: E402
 
 PELVIS = 'pelvis'
 OS_A_POSITION = ('root', PELVIS)
@@ -219,6 +223,7 @@ def construire(args):
     squelette, objets, _ = importer(bpy, args.corps)
     resoudre_images(bpy, args.corps)
     squelette_f, objets_f, _ = importer(bpy, args.corps_feminin)
+    resoudre_images(bpy, args.corps_feminin)
     reference = hierarchie(rig1)
     if len(reference) != args.os:
         raise RuntimeError(f'{args.ual1.name} : {len(reference)} os, {args.os} attendus')
@@ -241,8 +246,15 @@ def construire(args):
     corps_f, _ = corps_et_secondaires(meshes_for(bpy, squelette_f))
     bornes = bornes_de_st()
     table = {**gabarit(squelette), 'st': bornes, 'bornes': bornes_du_gabarit()}
-    marches = [json.loads(DECLARATION.read_text(encoding='utf-8'))['clips']['walk']]
+    declaration = json.loads(DECLARATION.read_text(encoding='utf-8'))
+    marches = [declaration['clips']['walk']]
     noms = [b.name for b in squelette.data.bones]
+    reprises = None if args.reprises is None else Reprises(
+        args.reprises, empreinte_de_construction(ICI.parents[2], {k: v for k, v in vars(args).items() if k not in ('reprises', 'sortie')}),
+        lambda chemin: bpy.ops.wm.save_as_mainfile(filepath=str(chemin), copy=True, relative_remap=False, compress=False),
+        lambda chemin: bpy.ops.wm.open_mainfile(filepath=str(chemin), load_ui=False))
+    noms_des_objets = {'squelette': squelette.name, 'squelette_f': squelette_f.name, 'objets_f': [o.name for o in objets_f],
+                       'peaux': [p.name for p in peaux], 'clips': [a.name for a in clips]}
 
     rabot = None
 
@@ -349,8 +361,21 @@ def construire(args):
         if fini:
             return {'aretes': 0, 'phase': 0}
         a_preparer = True
+        if reprises is not None:
+            ecrire_la_reprise(f'passe-{passe:04d}', passe)
         return {'sommets': retouches, 'phase': 1,
                 'ecartCles': ecart_cles if ecart_cles > TOLERANCE_JUMEAUX_POSITION_M else 0}
+
+    def ecrire_la_reprise(nom, passe):
+        ressources.close()
+        clear_animation(squelette)
+        bpy.context.view_layer.update()
+        for image in bpy.data.images:
+            if image.has_data:
+                image.pack()
+        reprises.ecrire(nom, {'passe': passe, 'phase': phase, 'renouveler': renouveler, 'etats_silhouettes': etats_silhouettes,
+                              'references': references, 'precedentes': precedentes, 'captures': captures,
+                              'contraintes': contraintes, 'rabot': rabot, 'objets': noms_des_objets})
 
     def refuser(passe, reste):
         raison = f'construction : point fixe absent après {passe} passes, phase {phase_actuelle}, reste {reste}'
@@ -363,15 +388,39 @@ def construire(args):
                 erreurs.append(erreur)
         raise erreurs[0]
 
-    try:
-        passes = atteindre_le_point_fixe(construire_tour, PASSES_MAX, refuser)
-    finally:
-        ressources.close()
+    reprise = None if reprises is None else reprises.lire()
+    if reprise is not None:
+        objets_lus = reprise['objets']
+        squelette, squelette_f = bpy.data.objects[objets_lus['squelette']], bpy.data.objects[objets_lus['squelette_f']]
+        objets_f = [bpy.data.objects[n] for n in objets_lus['objets_f']]
+        peaux = [bpy.data.objects[n] for n in objets_lus['peaux']]
+        clips = [bpy.data.actions[n] for n in objets_lus['clips']]
+        corps, secondaires = corps_et_secondaires(peaux)
+        corps_f, _ = corps_et_secondaires(meshes_for(bpy, squelette_f))
+        phase, renouveler, etats_silhouettes = reprise['phase'], reprise['renouveler'], reprise['etats_silhouettes']
+        references, precedentes, captures = reprise['references'], reprise['precedentes'], reprise['captures']
+        contraintes, rabot, passes = reprise['contraintes'], reprise['rabot'], reprise['passe']
+    if reprise is None or phase != 'fini':
+        try:
+            passes = atteindre_le_point_fixe(construire_tour, PASSES_MAX, refuser, depuis=1 if reprise is None else passes + 1)
+        finally:
+            ressources.close()
+        if reprises is not None:
+            phase = 'fini'
+            ecrire_la_reprise('point-fixe', passes)
     print('SOL tenu en', passes, 'passe(s)', flush=True)
+    clear_animation(squelette)
+    bpy.context.view_layer.update()
+    for action in deriver_a_deux_mains(bpy, squelette, reperes_des_prises(squelette)):
+        preparer(action)
+        clips.append(action)
+    variantes = recoucher_les_variantes(bpy, squelette, peaux, squelette_f, objets_f, declaration.get('surfaces', []))
     for objet in [squelette_f, *objets_f]:
         bpy.data.objects.remove(objet, do_unlink=True)
     clear_animation(squelette)
     bpy.context.view_layer.update()
+    chaines = ajouter_chaines(bpy, squelette, corps)
+    cuire_chaines(bpy, squelette, clips, chaines)
     print('GABARIT_ANATOMIE_OK table disjointe ; head sans enfants', flush=True)
     print('GABARIT_BORNES', json.dumps(table['bornes']), flush=True)
     exporter_gabarit(peaux, references)
@@ -380,7 +429,7 @@ def construire(args):
     manifeste = poser(squelette, peaux)
     manifeste['appuis']['plusBas'] = candidats
     manifeste['gabarit'] = table
-    manifeste = {'os': [b.name for b in squelette.data.bones], 'chaines': {}, **manifeste, 'silhouettes': formes,
+    manifeste = {'os': [b.name for b in squelette.data.bones], 'chaines': chaines, **manifeste, 'silhouettes': formes,
                  'osAPositionAnimee': os_a_position_animee(squelette, clips, manifeste['gabarit']['racine'])}
     clear_animation(squelette)
     bpy.context.view_layer.update()
@@ -388,6 +437,7 @@ def construire(args):
     for image in bpy.data.images:
         if image.has_data:
             image.pack()
+    declarer_les_variantes(bpy, [o for o in bpy.data.objects if o.type == 'MESH'], variantes)
     assign_action(squelette, clips[0])
     args.sortie.parent.mkdir(parents=True, exist_ok=True)
     bpy.ops.export_scene.gltf(filepath=str(args.sortie), export_format='GLB', export_animations=True,
@@ -410,7 +460,7 @@ def main():
     parser.add_argument('--ual2', type=Path, required=True, help='UAL2_Standard.glb : clips sur le même squelette')
     parser.add_argument('--corps', type=Path, required=True, help="corps UBC (.gltf/.glb) skinné aux os d'UAL")
     parser.add_argument('--corps-feminin', type=Path, required=True,
-                        help="corps UBC féminin (.gltf/.glb) aux mêmes os : source de la clé `feminin`")
+                        help="corps UBC féminin (.gltf/.glb) aux mêmes os : source de la clé `feminin` et des matériaux `parSexe`")
     for pack in PACKS:
         option = pack.replace('_', '-')
         parser.add_argument(f'--licence-{option}', type=Path, required=True,
@@ -419,6 +469,8 @@ def main():
                         help='dossier `data` de MPFB (3dobjs, targets) : donneur de la clé `corpulence`')
     parser.add_argument('--sortie', type=Path, required=True, help='humanoide.glb produit')
     parser.add_argument('--os', type=int, default=65, help="nombre d'os du squelette UAL")
+    parser.add_argument('--reprises', type=Path, help='dossier des reprises (`reprises.py`) : écrites à chaque fin de phase '
+                        'du point fixe et à sa fin, la dernière relue au lancement')
     construire(parser.parse_args())
 
 
