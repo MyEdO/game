@@ -26,8 +26,8 @@ import type { FenetreAValider, FenetreQuiSeFerme } from './modalArbiter';
 
 /** Un texte que le joueur écrit (un nom, une motivation) : jamais un id, que `DESIGNATIONS` désigne. */
 export type TexteLibre = string;
-/** Ce qu'un verbe reçoit entier sans le désigner, parce que le geste le crée : le brouillon d'un héros et l'id que
- *  son roster lui donne (`HerosEngage`). Le noyau en juge chaque champ (`herosDeLEngagement`). */
+/** Ce qu'un verbe reçoit sans le désigner, parce que le geste le crée : le brouillon d'un héros et l'id que son roster
+ *  lui donne (`HerosEngage`). Exempt de désignation seulement : l'hôte en lit chaque champ à sa forme (`lireALaForme`). */
 export type HorsDesignation<T> = T;
 /** Une Spécialisation de Compétence ou de Talent : un id du catalogue de l'entrée, ou, pour une entrée ouverte, un
  *  texte libre (`entreeOuverte`, LDB 09 l.40) ; le verbe la juge à l'entrée qu'il désigne. */
