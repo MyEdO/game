@@ -62,7 +62,7 @@ describe('schémas de progression (PDF -> careerLevels.json)', () => {
 
   it('le CLI de garde SORT en 1 et NOMME le désaccord (chemin d’échec, pas seulement le vert)', () => {
     const mute = JSON.parse(JSON.stringify(careerLevels)) as typeof careerLevels;
-    const lv2 = mute.find((l) => l.career === 'tueur' && l.level === 2)!;
+    const lv2 = mute.find((l) => l.career.id === 'tueur' && l.level === 2)!;
     lv2.characteristics = ['sociabilite'];
     const tmp = join(tmpdir(), `careerLevels-905-${process.pid}.json`);
     writeFileSync(tmp, JSON.stringify(mute), 'utf8');
@@ -124,8 +124,8 @@ describe('schémas de progression (PDF -> careerLevels.json)', () => {
     // `careerLevels[].career` -> `careers[].id`.
     const parId = new Map(careers.map((c) => [c.id, c]));
     const desaccords = careerLevels.flatMap((l) => {
-      const c = parId.get(l.career);
-      if (!c) return [`${l.id} : aucune Carrière « ${l.career} » dans careers.json`];
+      const c = parId.get(l.career.id);
+      if (!c) return [`${l.id} : aucune Carrière « ${l.career.id} » dans careers.json`];
       if (l.source.book === c.source.book && l.source.page === c.source.page) return [];
       return [
         `${l.id} : niveau ${l.source.book} p.${l.source.page} vs Carrière ${c.source.book} p.${c.source.page}`,
@@ -157,8 +157,8 @@ describe('schémas de progression (PDF -> careerLevels.json)', () => {
     // Réfutation par construction sur `tueur` (LDB folio 76) : le défaut fondateur de #905, rejoué sur
     // une COPIE de la donnée — les niveaux 3 et 4 échangés, tout le reste intact.
     const mute = JSON.parse(JSON.stringify(careerLevels)) as typeof careerLevels;
-    const lv3 = mute.find((l) => l.career === 'tueur' && l.level === 3)!;
-    const lv4 = mute.find((l) => l.career === 'tueur' && l.level === 4)!;
+    const lv3 = mute.find((l) => l.career.id === 'tueur' && l.level === 3)!;
+    const lv4 = mute.find((l) => l.career.id === 'tueur' && l.level === 4)!;
     [lv3.characteristics, lv4.characteristics] = [lv4.characteristics, lv3.characteristics];
     const ko = auditProgressionSchemas({ careerLevels: mute });
     expect(ko.violations.map((v) => `${v.career} ${v.level}`)).toEqual(['tueur 3', 'tueur 4']);
@@ -169,7 +169,7 @@ describe('schémas de progression (PDF -> careerLevels.json)', () => {
     expect(msg).toMatch(/teinte [\d.]+\/[\d.]+\/[\d.]+/);
     // La cardinalité (3/1/1/1) et la disjonction, elles, restent satisfaites par la permutation :
     // c'est bien ce trou-là que cette garde ferme.
-    const tueur = mute.filter((l) => l.career === 'tueur');
+    const tueur = mute.filter((l) => l.career.id === 'tueur');
     expect(tueur.map((l) => l.characteristics.length).sort()).toEqual([1, 1, 1, 3]);
     expect(new Set(tueur.flatMap((l) => l.characteristics)).size).toBe(6);
   });

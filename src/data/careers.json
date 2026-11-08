@@ -4,7 +4,9 @@
     "type": "careers",
     "label": "Agitateur",
     "labelF": "Agitatrice",
-    "class": "citadins",
+    "class": {
+      "id": "citadins"
+    },
     "rand": {
       "humain": 1,
       "halfling": 2,
@@ -29,7 +31,9 @@
     "type": "careers",
     "label": "Artisan",
     "labelF": "Artisane",
-    "class": "citadins",
+    "class": {
+      "id": "citadins"
+    },
     "rand": {
       "humain": 3,
       "halfling": 7,
@@ -54,7 +58,9 @@
     "type": "careers",
     "label": "Bourgeois",
     "labelF": "Bourgeoise",
-    "class": "citadins",
+    "class": {
+      "id": "citadins"
+    },
     "rand": {
       "humain": 6,
       "halfling": 10,
@@ -78,7 +84,9 @@
     "type": "careers",
     "label": "Enquêteur",
     "labelF": "Enquêtrice",
-    "class": "citadins",
+    "class": {
+      "id": "citadins"
+    },
     "rand": {
       "humain": 7,
       "halfling": 12,
@@ -102,7 +110,9 @@
     "type": "careers",
     "label": "Marchand",
     "labelF": "Marchande",
-    "class": "citadins",
+    "class": {
+      "id": "citadins"
+    },
     "rand": {
       "humain": 8,
       "halfling": 16,
@@ -127,7 +137,9 @@
     "type": "careers",
     "label": "Mendiant",
     "labelF": "Mendiante",
-    "class": "citadins",
+    "class": {
+      "id": "citadins"
+    },
     "rand": {
       "humain": 10,
       "halfling": 20,
@@ -152,7 +164,9 @@
     "type": "careers",
     "label": "Milicien",
     "labelF": "Milicienne",
-    "class": "citadins",
+    "class": {
+      "id": "citadins"
+    },
     "grantGroups": [
       "miliciens",
       "figures-symboles-d-autorite"
@@ -180,7 +194,9 @@
     "type": "careers",
     "label": "Ratier",
     "labelF": "Ratière",
-    "class": "citadins",
+    "class": {
+      "id": "citadins"
+    },
     "rand": {
       "humain": 13,
       "halfling": 25,
@@ -204,7 +220,9 @@
     "id": "artiste",
     "type": "careers",
     "label": "Artiste",
-    "class": "courtisans",
+    "class": {
+      "id": "courtisans"
+    },
     "rand": {
       "humain": 14,
       "halfling": 27,
@@ -229,7 +247,9 @@
     "type": "careers",
     "label": "Conseiller",
     "labelF": "Conseillère",
-    "class": "courtisans",
+    "class": {
+      "id": "courtisans"
+    },
     "grantGroups": [
       "figures-symboles-d-autorite"
     ],
@@ -256,7 +276,9 @@
     "id": "duelliste",
     "type": "careers",
     "label": "Duelliste",
-    "class": "courtisans",
+    "class": {
+      "id": "courtisans"
+    },
     "rand": {
       "humain": 16,
       "halfling": null,
@@ -279,7 +301,9 @@
     "id": "emissaire",
     "type": "careers",
     "label": "Émissaire",
-    "class": "courtisans",
+    "class": {
+      "id": "courtisans"
+    },
     "grantGroups": [
       "figures-symboles-d-autorite"
     ],
@@ -306,7 +330,9 @@
     "type": "careers",
     "label": "Espion",
     "labelF": "Espionne",
-    "class": "courtisans",
+    "class": {
+      "id": "courtisans"
+    },
     "rand": {
       "humain": 18,
       "halfling": 30,
@@ -330,7 +356,9 @@
     "type": "careers",
     "label": "Intendant",
     "labelF": "Intendante",
-    "class": "courtisans",
+    "class": {
+      "id": "courtisans"
+    },
     "grantGroups": [
       "figures-symboles-d-autorite"
     ],
@@ -356,7 +384,9 @@
     "id": "noble",
     "type": "careers",
     "label": "Noble",
-    "class": "courtisans",
+    "class": {
+      "id": "courtisans"
+    },
     "grantGroups": [
       "noble",
       "figures-symboles-d-autorite"
@@ -385,7 +415,9 @@
     "type": "careers",
     "label": "Serviteur",
     "labelF": "Servante",
-    "class": "courtisans",
+    "class": {
+      "id": "courtisans"
+    },
     "rand": {
       "humain": 23,
       "halfling": 38,
@@ -410,7 +442,9 @@
     "type": "careers",
     "label": "Cavalier",
     "labelF": "Cavalière",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "grantGroups": [
       "figures-symboles-de-guerre"
     ],
@@ -438,7 +472,9 @@
     "type": "careers",
     "label": "Chevalier",
     "labelF": "Chevalière",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "grantGroups": [
       "chevalier",
       "figures-symboles-de-guerre"
@@ -465,7 +501,9 @@
     "id": "garde",
     "type": "careers",
     "label": "Garde",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "grantGroups": [
       "garde",
       "figures-symboles-d-autorite"
@@ -493,7 +531,9 @@
     "type": "careers",
     "label": "Gladiateur",
     "labelF": "Gladiatrice",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "rand": {
       "humain": 29,
       "halfling": 41,
@@ -518,7 +558,9 @@
     "type": "careers",
     "label": "Mangeur d'hommes",
     "labelF": "Mangeuse d'hommes",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "rand": {
       "humain": null,
       "halfling": null,
@@ -542,7 +584,9 @@
     "type": "careers",
     "label": "Prêtre guerrier",
     "labelF": "Prêtresse guerrière",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "grantGroups": [
       "figures-symboles-religieux",
       "religion"
@@ -570,7 +614,9 @@
     "type": "careers",
     "label": "Soldat",
     "labelF": "Soldate",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "grantGroups": [
       "soldat",
       "figures-symboles-de-guerre"
@@ -599,7 +645,9 @@
     "type": "careers",
     "label": "Chevaucheur de blaireau",
     "labelF": "Chevaucheuse de blaireau",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "rand": {
       "humain": null,
       "halfling": 44,
@@ -623,7 +671,9 @@
     "type": "careers",
     "label": "Spadassin",
     "labelF": "Spadassine",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "rand": {
       "humain": 35,
       "halfling": null,
@@ -648,7 +698,9 @@
     "type": "careers",
     "label": "Tueur",
     "labelF": "Tueuse",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "rand": {
       "humain": null,
       "halfling": null,
@@ -672,7 +724,9 @@
     "type": "careers",
     "label": "Chasseur de primes",
     "labelF": "Chasseuse de primes",
-    "class": "itinerants",
+    "class": {
+      "id": "itinerants"
+    },
     "rand": {
       "humain": 36,
       "halfling": 45,
@@ -696,7 +750,9 @@
     "type": "careers",
     "label": "Rôdeur fantôme",
     "labelF": "Rôdeuse fantôme",
-    "class": "itinerants",
+    "class": {
+      "id": "itinerants"
+    },
     "rand": {
       "humain": null,
       "halfling": null,
@@ -720,7 +776,9 @@
     "type": "careers",
     "label": "Cocher",
     "labelF": "Cochère",
-    "class": "itinerants",
+    "class": {
+      "id": "itinerants"
+    },
     "rand": {
       "humain": 37,
       "halfling": 47,
@@ -744,7 +802,9 @@
     "type": "careers",
     "label": "Colporteur",
     "labelF": "Colporteuse",
-    "class": "itinerants",
+    "class": {
+      "id": "itinerants"
+    },
     "rand": {
       "humain": 38,
       "halfling": 49,
@@ -769,7 +829,9 @@
     "type": "careers",
     "label": "Flagellant",
     "labelF": "Flagellante",
-    "class": "itinerants",
+    "class": {
+      "id": "itinerants"
+    },
     "grantGroups": [
       "figures-symboles-religieux",
       "religion"
@@ -797,7 +859,9 @@
     "type": "careers",
     "label": "Frère Loup",
     "labelF": "Sœur Louve",
-    "class": "itinerants",
+    "class": {
+      "id": "itinerants"
+    },
     "rand": {
       "humain": null,
       "halfling": null,
@@ -821,7 +885,9 @@
     "type": "careers",
     "label": "Messager",
     "labelF": "Messagère",
-    "class": "itinerants",
+    "class": {
+      "id": "itinerants"
+    },
     "rand": {
       "humain": 41,
       "halfling": 51,
@@ -846,7 +912,9 @@
     "type": "careers",
     "label": "Patrouilleur des karak",
     "labelF": "Patrouilleuse des karak",
-    "class": "itinerants",
+    "class": {
+      "id": "itinerants"
+    },
     "rand": {
       "humain": null,
       "halfling": null,
@@ -870,7 +938,9 @@
     "type": "careers",
     "label": "Patrouilleur routier",
     "labelF": "Patrouilleuse routière",
-    "class": "itinerants",
+    "class": {
+      "id": "itinerants"
+    },
     "grantGroups": [
       "patrouilleurs-routiers",
       "figures-symboles-d-autorite"
@@ -897,7 +967,9 @@
     "id": "gardechamps",
     "type": "careers",
     "label": "Gardechamps",
-    "class": "itinerants",
+    "class": {
+      "id": "itinerants"
+    },
     "rand": {
       "humain": null,
       "halfling": 52,
@@ -921,7 +993,9 @@
     "type": "careers",
     "label": "Répurgateur",
     "labelF": "Répurgatrice",
-    "class": "itinerants",
+    "class": {
+      "id": "itinerants"
+    },
     "grantGroups": [
       "figures-symboles-d-autorite"
     ],
@@ -947,7 +1021,9 @@
     "id": "saltimbanque",
     "type": "careers",
     "label": "Saltimbanque",
-    "class": "itinerants",
+    "class": {
+      "id": "itinerants"
+    },
     "rand": {
       "humain": 45,
       "halfling": 55,
@@ -971,7 +1047,9 @@
     "id": "apothicaire",
     "type": "careers",
     "label": "Apothicaire",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "rand": {
       "humain": 46,
       "halfling": 56,
@@ -995,7 +1073,9 @@
     "type": "careers",
     "label": "Boucher Ogre",
     "labelF": "Bouchère Ogre",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "rand": {
       "humain": null,
       "halfling": null,
@@ -1019,7 +1099,9 @@
     "type": "careers",
     "label": "Érudit",
     "labelF": "Érudite",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "rand": {
       "humain": 48,
       "halfling": 58,
@@ -1044,7 +1126,9 @@
     "type": "careers",
     "label": "Ingénieur",
     "labelF": "Ingénieure",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "rand": {
       "humain": 49,
       "halfling": 59,
@@ -1067,7 +1151,9 @@
     "id": "juriste",
     "type": "careers",
     "label": "Juriste",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "grantGroups": [
       "juriste",
       "figures-symboles-d-autorite"
@@ -1094,7 +1180,9 @@
     "id": "medecin",
     "type": "careers",
     "label": "Médecin",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "rand": {
       "humain": 51,
       "halfling": 63,
@@ -1117,7 +1205,9 @@
     "id": "nonne",
     "type": "careers",
     "label": "Nonne",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "grantGroups": [
       "figures-symboles-religieux",
       "religion"
@@ -1146,7 +1236,9 @@
     "type": "careers",
     "label": "Prêtre",
     "labelF": "Prêtresse",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "grantGroups": [
       "figures-symboles-religieux",
       "religion"
@@ -1174,7 +1266,9 @@
     "type": "careers",
     "label": "Sorcier",
     "labelF": "Sorcière",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "rand": {
       "humain": 59,
       "halfling": null,
@@ -1198,7 +1292,9 @@
     "type": "careers",
     "label": "Batelier",
     "labelF": "Batelière",
-    "class": "riverains",
+    "class": {
+      "id": "riverains"
+    },
     "rand": {
       "humain": 61,
       "halfling": 64,
@@ -1222,7 +1318,9 @@
     "type": "careers",
     "label": "Contrebandier",
     "labelF": "Contrebandière",
-    "class": "riverains",
+    "class": {
+      "id": "riverains"
+    },
     "rand": {
       "humain": 62,
       "halfling": 68,
@@ -1246,7 +1344,9 @@
     "type": "careers",
     "label": "Débardeur",
     "labelF": "Débardeuse",
-    "class": "riverains",
+    "class": {
+      "id": "riverains"
+    },
     "rand": {
       "humain": 64,
       "halfling": 71,
@@ -1269,7 +1369,9 @@
     "id": "femme-du-fleuve",
     "type": "careers",
     "label": "Femme du fleuve",
-    "class": "riverains",
+    "class": {
+      "id": "riverains"
+    },
     "rand": {
       "humain": 67,
       "halfling": 74,
@@ -1292,7 +1394,9 @@
     "id": "marin",
     "type": "careers",
     "label": "Marin",
-    "class": "riverains",
+    "class": {
+      "id": "riverains"
+    },
     "rand": {
       "humain": 69,
       "halfling": 75,
@@ -1316,7 +1420,9 @@
     "type": "careers",
     "label": "Naufrageur",
     "labelF": "Naufrageuse",
-    "class": "riverains",
+    "class": {
+      "id": "riverains"
+    },
     "grantGroups": [
       "naufrageurs"
     ],
@@ -1343,7 +1449,9 @@
     "type": "careers",
     "label": "Nautonier",
     "labelF": "Nautonière",
-    "class": "riverains",
+    "class": {
+      "id": "riverains"
+    },
     "rand": {
       "humain": 71,
       "halfling": 76,
@@ -1367,7 +1475,9 @@
     "type": "careers",
     "label": "Patrouilleur fluvial",
     "labelF": "Patrouilleuse fluviale",
-    "class": "riverains",
+    "class": {
+      "id": "riverains"
+    },
     "grantGroups": [
       "patrouilleurs-fluviaux",
       "figures-symboles-d-autorite"
@@ -1395,7 +1505,9 @@
     "type": "careers",
     "label": "Charlatan",
     "labelF": "Charlatane",
-    "class": "roublards",
+    "class": {
+      "id": "roublards"
+    },
     "rand": {
       "humain": 74,
       "halfling": 78,
@@ -1420,7 +1532,9 @@
     "type": "careers",
     "label": "Entremetteur",
     "labelF": "Entremetteuse",
-    "class": "roublards",
+    "class": {
+      "id": "roublards"
+    },
     "rand": {
       "humain": 76,
       "halfling": 81,
@@ -1443,7 +1557,9 @@
     "id": "hors-la-loi",
     "type": "careers",
     "label": "Hors-la-loi",
-    "class": "roublards",
+    "class": {
+      "id": "roublards"
+    },
     "grantGroups": [
       "hors-la-loi"
     ],
@@ -1471,7 +1587,9 @@
     "type": "careers",
     "label": "Pilleur de tombes",
     "labelF": "Pilleuse de tombes",
-    "class": "roublards",
+    "class": {
+      "id": "roublards"
+    },
     "rand": {
       "humain": 81,
       "halfling": 83,
@@ -1495,7 +1613,9 @@
     "type": "careers",
     "label": "Rançonneur",
     "labelF": "Rançonneuse",
-    "class": "roublards",
+    "class": {
+      "id": "roublards"
+    },
     "rand": {
       "humain": 82,
       "halfling": 84,
@@ -1519,7 +1639,9 @@
     "type": "careers",
     "label": "Receleur",
     "labelF": "Receleuse",
-    "class": "roublards",
+    "class": {
+      "id": "roublards"
+    },
     "rand": {
       "humain": 83,
       "halfling": 85,
@@ -1543,7 +1665,9 @@
     "type": "careers",
     "label": "Sorcier dissident",
     "labelF": "Sorcière dissidente",
-    "class": "roublards",
+    "class": {
+      "id": "roublards"
+    },
     "grantGroups": [
       "sorcieres",
       "sorciers-dissidents"
@@ -1572,7 +1696,9 @@
     "type": "careers",
     "label": "Voleur",
     "labelF": "Voleuse",
-    "class": "roublards",
+    "class": {
+      "id": "roublards"
+    },
     "rand": {
       "humain": 87,
       "halfling": 89,
@@ -1596,7 +1722,9 @@
     "id": "bailli",
     "type": "careers",
     "label": "Bailli",
-    "class": "ruraux",
+    "class": {
+      "id": "ruraux"
+    },
     "grantGroups": [
       "bailli",
       "figures-symboles-d-autorite"
@@ -1624,7 +1752,9 @@
     "type": "careers",
     "label": "Chasseur",
     "labelF": "Chasseuse",
-    "class": "ruraux",
+    "class": {
+      "id": "ruraux"
+    },
     "rand": {
       "humain": 90,
       "halfling": 92,
@@ -1649,7 +1779,9 @@
     "type": "careers",
     "label": "Éclaireur",
     "labelF": "Éclaireuse",
-    "class": "ruraux",
+    "class": {
+      "id": "ruraux"
+    },
     "rand": {
       "humain": 91,
       "halfling": 93,
@@ -1674,7 +1806,9 @@
     "type": "careers",
     "label": "Gardien de troupeaux de rhinox",
     "labelF": "Gardienne de troupeaux de rhinox",
-    "class": "ruraux",
+    "class": {
+      "id": "ruraux"
+    },
     "rand": {
       "humain": null,
       "halfling": null,
@@ -1697,7 +1831,9 @@
     "id": "herboriste",
     "type": "careers",
     "label": "Herboriste",
-    "class": "ruraux",
+    "class": {
+      "id": "ruraux"
+    },
     "rand": {
       "humain": 92,
       "halfling": 96,
@@ -1722,7 +1858,9 @@
     "type": "careers",
     "label": "Mineur",
     "labelF": "Mineuse",
-    "class": "ruraux",
+    "class": {
+      "id": "ruraux"
+    },
     "rand": {
       "humain": 93,
       "halfling": 97,
@@ -1745,7 +1883,9 @@
     "id": "mystique",
     "type": "careers",
     "label": "Mystique",
-    "class": "ruraux",
+    "class": {
+      "id": "ruraux"
+    },
     "rand": {
       "humain": 94,
       "halfling": null,
@@ -1770,7 +1910,9 @@
     "type": "careers",
     "label": "Sorcier de village",
     "labelF": "Sorcière de village",
-    "class": "ruraux",
+    "class": {
+      "id": "ruraux"
+    },
     "grantGroups": [
       "sorcieres"
     ],
@@ -1797,7 +1939,9 @@
     "type": "careers",
     "label": "Villageois",
     "labelF": "Villageoise",
-    "class": "ruraux",
+    "class": {
+      "id": "ruraux"
+    },
     "rand": {
       "humain": 100,
       "halfling": 100,
@@ -1822,7 +1966,9 @@
     "type": "careers",
     "label": "Cavalier Léger",
     "labelF": "Cavalière Légère",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "grantGroups": [
       "figures-symboles-de-guerre"
     ],
@@ -1849,7 +1995,9 @@
     "type": "careers",
     "label": "Chevalier Errant",
     "labelF": "Chevalière Errante",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "grantGroups": [
       "figures-symboles-de-guerre"
     ],
@@ -1876,7 +2024,9 @@
     "type": "careers",
     "label": "Chevalier du Soleil flamboyant",
     "labelF": "Chevalière du Soleil flamboyant",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "grantGroups": [
       "figures-symboles-de-guerre"
     ],
@@ -1903,7 +2053,9 @@
     "type": "careers",
     "label": "Chevalier du Loup Blanc",
     "labelF": "Chevalière du Loup Blanc",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "grantGroups": [
       "figures-symboles-de-guerre"
     ],
@@ -1930,7 +2082,9 @@
     "type": "careers",
     "label": "Chevalier Panthère",
     "labelF": "Chevalière Panthère",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "grantGroups": [
       "figures-symboles-de-guerre"
     ],
@@ -1957,7 +2111,9 @@
     "type": "careers",
     "label": "Prêtre de Myrmidia",
     "labelF": "Prêtresse de Myrmidia",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "grantGroups": [
       "figures-symboles-de-guerre",
       "figures-symboles-religieux",
@@ -1986,7 +2142,9 @@
     "type": "careers",
     "label": "Archer",
     "labelF": "Archère",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "grantGroups": [
       "figures-symboles-de-guerre"
     ],
@@ -2013,7 +2171,9 @@
     "type": "careers",
     "label": "Hallebardier",
     "labelF": "Hallebardière",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "grantGroups": [
       "figures-symboles-de-guerre"
     ],
@@ -2040,7 +2200,9 @@
     "type": "careers",
     "label": "Arquebusier",
     "labelF": "Arquebusière",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "grantGroups": [
       "figures-symboles-de-guerre"
     ],
@@ -2067,7 +2229,9 @@
     "type": "careers",
     "label": "Joueur d'épée",
     "labelF": "Joueuse d'épée",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "grantGroups": [
       "figures-symboles-de-guerre"
     ],
@@ -2094,7 +2258,9 @@
     "type": "careers",
     "label": "Piquier",
     "labelF": "Piquière",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "grantGroups": [
       "figures-symboles-de-guerre"
     ],
@@ -2120,7 +2286,9 @@
     "id": "specialiste-de-siege",
     "type": "careers",
     "label": "Spécialiste de Siège",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "grantGroups": [
       "figures-symboles-de-guerre"
     ],
@@ -2147,7 +2315,9 @@
     "type": "careers",
     "label": "Suiveur de Camp",
     "labelF": "Suiveuse de Camp",
-    "class": "itinerants",
+    "class": {
+      "id": "itinerants"
+    },
     "rand": {
       "humain": 38,
       "halfling": 49,
@@ -2170,7 +2340,9 @@
     "id": "cartographe",
     "type": "careers",
     "label": "Cartographe",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "rand": {
       "humain": 48,
       "halfling": 58,
@@ -2194,7 +2366,9 @@
     "type": "careers",
     "label": "Artilleur",
     "labelF": "Artilleuse",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "grantGroups": [
       "figures-symboles-de-guerre"
     ],
@@ -2221,7 +2395,9 @@
     "type": "careers",
     "label": "Artilleur de navire",
     "labelF": "Artilleuse de navire",
-    "class": "cotiers",
+    "class": {
+      "id": "cotiers"
+    },
     "grantGroups": [
       "figures-symboles-de-guerre"
     ],
@@ -2248,7 +2424,9 @@
     "type": "careers",
     "label": "Chansonnier",
     "labelF": "Chansonnière",
-    "class": "cotiers",
+    "class": {
+      "id": "cotiers"
+    },
     "rand": {
       "humain": 62,
       "halfling": null,
@@ -2271,7 +2449,9 @@
     "id": "marin-cotier",
     "type": "careers",
     "label": "Marin (Côtier)",
-    "class": "cotiers",
+    "class": {
+      "id": "cotiers"
+    },
     "rand": {
       "humain": 66,
       "halfling": 71,
@@ -2296,7 +2476,9 @@
     "type": "careers",
     "label": "Naufrageur (Côtier)",
     "labelF": "Naufrageuse (Côtier)",
-    "class": "cotiers",
+    "class": {
+      "id": "cotiers"
+    },
     "grantGroups": [
       "naufrageurs"
     ],
@@ -2324,7 +2506,9 @@
     "type": "careers",
     "label": "Nautonier (Côtier)",
     "labelF": "Nautonière (Côtier)",
-    "class": "cotiers",
+    "class": {
+      "id": "cotiers"
+    },
     "rand": {
       "humain": 68,
       "halfling": 73,
@@ -2349,7 +2533,9 @@
     "type": "careers",
     "label": "Officier",
     "labelF": "Officière",
-    "class": "cotiers",
+    "class": {
+      "id": "cotiers"
+    },
     "grantGroups": [
       "figures-symboles-de-guerre",
       "figures-symboles-d-autorite"
@@ -2377,7 +2563,9 @@
     "type": "careers",
     "label": "Prêtre marin de Manann",
     "labelF": "Prêtresse marine de Manann",
-    "class": "cotiers",
+    "class": {
+      "id": "cotiers"
+    },
     "grantGroups": [
       "figures-symboles-religieux",
       "religion"
@@ -2405,7 +2593,9 @@
     "type": "careers",
     "label": "Ratisseur de plages",
     "labelF": "Ratisseuse de plages",
-    "class": "cotiers",
+    "class": {
+      "id": "cotiers"
+    },
     "rand": {
       "humain": 73,
       "halfling": 77,
@@ -2430,7 +2620,9 @@
     "type": "careers",
     "label": "Prêtre de Stromfels",
     "labelF": "Prêtresse de Stromfels",
-    "class": "cotiers",
+    "class": {
+      "id": "cotiers"
+    },
     "grantGroups": [
       "figures-symboles-religieux",
       "religion"
@@ -2457,7 +2649,9 @@
     "id": "alchimiste-ordinaire",
     "type": "careers",
     "label": "Alchimiste ordinaire",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "rand": {},
     "desc": "*Vous êtes à la pointe de la compréhension des propriétés de la matière, en combinant avec succès la science et la magie.*\n\nRompus aux propriétés de la matière, les Alchimistes sont des experts dans la création de matériaux nouveaux et dans l'amélioration de ceux déjà existants. Ils peuvent concocter des préparations chimiques et travaillent souvent avec des métallurgistes. Leurs connaissances sont spécialisées et très sollicitées. Par exemple à Nuln, l'École impériale d'Artillerie charge tout un département d'alchimistes de créer de la poudre noire et d'en améliorer l'efficacité.\n\n*« Je ne sais pas ce qu'ils font dans leurs laboratoires secrets avec leurs étranges concoctions, mais mon beau-frère – qui connaît quelqu'un qui sait lire – m'a dit qu'on disait dans un article de l'Altdorf Spieler que quelqu'un racontait que ces alchimistes utilisent de la Magie sans permis et que leurs bâtiments explosent tout le temps. »*\n\n– Dimbo Cendreplaine, conteur de l'Haffenstadt\n\n*« L'alchimie ? Je pense que c'est formidable ! Imaginez si tout le monde pouvait fabriquer de l'or ! Nous serions tous riches et plus personne n'aurait à travailler !»*\n\n– Lena Steiner, étudiante, tendance kloszowskiste",
     "source": {
@@ -2471,7 +2665,9 @@
     "type": "careers",
     "label": "Bedeau",
     "labelF": "Bedelle",
-    "class": "guerriers",
+    "class": {
+      "id": "guerriers"
+    },
     "grantGroups": [
       "figures-symboles-religieux",
       "religion"
@@ -2489,7 +2685,9 @@
     "type": "careers",
     "label": "Devin",
     "labelF": "Devineresse",
-    "class": "ruraux",
+    "class": {
+      "id": "ruraux"
+    },
     "rand": {},
     "desc": "*Vous possédez la capacité rare de comprendre des faits passés au contact d'une personne, d'un objet ou d'un endroit.*\n\nTrès peu d'humains possèdent la capacité de voir le passé en touchant un objet ou une personne en particulier ou ce qui s'est déroulé à un endroit précis. Ils sont encore moins nombreux à pouvoir utiliser cette capacité sans devenir fous. Les seuls à pouvoir le faire régulièrement sont appelés des Devins.\n\n*« Vous avez perdu votre bourse ? Allez voir Madame Zelda. Elle peut souvent dire où se trouvent les objets perdus. Mais, bien entendu, elle aime être payée pour ses services et puisque vous avez perdu votre bourse… »*\n\n– Alfric *« Demi-nez »*, négociant en informations\n\n*« La divination ? Ce n'est pas naturel, si ? C'est sûrement une forme de sorcellerie. »*\n\n– Idée reçue d'un bout à l'autre du Vieux Monde\n\n*« Le nouveau commis de Haagen est bon. Il a déconseillé plus d'une fois à son employeur de se lancer dans des affaires avec des escrocs. C'est comme s'il pouvait sentir une transaction malhonnête. »*\n\n– Entendu près du Nouveau Palais dans le Paleisbuurt",
     "source": {
@@ -2502,7 +2700,9 @@
     "id": "hierophante",
     "type": "careers",
     "label": "Hiérophante",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "rand": {},
     "desc": "*Vous êtes un membre de l'Ordre Lumineux, respecté pour sa pratique exigeante et perçu comme austère et exotique.*\n\nLa plupart des gens ordinaires ne font pas la distinction entre les différents lanceurs de sorts : ils les appellent tous « sorciers » (ou d'autres noms bien moins respectueux dans leur dos). Toutefois, pour ceux qui la font, les Sorciers Lumineux sont aussi connus sous le nom de sorciers blancs, hiérophantes ou parfois exorcistes.\n\nCes Sorciers revêtent généralement des vêtements d'un blanc immaculé, une couleur qui a tendance à attirer *Hysh*. Toute leur parure est brodée au fil d'or ou d'argent et fait référence aux symboles de l'ordre : le Serpent de Lumière, l'Arbre du Savoir et bien d'autres.\n\n*« Oui, la trahison de Horstmann nous a tous entachés, mais ne croyez pas un seul instant ceux qui affirment que nous n'en avons pas honte. C'était un chancre au cœur de notre collège ; une pourriture qui par pure chance ne s'est pas répandue aussi loin qu'elle aurait pu. D'ici une génération ou deux, nous pourrons nous débarrasser des ténèbres que notre ancien patriarche a introduites, mais d'ici là nous devons en porter la responsabilité. »*\n\n– Hiérophante Gertrude Langtrosser\n\n*« La lumière peut faire de deux choses l'une : éclairer ou aveugler. Assure-toi de faire bon usage des deux. »*\n\n– Un hiérophante inconnu s'adressant à un acolyte",
     "source": {
@@ -2515,7 +2715,9 @@
     "id": "alchimiste",
     "type": "careers",
     "label": "Alchimiste",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "rand": {},
     "desc": "*Vous êtes un membre de l'Ordre Doré, largement reconnu comme étant les maîtres de la manipulation de la matière.*\n\nÀ l'instar des astromanciens de l'Ordre Céleste, les magisters-alchimistes du Vent Doré ont la réputation d'être des intellectuels et des scientifiques. Mais, si les élèves d'Azyr scrutent les cieux à la recherche de signes de futurs possibles et se livrent à des débats théoriques hermétiques, les alchimistes se concentrent sur la recherche appliquée et ses usages dans le monde réel.\n\n*« Bien loin de moi l'idée de rabaisser les magisters des autres collèges, mais on peut se poser des questions : Azyr ? La tête dans les nuages. Shyish ? Tellement déprimants qu'une rose fanerait dans leurs mains. Ghur ? Eh bien, disons qu'il vous suffirait simplement de répandre de la paille au sol. Mais nous autres du Collège Doré ? Nous sommes pragmatiques et rationnels, nous prenons le monde tel qu'il est. Et nous faisons de l'argent. Beaucoup d'argent. »*\n\n– Magister Horst Bergmann\n\n*« Si l'un d'entre vous ne croit pas que les sorciers sont les ennemis du peuple, regardez les sorciers Dorés ! Ils sont en quête de savoir ? Avec leurs jolis carrosses, leurs bijoux en or et leurs potions qu'ils vendent aux puissants et à ceux de la haute à un prix bien au-delà de tout ce que nous gagnons en une année partager avec le Peuple ! Moi je le dit ! Qu'ils pourrissent dans les Royaumes du Chaos ! »*\n\n– L'agitateur Benno Metzger de la LAPIN (Ligue Armée et Populaire contre les Impôts et la Noblesse)",
     "source": {
@@ -2529,7 +2731,9 @@
     "type": "careers",
     "label": "Druide",
     "labelF": "Druidesse",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "grantGroups": [
       "figures-symboles-religieux",
       "religion"
@@ -2546,7 +2750,9 @@
     "id": "astromancien",
     "type": "careers",
     "label": "Astromancien",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "rand": {},
     "desc": "*Vous scrutez les cieux et ramenez le Vent d'Azyr pour courber les éléments selon votre volonté, voire manipuler le destin.*\n\nLes magisters qui canalisent *Azyr* sont des astromanciens, aussi connus sous le nom de sorciers Célestes ou, pour les incultes, *« sorciers bleus »*. Ils préfèrent mettre des calottes, des capes à col montant et des robes onéreuses dans des tons noir et bleu profond ornées de motifs en or et en argent pour représenter le ciel nocturne. Le symbole de leur ordre, la Comète de pouvoir, se trouve toujours quelque part sur eux. Nombre d'entre eux présentent au monde une apparence soignée et distante.\n\nChaque magister porte un bâton, généralement surmonté d'un télescope ornemental, d'un planétaire ou d'une sphère armillaire miniature. Ces objets sont parfois fonctionnels, mais ils servent principalement de symbole de l'art Astromancien.\n\n*« En temps normal, je ne ferais confiance à un sorcier que s'il pouvait nager avec une ancre autour du cou, mais avoir magister Aeolus à bord s'est avéré utile. Certes, il nous coûte une petite fortune et s'habille de manière un peu fantaisiste pour un civil, mais il sait comment s'adresser à ses supérieurs, peut prédire le mauvais temps et nous a sauvés avec sa foudre lorsque ces pillards skaelings nous ont attaqués. »*\n\n– Amiral Klaus von Nesselzelt de la Marine impériale",
     "source": {
@@ -2559,7 +2765,9 @@
     "id": "spirite",
     "type": "careers",
     "label": "Spirite",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "rand": {},
     "desc": "*Vous êtes un membre de l'Ordre d'Améthyste, craint et respecté pour votre familiarité avec la mort.*\n\nLes sorciers du Collège d'Améthyste, contrairement à ceux du Collège Doré, mieux acceptés dans la société impériale, sont fuis et évités dès que possible. Quelque chose dans leur regard ferme, leur attitude sombre et silencieuse donne l'impression aux profanes d'être des cadavres reposant sur une table, toujours prêts… mais à quoi exactement ?\n\n*« Sur Sigmar j'te jure, Bart ! Ils ont retrouvé le cadavre d'un rupin dans la ruelle, sans savoir qui c'était et qui l'avait tué. La garde a ramené ce sorcier en robe violette du collège. Il est resté là planté à le regarder, sans un mot. Il a finalement secoué la tête et a tout raconté au sergent sur l'assassinat. Dans l'heure ils avaient compris qui l'avait fait et ils l'ont coincé. »*\n\n– un colporteur des rues d'Altdorf\n\n*« Connaître Shyish c'est connaître la continuité du temps, la transition constante du passé vers le présent et le futur, de la naissance, à la vie, à la mort et au-delà. Non, nous ne sommes pas des voyants ; cela, nous le laissons aux astromanciens et aux prêtres du Seigneur des Rêves. Nous sommes plutôt des philosophes et notre savoir est un fardeau. »*\n\n– un Magister de *Shyish* faisant la leçon à des apprentis",
     "source": {
@@ -2572,7 +2780,9 @@
     "id": "pyromancien",
     "type": "careers",
     "label": "Pyromancien",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "rand": {},
     "desc": "*Vous vous nourrissez de votre passion brute et énergie émotionnelle pour offrir une puissance de feu magique sur le champ de bataille.*\n\nTout le monde le sait, les sorciers Flamboyants sont les plus combatifs des sorciers impériaux. Même si les autres collèges sont connus pour avoir leur propre forme d'agressivité et que, d'une manière ou d'une autre, ils servent tous l'armée, le Collège Flamboyant provoque un choc et de la stupeur sur les champs de bataille comme aucun autre. Cette réputation est peut-être biaisée et le résultat de récits simplistes émanant des soldats ordinaires ou des ennemis déconcertés, mais elle est en partie vraie. Les sorciers Flamboyants ont souvent une apparence guerrière et redoutable avec leurs bâtons en fer surmontés d'un brasier prêt à recevoir des flammes dévastatrices.\n\n*« Le pouvoir est la clef, la clef est le symbole, le symbole est une métaphore, la métaphore est une perspective, la perspective est le contrôle et le contrôle est le pouvoir… »*\n\n– Litanie du contrôle, Livre rouge d'*Aqshy*\n\n*« J'ai reçu l'un de ces pyromanciens l'année dernière. Ils ne sont pas tous comme ça… tout plein de feu et d'esbroufe. Il nous a cuisiné un joli canard grillé avec le pouvoir de son esprit. Il était délicieux. Évidemment, on a découvert le lendemain matin qu'il avait aussi brûlé notre grange. »*\n\n– Arnold Fleiss, aubergiste",
     "source": {
@@ -2585,7 +2795,9 @@
     "id": "chamane",
     "type": "careers",
     "label": "Chamane",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "rand": {},
     "desc": "*Mû par votre affinité magique, vous êtes instinctivement attiré par les endroits sauvages et leurs grandes créatures.*\n\nLes sorciers d'Ambre sont célèbres pour leur apparence et leur mode de vie sauvage, bien plus à l'aise dans la nature qu'en ville. Ils ont plus d'affinités avec les animaux qu'avec leurs semblables. Beaucoup d'entre eux errent dans les étendues inhospitalières de l'Empire, mais ils sont tout aussi nombreux à trouver un endroit qu'ils apprécient et s'y installer. Chaque village impérial connaît une histoire sur un monstre local, un géant ou une sorcière qui vit dans la forêt et que l'on craint, mais que l'on croise rarement. Dans la plupart des cas, il s'agit d'un sorcier d'Ambre.\n\n*« Le Collège d'Ambre est en dehors de la ville. »*\n\n– énigme chamanique\n\n*« J'ai reçu l'un de ces chamanes l'autre jour. Il a fini par dormir dans l'étable. J'allais le laisser partir sans payer, mais il m'a dit que c'était la meilleure chambre de l'auberge, alors je lui ai fait payer le prix d'une suite de luxe. »*\n\n– Arnold Fleiss, aubergiste",
     "source": {
@@ -2598,7 +2810,9 @@
     "id": "magister-vigilant",
     "type": "careers",
     "label": "Magister Vigilant",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "grantGroups": [
       "figures-symboles-d-autorite"
     ],
@@ -2614,7 +2828,9 @@
     "id": "umbramancien",
     "type": "careers",
     "label": "Umbramancien",
-    "class": "lettres",
+    "class": {
+      "id": "lettres"
+    },
     "rand": {},
     "desc": "*Mystérieux et trompeur, vous conciliez les compétences d'un sorcier avec celles d'un espion.*\n\nLa seule chose dont un sorcier Gris peut être certain en ce monde c'est que rien ne l'est et que tout n'est que pure illusion. Ils savent que les mensonges en cachent souvent d'autres et ils sont devenus tellement habitués à la fausseté et à la supercherie qu'ils ont du mal à voir la vérité telle qu'elle est.\n\nLes umbramanciens sont des personnes méfiantes qui ne se fient pas à ce qu'elles observent et cherchent constamment des doubles sens, des significations et des intentions cachées. En conséquence, ils sont prudents et taisent leurs propres croyances et desseins. Ils ont appris que la vérité a de la valeur et ce qui en a ne doit pas être offert gracieusement.\n\n*« La vérité est si précieuse qu'elle doit être recouverte par un tissu de mensonges. »*\n\n– magister Reiner Starke, patriarche de l'Ordre Gris",
     "source": {

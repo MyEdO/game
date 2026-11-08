@@ -530,7 +530,7 @@ export function raceCareerSection(s: (typeof species)[number]): CodexSection | n
   const accessible = careersForSpecies(s.refCareer);
   const rows: CodexRow[] = [];
   for (const cl of classes) {
-    const list = accessible.filter((c) => c.class === cl.id);
+    const list = accessible.filter((c) => c.class.id === cl.id);
     if (list.length) rows.push({ t: 'sub', label: cl.label }, ...list.map((c) => idRefRow('careers', c.id)));
   }
   return rows.length ? { title: tr('codex.fiche.carrieresAccessibles'), layout: 'chips', rows } : null;
@@ -1345,7 +1345,7 @@ const CODEX_SPECS = {
     label: 'codex.fiche.carrieres', group: 'personnage', exergues: true,
     build: () => careers.map((c) => {
       const levels = levelsForCareer(c.id);
-      const className = libelleDeClasse(c.class);
+      const className = libelleDeClasse(c.class.id);
       // Les 4 échelons réunis en UN onglet « Progression » (au lieu d'un onglet par niveau) → la
       // montée en Carrière se lit d'un trait ; la description flavor gagne en proéminence relative.
       const levelSections: CodexSection[] = levels.map((lv) => ({
@@ -1732,7 +1732,7 @@ const CODEX_SPECS = {
     // celui de la DONNÉE (#1467 L1b V-P1) — le registre ne recompose plus d'identité.
     build: () => careerLevels.map((lv) => depuisEnveloppe(lv, {
       label: entryKey(lv as unknown as Record<string, unknown>),
-      sub: lv.status, group: findCareerById(lv.career)?.label ?? lv.career,
+      sub: lv.status, group: findCareerById(lv.career.id)?.label ?? lv.career.id,
       sections: sections(
         lv.characteristics.length ? { title: tr('codex.fiche.caracteristiquesAvancees'), layout: 'chips', rows: charRefRows(lv.characteristics) } : null,
         chips(tr('codex.fiche.competences'), lv.skills.map((a) => advancementRow('skills', a))),
@@ -1798,7 +1798,7 @@ const CODEX_SPECS = {
     label: 'codex.fiche.preTires', group: 'tables', cluster: 'codex.fiche.creationDePersonnage',
     build: () => pregens.map((p) => ({
       id: p.id,
-      label: p.label, sub: join(findSpeciesById(p.species)?.label ?? p.species, findCareerById(p.career)?.label ?? p.career),
+      label: p.label, sub: join(findSpeciesById(p.species.id)?.label ?? p.species.id, findCareerById(p.career.id)?.label ?? p.career.id),
       meta: facts(fact(tr('codex.fiche.motivation'), p.motivation), fact(tr('codex.fiche.graine'), p.seed)),
       sections: p.pettySpells?.length ? sections(chips(tr('codex.fiche.sorts'), p.pettySpells.map((id) => idRefRow('spells', id)))) : undefined,
     })),

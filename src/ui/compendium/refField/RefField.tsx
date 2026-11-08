@@ -73,8 +73,6 @@ export const REF_FIELD: Record<string, RefFieldCfg> = {
   'structures.traits': { ds: 'traits' },
   // ── single (dataset réel) ───────────────────────────────────────────────────
   'trappings.subType': { ds: 'weaponGroups', single: true },
-  'careers.class': { ds: 'classes', single: true },
-  'careerLevels.career': { ds: 'careers', single: true },
   'locations.parent': { ds: 'locations', single: true },
   // Caractéristique d'une compétence : SÉLECTEUR (pas d'input libre) — `skills.json` stocke l'`id` du
   // dataset `characteristics` (mesuré : 10/10 valeurs distinctes résolues par `id`, 0/10 par `abr` ou

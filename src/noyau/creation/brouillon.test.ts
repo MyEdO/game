@@ -323,11 +323,11 @@ describe('Riverains ⇄ Côtiers (MDG 09 l.9, #393 P2 correctif utilisateur)', (
 
   it('la table effective exclut Riverains XOR Côtiers selon la bascule — jamais les deux', () => {
     const off = careerRollPool({ ...swappable(), coastalSwap: false });
-    expect(off.some((c) => c.class === 'cotiers')).toBe(false);
-    expect(off.some((c) => c.class === 'riverains')).toBe(true);
+    expect(off.some((c) => c.class.id === 'cotiers')).toBe(false);
+    expect(off.some((c) => c.class.id === 'riverains')).toBe(true);
     const on = careerRollPool({ ...swappable(), coastalSwap: true });
-    expect(on.some((c) => c.class === 'riverains')).toBe(false);
-    expect(on.some((c) => c.class === 'cotiers')).toBe(true);
+    expect(on.some((c) => c.class.id === 'riverains')).toBe(false);
+    expect(on.some((c) => c.class.id === 'cotiers')).toBe(true);
   });
 
   it('anti-exploit : la bascule refuse de changer d\'état une fois un jet posé (relance gratuite bloquée)', () => {

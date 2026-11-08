@@ -44,7 +44,7 @@ let ammoSeq = 0;
 function ammoStock(trappingId, qty) {
   const base = gabaritDObjet(trappingId);
   if (!base) throw new Error(`munition inconnue au catalogue : ${trappingId}`);
-  return { uid: `ammo-${trappingId}-${++ammoSeq}`, ...base, qty };
+  return { ...base, uid: `ammo-${trappingId}-${++ammoSeq}`, qty };
 }
 /** Poste d'artillerie ARMÉ (#241) : le `poste()` DOTÉ de son coffre à boulets de bord (`ShipPoste.ammo`,
  *  MDG ch.12 l.410-424) + la munition sélectionnée par défaut (`ammoUid` = 1re du stock). Sans dotation,

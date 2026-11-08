@@ -66,7 +66,7 @@ import {
 import { adresseDeCreation, deFamille, tirageSous, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { emplacementsDeDotation, emplacementTranche, estEmplacementRacine } from '../../engine/trappingChoices';
 import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
-import { findSpeciesById, findTalentById, specPoolOf, careers, careersForSpecies, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef } from '../../data';
+import { findSpeciesById, findTalentById, specPoolOf, careers, classes, careersForSpecies, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef } from '../../data';
 import { estSpecialisable, type RefDesignee, type RefASpecialisation, memeSpecialisation } from '../../data/schemas/grammaire/ref';
 import type { Appearance } from '../../engine/authoringAppearance';
 import { generateName } from '../../engine/names';
@@ -282,23 +282,32 @@ export function withSpecies(d: CreatorDraft, id: string): CreatorDraft {
 }
 
 // ── 2) Carrière ──
-/** Le remplacement Riverains → Côtiers (MDG 09 l.9) s'offre-t-il à cette espèce ? Uniquement quand SA
- *  colonne du tableau contient les DEUX portions (les 5 colonnes du LDB) : les tables régionales
- *  (Middenheim/ADE II/NADJ) ne sont pas étendues par MDG, et la table Norse embarque déjà les variantes
- *  côtières SANS portion Riverains (rien à remplacer). Dérivé de la DONNÉE, aucune liste de colonnes. */
-export const coastalSwapAvailable = (d: CreatorDraft): boolean => {
+/** Couples (Classe remplaçante, Classe remplacée) déclarés en donnée (`ClassData.remplace`,
+ *  MDG 09 l.9). */
+const remplacementsDeClasse = (): { par: string; de: string }[] => classes.flatMap((k) => (k.remplace ? [{ par: k.id, de: k.remplace.id }] : []));
+
+/** La colonne `col` du tableau tire-t-elle au moins une carrière de la Classe `classe` ? */
+const colonneTireLaClasse = (col: NonNullable<SpeciesData['refCareer']>, classe: string): boolean =>
+  careers.some((c) => c.class.id === classe && c.rand?.[col] != null);
+
+/** Remplacements offerts à la colonne de l'espèce : ceux dont la colonne porte les DEUX portions (les
+ *  5 colonnes du LDB). Les tables régionales (Middenheim/ADE II/NADJ) ne sont pas étendues par MDG, et
+ *  la table Norse embarque déjà les variantes côtières SANS portion remplacée. Dérivé de la DONNÉE. */
+const remplacementsOfferts = (d: CreatorDraft): { par: string; de: string }[] => {
   const col = draftSpecies(d)?.refCareer;
-  if (!col) return false;
-  return careers.some((c) => c.class === 'riverains' && c.rand?.[col] != null)
-    && careers.some((c) => c.class === 'cotiers' && c.rand?.[col] != null);
+  if (!col) return [];
+  return remplacementsDeClasse().filter(({ par, de }) => colonneTireLaClasse(col, de) && colonneTireLaClasse(col, par));
 };
 
-/** Table de tirage EFFECTIVE : là où la colonne porte les deux portions, les Riverains et les CÔTIERS
- *  ne coexistent JAMAIS dans un même tirage (remplacement, pas cumul) ; ailleurs, la colonne est déjà
- *  la bonne table (Norse : variantes côtières seules ; régionales : Riverains seuls). */
+/** Le remplacement Riverains → Côtiers (MDG 09 l.9) s'offre-t-il à cette espèce ? */
+export const coastalSwapAvailable = (d: CreatorDraft): boolean => remplacementsOfferts(d).length > 0;
+
+/** Table de tirage EFFECTIVE : là où la colonne porte les deux portions, la Classe remplacée et sa
+ *  remplaçante ne coexistent JAMAIS dans un même tirage (remplacement, pas cumul) ; ailleurs, la colonne
+ *  est déjà la bonne table (Norse : variantes côtières seules ; régionales : Riverains seuls). */
 export const careerRollPool = (d: CreatorDraft): typeof careers => {
-  if (!coastalSwapAvailable(d)) return careers;
-  return careers.filter((c) => c.class !== (d.coastalSwap ? 'riverains' : 'cotiers'));
+  const exclues = new Set(remplacementsOfferts(d).map(({ par, de }) => (d.coastalSwap ? de : par)));
+  return exclues.size ? careers.filter((c) => !exclues.has(c.class.id)) : careers;
 };
 
 /** Bascule Riverains ↔ Côtiers (MDG 09 l.9 : « avant de lancer les dés ») — VERROUILLÉE dès qu'un

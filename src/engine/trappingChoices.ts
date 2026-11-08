@@ -24,7 +24,7 @@ type EmplacementABranches = Extract<EmplacementDeDotation, { sorte: 'branches' }
  *  `emplacementsDeDotation` adresse. */
 function dotationRefsForHero(careerId: string, careerLevel: number = 1): TrappingRef[] {
   const level = levelsForCareer(careerId).find((l) => l.level === careerLevel) ?? firstLevel(careerId);
-  return [...(findClassById(findCareerById(careerId)?.class)?.trappings ?? []), ...(level?.trappings ?? [])];
+  return [...(findClassById(findCareerById(careerId)?.class.id)?.trappings ?? []), ...(level?.trappings ?? [])];
 }
 
 function emplacement(ref: TrappingRef, chemin: readonly number[]): EmplacementDeDotation | undefined {

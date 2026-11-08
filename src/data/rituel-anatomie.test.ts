@@ -12,6 +12,7 @@
 import { describe, it, expect } from 'vitest';
 import { spells, domains } from './index';
 import { schema as spellsSchema } from './schemas/defs/spells';
+import { versDisque } from './schemas/grammaire/prose';
 import { arcaneDomainsOf, eligibleTalent, learnableSpells, spellCost } from '../engine/grimoire';
 import type { Combatant } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -35,7 +36,7 @@ const rituel = (id: string) => spells.find((s) => s.id === id)!;
 describe('donnée — les Rituels de VDM portent leur anatomie', () => {
   it('les 17 Rituels curés valident le schéma et portent les rubriques imprimées', () => {
     expect(RITUELS.length).toBe(17);
-    expect(spellsSchema.safeParse(spells).success).toBe(true);
+    expect(spellsSchema.safeParse(versDisque(spells)).success).toBe(true);
     for (const r of RITUELS) {
       expect(r.ritual, r.id).toBeTruthy();
       expect(r.ritual!.type.length, r.id).toBeGreaterThan(0);

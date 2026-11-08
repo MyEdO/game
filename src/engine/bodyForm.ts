@@ -22,7 +22,7 @@ export const SPECIES_BODY_SHAPE: Record<string, BodyShape> = {
   chimere: 'oiseau', cockatrice: 'oiseau', dragon: 'oiseau', 'faucon-des-montagnes-grises': 'oiseau',
   'grand-aigle': 'oiseau', griffon: 'oiseau', 'heomreth-hibou-geant': 'oiseau',
   hyppogriffe: 'oiseau', 'macareux-a-bec-tranchant': 'oiseau', manticore: 'oiseau', pegase: 'oiseau', pigeon: 'oiseau',
-  poulet: 'oiseau', preyton: 'oiseau', 'chauve-souris-vampire-varghulf': 'oiseau',
+  poulet: 'oiseau', preyton: 'oiseau', 'chauve-souris-vampire-varghulf': 'oiseau', charognard: 'oiseau',
   // Serpentins (LDB 76 l.25-29 : Tête / Corps) et arachnides (Tête / Pattes / Abdomen) — Localisations Alternatives.
   'sangsue-geante': 'serpent', serpent: 'serpent', vers: 'serpent',
   'araignee-geante': 'araignee',
