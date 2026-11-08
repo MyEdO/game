@@ -46,7 +46,7 @@ def copies_d_appui(x, w, deltas, noms, retenus):
     return list({json.dumps(c, sort_keys=True): c for c in copies}.values())
 
 
-def selectionner_appuis(rig, peaux, clips, table, etats):
+def selectionner_appuis(rig, peaux, clips, plantes, table, etats):
     debut = perf_counter()
     noms = [b.name for b in rig.data.bones]
     linearisees = [peau_lineaire(p, noms) for p in peaux]
@@ -56,7 +56,7 @@ def selectionner_appuis(rig, peaux, clips, table, etats):
     cles = dict.fromkeys(nom for champs in par_peau for nom in champs)
     deltas = {nom: np.concatenate([champs.get(nom, np.zeros((len(p[0]), 3))) for champs, p in zip(par_peau, linearisees)])
               for nom in cles}
-    with groupes_de_peau(rig, clips, table, etats['etats']) as (_, groupes):
+    with groupes_de_peau(rig, clips, table, etats['etats'], plantes) as (_, groupes):
         retenus = selectionner_sommets(w, x, deltas, groupes)
     copies = copies_d_appui(x, w, deltas, noms, retenus)
     print('APPUIS_VECTORIEL', json.dumps({'etats': len(etats['etats']), 'sommets': len(x), 'candidats': len(copies),
