@@ -22,7 +22,7 @@ import { fileURLToPath } from 'node:url';
 import { scene, hero, NPC, P, flowOf, flagWhen, testNode, poste, resetIds, projectDoc, remetLeDocument } from '../campagne/lib.mjs';
 import { emptyNarratif } from '../../src/noyau/monde/campaignNarratif.ts';
 import { dailyWaterLitres } from '../../src/engine/seaWeather.ts';
-import { itemFromTrappingById } from '../../src/engine/items.ts';
+import { gabaritDObjet } from '../../src/engine/items.ts';
 
 /** Construction PURE du document de projet : la SOURCE possède 100 % de la donnée de l'artefact
  *  (`src/scenes/loup-et-saumure/loup-et-saumure-projet.json`), le CLI ci-dessous n'en est que la voie
@@ -39,10 +39,10 @@ const DOCUMENTS = {
   nuitDuChat: { id: 'document-la-nuit-du-chat', titre: 'La nuit du chat', prose: '« Une insomnie de plus, capitaine. La traversée est éprouvante pour tous. »' },
 };
 let ammoSeq = 0;
-/** Munition de bord (`ItemInstance` kind:'ammo') bâtie par la couture CANONIQUE `itemFromTrappingById`
+/** Munition de bord (`ItemInstance` kind:'ammo') bâtie sur le gabarit CANONIQUE `gabaritDObjet`
  *  (Dégâts/Qualités du catalogue), estampillée d'un uid STABLE et de sa quantité (le fond de soute). */
 function ammoStock(trappingId, qty) {
-  const base = itemFromTrappingById(trappingId);
+  const base = gabaritDObjet(trappingId);
   if (!base) throw new Error(`munition inconnue au catalogue : ${trappingId}`);
   return { ...base, uid: `ammo-${trappingId}-${++ammoSeq}`, qty };
 }

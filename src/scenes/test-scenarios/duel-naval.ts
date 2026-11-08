@@ -1,5 +1,5 @@
 import { makeShowcaseParty } from '../../data/pregens';
-import { itemFromTrappingById } from '../../engine/items';
+import { gabaritDObjet } from '../../engine/items';
 import type { SkillRef } from '../../data';
 import type { AuthoredShipPoste } from '../../engine/types';
 import type { Scene, SceneEntity } from '../../noyau/monde/scene';
@@ -15,7 +15,7 @@ import { sequence } from '../../engine/sequences';
 
 const prochaineMunition = sequence();
 function ammo(trappingId: string, qty: number) {
-  const base = itemFromTrappingById(trappingId)!;
+  const base = gabaritDObjet(trappingId)!;
   return { ...base, uid: `duel-ammo-${trappingId}-${prochaineMunition.suivant()}`, qty };
 }
 /** Poste d'artillerie ARMÉ (coffre à boulets, MDG 12 l.410-424). L'équipage abstrait le sert d'office à la Mer. */
