@@ -90,9 +90,8 @@ function fatigueApply(c: Combatant, success: boolean, sl: number): string | null
 /**
  * Tests d'upkeep de fin de Round DUS pour le héros `c` ce Round, en ÉTAPES de cascade (jumeau des
  * collecteurs de Psychologie). Ordre : Empoisonné → récupération du Brisé → se-fatiguer (du plus
- * mécanique au plus optionnel). Side-effect ASSUMÉ (comme `endFrenzyIfDone` côté psy) : le
- * retrait « caché » du Brisé et l'Exténué SANS-Test sont appliqués ICI (RNG-free, déterministes via
- * `sink`) ; seuls les Tests réellement dus deviennent des étapes influençables.
+ * mécanique au plus optionnel). Le retrait « caché » du Brisé et l'Exténué SANS-Test sont appliqués par le
+ * hook `end-of-round` ; seuls les Tests réellement dus deviennent ici des étapes influençables.
  *
  * Étapes MINTÉES par la porte (#1262) : `monoStep`/`choiceStep` posent la possession (`actorId`), la
  * surface (`interactive`) et la ligne (`rollStep`). Les deux Tests montés ici passent par le canal
@@ -100,7 +99,7 @@ function fatigueApply(c: Combatant, success: boolean, sl: number): string | null
  * `se-fatiguer`) : les pénalités que le canal `combat` ajouterait visent les Tests de combat qui
  * engagent la perception (`LDB 16 l.45`), ce qu'un Test de Résistance d'entretien n'est pas.
  */
-export function collectHeroRoundEndUpkeep(get: Get, c: Combatant, _sink: (line: string, c: Combatant) => void): BuiltCascadeStep[] {
+export function collectHeroRoundEndUpkeep(get: Get, c: Combatant): BuiltCascadeStep[] {
   // Étapes de cascade SEULEMENT pour un porteur SURFACÉ (`surfaceOf` : un siège humain QUELCONQUE le tient,
   // cadence manuelle) ; en rapide/auto, ou sans siège pour le tenir, il est auto-résolu COMME un monstre →
   // ses Tests se résolvent silencieusement dans les hooks ci-dessus, qui portent le prédicat MIROIR.
