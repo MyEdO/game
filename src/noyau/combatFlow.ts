@@ -252,12 +252,8 @@ import { combatEndBands, combatEndRowMeta } from './combatEndBands';
 import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, TirsDeBordee, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup } from './pendings';
 import { APRES_COUP, type PendingApproach } from './pendings';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
-import {
-  freeCons, resultLines, rollLine, rollStep, rollSansPilote, surfaceOf, surfaceRow, monoStep, pousseSi,
-  hostStep, idDansLaSequence, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory,
-  stepDetail, stepPrecision, stepPsych, stepSansPeur,
-  type ChoiceSpec, type Consequence, type RollLineParts, type TableSpec,
-} from './rollSeam';
+import { freeCons, resultLines, rollStep, rollSansPilote, surfaceOf, surfaceRow, monoStep, pousseSi, hostStep, idDansLaSequence, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory, stepDetail, stepPrecision, stepPsych, stepSansPeur, type ChoiceSpec, type Consequence, type TableSpec } from './rollSeam';
+import { rollLine, type RollLineParts } from './ligneDeJet';
 import { revealToStep } from './revealStep';
 import type { BuiltCascadeStep } from './stepBrand';
 import { dataLabel, psychologyLabel } from '../data';

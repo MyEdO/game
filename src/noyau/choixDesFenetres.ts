@@ -47,7 +47,7 @@ export interface ChoixDesFenetres {
   medic: {
     patient: IdDeHeros;
     abandon: true;
-    /** La Blessure Critique que l'opération armée vise (`plaiesDeLOperation`). */
+    /** La Blessure Critique que l'opération armée, ou le brouillon d'une opération, vise (`plaiesDeLOperation`). */
     plaie: IdDePlaieDeLOperation;
   };
   dialogue: {

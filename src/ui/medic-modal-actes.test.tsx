@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
- * #3059 L3 — un acte de l'infirmerie (`MedicModal`) est grisé EXACTEMENT quand le geste `soignerLePatient` le
- * refuserait, avec la raison que lit le verdict `refusDActeDeSoin` (`noyau/medicFlow.ts`). Montage réel,
- * clic réel sur le bouton de l'acte.
+ * #3059 L3, #3612 — un acte de l'infirmerie (`MedicModal`) est grisé EXACTEMENT quand le réglage `heal.mode` du
+ * brouillon le refuserait (`refusDuModeDuSoin`), ou, sans brouillon, l'infirmerie (`refusDeLActeALInfirmerie`,
+ * `noyau/acteDeSoin.ts`), avec la même raison. Montage réel, clic réel sur le bouton de l'acte.
  */
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
@@ -50,8 +50,8 @@ function acte(nom: string) {
   return { bouton, ferme: bouton.getAttribute('aria-disabled') === 'true', raison: rid ? document.getElementById(rid)?.textContent ?? null : null };
 }
 
-describe('MedicModal — acte grisé = acte que soignerLePatient refuse, même raison', () => {
-  it('Hémorragie verrouillée par Chirurgie, chirurgien présent : « Opérer » offert, le clic arme l’opération', () => {
+describe('MedicModal — acte grisé = acte que `heal.mode` refuse, même raison', () => {
+  it('Hémorragie verrouillée par Chirurgie, chirurgien présent : « Opérer » offert, le clic règle l’acte, « Lancer » arme l’opération', () => {
     const doc = hero({ id: 'doc', talents: [{ talentId: 'chirurgie', times: 1 }] });
     const patient = hero({ id: 'p', label: 'Patient', skills: [], conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] });
     useGame.setState({ party: [doc, patient], medic: { patientId: 'p' } } as never);
@@ -60,6 +60,9 @@ describe('MedicModal — acte grisé = acte que soignerLePatient refuse, même r
     expect(operer.ferme).toBe(false);
     expect(operer.raison).toBeNull();
     act(() => operer.bouton.click());
+    expect(useGame.getState().pendingHeal?.mode).toBe('surgery');
+    expect(useGame.getState().medic?.surgery).toBeUndefined();
+    act(() => useGame.getState().jetLancer('heal')); // le « Lancer » de la coquille joue ce verbe après son frisson (`useRollFrisson`)
     expect(useGame.getState().medic?.surgery?.kind).toBe('surgery');
   });
 

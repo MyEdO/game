@@ -62,7 +62,7 @@ describe('fenêtre du soin — l’acte, refusé comme le réglage `heal.mode` l
     const doc = cb({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] });
     const al = cb({ id: 'al', label: 'Blessé', wounds: blessuresDeBase(12, 3), conditions: [{ id: 'hemorragique', value: 2 }, { id: 'munition-logee', value: 1 }], pos: { x: 2, y: 1 } });
     enCombat(doc, al);
-    g().ouvrirLaGuerison('al', 'wounds');
+    g().ouvrirLaGuerison('al');
     const lignes = confronter();
     for (const l of lignes) expect(l.reglage, `${l.mode} : même verdict, même raison`).toBe(l.fenetre);
     expect(lignes.filter((l) => l.fenetre === null).map((l) => l.mode)).toEqual(['wounds', 'bleed', 'ammo']);
@@ -72,7 +72,7 @@ describe('fenêtre du soin — l’acte, refusé comme le réglage `heal.mode` l
     const doc = cb({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] });
     const al = cb({ id: 'al', label: 'Blessé', wounds: blessuresDeBase(12, 3), pos: { x: 2, y: 1 } });
     enCombat(doc, al);
-    g().ouvrirLaGuerison('al', 'wounds');
+    g().ouvrirLaGuerison('al');
     const lignes = confronter();
     for (const l of lignes) expect(l.reglage, `${l.mode} : même verdict, même raison`).toBe(l.fenetre);
     expect(lignes.filter((l) => l.fenetre === null).map((l) => l.mode)).toEqual(['wounds']);
@@ -82,7 +82,7 @@ describe('fenêtre du soin — l’acte, refusé comme le réglage `heal.mode` l
     const doc = cb({ id: 'doc', items: [bandages()] as never });
     const al = cb({ id: 'al', label: 'Blessé', wounds: blessuresDeBase(12, 3), conditions: [{ id: 'hemorragique', value: 2 }, { id: 'munition-logee', value: 1 }], pos: { x: 2, y: 1 } });
     enCombat(doc, al);
-    g().ouvrirLaGuerison('al', 'bleed');
+    g().ouvrirLaGuerison('al');
     expect(g().pendingHeal, 'chemin : la Dextérité sous Bandages ouvre l’Hémorragie').toMatchObject({ test: 'dexterite', mode: 'bleed' });
     const lignes = confronter();
     for (const l of lignes) expect(l.reglage, `${l.mode} : même verdict, même raison`).toBe(l.fenetre);
@@ -93,7 +93,7 @@ describe('fenêtre du soin — l’acte, refusé comme le réglage `heal.mode` l
     const doc = cb({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] });
     const al = cb({ id: 'al', label: 'Blessé', wounds: blessuresDeBase(12, 3), conditions: [{ id: 'hemorragique', value: 2 }], pos: { x: 2, y: 1 } });
     enCombat(doc, al);
-    g().ouvrirLaGuerison('al', 'wounds');
+    g().ouvrirLaGuerison('al');
     g().jetLancer('heal');
     expect(fenetreDuSoin(g())!.mode.options.every((o) => o.refus), 'aucun acte ne se règle une fois le dé tombé').toBe(true);
   });

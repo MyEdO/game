@@ -10,16 +10,17 @@ import {
   actePanse, difficulteDuSoin, HEAL_MODES, IDS_DU_TEST_DE_SOIN, porteDesBandages, raisonDeModeDeSoinEnCombat, refusDuTestDeSoin, TESTS_DE_SOIN,
   type HealMode, type ParametresDeSoin, type TestDeSoin,
 } from '../engine/healing';
-import type { FlowStakeId } from '../data';
+import { flowStakeRef, type StakeRef } from '../data';
 import { t } from '../i18n';
 import type { Jeu } from './etat';
 import type { PendingHeal } from './pendings';
 import { gesteDuReglage, type ChoixNomme } from './reglages';
-import { rollLine, type RollLineParts } from './rollSeam';
+import { rollLine, type RollLineParts } from './ligneDeJet';
 import { actorIn } from './monde/combatants';
 import { libelleDeTest } from './jetsEnVue';
 import { libelleDuReglage } from './libelles';
 import { garanti } from '../lib/garanti';
+import { cibleDeLOperation, estOperation, HEAL_STAKE, refusDeLActeALInfirmerie } from './acteDeSoin';
 
 /** Les paramètres déclarés du soin `ph`, que l'annonce et le résolveur lisent tous deux. */
 export const parametresDuSoin = (ph: Pick<PendingHeal, 'test' | 'bandagesDe'>): ParametresDeSoin => ({ test: ph.test, bandages: ph.bandagesDe != null });
@@ -54,21 +55,23 @@ export function refusDuTestDuSoin(s: Pick<Jeu, 'pendingHeal' | 'battle' | 'party
 }
 
 /** Pourquoi l'acte `mode` est refusé au soin en cours, `null` s'il s'offre : en combat, le patient
- *  (`raisonDeModeDeSoinEnCombat`) puis le Test déclaré (`refusDuTestDeSoin`) ; hors combat, l'acte se choisit à
- *  l'infirmerie (`soignerLePatient`, verdict `refusDActeDeSoin`). VERDICT UNIQUE du réglage `heal.mode` et de la fenêtre. */
-export function refusDuModeDuSoin(s: Pick<Jeu, 'pendingHeal' | 'battle' | 'party'>, mode: HealMode): string | null {
+ *  (`raisonDeModeDeSoinEnCombat`) puis le Test déclaré (`refusDuTestDeSoin`) ; hors combat, l'infirmerie
+ *  (`refusDeLActeALInfirmerie`). VERDICT UNIQUE du réglage `heal.mode`, de son lancer et de la fenêtre. */
+export function refusDuModeDuSoin(s: Pick<Jeu, 'pendingHeal' | 'pendingSurgery' | 'medic' | 'battle' | 'party'>, mode: HealMode): string | null {
   const ph = garanti(s.pendingHeal, mode, 'soin de l’acte');
   if (ph.roll != null) return t('heal.testJetFait');
-  if (!s.battle) return t('heal.modeFixeALInfirmerie');
+  if (!s.battle) return refusDeLActeALInfirmerie(s, mode);
   const patient = garanti(actorIn(s as Jeu, ph.targetId), ph.targetId, 'patient du soin');
   return raisonDeModeDeSoinEnCombat(patient, mode) ?? refusDuTestDeSoin(actorIn(s as Jeu, ph.healerId) ?? null, mode, parametresDuSoin(ph));
 }
 
-/** L'enjeu annoncé du soin `ph` : celui de son acte, décliné par Test et Bandages pour l'Hémorragie et les Blessures. */
-export function enjeuDuSoin(ph: Pick<PendingHeal, 'mode' | 'test' | 'bandagesDe'>): FlowStakeId {
-  if (ph.mode === 'bleed') return ph.test === 'dexterite' ? 'heal-bleed-dexterite' : ph.bandagesDe ? 'heal-bleed-bandages' : 'heal-bleed';
-  if (ph.mode === 'wounds') return ph.bandagesDe ? 'heal-wounds-bandages' : 'heal-wounds';
-  return ph.mode === 'trauma' ? 'heal-trauma' : 'heal-ammo';
+/** L'enjeu annoncé du soin `ph` : celui de son acte, décliné par Test et Bandages pour l'Hémorragie et les Blessures ;
+ *  le brouillon d'une opération, celui de l'opération qu'il arme, à sa cible de DR (`cibleDeLOperation`). */
+export function enjeuDuSoin(s: Pick<Jeu, 'party'>, ph: Pick<PendingHeal, 'mode' | 'test' | 'bandagesDe' | 'targetId' | 'plaie'>): StakeRef {
+  if (estOperation(ph.mode)) return flowStakeRef(HEAL_STAKE[ph.mode], { values: { targetDR: cibleDeLOperation(s, ph, ph.mode) } });
+  if (ph.mode === 'bleed') return flowStakeRef(ph.test === 'dexterite' ? 'heal-bleed-dexterite' : ph.bandagesDe ? 'heal-bleed-bandages' : 'heal-bleed');
+  if (ph.mode === 'wounds') return flowStakeRef(ph.bandagesDe ? 'heal-wounds-bandages' : 'heal-wounds');
+  return flowStakeRef(HEAL_STAKE[ph.mode]);
 }
 
 /** La fenêtre du soin en données : le patient, l'acte, le Test et les Bandages engagés (réglages

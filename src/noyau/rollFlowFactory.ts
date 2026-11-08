@@ -20,7 +20,8 @@
  * `roll-modal-invariant.hors-store.test.ts` continue de vérifier.
  */
 import type { Jeu } from './etat';
-import { refuserGeste } from './refusVisible';
+import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
+import { libelleDeLaFermeture } from './libelles';
 import type { Combatant, Difficulty, ReverseQuery } from '../engine/types';
 import { canReroll } from '../engine/fortune';
 import { availableResistance, markResistanceUsed, resistanceForcedSL, resistanceImproves, type MenaceId } from '../engine/menace';
@@ -62,7 +63,7 @@ export type FermetureDuJet =
   | 'sansChance' | 'sansResilience' | 'sansDetermination' | 'reserveAuxHeros'
   | 'deNonFixable' | 'desFixesInactifs' | 'sansVoieDInversion' | 'sansMenace' | 'sansResistance' | 'sansMalusPsy'
   | 'declarationsDues' | 'oppositionsDues' | 'choixCritiqueDu' | 'actionEngagee'
-  | 'choixDu' | 'etapesDues' | 'etapesJouees' | 'rienADeclarer' | 'contreSortDu' | 'soinEnCours' | 'paieDue' | 'halteDeVoyage' | 'herosADesigner'
+  | 'choixDu' | 'etapesDues' | 'etapesJouees' | 'rienADeclarer' | 'contreSortDu' | 'soinEnCours' | 'acteAChanger' | 'paieDue' | 'halteDeVoyage' | 'herosADesigner'
   | 'quorumAttendu' | 'noteNonCouverte' | 'evenementsATirer' | 'rienARepartir' | 'seanceDuChapitre' | 'choixAReprendre';
 
 /** Les fermetures qui attendent une DÉCISION du joueur : le verbe se montre refusé, sa raison dite, au lieu de se taire. */
@@ -391,6 +392,10 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    *  PRÉSENT ⇒ il OWN le jet tant qu'il n'est pas lancé : `roll` lui délègue tout. ABSENT ⇒ `roll` résout par
    *  `spec.resolve`. */
   onRoll?: (get: Get, set: Set, p: P) => void;
+  /** Le crochet du PREMIER jet d'un slot, joué au seul point d'écriture des ops (`Commit`) par tout geste qui le pose
+   *  (lancer, dé choisi, Résilience, Résistance), avant la dépense du geste : `false` arrête l'écriture (refus dit, ou
+   *  une autre voie que le crochet a prise). Absent : tout premier jet s'écrit. */
+  premierJet?: (get: Get, set: Set, p: P) => boolean;
   /** Patch de re-rendu après mutation en place de l'acteur. Défaut : `touchActors` (combat ⇄ groupe). */
   touch?: (s: Jeu) => PatchDeFlux;
   /** Le jet du slot est IMPOSÉ (2ᵉ frappe du Maniement de deux armes, LDB 10 l.767-773) : ni relance, ni Pacte, ni
@@ -403,8 +408,8 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    *  (`jetPose`) et l'annulation tant qu'aucun jet n'est lancé ; `toujours`, à tout moment de la fenêtre. Les gardes
    *  de `cancel` et de `confirm` (`fermetures(…)`) lisent cette déclaration. */
   clotures?: { confirm?: 'toujours'; cancel?: 'toujours' };
-  /** Ce qui ferme l'annulation du pending au-delà de son jet (`null` : rien). Absent : rien. */
-  annulation?: (p: P) => FermetureDuJet | null;
+  /** Ce qui ferme l'annulation du pending au-delà de son jet, lu sur l'état `s` (`null` : rien). Absent : rien. */
+  annulation?: (p: P, s: Jeu) => FermetureDuJet | null;
   /** Ce qui ferme la clôture (`confirm`) du jet posé, lu sur l'état `s` (`null` : rien). Absent : rien. */
   cloture?: (p: P, s: Jeu) => FermetureDuJet | null;
   /** Test OPPOSÉ : le slot PERD l'opposition, jet propre réussi compris (`RollInfluenceView.lost`, LDB 17 l.68). */
@@ -507,7 +512,10 @@ export interface RollFlowHandlers {
  * s/p/actor/get) → le même corps sert les deux fabriques sans rien recopier. Comportement IDENTIQUE
  * à l'ancien `makeRollFlow` (garde-fou : suite + `roll-modal-invariant.hors-store.test.ts`).
  */
-type Commit<P> = (patch: Partial<P>, opts?: { rerolled?: boolean; forced?: boolean; fixed?: boolean; touch?: boolean }) => void;
+/** L'écriture d'un patch sur le slot — SEUL point d'écriture des ops. Rend `false` quand le premier jet du slot est
+ *  arrêté par le crochet du flux (`RollFlowSpec.premierJet`) : rien ne s'écrit, et la dépense `depense` (la ressource
+ *  que le geste brûle) n'est jouée qu'une fois l'écriture admise. */
+type Commit<P> = (patch: Partial<P>, opts?: { rerolled?: boolean; forced?: boolean; fixed?: boolean; touch?: boolean; depense?: () => void }) => boolean;
 
 /** Lancer : le slot n'est pas encore lancé. Fenêtre de `opRoll`. */
 const fermetureDuLancer = (rolled: boolean): FermetureDuJet | null => (rolled ? 'jetLance' : null);
@@ -566,9 +574,7 @@ function opForceSuccess<P extends PendingBase>(
 ): boolean {
   const patch = resolveForced();
   if (!patch) return false; // `null` = rien à forcer sur ce dé → pas de dépense
-  actor.resilience = (actor.resilience ?? 0) - 1;
-  commit(patch, { forced: true, touch: true });
-  return true;
+  return commit(patch, { forced: true, touch: true, depense: () => { actor.resilience = (actor.resilience ?? 0) - 1; } });
 }
 
 /** Résistance (Menace), LDB 10 l.1020 : auto-succès du premier Test qui résiste à la menace du
@@ -583,8 +589,7 @@ function opResist<P extends PendingBase>(
   const spec = availableResistance(actor, slot.menace!)!;
   const patch = resolveResist(resistanceForcedSL(actor));
   if (!patch) return; // précondition manquante → pas de dépense
-  markResistanceUsed(actor, spec);
-  commit(patch, { touch: true });
+  commit(patch, { touch: true, depense: () => markResistanceUsed(actor, spec) });
 }
 
 /**
@@ -608,8 +613,7 @@ function opSetForcedRoll<P extends PendingBase>(
   if (chosen < 1) return false;
   const patch = resolveChosen(chosen);
   if (!patch) return false;
-  commit(patch, fixed ? { fixed: true } : undefined);
-  return true;
+  return commit(patch, fixed ? { fixed: true } : undefined);
 }
 
 /** Sombre Pacte : +1 Corruption pour relancer un Test déjà jeté, répétable (LDB 19 l.17). Héros only. */
@@ -645,13 +649,24 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
     const slots = spec.multi!.slots(p);
     return (pid != null ? slots.find((x) => spec.multi!.idOf(x) === pid) : slots[0]) ?? null;
   };
+  /** Le PREMIER jet du slot (non lancé, que le patch pose), quel que soit le geste qui le pose — lancer, dé choisi,
+   *  Résilience, Résistance : le crochet du flux (`premierJet`) l'admet ou l'arrête. Puis la dépense du geste. */
+  const admis = (get: Get, set: Set, p: P, slot: Slot, patch: Partial<Slot>, opts: Parameters<Commit<Slot>>[1]): boolean => {
+    if (spec.premierJet && !spec.rolled(slot) && spec.rolled({ ...slot, ...patch } as Slot) && !spec.premierJet(get, set, p)) return false;
+    opts?.depense?.();
+    return true;
+  };
   const locate = (set: Set, get: Get, p: P, pid?: string): { slot: Slot; commit: Commit<Slot> } | null => {
     if (!spec.multi) {
       const slot = p as unknown as Slot;
-      return { slot, commit: (patch, opts) => set({
-        [spec.key]: { ...slot, ...patch, ...(opts?.rerolled ? { rerolled: true } : {}), ...(opts?.forced ? { forced: true, fixed: false } : {}), ...(opts?.fixed ? { fixed: true } : {}) },
-        ...(opts?.touch ? touch(get()) : {}),
-      } as PatchDeFlux) };
+      return { slot, commit: (patch, opts) => {
+        if (!admis(get, set, p, slot, patch, opts)) return false;
+        set({
+          [spec.key]: { ...slot, ...patch, ...(opts?.rerolled ? { rerolled: true } : {}), ...(opts?.forced ? { forced: true, fixed: false } : {}), ...(opts?.fixed ? { fixed: true } : {}) },
+          ...(opts?.touch ? touch(get()) : {}),
+        } as PatchDeFlux);
+        return true;
+      } };
     }
     const refus = pid != null ? spec.multi.refusDuSlot?.(get(), pid) : null;
     if (refus) {
@@ -661,12 +676,16 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
     const slot = slotDe(p, pid);
     if (!slot) return null;
     const slots = spec.multi.slots(p);
-    return { slot, commit: (patch, opts) => set({
-      [spec.key]: spec.multi!.replace(p, slots.map((x) => x === slot
-        ? { ...x, ...patch, ...(opts?.rerolled ? { rerolled: true } : {}), ...(opts?.forced ? { forced: true, fixed: false } : {}), ...(opts?.fixed ? { fixed: true } : {}) }
-        : x)),
-      ...(opts?.touch ? touch(get()) : {}),
-    } as PatchDeFlux) };
+    return { slot, commit: (patch, opts) => {
+      if (!admis(get, set, p, slot, patch, opts)) return false;
+      set({
+        [spec.key]: spec.multi!.replace(p, slots.map((x) => x === slot
+          ? { ...x, ...patch, ...(opts?.rerolled ? { rerolled: true } : {}), ...(opts?.forced ? { forced: true, fixed: false } : {}), ...(opts?.fixed ? { fixed: true } : {}) }
+          : x)),
+        ...(opts?.touch ? touch(get()) : {}),
+      } as PatchDeFlux);
+      return true;
+    } };
   };
   // Slot TÉMOIN d'un multi (façon MultiRollList) : pas d'INFLUENCE joueur (Résilience, Résistance
   // (Menace), renversement). Son jet est NÉ ROULÉ chez un porteur qu'aucun siège ne surface (cible IA
@@ -728,7 +747,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
    *  (`clotures.cancel`) : tant qu'aucun jet de la fenêtre n'est lancé ; avant le jet, l'action engagée
    *  (`refusDAnnuler`, refus dit au joueur) puis le jet imposé la ferment. */
   const fermetureDeLAnnulation = (s: Jeu, p: P): FermetureDuJet | null => {
-    const propre = spec.annulation?.(p);
+    const propre = spec.annulation?.(p, s);
     if (propre) return propre;
     const toujours = spec.clotures?.cancel === 'toujours';
     if (!toujours && (spec.multi ? spec.multi.slots(p).some(spec.rolled) : spec.rolled(p as unknown as Slot))) return 'jetLance';
@@ -909,7 +928,8 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
     forceSuccess(get, set, pid, auJet) {
       const s = get(); const p = pendingOf(s); if (!p) return;
       const loc = locate(set, get, p, pid); if (!loc) return;
-      if (fermetureDuForcage(s, get, p, loc.slot, spec.actor(s, loc.slot, p))) return;
+      const fermee = fermetureDuForcage(s, get, p, loc.slot, spec.actor(s, loc.slot, p));
+      if (fermee) { refuserGesteDuSiege(get, set, libelleDeLaFermeture(fermee)); return; }
       // Avant le jet, le geste s'encadre par `auJet`, sa fenêtre jugée avant le jet.
       if (auJet && !spec.rolled(loc.slot)) auJet(() => forcer(get, set, pid));
       else forcer(get, set, pid);
@@ -919,7 +939,8 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       const s = get(); const p = pendingOf(s); if (!p) return;
       const loc = locate(set, get, p, pid); if (!loc) return;
       const actor = spec.actor(s, loc.slot, p);
-      if (fermetureDuDeChoisi(loc.slot, actor, p)) return;
+      const fermee = fermetureDuDeChoisi(loc.slot, actor, p);
+      if (fermee) { refuserGesteDuSiege(get, set, libelleDeLaFermeture(fermee)); return; }
       // PROVENANCE du dé : slot `forced` ⇒ Résilience (le point est déjà dépensé, le dé doit rester une
       // réussite) ; sinon ⇒ « dé fixé » (option de confort).
       const fixed = !loc.slot.forced;
@@ -983,7 +1004,9 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       if (!p) return; // rien d'ouvert : no-op (pas d'undo à jouer, pas de cascade à toucher)
       const refus = spec.refusDAnnuler?.(get(), p);
       if (refus) { refuserGeste(get, set, refus); return; }
-      if (fermetureDeLAnnulation(get(), p)) return; // le jet posé (ou imposé) engage la fenêtre (`clotures.cancel`)
+      // Le jet posé (ou imposé) engage la fenêtre (`clotures.cancel`), ou la déclaration du flux la ferme : le refus se dit.
+      const fermee = fermetureDeLAnnulation(get(), p);
+      if (fermee) { refuserGesteDuSiege(get, set, libelleDeLaFermeture(fermee)); return; }
       // Undo métier présent ⇒ il OWN toute la fermeture. SINON teardown par défaut : le pending, et
       // la cascade seulement si ce pending porte l'une de ses étapes-jets (`PORTEURS_D_ETAPE`) ; une
       // cascade étrangère au flux reste ouverte.

@@ -182,9 +182,9 @@ const heros = (id: string, over: Partial<Combatant> = {}): Combatant =>
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over }) as unknown as Combatant);
 
-describe('infirmerie réelle (`MedicModal`) — le focus d’un cadre, rendu à son invocateur, n’ouvre aucune bulle', () => {
+describe('infirmerie réelle (`MedicModal`) — le focus d’un cadre n’ouvre aucune bulle', () => {
   beforeEach(() => {
-    const patient = heros('Blessé');
+    const patient = heros('Blessé', { conditions: [{ id: 'hemorragique', value: 1 }] } as never);
     const soigneur = heros('Soigneur', { skills: [{ id: 'guerison', characteristic: 'intelligence', advances: 10 }] } as never);
     useGame.setState({
       screen: 'campaign', mode: 'exploration', gameMenuOpen: false, dialogue: null, battle: null,
@@ -199,9 +199,9 @@ describe('infirmerie réelle (`MedicModal`) — le focus d’un cadre, rendu à 
     [...host.querySelectorAll<HTMLButtonElement>('button')].find((b) => (b.textContent ?? '').trim() === texte)!;
   const bulles = () => document.querySelectorAll('.infobulle').length;
 
-  it('ouverte : le focus est sur « Soigner les Blessures » et aucune infobulle ne couvre les actes', () => {
+  it('ouverte : le focus est sur « Lancer », le primaire du brouillon du soin, et aucune infobulle ne couvre les actes', () => {
     act(() => root.render(<MedicModal />));
-    expect(actif()).toBe('Soigner les Blessures');
+    expect(actif()).toBe('Lancer');
     expect(bulles(), 'le focus posé par le cadre n’ouvre pas la bulle').toBe(0);
   });
 
@@ -215,16 +215,16 @@ describe('infirmerie réelle (`MedicModal`) — le focus d’un cadre, rendu à 
     expect(bulles(), 'un focus de navigation ouvre la bulle').toBe(1);
   });
 
-  it('jet posé puis annulé : le focus revient au MÊME nœud « Soigner les Blessures », sans bulle', () => {
+  it('soin lancé puis validé : le brouillon renaît sur l’acte suivant, le focus sur l’option retenue « Guérison », sans bulle', async () => {
     act(() => root.render(<MedicModal />));
-    const invocateur = bouton('Soigner les Blessures');
-    act(() => invocateur.click());
-    expect(useGame.getState().pendingHeal, 'le jet est posé').not.toBeNull();
-    expect(actif(), 'jet posé : le primaire du pied').toBe('Lancer');
-    expect(invocateur.isConnected, 'l’invocateur reste monté pendant le jet').toBe(true);
-    act(() => bouton('Annuler').click());
-    expect(useGame.getState().pendingHeal, 'le jet est annulé').toBeNull();
-    expect(document.activeElement, 'le même nœud, pas un homonyme').toBe(invocateur);
+    expect(useGame.getState().pendingHeal?.mode, 'le brouillon : les Blessures').toBe('wounds');
+    act(() => useGame.getState().jetLancer('heal')); // le « Lancer » de la coquille joue ce verbe après son frisson (`useRollFrisson`)
+    expect(useGame.getState().pendingHeal?.roll, 'le soin est lancé').not.toBeNull();
+    act(() => bouton('Appliquer').click());
+    expect(useGame.getState().pendingHeal, 'le brouillon renaît sur l’Hémorragie').toMatchObject({ mode: 'bleed', roll: null });
+    await act(async () => { await tacheSuivante(); }); // le sauvetage du cadre se lit à la tâche suivante
+    expect(document.activeElement, 'le sauvetage (#2533) pose le focus sur l’option retenue du groupe révélé : le Test « Guérison »').toBe(bouton('Guérison'));
+    expect(bouton('Guérison').getAttribute('aria-pressed'), 'l’option retenue').toBe('true');
     expect(bulles(), 'le retour du focus n’ouvre pas la bulle').toBe(0);
   });
 });
