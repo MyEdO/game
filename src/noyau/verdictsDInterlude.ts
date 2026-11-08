@@ -8,7 +8,7 @@ import { interludeEventFor, type InterludeEventFx } from '../data/interludeEvent
 import { t, type MsgKey } from '../i18n';
 import type { IdDeDepot, IdDeSort, IdDeTalent, IdDeTraitPsyPorte, IdDObjet } from './designations';
 import { possesses, type TestDesigne } from '../engine/skills';
-import { rollLine, type RollLineParts } from './rollSeam';
+import { rollLine, type RollLineParts } from './ligneDeJet';
 import { buildWeapon } from '../engine/items';
 import { combatValue, weaponSkillId, type ModLine } from '../engine/combat';
 import { focusSkillFor, focusValueOf } from '../engine/magic';

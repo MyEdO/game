@@ -15,7 +15,7 @@ import { t } from '../i18n';
 import type { Jeu } from './etat';
 import type { PendingHeal } from './pendings';
 import { gesteDuReglage, type ChoixNomme } from './reglages';
-import { rollLine, type RollLineParts } from './rollSeam';
+import { rollLine, type RollLineParts } from './ligneDeJet';
 import { actorIn } from './monde/combatants';
 import { libelleDeTest } from './jetsEnVue';
 import { libelleDuReglage } from './libelles';

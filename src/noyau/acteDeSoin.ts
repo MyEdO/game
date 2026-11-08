@@ -7,7 +7,7 @@
 import type { Combatant, Difficulty, Trauma } from '../engine/types';
 import type { IdDePlaieDeLOperation } from './designations';
 import { garanti } from '../lib/garanti';
-import { rollLine, type RollLineParts } from './rollSeam';
+import { rollLine, type RollLineParts } from './ligneDeJet';
 import { flowStakeRef, type FlowStakeId, type StakeRef, type SkillRef } from '../data';
 import { cibleMesuree } from '../engine/tests';
 import { partyAssisted, type SupportDetail } from '../engine/skills';

@@ -32,7 +32,7 @@ import { applyOps } from '../engine/ops';
 import { bonus, effectiveChar, blessuresPosees } from '../engine/characteristics';
 import { dataLabel, massBattleHazardsDie, testSkillLabel } from '../data';
 import { clampTarget } from '../engine/tests';
-import { rollLine, type RollLineParts } from './rollSeam';
+import { rollLine, type RollLineParts } from './ligneDeJet';
 import {
   activityById, activitiesFor, activityModLines, testsDeLActivite, matchBattleOutcomes, battleOutcomeAmount,
   type ActivityDef, type BattleResolution, type BattleOutcome as BattleOutcomeDelta,
