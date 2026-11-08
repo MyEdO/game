@@ -68,7 +68,7 @@ export type IdDeChanson = string;
 export type IdDeFormeConjuree = string;
 /** Un choix de paie que le choix `council.paie` accepte (`choixDePaieOuverts`, `shipCrew.ts`). */
 export type IdDeChoixDePaie = string;
-/** Une créature que `depecerLaCreature` accepte (`creaturesADepecer`, `combatEffects.ts`). */
+/** Une créature que le choix `victory.depecer` accepte (`creaturesADepecer`, `combatEffects.ts`). */
 export type IdDeCreatureADepecer = string;
 /** Un adversaire que le réglage `battement.adversaire` accepte (`adversairesDuBattement`, `combatManeuvers.ts`). */
 export type IdDAdversaireDuBattement = string;

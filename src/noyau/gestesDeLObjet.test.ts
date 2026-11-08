@@ -1,8 +1,8 @@
 /**
  * LES GESTES D'UN OBJET (#3328, `gestesDeLObjet`) : chaque geste n'existe que pour l'objet qu'il touche, et se ferme
- * par le verdict que son verbe applique : en combat, `refusDInventaire` ; l'Évaluation, une tentative par jour
- * (`appraiseTriedDay`) ; la Détection, une tentative par objet (LDB 10 l.336) ; poser au sol, une scène où le poser
- * (`refusDePoser`).
+ * par le verdict que son verbe applique : en combat, `refusDInventaire` ; l'Évaluation et la Détection, `refusDEvaluation`
+ * (le délai maison après une Évaluation manquée, `market-evaluation-delai-jours` ; une tentative par détecteur, LDB 10 l.336) ;
+ * poser au sol, une scène où le poser (`refusDePoser`) ; le geste présent et refusé, sa raison dite.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
@@ -43,14 +43,17 @@ describe('les gestes d’un objet', () => {
     expect(gestesDeLObjet(s, rosa.id, 'personne'), 'sans l’objet, aucun geste').toBeNull();
   });
 
-  it('l’Évaluation tentée ce jour ne s’offre plus ; la Détection tentée par chaque détecteur se ferme et le dit', () => {
+  it('l’Évaluation manquée ce jour et la Détection tentée par chaque détecteur restent offertes, fermées, et le disent', () => {
     const { s, rosa, uid } = partie({ appraiseTriedDay: 3 });
     rosa.talents = [...(rosa.talents ?? []), { talentId: 'detection-d-artefact', times: 1 }];
     rosa.items!.find((i) => i.label === 'Pilon et Mortier')!.detectTriedBy = [rosa.id];
     const pilon = gestesDeLObjet(s, rosa.id, uid('Pilon et Mortier'))!;
-    expect([pilon.evaluer, pilon.detecter?.refus]).toEqual([null, t('mf.detectDejaTentee', { label: 'Pilon et Mortier' })]);
+    expect([pilon.evaluer, pilon.detecter?.refus]).toEqual([
+      { refus: t('mf.appraiseRetenter', { label: 'Pilon et Mortier', jours: 1 }), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier')] } },
+      t('mf.detectDejaTentee', { label: 'Pilon et Mortier' }),
+    ]);
     const veille = partie({ appraiseTriedDay: 2 });
-    expect(gestesDeLObjet(veille.s, veille.rosa.id, veille.uid('Pilon et Mortier'))!.evaluer, 'tentée la veille, elle s’offre').not.toBeNull();
+    expect(gestesDeLObjet(veille.s, veille.rosa.id, veille.uid('Pilon et Mortier'))!.evaluer, 'tentée la veille, elle s’offre').toEqual({ refus: appraiseRefus(veille.s.party), geste: { verbe: 'evaluerLObjet', args: [veille.uid('Pilon et Mortier')] } });
   });
 
   it('en combat, chacun se refuse par le verdict de l’inventaire', () => {

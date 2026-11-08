@@ -1898,10 +1898,10 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     expect((banc.getState().party[0].items ?? []).map((i) => i.label)).toEqual(['Dague']);
   });
 
-  it('evaluerLeButin (Évaluation) : succès → la ligne est révélée, l’objet attribué arrive identifié', () => {
+  it('evaluerLObjet sur une ligne de butin (Évaluation) : succès → la ligne est révélée, l’objet attribué arrive identifié', () => {
     lootScene();
     banc.getState().interagirAvecLEntite('coffre');
-    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid);
+    banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid);
     const pa = banc.getState().pendingAppraise!;
     expect(pa.gear).toEqual({ scope: 'loot', uid: banc.getState().pendingLoot!.gear[0].uid });
     expect(pa.skillLabel ?? 'Évaluation').toBe('Évaluation');
@@ -1920,14 +1920,14 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     banc.setState({ party: [looter({ talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as Partial<Combatant>)] });
     banc.getState().interagirAvecLEntite('coffre');
     const uid = banc.getState().pendingLoot!.gear[0].uid;
-    banc.getState().evaluerLeButin('loot', uid, 'detect');
+    banc.getState().evaluerLObjet(uid, 'detect');
     const pa = banc.getState().pendingAppraise!;
     expect([pa.mode, pa.skillLabel]).toEqual(['detect', 'Intuition']);
     banc.setState({ pendingAppraise: { ...pa, roll: 95, success: false, sl: -5 } });
     banc.getState().jetValider('appraise');
     const line = banc.getState().pendingLoot!.gear[0];
     expect([line.effect.detectTriedBy, line.effect.identified]).toEqual([['a'], false]);
-    banc.getState().evaluerLeButin('loot', uid, 'detect');
+    banc.getState().evaluerLObjet(uid, 'detect');
     expect(banc.getState().pendingAppraise).toBeNull();
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('mf.detectDejaTentee', { label: line.label }));
   });
@@ -1938,11 +1938,11 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     banc.setState({ party: [looter(talent), looter({ ...talent, id: 'b', label: 'B' } as Partial<Combatant>)] });
     banc.getState().interagirAvecLEntite('coffre');
     const uid = banc.getState().pendingLoot!.gear[0].uid;
-    banc.getState().evaluerLeButin('loot', uid, 'detect');
+    banc.getState().evaluerLObjet(uid, 'detect');
     const premier = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...premier, roll: 95, success: false, sl: -5 } });
     banc.getState().jetValider('appraise');
-    banc.getState().evaluerLeButin('loot', uid, 'detect');
+    banc.getState().evaluerLObjet(uid, 'detect');
     const second = banc.getState().pendingAppraise!;
     expect(second.actorId, 'le détecteur qui n’a pas tenté').not.toBe(premier.actorId);
     banc.setState({ pendingAppraise: { ...second, roll: 5, success: true, sl: 2 } });
@@ -1957,7 +1957,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     lootScene();
     banc.setState({ party: [looter({ talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as Partial<Combatant>)] });
     applyEffectsLoot(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId: 'dague' }], 'Sac');
-    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid, 'detect');
+    banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid, 'detect');
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 5, success: true, sl: 2 } });
     banc.getState().jetValider('appraise');
@@ -1969,17 +1969,17 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
   it('anti-spam Évaluation : un échec verrouille l’objet pour la JOURNÉE (re-tentative demain)', () => {
     lootScene();
     banc.getState().interagirAvecLEntite('coffre');
-    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid);
+    banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid);
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 99, success: false, sl: -6 } });
     banc.getState().jetValider('appraise');
     expect(banc.getState().pendingLoot!.gear[0].effect.appraiseTriedDay).toBeDefined();
     // Même jour : la re-tentative est refusée (pas de modale).
-    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid);
+    banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid);
     expect(banc.getState().pendingAppraise).toBeNull();
     // Le lendemain : on peut retenter.
     banc.getState().avancerLeTemps(24 * 60);
-    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid);
+    banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid);
     expect(banc.getState().pendingAppraise).not.toBeNull();
     banc.setState({ pendingAppraise: null });
   });

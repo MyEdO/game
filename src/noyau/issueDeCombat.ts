@@ -25,15 +25,15 @@ export function creerActionsDIssueDeCombat(get: Get, set: Set) {
         get().ecrireAuJournal(t('store.cargoRaidNothing'));
       }
     },
-    depecerLaCreature: (creatureId) => harvestVictoryCreature(get, set, creatureId),
   } satisfies FabriqueDuNoyau;
 }
 
-/** Les choix des fenêtres de butin (`CorpsDesChoix`) : la ligne que prend le héros de la rangée (`attribuerLaLigne`). */
+/** Les choix des fenêtres de butin (`CorpsDesChoix`) : la ligne que prend le héros de la rangée (`attribuerLaLigne`), la
+ *  créature que le groupe dépèce (`harvestVictoryCreature`). */
 export function choixDuButin(get: Get, set: Set) {
   return {
     loot: { ligne: (uid, heroId) => attribuerLaLigne(get, set, 'pendingLoot', uid, heroId) },
-    victory: { ligne: (uid, heroId) => attribuerLaLigne(get, set, 'pendingVictory', uid, heroId) },
+    victory: { ligne: (uid, heroId) => attribuerLaLigne(get, set, 'pendingVictory', uid, heroId), depecer: (creatureId) => harvestVictoryCreature(get, set, creatureId) },
   } satisfies Partial<CorpsDesChoix>;
 }
 
