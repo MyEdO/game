@@ -18,6 +18,7 @@ import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTes
 import type { Combatant } from '../engine/types';
 import type { MedicNpc } from './acteDeSoin';
 import { ouvrirLeMedecin } from './medicFlow';
+import { setDesFixes } from '../engine/fixedDie';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -129,5 +130,57 @@ describe('R4-E — aucun argent créé par l’infirmerie d’un PNJ payant', ()
     expect(argent()).toBe(avant);
     g().jetLancer('heal');
     expect(argent()).toBe(avant - toBrass(toMoney({ silver: 3 })));
+  });
+});
+
+describe('le premier jet du brouillon, quel que soit le geste qui le pose, passe par le lancer de l’acte', () => {
+  const luxee = (id: string) => mk(id, { wounds: blessuresDeBase(40), traumas: [{ uid: 't1', label: 'Épaule luxée (bras perdu)', location: 'brasD', targetDR: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }], recoveryPenalty: [{ op: 'charMod', characteristic: 'capacite-de-combat', mod: -10 }] }] } as Partial<Combatant>);
+  const barbierPayant = (): void => {
+    poser([blesse('p')], { p: 1 });
+    creditBourse(g, banc.setState, 'p', { gold: 0, silver: 10, brass: 0 });
+  };
+
+  it('X1 — Résilience avant le jet sur une rééducation : l’opération s’arme, aucun jet de rééducation sans elle, le point n’est pas perdu', () => {
+    poser([mk('doc', { skills: GUERISON }), luxee('p')], { doc: 0, p: 1 });
+    g().ouvrirLeMedecin({ patientId: 'p' });
+    expect(g().pendingHeal?.mode).toBe('recovery');
+    g().jetForcerLaReussite('heal');
+    expect(g().pendingHeal, 'aucun soin de rééducation tiré hors de l’opération').toBeNull();
+    expect(g().medic?.surgery?.kind).toBe('recovery');
+    expect(g().pendingSurgery).not.toBeNull();
+    expect(g().party.find((h) => h.id === 'doc')!.resilience).toBe(1);
+  });
+
+  it('X2 — dé imposé, option « Dés fixés » active, sur le brouillon d’un PNJ payant : le tarif se débite', () => {
+    barbierPayant();
+    const avant = argent();
+    ouvrirLeMedecin(g, banc.setState, { patientId: 'p', npc: { ...BARBIER, acts: [{ act: 'wounds', cost: { silver: 2 } }] } });
+    setDesFixes(true);
+    try {
+      g().jetImposerLeResultat('heal', 5);
+    } finally { setDesFixes(false); }
+    expect(g().pendingHeal?.roll).toBe(5);
+    expect(argent()).toBe(avant - toBrass(toMoney({ silver: 2 })));
+  });
+
+  it('X3 — dé imposé, option éteinte, par l’appel direct d’un hôte : aucun jet posé sans son tarif', () => {
+    barbierPayant();
+    const avant = argent();
+    ouvrirLeMedecin(g, banc.setState, { patientId: 'p', npc: { ...BARBIER, acts: [{ act: 'wounds', cost: { silver: 2 } }] } });
+    g().jetImposerLeResultat('heal', 5);
+    const pose = g().pendingHeal?.roll != null;
+    expect(argent()).toBe(pose ? avant - toBrass(toMoney({ silver: 2 })) : avant);
+  });
+
+  it('B2 — dé imposé sur une rééducation sans opération armée : refusé, dit, et rien ne s’arme', () => {
+    poser([mk('doc', { skills: GUERISON }), luxee('p')], { doc: 0, p: 1 });
+    g().ouvrirLeMedecin({ patientId: 'p' });
+    setDesFixes(true);
+    try {
+      g().jetImposerLeResultat('heal', 3);
+    } finally { setDesFixes(false); }
+    expect(g().pendingHeal).toMatchObject({ mode: 'recovery', roll: null });
+    expect(g().medic?.surgery).toBeUndefined();
+    expect(g().journal[g().journal.length - 1]).toBe(libelleDeLaFermeture('jetNonLance'));
   });
 });

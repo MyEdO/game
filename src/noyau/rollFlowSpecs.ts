@@ -64,7 +64,7 @@ import { t } from '../i18n';
 import { libelleDeLaFermeture } from './libelles';
 import { influencesLocally } from './netOwnership';
 import { reprendreLaSuite } from './combatEffects';
-import { lancerLActeDeSoin } from './acteDeSoin';
+import { estOperation, lancerLActeDeSoin } from './acteDeSoin';
 import { describeTest, describeBargain, describeReload, describeStateRecovery, describeFrenzy } from './flowOutcomes';
 import { findSpellById, byId } from '../data/index';
 
@@ -2381,24 +2381,19 @@ export const FLOWS = paresseux({
    *  multi-passes) a son propre flux `surgery` ci-dessous (une passe = une modale influençable). */
   heal: () => makeRollFlow<PendingHeal>({
     key: 'pendingHeal',
-    // Hors combat, le jet part de l'infirmerie (`lancerLActeDeSoin` : refus de l'acte, tarif du PNJ, opération armée) ;
-    // son brouillon se change d'acte (`heal.mode`) et ne s'annule pas.
-    onRoll: (get, set, p) => {
-      if (!get().battle && !lancerLActeDeSoin(get, set, p)) return;
-      const s = get();
-      const patch = jetDuSoin(s, p, actorIn(s, p.healerId));
-      if (patch) set({ pendingHeal: { ...p, ...patch } });
-    },
+    // Hors combat, le premier jet, quel que soit le geste qui le pose, part de l'infirmerie (`lancerLActeDeSoin` : refus
+    // de l'acte, tarif du PNJ, opération armée) ; son brouillon se change d'acte (`heal.mode`) et ne s'annule pas.
+    premierJet: (get, set, p) => !!get().battle || lancerLActeDeSoin(get, set, p),
     annulation: (_p, s) => (s.battle ? null : 'acteAChanger'),
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.healerId),
     caps: { forced: true },
     resolve: (s, p, actor) => jetDuSoin(s, p, actor),
     outcome: (p) => rollOutcome(p.roll, p.target, p.sl),
-    // Résilience GLOBALE via la lentille plate ; le garde du forceSuccess (déjà réussi OU mode chirurgie :
+    // Résilience GLOBALE via la lentille plate ; le garde du forceSuccess (déjà réussi OU brouillon d'une opération, que le lancer arme :
     // rien à forcer) vit dans `dieTarget` (→ null), pas dans `actorTR` (qui sert aussi le `bonusSL`).
-    lens: flatRollLens((p) => (p.success || p.mode === 'surgery') ? null : cibleBrute(p)),
-    die: deDuSoin<PendingHeal>((p) => p.test, (p) => !p.success && p.mode !== 'surgery'),
+    lens: flatRollLens((p) => (p.success || estOperation(p.mode)) ? null : cibleBrute(p)),
+    die: deDuSoin<PendingHeal>((p) => p.test, (p) => !p.success && !estOperation(p.mode)),
     // Inversion (LDB 23 l.209/218 ; LDB 10 l.899) : le Test déclaré, sous le contexte `bandages` quand une Guérison
     // engage des Bandages ; le dé renversé s'évalue comme `resolve`.
     reverse: {
