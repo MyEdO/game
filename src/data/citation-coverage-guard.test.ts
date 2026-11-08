@@ -97,10 +97,9 @@ describe('garde-fou « citation par entrée » — couverture source:{book,page}
     // ICI en local pour la preuve de morsure, jamais réintroduit dans citationCoverage.mjs.
     const ancienGuard = (item: unknown): boolean => {
       if (!estObjet(item)) return false;
-      const rec = item as Record<string, unknown>;
-      if (estObjet(rec.source) && typeof rec.source.book === 'string') return true;
-      if (typeof rec._source === 'string' && rec._source.length > 0) return true;
-      if (typeof rec.maison === 'string' && rec.maison.length > 0) return true;
+      if (estObjet(item.source) && typeof item.source.book === 'string') return true;
+      if (typeof item._source === 'string' && item._source.length > 0) return true;
+      if (typeof item.maison === 'string' && item.maison.length > 0) return true;
       return false;
     };
     expect(ancienGuard(withAlsoIn)).toBe(false); // ROUGE avec l'ancien guard : bascule non-citée
