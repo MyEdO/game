@@ -45,6 +45,8 @@ var _hauteur_de_tete := 0.0
 ## à ses postes et de ceux de ses Améliorations, et son chargement retenu.
 var _vehicule_recu := ""
 var _element_du_vehicule: Variant = null
+## L'id de l'emblème posé sur les surfaces `blason` de l'élément de son véhicule (`null` : aucun).
+var _embleme_du_vehicule: Variant = null
 var _postes_montes: Array[String] = []
 var _ameliorations_montees: Array[String] = []
 var _chargement_du_vehicule: RefCounted = null
@@ -74,9 +76,10 @@ func montrer(c: Dictionary, lieu: Vector3, actif: bool, corps: Variant, vehicule
 
 ## Ce que son corps porte, lu de son montage : l'id de sa base posée (`null` sans corps), chaque élément monté, par
 ## emplacement l'emblème posé, par emplacement les couleurs posées (`MontageDeComposition.couleurs_posees`), l'id de
-## l'élément de son véhicule posé (`null` : aucun), ceux des éléments montés à ses postes et ceux de ses Améliorations.
+## l'élément de son véhicule posé (`null` : aucun), l'emblème posé sur ses voiles et pavillons (`null` : aucun), ceux des
+## éléments montés à ses postes et ceux de ses Améliorations.
 func corps() -> Dictionary:
-	return {base = null if _montage.modele == null else _montage.base.id, elements = _montage.montes.values(), emblemes = _montage.emblemes.duplicate(), couleurs = _montage.couleurs_posees(), vehicule = _element_du_vehicule, postes = _postes_montes.duplicate(), ameliorations = _ameliorations_montees.duplicate()}
+	return {base = null if _montage.modele == null else _montage.base.id, elements = _montage.montes.values(), emblemes = _montage.emblemes.duplicate(), couleurs = _montage.couleurs_posees(), vehicule = _element_du_vehicule, embleme_du_vehicule = _embleme_du_vehicule, postes = _postes_montes.duplicate(), ameliorations = _ameliorations_montees.duplicate()}
 
 
 ## La scène `scene` d'un véhicule, dans l'arbre sous un nœud à la case de son combattant, posée sur ses `empreinte` ×
@@ -106,10 +109,10 @@ static func _boite(noeud: Node, dans: Node3D) -> Variant:
 	return boite
 
 
-## Les meshes de la scène `scene` de l'élément `element` habillés de `palette` (`MontageDeComposition.peindre`, les
-## `surfaces` de l'élément).
-static func peindre_l_element(scene: Node3D, element: String, palette: Dictionary) -> void:
-	MontageDeComposition.peindre(scene.find_children("*", "MeshInstance3D", true, false), MontageDeComposition.modeles.surfaces[element], null, palette)
+## Les meshes de la scène `scene` de l'élément `element` habillés de `palette` et de l'emblème `texture` (`null` :
+## aucun) (`MontageDeComposition.peindre`, les `surfaces` de l'élément) ; rend si l'emblème est posé sur une surface.
+static func peindre_l_element(scene: Node3D, element: String, palette: Dictionary, texture: ImageTexture) -> bool:
+	return MontageDeComposition.peindre(scene.find_children("*", "MeshInstance3D", true, false), MontageDeComposition.modeles.surfaces[element], texture, palette)
 
 
 ## La scène `piece` d'une pièce montée sous la scène `scene` de son véhicule, au poste `poste` (`postes` de
@@ -197,7 +200,8 @@ func _vetir(corps: Variant) -> void:
 
 
 ## Le véhicule `vehicule`, s'il a changé : aucun, la scène posée sous `Vehicule` est retirée ; sinon le GLB de son
-## élément est tiré de `modeles/`, peint de sa `palette` (`peindre_l_element`) et posé sur son empreinte
+## élément est tiré de `modeles/`, peint de sa `palette` et de son `embleme` (`peindre_l_element`, un emblème qu'aucune
+## surface ne reçoit donne `blason-sans-surface`) et posé sur son empreinte
 ## (`poser_sur_l_empreinte`), à l'échelle métrique du plateau de `metres_par_case` s'il a sa `taille` réelle, à la place
 ## de la précédente, le GLB de chacune de ses pièces peint de la sienne et monté à son
 ## poste (`monter_au_poste`), le GLB de chacune de ses Améliorations peint de la palette du véhicule et monté à sa place
@@ -229,20 +233,25 @@ func _equiper(vehicule: Variant, metres_par_case: float) -> void:
 	for ancienne in _vehicule.get_children():
 		ancienne.queue_free()
 	_element_du_vehicule = null
+	_embleme_du_vehicule = null
 	_postes_montes.clear()
 	_ameliorations_montees.clear()
 	if scene != null:
-		peindre_l_element(scene, vehicule.element, vehicule.palette)
+		var texture: ImageTexture = _montage.texture_de_l_embleme(vehicule.embleme.id) if vehicule.has("embleme") else null
+		if peindre_l_element(scene, vehicule.element, vehicule.palette, texture):
+			_embleme_du_vehicule = vehicule.embleme.id
+		elif texture != null:
+			_montage.erreurs.append("blason-sans-surface : %s" % vehicule.element)
 		_vehicule.add_child(scene)
 		poser_sur_l_empreinte(scene, int(vehicule.empreinte), MiseEnPage.echelle_metrique(metres_par_case) if vehicule.taille == "reelle" else null)
 		for i in pieces.size():
 			if pieces[i] != null:
-				peindre_l_element(pieces[i], vehicule.postes[i].element, vehicule.postes[i].palette)
+				peindre_l_element(pieces[i], vehicule.postes[i].element, vehicule.postes[i].palette, null)
 				monter_au_poste(scene, pieces[i], vehicule.postes[i])
 				_postes_montes.append(vehicule.postes[i].element)
 		for i in ameliorations.size():
 			if ameliorations[i] != null:
-				peindre_l_element(ameliorations[i], vehicule.ameliorations[i].element, vehicule.palette)
+				peindre_l_element(ameliorations[i], vehicule.ameliorations[i].element, vehicule.palette, null)
 				monter_l_amelioration(scene, ameliorations[i], vehicule.ameliorations[i])
 				_ameliorations_montees.append(vehicule.ameliorations[i].element)
 		tourner_au_cap(scene, vehicule.cap, int(vehicule.empreinte))

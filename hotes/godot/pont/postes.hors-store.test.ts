@@ -6,7 +6,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { vehiculeDeTest } from '../asset/modeles.testkit.ts';
 import { modelesCommites, servirLesModeles, suiteDe, table, vueDe } from './pont.testkit';
-import { ameliorationsMontees, postesMontes } from './atelier';
+import { ameliorationsMontees, emblemeMonte, postesMontes } from './atelier';
 import { paletteDesCouleurs } from './composition';
 import { findCouleurById, findTeinteById } from '../../../src/noyau/index';
 import { couleursSchema } from '../../../src/data/schemas/grammaire/valeurs';
@@ -47,6 +47,15 @@ describe('les pièces d’Amélioration d’un véhicule (`ameliorationsMontees`
   });
   it('une Amélioration sans pièce servie ne monte rien', () => {
     expect(ameliorationsMontees(MANIFESTE, ['figure-de-proue', 'lissage'], montes, PIECES, MANIFESTES)).toEqual([]);
+  });
+});
+
+describe('l’emblème d’un véhicule (`emblemeMonte`)', () => {
+  const VOILEE = { ...vehiculeDeTest(), surfaces: [{ nom: 'toile', palette: 'vet1', blason: true }, { nom: 'metal', palette: 'metal' }] };
+  const embleme = { id: 'taureau-rouge' };
+  it('posé sur un élément qui porte une surface `blason` (ses voiles, son pavillon)', () => expect(emblemeMonte(embleme, VOILEE)).toEqual({ embleme }));
+  it('aucun sur un élément sans surface `blason`, sans élément ou sans emblème', () => {
+    expect([emblemeMonte(embleme, vehiculeDeTest()), emblemeMonte(embleme, undefined), emblemeMonte(undefined, VOILEE)]).toEqual([{}, {}, {}]);
   });
 });
 

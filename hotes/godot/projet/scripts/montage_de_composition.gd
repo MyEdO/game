@@ -27,7 +27,7 @@ class Lecture extends RefCounted:
 static var modeles: Dictionary = {}
 ## Par fichier de `modeles/`, sa `Lecture`, d'un chargement des modèles au suivant.
 static var _lectures: Dictionary = {}
-## Par emblème, sa texture rastérisée (`_texture_de_l_embleme`), d'un chargement des modèles au suivant.
+## Par emblème, sa texture rastérisée (`texture_de_l_embleme`), d'un chargement des modèles au suivant.
 static var _textures: Dictionary = {}
 
 ## La base posée, `{}` sans base.
@@ -386,7 +386,7 @@ func choisir_l_embleme(id: String, embleme: String) -> String:
 func _habiller(id: String) -> bool:
 	var element: String = montes[id]
 	var embleme: String = _emblemes_demandes.get(id, VIDE)
-	var texture: ImageTexture = null if embleme == VIDE else _texture_de_l_embleme(embleme)
+	var texture: ImageTexture = null if embleme == VIDE else texture_de_l_embleme(embleme)
 	var monte: Dictionary = cibles().get(id, {})
 	var palette: Dictionary = composee.get("palette", {}).duplicate()
 	if monte.get("element") == element:
@@ -457,7 +457,7 @@ func couleurs_posees() -> Dictionary:
 
 ## Le SVG de l'emblème `id`, offert par `emblemes` de la réponse de `modeles`, rastérisé à `LARGEUR_D_EMBLEME` pixels de
 ## large, ses mipmaps générées, une fois par chargement des modèles ; `null` (et une erreur) s'il ne se lit pas.
-func _texture_de_l_embleme(id: String) -> ImageTexture:
+func texture_de_l_embleme(id: String) -> ImageTexture:
 	if not _textures.has(id):
 		_textures[id] = _rasteriser_l_embleme(id)
 	return _textures[id]

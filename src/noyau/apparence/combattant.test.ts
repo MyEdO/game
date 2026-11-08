@@ -199,5 +199,9 @@ describe('vehiculeDuCombattant (#2987)', () => {
     const c = { ...fiche('loup-imperial'), upgrades: [{ id: 'sabord' }, { id: 'robuste' }, { id: 'nid-de-pie' }] };
     expect(vehiculeDuCombattant(c, 'N')!.ameliorations).toEqual(['belier', 'sabord', 'nid-de-pie']);
   });
+  it('son emblème, celui de son apparence d’auteur, qu’en portent ses voiles et son pavillon', () => {
+    expect(vehiculeDuCombattant({ ...fiche('caraque'), appearanceOverride: { embleme: { id: 'taureau-rouge' } } }, 'N')!.embleme).toEqual({ id: 'taureau-rouge' });
+    expect(vehiculeDuCombattant(fiche('caraque'), 'N')).not.toHaveProperty('embleme');
+  });
   it('une créature n’est pas un véhicule', () => expect(vehiculeDuCombattant(creature('loup'), 'N')).toBeNull());
 });

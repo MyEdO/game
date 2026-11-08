@@ -14,7 +14,7 @@ import { findTierEntry } from '../../engine/tables';
 import { findCreatureById, findFicheDeVehicule, findNavalTrait, findGroupeDArmureById, findPlanDEspeceById, findSpeciesById, findTenueDeCarriere, findTeteById, findVehicleById, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
 import { armesDuCombattant, emblemeDe } from '../equipementDessine';
 import { facteursDeComposition, porteesDeLaTenue, porteesDesObjets, teinteDeLObjet, type ObjetPorte, type Portee, type PorteeDeComposition } from './composition';
-import { pieceRacine } from './gardeRobe';
+import { pieceRacine, type EmblemeResolu } from './gardeRobe';
 import { footprintN } from '../monde/footprint';
 import { hullNavalTraits } from '../../engine/navalTraits';
 
@@ -128,7 +128,8 @@ export interface PosteDuVehicule {
 /** Un véhicule ou un engin de siège au combat : l'id de sa fiche, que nomme la clé `definition` d'un élément 3D
  *  `vehicule`, le côté N de son empreinte (`footprintN`), sa taille, son cap (`Jeu.facing`, le nord sans cap, comme au
  *  combat), ses couleurs, celles de son apparence d'auteur, les pièces de ses postes à un bord, dans leur ordre, et les
- *  Améliorations de sa coque (`hullNavalTraits`, MDG 12), sans ses Traits. Un
+ *  Améliorations de sa coque (`hullNavalTraits`, MDG 12), sans ses Traits, et son emblème (`emblemeDe`), que reçoivent
+ *  les surfaces `blason` de son élément, ses voiles et son pavillon. Un
  *  engin de siège a sa taille réelle ; une coque remplit son empreinte, sa taille réelle à terre étant le plateau de son
  *  pont (arbitrage de Clément du 2026-11-08, #2987). */
 export interface VehiculeDuCombattant extends Pick<EntityAppearance, 'couleurs'> {
@@ -138,6 +139,7 @@ export interface VehiculeDuCombattant extends Pick<EntityAppearance, 'couleurs'>
   readonly cap: Dir8;
   readonly postes: readonly PosteDuVehicule[];
   readonly ameliorations: readonly string[];
+  readonly embleme?: EmblemeResolu;
 }
 
 /** Le véhicule que `c`, au cap `cap`, est, si sa fiche est une coque ou un engin de siège (`findFicheDeVehicule`, #2987),
@@ -147,5 +149,6 @@ export function vehiculeDuCombattant(c: Combatant, cap: Dir8 | undefined): Vehic
   const postes = (c.postes ?? []).flatMap(({ item, side }) => (side && item.trappingId ? [{ definition: item.trappingId, bord: side, ...saTeinte(item) }] : []));
   const taille = findVehicleById(c.creatureId)?.hull ? 'empreinte' : 'reelle';
   const ameliorations = hullNavalTraits(c).flatMap(({ id }) => (findNavalTrait(id)?.kind === 'amelioration' ? [id] : []));
-  return { definition: c.creatureId, empreinte: footprintN(c), taille, cap: cap ?? 'N', ...couleursDuCombattant(c), postes, ameliorations };
+  const embleme = emblemeDe(c.appearanceOverride, c.creatureId);
+  return { definition: c.creatureId, empreinte: footprintN(c), taille, cap: cap ?? 'N', ...couleursDuCombattant(c), postes, ameliorations, ...(embleme ? { embleme } : {}) };
 }

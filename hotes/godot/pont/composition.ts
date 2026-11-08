@@ -9,7 +9,7 @@ import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import { poidsDeSilhouettes, poseDuGabarit, type PoseDuGabarit } from '../asset/gabarit';
 import { BUILD_NEUTRE } from '../../../src/lib/corpulence';
 import { findCouleurById, findTeinteById, pieceRacine, emblemeDuPorteur, type EmblemeResolu, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from '../../../src/noyau/index';
-import { blasonsDe, cleDe, type BaseDeLAtelier, type LigneDePiece } from './atelier';
+import { emblemeMonte, cleDe, type BaseDeLAtelier, type LigneDePiece } from './atelier';
 
 /** Un emplacement de montage d'une chose portée (`"<point>"` ou la clé de sa ligne, `cleDuPanneau`), l'élément de
  *  la base qui la monte, `null` s'il n'y en a aucun, et, monté, la palette de sa teinte (`Portee.teinte`). */
@@ -78,9 +78,8 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
     const elements = elementsDe.get(ligne) ?? [];
     const element = ids.map((id) => elements.find((e) => cleDe(manifestes[e])[p.cle.champ] === id)).find((e) => e !== undefined);
     const embleme = Object.prototype.hasOwnProperty.call(surcharges, ligne) ? emblemeDuPorteur(surcharges[ligne]) : portee.embleme;
-    const porteUnBlason = element !== undefined && blasonsDe(manifestes[element]).length > 0;
     const teinte = element === undefined ? undefined : findTeinteById(p.teinte);
-    montes.push({ ligne, element: element ?? null, ...(porteUnBlason && embleme ? { embleme } : {}), ...(teinte ? { palette: { ...teinte.palette } } : {}) });
+    montes.push({ ligne, element: element ?? null, ...emblemeMonte(embleme, element === undefined ? undefined : manifestes[element]), ...(teinte ? { palette: { ...teinte.palette } } : {}) });
     if (element === undefined) manquants.push({ ligne, champ: p.cle.champ, id: p.cle.id, label: p.label, ...(p.par ? { par: p.par } : {}) });
   }
   const { gabarit, appuis } = manifestes[base.id] as ManifesteDeBase;

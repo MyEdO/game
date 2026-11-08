@@ -17,7 +17,7 @@ import { ETATS_AU_POSTE, type ManifesteDElement } from '../asset/element';
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
-import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, findTeinteById, libelleDeCleDElement, pieceRacine, type EmblemeDef, type FireArc, type PosteDuVehicule } from '../../../src/noyau/index';
+import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, findTeinteById, libelleDeCleDElement, pieceRacine, type EmblemeDef, type EmblemeResolu, type FireArc, type PosteDuVehicule } from '../../../src/noyau/index';
 
 /** Un point d'accroche d'une base : un emplacement ou une prise, son libellé, son repère, et les ids des éléments qui s'y
  *  montent. */
@@ -85,6 +85,11 @@ const modeDe = (e: EntreeDeModele) => (e.brut as ManifesteDElement).liaison.mode
 const baseDe = (e: EntreeDeModele): string | undefined => { const m = e.brut as ManifesteDElement; return 'base' in m ? m.base : undefined; };
 /** Les `nom` des surfaces `blason: true` du manifeste d'élément `manifeste`, dans l'ordre du manifeste. */
 export const blasonsDe = (manifeste: unknown): string[] => (manifeste as ManifesteDElement).surfaces.filter((s) => s.blason === true).map((s) => s.nom);
+
+/** L'emblème `embleme` d'un porteur, à poser sur l'élément de manifeste `manifeste` (`undefined` : aucun élément) s'il
+ *  porte une surface `blason` (`blasonsDe`) : `{ embleme }`, sinon rien. */
+export const emblemeMonte = (embleme: EmblemeResolu | undefined, manifeste: unknown): { embleme?: EmblemeResolu } =>
+  embleme && manifeste !== undefined && blasonsDe(manifeste).length > 0 ? { embleme } : {};
 
 /** Les modèles de `manifestes` (id de modèle → manifeste du listage servi, validé) : les bases, leurs points d'accroche et
  *  leurs lignes de pièce, les surfaces de chaque modèle servi, les emblèmes de la garde-robe, les véhicules, les refus de
