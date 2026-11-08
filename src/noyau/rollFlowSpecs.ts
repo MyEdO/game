@@ -64,7 +64,8 @@ import { t } from '../i18n';
 import { libelleDeLaFermeture } from './libelles';
 import { influencesLocally } from './netOwnership';
 import { reprendreLaSuite } from './combatEffects';
-import { estOperation, lancerLActeDeSoin } from './acteDeSoin';
+import { estOperation } from './acteDeSoin';
+import { lancerLActeDeSoin } from './medicFlow';
 import { describeTest, describeBargain, describeReload, describeStateRecovery, describeFrenzy } from './flowOutcomes';
 import { findSpellById, byId } from '../data/index';
 

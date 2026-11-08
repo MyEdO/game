@@ -1,14 +1,15 @@
 /**
  * L'ACTE DE SOIN DE L'INFIRMERIE (#3612) : le soin que l'acte pose sur le patient courant (`soinDeLActe`), le refus
  * de l'acte hors combat (`refusDeLActeALInfirmerie`), le brouillon que la transition du jeu tient après chaque écriture
- * (`brouillonTenu`), et le lancer qui débite le tarif d'un PNJ puis arme ou reprend l'opération (`lancerLActeDeSoin`).
- * Module FEUILLE : `transitionDuJeu` le compose sans tirer `medicFlow`.
+ * (`brouillonTenu`) et la passe de l'opération armée (`passeDeLOperation`). PUR, module FEUILLE : il ne lit que le
+ * moteur, la ligne de jet (`ligneDeJet`) et la bourse ; `transitionDuJeu` le compose sans tirer aucun flux. Le lancer de
+ * l'acte (`lancerLActeDeSoin`) vit côté flux, dans `medicFlow`.
  */
 import type { Combatant, Difficulty, Trauma } from '../engine/types';
 import type { IdDePlaieDeLOperation } from './designations';
 import { garanti } from '../lib/garanti';
 import { rollLine, type RollLineParts } from './ligneDeJet';
-import { flowStakeRef, type FlowStakeId, type StakeRef, type SkillRef } from '../data';
+import type { FlowStakeId, StakeRef, SkillRef } from '../data';
 import { cibleMesuree } from '../engine/tests';
 import { partyAssisted, type SupportDetail } from '../engine/skills';
 import { bonus, effectiveChar } from '../engine/characteristics';
@@ -16,9 +17,7 @@ import { hasSurgerySkill, raisonDeModeDeSoin, estActeImmediat, healDifficulty, H
 import { surgeryTraumas, recoverableTraumas } from '../engine/trauma';
 import { toMoney, canAfford } from '../engine/money';
 import { t } from '../i18n';
-import { totalDesBourses, payFromGroup } from './bourseFlow';
-import { refuserGesteDuSiege } from './refusVisible';
-import type { Get, Set } from './flowTypes';
+import { totalDesBourses } from './bourseFlow';
 import type { Jeu } from './etat';
 import type { PendingHeal, PendingSurgery } from './pendings';
 
@@ -206,36 +205,4 @@ export function cibleDeLOperation(s: Pick<Jeu, 'party'>, p: Pick<PendingHeal, 't
   const patient = garanti(s.party.find((h) => h.id === p.targetId), p.targetId, 'patient de l’opération');
   const aReeduquer = recoverableTraumas(patient);
   return garanti(aReeduquer.find((x) => x.uid === p.plaie) ?? aReeduquer[0], patient.id, 'membre à rééduquer').targetDR;
-}
-
-/** L'opération que le brouillon `p` arme, son prix `paidCost` débité. */
-function operationArmee(s: Pick<Jeu, 'party'>, p: PendingHeal, kind: 'surgery' | 'recovery', paidCost: MedicCost | undefined): NonNullable<MedicState['surgery']> {
-  const targetDR = cibleDeLOperation(s, p, kind);
-  return {
-    kind, difficulty: p.difficulty, healerId: p.healerId, healerName: p.healerName, skill: p.skillValue, support: p.support,
-    intBonus: p.intBonus, ...(p.plaie ? { traumaUid: p.plaie } : {}), targetDR, cumDR: 0, paidCost,
-    stake: flowStakeRef(HEAL_STAKE[kind], { values: { targetDR } }),
-  };
-}
-
-/**
- * Le LANCER de l'acte hors combat (`jetLancer('heal')`) : jugé par `refusDeLActeALInfirmerie` ; le tarif d'un PNJ se
- * débite ici, jamais au brouillon — DÉPENSE DE GROUPE (arbitrage user 2026-07-20 : « le groupe peut se cotiser pour
- * payer […] les soins »). Un acte d'opération arme l'opération (ou reprend l'opération armée, sans nouveau débit) et pose
- * sa passe à la place du brouillon. Rend `true` quand le jet du soin reste à tirer.
- */
-export function lancerLActeDeSoin(get: Get, set: Set, p: PendingHeal): boolean {
-  const refus = refusDeLActeALInfirmerie(get(), p.mode);
-  if (refus) {
-    refuserGesteDuSiege(get, set, refus);
-    return false;
-  }
-  const m = garanti(get().medic, p.mode, 'infirmerie du lancer');
-  const reprise = m.surgery?.kind === p.mode;
-  const cout = reprise ? undefined : m.npc?.acts.find((a) => a.act === p.mode)?.cost;
-  if (cout) payFromGroup(get, set, toMoney(cout), { purpose: 'soins' });
-  if (!estOperation(p.mode)) return true;
-  const medic = { ...garanti(get().medic, p.mode, 'infirmerie du lancer'), surgery: reprise ? m.surgery : operationArmee(get(), p, p.mode, cout) };
-  set({ medic, pendingHeal: null, pendingSurgery: passeDeLOperation({ party: get().party, medic }) });
-  return false;
 }

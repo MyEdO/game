@@ -29,12 +29,14 @@ import { isHealable, HEAL_SKILL } from '../engine/healing';
 import { removeSurgicalTrauma, recoverDisabledLimb } from '../engine/trauma';
 import { toMoney } from '../engine/money';
 import { t } from '../i18n';
-import { distributeCredit } from './bourseFlow';
+import { distributeCredit, payFromGroup } from './bourseFlow';
 import { touchActors } from './combatOrParty';
-import { refuserGeste } from './refusVisible';
+import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refusEnCombat } from './verrousDeFiche';
 import { finishPlayerAction, openContractionCascade } from './combatFlow';
-import { passeDeLOperation, plaiesDeLOperation, type MedicNpc } from './acteDeSoin';
+import { cibleDeLOperation, estOperation, HEAL_STAKE, passeDeLOperation, plaiesDeLOperation, refusDeLActeALInfirmerie, type MedicCost, type MedicNpc, type MedicState } from './acteDeSoin';
+import { flowStakeRef } from '../data';
+import type { PendingHeal } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
@@ -139,6 +141,38 @@ function abandonnerLOperation(get: Get, set: Set): void {
   if (!sg.last && sg.paidCost && m.patientId) distributeCredit(get, set, toMoney(sg.paidCost)); // remboursé au groupe (payeur), symétrique du débit `payFromGroup`
   set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
   if (sg.last) get().ecrireAuJournal(t('medic.interrupted', { healer: sg.healerName }));
+}
+
+/** L'opération que le brouillon `p` arme, son prix `paidCost` débité. */
+function operationArmee(s: Pick<Jeu, 'party'>, p: PendingHeal, kind: 'surgery' | 'recovery', paidCost: MedicCost | undefined): NonNullable<MedicState['surgery']> {
+  const targetDR = cibleDeLOperation(s, p, kind);
+  return {
+    kind, difficulty: p.difficulty, healerId: p.healerId, healerName: p.healerName, skill: p.skillValue, support: p.support,
+    intBonus: p.intBonus, ...(p.plaie ? { traumaUid: p.plaie } : {}), targetDR, cumDR: 0, paidCost,
+    stake: flowStakeRef(HEAL_STAKE[kind], { values: { targetDR } }),
+  };
+}
+
+/**
+ * Le LANCER de l'acte hors combat (`jetLancer('heal')`) : jugé par `refusDeLActeALInfirmerie` ; le tarif d'un PNJ se
+ * débite ici, jamais au brouillon — DÉPENSE DE GROUPE (arbitrage user 2026-07-20 : « le groupe peut se cotiser pour
+ * payer […] les soins »). Un acte d'opération arme l'opération (ou reprend l'opération armée, sans nouveau débit) et pose
+ * sa passe à la place du brouillon. Rend `true` quand le jet du soin reste à tirer.
+ */
+export function lancerLActeDeSoin(get: Get, set: Set, p: PendingHeal): boolean {
+  const refus = refusDeLActeALInfirmerie(get(), p.mode);
+  if (refus) {
+    refuserGesteDuSiege(get, set, refus);
+    return false;
+  }
+  const m = garanti(get().medic, p.mode, 'infirmerie du lancer');
+  const reprise = m.surgery?.kind === p.mode;
+  const cout = reprise ? undefined : m.npc?.acts.find((a) => a.act === p.mode)?.cost;
+  if (cout) payFromGroup(get, set, toMoney(cout), { purpose: 'soins' });
+  if (!estOperation(p.mode)) return true;
+  const medic = { ...garanti(get().medic, p.mode, 'infirmerie du lancer'), surgery: reprise ? m.surgery : operationArmee(get(), p, p.mode, cout) };
+  set({ medic, pendingHeal: null, pendingSurgery: passeDeLOperation({ party: get().party, medic }) });
+  return false;
 }
 
 export function creerActionsDuMedecin(get: Get, set: Set) {
