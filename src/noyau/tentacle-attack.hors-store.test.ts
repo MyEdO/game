@@ -29,7 +29,7 @@ describe('armes naturelles de mutation (recomputeLoadout)', () => {
     attachMutation(hero, mutTentacule(), desDuTest);
     attachMutation(hero, mutCornes(), desDuTest);
     recomputeLoadout(hero);
-    const t = hero.weapons.find((w) => w.uid === 'nat-tentacule');
+    const t = hero.weapons.find((w) => w.source?.kind === 'trait' && w.source.id === 'tentacules');
     expect(t?.label).toBe('Tentacule');
     expect(damageString(t!.damage)).toBe('+BF');
     expect(t?.attackKind).toBe('tentacules'); // routage pose/anim (maniementDe) — porté par l'op grantNaturalWeapon
@@ -42,7 +42,7 @@ describe('armes naturelles de mutation (recomputeLoadout)', () => {
   it('sans mutation : aucune arme naturelle dérivée', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     recomputeLoadout(hero);
-    expect(hero.weapons.some((w) => w.uid === 'nat-tentacule' || w.label === 'Cornes')).toBe(false);
+    expect(hero.weapons.some((w) => w.natural)).toBe(false);
   });
 });
 
@@ -83,7 +83,7 @@ describe('Attaque gratuite de Tentacule (store)', () => {
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     const pa = banc.getState().pendingAttack;
     expect(pa?.freeKind).toBe('tentacules');
-    expect(pa?.weaponUid).toBe('nat-tentacule');
+    expect(pa?.weaponUid).toBe(H.weapons.find((w) => w.attackKind === 'tentacules')?.uid);
     expect(pa?.result).toBeNull(); // rien n'est tiré avant Lancer
     banc.getState().jetLancer('attack');
     expect(banc.getState().pendingAttack?.result).toBeTruthy();

@@ -901,15 +901,15 @@ export function recomputeLoadout(c: Combatant): void {
   // Armes NATURELLES portées en DONNÉE par le `passive` d'une source — trait (Tentacules, LDB 85 l.405) ou
   // mutation (Tentacule épais → trait ; LDB 19 : « Compte comme une Arme de Créature »). Op `grantNaturalWeapon`,
   // MÊME vocabulaire, boucle KIND-AGNOSTIQUE : ajouter une source = l'itérer ici, aucun kind nommé en dur.
-  // (L'Attaque gratuite 1/tour du Tentacule est portée par le maneuver `tentacule`, keyé sur uid `nat-tentacule`.)
+  // L'arme porte sa SOURCE (`Weapon.source`) : la manœuvre `tentacule` la retrouve par elle (`armeDeTentacule`).
   const naturalWeaponPassives = [
-    ...(c.mutations ?? []).map((m) => ({ cle: `nat-${m.id}`, ops: m.passive })),
-    ...(c.traits ?? []).map((t) => ({ cle: `nat-${cleDInstanceDeTrait(t)}`, ops: findTraitById(t.id)?.passive })),
+    ...(c.mutations ?? []).map((m) => ({ cle: `nat-${m.id}`, source: { kind: 'mutation' as const, id: m.id }, ops: m.passive })),
+    ...(c.traits ?? []).map((t) => ({ cle: `nat-${cleDInstanceDeTrait(t)}`, source: { kind: 'trait' as const, id: t.id }, ops: findTraitById(t.id)?.passive })),
   ];
-  for (const { cle, ops } of naturalWeaponPassives) for (const op of ops ?? []) {
+  for (const { cle, source, ops } of naturalWeaponPassives) for (const op of ops ?? []) {
     if (op.op !== 'grantNaturalWeapon') continue;
     const flat = (typeof op.damage === 'number' ? op.damage : 0) + (op.damagePlus ?? 0);
-    weapons.push({ hand: 'main', ...armeNaturelleAccordee(op, flat, { uid: op.uid ?? uidDArme(cle, weapons) }) });
+    weapons.push({ hand: 'main', ...armeNaturelleAccordee(op, flat, { uid: uidDArme(cle, weapons), source }) });
   }
   // Armes NATURELLES accordées par un Sort (op `grantNaturalWeapon` — Dent et griffe : Morsure/Arme ;
   // Incarnation de Wyssan) : attaques ADDITIONNELLES tant que l'effet dure (retirées au recompute

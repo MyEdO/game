@@ -1843,7 +1843,6 @@
         "label": "Tentacule",
         "attackKind": "tentacules",
         "subType": "base",
-        "uid": "nat-tentacule",
         "damage": 0,
         "plusBF": true,
         "bare": true

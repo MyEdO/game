@@ -205,7 +205,7 @@ export const CROSS_CONCEPTS = [
   ['Navire : coque, équipage, artillerie, construction', /navire|coque|[ée]quipage|artillerie|construction de navire/i],
   ['Tests : Degrés de Réussite, Caractéristiques, tables', /\bDR\b|degr[ée]s? de r[ée]ussite|caract[ée]ristique|\btable\b|\btables?\b/i],
   ['Objets, possessions, équipement', /\bobjets?\b|possession|[ée]quipement|inventaire/i],
-  ['Encombrement, taille, gabarit', /encombrement|\btaille\b|gabarit/i],
+  ['Encombrement, taille, gabarit', /encombrement|\btaille\b|\bgabarits?\b/i],
   ['Bataille de masse, machine de guerre', /bataille de masse|machine de guerre|artillerie/i],
   ['Qualités d\'arme et d\'armure', /qualit[ée]s?\b/i],
 ]
