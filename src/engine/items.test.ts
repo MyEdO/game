@@ -280,7 +280,7 @@ describe('machine de guerre (Qualité `equipe` — ADE II 8 l.233) : jamais en l
 
   it('belier-ade2 : sous-type armes-de-siege et empreinte 2 (#210, ADE II 8 l.239/258)', () => {
     const t = trappings.find((x) => x.id === 'belier-ade2')!;
-    expect(t.subType).toBe('armes-de-siege');
+    expect(t.subType?.id).toBe('armes-de-siege');
     expect(t.siegeFootprint).toBe(2);
   });
 
@@ -1012,7 +1012,7 @@ describe('unarmedWeapon — arme LUE dans la donnée (`mains-nues`)', () => {
 
   it('suit la donnée : dégâts, Allonge, Atouts et Groupe viennent de l’entrée résolue', () => {
     const w = unarmedWeapon(() => fakeTrapping({
-      label: 'Poings', damage: { plusBF: true, flat: 3 }, reach: 'Courte', qualities: [{ id: 'assommante' }], subType: 'parade',
+      label: 'Poings', damage: { plusBF: true, flat: 3 }, reach: 'Courte', qualities: [{ id: 'assommante' }], subType: { id: 'parade' },
     }));
     expect(w.label).toBe('Poings');
     expect(w.damage).toEqual({ plusBF: true, flat: 3 });

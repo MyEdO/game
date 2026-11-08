@@ -329,6 +329,24 @@ Arbitrages utilisateur du 2026-11-08 sur les ajouts de Talent et les montures (#
 
 Jeu sans MJ (règle 7) : l'auteur du PNJ choisit dans l'éditeur ses Talents, ses Compétences « Au choix » et ses dotations au choix. Ce qu'il laisse libre est tiré d'une graine stable, l'id du PNJ.
 
+**Sorts d'un PNJ lanceur de sorts** (#3715). Un PNJ, du Bestiaire comme de carrière, dont le profil n'imprime aucun sort reçoit d'office ce que ses Talents de lanceur chiffrent :
+
+> « Quand vous prenez ce Talent, vous pratiquez, et mémorisez de façon permanente, un nombre de Sorts égal à votre Bonus de Force Mentale. » — `LDB 10 l.714` (Magie mineure)
+
+> « Vous êtes béni par l'un des dieux, et pouvez donc effectuer l'un des Miracles de votre culte. » — `LDB 10 l.625` (Invocation)
+
+> « Votre chef de la Ruine vous confère immédiatement l'accès à un seul Sort du Domaine choisi » — `LDB 10 l.706` ; « Lorsque vous prenez ce Talent, qui coûte à chaque fois 100 PX, vous apprenez un autre Sort du Domaine choisi » — `LDB 10 l.708` (Magie du Chaos : un Sort par prise du Talent)
+
+> « Un Personnage ayant Magie du Chaos (Tzeentch) peut sélectionner des Sorts dans la liste des Sorts d'Arcanes, la liste des Sorts d'Arcanes du Chaos et la liste des Sorts du Domaine de Tzeentch. » — `EDOC 13 l.262`
+
+Béni donne déjà les Bénédictions du culte au spawn (`LDB 10 l.109`). Magie des Arcanes (« Vous pouvez à présent mémoriser des Sorts du Domaine choisi pour le prix en PX suivant », `LDB 10 l.686`) et les Traits Lanceur de Sorts (« le type de magie spécifique est indiqué entre parenthèses », `LDB 85 l.207`) et Miracles (« La divinité concernée est indiquée entre parenthèses », `LDB 85 l.233`) ne chiffrent aucun sort.
+
+Arbitrage utilisateur du 2026-11-08 (#3715, carte de décision, verbatim au ticket) : à la question « Combien de sorts connaît un PNJ à Magie des Arcanes dont le profil n'en liste aucun ? », Clément choisit « Aucun d'office », dont la conséquence lue sur la carte est : « L'auteur choisit tous les sorts dans l'éditeur. Sans choix de sa part, le PNJ n'en lance aucun. » Aucun sort de Domaine n'est donc tiré, pour Magie des Arcanes comme pour un Trait de lanceur.
+
+Jeu sans MJ (règle 7) : l'auteur choisit les sorts du PNJ dans l'inspecteur de l'éditeur. Un sort hors des listes qu'ouvrent ses Talents et Traits de lanceur est refusé, comme un sort au-delà d'un quota chiffré (Magie mineure, Invocation, Magie du Chaos) ; les sorts de Domaine des Arcanes n'ont pas de plafond. Ce que l'auteur laisse libre dans un quota est tiré d'une graine stable, l'id du PNJ. Une liste de sorts imprimée au profil fait foi : elle n'est jamais complétée, et l'auteur n'y ajoute rien.
+
+Lecture d'ingénierie, révisable : la parenthèse du Trait Lanceur de Sorts est un texte libre (« Bêtes, n'importe laquelle du Chaos, Mort ou Ombres ») ; le Trait ouvre donc tous les Sorts, mineurs, d'Arcane, de Domaine et du Chaos, et l'auteur lit la parenthèse. Celle de Miracles nomme une divinité : le Trait ouvre ses Miracles.
+
 L'exemple ne se recalcule pas : son profil (`EDO 11 l.27-32`) ne se retrouve pas en appliquant la règle. Ce qui s'en vérifie, c'est le Statut du Niveau atteint (**Argent 5**, `EDO 11 l.27`) et les possessions de la carrière (`EDO 11 l.38-40`).
 
 Son argent : [L'argent des PNJ](#largent-des-pnj-edo).
@@ -503,6 +521,7 @@ Indices observés dans le bestiaire MDG : Redoutable 1 (Baudroye, Hydre d'os, Sa
 | Caractéristiques aléatoires | `LDB 77 l.108` | ✅ implémenté (`randomizeChars`) |
 | PNJ de carrière | `EDO 11 l.17-21` | ✅ implémenté (`porterAuParcours`, arbitrages #773) |
 | L'argent des PNJ | `EDO 11 l.42-46` | ✅ implémenté (`argentDuPnj`, `statusIncome`), arbitrage du 2026-11-08 |
+| Sorts d'un PNJ lanceur de sorts | `LDB 10 l.625`, `l.706-714`, `EDOC 13 l.262` | ✅ implémenté (`sortsDuPnj`, arbitrage #3715) |
 | Index Traits — déclenchement | `LDB 85 l.83-455` | ✅ tableau de synthèse |
 
 ### Catalogue créatures — flagué
@@ -514,6 +533,7 @@ Les chapitres `LDB 77-83`, `ZI`, `EDO`, `MSR/MSRC`, `PDT`, `NADJ`, `ADE I/II` co
 - `src/engine/size.ts` — `LDB 85 l.343-406` (7 catégories, Blessures, mods combat).
 - `src/noyau/monde/spawn.ts` — `LDB 76 l.45` (Facultatifs), `LDB 77 l.108` (carac. aléatoires).
 - `src/engine/pnjDeCarriere.ts` — `EDO 11 l.17-21` (PNJ de carrière : +5 par Niveau, Talents, dotations de la carrière actuelle), `EDO 11 l.42-46` (son argent, `argentDuPnj`).
+- `src/engine/sortsDuPnj.ts` — `LDB 10 l.625`, `l.706-714`, `EDOC 13 l.262` (sorts d'un PNJ : choix de l'auteur, quotas de Magie mineure, Invocation et Magie du Chaos).
 - `src/engine/creatureAttacks.ts` — `LDB 85 traits` (grantsManeuvers par id).
 - `src/engine/creatureEquip.ts` — `LDB 85 l.405` (Tentacules, compte/attaques gratuites).
 - `src/engine/combat.ts` — `LDB 85 l.253` (Nuée : ignore les règles de Taille), `l.360-362` (Atouts, multiplicateur de Dégâts, Frappe Mortelle par Taille), `l.366` (+10 au plus petit), `l.370` (pénalité de Parade), `l.387` (Piétinement).

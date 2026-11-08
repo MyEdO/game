@@ -21,6 +21,7 @@ import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engi
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { apparencesObjetsDe, contexteDeNaissanceDObjet, deciderApparencesDesArmes, equipConflicts, hydratePoste, loadWeapon, objetsDeLInventaire, recomputeLoadout } from '../../engine/items';
 import { argentDuPnj, porterAuParcours, type ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
+import { sortsDuPnj } from '../../engine/sortsDuPnj';
 import { blessuresReconciliees, blessuresPosees } from '../../engine/characteristics';
 import { indiceSurLeProfil } from '../../engine/formule';
 import { resizeBySteps, SIZE_ORDER, SizeCategory, sizeFromTraits } from '../../engine/size';
@@ -199,7 +200,7 @@ export interface SpawnExtras {
   /** OPTIONNELS choisis (LDB 76 l.45) : Traits posés ordinaires (résolus et fusionnés avant dérivation) OU
    *  NOTES composées (joker « tous les traits », variante « swap » qui RETIRE des Traits + octroie un bonus). */
   optionals?: OptionalEntry[];
-  /** Sorts connus choisis par l'auteur (`combat.spells`) — priment sur ceux de la créature. */
+  /** Sorts choisis par l'auteur (`combat.spells`), complétés au spawn (`sortsDuPnj`). */
   spells?: string[];
   /** Caractéristiques aléatoires (LDB 77 l.108). */
   randomChars?: boolean;
@@ -325,10 +326,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
     ...(creature.corruption != null ? { corruption: creature.corruption } : {}), // EDO 01 l.504 ; LDB 19
     ...parsePsychTraits(traits), // Peur/Terreur/Immunité (Nuée, Fabriqué compris) + traits ciblés depuis les traits (LDB 21+85)
     ...(swarm ? { swarm: true } : {}), // LDB 85 l.253
-    // Sorts : ceux de la DONNÉE (PNJ nommés — Eusapia en a 12), surchargés par le choix d'auteur.
-    // Combatant.spells = IDS de sort, prouvés par le schéma de scène (`refs('spell')`) : au parse, et à
-    // `validateScene` pour une scène vivante de l'éditeur.
-    ...(extras?.spells?.length ? { spells: extras.spells } : creature.spells.length ? { spells: creature.spells } : {}),
+    ...(creature.spells.length ? { spells: creature.spells } : {}), // imprimés ; choix d'auteur et quotas : `sortsDuPnj`
     groups: groupsFor({ creature }), // Groupes déclarés par l'entrée et son genre ; Traits et culte lus en direct (`groupesDe`). LDB 21
     traits, // conservés (facultatifs inclus) → attaques gratuites de créature en combat
     skills,
@@ -459,6 +457,8 @@ export function spawnEnemy(
     : porteur.statblock ? statblockToCombatant(porteur.statblock, id, pos, opts?.appearance, opts)
     : ficheDeRef(porteur.ref, porteur.parcours, id, pos, opts);
   c.porteurDeFiche = porteur;
+  const sorts = sortsDuPnj(c, opts?.spells ?? []);
+  if (sorts.length) c.spells = sorts;
   if (opts?.crewIds) c.crewIds = opts.crewIds;
   if (opts?.postes) c.postes = opts.postes.map((a, i) => hydratePoste(a, `${id}-poste-${i}`)); // #222 — réf catalogue → base HYDRATÉE (couture unique)
   if (opts?.upgrades) c.upgrades = opts.upgrades;

@@ -1,7 +1,7 @@
 import { nommerChamps } from '../grammaire/meta';
 /** LDB 85 */
 import { z } from 'zod';
-import { charKeySchema, mutationKindSchema, specsSourceSchema } from '../grammaire/valeurs';
+import { castingKindSchema, charKeySchema, mutationKindSchema, specsSourceSchema } from '../grammaire/valeurs';
 import { idDe, ref, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { document } from '../grammaire/document';
@@ -33,6 +33,7 @@ const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   swarm: z.boolean().optional(),
   naturalWeapon: nommerChamps(z.strictObject({ ranged: z.boolean().optional() }), { ranged: { label: 'À distance' } }).optional(),
   spellcaster: z.boolean().optional(),
+  castingKind: castingKindSchema.optional(),
   undead: z.boolean().optional(),
   wardSave: z.boolean().optional(),
   damageImmunity: z.boolean().optional(),
@@ -82,6 +83,7 @@ const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   swarm: { label: 'Nuée' },
   naturalWeapon: { label: 'Arme naturelle' },
   spellcaster: { label: 'Lanceur de Sorts' },
+  castingKind: { label: 'Type d’incantation' },
   undead: { label: 'Mort-vivant' },
   wardSave: { label: 'Sauvegarde de protection' },
   damageImmunity: { label: 'Immunité aux Dégâts' },

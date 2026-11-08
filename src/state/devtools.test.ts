@@ -590,8 +590,9 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     expect(moi.armes.some((w) => w.trappingId !== null && w.formeResolue !== null)).toBe(true);
   });
 
-  /** Ouvre le Round (la pause n'a aucun actif) puis donne la main au héros, piloté par le joueur. */
+  /** Ouvre le Round (la pause n'a aucun actif) puis donne la main au héros, piloté par le joueur, la scène à l'écran. */
   const ouvrirLeRoundAuHeros = (api: ReturnType<typeof buildApi>) => {
+    useGame.setState({ screen: 'campaign' });
     if (useGame.getState().pendingRoundStart) useGame.getState().fenetreValider('roundStart');
     expect(api.turn(heroId)).toMatch(/^✓/);
   };

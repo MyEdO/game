@@ -128,7 +128,7 @@ export function rollTest(
 
 /** Cible d'un Test AVANT bornage : valeur testée + Difficulté + modificateurs (LDB 12 l.92-94). C'est elle
  *  que reçoivent les constructeurs (`evaluateTest`, `forcedTR`) — un dé forcé AVANT le jet en part aussi. */
-export function cibleDuTest(value: number, difficulty: Difficulty = 'intermediaire', modifier = 0): number {
+export function cibleDuTest(value: number, difficulty: Difficulty = DIFFICULTE_PAR_DEFAUT, modifier = 0): number {
   return value + DIFFICULTY_MODIFIERS[difficulty] + modifier;
 }
 
@@ -275,8 +275,8 @@ export function opposedTest(
   attackerValue: number,
   defenderValue: number,
   rng: RNG,
-  attackerDifficulty: Difficulty = 'intermediaire',
-  defenderDifficulty: Difficulty = 'intermediaire',
+  attackerDifficulty: Difficulty = DIFFICULTE_PAR_DEFAUT,
+  defenderDifficulty: Difficulty = DIFFICULTE_PAR_DEFAUT,
   /** Valeurs NUES des deux camps (`LDB 09 l.17`), grandeur du départage à DR égal (`LDB 12 l.160`). */
   bases?: { attacker: number; defender: number },
 ): OpposedResult {

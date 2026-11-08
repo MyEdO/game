@@ -6,7 +6,7 @@
 import type { Get, Set } from './flowTypes';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
-import { ACTION_GATES, actionGate, armeADistanceParDefaut, etatDeLaBarre, refusDeLOffreHorsDuTour, type ContexteDOffre, type BattleActionMode } from './actionRegistry';
+import { ACTION_GATES, actionGate, armeADistanceParDefaut, etatDeLaBarre, refusDeLOffreHorsDuTour, type ContexteDOffre, type BattleActionMode, type EtatDeLaBarre } from './actionRegistry';
 import type { CounterParticipant, CounterDeclaration, SuiteDeCoup, PendingAttack, EnchainementDuCoup } from './pendings';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import { SceneEntity, porteMasquee, structureIsDown } from './monde/scene';
@@ -19,7 +19,7 @@ import { toRecapLines } from './recapLine';
 import { attaqueDeCle, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
 import { activeCombatant, jetDeRecharge, appliquerLaRecharge, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, lancerLeRound, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, ciblesDuBalayage, ciblesDeLaDoubleFrappe, resolveDualSecond, overcastTargetCandidates, overcastReset, drainerLesGratuites, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
-import { auContactEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, attaqueImmediate, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, adversairesDuBattement, adversairesADistraire } from './combatManeuvers';
+import { auContactEligible, grappleActionEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, attaqueImmediate, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, adversairesDuBattement, adversairesADistraire } from './combatManeuvers';
 import { resolveWeaponArea } from './combatArea';
 import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlacement';
 import { hasBattement, hasDistraire, dualStrikeDefensePenalty } from '../engine/combatFeatures/dispatch';
@@ -32,7 +32,7 @@ import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW, flowEffects } from '../engine/flowCore';
 import { pickActiveModalKey } from './modalArbiter';
 import { champAttendSaFenetre } from './targetingHolder';
-import { refusDeCourse } from './refusDuTour';
+import { refusActionDepensee, refusDeCourse, refusHorsDEtatDAgir } from './refusDuTour';
 import { mountMovement, movementRemaining, mountUp, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
 import { heroCombatMount } from '../engine/mountTravel';
 import { ev, evLines, journaliser } from './combatLog';
@@ -47,7 +47,7 @@ import type { MovementBlockReason } from './combatFlow';
 import { t } from '../i18n';
 import { backstabWeapon, attackHandGate, issueAuJet, coupAApplique } from '../engine/combat';
 import { disengageFrom, isEngaged, setContact, clearContact, meleeReachRank } from '../engine/engagement';
-import { areGrappling, clearGrapple } from '../engine/grapple';
+import { clearGrapple } from '../engine/grapple';
 import { applyOps } from '../engine/ops';
 import { groupAdvantage, mirrorPools } from '../engine/advantagePool';
 import { campGain, campSpend, startAdvantagePools } from './combat/advantagePool';
@@ -69,7 +69,7 @@ import { teamCommandTargets } from './monde/commandTeam';
 import { isConsumable } from '../engine/consumables';
 import { refusDeConsommer, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, peutEntrerEnFrenesie, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, refusDeDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
+import { isOutOfAction, addCondition, removeCondition, canTakeAction, peutEntrerEnFrenesie, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, refusDeDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
 import { raisonDeModeDeSoinEnCombat, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, applyHealWounds, soinDOuverture, refusDuTestDeSoin, difficulteDuSoin, actePanse, retirerUnBandage, IDS_DU_TEST_DE_SOIN, type HealMode } from '../engine/healing';
 import { jetDuSoigneur, refusDesBandages, refusDuModeDuSoin, refusDuTestDuSoin } from './soin';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
@@ -144,6 +144,20 @@ const ligneDeDissipation = (lanceur: Combatant, value: number, soutien: SupportD
 
 const combatBusy = (s: Pick<Jeu, 'pendingCleave' | 'pendingDualStrike' | 'pendingCast'>): boolean =>
   !!(pickActiveModalKey(s as never) || s.pendingCleave || s.pendingDualStrike || s.pendingCast);
+
+/** La barre d'un geste de combat hors des verbes de la barre (#3700) : son verdict (`etatDeLaBarre`), et un Sort qui
+ *  désigne ses cibles ou pose sa zone (`pendingCast`), qu'elle ne compte pas, tient la main. */
+function barreDuGeste(s: Jeu): EtatDeLaBarre {
+  const barre = etatDeLaBarre(s);
+  return barre.forme === 'ouverte' && s.pendingCast ? { forme: 'tenue', raison: t('barre.mainTenue') } : barre;
+}
+
+/** Le refus du geste de combat de l'acteur `acteurId` (#3700) : la barre (`barreDuGeste`), puis l'actif, dit par
+ *  `horsDuTour`. `null` = admis. */
+function refusDuTourDe(s: Jeu, acteurId: string, horsDuTour: string): string | null {
+  const barre = barreDuGeste(s);
+  return barre.forme !== 'ouverte' ? barre.raison : barre.active.id !== acteurId ? horsDuTour : null;
+}
 
 /** Le verdict de l'ENTRÉE du registre (`actionGate`) que ce commit exécute, lu au commit comme à l'offre.
  *  Refusé, il se dit par `refuserGesteDuSiege` quand l'acteur est piloté (`controlsCombatant`) : au siège
@@ -624,25 +638,27 @@ export function createCombatSlice(get: Get, set: Set) {
     //    Test opposé de Corps à corps mover vs foe pour entrer dans la longueur d'arme ; le VAINQUEUR
     //    choisit « combat normal » ou « au contact » (toute arme > Courte y devient improvisée). ──
     ouvrirLAuContact: (targetId: string) => {
-      if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
-      const battle = get().battle;
-      if (!battle || battle.over || battle.acted) return; // le Test opposé coûte l'Action
-      const active = activeCombatant(battle);
-      if (!active || !controlsCombatant(get(), active) || !canTakeAction(active)) return;
+      const barre = barreDuGeste(get());
+      if (barre.forme !== 'ouverte') return void refuserGesteDuSiege(get, set, barre.raison);
+      const { active, battle } = barre;
+      // Le Test opposé coûte l'Action.
+      const refus = refusActionDepensee(battle) ?? refusHorsDEtatDAgir(active);
+      if (refus) return void refuserGesteDuSiege(get, set, refus);
       const foe = inBattleId(battle, targetId);
-      if (!foe || !auContactEligible(active, foe)) return;
+      if (!foe || !auContactEligible(active, foe)) return void refuserGesteDuSiege(get, set, t('offre.sansCandidatDuContexte'));
       startAuContact(get, set, active, foe);
     },
     // ── Empoignade (LDB 14 l.161) : action à son tour entre deux Empoignés. Test opposé de FORCE OU
     //    « Briser » (Avantage supérieur, gratuit) ; le VAINQUEUR choisit Dégâts / Empêtrer / Se libérer. ──
     ouvrirLEmpoignade: (targetId: string) => {
-      if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
-      const battle = get().battle;
-      if (!battle || battle.over || battle.acted) return; // le Test opposé coûte l'Action
-      const active = activeCombatant(battle);
-      if (!active || !controlsCombatant(get(), active) || !canTakeAction(active)) return;
+      const barre = barreDuGeste(get());
+      if (barre.forme !== 'ouverte') return void refuserGesteDuSiege(get, set, barre.raison);
+      const { active, battle } = barre;
+      // Le Test opposé coûte l'Action.
+      const refus = refusActionDepensee(battle) ?? refusHorsDEtatDAgir(active);
+      if (refus) return void refuserGesteDuSiege(get, set, refus);
       const foe = inBattleId(battle, targetId);
-      if (!foe || !areGrappling(active, foe) || isOutOfAction(foe)) return;
+      if (!foe || !grappleActionEligible(active, foe)) return void refuserGesteDuSiege(get, set, t('offre.sansCandidatDuContexte'));
       startGrapple(get, set, active, foe);
     },
     cliquerLaCaseDuCombat: (pt: Pt, opts?: TileClickOpts) => {
@@ -870,11 +886,9 @@ export function createCombatSlice(get: Get, set: Set) {
     //    étendu (Mouvement restant + Course + DR) vers la destination cliquée dans la zone de Course. « Un jet = une
     //    modale » : le Test passe par pendingRun. ──
     ouvrirLaCourse: (dest?: Pt, movement?: { path: Pt[]; cost: number }) => {
-      if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
-      const battle = get().battle;
-      if (!battle || battle.over) return;
-      const active = activeCombatant(battle);
-      if (!active || !controlsCombatant(get(), active)) return;
+      const barre = barreDuGeste(get());
+      if (barre.forme !== 'ouverte') return void refuserGesteDuSiege(get, set, barre.raison);
+      const { active, battle } = barre;
       const refus = refusDeCourse(battle, active);
       if (refus) return void refuserGesteDuSiege(get, set, refus);
       const resolved = dest && !movement ? resolveMovement(get, dest) : null;
@@ -1097,9 +1111,9 @@ export function createCombatSlice(get: Get, set: Set) {
      *  (`turnEconomyStamp`), le 2ᵉ passe la main. L'état vit dans `battle` — donc répliqué (l'invité
      *  voit son propre armement revenir de l'hôte) et lisible par la plaque de sortie. */
     armerLaFinDuTour: () => {
-      const b = get().battle;
-      if (!b || b.over || combatBusy(get())) return; // la fin du tour elle-même est close sous un flux différé
-      set({ battle: { ...b, endTurnArmed: turnEconomyStamp(b) } });
+      const barre = barreDuGeste(get());
+      if (barre.forme !== 'ouverte') return void refuserGesteDuSiege(get, set, barre.raison);
+      set({ battle: { ...barre.battle, endTurnArmed: turnEconomyStamp(barre.battle) } });
     },
     /** Retire l'aperçu armé par un premier clic (`battle.preview`), celui que le second clic commettrait. */
     effacerLApercu: () => {
@@ -1197,10 +1211,13 @@ export function createCombatSlice(get: Get, set: Set) {
      *  MAISON de 1×/tour, AUTORISÉ même Engagé (`switch-loadout`, `actions.json`) ; hors combat, depuis la fiche. */
     prendreLaPanoplie: (heroId: string, loadoutId: string) => {
       const s = get();
-      const battle = s.battle;
-      if (battle && (combatBusy(s) || battle.over || battle.loadoutSwapped || activeCombatant(battle)?.id !== heroId)) return;
       const hero = actorIn(s, heroId);
-      if (!hero || (battle && !controlsCombatant(s, hero)) || hero.activeLoadoutId === loadoutId) return;
+      if (!hero) return;
+      if (s.battle) {
+        const refus = refusDuTourDe(s, heroId, t('cs.horsDuTour', { name: hero.label })) ?? (s.battle.loadoutSwapped ? t('agate.loadoutSwapped') : null);
+        if (refus) return void refuserGesteDuSiege(get, set, refus);
+      }
+      if (hero.activeLoadoutId === loadoutId) return;
       const lo = hero.loadouts?.find((l) => l.id === loadoutId);
       if (!lo) return;
       loadoutSetActive(hero, loadoutId);
@@ -1607,25 +1624,18 @@ export function createCombatSlice(get: Get, set: Set) {
     // ── Écran de victoire : assignation du butin (même flux que le marchand) + fermeture ──
 
     armerLeMode: (a: BattleActionMode | null) => {
-      if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
-      const { battle, scene } = get();
-      if (!battle || !scene) return;
-      const active = activeCombatant(battle);
-      if (!active || !controlsCombatant(get(), active)) return;
+      const barre = barreDuGeste(get());
+      if (barre.forme !== 'ouverte') return void refuserGesteDuSiege(get, set, barre.raison);
+      const { active, battle } = barre;
       // État qui verrouille l'Action (LDB 16 l.52) : le gate du registre `hors-verrou-d-etat`, celui des offres.
       // Seule la fermeture (null) passe.
       const verrou = ACTION_GATES['hors-verrou-d-etat']({ active, battle, gameTime: get().gameTime });
-      if (!verrou.ok && a !== null) {
-        get().ecrireAuJournal(verrou.reason!);
-        return;
-      }
+      if (!verrou.ok && a !== null) return void refuserGesteDuSiege(get, set, garanti(verrou.reason, 'hors-verrou-d-etat', 'refus du mode'));
       // Pas d'Action ce tour (Sonné LDB 16 l.125 / Surpris l.135 — lu en DONNÉES via `canTakeAction`/gating,
       // jamais une branche par-nom) ; les manœuvres gratuites (Se relever, Se désengager…) sont des slots
-      // DIRECTS qui n'appellent pas armerLeMode. Surpris : message dédié (UX), le reste silencieux.
-      if (a !== null && !canTakeAction(active)) {
-        if (hasCondition(active, COND.surpris)) get().ecrireAuJournal(t('cs.surprised', { name: active.label }));
-        return;
-      }
+      // DIRECTS qui n'appellent pas armerLeMode.
+      const horsDEtat = a !== null ? refusHorsDEtatDAgir(active) : null;
+      if (horsDEtat) return void refuserGesteDuSiege(get, set, horsDEtat);
       // Quitter le mode incantation oublie le sort sélectionné. Le déplacement et l'attaque sont
       // implicites au clic (cliquerLaCaseDuCombat/cliquerLeCombattant), sans mode : le reachable stocké ne
       // porte que les budgets spéciaux (Course, post-Désengagement), on ne le touche pas ici.
@@ -1708,7 +1718,8 @@ export function createCombatSlice(get: Get, set: Set) {
       const spell = findSpellById(spellId);
       if (!lanceur || !spell) return;
       if (battle) {
-        if (combatBusy(s) || battle.over || battle.acted || activeCombatant(battle)?.id !== lanceur.id || !controlsCombatant(s, lanceur)) return;
+        const refus = refusDuTourDe(s, lanceur.id, t('cs.horsDuTour', { name: lanceur.label })) ?? refusActionDepensee(battle);
+        if (refus) return void refuserGesteDuSiege(get, set, refus);
         set({ battle: { ...battle, action: 'cast', selectedSpellId: spellId, reachable: new Map() } });
         castZoneSpell(get, set, lanceur, spellId); // no-op si le sort n'est pas une ZdE chiffrable
         bus.emit(EVT.SCENE_DIRTY);
@@ -1737,12 +1748,7 @@ export function createCombatSlice(get: Get, set: Set) {
         return void refuserGesteDuSiege(get, set, heros ? t('cs.consommableHorsRencontre', { name: heros.label }) : t('pf.objetHorsDesHeros'));
       }
       if (battle) {
-        // La barre (`etatDeLaBarre`) ; un Sort qui désigne ses cibles ou pose sa zone, qu'elle ne compte pas ; l'actif.
-        const barre = etatDeLaBarre(s);
-        const refus = barre.forme !== 'ouverte' ? barre.raison
-          : s.pendingCast ? t('barre.mainTenue')
-          : barre.active.id !== porteurId ? t('cs.consommableHorsDuTour', { name: porteur.label })
-          : null;
+        const refus = refusDuTourDe(s, porteurId, t('cs.consommableHorsDuTour', { name: porteur.label }));
         if (refus) return void refuserGesteDuSiege(get, set, refus);
       }
       const it = (porteur.items ?? []).find((i) => i.uid === uid)!;
@@ -1777,9 +1783,13 @@ export function createCombatSlice(get: Get, set: Set) {
       const spell = findSpellById(spellId);
       if (!lanceur || !spell) return;
       if (battle) {
-        if (combatBusy(s) || battle.over || activeCombatant(battle)?.id !== lanceur.id) return;
-        // On ne laisse PAS le joueur focaliser pendant le tour d'un acteur auto-piloté.
-        if (!controlsCombatant(s, lanceur) && !aiDriven(s, lanceur)) return;
+        if (aiDriven(s, lanceur)) {
+          // L'IA pour elle-même (`runEnemyAI`) : aucun siège ne la pilote, à qui le refus se dirait.
+          if (combatBusy(s) || battle.over || activeCombatant(battle)?.id !== lanceur.id) return;
+        } else {
+          const refus = refusDuTourDe(s, lanceur.id, t('cs.horsDuTour', { name: lanceur.label }));
+          if (refus) return void refuserGesteDuSiege(get, set, refus);
+        }
         // Action, sort focalisable, Compétence, contrecoup (LDB 46/40) : le verdict de l'entrée `focus-spell`.
         if (refuseParSonEntree(get, set, 'focus-spell', lanceur, battle, { spellId })) return;
       } else {
@@ -1809,13 +1819,14 @@ export function createCombatSlice(get: Get, set: Set) {
       const lanceur = actorIn(s, lanceurId);
       if (!lanceur) return;
       if (battle) {
-        if (combatBusy(s) || battle.over || activeCombatant(battle)?.id !== lanceur.id || !controlsCombatant(s, lanceur)) return;
+        const refus = refusDuTourDe(s, lanceur.id, t('cs.horsDuTour', { name: lanceur.label }));
+        if (refus) return void refuserGesteDuSiege(get, set, refus);
         if (refuseParSonEntree(get, set, 'dispel', lanceur, battle)) return;
       }
-      if (!actorHasSkill(lanceur, { id: 'langue', spec: 'magick' })) { get().ecrireAuJournal(t('cs.cannotDispel')); return; }
+      if (!actorHasSkill(lanceur, { id: 'langue', spec: 'magick' })) return void refuserGesteDuSiege(get, set, t('cs.cannotDispel'));
       const population = battle ? battle.combatants : s.party;
       const target = dispellableSpellsOn(population).find((d) => d.spellId === spellId && d.casterId === porteurId);
-      if (!target) return;
+      if (!target) return void refuserGesteDuSiege(get, set, t('offre.sansCandidatDuContexte'));
       // SOUTIEN « même Domaine » (LDB 46 l.162) : les AUTRES héros possédant Langue (Magick) ET partageant un Domaine
       // (Vent) avec le meneur l'assistent (+10 chacun, plafond Bonus d'Int), par la primitive `soutienBonus` (LDB 12) ;
       // en combat, l'adjacence (l.196) par le MÊME prédicat `combatDistance` que `openSkillTest`.

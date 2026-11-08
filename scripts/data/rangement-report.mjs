@@ -21,7 +21,7 @@ const traits = (o) => [
   o.unarmed && 'unarmed',
   o.improvised && 'improvised',
   `categorie=${o.categorie}`,
-  o.subType && `subType=${o.subType}`,
+  o.subType && `subType=${o.subType.id}`,
 ].filter(Boolean);
 const ranges = objets.filter((o) => o.rangement);
 const traitsDesRanges = new Set(ranges.flatMap(traits));
