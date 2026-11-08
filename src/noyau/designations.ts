@@ -7,7 +7,7 @@
  */
 import type { Jeu } from './etat';
 import { portesDuMobile } from './marcheDuGroupe';
-import { scenesDuRegistre } from './monde/registreDesScenes';
+import { entreesDuLieu } from './lieuFlow';
 import { itemLabel } from '../engine/items';
 import { findMoraleFactor } from '../engine/crewMorale';
 import {
@@ -41,6 +41,7 @@ import { bulkCarriers, lotDeCargaison } from './carriers';
 import { offresDeCargaison } from './cargaison';
 import { libelleDuDepot } from './interludeEnVue';
 import { findCargoById } from '../engine/cargo';
+import { BATTLE_HAZARDS } from '../engine/massBattle';
 
 /** Un combattant : la file de combat et le groupe (`porteurParId`, `monde/combatants.ts`). */
 export type IdDeCombattant = string;
@@ -53,9 +54,6 @@ export type IdDePossession = string;
 /** Un objet porté (`ItemInstance.uid`) par un héros, un combattant (les munitions de ses pièces, `ShipPoste.ammo`,
  *  comprises) ou une possession. */
 export type IdDObjet = string;
-/** Une scène que la partie rejoint : la scène courante et celles du registre (`scenesDuRegistre`), celui que lit
- *  `quitterLaScene`. */
-export type IdDeScene = string;
 /** Une entité de la scène courante (`scene.entities`). */
 export type IdDEntiteDeScene = string;
 /** Ce que le clic d'une case désigne (`cliquerLaCase`) : en combat un combattant, hors combat une entité de la scène. */
@@ -135,12 +133,14 @@ export type IdDeCreneau = string;
 export type IdDeCompetenceOuDeTalent = string;
 /** Une Compétence ou une Caractéristique qu'un héros du groupe peut s'entraîner à acquérir (`entrainementOptions`). */
 export type IdDEntrainement = string;
-/** Un point d'entrée nommé d'une scène du registre (`Scene.entryPoints`). */
-export type IdDePointDEntree = string;
 /** Une offre nommée d'une entité de la scène courante (`ActionOfferte.id`, `actionsDe`). */
 export type IdDActionDEntite = string;
 /** Un service à échoppe du lieu où se tient le groupe (`placeServices`, `merchantArchetype`), par son `id`. */
 export type IdDeServiceDuLieu = string;
+/** Une ligne de la table des facteurs environnementaux de la bataille de masse (`mass-battle.json › hazards`). ADE II 08 l.309 */
+export type IdDAleaDeBataille = string;
+/** Un point d'intérêt du plan du lieu où se tient le groupe qui mène à une scène (`entreesDuLieu`, `lieuFlow.ts`). */
+export type IdDePointDInteret = string;
 /** Un jeu de taverne du catalogue (`tavern-games.json`). */
 export type IdDeJeuDeTaverne = string;
 /** Un profil standard (`profilsStandard`, LDB 77 l.7). */
@@ -236,11 +236,6 @@ export const DESIGNATIONS = {
       return objet ? itemLabel(objet) : null;
     },
   },
-  IdDeScene: {
-    mot: 'id de scène',
-    lire: (s) => sansDoublon([...(s.scene ? [s.scene.id] : []), ...ids(scenesDuRegistre())]),
-    nom: (s, id) => labelParmi([...(s.scene ? [s.scene] : []), ...scenesDuRegistre()], id),
-  },
   IdDEntiteDeScene: { mot: 'id d’entité de scène', lire: (s) => ids(s.scene?.entities ?? []), nom: (s, id) => labelParmi(s.scene?.entities ?? [], id) },
   IdDuClic: {
     mot: 'id de combattant ou d’entité de scène',
@@ -320,13 +315,10 @@ export const DESIGNATIONS = {
     nom: (_s, id) => labelParmi(skills, id) ?? labelParmi(talents, id),
   },
   IdDEntrainement: { mot: 'id d’Entraînement', lire: (s) => sansDoublon(ids(lesEntrainements(s))), nom: () => null },
-  IdDePointDEntree: {
-    mot: 'id de point d’entrée',
-    lire: () => sansDoublon(scenesDuRegistre().flatMap((sc) => Object.keys(sc.entryPoints ?? {}))),
-    nom: () => null,
-  },
   IdDActionDEntite: { mot: 'id d’offre d’entité', lire: (s) => sansDoublon(ids(lesActionsDEntite(s))), nom: (s, id) => labelParmi(lesActionsDEntite(s), id) },
   IdDeServiceDuLieu: { mot: 'id de service du lieu', lire: (s) => ids(echoppesDuLieu(s)), nom: (s, id) => labelParmi(echoppesDuLieu(s), id) },
+  IdDAleaDeBataille: { mot: 'id d’aléa de bataille', lire: () => ids(BATTLE_HAZARDS), nom: (_s, id) => labelParmi(BATTLE_HAZARDS, id) },
+  IdDePointDInteret: { mot: 'id de point d’intérêt du lieu', lire: (s) => ids(entreesDuLieu(s)), nom: (s, id) => labelParmi(entreesDuLieu(s), id) },
   IdDeJeuDeTaverne: { mot: 'id de jeu de taverne', lire: () => ids(TAVERN_GAMES), nom: (_s, id) => labelParmi(TAVERN_GAMES, id) },
   IdDeProfilStandard: { mot: 'id de profil standard', lire: profilsStandard, nom: (_s, id) => findCreatureById(id)?.label ?? null },
   IdDeRoute: { mot: 'id de route', lire: (s) => ids(s.worldMap?.routes ?? []), nom: (s, id) => labelParmi(s.worldMap?.routes ?? [], id) },

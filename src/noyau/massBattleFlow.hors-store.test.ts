@@ -6,7 +6,11 @@ import { evaluateTest } from '../engine/tests';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { pregenParty, PREGEN } from '../data/pregens';
 import { massBattleTrackHit, armyMight, armyStartMight, battleActivityById, peutTenterAction, type MassBattleState } from './massBattleFlow';
-import type { MassBattleSpec } from '../engine/massBattle';
+import { BATTLE_HAZARDS, type MassBattleSpec } from '../engine/massBattle';
+import { t } from '../i18n';
+import { initialNet } from './etat';
+import { intentAllowedFor } from './netOwnership';
+import { refusDuChoix } from './choixDeFenetre';
 import type { PendingActivity } from './interludeFlow';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
@@ -948,11 +952,51 @@ describe('Modèle Combattant-armée (Blessures = Puissance)', () => {
 });
 
 describe('Aléa & fermeture', () => {
-  it('affronterLePeril pose un facteur environnemental (1d10)', () => {
-    start();
-    banc.getState().engagerLaBataille();
-    banc.getState().affronterLePeril(10);
+  /** La bataille sans interlude : le Round 1 s'ouvre sur son écran, où la fenêtre tient la main. */
+  const enRound = () => start({}, undefined, { interludeLeft: 0 });
+
+  it('affronterLePeril tire le facteur environnemental au RNG de la partie : même graine, même facteur (ADE II 08 l.309)', () => {
+    const tire = (): string | undefined => {
+      enRound();
+      seedBattleRng(41);
+      banc.getState().affronterLePeril();
+      return mbState().hazard?.label;
+    };
+    const premier = tire();
+    expect(BATTLE_HAZARDS.map((h) => h.label)).toContain(premier);
+    expect(tire()).toBe(premier);
+  });
+
+  it('le facteur se choisit par l’id de sa ligne (`fenetreChoisir`, ADE II 08 l.309)', () => {
+    enRound();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'alea', 'peur');
     expect(mbState().hazard?.label).toBe('Peur');
+  });
+
+  it.each([
+    ['un id hors de la table', () => banc.getState().fenetreChoisir('batailleDeMasse', 'alea', 'grele'), () => t('choix.refus.valeur')],
+    ['un choix sur l’aléa déjà posé', () => banc.getState().fenetreChoisir('batailleDeMasse', 'alea', 'tempete'), () => t('mbf.aleaDejaPose', { label: 'Peur' })],
+    ['un tirage sur l’aléa déjà posé', () => banc.getState().affronterLePeril(), () => t('mbf.aleaDejaPose', { label: 'Peur' })],
+  ] as const)('refuse et le dit : %s', (_cas, geste, raison) => {
+    enRound();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'alea', 'peur');
+    geste();
+    expect([mbState().hazard?.label, banc.getState().journal.slice(-1)[0]]).toEqual(['Peur', raison()]);
+  });
+
+  it('coop : le choix de l’aléa est à l’hôte, refusé à l’invité, dans son état comme à la route', () => {
+    enRound();
+    banc.setState({ net: { ...initialNet(), mode: 'host', mySeat: 0, gmSeat: undefined, ownership: {}, slots: [0, 1, 0, 0] } });
+    const args = ['batailleDeMasse', 'alea', 'peur'];
+    expect([intentAllowedFor(banc.getState(), 0, 'fenetreChoisir', args), intentAllowedFor(banc.getState(), 1, 'fenetreChoisir', args)]).toEqual([true, false]);
+    banc.setState({ net: { ...banc.getState().net, mode: 'guest', mySeat: 1 } });
+    expect(refusDuChoix(banc.getState(), 'batailleDeMasse', 'alea', 'peur')).toBe(t('choix.refus.hoteSeul'));
+  });
+
+  it('refuse et le dit : un tirage hors Round', () => {
+    start();
+    banc.getState().affronterLePeril();
+    expect([mbState().hazard, banc.getState().journal.slice(-1)[0]]).toEqual([undefined, t('mbf.aleaHorsRound')]);
   });
 
   it('la sortie de la bataille de masse la ferme', () => {

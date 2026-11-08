@@ -238,8 +238,8 @@ function trajetsDeLaCarte(etat: Jeu): Element[] {
 }
 
 /** L'écran du lieu (`lieuEnVue`), dont le nom est le titre de la fenêtre : chacun de ses services en entité, ce qu'on y
- *  fait en boutons fermés avec leur raison, puis chaque trajet qui en part, sa destination et son départ
- *  (`departDuTrajet`). */
+ *  fait en boutons fermés avec leur raison, chacun des points d'intérêt de son plan et son entrée, puis chaque trajet qui
+ *  en part, sa destination et son départ (`departDuTrajet`). */
 function ecranDuLieu(etat: Jeu): Element[] {
   const l = lieuEnVue(etat);
   if (!l) return [];
@@ -247,6 +247,9 @@ function ecranDuLieu(etat: Jeu): Element[] {
     ...l.services.map((svc): Entite => ({
       type: 'entite', id: `service/${svc.id}`, ton: 'neutre', nom: svc.nom,
       elements: svc.gestes.map((g) => boutonDeGeste(g.id, g.libelle, g.geste, g.refus)),
+    })),
+    ...l.pointsDInteret.map(({ id, nom, geste: g }): Entite => ({
+      type: 'entite', id: `poi/${id}`, ton: 'neutre', nom, elements: [boutonDeGeste(g.id, g.libelle, g.geste, g.refus)],
     })),
     ...l.trajets.map((tr): Entite => ({ type: 'entite', id: `trajet/${tr.route}`, ton: 'neutre', nom: tr.vers, elements: [departDuTrajet(tr)] })),
   ];

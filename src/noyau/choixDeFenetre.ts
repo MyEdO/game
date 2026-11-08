@@ -31,6 +31,8 @@ import { herosDeLaSeance, type AxeDuGroupe, type AxeDuHerosDeLaSeance } from './
 import { BAISSES_DE_PRIX_MAX, catalogEntryOf, contexteDAchat, libelleDeLaRepartition, refusDAjout, sellRefusal, type MerchantState } from './merchantFlow';
 import { dormeurDuRepos, foodOptions, lodgingOptions, nourrituresDeTroupe } from './restFlow';
 import { itemLabel } from '../engine/items';
+import { BATTLE_HAZARDS } from '../engine/massBattle';
+import { refusDAlea } from './massBattleFlow';
 import type { ItemInstance } from '../engine/types';
 import type { LootGear } from './pendings';
 import {
@@ -191,6 +193,10 @@ export const OUVERTS_DU_CHOIX = {
       const nuit = nuitDuDormeur(s, pid);
       return nuit ? (nuit.dormeur ? foodOptions(nuit.p.places, nuit.dormeur) : nourrituresDeTroupe(nuit.p.places)).map((v) => duRepos(v, 'pitance')) : [];
     }, (s, pid) => (pid === undefined ? null : s.pendingRest?.perHero[pid]?.food ?? null)),
+  },
+  // ADE II 08 l.309
+  batailleDeMasse: {
+    alea: reglage('batailleDeMasse', 'alea', (s) => (s.massBattle?.phase === 'round' ? BATTLE_HAZARDS.map((h) => ouverte(h.id, h.label, refusDAlea(s))) : [])),
   },
   // LDB 05 l.793-841, LDB 17 l.81 : chaque case se coche ou se décoche jusqu'à la fin de la séance, par l'hôte.
   finDeSeance: {

@@ -90,7 +90,7 @@ describe('la partie et son fichier', () => {
   it('un geste refusé qui a touché l’état (son refus) ne laisse rien en mémoire : la partie est rejouée depuis le fichier', () => {
     const t = partie('pont-vitrine', verbe('avancerDUnPas', 'back'));
     const avant = t.lire('vue').texte;
-    refuse(t, verbe('franchirLArete', { x: 13, y: 12 }, { x: 13, y: 13 }), 'regle', /franchirLArete sans effet : /);
+    refuse(t, verbe('franchirLArete', { x: 13, y: 13 }), 'regle', /franchirLArete sans effet : /);
     expect(t.lire('vue').texte, 'la mémoire a divergé du fichier : la vue garde le refus').toBe(avant);
   });
   it('deux rejeux d’un fichier dans un même processus rendent la même empreinte (les séquences d’ids repartent de zéro)', () => {
@@ -184,6 +184,10 @@ describe('les arguments de `jouer` se contrôlent contre le type du verbe', () =
     ['un pid nombre', verbe('jetLancer', 'cascade', 0), /pid : une chaîne attendue/],
     ['un argument requis manquant', verbe('dissiperLeSort', 'sorciere'), /l’argument spellId manque/],
     ['un argument en trop', verbe('jetValider', 'cascade', 1), /1 argument\(s\) au plus/],
+    ['un Indice de placement à 0 (LDB 23 l.168 : de 1 à 10)', verbe('deposerALaBanque', 'sorciere', 'invest', 120, 0), /indice : .* n’est pas une valeur admise \(admises : 1, 2, 3, 4, 5, 6, 7, 8, 9, 10\)/],
+    ['un Indice de placement à 11', verbe('deposerALaBanque', 'sorciere', 'invest', 120, 11), /indice : .* n’est pas une valeur admise \(admises : 1, 2, 3, 4, 5, 6, 7, 8, 9, 10\)/],
+    ['un Indice de placement non entier', verbe('deposerALaBanque', 'sorciere', 'invest', 120, 3.5), /indice : .* n’est pas une valeur admise \(admises : 1, 2, 3, 4, 5, 6, 7, 8, 9, 10\)/],
+    ['un Indice de placement écrit en texte', verbe('deposerALaBanque', 'sorciere', 'invest', 120, '3'), /indice : .* n’est pas une valeur admise \(admises : 1, 2, 3, 4, 5, 6, 7, 8, 9, 10\)/],
   ] as const)('%s lève `validation`', { timeout: 120_000 }, (_cas, geste, message) => {
     refuse(partie('dome', verbe('fenetreValider', 'roundStart')), geste, 'validation', message);
   });
@@ -193,8 +197,8 @@ describe('les arguments de `jouer` se contrôlent contre le type du verbe', () =
     refuse(t, verbe('actionnerLaPorte', 'door-open(2,3)'), 'validation', /porte : "door-open\(2,3\)" n’est pas un id de porte \(valides : 1:2,4:N:couloir:bureau\)/);
   });
   it('`null` omet un argument optionnel pour poser le suivant', { timeout: 120_000 }, () => {
-    const t = partie('revisit', verbe('quitterLaScene', 'test-revisit-couloir', null, { x: 1, y: 1 }));
-    expect(t.lire('vue').texte).toMatch(/^scène test-revisit-couloir [^]*\ngroupe \(1,1\)/);
+    const t = partie('revisit', verbe('cliquerLaCase', { x: 1, y: 0 }, null, { confirm: true }));
+    expect(t.lire('vue').texte).toMatch(/^scène test-revisit-reserve [^]*\ngroupe \(1,0\)/);
   });
 });
 
@@ -207,8 +211,8 @@ describe('les verbes et les scènes', () => {
     expect(tous.erreur).toBeNull();
     expect(tous.texte).toMatch(/\+\d+ : `lire \{"quoi":"verbes","depuis":80\}`/);
   });
-  it('toutes les scènes du scénario sont chargées : `quitterLaScene` mène à la scène sœur', { timeout: 120_000 }, () => {
-    const t = partie('revisit', verbe('quitterLaScene', 'test-revisit-couloir'));
+  it('toutes les scènes du scénario sont chargées : la sortie de la Réserve mène à la scène sœur', { timeout: 120_000 }, () => {
+    const t = partie('revisit', verbe('cliquerLaCase', { x: 5, y: 1 }));
     expect(t.lire('vue').texte).toMatch(/^scène test-revisit-couloir « Le Couloir »/);
   });
 });

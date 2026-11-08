@@ -131,7 +131,7 @@ describe('Escalade et chute passent par l’étage `arete`', () => {
     act(() => pointer!.handlers.onPointerDown(milieu(aretes[0])));
     act(() => pointer!.handlers.onPointerUp(milieu(aretes[0])));
 
-    expect(franchirLArete).toHaveBeenCalledWith({ x: 1, y: 1, z: 0 }, { x: 2, y: 1, z: 0 });
+    expect(franchirLArete).toHaveBeenCalledWith({ x: 2, y: 1, z: 0 });
     expect(positions, 'le sol ne reçoit rien : l’étage `arete` a tranché le pixel').toEqual([]);
   });
 
@@ -145,7 +145,7 @@ describe('Escalade et chute passent par l’étage `arete`', () => {
     act(() => pointer!.handlers.onPointerDown(milieu(aretes[0])));
     act(() => pointer!.handlers.onPointerUp(milieu(aretes[0])));
 
-    expect(franchirLArete).toHaveBeenCalledWith({ x: 2, y: 0, z: 0 }, { x: 2, y: 1, z: 0 });
+    expect(franchirLArete).toHaveBeenCalledWith({ x: 2, y: 1, z: 0 });
     expect(positions, 'le sol ne reçoit rien : l’étage `arete` a tranché le pixel').toEqual([]);
   });
 
@@ -198,7 +198,7 @@ describe('Escalade et chute passent par l’étage `arete`', () => {
       prise.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, clientX: cx, clientY: cy }));
     });
 
-    expect(franchirLArete).toHaveBeenCalledWith({ x: 1, y: 1, z: 0 }, { x: 2, y: 1, z: 0 });
+    expect(franchirLArete).toHaveBeenCalledWith({ x: 2, y: 1, z: 0 });
     expect(positions, 'le sol ne reçoit rien : l’étage `arete` a tranché le pixel').toEqual([]);
   });
 
@@ -210,7 +210,7 @@ describe('Escalade et chute passent par l’étage `arete`', () => {
 
     act(() => pointer!.activerArete(aretes[0].arete));
 
-    expect(franchirLArete).toHaveBeenCalledWith({ x: 1, y: 1, z: 0 }, { x: 2, y: 1, z: 0 });
+    expect(franchirLArete).toHaveBeenCalledWith({ x: 2, y: 1, z: 0 });
   });
 
   it('sans survol (tactile), le premier tap ARME l’arête et le second la joue — le régime de tout le stage', () => {
@@ -225,7 +225,7 @@ describe('Escalade et chute passent par l’étage `arete`', () => {
     expect(pointer!.areteSurvolee?.cle).toBe(aretes[0].arete.cle);
 
     act(() => pointer!.activerArete(aretes[0].arete));
-    expect(franchirLArete).toHaveBeenCalledWith({ x: 2, y: 0, z: 0 }, { x: 2, y: 1, z: 0 });
+    expect(franchirLArete).toHaveBeenCalledWith({ x: 2, y: 1, z: 0 });
   });
 
   it('le survol au pixel arme l’arête de dénivelé, et la quitter la désarme', () => {

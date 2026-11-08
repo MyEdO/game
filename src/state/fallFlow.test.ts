@@ -27,7 +27,7 @@ describe('franchirLArete, chute — exploration, compteur des Dégâts de chute 
   it('trois tombants : chaque 1d10 se situe sur les TROIS dés de la chute — 1/3, 2/3, 3/3', () => {
     const heros = ['A', 'B', 'C'].map((label, i) => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: i + 1 }));
     useGame.setState({ battle: null, party: heros, mode: 'exploration', partyPos: top, scene: cliffScene(), pendingFall: null, pendingCascade: null, journal: [] });
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     for (const h of heros) g().jetRegler('fall', 'tenter', false, h.id);
     // Le sous-titre RENDU par la fenêtre de cascade pour une étape à dé nu (`CascadeModal`, branche dé).
     const vus: unknown[] = [];

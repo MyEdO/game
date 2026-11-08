@@ -21,7 +21,7 @@ columns = 3
 [node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu/Services"]
 script = ExtResource("2_zone")
 source = "fenetre.corps"
-ids = PackedStringArray("service/")
+ids = PackedStringArray("service/", "poi/")
 
 [node name="Separation" type="HSeparator" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu"]
 
