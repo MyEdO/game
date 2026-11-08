@@ -184,7 +184,10 @@ describe('les arguments de `jouer` se contrôlent contre le type du verbe', () =
     ['un pid nombre', verbe('jetLancer', 'cascade', 0), /pid : une chaîne attendue/],
     ['un argument requis manquant', verbe('dissiperLeSort', 'sorciere'), /l’argument spellId manque/],
     ['un argument en trop', verbe('jetValider', 'cascade', 1), /1 argument\(s\) au plus/],
-    ['un taux de placement fourni au dépôt', verbe('deposerALaBanque', 'h', 'invest', 120, 10), /3 argument\(s\) au plus/],
+    ['un Indice de placement à 0 (LDB 23 l.168 : de 1 à 10)', verbe('deposerALaBanque', 'sorciere', 'invest', 120, 0), /indice : 1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| 9 \| 10 attendu/],
+    ['un Indice de placement à 11', verbe('deposerALaBanque', 'sorciere', 'invest', 120, 11), /indice : 1 \| 2 \| .* \| 10 attendu/],
+    ['un Indice de placement non entier', verbe('deposerALaBanque', 'sorciere', 'invest', 120, 3.5), /indice : 1 \| 2 \| .* \| 10 attendu/],
+    ['un Indice de placement écrit en texte', verbe('deposerALaBanque', 'sorciere', 'invest', 120, '3'), /indice : 1 \| 2 \| .* \| 10 attendu/],
   ] as const)('%s lève `validation`', { timeout: 120_000 }, (_cas, geste, message) => {
     refuse(partie('dome', verbe('fenetreValider', 'roundStart')), geste, 'validation', message);
   });

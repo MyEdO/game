@@ -20,6 +20,7 @@ import { activityById } from '../engine/activities';
 import { evaluateTest } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import { testScene } from '../scenes/test-fixture';
+import { t } from '../i18n';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -209,6 +210,27 @@ describe('Activités d’interlude (LDB 23)', () => {
     expect(banc.getState().bank).toHaveLength(1);
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(before - 120);
     expect(st().left).toBe(1);
+  });
+
+  it('Banque, placement (LDB 23 l.168) : l’Indice choisi s’applique ; absent, il se tire au d10 de la graine ; hors placement ou hors 1-10, refusé et dit', () => {
+    const itl = banc.getState().interlude!;
+    itl.perHero[hero().id] = { ...st(), fx: undefined, left: 6 };
+    banc.setState({ interlude: { ...itl } });
+    const indices = () => banc.getState().bank.map((d) => d.rate);
+    banc.getState().deposerALaBanque(hero().id, 'invest', 120, 1);
+    banc.getState().deposerALaBanque(hero().id, 'invest', 120, 10);
+    expect(indices()).toEqual([1, 10]);
+    banc.getState().ensemencerLeTirage(5);
+    banc.getState().deposerALaBanque(hero().id, 'invest', 120);
+    banc.getState().ensemencerLeTirage(5);
+    banc.getState().deposerALaBanque(hero().id, 'invest', 120);
+    const [, , tire, retire] = indices();
+    expect([tire >= 1 && tire <= 10, retire]).toEqual([true, tire]);
+    banc.getState().deposerALaBanque(hero().id, 'stash', 120, 3);
+    expect([indices().length, banc.getState().journal.slice(-1)[0]]).toEqual([4, t('if.bankIndiceHorsPlacement')]);
+    banc.getState().deposerALaBanque(hero().id, 'invest', 120, 11 as never);
+    expect([indices().length, banc.getState().journal.slice(-1)[0]]).toEqual([4, t('if.bankIndiceHorsBornes', { indice: 11 })]);
+    expect(st().left).toBe(2);
   });
 
   it('Apprentissage particulier (LDB 23 l.66-72) : échec = PX et argent perdus « en vain » + acharnement +10 ; succès = Talent acquis', () => {

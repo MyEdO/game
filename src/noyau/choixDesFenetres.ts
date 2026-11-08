@@ -146,6 +146,7 @@ const clotParLHote = { effet: 'clot', portee: 'fenetre', qui: 'hote' } as const;
 const reprenable = { effet: 'reprenable', portee: 'fenetre', qui: 'proprietaire' } as const;
 const duHeros = { effet: 'reprenable', portee: 'rangee', qui: 'proprietaire' } as const;
 const reprenableParLHote = { effet: 'reprenable', portee: 'fenetre', qui: 'hote' } as const;
+const figeParLHote = { effet: 'fige', portee: 'fenetre', qui: 'hote' } as const;
 const duHerosParLHote = { effet: 'reprenable', portee: 'rangee', qui: 'hote' } as const;
 
 /** La déclaration de chaque choix, table TOTALE sur `ChoixDesFenetres`. */
@@ -169,7 +170,7 @@ export const CHOIX_DES_FENETRES = {
   loot: { ligne: duHerosParLHote },
   victory: { ligne: duHeros },
   rest: { couchage: duHeros, pitance: duHeros },
-  batailleDeMasse: { alea: clotParLHote },
+  batailleDeMasse: { alea: figeParLHote },
   finDeSeance: { ambitionCourte: reprenableParLHote, ambitionLongue: reprenableParLHote, ambitionPersonnelleCourte: duHerosParLHote, ambitionPersonnelleLongue: duHerosParLHote, motivation: duHerosParLHote },
 } as const satisfies { [F in FenetreAChoix]: { [A in AxeDe<F>]: DeclarationDuChoix } };
 

@@ -29,6 +29,8 @@ export type TexteLibre = string;
 /** Ce qu'un verbe reçoit entier sans le désigner, parce que le geste le crée : le brouillon d'un héros et l'id que
  *  son roster lui donne (`HerosEngage`). Le noyau en juge chaque champ (`herosDeLEngagement`). */
 export type HorsDesignation<T> = T;
+/** L'Indice d'intérêts d'un placement en banque, choisi entre 1 et 10 (LDB 23 l.168 ; CRB 048 l.58). */
+export type IndiceDePlacement = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 /** Une Spécialisation de Compétence ou de Talent : un id du catalogue de l'entrée, ou, pour une entrée ouverte, un
  *  texte libre (`entreeOuverte`, LDB 09 l.40) ; le verbe la juge à l'entrée qu'il désigne. */
 type Specialisation = TexteLibre;
@@ -193,7 +195,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Activités (LDB 23) : `craftStart` engage l'ouvrage (matériaux ¼ prix + `Combatant.craft`) ; le
    *  LANCER passe par `pratiquerLActivite('craft')`. Passer commande (Exotique) + banque restent dédiés. */
   fabriquerLObjet: (heroId: IdDeHeros, trappingId: IdDObjetDuCatalogue, atouts: IdDAtoutDArtisanat[], defauts: IdDeDefautDArtisanat[]) => void;
-  deposerALaBanque: (heroId: IdDeHeros, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number) => void;
+  /** Opérations bancaires (LDB 23 l.164-170) : `indice` choisi pour un placement (`invest`), tiré au d10 s'il est absent
+   *  (LDB 23 l.168) ; refusé et dit sur un autre dépôt. */
+  deposerALaBanque: (heroId: IdDeHeros, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number, indice?: IndiceDePlacement) => void;
   retirerDeLaBanque: (depotId: IdDeDepot) => void;
   commanderLObjet: (heroId: IdDeHeros, trappingId: IdDObjetDuCatalogue) => void;
   /** Entraînement (ch.23 l.130-136) : Compétence/Caractéristique hors carrière, PX + tuteur 1D10 sc — sans jet. */

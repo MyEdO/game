@@ -2079,6 +2079,8 @@ export const fr = {
   'if.depositPurseKo': 'La bourse de {name} ne couvre pas ce dépôt.',
   'if.eventBankPct': "Événement : {pct} % sur l'argent placé ({event}).",
   'if.bankInvest': "{name} investit {money} (Indice d'intérêts {rate} — {rate} % de gains, faillite sur ≤ {rate}).",
+  'if.bankIndiceHorsPlacement': "Seul un placement en banque porte un Indice d'intérêts.",
+  'if.bankIndiceHorsBornes': "L'Indice d'intérêts se choisit entre 1 et 10 (reçu : {indice}).",
   // ACE 12 l.49
   'if.bankMecenat': "{name} sponsorise un dramaturge prometteur : {money} (retrait par Test d'Évaluation Intermédiaire).",
   'if.bankStash': '{name} planque {money} (retrait libre — découverte sur ≤ 10).',

@@ -194,11 +194,11 @@ export const OUVERTS_DU_CHOIX = {
       return nuit ? (nuit.dormeur ? foodOptions(nuit.p.places, nuit.dormeur) : nourrituresDeTroupe(nuit.p.places)).map((v) => duRepos(v, 'pitance')) : [];
     }, (s, pid) => (pid === undefined ? null : s.pendingRest?.perHero[pid]?.food ?? null)),
   },
-  // LDB 05 l.793-841, LDB 17 l.81 : chaque case se coche ou se décoche jusqu'à la fin de la séance, par l'hôte.
   // ADE II 08 l.309
   batailleDeMasse: {
     alea: reglage('batailleDeMasse', 'alea', (s) => (s.massBattle?.phase === 'round' ? BATTLE_HAZARDS.map((h) => ouverte(h.id, h.label, refusDAlea(s))) : [])),
   },
+  // LDB 05 l.793-841, LDB 17 l.81 : chaque case se coche ou se décoche jusqu'à la fin de la séance, par l'hôte.
   finDeSeance: {
     ambitionCourte: caseDuGroupe('ambitionCourte'),
     ambitionLongue: caseDuGroupe('ambitionLongue'),

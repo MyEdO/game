@@ -8,6 +8,9 @@ import { pregenParty, PREGEN } from '../data/pregens';
 import { massBattleTrackHit, armyMight, armyStartMight, battleActivityById, peutTenterAction, type MassBattleState } from './massBattleFlow';
 import { BATTLE_HAZARDS, type MassBattleSpec } from '../engine/massBattle';
 import { t } from '../i18n';
+import { initialNet } from './etat';
+import { intentAllowedFor } from './netOwnership';
+import { refusDuChoix } from './choixDeFenetre';
 import type { PendingActivity } from './interludeFlow';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
@@ -979,6 +982,15 @@ describe('Aléa & fermeture', () => {
     banc.getState().fenetreChoisir('batailleDeMasse', 'alea', 'peur');
     geste();
     expect([mbState().hazard?.label, banc.getState().journal.slice(-1)[0]]).toEqual(['Peur', raison()]);
+  });
+
+  it('coop : le choix de l’aléa est à l’hôte, refusé à l’invité, dans son état comme à la route', () => {
+    enRound();
+    banc.setState({ net: { ...initialNet(), mode: 'host', mySeat: 0, gmSeat: undefined, ownership: {}, slots: [0, 1, 0, 0] } });
+    const args = ['batailleDeMasse', 'alea', 'peur'];
+    expect([intentAllowedFor(banc.getState(), 0, 'fenetreChoisir', args), intentAllowedFor(banc.getState(), 1, 'fenetreChoisir', args)]).toEqual([true, false]);
+    banc.setState({ net: { ...banc.getState().net, mode: 'guest', mySeat: 1 } });
+    expect(refusDuChoix(banc.getState(), 'batailleDeMasse', 'alea', 'peur')).toBe(t('choix.refus.hoteSeul'));
   });
 
   it('refuse et le dit : un tirage hors Round', () => {

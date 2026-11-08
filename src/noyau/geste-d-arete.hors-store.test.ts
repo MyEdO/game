@@ -159,6 +159,25 @@ describe('#2190, #3611 — la case de départ se lit dans l’état : une destin
   });
 });
 
+describe('#3611 — toute destination hostile se refuse, dite, sans lever ni déplacer', () => {
+  it.each([
+    ['la case même du mobile', { x: 2, y: 2 }],
+    ['hors de la carte, loin', { x: 50, y: 50 }],
+    ['en diagonale', { x: 3, y: 3 }],
+    ['voisine, sans arête', { x: 2, y: 3 }],
+    ['hors de la carte, coordonnée négative', { x: -3, y: 2 }],
+  ] as const)('%s', (_cas, vers) => {
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const scene = emptyScene('scene-test', 6, 6);
+    banc.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: { x: 2, y: 2 }, scene, pendingFall: null, dialogue: null, journal: [] });
+    const plan = planFranchissement(scene, { x: 2, y: 2 }, vers);
+    if (plan.kind !== 'none') throw new Error('une scène sans arête ne planifie aucun franchissement');
+    expect(() => g().franchirLArete(vers)).not.toThrow();
+    expect(g().partyPos).toEqual({ x: 2, y: 2 });
+    dit(REFUS_FRANCHISSEMENT[plan.raison]);
+  });
+});
+
 describe('couple monté (LDB 14 l.179 ; CRB 032 l.53 ; #2205) : refus NOMMÉ qui désigne « Descendre »', () => {
   for (const c of CAS) {
     it(`${c.geste} : cavalier actif → geste.refus.monte`, () => {
