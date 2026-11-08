@@ -14,7 +14,7 @@ export type { Jeton } from './plateforme';
 export { horlogeVirtuelle, type Programme } from './horlogeVirtuelle';
 export { argsAvecVerdictLocal, porteesDuTour, preparerLIntentLocal } from './localIntent';
 export { previewAttack, activeCombatant } from './combatFlow';
-export { DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_COUP, type Difficulty, type FireArc } from '../engine/types';
+export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_COUP, type Difficulty, type FireArc } from '../engine/types';
 export { formatMoney } from '../engine/money';
 export { dayIndex, formatImperial, formatJourImperial } from '../engine/clock';
 export { careers, conditionLabel, findCareerById, findSpellById, findVehicleById, levelsForCareer, lightLevels, lightTones, matieresCouvrantes, matieresDe, props, refLabel, siegeEngines, spells, structureAppearances, trappingRefLabel, trappingsInstanciables } from '../data';

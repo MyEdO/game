@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { combineMods, type ModLine, type RollBreakdown, type RollMask, type SecondReadLine } from '../engine/combat';
 import { clampTarget, cibleDuTest, cibleMesuree, evaluateTest, type CibleMesuree } from '../engine/tests';
-import type { Difficulty } from '../engine/types';
+import { DIFFICULTE_PAR_DEFAUT, type Difficulty } from '../engine/types';
 import type { PendingRoll } from './RollLine';
 
 /** Soutien (LDB 12) : la ligne de mod et le rebasage de la valeur soutenue vivent avec la règle
@@ -89,7 +89,7 @@ export interface OpposedLineSpec {
  */
 export function opposedLines(
   specs: OpposedLineSpec[],
-  difficulty: Difficulty = 'intermediaire',
+  difficulty: Difficulty = DIFFICULTE_PAR_DEFAUT,
 ): Array<{ d?: RollBreakdown; pending?: PendingRoll }> {
   return specs.map((s) => (s.r
     ? { d: { ...testBreakdown(s.label, s.base, s.r, difficulty, s.mods), ...(s.mask ? { mask: s.mask } : {}) } }

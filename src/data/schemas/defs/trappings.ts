@@ -12,7 +12,7 @@ import { availabilitySchema, enumNomme, formulaSchema, moneySchema, reachSchema,
 import { flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 import { manieAussiSchema, qualityRefSchema } from '../grammaire/reference';
 import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
-import { idDe, ref, refs, refusDeLEntree } from '../grammaire/ref';
+import { ref, refs, refusDeLEntree } from '../grammaire/ref';
 import { RACINE_D_APPARENCE } from '../grammaire/sousListes';
 
 
@@ -27,13 +27,13 @@ export const apparenceDObjetSchema = nommerChamps(z.looseObject({
   formChoices: { label: 'Formes proposées', hint: 'Formes racines parmi lesquelles l’apparence de l’objet peut être choisie' },
 });
 
-/** Une armure porte son TYPE d'armure : `subType` = id de la sous-liste `armour` des Groupes
+/** Une armure porte son TYPE d'armure : `subType` désigne une entrée de la sous-liste `armour` des Groupes
  *  (`weaponGroups.json?kind=armour`). Matière que le dessin et les exemptions de matériau
  *  (`matiereDuGroupe`, `src/data/index.ts`) lisent. Jugé par le refus de la sous-liste
  *  (`refusDeLEntree`, celui de `idDe('weaponGroup', 'armour')`) : une feuille `idDe` exécutée hors de l'arbre
  *  du schéma échappe à la marche du parse de mesure (`grammaire/parse-de-mesure.test.ts`, COUVERTURE). */
-const refusDuTypeDArmure = (subType: string | null): string | null =>
-  subType === null ? 'aucun type d’armure' : refusDeLEntree('weaponGroup', 'armour', { id: subType });
+const refusDuTypeDArmure = (subType: { id: string } | null): string | null =>
+  subType === null ? 'aucun type d’armure' : refusDeLEntree('weaponGroup', 'armour', subType);
 
 /** CATÉGORIE de catalogue d'une possession — id de logique qui ne s'affiche jamais nu. */
 export const trappingCategorieSchema = enumNomme({
@@ -89,8 +89,8 @@ const weaponSchema = nommerChamps(z.strictObject({
   reach: z.union([reachSchema, z.null()]).optional(),
   range: z.union([weaponRangeSpecSchema, z.null()]).optional(),
   qualities: z.array(qualityRefSchema),
-  subType: idDe('weaponGroup').optional(),
-  weaponGroup: idDe('weaponGroup').optional(),
+  subType: ref('weaponGroup').optional(),
+  weaponGroup: ref('weaponGroup').optional(),
   soloSimple: z.boolean().optional(),
   indirect: z.boolean().optional(),
   /** LDB 62 l.278 */
@@ -132,8 +132,8 @@ const doc = document(
      *  `'melee' | 'ranged'`, persisté) et ≠ `ItemInstance.kind` : le pont est `kindOf()`
      *  (`src/engine/items.ts`), une TRADUCTION. `vehicle` n'a aucun porteur et n'est plus admis. */
     categorie: trappingCategorieSchema,
-    subType: idDe('weaponGroup').nullable(),
-    weaponGroup: idDe('weaponGroup').optional(),
+    subType: ref('weaponGroup').nullable(),
+    weaponGroup: ref('weaponGroup').optional(),
     soloSimple: z.boolean().optional(),
     /** LDB 62 l.28 */
     unarmed: z.literal(true).optional(),
@@ -151,10 +151,10 @@ const doc = document(
     /** ADE II 8 l.251/253 */
     minRangeBand: z.enum(RANGEES_DE_REGLE['portee-d-une-arme']).optional(),
     siegeFootprint: z.number().optional(),
-    /** Munition REPRÉSENTATIVE d'une arme de siège (`id` de trapping `categorie:'ammunition'`) — discrimine
-     *  pierrier/canon/baliste/mortier là où `subType`='armes-de-siege' seul ne le fait pas (hint joueur,
+    /** Munition REPRÉSENTATIVE d'une arme de siège, désignée dans la sous-liste `ammunition` — discrimine
+     *  pierrier/canon/baliste/mortier là où le Groupe `armes-de-siege` seul ne le fait pas (hint joueur,
      *  `ammoFamilyLabel`). */
-    defaultAmmo: z.string().optional(),
+    defaultAmmo: ref('trapping', undefined, 'ammunition').optional(),
     ...apparenceDObjetSchema.shape,
     /** #3086 D6(c), #3116 */
     rangement: ref('gardeRobe', undefined, 'emplacement').optional(),
@@ -311,7 +311,7 @@ const doc = document(
     espace: { discriminant: 'categorie', marqueurs: ['service'] },
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const e = v as { id: string; categorie: string; subType: string | null; shape?: { id: string } };
+        const e = v as { id: string; categorie: string; subType: { id: string } | null; shape?: { id: string } };
         if (e.categorie !== 'armor') return;
         const refus = refusDuTypeDArmure(e.subType);
         if (refus !== null) ctx.addIssue({ code: 'custom', path: ['subType'], message: `${e.id} : une armure porte un type d'armure — ${refus}` });

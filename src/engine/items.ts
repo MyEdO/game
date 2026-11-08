@@ -12,7 +12,7 @@ import { groupeAPoudre, maniementRetenu, type ManiementRetenu } from './weaponGr
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP, userLePADeMutation } from './corruption';
-import { findApparenceById, findCareerById, findCreatureById, findTrappingById, findTraitById, matiereDuGroupe, qualityInstance, refLabel, estDotationDObjet, type TrappingRef, type TrappingData } from '../data';
+import { findApparenceById, findCareerById, findCreatureById, findTrappingById, findTraitById, matiereDuGroupe, groupeDeSiege, qualityInstance, refLabel, estDotationDObjet, type TrappingRef, type TrappingData, type ArmeDerivee } from '../data';
 import { t } from '../i18n';
 import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet, referenceDApparenceDObjet } from '../data/apparencesObjets';
 
@@ -128,8 +128,6 @@ export const CLES_INTRINSEQUES_D_OBJET = {
   shape: true,
   reach: true,
   range: true,
-  weaponGroup: true,
-  defaultAmmo: true,
   soloSimple: true,
   indirect: true,
   bladed: true,
@@ -141,7 +139,6 @@ export const CLES_INTRINSEQUES_D_OBJET = {
   manieAussi: true,
   shield: true,
   unarmed: true,
-  derivedWeapon: false,
   niPerGram: false,
   niConsumedPerDR: false,
   passive: false,
@@ -168,6 +165,11 @@ function copierIntrinseques(source: ProprietesIntrinsequesDObjet, arme = false):
     if (valeur !== undefined && (!arme || CLES_INTRINSEQUES_D_OBJET[cle])) Object.assign(copie, { [cle]: structuredClone(valeur) });
   }
   return copie;
+}
+
+/** La `Weapon` du moteur d'un profil d'arme de DONNÉE (`ArmeDerivee`) : ses Groupes par leur id. */
+function armeDeLaDonnee({ subType, weaponGroup, ...arme }: ArmeDerivee): Weapon {
+  return { ...arme, ...(subType ? { subType: subType.id } : {}), ...(weaponGroup ? { weaponGroup: weaponGroup.id } : {}) };
 }
 
 /** Spécification d'une arme SYNTHÉTIQUE (≠ catalogue) : sert `buildWeapon` (→ Weapon) ET `weaponItem`
@@ -240,6 +242,8 @@ export function buildWeapon(spec: WeaponSpec): Weapon {
   };
   if (spec.reload !== undefined) w.reload = spec.reload;
   if (spec.subType !== undefined) w.subType = spec.subType;
+  if (spec.weaponGroup !== undefined) w.weaponGroup = spec.weaponGroup;
+  if (spec.defaultAmmo !== undefined) w.defaultAmmo = spec.defaultAmmo;
   w.uid = spec.uid; // TOUJOURS défini (universel : Pendings d'arme par uid)
   if (spec.teinte !== undefined) w.teinte = spec.teinte;
   if (spec.apparence !== undefined) w.apparence = spec.apparence;
@@ -380,7 +384,10 @@ export function gabaritDObjet(id: string, resolveTrapping: TrappingResolver = fi
     enc: typeof t.enc === 'number' ? t.enc : 0, // 'ND' (ateliers) / 'Variable' (arme improvisée) → non-encombrant (0), jamais NaN
     equipped: false,
     desc: t.desc,
-    subType: t.subType ?? undefined,
+    subType: t.subType?.id,
+    ...(t.weaponGroup ? { weaponGroup: t.weaponGroup.id } : {}),
+    ...(t.defaultAmmo ? { defaultAmmo: t.defaultAmmo.id } : {}),
+    ...(t.derivedWeapon ? { derivedWeapon: armeDeLaDonnee(t.derivedWeapon) } : {}),
     hands: kind === 'melee' || kind === 'ranged' ? (t.hands === 2 ? 2 : 1) : undefined, // champ typé (LDB 62)
     qty: kind === 'ammo' ? (t.packSize ?? 1) : undefined, // taille de paquet typée
   };
@@ -694,7 +701,7 @@ export function unarmedWeapon(resolveTrapping: TrappingResolver = findTrappingBy
   const build = (): Weapon => {
     const it = gabaritDObjet(MAINS_NUES, resolveTrapping);
     if (!it?.damage) throw new Error('unarmedWeapon : entrée de catalogue « mains-nues » absente ou sans profil d’arme (src/data/trappings.json).');
-    return buildWeapon({ ...copierIntrinseques(it, true), label: it.label, damage: it.damage, qualities: it.qualities, subType: it.subType, builtinId: MAINS_NUES, uid: MAINS_NUES });
+    return buildWeapon({ ...copierIntrinseques(it, true), label: it.label, damage: it.damage, qualities: it.qualities, subType: it.subType, weaponGroup: it.weaponGroup, defaultAmmo: it.defaultAmmo, builtinId: MAINS_NUES, uid: MAINS_NUES });
   };
   if (resolveTrapping !== findTrappingById) return { ...build(), hand: 'main' };
   if (!_unarmed) _unarmed = build();
@@ -825,10 +832,10 @@ function warMachineResolveChar(it: Pick<ItemInstance, 'kind' | 'weaponGroup'>): 
   return it.weaponGroup === 'machine-de-guerre' && it.kind === 'melee' ? 'force' : undefined;
 }
 
-/** Machine de guerre nécessitant une ÉQUIPE (ADE II 8 l.233, Qualité `equipe` ; catégorie `armes-de-siege`) :
+/** Machine de guerre nécessitant une ÉQUIPE (ADE II 8 l.233, Qualité `equipe` ; Groupe d'engins de siège) :
  *  n'occupe aucun slot de set (`objetDeSlot`) ; elle se sert en poste (`mannedPosteWeapon`/`serveAtPoste`). */
 function requiresCrewedPoste(it: Pick<ItemInstance, 'subType' | 'qualities'>): boolean {
-  return it.subType === 'armes-de-siege' || hasQuality(it, 'equipe');
+  return groupeDeSiege(it.subType) || hasQuality(it, 'equipe');
 }
 
 /**
@@ -849,7 +856,7 @@ export function weaponFromItem(it: ItemInstance, hand?: 'main' | 'off', ctx?: Co
     // Possession de catalogue SANS profil de Dégâts (lasso, mortier, munitions de trait) : « +BF » nu.
     // Convention UNIQUE du profil d'arme — elle vit ICI, plus aucun appelant ne la redéclare.
     damage: it.damage ?? { plusBF: true, flat: 0, bare: true },
-    qualities: it.qualities, subType: it.subType,
+    qualities: it.qualities, subType: it.subType, weaponGroup: it.weaponGroup, defaultAmmo: it.defaultAmmo,
     reload: qualityIndice(it, 'recharge') ?? 0, damageTaken: it.damageTaken,
     ...(it.teinte ? { teinte: it.teinte } : {}), apparence: it.apparence, hands: weaponHands(it, ctx), hand, uid: it.uid,
     mountSide: it.mountSide, resolveChar: warMachineResolveChar(it),
