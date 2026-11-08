@@ -6,7 +6,7 @@
  * ne lève : une donnée fautive se voit, elle n'emporte pas la scène.
  */
 /** Ton d'ALARME du repli visible (#223, #877) — SOURCE UNIQUE, partagée par l'art de repli
- *  (`gameIso/catalog/viewArt.ts` `MISSING_ART`) et les entrées de repli des catalogues. */
+ *  (`MISSING_ART`) et les entrées de repli des catalogues. */
 export const MISSING_TONE = '#ff2fb0';
 /** Fond sourd de la caisse d'alarme (contraste du ton criard). */
 export const MISSING_TONE_DARK = '#2a0820';

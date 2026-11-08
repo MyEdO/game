@@ -8,8 +8,7 @@
  * Classes canon visées par certains événements : Citadins, Courtisans, Guerriers, Itinérants,
  * Lettrés, Riverains, Roublards, Ruraux. (Le texte dit « Voleurs » pour les Roublards.)
  */
-import type { DiceSpec } from '../engine/dice';
-import { facesDuDe, findTableEntry } from '../engine/tables';
+import { facesDuDe, findTableEntry, type DeDeTable } from '../engine/tables';
 import { interludeEvents } from './index';
 import interludeEventsJson from './interludeEvents.json';
 import { deDeTirageDe } from './rangees';
@@ -55,7 +54,7 @@ export interface InterludeEvent {
 export const INTERLUDE_EVENTS = interludeEvents;
 
 /** Le dé du Tableau des Événements, lu à l'appel. */
-export const interludeEventDie = (): DiceSpec => deDeTirageDe<typeof tableauDesEvenements>(interludeEventsJson);
+export const interludeEventDie = (): DeDeTable => deDeTirageDe<typeof tableauDesEvenements>(interludeEventsJson);
 
 /** Entrée du tableau pour un jet de son dé, borné à ses faces. */
 export function interludeEventFor(roll: number): InterludeEvent {

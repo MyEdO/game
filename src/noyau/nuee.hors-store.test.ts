@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { advanceTurn } from './combatFlow';
 import { statblockToCombatant } from './monde/spawn';
 import { attackModifiers } from '../engine/combat';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -47,7 +48,7 @@ describe('Nuée — Trait Nuée (LDB 85 l.251-253)', () => {
 
 /**
  * Volet SCÈNE : la Nuée d'un statbloc d'AUTEUR (`SceneEntity.statblock`) enrôlée dans une rencontre,
- * spawnée par `startCombat`, puis jouée par le noyau — build, perte de 1 PB par Round aux Engagés,
+ * spawnée par `lancerLeCombat`, puis jouée par le noyau — build, perte de 1 PB par Round aux Engagés,
  * départ libre d'un Engagement (LDB 85 l.251-253). Scène CONSTRUITE pour ce banc.
  */
 const ENC_NUEE = 'enc-nuee';
@@ -86,8 +87,8 @@ function nueeScene(avecTrait = true): { scene: Scene; nueeId: string; temoinId: 
 function startNuee(scene: Scene) {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], battle: null, pendingDisengage: null });
-  banc.getState().startScene(scene);
-  banc.getState().startCombat(ENC_NUEE);
+  banc.getState().lancerLaScene(scene);
+  banc.getState().lancerLeCombat(ENC_NUEE);
   banc.getState().fenetreValider('roundStart');
   banc.abandonner(); // les tours d'IA du Round sont différés : ce banc ne joue que ses propres gestes
   return { battle: banc.getState().battle!, heroId: hero.id };
@@ -96,7 +97,7 @@ function startNuee(scene: Scene) {
 /** Franchit le Round par le geste de fin de tour, depuis le dernier index de l'ordre. */
 function franchirLeRound(battle: ReturnType<typeof startNuee>['battle']) {
   banc.setState({ battle: { ...battle, turn: battle.order.length - 1, action: null, acted: false, movementUsed: 0 } });
-  banc.getState().terminerLeTour();
+  advanceTurn(banc.getState, banc.setState);
   return banc.getState().battle!;
 }
 

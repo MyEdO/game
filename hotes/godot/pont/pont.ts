@@ -4,13 +4,14 @@
  * jamais. Le pont ne porte aucune règle : un geste passe par le module commun des hôtes (`src/hote/`), la vue est faite
  * des lecteurs du noyau, les jetons programmés sont tenus par numéro et rejoués quand Godot les rend. La fiche que
  * l'écran montre et la création d'un héros sont des états du pont, que les méthodes `fiche` et `creation` posent,
- * jamais de la partie ; seul l'engagement du héros créé la touche. Les modèles servis (`modeles`) sont un état du pont
+ * jamais de la partie ; seul l'engagement du héros créé la touche, et l'Effet de scène qui demande un héros neuf
+ * (`demandeUnHeros`) ouvre la création comme « Nouveau héros ». Les modèles servis (`modeles`) sont un état du pont
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, texteAEnregistrer, pagesDeCreation, sceneEditee, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, aretesDeLaCouche, casesDuGroupe, plateauDeLaScene, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
-import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
-import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, meteoDuRegard, aretesDeLaCouche, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LancementDeScenario, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
+import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
 import { estObjet } from '../../../src/hote/formes';
 import { fenetreADessiner } from '../../../src/hote/gestes';
@@ -20,7 +21,7 @@ import { composerSurLaBase, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
 import { ONGLETS_DE_LA_FICHE, type CreationOuverte, type FicheOuverte, type GesteDeLaCreation } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
-import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
+import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, refusDeLaValeurDit, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../../src/scenes/campaign';
 
 /** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
@@ -52,9 +53,9 @@ export interface CorpsDuCombat {
  *  fenêtre qui tient la main (`FenetreADessiner.disposition`, `null` sans fenêtre), chaque zone de l'écran et ses
  *  éléments (`zonesDeLEcran`, la
  *  fiche posée par `fiche` comprise), les cases
- *  atteignables au tour de l'actif (`casesAtteignables`), le plateau de la scène (`plateauDeLaScene`), les clics du
- *  champ par ce qu'ils désignent (`CLICS_DU_CHAMP` la barre de l'actif ouverte, `CLICS_DE_L_EXPLORATION` en exploration
- *  quand rien ne tient la main ; `null` sinon), et l'id du
+ *  atteignables au tour de l'actif (`casesAtteignables`), le plateau de la scène (`plateauDeLaScene`), le verbe du clic
+ *  du champ (`CLIC_DU_CHAMP`, la barre de l'actif ouverte, ou en exploration quand rien ne tient la main ; `null`
+ *  sinon), et l'id du
  *  combattant que chaque case porte, par `"x,y,z"`. */
 export interface VueDuPont {
   projection: Projection;
@@ -64,7 +65,7 @@ export interface VueDuPont {
   cases: CaseAtteignable[];
   plateau: ReturnType<typeof plateauDeLaScene> | null;
   lumiere: LumiereDeLaScene | null;
-  champ: typeof CLICS_DU_CHAMP | typeof CLICS_DE_L_EXPLORATION | null;
+  champ: typeof CLIC_DU_CHAMP | null;
   occupants: Record<string, string>;
 }
 
@@ -77,11 +78,23 @@ export interface Suite {
   zones: ZonesDeLaSuite;
 }
 
+/** Le clic du champ sur le combattant `id`, comme Godot le joue (`combat.gd`) : le verbe de `champ`, la case où
+ *  `occupants` le tient, puis l'id ; `null` quand le champ ne se clique pas ou que le combattant n'a pas de case. */
+export function clicDuCombattant(vue: VueDuPont, id: string): { type: typeof CLIC_DU_CHAMP; args: [{ x: number; y: number; z?: number }, string] } | null {
+  const cle = Object.keys(vue.occupants).find((k) => vue.occupants[k] === id);
+  if (!vue.champ || !cle) return null;
+  const [x, y, z] = cle.split(',').map(Number);
+  return { type: vue.champ, args: [z ? { x, y, z } : { x, y }, id] };
+}
+
+/** L'événement du noyau qui demande la création d'un héros neuf (`EVT.HEROS_A_CREER`, `src/noyau/bus.ts`). */
+const demandeUnHeros = (e: ResultatDeLAppel['evenements'][number]): boolean => e.type === 'emis' && e.evt === 'heros_a_creer';
+
 /** Godot dessine tout : aucune liste de la projection n'est bornée. */
 export const SANS_BORNE: BornesDeLaProjection = { autres: Infinity, offres: Infinity, cibles: Infinity, gestes: Infinity, entites: Infinity };
 
-/** Les clés de l'entrée d'un geste : celles d'une offre, ou celles d'un verbe (`Geste`). */
-const clesDuGeste = (e: Record<string, unknown>): readonly string[] => ('offre' in e ? ['offre', 'ctx'] : 'suite' in e ? ['suite'] : ['type', 'args', 'siege']);
+/** Les clés de l'entrée d'un geste : celles d'une suite, ou celles d'un verbe (`Geste`). */
+const clesDuGeste = (e: Record<string, unknown>): readonly string[] => ('suite' in e ? ['suite'] : ['type', 'args', 'siege']);
 
 /** La valeur de `lu`, le champ `champ` de l'entrée de `methode` lu par le noyau ; refusée en `validation`, chaque faute à
  *  son chemin. */
@@ -139,12 +152,14 @@ function calquesGardes(texte: string): unknown {
 
 /** Le pont : ses méthodes, chacune appelée par `appeler`. */
 export function creerPont() {
-  let ouverte: (PartieOuverte & { graine: number; pas: number; lignes: number; fiche: FicheOuverte | null; creation: CreationOuverte | null; brouillons: number }) | null = null;
+  let ouverte: (PartieOuverte & { graine: number; pas: number; lignes: number; jour: number | null; fiche: FicheOuverte | null; creation: CreationOuverte | null; brouillons: number; regard: Regard }) | null = null;
   const erreurs: ErreurGlobale[] = [];
   /** Les manifestes et les modèles du dernier `modeles`, que `composer` et les corps de la vue lisent. */
   let modeles: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier } | null = null;
   /** La session de l'éditeur de carte (`editer`), et la scène et la couche du dernier monde qu'elle a rendu. */
   let edition: { session: SessionDEdition; monde: { scene: Scene; z: number } } | null = null;
+  /** Ce qui construit le lancement de la dernière scène mise à l'essai par l'éditeur, que `demarrer { essai }` ouvre. */
+  let essai: (() => LancementDeScenario) | null = null;
 
   const demarree = () => {
     if (!ouverte) throw new ErreurDeGeste('validation', 'aucune partie : demarrer d’abord');
@@ -176,40 +191,64 @@ export function creerPont() {
       disposition: fenetre?.disposition ?? null,
       zones: zonesDeLEcran(etat, projection, fenetre, o.fiche, o.creation),
       cases: casesAtteignables(etat),
-      plateau: etat.scene ? plateauDeLaScene(etat.scene, casesDuGroupe(etat)) : null,
-      lumiere: etat.scene ? lumiereDeLaScene({ ...etat, scene: etat.scene }) : null,
-      champ: combat ? (combat.barre.forme === 'ouverte' ? CLICS_DU_CHAMP : null) : projection.exploration && !fenetre ? CLICS_DE_L_EXPLORATION : null,
+      plateau: etat.scene ? plateauDeLaScene(etat.scene, casesDuGroupe(etat), regardDuJeu(o.regard, !!etat.battle)) : null,
+      lumiere: etat.scene ? lumiereDeLaScene({ ...etat, scene: etat.scene }, regardDuJeu(o.regard, !!etat.battle)) : null,
+      champ: (combat ? combat.barre.forme === 'ouverte' : projection.exploration && !fenetre) ? CLIC_DU_CHAMP : null,
       occupants: Object.fromEntries((combat?.voisins.liste ?? []).flatMap((c) => (c.pos && !c.horsCombat ? [[`${c.pos[0]},${c.pos[1]},${c.pos[2]}`, c.id]] : []))),
     };
   };
 
+  /** Ouvre la création sur un brouillon neuf, à sa première page, et ferme la fiche. */
+  const ouvrirLaCreation = (o: NonNullable<typeof ouverte>): void => {
+    o.creation = { brouillon: brouillonDeLaPartie(o.graine, o.brouillons++), page: pagesDeCreation()[0] };
+    o.fiche = null;
+  };
+
+  /** La suite de `resultat` ; un héros neuf demandé (`demandeUnHeros`) ouvre la création, sauf déjà ouverte. */
   const suite = (o: NonNullable<typeof ouverte>, resultat: ResultatDeLAppel): Suite => {
+    if (!o.creation && resultat.evenements.some(demandeUnHeros)) ouvrirLaCreation(o);
     const programmes = o.jetons.programmes(resultat);
-    const zones = { 'journal.lignes': lignesDuJournal(o.partie.etat(), o.lignes, resultat.journal) };
+    const { lignes, jour } = lignesDuJournal(o.partie.etat(), o.lignes, resultat.journal, o.jour);
+    const zones = { 'journal.lignes': lignes };
     o.lignes += resultat.journal.length;
+    o.jour = jour;
     return { vue: vueDe(o), programmes, journal: resultat.journal, zones };
   };
 
   /** Une suite sans jeton ni journal : la vue d'un état du pont changé, la partie intacte. */
   const sansJeton = (o: NonNullable<typeof ouverte>): Suite => ({ vue: vueDe(o), programmes: [], journal: [], zones: { 'journal.lignes': [] } });
 
-  /** Un geste joué : une offre de l'actif, ou un verbe et ses arguments. */
+  /** Un geste joué : un verbe et ses arguments, celui qu'une offre déclare compris. Le refus que le verbe dit (`refus`,
+   *  celui de son geste, `refusDuGeste` pour un verbe de la barre) est une erreur de règle, avec sa raison. */
   const jouerUnGeste = (o: NonNullable<typeof ouverte>, e: Record<string, unknown>): ResultatDeLAppel => {
     const etat = o.partie.etat();
-    const geste = 'offre' in e ? lireGeste(e) : gesteDuVerbe(etat, e as { type: unknown }, SANS_PISTE);
-    const resultat = envoyerLIntention(o.partie, intentionDuGeste(etat, geste, SANS_PISTE));
+    const intention = intentionDuGeste(etat, gesteDuVerbe(etat, e as { type: unknown }, SANS_PISTE));
+    const refusAvant = etat.refus?.nonce;
+    const resultat = envoyerLIntention(o.partie, intention);
+    const refus = o.partie.etat().refus;
+    if (refus && refus.nonce !== refusAvant) throw new ErreurDeGeste('regle', `${intention.type} : ${refus.texte}`);
     o.pas++;
     return resultat;
   };
 
   const methodes: Record<string, (json?: string | null) => object> = {
     demarrer(json) {
-      const e = entreeDe('demarrer', json, ['scenario', 'graine']);
+      const e = entreeDe('demarrer', json, (e) => ('essai' in e ? ['essai', 'graine'] : ['scenario', 'graine']));
       valider(!ouverte, 'demarrer : une partie par page, déjà démarrée ; recharger la page pour en commencer une autre');
-      valider(typeof e.scenario === 'string', 'demarrer : scenario, l’id d’un scénario de test');
-      const entete = nouvelEntete(e.scenario as string, { graine: e.graine as number | undefined });
-      const o = ouvrirLaPartie(entete, sansRoster);
-      ouverte = { ...o, graine: entete.graine, pas: 0, lignes: 0, fiche: null, creation: null, brouillons: 0 };
+      let o: PartieOuverte;
+      let graine: number;
+      if ('essai' in e) {
+        valider(e.essai === true && essai, 'demarrer : essai, aucune scène mise à l’essai par editer');
+        const entrees = nouvellesEntrees({ graine: e.graine as number | undefined });
+        o = ouvrirLeLancement(entrees, essai!, sansRoster);
+        graine = entrees.graine;
+      } else {
+        valider(typeof e.scenario === 'string', 'demarrer : scenario, l’id d’un scénario de test');
+        const entete = nouvelEntete(e.scenario as string, { graine: e.graine as number | undefined });
+        o = ouvrirLaPartie(entete, sansRoster);
+        graine = entete.graine;
+      }
+      ouverte = { ...o, graine, pas: 0, lignes: 0, jour: null, fiche: null, creation: null, brouillons: 0, regard: 'tactique' };
       return suite(ouverte, o.lancement);
     },
     vue(json) {
@@ -218,8 +257,11 @@ export function creerPont() {
     },
     monde(json) {
       entreeDe('monde', json, []);
-      const scene = demarree().partie.etat().scene;
-      return { monde: scene ? volumeDuMonde(scene) : null, toits: scene ? toitsDuMonde(scene) : [], couronnes: scene ? couronnesDuMonde(scene) : [] };
+      const o = demarree();
+      const etat = o.partie.etat();
+      const scene = etat.scene;
+      const regard = regardDuJeu(o.regard, !!etat.battle);
+      return { monde: scene ? volumeDuRegard(scene, casesDuGroupe(etat), regard) : null, toits: scene ? toitsDuMonde(scene) : [], couronnes: scene ? couronnesDuMonde(scene) : [], meteo: scene ? meteoDuRegard(scene, regard) : null };
     },
     jouer(json) {
       const o = demarree();
@@ -233,6 +275,13 @@ export function creerPont() {
         resultats.push(jouerUnGeste(o, g));
       }
       return suite(o, { issue: resultats[resultats.length - 1].issue, evenements: resultats.flatMap((r) => r.evenements), journal: resultats.flatMap((r) => r.journal) });
+    },
+    regarder(json) {
+      const o = demarree();
+      const e = entreeDe('regarder', json, ['regard']);
+      valider(REGARDS.includes(e.regard as Regard), `regarder : regard, l’un de ${REGARDS.join(', ')}`);
+      o.regard = e.regard as Regard;
+      return sansJeton(o);
     },
     fiche(json) {
       const o = demarree();
@@ -258,10 +307,8 @@ export function creerPont() {
       if (b!.refus) throw new ErreurDeGeste('regle', `creation : ${b!.refus}`);
       const g = e.creation as GesteDeLaCreation | null;
       if (g === null) o.creation = null;
-      else if (g.geste === 'ouvrir') {
-        o.creation = { brouillon: brouillonDeLaPartie(o.graine, o.brouillons++), page: pagesDeCreation()[0] };
-        o.fiche = null;
-      } else if (g.geste === 'engager') {
+      else if (g.geste === 'ouvrir') ouvrirLaCreation(o);
+      else if (g.geste === 'engager') {
         const resultat = envoyerLIntention(o.partie, intentionDEngagement(o.creation!.brouillon));
         o.creation = null;
         o.pas++;
@@ -318,7 +365,7 @@ export function creerPont() {
         valider(edition !== null, 'editer : aucune carte ouverte, editer { ouvrir } d’abord');
         const s = edition!.session;
         const nomme = 'type' in e ? gesteDuFormulaire(zonesDeLEditeur(s), e) : undefined;
-        if ('type' in e) valider(nomme, 'editer : un formulaire des zones editeur.*, { type: nommer, args: [nom] }');
+        if ('type' in e) valider(nomme, 'editer : un formulaire des zones editeur.*, { type: nommer | identifier | decrire | drapeau, args: [texte] } ou { type: valeur, args: [porteur, chemin, valeur?] }');
         else if (estLIssueDUnEnregistrement(e.edition)) valider(s.depot?.enCours, 'editer : aucun enregistrement en cours');
         else if (estLIssueDUnChargement(e.edition)) valider(s.chargement, 'editer : aucun chargement de planche en cours');
         else if (!estUnGesteDuPointeur(e.edition)) {
@@ -327,10 +374,17 @@ export function creerPont() {
           if (b!.refus) throw new ErreurDeGeste('regle', `editer : ${b!.refus}`);
         }
         const geste = nomme ?? (e.edition as GesteDEdition);
+        const refusDeValeur = geste.geste === 'valeur' ? refusDeLaValeurDit(s, geste) : null;
+        if (refusDeValeur) throw new ErreurDeGeste('regle', `editer : ${refusDeValeur}`);
         if (geste.geste === 'enregistrer') {
           const passe = texteAEnregistrer(s);
           if (!passe.ok) throw new ErreurDeGeste('regle', `editer : ${passe.refus}`);
           depot = { id: s.projet.id, texte: passe.valeur };
+        }
+        if (geste.geste === 'tester') {
+          const lance = essaiDeLaScene(s);
+          if (!lance.ok) throw new ErreurDeGeste('regle', `editer : ${lance.refus}`);
+          essai = lance.valeur;
         }
         session = editer(s, geste);
       }
@@ -345,6 +399,7 @@ export function creerPont() {
         calque: calqueAffiche(session),
         ...(neuf ? { monde: volumeDuMonde(scene, session.z), aretes: aretesDeLaCouche(scene, session.z) } : {}),
         ...(depot ? { depot } : {}),
+        ...('edition' in e && (e.edition as GesteDEdition).geste === 'tester' ? { essai: true } : {}),
         ...(charge ? { planche: { image: cheminDeLaPlanche(session.projet.id, charge.sceneId, charge.z) } } : {}),
         ...(memoire ? { memoire } : {}),
       };

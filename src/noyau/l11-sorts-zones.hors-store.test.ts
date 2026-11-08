@@ -22,11 +22,11 @@ describe('L11 — zones persistantes posées par les sorts', () => {
   function setup() {
     const W = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
     banc.setState({ party: [W] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
-    banc.getState().seedRng(5);
+    banc.getState().ensemencerLeTirage(5);
     const b = banc.getState().battle!;
     const caster = b.combatants.find((c) => c.label === 'W')!;
     caster.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 10 });

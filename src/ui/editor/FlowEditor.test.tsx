@@ -62,3 +62,23 @@ describe('#1318 E1 — le domaine des crans de facilité atteint le champ (cale 
   });
 });
 
+
+describe('FlowEditor — nœud Test : condition d’accès (`gate`, MDG 15 l.197)', () => {
+  it('une gate authorée s’édite par l’éditeur de Condition', () => {
+    const flow: Flow = { kind: 'test', test: { skill: { id: 'priere' }, gate: { kind: 'talent', id: 'beni', spec: 'manann' } }, success: EMPTY_FLOW, fail: EMPTY_FLOW };
+    const html = renderToStaticMarkup(<FlowEditor flow={flow} onChange={() => {}} ctx={ctx} />);
+    expect(html).toMatch(/checked=""[^>]*\/?> Condition d’accès/);
+    expect(html).toContain('manann');
+  });
+
+  it('cocher la case pose une gate, la décocher la retire', async () => {
+    const basculer = (flow: Flow): string => {
+      let dernier: Flow | undefined;
+      const { container } = monterRacine(<FlowEditor flow={flow} onChange={(f) => { dernier = f; }} ctx={ctx} />);
+      [...container.querySelectorAll('label.ed-check')].find((l) => l.textContent?.includes('Condition d’accès'))!.querySelector('input')!.click();
+      return JSON.stringify(dernier);
+    };
+    expect(basculer(testFlow('priere'))).toContain('"gate":{"kind":"always"}');
+    expect(basculer({ kind: 'test', test: { skill: { id: 'priere' }, gate: { kind: 'always' } }, success: EMPTY_FLOW, fail: EMPTY_FLOW })).not.toContain('"gate"');
+  });
+});

@@ -225,6 +225,28 @@ describe('#3045 — le lint mure les ROUTES DE FORGE de la Cible d’un Trait ps
   });
 });
 
+/** LE DÉ D'UNE TABLE TIRÉE (`DeDeTable`, #1667) — sous le même verrou : son seul constructeur est
+ *  `deDeLaTableTiree` (`engine/tables.ts`), dont l'unique cast porte son exemption AU SITE. */
+const ENTETE_DE = "import type { DeDeTable } from '../engine/tables';\ndeclare const o: { n: number; sides: number };\n";
+
+describe('#1667 — le lint mure les ROUTES DE FORGE du dé d’une table tirée', () => {
+  it.each([
+    ['`x as DeDeTable`', 'export const a = o as DeDeTable;'],
+    ['`<DeDeTable>x`', 'export const a = <DeDeTable>o;'],
+    ['`type A = DeDeTable`', 'type AliasDe = DeDeTable;\nexport const a: AliasDe | undefined = undefined;'],
+  ])('%s est refusé', async (_forme, code) => {
+    expect(await messagesDeVerrou(`${ENTETE_DE}${code}\n`)).toHaveLength(1);
+  });
+
+  it('le constructeur `tables.ts` lint propre, et un SECOND cast y est refusé : l’exemption est au site', async () => {
+    const [res] = await eslint.lintFiles(['src/engine/tables.ts']);
+    expect(selectionnerMessages(res, (m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(0);
+    const reel = readFileSync('src/engine/tables.ts', 'utf8');
+    const [cast] = await eslint.lintText(`${reel}\nexport const forge = (d: DiceSpec) => d as DeDeTable;\n`, { filePath: 'src/engine/tables.ts' });
+    expect(selectionnerMessages(cast, (m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'un SECOND cast dans le constructeur doit rougir').toHaveLength(1);
+  });
+});
+
 /** LA MARQUE DU MAXIMUM DES BLESSURES (`MaximumDesBlessures`, #1463) — sous le même verrou : ses fabriques sont
  *  `blessuresPosees` et `blessuresReconciliees` (`engine/characteristics.ts`), dont l'unique cast porte son
  *  exemption AU SITE. Ses TROIS LIMITES ASSUMÉES (JSDoc de la marque, `engine/types.ts`) sont ici en témoin. */

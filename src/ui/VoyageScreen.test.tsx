@@ -31,7 +31,7 @@ const vessel = (): CampaignVessel => ({
   morale: { score: 62, lastMoraleWeek: 0, factors: [] },
   wounds: { current: 8, max: 20 },
   provisions: 9,
-  cargo: [{ cargoId: 'cereales', enc: 200, basePriceGold: 3 }],
+  cargo: [{ uid: 'lot-1', cargoId: 'cereales', enc: 200, basePriceGold: 3 }],
 });
 
 const base = (): TravelPlan => ({ routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'mer', hoursPerDay: 24, km: 380, kmDone: 212, interrupted: false });
@@ -114,8 +114,8 @@ describe('VoyageScreen — hub de voyage paramétré par mode (#333)', () => {
     expect(cards[2].dayLabel).toBe('Jour 3');
   });
 
-  // Halte de nuit EN COURS : le jour qu'elle clôt est DÉJÀ le dernier de `plan.log` (`openRest` ou
-  // `resumeTravel` l'y range) — UNE carte sélectionnable pour lui, et `current` est la Nuit elle-même (#2533 : jamais
+  // Halte de nuit EN COURS : le jour qu'elle clôt est DÉJÀ le dernier de `plan.log` (`ouvrirLeRepos` ou
+  // `reprendreLeVoyage` l'y range) — UNE carte sélectionnable pour lui, et `current` est la Nuit elle-même (#2533 : jamais
   // deux cartes pour un même jour).
   it('chronique : une halte de nuit EN COURS — le jour clos a UNE carte, « Nuit » est la carte current', () => {
     const plan: TravelPlan = { ...seaPlan(), log: [

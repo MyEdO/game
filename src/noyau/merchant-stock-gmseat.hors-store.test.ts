@@ -24,20 +24,20 @@ const merchantScene = () => {
 const baseState = () => ({ party: [hero()], scene: merchantScene(), money: { gold: 50, silver: 0, brass: 0 }, merchantStocks: {}, gameTime: 8 * 60 });
 
 describe('#273 dernier volet — policy de la porte sur le stock marchand', () => {
-  beforeEach(() => banc.getState().seedRng(4));
+  beforeEach(() => banc.getState().ensemencerLeTirage(4));
 
-  it('local sans MJ : openMerchant tire et ouvre le panneau INLINE, aucune cascade posée', () => {
+  it('local sans MJ : ouvrirLeMarchand tire et ouvre le panneau INLINE, aucune cascade posée', () => {
     banc.setState(baseState());
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const s = banc.getState();
     expect(s.merchant).not.toBeNull();
     expect(s.merchant!.stock.length).toBeGreaterThan(0);
     expect(s.pendingCascade).toBeNull();
   });
 
-  it('siège MJ : openMerchant NE tire PAS de stock silencieux — pose une étape de cascade visible', () => {
+  it('siège MJ : ouvrirLeMarchand NE tire PAS de stock silencieux — pose une étape de cascade visible', () => {
     banc.setState({ ...baseState(), net: { ...banc.getState().net, gmSeat: 0 } });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const s = banc.getState();
     expect(s.merchant).toBeNull(); // pas ouvert tant que le MJ n'a pas validé
     expect(s.pendingCascade).not.toBeNull();
@@ -46,9 +46,9 @@ describe('#273 dernier volet — policy de la porte sur le stock marchand', () =
 
   it('siège MJ : « Continuer » applique la MÊME persistance (merchantStocks) et ouvre le panneau', () => {
     banc.setState({ ...baseState(), net: { ...banc.getState().net, gmSeat: 0 } });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     expect(banc.getState().pendingCascade).not.toBeNull();
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const s = banc.getState();
     expect(s.pendingCascade).toBeNull();
     expect(s.merchant).not.toBeNull();
@@ -59,16 +59,16 @@ describe('#273 dernier volet — policy de la porte sur le stock marchand', () =
 
   it('déterminisme : le tirage MJ (après Continuer) == le tirage inline local, MÊME seed/état', () => {
     // Chemin local.
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     banc.setState(baseState());
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const inlineStock = banc.getState().merchant!.stock.map((l) => `${l.id}:${l.qty}`).sort().join('|');
 
     // Chemin MJ (même état de départ, même seed).
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     banc.setState({ ...baseState(), net: { ...banc.getState().net, gmSeat: 0 } });
-    banc.getState().openMerchant('pnj');
-    banc.getState().jetConfirm('cascade');
+    banc.getState().ouvrirLeMarchand('pnj');
+    banc.getState().jetValider('cascade');
     const gmStock = banc.getState().merchant!.stock.map((l) => `${l.id}:${l.qty}`).sort().join('|');
 
     expect(gmStock).toEqual(inlineStock);

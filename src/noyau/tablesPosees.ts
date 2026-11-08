@@ -29,7 +29,6 @@ import type * as combatFlow from './combatFlow';
 import type * as combatManeuvers from './combatManeuvers';
 import type * as testsDeScene from './testsDeScene';
 import type * as corruptionFlow from './corruptionFlow';
-import type * as embrigadementFlow from './embrigadementFlow';
 import type * as encounterPsychFlow from './encounterPsychFlow';
 import type * as innFlow from './innFlow';
 import type * as interludeFlow from './interludeFlow';
@@ -80,7 +79,6 @@ export type GenreDEtape =
   | (typeof combatFlow.GENRES_D_ETAPE)[number]
   | (typeof combatManeuvers.GENRES_D_ETAPE)[number]
   | (typeof corruptionFlow.GENRES_D_ETAPE)[number]
-  | (typeof embrigadementFlow.GENRES_D_ETAPE)[number]
   | (typeof encounterPsychFlow.GENRES_D_ETAPE)[number]
   | (typeof innFlow.GENRES_D_ETAPE)[number]
   | (typeof interludeFlow.GENRES_D_ETAPE)[number]

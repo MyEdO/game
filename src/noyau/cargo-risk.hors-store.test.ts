@@ -21,7 +21,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
-const lot = (cargoId: string, enc: number): CargoLot => ({ cargoId, enc, basePriceGold: 2 });
+const lot = (cargoId: string, enc: number): CargoLot => ({ uid: `lot-${cargoId}`, cargoId, enc, basePriceGold: 2 });
 
 /** Coque du voyage de mer en cours (`travelPlan.vehicle`, posée par `buildSeaPlan`). */
 const coque = (vehicleId: string) => vehicleCombatant(findVehicleById(vehicleId)!)!;
@@ -94,22 +94,22 @@ describe('Vol terrestre — dénouement au teardown de combat (store)', () => {
     banc.setState({ party: [h], vessel: null, worldMap: null, scene: null, possessions: [cartPossession(h.id, [lot('vin-eau-de-vie', 40)])], battle: null, cargoRaid: true, journal: [] } as never);
   });
 
-  it('resolveCargoRaid(defeat) retire 75 % des lots réels du véhicule et éteint le flag', () => {
-    get().resolveCargoRaid('defeat');
+  it('denouerLeVol(defeat) retire 75 % des lots réels du véhicule et éteint le flag', () => {
+    get().denouerLeVol('defeat');
     const cart = get().possessions[0];
     expect(cargoTotalEnc(cart.cargo ?? [])).toBe(10); // 40 − 30 (75 %)
     expect(get().cargoRaid).toBe(false);
   });
 
-  it('resolveCargoRaid(victory) ne retire rien (convoi sauf) et éteint le flag', () => {
-    get().resolveCargoRaid('victory');
+  it('denouerLeVol(victory) ne retire rien (convoi sauf) et éteint le flag', () => {
+    get().denouerLeVol('victory');
     expect(cargoTotalEnc(get().possessions[0].cargo ?? [])).toBe(40);
     expect(get().cargoRaid).toBe(false);
   });
 
   it('no-op quand aucun vol n’est en cours', () => {
     banc.setState({ cargoRaid: false } as never);
-    get().resolveCargoRaid('defeat');
+    get().denouerLeVol('defeat');
     expect(cargoTotalEnc(get().possessions[0].cargo ?? [])).toBe(40);
   });
 });
@@ -134,7 +134,6 @@ describe('Voie d’eau — la coque percée/heurtée gâte 1d10 Enc (#327 D)', (
 describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
   const hailStep = (): CascadeStep => ({
     id: 'sea-pirate-hail', kind: 'sea-pirate-hail', label: fixtureText('Cogue pirate'), defaultChoice: 'fuir',
-    meta: { crisisLabel: 'Cogue pirate', crisisDesc: 'desc' },
     options: [
       { key: 'fuir', label: fixtureText('Fuir') }, { key: 'combattre', label: fixtureText('Combattre') }, { key: 'soumettre', label: fixtureText('Se soumettre') },
     ],
@@ -154,14 +153,14 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
     expect(Number(rule('piratePillagePct'))).toBe(100);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
     get().jetRegler('cascade', 'choix', 'soumettre', 'sea-pirate-hail');
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     // Cale VIDÉE (100 %) + étape de tribut insérée.
     expect(cargoTotalEnc(get().vessel!.cargo ?? [])).toBe(0);
     const p = get().pendingCascade;
     expect(p?.participants.some((s) => s.kind === 'sea-pirate-tribute')).toBe(true);
     // Livrer un marin : crewLost incrémenté (perte réelle).
     get().jetRegler('cascade', 'choix', 'livrer', 'sea-pirate-tribute');
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     expect((get().vessel!.crewLost ?? 0)).toBeGreaterThan(0);
   });
 
@@ -170,14 +169,14 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
     // route authorée requise). Coque de campagne = `vessel.vehicleId` (barge — coque distincte de l'ennemi).
     set({
       vessel: { vehicleId: 'barge-fluviale', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [] } as never,
-      travelPlan: { interrupted: true, vehicle: coque('barge-fluviale'), sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'humain', chefRef: 'jaego-roth', label: 'Cogue pirate' } } } as never,
+      travelPlan: { interrupted: true, vehicle: coque('barge-fluviale'), sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'humain', chefRef: 'jaego-roth', nombre: 25, label: 'Cogue pirate' } } } as never,
     } as never);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
     get().jetRegler('cascade', 'choix', 'soumettre', 'sea-pirate-hail');
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     const crewBefore = get().vessel!.crewLost ?? 0;
     get().jetRegler('cascade', 'choix', 'refuser', 'sea-pirate-tribute');
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     expect(get().vessel!.crewLost ?? 0).toBe(crewBefore); // refuser ne sacrifie aucun marin
     const battle = get().battle!;
     expect(battle).toBeTruthy();
@@ -191,40 +190,40 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
     // n'a AUCUNE étape restante : il se FINALISE (dénouement joué) au lieu d'être parqué, sinon il
     // ressusciterait EN BILAN par-dessus le contexte qui a pris le slot (#1014). Son dénouement est
     // inoffensif ici : `runSeaDay` sort sur `travelPlan.interrupted`, la traversée reprend par
-    // `resumeTravel` après le combat.
+    // `reprendreLeVoyage` après le combat.
     expect(get().suspendedCascades.map((c) => c.purpose)).toEqual(['affichage']);
   });
 
-  it('fuir → la poursuite porte la crise posée par le producteur de l’étape (#1906)', () => {
-    set({ travelPlan: { interrupted: true, sea: { lines: [], weather: { visibilite: 'degage' } } } as never } as never);
-    startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [{ ...hailStep(), meta: { crisisLabel: 'La Dent de Manann', crisisDesc: 'voile noire' } }] });
+  it('fuir → la poursuite porte le navire hostile posé par `openPirateHail`, à son M de conception (Cogue : M 5, MDG 12)', () => {
+    set({ travelPlan: { interrupted: true, sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'humain', nombre: 25, label: 'La Dent de Manann' } } } as never } as never);
+    startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
     get().jetRegler('cascade', 'choix', 'fuir', 'sea-pirate-hail');
-    get().jetConfirm('cascade');
-    expect(get().travelPlan!.sea!.crisis).toMatchObject({ kind: 'poursuite', label: 'La Dent de Manann', desc: 'voile noire' });
+    get().jetValider('cascade');
+    expect(get().travelPlan!.sea!.crisis).toMatchObject({ kind: 'poursuite', label: 'La Dent de Manann', foeM: 5 });
   });
 
-  it('fuir sur une étape SANS crise : erreur nommée, jamais un pirate au nom inventé (#1906)', () => {
+  it('fuir sans navire hostile en vue : erreur nommée, jamais un pirate au nom inventé (#1906)', () => {
     set({ travelPlan: { interrupted: true, sea: { lines: [], weather: { visibilite: 'degage' } } } as never } as never);
-    startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [{ ...hailStep(), meta: undefined }] });
+    startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
     get().jetRegler('cascade', 'choix', 'fuir', 'sea-pirate-hail');
-    expect(() => get().jetConfirm('cascade')).toThrow(/sea-pirate-hail.*openPirateHail/);
+    expect(() => get().jetValider('cascade')).toThrow(/navire hostile en vue.*sea-pirate-hail/);
   });
 
   it('combattre d’emblée → même abordage dérivé (deux coques, ennemis présents)', () => {
     set({
       vessel: { vehicleId: 'barge-fluviale', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [] } as never,
-      travelPlan: { interrupted: true, vehicle: coque('barge-fluviale'), sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'humain', chefRef: 'jaego-roth', label: 'Cogue pirate' } } } as never,
+      travelPlan: { interrupted: true, vehicle: coque('barge-fluviale'), sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'humain', chefRef: 'jaego-roth', nombre: 25, label: 'Cogue pirate' } } } as never,
     } as never);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
     get().jetRegler('cascade', 'choix', 'combattre', 'sea-pirate-hail');
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     const battle = get().battle!;
     expect(battle).toBeTruthy();
     expect(battle.combatants.filter((c) => c.creatureId === 'cogue').length).toBe(1);
     expect(battle.combatants.filter((c) => c.creatureId === 'barge-fluviale').length).toBe(1);
   });
 
-  it('événement SANS navire nommé (Némésis authorée manquante) → aucun abordage, report HONNÊTE (pas de pseudo-récit)', () => {
+  it('aucun navire hostile en vue → aucun abordage, report HONNÊTE (pas de pseudo-récit)', () => {
     set({
       worldMap: null, scene: null, battle: null,
       travelPlan: { interrupted: true, sea: { lines: [] } } as never, // pas de `boarding` dérivable
@@ -232,7 +231,7 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
     } as never);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
     get().jetRegler('cascade', 'choix', 'combattre', 'sea-pirate-hail');
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     expect(get().battle).toBeNull();
     expect(get().journal.join(' ')).not.toContain('l’issue reste au récit');
     expect(get().journal.join(' ')).toContain('aucune donnée d’abordage');

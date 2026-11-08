@@ -20,9 +20,12 @@ import { horlogeVirtuelle } from './horlogeVirtuelle';
 import { ouvrirLeProprietaire, type Ecrit } from './proprietaireDuJeu';
 import type { EntreesDeLaPartie } from './partie';
 import type { Jeton } from './plateforme';
+import { gesteDeLOffre, offreDeId, type ContexteDOffre } from './actionRegistry';
+import { garanti } from '../lib/garanti';
 
-/** Les entrées d'un banc : l'état de départ fusionné à `etatInitialDuJeu()`, et les entrées de D8 (`EntreesDeLaPartie`),
- *  par défaut `ENTREES_DU_BANC`. */
+/** Les entrées d'un banc : l'état de départ fusionné à `etatInitialDuJeu()` sur l'écran de la campagne, où se joue la
+ *  partie (la barre de l'actif n'est ouverte que là, `etatDeLaBarre`), et les entrées de D8 (`EntreesDeLaPartie`), par
+ *  défaut `ENTREES_DU_BANC`. */
 export type EntreesDuBanc = Partial<EntreesDeLaPartie> & { etat?: Partial<EtatDeJeu> };
 
 export interface Banc {
@@ -30,6 +33,9 @@ export interface Banc {
   setState: (ecrit: Ecrit) => void;
   subscribe: (fn: (etat: Jeu, prev: Jeu) => void) => () => void;
   actions: ActionsDuNoyau & MachinerieDuNoyau;
+  /** Presse la case `actionId` comme un hôte (#3610) : joue le geste que son offre déclare (`gesteDeLOffre`) sur les
+   *  arguments `args` de sa case ; une case sans geste lève. */
+  jouerLaCase: (actionId: string, args?: ContexteDOffre) => void;
   /** Reprend chaque jeton d'échéance au plus `ms` plus tard, ceux que les reprises programment dans la fenêtre compris
    *  (`vi.advanceTimersByTime`) ; rend le nombre de reprises. */
   avancer: (ms: number) => number;
@@ -89,7 +95,7 @@ function poserLeBanc({ etat, ...entrees }: EntreesDuBanc): BancPose {
     proprietaire.reprendre(jeton);
     return [];
   });
-  const proprietaire = ouvrirLeProprietaire({ ...etatInitialDuJeu(), ...etat }, { ...ENTREES_DU_BANC, ...entrees }, (jeton, delai) => {
+  const proprietaire = ouvrirLeProprietaire({ ...etatInitialDuJeu(), screen: 'campaign', ...etat }, { ...ENTREES_DU_BANC, ...entrees }, (jeton, delai) => {
     const id = suivant++;
     jetons.set(id, jeton);
     horloge.armer([{ id, delai }]);
@@ -99,6 +105,10 @@ function poserLeBanc({ etat, ...entrees }: EntreesDuBanc): BancPose {
     setState: proprietaire.set as Banc['setState'],
     subscribe: proprietaire.abonner,
     actions: proprietaire.actions,
+    jouerLaCase: (actionId, args = {}) => {
+      const g = garanti(gesteDeLOffre(proprietaire.get(), garanti(offreDeId(actionId), actionId, 'offre du banc'), args), actionId, 'geste de la case');
+      (proprietaire.actions[g.verbe] as (...a: unknown[]) => void)(...g.args);
+    },
     avancer: horloge.avancer,
     reprendreLesEnAttente: horloge.reprendreLesEnAttente,
     jusquALaProchaine: horloge.jusquALaProchaine,

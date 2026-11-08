@@ -119,7 +119,7 @@ describe('barrière d’une zone — `blockGroups` (cible)', () => {
         <Inspector
           scene={scene} otherScenes={[]} worldMap={null}
           setScene={(s) => { dernier = s; setScene(s); }}
-          sel={{ type: 'effectZone', idx: 0 }} setSel={() => undefined}
+          sel={{ type: 'effectZone', id: 'zone-b' }} setSel={() => undefined}
           enemyCreatures={[]} openLogic={() => undefined} resizeScene={() => undefined}
           narratif={emptyNarratif()} tool={{ mode: 'select' }} armZoneTiles={() => undefined} zoneFocusKey={null}
         />
@@ -176,7 +176,7 @@ describe('Condition `has` — la valeur se choisit dans le registre de `what`', 
     await choisir(container, nomGroupe, JOKER!);
     expect(dernier).toEqual({ kind: 'has', who: 'target', what: 'group', value: JOKER });
 
-    const quoi = [...container.querySelectorAll<HTMLSelectElement>('select')].find((s) => [...s.options].some((o) => o.value === 'talent'))!;
+    const quoi = [...container.querySelectorAll<HTMLSelectElement>('select')].find((s) => s.value === 'group')!;
     await act(async () => {
       quoi.value = 'talent';
       quoi.dispatchEvent(new Event('change', { bubbles: true }));

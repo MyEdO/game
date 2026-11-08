@@ -67,7 +67,6 @@ const FIXTURES: Record<string, Partial<Jeu>> = {
   } as unknown as Partial<Jeu>,
   shipManeuver: { pendingShipManeuver: { shipId: 'ship1', participants: parts } } as unknown as Partial<Jeu>,
   shipBattery: { pendingShipBattery: { shipId: 'ship1', targetId: 'e1', side: 'babord', participants: parts } } as unknown as Partial<Jeu>,
-  crewTest: { pendingCrewTest: { shipId: 'ship1', participants: parts } } as unknown as Partial<Jeu>,
   cascadeBatch: {
     pendingCascade: cascadeDeTest([{ id: 'batch', kind: 'stagePosteBatch', participants: parts }]),
   } as unknown as Partial<Jeu>,
@@ -107,8 +106,8 @@ describe('flux MULTI — possession par participant (dérivée de FLOW_VERBS)', 
   it('un flux inconnu, ou qui n’accepte pas le verbe, n’est possédé par AUCUN siège', () => {
     const s = base(FIXTURES.counterspell);
     for (const seat of [0, 1, 2]) {
-      expect(intentAllowedFor(s, seat, 'jetRoll', ['zz-inconnu', H_OWNER]), `siège ${seat}, flux inconnu`).toBe(false);
-      expect(intentAllowedFor(s, seat, 'jetResist', ['counterspell', H_OWNER]), `siège ${seat}, Résistance sur le Contre-sort`).toBe(false);
+      expect(intentAllowedFor(s, seat, 'jetLancer', ['zz-inconnu', H_OWNER]), `siège ${seat}, flux inconnu`).toBe(false);
+      expect(intentAllowedFor(s, seat, 'jetResister', ['counterspell', H_OWNER]), `siège ${seat}, Résistance sur le Contre-sort`).toBe(false);
     }
   });
 

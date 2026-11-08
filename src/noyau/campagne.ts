@@ -15,24 +15,24 @@ import { t } from '../i18n';
 
 export function creerActionsDeCampagne(get: Get, set: Set) {
   return {
-    toggleCluePin: (indiceId) => {
+    epinglerLIndice: (indiceId) => {
       if (!get().clues[indiceId]) { refuserGesteDuSiege(get, set, t('carnet.refus.indiceInconnu', { id: indiceId })); return; }
       set((s) => ({ clues: togglePin(s.clues, indiceId) }));
     },
     /** NOUVEAUTÉ VUE, MARQUÉE PAR SON SIÈGE : le siège vient de `decidingSeat` (le siège agissant quand
      *  l'hôte applique l'intent d'un invité, sinon le siège local), jamais d'un argument — un siège ne
      *  marque vu que pour lui-même. */
-    markCluesSeen: (affichés) => {
+    marquerLesIndices: (affichés) => {
       const s = get();
       const clues = marquerVus(s.clues, affichés, decidingSeat(s));
       if (clues !== s.clues) set({ clues });
     },
-    designerHerosOuvrir: (p) => {
+    ouvrirLaDesignation: (p) => {
       if (!get().party.some((h) => !h.dead)) return false;
       set({ pendingDesignationHeros: p });
       return true;
     },
-    remettreDocument: (doc) => set((s) => ({ document: { ...doc, remise: s.remisesDeDocument + 1 }, remisesDeDocument: s.remisesDeDocument + 1 })),
+    remettreLeDocument: (doc) => set((s) => ({ document: { ...doc, remise: s.remisesDeDocument + 1 }, remisesDeDocument: s.remisesDeDocument + 1 })),
   } satisfies FabriqueDuNoyau;
 }
 

@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { openLandMarket, landSellCargo } from './landMarketFlow';
+import { ouvrirLeMarche, vendreALaHalle } from './landMarketFlow';
 import { persistCarriersCargo } from './carriers';
 import { seedBattleRng } from './battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
@@ -26,14 +26,14 @@ const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
 /** Draine une cascade influençable (héros piloté-humain → modale, #274) — même patron que les autres
- *  suites (`jetRoll('cascade', id)`+`jetConfirm('cascade')`, ex. `river-voyage-flow.hors-store.test.ts`). */
+ *  suites (`jetLancer('cascade', id)`+`jetValider('cascade')`, ex. `river-voyage-flow.hors-store.test.ts`). */
 function drainCascade(): void {
   let g = 0;
   while (get().pendingCascade && g++ < 50) {
     const p = get().pendingCascade!;
     const cur = p.participants[p.cursor];
-    if (cur && cur.target != null && !cur.result) get().jetRoll('cascade', cur.id);
-    else get().jetConfirm('cascade');
+    if (cur && cur.target != null && !cur.result) get().jetLancer('cascade', cur.id);
+    else get().jetValider('cascade');
   }
 }
 
@@ -48,8 +48,8 @@ const CARRIER_ID = 'convoi-1';
 
 /** Un marchand du groupe : Ragot + Marchandage élevés (Fel poussé) pour des Tests fiables sous graine.
  *  Le chariot de convoi (porteur réel de la cargaison, #327) est posé SÉPARÉMENT (Possession, SOCLE
- *  POSSESSIONS #617/#618) — `launchAtA` le pose après `loadProject` (le registre est vidé+re-semé au
- *  démarrage de scène, `startScene`/`seedStartingPossessions`). */
+ *  POSSESSIONS #617/#618) — `launchAtA` le pose après `chargerLeProjet` (le registre est vidé+re-semé au
+ *  démarrage de scène, `lancerLaScene`/`seedStartingPossessions`). */
 function trader(): Combatant {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', seed: 11, id: 't-artur' });
   h.characteristics = { ...h.characteristics, Fel: 60 } as Combatant['characteristics'];
@@ -81,14 +81,14 @@ function launchAtA(): void {
   seedBattleRng(7);
   const g = get();
   const h = trader();
-  g.setParty([h]);
-  g.loadProject({ scenes: [marche('marche-a', 'Grünburg'), marche('marche-b', 'Altdorf')], entryId: 'marche-a', worldMap: tradeMap(), projet: null });
+  g.fixerLeGroupe([h]);
+  g.chargerLeProjet({ scenes: [marche('marche-a', 'Grünburg'), marche('marche-b', 'Altdorf')], entryId: 'marche-a', worldMap: tradeMap(), projet: null });
   // trader() n'a pas de bourse → partyMoneyTotal = 0 ; le registre de possessions REMPLACE tout auto-semis
   // de dotation carrière (marchand niveau 1 porte une mule) par LE porteur déterministe du test.
   set({ landMarket: null, tradeRumours: [], journal: [], possessions: [convoi(h.id)] });
 }
 
-const lot: CargoLot = { cargoId: 'vin-eau-de-vie', enc: 40, basePriceGold: 10 };
+const lot: CargoLot = { uid: 'lot-1', cargoId: 'vin-eau-de-vie', enc: 40, basePriceGold: 10 };
 const rumourB: TradeRumour = { placeId: 'B', biens: ['vin-eau-de-vie'], mult: 2, text: 'Le vin manque à Altdorf.', heardDay: 0 };
 
 /** Vend le lot 0 à Altdorf (place B) avec le board donné et renvoie le gain en brass. */
@@ -101,14 +101,14 @@ function sellAtB(board: TradeRumour[]): number {
     ...persistCarriersCargo(get(), [{ carrierId: CARRIER_ID, cargo: [{ ...lot }] }]),
   });
   seedBattleRng(3);
-  landSellCargo(get, set, CARRIER_ID, 0);
+  vendreALaHalle(get, set, lot.uid);
   // Le dé d'acheteur est un dé de MONDE : le siège qui possède le monde le LANCE dans sa fenêtre
   // (#1426). La vente se conclut donc au geste, jamais à l'appel.
   let g = 0;
   while (get().pendingCascade && g++ < 5) {
     const p = get().pendingCascade!;
-    get().jetRoll('cascade', p.participants[p.cursor].id);
-    get().jetConfirm('cascade');
+    get().jetLancer('cascade', p.participants[p.cursor].id);
+    get().jetValider('cascade');
     banc.reprendreLesEnAttente();
   }
   return toBrass(partyMoneyTotal(get));
@@ -138,10 +138,10 @@ describe('#99 — génération au marché : la rumeur vise un AUTRE Lieu de la c
   it('un Test de Ragot réussi au marché A ajoute au board une rumeur ciblant le Lieu B', () => {
     launchAtA();
     seedBattleRng(7);
-    openLandMarket(get, set);
+    ouvrirLeMarche(get, set);
     // #1426 : les dés de l'étal s'offrent d'abord en FENÊTRE DE LOT (un siège tient le monde) ; ce qui
     // SUIT l'étal — le Test de Ragot — n'ouvre qu'à la validation.
-    get().jetConfirm('etalLot');
+    get().jetValider('etalLot');
     // #274 : le Test de Ragot est surfacé par la porte (`openRoll`, hero-test, héros piloté-humain →
     // modale) — drainer comme un jet joueur normal.
     drainCascade();

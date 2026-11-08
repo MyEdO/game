@@ -10,8 +10,8 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, batailleEnVue, carteEnVue, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
-  type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RecapTone, type RollBreakdown, type TrajetEnVue,
+  ACTIONS, avecSigne, batailleEnVue, carteEnVue, cleDuGeste, dayIndex, formatImperial, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
+  type CombatEvent, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RecapTone, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { garanti } from '../lib/garanti';
@@ -197,6 +197,9 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     ...patientDuSoin(etat),
     ...trajetsDeLaCarte(etat),
     ...ecranDuLieu(etat),
+    ...echoppe(etat),
+    ...marche(etat),
+    ...voyage(etat),
     ...recitDuVoyage(etat),
     ...herosDeLInterlude(etat),
     ...champDeBataille(etat),
@@ -249,19 +252,16 @@ function ecranDuLieu(etat: Jeu): Element[] {
   ];
 }
 
-/** Un geste du noyau en bouton : son nom, son verbe, sa raison de ne pas se jouer. */
-const boutonDuNoyau = (id: string, g: { libelle: string; geste: { verbe: string; args: unknown[] }; refus: string | null }): Bouton =>
-  ({ type: 'bouton', id, libelle: g.libelle, jeu: { type: g.geste.verbe, args: g.geste.args }, presse: false, focus: false, refus: g.refus });
-
 /** Un formulaire d'un geste du noyau : chaque argument que le geste pose en saisie fixe, puis `saisies`. */
 function formulaireDuNoyau(id: string, libelle: string, f: { geste: { verbe: string; args: unknown[] }; refus: string | null }, saisies: Saisie[]): Formulaire {
   const fixes = f.geste.args.map((valeur, i): Saisie => ({ type: 'fixe', id: `${id}/${i}`, nom: String(i), optionnel: false, valeur }));
   return { type: 'formulaire', id, libelle, verbe: f.geste.verbe, focus: false, refus: f.refus, champs: [...fixes, ...saisies.map((x) => ({ ...x, id: `${id}/${x.id}` }))] };
 }
 
-/** Une saisie de valeurs nommées, chacune fermée par sa raison : à cocher, ou à choisir une seule. */
-const saisieDeValeurs = (nom: string, libelle: string, valeurs: readonly { libelle: string; valeur: string; refus: string | null }[], type: 'saisieCoches' | 'saisieChoix' = 'saisieCoches'): Saisie =>
-  ({ type, id: nom, ton: 'neutre', nom, optionnel: false, libelle, valeurs: valeurs.map((v) => ({ ...v, presse: false })) });
+/** Une saisie de valeurs nommées, chacune fermée par sa raison et pressée si elle est saisie d'avance : à cocher, ou
+ *  à choisir une seule. */
+const saisieDeValeurs = (nom: string, libelle: string, valeurs: readonly { libelle: string; valeur: string; refus: string | null; presse?: boolean }[], type: 'saisieCoches' | 'saisieChoix' = 'saisieCoches'): Saisie =>
+  ({ type, id: nom, ton: 'neutre', nom, optionnel: false, libelle, valeurs: valeurs.map((v) => ({ presse: false, ...v })) });
 
 /** L'interlude ouvert (`interludeEnVue`) : chaque héros en entité, ses Activités restantes, ses PX, sa bourse et
  *  l'Événement de sa période en puces, puis chacune de ses Activités, un bouton sans cible, un choix de ses cibles sinon (en liste au-delà de
@@ -382,6 +382,111 @@ function recitDuVoyage(etat: Jeu): Element[] {
   ];
 }
 
+/** L'échoppe ouverte (`marchandEnVue`) : la bourse du groupe ; chaque famille de l'étal en entité, chaque article en
+ *  bouton qui en met une unité au panier, son prix au libellé, pressé quand le panier en tient ; le panier, chaque ligne
+ *  en bouton qui en ôte une unité, et le paiement de son total ; chaque héros et ses possessions, chacune en bouton qui la
+ *  met au lot ou l'en retire, son gain au libellé ; puis la vente du lot. */
+function echoppe(etat: Jeu): Element[] {
+  const m = marchandEnVue(etat);
+  if (!m) return [];
+  const avecPrix = (nom: string, prix: string | null) => (prix === null ? nom : t('ecran.echoppe.article', { nom, prix }));
+  return [
+    puce('bourse', t('ecran.bourse'), m.bourse),
+    ...m.etal.map((f): Entite => ({
+      type: 'entite', id: `etal/${f.id}`, ton: 'neutre', nom: f.nom,
+      elements: f.articles.map((a) => boutonDeGeste(a.id, avecPrix(a.nom, a.prix), a.ajouter.geste, a.ajouter.refus, a.auPanier > 0)),
+    })),
+    {
+      type: 'entite', id: 'panier', ton: 'neutre', nom: t('ecran.echoppe.panier'),
+      elements: [
+        ...m.panier.lignes.map((l) => boutonDeGeste(l.id, avecPrix(t('ecran.echoppe.ligne', { nom: l.nom, qty: l.qty }), l.sousTotal), l.oter, null)),
+        boutonDeGeste('payer', t('ecran.echoppe.payer', { total: m.panier.total }), m.panier.payer.geste, m.panier.payer.refus),
+      ],
+    },
+    ...m.vente.heros.map((h): Entite => ({
+      type: 'entite', id: `vente/${h.id}`, ton: 'neutre', nom: h.nom,
+      elements: h.possessions.map((p) => boutonDeGeste(p.uid, avecPrix(p.nom, p.gain), p.basculer, p.refus, p.auLot)),
+    })),
+    boutonDeGeste('vendre', t('ecran.echoppe.vendre', { total: m.vente.total }), m.vente.vendre.geste, m.vente.vendre.refus),
+  ];
+}
+
+/** Le trajet en cours (`voyageEnVue`) : l'heure de jeu et la météo du jour, les km faits sur ceux du trajet par son
+ *  moyen, puis sa frise : le départ, chaque nuit passée en route et son km, l'arrivée. */
+function voyage(etat: Jeu): Element[] {
+  const v = voyageEnVue(etat);
+  if (!v) return [];
+  const km = (n: number) => t('ecran.voyage.km', { km: n });
+  return [
+    ligne('voyage/heure', formatImperial(v.heure)),
+    ...(v.meteo ? [ligne('voyage/meteo', v.meteo)] : []),
+    jauge('voyage/route', t('ecran.voyage.route', { moyen: v.moyen }), [v.fait, v.km]),
+    puce('voyage/etape/depart', v.de, km(0)),
+    ...v.nuits.map((n, i) => puce(`voyage/etape/nuit/${i}`, t('ecran.voyage.nuit', { nuit: i + 1 }), km(n))),
+    puce('voyage/etape/arrivee', v.vers, km(v.km)),
+  ];
+}
+
+/** Le marché de cargaison ouvert (`marcheEnVue`) : la bourse, chaque offre en entité, son Enc disponible, son prix
+ *  par Enc, la qualité de son vin ou son évaluation, puis son achat (le porteur qui le charge, l'Enc), fermé avec sa
+ *  raison ; chaque lot des porteurs du groupe en entité, son porteur et son Enc, son prix de base, sa vente, son
+ *  bradage, puis son transfert vers un porteur co-localisé. */
+function marche(etat: Jeu): Element[] {
+  const m = marcheEnVue(etat);
+  if (!m) return [];
+  const enc = (n: number) => t('ecran.marche.enc', { enc: n });
+  const parEnc = (prix: string) => puce('prix', t('ecran.marche.prix'), t('ecran.marche.parEnc', { prix }));
+  const nombre = (libelle: string, valeur: number, max: number): Saisie =>
+    ({ type: 'saisieNombre', id: 'enc', ton: 'neutre', nom: 'enc', optionnel: false, libelle, valeur, min: 1, max, pas: 1 });
+  /** Les porteurs `liste` à choisir, le premier saisi d'avance. */
+  const porteurs = (nom: string, libelle: string, liste: readonly { id: string; nom: string; libre: number; capacite: number }[]) =>
+    saisieDeValeurs(nom, libelle, liste.map((p, i) => ({ libelle: t('ecran.marche.place', { nom: p.nom, libre: p.libre, capacite: p.capacite }), valeur: p.id, refus: null, presse: i === 0 })), 'saisieChoix');
+  return [
+    puce('bourse', t('ecran.bourse'), m.bourse),
+    ...m.offres.map((o): Entite => ({
+      type: 'entite', id: `offre/${o.id}`, ton: 'neutre', nom: o.nom,
+      elements: [
+        puce('dispo', t('ecran.marche.dispo'), enc(o.dispo)),
+        parEnc(o.prix),
+        ...(o.qualite ? [{ ...puce('qualite', t('ecran.marche.qualite'), o.qualite.fiable ? o.qualite.texte : t('ecran.marche.incertaine', { qualite: o.qualite.texte })), ton: o.qualite.fiable ? 'neutre' : 'alerte' } satisfies Puce] : []),
+        ...(o.evaluer ? [boutonDuNoyau('evaluer', { ...o.evaluer, libelle: t('ecran.marche.evaluer') })] : []),
+        formulaireDuNoyau('acheter', t('ecran.marche.acheter'), { geste: { verbe: o.acheter.geste.verbe, args: [] }, refus: o.acheter.refus }, o.acheter.refus ? [] : [
+          porteurs('porteur', t('ecran.marche.porteur'), o.acheter.porteurs),
+          { type: 'fixe', id: 'offre', nom: 'offre', optionnel: false, valeur: o.id },
+          nombre(t('ecran.marche.aAcheter'), o.acheter.enc, o.acheter.max),
+        ]),
+      ],
+    })),
+    ...m.cargaison.flatMap((c) => c.lots.map((l): Entite => ({
+      type: 'entite', id: `lot/${l.uid}`, ton: 'neutre', nom: l.nom,
+      elements: [
+        puce('porteur', c.nom, enc(l.enc)),
+        parEnc(l.prix),
+        boutonDuNoyau('vendre', { ...l.vendre, libelle: t('ecran.marche.vendre') }),
+        boutonDuNoyau('brader', { ...l.brader, libelle: t('ecran.marche.brader') }),
+        formulaireDuNoyau('deplacer', t('ecran.marche.deplacer'), { geste: { verbe: l.deplacer.geste.verbe, args: [l.uid] }, refus: l.deplacer.refus }, l.deplacer.refus ? [] : [
+          porteurs('vers', t('ecran.marche.vers'), l.deplacer.vers),
+          nombre(t('ecran.marche.aDeplacer'), l.deplacer.enc, l.deplacer.max),
+        ]),
+      ],
+    }))),
+  ];
+}
+
+/** Les clés des choix de fenêtre (`fenetreChoisir`) que jouent les boutons de `elements`, à toute profondeur : un choix
+ *  que le corps porte ne se redessine pas en réglage. */
+function choixPortes(elements: readonly Element[]): Set<string> {
+  const cles = new Set<string>();
+  const parcourir = (e: Element | Bouton): void => {
+    if (e.type === 'bouton' && 'type' in e.jeu && e.jeu.type === VERBE_DE_CHOIX) cles.add(cleDuGeste({ verbe: VERBE_DE_CHOIX, fenetre: e.jeu.args[0] as FenetreAChoix, axe: e.jeu.args[1] as AxeDuChoix }));
+    if (e.type === 'entite') e.elements.forEach(parcourir);
+    if (e.type === 'choix' || e.type === 'liste') e.valeurs.forEach(parcourir);
+    if (e.type === 'plan') e.points.forEach((p) => p.elements.forEach(parcourir));
+  };
+  elements.forEach(parcourir);
+  return cles;
+}
+
 /** Le patient du soin en attente (`fenetreDuSoin`) ; le soigneur est celui qui tient la fenêtre et jette. */
 function patientDuSoin(etat: Jeu): Element[] {
   const f = fenetreDuSoin(etat);
@@ -475,29 +580,32 @@ function apercuDe(c: Combat): string | null {
   return cible ? t('ecran.apercu.cible', { cible }) : null;
 }
 
-/** Les offres de l'actif, chacune un bouton qui la joue (`ACTIONS`), pressée quand elle est armée, refusée avec sa
- *  raison quand elle est fermée ; rangées par la part de l'économie du tour qu'elles prennent, chaque part un choix qui
- *  la nomme une fois, celles qui n'en prennent aucune (la fin du tour) sous le tour. Une offre qui s'offre par candidat
- *  (le sort, l'arme, l'attaque de trait) est un choix à elle, sous sa part, en liste au-delà de `CHOIX_EN_BOUTONS`
- *  candidats : chaque candidat un bouton qui le nomme et joue l'offre sur son contexte. */
+/** Les offres de l'actif, chacune un bouton qui joue son geste (`Offre.geste`), pressée quand elle est armée, refusée
+ *  avec sa raison quand elle est fermée ; rangées par la part de l'économie du tour qu'elles prennent, chaque part un
+ *  choix qui la nomme une fois, celles qui n'en prennent aucune (la fin du tour) sous le tour. Une offre qui s'offre par
+ *  candidat (le sort, l'arme, l'attaque de trait) est un choix à elle, sous sa part, en liste au-delà de
+ *  `CHOIX_EN_BOUTONS` candidats : chaque candidat un bouton qui le nomme et joue son geste. Une offre sans geste, dont la
+ *  case attend un paramètre que seule la console choisit, n'a pas de bouton : fermée, elle reste un choix sans valeur,
+ *  refusé avec sa raison. */
 function offresDuCombat(c: Combat): Choix[] {
-  const offres = c.offres?.liste ?? [];
+  const offres = (c.offres?.liste ?? []).filter((o) => o.geste || o.candidats.some((k) => k.geste) || o.refus !== null);
   const libelle = (o: (typeof offres)[number]): string => garanti(ACTIONS.find((a) => a.id === o.id)?.label, o.id, 'libellé de l’offre');
+  const jeuDe = (g: GesteDuNoyau): Bouton['jeu'] => ({ type: g.verbe, args: g.args });
   const bouton = (o: (typeof offres)[number]): Bouton => ({
-    type: 'bouton', id: o.id, libelle: libelle(o), jeu: { offre: o.id }, presse: o.armee, focus: false, refus: o.refus,
+    type: 'bouton', id: o.id, libelle: libelle(o), jeu: jeuDe(garanti(o.geste, o.id, 'geste de l’offre')), presse: o.armee, focus: false, refus: o.refus,
   });
   const parCandidat = (o: (typeof offres)[number]): Choix => ({
     type: o.candidats.length > CHOIX_EN_BOUTONS ? 'liste' : 'choix', id: `offre/${o.id}`, ton: 'neutre', libelle: libelle(o), focus: false, refus: o.refus,
-    valeurs: o.candidats.map((k): Bouton => ({
-      type: 'bouton', id: `${o.id}/${Object.values(k.ctx).join('/')}`, libelle: k.nom, jeu: { offre: o.id, ctx: k.ctx }, presse: k.armee, focus: false, refus: k.refus,
-    })),
+    valeurs: o.candidats.flatMap((k): Bouton[] => (k.geste ? [{
+      type: 'bouton', id: `${o.id}/${Object.values(k.ctx).join('/')}`, libelle: k.nom, jeu: jeuDe(k.geste), presse: k.armee, focus: false, refus: k.refus,
+    }] : [])),
   });
   return [...new Set(offres.map((o) => o.economie))].flatMap((e): Choix[] => {
     const part = offres.filter((o) => o.economie === e);
-    const uniques = part.filter((o) => !o.candidats.length);
+    const uniques = part.filter((o) => !o.candidats.length && o.geste);
     return [
       ...(uniques.length ? [{ type: 'choix' as const, id: `economie/${e}`, ton: 'neutre' as const, libelle: t(`ecran.economie.${e}`), focus: false, refus: null, valeurs: uniques.map(bouton) }] : []),
-      ...part.filter((o) => o.candidats.length).map(parCandidat),
+      ...part.filter((o) => o.candidats.length || !o.geste).map(parCandidat),
     ];
   });
 }
@@ -587,6 +695,9 @@ const boutonDeGeste = (id: string, libelle: string, g: GesteDuNoyau, refus: stri
   type: 'bouton', id, libelle, jeu: { type: g.verbe, args: g.args }, presse, focus: false, refus,
 });
 
+/** Un geste du noyau nommé en bouton (`boutonDeGeste`). */
+const boutonDuNoyau = (id: string, g: GesteFermable & { libelle: string }): Bouton => boutonDeGeste(id, g.libelle, g.geste, g.refus);
+
 /** Un geste à choix sur un objet : une liste dont chaque choix joue son geste, refusé avec elle. */
 const listeDObjet = (id: string, libelle: string, g: GesteAChoix<unknown>): Choix => ({
   type: 'liste', id, ton: 'neutre', libelle, focus: false, refus: g.refus,
@@ -642,13 +753,15 @@ function zonesDeLaFiche(etat: Jeu, ouverte: FicheOuverte | null): Pick<ZonesDeLE
 export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessiner | null, fiche: FicheOuverte | null, creation: CreationOuverte | null): ZonesDeLEcran {
   const c = p.combat;
   const gestes = fenetre ? elementsDesGestes(fenetre.gestes) : [];
+  const corps = fenetre ? corpsDeLaFenetre(etat) : [];
+  const portes = choixPortes(corps);
   const reglages = new Set(fenetre?.gestes.filter((g) => g.reglage).map((g) => g.cle));
   const etape = fenetre ? [fenetre.etape === fenetre.titre ? null : fenetre.etape, fenetre.proprietaire.genre === 'porteur' ? fenetre.proprietaire.nom : null].filter((x): x is string => x !== null) : [];
   return {
     'fenetre.titre': fenetre ? [ligne('titre', fenetre.titre)] : [],
     'fenetre.etape': etape.length ? [ligne('etape', etape.join(t('ecran.separateur')))] : [],
-    'fenetre.corps': fenetre ? corpsDeLaFenetre(etat) : [],
-    'fenetre.reglages': gestes.filter((g) => reglages.has(g.id)),
+    'fenetre.corps': corps,
+    'fenetre.reglages': gestes.filter((g) => reglages.has(g.id) && !portes.has(g.id)),
     'fenetre.gestes': gestes.filter((g) => !reglages.has(g.id)),
     'combat.tour': c ? [ligne('tour', c.tour === null ? t('ecran.round', { round: c.round }) : t('ecran.tour', { round: c.round, tour: c.tour, tours: c.tours }))] : [],
     'combat.ordre': c ? ordreDuTour(etat, c) : [],
@@ -698,17 +811,24 @@ const tonDeLEvenement = (etat: Jeu, e: CombatEvent): Ton => {
 
 /** Les lignes que le journal ajoute, numérotées à la suite des `avant` lignes déjà écrites : une par événement, son
  *  ton dit ce qu'il pèse ; les sous-lignes d'un événement (`detail`) vont au détail de la ligne qui les précède dans
- *  l'appel, montré à la demande. Un événement sans texte n'en écrit aucune. */
-export const lignesDuJournal = (etat: Jeu, avant: number, journal: readonly LigneDuJournal[]): Ligne[] =>
-  journal.reduce<Ligne[]>((lignes, l, i) => {
+ *  l'appel, montré à la demande. Un événement sans texte n'en écrit aucune. Chaque jour de jeu s'ouvre sur sa date, en
+ *  alerte, dès qu'une ligne s'écrit un autre jour que `veille` (le jour de la dernière ligne déjà écrite, `null` avant
+ *  la première) ; `jour` est celui de la dernière ligne de l'appel. */
+export function lignesDuJournal(etat: Jeu, avant: number, journal: readonly LigneDuJournal[], veille: number | null): { lignes: Ligne[]; jour: number | null } {
+  let jour = veille;
+  const lignes = journal.reduce<Ligne[]>((lignes, l, i) => {
     const texte = l.de === 'journal' ? l.texte : l.evenement.text;
     if (!texte) return lignes;
-    const id = `journal/${avant + i}`;
-    if (l.de === 'journal') return [...lignes, ligne(id, texte)];
     const precedente = lignes[lignes.length - 1] as Ligne | undefined;
-    if (l.evenement.kind === 'detail' && precedente) {
+    if (l.de === 'combat' && l.evenement.kind === 'detail' && precedente) {
       const sous = texte.replace(/^\s*↳\s*/, '');
       return [...lignes.slice(0, -1), { ...precedente, detail: precedente.detail === null ? sous : `${precedente.detail}\n${sous}` }];
     }
-    return [...lignes, ligne(id, texte, tonDeLEvenement(etat, l.evenement))];
+    const ce = dayIndex(l.heure);
+    const date = ce === jour ? [] : [ligne(`journal/jour/${ce}`, formatJourImperial(l.heure), 'alerte')];
+    jour = ce;
+    const id = `journal/${avant + i}`;
+    return [...lignes, ...date, l.de === 'journal' ? ligne(id, texte) : ligne(id, texte, tonDeLEvenement(etat, l.evenement))];
   }, []);
+  return { lignes, jour };
+}

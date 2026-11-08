@@ -20,8 +20,8 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -51,7 +51,7 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
     openRoundEndCascade(banc.getState, banc.setState);
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusChoice')!;
     banc.getState().jetRegler('cascade', 'choix', 'no', step.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const h = banc.getState().battle!.combatants.find((x) => x.kind === 'hero')!;
     expect(h.activeEffects ?? []).toHaveLength(0);
     expect(banc.getState().pendingCascade?.participants.some((s) => s.kind === 'spellPlusTest')).toBeFalsy();
@@ -62,7 +62,7 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
     openRoundEndCascade(banc.getState, banc.setState);
     const choice = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusChoice')!;
     banc.getState().jetRegler('cascade', 'choix', 'yes', choice.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const test = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusTest');
     expect(test).toBeTruthy();
     expect(test!.rollLabel).toBe('Force Mentale');
@@ -84,7 +84,7 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
     openRoundEndCascade(banc.getState, banc.setState);
     const choice = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusChoice')!;
     banc.getState().jetRegler('cascade', 'choix', 'yes', choice.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
 
     const test = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusTest')!;
     expect(test, 'le Test est bien poussé dans la MÊME cascade').toBeTruthy();
@@ -105,10 +105,10 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
     openRoundEndCascade(banc.getState, banc.setState);
     const choice = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusChoice')!;
     banc.getState().jetRegler('cascade', 'choix', 'yes', choice.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const test = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusTest')!;
-    banc.getState().jetRoll('cascade', test.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetLancer('cascade', test.id);
+    banc.getState().jetValider('cascade');
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
     expect(h.activeEffects).toHaveLength(1);
     expect(h.activeEffects![0].awaitingExtension).toBeUndefined();
@@ -123,10 +123,10 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
     openRoundEndCascade(banc.getState, banc.setState);
     const choice = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusChoice')!;
     banc.getState().jetRegler('cascade', 'choix', 'yes', choice.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const test = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusTest')!;
-    banc.getState().jetRoll('cascade', test.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetLancer('cascade', test.id);
+    banc.getState().jetValider('cascade');
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
     expect(h.activeEffects ?? []).toHaveLength(0);
   });

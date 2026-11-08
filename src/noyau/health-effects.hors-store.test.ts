@@ -13,12 +13,14 @@ import { findVehicleById } from '../data';
 import { setRule } from '../engine/policy';
 import { effectiveChar } from '../engine/characteristics';
 import type { WorldMap } from './worldMap';
+import type { GameOp } from '../engine/ops';
+import type { Effect } from '../data/schemas/defs-scenes/effets';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 beforeEach(() => {
-  banc.getState().seedRng(7);
+  banc.getState().ensemencerLeTirage(7);
 });
 
 describe('Effet inflictHunger (LDB 18 l.337-343)', () => {
@@ -58,7 +60,7 @@ function commitRows(results: { roll: number; target: number; sl: number; success
   const st = pc.participants[pc.cursor];
   const participants = st.participants!.map((p, k) => ({ ...p, result: results[k] }));
   banc.setState({ pendingCascade: { ...pc, participants: pc.participants.map((x, i) => (i === pc.cursor ? { ...x, participants } : x)) } });
-  banc.getState().jetConfirm('cascade');
+  banc.getState().jetValider('cascade');
 }
 
 /** L'étape courante de la cascade ouverte. */
@@ -68,7 +70,7 @@ describe('Effet exposureNight (LDB 18 l.326-334) — BANDE influençable par VAG
   it('froid → UNE bande (la 1ʳᵉ vague) portant le nombre TOTAL de vagues, une rangée par héros, AUCUN jet résolu', () => {
     const party = makePregens().slice(0, 1);
     banc.setState({ party, pendingCascade: null, journal: [] });
-    banc.getState().seedRng(3); // graine dont les jets échoueraient s'ils roulaient inline
+    banc.getState().ensemencerLeTirage(3); // graine dont les jets échoueraient s'ils roulaient inline
     const beforeW = banc.getState().party[0].wounds.current;
     applyEffects(banc.getState, banc.setState, [{ type: 'exposureNight', kind: 'froid', count: 4, target: 'hero', heroId: party[0].id }]);
     const pc = banc.getState().pendingCascade;
@@ -154,7 +156,7 @@ describe('Exposition CHALEUR — annulation par délestage d’une Possession lo
     // déclenche la construction de la vague 1 (jamais avant : son escalade compterait l'échec annulé).
     expect(current().kind).toBe('exposure-heat-drop');
     banc.getState().jetRegler('cascade', 'choix', 'jeter', current().id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const wave1 = current();
     expect(wave1.kind).toBe('exposure');
     expect(wave1.meta?.wave).toBe(1);
@@ -341,33 +343,34 @@ describe('Effet adjustVessel (#233 — patch PARTIEL du navire de campagne, ≠ 
   });
 });
 
-describe('Effet adjustManann (#213 — MDG 15 l.83-125)', () => {
+describe('Op `manann` sur la cible `navire` (#213, #1652 — MDG 15 l.83-125)', () => {
+  const manann = (o: Extract<GameOp, { op: 'manann' }>): Effect => ({ type: 'ops', on: 'navire', ops: [o] });
   beforeEach(() => {
     banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } });
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
   });
 
   it('sans navire de campagne → no-op journalisé', () => {
     banc.setState({ vessel: undefined, journal: [] });
-    applyEffects(banc.getState, banc.setState, [{ type: 'adjustManann', factorId: 'petit-sacrifice' }]);
+    applyEffects(banc.getState, banc.setState, [manann({ op: 'manann', factorId: 'petit-sacrifice' })]);
     expect(banc.getState().vessel).toBeUndefined();
     expect(banc.getState().journal.some((l) => /sans effet/i.test(l))).toBe(true);
   });
 
   it('facteur du tableau (petit sacrifice) applique son delta, une seule fois par navire (l.85)', () => {
-    applyEffects(banc.getState, banc.setState, [{ type: 'adjustManann', factorId: 'petit-sacrifice' }]);
+    applyEffects(banc.getState, banc.setState, [manann({ op: 'manann', factorId: 'petit-sacrifice' })]);
     const scoreAfterFirst = banc.getState().vessel!.manann!.score;
     expect(scoreAfterFirst).toBeGreaterThan(0); // Petit sacrifice à Manann → +5
     expect(banc.getState().vessel!.manann!.applied).toContain('petit-sacrifice');
-    applyEffects(banc.getState, banc.setState, [{ type: 'adjustManann', factorId: 'petit-sacrifice' }]);
+    applyEffects(banc.getState, banc.setState, [manann({ op: 'manann', factorId: 'petit-sacrifice' })]);
     expect(banc.getState().vessel!.manann!.score).toBe(scoreAfterFirst); // déjà appliqué → sans effet
   });
 
-  it('delta maison chiffré (hors tableau) s’ajoute sans passer par le registre `applied`', () => {
-    applyEffects(banc.getState, banc.setState, [{ type: 'adjustManann', delta: { flat: 3, d10: 0, sign: 1 } }]);
+  it('delta signé (hors tableau) s’ajoute sans passer par le registre `applied`', () => {
+    applyEffects(banc.getState, banc.setState, [manann({ op: 'manann', delta: { sign: 1, dice: { n: 0, sides: 10, plus: 3 } } })]);
     expect(banc.getState().vessel!.manann!.score).toBe(3);
     expect(banc.getState().vessel!.manann!.applied).toEqual([]);
-    applyEffects(banc.getState, banc.setState, [{ type: 'adjustManann', delta: { flat: 3, d10: 0, sign: -1 } }]);
+    applyEffects(banc.getState, banc.setState, [manann({ op: 'manann', delta: { sign: -1, dice: { n: 0, sides: 10, plus: 3 } } })]);
     expect(banc.getState().vessel!.manann!.score).toBe(0); // pas de garde-fou d'unicité → cumule
   });
 });

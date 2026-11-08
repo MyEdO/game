@@ -25,13 +25,13 @@ function poserGroupe(): Combatant {
   hero.talents.push({ talentId: 'magie-mineure', times: 1 });
   hero.spells = [];
   banc.setState({ battle: null, party: [hero], pendingCascade: null, pendingRoundStart: null, journal: [] });
-  banc.getState().startScene(testScene());
+  banc.getState().lancerLaScene(testScene());
   return hero;
 }
 
 function entrerEnCombat(): void {
   seedBattleRng(777);
-  banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
+  banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
 }
 
 const jouer = (e: Effect) => nePeutPasDifferer(applyEffects(() => banc.getState(), banc.setState, [e]), 'ecrire-acteur.hors-store.test');
@@ -116,10 +116,10 @@ describe('ecrireActeur — chaque handler migré écrit là où le jeu lit (#231
     expect(auGroupe(hero.id).spells).toContain('sommeil');
   });
 
-  it('setShipRole en combat : le combattant ET le groupe portent le rôle', () => {
+  it('attribuerLeRoleABord en combat : le combattant ET le groupe portent le rôle', () => {
     const hero = poserGroupe();
     entrerEnCombat();
-    banc.getState().setShipRole(hero.id, 'vigie');
+    banc.getState().attribuerLeRoleABord(hero.id, 'vigie');
     expect(auCombat(hero.id).shipRole).toBe('vigie');
     expect(auGroupe(hero.id).shipRole).toBe('vigie');
   });

@@ -24,9 +24,9 @@ describe('IA × siège MJ pris après planification — runEnemyAI rend la main 
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     seedBattleRng(777);
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;

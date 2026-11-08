@@ -54,14 +54,14 @@ function ouvreParadeAuBouclier(seed: number): void {
   G().jetRegler('defense', 'porteBouclier', 'damage');
 }
 
-/** `jetConfirm('defense')` puis cascade vidée ; rend les bornes des tirages `rng.int` faits pendant la frappe. */
+/** `jetValider('defense')` puis cascade vidée ; rend les bornes des tirages `rng.int` faits pendant la frappe. */
 function confirme(): string[] {
   const rng = battleRng();
   const int0 = rng.int.bind(rng);
   const tirages: string[] = [];
   rng.int = (a: number, b: number) => { tirages.push(`${a}..${b}`); return int0(a, b); };
   try {
-    G().jetConfirm('defense');
+    G().jetValider('defense');
     for (let k = 0; k < 20 && G().pendingCascade; k++) avanceEtapeCascade(G, poseSurDeNonTombe(1), () => 'subir');
   } finally { rng.int = int0; }
   return tirages;
@@ -85,23 +85,23 @@ describe('Porte-bouclier — chemin joueur, arme de parade déclarée sur tout c
 
   it('jet nu gagné : la frappe du bouclier part', () => {
     ouvreParadeAuBouclier(1);
-    G().jetRoll('defense');
+    G().jetLancer('defense');
     attendFrappe();
   });
 
   it('dé fixé (Résilience) gagnant : parade au bouclier conservée, la frappe part', () => {
     ouvreParadeAuBouclier(1);
-    G().jetRoll('defense');
-    G().jetSetForcedRoll('defense', 5);
+    G().jetLancer('defense');
+    G().jetImposerLeResultat('defense', 5);
     expect(G().pendingDefense!.def!.roll).toBe(5);
     attendFrappe();
   });
 
   it('forçage (« Je ne faillirai pas ! ») : parade au bouclier conservée, la frappe part', () => {
     ouvreParadeAuBouclier(5);
-    G().jetRoll('defense');
+    G().jetLancer('defense');
     expect(G().pendingDefense!.result!.advantageTo).toBe('attacker');
-    G().jetForceSuccess('defense');
+    G().jetForcerLaReussite('defense');
     expect(G().pendingDefense!.forced).toBe(true);
     attendFrappe();
   });

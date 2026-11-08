@@ -35,7 +35,7 @@ function jusquAuTour(partie: Partie, tenu: (c: Combatant) => boolean): Combatant
     const actif = activeCombatant(partie.etat().battle!);
     if (actif && tenu(actif)) return actif;
     const e = partie.etat();
-    const intentions: Intention[] = e.pendingDefense ? [{ type: 'jetRoll', args: ['defense'] }, { type: 'jetConfirm', args: ['defense'] }] : [actif ? { type: 'jouerLOffre', args: ['end-turn'] } : { type: 'fenetreValider', args: ['roundStart'] }];
+    const intentions: Intention[] = e.pendingDefense ? [{ type: 'jetLancer', args: ['defense'] }, { type: 'jetValider', args: ['defense'] }] : [actif ? { type: 'terminerLeTour', args: [] } : { type: 'fenetreValider', args: ['roundStart'] }];
     for (const i of intentions) jouer(partie, partie.envoyer(i));
   }
   throw new Error('témoin : le tour attendu n’est pas venu');
@@ -139,13 +139,13 @@ describe('Matrice des verrous d’État : le registre ferme ce que la console gr
   }
 });
 
-describe('État qui verrouille l’Action (LDB 16 l.52) : la raison du verdict est celle du dispatcher', () => {
+describe('État qui verrouille l’Action (LDB 16 l.52) : la raison du verdict est celle du verbe', () => {
   it('Brisé : l’offre du Soin, refusée, porte la MÊME raison que le gate', () => {
     const partie = auTour('pastilles-entite', (c) => c.kind === 'hero');
     try {
       const ctx = contexte(partie);
       addCondition(ctx.active, 'brise');
-      partie.envoyer({ type: 'jouerLOffre', args: ['heal'] });
+      partie.envoyer({ type: 'armerLeMode', args: ['heal'] });
       expect(partie.etat().battle!.action, 'le Brisé a armé le Soin').toBeNull();
       expect(partie.etat().refus?.texte).toBe(actionGate('heal', ctx).reason);
     } finally {
@@ -154,7 +154,7 @@ describe('État qui verrouille l’Action (LDB 16 l.52) : la raison du verdict e
   });
 });
 
-describe('Préalables et pertinence : l’offre refuse ce que le dispatcher refuse', () => {
+describe('Préalables et pertinence : l’offre refuse ce que le verbe refuse', () => {
   it('Recharger sans arme à recharger est fermé', () => {
     const partie = auTour('pastilles-entite', (c) => c.kind === 'hero');
     try {
@@ -171,19 +171,19 @@ describe('Préalables et pertinence : l’offre refuse ce que le dispatcher refu
     const partie = auTour('ecuries-clayonnage', tireur);
     try {
       const id = activeCombatant(partie.etat().battle!)!.id;
-      jouer(partie, partie.envoyer({ type: 'jouerLOffre', args: ['aim'] }));
+      jouer(partie, partie.envoyer({ type: 'prendreLaVisee', args: [] }));
       expect(activeCombatant(partie.etat().battle!)!.aiming, 'témoin : la visée n’a pas pris').toBe(true);
-      jouer(partie, partie.envoyer({ type: 'jouerLOffre', args: ['end-turn'] }));
+      jouer(partie, partie.envoyer({ type: 'terminerLeTour', args: [] }));
       jusquAuTour(partie, (c) => c.id === id && !partie.etat().battle!.acted);
       const ctx = contexte(partie);
       expect(actionGate('aim', ctx)).toEqual({ ok: false, reason: t('agate.alreadyAiming') });
-      expect(offresDeLActif(ctx).some((o) => o.actionId === 'aim'), 'Viser reste offert en joue').toBe(false);
+      expect(offresDeLActif({ ...ctx, state: partie.etat() }).some((o) => o.actionId === 'aim'), 'Viser reste offert en joue').toBe(false);
     } finally {
       partie.fermer();
     }
   });
 
-  it('Coque : la Bordée se ferme quand aucune pièce n’est chargée (`postesPretsAFaireFeu`, lu par `battleShipBattery`)', () => {
+  it('Coque : la Bordée se ferme quand aucune pièce n’est chargée (`postesPretsAFaireFeu`, lu par `ouvrirLaBordee`)', () => {
     const partie = auTour('duel-naval', (c) => !!c.postes?.length && c.kind === 'hero');
     try {
       const ctx = contexte(partie);
@@ -201,8 +201,8 @@ describe('Préalables et pertinence : l’offre refuse ce que le dispatcher refu
       const ctx = contexte(partie);
       expect(actionGate('sing-shanty', { ...ctx, args: { shipId: ctx.active.id } }).reason).toBe(t('agate.noShantySinger'));
       const poste = ctx.active.postes![0];
-      expect(poste.loaded, 'témoin : la pièce est déchargée').not.toBe(false);
-      expect(actionGate('ship-reload', { ...ctx, args: { shipId: ctx.active.id, posteUid: poste.item.uid } }).reason).toBe(t('agate.noPosteToReload'));
+      expect(poste.loaded, 'témoin : la pièce est chargée').not.toBe(false);
+      expect(actionGate('ship-reload', { ...ctx, args: { weaponUid: poste.item.uid } }).reason).toBe(t('agate.nothingToReload'));
     } finally {
       partie.fermer();
     }

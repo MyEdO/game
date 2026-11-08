@@ -73,7 +73,7 @@ function map(routePatch: Partial<MapRouteTrace> = {}): WorldMap {
  *  60 sous) vit sur le meneur, seedée après le chargement du projet (#531). */
 function setup(worldMap: WorldMap, party: Combatant[] = [hero({ items: [ration('r1'), ration('r2'), ration('r3')] })], possessions: Possession[] = []) {
   banc.setState({ party });
-  banc.getState().loadProject({ scenes: [sceneA(), sceneB()], entryId: 'lieu-a-scene', worldMap, projet: null });
+  banc.getState().chargerLeProjet({ scenes: [sceneA(), sceneB()], entryId: 'lieu-a-scene', worldMap, projet: null });
   if (possessions.length) banc.setState({ possessions });
   creditBourse(banc.getState, banc.setState, party[0].id, { gold: 0, silver: 5, brass: 0 });
 }
@@ -86,10 +86,10 @@ function drainCascade(): void {
   while (banc.getState().pendingCascade && guard++ < 200) {
     const p = banc.getState().pendingCascade!;
     const cur = p.participants[p.cursor];
-    if (cur?.participants && cur.participants.some((part) => !part.result)) { for (const part of cur.participants) if (!part.result) banc.getState().jetRoll('cascadeBatch', part.id); }
-    else if (cur?.table && !cur.table.result) banc.getState().jetRoll('cascadeTirage', cur.id); // étape à TABLE (Météo d'Étape…)
-    else if (cur && cur.target != null && !cur.result) banc.getState().jetRoll('cascade', cur.id);
-    else banc.getState().jetConfirm('cascade');
+    if (cur?.participants && cur.participants.some((part) => !part.result)) { for (const part of cur.participants) if (!part.result) banc.getState().jetLancer('cascadeBatch', part.id); }
+    else if (cur?.table && !cur.table.result) banc.getState().jetLancer('cascadeTirage', cur.id); // étape à TABLE (Météo d'Étape…)
+    else if (cur && cur.target != null && !cur.result) banc.getState().jetLancer('cascade', cur.id);
+    else banc.getState().jetValider('cascade');
   }
 }
 
@@ -101,12 +101,12 @@ function sleepThroughHalt(): void {
   drainCascade();
 }
 
-describe('startTravel — à pied', () => {
+describe('partirEnVoyage — à pied', () => {
   it('court trajet (12 km à M4, 3 h) : arrive le jour même, horloge avancée, transition vers la scène du lieu', () => {
     setup(map());
     const t0 = banc.getState().gameTime;
     expect(t0).toBe(campaignStart());
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     const st = banc.getState();
     expect(st.travelPlan).toBeNull();
     expect(st.lieu).toBe('pb');
@@ -117,7 +117,7 @@ describe('startTravel — à pied', () => {
   it('trajet multi-jours (30 km à M4) : 6 h/jour (LDB 51 l.195), HALTE de nuit (modale de Repos), rations consommées', () => {
     setup(map({ km: 30 }));
     const t0 = banc.getState().gameTime;
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     // Nuit 1 : le voyage se SUSPEND sur la modale de Repos (campement — pas d'auberge sur la route).
     let st = banc.getState();
     expect(st.scene?.id).toBe('lieu-a-scene'); // toujours en route
@@ -135,7 +135,7 @@ describe('startTravel — à pied', () => {
 
   it('marche forcée (allure > 6 h/jour) : les jets ouvrent la cascade INFLUENÇABLE de la halte de nuit', () => {
     setup(map({ km: 60 })); // assez long pour une halte de nuit après le 1er jour
-    banc.getState().startTravel('r1', 'pied', { hoursPerDay: 8 }); // > 6 h → marche forcée (LDB 51 l.195)
+    banc.getState().partirEnVoyage('r1', 'pied', { hoursPerDay: 8 }); // > 6 h → marche forcée (LDB 51 l.195)
     const p = banc.getState().pendingRest!;
     expect(p.phase).toBe('setup');
     expect((p.travelMarch ?? []).length).toBeGreaterThan(0); // héros à tester en marche forcée
@@ -149,7 +149,7 @@ describe('startTravel — à pied', () => {
   it('route à RELAIS (inns) : la halte de nuit propose l’auberge — chambre privée débitée, puis arrivée', () => {
     setup(map({ km: 30, inns: true }));
     creditBourse(banc.getState, banc.setState, 'h', { gold: 2, silver: 0, brass: 0 }); // la nuitée est débitée de la bourse (restFlow → payFromGroup)
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     const p = banc.getState().pendingRest!;
     expect(p.places.auberge).toBe(true);
     expect(p.perHero[banc.getState().party[0].id].lodging).toBe('privee'); // défaut auberge
@@ -162,14 +162,14 @@ describe('startTravel — à pied', () => {
   it('la vitesse est celle du PLUS LENT (l.222) : M3 dans le groupe → 4 h pour 12 km', () => {
     setup(map(), [hero(), hero({ id: 'h2', label: 'Nain', movement: 3 })]);
     const t0 = banc.getState().gameTime;
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     expect(banc.getState().gameTime - t0).toBe(240);
   });
 
   it('marche forcée : une allure de 10 h/jour évite la nuit de camp sur 30 km', () => {
     setup(map({ km: 30 }));
     const t0 = banc.getState().gameTime;
-    banc.getState().startTravel('r1', 'pied', { hoursPerDay: 10 });
+    banc.getState().partirEnVoyage('r1', 'pied', { hoursPerDay: 10 });
     const st = banc.getState();
     expect(st.lieu).toBe('pb');
     expect(st.gameTime - t0).toBe(450); // 30 km ÷ 4 km/h = 7 h 30, d'une traite
@@ -178,11 +178,11 @@ describe('startTravel — à pied', () => {
   });
 });
 
-describe('startTravel — transports payants (LDB 51 l.178-189)', () => {
+describe('partirEnVoyage — transports payants (LDB 51 l.178-189)', () => {
   it('diligence : débite prix/km × km × passagers et voyage à M6', () => {
     setup(map({ modes: ['pied', 'diligence'] })); // 12 km — bourse de départ : 5 SC = 60 PA
     const t0 = banc.getState().gameTime;
-    banc.getState().startTravel('r1', 'diligence', { classeId: 'exterieur' }); // 1 sou/km × 12 × 1 passager
+    banc.getState().partirEnVoyage('r1', 'diligence', { classeId: 'exterieur' }); // 1 sou/km × 12 × 1 passager
     const st = banc.getState();
     expect(st.lieu).toBe('pb');
     expect(toBrass(partyMoneyTotal(() => st))).toBe(48); // 60 − 12
@@ -191,7 +191,7 @@ describe('startTravel — transports payants (LDB 51 l.178-189)', () => {
 
   it('bourse insuffisante → voyage refusé', () => {
     setup(map({ km: 600, modes: ['diligence'] })); // Intérieur 2 sous/km × 600 km = 1200 PA ≫ 60 PA
-    banc.getState().startTravel('r1', 'diligence', { classeId: 'interieur' });
+    banc.getState().partirEnVoyage('r1', 'diligence', { classeId: 'interieur' });
     const st = banc.getState();
     expect(st.scene?.id).toBe('lieu-a-scene'); // pas parti
     expect(st.travelPlan).toBeNull();
@@ -202,7 +202,7 @@ describe('startTravel — transports payants (LDB 51 l.178-189)', () => {
   it('vitesse d’auteur sur la route (EiS ch.1 : diligence à 3 km/h) respectée', () => {
     setup(map({ modes: ['diligence'], speed: { diligence: 3 } }));
     const t0 = banc.getState().gameTime;
-    banc.getState().startTravel('r1', 'diligence', { classeId: 'exterieur' });
+    banc.getState().partirEnVoyage('r1', 'diligence', { classeId: 'exterieur' });
     expect(banc.getState().gameTime - t0).toBe(240); // 12 km ÷ 3 km/h = 4 h
   });
 });
@@ -213,7 +213,7 @@ describe('péripéties d’auteur — interruption et reprise', () => {
       km: 30,
       perils: [{ label: 'Brigands sur la route !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-test' }] }],
     }));
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     drainCascade(); // la péripétie du jour est une étape de la cascade travelDay → la drainer
     let st = banc.getState();
     // DIFFÉRÉ derrière le récit : pas de combat tant que le recap n'est pas acquitté
@@ -224,7 +224,7 @@ describe('péripéties d’auteur — interruption et reprise', () => {
     expect(st.travelPlan!.kmDone).toBeGreaterThan(0);
     expect(st.journal.some((l) => l.includes('Brigands sur la route'))).toBe(true);
     // Pas d'esquive : la reprise est REFUSÉE tant que l'embuscade attend son acquittement.
-    banc.getState().resumeTravel();
+    banc.getState().reprendreLeVoyage();
     expect(banc.getState().travelRecap?.then).toBeTruthy();
     expect(banc.getState().travelPlan?.interrupted).toBe(true);
     // « Faire face » : l'acquittement déclenche le combat.
@@ -236,7 +236,7 @@ describe('péripéties d’auteur — interruption et reprise', () => {
     banc.setState({ battle: null, mode: 'exploration' });
     const wm = banc.getState().worldMap!;
     banc.setState({ worldMap: { ...wm, routes: wm.routes.map((r) => ({ ...r, perils: [] })) } });
-    banc.getState().resumeTravel();
+    banc.getState().reprendreLeVoyage();
     // Les 6 h du jour sont déjà marchées (LDB 51 l.195) : le groupe fait halte, il repart au matin.
     expect(banc.getState().pendingRest?.travelHalt).toBe(true);
     sleepThroughHalt();
@@ -249,14 +249,14 @@ describe('péripéties d’auteur — interruption et reprise', () => {
     // 12 km à M4 = 3 h → la péripétie tombe le jour de l'arrivée ; la reprise ne doit PAS re-tirer
     // la péripétie (sinon une péripétie à 100 % boucle indéfiniment).
     setup(map({ perils: [{ label: 'Toujours là !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-test' }] }] }));
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     drainCascade(); // péripétie du jour en cascade → drainer pour l'interruption
     expect(banc.getState().travelPlan?.interrupted).toBe(true);
     expect(banc.getState().travelPlan?.kmDone).toBeCloseTo(12);
     banc.getState().fenetreFermer('recitDeVoyage'); // « Faire face » → le combat démarre
     expect(banc.getState().battle).toBeTruthy();
     banc.setState({ battle: null, mode: 'exploration' });
-    banc.getState().resumeTravel(); // péripétie TOUJOURS à 100 % — ne doit plus se déclencher
+    banc.getState().reprendreLeVoyage(); // péripétie TOUJOURS à 100 % — ne doit plus se déclencher
     const st = banc.getState();
     expect(st.travelPlan).toBeNull();
     expect(st.lieu).toBe('pb');
@@ -278,7 +278,7 @@ describe('péripéties d’auteur — interruption et reprise', () => {
 
   it('péripétie purement narrative (journal) : le voyage continue', () => {
     setup(map({ perils: [{ label: 'Un colporteur partage la route.', chancePct: 100, effects: [{ type: 'journal', desc: 'Il vend des amulettes.' }] }] }));
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     drainCascade(); // péripétie narrative en cascade travelDay → drainer, puis arrivée
     const st = banc.getState();
     expect(st.lieu).toBe('pb'); // arrivé malgré la péripétie
@@ -289,7 +289,7 @@ describe('péripéties d’auteur — interruption et reprise', () => {
 describe('nourriture en voyage (LDB 18 l.337-343)', () => {
   it('sans rations, un long voyage affame le groupe (compteur de faim) et bloque la récup nocturne', () => {
     setup(map({ km: 72 }), [hero({ items: [], wounds: blessuresDeBase(12, 5) })]); // 3 jours pleins à M4
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     // Chaque nuit : halte (modale de Repos) → dormir (cascade) → reprendre la route au matin.
     for (let n = 0; n < 6 && banc.getState().pendingRest; n++) {
       sleepThroughHalt();
@@ -301,9 +301,9 @@ describe('nourriture en voyage (LDB 18 l.337-343)', () => {
     expect(st.journal.some((l) => l.includes('affamé'))).toBe(true); // récup bloquée journalisée (rest.ts)
   });
 
-  it('openWorldMap et sa sortie : overlay piloté par le store (pas en combat)', () => {
+  it('ouvrirLaCarte et sa sortie : overlay piloté par le store (pas en combat)', () => {
     setup(map());
-    banc.getState().openWorldMap();
+    banc.getState().ouvrirLaCarte();
     expect(banc.getState().worldMapOpen).toBe(true);
     banc.getState().fenetreFermer('carteDuMonde');
     expect(banc.getState().worldMapOpen).toBe(false);
@@ -313,7 +313,7 @@ describe('nourriture en voyage (LDB 18 l.337-343)', () => {
 describe('récapitulatif de voyage (audit M4) — modale à l’arrivée/interruption', () => {
   it('arrivée : recap « arrived » avec ses journées et les lignes de péripétie', () => {
     setup(map({ perils: [{ label: 'Un colporteur partage la route.', chancePct: 100, effects: [{ type: 'journal', desc: 'Il vend des amulettes.' }] }] }));
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     drainCascade(); // péripétie du jour en cascade travelDay → drainer, puis recap d'arrivée
     const r = banc.getState().travelRecap!;
     expect(r.status).toBe('arrived');
@@ -331,7 +331,7 @@ describe('récapitulatif de voyage (audit M4) — modale à l’arrivée/interru
       km: 30,
       perils: [{ label: 'Brigands sur la route !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-test' }] }],
     }));
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     drainCascade(); // péripétie du jour en cascade travelDay → drainer pour l'interruption
     let r = banc.getState().travelRecap!;
     expect(r.status).toBe('interrupted');
@@ -344,7 +344,7 @@ describe('récapitulatif de voyage (audit M4) — modale à l’arrivée/interru
     banc.setState({ battle: null, mode: 'exploration' });
     const wm = banc.getState().worldMap!;
     banc.setState({ worldMap: { ...wm, routes: wm.routes.map((x) => ({ ...x, perils: [] })) } });
-    banc.getState().resumeTravel();
+    banc.getState().reprendreLeVoyage();
     sleepThroughHalt(); // budget du jour épuisé (LDB 51 l.195) : halte, puis la route au matin
     r = banc.getState().travelRecap!;
     expect(r.status).toBe('arrived');
@@ -353,7 +353,7 @@ describe('récapitulatif de voyage (audit M4) — modale à l’arrivée/interru
 
   it('surcharge EN ROUTE (le groupe se charge à la halte) : recap « stalled »', () => {
     setup(map({ km: 30 }));
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     expect(banc.getState().pendingRest?.phase).toBe('setup');
     // Huit hallebardes (Enc 3) : 24 > 3 × (BF 3 + BE 4) — immobilisé (LDB 61 l.40).
     const h = banc.getState().party[0];
@@ -365,10 +365,10 @@ describe('récapitulatif de voyage (audit M4) — modale à l’arrivée/interru
   });
 });
 
-describe('refus de départ (#3059) — `startTravel` refuse en le disant', () => {
+describe('refus de départ (#3059) — `partirEnVoyage` refuse en le disant', () => {
   it('vitesse nulle au départ : aucun voyage, aucun recap, le refus au journal', () => {
     setup(map({ speed: { pied: 0 } }));
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     const st = banc.getState();
     expect(st.travelPlan).toBeNull();
     expect(st.travelRecap).toBeNull();
@@ -378,7 +378,7 @@ describe('refus de départ (#3059) — `startTravel` refuse en le disant', () =>
   it('siège invité : le départ est refusé, « L’hôte décide des départs. »', () => {
     setup(map());
     banc.setState({ net: { ...banc.getState().net, mode: 'guest' } });
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     const st = banc.getState();
     expect(st.travelPlan).toBeNull();
     expect(st.scene?.id).toBe('lieu-a-scene');
@@ -387,7 +387,7 @@ describe('refus de départ (#3059) — `startTravel` refuse en le disant', () =>
 
   it('bourse insuffisante : rien débité, le refus nomme le passage et son prix', () => {
     setup(map({ km: 600, modes: ['diligence'] }));
-    banc.getState().startTravel('r1', 'diligence', { classeId: 'interieur' });
+    banc.getState().partirEnVoyage('r1', 'diligence', { classeId: 'interieur' });
     const st = banc.getState();
     expect(st.travelPlan).toBeNull();
     expect(toBrass(partyMoneyTotal(() => st))).toBe(60);
@@ -396,7 +396,7 @@ describe('refus de départ (#3059) — `startTravel` refuse en le disant', () =>
 
   it('offre absente (véhicule sans tarif) : aucun voyage, le refus au journal', () => {
     setup(map({ modes: ['charrette'], speed: { charrette: 4 } }));
-    banc.getState().startTravel('r1', 'charrette');
+    banc.getState().partirEnVoyage('r1', 'charrette');
     const st = banc.getState();
     expect(st.travelPlan).toBeNull();
     expect(st.scene?.id).toBe('lieu-a-scene');
@@ -411,7 +411,7 @@ describe('rations des nuits en route (#3059) — le devis dit ce que les haltes 
     const st = banc.getState();
     const devis = devisDeTrajet(st, st.worldMap!.routes[0], 'pa', 'pied');
     expect(devis.plan?.days).toBe(4); // 24 + 24 + 24 + 18 km : trois nuits en route
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     let garde = 0;
     while (banc.getState().pendingRest && garde++ < 10) sleepThroughHalt();
     expect(banc.getState().lieu).toBe('pb');
@@ -436,7 +436,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
   it('OFF (défaut) : voyage INCHANGÉ — aucune ligne de Météo/Étape, arrivée identique au chemin de base', () => {
     setup(map({ km: 12, perilDie: 0 }));
     const t0 = banc.getState().gameTime;
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     const st = banc.getState();
     // Comportement de base : arrive le jour même (12 km à M4 = 3 h), comme le test de référence.
     expect(st.lieu).toBe('pb');
@@ -451,7 +451,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
   it('ON : la Météo du jour est journalisée (libellé seul — le d100 est un tirage de MONDE, pas montré)', () => {
     setRule('travel-etapes', true);
     setup(map({ km: 12, perilDie: 0 }));
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     drainCascade(); // cascade travelDay (postes) → drainer, puis arrivée
     const st = banc.getState();
     expect(st.lieu).toBe('pb'); // arrive toujours (l'enrichissement ne bloque pas la route)
@@ -466,7 +466,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     // possible si le flag était mis, mais il ne l'est pas ici.
     const h = hero({ travelRole: { activityId: 'recuperer' }, items: [ration('r1')] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     drainCascade(); // cascade travelDay (poste Récupérer) → drainer
     const st = banc.getState();
     expect(st.journal.some((l) => l.includes("Exposition de fin d'Étape"))).toBe(false);
@@ -478,7 +478,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     setRule('travel-etapes', true);
     const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 20 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     drainCascade(); // cascade travelDay (poste Approvisionnement) → drainer
     const st = banc.getState();
     // Le Test lui-même est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — succès sans effet
@@ -501,7 +501,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
       // Poste Récupérer : pas de « Plein air » → la porte `suppressExposure` reste fermée, l'Exposition se joue.
       setup(map({ km: 12, perilDie: 0 }), [hero({ travelRole: { activityId: 'recuperer' } })]);
       banc.setState({ gameTime: winter });
-      banc.getState().startTravel('r1', 'pied');
+      banc.getState().partirEnVoyage('r1', 'pied');
       drainCascade(); // cascade travelDay (poste + Exposition insérée) → drainer
       if (banc.getState().journal.some((l) => l.includes("Exposition de fin d'Étape"))) exposed = true;
     }
@@ -516,7 +516,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
       seedBattleRng(seed);
       setup(map({ km: 12, perilDie: 0 }), [hero({ travelRole: { activityId: 'recuperer' } })]);
       banc.setState({ gameTime: campaignStart() }); // fin Jahrdrung = printemps, saison froide
-      banc.getState().startTravel('r1', 'pied');
+      banc.getState().partirEnVoyage('r1', 'pied');
       drainCascade();
       sick = (banc.getState().party[0].diseases ?? []).find((d) => d.id === 'rhume-commun');
     }
@@ -542,7 +542,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
       porteur.diseases = [{ id: 'rhume-commun', symptoms: [], phase: 'active', minutesLeft: 5 * JOUR, durationMinutes: 5 * JOUR }];
       setup(map({ km: 12, perilDie: 0 }), [porteur]);
       banc.setState({ gameTime: campaignStart() });
-      banc.getState().startTravel('r1', 'pied');
+      banc.getState().partirEnVoyage('r1', 'pied');
       drainCascade();
       const dz = (banc.getState().party[0].diseases ?? []).find((d) => d.id === 'rhume-commun')!;
       if (dz.durationMinutes > 5 * JOUR) mesure = { avant: 5 * JOUR, apres: dz.durationMinutes };
@@ -565,7 +565,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
       const h = hero({ travelRole: { activityId: 'plein-air' }, skills: [{ id: 'survie-en-exterieur', advances: 60 } as any] });
       setup(map({ km: 12, perilDie: 0 }), [h]);
       banc.setState({ gameTime: campaignStart() });
-      banc.getState().startTravel('r1', 'pied');
+      banc.getState().partirEnVoyage('r1', 'pied');
       drainCascade(); // cascade travelDay (Plein air, l'Exposition sautée si réussi) → drainer
       const st = banc.getState();
       const j = st.journal;
@@ -581,7 +581,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     setRule('travel-etapes', true);
     const h = hero({ travelRole: { activityId: 'etablir-cartes' }, skills: [{ id: 'metier', spec: 'cartographe', advances: 80 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     drainCascade(); // cascade travelDay (poste Établir des cartes, Test étendu) → drainer
     const j = banc.getState().journal;
     expect(j.some((l) => l.includes('Cartographie') || l.includes("carte de l'itinéraire est ACHEVÉE"))).toBe(true);
@@ -592,7 +592,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     // Trajet > 36 km/jour (M6 × 6 h) → halte de nuit, `travelPlan` persiste (vehicle inspectable).
     // Extérieur 1 sou/km × 50 km = 50 PA ≤ 60 PA de bourse de départ.
     setup(map({ km: 50, modes: ['diligence'], perilDie: 0 }));
-    banc.getState().startTravel('r1', 'diligence', { classeId: 'exterieur' });
+    banc.getState().partirEnVoyage('r1', 'diligence', { classeId: 'exterieur' });
     const plan = banc.getState().travelPlan;
     expect(plan?.vehicle?.bodyShape).toBe('vehicule');
     expect(plan?.vehicle?.wounds.max).toBe(50);
@@ -602,7 +602,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
   it('à pied : aucun `plan.vehicle` (pas de coque pour un trajet à pied)', () => {
     setRule('travel-etapes', true);
     setup(map({ km: 12, perilDie: 0 }));
-    banc.getState().startTravel('r1', 'pied');
+    banc.getState().partirEnVoyage('r1', 'pied');
     drainCascade(); // cascade travelDay éventuelle (poste par défaut) → drainer, puis arrivée
     // Trajet bouclé le jour même → plan purgé ; le départ n'aura de toute façon créé aucune coque.
     expect(banc.getState().travelPlan).toBeNull();
@@ -616,18 +616,18 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
       seedBattleRng(seed);
       const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 0 } as any] });
       setup(map({ km: 12, perilDie: 0 }), [h]);
-      banc.getState().startTravel('r1', 'pied');
+      banc.getState().partirEnVoyage('r1', 'pied');
       drainCascade(); // cascade travelDay (échec de poste → Rencontre tirée après l'agrégation) → drainer
       if (banc.getState().journal.some((l) => ENTREES_DE_RENCONTRE.some((e) => l.startsWith(`${e} : `)))) met = true;
     }
     expect(met).toBe(true);
   });
 
-  it('setTravelRole épingle puis détache le rôle de marche PERSISTANT', () => {
+  it('attribuerLeRoleDeMarche épingle puis détache le rôle de marche PERSISTANT', () => {
     setup(map(), [hero({ id: 'h1' })]);
-    banc.getState().setTravelRole('h1', { activityId: 'plein-air' });
+    banc.getState().attribuerLeRoleDeMarche('h1', { activityId: 'plein-air' });
     expect(banc.getState().party[0].travelRole).toEqual({ activityId: 'plein-air' });
-    banc.getState().setTravelRole('h1', null);
+    banc.getState().attribuerLeRoleDeMarche('h1', null);
     expect(banc.getState().party[0].travelRole).toBeUndefined();
   });
 });
@@ -647,7 +647,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
   it('OFF (défaut) : le départ « en selle » est refusé', () => {
     const h = hero();
     setup(map(), [h], [mountPossession('m1', h.id)]);
-    banc.getState().startTravel('r1', 'monture');
+    banc.getState().partirEnVoyage('r1', 'monture');
     expect(banc.getState().travelPlan).toBeNull();
     expect(banc.getState().scene?.id).toBe('lieu-a-scene');
   });
@@ -656,7 +656,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
     setRule('travel-allures', true);
     const h = hero();
     setup(map(), [h, hero({ id: 'h2', label: 'Nain' })], [mountPossession('m1', h.id)]);
-    banc.getState().startTravel('r1', 'monture');
+    banc.getState().partirEnVoyage('r1', 'monture');
     expect(banc.getState().travelPlan).toBeNull();
     expect(banc.getState().scene?.id).toBe('lieu-a-scene');
   });
@@ -666,7 +666,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
     const h = hero();
     setup(map(), [h], [mountPossession('m1', h.id)]);
     const t0 = banc.getState().gameTime;
-    banc.getState().startTravel('r1', 'monture', { allure: 'trot' });
+    banc.getState().partirEnVoyage('r1', 'monture', { allure: 'trot' });
     const st = banc.getState();
     expect(st.lieu).toBe('pb');
     expect(st.gameTime - t0).toBe(Math.round((12 / 17.5) * 60)); // 41 min
@@ -680,12 +680,12 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
     const jour = dayIndex(banc.getState().gameTime);
     // 6 h déjà chevauchées aujourd'hui : l'allure de base est épuisée → nuit sur place, aucun jour de 0 h.
     banc.setState({ travelDayHours: { day: jour, foot: 0, mount: 6, marched: false } });
-    banc.getState().startTravel('r1', 'monture', { allure: 'trot' });
+    banc.getState().partirEnVoyage('r1', 'monture', { allure: 'trot' });
     expect(banc.getState().travelPlan).toBeNull();
     expect(banc.getState().pendingDeparture?.cause).toBe('budget');
     // Test opposé : 6 h MARCHÉES n'usent pas le budget en selle — le groupe monté part et arrive.
     banc.setState({ pendingDeparture: null, travelDayHours: { day: jour, foot: 6, mount: 0, marched: false } });
-    banc.getState().startTravel('r1', 'monture', { allure: 'trot' });
+    banc.getState().partirEnVoyage('r1', 'monture', { allure: 'trot' });
     expect(banc.getState().pendingDeparture).toBeNull();
     expect(banc.getState().lieu).toBe('pb');
   });
@@ -695,7 +695,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
     // Chien M4 : galop 12 km/h, endurance ½ BE = 1 h → une longue journée dépasse LARGEMENT.
     const h = hero();
     setup(map({ km: 80 }), [h], [mountPossession('m1', h.id, 'chien-de-trait')]);
-    banc.getState().startTravel('r1', 'monture', { allure: 'galop' });
+    banc.getState().partirEnVoyage('r1', 'monture', { allure: 'galop' });
     const j = banc.getState().journal;
     expect(j.some((l) => l.includes('Incident de monte') || l.includes('s’effondre') || l.includes("s'effondre"))).toBe(true);
   });
@@ -708,7 +708,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
       seedBattleRng(seed);
       const h = hero();
       setup(map({ km: 80 }), [h], [mountPossession('m1', h.id, 'chien-de-trait')]);
-      banc.getState().startTravel('r1', 'monture', { allure: 'galop' });
+      banc.getState().partirEnVoyage('r1', 'monture', { allure: 'galop' });
       const st = banc.getState();
       if (st.journal.some((l) => l.includes('la route continue à pied'))) {
         degraded = true;
@@ -723,7 +723,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
     setRule('travel-allures', true);
     const h = hero();
     setup(map(), [h], [mountPossession('m1', h.id, 'cheval-de-monte', 'perte-d-un-fer')]);
-    banc.getState().startTravel('r1', 'monture'); // au pas (le fer force déjà le pas)
+    banc.getState().partirEnVoyage('r1', 'monture'); // au pas (le fer force déjà le pas)
     const st = banc.getState();
     expect(st.lieu).toBe('pb');
     const mount = st.possessions.find((p) => p.uid === 'm1')!;
@@ -738,7 +738,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
       mountPossession('m1', h.id, 'cheval-de-monte', 'patte-brisee'),
       mountPossession('m2', h.id, 'poney', 'boiteux'),
     ]);
-    banc.getState().startTravel('r1', 'pied'); // aucune des deux bêtes n'est montable (`preventsMount`)
+    banc.getState().partirEnVoyage('r1', 'pied'); // aucune des deux bêtes n'est montable (`preventsMount`)
     const st = banc.getState();
     expect(st.lieu).toBe('pb'); // le voyage est bien ARRIVÉ (sinon l'assertion suivante serait vide)
     const injuryOf = (uid: string) => {
@@ -761,7 +761,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
       setup(map({ km: 80 }), [h], [mountPossession('m1', h.id, 'chien-de-trait')]);
       const partyRefBefore = banc.getState().party;
       const woundsBefore = banc.getState().party[0].wounds.current;
-      banc.getState().startTravel('r1', 'monture', { allure: 'galop' });
+      banc.getState().partirEnVoyage('r1', 'monture', { allure: 'galop' });
       // Le 1d10 des Dégâts de chute de selle tombe à la PORTE (#1508) : l'étape à dé nu appendue à la
       // journée est jouée ici, comme n'importe quel jet de la séquence de voyage.
       draineCascade(banc.getState);
@@ -786,7 +786,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
     for (let seed = 1; seed <= 30 && !problem; seed++) {
       seedBattleRng(seed);
       setup(map({ km: 30, modes: ['diligence'] }));
-      banc.getState().startTravel('r1', 'diligence', { classeId: 'exterieur', allure: 'galop' });
+      banc.getState().partirEnVoyage('r1', 'diligence', { classeId: 'exterieur', allure: 'galop' });
       drainCascade(); // #270 : le Test de Conduite d'attelage au km est une étape influençable (conducteur piloté par un humain)
       const st = banc.getState();
       // La coque est créée dès que l'allure est forcée (les Dégâts du Problème doivent porter).
@@ -806,7 +806,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
       seedBattleRng(seed);
       setup(map({ km: 200, modes: ['diligence'] }), [hero({ items: [ration('r1'), ration('r2'), ration('r3')] })]);
       creditBourse(banc.getState, banc.setState, 'h', { gold: 5, silver: 0, brass: 0 });
-      banc.getState().startTravel('r1', 'diligence', { classeId: 'exterieur', allure: 'galop' });
+      banc.getState().partirEnVoyage('r1', 'diligence', { classeId: 'exterieur', allure: 'galop' });
       drainCascade(); // #270 : le Test de Conduite d'attelage au km est une étape influençable (conducteur piloté par un humain)
       if (banc.getState().travelPlan?.vehicleLame) lame = true;
       while (banc.getState().pendingRest && banc.getState().travelPlan && !lame) {

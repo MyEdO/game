@@ -1,12 +1,12 @@
 /**
  * GRILLE DE CASES projetée (#1176, P3-3 puis P3-5b) — les LIMITES de cases, en traits, dans le repère
  * de projection du plateau. Fonction PURE, sans DOM ni React : elle vit ici, sous l'éditeur ET sous le
- * rendu de jeu, parce que ses DEUX consommateurs en dépendent (`ui/editor/EditorCanvas` en surcouche
- * d'AUTEUR, `gameIso/SurcoucheIso` en surcouche TACTIQUE de la vue du dessus) et qu'aucun des deux n'a à
+ * rendu de jeu, parce que ses DEUX consommateurs en dépendent (la surcouche d'AUTEUR de l'éditeur,
+ * la surcouche TACTIQUE de la vue du dessus) et qu'aucun des deux n'a à
  * dépendre de l'autre.
  *
- * POURQUOI ELLE EXISTE : sur la voie AFFINE, chaque losange de sol était tracé avec son contour
- * (`gameIso/authoring/floorsSvg.ts`), et cette couture DONNAIT la grille. Le monde VOLUMIQUE fusionne
+ * POURQUOI ELLE EXISTE : sur la voie AFFINE, chaque losange de sol était tracé avec son contour,
+ * et cette couture DONNAIT la grille. Le monde VOLUMIQUE fusionne
  * les faces coplanaires de même matériau : deux cases voisines de même terrain n'ont plus aucune
  * limite visible. La grille cesse donc d'être un effet de bord du dessin et devient ce qu'elle aurait
  * toujours dû être : une surcouche explicite.

@@ -18,8 +18,8 @@
  * La DONNÉE vit dans `src/data/miscast.json` (éditable) ; ce module = types +
  * chargement + résolution. Ajouter/régler une entrée = éditer le JSON, jamais ce fichier.
  */
-import { RNG, rollDice, type DiceSpec } from './dice';
-import { findTableEntry, tableOuverte } from './tables';
+import { RNG, rollDice } from './dice';
+import { findTableEntry, tableOuverte, type DeDeTable } from './tables';
 import { rule } from './policy';
 import { findDomainById, combatStakeRef } from '../data';
 import { GameOp, Formula } from './ops';
@@ -366,7 +366,7 @@ export function miscastTableId(severity: MiscastSeverity): string {
 }
 
 /** Le dé de tirage d'une table déclarée — le `die` VIVANT de son document. */
-export function miscastDie(tableId: string): DiceSpec {
+export function miscastDie(tableId: string): DeDeTable {
   return deDeTirageDe<typeof miscastDef>(miscastJson, tableId);
 }
 

@@ -28,6 +28,6 @@ export interface BuildingDef {
   maison: string;
   /** Couverture de référence du type (id de `materials.json`, domaine `roof`). */
   roofMaterial: string;
-  /** Ornements d'identité posés en billboard par `gameIso/builders/props.ts`. Absent = bâtiment sobre. */
+  /** Ornements d'identité que le rendu pose en billboard. Absent = bâtiment sobre. */
   features?: BuildingFeature[];
 }

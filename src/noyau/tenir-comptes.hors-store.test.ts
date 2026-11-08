@@ -28,14 +28,14 @@ const merchantScene = () => {
   return sc;
 };
 
-beforeEach(() => { banc.getState().seedRng(4); });
+beforeEach(() => { banc.getState().ensemencerLeTirage(4); });
 
 describe('Tenir les comptes (LDB 59 l.9-11)', () => {
   it('option active : un objet ≤ Statut du groupe est acquis sans débit', () => {
     setRule('market-tenir-comptes', true);
     banc.setState({ party: [richHero()], scene: merchantScene() });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 50, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const line = banc.getState().merchant!.stock.find((l) => l.qty > 0)!;
     const before = toBrass(partyMoneyTotal(banc.getState));
     acheterAuPanier(banc.getState, line.id);
@@ -48,7 +48,7 @@ describe('Tenir les comptes (LDB 59 l.9-11)', () => {
     setRule('market-tenir-comptes', false);
     banc.setState({ party: [richHero()], scene: merchantScene() });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 50, silver: 0, brass: 0 });
-    banc.getState().openMerchant('pnj');
+    banc.getState().ouvrirLeMarchand('pnj');
     const line = banc.getState().merchant!.stock.find((l) => l.qty > 0)!;
     const before = toBrass(partyMoneyTotal(banc.getState));
     acheterAuPanier(banc.getState, line.id);

@@ -12,7 +12,7 @@ describe('protocole coop (hote/coop/protocol)', () => {
     const msgs: NetMessage[] = [
       { kind: 'hello', protocol: PROTOCOL_VERSION, build: 'dev', label: 'Antoine' },
       { kind: 'intent', action: 'terminerLeTour', args: [], seat: 2 },
-      { kind: 'intent', action: 'battleClickEntity', args: ['enemy-1', { confirm: true }], seat: 1 },
+      { kind: 'intent', action: 'cliquerLaCase', args: [{ x: 1, y: 0 }, 'enemy-1', { confirm: true }], seat: 1 },
       { kind: 'snapshot', data: { gameTime: 42, party: [] } },
       { kind: 'error', reason: 'protocol-mismatch', expected: 1, got: 2 },
       { kind: 'error', reason: 'format-mismatch', expected: 'a1', got: 'b2' },

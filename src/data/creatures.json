@@ -21100,7 +21100,10 @@
     "grantGroups": [
       "bete",
       "animaux-domestiques"
-    ]
+    ],
+    "appearance": {
+      "species": "mouton"
+    }
   },
   {
     "id": "cochon",
@@ -21130,7 +21133,10 @@
     "grantGroups": [
       "bete",
       "animaux-domestiques"
-    ]
+    ],
+    "appearance": {
+      "species": "cochon"
+    }
   },
   {
     "id": "poulet",
@@ -21302,7 +21308,10 @@
     },
     "grantGroups": [
       "feu"
-    ]
+    ],
+    "appearance": {
+      "species": "elementaire-incarne-du-feu"
+    }
   },
   {
     "id": "elementaire-incarne-de-la-mort",
@@ -21376,6 +21385,9 @@
     "source": {
       "book": "vents-de-la-magie",
       "page": 175
+    },
+    "appearance": {
+      "species": "elementaire-incarne-de-la-mort"
     }
   },
   {
@@ -21496,6 +21508,9 @@
     "source": {
       "book": "vents-de-la-magie",
       "page": 28
+    },
+    "appearance": {
+      "species": "fabrique-par-magie"
     }
   },
   {
@@ -21613,6 +21628,9 @@
     "source": {
       "book": "vents-de-la-magie",
       "page": 181
+    },
+    "appearance": {
+      "species": "familier-de-combat"
     }
   },
   {
@@ -21723,6 +21741,9 @@
     "source": {
       "book": "vents-de-la-magie",
       "page": 182
+    },
+    "appearance": {
+      "species": "familier-de-pouvoir"
     }
   },
   {
@@ -21832,6 +21853,9 @@
     "source": {
       "book": "vents-de-la-magie",
       "page": 182
+    },
+    "appearance": {
+      "species": "familier-de-sorts"
     }
   },
   {

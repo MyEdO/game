@@ -18,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  *  1. Dessoûlage (LDB 09 l.485) : le 2ᵉ Test (gueule de bois) est sa PROPRE étape influençable INSÉRÉE
  *     — le joueur influence les DEUX jets.
  *  2. Combat franchissant minuit : les Tests d'entretien du jour se METTENT EN FILE (`deferredUpkeepQueue`)
- *     et sont CONSOMMÉS par `openCombatEndCascade` — jamais un jet silencieux (advanceTime par Round).
+ *     et sont CONSOMMÉS par `openCombatEndCascade` — jamais un jet silencieux (avancerLeTemps par Round).
  */
 const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
@@ -61,7 +61,7 @@ describe('#253.2 — combat franchissant minuit : les Tests d\'entretien se mett
       deferredUpkeepQueue: [], pendingCascade: null,
     });
     // 2 minutes → franchit minuit (jour 0 → 1) EN COMBAT.
-    get().advanceTime(2);
+    get().avancerLeTemps(2);
     const q = get().deferredUpkeepQueue;
     // La file porte des BANDES (#1117 L3) : le porteur est une RANGÉE, pas l'`actorId` de l'étape.
     expect(q.some((s) => s.kind === 'dessoulage' && (s.participants ?? []).some((p) => p.id === hero.id))).toBe(true);

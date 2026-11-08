@@ -22,7 +22,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  *
  * Depuis le refactor, la fabrique DÉRIVE le gating de la Chance/Pacte/Résistance de l'issue unique :
  * `failed = !outcome(slot).won`. Ce test PILOTE, flux par flux (catalogue-dérivé de `FLOW_VERBS`), le
- * verbe RÉELLEMENT gaté par ce `failed` — la RELANCE de Chance (`jetReroll(flux, …)`) — et prouve qu'il :
+ * verbe RÉELLEMENT gaté par ce `failed` — la RELANCE de Chance (`jetRelancer(flux, …)`) — et prouve qu'il :
  *   (a) est DISPONIBLE sur un résultat PERDANT (dépense 1 Point de Chance) ;
  *   (b) est un NO-OP sur un résultat GAGNANT (aucune dépense).
  * Un flux dont l'`outcome.won` NE reflète PAS son issue réelle fait donc échouer (a) ou (b).
@@ -195,7 +195,6 @@ const SKIP: Record<string, string> = {
   fumble: 'Maladresse (LDB 14) — le flux n’a NI Chance NI Résilience (`verbs: [roll, confirm]`) : le tirage des Oups ! désigne une ligne de table, son `outcome` est scellé neutre.',
   shipManeuver: 'Test d’équipage par rôle (MDG 14) — fixture de rôle valide lourde ; `outcome` = `cleanRollOutcome` partagé (crewRoleFlowSpec), déjà exercé par la logique numérique de forceDoor',
   shipBattery: 'idem shipManeuver (MÊME crewRoleFlowSpec)',
-  crewTest: 'idem shipManeuver (MÊME crewRoleFlowSpec)',
 };
 
 beforeEach(() => {
@@ -215,9 +214,9 @@ describe('Issue canonique (outcome) — la Chance est gatée par l’issue RÉEL
     expect(uncovered, 'flux ni couvert ni justifié').toEqual([]);
   });
 
-  /** La relance de Chance (`jetReroll`) sur le flux `flux`, la rangée `pid` posée sur un flux multi. */
+  /** La relance de Chance (`jetRelancer`) sur le flux `flux`, la rangée `pid` posée sur un flux multi. */
   const relancer = (flux: string, pid?: string): void =>
-    (banc.getState().jetReroll as (flux: string, pid?: string) => void)(flux, pid);
+    (banc.getState().jetRelancer as (flux: string, pid?: string) => void)(flux, pid);
   for (const prefix of Object.keys(FLOW_VERBS)) {
     const fx = FIXTURES[prefix];
     if (!fx) {

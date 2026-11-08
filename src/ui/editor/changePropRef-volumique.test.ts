@@ -9,8 +9,9 @@ import { estPropVolumique } from '../../gameIso/builders/types';
 describe('éditeur — les places assises suivent le geste, atomiquement', () => {
   it('changer la ref vers un décor VOLUMIQUE fait retomber un cap refusé au cap d’identité : le geste ne crée pas de faute (C2)', () => {
     const s = emptyScene('scene-test', 8, 8);
-    s.entities = [{ id: 'p3', kind: 'prop', pos: { x: 4, y: 4 }, ref: 'brasero', facing: 'NE' }];
-    expect(validateScene([s]).filter((w) => w.refId === 'p3')).toEqual([]);
+    // Un décor HORS catalogue (repli #877) n'a pas de recette : son cap diagonal n'est pas la faute nommée.
+    s.entities = [{ id: 'p3', kind: 'prop', pos: { x: 4, y: 4 }, ref: 'decor-hors-catalogue', facing: 'NE' }];
+    expect(validateScene([s]).filter((w) => w.refId === 'p3' && /orientation/.test(w.message))).toEqual([]);
     const apres = changePropRef(s, 'p3', 'tonneau');
     expect(apres.entities[0]).toMatchObject({ ref: 'tonneau', facing: 'S' });
     expect(validateScene([apres]).filter((w) => w.refId === 'p3')).toEqual([]);

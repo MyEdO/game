@@ -147,11 +147,11 @@ describe('Panne de Vapeur — déclenchée par le Test de Progression (MDG 12 l.
     banc.setState({
       party: makePregens().slice(0, 3).map((h) => ({ ...h, characteristics: tableTotale(Object.keys(h.characteristics), () => 99) })),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
-      battle: null, worldMap: seaMap, lieu: 'A', travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null,
+      battle: null, worldMap: seaMap, lieu: 'A', travelPlan: null, travelRecap: null, pendingRest: null,
       pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0, pendingSteamSave: null, journal: [],
       vessel: { vehicleId: 'cogue', upgrades: [{ id: 'propulsion-a-vapeur' }], morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     } as never);
-    get().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
     for (let i = 0; i < 30 && !get().pendingRest; i++) {
       const pc = get().pendingCascade;
       if (!pc || pc.participants[pc.cursor]?.kind === 'progression') break;
@@ -168,7 +168,7 @@ describe('Panne de Vapeur — déclenchée par le Test de Progression (MDG 12 l.
       ...s, participants: s.participants!.map((part, j) => (j ? part : { ...part, result: { roll: 99, target: jet.target, sl: jet.sl, success: jet.success } })),
     }));
     set({ pendingCascade: { ...p, participants: poses } });
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     const panne = t('sv.steamBreakdown', { label: '' }).split(' —')[0];
     expect(get().journal.some((l) => l.includes(panne)), 'la table de panne de vapeur est tirée').toBe(true);
   });

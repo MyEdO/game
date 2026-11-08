@@ -20,13 +20,13 @@ import { useGesteDeJet } from './useGesteDeJet';
 export function ApproachModal() {
   const pa = useGame((s) => s.pendingApproach);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetRoll', 'approach');
-  const reroll = useGesteDeJet('jetReroll', 'approach');
-  const darkPact = useGesteDeJet('jetDarkPact', 'approach');
-  const force = useGesteDeJet('jetForceSuccess', 'approach');
-  const reverse = useGesteDeJet('jetReverse', 'approach'); // Inversion (LDB 12 l.42)
-  const confirm = useGesteDeJet('jetConfirm', 'approach');
-  const cancel = useGesteDeJet('jetCancel', 'approach');
+  const roll = useGesteDeJet('jetLancer', 'approach');
+  const reroll = useGesteDeJet('jetRelancer', 'approach');
+  const darkPact = useGesteDeJet('jetPactiser', 'approach');
+  const force = useGesteDeJet('jetForcerLaReussite', 'approach');
+  const reverse = useGesteDeJet('jetInverser', 'approach'); // Inversion (LDB 12 l.42)
+  const confirm = useGesteDeJet('jetValider', 'approach');
+  const cancel = useGesteDeJet('jetAnnuler', 'approach');
   if (!pa || !battle) return null;
   const c = battle.combatants.find((x) => x.id === pa.combatantId);
   if (!c) return null;

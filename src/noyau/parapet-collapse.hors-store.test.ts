@@ -48,11 +48,11 @@ function sceneSurGouffre(): Scene {
 
 /** Lance un combat sur la scène à herse + passerelle, RNG seedé ; renvoie la structure enrôlée et les ennemis. */
 function start(scene: Scene = sceneWithParapet()) {
-  banc.getState().seedRng(1);
+  banc.getState().ensemencerLeTirage(1);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
-  banc.getState().startScene(scene);
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(scene);
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;

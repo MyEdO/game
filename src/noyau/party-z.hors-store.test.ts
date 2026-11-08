@@ -9,7 +9,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * Déplacement d'exploration z-aware : le groupe peut fouler une case d'une couche SUPÉRIEURE (tablier
- * `plancher` posé sur le « vide »), et `partyPos` porte alors son `z`. `moveParty` est gardé par la
+ * `plancher` posé sur le « vide »), et `partyPos` porte alors son `z`. `deplacerLeGroupe` est gardé par la
  * marchabilité de la couche visée (`isWalkable(scene, x, y, z)`) : une case « vide » d'étage se refuse.
  * La hauteur métrique de la surface n'empêche pas de la fouler — seule sa marchabilité compte.
  */
@@ -24,7 +24,7 @@ function twoLayerScene(): Scene {
   return s;
 }
 
-describe('exploration z-aware : moveParty', () => {
+describe('exploration z-aware : deplacerLeGroupe', () => {
   beforeEach(() =>
     banc.setState({ mode: 'exploration', battle: null, dialogue: null, scene: twoLayerScene(), partyPos: { x: 0, y: 0 }, party: [] }),
   );

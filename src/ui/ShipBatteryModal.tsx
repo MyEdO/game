@@ -12,19 +12,19 @@ import { useGesteDeJet } from './useGesteDeJet';
  * Modale du TIR DE BATTERIE (« bordée », MDG 14 l.128) — JUMEAU de `ShipManeuverModal` (flux MULTI,
  * `RollShell` + `RollRow`). Chaque Artilleur tenu = une rangée (PJ influençable / marin témoin) ;
  * le bandeau somme les DR (essentiel ×2) + Moral → le **DR PARTAGÉ** qui s'applique à TOUTES les pièces du bord
- * (l.128). Pas de virage : `extra` montre la cible + les pièces qui tirent. « Feu ! » résout la volée (`jetConfirm('shipBattery')`).
+ * (l.128). Pas de virage : `extra` montre la cible + les pièces qui tirent. « Feu ! » résout la volée (`jetValider('shipBattery')`).
  */
 export function ShipBatteryModal() {
   const p = useGame((s) => s.pendingShipBattery);
   const battle = useGame((s) => s.battle);
   const owns = useOwns(); // possession locale à l'affichage (#1262) — hook : AVANT tout retour anticipé
-  const roll = useGesteDeJet('jetRoll', 'shipBattery');
-  const reroll = useGesteDeJet('jetReroll', 'shipBattery');
-  const bonus = useGesteDeJet('jetBonusSL', 'shipBattery');
-  const darkPact = useGesteDeJet('jetDarkPact', 'shipBattery');
-  const force = useGesteDeJet('jetForceSuccess', 'shipBattery');
-  const confirm = useGesteDeJet('jetConfirm', 'shipBattery');
-  const cancel = useGesteDeJet('jetCancel', 'shipBattery');
+  const roll = useGesteDeJet('jetLancer', 'shipBattery');
+  const reroll = useGesteDeJet('jetRelancer', 'shipBattery');
+  const bonus = useGesteDeJet('jetAjouterUnDR', 'shipBattery');
+  const darkPact = useGesteDeJet('jetPactiser', 'shipBattery');
+  const force = useGesteDeJet('jetForcerLaReussite', 'shipBattery');
+  const confirm = useGesteDeJet('jetValider', 'shipBattery');
+  const cancel = useGesteDeJet('jetAnnuler', 'shipBattery');
   if (!p || !battle) return null;
   const ship = battle.combatants.find((c) => c.id === p.shipId);
   const target = battle.combatants.find((c) => c.id === p.targetId);

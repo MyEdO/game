@@ -176,7 +176,7 @@ describe('(d) Routage data-driven — seul un engin indirect expose le ciblage d
 // (e) ROUTAGE LIVE — armer « Servir le mortier » OUVRE le placeur de case ; viser une CASE ouvre la modale de
 //     tir (pendingAttack siège, centre = case), dont la résolution DÉTONE sur le rayon (réutilise resolveWeaponArea).
 describe('(e) Routage live — placeur de case + pilonnage via la modale de tir existante', () => {
-  it('armerLAttaque(poste) ouvre le placeur ; siegeAimCommit pilonne la case → rayon blessé', () => {
+  it('armerLAttaque(poste) ouvre le placeur ; poserLePointDImpact pilonne la case → rayon blessé', () => {
     seedBattleRng(7);
     const poste = mkPoste('mortier', ['gunner']);
     const gunner = mkGunner('gunner', { x: 0, y: 0 }, 90);
@@ -199,7 +199,7 @@ describe('(e) Routage live — placeur de case + pilonnage via la modale de tir 
     expect(sa!.radius).toBeGreaterThan(0);
 
     // 2) VISER une case VIDE entre les ennemis → modale de tir (pendingAttack siège, cible-repère = plus proche).
-    banc.getState().siegeAimCommit({ x: 10, y: 0 });
+    banc.getState().poserLePointDImpact({ x: 10, y: 0 });
     const pa = banc.getState().pendingAttack;
     expect(pa).toBeTruthy();
     expect(pa!.siege).toBe(true);
@@ -208,8 +208,8 @@ describe('(e) Routage live — placeur de case + pilonnage via la modale de tir 
 
     // 3) RÉSOLUTION : le jet de tir (normal) puis l'Appliquer DÉTONENT sur la case → rayon blessé, hors rayon indemne.
     const w1 = e1.wounds.current, w2 = e2.wounds.current, wf = far.wounds.current;
-    banc.getState().jetRoll('attack');
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetLancer('attack');
+    banc.getState().jetValider('attack');
     expect(e1.wounds.current).toBeLessThan(w1);
     expect(e2.wounds.current).toBeLessThan(w2);
     expect(far.wounds.current).toBe(wf);
@@ -228,7 +228,7 @@ describe('(e) Routage live — placeur de case + pilonnage via la modale de tir 
       battle: { combatants: all, order: all.map((c) => c.id), turn: all.findIndex((c) => c.id === 'gunner'), round: 1, acted: false, log: [], crewActed: {}, zones: [] } as never,
       party: [gunner], facing: {}, scene: groundScene() as never, pendingSiegeAim: { gunnerId: 'gunner', weaponUid: gunner.weapons.find((w) => w.uid === poste.item.uid)!.uid!, radius: 3, rangeTiles: null }, pendingAttack: null, pendingCascade: null,
     });
-    expect(() => banc.getState().siegeAimCommit({ x: 10, y: 0 })).not.toThrow();
+    expect(() => banc.getState().poserLePointDImpact({ x: 10, y: 0 })).not.toThrow();
     expect(banc.getState().pendingAttack).toBeNull(); // tir à vide → aucune modale ouverte
     expect(far.wounds.current).toBe(far.wounds.max);
   });

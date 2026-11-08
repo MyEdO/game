@@ -46,13 +46,25 @@ function memeCible(cibleHeros: number, attendue: number, ia: (de: number) => boo
 beforeEach(() => { banc.setState({ battle: null, pendingFrenzy: null, pendingWard: null, pendingHandGate: null, pendingAttack: null, pendingCascade: null }); });
 
 describe('même Test, héros et IA Sonnés ×3 : même cible (LDB 16 l.125)', () => {
-  it('entrée en Frénésie (Test de Force Mentale, LDB 21 l.31)', () => {
+  it('entrée en Frénésie : un Test de Force Mentale, donc l’Action, que le Sonné n’a pas — ni le héros ni l’IA n’entrent (LDB 21 l.31 ; LDB 13 l.106 ; LDB 16 l.125)', () => {
     const { H, E } = jumeauxSonnes();
     H.traits = [{ id: 'frenesie' }]; E.traits = [{ id: 'frenesie' }];
     g().entrerEnFrenesie();
-    g().jetRoll('frenzy');
+    expect(g().pendingFrenzy, 'le héros Sonné a ouvert le Test d’entrée en Frénésie').toBeNull();
+    E.psychState = [];
+    deDeCombat(1);
+    aiMaybeFrenzy(g, banc.setState, E);
+    expect(isFrenzied(E), 'l’IA Sonnée est entrée en Frénésie').toBe(false);
+  });
+
+  it('entrée en Frénésie hors Sonné : héros et IA jettent la même cible (LDB 21 l.31)', () => {
+    const { H, E } = jumeauxSonnes();
+    H.conditions = []; E.conditions = [];
+    H.traits = [{ id: 'frenesie' }]; E.traits = [{ id: 'frenesie' }];
+    g().entrerEnFrenesie();
+    g().jetLancer('frenzy');
     const cible = g().pendingFrenzy!.result!.target!;
-    memeCible(cible, 30, (de) => {
+    memeCible(cible, 60, (de) => {
       E.psychState = [];
       deDeCombat(de);
       aiMaybeFrenzy(g, banc.setState, E);
@@ -64,7 +76,7 @@ describe('même Test, héros et IA Sonnés ×3 : même cible (LDB 16 l.125)', ()
     const { H, E } = jumeauxSonnes();
     (H as { activeEffects?: unknown[] }).activeEffects = [{ label: 'Bénédiction de Protection', bonus: 0, duration: { scale: 'rounds', left: 6 }, attackWardFM: true }];
     banc.setState({ pendingWard: { attackerId: H.id, targetId: E.id, targetName: E.label, result: null } } as never);
-    g().jetRoll('ward');
+    g().jetLancer('ward');
     const cible = g().pendingWard!.result!.target!;
     memeCible(cible, 50, (de) => attackWardGate(E, H, deFixe(de)).allowed);
   });

@@ -227,7 +227,7 @@ describe('« Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, hér
     setDesFixes(true);
     setupPreRoll();
     resolveRoll();
-    useGame.getState().jetSetForcedRoll('attack', 33);
+    useGame.getState().jetImposerLeResultat('attack', 33);
     const die = rowForcedDie(useGame.getState(), 'attack', { actor: ATT, rolled: true, interactive: true, onRoll: null }, true);
     act(() => {
       root.render(
@@ -276,7 +276,7 @@ describe('« Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, hér
     setDesFixes(true);
     setupPreRoll();
     resolveRoll();
-    useGame.getState().jetSetForcedRoll('attack', 33);
+    useGame.getState().jetImposerLeResultat('attack', 33);
     const die = rowForcedDie(useGame.getState(), 'attack', { actor: ATT, rolled: true, interactive: true, onRoll: null }, true);
     expect(die.fixedMark).toBe(true);
     act(() => {
@@ -690,7 +690,7 @@ describe('« Tout lancer » d’une fenêtre MULTI — chaque rangée consomme S
     act(() => {
       root.render(
         <RollShell
-          flowKey="crewTest"
+          flowKey="shipManeuver"
           title="Test d’équipage"
           rolled={false}
           rows={[mkRow('a', 'Voile'), mkRow('b', 'Ramer'), mkRow('c', 'Perception')]}
@@ -788,7 +788,7 @@ describe('ORDRE RÉEL blur → clic : les 3 hôtes consomment quand même le dé
     );
     act(() => {
       root.render(
-        <RollShell flowKey="crewTest" title="Test d’équipage" rolled={false}
+        <RollShell flowKey="shipManeuver" title="Test d’équipage" rolled={false}
           rows={[mkRow('a', 'Voile'), mkRow('b', 'Ramer')]}
           actions={[{ key: 'rollAll', label: 'Tout lancer', onClick: () => { rolls.push('a:naturel'); rolls.push('b:naturel'); } }]}
           onCancel={() => {}} />,

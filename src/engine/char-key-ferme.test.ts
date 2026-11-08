@@ -58,7 +58,7 @@ const SOURCE = { book: 'livre-de-base', page: 1 };
 /** Une créature minimale ; `champs` y pose la clé de Caractéristique sous test. */
 const creature = (champs: Record<string, unknown>) => [{
   id: 'creature-fixture', type: 'creatures', label: 'Créature fixture', title: null, folder: null,
-  char: {}, traits: [], optionals: [], skills: [], talents: [], trappings: [], spells: [], source: SOURCE, ...champs,
+  char: {}, traits: [], optionals: [], skills: [], talents: [], trappings: [], spells: [], appearance: { species: 'humain' }, source: SOURCE, ...champs,
 }];
 
 describe('les champs de donnée qui nomment une Caractéristique refusent le token court (#2724)', () => {

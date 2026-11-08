@@ -113,9 +113,9 @@ describe('F — le dénouement d’un dé joué EN COMBAT se montre dans le jour
   /** Ouvre la séquence, POSE (`dePose`) ou LANCE le dé, valide l'étape — le geste de la fenêtre. */
   function jouerSauvegarde(dePose?: number): void {
     startCascade(banc.getState, banc.setState, { title: 'Sauvegarde', purpose: 'test', steps: [sauvegardeStep()] });
-    if (dePose != null) banc.getState().jetSetForcedRoll('cascadeTirage', dePose, 'sauvegarde-ilyanwe');
-    else banc.getState().jetRoll('cascadeTirage', 'sauvegarde-ilyanwe');
-    banc.getState().jetConfirm('cascade');
+    if (dePose != null) banc.getState().jetImposerLeResultat('cascadeTirage', dePose, 'sauvegarde-ilyanwe');
+    else banc.getState().jetLancer('cascadeTirage', 'sauvegarde-ilyanwe');
+    banc.getState().jetValider('cascade');
   }
 
   const logDeCombat = () => banc.getState().battle?.log ?? [];

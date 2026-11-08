@@ -26,6 +26,7 @@ import { snapshotSave } from './persistance/save';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { chebyshev } from '../engine/grid';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -36,8 +37,8 @@ const get = () => banc.getState();
 function setup(opts: { peur?: boolean } = {}) {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], screen: 'campaign' });
-  get().startScene(testScene());
-  get().startCombat('enc-mutants');
+  get().lancerLaScene(testScene());
+  get().lancerLeCombat('enc-mutants');
   get().fenetreValider('roundStart');
   banc.abandonner();
   const b = get().battle!;
@@ -56,14 +57,14 @@ function setup(opts: { peur?: boolean } = {}) {
 describe('(A) RÉ-ENTRÉE — un geste ARMÉ puis DIFFÉRÉ par un gate se commet à la relance', () => {
   it('Charge armée + Test de Calme d’approche RÉUSSI → le héros charge, sans « armez la Charge »', () => {
     const { H, E } = setup({ peur: true });
-    get().jouerLOffre('charge'); // le joueur ARME la case Charge, puis clique la cible
-    get().battleClickEntity(E.id, { confirm: true });
+    banc.jouerLaCase('charge'); // le joueur ARME la case Charge, puis clique la cible
+    cliquerSurLeCombattant(get, E.id, { confirm: true });
     // Le gate de Peur s'ouvre : rien n'est commis, l'intention a été dissoute par ce clic.
     expect(get().pendingApproach, 'le Test de Calme d’approche ne s’est pas ouvert').not.toBeNull();
     expect(get().localIntent, 'témoin : le clic a bien dissous l’intention').toBeNull();
     banc.setState({ pendingApproach: { ...get().pendingApproach!, result: { success: true, roll: 5, target: 50, sl: 4 } } });
     banc.abandonner();
-    get().jetConfirm('approach');
+    get().jetValider('approach');
     banc.reprendreLesEnAttente(); // joue le glissé d'approche → ouvre la frappe
     const h = get().battle!.combatants.find((c) => c.id === H.id)!;
     expect(get().refus, 'le geste GAGNÉ au jet a été refusé à la relance').toBeNull();
@@ -73,7 +74,7 @@ describe('(A) RÉ-ENTRÉE — un geste ARMÉ puis DIFFÉRÉ par un gate se comme
 
   it('SANS armement, le même Test réussi ne commet PAS l’approche (le gate ne fabrique pas le geste)', () => {
     const { H, E } = setup({ peur: true });
-    get().battleClickEntity(E.id, { confirm: true }); // aucune case armée → refus immédiat
+    cliquerSurLeCombattant(get, E.id, { confirm: true }); // aucune case armée → refus immédiat
     expect(get().refus?.texte ?? '', 'le refus n’a pas été dit').toContain('Charge');
     expect(get().pendingApproach, 'un gate s’est ouvert pour un geste refusé').toBeNull();
     expect(get().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 10, y: 10 });
@@ -102,30 +103,30 @@ describe('(A) RÉ-ENTRÉE — un geste ARMÉ puis DIFFÉRÉ par un gate se comme
 describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans les args', () => {
   it('l’intention armée du client entre dans les args de SON intent (clic-ennemi et clic-case)', () => {
     setup();
-    get().jouerLOffre('charge');
-    expect(argsAvecVerdictLocal(get, 'battleClickEntity', ['e1', { confirm: true }]))
-      .toEqual(['e1', { confirm: true, approche: true }]);
-    get().jouerLOffre('course');
-    expect(argsAvecVerdictLocal(get, 'battleClickTile', [{ x: 1, y: 1 }, { confirm: true }]))
-      .toEqual([{ x: 1, y: 1 }, { confirm: true, courseArmee: true }]);
+    banc.jouerLaCase('charge');
+    expect(argsAvecVerdictLocal(get, 'cliquerLaCase', [{ x: 11, y: 10 }, 'e1', { confirm: true }]))
+      .toEqual([{ x: 11, y: 10 }, 'e1', { confirm: true, approche: true }]);
+    banc.jouerLaCase('course');
+    expect(argsAvecVerdictLocal(get, 'cliquerLaCase', [{ x: 1, y: 1 }, undefined, { confirm: true }]))
+      .toEqual([{ x: 1, y: 1 }, undefined, { confirm: true, courseArmee: true }]);
   });
 
   it('rien d’armé → le verdict part FAUX (l’hôte ne doit rien deviner)', () => {
     setup();
-    expect(argsAvecVerdictLocal(get, 'battleClickEntity', ['e1', {}])).toEqual(['e1', { approche: false }]);
-    expect(argsAvecVerdictLocal(get, 'battleClickTile', [{ x: 1, y: 1 }, {}])).toEqual([{ x: 1, y: 1 }, { courseArmee: false }]);
+    expect(argsAvecVerdictLocal(get, 'cliquerLaCase', [{ x: 11, y: 10 }, 'e1', {}])).toEqual([{ x: 11, y: 10 }, 'e1', { approche: false }]);
+    expect(argsAvecVerdictLocal(get, 'cliquerLaCase', [{ x: 1, y: 1 }])).toEqual([{ x: 1, y: 1 }, undefined, { courseArmee: false }]);
   });
 
   it('un intent SANS verdict à joindre voyage inchangé', () => {
     setup();
-    get().jouerLOffre('charge');
+    banc.jouerLaCase('charge');
     expect(argsAvecVerdictLocal(get, 'terminerLeTour', [])).toEqual([]);
   });
 
   it('HÔTE non armé : le geste de l’INVITÉ (verdict dans les args) s’exécute quand même', () => {
     const { H, E } = setup();
     expect(get().localIntent, 'témoin : l’hôte n’a RIEN armé').toBeNull();
-    get().battleClickEntity(E.id, { confirm: true, approche: true }); // args tels que l'invité les a émis
+    cliquerSurLeCombattant(get, E.id, { confirm: true, approche: true }); // args tels que l'invité les a émis
     banc.reprendreLesEnAttente();
     const h = get().battle!.combatants.find((c) => c.id === H.id)!;
     expect(get().refus, 'l’hôte a refusé le geste que l’invité avait armé').toBeNull();
@@ -134,9 +135,9 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
 
   it('HÔTE armé : sa case NE DÉBLOQUE PAS le geste d’un invité qui n’a rien armé', () => {
     const { H, E } = setup();
-    get().jouerLOffre('charge'); // l'HÔTE arme SA case…
+    banc.jouerLaCase('charge'); // l'HÔTE arme SA case…
     expect(get().localIntent).toEqual({ actionId: 'charge' });
-    get().battleClickEntity(E.id, { confirm: true, approche: false }); // …mais l'invité a émis « non armé »
+    cliquerSurLeCombattant(get, E.id, { confirm: true, approche: false }); // …mais l'invité a émis « non armé »
     expect(get().refus?.texte ?? '', 'le geste non armé de l’invité est passé').toContain('Charge');
     expect(get().battle!.combatants.find((c) => c.id === H.id)!.pos, 'le héros a été déplacé par la case d’un AUTRE').toEqual({ x: 10, y: 10 });
     expect(get().pendingAttack).toBeNull();
@@ -145,8 +146,8 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
   it('MÊME loi pour le clic-case : l’hôte armé ne fait pas courir l’invité', () => {
     const { H } = setup();
     const loin = { x: 10 + 6, y: 10 }; // au-delà de la Marche (M4), dans la zone de Course
-    get().jouerLOffre('course');
-    get().battleClickTile(loin, { confirm: true, courseArmee: false });
+    banc.jouerLaCase('course');
+    get().cliquerLaCase(loin, undefined, { confirm: true, courseArmee: false });
     expect(get().pendingRun ?? get().pendingCascade, 'la Course d’autrui est partie sur la case de l’hôte').toBeFalsy();
     expect(get().refus?.texte ?? '').toContain('Course');
     expect(get().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 10, y: 10 });
@@ -158,7 +159,7 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
     const net0 = get().net;
     const { H } = setup();
     banc.setState({ pendingRun: null, net: { ...net0, mode: 'host', mySeat: 0, ownership: { [H.id]: 0 }, slots: [1, 0, 0, 0] } });
-    get().jouerLOffre('course');
+    banc.jouerLaCase('course');
     expect(get().localIntent, 'témoin : l’hôte a armé SA Course').toEqual({ actionId: 'course' });
     banc.setState({ net: { ...get().net, ownership: { [H.id]: 1 } } });
     return { H, net0 };
@@ -167,7 +168,7 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
   it('SIÈGE sans verdict : son clic ne court pas et ne dissout pas l’intention armée du propriétaire', () => {
     const { H, net0 } = hoteArmeHerosConfie();
     try {
-      withActingSeat(1, () => get().battleClickTile({ x: 10 + 6, y: 10 }, { confirm: true }));
+      withActingSeat(1, () => get().cliquerLaCase({ x: 10 + 6, y: 10 }, undefined, { confirm: true }));
       banc.reprendreLesEnAttente();
       expect(get().refus?.texte ?? '', 'témoin : le geste du siège a passé la garde de possession, puis refusé faute de verdict').toContain('Course');
       expect(get().localIntent, 'le clic d’un autre siège a dissous l’intention de l’hôte').toEqual({ actionId: 'course' });
@@ -181,7 +182,7 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
   it('SIÈGE avec verdict joint : son clic court, par le verdict qu’il porte', () => {
     const { H, net0 } = hoteArmeHerosConfie();
     try {
-      withActingSeat(1, () => get().battleClickTile({ x: 10 + 6, y: 10 }, { confirm: true, courseArmee: true }));
+      withActingSeat(1, () => get().cliquerLaCase({ x: 10 + 6, y: 10 }, undefined, { confirm: true, courseArmee: true }));
       banc.reprendreLesEnAttente();
       expect(get().refus, 'le geste armé du siège a été refusé').toBeNull();
       expect(get().pendingRun, 'le siège n’a pas couru').toMatchObject({ combatantId: H.id, dest: { x: 10 + 6, y: 10 } });
@@ -196,7 +197,7 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
     banc.setState({ pendingRun: null, net: { ...net0, mode: 'host', mySeat: 0, ownership: { [H.id]: 1 }, slots: [1, 0, 0, 0] } });
     expect(get().localIntent, 'témoin : l’hôte n’a RIEN armé').toBeNull();
     try {
-      withActingSeat(1, () => get().battleClickTile({ x: 10 + 6, y: 10 }, { confirm: true, courseArmee: true }));
+      withActingSeat(1, () => get().cliquerLaCase({ x: 10 + 6, y: 10 }, undefined, { confirm: true, courseArmee: true }));
       banc.reprendreLesEnAttente();
       expect(get().refus, 'l’hôte a jugé la Course de l’invité sur SA propre intention').toBeNull();
       expect(get().pendingRun, 'l’invité n’a pas couru').toMatchObject({ combatantId: H.id, dest: { x: 10 + 6, y: 10 } });
@@ -248,7 +249,7 @@ describe('(C) le REFUS est un canal LOCAL — et ne se tait jamais', () => {
     setup();
     refuserGeste(get, banc.setState, 'Hors de portée.');
     banc.setState({ battle: null, mode: 'exploration' }); // fin de combat (patron de la sortie de la victoire)
-    get().startCombat('enc-mutants');
+    get().lancerLeCombat('enc-mutants');
     expect(get().battle, 'témoin : le combat suivant ne s’est pas ouvert').not.toBeNull();
     expect(get().refus, 'le refus du combat précédent ouvre le suivant').toBeNull();
   });
@@ -257,7 +258,7 @@ describe('(C) le REFUS est un canal LOCAL — et ne se tait jamais', () => {
     setup();
     refuserGeste(get, banc.setState, 'Hors de portée.');
     banc.setState({ battle: null, mode: 'exploration' });
-    get().transitionTo(testScene().id); // seam RÉEL du checkpoint : l'entrée en scène fait sauvegarder l'hôte
+    get().quitterLaScene(testScene().id); // seam RÉEL du checkpoint : l'entrée en scène fait sauvegarder l'hôte
     expect(get().refus, 'le refus a traversé le changement de scène').toBeNull();
     const snap = snapshotSave(get(), '2026-08-20T00:00:00.000Z');
     expect(snap.data.refus, 'un refus périmé part dans la sauvegarde').toBeNull();

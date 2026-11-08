@@ -32,6 +32,7 @@ import { simpleTriggeredTestStep, withDerivedStake } from './combat/triggeredTes
 import { effectSourcesOf } from './triggeredEffects';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW } from '../engine/flowCore';
+import { BOARD_EVENTS, PORT_EVENTS } from '../engine/seaVoyage';
 import { noeudsDeTest, KIND_PAR_FICHIER } from './noeudsDeTest.testkit';
 import { resolveStake, findById, combatStakeRef, regles, type StakeRef } from '../data';
 import { ACTIVITIES } from '../engine/activities';
@@ -72,7 +73,22 @@ const ENJEU_AU_PRODUCTEUR: Record<string, () => { entryId: string; stake: StakeR
   // catégories Codex de coque choisies à la LOCALISATION touchée, jamais le document-table.
   'river-criticals.json': () => enjeuxDesCoupsAEquipage(RIVER_CRIT_SET),
   'ship-criticals.json': () => enjeuxDesCoupsAEquipage(SHIP_CRIT_SET),
+  // `consequence` d'un événement de bord ou d'escale : le document est la TABLE (`sea-events`), le foyer est la
+  // RANGÉE, que l'enjeu authoré nomme (`entryId`) ; `runFlow` le passe tel quel à la porte du Test.
+  'sea-events.json': () => [...BOARD_EVENTS, ...PORT_EVENTS].flatMap((e) => noeudsTestDe(e.consequence).map((n) => ({ entryId: e.id, stake: n.test.stake }))),
 };
+
+/** Les nœuds `test` d'un Flow, dans l'ordre. */
+function noeudsTestDe(f: Flow | undefined): Extract<Flow, { kind: 'test' }>[] {
+  if (!f) return [];
+  switch (f.kind) {
+    case 'seq': return f.steps.flatMap(noeudsTestDe);
+    case 'if': return [...noeudsTestDe(f.then), ...noeudsTestDe(f.else)];
+    case 'test': return [f, ...noeudsTestDe(f.success), ...noeudsTestDe(f.fail)];
+    case 'choice': return [...noeudsTestDe(f.yes), ...noeudsTestDe(f.no)];
+    case 'do': return [];
+  }
+}
 
 /** Les enjeux RÉELLEMENT posés par `rollShipCritical` sur les nœuds `test` d'un jeu de Critiques de
  *  coque : un par rangée portant un coup à l'équipage À ÉPREUVE (un coup CERTAIN — `ops`, MSRC 07

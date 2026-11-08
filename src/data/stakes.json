@@ -739,7 +739,7 @@
     "label": "Affaler sous l’ouragan",
     "cascade": "voyage",
     "cle": "sea-ouragan-affaler",
-    "template": "Le Test subit −2 DR ; échoué : Coup Critique au gréement.",
+    "template": "L’équipage affale sous l’Ouragan : échoué, le vaisseau subit les Coups Critiques au Gréement que l’événement chiffre.",
     "form": "descripteur",
     "rule": {
       "id": "test-equipage-affaler",
@@ -747,8 +747,8 @@
     },
     "source": {
       "book": "mer-des-griffes",
-      "page": 123,
-      "note": "MDG 14 l.94"
+      "page": 131,
+      "note": "MDG 15 l.144-145"
     }
   },
   {
@@ -972,7 +972,7 @@
     "type": "stakes",
     "label": "Embrigadement — retrouver l'équipage",
     "cascade": "voyage",
-    "cle": "embrigadementRagot",
+    "cle": "sea-embrigadement-ragot",
     "template": "Réussi : la trace des embrigadés est retrouvée, reste à les libérer. Échec : l'autre navire prend la mer — 1d10 membres d'équipage de plus perdus.",
     "form": "descripteur",
     "rule": {
@@ -990,7 +990,7 @@
     "type": "stakes",
     "label": "Embrigadement — libérer en douce",
     "cascade": "voyage",
-    "cle": "embrigadementDiscretion",
+    "cle": "sea-embrigadement-discretion",
     "template": "Réussi : les compagnons sont libérés dans l'ombre. Échec : repéré — 1d10 membres d'équipage de plus perdus.",
     "form": "descripteur",
     "rule": {
@@ -1009,7 +1009,7 @@
     "label": "Présage divin — Prière à Manann",
     "cascade": "voyage",
     "cle": "sea-priere",
-    "template": "Le présage se joue sur ce Test : {manann} d'Humeur de Manann et {moral} de Moral — un présage favorable ne s'obtient qu'en réussissant, un présage funeste ne s'évite qu'ainsi.",
+    "template": "Le présage se joue sur ce Test : un présage favorable ne s'obtient qu'en réussissant, un présage funeste ne s'évite qu'ainsi.",
     "form": "descripteur",
     "rule": {
       "id": "priere",
@@ -1019,6 +1019,42 @@
       "book": "mer-des-griffes",
       "page": 132,
       "note": "MDG 15 l.197-198 (albatros, −2d10/−1d10) et l.230-232 (feu bleu, +2d10/+1d10)"
+    }
+  },
+  {
+    "id": "sea-passager-clandestin",
+    "type": "stakes",
+    "label": "Repérer le passager clandestin",
+    "cascade": "voyage",
+    "cle": "sea-passager-clandestin",
+    "template": "Repéré, le passager clandestin l’est avant de repartir ; sinon, sa présence se découvre en voyage.",
+    "form": "descripteur",
+    "rule": {
+      "id": "perception",
+      "type": "skill"
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 133,
+      "note": "MDG 15 l.258"
+    }
+  },
+  {
+    "id": "sea-controle-subornation",
+    "type": "stakes",
+    "label": "Contrôle à quai — suborner le superviseur",
+    "cascade": "voyage",
+    "cle": "sea-controle-subornation",
+    "template": "Réussi : un pot-de-vin de 2d10 CO peut faire « perdre » les formulaires. Échec : restent les droits de douane, ou la saisie de la cargaison.",
+    "form": "descripteur",
+    "rule": {
+      "id": "subornation",
+      "type": "skill"
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 133,
+      "note": "MDG 15 l.247"
     }
   },
   {

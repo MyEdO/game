@@ -26,7 +26,7 @@ describe('fenetreFermer', () => {
     expect(banc.getState().pendingCascade?.cursor, 'la séquence reste à sa première étape').toBe(0);
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('jet.ferme.etapesDues'));
 
-    banc.getState().jetRoll('cascade');
+    banc.getState().jetLancer('cascade');
     expect(banc.getState().pendingCascade?.cursor, 'bilan').toBe(TROIS_ETAPES.length);
     expect(fermeturesDeLaFenetre(banc.getState()).get('fenetreFermer@cascade')).toBeNull();
     banc.getState().fenetreFermer('cascade');

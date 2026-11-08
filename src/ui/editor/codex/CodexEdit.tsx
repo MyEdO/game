@@ -33,8 +33,8 @@ import { ProseField } from '../../ProseField';
 import { SourceRefField, SuiviDesSaisies, useSaisieEnCours, useSuiviDesSaisies } from '../../SourceRefField';
 import { useClesDeRangees } from '../../useClesDeRangees';
 import { PlageField, type PlageDomaine, type PlageValue } from '../../PlageField';
-import { formatDice, parseDice, parseDiceRequired, totalDuDe } from '../../../engine/dice';
-import { facesDuDe } from '../../../engine/tables';
+import { formatDice, parseDice, totalDuDe } from '../../../engine/dice';
+import { deDeLaTableTiree, facesDuDe } from '../../../engine/tables';
 import { GatedAction } from '../../GatedAction';
 import { raceKeySchema } from '../../../data/schemas/grammaire/valeurs';
 import { ApparencesObjetsField, ReglagesApparence, apparenceSuivante } from '../ReglagesApparence';
@@ -177,6 +177,9 @@ const porteAlsoIn = (categoryKey: string): boolean => {
  * SOURCE UNIQUE : utilisée par le filtre de `CodexEdit` ET par le garde-fou `no-json-fields.test` (qui
  * vérifie qu'aucun champ d'aucun dataset éditable ne retombe en `kind:'json'`). Ajouter un éditeur dédié
  * = ajouter sa/ses clé(s) ici (et le composant dans le rendu). */
+/** Les tables d'événements de mer (`sea-events.json`), dont la `consequence` est un Flow de racine `evenementDeMer`. */
+const EVENEMENTS_DE_MER: readonly string[] = ['seaBoardEvents', 'seaPortEvents'];
+
 export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   const k = new Set<string>();
   const add = (...keys: string[]) => keys.forEach((x) => k.add(x));
@@ -196,6 +199,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'mutationTables' || categoryKey === 'weather') add('entries');
   if (['mutations', 'trappings'].includes(categoryKey)) add('derivedWeapon');
   if (categoryKey === 'trappings') add('consumable', 'consumableDuration', 'onHitEffects'); // onHitEffects → TriggeredEffectsField (#175)
+  if (EVENEMENTS_DE_MER.includes(categoryKey)) add('consequence'); // Flow joué par `runFlow` → FlowEditor (#1652)
   // #1318 : paliers d'entraînement d'une PROTHÈSE (LDB 73) — `{cost,label,reduces?,grants?}[]`,
   // tableau d'objets HOMOGÈNES → éditeur GÉNÉRIQUE commun (`GenericArrayField`), jamais le repli JSON.
   if (categoryKey === 'trappings') add('prosthesisTraining');
@@ -231,7 +235,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   // poursuite/reparation…) recourt déjà au sous-formulaire récursif (`ObjectField`), hors guard.
   if (categoryKey === 'seaNavigation') add('forcerLeRythme');
   if (categoryKey === 'seaPerils') add('hazards', 'detroits', 'tourbillons', 'gestionDesPerils');
-  if (categoryKey === 'seaWeather') add('table', 'precipitations', 'temperatures', 'visibilites', 'vents', 'roseDesVents');
+  if (categoryKey === 'seaWeather') add('precipitations', 'temperatures', 'visibilites', 'vents');
   // #422 (suite) : Disponibilité & Troc (`disponibilite`, mode 'single', patron `waterExposure`) —
   // `dispoPct`/`barterRatios` (tableaux top-level) → éditeur GÉNÉRIQUE commun (`GenericArrayField`).
   if (categoryKey === 'disponibilite') add('dispoPct', 'barterRatios');
@@ -607,6 +611,13 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
               onChange={(f) => edit('consumable', f.kind === 'seq' && f.steps.length === 0 ? undefined : f)} />
           </div>
         )}
+        {EVENEMENTS_DE_MER.includes(categoryKey) && (
+          <div className="ed-field">
+            <span>conséquence de l’événement — Flow joué à bord ou à l’escale (ops du groupe, d’un héros ou du navire, branches, Tests, choix)</span>
+            <FlowEditor flow={(entry.consequence as Flow | undefined) ?? EMPTY_FLOW} ctx={ctxDeCatalogue('evenementDeMer')}
+              onChange={(f) => edit('consequence', f.kind === 'seq' && f.steps.length === 0 ? undefined : f)} />
+          </div>
+        )}
         {hasConsumable && <ConsumableDurationField value={entry.consumableDuration as ConsumableDuration | undefined} onChange={(v) => edit('consumableDuration', v)} />}
         {isDisease && <SymptomsField value={entry.symptoms as DiseaseSymptom[] | undefined} onChange={(v) => edit('symptoms', v)} />}
         {isDisease && <DiseaseDailyTestField value={entry.dailyTest as DiseaseDailyTest | undefined} onChange={(v) => edit('dailyTest', v)} />}
@@ -696,12 +707,10 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {isSeaPerils && <GenericArrayField chemin={chemin('detroits')} noeud={noeudDe('detroits')} label="detroits" value={entry.detroits as Record<string, unknown>[] | undefined} onChange={(v) => edit('detroits', v)} />}
         {isSeaPerils && <GenericArrayField chemin={chemin('tourbillons')} noeud={noeudDe('tourbillons')} label="tourbillons" value={entry.tourbillons as Record<string, unknown>[] | undefined} onChange={(v) => edit('tourbillons', v)} />}
         {isSeaPerils && <GenericArrayField chemin={chemin('gestionDesPerils')} noeud={noeudDe('gestionDesPerils')} label="gestionDesPerils" value={entry.gestionDesPerils as Record<string, unknown>[] | undefined} onChange={(v) => edit('gestionDesPerils', v)} />}
-        {isSeaWeather && <GenericArrayField chemin={chemin('table')} noeud={noeudDe('table')} label="table (tirage quotidien)" value={entry.table as Record<string, unknown>[] | undefined} onChange={(v) => edit('table', v)} />}
         {isSeaWeather && <GenericArrayField chemin={chemin('precipitations')} noeud={noeudDe('precipitations')} label="precipitations" value={entry.precipitations as Record<string, unknown>[] | undefined} onChange={(v) => edit('precipitations', v)} />}
         {isSeaWeather && <GenericArrayField chemin={chemin('temperatures')} noeud={noeudDe('temperatures')} label="temperatures" value={entry.temperatures as Record<string, unknown>[] | undefined} onChange={(v) => edit('temperatures', v)} />}
         {isSeaWeather && <GenericArrayField chemin={chemin('visibilites')} noeud={noeudDe('visibilites')} label="visibilites" value={entry.visibilites as Record<string, unknown>[] | undefined} onChange={(v) => edit('visibilites', v)} />}
         {isSeaWeather && <GenericArrayField chemin={chemin('vents')} noeud={noeudDe('vents')} label="vents" value={entry.vents as Record<string, unknown>[] | undefined} onChange={(v) => edit('vents', v)} />}
-        {isSeaWeather && <GenericArrayField chemin={chemin('roseDesVents')} noeud={noeudDe('roseDesVents')} label="roseDesVents" value={entry.roseDesVents as Record<string, unknown>[] | undefined} onChange={(v) => edit('roseDesVents', v)} />}
         {isDisponibilite && <GenericArrayField chemin={chemin('dispoPct')} noeud={noeudDe('dispoPct')} label="dispoPct (% de Disponibilité par taille de colonie)" value={entry.dispoPct as Record<string, unknown>[] | undefined} onChange={(v) => edit('dispoPct', v)} />}
         {isDisponibilite && <GenericArrayField chemin={chemin('barterRatios')} noeud={noeudDe('barterRatios')} label="barterRatios (Ratios de Troc)" value={entry.barterRatios as Record<string, unknown>[] | undefined} onChange={(v) => edit('barterRatios', v)} />}
         {isArcanePhenomena && <GenericArrayField chemin={chemin('saturationLevels')} noeud={noeudDe('saturationLevels')} label="saturationLevels (Paliers de Saturation)" value={entry.saturationLevels as Record<string, unknown>[] | undefined} onChange={(v) => edit('saturationLevels', v)} />}
@@ -1249,7 +1258,7 @@ function WaterModifiersField({ value, onChange }: { value: WaterExposureModifier
  *  `SkillSpecListField`/`ProsthesisField`/`MutationTableField` — la donnée est un id, jamais un label). */
 function WaterDiseasesField({ value, onChange }: { value: WaterExposureData['diseases']; onChange: (v: WaterExposureData['diseases']) => void }) {
   const { die, entries: list } = value;
-  const de = parseDiceRequired(die, 'water-exposure › diseases.die');
+  const de = deDeLaTableTiree(value);
   const [bas, haut] = [totalDuDe(de, de.n), facesDuDe(de)];
   const libelleDe = formatDice(de);
   const maladieOpts = datasetArray('maladies') as { id: string; label: string }[];

@@ -32,7 +32,7 @@ function hero(): Combatant {
   })) as unknown as Combatant;
 }
 
-/** Scène minimale (heroStart) pour un chargement de campagne par le CHEMIN RÉEL (`loadProject`). */
+/** Scène minimale (heroStart) pour un chargement de campagne par le CHEMIN RÉEL (`chargerLeProjet`). */
 function fixtureScene(id = 'camp-scene'): Scene {
   const s = emptyScene('scene-test', 6, 6);
   s.id = id;
@@ -43,7 +43,7 @@ function fixtureScene(id = 'camp-scene'): Scene {
 /** Charge la campagne fixture par le chemin RÉEL du store (pose `campaignNarratif`). */
 function loadCampaign(): void {
   useGame.setState({ party: [hero()] });
-  useGame.getState().loadProject({ scenes: [fixtureScene()], entryId: 'camp-scene', narratif, projet: null });
+  useGame.getState().chargerLeProjet({ scenes: [fixtureScene()], entryId: 'camp-scene', narratif, projet: null });
 }
 
 beforeEach(() => {
@@ -56,7 +56,7 @@ describe('campaignData — lecture de la couche chargée dans le store (#767)', 
     expect(presetPnjById('pnj-baron-caché')).toBeUndefined();
   });
 
-  it('campagne chargée par loadProject : `presetPnjById` retourne le preset de la campagne', () => {
+  it('campagne chargée par chargerLeProjet : `presetPnjById` retourne le preset de la campagne', () => {
     loadCampaign();
     expect(useGame.getState().campaignNarratif).not.toBeNull();
     expect(presetPnjById('pnj-baron-caché')?.id).toBe('pnj-baron-caché');

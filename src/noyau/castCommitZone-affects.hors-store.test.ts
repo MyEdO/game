@@ -76,7 +76,7 @@ describe("castCommitZone — `affects` : qui la Zone d'Effet retient", () => {
   const original = [...spells];
 
   beforeEach(() => {
-    banc.getState().seedRng(17);
+    banc.getState().ensemencerLeTirage(17);
   });
   afterEach(() => {
     setDataset('spells', original);

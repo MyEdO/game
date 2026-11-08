@@ -133,7 +133,7 @@ function renderedBookRefs(file: string, src: string, sf = ast({ rel: file, text:
  * telle clé naîtrait, sa dispense serait un PRÉFIXE de clé ou un module de catalogue dédié (décision de
  * périmètre comme `AUTHORING_DIRS`), jamais une liste de clés.
  *
- * `src/noyau/**`, `src/state/**`, `src/engine/**` : les couches qui écrivent au journal (`log`, `tell`,
+ * `src/noyau/**`, `src/state/**`, `src/engine/**` : les couches qui écrivent au journal (`ecrireAuJournal`, `tell`,
  * conséquences, détails d'option) sans passer par le catalogue ; leurs puits de diagnostic sont taillés.
  *
  * `src/hote/**`, `src/hoteTexte/**`, `hotes/godot/**` : les hôtes, où le `throw new ErreurDeGeste` EST le

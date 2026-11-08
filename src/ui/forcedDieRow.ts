@@ -20,7 +20,7 @@
  * `step.table` selon sa LECTURE). Les deux dérivations vivent ICI ; une modale n'en compose JAMAIS
  * une à la main.
  *
- * L'écriture passe TOUJOURS par le verbe de jet `jetSetForcedRoll(flux, …)` (jamais
+ * L'écriture passe TOUJOURS par le verbe de jet `jetImposerLeResultat(flux, …)` (jamais
  * `FLOW_HANDLERS[k].setForcedRoll(get,set,…)` en direct) : c'est lui que le routage d'intents coop
  * intercepte côté invité.
  */
@@ -132,7 +132,7 @@ export function rowForcedDie(
   const slot = flow.slotOf(() => s, pid);
   if (!slot || refusDeRangee(s, flowKey, pid)) return {};
 
-  const onSet = (r: number) => s.jetSetForcedRoll(flowKey, r, pid);
+  const onSet = (r: number) => s.jetImposerLeResultat(flowKey, r, pid);
 
   const isRolled = row.rolled ?? rolled;
   if (!flow.fixable || !flow.picker) return {};
@@ -144,7 +144,7 @@ export function rowForcedDie(
   if (slot.forced && pick) return { forcedRoll: { ...pick, onSet }, fixedMark: mark };
   if (!canFixDie(s, row.actor?.id)) return { fixedMark: mark };
   if (isRolled) return pick ? { forcedRoll: { roll: pick.roll, target: pick.target, ...(pick.max != null ? { max: pick.max } : {}), onSet, fixed: true }, fixedMark: mark } : { fixedMark: mark };
-  // AVANT le jet : la saisie LANCE puis substitue — même geste pré-armé que la Résilience pré-jet (`jetForceSuccess`).
+  // AVANT le jet : la saisie LANCE puis substitue — même geste pré-armé que la Résilience pré-jet (`jetForcerLaReussite`).
   // Sans déclencheur de jet, la rangée n'a rien à substituer : aucun champ n'est offert. Le couple
   // (jet naturel, substitution) est ATOMIQUE côté moteur (`withPreRollFixedDie`, #1029) : aucun
   // consommateur aval ne voit le résultat provisoire d'entre-deux.

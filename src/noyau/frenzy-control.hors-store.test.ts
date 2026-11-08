@@ -27,9 +27,9 @@ describe('Contrôle de la Frénésie (LDB 10 l.251-255) — fin de Round, opt-in
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     if (withTalent) hero.talents = [...hero.talents, { talentId: 'controle-de-la-frenesie', times: 1 }];
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     seedBattleRng(7);
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -69,14 +69,14 @@ describe('Contrôle de la Frénésie (LDB 10 l.251-255) — fin de Round, opt-in
     const choice = p.participants.find((s) => s.kind === 'triggeredChoice')!;
     expect(choice).toBeTruthy();
     banc.getState().jetRegler('cascade', 'choix', 'yes', choice.id);
-    banc.getState().jetConfirm('cascade'); // applier triggeredChoice → pousse l'étape de Test de Calme
+    banc.getState().jetValider('cascade'); // applier triggeredChoice → pousse l'étape de Test de Calme
     const p2 = banc.getState().pendingCascade!;
     const test = p2.participants.find((s) => s.kind === 'triggeredTest' && s.rollLabel === 'Calme')!;
     expect(test).toBeTruthy();
     expect(test.result).toBeFalsy(); // influençable (Chance/Pacte/Résilience) — pas de jet silencieux
-    banc.getState().jetRoll('cascade', test.id);
+    banc.getState().jetLancer('cascade', test.id);
     expect(banc.getState().pendingCascade!.participants.find((s) => s.id === test.id)!.result!.success).toBe(true);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(isFrenzied(H)).toBe(false); // « Vous pouvez y mettre fin avec un Test de Calme réussi »
     expect(hasCondition(H, COND.extenue)).toBe(true); // fin de Frénésie → Exténué (LDB 21)
   });
@@ -88,7 +88,7 @@ describe('Contrôle de la Frénésie (LDB 10 l.251-255) — fin de Round, opt-in
     const p = banc.getState().pendingCascade!;
     const choice = p.participants.find((s) => s.kind === 'triggeredChoice')!;
     banc.getState().jetRegler('cascade', 'choix', 'no', choice.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade?.participants.some((s) => s.kind === 'triggeredTest') ?? false).toBe(false);
     expect(isFrenzied(H)).toBe(true);
   });

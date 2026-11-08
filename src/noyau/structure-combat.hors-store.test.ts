@@ -25,6 +25,7 @@ import type { Weapon, Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import { effectiveWeapon } from '../engine/weaponDamage';
 import { spawnEnemy } from './monde/spawn';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -33,7 +34,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * Structures destructibles JOUABLES en combat (AA 10 l.94-127) : enrôlement depuis les arêtes de mur,
  * Dégâts par le CHEMIN combat (`applyAttackResult`), BRÈCHE à 0 Blessure et Critique de Structure.
  * Déterministe (RNG seedé, `forcedRoll` pour les Critiques) — on dépose un `WallSeg.structure` dans la
- * scène de fixture puis on `startCombat`, et la structure devient un Combattant inerte ciblable.
+ * scène de fixture puis on `lancerLeCombat`, et la structure devient un Combattant inerte ciblable.
  */
 const mkWeapon = (over: Partial<Weapon> = {}): Weapon => ({
   label: 'arme', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [], ...over,
@@ -55,11 +56,11 @@ function sceneWithStructure(structId: string, down = false): Scene {
 /** Lance un combat sur la scène de fixture munie d'une structure d'arête, RNG seedé. Renvoie la structure
  *  enrôlée (undefined si `down`), un héros attaquant et le combat. */
 function start(structId: string, opts?: { down?: boolean; seed?: number }) {
-  banc.getState().seedRng(opts?.seed ?? 1);
+  banc.getState().ensemencerLeTirage(opts?.seed ?? 1);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: opts?.seed ?? 1 });
   banc.setState({ party: [hero] });
-  banc.getState().startScene(sceneWithStructure(structId, opts?.down));
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(sceneWithStructure(structId, opts?.down));
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
@@ -431,8 +432,8 @@ describe('Structures de siège — Projectile magique (AA 10 l.114 ; LDB 18 l.17
   }
 });
 
-describe('Structures de siège — CHEMIN DE CLIC joueur (overlay d’arête → battleClickEntity → brèche)', () => {
-  it("cliquer la porte (battleClickEntity = le clic sur l'overlay d'arête) la martèle par le flux d'attaque NORMAL jusqu'à l'Effondrement et la BRÈCHE", () => {
+describe('Structures de siège — CHEMIN DE CLIC joueur (overlay d’arête → cliquerLaCase → brèche)', () => {
+  it("cliquer la porte (cliquerLaCase = le clic sur l'overlay d'arête) la martèle par le flux d'attaque NORMAL jusqu'à l'Effondrement et la BRÈCHE", () => {
     const { S, H } = start('porte', { seed: 7 });
     const seg = { x: 2, y: 2, side: 'E' as const, structure: 'porte' };
     // Héros au CONTACT de l'ancrage (2,2), arme de mêlée, Combat/Force élevés → traverse les 8 Bl (BE 2).
@@ -446,8 +447,8 @@ describe('Structures de siège — CHEMIN DE CLIC joueur (overlay d’arête →
     let aZeroEnJeu = false;
     while (!structureIsDown(banc.getState().scene!, seg) && guard++ < 400) {
       giveTurn();
-      banc.getState().battleClickEntity(S!.id, { confirm: true }); // = clic sur l'overlay d'arête de la structure
-      if (banc.getState().pendingAttack) { banc.getState().jetRoll('attack'); banc.getState().jetConfirm('attack'); }
+      cliquerSurLeCombattant(banc.getState, S!.id, { confirm: true }); // = clic sur l'overlay d'arête de la structure
+      if (banc.getState().pendingAttack) { banc.getState().jetLancer('attack'); banc.getState().jetValider('attack'); }
       draineCascade(banc.getState);
       const s = live(S!.id);
       if (s && s.wounds.current <= 0) aZeroEnJeu = true;

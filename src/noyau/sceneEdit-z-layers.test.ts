@@ -87,6 +87,6 @@ describe('#835 FU-1 — trigger/repos/zone d\'effet portent leur z (écrits, fil
     expect(s0.effectZones![0].z).toBe(1);
     expect(s0.effectZones![0].area).toEqual({ kind: 'rect', x: 1, y: 1, w: 2, h: 2 }); // z hors de `area`
     expect(hitAt(s0, { x: 1, y: 1 }, TOUS_CALQUES, 0)).toBeNull();
-    expect(hitAt(s0, { x: 1, y: 1 }, TOUS_CALQUES, 1)).toEqual({ type: 'effectZone', idx: 0 });
+    expect(hitAt(s0, { x: 1, y: 1 }, TOUS_CALQUES, 1)).toEqual({ type: 'effectZone', id: s0.effectZones![0].id });
   });
 });

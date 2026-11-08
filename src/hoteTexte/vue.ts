@@ -5,7 +5,7 @@
  * généré : `npm run docs:hote-texte`.
  */
 import {
-  effectiveArmourAt, effectiveTalents, actionGate, etatDeLaBarre, endTurnArmed, porteurParId, CLICS_DU_CHAMP,
+  effectiveArmourAt, effectiveTalents, actionGate, etatDeLaBarre, endTurnArmed, porteurParId, CLIC_DU_CHAMP,
   LOCALISATIONS_DE_COUP, ACTIONS, cleDuGeste,
   type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type LigneDeJet, type Offre,
 } from '../noyau/index';
@@ -192,7 +192,7 @@ export function rendreLaVue(p: Projection): string[] {
       const liste = c.offres.liste.map(libelleDOffre);
       lignes.push(`offres : ${liste.length ? [...liste, ...enPlus(c.offres.enPlus, `(${appelEcrit('lire', { quoi: 'offres' })})`)].join(' · ') : 'aucune offre légale'}`);
       if (c.cibles.liste.length) lignes.push(`cibles : ${[...c.cibles.liste, ...enPlus(c.cibles.enPlus, 'autres')].join(', ')}`);
-      lignes.push(...replier(`champ : ${Object.values(CLICS_DU_CHAMP).map((v) => signature(v, VERBES[v] ?? [])).join(' · ')}`));
+      lignes.push(...replier(`champ : ${signature(CLIC_DU_CHAMP, VERBES[CLIC_DU_CHAMP] ?? [])}`));
     } else if (!c.fin) lignes.push(`barre ${c.barre.forme} : ${c.barre.raison}`);
   } else {
     lignes.push(`${p.scene ? `scène ${p.scene.id} « ${p.scene.nom} »` : 'aucune scène'} · écran ${p.ecran} · pas ${p.pas}`);
@@ -297,8 +297,8 @@ function offresListees(offres: readonly Offre[], options: { id?: string; toutes:
   return offres.filter((o) => (!options.id || o.actionId === options.id) && (options.toutes || o.gate.ok));
 }
 
-/** Les offres de l'actif, une par ligne, en pages (`depuis`) : ouvertes, ou fermées comprises avec leur raison
- *  (`toutes`) ; pour un id, ses candidats et leurs arguments, ou la raison de l'absence (le gate de pertinence). */
+/** Les offres de l'actif, une par ligne, en pages (`depuis`), chacune avec le geste qui la joue : ouvertes, ou fermées
+ *  comprises avec leur raison (`toutes`) ; pour un id, ses candidats, ou la raison de l'absence (le gate de pertinence). */
 export function rendreLesOffres(etat: Jeu, offres: readonly Offre[], options: { id?: string; toutes: boolean; depuis?: number }): string[] {
   const choisies = offresListees(offres, options);
   if (!choisies.length) {
@@ -312,8 +312,8 @@ export function rendreLesOffres(etat: Jeu, offres: readonly Offre[], options: { 
   const { elements, suite } = page(choisies, options.depuis, 'debut', (k) => appelEcrit('lire', { quoi: 'offres', id: options.id, toutes: options.toutes || undefined, depuis: k }));
   const lignes = elements.map((o) => {
     const tete = `${o.actionId}${o.candidat ? `[${o.candidat}]` : ''} → ${o.cost ?? '—'}`;
-    const args = options.id && Object.keys(o.args).length ? ` · ctx ${JSON.stringify(o.args)}` : '';
-    return `${tete}${args} · ${o.gate.ok ? 'ouverte' : `fermée : ${o.gate.reason ?? 'sans raison'}`}`;
+    const geste = o.geste ? ` · ${JSON.stringify({ verbe: o.geste.verbe, ...(o.geste.args.length ? { args: o.geste.args } : {}) })}` : ' · paramètre de la case à choisir';
+    return `${tete}${geste} · ${o.gate.ok ? 'ouverte' : `fermée : ${o.gate.reason ?? 'sans raison'}`}`;
   });
   return borner([...lignes, ...suite], 'offres');
 }

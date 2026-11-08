@@ -24,7 +24,7 @@ import { dropExpiredGrantedResources } from './grantedResources';
 import { dropExpiredGrantedWeapons } from './conjuredWeapons';
 import { dropExpiredGrantedMutations } from './corruption';
 import { recomputeLoadout } from './items';
-import { restoreSuppressedPsych } from './psychology';
+import { isFrenzied, isFrenzyCapable, restoreSuppressedPsych } from './psychology';
 import { hasActiveFlag } from './activeFlags';
 import { isVehicle } from './coque';
 import { applyOps, resolveWindowDuration } from './ops'; // cycle runtime (ops→conditions) : appelés au tick/à la dépense, jamais à l'init du module
@@ -821,6 +821,13 @@ export function cannotDefend(c: Combatant): boolean {
  *  'none'` (Sonné « incapable d'effectuer votre Action », LDB 16 l.125 ; Surpris/Inconscient). Données. */
 export function canTakeAction(c: Combatant): boolean {
   return !conditionGating(c).noAction;
+}
+
+/** Le combattant peut-il ENTRER en Frénésie : un Test de Force Mentale, donc son Action (`canTakeAction`), capable
+ *  et pas déjà en Frénésie. Prédicat unique du héros (offre `frenzy`, `entrerEnFrenesie`) et de l'IA
+ *  (`aiMaybeFrenzy`). LDB 21 l.31 ; LDB 13 l.106 ; LDB 16 l.125 */
+export function peutEntrerEnFrenesie(c: Combatant): boolean {
+  return canTakeAction(c) && isFrenzyCapable(c) && !isFrenzied(c);
 }
 
 /** États portés par `c` dont la DONNÉE déclare `restrictsAction` (Brisé : Mouvement + Action verrouillés

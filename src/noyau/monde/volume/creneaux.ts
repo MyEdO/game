@@ -1,7 +1,7 @@
 /**
  * LA CRÉNELURE (#3476, lot C) : la couronne crénelée d'un mur fortifié (`StructureAppearanceDef.parapet`) et la crête
- * qui ceinture une zone crénelée (`Layer.crenellated`), en faces du pivot, que le builder des murs du web
- * (`gameIso/builders/walls`) et le volume du monde (`./volume`) dessinent.
+ * qui ceinture une zone crénelée (`Layer.crenellated`), en faces du pivot, que le builder des murs
+ * et le volume du monde (`./volume`) dessinent.
  */
 import type { StructureAppearanceDef, WallPart } from '../../../data/structureAppearance.types';
 import { DIR4_ORDER, DIR8_DELTA } from '../../../geometry/dir8';

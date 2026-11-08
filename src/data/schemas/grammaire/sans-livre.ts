@@ -21,6 +21,7 @@ export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
   props:
     'catalogue des placeables de décor — le DOCUMENT est de l’art (volume, libellé, empreinte, et la solidité physique de l’objet : aucune table ne chiffre qu’un tonneau bloque le passage). Trois de ses CHAMPS sont des règles et ne sont pas couverts par cette exemption : `light` (éclairage, LDB 74 l.43/56/58), `cover` et `opaque` (couvert, LDB 14 l.72/81/86) — les entrées qui en portent un exigent `source` OU `maison` À L’ENTRÉE, par `affinerEntree` de `schemas/defs/props.ts`, et chacune porte son `maison`',
   raceAppearance: 'configuration de rendu — apparences par race, art maison',
+  planDeBestiaire: 'configuration de rendu — le corps 3D et l’échelle d’art de chaque espèce, art maison',
   gabarits: 'configuration de rendu — carrures (facteurs du squelette de référence), art maison',
   'garde-robe': 'configuration de rendu — clés des éléments 3D portés sur le corps (têtes, coiffures, emplacements, pièces et ensembles d’habit), et les emblèmes posés sur leurs surfaces, art maison',
   materials:
@@ -57,7 +58,7 @@ export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
   merchants:
     'catalogue d’app (archétypes de marchand : taux de rachat, familles vendues, agglo par défaut) ; les VALEURS de règle vivent sourcées à leur foyer (`engine/disponibilite.ts`, `bargain.ts`) ; `resaleRate` reprend la revente de LDB 59 l.54, `bargainSkill` est chiffré par entrée sans `maison` (LDB 59 l.54 laisse le Marchandage au MJ), inventaire #1463',
   merchantFamilies:
-    'catalogue d’app — familles de PRÉSENTATION du stock marchand (onglets/colonnes de `ui/MerchantPanel.tsx`), mise en page, aucune valeur mécanique',
+    'catalogue d’app — familles de PRÉSENTATION du stock marchand (onglets/colonnes du panneau du marchand), mise en page, aucune valeur mécanique',
   'lieux-services':
     'catalogue d’app — id/label/icône de routage d’écran (hub de lieu) ; port et marché portent leur propre schéma sourcé',
   calendarPhases:

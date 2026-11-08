@@ -11,7 +11,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  *  - COUVERTURE : chaque entrée MODAL_DEFS a une politique `auto` (le champ requis le force déjà à la
  *    compilation ; ce test documente + verrouille la liste des modes).
  *  - VALIDITÉ : chaque action `drive` (MODAL_DEFS + JET_AUTO) existe RÉELLEMENT comme action du noyau
- *    (anti-dérivation : on ne devine pas les noms — cf. `stateRecovery`→`recover*`, `corruption`→`jetConfirm('corruption')`).
+ *    (anti-dérivation : on ne devine pas les noms — cf. `stateRecovery`→`recover*`, `corruption`→`jetValider('corruption')`).
  *  - EXHAUSTIVITÉ JET_AUTO : tous les `CascadeStep['jet']` ont une politique.
  */
 describe('Cadence — couverture & validité de la politique auto', () => {

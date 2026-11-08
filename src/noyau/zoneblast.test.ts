@@ -11,7 +11,7 @@ const hero = (id: string, current: number): Combatant =>
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
 
 function fakeStore(party: Combatant[], partyPos: { x: number; y: number }) {
-  let s: any = { battle: undefined, party, partyPos, flags: {}, journal: [], log: () => {} };
+  let s: any = { battle: undefined, party, partyPos, flags: {}, journal: [], ecrireAuJournal: () => {} };
   const get = () => s;
   const set = (patch: any) => { s = { ...s, ...(typeof patch === 'function' ? patch(s) : patch) }; };
   return { get, set, state: () => s };
@@ -36,7 +36,7 @@ describe('zoneBlast — souffle dans un DISQUE en combat (cibles par position)',
   const combatant = (id: string, pos: { x: number; y: number }): Combatant =>
     ({ ...hero(id, 30), kind: 'enemy', pos } as unknown as Combatant);
   function combatStore(combatants: Combatant[]) {
-    let s: any = { battle: { combatants }, party: [], partyPos: { x: 0, y: 0 }, flags: {}, journal: [], log: () => {} };
+    let s: any = { battle: { combatants }, party: [], partyPos: { x: 0, y: 0 }, flags: {}, journal: [], ecrireAuJournal: () => {} };
     return { get: () => s, set: (patch: any) => { s = { ...s, ...(typeof patch === 'function' ? patch(s) : patch) }; }, state: () => s };
   }
   it('les combattants dans le rayon encaissent dégâts + État ; ceux hors rayon intacts', () => {

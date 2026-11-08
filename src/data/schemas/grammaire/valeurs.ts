@@ -10,7 +10,8 @@ import type { Dir8 } from '../../../geometry/dir8';
 import type { FormuleSansTirage } from '../../../engine/ops';
 import { z } from 'zod';
 import { parseStatus } from '../../../engine/money';
-import { parseDice } from '../../../engine/dice';
+import { parseDice, totalDuDe } from '../../../engine/dice';
+import { deDeLaTableTiree, facesDuDe, type PorteurDeDe } from '../../../engine/tables';
 import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
 
 import { type Amateur, type ContexteDeTest, AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
@@ -636,10 +637,7 @@ export const deckCoverSchema = z.enum(['imparfaite', 'moyenne', 'totale']);
  * nomment une Caractéristique (`domains`/`maneuvers`/`qualities`/`talents`/`etats`/`spells`/`species`/
  * `careerLevels`…).
  */
-export const charKeySchema = z.enum([
-  'capacite-de-combat', 'capacite-de-tir', 'force', 'endurance', 'initiative', 'agilite', 'dexterite',
-  'intelligence', 'force-mentale', 'sociabilite',
-]);
+export const charKeySchema = enumNomme(CHAR_LABELS);
 
 /** Une Caractéristique et sa valeur IMPRIMÉE (`SwapGrant`, `src/engine/statEntry.ts`) : l'octroi d'une
  *  variante « swap » (ZI 1 l.229). */
@@ -747,6 +745,30 @@ export type ProfilDePropulsion = z.output<typeof profilDePropulsionSchema>;
  *  issuecomment-6189471604, issuecomment-6191607539 de #1595). */
 export const profilDeVoileSchema = nommerChamps(z.strictObject({ ...profilDePropulsionSchema.shape, spec: specDe('skill', COMPETENCE_DU_MODE.voile) }), { ...metaDesChamps(profilDePropulsionSchema, { exigees: true }), spec: { label: 'Spécialisation de Voile' } });
 export type ProfilDeVoile = z.output<typeof profilDeVoileSchema>;
+
+/** Axes de la MÉTÉO MARINE (`SeaWeather`, `engine/seaWeather.ts`) : une rangée de sa table, ou le climat
+ *  qu'un événement impose. MDG 13 l.170 */
+export const ventMarinSchema = z.enum(['calme-plat', 'legere-brise', 'brise-fraiche', 'vent-modere', 'vent-violent', 'violente-tempete']);
+const AXES_DE_LA_METEO_MARINE = {
+  precipitations: z.enum(['aucune', 'legeres', 'abondantes', 'tres-abondantes']),
+  temperature: z.enum(['caniculaire', 'chaude', 'mediane', 'froide', 'glaciale']),
+  visibilite: z.enum(['degage', 'brume', 'brouillard', 'puree-de-pois']),
+  vent: ventMarinSchema,
+};
+const META_DE_LA_METEO_MARINE = {
+  precipitations: { label: 'Précipitations' },
+  temperature: { label: 'Température' },
+  visibilite: { label: 'Visibilité' },
+  vent: { label: 'Vent' },
+};
+export const meteoMarineSchema = nommerChamps(z.strictObject(AXES_DE_LA_METEO_MARINE), META_DE_LA_METEO_MARINE);
+/** Climat IMPOSÉ : les seuls axes qu'il fixe (`Partial<SeaWeather>`), un au moins. MDG 15 l.189, l.199, l.248 */
+export const meteoImposeeSchema = nommerChamps(z.strictObject({
+  precipitations: AXES_DE_LA_METEO_MARINE.precipitations.optional(),
+  temperature: AXES_DE_LA_METEO_MARINE.temperature.optional(),
+  visibilite: AXES_DE_LA_METEO_MARINE.visibilite.optional(),
+  vent: AXES_DE_LA_METEO_MARINE.vent.optional(),
+}).refine((m) => Object.keys(m).length > 0, { message: 'météo imposée VIDE : nommer au moins un axe (précipitations, température, visibilité, vent).' }), META_DE_LA_METEO_MARINE);
 
 /** `ShipLocation` (`src/engine/combat.ts`) — les Localisations de coque des DEUX jeux de Critiques
  *  (MDG naval : cargaison/gréement/coque/avirons/équipements ; MSRC fluvial : gouvernail/superstructure). */
@@ -898,12 +920,12 @@ export const apparencesDObjetsSchema: z.ZodType<Record<string, { id: string }>> 
 
 /** Refus d'une espèce d'apparence hors de `especeDApparenceSchema`. */
 export function messageDEspeceInconnue(id: string): string {
-  return `espèce « ${id} » inconnue : ni espèce jouable, ni créature, ni race de rendu, ni forme de corps.`;
+  return `espèce « ${id} » inconnue : ni espèce jouable, ni espèce du plan de bestiaire (planDeBestiaire.json).`;
 }
 
-/** Espèce d'APPARENCE (`EntityAppearance.species`) : espèce jouable, créature ou race de rendu. */
+/** Espèce d'APPARENCE (`EntityAppearance.species`) : espèce jouable ou espèce du plan de bestiaire (#2993). */
 export const especeDApparenceSchema = z.union(
-  [idDe('species'), idDe('creature'), idDe('raceAppearance')],
+  [idDe('species'), idDe('planDeBestiaire')],
   { error: (iss) => messageDEspeceInconnue(String(iss.input)) },
 );
 
@@ -959,7 +981,7 @@ export const parLocalisationSchema = nommerChamps(
 const refRegleOptionnelle = idDe('regleOptionnelle');
 
 /** Termes de jet de la grammaire (`TermeDeJet`, `src/engine/ops.ts`) : leur valeur ne se connaît qu'AU jet. */
-export const TERMES_DE_JET = ['dice', 'rolled', 'sl'] as const;
+export const TERMES_DE_JET = ['dice', 'rolled', 'sl', 'tire'] as const;
 
 /** Premier terme de jet rencontré dans une formule (imbrications `sum[]`, `times.of`, `times.factor`,
  *  `minimum.of`, `parTranche.of`), ou `null`. PURE. */
@@ -999,8 +1021,16 @@ const optionsDeFormule = (soi: z.ZodType<unknown>, avecJet: boolean): z.ZodType<
   marquerProduit(nommerChamps(z.strictObject({ stacks: z.literal('self') }), { stacks: { label: "cumuls" } }), 'optionsDeFormule', 'stacks'),
   marquerProduit(nommerChamps(z.strictObject({ engagedAdvantageGap: z.literal(true) }), { engagedAdvantageGap: { label: "écart d’Avantage au contact" } }), 'optionsDeFormule', 'engagedAdvantageGap'),
   marquerProduit(nommerChamps(z.strictObject({ woundsDealt: z.literal(true) }), { woundsDealt: { label: "Blessures infligées" } }), 'optionsDeFormule', 'woundsDealt'),
+  // MDG 15 l.33.
+  marquerProduit(nommerChamps(z.strictObject({ blessuresMax: z.literal(true) }), { blessuresMax: { label: "Blessures maximales" } }), 'optionsDeFormule', 'blessuresMax'),
+  // MDG 15 l.246.
+  marquerProduit(nommerChamps(z.strictObject({ tailleDuNavire: z.literal(true) }), { tailleDuNavire: { label: "Taille du navire" } }), 'optionsDeFormule', 'tailleDuNavire'),
+  // MDG 15 l.247.
+  marquerProduit(nommerChamps(z.strictObject({ valeurCargaison: z.literal(true) }), { valeurCargaison: { label: "valeur de la cargaison" } }), 'optionsDeFormule', 'valeurCargaison'),
   // LDB 09 l.97.
   ...(avecJet ? [marquerProduit(nommerChamps(z.strictObject({ sl: z.literal(true) }), { sl: { label: "DR" } }), 'optionsDeFormule', 'sl')] : []),
+  // MDG 15 l.245.
+  ...(avecJet ? [marquerProduit(nommerChamps(z.strictObject({ tire: z.string().min(1), de: soi.optional() }), { tire: { label: "valeur liée", texte: { regime: "technique" } }, de: { label: "tirage" } }), 'optionsDeFormule', 'tire')] : []),
   marquerProduit(nommerChamps(z.strictObject({ rule: refRegleOptionnelle }), { rule: { label: "règle" } }), 'optionsDeFormule', 'rule'),
   marquerProduit(nommerChamps(z.strictObject({ sum: z.array(soi) }), { sum: { label: "somme" } }), 'optionsDeFormule', 'sum'),
   // VDM 05.
@@ -1012,7 +1042,8 @@ const optionsDeFormule = (soi: z.ZodType<unknown>, avecJet: boolean): z.ZodType<
 ];
 
 /** `Formula` (`src/engine/ops.ts`) — quantité résolue à l'application (littéral/dés/bonus/Indice/
- *  jet-associé/pions/écart d'Avantage/Blessures/somme/facteur/borne basse/tranches). Resserré ici sur `CharKey`
+ *  jet-associé/pions/écart d'Avantage/Blessures infligées/Blessures maximales/Taille du navire/valeur de la
+ *  cargaison/valeur liée/somme/facteur/borne basse/tranches). Resserré ici sur `CharKey`
  *  (fidèle à `src/engine/ops.ts`), sans risque pour les datasets (vérifié au parse). */
 export const formulaSchema: z.ZodType<unknown> = z.lazy(() => z.union(optionsDeFormule(formulaSchema, true) as [z.ZodType<unknown>, ...z.ZodType<unknown>[]]));
 
@@ -1075,7 +1106,7 @@ export function admetLePeche(noeud: unknown): boolean {
 
 /** NATURE d'une Influence corruptrice (`LDB 19 l.29`) — clés des Tests de la fiche `influences-corruptrices`
  *  (`TESTS_DE_REGLE`, `engine/ruleRefs.ts`). SOURCE UNIQUE : les deux portes `corruptionExposure.nature`
- *  (op `GameOp`, effet de scène), les sélecteurs de l'atelier, la modale (`ui/CorruptionModal.tsx`) et
+ *  (op `GameOp`, effet de scène), les sélecteurs de l'atelier, la modale de Corruption et
  *  la couture du slot (`noyau/corruptionFlow.ts`) en dérivent — jamais une deuxième liste. */
 export const NATURES_D_INFLUENCE = TESTS_DE_REGLE['influences-corruptrices'];
 export type NatureDInfluence = (typeof NATURES_D_INFLUENCE)[number];
@@ -1221,6 +1252,22 @@ export function ecartsDeCouverture<F extends { min?: number | null; max?: number
     ecarts.push(`la dernière fourchette s'arrête à ${attendu - 1} au lieu de ${jusqua}`);
   }
   return ecarts;
+}
+
+/**
+ * COUVERTURE DU DÉ d'une table tirée : ses fourchettes couvrent le dé que porte la table
+ * (`deDeLaTableTiree`, `src/engine/tables.ts`) d'un seul tenant, de son plus petit total à son plus
+ * grand (`facesDuDe`), ouverte en haut quand une fourchette l'est (`max: null`). Un dé illisible rend
+ * `[]` : son champ (`deDeTirageSchema`) le refuse déjà, nominativement.
+ */
+export function ecartsDuDeDeLaTable<F extends { min?: number | null; max?: number | null }>(
+  table: PorteurDeDe,
+  fourchettes: readonly F[],
+  nom: (f: F) => string,
+): string[] {
+  if ('die' in table && parseDice(table.die) === null) return [];
+  const de = deDeLaTableTiree(table);
+  return ecartsDeCouverture(fourchettes, totalDuDe(de, de.n), fourchettes.some((f) => f.max === null) ? 'ouverte' : facesDuDe(de), nom);
 }
 
 /**

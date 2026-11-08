@@ -19,6 +19,7 @@ import type { AttackResult } from '../engine/combat';
 import type { CastResult, MissileResult } from '../engine/magic';
 import { desEnSuite } from '../engine/dice.testkit';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -33,10 +34,10 @@ describe('L13 — gates & redirections', () => {
     const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const P = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'P', seed: 2 });
     banc.setState({ party: [H, P] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const b = banc.getState().battle!;
     const hero = b.combatants.find((c) => c.label === 'H')!;
     const priest = b.combatants.find((c) => c.label === 'P')!;
@@ -70,11 +71,11 @@ describe('L13 — gates & redirections', () => {
     // graine dont le 1er d100 rate la cible 21 (cherchée puis rejouée — déterministe par seed).
     let failSeed: number | null = null;
     for (let s = 1; s <= 60; s++) {
-      banc.getState().seedRng(s);
+      banc.getState().ensemencerLeTirage(s);
       if (!attackWardGate(E, hero, battleRng()).allowed) { failSeed = s; break; }
     }
     expect(failSeed).not.toBeNull();
-    banc.getState().seedRng(failSeed!);
+    banc.getState().ensemencerLeTirage(failSeed!);
     const before = hero.wounds.current;
     const suspended = doAttack(banc.getState, banc.setState, E, hero);
     expect(suspended).toBeUndefined();
@@ -91,7 +92,7 @@ describe('L13 — gates & redirections', () => {
     const turn = banc.getState().battle!.order.indexOf(hero.id);
     banc.setState({ battle: { ...banc.getState().battle!, turn, action: null, acted: false } });
     // Tap-2 (confirm) sur la cible bénie → AUCUNE attaque encore : on diffère derrière pendingWard.
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     expect(banc.getState().pendingWard).toMatchObject({ attackerId: hero.id, targetId: E.id });
     expect(banc.getState().pendingAttack).toBeNull();
     expect(banc.getState().pendingCascade).toBeNull();
@@ -105,10 +106,10 @@ describe('L13 — gates & redirections', () => {
     E.pos = { x: 11, y: 10 };
     const turn = banc.getState().battle!.order.indexOf(hero.id);
     banc.setState({ battle: { ...banc.getState().battle!, turn, action: null, acted: false } });
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     // Force le succès du Test de FM puis valide → l’attaque se relance (cascade d’attaque ouverte).
     banc.setState({ pendingWard: { ...banc.getState().pendingWard!, result: { success: true, roll: 5, target: 50, sl: 4 } } });
-    banc.getState().jetConfirm('ward');
+    banc.getState().jetValider('ward');
     expect(banc.getState().pendingWard).toBeNull();
     expect(banc.getState().pendingCascade).not.toBeNull(); // l’attaque a été relancée
     expect(banc.getState().battle!.log.map((e) => e.text).join('\n')).toMatch(/surmonte sa honte/);
@@ -122,9 +123,9 @@ describe('L13 — gates & redirections', () => {
     E.pos = { x: 11, y: 10 };
     const turn = banc.getState().battle!.order.indexOf(hero.id);
     banc.setState({ battle: { ...banc.getState().battle!, turn, action: null, acted: false } });
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.setState({ pendingWard: { ...banc.getState().pendingWard!, result: { success: false, roll: 96, target: 50, sl: -4 } } });
-    banc.getState().jetConfirm('ward');
+    banc.getState().jetValider('ward');
     expect(banc.getState().pendingWard).toBeNull();
     expect(banc.getState().pendingAttack).toBeNull();
     expect(banc.getState().pendingCascade).toBeNull();

@@ -1,6 +1,6 @@
 /**
  * Câblage du noyau — un Talent AJOUTÉ à la carrière (`talentEnCarriere`, `src/engine/talentEffects.ts`) s'achète
- * par le chemin RÉEL d'achat (`banc.getState().buyTalent`, `partyFlow.ts`), la même définition que
+ * par le chemin RÉEL d'achat (`banc.getState().acheterLeTalent`, `partyFlow.ts`), la même définition que
  * les rangées de l'écran d'avancement (`buildAdvancementView`, `talentsAjoutesALaCarriere`).
  * EDOC 13 l.524 (Marque de Tzeentch) ; LDB 07 l.103.
  */
@@ -21,16 +21,16 @@ const MARQUE = [{ id: 'marque-de-tzeentch' }];
 
 beforeEach(() => {
   banc.setState({ battle: null, party: [], journal: [] });
-  banc.getState().seedRng(1);
+  banc.getState().ensemencerLeTirage(1);
 });
 
-describe('buyTalent — ajouts de carrière d’un Trait (EDOC 13 l.524)', () => {
+describe('acheterLeTalent — ajouts de carrière d’un Trait (EDOC 13 l.524)', () => {
   it('porteur de la Marque de Tzeentch : la rangée d’avancement s’ACHÈTE — PX débités, Talent acquis', () => {
     const h = soldat({ traits: [...(pregen(PREGEN.soldat).traits ?? []), ...MARQUE] });
     expect(h.talents.some((t) => t.talentId === 'magie-des-arcanes')).toBe(false);
     expect(buildAdvancementView({ battle: null, flags: {} }, h).talents.some((r) => r.talentId === 'magie-des-arcanes' && r.spec === 'feu')).toBe(true);
     banc.setState({ party: [h] });
-    banc.getState().buyTalent(h.id, 'magie-des-arcanes', 'feu');
+    banc.getState().acheterLeTalent(h.id, 'magie-des-arcanes', 'feu');
     const apres = banc.getState().party[0];
     expect(apres.talents.find((t) => t.talentId === 'magie-des-arcanes' && t.spec === 'feu')?.times).toBe(1);
     expect(apres.xp).toBe(400);
@@ -40,7 +40,7 @@ describe('buyTalent — ajouts de carrière d’un Trait (EDOC 13 l.524)', () =>
     const h = soldat();
     expect(buildAdvancementView({ battle: null, flags: {} }, h).talents.some((r) => r.talentId === 'magie-des-arcanes')).toBe(false);
     banc.setState({ party: [h] });
-    banc.getState().buyTalent(h.id, 'magie-des-arcanes', 'feu');
+    banc.getState().acheterLeTalent(h.id, 'magie-des-arcanes', 'feu');
     const apres = banc.getState().party[0];
     expect(apres.talents.some((t) => t.talentId === 'magie-des-arcanes')).toBe(false);
     expect(apres.xp).toBe(500);

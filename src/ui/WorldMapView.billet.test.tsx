@@ -122,7 +122,7 @@ describe('billet de la diligence — chemin du joueur', () => {
   it('au virage, billet en main : « Billet payé jusqu’à … (classe) », départ sans paiement', async () => {
     aBord();
     creditBourse(get, useGame.setState, get().party[0].id, { gold: 0, silver: 4, brass: 0 }); // 4 × 4/- au toit
-    get().startTravel(T1, 'diligence', { classeId: 'exterieur' });
+    get().partirEnVoyage(T1, 'diligence', { classeId: 'exterieur' });
     expect(get().billetEnMain?.routesRestantes).toEqual([T2]);
     draineCascade(get);
     if (get().travelRecap) get().fenetreFermer('recitDeVoyage');

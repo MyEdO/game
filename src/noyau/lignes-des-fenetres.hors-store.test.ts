@@ -22,8 +22,8 @@ describe('Enfoncer une porte (EDO 11 l.89-95)', () => {
   it('le Test roulé est Corps à corps (Bagarre) : Escrime +20, Bagarre +0 → cible 40 (EDO 11 l.93)', () => {
     const h = heros({ skills: [cc('escrime', 20), cc('bagarre', 0)] });
     banc.setState({ battle: null, party: [h], pendingForceDoor: null, pendingCascade: null, suspendedCascades: [], flags: {} } as never);
-    banc.getState().startForceDoor({ label: 'Porte de la cave', doorBE: 4, doorB: 10, heroIds: [h.id] });
-    banc.getState().jetRoll('forceDoor', h.id);
+    banc.getState().enfoncerLaPorte({ label: 'Porte de la cave', doorBE: 4, doorB: 10, heroIds: [h.id] });
+    banc.getState().jetLancer('forceDoor', h.id);
     expect(banc.getState().pendingForceDoor!.participants[0].result!.target).toBe(40);
   });
 
@@ -32,9 +32,9 @@ describe('Enfoncer une porte (EDO 11 l.89-95)', () => {
   it('avec une arme choisie, le Test suit sa Spécialisation : Base +10, Escrime +20 → cible 50 (EDO 11 l.93)', () => {
     const h = heros({ skills: [cc('base', 10), cc('escrime', 20)], weapons: [hache(), unarmedWeapon()] });
     banc.setState({ battle: null, party: [h], pendingForceDoor: null, pendingCascade: null, suspendedCascades: [], flags: {} } as never);
-    banc.getState().startForceDoor({ label: 'Porte', doorBE: 0, doorB: 10, heroIds: [h.id] });
+    banc.getState().enfoncerLaPorte({ label: 'Porte', doorBE: 0, doorB: 10, heroIds: [h.id] });
     banc.getState().jetRegler('forceDoor', 'arme', 'hache', h.id);
-    banc.getState().jetRoll('forceDoor', h.id);
+    banc.getState().jetLancer('forceDoor', h.id);
     expect(banc.getState().pendingForceDoor!.participants[0].result!.target).toBe(50);
   });
 

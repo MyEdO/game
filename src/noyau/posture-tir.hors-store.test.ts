@@ -25,8 +25,8 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero], screen: 'campaign' });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -39,7 +39,7 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
     return { H, E };
   }
 
-  const armer = () => banc.getState().jouerLOffre('posture-tir');
+  const armer = () => banc.jouerLaCase('posture-tir');
   const posturee = (id: string) => !!banc.getState().battle!.stances?.[id]?.heldGround;
 
   it('l’entrée du registre est VIVANTE : dispatcher + champ de posture, aucune dette déclarée', () => {
@@ -114,14 +114,17 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
     const { H } = setup();
     armer();
     expect(posturee(H.id)).toBe(true);
+    const tour = banc.getState().battle!.turn;
+    banc.getState().terminerLeTour(); // l'Action intacte : le 1er geste arme la fin du tour, le 2ᵉ la passe
     banc.getState().terminerLeTour();
+    expect(banc.getState().battle!.turn).not.toBe(tour);
     expect(banc.getState().battle!.stances?.[H.id]?.heldGround).toBeFalsy();
   });
 
   it('MÊLÉE : une attaque au contact ne porte JAMAIS une posture de tir', () => {
     const { H, E } = setup();
     armer();
-    banc.getState().jouerLOffre('posture-tas'); // l'autre posture aussi, si le contexte l'offre
+    banc.jouerLaCase('posture-tas'); // l'autre posture aussi, si le contexte l'offre
     const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }, uid: 'ep', qualities: [] } as never;
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     h.weapons = [...h.weapons, epee];
@@ -143,8 +146,8 @@ describe('G5 — postures et KIND du tireur (parité stricte avec `attackEnv`)',
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
     banc.setState({ party: [hero], screen: 'campaign' });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -177,7 +180,7 @@ describe('G5 — postures et KIND du tireur (parité stricte avec `attackEnv`)',
         result: { hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '' },
       },
     });
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
     expect(banc.getState().battle!.movementUsed, 'aucun gain de posture → aucun Mouvement dépensé').toBe(0);
   });
 });
@@ -192,8 +195,8 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
   function setup(serre: boolean) {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 5 });
     banc.setState({ party: [hero], screen: 'campaign' });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -225,7 +228,7 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
     const cible = () => banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     expect(foes.length, 'la rencontre doit fournir de quoi faire un groupe').toBeGreaterThanOrEqual(3);
 
-    banc.getState().jouerLOffre('posture-tas');
+    banc.jouerLaCase('posture-tas');
     expect(banc.getState().battle!.stances?.[H.id]?.intoCrowd).toBe(true);
     openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Tir', 'action/shoot');
     const pa = banc.getState().pendingAttack!;
@@ -245,8 +248,8 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
    */
   it('un tir IMMOBILE ne désarme que SA posture : « Dans le tas » survit au coup', () => {
     const { H, E } = setup(true);
-    banc.getState().jouerLOffre('posture-tir');
-    banc.getState().jouerLOffre('posture-tas');
+    banc.jouerLaCase('posture-tir');
+    banc.jouerLaCase('posture-tas');
     const armees = () => banc.getState().battle!.stances?.[H.id] ?? {};
     expect(armees().heldGround, 'tir immobile armé').toBe(true);
     expect(armees().intoCrowd, '« Dans le tas » armée').toBe(true);
@@ -257,7 +260,7 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
     banc.setState({
       pendingAttack: { ...pa, result: { hit: true, attackerRoll: 30, netSL: 1, location: 'corps', damage: 3, woundsLost: 3, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '' } } as never,
     });
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
 
     expect(banc.getState().battle!.movementUsed, 'le tir immobile a bien payé son Mouvement').toBeGreaterThan(0);
     expect(armees().heldGround, 'la posture DÉPENSÉE tombe').toBeFalsy();
@@ -268,7 +271,7 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
 
   it('la posture se refuse hors contexte : sans groupe, le store ne l’arme pas', () => {
     const { H } = setup(false);
-    banc.getState().jouerLOffre('posture-tas');
+    banc.jouerLaCase('posture-tas');
     expect(banc.getState().battle!.stances?.[H.id]?.intoCrowd).toBeFalsy();
   });
 });

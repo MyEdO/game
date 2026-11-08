@@ -15,11 +15,11 @@
  * l'ÉGALITÉ des deux séries : elle rougit quelle que soit la branche qu'un auteur ajouterait, et
  * quel que soit le sens de la divergence.
  *
- * Ici, la FORME du pilote et la surface des jets ouverts seuls (`surfaceDeLEtape`, possession) ; la conduite sous le
- * curseur, qui lit l'affordance de pose de l'écran (`ui/forcedDieRow`), se joue en `src/state/cascade-parite-porteur.test.ts`.
+ * Ici, la CONDUITE du pilote sous le curseur (la pose lue à la fermeture du verbe de pose, `fermeturesDuFlux`), sa
+ * FORME, et la surface des jets ouverts seuls (`surfaceDeLEtape`, possession).
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { monoStep, worldStep, surfaceDeLEtape, surfaceOf } from './rollSeam';
+import { monoStep, worldStep, surfaceDeLEtape, surfaceOf, tableStep, displayStep } from './rollSeam';
 import { actorIn } from './monde/combatants';
 import { canFixDie, seatInfluences } from './netOwnership';
 import { WORLD_STEP_OWNER } from './pendings';
@@ -31,10 +31,13 @@ import { makePregens } from '../data/pregens';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { setCadence, resetCadence, type Cadence } from '../engine/cadence';
 import type { CascadeStep } from './pendings';
-import { cleDeFixture } from './noyau.testkit';
-import type { GenreDEtape } from './tablesPosees';
+import type { GenreDEtape, GenreDeCascade } from './tablesPosees';
 import type { Ecrit } from './proprietaireDuJeu';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { startCascade, pushStep, suspendActiveCascade, resumeSuspendedCascade, stepInteraction, stepReady } from './cascade';
+import { fermeturesDuFlux } from './verbesOuverts';
+import { seedBattleRng, battleRng } from './battleRng';
+import { avecLesTables, cleDeFixture, type FixtureDeTables } from './noyau.testkit';
 
 let banc: Banc;
 beforeEach(() => {
@@ -176,5 +179,140 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
     // CONTRÔLE : le même siège n'a aucune prise sur un porteur qui n'existe nulle part.
     expect(seatInfluences(get(), 0, 'porteur-fantome')).toBe(false);
     set({ battle: null });
+  });
+});
+
+const TABLE = 'table-parite-porteur';
+/** La table et les genres SYNTHÉTIQUES de la conduite, posés par `avecLesTables`. */
+const FIXTURE: FixtureDeTables = {
+  tablesTirables: {
+    [TABLE]: {
+      label: fixtureText('Table de parité'),
+      die: 100,
+      rows: [{ id: 'basse', min: 1, max: 50 }, { id: 'haute', min: 51, max: 100 }],
+      lines: () => ['ligne de parité'],
+    },
+  },
+  appliers: {
+    /** Applier muet : l'étape a un dénouement (elle est FRANCHISSABLE), sans conséquence à observer. */
+    'parite-table': () => undefined,
+    'parite-suspend': (g, s) => { suspendActiveCascade(g, s); },
+  },
+};
+
+/** LA MÊME déclaration d'étape à table, montée pour l'un ou l'autre porteur — seule la possession change. */
+function etapeTable(porteur: Porteur, heroId: string, id = 'parite-1'): CascadeStep {
+  const commun = {
+    id, kind: cleDeFixture('parite-table'), label: fixtureText('Table de parité'),
+    table: { tableId: TABLE, spec: { n: 1, sides: 100 } },
+    stake: { key: { dataset: 'combat' as const, kind: 'mutation' } },
+  };
+  return (porteur === 'heros' ? tableStep({ ...commun, actorId: heroId }) : tableStep({ ...commun, worldOwner: true }))!;
+}
+
+const etapeMuette = (porteur: Porteur, heroId: string, id: string, kind: GenreDeCascade): CascadeStep =>
+  porteur === 'heros'
+    ? displayStep({ id, kind, label: fixtureText('Muette'), actorId: heroId })
+    : displayStep({ id, kind, label: fixtureText('Muette'), worldOwner: true });
+
+/** Compte les tirages du RNG PARTAGÉ à partir de maintenant (le FLUX, pas les valeurs). */
+function traceDesTirages(): number[] {
+  const rng = battleRng() as { int: (min: number, max: number) => number };
+  const brut = rng.int.bind(rng);
+  const trace: number[] = [];
+  rng.int = (min, max) => { const v = brut(min, max); trace.push(v); return v; };
+  return trace;
+}
+
+interface Conduite {
+  interaction: string;
+  prete: boolean;
+  tiree: boolean;
+  /** La pose du dé ouverte sous le curseur (`jetImposerLeResultat('cascadeTirage')`, fermeture `canFixDie`). */
+  pose: boolean;
+  curseurAvant: number | null;
+  curseurApres: number | null;
+  desConsommes: number;
+}
+
+const curseur = (): number | null => get().pendingCascade?.cursor ?? null;
+
+/** Ce que le pilote offre sous le curseur, et ce que « Suivant » en fait. */
+function conduite(trace: number[]): Conduite {
+  const p = get().pendingCascade;
+  const st = p ? p.participants[p.cursor] : undefined;
+  const avant = curseur();
+  const pose = !!st && fermeturesDuFlux(get(), 'cascadeTirage', st.id).setForcedRoll === null;
+  get().jetValider('cascade');
+  const obs: Conduite = {
+    interaction: st ? stepInteraction(st) : 'aucune',
+    prete: !!st && stepReady(st, get()),
+    tiree: !!st?.table?.result,
+    pose,
+    curseurAvant: avant,
+    curseurApres: curseur(),
+    desConsommes: trace.length,
+  };
+  set({ pendingCascade: null, suspendedCascades: [] });
+  return obs;
+}
+
+/** Les trois PORTES du curseur : ouverture (`startCascade`), append (`pushStep`), reprise d'une séquence parquée. */
+const PORTES: Record<string, (porteur: Porteur) => Conduite> = {
+  ouverture: (porteur) => {
+    seedBattleRng(17);
+    const heroId = montage();
+    const trace = traceDesTirages();
+    startCascade(get, set, { title: 'Parité', purpose: 'test', steps: [etapeTable(porteur, heroId)] });
+    return conduite(trace);
+  },
+  append: (porteur) => {
+    seedBattleRng(17);
+    const heroId = montage();
+    const trace = traceDesTirages();
+    pushStep(set, etapeTable(porteur, heroId), 'test');
+    return conduite(trace);
+  },
+  reprise: (porteur) => {
+    seedBattleRng(17);
+    const heroId = montage();
+    const trace = traceDesTirages();
+    startCascade(get, set, {
+      title: 'Parité', purpose: 'test',
+      steps: [etapeMuette(porteur, heroId, 'parite-sus', cleDeFixture('parite-suspend')), etapeTable(porteur, heroId)],
+    });
+    get().jetValider('cascade');
+    if (get().pendingCascade) suspendActiveCascade(get, set);
+    resumeSuspendedCascade(get, set);
+    return conduite(trace);
+  },
+};
+
+describe('#1426 — parité de PORTEUR sous le curseur : une table de MONDE se conduit comme celle d’un HÉROS', () => {
+  beforeEach(() => { resetDesFixes(); resetCadence(); avecLesTables(FIXTURE); });
+  afterEach(() => { resetDesFixes(); resetCadence(); set({ pendingCascade: null, suspendedCascades: [] }); });
+
+  for (const pol of POLITIQUES) {
+    for (const [nomPorte, porte] of Object.entries(PORTES)) {
+      it(`${pol.nom} — porte « ${nomPorte} » : monde et héros donnent LA MÊME conduite`, () => {
+        setDesFixes(pol.pose);
+        setCadence(pol.cadence);
+        expect(porte('monde'), `porte « ${nomPorte} » : une conduite qui diverge par le PORTEUR est une branche « spéciale monde »`).toEqual(porte('heros'));
+      });
+    }
+  }
+
+  it('CONTRÔLE POSITIF — les trois politiques rendent TROIS conduites DISTINCTES (la sonde discrimine)', () => {
+    const conduites = POLITIQUES.map((pol) => {
+      setDesFixes(pol.pose);
+      setCadence(pol.cadence);
+      return PORTES.ouverture('monde');
+    });
+    expect(new Set(conduites.map((c) => JSON.stringify(c))).size, 'pose OFF ≠ pose ON ≠ cadence déférée').toBe(3);
+    expect(conduites[2].tiree, 'cadence déférée : le socle a tiré').toBe(true);
+    expect(conduites[0].tiree, 'cadence manuelle : la fenêtre lance').toBe(false);
+    expect(conduites[0].pose, 'option de pose éteinte : rien à poser').toBe(false);
+    expect(conduites[1].pose, 'option de pose active + siège possesseur : la pose est offerte').toBe(true);
+    expect(conduites[0].curseurApres, '« Suivant » ne franchit pas une table non tirée').toBe(0);
   });
 });

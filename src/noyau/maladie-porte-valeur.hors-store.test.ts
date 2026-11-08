@@ -5,7 +5,7 @@
  * « A partir du moment ou je dois faire un jet, il doit apparaitre. Y'a pas de "classe spéciale" si je
  * suis a l'initiative, que je le subit, face a un adversaire ou face a … une maladie ».
  *
- * Ce que ce fichier tient, sur le CHEMIN RÉEL du joueur (`openRest` → `fenetreValider('rest')`, les DEUX bâtisseurs
+ * Ce que ce fichier tient, sur le CHEMIN RÉEL du joueur (`ouvrirLeRepos` → `fenetreValider('rest')`, les DEUX bâtisseurs
  * de la nuit, comme en jeu — jamais `deferredUpkeepSteps` appelé seul) :
  *  (i)   le Test de cycle du VER DE CARIE (MSRC 16 l.90 : « Test d'Endurance Accessible (+20) chaque
  *        jour ») est une ÉTAPE influençable dont la valeur est celle de la porte — Endurance NUE,
@@ -62,7 +62,7 @@ function rendMalade(id: string, maladie: string, jours = 0): Combatant {
 
 /** La nuit du joueur : auberge → « Dormir ». Rend les étapes de la cascade ouverte. */
 function dort(): CascadeStep[] {
-  banc.getState().openRest({ lieu: fixtureText('Ici'), places: { auberge: true } });
+  banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true } });
   banc.getState().fenetreValider('rest');
   return banc.getState().pendingCascade?.participants ?? [];
 }
@@ -137,7 +137,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     banc.setState({
       pendingCascade: { ...p, cursor: idx, participants: p.participants.map((s, i) => (i === idx ? injecte(s) : s)) },
     });
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
 
     const fievre = banc.getState().party[0].diseases![0].symptoms.find((s) => s.symptomId === 'fievre');
     expect(fievre?.severity, 'échec du Test quotidien → la Fièvre passe Grave (EDOC 08 l.104-108)').toBe('grave');
@@ -148,10 +148,10 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     banc.setState((s) => ({ party: [...s.party, hero({ id: 'h2', label: 'Hans' })] }));
     rendMalade('h1', 'pneumonie', 0);
     const journal: string[] = [];
-    const vraiLog = banc.getState().log;
-    banc.setState({ log: (l: string | string[]) => { journal.push(...(Array.isArray(l) ? l : [l])); vraiLog(l); } } as never);
+    const vraiLog = banc.getState().ecrireAuJournal;
+    banc.setState({ ecrireAuJournal: (l: string | string[]) => { journal.push(...(Array.isArray(l) ? l : [l])); vraiLog(l); } } as never);
 
-    banc.getState().restParty(3); // clôture d'interlude / triche de recette : 3 nuits d'affilée
+    banc.getState().reposerLeGroupe(3); // clôture d'interlude / triche de recette : 3 nuits d'affilée
 
     // Le cycle a AVANCÉ (les étapes ont été résolues par leurs appliers) et rien n'attend le joueur.
     expect(banc.getState().pendingCascade, 'ce chemin résout d’office, il n’ouvre pas de fenêtre').toBeNull();
@@ -177,16 +177,16 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     // Un second héros valide : la défaite (`checkPartyWiped`) ne peut pas être ce qui interrompt.
     banc.setState((s) => ({ party: [...s.party, hero({ id: 'h2', label: 'Hans' })] }));
     rendMalade('h1', 'pneumonie', 0);
-    banc.getState().openRest({ lieu: fixtureText('Ici'), places: { auberge: true } });
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true } });
     banc.getState().fenetreValider('rest');
     const vivant = banc.getState().pendingCascade;
     expect(vivant, 'une fenêtre de nuit est ouverte AVANT le sommeil multi-jours').toBeTruthy();
 
     const journal: string[] = [];
-    const vraiLog = banc.getState().log;
-    banc.setState({ log: (l: string | string[]) => { journal.push(...(Array.isArray(l) ? l : [l])); vraiLog(l); } } as never);
+    const vraiLog = banc.getState().ecrireAuJournal;
+    banc.setState({ ecrireAuJournal: (l: string | string[]) => { journal.push(...(Array.isArray(l) ? l : [l])); vraiLog(l); } } as never);
 
-    banc.getState().restParty(2);
+    banc.getState().reposerLeGroupe(2);
 
     const lignesDeJet = journal.filter((l) => /[ ]:[ ]\d+[/]\d+[ ]→[ ]/.test(l));
     expect(lignesDeJet.length, `les DEUX nuits roulent leur Test : ${journal.join(' | ')}`).toBeGreaterThanOrEqual(2);
@@ -222,7 +222,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
         ? { ...s, participants: s.participants.map((r) => ({ ...r, result: ok })) }
         : { ...s, result: ok });
       banc.setState({ pendingCascade: { ...p, participants: p.participants.map(injecte) } });
-      for (let g = 0; g < steps.length + 4 && banc.getState().pendingCascade; g++) banc.getState().jetConfirm('cascade');
+      for (let g = 0; g < steps.length + 4 && banc.getState().pendingCascade; g++) banc.getState().jetValider('cascade');
       const h2 = banc.getState().party[0];
       return { extenue: stacks(h2, 'extenue'), maladies: (h2.diseases ?? []).length };
     })();

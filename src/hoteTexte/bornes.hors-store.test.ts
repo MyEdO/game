@@ -37,7 +37,7 @@ describe.each(['ecuries-clayonnage', 'siege-enceinte'])('les bornes de sortie su
     tientSesBornes('cases', 'cases', t.lire('cases'));
     const actif = /^R1 tour \d+\/\d+ · actif (\S+) /.exec(vue.texte)![1];
     tientSesBornes('fiche', 'fiche', t.lire('fiche', { id: actif }));
-    tientSesBornes('offre end-turn', 'jouer', t.jouer({ offre: 'end-turn' }));
+    tientSesBornes('terminerLeTour', 'jouer', t.jouer(verbe('terminerLeTour')));
   });
 });
 
@@ -51,10 +51,10 @@ describe('les bornes des sorties de l’exploration, des verbes et du journal', 
     tientSesBornes('carte', 'carte', t.lire('carte'));
     tientSesBornes('vue', 'vue', t.lire('vue'));
   });
-  it('une erreur tient ses bornes, sur les verbes aux formes les plus larges (`fenetreChoisir`, `startTravel`, `playTavernGame`)', { timeout: 120_000 }, () => {
+  it('une erreur tient ses bornes, sur les verbes aux formes les plus larges (`fenetreChoisir`, `partirEnVoyage`, `jouerALaTaverne`)', { timeout: 120_000 }, () => {
     const t = table();
     expect(t.nouvelle('dome').erreur).toBeNull();
-    for (const nom of ['fenetreChoisir', 'startTravel', 'playTavernGame']) {
+    for (const nom of ['fenetreChoisir', 'partirEnVoyage', 'jouerALaTaverne']) {
       const r = t.jouer(verbe(nom, 1));
       tientSesBornes(nom, 'jouer', r, true);
       expect(r.texte, `${nom} : l’erreur se replie, elle n’est pas coupée`).not.toMatch(/…$/m);

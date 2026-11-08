@@ -3,7 +3,7 @@
  * le Sort, son NI et sa Zone d'Effet, la ligne du jet (aperçu ou jet tombé), les réglages d'avant et d'après le jet
  * (ton de la Prière, forme de l'arme invoquée, effet d'Incantation Critique, Surincantation, jets sur le Tableau, pose
  * de la zone), chacun avec la raison qui le refuse, les fermetures du flux `cast`, l'annulation et l'issue. Lecteur PUR,
- * partagé par l'écran web (`ui/CastModal.tsx`) et par tout hôte qui lit la partie sans écran ; ses refus sont ceux que
+ * partagé par l'écran d'incantation et par tout hôte qui lit la partie sans écran ; ses refus sont ceux que
  * les réglages du jet (`jetRegler('cast', …)`, `reglagesDuCombat`) et la pose de la zone appliquent (`combatSlice.ts`).
  * Ses textes sortent du catalogue par `t()`.
  */

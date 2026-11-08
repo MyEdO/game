@@ -50,7 +50,7 @@ const row = (id: string, over: Partial<BatchParticipant> = {}): BatchParticipant
 
 beforeEach(() => {
   banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
-  banc.getState().seedRng(7);
+  banc.getState().ensemencerLeTirage(7);
 });
 
 describe('parité des VERBES : une bande offre ce qu’offre l’étape mono', () => {
@@ -79,9 +79,9 @@ describe('CHARGE UTILE par rangée (`meta`) — l’applier lit la donnée DE LA
         row(h2.id, { meta: { psychKind: 'peur', prevDR: 0 } }),
       ])],
     });
-    banc.getState().jetRoll('cascadeBatch', h1.id);
-    banc.getState().jetRoll('cascadeBatch', h2.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetLancer('cascadeBatch', h1.id);
+    banc.getState().jetLancer('cascadeBatch', h2.id);
+    banc.getState().jetValider('cascade');
     expect(vues[0].meta).toEqual([
       { id: 'h1', psychKind: 'peur', prevDR: 2 },
       { id: 'h2', psychKind: 'peur', prevDR: 0 },
@@ -102,7 +102,7 @@ describe('DÉTERMINATION par rangée (LDB 17 l.59)', () => {
     avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'bande-psy': spyApplier(vues, (step) => ({ parts: (step.participants ?? []).map((p) => ({ id: p.id, immune: p.immune })) })) } });
     startCascade(banc.getState, banc.setState, { title: 'Peur', purpose: 'test', steps: [psychBand()] });
 
-    banc.getState().jetDetermine('cascadeBatch', h1.id);
+    banc.getState().jetDepenserLaDetermination('cascadeBatch', h1.id);
     const st = banc.getState().pendingCascade!.participants[0];
     expect(st.participants![0].immune).toBe(true);
     expect(st.participants![0].result).toEqual({ roll: 50, target: 50, sl: 0, success: true });
@@ -111,8 +111,8 @@ describe('DÉTERMINATION par rangée (LDB 17 l.59)', () => {
     expect(banc.getState().party.find((c) => c.id === h1.id)!.resolve).toBe(1);
     expect(banc.getState().party.find((c) => c.id === h2.id)!.resolve).toBe(2);
 
-    banc.getState().jetRoll('cascadeBatch', h2.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetLancer('cascadeBatch', h2.id);
+    banc.getState().jetValider('cascade');
     // L'applier de bande lit le flag PAR RANGÉE (h1 immunisé, h2 non).
     expect(vues[0].parts).toEqual([{ id: 'h1', immune: true }, { id: 'h2', immune: undefined }]);
   });
@@ -122,7 +122,7 @@ describe('DÉTERMINATION par rangée (LDB 17 l.59)', () => {
     banc.setState({ party: [h1] });
     avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'bande-nue': spyApplier([], () => null) } });
     startCascade(banc.getState, banc.setState, { title: 'X', purpose: 'test', steps: [band('bande-nue', [row(h1.id)])] });
-    banc.getState().jetDetermine('cascadeBatch', h1.id);
+    banc.getState().jetDepenserLaDetermination('cascadeBatch', h1.id);
     expect(banc.getState().pendingCascade!.participants[0].participants![0].result).toBeNull();
     expect(banc.getState().party[0].resolve).toBe(2);
   });
@@ -138,7 +138,7 @@ describe('RÉSISTANCE (Menace) par rangée (LDB 10 l.1016-1020)', () => {
       title: 'Contagion', purpose: 'test',
       steps: [band('bande-menace', [row(h1.id, { menace: 'maladie' }), row(h2.id, { menace: 'maladie' })], { menace: 'maladie' })],
     });
-    banc.getState().jetResist('cascadeBatch', h1.id);
+    banc.getState().jetResister('cascadeBatch', h1.id);
     const st = banc.getState().pendingCascade!.participants[0];
     expect(st.participants![0].result).toEqual({ roll: 1, target: 50, sl: bonus(43), success: true });
     expect(st.participants![1].result).toBeNull();
@@ -151,7 +151,7 @@ describe('RÉSISTANCE (Menace) par rangée (LDB 10 l.1016-1020)', () => {
     banc.setState({ party: [h1] });
     avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'bande-nue2': spyApplier([], () => null) } });
     startCascade(banc.getState, banc.setState, { title: 'X', purpose: 'test', steps: [band('bande-nue2', [row(h1.id)])] });
-    banc.getState().jetResist('cascadeBatch', h1.id);
+    banc.getState().jetResister('cascadeBatch', h1.id);
     expect(banc.getState().pendingCascade!.participants[0].participants![0].result).toBeNull();
     expect(banc.getState().party[0].resistanceUsed ?? []).toEqual([]);
   });
@@ -189,7 +189,7 @@ function commitRows(results: BatchParticipant['result'][]): void {
   const st = pc.participants[pc.cursor];
   const participants = st.participants!.map((p, k) => ({ ...p, result: results[k] }));
   banc.setState({ pendingCascade: { ...pc, participants: pc.participants.map((x, i) => (i === pc.cursor ? { ...x, participants } : x)) } });
-  banc.getState().jetConfirm('cascade');
+  banc.getState().jetValider('cascade');
 }
 
 const LOSE = (target: number) => ({ roll: 99, target, sl: -2, success: false });

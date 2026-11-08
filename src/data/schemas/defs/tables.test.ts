@@ -30,7 +30,7 @@ describe('tables.json — chaque table couvre son dé depuis 1', () => {
     const doc = clone();
     const fermee = doc.find((t) => t.die === 'd10' && t.entries.every((r) => r.max !== null))!;
     fermee.die = '2d10';
-    expect(validateDataset('tables.json', doc)).toMatch(new RegExp(`${fermee.id} : les rangées ne couvrent pas le 2d10 d'un seul tenant depuis 2`));
+    expect(validateDataset('tables.json', doc)).toMatch(new RegExp(`${fermee.id} : les rangées ne couvrent pas le 2d10 d'un seul tenant`));
   });
 
   it('REFUSE un dé de tirage qui ne se lit pas en `DiceSpec`', () => {

@@ -8,18 +8,20 @@
  * case), et son annulation est GRATUITE par construction — aucune ressource n'est engagée à l'armement.
  *
  * COOP : `localIntent` vit à la RACINE du store, HORS `battle` — le mode est LOCAL au client (aucun
- * intent réseau à l'armement, seul le COMMIT du geste part), et `applyHostSnapshot` le préserve
- * (`netFlow.ts`). Les POSTURES, elles, sont du JEU : elles vivent dans `battle`.
+ * intent réseau à l'armement, seul le COMMIT du geste part), et `appliquerLInstantane` le préserve
+ * (`LOCALES_AU_CLIENT`, `coop.ts`). Les POSTURES, elles, sont du JEU : elles vivent dans `battle`.
  *
  * Chaque action du registre qui arme une intention déclare, en donnée (`intent` de `actions.json`),
  * l'id de la PORTÉE que le champ doit peindre ; le code de cette portée vit ici, jamais en JSON.
  */
 import type { Get } from './flowTypes';
 import { computeChargeReach, computeRunReach, displayedReach } from './combatFlow';
-import { findActionById } from '../data/index';
+import { ACTIONS, findActionById } from '../data/index';
 import { unSiegeAgit } from './netOwnership';
 import type { Jeu } from './etat';
 import type { ActionDeClasse } from './intentionsDeSiege';
+import { armerLOffre, refusDuGeste } from './actionRegistry';
+import type { VerbesDeLaBarre } from './actionsDuNoyau';
 
 /** Le mode d'intention ARMÉ (un seul à la fois) : l'id d'action du registre qui l'a posé. */
 export interface LocalIntent {
@@ -102,19 +104,41 @@ export function chargeArmee(get: Get<Jeu>): boolean {
  * VERDICT D'ARMEMENT JOINT AUX ARGS D'UN INTENT RÉSEAU, par action de clic.
  *
  * L'intention est LOCALE au client (hors snapshot, plus haut) : un invité qui arme sa Course puis
- * clique n'envoie que `battleClickTile(pt, opts)`, et l'HÔTE l'exécute dans SON store — où cette
+ * clique n'envoie que `cliquerLaCase(pt, undefined, opts)`, et l'HÔTE l'exécute dans SON store — où cette
  * intention n'existe pas. Sans ce joint, un invité ne pourrait jamais courir ni charger, et l'hôte
  * débloquerait le geste d'autrui en armant SA propre case. Le verdict se calcule donc CHEZ
  * L'ÉMETTEUR, au moment du geste, et voyage dans les args comme `confirm`.
  *
- * Table déclarative (jamais un `if (action === …)` au fil de `netFlow`) : une action de clic, la
+ * Table déclarative (jamais un `if (action === …)` au fil de l'émission) : une action de clic, la
  * façon d'enrichir SES args. Les intents absents d'ici voyagent inchangés.
  */
 type VerdictJoint = (get: Get<Jeu>, args: readonly unknown[]) => unknown[];
 export const INTENT_VERDICT_ARGS: Readonly<Record<string, VerdictJoint>> = {
-  battleClickEntity: (get, [id, opts]) => [id, { ...(opts as object | undefined), approche: chargeArmee(get) }],
-  battleClickTile: (get, [pt, opts]) => [pt, { ...(opts as object | undefined), courseArmee: courseArmee(get) }],
+  // Le clic d'un combattant porte le verdict de la Charge, celui d'une case libre celui de la Course.
+  cliquerLaCase: (get, [pt, entite, opts]) =>
+    [pt, entite, { ...(opts as object | undefined), ...(entite ? { approche: chargeArmee(get) } : { courseArmee: courseArmee(get) }) }],
 } satisfies { readonly [A in ActionDeClasse<'invité'>]?: VerdictJoint };
+
+/**
+ * CE QUE L'ÉMETTEUR PRÉPARE CHEZ LUI AVANT D'ENVOYER UN INTENT, par action de la classe invité.
+ *
+ * L'armement d'une intention est LOCAL au client (hors snapshot) : l'hôte qui joue le verbe de la barre d'un invité ne
+ * l'arme pas (`armerLOffre`). Un verbe de la barre dont l'offre arme une intention (`attaque`) l'arme donc chez
+ * l'émetteur, au geste, sur le refus de son geste dans son état (`refusDuGeste`), comme le verbe l'arme où il se joue.
+ */
+type PreparationLocale = (get: Get, args: readonly unknown[]) => void;
+const armerChezLEmetteur = (verbe: keyof VerbesDeLaBarre): PreparationLocale => (get, args) => {
+  const verdict = refusDuGeste(get(), { verbe, args: [...args] });
+  if ('def' in verdict) armerLOffre(get, verdict.def);
+};
+export const INTENT_PREPARATION_LOCALE: Readonly<Record<string, PreparationLocale>> = Object.fromEntries(
+  ACTIONS.flatMap((def) => (def.intent && def.run && def.run !== 'armerLIntention' ? [[def.run, armerChezLEmetteur(def.run as keyof VerbesDeLaBarre)]] : [])),
+) satisfies { readonly [A in ActionDeClasse<'invité'>]?: PreparationLocale };
+
+/** Prépare chez l'émetteur l'intent `action` qu'il envoie (`INTENT_PREPARATION_LOCALE`). */
+export function preparerLIntentLocal(get: Get, action: string, args: readonly unknown[]): void {
+  INTENT_PREPARATION_LOCALE[action]?.(get, args);
+}
 
 /** Args d'un intent, enrichis du verdict d'armement LOCAL quand l'action en demande un. */
 export function argsAvecVerdictLocal(get: Get<Jeu>, action: string, args: readonly unknown[]): unknown[] {

@@ -8,8 +8,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { corpsDe, drainer, fautesDeLaFenetre, gesteDe, gestesDessines, table, type Reponse } from './pont.testkit';
-import type { Suite } from './pont';
-import { CLICS_DU_CHAMP } from '../../../src/noyau/index';
+import { clicDuCombattant, type Suite } from './pont';
+import { CLIC_DU_CHAMP } from '../../../src/noyau/index';
 import type { Bouton, Choix, Jet, Ligne } from '../../../src/hote/elements';
 
 const { appel: appelNu } = table();
@@ -53,11 +53,11 @@ const valeurDe = (b: Bouton): unknown => ('args' in b.jeu ? b.jeu.args[b.jeu.arg
 
 const actifDe = (s: Suite) => s.vue.projection.combat!.actif!;
 
-/** La fin du tour par son offre, confirmée par la même offre quand la vue la dit armée (`finDeTourArmee`). */
+/** La fin du tour par le verbe de son offre, confirmée par le même verbe quand la vue la dit armée (`finDeTourArmee`). */
 function finirLeTour(): ReturnType<typeof jouer> {
-  const arme = jouer({ offre: 'end-turn' });
+  const arme = jouer({ type: 'terminerLeTour', args: [] });
   if (!arme.suite.vue.projection.combat!.finDeTourArmee) return arme;
-  const fin = jouer({ offre: 'end-turn' });
+  const fin = jouer({ type: 'terminerLeTour', args: [] });
   return { suite: fin.suite, journal: [...arme.journal, ...fin.journal], lignes: [...arme.lignes, ...fin.lignes] };
 }
 
@@ -71,28 +71,28 @@ describe('un tour complet par le pont', () => {
     const heros = actifDe(suite);
     expect(heros.camp).toBe('hero');
     expect(suite.vue.projection.combat!.barre).toEqual({ forme: 'ouverte', raison: null });
-    expect(suite.vue.champ, 'la barre ouverte, le champ se clique en combat').toEqual(CLICS_DU_CHAMP);
+    expect(suite.vue.champ, 'la barre ouverte, le champ se clique en combat').toBe(CLIC_DU_CHAMP);
     const economie = (id: string) => suite.vue.zones['combat.offres'].find((o): o is Choix => o.type === 'choix' && o.valeurs.some((v) => v.id === id));
     expect(economie('charge'), 'la Charge se range sous le Mouvement qu’elle prend, nommé une fois').toMatchObject({ libelle: 'Mouvement' });
     expect(economie('charge')!.valeurs.find((v) => v.id === 'charge')?.libelle, 'chaque offre de la barre a son libellé, sans son coût').toBe('Charger');
     expect(economie('end-turn'), 'la fin du tour, qui ne prend rien, se range sous le tour').toMatchObject({ libelle: 'Tour' });
     expect(suite.vue.zones['combat.actif'][0]?.nom, 'le panneau nomme l’actif').toBe(heros.nom);
     expect(suite.vue.zones['combat.ordre'].filter((p) => p.ton === 'alerte').map((p) => p.libelle), 'le bandeau de l’ordre met en avant celui qui joue, lui seul').toEqual([heros.nom]);
-    ({ suite } = jouer({ offre: 'charge' }));
+    ({ suite } = jouer({ type: 'armerLIntention', args: ['charge'] }));
     expect(suite.vue.projection.combat!.intention, 'l’offre arme son intention').toBe('charge');
     expect(suite.vue.zones['combat.offres'].flatMap((o) => o.valeurs).find((o) => o.presse)?.id, 'l’offre armée est pressée').toBe('charge');
     const [cible] = suite.vue.projection.combat!.cibles.liste; // les cibles que le clic accepte, la Charge armée
     const nomDe = (id: string) => suite.vue.projection.combat!.voisins.liste.find((v) => v.id === id)!.nom;
     const nomDeLaCible = nomDe(cible);
-    ({ suite } = jouer({ type: CLICS_DU_CHAMP.combattant, args: [cible] }));
+    ({ suite } = jouer(clicDuCombattant(suite.vue, cible)!));
     expect(suite.vue.projection.fenetre, 'la charge ouvre la fenêtre d’attaque').toMatchObject({ cle: 'cascade', etape: { genre: 'attackJet' } });
     expect(suite.vue.disposition, 'la fenêtre d’attaque se dispose par sa clé et son jet').toBe('cascade/attack');
     expect(suite.vue.zones['fenetre.reglages'].map((g) => g.id), 'la Localisation est une option du coup').toContain('jetRegler@attack#localisation');
-    expect(suite.vue.zones['fenetre.gestes'].map((g) => g.id), 'le jet est un pas de la séquence').toContain('jetRoll@attack');
+    expect(suite.vue.zones['fenetre.gestes'].map((g) => g.id), 'le jet est un pas de la séquence').toContain('jetLancer@attack');
     expect(corpsDe(suite.vue, 'degats'), 'les Dégâts de l’arme, à part').toMatchObject({ type: 'puce', valeur: expect.stringMatching(/^\+\d+$/) });
     expect(corpsDe(suite.vue, 'cible'), 'la fenêtre nomme la cible').toMatchObject({ type: 'ligne', texte: expect.stringContaining(nomDeLaCible) });
     expect(corpsDe(suite.vue, 'jet'), 'le jet de l’attaquant, à lancer').toMatchObject({ type: 'jet', qui: heros.nom, cible: expect.stringMatching(/\d+$/), resultat: null, verdict: null, detail: expect.stringMatching(/^base \d+/) });
-    expect(attendu(suite), 'avant le jet, le jet est attendu').toBe('jetRoll@attack');
+    expect(attendu(suite), 'avant le jet, le jet est attendu').toBe('jetLancer@attack');
 
     const localiser = () => {
       const g = gesteDe(suite.vue, 'jetRegler@attack#localisation');
@@ -109,7 +109,7 @@ describe('un tour complet par le pont', () => {
     expect(corpsDe(suite.vue, 'jet'), 'le jet tombé dit son verdict').toMatchObject({ type: 'jet', verdict: expect.any(String) });
     const issue = corpsDe(suite.vue, 'issue');
     expect(issue, 'le jet tombé dit son issue').toMatchObject({ type: 'ligne' });
-    expect(attendu(suite), 'le jet tombé, la confirmation est attendue').toBe('jetConfirm@attack');
+    expect(attendu(suite), 'le jet tombé, la confirmation est attendue').toBe('jetValider@attack');
     const confirmee = presser(bouton(suite, attendu(suite)));
     suite = confirmee.suite;
     expect(suite.vue.projection.fenetre?.etape?.genre, 'confirmée, la fenêtre d’attaque se ferme').not.toBe('attackJet');
@@ -124,10 +124,10 @@ describe('un tour complet par le pont', () => {
     const second = actifDe(suite);
     expect(second.id).not.toBe(heros.id);
     const vers = suite.vue.cases.find((c) => c.zone === 'marche' && c.cout === 1)!.case;
-    ({ suite } = jouer({ type: CLICS_DU_CHAMP.case, args: [vers] }));
+    ({ suite } = jouer({ type: CLIC_DU_CHAMP, args: [vers] }));
     expect(suite.vue.projection.combat!.apercu, 'le premier clic montre l’aperçu').toMatchObject({ genre: 'move', cible: null, case: [vers.x, vers.y, vers.z ?? 0] });
     expect(suite.vue.zones['combat.apercu'].map((l) => l.id), 'l’aperçu dit ce qu’il coûte').toEqual(['apercu']);
-    ({ suite } = jouer({ type: CLICS_DU_CHAMP.case, args: [vers] }));
+    ({ suite } = jouer({ type: CLIC_DU_CHAMP, args: [vers] }));
     expect(actifDe(suite).pos, 'le second clic déplace le héros').toEqual([vers.x, vers.y, vers.z ?? 0]);
     expect(suite.vue.occupants[`${vers.x},${vers.y},${vers.z ?? 0}`], 'la case porte son occupant').toBe(second.id);
 
@@ -142,11 +142,11 @@ describe('un tour complet par le pont', () => {
     expect(suite.vue.disposition, 'la Défense se dispose par sa clé et son jet').toBe('cascade/defense');
     const reaction = corpsDe(suite.vue, 'defense/jet');
     expect(reaction, 'avant le dé, la réaction dit son score à atteindre').toMatchObject({ type: 'jet', cible: expect.stringMatching(/\d+$/), resultat: null, detail: expect.stringMatching(/^base \d+/) });
-    expect(attendu(suite), 'avant le jet de Défense, le jet est attendu').toBe('jetRoll@defense');
+    expect(attendu(suite), 'avant le jet de Défense, le jet est attendu').toBe('jetLancer@defense');
     const evenements = [...journal];
     ({ suite, journal } = presser(bouton(suite, attendu(suite))));
     evenements.push(...journal);
-    expect(attendu(suite), 'le jet de Défense tombé, sa confirmation est attendue').toBe('jetConfirm@defense');
+    expect(attendu(suite), 'le jet de Défense tombé, sa confirmation est attendue').toBe('jetValider@defense');
     expect(corpsDe(suite.vue, 'defense/jet'), 'le dé tombé, la ligne avant le dé s’efface').toBeUndefined();
     expect(corpsDe(suite.vue, 'defense/issue'), 'le dé tombé, la Défense dit son issue').toMatchObject({ type: 'ligne', texte: expect.stringMatching(/\S/) });
     expect(suite.vue.zones['fenetre.corps'].find((e) => e.type === 'jet' && e.libelle === (reaction as Jet).libelle), 'le jet tombé vise le score annoncé avant le dé').toMatchObject({ cible: (reaction as Jet).cible });

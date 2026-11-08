@@ -4,6 +4,7 @@
  * jeu elle-même se joue au banc du noyau (`src/noyau/boucle-de-jeu.hors-store.test.ts`).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { advanceTurn } from '../noyau/combatFlow';
 import { GARDES_D_UNE_PARTIE_A_L_AUTRE, useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import { createHero } from '../engine/character';
@@ -72,25 +73,25 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
       combatants: [H, E], order: [E.id, H.id], turn: 1, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     };
-    useGame.setState({ party: [H], mode: 'battle', battle, scene: emptyScene('scene-test', 8, 8) });
+    useGame.setState({ screen: 'campaign', party: [H], mode: 'battle', battle, scene: emptyScene('scene-test', 8, 8) });
     return { H, E };
   }
 
-  it('Tir rapide au CLAVIER : armer (armPreempt) → curseur (snapCursorToTarget) → Entrée (commitCursor) → tir', () => {
+  it('Tir rapide au CLAVIER : armer (armerLeTirPreventif) → curseur (snapCursorToTarget) → Entrée (commitCursor) → tir', () => {
     const { H, E } = endOfRoundBattle(0);
     H.talents = [{ talentId: 'tir-rapide', times: 1 }];
     H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
     rangedOf(H).loaded = true; H.pos = { x: 0, y: 0 };
     E.pos = { x: 2, y: 0 }; // à portée + LdV (scène vide)
-    useGame.getState().terminerLeTour(); // → Round 2, pendingRoundStart
+    advanceTurn(useGame.getState, useGame.setState); // → Round 2, pendingRoundStart
     seedBattleRng(1);
-    // Touche T : arme la visée du tireur (source unique preemptShooterIds → armPreempt).
-    useGame.getState().armPreempt(H.id);
+    // Touche T : arme la visée du tireur (source unique preemptShooterIds → armerLeTirPreventif).
+    useGame.getState().armerLeTirPreventif(H.id);
     expect(useGame.getState().preemptAiming).toBe(H.id);
     // Tab/flèches : le curseur trouve la cible valide du TIREUR (aucun actif à turn:-1 — cursorActor renvoie le tireur).
     useGame.getState().snapCursorToTarget(1);
     expect(useGame.getState().combatCursor?.snappedId).toBe(E.id);
-    // Entrée (commitCursor) : tire l'interruption via battleClickEntity (armé) → preemptRangedShot.
+    // Entrée (commitCursor) : tire l'interruption via cliquerLaCase (armé) → declencherLeTirPreventif.
     useGame.getState().commitCursor();
     const st = useGame.getState();
     expect(st.pendingAttack?.interrupt).toBe(true);    // modale de tir ouverte pour le tireur
@@ -136,7 +137,7 @@ describe('stepPartyDir — pas clavier BLOQUÉ (#792) : silence remplacé par MO
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 4, y: 4 } });
     const idx = (x: number, y: number) => y * 8 + x;
     scene.layers[0].tiles[idx(3, 3)] = 'mur'; // voisin idéal de 'up' depuis (4,4), en losange par défaut
-    useGame.getState().startScene(scene);
+    useGame.getState().lancerLaScene(scene);
     useGame.setState({ partyPos: { x: 4, y: 4 }, camRot: 0, camEdge: false, viewMode: undefined });
 
     let blocked = 0;
@@ -161,7 +162,7 @@ describe('Nouvelle partie / scénario — reset complet de l’état (anti-déri
     'explored', // dérivé : la vue d'arrivée, fondue par la transition du jeu (`noyau/transitionDuJeu.ts`)
   ]);
 
-  it('startScene réinitialise TOUT champ d’état à son défaut de création (garde-fou anti-dérive)', () => {
+  it('lancerLaScene réinitialise TOUT champ d’état à son défaut de création (garde-fou anti-dérive)', () => {
     // 1) Salir un maximum de champs — simule une partie précédente abandonnée en plein combat.
     useGame.setState({
       gameTime: campaignStart() + 99_999,
@@ -181,8 +182,8 @@ describe('Nouvelle partie / scénario — reset complet de l’état (anti-déri
     const scene = emptyScene('scene-test', 6, 6);
     scene.id = 'neuve';
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
-    useGame.getState().setParty([combattantDeTest({ id: 'h', label: 'H', xp: 0 })]);
-    useGame.getState().startScene(scene);
+    useGame.getState().fixerLeGroupe([combattantDeTest({ id: 'h', label: 'H', xp: 0 })]);
+    useGame.getState().lancerLaScene(scene);
 
     // 3) Garde-fou générique : tout champ DATA non préservé/dérivé == son défaut de création.
     //    Itère sur l’état de création (Zustand) → couvre AUTOMATIQUEMENT tout futur champ ajouté.
@@ -222,8 +223,8 @@ describe('Nouvelle partie / scénario — reset complet de l’état (anti-déri
     const scene = emptyScene('scene-test', 6, 6);
     scene.id = 'neuve2';
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
-    useGame.getState().setParty([combattantDeTest({ id: 'h', label: 'H', xp: 0 })]);
-    useGame.getState().startScene(scene);
+    useGame.getState().fixerLeGroupe([combattantDeTest({ id: 'h', label: 'H', xp: 0 })]);
+    useGame.getState().lancerLaScene(scene);
     expect(useGame.getState().inspectId).toBeNull();
   });
 });
@@ -239,9 +240,9 @@ describe('viewMode (vue du dessus)', () => {
     expect(useGame.getState().viewMode).toBe('iso');
   });
 
-  it('startScene PRÉSERVE viewMode (préférence de vue, comme zoom/camRot)', () => {
+  it('lancerLaScene PRÉSERVE viewMode (préférence de vue, comme zoom/camRot)', () => {
     useGame.setState({ viewMode: 'top' });
-    useGame.getState().startScene(emptyScene('scene-test'));
+    useGame.getState().lancerLaScene(emptyScene('scene-test'));
     expect(useGame.getState().viewMode).toBe('top');
   });
 });

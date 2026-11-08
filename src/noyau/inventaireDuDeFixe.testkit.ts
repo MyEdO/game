@@ -1,8 +1,7 @@
 /**
  * L'INVENTAIRE DES FLUX À DÉ FIXÉ (#3058) : pour CHAQUE flux qui porte `setForcedRoll`, un pending fixture réel, l'id
- * de slot visé (multi) et la lecture du jet obtenu sur l'état que rend le propriétaire (le store, un banc). Partagé
- * par la règle du socle (`fixed-die-inventaire.hors-store.test.ts`) et par la liaison de l'affordance
- * (`src/state/fixed-die-inventaire.test.ts`). Un flux dont la fixture manque échoue la garde.
+ * de slot visé (multi) et la lecture du jet obtenu sur l'état que rend le propriétaire, lus par la règle du socle
+ * (`fixed-die-inventaire.hors-store.test.ts`). Un flux dont la fixture manque échoue la garde.
  */
 import { FLOW_VERBS } from './flowVerbs';
 import type { FlowKey } from './flowVerbs';
@@ -218,11 +217,6 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     state: { pendingShipBattery: { participants: [part3()] } },
     pid: 'H',
     read: partRead((s) => P<{ participants: { result: { roll: number } }[] }>(s, 'pendingShipBattery').participants[0].result),
-  },
-  crewTest: {
-    state: { pendingCrewTest: { participants: [part3()] } },
-    pid: 'H',
-    read: partRead((s) => P<{ participants: { result: { roll: number } }[] }>(s, 'pendingCrewTest').participants[0].result),
   },
   disengage: opposedFixture('pendingDisengage', { moverId: 'H', foeId: 'E' }),
   auContact: opposedFixture('pendingAuContact', { moverId: 'H', foeId: 'E' }),

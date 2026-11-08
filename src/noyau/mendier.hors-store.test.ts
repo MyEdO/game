@@ -307,13 +307,13 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
     const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1, speciesTalentChoices: PERSPICACE });
     a.characteristics.sociabilite = 45; // Bonus de Sociabilité = 4
     banc.setState({ party: [a] });
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     banc.setState({ worldMap: carte() });
-    banc.getState().seedRng(13);
+    banc.getState().ensemencerLeTirage(13);
     seedBattleRng(13);
     setRule('mendier-heures-par-jour', 4);
     setRule('mendier-surpris-pct', 0); // le dé de monde est testé à part : ici on isole les bandes
-    banc.getState().startInterlude(3);
+    banc.getState().ouvrirLInterlude(3);
     draineCascade(banc.getState);
   });
 
@@ -321,11 +321,11 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
   const bourse = () => toBrass(bourseOf(banc.getState().party[0]));
 
   function joue(sl: number, success: boolean, roll = 1): void {
-    banc.getState().interludeActivity(heroId(), 'mendier');
+    banc.getState().pratiquerLActivite(heroId(), 'mendier');
     expect(banc.getState().pendingActivity?.activityId).toBe('mendier');
-    banc.getState().jetRoll('activity');
+    banc.getState().jetLancer('activity');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll, success, sl } });
-    banc.getState().jetConfirm('activity');
+    banc.getState().jetValider('activity');
     draineCascade(banc.getState);
   }
 
@@ -336,7 +336,7 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
 
   it('les `testMods` sont FONDUS dans la ligne de mod du pending (UNE ligne à l’écran)', () => {
     setRule('mendier-discours', -20);
-    banc.getState().interludeActivity(heroId(), 'mendier');
+    banc.getState().pratiquerLActivite(heroId(), 'mendier');
     const pa = banc.getState().pendingActivity!;
     expect(pa.mod).toBe(-20);
     expect(pa.modLabel).toBe('Discours');
@@ -382,11 +382,11 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
   it('le gain suit « Argent à gaspiller » : la bourse est vidée à la clôture, le dépôt bancaire SURVIT', () => {
     joue(3, true);
     expect(bourse(), '(BSoc 4 × 3 DR) × 4 heures').toBe(48);
-    banc.setState({ bank: [{ heroId: heroId(), kind: 'stash', brass: 60, rate: 5 }] });
+    banc.setState({ bank: [{ uid: 'depot-1', heroId: heroId(), kind: 'stash', brass: 60, rate: 5 }] });
     banc.getState().fenetreValider('interlude');
     draineCascade(banc.getState);
     expect(bourse(), 'LDB 23 l.166 : les pièces restantes sont perdues').toBe(0);
-    expect(banc.getState().bank).toEqual([{ heroId: banc.getState().party[0].id, kind: 'stash', brass: 60, rate: 5 }]);
+    expect(banc.getState().bank).toEqual([{ uid: 'depot-1', heroId: banc.getState().party[0].id, kind: 'stash', brass: 60, rate: 5 }]);
   });
 });
 

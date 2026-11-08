@@ -3,6 +3,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { frenzyTarget } from './combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -18,8 +19,8 @@ describe('Frénésie héros — cible imposée et déplacement contraint', () =>
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -53,9 +54,9 @@ describe('Frénésie héros — cible imposée et déplacement contraint', () =>
   it('attaquer un AUTRE ennemi que le plus proche est refusé ; le plus proche passe', () => {
     const { E1, E2 } = setup();
     banc.abandonner(); // largue le turn-handoff résiduel du setup (le tour a été forcé sur le héros)
-    banc.getState().battleClickEntity(E2.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E2.id, { confirm: true });
     expect(banc.getState().pendingAttack).toBeNull(); // refusé : pas le plus proche
-    banc.getState().battleClickEntity(E1.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, E1.id, { confirm: true });
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) → ouvre la frappe
     expect(banc.getState().pendingAttack?.targetId).toBe(E1.id); // charge/attaque sur la cible imposée
   });
@@ -69,7 +70,7 @@ describe('Frénésie héros — cible imposée et déplacement contraint', () =>
     Hc.talents = [...(Hc.talents ?? []), { talentId: 'frenesie', times: 1 }]; // talent Frénésie → attaque d'arme libre dispo (donnée)
     banc.setState({ battle: { ...b, acted: true }, pendingAttack: null });
     banc.abandonner();
-    banc.getState().battleClickEntity(E1.id, { confirm: true }); // E1 à 2 cases → CHARGE (déplacement + attaque)
+    cliquerSurLeCombattant(banc.getState, E1.id, { confirm: true }); // E1 à 2 cases → CHARGE (déplacement + attaque)
     banc.reprendreLesEnAttente(); // joue le glissé d'approche → ouvre la frappe
     const pa = banc.getState().pendingAttack;
     expect(pa?.targetId).toBe(E1.id); // la charge s'ouvre malgré l'Action dépensée (≠ blocage « attaque directe seulement »)
@@ -79,9 +80,9 @@ describe('Frénésie héros — cible imposée et déplacement contraint', () =>
   it('se déplacer en s’ÉLOIGNANT de la cible imposée est refusé ; s’en rapprocher passe', () => {
     const { H } = setup();
     const before = { ...banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos! };
-    banc.getState().battleClickTile({ x: before.x - 2, y: before.y }, { confirm: true }); // s'éloigne
+    banc.getState().cliquerLaCase({ x: before.x - 2, y: before.y }, undefined, { confirm: true }); // s'éloigne
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(before);
-    banc.getState().battleClickTile({ x: before.x + 1, y: before.y }, { confirm: true }); // se rapproche
+    banc.getState().cliquerLaCase({ x: before.x + 1, y: before.y }, undefined, { confirm: true }); // se rapproche
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: before.x + 1, y: before.y });
   });
 
@@ -99,7 +100,7 @@ describe('Frénésie héros — cible imposée et déplacement contraint', () =>
     b.combatants.find((c) => c.id === E1.id)!.pos = { x: 14, y: 10 };
     banc.setState({ battle: { ...b }, localIntent: null, refus: null, pendingRun: null });
     const loin = { x: 11, y: 10 }; // 5 cases : au-delà de la Marche (M4), et ça RAPPROCHE de la cible
-    banc.getState().battleClickTile(loin, { confirm: true });
+    banc.getState().cliquerLaCase(loin, undefined, { confirm: true });
     expect(banc.getState().refus, 'l’Athlétisme imposé par la Frénésie a été refusé').toBeNull();
     expect(banc.getState().pendingRun ?? banc.getState().pendingCascade, 'la Course imposée n’est pas partie').toBeTruthy();
   });
@@ -111,7 +112,7 @@ describe('Frénésie héros — cible imposée et déplacement contraint', () =>
     Hc.freeAttacksThisTurn = { arme: 1 } as never; // l'attaque libre du Round est passée → l'Arme coûte l'Action
     banc.setState({ battle: { ...b }, localIntent: null, refus: null, pendingAttack: null });
     banc.abandonner();
-    banc.getState().battleClickEntity(E1.id, { confirm: true }); // E1 à 2 cases : hors d'Allonge
+    cliquerSurLeCombattant(banc.getState, E1.id, { confirm: true }); // E1 à 2 cases : hors d'Allonge
     banc.reprendreLesEnAttente();
     expect(banc.getState().refus, 'le déplacement IMPOSÉ par la Frénésie a été refusé').toBeNull();
     expect(banc.getState().pendingAttack?.targetId, 'le frénétique n’a pas pu rejoindre sa cible imposée').toBe(E1.id);

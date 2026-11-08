@@ -1,7 +1,7 @@
 /**
  * Le duel de test des flux de combat (#2779, #2817) : un héros à fiche réelle (`createHero`) face au
  * premier ennemi de `enc-mutants`, au contact ((10,10)-(11,10)), les autres ennemis hors de combat, le
- * tour au héros. Le propriétaire de l'état (le store, `state/combatDeTest.testkit.ts` ; un banc ; une partie) lance
+ * tour au héros. Le propriétaire de l'état (le store, un banc, une partie) lance
  * la scène et le combat, puis écrit le patch que rend `auContact`.
  */
 import { createHero } from '../engine/character';
@@ -44,9 +44,9 @@ export interface ProprietaireDuDuel {
 /** Ouvre le duel chez `p`, dans `scene` (la scène de fixture, que le noyau n'importe pas) : la scène, le combat, la
  *  manche confirmée, les suites programmées abandonnées, puis le patch d'`auContact` écrit. */
 export function heroFaceAUnEnnemi(p: ProprietaireDuDuel, scene: Scene): { H: Combatant; E: Combatant } {
-  p.setState({ party: [heroDuDuel()] });
-  p.getState().startScene(scene);
-  p.getState().startCombat('enc-mutants');
+  p.setState({ screen: 'campaign', party: [heroDuDuel()] });
+  p.getState().lancerLaScene(scene);
+  p.getState().lancerLeCombat('enc-mutants');
   p.getState().fenetreValider('roundStart');
   p.abandonner();
   const { H, E, patch } = auContact(p.getState());

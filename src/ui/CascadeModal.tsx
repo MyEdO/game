@@ -123,25 +123,25 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const party = useGame((s) => s.party);
   const p = useGame((s) => s.pendingCascade);
   const identites = useIdentites();
-  const batchRoll = useGesteDeJet('jetRoll', 'cascadeBatch'); // étape « batch » — un Test générique par participant (seam #275 Décision 4 cran 1)
-  const batchReroll = useGesteDeJet('jetReroll', 'cascadeBatch');
-  const batchBonusSL = useGesteDeJet('jetBonusSL', 'cascadeBatch');
-  const batchDarkPact = useGesteDeJet('jetDarkPact', 'cascadeBatch');
-  const batchForce = useGesteDeJet('jetForceSuccess', 'cascadeBatch');
-  const batchResist = useGesteDeJet('jetResist', 'cascadeBatch'); // Résistance (Menace) PAR RANGÉE (LDB 10)
-  const batchDetermine = useGesteDeJet('jetDetermine', 'cascadeBatch'); // Détermination PAR RANGÉE (LDB 17 l.59)
-  const batchReverse = useGesteDeJet('jetReverse', 'cascadeBatch'); // Inversion PAR RANGÉE (LDB 12 l.42)
-  const roll = useGesteDeJet('jetRoll', 'cascade'); // sans rangée : « Tout lancer » → bilan
-  const reroll = useGesteDeJet('jetReroll', 'cascade');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'cascade');
-  const darkPact = useGesteDeJet('jetDarkPact', 'cascade');
-  const force = useGesteDeJet('jetForceSuccess', 'cascade');
-  const resistAct = useGesteDeJet('jetResist', 'cascade'); // Résistance (Menace) : auto-succès du talent (LDB 10)
-  const reverseAct = useGesteDeJet('jetReverse', 'cascade'); // Inversion (LDB 12 l.42)
-  const next = useGesteDeJet('jetConfirm', 'cascade'); // valider l'étape courante
+  const batchRoll = useGesteDeJet('jetLancer', 'cascadeBatch'); // étape « batch » — un Test générique par participant (seam #275 Décision 4 cran 1)
+  const batchReroll = useGesteDeJet('jetRelancer', 'cascadeBatch');
+  const batchBonusSL = useGesteDeJet('jetAjouterUnDR', 'cascadeBatch');
+  const batchDarkPact = useGesteDeJet('jetPactiser', 'cascadeBatch');
+  const batchForce = useGesteDeJet('jetForcerLaReussite', 'cascadeBatch');
+  const batchResist = useGesteDeJet('jetResister', 'cascadeBatch'); // Résistance (Menace) PAR RANGÉE (LDB 10)
+  const batchDetermine = useGesteDeJet('jetDepenserLaDetermination', 'cascadeBatch'); // Détermination PAR RANGÉE (LDB 17 l.59)
+  const batchReverse = useGesteDeJet('jetInverser', 'cascadeBatch'); // Inversion PAR RANGÉE (LDB 12 l.42)
+  const roll = useGesteDeJet('jetLancer', 'cascade'); // sans rangée : « Tout lancer » → bilan
+  const reroll = useGesteDeJet('jetRelancer', 'cascade');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'cascade');
+  const darkPact = useGesteDeJet('jetPactiser', 'cascade');
+  const force = useGesteDeJet('jetForcerLaReussite', 'cascade');
+  const resistAct = useGesteDeJet('jetResister', 'cascade'); // Résistance (Menace) : auto-succès du talent (LDB 10)
+  const reverseAct = useGesteDeJet('jetInverser', 'cascade'); // Inversion (LDB 12 l.42)
+  const next = useGesteDeJet('jetValider', 'cascade'); // valider l'étape courante
   const regler = useGame((s) => s.jetRegler); // étape « choix » : l'option retenue ; « quantité » : le nombre saisi
-  const tirerLeDe = useGesteDeJet('jetRoll', 'cascadeTirage'); // étape « table » ou « de » (#1508) : tire le dé
-  const poserLeDe = useGesteDeJet('jetSetForcedRoll', 'cascadeTirage'); // POSE le dé (champ, ou ligne de table)
+  const tirerLeDe = useGesteDeJet('jetLancer', 'cascadeTirage'); // étape « table » ou « de » (#1508) : tire le dé
+  const poserLeDe = useGesteDeJet('jetImposerLeResultat', 'cascadeTirage'); // POSE le dé (champ, ou ligne de table)
   const fermer = useGame((s) => s.fenetreFermer);
   const finish = () => fermer('cascade'); // « Terminer » du bilan
   const attackProps = useAttackJetProps(); // étape-jet d'attaque : rendue dans CETTE coquille (une fenêtre)
@@ -387,7 +387,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // ÉTAPE-JET : REGISTRE data-driven du rendu par TYPE de jet (ajouter un type = 1 entrée ici). Les
   // cinq jets RollShell (attaque/défense/Maladresse/Test/Test étendu) sont rendus via leur hook de
   // props dans la MÊME coquille restée montée → jet ET conséquences vivent dans UNE fenêtre jusqu'à
-  // « Terminer » (leur `jetConfirm(flux)` enchaîne le curseur / ferme la cascade). Les hooks de props
+  // « Terminer » (leur `jetValider(flux)` enchaîne le curseur / ferme la cascade). Les hooks de props
   // sont appelés INCONDITIONNELLEMENT au top-level (le registre ne mappe que le RENDU). Trois cas
   // BESPOKE (non-RollShell) rendent leur propre modale : désengagement (menu 3 phases, choix d'abord),
   // enfoncement de porte (multi PARALLÈLE, rangées par participant), incantation (`CastModal` — s'efface

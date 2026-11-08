@@ -24,13 +24,9 @@ const SOURCE_REGLAGES = 'src/noyau/reglagesDuJet.ts'
 const INTERFACE_REGLAGES = 'ReglagesDuJet'
 const SOURCE_CHOIX = 'src/noyau/choixDesFenetres.ts'
 const INTERFACE_CHOIX = 'ChoixDesFenetres'
-/** Profondeur de résolution d'un objet : au-delà, l'objet ne contrôle que d'être un objet (`champs: null`). */
-const PROFONDEUR = 1
 /** Nombre de littéraux au-delà duquel une union de littéraux (un id du catalogue) se contrôle par son genre primitif :
  *  le verbe du noyau refuse lui-même un id inconnu. */
 const LITTERAUX_ENUMERES = 16
-/** Nombre de champs au-delà duquel un objet (une fiche entière : `Combatant`, `Scene`) ne contrôle que d'être un objet. */
-const CHAMPS_CONTROLES = 12
 /** Longueur au-delà de laquelle un type anonyme ne s'écrit plus déplié, mais par son genre. */
 const LONGUEUR_D_UN_NOM = 40
 
@@ -85,7 +81,9 @@ function designee(f, noeud, designes) {
   return f
 }
 
-function forme(checker, type, profondeur, designes) {
+/** La forme JSON de `type`, à toute profondeur : un objet déjà ouvert sur le chemin (`pile`), un dictionnaire ou un
+ *  objet hors désignation (`formeDeclaree`) ne contrôle que d'être un objet. */
+function forme(checker, type, designes, pile = new Set()) {
   const f = type.flags
   if (f & (TypeFlags.Any | TypeFlags.Unknown)) return { genre: 'libre', type: nomDuType(checker, type) }
   if (f & TypeFlags.StringLiteral) return { genre: 'litteral', valeur: type.value }
@@ -96,19 +94,19 @@ function forme(checker, type, profondeur, designes) {
   if (f & TypeFlags.BooleanLike) return { genre: 'booleen' }
   if (f & TypeFlags.Null) return { genre: 'null' }
   if (f & (TypeFlags.Undefined | TypeFlags.Void)) return { genre: 'absent' }
-  if (type.isUnionType()) return unionDe(type.getTypes().map((t) => forme(checker, t, profondeur, designes)), type.getAliasSymbol()?.name)
+  if (type.isUnionType()) return unionDe(type.getTypes().map((t) => forme(checker, t, designes, pile)), type.getAliasSymbol()?.name)
   if (checker.isArrayType(type) || checker.isTupleType(type)) {
     const [element] = type.isTypeReference() ? checker.getTypeArguments(type) : []
-    return { genre: 'tableau', element: element ? forme(checker, element, profondeur, designes) : { genre: 'libre', type: '?' } }
+    return { genre: 'tableau', element: element ? forme(checker, element, designes, pile) : { genre: 'libre', type: '?' } }
   }
   if (f & TypeFlags.Object) {
     if (checker.getSignaturesOfType(type, SignatureKind.Call).length) return { genre: 'libre', type: nomDuType(checker, type) }
-    const proprietes = checker.getPropertiesOfType(type)
-    if (profondeur >= PROFONDEUR || proprietes.length > CHAMPS_CONTROLES || checker.getIndexInfosOfType(type).length) return { genre: 'objet', type: nomDuType(checker, type), champs: null }
-    const champs = proprietes.map((p) => ({
+    if (pile.has(type) || checker.getIndexInfosOfType(type).length) return { genre: 'objet', type: nomDuType(checker, type), champs: null }
+    const dedans = new Set(pile).add(type)
+    const champs = checker.getPropertiesOfType(type).map((p) => ({
       nom: p.name,
       optionnel: !!(p.flags & SymbolFlags.Optional),
-      forme: designee(sansAbsent(forme(checker, checker.getTypeOfSymbol(p), profondeur + 1, designes)), typeDeclare(p), designes),
+      forme: formeDeclaree(checker, checker.getTypeOfSymbol(p), typeDeclare(p), designes, dedans),
     }))
     return { genre: 'objet', type: nomDuType(checker, type), champs }
   }
@@ -134,6 +132,23 @@ function unionDe(membresBruts, alias) {
   return { genre: 'union', membres: reste, ...(alias ? { type: alias } : {}) }
 }
 
+/** L'alias de ce qu'un verbe reçoit entier sans le désigner (`actionsDuNoyau.ts`) : le noyau en juge chaque champ. */
+const HORS_DESIGNATION = 'HorsDesignation'
+
+/** Le nœud `noeud`, sans parenthèses, référence-t-il `HorsDesignation<…>` ? */
+function horsDesignation(noeud) {
+  while (noeud && ts.isParenthesizedTypeNode(noeud)) noeud = noeud.type
+  return !!noeud && ts.isTypeReferenceNode(noeud) && ts.isIdentifier(noeud.typeName) && noeud.typeName.text === HORS_DESIGNATION
+}
+
+/** La forme d'un champ, d'un paramètre ou d'un axe de type `type`, déclaré par `noeud` : sans son membre `absent`,
+ *  annotée de sa désignation (`designee`) ; un objet `HorsDesignation` ne contrôle que d'être un objet. */
+function formeDeclaree(checker, type, noeud, designes, pile) {
+  const f = sansAbsent(forme(checker, type, designes, pile))
+  if (horsDesignation(noeud)) return f.genre === 'objet' ? { ...f, champs: null } : f
+  return designee(f, noeud, designes)
+}
+
 /** Une forme sans son membre `absent` : l'optionnalité se porte par le drapeau du champ ou du paramètre. */
 function sansAbsent(f) {
   if (f.genre !== 'union') return f
@@ -147,8 +162,12 @@ const admetAbsent = (f) => f.genre === 'absent' || (f.genre === 'union' && f.mem
 /** Le paramètre `q` d'une signature, lu à son type et à son nœud déclaré. */
 function parametre(checker, q, designes) {
   const type = checker.getTypeOfSymbol(q)
-  const f = forme(checker, type, 0, designes)
-  return { nom: q.name, optionnel: !!(q.flags & SymbolFlags.Optional) || admetAbsent(f), type: nomDuType(checker, type), forme: designee(sansAbsent(f), typeDeclare(q), designes) }
+  return {
+    nom: q.name,
+    optionnel: !!(q.flags & SymbolFlags.Optional) || admetAbsent(forme(checker, type, designes)),
+    type: nomDuType(checker, type),
+    forme: formeDeclaree(checker, type, typeDeclare(q), designes),
+  }
 }
 
 /** Le tuple nommé que déclare l'alias du nœud de type `noeud` (`...args: ArgumentsDuReglage`) : ses membres, dans
@@ -174,10 +193,113 @@ function parametresDuReste(checker, q, designes) {
   if (!membres || !tuples.every((t) => checker.isTupleType(t))) return null
   return membres.map((m, i) => {
     const types = tuples.map((t) => checker.getTypeOfSymbol(checker.getPropertyOfType(t, String(i))))
-    const f = unionDe(types.map((t) => forme(checker, t, 0, designes)))
+    const f = unionDe(types.map((t) => forme(checker, t, designes)))
     const ecrits = [...new Set(types.map((t) => nomDuType(checker, t)))]
-    return { nom: m.name.text, optionnel: !!m.questionToken || admetAbsent(f), type: ecrits.length === 1 ? ecrits[0] : `${declare.type.typeName.text}[${i}]`, forme: sansAbsent(f) }
+    return { nom: m.name.text, optionnel: !!m.questionToken || admetAbsent(f), type: ecrits.length === 1 ? ecrits[0] : `${declare.type.typeName.text}[${i}]`, forme: designee(sansAbsent(f), m.type, designes) }
   })
+}
+
+/** L'alias d'un texte que le joueur écrit (`actionsDuNoyau.ts`) : la seule chaîne qu'aucune désignation ne nomme. */
+const TEXTE_LIBRE = 'TexteLibre'
+
+/** Le nom d'une référence de type (`IdDeHeros`, `tavernFlow.ReglageDePartie` → `ReglageDePartie`). */
+const nomDeReference = (noeud) => (ts.isIdentifier(noeud.typeName) ? noeud.typeName.text : noeud.typeName.right.text)
+
+/** Le nœud `noeud` sans parenthèses ni `readonly`, et, à travers chaque alias non générique qu'il référence hors des
+ *  désignations, le type que l'alias écrit. */
+function noeudDeplie(checker, noeud, designes) {
+  while (noeud) {
+    if (ts.isParenthesizedTypeNode(noeud) || ts.isTypeOperatorNode(noeud)) { noeud = noeud.type; continue }
+    if (!ts.isTypeReferenceNode(noeud) || noeud.typeArguments?.length) return noeud
+    const nom = nomDeReference(noeud)
+    if (designes.has(nom) || nom === TEXTE_LIBRE) return noeud
+    const alias = checker.getSymbolAtLocation(ts.isIdentifier(noeud.typeName) ? noeud.typeName : noeud.typeName.right)?.declarations?.[0]?.resolve()
+    if (!alias || !ts.isTypeAliasDeclaration(alias) || alias.typeParameters?.length) return noeud
+    noeud = alias.type
+  }
+  return noeud
+}
+
+/** Le nœud de l'élément d'un nœud de tableau (`X[]`, `Array<X>`, `ReadonlyArray<X>`). */
+const elementDuNoeud = (noeud) => (!noeud ? undefined
+  : ts.isArrayTypeNode(noeud) ? noeud.elementType
+  : ts.isTypeReferenceNode(noeud) && noeud.typeArguments?.length === 1 ? noeud.typeArguments[0] : undefined)
+
+/** Les chemins de `type` (déclaré par `noeud` quand il est connu) où une chaîne n'est nommée par aucune désignation ni
+ *  par `TexteLibre`, à toute profondeur : champs, éléments, membres d'union, valeurs de dictionnaire. */
+function chainesNuesDuType(checker, type, noeud, chemin, designes, vus, nues) {
+  const deplie = noeudDeplie(checker, noeud, designes)
+  if (horsDesignation(deplie)) return
+  if (deplie && ts.isTypeReferenceNode(deplie) && !deplie.typeArguments?.length) {
+    const nom = nomDeReference(deplie)
+    if (designes.has(nom) || nom === TEXTE_LIBRE) return
+  }
+  if (!type) throw new Error(`chainesNues : type introuvable à ${chemin} (${deplie ? ts.SyntaxKind[deplie.kind] : '-'})`)
+  const f = type.flags
+  if (f & (TypeFlags.String | TypeFlags.TemplateLiteral | TypeFlags.StringMapping)) { nues.push(chemin); return }
+  if (type.isUnionType() || type.isIntersectionType?.() && !(f & TypeFlags.Object)) {
+    if (type.isUnionType() && deplie && ts.isUnionTypeNode(deplie)) {
+      for (const m of deplie.types) chainesNuesDuType(checker, checker.getTypeFromTypeNode(m), m, chemin, designes, vus, nues)
+      return
+    }
+    if (type.isUnionType()) {
+      for (const t of type.getTypes()) chainesNuesDuType(checker, t, t.flags & (TypeFlags.Undefined | TypeFlags.Null) ? undefined : deplie, chemin, designes, vus, nues)
+      return
+    }
+  }
+  if (!(f & TypeFlags.Object) && !type.isIntersectionType?.()) return
+  if (checker.getSignaturesOfType(type, SignatureKind.Call).length) return
+  if (checker.isTupleType(type)) {
+    const elements = deplie && ts.isTupleTypeNode(deplie) ? deplie.elements.map((e) => (ts.isNamedTupleMember(e) ? e.type : e)) : []
+    checker.getTypeArguments(type).forEach((t, i) => chainesNuesDuType(checker, t, elements[i], `${chemin}[${i}]`, designes, vus, nues))
+    return
+  }
+  if (checker.isArrayType(type)) {
+    const [element] = checker.getTypeArguments(type)
+    if (element) chainesNuesDuType(checker, element, elementDuNoeud(deplie), `${chemin}[]`, designes, vus, nues)
+    return
+  }
+  const cle = `${checker.typeToString(type)}@${chemin.split('(')[0]}`
+  if (vus.has(type) || vus.has(cle)) return
+  vus.add(type); vus.add(cle)
+  for (const info of checker.getIndexInfosOfType(type)) {
+    if (info.keyType.flags & TypeFlags.String) nues.push(`${chemin}[clé]`)
+    chainesNuesDuType(checker, info.valueType, undefined, `${chemin}[…]`, designes, vus, nues)
+  }
+  for (const p of checker.getPropertiesOfType(type)) chainesNuesDuType(checker, checker.getTypeOfSymbol(p), typeDeclare(p), `${chemin}.${p.name}`, designes, vus, nues)
+}
+
+/** Les chemins, dans chaque paramètre de chaque verbe de `decl` (membres hérités compris : verbes de jet, `jetRegler`,
+ *  `fenetreChoisir`) et dans la valeur de chaque axe de `ReglagesDuJet` et `ChoixDesFenetres`, où une chaîne n'est
+ *  nommée par aucune désignation : ce qui existe se désigne par son `IdDe…` (`DESIGNATIONS`), un texte du joueur par
+ *  `TexteLibre`, ce que le geste crée par `HorsDesignation` (`.claude/rules/verbes-du-noyau.md`), à toute
+ *  profondeur. */
+function chainesNues(session, racine, decl, designes) {
+  const { checker } = session
+  const nues = []
+  for (const p of checker.getPropertiesOfType(checker.getTypeAtLocation(decl.name))) {
+    const [signature] = checker.getSignaturesOfType(checker.getTypeOfSymbol(p), SignatureKind.Call)
+    for (const q of signature?.getParameters() ?? []) {
+      const declare = q.valueDeclaration?.resolve()
+      const membres = declare?.dotDotDotToken ? tupleDeclare(checker, declare.type) : null
+      const type = checker.getTypeOfSymbol(q)
+      if (!membres) { chainesNuesDuType(checker, type, declare?.type, `${p.name}(${q.name})`, designes, new Set(), nues); continue }
+      // Le reste d'une union de tuples nommés (`ArgumentsDuReglage`, `ArgumentsDuChoix`) : chaque position, par le nœud
+      // que le tuple déclare ; la valeur d'un axe (`ReglagesDuJet[F][K]`) se lit à son interface, ci-dessous.
+      const tuples = type.isUnionType() ? type.getTypes() : [type]
+      membres.forEach((m, i) => {
+        if (ts.isIndexedAccessTypeNode(m.type)) return
+        for (const t of tuples) chainesNuesDuType(checker, checker.getTypeOfSymbol(checker.getPropertyOfType(t, String(i))), m.type, `${p.name}(${m.name.text})`, designes, new Set(), nues)
+      })
+    }
+  }
+  for (const [source, nom] of [[SOURCE_REGLAGES, INTERFACE_REGLAGES], [SOURCE_CHOIX, INTERFACE_CHOIX]]) {
+    const axes = interfaceDe(session, racine, source, nom)
+    for (const flux of checker.getPropertiesOfType(checker.getTypeAtLocation(axes.name))) {
+      for (const r of checker.getPropertiesOfType(checker.getTypeOfSymbol(flux))) chainesNuesDuType(checker, checker.getTypeOfSymbol(r), typeDeclare(r), `${nom}.${flux.name}.${r.name}`, designes, new Set(), nues)
+    }
+  }
+  return [...new Set(nues)]
 }
 
 /** L'interface `nom` du fichier `source` du programme. */
@@ -196,8 +318,38 @@ function axesLus(session, racine, designes, source, nom) {
   const decl = interfaceDe(session, racine, source, nom)
   return Object.fromEntries(checker.getPropertiesOfType(checker.getTypeAtLocation(decl.name)).map((flux) => [
     flux.name,
-    Object.fromEntries(checker.getPropertiesOfType(checker.getTypeOfSymbol(flux)).map((r) => [r.name, designee(sansAbsent(forme(checker, checker.getTypeOfSymbol(r), 0, designes)), typeDeclare(r), designes)])),
+    Object.fromEntries(checker.getPropertiesOfType(checker.getTypeOfSymbol(flux)).map((r) => [r.name, formeDeclaree(checker, checker.getTypeOfSymbol(r), typeDeclare(r), designes)])),
   ]))
+}
+
+/** Le contexte d'une case de la barre (src/noyau/actionRegistry.ts) : ce que l'offre lit pour déclarer son geste, jamais
+ *  un paramètre de verbe, car l'hôte joue le verbe que l'offre déclare, avec ses arguments (#3610). */
+const CONTEXTE_D_OFFRE = 'ContexteDOffre'
+
+/** `type` nomme-t-il `ContexteDOffre`, lui-même, en membre d'union ou d'intersection, en argument de type
+ *  (`Partial<ContexteDOffre>`), en élément de tableau ou en champ, à toute profondeur ? */
+function nommeLeContexteDOffre(checker, type, vus = new Set()) {
+  if (!type || vus.has(type)) return false
+  vus.add(type)
+  if ((type.getSymbol()?.name ?? type.getAliasSymbol()?.name) === CONTEXTE_D_OFFRE) return true
+  const sous = [
+    ...(type.isUnionType() || type.isIntersectionType?.() ? type.getTypes() : []),
+    ...(type.getAliasTypeArguments?.() ?? []),
+    ...(type.isTypeReference?.() ? checker.getTypeArguments(type) : []),
+    ...(type.flags & TypeFlags.Object && !checker.getSignaturesOfType(type, SignatureKind.Call).length
+      ? checker.getPropertiesOfType(type).map((p) => checker.getTypeOfSymbol(p)) : []),
+  ]
+  return sous.some((t) => nommeLeContexteDOffre(checker, t, vus))
+}
+
+/** Les paramètres `verbe(param)` de `decl` dont le type nomme `ContexteDOffre` (`nommeLeContexteDOffre`). */
+function parametresDOffre(checker, decl) {
+  const trouves = []
+  for (const p of checker.getPropertiesOfType(checker.getTypeAtLocation(decl.name))) {
+    const [signature] = checker.getSignaturesOfType(checker.getTypeOfSymbol(p), SignatureKind.Call)
+    for (const q of signature?.getParameters() ?? []) if (nommeLeContexteDOffre(checker, checker.getTypeOfSymbol(q))) trouves.push(`${p.name}(${q.name})`)
+  }
+  return trouves
 }
 
 /** La partie lue de son type : ses verbes, par nom, ou les seuls `noms`, leurs paramètres dans l'ordre de l'appel
@@ -211,6 +363,10 @@ export function partieLue(racine = process.cwd(), noms = null) {
     const { checker } = session
     const designes = nomsDesignes(session, racine)
     const verbes = {}
+    const nues = chainesNues(session, racine, decl, designes)
+    const dOffre = parametresDOffre(checker, decl)
+    if (dOffre.length) throw new Error(`verbesDeLaPartie : ${INTERFACE} prend un \`${CONTEXTE_D_OFFRE}\` en paramètre (l'offre déclare son geste { verbe, args }, l'hôte joue ce verbe) : ${dOffre.join(', ')}`)
+    if (nues.length) throw new Error(`verbesDeLaPartie : ${INTERFACE} écrit \`string\` nu (un id se désigne par son \`IdDe…\` de ${SOURCE_DESIGNATIONS}, un texte du joueur par \`TexteLibre\`, ce que le geste crée par \`HorsDesignation\`) : ${nues.join(', ')}`)
     for (const p of checker.getPropertiesOfType(checker.getTypeAtLocation(decl.name))) {
       if (noms && !noms.includes(p.name)) continue
       const [signature] = checker.getSignaturesOfType(checker.getTypeOfSymbol(p), SignatureKind.Call)

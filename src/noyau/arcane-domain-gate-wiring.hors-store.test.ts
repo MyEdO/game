@@ -1,6 +1,6 @@
 /**
  * Câblage du noyau — `arcaneDomainGate` (`src/engine/careerSlots.ts`) sur le chemin RÉEL d'achat
- * (`banc.getState().buyTalent`, `partyFlow.ts`). La suite pure `careerSlots.test.ts` verrouille
+ * (`banc.getState().acheterLeTalent`, `partyFlow.ts`). La suite pure `careerSlots.test.ts` verrouille
  * le gate en isolation ; celle-ci verrouille qu'il est bien BRANCHÉ dans le noyau.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -48,11 +48,11 @@ function sorcierHumain(): Combatant {
 }
 
 
-describe('buyTalent — arcaneDomainGate câblé (VDM 02 l.190-192)', () => {
+describe('acheterLeTalent — arcaneDomainGate câblé (VDM 02 l.190-192)', () => {
   it('REFUSE un 2e Domaine (Cieux) tant que le Domaine précédent (Feu) n\'est pas assez maîtrisé', () => {
     const h = elfProphete();
     banc.setState({ party: [h] });
-    banc.getState().buyTalent(h.id, 'magie-des-arcanes', 'cieux');
+    banc.getState().acheterLeTalent(h.id, 'magie-des-arcanes', 'cieux');
     const after = banc.getState().party[0];
     expect(after.talents.some((t) => t.talentId === 'magie-des-arcanes' && t.spec === 'cieux')).toBe(false);
     expect(after.xp).toBe(500); // PX non débités
@@ -65,18 +65,18 @@ describe('buyTalent — arcaneDomainGate câblé (VDM 02 l.190-192)', () => {
       spells: FEU_SPELLS,
     });
     banc.setState({ party: [h] });
-    banc.getState().buyTalent(h.id, 'magie-des-arcanes', 'cieux');
+    banc.getState().acheterLeTalent(h.id, 'magie-des-arcanes', 'cieux');
     const after = banc.getState().party[0];
     expect(after.talents.some((t) => t.talentId === 'magie-des-arcanes' && t.spec === 'cieux')).toBe(true);
     expect(after.xp).toBe(400); // 500 − 100 PX (première acquisition)
   });
 });
 
-describe('buyTalent — Maxi de Magie des Arcanes compté par Domaine (LDB 46 l.177)', () => {
+describe('acheterLeTalent — Maxi de Magie des Arcanes compté par Domaine (LDB 46 l.177)', () => {
   it('ACCEPTE un Domaine sombre (Nécromancie) en plus de Feu', () => {
     const h = sorcierHumain();
     banc.setState({ party: [h] });
-    banc.getState().buyTalent(h.id, 'magie-des-arcanes', 'necromancie');
+    banc.getState().acheterLeTalent(h.id, 'magie-des-arcanes', 'necromancie');
     const after = banc.getState().party[0];
     expect(after.talents.some((t) => t.talentId === 'magie-des-arcanes' && t.spec === 'necromancie')).toBe(true);
     expect(after.xp).toBe(400);
@@ -85,7 +85,7 @@ describe('buyTalent — Maxi de Magie des Arcanes compté par Domaine (LDB 46 l.
   it('REFUSE un Domaine déjà tenu (Maxi 1, LDB 10 l.682)', () => {
     const h = sorcierHumain();
     banc.setState({ party: [h] });
-    banc.getState().buyTalent(h.id, 'magie-des-arcanes', 'feu');
+    banc.getState().acheterLeTalent(h.id, 'magie-des-arcanes', 'feu');
     const after = banc.getState().party[0];
     expect(after.talents.find((t) => t.talentId === 'magie-des-arcanes' && t.spec === 'feu')?.times).toBe(1);
     expect(after.xp).toBe(500);

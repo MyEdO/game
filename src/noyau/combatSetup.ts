@@ -1,6 +1,6 @@
 /**
  * Mise en place d'un combat — MODULE FEUILLE (n'importe RIEN de combatFlow ; combatFlow le ré-exporte).
- * Extrait du corps de `store.startCombat` les points NOMMÉS surchargeables, pour ouvrir des coutures
+ * Extrait du corps de `store.lancerLeCombat` les points NOMMÉS surchargeables, pour ouvrir des coutures
  * d'extension (cf. refonte par hooks, plan transient-dancing-shamir.md) sans éditer le monolithe.
  */
 import type { Combatant } from '../engine/types';

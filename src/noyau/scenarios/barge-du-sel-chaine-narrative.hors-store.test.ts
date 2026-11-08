@@ -55,7 +55,7 @@ describe('chapitre « La Barge du Sel » — de l’ouverture à la clôture, su
     banc.getState().fenetreValider('ouverture');
     poserLeGroupe(banc.getState, banc.setState, { x: 2, y: 5 });
 
-    banc.getState().transitionTo('barge-du-sel-ilot');
+    banc.getState().quitterLaScene('barge-du-sel-ilot');
 
     // NON-VACUITÉ D'ABORD : le groupe accosté se tient bel et bien DANS le rect du trigger d'arrivée.
     // Sans cette borne, un rect qui rétrécirait hors du point d'arrivée rendrait le « pas encore
@@ -67,7 +67,7 @@ describe('chapitre « La Barge du Sel » — de l’ouverture à la clôture, su
       `le groupe accoste en (${pos.x},${pos.y}), hors du rect du trigger d’arrivée ${JSON.stringify(rect)}.`,
     ).toBe(true);
 
-    // Un trigger de scène n'est relu que par `moveParty` (`checkTriggers` n'a pas d'autre appelant) :
+    // Un trigger de scène n'est relu que par `deplacerLeGroupe` (`checkTriggers` n'a pas d'autre appelant) :
     // le groupe qui vient d'accoster n'a rien déclenché — le chapitre n'est PAS clos à l'arrivée.
     expect(get().flags[ACCOSTE]).toBeFalsy();
     expect(get().pendingChapterRecap).toBeNull();

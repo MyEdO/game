@@ -62,10 +62,10 @@ export const FLOW_VERBS = {
   battement:    { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'cancel', 'confirm'], jetOwner: { pending: 'pendingBattement', field: 'attackerId' } },
   distraire:    { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingDistraire', field: 'moverId' } },
   // Manœuvre de créature : la modale n'influence QUE le jet de l'ATTAQUANT (les jets des défenseurs
-  // vivent dans `jetConfirm('maneuver')`) — le porteur est donc `attackerId`, jamais la cible.
+  // vivent dans `jetValider('maneuver')`) — le porteur est donc `attackerId`, jamais la cible.
   maneuver:     { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingManeuver', field: 'attackerId' } },
   run:          { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'], jetOwner: { pending: 'pendingRun', field: 'combatantId' } },
-  // Chute VOLONTAIRE (clic sur une arête de capacité `chute`, ouverte par `battleClickTile`).
+  // Chute VOLONTAIRE (clic sur une arête de capacité `chute`, ouverte par `cliquerLaCaseDuCombat`).
   fall:         { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'] },
   reload:       { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingReload', field: 'actorId' } },
   handGate:     { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingHandGate', field: 'attackerId' } },
@@ -109,8 +109,7 @@ export const FLOW_VERBS = {
   forceDoor:    { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'] },
   shipManeuver: { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'] },
   shipBattery:  { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'] },
-  crewTest:     { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'] },
-  // Étape « batch » DANS une cascade : aucune action de clôture propre — la cascade valide l'étape (`jetConfirm('cascade')`).
+  // Étape « batch » DANS une cascade : aucune action de clôture propre — la cascade valide l'étape (`jetValider('cascade')`).
   // PARITÉ de verbes avec l'étape MONO `cascade` : une bande met en jeu les MÊMES règles qu'une étape
   // seule — `resist` (LDB 10 l.1016-1020) s'y joue PAR RANGÉE, routé par le porteur du participant
   // (`pidIsActor:true`), jamais sur la fenêtre partagée ; `determine` (LDB 17 l.59) de même, la
@@ -125,12 +124,16 @@ export const FLOW_VERBS = {
 
 export type FlowKey = keyof typeof FLOW_VERBS;
 
-/** Le verbe du noyau de chaque verbe de jet : `jet<Verbe>`, le flux en premier argument (`VerbesDeJet`). */
+/** Les actions des verbes de jet, `jet<Action>…` (#3371 §3.1) : celles de `NOM_DU_VERBE_DE_JET`, et `regler` (`VerbeDeReglage`). */
+export type ActionDeJet = 'lancer' | 'relancer' | 'ajouter' | 'pactiser' | 'forcer' | 'imposer' | 'resister' | 'depenser'
+  | 'annuler' | 'inverser' | 'valider' | 'regler';
+
+/** Le verbe du noyau de chaque verbe de jet, le flux en premier argument (`VerbesDeJet`) : la seule source de son nom. */
 export const NOM_DU_VERBE_DE_JET = {
-  roll: 'jetRoll', reroll: 'jetReroll', bonusSL: 'jetBonusSL', darkPact: 'jetDarkPact', forceSuccess: 'jetForceSuccess',
-  setForcedRoll: 'jetSetForcedRoll', resist: 'jetResist', determine: 'jetDetermine', cancel: 'jetCancel', reverse: 'jetReverse',
-  confirm: 'jetConfirm',
-} as const satisfies { [V in RollVerb]: `jet${Capitalize<V>}` };
+  roll: 'jetLancer', reroll: 'jetRelancer', bonusSL: 'jetAjouterUnDR', darkPact: 'jetPactiser', forceSuccess: 'jetForcerLaReussite',
+  setForcedRoll: 'jetImposerLeResultat', resist: 'jetResister', determine: 'jetDepenserLaDetermination', cancel: 'jetAnnuler',
+  reverse: 'jetInverser', confirm: 'jetValider',
+} as const satisfies { [V in RollVerb]: `jet${Capitalize<ActionDeJet>}${string}` };
 export type NomDeVerbeDeJet = (typeof NOM_DU_VERBE_DE_JET)[RollVerb];
 
 /** Le verbe de jet que nomme le verbe du noyau `nom`, `null` hors des verbes de jet. */

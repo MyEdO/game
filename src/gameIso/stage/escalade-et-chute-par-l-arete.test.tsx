@@ -90,7 +90,7 @@ const milieu = (a: AreteProjetee) => pointerEvent(milieuPt(a).cx, milieuPt(a).cy
  *  ce que le déplacement reçoit ; la liste vide EST l'assertion. */
 const solQuiCompte = () => {
   const positions: Pt[] = [];
-  return { positions, moveParty: vi.fn((pos: Pt) => { positions.push(pos); }) };
+  return { positions, deplacerLeGroupe: vi.fn((pos: Pt) => { positions.push(pos); }) };
 };
 
 describe('Escalade et chute passent par l’étage `arete`', () => {
@@ -122,30 +122,30 @@ describe('Escalade et chute passent par l’étage `arete`', () => {
   });
 
   it('un clic sur le trait d’escalade grimpe vers la case d’en face, par le VERDICT de pixel', () => {
-    const climbAcross = vi.fn();
-    const { positions, moveParty } = solQuiCompte();
-    useGame.setState({ scene: scèneGrimpable(), mode: 'exploration', dialogue: null, partyPos: { x: 1, y: 1 }, party: [], climbAcross, moveParty });
+    const franchirLArete = vi.fn();
+    const { positions, deplacerLeGroupe } = solQuiCompte();
+    useGame.setState({ scene: scèneGrimpable(), mode: 'exploration', dialogue: null, partyPos: { x: 1, y: 1 }, party: [], franchirLArete, deplacerLeGroupe: deplacerLeGroupe });
     const aretes = ESCALADE();
     monter(aretes);
 
     act(() => pointer!.handlers.onPointerDown(milieu(aretes[0])));
     act(() => pointer!.handlers.onPointerUp(milieu(aretes[0])));
 
-    expect(climbAcross).toHaveBeenCalledWith({ x: 1, y: 1, z: 0 }, { x: 2, y: 1, z: 0 });
+    expect(franchirLArete).toHaveBeenCalledWith({ x: 1, y: 1, z: 0 }, { x: 2, y: 1, z: 0 });
     expect(positions, 'le sol ne reçoit rien : l’étage `arete` a tranché le pixel').toEqual([]);
   });
 
   it('un clic sur le trait de chute ouvre le saut vers la case d’en bas, par le VERDICT de pixel', () => {
-    const fallAcross = vi.fn();
-    const { positions, moveParty } = solQuiCompte();
-    useGame.setState({ scene: scèneDeFalaise(), mode: 'exploration', dialogue: null, partyPos: { x: 2, y: 0 }, party: [], fallAcross, moveParty });
+    const franchirLArete = vi.fn();
+    const { positions, deplacerLeGroupe } = solQuiCompte();
+    useGame.setState({ scene: scèneDeFalaise(), mode: 'exploration', dialogue: null, partyPos: { x: 2, y: 0 }, party: [], franchirLArete, deplacerLeGroupe: deplacerLeGroupe });
     const aretes = CHUTE();
     monter(aretes);
 
     act(() => pointer!.handlers.onPointerDown(milieu(aretes[0])));
     act(() => pointer!.handlers.onPointerUp(milieu(aretes[0])));
 
-    expect(fallAcross).toHaveBeenCalledWith({ x: 2, y: 0, z: 0 }, { x: 2, y: 1, z: 0 });
+    expect(franchirLArete).toHaveBeenCalledWith({ x: 2, y: 0, z: 0 }, { x: 2, y: 1, z: 0 });
     expect(positions, 'le sol ne reçoit rien : l’étage `arete` a tranché le pixel').toEqual([]);
   });
 
@@ -153,9 +153,9 @@ describe('Escalade et chute passent par l’étage `arete`', () => {
     // Le nom au survol est ici une infobulle NATIVE (`<title>`) : un élément sans hit-test ne la montre
     // pas. Le trait la reprend donc SANS handler — le `pointerdown` qui s'y pose remonte au SVG racine,
     // qui résout par le PIXEL (`pickResolve`), pas par la cible : une seule chaîne d'activation.
-    const climbAcross = vi.fn();
-    const { positions, moveParty } = solQuiCompte();
-    useGame.setState({ scene: scèneGrimpable(), mode: 'exploration', dialogue: null, partyPos: { x: 1, y: 1 }, party: [], climbAcross, moveParty });
+    const franchirLArete = vi.fn();
+    const { positions, deplacerLeGroupe } = solQuiCompte();
+    useGame.setState({ scene: scèneGrimpable(), mode: 'exploration', dialogue: null, partyPos: { x: 1, y: 1 }, party: [], franchirLArete, deplacerLeGroupe: deplacerLeGroupe });
     const aretes = ESCALADE();
 
     const Harnais = () => {
@@ -198,34 +198,34 @@ describe('Escalade et chute passent par l’étage `arete`', () => {
       prise.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, clientX: cx, clientY: cy }));
     });
 
-    expect(climbAcross).toHaveBeenCalledWith({ x: 1, y: 1, z: 0 }, { x: 2, y: 1, z: 0 });
+    expect(franchirLArete).toHaveBeenCalledWith({ x: 1, y: 1, z: 0 }, { x: 2, y: 1, z: 0 });
     expect(positions, 'le sol ne reçoit rien : l’étage `arete` a tranché le pixel').toEqual([]);
   });
 
   it('la touche du peintre appelle LE MÊME geste que le pixel — un seul chemin d’activation', () => {
-    const climbAcross = vi.fn();
-    useGame.setState({ scene: scèneGrimpable(), mode: 'exploration', dialogue: null, climbAcross });
+    const franchirLArete = vi.fn();
+    useGame.setState({ scene: scèneGrimpable(), mode: 'exploration', dialogue: null, franchirLArete });
     const aretes = ESCALADE();
     monter(aretes);
 
     act(() => pointer!.activerArete(aretes[0].arete));
 
-    expect(climbAcross).toHaveBeenCalledWith({ x: 1, y: 1, z: 0 }, { x: 2, y: 1, z: 0 });
+    expect(franchirLArete).toHaveBeenCalledWith({ x: 1, y: 1, z: 0 }, { x: 2, y: 1, z: 0 });
   });
 
   it('sans survol (tactile), le premier tap ARME l’arête et le second la joue — le régime de tout le stage', () => {
     vi.mocked(window.matchMedia).mockReturnValue({ matches: false } as unknown as MediaQueryList);
-    const fallAcross = vi.fn();
-    useGame.setState({ scene: scèneDeFalaise(), mode: 'exploration', dialogue: null, fallAcross });
+    const franchirLArete = vi.fn();
+    useGame.setState({ scene: scèneDeFalaise(), mode: 'exploration', dialogue: null, franchirLArete });
     const aretes = CHUTE();
     monter(aretes);
 
     act(() => pointer!.activerArete(aretes[0].arete));
-    expect(fallAcross, 'tap 1 : l’arête est armée, rien n’est joué').not.toHaveBeenCalled();
+    expect(franchirLArete, 'tap 1 : l’arête est armée, rien n’est joué').not.toHaveBeenCalled();
     expect(pointer!.areteSurvolee?.cle).toBe(aretes[0].arete.cle);
 
     act(() => pointer!.activerArete(aretes[0].arete));
-    expect(fallAcross).toHaveBeenCalledWith({ x: 2, y: 0, z: 0 }, { x: 2, y: 1, z: 0 });
+    expect(franchirLArete).toHaveBeenCalledWith({ x: 2, y: 0, z: 0 }, { x: 2, y: 1, z: 0 });
   });
 
   it('le survol au pixel arme l’arête de dénivelé, et la quitter la désarme', () => {

@@ -476,7 +476,7 @@ describe('PartyScreen — « Lancer » sans choix lance l’Arène par la porte 
     await act(async () => bouton.click());
   }
 
-  it('sans choix : l’Arène est lancée par `loadProject` — sa scène d’entrée, sa carte, son paquet au snapshot', async () => {
+  it('sans choix : l’Arène est lancée par `chargerLeProjet` — sa scène d’entrée, sa carte, son paquet au snapshot', async () => {
     await lancer();
     const paquet = paquetDuJeu(areneCampaign);
     const s = useGame.getState();

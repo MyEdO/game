@@ -18,12 +18,12 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const embuscadeConstruit = embuscade.construire();
 
 describe('Frénésie — attaque gratuite d’un héros (Auto-combat)', () => {
-  beforeEach(() => { banc.getState().seedRng(7); });
+  beforeEach(() => { banc.getState().ensemencerLeTirage(7); });
 
   function frenziedHeroAdjacentToFoe() {
     banc.setState({ party: makeShowcaseParty() });
-    banc.getState().startScene(embuscadeConstruit.scene);
-    banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
+    banc.getState().lancerLaScene(embuscadeConstruit.scene);
+    banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const hero = b.combatants.find((c) => c.kind === 'hero' && (c.weapons ?? []).some((w) => w.type === 'melee'))!;

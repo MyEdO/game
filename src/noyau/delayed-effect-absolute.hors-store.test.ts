@@ -60,19 +60,19 @@ describe('delayedEffect — échéance en JOURS via le store réel', () => {
     expect(banc.getState().scheduledEffects[0].executeAt).toBe(executeAt);
 
     // Avant l'échéance : le jour J+2 ne déclenche rien.
-    banc.getState().advanceTime(executeAt - now - 60);
+    banc.getState().avancerLeTemps(executeAt - now - 60);
     fireScheduledEffects(banc.getState, banc.setState);
     expect(banc.getState().flags.rituel).toBeUndefined();
     expect(banc.getState().scheduledEffects).toHaveLength(1);
 
     // Franchissement du jour cible : le flag est posé.
-    banc.getState().advanceTime(60);
+    banc.getState().avancerLeTemps(60);
     expect(banc.getState().gameTime).toBe(executeAt);
     expect(banc.getState().flags.rituel).toBe(true);
     expect(banc.getState().scheduledEffects).toHaveLength(0);
   });
 
-  it('#668 — `avancerLHorloge`, sans le reste d’`advanceTime`, tire la minuterie', () => {
+  it('#668 — `avancerLHorloge`, sans le reste d’`avancerLeTemps`, tire la minuterie', () => {
     lonePartyAt(30);
     const now = banc.getState().gameTime;
     const rite: Effect = { type: 'delayedEffect', afterDays: 2, atHour: 0, flow: flowFromEffects([{ type: 'setFlag', flag: 'x' }]) };

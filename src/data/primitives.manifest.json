@@ -261,6 +261,15 @@
     "verrou": "src/engine/tables.test.ts"
   },
   {
+    "id": "deDeLaTableTiree",
+    "type": "primitives.manifest",
+    "label": "DeDeTable/deDeLaTableTiree/deDeTirageDe/facesDuDe/bandeAuDe",
+    "fichier": "src/engine/tables.ts",
+    "concept": "dé d'une table tirée (#1667) : une marque de type (`DeDeTable`) que seul `deDeLaTableTiree` forge, depuis le nœud qui le porte (le `die` d'une table, ou le `dice` du `Tirage` qui départage ses rangées) ; `deDeTirageDe` (`src/data/rangees.ts`) le lit sur un document à rangées ; `facesDuDe` (plus grand total) et `bandeAuDe` (bande précédée de son dé) ne prennent que lui, un dé écrit en littéral ne compile pas",
+    "perimetre": "tout tirage, toute faces et toute bande d'une table qui porte son dé en donnée (moteur, flux, Codex, atelier)",
+    "verrou": "tsc (src/engine/tables.test.ts, `@ts-expect-error`) ; murs/marques (src/noyau/built-brand-lint.test.ts)"
+  },
+  {
     "id": "rangeesDe",
     "type": "primitives.manifest",
     "label": "rangeesDe/RangeeDe",
@@ -576,6 +585,15 @@
     "concept": "co-descente d'une donnée et de son schéma zod : à chaque point de la donnée, ses nœuds de schéma ouverts (enveloppes, intersections, branches d'union filtrées par le discriminant de la donnée), sa valeur et son chemin, sans valider",
     "perimetre": "toute lecture qui retrouve le schéma d'un point de donnée : collections à clé d'un document, lieu d'une faute",
     "verrou": "src/data/schemas/grammaire/co-descente.test.ts"
+  },
+  {
+    "id": "formulaireDuSchema",
+    "type": "primitives.manifest",
+    "label": "inferFields/FieldDesc/choixDuNoeud/champsDeclares/bornesDuNoeud/unionDuNoeud/elementDuNoeud",
+    "fichier": "src/noyau/codex/editFields.ts",
+    "concept": "formulaire tiré du schéma zod d'une donnée : la description champ par champ (`FieldDesc`, `inferFields`, `champsOfferts`), et ce qu'un champ admet, lu sur son nœud : les valeurs d'un choix (énumération, booléen, littéral, référence de catalogue avec sa sous-liste), les bornes d'un nombre, les champs déclarés d'un objet, les variantes nommées d'une union et sa variante courante (`unionDuNoeud`, `varianteCourante`, `formeAuPoint`), l'élément d'une liste (`elementDuNoeud`, `champDeLElement`) ; la valeur neuve d'un nœud et de chaque variante (`valeurNeuveDe`, `variantesAChoisir`, `src/noyau/valeursNeuves.ts` : `recast` d'une Condition, `newOp` d'une op) ; l'écriture bornée à ce que le formulaire offre, chemin à rang compris, qui retire un champ, une liste vidée et le conteneur qu'il vide, ou dit son refus (`avecLaValeur`, `gestesDeLaListe`, `src/noyau/sceneEdit.ts`)",
+    "perimetre": "Compendium (`CodexEdit`) ; éditeur Godot : formulaire d'une zone d'effet et de la condition d'entrée d'un déclencheur (`formulaireDe`, `FORMULAIRES`), traduit en gestes par `src/hote/editeur.ts` (`renduDe`, `elementsDesGestes`) et joué par le geste `valeur` de la session d'édition",
+    "verrou": "src/noyau/edition/formulaire.test.ts"
   },
   {
     "id": "conceptDe",
@@ -921,7 +939,7 @@
     "fichier": "src/ui/editor/CouvreField.tsx",
     "concept": "lien d'un élément du paquet de campagne vers les entrées des fiches de dossier de chapitre commitées (docs/dossiers/<ABBR>/<NN>.json, validées par ficheDeDossier) : CouvreField édite `couvre` (rangées entrée + retrait, sélecteur d'ajout, liste vide qui se dit vide, liste vidée retirée) ; SelecteurDEntreeDeFiche choisit UNE entrée (groupes par fiche et famille, id global + texte court, entrée introuvable affichée comme telle)",
     "perimetre": "inspecteur de scène (entité, zone d'effet, scène), panneau Logique (déclencheur, dialogue, rencontre), carte du monde (lieu, route), éditeur narratif (indice, PNJ, onglet Écarts)",
-    "verrou": "src/ui/editor/CouvreField.test.tsx ; src/noyau/scene-field-editability-guard.test.ts"
+    "verrou": "src/ui/editor/CouvreField.test.tsx ; src/scene-field-editability-guard.test.ts"
   },
   {
     "id": "freeAttackWeapon",
@@ -2029,7 +2047,7 @@
     "label": "apparencesCandidates/choisirApparenceDObjet/deciderApparencesDesArmes/racineDesCandidats/formeResolue/SourceDeForme",
     "fichier": "src/engine/items.ts",
     "concept": "forme racine mécanique `shape` copiée à la naissance ; `choisirApparenceDObjet` admet une décision explicite par `shape` et `formChoices` de la fiche résolue, puis écrit la même racine et l’apparence sur l’instance ; les CANDIDATS de l’objet porté lisent cette racine et la variante compatible, sans relire la fiche ; une arme naturelle ne publie aucun candidat ; `racineDesCandidats` lit la dernière entrée, que `formeResolue` rend (#2967)",
-    "perimetre": "tout lecteur d’une apparence ou de sa racine : dessin (`armeDeDessin`), icône d’inventaire, sélecteur Apparence de la fiche et admission par `choisirApparence` via `choisirApparenceDObjet`, outillage de recette (`__wfrp.battle`)",
+    "perimetre": "tout lecteur d’une apparence ou de sa racine : dessin (`armeDeDessin`), icône d’inventaire, sélecteur Apparence de la fiche et admission par `poserLApparence` via `choisirApparenceDObjet`, outillage de recette (`__wfrp.battle`)",
     "verrou": "src/engine/apparences-candidates.test.ts, src/noyau/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
   },
   {

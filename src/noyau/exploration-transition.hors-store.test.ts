@@ -45,7 +45,7 @@ describe('l’exploré suit la vision à chaque écriture, sans stage', () => {
     poser(banc, couloir('couloir'), { gameTime: 0, lightLevel: null });
     expect(explore(banc, 'couloir')).toEqual(rangee(0, 1, 2, 3, 4, 5));
 
-    banc.actions.advanceTime(MIDI);
+    banc.actions.avancerLeTemps(MIDI);
 
     expect(explore(banc, 'couloir')).toEqual(rangee(0, 1, 2, 3, 4, 5, 6));
   });
@@ -71,27 +71,27 @@ describe('l’exploré suit la vision à chaque écriture, sans stage', () => {
 });
 
 describe('aucun état transitoire n’entre dans l’exploré', () => {
-  it('transitionTo : la scène quittée ne reçoit rien de l’arrivée, la scène d’arrivée rien de la case de départ', () => {
+  it('quitterLaScene : la scène quittée ne reçoit rien de l’arrivée, la scène d’arrivée rien de la case de départ', () => {
     const banc = ouvrirLeBanc();
     const a = couloir('couloir-a');
     registerScene(a);
     registerScene(couloir('couloir-b'));
     poser(banc, a, { gameTime: 0, lightLevel: null });
 
-    banc.actions.transitionTo('couloir-b', undefined, { x: 6, y: 0, z: 0 });
+    banc.actions.quitterLaScene('couloir-b', undefined, { x: 6, y: 0, z: 0 });
 
     expect(explore(banc, 'couloir-a')).toEqual(rangee(0, 1, 2, 3, 4, 5));
     expect(explore(banc, 'couloir-b')).toEqual(rangee(1, 2, 3, 4, 5, 6));
   });
 
-  it('startCombat : l’exploré est celui d’avant uni à la vue du combat posé, rien d’autre', () => {
+  it('lancerLeCombat : l’exploré est celui d’avant uni à la vue du combat posé, rien d’autre', () => {
     const banc = ouvrirLeBanc();
     banc.setState({ party: [HEROS] });
-    banc.actions.startScene(testScene());
+    banc.actions.lancerLaScene(testScene());
     const sceneId = banc.getState().scene!.id;
     const avant = explore(banc, sceneId);
 
-    banc.actions.startCombat('enc-mutants', undefined, { noSurprise: true });
+    banc.actions.lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
 
     expect(banc.getState().battle).not.toBeNull();
     expect(explore(banc, sceneId)).toEqual([...new Set([...avant, ...computeStateVisible(banc.getState())])].sort());

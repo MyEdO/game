@@ -27,19 +27,19 @@ import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
  *  - hors combat : l'infirmerie (`MedicModal`, `embedded`), qui pose le jet dans SA boîte
  *    (`useRollShell`) et reste ouverte après « Appliquer ».
  * Le soigneur peut être un PNJ payant : sa Chance/Résilience valent 0 (boutons inertes), et
- * « Annuler » avant le jet rembourse l'acte (jetCancel('heal')).
+ * « Annuler » avant le jet rembourse l'acte (jetAnnuler('heal')).
  */
 export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {}): ComponentProps<typeof RollShell> | null {
   const ph = useGame((s) => s.pendingHeal);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
-  const roll = useGesteDeJet('jetRoll', 'heal');
-  const reroll = useGesteDeJet('jetReroll', 'heal');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'heal');
-  const darkPact = useGesteDeJet('jetDarkPact', 'heal');
-  const force = useGesteDeJet('jetForceSuccess', 'heal');
-  const confirm = useGesteDeJet('jetConfirm', 'heal');
-  const cancel = useGesteDeJet('jetCancel', 'heal');
+  const roll = useGesteDeJet('jetLancer', 'heal');
+  const reroll = useGesteDeJet('jetRelancer', 'heal');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'heal');
+  const darkPact = useGesteDeJet('jetPactiser', 'heal');
+  const force = useGesteDeJet('jetForcerLaReussite', 'heal');
+  const confirm = useGesteDeJet('jetValider', 'heal');
+  const cancel = useGesteDeJet('jetAnnuler', 'heal');
   const regler = useGame((s) => s.jetRegler);
   const setMode = (v: ReglagesDuJet['heal']['mode']) => regler('heal', 'mode', v);
   const setTest = (v: ReglagesDuJet['heal']['test']) => regler('heal', 'test', v);
@@ -97,7 +97,7 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
        d'ÉTATS sont ce que le jet fait bouger (suivre l'Hémorragie passe par passe). EMBARQUÉ
        (infirmerie) : aucun bandeau — la bande `.medic-patients` porte déjà le patient en full et
        l'acte est le bouton qu'on vient de cliquer. Soigneur PNJ tarifé (`healerId` sentinelle de
-       `medicFlow.medicAct`, aucune fiche) : pas de bandeau dégénéré, l'acte se dit en note (son
+       `medicFlow.soignerLePatient`, aucune fiche) : pas de bandeau dégénéré, l'acte se dit en note (son
        nom est au titre de l'infirmerie). La Difficulté reste la donnée de la LIGNE (#1072). */
     extra: embedded ? undefined : healer
       ? <VsHeader actor={healer} target={target} label={acte.label} verb={acte.icon} targetVariant="full" />

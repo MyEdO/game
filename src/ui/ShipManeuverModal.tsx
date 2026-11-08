@@ -33,13 +33,13 @@ export function ShipManeuverModal() {
   const owns = useOwns(); // possession locale à l'affichage (#1262) — hook : AVANT tout retour anticipé
   const regler = useGame((s) => s.jetRegler);
   const setTurn = (v: ReglagesDuJet['shipManeuver']['virage']) => regler('shipManeuver', 'virage', v);
-  const roll = useGesteDeJet('jetRoll', 'shipManeuver');
-  const reroll = useGesteDeJet('jetReroll', 'shipManeuver');
-  const bonus = useGesteDeJet('jetBonusSL', 'shipManeuver');
-  const darkPact = useGesteDeJet('jetDarkPact', 'shipManeuver');
-  const force = useGesteDeJet('jetForceSuccess', 'shipManeuver');
-  const confirm = useGesteDeJet('jetConfirm', 'shipManeuver');
-  const cancel = useGesteDeJet('jetCancel', 'shipManeuver');
+  const roll = useGesteDeJet('jetLancer', 'shipManeuver');
+  const reroll = useGesteDeJet('jetRelancer', 'shipManeuver');
+  const bonus = useGesteDeJet('jetAjouterUnDR', 'shipManeuver');
+  const darkPact = useGesteDeJet('jetPactiser', 'shipManeuver');
+  const force = useGesteDeJet('jetForcerLaReussite', 'shipManeuver');
+  const confirm = useGesteDeJet('jetValider', 'shipManeuver');
+  const cancel = useGesteDeJet('jetAnnuler', 'shipManeuver');
   const milieu = useGame((s) => milieuDuVoyage(s.travelPlan));
   if (!p || !battle) return null;
   const ship = battle.combatants.find((c) => c.id === p.shipId);

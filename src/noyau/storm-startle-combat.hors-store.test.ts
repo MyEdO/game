@@ -27,7 +27,7 @@ function setup(weatherId: string, combatants: Combatant[]) {
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as BattleState;
   banc.setState({
-    // Halte de nuit : le jour clos est le dernier de `plan.log` (`openRest`), sans `plan.recap`.
+    // Halte de nuit : le jour clos est le dernier de `plan.log` (`ouvrirLeRepos`), sans `plan.recap`.
     battle, travelPlan: { interrupted: false, log: [{ weather: { id: weatherId } }] } as never,
   });
 }

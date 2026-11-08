@@ -1,7 +1,7 @@
 /**
  * Musique de fond — partie PURE : les pistes du registre et la forme d'une sélection. La sélection
  * depuis l'état du jeu vit chez l'hôte (`state/audioWiring.ts`), la lecture (canal, boucle, fondu)
- * dans `engine.ts`.
+ * dans `audio/engine.ts`.
  */
 import { SOUND_DEFS } from './_registry.generated';
 import type { MusicContext, SoundDef } from './types';
@@ -15,12 +15,7 @@ export function musicDefsFor(ctx: MusicContext): SoundDef[] {
   return SOUND_DEFS.filter((d) => d.music?.contexts.includes(ctx));
 }
 
-/** Toutes les pistes de musique du registre (pour les sélecteurs de l'éditeur). */
+/** Toutes les pistes de musique du registre : les choix de l'éditeur, ce que `validateScene` reconnaît. */
 export function allMusicDefs(): SoundDef[] {
   return SOUND_DEFS.filter((d) => !!d.music);
-}
-
-/** Les ids des pistes de musique du registre : ce que l'hôte web sait jouer, passé à `validateScene`. */
-export function idsDesPistesDeMusique(): ReadonlySet<string> {
-  return new Set(allMusicDefs().map((d) => d.id));
 }

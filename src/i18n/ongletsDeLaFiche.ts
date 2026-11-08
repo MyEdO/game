@@ -1,6 +1,6 @@
 import type { MsgKey } from './index';
 
-/** Onglets de la fiche de personnage (`ui/CharacterSheet.tsx`) — id STABLE, jamais un libellé. */
+/** Onglets de la fiche de personnage — id STABLE, jamais un libellé. */
 export type SheetTab = 'etat' | 'possessions' | 'competences' | 'magie' | 'avancement' | 'histoire';
 
 /** Libellé d'un onglet de la fiche : sa clé de catalogue `sheet.tab.<onglet>` — un texte qui NOMME un

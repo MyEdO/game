@@ -15,14 +15,14 @@
 import { freeCons, rollSansPilote, surfaceOf, choiceStep, pushMono } from '../rollSeam';
 import { battleRng } from '../battleRng';
 import { ev } from '../combatLog';
-import { isOutOfAction, combatTestPenalty } from '../../engine/conditions';
+import { isOutOfAction, combatTestPenalty, peutEntrerEnFrenesie } from '../../engine/conditions';
 import { rawCombatTestBase, testValue } from '../../engine/skills';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import { CHAR_LABELS, CATEGORY_BY_SOURCE_KIND } from '../../engine/types';
 import { garanti } from '../../lib/garanti';
 import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from './advantagePool';
 import { mountMovement } from '../mount';
-import { isFrenzyCapable, isFrenzied, resolveFrenzyEntry, sourceCombattant, vise } from '../../engine/psychology';
+import { isFrenzied, resolveFrenzyEntry, sourceCombattant, vise } from '../../engine/psychology';
 import { ciblePsy, libelleDeCible } from '../../engine/psych/ciblage';
 import { combatStakeRef } from '../../data';
 import { hasRage } from '../../engine/traits/dispatch';
@@ -124,7 +124,7 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
  *  Mentale ; sur un succès, il entre en Frénésie (état psy `frenesie` posé en `psychState`). La SORTIE est
  *  un effet déclenché `onTurnStart` en DONNÉES (`psychology.json`), jamais un hook `end-frenzy` par-nom. */
 export function aiMaybeFrenzy(get: Get, set: SetFn, enemy: Combatant): void {
-  if (!aiDriven(get(), enemy) || isFrenzied(enemy) || enemy.psychImmune || isOutOfAction(enemy) || !isFrenzyCapable(enemy)) return;
+  if (!aiDriven(get(), enemy) || enemy.psychImmune || isOutOfAction(enemy) || !peutEntrerEnFrenesie(enemy)) return;
   if (!hasFoeInLoS(get, enemy)) return; // adversaire vivant en Ligne de Vue (primitive partagée, sens acteur→foe)
   // RAW : l'entrée en Frénésie est un CHOIX (psychologie.md l.170) → l'IA la DIFFÈRE tant que sa meilleure
   // action est de PRÉPARER un sort (buff/invocation/dégâts). L'Unicité les retire un à un ; quand il ne reste

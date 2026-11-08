@@ -51,7 +51,7 @@ function journeeDeMer(cadence: Cadence): void {
   set({
     party: makePregens().slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
-    battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null,
+    battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingRest: null,
     pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [], partyWiped: false,
   } as never);
@@ -66,9 +66,9 @@ function journeeDeFleuve(cadence: Cadence): void {
   const g = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
   for (const [id, adv] of [['ramer', 50], ['voile', 45]] as const) g.skills.push({ id, characteristic: skillCharacteristicById(id), advances: adv } as never);
   const o = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', seed: 12, id: 'r-otto' });
-  get().setParty([g, o]);
+  get().fixerLeGroupe([g, o]);
   const quai = (id: string, label: string) => buildScene({ id, label, desc: '.', size: [8, 6], terrain: 'planches', heroStart: [2, 3] } as never);
-  get().loadProject({ scenes: [quai('quai-a', 'A'), quai('quai-b', 'B')], entryId: 'quai-a', worldMap: {
+  get().chargerLeProjet({ scenes: [quai('quai-a', 'A'), quai('quai-b', 'B')], entryId: 'quai-a', worldMap: {
     id: 'm', label: 'Reik',
     places: [{ id: 'A', label: 'A', pos: { x: 0, y: 0 }, scene: 'quai-a' }, { id: 'B', label: 'B', pos: { x: 90, y: 0 }, scene: 'quai-b' }],
     routes: [{ id: 'r-reik', a: 'A', b: 'B', km: 45, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0 }],
@@ -100,14 +100,14 @@ describe('#1595 — le reste du jour repris après une Fuite de vapeur, sans jet
     set({
       party: makePregens().slice(0, 3),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
-      battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null,
+      battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingRest: null,
       pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [], partyWiped: false,
     } as never);
     set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0] as never, { cadence: 'commande' })!, party: aTerre(get().party) });
     const h = get().party[0];
     set({ pendingSteamSave: { actorId: h.id, actorName: h.label, skillValue: 40, target: 40, difficulty: 'intermediaire', scaldOps: [], roll: 5, success: true, sl: 3 } });
-    get().jetConfirm('steamSave');
+    get().jetValider('steamSave');
     expect(issue()).toEqual(DEFAITE);
     expect(get().party.flatMap((x) => x.diseases ?? []), 'la clôture du jour s’est jouée avant la défaite').toEqual([]);
   });
@@ -136,7 +136,7 @@ describe('#1595 — relâche à terre résolue sur place : un groupe à terre n�
     set({
       party: makePregens().slice(0, 3),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
-      battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null, pendingShoreLeave: null,
+      battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingRest: null, pendingShoreLeave: null,
       pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
       vessel: { vehicleId: 'cogue', morale: { score: 30, lastMoraleWeek: 0, factors: [] } }, journal: [], partyWiped: false,
     } as never);

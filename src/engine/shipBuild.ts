@@ -29,9 +29,9 @@
  */
 import shipConstructionJson from '../data/ship-construction.json';
 import steamBreakdownJson from '../data/steam-breakdown.json';
-import { findTableEntry, findTableEntryIndex, tableOuverte } from './tables';
+import { findTableEntry, findTableEntryIndex, tableOuverte, type DeDeTable } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { roll, rollDice, type DiceSpec, type RNG, type Tirage } from './dice';
+import { roll, rollDice, type RNG, type Tirage } from './dice';
 import { deDeTirageDe, rangeesDe } from '../data/rangees';
 import type * as panneDeVapeur from '../data/schemas/defs/steam-breakdown';
 import { rollTest } from './tests';
@@ -331,7 +331,7 @@ export interface SteamBreakdownEntry {
 
 export const STEAM_BREAKDOWNS = rangeesDe<typeof panneDeVapeur>(steamBreakdownJson) as SteamBreakdownEntry[];
 /** Le dé du tableau PANNE DE VAPEUR, lu à l'appel. */
-export const steamBreakdownDie = (): DiceSpec => deDeTirageDe<typeof panneDeVapeur>(steamBreakdownJson);
+export const steamBreakdownDie = (): DeDeTable => deDeTirageDe<typeof panneDeVapeur>(steamBreakdownJson);
 
 /** Tirage du tableau PANNE DE VAPEUR (ch.12 l.313 : « Chaque fois que quelqu'un obtient un double sur
  *  un Test de Métier (Ingénieur) raté, que le résultat est un Échec Stupéfiant ou que le bateau subit

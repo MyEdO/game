@@ -132,20 +132,20 @@ describe('sorties d’interlude — le dispatcher mutualisé est inexprimable (t
 
   it('TÉMOIN — sans flux différé, la sortie de bordée désarme bien le mode', () => {
     combatArme();
-    banc.getState().jouerLOffre('battery-cancel');
+    banc.jouerLaCase('battery-cancel');
     expect(banc.getState().battle!.action).toBeNull();
   });
 
   it('MESURE — sous un flux différé, la MÊME sortie est avalée (donc jamais partagée avec cleave/dual)', () => {
     const h = combatArme();
     banc.setState({ pendingCleave: { attackerId: h.id, hitIds: [], count: 0 } as never });
-    banc.getState().jouerLOffre('battery-cancel');
+    banc.jouerLaCase('battery-cancel');
     expect(
       banc.getState().battle!.action,
       'la sortie de bordée est avalée sous `combatBusy` — c’est pourquoi cleave/dual portent leurs propres verbes',
     ).toBe('battery');
     // … et le verbe DE ce flux, lui, passe : chaque interlude sort par SON dispatcher.
-    banc.getState().jouerLOffre('cleave-end');
+    banc.jouerLaCase('cleave-end');
     expect(banc.getState().pendingCleave).toBeNull();
   });
 });

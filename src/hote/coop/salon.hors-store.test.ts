@@ -169,11 +169,13 @@ describe('salon — l’invité', () => {
   });
 });
 
+const caseDe = (id: string) => ({ ...banc.getState().battle!.combatants.find((c) => c.id === id)!.pos! });
+
 describe('salon — l’action d’un invité part en intention, sauf l’élection locale', () => {
   it('Dissiper, porteur à 2 Sorts : l’élection se joue chez l’émetteur, rien ne part (LDB 46 l.158-162)', () => {
     banc.setState(tableDeDissipation('guest', { e1: 2 }));
     const envoyer = vi.fn();
-    emettreIntentInvite(banc.getState, 'battleClickEntity', banc.getState().battleClickEntity as never, envoyer, ['e1']);
+    emettreIntentInvite(banc.getState, 'cliquerLaCase', banc.getState().cliquerLaCase as never, envoyer, [caseDe('e1'), 'e1']);
     expect(banc.getState().dispelCarrierId, 'l’élection n’a pas eu lieu chez l’ÉMETTEUR').toBe('e1');
     expect(envoyer, 'l’élection est partie chez l’hôte').not.toHaveBeenCalled();
     expect(banc.getState().pendingDispel).toBeNull();
@@ -182,20 +184,20 @@ describe('salon — l’action d’un invité part en intention, sauf l’élect
   it('Dissiper, porteur à 1 Sort : rien à élire, le geste part avec son verdict d’armement', () => {
     banc.setState(tableDeDissipation('guest', { e1: 1 }));
     const envoyer = vi.fn();
-    emettreIntentInvite(banc.getState, 'battleClickEntity', banc.getState().battleClickEntity as never, envoyer, ['e1']);
+    emettreIntentInvite(banc.getState, 'cliquerLaCase', banc.getState().cliquerLaCase as never, envoyer, [caseDe('e1'), 'e1']);
     expect(banc.getState().dispelCarrierId).toBeNull();
     expect(banc.getState().pendingDispel, 'le commit s’est joué EN LOCAL').toBeNull();
-    expect(envoyer.mock.calls).toEqual([['battleClickEntity', ['e1', { approche: false }]]]);
+    expect(envoyer.mock.calls).toEqual([['cliquerLaCase', [caseDe('e1'), 'e1', { approche: false }]]]);
   });
 
-  it('carnet : `markCluesSeen` part en intention et ne se joue pas localement (#2415)', () => {
+  it('carnet : `marquerLesIndices` part en intention et ne se joue pas localement (#2415)', () => {
     banc.setState({ party: [heroDesIndices()] });
-    banc.getState().loadProject({ scenes: [fixtureScene('scene-o')], entryId: 'scene-o', narratif, projet: null });
+    banc.getState().chargerLeProjet({ scenes: [fixtureScene('scene-o')], entryId: 'scene-o', narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     const envoyer = vi.fn();
     const vus = affichés(banc.getState().clues, ['ind-lettre']);
-    emettreIntentInvite(banc.getState, 'markCluesSeen', banc.getState().markCluesSeen as never, envoyer, [vus]);
-    expect(envoyer).toHaveBeenCalledWith('markCluesSeen', [vus]);
+    emettreIntentInvite(banc.getState, 'marquerLesIndices', banc.getState().marquerLesIndices as never, envoyer, [vus]);
+    expect(envoyer).toHaveBeenCalledWith('marquerLesIndices', [vus]);
     expect(banc.getState().clues['ind-lettre'].vuParSiège, 'le marquage s’est joué EN LOCAL').toBeUndefined();
   });
 
@@ -210,10 +212,45 @@ describe('salon — l’action d’un invité part en intention, sauf l’élect
     });
     const local = vi.fn();
     const envoyer = vi.fn();
-    emettreIntentInvite(banc.getState, 'battleClickEntity', local, envoyer, ['e1', { confirm: true }]);
-    emettreIntentInvite(banc.getState, 'battleClickTile', local, envoyer, [{ x: 12, y: 4 }, { confirm: false }]);
-    expect(envoyer.mock.calls.map(([action]) => action)).toEqual(['battleClickEntity', 'battleClickTile']);
+    emettreIntentInvite(banc.getState, 'cliquerLaCase', local, envoyer, [{ x: 7, y: 10 }, 'e1', { confirm: true }]);
+    emettreIntentInvite(banc.getState, 'cliquerLaCase', local, envoyer, [{ x: 12, y: 4 }, undefined, { confirm: false }]);
+    expect(envoyer.mock.calls.map(([action]) => action)).toEqual(['cliquerLaCase', 'cliquerLaCase']);
     expect(local, 'le geste s’est joué en local au lieu de partir à l’hôte').not.toHaveBeenCalled();
+  });
+});
+
+describe('salon — le verbe de l’offre d’un invité : il part, l’attaque s’arme avant', () => {
+  /** Le duel du héros `h1` de l'invité (siège 0 de la table) contre `e1`, à son tour. */
+  function duel(): void {
+    const h = makePregens()[0]; h.id = 'h1'; h.pos = { x: 6, y: 10 };
+    const enemy = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 10 });
+    const w = 22, hh = 16;
+    banc.setState({
+      battle: { combatants: [h, enemy], order: ['h1', 'e1'], baseOrder: ['h1', 'e1'], turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as never,
+      scene: { id: 's', dimensions: { w, h: hh }, layers: [{ z: 0, tiles: new Array(w * hh).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] } as never,
+      party: [h], mode: 'battle', screen: 'campaign', net: { ...initialNet(), mode: 'guest', mySeat: 0, ownership: { h1: 0 } }, localIntent: null,
+    });
+  }
+
+  it('un verbe de la barre (`terminerLeTour`) part tel quel et ne se joue pas chez l’émetteur', () => {
+    duel();
+    const local = vi.fn();
+    const envoyer = vi.fn();
+    emettreIntentInvite(banc.getState, 'terminerLeTour', local, envoyer, []);
+    expect(envoyer.mock.calls).toEqual([['terminerLeTour', []]]);
+    expect(local).not.toHaveBeenCalled();
+    expect(banc.getState().localIntent).toBeNull();
+  });
+
+  it('`armerLAttaque`, joué chez l’hôte : son intention s’arme chez l’émetteur AVANT l’envoi', () => {
+    duel();
+    const local = vi.fn();
+    const armeeALEnvoi: (string | null)[] = [];
+    const envoyer = vi.fn(() => { armeeALEnvoi.push(banc.getState().localIntent?.actionId ?? null); });
+    emettreIntentInvite(banc.getState, 'armerLAttaque', local, envoyer, ['arme']);
+    expect(envoyer.mock.calls).toEqual([['armerLAttaque', ['arme']]]);
+    expect(armeeALEnvoi, 'l’intention n’était pas armée quand l’offre est partie').toEqual(['attaque']);
+    expect(local, 'le corps s’est joué chez l’émetteur').not.toHaveBeenCalled();
   });
 });
 

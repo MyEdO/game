@@ -62,10 +62,10 @@ describe('engine/fortune.restoreFortune — helper PUR partagé (LDB 17 l.41)', 
     expect(out.find((h) => h.id === 'n')!.fortune).toBe(2);
   });
 
-  it('la voie « Longues Séances de Jeu » (store.restoreFortuneNow, LDB 17 l.47) tient le MÊME plafond', () => {
+  it('la voie « Longues Séances de Jeu » (store.restaurerLaFortune, LDB 17 l.47) tient le MÊME plafond', () => {
     const chanceux = hero({ id: 'c', fate: 2, fortune: 0, talents: [{ talentId: 'chanceux', times: 2 }] });
     banc.setState({ party: [chanceux], battle: null, mode: 'exploration' });
-    banc.getState().restoreFortuneNow();
+    banc.getState().restaurerLaFortune();
     expect(banc.getState().party[0].fortune).toBe(4);
   });
 
@@ -81,14 +81,14 @@ describe('engine/fortune.restoreFortune — helper PUR partagé (LDB 17 l.41)', 
   });
 });
 
-describe('store.restoreFortuneNow — règle « Longues Séances de Jeu » mode manual (LDB 17 l.47)', () => {
+describe('store.restaurerLaFortune — règle « Longues Séances de Jeu » mode manual (LDB 17 l.47)', () => {
   beforeEach(() => { banc.setState({ battle: null, mode: 'exploration' }); });
 
   it('un héros fortune < fate voit sa Chance remise à fate', () => {
     const a = hero({ id: 'a', fate: 3, fortune: 1 });
     const b = hero({ id: 'b', fate: 2, fortune: 0 });
     banc.setState({ party: [a, b] });
-    banc.getState().restoreFortuneNow();
+    banc.getState().restaurerLaFortune();
     const p = banc.getState().party;
     expect(p.find((h) => h.id === 'a')!.fortune).toBe(3);
     expect(p.find((h) => h.id === 'b')!.fortune).toBe(2);
@@ -98,7 +98,7 @@ describe('store.restoreFortuneNow — règle « Longues Séances de Jeu » mode 
     const mk = () => [hero({ id: 'a', fate: 5, fortune: 2 }), hero({ id: 'b', fate: 3, fortune: 3 })];
     // Via l'action du noyau.
     banc.setState({ party: mk() });
-    banc.getState().restoreFortuneNow();
+    banc.getState().restaurerLaFortune();
     const viaAction = banc.getState().party.map((h) => h.fortune);
     // Via l'Effet de scène.
     banc.setState({ party: mk() });

@@ -41,8 +41,8 @@ function setupCoop(opts: { heros?: number; invites?: number[] } = {}): { H: Comb
   const party = Array.from({ length: n }, (_, i) =>
     createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }));
   banc.setState({ party });
-  g().startScene(testScene());
-  g().startCombat('enc-mutants');
+  g().lancerLaScene(testScene());
+  g().lancerLeCombat('enc-mutants');
   g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;
@@ -73,7 +73,7 @@ function jouerBande(success: boolean): void {
       })),
     },
   } as never);
-  g().jetConfirm('cascade');
+  g().jetValider('cascade');
 }
 
 beforeEach(() => { seedBattleRng(4); });
@@ -206,7 +206,7 @@ describe('#1117 L4 — RAFALE de seuils de Corruption (LDB 19 l.70) : une file, 
 
     // Le premier acquitte (réussite : Corruption contenue) → la fenêtre passe au second.
     banc.setState({ pendingCorruption: { ...g().pendingCorruption!, roll: 1, target: 40, sl: 4, success: true } } as never);
-    g().jetConfirm('corruption');
+    g().jetValider('corruption');
     expect(g().pendingCorruption?.heroId, 'le seuil en file reçoit SA fenêtre').toBe(H[1].id);
     expect(g().corruptionQueue, 'la file est vidée d’autant').toEqual([]);
   });
@@ -228,7 +228,7 @@ describe('#1117 L4 — RAFALE de seuils de Corruption (LDB 19 l.70) : une file, 
 
     // Le premier RATE son Test de seuil et a de la Résilience → la mutation lui est proposée.
     banc.setState({ pendingCorruption: { ...g().pendingCorruption!, roll: 99, target: 40, sl: -3, success: false } } as never);
-    g().jetConfirm('corruption');
+    g().jetValider('corruption');
     expect(g().pendingRenounce?.heroId, 'la décision de renoncement appartient au premier').toBe(H[0].id);
     expect(g().pendingCorruption, 'le slot reste VIDE : le second ne double pas la fenêtre').toBeNull();
     expect(g().corruptionQueue.map((q) => q.heroId), 'la file n’a pas bougé').toEqual([H[1].id]);

@@ -63,6 +63,7 @@ function monter(): void {
   useGame.setState({
     scene: emptyScene('scene-test', 10, 10),
     mode: 'battle',
+    screen: 'campaign',
     partyPos: { x: 3, y: 3 },
     party: [hero('h1', { x: 3, y: 3 }, [ARC])],
     battle: combatTémoin(),
@@ -105,10 +106,10 @@ describe('Marques de cases — l’écran DÉJÀ MONTÉ suit le store (#1411 P0-
   it('INTENTION : armer peint N > 0 cellules `intent`, désarmer les retire', () => {
     monter();
     expect(marques('intent'), 'aucune intention armée au montage').toBe(0);
-    act(() => { useGame.getState().battleArmIntent('charge'); });
-    expect(useGame.getState().localIntent, 'l’intention n’est même pas armée').toEqual({ actionId: 'charge' });
+    act(() => { useGame.getState().armerLIntention('mouvement'); }); // l’archer n’a aucun corps à corps : la Charge lui est fermée
+    expect(useGame.getState().localIntent, 'l’intention n’est même pas armée').toEqual({ actionId: 'mouvement' });
     expect(marques('intent'), 'l’armement n’a peint AUCUNE case : la portée reste invisible').toBeGreaterThan(0);
-    act(() => { useGame.getState().battleArmIntent(null); });
+    act(() => { useGame.getState().desarmerLeMode(); });
     expect(useGame.getState().localIntent).toBeNull();
     expect(marques('intent'), 'le désarmement laisse la portée à l’écran').toBe(0);
   });

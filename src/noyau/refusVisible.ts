@@ -5,7 +5,7 @@
  * — jamais un refus muet au journal (doctrine #516 ; le journal n'est pas affiché en combat,
  * `LogDrawer`) ; le refus se dit à l'écran au point du geste. »
  *
- * Mesure qui fonde ce module (2026-08-19) : en combat, `ui/LogDrawer` rend `battle.log` et JAMAIS
+ * Mesure qui fonde ce module (2026-08-19) : en combat, le tiroir du journal rend `battle.log` et JAMAIS
  * `state.journal` — un refus passé à `store.log` n'atteint aucun écran pendant un combat.
  *
  * CE QU'UN REFUS EST : un retour d'IHM LOCAL, adressé au joueur qui vient de cliquer. Il vit donc à la
@@ -15,7 +15,7 @@
  *  - il NE PERSISTE PAS dans le journal de combat : ce tiroir garde les FAITS de jeu, un clic refusé
  *    n'en est pas un ;
  *  - il porte un `nonce` STRICTEMENT croissant : deux refus identiques d'affilée sont deux évènements
- *    distincts, que la bannière ré-anime au lieu de rester muette (`ui/CombatBanner`).
+ *    distincts, que la bannière ré-anime au lieu de rester muette.
  * HORS COMBAT il n'y a pas de bannière : le refus retombe alors sur le journal de partie, qui est LA
  * surface visible de ce contexte. Jamais de no-op silencieux.
  */
@@ -39,7 +39,7 @@ const nonces = sequence();
  */
 export function refuserGeste(get: Get, set: Set, texte: string): boolean {
   if (!get().battle) {
-    get().log(texte); // hors combat, le journal EST la surface visible — le refus s'y dit vraiment
+    get().ecrireAuJournal(texte); // hors combat, le journal EST la surface visible — le refus s'y dit vraiment
     return true;
   }
   set({ refus: { texte, nonce: nonces.suivant() } });

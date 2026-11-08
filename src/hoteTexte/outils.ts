@@ -81,7 +81,7 @@ export function outils({ scenarios, cadences }: Enumerations) {
       description: [
         'Lit la partie sans la changer : rien ne s’écrit. `quoi` choisit la lecture :',
         'vue (l’actif, la fenêtre qui tient la main et la signature de ses verbes, le jet en attente, les offres, les cibles ; en exploration, le groupe, son étage, son cap et ses gestes prêts à jouer) ;',
-        'offres (les offres ouvertes de l’actif ; `toutes` : les fermées avec leur raison ; `id` : les candidats d’une action et leur ctx ; en exploration, tous les gestes du groupe) ;',
+        'offres (les offres ouvertes de l’actif ; `toutes` : les fermées avec leur raison ; `id` : les candidats d’une action ; chaque offre avec le geste qui la joue ; en exploration, tous les gestes du groupe) ;',
         'carte (les combattants, l’actif d’abord ; en exploration, les héros du groupe et leur id, puis les entités de la scène) ; cases (les cases atteignables au tour de l’actif, avec leur coût) ;',
         'fiche (la fiche du combattant `id`) ; journal (ses dernières lignes ; `depuis` k ; `ligne` m pour une entrée longue) ;',
         'verbes (la signature du verbe `id`, ou les verbes dont le nom contient `id` ; sans partie).',
@@ -100,20 +100,18 @@ export function outils({ scenarios, cadences }: Enumerations) {
     },
     jouer: {
       description: [
-        'Joue une SUITE de gestes sur la partie, dans l’ordre ; chaque geste appliqué s’écrit au fichier. Un geste est :',
-        '- une offre de la barre de l’actif, {"offre":"<id d’offre>","ctx":{…}} (ids : ligne « offres » de la vue ; candidats et ctx : `lire` {"quoi":"offres","id":…}) ;',
-        '- un verbe du noyau, {"verbe":"<nom>","args":[…],"siege":0} : la ligne « verbes » de la vue donne la signature de ceux de la fenêtre qui tient la main, et l’id d’étape (pid) qu’ils attendent ; tout autre verbe du noyau se joue aussi (`lire` {"quoi":"verbes","id":"<morceau>"}).',
-        '`args` est le tableau des arguments, contrôlé contre le type du verbe : un point s’écrit {"x":3,"y":6}, `null` saute un argument optionnel, une porte se désigne par son id. `siege` joue un verbe au nom d’un siège ; une offre se joue au nom de l’actif.',
+        'Joue une SUITE de gestes sur la partie, dans l’ordre ; chaque geste appliqué s’écrit au fichier. Un geste est',
+        'un verbe du noyau, {"verbe":"<nom>","args":[…],"siege":0} : une offre de la barre de l’actif se joue par le verbe qu’elle déclare (`lire` {"quoi":"offres"} donne le geste de chacune, `lire` {"quoi":"offres","id":…} ceux de ses candidats) ; la ligne « verbes » de la vue donne la signature de ceux de la fenêtre qui tient la main, et l’id d’étape (pid) qu’ils attendent ; tout autre verbe du noyau se joue aussi (`lire` {"quoi":"verbes","id":"<morceau>"}).',
+        '`args` est le tableau des arguments, contrôlé contre le type du verbe : un point s’écrit {"x":3,"y":6}, `null` saute un argument optionnel, une porte se désigne par son id. `siege` joue un verbe au nom d’un siège.',
         `Le premier geste refusé arrête la suite : rien de lui ne s’écrit, la réponse dit combien sont passés, et pourquoi. Une seule vue à la fin. Au plus ${GESTES_PAR_APPEL} gestes.`,
         'Une offre qui vise arme une intention : le clic du champ la commet sur sa cible (ligne « champ » de la vue, un id de la ligne « cibles » ou une case). Le premier clic d’une case montre l’aperçu, le même clic le confirme.',
-        'Exemple, une offre qui vise, sa cible, le jet de la fenêtre, son dé posé à 11, et sa confirmation : {"gestes":[{"offre":"<offre qui vise>"},{"verbe":"<clic du champ>","args":["<cible>"]},{"verbe":"<jet>"},{"verbe":"<pose du dé>","args":[11]},{"verbe":"<confirmation>"}]}, chaque nom lu aux lignes « offres », « champ », « cibles » et « verbes ».',
+        'Exemple, une offre qui vise, sa cible, le jet de la fenêtre, son dé posé à 11, et sa confirmation : {"gestes":[{"verbe":"<verbe de l’offre qui vise>","args":[…]},{"verbe":"<clic du champ>","args":["<cible>"]},{"verbe":"<jet>"},{"verbe":"<pose du dé>","args":[11]},{"verbe":"<confirmation>"}]}, chaque nom lu à `lire` {"quoi":"offres"} et aux lignes « champ », « cibles » et « verbes ».',
         'Pour lire sans agir, `lire`.',
       ].join('\n'),
       schema: {
-        gestes: z.array(z.union([
-          z.object({ offre: z.string().min(1), ctx: z.record(z.string(), z.unknown()).optional() }).strict(),
+        gestes: z.array(
           z.object({ verbe: z.string().min(1), args: z.array(z.unknown()).optional(), siege: z.number().int().optional() }).strict(),
-        ])).min(1).max(GESTES_PAR_APPEL).describe('les gestes, joués dans l’ordre'),
+        ).min(1).max(GESTES_PAR_APPEL).describe('les gestes, joués dans l’ordre'),
         partie: PARTIE_LUE,
       },
     },

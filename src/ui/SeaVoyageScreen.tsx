@@ -32,7 +32,7 @@ export function SeaVoyageBody({ day }: { day: TravelRecapDay }) {
   // (`chrome.hullDelta`), jamais un absolu concurrent sous le même libellé.
   const hullGauge = vesselHullGauge(useGame((s) => s.vessel));
   const cadence = useGame((s) => s.travelPlan?.orders?.cadence);
-  const setCadence = useGame((s) => s.setVoyageCadence);
+  const setCadence = useGame((s) => s.fixerLaCadence);
   const active = !!useGame((s) => s.travelPlan); // la bascule n'a de sens que tant que la traversée dure
   return (
     <div className="sea-voyage">

@@ -9,8 +9,8 @@ import { emptyScene, type Scene } from '../noyau/monde/scene';
 /**
  * FRAÎCHEUR DES MATIÈRES (#1686 lot 3a-1) — le document des matières se mute EN PLACE
  * (`overrides.setDataset`, seam de l'éditeur du Codex et des surcharges de campagne). Toute vue de ce
- * document — les vues par domaine, la porte par id, le sous-filtre des couvertures ici, les trois façades de
- * rendu dans `gameIso/catalog/materials-fraicheur.test.ts` — doit donc voir la valeur NEUVE au coup d'après,
+ * document — les vues par domaine, la porte par id, le sous-filtre des couvertures ici, les façades de
+ * rendu — doit donc voir la valeur NEUVE au coup d'après,
  * sans rechargement de page.
  *
  * Ce que la garde interdit, nommément : re-figer une vue au niveau MODULE (`const MAP = …`,

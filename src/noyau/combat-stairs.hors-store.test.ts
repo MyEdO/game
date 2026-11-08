@@ -38,8 +38,8 @@ describe('combat multi-couche — rampe : portée/aperçu/clic z-aware', () => {
   function setup(heroPos: { x: number; y: number; z?: number }) {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const sc = rampScene();
@@ -71,21 +71,21 @@ describe('combat multi-couche — rampe : portée/aperçu/clic z-aware', () => {
 
   it('cliquer le tablier fait MONTER le héros (z=1) et stampe sa hauteur (h=1)', () => {
     const { H } = setup({ x: 2, y: 3 });
-    banc.getState().battleClickTile({ x: 2, y: 2, z: 1 }, { confirm: true });
+    banc.getState().cliquerLaCase({ x: 2, y: 2, z: 1 }, undefined, { confirm: true });
     const pos = banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos!;
     expect(pos).toEqual({ x: 2, y: 2, z: 1, h: 1 }); // monté sur le tablier, hauteur métrique portée
   });
 
   it('depuis le tablier, cliquer une case de sol fait DESCENDRE le héros (z0, sans z ni h)', () => {
     const { H } = setup({ x: 2, y: 2, z: 1 }); // sur le tablier
-    banc.getState().battleClickTile({ x: 2, y: 3 }, { confirm: true });
+    banc.getState().cliquerLaCase({ x: 2, y: 3 }, undefined, { confirm: true });
     const pos = banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos!;
     expect(pos).toEqual({ x: 2, y: 3 }); // redescendu au sol
   });
 
   it('NON-RÉGRESSION z=0 : un clic-sol ordinaire produit une position SANS z', () => {
     const { H } = setup({ x: 2, y: 3 });
-    banc.getState().battleClickTile({ x: 4, y: 4 }, { confirm: true }); // déplacement plat
+    banc.getState().cliquerLaCase({ x: 4, y: 4 }, undefined, { confirm: true }); // déplacement plat
     const pos = banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos!;
     expect(pos).toEqual({ x: 4, y: 4 }); // pas de champ z/h parasite
   });

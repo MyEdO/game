@@ -20,7 +20,7 @@
  * #T3 (cascade d'horloge) : la PROGRESSION des maladies (LDB 20 — incubation/durée en jours
  * CALENDAIRES) et la CONVALESCENCE des traumas (LDB 18 l.222 — « un nombre de jours égal à 30 – votre Bonus d'Endurance »)
  * ne dépendent PAS du sommeil : elles sont décomptées par l'entretien quotidien (`noyau/upkeep.ts`,
- * sur franchissement de jour, quel que soit le chemin — advanceTime, repos, voyage). `restRecovery`
+ * sur franchissement de jour, quel que soit le chemin — avancerLeTemps, repos, voyage). `restRecovery`
  * ne garde que ce qui dépend du SOMMEIL. `dailyDiseaseUpkeep` (ci-dessous) reste dans ce module
  * (pur) car il réconcilie les États DÉRIVÉS des passifs de maladie (`syncDerivedConditions`), ce qui
  * importe `conditions` — interdit dans `disease.ts` (cycle d'import via characteristics).

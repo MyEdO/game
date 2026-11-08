@@ -163,7 +163,7 @@ export const MANEUVER_ICON: Record<AttackKind, IconId> = {
 export const MELEE_MANEUVER_KINDS: AttackKind[] = ['morsure', 'caudale', 'tentacules', 'pietinement'];
 
 /** ATTAQUE activable par le héros actif — descripteur UNIFIÉ (arme tenue + attaques gratuites/zone),
- *  SOURCE UNIQUE de la liste d'attaques (hotbar) ET de la résolution (`battleClickEntity`). `targeting`
+ *  SOURCE UNIQUE de la liste d'attaques (hotbar) ET de la résolution (`cliquerLeCombattant`). `targeting`
  *  pilote la résolution : 'melee' → approche-puis-frappe (attackPlan + pendingAttack) ; 'zone' →
  *  resolveManeuver (pendingManeuver). `cost.action` = coûte l'Action (Arme), sinon gratuite ;
  *  `cost.movement` = paie l'Action de Mouvement (`freeAttackCost`). `reach`/`forceMelee` = Allonge de
@@ -304,6 +304,12 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
   return out.filter((m, i) => out.findIndex((n) => n.id === m.id) === i);
 }
 
+
+/** L'attaque se résout-elle SUR-LE-CHAMP, sans cible ni placement ? Sa manœuvre vise tous ceux d'alentour ou tous les
+ *  ennemis (`ManeuverDef.targeting`, le Hurlement, LDB 85 l.170) ; toute autre se désigne (une cible, un point). */
+export function attaqueImmediate(a: AttackOption): boolean {
+  return a.def?.targeting === 'allAround' || a.def?.targeting === 'allFoes';
+}
 
 /** Résout l'`AttackOption` à exécuter/prévisualiser : l'attaque ARMÉE (`selectedAttack`, défaut 'arme',
  *  repli sur 'arme' si périmée). `undefined` = mode
@@ -597,7 +603,7 @@ function openManeuverDefenseCascade(
 
 /** Le défenseur choisit sa meilleure réaction : Parade (Corps à corps) ou Esquive (Agilité + avances,
  *  pénalité d'Encombrement incluse) — la plus haute valeur. Vit ICI (feuille) : SOURCE UNIQUE,
- *  importée par combatFlow/rollFlows sans cycle.
+ *  importée par combatFlow/rollFlowSpecs sans cycle.
  *  Bestial (LDB 85 l.59) : « En défense, elle peut seulement utiliser la Compétence Esquive. » */
 export function bestDefenseMode(defender: Combatant): 'parade' | 'esquive' {
   if (isBestial(defender.traits)) return 'esquive';
@@ -727,7 +733,7 @@ export function adversairesADistraire(s: Jeu): Combatant[] {
 }
 
 /** Ouvre la modale de Battement d'un héros (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps
- *  NON opposé. AUCUN jet ici — il se fait au « Lancer » (`jetRoll('battement')`). */
+ *  NON opposé. AUCUN jet ici — il se fait au « Lancer » (`jetLancer('battement')`). */
 export function startBattement(_get: Get, set: SetFn, attacker: Combatant, foe: Combatant): void {
   set({ pendingBattement: { attackerId: attacker.id, foeId: foe.id, result: null } });
 }

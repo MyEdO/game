@@ -34,7 +34,7 @@ const mkGet = (combatants: Combatant[], battleOver: Partial<Record<string, unkno
   (() => ({
     scene: sc,
     battle: { combatants, order: combatants.map((c) => c.id), turn: 0, movementUsed: 0, action: null, selectedSpellId: null, acted: false, over: null, ...battleOver },
-    facing: {}, gameTime: 0, log: () => {},
+    facing: {}, gameTime: 0, ecrireAuJournal: () => {},
     // L'INTENTION ARMÉE fait partie du contexte que l'affordance lit (spec HUD § ARBITRAGE 2026-08-19) :
     // le survol dit ce que le CLIC fera, or le clic dépend désormais de la case Charge.
     localIntent: null, ...racine,

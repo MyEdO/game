@@ -49,6 +49,7 @@ export const TYPES = {
   navalPort: { espace: 'naval-ports.json', catalogue: 'ports' },
   shipStation: { espace: 'ship-stations.json', catalogue: 'postes de navire' },
   crewRole: { espace: 'crew-roles.json', catalogue: 'rôles d’équipage' },
+  crewTestType: { espace: 'crew-test-types.json#types', catalogue: 'types de Test d’équipage' },
   table: { espace: 'tables.json', catalogue: 'tables' },
   etat: { espace: 'etats.json', catalogue: 'états' },
   maladie: { espace: 'maladies.json', catalogue: 'maladies' },
@@ -75,6 +76,9 @@ export const TYPES = {
   quality: { espace: 'qualities.json', catalogue: 'qualités' },
   characteristic: { espace: 'characteristics.json', catalogue: 'caractéristiques' },
   steamBreakdown: { espace: 'steam-breakdown.json#entries', catalogue: 'pannes de navire à vapeur' },
+  // MDG 13 l.475-499, l.514-537 : le péril d'une op `perilDeMer` et l'évitement d'une op `navireMod` résolvent AU PARSE.
+  seaHazard: { espace: 'sea-perils.json#hazards', catalogue: 'périls en mer' },
+  tourbillon: { espace: 'sea-perils.json#tourbillons', catalogue: 'tourbillons' },
   // APPARENCE d'objet (#2948) : `trappings.json › shape`/`formChoices` résolvent AU PARSE contre les
   // racines du catalogue, une variante nomme sa racine et ses étiquettes de naissance.
   apparence: { espace: 'apparences.json', catalogue: 'apparences' },
@@ -83,6 +87,8 @@ export const TYPES = {
   gabarit: { espace: 'gabarits.json', catalogue: 'gabarits' },
   // RACE DE RENDU (#3113) : `presets-de-personnage.json › race` et l'id d'une tête de `garde-robe.json` résolvent AU PARSE.
   raceAppearance: { espace: 'raceAppearance.json', catalogue: 'races de rendu' },
+  // PLAN DE BESTIAIRE (#2993) : une espèce d'apparence (`especeDApparenceSchema`) résout AU PARSE.
+  planDeBestiaire: { espace: 'planDeBestiaire.json', catalogue: 'espèces du plan de bestiaire' },
   // GARDE-ROBE des éléments 3D (#3114) : un type, trois sous-listes discriminées par `kind`
   // (`idDe('gardeRobe', 'piece')`, patron `material`).
   gardeRobe: { espace: 'garde-robe.json', catalogue: 'garde-robe' },
@@ -197,7 +203,7 @@ const refusDeLaDiscriminee = (type: TypeEntite, sousListe: string, site: string,
 
 /** Le refus d'une sous-liste, jugé sur l'ENTRÉE résolue (objet du catalogue ou de la campagne) — la
  *  marquée sur ses champs (`marqueurPorte`), la discriminée sur son id —, lu par le sélecteur qui
- *  résout une saisie hors du registre (`ui/compendium/refField/RefField.tsx`). */
+ *  résout une saisie hors du registre. */
 export function refusDeLEntree(type: TypeEntite, sousListe: SousListe, entree: { readonly id: string }): string | null {
   return typeof sousListe === 'string'
     ? refusDeLaDiscriminee(type, sousListe, `refusDeLEntree('${type}')`, entree.id)

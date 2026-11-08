@@ -77,13 +77,13 @@ describe('invité : son interface se remet comme chez l’hôte au changement de
   /** L'hôte joue : scène A, une heure passe, puis transition en B ; puis une partie neuve repart en A. */
   function snapshotsDeLHote() {
     const projet = { scenes: [emptyScene('scene-a', 6, 6), emptyScene('scene-b', 6, 6)], entryId: 'scene-a', projet: null };
-    useGame.getState().loadProject(projet);
+    useGame.getState().chargerLeProjet(projet);
     const enA = instantaneDeLaCoop(useGame.getState());
-    useGame.getState().advanceTime(60);
+    useGame.getState().avancerLeTemps(60);
     const enAPlusTard = instantaneDeLaCoop(useGame.getState());
-    useGame.getState().transitionTo('scene-b');
+    useGame.getState().quitterLaScene('scene-b');
     const enB = instantaneDeLaCoop(useGame.getState());
-    useGame.getState().loadProject(projet);
+    useGame.getState().chargerLeProjet(projet);
     const partieNeuve = instantaneDeLaCoop(useGame.getState());
     return { enA, enAPlusTard, enB, partieNeuve };
   }

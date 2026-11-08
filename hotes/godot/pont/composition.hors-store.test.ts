@@ -78,9 +78,9 @@ describe('composerSurLaBase', () => {
     const neutre = composer({ humanoide }, soldat);
     expect(neutre.morphes).toEqual({ carrure_moins: 0, carrure_plus: 0, feminin: 1, corpulence: 0 });
     expect(composer({ humanoide }, { ...soldat, sex: 'M' }).morphes.feminin).toBe(0);
-    expect(neutre.gabarit.racine).toEqual({ os: 'root', echelle: 1 });
-    expect(neutre.gabarit.pieds).toEqual(humanoide.appuis.pieds);
-    expect(composer({ humanoide }, { ...soldat, gabarit: { id: 'brute' } }).gabarit.racine.echelle).toBe(1.35);
+    expect(neutre.gabarit?.racine).toEqual({ os: 'root', echelle: 1 });
+    expect(neutre.gabarit?.pieds).toEqual(humanoide.appuis.pieds);
+    expect(composer({ humanoide }, { ...soldat, gabarit: { id: 'brute' } }).gabarit?.racine.echelle).toBe(1.35);
   });
 
   it('une apparence variante monte l’élément qui la désigne, à défaut celui de sa racine ; sans l’un ni l’autre, le manquant garde son id', () => {

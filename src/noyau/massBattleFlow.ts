@@ -16,20 +16,20 @@
  * les Scènes sont des `ActivityDef` (contextes 'bataille'/'bataille-round') d'`activities.json`, dont
  * l'issue (bandes `outcomes` + `battle`) est appliquée à l'ARMÉE par `confirmBattleActivity`. Le Test
  * spectaculaire NON opposé est un jet d'ARMÉE (sans Chance/Résilience personnelles) résolu directement.
- * Une Scène `combat`/`threat` réutilise le combat tactique existant (`startCombat`).
+ * Une Scène `combat`/`threat` réutilise le combat tactique existant (`lancerLeCombat`).
  */
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { Combatant, Difficulty } from '../engine/types';
 import { battleRng } from './battleRng';
 import { ecrireActeur } from './monde/combatants';
-import { d10, d100, type RNG } from '../engine/dice';
+import { d100, rollDice, type RNG } from '../engine/dice';
 import { testValue, skillBaseValue, bestForTests, bestForCombined, bestAssistedOption, peutTenter, refusPersonneNePeutTenter, type SupportDetail, type TestDesigne } from '../engine/skills';
 import { isStructure } from '../engine/structures';
 import { inanimateCombatant } from '../engine/inanimate';
 import { applyOps } from '../engine/ops';
 import { bonus, effectiveChar, blessuresPosees } from '../engine/characteristics';
-import { dataLabel, testSkillLabel } from '../data';
+import { dataLabel, massBattleHazardsDie, testSkillLabel } from '../data';
 import { clampTarget } from '../engine/tests';
 import { rollLine, type RollLineParts } from './rollSeam';
 import {
@@ -179,7 +179,7 @@ export interface MassBattleState {
   lastClash?: ClashResult;
   /** Issue finale (phase 'over'). */
   outcome?: BattleOutcome;
-  /** Scène de combat tactique en attente de reprise (startCombat). */
+  /** Scène de combat tactique en attente de reprise (lancerLeCombat). */
   combatScene?: MassBattleCombatScene;
   /** Rencontres à démarrer pour les Scènes de COMBAT/MENACE (par id de Scène → id d'encounter). */
   sceneEncounters?: Record<string, string>;
@@ -201,13 +201,17 @@ export function battleSceneById(id: string): ActivityDef | undefined {
   const d = activityById(id);
   return d?.contexts.includes('bataille-round') ? d : undefined;
 }
+/** Les cibles d'une ancre de bataille (`Scene.stations[].sceneId`), chacune son id et son libellé : les Scènes de
+ *  Round du catalogue, le seul espace d'ids que `battleScenesToStations` résout (`battleSceneById`), jamais les Scènes
+ *  du projet. */
+export const ciblesDAncreDeBataille = (): { id: string; label: string }[] => ROUND_SCENES().map((def) => ({ id: def.id, label: def.label }));
 /** Activité de préparation par id (repli undefined). */
 export function battleActivityById(id: string): ActivityDef | undefined {
   const d = activityById(id);
   return d?.contexts.includes('bataille') ? d : undefined;
 }
 
-/** Une Scène est-elle un COMBAT tactique (combat/menace) ? (engage tout le groupe, `startCombat`). */
+/** Une Scène est-elle un COMBAT tactique (combat/menace) ? (engage tout le groupe, `lancerLeCombat`). */
 function isCombatScene(def: ActivityDef): boolean {
   return def.sceneKind === 'combat' || def.sceneKind === 'threat';
 }
@@ -262,8 +266,8 @@ export function nomDArmee(spec: MassBattleSpec, camp: 'ally' | 'enemy'): string 
 }
 
 /** Ouvre une bataille de masse et bascule sur sa vue. */
-export function startMassBattle(get: Get, set: Set, spec: MassBattleSpec): void {
-  if (get().battle) { get().log(t('mbf.inCombat')); return; }
+export function amorcerLaBataille(get: Get, set: Set, spec: MassBattleSpec): void {
+  if (get().battle) { get().ecrireAuJournal(t('mbf.inCombat')); return; }
   const allyMight = clampMight(spec.allyMight);
   const enemyMight = clampMight(spec.enemyMight);
   // Le Rassemblement (sceneKind 'rally', l.122) n'est PAS une Scène cinématique de la pioche : il s'ouvre
@@ -307,19 +311,19 @@ export function startMassBattle(get: Get, set: Set, spec: MassBattleSpec): void 
   if (get().interlude) {
     set({ screen: 'interlude' });
   } else {
-    massBattleBegin(get, set);
+    engagerLaBataille(get, set);
     set({ screen: 'massBattle' });
   }
 }
 
 /** Passe de la phase pré-bataille aux Rounds : compose la situation du Round 1. */
-export function massBattleBegin(get: Get, set: Set): void {
+export function engagerLaBataille(get: Get, set: Set): void {
   const mb = get().massBattle;
   if (!mb || mb.phase !== 'prep') return;
   const { situation, activeThreats, imposed } = composeSituation(mb, battleRng());
   const threatLine = describeThreats(activeThreats);
   set({ massBattle: { ...mb, phase: 'round', situation, activeThreats, imposed, log: threatLine ? [...mb.log, threatLine] : mb.log } });
-  if (threatLine) get().log(threatLine);
+  if (threatLine) get().ecrireAuJournal(threatLine);
 }
 
 function describeThreats(threats: string[]): string | null {
@@ -480,7 +484,7 @@ export function assignedHeroesFor(mb: MassBattleState, party: Combatant[], actio
 }
 
 /** Enregistre l'AFFECTATION de PJ à une action du Round (Scène MULTI-PJ / Activité). */
-export function setMassBattleHero(get: Get, set: Set, actionId: string, heroIds: string[]): void {
+export function affecterLeHeros(get: Get, set: Set, actionId: string, heroIds: string[]): void {
   const mb = get().massBattle;
   if (!mb) return;
   const assignment = { ...mb.assignment };
@@ -522,7 +526,7 @@ function resolveAssistedTeam(
   const solo = bestForTests(party, tests)?.actor;
   const team = crew.length ? crew : (solo ? [solo] : []);
   const picked = bestAssistedOption(team, tests);
-  if (!picked) { get().log(refusTenterAction(crew, def)); return null; }
+  if (!picked) { get().ecrireAuJournal(refusTenterAction(crew, def)); return null; }
   return { team, picked, difficulty: difficulteDeLOption(def, tests, picked.test) };
 }
 
@@ -670,7 +674,7 @@ export function openMassBattleRally(get: Get, set: Set): void {
   });
 }
 
-// ── Application des issues (appelée par `jetConfirm('activity')` pour une `PendingActivity` de bataille) ───
+// ── Application des issues (appelée par `jetValider('activity')` pour une `PendingActivity` de bataille) ───
 
 /** Applique un delta de Puissance COURANTE à un camp par `GameOp` (`heal`/`wounds`). */
 function applyDelta(mb: MassBattleState, side: 'ally' | 'enemy', delta: number): MassBattleState {
@@ -806,9 +810,9 @@ function applyHoldResolution(
   return { mb: next, lines };
 }
 
-/** Applique l'issue d'une `PendingActivity` de BATAILLE à `MassBattleState` (appelé par `jetConfirm('activity')`).
+/** Applique l'issue d'une `PendingActivity` de BATAILLE à `MassBattleState` (appelé par `jetValider('activity')`).
  *  Route selon le contexte (préparation / Scène de Round) et le genre. Le budget d'Activité (une prépa =
- *  une Activité d'interlude, l.65) est décrémenté par `jetConfirm('activity')`, PAS ici (application ⊥ budget). */
+ *  une Activité d'interlude, l.65) est décrémenté par `jetValider('activity')`, PAS ici (application ⊥ budget). */
 export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): void {
   const mb = get().massBattle;
   if (!mb || pa.roll == null || !pa.activityId) return;
@@ -858,7 +862,7 @@ export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): 
   }
 
   set({ massBattle: { ...next, log: [...next.log, ...lines] } });
-  for (const l of lines) get().log(l);
+  for (const l of lines) get().ecrireAuJournal(l);
 }
 
 // ── Scène de COMBAT tactique (l.137-145/211-225) ─────────────────────────────────────────────────
@@ -870,12 +874,12 @@ function startBattleCombat(get: Get, set: Set, scene: ActivityDef): void {
   const encId = mb.sceneEncounters?.[scene.id] ?? scene.encounter;
   const enc = encId && get().scene?.encounters.find((e) => e.id === encId);
   if (!enc) {
-    get().log(t('mbf.noEncounter', { scene: scene.label, enc: encId ?? '?' }));
+    get().ecrireAuJournal(t('mbf.noEncounter', { scene: scene.label, enc: encId ?? '?' }));
     return;
   }
   set({ massBattle: { ...mb, combatScene: { sceneId: scene.id, hits: 0, hitters: [] } }, screen: 'campaign' });
-  get().log(t('mbf.engage', { scene: scene.label }));
-  get().startCombat(encId);
+  get().ecrireAuJournal(t('mbf.engage', { scene: scene.label }));
+  get().lancerLeCombat(encId);
 }
 
 /** Comptage EN DIRECT des touches d'une Scène de COMBAT (l.139/145) — appelé par `applyAttackResult`. */
@@ -908,23 +912,23 @@ export function massBattleResumeCombat(get: Get, set: Set, kills: number, outcom
     lines.push(...applied.lines);
   }
   set({ massBattle: { ...next, log: [...next.log, ...lines] }, screen: 'massBattle' });
-  for (const l of lines) get().log(l);
+  for (const l of lines) get().ecrireAuJournal(l);
 }
 
 // ── Aléa, Test spectaculaire, Rounds, issue (l.120-124/309) ──────────────────────────────────────
 
-/** Tire (ou choisit) le facteur environnemental du Round (l.309, 1d10). */
+/** Tire (ou choisit) le facteur environnemental du Round (ADE II 08 l.309-311). */
 export function massBattleSetHazard(get: Get, set: Set, roll?: number): void {
   const mb = get().massBattle;
   if (!mb || mb.phase !== 'round') return;
-  const h = battleHazard(roll ?? d10(battleRng()));
+  const h = battleHazard(roll ?? rollDice(massBattleHazardsDie(), battleRng()));
   set({ massBattle: { ...mb, hazard: { label: h.label, text: h.desc }, log: [...mb.log, t('mbf.hazardLog', { label: h.label })] } });
-  get().log(t('mbf.hazard', { label: h.label }));
+  get().ecrireAuJournal(t('mbf.hazard', { label: h.label }));
 }
 
 /** Résout le Test spectaculaire de Puissance du Round (l.120) puis marque l'attente du Rassemblement /
- *  passage au Round suivant (l.122-124). Ne fait PAS avancer le Round (cf. `massBattleAdvance`). */
-export function massBattleClash(get: Get, set: Set): void {
+ *  passage au Round suivant (l.122-124). Ne fait PAS avancer le Round (cf. `avancerLaBataille`). */
+export function engagerLaMelee(get: Get, set: Set): void {
   const mb = get().massBattle;
   if (!mb || mb.phase !== 'round' || mb.awaitingNext) return;
   const allyMod = mb.allyMod + (mb.round === 1 ? mb.firstRoundBonus : 0);
@@ -945,11 +949,11 @@ export function massBattleClash(get: Get, set: Set): void {
     next = { ...next, awaitingNext: true };
   }
   set({ massBattle: { ...next, log: [...next.log, ...lines] } });
-  for (const l of lines) get().log(l);
+  for (const l of lines) get().ecrireAuJournal(l);
 }
 
 /** Passe au Round suivant (l.124) : compose la nouvelle SITUATION et réinitialise l'état par-Round. */
-export function massBattleAdvance(get: Get, set: Set): void {
+export function avancerLaBataille(get: Get, set: Set): void {
   const mb = get().massBattle;
   if (!mb || mb.phase !== 'round' || !mb.awaitingNext) return;
   const advanced: MassBattleState = { ...mb, round: mb.round + 1 };
@@ -962,7 +966,7 @@ export function massBattleAdvance(get: Get, set: Set): void {
     hazard: undefined, awaitingNext: false,
   };
   set({ massBattle: { ...next, log: threatLine ? [...next.log, threatLine] : next.log } });
-  if (threatLine) get().log(threatLine);
+  if (threatLine) get().ecrireAuJournal(threatLine);
 }
 
 function outcomeLine(mb: MassBattleState, outcome: BattleOutcome, destroyed: boolean): string {
@@ -976,7 +980,7 @@ function outcomeLine(mb: MassBattleState, outcome: BattleOutcome, destroyed: boo
  *  la bataille jusqu'à son issue (`confirmBattleActivity`) : la clôture est alors REFUSÉE, jamais purgée. */
 function cloreLaBataille(get: Get, set: Set): void {
   const enCours = get().pendingActivity;
-  if (enCours?.battle) { get().log(t('mbf.endTestEnCours', { test: enCours.label })); return; }
+  if (enCours?.battle) { get().ecrireAuJournal(t('mbf.endTestEnCours', { test: enCours.label })); return; }
   set({ massBattle: null, screen: get().scene ? 'campaign' : 'menu' });
 }
 
@@ -1014,15 +1018,15 @@ export function battleSceneEffectLabel(def: ActivityDef): string {
 export function creerActionsDeBatailleDeMasse(get: Get, set: Set) {
   return {
     // Combat de masse / Puissance de Bataille (ADE II 08) — flux d'orchestration + jet de PJ différé.
-    startMassBattle: (spec) => startMassBattle(get, set, spec),
-    massBattleBegin: () => massBattleBegin(get, set),
-    massBattleActivity: (activityId, heroId) => openMassBattleActivity(get, set, activityId, heroId),
-    massBattleScene: (sceneId) => openMassBattleScene(get, set, sceneId),
-    setMassBattleHero: (actionId, heroIds) => setMassBattleHero(get, set, actionId, heroIds),
-    massBattleRally: () => openMassBattleRally(get, set),
-    massBattleHazard: (roll) => massBattleSetHazard(get, set, roll),
-    massBattleClash: () => massBattleClash(get, set),
-    massBattleAdvance: () => massBattleAdvance(get, set),
+    amorcerLaBataille: (spec) => amorcerLaBataille(get, set, spec),
+    engagerLaBataille: () => engagerLaBataille(get, set),
+    menerLActionDeBataille: (activityId, heroId) => openMassBattleActivity(get, set, activityId, heroId),
+    jouerLaScene: (sceneId) => openMassBattleScene(get, set, sceneId),
+    affecterLeHeros: (actionId, heroIds) => affecterLeHeros(get, set, actionId, heroIds),
+    rallierLesTroupes: () => openMassBattleRally(get, set),
+    affronterLePeril: (roll) => massBattleSetHazard(get, set, roll),
+    engagerLaMelee: () => engagerLaMelee(get, set),
+    avancerLaBataille: () => avancerLaBataille(get, set),
   } satisfies FabriqueDuNoyau;
 }
 

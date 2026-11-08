@@ -23,10 +23,10 @@ interface Gestes { haine?: boolean; animosite?: boolean; personne?: string; calm
 
 /** L'incantation ouverte réussit à `dr` DR, puis la cascade se joue selon `gestes` ; rend ses étapes. */
 function reussirEtJouer(banc: Banc, dr: number, gestes: Gestes = {}): CascadeStep[] {
-  if (!banc.getState().pendingCast!.result) banc.getState().jetRoll('cast');
+  if (!banc.getState().pendingCast!.result) banc.getState().jetLancer('cast');
   const pc = banc.getState().pendingCast!;
   banc.setState({ pendingCast: { ...pc, result: { ...pc.result!, cast: true, sl: dr, isCritical: false, isFumble: false } } });
-  banc.getState().jetConfirm('cast');
+  banc.getState().jetValider('cast');
   const oui = (v: boolean | undefined) => (v ? 'yes' : 'no');
   return draineEtapes(banc.getState, 20, (e) => (e.kind === 'triggeredTest' ? gestes.calme : undefined), (e) => {
     if (e.kind === 'personneChoisie') return gestes.personne;
@@ -120,8 +120,8 @@ describe('Colérique en combat', () => {
   function enCombat(lanceur: number) {
     const [a, s, p] = pregenParty(lanceur, PREGEN.soldat, PREGEN.pretre);
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [a, s, p] } });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -158,8 +158,8 @@ describe('Colérique en combat', () => {
   it('un lanceur PNJ sans allié de la cible à désigner : le Trait reste sans effet', () => {
     const [s] = pregenParty(PREGEN.soldat);
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [s] } });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;

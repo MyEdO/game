@@ -8,7 +8,7 @@
  * par séance — compteur `Combatant.resistanceUsed`, remis à zéro par la couture de début de séance
  * `restoreFortune`, engine/fortune). L'auto-succès lui-même passe par le MÊME mécanisme que la
  * Résilience « Je ne faillirai pas ! » : le résolveur du flux reçoit `ForcedResolve { sl: BE }`
- * (cf. state/rollFlow — verbe `resist`).
+ * (verbe `resist`).
  *
  * Un Test est ÉLIGIBLE quand son pending/étape porte un tag `menace` (posé par le SITE du Test :
  * Contraction de maladie, Exposition à la Corruption, seuil → Mutation, opposition à un Sort ; ou

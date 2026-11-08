@@ -265,7 +265,7 @@ scenes.push(scene({
               // id `pretre-sans-peche`).
               label: 'Demander la bénédiction du navire',
               flow: flowOf([
-                { type: 'adjustManann', factorId: 'pretre-sans-peche' },
+                { type: 'ops', on: 'navire', ops: [{ op: 'manann', factorId: 'pretre-sans-peche' }] },
                 { type: 'setFlag', flag: 'ls_benediction_aldo' },
               ]),
               next: 'a-benediction',
@@ -273,19 +273,19 @@ scenes.push(scene({
             {
               id: 'faire-petit-sacrifice',
               label: 'Faire un petit sacrifice (une pièce jetée à la mer)',
-              flow: flowOf([{ type: 'giveMoney', montant: { gold: -1 } }, { type: 'adjustManann', factorId: 'petit-sacrifice' }]),
+              flow: flowOf([{ type: 'giveMoney', montant: { gold: -1 } }, { type: 'ops', on: 'navire', ops: [{ op: 'manann', factorId: 'petit-sacrifice' }] }]),
               next: 'a-petit',
             },
             {
               id: 'faire-sacrifice-moyen',
               label: 'Faire un sacrifice moyen (une gemme de votre bourse)',
-              flow: flowOf([{ type: 'giveMoney', montant: { gold: -20 } }, { type: 'adjustManann', factorId: 'sacrifice-moyen' }]),
+              flow: flowOf([{ type: 'giveMoney', montant: { gold: -20 } }, { type: 'ops', on: 'navire', ops: [{ op: 'manann', factorId: 'sacrifice-moyen' }] }]),
               next: 'a-moyen',
             },
             {
               id: 'faire-grand-sacrifice',
               label: 'Faire un grand sacrifice (une vache entière, la moitié des provisions)',
-              flow: flowOf([{ type: 'giveMoney', montant: { gold: -50 } }, { type: 'adjustManann', factorId: 'grand-sacrifice' }]),
+              flow: flowOf([{ type: 'giveMoney', montant: { gold: -50 } }, { type: 'ops', on: 'navire', ops: [{ op: 'manann', factorId: 'grand-sacrifice' }] }]),
               next: 'a-grand',
             },
             { id: 'demander-origine-ordre', label: 'Lui demander l’origine de son ordre', next: 'a-origine' },
@@ -431,8 +431,8 @@ scenes.push(scene({
       // déjà alignée (`applyNavalSurprisePosition`). Repérée → placement authoré (~150 m, aucun avantage).
       surprise: 'party',
       // Reddition à mi-coque (#215) : la Dent de Manann amène son pavillon quand la coque `cogue` tombe
-      // sous 50 % de ses Blessures — la victoire se déclenche à la reddition, pas au naufrage.
-      victoryCondition: { type: 'woundsThreshold', targetId: 'cogue', belowPercent: 50 },
+      // à 50 % de ses Blessures ou moins — la victoire se déclenche à la reddition, pas au naufrage.
+      victoryCondition: { type: 'woundsThreshold', targetId: 'cogue', atOrBelowPercent: 50 },
       members: [
         { entityId: 'grimm', side: 'ally' },
         { entityId: 'aldo-crew', side: 'ally' },
@@ -608,9 +608,9 @@ scenes.push(scene({
       // plus près, bordée alignée ; repéré → ~150 m sans avantage.
       surprise: 'party',
       // Reddition à mi-coque (#215), comme la Dent de Manann : le Serpent-de-Sel amène son pavillon quand
-      // la coque `serpent-de-sel` tombe sous 50 % de ses Blessures — la victoire = la reddition (texte VRAI),
+      // la coque `serpent-de-sel` tombe à 50 % de ses Blessures ou moins — la victoire = la reddition (texte VRAI),
       // pas le naufrage. `targetId` référence la coque ENNEMIE réelle enrôlée dans cette scène.
-      victoryCondition: { type: 'woundsThreshold', targetId: 'serpent-de-sel', belowPercent: 50 },
+      victoryCondition: { type: 'woundsThreshold', targetId: 'serpent-de-sel', atOrBelowPercent: 50 },
       members: [
         { entityId: 'grimm2', side: 'ally' },
         { entityId: 'aldo-crew-2', side: 'ally' },

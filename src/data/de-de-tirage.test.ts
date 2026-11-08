@@ -6,13 +6,14 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DEFS_DE_DOCUMENT } from './schemas/validate';
-import { META_CHARGE } from './schemas/grammaire/document';
+import { z } from 'zod';
+import { META_CHARGE, tableTiree } from './schemas/grammaire/document';
 import { deDeTirageDe } from './rangees';
 import { formatDice, parseDiceRequired } from '../engine/dice';
 import { weatherDie, type Season } from '../engine/travelStages';
 import { encounterDie } from '../engine/travelTables';
 import { SHIP_CRIT_SET } from './shipCriticals';
-import { starSubDie, weather } from './index';
+import { massBattleHazardsDie, starSubDie, weather } from './index';
 import { peripetieSeuilDie } from './peripeties';
 import type * as obsessions from './schemas/defs/obsessions';
 import type * as miscast from './schemas/defs/miscast';
@@ -85,37 +86,42 @@ const LIVRE: Record<string, { die: string; ref: string }> = {
   peripeties: { die: '1d10', ref: 'LDB 51 l.210' },
 };
 
-/** Le dé IMPRIMÉ par le livre pour chaque saison de `weather.json` (table imbriquée, hors fabrique). */
-const SAISONS_LIVRE: Record<string, { die: string; ref: string }> = {
-  printemps: { die: '1d100', ref: 'EDOC 8 l.52-59' },
-  ete: { die: '1d100', ref: 'EDOC 8 l.52-59' },
-  automne: { die: '1d100', ref: 'EDOC 8 l.52-59' },
-  hiver: { die: '1d100', ref: 'EDOC 8 l.52-59' },
-};
-
 /** Le dé IMPRIMÉ par le livre pour chaque table tirée NICHÉE (`tableTiree`, `grammaire/document.ts`),
- *  par `fichier › chemin`. */
+ *  par `fichier › chemin` (une table d'une liste à clé s'y nomme par son `id`). */
 const TABLES_NICHEES_LIVRE: Record<string, { die: string; ref: string }> = {
+  'arcane-phenomena.json › tables.vdm-corruption-chaotique': { die: '1d100', ref: 'VDM 14 l.49-58 (« bandes 1–00 »)' },
+  'arcane-phenomena.json › tables.vdm-corruption-necromantique': { die: '1d100', ref: 'VDM 14 l.66-75 (« bandes 1–00 »)' },
+  'arcane-phenomena.json › tables.vdm-flux-magique': { die: '1d10', ref: 'VDM 14 l.96' },
   'land-cargo.json › rumours': { die: '1d100', ref: 'MSRC 13 l.283' },
   'land-cargo.json › wineQuality': { die: '1d10', ref: 'MSRC 13 l.97' },
+  'mass-battle.json › hazards': { die: '1d10', ref: 'ADE II 08 l.311' },
   'river-navigation.json › windDirections': { die: '1d10', ref: 'MSRC 7 l.25' },
   'river-navigation.json › windForces': { die: '1d10', ref: 'MSRC 7 l.27' },
   'sea-events.json › boardEvents': { die: '1d100', ref: 'MDG 15 l.134' },
+  'sea-events.json › fastVoyage': { die: '1d10', ref: 'MDG 15 l.32' },
+  'sea-events.json › portEvents': { die: '2d10', ref: 'MDG 15 l.243' },
   'sea-navigation.json › orientation.changementDeCap': { die: '1d10', ref: 'MDG 13 l.326' },
+  'sea-weather.json › roseDesVents': { die: '1d10', ref: 'MDG 13 l.252' },
+  'sea-weather.json › table': { die: '1d10', ref: 'MDG 13 l.170' },
   'water-exposure.json › diseases': { die: '1d100', ref: 'MSRC 16 l.53' },
+  'weather.json › seasons.printemps': { die: '1d100', ref: 'EDOC 8 l.52-59' },
+  'weather.json › seasons.ete': { die: '1d100', ref: 'EDOC 8 l.52-59' },
+  'weather.json › seasons.automne': { die: '1d100', ref: 'EDOC 8 l.52-59' },
+  'weather.json › seasons.hiver': { die: '1d100', ref: 'EDOC 8 l.52-59' },
 };
 
-/** Toute table tirée NICHÉE d'un document, lue au disque : un objet aux seules clés `die` et `entries`. */
+/** Toute table tirée NICHÉE d'un document, lue au disque : un objet sous le document qui porte un `die` et
+ *  des `entries`, hors table INLINE d'une op `rollTable` (`grammaire/mecanique.ts`). */
 function tablesNichees(): { ou: string; die: string }[] {
   const vues: { ou: string; die: string }[] = [];
-  const visite = (v: unknown, fichier: string, chemin: string[]) => {
-    if (Array.isArray(v)) return v.forEach((x, i) => visite(x, fichier, [...chemin, String(i)]));
+  const visite = (v: unknown, fichier: string, chemin: string[], document: boolean) => {
+    if (Array.isArray(v)) return v.forEach((x, i) => visite(x, fichier, [...chemin, (x as { id?: string } | null)?.id ?? String(i)], document && !chemin.length));
     if (!v || typeof v !== 'object') return;
     const o = v as Record<string, unknown>;
-    if (chemin.length && Object.keys(o).sort().join() === 'die,entries' && typeof o.die === 'string') vues.push({ ou: `${fichier} › ${chemin.join('.')}`, die: o.die });
-    for (const [k, x] of Object.entries(o)) visite(x, fichier, [...chemin, k]);
+    if (!document && !('op' in o) && typeof o.die === 'string' && Array.isArray(o.entries)) vues.push({ ou: `${fichier} › ${chemin.join('.')}`, die: o.die });
+    for (const [k, x] of Object.entries(o)) visite(x, fichier, [...chemin, k], false);
   };
-  for (const d of DEFS_DE_DOCUMENT) visite(JSON.parse(readFileSync(join(process.cwd(), d.root, d.file), 'utf8')), d.file, []);
+  for (const d of DEFS_DE_DOCUMENT) visite(JSON.parse(readFileSync(join(process.cwd(), d.root, d.file), 'utf8')), d.file, [], true);
   return vues;
 }
 
@@ -137,9 +143,9 @@ describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
   });
 
   it('chaque saison de `weather.json` porte le dé imprimé par le livre, lu par le moteur', () => {
-    expect(weather.map((s) => s.id).sort(), 'saisons à dé de tirage').toEqual(Object.keys(SAISONS_LIVRE).sort());
     for (const s of weather) {
-      expect(formatDice(weatherDie(s.id as Season)), `${s.id} (${SAISONS_LIVRE[s.id].ref})`).toBe(SAISONS_LIVRE[s.id].die);
+      const livre = TABLES_NICHEES_LIVRE[`weather.json › seasons.${s.id}`];
+      expect(formatDice(weatherDie(s.id as Season)), `${s.id} (${livre.ref})`).toBe(livre.die);
     }
   });
 
@@ -156,6 +162,7 @@ describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
     expect(formatDice(encounterDie()), 'rencontres-edoc (EDOC 08 l.190)').toBe('1d100');
     expect(formatDice(starSubDie()), 'stars.json › sub (ADE II 03 l.63)').toBe('1d10');
     expect(formatDice(peripetieSeuilDie()), 'peripeties.json › tirageQuotidien (LDB 51 l.208)').toBe('1d10');
+    expect(formatDice(massBattleHazardsDie()), 'mass-battle.json › hazards (ADE II 08 l.311)').toBe('1d10');
   });
 
   it('le dé se lit VIVANT sur le document, à l’appel', () => {
@@ -163,6 +170,12 @@ describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
     expect(deDeTirageDe<typeof obsessions>(doc)).toEqual({ n: 2, sides: 10 });
     doc.die = 'd100';
     expect(deDeTirageDe<typeof obsessions>(doc)).toEqual({ n: 1, sides: 100 });
+  });
+
+  it('une table tirée sans rangée est refusée', () => {
+    const table = tableTiree(z.strictObject({ min: z.number(), max: z.number() }));
+    expect(table.safeParse({ die: 'd10', entries: [{ min: 1, max: 10 }] }).success).toBe(true);
+    expect(table.safeParse({ die: 'd10', entries: [] }).success, 'table tirée vide').toBe(false);
   });
 
   it('un document sans dé est refusé, jamais tiré à un dé par défaut', () => {

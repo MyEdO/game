@@ -102,13 +102,13 @@ describe('#3059 — coop : seul l’hôte rejoue la frappe pilotée d’un invit
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as unknown as BattleState;
     banc.setState({ battle, mode: 'battle', scene: testScene(), party: [h], pendingDefense: null, pendingAttack: null, pendingCascade: null, suspendedCascades: [], net: { ...NET('host', 0), ownership: { h: 1 } } } as never);
-    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'battleClickEntity', ['e', { confirm: true, approche: true }]), 'chemin : l’intent est appliqué chez l’hôte').toBe('appliquee');
+    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'cliquerLaCase', [{ x: 0, y: 0 }, 'e', { confirm: true, approche: true }]), 'chemin : l’intent est appliqué chez l’hôte').toBe('appliquee');
     banc.reprendreTout();
     const tour = banc.getState().battle!.tourEnCours;
     expect([tour?.suite?.geste.kind, tour?.parquee, !!banc.getState().pendingDefense], 'chemin : chez l’hôte, la frappe échue pendant la défense est parquée').toEqual(['frappePilotee', true, true]);
     const chezLInvite = appliquerLInstantane(instantaneDeLaCoop(banc.getState()), { ...etatInitialDuJeu(), net: { ...NET('guest', 1), ownership: { h: 1 } } }).etat;
     banc.setState({ ...chezLInvite, pendingDefense: null, pendingCascade: null, suspendedCascades: [] } as never);
-    banc.getState().resumeCadence();
+    banc.getState().reprendreLaCadence();
     banc.reprendreTout();
     expect([banc.getState().net.mode, banc.getState().pendingAttack], 'l’invité n’ouvre aucune frappe de lui-même').toEqual(['guest', null]);
   });

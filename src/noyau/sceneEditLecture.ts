@@ -1,11 +1,14 @@
 /**
- * LECTURES de l'édition de scène — outil actif, calques, sélection, picking et emprise du pinceau. PURES,
- * Node-safe, sans `ui` ni `gameIso` : tout hôte qui embarque le noyau désigne par elles ce qu'il édite.
- * Les ÉCRIVAINS vivent dans `./sceneEdit`, le `BRIDGE_PATH` de `scripts/guards/lib/sceneFieldEditability.mjs`.
+ * LECTURES de l'édition de scène — outil actif, calques, sélection, picking, emprise du pinceau et formulaire tiré
+ * du schéma de chaque porteur (`formulaireDe`). PURES,
+ * Node-safe, sans import d'hôte : tout hôte qui embarque le noyau désigne par elles ce qu'il édite.
+ * Les ÉCRIVAINS vivent dans `./sceneEdit` ; les deux modules sont au `BRIDGE_PATH` de
+ * `scripts/guards/lib/sceneFieldEditability.mjs`.
  */
-import { type FaceDArete, type Scene, type SceneEntity, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
+import { type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type Trigger, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { faceDAreteSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
+import { faceDAreteSchema, sceneEffectZoneSchema, triggerSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
+import { inferFields, type FieldDesc } from './codex/editFields';
 import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
@@ -93,9 +96,8 @@ export type Layers = { triggers: boolean; spawns: boolean; roofs: boolean; entri
 /** Sélection unifiée — une seule chose sélectionnée à la fois, sur la carte comme dans les panneaux. */
 export type Sel =
   | null
-  | { type: 'entity' | 'trigger' | 'entry'; id: string }
+  | { type: 'entity' | 'trigger' | 'entry' | 'effectZone'; id: string }
   | { type: 'restZone'; idx: number }
-  | { type: 'effectZone'; idx: number }
   | { type: 'architectureBody'; id: string }
   | { type: 'architectureStorey'; bodyId: string; id: string }
   | { type: 'architecturePart'; bodyId: string; storeyId: string; id: string }
@@ -148,7 +150,7 @@ export function dansLaCarte(scene: Scene, p: Pt): boolean {
  *  directe (`entity`/`emplacement`) le partagent tous.
  *
  *  Un décor répond sur TOUTE son EMPREINTE (`noyau/monde/decorIndex.ts`, la même lecture que le picking du
- *  jeu, `gameIso/stage/pickResolve.ts`) et rend son entité, donc sa case d'ANCRAGE : sans elle, la
+ *  jeu) et rend son entité, donc sa case d'ANCRAGE : sans elle, la
  *  seconde case d'une table 2×1 ne se sélectionnait, ne s'effaçait et ne se déplaçait pas au canevas
  *  d'authoring, et un clic y posait une entité DANS le meuble. La pose EXACTE garde la priorité —
  *  un corps debout sur une case d'empreinte se désigne lui-même, pas le meuble sous ses pieds. */
@@ -193,7 +195,6 @@ const inRect = (p: Pt, r: Rect) => p.x >= r.x && p.x < r.x + r.w && p.y >= r.y &
 export function sameSel(a: Sel, b: Sel): boolean {
   if (!a || !b || a.type !== b.type) return a === b;
   if (a.type === 'restZone' && b.type === 'restZone') return a.idx === b.idx;
-  if (a.type === 'effectZone' && b.type === 'effectZone') return a.idx === b.idx;
   if (a.type === 'wall' && b.type === 'wall') return a.x === b.x && a.y === b.y && a.side === b.side && a.z === b.z;
   if (a.type === 'architecturePart' && b.type === 'architecturePart') return a.bodyId === b.bodyId && a.storeyId === b.storeyId && a.id === b.id;
   if (a.type === 'architectureBody' && b.type === 'architectureBody') return a.id === b.id;
@@ -225,8 +226,8 @@ export function hitAt(scene: Scene, p: Pt, layers: Layers, currentLayer = 0, act
     if (zi >= 0) return { type: 'restZone', idx: zi };
   }
   if (layers.zones) {
-    const ei = (scene.effectZones ?? []).findIndex((z) => (z.z ?? 0) === currentLayer && inRect(p, effectZoneRect(z.area)));
-    if (ei >= 0) return { type: 'effectZone', idx: ei };
+    const ez = scene.effectZones?.find((z) => (z.z ?? 0) === currentLayer && inRect(p, effectZoneRect(z.area)));
+    if (ez) return { type: 'effectZone', id: ez.id };
   }
   if (layers.roofs) {
     for (const body of scene.architecture ?? []) {
@@ -256,7 +257,7 @@ export function hitAt(scene: Scene, p: Pt, layers: Layers, currentLayer = 0, act
 export function selRect(scene: Scene, sel: Sel): Rect | null {
   if (sel?.type === 'trigger') return scene.triggers.find((t) => t.id === sel.id)?.rect ?? null;
   if (sel?.type === 'restZone') return scene.restZones?.[sel.idx]?.rect ?? null;
-  if (sel?.type === 'effectZone') { const z = scene.effectZones?.[sel.idx]; return z ? effectZoneRect(z.area) : null; }
+  if (sel?.type === 'effectZone') { const z = scene.effectZones?.find((ez) => ez.id === sel.id); return z ? effectZoneRect(z.area) : null; }
   if (sel?.type === 'architecturePart') return scene.architecture?.find((body) => body.id === sel.bodyId)?.storeys.find((storey) => storey.id === sel.storeyId)?.parts.find((part) => part.id === sel.id)?.foot ?? null;
   if (sel?.type === 'roofSection') {
     const parts = scene.architecture?.find((body) => body.id === sel.bodyId)?.masses.find((mass) => mass.id === sel.id)?.footprint;
@@ -282,7 +283,7 @@ export function selZ(scene: Scene, sel: Sel): number {
   if (sel.type === 'entry') return scene.entryPoints?.[sel.id]?.z ?? 0;
   if (sel.type === 'trigger') return scene.triggers.find((t) => t.id === sel.id)?.rect.z ?? 0;
   if (sel.type === 'restZone') return scene.restZones?.[sel.idx]?.rect.z ?? 0;
-  if (sel.type === 'effectZone') return scene.effectZones?.[sel.idx]?.z ?? 0;
+  if (sel.type === 'effectZone') return scene.effectZones?.find((z) => z.id === sel.id)?.z ?? 0;
   if (sel.type === 'architectureStorey')
     return scene.architecture?.find((b) => b.id === sel.bodyId)?.storeys.find((s) => s.id === sel.id)?.z ?? 0;
   if (sel.type === 'architecturePart')
@@ -380,3 +381,22 @@ export function pickArchitectureEdge(scene: Scene, fx: number, fy: number, z: nu
 /** L'outil d'ENTITÉ seul — ce que `placeEntity` demande, dérivé de `Tool` pour qu'aucun site ne
  *  redise sa forme (la palette le construit, le canevas le transmet, la pose le consomme). */
 export type EntityTool = Extract<Tool, { mode: 'entity' }>;
+
+/** Les formulaires tirés du schéma, par sorte de porteur : le nœud de sa donnée et les champs qu'il offre. D'une zone
+ *  d'effet, son Test de traversée, ses effets à la traversée et à chaque Round ; d'un déclencheur, sa condition
+ *  d'entrée. */
+export const FORMULAIRES = {
+  zone: { schema: sceneEffectZoneSchema, champs: ['crossTest', 'onCross', 'perRound'] },
+  declencheur: { schema: triggerSchema, champs: ['when'] },
+} as const;
+
+/** La sorte d'un porteur de formulaire tiré du schéma. */
+export type SorteDePorteur = keyof typeof FORMULAIRES;
+
+/** Le formulaire du porteur de sorte `sorte`, de donnée `donnee` : chacun de ses champs offerts (`FORMULAIRES`), décrit
+ *  par `inferFields` sur le nœud de sa donnée. */
+export function formulaireDe(sorte: SorteDePorteur, donnee: SceneEffectZone | Trigger): FieldDesc[] {
+  const { schema, champs } = FORMULAIRES[sorte];
+  const decrits = inferFields([donnee as unknown as Record<string, unknown>], { noeud: schema, niveau: 'profondeur' });
+  return champs.flatMap((cle) => decrits.filter((f) => f.key === cle));
+}

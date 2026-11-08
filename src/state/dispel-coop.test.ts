@@ -9,6 +9,7 @@ import { useGame } from './store';
 import { interceptGuestActions, restoreGuestActions } from './netFlow';
 import { initialNet } from '../noyau/etat';
 import { tableDeDissipation } from '../noyau/tableDeDissipation.testkit';
+import { cliquerSurLeCombattant } from '../noyau/combatOrParty';
 
 const get = () => useGame.getState();
 const table = (mode: 'host' | 'guest', porteurs: Record<string, number>) => useGame.setState(tableDeDissipation(mode, porteurs));
@@ -28,10 +29,10 @@ describe('Dissipation en coop — l’élection du porteur ne voyage JAMAIS', ()
     table('guest', { e1: 2, e2: 1 });
     interceptGuestActions();
     try {
-      get().battleClickEntity('e1'); // 2 Sorts → élection LOCALE
+      cliquerSurLeCombattant(get, 'e1'); // 2 Sorts → élection LOCALE
       expect(get().dispelCarrierId, 'le substitut d’invité n’a pas joué l’élection en local').toBe('e1');
-      get().dispelSelectCarrier(null);
-      get().battleClickEntity('e2'); // 1 Sort → geste de jeu, parti au réseau (donc inerte ici)
+      get().designerLeSupport(null);
+      cliquerSurLeCombattant(get, 'e2'); // 1 Sort → geste de jeu, parti au réseau (donc inerte ici)
       expect(get().dispelCarrierId).toBeNull();
       expect(get().pendingDispel, 'le commit a été joué en local au lieu de partir en intent').toBeNull();
     } finally {

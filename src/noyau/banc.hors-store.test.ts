@@ -30,7 +30,7 @@ describe('banc du noyau : ouverture et fermeture', () => {
     banc.setState({ screen: 'test' });
     banc.setState((s) => ({ screen: s.screen === 'test' ? 'menu' : 'party' }));
     expect([banc.getState().screen, vus]).toEqual(['menu', [['party', 'test'], ['test', 'menu']]]);
-    expect(banc.getState().startScene).toBe(banc.actions.startScene);
+    expect(banc.getState().lancerLaScene).toBe(banc.actions.lancerLaScene);
   });
 
   it('une écriture faite PENDANT un updater survit à son patch, comme sous zustand', () => {
@@ -58,7 +58,7 @@ describe('banc du noyau : ouverture et fermeture', () => {
   it('une fixture de tables posée après l’ouverture est restaurée avant la fermeture', () => {
     const banc = ouvrirLeBanc();
     avecLesTables({});
-    expect([jeuBranche()?.get, banc.getState().screen]).toEqual([banc.getState, 'menu']);
+    expect([jeuBranche()?.get, banc.getState().screen]).toEqual([banc.getState, 'campaign']);
   });
 
   it('l’ouverture suivante réussit : le test précédent a fermé son banc', () => {

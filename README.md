@@ -58,7 +58,7 @@ src/geometry/           Grille, projection isométrique, déplacement
 src/ui/                 Interface React (menus, créateur, HUD, éditeur, compendium)
 src/scenes/             Documents de scène et de campagne
 src/net/                Coop en ligne : client du relay WS (le Worker Cloudflare vit dans server/)
-src/audio/              Musique et sons
+src/audio/              Lecture de la musique et des sons (registre : src/data/sons/)
 src/i18n/               Textes français de l'interface
 ```
 

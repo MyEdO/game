@@ -30,8 +30,8 @@ afterEach(() => { setDataset('traits', TRAITS_LIVRES as never); });
 function setup() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
-  banc.getState().startScene(testScene());
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
@@ -65,7 +65,7 @@ function ecouterLesTestsDInitiative(): { vus: string[]; fin: () => void } {
 
 describe('#3159 — une réaction n’est offerte qu’une fois par déclencheur', () => {
   it.each(['yes', 'no'] as const)('A : une IA charge un héros MANUEL porteur de Frappe réactive — UNE offre (%s), puis le tour du chargeur reprend', (reponse) => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.talents = [...(H.talents ?? []), { talentId: 'frappe-reactive', times: 1 }];
     H.characteristics.initiative = 99;
@@ -97,7 +97,7 @@ describe('#3159 — une réaction n’est offerte qu’une fois par déclencheur
 
   it('B : un héros en Auto-combat charge un porteur ENNEMI — UN Test d’Initiative, une riposte', () => {
     setCadence('auto');
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.talents = [...(E.talents ?? []), { talentId: 'frappe-reactive', times: 1 }];
     E.characteristics.initiative = 99;
@@ -113,7 +113,7 @@ describe('#3159 — une réaction n’est offerte qu’une fois par déclencheur
   });
 
   it('d : une Charge sans bonus d’Avantage (LDB 15 l.35-37) émet onCharged — la riposte est offerte', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.talents = [...(H.talents ?? []), { talentId: 'frappe-reactive', times: 1 }];
     E.movement = 8;
@@ -130,7 +130,7 @@ describe('#3159 — une réaction n’est offerte qu’une fois par déclencheur
   });
 
   it.each([[2, false], [4, true]] as const)('C1 : Cornes (LDB 85 l.83) — Charge à distance %i : Cornes en file = %s (l’Avantage de la Charge, LDB 15 l.37)', (d, cornes) => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [...(E.traits ?? []), { id: 'cornes', value: 6 } as never];
     E.movement = 8;
@@ -147,7 +147,7 @@ describe('#3159 — une réaction n’est offerte qu’une fois par déclencheur
   });
 
   it('C2 : une IA À Terre qui rampe au contact ne Charge pas (LDB 15 l.35 ; LDB 16 l.35)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.talents = [...(H.talents ?? []), { talentId: 'frappe-reactive', times: 1 }];
     E.movement = 8;
@@ -209,7 +209,7 @@ function poser(porteur: Combatant, eff: TriggeredEffect, enAtout: boolean): Weap
 
 function scene(qui: Porteur) {
   if (qui === 'auto') setCadence('auto');
-  banc.getState().seedRng(2);
+  banc.getState().ensemencerLeTirage(2);
   const { H, E } = setup();
   const [porteur, tiers] = qui === 'ennemi' ? [E, H] : [H, E];
   porteur.advantage = 3;

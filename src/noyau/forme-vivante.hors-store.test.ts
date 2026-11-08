@@ -91,7 +91,7 @@ describe('parseProject — forme vivante', () => {
     expect(r.fautes.map((f) => f.chemin)).toContainEqual(CHEMIN_NOEUD);
   });
 
-  it('T3 : un JOURNAL à `desc` vide sous une adresse (changement de type, `ui/editor/AddMenu.tsx`) est refusé à son chemin', () => {
+  it('T3 : un JOURNAL à `desc` vide sous une adresse (changement de type à l’atelier) est refusé à son chemin', () => {
     const r = refus(() => parseProject(projet(scene(MATERIALISE, { desc: '', descRef: DESC_REF }))));
     expect(r.cause).toBe('prose-non-materialisee');
     expect(r.fautes.map((f) => f.chemin.slice(0, 4))).toEqual([['scenes', 0, 'triggers', 0]]);

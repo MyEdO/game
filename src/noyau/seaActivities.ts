@@ -29,7 +29,7 @@
  * `travelActivitySpec`, Commerce d'opportunité étendu) sont des étapes de cascade construites en
  * UNE passe (`buildSeaActivitiesCascade`) — plus de bulk synchrone. Cartographie/générique sont POUSSÉES
  * à la porte de séquence, qui dérive la surface de leurs porteurs ; le Commerce d'opportunité SÉQUENCE un
- * Test étendu (`startExtendedTest`, `maxAttempts`+`outcome` #273 Étape 1) par héros à la fois (un seul
+ * Test étendu (`ouvrirLeTestEtendu`, `maxAttempts`+`outcome` #273 Étape 1) par héros à la fois (un seul
  * `pendingExtendedTest` actif) — `pendingSeaActivities.opportunityQueue` porte la file, vidée par
  * `continueSeaActivitiesAfterCascade` jusqu'à la halte de nuit.
  */
@@ -38,7 +38,7 @@ import { appliquerIssueActivite } from './activityIssue';
 import { peutTenter, refusNePeutTenter } from '../engine/skills';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { PlayerText } from '../i18n/playerText';
-import { contexteDeNaissanceDObjet, itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
+import { contexteDeNaissanceDObjet, itemFromTrappingById, recomputeLoadout, autoStowNewItem, newUid } from '../engine/items';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO } from '../engine/money';
 import { payFromGroup, payWithAllocation, soloPayer, distributeCredit, totalDesBourses } from './bourseFlow';
 import { encLibreNominale } from './portFlow';
@@ -236,7 +236,7 @@ function openNextOpportunityTrade(get: Get, set: Set): void {
   }
   payFromGroup(get, set, fromBrass(invest * PA_PER_CO), { purpose: 'commerce d’opportunité' });
   const test: RollRequest['test'] = seaActivityTest(def)!;
-  get().startExtendedTest({
+  get().ouvrirLeTestEtendu({
     actorId: hero.id, label: dataLabel(def.label), skillLabel: refLabel('skills', OPPORTUNITE.test.skill), skill: OPPORTUNITE.test.skill,
     target: effectiveTarget(hero, test, OPPORTUNITE.test.difficulty), targetDR: OPPORTUNITE.targetDR,
     maxAttempts: OPPORTUNITE.maxAttempts,
@@ -319,7 +319,7 @@ export const TABLES = {
         if (stashGold > 0) {
           const stashBrass = stashGold * PA_PER_CO;
           payWithAllocation(get, set, { debits: soloPayer(hero.id, fromBrass(stashBrass)), recipient: hero.id, purpose: 'planque cartographie' });
-          set({ bank: [...get().bank, { heroId: hero.id, kind: 'stash', brass: stashBrass, rate: 50, chartSecured: true }] });
+          set({ bank: [...get().bank, { uid: newUid(), heroId: hero.id, kind: 'stash', brass: stashBrass, rate: 50, chartSecured: true }] });
           // MDG 15 l.292
           j.push(t('sact.stash', { name: hero.label, money: formatMoney(fromBrass(stashBrass)) }));
         }

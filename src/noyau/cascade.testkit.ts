@@ -58,8 +58,8 @@ export function soutienDe(st: LigneJugeable): number {
 }
 
 /** Dé NATUREL que le banc POSE sur une rangée de Test (étape mono, ou `rangee` d'une bande), sur la TABLE
- *  ou sur le DÉ NU d'une étape (#1508) — par l'option « Dés fixés » (`jetSetForcedRoll('cascade')` /
- *  `jetSetForcedRoll('cascadeBatch')` / `jetSetForcedRoll('cascadeTirage')`), le geste d'un
+ *  ou sur le DÉ NU d'une étape (#1508) — par l'option « Dés fixés » (`jetImposerLeResultat('cascade')` /
+ *  `jetImposerLeResultat('cascadeBatch')` / `jetImposerLeResultat('cascadeTirage')`), le geste d'un
  *  joueur. `undefined` = le dé est lancé ; `null` = le banc REFUSE de lancer le dé de TABLE ou de DÉ NU,
  *  qui ne tombe alors que si le socle le résout lui-même (sur une rangée de Test, `null` vaut `undefined`).
  *  L'étape suffit à dire quel dé : `jetteLeDe` LÈVE sur une étape qui porte à la fois `table` et `de`, si
@@ -82,15 +82,15 @@ function jetteLeDe(get: () => Jeu, cur: CascadeStep, poser?: PoseDe): void {
   if (!de) return;
   const n = poser?.(cur);
   if (n === null) return;
-  if (n !== undefined) get().jetSetForcedRoll('cascadeTirage', n, cur.id);
-  else if (!de.result) get().jetRoll('cascadeTirage', cur.id);
+  if (n !== undefined) get().jetImposerLeResultat('cascadeTirage', n, cur.id);
+  else if (!de.result) get().jetLancer('cascadeTirage', cur.id);
 }
 
 /**
  * JOUE UNE ÉTAPE de la cascade active, comme un joueur : elle est LANCÉE (bande → chaque rangée non
  * roulée ; table ou dé nu → son dé ; jet → son dé — chacun POSÉ par `poser` s'il le fixe), TRANCHÉE
  * (choix → `choisir`, sinon son défaut authoré), puis VALIDÉE ; une Maladresse se tire et s'applique par les verbes
- * de son flux (`jetRoll('fumble')`, `jetConfirm('fumble')`). Rend le `kind` de l'étape jouée
+ * de son flux (`jetLancer('fumble')`, `jetValider('fumble')`). Rend le `kind` de l'étape jouée
  * (`undefined` si aucune cascade active).
  *
  * Pilote CANONIQUE de la cascade en test (#1426) : une copie par fichier dérive, et c'est ainsi qu'un
@@ -107,8 +107,8 @@ export function avanceEtapeCascade(get: () => Jeu, poser?: PoseDe, choisir?: Cho
   if (!p) return undefined;
   const cur = p.participants[p.cursor];
   if (cur?.jet === 'fumble') {
-    get().jetRoll('fumble');
-    get().jetConfirm('fumble');
+    get().jetLancer('fumble');
+    get().jetValider('fumble');
     return cur.kind;
   }
   if (cur) {
@@ -117,23 +117,23 @@ export function avanceEtapeCascade(get: () => Jeu, poser?: PoseDe, choisir?: Cho
     // d'abord, le choix se tranche ensuite, sur la MÊME étape. En exclusif, le choix resterait non
     // tranché et la validation drainerait à vide.
     if (cur.target != null && !cur.result) {
-      get().jetRoll('cascade', cur.id);
+      get().jetLancer('cascade', cur.id);
       const n = poser?.(cur);
-      if (n != null) get().jetSetForcedRoll('cascade', n, cur.id);
+      if (n != null) get().jetImposerLeResultat('cascade', n, cur.id);
     }
     if (cur.participants) {
       for (const part of cur.participants) {
         if (part.result) continue;
-        get().jetRoll('cascadeBatch', part.id);
+        get().jetLancer('cascadeBatch', part.id);
         const n = poser?.(cur, part);
-        if (n != null) get().jetSetForcedRoll('cascadeBatch', n, part.id);
+        if (n != null) get().jetImposerLeResultat('cascadeBatch', n, part.id);
       }
     }
     jetteLeDe(get, cur, poser);
     const apres = get().pendingCascade?.participants[get().pendingCascade!.cursor];
     if (apres?.options && apres.chosen == null) get().jetRegler('cascade', 'choix', choisir?.(apres) ?? apres.defaultChoice ?? apres.options[0].key, apres.id);
   }
-  if (cur) get().jetConfirm('cascade');
+  if (cur) get().jetValider('cascade');
   else get().fenetreFermer('cascade');
   return cur?.kind;
 }

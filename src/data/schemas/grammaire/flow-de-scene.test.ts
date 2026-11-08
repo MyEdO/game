@@ -67,9 +67,12 @@ describe.each([
     expect(flowSchema.safeParse(flow).success).toBe(false);
   });
 
-  it('AUCUNE feuille `do` de scène ne passe `effectOpSchema` — le vocabulaire est disjoint', () => {
-    const acceptees = feuilles.filter((e) => effectOpSchema.safeParse(e).success);
-    expect(acceptees, 'une feuille de scène acceptée par la feuille MOTEUR : vérifier le vocabulaire').toEqual([]);
+  it('seule la feuille `ops` (l’`EffectOp`, membre de l’union `Effect`) est commune : toute autre feuille `do` de scène est refusée par `effectOpSchema`', () => {
+    const ops = feuilles.filter((e) => (e as { type?: unknown }).type === 'ops');
+    expect(ops.length, 'témoin : le corpus livré porte des feuilles `ops` (Loup et Saumure, cible `navire`)').toBeGreaterThan(0);
+    expect(ops.filter((e) => !effectOpSchema.safeParse(e).success), 'une feuille `ops` de scène refusée par la feuille MOTEUR').toEqual([]);
+    const acceptees = feuilles.filter((e) => (e as { type?: unknown }).type !== 'ops' && effectOpSchema.safeParse(e).success);
+    expect(acceptees, 'une feuille de scène hors `ops` acceptée par la feuille MOTEUR : vérifier le vocabulaire').toEqual([]);
   });
 
   it('un Flow de scène entier est donc REFUSÉ par `flowSchema`, sur le `type` de sa feuille', () => {

@@ -44,7 +44,7 @@ describe('Sièges en coop : la même lecture chez l’hôte et chez l’invité'
     expect(lecture(invite.etat)).toEqual(lecture(hote.getState()));
     expect(lecture(hote.getState()).refus).toBe(t('party.action.start.guestPending'));
 
-    guest.sendIntent('partyAddHero', [{ pretire: pregens[1].id }]);
+    guest.sendIntent('recruterLeHeros', [{ pretire: pregens[1].id }]);
     host.broadcastSnapshot();
     expect(lecture(invite.etat)).toEqual(lecture(hote.getState()));
     expect(lecture(hote.getState()).emplacements[2]).toEqual({ rang: 2, siege: 1, heroId: g1.id, proprietaire: 1 });

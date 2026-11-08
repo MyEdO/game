@@ -1,6 +1,6 @@
 /**
  * Les clics du champ chez l'INVITÉ coop : `commitCursor` (curseur), `jouerLeClicDeCase` (clic-sol) et
- * `jouerLeClicDuCombattant` (frappe d'une structure, frise) lisent `battleClickEntity`/`battleClickTile` dans
+ * `jouerLeClicDuCombattant` (frappe d'une structure, frise) lisent `cliquerLaCase` dans
  * l'état AU MOMENT du clic, donc le substitut que pose `interceptGuestActions` (`state/netFlow.ts`) : le geste
  * part en intention vers l'hôte, il ne se joue jamais en local.
  */
@@ -28,16 +28,16 @@ function invite() {
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   };
-  const localE = vi.fn(), localT = vi.fn();
+  const local = vi.fn();
   useGame.setState({
     battle: battle as never, scene: arena(), party: [hero], mode: 'battle',
     net: { ...initialNet(), mode: 'guest', mySeat: 0, ownership: { h1: 0 } },
-    battleClickEntity: localE, battleClickTile: localT,
+    cliquerLaCase: local,
   });
   interceptGuestActions();
-  const entite = vi.fn(get().battleClickEntity), tuile = vi.fn(get().battleClickTile);
-  useGame.setState({ battleClickEntity: entite, battleClickTile: tuile });
-  return { localE, localT, entite, tuile };
+  const clic = vi.fn(get().cliquerLaCase);
+  useGame.setState({ cliquerLaCase: clic });
+  return { local, clic };
 }
 
 beforeEach(() => { useGame.setState({ battle: null, party: [], combatCursor: null, net: initialNet() }); });
@@ -48,29 +48,24 @@ afterEach(() => {
 
 describe('clics du champ chez l’invité — le geste part en intention, à chaque site', () => {
   it('curseur (`commitCursor`) sur un ennemi', () => {
-    const { localE, localT, entite, tuile } = invite();
+    const { local, clic } = invite();
     useGame.setState({ combatCursor: { tile: { x: 7, y: 10 } } });
     get().commitCursor();
-    expect(entite.mock.calls).toEqual([['e1', { confirm: true }]]);
-    expect(tuile.mock.calls).toEqual([]);
-    expect(localE.mock.calls, 'le geste s’est joué en local au lieu de partir à l’hôte').toEqual([]);
-    expect(localT.mock.calls).toEqual([]);
+    expect(clic.mock.calls).toEqual([[{ x: 7, y: 10 }, 'e1', { confirm: true }]]);
+    expect(local.mock.calls, 'le geste s’est joué en local au lieu de partir à l’hôte').toEqual([]);
   });
 
   it('clic-sol (`jouerLeClicDeCase`) sur une case libre', () => {
-    const { localE, localT, entite, tuile } = invite();
+    const { local, clic } = invite();
     expect(jouerLeClicDeCase(useGame.getState, { x: 12, y: 4 }, false)).toBe(true);
-    expect(tuile.mock.calls).toEqual([[{ x: 12, y: 4 }, { confirm: false }]]);
-    expect(entite.mock.calls).toEqual([]);
-    expect(localT.mock.calls, 'le geste s’est joué en local au lieu de partir à l’hôte').toEqual([]);
-    expect(localE.mock.calls).toEqual([]);
+    expect(clic.mock.calls).toEqual([[{ x: 12, y: 4 }, undefined, { confirm: false }]]);
+    expect(local.mock.calls, 'le geste s’est joué en local au lieu de partir à l’hôte').toEqual([]);
   });
 
   it('frappe d’une structure et frise (`jouerLeClicDuCombattant`) sur un ennemi', () => {
-    const { localE, entite, tuile } = invite();
+    const { local, clic } = invite();
     expect(jouerLeClicDuCombattant(useGame.getState, 'e1', false)).toBe(true);
-    expect(entite.mock.calls).toEqual([['e1', { confirm: false }]]);
-    expect(tuile.mock.calls).toEqual([]);
-    expect(localE.mock.calls, 'le geste s’est joué en local au lieu de partir à l’hôte').toEqual([]);
+    expect(clic.mock.calls).toEqual([[{ x: 7, y: 10 }, 'e1', { confirm: false }]]);
+    expect(local.mock.calls, 'le geste s’est joué en local au lieu de partir à l’hôte').toEqual([]);
   });
 });

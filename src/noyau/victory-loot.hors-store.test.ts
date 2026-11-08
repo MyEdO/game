@@ -28,9 +28,9 @@ describe('sortie de la victoire — fermeture de l’écran de victoire', () => 
  * Écran de victoire — ÉQUIPEMENT (giveTrapping) : attribuable au héros choisi, qualités/teinte conservées ;
  * non attribué → 1er héros à la fermeture (rien de perdu).
  */
-describe('assignVictoryGear — équipement attribuable, qualités conservées', () => {
+describe('le butin de victoire (`victory.ligne`) — équipement attribuable, qualités conservées', () => {
   const gearEntry = () => ({
-    label: 'Dague', magic: true,
+    uid: 'L1', label: 'Dague', magic: true,
     effect: { type: 'giveTrapping', trappingId: 'dague', qualities: ['devastatrice'], identified: false },
   });
   beforeEach(() => {
@@ -45,8 +45,8 @@ describe('assignVictoryGear — équipement attribuable, qualités conservées',
     expect(banc.getState().pendingVictory?.gear?.length).toBe(1);
   });
 
-  it('assignVictoryGear donne l’objet au héros choisi avec ses qualités (non identifié)', () => {
-    banc.getState().assignVictoryGear(0, 'h');
+  it('la ligne prise par le héros de la rangée lui donne l’objet avec ses qualités (non identifié)', () => {
+    banc.getState().fenetreChoisir('victory', 'ligne', 'L1', 'h');
     const it = banc.getState().party[0].items?.find((x) => /dague/i.test(x.label));
     expect(it).toBeTruthy();
     expect(it!.identified).toBe(false); // flag « non identifié » conservé

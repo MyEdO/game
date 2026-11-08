@@ -15,8 +15,8 @@ const get = () => useGame.getState();
 function setup() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
-  get().startScene(testScene());
-  get().startCombat('enc-mutants');
+  get().lancerLaScene(testScene());
+  get().lancerLeCombat('enc-mutants');
   get().fenetreValider('roundStart');
   vi.clearAllTimers();
   const b = get().battle!;
@@ -46,13 +46,12 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
     const { E } = setup();
     // L'invité n'émet ses gestes que parce que `netFlow.interceptGuestActions` REMPLACE les actions de
     // l'allowlist DANS le store. Un commit clavier qui appellerait le chemin interne au lieu de
-    // `get().battleClickEntity` sortirait du réseau sans un bruit : chez l'invité, le clavier ne jouerait
+    // `get().cliquerLaCase` sortirait du réseau sans un bruit : chez l'invité, le clavier ne jouerait
     // plus. On installe le substitut par le MÊME moyen que le wrapper (`useGame.setState`).
-    const originales = { battleClickEntity: get().battleClickEntity, battleClickTile: get().battleClickTile };
+    const originales = { cliquerLaCase: get().cliquerLaCase };
     const emis: { action: string; args: unknown[] }[] = [];
     useGame.setState({
-      battleClickEntity: (...args: unknown[]) => { emis.push({ action: 'battleClickEntity', args }); },
-      battleClickTile: (...args: unknown[]) => { emis.push({ action: 'battleClickTile', args }); },
+      cliquerLaCase: (...args: unknown[]) => { emis.push({ action: 'cliquerLaCase', args }); },
     } as never);
     try {
       useGame.setState({ combatCursor: { tile: { ...E.pos! }, snappedId: E.id } } as never);
@@ -64,8 +63,8 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
       useGame.setState({ combatCursor: null } as never);
     }
     expect(emis, 'le commit clavier a court-circuité les actions de store (invisible au réseau)').toEqual([
-      { action: 'battleClickEntity', args: [E.id, { confirm: true }] },
-      { action: 'battleClickTile', args: [{ x: 11, y: 10 }, { confirm: true }] },
+      { action: 'cliquerLaCase', args: [{ ...E.pos! }, E.id, { confirm: true }] },
+      { action: 'cliquerLaCase', args: [{ x: 11, y: 10 }, undefined, { confirm: true }] },
     ]);
   });
 });

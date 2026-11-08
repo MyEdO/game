@@ -3,7 +3,7 @@
  * questions distinctes : « quel DÉCOR la COUVRE ? » (empreinte) et « quelles entités y sont ANCRÉES ? ».
  *
  * Les cases viennent de `propFootTiles` (`noyau/monde/footprint.ts`), la couture UNIQUE de l'empreinte
- * effective d'un décor (corps tourné pour une recette, empreinte déclarée pour un billboard) : aucun
+ * effective d'un décor (le corps tourné de sa recette) : aucun
  * consommateur ne rebâtit de cases pour répondre à cette question, et un décor de plus d'une case
  * répond donc sur TOUTES les siennes, pas seulement sur celle de son ancre.
  *
@@ -17,8 +17,7 @@
  * l'ordre du document, déterministe, le même dans les deux vues.
  *
  * POURQUOI CET INDEX N'EST PAS CELUI DE LA MARCHABILITÉ (`sceneRules.ts`, `buildEntityBlockIndex`) :
- * le blocage est l'UNION des cases des décors qui passent la PORTE (`propDeclaredFoot || interact ||
- * solid`), l'étendue est le PREMIER décor du tableau — un index unique portant un drapeau rendrait
+ * le blocage est l'UNION des cases des décors qui passent la PORTE (`interact || solid`), l'étendue est le PREMIER décor du tableau — un index unique portant un drapeau rendrait
  * une case libre dès qu'un décor traversable en couvre un bloquant.
  *
  * Mémoïsé par IDENTITÉ de `scene.entities` (patron `noyau/monde/sceneMemo.ts`), avec l'ÉCHELLE en
@@ -77,7 +76,7 @@ export const decorEnCaseEtage = (scene: Scene, x: number, y: number, z: number):
   indexDe(scene).parCaseEtage.get(`${x},${y},${z}`);
 
 /** TOUTES les entités ANCRÉES sur la case (x, y, z) — toutes natures, dans l'ordre du document. C'est
- *  la lecture PAR POSITION du picking (`gameIso/stage/pickResolve.ts` § `Verdict`) : le rayon nomme ce
+ *  la lecture PAR POSITION du picking : le rayon nomme ce
  *  qu'il a frappé, et quand c'est la CASE qui est la question (survol « y a-t-il de l'interactif ici ? »,
  *  clic sur une case qu'aucun rayon n'a nommée), on lit ICI — en O(1), là où un balayage de
  *  `scene.entities` à chaque `pointermove` coûte la scène entière. Vue d'ANCRAGE et non de

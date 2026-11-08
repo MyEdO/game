@@ -6,8 +6,7 @@ import { nommerNoeud } from '../grammaire/meta';
  *
  * Un bâtiment n'est PAS un volume : le monde le bâtit en murs d'arête (`WallSeg`) sur un sol de
  * terrain, et sa nappe de toit vient du pivot (`noyau/monde/volume/toits.ts`). L'entrée porte la
- * couverture de référence du type et les ornements d'identité que le rendu pose en billboard
- * (`gameIso/builders/props.ts`).
+ * couverture de référence du type et les ornements d'identité que le rendu pose en billboard.
  *
  * PROVENANCE — `buildings` est déclaré `SANS_LIVRE_DEFINITIF` (aucun folio n'imprime de catalogue de
  * bâtiments) ET chaque entrée EXIGE son `maison` (`exiges`), comme les 25 sols de `terrains.json` :

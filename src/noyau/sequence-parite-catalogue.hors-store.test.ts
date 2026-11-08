@@ -355,7 +355,7 @@ const V8C2: Site[] = [
   {
     site: 'shipManeuver.ts — avance de coque (pluriel porté par la variable)',
     avant: `${NAVIRE} avance de ${2} case${'s'} (cap ${'NE'}).`,
-    apres: t('store.shipAdvance', { ship: NAVIRE, n: 2, s: 's', dir: 'NE' }),
+    apres: t('store.avancerLeNavire', { ship: NAVIRE, n: 2, s: 's', dir: 'NE' }),
   },
   {
     site: 'issueDeCombat.ts — vol terrestre (issue + fragment « porteurs » optionnels)',
@@ -502,8 +502,8 @@ const V8C3: Site[] = [
   {
     // CORRIGÉ (micro-passe) : la clé rendait « babord » ; MDG 13 l.322 écrit « bâbord ».
     site: 'seaVoyageFlow.ts:1739 — changement de cap (CÔTÉ de dérive lu au catalogue, MDG 13 l.322)',
-    avant: `Changement de cap (d10 ${3}, dérive ${'bâbord'}) : ${'Le navire pique vers la côte.'}`,
-    apres: t('sv.courseChange', { roll: 3, side: t('sv.sideBabord'), desc: 'Le navire pique vers la côte.' }),
+    avant: `Changement de cap (${'1d10'} ${3}, dérive ${'bâbord'}) : ${'Le navire pique vers la côte.'}`,
+    apres: t('sv.courseChange', { die: '1d10', roll: 3, side: t('sv.sideBabord'), desc: 'Le navire pique vers la côte.' }),
   },
   {
     site: 'seaVoyageFlow.ts:789 — Encalminé (suite optionnelle : dérive chiffrée)',

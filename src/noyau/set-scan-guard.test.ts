@@ -39,7 +39,7 @@ import { runSetScan } from '../../scripts/guards/lib/setScan.mjs';
  * +1 set() légitime (#558 : réglage `cast.jetsDeTable` pose `pendingCast.chosenTableRolls` — le jet sur
  * Tableau est DÉCLINABLE, EDOC 13 l.276 — même patron que réglage `cast.surincantation*` déjà compté).
  * +1 set() légitime (#942 L5 : l'applier `mutationTable` re-émet les acteurs — `touchActors` — quand la
- * mutation est appliquée depuis un dé POSÉ, même patron que `jetConfirm('corruption')` pour le chemin inline).
+ * mutation est appliquée depuis un dé POSÉ, même patron que `jetValider('corruption')` pour le chemin inline).
  * +2 set() légitimes (#942 L7 : le dénouement d'un Événement d'interlude est PARTAGÉ par les deux
  * chemins — `finishInterludeEvent` persiste le héros résolu, `finishInterludeDraw` ouvre les Activités
  * après le dernier dé ; l'ouverture écrit seulement un état de phase `tirage`).
@@ -65,9 +65,9 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 // −2/−2 (#1858 lot 1, mesure exacte 747/298) : CE QUE LA FENÊTRE DE DÉFENSE FERA À SA FERMETURE entre
 // PAR LE HAUT — le producteur le déclare dans le littéral qui POSE `pendingDefense` (`suite`), là où le
 // maillon de balayage et l'attaque figée demandaient chacun un `set()` sur un pending déjà posé.
-// +1/+1 (#1920, mesure exacte 749/299) : `surgeryPassCancel` annule la PASSE posée avant son jet —
+// +1/+1 (#1920, mesure exacte 749/299) : `jetAnnuler('surgery')` annule la PASSE posée avant son jet —
 // `pendingSurgery` porte `resetOn: []` (`stateFields.ts`), hors `resetFields`.
-const BASELINE = { totalCalls: 758, totalAdHocResets: 301 }; // +1 (#1117 L3 : `bandeDeNuit` — le set() de persistance du groupe après la boucle PAR RANGÉE, écrit UNE fois pour les 13 kinds de nuit au lieu d'un par applier) // +1/+1 (#1042/#1059 : la déclaration de Contre-sort (`jetRegler('counterspell', 'declaration')`) RÉÉCRIT les rangées de `pendingCounterspell` — la déclaration de phase 1 vit sur le participant, comme son `result` ; le « reset » compté est cette repose du pending entier, pas une purge) ; +1/+1 (#1029 : `routeCounterspell` MARQUE le moment du Contre-sort — `pendingCast.counterspellRouted` — pour que la fenêtre s'ouvre UNE fois, au jet ou après le choix de Critique ; le reset compté est la purge de `pendingCounterspell` par `jetCancel('cast')` pré-jet, #1031 : plus de fenêtre orpheline) ; +4/+3 (#989 surfaçage de la défense : `openSurfacedDefense` POSE la fenêtre — une branche mêlée, une branche tir ; `runCleaveChain` accroche la chaîne de balayage PARQUÉE sur la fenêtre ; `jetConfirm('defense')` rend l'attaque figée à `jetConfirm('attack')`) ; +1 (#352 innFlow.ts : set() du party après Exténué) ; +1 (#474a : coût Mouvement Se cabrer, aiCreatureFreeAttacks) ; +1/+1 (#476 : toggle harpoonRopeCut, set + reset du pendingAttack) ; +1/+1 (#558 : réglage cast.jetsDeTable) ; +1 (#508 : purgeAdventureEffects, upkeep.ts — même patron que purgeClockEffects) ; +1 (#491 : rerollWindsOfMagic, combatFlow.ts) ; +2 (#508/#510 : interludeFlow.ts — débit d'argent des résolveurs Réputation/Punchausen) ; +2 (#508 : interludeFlow.ts entrainementStart — débit du tuteur + application de l'Augmentation) ; +6 (#509 : favorFlow.ts — grantFavor/settleFavorActivity/resetInterruptedFavorProgress/breakFavor, nouveau flux) ; +1 reset ad hoc (#942 L2 : `rollCascadeTable` POSE le tirage sur table de l'étape courante dans `pendingCascade` — jumeau exact de `setCascadeChoice`, déjà compté) ; +1/+1 (#942 L3 : `setCascadeTableForcedRoll` POSE le dé de l'étape à table — seam UNIQUE des deux affordances du mode table, jumeau de `rollCascadeTable`) ; totalCalls RESSERRÉ 722 → 717 au passage de #942 L2 : le juge de design du lot a mesuré 5 de mou (des set() comptés à la pose de la baseline ont disparu depuis) — un cliquet qui garde du mou ne borne plus rien
+const BASELINE = { totalCalls: 758, totalAdHocResets: 301 }; // +1 (#1117 L3 : `bandeDeNuit` — le set() de persistance du groupe après la boucle PAR RANGÉE, écrit UNE fois pour les 13 kinds de nuit au lieu d'un par applier) // +1/+1 (#1042/#1059 : la déclaration de Contre-sort (`jetRegler('counterspell', 'declaration')`) RÉÉCRIT les rangées de `pendingCounterspell` — la déclaration de phase 1 vit sur le participant, comme son `result` ; le « reset » compté est cette repose du pending entier, pas une purge) ; +1/+1 (#1029 : `routeCounterspell` MARQUE le moment du Contre-sort — `pendingCast.counterspellRouted` — pour que la fenêtre s'ouvre UNE fois, au jet ou après le choix de Critique ; le reset compté est la purge de `pendingCounterspell` par `jetAnnuler('cast')` pré-jet, #1031 : plus de fenêtre orpheline) ; +4/+3 (#989 surfaçage de la défense : `openSurfacedDefense` POSE la fenêtre — une branche mêlée, une branche tir ; `runCleaveChain` accroche la chaîne de balayage PARQUÉE sur la fenêtre ; `jetValider('defense')` rend l'attaque figée à `jetValider('attack')`) ; +1 (#352 innFlow.ts : set() du party après Exténué) ; +1 (#474a : coût Mouvement Se cabrer, aiCreatureFreeAttacks) ; +1/+1 (#476 : toggle harpoonRopeCut, set + reset du pendingAttack) ; +1/+1 (#558 : réglage cast.jetsDeTable) ; +1 (#508 : purgeAdventureEffects, upkeep.ts — même patron que purgeClockEffects) ; +1 (#491 : rerollWindsOfMagic, combatFlow.ts) ; +2 (#508/#510 : interludeFlow.ts — débit d'argent des résolveurs Réputation/Punchausen) ; +2 (#508 : interludeFlow.ts entrainementStart — débit du tuteur + application de l'Augmentation) ; +6 (#509 : favorFlow.ts — grantFavor/settleFavorActivity/resetInterruptedFavorProgress/breakFavor, nouveau flux) ; +1 reset ad hoc (#942 L2 : `rollCascadeTable` POSE le tirage sur table de l'étape courante dans `pendingCascade` — jumeau exact de `setCascadeChoice`, déjà compté) ; +1/+1 (#942 L3 : `setCascadeTableForcedRoll` POSE le dé de l'étape à table — seam UNIQUE des deux affordances du mode table, jumeau de `rollCascadeTable`) ; totalCalls RESSERRÉ 722 → 717 au passage de #942 L2 : le juge de design du lot a mesuré 5 de mou (des set() comptés à la pose de la baseline ont disparu depuis) — un cliquet qui garde du mou ne borne plus rien
 // −1/−1 (#1143 : les DEUX purges du télégraphe d'intention — `set({ actorAim: null })` de
 // `attackThenAdvance` et du `case 'cast'` de `runEnemyAI` — sont remplacées par la couture UNIQUE
 // `clearActorAim` de `combatFlow.ts`. Elle est ancrée au SEAM de résolution d'attaque
@@ -97,7 +97,7 @@ const BASELINE = { totalCalls: 758, totalAdHocResets: 301 }; // +1 (#1117 L3 : `
 // `sequence` entier, pas une purge. Mesure exacte 732/298.
 // +3 (lot INTENTIONS, spec HUD zone 4 : le mode local `localIntent` vit à la RACINE du store, hors
 // `battle` — d'où trois `set()` de racine et non une mutation de la coquille de combat :
-// `battleArmIntent` (arme/dissout), `consumeIntent` (le clic du champ la consomme) et la purge du
+// `armerLIntention` (arme/dissout), `consumeIntent` (le clic du champ la consomme) et la purge du
 // tour qui s'achève dans `advanceTurn`. Aucun
 // reset ad hoc de plus : `localIntent` n'est pas un champ `pending*`. Mesure exacte 736/298).
 // +3 (lot GESTES RÉVISÉS, spec HUD § ARBITRAGE 2026-08-19 : le REFUS de geste est un retour d'IHM
@@ -131,7 +131,7 @@ const BASELINE = { totalCalls: 758, totalAdHocResets: 301 }; // +1 (#1117 L3 : `
 // Mesure exacte 743/301).
 // +1 (ASSISE, même lot : `combatFlow.releaseSeatsOfDowned` — la couture UNIQUE « un corps mis hors
 // d'action ne tient plus sa chaise », appelée là où la mort est ACTÉE (`notifySlain`, entretien hors
-// combat d'`advanceTime`). Un `set({ scene })` littéral et CONDITIONNEL : la scène n'est réécrite que
+// combat d'`avancerLeTemps`). Un `set({ scene })` littéral et CONDITIONNEL : la scène n'est réécrite que
 // si un occupant est réellement tombé (sinon même référence). Aucun reset ad hoc de plus.
 // Mesure exacte 744/301).
 // #1508 T2 — le cliquet ne monte PAS, il se remplit : 748/301 à HEAD, 749/301 sur l'arbre, pour une
@@ -146,7 +146,7 @@ const BASELINE = { totalCalls: 758, totalAdHocResets: 301 }; // +1 (#1117 L3 : `
 // héros en place ; ce `set` est la seule ligne qui rende la mutation visible au store — MÊME patron,
 // même unique écriture, que les autres appliers de cascade. Aucun reset ad hoc de plus (302 inchangé).
 // #1687 lot 3-I-a — 750 → 751 : l'EXÉCUTEUR UNIQUE des gestes d'exploration (`store.jouerAction`) pose
-// le dialogue d'un PNJ (`set({ dialogue })`), geste qui vivait dans `interactEntity` — lequel n'en
+// le dialogue d'un PNJ (`set({ dialogue })`), geste qui vivait dans `interagirAvecLEntite` — lequel n'en
 // porte plus aucun, il délègue. Le solde n'est pas nul parce que le ramassage en combat perd sa
 // réécriture du document de scène au profit d'un drapeau (`set` INCONDITIONNEL là où il
 // était dans un `else`) : même nombre de `set` écrits, un de plus qu'à HEAD. Aucun reset ad hoc de
@@ -154,13 +154,13 @@ const BASELINE = { totalCalls: 758, totalAdHocResets: 301 }; // +1 (#1117 L3 : `
 // #1508 T3b — 751 → 749 et 302 → 300, MESURÉ (`runSetScan` sur l'arbre du lot). Ce que l'appelant fera
 // APRÈS le coup est une DONNÉE d'entrée (`SuiteDeCoup`) qui voyage dans la charge de chaque fenêtre :
 // elle n'ajoute aucune écriture. Le solde, PAR APPEL :
-//  - RETIRÉS face à HEAD : `combatSlice.jetConfirm('attack')` ne pose plus `pendingDualStrike` (l'ouverture de
-//    la 2ᵉ frappe est dans la queue partagée) ; `combatSlice.jetConfirm('defense')` ne rend plus l'Action d'une
+//  - RETIRÉS face à HEAD : `combatSlice.jetValider('attack')` ne pose plus `pendingDualStrike` (l'ouverture de
+//    la 2ᵉ frappe est dans la queue partagée) ; `combatSlice.jetValider('defense')` ne rend plus l'Action d'une
 //    frappe gratuite (idem) ; `combatFlow.applyFreeAttack` et `combatFlow.applyTalentFreeAttack` perdent
 //    chacun leur `set({ acted: prevActed })` inline, remplacé par l'appel à la queue — soit QUATRE ;
 //  - AJOUTÉS : les DEUX `set` de `combatFlow.jouerLaSuiteDuCoup` (l'Action rendue à une frappe gratuite
 //    après le `markActed` de l'application ; l'ouverture de la 2ᵉ frappe du Maniement de deux armes),
-//    ÉCRITURE UNIQUE appelée par `jetConfirm('attack')`, `jetConfirm('defense')`, la reprise de suspension et les deux
+//    ÉCRITURE UNIQUE appelée par `jetValider('attack')`, `jetValider('defense')`, la reprise de suspension et les deux
 //    résolveurs de frappe gratuite.
 // Net −2 (751 → 749). Le `switch` sur `SuiteDeCoup.enchainement` n'écrit rien : il ROUTE.
 // Resets ad hoc 302 → 300 : −1 pour la mesure qui portait 1 de mou depuis #1135 (301 réels), −1 parce
@@ -180,7 +180,7 @@ const BASELINE = { totalCalls: 758, totalAdHocResets: 301 }; // +1 (#1117 L3 : `
 // Aucun reset ad hoc de plus (300 inchangé) : le helper n'écrit aucun champ `pending*`.
 // — puis 749 → 748, MESURÉ (`runSetScan` sur l'arbre du lot) : `corruptionFlow.resolveRenounce` route
 //   la conséquence de « Je te renie ! » (LDB 17 l.67) par `combatLog.journaliser` au lieu de réécrire
-//   à la main le couple `if (battle) set({ battle: {…log} }) else get().log(…)` — un `set` littéral de
+//   à la main le couple `if (battle) set({ battle: {…log} }) else get().ecrireAuJournal(…)` — un `set` littéral de
 //   moins, et le routage a seulement UNE définition. BASELINE = la mesure (748/300), sans mou.
 // Lecture A1 — 747 → 748, MESURÉ (run CI 36335240417 : 748) : le lanceur unique des scénarios de
 // test (`scenarioFlow.demarrerScenario`) pose le navire construit par `set({ vessel })`, ÉCRITURE UNIQUE des

@@ -14,7 +14,7 @@
  */
 import {
   appliquerLIntentionDUnSiege, argsAvecVerdictLocal, attribuerLEmplacement, attribuerLeHeros, buildDeLaCoop, fermerLeSiege,
-  initialNet, instantaneDeLaCoop, intentEluLocalement, poserLeSiegeMJ, refusDAttribuerLEmplacement, refusDAttribuerLeHeros,
+  initialNet, instantaneDeLaCoop, intentEluLocalement, poserLeSiegeMJ, preparerLIntentLocal, refusDAttribuerLEmplacement, refusDAttribuerLeHeros,
   refusDuSiegeMJ, refuserGesteDuSiege, type Get, type NetState, type Set,
 } from '../../noyau/index';
 import { t } from '../../i18n';
@@ -64,7 +64,8 @@ export interface PortsDuSalon extends PortsDuRelais {
  *  - ÉLECTION LOCALE (`intentEluLocalement`) : le clic n'ouvre qu'un CHOIX D'ÉCRAN — le paramètre borné qui reste à
  *    demander — et se joue ENTIER chez le client, par son action locale. Rien ne part : le porteur élu est hors
  *    instantané, l'exécuter chez l'hôte y ferait naître un panneau étranger et n'en montrerait aucun à l'émetteur ;
- *  - sinon l'intent PART, avec le VERDICT D'ARMEMENT calculé ICI, chez l'émetteur (`argsAvecVerdictLocal`) :
+ *  - sinon l'émetteur PRÉPARE chez lui ce que l'hôte ne pose pas (`preparerLIntentLocal` : l'intention qu'arme une
+ *    offre jouée chez l'hôte), puis l'intent PART, avec le VERDICT D'ARMEMENT calculé ICI (`argsAvecVerdictLocal`) :
  *    l'intention est locale au client, l'hôte ne peut pas la relire dans son propre état.
  */
 export function emettreIntentInvite(
@@ -78,13 +79,14 @@ export function emettreIntentInvite(
     local(...args);
     return;
   }
+  preparerLIntentLocal(get, name, args);
   envoyer(name, argsAvecVerdictLocal(get, name, args));
 }
 
 /** HÔTE : siège FERMÉ (départ définitif, fin de grâce) — `fermerLeSiege` (spec §6). */
 function siegeFerme(get: Get, set: Set, seat: number): void {
   set({ net: fermerLeSiege(get().net, seat) });
-  get().log(t('coop.seatClosed'));
+  get().ecrireAuJournal(t('coop.seatClosed'));
 }
 
 /** Pose le réseau `apres(net)`, sauf si `refus` tombe : le refus se dit alors au siège qui décide
@@ -194,7 +196,7 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
       onSeatClosed: (seat) => siegeFerme(get, set, seat),
     });
     rh.onFatal = () => {
-      get().log(t('coop.hostLinkLost'));
+      get().ecrireAuJournal(t('coop.hostLinkLost'));
       quitter(set);
     };
     rh.onJoin = (seat, gname) => {
@@ -238,7 +240,7 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
       roomGuest = rg;
       rg.onFatal = (reason) => {
         if (settled) {
-          get().log(t('coop.reason', { reason }));
+          get().ecrireAuJournal(t('coop.reason', { reason }));
           quitter(set);
           return;
         }
@@ -262,8 +264,8 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
           applySnapshot: appliquerSnapshot,
           // Motif typé de l'hôte (mismatch de protocole) : canal du journal réseau, distinct du onClose générique
           // qui suit juste après (silencieux, cf. session.ts).
-          onProtocolMismatch: (expected, got) => get().log(t('coop.protocolMismatch', { got, expected })),
-          onFormatMismatch: () => get().log(t('coop.formatMismatch')),
+          onProtocolMismatch: (expected, got) => get().ecrireAuJournal(t('coop.protocolMismatch', { got, expected })),
+          onFormatMismatch: () => get().ecrireAuJournal(t('coop.formatMismatch')),
           onClosed: () => quitter(set),
         });
         set({ net: { ...initialNet(), mode: 'guest', mySeat: seat, roomCode: code, seatNames: { [seat]: name } } });

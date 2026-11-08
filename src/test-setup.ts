@@ -8,7 +8,7 @@
  *    à l'autre. On repart donc d'un état NEUF avant CHAQUE test (les hooks de setupFile sont les plus
  *    EXTERNES → s'exécutent AVANT le `beforeEach` propre du fichier, qui pose ensuite son décor) :
  *    - le STORE Zustand (`useGame`, `etatViergeDuStore`) : ses DONNÉES par le même reset
- *      « zéro-maintenance » que `startScene` (copie JSON neuve), ses ACTIONS par celles de l'état
+ *      « zéro-maintenance » que `lancerLaScene` (copie JSON neuve), ses ACTIONS par celles de l'état
  *      initial. Le JSON retire les fonctions, et le merge partiel de zustand garde alors l'action
  *      COURANTE : un banc qui stubbait `jouerAction` (`vi.fn()`) la léguait à tout le reste du worker,
  *      où un clic de meuble ne jouait plus rien (#3503). Remis à plat AUSSI en fin de FICHIER
@@ -18,18 +18,18 @@
  *    - le REGISTRE DES RÈGLES OPTIONNELLES (`engine/policy`) : `loadRuleOverrides({})` purge toute
  *      surcharge runtime → toutes les règles reviennent à leur défaut RAW (sinon une règle maison
  *      posée par un test — `cleave`, `combat-optional-rules`… — fuit dans un test pur ultérieur).
- *    - le RNG DE COMBAT (`noyau/battleRng`) : semé par `seedBattleRng`/`store.seedRng`, il garde sinon
+ *    - le RNG DE COMBAT (`noyau/battleRng`) : semé par `seedBattleRng`/`store.ensemencerLeTirage`, il garde sinon
  *      la POSITION de flux laissée par le fichier précédent (cf. le bloc `seedBattleRng` ci-dessous).
  *    - la PRÉFÉRENCE « Dés fixés » (`engine/fixedDie`, `resetDesFixes`) et le DRAPEAU de ré-entrance
  *      `onOwnTestFailed` (`noyau/triggeredEffects`, `resetOwnTestFailedGuard`) — cf. les commentaires
  *      du `beforeEach` ci-dessous.
- *    - le REGISTRE DES SCÈNES (`sceneRegistry`, `noyau/monde/registreDesScenes`) : peuplé par `registerScene`/`loadProject`
+ *    - le REGISTRE DES SCÈNES (`sceneRegistry`, `noyau/monde/registreDesScenes`) : peuplé par `registerScene`/`chargerLeProjet`
  *      — donc aussi par des TESTS. Vidé en `afterEach` (`resetSceneRegistry`) : la pollution INTER-fichiers meurt. PORTÉE RÉELLE, mesurée et gardée par
  *      `test-setup-registre-des-scenes.test.ts` : un enregistrement de TÊTE DE FICHIER (module,
  *      `beforeAll`) ne vaut que pour le PREMIER test — le teardown l'efface comme les autres. Un fichier
  *      qui a besoin du registre sur PLUSIEURS tests l'(ré)enregistre en `beforeEach` (`src/noyau/shipwreck.hors-store.test.ts`,
  *      via `freshState`). Une scène laissée au registre changeait le comportement des fichiers suivants
- *      du worker : `transitionTo` est un NO-OP sur scène inconnue (`noyau/entreeEnScene.ts`) — la même clôture
+ *      du worker : `quitterLaScene` est un NO-OP sur scène inconnue (`noyau/entreeEnScene.ts`) — la même clôture
  *      de séquence transitionnait ou non selon la partition, d'où des rouges CI verts en local (#1014).
  *    - la PILE DES COUCHES DISMISSIBLES et sa PORTE clavier (`state/dismissStack` + `ui/useDismissLayer`,
  *      `resetDismissLayers`) : la pile des surfaces congédiables et le refcount de l'écouteur Échap sont
@@ -269,7 +269,7 @@ beforeEach(() => {
   // au même titre que le registre des règles optionnelles : l'ordre d'exécution ne décide de rien.
   resetDesFixes();
   // RNG DE COMBAT (`noyau/battleRng`) : singleton de module lui aussi, SEMÉ par tout fichier qui appelle
-  // `seedBattleRng`/`store.seedRng`. Sans remise à zéro, un fichier qui a semé une graine fixe lègue au
+  // `seedBattleRng`/`store.ensemencerLeTirage`. Sans remise à zéro, un fichier qui a semé une graine fixe lègue au
   // suivant un flux à position ARBITRAIRE : les tests qui ne sèment pas (et lisent un dé « au hasard »)
   // deviennent dépendants de l'ordre des fichiers du worker — flake d'ordonnancement, comme les timers
   // (#405) et « Dés fixés » ci-dessus.
@@ -304,7 +304,7 @@ afterEach(() => {
   // PARTAGE (#2097) : lu AVANT le vidage du registre des scènes, qui en est une source.
   const partages = partagesDeLEtat(useGame.getState(), scenesDuRegistre());
   // REGISTRE DES SCÈNES (`state/store`) : vidé APRÈS CHAQUE test —
-  // aucune scène enregistrée par un test (`registerScene`/`loadProject`) ne traverse vers un autre
+  // aucune scène enregistrée par un test (`registerScene`/`chargerLeProjet`) ne traverse vers un autre
   // fichier du worker (`isolate:false`). Portée exacte : en-tête §1 + `test-setup-registre-des-scenes.test.ts`.
   resetSceneRegistry();
   vi.useRealTimers();

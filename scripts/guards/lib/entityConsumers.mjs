@@ -9,7 +9,7 @@
 // consommateur, #1553 L3) : une entité est ORPHELINE quand AUCUN CHEMIN DE JEU ne la convoque — ni
 // un document de scène, ni une autre donnée, ni le code de PRODUCTION. Ce qui n'est PAS un chemin de
 // jeu : l'ATELIER d'authoring. La palette de l'éditeur de scène énumère des candidats à POSER À LA
-// MAIN (`ui/editor/Editor.tsx:168`, `creatures.filter((c) => typeof c.char.B === 'number')` — mesuré
+// MAIN (`creatures.filter((c) => typeof c.char.B === 'number')` — mesuré
 // 487 des 493 entrées de `creatures.json`, 2026-09) : la compter rendrait tout le catalogue
 // « atteignable » et viderait l'instrument (une entité qu'aucune scène ne pose reste une mécanique
 // curée sans jeu). Elle est aujourd'hui rejetée fail-closed par la grammaire MODE 2 (`typeof`, champ
@@ -36,7 +36,7 @@
 // `qualities.filter((q) => q.polarite === 'atout' && q.subType === 'objet')` bâtit le pool d'un picker —
 // toute entité qui satisfait le prédicat est atteinte, sans que son id apparaisse en toutes lettres
 // nulle part). Mesuré : `qualities:laid` (défaut d'Objet, LDB 60) est exactement ce cas — surfacé au
-// picker d'Artisanat (`ui/InterludeScreen.tsx:52-53`, chaîne `.filter(...).map((q) => q.id)`) SANS
+// picker d'Artisanat (chaîne `.filter(...).map((q) => q.id)`) SANS
 // jamais être cité littéralement. Restreint, par construction FAIL-CLOSED, à
 // `<catalogueTopLevel>.filter((param) => <prédicat>)` (jamais `.find`/`.some` — qui ne garantissent
 // pas que TOUTE entrée matchée soit réellement atteinte, une seule étant retenue par appel) où
@@ -184,8 +184,8 @@ function stripComments(src) {
 /** Un fichier GÉNÉRÉ est un MIROIR de la donnée, pas un USAGE — un registre exhaustif cite
  *  structurellement chaque id de son catalogue source, ce qui viderait la garde si on le comptait
  *  comme consommateur (mesuré : `engine/qualities/ids.generated.ts` cite LES 59 ids de
- *  `qualities.json`, `audio/_registry.generated.ts` et `data/schemas/_registry.generated.ts` de même
- *  pour leurs registres). Détection par LES DEUX conventions déjà en usage dans `src/**` (mesurées
+ *  `qualities.json`, `data/schemas/_registry.generated.ts` de même
+ *  pour son registre). Détection par LES DEUX conventions déjà en usage dans `src/**` (mesurées
  *  identiques sur les 30 fichiers générés du dépôt, 2026-07) : suffixe `*.generated.ts(x)` ET/OU
  *  en-tête « GÉNÉRÉ … NE PAS ÉDITER À LA MAIN » dans les 5 premières lignes — jamais une liste de
  *  chemins en dur. Exclu du corpus MODE 1 (`buildConsumerCorpus`) ET du scan MODE 2

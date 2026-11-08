@@ -73,7 +73,7 @@ function ambush(talents: TalentInstance[] = [], guetteurs = 1, perception = 5) {
 /** La BANDE : l'unique étape de Surprise que la cascade porte. */
 const bande = () => useGame.getState().pendingCascade!.participants[0];
 /** Lance la rangée d'un guetteur (flux `cascadeBatch` — un jet PAR rangée). */
-const lancer = (id: string) => act(() => { useGame.getState().jetRoll('cascadeBatch', id); });
+const lancer = (id: string) => act(() => { useGame.getState().jetLancer('cascadeBatch', id); });
 
 const render = () => act(() => { root.render(<CascadeBody />); });
 /** Le bloc des issues, tel qu'il est rendu (chips comprises). */
@@ -181,7 +181,7 @@ describe('#1117 — la Surprise DIT ses issues en chips d’ops, avant comme apr
     // (LDB 12 l.160), et l'opposition de `triggeredTest` n'en pose pas.
     expect(aT.target, 'le pré-jet de l’embusqueur SUBIT la Difficulté (−20)').toBe(testValue(embusqueur, { skill: { id: 'discretion' }, characteristic: 'agilite' }) - 20);
 
-    act(() => { useGame.getState().jetRoll('cascade', step.id); });
+    act(() => { useGame.getState().jetLancer('cascade', step.id); });
     render();
     const difficultes = [...host.querySelectorAll('.rm-roll-diff')].map((n) => n.textContent?.trim());
     expect(difficultes.length, 'les deux lignes du Test opposé portent LA Difficulté').toBe(2);
@@ -207,13 +207,13 @@ describe('#1117 — la Surprise DIT ses issues en chips d’ops, avant comme apr
     expect(chipTalent.getAttribute('role'), 'la chip ouvre la fiche talents/vigilance').toBe('button');
 
     lancer('h');
-    act(() => { useGame.getState().jetConfirm('cascade'); });
+    act(() => { useGame.getState().jetValider('cascade'); });
     const suite = useGame.getState().pendingCascade!;
     expect(suite.participants.map((s) => s.label), 'le Test de Vigilance est APPENDU à la cascade').toContain('Vigilance');
     // …et il est JOUABLE : son identité ne collisionne pas avec le Test de Perception déjà résolu.
     const vigilance = suite.participants[suite.cursor];
     expect(vigilance.label).toBe('Vigilance');
-    act(() => { useGame.getState().jetRoll('cascade', vigilance.id); });
+    act(() => { useGame.getState().jetLancer('cascade', vigilance.id); });
     expect(useGame.getState().pendingCascade!.participants[suite.cursor].result, 'le second jet se lance').toBeTruthy();
   });
 });
@@ -263,7 +263,7 @@ describe('#1117 — la Surprise est UNE bande : un jet d’embusqueur, N guetteu
     expect(jets.every((r) => r), 'les 3 rangées ont leur jet').toBe(true);
     expect(jets.every((r) => evaluateTest(r.roll, r.target).success), 'chaque dé est SOUS la cible : le Test simple serait réussi').toBe(true);
     expect(jets.every((r) => !r.success), 'et pourtant les 3 PERDENT — l’embusqueur remporte l’opposition').toBe(true);
-    act(() => { useGame.getState().jetConfirm('cascade'); });
+    act(() => { useGame.getState().jetValider('cascade'); });
     const suite = useGame.getState().pendingCascade!;
     // UN seul second Test appendu — celui du porteur de Vigilance.
     expect(suite.participants.filter((s) => s.label === 'Vigilance').map((s) => s.actorId)).toEqual(['h']);
@@ -286,18 +286,18 @@ describe('#1117 — la Surprise est UNE bande : un jet d’embusqueur, N guetteu
     const resilienceOf = (id: string) => g().battle!.combatants.find((c) => c.id === id)!.resilience ?? 0;
     const resAvant = resilienceOf('h');
 
-    act(() => { g().jetForceSuccess('cascadeBatch', 'h'); });
+    act(() => { g().jetForcerLaReussite('cascadeBatch', 'h'); });
     expect(bande().participants![0].result!.success, '« Je ne faillirai pas ! » n’a pas produit de réussite').toBe(true);
     const resApres = resilienceOf('h');
     expect(resApres, 'le point de Résilience est dépensé').toBe(resAvant - 1);
 
-    act(() => { g().jetSetForcedRoll('cascadeBatch', 11, 'h'); });
+    act(() => { g().jetImposerLeResultat('cascadeBatch', 11, 'h'); });
     const apres = bande().participants![0].result!;
     expect(apres.roll, 'le dé CHOISI est celui appliqué').toBe(11);
     expect(apres.success, 'la réussite PAYÉE par le point de Résilience a été perdue au choix du dé').toBe(true);
     expect(resilienceOf('h'), 'le choix du dé a re-dépensé une ressource').toBe(resApres);
 
-    act(() => { g().jetConfirm('cascade'); });
+    act(() => { g().jetValider('cascade'); });
     const surpris = g().battle!.combatants.find((c) => c.id === 'h')!.conditions.some((x) => x.id === 'surpris');
     expect(surpris, 'le guetteur a REMPORTÉ son Test : aucun État Surpris ne doit être posé').toBe(false);
   });

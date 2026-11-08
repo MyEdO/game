@@ -75,6 +75,8 @@ matiere_du_calque = SubResource("Materiau_calque")
 
 [node name="Couronnes" type="Node3D" parent="Volume"]
 
+[node name="Meteo" type="Node3D" parent="Volume"]
+
 [node name="Surbrillance" type="Node3D" parent="."]
 
 [node name="Aretes" type="Node3D" parent="."]
@@ -99,3 +101,8 @@ rotation = Vector3(-0.9, 0, 0)
 position = Vector3(0, 0, 24)
 current = true
 fov = 40.0
+
+[node name="Oeil" type="Camera3D" parent="."]
+keep_aspect = 0
+fov = 75.0
+near = 0.02

@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
-import { CIBLES_PAR_RACINE, type RacineDeCatalogue } from '../noyau/combatEffects';
+import { CIBLES_PAR_RACINE, genreDeCible, type RacineDeCatalogue } from '../noyau/combatEffects';
+import type { EffectOp } from '../engine/flowCore';
 
 /**
  * CLIQUET de donnée (#1874 C0) : toute feuille `ops` d'une racine de CATALOGUE (`src/data`) porte un `on`
@@ -22,6 +23,7 @@ const RACINE_PAR_CHAMP: readonly { racine: RacineDeCatalogue; champ: RegExp; fic
   { racine: 'sort', champ: /^(\.variants\[\d+\])?\.effects[.[]/, fichier: 'spells.json' },
   { racine: 'critique', champ: /^\.entries\[\d+\]\.(test|escalation\.onNextCritWhileCondition\.test)[.[]/, fichier: 'criticals.json' },
   { racine: 'declenche', champ: /^\.(effects|onHitEffects)\[\d+\]\.flow[.[]/ },
+  { racine: 'evenementDeMer', champ: /^\.(boardEvents|portEvents|fastVoyage)\.entries\[\d+\]\.consequence[.[]/, fichier: 'sea-events.json' },
 ];
 
 /** `blocs` = les nœuds de Flow qui ENGLOBENT la feuille, du plus haut au plus proche (`kind` + chemin). */
@@ -36,7 +38,7 @@ function feuillesDeCatalogue(fichier: string, json: unknown): Feuille[] {
     const o = n as Record<string, unknown>;
     if (o.type === 'ops' && Array.isArray(o.ops)) {
       const racine = RACINE_PAR_CHAMP.find((r) => (!r.fichier || r.fichier === fichier) && r.champ.test(chemin))?.racine;
-      out.push({ site: `${fichier} ${id}${chemin}`, ...(racine ? { racine } : {}), ...(typeof o.on === 'string' ? { on: o.on } : {}), blocs });
+      out.push({ site: `${fichier} ${id}${chemin}`, ...(racine ? { racine } : {}), ...(o.on !== undefined ? { on: genreDeCible(o.on as EffectOp['on']) } : {}), blocs });
     }
     const sous = typeof o.kind === 'string' ? [...blocs, { kind: o.kind, chemin }] : blocs;
     for (const [k, v] of Object.entries(o)) walk(v, id, `${chemin}.${k}`, sous);

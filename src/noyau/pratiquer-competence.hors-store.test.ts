@@ -1,6 +1,6 @@
 /**
  * Pratiquer une Compétence (EDOC 8 l.172 ; `activities.json › pratiquer-competence`) : le poste porte la
- * Compétence CHOISIE, de l'épinglage (`setTravelRole`) au départ (`startTravel`, qui pose les postes
+ * Compétence CHOISIE, de l'épinglage (`attribuerLeRoleDeMarche`) au départ (`partirEnVoyage`, qui pose les postes
  * depuis les rôles) jusqu'à la rangée de l'Étape. Compétences offertes, dans la liste `freeSkill` de
  * l'Activité : LDB 09 l.30, l.36, l.44, l.46.
  * Sans Compétence choisie, le poste n'est pas tenu (EDOC 8 l.133).
@@ -12,7 +12,6 @@ import type { WorldMap } from './worldMap';
 import { setRule } from '../engine/policy';
 import { activityById, competencesAPratiquer, postingTenu, refusCandidatActivite, stageAssignmentFromRoles } from '../engine/activities';
 import { refusNePeutTenter } from '../engine/skills';
-import { ECHEC_SANS_JET } from '../engine/tests';
 import { refLabel, skills, specPoolOf } from '../data';
 import { avecActivite } from '../engine/activiteMer.testkit';
 import { avanceEtapeCascade } from './cascade.testkit';
@@ -46,12 +45,12 @@ const CARTE: WorldMap = {
 };
 
 /** Rangée du héros dans la bande des postes de l'Étape, montée par le producteur réel : rôle épinglé
- *  (`setTravelRole`), départ (`startTravel`), qui ouvre la cascade du jour, puis la Météo d'Étape jouée. */
-function rangeeAuDepart(posting: Parameters<ReturnType<typeof banc.getState>['setTravelRole']>[1]): BatchParticipant | undefined {
+ *  (`attribuerLeRoleDeMarche`), départ (`partirEnVoyage`), qui ouvre la cascade du jour, puis la Météo d'Étape jouée. */
+function rangeeAuDepart(posting: Parameters<ReturnType<typeof banc.getState>['attribuerLeRoleDeMarche']>[1]): BatchParticipant | undefined {
   banc.setState({ party: [heros()], journal: [], pendingCascade: null, travelPlan: null });
-  banc.getState().loadProject({ scenes: [scene('lieu-a-scene', 'Village A'), scene('lieu-b-scene', 'Bourg B')], entryId: 'lieu-a-scene', worldMap: CARTE, projet: null });
-  banc.getState().setTravelRole('h', posting);
-  banc.getState().startTravel('r1', 'pied');
+  banc.getState().chargerLeProjet({ scenes: [scene('lieu-a-scene', 'Village A'), scene('lieu-b-scene', 'Bourg B')], entryId: 'lieu-a-scene', worldMap: CARTE, projet: null });
+  banc.getState().attribuerLeRoleDeMarche('h', posting);
+  banc.getState().partirEnVoyage('r1', 'pied');
   const bande = () => banc.getState().pendingCascade?.participants.find((s) => s.kind === 'stagePosteBatch');
   // La Météo d'Étape ouvre la cascade du jour ; la bande des postes la suit.
   for (let garde = 0; !bande() && garde < 10; garde++) {
@@ -144,24 +143,24 @@ describe('Pratiquer une Compétence : du rôle épinglé à la rangée de l’É
     expect(rangee.result).toBeNull();
   });
 
-  it('Compétence choisie que le héros ne peut pas tenter : la rangée naît sans jet, refus nommé', () => {
-    const rangee = rangeeAuDepart({ activityId: 'pratiquer-competence', freeSkill: { id: 'evaluation' } })!;
-    expect(rangee.result).toBe(ECHEC_SANS_JET);
-    expect(rangee.refus).toBe(refusNePeutTenter(banc.getState().party[0], { skill: { id: 'evaluation' } }));
+  it('Compétence choisie que le héros ne peut pas tenter : la rangée naît sans jet, n’arrête pas la journée, et son refus nommé va au journal (#3534)', () => {
+    expect(rangeeAuDepart({ activityId: 'pratiquer-competence', freeSkill: { id: 'evaluation' } }), 'aucune rangée à jouer ne retient la journée').toBeUndefined();
+    const refus = refusNePeutTenter(banc.getState().party[0], { skill: { id: 'evaluation' } });
+    expect(banc.getState().journal.some((l) => l.includes(refus)), 'le refus nommé, au journal').toBe(true);
   });
 });
 
 describe('Poste tenu : une seule source (`postingTenu`)', () => {
   beforeEach(() => banc.setState({ party: [heros()], journal: [] }));
 
-  it('`setTravelRole` refuse Pratiquer une Compétence sans Compétence : le rôle épinglé ne bouge pas', () => {
-    banc.getState().setTravelRole('h', { activityId: 'recuperer' });
-    banc.getState().setTravelRole('h', { activityId: 'pratiquer-competence' });
+  it('`attribuerLeRoleDeMarche` refuse Pratiquer une Compétence sans Compétence : le rôle épinglé ne bouge pas', () => {
+    banc.getState().attribuerLeRoleDeMarche('h', { activityId: 'recuperer' });
+    banc.getState().attribuerLeRoleDeMarche('h', { activityId: 'pratiquer-competence' });
     expect(banc.getState().party[0].travelRole).toEqual({ activityId: 'recuperer' });
   });
 
   it('un rôle épinglé que l’édition du catalogue rend non tenu n’est plus épinglé : l’Étape retombe sur le rôle inféré', () => {
-    banc.getState().setTravelRole('h', { activityId: 'recuperer' });
+    banc.getState().attribuerLeRoleDeMarche('h', { activityId: 'recuperer' });
     avecActivite({ ...activityById('recuperer')!, freeSkill: [{ id: 'escalade' }] }, () => {
       const h = banc.getState().party[0];
       expect(postingTenu(h.travelRole!)).toBe(false);

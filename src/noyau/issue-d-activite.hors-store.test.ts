@@ -1,7 +1,7 @@
 /**
  * L'ISSUE D'UNE ACTIVITÉ AUX BANDES AUTOMATIQUES (LDB 12 l.25-28) : l'issue canonique du flux `activity`
  * (`FLOWS.activity.outcomeOf`) d'un Test simple ouvert par l'interlude, le dé posé par l'option des dés fixés
- * (`jetSetForcedRoll`). La cible est bornée à 01-99 par la ligne du jet ; seules les bandes départagent le dé.
+ * (`jetImposerLeResultat`). La cible est bornée à 01-99 par la ligne du jet ; seules les bandes départagent le dé.
  */
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc } from './banc.testkit';
@@ -19,15 +19,15 @@ function revenusAuDe(valeur: number, extenue: number, de: number) {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1, manualChars: tableTotale(CHAR_KEYS, () => valeur) });
   if (extenue) addCondition(h, 'extenue', extenue);
   banc.setState({ party: [h], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, journal: [] });
-  banc.getState().startScene(testScene());
-  banc.getState().startInterlude(3);
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().ouvrirLInterlude(3);
   draineCascade(banc.getState);
   const itl = banc.getState().interlude!;
   itl.perHero[h.id] = { ...itl.perHero[h.id], fx: undefined, left: 3 };
   banc.setState({ interlude: { ...itl } });
-  banc.getState().interludeActivity(h.id, 'revenus');
-  banc.getState().jetRoll('activity');
-  banc.getState().jetSetForcedRoll('activity', de);
+  banc.getState().pratiquerLActivite(h.id, 'revenus');
+  banc.getState().jetLancer('activity');
+  banc.getState().jetImposerLeResultat('activity', de);
   return FLOWS.activity.outcomeOf(banc.getState);
 }
 

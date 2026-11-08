@@ -14,7 +14,7 @@
  *     (`placesJouables`, `noyau/monde/seating.ts` — la seule capacité qui vive sur le TYPE, donc la seule
  *     qu'un opt-in d'instance ait à ouvrir).
  *
- * `jouer` (jeu de taverne) n'est PAS une offre : `openTavernGames` n'a aucun appelant hors du nœud
+ * `jouer` (jeu de taverne) n'est PAS une offre : `ouvrirLesJeux` n'a aucun appelant hors du nœud
  * de dialogue `tavernGames` (`noyau/combatEffects.ts`, mesuré) — une entrée ici serait une
  * affordance morte. Le rôle `tavernGame` reste sur l'entité et se joue par son dialogue.
  *

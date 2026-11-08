@@ -7,6 +7,9 @@ import { shipSaboteurDR } from './shipCrew';
 import { maneuverCrewTotal } from './shipManeuver';
 import type { Combatant, SkillInstance } from '../engine/types';
 import { propulsionDuNavire } from '../engine/shipBuild';
+import { offresDeLActif } from './actionRegistry';
+import { buildVoyageCrewStep } from './seaVoyageFlow';
+import { emptyScene } from './monde/scene';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -16,12 +19,10 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
 
 /**
- * #26/#65 — MORAL D'ÉQUIPAGE EN COMBAT (MDG 14) :
- *  - « Rude épreuve » (l.106-114) : Test d'équipage ; « Si le total de ce Test donne un ou plusieurs DR
- *    négatifs, réduisez le Moral d'un nombre égal au nombre de ces DR » (l.110) — persisté sur
- *    `CampaignVessel.morale` quand la coque EST le navire de campagne.
- *  - SABOTAGE (l.45-47) : « le MJ pourra imposer de -1 à -5 DR sur le Test d'équipage » — champ
- *    `Combatant.saboteurDR` (clampé RAW), appliqué au total de TOUT Test d'équipage.
+ * #26/#65 — TESTS D'ÉQUIPAGE (MDG 14) :
+ *  - « Rude épreuve » : Test d'équipage de voyage (MDG 14 l.108-112, MDG 15 l.27), jamais une action de combat ;
+ *    son Moral est celui du voyage (MDG 14 l.110).
+ *  - SABOTAGE (MDG 14 l.45-47) : `Combatant.saboteurDR` (clampé), appliqué au total de TOUT Test d'équipage.
  */
 const chars = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const cook = (): Combatant =>
@@ -34,62 +35,27 @@ const vesselShip = (over: Partial<Combatant> = {}): Combatant =>
   combattantDeTest({ id: 'ship', label: 'Cogue', kind: 'npc', bodyShape: 'vehicule', creatureId: 'coracle', crewIds: ['cook'],
     pos: { x: 5, y: 5 }, conditions: [], weapons: [], ...over });
 
-function openRudeEpreuve(shipOver: Partial<Combatant> = {}) {
-  seedBattleRng(7);
-  banc.setState({
-    battle: { combatants: [vesselShip(shipOver), cook()], order: ['cook'], turn: 0, round: 1, acted: false, log: [] } as never,
-    party: [cook()], facing: { ship: 'N' }, pendingCrewTest: null, scene: null as never,
-    vessel: { vehicleId: 'coracle', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
-  });
-  banc.getState().eprouverLEquipage('ship', 'rude-epreuve');
-}
-
-/** Force le résultat d'un participant (déterminisme du confirm — le FLUX de jet est déjà testé ailleurs). */
-function forceResult(pid: string, sl: number) {
-  const p = banc.getState().pendingCrewTest!;
-  banc.setState({
-    pendingCrewTest: {
-      ...p,
-      participants: p.participants.map((x) => (x.id === pid ? { ...x, result: { roll: 90, target: 50, sl } } : x)),
-    },
-  });
-}
-
-describe('Rude épreuve en combat (MDG 14 l.106-114) — delta de Moral persisté', () => {
-  beforeEach(() => banc.setState({ pendingCrewTest: null, vessel: null }));
-
-  it('eprouverLEquipage ouvre le Test (Cuisinier ★ inféré) ; total NÉGATIF → Moral réduit d’autant sur le vessel (l.110)', () => {
-    openRudeEpreuve();
-    const p = banc.getState().pendingCrewTest!;
-    expect(p.testTypeId).toBe('rude-epreuve');
-    expect(p.essentialRoleId).toBe('cuisinier');
-    const part = p.participants.find((x) => x.id === 'cook')!;
-    expect(part.roleId).toBe('cuisinier'); // rôle inféré des avances (Métier (Cuisinier))
-    expect(part.essential).toBe(true);
-    forceResult('cook', -2); // essentiel ×2 → total −4
-    banc.getState().jetConfirm('crewTest');
-    const st = banc.getState();
-    expect(st.pendingCrewTest).toBeNull();
-    expect(st.vessel!.morale.score).toBe(75 - 4); // « réduisez le Moral d'un nombre égal au nombre de ces DR »
-    expect(st.battle!.acted).toBe(true); // un jet = une Action
-    expect(st.battle!.crewActed?.ship).toContain('cook'); // marin engagé ce Round (cumul l.53)
+describe('Rude épreuve : un Test d’équipage de VOYAGE, jamais une action de combat (MDG 14 l.108-112, MDG 15 l.27)', () => {
+  it('au tour du navire en combat, aucune offre ne joue la Rude épreuve', () => {
+    const navire = vesselShip({ kind: 'hero' });
+    banc.setState({
+      battle: { combatants: [navire, cook()], order: ['ship'], turn: 0, round: 1, acted: false, log: [], over: null, reachable: new Map(), movementUsed: 0 } as never,
+      party: [cook()], facing: { ship: 'N' },
+    });
+    const s = banc.getState();
+    const offres = offresDeLActif({ active: s.battle!.combatants[0], battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime, state: s });
+    expect(offres.length, 'le navire n’a aucune offre').toBeGreaterThan(0);
+    expect(offres.filter((o) => o.def.rule?.id === 'test-equipage-rude-epreuve').map((o) => o.actionId)).toEqual([]);
   });
 
-  it('total POSITIF → aucun gain de Moral (l.110 ne joue qu’en négatif)', () => {
-    openRudeEpreuve();
-    forceResult('cook', 3);
-    banc.getState().jetConfirm('crewTest');
-    expect(banc.getState().vessel!.morale.score).toBe(75);
+  it('la traversée rapide la joue : l’étape de voyage du Test de Rude épreuve (Cuisinier ★)', () => {
+    banc.setState({ party: [cook()], travelPlan: { vehicle: vesselShip(), sea: { weather: {} } } as never });
+    const etape = buildVoyageCrewStep(banc.getState, 'rude-epreuve', 'voyage-rapide');
+    expect(etape?.kind).toBe('voyage-rapide');
+    expect(JSON.stringify(etape)).toContain('cuisinier');
   });
 
-  it('coque qui n’est PAS le navire de campagne → aucun Moral suivi (pas de mutation fantôme)', () => {
-    openRudeEpreuve({ creatureId: 'knarr' }); // vessel.vehicleId = 'cogue' ≠ knarr
-    forceResult('cook', -3);
-    banc.getState().jetConfirm('crewTest');
-    expect(banc.getState().vessel!.morale.score).toBe(75);
-  });
-
-  it('rudeEpreuveMoraleDelta : négatif passe, positif/nul → 0', () => {
+  it('rudeEpreuveMoraleDelta : négatif passe, positif/nul → 0 (MDG 14 l.110)', () => {
     expect(rudeEpreuveMoraleDelta(-4)).toBe(-4);
     expect(rudeEpreuveMoraleDelta(0)).toBe(0);
     expect(rudeEpreuveMoraleDelta(3)).toBe(0);
@@ -97,7 +63,7 @@ describe('Rude épreuve en combat (MDG 14 l.106-114) — delta de Moral persist�
 });
 
 describe('Sabotage des Tests d’équipage (MDG 14 l.45-47 : −1..−5 DR)', () => {
-  beforeEach(() => banc.setState({ pendingCrewTest: null, vessel: null }));
+  beforeEach(() => banc.setState({ vessel: null }));
 
   it('shipSaboteurDR clampe à la fourchette RAW [-5, 0]', () => {
     expect(shipSaboteurDR(vesselShip())).toBe(0);
@@ -106,15 +72,18 @@ describe('Sabotage des Tests d’équipage (MDG 14 l.45-47 : −1..−5 DR)', ()
     expect(shipSaboteurDR(vesselShip({ saboteurDR: 2 }))).toBe(0); // un « saboteur » ne BONIFIE pas
   });
 
-  it('le pending porte extraDR et le total du Test le subit (maneuverCrewTotal)', () => {
-    openRudeEpreuve({ saboteurDR: -3 });
-    const p = banc.getState().pendingCrewTest!;
+  it('le pending d’un Test d’équipage de combat (manœuvre) porte extraDR et le total du Test le subit (maneuverCrewTotal)', () => {
+    seedBattleRng(7);
+    const timonier = { ...cook(), skills: [{ ...NAVIGATION, advances: 20 } as SkillInstance] };
+    banc.setState({
+      battle: { combatants: [vesselShip({ kind: 'hero', saboteurDR: -3 }), timonier], order: ['ship'], turn: 0, round: 1, acted: false, log: [], over: null, reachable: new Map(), movementUsed: 0 } as never,
+      party: [timonier], facing: { ship: 'N' }, pendingShipManeuver: null, scene: emptyScene('scene-test', 12, 12),
+    });
+    banc.getState().manoeuvrerLeNavire('ship');
+    const p = banc.getState().pendingShipManeuver!;
     expect(p.extraDR).toBe(-3);
-    forceResult('cook', 1); // essentiel ×2 → +2 ; sabotage −3 → total −1
-    const p2 = banc.getState().pendingCrewTest!;
-    expect(maneuverCrewTotal(p2.participants, p2.essentialRoleId, p2.moraleScore, p2.undercrew, p2.extraDR)).toBe(-1);
-    banc.getState().jetConfirm('crewTest');
-    expect(banc.getState().vessel!.morale.score).toBe(74); // Rude épreuve : −1 Moral
+    const sansSabotage = maneuverCrewTotal(p.participants, p.essentialRoleId, p.moraleScore, p.undercrew, 0);
+    expect(maneuverCrewTotal(p.participants, p.essentialRoleId, p.moraleScore, p.undercrew, p.extraDR)).toBe(sansSabotage - 3);
   });
 
   it('resolveCrewTestByRoles (résolveur PUR tout-PNJ) applique aussi extraDR', () => {

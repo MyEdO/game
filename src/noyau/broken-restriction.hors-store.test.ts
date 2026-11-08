@@ -5,6 +5,7 @@ import { chooseEnemyAction } from './monde/ai';
 import { hasCondition } from '../engine/conditions';
 import { chebyshev } from '../engine/grid';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -21,13 +22,13 @@ function setup(broken: boolean, enemyPos = { x: 9, y: 5 }) {
 
 describe('Brisé — restriction d\'action (LDB 16 l.52)', () => {
   // Purge inter-tests : `combatBusy` gèle la hotbar sous un jet OU une cascade en cours. Depuis que la
-  // Charge ouvre une cascade combat (comme l'attaque normale), `battleClickEntity` laisse un `pendingCascade`
+  // Charge ouvre une cascade combat (comme l'attaque normale), `cliquerLaCase` laisse un `pendingCascade`
   // qu'il faut aussi purger (sinon le test suivant verra `combatBusy === true`).
   beforeEach(() => { banc.setState({ battle: null, pendingAttack: null, pendingCascade: null }); });
 
   it('Brisé : le clic-ennemi est REFUSÉ (aucune action offensive)', () => {
     setup(true);
-    banc.getState().battleClickEntity('e', { confirm: true });
+    cliquerSurLeCombattant(banc.getState, 'e', { confirm: true });
     expect(banc.getState().pendingAttack).toBeNull();
   });
 
@@ -36,7 +37,7 @@ describe('Brisé — restriction d\'action (LDB 16 l.52)', () => {
     banc.abandonner();
     // La cible est hors d'Allonge : depuis la spec HUD § ARBITRAGE 2026-08-19, le clic ne s'approche
     // plus tout seul — le joueur ARME la Charge, et le verdict voyage avec le geste (`approche`).
-    banc.getState().battleClickEntity('e', { confirm: true, approche: true });
+    cliquerSurLeCombattant(banc.getState, 'e', { confirm: true, approche: true });
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) → ouvre la frappe
     expect(banc.getState().pendingAttack).not.toBeNull();
   });

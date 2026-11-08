@@ -4,7 +4,7 @@
  * déroule via `drain()`, qui pose les dés des tours du héros (étape à TABLE, 2d10) et tranche ses
  * choix. Les tours des habitués se résolvent sans fenêtre, côté monde.
  *
- * Les dés du héros sont POSÉS (`jetSetForcedRoll('cascadeTirage')`, le mode « dés fixés » du dépôt) : c'est
+ * Les dés du héros sont POSÉS (`jetImposerLeResultat('cascadeTirage')`, le mode « dés fixés » du dépôt) : c'est
  * le seul moyen d'exercer une PLAGE précise (2 = éliminé, 20 = rafle) sans dépendre d'une graine.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -94,7 +94,7 @@ async function partieComptee(des: number[], opts: { ante?: number; joueurs?: num
   const ante = opts.ante ?? 100;
   const a = tableDeJeu();
   const avant = toBrass(bourseOf(get().party[0]));
-  get().playTavernGame({
+  get().jouerALaTaverne({
     gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' },
     stakeBrass: ante, tablePlayers: opts.joueurs ?? 3,
   });
@@ -178,7 +178,7 @@ describe('Al-zahr — la partie au store', () => {
   it('partie entière : la bourse du héros bouge EXACTEMENT du solde annoncé', async () => {
     const a = tableDeJeu();
     const avant = toBrass(bourseOf(get().party[0]));
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
+    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     expect(get().sequence?.def).toBe('tavern');
     await drain();
     const res = get().tavernGames!.result!;
@@ -193,7 +193,7 @@ describe('Al-zahr — la partie au store', () => {
     const [a, b] = makePregens().slice(0, 2) as [Combatant, Combatant];
     banc.setState({ party: [a, b] });
     for (const h of [a, b]) creditBourse(get, banc.setState, h.id, { gold: 0, silver: 0, brass: 3000 });
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'hero', id: b.id }, stakeBrass: 10, tablePlayers: 3 });
+    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'hero', id: b.id }, stakeBrass: 10, tablePlayers: 3 });
     const cur = () => get().pendingCascade!.participants[get().pendingCascade!.cursor];
     const fermeEntreDeuxManches = (quoi: string) => {
       expect(sequenceAbandonEtatOf(get)?.refus, `${quoi} : fermé`).toBe('Abandon possible entre deux manches.');
@@ -201,17 +201,17 @@ describe('Al-zahr — la partie au store', () => {
       expect(get().sequence?.abandon, `${quoi} : aucune demande posée`).toBeUndefined();
     };
     get().jetRegler('cascade', 'choix', '10', cur().id);
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     expect(cur().table && !cur().table!.result && cur().actorId, 'tour du challenger, dé non posé').toBe(a.id);
     fermeEntreDeuxManches('tour non lancé du challenger');
-    get().jetSetForcedRoll('cascadeTirage', 4, cur().id);
-    get().jetConfirm('cascade');
+    get().jetImposerLeResultat('cascadeTirage', 4, cur().id);
+    get().jetValider('cascade');
     expect(cur().kind, 'le 4 appende « remettre ou abandonner »').toBe('tavern-pot-fold');
     expect(cur().defaultChoice, 'aucune demande ne fait du pli un défaut').toBe('remise');
     fermeEntreDeuxManches('pli dû');
     // Le PLI est la sortie RAW : le challenger quitte la manche, qui se joue entre les restants.
     get().jetRegler('cascade', 'choix', 'abandon', cur().id);
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     const fenetres: string[] = [];
     let fenetreDeB = false;
     for (let i = 0; i < 200 && get().pendingCascade && (get().sequence?.payload as { manche?: number } | undefined)?.manche === 1; i++) {
@@ -229,7 +229,7 @@ describe('Al-zahr — la partie au store', () => {
   it('ABANDON à la fenêtre d’OUVERTURE (l.17) : rien n’est encore misé — la manche n’est pas jouée, la partie est perdue', () => {
     const a = tableDeJeu();
     const avant = toBrass(bourseOf(get().party[0]));
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
+    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     const cur = () => get().pendingCascade!.participants[get().pendingCascade!.cursor];
     expect(cur().kind).toBe('tavern-pot-target');
     expect(sequenceAbandonOf(get), 'entre deux manches : offert').not.toBeNull();
@@ -245,12 +245,12 @@ describe('Al-zahr — la partie au store', () => {
   it('ABANDON à l’ouverture d’une manche SUIVANTE annoncée par un autre : fenêtre du challenger, la manche jouée reste soldée', () => {
     const a = tableDeJeu();
     const avant = toBrass(bourseOf(get().party[0]));
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
+    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     const cur = () => get().pendingCascade!.participants[get().pendingCascade!.cursor];
     get().jetRegler('cascade', 'choix', '7', cur().id);
-    get().jetConfirm('cascade');
-    get().jetSetForcedRoll('cascadeTirage', 20, cur().id);
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
+    get().jetImposerLeResultat('cascadeTirage', 20, cur().id);
+    get().jetValider('cascade');
     expect((get().sequence!.payload as { manche: number }).manche).toBe(2);
     expect(cur().kind, 'ouverture de la manche 2').toBe('tavern-pot-target');
     expect(cur().actorId, 'l’annonce d’un autre se lit à la fenêtre du challenger').toBe(a.id);
@@ -264,14 +264,14 @@ describe('Al-zahr — la partie au store', () => {
 
   it('la MISE puis la CIBLE (l.17) : l’ouverture ne prend rien ; sa clôture prélève la mise de chacun, puis la cible est annoncée', () => {
     const a = tableDeJeu();
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
+    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     const payload = () => get().sequence!.payload as { pot?: number; net?: Record<string, number>; seats?: unknown[]; mises?: Record<string, number>; target?: number | null };
     expect(payload().seats).toHaveLength(3);
     expect(payload().pot, 'fenêtre d’ouverture : pot vide').toBe(0);
     expect(payload().net?.[a.id] ?? 0, 'rien n’est engagé').toBe(0);
     const cur = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     get().jetRegler('cascade', 'choix', '9', cur.id);
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     expect(payload().pot, '3 joueurs × 100 sc').toBe(300);
     expect(payload().net?.[a.id], 'le héros a engagé sa mise').toBe(-100);
     expect(Object.values(payload().mises ?? {}).reduce((x, y) => x + y, 0), 'Σ mises = pot').toBe(300);
@@ -286,7 +286,7 @@ describe('Al-zahr — la partie au store', () => {
     const a = tableDeJeu();
     seedBattleRng(3);
     const avant = toBrass(bourseOf(get().party[0]));
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
+    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     banc.setState({ sequence: { ...get().sequence!, params: { ...get().sequence!.params, maxRounds: 8 } } });
     let sousSaMise = false;
     for (let i = 0; i < 60 && get().pendingCascade; i++) {
@@ -304,14 +304,14 @@ describe('Al-zahr — la partie au store', () => {
 
   it('mise plafonnée à la bourse du challenger', () => {
     const a = tableDeJeu(50);
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100000 });
+    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100000 });
     expect((get().sequence!.payload as { stakeBrass: number }).stakeBrass).toBe(50);
   });
 
   it('sans le sou : aucune partie ne s’ouvre (garde explicite, la source est muette)', () => {
     const a = heros();
     banc.setState({ party: [a] });
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100 });
+    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100 });
     expect(get().sequence).toBeNull();
     expect(get().pendingCascade).toBeNull();
     expect(get().journal.some((l) => l.includes('aucune partie'))).toBe(true);
@@ -319,7 +319,7 @@ describe('Al-zahr — la partie au store', () => {
 
   it('ÉLIMINÉ (2) : le joueur ne relance plus de la manche — les autres, si', async () => {
     const a = tableDeJeu();
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
+    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     // Cible annoncée par le héros (il ouvre la manche), puis son 1ᵉʳ lancer POSÉ à 2.
     const { trace, journal } = await drain({ des: [2] });
     const sien = trace.filter((s) => s.kind === 'tavern-pot-turn' && s.manche === 1 && s.actorId === a.id);
@@ -336,7 +336,7 @@ describe('Al-zahr — la partie au store', () => {
 
   it('le POT va au vainqueur : un 20 rafle les mises de la table', async () => {
     const a = tableDeJeu();
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
+    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     const { journal } = await drain({ des: [20] });
     const potEntier = formatMoney(fromBrass(300)); // 3 mises de 100 sous
     expect(journal.some((l) => l === `${a.label} remporte la manche et empoche ${potEntier}.`)).toBe(true);
@@ -362,7 +362,7 @@ describe('Al-zahr — la partie au store', () => {
     creditBourse(get, banc.setState, a.id, { gold: 0, silver: 0, brass: 5000 });
     const avant = toBrass(bourseOf(get().party[0]));
     // Le vis-à-vis est un COMPAGNON sans le sou : la table ne peut pas s'ouvrir à deux.
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'hero', id: b.id }, stakeBrass: 100, tablePlayers: 2 });
+    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'hero', id: b.id }, stakeBrass: 100, tablePlayers: 2 });
     const { journal } = await drain();
     expect(toBrass(bourseOf(get().party[0])), 'la mise du solvable n’est pas partie en fumée').toBe(avant);
     expect(get().tavernGames!.result!.netBrass).toBe(0);
@@ -385,7 +385,7 @@ describe('Al-zahr — la partie au store', () => {
   it('D2 — partie INTERROMPUE : le pot en vol revient à ceux qui l’ont mis, et l’issue suit la bourse', async () => {
     const a = tableDeJeu();
     // Borne ramenée à un seul tour : la partie est coupée le pot encore plein (artefact d'anti-boucle).
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
+    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     const avant = toBrass(bourseOf(get().party[0]));
     banc.setState({ sequence: { ...get().sequence!, params: { ...get().sequence!.params, maxRounds: 2 } } });
     const { journal } = await drain();
@@ -397,42 +397,42 @@ describe('Al-zahr — la partie au store', () => {
 
   it('l’ENCART de résultat dit l’ISSUE au moment du jet, jamais la seule fourchette', () => {
     const a = tableDeJeu();
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
+    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     // 1) le héros ouvre la manche : il annonce la cible (défaut de l'étape de choix = 7).
     const cibleStep = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     expect(cibleStep.kind).toBe('tavern-pot-target');
     get().jetRegler('cascade', 'choix', '7', cibleStep.id);
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     // 2) son lancer POSÉ à 7 atteint la cible : l'encart le dit AVANT le commit.
     const tour = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     expect(tour.kind).toBe('tavern-pot-turn');
-    get().jetSetForcedRoll('cascadeTirage', 7, tour.id);
+    get().jetImposerLeResultat('cascadeTirage', 7, tour.id);
     const pose = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     expect(pose.table!.result!.lines[0], 'la rafle est annoncée à l’écran du jet').toBe('la manche est remportée, le pot est raflé');
     // 3) même vérité que le journal : la ligne de récit dit la même issue.
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     expect(get().journal.concat(get().pendingCascade?.participants.flatMap((s) => s.outcome?.map((o) => o.text) ?? []) ?? [])
       .some((l) => typeof l === 'string' && l.includes('la manche est remportée, le pot est raflé'))).toBe(true);
   });
 
   it('un lancer qui PASSE la cible n’annonce pas une victoire (même plage, autre issue)', () => {
     const a = tableDeJeu();
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
+    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     const cibleStep = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     get().jetRegler('cascade', 'choix', '7', cibleStep.id);
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     const tour = get().pendingCascade!.participants[get().pendingCascade!.cursor];
-    get().jetSetForcedRoll('cascadeTirage', 12, tour.id); // même fourchette 7-15, cible NON atteinte
+    get().jetImposerLeResultat('cascadeTirage', 12, tour.id); // même fourchette 7-15, cible NON atteinte
     const pose = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     expect(pose.table!.result!.lines[0]).toBe('raté : 12 devient le nombre cible du suivant');
   });
 
   it('le tableau de marque montre le POT en jeu', () => {
     const a = tableDeJeu();
-    get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
+    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     const cible = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     get().jetRegler('cascade', 'choix', '7', cible.id);
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     const board = sequenceBoardOf(get);
     expect(board?.pot).toBe(`Pot : ${formatMoney(fromBrass(300))}`);
     expect(board?.camps).toHaveLength(3);

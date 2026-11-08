@@ -259,7 +259,7 @@ function defaultOpsTone(ops: GameOp[]): RecapTone {
 
 /**
  * Rend la ou les conséquences d'une étape DÉJÀ dénouée en LIGNES STRUCTURÉES (#349) — LA forme
- * consommée par le renderer partagé (`ui/RecapLine.tsx`) : `CascadeStep.outcome`, `TravelRecapDay.
+ * consommée par le rendu de chaque hôte : `CascadeStep.outcome`, `TravelRecapDay.
  * lines`. Une entrée VIDE (`text` vide) est filtrée — `cons` vide ⇒ `[]`.
  *
  * Le TON reste celui qui a été AUTHORÉ (#1078 LOT B2) : une conséquence `say` sans `tone` n'en reçoit
@@ -277,7 +277,7 @@ export function resultLines(cons: Consequence[]): RecapLine[] {
 
 /**
  * Rend la ou les conséquences d'une étape DÉJÀ dénouée EN UNE CHAÎNE — repli pour les ~100 call-sites
- * NON convertis au rendu structuré (journal texte, `get().log()`) : joint `resultLines` (#349, source
+ * NON convertis au rendu structuré (journal texte, `get().ecrireAuJournal()`) : joint `resultLines` (#349, source
  * UNIQUE — ne recalcule rien). Le verdict ✓/✗ ±DR reste porté par la rangée de jet (`RollLine`) seule.
  */
 export function resultLine(cons: Consequence[]): string {
@@ -291,7 +291,7 @@ export type FreeConsLine = string | { text: string; tone?: RecapTone; icon?: str
 
 /** Enveloppe des lignes de conséquence DÉJÀ composées (sans roll/target/sl du jet visible) en
  *  `Consequence[]` (#295 Lot 1, `out.free` passthrough) — SOURCE UNIQUE, réutilisée par tous les
- *  appliers de cascade migrés (river/travel/sea/shipwreck/pursuit/combat/rest/embrigadement). */
+ *  appliers de cascade migrés (river/travel/sea/shipwreck/pursuit/combat/rest). */
 export const freeCons = (texts: FreeConsLine[]): Consequence[] => texts
   .map((x): { text: string; tone?: RecapTone; icon?: string } => (typeof x === 'string' ? { text: x } : x))
   .filter((x) => x.text.length > 0)
@@ -414,7 +414,7 @@ export function surfaceDesEtapes(get: Get, steps: readonly CascadeStep[]): Surfa
  * route la sentinelle du monde). Cette fonction n'ajoute donc QUE la cadence : la fenêtre s'ouvre si
  * un siège humain tient le porteur et que la cadence n'est pas déférée à un automate. L'option de
  * confort « Dés fixés » n'entre PAS dans la surface : elle ne gate que la POSE du dé
- * (`netOwnership.canFixDie`, au site unique de la pose `ui/forcedDieRow`), jamais le fait de VOIR le jet.
+ * (`netOwnership.canFixDie`), jamais le fait de VOIR le jet.
  *
  * `isOutOfAction` n'entre PAS ici : « le sujet peut-il encore jouer » est un critère MÉTIER, tranché
  * au site ; les sites divergent (#1265).
@@ -831,7 +831,7 @@ export function assertSeparabilite(surLaCible: ModLine[], combine: number, circC
 /**
  * MONTEUR CANONIQUE d'une ligne de jet (#1153) — le SEUL endroit du jeu où `base`/`mods`/`target`
  * d'une étape se calculent. La porte du seam (`buildMonoStep`) comme les monteurs LOCAUX des flux
- * (voyage fluvial/maritime/terrestre, embrigadement, activités hors combat) le consomment : un
+ * (voyage fluvial/maritime/terrestre, activités hors combat) le consomment : un
  * call-site DÉCLARE, il ne calcule plus — une erreur de cette famille se corrige ICI, une fois.
  *
  * INVARIANTS :
@@ -1243,7 +1243,7 @@ export interface ChoiceSpec {
   /** Fiche de RÈGLE qui encadre le choix (une étape sans jet n'a pas d'enjeu à dériver). */
   stakeRule?: { category: string; id: string };
   /** HYBRIDE choix + RÉVÉLATION (#1262 B5) : la décision se prend DEVANT la charge riche qui la motive
-   *  (le Critique pré-tiré d'une déviation). Recopiée telle quelle sur l'étape — `ui/RevealBody` la rend
+   *  (le Critique pré-tiré d'une déviation). Recopiée telle quelle sur l'étape — l'hôte la rend
    *  sous les options. Le rendu d'une révélation n'est pas une seconde étape à enchaîner. */
   reveal?: RevealEntry;
   /** Lignes de conséquence DÉJÀ écrites qui exposent l'enjeu du choix (Piège-lame : ce que chaque voie

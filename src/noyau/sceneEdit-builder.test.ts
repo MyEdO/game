@@ -62,8 +62,8 @@ describe('édition de scène — scalaires de scène', () => {
 
 describe('édition de scène — zone d’effet : presentation/id (#841 FU-B, le nœud)', () => {
   it('la variante « Pièce » de l’outil zone crée un intérieur NU : aucun effet, satisfait le filtre « Pièces révélées » (Inspector.tsx)', () => {
-    const { scene, idx } = addEffectZone(emptyScene('scene-test', 6, 6), { x: 0, y: 0, w: 2, h: 2 }, 0, EFFECT_ZONE_SEEDS.room);
-    const zone = scene.effectZones![idx];
+    const { scene } = addEffectZone(emptyScene('scene-test', 6, 6), { x: 0, y: 0, w: 2, h: 2 }, 0, EFFECT_ZONE_SEEDS.room);
+    const zone = scene.effectZones![0];
     expect(zone.presentation).toBe('interior');
     // Le geste de l'auteur est ENTIER dès le glissé : rien à désarmer derrière lui.
     expect(zone.onCross).toBeUndefined();
@@ -72,20 +72,20 @@ describe('édition de scène — zone d’effet : presentation/id (#841 FU-B, le
     expect(zone.barrier).toBeUndefined();
     expect(zone.blocksLoS).toBeUndefined();
     expect(isRoomZone(zone)).toBe(true);
-    expect(JSON.parse(JSON.stringify(scene)).effectZones[idx].presentation).toBe('interior'); // survit au JSON
+    expect(JSON.parse(JSON.stringify(scene)).effectZones[0].presentation).toBe('interior'); // survit au JSON
   });
 
   it('la variante « Piège / hasard » porte SA graine — l’effet vient de l’outil, pas du créateur partagé', () => {
-    const { scene, idx } = addEffectZone(emptyScene('scene-test', 6, 6), { x: 0, y: 0, w: 2, h: 2 }, 0, EFFECT_ZONE_SEEDS.effect);
-    const zone = scene.effectZones![idx];
+    const { scene } = addEffectZone(emptyScene('scene-test', 6, 6), { x: 0, y: 0, w: 2, h: 2 }, 0, EFFECT_ZONE_SEEDS.effect);
+    const zone = scene.effectZones![0];
     expect(zone.onCross?.some((o) => o.op === 'wounds')).toBe(true);
     expect(isDescriptiveZone(zone)).toBe(false);
     expect(zone.presentation).toBeUndefined();
   });
 
   it('renameEffectZone renomme l’id ET repropage la référence dans FacadeSection.roomZoneIds', () => {
-    const { scene, idx } = addEffectZone(emptyScene('scene-test', 6, 6), { x: 0, y: 0, w: 2, h: 2 });
-    const oldId = scene.effectZones![idx].id;
+    const { scene } = addEffectZone(emptyScene('scene-test', 6, 6), { x: 0, y: 0, w: 2, h: 2 });
+    const oldId = scene.effectZones![0].id;
     const withFacade: Scene = {
       ...scene,
       architecture: [{
@@ -97,13 +97,13 @@ describe('édition de scène — zone d’effet : presentation/id (#841 FU-B, le
       }],
     };
     const renamed = renameEffectZone(withFacade, oldId, 'salle-du-tresor');
-    expect(renamed.effectZones![idx].id).toBe('salle-du-tresor');
+    expect(renamed.effectZones![0].id).toBe('salle-du-tresor');
     expect(renamed.architecture![0].facades[0].roomZoneIds).toEqual(['salle-du-tresor']);
   });
 
   it('renameEffectZone est un no-op si id absent, vide, identique ou en collision', () => {
-    const { scene, idx } = addEffectZone(emptyScene('scene-test', 6, 6), { x: 0, y: 0, w: 2, h: 2 });
-    const oldId = scene.effectZones![idx].id;
+    const { scene } = addEffectZone(emptyScene('scene-test', 6, 6), { x: 0, y: 0, w: 2, h: 2 });
+    const oldId = scene.effectZones![0].id;
     const { scene: scene2 } = addEffectZone(scene, { x: 3, y: 3, w: 2, h: 2 });
     const dupeId = scene2.effectZones![1].id;
     expect(renameEffectZone(scene2, 'inexistant', 'x')).toBe(scene2);
@@ -226,7 +226,7 @@ describe('édition de scène — corps d’architecture : écrivains bornés du 
     const partId = body(scene, id).storeys[0].parts[0].id;
     const out = patchArchitecturePart(scene, id, storeyId, partId, { foot: { x: 9, y: -1, w: 3, h: 9 } });
     expect(body(out, id).storeys[0].parts[0].foot).toEqual({ x: 3, y: 0, w: 3, h: 6 });
-    const ex = patchRoofExclusion(addRoofExclusion(scene, id, 0), id, 0, { rect: { x: 7, y: 0, w: 2, h: 2 } });
+    const ex = patchRoofExclusion(addRoofExclusion(scene, id, 0, { x: 0, y: 0, w: 2, h: 2 }), id, 0, { rect: { x: 7, y: 0, w: 2, h: 2 } });
     expect(body(ex, id).roofExclusions?.[0].rect).toEqual({ x: 4, y: 0, w: 2, h: 2 });
   });
 
