@@ -36,6 +36,7 @@ import type { StakeRef } from '../data';
 import { actorStatus, statusMeets, type PorteurDeStatut } from './social';
 import { gelerLaConstante } from '../lib/gelerProfond';
 import type { MenaceId } from './menace';
+import { estObjet } from '../lib/objet.mjs';
 
 /** Fenêtre horaire d'un trigger/Condition (heure-du-jour, `before` EXCLUSIF). Champs absents = borne
  *  ouverte ; objet vide = toujours vrai. Aucune dépendance — type structurel pur. */
@@ -1016,7 +1017,7 @@ export interface RacineDeFlow {
 
 const listeDe = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 const objetDe = (v: unknown): Record<string, unknown> =>
-  v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+  estObjet(v) ? v : {};
 const idDe = (v: Record<string, unknown>): string => (typeof v.id === 'string' ? v.id : '?');
 
 /**

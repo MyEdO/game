@@ -5,7 +5,7 @@
  * (`surfaces.ts`), validés contre le GLB livré (`lireGlb`, `glb.ts`). Les rôles et les clips de la table se jugent dans le
  * graphe de l'hôte (`ecartsDeClips`, `clips.ts`).
  */
-import { estObjet } from '../../../src/hote/formes.ts';
+import { estObjet } from '../../../src/lib/objet.mjs';
 import { tableTotale } from '../../../src/lib/tableTotale.ts';
 import { sha256 } from './empreinte.ts';
 import { lireGlb } from './glb.ts';

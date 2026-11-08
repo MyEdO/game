@@ -25,6 +25,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -74,7 +75,7 @@ for (const [fichier, identite] of Object.entries(IDENTITES)) {
     echecs.push(`${fichier} : FORME NON CANONIQUE (pas \`JSON.stringify(doc, null, 2)\`)`);
     continue;
   }
-  if (Array.isArray(data) || data === null || typeof data !== 'object') {
+  if (!estObjet(data)) {
     echecs.push(`${fichier} : racine de forme inattendue (objet unique attendu pour la famille config)`);
     continue;
   }

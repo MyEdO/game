@@ -25,6 +25,7 @@ import { basename } from 'node:path'
 import { loadSource, findAlias, aliasDoc, readUnionMembers, renderFields } from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { mesurerCanaux } from './lib/canauxMecaniques.mjs'
+import { estObjet } from '../../src/lib/objet.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
@@ -172,7 +173,7 @@ function rendu() {
       if (typeof node.op === 'string') push(node.op, file, id)
       for (const k of Object.keys(node)) {
         const v = node[k]
-        const rootKeyed = depth === 0 && id == null && v && typeof v === 'object' && !Array.isArray(v)
+        const rootKeyed = depth === 0 && id == null && estObjet(v)
         walkJson(v, rootKeyed ? k : id, file, depth + 1)
       }
     }

@@ -10,7 +10,8 @@ import {
   porteurParId, quiTientLaMain, refusDeLOffre, siegeDe,
   type ContexteDOffre, type Intention, type Jeu, type Offre, type Partie, type ResultatDeLAppel,
 } from '../noyau/index';
-import { estObjet, lireALaForme, signature, type Designes, type Forme, type ParametreDeVerbe } from './formes';
+import { estObjet } from '../lib/objet.mjs';
+import { lireALaForme, signature, type Designes, type Forme, type ParametreDeVerbe } from './formes';
 import { ErreurDeGeste, valider } from './partie';
 import { offresDeLaBarreOuverte } from './projection';
 import { CHOIX, REGLAGES, VERBES } from './verbes.generated';

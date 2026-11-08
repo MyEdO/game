@@ -19,6 +19,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const MONTURES = 'src/data/montures.json';
@@ -30,7 +31,6 @@ const avant = fs.readFileSync(cible, 'utf8');
 const doc = JSON.parse(avant);
 if (serializeDataset(doc) !== avant) fautes.push(`${MONTURES} : formatage non canonique`);
 
-const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const sansClesDEnveloppe = (rangee) => Object.fromEntries(Object.entries(rangee).filter(([k]) => k !== 'id' && k !== 'label'));
 
 let liste;

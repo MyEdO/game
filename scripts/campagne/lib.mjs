@@ -17,6 +17,7 @@ import { documentDeProjet } from '../../src/noyau/worldMap.ts';
 import { emptyNarratif } from '../../src/noyau/monde/campaignNarratif.ts';
 import { findCreatureById, byId, findSpellById, findTraitById, findTrappingById, findVehicleById, siegeEngines, species as SPECIES_CATALOG } from '../../src/data/index.ts';
 import { fauteDEspece, messageDeTenueInconnue, tenueFermeeSchema } from '../../src/data/schemas/grammaire/valeurs.ts';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 // ── VALIDATION id-only, à l'AUTHORING ───────────────────────────────────────────────────────
 // L'auteur écrit des IDS STABLES (`snotling`, `resistance`, `arc`, `mendiant`) — le libellé est de
@@ -61,7 +62,7 @@ function weaponId(id) {
 }
 
 function traitInstance(entry, field) {
-  if (!entry || typeof entry !== 'object' || Array.isArray(entry) || typeof entry.id !== 'string') {
+  if (!estObjet(entry) || typeof entry.id !== 'string') {
     throw new Error(`campagne : ${field} — attendu un TraitInstance à id structuré, jamais un libellé.`);
   }
   if (!findTraitById(entry.id)) {
@@ -71,7 +72,7 @@ function traitInstance(entry, field) {
 }
 
 function optionalEntry(entry) {
-  if (entry && typeof entry === 'object' && !Array.isArray(entry) && typeof entry.note === 'string') {
+  if (estObjet(entry) && typeof entry.note === 'string') {
     if (entry.note === 'swap') {
       for (const id of entry.remove ?? []) {
         if (!findTraitById(id)) throw new Error(`campagne : optionals.remove — trait introuvable « ${id} » (attendu un id de traits.json).`);

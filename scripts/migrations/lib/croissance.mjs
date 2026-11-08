@@ -36,6 +36,7 @@ import { listerDossier } from '../../guards/lib/lister.mjs';
 import { pagesDeLAtlas } from '../../raw/_lib.mjs';
 import { comparer, empreinteDe } from './empreinteRejeu.mjs';
 import { PERIMETRE } from '../replay.mjs';
+import { estObjet } from '../../../src/lib/objet.mjs';
 
 /** Les migrations DATÉES d'un dossier — le périmètre que `replay.mjs` rejoue. */
 export function migrationsDatees(dossier) {
@@ -120,7 +121,7 @@ export const SUFFIXE = '-croissance';
 export function croitre(liste) {
   if (!Array.isArray(liste) || liste.length === 0) return null;
   const derniere = liste[liste.length - 1];
-  if (!derniere || typeof derniere !== 'object' || Array.isArray(derniere)) return null;
+  if (!estObjet(derniere)) return null;
   if (typeof derniere.id !== 'string' || !derniere.id) return null;
   const clone = structuredClone(derniere);
   clone.id = `${derniere.id}${SUFFIXE}`;

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { auditDataset, EXEMPT_DATASETS, exemptionDeDataset, isCitedItem } from '../../scripts/guards/lib/citationCoverage.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { SANS_LIVRE_DEFINITIF } from './schemas/grammaire/sans-livre';
+import { estObjet } from '../lib/objet.mjs';
 
 /**
  * Garde-fou « citation par ENTRÉE » (#309, phase 1 — suite #278/#281). #278/#281 gardent la FORME
@@ -95,9 +96,9 @@ describe('garde-fou « citation par entrée » — couverture source:{book,page}
     // Ancien guard (trou permissif décrit #563 : ne voit QUE `source`, ignore `alsoIn`) — rétabli
     // ICI en local pour la preuve de morsure, jamais réintroduit dans citationCoverage.mjs.
     const ancienGuard = (item: unknown): boolean => {
-      if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
+      if (!estObjet(item)) return false;
       const rec = item as Record<string, unknown>;
-      if (rec.source && typeof rec.source === 'object' && !Array.isArray(rec.source) && typeof (rec.source as Record<string, unknown>).book === 'string') return true;
+      if (estObjet(rec.source) && typeof rec.source.book === 'string') return true;
       if (typeof rec._source === 'string' && rec._source.length > 0) return true;
       if (typeof rec.maison === 'string' && rec.maison.length > 0) return true;
       return false;

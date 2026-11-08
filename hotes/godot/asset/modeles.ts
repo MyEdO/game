@@ -1,6 +1,6 @@
 import { emplacementsNonOfferts, validerElement, type ManifesteDElement } from './element.ts';
 import { lireGlb } from './glb.ts';
-import { estObjet } from '../../../src/hote/formes';
+import { estObjet } from '../../../src/lib/objet.mjs';
 import { cheminsAbsolus, ligneDErreur } from './manifeste.ts';
 import { validerManifesteDeBase, type ManifesteDeBase, type VerdictDeBase } from './manifesteDeBase.ts';
 import { ecartsDeClips } from './clips.ts';

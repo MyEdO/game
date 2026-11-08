@@ -29,6 +29,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const CIBLE = path.join(ROOT, 'src/data/names.json');
@@ -66,7 +67,7 @@ for (const [cle, pool] of Object.entries(data)) {
     echecs.push(`${cle} : aucune race connue sous cette clé — label AUTHORÉ requis`);
     continue;
   }
-  if (!pool || typeof pool !== 'object' || Array.isArray(pool)) {
+  if (!estObjet(pool)) {
     echecs.push(`${cle} : banque de forme inattendue (objet attendu)`);
     continue;
   }

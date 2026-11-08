@@ -25,6 +25,7 @@ import { types } from 'node:util'
 import { typescript } from './dialecte.mjs'
 import { gelerLaConstante } from '../../../src/lib/gelerProfond.ts'
 import { clesCanoniques } from './clesCanoniques.mjs'
+import { estObjet } from '../../../src/lib/objet.mjs'
 
 /** Les primitives de LECTURE et de LISTAGE du système de fichiers : l'argument 0 est la racine. Une
  *  sonde d'absence (`existsSync`, `statSync`) est une lecture : un fichier qui apparaît change son verdict. */
@@ -890,7 +891,7 @@ function validerDomaineDuLot(resolutions, lecteurs, questions) {
   const copieQuestions = []
   for (let i = 0, n = questions.length; i < n; i++) {
     const question = valeurPropre(questions, i, `questions[${i}]`)
-    if (!question || typeof question !== 'object' || Array.isArray(question)) throw new Error(`SNAPSHOT_QUESTION_NON_OBJET:${i}`)
+    if (!estObjet(question)) throw new Error(`SNAPSHOT_QUESTION_NON_OBJET:${i}`)
     const cles = Reflect.ownKeys(question)
     if (cles.some((cle) => typeof cle !== 'string') || cles.sort().join() !== 'f,nature') throw new Error(`SNAPSHOT_QUESTION_CLES:${i}`)
     const nature = valeurPropre(question, 'nature', `questions[${i}].nature`)

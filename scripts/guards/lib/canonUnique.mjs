@@ -11,7 +11,7 @@
 // foyer (`{ ...FORMULE_DE_CHEBYSHEV, foyer: 'src/engine/grid.ts' }`) :
 //  - les constructions génériques `FORMULE_DE_CHEBYSHEV`, `ECHAPPEUR_DE_LITTERAL`,
 //    `COUVERTURE_DE_SPEC`, `IDENTITE_D_INSTANCE`, `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON`,
-//    `SONDE_D_EXISTENCE`, `VIE_SUR_PID_LU` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
+//    `SONDE_D_EXISTENCE`, `PREDICAT_D_OBJET`, `VIE_SUR_PID_LU` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
 //  - six fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
 //    `complet` et `formes`, la forme `membres de type` lisant un type littéral comme une `interface`),
 //    `cleEnLigne` (la clé d'un site de stock écrite en ligne), `lectureBruteDeCollection` (la
@@ -584,6 +584,69 @@ export const SONDE_D_EXISTENCE = Object.freeze({
     const signal = sansEnveloppe(n.arguments[1]);
     const nul = (ts.isNumericLiteral(signal) && Number(signal.text) === 0) || (ts.isStringLiteral(signal) && signal.text === '0');
     return nul ? 'sonde d’existence de processus recopiée (`estPidVivant`)' : null;
+  },
+});
+
+/** Le sujet `X` d'un `typeof X <op> 'object'` (commuté), `op` parmi `operateurs`, sinon `null`.
+ *  @param {ts.Expression} e @param {readonly ts.SyntaxKind[]} operateurs @returns {ts.Expression | null} */
+function sujetDeTypeofObjet(e, operateurs) {
+  const x = sansEnveloppe(e);
+  if (!ts.isBinaryExpression(x) || !operateurs.includes(x.operatorToken.kind)) return null;
+  /** @param {ts.Expression} o */
+  const objet = (o) => { const y = sansEnveloppe(o); return ts.isStringLiteralLikeNode(y) && y.text === 'object'; };
+  /** @param {ts.Expression} o */
+  const sujet = (o) => { const y = sansEnveloppe(o); return ts.isTypeOfExpression(y) ? sansEnveloppe(y.expression) : null; };
+  return objet(x.right) ? sujet(x.left) : objet(x.left) ? sujet(x.right) : null;
+}
+
+/** Le sujet `X` d'un `Array.isArray(X)`, sinon `null`. @param {ts.Expression} e @returns {ts.Expression | null} */
+function sujetDIsArray(e) {
+  const x = sansEnveloppe(e);
+  if (!ts.isCallExpression(x) || x.arguments.length !== 1) return null;
+  const f = sansEnveloppe(x.expression);
+  const estIsArray = ts.isPropertyAccessExpression(f) && f.name.text === 'isArray' && ts.isIdentifier(f.expression) && f.expression.text === 'Array';
+  return estIsArray ? sansEnveloppe(x.arguments[0]) : null;
+}
+
+/** Le sujet `X` d'un `!Array.isArray(X)`, sinon `null`. @param {ts.Expression} e @returns {ts.Expression | null} */
+function sujetDeNonTableau(e) {
+  const x = sansEnveloppe(e);
+  return ts.isPrefixUnaryExpression(x) && x.operator === ts.SyntaxKind.ExclamationToken ? sujetDIsArray(x.operand) : null;
+}
+
+/** L'opérande `X` d'un test de présence (`testeLePlein`) ou de `Boolean(X)`. @param {ts.Expression} e
+ *  @returns {ts.Expression | null} */
+function presenceDe(e) {
+  const x = sansEnveloppe(e);
+  const booleen = ts.isCallExpression(x) && x.arguments.length === 1 && ts.isIdentifier(x.expression) && x.expression.text === 'Boolean';
+  return booleen ? sansEnveloppe(x.arguments[0]) : testeLePlein(x);
+}
+
+/** Le PRÉDICAT D'OBJET recopié (#3117) : une valeur objet, ni `null` ni tableau, dont le canon est `estObjet`
+ *  (`src/lib/objet.mjs`). Une chaîne `&&` qui porte, sur le même sujet `X` (même texte), `typeof X === 'object'`,
+ *  `!Array.isArray(X)` et un test de présence (`X`, `!!X`, `Boolean(X)`, `X != null`, `X !== null`) ; ou sa forme
+ *  NIÉE, une chaîne `||` qui porte `typeof X !== 'object'`, `Array.isArray(X)` et un test du vide (`!X`,
+ *  `X == null`, `X === null`) — opérandes commutés, dans tout ordre, parmi d'autres opérandes. Le NOM n'entre pas
+ *  dans la reconnaissance : une déclaration renommée (`isPlainObject`) comme un test en ligne est la même recopie.
+ *  Une chaîne se juge à sa racine, une fois. Angle mort : le prédicat réparti sur plusieurs instructions
+ *  (`if (!X) …; if (typeof X !== 'object') …`). */
+export const PREDICAT_D_OBJET = Object.freeze({
+  nom: 'PREDICAT_D_OBJET',
+  indice: (texte) => texte.includes('isArray') && texte.includes('object'),
+  /** @param {ts.Node} n @param {ts.SourceFile} sf @returns {string | null} */
+  reconnait: (n, sf) => {
+    if (!ts.isBinaryExpression(n)) return null;
+    const op = n.operatorToken.kind;
+    if ((op !== ts.SyntaxKind.AmpersandAmpersandToken && op !== ts.SyntaxKind.BarBarToken) || maillonDeChaine(n, op)) return null;
+    const nie = op === ts.SyntaxKind.BarBarToken;
+    const operandes = operandesOu(n, op);
+    /** @param {(e: ts.Expression) => ts.Expression | null} lire */
+    const sujets = (lire) => new Set(operandes.map(lire).filter((x) => x !== null).map((x) => x.getText(sf)));
+    const types = sujets((o) => sujetDeTypeofObjet(o, nie ? INEGALITES : EGALITES_SEULES));
+    const tableaux = sujets(nie ? sujetDIsArray : sujetDeNonTableau);
+    const tests = sujets(nie ? testeLeVide : presenceDe);
+    const sujet = [...types].find((x) => tableaux.has(x) && tests.has(x));
+    return sujet ? `prédicat d’objet recopié sur \`${sujet}\` (\`estObjet\`, src/lib/objet.mjs)` : null;
   },
 });
 

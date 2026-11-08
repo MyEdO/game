@@ -34,6 +34,7 @@ import { parUnitesDeCode } from './guards/lib/lister.mjs';
 import { litteralJs } from './guards/lib/litteralJs.mjs';
 import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs';
 import { MESSAGES_DE, SORTIES_DES_ESPACES } from './gen-registry.mjs';
+import { estObjet } from '../src/lib/objet.mjs';
 
 const { ids: SORTIE, cles: SORTIE_CLES, racines: SORTIE_RACINES } = SORTIES_DES_ESPACES;
 
@@ -44,8 +45,6 @@ export const TABLE_VIDE = 'export const IDS_PAR_ESPACE: Readonly<Record<string, 
 export function indexChargeable(texte: string): boolean {
   return /^export const IDS_PAR_ESPACE\b/m.test(texte) && !/^(<{7}|={7}|>{7})( |$)/m.test(texte);
 }
-
-const estObjet = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 /** Les éléments d'une collection-LISTE marquée, avec leur clé. */
 function elementsCles(c: CollectionDeFichier): [Record<string, unknown>, string][] {

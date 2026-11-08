@@ -1979,6 +1979,15 @@
     "verrou": "mur de l'ordre total d'oxlint.config.mjs (localeCompare, toLocale*, Intl refusés) ; scripts/guards/lib/lister.test.mjs, volet (c), sur la clôture des générateurs"
   },
   {
+    "id": "estObjet",
+    "type": "primitives.manifest",
+    "label": "estObjet",
+    "fichier": "src/lib/objet.mjs",
+    "concept": "prédicat d'OBJET : une valeur objet, ni null ni tableau — la forme d'un objet JSON lu (#3117) ; module pur en .mjs, composable par src/, les scripts, les gardes et les migrations ; une valeur objet OU tableau (qui a des enfants) est estConteneur (src/data/schemas/grammaire/descente.ts)",
+    "perimetre": "tout test qu'une valeur lue (JSON, stockage, message réseau, argument de geste, nœud de donnée) est un objet avant d'en lire les clés",
+    "verrou": "construction PREDICAT_D_OBJET (scripts/guards/lib/canonUnique.mjs), src/objet-recopie-guard.test.ts : aucune recopie du prédicat, en ligne ou renommée, hors de src/lib/objet.mjs"
+  },
+  {
     "id": "jsonCanonique",
     "type": "primitives.manifest",
     "label": "jsonCanonique",

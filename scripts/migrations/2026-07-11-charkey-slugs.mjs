@@ -12,6 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA_DIR = path.join(ROOT, 'src/data');
@@ -63,7 +64,7 @@ function walk(node, parentKey) {
   }
   if (node && typeof node === 'object') {
     for (const [k, v] of Object.entries(node)) {
-      if (RECORD_KEY_FIELDS.has(k) && v && typeof v === 'object' && !Array.isArray(v)) {
+      if (RECORD_KEY_FIELDS.has(k) && estObjet(v)) {
         // `char` en record-key (statblock) UNIQUEMENT si les clés sont bien des CharKey (sinon
         // c'est le `char` scalaire de Condition/GameOp, traité plus bas).
         const keys = Object.keys(v);

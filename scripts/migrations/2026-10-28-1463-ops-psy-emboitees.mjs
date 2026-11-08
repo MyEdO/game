@@ -18,6 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -41,7 +42,7 @@ const CHAMPS = {
   removePsychTrait: ['psychType'],
 };
 
-const estEmboitee = (v) => v !== null && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 1 && typeof v.id === 'string';
+const estEmboitee = (v) => estObjet(v) && Object.keys(v).length === 1 && typeof v.id === 'string';
 
 const fautes = [];
 const docs = new Map();

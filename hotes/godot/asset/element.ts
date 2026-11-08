@@ -8,7 +8,7 @@
  * dont l'emplacement n'est offert ni par sa base ni par une pièce de cette base est rapporté, ni refusé ni servi
  * (`emplacementsNonOfferts`, `indexerModeles`).
  */
-import { estObjet } from '../../../src/hote/formes';
+import { estObjet } from '../../../src/lib/objet.mjs';
 import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, type CodeDEcartDeCle } from '../../../src/noyau/index.ts';
 import { ecartsAuGlb, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';

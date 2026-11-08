@@ -158,7 +158,9 @@ export function descendre(racines: readonly unknown[], visite: (v: Visite) => De
   }
 }
 
-const estObjet = (v: unknown): v is Record<string | number, unknown> => v !== null && typeof v === 'object';
+/** `v` a-t-il des enfants : un objet ou un tableau, non nul ? La co-descente entre dans l'un comme dans l'autre ; le
+ *  prédicat d'un objet seul est `estObjet` (`src/lib/objet.mjs`). */
+export const estConteneur = (v: unknown): v is Record<string | number, unknown> => v !== null && typeof v === 'object';
 
 /** Les valeurs LITTÉRALES que `noeud` admet à chacune de ses clés (`_zod.propValues`), vide sans elles. */
 export function valeursAdmises(noeud: unknown): Readonly<Record<string, ReadonlySet<unknown>>> {
@@ -183,15 +185,15 @@ export function ouverts(noeuds: readonly unknown[], valeur?: unknown): unknown[]
   const file = [...noeuds];
   for (let i = 0; i < file.length; i++) {
     const n = file[i];
-    if (!estObjet(n) || vus.has(n)) continue;
+    if (!estConteneur(n) || vus.has(n)) continue;
     vus.add(n);
     const discriminant = defDe(n)?.discriminator;
     const enfants = enfantsDe(n);
     const declares = ENFANTS_DECLARES.get(n);
     if (declares) file.push(...(valeur === undefined ? declares.enfants.map(e => e.noeud) : declares.choisir(valeur)));
-    const lu = discriminant !== undefined && estObjet(valeur) ? valeur[discriminant] : undefined;
+    const lu = discriminant !== undefined && estConteneur(valeur) ? valeur[discriminant] : undefined;
     const absentAdmis =
-      lu === undefined && discriminant !== undefined && estObjet(valeur) && enfants.some((e) => e.segment.startsWith('|') && brancheAdmet(e.noeud, discriminant, undefined));
+      lu === undefined && discriminant !== undefined && estConteneur(valeur) && enfants.some((e) => e.segment.startsWith('|') && brancheAdmet(e.noeud, discriminant, undefined));
     const connu = discriminant !== undefined && enfants.some(e => e.segment.startsWith('|') && brancheAdmet(e.noeud, discriminant, lu));
     for (const e of enfants) {
       if (e.segment === '' || e.segment.startsWith('&')) file.push(e.noeud);
@@ -239,7 +241,7 @@ export function coDescendre(schema: unknown, donnee: unknown, visite: (p: PointD
   const parcourir = (point: PointDeDonnee): void => {
     const decision = visite(point);
     if (decision === 'arreter') fini = true;
-    if (decision || !estObjet(point.valeur)) return;
+    if (decision || !estConteneur(point.valeur)) return;
     const cles: (string | number)[] = Array.isArray(point.valeur) ? point.valeur.map((_, i) => i) : Object.keys(point.valeur);
     for (const cle of cles) {
       if (fini) return;
@@ -256,7 +258,7 @@ export function coDescendre(schema: unknown, donnee: unknown, visite: (p: PointD
  *  PROVENANCE d'un point de donnée (`id`, `source` de l'entrée qui le porte). */
 export function auPlusProcheAncetre<T>(p: PointDeDonnee, lit: (o: Record<string | number, unknown>) => T | undefined): T | undefined {
   for (let a = p.parent; a; a = a.parent) {
-    const v = estObjet(a.valeur) ? lit(a.valeur) : undefined;
+    const v = estConteneur(a.valeur) ? lit(a.valeur) : undefined;
     if (v !== undefined) return v;
   }
   return undefined;

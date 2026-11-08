@@ -16,6 +16,7 @@ import {
 } from '../../scripts/guards/lib/folioLineAlignAudit';
 import { ecartDuVolet } from '../../scripts/guards/lib/stock.mjs';
 import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
+import { estObjet } from '../lib/objet.mjs';
 
 /**
  * Garde-fou « le FOLIO déclaré tombe sur la LIGNE citée » (#1318).
@@ -65,7 +66,7 @@ function compteSources(dir: string): { sourcees: number; citees: number } {
     if (!node || typeof node !== 'object') return;
     const rec = node as Record<string, unknown>;
     const s = rec.source as Record<string, unknown> | undefined;
-    if (s && typeof s === 'object' && !Array.isArray(s) && typeof s.book === 'string' && typeof s.page === 'number') {
+    if (estObjet(s) && typeof s.book === 'string' && typeof s.page === 'number') {
       sourcees++;
       if (typeof s.note === 'string' || typeof rec.ref === 'string') citees++;
     }

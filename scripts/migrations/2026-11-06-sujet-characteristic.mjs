@@ -17,10 +17,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-
-const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 /** Porteur `char` → `characteristic`, à son rang. Rend le nombre de gestes (0 ou 1). */
 function renommer(porteur, ou, fautes) {

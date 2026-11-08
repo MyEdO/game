@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
 import { CLE_HORS_RELEASE, FICHIER_DE_LICENCE } from './dossierDeProduction.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';
-import { estObjet } from '../../../src/hote/formes';
+import { estObjet } from '../../../src/lib/objet.mjs';
 import { fichiersDuModele, indexerModeles, verdictsDesModeles, type EntreeDeModele } from './modeles.ts';
 
 /** Le dépôt dont la Release porte les modèles. */

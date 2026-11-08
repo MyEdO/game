@@ -15,6 +15,7 @@ import { OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique
 import { choixDeLaFeuilleDId, datasetDeLEspaceDuType } from '../../data';
 import type { GameOp } from '../../engine/ops';
 import { libelleDuLitteral } from '../libelles';
+import { estObjet } from '../../lib/objet.mjs';
 
 export type FieldKind = 'text' | 'textarea' | 'number' | 'checkbox' | 'stringList' | 'numberList' | 'source' | 'descRef' | 'recordNumber' | 'recordText' | 'object' | 'json' | 'select' | 'selectList';
 
@@ -263,7 +264,7 @@ export const cleOfferte = (cle: string, noeud: unknown): boolean => cle !== 'id'
 /** La fermeture `ouverts` du nœud offre-t-elle une forme OBJET à clés déclarées qui porte toutes les
  *  clés de l'échantillon (pour une union, la variante objet que l'échantillon satisfait) ? */
 function admetUnObjetDeclare(noeud: unknown, echantillon: unknown): boolean {
-  if (echantillon === null || typeof echantillon !== 'object' || Array.isArray(echantillon)) return false;
+  if (!estObjet(echantillon)) return false;
   return ouverts([noeud], echantillon).some((n) => {
     if (defDe(n)?.type !== 'object') return false;
     const cles = new Set(enfantsDe(n).flatMap((e) => (e.cle === undefined ? [] : [e.cle])));
@@ -309,7 +310,7 @@ export function admetUneListe(noeud: unknown): boolean | undefined {
  *  et que son nœud admet une liste ; sinon en JSON. */
 export function offreDesRangees(field: FieldDesc, value: unknown): boolean {
   if (value == null) return admetUneListe(field.noeud) !== false;
-  return Array.isArray(value) && value.every((x) => x != null && typeof x === 'object' && !Array.isArray(x));
+  return Array.isArray(value) && value.every(estObjet);
 }
 
 /** Le champ `cle` de l'entrée est-il DÉRIVÉ d'un autre de ses champs, hors de l'édition : la `desc` d'une entrée

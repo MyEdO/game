@@ -45,6 +45,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { z } from 'zod'
+import { estObjet } from '../../src/lib/objet.mjs'
 
 const CHOIX = { '--avec-supplements': true, '--coeur-seul': false }
 const CHOIX_DITS = Object.keys(CHOIX).join(' | ')
@@ -111,8 +112,6 @@ export function perimetreDeCoeur(coeur, options = {}) {
     ...(reprise ? { reprise } : {}),
   }
 }
-
-const estObjet = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v)
 
 /**
  * Le JSON qu'un run a rendu, relu du disque, sous ses deux formes : le rendu du workflow, ou celui que

@@ -23,6 +23,7 @@ import { identiteSchema, motifEnMot } from '../data/schemas/grammaire/campagne';
 import { identitesDe, nommer } from '../noyau/monde/identites';
 import { metaDesChamps } from '../data/schemas/grammaire/meta';
 import { raceKeySchema, sexeSchema } from '../data/schemas/grammaire/valeurs';
+import { estObjet } from '../lib/objet.mjs';
 
 /**
  * Garde TRANSVERSE (#809) : tout paquet bundlé `src/scenes/*.../*-projet.json` doit se relire dans
@@ -353,8 +354,6 @@ interface ProseSourcee {
   source: { book?: unknown; page?: unknown };
 }
 
-const estSource = (v: unknown): v is ProseSourcee['source'] => v != null && typeof v === 'object' && !Array.isArray(v);
-
 /** Chemin lisible d'un point : un élément de liste est nommé par son `id` quand il en porte un. */
 const cheminDe = (p: PointDeDonnee): string =>
   p.chemin
@@ -372,11 +371,11 @@ function proseSourcees(projet: unknown, fichier: string, out: ProseSourcee[]): v
   coDescendre(projetSchema, projet, (p) => {
     if (p.chemin.length === 0) return;
     const rec = p.valeur;
-    if (rec == null || typeof rec !== 'object' || Array.isArray(rec)) return;
+    if (!estObjet(rec)) return;
     const n = rec as Record<string, unknown>;
     const nommee = p.noeuds.map(declarationProseNommee).find((d) => d !== undefined);
     if (n.adapteDe !== undefined) return;
-    const source = estSource(n.source) ? n.source : nommee ? undefined : sourceHeritee(p);
+    const source = estObjet(n.source) ? n.source : nommee ? undefined : sourceHeritee(p);
     if (!source) return;
     const champs = nommee ? [nommee.champ] : ['desc'];
     for (const key of champs) {

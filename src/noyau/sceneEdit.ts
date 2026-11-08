@@ -42,6 +42,7 @@ import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
 import { FORMULAIRES, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
+import { estObjet } from '../lib/objet.mjs';
 
 export type Rect = { x: number; y: number; w: number; h: number };
 export type Pt = { x: number; y: number };
@@ -1023,7 +1024,7 @@ function noeudDuPas(noeud: unknown, point: unknown, pas: Segment): unknown {
     const element = elementDuNoeud(noeud);
     return element !== undefined && Array.isArray(point) && Number.isInteger(pas) && pas >= 0 && pas < point.length ? element : undefined;
   }
-  if (point === null || typeof point !== 'object' || Array.isArray(point)) return undefined;
+  if (!estObjet(point)) return undefined;
   const forme = formeAuPoint(noeud, point);
   const n = forme && champsDeclares(forme.noeud)?.find(([cle]) => cle === pas)?.[1];
   return n !== undefined && !forme!.tenus.includes(pas) && cleOfferte(pas, n) ? n : undefined;

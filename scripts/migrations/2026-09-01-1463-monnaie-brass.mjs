@@ -26,6 +26,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -44,7 +45,7 @@ const CHEMINS = [
 
 /** Les nœuds atteints par un chemin (un `price` peut être `'ND'`, `null` ou absent : il n'est pas un montant). */
 function* atteints(noeud, chemin) {
-  if (chemin.length === 0) { if (noeud && typeof noeud === 'object' && !Array.isArray(noeud)) yield noeud; return; }
+  if (chemin.length === 0) { if (estObjet(noeud)) yield noeud; return; }
   if (noeud == null || typeof noeud !== 'object') return;
   const [tete, ...reste] = chemin;
   if (tete === '[]') {
