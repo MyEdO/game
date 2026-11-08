@@ -3539,7 +3539,7 @@ export const fr = {
   'medic.rienASoigner': '{name} n’a rien à soigner.',
   'medic.patientSansSoin': 'Rien à soigner.',
   'medic.aucunSoigneur': 'Aucun membre du groupe ne peut tenter un Test de Guérison.',
-  // Raisons d'un acte de l'infirmerie fermé (`refusDActeDeSoin`).
+  // Raisons d'un acte de l'infirmerie fermé (`refusDeLActeALInfirmerie`).
   'medic.fermee': 'L’infirmerie est fermée.',
   'medic.jetEnCours': 'Un jet de soin est déjà posé.',
   'medic.operationEnCours': 'Une opération est en cours.',

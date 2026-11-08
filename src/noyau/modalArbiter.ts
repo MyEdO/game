@@ -23,7 +23,7 @@ import { WORLD_STEP_OWNER } from './pendings';
 import type { PendingKey } from './stateFields';
 import { PORTEURS_D_ETAPE, sansCorps } from './slotsDeJet';
 import { rangeesDuesDeChute } from './fallMove';
-import { inBattleId } from './monde/combatants';
+import { porteurParId } from './monde/combatants';
 import type { FermetureDuJet } from './rollFlowFactory';
 
 /** État partiel accepté par l'arbitre (les tests passent des objets minces). */
@@ -74,8 +74,7 @@ export const soinEnCours = (s: Partial<Pick<Jeu, 'pendingHeal' | 'pendingSurgery
 function decideurDuSoin(s: Partial<Jeu>): string {
   const jet = s.pendingHeal?.roll != null ? s.pendingHeal : s.pendingSurgery;
   if (!jet) return '*';
-  const combattant = !!inBattleId(s.battle ?? null, jet.healerId) || !!s.party?.some((h) => h.id === jet.healerId);
-  return combattant ? jet.healerId : jet.targetId;
+  return porteurParId(s as Jeu, jet.healerId) ? jet.healerId : jet.targetId; // le soin existe à l'infirmerie : `party` est posé
 }
 
 /**
