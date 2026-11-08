@@ -6,7 +6,7 @@
  */
 import { join } from 'node:path';
 import { expect } from 'vitest';
-import { listage } from '../servir.mjs';
+import { listage } from '../listage.mjs';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import { creerPont, type Pont, type Suite, type VueDuPont } from './pont';
 import type { CategorieDuPont } from './pont';

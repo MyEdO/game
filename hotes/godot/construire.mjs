@@ -9,7 +9,8 @@
 // qu'un changement du moteur qui casse le bundle de navigateur, à sa construction comme à son évaluation, ne passe pas
 // vert. `--sonde` importe le projet (`hotes/godot/projet/`) par l'éditeur épinglé (`EDITEUR`), puis contrôle chaque
 // script (`--check-only`) et joue les recettes déclarant `const RECETTE_AUTONOME := true` sous `recettes/`, les vues
-// de l'écran figées par le pont (`hotes/godot/recettes/ecran.ts`) écrites dans la copie ; la CI la joue
+// de l'écran figées par le pont (`hotes/godot/recettes/ecran.ts`) et le véhicule de l'atelier figé
+// (`hotes/godot/recettes/vehicule.ts`) écrits dans la copie ; la CI la joue
 // (`npm run godot:sonde`). `--export --sortie <dossier>` y écrit le bundle,
 // puis l'export Web du projet (`export_presets.cfg`), que `recette.mjs` joue au navigateur, sur le modèle d'export que
 // son préréglage nomme (`modeleDuPreset`) : tiré par tranches (`Range`) de l'archive des modèles publiée, vérifié par sa
@@ -31,9 +32,11 @@ import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { chargerAssets } from './asset/charger.mjs'
+import { listage } from './listage.mjs'
 
-const { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, recupererEpingles, verifierSomme, figerVuesDeLEcran } = await chargerAssets([
+const { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, recupererEpingles, verifierSomme, figerVuesDeLEcran, figerLeVehicule } = await chargerAssets([
   "export { figerVuesDeLEcran } from '/hotes/godot/recettes/ecran.ts';",
+  "export { figerLeVehicule } from '/hotes/godot/recettes/vehicule.ts';",
   "export { recupererEpingles } from '/hotes/godot/asset/epingles.ts';",
 ])
 
@@ -294,11 +297,14 @@ function surUneCopie(binaire, faire) {
 }
 
 /** La sonde : chaque script contrôlé et chaque recette déclarée autonome exécutée dans le projet importé, les vues de
- *  l'écran figées (`figerVuesDeLEcran`) écrites sous `recettes/vues/ecran.json` de la copie, que lit sa recette. */
+ *  l'écran figées (`figerVuesDeLEcran`) écrites sous `recettes/vues/ecran.json` de la copie, et le véhicule de l'atelier
+ *  figé sur le listage des modèles du projet (`figerLeVehicule`) sous `recettes/vues/vehicule.json`, que lisent leurs
+ *  recettes. */
 function sonder(binaire) {
   return surUneCopie(binaire, (copie) => {
     mkdirSync(join(copie, 'recettes', 'vues'), { recursive: true })
     writeFileSync(join(copie, 'recettes', 'vues', 'ecran.json'), JSON.stringify(figerVuesDeLEcran()))
+    writeFileSync(join(copie, 'recettes', 'vues', 'vehicule.json'), JSON.stringify(figerLeVehicule(listage(DOSSIER_DES_MODELES))))
     const scripts = scriptsDe(copie)
     if (!scripts.length) return [`aucun script sous ${PROJET}`]
     const erreurs = scripts.flatMap((script) => godot(binaire, copie, ['--check-only', '--script', script]).erreurs)

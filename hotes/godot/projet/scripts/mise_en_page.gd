@@ -1,7 +1,7 @@
 ## La mise en page de l'hôte : la case du plateau vers le monde, le centre du plateau, le quart de tour de la
 ## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
-## pas de la marche de l'atelier, l'orbite de sa caméra et son cadrage, le gabarit d'une base posé sur ses os, ses pieds
+## pas de la marche de l'atelier, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
 ## au sol, un vecteur rapporté à un repère, le repère d'un objet rangé à un emplacement, le coin d'une bulle au-dessus
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
@@ -19,6 +19,9 @@ const DECALAGE_DU_CALQUE := 0.01
 const METRES_PAR_MOTIF := 2.0
 const QUART_DE_TOUR := PI / 2.0
 const PAS_DE_ZOOM := 1.15
+## Les bornes du zoom de l'orbite de l'atelier, rapportées à l'échelle du cadre posé.
+const ZOOM_MINIMAL := 0.3
+const ZOOM_MAXIMAL := 3.0
 const TOLERANCE_D_IMAGE := 0.001
 ## Le jeu, en mètres, entre la peau et la face arrière d'un objet rangé (`origine_de_rangement`) : assez pour passer
 ## par-dessus un vêtement ample et une ceinture.
@@ -305,6 +308,23 @@ static func echelle_composee(echelle_du_squelette: float, echelle: float) -> flo
 ## `sommet_neutre`.
 static func echelle_de_cadrage(sommet: float, sommet_neutre: float) -> float:
 	return sommet / sommet_neutre
+
+
+## La hauteur que voit, au pivot, une caméra posée en `position` autour de lui sous l'angle vertical `fov` (degrés).
+static func hauteur_vue_au_pivot(position: Vector3, fov: float) -> float:
+	return 2.0 * position.length() * tan(deg_to_rad(fov) / 2.0)
+
+
+## L'échelle de l'orbite où la diagonale d'une boîte de taille `taille` tient dans la hauteur `hauteur_vue` que la caméra
+## voit au pivot à l'échelle 1 (`hauteur_vue_au_pivot`).
+static func echelle_de_la_boite(taille: Vector3, hauteur_vue: float) -> float:
+	return taille.length() / hauteur_vue
+
+
+## L'échelle de l'orbite d'un pas de zoom plus loin (`sens` 1) ou plus près (-1), bornée de `ZOOM_MINIMAL` à
+## `ZOOM_MAXIMAL` fois l'échelle `cadre` du cadre posé (`distance_zoomee`).
+static func echelle_zoomee(echelle: float, sens: float, cadre: float) -> float:
+	return distance_zoomee(echelle, sens, ZOOM_MINIMAL * cadre, ZOOM_MAXIMAL * cadre)
 
 
 ## L'entrée de la marche sur le sol, de force `gauche`, `droite`, `avant` et `arriere` par action.
