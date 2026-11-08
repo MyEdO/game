@@ -3157,7 +3157,9 @@
       "y": 7
      },
      "label": "Olg Blóðsalt",
-     "weapon": "hache-d-armes"
+     "inventaire": {
+      "hache-d-armes": false
+     }
     },
     {
      "id": "serpent-helm",
@@ -3623,7 +3625,9 @@
     },
     "scene": "ls-quai-salzenmund",
     "icon": "scenario/port",
-    "backdrop": "port",
+    "backdrop": {
+     "id": "port"
+    },
     "port": {
      "ref": "salzenmund"
     },
@@ -3686,7 +3690,9 @@
     },
     "scene": "ls-quai-erengrad",
     "icon": "scenario/port",
-    "backdrop": "port",
+    "backdrop": {
+     "id": "port"
+    },
     "port": {
      "ref": "erengrad"
     },

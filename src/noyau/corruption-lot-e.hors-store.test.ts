@@ -8,7 +8,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { gainCorruption } from './corruptionFlow';
 import { draineCascade } from './cascade.testkit';
 import { corruptionThresholdExceeded } from '../engine/corruption';
-import { PREGEN } from '../data/pregens';
+import { PREGEN, idDuPretire } from '../data/pregens';
 import { createHero } from '../engine/character';
 import { bonus } from '../engine/characteristics';
 import type { Combatant } from '../engine/types';
@@ -18,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Sans Talent aléatoire (`talentsRolled: false`) : aucun tirage d'Âme pure (LDB 10 l.52). */
 function hero(): Combatant {
-  return createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: `pregen-${PREGEN.soldat}`, seed: PREGEN.soldat, talentsRolled: false });
+  return createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: idDuPretire(PREGEN.soldat), seed: PREGEN.soldat, talentsRolled: false });
 }
 
 beforeEach(() => {

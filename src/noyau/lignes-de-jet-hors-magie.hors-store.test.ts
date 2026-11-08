@@ -200,7 +200,7 @@ describe('flux figés : la ligne posée à l’ouverture est celle que le résol
     const dague = { uid: 'd1', label: 'Dague', kind: 'trapping', trappingId: 'dague', qualities: [] } as unknown as ItemInstance;
     banc.setState({ battle: null, party: [heros('h', { items: [dague] })] });
     seedBattleRng(7);
-    evaluerLObjet(banc.getState, banc.setState, 'd1', 'h');
+    evaluerLObjet(banc.getState, banc.setState, 'd1');
     const avant = banc.getState().pendingAppraise!;
     banc.getState().jetLancer('appraise');
     const apres = banc.getState().pendingAppraise!;

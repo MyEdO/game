@@ -12,7 +12,7 @@ import { imposerLesD100 } from '../../noyau/battleRng.testkit';
 import { setRule, resetRule } from '../../engine/policy';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../../scenes/campaign';
-import { makePregensWithWealth, PREGEN } from '../../data/pregens';
+import { makePregensWithWealth, PREGEN, idDuPretire } from '../../data/pregens';
 import { creditBourse, partyMoneyTotal } from '../../noyau/bourseFlow';
 import { toBrass } from '../../engine/money';
 import { prixParPassager, transportCost, type TarifDePassage } from '../../engine/travel';
@@ -41,7 +41,7 @@ const get = () => banc.getState();
 const bourse = () => toBrass(partyMoneyTotal(get));
 
 /** Les 4 piliers du groupe showcase (`makeShowcaseParty`), avec LEUR Richesse initiale tirée (LDB 05 l.578). */
-const SHOWCASE = [PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur].map((s) => `pregen-${s}`);
+const SHOWCASE: readonly string[] = [PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur].map((s) => idDuPretire(s));
 
 /** Lance le chapitre 1 avec le groupe showcase et sa bourse, et fait monter à bord (`edo-ch1-depart`). */
 function aBord(): void {

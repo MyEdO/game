@@ -29,7 +29,7 @@ describe('utiliserLObjet — consommables de la fiche', () => {
   it('bandage seul : Aide Médicale (séquelle en attente levée), Hémorragique sans verrou inchangé, aucune prévention d’Infection, une unité consommée', () => {
     const h = hero({ conditions: [{ id: 'hemorragique', value: 3 }], traumas: [{ traumaId: 'z', awaitingMedicalAid: true }] as never, items: [BANDAGE, { ...BANDAGE, uid: 'b2' }] });
     banc.setState({ party: [h] });
-    banc.getState().utiliserLObjet('h1', 'b1');
+    banc.getState().utiliserLObjet('b1');
     const p = banc.getState().party.find((c) => c.id === 'h1')!;
     expect(p.traumas![0].awaitingMedicalAid).toBe(false);
     expect(p.conditions.find((c) => c.id === 'hemorragique')?.value).toBe(3);
@@ -40,7 +40,7 @@ describe('utiliserLObjet — consommables de la fiche', () => {
   it('bandage seul sur un Hémorragique verrouillé « par Aide Médicale » : l’État est retiré', () => {
     const h = hero({ conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'medicalAid' }], items: [BANDAGE] });
     banc.setState({ party: [h] });
-    banc.getState().utiliserLObjet('h1', 'b1');
+    banc.getState().utiliserLObjet('b1');
     const p = banc.getState().party.find((c) => c.id === 'h1')!;
     expect(p.conditions.find((c) => c.id === 'hemorragique')).toBeUndefined();
   });
@@ -48,7 +48,7 @@ describe('utiliserLObjet — consommables de la fiche', () => {
   it('bandage seul sans Aide Médicale attendue : refusé et dit, l’unité est gardée', () => {
     const h = hero({ conditions: [{ id: 'hemorragique', value: 3 }], items: [BANDAGE] });
     banc.setState({ party: [h] });
-    banc.getState().utiliserLObjet('h1', 'b1');
+    banc.getState().utiliserLObjet('b1');
     const p = banc.getState().party.find((c) => c.id === 'h1')!;
     expect(banc.getState().journal[banc.getState().journal.length - 1]).toBe('Blessé n’attend aucune Aide Médicale. Bandages ne lui apporterait rien : l’objet est gardé.');
     expect(p.items!.map((i) => i.uid)).toEqual(['b1']);
@@ -57,7 +57,7 @@ describe('utiliserLObjet — consommables de la fiche', () => {
   it('potion de guérison : soigne du Bonus d’Endurance et se consomme', () => {
     const h = hero({ wounds: blessuresDeBase(12, 6), items: [POTION] });
     banc.setState({ party: [h] });
-    banc.getState().utiliserLObjet('h1', 'p1');
+    banc.getState().utiliserLObjet('p1');
     const p = banc.getState().party.find((c) => c.id === 'h1')!;
     expect(p.wounds.current).toBe(6 + 3); // BE(35) = 3
     expect(p.items!.length).toBe(0);
@@ -67,7 +67,7 @@ describe('utiliserLObjet — consommables de la fiche', () => {
     const h = hero({ conditions: [{ id: 'hemorragique', value: 3 }], items: [BANDAGE] });
     const e = hero({ id: 'e1', kind: 'enemy' });
     banc.setState({ party: [h], battle: { combatants: [h, e], order: ['e1', 'h1'], turn: 0, round: 1, acted: false, log: [], over: null } as never });
-    banc.getState().utiliserLObjet('h1', 'b1');
+    banc.getState().utiliserLObjet('b1');
     const c = banc.getState().battle!.combatants.find((x) => x.id === 'h1')!;
     expect(c.conditions.find((x) => x.id === 'hemorragique')?.value).toBe(3); // inchangé
     expect(c.items!.length).toBe(1); // non consommé

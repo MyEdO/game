@@ -9,7 +9,7 @@ import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import { poidsDeSilhouettes, poseDuGabarit, type PoseDuGabarit } from '../asset/gabarit';
 import { BUILD_NEUTRE } from '../../../src/lib/corpulence';
 import { findCouleurById, findTeinteById, pieceRacine, emblemeDuPorteur, type EmblemeResolu, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from '../../../src/noyau/index';
-import { blasonsDe, cleDe, type BaseDeLAtelier, type LigneDePiece } from './atelier';
+import { emblemeMonte, cleDe, type BaseDeLAtelier, type LigneDePiece } from './atelier';
 
 /** Un emplacement de montage d'une chose portée (`"<point>"` ou la clé de sa ligne, `cleDuPanneau`), l'élément de
  *  la base qui la monte, `null` s'il n'y en a aucun, et, monté, la palette de sa teinte (`Portee.teinte`). */
@@ -58,6 +58,10 @@ function ouMonter({ cle, point }: Portee): string {
   return point === undefined ? cleDuPanneau('piece', pieceRacine(cle.id)?.id ?? cle.id) : cleDuPanneau('emplacement', point);
 }
 
+/** La couleur `#rrggbb` de chaque emplacement de palette que `couleurs` colore, résolue au nuancier (`findCouleurById`). */
+export const paletteDesCouleurs = (couleurs: PorteeDeComposition['couleurs']): Record<string, string> =>
+  Object.fromEntries(Object.entries(couleurs ?? {}).map(([slot, { id }]) => [slot, findCouleurById(id)!.color]));
+
 /** `portee` sur la base `base` des modèles de l'atelier : `manifestes` (id de modèle → manifeste) lit la base et la
  *  `cle` de ses éléments. Chaque chose portée se monte à l'élément de son emplacement dont la clé la désigne, une
  *  apparence variante à défaut à celui de sa `racine`. */
@@ -74,9 +78,8 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
     const elements = elementsDe.get(ligne) ?? [];
     const element = ids.map((id) => elements.find((e) => cleDe(manifestes[e])[p.cle.champ] === id)).find((e) => e !== undefined);
     const embleme = Object.prototype.hasOwnProperty.call(surcharges, ligne) ? emblemeDuPorteur(surcharges[ligne]) : portee.embleme;
-    const porteUnBlason = element !== undefined && blasonsDe(manifestes[element]).length > 0;
     const teinte = element === undefined ? undefined : findTeinteById(p.teinte);
-    montes.push({ ligne, element: element ?? null, ...(porteUnBlason && embleme ? { embleme } : {}), ...(teinte ? { palette: { ...teinte.palette } } : {}) });
+    montes.push({ ligne, element: element ?? null, ...emblemeMonte(embleme, element === undefined ? undefined : manifestes[element]), ...(teinte ? { palette: { ...teinte.palette } } : {}) });
     if (element === undefined) manquants.push({ ligne, champ: p.cle.champ, id: p.cle.id, label: p.label, ...(p.par ? { par: p.par } : {}) });
   }
   const { gabarit, appuis } = manifestes[base.id] as ManifesteDeBase;
@@ -86,6 +89,6 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
     rapport: portee.rapport,
     ...(gabarit ? { gabarit: poseDuGabarit({ gabarit, appuis }, portee.facteurs) } : {}),
     morphes: gabarit ? poidsDeSilhouettes({ sex: portee.sex, build: portee.build ?? BUILD_NEUTRE, st: portee.facteurs.st }, gabarit) : {},
-    palette: Object.fromEntries(Object.entries(portee.couleurs ?? {}).map(([slot, { id }]) => [slot, findCouleurById(id)!.color])),
+    palette: paletteDesCouleurs(portee.couleurs),
   };
 }

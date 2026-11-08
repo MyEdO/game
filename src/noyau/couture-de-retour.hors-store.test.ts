@@ -227,7 +227,7 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
     acheterLaCompetence: (c) => { const sk = buildAdvancementView(banc.getState(), c).skills.find((x) => x.known)!; banc.getState().acheterLaCompetence(c.id, sk.skill); },
     acheterLeTalent: (c) => { const ta = buildAdvancementView(banc.getState(), c).talents.find((x) => x.talentId && !x.maxReached)!; banc.getState().acheterLeTalent(c.id, ta.talentId!, ta.spec); },
     acheterLeSort: (c) => banc.getState().acheterLeSort(c.id, learnableSpells(c).find((x) => x.cost > 0)!.spell.id),
-    entrainerLaProthese: (c) => banc.getState().entrainerLaProthese(c.id, c.items!.find((i) => i.trappingId === 'fausse-jambe')!.uid),
+    entrainerLaProthese: (c) => banc.getState().entrainerLaProthese(c.items!.find((i) => i.trappingId === 'fausse-jambe')!.uid),
     changerDeCarriere: (c) => banc.getState().changerDeCarriere(c.id, careers.find((x) => x.id !== c.career)!.id, 1),
   };
 

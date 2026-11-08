@@ -1,4 +1,5 @@
 /** Types partagés du moteur de règles WFRP v4. */
+import type { IdDeHerosDuRoster } from '../lib/idDeHerosDuRoster';
 import type { AttackKind } from './creatureAttacks';
 import type { HitLocation } from './localisations';
 import { t } from '../i18n';
@@ -1232,9 +1233,8 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   /** Aura magique DÉTECTÉE (Talent Détection d'artefact, LDB 10 l.336 : « vous sentez que
    *  l'objet est magique ») — s'affiche « magique » même tant que ses règles restent non identifiées. */
   magicKnown?: boolean;
-  /** Détection d'artefact déjà tentée sur cet objet (LDB 10 l.336 : « En principe, vous ne pouvez
-   *  tenter ce Test qu'une seule fois par artefact touché »). */
-  detectTried?: boolean;
+  /** Les héros qui ont tenté la Détection d'artefact sur cet objet. LDB 10 l.336 */
+  detectTriedBy?: string[];
   /** Jour de jeu de la dernière Évaluation RATÉE : pas de re-tentative le même jour (anti-spam —
    *  LDB 12 l.94 : seul un résultat marginal offre un nouvel essai ; ADE II : re-tenter coûte du temps). */
   appraiseTriedDay?: number;
@@ -1402,6 +1402,9 @@ export interface TerreurSubie {
 
 export interface Combatant {
   id: string;
+  /** L'id de l'entrée de roster du héros, quand son `id` n'en est pas un (un héros de save ou de scénario édité au
+   *  créateur, #2907) : son entrée de roster le retrouve, son `id` reste celui que l'état cite. */
+  idDeRoster?: IdDeHerosDuRoster;
   label: string;
   kind: 'hero' | 'enemy' | 'npc';
   /** Ce combattant suit-il les règles de PERSONNAGE (#143) — axe DISTINCT du camp (`kind`, ci-dessus)

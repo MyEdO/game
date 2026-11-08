@@ -220,7 +220,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                     refus={refusSets ?? undefined}
                     desc={`${layer.label} — équiper`}
                     options={[{ key: '', label: '— retirer —', disabled: !worn }, ...candidates.map(armourOpt)]}
-                    onSelect={(v) => equiperLObjet(hero.id, v || worn!.uid)}
+                    onSelect={(v) => equiperLObjet(v || worn!.uid)}
                   />
                 );
               })}
@@ -242,7 +242,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
             refus={refusSets ?? undefined}
             desc="Équiper une cape"
             options={[{ key: '', label: '— retirer —', disabled: !wornCape }, ...cape.candidats.map(capeOpt)]}
-            onSelect={(v) => equiperLObjet(hero.id, v || wornCape!.uid)}
+            onSelect={(v) => equiperLObjet(v || wornCape!.uid)}
           />
         </div>
       </div>

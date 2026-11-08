@@ -1,17 +1,22 @@
 /**
- * VOCABULAIRES DU MOTEUR (#1463) — les tables FERMÉES `id → libellé` que le moteur déclare et qu'aucun
+ * VOCABULAIRES DU MOTEUR (#1463) — les tables FERMÉES `id → libellé` que le code déclare et qu'aucun
  * document de `src/data` ne porte, exposées comme ESPACES (`vocabulaire:<nom>`, `grammaire/cle-d-espace.ts`) :
- * une source de spécialisations (`grammaire/sourcesDeSpecs.ts`) y prend son univers ou ses libellés.
- * Le moteur les fige au code : la phase 2 de `npm run gen` (`scripts/gen-espaces.mts`) écrit à l'INDEX
- * DES IDS ceux qu'une source prend pour univers ou pool, que le régime vivant suit
+ * une source de spécialisations (`grammaire/sourcesDeSpecs.ts`) y prend son univers ou ses libellés, un type
+ * de `TYPES` (`grammaire/ref.ts`) son espace.
+ * Le code les fige : la phase 2 de `npm run gen` (`scripts/gen-espaces.mts`) écrit à l'INDEX DES IDS ceux
+ * qu'une source prend pour univers ou pool ou qu'un type prend pour espace, que le régime vivant suit
  * (`src/data/overrides.ts`), et refuse un vocabulaire de LIBELLÉS dont les ids ne sont pas exactement
  * ceux de l'univers de sa source (Tailles : `sizes.json#rangedMod`).
+ *
+ * Un REGISTRE TS D'ART en est un (#2968 P-art) : sa table est la projection de ses defs
+ * (`VOCABULAIRES_D_ART`, option `vocabulaire` de `scripts/docs/lib/cibles-registres.mjs`).
  */
 import { DIFFICULTY_NAMES } from '../../../engine/types';
 import { SIZE_LABEL } from '../../../engine/size';
 import { exposureLevelSchema } from './valeurs';
 import { valeursDe } from './meta';
 import { lireCleDEspace, vocabulaireDuFichier } from './cle-d-espace';
+import { VOCABULAIRES_D_ART } from '../_vocabulaires-d-art.generated';
 
 /** La table d'un enum nommé (`enumNomme`), qui doit en porter une. */
 function tableDe(noeud: unknown, nom: string): Readonly<Record<string, string>> {
@@ -26,6 +31,7 @@ export const VOCABULAIRES = {
   difficultes: DIFFICULTY_NAMES,
   expositions: tableDe(exposureLevelSchema, 'expositions'),
   tailles: SIZE_LABEL,
+  ...VOCABULAIRES_D_ART,
 } as const satisfies Record<string, Readonly<Record<string, string>>>;
 
 export type NomDeVocabulaire = keyof typeof VOCABULAIRES;

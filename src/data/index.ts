@@ -1443,8 +1443,8 @@ export interface StatusData {
 export interface EtatData extends StatusData {
   /** Ids de `groups.json` accordés au porteur tant qu'il porte l'État (`groupesDe`). Absent = aucun Groupe. */
   grantGroups?: string[];
-  /** Type de Dégâts (`damage-types.json`) des `effects` de l'État, lu par `degatsDeLEtatIgnores`. LDB 85 l.174 ; VDM 10 l.153 */
-  typeDeDegats?: string;
+  /** Type de Dégâts (`DamageTypeData.id`) des `effects` de l'État, lu par `degatsDeLEtatIgnores`. LDB 85 l.174 ; VDM 10 l.153 */
+  typeDeDegats?: { id: string };
   /** Les magnitudes du `passive` sont-elles multipliées par le nombre de pions (Exténué −10/pion, LDB 16
    *  l.90) ? Appliqué à l'émission par le collecteur `passiveMods`. Défaut (absent) : magnitude fixe. */
   perStack?: boolean;
@@ -1903,7 +1903,7 @@ export interface TraitData {
 /** Drapeaux/marqueurs de CAPACITÉ IRRÉDUCTIBLES d'une qualité d'arme/armure/objet (LDB 62-63) — règles
  *  que le moteur INTERROGE (résolution de combat, économie d'artisanat) : NI un modificateur (`passive`)
  *  NI un effet déclenché (`effects`). Lus PAR ID par `engine/qualities/dispatch`.
- *  Les INDICES (Salve N, Protectrice N, Arme d'équipe N…) restent lus du RUNTIME string (`parseQuality().indice`)
+ *  Les INDICES (Salve N, Protectrice N, Arme d'équipe N…) sont portés par l'instance (`QualityInstance.value`)
  *  — la capability n'est qu'un marqueur de PRÉSENCE, jamais le porteur de l'Indice. Édité au Codex. */
 export interface QualityCapabilities {
   // Résolution de combat (mêlée)
@@ -2231,12 +2231,12 @@ export interface StarData {
   id: string;
   label: string;
   rand: number;
-  signe: string | null;
-  classique: string | null;
-  ascendant: string | null;
-  dates: string | null;
-  dieux: string | null;
-  apparence: string | null;
+  signe: string;
+  classique: string;
+  ascendant: string;
+  dates: string;
+  dieux: string;
+  apparence: string;
   /** Effet ADE II appliqué AUX ATTRIBUTS DE DÉPART (ch.03 l.38) — donnée éditable au Codex
    *  (`GameOpEditor`) : `charMod` (±carac) et/ou `grantTalent` (talent octroyé). Appliqué une
    *  fois à la création (cf. `applyStarOps`), pas collecté en passif continu. */
@@ -2677,8 +2677,8 @@ export interface LieuServiceData {
   desc?: string;
   /** Réplique de boniment (saveur maison) du bandeau d'interlocuteur statique (`SpeakerBanner`). */
   hostLine?: string;
-  /** Bande d'ambiance par défaut (id du registre des bandes d'ambiance). */
-  backdrop?: string;
+  /** Bande d'ambiance par défaut. */
+  backdrop?: { id: string };
   /** Archétype marchand ouvert par ce service (`src/data/merchants.json`, #369). */
   merchantArchetype?: string;
   /** Écran plein-champ EXISTANT vers lequel ce service PORTE (#369) : `port` = l'écran de port
@@ -3345,7 +3345,7 @@ export interface BreathTypeData {
   endommageLEquipement?: boolean;
   fumee?: boolean;
   types?: { id: string }[];
-  typeDeDegats?: string;
+  typeDeDegats?: { id: string };
 }
 export const breathTypes = breathTypesJson as BreathTypeData[];
 const typeSouffleParId = indexParId('breathTypes', breathTypes);
@@ -3401,7 +3401,7 @@ export function trappingDesObjetsPuisDuCatalogue(objets: ReadonlyMap<string, Tra
   return objets.get(id) ?? findTrappingById(id);
 }
 /** ARMES choisissables `{ id, label }` : toute Possession `melee`/`ranged` hors « Mains nues »
- *  (`TrappingData.unarmed`), triée au libellé. `id` = `trappingId` STABLE (`weaponFromId`). */
+ *  (`TrappingData.unarmed`), triée au libellé. `id` = `trappingId` STABLE. */
 export const armesChoisissables = memoParVersion('trappings', () => trappingsInstanciables()
   .filter((t) => (t.categorie === 'melee' || t.categorie === 'ranged') && !t.unarmed)
   .map((t) => ({ id: t.id, label: t.label }))

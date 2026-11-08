@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=14 format=3]
+[gd_resource type="Theme" load_steps=15 format=3]
 
 [ext_resource type="StyleBox" path="res://art/fond_panneau.tres" id="1_fond"]
 
@@ -142,6 +142,8 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
+[sub_resource type="StyleBoxEmpty" id="Tete_d_entite"]
+
 [resource]
 HSlider/styles/slider = SubResource("Piste_de_glissiere")
 Panneau/base_type = &"PanelContainer"
@@ -154,6 +156,8 @@ Fenetre/base_type = &"PanelContainer"
 Fenetre/styles/panel = SubResource("Cadre_de_fenetre")
 Puce/base_type = &"PanelContainer"
 Puce/styles/panel = SubResource("Fond_de_puce")
+TeteDEntite/base_type = &"PanelContainer"
+TeteDEntite/styles/panel = SubResource("Tete_d_entite")
 reussite/base_type = &"Label"
 reussite/colors/font_color = Color(0.55, 0.82, 0.5, 1)
 echec/base_type = &"Label"

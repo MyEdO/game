@@ -6,7 +6,7 @@ import type { NetState } from '../noyau/etat';
 import { makePregensWithWealth } from '../data/pregens';
 import { stockageDuRoster } from '../state/roster';
 import { ajouterAuRoster, chargerLeRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from '../hote/roster';
-import { rosterExport, rosterImport, type RosterEntry } from '../noyau/persistance/roster';
+import { idDeRosterDuMembre, rosterExport, rosterImport, type RosterEntry } from '../noyau/persistance/roster';
 import type { HerosEngage } from '../noyau/creation/engagement';
 import { nommerLesRetraits } from '../noyau/persistance/elagage';
 import { PARTY_MAX } from '../noyau/monde/combatants';
@@ -646,7 +646,7 @@ export function CandidatePool({
   const setScreen = useGame((s) => s.setScreen);
   const setEditingHero = useGame((s) => s.setEditingHero);
 
-  const inParty = (id: string) => party.some((p) => p.id === id);
+  const inParty = (id: string) => party.some((p) => idDeRosterDuMembre(p) === id);
   const shownPregens = hideInParty ? allPregens.filter((e) => !inParty(e.hero.id)) : allPregens;
   const shownRoster = hideInParty ? roster.filter((e) => !inParty(e.hero.id)) : roster;
   const shownList: { hero: Combatant; wealth?: Money }[] =

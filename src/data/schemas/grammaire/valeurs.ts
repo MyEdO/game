@@ -946,6 +946,11 @@ export function messageDeTenueInconnue(id: string): string {
 
 export const emblemeSchema = ref('gardeRobe', undefined, 'embleme');
 
+/** Palette d'un personnage ou d'un élément 3D : une couleur du nuancier (`materials.json`, domaine `couleur`) par
+ *  emplacement de palette. */
+export const couleursSchema = z.partialRecord(slotSchema, ref('material', undefined, 'couleur'));
+export type Couleurs = z.infer<typeof couleursSchema>;
+
 /** `EntityAppearance` (`src/engine/authoringAppearance.ts`) — apparence d'entité, composée par
  *  `creatures`, la scène (`SceneEntity.appearance`) et le narratif. */
 export const entityAppearanceSchema = nommerChamps(z.strictObject({
@@ -957,7 +962,8 @@ export const entityAppearanceSchema = nommerChamps(z.strictObject({
   armurePortee: z.boolean().optional(),
   apparencesObjets: apparencesDObjetsSchema.optional(),
   embleme: emblemeSchema.optional(),
-}), { embleme: { label: 'emblème' }, sex: { label: "sexe" }, species: { label: "espèce" }, tenue: { label: "tenue" }, armurePortee: { label: "armure portée" }, apparencesObjets: { label: "apparences d’objets", texte: { regime: "technique" } } });
+  couleurs: couleursSchema.optional(),
+}), { embleme: { label: 'emblème' }, couleurs: { label: 'couleurs', hint: 'Couleur du nuancier par emplacement de palette ; absente, la teinte de l’objet ou la matière du modèle' }, sex: { label: "sexe" }, species: { label: "espèce" }, tenue: { label: "tenue" }, armurePortee: { label: "armure portée" }, apparencesObjets: { label: "apparences d’objets", texte: { regime: "technique" } } });
 
 /** `HitLocation` (`src/engine/types.ts`) — 6 zones de touche (dé inversé, LDB). Resserré depuis
  *  `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) sur l'enum SOURCE : aucune des 9 JSON

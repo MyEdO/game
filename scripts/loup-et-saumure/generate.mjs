@@ -597,7 +597,7 @@ scenes.push(scene({
       [{ id: 'proue-idole-de-stromfels' }]),
     { id: 'norse-1', kind: 'personnage', ref: 'humain', pos: { x: 18, y: 6 }, label: 'Norse' },
     { id: 'norse-2', kind: 'personnage', ref: 'humain', pos: { x: 18, y: 8 }, label: 'Norse' },
-    { id: 'olg', kind: 'personnage', ref: 'olg-blodsalt', pos: { x: 19, y: 7 }, label: 'Olg Blóðsalt', weapon: 'hache-d-armes' },
+    { id: 'olg', kind: 'personnage', ref: 'olg-blodsalt', pos: { x: 19, y: 7 }, label: 'Olg Blóðsalt', inventaire: { 'hache-d-armes': false } },
     marinDuGrimm('serpent-helm', 18, 5, 'Barreur du Serpent-de-Sel', HELM_SKILLS, MARIN_APPEARANCE),
     marinDuGrimm('serpent-gun', 18, 9, 'Canonnier du Serpent-de-Sel', GUN_SKILLS, ARTILLEUR_APPEARANCE),
   ],
@@ -697,7 +697,7 @@ const worldMap = {
   places: [
     {
       id: 'salzenmund', label: 'Salzenmund', pos: { x: 25, y: 60 }, scene: 'ls-quai-salzenmund', icon: 'scenario/port',
-      backdrop: 'port', // bande d'ambiance du hub (`MapPlace.backdrop`, #371)
+      backdrop: { id: 'port' }, // #371
       port: { ref: 'salzenmund' }, // #217 — Taille/Richesse/Production/Surplus/Demande RAW coulent du catalogue
       // `temple` : `naval-ports.json#salzenmund.desc` (RAW MDG p.138) — « Grand Temple d'Ulric et temple de
       // Manann Resplendissant » — Frère Aldo (NPC de la scène) l'incarne (bénédiction du départ, #360).
@@ -712,7 +712,7 @@ const worldMap = {
     },
     {
       id: 'erengrad', label: 'Erengrad', pos: { x: 78, y: 20 }, scene: 'ls-quai-erengrad', icon: 'scenario/port',
-      backdrop: 'port',
+      backdrop: { id: 'port' },
       port: { ref: 'erengrad' }, // #217
       // `guilde` : la guilde marchande d'Erengrad (dlg-rumeur-olg, prime sur Olg Blóðsalt) ; `chantier` :
       // `naval-ports.json#erengrad.surplus` (RAW MDG p.138) — surplus « pièces détachées de navire » —

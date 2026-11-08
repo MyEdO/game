@@ -210,6 +210,10 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             UNION d'ids GÉNÉRÉE (`icones.generated.ts`, `IconIdGenerated`) : écrite par
                             `npm run gen` à part du registre `src/data/icons/defs/`, par l'option
                             `idUnion.out` (`scripts/docs/lib/cibles-registres.mjs`), jamais éditée
+                            VOCABULAIRES D'ART GÉNÉRÉS (`_vocabulaires-d-art.generated.ts`) :
+                            l'option `vocabulaire` d'un registre TS d'art (même fichier) projette ses
+                            defs en table `id → libellé`, espace `vocabulaire:<nom>` de l'index des ids
+                            (`src/data/schemas/grammaire/vocabulaires.ts`) que `TYPES` déclare (#2968 P-art)
                             SEAM d'ÉCRITURE (`overrides.ts`) : `setDataset`/`setObjectDataset`/`resetData`
                             remplacent le CONTENU d'un dataset sans réassigner son binding (`splice` en
                             place), `setDeDeTable` écrit le dé de tirage qu'un ANCÊTRE de la collection
@@ -341,7 +345,7 @@ src/web/                     Services d'exécution du NAVIGATEUR (`window`, `doc
                             graine (`graineDEntropie` : RNG de bataille posé par `seedBattleRng` au
                             branchement du store, brouillon de création, générateur de nom), id
                             d'entité unique d'un projet à l'autre (`idDEntropie` : scène, carte,
-                            projet, lieu, trajet — `emptyScene(id)`/`emptyWorldMap(id)` le reçoivent
+                            projet, lieu, trajet, héros de roster — `emptyScene(id)`/`emptyWorldMap(id)` le reçoivent
                             de l'hôte) ; `src/engine` et `src/noyau` n'en tirent jamais.
                             `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
                             sûr (`fileSlug`).

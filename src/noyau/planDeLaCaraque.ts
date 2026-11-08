@@ -11,6 +11,7 @@ import type { MapSpec, WallSpec } from './mapSpec';
 import type { ApportAuxPonts } from './planDeNavire';
 import { findVehicleById } from '../data';
 import { garanti } from '../lib/garanti';
+import { tableTotale } from '../lib/tableTotale';
 import { terrainAbsent, terrainsAvecGlyphe } from './monde/terrain';
 
 /** Hauteur (m) du plancher de chaque pont, de la cale à la plage arrière. */
@@ -145,7 +146,7 @@ export const PLAN_DE_LA_CARAQUE: MapSpec = {
   terrain: terrainAbsent(),
   // `a` : plage arrière ; `j`, `k`, `g`, `h` : trappes vers le pont principal, le pont supérieur, le gaillard
   // et la plage arrière ; toutes du plancher des ponts (`=`).
-  legend: Object.fromEntries([...'ajkgh'].map((ch) => [ch, PLANCHER])),
+  legend: tableTotale([...'ajkgh'], () => PLANCHER),
   walled: { z0: CALE, z1: PRINCIPAL, z2: SUPERIEUR, z3: HAUT },
   relief: [PONTS.cale, PONTS.principal, PONTS.superieur, PONTS.gaillard].map((height, z) => ({ rect: [0, 0, W - 1, H - 1], height, z })),
   elevate: { a: PONTS.plageArriere, j: PONTS.principal, k: PONTS.superieur, g: PONTS.gaillard, h: PONTS.plageArriere },

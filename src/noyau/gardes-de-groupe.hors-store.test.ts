@@ -7,7 +7,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { pregenParty, PREGEN, idDuPretire } from '../data/pregens';
 import { pregens, profilsStandard } from '../data';
 import { ensureBourse, setBourseBrass } from '../engine/bourse';
 import { seedBattleRng } from './battleRng';
@@ -34,7 +34,7 @@ const dernier = () => get().journal[get().journal.length - 1];
 const heros = (n: number): Combatant[] =>
   pregenParty(idsDeTest, PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.pretre, PREGEN.chasseur).slice(0, n).map((h) => ensureBourse(h, idsDeTest));
 /** L'engagement du pré-tiré `h` par son id. */
-const pretireDe = (h: Combatant) => ({ pretire: pregens.find((p) => `pregen-${p.seed}` === h.id)!.id });
+const pretireDe = (h: Combatant) => ({ pretire: pregens.find((p) => idDuPretire(p.seed) === h.id)!.id });
 
 describe('composition du groupe — `refusDAjoutAuGroupe`', () => {
   it('hôte coop au quota épuisé, groupe 1/4 : le verdict et le geste disent le quota', () => {

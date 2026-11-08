@@ -699,8 +699,8 @@
     "type": "primitives.manifest",
     "label": "VOCABULAIRES/lectureDuVocabulaire",
     "fichier": "src/data/schemas/grammaire/vocabulaires.ts",
-    "concept": "une table FERMÉE `id → libellé` que le moteur déclare et qu'aucun document ne porte (Difficultés, Degrés d'Exposition, Tailles), exposée comme ESPACE `vocabulaire:<nom>` : ses ids et ses libellés se lisent par la même clé d'espace qu'une collection de document",
-    "perimetre": "univers et libellés des sources de spécialisations (`SOURCES_DE_SPECS`) que nul document ne porte, index des ids (`npm run gen`) et régime vivant (`src/data/overrides.ts`)",
+    "concept": "une table FERMÉE `id → libellé` que le code déclare et qu'aucun document ne porte (Difficultés, Degrés d'Exposition, Tailles, et chaque registre TS d'art à option `vocabulaire`, projeté de ses defs), exposée comme ESPACE `vocabulaire:<nom>` : ses ids et ses libellés se lisent par la même clé d'espace qu'une collection de document, et un type de `TYPES` la prend pour espace de `ref(type)`",
+    "perimetre": "univers et libellés des sources de spécialisations (`SOURCES_DE_SPECS`) que nul document ne porte, espaces des types de `TYPES` (bandes d'ambiance, #2968 P-art), index des ids (`npm run gen`) et régime vivant (`src/data/overrides.ts`)",
     "verrou": "src/data/schemas/espaces-contrat.test.ts"
   },
   {
@@ -978,12 +978,21 @@
     "verrou": "pile persistée de cascades suspendues, jamais un checkpoint parallèle ni une purge"
   },
   {
+    "id": "executerFlow",
+    "type": "primitives.manifest",
+    "label": "executerFlow/HoteDeFlow",
+    "fichier": "src/engine/flowCore.ts",
+    "concept": "exécution d'un Flow à pile, seul marcheur : la marche décide `seq` et `if` (Conditions lues au nœud, `conditions()` de l'hôte) ; l'hôte décide la feuille, le Test et le choix, vide son lot avant chaque décision (`avantDecision`) et rend, par nœud, la poursuite, un Flow joué en tête ou l'arrêt ; `reste()` retire la continuation qu'il confie en suspendant",
+    "perimetre": "`runFlow` (scène), `runCombatFlow` (combat), `runPureFlowLines` (effet déclenché pur), le consommable bu hors combat (`consumableFlow.ts`)",
+    "verrou": "src/marcheurs-de-flow-guard.test.ts"
+  },
+  {
     "id": "suite",
     "type": "primitives.manifest",
     "label": "confierLaSuite/cloturer/Suite (pendings.ts)",
     "fichier": "src/noyau/combatEffects.ts",
     "concept": "suite d'un appelant qui rend la main : liste ordonnée de clôtures sérialisables, confiée en APPEND au porteur qui tient la main et rejouée à sa clôture dans l'ordre de la confidence",
-    "perimetre": "walkers de Flow de scène et de combat, lots d'Effets, déclencheurs, effets programmés, clôtures de verbe (dialogue, horloge, victoire)",
+    "perimetre": "hôtes d'`executerFlow` de scène et de combat, lots d'Effets, déclencheurs, effets programmés, clôtures de verbe (dialogue, horloge, victoire)",
     "verrou": "src/noyau/chute-a-la-porte.hors-store.test.ts, src/noyau/roll-seam-exclusivity-guard.test.ts"
   },
   {
@@ -1138,7 +1147,7 @@
   {
     "id": "reglagesApparence",
     "type": "primitives.manifest",
-    "label": "ReglagesApparence/ApparencesObjetsField/ArmeEquipeeField",
+    "label": "ReglagesApparence/ApparencesObjetsField",
     "fichier": "src/ui/editor/ReglagesApparence.tsx",
     "css": "src/ui/styles/reglages-apparence.css",
     "concept": "réglages d’une apparence, liste des réglages rendus en donnée, toute écriture par apparenceSuivante",
@@ -2226,7 +2235,7 @@
     "type": "primitives.manifest",
     "label": "personnesCandidates/sontAmis/personneDuDecideurAuto/visePersonneChoisie/fluxDEnvers",
     "fichier": "src/noyau/personneChoisie.ts",
-    "concept": "la personne choisie d’un Trait psy accordé `envers: 'personneChoisie'` (VDM 10 l.327) : les personnes désignables (combattants en action, ou groupe et personnages de la scène hors combat), l’amitié (même camp), la désignation d’un décideur non surfacé (allié le plus proche de la cible), et le Flow qui pose le Trait derrière son Test de résistance ; l’étape `personneChoisie` du walker d’acteur (`combat/triggeredTest.ts`) les compose — lectures révisables #3045",
+    "concept": "la personne choisie d’un Trait psy accordé `envers: 'personneChoisie'` (VDM 10 l.327) : les personnes désignables (combattants en action, ou groupe et personnages de la scène hors combat), l’amitié (même camp), la désignation d’un décideur non surfacé (allié le plus proche de la cible), et le Flow qui pose le Trait derrière son Test de résistance ; l’étape `personneChoisie` de l’hôte de combat (`runCombatFlow`, `combat/triggeredTest.ts`) les compose — lectures révisables #3045",
     "perimetre": "Sorts dont un `grantPsychTrait` vise une personne que le lanceur désigne (Colérique), en combat comme hors combat",
     "verrou": "src/noyau/colerique.hors-store.test.ts"
   },

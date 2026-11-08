@@ -23,7 +23,7 @@ import type { ThreatTier } from '../../engine/advantagePool';
 export type AuthoredEnemy = AuMoinsUnPorteurDeFiche & {
   pos: { x: number; y: number };
   appearance?: EntityAppearance;
-  weapon?: string;
+  inventaire?: SceneEntity['inventaire'];
   facing?: Dir8;
   label?: string;
   anim?: SceneEntity['anim'];
@@ -95,7 +95,7 @@ export function buildEncounter(a: AuthoredEncounter): BuiltEncounter {
     if (e.postes) ent.postes = e.postes;
     if (e.upgrades) ent.upgrades = e.upgrades;
     if (e.appearance) ent.appearance = e.appearance;
-    if (e.weapon) ent.weapon = e.weapon;
+    if (e.inventaire) ent.inventaire = e.inventaire;
     if (e.facing) ent.facing = e.facing;
     if (e.label) ent.label = e.label;
     if (e.anim) ent.anim = e.anim;

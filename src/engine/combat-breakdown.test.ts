@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseQualityInstance } from './qualities/normalize';
+import { parseQualityInstance } from '../data/refFormatLivre';
 import { resolveMelee, resolveRanged, rangeBandModifier, rangeBandName, attackModifiers, psychDRAdjust, resolveStrayRangedHit, defenseModifiers, rollMeleeDefender, finishMelee, resolveMeleePassive, freeAttackWeapon, resolveBackstabAttack, rederivePassiveAttack, frozenDifficulty, REDERIVATIONS, attackTestLabel, type ModLine, type RollBreakdown } from './combat';
 import { evaluateTest, hydrateTR, bumpSL } from './tests';
 import { makeRNG } from './dice';

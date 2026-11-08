@@ -4,7 +4,7 @@
  * (`HorsDesignation`) compris. Un brouillon malformé se refuse en `validation`, au chemin de son champ fautif, et rien
  * ne s'écrit ; le noyau ne le reçoit pas.
  */
-import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { rosterDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, afterEach, afterAll, beforeAll } from 'vitest';
 import { fermerLaTable, table, verbe } from './hote.testkit';
 import { brouillonComplet } from '../noyau/creation/engagement.testkit';
@@ -100,7 +100,7 @@ describe('la frontière lit le brouillon entier, à la forme du type du verbe', 
   it('une clé que l’objet ne déclare pas se refuse : `brouillon` et `pretire` ensemble ; chacun seul passe', () => {
     const pretire = pregens[0].id;
     expect(refus('recruterLeHeros', [{ brouillon: complet(), pretire }]))
-      .toContain('heros : vise plusieurs membres de HerosEngage (heros.pretire : clé inconnue (admises : brouillon, id) ; heros.brouillon : clé inconnue (admises : pretire))');
+      .toContain('heros : vise plusieurs membres de HerosEngage (heros.pretire : clé inconnue (admises : brouillon, id, idDeRoster) ; heros.brouillon : clé inconnue (admises : pretire))');
     expect(refus('recruterLeHeros', [{ brouillon: { ...complet(), zzz: 1 } }])).toContain('heros.brouillon.zzz : clé inconnue (admises : ');
     expect(lire('recruterLeHeros', [{ pretire }])).toHaveProperty('args');
     expect(lire('recruterLeHeros', [{ brouillon: complet() }])).toHaveProperty('args');
@@ -126,7 +126,7 @@ describe('la frontière lit le brouillon entier, à la forme du type du verbe', 
         if (validateStep(d, etape) !== null) d = fillDraftDefaults(d, etape);
       }
       brouillons.push([`complété ${graine}`, d]);
-      for (const e of lireLeRoster(ecrireLeRoster([engagement(d, idsDeTest)]))?.heros ?? []) brouillons.push([`roster ${graine}`, e.draft]);
+      for (const e of lireLeRoster(ecrireLeRoster([engagement(d, rosterDeTest('roster'))]))?.heros ?? []) brouillons.push([`roster ${graine}`, e.draft]);
     }
     const refuses = brouillons.flatMap(([nom, d]) => {
       const l = lire('recruterLeHeros', [JSON.parse(JSON.stringify({ brouillon: d, id: 'h1' }))]);

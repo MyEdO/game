@@ -63,7 +63,7 @@ export function nomDIndividu(etat: EtatDesIndividus): NomDIndividu {
  *  en combat comme hors combat. */
 function fiche(ent: SceneEntity, p: NonNullable<ReturnType<typeof porteurDeFiche>>, presetDe: ResolveurDePreset): Combatant {
   const c = spawnEnemy(p.porteur, ent.id, ent.z ? { ...ent.pos, z: ent.z } : { ...ent.pos }, {
-    appearance: p.appearance, weapon: ent.weapon,
+    appearance: p.appearance, inventaire: ent.inventaire,
     optionals: ent.combat?.optionals, spells: ent.combat?.spells, randomChars: ent.combat?.randomChars, // LDB 76/78
     skills: ent.combat?.skills, // AA 10 l.142-146
     crewIds: ent.crewIds, // MDG 14

@@ -1,0 +1,143 @@
+[gd_resource type="Theme" load_steps=11 format=3]
+
+[sub_resource type="StyleBoxFlat" id="Papier"]
+bg_color = Color(0.91, 0.894, 0.859, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.29, 0.275, 0.247, 1)
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="Bandeau"]
+bg_color = Color(0.835, 0.812, 0.761, 1)
+border_width_top = 1
+border_width_bottom = 1
+border_color = Color(0.29, 0.275, 0.247, 1)
+content_margin_left = 8.0
+content_margin_top = 2.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="Filets_du_profil"]
+bg_color = Color(0, 0, 0, 0)
+border_width_top = 1
+border_width_bottom = 1
+border_color = Color(0.29, 0.275, 0.247, 1)
+content_margin_left = 4.0
+content_margin_top = 3.0
+content_margin_right = 4.0
+content_margin_bottom = 3.0
+
+[sub_resource type="StyleBoxEmpty" id="Terme"]
+content_margin_right = 8.0
+
+[sub_resource type="StyleBoxFlat" id="Bouton_repos"]
+bg_color = Color(0.835, 0.812, 0.761, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.29, 0.275, 0.247, 1)
+content_margin_left = 8.0
+content_margin_top = 2.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="Bouton_survol"]
+bg_color = Color(0.78, 0.75, 0.69, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.29, 0.275, 0.247, 1)
+content_margin_left = 8.0
+content_margin_top = 2.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="Bouton_presse"]
+bg_color = Color(0.7, 0.62, 0.48, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.114, 0.102, 0.086, 1)
+content_margin_left = 8.0
+content_margin_top = 2.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="Bouton_refuse"]
+bg_color = Color(0.91, 0.894, 0.859, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.6, 0.58, 0.54, 1)
+content_margin_left = 8.0
+content_margin_top = 2.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="Fond_de_jauge"]
+bg_color = Color(0.835, 0.812, 0.761, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.29, 0.275, 0.247, 1)
+
+[sub_resource type="StyleBoxFlat" id="Plein_de_jauge"]
+bg_color = Color(0.55, 0.16, 0.12, 1)
+
+[resource]
+Statbloc/base_type = &"PanelContainer"
+Statbloc/styles/panel = SubResource("Papier")
+TeteDEntite/base_type = &"PanelContainer"
+TeteDEntite/styles/panel = SubResource("Bandeau")
+Profil/base_type = &"PanelContainer"
+Profil/styles/panel = SubResource("Filets_du_profil")
+Puce/base_type = &"PanelContainer"
+Puce/styles/panel = SubResource("Terme")
+Label/colors/font_color = Color(0.114, 0.102, 0.086, 1)
+reussite/base_type = &"Label"
+reussite/colors/font_color = Color(0.18, 0.37, 0.16, 1)
+echec/base_type = &"Label"
+echec/colors/font_color = Color(0.54, 0.11, 0.08, 1)
+alerte/base_type = &"Label"
+alerte/colors/font_color = Color(0.48, 0.29, 0, 1)
+Discret/base_type = &"Label"
+Discret/colors/font_color = Color(0.35, 0.33, 0.3, 1)
+ProgressBar/colors/font_color = Color(0.114, 0.102, 0.086, 1)
+ProgressBar/styles/background = SubResource("Fond_de_jauge")
+ProgressBar/styles/fill = SubResource("Plein_de_jauge")
+Button/colors/font_color = Color(0.114, 0.102, 0.086, 1)
+Button/colors/font_hover_color = Color(0.114, 0.102, 0.086, 1)
+Button/colors/font_pressed_color = Color(0.114, 0.102, 0.086, 1)
+Button/colors/font_hover_pressed_color = Color(0.114, 0.102, 0.086, 1)
+Button/colors/font_disabled_color = Color(0.45, 0.43, 0.4, 1)
+Button/styles/normal = SubResource("Bouton_repos")
+Button/styles/hover = SubResource("Bouton_survol")
+Button/styles/pressed = SubResource("Bouton_presse")
+Button/styles/hover_pressed = SubResource("Bouton_presse")
+Button/styles/disabled = SubResource("Bouton_refuse")

@@ -46,19 +46,17 @@ const KIND_ICON: Record<CombatEventKind, IconId> = {
   condition: 'condition/bleeding', fear: 'flag/fear', death: 'journal/death', round: 'journal/round', detail: 'journal/detail', info: 'journal/info',
 };
 
-/** États (LDB 16) reconnus dans le texte d'un événement `condition`/`detail` → icône via la
- *  source unique `conditionMeta` (jeu de noms FERMÉ, pas du devinage de verbe libre). Le texte d'un
- *  événement est en FRANÇAIS (journal) → l'État nommé se retrouve par `conditionIdInText`
- *  (`engine/conditions`, scan UNIQUE partagé avec `noyau/combatLog.isImportantEvent`), puis l'`id`
- *  donne l'icône. Data-driven (zéro liste figée). */
-function iconOfState(text: string): IconId | null {
-  const id = conditionIdInText(text);
+/** L'icône de l'État (LDB 16) que nomme un événement `condition`/`detail`, par `conditionMeta`. L'État est
+ *  son `etat` ; un évènement d'un site encore sans id le retrouve dans son texte (`conditionIdInText`, scan
+ *  partagé avec `noyau/combatLog.isImportantEvent`, stock de `condition-event-counter.test.ts`, #1330). */
+function iconOfState(e: CombatEvent): IconId | null {
+  const id = e.etat ?? conditionIdInText(e.text);
   return id ? conditionMeta(id).icon : null;
 }
 
 function iconOf(e: CombatEvent): IconId {
   if (e.kind === 'condition' || e.kind === 'detail') {
-    const icon = iconOfState(e.text);
+    const icon = iconOfState(e);
     if (icon) return icon;
   }
   return KIND_ICON[e.kind];
