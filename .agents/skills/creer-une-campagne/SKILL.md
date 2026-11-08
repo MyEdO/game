@@ -22,7 +22,7 @@ par un script (fiche `user-doctrine-campagne-jamais-generee-par-script`). Modèl
    `MANUSCRITS` de `src/scenes/generateurs-byte-stables.test.ts` : son volet couverture exige que tout
    `*-projet.json` soit produit par un générateur OU nommé manuscrit.
 2. **Scènes et cartes à l'éditeur** ; reproduire un plan de livre : skill `creer-une-map`.
-3. **Écrire des IDS stables** — `ref` de créature, `skill`, `spell`, `species`, `weapon` (trappingId),
+3. **Écrire des IDS stables** — `ref` de créature, `skill`, `spell`, `species`, `inventaire` (trappingId),
    `appearance.tenue`, trait `arg`. Aucun libellé : `validateScene` refuse une réf de créature ou de décor
    inexistante, `src/scenes/bundled-projects.test.ts` une apparence, un nom ou un catalogue naval non résolu. `appearance.species`
    absent = Humain par défaut.
@@ -43,7 +43,7 @@ par un script (fiche `user-doctrine-campagne-jamais-generee-par-script`). Modèl
 ## `scripts/campagne/lib.mjs` et les générateurs
 
 - `lib.mjs` porte les helpers des générateurs existants et les validateurs id-only (`creatureId`,
-  `skillId`, `spellId`, `speciesId`, `tenueId`, `weaponId` ; banc `src/scenes/arene/lib-validators.test.ts`).
+  `skillId`, `spellId`, `speciesId`, `tenueId`, `inventaire` ; banc `src/scenes/arene/lib-validators.test.ts`).
   `creatureId` accepte créature ∪ véhicule ; `poste(trappingId, side, crewIds?)` émet la référence de
   poste et lève si `trappingId` n'est pas une pièce POSABLE (sous-type `armes-de-siege`).
   Consommateurs : `scripts/arene/`, `scripts/barge-du-sel/generate.mjs`, `scripts/loup-et-saumure/generate.mjs`
