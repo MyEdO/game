@@ -11,12 +11,17 @@ import { itemFromTrappingById } from '../engine/items';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { ouvrirLaPartie, nouvelEntete } from '../hote/partie';
-import { empreinte, lireLeFichier, rejouer } from '../hoteTexte/partieTexte';
+import { empreinte, jouerUnGeste, lireLeFichier, rejouer } from '../hoteTexte/partieTexte';
+import { ouvrirLeBanc } from './banc.testkit';
+import { makeShowcaseParty } from '../data/pregens';
+import { pregens } from '../data';
+import { fabriqueLocale } from '../engine/fabriqueDId';
+import { testScenarios } from '../scenes/test-scenarios';
 
 const ENTREES = { graine: 3, cadence: 'manuel' as const, desFixes: true, persisterLeHeros: () => {}, reglesMaison: {} };
 const HEROS = { id: 'h', label: 'H', kind: 'hero', conditions: [], items: [] } as unknown as Combatant;
 /** Les ids du monde que porte `texte` (`<genre>-<n>`, préfixés ou non d'une dérivation). */
-const idsDuMonde = (texte: string): Set<string> => new Set(texte.match(/(?:it|hero|pos)-\d+/g) ?? []);
+const idsDuMonde = (texte: string): Set<string> => new Set(texte.match(/(?:it|hero|pos|favor)-\d+/g) ?? []);
 
 describe('un id forgé après un chargement n’est aucun de ceux de la save (#2907)', () => {
   it('objet, puis héros, après `chargerLaSave` et `creerPartie`', () => {
@@ -72,6 +77,63 @@ describe('un scénario lancé garde le compteur que son groupe a consommé (#290
       expect(etat.prochainId).toBeGreaterThan(Math.max(...rangs));
     } finally {
       partie.fermer();
+    }
+  });
+});
+
+/** Les porteurs de chaque uid du monde que porte `etat` : le combattant qui le porte (ses copies de groupe et de
+ *  bataille comptent pour un), sinon la clé d'état qui le tient (possessions, navire, banque…). */
+function porteursDesUids(etat: object): Map<string, Set<string>> {
+  const porteurs = new Map<string, Set<string>>();
+  const parcourir = (v: unknown, porteur: string): void => {
+    if (Array.isArray(v)) { for (const x of v) parcourir(x, porteur); return; }
+    if (!v || typeof v !== 'object') return;
+    const o = v as Record<string, unknown>;
+    const p = typeof o.kind === 'string' && typeof o.id === 'string' && Array.isArray(o.items) ? `combattant:${o.id}` : porteur;
+    for (const [k, x] of Object.entries(o)) {
+      if (k === 'uid' && typeof x === 'string' && /^(?:it|hero|pos|favor)-\d+$/.test(x)) (porteurs.get(x) ?? porteurs.set(x, new Set()).get(x)!).add(p);
+      else parcourir(x, p);
+    }
+  };
+  for (const [k, v] of Object.entries(etat)) if (typeof v !== 'function') parcourir(v, `etat:${k}`);
+  return porteurs;
+}
+
+describe('un uid du monde n’a qu’un porteur (#2907)', () => {
+  it('sur chaque scénario lancé', () => {
+    const doublons: string[] = [];
+    for (const sc of testScenarios) {
+      const { partie } = ouvrirLaPartie(nouvelEntete(sc.id, { graine: 7 }), () => {});
+      try {
+        for (const [uid, porteurs] of porteursDesUids(partie.etat())) if (porteurs.size > 1) doublons.push(`${sc.id} ${uid} : ${[...porteurs].join(', ')}`);
+      } finally {
+        partie.fermer();
+      }
+    }
+    expect(doublons).toEqual([]);
+  }, 120_000);
+});
+
+describe('un geste refusé ne consomme aucun id (#2907)', () => {
+  it('un recrutement refusé, groupe plein, laisse le compteur', () => {
+    const banc = ouvrirLeBanc({ etat: { party: makeShowcaseParty(fabriqueLocale('groupe')) } });
+    const avant = banc.getState().prochainId;
+    banc.getState().recruterLeHeros({ pretire: pregens[0].id });
+    expect(banc.getState().party).toHaveLength(4);
+    expect(banc.getState().prochainId).toBe(avant);
+  });
+
+  it('l’hôte texte juge sans effet un recrutement refusé en combat, et n’en écrit rien', () => {
+    const { entete } = lireLeFichier(readFileSync(new URL('../hoteTexte/combat-dome.jsonl', import.meta.url), 'utf8'));
+    const r = rejouer(entete, []);
+    try {
+      expect(r.partie.etat().battle).not.toBeNull();
+      const avant = r.partie.etat().prochainId;
+      expect(() => jouerUnGeste(r, { type: 'recruterLeHeros', args: [{ pretire: pregens[0].id }], siege: 0 } as never)).toThrow(/sans effet/);
+      expect(r.gestes).toHaveLength(0);
+      expect(r.partie.etat().prochainId).toBe(avant);
+    } finally {
+      r.partie.fermer();
     }
   });
 });

@@ -1,5 +1,5 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import { makeShowcaseParty, pregenParty, PREGEN } from '../../data/pregens';
+import { makeShowcaseParty } from '../../data/pregens';
 import { mutationAt } from '../../data/mutations';
 import { battleRng } from '../../noyau/battleRng';
 import { attachMutation } from '../../engine/corruption';
@@ -34,8 +34,7 @@ function mutate(c: Combatant, rolls: number[]): Combatant {
 
 function groupe(idNeuf: FabriqueDId): Combatant[] {
   const heroes = makeShowcaseParty(idNeuf).map((c, i) => mutate(c, LOTS[i] ?? [])); // 4 héros mutés
-  const ans = pregenParty(idNeuf, PREGEN.pretre)[0];
-  const shallya = makePriest(ans, 'h-shallya', 'Sœur Greta, Prêtresse de Shallya', 'shallya', { sociabilite: 66, 'force-mentale': 60, force: 40, endurance: 44 });
+  const shallya = makePriest(idNeuf, 'h-shallya', 'Sœur Greta, Prêtresse de Shallya', 'shallya', { sociabilite: 66, 'force-mentale': 60, force: 40, endurance: 44 });
   return [...heroes, shallya];
 }
 

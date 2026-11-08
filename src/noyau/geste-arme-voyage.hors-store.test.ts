@@ -16,6 +16,7 @@
  * Le verdict se calcule donc chez l'ÉMETTEUR et voyage dans les args (`approche`/`courseArmee`),
  * exactement comme `confirm`.
  */
+import { resetFields } from './stateFields';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -238,12 +239,24 @@ describe('(C) le REFUS est un canal LOCAL — et ne se tait jamais', () => {
   it('son extinction ne coupe QUE le refus visé (un refus survenu depuis garde sa durée)', () => {
     setup();
     refuserGeste(get, banc.setState, 'Premier.');
-    const premier = get().refus!.nonce;
+    const premier = get().refus!;
     refuserGeste(get, banc.setState, 'Second.');
     eteindreRefus(get, banc.setState, premier); // la minuterie du PREMIER arrive en retard
     expect(get().refus?.texte, 'la minuterie du refus précédent a mangé le suivant').toBe('Second.');
-    eteindreRefus(get, banc.setState, get().refus!.nonce);
+    eteindreRefus(get, banc.setState, get().refus!);
     expect(get().refus).toBeNull();
+  });
+
+  it('la minuterie d’un refus remplacé n’éteint pas le refus neuf, même après une remise à zéro (#2907)', () => {
+    setup();
+    refuserGeste(get, banc.setState, 'Premier.');
+    refuserGeste(get, banc.setState, 'Second.');
+    const second = get().refus!;
+    banc.setState({ ...resetFields('combatStart') }); // un combat neuf remet le refus à zéro, sa minuterie reste en vol
+    refuserGeste(get, banc.setState, 'Troisième.');
+    refuserGeste(get, banc.setState, 'Quatrième.'); // même nonce que `second`
+    eteindreRefus(get, banc.setState, second);
+    expect(get().refus?.texte, 'la minuterie d’un refus remplacé a éteint le refus neuf').toBe('Quatrième.');
   });
 
   it('le CADRE l’efface : le combat SUIVANT ne s’ouvre pas sur le refus du précédent', () => {

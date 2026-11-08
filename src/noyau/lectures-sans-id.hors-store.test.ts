@@ -53,7 +53,7 @@ describe('une lecture ne forge aucun id (#2907)', () => {
       const consommes = r.partie.etat().prochainId - 1;
       const portes = new Set<number>();
       JSON.stringify(r.partie.etat(), (_k, v: unknown) => {
-        const n = typeof v === 'string' ? /(?:^|-)(?:it|hero|pos)-(\d+)$/.exec(v) : null;
+        const n = typeof v === 'string' ? /(?:^|-)(?:it|hero|pos|favor)-(\d+)$/.exec(v) : null;
         if (n && Number(n[1]) <= consommes) portes.add(Number(n[1]));
         return v;
       });

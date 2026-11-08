@@ -153,7 +153,7 @@ export function creerHote(disque: Disque) {
     const lue = partie(e.partie);
     const nom = lue.nom;
     let r = lue.r;
-    const refusAvant = r.partie.etat().refus?.nonce;
+    const refusAvant = r.partie.etat().refus;
     const appliques: string[] = [];
     const lignes: LigneNumerotee[] = [];
     let jetons = 0;
@@ -187,7 +187,7 @@ export function creerHote(disque: Disque) {
     const etat = r.partie.etat();
     const p = projection(r);
     const total = e.gestes.length;
-    const refusNeuf = etat.refus && etat.refus.nonce !== refusAvant ? ` · refus : ${etat.refus.texte}` : '';
+    const refusNeuf = etat.refus && etat.refus !== refusAvant ? ` · refus : ${etat.refus.texte}` : '';
     const issue = appliques.length
       ? [`${appliques.length === total ? '' : `${appliques.length}/${total} `}appliqué${appliques.length > 1 ? 's' : ''} : ${appliques.join(' · ')}${jetons ? ` · ${jetons} jeton${jetons > 1 ? 's' : ''} repris` : ''}${leves.length ? ` · levé : ${leves.join(', ')}` : ''}${refusNeuf}`]
       : [];

@@ -43,6 +43,9 @@ export interface PregenDef extends Pick<ChoixDeCreation, ChoixDesPretires> {
   sex?: Sexe;
 }
 
+/** L'id STABLE du héros du pré-tiré de seed `seed`. */
+export const idDuPretire = (seed: number): string => `pregen-${seed}`;
+
 /** Construit le héros d'un pré-tiré via `createHero` (identité authorée posée en `opts`), puis
  *  complète les Sorts de Magie mineure au quota BFM (`pettySpellQuotaFor`/`fillPettySpellsToQuota`,
  *  engine) — APPEND uniquement : les Bénédictions du Talent Béni, déjà octroyées par
@@ -55,7 +58,7 @@ function buildPregenHero(d: PregenDef, idNeuf: FabriqueDId): Combatant {
     speciesId: species.id,
     careerId: career.id,
     label,
-    id: `pregen-${d.seed}`,
+    id: idDuPretire(d.seed),
     idNeuf,
     details: { age, ambitionShort, ambitionLong },
     motivation,

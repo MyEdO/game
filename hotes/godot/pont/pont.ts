@@ -232,10 +232,10 @@ export function creerPont() {
   const jouerUnGeste = (o: NonNullable<typeof ouverte>, e: Record<string, unknown>): ResultatDeLAppel => {
     const etat = o.partie.etat();
     const intention = intentionDuGeste(etat, gesteDuVerbe(etat, e as { type: unknown }, SANS_PISTE));
-    const refusAvant = etat.refus?.nonce;
+    const refusAvant = etat.refus;
     const resultat = envoyerLIntention(o.partie, intention);
     const refus = o.partie.etat().refus;
-    if (refus && refus.nonce !== refusAvant) throw new ErreurDeGeste('regle', `${intention.type} : ${refus.texte}`);
+    if (refus && refus !== refusAvant) throw new ErreurDeGeste('regle', `${intention.type} : ${refus.texte}`);
     o.pas++;
     return resultat;
   };
