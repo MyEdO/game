@@ -11,11 +11,12 @@ import type { Dir8 } from '../../geometry/dir8';
 import { LOCALISATIONS_DE_COUP } from '../../engine/types';
 import { apparencesCandidates } from '../../engine/items';
 import { findTierEntry } from '../../engine/tables';
-import { findCreatureById, findFicheDeVehicule, findGroupeDArmureById, findPlanDEspeceById, findSpeciesById, findTenueDeCarriere, findTeteById, findVehicleById, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
+import { findCreatureById, findFicheDeVehicule, findNavalTrait, findGroupeDArmureById, findPlanDEspeceById, findSpeciesById, findTenueDeCarriere, findTeteById, findVehicleById, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
 import { armesDuCombattant, emblemeDe } from '../equipementDessine';
 import { facteursDeComposition, porteesDeLaTenue, porteesDesObjets, teinteDeLObjet, type ObjetPorte, type Portee, type PorteeDeComposition } from './composition';
 import { pieceRacine } from './gardeRobe';
 import { footprintN } from '../monde/footprint';
+import { hullNavalTraits } from '../../engine/navalTraits';
 
 /** La race de rendu d'une espèce : celle que le plan de bestiaire (`findPlanDEspeceById`, #2993) donne à la race
  *  d'apparence d'une espèce jouable (`refChar`), sinon à l'espèce ; aucune si l'espèce n'y porte pas la base humanoïde. */
@@ -126,7 +127,8 @@ export interface PosteDuVehicule {
 
 /** Un véhicule ou un engin de siège au combat : l'id de sa fiche, que nomme la clé `definition` d'un élément 3D
  *  `vehicule`, le côté N de son empreinte (`footprintN`), sa taille, son cap (`Jeu.facing`, le nord sans cap, comme au
- *  combat), ses couleurs, celles de son apparence d'auteur, et les pièces de ses postes à un bord, dans leur ordre. Un
+ *  combat), ses couleurs, celles de son apparence d'auteur, les pièces de ses postes à un bord, dans leur ordre, et les
+ *  Améliorations de sa coque (`hullNavalTraits`, MDG 12), sans ses Traits. Un
  *  engin de siège a sa taille réelle ; une coque remplit son empreinte, sa taille réelle à terre étant le plateau de son
  *  pont (arbitrage de Clément du 2026-11-08, #2987). */
 export interface VehiculeDuCombattant extends Pick<EntityAppearance, 'couleurs'> {
@@ -135,6 +137,7 @@ export interface VehiculeDuCombattant extends Pick<EntityAppearance, 'couleurs'>
   readonly taille: 'reelle' | 'empreinte';
   readonly cap: Dir8;
   readonly postes: readonly PosteDuVehicule[];
+  readonly ameliorations: readonly string[];
 }
 
 /** Le véhicule que `c`, au cap `cap`, est, si sa fiche est une coque ou un engin de siège (`findFicheDeVehicule`, #2987),
@@ -143,5 +146,6 @@ export function vehiculeDuCombattant(c: Combatant, cap: Dir8 | undefined): Vehic
   if (c.creatureId === undefined || !findFicheDeVehicule(c.creatureId)) return null;
   const postes = (c.postes ?? []).flatMap(({ item, side }) => (side && item.trappingId ? [{ definition: item.trappingId, bord: side, ...saTeinte(item) }] : []));
   const taille = findVehicleById(c.creatureId)?.hull ? 'empreinte' : 'reelle';
-  return { definition: c.creatureId, empreinte: footprintN(c), taille, cap: cap ?? 'N', ...couleursDuCombattant(c), postes };
+  const ameliorations = hullNavalTraits(c).flatMap(({ id }) => (findNavalTrait(id)?.kind === 'amelioration' ? [id] : []));
+  return { definition: c.creatureId, empreinte: footprintN(c), taille, cap: cap ?? 'N', ...couleursDuCombattant(c), postes, ameliorations };
 }

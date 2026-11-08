@@ -181,19 +181,23 @@ describe('vehiculeDuCombattant (#2987)', () => {
   const poste = (trappingId: string, side?: FireArc) => hydratePoste({ trappingId, ...(side ? { side } : {}) }, 'poste-de-test');
   it.each([['caraque', 4, 'empreinte'], ['barque-fluviale', 1, 'empreinte'], ['canon-petit', 2, 'reelle'], ['belier-ade2', 2, 'reelle']] as const)('%s, coque ou engin de siège : sa fiche, le côté de son empreinte et sa taille, sans portée', (ref, empreinte, taille) => {
     const c = fiche(ref);
-    expect([vehiculeDuCombattant(c, undefined), porteeDuCombattant(c)]).toEqual([{ definition: ref, empreinte, taille, cap: 'N', postes: [] }, null]);
+    expect([vehiculeDuCombattant(c, undefined), porteeDuCombattant(c)]).toEqual([{ definition: ref, empreinte, taille, cap: 'N', postes: [], ameliorations: [] }, null]);
   });
   it('son cap, et les pièces de ses seuls postes à un bord, dans leur ordre', () => {
     const c = { ...fiche('caraque'), postes: [poste('canon-moyen', 'tribord'), poste('canon-petit'), poste('canon-grand', 'proue'), poste('canon-moyen', 'tribord')] };
-    expect(vehiculeDuCombattant(c, 'SE')).toEqual({ definition: 'caraque', empreinte: 4, taille: 'empreinte', cap: 'SE', postes: [{ definition: 'canon-moyen', bord: 'tribord' }, { definition: 'canon-grand', bord: 'proue' }, { definition: 'canon-moyen', bord: 'tribord' }] });
+    expect(vehiculeDuCombattant(c, 'SE')).toEqual({ definition: 'caraque', empreinte: 4, taille: 'empreinte', cap: 'SE', postes: [{ definition: 'canon-moyen', bord: 'tribord' }, { definition: 'canon-grand', bord: 'proue' }, { definition: 'canon-moyen', bord: 'tribord' }], ameliorations: [] });
   });
   it('ses couleurs, celles de son apparence d’auteur, et la teinte de chaque pièce', () => {
     const teinte = { ...poste('canon-moyen', 'tribord'), item: { ...poste('canon-moyen', 'tribord').item, teinte: 'aethyrique' } };
     const c = { ...fiche('caraque'), appearanceOverride: { couleurs: couleurs({ bois: 'peau-brune' }) }, postes: [teinte, poste('canon-grand', 'proue')] };
     expect(vehiculeDuCombattant(c, 'N')).toEqual({
       definition: 'caraque', empreinte: 4, taille: 'empreinte', cap: 'N', couleurs: { bois: { id: 'peau-brune' } },
-      postes: [{ definition: 'canon-moyen', bord: 'tribord', teinte: 'aethyrique' }, { definition: 'canon-grand', bord: 'proue' }],
+      postes: [{ definition: 'canon-moyen', bord: 'tribord', teinte: 'aethyrique' }, { definition: 'canon-grand', bord: 'proue' }], ameliorations: [],
     });
+  });
+  it('les Améliorations de sa coque, de sa fiche puis installées, sans ses Traits (MDG 12)', () => {
+    const c = { ...fiche('loup-imperial'), upgrades: [{ id: 'sabord' }, { id: 'robuste' }, { id: 'nid-de-pie' }] };
+    expect(vehiculeDuCombattant(c, 'N')!.ameliorations).toEqual(['belier', 'sabord', 'nid-de-pie']);
   });
   it('une créature n’est pas un véhicule', () => expect(vehiculeDuCombattant(creature('loup'), 'N')).toBeNull());
 });

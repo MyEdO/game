@@ -6,7 +6,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { vehiculeDeTest } from '../asset/modeles.testkit.ts';
 import { modelesCommites, servirLesModeles, suiteDe, table, vueDe } from './pont.testkit';
-import { postesMontes } from './atelier';
+import { ameliorationsMontees, postesMontes } from './atelier';
 import { paletteDesCouleurs } from './composition';
 import { findCouleurById, findTeinteById } from '../../../src/noyau/index';
 import { couleursSchema } from '../../../src/data/schemas/grammaire/valeurs';
@@ -27,6 +27,29 @@ describe('la palette d’une pièce montée (`postesMontes`)', () => {
   });
 });
 
+/** Le manifeste de la pièce de l'Amélioration `amelioration`, montée selon `montage`. */
+const ameliorationDeTest = (amelioration: string, montage: 'ancrages' | 'postes') => ({ ...vehiculeDeTest(), categorie: 'amelioration', cle: { amelioration }, montage });
+
+describe('les pièces d’Amélioration d’un véhicule (`ameliorationsMontees`)', () => {
+  const MANIFESTE = { postes: { tribord: [[-3, 1.9, 4], [-3, 1.9, 2]], proue: [[1.2, 5.6, 13]] }, ancrages: { ancre: [[-2, 3, 14], [2, 3, 14]] } };
+  const MANIFESTES = { sabord: ameliorationDeTest('sabord', 'postes'), ancre: ameliorationDeTest('ancre', 'ancrages') };
+  const PIECES = { sabord: 'sabord', ancre: 'ancre', 'canon-moyen': 'canon-moyen' };
+  const montes = postesMontes(MANIFESTE, [{ definition: 'canon-moyen', bord: 'tribord' }], PIECES, {});
+  it('montée aux postes, à chaque poste offert, ouverte devant une pièce montée, fermée sinon', () => {
+    expect(ameliorationsMontees(MANIFESTE, ['sabord'], montes, PIECES, MANIFESTES)).toEqual([
+      { element: 'sabord', position: MANIFESTE.postes.tribord[0], poste: { bord: 'tribord', montre: 'ouvert', cache: 'ferme' } },
+      { element: 'sabord', position: MANIFESTE.postes.tribord[1], poste: { bord: 'tribord', montre: 'ferme', cache: 'ouvert' } },
+      { element: 'sabord', position: MANIFESTE.postes.proue[0], poste: { bord: 'proue', montre: 'ferme', cache: 'ouvert' } },
+    ]);
+  });
+  it('montée aux ancrages, à chacun des ancrages de son Amélioration', () => {
+    expect(ameliorationsMontees(MANIFESTE, ['ancre'], montes, PIECES, MANIFESTES)).toEqual(MANIFESTE.ancrages.ancre.map((position) => ({ element: 'ancre', position })));
+  });
+  it('une Amélioration sans pièce servie ne monte rien', () => {
+    expect(ameliorationsMontees(MANIFESTE, ['figure-de-proue', 'lissage'], montes, PIECES, MANIFESTES)).toEqual([]);
+  });
+});
+
 describe('les pièces montées aux postes d’un navire', () => {
   const NAVIRE = 'loup-imperial';
   const TRIBORD = [[-3, 1.9, 4], [-3, 1.9, 2]] as const;
@@ -36,7 +59,7 @@ describe('les pièces montées aux postes d’un navire', () => {
     const { vue } = suiteDe(appel('demarrer', { scenario: 'duel-naval', graine: 7 }));
     const grimm = vue.projection.combat!.voisins.liste.find((c) => c.vehicule?.definition === NAVIRE)!;
     id = grimm.id;
-    expect(grimm.vehicule).toEqual({ definition: NAVIRE, empreinte: 4, taille: 'empreinte', cap: 'E', postes: [{ definition: 'canon-moyen', bord: 'tribord' }, { definition: 'canon-moyen', bord: 'babord' }, { definition: 'canon-moyen', bord: 'proue' }] });
+    expect(grimm.vehicule).toEqual({ definition: NAVIRE, empreinte: 4, taille: 'empreinte', cap: 'E', postes: [{ definition: 'canon-moyen', bord: 'tribord' }, { definition: 'canon-moyen', bord: 'babord' }, { definition: 'canon-moyen', bord: 'proue' }], ameliorations: ['belier'] });
   });
 
   it('chaque pièce dont un élément est servi se monte à la position suivante de son bord, si son navire l’offre', () => {
@@ -44,7 +67,14 @@ describe('les pièces montées aux postes d’un navire', () => {
     expect(vueDe(appel('vue')).corps.vehicules[id]).toEqual({
       element: NAVIRE, empreinte: 4, taille: 'empreinte', cap: 'E', palette: {},
       postes: [{ element: 'canon-moyen', bord: 'tribord', position: TRIBORD[0], palette: {} }, { element: 'canon-moyen', bord: 'proue', position: PROUE[0], palette: {} }],
+      ameliorations: [],
     });
+  });
+
+  it('la pièce servie d’une Amélioration de sa coque se monte à chacun de ses ancrages', () => {
+    const BELIER = [[0, 0.5, 14]] as const;
+    servir({ ...COMMITES.manifestes, [NAVIRE]: { ...vehiculeDeTest(NAVIRE), ancrages: { belier: BELIER } }, 'belier': ameliorationDeTest('belier', 'ancrages') });
+    expect(vueDe(appel('vue')).corps.vehicules[id].ameliorations).toEqual([{ element: 'belier', position: BELIER[0] }]);
   });
 
   it('sans élément de sa fiche servi, aucune pièce ne se monte', () => {

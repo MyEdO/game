@@ -13,7 +13,7 @@
  * (#2987), sous la fiche que nomme sa clé `definition` ; le rapport de l'index, dont l'élément n'est servi nulle part.
  */
 import type { Attache } from '../asset/attache';
-import type { ManifesteDElement } from '../asset/element';
+import { ETATS_AU_POSTE, type ManifesteDElement } from '../asset/element';
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
@@ -71,6 +71,8 @@ export interface ModelesDeLAtelier {
   emblemes: EmblemeDeLAtelier[];
   /** Par fiche de véhicule ou d'engin (`cle.definition`), l'id de l'élément `vehicule` servi qui la dessine (#2987). */
   vehicules: Record<string, string>;
+  /** Par Amélioration navale (`cle.amelioration`), l'id de l'élément `amelioration` servi qui la dessine (#2987). */
+  ameliorations: Record<string, string>;
 }
 
 /** Un emblème offert au montage : son id, son libellé et son dessin. */
@@ -150,11 +152,11 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     return { id, empreinte: m.glb.sha256, points, lignes, clips: m.clips, vitesseAuSol: m.appuis.vitesseAuSol };
   });
   const emblemes = gardeRobe.flatMap((e) => (e.kind === 'embleme' ? [{ id: e.id, label: e.label, svg: e.svg }] : []));
-  const vehicules = Object.fromEntries(elements.flatMap((e) => {
+  const parCle = (categorie: 'vehicule' | 'amelioration', champ: 'definition' | 'amelioration') => Object.fromEntries(elements.flatMap((e) => {
     const m = e.brut as ManifesteDElement;
-    return m.categorie === 'vehicule' ? [[m.cle.definition, servir([e])[0]]] : [];
+    return m.categorie === categorie ? [[cleDe(m)[champ]!, servir([e])[0]]] : [];
   }));
-  return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, emblemes, vehicules };
+  return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, emblemes, vehicules: parCle('vehicule', 'definition'), ameliorations: parCle('amelioration', 'amelioration') };
 }
 
 /** Une pièce montée sur un véhicule : l'élément `vehicule` servi qui dessine sa fiche, son bord, sa position dans la
@@ -179,5 +181,32 @@ export function postesMontes(manifeste: unknown, postes: readonly PosteDuVehicul
     const position = offertes[bord]?.[rang];
     const element = vehicules[definition];
     return position && element ? [{ element, bord, position, palette: { ...palette, ...findTeinteById(teinte)?.palette } }] : [];
+  });
+}
+
+type EtatAuPoste = (typeof ETATS_AU_POSTE)[keyof typeof ETATS_AU_POSTE];
+
+/** Une pièce d'Amélioration montée sur un véhicule : l'élément `amelioration` servi qui la dessine, sa position dans la
+ *  scène du véhicule, et, montée à un poste, son bord, le nœud qu'elle montre et celui qu'elle cache (`ETATS_AU_POSTE`). */
+export interface AmeliorationMontee {
+  element: string;
+  position: readonly [number, number, number];
+  poste?: { bord: FireArc; montre: EtatAuPoste; cache: EtatAuPoste };
+}
+
+/** Les pièces des `ameliorations` montées sur le véhicule de manifeste `manifeste`, dont `montes` sont les pièces de ses
+ *  postes (`postesMontes`) : pour chaque Amélioration dont un élément de `pieces` (Amélioration → élément servi, de manifeste
+ *  dans `manifestes`) est servi, une pièce à chacun de ses `ancrages` dans le manifeste du véhicule, ou, montée aux postes,
+ *  à chaque poste qu'il offre, `ouvert` devant une pièce montée, `ferme` sinon. */
+export function ameliorationsMontees(manifeste: unknown, ameliorations: readonly string[], montes: readonly PosteMonte[], pieces: Readonly<Record<string, string>>, manifestes: Readonly<Record<string, unknown>>): AmeliorationMontee[] {
+  const vehicule = manifeste as Extract<ManifesteDElement, { categorie: 'vehicule' }>;
+  return ameliorations.flatMap((amelioration) => {
+    const element = pieces[amelioration];
+    if (!element) return [];
+    if ((manifestes[element] as Extract<ManifesteDElement, { categorie: 'amelioration' }>).montage === 'ancrages') return (vehicule.ancrages?.[amelioration] ?? []).map((position) => ({ element, position }));
+    return Object.entries(vehicule.postes ?? {}).flatMap(([bord, positions]) => positions.map((position) => {
+      const arme = montes.some((m) => m.bord === bord && m.position === position);
+      return { element, position, poste: { bord: bord as FireArc, montre: arme ? ETATS_AU_POSTE.arme : ETATS_AU_POSTE.vide, cache: arme ? ETATS_AU_POSTE.vide : ETATS_AU_POSTE.arme } };
+    }));
   });
 }

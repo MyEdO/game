@@ -16,7 +16,7 @@ import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteig
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { fenetreADessiner } from '../../../src/hote/gestes';
 import { lignesDuJournal, zonesDeLEcran, type ZonesDeLaSuite, type ZonesDeLEcran } from '../../../src/hote/ecran';
-import { modelesDeLAtelier, postesMontes, type ModelesDeLAtelier, type PosteMonte } from './atelier';
+import { ameliorationsMontees, modelesDeLAtelier, postesMontes, type AmeliorationMontee, type ModelesDeLAtelier, type PosteMonte } from './atelier';
 import { composerSurLaBase, paletteDesCouleurs, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
 import { ONGLETS_DE_LA_FICHE, type CreationOuverte, type FicheOuverte, type GesteDeLaCreation } from '../../../src/hote/elements';
@@ -49,9 +49,9 @@ export interface CorpsDuCombat {
   combattants: Record<string, (CompositionSurLaBase & { base: string }) | null>;
   /** Par id de combattant dessiné qui est un véhicule ou un engin (`CombattantProjete.vehicule`) dont un élément
    *  `vehicule` est servi (`ModelesDeLAtelier.vehicules`, #2987) : cet élément, le côté de son empreinte, sa taille, son cap, sa
-   *  palette (`paletteDesCouleurs`) et les pièces montées à ses postes (`postesMontes`), quelles que soient les bases
-   *  servies. */
-  vehicules: Record<string, { element: string; empreinte: number; taille: VehiculeDuCombattant['taille']; cap: VehiculeDuCombattant['cap']; palette: Record<string, string>; postes: PosteMonte[] }>;
+   *  palette (`paletteDesCouleurs`), les pièces montées à ses postes (`postesMontes`) et celles de ses Améliorations
+   *  (`ameliorationsMontees`), quelles que soient les bases servies. */
+  vehicules: Record<string, { element: string; empreinte: number; taille: VehiculeDuCombattant['taille']; cap: VehiculeDuCombattant['cap']; palette: Record<string, string>; postes: PosteMonte[]; ameliorations: AmeliorationMontee[] }>;
 }
 
 /** La vue : la projection commune (`projeter`), les corps de ses combattants (`CorpsDuCombat`), la disposition de la
@@ -187,7 +187,10 @@ export function creerPont() {
         const element = vehicule && modeles?.modeles.vehicules[vehicule.definition];
         if (!element) return [];
         const palette = paletteDesCouleurs(vehicule.couleurs);
-        return [[id, { element, empreinte: vehicule.empreinte, taille: vehicule.taille, cap: vehicule.cap, palette, postes: postesMontes(modeles!.manifestes[element], vehicule.postes, modeles!.modeles.vehicules, palette) }]];
+        const manifeste = modeles!.manifestes[element];
+        const postes = postesMontes(manifeste, vehicule.postes, modeles!.modeles.vehicules, palette);
+        const ameliorations = ameliorationsMontees(manifeste, vehicule.ameliorations, postes, modeles!.modeles.ameliorations, modeles!.manifestes);
+        return [[id, { element, empreinte: vehicule.empreinte, taille: vehicule.taille, cap: vehicule.cap, palette, postes, ameliorations }]];
       })),
     };
   };
