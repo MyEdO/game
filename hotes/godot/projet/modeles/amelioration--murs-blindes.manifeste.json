@@ -1,0 +1,25 @@
+{
+  "schema": 3,
+  "categorie": "amelioration",
+  "cle": {
+    "amelioration": "murs-blindes"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "montage": "ancrages",
+  "selon": {
+    "sabord": {}
+  },
+  "surfaces": [
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    }
+  ],
+  "glb": {
+    "sha256": "f0af622373829bedf63cb14c2f6e0dccdaf05c03f280c3c3c32ae8464b6e28ef",
+    "octets": 192292
+  }
+}

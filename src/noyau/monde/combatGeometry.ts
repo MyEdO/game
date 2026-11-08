@@ -134,21 +134,29 @@ export function premiereCaseEnAnneaux(origin: { x: number; y: number }, rMin: nu
   return undefined;
 }
 
+/** Une figure tient-elle DEBOUT en (x, y), à l'étage de `depart` : la case sur la carte, hors des cases `tenues`
+ *  (clés `tileKey`, lues à chaque appel), marchable à cet étage (`isWalkable`) et joignable à pied depuis `depart`
+ *  (`walkComponentsFrom`). Socle de `formationDeCombat` et de la troupe de l'éditeur (`poserUneTroupe`). PUR. */
+export function tientDebout(scene: Scene, depart: Pt, tenues: ReadonlySet<string>): (x: number, y: number) => boolean {
+  const z = depart.z ?? 0;
+  const { w, h } = scene.dimensions;
+  const composantes = walkComponentsFrom(scene, depart);
+  return (x, y) => x >= 0 && y >= 0 && x < w && y < h
+    && !tenues.has(tileKey(x, y, z)) && isWalkable(scene, x, y, z)
+    && composantes.has(walkComponentAt(scene, x, y, z) ?? -1);
+}
+
 /**
  * FORMATION des héros au début d'un combat : la colonne (`x − 1`, `y + i`) à côté de la position du groupe,
- * à son étage. Chaque héros tient DEBOUT sur une case distincte : marchable à cet étage (`isWalkable`),
- * joignable à pied depuis le groupe (`walkComponentsFrom`), hors des cases `prises` (adversaires posés).
- * Une case de la colonne qui ne l'est pas cède la place à la case valable la plus proche du groupe
- * (`premiereCaseEnAnneaux`) ; aucune case valable à l'étage : la case de la colonne. PUR.
+ * à son étage. Chaque héros tient debout (`tientDebout`) sur une case distincte, hors des cases `prises`
+ * (adversaires posés). Une case de la colonne qui ne l'est pas cède la place à la case valable la plus proche du
+ * groupe (`premiereCaseEnAnneaux`) ; aucune case valable à l'étage : la case de la colonne. PUR.
  */
 export function formationDeCombat(scene: Scene, groupe: Pt, n: number, prises: ReadonlySet<string> = new Set()): Pt[] {
   const z = groupe.z ?? 0;
   const { w, h } = scene.dimensions;
-  const composantes = walkComponentsFrom(scene, groupe);
   const tenues = new Set(prises);
-  const tient = (x: number, y: number): boolean => x >= 0 && y >= 0 && x < w && y < h
-    && !tenues.has(tileKey(x, y, z)) && isWalkable(scene, x, y, z)
-    && composantes.has(walkComponentAt(scene, x, y, z) ?? -1);
+  const tient = tientDebout(scene, groupe, tenues);
   const out: Pt[] = [];
   for (let i = 0; i < n; i++) {
     const colonne = { x: Math.max(0, groupe.x - 1), y: Math.min(h - 1, groupe.y + i) };

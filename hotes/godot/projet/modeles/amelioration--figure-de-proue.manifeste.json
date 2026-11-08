@@ -1,0 +1,30 @@
+{
+  "schema": 3,
+  "categorie": "amelioration",
+  "cle": {
+    "amelioration": "figure-de-proue"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "montage": "ancrages",
+  "surfaces": [
+    {
+      "nom": "peinture",
+      "palette": "vet1"
+    },
+    {
+      "nom": "dorure",
+      "palette": "accent",
+      "matiere": "prop--laiton-dore"
+    },
+    {
+      "nom": "chair",
+      "palette": "peau"
+    }
+  ],
+  "glb": {
+    "sha256": "2dbb90143210d0e6274dc2efc99a7bc7a179bb6fe9bd48dc6cf38eba219c15c8",
+    "octets": 12568
+  }
+}

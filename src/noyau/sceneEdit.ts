@@ -36,7 +36,9 @@ import { valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { buildingRoofMaterial } from './monde/buildings';
 import { sceneZoneTiles, zoneAreaTiles } from './monde/zones';
-import type { Pt as ScenePt } from './monde/path';
+import { tileKey, type Pt as ScenePt } from './monde/path';
+import { premiereCaseEnAnneaux, tientDebout } from './monde/combatGeometry';
+import { entiteFootTiles } from './monde/spawn';
 import { ACTION_FOUILLER } from './monde/usable';
 import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
@@ -502,7 +504,7 @@ export function setPosteEngine(scene: Scene, entityId: string, trappingId: strin
 }
 
 /** Clé d'appartenance d'une case à une emprise — (x,y) seuls : l'étage est celui de la ZONE. */
-const tileKey = (p: Pt) => `${p.x},${p.y}`;
+const cleDEmprise = (p: Pt) => tileKey(p.x, p.y);
 
 /** Case de l'emprise, à l'étage de la zone (`z` omis au rez, comme `zoneAreaTiles`). */
 const carveTile = (p: Pt, z?: number): ScenePt => (z ? { x: p.x, y: p.y, z } : { x: p.x, y: p.y });
@@ -529,12 +531,12 @@ function areaCovering(area: ZoneArea, p: Pt): ZoneArea {
  *  devient donc une emprise explicite dans une boîte rect). */
 function paintEffectZoneTile(zone: SceneEffectZone, p: Pt, paint: 'add' | 'remove'): SceneEffectZone {
   const cur = sceneZoneTiles(zone);
-  const key = tileKey(p);
-  const inside = cur.some((t) => tileKey(t) === key);
+  const key = cleDEmprise(p);
+  const inside = cur.some((t) => cleDEmprise(t) === key);
   if (inside === (paint === 'add')) return zone;
-  if (paint === 'remove') return withCarve(zone, cur.filter((t) => tileKey(t) !== key));
+  if (paint === 'remove') return withCarve(zone, cur.filter((t) => cleDEmprise(t) !== key));
   const full = zoneAreaTiles(zone.area, zone.z);
-  const area = full.some((t) => tileKey(t) === key) ? zone.area : areaCovering(zone.area, p);
+  const area = full.some((t) => cleDEmprise(t) === key) ? zone.area : areaCovering(zone.area, p);
   return withCarve({ ...zone, area }, [...cur, carveTile(p, zone.z)]);
 }
 
@@ -558,8 +560,8 @@ export function setEffectZoneArea(zone: SceneEffectZone, area: ZoneArea): SceneE
   const from = effectZoneRect(zone.area);
   const to = effectZoneRect(area);
   const moved = zone.tiles.map((t) => carveTile({ x: t.x + (to.x - from.x), y: t.y + (to.y - from.y) }, zone.z));
-  const inside = new Set(zoneAreaTiles(area, zone.z).map(tileKey));
-  return withCarve({ ...zone, area }, moved.filter((t) => inside.has(tileKey(t))));
+  const inside = new Set(zoneAreaTiles(area, zone.z).map(cleDEmprise));
+  return withCarve({ ...zone, area }, moved.filter((t) => inside.has(cleDEmprise(t))));
 }
 
 function clamp(v: number, max: number): number {
@@ -777,6 +779,36 @@ export function pasteEntity(scene: Scene, data: SceneEntity, p: Pt, z = 0): { sc
 /** Colle une copie de l'entité `ent` sur la case voisine au sud-est de la sienne (`pasteEntity`), sur sa couche. */
 export function dupliquerLEntite(scene: Scene, ent: SceneEntity): { scene: Scene; id: string } {
   return pasteEntity(scene, ent, { x: ent.pos.x + 1, y: ent.pos.y + 1 }, ent.z ?? 0);
+}
+
+/** Pose une troupe de `n` copies du personnage `ent` (`pasteEntity`), chacune sur la case la plus proche de la sienne
+ *  (`premiereCaseEnAnneaux`), sur sa couche, où toute son empreinte (`entiteFootTiles`) tient debout (`tientDebout`,
+ *  joignable à pied depuis `ent`) hors des cases d'une autre entité de la couche ou d'une copie déjà posée. Chaque copie
+ *  tire ses Caractéristiques au hasard (LDB 77 l.108) et entre dans chaque rencontre de `ent` au même titre, sans la
+ *  monture qu'il chevauche. Moins de `n` copies quand la couche manque de cases. */
+export function poserUneTroupe(scene: Scene, ent: SceneEntity, n: number): { scene: Scene; ids: string[] } {
+  const z = ent.z ?? 0;
+  const mpt = sceneMetresPerTile(scene);
+  const cles = (e: SceneEntity) => entiteFootTiles(e, mpt).map((t) => tileKey(t.x, t.y, z));
+  const tenues = new Set(scene.entities.filter((e) => (e.z ?? 0) === z).flatMap(cles));
+  const tient = tientDebout(scene, { ...ent.pos, z }, tenues);
+  const modele: SceneEntity = { ...ent, combat: { ...ent.combat, randomChars: true } };
+  const portee = Math.max(scene.dimensions.w, scene.dimensions.h);
+  let posee = scene;
+  const ids: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const p = premiereCaseEnAnneaux(ent.pos, 1, portee, (x, y) => entiteFootTiles({ ...modele, pos: { x, y } }, mpt).every((t) => tient(t.x, t.y)));
+    if (!p) break;
+    for (const k of cles({ ...modele, pos: p })) tenues.add(k);
+    const copie = pasteEntity(posee, modele, p, z);
+    posee = copie.scene;
+    ids.push(copie.id);
+  }
+  const encounters = posee.encounters.map((enc) => {
+    const m = enc.members?.find((mm) => mm.entityId === ent.id);
+    return m ? { ...enc, members: [...enc.members!, ...ids.map((entityId) => ({ ...m, entityId, ridesEntityId: undefined }))] } : enc;
+  });
+  return { scene: { ...posee, encounters }, ids };
 }
 
 /** Pose un point d'entrée nommé `entree-N` (premier libre) à p, plafonné sur une case de la carte comme
