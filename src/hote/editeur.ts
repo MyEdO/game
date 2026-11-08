@@ -17,7 +17,7 @@ import {
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
-  type WallPaint, ZONE_VARIANTS, champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
+  type WallPaint, ZONE_VARIANTS, bornesAuPoint, champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
   allMusicDefs, apparencesDeLOuverture, champDuMessage, ciblesDAncreDeBataille, groupesDuLieu,
   isWearable, objetsDeLInventaire, trappingsInstanciables,
   candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant, sceneNpc,
@@ -770,12 +770,14 @@ const fixe = (nom: string, valeur: unknown): ArgumentDuGeste => ({ nom, optionne
 
 /** L'argument de la valeur saisie du champ `f`, de valeur courante `valeur` (`undefined` : absent), au chemin `ici` : un
  *  choix parmi ceux que son contexte y pose (`FieldDesc.contexte`), sinon parmi ses valeurs (`choixDuNoeud`), un
- *  nombre entre ses bornes (`FieldDesc.bornes`), au pas de 1 s'il est entier, un texte, ou du JSON. */
+ *  nombre entre ses bornes (`FieldDesc.bornes`, ou celles du nombre qu'admet son nœud, `bornesAuPoint`), au pas de 1
+ *  s'il est entier, un texte, ou du JSON. */
 function argumentDeValeur(f: FieldDesc, valeur: unknown, ici: readonly Segment[]): ArgumentDuGeste {
   const choix = f.contexte?.choix(ici) ?? choixDuNoeud(f.noeud)?.map((o) => ({ valeur: o.valeur, libelle: o.libelle, refus: null }));
   const base = { nom: 'valeur', optionnel: false, libelle: f.label, valeur: valeur ?? null, valeurs: null, bornes: null, note: null, champs: null };
   if (choix) return { ...base, saisie: 'choix', valeurs: [...choix] };
-  if (f.kind === 'number') return { ...base, saisie: 'nombre', bornes: { min: f.bornes?.min ?? SANS_BORNE.min, max: f.bornes?.max ?? SANS_BORNE.max, pas: f.bornes?.entier ? 1 : PAS_D_UN_REEL } };
+  const nombre = f.kind === 'number' ? f.bornes ?? null : bornesAuPoint(f.noeud, valeur);
+  if (nombre !== undefined) return { ...base, saisie: 'nombre', bornes: { min: nombre?.min ?? SANS_BORNE.min, max: nombre?.max ?? SANS_BORNE.max, pas: nombre?.entier ? 1 : PAS_D_UN_REEL } };
   return { ...base, saisie: f.kind === 'text' ? 'texte' : f.kind === 'textarea' ? 'multiligne' : 'json' };
 }
 

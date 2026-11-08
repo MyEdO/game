@@ -72,7 +72,7 @@ export { couronnesDuMonde, matieresDeDecor, toitsDuMonde, volumeDuMonde, type Vo
 export { PLAN_DEFECT_FAMILIES } from './planDefects';
 export { avertissementsDeLaSession, calqueDeLaCouche, casesDuDefaut, corpsActif, editer, ouvrirLEdition, planDeLaVolee, projetDuDepot, refusDOuvrage, refusDeLaValeur, sceneEditee, scenesDeLaSession, essaiDeLaScene, texteAEnregistrer, ACTIONS_D_ARCHITECTURE, AMBIANCES, BORNES_DE_LA_TROUPE, ENVIRONNEMENTS, HAUTEURS, METEOS, OUVRAGES, PINCEAUX, PROFILS_DE_TOIT, SORTES_D_OUVERTURE, champDuMessage, groupesDuLieu, versLaFautive, type BrouillonDArete, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type SessionDEdition } from './edition/session';
 export { formulaireDe } from './sceneEditLecture';
-export { champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, unionDuNoeud, varianteCourante, type FieldDesc } from './codex/editFields';
+export { bornesAuPoint, champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, unionDuNoeud, varianteCourante, type FieldDesc } from './codex/editFields';
 export { valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
 export { gestesDeLaListe, type Segment } from './sceneEdit';
 export { buildingsMeta } from './monde/buildings';

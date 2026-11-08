@@ -151,6 +151,14 @@ export function bornesDuNoeud(noeud: unknown): BornesDuNombre | undefined {
   return { entier: nombre.isInt, min: borne(nombre.minValue), max: borne(nombre.maxValue) };
 }
 
+/** Les bornes du nombre que le nœud admet parmi les formes de sa fermeture, quand la valeur `valeur` est ce nombre ou
+ *  absente : l'Indice chiffré d'une formule (`formuleSansTirageSchema`) ; `undefined` sinon. */
+export function bornesAuPoint(noeud: unknown, valeur: unknown): BornesDuNombre | undefined {
+  if (valeur !== undefined && typeof valeur !== 'number') return undefined;
+  const nombre = ouverts([noeud]).find((n) => defDe(n)?.type === 'number');
+  return nombre === undefined ? undefined : bornesDuNoeud(nombre);
+}
+
 /** Les champs DÉCLARÉS du nœud quand sa seule forme est un objet, dans l'ordre de sa déclaration, chacun avec son
  *  nœud ; `undefined` sinon. */
 export function champsDeclares(noeud: unknown): (readonly [string, unknown])[] | undefined {

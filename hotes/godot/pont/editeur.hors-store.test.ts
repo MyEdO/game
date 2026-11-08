@@ -644,6 +644,8 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     const ajouter = boutonDe(presser(boutonDe(griffon, 'valeur/combat/ajouter')), 'valeur/combat/optionals/ajouter');
     expect(ajouter.libelle).toBe('Ajouter : options');
     const option = presser(ajouter);
+    const indice = option.vue.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/combat/optionals/0/value') as Formulaire | undefined;
+    expect(indice?.champs.map((c) => c.type), 'l’Indice chiffré d’un Trait posé se saisit en nombre').toEqual(['fixe', 'fixe', 'saisieNombre']);
     const offerts = valeursDeLInspecteur(option, 'valeur/combat/optionals/0/id').map(valeurJouee);
     const fiche = findCreatureById('griffon-zoo-imperial')!;
     const facultatifs = fiche.optionals.flatMap((o) => ('id' in o && offerts.includes(o.id) ? [o.id] : []));
