@@ -12,7 +12,11 @@ import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTes
 import { createHero } from '../engine/character';
 import { emptyScene } from './monde/scene';
 import { initialNet, type BattleState } from './etat';
-import { gameDay } from './merchantFlow';
+import { appraiseRefus, gameDay } from './merchantFlow';
+import { reglageDuChoixDeFenetre } from './choixDeFenetre';
+import { fenetreDuButin } from './fenetreDuButin';
+import { intentAllowedFor } from './netOwnership';
+import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { t } from '../i18n';
 
 let banc: Banc;
@@ -84,18 +88,62 @@ describe('victory.depecer : le dépeçage est un choix de la victoire, à l’h�
     expect(g().pendingVictory?.harvested).toEqual(['griffon']);
   });
 
-  it('un invité est refusé, et le refus se dit', () => {
-    banc.setState({ party: [heros('a')], pendingVictory: ecran(), net: { ...initialNet, mode: 'guest' } } as never);
+  it('dans l’état d’un invité, le choix est refusé, et le refus se dit', () => {
+    banc.setState({ party: [heros('a')], pendingVictory: ecran() } as never);
+    banc.setState({ net: { ...initialNet(), mode: 'guest' } });
     g().fenetreChoisir('victory', 'depecer', 'griffon');
     expect([dernier(), g().pendingVictory?.harvested]).toEqual([t('choix.refus.hoteSeul'), []]);
   });
 
-  it('une créature hors de l’offre (sans profil de récolte, ou déjà dépecée) est refusée, et le refus se dit', () => {
-    banc.setState({ party: [heros('a')], pendingVictory: { ...ecran(), harvested: ['griffon'] } } as never);
+  it('une créature sans profil de récolte est hors de l’offre : refusée, et le refus se dit', () => {
+    banc.setState({ party: [heros('a')], pendingVictory: ecran() } as never);
     g().fenetreChoisir('victory', 'depecer', 'humain');
-    expect([dernier(), g().pendingVictory?.harvested]).toEqual([t('choix.refus.valeur'), ['griffon']]);
+    expect([dernier(), g().pendingVictory?.harvested]).toEqual([t('choix.refus.valeur'), []]);
+  });
+
+  it('une créature déjà dépecée reste offerte, refusée avec sa raison, et le refus se dit', () => {
+    banc.setState({ party: [heros('a')], pendingVictory: { ...ecran(), harvested: ['griffon'] } } as never);
+    expect(reglageDuChoixDeFenetre(g(), 'victory', 'depecer').valeurs).toEqual([{ valeur: 'griffon', libelle: 'Griffon', refus: t('eff.dejaDepecee') }]);
     g().fenetreChoisir('victory', 'depecer', 'griffon');
-    expect([dernier(), g().pendingVictory?.harvested]).toEqual([t('choix.refus.valeur'), ['griffon']]);
+    expect([dernier(), g().pendingVictory?.harvested]).toEqual([t('eff.dejaDepecee'), ['griffon']]);
+  });
+});
+
+describe('coop à 3 sièges : évaluer et dépecer restent à l’hôte, refusés à l’invité par la route (`intentAllowedFor`)', () => {
+  /** L'hôte au siège 0, un héros par siège. */
+  const enCoop = (over: Record<string, unknown>) => {
+    banc.setState({ party: [heros('a'), heros('b'), heros('c')], ...over } as never);
+    banc.setState({ net: { ...initialNet(), mode: 'host', mySeat: 0, ownership: { a: 0, b: 1, c: 2 }, slots: [0, 1, 2, 0], seatNames: { 0: 'Hôte', 1: 'B', 2: 'C' } } });
+  };
+  const PAR_SIEGE = [0, 1, 2] as const;
+
+  it.each([
+    ['une ligne du butin', () => enCoop({ pendingLoot: { title: 'Coffre', gear: [ligne('L0')] } }), ['L0']],
+    ['sa Détection', () => enCoop({ party: [heros('a', DETECTEUR), heros('b'), heros('c')], pendingLoot: { title: 'Coffre', gear: [ligne('L0')] } }), ['L0', 'detect']],
+    ['une ligne de la victoire', () => enCoop({ pendingVictory: victoire({ gear: [ligne('V0')] }) }), ['V0']],
+  ] as const)('evaluerLObjet sur %s : l’invité hors de la liste, rien ne s’ouvre', (_cas, poser, args) => {
+    const issues = PAR_SIEGE.map((siege) => {
+      poser();
+      return [intentAllowedFor(g(), siege, 'evaluerLObjet', [...args]), appliquerLIntentionDUnSiege(g, siege, 'evaluerLObjet', args), g().pendingAppraise];
+    });
+    expect(issues).toEqual([[true, 'hors-allowlist', null], [false, 'hors-allowlist', null], [false, 'hors-allowlist', null]]);
+  });
+
+  it('victory.depecer : l’hôte dépèce, chaque invité est refusé par la route', () => {
+    const issues = PAR_SIEGE.map((siege) => {
+      enCoop({ pendingVictory: victoire({ defeated: [{ label: 'Griffon', count: 1, creatureId: 'griffon' }] }) });
+      const args = ['victory', 'depecer', 'griffon'] as const;
+      return [intentAllowedFor(g(), siege, 'fenetreChoisir', [...args]), appliquerLIntentionDUnSiege(g, siege, 'fenetreChoisir', args), g().pendingVictory?.harvested];
+    });
+    expect(issues).toEqual([[true, 'appliquee', ['griffon']], [false, 'refusee', []], [false, 'refusee', []]]);
+  });
+});
+
+describe('la fenêtre du butin : chaque ligne porte le refus du geste qu’elle offre, `evaluerLObjet(uid)` au mode par défaut', () => {
+  it('une ligne que seule la Détection ouvrirait est refusée par l’Évaluation, avec sa raison', () => {
+    banc.setState({ party: [heros('a', { ...DETECTEUR, skills: [] })], pendingLoot: { title: 'Coffre', gear: [ligne('L0')] } } as never);
+    expect(fenetreDuButin(g())?.evaluer?.options).toEqual([{ valeur: 'L0', libelle: 'Épée', refus: appraiseRefus(g().party) }]);
+    expect(appraiseRefus(g().party), 'témoin : personne ne peut tenter l’Évaluation').not.toBeNull();
   });
 });
 

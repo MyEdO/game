@@ -857,7 +857,12 @@ const DETECT_TALENT = 'detection-d-artefact';
 export const APPRAISE_SKILL = {
   evaluate: { skill: { id: 'evaluation' }, characteristic: 'intelligence' },
   detect: { skill: { id: 'intuition' }, characteristic: 'initiative' },
-} as const satisfies Record<'evaluate' | 'detect', TestIds>;
+} as const satisfies Record<string, TestIds>;
+
+/** Un mode de l'évaluation (`APPRAISE_SKILL`) : l'Évaluation (LDB 59 l.41) ou la Détection d'artefact (LDB 10 l.336). */
+export type ModeDEvaluation = keyof typeof APPRAISE_SKILL;
+/** Le mode d'`evaluerLObjet` appelé sans mode. */
+export const MODE_D_EVALUATION_PAR_DEFAUT = 'evaluate' satisfies ModeDEvaluation;
 
 /** Meilleur détecteur du groupe : meilleure Intuition PARMI les porteurs du Talent (c'est LUI qui
  *  touche l'objet — pas un partyBest global comme l'Évaluation). null si personne ne l'a. */
@@ -872,7 +877,7 @@ const sansDetection = (party: Combatant[], cible: CibleDeDetection): Combatant[]
 
 /** Meneur de l'Évaluation (Soutien LDB 12) ou de la Détection de `cible` (`bestDetector`, parmi ceux qui ne l'ont pas
  *  tentée) ; `null` = personne qui puisse tenter. */
-function appraiseLeader(party: Combatant[], mode: 'evaluate' | 'detect', cible: CibleDeDetection = {}): { actor: Combatant; value: number; support: SupportDetail } | null {
+function appraiseLeader(party: Combatant[], mode: ModeDEvaluation, cible: CibleDeDetection = {}): { actor: Combatant; value: number; support: SupportDetail } | null {
   return mode === 'detect' ? bestDetector(sansDetection(party, cible)) : partyAssisted(party, APPRAISE_SKILL.evaluate);
 }
 
@@ -880,7 +885,7 @@ function appraiseLeader(party: Combatant[], mode: 'evaluate' | 'detect', cible: 
 interface CibleDeDetection { label?: string; detectTriedBy?: readonly string[] }
 
 /** Détection : le refus nomme le Talent, pas la Compétence — LDB 10 l.336. */
-const appraiseNobody = (mode: 'evaluate' | 'detect'): string => refusPersonneNePeutTenter(
+const appraiseNobody = (mode: ModeDEvaluation): string => refusPersonneNePeutTenter(
   mode === 'detect' ? { action: refLabel('talents', { id: DETECT_TALENT }) } : { skill: APPRAISE_SKILL[mode].skill },
 );
 
@@ -901,7 +906,7 @@ export function refusDeDetection(party: Combatant[], cible: CibleDeDetection & {
 function openAppraise(
   get: Get, set: Set,
   target: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; uid: IdDeLigneDeButin } },
-  itemName: string, mode: 'evaluate' | 'detect', trappingId?: string, cible: CibleDeDetection = {},
+  itemName: string, mode: ModeDEvaluation, trappingId?: string, cible: CibleDeDetection = {},
 ): void {
   const best = garanti(appraiseLeader(get().party, mode, cible), itemName, 'meneur de l’évaluation (`refusDEvaluation`)');
   const t = trappingId ? findTrappingById(trappingId) : undefined;
@@ -941,14 +946,14 @@ type CibleDEvaluation = CibleDeDetection & { label: string; appraiseTriedDay?: n
 /** Refus de l'Évaluation (`evaluate`) ou de la Détection d'artefact (`detect`) de `cible` au jour `jour` : déjà
  *  manquée ce jour (LDB 12 l.94), personne ne peut la tenter (LDB 09 l.30), ou chaque détecteur l'a déjà tentée
  *  (LDB 10 l.336) ; `null` sinon. Le verbe et la fenêtre du butin le lisent. */
-export function refusDEvaluation(party: Combatant[], cible: CibleDEvaluation, mode: 'evaluate' | 'detect', jour: number): string | null {
+export function refusDEvaluation(party: Combatant[], cible: CibleDEvaluation, mode: ModeDEvaluation, jour: number): string | null {
   if (mode === 'detect') return refusDeDetection(party, cible);
   return cible.appraiseTriedDay === jour ? t('mf.appraiseSameDay', { label: cible.label }) : appraiseRefus(party);
 }
 
 /** Évaluation (LDB 59 l.41) ou Détection d'artefact (LDB 10 l.336) d'un objet porté par un héros, ou d'une ligne de
  *  butin ENCORE en fenêtre, révélée avant de choisir qui l'emporte. Chaque refus est dit. */
-export function evaluerLObjet(get: Get, set: Set, uid: IdDObjet | IdDeLigneDeButin, mode: 'evaluate' | 'detect' = 'evaluate'): void {
+export function evaluerLObjet(get: Get, set: Set, uid: IdDObjet | IdDeLigneDeButin, mode: ModeDEvaluation = MODE_D_EVALUATION_PAR_DEFAUT): void {
   if (porteurDeLObjet(get(), uid) && (refuseSi(get, set, refusDInventaire) || refuseSi(get, set, (s) => refusDuHerosPorteur(s, uid)))) return;
   const cible = aEvaluer(get(), uid);
   if (!cible) return void refuserGeste(get, set, t('pf.objetSansPorteur'));

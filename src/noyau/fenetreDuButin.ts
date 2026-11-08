@@ -10,7 +10,7 @@ import type { ActionsDuNoyau } from './actionsDuNoyau';
 import { fenetreDuJeu } from './combatAuto';
 import { libelleDuParametre } from './libelles';
 import { garanti } from '../lib/garanti';
-import { gameDay, refusDEvaluation } from './merchantFlow';
+import { gameDay, MODE_D_EVALUATION_PAR_DEFAUT, refusDEvaluation } from './merchantFlow';
 import type { ChoixNomme } from './reglages';
 import type { IdDeLigneDeButin } from './designations';
 
@@ -26,21 +26,17 @@ const [EVALUER] = REGLAGES_DU_BUTIN;
 /** Par fenêtre de butin, le pending qui porte ses lignes. */
 const BUTINS = { loot: 'pendingLoot', victory: 'pendingVictory' } as const satisfies Record<string, keyof Jeu>;
 
-/** Les modes de l'évaluation (`evaluerLObjet`) : LDB 59 l.41, LDB 10 l.336. */
-const MODES = ['evaluate', 'detect'] as const;
-
 const estUnButin = (cle: string | undefined): cle is keyof typeof BUTINS => cle !== undefined && Object.prototype.hasOwnProperty.call(BUTINS, cle);
 
-/** La fenêtre du butin qui tient la main, `null` hors d'elle. Une ligne est fermée quand aucun mode ne l'évalue, par le
- *  refus de l'Évaluation (`refusDEvaluation`). PUR. */
+/** La fenêtre du butin qui tient la main, `null` hors d'elle. Chaque ligne porte le refus du geste qu'elle offre,
+ *  `evaluerLObjet(uid)` au mode par défaut (`refusDEvaluation`). PUR. */
 export function fenetreDuButin(s: Jeu): FenetreDuButin | null {
   const cle = fenetreDuJeu(s)?.cle;
   if (!estUnButin(cle)) return null;
   const jour = gameDay(s);
-  const lignes = (s[BUTINS[cle]]?.gear ?? []).map((g) => {
-    const [refus, ...autres] = MODES.map((mode) => refusDEvaluation(s.party, { ...g.effect, label: g.label }, mode, jour));
-    return { valeur: g.uid, libelle: g.label, refus: autres.every((r) => r !== null) ? refus : null };
-  });
+  const lignes = (s[BUTINS[cle]]?.gear ?? []).map((g) => ({
+    valeur: g.uid, libelle: g.label, refus: refusDEvaluation(s.party, { ...g.effect, label: g.label }, MODE_D_EVALUATION_PAR_DEFAUT, jour),
+  }));
   if (!lignes.length) return { evaluer: null };
   return {
     evaluer: { geste: { verbe: EVALUER }, parametre: 'uid', libelle: garanti(libelleDuParametre(EVALUER, 'uid'), EVALUER, 'libellé de la ligne de butin'), choisie: null, options: lignes },

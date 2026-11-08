@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useGame } from '../state/store';
 import { ownsLocal } from '../noyau/netOwnership';
 import { creaturesADepecer } from '../noyau/combatEffects';
+import { t } from '../i18n';
 import { ReadyRow } from './ReadyRow';
 import { GearAssignList } from './GearAssignList';
 import { RewardRecap, type RecapSection } from './RewardRecap';
@@ -94,7 +95,7 @@ export function VictoryScreen() {
                     label={done ? '✓ récolté' : <><Icon id="medical/scalpel" size="sm" /> Récolter</>}
                     ariaLabel={`Récolter ${d.label}`}
                     enabled={!done}
-                    reason="Ces pièces ont déjà été récoltées."
+                    reason={t('eff.dejaDepecee')}
                     descOfferte="Récolter les pièces de monstre (Test de Savoir (Bêtes))"
                     onClick={() => choisir('victory', 'depecer', d.creatureId!)}
                     primary={false}

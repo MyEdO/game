@@ -297,13 +297,18 @@ export function attribuerLaLigne(get: Get, set: SetFn, key: 'pendingLoot' | 'pen
   set(retrait);
 }
 
-/** Les créatures que le choix `victory.depecer` accepte : les vaincues de `pendingVictory` à profil de récolte, pas encore
- *  récoltées. ZI 13. */
-export function creaturesADepecer(s: Jeu): string[] {
+/** Les créatures que le choix `victory.depecer` offre : les vaincues de `pendingVictory` à profil de récolte. ZI 13 */
+export function creaturesDeLaRecolte(s: Jeu): string[] {
   const pv = s.pendingVictory;
   if (!pv) return [];
-  return [...new Set(pv.defeated.flatMap((d) => (d.creatureId && harvestProfileFor(d.creatureId) && !pv.harvested?.includes(d.creatureId) ? [d.creatureId] : [])))];
+  return [...new Set(pv.defeated.flatMap((d) => (d.creatureId && harvestProfileFor(d.creatureId) ? [d.creatureId] : [])))];
 }
+
+/** Refus du dépeçage de la créature `creatureId` de la victoire : ses pièces sont déjà récoltées ; `null` sinon. */
+export const refusDeDepecer = (s: Jeu, creatureId: string): string | null => (s.pendingVictory?.harvested?.includes(creatureId) ? t('eff.dejaDepecee') : null);
+
+/** Les créatures que le choix `victory.depecer` accepte : celles de la récolte que rien ne refuse. ZI 13 */
+export const creaturesADepecer = (s: Jeu): string[] => creaturesDeLaRecolte(s).filter((id) => refusDeDepecer(s, id) === null);
 
 /** Récolte « Précieuses Entrailles » (ZI) d'une créature vaincue (écran de victoire) : un nœud Flow
  *  `test` de Savoir (Bêtes) → `giveTrapping` — la réussite donne les pièces fraîches à pleine quantité,

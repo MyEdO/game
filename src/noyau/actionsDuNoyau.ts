@@ -10,6 +10,7 @@ import type { VerbesDeJet } from './rollFlowSpecs';
 import type { VerbeDeReglage } from './reglagesDuJet';
 import type { VerbeDeChoix } from './choixDesFenetres';
 import type * as tavernFlow from './tavernFlow';
+import type { ModeDEvaluation } from './merchantFlow';
 import type { Pt } from './monde/path';
 import type {
   IdDeCombattant, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet,
@@ -312,7 +313,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  `mode:'detect'` = Détection d'artefact (LDB 10 l.336) : Intuition au toucher, une tentative par détecteur.
    *  L'objet est porté (`IdDObjet`) ou une ligne d'un butin encore en fenêtre (`IdDeLigneDeButin`) ; chaque refus est
    *  dit (`refusDEvaluation`, `merchantFlow.ts`). */
-  evaluerLObjet: (uid: IdDObjet | IdDeLigneDeButin, mode?: 'evaluate' | 'detect') => void;
+  evaluerLObjet: (uid: IdDObjet | IdDeLigneDeButin, mode?: ModeDEvaluation) => void;
 
   /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients (`fenetreChoisir('medic', …)`),
    *  actes (`jetRegler('heal', 'mode', …)` sur le brouillon du soin, joué par `jetLancer('heal')`) ; le PNJ payant

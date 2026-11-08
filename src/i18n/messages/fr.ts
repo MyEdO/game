@@ -2681,6 +2681,7 @@ export const fr = {
   'pont.carteInterrompue': 'Carte du monde — voyage interrompu (reprendre)',
   'pont.hub': '{lieu} — services du lieu',
   'eff.harvest': 'Récolter',
+  'eff.dejaDepecee': 'Ces pièces ont déjà été récoltées.',
   'eff.harvestPart': 'Pièces de {creature} ({enc} Enc)',
   'eff.petitePriereBeni': '{name} est Béni — il prie directement (les Petites Prières sont la voie des non-Bénis).',
   'eff.petitePriereOk': "{name} prie sur le site sacré ({roll} ≤ {threshold}) — et les dieux l'entendent !",
