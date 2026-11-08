@@ -29,6 +29,7 @@ import type { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 // (`scripts/guards/lib/couches.mjs`), donc pas de cycle.
 import { findStructureById, semencesDeScene } from '../../data';
 import type { Dir8 } from '../../geometry/dir8';
+import type { Calage } from '../../data/props.types';
 import type { Pt } from './path';
 import { estAbsent, terrainHorsGrille, terrainWalkable } from './terrain';
 import { entityBlockedAt } from './sceneRules';
@@ -81,6 +82,10 @@ export interface SceneEntity {
   z?: number;
   /** Orientation MONDE (8 directions) — éditable, projetée au rendu (project + camRot). */
   facing?: Dir8;
+  /** DÉCOR : où son corps se tient dans le jeu libre de son empreinte (`Calage`, `ancreDuDecor`) ; absent = centré. */
+  calage?: Calage;
+  /** DÉCOR : l'id du décor qui le porte ; son pied est le dessus de celui-ci à l'aplomb de son ancre (`piedDuDecor`). */
+  sur?: string;
   label?: string;
   /** Référence au bestiaire (personnage) ou au catalogue de décor (prop, cf. PROPS). */
   ref?: string;
