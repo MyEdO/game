@@ -444,6 +444,16 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   partagé par plusieurs PNJ = UN preset ; un statbloc complet porte `optionals: []` ; sa prose est une
   ADRESSE (`profil.descRef`, dérivée par `judge`, `scripts/source/derive-decoupes.mjs`) dans le livre de
   `source`, jamais le texte recopié.
+- **Porter un PNJ à une carrière (`carrieres`, #773, `EDO 11 l.17-21`).** Une `SceneEntity` personnage dont `ref`
+  est une créature du bestiaire, sans `statblock`, `presetId` ni `appearance.tenue`, porte `carrieres`, un record
+  ordonné carrière → Niveau atteint dont la dernière clé est la carrière actuelle. Elle porte aussi, par carrière,
+  `talentsDeCarriere` et `competencesDeCarriere` (refs `{ id, spec? }` désignées par l'auteur), et `dotationsDeCarriere`,
+  les choix de dotation de la carrière actuelle par adresse `dotation:<chemin>` sur ses Niveaux 1 à N, sans la Classe.
+  `refusDuPnjDeCarriere` (`src/data/schemas/defs-scenes/scene.ts`) refuse au parse ce que les Niveaux atteints n'offrent
+  pas. Au spawn, `ficheDeRef` (`src/noyau/monde/spawn.ts`) applique `porterAuParcours` (`src/engine/pnjDeCarriere.ts`) :
+  le +5 par Niveau, un Talent par Niveau, les dotations matérialisées en objets réels. L'inventaire d'auteur s'y ajoute,
+  et ce que l'auteur fait porter ôte la dotation qui chevauche. Ce que l'auteur laisse libre est tiré de la graine,
+  l'id de l'entité. Ces champs s'éditent dans la section « Carrières » de l'inspecteur Godot (`src/hote/editeur.ts`).
 - **Prose adressée : forme dépôt, forme servie.** Sur le disque, un nœud adressé ne porte que `descRef` ;
   le plugin `wfrp:prose-source` (`scripts/source/prose-source-plugin.mjs`) matérialise son `desc` dans le
   module servi, pour tout document de `RACINES_PROSE` (catalogues ET projets livrés). `parseProject`

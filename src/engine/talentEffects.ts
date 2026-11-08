@@ -108,45 +108,45 @@ export function resolveMax(hero: Combatant): number {
 
 
 /**
- * Compétences ajoutées aux listes de carrière par les talents possédés (« Ajoutez X à n'importe
- * quelle Carrière que vous entamez », LDB 10). La spec choisie à l'acquisition du talent
- * (« Maître artisan (Forgeron) ») se reporte sur la compétence ajoutée (« Métier (Forgeron) ») ;
- * sans spec à reporter, l'emplacement `choix` de l'op reste ouvert (joker de groupe).
+ * Compétences que le Talent `t` ajoute aux listes de carrière (« Ajoutez X à n'importe quelle Carrière que vous
+ * entamez », LDB 10 l.70, l.745, l.891). La spec choisie à l'acquisition du talent (« Maître artisan (Forgeron) »)
+ * se reporte sur la compétence ajoutée (« Métier (Forgeron) ») ; sans spec à reporter, l'emplacement `choix` de l'op
+ * reste ouvert (joker de groupe).
  */
-export function careerSkillAdditions(hero: Combatant): RefASpecialisation[] {
+export function competencesAjouteesPar(t: Pick<TalentInstance, 'talentId' | 'spec'>): RefASpecialisation[] {
   const out: RefASpecialisation[] = [];
-  for (const t of hero.talents) {
-    for (const op of findTalentById(t.talentId)?.passive ?? []) {
-      if (op.op !== 'grantCareerSkill') continue;
-      // Emplacement `choix` de l'op DÉSIGNÉ par la spec concrète du talent (Maître artisan (Forgeron)).
-      if (t.spec && op.skill.choix != null) out.push({ id: op.skill.id, spec: t.spec });
-      else if (op.skill.choix != null) out.push({ id: op.skill.id, choix: op.skill.choix });
-      else out.push({ id: op.skill.id, spec: op.skill.spec });
-    }
+  for (const op of findTalentById(t.talentId)?.passive ?? []) {
+    if (op.op !== 'grantCareerSkill') continue;
+    // Emplacement `choix` de l'op DÉSIGNÉ par la spec concrète du talent (Maître artisan (Forgeron)).
+    if (t.spec && op.skill.choix != null) out.push({ id: op.skill.id, spec: t.spec });
+    else if (op.skill.choix != null) out.push({ id: op.skill.id, choix: op.skill.choix });
+    else out.push({ id: op.skill.id, spec: op.skill.spec });
   }
   return out;
 }
 
+/** Compétences ajoutées aux listes de carrière par les talents possédés (`competencesAjouteesPar`). */
+export function careerSkillAdditions(hero: Combatant): RefASpecialisation[] {
+  return hero.talents.flatMap(competencesAjouteesPar);
+}
+
+/** Talents que le Talent `talentId` ajoute aux listes de carrière (« Le Talent X est ajouté à la liste des Talents
+ *  de n'importe laquelle de vos Carrière », LDB 10 l.467 — Flagellant → Frénésie). */
+export function talentsAjoutesPar(talentId: string): RefASpecialisation[] {
+  const out: RefASpecialisation[] = [];
+  for (const op of findTalentById(talentId)?.passive ?? []) if (op.op === 'grantCareerTalent') out.push(op.talent);
+  return out;
+}
+
 /**
- * Talents ajoutés aux listes de carrière par les talents possédés (« Le Talent X est ajouté à la
- * liste des Talents de n'importe laquelle de vos Carrières », LDB 10 — Flagellant → Frénésie) OU par
- * un Trait porté (« peut acheter les Talents suivants comme s'ils étaient des Augmentations de
- * Carrière au coût en PX normal », MDG 07 l.252 — Marque de Khorne). Analogue Talent de
- * `careerSkillAdditions` : lit l'op `grantCareerTalent` (data-driven, par id) sur les deux sources.
+ * Talents ajoutés aux listes de carrière par les talents possédés (`talentsAjoutesPar`) OU par un Trait porté
+ * (« peut acheter les Talents suivants comme s'ils étaient des Augmentations de Carrière au coût en PX normal »,
+ * MDG 07 l.252 — Marque de Khorne) : l'op `grantCareerTalent` (data-driven, par id) sur les deux sources.
  */
 export function careerTalentAdditions(hero: Combatant): RefASpecialisation[] {
-  const out: RefASpecialisation[] = [];
-  for (const t of hero.talents) {
-    for (const op of findTalentById(t.talentId)?.passive ?? []) {
-      if (op.op !== 'grantCareerTalent') continue;
-      out.push(op.talent);
-    }
-  }
+  const out = hero.talents.flatMap((t) => talentsAjoutesPar(t.talentId));
   for (const tr of hero.traits ?? []) {
-    for (const op of findTraitById(tr.id)?.passive ?? []) {
-      if (op.op !== 'grantCareerTalent') continue;
-      out.push(op.talent);
-    }
+    for (const op of findTraitById(tr.id)?.passive ?? []) if (op.op === 'grantCareerTalent') out.push(op.talent);
   }
   return out;
 }
@@ -154,7 +154,7 @@ export function careerTalentAdditions(hero: Combatant): RefASpecialisation[] {
 /** Ajouts de carrière DÉPLIÉS en références désignées : un ajout à `choix` couvre son pool (LDB 10 l.467/745 ;
  *  EDOC 13 l.524). Lecture UNIQUE des ajouts, Compétences (`competenceEnCarriere`) comme Talents
  *  (`talentsAjoutesALaCarriere`). */
-function deplierAjouts(ajouts: RefASpecialisation[], kind: 'skill' | 'talent'): RefDesignee[] {
+export function deplierAjouts(ajouts: readonly RefASpecialisation[], kind: 'skill' | 'talent'): RefDesignee[] {
   return ajouts.flatMap((a): RefDesignee[] =>
     a.choix == null
       ? [{ id: a.id, ...(a.spec != null ? { spec: a.spec } : {}) }]

@@ -13,6 +13,7 @@ import { apparencesDeLOuverture } from '../monde/facades';
 import type { ReliefDefaults, SceneRoofDefaults } from '../../data/schemas/defs-scenes/scene';
 import type { Dir8 } from '../../geometry/dir8';
 import type { FireArc } from '../../engine/types';
+import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
@@ -227,7 +228,8 @@ export interface PatchDOuverture {
 export type PatchDArete = { [K in Exclude<keyof WallSeg, 'x' | 'y' | 'side' | 'z'>]?: WallSeg[K] | null };
 
 /** Ce que l'inspecteur écrit sur l'entité sélectionnée : son type (décor ou fiche), son cap, sa couche ; la lumière
- *  d'un décor (`null` l'éteint), son assise ; l'embuscade et l'inventaire d'un personnage ; l'équipage exposé à bord. */
+ *  d'un décor (`null` l'éteint), son assise ; l'embuscade, l'inventaire, le parcours de carrière et le tirage des
+ *  Caractéristiques d'un personnage ; l'équipage exposé à bord. */
 export interface PatchDEntite {
   ref?: string;
   facing?: Dir8;
@@ -236,6 +238,10 @@ export interface PatchDEntite {
   assise?: boolean;
   embusque?: boolean;
   inventaire?: NonNullable<SceneEntity['inventaire']>;
+  /** Le parcours de carrière entier ; sans carrière, il est retiré. */
+  parcours?: ParcoursDeCarriere;
+  /** Caractéristiques tirées au hasard au spawn (`combat.randomChars`, LDB 77 l.108). */
+  aleatoire?: boolean;
   crewIds?: string[];
 }
 
@@ -555,9 +561,11 @@ function ecrireSurLaSelection<T>(s: SessionDEdition, scene: Scene, lire: (sc: Sc
 }
 
 /** Le patch `patch` de l'inspecteur en patch d'entité pour `ent` : le type d'un décor avec ses défauts de pose
- *  (`propRefPatch`), la couche 0 comme son absence, un inventaire ou un équipage vide comme son absence. */
+ *  (`propRefPatch`), la couche 0 comme son absence, un inventaire, un parcours sans carrière ou un équipage vide
+ *  comme son absence. */
 function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEntity> {
-  const { ref, z, light, assise, embusque, inventaire, crewIds, ...reste } = patch;
+  const { ref, z, light, assise, embusque, inventaire, parcours, aleatoire, crewIds, ...reste } = patch;
+  const avecCarrieres = parcours && Object.keys(parcours.carrieres).length ? parcours : undefined;
   const usable = { ...ent.usable, assise: assise || undefined };
   return {
     ...reste,
@@ -565,7 +573,13 @@ function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEnt
     ...(z === undefined ? {} : { z: z || undefined }),
     ...(light === undefined ? {} : { light: light ?? undefined }),
     ...(assise === undefined ? {} : { usable: usable.assise || usable.actions?.length ? usable : undefined }),
-    ...(embusque === undefined ? {} : { combat: { ...ent.combat, hiddenUntilCombat: embusque || undefined } }),
+    ...(embusque === undefined && aleatoire === undefined ? {} : { combat: { ...ent.combat, ...(embusque === undefined ? {} : { hiddenUntilCombat: embusque || undefined }), ...(aleatoire === undefined ? {} : { randomChars: aleatoire || undefined }) } }),
+    ...(parcours === undefined ? {} : {
+      carrieres: avecCarrieres?.carrieres,
+      talentsDeCarriere: avecCarrieres?.talentsDeCarriere,
+      competencesDeCarriere: avecCarrieres?.competencesDeCarriere,
+      dotationsDeCarriere: avecCarrieres?.dotationsDeCarriere,
+    }),
     ...(inventaire === undefined ? {} : { inventaire: Object.keys(inventaire).length ? inventaire : undefined }),
     ...(crewIds === undefined ? {} : { crewIds: crewIds.length ? crewIds : undefined }),
   };

@@ -18,8 +18,8 @@ import {
   type CharMode, type Compteur, type CreatorDraft, type SkillsSub, type StepId,
 } from './brouillon';
 import {
-  advancementLabel, armesChoisissables, careerLabelFor, careersForSpecies, charAbr, classes, DEFAULT_FABRICATION_ATOUT, fabricationAtouts,
-  findBookById, findCareerById, findQualityById, findSpellById, findStarById, findTalentById, libelleDeClasse, refLabel, species, specLabel, starDie, stars,
+  advancementLabel, careerLabelFor, careersForSpecies, charAbr, classes, DEFAULT_FABRICATION_ATOUT,
+  findBookById, findCareerById, findSpellById, findStarById, findTalentById, libelleDeClasse, refLabel, species, specLabel, starDie, stars,
   trappingRefLabel, type AdvancementRef, type CareerData, type SpeciesData,
 } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
@@ -29,7 +29,7 @@ import { refKey, talentMaxReached } from '../../engine/careerSlots';
 import { effectiveChar } from '../../engine/characteristics';
 import { formatMoney } from '../../engine/money';
 import { formatDice, hashSeed } from '../../engine/dice';
-import { brancheChoisie, emplacementsDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type EmplacementDeDotation } from '../../engine/trappingChoices';
+import { brancheChoisie, dotationsDuHeros, emplacementsDeDotation, estEmplacementRacine, idChoisi, libelleDeLaValeur, sousEmplacement, valeursDeLEmplacement, type EmplacementDeDotation } from '../../engine/trappingChoices';
 import type { AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { idsDeLaSousListe, type RefASpecialisation, type RefDesignee } from '../../data/schemas/grammaire/ref';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
@@ -333,12 +333,12 @@ function dotation(d: CreatorDraft, e: EmplacementDeDotation): RubriqueDeCreation
     case 'branches': {
       const j = brancheChoisie(e, choisis);
       const sous = j === undefined ? undefined : sousEmplacement(e, j);
-      return [choix(e.adresse, t('crea.vue.auChoix'), e.ref.choice.map((b, k) => option(trappingRefLabel(b), geste('dotation', e.adresse, k), k === j))), ...(sous ? dotation(d, sous) : [])];
+      return [choix(e.adresse, t('crea.vue.auChoix'), valeursDeLEmplacement(e).map((k) => option(libelleDeLaValeur(e, k), geste('dotation', e.adresse, k), k === j))), ...(sous ? dotation(d, sous) : [])];
     }
-    case 'joker': return [choix(e.adresse, trappingRefLabel(e.ref), armesChoisissables().map((a) => option(a.label, geste('dotation', e.adresse, a.id), idChoisi(e, choisis) === a.id)))];
+    case 'joker': return [choix(e.adresse, trappingRefLabel(e.ref), valeursDeLEmplacement(e).map((id) => option(libelleDeLaValeur(e, id), geste('dotation', e.adresse, id), idChoisi(e, choisis) === id)))];
     case 'atout': {
       const atout = idChoisi(e, choisis) ?? DEFAULT_FABRICATION_ATOUT;
-      return [choix(e.adresse, trappingRefLabel(e.ref), fabricationAtouts().map((id) => option(findQualityById(id)!.label, geste('dotation', e.adresse, id), id === atout)))];
+      return [choix(e.adresse, trappingRefLabel(e.ref), valeursDeLEmplacement(e).map((id) => option(libelleDeLaValeur(e, id), geste('dotation', e.adresse, id), id === atout)))];
     }
   }
 }
@@ -350,7 +350,7 @@ function pageDesPossessions(d: CreatorDraft): RubriqueDeCreation[] {
     d.wealthRoll
       ? jet('bourse', t('crea.vue.bourse'), formatMoney(bourse.montant), bourse.faces.join(t('crea.vue.separateur')))
       : gesteDe('bourse', t('crea.vue.tirerBourse'), geste('tirerLaBourse')),
-    ...(draftLevel(d) ? emplacementsDeDotation(d.careerId, 1).filter(estEmplacementRacine).flatMap((e) => dotation(d, e)) : []),
+    ...(draftLevel(d) ? emplacementsDeDotation(dotationsDuHeros(d.careerId)).filter(estEmplacementRacine).flatMap((e) => dotation(d, e)) : []),
   ];
 }
 

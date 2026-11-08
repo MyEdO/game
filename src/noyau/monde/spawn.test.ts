@@ -6,6 +6,11 @@ import { recomputeLoadout } from '../../engine/items';
 import { blessingsOf, findCreatureById, talentConcrete } from '../../data';
 import { CHAR_KEYS } from '../../engine/types';
 import { knowsCastingSkill, castingValue, incantationArcane } from '../../engine/magic';
+import { ficheDEntite } from './sceneNpc';
+import { actorStatus } from '../../engine/social';
+import { adresseDeCreation } from '../../engine/adresseDeCreation';
+import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
+import type { SceneEntity } from './scene';
 
 
 /** Traits d'arme FR vérifiés dans L'ennemi dans l'Ombre ch.2 (Knud Cratinx & co). */
@@ -406,5 +411,40 @@ describe('spawnEnemy — engin du sous-type armes-de-siege (#210)', () => {
     const c = spawnEnemy({ ref: 'baliste' }, 'bal1', at);
     expect(c.species).toBeUndefined();
     expect(c.footprint).toBeUndefined();
+  });
+});
+
+describe('PNJ de carrière : la fiche d’une entité portée à son parcours (EDO 11 l.17-21 ; #773)', () => {
+  const sansPreset = () => undefined;
+  const langstrasse: SceneEntity = { id: 'langstrasse', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', carrieres: { medecin: 3 } };
+
+  it('l’humain de base porté Doktor (Médecin 3) : Statut Argent 5 et les possessions de l’exemple (EDO 11 l.27, l.33-35)', () => {
+    const c = ficheDEntite(langstrasse, sansPreset);
+    expect(actorStatus(c)).toEqual({ tier: 'argent', standing: 5 });
+    expect(c.items?.map((i) => i.trappingId)).toEqual(['bandages', 'potion-de-guerison', 'livre-medecine', 'licence-de-guilde', 'outils-professionnels-medecin', 'atelier']);
+    expect(c.wounds.max).toBe(13);
+    expect(c.porteurDeFiche).toEqual({ ref: 'humain', parcours: { carrieres: { medecin: 3 } } });
+  });
+
+  it('l’arme de dotation choisie est tenue et fait céder le Trait Arme ; l’armure de dotation est portée', () => {
+    const soldat: SceneEntity = { id: 'soldat', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', carrieres: { soldat: 2 }, dotationsDeCarriere: { [adresseDeCreation.dotation([3])]: 'hallebarde' } };
+    const c = ficheDEntite(soldat, sansPreset);
+    expect(c.weapons.map((w) => w.label)).toContain('Hallebarde');
+    expect(c.traits?.some((t) => t.id === 'arme')).toBe(false);
+    expect(c.armour.corps).toBeGreaterThan(0);
+  });
+
+  it('un objet d’inventaire porté par l’auteur ôte la dotation qu’il chevauche', () => {
+    const c = ficheDEntite({ id: 'garde', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', carrieres: { soldat: 1 }, inventaire: { plastron: true } }, sansPreset);
+    expect(c.items?.filter((i) => i.trappingId === 'plastron-de-cuir' || i.trappingId === 'plastron').map((i) => [i.uid, i.equipped])).toEqual([['garde-dotation-1', false], ['garde-objet-plastron', true]]);
+  });
+
+  it('le schéma refuse un parcours sans profil du Bestiaire, avec une tenue d’auteur, ou à un Niveau absent', () => {
+    expect(sceneEntitySchema.safeParse(langstrasse).success).toBe(true);
+    const faute = (ent: object) => sceneEntitySchema.safeParse({ ...langstrasse, ...ent }).error?.issues.map((i) => i.message);
+    expect(faute({ ref: undefined, statblock: { type: 'statblock', label: 'X', char: {} } })).toEqual([expect.stringMatching(/Bestiaire/)]);
+    expect(faute({ appearance: { tenue: 'medecin' } })).toEqual([expect.stringMatching(/tenue/)]);
+    expect(faute({ carrieres: { medecin: 5 } })).toEqual([expect.stringMatching(/Niveau 5/)]);
+    expect(faute({ carrieres: undefined, talentsDeCarriere: { medecin: [{ id: 'chirurgie' }] } })).toEqual([expect.stringMatching(/sans carrière/)]);
   });
 });

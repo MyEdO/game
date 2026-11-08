@@ -19,7 +19,8 @@ import type { Pt } from './path';
 import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import { apparencesObjetsDe, contexteDeNaissanceDObjet, deciderApparencesDesArmes, hydratePoste, loadWeapon, objetsDeLInventaire, recomputeLoadout } from '../../engine/items';
+import { apparencesObjetsDe, contexteDeNaissanceDObjet, deciderApparencesDesArmes, equipConflicts, hydratePoste, loadWeapon, objetsDeLInventaire, recomputeLoadout } from '../../engine/items';
+import { porterAuParcours, type ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import { blessuresReconciliees, blessuresPosees } from '../../engine/characteristics';
 import { indiceSurLeProfil } from '../../engine/formule';
 import { resizeBySteps, SIZE_ORDER, SizeCategory, sizeFromTraits } from '../../engine/size';
@@ -407,12 +408,15 @@ export class RefIrresoluble extends Error {
   }
 }
 
-/** La fiche d'une `ref` du faisceau `refEntiteResolue` : créature, coque, affût ; lève `RefIrresoluble` hors faisceau. */
-function ficheDeRef(ref: string, id: string, pos: { x: number; y: number; z?: number }, opts?: SpawnExtras): Combatant {
+/** La fiche d'une `ref` du faisceau `refEntiteResolue` : créature, portée à son `parcours` de carrière s'il en a un
+ *  (`porterAuParcours`), coque, affût ; lève `RefIrresoluble` hors faisceau. */
+function ficheDeRef(ref: string, parcours: ParcoursDeCarriere | undefined, id: string, pos: { x: number; y: number; z?: number }, opts?: SpawnExtras): Combatant {
   let c: Combatant;
   if (!refEntiteResolue(ref)) throw new RefIrresoluble(ref, id);
-  if (findCreatureById(ref)) c = creatureToCombatant(findCreatureById(ref)!, id, pos, opts);
-  else if (findVehicleById(ref)?.hull) {
+  if (findCreatureById(ref)) {
+    c = creatureToCombatant(findCreatureById(ref)!, id, pos, opts);
+    if (parcours) porterAuParcours(c, parcours);
+  } else if (findVehicleById(ref)?.hull) {
     // Coque/navire (`vehicles.json` → facette `hull`) comme Combattant à PV (MDG 13). 'enemy' pour être
     // une cible ; inerte (pas d'arme/Mouvement, Psychologie ignorée) — sa destruction passe par ses Blessures.
     c = vehicleCombatant(findVehicleById(ref)!, id)!;
@@ -428,10 +432,15 @@ function ficheDeRef(ref: string, id: string, pos: { x: number; y: number; z?: nu
   return c;
 }
 
-/** Le personnage `c` porte l'inventaire d'auteur `inventaire` (uid `<id>-objet-<trappingId>`) : ses Traits cèdent à
- *  l'équipement réel (`traitsDevantLEquipement`), puis il s'équipe comme un héros (`recomputeLoadout`). LDB 77 l.7 ; #3684 */
+/** Le personnage `c` porte, après ses objets de dotation, l'inventaire d'auteur `inventaire` (uid
+ *  `<id>-objet-<trappingId>`), dont un objet porté ôte les dotations qu'il chevauche (`equipConflicts`) : ses Traits
+ *  cèdent à l'équipement réel (`traitsDevantLEquipement`), puis il s'équipe comme un héros (`recomputeLoadout`).
+ *  LDB 77 l.7 ; #3684 */
 function equiperDeLInventaire(c: Combatant, inventaire: InventaireDAuteur): void {
-  c.items = objetsDeLInventaire(inventaire, (t) => `${c.id}-objet-${t}`, apparencesObjetsDe(c.appearanceOverride, c.creatureId), findTrappingById, contexteDeNaissanceDObjet(c));
+  const dotations = c.items ?? [];
+  const auteur = objetsDeLInventaire(inventaire, (t) => `${c.id}-objet-${t}`, apparencesObjetsDe(c.appearanceOverride, c.creatureId), findTrappingById, contexteDeNaissanceDObjet(c));
+  for (const o of auteur) if (o.equipped) for (const x of equipConflicts({ items: dotations }, o)) x.equipped = false;
+  c.items = [...dotations, ...auteur];
   const restent = traitsDevantLEquipement(c.traits ?? [], c.items);
   const cedes = new Set((c.traits ?? []).filter((t) => !restent.includes(t)));
   c.traits = restent;
@@ -447,7 +456,7 @@ export function spawnEnemy(
 ): Combatant {
   const c = porteur.presetCreature ? creatureToCombatant(porteur.presetCreature, id, pos, opts)
     : porteur.statblock ? statblockToCombatant(porteur.statblock, id, pos, opts?.appearance, opts)
-    : ficheDeRef(porteur.ref, id, pos, opts);
+    : ficheDeRef(porteur.ref, porteur.parcours, id, pos, opts);
   c.porteurDeFiche = porteur;
   if (opts?.crewIds) c.crewIds = opts.crewIds;
   if (opts?.postes) c.postes = opts.postes.map((a, i) => hydratePoste(a, `${id}-poste-${i}`)); // #222 — réf catalogue → base HYDRATÉE (couture unique)
@@ -466,7 +475,7 @@ export function spawnEnemy(
   if (a && Object.values(a).some((v) => v !== undefined)) c.appearanceOverride = a;
   // Tenue d'auteur (id) → `Combatant.career`, en combat comme en exploration.
   if (a?.tenue) c.career = a.tenue;
-  if (opts?.inventaire && Object.keys(opts.inventaire).length) equiperDeLInventaire(c, opts.inventaire);
+  if (c.items?.length || Object.keys(opts?.inventaire ?? {}).length) equiperDeLInventaire(c, opts?.inventaire ?? {});
   deciderApparencesDesArmes(findTrappingById, c.weapons, c.appearanceOverride, c.creatureId, c.items);
   // Arme à distance CHARGÉE au spawn (miroir du héros dans lancerLeCombat) — LDB 62 l.335 : le `loaded` ne gate
   // que les armes à Recharge, un tireur fraîchement engagé peut donc tirer au 1er Round (pas de recharge à vide).
