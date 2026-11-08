@@ -35,6 +35,10 @@
 //   tenue (Z, Q, S ou D) mène le groupe à une case voisine, que le noyau a jouée ; V rend la tactique.
 // - `meteo` (`--scenario voyage`, #3625) : le village sous la pluie ; en tactique, des averses tombent dans le monde ; au
 //   plateau, rien ne tombe ; en immersion, la pluie tombe autour de l'œil.
+// - `vehicule` (`--scenario caraque`, #2987) : la page rechargée à deviceScaleFactor 2 ; en tactique, chaque véhicule de
+//   la vue posé à l'écran (`wfrpEcran.corps`) : son élément, l'emblème de sa donnée sur ses surfaces `blason`, la pièce de
+//   chacun de ses postes et de chacune de ses Améliorations, dans l'ordre de la vue ; les fenêtres fermées à l'Entrée, une
+//   capture d'ensemble, puis Origine et la molette rapprochent la caméra du véhicule actif, capturé à chaque cran de pivot (Q).
 // - `brume` (`--scenario brouillard`, #3625) : la clairière sous le brouillard ; en tactique, les nappes de la donnée ;
 //   en immersion, aucune nappe et la brume de profondeur part de l'œil, plus serrée.
 // - `dialogue` (`--scenario dialogue-multi`) : l'entrée de la scène poursuivie à l'Entrée, un clic sur une case à côté de
@@ -136,6 +140,7 @@
 //   node hotes/godot/recette.mjs --parcours etage --scenario fenetre-ecuries --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours regards --scenario fenetre-ecuries --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours creation --scenario marche-equipement --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours vehicule --scenario caraque --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours dialogue --scenario dialogue-multi --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours atelier --web <export> --captures <dossier> --modeles <dossier neuf>
 //     --base <production> --element <production> --reexport <production> [--clip Sword_Attack]
@@ -160,7 +165,7 @@ const chaine = { type: 'string' }
 const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|brume|fiche|inventaire|creation|editeur|atelier|composition]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|vehicule|brume|fiche|inventaire|creation|editeur|atelier|composition]')
 if (o.parcours === 'atelier' && !(o.modeles && o.base && o.element && o.reexport)) throw new Error('--parcours atelier attend --modeles <dossier neuf> --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
@@ -602,6 +607,41 @@ async function parcoursRegards() {
   noter('V : la tactique, à la suite du groupe')
   await sleep(600)
   await capturer('3476-v4-tactique-suivie')
+}
+
+/** Les crans de molette qui rapprochent la caméra tactique du véhicule actif. */
+const CRANS_DU_GROS_PLAN = 6
+/** Les crans de pivot (Q) d'un tour complet de la caméra tactique autour du véhicule. */
+const CRANS_DE_PIVOT = 4
+async function parcoursVehicule() {
+  await session.rpc('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 2, mobile: false })
+  await session.rpc('Page.reload')
+  await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  const v = await vue()
+  const attendus = Object.entries(v.corps.vehicules).map(([id, x]) => ({
+    id, vehicule: x.element, embleme: x.embleme?.id ?? null, postes: x.postes.map((p) => p.element), ameliorations: x.ameliorations.map((a) => a.element),
+  }))
+  assert.ok(attendus.some((a) => a.postes.length && a.ameliorations.length && a.embleme), `un véhicule servi porte des postes, des Améliorations et un emblème : ${JSON.stringify(attendus)}`)
+  await waitFor(session, `(() => { const c = globalThis.wfrpEcran?.corps; return !!c && ${JSON.stringify(attendus)}.every((a) => c[a.id]?.vehicule === a.vehicule
+    && c[a.id].embleme_du_vehicule === a.embleme && JSON.stringify(c[a.id].postes) === JSON.stringify(a.postes)
+    && JSON.stringify(c[a.id].ameliorations) === JSON.stringify(a.ameliorations)) })()`, { timeoutMs: 180000 })
+  for (const a of attendus) noter(`${a.id} : « ${a.vehicule} », emblème « ${a.embleme} », ${a.postes.length} pièces de poste, ${a.ameliorations.length} pièces d’Amélioration`)
+  while ((await vue()).projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+  }
+  await sleep(1500)
+  await capturer('2987-caraque-tactique')
+  await realKey(session, { key: 'Home', code: 'Home', windowsVirtualKeyCode: 36 })
+  for (let i = 0; i < CRANS_DU_GROS_PLAN; i++) await molette(session, { surface: 'canvas', x: 640, y: 400 }, -100)
+  for (let cran = 0; cran < CRANS_DE_PIVOT; cran++) {
+    await sleep(1500)
+    await capturer(`2987-caraque-gros-plan-${cran}`)
+    await realKey(session, { key: 'q', code: 'KeyQ', windowsVirtualKeyCode: 81 })
+  }
 }
 
 async function parcoursMeteo() {
@@ -2290,7 +2330,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null
