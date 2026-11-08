@@ -8,7 +8,9 @@
  * Un vêtement ou une armure offre des `emplacements`, ids de la garde-robe (`estEmplacement`, #3116) ; un accessoire
  * dont l'emplacement n'est offert ni par sa base ni par une pièce de cette base est rapporté, ni refusé ni servi
  * (`emplacementsNonOfferts`, `indexerModeles`). Un véhicule offre des `postes` : par bord (`FIRE_ARCS`), les positions de
- * sa scène où se montent les pièces des postes de ce bord (#2987).
+ * sa scène où se montent les pièces des postes de ce bord ; et des `ancrages` : par Amélioration navale, les positions où
+ * se monte sa pièce. Une pièce d'Amélioration (`amelioration`) dit son `montage` : à ses ancrages, ou à chaque poste,
+ * où elle montre son nœud `ouvert` si une pièce y est montée, `ferme` sinon (#2987).
  */
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, FIRE_ARCS, type CodeDEcartDeCle, type FireArc } from '../../../src/noyau/index.ts';
@@ -42,13 +44,17 @@ interface RegleDeCategorie {
   /** L'élément offre des postes : par bord, les positions de sa scène, en mètres, où se montent les pièces des postes de ce
    *  bord, chacune tournée vers lui. */
   readonly postes: boolean;
+  /** L'élément offre des ancrages : par Amélioration navale, les positions de sa scène, en mètres, où se monte sa pièce. */
+  readonly ancrages: boolean;
+  /** L'élément dit où il se monte sur un véhicule (`MONTAGES`). */
+  readonly montage: boolean;
   /** L'élément se construit pour une base : son manifeste la nomme, il se valide contre elle et ses meshes rigides pendent
    *  à ses os. Sans base (décor, véhicule, #2987), ses meshes restent à la racine de sa scène ou sous ses propres nœuds. */
   readonly base: boolean;
 }
 
-const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, postes: false, base: true } as const;
-const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, postes: false, base: true } as const;
+const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, postes: false, ancrages: false, montage: false, base: true } as const;
+const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, postes: false, ancrages: false, montage: false, base: true } as const;
 
 /** Les règles de chaque catégorie, seule source du type `ManifesteDElement` et de `validerElement`. */
 export const REGLES_DES_CATEGORIES = {
@@ -61,12 +67,20 @@ export const REGLES_DES_CATEGORIES = {
   rigide: { ...RIGIDE, cle: ['apparence'] },
   trait: { ...SKINNE, cle: ['trait'] },
   decor: { ...RIGIDE, cle: ['prop'], base: false },
-  vehicule: { ...RIGIDE, cle: ['definition'], postes: true, base: false },
+  vehicule: { ...RIGIDE, cle: ['definition'], postes: true, ancrages: true, base: false },
+  amelioration: { ...RIGIDE, cle: ['amelioration'], montage: true, base: false },
 } as const satisfies Record<string, RegleDeCategorie>;
 
 type Regles = typeof REGLES_DES_CATEGORIES;
 export type CategorieDElement = keyof Regles;
 export const CATEGORIES_D_ELEMENT = Object.keys(REGLES_DES_CATEGORIES) as readonly CategorieDElement[];
+
+/** Où se monte une pièce d'Amélioration : aux `ancrages` de son Amélioration, ou à chaque `postes` du véhicule. */
+export const MONTAGES = ['ancrages', 'postes'] as const;
+export type Montage = (typeof MONTAGES)[number];
+
+/** Les nœuds à mesh d'une pièce montée aux postes : celui qu'elle montre devant une pièce montée, et sans. */
+export const ETATS_AU_POSTE = { arme: 'ouvert', vide: 'ferme' } as const;
 
 type Rien = Record<never, never>;
 type Liste = readonly string[];
@@ -80,7 +94,9 @@ type ChampsDe<C extends CategorieDElement> = (Regles[C]['base'] extends true ? {
   & (Regles[C]['chaines'] extends true ? { readonly chaines?: Liste } : Rien)
   & (Regles[C]['emplacements'] extends true ? { readonly emplacements?: Readonly<Record<string, Attache>> } : Rien)
   & (Regles[C]['silhouettes'] extends true ? { readonly silhouettes?: Liste } : Rien)
-  & (Regles[C]['postes'] extends true ? { readonly postes?: Readonly<Partial<Record<FireArc, readonly Triplet[]>>> } : Rien);
+  & (Regles[C]['postes'] extends true ? { readonly postes?: Readonly<Partial<Record<FireArc, readonly Triplet[]>>> } : Rien)
+  & (Regles[C]['ancrages'] extends true ? { readonly ancrages?: Readonly<Record<string, readonly Triplet[]>> } : Rien)
+  & (Regles[C]['montage'] extends true ? { readonly montage: Montage } : Rien);
 
 export type ManifesteDElement = {
   [C in CategorieDElement]: {
@@ -112,6 +128,7 @@ export type CodeDEcartDElement =
   | 'emplacement-inconnu'
   | 'silhouette-absente'
   | 'bord-inconnu'
+  | 'etat-absent'
   | CodeDEcartDeSurface
   | 'glb-different'
   | 'rigide-sans-mesh'
@@ -149,11 +166,11 @@ export function validerElement(brut: unknown, base: BaseDUnElement | null, octet
   const optionnels = [
     ...(regle.base ? ['base'] : []), ...(regle.couches ? ['couche'] : []), ...(regle.couvre === 'interdit' ? [] : ['couvre']),
     ...(regle.chaines ? ['chaines'] : []), ...(regle.emplacements ? ['emplacements'] : []), ...(regle.silhouettes ? ['silhouettes'] : []),
-    ...(regle.postes ? ['postes'] : []),
+    ...(regle.postes ? ['postes'] : []), ...(regle.ancrages ? ['ancrages'] : []), ...(regle.montage ? ['montage'] : []),
   ];
   const admis = new Set<string>([...CHAMPS_COMMUNS, ...optionnels]);
   for (const champ of Object.keys(brut)) if (!admis.has(champ)) refus('champ-hors-categorie', champ, `un élément \`${categorie}\` ne porte pas \`${champ}\``);
-  const requis = [...CHAMPS_COMMUNS, ...(regle.base ? ['base'] : []), ...(regle.couches ? ['couche'] : []), ...(regle.couvre === 'requis' ? ['couvre'] : [])];
+  const requis = [...CHAMPS_COMMUNS, ...(regle.base ? ['base'] : []), ...(regle.couches ? ['couche'] : []), ...(regle.couvre === 'requis' ? ['couvre'] : []), ...(regle.montage ? ['montage'] : [])];
   for (const champ of requis) if (brut[champ] === undefined) refus('forme', champ, `champ requis pour un élément \`${categorie}\``);
 
   const nomDeBase = base?.base ?? 'aucune';
@@ -213,6 +230,22 @@ export function validerElement(brut: unknown, base: BaseDUnElement | null, octet
     else for (const [bord, positions] of Object.entries(brut.postes)) {
       if (!(FIRE_ARCS as readonly string[]).includes(bord)) refus('bord-inconnu', `postes.${bord}`, `${bord} : ${liste(FIRE_ARCS)} attendu`);
       else if (!(Array.isArray(positions) && positions.every(estTriplet))) refus('forme', `postes.${bord}`, 'liste de triplets de nombres attendue');
+    }
+  }
+
+  if (regle.ancrages && brut.ancrages !== undefined) {
+    if (!estObjet(brut.ancrages)) refus('forme', 'ancrages', 'objet attendu');
+    else for (const [amelioration, positions] of Object.entries(brut.ancrages)) {
+      for (const e of ecartsDeCleDElement('amelioration', { amelioration })) refus(e.code, `ancrages.${amelioration}`, e.detail);
+      if (!(Array.isArray(positions) && positions.every(estTriplet))) refus('forme', `ancrages.${amelioration}`, 'liste de triplets de nombres attendue');
+    }
+  }
+
+  if (regle.montage && brut.montage !== undefined) {
+    if (!(MONTAGES as readonly unknown[]).includes(brut.montage)) refus('forme', 'montage', `${String(brut.montage)} : ${liste(MONTAGES)} attendu`);
+    else if (brut.montage === 'postes') {
+      const absents = Object.values(ETATS_AU_POSTE).filter((etat) => !glb.meshes.some((m) => m.nom === etat));
+      if (absents.length) refus('etat-absent', 'montage', `une pièce montée aux postes porte un nœud à mesh par état, ${liste(Object.values(ETATS_AU_POSTE))} : ${liste(absents)} absent du GLB`);
     }
   }
 

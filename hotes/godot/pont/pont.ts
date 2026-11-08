@@ -10,15 +10,15 @@
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, meteoDuRegard, aretesDeLaCouche, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, meteoDuRegard, aretesDeLaCouche, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { fenetreADessiner } from '../../../src/hote/gestes';
 import { lignesDuJournal, zonesDeLEcran, type ZonesDeLaSuite, type ZonesDeLEcran } from '../../../src/hote/ecran';
-import { modelesDeLAtelier, postesMontes, type ModelesDeLAtelier, type PosteMonte } from './atelier';
-import { composerSurLaBase, type CompositionSurLaBase } from './composition';
+import { ameliorationsMontees, emblemeMonte, modelesDeLAtelier, postesMontes, type AmeliorationMontee, type ModelesDeLAtelier, type PosteMonte } from './atelier';
+import { composerSurLaBase, paletteDesCouleurs, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
 import { type CreationOuverte, type GesteDeLaCreation, type PanneauDeLHote } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
@@ -49,9 +49,11 @@ export interface CorpsDuCombat {
    *  portée sur elle (`composerSurLaBase`), `null` si sa portée est `null` (corps sans base de ce plan) ou sous refus. */
   combattants: Record<string, (CompositionSurLaBase & { base: string }) | null>;
   /** Par id de combattant dessiné qui est un véhicule ou un engin (`CombattantProjete.vehicule`) dont un élément
-   *  `vehicule` est servi (`ModelesDeLAtelier.vehicules`, #2987) : cet élément, le côté de son empreinte, son cap et les
-   *  pièces montées à ses postes (`postesMontes`), quelles que soient les bases servies. */
-  vehicules: Record<string, { element: string; empreinte: number; cap: VehiculeDuCombattant['cap']; postes: PosteMonte[] }>;
+   *  `vehicule` est servi (`ModelesDeLAtelier.vehicules`, #2987) : cet élément, le côté de son empreinte, sa taille, son cap, sa
+   *  palette (`paletteDesCouleurs`), son emblème si l'élément porte une surface `blason` (`emblemeMonte`), les pièces
+   *  montées à ses postes (`postesMontes`) et celles de ses Améliorations (`ameliorationsMontees`), quelles que soient les
+   *  bases servies. */
+  vehicules: Record<string, { element: string; empreinte: number; taille: VehiculeDuCombattant['taille']; cap: VehiculeDuCombattant['cap']; palette: Record<string, string>; embleme?: EmblemeResolu; postes: PosteMonte[]; ameliorations: AmeliorationMontee[] }>;
 }
 
 /** La vue : la projection commune (`projeter`), les corps de ses combattants (`CorpsDuCombat`), la disposition de la
@@ -184,7 +186,12 @@ export function creerPont() {
       combattants: Object.fromEntries(dessines.map(({ id, portee }) => [id, base && portee ? { base: base.id, ...composerSurLaBase(base, modeles!.manifestes, portee) } : null])),
       vehicules: Object.fromEntries(dessines.flatMap(({ id, vehicule }) => {
         const element = vehicule && modeles?.modeles.vehicules[vehicule.definition];
-        return element ? [[id, { element, empreinte: vehicule.empreinte, cap: vehicule.cap, postes: postesMontes(modeles!.manifestes[element], vehicule.postes, modeles!.modeles.vehicules) }]] : [];
+        if (!element) return [];
+        const palette = paletteDesCouleurs(vehicule.couleurs);
+        const manifeste = modeles!.manifestes[element];
+        const postes = postesMontes(manifeste, vehicule.postes, modeles!.modeles.vehicules, palette);
+        const ameliorations = ameliorationsMontees(manifeste, vehicule.ameliorations, postes, modeles!.modeles.ameliorations, modeles!.manifestes);
+        return [[id, { element, empreinte: vehicule.empreinte, taille: vehicule.taille, cap: vehicule.cap, palette, ...emblemeMonte(vehicule.embleme, manifeste), postes, ameliorations }]];
       })),
     };
   };

@@ -5,12 +5,19 @@
  * `src/noyau/idsDuMonde.ts`) : deux rejeux d'un même fichier forgent les mêmes ids, et un id forgé après un chargement
  * dépasse tous ceux de la save.
  */
+import type { IdDeHerosDuRoster } from '../lib/idDeHerosDuRoster';
 
 /** Le genre d'un id du monde : son préfixe. */
 export type GenreDId = 'it' | 'hero' | 'pos' | 'favor';
 
 /** Forge l'id neuf d'un genre. */
 export type FabriqueDId = (genre: GenreDId) => string;
+
+/** L'entropie de la plateforme, que l'hôte passe au roster : l'id d'un héros de roster et ceux de ses objets. */
+export interface FabriqueDuRoster {
+  (genre: 'hero'): IdDeHerosDuRoster;
+  (genre: GenreDId): string;
+}
 
 /** L'id de rang `n` du genre `genre`. */
 export const idDuGenre = (genre: GenreDId, n: number): string => `${genre}-${n}`;

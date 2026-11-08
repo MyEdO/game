@@ -11,8 +11,8 @@
  * trait/mutation. Seul le PORTEUR diffère (réf de coque vs `TraitInstance` du Combattant) → un collecteur
  * naval `navalPassiveOps` (calqué sur `passiveMods` : UN aplatissement + filtres minces), aucun système
  * parallèle. Restent en CHAMP DE DOMAINE les sous-systèmes navire hors vocabulaire combattant : `ram` (Bélier,
- * géométrie de collision) et `deckCover` (Sabord, géométrie de Pont). Ce module ne fait qu'EXPOSER ces effets
- * là où une brique EXISTANTE les consomme (spawn → PA de coque ; manœuvre → M/DR ; collision → Bélier ; pont → Sabord).
+ * géométrie de collision) et `deckCover` (Sabord, couvert des postes). Ce module ne fait qu'EXPOSER ces effets
+ * là où une brique EXISTANTE les consomme (spawn → PA de coque ; manœuvre → M/DR ; collision → Bélier ; tir → Sabord).
  *
  * Anti-double-compte : les colonnes E/B des navires NOMMÉS de `vehicles.json` sont DÉJÀ finales (elles
  * intègrent Renforcé/Solide) → ces Traits-là n'ont PAS de `passive` (desc seule). Man et « Peu maniable » sont
@@ -20,7 +20,7 @@
  */
 import { findNavalTrait, findVehicleById } from '../data';
 import type { GameOp } from './ops';
-import type { Combatant, DeckCoverClass, DeckPosteSlot, NavalTraitRef } from './types';
+import type { Combatant, CoverClass, DeckCoverClass, NavalTraitRef } from './types';
 import { couvertLePlusProtecteur } from './cover';
 
 /** Indice (niveau) du Trait naval `id` dans une liste de réfs : `value` de la réf (défaut 1 si présent sans
@@ -159,17 +159,8 @@ export function navalDeckCover(traits: NavalTraitRef[] | undefined): DeckCoverCl
   return best;
 }
 
-/**
- * Couvert des postes selon les Améliorations de la coque (MDG 12 l.362-364 / MSRC 12 l.85,111,
- * `deckCover` GRADUÉ en donnée) : « Le pont ne fournit aucun couvert, alors qu'un Sabord donne une couverture
- * totale » (Sabord/Murs blindés → `totale`), le **Plat-bord** une « couverture moyenne » (→ `moyenne`, moindre).
- * `cover` = le niveau de pont, `undefined` = aucune Amélioration couvrante. Stampe le MEILLEUR entre le couvert
- * propre au poste (gun-port authoré) et celui de la coque, sans altérer le gabarit de type (copie ; identité si
- * rien à stamper). Consommé par le rendu du Pont via `coverModifier`. PUR. */
-export function effectiveDeckPostes(postes: DeckPosteSlot[], cover: DeckCoverClass | 'none'): DeckPosteSlot[] {
-  if (cover === 'none') return postes;
-  return postes.map((p) => {
-    const eff = couvertLePlusProtecteur(p.cover ?? 'none', cover);
-    return eff === (p.cover ?? 'none') ? p : { ...p, cover: eff as DeckCoverClass };
-  });
+/** Couvert du servant d'un poste : le plus protecteur entre celui du poste (gun-port authoré) et celui des
+ *  Améliorations de sa coque (`navalDeckCover`). MDG 12 l.362-364 ; MSRC 12 l.85,111. PUR. */
+export function couvertDuPoste(hull: Combatant, poste: { cover?: DeckCoverClass }): CoverClass {
+  return couvertLePlusProtecteur(poste.cover ?? 'none', navalDeckCover(hullNavalTraits(hull)));
 }

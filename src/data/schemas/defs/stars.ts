@@ -1,9 +1,7 @@
 /**
  * Schéma de `stars.json` — Tableau des Signes astrologiques (ADE II 3), document mono-table : son dé
  * `die` tire un seuil (`rand`, borne haute cumulée), le dé de son sous-tirage (`sub`, un `Tirage`) départage les
- * variantes d'un même seuil (`sub` de la rangée). Les champs `string | null` (signe/classique/ascendant/dates/dieux/apparence) sont TOUS
- * des `string` dans la donnée actuelle — nullable conservé pour rester fidèle au contrat consommateur
- * (`StarData`, `src/data/index.ts`).
+ * variantes d'un même seuil (`sub` de la rangée).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
@@ -21,12 +19,12 @@ export const rangee = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
   rand: z.number(),
-  signe: z.string().nullable(),
-  classique: z.string().nullable(),
-  ascendant: z.string().nullable(),
-  dates: z.string().nullable(),
-  dieux: z.string().nullable(),
-  apparence: z.string().nullable(),
+  signe: z.string(),
+  classique: z.string(),
+  ascendant: z.string(),
+  dates: z.string(),
+  dieux: z.string(),
+  apparence: z.string(),
   /** Effet du signe aux ATTRIBUTS DE DÉPART (ADE II 3 l.38) — `GameOp[]`, jamais de la prose : la
    *  clé porte le nom du CONCEPT qu'elle contient (`ops`, comme `drunkenness`/`traumas`/les
    *  Critiques), et la langue unique `applyOps`/`GameOpEditor` la lit sans exception d'atelier.

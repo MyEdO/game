@@ -1,13 +1,12 @@
 import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `vehicles.json` — véhicules/embarcations à coque (chariots, barges, navires), 3 facettes
- * indépendantes (achat/voyage/coque+navire+pont). Dérivé de l'interface `VehicleData` EXISTANTE
- * (`src/engine/types.ts`, + `NavalTraitRef`/`ShipDeck`/`DeckPosteSlot`/`Propulsion`/
- * `VehicleTravelClass` co-localisées) et du contenu RÉEL (25 entrées, script d'inventaire : `hull`
- * 22/25, `ship` 20/25, `travel` 3/25, `deck` 1/25). `icon` est une clé d'ENVELOPPE, posée par la fabrique.
+ * indépendantes (achat/voyage/coque+navire). Dérivé de l'interface `VehicleData` EXISTANTE
+ * (`src/engine/types.ts`, + `NavalTraitRef`/`Propulsion`/`VehicleTravelClass` co-localisées) et du
+ * contenu RÉEL (25 entrées, script d'inventaire : `hull` 22/25, `ship` 20/25, `travel` 3/25). `icon` est une clé d'ENVELOPPE, posée par la fabrique.
  */
 import { z } from 'zod';
-import { availabilitySchema, cell2Schema, deckCoverSchema, enumNomme, moneySchema, profilDePropulsionSchema, profilDeVoileSchema } from '../grammaire/valeurs';
+import { availabilitySchema, enumNomme, moneySchema, profilDePropulsionSchema, profilDeVoileSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { navalTraitRefSchema } from '../grammaire/reference';
 
@@ -20,17 +19,6 @@ export const rigSchema = enumNomme({ avirons: 'Avirons', voile: 'Voile', mixte: 
 
 /** BORD du pont où siège un poste d'équipage (MDG 12) — affiché par la fiche de navire. */
 export const posteSideSchema = enumNomme({ proue: 'Proue', tribord: 'Tribord', poupe: 'Poupe', babord: 'Bâbord' });
-
-const deckPosteSlotSchema = nommerChamps(z.strictObject({
-  pos: cell2Schema,
-  side: posteSideSchema,
-  cover: deckCoverSchema.optional(),
-}), { pos: { label: "position" }, side: { label: "côté" }, cover: { label: "couvert" } });
-
-const shipDeckSchema = nommerChamps(z.strictObject({
-  ascii: z.array(z.string()),
-  postes: z.array(deckPosteSlotSchema).optional(),
-}), { ascii: { label: "plan" }, postes: { label: "postes" } });
 
 const vehicleTravelClassSchema = nommerChamps(z.strictObject({
   id: z.string(),
@@ -93,8 +81,6 @@ const doc = document(
       oars: profilDePropulsionSchema.optional(),
       traits: z.array(navalTraitRefSchema),
     }), { crew: { label: "équipage" }, manoeuvre: { label: "manœuvre" }, lengthM: { label: "longueur en mètres" }, footprint: { label: "emprise" }, capacity: { label: "capacité" }, sail: { label: "voile" }, oars: { label: "avirons" }, traits: { label: "Traits" } }).optional(),
-    /** Facette PONT (plan person-scale, authoré par TYPE). */
-    deck: shipDeckSchema.optional(),
   },
   {
     enc: { label: 'Encombrement (objet)', hint: 'Encombrement de l’objet véhicule — vide = ne se porte pas' },
@@ -109,7 +95,6 @@ const doc = document(
       hint: 'Profil à PV de la coque : Endurance et Blessures, propulsion/gréement et Traits',
     },
     ship: { label: 'Facette Navire', hint: 'Équipage, manœuvrabilité, longueur et capacité du profil naval' },
-    deck: { label: 'Facette Pont', hint: 'Plan du pont à l’échelle du combat, authoré par type de véhicule' },
   },
   {
     codex: { keys: ['vehicles'] },
