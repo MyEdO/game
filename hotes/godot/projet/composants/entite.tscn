@@ -6,14 +6,17 @@
 [node name="Entite" type="VBoxContainer"]
 theme_override_constants/separation = 6
 
-[node name="Nom" type="Label" parent="."]
+[node name="Nom" type="PanelContainer" parent="."]
+theme_type_variation = &"TeteDEntite"
+
+[node name="Texte" type="Label" parent="Nom"]
 theme_override_font_sizes/font_size = 20
 
-[node name="nom" type="Node" parent="Nom"]
+[node name="nom" type="Node" parent="Nom/Texte"]
 script = ExtResource("1_liaison")
 champ = "nom"
 
-[node name="ton" type="Node" parent="Nom"]
+[node name="ton" type="Node" parent="Nom/Texte"]
 script = ExtResource("1_liaison")
 champ = "ton"
 propriete = &"theme_type_variation"
