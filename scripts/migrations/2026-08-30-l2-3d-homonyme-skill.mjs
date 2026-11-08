@@ -33,6 +33,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { jsonCanonique } from '../../src/lib/jsonCanonique.mjs';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -84,8 +85,6 @@ const GESTES = [
     inversePorteur: (n) => estObjet(n) && Array.isArray(n.skills) && Object.keys(n).every((k) => k === 'skills' || k === 'capDR'),
   },
 ];
-
-const estObjet = (n) => n != null && typeof n === 'object' && !Array.isArray(n);
 
 const cheminsDe = (g) => g.chemins ?? [g.chemin];
 

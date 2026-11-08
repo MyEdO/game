@@ -16,6 +16,7 @@
  * (`idsVivants.ts`, en-tête).
  */
 import type { EspaceDeNoms, MarqueDeCollection } from './collection-cle';
+import { estObjet } from '../../../lib/objet.mjs';
 
 /** Les champs discriminants d'un espace de noms (`EspaceDeNoms.discriminant`), en liste — vide sans eux. */
 export const champsDiscriminants = (espace: EspaceDeNoms): readonly string[] =>
@@ -81,7 +82,7 @@ export type PasResolu = { readonly champ: string } | { readonly cle: string; rea
 export function suivreLeChemin(racine: unknown, chemin: readonly PasResolu[]): unknown {
   let v = racine;
   for (const pas of chemin) {
-    if ('champ' in pas) v = v !== null && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>)[pas.champ] : undefined;
+    if ('champ' in pas) v = estObjet(v) ? v[pas.champ] : undefined;
     else v = Array.isArray(v) ? v.find((el: unknown) => el !== null && typeof el === 'object' && (el as Record<string, unknown>)[pas.par] === pas.cle) : undefined;
   }
   return v;
@@ -198,8 +199,6 @@ export function retenuParFiltre(filtre: FiltreDEspace, e: Readonly<Record<string
   if (filtre.horsMarqueurs) return marqueurPorte(filtre, e) === undefined;
   return filtre.vaut === undefined ? porteLeChampMarqueur(e, filtre.champ) : e[filtre.champ] === filtre.vaut;
 }
-
-const estObjet = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 /**
  * SEUL lecteur des ids d'une collection à clé, par sa MARQUE (`grammaire/collection-cle.ts`), dans

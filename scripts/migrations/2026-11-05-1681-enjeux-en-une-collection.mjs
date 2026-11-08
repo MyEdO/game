@@ -34,6 +34,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const NOM = '2026-11-05-1681-enjeux-en-une-collection';
@@ -72,7 +73,7 @@ function ecartsDeForme(doc, quoi, { ordre = false } = {}) {
   const vus = new Set();
   for (const [i, e] of doc.entries()) {
     const ou = `${quoi} [${i}] ${e?.id ?? '?'}`;
-    if (!e || typeof e !== 'object' || Array.isArray(e)) { ecarts.push(`${ou} : entrée non-objet`); continue; }
+    if (!estObjet(e)) { ecarts.push(`${ou} : entrée non-objet`); continue; }
     if (ordre && Object.keys(e).slice(0, TETE.length).join(',') !== TETE.join(',')) ecarts.push(`${ou} : tête ${Object.keys(e).slice(0, TETE.length).join(',')} ≠ ${TETE.join(',')}`);
     if (typeof e.id !== 'string' || !e.id) ecarts.push(`${ou} : sans \`id\` de chaîne`);
     if (e.type !== TYPE) ecarts.push(`${ou} : \`type\` ${JSON.stringify(e.type)} ≠ ${JSON.stringify(TYPE)}`);
@@ -130,7 +131,7 @@ for (const s of SOURCES) {
   if (!Array.isArray(doc)) { arrets.push(`${s.rel} : racine non-TABLEAU`); continue; }
   for (const [i, e] of doc.entries()) {
     const ou = `${s.rel} [${i}] ${e?.id ?? '?'}`;
-    if (!e || typeof e !== 'object' || Array.isArray(e)) { arrets.push(`${ou} : entrée non-objet`); continue; }
+    if (!estObjet(e)) { arrets.push(`${ou} : entrée non-objet`); continue; }
     if (typeof e.id !== 'string' || !e.id) arrets.push(`${ou} : sans \`id\` de chaîne`);
     if (typeof e.label !== 'string' || !e.label) arrets.push(`${ou} : sans \`label\` de chaîne`);
     for (const k of ['cascade', 'cle']) if (k in e) arrets.push(`${ou} : porte déjà \`${k}\` — c'est ce que cette migration POSE`);

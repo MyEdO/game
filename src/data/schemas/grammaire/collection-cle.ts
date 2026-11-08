@@ -23,6 +23,7 @@
  */
 import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
+import { estObjet } from '../../../lib/objet.mjs';
 import { coDescendre, defDe, descendre, enfantsDe, ouverts, pasDeDonnee, type DecisionDeVisite, type PointDeDonnee } from './descente';
 import { baseDe, champsDiscriminants, cleDesLibelles, cleDesSpecs, cleDuVocabulaire, cleNichee, estPrefixeDeSuite, idsDeCollection, libellesDeCollection, lireCleDEspace, pasDeLaSuite, suiteAvecPas, type CleLue, type FiltreDEspace } from './cle-d-espace';
 import { estFeuilleDId } from './ref';
@@ -77,8 +78,6 @@ const CONTROLES = new WeakMap<object, MarqueDeCollection>();
 /** La clé LISIBLE d'une valeur : une chaîne vide ne nomme rien (sa forme est refusée par l'élément). */
 const texteDeCle = (v: unknown): string | undefined =>
   typeof v === 'string' && v !== '' ? v : typeof v === 'number' ? String(v) : undefined;
-
-const estObjet = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object';
 
 /** Marque d'une LISTE dont `cle` identifie les éléments. */
 export function marqueDeListe<T>(cle: CleDElement<T>, espace?: EspaceDeNoms): MarqueDeCollection {

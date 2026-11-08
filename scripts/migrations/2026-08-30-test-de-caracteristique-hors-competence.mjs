@@ -23,6 +23,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const lire = (rel) => JSON.parse(fs.readFileSync(path.join(ROOT, 'src/data', rel), 'utf8'));
@@ -78,7 +79,7 @@ for (const c of CHEMINS) {
   const { data } = documents.get(c.fichier);
   for (const { conteneur, cle } of parents(data, c.chemin)) {
     const o = conteneur[cle];
-    if (!o || typeof o !== 'object' || Array.isArray(o) || o.skill == null) continue;
+    if (!estObjet(o) || o.skill == null) continue;
     const { id, spec } = o.skill;
     if (IDS_COMPETENCES.has(id)) continue;
     if (!CLES_CARAC.has(id) || spec != null) {

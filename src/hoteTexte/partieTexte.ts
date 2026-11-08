@@ -9,7 +9,7 @@
 import { horlogeVirtuelle, type Jeu, type LigneDuJournal, type Partie, type ResultatDeLAppel } from '../noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type Entete, type TenueDesJetons } from '../hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, type Geste, type PistesDeLecture } from '../hote/geste';
-import { estObjet } from '../hote/formes';
+import { estObjet } from '../lib/objet.mjs';
 import { appelEcrit } from './outils';
 import { tableTotale } from '../lib/tableTotale';
 

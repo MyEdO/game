@@ -38,6 +38,7 @@ import { SCHEMA_DEFS } from './schemas/_registry.generated';
 import { SCHEMA_DEFS_SCENES } from './schemas/_registry-scenes.generated';
 import { defDe, descendre, enfantsDe, ouverts } from './schemas/grammaire/descente';
 import { detailRecipeSchema, plageOuverteSchema } from './schemas/grammaire/valeurs';
+import { estObjet } from '../lib/objet.mjs';
 
 /** Les DEUX racines de donnée du projet, comme le scan des structures (`scripts/docs/lib/structures-scan.mts`) :
  *  une graphie de bornes qui n'apparaîtrait que dans un document de SCÈNE échapperait sinon à la mesure.
@@ -97,7 +98,7 @@ function mesurer(): Mesure {
       if (estNombre(o[a]) && estNombre(o[b])) m.paires[`${a},${b}`] = (m.paires[`${a},${b}`] ?? 0) + 1;
     }
     const r = o.range as Objet | undefined;
-    if (r && typeof r === 'object' && !Array.isArray(r) && estNombre(r.min) && estNombre(r.max)) {
+    if (estObjet(r) && estNombre(r.min) && estNombre(r.max)) {
       m.emboites.push(`${doc}${chemin}`);
     }
     // Ni `deuxBornes` ni `bandesOuvertes` ne regardent la POSITION du porteur : la candidature `plage`

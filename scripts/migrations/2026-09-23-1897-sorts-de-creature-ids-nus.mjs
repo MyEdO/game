@@ -17,12 +17,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const CIBLE = path.join(ROOT, 'src/data/creatures.json');
 
-const estSource = (s) => !!s && typeof s === 'object' && !Array.isArray(s)
-  && Object.keys(s).length === 1 && typeof s.id === 'string' && s.id.length > 0;
+const estSource = (s) => estObjet(s) && Object.keys(s).length === 1 && typeof s.id === 'string' && s.id.length > 0;
 const estCible = (s) => typeof s === 'string' && s.length > 0;
 
 const brut = fs.readFileSync(CIBLE, 'utf8');

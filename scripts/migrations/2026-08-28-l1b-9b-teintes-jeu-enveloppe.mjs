@@ -18,6 +18,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const CIBLE = path.join(ROOT, 'src/data/teintesJeu.json');
@@ -31,7 +32,7 @@ if (JSON.stringify(data, null, 2) !== brut) {
   console.error('teintesJeu.json : FORME NON CANONIQUE (pas `JSON.stringify(doc, null, 2)`)');
   process.exit(1);
 }
-if (!data || typeof data !== 'object' || Array.isArray(data)) {
+if (!estObjet(data)) {
   console.error('teintesJeu.json : racine de forme inattendue (objet attendu)');
   process.exit(1);
 }

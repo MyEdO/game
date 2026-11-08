@@ -32,6 +32,7 @@ import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { poserRegimeVivant } from './idsVivants';
 import { defDe, enfantsDe } from './descente';
 import { noeudObjet, validateDataset } from '../validate';
+import { estObjet } from '../../../lib/objet.mjs';
 
 type EntreeASpecs = { id: string; specs?: { id: string }[]; specsSource?: string };
 const UNE_COMPETENCE = skillsJson[0] as { id: string };
@@ -592,7 +593,7 @@ describe('defs/ — forme de FICHIER et EXPOSITION déclarée (#1472 sous-lot A)
       if (!e.dataset && !e.object && !e.none && !e.niche) fautifs.push(`${def.file} : \`edit\` sans route déclarée`);
       if (e.niche) {
         const carte = e.niche.categories;
-        const cats = carte && typeof carte === 'object' && !Array.isArray(carte) ? Object.keys(carte) : [];
+        const cats = estObjet(carte) ? Object.keys(carte) : [];
         if (!(cats.length && cats.every((k) => k.length && typeof carte![k] === 'string' && (carte![k] as string).length))) {
           fautifs.push(`${def.file} : \`edit.niche.categories\` vide ou mal formée`);
         } else if (!keys) {

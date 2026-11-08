@@ -149,6 +149,7 @@ import type { HitLocation } from '../engine/types';
 import { openSkillTest } from '../noyau/combatEffects';
 import { EMPTY_FLOW, type FlowTest } from '../engine/flowCore';
 import { idDEntropie } from '../web/entropie';
+import { estObjet } from '../lib/objet.mjs';
 
 function entreeDeRecette(dataset: string, id: string): unknown {
   if (!(CLES_DE_DATASET as readonly string[]).includes(dataset))
@@ -167,7 +168,7 @@ function entreeDeRecette(dataset: string, id: string): unknown {
     const matches = valeur.filter((v) => marque.de(v) === id);
     if (matches.length > 1) throw new Error(`__wfrp.entree : « ${dataset}/${id} » ambigu (${matches.length} entrées)`);
     entree = matches[0];
-  } else if (marque.forme === 'record' && !marque.sous && valeur && typeof valeur === 'object' && !Array.isArray(valeur)) {
+  } else if (marque.forme === 'record' && !marque.sous && estObjet(valeur)) {
     entree = Object.prototype.hasOwnProperty.call(valeur, id) ? (valeur as Record<string, unknown>)[id] : undefined;
   } else throw new Error(`__wfrp.entree : forme de « ${dataset} » non prise en charge`);
   if (entree === undefined) throw new Error(`__wfrp.entree : « ${dataset}/${id} » introuvable`);

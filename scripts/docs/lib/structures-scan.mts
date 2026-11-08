@@ -63,6 +63,7 @@ import {
   type IdConceptPose,
   type Strate,
 } from './structures-lexique.mjs';
+import { estObjet } from '../../../src/lib/objet.mjs';
 
 export type Racine = {
   id: string;
@@ -426,7 +427,6 @@ const CLES_HORS_CHARGE: ReadonlySet<string> = new Set<string>([
 ]);
 
 type Obj = Record<string, unknown>;
-const estObjet = (v: unknown): v is Obj => !!v && typeof v === 'object' && !Array.isArray(v);
 
 /** Valeur d'identité d'un objet (première clé d'identité portant une chaîne non vide). */
 const identiteDe = (o: Obj): { cle: string; valeur: string } | null => {

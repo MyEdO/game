@@ -7,6 +7,7 @@ import { chargerRegistres } from '../agents/compat-cli.mjs'
 import { hooksAttendus, aplatirHooks, SURFACE_CLAUDE, SURFACE_CODEX } from '../agents/compat-core.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { lireStdinBorne, DELAI_STDIN_MS } from '../guards/lib/stdinBorne.mjs'
+import { estObjet } from '../../src/lib/objet.mjs'
 
 export const ANNEXES_SESSION_START = Object.freeze({ recu: 'sessionstart' })
 export const hashSessionStart = (value) => createHash('sha256').update(value).digest('hex')
@@ -56,7 +57,7 @@ export function produireRecuSessionStart({ surface, entree, env = process.env, w
   const attendu = contexteDeSession(env)
   if (!attendu) return null
   const native = JSON.parse(entree)
-  if (!native || typeof native !== 'object' || Array.isArray(native) || native.hook_event_name !== 'SessionStart' || (native.session_id !== undefined && (typeof native.session_id !== 'string' || !native.session_id.trim()))) throw new Error('REÇU : ENTRÉE NATIVE SESSIONSTART INVALIDE')
+  if (!estObjet(native) || native.hook_event_name !== 'SessionStart' || (native.session_id !== undefined && (typeof native.session_id !== 'string' || !native.session_id.trim()))) throw new Error('REÇU : ENTRÉE NATIVE SESSIONSTART INVALIDE')
   if (attendu.surface !== surface || attendu.worktree !== canoniserWorktree(worktree)) throw new Error('REÇU : PRODUCTEUR ÉTRANGER')
   if (surface === 'codex' && attendu.empreinteCredo !== hashSessionStart(credo ?? '')) throw new Error('REÇU : CREDO DIVERGENT')
   const { chemin, ...identite } = attendu

@@ -9,6 +9,7 @@
 import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import { jsonCanonique } from '../../../src/lib/jsonCanonique.mjs';
+import { estObjet } from '../../../src/lib/objet.mjs';
 
 /**
  * `valeur` porte-t-elle EXACTEMENT `tranche` : chaque clé de `tranche` à sa valeur, une clé valant
@@ -19,7 +20,7 @@ import { jsonCanonique } from '../../../src/lib/jsonCanonique.mjs';
  * @returns {boolean}
  */
 export function porteLaTranche(valeur, tranche) {
-  if (valeur === null || typeof valeur !== 'object' || Array.isArray(valeur)) return false;
+  if (!estObjet(valeur)) return false;
   return Object.entries(tranche).every(([cle, attendu]) =>
     attendu === undefined ? !Object.hasOwn(valeur, cle) : Object.hasOwn(valeur, cle) && isDeepStrictEqual(valeur[cle], attendu),
   );

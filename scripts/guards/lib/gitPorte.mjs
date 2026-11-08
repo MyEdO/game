@@ -50,6 +50,7 @@ import { BACKOFFS_MS, MARQUE_REJEU, attendreSync, estEchecDeChargement, rejeux }
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
 import { DEPOT } from './ticketsGh.mjs'
 import { fileURLToPath } from 'node:url'
+import { estObjet } from '../../../src/lib/objet.mjs'
 
 /** Borne de présentation de `raisonCourte`. */
 const RAISON_MAX = 200
@@ -1957,7 +1958,7 @@ export const reussi = (union) => union.disponible && !union.absent && union.vale
  * @param {Depot} depot @param {{ branche?: string, objets?: never } | { objets: readonly string[], branche?: never }} [opts]
  */
 export function fetchOrigin(depot, opts = {}) {
-  if (!opts || typeof opts !== 'object' || Array.isArray(opts) || Object.keys(opts).some((cle) => cle !== 'branche' && cle !== 'objets')) throw new TypeError('fetchOrigin : options invalides')
+  if (!estObjet(opts) || Object.keys(opts).some((cle) => cle !== 'branche' && cle !== 'objets')) throw new TypeError('fetchOrigin : options invalides')
   if ('objets' in opts) {
     if ('branche' in opts || !Array.isArray(opts.objets) || !opts.objets.length || !Array.from(opts.objets).every((sha) => typeof sha === 'string' && estShaComplet(sha)))
       throw new TypeError('fetchOrigin : objets exige un lot non vide de SHA complets, exclusif de branche')

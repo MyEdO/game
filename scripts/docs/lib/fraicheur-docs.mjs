@@ -12,6 +12,7 @@ import { sousLEpoque } from './ecrivain-derives.mjs'
 import { clotureDImports } from '../../guards/lib/importGraph.mjs'
 
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
+import { estObjet } from '../../../src/lib/objet.mjs'
 const empreinte = (bytes) => createHash('sha256').update(bytes).digest('hex')
 const egaux = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 const RACINE_OUTILLAGE = fileURLToPath(new URL('../../../', import.meta.url))
@@ -136,7 +137,7 @@ function lireMesure(racine, options, facultative = false) {
     if (facultative && cheminAbsent(e)) return {}
     throw e
   }
-  if (!mesure || typeof mesure !== 'object' || Array.isArray(mesure)) throw new Error('mesure invalide')
+  if (!estObjet(mesure)) throw new Error('mesure invalide')
   return mesure
 }
 

@@ -19,6 +19,7 @@ import { croissancesDeLaPlage, lectureDeLaPlage, raisonDeRefusDePlage, refusDeLa
 import { SOUS_LA_PORTE } from '../guards/lib/occurrencesStock.mjs'
 import { PORTEURS_SOUS_LA_PORTE } from '../guards/lib/porteursDesComptes.mjs'
 import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
+import { estObjet } from '../../src/lib/objet.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const git = gitDeLArbreReel(RACINE)
@@ -95,7 +96,7 @@ test('périmètre — les porteurs de stock, et eux seuls', () => {
  *  NOMMER un porteur oublié, jamais à requalifier une donnée de jeu. */
 function porteUnStockParSaForme(json) {
   const estChemin = (s) => /^(?:src|scripts|docs)\/[^\s]+\.(?:ts|tsx|mjs|mts|json|md|css)$/.test(s)
-  if (!json || typeof json !== 'object' || Array.isArray(json)) return false
+  if (!estObjet(json)) return false
   const cles = Object.keys(json)
   if (cles.length > 0 && cles.every(estChemin)) return true
   return ['entrees', 'sites', 'trous'].some((rubrique) => {
