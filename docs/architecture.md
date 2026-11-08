@@ -210,6 +210,10 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             UNION d'ids GÉNÉRÉE (`icones.generated.ts`, `IconIdGenerated`) : écrite par
                             `npm run gen` à part du registre `src/data/icons/defs/`, par l'option
                             `idUnion.out` (`scripts/docs/lib/cibles-registres.mjs`), jamais éditée
+                            VOCABULAIRES D'ART GÉNÉRÉS (`_vocabulaires-d-art.generated.ts`) :
+                            l'option `vocabulaire` d'un registre TS d'art (même fichier) projette ses
+                            defs en table `id → libellé`, espace `vocabulaire:<nom>` de l'index des ids
+                            (`src/data/schemas/grammaire/vocabulaires.ts`) que `TYPES` déclare (#2968 P-art)
                             SEAM d'ÉCRITURE (`overrides.ts`) : `setDataset`/`setObjectDataset`/`resetData`
                             remplacent le CONTENU d'un dataset sans réassigner son binding (`splice` en
                             place), `setDeDeTable` écrit le dé de tirage qu'un ANCÊTRE de la collection
