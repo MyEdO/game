@@ -125,8 +125,8 @@ export function makeForet() {
         id: 'enc-foret-bande',
         enemies: [
           { ref: 'bella-la-noire', pos: { x: 31, y: 11 } },
-          { ref: 'humain', pos: { x: 29, y: 9 }, weapon: 'arc', randomChars: true, label: 'Coupe-jarret de Bella', appearance: { tenue: 'hors-la-loi', sex: 'F' } },
-          { ref: 'humain', pos: { x: 33, y: 13 }, weapon: 'epee-batarde', randomChars: true, label: 'Spadassin de Bella', appearance: { tenue: 'hors-la-loi' } },
+          { ref: 'humain', pos: { x: 29, y: 9 }, inventaire: { arc: false }, randomChars: true, label: 'Coupe-jarret de Bella', appearance: { tenue: 'hors-la-loi', sex: 'F' } },
+          { ref: 'humain', pos: { x: 33, y: 13 }, inventaire: { 'epee-batarde': false }, randomChars: true, label: 'Spadassin de Bella', appearance: { tenue: 'hors-la-loi' } },
           { ref: 'chien', pos: { x: 28, y: 14 } },
         ],
         onVictory: flowOf([

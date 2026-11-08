@@ -13,12 +13,13 @@ import { inanimateCombatant } from '../../engine/inanimate';
 import { hullArmourBonus, hullNavalTraits } from '../../engine/navalTraits';
 import { requiredTerrains } from '../../engine/ops';
 import { type Scene, type SceneEntity, heightAt, tileAt } from './scene';
+import type { InventaireDAuteur } from '../../data/schemas/defs-scenes/scene';
 import { footprintTiles, propFootTiles, sizeFootprint } from './footprint';
 import type { Pt } from './path';
 import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import { deciderApparencesDesArmes, hydratePoste, loadWeapon } from '../../engine/items';
+import { apparencesObjetsDe, contexteDeNaissanceDObjet, deciderApparencesDesArmes, hydratePoste, loadWeapon, objetsDeLInventaire, recomputeLoadout } from '../../engine/items';
 import { blessuresReconciliees, blessuresPosees } from '../../engine/characteristics';
 import { indiceSurLeProfil } from '../../engine/formule';
 import { resizeBySteps, SIZE_ORDER, SizeCategory, sizeFromTraits } from '../../engine/size';
@@ -29,7 +30,7 @@ import { rollMutation, mutationById } from '../../data/mutations';
 import { makeRNG, type RNG } from '../../engine/dice';
 import { attachMutation, type Mutation } from '../../engine/corruption';
 import { groupsFor } from '../../engine/groups';
-import { weaponsFromTraits, armourFromTraits, renderWeaponsFromTraits, weaponFromId } from '../../engine/creatureEquip';
+import { weaponsFromTraits, armourFromTraits, traitsDevantLEquipement } from '../../engine/creatureEquip';
 import { hashSeed } from '../../engine/dice';
 import { bodyShapeForSpecies } from '../../engine/bodyForm';
 
@@ -427,11 +428,22 @@ function ficheDeRef(ref: string, id: string, pos: { x: number; y: number; z?: nu
   return c;
 }
 
+/** Le personnage `c` porte l'inventaire d'auteur `inventaire` (uid `<id>-objet-<trappingId>`) : ses Traits cèdent à
+ *  l'équipement réel (`traitsDevantLEquipement`), puis il s'équipe comme un héros (`recomputeLoadout`). LDB 77 l.7 ; #3684 */
+function equiperDeLInventaire(c: Combatant, inventaire: InventaireDAuteur): void {
+  c.items = objetsDeLInventaire(inventaire, (t) => `${c.id}-objet-${t}`, apparencesObjetsDe(c.appearanceOverride, c.creatureId), findTrappingById, contexteDeNaissanceDObjet(c));
+  const restent = traitsDevantLEquipement(c.traits ?? [], c.items);
+  const cedes = new Set((c.traits ?? []).filter((t) => !restent.includes(t)));
+  c.traits = restent;
+  if (c.liveTraits) c.liveTraits = c.liveTraits.filter((t) => !cedes.has(t));
+  recomputeLoadout(c);
+}
+
 export function spawnEnemy(
   porteur: PorteurDeFiche,
   id: string,
   pos: { x: number; y: number; z?: number }, // z (étage) conservé sur c.pos via les spreads/shorthands
-  opts?: { appearance?: EntityAppearance; weapon?: string } & SpawnExtras,
+  opts?: { appearance?: EntityAppearance; inventaire?: InventaireDAuteur } & SpawnExtras,
 ): Combatant {
   const c = porteur.presetCreature ? creatureToCombatant(porteur.presetCreature, id, pos, opts)
     : porteur.statblock ? statblockToCombatant(porteur.statblock, id, pos, opts?.appearance, opts)
@@ -454,21 +466,7 @@ export function spawnEnemy(
   if (a && Object.values(a).some((v) => v !== undefined)) c.appearanceOverride = a;
   // Tenue d'auteur (id) → `Combatant.career`, en combat comme en exploration.
   if (a?.tenue) c.career = a.tenue;
-  // `opts.weapon` est l'arme d'AUTHORING (`trappingId` du catalogue — `SceneEntity.weapon`, doctrine
-  // ids-only, résolue par `weaponFromId`, #258) : la
-  // projection UNIQUE `weaponFromItem` en fait une arme de combat COMPLÈTE (Dégâts, Portée, Recharge,
-  // Groupe, effets à la touche). Elle n'alimente le COMBAT que si les Traits n'ont PAS déjà produit une
-  // arme explicite du MÊME type (melee/ranged) : les deux décriraient alors le MÊME armement, et celle
-  // d'authoring passerait en tête de `c.weapons` en masquant celle du statbloc, qui porte l'Indice de
-  // Dégâts IMPRIMÉ (#126/#145). Un `weapon:` d'un type ABSENT des Traits (ex. Garde du Village posté
-  // « archer » : trait Arme mêlée générique + `weapon:'arc'`) reste additif, légitime (ne duplique rien).
-  // `renderWeaponsFromTraits` = armes EXPLICITES sans repli générique.
-  if (opts?.weapon) {
-    const idWeapon = weaponFromId(opts.weapon); // null (+ console.error #223) si le trappingId ne résout pas
-    if (idWeapon && !renderWeaponsFromTraits(c.traits ?? []).some((w) => w.type === idWeapon.type)) {
-      c.weapons = [idWeapon, ...c.weapons];
-    }
-  }
+  if (opts?.inventaire && Object.keys(opts.inventaire).length) equiperDeLInventaire(c, opts.inventaire);
   deciderApparencesDesArmes(findTrappingById, c.weapons, c.appearanceOverride, c.creatureId, c.items);
   // Arme à distance CHARGÉE au spawn (miroir du héros dans lancerLeCombat) — LDB 62 l.335 : le `loaded` ne gate
   // que les armes à Recharge, un tireur fraîchement engagé peut donc tirer au 1er Round (pas de recharge à vide).

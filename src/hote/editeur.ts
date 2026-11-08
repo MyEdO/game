@@ -19,6 +19,7 @@ import {
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
   type WallPaint, ZONE_VARIANTS, champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
   allMusicDefs, apparencesDeLOuverture, champDuMessage, ciblesDAncreDeBataille, groupesDuLieu,
+  equipConflicts, isWearable, objetsDeLInventaire, trappingsInstanciables,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -265,7 +266,8 @@ const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: num
 
 /** L'inspecteur de l'entité sélectionnée de la session `s` : son nom ; le type d'un décor, la fiche d'un personnage du
  *  bestiaire ; son cap parmi ceux que son type admet ; sa couche ; la lumière et les places d'un décor ; le poste d'un
- *  emplacement de siège et l'équipage exposé d'une coque ; l'embuscade d'un personnage et ses rencontres ; la supprimer. */
+ *  emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son embuscade et ses
+ *  rencontres ; la supprimer. */
 function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton | Formulaire)[] {
   const fiches = fichesDePersonnage();
   const types = ent.kind === 'prop' ? props : ent.kind === 'personnage' && fiches.some((f) => f.id === ent.ref) ? fiches : [];
@@ -281,7 +283,7 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
     ...(ent.postes?.length || (ent.ref && findVehicleById(ent.ref)?.hull)
       ? equipe(s, ent, 'equipage', ent.crewIds ?? [], (crewIds) => ({ geste: 'entite', patch: { crewIds } }))
       : []),
-    ...(ent.kind === 'personnage' ? rencontres(s, ent) : []),
+    ...(ent.kind === 'personnage' ? [...inventaire(ent), ...rencontres(s, ent)] : []),
     bouton('entite/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }),
   ];
 }
@@ -376,6 +378,33 @@ function poste(s: SessionDEdition, ent: Scene['entities'][number], p: NonNullabl
     ...equipe(s, ent, 'poste/servants', servants, (ids) => ({ geste: 'poste', patch: { servants: ids } })),
     ...(servants.length ? [choix('poste/chef', t('ecran.editeur.poste.chef'), servants.map((id) =>
       bouton(`poste/chef/${id}`, nom(id), { geste: 'poste', patch: { servants: [id, ...servants.filter((i) => i !== id)] } }, servants[0] === id)))] : []),
+  ];
+}
+
+/** L'inventaire du personnage `ent` : chaque objet, par son id, à retirer et, s'il se porte (`isWearable`), porté ou
+ *  non, le porter ôtant ceux qui sont en conflit de port avec lui (`equipConflicts`) ; ou la ligne qui dit qu'il n'en a
+ *  aucun ; puis, en liste, chaque objet du catalogue (`trappingsInstanciables`) qu'il n'a pas, à y ajouter. Chaque
+ *  bouton écrit l'inventaire entier. */
+function inventaire(ent: Scene['entities'][number]): (Choix | Ligne)[] {
+  const objets = ent.inventaire ?? {};
+  const instances = objetsDeLInventaire(objets, String);
+  const ecrire = (inv: NonNullable<Scene['entities'][number]['inventaire']>): GesteDEdition => ({ geste: 'entite', patch: { inventaire: inv } });
+  const porter = (objet: (typeof instances)[number]) => {
+    const otes = new Set(objet.equipped ? [] : equipConflicts({ items: instances }, objet).map((o) => o.uid));
+    return Object.fromEntries(Object.entries(objets).map(([id, porte]) => [id, id === objet.uid ? !porte : porte && !otes.has(id)]));
+  };
+  return [
+    ...(instances.length
+      ? instances.map((objet) => {
+        const id = `inventaire/${objet.uid}`;
+        return choix(id, objet.label, [
+          ...(isWearable(objet) ? [bouton(`${id}/porte`, t('ecran.editeur.inventaire.porte'), ecrire(porter(objet)), objet.equipped)] : []),
+          bouton(`${id}/retirer`, t('ecran.editeur.inventaire.retirer'), ecrire(Object.fromEntries(Object.entries(objets).filter(([i]) => i !== objet.uid)))),
+        ]);
+      })
+      : [ligne('inventaire', t('ecran.editeur.inventaire.aucun'))]),
+    choix('inventaire/ajouter', t('ecran.editeur.inventaire.ajouter'),
+      trappingsInstanciables().filter((tr) => !(tr.id in objets)).map((tr) => bouton(`inventaire/ajouter/${tr.id}`, tr.label, ecrire({ ...objets, [tr.id]: false }))), 'liste'),
   ];
 }
 

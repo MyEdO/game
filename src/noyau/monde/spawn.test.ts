@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { creatureToCombatant, statblockToCombatant, skillsFromBook, spawnEnemy, entitySize } from './spawn';
-import { weaponFromTrait } from '../../engine/creatureEquip';
+import { armourFromTraits, weaponFromTrait, weaponsFromTraits } from '../../engine/creatureEquip';
+import type { CustomStatblock } from '../../engine/statblock';
+import { recomputeLoadout } from '../../engine/items';
 import { blessingsOf, findCreatureById, talentConcrete } from '../../data';
 import { CHAR_KEYS } from '../../engine/types';
 import { knowsCastingSkill, castingValue, incantationArcane } from '../../engine/magic';
@@ -46,18 +48,56 @@ describe('weaponFromTrait — armement des monstres dans les Traits (FR)', () =>
   });
 });
 
-describe('spawnEnemy — arme d’AUTHORING (weapon:) vs arme de TRAIT : pas de doublon (#145 / #126)', () => {
-  it('statbloc À distance (arbalète) + weapon:"arbalete" (trappingId) → UNE seule arme à distance, avec Recharge', () => {
-    // Régression #145 : l'arme de RENDU (weaponFromId, sans reload) était PRÉPENDÉE devant celle du
-    // Trait (avec Recharge), et l'IA prenait la 1re → Recharge ennemie (#126) inerte. `weapon:` ne doit
-    // plus s'ajouter quand un Trait produit déjà une arme du même type. `weapon:` = trappingId (#258).
-    const sb = { label: 'Tireur', char: { M: 4, 'capacite-de-combat': 36, 'capacite-de-tir': 43, force: 39, endurance: 32, B: 12 }, traits: [
-      { id: 'a-distance', value: 9, arg: 'arbalete', range: 60 }, { id: 'arme', value: 7, arg: 'arme-simple' },
-    ] } as any;
-    const c = spawnEnemy({ statblock: sb }, 'e-tireur', { x: 0, y: 0 }, { weapon: 'arbalete' });
+describe('spawnEnemy — l’objet réel fait céder le Trait qui le résumait (LDB 85 ; #773, #3684)', () => {
+  const tireur: CustomStatblock = { type: 'statblock', label: 'Tireur', char: { M: 4, 'capacite-de-combat': 36, 'capacite-de-tir': 43, force: 39, endurance: 32, B: 12 }, traits: [
+    { id: 'a-distance', value: 9, arg: 'arbalete', range: 60 }, { id: 'arme', value: 7, arg: 'arme-simple' }, { id: 'armure', value: 2 },
+  ] };
+
+  it('une cotte de mailles portée donne ses PA, et le Trait Armure cède', () => {
+    const c = spawnEnemy({ ref: 'gobelin' }, 'g-maille', { x: 0, y: 0 }, { inventaire: { 'cotte-de-mailles': true } });
+    expect(c.armour).toEqual({ tete: 0, brasG: 2, brasD: 2, corps: 2, jambeG: 0, jambeD: 0 });
+    expect(c.traits?.some((t) => t.id === 'armure')).toBe(false);
+  });
+
+  it('une cotte de mailles NON portée ne fait pas céder le Trait Armure', () => {
+    const c = spawnEnemy({ ref: 'gobelin' }, 'g-sac', { x: 0, y: 0 }, { inventaire: { 'cotte-de-mailles': false } });
+    expect(c.armour).toEqual(spawnEnemy({ ref: 'gobelin' }, 'g-nu', { x: 0, y: 0 }).armour);
+  });
+
+  it('une arme simple tenue remplace l’arme du Trait Arme', () => {
+    const c = spawnEnemy({ ref: 'gobelin' }, 'g-arme', { x: 0, y: 0 }, { inventaire: { 'arme-simple': false } });
+    expect(c.weapons.map((w) => w.uid)).toEqual(['g-arme-objet-arme-simple']);
+    expect(c.traits?.some((t) => t.id === 'arme')).toBe(false);
+  });
+
+  it('il garde l’arme naturelle de ses Traits et ce que lui donnent ses mutations', () => {
+    const sb: CustomStatblock = { type: 'statblock', label: 'Homme-bête', char: { B: 12, force: 40 }, traits: [{ id: 'arme', value: 7 }, { id: 'morsure', value: 6 }, { id: 'mutation', arg: 'cornes-asymetriques' }] };
+    const c = spawnEnemy({ statblock: sb }, 'hb', { x: 0, y: 0 }, { inventaire: { 'arme-simple': false } });
+    expect(c.weapons.map((w) => w.label)).toEqual(['Arme simple', 'Morsure', 'Cornes']);
+    expect(c.armour.tete).toBe(1);
+  });
+
+  it('recomposé (`recomputeLoadout`), un PNJ sans inventaire garde les armes et l’armure de ses Traits', () => {
+    const c = spawnEnemy({ ref: 'gobelin' }, 'g-recompose', { x: 0, y: 0 });
+    const { weapons, armour } = structuredClone(c);
+    recomputeLoadout(c);
+    expect(c.weapons).toEqual(weapons);
+    expect(c.armour).toEqual(armour);
+  });
+
+  it('un PNJ sans inventaire garde les armes et l’armure de ses Traits, sans objet', () => {
+    const c = spawnEnemy({ statblock: tireur }, 'e-nu', { x: 0, y: 0 });
+    expect(c.items).toBeUndefined();
+    expect(c.weapons).toEqual(weaponsFromTraits(c.traits ?? []).map((w) => expect.objectContaining({ uid: w.uid, label: w.label })));
+    expect(c.armour).toEqual(armourFromTraits(c.traits ?? []));
+  });
+
+  it('une arbalète d’inventaire fait céder le Trait À distance : UNE arme à distance, l’objet, avec Recharge', () => {
+    const c = spawnEnemy({ statblock: tireur }, 'e-tireur', { x: 0, y: 0 }, { inventaire: { arbalete: false } });
     const ranged = c.weapons.filter((w) => w.type === 'ranged');
-    expect(ranged).toHaveLength(1); // aucun doublon rendu/jeu
-    expect(ranged[0].reload).toBeGreaterThan(0); // arme de JEU : Recharge dérivée de l'arbalète (LDB 62 l.333) → l'IA suit son cycle (#126)
+    expect(ranged.map((w) => w.uid)).toEqual(['e-tireur-objet-arbalete']);
+    expect(ranged[0].reload).toBeGreaterThan(0);
+    expect(c.traits?.map((t) => t.id)).toEqual(['arme', 'armure']);
   });
 });
 

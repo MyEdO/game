@@ -1138,7 +1138,7 @@
   {
     "id": "reglagesApparence",
     "type": "primitives.manifest",
-    "label": "ReglagesApparence/ApparencesObjetsField/ArmeEquipeeField",
+    "label": "ReglagesApparence/ApparencesObjetsField",
     "fichier": "src/ui/editor/ReglagesApparence.tsx",
     "css": "src/ui/styles/reglages-apparence.css",
     "concept": "réglages d’une apparence, liste des réglages rendus en donnée, toute écriture par apparenceSuivante",

@@ -580,6 +580,27 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     expect(boutonDe(servi, `equipage/${pnjId}`).presse, 'l’équipage exposé est une autre liste').toBe(false);
   });
 
+  it('un personnage : son inventaire d’auteur, un objet ajouté du catalogue, porté, une seconde pièce de la même couche l’ôte, retiré (#3684)', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    presser(boutonDe(ouverte, 'outil/personnage'));
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const pnj = jouer({ geste: 'relache', point: point(1, 1) });
+    expect(pnj.vue.zones['editeur.inspecteur'].some((el) => el.id === 'inventaire'), 'sans objet, une ligne le dit').toBe(true);
+    const cotte = presser(boutonDe(pnj, 'inventaire/ajouter/cotte-de-mailles'));
+    const chemise = presser(boutonDe(cotte, 'inventaire/ajouter/chemise-de-mailles'));
+    expect(valeursDeLInspecteur(chemise, 'inventaire/cotte-de-mailles').map((b) => [b.id, b.presse])).toEqual([['inventaire/cotte-de-mailles/porte', false], ['inventaire/cotte-de-mailles/retirer', false]]);
+    expect(valeursDeLInspecteur(chemise, 'inventaire/ajouter').some((b) => b.id === 'inventaire/ajouter/chemise-de-mailles'), 'un objet de l’inventaire ne s’y ajoute plus').toBe(false);
+    const portee = presser(boutonDe(chemise, 'inventaire/cotte-de-mailles/porte'));
+    expect(boutonDe(portee, 'inventaire/cotte-de-mailles/porte').presse).toBe(true);
+    const otee = presser(boutonDe(portee, 'inventaire/chemise-de-mailles/porte'));
+    expect([boutonDe(otee, 'inventaire/cotte-de-mailles/porte').presse, boutonDe(otee, 'inventaire/chemise-de-mailles/porte').presse], 'deux mailles sur le Corps ne se portent pas ensemble').toEqual([false, true]);
+    const retiree = presser(boutonDe(otee, 'inventaire/cotte-de-mailles/retirer'));
+    expect([boutonDe(retiree, 'inventaire/chemise-de-mailles/porte').presse, retiree.vue.zones['editeur.inspecteur'].some((el) => el.id === 'inventaire/cotte-de-mailles')]).toEqual([true, false]);
+  });
+
   it('un décor : sa lumière allumée, son rayon au pas, son ton ; son assise ouverte, une place tenue par un emplacement du groupe', () => {
     const { appel } = table();
     const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));

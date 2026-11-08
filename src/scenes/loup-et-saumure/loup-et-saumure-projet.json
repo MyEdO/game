@@ -3157,7 +3157,9 @@
       "y": 7
      },
      "label": "Olg Blóðsalt",
-     "weapon": "hache-d-armes"
+     "inventaire": {
+      "hache-d-armes": false
+     }
     },
     {
      "id": "serpent-helm",

@@ -33,7 +33,7 @@ est de l'affichage multilangue — AGENTS.md, encadré « id STABLE ») ; **pers
   non authorable à la main, jamais à un projet de campagne : `barge-du-sel` et `loup-et-saumure` sont la
   dette #1601 (« Campagnes possédées par un GÉNÉRATEUR … statuer la migration vers MANUSCRIT »), `arene`
   vit sous le même régime (#1601). Les validateurs id-only de la lib (`creatureId`/`skillId`/`spellId`/`speciesId`/
-  `tenueId`/`weaponId`) FAIL-FAST pour ses seuls consommateurs.
+  `tenueId`/`inventaire`) FAIL-FAST pour ses seuls consommateurs.
 
 ## 2. Navire de campagne (`state.vessel`)
 
@@ -527,7 +527,7 @@ variantes que chaque type admet sont déclarées dans `psychology.json` (`cibles
 
 ## 11. Règles d'or
 
-- **IDS partout** — `ref`/`skill`/`spell`/`weapon`/`species`/`tenue`/`trappingId`/`factorId`/`roleId` sont
+- **IDS partout** — `ref`/`skill`/`spell`/`inventaire`/`species`/`tenue`/`trappingId`/`factorId`/`roleId` sont
   des ids STABLES. Un libellé est un défaut silencieux (poison). Doctrine : AGENTS.md, encadré « id STABLE ».
 - **Personne ne lit le journal** — tout dénouement pertinent est une surface VISIBLE au moment (dialogue,
   modale, effet à l'écran), le `journal` ne fait que rappeler.
