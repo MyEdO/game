@@ -192,8 +192,8 @@ jobs:
         run: npm run godot:sonde
       # `personnage-3d:tests` (#3145) : `scripts/personnage-3d/tests.py` dans le venv épinglé de
       # `scripts/personnage-3d/environnement.mjs`, sous le CPython de son `PYTHON` (marqueur `python_version` de
-      # requirements.txt), après `godot:sonde`, qui dépose les GLB du projet que lit `ModeleCommite`. Le cache de pip
-      # est keyé par requirements.txt ; le venv, lié à l'interpréteur du runner, ne se cache pas.
+      # requirements.txt), après `godot:sonde`, qui écrit sous `hotes/godot/projet/modeles/` dont `test_vehicule.py` lit les
+      # manifestes. Le cache de pip est keyé par requirements.txt ; le venv, lié à l'interpréteur du runner, ne se cache pas.
       - id: python-3d
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: node --input-type=module -e "import { PYTHON } from './scripts/personnage-3d/environnement.mjs'; console.log('version=' + PYTHON)" >> "$GITHUB_OUTPUT"

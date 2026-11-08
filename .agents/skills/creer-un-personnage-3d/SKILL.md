@@ -13,6 +13,7 @@ Les contrats exécutables sont `hotes/godot/asset/element.ts` et
 
 Valider le manifeste et son GLB par **`npm run godot:valider -- <element.json> <base.json> <element.glb>`** ;
 un décor ou un véhicule, sans base, par **`npm run godot:valider -- <element.json> <element.glb>`** (#2987).
+Un véhicule (navire, engin de siège) se construit par `scripts/personnage-3d/vehicule/` : chapitre 9 de la procédure.
 Mesurer l'élément monté par **`npm run godot:evaluer -- <element.glb> --base <base.glb> --manifeste <base.json>`** ;
 utiliser `--facteurs sl=1,legs=1,arms=1,head=1,st=1` et `--silhouettes feminin=1,corpulence=1`
 avec les valeurs de la matrice requise. La procédure précise les commandes et leurs limites.
