@@ -104,9 +104,8 @@
 //     `scripts/hooks/ecrans-ui.json` deviendra le jour où une entrée y tiendra sur deux lignes) ;
 //   · le REPLI ne voit ni accolade ouvrante ni entrée multiligne : ce qu'il rate, il le rate en
 //     silence, et c'est le prix d'une image que le lecteur rend `null` ;
-//   · une table de MAPPING qui vit sous un chemin de `PORTEURS` (`entityConsumers.mjs`,
-//     `hors-modal-intent-path.test.ts`) compte comme un stock : la condition de porteur est un
-//     CHEMIN, et une ligne de mapping de plus dans une lib de garde se DÉCLARE par `CLIQUET:` comme
+//   · une table de MAPPING qui vit sous un chemin de `PORTEURS` (`hors-modal-intent-path.test.ts`)
+//     compte comme un stock : la condition de porteur est un CHEMIN, et une ligne de mapping de plus dans une lib de garde se DÉCLARE par `CLIQUET:` comme
 //     toute autre croissance ;
 //   · un stock de DOSSIERS passé en ARGUMENT est HORS DE VUE, et c'est le prix payé pour cesser de
 //     compter une marche d'arbre migrée : `registre(['src/noyau', 'src/engine'])` écrit au module ne

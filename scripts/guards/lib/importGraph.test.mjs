@@ -494,10 +494,10 @@ test('les ressources explicites se résolvent sans devenir des modules à parser
 })
 
 test('un import relatif `.mjs` d’une lib de garde se résout vers son fichier (site réel)', () => {
-  const depuis = join(RACINE, 'src', 'data', 'entity-orphans.test.ts')
-  const resolu = resolveImport(depuis, '../../scripts/guards/lib/entityOrphanStock.mjs')
-  assert.ok(resolu, 'l’import `.mjs` de `entity-orphans.test.ts` doit se résoudre, pas rendre null')
-  assert.match(resolu, /scripts\/guards\/lib\/entityOrphanStock\.mjs$/)
+  const depuis = join(RACINE, 'src', 'data', 'folio-line-align.test.ts')
+  const resolu = resolveImport(depuis, '../../scripts/guards/lib/folioLineAlignStock.mjs')
+  assert.ok(resolu, 'l’import `.mjs` de `folio-line-align.test.ts` doit se résoudre, pas rendre null')
+  assert.match(resolu, /scripts\/guards\/lib\/folioLineAlignStock\.mjs$/)
 })
 
 test('l’extension `.mjs` se déduit aussi d’un spécificateur SANS extension', () => {
