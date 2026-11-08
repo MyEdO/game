@@ -82,6 +82,13 @@ describe('spawnEnemy — l’objet réel fait céder le Trait qui le résumait (
     expect(c.armour.tete).toBe(1);
   });
 
+  it('un Trait Arme naturel (Crocs) reste devant une arme tenue', () => {
+    const sb: CustomStatblock = { type: 'statblock', label: 'Bête', char: { B: 12, force: 40 }, traits: [{ id: 'arme', value: 7, arg: 'Crocs', natural: true }] };
+    const c = spawnEnemy({ statblock: sb }, 'bete', { x: 0, y: 0 }, { inventaire: { 'arme-simple': false } });
+    expect(c.weapons.map((w) => w.label)).toEqual(['Arme simple', 'Crocs']);
+    expect(c.traits?.map((t) => t.id)).toEqual(['arme']);
+  });
+
   it('recomposé (`recomputeLoadout`), un PNJ sans inventaire garde les armes et l’armure de ses Traits', () => {
     const c = spawnEnemy({ ref: 'gobelin' }, 'g-recompose', { x: 0, y: 0 });
     const { weapons, armour } = structuredClone(c);
