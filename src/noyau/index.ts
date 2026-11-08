@@ -93,7 +93,7 @@ export { fenetreDIncantation, type FenetreDIncantation } from './fenetreDIncanta
 export { fenetreDuSoin } from './soin';
 export { difficultyText } from './difficultyText';
 export { fenetreDeDefense } from './fenetreDeDefense';
-export { ficheDuPorteur, type FicheDuPorteur } from './ficheDuPorteur';
+export { ficheDuPorteur, type EntreeDeLaFiche, type FicheDuPorteur } from './ficheDuPorteur';
 export { gestesDeLObjet, type GesteAChoix } from './gestesDeLObjet';
 export { carteEnVue, type TrajetEnVue } from './carteEnVue';
 export { lieuEnVue } from './lieuEnVue';

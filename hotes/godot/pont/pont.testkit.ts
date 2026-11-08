@@ -31,6 +31,10 @@ export function table() {
 /** La vue d'une réponse qui en porte une. */
 export const vueDe = (r: Reponse): VueDuPont => (r as { vue: VueDuPont }).vue;
 
+/** Les éléments de la section `id` du statbloc de la fiche ouverte (`fiche.sections`, `section/<id>`), aucun sans
+ *  elle. */
+export const sectionDeLaFiche = (vue: VueDuPont, id: string): Element[] => vue.zones['fiche.sections'].find((e) => e.id === `section/${id}`)?.elements ?? [];
+
 /** Le listage des modèles commités du projet Godot, tel que `GET /modeles/` le sert. */
 export const modelesCommites = () => listage(join(import.meta.dirname, '../projet/modeles'));
 

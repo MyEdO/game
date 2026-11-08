@@ -2,9 +2,10 @@
  * LE PONT DE L'HÔTE GODOT (#2928, contrat `CONTRAT.md`) : le transport JSON entre Godot et le noyau. Une méthode reçoit
  * au plus une chaîne JSON et rend toujours une chaîne JSON, `{ ok: true, … }` ou `{ ok: false, erreur }` ; elle ne lève
  * jamais. Le pont ne porte aucune règle : un geste passe par le module commun des hôtes (`src/hote/`), la vue est faite
- * des lecteurs du noyau, les jetons programmés sont tenus par numéro et rejoués quand Godot les rend. La fiche que
- * l'écran montre et la création d'un héros sont des états du pont, que les méthodes `fiche` et `creation` posent,
- * jamais de la partie ; seul l'engagement du héros créé la touche, et l'Effet de scène qui demande un héros neuf
+ * des lecteurs du noyau, les jetons programmés sont tenus par numéro et rejoués quand Godot les rend. Le panneau que
+ * l'écran tient ouvert, un seul à la fois (la fiche d'un combattant en statbloc, la création d'un héros), est un état
+ * du pont, que les méthodes `fiche` et `creation` posent, jamais de la partie ; seul
+ * l'engagement du héros créé la touche, et l'Effet de scène qui demande un héros neuf
  * (`demandeUnHeros`) ouvre la création comme « Nouveau héros ». Les modèles servis (`modeles`) sont un état du pont
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
@@ -19,7 +20,7 @@ import { lignesDuJournal, zonesDeLEcran, type ZonesDeLaSuite, type ZonesDeLEcran
 import { modelesDeLAtelier, postesMontes, type ModelesDeLAtelier, type PosteMonte } from './atelier';
 import { composerSurLaBase, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
-import { ONGLETS_DE_LA_FICHE, type CreationOuverte, type FicheOuverte, type GesteDeLaCreation } from '../../../src/hote/elements';
+import { type CreationOuverte, type GesteDeLaCreation, type PanneauDeLHote } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
 import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, refusDeLaValeurDit, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../../src/scenes/campaign';
@@ -55,8 +56,7 @@ export interface CorpsDuCombat {
 
 /** La vue : la projection commune (`projeter`), les corps de ses combattants (`CorpsDuCombat`), la disposition de la
  *  fenêtre qui tient la main (`FenetreADessiner.disposition`, `null` sans fenêtre), chaque zone de l'écran et ses
- *  éléments (`zonesDeLEcran`, la
- *  fiche posée par `fiche` comprise), les cases
+ *  éléments (`zonesDeLEcran`, le panneau ouvert compris), les cases
  *  atteignables au tour de l'actif (`casesAtteignables`), le plateau de la scène (`plateauDeLaScene`), le verbe du clic
  *  du champ (`CLIC_DU_CHAMP`, la barre de l'actif ouverte, ou en exploration quand rien ne tient la main ; `null`
  *  sinon), et l'id du
@@ -156,7 +156,7 @@ function calquesGardes(texte: string): unknown {
 
 /** Le pont : ses méthodes, chacune appelée par `appeler`. */
 export function creerPont() {
-  let ouverte: (PartieOuverte & { graine: number; pas: number; lignes: number; jour: number | null; fiche: FicheOuverte | null; creation: CreationOuverte | null; brouillons: number; regard: Regard }) | null = null;
+  let ouverte: (PartieOuverte & { graine: number; pas: number; lignes: number; jour: number | null; panneau: PanneauDeLHote; brouillons: number; regard: Regard }) | null = null;
   const erreurs: ErreurGlobale[] = [];
   /** Les manifestes et les modèles du dernier `modeles`, que `composer` et les corps de la vue lisent. */
   let modeles: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier } | null = null;
@@ -198,7 +198,7 @@ export function creerPont() {
       projection,
       corps: corpsDe(projection),
       disposition: fenetre?.disposition ?? null,
-      zones: zonesDeLEcran(etat, projection, fenetre, o.fiche, o.creation),
+      zones: zonesDeLEcran(etat, projection, fenetre, o.panneau),
       cases: casesAtteignables(etat),
       plateau: etat.scene ? plateauDeLaScene(etat.scene, casesDuGroupe(etat), regardDuJeu(o.regard, !!etat.battle)) : null,
       lumiere: etat.scene ? lumiereDeLaScene({ ...etat, scene: etat.scene }, regardDuJeu(o.regard, !!etat.battle)) : null,
@@ -207,15 +207,22 @@ export function creerPont() {
     };
   };
 
-  /** Ouvre la création sur un brouillon neuf, à sa première page, et ferme la fiche. */
+  /** La création que le panneau ouvert tient, `null` sous un autre panneau ou sans panneau. */
+  const creationOuverte = (o: NonNullable<typeof ouverte>): CreationOuverte | null => (o.panneau && 'creation' in o.panneau ? o.panneau.creation : null);
+
+  /** Le panneau `cle` fermé : sans panneau s'il est celui ouvert, l'autre panneau laissé ouvert sinon. */
+  const fermerLePanneau = (o: NonNullable<typeof ouverte>, cle: 'fiche' | 'creation'): void => {
+    if (o.panneau && cle in o.panneau) o.panneau = null;
+  };
+
+  /** Ouvre la création sur un brouillon neuf, à sa première page, à la place du panneau ouvert. */
   const ouvrirLaCreation = (o: NonNullable<typeof ouverte>): void => {
-    o.creation = { brouillon: brouillonDeLaPartie(o.graine, o.brouillons++), page: pagesDeCreation()[0] };
-    o.fiche = null;
+    o.panneau = { creation: { brouillon: brouillonDeLaPartie(o.graine, o.brouillons++), page: pagesDeCreation()[0] } };
   };
 
   /** La suite de `resultat` ; un héros neuf demandé (`demandeUnHeros`) ouvre la création, sauf déjà ouverte. */
   const suite = (o: NonNullable<typeof ouverte>, resultat: ResultatDeLAppel): Suite => {
-    if (!o.creation && resultat.evenements.some(demandeUnHeros)) ouvrirLaCreation(o);
+    if (!creationOuverte(o) && resultat.evenements.some(demandeUnHeros)) ouvrirLaCreation(o);
     const programmes = o.jetons.programmes(resultat);
     const { lignes, jour } = lignesDuJournal(o.partie.etat(), o.lignes, resultat.journal, o.jour);
     const zones = { 'journal.lignes': lignes };
@@ -257,7 +264,7 @@ export function creerPont() {
         o = ouvrirLaPartie(entete, sansRoster);
         graine = entete.graine;
       }
-      ouverte = { ...o, graine, pas: 0, lignes: 0, jour: null, fiche: null, creation: null, brouillons: 0, regard: 'tactique' };
+      ouverte = { ...o, graine, pas: 0, lignes: 0, jour: null, panneau: null, brouillons: 0, regard: 'tactique' };
       return suite(ouverte, o.lancement);
     },
     vue(json) {
@@ -297,15 +304,15 @@ export function creerPont() {
       const e = entreeDe('fiche', json, ['fiche']);
       const f = e.fiche as Record<string, unknown> | null | undefined;
       const etat = o.partie.etat();
-      const heros = etat.party.map((h) => h.id);
-      valider(f === null || (estObjet(f) && Object.keys(f).every((k) => k === 'heros' || k === 'onglet' || k === 'objet') && heros.includes(f.heros as string) && ONGLETS_DE_LA_FICHE.includes(f.onglet as FicheOuverte['onglet'])),
-        `fiche : fiche, null ou { heros, onglet, objet? } : l’id d’un héros du groupe (${heros.join(', ')}) et un onglet (${ONGLETS_DE_LA_FICHE.join(', ')})`);
+      const porteurs = [...new Set([...(etat.battle?.combatants ?? []), ...etat.party].map((c) => c.id))].filter((id) => ficheDuPorteur(etat, id));
+      valider(f === null || (estObjet(f) && Object.keys(f).every((k) => k === 'porteur' || k === 'objet') && porteurs.includes(f.porteur as string)),
+        `fiche : fiche, null ou { porteur, objet? } : l’id d’un combattant à fiche (${porteurs.join(', ')})`);
       if (f && f.objet !== undefined) {
-        const objets = f.onglet === 'possessions' ? ficheDuPorteur(etat, f.heros as string)!.possessions.map((p) => p.uid) : [];
-        valider(objets.includes(f.objet as string), `fiche : objet, sous l’onglet possessions, l’uid d’une possession de la fiche (${objets.join(', ') || 'aucune'})`);
+        const objets = ficheDuPorteur(etat, f.porteur as string)!.possessions.map((p) => p.uid);
+        valider(objets.includes(f.objet as string), `fiche : objet, l’uid d’une possession de la fiche (${objets.join(', ') || 'aucune'})`);
       }
-      o.fiche = f === null ? null : { heros: f!.heros as string, onglet: f!.onglet as FicheOuverte['onglet'], ...(f!.objet === undefined ? {} : { objet: f!.objet as string }) };
-      if (o.fiche) o.creation = null;
+      if (f === null) fermerLePanneau(o, 'fiche');
+      else o.panneau = { fiche: { porteur: f!.porteur as string, ...(f!.objet === undefined ? {} : { objet: f!.objet as string }) } };
       return sansJeton(o);
     },
     creation(json) {
@@ -315,14 +322,14 @@ export function creerPont() {
       valider(b, 'creation : creation, un geste de la création que l’écran offre (`{ creation }` d’un bouton des zones groupe.gestes et creation.*)');
       if (b!.refus) throw new ErreurDeGeste('regle', `creation : ${b!.refus}`);
       const g = e.creation as GesteDeLaCreation | null;
-      if (g === null) o.creation = null;
+      if (g === null) fermerLePanneau(o, 'creation');
       else if (g.geste === 'ouvrir') ouvrirLaCreation(o);
       else if (g.geste === 'engager') {
-        const resultat = envoyerLIntention(o.partie, intentionDEngagement(o.creation!.brouillon));
-        o.creation = null;
+        const resultat = envoyerLIntention(o.partie, intentionDEngagement(creationOuverte(o)!.brouillon));
+        fermerLePanneau(o, 'creation');
         o.pas++;
         return suite(o, resultat);
-      } else o.creation = apresLaCreation(o.creation!, g);
+      } else o.panneau = { creation: apresLaCreation(creationOuverte(o)!, g) };
       return sansJeton(o);
     },
     reprendre(json) {
