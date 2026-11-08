@@ -4,8 +4,8 @@ import type { TestScenario } from './_shared';
 
 /**
  * À BORD DE LA CARAQUE (#3686). Une caraque, l'entité de son type, dans un bassin à l'échelle de son plan, proue à
- * l'est, avec ses Sabords, son Nid-de-pie et son Embarcation de bord : ses quatre ponts, relevés sur les plans de
- * MDG 12 l.286, en exploration. Le groupe est à bord dans l'embelle et parcourt le navire, des cabines du château de
+ * l'est, avec ses Sabords, son Nid-de-pie et son Embarcation de bord : ses ponts (`vehicles.json › ponts`), relevés
+ * sur les plans de MDG 12 l.286, en exploration. Le groupe est à bord dans l'embelle et parcourt le navire, des cabines du château de
  * poupe à la cale, par les échelles de trappe, et monte à la hune. Aucune rencontre.
  */
 export const scenario: TestScenario = {

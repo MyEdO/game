@@ -423,8 +423,9 @@ Un véhicule (catégorie `vehicule`) et les pièces de ses Améliorations (caté
 depuis le dépôt, sans base, par `scripts/personnage-3d/vehicule/` : la partie commune (`construire.py` : export,
 manifestes et dossiers de production ; `maille.py` : maille, poutre, objet ; `habillage.py` : matériaux et `surfaces` ;
 `revue.py` : configurations rendues dans le studio de `rendu.py`) et un dossier par modèle, `<modele>/donnees.py` (ses
-dimensions, nommées) et `<modele>/modele.py` (sa construction). Modèles livrés : `caraque` (coque, plan de jeu lu dans
-`src/noyau/planDeLaCaraque.ts`, seize pièces d'Améliorations dans `ameliorations.py`) et `canon` (un GLB pour
+dimensions, nommées) et `<modele>/modele.py` (sa construction). Modèles livrés : `caraque` (coque bâtie sur ses ponts,
+la source unique `ponts` de sa fiche dans `src/data/vehicles.json` que lit aussi le noyau, seize pièces d'Améliorations
+dans `ameliorations.py`) et `canon` (un GLB pour
 `canon-grand`, `canon-moyen`, `canon-petit`).
 
 **Créer un type.** Le dossier `vehicule/<type>/` porte deux fichiers :

@@ -245,6 +245,11 @@ export interface VehicleData {
     oars?: ProfilDePropulsion;
     traits: NavalTraitRef[];
   };
+  /** Ponts d'un navire qu'on visite (#3686) : une carte box-drawing par pont, du plus bas au plus haut
+   *  (`MOTS_DES_PONTS`, `src/data/schemas/grammaire/carte-ascii.ts`). */
+  ponts?: string[];
+  /** Hauteur (m, depuis la flottaison) de chaque glyphe de case des `ponts`. */
+  hauteursDesPonts?: Record<string, number>;
 }
 
 /**
