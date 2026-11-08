@@ -404,10 +404,11 @@ func habiller_la_base() -> void:
 
 
 ## Chaque surface de `meshes` dont le matériau du GLB porte le `nom` d'une de `surfaces` reçoit un matériau propre
-## (`materiau_local`) si `palette` colore son emplacement de palette, ou si elle est `blason` et
-## `texture` n'est pas nulle : la couleur y remplace l'albédo du GLB, texture comprise, pour que la tête et le corps
-## d'une même peau aient la même couleur, et `texture` devient la couche de détail, en UV1 et en mélange. Toute autre
-## surface garde le matériau du GLB. Rend si `texture` est posée sur une surface au moins.
+## (`materiau_local`) si `palette` colore son emplacement de palette, si elle est `blason` et `texture` n'est pas
+## nulle, ou si la texture de sa `matiere` est au projet : celle-ci l'habille comme le monde (`Monde.texturer`),
+## l'albédo à blanc ; la couleur remplace l'albédo du GLB, texture comprise, pour que la tête et le corps d'une même
+## peau aient la même couleur, ou teint la texture de sa matière ; `texture` devient la couche de détail, en UV1 et en
+## mélange. Toute autre surface garde le matériau du GLB. Rend si `texture` est posée sur une surface au moins.
 static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary) -> bool:
 	var par_nom := {}
 	for surface in surfaces:
@@ -422,13 +423,19 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 				continue
 			var couleur: Variant = palette.get(surface.palette)
 			var blason: bool = texture != null and surface.get("blason", false)
-			if couleur == null and not blason:
+			var matiere: String = surface.get("matiere", "")
+			var texturee := not matiere.is_empty() and ResourceLoader.exists(Monde.texture_de(matiere))
+			if couleur == null and not blason and not texturee:
 				continue
 			var local := materiau_local(piece, rang)
 			if local == null:
 				continue
-			if couleur != null:
+			if texturee:
+				Monde.texturer(local, matiere)
+				local.albedo_color = Color.WHITE
+			elif couleur != null:
 				local.albedo_texture = null
+			if couleur != null:
 				local.albedo_color = Color(couleur)
 			if blason:
 				local.detail_enabled = true
