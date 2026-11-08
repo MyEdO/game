@@ -58,6 +58,10 @@ function ouMonter({ cle, point }: Portee): string {
   return point === undefined ? cleDuPanneau('piece', pieceRacine(cle.id)?.id ?? cle.id) : cleDuPanneau('emplacement', point);
 }
 
+/** La couleur `#rrggbb` de chaque emplacement de palette que `couleurs` colore, résolue au nuancier (`findCouleurById`). */
+export const paletteDesCouleurs = (couleurs: PorteeDeComposition['couleurs']): Record<string, string> =>
+  Object.fromEntries(Object.entries(couleurs ?? {}).map(([slot, { id }]) => [slot, findCouleurById(id)!.color]));
+
 /** `portee` sur la base `base` des modèles de l'atelier : `manifestes` (id de modèle → manifeste) lit la base et la
  *  `cle` de ses éléments. Chaque chose portée se monte à l'élément de son emplacement dont la clé la désigne, une
  *  apparence variante à défaut à celui de sa `racine`. */
@@ -86,6 +90,6 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
     rapport: portee.rapport,
     ...(gabarit ? { gabarit: poseDuGabarit({ gabarit, appuis }, portee.facteurs) } : {}),
     morphes: gabarit ? poidsDeSilhouettes({ sex: portee.sex, build: portee.build ?? BUILD_NEUTRE, st: portee.facteurs.st }, gabarit) : {},
-    palette: Object.fromEntries(Object.entries(portee.couleurs ?? {}).map(([slot, { id }]) => [slot, findCouleurById(id)!.color])),
+    palette: paletteDesCouleurs(portee.couleurs),
   };
 }

@@ -104,6 +104,12 @@ static func _boite(noeud: Node, dans: Node3D) -> Variant:
 	return boite
 
 
+## Les meshes de la scène `scene` de l'élément `element` habillés de `palette` (`MontageDeComposition.peindre`, les
+## `surfaces` de l'élément).
+static func peindre_l_element(scene: Node3D, element: String, palette: Dictionary) -> void:
+	MontageDeComposition.peindre(scene.find_children("*", "MeshInstance3D", true, false), MontageDeComposition.modeles.surfaces[element], null, palette)
+
+
 ## La scène `piece` d'une pièce montée sous la scène `scene` de son véhicule, au poste `poste` (`postes` de
 ## `vue.corps.vehicules[id]`) : à sa `position` dans le repère du véhicule, dont elle prend l'échelle, tournée vers son
 ## `bord` (`MiseEnPage.LACETS_DES_BORDS`).
@@ -175,8 +181,10 @@ func _vetir(corps: Variant) -> void:
 
 
 ## Le véhicule `vehicule`, s'il a changé : aucun, la scène posée sous `Vehicule` est retirée ; sinon le GLB de son
-## élément est tiré de `modeles/` et posé sur son empreinte (`poser_sur_l_empreinte`) à la place de la précédente, le GLB
-## de chacune de ses pièces monté à son poste (`monter_au_poste`), puis le tout tourné vers son cap (`tourner_au_cap`).
+## élément est tiré de `modeles/`, peint de sa `palette` (`peindre_l_element`) et posé sur son empreinte
+## (`poser_sur_l_empreinte`) à la place de la précédente, le GLB de chacune de ses pièces peint de la sienne et monté à son
+## poste (`monter_au_poste`), puis le tout tourné vers son cap (`tourner_au_cap`). Chacun est peint avant d'être monté :
+## une pièce n'est pas habillée des surfaces du véhicule.
 func _equiper(vehicule: Variant) -> void:
 	var recu := JSON.stringify(vehicule)
 	if recu == _vehicule_recu:
@@ -201,10 +209,12 @@ func _equiper(vehicule: Variant) -> void:
 	_element_du_vehicule = null
 	_postes_montes.clear()
 	if scene != null:
+		peindre_l_element(scene, vehicule.element, vehicule.palette)
 		_vehicule.add_child(scene)
 		poser_sur_l_empreinte(scene, int(vehicule.empreinte))
 		for i in pieces.size():
 			if pieces[i] != null:
+				peindre_l_element(pieces[i], vehicule.postes[i].element, vehicule.postes[i].palette)
 				monter_au_poste(scene, pieces[i], vehicule.postes[i])
 				_postes_montes.append(vehicule.postes[i].element)
 		tourner_au_cap(scene, vehicule.cap, int(vehicule.empreinte))

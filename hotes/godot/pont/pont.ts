@@ -17,7 +17,7 @@ import { estObjet } from '../../../src/lib/objet.mjs';
 import { fenetreADessiner } from '../../../src/hote/gestes';
 import { lignesDuJournal, zonesDeLEcran, type ZonesDeLaSuite, type ZonesDeLEcran } from '../../../src/hote/ecran';
 import { modelesDeLAtelier, postesMontes, type ModelesDeLAtelier, type PosteMonte } from './atelier';
-import { composerSurLaBase, type CompositionSurLaBase } from './composition';
+import { composerSurLaBase, paletteDesCouleurs, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
 import { ONGLETS_DE_LA_FICHE, type CreationOuverte, type FicheOuverte, type GesteDeLaCreation } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
@@ -48,9 +48,10 @@ export interface CorpsDuCombat {
    *  portée sur elle (`composerSurLaBase`), `null` si sa portée est `null` (corps sans base de ce plan) ou sous refus. */
   combattants: Record<string, (CompositionSurLaBase & { base: string }) | null>;
   /** Par id de combattant dessiné qui est un véhicule ou un engin (`CombattantProjete.vehicule`) dont un élément
-   *  `vehicule` est servi (`ModelesDeLAtelier.vehicules`, #2987) : cet élément, le côté de son empreinte, son cap et les
-   *  pièces montées à ses postes (`postesMontes`), quelles que soient les bases servies. */
-  vehicules: Record<string, { element: string; empreinte: number; cap: VehiculeDuCombattant['cap']; postes: PosteMonte[] }>;
+   *  `vehicule` est servi (`ModelesDeLAtelier.vehicules`, #2987) : cet élément, le côté de son empreinte, son cap, sa
+   *  palette (`paletteDesCouleurs`) et les pièces montées à ses postes (`postesMontes`), quelles que soient les bases
+   *  servies. */
+  vehicules: Record<string, { element: string; empreinte: number; cap: VehiculeDuCombattant['cap']; palette: Record<string, string>; postes: PosteMonte[] }>;
 }
 
 /** La vue : la projection commune (`projeter`), les corps de ses combattants (`CorpsDuCombat`), la disposition de la
@@ -184,7 +185,9 @@ export function creerPont() {
       combattants: Object.fromEntries(dessines.map(({ id, portee }) => [id, base && portee ? { base: base.id, ...composerSurLaBase(base, modeles!.manifestes, portee) } : null])),
       vehicules: Object.fromEntries(dessines.flatMap(({ id, vehicule }) => {
         const element = vehicule && modeles?.modeles.vehicules[vehicule.definition];
-        return element ? [[id, { element, empreinte: vehicule.empreinte, cap: vehicule.cap, postes: postesMontes(modeles!.manifestes[element], vehicule.postes, modeles!.modeles.vehicules) }]] : [];
+        if (!element) return [];
+        const palette = paletteDesCouleurs(vehicule.couleurs);
+        return [[id, { element, empreinte: vehicule.empreinte, cap: vehicule.cap, palette, postes: postesMontes(modeles!.manifestes[element], vehicule.postes, modeles!.modeles.vehicules, palette) }]];
       })),
     };
   };

@@ -2,10 +2,11 @@
  * CE QUE PORTE UN COMBATTANT (#2972 J5, #3253, #3456) : un autre producteur des `Portee` d'une composition
  * (`porteeDeComposition`), lu sur son état : sa race de rendu, sa tête, ses armes tenues puis rangées, ses objets
  * équipés qui revêtent des pièces, son armure (`armuresDuCombattant`), chacun par le seul assembleur d'objet
- * (`porteesDesObjets`), la tenue de sa carrière, et son emblème ; ou, véhicule ou engin, sa fiche, son empreinte, son
- * cap et les pièces de ses postes à un bord (`vehiculeDuCombattant`, #2987).
+ * (`porteesDesObjets`), la tenue de sa carrière, son emblème et ses couleurs ; ou, véhicule ou engin, sa fiche, son
+ * empreinte, son cap, ses couleurs et les pièces de ses postes à un bord (`vehiculeDuCombattant`, #2987).
  */
 import type { Combatant, FireArc, HitLocation, ItemInstance } from '../../engine/types';
+import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { Dir8 } from '../../geometry/dir8';
 import { LOCALISATIONS_DE_COUP } from '../../engine/types';
 import { apparencesCandidates } from '../../engine/items';
@@ -77,6 +78,13 @@ function uneFoisParPiece(portees: readonly Portee[]): Portee[] {
   });
 }
 
+/** Les couleurs de `c` : celles de l'apparence de sa créature, chacune remplacée par celle de son apparence d'auteur
+ *  (`appearanceOverride`) ; absentes si aucune ne colore un emplacement. */
+function couleursDuCombattant(c: Combatant): Pick<EntityAppearance, 'couleurs'> {
+  const couleurs = { ...findCreatureById(c.creatureId)?.appearance?.couleurs, ...c.appearanceOverride?.couleurs };
+  return Object.keys(couleurs).length ? { couleurs } : {};
+}
+
 /** Ce que porte `c`, `null` si son espèce n'a aucune race de rendu (#2993) : sa tête, ses armes tenues puis rangées,
  *  ses objets équipés qui revêtent des pièces (`piecesDeLObjet`), son armure (`armuresDuCombattant`), puis la tenue de
  *  sa carrière (`findTenueDeCarriere`) ; une pièce n'est portée qu'une fois, par le premier qui la revêt. */
@@ -101,23 +109,25 @@ export function porteeDuCombattant(c: Combatant): PorteeDeComposition | null {
     portees: uneFoisParPiece([...(tete ? [{ cle: { champ: 'tete', id: tete.id }, label: tete.label } satisfies Portee] : []), ...portees, ...(tenue ? porteesDeLaTenue(tenue.id) : [])]),
     rapport,
     ...(embleme ? { embleme } : {}),
+    ...couleursDuCombattant(c),
     facteurs: facteursDeComposition(undefined, race),
     // #3253
     sex: c.appearance?.sex ?? 'M',
   };
 }
 
-/** La pièce d'un poste à un bord d'un véhicule (`Combatant.postes`, MDG 12) : l'id de sa fiche (`item.trappingId`) et son
- *  bord. */
+/** La pièce d'un poste à un bord d'un véhicule (`Combatant.postes`, MDG 12) : l'id de sa fiche (`item.trappingId`), son
+ *  bord et sa teinte (`teinteDeLObjet`). */
 export interface PosteDuVehicule {
   readonly definition: string;
   readonly bord: FireArc;
+  readonly teinte?: string;
 }
 
 /** Un véhicule ou un engin de siège au combat : l'id de sa fiche, que nomme la clé `definition` d'un élément 3D
- *  `vehicule`, le côté N de son empreinte (`footprintN`), son cap (`Jeu.facing`, le nord sans cap, comme au combat) et
- *  les pièces de ses postes à un bord, dans leur ordre. */
-export interface VehiculeDuCombattant {
+ *  `vehicule`, le côté N de son empreinte (`footprintN`), son cap (`Jeu.facing`, le nord sans cap, comme au combat), ses
+ *  couleurs, celles de son apparence d'auteur, et les pièces de ses postes à un bord, dans leur ordre. */
+export interface VehiculeDuCombattant extends Pick<EntityAppearance, 'couleurs'> {
   readonly definition: string;
   readonly empreinte: number;
   readonly cap: Dir8;
@@ -128,6 +138,6 @@ export interface VehiculeDuCombattant {
  *  sinon `null`. */
 export function vehiculeDuCombattant(c: Combatant, cap: Dir8 | undefined): VehiculeDuCombattant | null {
   if (c.creatureId === undefined || !findFicheDeVehicule(c.creatureId)) return null;
-  const postes = (c.postes ?? []).flatMap(({ item, side }) => (side && item.trappingId ? [{ definition: item.trappingId, bord: side }] : []));
-  return { definition: c.creatureId, empreinte: footprintN(c), cap: cap ?? 'N', postes };
+  const postes = (c.postes ?? []).flatMap(({ item, side }) => (side && item.trappingId ? [{ definition: item.trappingId, bord: side, ...saTeinte(item) }] : []));
+  return { definition: c.creatureId, empreinte: footprintN(c), cap: cap ?? 'N', ...couleursDuCombattant(c), postes };
 }
