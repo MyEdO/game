@@ -9,12 +9,12 @@ import { apparenceDArete, edgeKey, facadeEdges } from './facades';
 import type { Pt } from './path';
 import { EYE_H } from './iso';
 import { METRES_PER_LEVEL } from './relief';
-import { casesDeFace, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
+import { casesDeFace, heightAt, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
 import type { Rot } from '../../geometry/iso';
 import { cutawayOverhead, frontFacadeCutaway, type ClearedSpace } from './volume/architectureVisibility';
 import { clearedSpace } from './volume/toits';
 import { empreinteDesDecors, toitsLeves, toutesLesNappes, volumeDuMonde, type VolumeDuMonde } from './volume/volume';
-import { aretesHorsDesNavires } from '../planDeNavire';
+import { aretesHorsDesNavires, provenanceDesNavires } from '../planDeNavire';
 
 /** La pièce qu'une arête porte : un mur plein, une porte fermée ou ouverte, une fenêtre aux volets ouverts ou clos, ou
  *  la brèche d'une structure abattue. */
@@ -105,12 +105,31 @@ export function regardDuJeu(voulu: Regard, enCombat: boolean): Regard {
 /** La couche la plus haute où se tient un allié de `allies` : celle que le regard `plateau` montre, rien au-dessus. */
 const coucheDuGroupe = (allies: readonly Pt[]): number => Math.max(0, ...allies.map((a) => a.z ?? 0));
 
+/** Ce qu'un regard retire du volume du monde : les couches au-dessus de `activeZ`, les cases du `couvercle` (clés
+ *  `x,y,z`) ; et, par id de navire, la hauteur (m) de sa coupe. */
+interface RetraitDuRegard {
+  activeZ?: number;
+  couvercle: ReadonlySet<string>;
+  coupes: Record<string, number>;
+}
+
 /** Ce que le regard `regard` retire du volume du monde pour le groupe posé sur `allies` : au plateau, les couches
  *  au-dessus de la sienne (`activeZ`) ; en tactique, le couvercle au-dessus de sa tête (`clearedSpace`,
- *  `overheadCells`, ses cases `x,y,z`) ; en immersion, rien. */
-function retraitDuRegard(scene: Scene, allies: readonly Pt[], regard: Regard): { activeZ?: number; couvercle: ReadonlySet<string> } {
-  if (regard === 'plateau') return { activeZ: coucheDuGroupe(allies), couvercle: new Set() };
-  return { couvercle: regard === 'tactique' ? clearedSpace(scene, allies).overheadCells : new Set() };
+ *  `overheadCells`, ses cases `x,y,z`) ; en immersion, rien. Un navire dont il ôte des cases de ses ponts
+ *  (`provenanceDesNavires`) est coupé au plus bas de leurs sols (`coupes`, en mètres) : son modèle ne montre rien de cette
+ *  hauteur et au-dessus, et le volume rien des cases de ses ponts aux couches au-dessus du groupe dont le sol y est. */
+function retraitDuRegard(scene: Scene, allies: readonly Pt[], regard: Regard): RetraitDuRegard {
+  const activeZ = regard === 'plateau' ? coucheDuGroupe(allies) : undefined;
+  const couvercle = regard === 'tactique' ? clearedSpace(scene, allies).overheadCells : new Set<string>();
+  const ponts = [...provenanceDesNavires(scene).cases].map(([cle, navire]) => {
+    const [x, y, z] = cle.split(',').map(Number);
+    return { cle, navire, z, sol: heightAt(scene, x, y, z) };
+  });
+  const coupes: Record<string, number> = {};
+  for (const { cle, navire, z, sol } of ponts)
+    if ((activeZ !== undefined && z > activeZ) || couvercle.has(cle)) coupes[navire] = Math.min(coupes[navire] ?? Infinity, sol);
+  const sousLaCoupe = ponts.filter(({ navire, z, sol }) => z > coucheDuGroupe(allies) && sol >= (coupes[navire] ?? Infinity)).map(({ cle }) => cle);
+  return { ...(activeZ !== undefined ? { activeZ } : {}), couvercle: new Set([...couvercle, ...sousLaCoupe]), coupes };
 }
 
 /** Le volume du monde de `scene` (`volumeDuMonde`) sous le regard `regard`, sans ce qu'il retire pour le groupe posé
@@ -124,12 +143,12 @@ export function volumeDuRegard(scene: Scene, allies: readonly Pt[], regard: Rega
  *  couches hors des ponts de ses navires (`aretesHorsDesNavires`, `areteDessinee`), son échelle métrique (`sceneMetresPerTile`), la hauteur de l'œil au-dessus du sol
  *  (`EYE_H`), le regard et celui qui le suit dans `REGARDS`, la clé du volume que le regard demande (`cleDuMonde`, qui change quand `volumeDuRegard` ou `meteoDuRegard` changent, décors posés ou retirés en jeu compris : `empreinteDesDecors`), ce que
  *  le regard retire pour le groupe posé sur `allies` : les nappes de toit (`toitsLeves` : en tactique, celles qu'il
- *  dégage ; au plateau, toutes) et les arêtes (`aretesDegagees` : en tactique, celles qu'il dégage ; au plateau,
- *  celles des couches au-dessus de la sienne, sous tout cran) ; et les couronnes crénelées tombées
- *  (`couronnesAbattues`). */
-export function plateauDeLaScene(scene: Scene, allies: readonly Pt[], regard: Regard): { w: number; h: number; metresParCase: number; oeilM: number; regard: Regard; regardSuivant: Regard; cleDuMonde: string; aretes: AreteDessinee[]; aretesDegagees: AreteDegagee[]; toitsLeves: string[]; couronnesAbattues: string[] } {
+ *  dégage ; au plateau, toutes), les arêtes (`aretesDegagees` : en tactique, celles qu'il dégage ; au plateau,
+ *  celles des couches au-dessus de la sienne, sous tout cran) et le haut des navires (`coupesDesNavires`, la hauteur de
+ *  la coupe de chacun, `retraitDuRegard`) ; et les couronnes crénelées tombées (`couronnesAbattues`). */
+export function plateauDeLaScene(scene: Scene, allies: readonly Pt[], regard: Regard): { w: number; h: number; metresParCase: number; oeilM: number; regard: Regard; regardSuivant: Regard; cleDuMonde: string; aretes: AreteDessinee[]; aretesDegagees: AreteDegagee[]; toitsLeves: string[]; couronnesAbattues: string[]; coupesDesNavires: Record<string, number> } {
   const { w, h } = scene.dimensions;
-  const { activeZ, couvercle } = retraitDuRegard(scene, allies, regard);
+  const { activeZ, couvercle, coupes } = retraitDuRegard(scene, allies, regard);
   const dessinees = aretesHorsDesNavires(scene);
   const aretesRetirees = (): AreteDegagee[] => {
     if (regard === 'tactique') return aretesDegagees(scene, dessinees, clearedSpace(scene, allies));
@@ -142,5 +161,6 @@ export function plateauDeLaScene(scene: Scene, allies: readonly Pt[], regard: Re
     aretes: dessinees.map((seg) => areteDessinee(scene, seg)), aretesDegagees: aretesRetirees(),
     toitsLeves: regard === 'tactique' ? toitsLeves(scene, allies) : regard === 'plateau' ? toutesLesNappes(scene) : [],
     couronnesAbattues: couronnesAbattues(scene, dessinees),
+    coupesDesNavires: coupes,
   };
 }

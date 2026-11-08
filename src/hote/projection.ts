@@ -6,7 +6,7 @@
  * `scripts/docs/build-hote-texte.mjs`). Chaque champ est une donnée, que chaque hôte met en forme à sa façon.
  */
 import { garanti } from '../lib/garanti';
-import { activeCombatant, offreArmee, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, porteeDuCombattant, vehiculeDuCombattant, porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, fermeturesDeLaFenetre, libelleDeLaFermeture, type Combatant, type EtatDeLaBarre, type GesteDExploration, type GesteDuJeu, type GesteDuNoyau, type Jeu, type JetEnVue, type Offre, type PorteeDeComposition, type Pt, type VehiculeDuCombattant } from '../noyau/index';
+import { activeCombatant, offreArmee, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, porteeDuCombattant, vehiculeDuCombattant, porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, estPoseParSesPonts, fermeturesDeLaFenetre, libelleDeLaFermeture, type Combatant, type EtatDeLaBarre, type GesteDExploration, type GesteDuJeu, type GesteDuNoyau, type Jeu, type JetEnVue, type Offre, type PorteeDeComposition, type Pt, type VehiculeDuCombattant } from '../noyau/index';
 
 /** Un combattant projeté. */
 export interface CombattantProjete {
@@ -118,7 +118,8 @@ export interface Projection {
     heros: CombattantProjete[];
     /** Ce que le groupe peut jouer depuis sa case, chaque geste prêt à jouer (`gestesDExploration`). */
     gestes: { liste: GesteDExploration[]; enPlus: number };
-    /** Les entités de la scène (`scene.entities`) : décors, PNJ, objets. */
+    /** Les entités de la scène (`scene.entities`), chacune à sa case : décors, PNJ, objets ; hors des navires posés par
+     *  leurs ponts (`estPoseParSesPonts`), qui ne tiennent aucune case. */
     entites: { liste: EntiteProjetee[]; enPlus: number };
   };
   refus: { texte: string; nonce: number } | null;
@@ -276,7 +277,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
           cap: capDuGroupe(etat),
           heros: etat.party.map((h) => ({ ...combattant(h, undefined, etat.facing), pos: [etat.partyPos.x, etat.partyPos.y, etat.partyPos.z ?? 0] })),
           gestes: tranche(gestesDExploration(etat), bornes.gestes),
-          entites: tranche(etat.scene.entities.map((e) => ({ id: e.id, genre: e.kind, nom: e.label ?? null, pos: [e.pos.x, e.pos.y, e.z ?? 0] })), bornes.entites),
+          entites: tranche(etat.scene.entities.filter((e) => !estPoseParSesPonts(etat.scene!, e.id)).map((e) => ({ id: e.id, genre: e.kind, nom: e.label ?? null, pos: [e.pos.x, e.pos.y, e.z ?? 0] })), bornes.entites),
         },
     refus: etat.refus,
     journal,
