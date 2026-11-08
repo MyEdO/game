@@ -10607,6 +10607,80 @@
     "family": "chaos"
   },
   {
+    "id": "tremblement",
+    "type": "spells",
+    "label": "Tremblement",
+    "ecole": "Magie du Chaos",
+    "subType": "Tzeentch",
+    "cn": 8,
+    "range": {
+      "kind": "self"
+    },
+    "target": {
+      "kind": "area",
+      "span": "radius",
+      "meters": {
+        "bonusOf": "force-mentale"
+      },
+      "excludesCaster": true
+    },
+    "duration": {
+      "kind": "instant"
+    },
+    "descRef": {
+      "book": "mort-sur-le-reik-compagnon",
+      "ch": "17",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "tremblement",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 2,
+          "sum": "466c3634190eaad1"
+        }
+      ]
+    },
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "test",
+          "test": {
+            "characteristic": "agilite"
+          },
+          "success": {
+            "kind": "seq",
+            "steps": []
+          },
+          "fail": {
+            "kind": "seq",
+            "steps": [
+              {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": "target",
+                  "ops": [
+                    {
+                      "op": "condition",
+                      "id": "a-terre"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 99
+    },
+    "family": "chaos"
+  },
+  {
     "id": "encalmine",
     "type": "spells",
     "label": "Encalminé",

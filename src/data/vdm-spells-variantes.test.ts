@@ -16,6 +16,7 @@ import { setRule, resetRule } from '../engine/policy';
 import { activeVariant } from '../engine/variants';
 import { findSpellById, spells, traits } from './index';
 import { schema as spellsSchema, VARIANT_RESOLVED_FIELDS } from './schemas/defs/spells';
+import { versDisque } from './schemas/grammaire/prose';
 import { castLandProbability } from '../engine/magic';
 import { spellFlowFor } from '../engine/flowCore';
 import { learnableSpells } from '../engine/grimoire';
@@ -57,7 +58,7 @@ describe('donnée — 18 Sorts révisés par VDM, gatés par la RÈGLE (jamais p
   });
 
   it('le schéma accepte la donnée réelle et REFUSE un champ hors liste blanche', () => {
-    expect(spellsSchema.safeParse(spells).success).toBe(true);
+    expect(spellsSchema.safeParse(versDisque(spells)).success).toBe(true);
     const porteur = JSON.parse(JSON.stringify(spells.find((s) => s.id === 'caresse-de-laniph')));
     porteur.variants[0].missile = false; // `missile` n'est pas résolu → le schéma le rejette
     expect(spellsSchema.safeParse([porteur]).success).toBe(false);

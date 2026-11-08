@@ -302,5 +302,13 @@
     "abbr": "EER",
     "language": "VO",
     "folder": "Scénario"
+  },
+  {
+    "id": "guide-frenchy",
+    "type": "books",
+    "label": "Habitants & Créatures du Vieux-Monde",
+    "abbr": "HCVM",
+    "language": "VF",
+    "folder": "Contenu fan"
   }
 ]

@@ -159,6 +159,9 @@ livre VO AUTORISÉ ; la VO de L'Ennemi Intérieur se lit pour comprendre, fiche
 - **Tomes de campagne (règles ponctuelles)** : **${abbr('mort-sur-le-reik')}** (T2 base) — statblocs (\`creatures.json\`) ;
   **${abbr('pouvoir-derriere-le-trone')}** (T3 base) — 1 entrée de compétence (\`skills.json\`). Admis par l'arbitrage 2026-07-10, chaque
   entrée taguée à sa \`source\`.
+- **${abbr('guide-frenchy')}** (${book('guide-frenchy').label}, *Guide fan v4.5* de Frenchy) — **bestiaire d'auteur**,
+  sans extraction dans \`Source/\` : **profils de créatures seulement** (\`creatures.json\`, chaque statbloc cité
+  par page), ni ses règles maison ni ses sorts propres (#3656, fiche \`user-arbitrage-bestiaire-frenchy\`).
 - \`src/data/*.json\` est la **SOURCE app-owned** (commitée, éditée dans le Compendium) ; tout contenu
   s'ajoute à la main / via l'éditeur.
   EDO/EDOC/Middenheim sont AUSSI des livres de scénario (cf. ci-dessous) ; seule leur **donnée extraite**

@@ -494,6 +494,15 @@
           "page": 36,
           "note": "ADE II 02 l.919"
         }
+      },
+      {
+        "id": "plaine",
+        "label": "Plaine",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 184
+        },
+        "pool": false
       }
     ],
     "rand": null,
@@ -4490,6 +4499,15 @@
       {
         "id": "voies-fluviales",
         "label": "Voies fluviales"
+      },
+      {
+        "id": "local",
+        "label": "Local",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 125
+        },
+        "pool": false
       }
     ],
     "rand": null,
@@ -4645,6 +4663,15 @@
           "book": "mer-des-griffes",
           "page": 56,
           "note": "MDG 07 l.250"
+        },
+        "pool": false
+      },
+      {
+        "id": "skavens",
+        "label": "Skavens",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 339
         },
         "pool": false
       }
