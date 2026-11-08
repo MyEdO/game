@@ -6,6 +6,7 @@
  *  - `excludesCaster: true` l'exclut de la ZdE (Vents de Magie 11 l.418 « Ce Sort ne vous affecte pas »,
  *    Vents de Magie 07 l.422 « hormis vous »).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { castCommitZone } from './combatFlow';
@@ -20,7 +21,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const okCast = (): CastResult => ({ cast: true, roll: 11, target: 80, sl: 4, isCritical: false, isFumble: false, log: 'lancé' });
 
 function caster(x: number, y: number, spellId: string, id = 'caster'): Combatant {
-  const h = pregen(PREGEN.sorcier);
+  const h = pregen(idsDeTest, PREGEN.sorcier);
   h.id = id; h.label = id; h.pos = { x, y, z: 0 };
   h.wounds = blessuresDeBase(99, 99, h);
   const sk = h.skills.find((s) => s.id === 'langue');
@@ -76,7 +77,7 @@ describe("castCommitZone — le lanceur dans sa propre Zone d'Effet", () => {
     const a = ally('ALLIE', 6, 5);
     setupBattle(c, [a, distantFoe()], 'regiment-monstrueux-de-merciw', false);
     castCommitZone(banc.getState, banc.setState, { x: 5, y: 5 });
-    expect(combatant('caster').activeEffects?.some((e) => e.char === 'force')).not.toBe(true);
-    expect(combatant('ALLIE').activeEffects?.some((e) => e.char === 'force')).toBe(true);
+    expect(combatant('caster').activeEffects?.some((e) => e.characteristic === 'force')).not.toBe(true);
+    expect(combatant('ALLIE').activeEffects?.some((e) => e.characteristic === 'force')).toBe(true);
   });
 });

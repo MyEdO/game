@@ -8,6 +8,7 @@
  * Ce que ce fichier verrouille, et qui n'existe nulle part ailleurs : aucune fenêtre neuve, aucune
  * classe CSS neuve, et la POSE d'un dé nu gatée exactement comme celle d'une table.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
@@ -164,7 +165,7 @@ describe('Dé à SEUIL en fenêtre (#1508) — la rangée dit ce qu’on joue AV
 
   /** Ouvre la sauvegarde d'un héros NOMMÉ, telle que la porte la pousse (`combatFlow.pousserSauvegarde`). */
   function openSauvegarde() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: NOM, seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: NOM, seed: 1 });
     useGame.setState({
       battle: null, party: [hero], suspendedCascades: [], journal: [], pendingCascade: null,
       net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,

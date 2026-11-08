@@ -426,7 +426,7 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
     // Test OPPOSÉ sans difficulté propre (Piège-lame, `combatFlow`).
     `const flow = testFlow({ characteristic: 'force', label: 'Piège-lame', opposed: { attacker: 'force', attackerLabel: 'Force', bonusSL: pbt.defSL } }, gagne, EMPTY_FLOW);`,
     // Difficulté portée par une EXPRESSION (Escalade, `climbMove`).
-    `flow: testFlow({ skill: 'Escalade', difficulty: c.difficulty ?? 'intermediaire', label: 'Escalade' }, EMPTY_FLOW, chute),`,
+    `flow: testFlow({ skill: 'Escalade', difficulty: c.difficulty ?? DIFFICULTE_PAR_DEFAUT, label: 'Escalade' }, EMPTY_FLOW, chute),`,
     // Descripteur multi-lignes avec opposition (Surprise d'embuscade, `combatFlow`).
     `const flow = testFlow(\n  { skill: 'perception', difficulty: 'intermediaire', label: 'Surprise',\n    opposed: { attacker: 'agilite', attackerSkill: 'discretion' } },\n  EMPTY_FLOW,\n  onLose,\n);`,
   ];

@@ -4,6 +4,7 @@
  * Portée couverte ICI : le maniement d'armes (`attackModifiers`, Corps à corps/Projectiles). Le lot données
  * pose `sizeFor` sur le catalogue ogre ; les Tests hors combat (compétences/UI) restent hors périmètre.
  */
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { attackModifiers, freeAttackWeapon } from './combat';
 import { itemFromTrappingById } from './items';
@@ -37,7 +38,7 @@ describe('sizeFor — pénalité de Taille (ADE II 2 l.710)', () => {
     expect(ligneDe(mods, PAS_A_SA_TAILLE)?.value).toBe(-20);
   });
   it("catalogue ogre réel (`massue-ogre`) : un ogre la manie SANS −20, une créature Moyenne SUBIT −20 (ADE II 2 l.604 : « pratiquement inutilisables entre les mains des créatures de Taille Moyenne »)", () => {
-    const massue = itemFromTrappingById('massue-ogre')! as unknown as Weapon;
+    const massue = itemFromTrappingById('massue-ogre', idsDeTest)! as unknown as Weapon;
     expect(ligneDe(attackModifiers(attacker('grande'), null, massue, { kind: 'melee' }), PAS_A_SA_TAILLE)).toBeUndefined();
     expect(ligneDe(attackModifiers(attacker('moyenne'), null, massue, { kind: 'melee' }), PAS_A_SA_TAILLE)?.value).toBe(-20);
   });
@@ -73,7 +74,7 @@ describe('sizeFor — pénalité de Taille (ADE II 2 l.710)', () => {
   });
 
   it("l'ogre avec une épée du CATALOGUE (sans `sizeFor`) garde son −20 (objet manufacturé, pas une arme naturelle/sizeless)", () => {
-    const epee = itemFromTrappingById('dague')! as unknown as Weapon;
+    const epee = itemFromTrappingById('dague', idsDeTest)! as unknown as Weapon;
     expect(epee.natural).toBeUndefined();
     expect(epee.sizeless).toBeUndefined();
     const mods = attackModifiers(attacker('grande'), null, epee, { kind: 'melee' });

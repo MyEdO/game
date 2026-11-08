@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { scenario } from '../../scenes/test-scenarios/42-belier-porte';
@@ -14,7 +15,7 @@ import { chebyshev } from '../../engine/grid';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /**
  * BÉLIER — PORTE : consommateur LIVE du modèle ENGIN DE SIÈGE CREWÉ (poste `ShipPoste`, ADE II 8
@@ -26,7 +27,7 @@ const scenarioConstruit = scenario.construire();
  * (ADE II 8 l.258, Lot 2 #156) : mouvement simple plafonné, formation rigide, seuil de pousseurs.
  */
 function startBelier(): { soldat: Combatant; crew: Combatant[]; ram: Combatant; porte: Combatant } {
-  banc.setState({ party: scenario.construire().party });
+  banc.setState({ party: scenario.construire(idsDeTest).party });
   banc.getState().lancerLaScene(scenarioConstruit.scene);
   banc.getState().lancerLeCombat('siege-belier');
   banc.getState().fenetreValider('roundStart');
@@ -156,8 +157,9 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     }
     // La case juste au nord (vers la porte) EST une destination proposée.
     expect(reach.has(`${start.x},${start.y - 1}`)).toBe(true);
-    // Toggle (parité cast/heal) : re-cliquer « Pousser » ferme le mode sans consommer l'Action.
-    banc.getState().pousserLEngin();
+    // Toggle (parité cast/heal) : re-cliquer la case « Pousser » (son geste armé, `desarmerLeMode`) ferme le mode sans
+    // consommer l'Action.
+    banc.jouerLaCase('push-engine');
     expect(banc.getState().battle!.action).toBeNull();
     expect(banc.getState().battle!.reachable.size).toBe(0);
     expect(banc.getState().battle!.acted).toBe(false);

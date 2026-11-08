@@ -12,6 +12,7 @@
  *     désignent le MÊME siège ;
  *  6. SOLO bit-à-bit, en combat ET hors combat : le joueur unique garde TOUTES ses dépenses.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet, type BattleState } from './etat';
@@ -97,7 +98,7 @@ describe('#1015 — sonde 2 : `heal` par un SOIGNEUR PNJ (hors `actorIn`)', () =
     // roule sur une valeur BAKÉE (`p.skillValue`, drapeau `actorless`, rollFlowSpecs.ts:349-350 :
     // « L'INFLUENCE (Chance/Résilience) reste gérée à part par la fabrique via `spec.actor` (no-op si
     // l'acteur est un PNJ). »).
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Blessé', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Blessé', seed: 1 });
     hero.id = 'b';
     hero.wounds = { ...hero.wounds, current: hero.wounds.max - 5 };
     banc.setState({ battle: null, mode: 'exploration', scene: testScene(), party: [hero], net: NET_COOP });
@@ -143,7 +144,7 @@ describe('#1015 — sonde 4 : `disengage`, Test OPPOSÉ — le porteur est le MO
 
 describe('#1015 — sonde 5 : `activity` (hors combat) — accord avec la route `interlude*`', () => {
   it('le propriétaire du héros joue son Activité, et les deux routes d’`intentAllowedFor` concordent', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'charlatan', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'charlatan', label: 'H', seed: 1 });
     hero.id = 'b';
     banc.setState({ party: [hero], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, net: NET_COOP });
     g().lancerLaScene(testScene());
@@ -169,7 +170,7 @@ describe('#1015 — sonde 6 : SOLO bit-à-bit', () => {
   });
 
   it('HORS COMBAT (Activité d’interlude) : idem', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'charlatan', label: 'H', seed: 2 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'charlatan', label: 'H', seed: 2 });
     hero.id = 'a';
     banc.setState({ party: [hero], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, net: NET_SOLO });
     g().lancerLaScene(testScene());

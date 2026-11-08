@@ -4,7 +4,10 @@
 ## `modeles`, ou `clipsDeuxMains` sous son maniement tant qu'il tient un objet des deux mains, `MontageDeComposition.clip`) ;
 ## son nom et ses Points de Blessures (`pb`) en étiquette au-dessus de sa tête, l'anneau de l'actif. Il glisse vers sa nouvelle case,
 ## frappe vers une cible, accuse le coup qui le vise et tombe hors de combat. Sans corps, il garde son anneau et son
-## étiquette, à la hauteur du nom d'une entité (`MiseEnPage.HAUTEUR_DU_NOM`).
+## étiquette, à la hauteur du nom d'une entité (`MiseEnPage.HAUTEUR_DU_NOM`). Véhicule ou engin (`vue.corps.vehicules[id]`,
+## #2987), le GLB de son élément se pose sous `Vehicule`, sur ses N×N cases, à sa taille réelle ou les remplissant (`poser_sur_l_empreinte`), les pièces de ses
+## postes montées à leur bord (`monter_au_poste`), celles de ses Améliorations à leur place (`monter_l_amelioration`), les
+## nœuds que changent ses Améliorations cachés (`cacher_selon`), le tout tourné vers son cap (`tourner_au_cap`).
 class_name Combattant
 extends Node3D
 
@@ -24,6 +27,7 @@ const MORT := "death"
 @onready var _montage: MontageDeComposition = $Modele
 @onready var _selection: MeshInstance3D = $Selection
 @onready var _etiquette: Label3D = $Etiquette
+@onready var _vehicule: Node3D = $Vehicule
 
 ## L'id du combattant (`c.id`).
 var _id := ""
@@ -38,6 +42,15 @@ var _base_demandee: Variant = null
 var _chargement: RefCounted = null
 ## La hauteur, dans son repère, du plus haut point d'accroche de sa base au repos, sans gabarit.
 var _hauteur_de_tete := 0.0
+## Le dernier véhicule reçu, en JSON, l'id de l'élément posé sous `Vehicule` (`null` : aucun), les ids des éléments montés
+## à ses postes et de ceux de ses Améliorations, et son chargement retenu.
+var _vehicule_recu := ""
+var _element_du_vehicule: Variant = null
+## L'id de l'emblème posé sur les surfaces `blason` de l'élément de son véhicule (`null` : aucun).
+var _embleme_du_vehicule: Variant = null
+var _postes_montes: Array[String] = []
+var _ameliorations_montees: Array[String] = []
+var _chargement_du_vehicule: RefCounted = null
 
 
 func _ready() -> void:
@@ -45,8 +58,8 @@ func _ready() -> void:
 
 
 ## `c` : un combattant projeté (`voisins`) ; `lieu` : le centre de sa case ; `corps` : son corps (`null` : aucun) ;
-## `metres_par_case` : l'échelle du plateau (`vue.plateau.metresParCase`).
-func montrer(c: Dictionary, lieu: Vector3, actif: bool, corps: Variant, metres_par_case: float) -> void:
+## `vehicule` : son véhicule (`null` : aucun) ; `metres_par_case` : l'échelle du plateau (`vue.plateau.metresParCase`).
+func montrer(c: Dictionary, lieu: Vector3, actif: bool, corps: Variant, vehicule: Variant, metres_par_case: float) -> void:
 	_id = c.id
 	var echelle := MiseEnPage.echelle_metrique(metres_par_case)
 	_montage.scale = Vector3(echelle, echelle, echelle)
@@ -59,12 +72,86 @@ func montrer(c: Dictionary, lieu: Vector3, actif: bool, corps: Variant, metres_p
 	if not lieu.is_equal_approx(position):
 		_aller(lieu)
 	_vetir(corps)
+	_equiper(vehicule, metres_par_case)
 
 
 ## Ce que son corps porte, lu de son montage : l'id de sa base posée (`null` sans corps), chaque élément monté, par
-## emplacement l'emblème posé, et par emplacement les couleurs posées (`MontageDeComposition.couleurs_posees`).
+## emplacement l'emblème posé, par emplacement les couleurs posées (`MontageDeComposition.couleurs_posees`), l'id de
+## l'élément de son véhicule posé (`null` : aucun), l'emblème posé sur ses voiles et pavillons (`null` : aucun), ceux des
+## éléments montés à ses postes et ceux de ses Améliorations.
 func corps() -> Dictionary:
-	return {base = null if _montage.modele == null else _montage.base.id, elements = _montage.montes.values(), emblemes = _montage.emblemes.duplicate(), couleurs = _montage.couleurs_posees()}
+	return {base = null if _montage.modele == null else _montage.base.id, elements = _montage.montes.values(), emblemes = _montage.emblemes.duplicate(), couleurs = _montage.couleurs_posees(), vehicule = _element_du_vehicule, embleme_du_vehicule = _embleme_du_vehicule, postes = _postes_montes.duplicate(), ameliorations = _ameliorations_montees.duplicate()}
+
+
+## La scène `scene` d'un véhicule, dans l'arbre sous un nœud à la case de son combattant, posée sur ses `empreinte` ×
+## `empreinte` cases, depuis cette case, son coin nord-ouest (`footprintTiles`, #2987), à l'échelle `echelle`, ou, nulle,
+## sa plus grande dimension horizontale valant l'empreinte (`MiseEnPage.echelle_d_empreinte`) : sa boîte centrée sur
+## elle (`MiseEnPage.origine_sur_l_empreinte`), son origine au sol.
+static func poser_sur_l_empreinte(scene: Node3D, empreinte: int, echelle_posee: Variant) -> void:
+	var boite: AABB = _boite(scene, scene.get_parent_node_3d())
+	var echelle: float = MiseEnPage.echelle_d_empreinte(boite.size, empreinte) if echelle_posee == null else echelle_posee
+	scene.transform = scene.transform.scaled(Vector3(echelle, echelle, echelle)).translated(MiseEnPage.origine_sur_l_empreinte(boite.get_center(), echelle, empreinte))
+
+
+## La boîte des meshes sous `noeud`, dans le repère de `dans`, son ancêtre : celle des huit coins de chacun
+## (`AABB.expand`) ; `null` sans mesh.
+static func _boite(noeud: Node, dans: Node3D) -> Variant:
+	var boite: Variant = null
+	if noeud is MeshInstance3D and (noeud as MeshInstance3D).mesh != null:
+		var piece := noeud as MeshInstance3D
+		var locale := piece.get_aabb()
+		for coin in range(8):
+			var point := dans.to_local(piece.to_global(locale.get_endpoint(coin)))
+			boite = AABB(point, Vector3.ZERO) if boite == null else (boite as AABB).expand(point)
+	for enfant in noeud.get_children():
+		var sous: Variant = _boite(enfant, dans)
+		if sous != null:
+			boite = sous if boite == null else (boite as AABB).merge(sous)
+	return boite
+
+
+## Les meshes de la scène `scene` de l'élément `element` habillés de `palette` et de l'emblème `texture` (`null` :
+## aucun) (`MontageDeComposition.peindre`, les `surfaces` de l'élément) ; rend si l'emblème est posé sur une surface.
+static func peindre_l_element(scene: Node3D, element: String, palette: Dictionary, texture: ImageTexture) -> bool:
+	return MontageDeComposition.peindre(scene.find_children("*", "MeshInstance3D", true, false), MontageDeComposition.modeles.surfaces[element], texture, palette)
+
+
+## La scène `piece` d'une pièce montée sous la scène `scene` de son véhicule, au poste `poste` (`postes` de
+## `vue.corps.vehicules[id]`) : à sa `position` dans le repère du véhicule, dont elle prend l'échelle, tournée vers son
+## `bord` (`MiseEnPage.LACETS_DES_BORDS`).
+static func monter_au_poste(scene: Node3D, piece: Node3D, poste: Dictionary) -> void:
+	scene.add_child(piece)
+	var lieu: Array = poste.position
+	piece.transform = Transform3D(Basis(Vector3.UP, MiseEnPage.LACETS_DES_BORDS[poste.bord]), Vector3(lieu[0], lieu[1], lieu[2]))
+
+
+## La scène `piece` d'une pièce d'Amélioration montée sous la scène `scene` de son véhicule (`ameliorations` de
+## `vue.corps.vehicules[id]`) : à sa `position` dans le repère du véhicule, dont elle prend l'échelle ; montée à un poste,
+## tournée vers son `bord` comme une pièce de ce poste (`monter_au_poste`), son nœud `montre` visible, `cache` caché.
+static func monter_l_amelioration(scene: Node3D, piece: Node3D, montee: Dictionary) -> void:
+	if not montee.has("poste"):
+		scene.add_child(piece)
+		var lieu: Array = montee.position
+		piece.position = Vector3(lieu[0], lieu[1], lieu[2])
+		return
+	monter_au_poste(scene, piece, {position = montee.position, bord = montee.poste.bord})
+	piece.find_child(montee.poste.montre, true, false).visible = true
+	piece.find_child(montee.poste.cache, true, false).visible = false
+
+
+## Les nœuds de la scène `scene` d'un véhicule, pièces montées comprises, dont le nom est l'un de `caches` (`caches` de
+## `vue.corps.vehicules[id]`), cachés.
+static func cacher_selon(scene: Node3D, caches: Array) -> void:
+	for nom: String in caches:
+		for noeud in scene.find_children(nom, "Node3D", true, false):
+			(noeud as Node3D).visible = false
+
+
+## La scène `scene` d'un véhicule posée sur ses `empreinte` × `empreinte` cases (`poser_sur_l_empreinte`), tournée autour
+## du milieu de son empreinte pour que sa proue, le +Z de son repère, regarde le cap `cap` (`Dir8`).
+static func tourner_au_cap(scene: Node3D, cap: String, empreinte: int) -> void:
+	var milieu := MiseEnPage.milieu_de_l_empreinte(empreinte)
+	scene.transform = scene.transform.translated(-milieu).rotated(Vector3.UP, MiseEnPage.lacet_de_proue(MiseEnPage.LACETS_DES_CAPS[cap])).translated(milieu)
 
 
 ## Tourné vers `cible` (une position du plateau), il frappe.
@@ -120,6 +207,68 @@ func _vetir(corps: Variant) -> void:
 		_montage.gabarit.mesure.connect(_hausser_l_etiquette)
 		_poser_l_etiquette()
 	_composer()
+
+
+## Le véhicule `vehicule`, s'il a changé : aucun, la scène posée sous `Vehicule` est retirée ; sinon le GLB de son
+## élément est tiré de `modeles/`, peint de sa `palette` et de son `embleme` (`peindre_l_element`, un emblème qu'aucune
+## surface ne reçoit donne `blason-sans-surface`) et posé sur son empreinte
+## (`poser_sur_l_empreinte`), à l'échelle métrique du plateau de `metres_par_case` s'il a sa `taille` réelle, à la place
+## de la précédente, le GLB de chacune de ses pièces peint de la sienne et monté à son
+## poste (`monter_au_poste`), le GLB de chacune de ses Améliorations peint de la palette du véhicule et monté à sa place
+## (`monter_l_amelioration`), les nœuds que changent ses Améliorations cachés (`cacher_selon`), puis le tout tourné vers
+## son cap (`tourner_au_cap`). Chacun est peint avant d'être monté :
+## une pièce n'est pas habillée des surfaces du véhicule.
+func _equiper(vehicule: Variant, metres_par_case: float) -> void:
+	var recu := JSON.stringify(vehicule)
+	if recu == _vehicule_recu:
+		return
+	_vehicule_recu = recu
+	var chargement := RefCounted.new()
+	_chargement_du_vehicule = chargement
+	var scene: Node3D = null if vehicule == null else await _montage.scene_du_glb(vehicule.element, _montage.erreurs)
+	var pieces: Array[Node3D] = []
+	var ameliorations: Array[Node3D] = []
+	if scene != null:
+		for poste in vehicule.postes:
+			pieces.append(await _montage.scene_du_glb(poste.element, _montage.erreurs))
+		for montee in vehicule.ameliorations:
+			ameliorations.append(await _montage.scene_du_glb(montee.element, _montage.erreurs))
+	if chargement != _chargement_du_vehicule:
+		for lot in [pieces, ameliorations]:
+			for piece in lot:
+				if piece != null:
+					piece.free()
+		if scene != null:
+			scene.free()
+		return
+	for ancienne in _vehicule.get_children():
+		ancienne.queue_free()
+	_element_du_vehicule = null
+	_embleme_du_vehicule = null
+	_postes_montes.clear()
+	_ameliorations_montees.clear()
+	if scene != null:
+		var texture: ImageTexture = _montage.texture_de_l_embleme(vehicule.embleme.id) if vehicule.has("embleme") else null
+		if peindre_l_element(scene, vehicule.element, vehicule.palette, texture):
+			_embleme_du_vehicule = vehicule.embleme.id
+		elif texture != null:
+			_montage.erreurs.append("blason-sans-surface : %s" % vehicule.element)
+		_vehicule.add_child(scene)
+		poser_sur_l_empreinte(scene, int(vehicule.empreinte), MiseEnPage.echelle_metrique(metres_par_case) if vehicule.taille == "reelle" else null)
+		for i in pieces.size():
+			if pieces[i] != null:
+				peindre_l_element(pieces[i], vehicule.postes[i].element, vehicule.postes[i].palette, null)
+				monter_au_poste(scene, pieces[i], vehicule.postes[i])
+				_postes_montes.append(vehicule.postes[i].element)
+		for i in ameliorations.size():
+			if ameliorations[i] != null:
+				peindre_l_element(ameliorations[i], vehicule.ameliorations[i].element, vehicule.palette, null)
+				monter_l_amelioration(scene, ameliorations[i], vehicule.ameliorations[i])
+				_ameliorations_montees.append(vehicule.ameliorations[i].element)
+		cacher_selon(scene, vehicule.caches)
+		tourner_au_cap(scene, vehicule.cap, int(vehicule.empreinte))
+		_element_du_vehicule = vehicule.element
+	_signaler()
 
 
 ## La base `id` de la réponse de `modeles` retenue.

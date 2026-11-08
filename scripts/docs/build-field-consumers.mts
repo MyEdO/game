@@ -3,8 +3,7 @@
  * Re-run : `npx tsx scripts/docs/build-field-consumers.mts` (`npm run docs:field-consumers`).
  * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
- * Objet (#903) — la mesure INVERSE de `build-entity-orphans.mjs` : celui-ci répond « qui cite cet
- * ID d'ENTITÉ de catalogue ? », celui-ci répond « qui LIT ce CHAMP d'un TYPE de donnée structuré ? ».
+ * Objet (#903) — « qui LIT ce CHAMP d'un TYPE de donnée structuré ? ».
  * Question fondatrice : « qui lit le champ `spec` sur une référence de dotation (`TrappingRef`) ? » —
  * affirmé « personne » sur une recherche trop étroite, sans surface pour le vérifier (cf.
  * `scripts/guards/lib/groundingCorpus.mjs`, cas `dotation-spec-consommateurs`).
@@ -193,8 +192,7 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR), 
   let out = `# Consommateurs par champ — GÉNÉRÉ\n\n`
   out += `> ⚠️ Fichier GÉNÉRÉ par \`npx tsx scripts/docs/build-field-consumers.mts\` (\`npm run docs:field-consumers\`) — NE PAS ÉDITER À LA MAIN.\n`
   out += `> Pour chaque type de donnée NOMMÉ — entrée de catalogue ou forme de grammaire —, qui LIT chaque champ (accès/déstructuration résolus au\n`
-  out += `> \`TypeChecker\`, cf. \`scripts/guards/lib/fieldConsumers.mjs\`). Complète\n`
-  out += `> \`docs/orphelines-donnees.md\` (consommateurs d'ENTITÉ) — ici, consommateurs de CHAMP.\n\n`
+  out += `> \`TypeChecker\`, cf. \`scripts/guards/lib/fieldConsumers.mjs\`).\n\n`
   out += `## Périmètre mesuré / angles morts\n\n`
   out += `Le cliquet des déclarations de datasets est distinct du relevé par type nommé ci-dessous. `
   out += `\`mesurerChampsDeSchema\` (\`scripts/guards/lib/schemaFieldConsumers.mjs\`) descend les schémas `

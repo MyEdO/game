@@ -24,11 +24,13 @@
  * d'enjeux à `rule`/`entryId` authorés, où il est mesuré ailleurs (`data/stake-rule-ratchet.test.ts`,
  * volet « aucun renvoi MORT »). La mutation qui MORD ici est la dérivation débranchée, pas le renommage.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { simpleTriggeredTestStep, withDerivedStake } from './combat/triggeredTest';
+import { combatConditionCtx } from './combat/flowEval';
 import { effectSourcesOf } from './triggeredEffects';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW } from '../engine/flowCore';
@@ -210,8 +212,10 @@ describe('#1262 V2 L6d — TOUT `FlowTest` de la donnée dit ce qui se joue', ()
     for (const n of noeuds) {
       const kind = KIND_PAR_FICHIER[n.fichier];
       if (!kind) continue; // dit par le test précédent
-      const ft = withDerivedStake(n.ft, { kind, id: n.entryId });
-      const step = simpleTriggeredTestStep(hero(), ft, BRANCHES, EMPTY_FLOW, 'intermediaire');
+      // L'enjeu se mesure sur chaque nœud : la porte (`gate`, Groupes) se juge à `resoudreFlowTest`.
+      const { gate: _gate, onlyGroups: _seuls, exceptGroups: _sauf, ...ouvert } = n.ft;
+      const ft = withDerivedStake(ouvert, { kind, id: n.entryId });
+      const step = simpleTriggeredTestStep(hero(), ft, combatConditionCtx(hero(), {}), BRANCHES, EMPTY_FLOW);
       if (!step?.stake) { muets.push(`${n.fichier}:${n.entryId} — étape sans enjeu`); continue; }
       const resolu = resolveStake(step.stake);
       const label = findById(CATEGORY_BY_SOURCE_KIND[kind], n.entryId)?.label;
@@ -323,7 +327,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
 
   it('effet FONDU par un sort : l’enjeu nomme le SORT (jamais l’épée qui le porte)', () => {
     const c = porteur();
-    applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { rng: desDuTest, label: 'Morsure de l’hiver', source: { kind: 'spell', id: 'morsure-de-l-hiver' }, defaultDurationRounds: 4 });
+    applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Morsure de l’hiver', source: { kind: 'spell', id: 'morsure-de-l-hiver' }, defaultDurationRounds: 4 });
     const src = effectSourcesOf(c, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!;
     const eff = src.effects[0];
     expect(eff.source, 'la provenance du sort est perdue en route').toEqual({ kind: 'spell', id: 'morsure-de-l-hiver' });
@@ -336,7 +340,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
 
   it('effet FONDU par un POISON bu : l’enjeu nomme le poison (même règle, autre nature de source)', () => {
     const c = porteur();
-    applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { rng: desDuTest, label: 'Lotus noir', source: { kind: 'trapping', id: 'lotus-noir' }, defaultDurationRounds: 4 });
+    applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Lotus noir', source: { kind: 'trapping', id: 'lotus-noir' }, defaultDurationRounds: 4 });
     const eff = effectSourcesOf(c, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!.effects[0];
     const texte = resolveStake(withDerivedStake({ skill: { id: 'resistance' }}, eff.source).stake!).text!;
     expect(texte).toContain(findById('trappings', 'lotus-noir')!.label);
@@ -356,7 +360,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
    *  rabat pas sur l'arme. C'est la règle du lot : se taire plutôt que mentir. */
   it('effet fondu SANS provenance : la dérivation se tait plutôt que de nommer l’arme', () => {
     const c = porteur();
-    applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { rng: desDuTest, label: 'Enchantement anonyme', defaultDurationRounds: 4 });
+    applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Enchantement anonyme', defaultDurationRounds: 4 });
     const eff = effectSourcesOf(c, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!.effects[0];
     // Le dispatcher tague au porteur ce qui n'a pas de source : ici l'arme est SANS id de catalogue
     // (arme forgée pour la sonde) → aucune fiche à nommer, la dérivation rend `undefined`.

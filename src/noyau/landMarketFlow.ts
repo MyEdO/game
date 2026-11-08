@@ -40,7 +40,7 @@ import { type CargoLot, type CargoCarrier, findCargoById, loadCargo, carrierCanL
 import { findLieuServiceById, combatStakeRef } from '../data/index';
 import { bulkCarriers, lotDeCargaison, persistCarriersCargo, planDuTransfertDemande, type CarrierStateSlice } from './carriers';
 import type { IdDeCargaison, IdDePorteurDeCargaison } from './designations';
-import { newUid } from '../engine/items';
+
 import { refuserGeste } from './refusVisible';
 import type { Jeu } from './etat';
 import { appraiseRefus, APPRAISE_SKILL, remiseMaximaleDeMarchandage } from './merchantFlow';
@@ -131,7 +131,7 @@ function genererHalle(get: Get, set: Set, rng: RNG, phase: (label: string) => vo
   // surchargé PAR LIEU par le profil de marché — la halle a un visage et une voix comme le marchand.
   const marcheDef = findLieuServiceById('marche');
   const hostLine = market.hostLine ?? marcheDef?.hostLine;
-  const backdrop = market.backdrop ?? marcheDef?.backdrop;
+  const backdrop = (market.backdrop ?? marcheDef?.backdrop)?.id;
   set({ landMarket: { placeId: cur.placeId, label: cur.label, market: structuredClone(market), offers, hostLine, backdrop } }); // #2097
 }
 
@@ -213,7 +213,7 @@ export function deplacerLaCargaison(get: Get, set: Set, lotId: IdDeCargaison, to
   const plan = planDuTransfertDemande(bulkCarriers(get()), lotId, toId, enc);
   if (plan.refus !== null) { refuserGeste(get, set, plan.refus); return; }
   const { from, to, lot } = plan;
-  const res = transferCargo(from, to, lotId, plan.enc);
+  const res = transferCargo(from, to, lotId, plan.enc, get().forgerUnId);
   set(persistCarriersCargo(get(), [{ carrierId: from.id, cargo: res.from.cargo }, { carrierId: to.id, cargo: res.to.cargo }]));
   const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
   log(get, set, [t('lm.transfert', { enc: res.moved, label, de: from.label, vers: to.label })]);
@@ -315,7 +315,7 @@ export function acheterALaHalle(get: Get, set: Set, porteurId: IdDePorteurDeCarg
   const price = prixDuLotDeCargaison(want, offer.basePrice, partial, pct);
   const cost = toMoney({ gold: price });
   if (!canAfford(partyMoneyTotal(get), cost)) { refuserGeste(get, set, t('cargo.purseShort', { price, label: offer.label, bargain: bargainLine })); return; }
-  const lot: CargoLot = { uid: newUid(), cargoId, enc: want, basePriceGold: offer.basePrice };
+  const lot: CargoLot = { uid: get().forgerUnId('it'), cargoId, enc: want, basePriceGold: offer.basePrice };
   const { carrier: loaded } = loadCargo(carrier, lot);
   // Cargaison de GROUPE (l.129-131) : débit sans bénéficiaire unique → cotisation gloutonne des bourses.
   payFromGroup(get, set, cost, { purpose: 'cargaison terrestre' });

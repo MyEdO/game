@@ -5,6 +5,7 @@
  *  - `enfant-d-ulric` (forme hybride, bête prête, SANS Métamorphose) → ne se re-transforme jamais
  *    (pas de double-application des deltas).
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { chooseEnemyAction, type EnemyTurnInput } from '../../noyau/monde/ai';
 import { creatureToCombatant } from '../../noyau/monde/spawn';
@@ -13,7 +14,7 @@ import { findCreatureById } from '../../data';
 import { scenario } from './17-metamorphose-ulric';
 import type { Combatant } from '../../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 const scene = emptyScene('scene-test', 16, 16);
 const hero = (): Combatant => (blessuresSurLeProfil({

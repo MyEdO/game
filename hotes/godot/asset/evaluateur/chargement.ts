@@ -8,7 +8,7 @@
  */
 import { PropertyBinding, type AnimationClip, type Bone, type Mesh, type Object3D, type Skeleton, type SkinnedMesh } from 'three';
 import { GLTFLoader, type GLTFReference } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { estObjet } from '../../../../src/hote/formes';
+import { estObjet } from '../../../../src/lib/objet.mjs';
 import { ecrireGlb, lireConteneur, type DocumentGltf } from '../glb.ts';
 
 export interface SceneChargee {

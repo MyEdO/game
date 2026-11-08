@@ -26,7 +26,7 @@ import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
 import { customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
-import type { EffectOp, Flow as CoreFlow, TriggeredEffect as CoreTriggeredEffect } from '../../../engine/flowCore';
+import type { ChampDeDecision, EffectOp, Flow as CoreFlow, FlowTest, TriggeredEffect as CoreTriggeredEffect } from '../../../engine/flowCore';
 import type { ScheduleSpec } from '../../../engine/clock';
 import { dataLabel } from '../../index';
 import type { PlayerText } from '../../../i18n/playerText';
@@ -155,11 +155,11 @@ export const giveTrappingSchema = nommerChamps(z.strictObject({
    *  l'ItemInstance à la remise. */
   /** LDB 10 l.332-336 */
   magicKnown: z.boolean().optional(),
-  detectTried: z.boolean().optional(),
+  detectTriedBy: z.array(z.string()).optional(),
   appraiseTriedDay: z.number().optional(),
   /** Valeur de marché propre posée sur l'instance (ex. pièces de monstre récoltées, `ZI`). */
   price: moneyPartialSchema.optional(),
-}).superRefine(validerApparenceDonnee), { type: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, heroId: { label: "héros" , texte: { regime: "technique"} }, qualities: { label: "qualités" , texte: { regime: "technique"} }, identified: { label: "identifié" }, apparence: { label: "apparence" }, teinte: { label: "teinte", texte: { regime: 'technique', usage: 'couleurs de la palette de rendu' } }, magicKnown: { label: "magie connue" }, detectTried: { label: "détection tentée" }, appraiseTriedDay: { label: "jour de la dernière évaluation" }, price: { label: "prix" } });
+}).superRefine(validerApparenceDonnee), { type: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, heroId: { label: "héros" , texte: { regime: "technique"} }, qualities: { label: "qualités" , texte: { regime: "technique"} }, identified: { label: "identifié" }, apparence: { label: "apparence" }, teinte: { label: "teinte", texte: { regime: 'technique', usage: 'couleurs de la palette de rendu' } }, magicKnown: { label: "magie connue" }, detectTriedBy: { label: "détection tentée par", texte: { regime: "technique"} }, appraiseTriedDay: { label: "jour de la dernière évaluation" }, price: { label: "prix" } });
 
 /** Donne une POSSESSION (bête/serviteur/véhicule — le SOCLE POSSESSIONS #615, registre
  *  `GameState.possessions`) à un héros propriétaire (défaut : le premier — même patron que
@@ -577,10 +577,15 @@ export type TriggeredEffect = CoreTriggeredEffect<Effect>;
 
 // ── Les deux unions récursives ──────────────────────────────────────────────────────────────────
 
+/** L'Effet `extendedTest` : sa décision (`difficulty`, `CHAMPS_DE_DECISION`) est celle d'un `FlowTest`, que
+ *  `resoudreFlowTest` (`engine/decisionDuTest.ts`) lit seule. */
+export type TestEtendu = Omit<z.infer<typeof extendedTestSchema>, ChampDeDecision | 'difficulty'> & Pick<FlowTest, ChampDeDecision | 'difficulty'>;
+
 /**
  * Union des variantes d'effet de scène + la feuille `ops`. Chaque variante est le
- * `z.infer` de son schéma ci-dessus, hors `DelayedEffect`/`PetitePriere` (manuscrites). `EffectOp`
- * (`type:'ops'`) est le membre POSSÉDÉ par le moteur (feuille par défaut du `Flow<E>` générique).
+ * `z.infer` de son schéma ci-dessus, hors `DelayedEffect`/`PetitePriere` (manuscrites) et `TestEtendu`
+ * (décision typée par `FlowTest`). `EffectOp` (`type:'ops'`) est le membre POSSÉDÉ par le moteur
+ * (feuille par défaut du `Flow<E>` générique).
  */
 export type Effect =
   | z.infer<typeof setFlagSchema>
@@ -601,7 +606,7 @@ export type Effect =
   | z.infer<typeof documentSchema>
   | z.infer<typeof revealClueSchema>
   | z.infer<typeof discreditClueSchema>
-  | z.infer<typeof extendedTestSchema>
+  | TestEtendu
   | z.infer<typeof forceDoorSchema>
   | z.infer<typeof setTimeSchema>
   | DelayedEffect

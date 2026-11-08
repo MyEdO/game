@@ -2,6 +2,7 @@
  * États (conditions) — Livre de base, chapitre « États ».
  * Gestion minimale pour le combat tactique : ajout, empilement, retrait.
  */
+import type { FabriqueDId } from './fabriqueDId';
 import { Combatant, ActiveEffect, ConditionInstance, effectRef, type ModLine, type ConditionEmit, type ConditionLocks, type Difficulty } from './types';
 import { evalCondition, walkFlow } from './flowCore';
 import { conditionLockCtx } from './actorView';
@@ -24,7 +25,7 @@ import { dropExpiredGrantedResources } from './grantedResources';
 import { dropExpiredGrantedWeapons } from './conjuredWeapons';
 import { dropExpiredGrantedMutations } from './corruption';
 import { recomputeLoadout } from './items';
-import { restoreSuppressedPsych } from './psychology';
+import { isFrenzied, isFrenzyCapable, restoreSuppressedPsych } from './psychology';
 import { hasActiveFlag } from './activeFlags';
 import { isVehicle } from './coque';
 import { applyOps, resolveWindowDuration } from './ops'; // cycle runtime (ops→conditions) : appelés au tick/à la dépense, jamais à l'init du module
@@ -157,6 +158,7 @@ export function appliquerMortSubite(target: Combatant, log: string[]): void {
 function difficulteParDefaut(id: string): Difficulty | undefined {
   let defaut: Difficulty | undefined;
   for (const e of findConditionById(id)?.effects ?? []) {
+    // lecture déclarée : la Difficulté authorée est le défaut de l'argument d'instance (`argDifficulty`)
     walkFlow(e.flow, (n) => { if (!defaut && n.kind === 'test' && n.test.argDifficulty) defaut = n.test.difficulty; });
   }
   return defaut;
@@ -634,7 +636,7 @@ export function combatTestPenaltyParts(c: Combatant, ctx: EtatTestCtx = {}): Mod
   // Auras de combat (`auraMods`, hook `recompute-auras`) : un TRAIT, pas un État — hors du gate
   // `ignoreStatePenalties` (LDB 42) et dans leur PROPRE pool (LDB 85 l.262).
   const auras: PoolCandidate[] = [];
-  for (const m of c.auraMods ?? []) if (m.op.op === 'testMod' && m.op.char == null) auras.push({ amount: m.op.amount, nature: t('cond.natureAura'), src: m.src });
+  for (const m of c.auraMods ?? []) if (m.op.op === 'testMod' && m.op.characteristic == null) auras.push({ amount: m.op.amount, nature: t('cond.natureAura'), src: m.src });
   const out: ModLine[] = [];
   for (const best of [poolWinner(cand), poolWinner(auras)]) {
     if (best?.amount) out.push({ label: srcLabel(best.src, best.nature), value: best.amount, famille: 'jet', ref: best.src });
@@ -681,7 +683,7 @@ function etatScopeApplies(op: Extract<GameOp, { op: 'testMod' }>, ctx: EtatTestC
   return !op.diseases || (ctx.disease != null && op.diseases.includes(ctx.disease));
 }
 
-/** Σ des `testMod` char-QUALIFIÉS ACTIFS (op `testMod{char}` exécutée, #193) pour la Caractéristique
+/** Σ des `testMod` char-QUALIFIÉS ACTIFS (op `testMod{characteristic}` exécutée, #193) pour la Caractéristique
  *  `ck` — POINT UNIQUE partagé par `testValue` (Tests hors-combat), `combatValue`/`defenseValue`
  *  parade (Tests d'arme, `weaponHand` gaté) et `defenseValue` Esquive (`movement:true`). `weaponHand`/
  *  `movement` : contexte du Test COURANT, opposé aux gates portés par l'effet (`testModHand`/
@@ -823,6 +825,13 @@ export function canTakeAction(c: Combatant): boolean {
   return !conditionGating(c).noAction;
 }
 
+/** Le combattant peut-il ENTRER en Frénésie : un Test de Force Mentale, donc son Action (`canTakeAction`), capable
+ *  et pas déjà en Frénésie. Prédicat unique du héros (offre `frenzy`, `entrerEnFrenesie`) et de l'IA
+ *  (`aiMaybeFrenzy`). LDB 21 l.31 ; LDB 13 l.106 ; LDB 16 l.125 */
+export function peutEntrerEnFrenesie(c: Combatant): boolean {
+  return canTakeAction(c) && isFrenzyCapable(c) && !isFrenzied(c);
+}
+
 /** États portés par `c` dont la DONNÉE déclare `restrictsAction` (Brisé : Mouvement + Action verrouillés
  *  pour fuir/se cacher, LDB 16 l.52) — lus en DONNÉES (etats.json), JAMAIS par-nom. `stacks` = pions portés. */
 export function restrictingConditions(c: Combatant): { id: string; stacks: number }[] {
@@ -856,7 +865,7 @@ export function isActionLocked(c: Combatant): boolean {
  * de cascade influençable (cf. `collectHeroRoundEndUpkeep`). Les DÉGÂTS restent ici pour tous ; seul
  * le Test est différé. ENNEMIS : `opts` absent → comportement (et ORDRE RNG) inchangé.
  */
-export function endOfRound(c: Combatant, rng: RNG, emit?: ConditionEmit): string[] {
+export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, emit?: ConditionEmit): string[] {
   const log: string[] = [];
   // Hémorragique : dégâts par-round (« 1 Blessure par pion, en ignorant les modificateurs », l.104) MIGRÉS
   // en données — etats.json hemorragique `effects: onRoundEnd → wounds {stacks:'self'}` (défaut : ignore
@@ -884,7 +893,7 @@ export function endOfRound(c: Combatant, rng: RNG, emit?: ConditionEmit): string
     // L'ancrage du re-jeu est celui MEMORISE sur l'effet a sa pose (`applyOps` l'y stampe) : il se relaie,
     // il ne se reconstruit pas.
     applyOps(c, e.opsPerRound, {
-      label: e.label, rng, source: e.source, sourceSpellId: e.sourceSpellId, effectId: e.effectId, onCondition: emit,
+      label: e.label, rng, idNeuf, source: e.source, sourceSpellId: e.sourceSpellId, effectId: e.effectId, onCondition: emit,
       rejeuRecurrent: true, // SEUL site qui pose le drapeau : ce qui suit est une RE-pose (`LDB 16 l.117`)
     }).forEach((l) => log.push(l));
   }

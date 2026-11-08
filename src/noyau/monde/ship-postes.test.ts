@@ -71,7 +71,7 @@ describe('servingCrewPresent — servants APTES tenant le poste du chef (sous-ef
 describe('leaveChef — le chef de statbloc qui ne tenait que la pièce', () => {
   it('ne tient plus la pièce, et tient les Mains nues', () => {
     const chef = { id: 'chef', label: 'Chef', kind: 'enemy', conditions: [], weapons: [], items: [], wounds: { current: 5, max: 5 } } as unknown as Combatant;
-    const poste = hydratePoste({ trappingId: 'canon-a-repetition' } as never);
+    const poste = hydratePoste({ trappingId: 'canon-a-repetition' } as never, 'poste-de-test');
     poste.crewIds = ['chef'];
     serveChef(chef, poste);
     expect(chef.weapons.some((w) => w.uid === poste.item.uid)).toBe(true);

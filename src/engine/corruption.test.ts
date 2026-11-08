@@ -95,9 +95,9 @@ describe('mutationKindFor — d100 corps/esprit par espèce (data-driven, ids ST
 describe('effets de mutation lus à la volée', () => {
   it('charMods permanents → effectiveChar (base, cumulable avec un buff magique)', () => {
     const c = hero();
-    attachMutation(c, { id: 'corpulent', label: 'Corpulent', desc: '', kind: 'physique', roll: 8, passive: [{ op: 'charMod', char: 'force', mod: 5 }, { op: 'charMod', char: 'endurance', mod: 5 }, { op: 'moveMod', mod: -1 }] }, desDuTest);
+    attachMutation(c, { id: 'corpulent', label: 'Corpulent', desc: '', kind: 'physique', roll: 8, passive: [{ op: 'charMod', characteristic: 'force', mod: 5 }, { op: 'charMod', characteristic: 'endurance', mod: 5 }, { op: 'moveMod', mod: -1 }] }, desDuTest);
     expect(effectiveChar(c, 'force')).toBe(35);
-    c.activeEffects = [{ label: 'Puissance', char: 'force', bonus: 10, duration: { scale: 'rounds', left: 3 } }];
+    c.activeEffects = [{ label: 'Puissance', characteristic: 'force', bonus: 10, duration: { scale: 'rounds', left: 3 } }];
     expect(effectiveChar(c, 'force')).toBe(45); // base mutée 35 + buff 10 (pas d'écrasement)
     expect(effectiveChar(c, 'endurance')).toBe(c.characteristics.endurance + 5); // Corpulent E+5 via le collecteur (base + delta)
   });
@@ -116,7 +116,7 @@ describe('effets de mutation lus à la volée', () => {
   it('mods de Tests : compétence nommée + Tests d\'une caractéristique (testValue)', () => {
     const c = hero({ skills: [{ id: 'pistage', advances: 5 } as never, { id: 'charme', advances: 0 } as never] });
     attachMutation(c, { id: 'groin-poilu', label: 'Groin poilu', desc: '', kind: 'physique', roll: 93, passive: [{ op: 'skillMod', skill: { id: 'pistage' }, mod: 10 }] }, desDuTest);
-    attachMutation(c, { id: 'visage-inverse', label: 'Visage inversé', desc: '', kind: 'physique', roll: 53, passive: [{ op: 'testMod', amount: -20, char: 'sociabilite' }] }, desDuTest);
+    attachMutation(c, { id: 'visage-inverse', label: 'Visage inversé', desc: '', kind: 'physique', roll: 53, passive: [{ op: 'testMod', amount: -20, characteristic: 'sociabilite' }] }, desDuTest);
     expect(passiveSkillSum(c, 'pistage')).toBe(10); // compétence nommée → collecteur passif (Σ, intrinsèque)
     expect(passiveTestMod(c, 'sociabilite')).toBe(-20); // Tests char-qualifiés (Visage inversé) → collecteur passif
     expect(testValue(c, { skill: { id: 'charme' } })).toBe(30 - 20); // Soc 30, Tests de Sociabilité −20 (bout en bout)
@@ -215,14 +215,14 @@ describe('détachement PAR PROVENANCE (#1853)', () => {
 
 describe('plancher d’un charMod, figé à l’attache (EDO 11 l.190 ; #1853)', () => {
   const cretin = () => mutationById('cretin')!;
-  const charModsInt = (c: Combatant) => (c.mutations ?? []).flatMap((m) => m.passive ?? []).filter((o) => o.op === 'charMod' && o.char === 'intelligence');
+  const charModsInt = (c: Combatant) => (c.mutations ?? []).flatMap((m) => m.passive ?? []).filter((o) => o.op === 'charMod' && o.characteristic === 'intelligence');
 
   it('Int 30 : l’instance porte le delta résolu, sans plancher ; le catalogue reste intact', () => {
     const c = hero();
     attachMutation(c, cretin(), desDuTest);
     expect(effectiveChar(c, 'intelligence')).toBe(10);
-    expect(charModsInt(c)).toEqual([{ op: 'charMod', char: 'intelligence', mod: -20 }]);
-    expect(cretin().passive).toContainEqual({ op: 'charMod', char: 'intelligence', mod: -40, min: 10 });
+    expect(charModsInt(c)).toEqual([{ op: 'charMod', characteristic: 'intelligence', mod: -20 }]);
+    expect(cretin().passive).toContainEqual({ op: 'charMod', characteristic: 'intelligence', mod: -40, min: 10 });
   });
 
   it('une Augmentation POSTÉRIEURE s’ajoute au delta figé : 10 + 5 = 15', () => {
@@ -237,7 +237,7 @@ describe('plancher d’un charMod, figé à l’attache (EDO 11 l.190 ; #1853)',
       const c = hero({ characteristics: { ...hero().characteristics, intelligence: v } });
       attachMutation(c, cretin(), desDuTest);
       expect(effectiveChar(c, 'intelligence'), `Int ${v}`).toBe(v);
-      expect(charModsInt(c), `Int ${v}`).toEqual([{ op: 'charMod', char: 'intelligence', mod: 0 }]);
+      expect(charModsInt(c), `Int ${v}`).toEqual([{ op: 'charMod', characteristic: 'intelligence', mod: 0 }]);
     }
   });
 
@@ -249,8 +249,8 @@ describe('plancher d’un charMod, figé à l’attache (EDO 11 l.190 ; #1853)',
 
   it('la référence est la base PERMANENTE : un charMod permanent compte, un sort temporaire non', () => {
     const c = hero();
-    attachMutation(c, { id: 'esprit-vif', label: 'Esprit vif', desc: '', kind: 'mentale', roll: 1, passive: [{ op: 'charMod', char: 'intelligence', mod: 5 }] }, desDuTest);
-    c.activeEffects = [{ label: 'Sagesse', char: 'intelligence', bonus: 20, duration: { scale: 'rounds', left: 3 } }];
+    attachMutation(c, { id: 'esprit-vif', label: 'Esprit vif', desc: '', kind: 'mentale', roll: 1, passive: [{ op: 'charMod', characteristic: 'intelligence', mod: 5 }] }, desDuTest);
+    c.activeEffects = [{ label: 'Sagesse', characteristic: 'intelligence', bonus: 20, duration: { scale: 'rounds', left: 3 } }];
     attachMutation(c, cretin(), desDuTest);
     expect(effectiveChar(c, 'intelligence')).toBe(10 + 20);
     c.activeEffects = [];

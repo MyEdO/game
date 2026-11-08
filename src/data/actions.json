@@ -28,6 +28,7 @@
       "charge-possible",
       "hors-verrou-d-etat"
     ],
+    "run": "armerLIntention",
     "intent": "portee-charge",
     "coutAction": "mouvement",
     "rule": {
@@ -50,6 +51,7 @@
     "icon": "travel/foot",
     "surface": "grille",
     "gate": "course-possible",
+    "run": "armerLIntention",
     "intent": "portee-course",
     "coutAction": "action",
     "rule": {
@@ -72,6 +74,7 @@
     "icon": "journal/move",
     "surface": "grille",
     "gate": "mouvement-restant-fantassin",
+    "run": "armerLIntention",
     "intent": "portee-mouvement",
     "coutAction": "mouvement",
     "maison": "le déplacement dépense le Mouvement du Tour — imputation du moteur, aucun verbatim de coût cité.",
@@ -331,7 +334,9 @@
     "label": "Focaliser",
     "icon": "flag/focus",
     "surface": "geste-secondaire",
-    "hote": "cast-spell",
+    "hote": {
+      "id": "cast-spell"
+    },
     "gate": [
       "action-libre-hors-frenesie",
       "sort-focalisable"
@@ -378,7 +383,7 @@
     "surface": "grille",
     "gate": "action-libre-hors-frenesie",
     "run": "dissiperLeSort",
-    "candidates": "sorts-dissipables",
+    "candidates": "sorts-a-dissiper",
     "coutAction": "action",
     "rule": {
       "id": "dissipation",
@@ -815,26 +820,6 @@
     },
     "keys": [
       "battery"
-    ]
-  },
-  {
-    "id": "crew-test-rude-epreuve",
-    "type": "actions",
-    "label": "Rude épreuve",
-    "icon": "scenario/naval",
-    "surface": "grille",
-    "gate": [
-      "navire",
-      "navire-action"
-    ],
-    "run": "eprouverLEquipage",
-    "coutAction": "action",
-    "rule": {
-      "id": "test-equipage-rude-epreuve",
-      "type": "regle"
-    },
-    "keys": [
-      "crew-test-rude-epreuve"
     ]
   },
   {

@@ -4,6 +4,7 @@
  * schéma (`idDe`, `grammaire/ref.ts`) ; restent ici ce que le parse ne voit pas — constantes de code,
  * runtime, stocks nommés. Cf. `AGENTS.md` § Pour TOUT agent.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
@@ -52,7 +53,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
 
   it('itemFromTrappingById pose un trappingId qui pointe le catalogue', () => {
     for (const id of ['arbalete', 'epee-batarde', 'chemise-de-mailles', 'mains-nues']) {
-      const it = itemFromTrappingById(id);
+      const it = itemFromTrappingById(id, idsDeTest);
       expect(it, id).toBeTruthy();
       expect(it!.trappingId).toBe(id);
     }
@@ -293,7 +294,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
 
   // ── L'ADMISSION d'une `spec` se juge au SCHÉMA, par l'ENTRÉE visée (`refusDeSpec`, `grammaire/ref.ts`),
   // sur tout document registré de `src/data` et `src/scenes` (`schema-contract.test.ts`), libellé FR connu
-  // d'une entrée OUVERTE (`entreeOuverte`) compris. Restent ici les pré-tirés RUNTIME (`makePregens()`),
+  // d'une entrée OUVERTE (`entreeOuverte`) compris. Restent ici les pré-tirés RUNTIME (`makePregens(idsDeTest)`),
   // composés en mémoire, jamais parsés par un schéma.
   describe('GARDE — pré-tirés runtime', () => {
 
@@ -324,13 +325,13 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
     }
 
     it('pregens(runtime — makePregens) : aucun libellé FR connu sur une entrée OUVERTE', () => {
-      walk(makePregens(), 'pregens(runtime — makePregens)'); // composition réelle career/species → Combatant
+      walk(makePregens(idsDeTest), 'pregens(runtime — makePregens)'); // composition réelle career/species → Combatant
       expect(nonMigres, nonMigres.join('\n')).toEqual([]);
     });
 
     it('pregens(runtime — makePregens) : toute spec de Compétence/Talent est ADMISE par son entrée (`refusDeSpec`)', () => {
       const refus: string[] = [];
-      for (const h of makePregens()) {
+      for (const h of makePregens(idsDeTest)) {
         for (const [type, refs] of [['skill', h.skills], ['talent', h.talents]] as const) {
           for (const r of refs as { id?: string; talentId?: string; spec?: string }[]) {
             const id = r.talentId ?? r.id;
@@ -558,7 +559,7 @@ describe('appearance.species — espèce d’apparence (fauteDEspece), jamais un
 
   it('scénarios de test : tout appearance.species de la party, construite en TS et jamais parsée, est une espèce d’apparence', () => {
     const bad: string[] = [];
-    for (const s of SCENARIOS) collect(s.construire().party, `${s.id}.party`, bad);
+    for (const s of SCENARIOS) collect(s.construire(idsDeTest).party, `${s.id}.party`, bad);
     expect(bad, bad.join('\n')).toEqual([]);
   });
 });
@@ -589,7 +590,7 @@ describe('postes d’artillerie — réf catalogue hydratée, jamais une base co
     walkPostes(areneProject, 'arene-projet.json', hard);
     walkPostes(loupProject, 'loup-et-saumure-projet.json', hard);
     for (const s of SCENARIOS) {
-      const c = s.construire();
+      const c = s.construire(idsDeTest);
       walkPostes(c.scene, `${s.id}.scene`, hard);
       if (c.extraScenes) walkPostes(c.extraScenes, `${s.id}.extraScenes`, hard);
       walkPostes(c.party, `${s.id}.party`, hard);
@@ -770,9 +771,9 @@ describe('careerLevels — Schéma de Progression : cardinalité 3/1/1/1 et disj
   it('chaque Carrière : niveau 1 = 3 caractéristiques, niveaux 2/3/4 = 1 chacun, aucun doublon', () => {
     const byCareer = new Map<string, typeof careerLevels>();
     for (const l of careerLevels) {
-      const bucket = byCareer.get(l.career) ?? [];
+      const bucket = byCareer.get(l.career.id) ?? [];
       bucket.push(l);
-      byCareer.set(l.career, bucket);
+      byCareer.set(l.career.id, bucket);
     }
     const offenders: string[] = [];
     for (const [career, levels] of byCareer) {

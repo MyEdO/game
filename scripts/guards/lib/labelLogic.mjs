@@ -502,35 +502,18 @@ export function scanCallResultLiteralCompare(relPath, contenu, sourceFile) {
  * @type {Readonly<Record<string, number>>}
  */
 export const DETTES_DE_LIBELLE = {
-  // #2104 — Axe Disponibilité (LDB 59) — `Availability` EST le libellé ; `src/engine/disponibilite.ts` porte
-  // le type, la table ET le prédicat `isTradable` (source unique de la comparaison aux 4 classes),
-  // ses consommateurs suivent.
-  'src/engine/activities.ts#label-literal': 1,
-  'src/engine/activities.ts#label-record': 1,
-  'src/engine/disponibilite.ts#label-literal': 1,
-  // #2104 — Axes de récolte (Rareté / Danger / Taille / Conservation) — quatre vocabulaires FR en clés de table.
-  'src/engine/harvest.ts#label-literal': 1,
-  'src/engine/harvest.ts#label-record': 4,
-  // #2104 — Statut d'un indice de campagne (révélé/réfuté) — porté par la donnée de scène et les sauvegardes.
-  'src/noyau/monde/clues.ts#label-literal': 2,
-  'src/noyau/combatEffects.ts#label-literal': 1,
-  'src/ui/CarnetScreen.tsx#label-literal': 3,
-  // #1924 — résolveur libellé→id (`qualityIdByLabel`) appelé depuis le moteur.
-  'src/engine/qualities/normalize.ts#label-entity-resolver-call': 1,
   // #1330 — `conditionIdInText` : le journal FR re-parsé par libellé d'État.
   'src/engine/conditions.ts#face-affichage-identite': 1,
-  // #2070 — scénarios de test résolus par libellé (`findSkill`/`findTalent`).
-  'src/scenes/test-scenarios/_casters.ts#label-entity-resolver-call': 2,
-  'src/scenes/test-scenarios/magie-hors-combat.ts#label-entity-resolver-call': 1,
   // #1632 — sort classé par libellé (`classifySpellByLabel`).
   'src/gameIso/fx/spellClips.ts#label-entity-resolver-call': 1,
 };
 
 /** Volets SANS stock : aucune clé de `DETTES_DE_LIBELLE` ne peut les porter, quel que soit le
- *  fichier — `label-logic` (règles `.label` de #142) et `label-as-id-arg` (libellé passé où la
- *  déclaration attend un `id`). Pour eux le stock admis est 0 (`stockDe`), et une clé qui les
- *  porterait est un écart (`clesInterditesAuStock`). */
-export const VOLETS_SANS_STOCK = new Set(['label-logic', 'label-as-id-arg']);
+ *  fichier — `label-logic` (règles `.label` de #142), `label-as-id-arg` (libellé passé où la
+ *  déclaration attend un `id`) et les quatre volets du libellé littéral (`scanLabelLiteralCompare`,
+ *  #3691). Pour eux le stock admis est 0 (`stockDe`), et une clé qui les porterait est un écart
+ *  (`clesInterditesAuStock`). */
+export const VOLETS_SANS_STOCK = new Set(['label-logic', 'label-as-id-arg', 'label-literal', 'label-switch', 'label-record', 'label-regex']);
 
 /** Stock ADMIS pour une clé `fichier#règle` : 0 pour un volet de `VOLETS_SANS_STOCK`, quoi
  *  qu'écrive `DETTES_DE_LIBELLE`. @param {string} cle @returns {number} */
@@ -1004,6 +987,8 @@ export const RATCHET_EXCEPTIONS = {
     'Parseur de SAISIE « format livre » : le nom de Talent saisi retrouve son id (`findTalent`, #909).',
   'data/refFormatLivre.ts#idDeTraitSaisi#label-entity-resolver-call':
     'Parseur de SAISIE « format livre » : le nom de Trait saisi retrouve son id (`traitIdByLabel`, #909).',
+  'data/refFormatLivre.ts#parseQuality#label-entity-resolver-call':
+    'Parseur de SAISIE « format livre » : le nom de qualité saisi retrouve son id (`qualityIdByLabel`, #3691).',
   'data/refFormatLivre.ts#argDeTraitSaisi#label-entity-resolver-call':
     'Parseur de SAISIE « format livre » : l’argument saisi d’un Trait à registre retrouve son id (`specIdByLabel`, #909).',
   // Résolveurs par LIBELLÉ de la couture de chargement/saisie (#909) — chacun est reconnu par

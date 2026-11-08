@@ -26,6 +26,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -39,8 +40,7 @@ const TABLES = {
   'mass-battle.json': [[['hazards'], '1d10']],
 };
 
-const estNoeud = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
-  && Object.keys(v).length === 2 && typeof v.die === 'string' && Array.isArray(v.entries);
+const estNoeud = (v) => estObjet(v) && Object.keys(v).length === 2 && typeof v.die === 'string' && Array.isArray(v.entries);
 
 const arrets = [];
 const ecritures = [];

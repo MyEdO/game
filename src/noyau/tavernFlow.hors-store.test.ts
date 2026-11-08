@@ -5,6 +5,7 @@
  * siège joue son jet) ; héros contre la SALLE → mono à jet adverse FIGÉ dans `meta.opposed.aT` (#579),
  * dont la ré-opposition sous influence (Chance « +1 DR ») est vérifiée contre `resolveOpposed`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
@@ -49,7 +50,7 @@ async function drain(): Promise<void> {
 }
 
 function twoHeroes(): [Combatant, Combatant] {
-  const all = makePregens();
+  const all = makePregens(idsDeTest);
   return [all[0] as Combatant, all[1] as Combatant];
 }
 
@@ -565,7 +566,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
  */
 describe('#1279 S4 — une partie de taverne ne peut pas en écraser une autre', () => {
   beforeEach(() => {
-    banc.setState({ party: makePregens().slice(0, 2) as Combatant[], battle: null, sequence: null, pendingCascade: null });
+    banc.setState({ party: makePregens(idsDeTest).slice(0, 2) as Combatant[], battle: null, sequence: null, pendingCascade: null });
   });
 
   it('une seconde partie ouverte en pleine partie est REFUSÉE — la première survit intacte', () => {
@@ -599,7 +600,7 @@ describe('#1279 S4 — une partie de taverne ne peut pas en écraser une autre',
  */
 describe('#1279 S4 — le formulaire est masqué pendant TOUTE partie, quel que soit le jeu', () => {
   beforeEach(() => {
-    banc.setState({ party: makePregens().slice(0, 2) as Combatant[], battle: null, sequence: null, pendingCascade: null });
+    banc.setState({ party: makePregens(idsDeTest).slice(0, 2) as Combatant[], battle: null, sequence: null, pendingCascade: null });
   });
 
   it('hors partie, le formulaire est offert', () => {

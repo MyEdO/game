@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { surfaceDeLEtape, surfaceDesEtapes, buildBand, surfaceOf, tableStep, displayStep, monoStep, worldStep } from './rollSeam';
@@ -86,7 +87,7 @@ describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (porteur 
   });
 
   it('CONTRÔLE POSITIF — la surface d’un jet de monde est celle d’un jet de HÉROS, même montage', () => {
-    const h = makePregens()[0];
+    const h = makePregens(idsDeTest)[0];
     set({ party: [h], battle: null });
     const series = (surface: () => Surface) => {
       resetDesFixes(); resetCadence();
@@ -117,7 +118,7 @@ describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (porteur 
    * ROUTE de possession (`conduitParLeSiegeDuMonde` : monde, ennemi de bac-à-sable).
    */
   it('HÔTE-MJ (`gmSeat` === siège du héros) : le héros garde SA fenêtre (M) ; le dé de MONDE, lui, rend V', () => {
-    const h = makePregens()[0];
+    const h = makePregens(idsDeTest)[0];
     set({ party: [h], battle: null });
     set({ net: { ...get().net, mode: 'host', mySeat: 0, gmSeat: 0, ownership: { [h.id]: 0 } } });
     expect(seatOwns(get(), 0, h.id), 'précondition : le siège MJ POSSÈDE bien ce héros').toBe(true);
@@ -150,7 +151,7 @@ describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (porteur 
    * (V), le joueur tient son héros (M).
    */
   it('un Test SUBI et un jet volontaire du MÊME porteur rendent la MÊME série (la classe a disparu)', () => {
-    const h = makePregens()[0];
+    const h = makePregens(idsDeTest)[0];
     set({ party: [h], battle: null });
     const requete = (actionLabel: string) => (): Surface => surfaceHerosDe(h, cleDeFixture('x'), actionLabel);
     const serie = (surface: () => Surface) => {
@@ -190,7 +191,7 @@ const enFile = (cs: Combatant[]) => ({ combatants: cs, order: cs.map((c) => c.id
  */
 describe('#1426 socle — la surface se juge sur l’ID du porteur (combat comme hors combat)', () => {
   it('héros du GROUPE resté hors de la file d’un combat OUVERT : son siège le tient → surfacé', () => {
-    const [h1, h2] = makePregens();
+    const [h1, h2] = makePregens(idsDeTest);
     set({ party: [h1!, h2!], battle: enFile([h1!, ennemiDeSonde()]) });
     expect(actorIn(get(), h2!.id), 'précondition : la recherche « file OU groupe » ne le trouve pas').toBeUndefined();
     expect(surfaceOf(get, h2!.id), 'il est pourtant dans le groupe, tenu par le siège 0').toBe(true);
@@ -198,7 +199,7 @@ describe('#1426 socle — la surface se juge sur l’ID du porteur (combat comme
 
   it('ennemi sans siège MJ : possédé par REPLI, tenu par personne → d’office (et surfacé dès qu’un MJ siège)', () => {
     const e = ennemiDeSonde();
-    set({ party: makePregens().slice(0, 1), battle: enFile([e]) });
+    set({ party: makePregens(idsDeTest).slice(0, 1), battle: enFile([e]) });
     expect(seatOwns(get(), 0, e.id), 'le repli de possession rend vrai — c’est l’ACTION, pas la tenue du dé').toBe(true);
     expect(surfaceOf(get, e.id), 'aucun humain ne le tient : son étape se résout d’office').toBe(false);
     set({ net: { ...get().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
@@ -206,7 +207,7 @@ describe('#1426 socle — la surface se juge sur l’ID du porteur (combat comme
   });
 
   it('porteur nommé mais INCONNU (mort, hors partie) : aucun siège → d’office', () => {
-    set({ party: makePregens().slice(0, 1), battle: null });
+    set({ party: makePregens(idsDeTest).slice(0, 1), battle: null });
     expect(surfaceOf(get, 'porteur-fantome')).toBe(false);
   });
 });
@@ -235,7 +236,7 @@ function carte(): WorldMap {
 /** Marché ouvert à Altdorf, un lot de 40 Enc sur le convoi, option « Dés fixés » ACTIVE (le dé se pose). */
 function marcheAvecLot(): void {
   seedBattleRng(7);
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', seed: 11, id: 't-artur' });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', seed: 11, id: 't-artur' });
   skill(h, 'marchandage', 60);
   get().fixerLeGroupe([h]);
   get().chargerLeProjet({ scenes: [marche('marche-b', 'Altdorf')], entryId: 'marche-b', worldMap: carte(), projet: null });
@@ -726,7 +727,7 @@ function prepareJourTerrestre(seed: number): void {
   seedBattleRng(seed);
   siegeDuMonde();
   setRule('travel-etapes', true);
-  set({ party: makePregens().slice(0, 3), gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, suspendedCascades: [], travelRecap: null, journal: [], battle: null });
+  set({ party: makePregens(idsDeTest).slice(0, 3), gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, suspendedCascades: [], travelRecap: null, journal: [], battle: null });
   get().chargerLeProjet({ scenes: [scenePlate('monde-a'), scenePlate('monde-b')], entryId: 'monde-a', worldMap: carteMonde, projet: null });
   set({ gameTime: campaignStart() });
 }
@@ -740,10 +741,10 @@ function prepareJourMaritime(seed: number): void {
   seedBattleRng(seed);
   siegeDuMonde();
   set({
-    party: makePregens().slice(0, 3),
+    party: makePregens(idsDeTest).slice(0, 3),
     scene: scenePlate('monde-a') as never,
     battle: null, worldMap: carteMer, travelPlan: null, travelRecap: null,
-    pendingCrewTest: null, pendingRest: null, pendingCascade: null, suspendedCascades: [],
+    pendingRest: null, pendingCascade: null, suspendedCascades: [],
     gameTime: 8 * 60, lastUpkeepDay: 0, journal: [],
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
   } as never);
@@ -879,7 +880,7 @@ describe('#1426 — les portes du curseur', () => {
   it('la PORTE publique pose le curseur ET résout la table qu’aucun siège ne joue', () => {
     setCadence('rapide');
     seedBattleRng(11);
-    set({ party: makePregens().slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
+    set({ party: makePregens(idsDeTest).slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
     startCascade(get, set, {
       title: 'Portes', purpose: 'test',
       steps: [etapeAffichage('p0'), etapeTableMonde('p1')],
@@ -920,7 +921,7 @@ describe('#1426 — les portes du curseur', () => {
   it('CHARGE — les étapes résolues d’office se franchissent à profondeur de pile CONSTANTE, et la séquence se ferme', () => {
     setCadence('rapide');
     seedBattleRng(13);
-    set({ party: makePregens().slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
+    set({ party: makePregens(idsDeTest).slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
     profondeurs.length = 0;
     const steps = [...Array(PAS_DE_CHARGE)].map((_, i) => etapeTableMonde(`charge-${i}`, cleDeFixture('sonde-charge')));
     startCascade(get, set, { title: 'Charge', purpose: 'test', steps });
@@ -934,30 +935,23 @@ describe('#1426 — les portes du curseur', () => {
   });
 });
 
-describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadence auto la résout', () => {
-  it('(a) TERRE — cadence manuelle, option OFF : la Météo d’Étape ATTEND sa fenêtre, « Lancer » la franchit', () => {
+describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un siège la fixe, la cadence auto la résout', () => {
+  it('(a) TERRE — cadence manuelle, option OFF : la Météo d’Étape n’est pas un vrai choix, elle se tire et va au journal (#3534)', () => {
     ouvreJourTerrestre(11);
     expect(get().pendingCascade?.purpose).toBe('travelDay');
-    const meteo = get().pendingCascade!.participants[0];
-    expect(meteo.kind).toBe('stageWeather');
+    const meteo = get().pendingCascade!.participants.find((st) => st.kind === 'stageWeather')!;
     expect(meteo.worldOwner, 'aucun acteur ne la porte : le sentinel la route au siège').toBe(true);
-    expect(meteo.table!.result, 'le socle ne tire pas à la place du siège qui possède le monde').toBeUndefined();
-    expect(canFixDie(get(), undefined), 'option OFF : la POSE n’est pas offerte — seul « Lancer » l’est').toBe(false);
-    expect(draineJour(false), 'sans geste, la séquence tient sur sa table (comme un jet de Critique)').toBe('stageWeather');
-    expect(get().pendingRest, 'et la journée n’est pas allée à la halte').toBeFalsy();
-    expect(draineJour(true), 'le « Lancer » de la fenêtre la franchit').toBeUndefined();
-    expect(get().pendingRest, 'la journée va jusqu’à la halte de nuit').toBeTruthy();
+    expect(canFixDie(get(), undefined), 'option OFF : le siège qui possède le monde n’a rien à poser').toBe(false);
+    expect(meteo.table!.result, 'le socle l’a tirée sans arrêt').toBeTruthy();
+    expect(etapeCourante()!.kind, 'la journée s’arrête au premier vrai choix, après elle').not.toBe('stageWeather');
     expect(get().journal.some((l) => l.includes('Météo')), 'la Météo d’Étape est au journal').toBe(true);
+    expect(draineJour(false), 'aucune autre table ne retient la journée').toBeUndefined();
+    expect(get().pendingRest, 'la journée va jusqu’à la halte de nuit').toBeTruthy();
   });
 
-  it('(a) MER — même contrat pour l’Événement de bord (le socle ne tire pas, la fenêtre lance)', () => {
+  it('(a) MER — même règle pour l’Événement de bord : tiré sans arrêt, raconté à la clôture du jour (#3534)', () => {
     ouvreJourMaritime(4);
-    const evt = get().pendingCascade!.participants.find((s) => s.kind === 'seaBoardEvent')!;
-    expect(evt.worldOwner).toBe(true);
-    expect(evt.table!.result).toBeUndefined();
-    const arret = draineJour(false);
-    expect(etapeCourante()!.table, `la séquence attend une table (étape « ${arret} »)`).toBeTruthy();
-    expect(draineJour(true)).toBeUndefined();
+    expect(draineJour(false), 'aucune table ne retient la journée').toBeUndefined();
     // Le jour CLOS déplace ses events dans sa carte de récap (`sea.events` repart à vide).
     expect(get().travelPlan!.log![0].events, 'l’événement de bord a été raconté').toHaveLength(1);
   });
@@ -1004,7 +998,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
   it('(c) cadence AUTO — la table est FRANCHIE dans le même geste que l’étape qui la précède', () => {
     setCadence('rapide');
     seedBattleRng(3);
-    set({ party: makePregens().slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
+    set({ party: makePregens(idsDeTest).slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
     startCascade(get, set, {
       title: 'Franchissement', purpose: 'test',
       steps: [etapeAffichage('av'), etapeTableMonde('t'), etapeAffichage('ap')],
@@ -1019,7 +1013,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
   it('(c) REPRISE — une séquence parquée qui revient SUR une table (cadence auto) avance encore', () => {
     setCadence('rapide');
     seedBattleRng(5);
-    set({ party: makePregens().slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
+    set({ party: makePregens(idsDeTest).slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
     startCascade(get, set, {
       title: 'Reprise', purpose: 'test',
       steps: [etapeAffichage('sus', cleDeFixture('sonde-suspend')), etapeTableMonde('t2'), etapeAffichage('fin')],
@@ -1038,7 +1032,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
   it('(c) `pushStep` — une table APPENDUE sous le curseur (cadence auto) naît résolue', () => {
     setCadence('rapide');
     seedBattleRng(7);
-    set({ party: makePregens().slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
+    set({ party: makePregens(idsDeTest).slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
     pushStep(set, etapeTableMonde('t3'), 'test');
     expect(get().pendingCascade!.cursor).toBe(0);
     expect(etapeCourante()!.table!.result, 'l’append est une porte du curseur comme les autres').toBeTruthy();
@@ -1048,7 +1042,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
   it('(d) CONTRÔLE POSITIF — cadence manuelle : une table d’ACTEUR attend sa fenêtre, exactement comme celle du monde', () => {
     siegeDuMonde();
     seedBattleRng(3);
-    const heros = makePregens()[0];
+    const heros = makePregens(idsDeTest)[0];
     set({ party: [heros], pendingCascade: null, suspendedCascades: [], battle: null });
     const etape = tableStep({
       id: 'ctrl-1', kind: cleDeFixture('ctrl-table'), actorId: heros.id,

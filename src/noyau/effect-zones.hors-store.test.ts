@@ -3,6 +3,7 @@
  * Sort : `sceneZonesToBattle` convertit `Scene.effectZones` → `BattleZone` PERMANENTES (pas de TTL),
  * appliquées par `crossZones` (traversée) / `zonesRoundTick` (stationnement). `lancerLeCombat` les sème.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Combatant } from '../engine/types';
 import type { RNG } from '../engine/dice';
@@ -85,12 +86,12 @@ describe('runtime : un piège authoré frappe via le runtime des zones de Sort',
   ]);
   it('stationner dedans (perRound) : 8 − BE 3 = 5 Blessures', () => {
     const victim = mk({ id: 'v', pos: { x: 5, y: 5 } });
-    zonesRoundTick([trap as BattleZone], [victim], rng);
+    zonesRoundTick([trap as BattleZone], [victim], rng, idsDeTest);
     expect(victim.wounds.current).toBe(7);
   });
   it('traverser (onCross) : Dégâts + État Empoisonné', () => {
     const victim = mk({ id: 'v2', pos: { x: 3, y: 5 } });
-    crossZones([trap as BattleZone], victim, [{ x: 4, y: 5 }, { x: 5, y: 5 }, { x: 6, y: 5 }], () => undefined, rng);
+    crossZones([trap as BattleZone], victim, [{ x: 4, y: 5 }, { x: 5, y: 5 }, { x: 6, y: 5 }], () => undefined, rng, idsDeTest);
     expect(victim.wounds.current).toBe(7);
     expect(victim.conditions.some((c) => c.id === 'empoisonne')).toBe(true);
   });
@@ -124,7 +125,7 @@ describe('barrières — infranchissables pour les créatures gatées (via occup
 
 describe('intégration : lancerLeCombat sème les pièges de la scène dans battle.zones', () => {
   it('une scène avec effectZones → zone permanente dans le combat', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const scene: Scene = {
       ...testScene(),
       effectZones: [

@@ -12,7 +12,8 @@ import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
 import { IDS_PAR_ESPACE, type IdsParEspace } from '../_ids.generated';
 import type { CategorieCodexDuFichier } from '../_cles-de-dataset.generated';
-import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, lireCleDEspace, marqueurPorte, type SousListeMarquee } from './cle-d-espace';
+import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, lireCleDEspace, marqueurPorte, vocabulaireDuFichier, type SousListeMarquee } from './cle-d-espace';
+import { REGISTRE_DU_VOCABULAIRE_D_ART } from '../_vocabulaires-d-art.generated';
 import { norm } from '../../../lib/normalize';
 import { idsVivants } from './idsVivants';
 import { marquerProduit, produitDe } from './interne/produits';
@@ -25,7 +26,9 @@ export type Id<T extends string> = string & { readonly [marqueDeType]: T };
 
 /** Ce qu'un type d'entité déclare : son espace de noms et le nom de son catalogue. */
 export interface DeclarationDeType {
-  /** CLÉ D'ESPACE (`grammaire/cle-d-espace.ts`) de l'espace qui fait AUTORITÉ sur les ids de ce type. */
+  /** CLÉ D'ESPACE (`grammaire/cle-d-espace.ts`) de l'espace qui fait AUTORITÉ sur les ids de ce type : une
+   *  collection de document, ou un VOCABULAIRE (`grammaire/vocabulaires.ts`), registre TS d'art compris
+   *  (#2968 P-art). */
   readonly espace: string;
   /** Le catalogue tel que l'AUTEUR le nomme, au pluriel (« des sorts ») : le refus d'une référence
    *  morte se lit à l'éditeur, au Compendium et à l'import d'un projet, jamais qu'en CI. */
@@ -106,6 +109,10 @@ export const TYPES = {
   // Catalogue des cargaisons (#1684) : sous-listes `mer`/`terre` par le discriminant `voie` de son def.
   cargo: { espace: 'cargoes.json', catalogue: 'cargaisons' },
   merchant: { espace: 'merchants.json', catalogue: 'archétypes de marchand' },
+  action: { espace: 'actions.json', catalogue: 'actions' },
+  location: { espace: 'locations.json', catalogue: 'lieux' },
+  // #2968 P-art : registre `src/ui/backdrops/defs`.
+  fond: { espace: 'vocabulaire:fonds', catalogue: 'bandes d’ambiance' },
 } as const satisfies Record<string, DeclarationDeType>;
 
 export type TypeEntite = keyof typeof TYPES;
@@ -314,9 +321,13 @@ export function marqueurDeLaForme(type: TypeEntite, id: string, valeur: string):
   return FORMES_DE_MARQUEUR.find((f) => f.forme.test(valeur.trim()) && (lireLEspace(cleDuMarqueur(type, f.marqueur))?.has(id) ?? false));
 }
 
-/** Refus d'un id qu'aucune entrée du catalogue de `type` ne porte. */
+/** Refus d'un id qu'aucune entrée du catalogue de `type` ne porte : l'espace, et le registre d'un
+ *  vocabulaire d'art (`REGISTRE_DU_VOCABULAIRE_D_ART`). */
 export function refMorte(type: TypeEntite, id: string): string {
-  return `« ${id} » est absent du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}).`;
+  const espace = espaceDe(type);
+  const art = vocabulaireDuFichier(espace);
+  const registre = art === undefined ? undefined : REGISTRE_DU_VOCABULAIRE_D_ART[art];
+  return `« ${id} » est absent du catalogue des ${TYPES[type].catalogue} (${registre === undefined ? espace : `${espace}, registre ${registre}`}).`;
 }
 
 /**

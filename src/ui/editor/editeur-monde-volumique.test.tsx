@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -20,7 +21,7 @@ import { effectiveLowerLayerMode, layerHidden, LOWER_LAYER_ISOLATE_BELOW } from 
 import type { PlanDefectAt } from '../../noyau/planDefects';
 import { brancherArdoise } from '../../gameIso/stage/banc-volumique';
 import { REF_HORS_CATALOGUE } from '../../noyau/monde/volume/decorVolumique.testkit';
-const scenarioToitsConstruit = scenarioToits.construire();
+const scenarioToitsConstruit = scenarioToits.construire(idsDeTest);
 
 /**
  * L'ÉDITEUR SUR LA VOIE VOLUMIQUE (#1176, P3-3, vague A). Ce qui se mesure ici :

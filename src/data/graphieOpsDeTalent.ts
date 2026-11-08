@@ -7,11 +7,13 @@
  * Chargée par Node nu (aucun import) : migration de dépôt
  * `scripts/migrations/2026-09-24-1473-graphie-ops-de-talent.mjs`.
  */
+import { estObjet } from '../lib/objet.mjs';
+
 const OPS_DE_TALENT: ReadonlySet<string> = new Set(['grantTalent', 'grantCareerTalent']);
 
 /** L'objet est-il une op de Talent à l'ANCIENNE graphie ? */
 export function estOpDeTalentAncienne(node: unknown): node is { op: string; talentId: string; spec?: string } {
-  if (!node || typeof node !== 'object' || Array.isArray(node)) return false;
+  if (!estObjet(node)) return false;
   const n = node as { op?: unknown; talentId?: unknown };
   return typeof n.op === 'string' && OPS_DE_TALENT.has(n.op) && typeof n.talentId === 'string';
 }

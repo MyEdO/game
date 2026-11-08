@@ -22,8 +22,8 @@ const doc = document(
       /** CATÉGORIES de catalogue vendues (`TrappingData.categorie`) — mesuré : 1 porteur, valeurs ⊆ le
        *  vocabulaire de `trappings.json`. Absent = pas de filtre par catégorie. */
       categories: z.array(z.string()).optional(),
-      /** Sous-types vendus (`TrappingData.subType`, Groupe d'objet) — axe DISTINCT, nom inchangé. */
-      subTypes: z.array(z.string()).optional(),
+      /** Groupes d'objet vendus (`TrappingData.subType`) — axe DISTINCT des catégories. */
+      subTypes: refs('weaponGroup').optional(),
     }), { categories: { label: 'catégories' }, subTypes: { label: 'groupes d’objets' } }),
     settlement: settlementSchema,
     resaleRate: z.number(),

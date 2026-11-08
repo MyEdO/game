@@ -5,8 +5,8 @@
  * des stats déjà portées par les trappings (Dégâts, Allonge, Portée, Qualités, PA d'armure ;
  * Protection des boucliers via l'Atout « Protectrice N »). Présentation pure → testable hors UI.
  */
-import type { Combatant, ItemInstance, WeaponDamageSpec, QualityInstance } from './types';
-import { damageScore, isShieldItem, isUnarmed, damageString, unarmedWeapon, reachRankOf } from './items';
+import type { Combatant, WeaponDamageSpec, QualityInstance } from './types';
+import { type GabaritDObjet, damageScore, isShieldItem, isUnarmed, damageString, unarmedWeapon, reachRankOf } from './items';
 import { effectiveRange } from './weaponDamage';
 import { bonusDeForce } from './characteristics';
 import { resolveQualities } from './qualities/dispatch';
@@ -31,14 +31,14 @@ const trendOf = (n: number): Trend => (n > 0 ? 'up' : n < 0 ? 'down' : 'same');
 /** Indice de l'Atout « Protectrice N » (PA d'un bouclier en parade, LDB 62 l.296) — lecture structurée. */
 const protectrice = (q: QualityInstance[]): number => q.find((x) => x.id === 'protectrice')?.value ?? 0;
 
-export function compareEquip(item: ItemInstance, hero: Combatant): EquipComparison {
+export function compareEquip(item: GabaritDObjet, hero: Combatant): EquipComparison {
   const items = hero.items ?? [];
-  // « Actuellement équipé » pour une ARME = l'arme tenue dans le set actif (les Weapon dérivés `hero.weapons`),
-  // plus `it.equipped` (devenu le seul seed du loadout par défaut). L'armure, elle, reste pilotée par `equipped`.
+  // « Actuellement équipé » pour une ARME = l'arme tenue dans le set actif (les Weapon dérivés `hero.weapons`).
+  // L'armure, elle, est pilotée par `equipped`.
   const wielded = (hero.weapons ?? []).filter((w) => !isUnarmed(w));
 
   if (isShieldItem(item)) {
-    const cur = wielded.find((w) => isShieldItem(w) && w.uid !== item.uid);
+    const cur = wielded.find((w) => isShieldItem(w));
     const cp = protectrice(cur?.qualities ?? []);
     const np = protectrice(item.qualities);
     return {
@@ -49,7 +49,7 @@ export function compareEquip(item: ItemInstance, hero: Combatant): EquipComparis
   }
 
   if (item.kind === 'melee' || item.kind === 'ranged') {
-    const cur = wielded.find((w) => w.type === item.kind && !isShieldItem(w) && w.uid !== item.uid);
+    const cur = wielded.find((w) => w.type === item.kind && !isShieldItem(w));
     const baseline: WeaponDamageSpec | undefined = item.kind === 'melee' ? unarmedWeapon().damage : undefined; // mains nues, LDB 62 l.28
     const curDmg = cur?.damage ?? baseline;
     const rows: CompareRow[] = [

@@ -10,7 +10,7 @@
     "coeur": "4e",
     "niveauDeSection": 3,
     "folder": "Livre de Règle",
-    "desc": "*Des aventures sombres et périlleuses dans le Vieux Monde !*\n\nVous ne pouvez pas lâcher l'affaire, hein ? Vous savez pourtant ce que vous allez découvrir. Vous les avez vus, les impitoyables, les arrogants, les damnés. Vous voudriez bien tourner les talons. La vie serait alors si belle. Vous êtes conscient que, tout en essayant de vous convaincre que vous ne convoitez que le butin, ou que vous ne savez pas résister �� un bon combat, vous foncez. Personne n’est dupe. Alors préparez votre épée, nettoyez votre pistolet et prenez garde à ce chien, bien trop féroce pour sa petite taille.\n\nGrâce à **Warhammer Fantasy le jeu de rôle**, vous retrouvez enfin le Vieux Monde. Rassemblez votre groupe, créez vos (anti) héros et préparez-vous à vous frayer un chemin à travers la destruction, engendrée par l’ignoble corruption, les intrigants et les créatures terrifiantes.\n\nCe livre de base de la quatrième édition de **Warhammer Fantasy le jeu de rôle** renferme tout ce dont vous avez besoin pour vivre des aventures sombres et périlleuses dans le Vieux Monde."
+    "desc": "*Des aventures sombres et périlleuses dans le Vieux Monde !*\n\nVous ne pouvez pas lâcher l'affaire, hein ? Vous savez pourtant ce que vous allez découvrir. Vous les avez vus, les impitoyables, les arrogants, les damnés. Vous voudriez bien tourner les talons. La vie serait alors si belle. Vous êtes conscient que, tout en essayant de vous convaincre que vous ne convoitez que le butin, ou que vous ne savez pas résister à un bon combat, vous foncez. Personne n’est dupe. Alors préparez votre épée, nettoyez votre pistolet et prenez garde à ce chien, bien trop féroce pour sa petite taille.\n\nGrâce à **Warhammer Fantasy le jeu de rôle**, vous retrouvez enfin le Vieux Monde. Rassemblez votre groupe, créez vos (anti) héros et préparez-vous à vous frayer un chemin à travers la destruction, engendrée par l’ignoble corruption, les intrigants et les créatures terrifiantes.\n\nCe livre de base de la quatrième édition de **Warhammer Fantasy le jeu de rôle** renferme tout ce dont vous avez besoin pour vivre des aventures sombres et périlleuses dans le Vieux Monde."
   },
   {
     "id": "core-rulebook-5e",
@@ -258,7 +258,7 @@
     "language": "VF",
     "teneur": "scenario",
     "folder": "Scénario",
-    "desc": "**Campagne**\n\nPremière partie de la campagne de **L'Ennemi intérieur**\n\n*Au moment convenu, nous émergerons de nos repaires secrets et nous mettrons à genoux les villes et cités de l’Empire. Le Chaos envahira cette terre, et nous, les Serviteurs élus, nous nous couvrirons de gloire devant SES yeux. Gloire à Tzeentch, Changeur de Voies ! Njawrr’thakh Lzimbarr Tzeentch !*\n\n**L’Ennemi dans l’Ombre** est le premier volume de la campagne **L’Ennemi intérieur**,  révisée et mise à jour, en version intégrale ou « Director’s cut », l’une des aventures les plus célèbres et prisées du jeu de rôles.\n\nRassemblez vos héros, arrachez-les à leurs humbles débuts d’aventuriers novices et sans le sou pour les entraîner vers les palais des riches et des puissants, où les apparences sont trompeuses et où la moindre décision peut influer sur le destin de l’Empire.\n\nL’Ennemi dans l’Ombre est la première d’une série d’aventures en cinq volumes, composant cette campagne dans le monde sombre et dangereux de Warhammer Fantasy le Jeu de Rôle, qui a inspiré des générations de joueurs. Cette version intégrale inclut des commentaires pertinents teintés d���humour noir, des suggestions astucieuses sur de nouvelles façons de jouer cette campagne, ainsi qu’un guide complet de Bögenhafen, débordant de lieux intéressants à visiter et explorer."
+    "desc": "**Campagne**\n\nPremière partie de la campagne de **L'Ennemi intérieur**\n\n*Au moment convenu, nous émergerons de nos repaires secrets et nous mettrons à genoux les villes et cités de l’Empire. Le Chaos envahira cette terre, et nous, les Serviteurs élus, nous nous couvrirons de gloire devant SES yeux. Gloire à Tzeentch, Changeur de Voies ! Njawrr’thakh Lzimbarr Tzeentch !*\n\n**L’Ennemi dans l’Ombre** est le premier volume de la campagne **L’Ennemi intérieur**,  révisée et mise à jour, en version intégrale ou « Director’s cut », l’une des aventures les plus célèbres et prisées du jeu de rôles.\n\nRassemblez vos héros, arrachez-les à leurs humbles débuts d’aventuriers novices et sans le sou pour les entraîner vers les palais des riches et des puissants, où les apparences sont trompeuses et où la moindre décision peut influer sur le destin de l’Empire.\n\nL’Ennemi dans l’Ombre est la première d’une série d’aventures en cinq volumes, composant cette campagne dans le monde sombre et dangereux de Warhammer Fantasy le Jeu de Rôle, qui a inspiré des générations de joueurs. Cette version intégrale inclut des commentaires pertinents teintés d'humour noir, des suggestions astucieuses sur de nouvelles façons de jouer cette campagne, ainsi qu’un guide complet de Bögenhafen, débordant de lieux intéressants à visiter et explorer."
   },
   {
     "id": "mort-sur-le-reik",
@@ -302,5 +302,13 @@
     "abbr": "EER",
     "language": "VO",
     "folder": "Scénario"
+  },
+  {
+    "id": "guide-frenchy",
+    "type": "books",
+    "label": "Habitants & Créatures du Vieux-Monde",
+    "abbr": "HCVM",
+    "language": "VF",
+    "folder": "Contenu fan"
   }
 ]

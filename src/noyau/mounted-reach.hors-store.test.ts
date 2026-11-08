@@ -5,6 +5,7 @@
  * cavalier mais de 1 de la monture) — et une Charge qui bouge par la monture puis refuse l'attaque par le
  * cavalier laisse une cascade d'attaque orpheline (soft-lock de fin de tour).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
@@ -18,7 +19,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function setup() {
-  const hero = makePregens()[0];
+  const hero = makePregens(idsDeTest)[0];
   hero.weapons = [{ name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }] as never; // Allonge 1
   const mount = spawnEnemy({ ref: 'cheval' }, 'mount-1', { x: 11, y: 9 });
   mount.size = 'grande'; // empreinte 2×2 → couvre (11,9)(12,9)(11,10)(12,10)

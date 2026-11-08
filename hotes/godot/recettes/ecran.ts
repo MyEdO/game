@@ -4,13 +4,13 @@
  * Godot le joue (le début du round, la barre de l'actif, la charge armée, la fenêtre d'attaque avant puis après le
  * jet, chaque fois le geste en focus pressé), puis le combat poursuivi en joueur pressé (chaque fenêtre par son geste en
  * focus ou sa première valeur ouverte, chaque tour une charge ou une attaque sur la première cible, sinon la fin du tour) jusqu'au premier Coup
- * Critique, la fiche du premier héros ouverte par son bouton puis chacun de ses onglets par le sien, sa première
- * possession choisie (ses gestes refusés en combat), le combat poursuivi de même jusqu'à sa fin (la fenêtre de sa
+ * Critique, la fiche du premier héros ouverte par son bouton, son statbloc, sa première possession choisie (ses gestes
+ * refusés en combat), la fiche de la cible de la charge, le combat poursuivi de même jusqu'à sa fin (la fenêtre de sa
  * fin, sa sortie en focus), puis, chacun sur un pont neuf, le premier document de la liasse de `documents-edo` lu, et
- * dans `magie` la Fléchette choisie parmi les sorts de l'actif, sa fenêtre d'incantation avant puis après le jet et un pas
+ * dans `magie` la Fléchette choisie parmi les sorts de l'actif, la fiche du lanceur, sa fenêtre d'incantation avant puis après le jet et un pas
  * de Surincantation alloué, la création d'un héros hors de la partie (`zonesDeLaCreation` sur
  * l'état initial : la race avant puis après son d100, la carrière tirée, les Caractéristiques en 100 points, chacune en
- * liste), la carte du monde et le récit d'une arrivée dans `voyage`, puis dans `bataille-de-masse` l'entre-deux-aventures
+ * liste), la carte du monde, la journée de route arrêtée aux jets des héros puis ces jets tombés, et le récit d'une arrivée dans `voyage`, puis dans `bataille-de-masse` l'entre-deux-aventures
  * (un onglet par héros), les Scènes du premier Round de la bataille et l'entre-deux-Rounds, dans
  * `entre-deux-aventures` les formulaires d'ouvrage et de dépôt du forgeron, et un formulaire de chaque saisie près d'un geste refusé (`elementsDesGestes`) et d'une rangée
  * de cases. Chaque vue porte
@@ -20,7 +20,7 @@
 import { clicDuCombattant, creerPont, type Suite } from '../pont/pont';
 import { CLIC_DU_CHAMP, brouillonDeLaPartie, etatInitialDuJeu, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
-import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type CreationOuverte, type Element, type Entite, type Formulaire, type GesteDeLaCreation, type Jeu, type Ligne, type Plan, type Saisie } from '../../../src/hote/elements';
+import { elementsDesGestes, ligne, type Bouton, type Choix, type CreationOuverte, type Element, type Entite, type Formulaire, type GesteDeLaCreation, type Jeu, type Ligne, type Plan, type Saisie } from '../../../src/hote/elements';
 import { apresLaCreation, zonesDeLaCreation } from '../../../src/hote/creation';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
 
@@ -132,13 +132,15 @@ export function figerVuesDeLEcran(): VueFigee[] {
     if (!b) throw new Error(`aucun bouton que l’Entrée joue dans ${JSON.stringify(s.vue.zones['fenetre.gestes'].map((g) => g.id))}`);
     return b.jeu;
   };
+  /** Le geste que l'offre `id` de la barre déclare, tel que l'hôte le dessine. */
+  const offre = (s: Suite, id: string): Jeu => s.vue.zones['combat.offres'].flatMap((x) => x.valeurs).find((b) => b.id === id)!.jeu;
 
   const { appeler, jouer, fermer } = unPont(lignes);
   let s = jouer('demarrer', { scenario: 'dome', graine: 7 });
   figer('début du round', s);
   s = jouer('jouer', enFocus(s));
   figer('barre de l’actif', s);
-  s = jouer('jouer', { offre: 'charge' });
+  s = jouer('jouer', offre(s, 'charge'));
   figer('charge armée', s);
   const [cible] = s.vue.projection.combat!.cibles.liste;
   s = jouer('jouer', clicDuCombattant(s.vue, cible)!);
@@ -148,8 +150,8 @@ export function figerVuesDeLEcran(): VueFigee[] {
   s = jouer('jouer', enFocus(s));
   for (let tours = 0; s.vue.projection.fenetre?.etape?.genre !== 'defenseJet'; tours++) {
     if (tours > 4) throw new Error(`aucune Défense après ${tours} fins de tour : ${JSON.stringify(s.vue.projection.fenetre)}`);
-    s = jouer('jouer', { offre: 'end-turn' });
-    if (s.vue.projection.combat!.finDeTourArmee) s = jouer('jouer', { offre: 'end-turn' });
+    s = jouer('jouer', offre(s, 'end-turn'));
+    if (s.vue.projection.combat!.finDeTourArmee) s = jouer('jouer', offre(s, 'end-turn'));
   }
   figer('Défense', s);
   s = jouer('jouer', enFocus(s));
@@ -173,13 +175,13 @@ export function figerVuesDeLEcran(): VueFigee[] {
   }
   figer('Coup Critique', s);
   s = appeler('fiche', s.vue.zones['groupe.heros'][0].jeu);
-  for (const onglet of ONGLETS_DE_LA_FICHE) {
-    s = appeler('fiche', s.vue.zones['fiche.gestes'].find((b) => b.id === `onglet/${onglet}`)!.jeu);
-    figer(`fiche du héros, ${onglet}`, s);
-  }
-  s = appeler('fiche', s.vue.zones['fiche.corps'].find((e): e is Bouton => e.type === 'bouton')!.jeu);
+  figer('fiche du héros, son statbloc', s);
+  const possessions = s.vue.zones['fiche.sections'].find((e) => e.id === 'section/possessions')!.elements;
+  s = appeler('fiche', possessions.find((e): e is Bouton => e.type === 'bouton')!.jeu);
   figer('fiche du héros, une possession choisie', s);
-  s = appeler('fiche', { fiche: null });
+  s = appeler('fiche', { fiche: { porteur: cible } });
+  figer('fiche d’un adversaire, son statbloc', s);
+  s = appeler('fiche', s.vue.zones['fiche.gestes'][0].jeu);
   const fini = (s: Suite) => !!s.vue.projection.combat?.fin && !!s.vue.projection.fenetre && !s.vue.projection.fenetre.etape;
   for (let pas = 0; !fini(s); pas++) {
     if (pas > 600) throw new Error(`aucune fin du combat après ${pas} gestes`);
@@ -213,6 +215,8 @@ export function figerVuesDeLEcran(): VueFigee[] {
   const sorts = s.vue.zones['combat.offres'].find((c): c is Choix => c.id === 'offre/cast-spell')!;
   s = magie.jouer('jouer', sorts.valeurs.find((b) => b.libelle === 'Fléchette')!.jeu);
   figer('sort choisi parmi ceux de l’actif', s);
+  figer('fiche du lanceur, son statbloc et ses sorts', magie.appeler('fiche', { fiche: { porteur: s.vue.projection.combat!.actif!.id } }));
+  s = magie.appeler('fiche', { fiche: null });
   s = magie.jouer('jouer', clicDuCombattant(s.vue, s.vue.projection.combat!.cibles.liste[0])!);
   figer('fenêtre d’incantation', s);
   s = magie.jouer('jouer', enFocus(s));
@@ -227,8 +231,10 @@ export function figerVuesDeLEcran(): VueFigee[] {
   figer('carte du monde', s);
   const plan = s.vue.zones['fenetre.corps'].find((e): e is Plan => e.type === 'plan')!;
   s = voyage.jouer('jouer', plan.points.flatMap((p) => p.elements).find((e): e is Choix => e.id === 'r-grandroute')!.valeurs[0].jeu);
+  figer('voyage : la journée arrêtée aux jets des héros', s);
   for (let pas = 0; !s.vue.zones['fenetre.corps'].some((e) => e.id === 'recit/issue'); pas++) {
     if (pas > 80) throw new Error(`aucun récit de voyage après ${pas} gestes : ${JSON.stringify(s.vue.zones['fenetre.titre'])}`);
+    if (pas === 4) figer('voyage : les jets des héros tombés, la Chance à saisir', s);
     if (s.vue.zones['fenetre.corps'].some((e) => e.id === 'repos/nuit')) figer('repos, la nuit à régler', s);
     s = voyage.jouer('jouer', presse(s));
   }
@@ -295,7 +301,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
     'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'exploration.gestes': [], 'dialogue.orateur': [], 'dialogue.replique': [], 'dialogue.reponses': [], 'journal.titre': [],
-    'groupe.heros': [], 'fiche.heros': [], 'fiche.gestes': [], 'fiche.corps': [], 'fiche.objet': [],
+    'groupe.heros': [], 'fiche.porteur': [], 'fiche.gestes': [], 'fiche.profil': [], 'fiche.sections': [], 'fiche.source': [], 'fiche.objet': [],
     'groupe.gestes': [], 'creation.titre': [], 'creation.corps': [], 'creation.gestes': [],
   };
   const etat = etatInitialDuJeu();

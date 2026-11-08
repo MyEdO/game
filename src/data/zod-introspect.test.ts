@@ -50,9 +50,9 @@ describe('zod-introspect — coupe de CYCLE des relevés par valeur (#1473)', ()
 
 describe('choix des payloads d’op : un enum se ferme À SA POSITION (op, champ), sauf s’il recopie un espace d’ids (#2818)', () => {
   // `mode` : vocabulaire PROPRE (`all` n'est l'id d'aucun document) dont `melee` est homonyme d'un id
-  // d'`axes.json` ; `char` : enum dont TOUS les littéraux sont des ids de `caracs.json`.
+  // d'`axes.json` ; `characteristic` : enum dont TOUS les littéraux sont des ids de `caracs.json`.
   const OPS = {
-    sonde: z.strictObject({ op: z.literal('sonde'), mode: z.enum(['melee', 'ranged', 'all']), char: z.enum(['force', 'endurance']) }),
+    sonde: z.strictObject({ op: z.literal('sonde'), mode: z.enum(['melee', 'ranged', 'all']), characteristic: z.enum(['force', 'endurance']) }),
   };
   const ESPACES = { 'axes.json': ['melee', 'tir'], 'caracs.json': ['force', 'endurance', 'agilite'] };
   const dossier = mkdtempSync(join(tmpdir(), 'choix-payloads-op-'));
@@ -65,7 +65,7 @@ describe('choix des payloads d’op : un enum se ferme À SA POSITION (op, champ
   writeFileSync(
     join(dossier, 'src/data/porteurs.json'),
     JSON.stringify(
-      ['un', 'deux', 'trois'].map((id) => ({ id, maison: 'sonde', passive: [{ op: 'sonde', mode: 'melee', char: 'force', amount: 1 }] })),
+      ['un', 'deux', 'trois'].map((id) => ({ id, maison: 'sonde', passive: [{ op: 'sonde', mode: 'melee', characteristic: 'force', amount: 1 }] })),
     ),
   );
   const fixture = scannerDonnees(dossier, [], new Map(), choixDesPayloadsDOp(OPS, ESPACES));
@@ -81,6 +81,6 @@ describe('choix des payloads d’op : un enum se ferme À SA POSITION (op, champ
 
   it('un enum qui RECOPIE un espace d’ids reste une référence', () => {
     for (const id of ['un', 'deux', 'trois'])
-      expect(cles(id), '`char: "force"` recopie `caracs.json` : la valeur reste une référence comptée.').toEqual(['char']);
+      expect(cles(id), '`characteristic: "force"` recopie `caracs.json` : la valeur reste une référence comptée.').toEqual(['characteristic']);
   });
 });

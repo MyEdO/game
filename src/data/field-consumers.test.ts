@@ -312,7 +312,7 @@ describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
     expect(
       specLecteurs,
       'TrappingRef.spec devrait avoir EXACTEMENT 2 lecteurs : la résolution de choix et la matérialisation',
-    ).toEqual(['src/engine/items.ts @itemFromTrappingRef', 'src/engine/trappingChoices.ts @spec']);
+    ).toEqual(['src/engine/items.ts @gabaritDeLaRef', 'src/engine/trappingChoices.ts @spec']);
     expect(specSites.size, `un site lecteur par symbole — sites : ${[...specSites].join(', ')}`).toBe(2);
     expect(
       hits.some((h) => h.file.includes('data/index.ts')),
@@ -412,10 +412,9 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
   TalentData: ['codexOnly', 'grantSpecGroups', 'specsOpen'],
   TraitData: ['difficulte', 'grantSpecGroups', 'specsOpen'],
   TrappingData: [
-    'bladed', 'consumableDuration', 'container', 'defaultAmmo', 'indirect', 'minRangeBand', 'onHitEffects',
+    'bladed', 'consumableDuration', 'container', 'indirect', 'minRangeBand', 'onHitEffects',
     'organicProjectile', 'requiresMastery', 'service', 'sizeFor', 'soloSimple',
   ],
-  VehicleData: ['deck'],
 };
 
 /** Raison d'un zéro LU hors du type de l'entrée, mesurée par la jointure (lecture reliée au dataset sous

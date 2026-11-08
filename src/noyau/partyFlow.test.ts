@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { afterEach, describe, it, expect } from 'vitest';
 import { poserLApparence, transmettreLObjet, equiperLObjet, rangerLObjet, garnirLaPanoplie } from './partyFlow';
 import { itemFromTrappingById, recomputeLoadout, totalEncumbrance, avecObjet, activeLoadout, formeResolue, choisirApparenceDObjet, weaponItem } from '../engine/items';
@@ -31,7 +32,7 @@ function makeMulePossession(items: ItemInstance[]): Possession {
 
 /** Héros porteur d'une « Arme simple » ÉQUIPÉE (shape par défaut `epee`), loadout dérivé par recompute. */
 function heroWithArmeSimple(): Combatant {
-  const it = itemFromTrappingById('arme-simple')!;
+  const it = itemFromTrappingById('arme-simple', idsDeTest)!;
   it.equipped = true;
   const hero = blessuresSurLeProfil({
     id: 'h1', name: 'Test', kind: 'hero', characteristics: { force: 30, endurance: 30 } as Combatant['characteristics'],
@@ -50,7 +51,7 @@ describe('poserLApparence — apparence d’un objet', () => {
     setDataset('trappings', trappings.map((t) => (t.id === 'arme-simple' ? { ...t, ...patch } : t)));
 
   it('une « Arme simple » créée via itemFromTrappingById ne porte aucun choix : sa forme résolue est celle du catalogue', () => {
-    const it = itemFromTrappingById('arme-simple')!;
+    const it = itemFromTrappingById('arme-simple', idsDeTest)!;
     expect(it.apparence).toBeUndefined();
     expect(formeResolue(it)).toBe('epee');
   });
@@ -62,7 +63,7 @@ describe('poserLApparence — apparence d’un objet', () => {
     ['zweihander', 'epee'],
     ['apparence-inconnue', 'epee'],
   ])('cas canonique : apparence %s → forme %s', (apparence, forme) => {
-    const objet = itemFromTrappingById('arme-simple')!;
+    const objet = itemFromTrappingById('arme-simple', idsDeTest)!;
     if (apparence) choisirApparenceDObjet(objet, apparence, findTrappingById);
     expect(formeResolue(objet)).toBe(forme);
   });
@@ -71,14 +72,14 @@ describe('poserLApparence — apparence d’un objet', () => {
     const hero = heroWithArmeSimple();
     const objet = { ...findTrappingById('arme-simple')!, id: 'hache-de-campagne', shape: { id: 'hache' }, formChoices: ['hache'] };
     const narratif = { ...emptyNarratif(), objets: [objet] };
-    hero.items = [{ ...itemFromTrappingById(objet.id, objetDuNarratif(narratif))!, uid: hero.items![0].uid, equipped: true }];
+    hero.items = [{ ...itemFromTrappingById(objet.id, idsDeTest, objetDuNarratif(narratif))!, uid: hero.items![0].uid, equipped: true }];
     recomputeLoadout(hero);
     const { get, set } = makeHarness([hero]);
     set({ campaignNarratif: narratif });
     const uid = hero.items![0].uid;
-    poserLApparence(get, set, hero.id, uid, 'hache_naine');
+    poserLApparence(get, set, uid, 'hache_naine');
     expect(get().party[0].items![0].apparence).toBe('hache_naine');
-    poserLApparence(get, set, hero.id, uid, 'hache');
+    poserLApparence(get, set, uid, 'hache');
     expect(get().party[0].items![0]).not.toHaveProperty('apparence');
   });
 
@@ -86,7 +87,7 @@ describe('poserLApparence — apparence d’un objet', () => {
     const hero = heroWithArmeSimple();
     const uid = hero.items![0].uid;
     const { get, set } = makeHarness([hero]);
-    poserLApparence(get, set, hero.id, uid, 'hache_naine');
+    poserLApparence(get, set, uid, 'hache_naine');
     expect(get().party[0].items![0].apparence).toBe('hache_naine');
     expect(activeWeapon(get().party[0], uid)?.apparence).toBe('hache_naine');
     expect(get().party[0].items![0]).toHaveProperty('shape', { id: 'hache' });
@@ -99,8 +100,8 @@ describe('poserLApparence — apparence d’un objet', () => {
     const hero = heroWithArmeSimple();
     const uid = hero.items![0].uid;
     const { get, set } = makeHarness([hero]);
-    poserLApparence(get, set, hero.id, uid, 'hache_naine');
-    poserLApparence(get, set, hero.id, uid, 'epee');
+    poserLApparence(get, set, uid, 'hache_naine');
+    poserLApparence(get, set, uid, 'epee');
     expect(get().party[0].items![0]).not.toHaveProperty('apparence');
     expect(activeWeapon(get().party[0], uid)).not.toHaveProperty('apparence');
     expect(formeResolue(activeWeapon(get().party[0], uid)!)).toBe('epee');
@@ -110,13 +111,13 @@ describe('poserLApparence — apparence d’un objet', () => {
     editerArmeSimple({ formChoices: undefined });
     const hero = heroWithArmeSimple();
     const { get, set } = makeHarness([hero]);
-    poserLApparence(get, set, hero.id, hero.items![0].uid, 'epee_sertie');
+    poserLApparence(get, set, hero.items![0].uid, 'epee_sertie');
     expect(get().party[0].items![0].apparence).toBe('epee_sertie');
     expect(formeResolue(activeWeapon(get().party[0], hero.items![0].uid)!)).toBe('epee');
   });
 
   it('l’arme invoquée garde priorité sur l’apparence', () => {
-    const arme = weaponItem({ label: 'Arme invoquée', damage: { plusBF: true, flat: 4 }, trappingId: 'arme-simple', apparence: 'hache_naine', shape: findTrappingById('baton-de-combat')!.shape });
+    const arme = weaponItem({ label: 'Arme invoquée', damage: { plusBF: true, flat: 4 }, trappingId: 'arme-simple', apparence: 'hache_naine', shape: findTrappingById('baton-de-combat')!.shape, uid: 'conjure-1' });
     expect(formeResolue(arme)).toBe('baton');
   });
 
@@ -124,17 +125,17 @@ describe('poserLApparence — apparence d’un objet', () => {
     const hero = heroWithArmeSimple();
     const uid = hero.items![0].uid;
     const { get, set } = makeHarness([hero]);
-    poserLApparence(get, set, hero.id, uid, 'hache');
+    poserLApparence(get, set, uid, 'hache');
     const after = get().party[0];
     expect((after.items ?? []).find((i: ItemInstance) => i.uid === uid)?.apparence).toBe('hache');
   });
 
-  it.each(['zweihander', 'apparence-inconnue'])('ignore une apparence refusée : %s', (apparence) => {
+  it.each(['zweihander', 'apparence-inconnue'])('refuse une apparence non admise, l’objet garde la sienne : %s', (apparence) => {
     const hero = heroWithArmeSimple();
     const uid = hero.items![0].uid;
     const { get, set } = makeHarness([hero]);
-    poserLApparence(get, set, hero.id, uid, 'hache_naine');
-    poserLApparence(get, set, hero.id, uid, apparence);
+    poserLApparence(get, set, uid, 'hache_naine');
+    poserLApparence(get, set, uid, apparence);
     const after = get().party[0];
     expect((after.items ?? []).find((i: ItemInstance) => i.uid === uid)?.apparence).toBe('hache_naine');
   });
@@ -144,7 +145,7 @@ describe('poserLApparence — apparence d’un objet', () => {
     const uid = hero.items![0].uid;
     expect(formeResolue(activeWeapon(hero, uid)!)).toBe('epee'); // état initial : épée
     const { get, set } = makeHarness([hero]);
-    poserLApparence(get, set, hero.id, uid, 'masse');
+    poserLApparence(get, set, uid, 'masse');
     const after = get().party[0];
     expect(activeWeapon(after, uid)?.apparence).toBe('masse');
     expect(formeResolue(activeWeapon(after, uid)!)).toBe('masse');
@@ -154,10 +155,10 @@ describe('poserLApparence — apparence d’un objet', () => {
     const hero = heroWithArmeSimple();
     const uid = hero.items![0].uid;
     const { get, set } = makeHarness([hero]);
-    poserLApparence(get, set, hero.id, uid, 'masse');
+    poserLApparence(get, set, uid, 'masse');
     editerArmeSimple({ shape: { id: 'hache' } });
     const arme = activeWeapon(get().party[0], uid)!;
-    expect(formeResolue(itemFromTrappingById('arme-simple')!), 'la sonde mord : une nouvelle naissance prend la nouvelle forme').toBe('hache');
+    expect(formeResolue(itemFromTrappingById('arme-simple', idsDeTest)!), 'la sonde mord : une nouvelle naissance prend la nouvelle forme').toBe('hache');
     expect(formeResolue(arme)).toBe('masse');
   });
 
@@ -165,7 +166,7 @@ describe('poserLApparence — apparence d’un objet', () => {
     const hero = heroWithArmeSimple();
     const uid = hero.items![0].uid;
     const { get, set } = makeHarness([hero]);
-    poserLApparence(get, set, hero.id, uid, 'masse');
+    poserLApparence(get, set, uid, 'masse');
     editerArmeSimple({ formChoices: ['epee', 'hache'] });
     expect(formeResolue(activeWeapon(get().party[0], uid)!)).toBe('masse');
   });
@@ -196,7 +197,7 @@ describe('transmettreLObjet — contenants et objets rangés (#612)', () => {
     const { from, to } = twoHeroes([sac, rations, corde]);
     const { get, set } = makeHarness([from, to]);
 
-    transmettreLObjet(get, set, 'sac', 'h1', 'h2');
+    transmettreLObjet(get, set, 'sac', 'h2');
 
     const after = get().party;
     const afterFrom = after.find((h) => h.id === 'h1')!;
@@ -218,7 +219,7 @@ describe('transmettreLObjet — contenants et objets rangés (#612)', () => {
     const { from, to } = twoHeroes([sac, rations]);
     const { get, set } = makeHarness([from, to]);
 
-    transmettreLObjet(get, set, 'rations', 'h1', 'h2');
+    transmettreLObjet(get, set, 'rations', 'h2');
 
     const after = get().party;
     const afterFrom = after.find((h) => h.id === 'h1')!;
@@ -233,10 +234,10 @@ describe('transmettreLObjet — contenants et objets rangés (#612)', () => {
 });
 
 describe('généralisation porteur (#620 SOCLE POSSESSIONS T1-e) — héros OU possession', () => {
-  it('equiperLObjet(carrierId=hero.id) : comportement héros INCHANGÉ (arme équipée + recomputeLoadout)', () => {
+  it('equiperLObjet sur l’objet d’un héros : son porteur lu dans l’état (arme équipée + recomputeLoadout)', () => {
     // Héros SANS loadout encore posé (`ensureDefaultLoadout` ne dérive qu'AU 1er recompute, LDB) : l'item
     // part non-équipé, aucun `weapons` actif tant qu'equiperLObjet n'a pas tourné.
-    const it = itemFromTrappingById('arme-simple')!;
+    const it = itemFromTrappingById('arme-simple', idsDeTest)!;
     it.equipped = false;
     const hero = blessuresSurLeProfil({
       id: 'h1', name: 'Test', kind: 'hero', characteristics: { force: 30, endurance: 30 } as Combatant['characteristics'],
@@ -245,19 +246,19 @@ describe('généralisation porteur (#620 SOCLE POSSESSIONS T1-e) — héros OU p
     const uid = it.uid;
     const { get, set } = makeHarness([hero]);
 
-    equiperLObjet(get, set, hero.id, uid);
+    equiperLObjet(get, set, uid);
 
     const after = get().party[0];
     expect((after.items ?? []).find((i) => i.uid === uid)?.equipped).toBe(true);
     expect(activeWeapon(after, uid)).toBeDefined(); // recomputeLoadout a bien tourné (héros)
   });
 
-  it('equiperLObjet(carrierId=possession.uid) : bascule equipped sur la possession, SANS recomputeLoadout', () => {
+  it('equiperLObjet sur l’objet d’une possession : bascule equipped sur la possession, SANS recomputeLoadout', () => {
     const it: ItemInstance = { uid: 'selle', label: 'Selle', kind: 'misc', qualities: [], enc: 2, equipped: false } as unknown as ItemInstance;
     const mule = makeMulePossession([it]);
     const { get, set } = makeHarness([], [mule]);
 
-    equiperLObjet(get, set, mule.uid, 'selle');
+    equiperLObjet(get, set, 'selle');
 
     const after = get().possessions[0];
     expect(after.items.find((i) => i.uid === 'selle')?.equipped).toBe(true);
@@ -270,7 +271,7 @@ describe('généralisation porteur (#620 SOCLE POSSESSIONS T1-e) — héros OU p
     const mule = makeMulePossession([]);
     const { get, set } = makeHarness([hero], [mule]);
 
-    transmettreLObjet(get, set, 'lanterne', hero.id, mule.uid);
+    transmettreLObjet(get, set, 'lanterne', mule.uid);
 
     const afterHero = get().party.find((h) => h.id === hero.id)!;
     const afterMule = get().possessions.find((p) => p.uid === mule.uid)!;
@@ -284,7 +285,7 @@ describe('généralisation porteur (#620 SOCLE POSSESSIONS T1-e) — héros OU p
     const mule = makeMulePossession([sac, rations]);
     const { get, set } = makeHarness([], [mule]);
 
-    rangerLObjet(get, set, mule.uid, 'rations', 'bat');
+    rangerLObjet(get, set, 'rations', 'bat');
 
     const after = get().possessions[0];
     expect(after.items.find((i) => i.uid === 'rations')?.inside).toBe('bat');
@@ -298,7 +299,7 @@ describe('transmettreLObjet — invariant de CO-LOCALISATION (#723, garde store,
     const mule = makeMulePossession([]); // location par défaut : avec-le-groupe
     const { get, set } = makeHarness([hero], [mule]);
 
-    transmettreLObjet(get, set, 'lanterne', hero.id, mule.uid);
+    transmettreLObjet(get, set, 'lanterne', mule.uid);
 
     expect(get().party.find((h) => h.id === hero.id)!.items ?? []).toHaveLength(0);
     expect(get().possessions.find((p) => p.uid === mule.uid)!.items.map((i) => i.uid)).toEqual(['lanterne']);
@@ -310,7 +311,7 @@ describe('transmettreLObjet — invariant de CO-LOCALISATION (#723, garde store,
     const mule = { ...makeMulePossession([]), location: { kind: 'au-lieu', placeId: 'altdorf' } } as Possession;
     const { get, set } = makeHarness([hero], [mule]);
 
-    transmettreLObjet(get, set, 'lanterne', hero.id, mule.uid);
+    transmettreLObjet(get, set, 'lanterne', mule.uid);
 
     expect(get().party.find((h) => h.id === hero.id)!.items ?? []).toHaveLength(1); // reste chez le héros
     expect(get().possessions.find((p) => p.uid === mule.uid)!.items).toHaveLength(0);
@@ -322,7 +323,7 @@ describe('transmettreLObjet — invariant de CO-LOCALISATION (#723, garde store,
     const mule = { ...makeMulePossession([]), location: { kind: 'embarquee', hostUid: 'pos-navire' } } as Possession;
     const { get, set } = makeHarness([hero], [mule]);
 
-    transmettreLObjet(get, set, 'lanterne', hero.id, mule.uid);
+    transmettreLObjet(get, set, 'lanterne', mule.uid);
 
     expect(get().party.find((h) => h.id === hero.id)!.items ?? []).toHaveLength(1);
     expect(get().possessions.find((p) => p.uid === mule.uid)!.items).toHaveLength(0);
@@ -334,12 +335,12 @@ describe('rangerLObjet — ranger l’arme TENUE dans un sac', () => {
   it('l’épée rangée n’est plus en main, et les Mains nues la remplacent', () => {
     const hero = heroWithArmeSimple();
     const epee = hero.items![0];
-    const sac = { ...itemFromTrappingById('sac')!, uid: 'sac-1', equipped: true };
+    const sac = { ...itemFromTrappingById('sac', idsDeTest)!, uid: 'sac-1', equipped: true };
     hero.items!.push(sac);
     recomputeLoadout(hero);
     expect(activeWeapon(hero, epee.uid)).toBeDefined();
     const { get, set } = makeHarness([hero]);
-    rangerLObjet(get, set, 'h1', epee.uid, 'sac-1');
+    rangerLObjet(get, set, epee.uid, 'sac-1');
     const apres = get().party[0];
     expect(apres.items!.find((i) => i.uid === epee.uid)?.inside, 'l’épée est rangée').toBe('sac-1');
     expect(activeWeapon(apres, epee.uid), 'elle n’est plus en main').toBeUndefined();
@@ -350,9 +351,9 @@ describe('rangerLObjet — ranger l’arme TENUE dans un sac', () => {
 // Un objet mis en main sort de son contenant : l'arme achetée (rangée d'office, `autoStowNewItem`) se choisit au set.
 describe('garnirLaPanoplie — une arme ACHETÉE, rangée dans un sac, choisie au set', () => {
   it('elle est en main, et n’est plus dans le sac', () => {
-    const base = blessuresSurLeProfil({ id: 'h1', label: 'Test', kind: 'hero', characteristics: { force: 30, endurance: 30 }, items: [{ ...itemFromTrappingById('sac')!, uid: 'sac-1', equipped: true }], weapons: [], talents: [], skills: [], traits: [], activeEffects: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10) }) as unknown as Combatant;
+    const base = blessuresSurLeProfil({ id: 'h1', label: 'Test', kind: 'hero', characteristics: { force: 30, endurance: 30 }, items: [{ ...itemFromTrappingById('sac', idsDeTest)!, uid: 'sac-1', equipped: true }], weapons: [], talents: [], skills: [], traits: [], activeEffects: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10) }) as unknown as Combatant;
     recomputeLoadout(base);
-    const hero = avecObjet(base, itemFromTrappingById('arme-simple')!);
+    const hero = avecObjet(base, itemFromTrappingById('arme-simple', idsDeTest)!);
     const achat = hero.items!.find((i) => i.kind === 'melee')!;
     expect(achat.inside, 'rangée d’office à l’achat').toBe('sac-1');
     const { get, set } = makeHarness([hero]);

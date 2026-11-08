@@ -35,6 +35,10 @@
 //   tenue (Z, Q, S ou D) mène le groupe à une case voisine, que le noyau a jouée ; V rend la tactique.
 // - `meteo` (`--scenario voyage`, #3625) : le village sous la pluie ; en tactique, des averses tombent dans le monde ; au
 //   plateau, rien ne tombe ; en immersion, la pluie tombe autour de l'œil.
+// - `vehicule` (`--scenario caraque`, #2987) : la page rechargée à deviceScaleFactor 2 ; en tactique, chaque véhicule de
+//   la vue posé à l'écran (`wfrpEcran.corps`) : son élément, l'emblème de sa donnée sur ses surfaces `blason`, la pièce de
+//   chacun de ses postes et de chacune de ses Améliorations, dans l'ordre de la vue ; les fenêtres fermées à l'Entrée, une
+//   capture d'ensemble, puis Origine et la molette rapprochent la caméra du véhicule actif, capturé à chaque cran de pivot (Q).
 // - `brume` (`--scenario brouillard`, #3625) : la clairière sous le brouillard ; en tactique, les nappes de la donnée ;
 //   en immersion, aucune nappe et la brume de profondeur part de l'œil, plus serrée.
 // - `dialogue` (`--scenario dialogue-multi`) : l'entrée de la scène poursuivie à l'Entrée, un clic sur une case à côté de
@@ -61,10 +65,10 @@
 // - `bataille` (`--scenario bataille-de-masse`) : l'interlude clos, la bataille montre ses armées et les Scènes du
 //   Round ; « Résoudre » ouvre le jet de la première Scène à postes, lancé à l'Entrée puis appliqué : la Scène se
 //   ferme ; le Test spectaculaire ouvre l'entre-deux-Rounds, « Round suivant » le Round 2.
-// - `fiche` : la fenêtre du round à l'Entrée, puis la fiche du premier héros ouverte par son bouton, chacun de ses
-//   onglets cliqué, un Talent survolé (sa description en bulle), et la fiche fermée par son bouton « Fermer ».
-// - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, la fiche de Rosa Brandt à
-//   ses possessions, son armure choisie puis ôtée par « Porter », sa potion choisie.
+// - `fiche` : la fenêtre du round à l'Entrée, puis le statbloc du premier héros ouvert par son bouton, celui d'un ennemi
+//   ouvert au clic droit sur sa case, et la fiche fermée par son bouton « Fermer ».
+// - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, le statbloc de Rosa Brandt,
+//   son armure choisie dans ses possessions puis ôtée par « Porter », sa potion choisie.
 // - `creation` (`--scenario marche-equipement`) : l'entrée de la scène poursuivie à l'Entrée, « Nouveau héros » ouvre
 //   la création sur la race, sans résultat ni suivante avant le d100 ; le d100 tiré, la suivante à l'Entrée ; la
 //   carrière tirée, puis les Caractéristiques ; « Nouveau héros » pressé ferme la création sans héros nouveau.
@@ -136,6 +140,7 @@
 //   node hotes/godot/recette.mjs --parcours etage --scenario fenetre-ecuries --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours regards --scenario fenetre-ecuries --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours creation --scenario marche-equipement --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours vehicule --scenario caraque --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours dialogue --scenario dialogue-multi --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours atelier --web <export> --captures <dossier> --modeles <dossier neuf>
 //     --base <production> --element <production> --reexport <production> [--clip Sword_Attack]
@@ -152,7 +157,7 @@ import { crc32, deflateSync } from 'node:zlib'
 import { servir } from './servir.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
-import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, poserFichier, realKey, realKeyDown, realKeyUp, shot, sleep, survoler, waitFor } from '../../scripts/recette/lib.mjs'
+import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, poserFichier, realKey, realKeyDown, realKeyUp, shot, sleep, waitFor } from '../../scripts/recette/lib.mjs'
 
 import { chargerAssets } from './asset/charger.mjs'
 
@@ -160,7 +165,7 @@ const chaine = { type: 'string' }
 const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|brume|fiche|inventaire|creation|editeur|atelier|composition]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|vehicule|brume|fiche|inventaire|creation|editeur|atelier|composition]')
 if (o.parcours === 'atelier' && !(o.modeles && o.base && o.element && o.reexport)) throw new Error('--parcours atelier attend --modeles <dossier neuf> --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
@@ -604,6 +609,41 @@ async function parcoursRegards() {
   await capturer('3476-v4-tactique-suivie')
 }
 
+/** Les crans de molette qui rapprochent la caméra tactique du véhicule actif. */
+const CRANS_DU_GROS_PLAN = 6
+/** Les crans de pivot (Q) d'un tour complet de la caméra tactique autour du véhicule. */
+const CRANS_DE_PIVOT = 4
+async function parcoursVehicule() {
+  await session.rpc('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 2, mobile: false })
+  await session.rpc('Page.reload')
+  await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  const v = await vue()
+  const attendus = Object.entries(v.corps.vehicules).map(([id, x]) => ({
+    id, vehicule: x.element, embleme: x.embleme?.id ?? null, postes: x.postes.map((p) => p.element), ameliorations: x.ameliorations.map((a) => a.element),
+  }))
+  assert.ok(attendus.some((a) => a.postes.length && a.ameliorations.length && a.embleme), `un véhicule servi porte des postes, des Améliorations et un emblème : ${JSON.stringify(attendus)}`)
+  await waitFor(session, `(() => { const c = globalThis.wfrpEcran?.corps; return !!c && ${JSON.stringify(attendus)}.every((a) => c[a.id]?.vehicule === a.vehicule
+    && c[a.id].embleme_du_vehicule === a.embleme && JSON.stringify(c[a.id].postes) === JSON.stringify(a.postes)
+    && JSON.stringify(c[a.id].ameliorations) === JSON.stringify(a.ameliorations)) })()`, { timeoutMs: 180000 })
+  for (const a of attendus) noter(`${a.id} : « ${a.vehicule} », emblème « ${a.embleme} », ${a.postes.length} pièces de poste, ${a.ameliorations.length} pièces d’Amélioration`)
+  while ((await vue()).projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+  }
+  await sleep(1500)
+  await capturer('2987-caraque-tactique')
+  await realKey(session, { key: 'Home', code: 'Home', windowsVirtualKeyCode: 36 })
+  for (let i = 0; i < CRANS_DU_GROS_PLAN; i++) await molette(session, { surface: 'canvas', x: 640, y: 400 }, -100)
+  for (let cran = 0; cran < CRANS_DE_PIVOT; cran++) {
+    await sleep(1500)
+    await capturer(`2987-caraque-gros-plan-${cran}`)
+    await realKey(session, { key: 'q', code: 'KeyQ', windowsVirtualKeyCode: 81 })
+  }
+}
+
 async function parcoursMeteo() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
@@ -863,6 +903,16 @@ async function parcoursVoyage() {
   noter(`carte : ${points.map((p) => `${p.nom} [${p.ton}] (${p.elements.map((x) => `${x.libelle} : ${x.valeurs.map((b) => b.libelle).join(', ')}`).join(' ; ')})`).join(' | ')}`)
   await capturer('3328-l1-1-carte')
   await cliquerBouton('À pied · 2 j')
+  await attendreLaVue("v.disposition === 'voyage'")
+  v = await vue()
+  noter(`voyage : ${corps(v)}`)
+  await capturer('3534-voyage-1-jets')
+  for (let k = 0; k < 4; k++) {
+    await cliquerBouton('Lancer')
+    await attendreLaVue(`v.zones['fenetre.corps'].filter((e) => e.type === 'jet' && e.resultat).length > ${k}`)
+  }
+  noter(`jets tombés : ${corps(await vue())}`)
+  await capturer('3534-voyage-2-tombes')
   await avancer('recitDeVoyage')
   await attendreLaVue("v.projection.fenetre?.cle === 'recitDeVoyage'")
   v = await vue()
@@ -1062,25 +1112,23 @@ async function parcoursFiche() {
   assert.ok(heros, 'chaque héros du groupe a son bouton')
   await cliquerBouton(bouton(heros))
   v = await vue()
-  assert.equal(zone(v, 'fiche.heros')[0]?.nom, heros.libelle, 'son bouton ouvre la fiche du héros')
-  noter(`bouton « ${heros.libelle} » : fiche ouverte ; ${zone(v, 'fiche.corps').map((p) => `${p.libelle} ${p.valeur}`).join(' · ')}`)
-  await capturer('3328-fiche-1-caracteristiques')
-  for (const [i, onglet] of ['competences', 'talents', 'possessions'].entries()) {
-    await cliquerBouton({ element: `bouton/onglet/${onglet}` })
-    v = await vue()
-    assert.equal(zone(v, 'fiche.gestes').find((b) => b.presse)?.id, `onglet/${onglet}`, `l’onglet ${onglet} cliqué est ouvert`)
-    noter(`onglet ${onglet} : ${zone(v, 'fiche.corps').length} entrées`)
-    await capturer(`3328-fiche-${i + 2}-${onglet}`)
-    if (onglet === 'talents') {
-      const premier = trouver((await ecran()).boutons, { element: 'bouton/onglet/caracteristiques' })
-      await survoler(session, { surface: 'canvas', x: premier.x, y: premier.y + 100 }, { attenteMs: 1500 })
-      await capturer('3328-fiche-3b-talent-survole')
-    }
-  }
+  assert.equal(zone(v, 'fiche.porteur')[0]?.nom, heros.libelle, 'son bouton ouvre le statbloc du héros')
+  noter(`bouton « ${heros.libelle} » : ${zone(v, 'fiche.profil').map((p) => `${p.libelle} ${p.valeur}`).join(' · ')} ; ${zone(v, 'fiche.sections').map((s) => s.nom).join(', ')}`)
+  await capturer('3678-statbloc-1-heros')
+  const [cle, ennemi] = Object.entries(v.occupants).find(([, id]) => element(v, 'combat.ordre', `ordre/${id}`)?.ton === 'echec')
+  const [x, y, z] = cle.split(',').map(Number)
+  const [px, py] = (await ecran()).cases[`${x},${y},${z}`]
+  await marquer()
+  await geste(session, { surface: 'canvas', x: px, y: py }, { qui: `clic droit (${Math.round(px)}, ${Math.round(py)})` }, clic({ bouton: 'right' }))
+  await nouvelEcran()
+  v = await vue()
+  assert.equal(v.zones['fiche.porteur'][0]?.id, ennemi, 'le clic droit sur sa case ouvre le statbloc de l’ennemi')
+  noter(`clic droit sur ${cle} : ${zone(v, 'fiche.porteur')[0].nom} ; ${zone(v, 'fiche.sections').map((s) => s.nom).join(', ')} ; ${zone(v, 'fiche.source').map((l) => l.texte).join('')}`)
+  await capturer('3678-statbloc-2-ennemi')
   await cliquerBouton({ element: 'bouton/fermer' })
   v = await vue()
-  assert.deepEqual(zone(v, 'fiche.heros'), [], 'le bouton « Fermer » ferme la fiche')
-  await capturer('3328-fiche-5-fermee')
+  assert.deepEqual(zone(v, 'fiche.porteur'), [], 'le bouton « Fermer » ferme la fiche')
+  await capturer('3678-statbloc-3-fermee')
 }
 
 async function parcoursInventaire() {
@@ -1096,9 +1144,8 @@ async function parcoursInventaire() {
   const heros = zone(v, 'groupe.heros').find((b) => b.libelle === 'Rosa Brandt')
   assert.ok(heros, 'Rosa Brandt a son bouton')
   await cliquerBouton(bouton(heros))
-  await cliquerBouton({ element: 'bouton/onglet/possessions' })
   v = await vue()
-  const possession = (libelle) => zone(v, 'fiche.corps').find((b) => b.libelle === libelle)
+  const possession = (libelle) => element(v, 'fiche.sections', 'section/possessions').elements.find((b) => b.libelle === libelle)
   await cliquerBouton(bouton(possession('Justaucorps de cuir')))
   await attendreLaVue(`v.zones['fiche.objet'][0]?.nom === 'Justaucorps de cuir'`)
   v = await vue()
@@ -2283,7 +2330,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

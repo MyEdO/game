@@ -6,6 +6,8 @@
  * l'évaluateur (`evaluateur/`).
  */
 
+import { estObjet } from '../../../src/lib/objet.mjs';
+
 /** Ce que le contrat d'asset lit d'un GLB. */
 export interface ContenuGlb {
   readonly animations: ReadonlySet<string>;
@@ -86,7 +88,7 @@ export function lireConteneur(octets: Uint8Array): { readonly json: DocumentGltf
   } catch (e) {
     throw new GlbIllisible(`chunk JSON invalide (${(e as Error).message})`);
   }
-  if (!json || typeof json !== 'object' || Array.isArray(json)) throw new GlbIllisible('chunk JSON autre qu’un objet');
+  if (!estObjet(json)) throw new GlbIllisible('chunk JSON autre qu’un objet');
   const suite = debut + longueur;
   if (suite + EN_TETE_DE_CHUNK > octets.byteLength || vue.getUint32(suite + 4, true) !== CHUNK_BIN) return { json: json as DocumentGltf, bin: null };
   const longueurBin = vue.getUint32(suite, true);
@@ -138,8 +140,8 @@ const tableau = (v: unknown, quoi: string, requis = false): readonly unknown[] =
 /** Le tableau `v` du champ `quoi`, chaque entrée (`entree <i>`) un objet. */
 const objets = (v: unknown, quoi: string, entree: string, requis = false): readonly Record<string, unknown>[] =>
   tableau(v, quoi, requis).map((e, i) => {
-    if (!e || typeof e !== 'object' || Array.isArray(e)) throw new GlbIllisible(`${entree} ${i} : objet attendu`);
-    return e as Record<string, unknown>;
+    if (!estObjet(e)) throw new GlbIllisible(`${entree} ${i} : objet attendu`);
+    return e;
   });
 
 /** Le parent de chaque nœud de `json`, refusé : un tableau ou un objet mal formé, un indice hors de sa liste, un nœud à

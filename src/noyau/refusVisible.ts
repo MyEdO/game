@@ -14,23 +14,21 @@
  *    dire à ses invités, et l'hôte qui exécute l'intent d'un invité ne lui vole pas son message ;
  *  - il NE PERSISTE PAS dans le journal de combat : ce tiroir garde les FAITS de jeu, un clic refusé
  *    n'en est pas un ;
- *  - il porte un `nonce` STRICTEMENT croissant : deux refus identiques d'affilée sont deux évènements
- *    distincts, que la bannière ré-anime au lieu de rester muette.
+ *  - chaque refus est un objet neuf : son IDENTITÉ le distingue du précédent, même de texte égal, pour qui
+ *    l'éteint (`eteindreRefus`) ou le compare (hôtes) ; son `nonce`, dérivé du refus affiché, ne sert qu'à la clé
+ *    d'affichage qui ré-anime la bannière.
  * HORS COMBAT il n'y a pas de bannière : le refus retombe alors sur le journal de partie, qui est LA
  * surface visible de ce contexte. Jamais de no-op silencieux.
  */
 import type { Get, Set } from './flowTypes';
-import { sequence } from '../engine/sequences';
 import { decidingSeat } from './netOwnership';
 
 /** Le refus AFFICHÉ (un seul à la fois : le dernier geste refusé). */
 export interface RefusIHM {
   texte: string;
-  /** Identité de l'évènement — clé de ré-animation ET cible de l'effacement différé. */
+  /** Clé d'affichage : la bannière ré-anime un refus de nonce neuf. L'identité du refus est son objet. */
   nonce: number;
 }
-
-const nonces = sequence();
 
 /**
  * Refuse le geste courant EN LE DISANT. Renvoie `true` (le refus a été prononcé) pour que les sites
@@ -42,7 +40,7 @@ export function refuserGeste(get: Get, set: Set, texte: string): boolean {
     get().ecrireAuJournal(texte); // hors combat, le journal EST la surface visible — le refus s'y dit vraiment
     return true;
   }
-  set({ refus: { texte, nonce: nonces.suivant() } });
+  set({ refus: { texte, nonce: (get().refus?.nonce ?? 0) + 1 } });
   return true;
 }
 
@@ -54,10 +52,10 @@ export function refuserGesteDuSiege(get: Get, set: Set, texte: string): boolean 
   return refuserGeste(get, set, texte);
 }
 
-/** Éteint le refus affiché — SI c'est toujours celui qu'on croit : un refus survenu entre-temps a sa
+/** Éteint le refus `refus` — SI c'est toujours lui qui s'affiche (identité d'objet) : un refus survenu entre-temps a sa
  *  propre durée d'affichage, et la minuterie du précédent ne doit pas la couper. */
-export function eteindreRefus(get: Get, set: Set, nonce: number): void {
-  if (get().refus?.nonce === nonce) set({ refus: null });
+export function eteindreRefus(get: Get, set: Set, refus: RefusIHM): void {
+  if (get().refus === refus) set({ refus: null });
 }
 
 /** Durée d'affichage d'un refus (ms) — le temps de le lire, pas plus : c'est un retour de geste. */

@@ -153,7 +153,7 @@ export function traitPassiveMods(traits: TraitsDesignes | undefined): PassiveMod
  *  et le profil du spawn (`withTraitChars`). Extrait du vocab d'ops unifié. */
 export function traitCharMods(traits: TraitsDesignes | undefined): Partial<Record<CharKey, number>> {
   const out: Partial<Record<CharKey, number>> = {};
-  for (const m of traitPassiveMods(traits)) if (m.op.op === 'charMod') out[m.op.char] = (out[m.op.char] ?? 0) + m.op.mod;
+  for (const m of traitPassiveMods(traits)) if (m.op.op === 'charMod') out[m.op.characteristic] = (out[m.op.characteristic] ?? 0) + m.op.mod;
   return out;
 }
 
@@ -245,7 +245,7 @@ export function immunityTypes(traits: TraitList | undefined): string[] {
 /** Les Dégâts de l'État `etatId` (son `typeDeDegats`) sont-ils ignorés par une Immunité portée ? SOURCE
  *  UNIQUE — lue par le déclenchement des effets d'État, l'IA et l'entretien hors combat. LDB 85 l.174 */
 export function degatsDeLEtatIgnores(traits: TraitList | undefined, etatId: string): boolean {
-  const type = findConditionById(etatId)?.typeDeDegats;
+  const type = findConditionById(etatId)?.typeDeDegats?.id;
   return type != null && immunityTypes(traits).includes(type);
 }
 

@@ -2,6 +2,7 @@
  * Frappe Mortelle sous une étape de Blessure critique : la chaîne suspendue reprend à la fermeture, une
  * fois, et seulement sur une mise à mort (LDB 14 l.9 ; LDB 63 l.30 ; #1595 7d-B, #1858).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { autoCleave } from './combatFlow';
@@ -29,7 +30,7 @@ const SEED_NON_LETAL = 3;
 
 /** H1 tuée d'un coup par E, qui prend sa case : H2 et H3 au contact, H3 encore au contact depuis la case de H2. Toutes à 1 PB, tenues Surprises. */
 function monte() {
-  const heros = [1, 2, 3].map((i) => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i }));
+  const heros = [1, 2, 3].map((i) => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i }));
   banc.setState({ party: heros });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');

@@ -1,4 +1,5 @@
 /** Types partagés du moteur de règles WFRP v4. */
+import type { IdDeHerosDuRoster } from '../lib/idDeHerosDuRoster';
 import type { AttackKind } from './creatureAttacks';
 import type { HitLocation } from './localisations';
 import { t } from '../i18n';
@@ -146,20 +147,20 @@ export function locationLabel(loc: HitLocation, shape: BodyShape = 'humanoide'):
  *  donc la donnée et le type ne peuvent plus diverger d'un palier. L'ORDRE porte l'échelle de rareté
  *  (indice 0 = le plus courant) : le Troc (`LDB 59 l.66-76`) et la « Baisse des prix » (`l.60`) s'y
  *  indexent, l'artisanat y décale d'un cran (`craftEconomy`) — aucune échelle recopiée à côté. */
-export const AVAILABILITIES = ['Commune', 'Limitée', 'Rare', 'Exotique'] as const;
+export const AVAILABILITIES = ['commune', 'limitee', 'rare', 'exotique'] as const;
 /** Disponibilité d'un objet/équipement (LDB 59 « Disponibilité ») — FOYER UNIQUE du concept :
  *  Test de Disponibilité au marché (`disponibilite`), Difficulté d'Artisanat (`activities`),
- *  décalage par qualité (`craftEconomy`). `HarvestRarity` l'étend de `'Unique'` (récolte/trophées). */
+ *  décalage par qualité (`craftEconomy`). `HarvestRarity` l'étend de `'unique'` (récolte/trophées). */
 export type Availability = (typeof AVAILABILITIES)[number];
 /** Les Disponibilités qui se TESTENT au d100 (LDB 59 l.25-30) : Commune est toujours en stock,
  *  Exotique jamais — seules ces deux-là portent un %. Sous-ensemble NOMMÉ dérivé du canon : c'est le
  *  SEUL site qui nomme ce couple, et `unions-canon.test.ts` verrouille son égalité avec le schéma zod
- *  qui le sélectionne (`availabilitySchema.extract([…])`). */
-export type TestedAvailability = Extract<Availability, 'Limitée' | 'Rare'>;
+ *  qui le nomme (`dispoPctAvailabilitySchema`). */
+export type TestedAvailability = Extract<Availability, 'limitee' | 'rare'>;
 /** Les Disponibilités dont l'Évaluation ne rend qu'une FOURCHETTE (LDB 59 l.41) — 2ᵉ et dernier
  *  sous-ensemble MÉTIER du canon, nommé ICI comme le premier : `satisfies` le tuple, donc un palier
  *  renommé ou retiré ne compile plus. Consommé par `engine/appraisal`. */
-export const APPRAISED_AVAILABILITIES = ['Rare', 'Exotique'] as const satisfies readonly Availability[];
+export const APPRAISED_AVAILABILITIES = ['rare', 'exotique'] as const satisfies readonly Availability[];
 
 /** Propulsion d'un véhicule/embarcation — pilote la table de localisation des dégâts (terre : roues/
  *  attelage ; fleuve/mer : voiles/avirons/coque). EDOC 7 (terrestre), MoR ch.5 (fluvial), MDG 13 (maritime). */
@@ -210,7 +211,7 @@ export interface VehicleData {
   desc?: string;
   /** Facette ACHAT (marché / possession de carrière). `availability` absent pour les navires (MDG ne
    *  donne pas de Disponibilité). */
-  purchase?: { price: Money; availability?: string };
+  purchase?: { price: Money; availability?: Availability };
   /** Facette VOYAGE (passage payant, LDB 51 l.178-189). `movement` = Déplacement du véhicule (km/h).
    *  `medium` = milieu du TRAJET PAYÉ — INDÉPENDANT de `hull.propulsion` (un véhicule peut être
    *  bi-milieu : la Barge navigue le fleuve, LDB 51 l.185/197, tout en figurant à la table navale MDG 12
@@ -244,9 +245,6 @@ export interface VehicleData {
     oars?: ProfilDePropulsion;
     traits: NavalTraitRef[];
   };
-  /** Facette PONT (couche tactique, §1bis du modèle naval) : plan person-scale du pont, authoré une fois
-   *  par TYPE et réutilisé dans tout scénario (jamais redessiné) ; `postes` est lu par `noyau/monde/shipPostes.ts`. */
-  deck?: ShipDeck;
 }
 
 /**
@@ -383,10 +381,12 @@ export interface QualityInstance {
   value?: number;
 }
 
+/** Les côtés de montage d'une pièce d'artillerie sur un navire (`FireArc`), dans l'ordre horaire depuis la proue. */
+export const FIRE_ARCS = ['proue', 'tribord', 'poupe', 'babord'] as const;
 /** Côté de montage d'une pièce d'artillerie sur un navire (MDG 12-13), relatif au cap du bateau —
  *  pilote l'arc de tir. La LOGIQUE d'arc vit en `noyau/monde/fireArc.ts` (elle dépend du cap Dir8) ; ce TYPE pur
  *  vit ici pour que `Weapon`/`ItemInstance` le portent sans dépendance engine→state. */
-export type FireArc = 'proue' | 'tribord' | 'poupe' | 'babord';
+export type FireArc = (typeof FIRE_ARCS)[number];
 
 export interface Weapon extends ProprietesIntrinsequesDArme {
   label: string;
@@ -784,8 +784,8 @@ export interface ActiveEffect {
    *  (« Exposition (froid) » → 'exposition-froid') plutôt que par libellé. Le `label` reste l'affichage. */
   effectId?: string;
   /** Caractéristique modifiée, le cas échéant. */
-  char?: CharKey;
-  /** Posé par un `charMod` dont la liste d'ops porte un `attrMod` de Blessures `auTotal` (#3060) : `char`
+  characteristic?: CharKey;
+  /** Posé par un `charMod` dont la liste d'ops porte un `attrMod` de Blessures `auTotal` (#3060) : `characteristic`
    *  compte partout, sauf dans le recalcul des Blessures max (`effectiveMaxWounds`). */
   blessuresAuTotal?: true;
   /** Valeur du bonus (ex. +10). */
@@ -897,9 +897,9 @@ export interface ActiveEffect {
    *  L'Anguille » : « peut ignorer un État », MDG 09 l.244). Lu par combatTestPenalty/testStatePenalty. */
   ignoreStatesCount?: number;
   /** +DR temporisés (ops `skillDRBonus`/`charDRBonus` exécutées — chansons de marin, MDG 09) : par
-   *  Compétence (`skill`, Spécialisation comprise) OU par Caractéristique (`char`), `bonus` déjà résolu numérique.
+   *  Compétence (`skill`, Spécialisation comprise) OU par Caractéristique (`characteristic`), `bonus` déjà résolu numérique.
    *  Lus par `skillDRBonus`/`charDRBonusOf` (engine/ops) sur un Test RÉUSSI. */
-  drBonus?: ({ skill?: RefDesignee; bonus: number } | { char: CharKey; bonus: number })[];
+  drBonus?: ({ skill?: RefDesignee; bonus: number } | { characteristic: CharKey; bonus: number })[];
   /** Modificateur aux Tests INDIVIDUELS d'un Test d'équipage (op `crewTestMod` — « Naviguons tous
    *  ensemble », MDG 09 l.224 : +10). Lu par `crewRoleValue` (engine/crewMorale). */
   crewTestMod?: number;
@@ -933,7 +933,7 @@ export interface ActiveEffect {
    *  futures : +N) — STACKE par-dessus la pénalité d'État (≠ État, donc non soumis au non-cumul ni à
    *  `ignoreStatePenalties`). Lu par `combatTestPenalty`/`testStatePenalty` (engine/conditions). */
   testMod?: number;
-  /** QUALIFIE `testMod` par Caractéristique (op `testMod{char}` exécutée — Mystracine « +10 aux Tests
+  /** QUALIFIE `testMod` par Caractéristique (op `testMod{characteristic}` exécutée — Mystracine « +10 aux Tests
    *  d'Endurance et de FM, −10 Ag/I/Int », LDB 71 l.33) : le mod ne s'applique qu'aux Tests de cette
    *  carac, lu par `testValue` (engine/skills) ; EXCLU des `testMod` GLOBAUX (`effectGlobalTestMod`). */
   testModChar?: CharKey;
@@ -969,9 +969,9 @@ export interface ActiveEffect {
    *  symptôme n'est jamais mutée. Miroir de `suppressedSource`, nommé par instance de MALADIE. */
   attenuatedSymptom?: { disease: string; symptomId: string };
   /** GATE d'action par Round (op `actGate` — Racine de mandragore, LDB 71 l.35) : au début du tour du
-   *  porteur en combat, un Test de `char` décide s'il garde Action ET Mouvement (réussite) ou UN seul
+   *  porteur en combat, un Test de `characteristic` décide s'il garde Action ET Mouvement (réussite) ou UN seul
    *  au choix (échec). Résolu cadence-aware par `resolveActGates` (noyau/combatFlow). */
-  actGate?: { char: CharKey };
+  actGate?: { characteristic: CharKey };
   /** Le porteur doit effectuer des Tests de Prière pour son Action (op `prayerForAction`, lu par
    *  `prayerForActionBy`). LDB 40 l.74 */
   prayerForAction?: true;
@@ -1188,6 +1188,9 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   weaponGroup?: string;
   /** Munition REPRÉSENTATIVE d'une arme de siège (cf. `Weapon.defaultAmmo`) — propagé à l'arme dérivée. */
   defaultAmmo?: string;
+  /** Arme DÉRIVÉE conférée tant que l'objet est équipé (`TrappingData.derivedWeapon`, armée à la naissance
+   *  par `armeDeLaDonnee`). */
+  derivedWeapon?: Weapon;
   /** Pièce « relativement simple » (baliste, cf. `Weapon.soloSimple`) — propagé à l'arme dérivée. */
   soloSimple?: boolean;
   /** Pièce à TIR INDIRECT (mortier/catapulte, cf. `Weapon.indirect`) — propagé à l'arme dérivée. */
@@ -1233,9 +1236,8 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   /** Aura magique DÉTECTÉE (Talent Détection d'artefact, LDB 10 l.336 : « vous sentez que
    *  l'objet est magique ») — s'affiche « magique » même tant que ses règles restent non identifiées. */
   magicKnown?: boolean;
-  /** Détection d'artefact déjà tentée sur cet objet (LDB 10 l.336 : « En principe, vous ne pouvez
-   *  tenter ce Test qu'une seule fois par artefact touché »). */
-  detectTried?: boolean;
+  /** Les héros qui ont tenté la Détection d'artefact sur cet objet. LDB 10 l.336 */
+  detectTriedBy?: string[];
   /** Jour de jeu de la dernière Évaluation RATÉE : pas de re-tentative le même jour (anti-spam —
    *  LDB 12 l.94 : seul un résultat marginal offre un nouvel essai ; ADE II : re-tenter coûte du temps). */
   appraiseTriedDay?: number;
@@ -1302,8 +1304,8 @@ export interface AuthoredShipPoste {
    *  arc relatif à l'orientation-monde DU CHEF de pièce (pas d'une coque). */
   side?: FireArc;
   /** COUVERT du servant à ce poste (`DeckCoverClass`) : gun-port (Sabord) → `totale`, Plat-bord → `moyenne`,
-   *  Murs blindés → `totale` ; absent = tir depuis le pont, à découvert. Stampé par `effectiveDeckPostes`
-   *  depuis les Améliorations de la coque (ou authoré pour un poste structurellement couvert). */
+   *  Murs blindés → `totale` ; absent = tir depuis le pont, à découvert. La coque y ajoute ses
+   *  Améliorations couvrantes au tir (`couvertDuPoste`). */
   cover?: DeckCoverClass;
   /** Équipage servant la pièce ; `crewIds[0]` = chef de pièce (nominé pour le Test, Arme d'équipe). */
   crewIds?: string[];
@@ -1344,34 +1346,6 @@ export interface ShipPoste extends Omit<AuthoredShipPoste, 'trappingId'> {
   /** L'arme HYDRATÉE (instance complète — base via `trappingId` + `qualities`/`enchants` propres). Jamais
    *  persistée : re-résolue à chaque spawn depuis la réf, cf. `hydratePoste`. */
   item: ItemInstance;
-}
-
-/** Emplacement de POSTE sur un gabarit de pont (`ShipDeck`) — un MOUNT POINT authoré (pos + arc), PAS une
- *  contrainte de règle : le placement des pièces reste LIBRE (par bord + poids vs Contenance, cf.
- *  `noyau/monde/shipPostes.ts`). Sert au RENDU / à l'aide d'authoring (où dessiner une pièce montée sur ce bord,
- *  où poster son servant), réutilisé tel quel à la composition du Pont à l'abordage. */
-export interface DeckPosteSlot {
-  /** Case du pont (coord de la grille `ascii`) où la pièce se rend et où se tient son servant. */
-  pos: { x: number; y: number };
-  /** Côté de montage relatif au cap → arc de bordée (`inFireArc`). */
-  side: FireArc;
-  /** COUVERT de l'emplacement (`DeckCoverClass`) — gun-port authoré (`totale`) ou stampé par les Améliorations
-   *  de la coque via `effectiveDeckPostes` ; absent = tir depuis le pont, à découvert. */
-  cover?: DeckCoverClass;
-}
-
-/** Facette PONT (couche tactique, §1bis du modèle naval) : le plan PERSON-SCALE du pont d'un TYPE de navire,
- *  AUTHORÉ une seule fois et réutilisé tel quel dans tout scénario (jamais redessiné). À l'abordage, le pont
- *  est instancié + cousu depuis ce gabarit. Le plan suit `parseWalledAscii` (authoring canon du projet :
- *  tuiles + murs d'arête, `:` = écoutille) ; les `postes` sont des emplacements de RENDU (cf. `DeckPosteSlot`).
- *  TYPE PUR (engine) — seul `postes` est lu à ce jour (`noyau/monde/shipPostes.ts`) ; le plan `ascii` est du gabarit
- *  authorable, sans lecteur de production depuis #1789. */
-export interface ShipDeck {
-  /** Plan du pont en box-drawing → tuiles + murs via `parseWalledAscii` ; la tuile de base est celle du
-   *  défaut de compilation (`defauts-de-compilation.json › pont`). */
-  ascii: string[];
-  /** Emplacements de postes d'artillerie (mount points authorés PAR TYPE — généralisent `AuthoredEnemy.postes`). */
-  postes?: DeckPosteSlot[];
 }
 
 /** Set d'armes nommé (les 2 mains). `off` ignoré si l'arme `main` est à 2 mains. uids → ItemInstance. */
@@ -1431,6 +1405,9 @@ export interface TerreurSubie {
 
 export interface Combatant {
   id: string;
+  /** L'id de l'entrée de roster du héros, quand son `id` n'en est pas un (un héros de save ou de scénario édité au
+   *  créateur, #2907) : son entrée de roster le retrouve, son `id` reste celui que l'état cite. */
+  idDeRoster?: IdDeHerosDuRoster;
   label: string;
   kind: 'hero' | 'enemy' | 'npc';
   /** Ce combattant suit-il les règles de PERSONNAGE (#143) — axe DISTINCT du camp (`kind`, ci-dessus)

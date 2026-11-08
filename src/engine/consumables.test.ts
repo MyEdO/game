@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { Combatant, ItemInstance } from './types';
 import { isConsumable, consumableUntilTime, bakeConsumableFlow, consumableOps } from './consumables';
@@ -23,9 +24,9 @@ const item = (over: Partial<ItemInstance> = {}): ItemInstance =>
 
 describe('consommables — effet en FLOW (#50 : migration GameOp[] → Flow)', () => {
   it('isConsumable = Flow du CATALOGUE (lu par `trappingId`) présent et non vide', () => {
-    expect(isConsumable(garanti(itemFromTrappingById('potion-de-guerison'), 'potion-de-guerison', 'objet'))).toBe(true);
-    expect(isConsumable(garanti(itemFromTrappingById('belladone'), 'belladone', 'objet'))).toBe(true); // Flow à nœud `test`
-    expect(isConsumable(garanti(itemFromTrappingById('corde'), 'corde', 'objet'))).toBe(false);
+    expect(isConsumable(garanti(itemFromTrappingById('potion-de-guerison', idsDeTest), 'potion-de-guerison', 'objet'))).toBe(true);
+    expect(isConsumable(garanti(itemFromTrappingById('belladone', idsDeTest), 'belladone', 'objet'))).toBe(true); // Flow à nœud `test`
+    expect(isConsumable(garanti(itemFromTrappingById('corde', idsDeTest), 'corde', 'objet'))).toBe(false);
     expect(isConsumable(item())).toBe(false); // objet hors catalogue
   });
 
@@ -82,7 +83,7 @@ describe('consommables — catalogue migré (LDB 71/72/67 + MSRC, donnée réell
     const g = f as Extract<Flow, { kind: 'if' }>;
     expect(g.cond).toEqual({ kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 });
     expect(consumableOps(f)).toEqual([{ op: 'heal', amount: { bonusOf: 'endurance' } }]);
-    expect(isConsumable(itemFromTrappingById('potion-de-guerison')!)).toBe(true);
+    expect(isConsumable(itemFromTrappingById('potion-de-guerison', idsDeTest)!)).toBe(true);
   });
   it('necessaire-antipoison : « Un Test de Guérison réussi … retire tous les États Empoisonné » (LDB 67 l.13)', () => {
     const f = findTrappingById('necessaire-antipoison')!.consumable! as Extract<Flow, { kind: 'test' }>;

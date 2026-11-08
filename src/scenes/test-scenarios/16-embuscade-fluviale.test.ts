@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { testScenarios } from './index';
 import { ficheDEntite } from '../../noyau/monde/sceneNpc';
@@ -9,7 +10,7 @@ import type { Combatant } from '../../engine/types';
 import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 
 const scen = testScenarios.find((s) => s.id === 'embuscade-fluviale')!;
-const scenConstruit = scen.construire();
+const scenConstruit = scen.construire(idsDeTest);
 /** Aucun narratif chargé : aucun preset ne se résout. */
 const presetPnjById = presetDuNarratif(null);
 

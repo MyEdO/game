@@ -1377,7 +1377,6 @@
         {
          "reach": null,
          "range": null,
-         "uid": "ammo-boulet-et-poudre-1",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
@@ -1393,7 +1392,8 @@
          "enc": 1,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 12
+         "qty": 12,
+         "uid": "ammo-boulet-et-poudre-1"
         },
         {
          "reach": null,
@@ -1401,7 +1401,6 @@
          "ammoRangeMod": {
           "mult": 0.25
          },
-         "uid": "ammo-mitraille-et-poudre-2",
          "trappingId": "mitraille-et-poudre",
          "label": "Mitraille et poudre",
          "kind": "ammo",
@@ -1418,7 +1417,8 @@
          "enc": 0,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 4
+         "qty": 4,
+         "uid": "ammo-mitraille-et-poudre-2"
         }
        ],
        "ammoUid": "ammo-boulet-et-poudre-1"
@@ -1432,7 +1432,6 @@
         {
          "reach": null,
          "range": null,
-         "uid": "ammo-boulet-et-poudre-3",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
@@ -1448,7 +1447,8 @@
          "enc": 1,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 12
+         "qty": 12,
+         "uid": "ammo-boulet-et-poudre-3"
         },
         {
          "reach": null,
@@ -1456,7 +1456,6 @@
          "ammoRangeMod": {
           "mult": 0.25
          },
-         "uid": "ammo-mitraille-et-poudre-4",
          "trappingId": "mitraille-et-poudre",
          "label": "Mitraille et poudre",
          "kind": "ammo",
@@ -1473,7 +1472,8 @@
          "enc": 0,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 4
+         "qty": 4,
+         "uid": "ammo-mitraille-et-poudre-4"
         }
        ],
        "ammoUid": "ammo-boulet-et-poudre-3"
@@ -1487,7 +1487,6 @@
         {
          "reach": null,
          "range": null,
-         "uid": "ammo-balles-et-poudre-pierrier-5",
          "trappingId": "balles-et-poudre-pierrier",
          "label": "Balles et poudre pour 1 tir",
          "kind": "ammo",
@@ -1510,7 +1509,8 @@
          "enc": 0,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 16
+         "qty": 16,
+         "uid": "ammo-balles-et-poudre-pierrier-5"
         }
        ],
        "ammoUid": "ammo-balles-et-poudre-pierrier-5"
@@ -1623,7 +1623,6 @@
         {
          "reach": null,
          "range": null,
-         "uid": "ammo-boulet-et-poudre-6",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
@@ -1639,7 +1638,8 @@
          "enc": 1,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 12
+         "qty": 12,
+         "uid": "ammo-boulet-et-poudre-6"
         }
        ],
        "ammoUid": "ammo-boulet-et-poudre-6"
@@ -1653,7 +1653,6 @@
         {
          "reach": null,
          "range": null,
-         "uid": "ammo-boulet-et-poudre-7",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
@@ -1669,7 +1668,8 @@
          "enc": 1,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 12
+         "qty": 12,
+         "uid": "ammo-boulet-et-poudre-7"
         }
        ],
        "ammoUid": "ammo-boulet-et-poudre-7"
@@ -1683,7 +1683,6 @@
         {
          "reach": null,
          "range": null,
-         "uid": "ammo-boulet-et-poudre-8",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
@@ -1699,7 +1698,8 @@
          "enc": 1,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 8
+         "qty": 8,
+         "uid": "ammo-boulet-et-poudre-8"
         }
        ],
        "ammoUid": "ammo-boulet-et-poudre-8"
@@ -2794,7 +2794,6 @@
         {
          "reach": null,
          "range": null,
-         "uid": "ammo-boulet-et-poudre-9",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
@@ -2810,7 +2809,8 @@
          "enc": 1,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 12
+         "qty": 12,
+         "uid": "ammo-boulet-et-poudre-9"
         },
         {
          "reach": null,
@@ -2818,7 +2818,6 @@
          "ammoRangeMod": {
           "mult": 0.25
          },
-         "uid": "ammo-mitraille-et-poudre-10",
          "trappingId": "mitraille-et-poudre",
          "label": "Mitraille et poudre",
          "kind": "ammo",
@@ -2835,7 +2834,8 @@
          "enc": 0,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 4
+         "qty": 4,
+         "uid": "ammo-mitraille-et-poudre-10"
         }
        ],
        "ammoUid": "ammo-boulet-et-poudre-9"
@@ -2849,7 +2849,6 @@
         {
          "reach": null,
          "range": null,
-         "uid": "ammo-boulet-et-poudre-11",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
@@ -2865,7 +2864,8 @@
          "enc": 1,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 12
+         "qty": 12,
+         "uid": "ammo-boulet-et-poudre-11"
         },
         {
          "reach": null,
@@ -2873,7 +2873,6 @@
          "ammoRangeMod": {
           "mult": 0.25
          },
-         "uid": "ammo-mitraille-et-poudre-12",
          "trappingId": "mitraille-et-poudre",
          "label": "Mitraille et poudre",
          "kind": "ammo",
@@ -2890,7 +2889,8 @@
          "enc": 0,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 4
+         "qty": 4,
+         "uid": "ammo-mitraille-et-poudre-12"
         }
        ],
        "ammoUid": "ammo-boulet-et-poudre-11"
@@ -2904,7 +2904,6 @@
         {
          "reach": null,
          "range": null,
-         "uid": "ammo-balles-et-poudre-pierrier-13",
          "trappingId": "balles-et-poudre-pierrier",
          "label": "Balles et poudre pour 1 tir",
          "kind": "ammo",
@@ -2927,7 +2926,8 @@
          "enc": 0,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 16
+         "qty": 16,
+         "uid": "ammo-balles-et-poudre-pierrier-13"
         }
        ],
        "ammoUid": "ammo-balles-et-poudre-pierrier-13"
@@ -3040,7 +3040,6 @@
         {
          "reach": null,
          "range": null,
-         "uid": "ammo-boulet-et-poudre-14",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
@@ -3056,7 +3055,8 @@
          "enc": 1,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 10
+         "qty": 10,
+         "uid": "ammo-boulet-et-poudre-14"
         }
        ],
        "ammoUid": "ammo-boulet-et-poudre-14"
@@ -3070,7 +3070,6 @@
         {
          "reach": null,
          "range": null,
-         "uid": "ammo-boulet-et-poudre-15",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
@@ -3086,7 +3085,8 @@
          "enc": 1,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 10
+         "qty": 10,
+         "uid": "ammo-boulet-et-poudre-15"
         }
        ],
        "ammoUid": "ammo-boulet-et-poudre-15"
@@ -3100,7 +3100,6 @@
         {
          "reach": null,
          "range": null,
-         "uid": "ammo-boulet-et-poudre-16",
          "trappingId": "boulet-et-poudre",
          "label": "Boulet et poudre",
          "kind": "ammo",
@@ -3116,7 +3115,8 @@
          "enc": 1,
          "equipped": false,
          "subType": "munition-de-siege",
-         "qty": 8
+         "qty": 8,
+         "uid": "ammo-boulet-et-poudre-16"
         }
        ],
        "ammoUid": "ammo-boulet-et-poudre-16"
@@ -3157,7 +3157,9 @@
       "y": 7
      },
      "label": "Olg Blóðsalt",
-     "weapon": "hache-d-armes"
+     "inventaire": {
+      "hache-d-armes": false
+     }
     },
     {
      "id": "serpent-helm",
@@ -3623,7 +3625,9 @@
     },
     "scene": "ls-quai-salzenmund",
     "icon": "scenario/port",
-    "backdrop": "port",
+    "backdrop": {
+     "id": "port"
+    },
     "port": {
      "ref": "salzenmund"
     },
@@ -3686,7 +3690,9 @@
     },
     "scene": "ls-quai-erengrad",
     "icon": "scenario/port",
-    "backdrop": "port",
+    "backdrop": {
+     "id": "port"
+    },
     "port": {
      "ref": "erengrad"
     },

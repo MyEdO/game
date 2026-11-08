@@ -4,6 +4,7 @@
  * minuteurs factices de Vitest ; son propriétaire planifie le tick automatique à chaque écriture ; la barrière de
  * partage du setup (`src/test-setup-noyau.ts`) juge son état.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, expect, it, onTestFinished } from 'vitest';
 import { ouvrirLeBanc } from './banc.testkit';
 import { avecLesTables } from './noyau.testkit';
@@ -58,7 +59,7 @@ describe('banc du noyau : ouverture et fermeture', () => {
   it('une fixture de tables posée après l’ouverture est restaurée avant la fermeture', () => {
     const banc = ouvrirLeBanc();
     avecLesTables({});
-    expect([jeuBranche()?.get, banc.getState().screen]).toEqual([banc.getState, 'menu']);
+    expect([jeuBranche()?.get, banc.getState().screen]).toEqual([banc.getState, 'campaign']);
   });
 
   it('l’ouverture suivante réussit : le test précédent a fermé son banc', () => {
@@ -179,7 +180,7 @@ describe('banc du noyau : la barrière de partage (#2097) du setup de la suite',
   let erreurs: string[] = [];
 
   it.fails('un banc dont l’état partage une donnée du catalogue fait échouer le test qui l’a posée', () => {
-    const [heros] = makePregens();
+    const [heros] = makePregens(idsDeTest);
     const banc = ouvrirLeBanc();
     banc.setState({ party: [{ ...heros, items: [trappings[0] as unknown as ItemInstance] }] });
     onTestFinished(({ task }) => {

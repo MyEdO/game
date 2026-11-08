@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
@@ -27,7 +28,7 @@ const NET0 = { mode: 'local' as const, mySeat: 0, gmSeat: undefined, ownership: 
 
 /** Sorcier + `n` ennemis (`magick` = contre-lanceurs), siège MJ posé, aucune incantation en cours. */
 function setup(spells: string[], n = 1, magick = true) {
-  const hero = createHero({
+  const hero = createHero({ idNeuf: idsDeTest,
     speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
     careerTalent: { id: 'magie-mineure' }, seed: 707,
   });

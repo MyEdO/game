@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene, type Scene, type WallClimb } from './monde/scene';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
@@ -61,11 +62,11 @@ function croiseeDEtage(): Scene {
 const foot = { x: 2, y: 1 };
 const top = { x: 2, y: 0 };
 
-type CasGeste = { geste: GesteDeplacant; scene: () => Scene; de: Pt; vers: Pt; agir: (de: Pt, vers: Pt) => void };
+type CasGeste = { geste: GesteDeplacant; scene: () => Scene; de: Pt; vers: Pt; agir: (vers: Pt) => void };
 const CAS: readonly CasGeste[] = [
-  { geste: 'escalade', scene: () => falaise({ kind: 'ladder' }), de: foot, vers: top, agir: (de, vers) => g().franchirLArete(de, vers) },
-  { geste: 'chute', scene: () => falaise(), de: top, vers: foot, agir: (de, vers) => g().franchirLArete(de, vers) },
-  { geste: 'fenetre', scene: croisee, de: { x: 1, y: 1 }, vers: { x: 2, y: 1 }, agir: (de, vers) => g().franchirLArete(de, vers) },
+  { geste: 'escalade', scene: () => falaise({ kind: 'ladder' }), de: foot, vers: top, agir: (vers) => g().franchirLArete(vers) },
+  { geste: 'chute', scene: () => falaise(), de: top, vers: foot, agir: (vers) => g().franchirLArete(vers) },
+  { geste: 'fenetre', scene: croisee, de: { x: 1, y: 1 }, vers: { x: 2, y: 1 }, agir: (vers) => g().franchirLArete(vers) },
 ];
 
 /** La surface où le refus se dit (`refuserGeste`) : la bannière en combat, le journal hors combat. */
@@ -74,7 +75,7 @@ const dit = (cle: MsgKey, vars: Record<string, string | number> = {}) => expect(
 
 /** Combat : héros actif posté en `pos` sur `scene`, ennemis hors d'action (sauf `foe`, rendu vivant à la demande). */
 function combat(scene: Scene, pos: Pt, tour: { movementUsed?: number; acted?: boolean; movedPreAction?: boolean } = {}) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], net: NET0 });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');
@@ -103,53 +104,78 @@ describe('Engagé (LDB 15 l.43-49) : les TROIS gestes refusent, et se rouvrent a
       const { H, foe } = combat(c.scene(), c.de);
       foe.dead = false;
       engage(H, foe);
-      c.agir(c.de, c.vers);
+      c.agir(c.vers);
       expect(aAgi(H.id, c.de)).toBe(false);
       dit('geste.refus.engage', { name: H.label });
       expect(resolveMovement(g, c.vers)).toEqual({ status: 'blocked', reason: 'engaged' }); // MÊME préfixe
       disengageFrom(H, foe);
-      c.agir(c.de, c.vers);
+      c.agir(c.vers);
       expect(aAgi(H.id, c.de)).toBe(true);
     });
   }
 });
 
-describe('#2190 — un `from` qui n’est pas la case du mobile est refusé', () => {
+describe('#2190, #3611 — la case de départ se lit dans l’état : une destination sans arête franchissable depuis la case du mobile est refusée', () => {
   const ailleurs = { x: 0, y: 3 };
+  /** Ce que dit le pas de `ailleurs` vers la destination du geste `c` : il n'a pas d'arête à franchir. */
+  const refusDuPas = (c: CasGeste): MsgKey => {
+    const plan = planFranchissement(c.scene(), ailleurs, c.vers);
+    if (plan.kind !== 'none') throw new Error(`${c.geste} : le pas depuis ailleurs doit être un plan \`none\``);
+    return REFUS_FRANCHISSEMENT[plan.raison];
+  };
 
   for (const c of CAS) {
     it(`${c.geste} en combat : l’actif reste en place, refus NOMMÉ`, () => {
       const { H } = combat(c.scene(), ailleurs);
-      c.agir(c.de, c.vers);
+      c.agir(c.vers);
       expect(aAgi(H.id, ailleurs)).toBe(false);
-      dit('geste.refus.caseDuMobile', { name: H.label });
+      dit(refusDuPas(c));
     });
   }
 
   it('exploration : le groupe ne se téléporte pas', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     for (const c of CAS) {
       banc.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: ailleurs, scene: c.scene(), pendingFall: null, dialogue: null, journal: [] });
-      c.agir(c.de, c.vers);
+      c.agir(c.vers);
       expect(g().partyPos, c.geste).toEqual(ailleurs);
       expect(g().pendingFall, c.geste).toBeNull();
-      dit('geste.refus.caseDuMobile', { name: hero.label });
+      dit(refusDuPas(c));
     }
   });
 
-  it('intent COOP : l’allowlist le laisse passer, le store le refuse — et le vrai `from` passe', () => {
+  it('intent COOP : l’allowlist le laisse passer, le store le refuse loin de l’arête — et depuis la case de l’arête il passe', () => {
     const c = CAS[2];
     const { H } = combat(c.scene(), ailleurs);
     banc.setState({ net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } });
     expect(GUEST_INTENTS.has('franchirLArete')).toBe(true);
-    expect(intentAllowedFor(g(), 1, 'franchirLArete', [c.de, c.vers])).toBe(true);
-    withActingSeat(1, () => g().franchirLArete(c.de, c.vers));
+    expect(intentAllowedFor(g(), 1, 'franchirLArete', [c.vers])).toBe(true);
+    withActingSeat(1, () => g().franchirLArete(c.vers));
     expect(aAgi(H.id, ailleurs)).toBe(false);
-    dit('geste.refus.caseDuMobile', { name: H.label });
+    dit(refusDuPas(c));
     const b = g().battle!;
     placeCombatant(b.combatants.find((x) => x.id === H.id)!, g().scene!, c.de);
-    withActingSeat(1, () => g().franchirLArete(c.de, c.vers));
+    withActingSeat(1, () => g().franchirLArete(c.vers));
     expect(g().battle!.combatants.find((x) => x.id === H.id)!.pos).toMatchObject(c.vers);
+  });
+});
+
+describe('#3611 — toute destination hostile se refuse, dite, sans lever ni déplacer', () => {
+  it.each([
+    ['la case même du mobile', { x: 2, y: 2 }],
+    ['hors de la carte, loin', { x: 50, y: 50 }],
+    ['en diagonale', { x: 3, y: 3 }],
+    ['voisine, sans arête', { x: 2, y: 3 }],
+    ['hors de la carte, coordonnée négative', { x: -3, y: 2 }],
+  ] as const)('%s', (_cas, vers) => {
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const scene = emptyScene('scene-test', 6, 6);
+    banc.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: { x: 2, y: 2 }, scene, pendingFall: null, dialogue: null, journal: [] });
+    const plan = planFranchissement(scene, { x: 2, y: 2 }, vers);
+    if (plan.kind !== 'none') throw new Error('une scène sans arête ne planifie aucun franchissement');
+    expect(() => g().franchirLArete(vers)).not.toThrow();
+    expect(g().partyPos).toEqual({ x: 2, y: 2 });
+    dit(REFUS_FRANCHISSEMENT[plan.raison]);
   });
 });
 
@@ -160,7 +186,7 @@ describe('couple monté (LDB 14 l.179 ; CRB 032 l.53 ; #2205) : refus NOMMÉ qui
       foe.dead = false;
       placeCombatant(foe, g().scene!, c.de);
       mountUp(H, foe);
-      c.agir(c.de, c.vers);
+      c.agir(c.vers);
       expect(aAgi(H.id, c.de)).toBe(false);
       dit('geste.refus.monte', { action: 'Descendre' });
       expect(dernierMot()).toContain('« Descendre »');
@@ -172,7 +198,7 @@ describe('couple monté (LDB 14 l.179 ; CRB 032 l.53 ; #2205) : refus NOMMÉ qui
       placeCombatant(foe, g().scene!, c.de);
       mountUp(H, foe);
       banc.setState({ net: { ...NET0, gmSeat: 0 }, battle: { ...g().battle!, turn: g().battle!.order.indexOf(foe.id) } });
-      c.agir(c.de, c.vers);
+      c.agir(c.vers);
       expect(aAgi(foe.id, c.de)).toBe(false);
       expect(aAgi(H.id, c.de)).toBe(false);
       dit('geste.refus.monte', { action: 'Descendre' });
@@ -183,7 +209,7 @@ describe('couple monté (LDB 14 l.179 ; CRB 032 l.53 ; #2205) : refus NOMMÉ qui
 describe('coûts et refus NOMMÉS (A4)', () => {
   it('escalade, combat : Mouvement restant sous le coût → refus NOMMÉ, rien ne bouge', () => {
     const { H } = combat(falaise({ kind: 'ladder' }), foot, { movementUsed: 3 });
-    g().franchirLArete(foot, top);
+    g().franchirLArete(top);
     expect(aAgi(H.id, foot)).toBe(false);
     expect(g().battle!.movementUsed).toBe(3);
     dit('climb.mouvementInsuffisant', { name: H.label, cout: climbMovementCost(4, sceneMetresPerTile(g().scene!)) });
@@ -192,7 +218,7 @@ describe('coûts et refus NOMMÉS (A4)', () => {
   it('escalade/chute, combat : Mouvement épuisé (`canMove`) → refus NOMMÉ', () => {
     for (const c of CAS.slice(0, 2)) {
       const { H } = combat(c.scene(), c.de, { movementUsed: 4 });
-      c.agir(c.de, c.vers);
+      c.agir(c.vers);
       expect(aAgi(H.id, c.de), c.geste).toBe(false);
       dit('geste.refus.mouvementEpuise', { name: H.label });
     }
@@ -200,14 +226,14 @@ describe('coûts et refus NOMMÉS (A4)', () => {
 
   it('escalade à Test, Action déjà prise → refus NOMMÉ (pas d’Action gratuite)', () => {
     const { H } = combat(falaise({ kind: 'surface' }), foot, { acted: true });
-    g().franchirLArete(foot, top);
+    g().franchirLArete(top);
     expect(aAgi(H.id, foot)).toBe(false);
     dit('climb.actionDejaPrise', { name: H.label });
   });
 
   it('chute : « Tenter » avec l’Action déjà prise → refus NOMMÉ, la modale reste au choix', () => {
     const { H } = combat(falaise(), top, { acted: true });
-    g().franchirLArete(top, foot);
+    g().franchirLArete(foot);
     expect(phaseDeChute(g().pendingFall!)).toBe('choice');
     g().jetRegler('fall', 'tenter', true, H.id);
     expect(phaseDeChute(g().pendingFall!)).toBe('choice');
@@ -218,11 +244,11 @@ describe('coûts et refus NOMMÉS (A4)', () => {
   });
 
   it('exploration : dialogue ouvert → refus NOMMÉ pour les trois gestes', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     for (const c of CAS) {
       banc.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: c.de, scene: c.scene(), pendingFall: null, dialogue: {} as never, journal: [] });
       expect('refus' in gesteDArete(g()), c.geste).toBe(true);
-      c.agir(c.de, c.vers);
+      c.agir(c.vers);
       expect(g().partyPos, c.geste).toEqual(c.de);
       dit('geste.refus.dialogue');
     }
@@ -230,21 +256,21 @@ describe('coûts et refus NOMMÉS (A4)', () => {
   });
 
   it('plans refusés : sommet inaccessible, pas sans capacité (plan `none`) ; la croisée d’étage se lit en chute', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const explorer = (scene: Scene, pos: Pt) => banc.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: pos, scene, pendingFall: null, dialogue: null, journal: [] });
     const creux = falaise({ kind: 'ladder' });
     creux.layers[0].tiles[2] = 'vide' as Terrain;
     explorer(creux, foot);
-    g().franchirLArete(foot, top);
+    g().franchirLArete(top);
     expect(g().partyPos).toEqual(foot);
     dit('climb.sommetInaccessible', { name: hero.label });
     explorer(falaise(), foot);
     const plan = planFranchissement(falaise(), foot, top);
     if (plan.kind !== 'none') throw new Error('le sens ascendant doit être un plan `none`');
-    g().franchirLArete(foot, top);
+    g().franchirLArete(top);
     dit(REFUS_FRANCHISSEMENT[plan.raison]);
     explorer(croiseeDEtage(), { x: 1, y: 1, z: 1 });
-    g().franchirLArete({ x: 1, y: 1, z: 1 }, { x: 2, y: 1 });
+    g().franchirLArete({ x: 2, y: 1 });
     expect(g().pendingFall, 'la capacité de la croisée d’étage est la chute').toBeTruthy();
   });
 });
@@ -254,36 +280,38 @@ describe('refus du PRÉFIXE (`mobileDuTour`), dits par le geste', () => {
   it('combat terminé → geste.refus.combatTermine', () => {
     const { H } = combat(c.scene(), c.de);
     banc.setState({ battle: { ...g().battle!, over: 'victory' } });
-    c.agir(c.de, c.vers);
+    c.agir(c.vers);
     expect(aAgi(H.id, c.de)).toBe(false);
     dit('geste.refus.combatTermine');
   });
   it('action armée → geste.refus.ciblage', () => {
     const { H } = combat(c.scene(), c.de);
     banc.setState({ battle: { ...g().battle!, action: 'cast' } });
-    c.agir(c.de, c.vers);
+    c.agir(c.vers);
     expect(aAgi(H.id, c.de)).toBe(false);
     dit('geste.refus.ciblage');
   });
   it('aucun actif → geste.refus.aucunActif', () => {
     const { H } = combat(c.scene(), c.de);
     banc.setState({ battle: { ...g().battle!, turn: g().battle!.order.length } });
-    c.agir(c.de, c.vers);
+    c.agir(c.vers);
     expect(aAgi(H.id, c.de)).toBe(false);
     dit('geste.refus.aucunActif');
   });
   it('actif mené par un autre siège → geste.refus.pasLaMain', () => {
     const { H } = combat(c.scene(), c.de);
     banc.setState({ net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } });
-    c.agir(c.de, c.vers);
+    c.agir(c.vers);
     expect(aAgi(H.id, c.de)).toBe(false);
     dit('geste.refus.pasLaMain', { name: H.label });
   });
   it('refus en combat : dit à la bannière (`refus`), jamais au seul journal', () => {
-    combat(c.scene(), { x: 0, y: 3 });
-    c.agir(c.de, c.vers);
+    const { H } = combat(c.scene(), c.de);
+    banc.setState({ battle: { ...g().battle!, action: 'cast' } });
+    c.agir(c.vers);
+    expect(aAgi(H.id, c.de)).toBe(false);
     expect(g().journal).toEqual([]);
-    expect(g().refus?.texte).toBe(t('geste.refus.caseDuMobile', { name: 'H' }));
+    expect(g().refus?.texte).toBe(t('geste.refus.ciblage'));
   });
 });
 
@@ -304,7 +332,7 @@ describe('case d’arrivée occupée, en combat', () => {
       foe.dead = false;
       foe.engagedWith = [];
       placeCombatant(foe, g().scene!, c.vers);
-      c.agir(c.de, c.vers);
+      c.agir(c.vers);
       expect(aAgi(H.id, c.de)).toBe(false);
       dit('franchir.caseOccupee', { name: H.label });
     });
@@ -314,8 +342,8 @@ describe('case d’arrivée occupée, en combat', () => {
 describe('Test d’Escalade (LDB 15 l.57) : celui du GRIMPEUR', () => {
   /** Deux héros : `H` (actif, sans Escalade) et `S` (fort en Escalade), `S` loin du pied. */
   function deuxHeros() {
-    const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    const S = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', seed: 2 });
+    const H = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const S = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', seed: 2 });
     S.skills = [...S.skills.filter((k) => k.id !== 'escalade'), { id: 'escalade', characteristic: 'force', advances: 60 }];
     H.skills = H.skills.filter((k) => k.id !== 'escalade');
     banc.setState({ party: [H, S], net: NET0 });
@@ -337,7 +365,7 @@ describe('Test d’Escalade (LDB 15 l.57) : celui du GRIMPEUR', () => {
 
   it('un héros faible grimpe : le Test est le sien, pas celui du meilleur du groupe', () => {
     const { H } = deuxHeros();
-    g().franchirLArete(foot, top);
+    g().franchirLArete(top);
     expect(g().pendingTest?.actorId).toBe(H.id);
   });
 
@@ -347,7 +375,7 @@ describe('Test d’Escalade (LDB 15 l.57) : celui du GRIMPEUR', () => {
     placeCombatant(H, g().scene!, { x: 3, y: 3 });
     placeCombatant(foe, g().scene!, foot);
     banc.setState({ net: { ...NET0, gmSeat: 0 }, battle: { ...g().battle!, turn: g().battle!.order.indexOf(foe.id) } });
-    g().franchirLArete(foot, top);
+    g().franchirLArete(top);
     expect(g().pendingTest?.actorId).toBe(foe.id);
   });
 });

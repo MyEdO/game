@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { act, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -74,7 +75,7 @@ const mur = (() => {
 })();
 /** Le frappeur est un HÉROS RÉEL (pregen) : ses armes et ses Compétences sont ce que la porte lit. */
 const heros = (() => {
-  const h = makePregens()[0];
+  const h = makePregens(idsDeTest)[0];
   h.id = 'h1';
   h.pos = { x: FRAPPEUR.x, y: FRAPPEUR.y };
   return h;

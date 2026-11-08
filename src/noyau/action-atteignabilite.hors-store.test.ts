@@ -3,6 +3,7 @@
  * de code déclaré à `actions.json` se résout, tout mode de ciblage a son action porteuse, `BattleState.action` se type
  * depuis le registre) et les sorties d'interlude, chacune par SON dispatcher.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -116,7 +117,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('sorties d’interlude — le dispatcher mutualisé est inexprimable (témoin mesuré)', () => {
   /** Combat minimal réel : un héros ACTIF, une scène, le mode de bordée armé. */
   function combatArme(over: Partial<BattleState> = {}) {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
     h.id = 'h1';
     h.pos = { x: 5, y: 5 };
     banc.setState({
@@ -132,20 +133,20 @@ describe('sorties d’interlude — le dispatcher mutualisé est inexprimable (t
 
   it('TÉMOIN — sans flux différé, la sortie de bordée désarme bien le mode', () => {
     combatArme();
-    banc.getState().jouerLOffre('battery-cancel');
+    banc.jouerLaCase('battery-cancel');
     expect(banc.getState().battle!.action).toBeNull();
   });
 
   it('MESURE — sous un flux différé, la MÊME sortie est avalée (donc jamais partagée avec cleave/dual)', () => {
     const h = combatArme();
     banc.setState({ pendingCleave: { attackerId: h.id, hitIds: [], count: 0 } as never });
-    banc.getState().jouerLOffre('battery-cancel');
+    banc.jouerLaCase('battery-cancel');
     expect(
       banc.getState().battle!.action,
       'la sortie de bordée est avalée sous `combatBusy` — c’est pourquoi cleave/dual portent leurs propres verbes',
     ).toBe('battery');
     // … et le verbe DE ce flux, lui, passe : chaque interlude sort par SON dispatcher.
-    banc.getState().jouerLOffre('cleave-end');
+    banc.jouerLaCase('cleave-end');
     expect(banc.getState().pendingCleave).toBeNull();
   });
 });

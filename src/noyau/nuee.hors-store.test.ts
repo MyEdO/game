@@ -1,4 +1,6 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
+import { advanceTurn } from './combatFlow';
 import { statblockToCombatant } from './monde/spawn';
 import { attackModifiers } from '../engine/combat';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -84,7 +86,7 @@ function nueeScene(avecTrait = true): { scene: Scene; nueeId: string; temoinId: 
 }
 
 function startNuee(scene: Scene) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], battle: null, pendingDisengage: null });
   banc.getState().lancerLaScene(scene);
   banc.getState().lancerLeCombat(ENC_NUEE);
@@ -96,7 +98,7 @@ function startNuee(scene: Scene) {
 /** Franchit le Round par le geste de fin de tour, depuis le dernier index de l'ordre. */
 function franchirLeRound(battle: ReturnType<typeof startNuee>['battle']) {
   banc.setState({ battle: { ...battle, turn: battle.order.length - 1, action: null, acted: false, movementUsed: 0 } });
-  banc.getState().terminerLeTour();
+  advanceTurn(banc.getState, banc.setState);
   return banc.getState().battle!;
 }
 

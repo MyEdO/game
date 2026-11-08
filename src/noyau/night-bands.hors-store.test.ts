@@ -13,6 +13,7 @@
  *  5. la file de fin de combat est SCINDÉE par pilote : rangées manuelles influençables, témoins
  *     résolus d'office DANS LEUR PROPRE bande (jamais `interactive:false` dans la bande jouée).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
@@ -29,7 +30,7 @@ import { checkBattleOver } from './combatFlow';
 import { applyEffects } from './combatEffects';
 import { addCondition } from '../engine/conditions';
 import { contractDisease } from '../engine/disease';
-import type { Combatant, Difficulty } from '../engine/types';
+import { DIFFICULTE_PAR_DEFAUT, type Combatant, type Difficulty } from '../engine/types';
 import type { CascadeStep, CascadeStepMeta } from './pendings';
 import { monoStep } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
@@ -47,7 +48,7 @@ const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
 function h(id: string, over: Partial<Combatant> = {}): Combatant {
-  const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 4 });
+  const c = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 4 });
   c.id = id;
   Object.assign(c, over);
   return c;
@@ -61,7 +62,7 @@ function nuit(spec: {
 }): BuiltCascadeStep {
   const step = monoStep({
     id: spec.id, kind: spec.kind, actor: h(spec.hero ?? 'h1'), label: fixtureText(spec.label ?? ''),
-    rollLabel: spec.rollLabel ?? 'Résistance', difficulty: spec.difficulty ?? 'intermediaire',
+    rollLabel: spec.rollLabel ?? 'Résistance', difficulty: spec.difficulty ?? DIFFICULTE_PAR_DEFAUT,
     montee: { base: spec.base ?? 40, target: spec.target ?? 40 },
     stake: nightStakeRef('faim'),
     ...(spec.menace ? { menace: spec.menace } : {}),

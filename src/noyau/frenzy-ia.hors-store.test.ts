@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { chooseEnemyAction, EnemyTurnInput, type CastableSpell } from './monde/ai';
 import { emptyScene } from './monde/scene';
@@ -83,7 +84,7 @@ describe('Frénésie IA — entrée auto & attaque libre', () => {
   });
 
   function setupBattle() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

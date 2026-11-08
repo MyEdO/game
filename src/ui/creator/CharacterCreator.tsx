@@ -18,6 +18,7 @@ import { Listbox, RadioGroup } from '../composites/GroupesDeChoix';
 import { NumberField } from '../NumberField';
 import { stockageDuRoster } from '../../state/roster';
 import { chargerLeRoster, engagerLeHeros } from '../../hote/roster';
+import { idDeRosterDuMembre } from '../../noyau/persistance/roster';
 import {
   classes,
   findCareerById,
@@ -59,19 +60,19 @@ import { refKey, splitLabel } from '../../engine/careerSlots';
 import { BASE_HUMAINE, CAREER_SKILL_ADVANCES, MAX_ADV_PER_SKILL, baseDEspece, cleDOption, libreDEspece, poolDuJoker } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { bandeAuDe } from '../../engine/tables';
-import { brancheChoisie, emplacementsDeDotation, estEmplacementDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
+import { brancheChoisie, dotationsDuHeros, emplacementsDeDotation, estEmplacementDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
 import { idsDeLaSousListe, type RefDesignee } from '../../data/schemas/grammaire/ref';
 import { sexeSchema, type SourceRef } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { CHAR_KEYS, CharKey, CHAR_LABELS, Characteristics, Combatant } from '../../engine/types';
-import { damageString, itemFromTrappingById, itemLabel } from '../../engine/items';
+import { damageString, gabaritDObjet, itemLabel } from '../../engine/items';
 import { skillBaseValue } from '../../engine/skills';
 import { effectiveChar } from '../../engine/characteristics';
 import { rangeSpecLabel, ammoRangeModLabel } from '../../engine/weaponStats';
 import { formatSpellRange, formatSpellDuration } from '../../engine/spellRangeFormat';
 import { effectiveEntry } from '../../engine/variants';
 import { Coins } from '../Coins';
-import { graineDEntropie } from '../../web/entropie';
+import { graineDEntropie, idDEntropie } from '../../web/entropie';
 import { Icon } from '../Icon';
 import { OptionChooser } from '../OptionChooser';
 import { MediaSelect, type MediaOption } from '../MediaSelect';
@@ -247,7 +248,7 @@ export function CharacterCreator() {
     if (!editingHeroId) return null;
     const hero = party.find((h) => h.id === editingHeroId);
     if (!hero) return null;
-    const saved = chargerLeRoster(stockageDuRoster()).find((e) => e.hero.id === editingHeroId);
+    const saved = chargerLeRoster(stockageDuRoster()).find((e) => e.hero.id === idDeRosterDuMembre(hero));
     const draft = saved?.draft ?? draftFromHero(hero, graineDEntropie());
     return { heroId: hero.id, draft, lossless: !!saved };
   }, [editingHeroId, party]);
@@ -301,7 +302,7 @@ export function CharacterCreator() {
   };
 
   const create = () => {
-    if (engagerLeHeros(stockageDuRoster(), useGame.getState(), d, editing?.heroId) === null) closeCreator();
+    if (engagerLeHeros(stockageDuRoster(), useGame.getState(), d, idDEntropie, editing?.heroId) === null) closeCreator();
   };
 
   const stepProps: StepProps = { d, setD, skillsSub, setSkillsSub };
@@ -317,7 +318,7 @@ export function CharacterCreator() {
     const c = findCareerById(d.careerId);
     if (!c) return null;
     const lvl1 = levelsForCareer(d.careerId).find((l) => l.level === 1);
-    return msg('createur.resumeDeCarriere', { classe: libelleDeClasse(c.class), carriere: c.label, niveau: lvl1?.label ?? '—', statut: lvl1?.status ?? '' });
+    return msg('createur.resumeDeCarriere', { classe: libelleDeClasse(c.class.id), carriere: c.label, niveau: lvl1?.label ?? '—', statut: lvl1?.status ?? '' });
   };
 
   // Une réf Codex cliquée ouvre la fiche en MODALE par-dessus l'assistant (cf. CodexOverlay) : le
@@ -645,12 +646,12 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
 
   const sectionsAll: PickGridSection[] = sp
     ? classes
-        .filter((cl) => accessible.some((c) => c.class === cl.id))
+        .filter((cl) => accessible.some((c) => c.class.id === cl.id))
         .map((cl) => ({
           id: cl.id,
           label: cl.label,
           items: accessible
-            .filter((c) => c.class === cl.id)
+            .filter((c) => c.class.id === cl.id)
             .map((c: CareerData) => ({ id: c.id, label: c.label })),
         }))
     : [];
@@ -773,9 +774,9 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
       sub={sourceSub(career.source)}
       meta={
         <>
-          {career.class && (
+          {career.class.id && (
             <span className="chip">
-              <CodexRef category="classes" id={career.class} label={libelleDeClasse(career.class)}>{libelleDeClasse(career.class)}</CodexRef>
+              <CodexRef category="classes" id={career.class.id} label={libelleDeClasse(career.class.id)}>{libelleDeClasse(career.class.id)}</CodexRef>
             </span>
           )}
           <span className="chip">Départ <b>{lvl1.label}</b></span>
@@ -1815,7 +1816,7 @@ export function PettySpellsSection({ d, setD }: StepProps) {
 function WeaponWildcardPicker({ value, onChange }: { value?: string; onChange: (v: string) => void }) {
   const { search, setSearch, filtered } = useFilteredList(armesChoisissables(), (w) => w.label);
   const options: MediaOption[] = filtered.map((w) => {
-    const item = itemFromTrappingById(w.id);
+    const item = gabaritDObjet(w.id);
     return { key: w.id, media: item ? <ItemIcon item={item} size="sm" /> : undefined, label: w.label };
   });
   return (
@@ -1902,11 +1903,11 @@ function trappingMeta(id: string): string {
 export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
   const level = draftLevel(d);
   const career = findCareerById(d.careerId);
-  const klass = findClassById(career?.class);
+  const klass = findClassById(career?.class.id);
   const bourse = draftWealth(d);
   const wealth = bourse.montant;
   const { rolling, landed, trigger, skip } = useRollFrisson(() => setD(rollDraftWealth(d)));
-  const emplacements = level ? emplacementsDeDotation(d.careerId, 1).filter(estEmplacementRacine) : [];
+  const emplacements = level ? emplacementsDeDotation(dotationsDuHeros(d.careerId)).filter(estEmplacementRacine) : [];
 
   const stepIdx = stepIds().indexOf('trappings');
   if (!level || !career) {
@@ -1992,7 +1993,7 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
         <div className="skill-tags">{careerItems.map(chip)}</div>
       </Band>
 
-      <Band title={<>De classe<small>{libelleDeClasse(career.class)}</small></>} right={<span className="hint">{classItems.length} objet{classItems.length > 1 ? 's' : ''}</span>}>
+      <Band title={<>De classe<small>{libelleDeClasse(career.class.id)}</small></>} right={<span className="hint">{classItems.length} objet{classItems.length > 1 ? 's' : ''}</span>}>
         <div className="skill-tags">{classItems.map(chip)}</div>
       </Band>
 
@@ -2010,7 +2011,7 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
         );
       })}
 
-      <div className="mini-title">La classe — {libelleDeClasse(career.class)}</div>
+      <div className="mini-title">La classe — {libelleDeClasse(career.class.id)}</div>
       <LoreText md={klass?.desc} porteur={klass && { type: 'classes', id: klass.id, chemin: 'desc' }} />
 
       {/* Note de PIED (planche `finale-mock7`, `.c-note` en bas de zone) : où atterrit le butin de départ. */}
@@ -2290,7 +2291,7 @@ export function PresentationScreen({ d }: StepProps): ReactNode {
           écrasés « Pamphl étaire »/« Bronz »). */}
       {levels.length > 0 && (
         <div className="presentation-col" style={{ gridColumn: '1 / -1' }}>
-          <Rubrique title={<>Évolution — {career?.class ? libelleDeClasse(career.class) : ''}</>}>
+          <Rubrique title={<>Évolution — {career ? libelleDeClasse(career.class.id) : ''}</>}>
             <CareerPath levels={levels} currentLevel={1} selected={1} />
           </Rubrique>
         </div>

@@ -83,6 +83,7 @@ function ArmyBar({ army, side }: { army: MassBattleArmy; side: 'ally' | 'enemy' 
 
 function RoundPanel({ mb }: { mb: MassBattleState }) {
   const rollHazard = useGame((s) => s.affronterLePeril);
+  const fenetreChoisir = useGame((s) => s.fenetreChoisir);
   const clash = useGame((s) => s.engagerLaMelee);
   const rally = useGame((s) => s.rallierLesTroupes);
   const advance = useGame((s) => s.avancerLaBataille);
@@ -142,10 +143,10 @@ function RoundPanel({ mb }: { mb: MassBattleState }) {
             defaultValue=""
             disabled={mb.awaitingNext}
             aria-label="Choisir un facteur environnemental"
-            onChange={(e) => { if (e.target.value) rollHazard(Number(e.target.value)); }}
+            onChange={(e) => { if (e.target.value) fenetreChoisir('batailleDeMasse', 'alea', e.target.value); }}
           >
             <option value="">Choisir un facteur…</option>
-            {BATTLE_HAZARDS.map((h) => <option key={h.min} value={h.min}>{h.label}</option>)}
+            {BATTLE_HAZARDS.map((h) => <option key={h.id} value={h.id}>{h.label}</option>)}
           </select>
         </div>
       )}

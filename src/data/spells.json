@@ -31,7 +31,7 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "capacite-de-combat",
+                "characteristic": "capacite-de-combat",
                 "mod": 10
               }
             ]
@@ -121,7 +121,7 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "sociabilite",
+                "characteristic": "sociabilite",
                 "mod": 10
               }
             ]
@@ -255,7 +255,7 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "force-mentale",
+                "characteristic": "force-mentale",
                 "mod": 10
               }
             ]
@@ -348,7 +348,7 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "dexterite",
+                "characteristic": "dexterite",
                 "mod": 10
               }
             ]
@@ -394,7 +394,7 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "agilite",
+                "characteristic": "agilite",
                 "mod": 10
               }
             ]
@@ -482,7 +482,7 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "capacite-de-tir",
+                "characteristic": "capacite-de-tir",
                 "mod": 10
               }
             ]
@@ -572,7 +572,7 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "force",
+                "characteristic": "force",
                 "mod": 10
               }
             ]
@@ -618,7 +618,7 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "intelligence",
+                "characteristic": "intelligence",
                 "mod": 10
               }
             ]
@@ -795,7 +795,7 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "endurance",
+                "characteristic": "endurance",
                 "mod": 10
               }
             ]
@@ -841,7 +841,7 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "initiative",
+                "characteristic": "initiative",
                 "mod": 10
               }
             ]
@@ -3539,7 +3539,7 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "endurance",
+                "characteristic": "endurance",
                 "mod": 20
               },
               {
@@ -5180,7 +5180,7 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "force",
+                "characteristic": "force",
                 "mod": 20
               },
               {
@@ -5860,12 +5860,12 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "initiative",
+                "characteristic": "initiative",
                 "mod": 20
               },
               {
                 "op": "charMod",
-                "char": "intelligence",
+                "characteristic": "intelligence",
                 "mod": 20
               }
             ]
@@ -7719,17 +7719,17 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "endurance",
+                "characteristic": "endurance",
                 "mod": 20
               },
               {
                 "op": "charMod",
-                "char": "agilite",
+                "characteristic": "agilite",
                 "mod": -10
               },
               {
                 "op": "charMod",
-                "char": "dexterite",
+                "characteristic": "dexterite",
                 "mod": -10
               }
             ]
@@ -10607,6 +10607,80 @@
     "family": "chaos"
   },
   {
+    "id": "tremblement",
+    "type": "spells",
+    "label": "Tremblement",
+    "ecole": "Magie du Chaos",
+    "subType": "Tzeentch",
+    "cn": 8,
+    "range": {
+      "kind": "self"
+    },
+    "target": {
+      "kind": "area",
+      "span": "radius",
+      "meters": {
+        "bonusOf": "force-mentale"
+      },
+      "excludesCaster": true
+    },
+    "duration": {
+      "kind": "instant"
+    },
+    "descRef": {
+      "book": "mort-sur-le-reik-compagnon",
+      "ch": "17",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "tremblement",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 2,
+          "sum": "466c3634190eaad1"
+        }
+      ]
+    },
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "test",
+          "test": {
+            "characteristic": "agilite"
+          },
+          "success": {
+            "kind": "seq",
+            "steps": []
+          },
+          "fail": {
+            "kind": "seq",
+            "steps": [
+              {
+                "kind": "do",
+                "effect": {
+                  "type": "ops",
+                  "on": "target",
+                  "ops": [
+                    {
+                      "op": "condition",
+                      "id": "a-terre"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 99
+    },
+    "family": "chaos"
+  },
+  {
     "id": "encalmine",
     "type": "spells",
     "label": "Encalminé",
@@ -11880,12 +11954,12 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "capacite-de-combat",
+                "characteristic": "capacite-de-combat",
                 "mod": 10
               },
               {
                 "op": "charMod",
-                "char": "capacite-de-tir",
+                "characteristic": "capacite-de-tir",
                 "mod": 10
               }
             ]
@@ -11973,7 +12047,7 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "agilite",
+                "characteristic": "agilite",
                 "mod": 10
               },
               {
@@ -14169,7 +14243,7 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "intelligence",
+                "characteristic": "intelligence",
                 "mod": 20
               },
               {
@@ -17629,12 +17703,12 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "force",
+                "characteristic": "force",
                 "mod": 30
               },
               {
                 "op": "charMod",
-                "char": "endurance",
+                "characteristic": "endurance",
                 "mod": 30
               },
               {
@@ -19501,7 +19575,7 @@
                 "ops": [
                   {
                     "op": "charMod",
-                    "char": "sociabilite",
+                    "characteristic": "sociabilite",
                     "mod": 10,
                     "durationHours": {
                       "bonusOf": "force-mentale"
@@ -19518,7 +19592,7 @@
                 "ops": [
                   {
                     "op": "charMod",
-                    "char": "sociabilite",
+                    "characteristic": "sociabilite",
                     "mod": -10,
                     "durationHours": {
                       "bonusOf": "force-mentale"
@@ -19881,7 +19955,7 @@
                       "ops": [
                         {
                           "op": "actGate",
-                          "char": "force-mentale"
+                          "characteristic": "force-mentale"
                         }
                       ]
                     },
@@ -21659,7 +21733,7 @@
                     "ops": [
                       {
                         "op": "charDamage",
-                        "char": "force",
+                        "characteristic": "force",
                         "amount": {
                           "dice": {
                             "n": 1,
@@ -21669,7 +21743,7 @@
                       },
                       {
                         "op": "charDamage",
-                        "char": "endurance",
+                        "characteristic": "endurance",
                         "amount": {
                           "dice": {
                             "n": 1,
@@ -23463,12 +23537,12 @@
               },
               {
                 "op": "charMod",
-                "char": "force",
+                "characteristic": "force",
                 "mod": 10
               },
               {
                 "op": "charMod",
-                "char": "endurance",
+                "characteristic": "endurance",
                 "mod": 10
               }
             ]
@@ -23526,17 +23600,17 @@
               },
               {
                 "op": "charMod",
-                "char": "capacite-de-combat",
+                "characteristic": "capacite-de-combat",
                 "mod": -20
               },
               {
                 "op": "charMod",
-                "char": "capacite-de-tir",
+                "characteristic": "capacite-de-tir",
                 "mod": -20
               },
               {
                 "op": "charMod",
-                "char": "agilite",
+                "characteristic": "agilite",
                 "mod": -20
               },
               {
@@ -23653,12 +23727,12 @@
               },
               {
                 "op": "charMod",
-                "char": "agilite",
+                "characteristic": "agilite",
                 "mod": -10
               },
               {
                 "op": "charMod",
-                "char": "sociabilite",
+                "characteristic": "sociabilite",
                 "mod": -10
               },
               {
@@ -23722,12 +23796,12 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "force",
+                "characteristic": "force",
                 "mod": 30
               },
               {
                 "op": "charMod",
-                "char": "endurance",
+                "characteristic": "endurance",
                 "mod": 30
               },
               {
@@ -25096,7 +25170,7 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "endurance",
+                "characteristic": "endurance",
                 "mod": 20,
                 "durationRounds": {
                   "bonusOf": "force-mentale"

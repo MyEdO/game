@@ -3,9 +3,10 @@
  * s'affiche que si un HÉROS est concerné (il subit ou inflige) — un Coup Critique purement
  * ennemi↔ennemi reste au journal/bandeau.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { applyCriticalToTarget } from './combatFlow';
+import { applyCriticalToTarget, advanceTurn } from './combatFlow';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
@@ -43,7 +44,7 @@ describe('routage des révélations (spec coop §4bis)', () => {
   });
 
   it('un HÉROS subit le Critique → séquence inline', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
     const log: string[] = [];
     applyCriticalToTarget(hero, 'corps', 0, log, banc.setState,
       { ctx: { attackerId: 'e1', attackerKind: 'enemy' }, get: banc.getState });
@@ -55,7 +56,7 @@ describe('routage des révélations (spec coop §4bis)', () => {
 describe('entretien de fin de Round — partition héros/ennemis (spec coop §4bis)', () => {
   beforeEach(() => {
     seedBattleRng(7);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -70,7 +71,7 @@ describe('entretien de fin de Round — partition héros/ennemis (spec coop §4b
       battle: { ...st.battle!, order: [H.id], turn: 0, action: null, movementUsed: 0, movedPreAction: false, acted: false },
       pendingRoundStart: null,
     });
-    banc.getState().terminerLeTour(); // seul dans l'ordre → franchit le Round
+    advanceTurn(banc.getState, banc.setState); // seul dans l'ordre → franchit le Round
     banc.avancer(3000);
   };
 

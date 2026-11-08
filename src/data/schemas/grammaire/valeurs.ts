@@ -1,4 +1,4 @@
-import { nommerChamps, metaDesChamps, type MetaDesChamps } from './meta';
+import { nommerChamps, nommerNoeud, metaDesChamps, type MetaDesChamps } from './meta';
 /**
  * VALEURS de la grammaire de document (#1466 L1a) — les types de VALEUR partagés par tout document
  * de l'application : source, dés, formule, difficulté, caractéristique, localisation, apparence,
@@ -14,7 +14,7 @@ import { parseDice, totalDuDe } from '../../../engine/dice';
 import { deDeLaTableTiree, facesDuDe, type PorteurDeDe } from '../../../engine/tables';
 import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
 
-import { type Amateur, type ContexteDeTest, AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
+import { type Amateur, type ContexteDeTest, type Availability, type TestedAvailability, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import type { Slot } from '../../../lib/palette';
 import type { Sexe as SexeDApparence } from '../../../lib/sexe';
 import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
@@ -201,7 +201,10 @@ export const dir8Schema = enumNomme({
  * retaper ses 4 paliers : c'est la porte unique des defs (`disponibilite`, `creatures`, `vehicles`,
  * `trappings`).
  */
-export const availabilitySchema = z.enum(AVAILABILITIES);
+export const LIBELLES_DE_DISPONIBILITE = { commune: 'Commune', limitee: 'Limitée', rare: 'Rare', exotique: 'Exotique' } as const satisfies Record<Availability, string>;
+export const availabilitySchema = enumNomme(LIBELLES_DE_DISPONIBILITE);
+/** Les Disponibilités qui se testent au d100 (`TestedAvailability`). LDB 59 l.25-30 */
+export const dispoPctAvailabilitySchema = enumNomme({ limitee: LIBELLES_DE_DISPONIBILITE.limitee, rare: LIBELLES_DE_DISPONIBILITE.rare } satisfies Record<TestedAvailability, string>);
 /** Libellé de Statut (« Argent 2 ») : lisible par `parseStatus`, que `statutDeDonnee` garantit ensuite. LDB 08 l.9 */
 export const statutSchema = z.string().refine((s) => parseStatus(s) !== null, 'Statut illisible : « Bronze N », « Argent N » ou « Or N » attendu.');
 
@@ -210,7 +213,10 @@ export const statutSchema = z.string().refine((s) => parseStatus(s) !== null, 'S
  * Disponibilité + `'Unique'`. Le 5ᵉ palier est RAW, pas une dérive : la table « COÛT DE BASE POUR
  * 1 ENC DE PIÈCES DE CRÉATURE BRUTES » imprime cinq colonnes (`ZI 13 l.286`).
  */
-export const harvestRaritySchema = z.enum([...AVAILABILITIES, 'Unique']);
+export const harvestRaritySchema = enumNomme({ ...LIBELLES_DE_DISPONIBILITE, unique: 'Unique' });
+
+/** Dangerosité d'une créature récoltée (`HarvestDanger`, `src/data/index.ts`). ZI 13 l.286 */
+export const harvestDangerSchema = enumNomme({ inoffensive: 'Inoffensive', inquietante: 'Inquiétante', menacante: 'Menaçante', mortelle: 'Mortelle' });
 
 /**
  * Forme déclarée d'un texte d'enjeu (`StakeForm`, `src/engine/types.ts`) — porte unique des defs
@@ -640,6 +646,13 @@ export const deckCoverSchema = z.enum(['imparfaite', 'moyenne', 'totale']);
  */
 export const charKeySchema = enumNomme(CHAR_LABELS);
 
+/** Une Caractéristique et sa valeur IMPRIMÉE (`SwapGrant`, `src/engine/statEntry.ts`) : l'octroi d'une
+ *  variante « swap » (ZI 1 l.229). */
+export const caracteristiqueChiffreeSchema = nommerChamps(
+  z.strictObject({ characteristic: charKeySchema, value: nommerNoeud(z.number(), { nom: 'valeur' }) }),
+  { characteristic: { label: 'caractéristique' }, value: { label: 'valeur' } },
+);
+
 /**
  * Clés d'un PROFIL chiffré : les 10 Caractéristiques ∪ `M` (Déplacement) ∪ `B` (Blessures) — la
  * graphie de `CustomStatblock.char` (`src/engine/statblock.ts`) et des profils de créature. `M` et `B`
@@ -943,6 +956,11 @@ export function messageDeTenueInconnue(id: string): string {
 
 export const emblemeSchema = ref('gardeRobe', undefined, 'embleme');
 
+/** Palette d'un personnage ou d'un élément 3D : une couleur du nuancier (`materials.json`, domaine `couleur`) par
+ *  emplacement de palette. */
+export const couleursSchema = z.partialRecord(slotSchema, ref('material', undefined, 'couleur'));
+export type Couleurs = z.infer<typeof couleursSchema>;
+
 /** `EntityAppearance` (`src/engine/authoringAppearance.ts`) — apparence d'entité, composée par
  *  `creatures`, la scène (`SceneEntity.appearance`) et le narratif. */
 export const entityAppearanceSchema = nommerChamps(z.strictObject({
@@ -954,7 +972,8 @@ export const entityAppearanceSchema = nommerChamps(z.strictObject({
   armurePortee: z.boolean().optional(),
   apparencesObjets: apparencesDObjetsSchema.optional(),
   embleme: emblemeSchema.optional(),
-}), { embleme: { label: 'emblème' }, sex: { label: "sexe" }, species: { label: "espèce" }, tenue: { label: "tenue" }, armurePortee: { label: "armure portée" }, apparencesObjets: { label: "apparences d’objets", texte: { regime: "technique" } } });
+  couleurs: couleursSchema.optional(),
+}), { embleme: { label: 'emblème' }, couleurs: { label: 'couleurs', hint: 'Couleur du nuancier par emplacement de palette ; absente, la teinte de l’objet ou la matière du modèle' }, sex: { label: "sexe" }, species: { label: "espèce" }, tenue: { label: "tenue" }, armurePortee: { label: "armure portée" }, apparencesObjets: { label: "apparences d’objets", texte: { regime: "technique" } } });
 
 /** `HitLocation` (`src/engine/types.ts`) — 6 zones de touche (dé inversé, LDB). Resserré depuis
  *  `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) sur l'enum SOURCE : aucune des 9 JSON

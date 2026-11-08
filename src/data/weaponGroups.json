@@ -449,6 +449,7 @@
     "label": "Armes de siège",
     "kind": "weapon",
     "maniement": "poings",
+    "siege": true,
     "source": {
       "book": "aux-armes",
       "page": 122,

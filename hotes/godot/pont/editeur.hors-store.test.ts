@@ -580,6 +580,93 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     expect(boutonDe(servi, `equipage/${pnjId}`).presse, 'l’équipage exposé est une autre liste').toBe(false);
   });
 
+  it('un personnage : son inventaire d’auteur, un objet ajouté du catalogue, porté, une seconde pièce de la même couche l’ôte, retiré (#3684)', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    presser(boutonDe(ouverte, 'outil/personnage'));
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const pnj = jouer({ geste: 'relache', point: point(1, 1) });
+    expect(pnj.vue.zones['editeur.inspecteur'].some((el) => el.id === 'inventaire'), 'sans objet, une ligne le dit').toBe(true);
+    const cotte = presser(boutonDe(pnj, 'inventaire/ajouter/cotte-de-mailles'));
+    const chemise = presser(boutonDe(cotte, 'inventaire/ajouter/chemise-de-mailles'));
+    expect(valeursDeLInspecteur(chemise, 'inventaire/cotte-de-mailles').map((b) => [b.id, b.presse])).toEqual([['inventaire/cotte-de-mailles/porte', false], ['inventaire/cotte-de-mailles/retirer', false]]);
+    expect(valeursDeLInspecteur(chemise, 'inventaire/ajouter').some((b) => b.id === 'inventaire/ajouter/chemise-de-mailles'), 'un objet de l’inventaire ne s’y ajoute plus').toBe(false);
+    const portee = presser(boutonDe(chemise, 'inventaire/cotte-de-mailles/porte'));
+    expect(boutonDe(portee, 'inventaire/cotte-de-mailles/porte').presse).toBe(true);
+    const otee = presser(boutonDe(portee, 'inventaire/chemise-de-mailles/porte'));
+    expect([boutonDe(otee, 'inventaire/cotte-de-mailles/porte').presse, boutonDe(otee, 'inventaire/chemise-de-mailles/porte').presse], 'deux mailles sur le Corps ne se portent pas ensemble').toEqual([false, true]);
+    const retiree = presser(boutonDe(otee, 'inventaire/cotte-de-mailles/retirer'));
+    expect([boutonDe(retiree, 'inventaire/chemise-de-mailles/porte').presse, retiree.vue.zones['editeur.inspecteur'].some((el) => el.id === 'inventaire/cotte-de-mailles')]).toEqual([true, false]);
+  });
+
+  it('un personnage de carrière : une carrière ajoutée, son Niveau, un Talent désigné, une dotation choisie, son profil porté (#773)', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ligneDe = (e: Edition, id: string) => (e.vue.zones['editeur.inspecteur'].find((el) => el.id === id) as Ligne | undefined)?.texte;
+    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/personnage'));
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const pnj = jouer({ geste: 'relache', point: point(1, 1) });
+    expect(ligneDe(pnj, 'carriere/profil/statut'), 'sans carrière, aucun profil').toBeUndefined();
+    const medecin = presser(boutonDe(pnj, 'carriere/ajouter/medecin'));
+    const doktor = presser(boutonDe(medecin, 'carriere/medecin/niveau/3'));
+    expect(boutonDe(doktor, 'carriere/medecin/niveau/3').presse).toBe(true);
+    expect(ligneDe(doktor, 'carriere/profil/statut')).toMatch(/Argent 5/);
+    const chirurgien = presser(boutonDe(doktor, 'carriere/medecin/talents/2/chirurgie'));
+    expect(boutonDe(chirurgien, 'carriere/medecin/talents/2/chirurgie').presse).toBe(true);
+    expect(ligneDe(chirurgien, 'carriere/profil/talents')).toMatch(/Chirurgie/);
+    const soldat = presser(boutonDe(presser(boutonDe(chirurgien, 'carriere/medecin/retirer')), 'carriere/ajouter/soldat'));
+    const hallebardier = presser(boutonDe(presser(boutonDe(soldat, 'carriere/soldat/niveau/2')), 'carriere/dotation/dotation:3/hallebarde'));
+    expect([boutonDe(hallebardier, 'carriere/dotation/dotation:3/hallebarde').presse, boutonDe(hallebardier, 'carriere/dotation/dotation:3/tiree').presse]).toEqual([true, false]);
+    expect(ligneDe(hallebardier, 'carriere/profil/possessions')).toMatch(/Hallebarde/);
+    expect(boutonDe(presser(boutonDe(hallebardier, 'carriere/aleatoire')), 'carriere/aleatoire').presse).toBe(true);
+    expect(ligneDe(presser(boutonDe(hallebardier, 'carriere/soldat/retirer')), 'carriere/profil/statut'), 'sa seule carrière retirée, le profil part').toBeUndefined();
+  });
+
+  it('une troupe : le formulaire borné pose N copies sur des cases libres, ids neufs, profils tirés, rencontre héritée ; une annulation la défait (#3704)', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    presser(boutonDe(ouverte, 'outil/personnage'));
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const pnj = presser(boutonDe(jouer({ geste: 'relache', point: point(1, 1) }), 'rencontre/neuve'));
+    const original = pnj.surcouche.reperes.find((r) => r.choisi)!;
+    const enc = (pnj.vue.zones['editeur.inspecteur'].find((el) => el.type === 'choix' && el.id.startsWith('rencontre/') && el.valeurs.some((v) => v.id.endsWith('/enrole') && v.presse)) as Choix).id;
+    expect(pnj.vue.zones['editeur.inspecteur'].find((el) => el.id === 'troupe')).toMatchObject({ type: 'formulaire', verbe: 'troupe', champs: [{ type: 'saisieNombre', nom: 'nombre', min: 2, max: 30, pas: 1 }] });
+    for (const args of [[1], [31], [2.5], ['4'], [4, 1]]) expect(erreurDe(appel('editer', { type: 'troupe', args })).categorie, JSON.stringify(args)).toBe('validation');
+
+    const troupe = editionDe(appel('editer', { type: 'troupe', args: [4] }));
+    const avant = pnj.surcouche.reperes;
+    const copies = troupe.surcouche.reperes.filter((r) => !avant.some((a) => a.id === r.id));
+    expect(copies.map((c) => [c.sorte, c.z]), 'quatre personnages neufs, sur la couche de l’original').toEqual(Array(4).fill(['personnage', original.z]));
+    const cases = troupe.surcouche.reperes.map((r) => `${r.x},${r.y}`);
+    expect(new Set(cases).size, 'aucune copie ne chevauche une entité').toBe(cases.length);
+    expect(troupe.surcouche.reperes.find((r) => r.choisi)?.id, 'l’original reste sélectionné').toBe(original.id);
+    jouer({ geste: 'appui', point: point(copies[0].x, copies[0].y) });
+    const copie = jouer({ geste: 'relache', point: point(copies[0].x, copies[0].y) });
+    expect(copie.surcouche.reperes.find((r) => r.choisi)?.id).toBe(copies[0].id);
+    expect([boutonDe(copie, 'carriere/aleatoire').presse, boutonDe(copie, `${enc}/enrole`).presse], 'ses Caractéristiques tirées, enrôlée dans la rencontre de l’original').toEqual([true, true]);
+    const annulee = presser(boutonDe(copie, 'annuler'));
+    expect(annulee.surcouche.reperes.map((r) => r.id), 'un seul cran : l’annulation retire les quatre').toEqual(avant.map((r) => r.id));
+  });
+
+  it('un personnage de carrière : un Talent qu’ajoute un Talent choisi est offert aux Niveaux suivants (LDB 10 l.467 ; #773)', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/personnage'));
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const pnj = jouer({ geste: 'relache', point: point(1, 1) });
+    const flagellant = presser(boutonDe(presser(boutonDe(pnj, 'carriere/ajouter/flagellant')), 'carriere/flagellant/niveau/2'));
+    const soldat = presser(boutonDe(flagellant, 'carriere/ajouter/soldat'));
+    expect(() => boutonDe(soldat, 'carriere/soldat/talents/1/frenesie'), 'sans Flagellant, Frénésie n’est pas offerte au Soldat').toThrow();
+    const voue = presser(boutonDe(soldat, 'carriere/flagellant/talents/2/flagellant'));
+    expect(boutonDe(presser(boutonDe(voue, 'carriere/soldat/talents/1/frenesie')), 'carriere/soldat/talents/1/frenesie').presse).toBe(true);
+  });
+
   it('un décor : sa lumière allumée, son rayon au pas, son ton ; son assise ouverte, une place tenue par un emplacement du groupe', () => {
     const { appel } = table();
     const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
@@ -989,7 +1076,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     saisir('valeur/onCross/0/amount', 2);
     presser('valeur/onCross/ajouter');
     choisir('valeur/onCross/1/op', 'Modif. de caractéristique');
-    choisir('valeur/onCross/1/char', 'Agilité');
+    choisir('valeur/onCross/1/characteristic', 'Agilité');
     saisir('valeur/onCross/1/mod', -5);
     presser('valeur/onCross/1/monter');
     expect(option('valeur/onCross/0/op', 'Modif. de caractéristique').presse, 'montée, la seconde op passe première').toBe(true);
@@ -1011,7 +1098,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     expect(neuve.triggers.find((t) => t.id === declencheur.id)?.when).toEqual({ kind: 'all', of: [{ kind: 'flag', expr: 'porte' }, { kind: 'not', of: { kind: 'foeInLoS' } }] });
     expect(neuve.effectZones!.find((z) => z.id === zone.id)).toMatchObject({
       crossTest: { characteristic: 'force' },
-      onCross: [{ op: 'charMod', char: 'agilite', mod: -5 }, { op: 'corruption', amount: 2 }],
+      onCross: [{ op: 'charMod', characteristic: 'agilite', mod: -5 }, { op: 'corruption', amount: 2 }],
     });
     rouvrir('editer', boutonDe(rouverte, `scenes/${neuve.id}`).jeu);
     rouvrir('editer', { edition: { geste: 'appui', point: point(0, 0) } });
@@ -1021,7 +1108,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     expect(formulaire('valeur/when/of/0/expr').champs[2]).toMatchObject({ valeur: 'porte' });
     rouvrir('editer', { edition: { geste: 'appui', point: point(3, 3) } });
     e = editionDe(rouvrir('editer', { edition: { geste: 'relache', point: point(3, 3) } }));
-    expect(option('valeur/onCross/0/char', 'Agilité').presse, 'rouverte, les ops de la zone').toBe(true);
+    expect(option('valeur/onCross/0/characteristic', 'Agilité').presse, 'rouverte, les ops de la zone').toBe(true);
     expect(formulaire('valeur/onCross/1/amount').champs[2]).toMatchObject({ valeur: 2 });
     expect(validation(), 'rouverte du dépôt, la validation ne dit aucune erreur').toMatch(sansErreur);
   });

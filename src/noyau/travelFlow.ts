@@ -69,7 +69,7 @@ import { toDate, isTravelDaylight, dawnMinute, minutesUntilNext, dayIndex } from
 import { seasonOfMonth, weatherDie, weatherFromRoll, weatherCondition, type Season, type Weather } from '../engine/travelStages';
 import { stageAssignmentFromRoles, type StagePosting } from '../engine/activities';
 import { buildStageSteps, buildWeatherResistanceSteps, type StageContext } from './travelPostes';
-import { startCascade, type TableStepDef, type TableStepRow } from './cascade';
+import { jouerLaJournee, type TableStepDef, type TableStepRow } from './cascade';
 import { freeCons, rollSansPilote, monoStep, surfaceOf, tableStep, pousseSi } from './rollSeam';
 import { t } from '../i18n';
 import type { CascadeStep, PendingCascade } from './pendings';
@@ -636,7 +636,7 @@ function runTravelDays(get: Get, set: Set): void {
       recap?.days.push(recapDay);
       if (recap) set({ travelPlan: { ...get().travelPlan!, recap } });
       const daySteps = buildTravelDayCascade(get, set, route, recapDay, [], { toLabel: to.label, destLabel: to.label });
-      startCascade(get, set, { title: t('tf.dayTitleForced'), icon: 'travel/cart', purpose: 'travelDay', steps: [premierKm, ...daySteps] });
+      jouerLaJournee(get, set, [premierKm, ...daySteps], { title: t('tf.dayTitleForced'), purpose: 'travelDay' }, false);
       return; // la clôture de la cascade (continueTravelDayAfterCascade) finalise le jour
     }
     const forced = forcedDriver ? forcedPaceDay(get, set, kmLeft, forcedDriver) : null;
@@ -710,7 +710,7 @@ function runTravelDays(get: Get, set: Set): void {
     // locaux ne survivent pas — `continueTravelDayAfterCascade` les relit depuis `plan.recap`.
     if (recap) set({ travelPlan: { ...get().travelPlan!, recap } });
     if (daySteps.length) {
-      startCascade(get, set, { title: t('tf.dayTitle'), icon: 'travel/compass', purpose: 'travelDay', steps: daySteps });
+      jouerLaJournee(get, set, daySteps, { title: t('tf.dayTitle'), purpose: 'travelDay' }, false);
       return; // la clôture de la cascade (continueTravelDayAfterCascade) finalise le jour
     }
     // Aucun jet influençable : finalisation immédiate (arrivée / halte de nuit) — comme la cascade le
@@ -1177,7 +1177,7 @@ function applyVehicleProblemToTravel(get: Get, set: Set, out: Pick<ForcedPaceDay
 function applyVehicleProblemEffects(get: Get, set: Set, entry: ReturnType<typeof rollVehicleProblem>, lines: string[]): { vehicleOut: boolean; vehicleLame: boolean } {
   const vehicle = get().travelPlan?.vehicle;
   if (!vehicle) return { vehicleOut: false, vehicleLame: false };
-  const r = applyVehicleProblem(vehicle, entry.min, battleRng());
+  const r = applyVehicleProblem(vehicle, entry.min, battleRng(), get().forgerUnId);
   lines.push(...r.lines);
   // Dégâts aux occupants (Cassé : 1 Blessure ignorant BE et PA ; Accident : 2d10 − BE − PA, min 1) —
   // langue unique GameOp, portée par la table (`occupantOps`).
@@ -1185,7 +1185,7 @@ function applyVehicleProblemEffects(get: Get, set: Set, entry: ReturnType<typeof
     const opLines: string[] = [];
     for (const h of get().party) {
       if (h.dead || h.outOfRencontre) continue;
-      opLines.push(...applyOps(h, r.entry.occupantOps, { rng: battleRng() }));
+      opLines.push(...applyOps(h, r.entry.occupantOps, { idNeuf: get().forgerUnId, rng: battleRng() }));
     }
     set({ party: [...get().party] });
     lines.push(...opLines);

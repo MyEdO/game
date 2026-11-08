@@ -7,6 +7,7 @@
  * ouvre sa fenêtre sur le chargeur pendant le télégraphe de la charge. Chaque test épingle sa
  * graine et AFFIRME le chemin qu'il prend.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState, GesteDeSuite } from './etat';
@@ -347,7 +348,7 @@ function lanceur(banc: Banc, seed: number, sort: string, heros: Combatant[]): vo
   poser(banc, seed, [e, ...heros]);
 }
 const pretire = (id: string, pos: { x: number; y: number }): Combatant => {
-  const h = pregen(PREGEN.soldat);
+  const h = pregen(idsDeTest, PREGEN.soldat);
   h.id = id; h.label = id; h.pos = pos; h.wounds = blessuresDeBase(99, 99, h);
   return h;
 };
@@ -457,7 +458,7 @@ describe('#3058 — un geste décidé par l’IA ne part pas par-dessus une Acti
   it('H-sort (graine 1) : sort parqué sur une fenêtre, bascule en manuel, le joueur incante, retour en Auto — une incantation, le tour avance', () => {
     banc = ouvrirLeBanc({ cadence: 'auto' });
     clearAiTurnLog();
-    const h = pregen(PREGEN.sorcier);
+    const h = pregen(idsDeTest, PREGEN.sorcier);
     h.id = 'h'; h.label = 'h'; h.pos = { x: 1, y: 1 }; h.wounds = blessuresDeBase(99, 99, h);
     h.characteristics.intelligence = 60;
     h.skills = [...h.skills.filter((sk) => sk.id !== 'langue'), { id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 60 } as never];

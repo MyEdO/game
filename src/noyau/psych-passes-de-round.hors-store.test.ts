@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
@@ -41,7 +42,7 @@ const jouer = () => void draineCascade(g);
  *  scène porte les Groupes `groups`. */
 function setup(heros = 1, ennemis = 1, groups?: string[]) {
   banc.getState().ensemencerLeTirage(7);
-  const party = Array.from({ length: heros }, (_, i) => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i + 1}`, seed: i + 1 }));
+  const party = Array.from({ length: heros }, (_, i) => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i + 1}`, seed: i + 1 }));
   banc.setState({ party });
   g().lancerLaScene({ ...testScene(), groups });
   g().lancerLeCombat('enc-mutants');
@@ -276,7 +277,7 @@ describe('Étiquette de scène : le lieu porte le Groupe, source en vue partout 
   it('Haine (Feu) active, née d’une autre source : aucune Peur du feu (LDB 21 l.41)', () => {
     const { H: [h], E: [e] } = setup(1, 1, ['feu']);
     lu(h).psychTraits = effraye('feu');
-    applyOps(lu(h), psychBranchOps({ kind: 'haine', cible: ciblePsy.groupe('feu'), sourceId: e, indice: 0 }, { success: false }), { rng: battleRng() });
+    applyOps(lu(h), psychBranchOps({ kind: 'haine', cible: ciblePsy.groupe('feu'), sourceId: e, indice: 0 }, { success: false }), { idNeuf: idsDeTest, rng: battleRng() });
     debut(1);
     expect(psy(h, 'peur')).toEqual([]);
     expect(bandes()).toEqual([]);
@@ -288,7 +289,7 @@ describe('Source déjà affrontée : seule une Peur ou une Terreur l’éteint (
     const { H: [h], E: [e] } = setup();
     lu(e).groups = ['mort-vivant'];
     lu(e).causesPeur = 2;
-    applyOps(lu(h), psychBranchOps({ kind: 'prejuge', cible: ciblePsy.groupe('mort-vivant'), sourceId: e, indice: 0 }, { success: false }), { rng: battleRng() });
+    applyOps(lu(h), psychBranchOps({ kind: 'prejuge', cible: ciblePsy.groupe('mort-vivant'), sourceId: e, indice: 0 }, { success: false }), { idNeuf: idsDeTest, rng: battleRng() });
     debut(1);
     expect(psy(h, 'peur')).toEqual([{ type: 'peur', sourceId: e, indice: 2, calmeDR: 0 }]);
   });
@@ -296,7 +297,7 @@ describe('Source déjà affrontée : seule une Peur ou une Terreur l’éteint (
   it('étiquette à deux Groupes : une Haine (Richesse) née de la scène n’empêche pas la Peur d’Effrayé (Feu)', () => {
     const { H: [h] } = setup(1, 1, ['feu', 'richesse']);
     lu(h).psychTraits = effraye('feu');
-    applyOps(lu(h), psychBranchOps({ kind: 'haine', cible: ciblePsy.groupe('richesse'), sourceId: 'scene', indice: 0 }, { success: true }), { rng: battleRng() });
+    applyOps(lu(h), psychBranchOps({ kind: 'haine', cible: ciblePsy.groupe('richesse'), sourceId: 'scene', indice: 0 }, { success: true }), { idNeuf: idsDeTest, rng: battleRng() });
     debut(1);
     expect(psy(h, 'peur')).toEqual([{ type: 'peur', sourceId: 'scene', indice: 0, calmeDR: 0 }]);
   });

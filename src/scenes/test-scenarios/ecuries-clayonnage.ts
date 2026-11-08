@@ -1,3 +1,4 @@
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { contexteDeNaissanceDObjet, itemFromTrappingById, loadoutCreate, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
 import type { Combatant } from '../../engine/types';
 import { pregen, PREGEN } from '../../data/pregens';
@@ -33,11 +34,11 @@ function poserDepart(base: Scene): Scene {
 
 /** Aelindra (Chasseur) l'arc EN MAIN et son carquois — le pré-tiré ne porte qu'une fronde rangée, et
  *  le set d'armes par défaut (`ensureDefaultLoadout`) tient sa mêlée : on rend ACTIF un set à l'arc. */
-function chasseurArme(): Combatant {
-  const h = pregen(PREGEN.chasseur);
-  const arc = itemFromTrappingById('arc', undefined, contexteDeNaissanceDObjet(h))!;
+function chasseurArme(idNeuf: FabriqueDId): Combatant {
+  const h = pregen(idNeuf, PREGEN.chasseur);
+  const arc = itemFromTrappingById('arc', idNeuf, undefined, contexteDeNaissanceDObjet(h))!;
   arc.equipped = true;
-  const fleches = itemFromTrappingById('fleche', undefined, contexteDeNaissanceDObjet(h))!;
+  const fleches = itemFromTrappingById('fleche', idNeuf, undefined, contexteDeNaissanceDObjet(h))!;
   h.items = [...(h.items ?? []), arc, fleches];
   loadoutSetSlot(h, loadoutCreate(h), 'main', arc.uid);
   recomputeLoadout(h);
@@ -58,7 +59,7 @@ function construireScene(): Scene {
         { ref: 'gobelin', pos: { x: 23, y: 29 }, facing: 'E' },
         // PREUVE (d) — le tireur ADVERSE voit et tire à travers SA cloison : posté contre (19,32)E,
         // dans la stalle du sud-ouest, l'arc à la main, à 5 cases du groupe.
-        { ref: 'gobelin', pos: { x: 19, y: 32 }, facing: 'E', weapon: 'arc' },
+        { ref: 'gobelin', pos: { x: 19, y: 32 }, facing: 'E', inventaire: { arc: false } },
         // CONTRE-ÉPREUVE (c) — même distance, mur d'habitation PLEIN : derrière l'arête (25,31)E
         // (`mur-a-ossature-en-bois`, sans fenêtre), le tir est REFUSÉ faute de Ligne de Vue.
         { ref: 'gobelin', pos: { x: 26, y: 31 }, facing: 'O' },
@@ -81,6 +82,6 @@ export const scenario: TestScenario = {
     'voit le groupe et tire ; à distance comparable, un ennemi derrière un mur à ossature en bois est ' +
     'REFUSÉ (pas de Ligne de Vue) — l’arête de clayonnage restant INFRANCHISSABLE au déplacement.',
   partyNote: 'Chasseur (arc en main) + Soldat — départ dans l’allée est des écuries.',
-  construire: () => ({ party: [chasseurArme(), pregen(PREGEN.soldat)], scene: construireScene() }),
+  construire: (idNeuf) => ({ party: [chasseurArme(idNeuf), pregen(idNeuf, PREGEN.soldat)], scene: construireScene() }),
   autoCombat: 'enc-clayonnage',
 };

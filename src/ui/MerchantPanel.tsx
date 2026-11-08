@@ -6,7 +6,7 @@ import { isRepairable } from '../engine/repair';
 import { Row } from './Layout';
 import { verdictDeVente } from '../noyau/flowOutcomes';
 import { compareEquip } from '../engine/equipCompare';
-import { itemFromTrappingById, isWeaponActive } from '../engine/items';
+import { gabaritDObjet, isWeaponActive, type GabaritDObjet } from '../engine/items';
 import { MERCHANT_COL_RENDERERS } from '../noyau/colonnesDuMarchand';
 import { describeQuality } from '../engine/qualities/describe';
 import { QualityChip } from './EntityChip';
@@ -30,6 +30,8 @@ import { QtyStepper } from './QtyStepper';
 import { familleDeLArticle, rangDeRarete } from '../noyau/marchandEnVue';
 import { nomDEntite } from '../noyau/monde/sceneNpc';
 import { presetPnjById } from '../state/campaignData';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { availabilitySchema } from '../data/schemas/grammaire/valeurs';
 
 type MerchantState = NonNullable<ReturnType<typeof useGame.getState>['merchant']>;
 
@@ -69,9 +71,9 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   onRemoveSellCart: (uid: string) => void;
   onClearSellCart: () => void;
   onConfirmSell: () => void;
-  onRepair: (uid: string, heroId: string) => void;
+  onRepair: (uid: string) => void;
   onBargain: (mode: 'buy' | 'sell') => void;
-  onAppraise: (uid: string, heroId: string) => void;
+  onAppraise: (uid: string) => void;
   onClose: () => void;
   /** « Baisse des prix » à la vente (LDB 59 l.60) — optionnel (rendu sans si absent). */
   onSellHalving?: (uid: string, delta: number) => void;
@@ -130,13 +132,13 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   const dist = merchant.pendingDistribution ?? null;
 
   const previews = useMemo(() => {
-    const map: Record<string, ItemInstance> = {};
-    for (const l of inStock) { const it = itemFromTrappingById(l.id); if (it) map[l.id] = it; }
+    const map: Record<string, GabaritDObjet> = {};
+    for (const l of inStock) { const it = gabaritDObjet(l.id); if (it) map[l.id] = it; }
     return map;
   }, [inStock.map((l) => l.id).join('|')]);
 
   // Bloc de comparaison d'un héros (info : la neuve vs l'équipement actuel). Pas de bouton d'équipement (cart).
-  const heroCompareBlock = (item: ItemInstance, h: Combatant) => {
+  const heroCompareBlock = (item: GabaritDObjet, h: Combatant) => {
     const cmp = compareEquip(item, h);
     return (
       <div className="mc-hero" key={h.id}>
@@ -163,7 +165,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   };
 
   // Fiche de détail (clic sur le nom) : INFORMATIVE — Atouts/Défauts + description + comparaison.
-  const renderDetailCard = (item: ItemInstance) => {
+  const renderDetailCard = (item: GabaritDObjet) => {
     // Qualités : NOM = chip canonique (`EntityRef`, popover Codex → type Atout/Défaut + source) ;
     // la description d'achat reste sous le chip. Atouts d'abord, Défauts ensuite.
     const quals = resolveQualities(item)
@@ -342,7 +344,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                 // trapping (toujours absent d'une ligne unité — `catalogEntryOf`).
                 const g = isUnitCat
                   ? (catalogEntryOf(l.id)?.unit?.kind === 'bete' ? 'montures' : 'vehicules')
-                  : (findTrappingById(l.id)?.subType ?? 'autres');
+                  : (findTrappingById(l.id)?.subType?.id ?? 'autres');
                 let bucket = groups.find((x) => x.key === g);
                 if (!bucket) {
                   const label = isUnitCat ? (g === 'montures' ? 'Montures' : 'Véhicules') : (weaponGroupLabel(g) || 'Autres');
@@ -458,11 +460,12 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
             {!refused && onSellHalving && (() => {
               const h = merchant.sellHalvings?.[it.uid] ?? 0;
               const av = sellBuyerAvailability(it, 0);
-              if ((av === 'Commune' || av === null) && h === 0) return null;
+              if ((av === 'commune' || av === null) && h === 0) return null;
+              const avBradee = sellBuyerAvailability(it, h);
               return (
                 <span className="sell-haggle" title="Baisser le prix de moitié augmente la Disponibilité d'un acheteur d'un cran">
                   <QtyStepper
-                    center={<span className="sell-av">acheteur {sellBuyerAvailability(it, h)}{h > 0 ? ` (÷${2 ** h})` : ''}</span>}
+                    center={<span className="sell-av">acheteur {avBradee && libelleDeValeur(availabilitySchema, avBradee)}{h > 0 ? ` (÷${2 ** h})` : ''}</span>}
                     onDec={() => onSellHalving(it.uid, -1)}
                     onInc={() => onSellHalving(it.uid, 1)}
                     decDisabled={h <= 0}
@@ -482,7 +485,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                 enabled={!refusEval}
                 {...raisonSi(refusEval)}
                 descOfferte="Test d'Évaluation : révèle les qualités cachées"
-                onClick={() => onAppraise(it.uid, activeSellId)}
+                onClick={() => onAppraise(it.uid)}
                 primary={false}
                 btnClassName="small"
               />
@@ -642,7 +645,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                   <GatedAction
                     id={`merch-repair-${it.uid}`} label="Réparer" ariaLabel={`Réparer ${it.label}`}
                     enabled={refusDeReparation(h, it, refusHote) == null} {...raisonSi(refusDeReparation(h, it, refusHote))}
-                    onClick={() => onRepair(it.uid, h.id)} primary={false} btnClassName="small"
+                    onClick={() => onRepair(it.uid)} primary={false} btnClassName="small"
                   />
                 </div>
               ))}

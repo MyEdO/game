@@ -5,7 +5,8 @@
 // DÉTECTEURS CONSTANTS : la base et la tête se MESURENT par le même code, posé dans chaque image — deux fois,
 // par le détecteur de la tête (`scripts/` de son image git) et par celui de la base (`scripts/` de son image git).
 // Le CLASSEMENT que la mesure exécute sous `src/` — registres, fabriques, classifieurs, parcours — est du code du
-// détecteur : chaque module qui porte la MARQUE (`MARQUE_DE_CLASSEMENT`) voyage avec lui (#2969). La constance
+// détecteur : chaque module qui porte la MARQUE (`MARQUE_DE_CLASSEMENT`) voyage avec lui (#2969), comme les modules
+// `.mjs` de `src/lib/` que `scripts/` importe (`LIB_DU_DETECTEUR`, #3117). La constance
 // couvre la MESURE ; les GÉNÉRATEURS et les DÉCLARATIONS appartiennent à l'image. L'image est celle de SON commit :
 // `src/` — donnée, defs, vocabulaire `TYPES`, `OP_DEFS`, table des poses — et ses cibles de code, produites par son
 // propre `genererCode` (scripts/docs/build-all.mjs), une fois par commit, avant la pose du détecteur. Une mesure impossible sous ces
@@ -117,7 +118,12 @@ export const MARQUE_DE_CLASSEMENT = '// CLASSEMENT DU DÉTECTEUR';
 /** Le dossier des modules de classement. */
 const RACINE_DU_CLASSEMENT = 'src/data/schemas/grammaire';
 /** Le texte d'un module est-il du classement ? */
-const estDuClassement = (texte: string): boolean => texte.startsWith(MARQUE_DE_CLASSEMENT);
+const estDuClassement = (_rel: string, texte: string): boolean => texte.startsWith(MARQUE_DE_CLASSEMENT);
+/** Les modules PURS de `src/lib/` en `.mjs`, que `scripts/` importe sans TypeScript (`src/lib/ordre.mjs`, en-tête) : du code du
+ *  détecteur, qui voyage avec lui comme son classement. */
+const LIB_DU_DETECTEUR = 'src/lib';
+/** Le fichier est-il un module JavaScript de `LIB_DU_DETECTEUR` ? */
+const estModulePartage = (rel: string): boolean => rel.endsWith('.mjs');
 /** Ce que l'image apporte : `src/` (donnée ET schémas), `Source/` (les chapitres que mesure `SOURCE_FORMAT`) et
  *  `docs/dossiers/` (les fiches que lit le registre `FICHIERS_DE_DOSSIER`, cible de code de `src/`). */
 const DE_L_IMAGE = ['src', 'Source', 'docs/dossiers'];
@@ -132,10 +138,10 @@ class MesureImpossible extends Error {}
 /** Le dossier d'une image est DANS un dépôt git : ses cibles de code y verraient l'écrivain de ce dépôt (`gitDirContenant`). */
 class ImageDansUnDepot extends Error {}
 
-/** Les fichiers texte de `dossiers` dans l'image `arbre` que `retenir` garde, écrits sous `dossier`. */
-function ecrireDeLImage(depot: Depot, arbre: string, dossier: string, dossiers: readonly string[], retenir = (_texte: string): boolean => true): void {
+/** Les fichiers texte de `dossiers` dans l'image `arbre` que `retenir` garde (chemin, texte), écrits sous `dossier`. */
+function ecrireDeLImage(depot: Depot, arbre: string, dossier: string, dossiers: readonly string[], retenir = (_rel: string, _texte: string): boolean => true): void {
   for (const [rel, texte] of lireEnLot(depot, arbre, listerImage(depot, arbre, ...dossiers).filter((c) => TEXTE.test(c)))) {
-    if (texte === null || !retenir(texte)) continue;
+    if (texte === null || !retenir(rel, texte)) continue;
     mkdirSync(dirname(join(dossier, rel)), { recursive: true });
     writeFileSync(join(dossier, rel), texte);
   }
@@ -144,14 +150,15 @@ function ecrireDeLImage(depot: Depot, arbre: string, dossier: string, dossiers: 
 /** Un DÉTECTEUR : son nom, sa clé de mémo, et la pose de son code (`DU_DETECTEUR`, son classement) dans une image. */
 type Detecteur = { readonly nom: string; readonly cle: string; readonly poser: (dossier: string) => void };
 
-/** Le détecteur du commit `sha` : son `scripts/`, son `package.json`, son `tsconfig.json` et ses modules de classement
- *  (`MARQUE_DE_CLASSEMENT`), lus par git. */
+/** Le détecteur du commit `sha` : son `scripts/`, son `package.json`, son `tsconfig.json`, ses modules de classement
+ *  (`MARQUE_DE_CLASSEMENT`) et ses modules partagés (`LIB_DU_DETECTEUR`), lus par git. */
 export const detecteurDuCommit = (depot: Depot, sha: string): Detecteur => ({
   nom: `détecteur de la base (${sha.slice(0, 9)})`,
   cle: sha,
   poser: (dossier) => {
     ecrireDeLImage(depot, sha, dossier, DU_DETECTEUR);
     ecrireDeLImage(depot, sha, dossier, [RACINE_DU_CLASSEMENT], estDuClassement);
+    ecrireDeLImage(depot, sha, dossier, [LIB_DU_DETECTEUR], estModulePartage);
   },
 });
 

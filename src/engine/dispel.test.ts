@@ -2,6 +2,7 @@
  * engine/dispel — Dissipation de sorts permanents (LDB 46 l.158-162), partie PURE.
  * Énumération (regroupée par sort+lanceur) et retrait propre des effets marqués à l'incantation (Stage 1).
  */
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from './types';
 import { applyOps } from './ops';
@@ -22,7 +23,7 @@ function mk(id: string, p: Partial<Combatant> = {}): Combatant {
 
 // Pose un sort durable (charMod) sur une cible, marqué à l'incantation (OpsCtx.sourceSpell).
 function cast(target: Combatant, spell: { spellId: string; ni: number; casterId: string; label: string }, char: 'force-mentale' | 'force' = 'force-mentale', mod = 10) {
-  applyOps(target, [{ op: 'charMod', char, mod }], { rng: desDuTest, label: spell.label, defaultDurationRounds: 5, sourceSpell: spell });
+  applyOps(target, [{ op: 'charMod', characteristic: char, mod }], { idNeuf: idsDeTest, rng: desDuTest, label: spell.label, defaultDurationRounds: 5, sourceSpell: spell });
 }
 
 describe('dispel — énumération des sorts permanents actifs', () => {
@@ -46,7 +47,7 @@ describe('dispel — énumération des sorts permanents actifs', () => {
   });
 
   it('ignore les effets non magiques (sans marque de sort)', () => {
-    const a = mk('a', { activeEffects: [{ label: 'Drogue', char: 'force', bonus: 10, duration: { scale: 'rounds', left: 3 } }] });
+    const a = mk('a', { activeEffects: [{ label: 'Drogue', characteristic: 'force', bonus: 10, duration: { scale: 'rounds', left: 3 } }] });
     expect(dispellableSpellsOn([a])).toHaveLength(0);
   });
 });

@@ -9,6 +9,7 @@
  * morte (#841). Chaque cas porte sa CONTRE-ÉPREUVE : la même mesure AVANT le geste, sur le même
  * lecteur — retirer la clé du contrôle rendrait les deux mesures identiques et le test rouge.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -528,7 +529,7 @@ function sceneNavale(): Scene {
 }
 
 const spawned = (scene: Scene, id: string) => {
-  useGame.setState({ party: pregenParty(PREGEN.soldat) });
+  useGame.setState({ party: pregenParty(idsDeTest, PREGEN.soldat) });
   useGame.getState().lancerLaScene(scene);
   useGame.getState().lancerLeCombat('abordage');
   return useGame.getState().battle!.combatants.find((c) => c.id === id)!;
@@ -587,7 +588,7 @@ describe('Atelier de dialogue — ICÔNE d’un choix (`DialogueChoice.icon`, #8
       const boxRoot = createRoot(el);
       boxes.push({ el, root: boxRoot });
       await act(async () => {
-        useGame.setState({ dialogue: { dialogue: d, nodeId: 'n1', session: 1 }, party: pregenParty(PREGEN.soldat) });
+        useGame.setState({ dialogue: { dialogue: d, nodeId: 'n1', session: 1 }, party: pregenParty(idsDeTest, PREGEN.soldat) });
         boxRoot.render(<DialogueBox />);
       });
       return el;

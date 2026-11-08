@@ -3,6 +3,7 @@
  * `buildNightCascade`) pose — première nuit jusqu'à l'aube suivante, un jour plein si l'on y est, puis un
  * jour par nuit. L'oracle est la boucle du repos d'avant l'extraction, écrite en clair.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc } from './banc.testkit';
 import { aubeApresNuits, minutesUntilNext, dawnMinute, MINUTES_PER_DAY } from '../engine/clock';
@@ -27,7 +28,7 @@ describe('aubeApresNuits', () => {
 });
 
 describe('le repos pose l’heure de `aubeApresNuits`', () => {
-  const groupe = () => [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 })];
+  const groupe = () => [createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 })];
   const DEPARTS = [0, 120, 299, 300, 301, 720, 1439, MINUTES_PER_DAY + 300, 3 * MINUTES_PER_DAY + 1000];
   it.each(DEPARTS.flatMap((from) => [1, 3, 14].map((n) => [from, n])))('sleepParty depuis %d, %d nuit(s)', (from, n) => {
     const banc = ouvrirLeBanc({ etat: { party: groupe(), gameTime: from } });

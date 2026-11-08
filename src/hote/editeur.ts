@@ -13,17 +13,21 @@ import {
   calqueDeLaCouche, calquesAStocker, coinsDuCalque, planDuCalque, type CalquesStockes,
   capDeLEntite, capsOfferts, entiteDeLaSelection, fichesDePersonnage, nomDEntite, presetDuNarratif, props,
   assoirALaPlace, findVehicleById, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
-  DIFFICULTY_LABELS, FACES_D_ARETE, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, scenesDeLaSession, secretAuteur,
+  DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FACES_D_ARETE, FIRE_ARCS, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, scenesDeLaSession, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
-  ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
+  ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
   type WallPaint, ZONE_VARIANTS, champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
   allMusicDefs, apparencesDeLOuverture, champDuMessage, ciblesDAncreDeBataille, groupesDuLieu,
+  equipConflicts, isWearable, objetsDeLInventaire, trappingsInstanciables,
+  candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDEntite, ficheDuCombattant,
+  findCareerById, levelsForCareer, libelleDeLaValeur, parcoursDe, parcoursRetouche, parseRefKey, prisParLesAutres, refKey, refLabel, skillSlots, sousEmplacement, talentsDuParcours,
+  trappingRefLabel, valeursDeLEmplacement, type EmplacementDeDotation, type ParcoursDeCarriere,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
-import { estObjet } from './formes';
+import { estObjet } from '../lib/objet.mjs';
 import { elementsDesGestes, ligne, SANS_BORNE, type Bouton, type Choix, type Formulaire, type Ligne } from './elements';
 import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
 
@@ -229,6 +233,13 @@ const formulaireAUnChamp = (verbe: string, libelle: string, nom: string, intitul
   champs: [{ type: 'saisieTexte', id: `${verbe}/${nom}`, ton: 'neutre', nom, optionnel, libelle: intitule, valeur }],
 });
 
+/** Le formulaire qui pose une troupe du personnage sélectionné (`{ type: 'troupe', args: [nombre] }`), son nombre de
+ *  copies entre `BORNES_DE_LA_TROUPE`. */
+const formulaireDeLaTroupe = (): Formulaire => ({
+  type: 'formulaire', id: 'troupe', libelle: t('ecran.editeur.troupe'), verbe: 'troupe', focus: false, refus: null,
+  champs: [{ type: 'saisieNombre', id: 'troupe/nombre', ton: 'neutre', nom: 'nombre', optionnel: false, libelle: t('ecran.editeur.troupe.nombre'), valeur: BORNES_DE_LA_TROUPE.min, ...BORNES_DE_LA_TROUPE, pas: 1 }],
+});
+
 /** Le formulaire qui change l'identifiant `id` de la sélection, ou de la scène sans elle. */
 const formulaireDeLIdentifiant = (id: string): Formulaire =>
   formulaireAUnChamp('identifier', t('ecran.editeur.identifier'), 'id', t('ecran.editeur.identifiant'), id, false);
@@ -265,7 +276,8 @@ const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: num
 
 /** L'inspecteur de l'entité sélectionnée de la session `s` : son nom ; le type d'un décor, la fiche d'un personnage du
  *  bestiaire ; son cap parmi ceux que son type admet ; sa couche ; la lumière et les places d'un décor ; le poste d'un
- *  emplacement de siège et l'équipage exposé d'une coque ; l'embuscade d'un personnage et ses rencontres ; la supprimer. */
+ *  emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son parcours de carrière, son
+ *  embuscade et ses rencontres, et le formulaire qui en pose une troupe ; la supprimer. */
 function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton | Formulaire)[] {
   const fiches = fichesDePersonnage();
   const types = ent.kind === 'prop' ? props : ent.kind === 'personnage' && fiches.some((f) => f.id === ent.ref) ? fiches : [];
@@ -281,7 +293,7 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
     ...(ent.postes?.length || (ent.ref && findVehicleById(ent.ref)?.hull)
       ? equipe(s, ent, 'equipage', ent.crewIds ?? [], (crewIds) => ({ geste: 'entite', patch: { crewIds } }))
       : []),
-    ...(ent.kind === 'personnage' ? rencontres(s, ent) : []),
+    ...(ent.kind === 'personnage' ? [...inventaire(ent), ...carrieres(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
     bouton('entite/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }),
   ];
 }
@@ -361,9 +373,6 @@ function places(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Bo
   ];
 }
 
-/** Les arcs d'un créneau directionnel, dans l'ordre horaire depuis la proue. */
-const ARCS = ['proue', 'tribord', 'poupe', 'babord'] as const;
-
 /** Le poste de l'emplacement de siège `ent` de la session `s` : son engin, son arc (omni ou l'un des quatre), ses
  *  servants, et parmi eux le chef de pièce, en tête. */
 function poste(s: SessionDEdition, ent: Scene['entities'][number], p: NonNullable<Scene['entities'][number]['postes']>[number]): (Choix | Ligne)[] {
@@ -374,11 +383,128 @@ function poste(s: SessionDEdition, ent: Scene['entities'][number], p: NonNullabl
     choix('poste/engin', t('ecran.editeur.poste.engin'), siegeEngines().map((e) => bouton(`poste/engin/${e.id}`, e.label, { geste: 'poste', patch: { engin: e.id } }, p.trappingId === e.id)), 'liste'),
     choix('poste/arc', t('ecran.editeur.poste.arc'), [
       bouton('poste/arc/omni', t('ecran.editeur.poste.arc.omni'), { geste: 'poste', patch: { arc: null } }, !p.side),
-      ...ARCS.map((a) => bouton(`poste/arc/${a}`, t(`ecran.editeur.poste.arc.${a}`), { geste: 'poste', patch: { arc: a } }, p.side === a)),
+      ...FIRE_ARCS.map((a) => bouton(`poste/arc/${a}`, t(`ecran.editeur.poste.arc.${a}`), { geste: 'poste', patch: { arc: a } }, p.side === a)),
     ]),
     ...equipe(s, ent, 'poste/servants', servants, (ids) => ({ geste: 'poste', patch: { servants: ids } })),
     ...(servants.length ? [choix('poste/chef', t('ecran.editeur.poste.chef'), servants.map((id) =>
       bouton(`poste/chef/${id}`, nom(id), { geste: 'poste', patch: { servants: [id, ...servants.filter((i) => i !== id)] } }, servants[0] === id)))] : []),
+  ];
+}
+
+/** L'inventaire du personnage `ent` : chaque objet, par son id, à retirer et, s'il se porte (`isWearable`), porté ou
+ *  non, le porter ôtant ceux qui sont en conflit de port avec lui (`equipConflicts`) ; ou la ligne qui dit qu'il n'en a
+ *  aucun ; puis, en liste, chaque objet du catalogue (`trappingsInstanciables`) qu'il n'a pas, à y ajouter. Chaque
+ *  bouton écrit l'inventaire entier. */
+function inventaire(ent: Scene['entities'][number]): (Choix | Ligne)[] {
+  const objets = ent.inventaire ?? {};
+  const instances = objetsDeLInventaire(objets, String);
+  const ecrire = (inv: NonNullable<Scene['entities'][number]['inventaire']>): GesteDEdition => ({ geste: 'entite', patch: { inventaire: inv } });
+  const porter = (objet: (typeof instances)[number]) => {
+    const otes = new Set(objet.equipped ? [] : equipConflicts({ items: instances }, objet).map((o) => o.uid));
+    return Object.fromEntries(Object.entries(objets).map(([id, porte]) => [id, id === objet.uid ? !porte : porte && !otes.has(id)]));
+  };
+  return [
+    ...(instances.length
+      ? instances.map((objet) => {
+        const id = `inventaire/${objet.uid}`;
+        return choix(id, objet.label, [
+          ...(isWearable(objet) ? [bouton(`${id}/porte`, t('ecran.editeur.inventaire.porte'), ecrire(porter(objet)), objet.equipped)] : []),
+          bouton(`${id}/retirer`, t('ecran.editeur.inventaire.retirer'), ecrire(Object.fromEntries(Object.entries(objets).filter(([i]) => i !== objet.uid)))),
+        ]);
+      })
+      : [ligne('inventaire', t('ecran.editeur.inventaire.aucun'))]),
+    choix('inventaire/ajouter', t('ecran.editeur.inventaire.ajouter'),
+      trappingsInstanciables().filter((tr) => !(tr.id in objets)).map((tr) => bouton(`inventaire/ajouter/${tr.id}`, tr.label, ecrire({ ...objets, [tr.id]: false }))), 'liste'),
+  ];
+}
+
+/** Le parcours de carrière du personnage `ent` de la session `s`, s'il part d'une fiche du bestiaire (EDO 11 l.19) :
+ *  chaque carrière, la dernière actuelle, à son Niveau ou à retirer ; les Talents choisis de chacun de ses Niveaux
+ *  atteints ; la Compétence de chacun de ses emplacements à choix ; une carrière à ajouter, qui devient l'actuelle ;
+ *  chaque emplacement de dotation de l'actuelle, l'emplacement de la branche choisie dessous ; les Caractéristiques
+ *  tirées ; puis le profil calculé (`ficheDEntite`). Ce que l'auteur ne choisit pas se tire au spawn (« Tiré »).
+ *  Chaque bouton écrit le parcours entier, retouché (`parcoursRetouche`). */
+function carrieres(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
+  if (ent.statblock || ent.presetId || !fichesDePersonnage().some((f) => f.id === ent.ref)) return [];
+  const p: ParcoursDeCarriere = parcoursDe(ent) ?? { carrieres: {} };
+  const ecrire = (q: ParcoursDeCarriere): GesteDEdition => ({ geste: 'entite', patch: { parcours: parcoursRetouche(q) } });
+  const actuelle = carriereActuelle(p);
+  const refusDeTenue = ent.appearance?.tenue ? t('ecran.editeur.carriere.tenue') : null;
+  const tiree = (id: string, choisi: boolean, jeu: GesteDEdition) => bouton(`${id}/tiree`, t('ecran.editeur.carriere.tiree'), jeu, choisi);
+  const parTalents = talentsDuParcours(p).niveaux;
+  const etapes = Object.entries(p.carrieres).flatMap(([id, niveau]) => {
+    const levels = levelsForCareer(id);
+    const cle = `carriere/${id}`;
+    const talents = p.talentsDeCarriere?.[id] ?? [];
+    const competences = p.competencesDeCarriere?.[id] ?? [];
+    const slots = skillSlots(levels, niveau);
+    const { designations } = designationsDeCarriere(id, niveau, competences);
+    const sans = <T>(table: Readonly<Record<string, T>> | undefined, cle: string) => Object.fromEntries(Object.entries(table ?? {}).filter(([c]) => c !== cle));
+    return [
+      choix(cle, t(id === actuelle?.id ? 'ecran.editeur.carriere.actuelle' : 'ecran.editeur.carriere', { carriere: findCareerById(id)!.label }), [
+        ...levels.map((l) => bouton(`${cle}/niveau/${l.level}`, t('ecran.editeur.carriere.niveau', { n: l.level, niveau: l.label }), ecrire({ ...p, carrieres: { ...p.carrieres, [id]: l.level } }), l.level === niveau)),
+        bouton(`${cle}/retirer`, t('ecran.editeur.carriere.retirer'), ecrire({ ...p, carrieres: sans(p.carrieres, id), ...(id === actuelle?.id ? { dotationsDeCarriere: undefined } : {}) })),
+      ]),
+      ...levels.filter((l) => l.level <= niveau).map((l) => {
+        const { offerts } = parTalents[id][l.level - 1];
+        return choix(`${cle}/talents/${l.level}`, t('ecran.editeur.carriere.talents', { n: l.level }), offerts.map((k) => {
+          const pris = talents.some((r) => refKey(r.id, r.spec) === k);
+          const autres = talents.filter((r) => refKey(r.id, r.spec) !== k);
+          return bouton(`${cle}/talents/${l.level}/${k}`, refLabel('talents', parseRefKey(k)), ecrire({ ...p, talentsDeCarriere: { ...p.talentsDeCarriere, [id]: pris ? autres : [...talents, parseRefKey(k)] } }), pris);
+        }), 'liste');
+      }),
+      ...slots.filter((sl) => sl.needsChoice).map((sl) => {
+        const designee = designations[sl.key];
+        const pris = prisParLesAutres(sl, slots, designations);
+        const i = competences.findIndex((r) => refKey(r.id, r.spec) === designee);
+        const autres = competences.filter((_, j) => j !== i);
+        const poser = (refs: typeof competences) => ecrire({ ...p, competencesDeCarriere: { ...p.competencesDeCarriere, [id]: refs } });
+        const id_ = `${cle}/competence/${sl.key}`;
+        return choix(id_, sl.entry, [
+          tiree(id_, !designee, poser(autres)),
+          ...candidatsDuSlot(sl).filter((k) => k === designee || !pris.has(k)).map((k) => bouton(`${id_}/${k}`, refLabel('skills', parseRefKey(k)), poser([...autres, parseRefKey(k)]), k === designee)),
+        ], 'liste');
+      }),
+    ];
+  });
+  const choisis = p.dotationsDeCarriere ?? {};
+  const dotation = (e: EmplacementDeDotation): Choix[] => {
+    const v = choisis[e.adresse];
+    const sous = e.sorte === 'branches' && typeof v === 'number' ? sousEmplacement(e, v) : undefined;
+    const id = `carriere/dotation/${e.adresse}`;
+    const poser = (x?: number | string) => ecrire({ ...p, dotationsDeCarriere: { ...Object.fromEntries(Object.entries(choisis).filter(([a]) => a !== e.adresse)), ...(x === undefined ? {} : { [e.adresse]: x }) } });
+    return [choix(id, e.sorte === 'branches' ? t('ecran.editeur.carriere.dotation') : trappingRefLabel(e.ref), [
+      tiree(id, v === undefined, poser()),
+      ...valeursDeLEmplacement(e).map((x) => bouton(`${id}/${x}`, libelleDeLaValeur(e, x), poser(x), v === x)),
+    ], 'liste'), ...(sous ? dotation(sous) : [])];
+  };
+  return [
+    ...etapes,
+    choix('carriere/ajouter', t('ecran.editeur.carriere.ajouter'), careers.filter((c) => !(c.id in p.carrieres))
+      .map((c) => bouton(`carriere/ajouter/${c.id}`, c.label, ecrire({ ...p, carrieres: { ...p.carrieres, [c.id]: 1 }, dotationsDeCarriere: undefined }), false, refusDeTenue)), 'liste'),
+    ...(actuelle ? emplacementsDeDotation(dotationsDuPnj(actuelle.id, actuelle.niveau)).filter(estEmplacementRacine).flatMap(dotation) : []),
+    bouton('carriere/aleatoire', t('ecran.editeur.carriere.aleatoire'), { geste: 'entite', patch: { aleatoire: !ent.combat?.randomChars } }, !!ent.combat?.randomChars),
+    ...(actuelle ? profilDeCarriere(s, ent, actuelle) : []),
+  ];
+}
+
+/** Le profil calculé du personnage de carrière `ent` de la session `s` (`ficheDEntite`, `ficheDuCombattant`) : le Niveau
+ *  atteint de sa carrière actuelle et son Statut, ses Caractéristiques et ses Blessures, ses Compétences à la valeur de
+ *  leur Test, ses Talents et ses possessions. */
+function profilDeCarriere(s: SessionDEdition, ent: Scene['entities'][number], actuelle: { id: string; niveau: number }): Ligne[] {
+  const entites = sceneEditee(s).entities;
+  const fiche = ficheDuCombattant(ficheDEntite(ent, presetDuNarratif(s.projet.narratif)), (id) => {
+    const e = entites.find((x) => x.id === id);
+    return e && nomALEcran(s, e);
+  })!;
+  const niveau = levelsForCareer(actuelle.id).find((l) => l.level === actuelle.niveau)!;
+  const liste = (cle: 'competences' | 'talents' | 'possessions', elements: string[]) => ligne(`carriere/profil/${cle}`, t(`ecran.editeur.carriere.profil.${cle}`, { liste: elements.join(', ') || t('ecran.editeur.carriere.profil.aucun') }));
+  return [
+    ligne('carriere/profil/statut', t('ecran.editeur.carriere.profil.statut', { niveau: niveau.label, statut: niveau.status })),
+    ligne('carriere/profil/caracteristiques', t('ecran.editeur.carriere.profil.caracteristiques', { liste: fiche.caracteristiques.map((c) => `${c.abrege} ${c.valeur}`).join(' · '), blessures: fiche.blessures[1] })),
+    liste('competences', fiche.competences.map((c) => `${c.libelle} ${c.valeur}`)),
+    liste('talents', fiche.talents.map((x) => (x.fois > 1 ? `${x.libelle} ×${x.fois}` : x.libelle))),
+    liste('possessions', fiche.possessions.map((x) => (x.nombre > 1 ? `${x.libelle} (${x.nombre})` : x.libelle))),
   ];
 }
 
@@ -902,7 +1028,7 @@ function inspecteurDArete(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   if (climb?.kind === 'surface') {
     elements.push(
       choix('arete/escalade/difficulte', t('ecran.editeur.inspecteur.escalade.difficulte'), (Object.entries(DIFFICULTY_LABELS) as [Difficulty, string][])
-        .map(([d, libelle]) => bouton(`arete/escalade/difficulte/${d}`, libelle, surLArete({ climb: { ...climb, difficulty: d } }), (climb.difficulty ?? 'intermediaire') === d)), 'liste'),
+        .map(([d, libelle]) => bouton(`arete/escalade/difficulte/${d}`, libelle, surLArete({ climb: { ...climb, difficulty: d } }), (climb.difficulty ?? DIFFICULTE_PAR_DEFAUT) === d)), 'liste'),
       bascule('grimpeur', !!climb.requiresGrimpeur, surLArete({ climb: { kind: 'surface', ...(climb.difficulty ? { difficulty: climb.difficulty } : {}), ...(climb.requiresGrimpeur ? {} : { requiresGrimpeur: true }) } })),
     );
   }
@@ -1247,7 +1373,8 @@ const estNombre = (v: unknown): v is number => typeof v === 'number' && Number.i
  *  celui qui change l'identifiant de la zone d'effet (`formulaireDeLIdentifiant`), `{ geste: 'identifier', id }` ; celui
  *  qui décrit la scène, sa description, retirée si elle est laissée vide ; celui qui écrit le message d'introduction de
  *  la scène, son texte tel quel, retiré s'il est laissé vide ; celui qui ajoute un drapeau de départ à la
- *  scène, vrai ; celui qui écrit une valeur d'un formulaire tiré du schéma (`elementDeValeur`), `args` son porteur,
+ *  scène, vrai ; celui qui pose une troupe du personnage sélectionné, `{ geste: 'troupe', nombre }`, un entier entre
+ *  `BORNES_DE_LA_TROUPE` ; celui qui écrit une valeur d'un formulaire tiré du schéma (`elementDeValeur`), `args` son porteur,
  *  son chemin et la valeur saisie, `{ geste: 'valeur', porteur, chemin, valeur }`, quand un formulaire des zones porte
  *  ce porteur et ce chemin, ou qu'une valeur d'un de leurs choix joue ce geste même ; `undefined` si les zones ne
  *  portent pas ce formulaire ou si `args` n'est pas ce qu'il saisit. */
@@ -1261,6 +1388,11 @@ export function gesteDuFormulaire(z: ZonesDeLEditeur, jeu: unknown): GesteDEditi
     const offert = formulaires.some((f) => jsonCanonique(f.champs.slice(0, 2).map((c) => (c.type === 'fixe' ? c.valeur : undefined))) === pose)
       || z['editeur.inspecteur'].some((e) => (e.type === 'choix' || e.type === 'liste') && e.valeurs.some((b) => jsonCanonique(b.jeu) === joue));
     return offert && valeur.length <= 1 ? { geste: 'valeur', porteur: porteur as PorteurDeValeur, chemin: chemin as Segment[], ...(valeur.length ? { valeur: valeur[0] } : {}) } : undefined;
+  }
+  if (jeu.type === 'troupe') {
+    const [nombre, ...reste] = jeu.args as unknown[];
+    const borne = estEntier(nombre) && nombre >= BORNES_DE_LA_TROUPE.min && nombre <= BORNES_DE_LA_TROUPE.max;
+    return formulaires.length && !reste.length && borne ? { geste: 'troupe', nombre } : undefined;
   }
   const [valeur, ...reste] = jeu.args as unknown[];
   const vide = valeur === undefined || valeur === null;
@@ -1285,7 +1417,7 @@ export function refusDeLaValeurDit(s: SessionDEdition, g: Extract<GesteDEdition,
 }
 
 /** Les verbes des formulaires de l'inspecteur. */
-const VERBES_DE_FORMULAIRE: readonly string[] = ['nommer', 'identifier', 'decrire', 'introduire', 'drapeau', 'valeur'];
+const VERBES_DE_FORMULAIRE: readonly string[] = ['nommer', 'identifier', 'decrire', 'introduire', 'drapeau', 'valeur', 'troupe'];
 
 /** Si `g` est l'issue de l'écriture d'un enregistrement au dépôt : `{ geste: 'enregistrement', reussi }`, rien de plus. */
 export function estLIssueDUnEnregistrement(g: unknown): g is Extract<GesteDEdition, { geste: 'enregistrement' }> {

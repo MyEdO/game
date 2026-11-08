@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { enumNomme, stakeFormSchema, varianteDeCibleSchema } from '../grammaire/valeurs';
 import { flowTestSchema, mecaniqueDe, passifsDe } from '../grammaire/mecanique';
+import { ref, refs } from '../grammaire/ref';
 
 export const file = 'psychology.json';
 export const famille = 'entite';
@@ -30,9 +31,9 @@ const doc = document(
     psychImmune: z.boolean().optional(),
     cibles: z.array(varianteDeCibleSchema).min(1).optional(),
     endedByOtherPsych: z.boolean().optional(),
-    immuneToFromTarget: z.array(z.string()).optional(),
+    immuneToFromTarget: refs('psychology').optional(),
     attackDR: nommerChamps(z.strictObject({ amount: z.number(), vs: z.enum(['source', 'group', 'any']) }), { amount: { label: 'Quantité' }, vs: { label: 'Contre' } }).optional(),
-    immuneWhileActive: z.array(z.string()).optional(),
+    immuneWhileActive: refs('psychology').optional(),
     containedSocialMod: z.number().optional(),
     targetCauses: nommerChamps(z.strictObject({ kind: z.string(), indice: z.number() }), { kind: { label: 'Type' }, indice: { label: 'Indice' } }).optional(),
     triggerOn: z.enum(['encounter', 'threatened']).optional(),
@@ -45,14 +46,14 @@ const doc = document(
     /** FORME DÉCLARÉE du `stake` (même contrat que `stakes.form`/`activities`). */
     stakeForm: stakeFormSchema.optional(),
     resolution: z.enum(['extended', 'terreur', 'binary']).optional(),
-    failCondition: z.string().optional(),
+    failCondition: ref('etat').optional(),
     failAmount: nommerChamps(z
       .strictObject({
         base: z.union([z.literal('indice'), z.number()]).optional(),
         perDegreeOfFailure: z.number().optional(),
       }), { base: { label: 'Base' }, perDegreeOfFailure: { label: 'Par degré d’échec' } })
       .optional(),
-    becomes: z.string().optional(),
+    becomes: ref('psychology').optional(),
     test: flowTestSchema.optional(),
   },
   {
@@ -81,7 +82,7 @@ const doc = document(
     stake: { label: 'Enjeu' },
     stakeForm: { label: 'Forme de l’enjeu' },
     resolution: { label: 'Mode de résolution', hint: 'Étendu / Terreur / binaire' },
-    failCondition: { label: 'État infligé à l’échec', hint: 'Identifiant de l’État posé quand le Test échoue' },
+    failCondition: { label: 'État infligé à l’échec', hint: 'État posé quand le Test échoue' },
     failAmount: {
       label: 'Quantité infligée à l’échec',
       hint: 'Part fixe (ou l’Indice) + N par degré d’échec — nombre de rangs de l’État posé',

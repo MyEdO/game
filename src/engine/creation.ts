@@ -170,7 +170,7 @@ export function rollStar(rng: RNG): { roll: number; id: string } {
  *  (l'adresse de son emplacement). Effet baked une fois à la création — PAS un passif. */
 export function applyStarOps(starId: string, chars: Characteristics, addTalent: (ref: RefASpecialisation, k: number) => void): void {
   (findStarById(starId)?.ops ?? []).forEach((op, k) => {
-    if (op.op === 'charMod') chars[op.char] += op.mod;
+    if (op.op === 'charMod') chars[op.characteristic] += op.mod;
     else if (op.op === 'grantTalent') addTalent(op.talent, k);
   });
 }

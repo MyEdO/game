@@ -147,7 +147,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
   handGate: { state: { pendingHandGate: { attackerId: 'H', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } }, read: flatRead('pendingHandGate') },
   steamSave: { state: { pendingSteamSave: { actorId: 'H', skillValue: T, difficulty: 'intermediaire', ...rate } }, read: flatRead('pendingSteamSave') },
   appraise: {
-    state: { pendingAppraise: { actorId: 'H', actorName: 'H', itemUid: 'x', itemName: 'x', truePriceBrass: 1, availability: 'Rare', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } },
+    state: { pendingAppraise: { actorId: 'H', actorName: 'H', itemUid: 'x', itemName: 'x', truePriceBrass: 1, availability: 'rare', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } },
     read: flatRead('pendingAppraise'),
   },
   heal: {
@@ -217,11 +217,6 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     state: { pendingShipBattery: { participants: [part3()] } },
     pid: 'H',
     read: partRead((s) => P<{ participants: { result: { roll: number } }[] }>(s, 'pendingShipBattery').participants[0].result),
-  },
-  crewTest: {
-    state: { pendingCrewTest: { participants: [part3()] } },
-    pid: 'H',
-    read: partRead((s) => P<{ participants: { result: { roll: number } }[] }>(s, 'pendingCrewTest').participants[0].result),
   },
   disengage: opposedFixture('pendingDisengage', { moverId: 'H', foeId: 'E' }),
   auContact: opposedFixture('pendingAuContact', { moverId: 'H', foeId: 'E' }),

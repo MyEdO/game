@@ -67,7 +67,6 @@ const FIXTURES: Record<string, Partial<Jeu>> = {
   } as unknown as Partial<Jeu>,
   shipManeuver: { pendingShipManeuver: { shipId: 'ship1', participants: parts } } as unknown as Partial<Jeu>,
   shipBattery: { pendingShipBattery: { shipId: 'ship1', targetId: 'e1', side: 'babord', participants: parts } } as unknown as Partial<Jeu>,
-  crewTest: { pendingCrewTest: { shipId: 'ship1', participants: parts } } as unknown as Partial<Jeu>,
   cascadeBatch: {
     pendingCascade: cascadeDeTest([{ id: 'batch', kind: 'stagePosteBatch', participants: parts }]),
   } as unknown as Partial<Jeu>,

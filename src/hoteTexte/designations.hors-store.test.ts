@@ -1,8 +1,7 @@
 /**
  * LES IDS QU'UN VERBE DÉSIGNE (#2898), joués par l'hôte texte (`hote.testkit.ts`) : un id que la table du noyau
  * (`DESIGNATIONS`, src/noyau/designations.ts) ne rend pas se refuse en `validation`, en nommant les ids valides, et rien
- * ne s'écrit ; un id que le refus nomme passe le contrôle. Un champ du contexte d'une offre que ni l'offre ni ses
- * candidats ne lisent se refuse de même.
+ * ne s'écrit ; un id que le refus nomme passe le contrôle. Le verbe d'une offre désigne de même ce que sa case lit.
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { fermerLaTable, partie, table, verbe, type table as Table } from './hote.testkit';
@@ -39,11 +38,8 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     const r = t.jouer(verbe('creerLaPanoplie', heros));
     expect(r.erreur, r.texte).toBeNull();
   });
-  it('scène : `quitterLaScene`', { timeout: 120_000 }, () => {
-    const t = partie('revisit');
-    const valides = refuseLId(t, verbe('quitterLaScene', 'nulle-part'), /sceneId : "nulle-part" n’est pas un id de scène \(valides : .*test-revisit-couloir/);
-    const r = t.jouer(verbe('quitterLaScene', valides.find((id) => id === 'test-revisit-couloir')!));
-    expect(r.erreur, r.texte).toBeNull();
+  it('point d’intérêt du lieu : `entrerAuPointDInteret`, aucun hors d’un lieu', { timeout: 120_000 }, () => {
+    refuseLId(partie('revisit'), verbe('entrerAuPointDInteret', 'test-revisit-couloir'), /poi : "test-revisit-couloir" n’est pas un id de point d’intérêt du lieu \(valides : aucun ici\)/);
   });
   it('entité de scène : `cliquerLaCase`', { timeout: 120_000 }, () => {
     const t = partie('revisit');
@@ -60,7 +56,7 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     refuseLId(t, verbe('epinglerLIndice', 'ind-rumeur-forgeron'), /indiceId : "ind-rumeur-forgeron" n’est pas un id d’indice \(valides : aucun ici\)/);
     expect(t.jouer(verbe('cliquerLaCase', { x: 7, y: 6 })).erreur).toBeNull();
     const [indice] = refuseLId(t, verbe('epinglerLIndice', 'nobody'), /indiceId : "nobody" n’est pas un id d’indice \(valides : ind-rumeur-forgeron\)/);
-    refuseLId(t, verbe('marquerLesIndices', [{ id: 'nobody', étapes: 1, statut: 'réfuté', stadeCourant: 's1' }]), /affichés\[0\]\.id : "nobody" n’est pas un id d’indice/);
+    refuseLId(t, verbe('marquerLesIndices', [{ id: 'nobody', étapes: 1, statut: 'refute', stadeCourant: 's1' }]), /affichés\[0\]\.id : "nobody" n’est pas un id d’indice/);
     passeLeControle(t, verbe('epinglerLIndice', indice));
   });
   it('pré-tiré : `recruterLeHeros`, le noyau bâtit le héros de la donnée', { timeout: 120_000 }, () => {
@@ -68,11 +64,10 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     const [pretire] = refuseLId(t, verbe('recruterLeHeros', { pretire: 'nobody' }), /heros\.pretire : "nobody" n’est pas un id de pré-tiré \(valides : /);
     passeLeControle(t, verbe('recruterLeHeros', { pretire }));
   });
-  it('porteur et objet : `equiperLObjet`', { timeout: 120_000 }, () => {
+  it('objet : `equiperLObjet`, son porteur lu dans l’état', { timeout: 120_000 }, () => {
     const t = partie('revisit');
-    const [heros] = refuseLId(t, verbe('equiperLObjet', 'nobody', 'x'), /heroId : "nobody" n’est pas un id de porteur \(valides : /);
-    const [objet] = refuseLId(t, verbe('equiperLObjet', heros, 'nobody'), /uid : "nobody" n’est pas un id d’objet \(valides : /);
-    const r = t.jouer(verbe('equiperLObjet', heros, objet));
+    const [objet] = refuseLId(t, verbe('equiperLObjet', 'nobody'), /uid : "nobody" n’est pas un id d’objet \(valides : /);
+    const r = t.jouer(verbe('equiperLObjet', objet));
     expect(r.erreur, r.texte).toBeNull();
   });
   it('possession : `renommerLaPossession`, aucune ici', { timeout: 120_000 }, () => {
@@ -103,20 +98,11 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
   });
 });
 
-describe('un champ du contexte d’une offre que rien ne lit se refuse en `validation`', () => {
-  it('`charge` ne lit pas `targetId` : la cible se choisit après l’offre', { timeout: 120_000 }, () => {
-    const t = partie('dome', verbe('fenetreValider', 'roundStart'));
-    const avant = t.fichier();
-    const r = t.jouer({ offre: 'charge', ctx: { targetId: 'enemy-enc-dome-1' } });
-    const texte = r.texte.split('\n  ').join(' ');
-    expect(r.erreur, texte).toBe('validation');
-    expect(texte).toMatch(/charge ne lit pas targetId du contexte \(champs acceptés : aucun\) ; la cible de cette offre se choisit après elle, par le clic de son combattant/);
-    expect(t.fichier()).toBe(avant);
+describe('le verbe d’une offre désigne ce que sa case lit', () => {
+  it('un id d’attaque que l’état ne désigne pas se refuse, en nommant les ids valides', { timeout: 120_000 }, () => {
+    refuseLId(partie('dome', verbe('fenetreValider', 'roundStart')), verbe('armerLAttaque', 'nobody'), /armerLAttaque : id : "nobody" n’est pas un id d’attaque \(valides : .*arme/);
   });
-  it('un id du contexte que l’état ne désigne pas se refuse, en nommant les ids valides', { timeout: 120_000 }, () => {
-    refuseLId(partie('dome', verbe('fenetreValider', 'roundStart')), { offre: 'attaque', ctx: { attackId: 'nobody' } }, /ctx\.attackId : "nobody" n’est pas un id d’attaque \(valides : .*arme/);
-  });
-  it('un champ que la porte de l’offre lit passe le contrôle', { timeout: 120_000 }, () => {
-    passeLeControle(partie('dome', verbe('fenetreValider', 'roundStart')), { offre: 'attaque', ctx: { attackId: 'arme' } });
+  it('l’id que le refus nomme passe le contrôle', { timeout: 120_000 }, () => {
+    passeLeControle(partie('dome', verbe('fenetreValider', 'roundStart')), verbe('armerLAttaque', 'arme'));
   });
 });

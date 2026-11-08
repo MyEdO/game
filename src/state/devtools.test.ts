@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { emptyScene, setDoorOpen } from '../noyau/monde/scene';
 import { useGame } from './store';
@@ -41,7 +42,7 @@ import { combattantDeTest, blessuresDeBase, blessuresSurLeProfil } from '../engi
 
 describe('__wfrp — setup #1561', () => {
   beforeEach(() => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ battle: null, party: [hero], pendingTest: null, pendingCascade: null, flags: {} });
   });
 
@@ -191,7 +192,7 @@ describe('__wfrp.killEnemies — commande de recette (élimine les ennemis, vict
   });
 
   it('en combat : tous les ennemis hors de combat + victoire par le flux normal (pendingVictory)', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().lancerLaScene(testScene());
     useGame.getState().lancerLeCombat('enc-mutants');
@@ -223,7 +224,7 @@ describe('__wfrp — autres commandes de recette', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ battle: null, party: [hero] });
     useGame.getState().lancerLaScene(testScene());
     vi.clearAllTimers();
@@ -465,7 +466,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
   let heroId = '';
   beforeEach(() => {
     vi.useFakeTimers();
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.talents.push({ talentId: 'magie-mineure', times: 1 });
     hero.spells = [];
     heroId = hero.id;
@@ -589,8 +590,9 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     expect(moi.armes.some((w) => w.trappingId !== null && w.formeResolue !== null)).toBe(true);
   });
 
-  /** Ouvre le Round (la pause n'a aucun actif) puis donne la main au héros, piloté par le joueur. */
+  /** Ouvre le Round (la pause n'a aucun actif) puis donne la main au héros, piloté par le joueur, la scène à l'écran. */
   const ouvrirLeRoundAuHeros = (api: ReturnType<typeof buildApi>) => {
+    useGame.setState({ screen: 'campaign' });
     if (useGame.getState().pendingRoundStart) useGame.getState().fenetreValider('roundStart');
     expect(api.turn(heroId)).toMatch(/^✓/);
   };
@@ -706,7 +708,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     api.place(mutant.id, { x: h.x + 1, y: h.y });
     expect(api.quality(mutant.id, null, 1)).toMatch(/^✓/);
     useGame.getState().battle!.combatants.find((c) => c.id === mutant.id)!.characteristics['capacite-de-combat'] = 95;
-    const tireur = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Tireur', seed: 2 });
+    const tireur = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Tireur', seed: 2 });
     tireur.aiControlled = true;
     tireur.pos = { x: h.x + 2, y: h.y };
     tireur.traits = [{ id: 'demoniaque', value: 9 }];
@@ -726,7 +728,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     const h = combattant().pos!;
     api.place(mutant.id, { x: h.x + 1, y: h.y });
     expect(api.quality(mutant.id, null, 1)).toMatch(/^✓/);
-    const tireur = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Tireur', seed: 2 });
+    const tireur = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Tireur', seed: 2 });
     tireur.pos = { x: h.x + 2, y: h.y };
     return { mutant, tireur };
   };
@@ -858,7 +860,7 @@ describe('__wfrp.projectMinimal / projectSave — poser un projet en bibliothèq
 
 describe('__wfrp.place — piège composite (coque à postes / membre de crew)', () => {
   const CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-  const mkPoste = (crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById('belier-ade2')!, crewIds });
+  const mkPoste = (crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById('belier-ade2', idsDeTest)!, crewIds });
   const mkHull = (poste: ShipPoste, pos = { x: 5, y: 5 }): Combatant =>
     combattantDeTest({ id: 'hull', label: 'Bélier', kind: 'enemy', pos, conditions: [], weapons: [],
       inert: true, wounds: blessuresDeBase(0), advantage: 0, postes: [poste] });
@@ -926,7 +928,7 @@ describe('__wfrp.place — piège composite (coque à postes / membre de crew)',
   });
 
   it('place() d’un combattant SIMPLE (ni coque ni crew) reste une téléportation directe inchangée', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.pos = { x: 1, y: 1 };
     const battle: BattleState = {
       combatants: [hero], order: [hero.id], turn: 0, round: 1, action: null, selectedSpellId: null,
@@ -943,7 +945,7 @@ describe('__wfrp.fastForward — avance-rapide des tours IA (garde anti-boucle, 
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ battle: null, party: [hero] });
     useGame.getState().lancerLaScene(testScene());
     useGame.getState().lancerLeCombat('enc-mutants');
@@ -1046,14 +1048,13 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
   const freshState = () => {
     seedBattleRng(1); // déterminisme (suite isolate:false)
     useGame.setState({
-      party: makePregens().slice(0, 3),
+      party: makePregens(idsDeTest).slice(0, 3),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null,
       worldMap: seaMap,
       lieu: 'A',
       travelPlan: null,
       travelRecap: null,
-      pendingCrewTest: null,
       pendingRest: null,
       pendingCascade: null,
       pendingSeaActivities: null,
@@ -1313,7 +1314,7 @@ describe('__wfrp.resumeLastScenario — reprise du dernier scénario après un r
       title: 'Plateau vide (garde du refus nommé)',
       tests: 'le refus de plateau vide',
       partyNote: 'pré-tirés',
-      construire: () => ({ party: makePregens().slice(0, 1), scene: emptyScene('scene-test') }),
+      construire: () => ({ party: makePregens(idsDeTest).slice(0, 1), scene: emptyScene('scene-test') }),
     };
     const api = () => buildApi([...testScenarios, vide]); // registre LOCAL : le tableau importé n'est pas touché
     api().scenario('entrainement', 5); // mémoire d'onglet posée par un lancement QUI ABOUTIT
@@ -1335,12 +1336,12 @@ describe('__wfrp.resumeLastScenario — reprise du dernier scénario après un r
       tests: 'le refus de plateau vide avant le démarrage',
       partyNote: 'pré-tirés',
       money: { gold: 7, silver: 0, brass: 0 },
-      construire: () => ({ party: makePregens().slice(0, 1), scene: emptyScene('scene-test') }),
+      construire: () => ({ party: makePregens(idsDeTest).slice(0, 1), scene: emptyScene('scene-test') }),
     };
     useGame.getState().setScreen('menu');
     expect(() => buildApi([...testScenarios, vide]).scenario('plateau-vide-demarrage', 3)).toThrowError(/VIDE/);
     expect(useGame.getState().screen).toBe('menu');
-    expect(bourseOf(useGame.getState().party[0])).toEqual(bourseOf(makePregens()[0]));
+    expect(bourseOf(useGame.getState().party[0])).toEqual(bourseOf(makePregens(idsDeTest)[0]));
   });
 });
 

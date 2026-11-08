@@ -57,7 +57,7 @@ describe('buildParticipantRows — le libellé de ligne vient de la Compétence 
 
 /**
  * #1262 L0 — le monteur MULTI naît de la PORTE (`participantRow`) : équivalence MESURÉE à la bascule
- * par sonde différentielle (6 consommateurs — CascadeModal:624, CrewTestModal:75, DisengageModal:123,
+ * par sonde différentielle (5 consommateurs — CascadeModal:624, DisengageModal:123,
  * ForceDoorModal:37, ShipBatteryModal:43, ShipManeuverModal:57 — × 4 phases : pré-jet, post-jet
  * réussi, raté, résultat NU sans `success`), zéro delta champ à champ. Ce test fige le CONTRAT que la
  * sonde a mesuré : le jeu de champs produit, la définition UNIQUE de `rolled`, la marque de montage.
@@ -78,9 +78,6 @@ const profils: { nom: string; bundle: Record<string, unknown>; champs: string[] 
       issues: (_p: ParticipantRow, _a: Combatant, res: Res) => (res ? 'issue-post' : 'issue-pré') as ReactNode,
       extendedDrOf: () => ({ cum: 2, target: 5 }), interactiveOf: (p: ParticipantRow) => p.interactive !== false },
     champs: [...CHAMPS, 'extendedDr'] },
-  { nom: 'CrewTestModal:75 — note + interactiveOf',
-    bundle: { row: (_p: ParticipantRow, a: Combatant, res: Res) => dRow('Timonier ★')(a, res), note: () => 'note' as ReactNode, interactiveOf: (p: ParticipantRow) => !!p.interactive },
-    champs: CHAMPS },
   { nom: 'DisengageModal:123 — présentation SANS pending (d conditionnel)',
     bundle: { row: (_p: ParticipantRow, a: Combatant, res: Res) => ({ combatant: a, d: res ? { label: 'Corps à corps (dans le dos)', base: 40, modifier: 0, target: res.target, roll: res.roll, success: res.success, sl: res.sl } : undefined }), note: () => 'dos' as ReactNode },
     champs: CHAMPS },

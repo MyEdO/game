@@ -1125,6 +1125,7 @@ export function freeAttackWeapon(gratuite: CreatureAttack): Weapon {
   const w = buildWeapon({
     label: def.label, attackKind: def.kind, natural: true, ...(def.subType ? { subType: def.subType.id } : {}),
     damage: def.damage ? { ...def.damage } : { plusBF: false, flat: gratuite.bonus, ...(gratuite.bfInclus ? { bfInclus: true as const } : {}) },
+    uid: `gratuite-${gratuite.cle}`, // #2907
   });
   return gratuite.confere?.length ? { ...w, traitsConferes: gratuite.confere } : w; // ZI 03 l.77
 }

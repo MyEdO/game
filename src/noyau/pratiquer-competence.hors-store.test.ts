@@ -12,7 +12,6 @@ import type { WorldMap } from './worldMap';
 import { setRule } from '../engine/policy';
 import { activityById, competencesAPratiquer, postingTenu, refusCandidatActivite, stageAssignmentFromRoles } from '../engine/activities';
 import { refusNePeutTenter } from '../engine/skills';
-import { ECHEC_SANS_JET } from '../engine/tests';
 import { refLabel, skills, specPoolOf } from '../data';
 import { avecActivite } from '../engine/activiteMer.testkit';
 import { avanceEtapeCascade } from './cascade.testkit';
@@ -144,10 +143,10 @@ describe('Pratiquer une Compétence : du rôle épinglé à la rangée de l’É
     expect(rangee.result).toBeNull();
   });
 
-  it('Compétence choisie que le héros ne peut pas tenter : la rangée naît sans jet, refus nommé', () => {
-    const rangee = rangeeAuDepart({ activityId: 'pratiquer-competence', freeSkill: { id: 'evaluation' } })!;
-    expect(rangee.result).toBe(ECHEC_SANS_JET);
-    expect(rangee.refus).toBe(refusNePeutTenter(banc.getState().party[0], { skill: { id: 'evaluation' } }));
+  it('Compétence choisie que le héros ne peut pas tenter : la rangée naît sans jet, n’arrête pas la journée, et son refus nommé va au journal (#3534)', () => {
+    expect(rangeeAuDepart({ activityId: 'pratiquer-competence', freeSkill: { id: 'evaluation' } }), 'aucune rangée à jouer ne retient la journée').toBeUndefined();
+    const refus = refusNePeutTenter(banc.getState().party[0], { skill: { id: 'evaluation' } });
+    expect(banc.getState().journal.some((l) => l.includes(refus)), 'le refus nommé, au journal').toBe(true);
   });
 });
 

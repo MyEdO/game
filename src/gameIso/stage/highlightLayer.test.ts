@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene } from '../../noyau/monde/scene';
 import { useGame, type GameState } from '../../state/store';
@@ -35,10 +36,10 @@ describe('combatHighlightsView — survol d’une entité SANS arme (#203 régre
 describe('combatHighlightsView — anneaux de CANDIDATS, teinte déclarée par le mode', () => {
   /** Combat réel : héros actif (h1) + allié BLESSÉ adjacent (h2), deux ennemis. `over` patche `battle`. */
   function combat(over: Record<string, unknown> = {}) {
-    const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
+    const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
     // le soigneur ouvre le soin par Guérison (LDB 09) : les candidates sont celles que CE soigneur peut soigner
     hero.skills = [...hero.skills.filter((sk) => sk.id !== 'guerison'), { id: 'guerison', advances: 10, characteristic: 'intelligence' } as never];
-    const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
+    const ally = makePregens(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
     ally.wounds = { ...ally.wounds, current: ally.wounds.max - 3 }; // seul un blessé est soignable
     const e1 = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 6 });
     const battle = {

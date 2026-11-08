@@ -3,6 +3,7 @@
  * les modes à liste exposent les bonnes `candidates` (soin = alliés soignables ; Surincantation =
  * overcastTargetCandidates ; attaque = ennemis via l'affordance par défaut).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { currentTargetingMode, spellAffinity, TILE_MODES, TARGETING_MODES } from './targetingModes';
 import { combatantClickActs, intentionDuClicDeCase, jouerLeClicDeCase, cliquerSurLeCombattant } from './combatOrParty';
@@ -25,8 +26,8 @@ const arena = () => {
 
 /** Combat 2 héros + 2 ennemis, héros actif au centre. `over` patche le `battle`. */
 function combat(over: Record<string, unknown> = {}) {
-  const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
-  const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
+  const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
+  const ally = makePregens(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
   const e1 = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 6 }); // adjacent
   const e2 = spawnEnemy({ ref: 'humain' }, 'e2', { x: 8, y: 6 });
   const battle = {
@@ -34,7 +35,7 @@ function combat(over: Record<string, unknown> = {}) {
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null, ...over,
   } as never;
-  banc.setState({ battle, scene: arena(), party: [hero, ally], pendingCleave: null, pendingDualStrike: null, pendingCast: null, pendingAttack: null, pendingSiegeAim: null, refus: null });
+  banc.setState({ battle, screen: 'campaign', scene: arena(), party: [hero, ally], pendingCleave: null, pendingDualStrike: null, pendingCast: null, pendingAttack: null, pendingSiegeAim: null, refus: null });
   return { hero, ally, e1, e2 };
 }
 
@@ -229,7 +230,7 @@ describe('interlude `placing-zone` — la sortie du registre MORD, par source', 
     combat({ selectedAttack: 'servir-mortier' });
     banc.setState({ pendingSiegeAim: { gunnerId: 'h1', weaponUid: 'w', radius: 2, rangeTiles: 10 } as never });
     expect(currentTargetingMode(banc.getState).id).toBe('placing-zone');
-    banc.getState().jouerLOffre('place-zone-back');
+    banc.jouerLaCase('place-zone-back');
     expect(banc.getState().pendingSiegeAim, 'le placeur de siège doit être refermé').toBeNull();
     expect(banc.getState().battle!.selectedAttack, 'l’option « Servir … » se désarme avec lui').toBeUndefined();
     expect(currentTargetingMode(banc.getState).id).not.toBe('placing-zone');
@@ -239,7 +240,7 @@ describe('interlude `placing-zone` — la sortie du registre MORD, par source', 
     combat();
     banc.setState({ pendingCast: { casterId: 'h1', spellId: 'carreau', result: { cast: true }, zone: { placing: true, radius: 2 } } as never });
     expect(currentTargetingMode(banc.getState).id).toBe('placing-zone');
-    banc.getState().jouerLOffre('place-zone-back');
+    banc.jouerLaCase('place-zone-back');
     expect(banc.getState().pendingCast, 'le sort JETÉ survit : on revient à sa modale').not.toBeNull();
     expect(banc.getState().pendingCast!.zone!.placing).toBe(false);
     expect(currentTargetingMode(banc.getState).id).not.toBe('placing-zone');
@@ -280,7 +281,7 @@ describe('téléportation — les cases se lisent à la clé de `flyReachable`, 
 
     it(`z=${z} : « Rester sur place » SORT du mode, et un clic valide TÉLÉPORTE`, () => {
       const { hero } = armer(z);
-      banc.getState().jouerLOffre('teleport-place');
+      banc.jouerLaCase('teleport-place');
       expect(banc.getState().battle!.action, 'la sortie doit désarmer la téléportation').toBeNull();
       const { hero: h2 } = armer(z);
       banc.getState().cliquerLaCase({ x: 7, y: 6, ...(z ? { z } : {}) });

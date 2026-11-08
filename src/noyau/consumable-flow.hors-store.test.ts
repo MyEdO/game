@@ -6,6 +6,7 @@
  *  - les effets durables expirent à l'échéance (`purgeClockEffects`), États d'horloge compris.
  * Sur la DONNÉE RÉELLE (belladone / mystracine / bonnet-de-fou — LDB 71/72).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -20,12 +21,12 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function hero(name: string, over: Partial<Combatant> = {}): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1 });
   return { ...h, id: name, ...over } as Combatant;
 }
 
 function giveItem(h: Combatant, trappingId: string, uid: string): void {
-  const it = itemFromTrappingById(trappingId)!;
+  const it = itemFromTrappingById(trappingId, idsDeTest)!;
   it.uid = uid;
   h.items = [...(h.items ?? []), it];
 }
@@ -43,7 +44,7 @@ describe('belladone (LDB 72 l.18) — Test au boire RESTREINT au buveur, sommeil
     giveItem(h2, 'belladone', 'bel1');
     banc.setState({ party: [h1, h2] });
 
-    banc.getState().utiliserLObjet('h2', 'bel1');
+    banc.getState().utiliserLObjet('bel1');
     const pt = banc.getState().pendingTest!;
     expect(pt).toBeTruthy();
     expect(pt.actorId).toBe('h2'); // restreint au buveur (pas partyBest)
@@ -75,7 +76,7 @@ describe('belladone (LDB 72 l.18) — Test au boire RESTREINT au buveur, sommeil
     const h2 = hero('h2');
     giveItem(h2, 'belladone', 'bel1');
     banc.setState({ party: [h2] });
-    banc.getState().utiliserLObjet('h2', 'bel1');
+    banc.getState().utiliserLObjet('bel1');
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 1, success: true, sl: 3 } });
     banc.getState().jetValider('test');
     expect(banc.getState().scheduledEffects).toHaveLength(0);
@@ -87,7 +88,7 @@ describe('mystracine (LDB 71 l.33) — durée « 1d10 × 10 minutes » bakée, p
     const h = hero('h1');
     giveItem(h, 'mystracine', 'mys1');
     banc.setState({ party: [h] });
-    banc.getState().utiliserLObjet('h1', 'mys1');
+    banc.getState().utiliserLObjet('mys1');
     const p = banc.getState().party.find((c) => c.id === 'h1')!;
     const fx = (p.activeEffects ?? []).filter((e) => e.testModChar);
     expect(fx).toHaveLength(5); // +10 E/FM, −10 Ag/I/Int (LDB 71 l.33)
@@ -106,7 +107,7 @@ describe('bonnet-de-fou (LDB 71 l.20) — +4 Blessures (attrMod exécutable) + p
     giveItem(h, 'bonnet-de-fou', 'bf1');
     banc.setState({ party: [h] });
     const maxBefore = h.wounds.max;
-    banc.getState().utiliserLObjet('h1', 'bf1');
+    banc.getState().utiliserLObjet('bf1');
     const p = banc.getState().party.find((c) => c.id === 'h1')!;
     // « +4 Blessures » au total, Force +10 comprise (#3060).
     expect((p.activeEffects ?? []).find((e) => e.attrMods?.wounds)?.attrMods?.wounds).toBe(4);
@@ -147,7 +148,7 @@ describe('racine-de-mandragore (LDB 71 l.35) — gate d’action par Round (actG
 
   it('applier actGate : échec du Test → étape de CHOIX ; « garder le Mouvement » consomme l’Action de la battle', () => {
     const h = hero('h1');
-    h.activeEffects = [{ label: 'Racine de mandragore', bonus: 0, duration: { scale: 'clock', until: 99999 }, actGate: { char: 'force-mentale' } }];
+    h.activeEffects = [{ label: 'Racine de mandragore', bonus: 0, duration: { scale: 'clock', until: 99999 }, actGate: { characteristic: 'force-mentale' } }];
     banc.setState({ party: [h], battle: battleWith(h), mode: 'battle' });
     const get = banc.getState;
     const set = banc.setState;

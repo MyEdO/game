@@ -6,7 +6,7 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { availabilitySchema, charKeySchema, harvestRaritySchema, entityAppearanceSchema, moneySchema, profilChiffreSchema } from '../grammaire/valeurs';
+import { availabilitySchema, caracteristiqueChiffreeSchema, harvestDangerSchema, harvestRaritySchema, entityAppearanceSchema, moneySchema, profilChiffreSchema } from '../grammaire/valeurs';
 import { talentRefSchema, trappingRefSchema, traitInstanceSchema } from '../grammaire/reference';
 import { ref, refOuSpec, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
@@ -23,7 +23,7 @@ const optionalWildcardSchema = nommerChamps(z.strictObject({
   label: z.string(),
 }), { note: { label: "note" }, label: { label: "libellé" } });
 const swapGrantSchema = z.union([
-  nommerChamps(z.strictObject({ char: charKeySchema, value: nommerNoeud(z.number(), { nom: 'valeur' }) }), { char: { label: "caractéristiques" }, value: { label: "valeur" } }),
+  caracteristiqueChiffreeSchema,
   refOuSpec('skill', { value: nommerNoeud(z.number(), { nom: 'valeur' }) }),
 ]);
 const optionalSwapSchema = nommerChamps(z.strictObject({
@@ -47,8 +47,6 @@ export const optionalEntrySchema = z.union([traitInstanceSchema, optionalWildcar
 const competenceChiffreeAEmplacementSchema = refOuSpec('skill', { value: nommerNoeud(z.number(), { nom: 'valeur' }) }, 'specOuChoixFacultatifs');
 
 
-/** `HarvestDanger` (`src/data/index.ts`). */
-const harvestDangerSchema = z.enum(['Inoffensive', 'Inquiétante', 'Menaçante', 'Mortelle']);
 
 
 /** Champs PROPRES d'une entrée de `creatures.json` — l'enveloppe est posée par `document()`. */

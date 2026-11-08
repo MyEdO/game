@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyMutation, gainCorruption, mutationNatureTableId, mutationTableIdFor } from './corruptionFlow';
@@ -40,7 +41,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const HUMAIN = 'humains-reiklander';
 
 function heroSolo(speciesId = HUMAIN, seed = 4): Combatant {
-  const h = createHero({ speciesId, careerId: 'soldat', label: 'H', seed });
+  const h = createHero({ idNeuf: idsDeTest, speciesId, careerId: 'soldat', label: 'H', seed });
   h.corruption = 6;
   banc.setState({ battle: null, party: [h], pendingCascade: null, suspendedCascades: [] });
   return banc.getState().party[0];

@@ -10,9 +10,10 @@
  * Le JSON disque de chaque document de `SCHEMA_DEFS` est CO-DESCENDU avec son schéma, sans parse
  * (`collectionsDesDocuments`, `grammaire/collection-cle.ts`) : chaque collection marquée `espace` y
  * nomme sa clé, ses paramètres `discriminant`/`marqueurs` ses espaces filtrés, et une entrée à
- * `specsSource` l'espace de ses `specs` ; chaque VOCABULAIRE du moteur (`grammaire/vocabulaires.ts`) qu'une
- * source de spécialisations prend pour univers ou pool a son espace — celui qui ne lui donne que ses
- * libellés porte exactement les ids de son univers —, la SOUS-LISTE MARQUÉE (`?!champ,…`) qu'une
+ * `specsSource` l'espace de ses `specs` ; chaque VOCABULAIRE (`grammaire/vocabulaires.ts`) qu'une source de
+ * spécialisations prend pour univers ou pool, ou qu'un type de `TYPES` (`grammaire/ref.ts`) prend pour
+ * espace (#2968 P-art), a son espace — celui qui ne donne à une source que ses libellés porte exactement les
+ * ids de son univers —, la SOUS-LISTE MARQUÉE (`?!champ,…`) qu'une
  * source prend pour univers ou pool a la sienne, et le catalogue de spécialisations de chaque
  * entrée OUVERTE son espace de LIBELLÉS. Les ids de chaque clé sont ceux d'`idsDeLEspace`, le calcul
  * que le régime vivant fait sur les racines vivantes (`src/data/overrides.ts`), dans l'ORDRE DE LA
@@ -34,6 +35,7 @@ import { parUnitesDeCode } from './guards/lib/lister.mjs';
 import { litteralJs } from './guards/lib/litteralJs.mjs';
 import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs';
 import { MESSAGES_DE, SORTIES_DES_ESPACES } from './gen-registry.mjs';
+import { estObjet } from '../src/lib/objet.mjs';
 
 const { ids: SORTIE, cles: SORTIE_CLES, racines: SORTIE_RACINES } = SORTIES_DES_ESPACES;
 
@@ -44,8 +46,6 @@ export const TABLE_VIDE = 'export const IDS_PAR_ESPACE: Readonly<Record<string, 
 export function indexChargeable(texte: string): boolean {
   return /^export const IDS_PAR_ESPACE\b/m.test(texte) && !/^(<{7}|={7}|>{7})( |$)/m.test(texte);
 }
-
-const estObjet = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 /** Les éléments d'une collection-LISTE marquée, avec leur clé. */
 function elementsCles(c: CollectionDeFichier): [Record<string, unknown>, string][] {
@@ -158,6 +158,7 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
   const { SCHEMA_DEFS } = (await import('../src/data/schemas/_registry.generated')) as { SCHEMA_DEFS: SchemaDef[] };
   const { atteindre, cleDesLibellesDeLaSource, collectionsDesDocuments, idsDeLEspace, lectureDeLEspace } = await import('../src/data/schemas/grammaire/collection-cle');
   const { lectureDuVocabulaire } = await import('../src/data/schemas/grammaire/vocabulaires');
+  const { TYPES } = await import('../src/data/schemas/grammaire/ref');
   const { CATEGORY_DATASET_DERIVE, DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } = await import('../src/data/schemas/exposition-derivee');
   const brutParNom = new Map(SCHEMA_DEFS.map((d) => [d.file, JSON.parse(readFileSync(join(d.root, d.file), 'utf8')) as unknown]));
   const schemaParNom = new Map(SCHEMA_DEFS.map((d) => [d.file, d.schema]));
@@ -172,7 +173,8 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
     table.set(cle, ids);
   };
   const sources = Object.entries(SOURCES_DE_SPECS as Record<string, SourceDeSpecs>);
-  for (const cle of new Set(sources.flatMap(([, source]) => [source.univers, source.pool ?? source.univers]))) if (lectureDuVocabulaire(cle)) poser(cle);
+  const designes = [...sources.flatMap(([, source]) => [source.univers, source.pool ?? source.univers]), ...Object.values(TYPES).map((t) => t.espace)];
+  for (const cle of new Set(designes)) if (lectureDuVocabulaire(cle)) poser(cle);
   for (const c of collectionsDesDocuments(SCHEMA_DEFS, brutParNom)) if (c.marque.espace) for (const cle of clesDe(c)) poser(cle);
   for (const [nom, source] of sources) {
     for (const cle of [source.univers, source.pool ?? source.univers]) {

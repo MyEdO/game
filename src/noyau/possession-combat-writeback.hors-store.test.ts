@@ -6,6 +6,7 @@
  * max) ; morte → `destroyed:true`, ses `items`/`cargo` restent CO-LOCALISÉS sur la Possession (jamais
  * évaporés — miroir du patron `travelFlow.ts` bête abandonnée : `{ ...p, destroyed: true }`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { finalizeBattle } from './combatFlow';
@@ -20,7 +21,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en pièce, #618)', () => {
   function setup() {
-    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
+    const W = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
     banc.setState({ party: [W] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

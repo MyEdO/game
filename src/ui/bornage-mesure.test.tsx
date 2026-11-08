@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -56,13 +57,13 @@ function porteLaMesure(jet: { target?: number; clamped?: number } | null | undef
 }
 
 function heroCoureur(): Combatant {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   hero.characteristics = { ...hero.characteristics, agilite: 95 };
   useGame.setState({ party: [hero] });
   g().lancerLaScene(testScene()); g().lancerLeCombat('enc-mutants'); g().fenetreValider('roundStart'); vi.clearAllTimers();
   const b = g().battle!; const H = b.combatants.find((c) => c.kind === 'hero')!;
   H.pos = { x: 10, y: 10 }; H.engagedWith = [];
-  useGame.setState({ battle: { ...b, turn: b.order.indexOf(H.id), acted: false, movementUsed: 0 }, pendingRun: null });
+  useGame.setState({ screen: 'campaign', battle: { ...b, turn: b.order.indexOf(H.id), acted: false, movementUsed: 0 }, pendingRun: null });
   g().ensemencerLeTirage(2);
   g().ouvrirLaCourse({ x: 16, y: 10 });
   return H;
@@ -199,11 +200,11 @@ describe('bornage mesuré au constructeur — routes sans modale montée', () =>
   });
 
   it('Chute volontaire forcée AVANT le jet : la cible est bornée et mesurée', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.characteristics = { ...hero.characteristics, agilite: 150 };
     const s = emptyScene('scene-test', 4, 4); const h = new Array(16).fill(0) as number[]; h[2] = 4; s.layers[0].height = h;
     useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: { x: 2, y: 0 }, scene: s, pendingFall: null, pendingCascade: null });
-    g().franchirLArete({ x: 2, y: 0 }, { x: 2, y: 1 });
+    g().franchirLArete({ x: 2, y: 1 });
     g().jetRegler('fall', 'tenter', true, hero.id);
     g().jetForcerLaReussite('fall', hero.id);
     const p = g().pendingFall!;

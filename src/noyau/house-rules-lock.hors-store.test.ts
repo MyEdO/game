@@ -8,6 +8,7 @@
  * l'Avantage individuel de TOUS les combattants. La porte vit au point d'ÉCRITURE joueur
  * (`noyau/reglesMaison`, lu par `hote/reglesMaison`), pas dans l'UI, et vaut pour la CLASSE entière (aucun id nommé).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { reglesMaisonMutables, surchargerUneRegleMaison } from './reglesMaison';
 import { resetRule, setRule, OPTIONAL_RULES } from '../engine/policy';
@@ -26,7 +27,7 @@ beforeEach(() => {
 const verrou = () => reglesMaisonMutables(banc.getState());
 
 function startFixtureCombat() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   seedBattleRng(777);

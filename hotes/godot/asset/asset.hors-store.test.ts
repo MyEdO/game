@@ -13,10 +13,10 @@ import { cheminsAbsolus } from './manifeste.ts';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import { depotDe, INDEX, listerImage } from '../../../scripts/guards/lib/gitPorte.mjs';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
-import { baseDeTest, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, LICENCE_DE_PRODUCTION, productionDeTest, deposerModeleDeTest, TEXTE_DE_LICENCE_DE_PRODUCTION } from './modeles.testkit.ts';
+import { baseDeTest, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, GLB_SANS_BASE, LICENCE_DE_PRODUCTION, productionDeTest, deposerModeleDeTest, TEXTE_DE_LICENCE_DE_PRODUCTION, vehiculeDeTest } from './modeles.testkit.ts';
 import {
-  DOSSIER_DES_MODELES, modelesEpingles, AssetIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
-  suivisHorsRelease, TAG, urlDAsset, type AssetAPublier, type Gh,
+  DOSSIER_DES_MODELES, modelesAPublier, modelesEpingles, AssetIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
+  suivisHorsRelease, TAG, urlDAsset, DEPOT, URL_API_DE_LA_RELEASE, type AssetAPublier, type Gh,
 } from './release.ts';
 import { fichiersDuModele, validerModele } from './modeles';
 import { epinglesAPublier, recupererEpingles } from './epingles.ts';
@@ -254,6 +254,14 @@ describe('import et chargement des modèles modulaires', () => {
     deposerModeleDeTest(d, 'a-element', elementSchema3(), GLB_D_ELEMENT);
     const r = await recupererModeles({ dossier: d, cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet });
     expect(r.map(m => m.id).sort()).toEqual(['a-element', 'z-base']);
+  });
+  it('un véhicule, élément sans base, s’importe et se charge sans aucune base (#2987)', async () => {
+    const d = temporaire();
+    expect(importer(d, vehiculeDeTest(), GLB_SANS_BASE, 'caraque')).toMatchObject({ ok: true, rapport: [] });
+    const r = importer(d, vehiculeDeTest(), GLB_SANS_BASE, 'caraque-bis');
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.refus.join('\n')).toContain('[cle-en-doublon]');
+    expect((await recupererModeles({ dossier: d, cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).map(m => m.id)).toEqual(['caraque']);
   });
   it.each(['cle-en-doublon', 'base-en-doublon', 'base-absente', 'forme', 'os-inconnu'] as const)('refuse %s au chargement', async code => {
     const d = temporaire();
@@ -635,6 +643,21 @@ describe('modelesEpingles', () => {
   });
 });
 
+describe('modelesAPublier', () => {
+  it('rend le GLB de chaque modèle épinglé sous le nom de son empreinte', () => {
+    const d = dossierDeModeles();
+    expect(modelesAPublier(d)).toEqual([{ chemin: join(d, 'Essai.glb'), nom: `${EMPREINTE}.glb` }]);
+  });
+  it('laisse un modèle tenu hors Release', () => {
+    expect(modelesAPublier(dossierDeModeles({ model: 'Essai.glb', model_sha256: EMPREINTE, hors_release: 'essai' }))).toEqual([]);
+  });
+  it('lève sur des modèles mal épinglés', () => {
+    const d = dossierDeModeles();
+    rmSync(join(d, 'Essai.provenance.json'));
+    expect(() => modelesAPublier(d)).toThrow(/modèles mal épinglés :\n {2}.*provenance Essai\.provenance\.json absente/);
+  });
+});
+
 describe('recupererEpingles', () => {
   const COULEUR = new Uint8Array(Buffer.from('couleur de l’herbe'));
   const KIT = new Uint8Array(Buffer.from('le kit des arêtes'));
@@ -729,6 +752,31 @@ describe('recupererModeles', () => {
   ])('lève ReleaseInjoignable %s, le cache vide', async (_, telecharger) => {
     await expect(recupererModeles({ dossier: dossierDeModeles(), cache: temporaire(), telecharger, journal: muet })).rejects.toThrow(ReleaseInjoignable);
   });
+  /** Une Release dont le lien direct répond `statut`, et dont l'API liste `listes` (nom → octets) ; consigne chaque
+   *  demande avec son en-tête `accept`. */
+  const releaseEnPanne = (statut: number, listes: Record<string, Uint8Array>) => {
+    const demandes: string[] = [];
+    const telecharger = async (url: string, init?: { readonly headers: Readonly<Record<string, string>> }) => {
+      demandes.push(`${url} ${init?.headers.accept ?? '-'}`);
+      const api = `https://api.github.com/repos/${DEPOT}/releases/assets/`;
+      const octets = url === URL_API_DE_LA_RELEASE
+        ? new TextEncoder().encode(JSON.stringify({ assets: Object.keys(listes).map((name, i) => ({ name, url: `${api}${i}` })) }))
+        : url.startsWith(api) ? Object.values(listes)[Number(url.slice(api.length))] : undefined;
+      return { ok: !!octets, status: octets ? 200 : statut, arrayBuffer: async () => (octets ?? new Uint8Array()).slice().buffer };
+    };
+    return { demandes, telecharger };
+  };
+  it('se replie sur le point d’API quand le lien direct répond 504 (#3680)', async () => {
+    const dossier = dossierDeModeles();
+    const { demandes, telecharger } = releaseEnPanne(504, { [nomDAsset(EMPREINTE, 'glb')]: GLB_DE_BASE });
+    await recupererModeles({ dossier, cache: temporaire(), telecharger, journal: muet });
+    expect(readFileSync(join(dossier, 'Essai.glb'))).toEqual(Buffer.from(GLB_DE_BASE));
+    expect(demandes).toEqual([`${urlDAsset(nomDAsset(EMPREINTE, 'glb'))} -`, `${URL_API_DE_LA_RELEASE} application/vnd.github+json`,
+      `https://api.github.com/repos/${DEPOT}/releases/assets/0 application/octet-stream`]);
+  });
+  it('lève AssetIntrouvable quand le repli ne trouve pas le fichier dans la liste de la Release', async () => {
+    await expect(recupererModeles({ dossier: dossierDeModeles(), cache: temporaire(), telecharger: releaseEnPanne(504, {}).telecharger, journal: muet })).rejects.toThrow(AssetIntrouvable);
+  });
   it('accepte hors ligne le GLB_DE_BASE du projet à la somme épinglée et en amorce le cache', async () => {
     const dossier = dossierDeModeles();
     const cache = temporaire();
@@ -798,6 +846,11 @@ describe('publierAssets', () => {
     expect(appels.map((a) => a.slice(0, 3))).toEqual([['release', 'view', TAG], ['release', 'create', TAG], ['release', 'upload', TAG]]);
     expect(appels[2]?.[appels[2].length - 1]?.endsWith(`${EMPREINTE}.glb`)).toBe(true);
   });
+  it('verse une fois un fichier que plusieurs modèles partagent', () => {
+    const { appels, gh } = ghSimule([]);
+    expect(publierAssets([asset(), asset()], gh)).toEqual([`${EMPREINTE}.glb`]);
+    expect(appels.filter((a) => a[1] === 'upload').map((a) => a.filter((x) => x.endsWith('.glb')))).toEqual([[expect.stringMatching(new RegExp(`${EMPREINTE}\\.glb$`))]]);
+  });
   it('ne reverse pas un fichier que la Release porte déjà', () => {
     const { appels, gh } = ghSimule([`${EMPREINTE}.glb`]);
     expect(publierAssets([asset()], gh)).toEqual([]);
@@ -806,6 +859,12 @@ describe('publierAssets', () => {
   it('lève, avec la sortie de gh, quand la vue échoue autrement que par une Release absente', () => {
     const { appels, gh } = ghSimule({ status: 4, stderr: 'HTTP 401: Bad credentials' });
     expect(() => publierAssets([asset()], gh)).toThrow(`gh release view ${TAG} : code 4\nHTTP 401: Bad credentials`);
+    expect(appels).toHaveLength(1);
+  });
+  it('lève sans rien verser sur un fichier dont l’empreinte n’est pas celle de son nom', () => {
+    const { appels, gh } = ghSimule([]);
+    const faux = `${'0'.repeat(64)}.glb`;
+    expect(() => publierAssets([{ ...asset(), nom: faux }], gh)).toThrow(`empreinte ${EMPREINTE}, ${faux} attendu`);
     expect(appels).toHaveLength(1);
   });
   it('lève, avec la sortie de gh, quand le versement échoue', () => {

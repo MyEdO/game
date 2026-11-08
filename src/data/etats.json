@@ -480,7 +480,9 @@
     "grantGroups": [
       "feu"
     ],
-    "typeDeDegats": "feu",
+    "typeDeDegats": {
+      "id": "feu"
+    },
     "effects": [
       {
         "trigger": "onRoundEnd",
@@ -869,7 +871,7 @@
                     "op": ">=",
                     "value": {
                       "who": "target",
-                      "char": "endurance",
+                      "characteristic": "endurance",
                       "factor": 0.5
                     }
                   },
@@ -912,7 +914,7 @@
                     "op": ">=",
                     "value": {
                       "who": "target",
-                      "char": "endurance"
+                      "characteristic": "endurance"
                     }
                   },
                   {

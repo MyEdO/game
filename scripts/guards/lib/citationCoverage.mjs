@@ -1,3 +1,5 @@
+import { estObjet } from '../../../src/lib/objet.mjs';
+
 const { SANS_LIVRE_DEFINITIF } = await import('../../../src/data/schemas/grammaire/sans-livre.ts');
 
 // Mécanique de mesure « citation par ENTRÉE » (#309, suite #278/#281). #278 a posé la garde de
@@ -20,22 +22,16 @@ const { SANS_LIVRE_DEFINITIF } = await import('../../../src/data/schemas/grammai
  *  emplacements `alsoIn` complets serait comptée non citée à tort). Morsure : #563 Lot 1 item 1.
  *  @param {unknown} item @returns {boolean} */
 export function isCitedItem(item) {
-  if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
-  const rec = /** @type {Record<string, unknown>} */ (item);
-  if (rec.source && typeof rec.source === 'object' && !Array.isArray(rec.source) && typeof (/** @type {Record<string, unknown>} */ (rec.source)).book === 'string') return true;
-  if (typeof rec.maison === 'string' && rec.maison.length > 0) return true;
-  if (Array.isArray(rec.alsoIn) && rec.alsoIn.some((ref) => isPlainObject(ref) && typeof (/** @type {Record<string, unknown>} */ (ref)).book === 'string' && typeof (/** @type {Record<string, unknown>} */ (ref)).page === 'number')) return true;
+  if (!estObjet(item)) return false;
+  if (estObjet(item.source) && typeof item.source.book === 'string') return true;
+  if (typeof item.maison === 'string' && item.maison.length > 0) return true;
+  if (Array.isArray(item.alsoIn) && item.alsoIn.some((ref) => estObjet(ref) && typeof ref.book === 'string' && typeof ref.page === 'number')) return true;
   return false;
-}
-
-/** Une entrée « objet simple » (ni tableau, ni null) — filtre des tableaux de catégorie exploitables. */
-function isPlainObject(x) {
-  return !!x && typeof x === 'object' && !Array.isArray(x);
 }
 
 /** Libellé d'une entrée pour le rapport (id si présent, sinon min/max, sinon index). */
 function entryLabel(item, key, idx) {
-  if (isPlainObject(item)) {
+  if (estObjet(item)) {
     if (typeof item.id === 'string') return key ? `${key}.${item.id}` : item.id;
     if (typeof item.min === 'number') return `${key ? key + '.' : ''}${item.min}-${item.max}`;
   }
@@ -62,14 +58,14 @@ function entryLabel(item, key, idx) {
  * @param {unknown[]} data @returns {boolean}
  */
 function estListeDeDocumentsPorteurs(data) {
-  const porteurs = data.filter((d) => isPlainObject(d) && Array.isArray(d.entries) && d.entries.length > 0 && d.entries.every(isPlainObject));
+  const porteurs = data.filter((d) => estObjet(d) && Array.isArray(d.entries) && d.entries.length > 0 && d.entries.every(estObjet));
   if (!porteurs.length) return false;
   return porteurs.some((d) => /** @type {unknown[]} */ (d.entries).some(isCitedItem));
 }
 
 /** Nœud `{ die, entries }` d'une sous-table tirée (`tableTiree`, `src/data/schemas/grammaire/document.ts`). */
 function estTableTiree(v) {
-  return isPlainObject(v) && Object.keys(v).length === 2 && typeof v.die === 'string' && Array.isArray(v.entries);
+  return estObjet(v) && Object.keys(v).length === 2 && typeof v.die === 'string' && Array.isArray(v.entries);
 }
 
 /**
@@ -103,7 +99,7 @@ export function auditDataset(data) {
         const etiquette = entryLabel(doc, '', i);
         if (isCitedItem(doc)) cited++;
         else missing.push(etiquette);
-        if (!isPlainObject(doc) || !Array.isArray(doc.entries)) return;
+        if (!estObjet(doc) || !Array.isArray(doc.entries)) return;
         doc.entries.forEach((row, j) => {
           total++;
           if (isCitedItem(row)) cited++;
@@ -121,14 +117,14 @@ export function auditDataset(data) {
     });
     return { total, cited, missing, shape: 'array' };
   }
-  if (isPlainObject(data)) {
+  if (estObjet(data)) {
     // La RACINE citée prime (convention documentée `src/data/schemas/grammaire/valeurs.ts:49-54`) : elle couvre tout le
     // fichier, y compris les tableaux/sous-tables imbriqués (`river-criticals.json.tables`…) — même quand une valeur scalaire annexe (`crew-morale.json.base`) est la seule
     // réellement visée par cette réf précise, le fichier est considéré couvert.
     if (isCitedItem(data)) return { total: 1, cited: 1, missing: [], shape: 'single' };
     const categoryProps = Object.entries(data)
       .map(([k, v]) => (estTableTiree(v) ? [`${k}.entries`, v.entries] : [k, v]))
-      .filter(([, v]) => Array.isArray(v) && v.length > 0 && v.every(isPlainObject));
+      .filter(([, v]) => Array.isArray(v) && v.length > 0 && v.every(estObjet));
     if (categoryProps.length > 0) {
       const missing = [];
       let total = 0;

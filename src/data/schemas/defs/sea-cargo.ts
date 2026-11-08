@@ -10,7 +10,7 @@ import {
   plageOuverteSchema,
   sourceRefSchema,
 } from '../grammaire/valeurs';
-import { exigerDuTest, flowTestSchema } from '../grammaire/mecanique';
+import { fixerLeTest, flowTestSchema } from '../grammaire/mecanique';
 
 export const file = 'sea-cargo.json';
 export const famille = 'config';
@@ -119,7 +119,7 @@ const champs = {
       }),
     ),
     source: sourceRefSchema,
-  }).superRefine(exigerDuTest('skill', 'difficulty')), {
+  }).superRefine(fixerLeTest('skill', 'difficulty')), {
     investMaxEnc: { label: 'Investissement maximal (Enc)' },
     test: { label: 'Test' },
     ...metaDesChamps(cibleEtendueSchema, { exigees: true }),

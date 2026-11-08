@@ -100,5 +100,5 @@ export const scenario: TestScenario = {
   title: 'La Diligence — salle pleine',
   tests: 'La salle meublée VUE HABITÉE : 16 convives authorés assis, un par place des 3 tables rondes et des 2 tables murales, chacun posé sur l’abord effectif de sa place.',
   partyNote: 'Groupe vitrine (Soldat / Tueur / Sorcier / Chasseur) — départ au milieu de la salle, aucun combat.',
-  construire: () => ({ party: makeShowcaseParty(), scene: meublerDeGens(poserDepart(paquetDuJeu(diligenceCampaign).scenes[0])) }),
+  construire: (idNeuf) => ({ party: makeShowcaseParty(idNeuf), scene: meublerDeGens(poserDepart(paquetDuJeu(diligenceCampaign).scenes[0])) }),
 };

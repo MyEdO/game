@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { scenario } from './embuscade';
 import { layerTiles } from '../../noyau/monde/scene';
@@ -5,7 +6,7 @@ import { findTrappingById } from '../../data/index';
 import { weaponFromTrait } from '../../engine/creatureEquip';
 import { traitsDuPorteur } from '../../engine/statEntry';
 import { porteurDuProfil } from '../../noyau/monde/spawn';
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /**
  * Verrouille la Scene PRODUITE par `buildScene` dans `embuscade.ts` : dimensions, terrain case-à-case
@@ -102,10 +103,7 @@ describe('embuscade — Scene produite par buildScene', () => {
     expect(chef).toMatchObject({ ref: 'mutant', anim: 'standing', pos: { x: 17, y: 6 } });
     expect(chef?.statblock?.label).toBe('Knud Cratinx');
     expect(chef?.statblock?.char['capacite-de-tir']).toBe(43);
-    // Arme de rendu DÉRIVÉE du Trait (À distance (arbalète)) — plus de `weapon:` d'authoring redondant
-    // avec le Trait de combat (dédoublonnage #145, cf. `renderWeaponsFromTraits`).
     expect(chef?.statblock?.traits).toContainEqual({ id: 'a-distance', value: 9, arg: 'arbalete', range: 60 });
-    expect(chef?.weapon).toBeUndefined();
     expect(chef?.appearance).toEqual({ species: 'humains-reiklander' });
     // VISIBLE : hidden par défaut → pas de hiddenUntilCombat sur les mutants qu'on voit se repaître.
     expect(chef?.combat?.hiddenUntilCombat).toBeUndefined();
@@ -123,8 +121,6 @@ describe('embuscade — Scene produite par buildScene', () => {
       { x: 12, y: 7 },
     ]);
     const terenz = s.entities.find((e) => e.id === 'enemy-enc-mutants-4');
-    // Idem : Grande hache DÉRIVÉE du Trait (plus de `weapon:` d'authoring redondant, #145).
-    expect(terenz?.weapon).toBeUndefined();
     expect(terenz?.statblock?.traits).toContainEqual({ id: 'arme', value: 7, arg: 'grande-hache' });
     expect(terenz?.statblock?.label).toBe('Terenz');
   });

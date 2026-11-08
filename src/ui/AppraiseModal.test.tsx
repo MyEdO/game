@@ -18,7 +18,7 @@ const base: PendingAppraise = {
   itemUid: 'x',
   itemName: 'Épée mystérieuse',
   truePriceBrass: 240,
-  availability: 'Rare',
+  availability: 'rare',
   ligne: ligneDEvaluation(45),
   target: 45,
   roll: null,

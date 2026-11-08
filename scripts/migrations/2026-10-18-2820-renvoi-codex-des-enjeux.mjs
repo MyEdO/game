@@ -22,6 +22,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const abs = (rel) => path.join(ROOT, rel);
@@ -56,8 +57,7 @@ function idsDe(fichier) {
 }
 
 const estRefTypee = (v) =>
-  v !== null && typeof v === 'object' && !Array.isArray(v) &&
-  Object.keys(v).length === 2 && typeof v.id === 'string' && typeof v.type === 'string';
+  estObjet(v) && Object.keys(v).length === 2 && typeof v.id === 'string' && typeof v.type === 'string';
 
 const echecs = [];
 const aEcrire = [];

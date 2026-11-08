@@ -1,17 +1,24 @@
 /**
- * LE MANIFESTE D'UN ÉLÉMENT (#2972, schéma 3) : la pièce sémantique qu'un GLB dessine pour une base, et sa validation
- * contre le manifeste de cette base (`manifesteDeBase.ts`). La catégorie fixe, par discriminant, la forme de
- * `cle` et de `liaison`, la présence de `couche`, `couvre`, `chaines`, `emplacements` et `silhouettes`, et si un mesh
- * rigide peut rester à la racine de la scène (`REGLES_DES_CATEGORIES`) ; une clé bien formée se résout contre la donnée
+ * LE MANIFESTE D'UN ÉLÉMENT (#2972, schéma 3) : la pièce sémantique qu'un GLB dessine, et sa validation contre le
+ * manifeste de la base pour laquelle il se construit (`manifesteDeBase.ts`). La catégorie fixe, par discriminant, la forme
+ * de `cle` et de `liaison`, la présence de `couche`, `couvre`, `chaines`, `emplacements`, `silhouettes` et `postes`, et si
+ * l'élément a une base (`REGLES_DES_CATEGORIES`) : sans base (décor, véhicule, #2987), il ne nomme aucune base et ses
+ * meshes restent à la racine de sa scène ou sous ses propres nœuds ; une clé bien formée se résout contre la donnée
  * du jeu (`ecartsDeCleDElement`, surface du noyau). Ses surfaces (`surfaces.ts`) admettent le blason.
  * Un vêtement ou une armure offre des `emplacements`, ids de la garde-robe (`estEmplacement`, #3116) ; un accessoire
  * dont l'emplacement n'est offert ni par sa base ni par une pièce de cette base est rapporté, ni refusé ni servi
- * (`emplacementsNonOfferts`, `indexerModeles`).
+ * (`emplacementsNonOfferts`, `indexerModeles`). Un véhicule offre des `postes` : par bord (`FIRE_ARCS`), les positions de
+ * sa scène où se montent les pièces des postes de ce bord ; et des `ancrages` : par Amélioration navale, les positions où
+ * se monte sa pièce. Une pièce d'Amélioration (`amelioration`) dit son `montage` : à ses ancrages, ou à chaque poste que
+ * son Amélioration offre, où elle montre son nœud `ouvert` si une pièce y est montée, `ferme` sinon (#2987). Un véhicule
+ * ou une pièce d'Amélioration dit, `selon` une Amélioration montée, ce qui change : ses nœuds `avec-<amelioration>`
+ * (`noeudSelon`), montrés seulement quand elle est montée, `sans-<amelioration>` seulement quand elle ne l'est pas, et,
+ * pour un véhicule, les postes qu'elle offre, qui remplacent ceux de chaque bord qu'elle nomme (MDG p.97, Sabord).
  */
-import { estObjet } from '../../../src/hote/formes';
-import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, type CodeDEcartDeCle } from '../../../src/noyau/index.ts';
-import { ecartsAuGlb, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
-import { estListeDeChaines, estRepere, type Attache, type Repere } from './attache.ts';
+import { estObjet } from '../../../src/lib/objet.mjs';
+import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, FIRE_ARCS, matieresDeDecor, type CodeDEcartDeCle, type FireArc } from '../../../src/noyau/index.ts';
+import { ecartsAuGlb, ecartsAuxMatieres, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
+import { estListeDeChaines, estRepere, estTriplet, type Attache, type Repere } from './attache.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';
 import type { ContenuGlb } from './glb.ts';
 import type { ManifesteDeBase } from './manifesteDeBase.ts';
@@ -39,14 +46,25 @@ interface RegleDeCategorie {
   readonly chaines: boolean;
   readonly emplacements: boolean;
   readonly silhouettes: boolean;
-  /** Un mesh rigide de l'élément peut rester à la racine de la scène (non tenu). */
-  readonly racine: boolean;
+  /** L'élément offre des postes : par bord, les positions de sa scène, en mètres, où se montent les pièces des postes de ce
+   *  bord, chacune tournée vers lui. */
+  readonly postes: boolean;
+  /** L'élément offre des ancrages : par Amélioration navale, les positions de sa scène, en mètres, où se monte sa pièce. */
+  readonly ancrages: boolean;
+  /** L'élément dit où il se monte sur un véhicule (`MONTAGES`). */
+  readonly montage: boolean;
+  /** L'élément dit ce qui change selon une Amélioration navale montée (`selon`) : les nœuds qu'elle montre ou cache, et, s'il
+   *  offre des postes, ceux qu'elle offre. */
+  readonly selon: boolean;
+  /** L'élément se construit pour une base : son manifeste la nomme, il se valide contre elle et ses meshes rigides pendent
+   *  à ses os. Sans base (décor, véhicule, #2987), ses meshes restent à la racine de sa scène ou sous ses propres nœuds. */
+  readonly base: boolean;
   /** L'élément tenu peut déclarer, dans le repère de sa prise, celle de la main libre (`liaison.secondePrise`, #3319). */
   readonly secondePrise: boolean;
 }
 
-const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, racine: false, secondePrise: false } as const;
-const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, racine: false, secondePrise: false } as const;
+const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, postes: false, ancrages: false, montage: false, selon: false, base: true, secondePrise: false } as const;
+const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, postes: false, ancrages: false, montage: false, selon: false, base: true, secondePrise: false } as const;
 
 /** Les règles de chaque catégorie, seule source du type `ManifesteDElement` et de `validerElement`. */
 export const REGLES_DES_CATEGORIES = {
@@ -58,29 +76,50 @@ export const REGLES_DES_CATEGORIES = {
   accessoire: { ...SKINNE, cle: ['piece'], liaisons: ['rigide', 'surface'], couvre: 'optionnel' },
   rigide: { ...RIGIDE, cle: ['apparence'], secondePrise: true },
   trait: { ...SKINNE, cle: ['trait'] },
-  decor: { ...RIGIDE, cle: ['prop'], racine: true },
-  vehicule: { ...RIGIDE, cle: ['definition'], racine: true },
+  decor: { ...RIGIDE, cle: ['prop'], base: false },
+  vehicule: { ...RIGIDE, cle: ['definition'], postes: true, ancrages: true, selon: true, base: false },
+  amelioration: { ...RIGIDE, cle: ['amelioration'], montage: true, selon: true, base: false },
 } as const satisfies Record<string, RegleDeCategorie>;
 
 type Regles = typeof REGLES_DES_CATEGORIES;
 export type CategorieDElement = keyof Regles;
 export const CATEGORIES_D_ELEMENT = Object.keys(REGLES_DES_CATEGORIES) as readonly CategorieDElement[];
 
+/** Où se monte une pièce d'Amélioration : aux `ancrages` de son Amélioration, ou à chaque `postes` du véhicule. */
+export const MONTAGES = ['ancrages', 'postes'] as const;
+export type Montage = (typeof MONTAGES)[number];
+
+/** Les nœuds à mesh d'une pièce montée aux postes : celui qu'elle montre devant une pièce montée, et sans. */
+export const ETATS_AU_POSTE = { arme: 'ouvert', vide: 'ferme' } as const;
+
+/** Les nœuds d'un élément qui changent selon une Amélioration : montrés seulement `avec` elle montée, ou `sans`. */
+const GENRES_SELON = ['avec', 'sans'] as const;
+type GenreSelon = (typeof GENRES_SELON)[number];
+/** Le nom du nœud de genre `genre` selon l'Amélioration `amelioration`. */
+export const noeudSelon = (genre: GenreSelon, amelioration: string): string => `${genre}-${amelioration}`;
+const NOEUD_SELON = new RegExp(`^(${GENRES_SELON.join('|')})-(.+)$`);
+
 type Rien = Record<never, never>;
 type Liste = readonly string[];
+type Triplet = readonly [number, number, number];
+type Postes = Readonly<Partial<Record<FireArc, readonly Triplet[]>>>;
 
 type Selon<P, Requis, Optionnel> = P extends 'requis' ? Requis : P extends 'optionnel' ? Optionnel : Rien;
 
-type ChampsDe<C extends CategorieDElement> = (Regles[C]['couches'] extends readonly Couche[] ? { readonly couche: Regles[C]['couches'][number] } : Rien)
+type ChampsDe<C extends CategorieDElement> = (Regles[C]['base'] extends true ? { readonly base: string } : Rien)
+  & (Regles[C]['couches'] extends readonly Couche[] ? { readonly couche: Regles[C]['couches'][number] } : Rien)
   & Selon<Regles[C]['couvre'], { readonly couvre: Liste }, { readonly couvre?: Liste }>
   & (Regles[C]['chaines'] extends true ? { readonly chaines?: Liste } : Rien)
   & (Regles[C]['emplacements'] extends true ? { readonly emplacements?: Readonly<Record<string, Attache>> } : Rien)
-  & (Regles[C]['silhouettes'] extends true ? { readonly silhouettes?: Liste } : Rien);
+  & (Regles[C]['silhouettes'] extends true ? { readonly silhouettes?: Liste } : Rien)
+  & (Regles[C]['postes'] extends true ? { readonly postes?: Postes } : Rien)
+  & (Regles[C]['ancrages'] extends true ? { readonly ancrages?: Readonly<Record<string, readonly Triplet[]>> } : Rien)
+  & (Regles[C]['montage'] extends true ? { readonly montage: Montage } : Rien)
+  & (Regles[C]['selon'] extends true ? { readonly selon?: Readonly<Record<string, Regles[C]['postes'] extends true ? { readonly postes?: Postes } : Rien>> } : Rien);
 
 export type ManifesteDElement = {
   [C in CategorieDElement]: {
     readonly schema: typeof VERSION_DU_SCHEMA_D_ELEMENT;
-    readonly base: string;
     readonly categorie: C;
     readonly cle: { readonly [K in Regles[C]['cle'][number]]: string };
     readonly liaison: { readonly mode: Regles[C]['liaisons'][number] } & (Regles[C]['secondePrise'] extends true ? { readonly secondePrise?: Repere } : Rien);
@@ -107,6 +146,9 @@ export type CodeDEcartDElement =
   | 'emplacement-sur-os-absent'
   | 'emplacement-inconnu'
   | 'silhouette-absente'
+  | 'bord-inconnu'
+  | 'etat-absent'
+  | 'selon-absent'
   | CodeDEcartDeSurface
   | 'glb-different'
   | 'rigide-sans-mesh'
@@ -123,12 +165,15 @@ export interface EcartDElement {
 
 export type VerdictDElement = { readonly ok: true; readonly manifeste: ManifesteDElement } | { readonly ok: false; readonly ecarts: readonly EcartDElement[] };
 
-const CHAMPS_COMMUNS = ['schema', 'base', 'categorie', 'cle', 'liaison', 'surfaces', 'glb'] as const;
+const CHAMPS_COMMUNS = ['schema', 'categorie', 'cle', 'liaison', 'surfaces', 'glb'] as const;
 const estCategorie = (v: unknown): v is CategorieDElement => typeof v === 'string' && Object.prototype.hasOwnProperty.call(REGLES_DES_CATEGORIES, v);
+/** Le manifeste `brut` est d'une catégorie qui ne se construit pour aucune base (`RegleDeCategorie.base`). */
+export const estSansBase = (brut: unknown): boolean => estObjet(brut) && estCategorie(brut.categorie) && !REGLES_DES_CATEGORIES[brut.categorie].base;
 const liste = (l: readonly string[]) => l.map((e) => `\`${e}\``).join(', ');
 
-/** Le manifeste `brut` réduit au schéma 3 et validé contre la base qu'il nomme et le GLB `octets`, lu en `glb` (`lireGlb`). */
-export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint8Array, glb: ContenuGlb): VerdictDElement {
+/** Le manifeste `brut` réduit au schéma 3 et validé contre la base qu'il nomme, `null` pour une catégorie sans base, et le
+ *  GLB `octets`, lu en `glb` (`lireGlb`). */
+export function validerElement(brut: unknown, base: BaseDUnElement | null, octets: Uint8Array, glb: ContenuGlb): VerdictDElement {
   const ecarts: EcartDElement[] = [];
   const refus = (code: CodeDEcartDElement, ou: string, detail: string) => ecarts.push({ code, ou, detail });
   if (!estObjet(brut)) return { ok: false, ecarts: [{ code: 'forme', ou: '', detail: 'le manifeste n’est pas un objet' }] };
@@ -140,17 +185,21 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
   const categorie = brut.categorie;
   const regle: RegleDeCategorie = REGLES_DES_CATEGORIES[categorie];
   const optionnels = [
-    ...(regle.couches ? ['couche'] : []), ...(regle.couvre === 'interdit' ? [] : ['couvre']),
+    ...(regle.base ? ['base'] : []), ...(regle.couches ? ['couche'] : []), ...(regle.couvre === 'interdit' ? [] : ['couvre']),
     ...(regle.chaines ? ['chaines'] : []), ...(regle.emplacements ? ['emplacements'] : []), ...(regle.silhouettes ? ['silhouettes'] : []),
+    ...(regle.postes ? ['postes'] : []), ...(regle.ancrages ? ['ancrages'] : []), ...(regle.montage ? ['montage'] : []),
+    ...(regle.selon ? ['selon'] : []),
   ];
   const admis = new Set<string>([...CHAMPS_COMMUNS, ...optionnels]);
   for (const champ of Object.keys(brut)) if (!admis.has(champ)) refus('champ-hors-categorie', champ, `un élément \`${categorie}\` ne porte pas \`${champ}\``);
-  const requis = [...CHAMPS_COMMUNS, ...(regle.couches ? ['couche'] : []), ...(regle.couvre === 'requis' ? ['couvre'] : [])];
+  const requis = [...CHAMPS_COMMUNS, ...(regle.base ? ['base'] : []), ...(regle.couches ? ['couche'] : []), ...(regle.couvre === 'requis' ? ['couvre'] : []), ...(regle.montage ? ['montage'] : [])];
   for (const champ of requis) if (brut[champ] === undefined) refus('forme', champ, `champ requis pour un élément \`${categorie}\``);
 
-  if (brut.base !== undefined) {
+  const nomDeBase = base?.base ?? 'aucune';
+  const osDeBase = base?.os ?? [];
+  if (regle.base && brut.base !== undefined) {
     if (typeof brut.base !== 'string') refus('forme', 'base', 'chaîne attendue');
-    else if (brut.base !== base.base) refus('base-differente', 'base', `${brut.base}, construit pour une autre base que \`${base.base}\``);
+    else if (brut.base !== base?.base) refus('base-differente', 'base', `${brut.base}, construit pour une autre base que \`${nomDeBase}\``);
   }
 
   const cle = brut.cle;
@@ -169,13 +218,14 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
       if (glb.meshes.every((m) => m.skinne)) refus('rigide-sans-mesh', 'liaison.mode', 'le GLB ne porte aucun mesh rigide');
       for (const { nom: mesh, skinne, articulation, os } of glb.meshes) {
         if (skinne) refus('rigide-skinne', 'liaison.mode', `${mesh} porte un skin : un élément en liaison \`rigide\` ne monte que des meshes sans skin`);
-        else if (articulation === null) { if (!regle.racine) refus('rigide-a-la-racine', 'liaison.mode', `${mesh} ne pend directement à aucune articulation d’un skin : un élément \`${categorie}\` ne reste pas à la racine de la scène`); }
-        else if (os === null || !base.os.includes(os)) refus('rigide-sur-os-absent', 'liaison.mode', `${mesh} pend à ${os ?? `l’articulation sans nom noeud ${articulation}`}, qui n’est pas un os de la base \`${base.base}\``);
+        else if (articulation === null) { if (regle.base) refus('rigide-a-la-racine', 'liaison.mode', `${mesh} ne pend directement à aucune articulation d’un skin : un élément \`${categorie}\` ne reste pas à la racine de la scène`); }
+        else if (!regle.base) refus('rigide-sur-os-absent', 'liaison.mode', `${mesh} pend à ${os ?? `l’articulation sans nom noeud ${articulation}`}, mais un élément \`${categorie}\` n’a pas de base dont il serait un os`);
+        else if (os === null || !osDeBase.includes(os)) refus('rigide-sur-os-absent', 'liaison.mode', `${mesh} pend à ${os ?? `l’articulation sans nom noeud ${articulation}`}, qui n’est pas un os de la base \`${nomDeBase}\``);
       }
       const seconde = (brut.liaison as Record<string, unknown>).secondePrise;
-      const osDesPrises = base.prises ? [base.prises.main.os, base.prises.off.os] : [];
+      const osDesPrises = base?.prises ? [base.prises.main.os, base.prises.off.os] : [];
       if (seconde !== undefined && !estRepere(seconde)) refus('forme', 'liaison.secondePrise', '`position` et `rotation` triplets de nombres, seuls, attendus');
-      else if (seconde !== undefined && !glb.meshes.some((m) => m.os !== null && osDesPrises.includes(m.os))) refus('seconde-prise-sans-prise', 'liaison.secondePrise', `aucun mesh ne pend à l’os d’une prise de la base \`${base.base}\` (${liste(osDesPrises)}) : la seconde prise n’a pas de première`);
+      else if (seconde !== undefined && !glb.meshes.some((m) => m.os !== null && osDesPrises.includes(m.os))) refus('seconde-prise-sans-prise', 'liaison.secondePrise', `aucun mesh ne pend à l’os d’une prise de la base \`${nomDeBase}\` (${liste(osDesPrises)}) : la seconde prise n’a pas de première`);
     }
   }
 
@@ -187,24 +237,63 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
     const v = brut[champ];
     if (v === undefined || !admis.has(champ)) return;
     if (!estListeDeChaines(v) || new Set(v).size !== v.length) return refus('forme', champ, 'liste de chaînes sans doublon attendue');
-    v.forEach((e, i) => { if (!connus.includes(e)) refus(code, `${champ}.${i}`, `${e} n’est pas ${quoi} de la base \`${base.base}\``); });
+    v.forEach((e, i) => { if (!connus.includes(e)) refus(code, `${champ}.${i}`, `${e} n’est pas ${quoi} de la base \`${nomDeBase}\``); });
   };
-  sousEnsemble('couvre', base.zones, 'zone-inconnue', 'une zone');
-  sousEnsemble('chaines', Object.keys(base.chaines), 'chaine-absente', 'une chaîne');
-  sousEnsemble('silhouettes', base.silhouettes, 'silhouette-absente', 'une shape key');
+  sousEnsemble('couvre', base?.zones ?? [], 'zone-inconnue', 'une zone');
+  sousEnsemble('chaines', Object.keys(base?.chaines ?? {}), 'chaine-absente', 'une chaîne');
+  sousEnsemble('silhouettes', base?.silhouettes ?? [], 'silhouette-absente', 'une shape key');
 
   if (regle.emplacements && brut.emplacements !== undefined) {
     if (!estObjet(brut.emplacements)) refus('forme', 'emplacements', 'objet attendu');
     else for (const [id, e] of Object.entries(brut.emplacements)) {
       if (!(estObjet(e) && typeof e.os === 'string' && estRepere({ position: e.position, rotation: e.rotation }) && Object.keys(e).length === 3)) refus('forme', `emplacements.${id}`, '`os` chaîne, `position` et `rotation` triplets de nombres attendus');
-      else if (!base.os.includes(e.os)) refus('emplacement-sur-os-absent', `emplacements.${id}.os`, `${e.os} n’est pas un os de la base \`${base.base}\``);
+      else if (!osDeBase.includes(e.os)) refus('emplacement-sur-os-absent', `emplacements.${id}.os`, `${e.os} n’est pas un os de la base \`${nomDeBase}\``);
       if (!estEmplacement(id)) refus('emplacement-inconnu', `emplacements.${id}`, `${id} n’est aucun emplacement de \`garde-robe.json\``);
+    }
+  }
+
+  const validerPostes = (ou: string, postes: unknown) => {
+    if (!estObjet(postes)) return refus('forme', ou, 'objet attendu');
+    for (const [bord, positions] of Object.entries(postes)) {
+      if (!(FIRE_ARCS as readonly string[]).includes(bord)) refus('bord-inconnu', `${ou}.${bord}`, `${bord} : ${liste(FIRE_ARCS)} attendu`);
+      else if (!(Array.isArray(positions) && positions.every(estTriplet))) refus('forme', `${ou}.${bord}`, 'liste de triplets de nombres attendue');
+    }
+  };
+  if (regle.postes && brut.postes !== undefined) validerPostes('postes', brut.postes);
+
+  if (regle.selon) {
+    const selon = brut.selon ?? {};
+    if (!estObjet(selon)) refus('forme', 'selon', 'objet attendu');
+    else for (const [amelioration, effets] of Object.entries(selon)) {
+      for (const e of ecartsDeCleDElement('amelioration', { amelioration })) refus(e.code, `selon.${amelioration}`, e.detail);
+      if (!estObjet(effets) || Object.keys(effets).some((champ) => !(regle.postes && champ === 'postes'))) refus('forme', `selon.${amelioration}`, regle.postes ? '`{ postes? }` attendu' : '`{}` attendu');
+      else if (effets.postes !== undefined) validerPostes(`selon.${amelioration}.postes`, effets.postes);
+    }
+    for (const { nom } of glb.meshes) {
+      const amelioration = NOEUD_SELON.exec(nom)?.[2];
+      if (amelioration !== undefined && !(estObjet(selon) && Object.prototype.hasOwnProperty.call(selon, amelioration))) refus('selon-absent', 'selon', `${nom} change selon \`${amelioration}\`, que \`selon\` ne nomme pas`);
+    }
+  }
+
+  if (regle.ancrages && brut.ancrages !== undefined) {
+    if (!estObjet(brut.ancrages)) refus('forme', 'ancrages', 'objet attendu');
+    else for (const [amelioration, positions] of Object.entries(brut.ancrages)) {
+      for (const e of ecartsDeCleDElement('amelioration', { amelioration })) refus(e.code, `ancrages.${amelioration}`, e.detail);
+      if (!(Array.isArray(positions) && positions.every(estTriplet))) refus('forme', `ancrages.${amelioration}`, 'liste de triplets de nombres attendue');
+    }
+  }
+
+  if (regle.montage && brut.montage !== undefined) {
+    if (!(MONTAGES as readonly unknown[]).includes(brut.montage)) refus('forme', 'montage', `${String(brut.montage)} : ${liste(MONTAGES)} attendu`);
+    else if (brut.montage === 'postes') {
+      const absents = Object.values(ETATS_AU_POSTE).filter((etat) => !glb.meshes.some((m) => m.nom === etat));
+      if (absents.length) refus('etat-absent', 'montage', `une pièce montée aux postes porte un nœud à mesh par état, ${liste(Object.values(ETATS_AU_POSTE))} : ${liste(absents)} absent du GLB`);
     }
   }
 
   if (brut.surfaces !== undefined) {
     const { surfaces, ecarts: deForme } = lireSurfaces(brut.surfaces, 'element');
-    for (const e of [...deForme, ...ecartsAuGlb(surfaces, glb)]) refus(e.code, e.ou, e.detail);
+    for (const e of [...deForme, ...ecartsAuxMatieres(surfaces, matieresDeDecor()), ...ecartsAuGlb(surfaces, glb)]) refus(e.code, e.ou, e.detail);
   }
 
   if (brut.glb !== undefined) {

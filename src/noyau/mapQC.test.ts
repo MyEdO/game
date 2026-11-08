@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { buildScene } from './mapSpec';
 import { scenario as zonesPiecesScenario } from '../scenes/test-scenarios/zones-pieces';
@@ -5,7 +6,7 @@ import { reachableCells, unreachableDescriptiveZones, reachedFloors } from './ma
 import { walkNeighbors, type Pt } from './monde/path';
 import { startOf, type Scene } from './monde/scene';
 import { areneCampaign, diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
-const zonesPiecesScenarioConstruit = zonesPiecesScenario.construire();
+const zonesPiecesScenarioConstruit = zonesPiecesScenario.construire(idsDeTest);
 
 describe('mapQC — harnais QC de cartes (#778)', () => {
   it('démo `zones-pieces` (4 pièces cloisonnées) : les 4 pièces sont toutes atteignables depuis heroStart', () => {

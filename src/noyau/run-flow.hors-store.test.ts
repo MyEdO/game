@@ -2,6 +2,7 @@
  * runFlow — exécution de la logique authorée (Flow) : séquence d'effets, branche `if` sur l'état
  * VIVANT, et nœud `test` (ouvre la modale, SUSPEND, reprend branche + continuation à `jetValider('test')`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { runFlow } from './combatEffects';
@@ -41,7 +42,7 @@ describe('runFlow — séquence + branche if (état vivant)', () => {
 
 describe('runFlow — nœud test (suspension + continuation)', () => {
   function hero() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     return h;
   }
 

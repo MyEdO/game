@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { buildScene } from './mapSpec';
@@ -44,7 +45,7 @@ function makeScene(): Scene {
 }
 
 function start(): void {
-  banc.setState({ party: pregenParty(PREGEN.soldat) });
+  banc.setState({ party: pregenParty(idsDeTest, PREGEN.soldat) });
   banc.getState().lancerLaScene(makeScene());
   banc.getState().lancerLeCombat(ENC_ID);
 }

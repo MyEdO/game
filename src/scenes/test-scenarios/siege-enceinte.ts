@@ -1,3 +1,4 @@
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { pregenParty, PREGEN } from '../../data/pregens';
 import { findTrappingById, type SkillRef } from '../../data';
 import type { SceneEntity } from '../../noyau/monde/scene';
@@ -37,7 +38,7 @@ import type { TestScenario } from './_shared';
 // QUE s'il la possède (sinon « n'est pas considéré comme un membre de l'équipe », AA 10 l.253). Dérivée de la pièce
 // (`weaponGroup` du trapping) → la Spé = id du Groupe (arbalete/poudre-noire/catapulte). Test ~40.
 const projForPiece = (trappingId: string): SkillRef[] => {
-  const g = findTrappingById(trappingId)?.weaponGroup;
+  const g = findTrappingById(trappingId)?.weaponGroup?.id;
   return g ? [{ id: 'projectiles', spec: g, value: 40 }] : [];
 };
 
@@ -227,12 +228,12 @@ export function spec(): MapSpec {
       '@': 'heroStart',
       // Archers défenseurs (z1, arcs) : PNJ alliés-IA (agissent seuls).
       A: {
-        entity: { kind: 'personnage', ref: 'brute', weapon: 'arc', facing: 'N', z: 1, label: 'Archer du guet' },
+        entity: { kind: 'personnage', ref: 'brute', inventaire: { arc: false }, facing: 'N', z: 1, label: 'Archer du guet' },
         member: { enc: 'assaut', side: 'ally', ai: true },
       },
       // Guetteur au-dessus du tunnel de la porte (chemin de ronde continu au-dessus de la brèche).
       G: {
-        entity: { kind: 'personnage', ref: 'brute', weapon: 'arc', facing: 'N', z: 1 },
+        entity: { kind: 'personnage', ref: 'brute', inventaire: { arc: false }, facing: 'N', z: 1 },
         member: { enc: 'assaut', side: 'ally', ai: true },
       },
       // Pièces de REMPART : affûts INERTES (pas d'`ai`), servis par leur équipage QUALIFIÉ (crew), sur le chemin de ronde (z1).
@@ -282,12 +283,12 @@ export const scenario: TestScenario = {
     'à 4 m, rejoint par UNE RAMPE au FLANC GAUCHE (déportée de la porte), parapet z1 sur l\'arête extérieure ; ' +
     'pièces servies + ARCHERS PNJ alliés-IA ; combat VERTICAL (LdV plongeante, mêlée refusée à travers le vide).',
   partyNote: 'Groupe pré-tiré (Soldat / Chasseur / Sorcier / Tueur) : montez au rempart par la rampe du flanc gauche ; le SOLDAT sait servir les pièces (Baliste/Canon).',
-  construire: () => ({ party: groupe(), scene: buildScene(spec()) }),
+  construire: (idNeuf) => ({ party: groupe(idNeuf), scene: buildScene(spec()) }),
   autoCombat: 'assaut',
 };
 
-function groupe(): Combatant[] {
-  const party = pregenParty(PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur);
+function groupe(idNeuf: FabriqueDId): Combatant[] {
+  const party = pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur);
   // Le SOLDAT sait SERVIR les pièces de rempart : on lui octroie la Projectiles du Groupe de CHAQUE pièce
   // (Baliste→Arbalète, Canon→Poudre noire). Sans cette Spé, il ne COMPTE PAS dans l'effectif d'équipe
   // (AA 10 l.230) → la pièce qu'il prend tirerait en sous-effectif. Dérivé des pièces (aucun libellé en dur).

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { gainDeStatut } from '../../engine/money';
 import { describe, it, expect } from 'vitest';
 import {
@@ -46,7 +47,7 @@ import { especeDApparence, trappingRefLabel } from '../../data';
 import { pettySpellQuota, probeHero, draftFromHero, type CreatorDraft } from './brouillon';
 import { speciesSkillDefaults, designer, createHero, resolveSpeciesTalents } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
-import { emplacementsDeDotation } from '../../engine/trappingChoices';
+import { dotationsDuHeros, emplacementsDeDotation } from '../../engine/trappingChoices';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../../data/dotations.fixture';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { careerSkillAdditions } from '../../engine/talentEffects';
@@ -147,8 +148,8 @@ describe('une voie : le héros créé est celui que l\'écran montre (#1897)', (
     const avant = withCareer(withSpecies(newDraft(169), 'humains-reiklander'), DEFAULT_CAREER.id);
     const tires = speciesTalentRandomDrawn(rollDraftTalents(avant));
     expect(tires.map((t) => t.ref.id)).toEqual(['doue-en-calcul', 'doue-en-calcul', 'sixieme-sens']);
-    expect(tiresDe(buildHero(avant), tires)).toBe(0);
-    expect(tiresDe(buildHero(rollDraftTalents(avant)), tires)).toBe(3);
+    expect(tiresDe(buildHero(avant, idsDeTest), tires)).toBe(0);
+    expect(tiresDe(buildHero(rollDraftTalents(avant), idsDeTest), tires)).toBe(3);
   });
 
   it('la relance du brouillon atteint `createHero` : écran, `buildHero` et `createHero` des choix donnent les mêmes Talents', () => {
@@ -156,8 +157,8 @@ describe('une voie : le héros créé est celui que l\'écran montre (#1897)', (
     const ecran = speciesTalentRandomDrawn(d).map((t) => t.ref.id);
     expect(ecran).toEqual(['doue-en-calcul', 'doigts-de-fee', 'sixieme-sens']);
     const talents = (h: { talents: { talentId: string; times: number }[] }) => h.talents.map((t) => `${t.talentId}x${t.times}`);
-    const viaBuild = talents(buildHero(d));
-    const viaChoix = talents(createHero({
+    const viaBuild = talents(buildHero(d, idsDeTest));
+    const viaChoix = talents(createHero({ idNeuf: idsDeTest,
       speciesId: d.speciesId, careerId: d.careerId, label: 'x', seed: d.seed, careerTalent: d.careerTalent,
       speciesTalentChoices: d.speciesTalentChoices, randomSpecPicks: d.randomSpecPicks, talentRerolls: d.talentRerolls,
     }));
@@ -266,13 +267,13 @@ describe('utilisation d\'un Talent tiré « (un au choix) » (LDB 05 l.484, tabl
     const d = withRandomTalentSpec(tire(), tirage0, 'odorat');
     const ecran = speciesTalentRandomDrawn(d)[0].ref;
     const specs = (h: { talents: { talentId: string; spec?: string }[] }) => h.talents.filter((t) => t.talentId === 'sens-aiguise').map((t) => t.spec).sort();
-    const viaChoix = createHero({
+    const viaChoix = createHero({ idNeuf: idsDeTest,
       speciesId: d.speciesId, careerId: d.careerId, label: 'x', seed: d.seed, careerTalent: d.careerTalent,
       speciesTalentChoices: d.speciesTalentChoices, randomSpecPicks: d.randomSpecPicks, talentRerolls: d.talentRerolls,
     });
     expect(ecran.spec).toBe('odorat');
     expect(specs(viaChoix)).toEqual(['gout', 'odorat']);
-    expect(specs(buildHero(d))).toEqual(specs(viaChoix));
+    expect(specs(buildHero(d, idsDeTest))).toEqual(specs(viaChoix));
   });
 });
 
@@ -322,11 +323,11 @@ describe('Riverains ⇄ Côtiers (MDG 09 l.9, #393 P2 correctif utilisateur)', (
 
   it('la table effective exclut Riverains XOR Côtiers selon la bascule — jamais les deux', () => {
     const off = careerRollPool({ ...swappable(), coastalSwap: false });
-    expect(off.some((c) => c.class === 'cotiers')).toBe(false);
-    expect(off.some((c) => c.class === 'riverains')).toBe(true);
+    expect(off.some((c) => c.class.id === 'cotiers')).toBe(false);
+    expect(off.some((c) => c.class.id === 'riverains')).toBe(true);
     const on = careerRollPool({ ...swappable(), coastalSwap: true });
-    expect(on.some((c) => c.class === 'riverains')).toBe(false);
-    expect(on.some((c) => c.class === 'cotiers')).toBe(true);
+    expect(on.some((c) => c.class.id === 'riverains')).toBe(false);
+    expect(on.some((c) => c.class.id === 'cotiers')).toBe(true);
   });
 
   it('anti-exploit : la bascule refuse de changer d\'état une fois un jet posé (relance gratuite bloquée)', () => {
@@ -416,14 +417,14 @@ describe('buildHero — bout en bout', () => {
   it('l’apparence du brouillon passe au héros d’un seul tenant, et (c) draftFromHero la restitue', () => {
     const d = readyDraft();
     const apparence = { sex: 'F' as const };
-    const hero = buildHero({ ...d, apparence }, 'h-apparence');
+    const hero = buildHero({ ...d, apparence }, idsDeTest, 'h-apparence');
     expect(hero.appearance).toEqual({ ...apparence, species: especeDApparence(d.speciesId) });
     expect(draftFromHero(hero, 7).apparence).toEqual(apparence);
   });
   it('héros conforme : PX bonus, Augmentations, libellés résolus, désignations posées', () => {
     let d = readyDraft();
     d = { ...d, age: 20, height: 175, eyes: 'Bleu', hair: 'Brun' };
-    const hero = buildHero(d, 'h-test');
+    const hero = buildHero(d, idsDeTest, 'h-test');
     expect(hero.xp).toBe(xpTotal(d));
     expect(Object.values(hero.charAdvances ?? {}).reduce((a, b) => a + (b ?? 0), 0)).toBe(5);
     for (const s of hero.skills) expect(`${s.spec ?? ''}`).not.toMatch(/au choix/i);
@@ -457,15 +458,15 @@ describe('buildHero — bout en bout', () => {
 });
 
 describe('Possessions — emplacement `{wildcard:\'arme\'}` (LDB 05 l.542-583, construct de choix d\'équipement)', () => {
-  const WEAPON_SLOT = emplacementsDeDotation('pretre-guerrier', 1).find((e) => e.sorte === 'joker')!.adresse;
+  const WEAPON_SLOT = emplacementsDeDotation(dotationsDuHeros('pretre-guerrier')).find((e) => e.sorte === 'joker')!.adresse;
 
   it('trappingChoices (id STABLE) résout l\'emplacement en l\'objet catalogue choisi', () => {
     // Prêtre Guerrier (Novice) : seule carrière du LDB à porter { wildcard: 'arme' } (l.1).
     const d = { ...withCareer(readyDraft(), 'pretre-guerrier'), specChoices: {}, careerTalent: { id: 'obstine' }, trappingChoices: { [WEAPON_SLOT]: 'baton-de-combat' } };
-    const hero = buildHero(d, 'h-weapon');
+    const hero = buildHero(d, idsDeTest, 'h-weapon');
     expect((hero.items ?? []).some((it) => it.trappingId === 'baton-de-combat')).toBe(true);
     // Sans choix : `resolveTrappingChoices` laisse le `{wildcard}` NON résolu — aucun objet fantôme.
-    const noChoice = buildHero({ ...d, trappingChoices: {} }, 'h-noweapon');
+    const noChoice = buildHero({ ...d, trappingChoices: {} }, idsDeTest, 'h-noweapon');
     expect((noChoice.items ?? []).some((it) => it.trappingId === 'baton-de-combat')).toBe(false);
   });
 
@@ -484,7 +485,7 @@ describe('Possessions — emplacement `{wildcard:\'arme\'}` (LDB 05 l.542-583, c
       expect(unresolvedTrappingSlots(d)).toEqual([classe, joker, branches].map(trappingRefLabel));
       const trappingChoices = { [dot([0])]: 1, [dot([0, 1])]: 'solide', [dot([1])]: 'baton-de-combat', [dot([3])]: 0, [dot([3, 0])]: 1, [dot([3, 0, 1])]: 'dague' };
       expect(unresolvedTrappingSlots({ ...d, trappingChoices })).toEqual([]);
-      const objets = (buildHero({ ...d, trappingChoices }, 'h-dotations').items ?? []).map((it) => it.trappingId);
+      const objets = (buildHero({ ...d, trappingChoices }, idsDeTest, 'h-dotations').items ?? []).map((it) => it.trappingId);
       expect(objets).toEqual(expect.arrayContaining(['fleuret', 'baton-de-combat', 'pinceau', 'dague']));
       expect(objets).not.toContain('miroir-a-main');
       expect(objets).not.toContain('grande-hache');
@@ -517,7 +518,7 @@ describe('Magie mineure à la création (LDB 10 l.714) — BFM sorts inclus au T
   it('buildHero mémorise les sorts choisis (0 PX — inclus au Talent)', () => {
     const d = sorcererDraft();
     const picks = minorsOf(pettySpellQuota(d));
-    const hero = buildHero({ ...d, pettySpells: picks }, 'h-petty');
+    const hero = buildHero({ ...d, pettySpells: picks }, idsDeTest, 'h-petty');
     for (const m of picks) expect(hero.spells).toContain(m);
     expect(hero.xp).toBe(xpTotal(d)); // rien payé
   });
@@ -591,8 +592,8 @@ describe('signe astral (ADE II 3) — étape, tirage, PX et effet', () => {
 
   it('buildHero applique les ±carac du signe aux attributs de départ', () => {
     const base = readyDraft();
-    const a = buildHero(base, 'h-nostar');
-    const b = buildHero({ ...base, star: 'wymund-l-anachorete' }, 'h-star'); // id ; +2 Soc, +2 I, -3 Int
+    const a = buildHero(base, idsDeTest, 'h-nostar');
+    const b = buildHero({ ...base, star: 'wymund-l-anachorete' }, idsDeTest, 'h-star'); // id ; +2 Soc, +2 I, -3 Int
     expect(b.characteristics.sociabilite - a.characteristics.sociabilite).toBe(2);
     expect(b.characteristics.initiative - a.characteristics.initiative).toBe(2);
     expect(b.characteristics.intelligence - a.characteristics.intelligence).toBe(-3);

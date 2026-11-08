@@ -4,6 +4,7 @@
  * d'État (LDB 16 l.125), la somme des termes du calcul égale sa cible, et cette cible est celle de la
  * valeur de Test (`testValue`, bornée par `clampTarget`) que le jet affronte.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -78,15 +79,16 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
     nommeLEtat('après', att);
   });
 
+  // LDB 21 l.31, LDB 16 l.125
   it('Frénésie', () => {
-    const { H } = heroFaceAUnEnnemi(); sonne(H); H.traits = [{ id: 'frenesie' }];
+    const { H } = heroFaceAUnEnnemi(); H.conditions = [{ id: 'extenue', value: 3 }]; H.traits = [{ id: 'frenesie' }];
     g().entrerEnFrenesie();
     const att = cible(H, FM, 'intermediaire');
     act(() => root.render(createElement(FrenzyModal)));
-    nommeLEtat('avant', att);
+    nommeLEtat('avant', att, undefined, '−30 Exténué');
     act(() => { g().jetLancer('frenzy'); });
     expect(g().pendingFrenzy!.result!.target).toBe(att);
-    nommeLEtat('après', att);
+    nommeLEtat('après', att, undefined, '−30 Exténué');
   });
 
   it('Main ensanglantée', () => {
@@ -138,10 +140,10 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
   });
 
   it('Chute', () => {
-    const hero = sonne(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }));
+    const hero = sonne(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }));
     const s = emptyScene('scene-test', 4, 4); s.layers[0].height = Array.from({ length: 16 }, (_, i) => (i === 2 ? 4 : 0));
     useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: { x: 2, y: 0 }, scene: s, pendingFall: null, pendingCascade: null } as never);
-    g().franchirLArete({ x: 2, y: 0 }, { x: 2, y: 1 });
+    g().franchirLArete({ x: 2, y: 1 });
     g().jetRegler('fall', 'tenter', true, hero.id);
     const p = g().pendingFall!;
     const att = cible(hero, p.test, p.test.difficulty);

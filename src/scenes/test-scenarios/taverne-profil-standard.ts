@@ -73,5 +73,5 @@ export const scenario: TestScenario = {
     'l’opposant joue sa fiche.',
   partyNote: 'Soldat · Chasseur',
   rules: { 'tavern-games': true },
-  construire: () => ({ party: pregenParty(PREGEN.soldat, PREGEN.chasseur), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur), scene: construireScene() }),
 };

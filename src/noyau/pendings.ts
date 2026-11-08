@@ -3,7 +3,7 @@
  * monnaie — types PURS, sans logique, tenus hors du store.
  * Le store les ré-exporte (les imports existants `from './store'` restent valides).
  */
-import type { CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource, ContexteDeTest } from '../engine/types';
+import type { Availability, CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource, ContexteDeTest } from '../engine/types';
 import type { DiceSpec } from '../engine/dice';
 import type { PorteurDeFiche } from '../engine/statblock';
 import type { ConjureForm } from '../engine/conjuredWeapons';
@@ -357,7 +357,7 @@ export interface PendingAppraise {
   /** Libellé de la compétence affiché en modale (« Évaluation » / « Intuition »). */
   skillLabel?: string;
   truePriceBrass: number; // valeur réelle de base (catalogue) en sous de cuivre
-  availability: string | null; // Disponibilité (Rare/Exotique → estimation ±10 %)
+  availability: Availability | 'ND' | null; // APPRAISED_AVAILABILITIES
   /** La ligne du jet, figée à l'ouverture (`rollLine`, Soutien LDB 12 compris) : ce que la fenêtre annonce et ce
    *  que le résolveur jette. */
   ligne: RollLineParts;
@@ -674,22 +674,6 @@ export interface PendingShipManeuver extends MultiPending<ShipManeuverParticipan
   /** Manque de bras global (MDG 14 l.55) : −2 DR/tranche de 10 % manquant + plafond Succès Minime. */
   undercrew?: { dr: number; capSuccesMinime: boolean };
   /** Sabotage (MDG 14 l.45-47) : −1..−5 DR plats au total du Test d'équipage (`shipSaboteurDR`). */
-  extraDR?: number;
-}
-/** TEST D'ÉQUIPAGE GÉNÉRIQUE en COMBAT (MDG 14, « Types de Test d'équipage ») — 3ᵉ jumeau de la
- *  manœuvre/bordée : chaque rôle tenu lance SON Test (multi-jets), DR sommés (essentiel ×2) + Moral +
- *  Manque de bras + sabotage. L'ISSUE dépend du type (`jetValider('crewTest')`) : **Rude épreuve** (l.106-114)
- *  → un total NÉGATIF réduit le Moral d'autant (l.110), PERSISTÉ sur `CampaignVessel.morale`. Les Tests
- *  d'équipage de VOYAGE (Progression, Poursuite, Perception, Orientation…) sont des ÉTAPES
- *  `CascadeStep` À PARTICIPANTS de la cascade du jour (#275 Ronde 2, `seaVoyageFlow.ts`) — CE
- *  pending sert UNIQUEMENT au combat (Rude épreuve, arme d'équipe). */
-export interface PendingCrewTest extends MultiPending<ShipManeuverParticipant> {
-  shipId: string;
-  /** Type de Test d'équipage (`crew-test-types.json`) — décide des rôles, du rôle essentiel et de l'issue. */
-  testTypeId: string;
-  essentialRoleId?: string;
-  moraleScore: number;
-  undercrew?: { dr: number; capSuccesMinime: boolean };
   extraDR?: number;
 }
 /** CHANSON DE MARIN en attente (Talent, MDG 09 l.32-40) : le chanteur choisit sa chanson CONNUE (pré-jet,
@@ -1610,9 +1594,9 @@ export interface OpposedFreeze {
   /** Bonus de DR ajouté au jet du DÉFENSEUR avant l'opposition (Piège-lame, LDB 62 l.280) — `FlowTest.
    *  opposed.bonusSL` figé : chaque (re)résolution oppose `def.sl + bonusSL` à `aT`. Absent/0 = Assommante. */
   bonusSL?: number;
-  /** Difficulté de l'OPPOSITION (LDB 12 l.166 : « Dans la plupart des cas, ces modificateurs sont
-   *  appliqués aux deux groupes ») — celle du `FlowTest`, appliquée au pré-jet de l'attaquant comme au
-   *  jet du défenseur, et LUE par les deux lignes. Absente pour un freeze réhydraté sans elle. */
+  /** Difficulté DÉCLARÉE de l'opposition (LDB 12 l.166) — celle du pré-jet de l'attaquant, que sa ligne
+   *  LIT ; le défenseur jette la sienne, résolue (`resoudreFlowTest`). Absente pour un freeze réhydraté
+   *  sans elle. */
   difficulty?: Difficulty;
   /** Le DÉFENSEUR (le jeteur de CE Test) est le camp que le RAW nomme « vous », celui qui doit
    *  REMPORTER pour que la conséquence tombe (Piège-lame, LDB 62 l.280) — `FlowTest.opposed.
@@ -1752,6 +1736,9 @@ export interface CascadeStepMeta {
   /** Id du prédicat de SUCCÈS du total sommé (table `reglesDeSucces`, naval : `crew-test` →
    *  `crewTestSuccess`, MDG 14 l.13). Chaîne, jamais une closure : le pending est snapshoté en JSON. */
   aggregateSuccessRule?: RegleDeSucces;
+  /** Type de Test d'équipage (`crew-test-types.json`) d'une étape de voyage à participants (`buildVoyageCrewStep`) : ce
+   *  que sa résolution lit de son type (`moraleOnNegativeDR`). */
+  crewTestType?: string;
   /** Marge adverse soustraite du total (`aggregate:'opposed'` — contresort). */
   aggregateOpposeSl?: number;
   /** Branche de réussite d'une étape `triggeredTest` (exécutée via `applyTriggeredTestBranch`). */
@@ -2309,8 +2296,9 @@ export type RowSurface = 'pv';
 
 /** Contexte de lancement d'un pilote immédiat PARQUÉ, rejoué tel quel à sa reprise : `sansContexte` = lancé
  *  sans `ctx` (un combat ouvert en plein vol arrête la boucle sans rien empiler) ; `rowSurface` = la
- *  surface de rangées qu'il avait déclarée, que le dénouement de la séquence honore. */
-export type ReprisePilote = { sansContexte?: true; rowSurface?: RowSurface };
+ *  surface de rangées qu'il avait déclarée, que le dénouement de la séquence honore ; `auxVraisChoix` = il
+ *  s'arrête à chaque vrai choix d'un siège (`cascade.jouerLaJournee`, #3534). */
+export type ReprisePilote = { sansContexte?: true; rowSurface?: RowSurface; auxVraisChoix?: true };
 
 /**
  * CASCADE séquentielle influençable (régime choisi par l'utilisateur pour les jets de NUIT et de

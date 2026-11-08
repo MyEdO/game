@@ -45,7 +45,7 @@ export function refusDePx(hero: Combatant, cost: number): string | null {
 export function contexteDeChangement(hero: Combatant, newCareer: string, newLevel: number, completed: boolean): CareerChangeContext {
   return {
     completed,
-    sameClass: findCareerById(hero.career ?? '')?.class === findCareerById(newCareer)?.class,
+    sameClass: findCareerById(hero.career ?? '')?.class.id === findCareerById(newCareer)?.class.id,
     targetLevelExists: levelsForCareer(newCareer).some((l) => l.level === newLevel),
     gmJump: rule('advancement-career-jump') === true,
   };

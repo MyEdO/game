@@ -6,6 +6,7 @@
  * Garde de PROPRIÉTÉ sur TOUT statbloc livré qui porte un trait de mutation au spawn : bestiaire
  * (`creatures.json`), presets des projets livrés, statblocs et presets des scénarios de test.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
@@ -82,7 +83,7 @@ function tousLesPorteurs(): Porteur[] {
     for (const sc of projet.scenes) out.push(...porteursDeScene(rel, sc));
   }
   for (const s of SCENARIOS) {
-    const built = s.construire();
+    const built = s.construire(idsDeTest);
     if (built.narratif) out.push(...porteursDuNarratif(`scénario ${s.id}`, built.narratif));
     for (const sc of [built.scene, ...(built.extraScenes ?? [])]) out.push(...porteursDeScene(`scénario ${s.id}`, sc));
   }
@@ -150,7 +151,7 @@ function fautesDuPorteur(p: Porteur): string[] {
   }
   // (g) un plancher de `charMod` est résolu à l'attache : aucune instance ne le porte (EDO 11 l.190).
   for (const m of mutations) for (const op of m.passive ?? []) {
-    if (op.op === 'charMod' && op.min != null) fautes.push(`${p.ou} : (g) charMod « ${op.char} » de « ${m.id} » porte encore son plancher`);
+    if (op.op === 'charMod' && op.min != null) fautes.push(`${p.ou} : (g) charMod « ${op.characteristic} » de « ${m.id} » porte encore son plancher`);
   }
   // (e) Blessures dérivées.
   if (c.wounds.max !== effectiveMaxWounds(c)) fautes.push(`${p.ou} : (e) wounds.max ${c.wounds.max} ≠ effectiveMaxWounds ${effectiveMaxWounds(c)}`);

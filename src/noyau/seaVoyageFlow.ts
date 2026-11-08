@@ -92,7 +92,7 @@ import { rule } from '../engine/policy';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { groupsFor } from '../engine/groups';
 import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
-import { ajouterAuRoster, crewRoleValue, crewTestModParts, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, SUCCES_MINIME_CAP } from '../engine/crewMorale';
+import { ajouterAuRoster, crewRoleValue, crewTestModParts, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, rudeEpreuveMoraleDelta, SUCCES_MINIME_CAP } from '../engine/crewMorale';
 import type { NightEntry } from './restFlow';
 import { provisioningManifest } from '../engine/provisions';
 import { toMoney, canAfford, type Money } from '../engine/money';
@@ -103,7 +103,7 @@ import { drainPendingLog, jouerFlowEntier, runFlow } from './combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { ShipCritKey } from '../data/shipCriticals';
 import { contractDisease, applyContraction, contractionDue, diseaseDefs, maladieDeclaree } from '../engine/disease';
-import { DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty, type NavalTraitRef, type ContexteDeTest } from '../engine/types';
+import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty, type NavalTraitRef, type ContexteDeTest } from '../engine/types';
 import type { PendingSteamSave, PendingCascade, CascadeStep } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { CorpsDesChoix } from './choixDesFenetres';
@@ -111,7 +111,7 @@ import type { CampaignVessel, Jeu } from './etat';
 import { refuserGeste } from './refusVisible';
 import { openWorldTest, composeRollLabel, openSequence, freeCons, rollLine, rollStep, monoStep, tableStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
-import { startCascade, runCascadeImmediate, pushStep, type TableStepDef } from './cascade';
+import { startCascade, jouerLaJournee, pushStep, type TableStepDef } from './cascade';
 import { checkPartyWiped } from './partyWipe';
 import { memoParVersion } from '../data/versionDataset';
 import { exposureWaveBand } from './nightBands';
@@ -396,7 +396,7 @@ export function setVesselHull(get: Get, set: Set, current: number, max: number):
  *  double chemin : certains sites persistaient au coup par coup, d'autres seulement en fin de jour, la
  *  fenêtre entre les deux pouvait écraser une valeur plus fraîche écrite ailleurs, ex. fin de combat naval). */
 export function damageVesselHull(get: Get, set: Set, hull: Combatant, amount: number): string[] {
-  const j = damageHull(hull, amount);
+  const j = damageHull(hull, amount, get().forgerUnId);
   const plan = get().travelPlan;
   if (plan) set({ travelPlan: { ...plan } }); // bump de référence : la mutation en place de `hull` doit se voir
   persistHullWounds(get, set);
@@ -411,7 +411,7 @@ export function damageCampaignVessel(get: Get, set: Set, amount: number): string
   if (coque) return damageVesselHull(get, set, coque, amount);
   const ship = voyageShip(get);
   if (!ship) return null;
-  const journal = damageHull(ship.hull, amount);
+  const journal = damageHull(ship.hull, amount, get().forgerUnId);
   setVesselHull(get, set, ship.hull.wounds.current, ship.hull.wounds.max);
   return journal;
 }
@@ -419,7 +419,7 @@ export function damageCampaignVessel(get: Get, set: Set, amount: number): string
 /** Restaure `amount` Blessures à la coque de TRAJET et PERSISTE aussitôt sur `vessel.wounds` — pendant
  *  de `damageVesselHull` pour les soins. */
 export function healVesselHull(get: Get, set: Set, hull: Combatant, amount: number): string[] {
-  const j = healHull(hull, amount);
+  const j = healHull(hull, amount, get().forgerUnId);
   const plan = get().travelPlan;
   if (plan) set({ travelPlan: { ...plan } });
   persistHullWounds(get, set);
@@ -588,7 +588,7 @@ export function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEt
   const contributors = crewTestContributors(ship, party, testTypeId, new Set(party.map((h) => h.id)), navigation, opts.sense);
   if (!contributors.length) return undefined;
   const testType = findCrewTestTypeById(testTypeId);
-  const essentialRoleId = testType?.essential;
+  const essentialRoleId = testType?.essential.id;
   const pont = activeSeaPrecipitation(get); // MDG 13 l.185
   // Le flux propriétaire (naval) RÉSOUT la présentation (rôle tenu) et DÉCLARE le jet de chaque
   // contributeur au MONTEUR CANONIQUE (`rollStep`) — le séquenceur/modale génériques n'y liront QUE
@@ -654,6 +654,7 @@ export function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEt
     ...(stake ? { stake } : {}),
     ...(opts.contexte ? { contexte: opts.contexte } : {}),
     meta: {
+      crewTestType: testTypeId,
       aggregateSuccessRule: CREW_TEST_SUCCESS_RULE,
       ...(flatDR ? { aggregateFlatDR: flatDR } : {}),
       ...(undercrew.capSuccesMinime ? { aggregateCapTo: SUCCES_MINIME_CAP } : {}), // l.55
@@ -725,7 +726,7 @@ function buildNavProgressionStep(get: Get): BuiltCascadeStep | undefined {
  *  Test d'équipage AU LIEU d'un Test de Navigation ») : aucune des deux voies ne se prend en silence.
  *  La voie Navigation que personne ne peut tenter reste OFFERTE, fermée avec son refus (LDB 09 l.30).
  *  `defaultChoice` = l'équipage, la voie du grand vaisseau — c'est elle qui s'applique en cadence
- *  COMMANDÉE (`runCascadeImmediate`), où le joueur n'est pas à la manœuvre. Le PORTEUR est le barreur
+ *  COMMANDÉE (`jouerLaJournee` commandée), où le joueur n'est pas à la manœuvre. Le PORTEUR est le barreur
  *  (`seaDecider`) : c'est lui que la décision engage. */
 function buildProgressionChoiceStep(get: Get): BuiltCascadeStep | undefined {
   if (!buildVoyageCrewStep(get, 'progression', 'progression')) return undefined;
@@ -1002,7 +1003,7 @@ const M_DU_COURANT = 1;
 const DRIFT_ALONG_ROUTE: Record<WindAspect, -1 | 0 | 1> = { arriere: 1, lateral: 0, face: -1 };
 const DRIFT_EFFECT_KEY = { 1: 'sv.driftAhead', 0: 'sv.driftAbeam', [-1]: 'sv.driftBack' } as const;
 
-/** Journée de PURE ROUTINE, seule résolue d'un bloc sous ordres (`runCascadeImmediate`) : ni crise, ni
+/** Journée de PURE ROUTINE, seule résolue d'un bloc sous ordres (`jouerLaJournee` commandée) : ni crise, ni
  *  infestation. #275 */
 function seaDayAllRoutine(get: Get): boolean {
   const sea = get().travelPlan!.sea!;
@@ -1039,7 +1040,7 @@ function dayEntriesFromStep(get: Get, step: CascadeStep): NightEntry[] {
   });
 }
 
-/** Pousse les entrées de PV des étapes RÉSOLUES (route COMMANDÉE, `runCascadeImmediate`) dans
+/** Pousse les entrées de PV des étapes RÉSOLUES (route COMMANDÉE, `jouerLaJournee`) dans
  *  `sea.entries` (accumulateur du jour, vidé par `continueSeaDayAfterCascade`). */
 function pushDayEntries(get: Get, set: Set, resolved: CascadeStep[]): void {
   const entries = resolved.flatMap((s) => dayEntriesFromStep(get, s));
@@ -1123,6 +1124,20 @@ export function dureeDeTraversee(km: number, m: number): number {
   return Math.max(1, joursDeMer(km, m));
 }
 
+/** Le Moral d'un Test d'équipage RÉSOLU : un type de Test dont le total négatif coûte du Moral (`moraleOnNegativeDR`,
+ *  la Rude épreuve) le retire au navire de campagne, où que le Test se joue (traversée rapide, nœud de Flow).
+ *  MDG 14 l.110 */
+function moralDuTestDEquipage(get: Get, set: Set, step: CascadeStep): void {
+  const ship = get().travelPlan?.vehicle;
+  const type = typeof step.meta?.crewTestType === 'string' ? findCrewTestTypeById(step.meta.crewTestType) : undefined;
+  if (!ship || !step.result || !type?.moraleOnNegativeDR) return;
+  const j = applyShipMoraleDelta(get, set, ship, rudeEpreuveMoraleDelta(step.result.sl));
+  if (j.length) noteSeaLine(get, set, j);
+}
+
+/** Le Test d'équipage de la traversée rapide : la Rude épreuve (MDG 15 l.27). */
+const TEST_DU_VOYAGE_RAPIDE = 'rude-epreuve';
+
 /** Appareille en TRAVERSÉE RAPIDE (l.21-37) : construit un plan `sea.fast` (jamais la boucle jour par
  *  jour), estime la durée (distance / vitesse moyenne, l.25) puis ouvre l'UNIQUE Test d'équipage de
  *  Rude épreuve (modale existante). Sans équipage apte : palier au DR 0, résolution immédiate. `false`
@@ -1138,7 +1153,7 @@ export function startFastVoyage(
   set({ travelPlan: { ...plan, sea: { ...plan.sea!, fast: { days, weeks } } }, worldMapOpen: false, travelRecap: null });
   const to = get().worldMap ? placeById(get().worldMap!, toPlaceId) : undefined;
   log(get, set, [t('sv.departFast', { ship: plan.vehicle!.label, to: libelleOuAbsence(to, 'lieu', toPlaceId), days, km: plan.km })]);
-  const st = buildVoyageCrewStep(get, 'rude-epreuve', 'voyage-rapide');
+  const st = buildVoyageCrewStep(get, TEST_DU_VOYAGE_RAPIDE, 'voyage-rapide');
   if (st) { startCascade(get, set, { title: t('sv.fastTitle'), icon: 'travel/wave', purpose: 'test', steps: [st] }); return true; }
   computeFastPalier(get, set, 0); // aucun équipage apte au Test → DR 0
   finalizeFastVoyage(get, set);
@@ -1276,7 +1291,7 @@ export function runSeaDay(get: Get, set: Set): void {
   const plan = get().travelPlan;
   // Une cascade est déjà active (ou suspendue derrière un combat) : l'arbitre la montre, rien à faire —
   // `reprendreLeVoyage` (couture d'événement) ne ré-entre dans AUCUNE FSM (#275 Ronde 2 cran 3, Décision c).
-  if (!plan?.sea || plan.interrupted || get().pendingCrewTest || get().pendingSteamSave || get().pendingCascade) return;
+  if (!plan?.sea || plan.interrupted || get().pendingSteamSave || get().pendingCascade) return;
   const sea = plan.sea;
   // VOYAGE RAPIDE (MDG 15 l.21-37) : ce plan ne déroule JAMAIS la journée par étape — le palier
   // calculé s'applique en un bloc (`finalizeFastVoyage`, ré-entrant après un abordage ancré).
@@ -1300,18 +1315,13 @@ function jouerLesEtapesDuJour(get: Get, set: Set, steps: BuiltCascadeStep[]): vo
   if (get().battle || get().travelPlan?.interrupted) return;
   // Journée sans jet : finalisée comme la cascade le ferait à sa clôture, défaite hors combat comprise.
   if (!steps.length) { if (!checkPartyWiped(get, set)) continueSeaDayAfterCascade(get, set); return; }
-  // Traversée sous ordres (`voyageCadence.traverseeCommandee`) + journée de PURE routine (#275 Ronde 2
-  // cran 3) : l'auto-pilote résout la cascade d'un bloc (mêmes appliers, mêmes conséquences), sans
-  // modale — lignes au journal. Un combat ouvert EN PLEIN VOL (embuscade ancrée) parque la journée derrière
-  // lui (`runCascadeImmediate` `ctx`) : sa reprise et son dénouement (`dispatchCascadeDone`) jouent la clôture.
-  if (traverseeCommandee(get()) && seaDayAllRoutine(get)) {
-    // `rowSurface: 'pv'` : les rangées des bandes du jour se montrent au PROCÈS-VERBAL (`pushDayEntries`
-    // à la clôture) — le journal ne redit pas leurs dés (#1291). Les monos du tableau y gardent leur ligne.
-    const resolved = runCascadeImmediate(get, set, steps, { title: t('sv.dayTitle'), purpose: 'travelDay', rowSurface: 'pv' });
-    if (resolved) continueSeaDayAfterCascade(get, set, resolved);
-    return;
-  }
-  startCascade(get, set, { title: t('sv.dayTitle'), icon: 'travel/wave', purpose: 'travelDay', steps });
+  // Traversée sous ordres (`voyageCadence.traverseeCommandee`) d'une journée de PURE routine (#275 Ronde 2
+  // cran 3) : aucun arrêt. Un combat ouvert EN PLEIN VOL (embuscade ancrée) parque la journée derrière lui :
+  // sa reprise et son dénouement (`dispatchCascadeDone`) jouent la clôture. `rowSurface: 'pv'` : les rangées
+  // des bandes du jour se montrent au PROCÈS-VERBAL (`pushDayEntries` à la clôture) — le journal ne redit pas
+  // leurs dés (#1291). Les monos du tableau y gardent leur ligne.
+  const commandee = traverseeCommandee(get()) && seaDayAllRoutine(get);
+  jouerLaJournee(get, set, steps, { title: t('sv.dayTitle'), purpose: 'travelDay', ...(commandee ? { rowSurface: 'pv' as const } : {}) }, commandee);
 }
 
 // ── Seam de jet (#275 Ronde 1) — appliers des sites de jet ouverts par `openRoll` ────────────────
@@ -1354,7 +1364,7 @@ function buildBarrelSteps(get: Get, sea: SeaVoyageState, vessel: CampaignVessel 
   const test: RollRequest['test'] = { skill: { id: 'resistance' }, characteristic: 'endurance' };
   if (sea.waterContaminated) {
     const diseaseId = sea.waterContaminated.diseaseId;
-    const diff: Difficulty = diseaseDefs()[diseaseId]?.contractDifficulty ?? 'intermediaire';
+    const diff: Difficulty = diseaseDefs()[diseaseId]?.contractDifficulty ?? DIFFICULTE_PAR_DEFAUT;
     for (const h of get().party.filter((c) => !c.dead && contractionDue(c, diseaseId))) {
       pousseSi(out, monoStep({
         id: `sea-tonneau-expose-${h.id}`, kind: 'sea-tonneau-expose', actor: h,
@@ -1529,7 +1539,7 @@ export function continueSeaDayAfterScorbut(get: Get, set: Set, doneSteps?: Casca
   const tdef = temperatureDef(sea.weather.temperature);
   const expCount = seaExposureTestsPerDay(sea.weather.temperature);
   if (tdef.exposure && expCount > 0) {
-    const expDiff = tdef.difficulty ?? 'intermediaire';
+    const expDiff = tdef.difficulty ?? DIFFICULTE_PAR_DEFAUT;
     const pont = activeSeaPrecipitation(get); // MDG 13 l.185
     const steps: BuiltCascadeStep[] = [];
     for (const h of get().party) {
@@ -1811,9 +1821,9 @@ export function applySteamBreakdown(get: Get, set: Set, b: SteamBreakdownEntry, 
   // « Explosion » (l.351-352) : quiconque dans le compartiment du moteur (la personne au moteur, équipage
   // abstrait) subit `compartmentDamage` Dégâts avec l'Atout Perforante.
   if (b.compartmentDamage != null && eng) {
-    const boiler = buildWeapon({ label: t('sv.boilerBlast'), damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'perforante' }] }); // Dégâts passés directement (weaponHit) → la spec ne sert qu'aux qualités
+    const boiler = buildWeapon({ label: t('sv.boilerBlast'), damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'perforante' }], uid: 'chaudiere' }); // Dégâts passés directement (weaponHit) → la spec ne sert qu'aux qualités
 
-    const lines = applyOps(eng, [{ op: 'wounds', amount: b.compartmentDamage, weaponHit: true }], { rng, weapon: boiler, location: 'corps' });
+    const lines = applyOps(eng, [{ op: 'wounds', amount: b.compartmentDamage, weaponHit: true }], { idNeuf: get().forgerUnId, rng, weapon: boiler, location: 'corps' });
     set({ party: [...get().party] });
     tell(get, set, [t('sv.blastWave', { name: eng.label, dmg: b.compartmentDamage }), ...lines]);
   }
@@ -1868,7 +1878,7 @@ export function resolveSteamSave(get: Get, set: Set, p: PendingSteamSave): void 
   const eng = get().party.find((h) => h.id === p.actorId);
   // Le jet est DÉJÀ affiché par la rangée de `SteamSaveModal` (`p.roll`/`p.target`) — pas de re-print (#295 Lot 5).
   if (eng && !p.success) {
-    const lines = applyOps(eng, p.scaldOps, { rng: battleRng(), now: get().gameTime });
+    const lines = applyOps(eng, p.scaldOps, { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime });
     set({ party: [...get().party] });
     tell(get, set, [t('sv.scalded', { name: eng.label }), ...lines]);
   } else if (eng) {
@@ -2092,7 +2102,7 @@ export function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolv
   const coque = get().travelPlan?.vehicle;
   if (!coque) return;
   const equipage = exposedCrew(get().party);
-  const coup = applyCrewHit(coque, equipage, crit.crewHit, battleRng());
+  const coup = applyCrewHit(coque, equipage, crit.crewHit, battleRng(), get().forgerUnId);
   if (coup.hits.length) {
     set({ party: [...get().party] });
     tell(get, set, [t('shipCrit.crewTakes', { n: coup.hits.length, label: crit.label })]);
@@ -2100,7 +2110,7 @@ export function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolv
   if (!coup.testFlow) return;
   const victimes = coup.victims.map((id) => equipage.find((c) => c.id === id)).filter(Boolean) as Combatant[];
   pushStep(set, (index) => bandeTriggeredTest(
-    get, set, victimes, coup.testFlow!, `sea-crew-hit-${crit.id}-${index}`, { rng: battleRng(), label: crit.label, hull: coque },
+    get, set, victimes, coup.testFlow!, `sea-crew-hit-${crit.id}-${index}`, { idNeuf: get().forgerUnId, rng: battleRng(), label: crit.label, hull: coque },
   ), 'travelDay');
   // Voie INLINE (personne à bord sans siège) : ses lignes partent dans la file différée — la mer n'a
   // pas de `battle.log`, on les déverse dans le journal du voyage (source unique `drainPendingLog`).
@@ -2612,6 +2622,7 @@ export const TABLES = {
      *  le DR du Flow qui l'a ouverte. MDG 14 l.13 */
     flowCrewTest: (get, set, step) => {
       if (!step.result) return;
+      moralDuTestDEquipage(get, set, step);
       const branche = (step.result.success ? step.meta?.onSuccess : step.meta?.onFail) ?? EMPTY_FLOW;
       jouerFlowEntier(runFlow(get, set, { kind: 'seq', steps: [branche, step.meta?.after ?? EMPTY_FLOW] }, step.meta?.flowLabel, step.meta?.flowSl));
       return { consequences: freeCons([]) };
@@ -2747,6 +2758,7 @@ export const TABLES = {
      *  ancrée éventuelle d'abord, jamais raconté avant — `finalizeFastVoyage` est RÉ-ENTRANT). */
     'voyage-rapide': (get, set, step) => {
       if (!step.result) return;
+      moralDuTestDEquipage(get, set, step);
       computeFastPalier(get, set, step.result.sl);
       finalizeFastVoyage(get, set);
     },

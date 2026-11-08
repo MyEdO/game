@@ -31,7 +31,7 @@ describe('apparences.json — racines et variantes (#2948)', () => {
   const RACINE_EPEE: Entree = { id: 'epee', type: 'apparences', label: 'Épée de fixture' };
   const OBJET_DE_FIXTURE = {
     id: 'hache-de-fixture', type: 'trappings', label: 'Hache de fixture', categorie: 'melee',
-    subType: 'base', availability: 'Commune', qualities: [], desc: 'Objet de fixture.',
+    subType: { id: 'base' }, availability: 'commune', qualities: [], desc: 'Objet de fixture.',
     price: null, source: { book: 'livre-de-base', page: 294 }, shape: { id: 'hache' },
     formChoices: ['hache'],
   };

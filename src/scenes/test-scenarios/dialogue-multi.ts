@@ -82,8 +82,8 @@ export const scenario: TestScenario = {
     'ZÉRO nom en clair dans la donnée. Reparler à Gustav après la tablée : reprise par `when` sur flag ' +
     'dans le MÊME dialogue — la réponse masquée ne consomme pas de numéro (touche 1 = 1ʳᵉ visible).',
   partyNote: 'Sigmund (Soldat) · Tueur nain · Sorcier · Chasseur',
-  construire: () => ({
-    party: pregenParty(PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur),
+  construire: (idNeuf) => ({
+    party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur),
     scene: construireAuberge(),
   }),
 };

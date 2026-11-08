@@ -15,6 +15,7 @@
  * L'approche vers l'ennemi cliqué s'arme donc par la CHARGE : sans elle le clic ne s'approche plus,
  * avec elle la case Charge garde son effet (une affordance qui ne fait rien serait morte).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { computeRunReach, displayedReach } from './combatFlow';
@@ -25,7 +26,7 @@ import { porteesDuTour } from './localIntent';
 
 /** Même combat témoin que `intention-portee.hors-store.test.ts` : un héros au tour ENTIER, ennemis parqués loin. */
 function setup() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], screen: 'campaign' });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
@@ -66,9 +67,9 @@ describe('(a) le clic-SOL au-delà de la Marche exige la Course ARMÉE', () => {
     const zones = () => porteesDuTour(get, true);
     expect(zones().marche.size, 'témoin : la Marche est bien peinte').toBeGreaterThan(0);
     expect(zones().course.size, 'la zone de Course se peint sans avoir été demandée').toBe(0);
-    get().jouerLOffre('course');
+    banc.jouerLaCase('course');
     expect(zones().course.size, 'la Course armée ne peint pas sa zone').toBeGreaterThan(0);
-    get().armerLIntention(null);
+    get().desarmerLeMode();
     expect(zones().course.size, 'le désarmement laisse la zone de Course peinte').toBe(0);
   });
 
@@ -87,7 +88,7 @@ describe('(a) le clic-SOL au-delà de la Marche exige la Course ARMÉE', () => {
   it('Course ARMÉE : la même case commet bien la Course', () => {
     setup();
     const loin = caseDeCourse();
-    get().jouerLOffre('course');
+    banc.jouerLaCase('course');
     get().cliquerLaCase(loin);
     expect(get().pendingRun ?? get().pendingCascade, 'la Course armée ne s’est pas commise').toBeTruthy();
     expect(get().localIntent, 'le clic dissout l’intention (elle a servi)').toBeNull();
@@ -110,7 +111,7 @@ describe('(b) un MODE DE CIBLAGE garde son commit-CASE sous une intention armée
     const b = get().battle!;
     const dest = { x: 19, y: 3 }; // très loin : jamais dans la portée peinte par l'intention
     expect(displayedReach(get).has(`${dest.x},${dest.y}`), 'témoin : la case est bien hors de la Marche').toBe(false);
-    get().jouerLOffre('mouvement');
+    banc.jouerLaCase('mouvement');
     banc.setState({ battle: { ...b, action: 'teleport', reachable: new Map([[`${dest.x},${dest.y}`, 1]]) } });
     get().cliquerLaCase(dest);
     expect(get().battle!.combatants.find((c) => c.id === H.id)!.pos, 'le commit-CASE du mode n’a pas été atteint').toEqual(dest);
@@ -133,7 +134,7 @@ describe('(c) le clic-ENNEMI frappe à PORTÉE, et ne s’approche que si la Cha
     const { H, E } = setup();
     E.pos = { x: 11, y: 10 };
     const depart = { ...H.pos! };
-    get().jouerLOffre('charge');
+    banc.jouerLaCase('charge');
     cliquerSurLeCombattant(get, E.id, { confirm: true });
     expect(get().battle!.combatants.find((c) => c.id === H.id)!.pos, 'la Charge armée n’a pas approché').not.toEqual(depart);
     expect(refusAffiche(), 'un geste ARMÉ ne se refuse pas').toBeNull();
@@ -152,8 +153,8 @@ describe('(d) l’annulation reste GRATUITE par construction', () => {
   it('armer puis désarmer ne dépense NI Mouvement, NI Action, NI Avantage', () => {
     const { H } = setup();
     const avant = { mv: get().battle!.movementUsed ?? 0, acted: get().battle!.acted, adv: H.advantage };
-    get().jouerLOffre('course');
-    get().armerLIntention(null);
+    banc.jouerLaCase('course');
+    get().desarmerLeMode();
     expect(get().localIntent).toBeNull();
     const b = get().battle!;
     expect({ mv: b.movementUsed ?? 0, acted: b.acted, adv: b.combatants.find((c) => c.id === H.id)!.advantage }).toEqual(avant);

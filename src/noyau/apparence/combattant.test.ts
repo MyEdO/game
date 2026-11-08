@@ -1,29 +1,34 @@
 /**
  * #3253, #3456 — ce que porte un combattant (`porteeDuCombattant`) : sa race de rendu, sa tête, ses armes tenues puis
  * rangées, les objets équipés qui revêtent des pièces, son armure (équipée, sinon de statbloc déclarée portée), la teinte
- * de ses objets, la tenue de sa carrière et son emblème, par le même assembleur d'objet qu'une composition. Les attendus
+ * de ses objets, la tenue de sa carrière, son emblème et ses couleurs, par le même assembleur d'objet qu'une composition. Les attendus
  * se lisent au catalogue, jamais recopiés.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { afterEach, describe, expect, it } from 'vitest';
-import { porteeDuCombattant } from './combattant';
+import { porteeDuCombattant, vehiculeDuCombattant } from './combattant';
 import { facteursDeComposition, porteesDeLaTenue } from './composition';
 import { piecesDEnsemble } from './gardeRobe';
 import { createHero } from '../../engine/character';
-import { itemFromGive, loadoutCreate, loadoutSetActive, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
-import { findCreatureById, findGroupeDArmureById, findPlanDEspeceById, findSpeciesById, findTenueDeCarriere, findTrappingById, piecesCouvrant, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
+import { hydratePoste, itemFromGive, loadoutCreate, loadoutSetActive, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
+import { creatures, findCreatureById, findGroupeDArmureById, findPlanDEspeceById, findSpeciesById, findTenueDeCarriere, findTrappingById, piecesCouvrant, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
 import { findTierEntry } from '../../engine/tables';
 import { resetData, setDataset } from '../../data/overrides';
 import { localisationsDeLoc } from '../../engine/classementDeTrait';
 import { spawnEnemy } from '../monde/spawn';
 import { ficheDEntite } from '../monde/sceneNpc';
-import type { Combatant, ItemInstance } from '../../engine/types';
+import type { Combatant, FireArc, ItemInstance } from '../../engine/types';
+import { couleursSchema } from '../../data/schemas/grammaire/valeurs';
 
 const REIKLANDER = 'humains-reiklander';
 
-const heros = (opts: Partial<Parameters<typeof createHero>[0]> = {}): Combatant =>
-  createHero({ speciesId: REIKLANDER, careerId: 'soldat', label: 'Porteur', seed: 3, ...opts });
+/** Des couleurs du nuancier, lues au schéma (`couleursSchema`) : emplacement → id de couleur. */
+const couleurs = (ids: Record<string, string>) => couleursSchema.parse(Object.fromEntries(Object.entries(ids).map(([slot, id]) => [slot, { id }])));
 
-const objet = (trappingId: string): ItemInstance => ({ ...itemFromGive({ trappingId }), uid: trappingId });
+const heros = (opts: Partial<Parameters<typeof createHero>[0]> = {}): Combatant =>
+  createHero({ idNeuf: idsDeTest, speciesId: REIKLANDER, careerId: 'soldat', label: 'Porteur', seed: 3, ...opts });
+
+const objet = (trappingId: string): ItemInstance => ({ ...itemFromGive({ trappingId }, idsDeTest), uid: trappingId });
 
 /** Un héros qui tient `tenue` en main directrice, et range `rangee` dans un second set. */
 function herosArme(tenue: string, rangee: string): Combatant {
@@ -93,19 +98,19 @@ describe('porteeDuCombattant', () => {
 
   it('une armure équipée revêt les pièces qui couvrent ses localisations, à la teinte de son Groupe d’armure', () => {
     const veste = findTrappingById('veste-de-cuir')!;
-    teindreLesGroupes({ [veste.subType!]: 'shyish' });
+    teindreLesGroupes({ [veste.subType!.id]: 'shyish' });
     const attendues = piecesCouvrant(localisationsDeLoc(veste.loc));
     expect(attendues.length).toBeGreaterThan(1);
     expect(pieces(herosVetu(equipe('veste-de-cuir')))).toEqual(attendues.map((piece) => ({ piece, par: 'veste-de-cuir', teinte: 'shyish' })));
   });
 
   it('la teinte de l’objet passe avant celle de son Groupe d’armure', () => {
-    teindreLesGroupes({ [findTrappingById('veste-de-cuir')!.subType!]: 'shyish' });
+    teindreLesGroupes({ [findTrappingById('veste-de-cuir')!.subType!.id]: 'shyish' });
     expect(pieces(herosVetu({ ...equipe('veste-de-cuir'), teinte: 'aethyrique' })).map((p) => p.teinte)).toEqual(piecesDeLObjet('veste-de-cuir').map(() => 'aethyrique'));
   });
 
   it('une pièce que revêtent deux armures est celle de la couche du dessus', () => {
-    const [dessous, dessus] = ['veste-de-cuir', 'chemise-de-mailles'].sort((a, b) => findGroupeDArmureById(findTrappingById(a)!.subType)!.couche - findGroupeDArmureById(findTrappingById(b)!.subType)!.couche);
+    const [dessous, dessus] = ['veste-de-cuir', 'chemise-de-mailles'].sort((a, b) => findGroupeDArmureById(findTrappingById(a)!.subType?.id)!.couche - findGroupeDArmureById(findTrappingById(b)!.subType?.id)!.couche);
     const communes = piecesDeLObjet(dessus).filter((p) => piecesDeLObjet(dessous).includes(p));
     expect(communes.length).toBeGreaterThan(0);
     const portees = pieces(herosVetu(equipe(dessous), equipe(dessus)));
@@ -154,8 +159,49 @@ describe('porteeDuCombattant', () => {
     expect(porteeDuCombattant(ne)!.embleme).toEqual({ id: 'taureau-rouge' });
   });
 
+  it('ses couleurs : celles de l’apparence de sa créature, chacune remplacée par celle de son apparence d’auteur', () => {
+    const squelette = findCreatureById('squelette')!;
+    setDataset('creatures', creatures.map((e) => (e.id === 'squelette' ? { ...e, appearance: { ...e.appearance, couleurs: couleurs({ corps: 'peau-pale', accent: 'peau-mate' }) } } : e)));
+    const c = creature('squelette');
+    expect(porteeDuCombattant(c)!.couleurs).toEqual({ corps: { id: 'peau-pale' }, accent: { id: 'peau-mate' } });
+    expect(porteeDuCombattant({ ...c, appearanceOverride: { ...c.appearanceOverride, couleurs: couleurs({ accent: 'peau-brune' }) } })!.couleurs)
+      .toEqual({ corps: { id: 'peau-pale' }, accent: { id: 'peau-brune' } });
+    expect(squelette.appearance.couleurs).toBeUndefined();
+    expect(porteeDuCombattant(heros())).not.toHaveProperty('couleurs');
+  });
+
   it('le sexe est celui de l’apparence ; sans apparence, le corps neutre de la base', () => {
     expect(porteeDuCombattant(heros({ apparence: { sex: 'F' } }))!.sex).toBe('F');
     expect(porteeDuCombattant(heros())!.sex).toBe('M');
   });
+});
+
+describe('vehiculeDuCombattant (#2987)', () => {
+  const fiche = (ref: string): Combatant => spawnEnemy({ ref }, `${ref}-1`, { x: 0, y: 0 });
+  const poste = (trappingId: string, side?: FireArc) => hydratePoste({ trappingId, ...(side ? { side } : {}) }, 'poste-de-test');
+  it.each([['caraque', 4, 'empreinte'], ['barque-fluviale', 1, 'empreinte'], ['canon-petit', 2, 'reelle'], ['belier-ade2', 2, 'reelle']] as const)('%s, coque ou engin de siège : sa fiche, le côté de son empreinte et sa taille, sans portée', (ref, empreinte, taille) => {
+    const c = fiche(ref);
+    expect([vehiculeDuCombattant(c, undefined), porteeDuCombattant(c)]).toEqual([{ definition: ref, empreinte, taille, cap: 'N', postes: [], ameliorations: [] }, null]);
+  });
+  it('son cap, et les pièces de ses seuls postes à un bord, dans leur ordre', () => {
+    const c = { ...fiche('caraque'), postes: [poste('canon-moyen', 'tribord'), poste('canon-petit'), poste('canon-grand', 'proue'), poste('canon-moyen', 'tribord')] };
+    expect(vehiculeDuCombattant(c, 'SE')).toEqual({ definition: 'caraque', empreinte: 4, taille: 'empreinte', cap: 'SE', postes: [{ definition: 'canon-moyen', bord: 'tribord' }, { definition: 'canon-grand', bord: 'proue' }, { definition: 'canon-moyen', bord: 'tribord' }], ameliorations: [] });
+  });
+  it('ses couleurs, celles de son apparence d’auteur, et la teinte de chaque pièce', () => {
+    const teinte = { ...poste('canon-moyen', 'tribord'), item: { ...poste('canon-moyen', 'tribord').item, teinte: 'aethyrique' } };
+    const c = { ...fiche('caraque'), appearanceOverride: { couleurs: couleurs({ bois: 'peau-brune' }) }, postes: [teinte, poste('canon-grand', 'proue')] };
+    expect(vehiculeDuCombattant(c, 'N')).toEqual({
+      definition: 'caraque', empreinte: 4, taille: 'empreinte', cap: 'N', couleurs: { bois: { id: 'peau-brune' } },
+      postes: [{ definition: 'canon-moyen', bord: 'tribord', teinte: 'aethyrique' }, { definition: 'canon-grand', bord: 'proue' }], ameliorations: [],
+    });
+  });
+  it('les Améliorations de sa coque, de sa fiche puis installées, sans ses Traits (MDG 12)', () => {
+    const c = { ...fiche('loup-imperial'), upgrades: [{ id: 'sabord' }, { id: 'robuste' }, { id: 'nid-de-pie' }] };
+    expect(vehiculeDuCombattant(c, 'N')!.ameliorations).toEqual(['belier', 'sabord', 'nid-de-pie']);
+  });
+  it('son emblème, celui de son apparence d’auteur, qu’en portent ses voiles et son pavillon', () => {
+    expect(vehiculeDuCombattant({ ...fiche('caraque'), appearanceOverride: { embleme: { id: 'taureau-rouge' } } }, 'N')!.embleme).toEqual({ id: 'taureau-rouge' });
+    expect(vehiculeDuCombattant(fiche('caraque'), 'N')).not.toHaveProperty('embleme');
+  });
+  it('une créature n’est pas un véhicule', () => expect(vehiculeDuCombattant(creature('loup'), 'N')).toBeNull());
 });

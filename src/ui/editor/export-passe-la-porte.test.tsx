@@ -9,6 +9,7 @@
  * L'état FAUTIF est fabriqué par l'outillage de recette lui-même (`__wfrp.editorPatchEntity`, pont
  * `state/editeurBridge`) : la porte et le helper se prouvent l'un par l'autre, sur un seul chemin.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -235,7 +236,7 @@ describe('Éditeur — « ▶ Tester » passe la MÊME porte que les autres sort
   });
 
   it('projet FAUTIF avec un groupe : le refus NOMME scène et entité, l’écran reste l’éditeur', async () => {
-    useGame.getState().fixerLeGroupe(makeShowcaseParty());
+    useGame.getState().fixerLeGroupe(makeShowcaseParty(idsDeTest));
     await monter(sceneSaine());
     await act(async () => { await buildApi().editorPatchEntity('p0', { ref: DECOR_MORT }); });
     const { refus, titre, ecran } = await metALEssai();

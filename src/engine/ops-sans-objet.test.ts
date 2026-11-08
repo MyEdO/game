@@ -5,6 +5,7 @@
  * de maladie n'allonge jamais une maladie. LDB 16, LDB 18 l.15, LDB 20, LDB 40 l.36, ADE II 09 l.33,
  * MSRC 04 l.184-186
  */
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { applyOps, opSansObjet, type GameOp, type OpsCtx } from './ops';
 import { createHero } from './character';
@@ -15,14 +16,14 @@ import { ciblePsy } from './psych/ciblage';
 import type { Combatant, EffectSource } from './types';
 
 const SOURCE: EffectSource = { kind: 'activity', id: 'convalescence' };
-const ctx = (): OpsCtx => ({ rng: makeRNG(1), source: SOURCE });
+const ctx = (): OpsCtx => ({ idNeuf: idsDeTest, rng: makeRNG(1), source: SOURCE });
 
 const maladie = (minutesLeft: number) => ({ id: 'infection-mineure', symptoms: [], phase: 'active' as const, minutesLeft, durationMinutes: 10 * MINUTES_PER_DAY });
 
 /** Les fiches de la matrice, chacune posée par la couture de son fait (États par `addCondition`, Trait
  *  accordé par l'op `grantTrait`), le reste par les champs de fiche que la partie porte. */
 const FICHES: Record<string, () => Combatant> = {
-  vierge: () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'V', seed: 1 }),
+  vierge: () => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'V', seed: 1 }),
   pecheur: () => ({ ...FICHES.vierge(), sinPoints: 2 }),
   peureux: () => ({ ...FICHES.vierge(), psychTraits: [{ type: 'peur' }] }),
   deuxHaines: () => ({ ...FICHES.vierge(), psychTraits: [{ type: 'haine', cible: ciblePsy.groupe('nain') }, { type: 'haine', cible: ciblePsy.groupe('elfe') }] }),
@@ -77,7 +78,7 @@ describe('opSansObjet ≡ applyOps ne change rien', () => {
     const o: GameOp = { op: 'reduceDiseaseDays', days: 0, daysPerSL: { every: 1, amount: 1 }, disease: 'blessure-purulente' };
     const avant = JSON.stringify(c);
     expect(opSansObjet(c, o, { sl }) != null).toBe(sansObjet);
-    applyOps(c, [o], { rng: makeRNG(1), sl });
+    applyOps(c, [o], { idNeuf: idsDeTest, rng: makeRNG(1), sl });
     expect(JSON.stringify(c) !== avant).toBe(!sansObjet);
     expect(opSansObjet(FICHES.vierge(), o, { avantLeJet: true }), 'sans la maladie, rien à juger : sans objet').not.toBeNull();
     expect(opSansObjet({ ...FICHES.vierge(), diseases: [{ ...maladie(5 * MINUTES_PER_DAY), id: 'blessure-purulente' }] }, o, { avantLeJet: true }), 'avant le Test, le DR peut raccourcir').toBeNull();

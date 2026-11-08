@@ -16,7 +16,7 @@ import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { DotationDePossession } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';
-import { symptomSeveritySchema } from './schemas/grammaire/valeurs';
+import { symptomSeveritySchema, type harvestRaritySchema, type harvestDangerSchema } from './schemas/grammaire/valeurs';
 import { LIBELLE_AU_LABEL, resoutEnEntree, SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
 import { libelleDeValeur } from './schemas/grammaire/meta';
 import type { MerchantArchetypeDef } from './merchants.types';
@@ -27,6 +27,7 @@ import type { ambianceSchema, sceneSchema, ReliefDefaults, SceneRoofDefaults, Te
 import type { Flow, TriggeredEffect } from './schemas/defs-scenes/effets';
 import { slugId } from './slug';
 import { parLibelle } from '../lib/ordre.mjs';
+import { estObjet } from '../lib/objet.mjs';
 import { emplacementsDesPieces, localisationsDeLoc } from '../engine/classementDeTrait';
 import { norm } from '../lib/normalize';
 import { tableTotale } from '../lib/tableTotale';
@@ -311,7 +312,7 @@ export interface ActionDef {
   /** L'action fait naître un panneau-paramètre de SON alvéole : la surface y pose l'ancre. */
   panneau?: boolean;
   /** Entrée HÔTE d'un `surface: 'geste-secondaire'` : l'alvéole de CETTE action porte le geste. */
-  hote?: string;
+  hote?: { id: string };
 }
 export const ACTIONS = actionsJson as ActionDef[];
 /** Action par id STABLE (jamais par libellé). */
@@ -782,6 +783,9 @@ export interface ClassData {
   grantGroups?: string[];
   /** Possessions de départ (`TrappingRef` : id du catalogue + quantité, ou `{text}` flavor hors catalogue). */
   trappings: TrappingRef[];
+  /** Classe dont cette Classe peut remplacer la portion du tableau des Carrières aléatoires
+   *  (MDG 09 l.9). Lu par `remplacementsDeClasse` (`noyau/creation/brouillon`). */
+  remplace?: { id: string };
   desc: string;
   source: SourceRef;
 }
@@ -793,8 +797,8 @@ export interface CareerData {
   /** Forme féminine d'AFFICHAGE (le LDB n'imprime que le masculin — féminisation standard MAISON) ;
    *  absent = forme épicène (identique au masculin). Lu par `careerLabelFor` (bord UI). */
   labelF?: string;
-  /** `id` de la Classe (`ClassData.id`) — réf d'entité, ≠ libellé. */
-  class: string;
+  /** Classe (`ClassData.id`). */
+  class: { id: string };
   /** Ids de `groups.json` accordés au titulaire de cette carrière (`groupesDe`), en plus de ceux de
    *  sa Classe. Absent = la carrière n'ouvre aucun Groupe d'appartenance. */
   grantGroups?: string[];
@@ -811,8 +815,8 @@ export interface CareerLevelData {
   label: string;
   /** Forme féminine d'AFFICHAGE du niveau (MAISON, cf. `CareerData.labelF`) ; absent = épicène. */
   labelF?: string;
-  /** `id` de la Carrière (`CareerData.id`) — réf d'entité, ≠ libellé. */
-  career: string;
+  /** Carrière (`CareerData.id`). */
+  career: { id: string };
   level: number;
   /** Compétences/talents d'emplacement (`AdvancementRef[]` : réf / `choix` / `{pick}`) — lus via
    *  `advancementLabel` (slotsOfLevel) ou structure. */
@@ -1098,13 +1102,13 @@ export interface TrappingData {
   /** CATÉGORIE de catalogue — vocabulaire FERMÉ `TrappingTypeId`, miroir de l'enum du def.
    *  ≠ `Weapon.type` (moteur) et ≠ `ItemInstance.kind` : le pont est `kindOf()` (traduction). */
   categorie: TrappingTypeId;
-  /** `id` du Groupe d'objet (`WeaponGroupData.id`) : Groupe d'arme (Base/Escrime…), famille de munition
-   *  (Arc/Poudre noire…), type d'armure (Plate/Mailles…) ou catégorie d'inventaire — réf d'entité, ≠ libellé. */
-  subType: string | null;
-  /** Groupe de Projectiles qui OPÈRE une arme de siège (`WeaponGroupData.id` : arbalete/catapulte/ingenierie/
+  /** Groupe d'objet (`WeaponGroupData`) : Groupe d'arme (Base/Escrime…), famille de munition
+   *  (Arc/Poudre noire…), type d'armure (Plate/Mailles…) ou catégorie d'inventaire. */
+  subType: { id: string } | null;
+  /** Groupe de Projectiles qui OPÈRE une arme de siège (`WeaponGroupData` : arbalete/catapulte/ingenierie/
    *  poudre-noire, AA 10 l.178-193) quand `subType` = catégorie de catalogue (« armes-de-siege »). Pilote
    *  la Spé de tir (`acceptableSpecs`) et le décompte d'équipage (Projectiles appropriée, AA 10 l.230). */
-  weaponGroup?: string;
+  weaponGroup?: { id: string };
   /** Pièce d'artillerie « relativement simple » (la baliste, AA 10 l.148) : tirée par UN seul servant
    *  valide → perd tous ses Atouts (garde ses Défauts). Lu par `crewedFireWeapon`. */
   soloSimple?: boolean;
@@ -1127,12 +1131,12 @@ export interface TrappingData {
    *  `'moyenne'` (« distance inférieure à leur Portée Courte » interdite, l.251). Propagé jusqu'à `Weapon`,
    *  lu par `firedAttackBlock` (`belowMinRangeBand`). Absent = pas de minimale. */
   minRangeBand?: import('../engine/types').RangeBandId;
-  /** `id` de munition REPRÉSENTATIVE (`TrappingData.id`, `categorie:'ammunition'`) d'une arme de siège — les
+  /** Munition REPRÉSENTATIVE (`TrappingData`, `categorie:'ammunition'`) d'une arme de siège — les
    *  familles `armes-de-siege`/`munition-de-siege` (`ammoFamily`) regroupent des munitions non-interchangeables
    *  (carreau de baliste ≠ boulet de canon ≠ bombe de mortier ≠ balles de pierrier, MDG 12 l.410-424) ; le
    *  `subType` seul ne discrimine pas la bonne famille pour le hint joueur. Propagé jusqu'à `Weapon`,
    *  résolu en libellé FR par `ammoFamilyLabel`. Absent = hint générique de la famille (`ammoFamilyLabel`). */
-  defaultAmmo?: string;
+  defaultAmmo?: { id: string };
   /** EMPREINTE de grille (côté N×N) de l'affût POSÉ en combat — recopiée sur `Combatant.footprint`
    *  (`footprintN`), MÊME champ que `VehicleData.ship.footprint`. ADE II 8 l.239/258 (profil + description
    *  physique du tronc suspendu sur portique à roues) ne chiffre aucune Taille en cases : la valeur posée
@@ -1180,7 +1184,7 @@ export interface TrappingData {
    *  sur le catalogue NATIVEMENT ogre (massue ogre, pansière ogre… l.604 : Enc déjà entré à sa valeur pleine,
    *  pas de doublement). Propagée à `ItemInstance.sizeFor` / `Weapon.sizeFor`. */
   sizeFor?: import('../engine/size').SizeCategory;
-  availability: string | null;
+  availability: Availability | 'ND' | null;
   /** Allonge de MÊLÉE — vocabulaire FERMÉ `ReachValue` (les sept longueurs de LDB 62 l.156-164, plus
    *  « Variable » l.31) ou null, VALIDÉ au chargement par le schéma zod (`schemas/defs/trappings.ts`).
    *  NE conflate PLUS aucune Portée de tir : ni nombre, ni formule « BFx3 » (→ `range:{bf}`), ni
@@ -1237,7 +1241,7 @@ export interface TrappingData {
   /** Arme DÉRIVÉE conférée tant que l'objet est ÉQUIPÉ (prothèse-arme, LDB 73 : le Crochet « est
    *  considéré comme une Dague » en mêlée). Lue par recomputeLoadout : ajouter une prothèse-arme =
    *  remplir ce champ dans la donnée, jamais un name-match `i.name === 'Crochet'`. */
-  derivedWeapon?: Weapon;
+  derivedWeapon?: ArmeDerivee;
   /** Capacités IRRÉDUCTIBLES de l'objet (drapeaux NON exprimables en GameOp) — canal `capabilities`,
    *  MÊME logique que `TraitCapabilities`/`QualityCapabilities` : règles que le moteur INTERROGE par id
    *  (`engine/capabilities`), jamais par le nom FR de l'objet. Couvre les 5 marqueurs de catégorie :
@@ -1253,6 +1257,9 @@ export interface TrappingData {
    *  reste la source de PRIX de son consommateur (référencée par id) et visible au Codex/Compendium. */
   service?: boolean;
 }
+/** Profil d'arme d'une DONNÉE (`TrappingData.derivedWeapon`) : la `Weapon` du moteur, ses Groupes désignés
+ *  par `ref('weaponGroup')`. Le moteur l'arme par `armeDeLaDonnee` (`engine/items.ts`). */
+export type ArmeDerivee = Omit<Weapon, 'subType' | 'weaponGroup'> & { subType?: { id: string }; weaponGroup?: { id: string } };
 /** Groupe d'objet (taxonomie `subType` id-ifiée) : Groupe d'ARME (Base, Escrime, Deux-mains, Armes
  *  d'hast…), famille de MUNITION (Arc, Arbalète, Poudre noire…), type d'ARMURE (Plate, Mailles, Cuir
  *  souple/bouilli) ou catégorie d'INVENTAIRE (Outils, Possessions diverses…). `id` = cible de
@@ -1275,6 +1282,8 @@ export interface GroupeDArme extends GroupeDObjet {
   combat?: 'melee' | 'ranged';
   maniement: Maniement;
   poudre?: true;
+  /** AA 10 l.136 */
+  siege?: true;
   /** Maniements de TOUTE arme du Groupe dans d'autres Groupes de Corps à corps (`TrappingData.manieAussi`).
    *  AA 08 l.194 */
   manieAussi?: Record<string, ManiementAlternatif>;
@@ -1345,9 +1354,9 @@ export interface MerchantFamilyData {
   columns: string[];
 }
 export const merchantFamilies = merchantFamiliesJson as MerchantFamilyData[];
-/** Rareté de récolte/trophée = `Availability` (LDB 59) ÉTENDUE de `'Unique'` (pièce de bestiaire singulière). */
-export type HarvestRarity = Availability | 'Unique';
-export type HarvestDanger = 'Inoffensive' | 'Inquiétante' | 'Menaçante' | 'Mortelle';
+/** Rareté de récolte/trophée = `Availability` (LDB 59) ÉTENDUE de `'unique'` (pièce de bestiaire singulière). */
+export type HarvestRarity = z.infer<typeof harvestRaritySchema>;
+export type HarvestDanger = z.infer<typeof harvestDangerSchema>;
 
 export interface CreatureData {
   /** `id` STABLE (slug) — clé de résolution runtime/données (scènes, encounters). « Plus de label » :
@@ -1401,7 +1410,7 @@ export interface CreatureData {
   /** EDO 01 l.504 ; LDB 19. */
   corruption?: number;
   /** Facette ACHAT (marché/possession de carrière) — LDB 70, EDOC 07. */
-  purchase?: { price: Money; availability?: string };
+  purchase?: { price: Money; availability?: Availability };
   /** Arbitrage NON-verbatim documentant un ou plusieurs champs (ex. `char`/`purchase` approximés
    *  faute de statbloc imprimé) — même patron que `ActivityData.maison`, `TraumaData.maison`. */
   maison?: string;
@@ -1439,8 +1448,8 @@ export interface StatusData {
 export interface EtatData extends StatusData {
   /** Ids de `groups.json` accordés au porteur tant qu'il porte l'État (`groupesDe`). Absent = aucun Groupe. */
   grantGroups?: string[];
-  /** Type de Dégâts (`damage-types.json`) des `effects` de l'État, lu par `degatsDeLEtatIgnores`. LDB 85 l.174 ; VDM 10 l.153 */
-  typeDeDegats?: string;
+  /** Type de Dégâts (`DamageTypeData.id`) des `effects` de l'État, lu par `degatsDeLEtatIgnores`. LDB 85 l.174 ; VDM 10 l.153 */
+  typeDeDegats?: { id: string };
   /** Les magnitudes du `passive` sont-elles multipliées par le nombre de pions (Exténué −10/pion, LDB 16
    *  l.90) ? Appliqué à l'émission par le collecteur `passiveMods`. Défaut (absent) : magnitude fixe. */
   perStack?: boolean;
@@ -1548,16 +1557,16 @@ export interface PsychologyData extends StatusData {
    *  puis pose l'état `becomes` (Terreur → Peur, l.55-57) ; `'binary'` = Test BINAIRE activant l'affliction
    *  CIBLÉE (traits ciblés). Absent (Frénésie/trauma) = pas de Test de résolution surmontable. */
   resolution?: 'extended' | 'terreur' | 'binary';
-  /** (résolution `'terreur'`) État infligé à l'ÉCHEC (l'id de l'état, p.ex. `'brise'`) ; la QUANTITÉ est
-   *  déclarée par `failAmount` (défaut = Indice + |DR négatifs|, LDB 21 l.54). */
-  failCondition?: string;
+  /** (résolution `'terreur'`) État infligé à l'ÉCHEC (`EtatData.id`) ; la QUANTITÉ est déclarée par
+   *  `failAmount` (défaut = Indice + |DR négatifs|, LDB 21 l.54). */
+  failCondition?: { id: string };
   /** (résolution `'terreur'`) QUANTITÉ d'état infligée à l'échec, EN DONNÉES (`failConditionAmount`) :
    *  `base` (l'Indice de l'affliction via `'indice'`, ou un nombre FIXE) + `perDegreeOfFailure` par DR
    *  négatif. Défauts `{ base:'indice', perDegreeOfFailure:1 }` = la règle Brisé Terreur — plus de calcul
    *  codé : un nouvel État/Psy déclare ICI sa quantité (fixe, ou par degrés seuls). */
   failAmount?: { base?: 'indice' | number; perDegreeOfFailure?: number };
   /** (résolution `'terreur'`) État psychologique SUBSÉQUENT au Test (la Terreur devient une Peur, l.55). */
-  becomes?: string;
+  becomes?: { id: string };
   /** Paramètres du Test de Psychologie (LDB 21) : `skill` (compétence stable, défaut `calme` — la valeur
    *  NUE est lue par `skillBaseValue`) + `difficulty` (défaut Intermédiaire +0). Lu par `psychStepFor`/
    *  l'encounter, plus de Calme/Intermédiaire codé : un nouvel État/Psy déclare ICI son Test (ex. testé en
@@ -1899,7 +1908,7 @@ export interface TraitData {
 /** Drapeaux/marqueurs de CAPACITÉ IRRÉDUCTIBLES d'une qualité d'arme/armure/objet (LDB 62-63) — règles
  *  que le moteur INTERROGE (résolution de combat, économie d'artisanat) : NI un modificateur (`passive`)
  *  NI un effet déclenché (`effects`). Lus PAR ID par `engine/qualities/dispatch`.
- *  Les INDICES (Salve N, Protectrice N, Arme d'équipe N…) restent lus du RUNTIME string (`parseQuality().indice`)
+ *  Les INDICES (Salve N, Protectrice N, Arme d'équipe N…) sont portés par l'instance (`QualityInstance.value`)
  *  — la capability n'est qu'un marqueur de PRÉSENCE, jamais le porteur de l'Indice. Édité au Codex. */
 export interface QualityCapabilities {
   // Résolution de combat (mêlée)
@@ -2004,7 +2013,7 @@ export interface SymptomData {
    *  du nœud inchangée. Lu par `symptomOnTick`. `afterDays`/`once` cadencent le cycle sur la phase
    *  ACTIVE (Vers de carie : Test quotidien À PARTIR de J+7, MSRC 16 l.90 ; Vers du Reik : 7ᵉ jour). */
   onTick?: {
-    test?: import('../engine/flowCore').FlowTestNode;
+    test?: import('../engine/flowCore').NoeudDecideAuPorteur;
     ops?: import('../engine/ops').GameOp[];
     difficultyBySeverity?: Partial<Record<'moderee' | 'grave', import('../engine/types').Difficulty>>;
     /** Ne se déclenche qu'à partir du Nᵉ jour de PHASE ACTIVE (1 = premier jour actif). Absent = dès le 1ᵉʳ. */
@@ -2227,12 +2236,12 @@ export interface StarData {
   id: string;
   label: string;
   rand: number;
-  signe: string | null;
-  classique: string | null;
-  ascendant: string | null;
-  dates: string | null;
-  dieux: string | null;
-  apparence: string | null;
+  signe: string;
+  classique: string;
+  ascendant: string;
+  dates: string;
+  dieux: string;
+  apparence: string;
   /** Effet ADE II appliqué AUX ATTRIBUTS DE DÉPART (ch.03 l.38) — donnée éditable au Codex
    *  (`GameOpEditor`) : `charMod` (±carac) et/ou `grantTalent` (talent octroyé). Appliqué une
    *  fois à la création (cf. `applyStarOps`), pas collecté en passif continu. */
@@ -2260,8 +2269,8 @@ export interface LocationData {
   id: string;
   type: 'locations';
   label: string;
-  /** `id` du lieu parent (`LocationData.id`), ou null si racine — réf d'entité, ≠ libellé. */
-  parent: string | null;
+  /** Lieu parent (`LocationData.id`), ou null si racine. */
+  parent: { id: string } | null;
   prefix: string | null;
   suffix: string | null;
   desc?: string;
@@ -2349,7 +2358,7 @@ export interface TestDeRegleData {
   id: string;
   label: string;
   source: SourceRef;
-  test: import('../engine/flowCore').TestExige<'skill' | 'difficulty'>;
+  test: import('../engine/flowCore').JetFixe<'skill' | 'difficulty'>;
 }
 export interface RangeeDeRegleData {
   id: string;
@@ -2451,9 +2460,12 @@ export function mutationLabel(id: string | null | undefined): PlayerText {
   return dataLabel(id ? (mutationParId(id)?.label ?? id) : '');
 }
 
-/** Engins de siège posables : trappings du sous-type `armes-de-siege`. Foyer du filtre partagé par
- *  les emplacements, les références d'entité et la catégorie du Codex. */
-export const siegeEngines = memoParVersion('trappings', () => trappings.filter((t) => t.subType === 'armes-de-siege'));
+const marqueDeSiege = porteLeMarqueur('weaponGroup', 'siege');
+/** Groupe d'engins de siège : marqueur `siege` de `weaponGroups.json`. AA 10 l.136 */
+export const groupeDeSiege = (id: string | null | undefined): boolean => !!id && marqueDeSiege(id);
+/** Engins de siège posables : trappings d'un Groupe d'engins de siège (`groupeDeSiege`). Foyer du filtre
+ *  partagé par les emplacements, les références d'entité et la catégorie du Codex. */
+export const siegeEngines = memoParVersion(['trappings', 'weaponGroups'], () => trappings.filter((t) => groupeDeSiege(t.subType?.id)));
 /** Trappings que le moteur INSTANCIE par leur id (`INSTANCIABLE_PAR_ID`, `dansLaSousListe`) : la vue que
  *  lit tout producteur d'ids d'objet (fabrication, commande, stock marchand, conjuration, armes
  *  choisissables, galeries). Le catalogue brut ne se lit qu'aux sites que nomme `trappings-vue-guard.test.ts`. */
@@ -2598,8 +2610,8 @@ export interface NavalTraitData {
    *  vocabulaire combattant (≠ `ap` qui mitige TOUT) → injecté dans `resolveCollision` via `belierRam`. */
   ram?: { ic: number; ap: number };
   /** Couvert de pont GRADUÉ (`DeckCoverClass`) offert par l'Amélioration à ses postes — Sabord/Murs blindés
-   *  = `totale` (MDG 12 l.364 / MSRC 12 l.85), Plat-bord = `moyenne` (MSRC 12 l.111). Géométrie de Pont,
-   *  consommée par `effectiveDeckPostes`/le rendu du Pont. Sous-système navire, hors vocabulaire combattant. */
+   *  = `totale` (MDG 12 l.364 / MSRC 12 l.85), Plat-bord = `moyenne` (MSRC 12 l.111). Consommé au tir
+   *  par `couvertDuPoste`. Sous-système navire, hors vocabulaire combattant. */
   deckCover?: import('../engine/types').DeckCoverClass;
   /** Modificateur (points) au Test de Navigation POUR DIRIGER le bateau — Bouteur +20 (MSRC 12 l.66),
    *  Gréement de course −10 (l.137). Sous-système manœuvre, converti en DR d'équipage par `navalNavTestDR`. */
@@ -2673,8 +2685,8 @@ export interface LieuServiceData {
   desc?: string;
   /** Réplique de boniment (saveur maison) du bandeau d'interlocuteur statique (`SpeakerBanner`). */
   hostLine?: string;
-  /** Bande d'ambiance par défaut (id du registre des bandes d'ambiance). */
-  backdrop?: string;
+  /** Bande d'ambiance par défaut. */
+  backdrop?: { id: string };
   /** Archétype marchand ouvert par ce service (`src/data/merchants.json`, #369). */
   merchantArchetype?: string;
   /** Écran plein-champ EXISTANT vers lequel ce service PORTE (#369) : `port` = l'écran de port
@@ -2732,13 +2744,15 @@ export interface CrewRoleData {
   skills: RefDesignee[];
   desc: string;
   wage?: CrewWage;
+  /** Rôle tenu par défaut par tout membre que le Test d'équipage n'emploie pas (MDG 14 l.15). */
+  parDefaut?: true;
 }
 /** Type de Test d'équipage — MDG 14. */
 export interface CrewTestTypeData {
   id: string;
   label: string;
   roles: string[];
-  essential: string;
+  essential: { id: string };
   /** FOYER de la règle qui ADRESSE le passage MDG 14 de ce Test d'équipage — la règle est à un clic
    *  depuis sa fiche Codex (`cibleCodex`). L'ENJEU AFFICHÉ, lui, est le descripteur d'EFFET du `kind`
    *  joué (`stakes.json`, cascade `voyage`, `voyageStakeRef`) : deux natures, deux datasets. */
@@ -3092,7 +3106,15 @@ export function profilsStandard(): string[] {
  *  SOURCE UNIQUE de la famille (#1882) : la porte du schéma (`sceneEntitySchema`), `validateScene` et le
  *  spawn (`spawnEnemy`) la lisent ici. */
 export function refEntiteResolue(ref: string): boolean {
-  return !!(findCreatureById(ref) || findVehicleById(ref)?.hull || siegeEngines().some((t) => t.id === ref));
+  return !!(findCreatureById(ref) || findFicheDeVehicule(ref));
+}
+/** La fiche spawnable non créature que désigne `id` : coque de `vehicles.json` (facette `hull`, MDG 13) ou engin du
+ *  sous-type `armes-de-siege` (`trappings.json`, AA 10), réduite à son libellé ; la clé `definition` d'un élément 3D
+ *  `vehicule` la nomme (#2987). */
+export function findFicheDeVehicule(id: string): { readonly label: string } | undefined {
+  const coque = findVehicleById(id);
+  const fiche = (coque?.hull ? coque : undefined) ?? siegeEngines().find((t) => t.id === id);
+  return fiche && { label: fiche.label };
 }
 /**
  * Ce qu'un pinceau ou un effet neuf porte AVANT tout choix d'auteur : le PREMIER élément OFFERT par son
@@ -3181,8 +3203,9 @@ export function findCareerById(id: string | undefined): CareerData | undefined {
  * n'identifie rien seul → composite carrière + niveau.
  */
 export function entryKey(e: Record<string, unknown>): PlayerText {
-  if (typeof e.career === 'string' && typeof e.level === 'number')
-    return dataLabel(`${findCareerById(e.career)?.label ?? e.career} · N${e.level} ${e.label ?? ''}`.trim());
+  const carriere = estObjet(e.career) ? e.career.id : undefined;
+  if (typeof carriere === 'string' && typeof e.level === 'number')
+    return dataLabel(`${findCareerById(carriere)?.label ?? carriere} · N${e.level} ${e.label ?? ''}`.trim());
   return dataLabel(String(e.label ?? e.id ?? ''));
 }
 /** Choix d'AFFICHAGE masculin/féminin (source unique) : `labelF` si sexe F et disponible, sinon
@@ -3205,7 +3228,7 @@ export function findClassById(id: string | undefined): ClassData | undefined {
 /** Libellé de la Classe `id`, ou son absence nommée — SOURCE UNIQUE du libellé de Classe. */
 export const libelleDeClasse = (id: string): PlayerText => libelleOuAbsence(findClassById(id), 'classe', id);
 export function levelsForCareer(careerId: string): CareerLevelData[] {
-  return careerLevels.filter((c) => c.career === careerId).sort((a, b) => a.level - b.level);
+  return careerLevels.filter((c) => c.career.id === careerId).sort((a, b) => a.level - b.level);
 }
 export function firstLevel(careerId: string): CareerLevelData | undefined {
   return levelsForCareer(careerId)[0];
@@ -3287,7 +3310,7 @@ export function qualityTypeLabel(id: string | null | undefined): PlayerText {
   return dataLabel(id ? typeQualiteParId(id)?.label : '', id ?? '');
 }
 const groupeObjetParId = indexParId('weaponGroups', weaponGroups);
-/** Résout un Groupe d'objet par son `id` STABLE (= `subType` d'un trapping/Weapon/ItemInstance). */
+/** Résout un Groupe d'objet par son `id` STABLE (`subType` d'un Weapon/ItemInstance, `subType.id` d'un trapping). */
 export function findWeaponGroupById(id: string | null | undefined): WeaponGroupData | undefined {
   return groupeObjetParId(id);
 }
@@ -3330,7 +3353,7 @@ export interface BreathTypeData {
   endommageLEquipement?: boolean;
   fumee?: boolean;
   types?: { id: string }[];
-  typeDeDegats?: string;
+  typeDeDegats?: { id: string };
 }
 export const breathTypes = breathTypesJson as BreathTypeData[];
 const typeSouffleParId = indexParId('breathTypes', breathTypes);
@@ -3386,7 +3409,7 @@ export function trappingDesObjetsPuisDuCatalogue(objets: ReadonlyMap<string, Tra
   return objets.get(id) ?? findTrappingById(id);
 }
 /** ARMES choisissables `{ id, label }` : toute Possession `melee`/`ranged` hors « Mains nues »
- *  (`TrappingData.unarmed`), triée au libellé. `id` = `trappingId` STABLE (`weaponFromId`). */
+ *  (`TrappingData.unarmed`), triée au libellé. `id` = `trappingId` STABLE. */
 export const armesChoisissables = memoParVersion('trappings', () => trappingsInstanciables()
   .filter((t) => (t.categorie === 'melee' || t.categorie === 'ranged') && !t.unarmed)
   .map((t) => ({ id: t.id, label: t.label }))

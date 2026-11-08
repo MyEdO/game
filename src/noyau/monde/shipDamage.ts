@@ -10,20 +10,21 @@
  * réconciliable) vit dans `damageVesselHull`/`healVesselHull` (`seaVoyageFlow.ts`, réutilisées par
  * `riverVoyageFlow.ts`) — UNE écriture par appel, jamais un chemin bare parallèle.
  */
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import type { Combatant } from '../../engine/types';
 import { applyOps } from '../../engine/ops';
 import { battleRng } from '../battleRng';
 
 /** Inflige `amount` Dégâts de coque (valeur finale, ignore BE+PA) au Combattant-coque. Mute `hull` en
  *  place ; renvoie le journal `applyOps`. */
-export function damageHull(hull: Combatant, amount: number): string[] {
+export function damageHull(hull: Combatant, amount: number, idNeuf: FabriqueDId): string[] {
   if (amount <= 0) return [];
-  return applyOps(hull, [{ op: 'wounds', amount, ignoreTB: true, ignoreAP: true }], { rng: battleRng() });
+  return applyOps(hull, [{ op: 'wounds', amount, ignoreTB: true, ignoreAP: true }], { idNeuf, rng: battleRng() });
 }
 
 /** Restaure `amount` Blessures de coque (plafonné au max) au Combattant-coque. Mute `hull` en place ;
  *  renvoie le journal `applyOps`. */
-export function healHull(hull: Combatant, amount: number): string[] {
+export function healHull(hull: Combatant, amount: number, idNeuf: FabriqueDId): string[] {
   if (amount <= 0) return [];
-  return applyOps(hull, [{ op: 'heal', amount }], { rng: battleRng() });
+  return applyOps(hull, [{ op: 'heal', amount }], { idNeuf, rng: battleRng() });
 }

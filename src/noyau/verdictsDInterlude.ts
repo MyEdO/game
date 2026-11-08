@@ -27,6 +27,8 @@ import {
   type ActivityDef, type EntrainementOption, type LearnOption, type ResolverOf, type TravelActivitySpec, type VoieDActivite,
 } from '../engine/activities';
 import { outOfTradeReason } from '../engine/disponibilite';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { availabilitySchema } from '../data/schemas/grammaire/valeurs';
 import { memeSpecialisation, refCouvre } from '../data/schemas/grammaire/ref';
 import type { Jeu } from './etat';
 import { refusDeBourse } from './bourseFlow';
@@ -84,7 +86,7 @@ const activiteDeMecenat = (): ActivityDef | undefined => ACTIVITIES.find((a) => 
 /** Classe du héros, `id` STABLE (`ClassData.id`) — les événements visent une Classe par id
  *  (`revenueClasses`/`revenueBlockedClasses`, eux aussi en id). Carrière → id de classe. */
 export function heroClass(h: Combatant): string {
-  return findCareerById(h.career ?? '')?.class ?? '';
+  return findCareerById(h.career ?? '')?.class.id ?? '';
 }
 
 /** Libellé de l'Événement d'un héros — appelé sous une garde `fx` (le dé et `fx` sont écrits ENSEMBLE
@@ -212,7 +214,7 @@ export function refusDeCommande(s: EtatDInterlude, heroId: string, trappingId: s
   if (!tr) return t('if.trappingUnknown', { id: trappingId });
   const block = orderBlockOf(tr);
   if (block === 'sans-prix') return t('trade.orderRefused', { reason: outOfTradeReason(tr.label) });
-  if (block === 'stock-ordinaire') return t('if.orderInShops', { label: tr.label, availability: String(tr.availability) });
+  if (block === 'stock-ordinaire') return t('if.orderInShops', { label: tr.label, availability: libelleDeValeur(availabilitySchema, String(tr.availability)) });
   return refusDeBourse(h, priceToMoney(tr.price), 'if.orderTooExpensive');
 }
 
@@ -480,7 +482,7 @@ function voiesDuTest(
       if (!item) return undefined;
       // L'arme synthétique n'a pas d'uid retrouvable : le gate de maîtrise est inerte pour ce Test.
       const kind = item.kind === 'ranged' ? ('ranged' as const) : ('melee' as const);
-      const valeur = combatValue(h, kind, buildWeapon({ label: item.label, type: kind, damage: item.damage ?? { plusBF: true, flat: 0 }, subType: item.subType }));
+      const valeur = combatValue(h, kind, buildWeapon({ label: item.label, type: kind, damage: item.damage ?? { plusBF: true, flat: 0 }, subType: item.subType, uid: `entrainement-${item.uid}` }));
       return { voies: [{ test: { skill: { id: weaponSkillId(kind) } }, valeur }] };
     }
     case 'identify': {

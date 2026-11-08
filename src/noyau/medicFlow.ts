@@ -292,7 +292,7 @@ function appliquerLaPasse(get: Get, set: Set): void {
       // expirent ENSEMBLE) — `defaultUntilTime` fournit la même échéance à toutes les ops sans durée propre.
       if (penalty.length) {
         const now = get().gameTime;
-        log.push(...applyOps(patient, penalty, { rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }));
+        log.push(...applyOps(patient, penalty, { idNeuf: get().forgerUnId, rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }));
       }
       set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
       finishPlayerAction(get, set, log, 'heal');

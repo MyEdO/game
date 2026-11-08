@@ -10,11 +10,19 @@ import { nomDEntite } from '../noyau/monde/sceneNpc';
 import { presetPnjById } from './campaignData';
 import { controlsActive } from '../noyau/netOwnership';
 import type { OffreRendue, OffresRenduesParPorteur } from './offreRendue';
-import { offresDeLActif, offresParPorteur, type Offre } from '../noyau/actionRegistry';
+import { gesteDeLOffre, offreDeId, offresDeLActif, offresParPorteur, type ContexteDOffre, type Offre } from '../noyau/actionRegistry';
+
+/** Joue l'offre `actionId` sur les arguments `args` de sa case, dans l'état `s` : le verbe qu'elle déclare
+ *  (`gesteDeLOffre`), qui la juge. */
+export function jouerLOffreDeLEcran(s: GameState, actionId: string, args: ContexteDOffre = {}): void {
+  const def = offreDeId(actionId);
+  const geste = def ? gesteDeLOffre(s, def, args) : null;
+  if (geste) (s[geste.verbe] as (...a: unknown[]) => void)(...geste.args);
+}
 
 /** PROJECTION d'une offre du registre dans l'invariant d'affichage de la pastille (`OffreRendue`) :
- *  la surface n'y lit plus ni `ActionDef` ni arguments de dispatch, et l'engagement est refermé sur
- *  le verbe UNIQUE du registre (`jouerLOffre`). Clé stable : l'action et ce qui distingue son candidat. */
+ *  la surface n'y lit plus ni `ActionDef` ni arguments de geste, et l'engagement est refermé sur
+ *  le verbe que l'offre déclare (`Offre.geste`). Clé stable : l'action et ce qui distingue son candidat. */
 export function rendreOffre(o: Offre): OffreRendue {
   return {
     id: `${o.actionId}|${Object.values(o.args).join('|')}`,
@@ -23,7 +31,7 @@ export function rendreOffre(o: Offre): OffreRendue {
     cost: o.cost,
     candidat: o.candidat,
     gate: o.gate,
-    onSelect: () => useGame.getState().jouerLOffre(o.actionId, o.args),
+    onSelect: () => jouerLOffreDeLEcran(useGame.getState(), o.actionId, o.args),
   };
 }
 

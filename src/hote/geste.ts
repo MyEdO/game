@@ -1,47 +1,38 @@
 /**
  * LE GESTE D'UN HÔTE DU NOYAU (#2928), commun à l'hôte texte
- * (`src/hoteTexte/`) et aux hôtes externes (`hotes/`) : un geste écrit en JSON (une offre du registre, ou un verbe de la
- * partie), sa lecture, le contrôle de son verbe et de ses arguments contre ses paramètres (`formes.ts`,
+ * (`src/hoteTexte/`) et aux hôtes externes (`hotes/`) : un geste écrit en JSON (un verbe de la partie, celui qu'une offre
+ * déclare compris, #3610), sa lecture, le contrôle de son verbe et de ses arguments contre ses paramètres (`formes.ts`,
  * `verbes.generated.ts`), son intention contrôlée, et l'issue de son envoi traduite en catégorie d'erreur. Chaque
  * refus nomme ce que l'état offre ; l'hôte y joint ses pistes de lecture (`PistesDeLecture`), là où son auteur lit la suite.
  */
 import {
-  ACTIONS, DESIGNATIONS, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, champsLusParLOffre, cleDuGeste, argsAvecVerdictLocal, etatDeLaBarre, fenetreDuJeu,
-  porteurParId, quiTientLaMain, refusDeLOffre, siegeDe,
-  type ContexteDOffre, type Intention, type Jeu, type Offre, type Partie, type ResultatDeLAppel,
+  DESIGNATIONS, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, cleDuGeste, argsAvecVerdictLocal, etatDeLaBarre, fenetreDuJeu, porteurParId,
+  quiTientLaMain, siegeDe, type Intention, type Jeu, type Offre, type Partie, type ResultatDeLAppel,
 } from '../noyau/index';
-import { estObjet, lireALaForme, signature, type Designes, type Forme, type ParametreDeVerbe } from './formes';
+import { estObjet } from '../lib/objet.mjs';
+import { lireALaForme, signature, type Designes, type Forme, type ParametreDeVerbe } from './formes';
 import { ErreurDeGeste, valider } from './partie';
 import { offresDeLaBarreOuverte } from './projection';
-import { CHOIX, REGLAGES, VERBES } from './verbes.generated';
+import { CHOIX, FORMES, REGLAGES, VERBES } from './verbes.generated';
 
-/** Un geste écrit : une offre du registre (`jouerLOffre`), ou un verbe brut de la partie, joué au nom d'un siège s'il
- *  est posé. */
-export type Geste =
-  | { offre: string; ctx?: ContexteDOffre }
-  | { type: string; args: unknown[]; siege?: number };
+/** Un geste écrit : un verbe de la partie et ses arguments, joué au nom d'un siège s'il est posé. Une offre de l'actif se
+ *  joue par le verbe qu'elle déclare (`Offre.geste`). */
+export interface Geste { type: string; args: unknown[]; siege?: number }
 
-/** Les pistes de lecture d'un hôte, jointes au refus d'un geste : où lire la vue, toutes les offres, les offres d'un id, la
- *  signature d'un verbe. Chacune est le texte qui suit le message, vide pour un hôte qui n'en a pas (`SANS_PISTE`). */
+/** Les pistes de lecture d'un hôte, jointes au refus d'un geste : où lire la vue, la signature d'un verbe. Chacune est le
+ *  texte qui suit le message, vide pour un hôte qui n'en a pas (`SANS_PISTE`). */
 export interface PistesDeLecture {
   vue: string;
-  offres: string;
-  offre: (id: string) => string;
   verbe: (id: string) => string;
 }
 
 /** Les pistes d'un hôte qui n'en joint aucune. */
-export const SANS_PISTE: PistesDeLecture = { vue: '', offres: '', offre: () => '', verbe: () => '' };
+export const SANS_PISTE: PistesDeLecture = { vue: '', verbe: () => '' };
 
 /** Lit un geste écrit (un objet JSON), ou lève une erreur de validation. */
 export function lireGeste(v: unknown): Geste {
   valider(estObjet(v), 'un geste est un objet JSON');
   const g = v as Record<string, unknown>;
-  if ('offre' in g) {
-    valider(typeof g.offre === 'string', 'offre : un id d’action');
-    valider(g.ctx === undefined || estObjet(g.ctx), 'offre : le contexte est un objet JSON');
-    return g.ctx === undefined ? { offre: g.offre as string } : { offre: g.offre as string, ctx: g.ctx as ContexteDOffre };
-  }
   valider(typeof g.type === 'string', 'jouer : un nom d’action du noyau');
   valider(Array.isArray(g.args), 'jouer : les arguments sont un tableau JSON');
   valider(g.siege === undefined || Number.isInteger(g.siege), 'jouer : le siège est un entier');
@@ -93,7 +84,7 @@ export function argumentsDuVerbe(etat: Jeu, verbe: string, args: readonly unknow
     const p = parametres[i];
     // JSON n'a pas d'`undefined` : `null` omet un paramètre optionnel, pour en poser un suivant.
     if (brut === null && p.optionnel) return brut;
-    const lu = lireALaForme(brut, p.forme, p.nom, designesDe(etat));
+    const lu = lireALaForme(brut, p.forme, p.nom, designesDe(etat), FORMES);
     if ('ecart' in lu) throw new ErreurDeGeste('validation', `${verbe} : ${lu.ecart} (${signature(verbe, parametres)})`);
     return lu.valeur;
   });
@@ -121,7 +112,7 @@ export function gesteDuVerbe(etat: Jeu, v: { type: unknown; args?: unknown; sieg
     throw new ErreurDeGeste('validation', `verbe inconnu : ${verbe}${dits.length ? ` ; ${dits.join(' ; ')}` : ''}${pistes.verbe(verbe)}`);
   }
   const geste = lireGeste({ type: verbe, args: v.args ?? [], siege: v.siege });
-  return 'offre' in geste ? geste : { ...geste, args: argumentsDuVerbe(etat, geste.type, geste.args, parametresDeLAppel(geste.type, geste.args, parametres)) };
+  return { ...geste, args: argumentsDuVerbe(etat, geste.type, geste.args, parametresDeLAppel(geste.type, geste.args, parametres)) };
 }
 
 /** Les offres de l'actif (`offresDeLActif`), ou l'erreur de règle qui dit pourquoi la barre n'est pas ouverte
@@ -132,32 +123,10 @@ export function offresDeLaBarre(etat: Jeu, pistes: PistesDeLecture): Offre[] {
   return offresDeLaBarreOuverte(etat, barre);
 }
 
-/** Un champ du contexte d'une offre que ni elle ni ses candidats ne lisent lève une erreur de validation, qui nomme les
- *  champs acceptés ; pour une offre qui arme une intention, la cible se choisit après elle. */
-function controlerLeContexte(offre: string, ctx: ContexteDOffre | undefined, offres: readonly Offre[], pistes: PistesDeLecture): void {
-  const lus = champsLusParLOffre(offre);
-  if (!lus) return;
-  const acceptes = new Set([...lus, ...offres.flatMap((o) => (o.actionId === offre ? Object.keys(o.args) : []))]);
-  const ignores = Object.keys(ctx ?? {}).filter((k) => !acceptes.has(k));
-  if (!ignores.length) return;
-  const cible = ACTIONS.find((a) => a.id === offre)?.intent ? ' ; la cible de cette offre se choisit après elle, par le clic de son combattant' : '';
-  throw new ErreurDeGeste('validation', `${offre} ne lit pas ${ignores.join(', ')} du contexte (champs acceptés : ${[...acceptes].join(', ') || 'aucun'})${cible}${pistes.offre(offre)}`);
-}
-
-/** L'intention d'un geste, contrôlée. Une offre que le noyau refuse (`refusDeLOffre`, le verdict même de `jouerLOffre`)
- *  est une erreur de règle avec sa raison ; un champ du contexte que l'offre ne lit pas (`controlerLeContexte`), ou un id
- *  du contexte que l'état ne désigne pas (`argumentsDuVerbe` sur `jouerLOffre`), est une erreur de validation. Le verbe d'un geste a été contrôlé contre `VERBES` (`gesteDuVerbe`). Un verbe joué au nom d'un siège joint le verdict d'armement que ce siège voit
- *  (`argsAvecVerdictLocal`), comme le client du web le joint à son intention. */
-export function intentionDuGeste(etat: Jeu, geste: Geste, pistes: PistesDeLecture): Intention {
-  if ('offre' in geste) {
-    valider(ACTIONS.some((a) => a.id === geste.offre), `offre inconnue : ${geste.offre}${pistes.offres}`);
-    const barre = etatDeLaBarre(etat);
-    controlerLeContexte(geste.offre, geste.ctx, barre.forme === 'ouverte' ? offresDeLaBarreOuverte(etat, barre) : [], pistes);
-    if (geste.ctx) argumentsDuVerbe(etat, 'jouerLOffre', [geste.offre, geste.ctx], VERBES.jouerLOffre);
-    const refus = refusDeLOffre(etat, geste.offre, geste.ctx);
-    if (refus) throw new ErreurDeGeste('regle', `${geste.offre} n’est pas offerte : ${refus}${pistes.offre(geste.offre)}`);
-    return { type: 'jouerLOffre', args: geste.ctx ? [geste.offre, geste.ctx] : [geste.offre] };
-  }
+/** L'intention d'un geste, son verbe contrôlé contre `VERBES` (`gesteDuVerbe`). Un verbe joué au nom d'un siège joint le
+ *  verdict d'armement que ce siège voit (`argsAvecVerdictLocal`), comme le client du web le joint à son intention. Le
+ *  verbe juge le geste : un verbe de la barre, par le refus de son geste (`refusDuGeste`). */
+export function intentionDuGeste(etat: Jeu, geste: Geste): Intention {
   if (geste.siege === undefined) return { type: geste.type, args: geste.args } as Intention;
   return { type: geste.type, args: argsAvecVerdictLocal(() => etat, geste.type, geste.args), siege: geste.siege } as Intention;
 }

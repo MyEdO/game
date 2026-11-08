@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
-import { weaponFromTrait, renderWeaponsFromTraits, weaponsFromTraits, armourFromTraits, weaponFromId } from './creatureEquip';
+import { idsDeTest } from './idsDeTest.testkit';
+import { describe, it, expect } from 'vitest';
+import { weaponFromTrait, renderWeaponsFromTraits, weaponsFromTraits, armourFromTraits } from './creatureEquip';
 import { emptyArmour, hydratePoste, itemFromTrappingById, mannedPosteWeapon, recomputeLoadout, formeResolue } from './items';
 import type { Combatant, Weapon } from './types';
 import { effectiveWeaponRange } from './weaponDamage';
@@ -79,58 +80,6 @@ describe('creatureEquip — dérivation traits → armes (source unique de l’a
   });
 });
 
-describe('creatureEquip — weaponFromId (canal d’authoring de scène `weapon` = trappingId)', () => {
-  it('trappingId valide → arme COMPLÈTE du catalogue (Dégâts, Portée, Groupe, identité), pas une coquille de rendu', () => {
-    const w = weaponFromId('arc');
-    expect(w).not.toBeNull();
-    expect(w!.label).toBe('Arc');
-    expect(w!.type).toBe('ranged');
-    expect(formeResolue(w!)).toBe('arc');
-    expect(w!.damage).toEqual({ plusBF: true, flat: 3 });
-    expect(w!.range).toBe(50);
-    expect(w!.subType).toBe('arc'); // Groupe d'arme → Spécialisation de Projectiles (weaponGroupSkillMode)
-    expect(w!.trappingId).toBe('arc');
-    expect(w!.hands).toBe(2);
-  });
-
-  it('la Portée du catalogue rend la cible ATTEIGNABLE : effectiveWeaponRange non nulle et bande de tir valide', () => {
-    const w = weaponFromId('arc')!;
-    expect(effectiveWeaponRange(w, undefined, 3)).toBe(50);
-    expect(rangeBandModifier(10, effectiveWeaponRange(w, undefined, 3)!, 2)).not.toBeNull(); // 10 cases = 20 m ≤ 50 m
-  });
-
-  it('mêlée : type, Dégâts, Allonge et Recharge du catalogue', () => {
-    const w = weaponFromId('hache-d-armes')!;
-    expect(w.type).toBe('melee');
-    expect(w.damage).toEqual({ plusBF: true, flat: 4 });
-    expect(w.reach).toBe('Longue');
-    // Contrat de `Weapon.range` : `null` = profil de catalogue PROJETÉ, réponse « aucune Portée » (ce que
-    // `ItemInstance.range` porte déjà, `t.range ?? null`) ; ABSENT = la question n'a pas été posée (arme
-    // SYNTHÉTIQUE : naturelle, mains nues, générique hors catalogue). Une arme de mêlée du catalogue est
-    // donc `null` sur les TROIS canaux d'armement, comme la possession d'un héros.
-    expect(w.range).toBeNull();
-  });
-
-  it('Recharge dérivée de la Qualité du catalogue (LDB 62 l.333)', () => {
-    expect(weaponFromId('arbalete')!.reload).toBe(1);
-  });
-
-  it('trappingId INCONNU → console.error bruyant (#223) + AUCUNE arme devinée (null)', () => {
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const w = weaponFromId('Arc'); // un LIBELLÉ n'est pas un id
-    expect(w).toBeNull();
-    expect(err).toHaveBeenCalledWith(expect.stringContaining('Arc'));
-    err.mockRestore();
-  });
-
-  it('trapping qui n’est PAS une arme → console.error + null (aucune arme inventée depuis un objet)', () => {
-    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(weaponFromId('corde')).toBeNull();
-    expect(err).toHaveBeenCalledWith(expect.stringContaining('corde'));
-    err.mockRestore();
-  });
-});
-
 describe('creatureEquip — armourFromTraits (lookup par id stable)', () => {
   it('trait « armure » (id stable) value 2 → PA 2 sur toutes les localisations', () => {
     const ap = armourFromTraits([t({ id: 'armure', value: 2 })]);
@@ -160,8 +109,8 @@ describe('creatureEquip — armourFromTraits (lookup par id stable)', () => {
 /**
  * PROJECTION UNIQUE `weaponFromItem` (engine/items) : dériver une arme d'une Possession de catalogue se
  * fait par UN seul chemin, quel que soit le canal d'armement — possession de héros (`recomputeLoadout`),
- * trait de statbloc (`weaponFromTrait`), `weapon:` d'authoring de scène (`weaponFromId`), poste
- * d'artillerie servi (`mannedPosteWeapon`). Une projection qui redeviendrait PARTIELLE (un champ de
+ * dont l'inventaire d'auteur d'un PNJ (#3684), trait de statbloc (`weaponFromTrait`), poste d'artillerie servi
+ * (`mannedPosteWeapon`). Une projection qui redeviendrait PARTIELLE (un champ de
  * profil porté par un canal et pas par l'autre) échoue ICI.
  */
 describe('armement — la projection catalogue → arme est UNE, quel que soit le canal', () => {
@@ -169,7 +118,7 @@ describe('armement — la projection catalogue → arme est UNE, quel que soit l
   /** Canal POSSESSION DE HÉROS : l'objet du catalogue équipé, projeté par `recomputeLoadout`. */
   const parPossession = (trappingId: string): Weapon | undefined => {
     const c = {
-      items: [{ ...itemFromTrappingById(trappingId)!, equipped: true }],
+      items: [{ ...itemFromTrappingById(trappingId, idsDeTest)!, equipped: true }],
       weapons: [], armour: emptyArmour(), characteristics: chars,
     } as unknown as Combatant;
     recomputeLoadout(c);
@@ -177,11 +126,22 @@ describe('armement — la projection catalogue → arme est UNE, quel que soit l
   };
   const chef = { characteristics: chars, weapons: [] } as unknown as Combatant;
 
-  it('arme de catalogue à `onHitEffects` (Arc d’empathie sanglante) : les TROIS canaux la portent — possession de héros, trait de statbloc, `weapon:` d’authoring', () => {
+  it('une Possession de tir : arme COMPLÈTE du catalogue (Dégâts, Portée, Groupe, identité, mains), la cible atteignable', () => {
+    const w = parPossession('arc')!;
+    expect([w.label, w.type, formeResolue(w), w.damage, w.range, w.subType, w.trappingId, w.hands]).toEqual(['Arc', 'ranged', 'arc', { plusBF: true, flat: 3 }, 50, 'arc', 'arc', 2]);
+    expect(rangeBandModifier(10, effectiveWeaponRange(w, undefined, 3)!, 2)).not.toBeNull(); // 10 cases = 20 m ≤ 50 m
+  });
+
+  it('une Possession de mêlée : type, Dégâts, Allonge du catalogue, `range` null (profil projeté, aucune Portée) ; la Recharge d’une arbalète (LDB 62 l.333)', () => {
+    const w = parPossession('hache-d-armes')!;
+    expect([w.type, w.damage, w.reach, w.range]).toEqual(['melee', { plusBF: true, flat: 4 }, 'Longue', null]);
+    expect(parPossession('arbalete')!.reload).toBe(1);
+  });
+
+  it('arme de catalogue à `onHitEffects` (Arc d’empathie sanglante) : la possession (héros ou inventaire de PNJ) et le trait de statbloc la portent', () => {
     const canaux = [
       parPossession('arc-d-empathie-sanglante')!,
       weaponFromTrait(t({ id: 'a-distance', arg: 'arc-d-empathie-sanglante', value: 9 }))!,
-      weaponFromId('arc-d-empathie-sanglante')!,
     ];
     for (const w of canaux) {
       expect(w.onHitEffects).toHaveLength(1);
@@ -191,11 +151,10 @@ describe('armement — la projection catalogue → arme est UNE, quel que soit l
     }
   });
 
-  it('machine de guerre ADE II (Canon à flammes nain) : `onHitEffects`, `minRangeBand`, Groupe de Projectiles et Recharge portés par le trait, par `weapon:` ET par le poste servi', () => {
+  it('machine de guerre ADE II (Canon à flammes nain) : `onHitEffects`, `minRangeBand`, Groupe de Projectiles et Recharge portés par le trait ET par le poste servi', () => {
     const canaux = [
-      mannedPosteWeapon(chef, hydratePoste({ trappingId: 'canon-a-flammes-nain-ade2', side: 'tribord' }))!,
+      mannedPosteWeapon(chef, hydratePoste({ trappingId: 'canon-a-flammes-nain-ade2', side: 'tribord' }, 'poste-de-test'))!,
       weaponFromTrait(t({ id: 'a-distance', arg: 'canon-a-flammes-nain-ade2', value: 12 }))!,
-      weaponFromId('canon-a-flammes-nain-ade2')!,
     ];
     for (const w of canaux) {
       expect(w.onHitEffects).toHaveLength(1);
@@ -212,7 +171,6 @@ describe('armement — la projection catalogue → arme est UNE, quel que soit l
     const canaux = [
       parPossession('javelot')!,
       weaponFromTrait(t({ id: 'a-distance', arg: 'javelot', value: 5 }))!,
-      weaponFromId('javelot')!,
     ];
     for (const w of canaux) {
       expect(w.range).toEqual({ bf: 3 });
@@ -222,7 +180,6 @@ describe('armement — la projection catalogue → arme est UNE, quel que soit l
 
   it('Possession de catalogue SANS profil de Dégâts (Lasso) : « +BF » nu — convention du profil d’arme, portée par la projection UNIQUE, jamais redéclarée par un canal', () => {
     const nu = { plusBF: true, flat: 0, bare: true };
-    expect(weaponFromId('lasso')!.damage).toEqual(nu);
     expect(parPossession('lasso')!.damage).toEqual(nu);
     // Canal TRAIT : l'Indice IMPRIMÉ du statbloc prime (LDB 85 l.9) — il n'y a rien à replier.
     expect(weaponFromTrait(t({ id: 'a-distance', arg: 'lasso', value: 4 }))!.damage).toEqual({ plusBF: false, flat: 4 });
@@ -230,7 +187,6 @@ describe('armement — la projection catalogue → arme est UNE, quel que soit l
 
   it('Taille PRÉVUE d’une arme ogre (`sizeFor`, ADE II 2 l.706-710) : héritée par le canal TRAIT — un statbloc à massue ogre porte la même arme que la possession', () => {
     expect(weaponFromTrait(t({ id: 'arme', arg: 'massue-ogre', value: 7 }))!.sizeFor).toBe('grande');
-    expect(weaponFromId('massue-ogre')!.sizeFor).toBe('grande');
     expect(parPossession('massue-ogre')!.sizeFor).toBe('grande');
   });
 });

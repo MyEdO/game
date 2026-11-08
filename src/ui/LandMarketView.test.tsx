@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -37,7 +38,7 @@ function evaluer() {
 describe('LandMarketView — « Évaluer » le vin suit qui peut tenter le Test (LDB 09 l.30)', () => {
   beforeEach(() => {
     useGame.setState({
-      party: makePregens().slice(0, 3), possessions: [],
+      party: makePregens(idsDeTest).slice(0, 3), possessions: [],
       scene: { ...emptyScene('ville-a', 2, 2), label: 'Ville', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null, worldMap: landMap, lieu: 'A', travelPlan: null, landMarket: null, journal: [],
     } as never);
@@ -73,8 +74,8 @@ function acheter(cargoId: string, label: string, enc: number) {
 describe('LandMarketView — « Acheter » lit le refus du noyau (#3059, MSRC 13 l.131)', () => {
   beforeEach(() => {
     useGame.setState({
-      party: makePregens().slice(0, 3),
-      possessions: [{ uid: 'convoi', ownerId: makePregens()[0].id, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] }],
+      party: makePregens(idsDeTest).slice(0, 3),
+      possessions: [{ uid: 'convoi', ownerId: makePregens(idsDeTest)[0].id, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] }],
       scene: { ...emptyScene('ville-a', 2, 2), label: 'Ville', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null, worldMap: landMap, lieu: 'A', travelPlan: null, landMarket: null, journal: [], net: { ...get().net, mode: 'local' },
     } as never);

@@ -6,12 +6,13 @@
  * contre Gunnar et Hultz. LDB 51 l.178 : le tronçon Sept Rayons → Altdorf, sans billet d'auteur, se
  * paie au km. LDB 10 l.818, arbitrage #2547 (2026-10-09) : Négociateur au prix du palier.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { imposerLesD100 } from '../../noyau/battleRng.testkit';
 import { setRule, resetRule } from '../../engine/policy';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../../scenes/campaign';
-import { makePregensWithWealth, PREGEN } from '../../data/pregens';
+import { makePregensWithWealth, PREGEN, idDuPretire } from '../../data/pregens';
 import { creditBourse, partyMoneyTotal } from '../../noyau/bourseFlow';
 import { toBrass } from '../../engine/money';
 import { prixParPassager, transportCost, type TarifDePassage } from '../../engine/travel';
@@ -40,11 +41,11 @@ const get = () => banc.getState();
 const bourse = () => toBrass(partyMoneyTotal(get));
 
 /** Les 4 piliers du groupe showcase (`makeShowcaseParty`), avec LEUR Richesse initiale tirée (LDB 05 l.578). */
-const SHOWCASE = [PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur].map((s) => `pregen-${s}`);
+const SHOWCASE: readonly string[] = [PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur].map((s) => idDuPretire(s));
 
 /** Lance le chapitre 1 avec le groupe showcase et sa bourse, et fait monter à bord (`edo-ch1-depart`). */
 function aBord(): void {
-  const groupe = makePregensWithWealth().filter((e) => SHOWCASE.includes(e.hero.id));
+  const groupe = makePregensWithWealth(idsDeTest).filter((e) => SHOWCASE.includes(e.hero.id));
   expect(groupe).toHaveLength(4);
   banc.setState({ party: groupe.map((e) => e.hero) });
   expect(lancerCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();

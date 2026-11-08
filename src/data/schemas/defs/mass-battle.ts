@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** ADE II 8. */
 import { z } from 'zod';
 import { document, tableTiree } from '../grammaire/document';
-import { moneySchema, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { availabilitySchema, moneySchema, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'mass-battle.json';
@@ -43,7 +43,7 @@ const warMachineRowSchema = nommerChamps(z.strictObject({
   label: z.string(),
   price: moneySchema,
   crew: z.number(),
-  availability: z.string(),
+  availability: availabilitySchema,
   range: z.string(),
   damage: z.string(),
   traits: z.string(),

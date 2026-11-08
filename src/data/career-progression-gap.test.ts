@@ -23,7 +23,7 @@ describe('Schéma de Progression — aucun niveau ne perd ses Caractéristiques 
   it('aucun niveau de Carrière n’a de Schéma de Progression vide', () => {
     const vides = careerLevels
       .filter((l) => l.characteristics.length === 0)
-      .map((l) => `${l.career}/${l.level}`)
+      .map((l) => `${l.career.id}/${l.level}`)
       .sort();
     expect(vides).toEqual([]);
   });

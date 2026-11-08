@@ -9,6 +9,7 @@
  * Contrats POSITIFS : l'état ne bouge pas (nœud, archive, bourse, pending). Le prédicat unique des portes d'une
  * réponse est `conversationRepond`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { partyMoneyTotal } from './bourseFlow';
@@ -20,7 +21,7 @@ import type { Dialogue } from './monde/scene';
 import type { Jeu } from './etat';
 
 const hero = (brass = 0): Combatant =>
-  withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), { gold: 0, silver: 0, brass });
+  withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), { gold: 0, silver: 0, brass }, idsDeTest);
 
 /** Un nœud, trois réponses : un Test, une MASQUÉE par son `when`, une PAYANTE hors de portée. */
 const dlg: Dialogue = {

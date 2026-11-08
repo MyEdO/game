@@ -83,7 +83,7 @@ export function auditProgressionSchemas(sources = {}) {
 
   /** @type {Map<string, any>} niveaux par `career`+`level` */
   const levelOf = new Map()
-  for (const l of levels) levelOf.set(`${l.career}::${l.level}`, l)
+  for (const l of levels) levelOf.set(`${l.career.id}::${l.level}`, l)
 
   const violations = []
   const ambigus = []

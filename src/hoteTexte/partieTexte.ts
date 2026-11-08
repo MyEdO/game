@@ -9,15 +9,13 @@
 import { horlogeVirtuelle, type Jeu, type LigneDuJournal, type Partie, type ResultatDeLAppel } from '../noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type Entete, type TenueDesJetons } from '../hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, type Geste, type PistesDeLecture } from '../hote/geste';
-import { estObjet } from '../hote/formes';
+import { estObjet } from '../lib/objet.mjs';
 import { appelEcrit } from './outils';
 import { tableTotale } from '../lib/tableTotale';
 
 /** Les pistes de lecture de l'hôte texte : l'appel de `lire` qui montre la suite d'un refus. */
 export const PISTES_DU_TEXTE: PistesDeLecture = {
   vue: ` (${appelEcrit('lire', { quoi: 'vue' })})`,
-  offres: ` (${appelEcrit('lire', { quoi: 'offres', toutes: true })})`,
-  offre: (id) => ` (${appelEcrit('lire', { quoi: 'offres', id })})`,
   verbe: (id) => ` (${appelEcrit('lire', { quoi: 'verbes', id })})`,
 };
 
@@ -79,12 +77,12 @@ function absorber(r: PartieRejouee, resultat: ResultatDeLAppel, pas: number): vo
  *  est une erreur de validation, `refusee` une erreur de permission ; un verbe qui lève est une erreur de validation. Le
  *  geste écrit est le geste contrôlé. Rend les lignes de journal du geste. */
 export function jouerUnGeste(r: PartieRejouee, lu: Geste): LigneNumerotee[] {
-  const geste = 'offre' in lu ? lu : gesteDuVerbe(r.partie.etat(), lu, PISTES_DU_TEXTE);
-  const intention = intentionDuGeste(r.partie.etat(), geste, PISTES_DU_TEXTE);
+  const geste = gesteDuVerbe(r.partie.etat(), lu, PISTES_DU_TEXTE);
+  const intention = intentionDuGeste(r.partie.etat(), geste);
   // Le moteur mute en place (combattants, scène) : l'empreinte se prend AVANT l'appel, jamais sur l'état d'avant relu après.
   const avant = r.partie.etat();
   const faitsAvant = empreinteDesFaits(avant);
-  const refusAvant = avant.refus?.nonce;
+  const refusAvant = avant.refus;
   const resultat = envoyerLIntention(r.partie, intention);
   // Un geste a un effet s'il change les FAITS ou programme une suite ; un événement émis seul (`move_blocked`) informe.
   if (!resultat.evenements.some((e) => e.type === 'programme') && empreinteDesFaits(r.partie.etat()) === faitsAvant) {
@@ -142,8 +140,8 @@ const empreinteDesFaits = (etat: Jeu): string => empreinte({ ...etat, ...tableTo
 
 /** Ce que le jeu a dit d'un geste sans effet : le refus neuf, sinon les lignes du journal de la partie, sinon les événements
  *  informatifs émis (`move_blocked`). */
-function ceQueDitLeJeu(refusAvant: number | undefined, apres: Jeu, resultat: ResultatDeLAppel): string {
-  if (apres.refus && apres.refus.nonce !== refusAvant) return ` : ${apres.refus.texte}`;
+function ceQueDitLeJeu(refusAvant: Jeu['refus'], apres: Jeu, resultat: ResultatDeLAppel): string {
+  if (apres.refus && apres.refus !== refusAvant) return ` : ${apres.refus.texte}`;
   const dites = resultat.journal.flatMap((l) => (l.de === 'journal' ? [l.texte] : []));
   if (dites.length) return ` : ${dites.join(' ')}`;
   const emis = resultat.evenements.flatMap((e) => (e.type === 'emis' ? [e.evt] : []));

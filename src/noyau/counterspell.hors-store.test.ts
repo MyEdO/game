@@ -1,7 +1,8 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
-import { castSpell, resolveRoundBoundary, counterspellCandidates, routeCounterspell } from './combatFlow';
+import { castSpell, resolveRoundBoundary, counterspellCandidates, routeCounterspell, advanceTurn } from './combatFlow';
 import { createHero } from '../engine/character';
 import { acquerirTalent } from '../engine/careerSlots';
 import { testScene } from '../scenes/test-fixture';
@@ -16,7 +17,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  *  incantation — IA (ennemi → héros) et action joueur (héros → ennemi), un seul par Round. */
 describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
   function setup() {
-    const hero = createHero({
+    const hero = createHero({ idNeuf: idsDeTest,
       speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
       careerTalent: { id: 'magie-mineure' }, seed: 707,
     });
@@ -99,7 +100,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
       battle: { ...banc.getState().battle!, order: [H.id, E.id], turn: 0, action: null, movementUsed: 0, movedPreAction: false, acted: false },
       pendingRoundStart: null, 
     });
-    banc.getState().terminerLeTour(); // H finit → E actif → IA : Carreau pré-roulé (aucun « Lancer »)
+    advanceTurn(banc.getState, banc.setState); // H finit → E actif → IA : Carreau pré-roulé (aucun « Lancer »)
     banc.avancer(5000);
     let st = banc.getState();
     expect(st.pendingCast?.casterId).toBe(E.id); // incantation ennemie figée → tour suspendu sur le lanceur

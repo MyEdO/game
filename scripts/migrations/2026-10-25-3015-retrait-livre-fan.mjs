@@ -108,7 +108,7 @@ const seaEvents = lire('sea-events.json');
 for (const ev of (Array.isArray(seaEvents.boardEvents) ? seaEvents.boardEvents : seaEvents.boardEvents?.entries) ?? []) {
   for (const cle of ['crewRef', 'chefRef']) {
     const ref = ev.params?.[cle];
-    if (typeof ref !== 'string' || !(REMPLACEMENTS[ref] || idsRetires.has(ref))) continue;
+    if (typeof ref !== 'string' || !idsRetires.has(ref)) continue;
     if (!REMPLACEMENTS[ref]) { fautes.push(`sea-events ${ev.id}.params.${cle} = ${ref} : créature du livre hors REMPLACEMENTS`); continue; }
     if (fautesDeCible.has(ref)) { fautes.push(fautesDeCible.get(ref)); continue; }
     ev.params[cle] = REMPLACEMENTS[ref];

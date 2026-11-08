@@ -1,4 +1,5 @@
 import { Combatant, type SkillInstance } from '../../engine/types';
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { byId } from '../../data';
 import { estSpecialisable, refusDeSpec } from '../../data/schemas/grammaire/ref';
 import { Scene } from '../../noyau/monde/scene';
@@ -56,8 +57,9 @@ export interface TestScenario {
   title: string;
   tests: string; // une ligne : « ce que ça vérifie »
   partyNote: string; // ex. « Arbalétrier solo »
-  /** Rien de ce qui lit un dataset ne se calcule au niveau module d'un fichier de scénario (#1692). */
-  construire: () => ContenuDeScenario;
+  /** Rien de ce qui lit un dataset ne se calcule au niveau module d'un fichier de scénario (#1692). `idNeuf` : la fabrique
+   *  d'ids de la partie qui le lance (#2907). */
+  construire: (idNeuf: FabriqueDId) => ContenuDeScenario;
   autoCombat?: string; // id d'encounter → démarre le combat directement
   /** Bourse de départ (le lancement écrase la richesse par défaut) — ex. payer la diligence. */
   money?: { gold: number; silver: number; brass: number };
@@ -71,9 +73,9 @@ export interface TestScenario {
 }
 
 /** LE lancement d'un scénario (#2898), constructeur UNIQUE que partagent tous les
- *  hôtes du noyau : le contenu construit à neuf, et les réglages de la fiche. */
-export function lancementDuScenario(sc: TestScenario): LancementDeScenario {
-  return { ...sc.construire(), regles: sc.rules, bourse: sc.money, combatDirect: sc.autoCombat, semainesDInterlude: sc.interludeWeeks };
+ *  hôtes du noyau : le contenu construit à neuf aux ids de la partie (`idNeuf`), et les réglages de la fiche. */
+export function lancementDuScenario(sc: TestScenario, idNeuf: FabriqueDId): LancementDeScenario {
+  return { ...sc.construire(idNeuf), regles: sc.rules, bourse: sc.money, combatDirect: sc.autoCombat, semainesDInterlude: sc.interludeWeeks };
 }
 
 /** Arène dégagée + point de départ des héros (base des scénarios de combat direct). Preset MINCE

@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { blocageDeLivraison, difficultySchema, enumNomme, formulaSchema, formuleSansTirageSchema, foyerDeRegleSchema, moneyPartialSchema, stakeFormSchema } from '../grammaire/valeurs';
 import { conditionSchema, executeesDe, flowTestSchema, stageOutcomeSchema } from '../grammaire/mecanique';
-import { refOuSpec } from '../grammaire/ref';
+import { refOuSpec, refs } from '../grammaire/ref';
 
 export const file = 'activities.json';
 export const famille = 'entite';
@@ -159,7 +159,7 @@ const doc = document(
     threat: nommerChamps(z.strictObject({ penalty: z.number() }), { penalty: { label: "pénalité" } }).optional(),
     generalDownOn: z.enum(['success', 'stupefying']).optional(),
     classGate: nommerChamps(z.strictObject({
-      classes: z.array(z.string()),
+      classes: refs('classe'),
       outsidePenalty: z.number(),
       scope: z.enum(['current', 'ever']).optional(),
     }), { classes: { label: "classes" }, outsidePenalty: { label: "pénalité hors classe" }, scope: { label: "portée" } }).optional(),

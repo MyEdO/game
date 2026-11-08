@@ -9,6 +9,7 @@
  *  - le naufrage n'échoue jamais le groupe sur un lieu que le récit n'a pas révélé (`MapPlace.when`) :
  *    le balayage du rivage passe par `visiblePlaces`, jamais par `map.places` brut.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { beginShipwreck } from './shipwreck';
@@ -60,7 +61,7 @@ const carte: WorldMap = {
 
 function auDepart(flags: Record<string, boolean> = {}): void {
   set({
-    party: makePregens().slice(0, 3),
+    party: makePregens(idsDeTest).slice(0, 3),
     travelPlan: null,
     pendingRest: null,
     pendingCascade: null,
@@ -121,7 +122,7 @@ function enPleineTraversee(flags: Record<string, boolean> = {}): void {
     hoursPerDay: 6, km: 100, kmDone: 50, interrupted: false,
   };
   set({
-    party: makePregens().slice(0, 2),
+    party: makePregens(idsDeTest).slice(0, 2),
     worldMap: carteNaufrage,
     scene: scenePlate('monde-a'),
     travelPlan: plan,

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { reglerUneRegleMaisonWeb as regler, remettreUneRegleMaisonWeb as remettre } from './reglesMaison';
@@ -26,7 +27,7 @@ import { poserLeLocalStorage } from '../lib/stockage.testkit';
 const verrou = () => reglesMaisonMutables(useGame.getState());
 
 function startFixtureCombat() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   useGame.getState().lancerLaScene(testScene());
   seedBattleRng(777);

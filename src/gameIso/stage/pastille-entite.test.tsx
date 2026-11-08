@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { act } from 'react';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -16,7 +17,7 @@ import { VH, VW } from './useStageCamera';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { itemFromTrappingById, unarmedWeapon } from '../../engine/items';
 import { ACTIONS, type ActionDef } from '../../data/index';
-import { ACTION_CANDIDATES, ACTION_PORTEURS } from '../../noyau/actionRegistry';
+import { ACTION_CANDIDATES, ACTION_PORTEURS, declarerPorteur } from '../../noyau/actionRegistry';
 import type { Combatant, ShipPoste } from '../../engine/types';
 import { combattantDeTest, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 import type { Scene } from '../../noyau/monde/scene';
@@ -139,7 +140,7 @@ function svgTémoin(el: HTMLElement): { svg: SVGSVGElement; capture: ReturnType<
 }
 
 // ── Fixtures des trois familles de porteurs ─────────────────────────────────────────────────────
-const mkPoste = (engineId: string, crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById(engineId)!, crewIds });
+const mkPoste = (engineId: string, crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById(engineId, idsDeTest)!, crewIds });
 
 const mkHull = (postes: ShipPoste[], pos = { x: 4, y: 3 }): Combatant =>
   combattantDeTest({ id: 'hull', label: 'Bélier', kind: 'enemy', pos, inert: true, wounds: blessuresDeBase(0), postes });
@@ -525,7 +526,7 @@ describe('Pastille d’entité — le REGISTRE est la surface (aucun id d’acti
 
   beforeEach(() => {
     ACTION_CANDIDATES['candidats-fabriques'] = ({ battle }) => battle.combatants.filter((c) => c.id === 'cible');
-    ACTION_PORTEURS['candidats-fabriques'] = (c) => ({ porteurId: (c as Combatant).id, args: {} });
+    ACTION_PORTEURS['candidats-fabriques'] = declarerPorteur([], (c) => ({ porteurId: (c as Combatant).id, args: {} }));
     ACTIONS.push(FABRIQUÉE);
   });
   afterEach(() => {

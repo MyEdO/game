@@ -164,7 +164,7 @@ export function symptomPassive(inst: DiseaseSymptom, severity: 'moderee' | 'grav
 
 /** Deux ops de magnitude visent-elles la MÊME Caractéristique (palier ABSOLU, `symptomPassive`) ? */
 function memeCible(a: GameOp, b: GameOp): boolean {
-  return (a.op === 'testMod' || a.op === 'charMod') && a.op === b.op && a.char != null && a.char === (b as typeof a).char;
+  return (a.op === 'testMod' || a.op === 'charMod') && a.op === b.op && a.characteristic != null && a.characteristic === (b as typeof a).characteristic;
 }
 /** Identité Codex d'un symptôme — forme SOURCE du mécanisme général de suspension. */
 const srcSymptome = (symptomId: string): CodexTarget => ({ category: 'symptoms', id: symptomId });

@@ -4,6 +4,7 @@
  * (rack d'alvéoles réservées) et les deux gouttières sont DESSINÉES quoi qu'il arrive. Montée pour de
  * vrai (`createRoot`/`act`) sur le VRAI store et de VRAIS héros (`createHero`) — aucun module mocké.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -48,7 +49,7 @@ beforeAll(() => {
 });
 
 function hero(id: string, label: string): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 7 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 7 });
   h.id = id;
   h.pos = { x: 5, y: 5 };
   return h;
@@ -1193,7 +1194,7 @@ describe('CombatConsole — case Recharger : le porteur de l’état est l’ARM
 describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapide', () => {
   /** Objet du CATALOGUE, uid stable pour que les sets le désignent. */
   function objet(id: string, uid: string, over: Partial<ItemInstance> = {}): ItemInstance {
-    const it = itemFromTrappingById(id);
+    const it = itemFromTrappingById(id, idsDeTest);
     expect(it, `catalogue : « ${id} » absent`).not.toBeNull();
     return Object.assign(it!, { uid }, over);
   }
@@ -1355,7 +1356,7 @@ describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapid
 // vide, lisibilité des vignettes, MATIÈRE UNIQUE du pont).
 describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-17)', () => {
   function objet(id: string, uid: string, over: Partial<ItemInstance> = {}): ItemInstance {
-    const it = itemFromTrappingById(id);
+    const it = itemFromTrappingById(id, idsDeTest);
     expect(it, `catalogue : « ${id} » absent`).not.toBeNull();
     return Object.assign(it!, { uid }, over);
   }
@@ -1704,7 +1705,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
 
 // ── LA CONSOLE CONSOMME LE REGISTRE DES ACTIONS (spec HUD « Zone 12 », lot branchements) ────────
 // Plus aucune case n'est écrite à la main : chacune naît d'une entrée de `src/data/actions.json`
-// (libellé, icône, foyer de règle, verdict d'offre) et s'exécute par `jouerLOffre`. Ce bloc mesure le
+// (libellé, icône, foyer de règle, verdict d'offre) et s'exécute par le verbe qu'elle déclare. Ce bloc mesure le
 // CÂBLAGE sur le store réel — un clic qui ne bouge pas le moteur est une case morte.
 describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement)', () => {
   const caseAction = (id: string) => host.querySelector(`[data-action="${id}"]`) as HTMLButtonElement | null;
@@ -1996,7 +1997,7 @@ describe('CombatConsole — micro-rendu, 2ᵉ passe du juge vision (2026-08-17)'
     expect(parseFloat(decl(ruleOf(at560, ':root'), '--cc-fronton')!)).toBe(0);
     // … et la travée ne porte AUCUNE bande réservée : la munition vit dans l'EN-TÊTE, à côté du set
     // (arbitrage #1348 complément a — 47px de plaque NUE mesurés sous les travées avant la coupe).
-    const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) => Object.assign(itemFromTrappingById(id)!, { uid }, over);
+    const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) => Object.assign(itemFromTrappingById(id, idsDeTest)!, { uid }, over);
     const tireur = hero('h1', 'Gunnar');
     tireur.conditions = [];
     tireur.items = [objet('arbalete-lourde', 'i-arb', { loaded: false }), objet('carreau', 'i-c')];
@@ -2184,7 +2185,7 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
   });
 
   it('G-2 — la munition CHARGÉE vit dans l’en-tête de travée, lue au registre de l’arme', () => {
-    const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) => Object.assign(itemFromTrappingById(id)!, { uid }, over);
+    const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) => Object.assign(itemFromTrappingById(id, idsDeTest)!, { uid }, over);
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
     const arb = objet('arbalete-lourde', 'i-arb');
@@ -2314,7 +2315,7 @@ describe('CombatConsole — intention armée : aucune infobulle de règle au-des
  * Surincantation, pose de zone, bordée, téléportation) doit porter SA SORTIE à l'écran : sans elle, le
  * joueur a seulement le clic-carte pour quitter le mode. Le bandeau la tire du REGISTRE (entrées
  * `surface: 'interlude'`, appariées par leur `mode` au mode de ciblage courant) — la console ne nomme
- * aucun état de flux, et le dispatcher exécuté est celui du registre (`jouerLOffre`).
+ * aucun état de flux, et le verbe exécuté est celui que déclare le registre (`gesteDeLOffre`).
  */
 /** COÛT d'une attaque gratuite à la case (`AttackOption.cost`) : l'Action de Mouvement se dit dans la
  *  MÊME colonne de crans que l'Avantage. LDB 85 l.314 */
@@ -2438,18 +2439,18 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
   it('N-1 — la console VIT au tour de la coque : aucune bande d’attente, les cinq cases navales sont là', () => {
     monterNavire();
     expect(host.querySelector('.cc-phase'), 'le tour d’un acteur CONTRÔLÉ n’est pas une phase d’attente').toBeNull();
-    for (const id of ['maneuver-ship', 'battery', 'crew-test-rude-epreuve', 'sing-shanty', 'ship-reload']) {
+    for (const id of ['maneuver-ship', 'battery', 'sing-shanty', 'ship-reload']) {
       expect(caseAction(id), `case navale « ${id} » absente de la travée`).not.toBeNull();
     }
     // BRANCHÉES, pas seulement dessinées : le pont clavier ne publie que les cases qui portent un `run`.
     const publiees = [...host.querySelectorAll('.cc-grid-left .cc-cell:not(.cc-empty)')]
       .filter((c) => !(c as HTMLButtonElement).disabled)
       .map((c) => c.getAttribute('data-action'));
-    for (const id of ['maneuver-ship', 'battery', 'crew-test-rude-epreuve', 'ship-reload']) {
+    for (const id of ['maneuver-ship', 'battery', 'ship-reload']) {
       expect(publiees, `« ${id} » n’est pas branchée (aucun dispatcher publié)`).toContain(id);
     }
     // Manœuvrer / Bordée / Rude épreuve : Action du navire INTACTE → offertes (gates du registre).
-    for (const id of ['maneuver-ship', 'battery', 'crew-test-rude-epreuve']) {
+    for (const id of ['maneuver-ship', 'battery']) {
       expect(estFermee(caseAction(id)!), `« ${id} » est fermée alors que l’Action du navire est intacte`).toBe(false);
       expect(caseAction(id)!.hasAttribute('data-gated'), `« ${id} » porte une raison de refus`).toBe(false);
     }
@@ -2464,7 +2465,7 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
     act(() => {
       useGame.setState({ battle: { ...useGame.getState().battle!, combatants: [{ ...chariot, id: ship.id, kind: 'hero', pos: ship.pos, crewIds: ship.crewIds, postes: ship.postes }, ...useGame.getState().battle!.combatants.slice(1)] } });
     });
-    for (const id of ['maneuver-ship', 'battery', 'crew-test-rude-epreuve', 'sing-shanty']) {
+    for (const id of ['maneuver-ship', 'battery', 'sing-shanty']) {
       expect(caseAction(id), `case navale « ${id} » offerte au tour d’un chariot`).toBeNull();
     }
     expect(caseAction('ship-reload'), 'la recharge d’une pièce montée reste offerte (LDB 62 l.335)').not.toBeNull();
@@ -2702,7 +2703,7 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
  */
 describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHEUR du choix', () => {
   const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) =>
-    Object.assign(itemFromTrappingById(id)!, { uid }, over) as ItemInstance;
+    Object.assign(itemFromTrappingById(id, idsDeTest)!, { uid }, over) as ItemInstance;
 
   /** Arbalétrier au set de tir, avec DEUX munitions compatibles (même famille) dans sa besace. */
   function tireur(opts: { charge?: boolean; deuxMunitions?: boolean } = {}) {
@@ -3029,7 +3030,7 @@ describe('CombatConsole — l’allumage d’une case armée vient du REGISTRE',
  */
 describe('CombatConsole — deux armes à distance : une case, un paramètre à élire', () => {
   const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) =>
-    Object.assign(itemFromTrappingById(id)!, { uid }, over) as ItemInstance;
+    Object.assign(itemFromTrappingById(id, idsDeTest)!, { uid }, over) as ItemInstance;
 
   /** Bretteur à DEUX pistolets (Recharge 1 chacun) et deux munitions compatibles au sac. */
   function bretteur(opts: { deux?: boolean; charges?: boolean } = {}) {
@@ -3163,7 +3164,7 @@ describe('CombatConsole — contrat SURFACE ⇄ RENDEUR', () => {
   /** Un porteur de set d'armes, ayant DÉJÀ marché (la gouttière offre alors son geste d'annulation). */
   function porteurAyantMarche() {
     const h = hero('h1', 'Gunnar');
-    h.items = [Object.assign(itemFromTrappingById('epee-batarde')!, { uid: 'i-e1' }) as ItemInstance];
+    h.items = [Object.assign(itemFromTrappingById('epee-batarde', idsDeTest)!, { uid: 'i-e1' }) as ItemInstance];
     h.loadouts = [{ id: 'lo-1', main: 'i-e1' }];
     h.activeLoadoutId = 'lo-1';
     recomputeLoadout(h);
@@ -3327,7 +3328,7 @@ describe('CombatConsole — tour d’un siège distant : exactement UNE puce de 
 
 /**
  * GESTE SECONDAIRE D'UNE ALVÉOLE (#1411 P2-B) — Focaliser n'est plus une case : c'est le geste
- * secondaire de l'alvéole du SORT (`surface: 'geste-secondaire'`, `hote: 'cast-spell'`), atteint au
+ * secondaire de l'alvéole du SORT (`surface: 'geste-secondaire'`, `hote: { id: 'cast-spell' }`), atteint au
  * clic droit, à l'appui long, à la touche Menu et à RB. Le rendeur est GÉNÉRIQUE : la console ne
  * nomme aucun id — elle apparie `hote` et population de candidats. Un geste de plus = une ligne de
  * JSON, ce que mesure ici une entrée FABRIQUÉE.
@@ -3480,7 +3481,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
   it('DEUX gestes secondaires sur le même hôte (entrée FABRIQUÉE) : panneau ancré, 2 candidats, Échap gratuit', () => {
     const fabrique: ActionDef = {
       id: 'test-geste-2e-fabrique', label: 'Geste fabriqué', icon: 'flag/focus',
-      surface: 'geste-secondaire', hote: 'cast-spell', gate: 'toujours',
+      surface: 'geste-secondaire', hote: { id: 'cast-spell' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
     ACTIONS.push(fabrique);
@@ -3505,7 +3506,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
   it('SURFACE ⇄ RENDEUR : le geste secondaire n’a pas d’alvéole propre — son rendeur est celle de son HÔTE', () => {
     monter(mage(['carreau']));
     expect(findActionById('focus-spell')!.surface).toBe('geste-secondaire');
-    expect(findActionById('focus-spell')!.hote).toBe('cast-spell');
+    expect(findActionById('focus-spell')!.hote?.id).toBe('cast-spell');
     expect(host.querySelector('[data-action="focus-spell"]'), 'aucune case propre : le geste n’est pas une alvéole').toBeNull();
     const porteur = host.querySelector('[data-action="cast-spell"][data-geste-2e~="focus-spell"]');
     expect(porteur, 'l’alvéole de l’hôte PORTE le geste').toBeTruthy();
@@ -3521,7 +3522,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
   it('APPUI LONG puis `contextmenu` NATIF : UN seul déclenchement (le doigt ne bascule pas le panneau)', () => {
     const fabrique: ActionDef = {
       id: 'test-geste-2e-fabrique', label: 'Geste fabriqué', icon: 'flag/focus',
-      surface: 'geste-secondaire', hote: 'cast-spell', gate: 'toujours',
+      surface: 'geste-secondaire', hote: { id: 'cast-spell' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
     vi.useFakeTimers();
@@ -3618,7 +3619,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
   it('CLIC DROIT MAINTENU (contextmenu À L’APPUI, macOS/Linux) : le minuteur d’appui long ne rejoue pas le geste', () => {
     const fabrique: ActionDef = {
       id: 'test-geste-2e-fabrique', label: 'Geste fabriqué', icon: 'flag/focus',
-      surface: 'geste-secondaire', hote: 'cast-spell', gate: 'toujours',
+      surface: 'geste-secondaire', hote: { id: 'cast-spell' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
     vi.useFakeTimers();
@@ -3653,7 +3654,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
   /** RENDEUR GÉNÉRIQUE (grief G2) : le calcul des gestes secondaires vit dans `cellFor`, pas au site
    *  des sorts — une entrée déclarée sur un AUTRE hôte est rendue SANS une ligne de code. */
   it('un geste secondaire déclaré sur `reload` (entrée FABRIQUÉE) est rendu par l’alvéole de SON hôte', () => {
-    const objet = (id: string, uid: string) => Object.assign(itemFromTrappingById(id)!, { uid }) as ItemInstance;
+    const objet = (id: string, uid: string) => Object.assign(itemFromTrappingById(id, idsDeTest)!, { uid }) as ItemInstance;
     const tireur = () => {
       const h = hero('h1', 'Gunnar');
       h.conditions = [];
@@ -3667,7 +3668,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
     };
     const fabrique: ActionDef = {
       id: 'test-geste-2e-reload', label: 'Geste de recharge', icon: 'flag/focus',
-      surface: 'geste-secondaire', hote: 'reload', gate: 'toujours',
+      surface: 'geste-secondaire', hote: { id: 'reload' }, gate: 'toujours',
       run: 'rechargerLArme', candidates: 'armes-a-distance', coutAction: 'gratuit',
     };
     monter(tireur());

@@ -863,7 +863,7 @@ export const TABLES = {
     traumaFracture: bandeDeNuit((_get, _set, _band, row, hero) => {
       return { consequences: freeCons(applyFractureEnd(hero, row.result!.success, String(row.meta?.severity ?? 'mineur'), String(row.meta?.location ?? ''), String(row.meta?.traumaLabel ?? t('rf.fractureFallback')))) };
     }),
-    diseaseTick: bandeDeNuit((_get, _set, _band, row, hero) => {
+    diseaseTick: bandeDeNuit((get, _set, _band, row, hero) => {
       // Échec d'un Test de cycle quotidien → applique ses ops d'échec (`meta.opsEchec`), via applyOps. Couvre
       // les DEUX porteurs de ce canal : le Test d'un SYMPTÔME (`onTick` — Blessé → contractDisease
       // 'blessure-purulente', Toxine, Vers) ET le Test porté par la MALADIE (`DiseaseDef.dailyTest` —
@@ -875,7 +875,7 @@ export const TABLES = {
       // La MALADIE est l'entité SOURCE de ce qu'elle inflige : tout effet actif posé par ces ops (Trait
       // octroyé, État durable) porte son ancrage de règle, donc sa fiche à l'écran.
       const source = { kind: 'disease' as const, id: String(row.meta?.diseaseName ?? '') };
-      return { consequences: freeCons(applyOps(hero, opsEchec, { rng: battleRng(), sl: row.result!.sl, source })) };
+      return { consequences: freeCons(applyOps(hero, opsEchec, { idNeuf: get().forgerUnId, rng: battleRng(), sl: row.result!.sl, source })) };
     }),
     diseaseGangrene: bandeDeNuit((_get, _set, _band, row, hero) => {
       return { consequences: freeCons(applyDiseaseGangrene(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, Number(row.meta?.be ?? 0))) };

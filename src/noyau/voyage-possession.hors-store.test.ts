@@ -16,6 +16,7 @@
  * LOT 3 y ajoute les POSTES d'Étape (voyage terrestre, `travelPostes`) : la bande des Activités et la
  * bande de Résistance de traversée naissaient de littéraux SANS possession — même fenêtre hôte-seul.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -31,7 +32,6 @@ import { createHero, skillCharacteristicById } from '../engine/character';
 import { modalOwnerOf } from './modalArbiter';
 import { humanControlled } from './netOwnership';
 import { seatOwns } from './sieges';
-import { WORLD_STEP_OWNER } from './pendings';
 import { surfaceOf } from './rollSeam';
 import { buildScene } from './mapSpec';
 import { setRule } from '../engine/policy';
@@ -75,10 +75,10 @@ const seaMap: WorldMap = {
 function fraisMer(): void {
   seedBattleRng(1);
   banc.setState({
-    party: makePregens().slice(0, 3),
+    party: makePregens(idsDeTest).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null,
-    pendingCrewTest: null, pendingRest: null, pendingCascade: null, suspendedCascades: [],
+    pendingRest: null, pendingCascade: null, suspendedCascades: [],
     gameTime: 8 * 60, lastUpkeepDay: 0,
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     journal: [],
@@ -142,10 +142,10 @@ function riverMap(extra: Partial<MapRouteTrace> = {}): WorldMap {
 describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le péril sans barreur est au MONDE', () => {
   it('barreur de l’invité : les étapes du jour lui appartiennent (jamais à l’hôte)', () => {
     seedBattleRng(7);
-    const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
+    const gunnar = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
     skill(gunnar, 'ramer', 50);
     skill(gunnar, 'voile', 45);
-    const otto = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', seed: 12, id: 'r-otto' });
+    const otto = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', seed: 12, id: 'r-otto' });
     get().fixerLeGroupe([gunnar, otto]);
     get().chargerLeProjet({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap(), projet: null });
     set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
@@ -165,9 +165,9 @@ describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le p
     expect(seatOwns(get(), 1, modalOwnerOf(get()) as string), 'la fenêtre du jour est au siège du bord').toBe(true);
   });
 
-  it('péril SANS barreur (équipage hors d’action, LDB 16 l.113) : le pas de vérification est une étape MONDE', () => {
+  it('péril SANS barreur (équipage hors d’action, LDB 16 l.113) : le pas de vérification, porté par le MONDE, n’arrête pas la journée (#3534)', () => {
     seedBattleRng(7);
-    const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
+    const gunnar = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
     skill(gunnar, 'ramer', 50);
     get().fixerLeGroupe([gunnar]);
     get().chargerLeProjet({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap({ riverPerils: [{ perilId: 'debris', chancePct: 100 }] }), projet: null });
@@ -175,15 +175,10 @@ describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le p
     deuxSieges(gunnar.id);
     addCondition(get().party[0], COND.inconscient);
     get().partirEnVoyage('r-reik', 'barge');
-    const jour = etapes();
-    expect(jour.some((s) => s.kind === 'riverNav'), 'personne ne tient la barre : aucun Test de Navigation').toBe(false);
-    const i = jour.findIndex((s) => s.kind === 'riverPerilCheck');
-    expect(i, 'le pas de vérification du péril est dans la cascade du jour').toBeGreaterThanOrEqual(0);
-    for (let k = 0; k < i; k++) get().jetValider('cascade');
-    const pc = get().pendingCascade!;
-    expect(pc.participants[pc.cursor].kind, 'la fenêtre est posée sur le pas de vérification').toBe('riverPerilCheck');
-    expect(pc.participants[pc.cursor].actorId, 'aucun héros ne le porte').toBeUndefined();
-    expect(modalOwnerOf(get()), 'routée au sentinel MONDE, jamais `undefined` (= hôte seul)').toBe(WORLD_STEP_OWNER);
+    const pc = get().pendingCascade;
+    expect(pc?.participants.some((s) => s.kind === 'riverNav'), 'personne ne tient la barre : aucun Test de Navigation').not.toBe(true);
+    expect(pc?.participants[pc.cursor]?.kind, 'aucune fenêtre ne se pose sur le pas de vérification').not.toBe('riverPerilCheck');
+    expect(get().journal.length, 'la journée est allée au journal').toBeGreaterThan(0);
   });
 });
 
@@ -193,9 +188,9 @@ describe('#1262 V2 — l’allure FORCÉE ouvre sa cascade pour le conducteur d�
   it('conducteur d’un autre siège : la journée devient influençable au lieu de se rouler en silence', () => {
     setRule('travel-allures', true);
     seedBattleRng(1);
-    const lead = createHero({ speciesId: 'humains-reiklander', careerId: 'cocher', label: 'Lead', motivation: 'x', seed: 21, id: 't-lead' });
+    const lead = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'cocher', label: 'Lead', motivation: 'x', seed: 21, id: 't-lead' });
     skill(lead, 'conduite-d-attelage', 40);
-    const aide = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Aide', motivation: 'x', seed: 22, id: 't-aide' });
+    const aide = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'garde', label: 'Aide', motivation: 'x', seed: 22, id: 't-aide' });
     skill(aide, 'conduite-d-attelage', 5);
     banc.setState({ party: [lead, aide], travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] } as never);
     get().chargerLeProjet({
@@ -232,7 +227,7 @@ describe('#1262 V2 — l’allure FORCÉE ouvre sa cascade pour le conducteur d�
    * synchrone par la seule cadence.
    */
   it('table de vérité : solo identique · cadence identique · COOP = le seul écart', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'cocher', label: 'D', motivation: 'x', seed: 31, id: 'tv-d' });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'cocher', label: 'D', motivation: 'x', seed: 31, id: 'tv-d' });
     banc.setState({ party: [h] } as never);
 
     // 1. SOLO (aucun siège invité) : les deux prédicats disent VRAI.
@@ -266,8 +261,8 @@ describe('#1262 V2 — l’allure FORCÉE ouvre sa cascade pour le conducteur d�
 describe('#1262 V2 lot 3 — les BANDES de l’Étape se possèdent (classe #1268)', () => {
   it('bande des Postes et bande de Résistance de traversée : jamais une fenêtre sans propriétaire', () => {
     seedBattleRng(3);
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Poste A', motivation: 'x', seed: 41, id: 'p-a' });
-    const b = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Poste B', motivation: 'x', seed: 42, id: 'p-b' });
+    const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'garde', label: 'Poste A', motivation: 'x', seed: 41, id: 'p-a' });
+    const b = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'garde', label: 'Poste B', motivation: 'x', seed: 42, id: 'p-b' });
     banc.setState({
       party: [a, b], battle: null, pendingCascade: null, suspendedCascades: [],
       travelPlan: { routeId: 'r', km: 24, postes: { [a.id]: { activityId: 'plein-air' }, [b.id]: { activityId: 'plein-air' } } },

@@ -5,9 +5,11 @@
     "label": "Bâton de combat",
     "hands": 2,
     "categorie": "melee",
-    "subType": "armes-d-hast",
+    "subType": {
+      "id": "armes-d-hast"
+    },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -45,9 +47,11 @@
     "label": "Hallebarde",
     "hands": 2,
     "categorie": "melee",
-    "subType": "armes-d-hast",
+    "subType": {
+      "id": "armes-d-hast"
+    },
     "enc": 3,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -89,9 +93,11 @@
     "label": "Lance",
     "hands": 2,
     "categorie": "melee",
-    "subType": "armes-d-hast",
+    "subType": {
+      "id": "armes-d-hast"
+    },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Très longue",
     "loc": null,
     "pa": null,
@@ -126,9 +132,11 @@
     "label": "Pique",
     "hands": 2,
     "categorie": "melee",
-    "subType": "armes-d-hast",
+    "subType": {
+      "id": "armes-d-hast"
+    },
     "enc": 4,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": "Considérable",
     "loc": null,
     "pa": null,
@@ -162,7 +170,9 @@
     "type": "trappings",
     "label": "Mains nues",
     "categorie": "melee",
-    "subType": "bagarre",
+    "subType": {
+      "id": "bagarre"
+    },
     "unarmed": true,
     "enc": 0,
     "availability": null,
@@ -189,9 +199,11 @@
     "type": "trappings",
     "label": "Coup-de-poing",
     "categorie": "melee",
-    "subType": "bagarre",
+    "subType": {
+      "id": "bagarre"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Personnelle",
     "loc": null,
     "pa": null,
@@ -218,7 +230,9 @@
     "type": "trappings",
     "label": "Arme improvisée",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "improvised": true,
     "enc": "Variable",
     "availability": "ND",
@@ -248,9 +262,11 @@
     "type": "trappings",
     "label": "Arme simple",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -288,10 +304,12 @@
     "type": "trappings",
     "label": "Bouclier",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "shield": true,
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Très courte",
     "loc": null,
     "pa": null,
@@ -332,10 +350,12 @@
     "type": "trappings",
     "label": "Bouclier (Grand)",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "shield": true,
     "enc": 3,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Très courte",
     "loc": null,
     "pa": null,
@@ -376,10 +396,12 @@
     "type": "trappings",
     "label": "Bouclier (Targe)",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "shield": true,
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Personnelle",
     "loc": null,
     "pa": null,
@@ -420,9 +442,11 @@
     "type": "trappings",
     "label": "Couteau",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Très courte",
     "loc": null,
     "pa": null,
@@ -457,9 +481,11 @@
     "type": "trappings",
     "label": "Dague",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Très courte",
     "loc": null,
     "pa": null,
@@ -490,9 +516,11 @@
     "type": "trappings",
     "label": "Cimeterre",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Courte",
     "loc": null,
     "pa": null,
@@ -536,9 +564,11 @@
     "type": "trappings",
     "label": "Dague ballock",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Très courte",
     "loc": null,
     "pa": null,
@@ -587,9 +617,11 @@
     "type": "trappings",
     "label": "Massue",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -627,9 +659,11 @@
     "type": "trappings",
     "label": "Pique d'armes",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -667,9 +701,11 @@
     "type": "trappings",
     "label": "Lance de cavalerie",
     "categorie": "melee",
-    "subType": "cavalerie",
+    "subType": {
+      "id": "cavalerie"
+    },
     "enc": 3,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": "Très longue",
     "loc": null,
     "pa": null,
@@ -711,9 +747,11 @@
     "label": "Marteau à bec-de-corbin",
     "hands": 2,
     "categorie": "melee",
-    "subType": "cavalerie",
+    "subType": {
+      "id": "cavalerie"
+    },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -753,9 +791,11 @@
     "label": "Épée bâtarde",
     "hands": 2,
     "categorie": "melee",
-    "subType": "deux-mains",
+    "subType": {
+      "id": "deux-mains"
+    },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -807,9 +847,11 @@
     "label": "Grande hache",
     "hands": 2,
     "categorie": "melee",
-    "subType": "deux-mains",
+    "subType": {
+      "id": "deux-mains"
+    },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -851,9 +893,11 @@
     "label": "Marteau de guerre",
     "hands": 2,
     "categorie": "melee",
-    "subType": "deux-mains",
+    "subType": {
+      "id": "deux-mains"
+    },
     "enc": 3,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -894,9 +938,11 @@
     "label": "Pioche à deux mains",
     "hands": 2,
     "categorie": "melee",
-    "subType": "deux-mains",
+    "subType": {
+      "id": "deux-mains"
+    },
     "enc": 3,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -937,9 +983,11 @@
     "label": "Zweihänder",
     "hands": 2,
     "categorie": "melee",
-    "subType": "deux-mains",
+    "subType": {
+      "id": "deux-mains"
+    },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -977,9 +1025,11 @@
     "type": "trappings",
     "label": "Fleuret",
     "categorie": "melee",
-    "subType": "escrime",
+    "subType": {
+      "id": "escrime"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -1017,9 +1067,11 @@
     "type": "trappings",
     "label": "Rapière",
     "categorie": "melee",
-    "subType": "escrime",
+    "subType": {
+      "id": "escrime"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -1050,9 +1102,11 @@
     "type": "trappings",
     "label": "Fléau",
     "categorie": "melee",
-    "subType": "fleau",
+    "subType": {
+      "id": "fleau"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -1082,9 +1136,11 @@
     "type": "trappings",
     "label": "Fléau à grain",
     "categorie": "melee",
-    "subType": "fleau",
+    "subType": {
+      "id": "fleau"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -1119,9 +1175,11 @@
     "label": "Fléau d'armes",
     "hands": 2,
     "categorie": "melee",
-    "subType": "fleau",
+    "subType": {
+      "id": "fleau"
+    },
     "enc": 2,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -1158,9 +1216,11 @@
     "type": "trappings",
     "label": "Brise-épée",
     "categorie": "melee",
-    "subType": "parade",
+    "subType": {
+      "id": "parade"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Courte",
     "loc": null,
     "pa": null,
@@ -1195,9 +1255,11 @@
     "type": "trappings",
     "label": "Main Gauche",
     "categorie": "melee",
-    "subType": "parade",
+    "subType": {
+      "id": "parade"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": "Très courte",
     "loc": null,
     "pa": null,
@@ -1236,9 +1298,11 @@
     "label": "Arbalète",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "arbalete",
+    "subType": {
+      "id": "arbalete"
+    },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": 60,
     "loc": null,
@@ -1275,9 +1339,11 @@
     "type": "trappings",
     "label": "Arbalète de poing",
     "categorie": "ranged",
-    "subType": "arbalete",
+    "subType": {
+      "id": "arbalete"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 10,
     "loc": null,
@@ -1314,9 +1380,11 @@
     "label": "Arbalète lourde",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "arbalete",
+    "subType": {
+      "id": "arbalete"
+    },
     "enc": 3,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 100,
     "loc": null,
@@ -1357,9 +1425,11 @@
     "label": "Arc",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "arc",
+    "subType": {
+      "id": "arc"
+    },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": 50,
     "loc": null,
@@ -1392,9 +1462,11 @@
     "label": "Arc court",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "arc",
+    "subType": {
+      "id": "arc"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": 20,
     "loc": null,
@@ -1427,9 +1499,11 @@
     "label": "Arc elfique",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "arc",
+    "subType": {
+      "id": "arc"
+    },
     "enc": 2,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 150,
     "loc": null,
@@ -1469,9 +1543,11 @@
     "label": "Arc long",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "arc",
+    "subType": {
+      "id": "arc"
+    },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 100,
     "loc": null,
@@ -1507,9 +1583,11 @@
     "type": "trappings",
     "label": "Fouet",
     "categorie": "ranged",
-    "subType": "entraves",
+    "subType": {
+      "id": "entraves"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": 6,
     "loc": null,
@@ -1545,9 +1623,11 @@
     "type": "trappings",
     "label": "Lasso",
     "categorie": "ranged",
-    "subType": "entraves",
+    "subType": {
+      "id": "entraves"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": {
       "bf": 2
@@ -1582,9 +1662,11 @@
     "type": "trappings",
     "label": "Filet",
     "categorie": "ranged",
-    "subType": "entraves",
+    "subType": {
+      "id": "entraves"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": 6,
     "loc": null,
@@ -1616,9 +1698,11 @@
     "type": "trappings",
     "label": "Bombe",
     "categorie": "ranged",
-    "subType": "explosifs",
+    "subType": {
+      "id": "explosifs"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": {
       "bf": 1
@@ -1662,9 +1746,11 @@
     "type": "trappings",
     "label": "Bombe incendiaire",
     "categorie": "ranged",
-    "subType": "explosifs",
+    "subType": {
+      "id": "explosifs"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": {
       "bf": 1
@@ -1705,9 +1791,11 @@
     "type": "trappings",
     "label": "Fronde",
     "categorie": "ranged",
-    "subType": "fronde",
+    "subType": {
+      "id": "fronde"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": 60,
     "loc": null,
@@ -1739,9 +1827,11 @@
     "label": "Fustibale",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "fronde",
+    "subType": {
+      "id": "fronde"
+    },
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 100,
     "loc": null,
@@ -1772,9 +1862,11 @@
     "type": "trappings",
     "label": "Bolas",
     "categorie": "ranged",
-    "subType": "lancer",
+    "subType": {
+      "id": "lancer"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": {
       "bf": 3
@@ -1812,9 +1904,11 @@
     "type": "trappings",
     "label": "Couteau de lancer",
     "categorie": "ranged",
-    "subType": "lancer",
+    "subType": {
+      "id": "lancer"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": {
       "bf": 2
@@ -1847,9 +1941,11 @@
     "type": "trappings",
     "label": "Fléchette",
     "categorie": "ranged",
-    "subType": "lancer",
+    "subType": {
+      "id": "lancer"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": {
       "bf": 2
@@ -1886,9 +1982,11 @@
     "type": "trappings",
     "label": "Hache de lancer",
     "categorie": "ranged",
-    "subType": "lancer",
+    "subType": {
+      "id": "lancer"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": {
       "bf": 2
@@ -1925,9 +2023,11 @@
     "type": "trappings",
     "label": "Javelot",
     "categorie": "ranged",
-    "subType": "lancer",
+    "subType": {
+      "id": "lancer"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": {
       "bf": 3
@@ -1965,9 +2065,11 @@
     "type": "trappings",
     "label": "Rocher",
     "categorie": "ranged",
-    "subType": "lancer",
+    "subType": {
+      "id": "lancer"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "range": {
       "bf": 3
@@ -1995,9 +2097,11 @@
     "label": "Arquebus à répétition",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "ingenierie",
+    "subType": {
+      "id": "ingenierie"
+    },
     "enc": 3,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 30,
     "loc": null,
@@ -2046,9 +2150,11 @@
     "type": "trappings",
     "label": "Pistolet à répétition",
     "categorie": "ranged",
-    "subType": "ingenierie",
+    "subType": {
+      "id": "ingenierie"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 10,
     "loc": null,
@@ -2101,9 +2207,11 @@
     "label": "Arquebuse",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 50,
     "loc": null,
@@ -2149,9 +2257,11 @@
     "label": "Long fusil d'Hochland",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "enc": 3,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 100,
     "loc": null,
@@ -2199,9 +2309,11 @@
     "type": "trappings",
     "label": "Pistolet",
     "categorie": "ranged",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 20,
     "loc": null,
@@ -2247,9 +2359,11 @@
     "label": "Tromblon",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 20,
     "loc": null,
@@ -2299,9 +2413,11 @@
     "label": "Carreau",
     "packSize": 12,
     "categorie": "ammunition",
-    "subType": "arbalete",
+    "subType": {
+      "id": "arbalete"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -2327,9 +2443,11 @@
     "label": "Flèche",
     "packSize": 12,
     "categorie": "ammunition",
-    "subType": "arc",
+    "subType": {
+      "id": "arc"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -2354,9 +2472,11 @@
     "type": "trappings",
     "label": "Flèche elfique",
     "categorie": "ammunition",
-    "subType": "arc",
+    "subType": {
+      "id": "arc"
+    },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "ammoRangeMod": {
       "add": 50
@@ -2394,9 +2514,11 @@
     "label": "Balle de plomb",
     "packSize": 12,
     "categorie": "ammunition",
-    "subType": "fronde",
+    "subType": {
+      "id": "fronde"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "ammoRangeMod": {
       "add": -10
@@ -2428,9 +2550,11 @@
     "label": "Projectile de pierre",
     "packSize": 12,
     "categorie": "ammunition",
-    "subType": "fronde",
+    "subType": {
+      "id": "fronde"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -2456,9 +2580,11 @@
     "label": "Balle et Poudre",
     "packSize": 12,
     "categorie": "ammunition",
-    "subType": "poudre-noire-et-ingenierie",
+    "subType": {
+      "id": "poudre-noire-et-ingenierie"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -2489,9 +2615,11 @@
     "type": "trappings",
     "label": "Munitions improvisées et Poudre",
     "categorie": "ammunition",
-    "subType": "poudre-noire-et-ingenierie",
+    "subType": {
+      "id": "poudre-noire-et-ingenierie"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "ammoRangeMod": {
       "mult": 0.5
@@ -2515,9 +2643,11 @@
     "type": "trappings",
     "label": "Petites munitions et Poudre",
     "categorie": "ammunition",
-    "subType": "poudre-noire-et-ingenierie",
+    "subType": {
+      "id": "poudre-noire-et-ingenierie"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -2542,9 +2672,11 @@
     "type": "trappings",
     "label": "Calotte de cuir",
     "categorie": "armor",
-    "subType": "cuir-souple",
+    "subType": {
+      "id": "cuir-souple"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": "Tête",
     "pa": 1,
@@ -2573,9 +2705,11 @@
     "type": "trappings",
     "label": "Jambières en cuir",
     "categorie": "armor",
-    "subType": "cuir-souple",
+    "subType": {
+      "id": "cuir-souple"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": "Jambes",
     "pa": 1,
@@ -2600,9 +2734,11 @@
     "type": "trappings",
     "label": "Justaucorps de cuir",
     "categorie": "armor",
-    "subType": "cuir-souple",
+    "subType": {
+      "id": "cuir-souple"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": "Corps",
     "pa": 1,
@@ -2627,9 +2763,11 @@
     "type": "trappings",
     "label": "Veste de cuir",
     "categorie": "armor",
-    "subType": "cuir-souple",
+    "subType": {
+      "id": "cuir-souple"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": "Bras, Corps",
     "pa": 1,
@@ -2654,9 +2792,11 @@
     "type": "trappings",
     "label": "Plastron de cuir",
     "categorie": "armor",
-    "subType": "cuir-bouilli",
+    "subType": {
+      "id": "cuir-bouilli"
+    },
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": "Corps",
     "pa": 2,
@@ -2684,9 +2824,11 @@
     "type": "trappings",
     "label": "Chausses de mailles",
     "categorie": "armor",
-    "subType": "mailles",
+    "subType": {
+      "id": "mailles"
+    },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": "Jambes",
     "pa": 2,
@@ -2718,9 +2860,11 @@
     "type": "trappings",
     "label": "Chemise de mailles",
     "categorie": "armor",
-    "subType": "mailles",
+    "subType": {
+      "id": "mailles"
+    },
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": "Corps",
     "pa": 2,
@@ -2752,9 +2896,11 @@
     "type": "trappings",
     "label": "Coiffe de mailles",
     "categorie": "armor",
-    "subType": "mailles",
+    "subType": {
+      "id": "mailles"
+    },
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": "Tête",
     "pa": 2,
@@ -2793,9 +2939,11 @@
     "type": "trappings",
     "label": "Cotte de mailles",
     "categorie": "armor",
-    "subType": "mailles",
+    "subType": {
+      "id": "mailles"
+    },
     "enc": 3,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": "Bras, Corps",
     "pa": 2,
@@ -2827,9 +2975,11 @@
     "type": "trappings",
     "label": "Brassards",
     "categorie": "armor",
-    "subType": "plate",
+    "subType": {
+      "id": "plate"
+    },
     "enc": 3,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": "Bras",
     "pa": 2,
@@ -2864,9 +3014,11 @@
     "type": "trappings",
     "label": "Heaume",
     "categorie": "armor",
-    "subType": "plate",
+    "subType": {
+      "id": "plate"
+    },
     "enc": 2,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": "Tête",
     "pa": 2,
@@ -2905,9 +3057,11 @@
     "type": "trappings",
     "label": "Heaume ouvert",
     "categorie": "armor",
-    "subType": "plate",
+    "subType": {
+      "id": "plate"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": "Tête",
     "pa": 2,
@@ -2943,9 +3097,11 @@
     "type": "trappings",
     "label": "Jambières d'acier",
     "categorie": "armor",
-    "subType": "plate",
+    "subType": {
+      "id": "plate"
+    },
     "enc": 3,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": "Jambes",
     "pa": 2,
@@ -2980,9 +3136,11 @@
     "type": "trappings",
     "label": "Plastron",
     "categorie": "armor",
-    "subType": "plate",
+    "subType": {
+      "id": "plate"
+    },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": "Corps",
     "pa": 2,
@@ -3017,9 +3175,11 @@
     "type": "trappings",
     "label": "Baril",
     "categorie": "trapping",
-    "subType": "sacs-et-contenants",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
     "enc": 6,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3044,9 +3204,11 @@
     "type": "trappings",
     "label": "Besace",
     "categorie": "trapping",
-    "subType": "sacs-et-contenants",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3071,9 +3233,11 @@
     "type": "trappings",
     "label": "Bourse",
     "categorie": "trapping",
-    "subType": "sacs-et-contenants",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3097,9 +3261,11 @@
     "type": "trappings",
     "label": "Chope en étain",
     "categorie": "trapping",
-    "subType": "sacs-et-contenants",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3120,9 +3286,11 @@
     "type": "trappings",
     "label": "Cruche",
     "categorie": "trapping",
-    "subType": "sacs-et-contenants",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3147,9 +3315,11 @@
     "type": "trappings",
     "label": "Étui à parchemin",
     "categorie": "trapping",
-    "subType": "sacs-et-contenants",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3170,9 +3340,11 @@
     "type": "trappings",
     "label": "Flasque",
     "categorie": "trapping",
-    "subType": "sacs-et-contenants",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3194,9 +3366,11 @@
     "type": "trappings",
     "label": "Fontes de selle",
     "categorie": "trapping",
-    "subType": "sacs-et-contenants",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
     "enc": 4,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3220,9 +3394,11 @@
     "type": "trappings",
     "label": "Grand sac",
     "categorie": "trapping",
-    "subType": "sacs-et-contenants",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
     "enc": 3,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3250,9 +3426,11 @@
       "waterContainer": true
     },
     "categorie": "trapping",
-    "subType": "sacs-et-contenants",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3277,9 +3455,11 @@
     "type": "trappings",
     "label": "Sac",
     "categorie": "trapping",
-    "subType": "sacs-et-contenants",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3304,9 +3484,11 @@
     "type": "trappings",
     "label": "Sac à dos",
     "categorie": "trapping",
-    "subType": "sacs-et-contenants",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3331,9 +3513,11 @@
     "type": "trappings",
     "label": "Tonneau",
     "categorie": "trapping",
-    "subType": "sacs-et-contenants",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3358,9 +3542,11 @@
     "type": "trappings",
     "label": "Amulette",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3381,9 +3567,11 @@
     "type": "trappings",
     "label": "Bijoux",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3401,9 +3589,11 @@
     "type": "trappings",
     "label": "Bottes",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3424,9 +3614,11 @@
     "type": "trappings",
     "label": "Canne de marche",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3454,9 +3646,11 @@
       "weatherProtection": true
     },
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3477,9 +3671,11 @@
     "type": "trappings",
     "label": "Capuchon",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3500,9 +3696,11 @@
     "type": "trappings",
     "label": "Masque",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3523,9 +3721,11 @@
     "type": "trappings",
     "label": "Chapeau",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3547,9 +3747,11 @@
     "type": "trappings",
     "label": "Chaussures",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3570,9 +3772,11 @@
     "type": "trappings",
     "label": "Chevalière",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3594,9 +3798,11 @@
     "type": "trappings",
     "label": "Costume",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3618,9 +3824,11 @@
     "label": "Épingle",
     "packSize": 6,
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3641,9 +3849,11 @@
     "type": "trappings",
     "label": "Gants",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3664,9 +3874,11 @@
     "type": "trappings",
     "label": "Gants en cuir",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3687,9 +3899,11 @@
     "type": "trappings",
     "label": "Costume de cour",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3714,9 +3928,11 @@
       "weatherProtection": true
     },
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3738,9 +3954,11 @@
     "type": "trappings",
     "label": "Parfum",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3761,9 +3979,11 @@
     "type": "trappings",
     "label": "Poudre pour le visage",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3784,9 +4004,11 @@
     "type": "trappings",
     "label": "Robes",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3807,9 +4029,11 @@
     "type": "trappings",
     "label": "Sceptre",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3831,9 +4055,11 @@
     "type": "trappings",
     "label": "Symbole religieux",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3854,9 +4080,11 @@
     "type": "trappings",
     "label": "Tatouage",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3877,9 +4105,11 @@
     "type": "trappings",
     "label": "Uniforme",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3900,9 +4130,11 @@
     "type": "trappings",
     "label": "Vêtements",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3923,9 +4155,11 @@
     "type": "trappings",
     "label": "Bière, pinte",
     "categorie": "trapping",
-    "subType": "nourriture-boisson-et-hebergement",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3970,9 +4204,11 @@
     "type": "trappings",
     "label": "Bière, tonnelet",
     "categorie": "trapping",
-    "subType": "nourriture-boisson-et-hebergement",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -3994,9 +4230,11 @@
     "type": "trappings",
     "label": "Bière de Bugman XXXXXX, pinte",
     "categorie": "trapping",
-    "subType": "nourriture-boisson-et-hebergement",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4018,9 +4256,11 @@
     "type": "trappings",
     "label": "Chambre, commune/nuit",
     "categorie": "trapping",
-    "subType": "nourriture-boisson-et-hebergement",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
     "enc": null,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4043,9 +4283,11 @@
     "type": "trappings",
     "label": "Chambre, privée/nuit",
     "categorie": "trapping",
-    "subType": "nourriture-boisson-et-hebergement",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
     "enc": null,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4068,9 +4310,11 @@
     "type": "trappings",
     "label": "Écurie/nuit",
     "categorie": "trapping",
-    "subType": "nourriture-boisson-et-hebergement",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
     "enc": null,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4092,9 +4336,11 @@
     "type": "trappings",
     "label": "Nourriture, courses/journée",
     "categorie": "trapping",
-    "subType": "nourriture-boisson-et-hebergement",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4115,9 +4361,11 @@
     "type": "trappings",
     "label": "Repas, auberge",
     "categorie": "trapping",
-    "subType": "nourriture-boisson-et-hebergement",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4138,9 +4386,11 @@
     "type": "trappings",
     "label": "Spiritueux, pinte",
     "categorie": "trapping",
-    "subType": "nourriture-boisson-et-hebergement",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4161,9 +4411,11 @@
     "type": "trappings",
     "label": "Vin, bouteille",
     "categorie": "trapping",
-    "subType": "nourriture-boisson-et-hebergement",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4184,9 +4436,11 @@
     "type": "trappings",
     "label": "Vin & spiritueux, verre",
     "categorie": "trapping",
-    "subType": "nourriture-boisson-et-hebergement",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4235,9 +4489,11 @@
       "isRations": true
     },
     "categorie": "trapping",
-    "subType": "nourriture-boisson-et-hebergement",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4259,9 +4515,11 @@
     "type": "trappings",
     "label": "Aiguille",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4282,9 +4540,11 @@
     "type": "trappings",
     "label": "Balai",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4305,9 +4565,11 @@
     "type": "trappings",
     "label": "Béquille",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4328,9 +4590,11 @@
     "type": "trappings",
     "label": "Bésicles",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4368,9 +4632,11 @@
     "type": "trappings",
     "label": "Binette",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4391,9 +4657,11 @@
     "type": "trappings",
     "label": "Boulier",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4414,9 +4682,11 @@
     "type": "trappings",
     "label": "Brosse pour le sol",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4437,9 +4707,11 @@
     "type": "trappings",
     "label": "Cachet, gravé",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4460,9 +4732,11 @@
     "type": "trappings",
     "label": "Ciseau",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4483,9 +4757,11 @@
     "type": "trappings",
     "label": "Clef",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4507,9 +4783,11 @@
     "label": "Clou",
     "packSize": 12,
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4530,9 +4808,11 @@
     "type": "trappings",
     "label": "Couteau",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4553,9 +4833,11 @@
     "type": "trappings",
     "label": "Cure-oreille",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4576,9 +4858,11 @@
     "type": "trappings",
     "label": "Faucille",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4599,9 +4883,11 @@
     "type": "trappings",
     "label": "Gaffe",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4623,9 +4909,11 @@
     "label": "Hameçon",
     "packSize": 12,
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4647,9 +4935,11 @@
     "type": "trappings",
     "label": "Maillet",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4670,9 +4960,11 @@
     "type": "trappings",
     "label": "Marteau",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4693,9 +4985,11 @@
     "type": "trappings",
     "label": "Menottes",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4717,9 +5011,11 @@
     "type": "trappings",
     "label": "Miroir à main",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4740,9 +5036,11 @@
     "type": "trappings",
     "label": "Nécessaire antipoison",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4791,9 +5089,11 @@
     "type": "trappings",
     "label": "Nécessaire d'écriture",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4815,9 +5115,11 @@
     "type": "trappings",
     "label": "Nécessaire de déguisement",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4839,9 +5141,11 @@
     "type": "trappings",
     "label": "Outils de crochetage",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4866,9 +5170,11 @@
     "type": "trappings",
     "label": "Peigne",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4889,9 +5195,11 @@
     "type": "trappings",
     "label": "Pelle",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4912,9 +5220,11 @@
     "type": "trappings",
     "label": "Perche",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 3,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4936,9 +5246,11 @@
     "type": "trappings",
     "label": "Pied-de-biche",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4959,9 +5271,11 @@
     "type": "trappings",
     "label": "Piège à animaux",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -4983,9 +5297,11 @@
     "type": "trappings",
     "label": "Pilon et Mortier",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5006,9 +5322,11 @@
     "type": "trappings",
     "label": "Pinces, acier",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5029,9 +5347,11 @@
     "type": "trappings",
     "label": "Pince à épiler",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5052,9 +5372,11 @@
     "type": "trappings",
     "label": "Pinceau",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5075,9 +5397,11 @@
     "type": "trappings",
     "label": "Pioche",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5098,9 +5422,11 @@
     "type": "trappings",
     "label": "Plume d'oie",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5121,9 +5447,11 @@
     "type": "trappings",
     "label": "Râteau",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5144,9 +5472,11 @@
     "type": "trappings",
     "label": "Scie",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5170,9 +5500,11 @@
       "waterContainer": true
     },
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5193,9 +5525,11 @@
     "type": "trappings",
     "label": "Serpillère",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5216,9 +5550,11 @@
     "type": "trappings",
     "label": "Télescope",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5239,9 +5575,11 @@
     "type": "trappings",
     "label": "Carte",
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5262,9 +5600,11 @@
     "type": "trappings",
     "label": "Document légal",
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5286,7 +5626,9 @@
     "type": "trappings",
     "label": "Licence de Guilde",
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 0,
     "availability": "ND",
     "reach": null,
@@ -5306,9 +5648,11 @@
     "type": "trappings",
     "label": "Livre (Apothicaire)",
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5330,9 +5674,11 @@
     "type": "trappings",
     "label": "Livre (Art)",
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5354,9 +5700,11 @@
     "type": "trappings",
     "label": "Livre (Cryptographie)",
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 1,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5378,9 +5726,11 @@
     "type": "trappings",
     "label": "Livre (Ingénierie)",
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5402,9 +5752,11 @@
     "type": "trappings",
     "label": "Livre (Loi)",
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5426,9 +5778,11 @@
     "type": "trappings",
     "label": "Livre (Magie)",
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 1,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5450,9 +5804,11 @@
     "type": "trappings",
     "label": "Livre (Médecine)",
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5474,9 +5830,11 @@
     "type": "trappings",
     "label": "Livre (Religion)",
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5501,9 +5859,11 @@
       "isGrimoire": true
     },
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 1,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5525,9 +5885,11 @@
     "type": "trappings",
     "label": "Parchemin",
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5548,9 +5910,11 @@
     "type": "trappings",
     "label": "Feuille de parchemin",
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5571,9 +5935,11 @@
     "type": "trappings",
     "label": "Tract",
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5594,9 +5960,11 @@
     "type": "trappings",
     "label": "Atelier",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": "ND",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5618,9 +5986,11 @@
     "type": "trappings",
     "label": "Atelier (Apothicaire)",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": "ND",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5642,9 +6012,11 @@
     "type": "trappings",
     "label": "Atelier (Charpentier)",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": "ND",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5666,9 +6038,11 @@
     "type": "trappings",
     "label": "Atelier (Forgeron)",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": "ND",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5690,9 +6064,11 @@
     "type": "trappings",
     "label": "Atelier (Graveur)",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": "ND",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5714,9 +6090,11 @@
     "type": "trappings",
     "label": "Atelier (Artiste)",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": "ND",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5738,9 +6116,11 @@
     "type": "trappings",
     "label": "Atelier (Herboriste)",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": "ND",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5762,9 +6142,11 @@
     "type": "trappings",
     "label": "Atelier (Ingénieur)",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": "ND",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5786,9 +6168,11 @@
     "type": "trappings",
     "label": "Atelier (Médecin)",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": "ND",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5810,9 +6194,11 @@
     "type": "trappings",
     "label": "Outils professionnels",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5834,9 +6220,11 @@
     "type": "trappings",
     "label": "Outils professionnels (Apothicaire)",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5858,9 +6246,11 @@
     "type": "trappings",
     "label": "Outils professionnels (Charpentier)",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5882,9 +6272,11 @@
     "type": "trappings",
     "label": "Outils professionnels (Forgeron)",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5906,9 +6298,11 @@
     "type": "trappings",
     "label": "Outils professionnels (Graveur)",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5930,9 +6324,11 @@
     "type": "trappings",
     "label": "Outils professionnels (Artiste)",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5954,9 +6350,11 @@
     "type": "trappings",
     "label": "Outils professionnels (Herboriste)",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -5978,9 +6376,11 @@
     "type": "trappings",
     "label": "Outils professionnels (Ingénieur)",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6002,9 +6402,11 @@
     "type": "trappings",
     "label": "Outils professionnels (Médecin)",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6026,9 +6428,11 @@
     "type": "trappings",
     "label": "Outils professionnels (Navigateur)",
     "categorie": "trapping",
-    "subType": "outils-professionnels-et-ateliers",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6050,9 +6454,11 @@
     "type": "trappings",
     "label": "Collier et laisse (chien)",
     "categorie": "trapping",
-    "subType": "animaux-et-vehicules",
+    "subType": {
+      "id": "animaux-et-vehicules"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6073,9 +6479,11 @@
     "type": "trappings",
     "label": "Poulet",
     "categorie": "trapping",
-    "subType": "animaux-et-vehicules",
+    "subType": {
+      "id": "animaux-et-vehicules"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6096,9 +6504,11 @@
     "type": "trappings",
     "label": "Selle et Harnais",
     "categorie": "trapping",
-    "subType": "animaux-et-vehicules",
+    "subType": {
+      "id": "animaux-et-vehicules"
+    },
     "enc": 4,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6119,9 +6529,11 @@
     "type": "trappings",
     "label": "Singe",
     "categorie": "trapping",
-    "subType": "animaux-et-vehicules",
+    "subType": {
+      "id": "animaux-et-vehicules"
+    },
     "enc": 2,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6143,9 +6555,11 @@
     "label": "Vers",
     "packSize": 6,
     "categorie": "trapping",
-    "subType": "animaux-et-vehicules",
+    "subType": {
+      "id": "animaux-et-vehicules"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6166,9 +6580,11 @@
     "type": "trappings",
     "label": "Bave",
     "categorie": "trapping",
-    "subType": "drogues-et-poisons",
+    "subType": {
+      "id": "drogues-et-poisons"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6214,9 +6630,11 @@
     "type": "trappings",
     "label": "Bonnet de fou",
     "categorie": "trapping",
-    "subType": "drogues-et-poisons",
+    "subType": {
+      "id": "drogues-et-poisons"
+    },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6242,7 +6660,7 @@
             "ops": [
               {
                 "op": "charMod",
-                "char": "force",
+                "characteristic": "force",
                 "mod": 10
               },
               {
@@ -6322,9 +6740,11 @@
     "type": "trappings",
     "label": "Brise-cœur",
     "categorie": "trapping",
-    "subType": "drogues-et-poisons",
+    "subType": {
+      "id": "drogues-et-poisons"
+    },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6384,9 +6804,11 @@
     "type": "trappings",
     "label": "Délice de Ranald",
     "categorie": "trapping",
-    "subType": "drogues-et-poisons",
+    "subType": {
+      "id": "drogues-et-poisons"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6413,22 +6835,22 @@
           },
           {
             "op": "charMod",
-            "char": "force",
+            "characteristic": "force",
             "mod": 10
           },
           {
             "op": "charMod",
-            "char": "endurance",
+            "characteristic": "endurance",
             "mod": 10
           },
           {
             "op": "charMod",
-            "char": "agilite",
+            "characteristic": "agilite",
             "mod": 10
           },
           {
             "op": "charMod",
-            "char": "capacite-de-combat",
+            "characteristic": "capacite-de-combat",
             "mod": 10
           },
           {
@@ -6442,22 +6864,22 @@
               },
               {
                 "op": "charMod",
-                "char": "capacite-de-combat",
+                "characteristic": "capacite-de-combat",
                 "mod": -20
               },
               {
                 "op": "charMod",
-                "char": "endurance",
+                "characteristic": "endurance",
                 "mod": -20
               },
               {
                 "op": "charMod",
-                "char": "force",
+                "characteristic": "force",
                 "mod": -20
               },
               {
                 "op": "charMod",
-                "char": "agilite",
+                "characteristic": "agilite",
                 "mod": -20
               }
             ]
@@ -6474,9 +6896,11 @@
     "type": "trappings",
     "label": "Fleur de lune",
     "categorie": "trapping",
-    "subType": "drogues-et-poisons",
+    "subType": {
+      "id": "drogues-et-poisons"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6578,9 +7002,11 @@
     "type": "trappings",
     "label": "Lotus noir",
     "categorie": "trapping",
-    "subType": "drogues-et-poisons",
+    "subType": {
+      "id": "drogues-et-poisons"
+    },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6682,7 +7108,9 @@
     "type": "trappings",
     "label": "Malepierre (brute)",
     "categorie": "trapping",
-    "subType": "drogues-et-poisons",
+    "subType": {
+      "id": "drogues-et-poisons"
+    },
     "availability": null,
     "reach": null,
     "loc": null,
@@ -6717,7 +7145,9 @@
     "type": "trappings",
     "label": "Malepierre raffinée",
     "categorie": "trapping",
-    "subType": "drogues-et-poisons",
+    "subType": {
+      "id": "drogues-et-poisons"
+    },
     "availability": null,
     "reach": null,
     "loc": null,
@@ -6752,9 +7182,11 @@
     "type": "trappings",
     "label": "Mystracine",
     "categorie": "trapping",
-    "subType": "drogues-et-poisons",
+    "subType": {
+      "id": "drogues-et-poisons"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6778,27 +7210,27 @@
           {
             "op": "testMod",
             "amount": 10,
-            "char": "endurance"
+            "characteristic": "endurance"
           },
           {
             "op": "testMod",
             "amount": 10,
-            "char": "force-mentale"
+            "characteristic": "force-mentale"
           },
           {
             "op": "testMod",
             "amount": -10,
-            "char": "agilite"
+            "characteristic": "agilite"
           },
           {
             "op": "testMod",
             "amount": -10,
-            "char": "initiative"
+            "characteristic": "initiative"
           },
           {
             "op": "testMod",
             "amount": -10,
-            "char": "intelligence"
+            "characteristic": "intelligence"
           }
         ]
       }
@@ -6822,9 +7254,11 @@
     "type": "trappings",
     "label": "Racine de mandragore",
     "categorie": "trapping",
-    "subType": "drogues-et-poisons",
+    "subType": {
+      "id": "drogues-et-poisons"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6859,7 +7293,7 @@
           },
           {
             "op": "actGate",
-            "char": "force-mentale"
+            "characteristic": "force-mentale"
           }
         ]
       }
@@ -6883,9 +7317,11 @@
     "type": "trappings",
     "label": "Belladone",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6945,9 +7381,11 @@
     "type": "trappings",
     "label": "Cataplasme de guérison",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -6983,9 +7421,11 @@
     "type": "trappings",
     "label": "Faxtoryll",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7020,9 +7460,11 @@
     "type": "trappings",
     "label": "Potion de guérison",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7070,9 +7512,11 @@
     "type": "trappings",
     "label": "Potion de vitalité",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7107,9 +7551,11 @@
     "type": "trappings",
     "label": "Racine de terre",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7153,9 +7599,11 @@
     "type": "trappings",
     "label": "Soude commune",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7190,9 +7638,11 @@
     "type": "trappings",
     "label": "Tonique digestif",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7233,9 +7683,11 @@
     "type": "trappings",
     "label": "Gesundheit",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7288,9 +7740,11 @@
     "type": "trappings",
     "label": "Racine des tombes",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7408,9 +7862,11 @@
     "type": "trappings",
     "label": "Rouille mouchetée",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7458,9 +7914,11 @@
     "type": "trappings",
     "label": "Cache-œil",
     "categorie": "trapping",
-    "subType": "protheses",
+    "subType": {
+      "id": "protheses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7505,9 +7963,11 @@
       }
     ],
     "categorie": "trapping",
-    "subType": "protheses",
+    "subType": {
+      "id": "protheses"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7522,7 +7982,9 @@
       },
       "reach": "Très courte",
       "qualities": [],
-      "subType": "base",
+      "subType": {
+        "id": "base"
+      },
       "hands": 1
     },
     "desc": "Vous possédez un crochet là où vous aviez une main. Outil étonnamment maniable une fois que vous vous y êtes habitué, vous pouvez racheter la pénalité de -20 à tous les Tests impliquant deux mains pour 100 PX pour chaque tranche de 5, soustraite de la pénalité, retirant la pénalité entière pour 400 PX. Ajout: en Combat rapproché, les Crochets sont considérés comme des Dagues.",
@@ -7541,9 +8003,11 @@
     "type": "trappings",
     "label": "Dents en bois",
     "categorie": "trapping",
-    "subType": "protheses",
+    "subType": {
+      "id": "protheses"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7577,9 +8041,11 @@
       }
     ],
     "categorie": "trapping",
-    "subType": "protheses",
+    "subType": {
+      "id": "protheses"
+    },
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7601,9 +8067,11 @@
     "type": "trappings",
     "label": "Merveille d'ingénierie",
     "categorie": "trapping",
-    "subType": "protheses",
+    "subType": {
+      "id": "protheses"
+    },
     "enc": 1,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7625,9 +8093,11 @@
     "type": "trappings",
     "label": "Nez doré",
     "categorie": "trapping",
-    "subType": "protheses",
+    "subType": {
+      "id": "protheses"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7649,9 +8119,11 @@
     "type": "trappings",
     "label": "Œil de verre",
     "categorie": "trapping",
-    "subType": "protheses",
+    "subType": {
+      "id": "protheses"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7673,9 +8145,11 @@
     "type": "trappings",
     "label": "Affiche",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7696,9 +8170,11 @@
     "type": "trappings",
     "label": "Allumette",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7719,9 +8195,11 @@
     "type": "trappings",
     "label": "Assiette",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7742,9 +8220,11 @@
     "type": "trappings",
     "label": "Bâche de toile",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7765,9 +8245,11 @@
     "type": "trappings",
     "label": "Balle",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7788,9 +8270,11 @@
     "type": "trappings",
     "label": "Bandages",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7823,9 +8307,11 @@
     "type": "trappings",
     "label": "Bâtonnet de fusain",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7846,9 +8332,11 @@
     "type": "trappings",
     "label": "Boîte à amadou",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7869,9 +8357,11 @@
     "type": "trappings",
     "label": "Bol",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7892,9 +8382,11 @@
     "type": "trappings",
     "label": "Bougie",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7923,9 +8415,11 @@
     "type": "trappings",
     "label": "Casserole",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7946,9 +8440,11 @@
     "type": "trappings",
     "label": "Chiffons",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7969,9 +8465,11 @@
     "type": "trappings",
     "label": "Corde",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -7993,9 +8491,11 @@
     "type": "trappings",
     "label": "Couvert",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8016,9 +8516,11 @@
     "type": "trappings",
     "label": "Couverture",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8039,9 +8541,11 @@
     "type": "trappings",
     "label": "Craie",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8062,9 +8566,11 @@
     "type": "trappings",
     "label": "Dés",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8085,9 +8591,11 @@
     "type": "trappings",
     "label": "Grappin",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8109,9 +8617,11 @@
     "type": "trappings",
     "label": "Instrument",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8133,9 +8643,11 @@
     "type": "trappings",
     "label": "Lampe Davrich",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8157,9 +8669,11 @@
     "type": "trappings",
     "label": "Lampe à huile",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8188,9 +8702,11 @@
     "type": "trappings",
     "label": "Lampe tempête",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8219,9 +8735,11 @@
     "type": "trappings",
     "label": "Lanterne",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8250,9 +8768,11 @@
     "type": "trappings",
     "label": "Marmite",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8273,9 +8793,11 @@
     "type": "trappings",
     "label": "Matraque",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8296,9 +8818,11 @@
     "type": "trappings",
     "label": "Paquet de cartes",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8319,9 +8843,11 @@
     "type": "trappings",
     "label": "Pipe et Tabac",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8342,9 +8868,11 @@
     "type": "trappings",
     "label": "Poupée",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8365,9 +8893,11 @@
     "type": "trappings",
     "label": "Sac de couchage",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8389,9 +8919,11 @@
     "type": "trappings",
     "label": "Tasse",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8415,9 +8947,11 @@
       "isShelter": true
     },
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8439,10 +8973,12 @@
     "type": "trappings",
     "label": "Pavois",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "shield": true,
     "enc": 4,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -8482,9 +9018,11 @@
     "label": "Filet lesté",
     "hands": 2,
     "categorie": "melee",
-    "subType": "parade",
+    "subType": {
+      "id": "parade"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": "Courte",
     "loc": null,
     "pa": null,
@@ -8539,12 +9077,18 @@
     "type": "trappings",
     "label": "Baliste",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "arbalete",
-    "defaultAmmo": "carreau-de-baliste",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "arbalete"
+    },
+    "defaultAmmo": {
+      "id": "carreau-de-baliste"
+    },
     "soloSimple": true,
     "enc": 20,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 150,
     "loc": null,
@@ -8582,11 +9126,15 @@
     "type": "trappings",
     "label": "Catapulte (petite)",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "catapulte",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "catapulte"
+    },
     "indirect": true,
     "enc": 25,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 75,
     "loc": null,
@@ -8627,11 +9175,15 @@
     "type": "trappings",
     "label": "Catapulte (moyenne)",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "catapulte",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "catapulte"
+    },
     "indirect": true,
     "enc": 40,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 100,
     "loc": null,
@@ -8672,11 +9224,15 @@
     "type": "trappings",
     "label": "Catapulte (grande)",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "catapulte",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "catapulte"
+    },
     "indirect": true,
     "enc": 65,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 175,
     "loc": null,
@@ -8717,10 +9273,14 @@
     "type": "trappings",
     "label": "Batterie tonnerre de feu",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "ingenierie",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "ingenierie"
+    },
     "enc": 75,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 185,
     "loc": null,
@@ -8776,10 +9336,14 @@
     "type": "trappings",
     "label": "Canon à répétition",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "ingenierie",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "ingenierie"
+    },
     "enc": 5,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 50,
     "loc": null,
@@ -8817,10 +9381,14 @@
     "type": "trappings",
     "label": "Canon à répétition feu d'enfer",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "ingenierie",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "ingenierie"
+    },
     "enc": 85,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 100,
     "loc": null,
@@ -8862,11 +9430,17 @@
     "type": "trappings",
     "label": "Canon (petit)",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "poudre-noire",
-    "defaultAmmo": "boulet-et-poudre",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "poudre-noire"
+    },
+    "defaultAmmo": {
+      "id": "boulet-et-poudre"
+    },
     "enc": 30,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 50,
     "loc": null,
@@ -8900,18 +9474,25 @@
     "source": {
       "book": "aux-armes",
       "page": 123
-    }
+    },
+    "siegeFootprint": 2
   },
   {
     "id": "canon-moyen",
     "type": "trappings",
     "label": "Canon (moyen)",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "poudre-noire",
-    "defaultAmmo": "boulet-et-poudre",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "poudre-noire"
+    },
+    "defaultAmmo": {
+      "id": "boulet-et-poudre"
+    },
     "enc": 50,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 75,
     "loc": null,
@@ -8945,18 +9526,25 @@
     "source": {
       "book": "aux-armes",
       "page": 123
-    }
+    },
+    "siegeFootprint": 2
   },
   {
     "id": "canon-grand",
     "type": "trappings",
     "label": "Canon (grand)",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "poudre-noire",
-    "defaultAmmo": "boulet-et-poudre",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "poudre-noire"
+    },
+    "defaultAmmo": {
+      "id": "boulet-et-poudre"
+    },
     "enc": 75,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 150,
     "loc": null,
@@ -8990,19 +9578,26 @@
     "source": {
       "book": "aux-armes",
       "page": 123
-    }
+    },
+    "siegeFootprint": 2
   },
   {
     "id": "mortier",
     "type": "trappings",
     "label": "Mortier",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "poudre-noire",
-    "defaultAmmo": "bombe-de-mortier",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "poudre-noire"
+    },
+    "defaultAmmo": {
+      "id": "bombe-de-mortier"
+    },
     "indirect": true,
     "enc": 50,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 100,
     "loc": null,
@@ -9037,11 +9632,17 @@
     "type": "trappings",
     "label": "Pierrier",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "poudre-noire",
-    "defaultAmmo": "balles-et-poudre-pierrier",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "poudre-noire"
+    },
+    "defaultAmmo": {
+      "id": "balles-et-poudre-pierrier"
+    },
     "enc": 5,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 30,
     "loc": null,
@@ -9075,9 +9676,11 @@
     "type": "trappings",
     "label": "Demi-lance de cavalerie",
     "categorie": "melee",
-    "subType": "cavalerie",
+    "subType": {
+      "id": "cavalerie"
+    },
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -9118,9 +9721,11 @@
     "type": "trappings",
     "label": "Sabre",
     "categorie": "melee",
-    "subType": "cavalerie",
+    "subType": {
+      "id": "cavalerie"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -9171,9 +9776,11 @@
     "type": "trappings",
     "label": "Épée de cour",
     "categorie": "melee",
-    "subType": "escrime",
+    "subType": {
+      "id": "escrime"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Courte",
     "loc": null,
     "pa": null,
@@ -9209,9 +9816,11 @@
     "type": "trappings",
     "label": "Gaffe",
     "categorie": "melee",
-    "subType": "bagarre",
+    "subType": {
+      "id": "bagarre"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Courte",
     "loc": null,
     "pa": null,
@@ -9246,9 +9855,11 @@
     "type": "trappings",
     "label": "Gantelet à pointes",
     "categorie": "melee",
-    "subType": "bagarre",
+    "subType": {
+      "id": "bagarre"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Personnelle",
     "loc": null,
     "pa": null,
@@ -9283,9 +9894,11 @@
     "type": "trappings",
     "label": "Griffes de Tigre",
     "categorie": "melee",
-    "subType": "bagarre",
+    "subType": {
+      "id": "bagarre"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Très courte",
     "loc": null,
     "pa": null,
@@ -9314,9 +9927,11 @@
     "type": "trappings",
     "label": "Gantelet verrouillé",
     "categorie": "melee",
-    "subType": "bagarre",
+    "subType": {
+      "id": "bagarre"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Personnelle",
     "loc": null,
     "pa": null,
@@ -9352,9 +9967,11 @@
     "label": "Lacet étrangleur",
     "hands": 2,
     "categorie": "melee",
-    "subType": "bagarre",
+    "subType": {
+      "id": "bagarre"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": "Personnelle",
     "loc": null,
     "pa": null,
@@ -9395,9 +10012,11 @@
     "type": "trappings",
     "label": "Cape",
     "categorie": "melee",
-    "subType": "parade",
+    "subType": {
+      "id": "parade"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Courte",
     "loc": null,
     "pa": null,
@@ -9443,9 +10062,11 @@
     "label": "Ahlspiess",
     "hands": 2,
     "categorie": "melee",
-    "subType": "armes-d-hast",
+    "subType": {
+      "id": "armes-d-hast"
+    },
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Très longue",
     "loc": null,
     "pa": null,
@@ -9484,9 +10105,11 @@
     "label": "Attrape-coquin",
     "hands": 2,
     "categorie": "melee",
-    "subType": "armes-d-hast",
+    "subType": {
+      "id": "armes-d-hast"
+    },
     "enc": 3,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -9525,9 +10148,11 @@
     "label": "Hache d'armes",
     "hands": 2,
     "categorie": "melee",
-    "subType": "armes-d-hast",
+    "subType": {
+      "id": "armes-d-hast"
+    },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -9580,9 +10205,11 @@
     "label": "Pertuisane/Fauchard",
     "hands": 2,
     "categorie": "melee",
-    "subType": "armes-d-hast",
+    "subType": {
+      "id": "armes-d-hast"
+    },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -9633,9 +10260,11 @@
     "label": "Serpe de guerre",
     "hands": 2,
     "categorie": "melee",
-    "subType": "armes-d-hast",
+    "subType": {
+      "id": "armes-d-hast"
+    },
     "enc": 3,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -9685,9 +10314,11 @@
     "label": "Zweihänder flamberge",
     "hands": 2,
     "categorie": "melee",
-    "subType": "deux-mains",
+    "subType": {
+      "id": "deux-mains"
+    },
     "enc": 3,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -9730,9 +10361,11 @@
     "type": "trappings",
     "label": "Bâton pointu",
     "categorie": "ranged",
-    "subType": "munitions",
+    "subType": {
+      "id": "munitions"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "ammoRangeMod": {
       "mult": 0.5
@@ -9771,9 +10404,11 @@
     "type": "trappings",
     "label": "Flèche barbelée",
     "categorie": "ranged",
-    "subType": "munitions",
+    "subType": {
+      "id": "munitions"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -9804,9 +10439,11 @@
     "type": "trappings",
     "label": "Flèche bodkin",
     "categorie": "ranged",
-    "subType": "munitions",
+    "subType": {
+      "id": "munitions"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -9836,9 +10473,11 @@
     "type": "trappings",
     "label": "Bille de plomb",
     "categorie": "ranged",
-    "subType": "munitions",
+    "subType": {
+      "id": "munitions"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "ammoRangeMod": {
       "add": -10
@@ -9870,9 +10509,11 @@
     "type": "trappings",
     "label": "Caillou",
     "categorie": "ranged",
-    "subType": "munitions",
+    "subType": {
+      "id": "munitions"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "ammoRangeMod": {
       "add": -10
@@ -9908,9 +10549,11 @@
     "label": "Arquebuse à double canon",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "enc": 3,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 50,
     "loc": null,
@@ -9955,9 +10598,11 @@
     "label": "Arquebuse à mèche",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "enc": 2,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 50,
     "loc": null,
@@ -9998,9 +10643,11 @@
     "label": "Hache-arquebuse",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "enc": 1,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 30,
     "loc": null,
@@ -10044,9 +10691,11 @@
     "label": "Hallebarde-arquebuse",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "enc": 3,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 30,
     "loc": null,
@@ -10090,9 +10739,11 @@
     "label": "Haquebute",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "enc": 3,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 40,
     "loc": null,
@@ -10135,9 +10786,11 @@
     "type": "trappings",
     "label": "Pistolet patte de griffon",
     "categorie": "ranged",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "enc": 1,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 10,
     "loc": null,
@@ -10182,9 +10835,11 @@
     "label": "Tromblon à mèche",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 20,
     "loc": null,
@@ -10228,9 +10883,11 @@
     "type": "trappings",
     "label": "Canne-pistolet",
     "categorie": "ranged",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "enc": 1,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 10,
     "loc": null,
@@ -10274,9 +10931,11 @@
     "label": "Mortier à main",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "enc": 3,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 30,
     "loc": null,
@@ -10319,9 +10978,11 @@
     "type": "trappings",
     "label": "Poivrière",
     "categorie": "ranged",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 10,
     "loc": null,
@@ -10368,9 +11029,11 @@
     "type": "trappings",
     "label": "Balle de gros calibre et poudre",
     "categorie": "ranged",
-    "subType": "munitions",
+    "subType": {
+      "id": "munitions"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -10405,9 +11068,11 @@
     "type": "trappings",
     "label": "Bombe explosive",
     "categorie": "ranged",
-    "subType": "munitions",
+    "subType": {
+      "id": "munitions"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -10443,9 +11108,11 @@
     "type": "trappings",
     "label": "Cartouche en papier",
     "categorie": "ranged",
-    "subType": "munitions",
+    "subType": {
+      "id": "munitions"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -10477,9 +11144,11 @@
     "type": "trappings",
     "label": "Cartouche et poudre de précision",
     "categorie": "ranged",
-    "subType": "munitions",
+    "subType": {
+      "id": "munitions"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -10514,9 +11183,11 @@
     "type": "trappings",
     "label": "Ferraille et poudre",
     "categorie": "ranged",
-    "subType": "munitions",
+    "subType": {
+      "id": "munitions"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "ammoRangeMod": {
       "mult": 0.5
@@ -10551,9 +11222,11 @@
     "type": "trappings",
     "label": "Grappin (munition)",
     "categorie": "ranged",
-    "subType": "munitions",
+    "subType": {
+      "id": "munitions"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "ammoRangeMod": {
       "mult": 0.5
@@ -10588,9 +11261,11 @@
     "type": "trappings",
     "label": "Poudre imprégnée d'Aqshy",
     "categorie": "ranged",
-    "subType": "munitions",
+    "subType": {
+      "id": "munitions"
+    },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "ammoRangeMod": {
       "add": 10
@@ -10628,8 +11303,10 @@
     "type": "trappings",
     "label": "Jezaïl à malepierre",
     "categorie": "ranged",
-    "subType": "poudre-noire",
-    "availability": "Exotique",
+    "subType": {
+      "id": "poudre-noire"
+    },
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -10676,8 +11353,10 @@
     "label": "Canon ratling",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "ingenierie",
-    "availability": "Exotique",
+    "subType": {
+      "id": "ingenierie"
+    },
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -10730,8 +11409,10 @@
     "type": "trappings",
     "label": "Pistolet à malepierre",
     "categorie": "ranged",
-    "subType": "poudre-noire",
-    "availability": "Exotique",
+    "subType": {
+      "id": "poudre-noire"
+    },
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -10787,9 +11468,11 @@
     "type": "trappings",
     "label": "Baiser de la Vouivre",
     "categorie": "trapping",
-    "subType": "drogues-et-poisons",
+    "subType": {
+      "id": "drogues-et-poisons"
+    },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 12,
       "silver": 0,
@@ -10807,9 +11490,11 @@
     "type": "trappings",
     "label": "Boursoufleur",
     "categorie": "trapping",
-    "subType": "drogues-et-poisons",
+    "subType": {
+      "id": "drogues-et-poisons"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 3,
       "silver": 0,
@@ -10827,9 +11512,11 @@
     "type": "trappings",
     "label": "Long Sommeil",
     "categorie": "trapping",
-    "subType": "drogues-et-poisons",
+    "subType": {
+      "id": "drogues-et-poisons"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 3,
       "silver": 0,
@@ -10847,9 +11534,11 @@
     "type": "trappings",
     "label": "Sibilance",
     "categorie": "trapping",
-    "subType": "drogues-et-poisons",
+    "subType": {
+      "id": "drogues-et-poisons"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 1,
       "silver": 10,
@@ -10867,9 +11556,11 @@
     "type": "trappings",
     "label": "Potion à deux têtes",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 4,
       "silver": 10,
@@ -10887,9 +11578,11 @@
     "type": "trappings",
     "label": "Remède de Lurek",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "price": {
       "gold": 1,
       "silver": 0,
@@ -10907,9 +11600,11 @@
     "type": "trappings",
     "label": "Solvant à bézoard",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "price": {
       "gold": 0,
       "silver": 10,
@@ -10927,9 +11622,11 @@
     "type": "trappings",
     "label": "Acide de troll",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 3,
       "silver": 0,
@@ -10947,9 +11644,11 @@
     "type": "trappings",
     "label": "Bouclier de la forge",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 18,
       "silver": 0,
@@ -10967,9 +11666,11 @@
     "type": "trappings",
     "label": "Camouflarbre",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 3,
       "silver": 0,
@@ -10987,9 +11688,11 @@
     "type": "trappings",
     "label": "Dernier souffle",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 15,
       "silver": 0,
@@ -11007,9 +11710,11 @@
     "type": "trappings",
     "label": "Esprit clair",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 3,
       "silver": 0,
@@ -11027,9 +11732,11 @@
     "type": "trappings",
     "label": "Feu de Carroburg",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 1,
       "silver": 10,
@@ -11047,9 +11754,11 @@
     "type": "trappings",
     "label": "Feu liquide",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 6,
       "silver": 0,
@@ -11067,9 +11776,11 @@
     "type": "trappings",
     "label": "Fléau de la sorcière",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 36,
       "silver": 0,
@@ -11087,9 +11798,11 @@
     "type": "trappings",
     "label": "Furie du preyton",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 9,
       "silver": 0,
@@ -11107,9 +11820,11 @@
     "type": "trappings",
     "label": "Liqueur de serpent du prophète",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 4,
       "silver": 10,
@@ -11127,9 +11842,11 @@
     "type": "trappings",
     "label": "Malveillance",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 27,
       "silver": 0,
@@ -11147,9 +11864,11 @@
     "type": "trappings",
     "label": "Poudre de veine",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 1,
       "silver": 0,
@@ -11167,9 +11886,11 @@
     "type": "trappings",
     "label": "Protection du cerf",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 3,
       "silver": 0,
@@ -11187,9 +11908,11 @@
     "type": "trappings",
     "label": "Razorflamme",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 1,
       "silver": 10,
@@ -11207,9 +11930,11 @@
     "type": "trappings",
     "label": "Sang-douleur",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 1,
       "silver": 0,
@@ -11227,9 +11952,11 @@
     "type": "trappings",
     "label": "Sang de la mer",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "price": {
       "gold": 18,
       "silver": 0,
@@ -11247,8 +11974,10 @@
     "type": "trappings",
     "label": "Dague Funeste",
     "categorie": "melee",
-    "subType": "base",
-    "availability": "Exotique",
+    "subType": {
+      "id": "base"
+    },
+    "availability": "exotique",
     "price": {
       "gold": 8,
       "silver": 0,
@@ -11281,8 +12010,10 @@
     "type": "trappings",
     "label": "Armure de Plates du Léviathan",
     "categorie": "armor",
-    "subType": "plate",
-    "availability": "Rare",
+    "subType": {
+      "id": "plate"
+    },
+    "availability": "rare",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -11319,8 +12050,10 @@
     "type": "trappings",
     "label": "Lame à poignée en bois de cerf",
     "categorie": "melee",
-    "subType": "base",
-    "availability": "Rare",
+    "subType": {
+      "id": "base"
+    },
+    "availability": "rare",
     "price": {
       "gold": 6,
       "silver": 0,
@@ -11353,8 +12086,10 @@
     "type": "trappings",
     "label": "Trempe au Sang de Dragon",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
-    "availability": "Exotique",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "availability": "exotique",
     "price": {
       "gold": 20,
       "silver": 0,
@@ -11372,8 +12107,10 @@
     "type": "trappings",
     "label": "Surin de l'aigle",
     "categorie": "melee",
-    "subType": "base",
-    "availability": "Rare",
+    "subType": {
+      "id": "base"
+    },
+    "availability": "rare",
     "price": {
       "gold": 8,
       "silver": 0,
@@ -11407,8 +12144,10 @@
     "label": "Sève de trégara",
     "packSize": 6,
     "categorie": "ammunition",
-    "subType": "arbalete",
-    "availability": "Rare",
+    "subType": {
+      "id": "arbalete"
+    },
+    "availability": "rare",
     "price": {
       "gold": 4,
       "silver": 0,
@@ -11439,8 +12178,10 @@
     "label": "Empennage de griffon",
     "packSize": 12,
     "categorie": "ammunition",
-    "subType": "arc",
-    "availability": "Rare",
+    "subType": {
+      "id": "arc"
+    },
+    "availability": "rare",
     "price": {
       "gold": 1,
       "silver": 0,
@@ -11480,8 +12221,10 @@
     "label": "Pointes barbelées",
     "packSize": 12,
     "categorie": "ammunition",
-    "subType": "arc",
-    "availability": "Rare",
+    "subType": {
+      "id": "arc"
+    },
+    "availability": "rare",
     "price": {
       "gold": 3,
       "silver": 0,
@@ -11509,8 +12252,10 @@
     "label": "Broyeur d'os",
     "hands": 2,
     "categorie": "melee",
-    "subType": "deux-mains",
-    "availability": "Exotique",
+    "subType": {
+      "id": "deux-mains"
+    },
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -11552,8 +12297,10 @@
     "type": "trappings",
     "label": "Silence",
     "categorie": "melee",
-    "subType": "base",
-    "availability": "Exotique",
+    "subType": {
+      "id": "base"
+    },
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -11590,9 +12337,11 @@
     "type": "trappings",
     "label": "Vision de Vie",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "shield": true,
-    "availability": "Exotique",
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -11635,8 +12384,10 @@
     "type": "trappings",
     "label": "Cape du Loup",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
-    "availability": "Exotique",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -11654,8 +12405,10 @@
     "type": "trappings",
     "label": "Gants de l'étrangleur",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
-    "availability": "Exotique",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -11673,8 +12426,10 @@
     "type": "trappings",
     "label": "Dernière Gorgée",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
-    "availability": "Exotique",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -11692,8 +12447,10 @@
     "type": "trappings",
     "label": "Pierre Assoiffée",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
-    "availability": "Exotique",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "availability": "exotique",
     "price": {
       "gold": 0,
       "silver": 0,
@@ -11711,9 +12468,11 @@
     "type": "trappings",
     "label": "Carreau",
     "categorie": "ammunition",
-    "subType": "munition-de-siege",
+    "subType": {
+      "id": "munition-de-siege"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -11741,9 +12500,11 @@
     "type": "trappings",
     "label": "Carreau nain norse",
     "categorie": "ammunition",
-    "subType": "munition-de-siege",
+    "subType": {
+      "id": "munition-de-siege"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -11774,9 +12535,11 @@
     "type": "trappings",
     "label": "Boulet et poudre",
     "categorie": "ammunition",
-    "subType": "munition-de-siege",
+    "subType": {
+      "id": "munition-de-siege"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -11805,9 +12568,11 @@
     "type": "trappings",
     "label": "Mitraille et poudre",
     "categorie": "ammunition",
-    "subType": "munition-de-siege",
+    "subType": {
+      "id": "munition-de-siege"
+    },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "ammoRangeMod": {
       "mult": 0.25
@@ -11839,9 +12604,11 @@
     "type": "trappings",
     "label": "Bombe",
     "categorie": "ammunition",
-    "subType": "munition-de-siege",
+    "subType": {
+      "id": "munition-de-siege"
+    },
     "enc": 0,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -11876,9 +12643,11 @@
     "type": "trappings",
     "label": "Bombe incendiaire",
     "categorie": "ammunition",
-    "subType": "munition-de-siege",
+    "subType": {
+      "id": "munition-de-siege"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "ammoRangeMod": {
       "mult": 0.5
@@ -11911,9 +12680,11 @@
     "type": "trappings",
     "label": "Balles et poudre pour 1 tir",
     "categorie": "ammunition",
-    "subType": "munition-de-siege",
+    "subType": {
+      "id": "munition-de-siege"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -11948,9 +12719,11 @@
     "type": "trappings",
     "label": "Petites munitions et poudre pour 1 tir",
     "categorie": "ammunition",
-    "subType": "munition-de-siege",
+    "subType": {
+      "id": "munition-de-siege"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -11976,10 +12749,12 @@
     "type": "trappings",
     "label": "Massue ogre",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "sizeFor": "grande",
     "enc": 2,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Moyenne",
     "loc": null,
     "pa": null,
@@ -12010,10 +12785,12 @@
     "type": "trappings",
     "label": "Poing de fer",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "sizeFor": "grande",
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": "Courte",
     "loc": null,
     "pa": null,
@@ -12056,10 +12833,12 @@
     "label": "Grande massue ogre",
     "hands": 2,
     "categorie": "melee",
-    "subType": "deux-mains",
+    "subType": {
+      "id": "deux-mains"
+    },
     "sizeFor": "grande",
     "enc": 6,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": "Longue",
     "loc": null,
     "pa": null,
@@ -12095,10 +12874,12 @@
     "label": "Lance-harpon",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "entraves",
+    "subType": {
+      "id": "entraves"
+    },
     "sizeFor": "grande",
     "enc": 5,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 20,
     "loc": null,
@@ -12142,10 +12923,12 @@
     "type": "trappings",
     "label": "Piège à chaînes",
     "categorie": "ranged",
-    "subType": "entraves",
+    "subType": {
+      "id": "entraves"
+    },
     "sizeFor": "grande",
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": {
       "bf": 2
@@ -12183,10 +12966,12 @@
     "type": "trappings",
     "label": "Grande lance",
     "categorie": "ranged",
-    "subType": "lancer",
+    "subType": {
+      "id": "lancer"
+    },
     "sizeFor": "grande",
     "enc": 2,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": {
       "bf": 3
@@ -12226,10 +13011,12 @@
     "label": "Canon crache-plomb",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "sizeFor": "grande",
     "enc": 8,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 50,
     "loc": null,
@@ -12269,10 +13056,12 @@
     "type": "trappings",
     "label": "Pistolet ogre",
     "categorie": "ranged",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "sizeFor": "grande",
     "enc": 3,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 20,
     "loc": null,
@@ -12313,9 +13102,11 @@
     "label": "Harpon",
     "packSize": 6,
     "categorie": "ammunition",
-    "subType": "entraves",
+    "subType": {
+      "id": "entraves"
+    },
     "enc": 0,
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -12341,9 +13132,11 @@
     "label": "Balle crache-plomb",
     "packSize": 12,
     "categorie": "ammunition",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "ammoRangeMod": {
       "mult": 0.5
@@ -12373,9 +13166,11 @@
     "label": "Boulet crache-plomb",
     "packSize": 1,
     "categorie": "ammunition",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -12410,10 +13205,12 @@
     "type": "trappings",
     "label": "Pansière ogre",
     "categorie": "armor",
-    "subType": "plate",
+    "subType": {
+      "id": "plate"
+    },
     "sizeFor": "grande",
     "enc": 4,
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "loc": "Corps",
     "pa": 3,
@@ -12442,7 +13239,9 @@
     "type": "trappings",
     "label": "Sel sacré",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": null,
     "availability": null,
     "reach": null,
@@ -12474,9 +13273,11 @@
     "type": "trappings",
     "label": "Tonneau d'eau douce",
     "categorie": "trapping",
-    "subType": "nourriture-boisson-et-hebergement",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
     "enc": 9,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -12498,9 +13299,11 @@
     "type": "trappings",
     "label": "Tonneau de petite bière",
     "categorie": "trapping",
-    "subType": "nourriture-boisson-et-hebergement",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
     "enc": 9,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -12522,9 +13325,11 @@
     "type": "trappings",
     "label": "Ration de biscuits de mer pour un jour",
     "categorie": "trapping",
-    "subType": "nourriture-boisson-et-hebergement",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -12549,9 +13354,11 @@
     "type": "trappings",
     "label": "Ration de nourriture préservée pour un jour",
     "categorie": "trapping",
-    "subType": "nourriture-boisson-et-hebergement",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
     "enc": 0,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -12576,9 +13383,11 @@
     "type": "trappings",
     "label": "Ration de soupe de chou fermenté pour un jour",
     "categorie": "trapping",
-    "subType": "nourriture-boisson-et-hebergement",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -12604,9 +13413,11 @@
     "type": "trappings",
     "label": "Boussole",
     "categorie": "trapping",
-    "subType": "outils-et-necessaires",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
     "enc": 0,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -12637,7 +13448,9 @@
     "type": "trappings",
     "label": "Carte marine",
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": null,
     "availability": null,
     "reach": null,
@@ -12666,9 +13479,11 @@
     "type": "trappings",
     "label": "Peau de phoque",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 1,
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -12693,9 +13508,11 @@
     "type": "trappings",
     "label": "Pièces détachées de navire",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 1,
-    "availability": "Commune",
+    "availability": "commune",
     "reach": null,
     "loc": null,
     "pa": null,
@@ -12720,11 +13537,17 @@
     "type": "trappings",
     "label": "Baliste",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "machine-de-guerre",
-    "defaultAmmo": "carreau-de-baliste",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
+    "defaultAmmo": {
+      "id": "carreau-de-baliste"
+    },
     "minRangeBand": "courte",
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 150,
     "loc": null,
@@ -12771,10 +13594,14 @@
     "type": "trappings",
     "label": "Bélier",
     "categorie": "melee",
-    "subType": "armes-de-siege",
+    "subType": {
+      "id": "armes-de-siege"
+    },
     "siegeFootprint": 2,
-    "weaponGroup": "machine-de-guerre",
-    "availability": "Limitée",
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
+    "availability": "limitee",
     "reach": "Moyenne",
     "range": null,
     "loc": null,
@@ -12817,10 +13644,14 @@
     "type": "trappings",
     "label": "Batterie tonnerre de feu",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "machine-de-guerre",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
     "minRangeBand": "courte",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 200,
     "loc": null,
@@ -12871,10 +13702,14 @@
     "type": "trappings",
     "label": "Canon à répétition feu d'enfer",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "machine-de-guerre",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
     "minRangeBand": "courte",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 100,
     "loc": null,
@@ -12929,11 +13764,17 @@
     "type": "trappings",
     "label": "Canon",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "machine-de-guerre",
-    "defaultAmmo": "boulet-et-poudre",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
+    "defaultAmmo": {
+      "id": "boulet-et-poudre"
+    },
     "minRangeBand": "courte",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 120,
     "loc": null,
@@ -12987,10 +13828,14 @@
     "type": "trappings",
     "label": "Canon à flammes nain",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "machine-de-guerre",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
     "minRangeBand": "courte",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 60,
     "loc": null,
@@ -13064,11 +13909,15 @@
     "type": "trappings",
     "label": "Mangonneau",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "machine-de-guerre",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
     "indirect": true,
     "minRangeBand": "courte",
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 60,
     "loc": null,
@@ -13116,11 +13965,15 @@
     "type": "trappings",
     "label": "Onagre",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "machine-de-guerre",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
     "indirect": true,
     "minRangeBand": "courte",
-    "availability": "Rare",
+    "availability": "rare",
     "reach": null,
     "range": 100,
     "loc": null,
@@ -13168,11 +14021,15 @@
     "type": "trappings",
     "label": "Trébuchet",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "machine-de-guerre",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
     "indirect": true,
     "minRangeBand": "moyenne",
-    "availability": "Limitée",
+    "availability": "limitee",
     "reach": null,
     "range": 150,
     "loc": null,
@@ -13220,12 +14077,18 @@
     "type": "trappings",
     "label": "Mortier",
     "categorie": "ranged",
-    "subType": "armes-de-siege",
-    "weaponGroup": "machine-de-guerre",
-    "defaultAmmo": "bombe-de-mortier",
+    "subType": {
+      "id": "armes-de-siege"
+    },
+    "weaponGroup": {
+      "id": "machine-de-guerre"
+    },
+    "defaultAmmo": {
+      "id": "bombe-de-mortier"
+    },
     "indirect": true,
     "minRangeBand": "moyenne",
-    "availability": "Exotique",
+    "availability": "exotique",
     "reach": null,
     "range": 200,
     "loc": null,
@@ -13282,9 +14145,11 @@
     "type": "trappings",
     "label": "Robe fonctionnelle",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 1,
-    "availability": "Rare",
+    "availability": "rare",
     "qualities": [],
     "passive": [
       {
@@ -13311,9 +14176,11 @@
     "type": "trappings",
     "label": "Robe ordinaire",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 2,
-    "availability": "Exotique",
+    "availability": "exotique",
     "qualities": [],
     "passive": [
       {
@@ -13340,9 +14207,11 @@
     "type": "trappings",
     "label": "Robe élaborée",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 4,
-    "availability": "Exotique",
+    "availability": "exotique",
     "qualities": [],
     "passive": [
       {
@@ -13370,7 +14239,9 @@
     "label": "Bâton enchanté",
     "hands": 2,
     "categorie": "melee",
-    "subType": "armes-d-hast",
+    "subType": {
+      "id": "armes-d-hast"
+    },
     "enc": 2,
     "availability": null,
     "reach": "Longue",
@@ -13410,7 +14281,9 @@
     "type": "trappings",
     "label": "Parchemin de sort",
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [],
@@ -13426,7 +14299,9 @@
     "type": "trappings",
     "label": "L'Ami débauché",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [],
@@ -13462,7 +14337,9 @@
     "type": "trappings",
     "label": "Concentré de pouvoir",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [],
@@ -13490,7 +14367,9 @@
     "type": "trappings",
     "label": "Lotion capillaire",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [],
@@ -13507,7 +14386,7 @@
         "ops": [
           {
             "op": "charDRBonus",
-            "char": "sociabilite",
+            "characteristic": "sociabilite",
             "bonus": -2
           }
         ]
@@ -13519,7 +14398,9 @@
     "type": "trappings",
     "label": "Musc de sanglier",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [],
@@ -13536,12 +14417,12 @@
         "ops": [
           {
             "op": "charDRBonus",
-            "char": "sociabilite",
+            "characteristic": "sociabilite",
             "bonus": -2
           },
           {
             "op": "charDRBonus",
-            "char": "dexterite",
+            "characteristic": "dexterite",
             "bonus": -2
           },
           {
@@ -13567,7 +14448,9 @@
     "type": "trappings",
     "label": "Nectar de beauté",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [],
@@ -13584,7 +14467,7 @@
         "ops": [
           {
             "op": "charDRBonus",
-            "char": "sociabilite",
+            "characteristic": "sociabilite",
             "bonus": 1
           }
         ]
@@ -13604,7 +14487,9 @@
     "type": "trappings",
     "label": "Nectar de véracité",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [],
@@ -13640,7 +14525,9 @@
     "type": "trappings",
     "label": "Nectar de vitalité",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [],
@@ -13678,7 +14565,9 @@
     "type": "trappings",
     "label": "Panacea Universalis",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [],
@@ -13758,7 +14647,9 @@
     "type": "trappings",
     "label": "Potion d'invisibilité",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [],
@@ -13794,7 +14685,9 @@
     "type": "trappings",
     "label": "Potion de divination",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [],
@@ -13822,7 +14715,9 @@
     "type": "trappings",
     "label": "Potion de focalisation",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [],
@@ -13861,7 +14756,9 @@
     "type": "trappings",
     "label": "Potion de puissance",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [],
@@ -13878,12 +14775,12 @@
         "ops": [
           {
             "op": "charDRBonus",
-            "char": "force",
+            "characteristic": "force",
             "bonus": 2
           },
           {
             "op": "charDRBonus",
-            "char": "endurance",
+            "characteristic": "endurance",
             "bonus": 2
           },
           {
@@ -13907,7 +14804,9 @@
     "type": "trappings",
     "label": "Potion de vol",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [],
@@ -13946,7 +14845,9 @@
     "type": "trappings",
     "label": "Tonifiant de lucidité",
     "categorie": "trapping",
-    "subType": "herbes-et-potions",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [],
@@ -13963,12 +14864,12 @@
         "ops": [
           {
             "op": "charDRBonus",
-            "char": "intelligence",
+            "characteristic": "intelligence",
             "bonus": 1
           },
           {
             "op": "charDRBonus",
-            "char": "force-mentale",
+            "characteristic": "force-mentale",
             "bonus": 1
           },
           {
@@ -14006,7 +14907,9 @@
       "isGrimoire": true
     },
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 1,
     "availability": null,
     "qualities": [],
@@ -14025,7 +14928,9 @@
       "isGrimoire": true
     },
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 1,
     "availability": null,
     "qualities": [],
@@ -14044,7 +14949,9 @@
       "isGrimoire": true
     },
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 1,
     "availability": null,
     "qualities": [],
@@ -14063,7 +14970,9 @@
       "isGrimoire": true
     },
     "categorie": "trapping",
-    "subType": "livres-et-documents",
+    "subType": {
+      "id": "livres-et-documents"
+    },
     "enc": 1,
     "availability": null,
     "qualities": [],
@@ -14079,7 +14988,9 @@
     "type": "trappings",
     "label": "Saphir véritable",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [
@@ -14099,7 +15010,9 @@
     "type": "trappings",
     "label": "Mortegemme",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [
@@ -14119,7 +15032,9 @@
     "type": "trappings",
     "label": "Ambrespectre",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [
@@ -14139,7 +15054,9 @@
     "type": "trappings",
     "label": "Luminante",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [
@@ -14159,7 +15076,9 @@
     "type": "trappings",
     "label": "Rubis igné",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [
@@ -14179,7 +15098,9 @@
     "type": "trappings",
     "label": "Pierre d'or",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [
@@ -14199,7 +15120,9 @@
     "type": "trappings",
     "label": "Cristal de brume",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [
@@ -14219,7 +15142,9 @@
     "type": "trappings",
     "label": "Vitaellum",
     "categorie": "trapping",
-    "subType": "possessions-diverses",
+    "subType": {
+      "id": "possessions-diverses"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [
@@ -14240,7 +15165,9 @@
     "label": "Arc d'empathie sanglante",
     "hands": 2,
     "categorie": "ranged",
-    "subType": "arc",
+    "subType": {
+      "id": "arc"
+    },
     "enc": 2,
     "availability": null,
     "reach": null,
@@ -14311,7 +15238,9 @@
     "type": "trappings",
     "label": "Bottes du remords soudain",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 1,
     "availability": null,
     "qualities": [
@@ -14340,7 +15269,9 @@
     "type": "trappings",
     "label": "Cotte de mailles de bravoure usurpée",
     "categorie": "armor",
-    "subType": "mailles",
+    "subType": {
+      "id": "mailles"
+    },
     "enc": 3,
     "availability": null,
     "reach": null,
@@ -14367,7 +15298,9 @@
     "type": "trappings",
     "label": "Dague voleuse de chance",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "enc": 0,
     "availability": null,
     "reach": "Très courte",
@@ -14437,7 +15370,9 @@
     "type": "trappings",
     "label": "Déchireur de sociabilité",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "enc": 1,
     "availability": null,
     "reach": "Moyenne",
@@ -14617,7 +15552,9 @@
     "type": "trappings",
     "label": "Épée de retenue",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "enc": 1,
     "availability": null,
     "reach": "Moyenne",
@@ -14651,7 +15588,9 @@
     "type": "trappings",
     "label": "Fibule d'attraction non souhaitée",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 0,
     "availability": null,
     "qualities": [
@@ -14671,7 +15610,9 @@
     "type": "trappings",
     "label": "Fléau d'attention non sollicitée",
     "categorie": "melee",
-    "subType": "fleau",
+    "subType": {
+      "id": "fleau"
+    },
     "enc": 1,
     "availability": null,
     "reach": "Moyenne",
@@ -14704,7 +15645,9 @@
     "type": "trappings",
     "label": "Hache de fureur incessante",
     "categorie": "melee",
-    "subType": "base",
+    "subType": {
+      "id": "base"
+    },
     "enc": 1,
     "availability": null,
     "reach": "Moyenne",
@@ -14738,7 +15681,9 @@
     "type": "trappings",
     "label": "Pistolet de solitude involontaire",
     "categorie": "ranged",
-    "subType": "poudre-noire",
+    "subType": {
+      "id": "poudre-noire"
+    },
     "enc": 0,
     "availability": null,
     "reach": null,
@@ -14794,7 +15739,7 @@
               "ops": [
                 {
                   "op": "charMod",
-                  "char": "sociabilite",
+                  "characteristic": "sociabilite",
                   "mod": -30,
                   "durationHours": 24
                 }
@@ -14822,7 +15767,9 @@
     "type": "trappings",
     "label": "Poings d'ignominie",
     "categorie": "melee",
-    "subType": "bagarre",
+    "subType": {
+      "id": "bagarre"
+    },
     "enc": 0,
     "availability": null,
     "reach": "Personnelle",
@@ -14875,7 +15822,9 @@
     "type": "trappings",
     "label": "Anneau d'Opsianon",
     "categorie": "trapping",
-    "subType": "vetements-et-accessoires",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
     "enc": 0,
     "availability": null,
     "reach": null,

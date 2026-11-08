@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { testScenarios } from './index';
 import { t } from '../../i18n';
@@ -31,14 +32,14 @@ describe('textes des scénarios de test : les onglets et les héros nommés exis
 
   for (const sc of testScenarios) {
     it(`${sc.id} : chaque « onglet X » cité est un onglet de la fiche`, () => {
-      const { scene } = sc.construire();
+      const { scene } = sc.construire(idsDeTest);
       expect(ongletsInconnus([scene.startMessage?.texte ?? '', sc.tests, sc.partyNote].join(' '))).toEqual([]);
     });
   }
 
   it('entrainement : les textes citent le héros de la forme d’arme par le nom que porte sa fiche', () => {
     const sc = testScenarios.find((s) => s.id === 'entrainement')!;
-    const { party, scene } = sc.construire();
+    const { party, scene } = sc.construire(idsDeTest);
     const bretteur = party.find((h) => h.items?.some((i) => i.trappingId === 'arme-simple'))!;
     expect(scene.startMessage?.texte).toContain(`fiche du ${bretteur.label} (onglet ${t('sheet.tab.possessions')})`);
     expect(sc.tests).toContain(`fiche « ${bretteur.label} »`);

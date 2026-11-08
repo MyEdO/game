@@ -7,7 +7,7 @@
 import type { Possession, PossessionLocation, PossessionInput } from '../engine/possession';
 import { refusDEmbarquer, possessionLabel, type RefusDEmbarquement } from '../engine/possession';
 import { possessionGrantsFromRefs } from '../engine/possessionGrants';
-import { resolveTrappingChoices } from '../engine/trappingChoices';
+import { dotationsDuHeros, resolveTrappingChoices } from '../engine/trappingChoices';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import { refuserGeste } from './refusVisible';
@@ -28,7 +28,7 @@ export function seedStartingPossessions(get: Get, set: Set): void {
     if (!hero.career) continue;
     if (get().possessions.some((p) => p.ownerId === hero.id)) continue;
     // #2089 « Semis des Possessions : les choix de dotation du créateur sont ignorés »
-    const refs = resolveTrappingChoices(hero.career, hero.careerLevel ?? 1, {});
+    const refs = resolveTrappingChoices(dotationsDuHeros(hero.career, hero.careerLevel ?? 1), {});
     // RNG dédié au semis (déterministe par héros, `hashSeed`, patron `spawn.ts` mutations) — JAMAIS
     // `battleRng()` : le semis n'est pas du combat (#370 exclusivité seam ; #663, duel-naval — un
     // tirage de semis ne doit PAS consommer le RNG de combat partagé).
@@ -37,15 +37,9 @@ export function seedStartingPossessions(get: Get, set: Set): void {
   }
 }
 
-/** Attribue un `uid` `pos-N` par SCAN du registre (anti-collision — jamais un compteur-module, cf.
- *  `newUid`/`it-N` de `engine/items.ts` qui ne convient qu'aux items). Ajoute au registre, renvoie l'uid. */
+/** Ajoute `p` au registre sous un `uid` neuf (`forgerUnId`, #2907) ; renvoie l'uid. */
 export function ajouterLaPossession(get: Get, set: Set, p: PossessionInput): string {
-  const existing = get().possessions;
-  const maxN = existing.reduce((max, cur) => {
-    const m = /^pos-(\d+)$/.exec(cur.uid);
-    return m ? Math.max(max, Number(m[1])) : max;
-  }, 0);
-  const uid = `pos-${maxN + 1}`;
+  const uid = get().forgerUnId('pos');
   const full = { ...p, uid } as Possession;
   set((s) => ({ possessions: [...s.possessions, full] }));
   return uid;

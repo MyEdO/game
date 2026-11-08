@@ -6,6 +6,7 @@
  *  - champ présent = réserve du texte du Sort (VDM 11 l.418).
  * Cumul avec `excludesCaster` : les deux filtres s'appliquent.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { castCommitZone } from './combatFlow';
@@ -25,7 +26,7 @@ const SPELL = 'regiment-monstrueux-de-merciw';
 const okCast = (): CastResult => ({ cast: true, roll: 11, target: 80, sl: 4, isCritical: false, isFumble: false, log: 'lancé' });
 
 function caster(x: number, y: number, spellId: string, id = 'caster'): Combatant {
-  const h = pregen(PREGEN.sorcier);
+  const h = pregen(idsDeTest, PREGEN.sorcier);
   h.id = id; h.label = id; h.pos = { x, y, z: 0 };
   h.wounds = blessuresDeBase(99, 99, h);
   const sk = h.skills.find((s) => s.id === 'langue');
@@ -60,7 +61,7 @@ function setupBattle(c: Combatant, others: Combatant[], spellId: string) {
 }
 
 const combatant = (id: string) => banc.getState().battle!.combatants.find((cc) => cc.id === id)!;
-const boosted = (id: string) => combatant(id).activeEffects?.some((e) => e.char === 'force') === true;
+const boosted = (id: string) => combatant(id).activeEffects?.some((e) => e.characteristic === 'force') === true;
 
 /** Pose la Cible du Sort d'épreuve par le seam des datasets (restaurée en `afterEach`). */
 function setTarget(t: SpellTarget): void {

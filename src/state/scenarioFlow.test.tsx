@@ -4,6 +4,7 @@
  * l'unique lanceur. Ce que ce lanceur lit de la fiche (`interludeWeeks`, ADE II 8 l.65) se joue au banc du noyau
  * (`src/noyau/lancementDeScenario.hors-store.test.ts`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { describe, it, expect, afterEach, beforeEach } from 'vitest';
@@ -32,9 +33,9 @@ function cliquerLancer(id: string): void {
 describe('menu des scénarios de test → lancerScenario', () => {
   it('chaque lancement CONSTRUIT à neuf : deux lancements ne partagent aucune scène', () => {
     const sc = testScenarios.find((s) => s.id === 'entrainement')!;
-    expect(sc.construire().scene).not.toBe(sc.construire().scene);
+    expect(sc.construire(idsDeTest).scene).not.toBe(sc.construire(idsDeTest).scene);
     cliquerLancer(sc.id);
     expect(useGame.getState().screen).toBe('campaign');
-    expect(useGame.getState().scene?.id).toBe(sc.construire().scene.id);
+    expect(useGame.getState().scene?.id).toBe(sc.construire(idsDeTest).scene.id);
   });
 });

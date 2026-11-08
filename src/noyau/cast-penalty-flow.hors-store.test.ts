@@ -2,6 +2,7 @@
  * Contrecoups d'incantation — câblage du noyau (LDB 46/40) : gate des actions
  * d'incantation/Focalisation, purge par l'horloge (avancerLeTemps), persistance.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { pregen, PREGEN } from '../data/pregens';
@@ -12,7 +13,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function priest() {
-  const p = pregen(PREGEN.pretre);
+  const p = pregen(idsDeTest, PREGEN.pretre);
   const sk = p.skills.find((s) => s.id === 'priere');
   if (sk) sk.advances = Math.max(sk.advances, 5);
   else p.skills.push({ id: 'priere', characteristic: 'sociabilite', advances: 5 });
@@ -35,7 +36,7 @@ describe('gates d\'incantation', () => {
   });
 
   it('blocage de Focalisation → focaliserLeSort refuse', () => {
-    const wiz = pregen(PREGEN.sorcier);
+    const wiz = pregen(idsDeTest, PREGEN.sorcier);
     wiz.spells = ['arme-aethyrique'];
     wiz.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 5 } as never);
     wiz.castPenalties = [{ label: 'Vue assombrie', skill: 'focalisation', blocked: true, roundsLeft: 3 }];

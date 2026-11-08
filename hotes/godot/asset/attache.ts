@@ -1,4 +1,4 @@
-import { estObjet } from '../../../src/hote/formes.ts';
+import { estObjet } from '../../../src/lib/objet.mjs';
 
 /** Un repère posé dans un autre : son origine et sa rotation XYZ en radians. */
 export interface Repere {

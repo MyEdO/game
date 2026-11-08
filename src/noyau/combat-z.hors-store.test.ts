@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { occupied } from './monde/combatGeometry';
 import { placeCombatant } from './monde/spawn';
@@ -75,7 +76,7 @@ describe('placeCombatant — (re)stampe pos.h depuis le relief de la scène', ()
 describe('spawn — la SceneEntity.z se propage en Combatant.pos.z', () => {
   it('une entité enrôlée à z:1 → son Combattant a pos.z===1 ; un ennemi au sol n’a PAS de z', () => {
     banc.getState().ensemencerLeTirage(1);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     const scene = structuredClone(testScene());
     const ent = scene.entities.find((e) => e.id === 'enemy-enc-mutants-0')!;
@@ -92,7 +93,7 @@ describe('spawn — la SceneEntity.z se propage en Combatant.pos.z', () => {
 describe('lancerLeCombat — partyPos.z (étage du groupe) se propage aux Combattants HÉROS (#801)', () => {
   it('groupe posté à z=1 → tous les héros placés ont pos.z===1 (pas téléportés au rez)', () => {
     banc.getState().ensemencerLeTirage(1);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     const scene = structuredClone(testScene());
     banc.getState().lancerLaScene(scene);
@@ -107,7 +108,7 @@ describe('lancerLeCombat — partyPos.z (étage du groupe) se propage aux Combat
 
   it('groupe au rez (z absent) → héros placés SANS z (byte-identique, non-régression)', () => {
     banc.getState().ensemencerLeTirage(1);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     const scene = structuredClone(testScene());
     banc.getState().lancerLaScene(scene);

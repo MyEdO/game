@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { draineCascade } from '../../noyau/cascade.testkit';
@@ -10,7 +11,7 @@ import { applyShipPostes } from '../../noyau/monde/shipPostes';
 import { availableAttacks } from '../../noyau/combatManeuvers';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { layerTiles, sceneMetresPerTile } from '../../noyau/monde/scene';
-import { PREGEN } from '../../data/pregens';
+import { PREGEN, idDuPretire } from '../../data/pregens';
 import type { BattleState } from '../../noyau/etat';
 import type { Combatant } from '../../engine/types';
 import { presetDuNarratif } from '../monde/resolveursDuNarratif';
@@ -23,10 +24,10 @@ const presetPnjById = (id: string) => presetDuNarratif(banc.getState().campaignN
 
 /** Ids de PARTY pregen des 2 canonniers (Soldat + Chasseur) — chefs de pièce des pierriers de la barge amie.
  *  Couplage runtime `applyShipPostes` : ces ids ne changent PAS (ils réfèrent le groupe, pas la rencontre). */
-const GUNNER_IDS = [`pregen-${PREGEN.soldat}`, `pregen-${PREGEN.chasseur}`];
+const GUNNER_IDS: readonly string[] = [idDuPretire(PREGEN.soldat), idDuPretire(PREGEN.chasseur)];
 
 const scen = testScenarios.find((s) => s.id === 'combat-naval')!;
-const scenConstruit = scen.construire();
+const scenConstruit = scen.construire(idsDeTest);
 
 /** Reconstruit le roster d'entités du scénario (ids déterministes `enemy-enc-naval-<i>` — cogue, pirates
  *  ET la barge AMIE), par la fiche que `combatSlice` spawne au démarrage (`ficheDEntite`). */
@@ -131,7 +132,7 @@ describe('Scénario Bataille navale — chaîne navale jouable', () => {
  */
 describe('Artillerie jouable — 2 héros SERVENT un poste de pierrier (pas d’inventaire)', () => {
   it('applyShipPostes pose le mannedPoste sur le Soldat + le Chasseur, et l’attaque « Servir » apparaît', () => {
-    const party = scen.construire().party;
+    const party = scen.construire(idsDeTest).party;
     const all = [...party, ...spawnRoster()];
     applyShipPostes(all); // comme combatSlice au démarrage
     const gunners = party.filter((h) => h.mannedPoste);
@@ -148,13 +149,13 @@ describe('Artillerie jouable — 2 héros SERVENT un poste de pierrier (pas d’
   });
 
   it('les 2 autres héros (Tueur + Sorcier) ne servent AUCUN poste — ils aborderont', () => {
-    const party = scen.construire().party;
+    const party = scen.construire(idsDeTest).party;
     applyShipPostes([...party, ...spawnRoster()]);
     expect(party.filter((h) => !h.mannedPoste).length).toBe(2);
   });
 
   it('la bordée tribord PEUT TIRER sur la cogue (cap Nord = octant tribord + munition de siège + chargé)', () => {
-    const party = scen.construire().party;
+    const party = scen.construire(idsDeTest).party;
     const all = [...party, ...spawnRoster()];
     applyShipPostes(all);
     const gunner = party.find((h) => h.mannedPoste)!;
@@ -177,7 +178,7 @@ describe('Artillerie jouable — 2 héros SERVENT un poste de pierrier (pas d’
 describe('combat-naval — bordée de la barge sur un pirate, par la porte du joueur', () => {
   it('Test des Artilleurs puis Feu ! : chaque pierrier tire sur le pirate, rien ne lève, aucun État naval', () => {
     seedBattleRng(7);
-    lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(scen));
+    lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(scen, idsDeTest));
     if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('roundStart');
     const BARGE = 'enemy-enc-naval-4';
     const PIRATE = 'enemy-enc-naval-1';

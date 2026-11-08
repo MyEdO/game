@@ -9,15 +9,17 @@
  * garde-robe, où vont ses éléments liés au `squelette` ou en `surface` et ses accessoires, rigides compris ; le fichier GLB de chaque élément servi
  * (`fichiersDuModele`) et le libellé de la chose qu'il porte ; les surfaces de chaque base et de chaque élément servi
  * (`asset/surfaces.ts`), où se posent au montage la palette de la composition et les emblèmes de la garde-robe (#3111) ;
- * la table rôle → clip de chaque base et la vitesse au sol de son rôle `walk` ; le rapport de l'index, dont l'élément
- * n'est servi nulle part.
+ * la table rôle → clip de chaque base et la vitesse au sol de son rôle `walk` ; chaque véhicule servi, élément sans base
+ * (#2987), sous la fiche que nomme sa clé `definition` ; le rapport de l'index, dont l'élément n'est servi nulle part.
+ * Monté, un véhicule porte ses pièces aux postes en vigueur (`postesEnVigueur`), celles de ses Améliorations, et cache
+ * les nœuds que ses Améliorations montées ou non changent (`noeudsCaches`).
  */
 import type { Attache, Repere } from '../asset/attache';
-import { COUCHES, RANG_DU_CORPS, type Couche, type ManifesteDElement } from '../asset/element';
+import { COUCHES, ETATS_AU_POSTE, RANG_DU_CORPS, noeudSelon, type Couche, type ManifesteDElement } from '../asset/element';
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
-import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, libelleDeCleDElement, maniementDeLaForme, pieceRacine, type EmblemeDef, type Maniement } from '../../../src/noyau/index';
+import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, findTeinteById, libelleDeCleDElement, maniementDeLaForme, pieceRacine, type EmblemeDef, type EmblemeResolu, type FireArc, type Maniement, type PosteDuVehicule } from '../../../src/noyau/index';
 
 /** Un point d'accroche d'une base : un emplacement ou une prise, son libellé, son repère, et les ids des éléments qui s'y
  *  montent. */
@@ -78,6 +80,10 @@ export interface ModelesDeLAtelier {
   couches: Record<string, CoucheDeLAtelier>;
   /** Les emblèmes de la garde-robe (`kind: 'embleme'`). */
   emblemes: EmblemeDeLAtelier[];
+  /** Par fiche de véhicule ou d'engin (`cle.definition`), l'id de l'élément `vehicule` servi qui la dessine (#2987). */
+  vehicules: Record<string, string>;
+  /** Par Amélioration navale (`cle.amelioration`), l'id de l'élément `amelioration` servi qui la dessine (#2987). */
+  ameliorations: Record<string, string>;
 }
 
 /** La seconde prise d'un élément : son repère dans celui de sa prise (`liaison.secondePrise`), et le maniement de sa
@@ -100,12 +106,19 @@ type EmblemeDeLAtelier = Pick<EmblemeDef, 'id' | 'label' | 'svg'>;
 /** La `cle` du manifeste d'élément `manifeste`. */
 export const cleDe = (manifeste: unknown): Readonly<Record<string, string | undefined>> => (manifeste as ManifesteDElement).cle;
 const modeDe = (e: EntreeDeModele) => (e.brut as ManifesteDElement).liaison.mode;
+/** La base de l'élément `e`, `undefined` s'il est sans base (`estSansBase`). */
+const baseDe = (e: EntreeDeModele): string | undefined => { const m = e.brut as ManifesteDElement; return 'base' in m ? m.base : undefined; };
 /** Les `nom` des surfaces `blason: true` du manifeste d'élément `manifeste`, dans l'ordre du manifeste. */
 export const blasonsDe = (manifeste: unknown): string[] => (manifeste as ManifesteDElement).surfaces.filter((s) => s.blason === true).map((s) => s.nom);
 
+/** L'emblème `embleme` d'un porteur, à poser sur l'élément de manifeste `manifeste` (`undefined` : aucun élément) s'il
+ *  porte une surface `blason` (`blasonsDe`) : `{ embleme }`, sinon rien. */
+export const emblemeMonte = (embleme: EmblemeResolu | undefined, manifeste: unknown): { embleme?: EmblemeResolu } =>
+  embleme && manifeste !== undefined && blasonsDe(manifeste).length > 0 ? { embleme } : {};
+
 /** Les modèles de `manifestes` (id de modèle → manifeste du listage servi, validé) : les bases, leurs points d'accroche et
- *  leurs lignes de pièce, les surfaces de chaque modèle servi, les emblèmes de la garde-robe, les refus de l'index et
- *  son rapport. Un objet lié en `rigide` se monte aux emplacements de sa base dont l'os est l'un de ses `osDesRigides` (id
+ *  leurs lignes de pièce, les surfaces de chaque modèle servi, les emblèmes de la garde-robe, les véhicules, les refus de
+ *  l'index et son rapport. Un objet lié en `rigide` se monte aux emplacements de sa base dont l'os est l'un de ses `osDesRigides` (id
  *  de modèle → os qui portent ses meshes rigides, du listage servi), et à chacune de ses prises si l'un d'eux est l'os d'une
  *  prise (#3319) ; toute pièce, accessoire rigide compris, à la ligne dont
  *  l'id vaut sa clé : `tete`, `coiffure`, `piece` d'un vêtement ou d'une armure, ou de la pièce de sa variante (`pieceRacine`,
@@ -137,7 +150,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     });
   const bases = [...index.bases.values()].map(({ id, brut }): BaseDeLAtelier => {
     const m = brut as ManifesteDeBase;
-    const deLaBase = elements.filter((e) => (e.brut as ManifesteDElement).base === m.base);
+    const deLaBase = elements.filter((e) => baseDe(e) === m.base);
     const estUnePiece = (e: EntreeDeModele) => modeDe(e) !== 'rigide' || (e.brut as ManifesteDElement).categorie === 'accessoire';
     const objets = deLaBase.filter((e) => !estUnePiece(e));
     const pieces = deLaBase.filter(estUnePiece);
@@ -178,5 +191,78 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
   const emblemes = gardeRobe.flatMap((e) => (e.kind === 'embleme' ? [{ id: e.id, label: e.label, svg: e.svg }] : []));
   const couches = Object.fromEntries(Object.entries(rangs).map(([id, { rang, couvre }]): [string, CoucheDeLAtelier] =>
     [id, { couvre, masque: Object.keys(libelles).filter((autre) => (rangs[autre]?.rang ?? RANG_DU_CORPS) < rang) }]));
-  return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, couches, emblemes };
+  const parCle = (categorie: 'vehicule' | 'amelioration', champ: 'definition' | 'amelioration') => Object.fromEntries(elements.flatMap((e) => {
+    const m = e.brut as ManifesteDElement;
+    return m.categorie === categorie ? [[cleDe(m)[champ]!, servir([e])[0]]] : [];
+  }));
+  return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules: parCle('vehicule', 'definition'), ameliorations: parCle('amelioration', 'amelioration') };
+}
+
+/** Une pièce montée sur un véhicule : l'élément `vehicule` servi qui dessine sa fiche, son bord, sa position dans la
+ *  scène du véhicule (`postes` de son manifeste) et sa palette, en `#rrggbb` par emplacement de palette. */
+export interface PosteMonte {
+  element: string;
+  bord: FireArc;
+  position: readonly [number, number, number];
+  palette: Record<string, string>;
+}
+
+type ManifesteDeVehicule = Extract<ManifesteDElement, { categorie: 'vehicule' }>;
+
+/** Les postes du véhicule de manifeste `manifeste` qui porte les Améliorations `ameliorations` : ceux de son manifeste,
+ *  chaque bord que nomme `selon.<amelioration>.postes` d'une Amélioration montée remplacé par les siens (MDG p.97). */
+export const postesEnVigueur = (manifeste: unknown, ameliorations: readonly string[]): ManifesteDeVehicule['postes'] => {
+  const { postes, selon } = manifeste as ManifesteDeVehicule;
+  return Object.assign({}, postes, ...ameliorations.map((a) => selon?.[a]?.postes));
+};
+
+/** Les pièces de `postes` montées sur le véhicule de manifeste `manifeste`, de palette `palette`, qui porte les
+ *  Améliorations `ameliorations` : chacune à la position de son bord qui suit celles des pièces précédentes de ce bord,
+ *  si ses postes en vigueur (`postesEnVigueur`) l'offrent et qu'un élément de `vehicules` (fiche → élément servi) dessine
+ *  sa fiche, à la palette du véhicule où la palette de sa teinte (`findTeinteById`) colore ; une autre ne se monte pas. */
+export function postesMontes(manifeste: unknown, ameliorations: readonly string[], postes: readonly PosteDuVehicule[], vehicules: Readonly<Record<string, string>>, palette: Readonly<Record<string, string>>): PosteMonte[] {
+  const offertes = postesEnVigueur(manifeste, ameliorations) ?? {};
+  const rangs = new Map<FireArc, number>();
+  return postes.flatMap(({ definition, bord, teinte }) => {
+    const rang = rangs.get(bord) ?? 0;
+    rangs.set(bord, rang + 1);
+    const position = offertes[bord]?.[rang];
+    const element = vehicules[definition];
+    return position && element ? [{ element, bord, position, palette: { ...palette, ...findTeinteById(teinte)?.palette } }] : [];
+  });
+}
+
+type EtatAuPoste = (typeof ETATS_AU_POSTE)[keyof typeof ETATS_AU_POSTE];
+
+/** Une pièce d'Amélioration montée sur un véhicule : l'élément `amelioration` servi qui la dessine, sa position dans la
+ *  scène du véhicule, et, montée à un poste, son bord, le nœud qu'elle montre et celui qu'elle cache (`ETATS_AU_POSTE`). */
+export interface AmeliorationMontee {
+  element: string;
+  position: readonly [number, number, number];
+  poste?: { bord: FireArc; montre: EtatAuPoste; cache: EtatAuPoste };
+}
+
+/** Les pièces des `ameliorations` montées sur le véhicule de manifeste `manifeste`, dont `montes` sont les pièces de ses
+ *  postes (`postesMontes`) : pour chaque Amélioration dont un élément de `pieces` (Amélioration → élément servi, de manifeste
+ *  dans `manifestes`) est servi, une pièce à chacun de ses `ancrages` dans le manifeste du véhicule, ou, montée aux postes,
+ *  à chaque poste que l'Amélioration offre (`selon.<amelioration>.postes`), `ouvert` devant une pièce montée, `ferme` sinon. */
+export function ameliorationsMontees(manifeste: unknown, ameliorations: readonly string[], montes: readonly PosteMonte[], pieces: Readonly<Record<string, string>>, manifestes: Readonly<Record<string, unknown>>): AmeliorationMontee[] {
+  const vehicule = manifeste as ManifesteDeVehicule;
+  return ameliorations.flatMap((amelioration) => {
+    const element = pieces[amelioration];
+    if (!element) return [];
+    if ((manifestes[element] as Extract<ManifesteDElement, { categorie: 'amelioration' }>).montage === 'ancrages') return (vehicule.ancrages?.[amelioration] ?? []).map((position) => ({ element, position }));
+    return Object.entries(vehicule.selon?.[amelioration]?.postes ?? {}).flatMap(([bord, positions]) => positions.map((position) => {
+      const arme = montes.some((m) => m.bord === bord && m.position === position);
+      return { element, position, poste: { bord: bord as FireArc, montre: arme ? ETATS_AU_POSTE.arme : ETATS_AU_POSTE.vide, cache: arme ? ETATS_AU_POSTE.vide : ETATS_AU_POSTE.arme } };
+    }));
+  });
+}
+
+/** Les nœuds à cacher du véhicule de manifeste `manifeste`, qui porte les Améliorations `ameliorations`, et de ses pièces
+ *  d'Amélioration `montees` (`ameliorationsMontees`, de manifeste dans `manifestes`) : pour chaque Amélioration que nomme
+ *  leur `selon`, ses nœuds `sans-` si elle est montée, `avec-` sinon (`noeudSelon`). */
+export function noeudsCaches(manifeste: unknown, ameliorations: readonly string[], montees: readonly AmeliorationMontee[], manifestes: Readonly<Record<string, unknown>>): string[] {
+  const nommees = new Set([manifeste, ...montees.map((m) => manifestes[m.element])].flatMap((m) => Object.keys((m as Extract<ManifesteDElement, { categorie: 'vehicule' | 'amelioration' }>).selon ?? {})));
+  return [...nommees].map((a) => noeudSelon(ameliorations.includes(a) ? 'sans' : 'avec', a));
 }

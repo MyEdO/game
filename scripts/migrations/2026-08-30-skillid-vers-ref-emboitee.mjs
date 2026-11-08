@@ -28,6 +28,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -98,7 +99,7 @@ function versSkillId(noeud) {
   if (noeud == null || typeof noeud !== 'object') return noeud;
   const sortie = {};
   for (const [k, v] of Object.entries(noeud)) {
-    if (k === 'skill' && v && typeof v === 'object' && !Array.isArray(v) && Object.hasOwn(v, 'id')) {
+    if (k === 'skill' && estObjet(v) && Object.hasOwn(v, 'id')) {
       sortie.skillId = v.id;
       if (Object.hasOwn(v, 'spec')) sortie.spec = v.spec;
     } else if (k === 'id' && typeof v === 'string') sortie.skillId = v;
@@ -142,7 +143,7 @@ for (const c of CHEMINS) {
   for (const parent of parents(data, c.chemin)) {
     const { conteneur, cle } = parent;
     const o = conteneur[cle];
-    if (!o || typeof o !== 'object' || Array.isArray(o) || !Object.hasOwn(o, 'skillId')) continue;
+    if (!estObjet(o) || !Object.hasOwn(o, 'skillId')) continue;
     conteneur[cle] = c.forme === 'plat' ? versPlat(o) : versEmboitee(o);
     comptes.set(c.fichier, (comptes.get(c.fichier) ?? 0) + 1);
   }

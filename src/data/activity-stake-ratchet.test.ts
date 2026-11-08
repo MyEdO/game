@@ -4,7 +4,7 @@
  * coquilles de modale, celui-ci la DONNÉE qui les alimente.
  *
  * Le prédicat de jet est celui du moteur (`activityRolls`), pas un grep : une Activité LANCE si elle
- * déclare des `skills`/`char`/`freeSkill`, ou si son résolveur dérive la compétence du héros
+ * déclare des `tests`/`freeSkill`, ou si son résolveur dérive la compétence du héros
  * (Revenus, Artisanat, Apprentissage, Réputation). Symétrie EXIGÉE dans les deux sens :
  *  - une Activité qui LANCE et qui est JOUABLE porte son enjeu (stock restant nominatif, décroissant) ;
  *  - une Activité SANS Test n'en porte AUCUN (pas de zone d'enjeu muette au pied du volet).

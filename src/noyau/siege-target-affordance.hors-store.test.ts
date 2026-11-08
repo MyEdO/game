@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -28,7 +29,7 @@ function sceneWithStructure(structId: string): Scene {
 
 function start(structId: string, seed = 1) {
   banc.getState().ensemencerLeTirage(seed);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(sceneWithStructure(structId));
   banc.getState().lancerLeCombat('enc-mutants');
@@ -46,7 +47,7 @@ describe('Affordance — structures réservées aux armes de siège', () => {
   it('arme de mêlée ordinaire sur un Mur Impénétrable → aucun réticule (none) : le survol retombe sur le déplacement', () => {
     const { S, H } = start('mur-en-pierre');
     // Arme simple (épée, mêlée, SANS Atout Siège), au contact de la face de la structure.
-    const sword = itemFromTrappingById('arme-simple')!; sword.equipped = true;
+    const sword = itemFromTrappingById('arme-simple', idsDeTest)!; sword.equipped = true;
     H.items = [sword]; H.loadouts = undefined; H.activeLoadoutId = undefined; recomputeLoadout(H);
     H.pos = { x: 1, y: 2 }; // adjacent à la face (2,2) de l'arête E
     expect(H.weapons.length).toBeGreaterThan(0); // sanity : une option d'arme existe

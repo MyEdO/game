@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
@@ -47,7 +48,7 @@ const carte: WorldMap = {
 function etatFrais(): void {
   seedBattleRng(1);
   set({
-    party: makePregens().slice(0, 3),
+    party: makePregens(idsDeTest).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, worldMap: carte, lieu: 'A', travelPlan: null, pendingCascade: null, suspendedCascades: [],
     flags: {}, journal: [],
@@ -361,7 +362,7 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
   const consequenceDeBord = (id: string, c: Flow) =>
     setDataset('seaBoardEvents', BOARD_EVENTS.map((e) => (e.id === id ? { ...e, consequence: c } : e)) as never);
   const surLeNavire = (ops: unknown[]): Effect => ({ type: 'ops', on: 'navire', ops } as never);
-  const ration = (uid: string) => ({ ...itemFromTrappingById('ration')!, uid });
+  const ration = (uid: string) => ({ ...itemFromTrappingById('ration', idsDeTest)!, uid });
   const rations = (h: Combatant): number => (h.items ?? []).filter((it) => it.trappingId === 'ration').length;
 
   it('la donnée porte la RAW : débris 1d100, épave 2d100 sur décision ; pénurie la moitié ; manne 1d10 jours et +2d10 Moral', () => {
@@ -756,7 +757,7 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
 
   it('`money.groupe` est inerte dans `applyOps` (la bourse du groupe se résout à la feuille d’Effet)', () => {
     const h = get().party[0];
-    expect(applyOps(h, [{ op: 'money', montant: { brass: 240 }, groupe: true }], { rng: makeRNG(1) } as never)).toEqual([]);
+    expect(applyOps(h, [{ op: 'money', montant: { brass: 240 }, groupe: true }], { idNeuf: idsDeTest, rng: makeRNG(1) } as never)).toEqual([]);
   });
 
   it('Prêtre de Manann : la donnée porte la RAW (1d10 CO + Taille en pistoles, ou Humeur −4d10)', () => {
@@ -1153,6 +1154,6 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
 
   it('`combatEnMer` est inerte dans `applyOps` (op de navire)', () => {
     const h = get().party[0];
-    expect(applyOps(h, [{ op: 'combatEnMer', adversaire: { id: 'kharibde', nombre: 1 } }], { rng: makeRNG(1) })).toEqual([]);
+    expect(applyOps(h, [{ op: 'combatEnMer', adversaire: { id: 'kharibde', nombre: 1 } }], { idNeuf: idsDeTest, rng: makeRNG(1) })).toEqual([]);
   });
 });

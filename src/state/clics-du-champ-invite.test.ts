@@ -4,6 +4,7 @@
  * l'état AU MOMENT du clic, donc le substitut que pose `interceptGuestActions` (`state/netFlow.ts`) : le geste
  * part en intention vers l'hôte, il ne se joue jamais en local.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { interceptGuestActions, restoreGuestActions } from './netFlow';
@@ -21,7 +22,7 @@ const arena = () => {
 /** Invité du siège 0, qui tient le tour de h1. Les verbes locaux sont des espions, que le substitut d'invité
  *  enrobe ; un espion EXTÉRIEUR enregistre ce que le site appelle dans l'état. */
 function invite() {
-  const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
+  const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
   const enemy = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 10 });
   const battle = {
     combatants: [hero, enemy], order: ['h1', 'e1'], baseOrder: ['h1', 'e1'],

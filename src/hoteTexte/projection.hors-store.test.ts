@@ -92,7 +92,7 @@ describe('la fenêtre nomme ses verbes, et le pid qu’ils attendent, à chaque 
   it('l’étape-jet d’attaque nomme la pose du dé de son flux (`jetImposerLeResultat` sur `attack`)', { timeout: 120_000 }, () => {
     auPremierTour('dome', (r) => {
       expect(projeter(r.partie.etat(), r.gestes.length, r.journal.length).fenetre!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetLancer@attack', 'jetValider@attack', 'jetImposerLeResultat@attack']));
-    }, { offre: 'charge' }, { type: 'cliquerLaCase', args: [{ x: 7, y: 5 }, 'enemy-enc-dome-1'] });
+    }, { type: 'armerLIntention', args: ['charge'] }, { type: 'cliquerLaCase', args: [{ x: 7, y: 5 }, 'enemy-enc-dome-1'] });
   });
 });
 
@@ -106,7 +106,7 @@ describe('le jet se lit avant sa confirmation', () => {
       expect(jet.lignes[0]).toMatchObject({ genre: 'test', jet: { d100: res.attackerDetail!.roll, dr: res.attackerDetail!.sl, reussi: res.attackerDetail!.success } });
       expect(jet.lignes).toHaveLength(res.defenderDetail ? 2 : 1);
       expect(rendreLaVue(p).join('\n')).toMatch(/^jet attack : .* · (gagne : \S+|égalité) · DR net [+-]?\d+$/m);
-    }, { offre: 'charge' }, { type: 'cliquerLaCase', args: [{ x: 7, y: 5 }, 'enemy-enc-dome-1'] }, { type: 'jetLancer', args: ['attack'] });
+    }, { type: 'armerLIntention', args: ['charge'] }, { type: 'cliquerLaCase', args: [{ x: 7, y: 5 }, 'enemy-enc-dome-1'] }, { type: 'jetLancer', args: ['attack'] });
   });
 });
 
@@ -134,7 +134,7 @@ describe('le champ et l’exploration se lisent', () => {
       const vue = rendreLaVue(projeter(etat, r.gestes.length, r.journal.length)).join(' ');
       expect(vue).toContain(`${CLIC_DU_CHAMP}(`);
       expect(vue).toMatch(/intention armée : course \(un clic du champ la commet\)/);
-    }, { offre: 'course' });
+    }, { type: 'armerLIntention', args: ['course'] });
   });
   it('`carte` en exploration liste les entités et les PNJ de la scène', { timeout: 120_000 }, () => {
     const r = rejouer(nouvelEntete('fenetre-ecuries', { graine: 7 }), []);

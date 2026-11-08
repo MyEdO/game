@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { listerProjetsLivres } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
@@ -23,7 +24,7 @@ import { SCENARIOS } from '../../scenes/test-scenarios/_registry.generated';
 
 const projets = listerProjetsLivres();
 const scenesDeProjet: Scene[] = projets.flatMap((f) => parseProject(lireProjetLivre(f)).scenes);
-const scenesDeScenario: Scene[] = SCENARIOS.map((sc) => sc.construire().scene);
+const scenesDeScenario: Scene[] = SCENARIOS.map((sc) => sc.construire(idsDeTest).scene);
 const SCENES: Scene[] = [...scenesDeScenario, ...scenesDeProjet];
 
 function plafondM(scene: Scene, x: number, y: number, z: number): number | undefined {

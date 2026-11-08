@@ -8,9 +8,9 @@ import { setDataset } from './overrides';
 export function avecDotations<T>(careerId: string, dotations: { classe?: TrappingRef[]; niveau?: TrappingRef[] }, fn: () => T): T {
   const niveaux = [...careerLevels];
   const classesAvant = [...classes];
-  const classeId = findCareerById(careerId)?.class;
+  const classeId = findCareerById(careerId)?.class.id;
   const { classe, niveau } = dotations;
-  if (niveau) setDataset('careerLevels', niveaux.map((l) => (l.career === careerId && l.level === 1 ? { ...l, trappings: niveau } : l)));
+  if (niveau) setDataset('careerLevels', niveaux.map((l) => (l.career.id === careerId && l.level === 1 ? { ...l, trappings: niveau } : l)));
   if (classe) setDataset('classes', classesAvant.map((c) => (c.id === classeId ? { ...c, trappings: classe } : c)));
   try {
     return fn();

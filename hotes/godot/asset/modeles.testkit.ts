@@ -40,6 +40,20 @@ export const elementSchema3 = (base = 'humanoide') => ({
   schema: 3, base, categorie: 'rigide', cle: { apparence: 'epee' }, liaison: { mode: 'rigide' },
   surfaces: [{ nom: 'metal', palette: 'metal' }], glb: empreinte(GLB_D_ELEMENT),
 });
+/** Le GLB d'un élément sans base (#2987) : son mesh reste à la racine de la scène. */
+export const GLB_SANS_BASE = glbDElement(null);
+/** Le GLB d'un élément sans base (#2987) dont chaque nom de `noms` est un nœud à mesh, à la racine de la scène, de
+ *  matériau `metal`. */
+export const glbANoeuds = (noms: readonly string[]) => ecrireGlb({
+  asset: { version: '2.0' }, nodes: noms.map((name) => ({ name, mesh: 0 })),
+  meshes: [{ primitives: [{ material: 0 }] }], materials: [{ name: 'metal' }],
+}, null);
+/** Le GLB d'une pièce montée aux postes (#2987) : un nœud à mesh par état (`ETATS_AU_POSTE`). */
+export const GLB_AU_POSTE = glbANoeuds(['ouvert', 'ferme']);
+/** Le manifeste d'un véhicule, élément sans base, de la coque `definition`, pour `GLB_SANS_BASE`. */
+export const vehiculeDeTest = (definition = 'caraque') => ({
+  schema: 3, categorie: 'vehicule', cle: { definition }, liaison: { mode: 'rigide' }, surfaces: [{ nom: 'metal', palette: 'metal' }], glb: empreinte(GLB_SANS_BASE),
+});
 
 /** Le texte de licence de pack que `productionDeTest` dépose : une production importable établit sa licence. */
 export const LICENCE_DE_PRODUCTION = 'LICENSE-Pack.txt';

@@ -3,6 +3,7 @@
  * joue les gestes de l'équipement, de l'avancement et des possessions. Chaque verdict que l'écran web
  * affiche est celui que le geste applique : le geste refusé ne change rien et dit pourquoi.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type EtatDeJeu, type Partie, type ResultatDeLAppel } from './index';
 import { auContact, heroDuDuel } from './combatDeTest.testkit';
@@ -68,7 +69,7 @@ describe('garnirLaPanoplie — le verdict de main (`refusEmplacementDeMain`) est
 
   it('hors combat, une arme inéligible n’entre pas en seconde main (LDB 14 l.138)', () => {
     const heros = heroDuDuel();
-    const arc = { ...itemFromTrappingById('arc-long')!, uid: 'arc-du-test' };
+    const arc = { ...itemFromTrappingById('arc-long', idsDeTest)!, uid: 'arc-du-test' };
     heros.items = [...(heros.items ?? []), arc];
     avecPartie({ ...etatInitialDuJeu(), party: [heros] }, (partie) => {
       const lu = () => partie.etat().party[0];
@@ -127,7 +128,7 @@ describe('transmettreLObjet et rangerLObjet — le verdict (`refusDInventaire`, 
     enCombat((partie, H) => {
       const lu = () => partie.etat().battle!.combatants.find((c) => c.id === H.id)!;
       const armure = (lu().items ?? []).find((i) => i.kind === 'armor' && i.equipped)!;
-      partie.envoyer({ type: 'transmettreLObjet', args: [armure.uid, H.id, 'pos-1'] });
+      partie.envoyer({ type: 'transmettreLObjet', args: [armure.uid, 'pos-1'] });
       expect(lu().items!.some((i) => i.uid === armure.uid), 'l’armure a quitté le héros en plein combat').toBe(true);
       expect(partie.etat().possessions[0].items).toEqual([]);
       expect(partie.etat().refus?.texte).toBe(refusDInventaire(partie.etat()));
@@ -140,7 +141,7 @@ describe('transmettreLObjet et rangerLObjet — le verdict (`refusDInventaire`, 
       const avant = structuredClone(lu().items);
       const objet = avant!.find((i) => !i.container)!;
       const sac = avant!.find((i) => i.container);
-      partie.envoyer({ type: 'rangerLObjet', args: [H.id, objet.uid, sac?.uid ?? null] });
+      partie.envoyer({ type: 'rangerLObjet', args: [objet.uid, sac?.uid ?? null] });
       expect(lu().items).toEqual(avant);
       expect(partie.etat().refus?.texte).toBe(t('pf.inventoryLocked'));
     });
@@ -150,10 +151,10 @@ describe('transmettreLObjet et rangerLObjet — le verdict (`refusDInventaire`, 
     const heros = heroDuDuel();
     const objet = (heros.items ?? [])[0];
     avecPartie({ ...etatInitialDuJeu(), party: [heros], possessions: [mule(heros.id, { kind: 'au-lieu', placeId: 'altdorf' })] }, (partie) => {
-      const loin = partie.envoyer({ type: 'transmettreLObjet', args: [objet.uid, heros.id, 'pos-1'] });
+      const loin = partie.envoyer({ type: 'transmettreLObjet', args: [objet.uid, 'pos-1'] });
       expect(partie.etat().possessions[0].items, 'l’objet a voyagé jusqu’à la mule laissée ailleurs').toEqual([]);
       expect(lignesDuJournal(loin)).toEqual([t('pf.giveNotColocated', { from: heros.label, to: possessionLabel(partie.etat().possessions[0]), item: objet.label })]);
-      const soi = partie.envoyer({ type: 'transmettreLObjet', args: [objet.uid, heros.id, heros.id] });
+      const soi = partie.envoyer({ type: 'transmettreLObjet', args: [objet.uid, heros.id] });
       expect(lignesDuJournal(soi)).toEqual([t('pf.giveSelf', { from: heros.label, item: objet.label })]);
       expect(partie.etat().party[0].items!.filter((i) => i.uid === objet.uid)).toHaveLength(1);
     });
@@ -163,15 +164,15 @@ describe('transmettreLObjet et rangerLObjet — le verdict (`refusDInventaire`, 
 describe('gestes d’objet et de fiche en combat — un verdict par famille, celui des gestes', () => {
   it('evaluerLObjet : refusé en combat (`refusDInventaire`), rien ne change', () => {
     const H0 = heroDuDuel();
-    const inconnu = { ...itemFromTrappingById('arme-simple')!, uid: 'inconnu-1', identified: false };
+    const inconnu = { ...itemFromTrappingById('arme-simple', idsDeTest)!, uid: 'inconnu-1', identified: false };
     H0.items = [...(H0.items ?? []), inconnu];
     H0.skills = [...H0.skills, { id: 'evaluation', characteristic: 'intelligence', advances: 10 }, { id: 'intuition', characteristic: 'initiative', advances: 10 }];
     enCombat((partie, H) => {
       const lu = () => partie.etat().battle!.combatants.find((c) => c.id === H.id)!;
       const avant = structuredClone(lu().items);
       const gestes: [string, () => void][] = [
-        ['evaluerLObjet', () => partie.envoyer({ type: 'evaluerLObjet', args: [inconnu.uid, H.id] })],
-        ['evaluerLObjet (detect)', () => partie.envoyer({ type: 'evaluerLObjet', args: [inconnu.uid, H.id, 'detect'] })],
+        ['evaluerLObjet', () => partie.envoyer({ type: 'evaluerLObjet', args: [inconnu.uid] })],
+        ['evaluerLObjet (detect)', () => partie.envoyer({ type: 'evaluerLObjet', args: [inconnu.uid, 'detect'] })],
       ];
       for (const [nom, envoyer] of gestes) {
         expect(refusNeuf(partie, envoyer), `${nom} n’a pas prononcé son refus`).toBe(refusDInventaire(partie.etat()));
@@ -185,7 +186,7 @@ describe('gestes d’objet et de fiche en combat — un verdict par famille, cel
   it('l’apparence d’un objet, cosmétique, reste ouverte en combat : `poserLApparence` écrit les deux copies', () => {
     enCombat((partie, H) => {
       const objet = H.items!.find((i) => i.trappingId === 'arme-simple')!;
-      expect(refusNeuf(partie, () => partie.envoyer({ type: 'poserLApparence', args: [H.id, objet.uid, 'hache'] })), 'l’apparence a été refusée en combat').toBeUndefined();
+      expect(refusNeuf(partie, () => partie.envoyer({ type: 'poserLApparence', args: [objet.uid, 'hache'] })), 'l’apparence a été refusée en combat').toBeUndefined();
       const forme = (c: Combatant) => c.items!.find((i) => i.uid === objet.uid)!.shape;
       expect(forme(partie.etat().battle!.combatants.find((c) => c.id === H.id)!)).toEqual({ id: 'hache' });
       expect(forme(partie.etat().party.find((c) => c.id === H.id)!)).toEqual({ id: 'hache' });
@@ -223,7 +224,7 @@ describe('equiperLObjet — le verrou (`refusDInventaire`) est celui du geste', 
       const lu = () => partie.etat().battle!.combatants.find((c) => c.id === H.id)!;
       const armure = (lu().items ?? []).find((i) => i.kind === 'armor' && i.equipped);
       expect(armure, 'témoin : le héros du duel porte une armure').toBeTruthy();
-      partie.envoyer({ type: 'equiperLObjet', args: [H.id, armure!.uid] });
+      partie.envoyer({ type: 'equiperLObjet', args: [armure!.uid] });
       expect(lu().items!.find((i) => i.uid === armure!.uid)!.equipped, 'l’armure a été retirée en plein combat').toBe(true);
       expect(partie.etat().refus?.texte).toBe(refusDInventaire(partie.etat()));
     });
@@ -232,7 +233,7 @@ describe('equiperLObjet — le verrou (`refusDInventaire`) est celui du geste', 
 
 describe('buildAdvancementView — chaque achat porte le refus que son geste rend', () => {
   it('règle « mentor » active, sans mentor : la Caractéristique hors carrière n’est pas offerte, et le geste la refuse', () => {
-    const heros = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 5000 };
+    const heros = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 5000 };
     avecPartie({ ...etatInitialDuJeu(), party: [heros], flags: {} }, (partie) => {
       const vue = buildAdvancementView(partie.etat(), partie.etat().party[0]);
       const hors = vue.chars.find((c) => !c.inCareer)!;
@@ -248,7 +249,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
   });
 
   it('à 0 PX : la vue refuse l’Augmentation au coût près, et le geste ne dépense rien', () => {
-    const heros = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 0 };
+    const heros = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 0 };
     avecPartie({ ...etatInitialDuJeu(), party: [heros], flags: {} }, (partie) => {
       const vue = buildAdvancementView(partie.etat(), partie.etat().party[0]);
       const c = vue.chars.find((x) => x.inCareer)!;
@@ -261,7 +262,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
   });
 
   it('à 0 PX, chaque achat de la vue porte EXACTEMENT le refus que rend son geste (Caractéristique, Compétence, Talent, Carrière)', () => {
-    const heros = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 0 };
+    const heros = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 0 };
     avecPartie({ ...etatInitialDuJeu(), party: [heros], flags: {} }, (partie) => {
       const v = buildAdvancementView(partie.etat(), partie.etat().party[0]);
       const c = v.chars.find((x) => x.inCareer)!;
@@ -283,7 +284,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
   });
 
   it('changement de carrière libre : la vue porte le refus COMPLET du geste (validation, puis PX)', () => {
-    const heros = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 0 };
+    const heros = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 0 };
     avecPartie({ ...etatInitialDuJeu(), party: [heros], flags: {} }, (partie) => {
       const v = buildAdvancementView(partie.etat(), partie.etat().party[0]);
       for (const cible of ['agitateur', 'carriere-inconnue']) {
@@ -302,7 +303,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
   });
 
   it('un Talent au Maxi n’est pas offert : la ligne porte le refus que rend `acheterLeTalent`', () => {
-    const heros = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 5000 };
+    const heros = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), xp: 5000 };
     avecPartie({ ...etatInitialDuJeu(), party: [heros], flags: {} }, (partie) => {
       let ligne = buildAdvancementView(partie.etat(), partie.etat().party[0]).talents.find((r) => r.talentId && !r.maxReached)!;
       for (let pas = 0; !ligne.maxReached && pas < 10; pas++) {

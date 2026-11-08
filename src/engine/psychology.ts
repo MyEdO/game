@@ -1,10 +1,10 @@
 /**
  * Psychologie WFRP4 (Livre de base `21 - Psychologie.md`). Cœur PUR : déclenchement et résolution
- * des Tests de Calme / Psychologie. Jeu sans MJ → difficulté par défaut **Intermédiaire (+0)** (les
- * exemples du livre l'utilisent). P1 = Peur (Indice) / Terreur (Indice). Cf. spec :
+ * des Tests de Calme / Psychologie. Difficulté par défaut : `DIFFICULTE_PAR_DEFAUT` (LDB 12 l.166).
+ * P1 = Peur (Indice) / Terreur (Indice). Cf. spec :
  * docs/superpowers/specs/2026-06-07-psychologie-design.md
  */
-import { Combatant, type Difficulty, type EffectSource, type TerreurSubie } from './types';
+import { Combatant, DIFFICULTE_PAR_DEFAUT, type Difficulty, type EffectSource, type TerreurSubie } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { t } from '../i18n';
 import { RNG } from './dice';
@@ -228,7 +228,7 @@ export function fearSourceFor(self: Combatant, s: SourcePsy, selfSizeForSize?: S
  *  UNIQUE de l'applier `combatPsych` et du picker de Round : plus de `kind === 'terreur'` codé par-nom. */
 export function psychResolution(kind: PsychType): { mode?: 'extended' | 'terreur' | 'binary'; failCondition?: string; failAmount?: { base?: 'indice' | number; perDegreeOfFailure?: number }; becomes?: PsychType } {
   const d = findPsychologyById(kind);
-  return { mode: d?.resolution, failCondition: d?.failCondition, failAmount: d?.failAmount, becomes: d?.becomes as PsychType | undefined };
+  return { mode: d?.resolution, failCondition: d?.failCondition?.id, failAmount: d?.failAmount, becomes: d?.becomes?.id as PsychType | undefined };
 }
 
 /** Le Test de Psychologie d'un état, lu en DONNÉES (`psychology.json` `test`) — SOURCE UNIQUE du Test de
@@ -236,7 +236,7 @@ export function psychResolution(kind: PsychType): { mode?: 'extended' | 'terreur
  *  `sansPeur` : Accessible. LDB 10 l.1051 */
 export function psychTest(kind: PsychType, sansPeur = false): { skill: RefDesignee; difficulty: Difficulty } {
   const td = findPsychologyById(kind)?.test;
-  return { skill: td?.skill ?? { id: 'calme' }, difficulty: sansPeur ? 'accessible' : td?.difficulty ?? 'intermediaire' };
+  return { skill: td?.skill ?? { id: 'calme' }, difficulty: sansPeur ? 'accessible' : td?.difficulty ?? DIFFICULTE_PAR_DEFAUT };
 }
 
 /** Une affliction psy est-elle ACTIVE ? Ciblé : drapeau `active` ; sinon `sousPeur`. */

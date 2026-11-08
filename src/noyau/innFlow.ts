@@ -15,6 +15,7 @@
 import { battleRng } from './battleRng';
 import { activityStakeRef } from '../data';
 import { activityById } from '../engine/activities';
+import { DIFFICULTE_PAR_DEFAUT } from '../engine/types';
 import { applyOps, type GameOp } from '../engine/ops';
 import { openPartyTest, freeCons } from './rollSeam';
 import { generateTradeRumour } from './landMarketFlow';
@@ -40,7 +41,7 @@ export function recueillirLesRumeurs(get: Get, set: Set): void {
   openPartyTest(get, set, {
     skill: test.skill, assisted: false,
     actionLabel: def.label,
-    difficulty: test.difficulty ?? 'intermediaire',
+    difficulty: test.difficulty ?? DIFFICULTE_PAR_DEFAUT,
     stake: activityStakeRef(ACTIVITY_ID),
   }, INN_GOSSIP_KIND, {});
 }
@@ -69,7 +70,7 @@ export const TABLES = {
       const cons = freeCons([{ text: 'Personne ne semble savoir grand-chose ce soir-là.', tone: 'bad' }]);
       if (def?.failExtenue && hero) {
         const op: GameOp = { op: 'condition', id: 'extenue', value: 1 }; // EDOC 8 l.133
-        applyOps(hero, [op], { rng: battleRng(), source: { kind: 'activity', id: ACTIVITY_ID } });
+        applyOps(hero, [op], { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'activity', id: ACTIVITY_ID } });
         set({ party: [...get().party] });
         cons.push({ ops: [op] });
       }

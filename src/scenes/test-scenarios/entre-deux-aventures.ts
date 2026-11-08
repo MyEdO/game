@@ -1,3 +1,4 @@
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { createHero } from '../../engine/character';
 import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../noyau/mapSpec';
@@ -10,11 +11,11 @@ import { renforcerCompetence, type TestScenario } from './_shared';
  * bourse pleine, peut engager un ouvrage d'Artisanat (ses Atouts et Défauts visés) et déposer en banque ; la
  * marchande, de Statut Argent, peut investir.
  */
-function groupe(): Combatant[] {
-  const forgeron = createHero({ speciesId: 'nains', careerId: 'artisan', label: 'Durin (forgeron)', motivation: 'Test', seed: 1602, id: 'durin' });
+function groupe(idNeuf: FabriqueDId): Combatant[] {
+  const forgeron = createHero({ idNeuf, speciesId: 'nains', careerId: 'artisan', label: 'Durin (forgeron)', motivation: 'Test', seed: 1602, id: 'durin' });
   renforcerCompetence(forgeron, 'metier', 10, 'forgeron');
   forgeron.appearance = { species: especeDApparence('nains'), sex: 'M' };
-  const marchande = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Hilde (marchande)', motivation: 'Test', seed: 1603, id: 'hilde' });
+  const marchande = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Hilde (marchande)', motivation: 'Test', seed: 1603, id: 'hilde' });
   marchande.appearance = { species: especeDApparence('humains-reiklander'), sex: 'F' };
   return [forgeron, marchande];
 }
@@ -37,5 +38,5 @@ export const scenario: TestScenario = {
   partyNote: 'Durin (forgeron, Métier) · Hilde (marchande, Statut Argent)',
   money: { gold: 20, silver: 0, brass: 0 },
   interludeWeeks: 2,
-  construire: () => ({ party: groupe(), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: groupe(idNeuf), scene: construireScene() }),
 };

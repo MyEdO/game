@@ -297,17 +297,17 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -10
       },
       {
         "op": "charMod",
-        "char": "force",
+        "characteristic": "force",
         "mod": 10
       },
       {
         "op": "charMod",
-        "char": "endurance",
+        "characteristic": "endurance",
         "mod": 10
       },
       {
@@ -382,12 +382,12 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "endurance",
+        "characteristic": "endurance",
         "mod": 10
       },
       {
         "op": "charMod",
-        "char": "force-mentale",
+        "characteristic": "force-mentale",
         "mod": 10
       }
     ],
@@ -500,7 +500,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "capacite-de-combat",
+        "characteristic": "capacite-de-combat",
         "mod": 10
       }
     ],
@@ -647,17 +647,17 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "capacite-de-combat",
+        "characteristic": "capacite-de-combat",
         "mod": 20
       },
       {
         "op": "charMod",
-        "char": "capacite-de-tir",
+        "characteristic": "capacite-de-tir",
         "mod": 20
       },
       {
         "op": "charMod",
-        "char": "force-mentale",
+        "characteristic": "force-mentale",
         "mod": 20
       }
     ],
@@ -689,7 +689,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "force-mentale",
+        "characteristic": "force-mentale",
         "mod": 20
       }
     ]
@@ -850,17 +850,17 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "force",
+        "characteristic": "force",
         "mod": 10
       },
       {
         "op": "charMod",
-        "char": "endurance",
+        "characteristic": "endurance",
         "mod": 10
       },
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": -5
       }
     ],
@@ -1097,12 +1097,12 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "intelligence",
+        "characteristic": "intelligence",
         "mod": 20
       },
       {
         "op": "charMod",
-        "char": "initiative",
+        "characteristic": "initiative",
         "mod": 10
       }
     ],
@@ -1228,12 +1228,12 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "sociabilite",
+        "characteristic": "sociabilite",
         "mod": 10
       },
       {
         "op": "charMod",
-        "char": "force-mentale",
+        "characteristic": "force-mentale",
         "mod": 10
       }
     ],
@@ -1539,7 +1539,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": 10
       },
       {
@@ -1696,17 +1696,17 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "sociabilite",
+        "characteristic": "sociabilite",
         "mod": 10
       },
       {
         "op": "charMod",
-        "char": "intelligence",
+        "characteristic": "intelligence",
         "mod": 10
       },
       {
         "op": "charMod",
-        "char": "initiative",
+        "characteristic": "initiative",
         "mod": 10
       }
     ],
@@ -1843,7 +1843,6 @@
         "label": "Tentacule",
         "attackKind": "tentacules",
         "subType": "base",
-        "uid": "nat-tentacule",
         "damage": 0,
         "plusBF": true,
         "bare": true

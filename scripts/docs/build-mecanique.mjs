@@ -98,7 +98,7 @@ function rendu() {
 
   // ── INDICE numérique d'une qualité : porté par l'INSTANCE, pas par la capacité ────────────────────
   const INDICE_RUNTIME = declaration('src/engine/qualities/dispatch.ts', 'resolveQualities')
-  const INDICE_AUTHORING = declaration('src/engine/qualities/normalize.ts', 'parseQuality')
+  const INDICE_AUTHORING = declaration('src/data/refFormatLivre.ts', 'parseQuality')
   const INDICE_TYPE = declaration('src/engine/types.ts', 'QualityInstance')
   if (!INDICE_RUNTIME.noeud.body?.getText(INDICE_RUNTIME.sf).includes('indice: q.value'))
     abandon(`\`${INDICE_RUNTIME.nom}\` ne dérive plus l'Indice de \`QualityInstance.value\` (${INDICE_RUNTIME.fichier})`)

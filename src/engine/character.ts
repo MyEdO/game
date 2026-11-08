@@ -33,11 +33,12 @@ import {
   specPoolOf,
   talents as talentTable,
   especeDApparence,
+  findSpellById,
   type AdvancementRef,
 } from '../data';
 import type { RefDesignee, RefASpecialisation } from '../data/schemas/grammaire/ref';
 import { refKey, skillSlots, talentSlots, designateSlot, freeSlotFor, statutOuRefus, designationsFor, talentMaxReached, wildcardSpecs, prisParLesAutres, acquerirTalent, type PorteurDeTalents } from './careerSlots';
-import { resolveTrappingChoices, type ChoixDeDotation } from './trappingChoices';
+import { dotationsDuHeros, resolveTrappingChoices, type ChoixDeDotation } from './trappingChoices';
 import { adresseDeCreation, type AdresseDeCreation } from './adresseDeCreation';
 import { appliquerAcquisitions, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
 import { applyStarOps, pettySpellQuotaFor } from './creation';
@@ -45,7 +46,7 @@ import { sizeFromTalents } from './size';
 import { traitsDuPorteur } from './statEntry';
 import { indiceSurLeProfil } from './formule';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
-import { sequence } from './sequences';
+import type { FabriqueDId } from './fabriqueDId';
 import { blessuresPosees } from './characteristics';
 
 /** Caractéristique d'une Compétence (skills.json) par `id` STABLE — LDB 09 : valeur de Test =
@@ -53,6 +54,14 @@ import { blessuresPosees } from './characteristics';
 export function skillCharacteristicById(id: string): CharKey {
   const data = byId('skill', id);
   return data?.characteristic ?? 'dexterite'; // CharKey stable portée par la donnée (repli prudent)
+}
+
+/** `adv` Augmentations à la Compétence `ref` de `skills` : l'instance de même (id, spec) les gagne, sinon une instance
+ *  neuve les porte. LDB 09 l.42 */
+export function augmenterLaCompetence(skills: SkillInstance[], { id, spec }: RefDesignee, adv: number): void {
+  const existing = skills.find((s) => s.id === id && memeSpecialisation(s.spec, spec));
+  if (existing) existing.advances += adv;
+  else skills.push({ id, spec, characteristic: skillCharacteristicById(id), advances: adv });
 }
 
 /** « Répartissez 40 Points d'Augmentations entre vos huit Compétences de départ » (LDB 05 l.535). */
@@ -291,10 +300,11 @@ export interface CreateHeroOptions extends ChoixDeCreation {
   motivation?: string;
   /** Apparence du héros sans son espèce de rendu, dérivée ici de `speciesId` (`especeDApparence`). Absente = aucune. */
   apparence?: Omit<NonNullable<Combatant['appearance']>, 'species'>;
+  /** Id du héros ; absent = un id neuf de `idNeuf`. */
   id?: string;
+  /** Forge l'id du héros sans `id` et les uids de ses objets (`buildInventory`). #2907 */
+  idNeuf: FabriqueDId;
 }
-
-const prochainHeros = sequence();
 
 /** Base de la colonne Humain du Tableau des Attributs. LDB 05 l.351-369 */
 export const BASE_HUMAINE = 20;
@@ -377,11 +387,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   // Compétence (LDB 05 l.535) ; un ajout de Talent est acquis sans Augmentation.
   const heroSoFar: Combatant = { characteristics: chars, talents } as Combatant;
   const skills: SkillInstance[] = [];
-  const addSkill = ({ id, spec }: RefDesignee, adv: number) => {
-    const existing = skills.find((s) => s.id === id && memeSpecialisation(s.spec, spec));
-    if (existing) existing.advances += adv; // même (id, spec) = même Compétence (LDB 09 l.42)
-    else skills.push({ id, spec, characteristic: skillCharacteristicById(id), advances: adv });
-  };
+  const addSkill = (ref: RefDesignee, adv: number) => augmenterLaCompetence(skills, ref, adv);
   const carriere = competencesDeCarriere(level, heroSoFar, specChoices);
   const allouees: { adresse: AdresseDeCreation; designee: RefDesignee }[] = [];
   const parDefaut = new Set<string>();
@@ -412,14 +418,13 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   //    (catalogue) deviennent des objets ; les refs `{text}` (« Arme (Base) », flavor) n'ont pas de
   //    stats → ignorées par buildInventory (un libellé non catalogué n'est pas trouvé). Les emplacements
   //    de dotation se résolvent par `opts.trappingChoices` AVANT `buildInventory`.
-  const rawTrappings = resolveTrappingChoices(opts.careerId, 1, opts.trappingChoices ?? {});
-  const items = buildInventory(rawTrappings, fluxDeCreation(opts.seed, 'possessions'), contexteDeNaissanceDObjet({ species: opts.speciesId, career: opts.careerId }));
+  const rawTrappings = resolveTrappingChoices(dotationsDuHeros(opts.careerId), opts.trappingChoices ?? {});
+  const items = buildInventory(rawTrappings, fluxDeCreation(opts.seed, 'possessions'), opts.idNeuf, contexteDeNaissanceDObjet({ species: opts.speciesId, career: opts.careerId }));
 
   // Trait RACIAL de l'espèce (#572) — Ogre `{id:'ogre'}` (encombrance/consommation ×2, ADE2 « Ogres
   // et Mutations » l.708 « Un Lourd Fardeau ») : résolu et posé sur `Combatant.traits` (MÊME résolution
   // que le spawn de créature bestiaire, #513).
-  const numero = prochainHeros.suivant();
-  const id = opts.id ?? `hero-${numero}`;
+  const id = opts.id ?? opts.idNeuf('hero');
   const speciesTraits = traitsDuPorteur(sp.traits ?? [], { id, indice: indiceSurLeProfil((k) => chars[k]) });
 
   // Taille (LDB 85 l.344-354) — portée par `TalentData.size` (#572) : `sizeFromTalents` sur les talents
@@ -501,6 +506,8 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   // Sorts de Magie mineure (LDB 10 l.714), après les Bénédictions déjà octroyées par
   // `applyTalentAcquisition`.
   const quota = pettySpellQuotaFor(hero);
+  const horsMagieMineure = (opts.pettySpells ?? []).filter((id) => findSpellById(id)?.family !== 'mineure');
+  if (horsMagieMineure.length) throw new Error(`Sorts de Magie mineure « ${horsMagieMineure.join(', ')} » : absents du catalogue des sorts mineurs (LDB 10 l.714).`);
   if (quota && opts.pettySpells?.length) {
     const appris = opts.pettySpells.slice(0, quota).filter((id) => !(hero.spells ?? []).includes(id));
     hero.spells = [...(hero.spells ?? []), ...appris];

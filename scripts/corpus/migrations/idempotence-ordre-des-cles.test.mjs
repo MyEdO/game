@@ -18,8 +18,7 @@ import path from 'node:path'
 import test from 'node:test'
 import { ANTIDATE, copieDuCorpus, efface, joue, pose } from '../../migrations/lib/joue.mjs'
 import { DATEES, RACINE } from '../../test/lib/bancIdempotence.mjs'
-
-const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+import { estObjet } from '../../../src/lib/objet.mjs'
 
 /** Les clés d'ENVELOPPE, dérivées du texte de la grammaire — jamais recopiées ici. */
 const CLES_ENVELOPPE = (() => {

@@ -3,6 +3,7 @@
  * store câble sur l'assistant existant (`setEditingHero(null)` + écran `creator`, #2817 D5). `sessionEnd` se
  * joue au banc du noyau (`src/noyau/meta-effects.hors-store.test.ts`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { applyEffects } from '../noyau/combatEffects';
@@ -10,7 +11,7 @@ import { createHero } from '../engine/character';
 
 describe('Méta-effets de scène (#83)', () => {
   beforeEach(() => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [h], journal: [], screen: 'campaign', editingHeroId: 'x' });
   });
 

@@ -7,6 +7,7 @@
  * erreurs de la page s'y relèvent. Une partie par contexte JS : les tests de ce fichier jouent, dans l'ordre, sur un
  * même pont.
  */
+import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 import { afterAll, describe, it, expect, vi } from 'vitest';
 import { drainer, erreurDe, fautesDeLaFenetre, suiteDe, table } from './pont.testkit';
 import type { VueDuPont } from './pont';
@@ -78,7 +79,7 @@ describe('le pont et sa partie', () => {
 
   it('la vue porte le plateau de la scène, chaque verbe de sa fenêtre en geste, et les clics du champ', () => {
     const v = vue();
-    const depart = scenario.construire();
+    const depart = scenario.construire(idsDeTest);
     expect(v.plateau, 'le plateau de la scène du scénario, sans toit à lever').toEqual(plateauDeLaScene(depart.scene, [], 'tactique'));
     expect(plateauDeLaScene({ ...depart.scene, metresPerTile: 1.5 }, [], 'tactique').metresParCase, 'l’échelle que la scène déclare').toBe(1.5);
     expect(fautesDeLaFenetre(v), 'chaque verbe de la fenêtre ouverte, dessinable').toEqual([]);
@@ -114,20 +115,21 @@ describe('le pont et sa partie', () => {
     expect(e.message).toContain(`verbe inconnu : confirmRound ; gestes de la fenêtre ${fenetre.cle} : ${fenetre.gestes.map(cleDuGeste).join(', ')}`);
     const g = fenetre.gestes[0];
     expect(erreurDe(appel('jouer', { type: g.verbe, args: [...(g.flux ? [g.flux] : []), 1, 1, 1] })).categorie).toBe('validation');
-    expect(erreurDe(appel('jouer', { offre: 'end-turn', type: 'x' })).message).toBe('jouer : type hors de l’entrée (clés : offre, ctx)');
+    expect(erreurDe(appel('jouer', { suite: [], type: 'x' })).message).toBe('jouer : type hors de l’entrée (clés : suite)');
+    expect(erreurDe(appel('jouer', { offre: 'end-turn' })).message, 'une offre se joue par le verbe qu’elle déclare').toBe('jouer : offre hors de l’entrée (clés : type, args, siege)');
   });
 
   it('chaque catégorie d’un geste refusé : `validation`, `permission`, `regle`', { timeout: 120_000 }, () => {
     drainer(appel, appel('jouer', { type: 'fenetreValider', args: ['roundStart'] }));
-    expect(erreurDe(appel('jouer', { type: 'terminerLeTour', args: [], siege: 0 })).categorie).toBe('validation');
-    expect(erreurDe(appel('jouer', { type: 'jouerLOffre', args: ['end-turn'], siege: 1 })).categorie).toBe('permission');
-    expect(erreurDe(appel('jouer', { offre: 'disengage' })).categorie).toBe('regle');
+    expect(erreurDe(appel('jouer', { type: 'armerLIntention', args: ['charge'], siege: 0 })).categorie).toBe('validation');
+    expect(erreurDe(appel('jouer', { type: 'terminerLeTour', args: [], siege: 1 })).categorie).toBe('permission');
+    expect(erreurDe(appel('jouer', { type: 'rompreLEngagement', args: [] })).categorie).toBe('regle');
   });
 
   it('un jeton déjà repris se refuse en `validation`', { timeout: 120_000 }, () => {
     // Les tours des héros finis jusqu'au premier qui programme une suite (le tour adverse) ; ses jetons repris.
-    let fin = appel('jouer', { offre: 'end-turn' });
-    for (let tours = 0; !suiteDe(fin).programmes.length && tours < 8; tours++) fin = appel('jouer', { offre: 'end-turn' });
+    let fin = appel('jouer', { type: 'terminerLeTour', args: [] });
+    for (let tours = 0; !suiteDe(fin).programmes.length && tours < 8; tours++) fin = appel('jouer', { type: 'terminerLeTour', args: [] });
     const [jeton] = suiteDe(fin).programmes;
     expect(jeton, 'une fin de tour programme la suite du round').toBeDefined();
     drainer(appel, fin);

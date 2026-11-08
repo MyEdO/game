@@ -5,6 +5,7 @@
  * jugeaient déjà par `raisonDeModeDeSoinEnCombat` puis `refusDuTestDeSoin`) ; la fenêtre ne portait pas l'acte.
  * LDB 09 l.255-261 ; LDB 74 l.41 ; LDB 62 l.250 ; LDB 18 l.222.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { fenetreDuSoin } from './soin';
@@ -18,7 +19,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 const g = () => banc.getState();
 
-const bandages = () => ({ ...garanti(itemFromTrappingById('bandages'), 'bandages', 'Bandages'), uid: 'b1' });
+const bandages = () => ({ ...garanti(itemFromTrappingById('bandages', idsDeTest), 'bandages', 'Bandages'), uid: 'b1' });
 function cb(p: Partial<Combatant>): Combatant {
   return blessuresSurLeProfil({
     id: 'h1', label: 'Doc', kind: 'hero',

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -96,7 +97,7 @@ describe('partition anti-doublon — la ligne de dé n’existe QUE sans fenêtr
     avecLesTables({ appliers: { ...tablesDuJeu().appliers, tally: spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success })) } });
   });
   function hero() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
     banc.setState({ party: [h] });
     return h;
   }
@@ -129,7 +130,7 @@ describe('partition anti-doublon — la ligne de dé n’existe QUE sans fenêtr
 
 describe('le verbe terminal `apply` — l’issue se journalise UNE fois, au goulot', () => {
   it('canal NARRATIF (Test de scène) : `apply` journalise l’issue déclarée, et l’acquittement n’en écrit pas une seconde', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
     banc.setState({ party: [h] });
     const pt: PendingTest = {
       actorId: h.id, actorName: h.label, skill: 'Athlétisme', skillValue: 50, difficulty: 'intermediaire',

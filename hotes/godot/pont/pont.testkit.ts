@@ -4,7 +4,10 @@
  * (`horlogeVirtuelle`, `src/noyau/horlogeVirtuelle.ts`), là où Godot arme ses minuteurs, et ce qu'il manque à une vue pour que
  * Godot dessine la fenêtre qui tient la main (`fautesDeLaFenetre`).
  */
+import { join } from 'node:path';
 import { expect } from 'vitest';
+import { listage } from '../servir.mjs';
+import { tableTotale } from '../../../src/lib/tableTotale';
 import { creerPont, type Pont, type Suite, type VueDuPont } from './pont';
 import type { CategorieDuPont } from './pont';
 import { cleDuGeste, horlogeVirtuelle, type LigneDuJournal } from '../../../src/noyau/index';
@@ -23,6 +26,21 @@ export function table() {
     return JSON.parse(brut) as Reponse;
   };
   return { pont, appel };
+}
+
+/** La vue d'une réponse qui en porte une. */
+export const vueDe = (r: Reponse): VueDuPont => (r as { vue: VueDuPont }).vue;
+
+/** Les éléments de la section `id` du statbloc de la fiche ouverte (`fiche.sections`, `section/<id>`), aucun sans
+ *  elle. */
+export const sectionDeLaFiche = (vue: VueDuPont, id: string): Element[] => vue.zones['fiche.sections'].find((e) => e.id === `section/${id}`)?.elements ?? [];
+
+/** Le listage des modèles commités du projet Godot, tel que `GET /modeles/` le sert. */
+export const modelesCommites = () => listage(join(import.meta.dirname, '../projet/modeles'));
+
+/** `modeles` par `appel` sur `manifestes`, chacun avec les os de ses meshes rigides au listage commité `commites`. */
+export function servirLesModeles(appel: ReturnType<typeof table>['appel'], commites: ReturnType<typeof modelesCommites>, manifestes = commites.manifestes): void {
+  expect(appel('modeles', { manifestes, osDesRigides: tableTotale(Object.keys(manifestes), (id) => commites.osDesRigides[id] ?? []) })).toMatchObject({ ok: true });
 }
 
 /** La suite d'une réponse réussie, ou l'échec qui dit la réponse. */

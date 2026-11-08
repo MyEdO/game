@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { foyerDeRegleSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
+import { ref, refs } from '../grammaire/ref';
 
 export const file = 'crew-test-types.json';
 export const famille = 'config';
@@ -16,8 +17,8 @@ const doc = document(
     nommerChamps(z.strictObject({
       id: z.string(),
       label: z.string(),
-      roles: z.array(z.string()),
-      essential: z.string(),
+      roles: refs('crewRole'),
+      essential: ref('crewRole'),
       /** MDG 14. */
       rule: foyerDeRegleSchema.optional(),
       /** MDG 14 l.110. */

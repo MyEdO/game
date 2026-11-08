@@ -5,6 +5,7 @@
  *  - après un jet de Colère : Péché −1, min 0 (l.53) ;
  *  - Effet d'éditeur `giveSin` (sanction d'auteur, 1-3 — l.36).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
@@ -17,7 +18,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function priestParty(sin: number) {
-  const [priest, ally] = pregenParty(PREGEN.pretre, PREGEN.soldat);
+  const [priest, ally] = pregenParty(idsDeTest, PREGEN.pretre, PREGEN.soldat);
   const priere = priest.skills.find((s) => s.id === 'priere');
   if (priere) priere.advances = Math.max(priere.advances, 5);
   else priest.skills.push({ id: 'priere', characteristic: 'sociabilite', advances: 5 });

@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 /**
- * Briques d'apparence (#1897) : chaque valeur offerte est celle que son lecteur résout. L'arme équipée
- * est un `trappingId` (`SceneEntity.weapon`, `weaponFromId`) ; l'option vide d'Espèce renvoie au profil.
+ * Briques d'apparence (#1897) : chaque valeur offerte est celle que son lecteur résout ; l'option vide d'Espèce
+ * renvoie au profil.
  * L'Espèce propose les registres `species.json` et `creatures.json`, lus par `bodyShapeForSpecies`
  * (`engine/bodyForm.ts`).
  */
-import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act } from 'react';
 import { choisirMediaSelect } from '../MediaSelect.testkit';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
@@ -19,8 +19,7 @@ import type { Effect } from '../../data/schemas/defs-scenes/effets';
 import type { GameOp } from '../../engine/ops';
 import { apparencesAdmissiblesDObjet } from '../../data/apparencesObjets';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
-import { ApparencesObjetsField, ArmeEquipeeField, ReglagesApparence } from './ReglagesApparence';
-import { weaponFromId } from '../../engine/creatureEquip';
+import { ApparencesObjetsField, ReglagesApparence } from './ReglagesApparence';
 import { idsDe } from '../../data/schemas/grammaire/ref';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 
@@ -104,29 +103,6 @@ describe('ApparencesObjetsField — contrat partagé', () => {
     expect(next.apparencesObjets).toEqual({ bouclier: { id: 'bouclier_rectangle' } });
     choisir('Bouclier', 'Bouclier');
     expect(next).toEqual({ sex: 'M' });
-  });
-});
-
-describe('ArmeEquipeeField', () => {
-  it('∀ option, la valeur est un trappingId que weaponFromId résout en arme', () => {
-    const { container } = monterRacine(<ArmeEquipeeField onWeapon={() => {}} />);
-    const valeurs = [...selectDe(container, 'Arme équipée').options].map((o) => o.value).filter(Boolean);
-    const erreur = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const irresolues = valeurs.filter((v) => weaponFromId(v) === null);
-    erreur.mockRestore();
-    expect(valeurs.length).toBeGreaterThan(0);
-    expect(irresolues).toEqual([]);
-  });
-
-  it('le choix émet le trappingId, pas le libellé', () => {
-    const onWeapon = vi.fn();
-    const { container } = monterRacine(<ArmeEquipeeField onWeapon={onWeapon} />);
-    const select = selectDe(container, 'Arme équipée');
-    act(() => {
-      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, 'arbalete');
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    expect(onWeapon).toHaveBeenLastCalledWith('arbalete');
   });
 });
 

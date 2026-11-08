@@ -1,37 +1,16 @@
 /**
  * Dérivation PURE « traits → équipement » (armes jouables + armure en PA) d'une créature/statbloc.
- * SOURCE UNIQUE, partagée par le SPAWN de combat (`noyau/monde/spawn`) ET le RENDU d'exploration.
+ * SOURCE UNIQUE, partagée par le SPAWN de combat (`noyau/monde/spawn`), `recomputeLoadout` ET le RENDU d'exploration.
  * Vit dans `engine` (pur, ne dépend de rien d'en haut) → importable par le noyau ET par le rendu
  * (`scripts/guards/lib/couches.mjs`).
  */
 import type { Weapon, ArmourPoints } from './types';
 import type { TraitInstance, TraitList } from './statEntry';
-import { buildWeapon, emptyArmour, itemFromTrappingById, unarmedWeapon, weaponFromItem, type TrappingResolver } from './items';
+import { buildWeapon, cleDInstanceDeTrait, emptyArmour, estUneVraieArme, gabaritDObjet, peutEtreTenu, uidDArme, unarmedWeapon, weaponFromItem, type GabaritDObjet, type TrappingResolver } from './items';
 import { armureDuTrait } from './armourBypass';
-import type { ItemInstance, WeaponDamageSpec } from './types';
+import type { WeaponDamageSpec } from './types';
 import { traitLabelById } from './traits/dispatch';
 import { findTraitById, findTrappingById, SPEC_SOURCES } from '../data/index';
-
-/** Arme depuis un `trappingId` d'authoring de scène (`SceneEntity.weapon`) : lookup EXACT au catalogue
- *  (`findTrappingById`) puis PROJECTION UNIQUE `weaponFromItem` (engine/items) — Dégâts, Portée (y compris
- *  la spec `{bf}` des armes de JET), Groupe (`subType`/`weaponGroup`), qualités, Recharge, mains, Allonge,
- *  forme, Taille prévue, effets à la touche et bande de portée MINIMALE viennent TOUS du catalogue, jamais
- *  d'un littéral : cette arme est jouable (bandes de tir `porteeDeTir`, Spécialisation
- *  `weaponGroupSkillMode`) autant que dessinée. Id introuvable OU trapping qui n'est pas une arme → `null`
- *  + `console.error` : l'entité reste désarmée, rien d'inventé (aucune arme devinée depuis un id mort). */
-export function weaponFromId(trappingId: string, resolveTrapping: TrappingResolver = findTrappingById): Weapon | null {
-  const trapping = resolveTrapping(trappingId);
-  if (!trapping) {
-    console.error(`[weapon] trappingId « ${trappingId} » introuvable au catalogue d'armes (#223) — entité désarmée, rien d'inventé.`);
-    return null;
-  }
-  if (trapping.categorie !== 'melee' && trapping.categorie !== 'ranged') {
-    console.error(`[weapon] trapping « ${trappingId} » (catégorie « ${trapping.categorie} ») n'est pas une arme — entité désarmée, rien d'inventé.`);
-    return null;
-  }
-  const it = itemFromTrappingById(trappingId, resolveTrapping);
-  return it ? weaponFromItem(it) : null;
-}
 
 /**
  * Résout l'`arg` d'un trait `arme`/`a-distance` (`specsSource` `weaponsMelee`/`weaponsRanged`, cf.
@@ -41,10 +20,10 @@ export function weaponFromId(trappingId: string, resolveTrapping: TrappingResolv
  * (RAW : attaques naturelles ou génériques acceptées hors catalogue) — le rendu retombe alors sur le
  * comportement générique/naturel.
  */
-function catalogItem(arg: string | undefined, source: 'weaponsMelee' | 'weaponsRanged', resolveTrapping: TrappingResolver): ItemInstance | undefined {
+function catalogItem(arg: string | undefined, source: 'weaponsMelee' | 'weaponsRanged', resolveTrapping: TrappingResolver): GabaritDObjet | undefined {
   const entree = arg ? resolveTrapping(arg) : undefined;
   return entree && SPEC_SOURCES[source].admetEntree(entree)
-    ? (itemFromTrappingById(entree.id, resolveTrapping) ?? undefined) : undefined;
+    ? (gabaritDObjet(entree.id, resolveTrapping) ?? undefined) : undefined;
 }
 
 /**
@@ -54,8 +33,8 @@ function catalogItem(arg: string | undefined, source: 'weaponsMelee' | 'weaponsR
  * dans la projection : l'armement de créature étant en Traits, sans qualité portée, une arbalète de
  * bestiaire n'aurait sinon aucun défaut Recharge.
  */
-function creatureWeapon(it: ItemInstance, dmg: WeaponDamageSpec, range: number | undefined): Weapon {
-  const w = weaponFromItem(it);
+function creatureWeapon(it: GabaritDObjet, uid: string, dmg: WeaponDamageSpec, range: number | undefined): Weapon {
+  const w = weaponFromItem({ ...it, uid });
   w.damage = dmg;
   if (range !== undefined) w.range = range;
   return w;
@@ -77,6 +56,7 @@ export function weaponFromTrait(t: TraitInstance, resolveTrapping: TrappingResol
 function armeDuTrait(t: TraitInstance, resolveTrapping: TrappingResolver): Weapon | null {
   // Indice de créature = SB déjà inclus → PAS de token BF (« +N », « -N » négatif) ; à défaut d'Indice,
   // arme générique « +BF » nu (SB-relatif). Le constructeur d'arme UNIQUE porte les deux conventions.
+  const uid = `trait-${cleDInstanceDeTrait(t)}`; // #2907
   const dmg: WeaponDamageSpec = t.value != null
     ? { plusBF: false, flat: t.value, ...(findTraitById(t.id)?.bfInclus ? { bfInclus: true as const } : {}) }
     : { plusBF: true, flat: 0, bare: true };
@@ -88,22 +68,22 @@ function armeDuTrait(t: TraitInstance, resolveTrapping: TrappingResolver): Weapo
   if (source === 'weaponsRanged') {
     if (t.value == null) return null; // « À distance » sans Indice de Dégâts : pas une arme jouable (RAW)
     const it = catalogItem(t.arg, source, resolveTrapping);
-    if (it) return creatureWeapon(it, dmg, t.range);
+    if (it) return creatureWeapon(it, uid, dmg, t.range);
     // Arme naturelle/libre (arg hors catalogue, ou absent) : aucun `trappingId`, aucune forme résolue (le rendu retombe sur le Groupe).
-    return buildWeapon({ label: t.arg || 'Attaque à distance', type: 'ranged', damage: dmg, range: t.range ?? undefined });
+    return buildWeapon({ label: t.arg || 'Attaque à distance', type: 'ranged', damage: dmg, range: t.range ?? undefined, uid });
   }
   if (source === 'weaponsMelee') {
     // Attaque naturelle de corps (flag DONNÉE `natural`) → aucune arme dessinée (aucune forme résolue).
-    if (t.natural) return buildWeapon({ label: t.arg ?? 'Arme', damage: dmg, natural: true });
+    if (t.natural) return buildWeapon({ label: t.arg ?? 'Arme', damage: dmg, natural: true, uid });
     const it = catalogItem(t.arg, source, resolveTrapping);
-    if (it) return creatureWeapon(it, dmg, t.range);
+    if (it) return creatureWeapon(it, uid, dmg, t.range);
     // Arme manufacturée hors catalogue, ou descripteur naturel non flaggé : générique, mêlée par
     // défaut.
     // `sizeless` (≠ `natural`, qui viderait les mains) : le trait « Arme +N » SANS objet identifié au
     // catalogue n'est jamais une POSSESSION dont la Taille pourrait ne pas convenir (ADE II 2
     // l.604-710 vise un objet manufacturé réel, ex. une massue-ogre) — sa taille effective EST celle
     // du porteur (LDB 85 l.33), exemptée du mismatch (`combat.ts`) sans toucher au rendu.
-    return buildWeapon({ label: t.arg ?? 'Arme', damage: dmg, sizeless: true });
+    return buildWeapon({ label: t.arg ?? 'Arme', damage: dmg, sizeless: true, uid });
   }
   // Attaque naturelle TYPÉE (Morsure, Cornes, Tentacules…) : reconnue par la CAPACITÉ du trait
   // (`capabilities.naturalWeapon`, donnée). L'arme reste UNE (l'Action d'attaque) ; le compte joue sur
@@ -111,7 +91,7 @@ function armeDuTrait(t: TraitInstance, resolveTrapping: TrappingResolver): Weapo
   // `attackKind = t.id` (l'id du trait EST le kind : morsure/cornes/tentacules) → la pose/anim route par
   // ce champ STABLE (`maniementDe`, `src/noyau/animation.ts`), jamais par le libellé.
   const nat = findTraitById(t.id)?.capabilities?.naturalWeapon;
-  if (nat) return buildWeapon({ label: traitLabelById(t.id), type: nat.ranged ? 'ranged' : 'melee', damage: dmg, natural: true, attackKind: t.id });
+  if (nat) return buildWeapon({ label: traitLabelById(t.id), type: nat.ranged ? 'ranged' : 'melee', damage: dmg, natural: true, attackKind: t.id, uid });
   return null;
 }
 
@@ -122,7 +102,7 @@ export function renderWeaponsFromTraits(traits: TraitList, resolveTrapping: Trap
   const weapons: Weapon[] = [];
   for (const t of traits) {
     const w = weaponFromTrait(t, resolveTrapping);
-    if (w) weapons.push(w);
+    if (w) weapons.push({ ...w, uid: uidDArme(w.uid!, weapons) });
   }
   return weapons;
 }
@@ -138,4 +118,22 @@ export function weaponsFromTraits(traits: TraitList): Weapon[] {
 export function armourFromTraits(traits: TraitList): ArmourPoints {
   const armure = armureDuTrait(traits);
   return armure?.parLocalisation ? { ...armure.parLocalisation } : emptyArmour(armure?.value ?? 0);
+}
+
+/** Armes des Traits `traits` que compose `recomputeLoadout` : `renderWeaponsFromTraits`, hors des Traits dont la def
+ *  porte déjà l'arme en `grantNaturalWeapon`. */
+export const armesDuProfil = (traits: TraitList): Weapon[] =>
+  renderWeaponsFromTraits(traits.filter((t) => !findTraitById(t.id)?.passive?.some((op) => op.op === 'grantNaturalWeapon')));
+
+/** Les Traits `traits` qui restent devant les objets réels `objets` : le Trait Armure cède à une armure portée, un
+ *  Trait dont l'arme est une vraie arme (`estUneVraieArme`) cède à un objet tenu (`peutEtreTenu`) du même type.
+ *  LDB 85 l.31, l.39 ; arbitrage du 2026-11-08 (#773). */
+export function traitsDevantLEquipement(traits: readonly TraitInstance[], objets: readonly GabaritDObjet[], resolveTrapping: TrappingResolver = findTrappingById): TraitInstance[] {
+  const tenus = new Set(objets.filter(peutEtreTenu).map((o) => o.kind));
+  const armurePortee = objets.some((o) => o.equipped && o.kind === 'armor');
+  return traits.filter((t) => {
+    if (armurePortee && armureDuTrait([t])) return false;
+    const w = weaponFromTrait(t, resolveTrapping);
+    return !(w && estUneVraieArme(w) && tenus.has(w.type));
+  });
 }

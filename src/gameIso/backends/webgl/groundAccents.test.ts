@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../../engine/idsDeTest.testkit';
 import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
 import {
@@ -441,7 +442,7 @@ function nappesSemees() {
     accents: ReturnType<typeof tileGroundAccents>;
   }[] = [];
   for (const sc of testScenarios) {
-    const c = sc.construire();
+    const c = sc.construire(idsDeTest);
     for (const scene of [c.scene, ...(c.extraScenes ?? [])]) {
       const m2t = sceneMetresPerTile(scene);
       const wfs = worldFaces(scene, 'jeu');

@@ -3,6 +3,7 @@
  * locuteur (`speakerEntity`), câblage le choix `dialogue.reponse`, survie cross-scène, reset nouvelle partie,
  * save/load, sur le banc du noyau.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { recordTurn, DIALOGUE_HISTORY_CAP, type DialogueTurn } from './dialogueHistory';
 import { speakerEntity, type Dialogue, type SceneEntity } from './scene';
@@ -17,7 +18,7 @@ import { chargerSurLeBanc, sansLaCleDeJeu, sauverLeBanc } from '../persistance/s
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const hero = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+const hero = () => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
 
 /** Dialogue à deux nœuds ; n1 porte un override `speakerId`, n2 hérite du speaker de session. */
 function makeDialogue(): Dialogue {

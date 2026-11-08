@@ -5,6 +5,7 @@
  * La forme persistée : `src/noyau/forme-persistee.hors-store.test.ts` ; les emplacements, leur liste et le témoin
  * des retraits : `src/hote/sauvegardes.hors-store.test.ts` (#2404).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { autoSave, useGame } from './store';
 import { initialNet } from '../noyau/etat';
@@ -25,7 +26,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     poserLeLocalStorage();
     vi.useFakeTimers();
     vi.clearAllTimers();
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sauvé', seed: 4 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sauvé', seed: 4 });
     useGame.setState({ party: [hero], battle: null, net: initialNet() });
     useGame.getState().lancerLaScene(testScene());
     vi.clearAllTimers();

@@ -31,6 +31,7 @@
  * « environnement rural » de la Vie n'est pas câblé (pas de classification de scène) ; l'armure
  * PLATE d'un statblock (matière inconnue) compte comme NON-métal et NON-magique.
  */
+import type { FabriqueDId } from './fabriqueDId';
 import type { Combatant, HitLocation } from './types';
 import type { TriggeredEffect } from './flowCore';
 import { RNG } from './dice';
@@ -106,10 +107,10 @@ export function isSorceryDomain(spell: SpellDomainRef): boolean {
 /** Ops post-incantation appliquées AU LANCEUR après un Sort de Domaine réussi — PARAMÈTRE en données
  *  (`DomainData.casterOps` : `GameOp[]`). Ex. Bête (Ghur) : `grantTrait` Peur 1 pendant 1d10 Rounds.
  *  Exécutées via `applyOps` — source unique, pas de réimplémentation de grantTrait ici. */
-export function domainCasterOps(caster: Combatant, spell: SpellDomainRef, rng: RNG): string[] {
+export function domainCasterOps(caster: Combatant, spell: SpellDomainRef, rng: RNG, idNeuf: FabriqueDId): string[] {
   const ops = findDomainById(spell.domainId)?.casterOps;
   if (!ops?.length) return [];
-  return applyOps(caster, ops, { rng, label: 'Attribut de domaine' });
+  return applyOps(caster, ops, { rng, idNeuf, label: 'Attribut de domaine' });
 }
 
 /**

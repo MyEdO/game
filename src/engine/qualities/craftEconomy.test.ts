@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { craftPriceFactor, craftEncDelta, shiftAvailability, qualityClass, qualityClassLabel, craftAtoutCount, craftDefautCount } from './craftEconomy';
-import { parseQualityInstance } from './normalize';
+import { parseQualityInstance } from '../../data/refFormatLivre';
 
 /** Fixture : libellés FR (lisibles) → `QualityInstance[]` structurées via le parseur d'authoring. */
 const it_ = (qualities: string[]) => ({ qualities: qualities.map((q) => parseQualityInstance(q)!) });
@@ -19,20 +19,20 @@ describe('craftEconomy — comptage & prix (LDB 60 l.11/42)', () => {
 
 describe('craftEconomy — Disponibilité (LDB 60 l.11/42/44, échelle Commune<Limitée<Rare<Exotique)', () => {
   it('Atouts rendent plus RARE, Défauts plus COURANT', () => {
-    expect(shiftAvailability('Commune', it_(['Raffiné', 'Solide 1']))).toBe('Rare'); // +2 (pelle Commune→Rare)
-    expect(shiftAvailability('Rare', it_(['Volumineux', 'Peu Fiable']))).toBe('Commune'); // -2 (cotte Rare→Commune)
+    expect(shiftAvailability('commune', it_(['Raffiné', 'Solide 1']))).toBe('rare'); // +2 (pelle Commune→Rare)
+    expect(shiftAvailability('rare', it_(['Volumineux', 'Peu Fiable']))).toBe('commune'); // -2 (cotte Rare→Commune)
   });
   it('Exotique non rendu plus courant par un Défaut (l.44)', () => {
-    expect(shiftAvailability('Exotique', it_(['Bâclé']))).toBe('Exotique');
+    expect(shiftAvailability('exotique', it_(['Bâclé']))).toBe('exotique');
   });
   it('plafonné aux bornes', () => {
-    expect(shiftAvailability('Commune', it_(['Bâclé', 'Laid']))).toBe('Commune'); // déjà au plus courant
-    expect(shiftAvailability('Rare', it_(['Raffiné', 'Solide 1', 'Léger']))).toBe('Exotique'); // +3 plafonné
+    expect(shiftAvailability('commune', it_(['Bâclé', 'Laid']))).toBe('commune'); // déjà au plus courant
+    expect(shiftAvailability('rare', it_(['Raffiné', 'Solide 1', 'Léger']))).toBe('exotique'); // +3 plafonné
   });
   it('option Guilde : Défauts réduisent la dispo, 1er Atout ne la réduit pas (l.36-38)', () => {
-    expect(shiftAvailability('Rare', it_(['Volumineux']), { guild: true })).toBe('Limitée'); // Défaut -1
-    expect(shiftAvailability('Limitée', it_(['Raffiné']), { guild: true })).toBe('Limitée'); // 1er Atout : pas de réduction
-    expect(shiftAvailability('Limitée', it_(['Raffiné', 'Solide 1']), { guild: true })).toBe('Rare'); // 2e Atout réduit
+    expect(shiftAvailability('rare', it_(['Volumineux']), { guild: true })).toBe('limitee'); // Défaut -1
+    expect(shiftAvailability('limitee', it_(['Raffiné']), { guild: true })).toBe('limitee'); // 1er Atout : pas de réduction
+    expect(shiftAvailability('limitee', it_(['Raffiné', 'Solide 1']), { guild: true })).toBe('rare'); // 2e Atout réduit
   });
 });
 

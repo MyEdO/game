@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
@@ -76,7 +77,7 @@ const doubleAbsorbe = (attaquant: Combatant, cible: Combatant): AttackResult =>
 
 function combat(seed = 7) {
   banc.getState().ensemencerLeTirage(seed);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [] });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
@@ -127,7 +128,7 @@ describe('Critique d’un personnage ou d’une créature dont le coup est absor
 const fleche: Weapon = { label: 'Flèche', type: 'ranged', damage: { plusBF: false, flat: 0 }, qualities: [] };
 function mur(structure = 'mur-en-pierre', graine = 1): { S: Combatant; H: Combatant } {
   banc.getState().ensemencerLeTirage(graine);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   const s: Scene = structuredClone(testScene());
   s.walls = [{ x: 2, y: 2, side: 'E', structure }];
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [] });

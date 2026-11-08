@@ -11,11 +11,13 @@
  * Anti-vacuité SANS cardinal : chaque fichier porteur doit avoir au moins un nœud RÉELLEMENT ouvert
  * (une gate fermée est un no-op légitime, compté à part), et la liste des levées est attendue VIDE.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { surUnBancHorsTest, type Banc } from './banc.testkit';
 import { battleRng, seedBattleRng } from './battleRng';
 import { routeTriggeredTest, bandeTriggeredTest, runCombatFlow } from './combat/triggeredTest';
-import { flowTestGated, combatConditionCtx } from './combat/flowEval';
+import { combatConditionCtx } from './combat/flowEval';
+import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { pushCombatStep } from './combatEffects';
 import { draineCascade } from './cascade.testkit';
 import { itemFromTrappingById } from '../engine/items';
@@ -137,7 +139,7 @@ type Jouee = { jouee: boolean; poses: readonly string[] };
  *  Le SUJET reçoit ce que le nœud PRÉSUPPOSE, lu dans sa donnée : les Groupes que ses `onlyGroups`
  *  exigent (Test ou op) et les États que ses ops `removeCondition` retirent. */
 function preparerPorte(n: Noeud): { opsCtx: OpsCtx; poses: readonly string[] } {
-  const opsCtx: OpsCtx = { rng: battleRng(), label: n.entryId, sl: -10, ...(n.source ? { source: n.source } : {}) };
+  const opsCtx: OpsCtx = { rng: battleRng(), idNeuf: idsDeTest, label: n.entryId, sl: -10, ...(n.source ? { source: n.source } : {}) };
   const ops = [...opsDesBranches(n.node.success), ...opsDesBranches(n.node.fail)];
   const groupes = [...(n.node.test.onlyGroups ?? []), ...ops.flatMap((o) => (o as { onlyGroups?: string[] }).onlyGroups ?? [])];
   const aRetirer = ops.flatMap((o) => (o.op === 'removeCondition' ? [o.id] : []));
@@ -186,15 +188,15 @@ function jouerParSaPorte(n: Noeud, sujet: Combatant, issue: boolean, branchesVid
       return { jouee: true, poses };
     }
     case 'consommable': {
-      const it = itemFromTrappingById(n.entryId);
+      const it = itemFromTrappingById(n.entryId, idsDeTest);
       if (!it) return { jouee: false, poses };
       it.uid = 'sonde-1';
       set({ party: get().party.map((c) => (c.id === 'h3' ? { ...c, items: [...(c.items ?? []), it] } : c)) as never });
-      get().utiliserLObjet('h3', 'sonde-1');
+      get().utiliserLObjet('sonde-1');
       return { jouee: true, poses };
     }
     default: {
-      if (flowTestGated(n.node.test, sujet, combatConditionCtx(sujet, opsCtx))) return { jouee: false, poses };
+      if (!resoudreFlowTest(n.node.test, { cc: combatConditionCtx(sujet, opsCtx), sujet }).joue) return { jouee: false, poses };
       routeTriggeredTest(get, set, sujet, sujet, n.node, opsCtx);
       return { jouee: true, poses };
     }

@@ -817,5 +817,27 @@
       "id": "zombie"
     },
     "echelle": 1
+  },
+  {
+    "id": "incendiaire-de-tzeentch",
+    "type": "planDeBestiaire",
+    "label": "Incendiaire de Tzeentch",
+    "corps": "incendiaire",
+    "famille": "sans-jambes",
+    "echelle": 1
+  },
+  {
+    "id": "charognard",
+    "type": "planDeBestiaire",
+    "label": "Charognard",
+    "corps": "charognard",
+    "famille": "oiseau",
+    "echelle": 1
+  },
+  {
+    "id": "colosse-necrofex",
+    "type": "planDeBestiaire",
+    "label": "Colosse Necrofex",
+    "omis": "assemblage de cadavres invoqué (HCVM p.561) : aucune forme commune"
   }
 ]

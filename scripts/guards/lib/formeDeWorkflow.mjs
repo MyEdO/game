@@ -11,11 +11,11 @@
 // (`git ls-files -co --exclude-standard`, jouer-workflow.mjs) — un script ignoré par git n'est pas jugé.
 
 import { analyserTexte, ast, typescript } from './dialecte.mjs'
+import { estObjet } from '../../../src/lib/objet.mjs'
 
 /** Les SEULES clés permises à la racine d'un schéma de sortie d'agent. */
 export const CLES_DE_RACINE = ['type', 'properties', 'required', 'additionalProperties']
 
-const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 const lu = (v) => (v === undefined ? 'absent' : JSON.stringify(v))
 
 /**

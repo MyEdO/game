@@ -1,6 +1,7 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { fixtureText } from '../../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { parseQualityInstance } from '../../engine/qualities/normalize';
+import { parseQualityInstance } from '../../data/refFormatLivre';
 import { isUnarmed } from '../../engine/items';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { pushChoice } from '../rollSeam';
@@ -30,7 +31,7 @@ const bladedWeapon = (uid: string, qualities: string[] = []): Weapon => ({ label
 
 describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, désarme/bris procédural)', () => {
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

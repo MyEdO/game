@@ -13,7 +13,8 @@
  * qu'`applyVehicleProblem` rend en plus des `lines`. Ces `lines` sont le rendu d'`applyOps` : une
  * couture d'AFFICHAGE qui traverse le moteur, jamais un second canal de résolution.
  */
-import { Combatant, VehicleData, type Difficulty, type ModLine } from './types';
+import type { FabriqueDId } from './fabriqueDId';
+import { Combatant, DIFFICULTE_PAR_DEFAUT, VehicleData, type Difficulty, type ModLine } from './types';
 import { ligneDeRegle } from './reglesChiffrees';
 import { RNG, d10 } from './dice';
 import { applyOps } from './ops';
@@ -44,10 +45,10 @@ export interface VehicleProblemResult {
 
 /** Tire un Problème de véhicule (d100) et APPLIQUE ses Dégâts à la coque (`applyOps`), si la cellule en
  *  porte (`vehicleWounds`). EDOC 07 l.259-264. */
-export function applyVehicleProblem(vehicle: Combatant, roll: number, rng: RNG): VehicleProblemResult {
+export function applyVehicleProblem(vehicle: Combatant, roll: number, rng: RNG, idNeuf: FabriqueDId): VehicleProblemResult {
   const entry = rollVehicleProblem(roll);
   const lines = [`Problème de véhicule — ${entry.label}.`];
-  if (entry.vehicleWounds) lines.push(...applyOps(vehicle, [{ op: 'wounds', amount: entry.vehicleWounds, ignoreTB: false, ignoreAP: true, min: 1 }], { rng }));
+  if (entry.vehicleWounds) lines.push(...applyOps(vehicle, [{ op: 'wounds', amount: entry.vehicleWounds, ignoreTB: false, ignoreAP: true, min: 1 }], { rng, idNeuf }));
   return { entry, lines };
 }
 
@@ -92,7 +93,7 @@ export function repairVehicleAttempt(p: VehicleRepairParams): VehicleRepairResul
   if (!p.materiaux || !p.outils || !p.installations) {
     return { possible: false, restaure: 0, heures: 0, degatsRestants: p.degatsSubis };
   }
-  const test = rollTest(p.valeurMetier, p.difficulty ?? 'intermediaire', p.rng);
+  const test = rollTest(p.valeurMetier, p.difficulty ?? DIFFICULTE_PAR_DEFAUT, p.rng);
   const restaure = test.success ? Math.min(p.degatsSubis, d10(p.rng) + test.sl) : 0;
   return { possible: true, test, restaure, heures: 1, degatsRestants: p.degatsSubis - restaure };
 }

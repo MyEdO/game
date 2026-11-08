@@ -21,7 +21,7 @@ import { resolveQualities } from './qualities/dispatch';
 import { hasActiveCapability } from './disease';
 
 /** #2967 */
-export function itemCapability(it: ItemInstance, cap: keyof ItemCapabilities): boolean {
+export function itemCapability(it: Pick<ItemInstance, 'capabilities'>, cap: keyof ItemCapabilities): boolean {
   return it.capabilities?.[cap] === true;
 }
 

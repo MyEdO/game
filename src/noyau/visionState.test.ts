@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { itemFromTrappingById } from '../engine/items';
 import { computeStateVisible, computeStateVisibleAndLight, exploreAvec, sceneLightField, sceneLightSources, setRevealAll } from './visionState';
@@ -30,7 +31,7 @@ const hero = (x: number, y: number): Combatant =>
 /** Héros porteur d'une lanterne — `equipped` décide du PORT (le gate de `combatantLights`). */
 const porteur = (id: string, x: number, y: number, equipped: boolean): Combatant =>
   ({ id, kind: 'hero', pos: { x, y }, wounds: { current: 10, max: 10 }, conditions: [], traits: [], talents: [],
-    items: [{ ...itemFromTrappingById('lanterne')!, uid: `${id}-lampe`, equipped }] }) as unknown as Combatant;
+    items: [{ ...itemFromTrappingById('lanterne', idsDeTest)!, uid: `${id}-lampe`, equipped }] }) as unknown as Combatant;
 
 describe('sceneLightSources — la liste UNIQUE que le champ mécanique et le rendu partagent', () => {
   const avecBrasero = (): Scene =>

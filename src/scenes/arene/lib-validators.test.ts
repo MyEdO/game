@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 // @ts-expect-error — lib .mjs des générateurs de campagne, sans types (validateurs id-only branchés dans NPC/scene/poste).
 import { NPC, NUEE_DE_RATS, poste, scene } from '../../../scripts/campagne/lib.mjs';
@@ -14,7 +15,7 @@ it('les ambiances de toutes les scènes livrées appartiennent aux rôles ambian
   const scenes = [
     ...listerProjetsLivres().flatMap((rel) => (lireProjetLivre(rel) as { scenes: Scene[] }).scenes),
     ...testScenarios.flatMap((scenario) => {
-      const construit = scenario.construire();
+      const construit = scenario.construire(idsDeTest);
       return [construit.scene, ...(construit.extraScenes ?? [])];
     }),
   ];
@@ -53,9 +54,9 @@ const sceneWithStatblockTraits = (traits: unknown[]) =>
   });
 
 describe('lib.mjs — validateurs id-only (id passe, libellé THROW)', () => {
-  it('NPC : ids valides (species/tenue/weapon) passent tels quels', () => {
-    const e = NPC('t', 0, 0, 'Test', { weapon: 'arc', appearance: { species: 'humains-reiklander', tenue: 'mendiant' } });
-    expect(e.weapon).toBe('arc');
+  it('NPC : ids valides (species/tenue/inventaire) passent tels quels', () => {
+    const e = NPC('t', 0, 0, 'Test', { inventaire: { arc: false }, appearance: { species: 'humains-reiklander', tenue: 'mendiant' } });
+    expect(e.inventaire).toEqual({ arc: false });
     expect(e.appearance.species).toBe('humains-reiklander');
     expect(e.appearance.tenue).toBe('mendiant');
   });
@@ -80,8 +81,8 @@ describe('lib.mjs — validateurs id-only (id passe, libellé THROW)', () => {
     expect(() => NPC('t', 0, 0, 'Test', { ref: 'humain', appearance: { tenue: 'roublards' } })).toThrow(/tenue « roublards » inconnue/);
   });
 
-  it('NPC : un LIBELLÉ d’arme → throw', () => {
-    expect(() => NPC('t', 0, 0, 'Test', { weapon: 'Arc' })).toThrow(/weapon/i);
+  it('NPC : un LIBELLÉ d’objet d’inventaire → throw', () => {
+    expect(() => NPC('t', 0, 0, 'Test', { inventaire: { Arc: false } })).toThrow(/inventaire/i);
   });
 
   it('NPC : sans fiche, la `ref` est le profil standard de son espèce, posée en QUEUE (LDB 77 l.7, #1882)', () => {

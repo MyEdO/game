@@ -18,9 +18,10 @@
  * spectaculaire NON opposé est un jet d'ARMÉE (sans Chance/Résilience personnelles) résolu directement.
  * Une Scène `combat`/`threat` réutilise le combat tactique existant (`lancerLeCombat`).
  */
+import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
-import type { Combatant, Difficulty } from '../engine/types';
+import { DIFFICULTE_PAR_DEFAUT, type Combatant, type Difficulty } from '../engine/types';
 import { battleRng } from './battleRng';
 import { ecrireActeur } from './monde/combatants';
 import { d100, rollDice, type RNG } from '../engine/dice';
@@ -40,8 +41,8 @@ import {
 import type { PendingActivity, PendingActivityFields, ActivityOppositionOn } from './interludeFlow';
 import {
   gapDifficulty, resolveClash, rallyHealAmount, battleOutcome, isDestroyed,
-  battleHazard, clampMight, initHoldState, resolveHoldRound, holdEnemyBonus,
-  type ClashResult, type BattleOutcome, type HoldState, type BattleHold, type MassBattleSpec,
+  BATTLE_HAZARDS, battleHazard, clampMight, initHoldState, resolveHoldRound, holdEnemyBonus,
+  type ClashResult, type HazardRow, type BattleOutcome, type HoldState, type BattleHold, type MassBattleSpec,
 } from '../engine/massBattle';
 import { t } from '../i18n';
 import { rule } from '../engine/policy';
@@ -49,6 +50,7 @@ import { refusDActivite, type EtatDInterlude } from './verdictsDInterlude';
 import { refuseSi } from './verrousDeFiche';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
+import type { CorpsDesChoix } from './choixDesFenetres';
 
 /** Une armée engagée dans la Puissance de Bataille, modélisée comme un COMBATTANT INANIMÉ à Blessures
  *  (même patron que les structures de siège `structureCombatant`) : `combatant.wounds.current` = Puissance
@@ -84,10 +86,10 @@ function makeArmy(name: string, startMight: number): MassBattleArmy {
 /** Clone une armée en appliquant un delta de Puissance COURANTE par `GameOp` (langue unique des effets) :
  *  gain → `heal` (plafonné NATURELLEMENT à `wounds.max` = départ, l.135) ; perte → `wounds` (mitigation nulle
  *  — E:0 → soustraction exacte, plancher 0). Pur : ne mute pas l'entrée. */
-function armyWithMightDelta(a: MassBattleArmy, delta: number): MassBattleArmy {
+function armyWithMightDelta(a: MassBattleArmy, delta: number, idNeuf: FabriqueDId): MassBattleArmy {
   if (delta === 0) return a;
   const combatant = cloneArmyCombatant(a.combatant);
-  applyOps(combatant, [delta > 0 ? { op: 'heal', amount: delta } : { op: 'wounds', amount: -delta }], { rng: battleRng() });
+  applyOps(combatant, [delta > 0 ? { op: 'heal', amount: delta } : { op: 'wounds', amount: -delta }], { idNeuf, rng: battleRng() });
   return { ...a, combatant };
 }
 
@@ -402,7 +404,7 @@ function battleMeasureGap(mb: MassBattleState, measure: BattleMeasure): number {
 
 /** Difficulté fixe du Test retenu `test`, élément de `tests` (`testsDeLActivite(def)`) : celle de son option. PUR. */
 function difficulteDeLOption(def: ActivityDef, tests: readonly TestDesigne[], test: TestDesigne): Difficulty {
-  return def.tests?.[tests.indexOf(test)]?.difficulty ?? 'intermediaire';
+  return def.tests?.[tests.indexOf(test)]?.difficulty ?? DIFFICULTE_PAR_DEFAUT;
 }
 
 /** Difficulté du Test retenu `test` (élément de `tests`) d'une Activité/Scène de bataille : DÉRIVÉE de
@@ -677,17 +679,17 @@ export function openMassBattleRally(get: Get, set: Set): void {
 // ── Application des issues (appelée par `jetValider('activity')` pour une `PendingActivity` de bataille) ───
 
 /** Applique un delta de Puissance COURANTE à un camp par `GameOp` (`heal`/`wounds`). */
-function applyDelta(mb: MassBattleState, side: 'ally' | 'enemy', delta: number): MassBattleState {
-  return { ...mb, [side]: armyWithMightDelta(mb[side], delta) };
+function applyDelta(mb: MassBattleState, side: 'ally' | 'enemy', delta: number, idNeuf: FabriqueDId): MassBattleState {
+  return { ...mb, [side]: armyWithMightDelta(mb[side], delta, idNeuf) };
 }
 
 /** Applique une issue de bataille (`BattleOutcome`) à l'état : delta de Puissance courante/départ ou
  *  modificateur de Test. Retourne l'état muté + le delta AFFICHABLE éventuel. */
-function applyBattleOutcome(mb: MassBattleState, o: BattleOutcomeDelta, amount: number, label: string): { mb: MassBattleState; shown?: SceneDelta } {
+function applyBattleOutcome(mb: MassBattleState, o: BattleOutcomeDelta, amount: number, label: string, idNeuf: FabriqueDId): { mb: MassBattleState; shown?: SceneDelta } {
   switch (o.target) {
     case 'might': {
       const side = o.side ?? 'enemy';
-      return { mb: applyDelta(mb, side, amount), shown: { side, amount, label } };
+      return { mb: applyDelta(mb, side, amount, idNeuf), shown: { side, amount, label } };
     }
     case 'startMight': {
       const side = o.side ?? 'ally';
@@ -718,7 +720,7 @@ function testResolution(success: boolean, sl: number, def?: Pick<ActivityDef, 'g
 /** Applique les bandes d'issue de bataille d'une résolution (deltas `battle` + enchaînements `chains`),
  *  met à jour situation/menaces/agissants pour une Scène. */
 function applyBattleBands(
-  mb: MassBattleState, def: ActivityDef, res: BattleResolution, heroes: string[], isScene: boolean,
+  mb: MassBattleState, def: ActivityDef, res: BattleResolution, heroes: string[], isScene: boolean, idNeuf: FabriqueDId,
 ): { mb: MassBattleState; lines: string[] } {
   let next = mb;
   const bands = matchBattleOutcomes(def, res);
@@ -729,7 +731,7 @@ function applyBattleBands(
     for (const o of (b.battle ?? [])) {
       const amount = battleOutcomeAmount(o, res);
       if (amount === 0) continue;
-      const r = applyBattleOutcome(next, o, amount, def.label);
+      const r = applyBattleOutcome(next, o, amount, def.label, idNeuf);
       next = r.mb;
       if (r.shown) shown.push(r.shown);
       deltaLabels.push(outcomeLabel(o, amount));
@@ -774,7 +776,7 @@ function outcomeLabel(o: BattleOutcomeDelta, amount: number): string {
  *  tenue, et — TANT QUE la position TIENT — applique l'issue `on:'success'` de la Scène (−2 Puissance
  *  ennemie) et RÉIMPOSE la Scène au Round suivant. Rupture → déroute. */
 function applyHoldResolution(
-  mb: MassBattleState, scene: ActivityDef, pa: PendingActivity, heroes: string[],
+  mb: MassBattleState, scene: ActivityDef, pa: PendingActivity, heroes: string[], idNeuf: FabriqueDId,
 ): { mb: MassBattleState; lines: string[] } {
   const hold = scene.hold as BattleHold;
   const prev = mb.sceneState[scene.id] ?? initHoldState();
@@ -788,7 +790,7 @@ function applyHoldResolution(
       for (const o of (b.battle ?? [])) {
         const amount = battleOutcomeAmount(o, testResolution(true, pa.sl, scene));
         if (amount === 0) continue;
-        const ap = applyBattleOutcome(next, o, amount, scene.label);
+        const ap = applyBattleOutcome(next, o, amount, scene.label, idNeuf);
         next = ap.mb;
         if (ap.shown) shown.push(ap.shown);
       }
@@ -825,7 +827,7 @@ export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): 
   if (prepDef) {
     const { success, sl } = activityTestResult(pa);
     const res = testResolution(success, sl, prepDef);
-    const applied = applyBattleBands(next, prepDef, res, [], false);
+    const applied = applyBattleBands(next, prepDef, res, [], false, get().forgerUnId);
     next = applied.mb;
     if (success && prepDef.grantsFlag) next = { ...next, [prepDef.grantsFlag]: true } as MassBattleState;
     next = { ...next, activitiesDone: uniq([...next.activitiesDone, pa.activityId]) };
@@ -840,7 +842,7 @@ export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): 
       if (heal > 0) {
         // HÉROS (pas la coque) : `applyOps` direct sur un clone, comme `armyWithMightDelta` ci-dessus.
         const healed = { ...hero, wounds: { ...hero.wounds } };
-        applyOps(healed, [{ op: 'heal', amount: heal }], { rng: battleRng() });
+        applyOps(healed, [{ op: 'heal', amount: heal }], { idNeuf: get().forgerUnId, rng: battleRng() });
         set((s) => ecrireActeur(s, hero.id, (h) => ({ ...h, wounds: { ...healed.wounds } })));
         lines.push(t('mbf.rallyHeal', { name: hero.label, heal, dr: pa.sl, be }));
       } else {
@@ -850,13 +852,13 @@ export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): 
     }
 
   } else if (scene?.sceneKind === 'hold') {
-    const applied = applyHoldResolution(next, scene, pa, pa.heroIds ?? [pa.heroId]);
+    const applied = applyHoldResolution(next, scene, pa, pa.heroIds ?? [pa.heroId], get().forgerUnId);
     next = applied.mb;
     lines.push(...applied.lines);
 
   } else if (scene) {
     // Scène de Test (l.116-225) : delta de Puissance par l'issue.
-    const applied = applyBattleBands(next, scene, testResolution(pa.success, pa.sl, scene), pa.heroIds ?? [pa.heroId], true);
+    const applied = applyBattleBands(next, scene, testResolution(pa.success, pa.sl, scene), pa.heroIds ?? [pa.heroId], true, get().forgerUnId);
     next = applied.mb;
     lines.push(...applied.lines);
   }
@@ -906,7 +908,7 @@ export function massBattleResumeCombat(get: Get, set: Set, kills: number, outcom
       // Victoire : le général (la rencontre) est neutralisé ; intervention si > 1 frappeur (Duel l.225).
       ? { success: true, sl: 0, hits: cs.hits, kills, generalDown: true, intervention: cs.hitters.length > 1, combat: true }
       : { success: false, sl: 0, hits: cs.hits, kills: 0, generalDown: false, intervention: cs.hitters.length > 1, combat: true };
-    const applied = applyBattleBands(next, scene, res, cs.hitters, true);
+    const applied = applyBattleBands(next, scene, res, cs.hitters, true, get().forgerUnId);
     next = applied.mb;
     lines.push(t(outcome === 'won' ? 'mbf.combatWon' : 'mbf.combatLost', { scene: scene.label, hits: cs.hits, kills }));
     lines.push(...applied.lines);
@@ -917,13 +919,32 @@ export function massBattleResumeCombat(get: Get, set: Set, kills: number, outcom
 
 // ── Aléa, Test spectaculaire, Rounds, issue (l.120-124/309) ──────────────────────────────────────
 
-/** Tire (ou choisit) le facteur environnemental du Round (ADE II 08 l.309-311). */
-export function massBattleSetHazard(get: Get, set: Set, roll?: number): void {
-  const mb = get().massBattle;
-  if (!mb || mb.phase !== 'round') return;
-  const h = battleHazard(roll ?? rollDice(massBattleHazardsDie(), battleRng()));
+/** Refus de poser le facteur environnemental du Round, tiré ou choisi : la raison, ou `null`. ADE II 08 l.309 */
+export function refusDAlea(s: Pick<Jeu, 'massBattle'>): string | null {
+  const mb = s.massBattle;
+  if (!mb || mb.phase !== 'round') return t('mbf.aleaHorsRound');
+  if (mb.awaitingNext) return t('mbf.roundJoue');
+  return mb.hazard ? t('mbf.aleaDejaPose', { label: mb.hazard.label }) : null;
+}
+
+/** Pose le facteur environnemental `h` du Round, que `refusDAlea` admet. */
+function poserLAlea(get: Get, set: Set, h: HazardRow): void {
+  const mb = get().massBattle!;
   set({ massBattle: { ...mb, hazard: { label: h.label, text: h.desc }, log: [...mb.log, t('mbf.hazardLog', { label: h.label })] } });
   get().ecrireAuJournal(t('mbf.hazard', { label: h.label }));
+}
+
+/** Tire le facteur environnemental du Round au RNG de la partie (ADE II 08 l.309-311). */
+export function massBattleSetHazard(get: Get, set: Set): void {
+  if (refuseSi(get, set, refusDAlea)) return;
+  poserLAlea(get, set, battleHazard(rollDice(massBattleHazardsDie(), battleRng())));
+}
+
+/** Le choix du facteur environnemental du Round parmi les lignes de la table, au lieu du tirage (ADE II 08 l.309). */
+export function choixDeLaBataille(get: Get, set: Set) {
+  return {
+    batailleDeMasse: { alea: (id: string) => poserLAlea(get, set, BATTLE_HAZARDS.find((h) => h.id === id)!) },
+  } satisfies Partial<CorpsDesChoix>;
 }
 
 /** Résout le Test spectaculaire de Puissance du Round (l.120) puis marque l'attente du Rassemblement /
@@ -933,8 +954,8 @@ export function engagerLaMelee(get: Get, set: Set): void {
   if (!mb || mb.phase !== 'round' || mb.awaitingNext) return;
   const allyMod = mb.allyMod + (mb.round === 1 ? mb.firstRoundBonus : 0);
   const clash = resolveClash(armyMight(mb.ally), armyMight(mb.enemy), { allyMod, enemyMod: 0, rng: battleRng() });
-  const ally = armyWithMightDelta(mb.ally, -clash.allyLoss);
-  const enemy = armyWithMightDelta(mb.enemy, -clash.enemyLoss);
+  const ally = armyWithMightDelta(mb.ally, -clash.allyLoss, get().forgerUnId);
+  const enemy = armyWithMightDelta(mb.enemy, -clash.enemyLoss, get().forgerUnId);
   const lines: string[] = [
     t('mbf.clash', { n: mb.round, total: mb.plannedRounds, enemyLoss: clash.enemyLoss, allyLoss: clash.allyLoss }),
     t('mbf.mightLine', { ally: ally.label, allyMight: armyMight(ally), enemy: enemy.label, enemyMight: armyMight(enemy) }),
@@ -1024,7 +1045,7 @@ export function creerActionsDeBatailleDeMasse(get: Get, set: Set) {
     jouerLaScene: (sceneId) => openMassBattleScene(get, set, sceneId),
     affecterLeHeros: (actionId, heroIds) => affecterLeHeros(get, set, actionId, heroIds),
     rallierLesTroupes: () => openMassBattleRally(get, set),
-    affronterLePeril: (roll) => massBattleSetHazard(get, set, roll),
+    affronterLePeril: () => massBattleSetHazard(get, set),
     engagerLaMelee: () => engagerLaMelee(get, set),
     avancerLaBataille: () => avancerLaBataille(get, set),
   } satisfies FabriqueDuNoyau;

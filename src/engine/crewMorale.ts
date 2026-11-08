@@ -412,7 +412,7 @@ export function resolveCrewTestByRoles(
   rng: RNG,
   opts: { understaffed?: boolean; extraDR?: number } = {},
 ): CrewTestResult {
-  const essentialRole = findCrewTestTypeById(testTypeId)?.essential;
+  const essentialRole = findCrewTestTypeById(testTypeId)?.essential.id;
   const contributors: CrewContributor[] = assignments.map((a) => {
     const role = findCrewRoleById(a.roleId);
     const rv = role ? crewRoleValue(a.crew, role, navigation) : undefined;

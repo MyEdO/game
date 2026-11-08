@@ -1,4 +1,6 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
+import { advanceTurn } from './combatFlow';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { initialFields } from './stateFields';
@@ -27,7 +29,7 @@ const ouverts = () => {
 
 function monte(opts: { heroAi: boolean; fate?: number; wounds?: number }) {
   const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant => {
-    const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 3 });
+    const c = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 3 });
     c.id = id; c.label = id; c.kind = kind; c.pos = pos; c.fortune = 0; c.fate = kind === 'hero' ? (opts.fate ?? 0) : 0;
     c.wounds = blessuresDeBase(opts.wounds ?? 6, opts.wounds ?? 6, c);
     if (kind === 'hero' && opts.heroAi) c.aiControlled = true;
@@ -47,7 +49,7 @@ type Issue = { issue: string; fenetresTirRapide: number; [k: string]: unknown };
 
 /** Déroule le combat jusqu'à sa fin. `main` : défense et Destin joués à la main quand la fenêtre est à eux. */
 function deroule(main: boolean, pilote = main): Issue {
-  g().terminerLeTour();
+  advanceTurn(banc.getState, banc.setState);
   let sig = ''; let fige = 0; let fenetresTirRapide = 0;
   for (let i = 0; i < 4000; i++) {
     const s = g();
@@ -61,7 +63,7 @@ function deroule(main: boolean, pilote = main): Issue {
       if (surDef && pd?.result) { g().jetValider('defense'); continue; }
       if (s.pendingFateSave) { g().fenetreChoisir('fateSave', 'issue', 'negate'); if (g().pendingFateSave) g().fenetreChoisir('fateSave', 'issue', 'survive'); continue; }
       const c = s.battle.combatants.find((x) => x.id === s.battle!.order[s.battle!.turn]);
-      if (c?.kind === 'hero' && !ouverts().length && s.battle.turn >= 0) { g().terminerLeTour(); banc.avancer(100); continue; }
+      if (c?.kind === 'hero' && !ouverts().length && s.battle.turn >= 0) { advanceTurn(banc.getState, banc.setState); banc.avancer(100); continue; }
     }
     if (pilote && s.pendingCascade && s.pendingCascade.participants[s.pendingCascade.cursor]?.jet !== 'defense') {
       const c = s.pendingCascade; const cur = c.participants[c.cursor];

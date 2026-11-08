@@ -44,6 +44,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { lignesDe } from './lib/monoTable.mjs';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const ETOILES = path.join(ROOT, 'src/data/stars.json');
@@ -113,7 +114,7 @@ function confronter(entrees, champ, attendu, nom, ref) {
   for (const e of entrees.filter((x) => attendu[x.id])) {
     const f = e[champ];
     const [min, max] = attendu[e.id];
-    if (!f || typeof f !== 'object' || Array.isArray(f) || typeof f.min !== 'number' || !(typeof f.max === 'number' || f.max === null)) {
+    if (!estObjet(f) || typeof f.min !== 'number' || !(typeof f.max === 'number' || f.max === null)) {
       arrets.push(`${nom} › ${e.id} : ${JSON.stringify(f)} hors forme \`{min, max}\``);
       continue;
     }

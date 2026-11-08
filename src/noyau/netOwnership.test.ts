@@ -10,6 +10,7 @@ import { fermerLeSiege, seatOwns } from './sieges';
 import { setCadence, resetCadence } from '../engine/cadence';
 import type { Jeu } from './etat';
 import { cascadeDeTest } from './cascade.testkit';
+import { GUEST_INTENTS } from './intentionsDeSiege';
 
 const base = (over: Partial<Jeu>): Jeu =>
   ({
@@ -141,8 +142,8 @@ describe('spectatorSeatOfModal — le siège attendu sur la modale prioritaire',
 describe('possession réseau (netOwnership)', () => {
   it('sans modale : seul le propriétaire du combattant ACTIF agit', () => {
     const s = base({}); // actif = h1 (non attribué → hôte)
-    expect(intentAllowedFor(s, 0, 'jouerLOffre', ['end-turn'])).toBe(true);
-    expect(intentAllowedFor(s, 1, 'jouerLOffre', ['end-turn'])).toBe(false);
+    expect(intentAllowedFor(s, 0, 'terminerLeTour')).toBe(true);
+    expect(intentAllowedFor(s, 1, 'terminerLeTour')).toBe(false);
     const s2 = base({ battle: { ...base({}).battle!, turn: 1 } }); // actif = h2 (siège 1)
     expect(intentAllowedFor(s2, 1, 'cliquerLaCase')).toBe(true);
     expect(intentAllowedFor(s2, 0, 'cliquerLaCase')).toBe(false);
@@ -227,7 +228,7 @@ describe('possession réseau (netOwnership)', () => {
   });
 
   it('carnet d’enquête (#2415) : l’invité épingle et marque vu hors combat sans modale, en combat aussi', () => {
-    const vu = [{ id: 'ind', étapes: 1, statut: 'révélé', stadeCourant: 's1' }];
+    const vu = [{ id: 'ind', étapes: 1, statut: 'revele', stadeCourant: 's1' }];
     const horsCombat = base({ battle: null } as unknown as Partial<Jeu>);
     expect(intentAllowedFor(horsCombat, 1, 'epinglerLIndice', ['ind']), 'épingle refusée à l’invité hors combat').toBe(true);
     expect(intentAllowedFor(horsCombat, 1, 'marquerLesIndices', [vu]), 'nouveauté vue refusée à l’invité hors combat').toBe(true);
@@ -238,14 +239,13 @@ describe('possession réseau (netOwnership)', () => {
   });
 });
 
-describe('jouerLOffre (#3371) : la route se déduit du lieu de l’offre', () => {
-  it('un corps d’hôte suit le combattant actif ; un relais, une intention pure ou une offre inconnue ne voyagent pas', () => {
+describe('les verbes de la barre (#3610) : la route du combattant actif', () => {
+  it('un verbe de la barre suit le combattant actif ; l’armement d’une intention, local, ne voyage pas', () => {
     const s = base({}); // actif = h1 (non attribué → hôte)
-    expect(intentAllowedFor(s, 0, 'jouerLOffre', ['end-turn']), 'corps : le siège de l’actif').toBe(true);
-    expect(intentAllowedFor(s, 1, 'jouerLOffre', ['end-turn']), 'corps : un autre siège').toBe(false);
-    expect(intentAllowedFor(s, 0, 'jouerLOffre', ['round-start']), 'relais : élu chez l’émetteur').toBe(false);
-    expect(intentAllowedFor(s, 0, 'jouerLOffre', ['course']), 'intention pure : armée chez l’émetteur').toBe(false);
-    expect(intentAllowedFor(s, 0, 'jouerLOffre', ['inconnue']), 'offre inconnue').toBe(false);
+    expect(intentAllowedFor(s, 0, 'terminerLeTour'), 'le siège de l’actif').toBe(true);
+    expect(intentAllowedFor(s, 1, 'terminerLeTour'), 'un autre siège').toBe(false);
+    expect(intentAllowedFor(s, 1, 'prendreLaVisee'), 'un autre siège').toBe(false);
+    expect(GUEST_INTENTS.has('armerLIntention'), 'l’armement d’une intention, local à l’émetteur, n’est pas une intention de siège').toBe(false);
   });
 
   it('le relais de la levée de main émet `leverLaMain`, admis hors de son tour dans les deux sens', () => {

@@ -3,6 +3,7 @@
  * verbe (`conversationRepond`, prédicat unique). Les gardes du verbe le choix `dialogue.reponse` se jouent au banc du noyau
  * (`src/noyau/dialogue-verbe-garde.hors-store.test.ts`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { KEYBINDINGS } from './clavier/keybindings';
@@ -14,7 +15,7 @@ import type { Dialogue } from '../noyau/monde/scene';
 import type { GameState } from './store';
 
 const hero = (brass = 0): Combatant =>
-  withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), { gold: 0, silver: 0, brass });
+  withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), { gold: 0, silver: 0, brass }, idsDeTest);
 
 /** Un nœud, trois réponses : un Test, une MASQUÉE par son `when`, une PAYANTE hors de portée. */
 const dlg: Dialogue = {

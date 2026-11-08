@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from './combatEffects';
@@ -23,7 +24,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 describe('Effet fall — chute', () => {
   function loneHero() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     h.wounds = blessuresDeBase(40, 40, h);
     banc.setState({ party: [h] });
     return h;

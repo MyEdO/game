@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene, type Scene } from './monde/scene';
 import { wallSegSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
@@ -127,15 +128,15 @@ describe('exploration : chaque tombant déclare SA hauteur', () => {
   let A = '';
   let B = '';
   beforeEach(() => {
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
-    const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
+    const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const b = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
     A = a.id;
     B = b.id;
     banc.setState({ party: [a, b], partyPos: chambre, scene: etage(2) });
   });
 
   it('l’étape offre l’axe : `suspendu` porté, chaque rangée non déclarée sur ses DEUX axes', () => {
-    g().franchirLArete(chambre, rue);
+    g().franchirLArete(rue);
     const p = g().pendingFall!;
     expect(p).toMatchObject({ metres: 4, suspendu: 2, allege: 1 });
     expect(p.participants.map((x) => [x.attempt, x.suspendre])).toEqual([[null, null], [null, null]]);
@@ -143,14 +144,14 @@ describe('exploration : chaque tombant déclare SA hauteur', () => {
   });
 
   it('axe hauteur manquant alors qu’il est offert → refus NOMMÉ, rangée non déclarée', () => {
-    g().franchirLArete(chambre, rue);
+    g().franchirLArete(rue);
     g().jetRegler('fall', 'tenter', false, A);
     expect(g().pendingFall!.participants.find((x) => x.id === A)!.attempt).toBeNull();
     expect(journalise()).toMatch(/ce saut offre de se suspendre d’abord ; la déclaration dit si le tombant se suspend/);
   });
 
   it('A se suspend (chute de 2 m), B saute de toute la hauteur (4 m)', () => {
-    g().franchirLArete(chambre, rue);
+    g().franchirLArete(rue);
     g().jetRegler('fall', 'suspendre', true, A);
     g().jetRegler('fall', 'tenter', false, A);
     g().jetRegler('fall', 'suspendre', false, B);
@@ -163,7 +164,7 @@ describe('exploration : chaque tombant déclare SA hauteur', () => {
   });
 
   it('se suspendre PUIS tenter : le Test réduit la hauteur de suspension (LDB 15 l.82)', () => {
-    g().franchirLArete(chambre, rue);
+    g().franchirLArete(rue);
     g().jetRegler('fall', 'suspendre', true, A);
     g().jetRegler('fall', 'tenter', true, A);
     g().jetRegler('fall', 'suspendre', false, B);
@@ -177,7 +178,7 @@ describe('exploration : chaque tombant déclare SA hauteur', () => {
 
 describe('combat : l’allège et la hauteur descendue en se suspendant se paient en Mouvement', () => {
   function setup(movementUsed = 0, sc = etage(2)) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     g().lancerLaScene(testScene());
     g().lancerLeCombat('enc-mutants');
@@ -194,7 +195,7 @@ describe('combat : l’allège et la hauteur descendue en se suspendant se paien
 
   it('saut par une croisée, sans suspension : le pas + l’allège (1 m à ½ vitesse, 2 m/case → 1)', () => {
     const { H } = setup();
-    g().franchirLArete(chambre, rue);
+    g().franchirLArete(rue);
     g().jetRegler('fall', 'suspendre', false, H.id);
     g().jetRegler('fall', 'tenter', false, H.id);
     const b = g().battle!;
@@ -204,7 +205,7 @@ describe('combat : l’allège et la hauteur descendue en se suspendant se paien
 
   it('saut par une croisée d’allège 3 m : le pas + CETTE allège (3 m à ½ vitesse → 3 cases), jamais une valeur globale', () => {
     const { H } = setup(0, etage(undefined, 3));
-    g().franchirLArete(chambre, rue);
+    g().franchirLArete(rue);
     expect(g().pendingFall).toMatchObject({ metres: 4, allege: 3 });
     g().jetRegler('fall', 'tenter', false, H.id);
     const b = g().battle!;
@@ -214,7 +215,7 @@ describe('combat : l’allège et la hauteur descendue en se suspendant se paien
 
   it('en se suspendant (`descente-facile`) : + la hauteur descendue (4 − 2 = 2 m à ½ vitesse → 2 cases)', () => {
     const { H } = setup();
-    g().franchirLArete(chambre, rue);
+    g().franchirLArete(rue);
     g().jetRegler('fall', 'suspendre', true, H.id);
     g().jetRegler('fall', 'tenter', false, H.id);
     expect(g().battle!.movementUsed).toBe(4);
@@ -223,7 +224,7 @@ describe('combat : l’allège et la hauteur descendue en se suspendant se paien
 
   it('Mouvement restant qui ne couvre pas la suspension → refus NOMMÉ à la déclaration, rien ne bouge', () => {
     const { H } = setup(1); // Marche 4 − 1 = 3 < 4
-    g().franchirLArete(chambre, rue);
+    g().franchirLArete(rue);
     g().jetRegler('fall', 'suspendre', true, H.id);
     expect(journalise()).toMatch(/plus assez de Mouvement pour se suspendre avant de sauter \(4 cases\)/);
     expect(g().pendingFall!.participants[0].suspendre).toBeNull();
@@ -234,7 +235,7 @@ describe('combat : l’allège et la hauteur descendue en se suspendant se paien
 
   it('Mouvement restant qui ne couvre pas l’allège → refus NOMMÉ au geste, aucune modale', () => {
     setup(3); // Marche 4 − 3 = 1 < 2
-    g().franchirLArete(chambre, rue);
+    g().franchirLArete(rue);
     expect(g().pendingFall).toBeNull();
     expect(journalise()).toMatch(/plus assez de Mouvement pour sauter par la fenêtre \(2 cases\)/);
   });
@@ -242,7 +243,7 @@ describe('combat : l’allège et la hauteur descendue en se suspendant se paien
   it('mode `libre` : la suspension ne coûte rien de plus que le pas et l’allège', () => {
     setRule('fenetre-suspension', 'libre');
     const { H } = setup();
-    g().franchirLArete(chambre, rue);
+    g().franchirLArete(rue);
     g().jetRegler('fall', 'suspendre', true, H.id);
     g().jetRegler('fall', 'tenter', false, H.id);
     expect(g().battle!.movementUsed).toBe(2);

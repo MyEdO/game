@@ -1,11 +1,11 @@
 /**
- * Emplacements de DOTATION (`{choice}`, `{wildcard}`, `{id, qualityChoice}` des `TrappingRef`) : leur
- * énumération canonique, `emplacementsDeDotation`, et leur résolveur, `resolveTrappingChoices`. Chaque
- * emplacement a une adresse `adresseDeCreation.dotation(chemin)` ; les choix du joueur
- * (`ChoixDeCreation.trappingChoices`) sont rangés par ces adresses. Seul ce module LIT la valeur d'un
- * choix (`brancheChoisie`, `idChoisi`).
+ * Emplacements de DOTATION (`{choice}`, `{wildcard}`, `{id, qualityChoice}` des `TrappingRef`) d'une liste de
+ * dotations (`dotationsDuHeros`, `dotationsDuPnj`) : leur énumération canonique, `emplacementsDeDotation`, et leur
+ * résolveur, `resolveTrappingChoices`. Chaque emplacement a une adresse `adresseDeCreation.dotation(chemin)` ; les
+ * choix du joueur (`ChoixDeCreation.trappingChoices`) ou de l'auteur d'un PNJ sont rangés par ces adresses. Seul ce
+ * module LIT la valeur d'un choix (`brancheChoisie`, `idChoisi`).
  */
-import { findCareerById, findClassById, firstLevel, levelsForCareer, DEFAULT_FABRICATION_ATOUT, fabricationAtoutQuality, type TrappingRef } from '../data/index';
+import { armesChoisissables, fabricationAtouts, findCareerById, findClassById, findQualityById, findTrappingById, firstLevel, levelsForCareer, trappingRefLabel, DEFAULT_FABRICATION_ATOUT, fabricationAtoutQuality, type TrappingRef } from '../data/index';
 import { adresseDeCreation, type AdresseDeCreation } from './adresseDeCreation';
 
 /** Choix de dotation : index de branche d'un `{choice}`, id d'objet d'un `{wildcard}`, id d'Atout d'un
@@ -20,11 +20,16 @@ export type EmplacementDeDotation = { adresse: AdresseDeCreation; chemin: readon
 );
 type EmplacementABranches = Extract<EmplacementDeDotation, { sorte: 'branches' }>;
 
-/** Dotations de Classe puis de Niveau de carrière (`careerLevel` défaut 1, la création) — la liste que
- *  `emplacementsDeDotation` adresse. */
-function dotationRefsForHero(careerId: string, careerLevel: number = 1): TrappingRef[] {
+/** Dotations d'un héros : celles de sa Classe puis de son Niveau de carrière (`careerLevel` défaut 1, la création). */
+export function dotationsDuHeros(careerId: string, careerLevel: number = 1): TrappingRef[] {
   const level = levelsForCareer(careerId).find((l) => l.level === careerLevel) ?? firstLevel(careerId);
-  return [...(findClassById(findCareerById(careerId)?.class)?.trappings ?? []), ...(level?.trappings ?? [])];
+  return [...(findClassById(findCareerById(careerId)?.class.id)?.trappings ?? []), ...(level?.trappings ?? [])];
+}
+
+/** Dotations d'un PNJ de carrière : celles des Niveaux 1 à `niveau` de sa carrière actuelle, sans celles de sa
+ *  Classe. EDO 11 l.19 */
+export function dotationsDuPnj(careerId: string, niveau: number): TrappingRef[] {
+  return levelsForCareer(careerId).filter((l) => l.level <= niveau).flatMap((l) => l.trappings);
 }
 
 function emplacement(ref: TrappingRef, chemin: readonly number[]): EmplacementDeDotation | undefined {
@@ -51,9 +56,9 @@ function aplatir(e: EmplacementDeDotation | undefined): EmplacementDeDotation[] 
   return [e, ...(e.sorte === 'branches' ? e.ref.choice.flatMap((_, j) => aplatir(sousEmplacement(e, j))) : [])];
 }
 
-/** Les emplacements des dotations du héros, chacun suivi des emplacements de ses branches. */
-export function emplacementsDeDotation(careerId: string, careerLevel: number = 1): EmplacementDeDotation[] {
-  return dotationRefsForHero(careerId, careerLevel).flatMap((ref, i) => aplatir(emplacement(ref, [i])));
+/** Les emplacements de la liste `dotations`, chacun suivi des emplacements de ses branches. */
+export function emplacementsDeDotation(dotations: readonly TrappingRef[]): EmplacementDeDotation[] {
+  return dotations.flatMap((ref, i) => aplatir(emplacement(ref, [i])));
 }
 
 /** Un emplacement porté directement par la liste des dotations, et non par une branche. */
@@ -87,11 +92,25 @@ export function emplacementTranche(e: EmplacementDeDotation, choices: ChoixDeDot
   return true;
 }
 
-/** Les dotations du héros aux emplacements résolus par `choices`. Un emplacement non tranché (`{choice}`
+/** Les valeurs qu'un choix peut poser sur l'emplacement `e` : l'index de chaque branche d'un `{choice}`, chaque arme
+ *  choisissable d'un `{wildcard}` (`armesChoisissables`), chaque Atout de Fabrication d'un `{id, qualityChoice}`
+ *  (`fabricationAtouts`, LDB 60 l.9-32). */
+export function valeursDeLEmplacement(e: EmplacementDeDotation): (number | string)[] {
+  if (e.sorte === 'branches') return e.ref.choice.map((_, j) => j);
+  return e.sorte === 'joker' ? armesChoisissables().map((a) => a.id) : fabricationAtouts();
+}
+
+/** Le libellé de la valeur `v` de l'emplacement `e` (`valeursDeLEmplacement`) : sa branche, son arme ou son Atout. */
+export function libelleDeLaValeur(e: EmplacementDeDotation, v: number | string): string {
+  if (e.sorte === 'branches') return trappingRefLabel(e.ref.choice[Number(v)]);
+  return (e.sorte === 'joker' ? findTrappingById(String(v)) : findQualityById(String(v)))!.label;
+}
+
+/** La liste `dotations` aux emplacements résolus par `choices`. Un emplacement non tranché (`{choice}`
  *  sans branche, `{wildcard}` sans objet) reste tel quel, ignoré par le matérialiseur ; un
  *  `{id, qualityChoice}` reçoit l'Atout choisi, sinon `DEFAULT_FABRICATION_ATOUT` (LDB 60 l.11). */
-export function resolveTrappingChoices(careerId: string, careerLevel: number, choices: ChoixDeDotation): TrappingRef[] {
-  return dotationRefsForHero(careerId, careerLevel).map((ref, i) => resoudre(ref, emplacement(ref, [i]), choices));
+export function resolveTrappingChoices(dotations: readonly TrappingRef[], choices: ChoixDeDotation): TrappingRef[] {
+  return dotations.map((ref, i) => resoudre(ref, emplacement(ref, [i]), choices));
 }
 
 function resoudre(ref: TrappingRef, e: EmplacementDeDotation | undefined, choices: ChoixDeDotation): TrappingRef {

@@ -5,6 +5,7 @@
  * sinon l'opposition se résout et s'applique — « Appliquer ». Le prédicat est celui de la résolution
  * (`maneuverDefensePending`, partagé avec `resolveManeuver`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -24,8 +25,8 @@ beforeAll(() => {
 /** Un héros au Souffle (Feu) déclare sa manœuvre sur le seul ennemi debout et lance son jet. */
 function souffleLance(gmSeat: number | undefined): Combatant {
   useGame.getState().ensemencerLeTirage(2);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-  useGame.setState({ party: [hero] });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  useGame.setState({ screen: 'campaign', party: [hero] });
   useGame.getState().lancerLaScene(testScene());
   useGame.getState().lancerLeCombat('enc-mutants');
   useGame.getState().fenetreValider('roundStart');

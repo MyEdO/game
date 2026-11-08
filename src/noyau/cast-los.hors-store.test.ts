@@ -7,6 +7,7 @@
  *  • castOutOfSightTargetIds : grisage hors-LdV du mode incantation ;
  *  • ciblesHorsDeVue : le grisage que lit le survol, tir ou sort selon le mode armé.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { castSpell, overcastTargetCandidates, castOutOfSightTargetIds } from './combatFlow';
@@ -20,7 +21,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function wiz() {
-  const w = pregen(PREGEN.sorcier);
+  const w = pregen(idsDeTest, PREGEN.sorcier);
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 10);
   w.spells = ['explosion', 'carreau', ...(w.spells ?? [])];
@@ -74,7 +75,7 @@ describe('castSpell — Ligne de Vue (LDB 46 l.121)', () => {
 
   it('cibler un ALLIÉ derrière un mur → refusé aussi (le gate ignore l’équipe — buffs compris)', () => {
     const { w } = setup();
-    const ally = makePregens().find((h) => h.id !== w.id)!;
+    const ally = makePregens(idsDeTest).find((h) => h.id !== w.id)!;
     ally.pos = { x: 16, y: 4 }; // derrière le mur
     const b = banc.getState().battle!;
     banc.setState({ battle: { ...b, combatants: [...b.combatants, ally] } });

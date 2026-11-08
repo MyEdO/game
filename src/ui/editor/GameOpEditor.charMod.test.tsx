@@ -47,7 +47,7 @@ const caseACocher = (etiquette: string) =>
     .find((l) => l.textContent?.includes(etiquette))!
     .querySelector<HTMLInputElement>('input[type="checkbox"]')!;
 
-const CRETIN: GameOp = { op: 'charMod', char: 'intelligence', mod: -40 };
+const CRETIN: GameOp = { op: 'charMod', characteristic: 'intelligence', mod: -40 };
 
 describe('GameOpEditor › charMod — tout le payload déclaré, plancher au seul porteur qui l’admet', () => {
   it('dans le `passive` d’une mutation, le plancher est rendu et sa saisie écrit `min`', () => {

@@ -288,7 +288,7 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
                 // Sorts) ; hors catalogue, le MÊME popover par le `fallback` de CodexRef.
                 const eff = buffs[buffIdx++];
                 const meta: string[] = [];
-                if (chip.char != null) meta.push(`${(chip.bonus ?? 0) >= 0 ? '+' : ''}${chip.bonus ?? 0} ${CHAR_LABELS[chip.char]}`);
+                if (chip.characteristic != null) meta.push(`${(chip.bonus ?? 0) >= 0 ? '+' : ''}${chip.bonus ?? 0} ${CHAR_LABELS[chip.characteristic]}`);
                 const dur = eff ? effectDuration(eff, gameTime).replace(/^ · /, '') : '';
                 if (dur) meta.push(dur);
                 const metaNode = meta.length ? <em className="entity-badge">{meta.join(' · ')}</em> : null;

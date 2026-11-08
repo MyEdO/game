@@ -2,6 +2,7 @@
  * Entraînement (LDB 23 l.130-136) : Compétence de Base/Caractéristique hors carrière — PX + 1D10 sc,
  * Compétence Avancée — tuteur doublé. PAS de jet (achat direct, comme Passer commande/Banque).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
@@ -19,7 +20,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function setup() {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [h], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, journal: [] });
   banc.getState().lancerLaScene(testScene());
   creditBourse(banc.getState, banc.setState, h.id, fromBrass(20000));

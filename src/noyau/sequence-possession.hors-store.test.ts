@@ -15,6 +15,7 @@
  * En SOLO les deux prédicats coïncident (`ownsLocal` vrai pour tous) : ces régressions y sont
  * INVISIBLES — d'où le harnais à deux sièges (#1262 B7).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
@@ -52,7 +53,7 @@ const parKind = (k: string) => etapes().find((s) => s.kind === k);
 function setupCoop(opts: { heros?: number; invites?: number[]; vivants?: number } = {}): { H: Combatant[]; E: Combatant[] } {
   const n = opts.heros ?? 1;
   const party = Array.from({ length: n }, (_, i) =>
-    createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }));
+    createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }));
   banc.setState({ party });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');

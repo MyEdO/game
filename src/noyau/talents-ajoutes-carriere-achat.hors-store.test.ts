@@ -4,6 +4,7 @@
  * les rangées de l'écran d'avancement (`buildAdvancementView`, `talentsAjoutesALaCarriere`).
  * EDOC 13 l.524 (Marque de Tzeentch) ; LDB 07 l.103.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { pregen, PREGEN } from '../data/pregens';
@@ -14,7 +15,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function soldat(over: Partial<Combatant> = {}): Combatant {
-  return { ...pregen(PREGEN.soldat), xp: 500, ...over } as Combatant;
+  return { ...pregen(idsDeTest, PREGEN.soldat), xp: 500, ...over } as Combatant;
 }
 
 const MARQUE = [{ id: 'marque-de-tzeentch' }];
@@ -26,7 +27,7 @@ beforeEach(() => {
 
 describe('acheterLeTalent — ajouts de carrière d’un Trait (EDOC 13 l.524)', () => {
   it('porteur de la Marque de Tzeentch : la rangée d’avancement s’ACHÈTE — PX débités, Talent acquis', () => {
-    const h = soldat({ traits: [...(pregen(PREGEN.soldat).traits ?? []), ...MARQUE] });
+    const h = soldat({ traits: [...(pregen(idsDeTest, PREGEN.soldat).traits ?? []), ...MARQUE] });
     expect(h.talents.some((t) => t.talentId === 'magie-des-arcanes')).toBe(false);
     expect(buildAdvancementView({ battle: null, flags: {} }, h).talents.some((r) => r.talentId === 'magie-des-arcanes' && r.spec === 'feu')).toBe(true);
     banc.setState({ party: [h] });

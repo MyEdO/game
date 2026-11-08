@@ -11,6 +11,7 @@
  * la portée du moteur, et Échap (registre clavier `intent-cancel`) dissout l'intention. Le reste du
  * patron se joue au banc du noyau (`src/noyau/intention-portee.hors-store.test.ts`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { computeRunReach } from '../noyau/combatFlow';
@@ -23,7 +24,7 @@ import { testScene } from '../scenes/test-fixture';
 
 /** Combat témoin : un héros au tour ENTIER, les ennemis parqués au loin (grille libre autour de lui). */
 function setup() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero], screen: 'campaign' });
   useGame.getState().lancerLaScene(testScene());
   useGame.getState().lancerLeCombat('enc-mutants');
@@ -52,7 +53,7 @@ const vueDuChamp = (): HighlightsView =>
 describe('(a) la portée AFFICHÉE est celle du moteur', () => {
   it('Course armée → la ZONE DE COURSE du champ s’allume, et rien n’est peint deux fois', () => {
     setup();
-    get().jouerLOffre('course');
+    get().armerLIntention('course');
     expect(get().localIntent).toEqual({ actionId: 'course' });
     // Depuis la spec HUD § ARBITRAGE 2026-08-19, cette zone n'est plus peinte d'office : elle EST
     // l'affordance de l'intention. Son porteur reste la nature `run` du champ (`HighlightsView.runReach`)
@@ -79,7 +80,7 @@ describe('(a) la portée AFFICHÉE est celle du moteur', () => {
     ];
     for (const [actionId, mesure] of peintures) {
       setup();
-      get().jouerLOffre(actionId);
+      get().armerLIntention(actionId);
       const v = vueDuChamp();
       expect(
         mesure(v),
@@ -101,7 +102,7 @@ describe('(a) la portée AFFICHÉE est celle du moteur', () => {
 describe('(b) annulation', () => {
   it('Échap (registre clavier `intent-cancel`) dissout l’intention armée', () => {
     setup();
-    get().jouerLOffre('charge');
+    get().armerLIntention('charge');
     expect(get().localIntent).not.toBeNull();
     runBindingById('intent-cancel', get);
     expect(get().localIntent).toBeNull();

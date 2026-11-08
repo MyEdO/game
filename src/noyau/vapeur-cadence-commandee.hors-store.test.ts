@@ -3,6 +3,7 @@
  * la journée AVANT son reste (MDG 12 l.326-328) ; le pilote immédiat n'en clôt pas le jour en
  * parallèle : la journée se clôt UNE fois, à la reprise par la sauvegarde (`jetValider('steamSave')`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
@@ -34,9 +35,9 @@ describe('#1595 — Fuite de vapeur sous ordres : un seul dénouement de la jour
     expect(STEAM_BREAKDOWNS.some((b) => b.id === 'fuite-de-vapeur')).toBe(true);
     seedBattleRng(GRAINE);
     set({
-      party: makePregens().slice(0, 3),
+      party: makePregens(idsDeTest).slice(0, 3),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
-      battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null,
+      battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingRest: null,
       pendingCascade: null, suspendedCascades: [], pendingSteamSave: null, gameTime: 8 * 60, lastUpkeepDay: 0, journal: [], partyWiped: false,
       vessel: { vehicleId: 'cogue', upgrades: [{ id: 'propulsion-a-vapeur' }], morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     } as never);

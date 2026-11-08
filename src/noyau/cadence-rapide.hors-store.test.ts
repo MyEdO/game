@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -28,7 +29,7 @@ describe('Cadence Rapide — auto-résolution des cascades par le driver', () =>
   });
 
   function hero() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
     banc.setState({ party: [h] });
     return h;
   }
@@ -74,7 +75,7 @@ describe('Auto-combat — choix de cascade tranché par le défaut authoré', ()
   });
 
   it('choix AVEC défaut → auto-tranché sur le défaut (pas de hang)', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ party: [h] });
     startCascade(banc.getState, banc.setState, { title: 'C', purpose: 'combat', steps: [choix('dev', h.id, true)] });
     tickCombatAuto(banc.getState, banc.setState);
@@ -83,7 +84,7 @@ describe('Auto-combat — choix de cascade tranché par le défaut authoré', ()
   });
 
   it('choix SANS défaut → NON auto-résolu (décision au joueur, la modale reste)', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ party: [h] });
     startCascade(banc.getState, banc.setState, { title: 'C', purpose: 'combat', steps: [choix('dev', h.id, false)] });
     tickCombatAuto(banc.getState, banc.setState);

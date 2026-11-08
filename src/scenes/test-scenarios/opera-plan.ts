@@ -27,5 +27,5 @@ export const scenario: TestScenario = {
     'sièges du parterre, décors de scène) et billboards restants, posés pièce par pièce sur la géométrie ' +
     'fidèle du Staatsoper (rez + étage). Exploration libre, aucune rencontre.',
   partyNote: 'Explorez librement : coulisses, scène, parterre, foyer, puis la galerie des loges par les rampes d\'angle. Aucune rencontre ne démarre.',
-  construire: () => ({ party: makePregens(), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireScene() }),
 };

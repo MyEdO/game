@@ -5,6 +5,7 @@
  * focus initial irait sur le choix déjà posé au lieu du geste qui valide. Mesuré sur l'appelant réel
  * (Activités en mer, verdict du juge B11, D1).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -44,7 +45,7 @@ const actif = () => (document.activeElement?.textContent ?? '').trim();
 
 describe('Activités en mer — le choix posé est RETENU, le focus va au geste qui valide', () => {
   it('à l’ouverture : « Repos » est retenue (`aria-pressed`), le focus est sur « Valider la semaine », Entrée valide', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 42 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 42 });
     const valides: FenetreAValider[] = [];
     useGame.setState({
       party: [hero],

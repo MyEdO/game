@@ -87,6 +87,7 @@ import { VDM_OVERCAST } from '../engine/overcast';
 import { ARTILLERY_MISFIRE } from './artilleryMisfire';
 import { windsOfMagicTable } from '../engine/windsOfMagic';
 import { NAVAL_PROGRESSION } from '../engine/shipNavigation';
+import { estObjet } from '../lib/objet.mjs';
 
 /** Entrée d'une table de miscast (`entries` d'un document de `miscast.json`) — DIALECTE compilé (PAS
  *  des `GameOp` standard, cf. `engine/miscast.ts::JsonRow`) : `ops`/`test` restent au format JSON brut
@@ -451,8 +452,6 @@ export function datasetObjectSerializeRoot(key: ObjectDatasetKey): unknown {
   return versDisque(RACINES_VIVANTES[DATASET_FICHIER_DERIVE[key]]);
 }
 
-const isPlainObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
-
 /** Fusion EN PLACE RÉCURSIVE : les sous-objets et sous-tableaux gardent leur identité (mutés par
  *  `mergeInPlace`/`splice`), seules les feuilles sont réassignées ; une clé absente de `next` est
  *  supprimée. Nécessaire parce qu'un consommateur peut capturer une table NICHÉE (`engine/size.ts`
@@ -462,7 +461,7 @@ function mergeInPlace(target: Record<string, unknown>, next: Record<string, unkn
   for (const [k, v] of Object.entries(next)) {
     const cur = target[k];
     if (Array.isArray(cur) && Array.isArray(v)) cur.splice(0, cur.length, ...v);
-    else if (isPlainObject(cur) && isPlainObject(v)) mergeInPlace(cur, v);
+    else if (estObjet(cur) && estObjet(v)) mergeInPlace(cur, v);
     else target[k] = v;
   }
 }

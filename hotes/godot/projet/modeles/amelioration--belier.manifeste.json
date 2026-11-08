@@ -1,0 +1,22 @@
+{
+  "schema": 3,
+  "categorie": "amelioration",
+  "cle": {
+    "amelioration": "belier"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "montage": "ancrages",
+  "surfaces": [
+    {
+      "nom": "bronze",
+      "palette": "metal",
+      "matiere": "prop--laiton-dore"
+    }
+  ],
+  "glb": {
+    "sha256": "8848a6e9842dfc4f57d8221b964f3f9fd3581386940b7c69f32d0795b6ab97fa",
+    "octets": 6508
+  }
+}

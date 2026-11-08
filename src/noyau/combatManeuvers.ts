@@ -16,7 +16,7 @@
 import type { Get, Set as SetFn } from './flowTypes';
 import type { BattleState, Jeu } from './etat';
 import { facingToward } from '../geometry/dir8';
-import { Combatant, type Difficulty, CHAR_LABELS } from '../engine/types';
+import { Combatant, DIFFICULTE_PAR_DEFAUT, type Difficulty, CHAR_LABELS } from '../engine/types';
 import { battleRng } from './battleRng';
 import { evLines } from './combatLog';
 import type { RNG } from '../engine/dice';
@@ -269,15 +269,17 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
       cost: { action: a.trigger === 'action', advantage: prix, ...(cout.movement ? { movement: true } : {}) },
     });
   }
-  // (2) Arme `nat-tentacule` du trait Tentacules (LDB 85 l.405) : plafond du trait qui l'octroie (`plafondParTour`,
-  //     compteur partagé), 0 Avantage. Comme toute attaque de mêlée, elle s'APPROCHE (charge/rejoindre) → dispo dès
-  //     qu'un ennemi existe (adjacence non requise).
+  // (2) Arme de Tentacule qu'un TRAIT accorde (`recomputeLoadout`, LDB 85 l.405), retrouvée par sa source : plafond du
+  //     trait qui l'octroie (`plafondParTour`, compteur partagé), 0 Avantage. Comme toute attaque de mêlée, elle
+  //     s'APPROCHE (charge/rejoindre) → dispo dès qu'un ennemi existe (adjacence non requise).
+  const tentacule = active.weapons.find((w) => w.natural && w.attackKind === 'tentacules' && w.source?.kind === 'trait');
   if (
+    tentacule?.uid != null &&
     gratuitesRestantes(active, 'tentacules', creatureAttacks(active.traits ?? []).find((a) => a.kind === 'tentacules')) > 0 &&
-    active.weapons.some((w) => w.uid === 'nat-tentacule') && !!active.pos &&
+    !!active.pos &&
     battle.combatants.some((c) => c.kind !== active.kind && !isOutOfAction(c) && c.pos)
   )
-    out.push({ id: 'tentacule', kind: 'tentacules', label: 'Tentacule', icon: 'creature/tentacles', targeting: 'melee', reach: 1, forceMelee: true, weaponUid: 'nat-tentacule', freeKind: 'tentacules', cost: { action: false, advantage: 0 } });
+    out.push({ id: 'tentacule', kind: 'tentacules', label: 'Tentacule', icon: 'creature/tentacles', targeting: 'melee', reach: 1, forceMelee: true, weaponUid: tentacule.uid, freeKind: 'tentacules', cost: { action: false, advantage: 0 } });
   // (3) Poste d'artillerie SERVI (`mannedPoste`, MDG 12-13) : « servir la pièce » = attaque DÉDIÉE portant
   //     l'arme du poste (`weaponUid` → canon ÉPINGLÉ, même si le servant porte une arme perso de mêlée pour
   //     l'abordage). Arc + portée INTRINSÈQUES (firedAttackBlock garde déjà l'arc de `w.mountSide`). Coûte
@@ -305,6 +307,12 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
 }
 
 
+/** L'attaque se résout-elle SUR-LE-CHAMP, sans cible ni placement ? Sa manœuvre vise tous ceux d'alentour ou tous les
+ *  ennemis (`ManeuverDef.targeting`, le Hurlement, LDB 85 l.170) ; toute autre se désigne (une cible, un point). */
+export function attaqueImmediate(a: AttackOption): boolean {
+  return a.def?.targeting === 'allAround' || a.def?.targeting === 'allFoes';
+}
+
 /** Résout l'`AttackOption` à exécuter/prévisualiser : l'attaque ARMÉE (`selectedAttack`, défaut 'arme',
  *  repli sur 'arme' si périmée). `undefined` = mode
  *  non-attaque (cast/heal/focus/…) ou aucune attaque abordable. SOURCE UNIQUE partagée par le clic (store)
@@ -324,14 +332,14 @@ export function selectedAttackOption(active: Combatant, battle: BattleState): At
  *  bonus d'attaquant propre à la manœuvre (Vomissement : Facile +40 à courte distance, LDB 85 l.445) ;
  *  Intermédiaire par défaut. Hurlement n'a PAS de jet d'attaquant (chaque cible teste sa Résistance)
  *  → `stat` absent : `rollManeuverAttacker` n'est jamais appelé pour lui. */
-export function rollManeuverAttacker(attacker: Combatant, stat: 'capacite-de-combat' | 'capacite-de-tir', rng: RNG, difficulty: Difficulty = 'intermediaire'): TestResult {
+export function rollManeuverAttacker(attacker: Combatant, stat: 'capacite-de-combat' | 'capacite-de-tir', rng: RNG, difficulty: Difficulty = DIFFICULTE_PAR_DEFAUT): TestResult {
   const kind = stat === 'capacite-de-combat' ? 'melee' : 'ranged';
   return { ...rollTest(combatValue(attacker, kind), difficulty, rng), base: combatBaseValue(attacker, kind) }; // LDB 12 l.160
 }
 
 /** Ligne du jet d'attaquant d'une manœuvre (`rollLine`, canal de combat, même valeur que
  *  `rollManeuverAttacker`) — lue par les fenêtres de Manœuvre et de Battement. LDB 85 l.445. */
-export function ligneDAttaquantDeManoeuvre(attacker: Combatant, stat: 'capacite-de-combat' | 'capacite-de-tir', difficulty: Difficulty = 'intermediaire'): RollLineParts {
+export function ligneDAttaquantDeManoeuvre(attacker: Combatant, stat: 'capacite-de-combat' | 'capacite-de-tir', difficulty: Difficulty = DIFFICULTE_PAR_DEFAUT): RollLineParts {
   return rollLine({ actor: attacker, combat: { kind: stat === 'capacite-de-combat' ? 'melee' : 'ranged' }, difficulty });
 }
 

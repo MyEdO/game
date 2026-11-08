@@ -11,6 +11,7 @@ import { openEncounterPsych } from './encounterPsychFlow';
 import { pushReveal } from './combatEffects';
 import { emptyNarratif } from './monde/campaignNarratif';
 import { t } from '../i18n';
+import { refuserGeste } from './refusVisible';
 import { suspendActiveCascade, dropSceneEntrySteps } from './cascade';
 import * as partyFlow from './partyFlow';
 import { captureMutation, applyMutation as applySceneMutation } from './monde/sceneInstance';
@@ -27,14 +28,15 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
       const start = scene.entities.find((e) => e.kind === 'heroStart');
       const pos = startOf(scene) ?? findFreeTile(scene);
       // Démarrage d'une partie / d'un scénario : on repart de l'état NEUF du jeu (`etatInitialDuJeu`). On ne
-      // conserve QUE l'écran, le groupe (posé par `fixerLeGroupe`) et la SESSION COOP (net : héberger une partie
+      // conserve QUE l'écran, le groupe (posé par `fixerLeGroupe`), le compteur des ids du monde que ses objets ont consommé
+      // (`prochainId`, #2907) et la SESSION COOP (net : héberger une partie
       // PUIS la lancer ne doit pas dissoudre le salon — Jalon 7). L'interface se remet chez son hôte, à
       // l'entrée en scène (`EVT.ARRIVEE_EN_SCENE`).
-      const { screen, party, net } = get();
+      const { screen, party, net, prochainId } = get();
       const capEntrant = start?.facing ?? spawnFacing(pos, scene.dimensions);
       set({
         ...etatInitialDuJeu(),
-        screen, party, net,
+        screen, party, net, prochainId,
         scene: JSON.parse(JSON.stringify(scene)),
         mode: 'exploration',
         partyPos: pos,
@@ -84,10 +86,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
      *  `pos` force la case d'arrivée (utilisé par `transitionBack`). */
     quitterLaScene: (sceneId, entry, pos) => {
       const target = sceneDuRegistre(sceneId);
-      if (!target) {
-        get().ecrireAuJournal(t('store.sceneMissing', { scene: sceneId }));
-        return;
-      }
+      if (!target) return void refuserGeste(get, set, t('store.sceneMissing', { scene: sceneId }));
       const heroStart = target.entities.find((e) => e.kind === 'heroStart');
       const start = pos || (entry && target.entryPoints?.[entry]) || startOf(target) || findFreeTile(target);
       // Orientation d'ENTRÉE : authorée SEULEMENT si on spawne réellement au heroStart (ni `pos` forcé

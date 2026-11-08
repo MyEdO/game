@@ -5,10 +5,11 @@
  * squelette ou en surface et ses accessoires rigides, le fichier GLB de chaque base et de chaque élément servi, et pour ces seuls éléments les noms de
  * leurs surfaces `blason`, et la marche de chaque base (l'unique clip de ses appuis et sa vitesse au sol, au gabarit
  * neutre) ; les emblèmes sont la sous-liste `embleme` de la garde-robe ; un rigide sans os n'est servi nulle part, les
- * refus de l'index sont rendus, une base à marche ambiguë est refusée seule.
+ * refus de l'index sont rendus, une base à marche ambiguë est refusée seule ; un véhicule, sans base, est servi sous sa
+ * fiche (#2987).
  */
 import { describe, expect, it } from 'vitest';
-import { baseDeTest, elementSchema3, glbDElement } from '../asset/modeles.testkit.ts';
+import { baseDeTest, elementSchema3, glbDElement, vehiculeDeTest } from '../asset/modeles.testkit.ts';
 import { empreinte } from '../asset/empreinte.ts';
 import { emplacementsDeRangement, gardeRobe } from '../../../src/noyau/index';
 import { modelesDeLAtelier } from './atelier';
@@ -149,5 +150,13 @@ describe('modelesDeLAtelier', () => {
     expect(avecCimier.bases[0].lignes.filter((l) => 'id' in l && l.elements.includes('plumet')).map((l) => ('id' in l ? `${l.sorte}:${l.id}` : l.sorte))).toEqual(['emplacement:cimier']);
     expect(avecCimier.bases[0].points.flatMap(({ elements }) => elements)).toEqual([]);
     expect(servis(avecCimier)).toEqual(['casque', 'plumet']);
+  });
+
+  it('un véhicule, sans base, est servi sous la fiche que nomme sa `definition`, son GLB, ses surfaces et le libellé de sa fiche avec lui, même sans aucune base (#2987)', () => {
+    const caraque = vehiculeDeTest('caraque');
+    const seul = modelesDeLAtelier({ caraque }, { caraque: [] });
+    expect(seul).toMatchObject({ bases: [], refus: [], vehicules: { caraque: 'caraque' }, glb: { caraque: 'caraque.glb' }, surfaces: { caraque: caraque.surfaces }, libelles: { caraque: 'Caraque' } });
+    expect(modelesDeLAtelier({ humanoide, epee, caraque }, { humanoide: [], epee: ['root'], caraque: [] }).bases[0].points.flatMap(({ elements }) => elements)).not.toContain('caraque');
+    expect(modeles.vehicules).toEqual({});
   });
 });

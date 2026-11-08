@@ -4,6 +4,7 @@
  * le panneau d'attente REMPLACE le panneau de départ de la route sélectionnée. Un seul panneau, un seul
  * « Annuler ».
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -18,7 +19,7 @@ import { emptyScene } from '../noyau/monde/scene';
 /** La scène de l'auberge, d'où part la route. */
 const auberge = () => ({ ...emptyScene('s-auberge', 5, 5), label: 'La Diligence' });
 
-const marcheur = () => [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Marcheur', seed: 2533 })];
+const marcheur = () => [createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Marcheur', seed: 2533 })];
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

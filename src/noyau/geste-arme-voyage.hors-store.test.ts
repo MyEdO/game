@@ -16,6 +16,8 @@
  * Le verdict se calcule donc chez l'ÉMETTEUR et voyage dans les args (`approche`/`courseArmee`),
  * exactement comme `confirm`.
  */
+import { resetFields } from './stateFields';
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { argsAvecVerdictLocal } from './localIntent';
@@ -35,7 +37,7 @@ const get = () => banc.getState();
 
 /** Combat témoin : un héros au tour ENTIER, un ennemi placé à distance de Charge (hors d'Allonge). */
 function setup(opts: { peur?: boolean } = {}) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], screen: 'campaign' });
   get().lancerLaScene(testScene());
   get().lancerLeCombat('enc-mutants');
@@ -57,7 +59,7 @@ function setup(opts: { peur?: boolean } = {}) {
 describe('(A) RÉ-ENTRÉE — un geste ARMÉ puis DIFFÉRÉ par un gate se commet à la relance', () => {
   it('Charge armée + Test de Calme d’approche RÉUSSI → le héros charge, sans « armez la Charge »', () => {
     const { H, E } = setup({ peur: true });
-    get().jouerLOffre('charge'); // le joueur ARME la case Charge, puis clique la cible
+    banc.jouerLaCase('charge'); // le joueur ARME la case Charge, puis clique la cible
     cliquerSurLeCombattant(get, E.id, { confirm: true });
     // Le gate de Peur s'ouvre : rien n'est commis, l'intention a été dissoute par ce clic.
     expect(get().pendingApproach, 'le Test de Calme d’approche ne s’est pas ouvert').not.toBeNull();
@@ -103,10 +105,10 @@ describe('(A) RÉ-ENTRÉE — un geste ARMÉ puis DIFFÉRÉ par un gate se comme
 describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans les args', () => {
   it('l’intention armée du client entre dans les args de SON intent (clic-ennemi et clic-case)', () => {
     setup();
-    get().jouerLOffre('charge');
+    banc.jouerLaCase('charge');
     expect(argsAvecVerdictLocal(get, 'cliquerLaCase', [{ x: 11, y: 10 }, 'e1', { confirm: true }]))
       .toEqual([{ x: 11, y: 10 }, 'e1', { confirm: true, approche: true }]);
-    get().jouerLOffre('course');
+    banc.jouerLaCase('course');
     expect(argsAvecVerdictLocal(get, 'cliquerLaCase', [{ x: 1, y: 1 }, undefined, { confirm: true }]))
       .toEqual([{ x: 1, y: 1 }, undefined, { confirm: true, courseArmee: true }]);
   });
@@ -119,7 +121,7 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
 
   it('un intent SANS verdict à joindre voyage inchangé', () => {
     setup();
-    get().jouerLOffre('charge');
+    banc.jouerLaCase('charge');
     expect(argsAvecVerdictLocal(get, 'terminerLeTour', [])).toEqual([]);
   });
 
@@ -135,7 +137,7 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
 
   it('HÔTE armé : sa case NE DÉBLOQUE PAS le geste d’un invité qui n’a rien armé', () => {
     const { H, E } = setup();
-    get().jouerLOffre('charge'); // l'HÔTE arme SA case…
+    banc.jouerLaCase('charge'); // l'HÔTE arme SA case…
     expect(get().localIntent).toEqual({ actionId: 'charge' });
     cliquerSurLeCombattant(get, E.id, { confirm: true, approche: false }); // …mais l'invité a émis « non armé »
     expect(get().refus?.texte ?? '', 'le geste non armé de l’invité est passé').toContain('Charge');
@@ -146,7 +148,7 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
   it('MÊME loi pour le clic-case : l’hôte armé ne fait pas courir l’invité', () => {
     const { H } = setup();
     const loin = { x: 10 + 6, y: 10 }; // au-delà de la Marche (M4), dans la zone de Course
-    get().jouerLOffre('course');
+    banc.jouerLaCase('course');
     get().cliquerLaCase(loin, undefined, { confirm: true, courseArmee: false });
     expect(get().pendingRun ?? get().pendingCascade, 'la Course d’autrui est partie sur la case de l’hôte').toBeFalsy();
     expect(get().refus?.texte ?? '').toContain('Course');
@@ -159,7 +161,7 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
     const net0 = get().net;
     const { H } = setup();
     banc.setState({ pendingRun: null, net: { ...net0, mode: 'host', mySeat: 0, ownership: { [H.id]: 0 }, slots: [1, 0, 0, 0] } });
-    get().jouerLOffre('course');
+    banc.jouerLaCase('course');
     expect(get().localIntent, 'témoin : l’hôte a armé SA Course').toEqual({ actionId: 'course' });
     banc.setState({ net: { ...get().net, ownership: { [H.id]: 1 } } });
     return { H, net0 };
@@ -237,12 +239,24 @@ describe('(C) le REFUS est un canal LOCAL — et ne se tait jamais', () => {
   it('son extinction ne coupe QUE le refus visé (un refus survenu depuis garde sa durée)', () => {
     setup();
     refuserGeste(get, banc.setState, 'Premier.');
-    const premier = get().refus!.nonce;
+    const premier = get().refus!;
     refuserGeste(get, banc.setState, 'Second.');
     eteindreRefus(get, banc.setState, premier); // la minuterie du PREMIER arrive en retard
     expect(get().refus?.texte, 'la minuterie du refus précédent a mangé le suivant').toBe('Second.');
-    eteindreRefus(get, banc.setState, get().refus!.nonce);
+    eteindreRefus(get, banc.setState, get().refus!);
     expect(get().refus).toBeNull();
+  });
+
+  it('la minuterie d’un refus remplacé n’éteint pas le refus neuf, même après une remise à zéro (#2907)', () => {
+    setup();
+    refuserGeste(get, banc.setState, 'Premier.');
+    refuserGeste(get, banc.setState, 'Second.');
+    const second = get().refus!;
+    banc.setState({ ...resetFields('combatStart') }); // un combat neuf remet le refus à zéro, sa minuterie reste en vol
+    refuserGeste(get, banc.setState, 'Troisième.');
+    refuserGeste(get, banc.setState, 'Quatrième.'); // même nonce que `second`
+    eteindreRefus(get, banc.setState, second);
+    expect(get().refus?.texte, 'la minuterie d’un refus remplacé a éteint le refus neuf').toBe('Quatrième.');
   });
 
   it('le CADRE l’efface : le combat SUIVANT ne s’ouvre pas sur le refus du précédent', () => {

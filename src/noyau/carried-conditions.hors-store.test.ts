@@ -17,6 +17,7 @@
  * noyau (`depenserLaDetermination`) et la fin de Round par ses hooks (`runCombatHooks('onRoundEnd')`,
  * `noyau/combat/roundHooks`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
@@ -314,7 +315,7 @@ describe('op `condition { carried }` — refus NOMINATIFS (#1695)', () => {
 
   it('« carried » sans DURÉE de contexte ne pose RIEN, et le dit au journal', () => {
     const c = mk('hero', 'seul');
-    const lines = applyOps(c, [{ op: 'condition', id: 'sonne', carried: true }], { rng: deFixe(1) });
+    const lines = applyOps(c, [{ op: 'condition', id: 'sonne', carried: true }], { idNeuf: idsDeTest, rng: deFixe(1) });
     expect(stacks(c, 'sonne'), 'un État PORTÉ a été posé sans source à durée — il serait permanent').toBe(0);
     expect(c.activeEffects ?? [], 'un effet porteur PERMANENT a été posé').toHaveLength(0);
     expect(lines.join(' | ')).toContain('« carried » exige une source à DURÉE');

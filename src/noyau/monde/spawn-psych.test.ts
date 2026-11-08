@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { creatureToCombatant, statblockToCombatant } from './spawn';
 import { createHero } from '../../engine/character';
@@ -40,7 +41,7 @@ describe('spawn — Groupes & traits psy ciblés (P3)', () => {
     expect(c.psychTraits).toEqual([{ type: 'animosite', cible: ciblePsy.groupe('elfe') }]);
   });
   it('createHero : Groupes effectifs = racial(espèce) + carrière (ids)', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     expect(groupesDe(h)).toEqual(expect.arrayContaining(['humain', 'soldat']));
   });
   it('creatureToCombatant : Talent Béni(Sigmar/Ulric) de la donnée → Groupe religieux (fixe le trou Phase 2)', () => {
@@ -88,18 +89,25 @@ describe('DONNÉE creatures.json — cibles psy recalées vers un id de Groupe M
     const c = creatureToCombatant(findCreatureById('triton')!, 'p10', { x: 0, y: 0 });
     expect(c.psychTraits).toEqual(expect.arrayContaining([{ type: 'animosite', cible: ciblePsy.groupe('elfe-noir') }]));
   });
-  it('Brigitte Schleigel : Préjugé « aristocrates, réactionnaires, miliciens, nantis, utilisateurs de mystracine » → noble, miliciens + 1 reste inerte (aucun Groupe)', () => {
+  it('Brigitte Schleigel (MCLB 07 l.299) : Préjugé « aristocrates, réactionnaires, miliciens, nantis, utilisateurs de mystracine » → noble, miliciens, reactionnaires, utilisateurs-de-mystracine ; Effrayé « créanciers » → creanciers', () => {
     const c = creatureToCombatant(findCreatureById('brigitte-schleigel')!, 'p11', { x: 0, y: 0 });
     const prejuges = (c.psychTraits ?? []).filter((p) => p.type === 'prejuge');
-    expect(prejuges).toEqual(expect.arrayContaining([{ type: 'prejuge', cible: ciblePsy.groupe('noble') }, { type: 'prejuge', cible: ciblePsy.groupe('miliciens') }]));
-    expect(prejuges.some((p) => p.cible === undefined)).toBe(true); // réactionnaires/mystracine : aucun Groupe
+    expect(prejuges).toEqual(expect.arrayContaining(['noble', 'miliciens', 'reactionnaires', 'utilisateurs-de-mystracine'].map((g) => ({ type: 'prejuge', cible: ciblePsy.groupe(g) }))));
+    expect(prejuges.some((p) => p.cible === undefined)).toBe(false);
+    expect(c.psychTraits).toEqual(expect.arrayContaining([expect.objectContaining({ type: 'phobie', cible: ciblePsy.groupe('creanciers') })]));
   });
   it('Jetsam : Effrayé « Feu » → feu (ZI 05 l.50)', () => {
     expect(creatureToCombatant(findCreatureById('jetsam-la-gelee-intelligente')!, 'p13', { x: 0, y: 0 }).psychTraits)
       .toEqual(expect.arrayContaining([{ type: 'phobie', cible: ciblePsy.groupe('feu'), indice: 0 }]));
   });
-  it('Ogre (Maigrichons) / Volée de Noctecorbes (Lumière) / Sangsues (Sel) / créanciers / Étrangers / subjectifs : RESTENT inertes (aucun référent combattant)', () => {
+  it('Ogre (LDB 77 l.66) / Volée de Noctecorbes (ZI 05 l.298) / Sangsues (MSRC 15 l.40) : la cible imprimée est un Groupe', () => {
     expect(creatureToCombatant(findCreatureById('ogre')!, 'p12', { x: 0, y: 0 }).psychTraits)
-      .toEqual(expect.arrayContaining([{ type: 'prejuge', cible: undefined }]));
+      .toEqual(expect.arrayContaining([{ type: 'prejuge', cible: ciblePsy.groupe('maigrichons') }]));
+    expect(creatureToCombatant(findCreatureById('volee-de-noctecorbes')!, 'p14', { x: 0, y: 0 }).psychTraits)
+      .toEqual(expect.arrayContaining([expect.objectContaining({ type: 'phobie', cible: ciblePsy.groupe('lumiere') })]));
+    for (const id of ['sangsue-geante', 'sangsue-des-arbres']) {
+      expect(creatureToCombatant(findCreatureById(id)!, id, { x: 0, y: 0 }).psychTraits)
+        .toEqual(expect.arrayContaining([expect.objectContaining({ type: 'phobie', cible: ciblePsy.groupe('sel') })]));
+    }
   });
 });

@@ -3,6 +3,7 @@
  * Surincantation +Cible (`LDB 47 l.28`), les candidats de la Frappe Mortelle (`LDB 14 l.9`) et la case valide d'une pose
  * de zone (portée en cases, Ligne de vue : `LDB 46 l.121`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { currentTargetingMode } from './targetingModes';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -19,8 +20,8 @@ const arene = () => {
 
 /** Le héros h1 en (6,6), un allié en (5,6) ; e1 et e2 à son contact, e3 loin. */
 function combat() {
-  const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
-  const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
+  const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
+  const ally = makePregens(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
   const e1 = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 6 });
   const e2 = spawnEnemy({ ref: 'humain' }, 'e2', { x: 6, y: 7 });
   const e3 = spawnEnemy({ ref: 'humain' }, 'e3', { x: 12, y: 6 });

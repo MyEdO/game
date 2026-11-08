@@ -2,6 +2,7 @@
  * Troc (LDB 59 l.64-76) + « Baisse des prix » (l.60) — câblage marchand : le Troc échange des biens
  * sans argent au ratio de rareté ; la baisse de moitié réduit le gain de vente.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { barterQuote, sellGain, sellRefusal, type MerchantState } from './merchantFlow';
@@ -32,8 +33,8 @@ describe('barterQuote (LDB 59 l.64-76)', () => {
 
 describe('troquerLesObjets', () => {
   it('cède les exemplaires requis, reçoit le bien acquis, décrémente le stock, bourse INCHANGÉE', () => {
-    const hero = makePregens()[0] as Combatant;
-    hero.items = [itemFromTrappingById('hallebarde'), itemFromTrappingById('hallebarde')].filter(Boolean) as ItemInstance[];
+    const hero = makePregens(idsDeTest)[0] as Combatant;
+    hero.items = [itemFromTrappingById('hallebarde', idsDeTest), itemFromTrappingById('hallebarde', idsDeTest)].filter(Boolean) as ItemInstance[];
     banc.setState({ party: [hero], merchant: merchant([{ id: 'dague', qty: 5 }]) });
     const before = toBrass(partyMoneyTotal(banc.getState));
     banc.getState().troquerLesObjets({ giveHeroId: hero.id, giveTrappingId: 'hallebarde', getStockId: 'dague', getCount: 1 });
@@ -46,7 +47,7 @@ describe('troquerLesObjets', () => {
   });
 
   it('refuse si le héros n’a pas assez d’exemplaires à céder', () => {
-    const hero = makePregens()[0] as Combatant;
+    const hero = makePregens(idsDeTest)[0] as Combatant;
     hero.items = []; // rien à céder
     banc.setState({ party: [hero], merchant: merchant([{ id: 'dague', qty: 5 }]) });
     banc.getState().troquerLesObjets({ giveHeroId: hero.id, giveTrappingId: 'hallebarde', getStockId: 'dague', getCount: 1 });
@@ -56,7 +57,7 @@ describe('troquerLesObjets', () => {
 
 describe('Baisse des prix à la vente (LDB 59 l.60)', () => {
   it('diviser le prix par deux réduit le gain de vente', () => {
-    const item = itemFromTrappingById('hallebarde')!;
+    const item = itemFromTrappingById('hallebarde', idsDeTest)!;
     const full = toBrass(sellGain(item, merchant([])));
     const halved = toBrass(sellGain(item, merchant([], { sellHalvings: { [item.uid]: 1 } })));
     expect(halved).toBe(Math.floor(full / 2));
@@ -73,13 +74,13 @@ describe('Baisse des prix à la vente (LDB 59 l.60)', () => {
  */
 describe('hors commerce — VENTE et TROC refusés, avec leur raison', () => {
   it('VENTE : `sellRefusal` refuse l’objet sans Disponibilité, accepte l’objet ordinaire', () => {
-    expect(sellRefusal(itemFromTrappingById('licence-de-guilde')!)).toContain('Licence de Guilde');
-    expect(sellRefusal(itemFromTrappingById('arme-improvisee')!)).toContain('Arme improvisée');
-    expect(sellRefusal(itemFromTrappingById('hallebarde')!)).toBeNull(); // contre-épreuve
+    expect(sellRefusal(itemFromTrappingById('licence-de-guilde', idsDeTest)!)).toContain('Licence de Guilde');
+    expect(sellRefusal(itemFromTrappingById('arme-improvisee', idsDeTest)!)).toContain('Arme improvisée');
+    expect(sellRefusal(itemFromTrappingById('hallebarde', idsDeTest)!)).toBeNull(); // contre-épreuve
   });
 
   it('VENTE : une instance PRÉ-VALUÉE reste vendable (Carte marine, MDG 15 l.290)', () => {
-    const carte = itemFromTrappingById('carte-marine')!;
+    const carte = itemFromTrappingById('carte-marine', idsDeTest)!;
     expect(sellRefusal(carte)).not.toBeNull(); // sans valeur d'instance : rien à vendre
     carte.price = { gold: 4, silver: 0, brass: 0 };
     expect(sellRefusal(carte)).toBeNull(); // valuée par l'Activité : elle porte son prix
@@ -87,8 +88,8 @@ describe('hors commerce — VENTE et TROC refusés, avec leur raison', () => {
   });
 
   it('VENTE : le panier REFUSE l’ajout et le journal porte la raison', () => {
-    const hero = makePregens()[0] as Combatant;
-    hero.items = [itemFromTrappingById('licence-de-guilde')!];
+    const hero = makePregens(idsDeTest)[0] as Combatant;
+    hero.items = [itemFromTrappingById('licence-de-guilde', idsDeTest)!];
     banc.setState({ party: [hero], merchant: merchant([]) });
     banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', hero.items[0].uid);
     expect(banc.getState().merchant!.sellCart ?? []).toHaveLength(0);
@@ -96,8 +97,8 @@ describe('hors commerce — VENTE et TROC refusés, avec leur raison', () => {
   });
 
   it('VENTE : contre-épreuve — un objet ordinaire entre bien au panier', () => {
-    const hero = makePregens()[0] as Combatant;
-    hero.items = [itemFromTrappingById('hallebarde')!];
+    const hero = makePregens(idsDeTest)[0] as Combatant;
+    hero.items = [itemFromTrappingById('hallebarde', idsDeTest)!];
     banc.setState({ party: [hero], merchant: merchant([]) });
     banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', hero.items[0].uid);
     expect(banc.getState().merchant!.sellCart ?? []).toHaveLength(1);
@@ -110,8 +111,8 @@ describe('hors commerce — VENTE et TROC refusés, avec leur raison', () => {
   });
 
   it('TROC : l’échange est refusé et le journal porte la raison', () => {
-    const hero = makePregens()[0] as Combatant;
-    hero.items = [itemFromTrappingById('licence-de-guilde')!, itemFromTrappingById('licence-de-guilde')!];
+    const hero = makePregens(idsDeTest)[0] as Combatant;
+    hero.items = [itemFromTrappingById('licence-de-guilde', idsDeTest)!, itemFromTrappingById('licence-de-guilde', idsDeTest)!];
     banc.setState({ party: [hero], merchant: merchant([{ id: 'dague', qty: 5 }]) });
     banc.getState().troquerLesObjets({ giveHeroId: hero.id, giveTrappingId: 'licence-de-guilde', getStockId: 'dague', getCount: 1 });
     expect((banc.getState().party[0].items ?? []).some((i) => i.trappingId === 'dague')).toBe(false);

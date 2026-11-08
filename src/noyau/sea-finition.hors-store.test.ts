@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { t } from '../i18n';
 import { jouerLaSemaine } from './semaineEnMer.testkit';
@@ -48,14 +49,13 @@ const seaMap: WorldMap = {
 function freshState() {
   seedBattleRng(7);
   banc.setState({
-    party: makePregens().slice(0, 3),
+    party: makePregens(idsDeTest).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null,
     worldMap: seaMap,
     lieu: 'A',
     travelPlan: null,
     travelRecap: null,
-    pendingCrewTest: null,
     pendingRest: null,
     pendingSeaActivities: null,
     port: null,

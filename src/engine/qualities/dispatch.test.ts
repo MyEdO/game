@@ -1,10 +1,11 @@
+import { idsDeTest } from '../idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { Weapon } from '../types';
 import { hasQuality, qualitySum, qualityCritTriggered, parryDRAdjust, isUnbreakable, attackDRAdjust, dangerousNine, reloadDRTarget, magazineSize, resolveQualities, qualityArmourBypasses } from './dispatch';
 import { craftEncDelta } from './craftEconomy';
 import { findQualityById, findTrappingById, qualityRefLabel, trappings } from '../../data';
 import { itemFromTrappingById } from '../items';
-import { parseQualityInstance } from './normalize';
+import { parseQualityInstance } from '../../data/refFormatLivre';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -238,7 +239,7 @@ describe('Indice d’un Atout — il atteint le COÛT du choix et le libellé IM
 
   it('la donnée porte l’Indice, et `resolveQualities` le fait TRAVERSER jusqu’à `indice`', () => {
     expect(flamberge.qualities?.find((q) => q.id === 'taillade')?.value, 'le porteur de référence a perdu son Indice en donnée').toBe(2);
-    const resolue = resolveQualities({ qualities: flamberge.qualities!, subType: flamberge.subType })
+    const resolue = resolveQualities({ qualities: flamberge.qualities!, subType: flamberge.subType?.id })
       .find((r) => r.id === 'taillade')!;
     expect(resolue.indice).toBe(2);
     expect(qualityRefLabel({ id: resolue.id, value: resolue.indice })).toBe('Taillade (2A)');
@@ -253,7 +254,7 @@ describe('Indice d’un Atout — il atteint le COÛT du choix et le libellé IM
   });
 
   it('l’Indice survit à la matérialisation en OBJET DE SAC et au round-trip JSON', () => {
-    const item = itemFromTrappingById('zweihander-flamberge')!;
+    const item = itemFromTrappingById('zweihander-flamberge', idsDeTest)!;
     const porte = item.qualities.find((q) => q.id === 'taillade')!;
     expect(porte.value, 'l’Indice est perdu à la matérialisation (`qualityInstance`)').toBe(2);
     const relu = JSON.parse(JSON.stringify(item)) as typeof item;

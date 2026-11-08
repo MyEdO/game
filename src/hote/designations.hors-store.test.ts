@@ -16,7 +16,9 @@ import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie } from './partie';
 function designationsDe(f: Forme): string[] {
   switch (f.genre) {
     case 'chaine': return f.designe ? [f.designe.cle] : [];
-    case 'objet': return (f.champs ?? []).flatMap((c) => designationsDe(c.forme));
+    case 'objet': return f.champs.flatMap((c) => designationsDe(c.forme));
+    case 'dictionnaire': return [...designationsDe(f.cle), ...designationsDe(f.valeur), ...(f.champs ?? []).flatMap((c) => designationsDe(c.forme))];
+    case 'tuple': return f.elements.flatMap(designationsDe);
     case 'union': return f.membres.flatMap(designationsDe);
     case 'tableau': return designationsDe(f.element);
     default: return [];

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { emitCombatEvent } from './combatEvents';
 import { applyCoupCritiqueSec } from './combatFlow';
@@ -92,7 +93,7 @@ describe('7bis — applyCoupCritiqueSec émet onCrit (Taillade sur Critique oppo
 
   it('un Critique opposé de l’attaquant Taillade → la victime gagne Hémorragique', () => {
     seedBattleRng(3);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

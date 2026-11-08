@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { FLOWS } from './rollFlowSpecs';
@@ -23,7 +24,7 @@ beforeEach(() => {
 describe('flux `test` (LDB 23 l.218 « Observer une cible » — jeton sans `skill` = tout Test)', () => {
   function setup(over: Partial<any> = {}, withToken = true) {
     const actor = combattantDeTest({ id: 'h1', label: 'Héros', kind: 'hero', fortune: 0, resilience: 0 });
-    if (withToken) applyOps(actor, [{ op: 'grantReverseToken', skill: { id: 'ragot' } }], { rng: desDuTest, label: 'Observer une cible' });
+    if (withToken) applyOps(actor, [{ op: 'grantReverseToken', skill: { id: 'ragot' } }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Observer une cible' });
     banc.setState({
       party: [actor],
       pendingTest: {
@@ -91,7 +92,7 @@ const HERO = (over: Partial<Combatant>): Combatant =>
 describe('flux `attack` (LDB 23 l.209 — Corps à corps/Projectiles, jusqu’ici NON couvert #558)', () => {
   function setup() {
     const attacker = HERO({ id: 'A', label: 'Att' });
-    applyOps(attacker, [{ op: 'grantReverseToken', skill: { id: 'corps-a-corps' }}], { rng: desDuTest, label: 'Entraînement au Combat' });
+    applyOps(attacker, [{ op: 'grantReverseToken', skill: { id: 'corps-a-corps' }}], { idNeuf: idsDeTest, rng: desDuTest, label: 'Entraînement au Combat' });
     const target = HERO({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 1, y: 0 }, activeEffects: [] });
     banc.setState({
       battle: { combatants: [attacker, target], log: [] } as never,
@@ -152,7 +153,7 @@ describe('flux `defense` (LDB 23 l.209 — Parade = Corps à corps)', () => {
   function setup() {
     const attacker = HERO({ id: 'E', label: 'Orque', kind: 'enemy' });
     const defender = HERO({ id: 'H', label: 'Héros', pos: { x: 1, y: 0 } });
-    applyOps(defender, [{ op: 'grantReverseToken', skill: { id: 'corps-a-corps' }}], { rng: desDuTest, label: 'Entraînement au Combat' });
+    applyOps(defender, [{ op: 'grantReverseToken', skill: { id: 'corps-a-corps' }}], { idNeuf: idsDeTest, rng: desDuTest, label: 'Entraînement au Combat' });
     const atk = { roll: 30, target: 40, success: true, sl: 1, isDouble: false };
     const def = { roll: 82, target: 45, success: false, sl: -4, isDouble: false };
     banc.setState({
@@ -201,7 +202,7 @@ describe('flux `defense` (LDB 23 l.209 — Parade = Corps à corps)', () => {
 describe('Talent + jeton simultanément applicables (LDB 10 Sociable + LDB 23 l.218) : le Talent gratuit prime, le jeton reste intact', () => {
   it('`jetInverser@test` consomme le Talent (illimité), préserve le jeton', () => {
     const actor = combattantDeTest({ id: 'h1', label: 'Héros', kind: 'hero', fortune: 0, resilience: 0, talents: [{ talentId: 'sociable', times: 1 }] });
-    applyOps(actor, [{ op: 'grantReverseToken' }], { rng: desDuTest, label: 'Observer une cible' }); // sans `skill` = tout Test
+    applyOps(actor, [{ op: 'grantReverseToken' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Observer une cible' }); // sans `skill` = tout Test
     banc.setState({
       party: [actor],
       pendingTest: {
@@ -230,7 +231,7 @@ describe('Talent + jeton simultanément applicables (LDB 10 Sociable + LDB 23 l.
 describe('Jeton sur un Test DÉJÀ réussi (LDB 23 l.209/218 — libre) : améliore le DR, reste réussi', () => {
   it('`reverseAvailable` OFFRE le verbe sur un succès (jeton seul, aucun Talent)', () => {
     const actor = combattantDeTest({ id: 'h1', label: 'Héros', kind: 'hero', fortune: 0, resilience: 0 });
-    applyOps(actor, [{ op: 'grantReverseToken', skill: { id: 'ragot' } }], { rng: desDuTest, label: 'Observer une cible' });
+    applyOps(actor, [{ op: 'grantReverseToken', skill: { id: 'ragot' } }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Observer une cible' });
     const roll = 32; const target = 40;
     const before = evaluateTest(roll, target);
     expect(before.success).toBe(true); // jet DÉJÀ réussi — le Talent ne l'offrirait JAMAIS
@@ -246,7 +247,7 @@ describe('Jeton sur un Test DÉJÀ réussi (LDB 23 l.209/218 — libre) : améli
 
   it('accepter (`jetInverser@test`) : permute le dé, améliore le DR, le Test reste réussi', () => {
     const actor = combattantDeTest({ id: 'h1', label: 'Héros', kind: 'hero', fortune: 0, resilience: 0 });
-    applyOps(actor, [{ op: 'grantReverseToken', skill: { id: 'ragot' } }], { rng: desDuTest, label: 'Observer une cible' });
+    applyOps(actor, [{ op: 'grantReverseToken', skill: { id: 'ragot' } }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Observer une cible' });
     const roll = 32; const target = 40;
     const before = evaluateTest(roll, target);
     const expected = evaluateTest(reverseRoll(roll), target);

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { jouerLaSemaine } from './semaineEnMer.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -10,7 +11,7 @@ import { setRule } from '../engine/policy';
 import { buildSeaGenericStep } from './seaActivities';
 import { composeRollLabel, effectiveTarget, type RollRequest } from './rollSeam';
 import { testValue } from '../engine/skills';
-import { DIFFICULTY_MODIFIERS } from '../engine/types';
+import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_MODIFIERS } from '../engine/types';
 import type { Combatant } from '../engine/types';
 import type { ModLine } from '../engine/combat';
 
@@ -33,7 +34,7 @@ const sommeMods = (mods: ModLine[] | undefined): number => (mods ?? []).reduce((
 function freshState() {
   seedBattleRng(7);
   banc.setState({
-    party: makePregens().slice(0, 3),
+    party: makePregens(idsDeTest).slice(0, 3),
     battle: null,
     travelPlan: null,
     travelRecap: null,
@@ -54,7 +55,7 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
     (cartographe as Combatant).skills = [{ id: 'metier', spec: 'cartographe', advances: 20 } as never];
     (cartographe as Combatant).characteristics = { ...cartographe.characteristics, dexterite: 40 };
     // La planque est bornée par la bourse du cartographe (MDG 15 l.292).
-    set({ party: get().party.map((h) => (h.id === cartographe.id ? withBourseMoney(h, { gold: 7, silver: 0, brass: 0 }) : h)), pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } } } as never);
+    set({ party: get().party.map((h) => (h.id === cartographe.id ? withBourseMoney(h, { gold: 7, silver: 0, brass: 0 }, idsDeTest) : h)), pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } } } as never);
 
     jouerLaSemaine(get, { [cartographe.id]: { activityId: 'cartographie', stashGold: 7 } });
 
@@ -199,7 +200,7 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
     const actif = avecActivite(def, () => buildSeaGenericStep(get, set, cible, def))!;
     expect(actif.target, 'le plafond se lève avec la règle').toBeGreaterThan(99);
     expect(actif.target, 'la cible est la valeur PLEINE : 80 Dex + 200 avances, Difficulté intermédiaire (+0)').toBe(280);
-    expect(actif.target).toBe(actif.base! + sommeMods(actif.mods) + DIFFICULTY_MODIFIERS[def.difficulty ?? 'intermediaire']);
+    expect(actif.target).toBe(actif.base! + sommeMods(actif.mods) + DIFFICULTY_MODIFIERS[def.difficulty ?? DIFFICULTE_PAR_DEFAUT]);
     expect(travelActivitySpec(cible, def)!.target, 'la même cible bornée par le constructeur').toBe(actif.target);
   });
 });

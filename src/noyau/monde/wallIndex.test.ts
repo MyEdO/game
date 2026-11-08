@@ -18,6 +18,7 @@
  * index, une touche par question et par mur côté balayage. Débrancher l'index de `scene.ts` fait
  * passer le premier compteur à l'ordre du second, donc rougir.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { aretesA, wallIndexOf } from './wallIndex';
 import {
@@ -38,7 +39,7 @@ const naif = (scene: Scene, x: number, y: number, side: WallSide, z: number): Wa
 /** TOUTES les scènes LIVRÉES : un scénario du registre généré porte sa scène, une campagne les siennes. */
 const scenesLivrees = (): { nom: string; scene: Scene }[] => {
   const out: { nom: string; scene: Scene }[] = [];
-  for (const s of testScenarios) out.push({ nom: `scenario:${s.id}`, scene: s.construire().scene });
+  for (const s of testScenarios) out.push({ nom: `scenario:${s.id}`, scene: s.construire(idsDeTest).scene });
   for (const c of allBuiltinCampaigns) for (const sc of paquetDuJeu(c).scenes) out.push({ nom: `campagne:${c.id}/${sc.id}`, scene: sc });
   return out;
 };
@@ -130,7 +131,7 @@ describe('wallIndex — TOUTES les scènes livrées', () => {
   });
 
   it('`doorAt` suit `porteEnJeu` : la porte secrète du bureau (EDO 08 l.404) masquée n\'est pas une porte, révélée l\'est', () => {
-    const scene = fenetreEcuries.construire().scene;
+    const scene = fenetreEcuries.construire(idsDeTest).scene;
     const porte = scene.walls!.find((w) => w.x === 3 && w.y === 2 && w.side === 'E' && w.z === 1)!;
     expect(porte.door).toBeTruthy();
     expect(doorAt(scene, 3, 2, 'E', 1)).toBeUndefined();

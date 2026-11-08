@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { addCondition, testStatePenalty, combatTestPenalty, endOfRound, hasCondition, bleedDeathRoll, recoveredStacks } from './conditions';
 import { applyOps } from './ops';
@@ -25,7 +26,7 @@ describe('Finitions d\'États (LDB 16)', () => {
 
   it('testMod (Malédiction de malchance −10) : stacke par-dessus l\'État, hors non-cumul/ignoreState', () => {
     const c = C({ conditions: [] });
-    applyOps(c, [{ op: 'testMod', amount: -10 }], { rng: desDuTest, label: 'Malédiction de malchance', defaultDurationRounds: 9999 });
+    applyOps(c, [{ op: 'testMod', amount: -10 }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Malédiction de malchance', defaultDurationRounds: 9999 });
     expect(testStatePenalty(c)).toBe(-10); // tests hors combat
     expect(combatTestPenalty(c)).toBe(-10); // tests de combat
     addCondition(c, 'sonne'); // État −10 → STACKE avec le −10 du Sort (sources distinctes)
@@ -37,7 +38,7 @@ describe('Finitions d\'États (LDB 16)', () => {
 
   it('Empoisonné : endOfRound NE touche plus le poison — dégâts ET Test de Résistance migrés en DONNÉES (l.66-72)', () => {
     const c = C({ conditions: [{ id: 'empoisonne', value: 1 }], wounds: blessuresDeBase(20) });
-    endOfRound(c, makeRNG(1)); // ni dégâts, ni Test de poison : tout est `effects: onRoundEnd` (etats.json), résolu par le dispatcher
+    endOfRound(c, makeRNG(1), idsDeTest); // ni dégâts, ni Test de poison : tout est `effects: onRoundEnd` (etats.json), résolu par le dispatcher
     expect(hasCondition(c, 'empoisonne')).toBe(true); // endOfRound ne retire aucun pion de poison
     expect(c.wounds.current).toBe(20);                // ni dégât périodique (cf. noyau/combat/round-upkeep-cascade.hors-store.test pour la voie data-driven)
   });

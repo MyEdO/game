@@ -2,6 +2,7 @@
  * LA VALEUR DE LA 2ᵉ FRAPPE DU MANIEMENT DE DEUX ARMES, jouée par le noyau (`jetValider('attack')` → `jouerLaSuiteDuCoup`).
  * LDB 10 l.773 ; LDB 18 l.53 ; LDB 13 l.183 ; LDB 41 l.170 ; MDG 13 l.656, l.724 ; AA 10 l.114 ; #1595 c.6229354257, c.6229550544.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
@@ -61,7 +62,7 @@ interface Frappe {
 /** La 1ʳᵉ frappe d'un Maniement de deux armes, confirmée par `jetValider('attack')`. */
 function premiereFrappe({ roll, cible: over = {}, pieces = [], arme = epee, retenu = false, tenu = false, resoudre, opsDuHeros = [] }: Frappe) {
   const heros = mk('hero', 'bretteur', { weapons: [arme, dague] } as never);
-  applyOps(heros, opsDuHeros, { rng: desDuTest });
+  applyOps(heros, opsDuHeros, { idNeuf: idsDeTest, rng: desDuTest });
   const cible = mk('enemy', 'cible', { pos: { x: 1, y: 0 }, ...over } as never);
   const voisin = mk('enemy', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773
   if (pieces.length) { cible.items = structuredClone(pieces); recomputeLoadout(cible); }

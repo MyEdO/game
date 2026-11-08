@@ -9,6 +9,7 @@
  * markup, même banc, même case vide, aucune inférence affichée nulle part. Si un écran repartait en
  * héros-first, ou fabriquait sa propre case, il divergerait ICI.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { describe, it, expect, afterEach } from 'vitest';
@@ -39,8 +40,8 @@ afterEach(() => { act(() => root?.unmount()); container?.remove(); root = null; 
 /** MÊME groupe pour les quatre montages : seules les données de poste changent d'un roster à l'autre. */
 function groupe(): Combatant[] {
   return [
-    { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brenner', seed: 7 }), id: 'a' },
-    { ...createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Hilda', seed: 8 }), id: 'b' },
+    { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brenner', seed: 7 }), id: 'a' },
+    { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Hilda', seed: 8 }), id: 'b' },
   ];
 }
 

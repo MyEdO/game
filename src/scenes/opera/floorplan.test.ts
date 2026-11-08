@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import {
   buildOperaFloorplan, puitsRim, ZONES_REZ, ZONES_ETAGE,
@@ -13,7 +14,7 @@ import { effectiveArchitecture } from '../../noyau/sceneEdit';
 import { unreachableDescriptiveZones, reachedFloors } from '../../noyau/mapQC';
 import { scenePlanDefects } from '../../noyau/planDefects';
 import { METRES_PER_LEVEL } from '../../noyau/monde/relief';
-const operaPlanConstruit = operaPlan.construire();
+const operaPlanConstruit = operaPlan.construire(idsDeTest);
 
 /** Case TÉMOIN au cœur du PUITS (l'ovale du folio 39, qui court du MUR DE FOND DE SCÈNE — rangée 1, sous le
  *  mur nord, au NORD des coulisses — au bas de la salle)

@@ -9,6 +9,7 @@
  * unique des six branches) ne porte que la POSITION. Chaque information a UNE surface : jamais deux
  * tuiles pour la même phrase (double rendu de classe #352).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -28,7 +29,7 @@ beforeAll(() => {
 let host: HTMLDivElement;
 let root: Root;
 
-const HERO = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 1 });
+const HERO = () => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 1 });
 
 /** Ouvre une séquence à UNE étape, le titre de la fenêtre étant fourni par l'appelant. */
 function openStep(title: string, step: (heroId: string) => CascadeStep) {

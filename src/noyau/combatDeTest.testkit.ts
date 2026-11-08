@@ -4,6 +4,7 @@
  * tour au héros. Le propriétaire de l'état (le store, un banc, une partie) lance
  * la scène et le combat, puis écrit le patch que rend `auContact`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import type { EtatDeJeu } from './etat';
@@ -19,7 +20,7 @@ export function reluDans(getState: () => JeuDuNoyau, c: Combatant): Combatant {
 
 /** Le héros du duel. */
 export function heroDuDuel(): Combatant {
-  return createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  return createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
 }
 
 /** Met le héros et le premier ennemi au contact dans le combat ouvert de `etat` (combattants mutés en place,
@@ -44,7 +45,7 @@ export interface ProprietaireDuDuel {
 /** Ouvre le duel chez `p`, dans `scene` (la scène de fixture, que le noyau n'importe pas) : la scène, le combat, la
  *  manche confirmée, les suites programmées abandonnées, puis le patch d'`auContact` écrit. */
 export function heroFaceAUnEnnemi(p: ProprietaireDuDuel, scene: Scene): { H: Combatant; E: Combatant } {
-  p.setState({ party: [heroDuDuel()] });
+  p.setState({ screen: 'campaign', party: [heroDuDuel()] });
   p.getState().lancerLaScene(scene);
   p.getState().lancerLeCombat('enc-mutants');
   p.getState().fenetreValider('roundStart');

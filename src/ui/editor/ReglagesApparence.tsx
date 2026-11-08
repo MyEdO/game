@@ -3,7 +3,7 @@
  * est la liste des réglages rendus, en donnée ; toute écriture passe par `apparenceSuivante`. Styles :
  * `styles/reglages-apparence.css`.
  */
-import { armesChoisissables, findTrappingById, findCreatureById, findSpeciesById, speciesSingular } from '../../data';
+import { findTrappingById, findCreatureById, findSpeciesById, speciesSingular } from '../../data';
 import { idsDe } from '../../data/schemas/grammaire/ref';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { sexeSchema } from '../../data/schemas/grammaire/valeurs';
@@ -114,17 +114,3 @@ export function ReglagesApparence<T extends EntityAppearance>({
   );
 }
 
-/** Arme équipée d'une entité de scène (`SceneEntity.weapon`, un `trappingId`). */
-export function ArmeEquipeeField({ weapon, onWeapon }: { weapon?: string; onWeapon: (w: string | undefined) => void }) {
-  return (
-    <label className="ed-field">
-      Arme équipée
-      <select value={weapon ?? ''} onChange={(e) => onWeapon(e.target.value || undefined)}>
-        <option value="">— aucune —</option>
-        {armesChoisissables().map((w) => (
-          <option key={w.id} value={w.id}>{w.label}</option>
-        ))}
-      </select>
-    </label>
-  );
-}

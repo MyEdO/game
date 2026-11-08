@@ -7,13 +7,14 @@
  *    gantelet TENU).
  * Comportement RAW préservé : gantelet porté → anti-lâcher ; cape portée → pas de malus de froid.
  */
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { itemCapability, hasCapability } from './capabilities';
 import { customTrapping, itemFromTrappingById } from './items';
 import type { Combatant, ItemInstance, Weapon } from './types';
 
 const item = (uid: string, trappingId: string | undefined, extra: Partial<ItemInstance> = {}): ItemInstance =>
-  ({ ...(trappingId ? itemFromTrappingById(trappingId)! : customTrapping(uid)), uid, ...extra });
+  ({ ...(trappingId ? itemFromTrappingById(trappingId, idsDeTest)! : customTrapping(uid, idsDeTest)), uid, ...extra });
 
 /** Combattant minimal porteur d'un inventaire (et d'un loadout actif `weapons` pour la garde TENU). */
 const carrier = (items: ItemInstance[], weapons: Weapon[] = []): Combatant =>

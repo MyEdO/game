@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { porteEnJeu, porteMasquee, porteTentee, setDoorRevealed, setDoorTentee, type Scene, type WallSeg } from './monde/scene';
 import { buildScene, type WallSpec } from './mapSpec';
@@ -44,7 +45,7 @@ const seg = (): WallSeg => banc.getState().scene!.walls!.find((w) => w.x === 5 &
 /** Deux héros formés en Perception (le Soutien l'exige, `LDB 12 l.195`) ; `aveugles` : ni lumière portée
  *  ni Vision nocturne (le noir de la scène est alors total pour eux). */
 const heros = (aveugles = false) => ['A', 'B'].map((label, i) => {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: i + 1 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: i + 1 });
   return {
     ...h,
     skills: [...h.skills.filter((s) => s.id !== 'perception'), { id: 'perception', characteristic: 'initiative' as const, advances: 5 }],

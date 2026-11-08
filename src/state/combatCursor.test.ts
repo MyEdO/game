@@ -6,6 +6,7 @@
  *  - le commit du curseur et la touche `inspecter` lisent la case ; ce que joue la case
  *    (`intentionDuClicDeCase`) se joue au banc du noyau (`src/noyau/combatCursor.hors-store.test.ts`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { nextCursorTile, nextCaseCursorTile, tileModeValidTiles } from './combatCursor';
 import { intentionDuClicDeCase } from '../noyau/combatOrParty';
@@ -138,8 +139,8 @@ describe('nextCaseCursorTile — mode-CASE (#198, résidus) : navigation BORNÉE
 describe('intentionDuClicDeCase — clic-sol et commit du curseur (mode-aware)', () => {
   beforeEach(() => { useGame.setState({ battle: null, party: [], inspectId: null }); });
   function makeState(over: Record<string, unknown> = {}) {
-    const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
-    const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 10 };
+    const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
+    const ally = makePregens(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 10 };
     const enemy = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 10 }); // adjacent au héros
     const battle = {
       combatants: [hero, ally, enemy], order: ['h1', 'h2', 'e1'], baseOrder: ['h1', 'h2', 'e1'],
@@ -177,7 +178,7 @@ describe('tileModeValidTiles — ensemble VALIDE générique (#198, résidus)', 
   beforeEach(() => { useGame.setState({ battle: null, party: [] }); });
 
   it('filtre la scène ENTIÈRE par `tileValidAt` du mode — jamais toute la carte', () => {
-    const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
+    const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
     const battle = {
       combatants: [hero], order: ['h1'], baseOrder: ['h1'], turn: 0, round: 1, action: null,
       selectedSpellId: null, reachable: new Map([['6,10', 0], ['7,10', 1]]),
@@ -196,8 +197,8 @@ describe('tileModeValidTiles — ensemble VALIDE générique (#198, résidus)', 
 describe('moveCursor/commitCursor en mode-CASE (belier-porte, #198 résidus) — intégration store', () => {
   it("le curseur clavier atteint la case AXIALE au nord (5,4)→(5,3) en mode Pousser, jamais bloqué sur le seul pas diagonal", async () => {
     const { scenario } = await import('../scenes/test-scenarios/42-belier-porte');
-    const { party, scene } = scenario.construire();
-    useGame.setState({ party });
+    const { party, scene } = scenario.construire(idsDeTest);
+    useGame.setState({ screen: 'campaign', party });
     useGame.getState().lancerLaScene(scene);
     useGame.getState().lancerLeCombat('siege-belier');
     useGame.getState().fenetreValider('roundStart');
@@ -215,7 +216,7 @@ describe('moveCursor/commitCursor en mode-CASE (belier-porte, #198 résidus) —
   });
 
   it('Entrée sur une case NON commettable en mode-CASE dit son refus À L’ÉCRAN, jamais muet', () => {
-    const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
+    const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
     const door = spawnEnemy({ ref: 'humain' }, 'door', { x: 7, y: 10 });
     const battle = {
       combatants: [hero, door], order: ['h1'], baseOrder: ['h1'], turn: 0, round: 1, action: 'teleport',

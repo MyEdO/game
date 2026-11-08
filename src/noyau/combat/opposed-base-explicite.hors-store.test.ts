@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { fireTriggers } from '../triggeredEffects';
@@ -10,6 +11,7 @@ import { REPLIS_DEUX_CIBLES, evaluateTest, resolveOpposed, bumpSL, type TestResu
 import { jete } from '../../engine/tests.testkit';
 import { testValue, skillBaseValue } from '../../engine/skills';
 import { frozenOpposedBatchStep, rollFrozenOpposedAttacker, simpleTriggeredTestStep, simpleBatchTestStep, withDerivedStake } from './triggeredTest';
+import { combatConditionCtx } from './flowEval';
 import { resolveRecoverTest } from './recover';
 import { rollBatchParticipant } from '../cascade';
 import { EMPTY_FLOW, type FlowTest } from '../../engine/flowCore';
@@ -94,7 +96,7 @@ describe('G4 — BANDE OPPOSÉE : le départage suit la NUE sur le résolveur de
     for (let seed = 1; seed <= 300 && !joue; seed += 1) {
       seedBattleRng(seed);
       const aT = rollFrozenOpposedAttacker(att, FT_OPP.opposed!, 'intermediaire');
-      const row = frozenOpposedBatchStep([def], FT_OPP, BRANCHES, EMPTY_FLOW, 'intermediaire', att, aT)!.participants![0];
+      const row = frozenOpposedBatchStep([def], FT_OPP, BRANCHES, EMPTY_FLOW, att, aT)!.participants![0];
       const roll = rollBatchParticipant(row, makeRNG(seed), { aT });
       const verdict = resolveOpposed(aT, { roll: roll.roll, target: roll.target, success: roll.success, sl: roll.sl, isDouble: false, base: row.base });
       if (verdict.decidedBy !== 'valeur') continue;
@@ -113,7 +115,7 @@ describe('G4 — BANDE OPPOSÉE : le départage suit la NUE sur le résolveur de
     // antérieure) : il ne porte aucune nue.
     const externe: TestResult = evaluateTest(41, testValue(att, { characteristic: 'force' }));
     expect(externe.base).toBeUndefined();
-    const row = frozenOpposedBatchStep([def], FT_OPP, BRANCHES, EMPTY_FLOW, 'intermediaire', att, externe)!.participants![0];
+    const row = frozenOpposedBatchStep([def], FT_OPP, BRANCHES, EMPTY_FLOW, att, externe)!.participants![0];
     const roll = rollBatchParticipant(row, makeRNG(9), { aT: externe });
     const verdict = resolveOpposed(externe, { roll: roll.roll, target: roll.target, success: roll.success, sl: roll.sl, isDouble: false, base: row.base });
     if (verdict.decidedBy === 'valeur') {
@@ -125,7 +127,7 @@ describe('G4 — BANDE OPPOSÉE : le départage suit la NUE sur le résolveur de
 
 describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () => {
   function scene() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
@@ -199,8 +201,8 @@ describe('G4 — producteurs de Tests SIMPLES : leur base est la NUE, aucun dép
     const ft: FlowTest = withDerivedStake({ skill: { id: 'resistance' }, label: 'Résister' }, { kind: 'condition', id: 'empoisonne' });
     const nue = skillBaseValue(c, { skill: { id: 'resistance' } });
     expect(nue, 'sonde inerte : sans État, nue et valeur testée se confondraient').not.toBe(testValue(c, { skill: { id: 'resistance' } }));
-    expect(simpleTriggeredTestStep(c, ft, BRANCHES, EMPTY_FLOW, 'intermediaire')!.base).toBe(nue);
-    expect(simpleBatchTestStep([c], ft, BRANCHES, EMPTY_FLOW, 'intermediaire', 'bande')!.participants![0].base).toBe(nue);
+    expect(simpleTriggeredTestStep(c, ft, combatConditionCtx(c, {}), BRANCHES, EMPTY_FLOW)!.base).toBe(nue);
+    expect(simpleBatchTestStep([c], ft, BRANCHES, EMPTY_FLOW, 'bande')!.participants![0].base).toBe(nue);
   });
 });
 

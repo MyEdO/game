@@ -49,7 +49,7 @@ interface VolatileEntry { label: string; value: number; ref?: CodexTarget; pool?
  *  (permanente : `characteristics` + `passiveCharSum`) des contributions volatiles. */
 function volatileCharEntries(c: Combatant, key: CharKey, retenu: (e: ActiveEffect) => boolean = () => true): VolatileEntry[] {
   // Effet actif : son `label` propre + son renvoi (`effectRef`) — MÊME règle que les passifs (#1153).
-  const entries: VolatileEntry[] = (c.activeEffects ?? []).filter((e) => e.char === key && retenu(e)).map((e) => ({ label: e.label, value: e.bonus, ref: effectRef(e), pool: effectPool(e) }));
+  const entries: VolatileEntry[] = (c.activeEffects ?? []).filter((e) => e.characteristic === key && retenu(e)).map((e) => ({ label: e.label, value: e.bonus, ref: effectRef(e), pool: effectPool(e) }));
   entries.push(...traumaCharPenaltiesLabeled(c, key).map((p) => ({ label: p.label, value: p.mod, ref: p.ref, pool: poolDeNonCumul(p.src) })));
   return retenirParPool(entries);
 }

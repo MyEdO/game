@@ -4,6 +4,7 @@
  * sauf Harmonisation aethyrique), Test `interruption-de-focalisation`,
  * convergence de Domaine (+1 Avantage).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineEtLit, avanceEtapeCascade } from './cascade.testkit';
@@ -23,7 +24,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Sorcier sans Talent aléatoire (`talentsRolled: false`) : aucun tirage ne touche la FM. */
 function wiz() {
-  const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: PREGEN.sorcier, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
+  const w = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: PREGEN.sorcier, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 10);
   return w;
@@ -69,7 +70,7 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
   });
 
   it('une PRIÈRE critique ne déclenche pas la mécanique (règle du ch.46, Tests de Langue)', () => {
-    const priest = pregen(PREGEN.pretre);
+    const priest = pregen(idsDeTest, PREGEN.pretre);
     banc.setState({ party: [priest] as Combatant[] });
     const ben = findSpellById('benediction-de-guerison')!;
     applyCast(banc.getState, banc.setState, priest, priest, ben, critRes(true, 2), false, false);

@@ -15,14 +15,14 @@ import { creerSortieDeFenetre, type SortiesDeFenetre } from './sortieDeFenetre';
 import { creerValidationDeFenetre, type ValidationsDeFenetre } from './validationDeFenetre';
 import { creerChoixDeFenetre } from './choixDeFenetre';
 import type { CorpsDesChoix } from './choixDesFenetres';
-import { creerActionsDuRegistre } from './actionRegistry';
+import { creerVerbesDeLaBarre } from './actionRegistry';
 import { creerActionsDOrientation } from './orientation';
 import { creerActionsDeManoeuvre } from './shipManeuver';
 import { sortiesDuChapitre, validationsDuChapitre } from './chapitreRecap';
 import { choixDeCampagne, creerActionsDeCampagne, sortiesDeCampagne } from './campagne';
 import { creerActionsDEntreeEnScene } from './entreeEnScene';
 import { cloturesDInterlude, creerActionsDInterlude, validationsDInterlude } from './interludeFlow';
-import { creerActionsDeBatailleDeMasse, sortiesDeBatailleDeMasse } from './massBattleFlow';
+import { choixDeLaBataille, creerActionsDeBatailleDeMasse, sortiesDeBatailleDeMasse } from './massBattleFlow';
 import { creerActionsDesFaveurs } from './favorFlow';
 import { choixDeLaFinDeSeance, creerActionsDuGroupe, sortiesDuGroupe, validationsDuGroupe } from './partyFlow';
 import { creerActionsDesPossessions } from './possessionsFlow';
@@ -42,6 +42,7 @@ import { cloturesDuLotDEtal } from './etalLotFlow';
 import { choixDeCorruption, cloturesDeCorruption, reglagesDeCorruption } from './corruptionFlow';
 import { creerActionsDuJournal } from './journal';
 import { creerActionsDAvanceeDHorloge, creerActionsDHorloge } from './horloge';
+import { creerFabriqueDIds } from './idsDuMonde';
 import { creerActionsDuVoyage, sortiesDuVoyage, validationsDuVoyage } from './travelFlow';
 import { creerActionsDuLieu, sortiesDuLieu } from './lieuFlow';
 import { creerActionsDesPostesDeVoyage } from './travelPostes';
@@ -53,36 +54,40 @@ import { creerActionsDeLaCargaison } from './cargaison';
 import { creerActionsDeLAuberge } from './innFlow';
 import { choixDeLaSemaineEnMer, validationsDeLaSemaineEnMer } from './seaActivities';
 
-/** Les actions du lexique des verbes (#3371 §3.1) : un verbe manuscrit se nomme `<action>` ou `<action><Complément>`. */
-type ActionDuLexique = 'acheter' | 'actionner' | 'affecter' | 'affronter' | 'approvisionner' | 'armer' | 'attribuer' | 'avancer'
-  | 'carener' | 'ceder' | 'changer' | 'chercher' | 'cliquer' | 'commander' | 'creer' | 'debarquer' | 'depecer'
-  | 'depenser' | 'deplacer' | 'deposer' | 'desarmer' | 'designer' | 'dissiper' | 'ecrire' | 'effacer' | 'embarquer'
-  | 'engager' | 'entrainer' | 'epingler' | 'equiper' | 'evaluer' | 'fabriquer' | 'fixer' | 'focaliser' | 'fouiller'
-  | 'franchir' | 'garnir' | 'incanter' | 'installer' | 'jeter' | 'jouer' | 'lever' | 'marchander' | 'marquer'
-  | 'mener' | 'ouvrir' | 'partir' | 'payer' | 'pivoter' | 'poser' | 'pratiquer' | 'prendre' | 'promouvoir'
-  | 'quitter' | 'rallier' | 'ranger' | 'recruter' | 'recueillir' | 'recuperer' | 'refuser' | 'remiser'
-  | 'remplacer' | 'renommer' | 'renvoyer' | 'reparer' | 'reprendre' | 'restaurer' | 'retirer' | 'rompre'
-  | 'signaler' | 'soigner' | 'solder' | 'suivre' | 'supprimer' | 'transmettre' | 'troquer' | 'utiliser' | 'vendre';
+/** Les actions du lexique des verbes (#3371 §3.1) : un verbe manuscrit se nomme `<action>` ou `<action><Complément>`, ou
+ *  à la forme pronominale (`seRelever`). */
+type ActionDuLexique = 'acheter' | 'actionner' | 'affecter' | 'affronter' | 'aider' | 'annuler' | 'approvisionner' | 'armer'
+  | 'asperger' | 'attribuer' | 'avancer' | 'basculer' | 'carener' | 'ceder' | 'changer' | 'chanter' | 'chercher' | 'cliquer'
+  | 'commander' | 'creer' | 'debarquer' | 'depecer' | 'depenser' | 'deplacer' | 'deposer' | 'desarmer' | 'designer'
+  | 'dissiper' | 'ecrire' | 'effacer' | 'embarquer' | 'engager' | 'entrainer' | 'entrer' | 'epingler' | 'eprouver'
+  | 'equiper' | 'evaluer' | 'fabriquer' | 'faire' | 'fixer' | 'focaliser' | 'fouiller' | 'franchir' | 'gagner' | 'garnir'
+  | 'incanter' | 'installer' | 'jeter' | 'jouer' | 'lancer' | 'lever' | 'manoeuvrer' | 'marchander' | 'marquer' | 'mener'
+  | 'mettre' | 'monter' | 'ouvrir' | 'partir' | 'payer' | 'pivoter' | 'poser' | 'pousser' | 'pratiquer' | 'prendre'
+  | 'promouvoir' | 'quitter' | 'rallier' | 'ramasser' | 'ranger' | 'recharger' | 'recruter' | 'recueillir' | 'recuperer'
+  | 'refuser' | 'relever' | 'remettre' | 'remiser' | 'remplacer' | 'renommer' | 'renvoyer' | 'reparer' | 'reprendre'
+  | 'restaurer' | 'retirer' | 'rompre' | 'servir' | 'signaler' | 'soigner' | 'solder' | 'suivre' | 'supprimer' | 'tenter'
+  | 'terminer' | 'transmettre' | 'troquer' | 'utiliser' | 'vendre';
 /** Les actions des verbes de fenêtre, `fenetre<Action>` (`VerbeDeChoix`, `fenetreValider`, `fenetreFermer`). */
 type ActionDeFenetre = 'choisir' | 'valider' | 'fermer';
 
-/** Les noms du lexique : un verbe manuscrit, un verbe de jet ou de réglage de jet, un verbe de fenêtre. */
-type NomDeVerbe = NomDAction<ActionDuLexique>
+/** Les noms du lexique : un verbe manuscrit, à la forme pronominale comprise, un verbe de jet ou de réglage de jet, un
+ *  verbe de fenêtre. */
+type NomDeVerbe = NomPronominal<ActionDuLexique>
   | Extract<NomDeVerbeDeJet | keyof VerbeDeReglage, `jet${Capitalize<ActionDeJet>}${string}`>
   | `fenetre${Capitalize<ActionDeFenetre>}`;
 
 /** Les actions propres à la machinerie (#3605) : une écriture du noyau se nomme dans le lexique des verbes ou par l'une
  *  d'elles, chacune l'action d'un membre de `MachinerieDuNoyau`. Un verbe ne les prend pas. */
-type ActionDeLaMachinerie = ActionDuLexique | 'accorder' | 'aider' | 'ajouter' | 'amorcer' | 'annuler' | 'apprendre'
-  | 'asperger' | 'basculer' | 'chanter' | 'charger' | 'declencher' | 'denouer' | 'enfoncer' | 'ensemencer' | 'entrer'
-  | 'eprouver' | 'faire' | 'frapper' | 'gagner' | 'interagir' | 'lancer' | 'manoeuvrer' | 'mettre' | 'monter' | 'offrir' | 'orienter'
-  | 'pousser' | 'ramasser' | 'recharger' | 'relever' | 'remettre' | 'reposer' | 'sauter' | 'servir' | 'tenter' | 'terminer'
-  | 'tirer' | 'virer';
+type ActionDeLaMachinerie = ActionDuLexique | 'accorder' | 'ajouter' | 'amorcer' | 'apprendre' | 'charger' | 'declencher'
+  | 'denouer' | 'enfoncer' | 'ensemencer' | 'forger' | 'frapper' | 'interagir' | 'offrir' | 'orienter' | 'reposer' | 'sauter' | 'tirer'
+  | 'virer';
 
 /** Un nom formé sur les actions `A` : `<action>` ou `<action><Complément>`. */
 type NomDAction<A extends string> = A | `${A}${Majuscule}${string}`;
-/** Les noms de la machinerie : une action ou sa forme pronominale (`seRelever`), avec ou sans complément. */
-type NomDeMachinerie = NomDAction<ActionDeLaMachinerie> | `se${Capitalize<NomDAction<ActionDeLaMachinerie>>}`;
+/** Un nom formé sur les actions `A`, ou sa forme pronominale (`seRelever`), avec ou sans complément. */
+type NomPronominal<A extends string> = NomDAction<A> | `se${Capitalize<NomDAction<A>>}`;
+/** Les noms de la machinerie. */
+type NomDeMachinerie = NomPronominal<ActionDeLaMachinerie>;
 
 /** `true` si et seulement si chaque nom de `Noms` est de `Lexique` ; sinon, les noms en faute. */
 type Verrou<Noms extends string, Lexique extends string> = [Exclude<Noms, Lexique>] extends [never] ? true : { horsLexique: Exclude<Noms, Lexique> };
@@ -135,6 +140,7 @@ function choixDesFenetres(get: Get, set: SetDesClesReservees): CorpsDesChoix {
     ...choixDuMarchand(get, set),
     ...choixDuButin(get, set),
     ...choixDuRepos(get, set),
+    ...choixDeLaBataille(get, set),
   } satisfies CorpsDesChoix;
 }
 
@@ -178,6 +184,7 @@ function validationsDeFenetre(get: Get, set: SetDesClesReservees): ValidationsDe
 /** Les actions du noyau sur le propriétaire `get`/`set` (le `set` brut, qui écrit aussi les clés
  *  réservées de leurs seuls écrivains), une fabrique par concept. */
 export function creerActionsDuNoyau(get: Get<JeuDuNoyau>, set: SetDesClesReservees): ActionsDuNoyau & MachinerieDuNoyau {
+  const combat = createCombatSlice(get, set);
   return {
     // Les verbes de jet, le flux en argument : leur SEUL écrivain.
     ...creerVerbesDeJet(get, set, cloturesDuJet(get, set)),
@@ -189,8 +196,9 @@ export function creerActionsDuNoyau(get: Get<JeuDuNoyau>, set: SetDesClesReserve
     ...creerSortieDeFenetre(get, set, sortiesDeFenetre(get, set)),
     // La validation d'une fenêtre, la fenêtre en argument : son SEUL écrivain.
     ...creerValidationDeFenetre(get, set, validationsDeFenetre(get, set)),
-    ...createCombatSlice(get, set),
-    ...creerActionsDuRegistre(get, set),
+    ...combat,
+    // Les verbes de la barre, chacun jugé par l'offre qui le déclare, puis joué par son corps du combat.
+    ...creerVerbesDeLaBarre(get, set, combat),
     ...creerActionsDOrientation(get, set),
     ...creerActionsDeManoeuvre(get, set),
     ...creerActionsDeCampagne(get, set),
@@ -213,6 +221,7 @@ export function creerActionsDuNoyau(get: Get<JeuDuNoyau>, set: SetDesClesReserve
     ...creerActionsDesTestsDeScene(get, set),
     ...creerActionsDuJournal(get, set),
     ...creerActionsDAvanceeDHorloge(get, set),
+    ...creerFabriqueDIds(get, set),
     ...creerActionsDHorloge(get, set),
     ...creerActionsDuVoyage(get, set),
     ...creerActionsDuLieu(get, set),

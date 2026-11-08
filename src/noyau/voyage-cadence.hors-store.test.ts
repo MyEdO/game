@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -38,10 +39,10 @@ const seaMap: WorldMap = {
 function freshSea() {
   seedBattleRng(1);
   banc.setState({
-    party: makePregens().slice(0, 3),
+    party: makePregens(idsDeTest).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, worldMap: seaMap, lieu: 'A', travelPlan: null, travelRecap: null,
-    pendingCrewTest: null, pendingRest: null, pendingSteamSave: null,
+    pendingRest: null, pendingSteamSave: null,
     gameTime: 8 * 60, lastUpkeepDay: 0,
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     journal: [], net: { ...banc.getState().net, mode: 'local' },
@@ -207,7 +208,7 @@ function riverSkill(c: Combatant, skillId: string, advances: number, spec?: stri
 }
 
 function riverCrew(): Combatant[] {
-  const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
+  const gunnar = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
   riverSkill(gunnar, 'ramer', 50);
   riverSkill(gunnar, 'voile', 45);
   riverSkill(gunnar, 'metier', 40, 'Construction de bateaux');

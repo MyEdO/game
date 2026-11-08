@@ -6,6 +6,7 @@
  * mono-cible/aura. Chaque site est verrouillé en DEUX sens : POSITIF (même étage → actif, inchangé)
  * et NÉGATIF (autre étage, même (x,y) → inerte).
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { entityBlockedAt } from './sceneRules';
 import { combatDistance } from './footprint';
@@ -106,27 +107,27 @@ describe('z-blindness #807 — zoneCovers / onCross / perRound / barrière', () 
   it("onCross (crossZones) — NÉGATIF : mover z0 traverse le même (x,y) que la zone z1, inerte", () => {
     const mover = mk('m', 3, 4, 0);
     const path: Pt[] = [{ x: 3, y: 4, z: 0 }, { x: 4, y: 4, z: 0 }, { x: 5, y: 4, z: 0 }];
-    const lines = crossZones([zoneOnZ1], mover, path, noCaster, rng);
+    const lines = crossZones([zoneOnZ1], mover, path, noCaster, rng, idsDeTest);
     expect(lines).toEqual([]);
     expect(mover.wounds.current).toBe(20);
   });
   it('onCross (crossZones) — POSITIF : mover z1 traverse la case couverte, subit onCross', () => {
     const mover = mk('m', 3, 4, 1);
     const path: Pt[] = [{ x: 3, y: 4, z: 1 }, { x: 4, y: 4, z: 1 }, { x: 5, y: 4, z: 1 }];
-    const lines = crossZones([zoneOnZ1], mover, path, noCaster, rng);
+    const lines = crossZones([zoneOnZ1], mover, path, noCaster, rng, idsDeTest);
     expect(lines.length).toBeGreaterThan(0);
     expect(mover.wounds.current).toBe(15);
   });
 
   it("perRound (zonesRoundTick) — NÉGATIF : combattant z0 stationné au même (x,y), inerte", () => {
     const c = mk('c', 4, 4, 0);
-    const out = zonesRoundTick([zoneOnZ1], [c], rng);
+    const out = zonesRoundTick([zoneOnZ1], [c], rng, idsDeTest);
     expect(out).toEqual([]);
     expect(c.wounds.current).toBe(20);
   });
   it('perRound (zonesRoundTick) — POSITIF : combattant z1 stationné dedans, subit perRound', () => {
     const c = mk('c', 4, 4, 1);
-    const out = zonesRoundTick([zoneOnZ1], [c], rng);
+    const out = zonesRoundTick([zoneOnZ1], [c], rng, idsDeTest);
     expect(out.length).toBe(1);
     expect(c.wounds.current).toBe(15);
   });

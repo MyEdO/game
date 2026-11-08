@@ -115,11 +115,11 @@ const graph = versionCached<ReverseGraph>(() => {
   }
 
   // 2) Carrières (cat `careers`) → classe.
-  for (const c of careers) addReverse('classes', c.class, { category: 'careers', id: c.id, label: c.label }, 'Carrières de la classe');
+  for (const c of careers) addReverse('classes', c.class.id, { category: 'careers', id: c.id, label: c.label }, 'Carrières de la classe');
 
   // 3) Niveaux de carrière → compétences/talents/possessions/caractéristiques (référant = la CARRIÈRE, rang en détail).
   for (const lv of careerLevels) {
-    const career = findCareerById(lv.career);
+    const career = findCareerById(lv.career.id);
     if (!career) continue;
     const by: Referrer = { category: 'careers', id: career.id, label: career.label, detail: `N${lv.level}` };
     for (const id of advancementIds(lv.skills)) addReverse('skills', id, by, 'Carrières (par rang)');
@@ -137,7 +137,7 @@ const graph = versionCached<ReverseGraph>(() => {
     for (const op of t.passive ?? []) {
       if (op.op === 'grantCareerSkill') addReverse('skills', op.skill.id, by, 'Talents le conférant');
       else if (op.op === 'grantCareerTalent') addReverse('talents', op.talent.id, by, 'Talents le conférant');
-      else if (op.op === 'charMod') addReverse('characteristics', op.char, by, 'Talents (bonus de départ)');
+      else if (op.op === 'charMod') addReverse('characteristics', op.characteristic, by, 'Talents (bonus de départ)');
     }
   }
 
@@ -157,8 +157,8 @@ const graph = versionCached<ReverseGraph>(() => {
   // 7) Possessions → qualités + groupe d'objet.
   for (const t of trappings) {
     const by: Referrer = { category: 'trappings', id: t.id, label: t.label };
-    for (const r of resolveQualities({ qualities: t.qualities, subType: t.subType })) addReverse('qualities', r.id, by, 'Équipements ayant cette qualité');
-    addReverse('weaponGroups', t.subType, by, 'Objets du groupe');
+    for (const r of resolveQualities({ qualities: t.qualities, subType: t.subType?.id })) addReverse('qualities', r.id, by, 'Équipements ayant cette qualité');
+    addReverse('weaponGroups', t.subType?.id, by, 'Objets du groupe');
   }
 
   // 8) Classes → possessions de départ.
@@ -199,8 +199,8 @@ const graph = versionCached<ReverseGraph>(() => {
 
   // 14) Mutation ← Table de Corruption qui la tire (inversion de mutationTable.entries[].mutation).
   for (const tab of mutationTables) for (const r of tab.entries) addReverse('mutations', r.mutation, { category: 'mutationTables', id: tab.id, label: tab.label, detail: fourchette(r.min, r.max, facesDuDe(deDeLaTableTiree(tab))) }, 'Tables de Corruption la tirant');
-  // 15) Lieu ← sous-lieux (inversion de location.parent, un id de parent).
-  for (const l of locations) if (l.parent) addReverse('locations', l.parent, { category: 'locations', id: l.id, label: l.label }, 'Sous-lieux');
+  // 15) Lieu ← sous-lieux (inversion de location.parent).
+  for (const l of locations) if (l.parent) addReverse('locations', l.parent.id, { category: 'locations', id: l.id, label: l.label }, 'Sous-lieux');
 
   return { reverse: REVERSE, titles: TITLES };
 });

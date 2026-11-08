@@ -1,9 +1,10 @@
 /**
  * CE QUE LE NOYAU DOIT À UN HÔTE TEXTE (#2898), sans store : un hôte qui n'a que la surface (`./index`) et un
- * lancement construit lance un scénario de test par la partie, joue les offres du registre par `jouerLOffre`, et
+ * lancement construit lance un scénario de test par la partie, joue les offres du registre par le verbe que chacune déclare, et
  * lit sa vue par les lecteurs de la surface. Le scénario est `pastilles-entite` (combat direct, monture, pièce et
  * tas au sol).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import {
   creerPartie, etatInitialDuJeu, activeCombatant, actionGate, endTurnArmed, offresDeLActif, offresParPorteur,
@@ -26,7 +27,7 @@ function auTourDUnHeros(): Partie {
     for (const e of r.evenements) if (e.type === 'programme') file.push(e.jeton);
     for (let pas = 0; file.length && pas < 500; pas++) jouer(partie.reprendre(file.shift()!));
   };
-  jouer(partie.lancer(lancementDuScenario(PASTILLES)));
+  jouer(partie.lancer(lancementDuScenario(PASTILLES, idsDeTest)));
   for (let pas = 0; pas < 20 && activeCombatant(partie.etat().battle!)?.kind !== 'hero'; pas++) jouer(partie.envoyer({ type: 'fenetreValider', args: ['roundStart'] }));
   expect(activeCombatant(partie.etat().battle!)?.kind, 'témoin : aucun héros n’est venu au tour').toBe('hero');
   return partie;
@@ -41,7 +42,7 @@ describe('Partie.lancer — le lancement d’un scénario est un appel de la par
   it('rend `arrivee_en_scene` et les lignes du lancement dans SON résultat ; l’appel suivant n’en rend aucune', () => {
     const partie = creerPartie(etatInitialDuJeu(), ENTREES);
     try {
-      const lancement = partie.lancer(lancementDuScenario(PASTILLES));
+      const lancement = partie.lancer(lancementDuScenario(PASTILLES, idsDeTest));
       expect(lancement.issue).toBe('appliquee');
       expect(emis(lancement), 'le lancement ne rend pas son entrée en scène').toContain('arrivee_en_scene');
       expect(lancement.journal.length, 'le lancement ne rend pas les lignes qu’il a écrites').toBeGreaterThan(0);
@@ -56,15 +57,15 @@ describe('Partie.lancer — le lancement d’un scénario est un appel de la par
   });
 });
 
-describe('jouerLOffre — la porte des offres, en intention', () => {
+describe('les verbes des offres, en intention', () => {
   it('une Charge jouée arme l’intention locale ; au nom d’un siège, elle ne voyage pas', () => {
     const partie = auTourDUnHeros();
     try {
       expect(actionGate('charge', contexte(partie)), 'témoin : la Charge est fermée').toEqual({ ok: true });
       expect(partie.etat().localIntent).toBeNull();
-      expect(partie.envoyer({ type: 'jouerLOffre', args: ['charge'], siege: 0 }).issue).toBe('refusee');
+      expect(partie.envoyer({ type: 'armerLIntention', args: ['charge'], siege: 0 }).issue, 'l’armement d’une intention est local à l’émetteur (classe `local`), jamais une intention de siège').toBe('hors-allowlist');
       expect(partie.etat().localIntent, 'une intention envoyée au nom d’un siège a couru').toBeNull();
-      expect(partie.envoyer({ type: 'jouerLOffre', args: ['charge'] }).issue).toBe('appliquee');
+      expect(partie.envoyer({ type: 'armerLIntention', args: ['charge'] }).issue).toBe('appliquee');
       expect(partie.etat().localIntent).toEqual({ actionId: 'charge' });
     } finally {
       partie.fermer();
@@ -76,7 +77,7 @@ describe('jouerLOffre — la porte des offres, en intention', () => {
     try {
       const actif = activeCombatant(partie.etat().battle!)!.id;
       expect(endTurnArmed(partie.etat().battle!), 'témoin : le garde-fou est déjà armé').toBe(false);
-      partie.envoyer({ type: 'jouerLOffre', args: ['end-turn'] });
+      partie.envoyer({ type: 'terminerLeTour', args: [] });
       expect(endTurnArmed(partie.etat().battle!)).toBe(true);
       expect(activeCombatant(partie.etat().battle!)!.id, 'le premier geste a fini le tour').toBe(actif);
     } finally {

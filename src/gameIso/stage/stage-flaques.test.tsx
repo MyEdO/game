@@ -18,6 +18,7 @@
  *     scalaire — celui de SA CASE, par la même loi que le sol, sans quoi le sol s'allume et les
  *     personnages restent plats.
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
@@ -556,7 +557,7 @@ describe('Le pool ÉCRIT — une passe par changement de lumière ; par frame, l
 /** Combattant porteur d'une lanterne, RANGÉE ou en main — le gate de port est celui du champ mécanique. */
 const porteurDeLanterne = (equipped: boolean) => ({
   id: 'h1', kind: 'hero', pos: { x: 4, y: 4 },
-  items: [{ ...itemFromTrappingById('lanterne')!, uid: 'i1', equipped }],
+  items: [{ ...itemFromTrappingById('lanterne', idsDeTest)!, uid: 'i1', equipped }],
 });
 
 describe('La lampe d’un PORTEUR — celle du champ mécanique, gate de port compris (#1245 L2)', () => {
@@ -646,7 +647,7 @@ describe('La lampe du GROUPE en exploration — portée par le MENEUR (#1245)', 
   const CASE = { x: 4, y: 4 };
   // La lanterne est au SECOND héros : l'agrégat reste UN (les émetteurs de tous les héros à la case du
   // groupe, jamais additionnés), et c'est le jeton qui MARCHE — le meneur — qui le porte.
-  const party = [héros('h1'), héros('h2', [{ ...itemFromTrappingById('lanterne')!, uid: 'i1', equipped: true }])];
+  const party = [héros('h1'), héros('h2', [{ ...itemFromTrappingById('lanterne', idsDeTest)!, uid: 'i1', equipped: true }])];
   const sourcesDuGroupe = (): LightSource[] =>
     sceneLightSources({ scene, battle: null, party: party as never, partyPos: CASE });
 

@@ -504,7 +504,7 @@ function HandPicker({ hero, it, mains }: { hero: Combatant; it: ItemInstance; ma
 }
 
 /** #2948 */
-function ApparencePicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
+function ApparencePicker({ it }: { it: ItemInstance }) {
   useVersionDesDatasets();
   const narratif = useGame((s) => s.campaignNarratif);
   const resolveTrapping = objetDuNarratif(narratif);
@@ -521,7 +521,7 @@ function ApparencePicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
           choisirApparenceDObjet(apercu, a.id, resolveTrapping);
           return { key: a.id, media: <ItemIcon item={apercu} size="sm" />, label: a.label };
         })}
-        onSelect={(id) => poserLApparence(hero.id, it.uid, id)}
+        onSelect={(id) => poserLApparence(it.uid, id)}
       />
     </div>
   );
@@ -559,7 +559,7 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
                     enabled={!gestes.evaluer.refus}
                     {...raisonSi(gestes.evaluer.refus)}
                     descOfferte="Évaluation (Int) : révèle les qualités cachées et estime le prix — un échec verrouille jusqu'à demain"
-                    onClick={() => evaluerLObjet(it.uid, hero.id)}
+                    onClick={() => evaluerLObjet(it.uid)}
                     primary={false}
                     btnClassName="small"
                   />
@@ -571,12 +571,12 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
                     enabled={!gestes.detecter.refus}
                     {...raisonSi(gestes.detecter.refus)}
                     descOfferte="Détection d'artefact (Intuition, au toucher) : sentir l'aura magique — une seule tentative par objet"
-                    onClick={() => evaluerLObjet(it.uid, hero.id, 'detect')}
+                    onClick={() => evaluerLObjet(it.uid, 'detect')}
                     primary={false}
                     btnClassName="small"
                   />
                 )}
-                <ApparencePicker hero={hero} it={it} />
+                <ApparencePicker it={it} />
                 {gestes.mains && <HandPicker hero={hero} it={it} mains={gestes.mains} />}
                 {gestes.utiliser && (
                   <GatedAction
@@ -584,7 +584,7 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
                     label="Utiliser"
                     enabled={!gestes.utiliser.refus}
                     {...raisonSi(gestes.utiliser.refus)}
-                    onClick={() => utiliserLObjet(hero.id, it.uid)}
+                    onClick={() => utiliserLObjet(it.uid)}
                     primary={false}
                     btnClassName="small"
                   />
@@ -840,7 +840,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
             key: `${it.uid}-${it.prosthesisReduced ?? 0}-${tier.grants ?? 'palier'}`,
             label: `${it.label} — ${tier.label}`, // libellé du palier : DONNÉE éditable, jamais un texte d'écran
             cost: tier.px,
-            onBuy: () => entrainerLaProthese(hero.id, it.uid),
+            onBuy: () => entrainerLaProthese(it.uid),
           });
         }
         if (!rows.length) return null;
@@ -889,7 +889,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               .filter((c) => c.id !== v.career)
               .map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.label} ({libelleDeClasse(c.class)}) · {v.changeCostFor(c.id)} PX
+                  {c.label} ({libelleDeClasse(c.class.id)}) · {v.changeCostFor(c.id)} PX
                 </option>
               ))}
           </select>

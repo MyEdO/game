@@ -49,7 +49,6 @@ script au nom différent du doc est entre parenthèses.
 | Relation inverse / index / auto-liage du Codex | `docs/codex-relations.md` |
 | Qui lit ce champ JSON avant de le renommer ? | `docs/consommateurs-de-champs.md` (`docs:field-consumers`) |
 | Forme d'un concept dans chaque dataset | `docs/structures-donnees.md` (`docs:structures`) |
-| Entrée de donnée orpheline ? | `docs/orphelines-donnees.md` (`docs:orphelines`) |
 | Absent à l'écran — gaté par une règle optionnelle ? | `docs/regles-optionnelles.md` |
 | Reprendre un chantier après pause | `docs/reprise-apres-pause.md` (`docs:reprise`) |
 | Sorts/miracles : état réel | `docs/sorts-implementation.md` (`docs:sorts`) |
@@ -97,7 +96,7 @@ comprendre : fiche `user-doctrine-lecture-vo-campagne-pour-comprendre`. Une donn
 la VF se prend à la VO, nombres et ids FR seulement, jamais de prose : fiche
 `user-doctrine-vo-fournit-la-donnee-mecanique-absente-de-la-vf`. Livres : **LDB** ·
 **ADE I/II** · **EDO/EDOC** · **Middenheim** · **AA** · **ZI** · **MDG** · **ACE** · **MSRC** ·
-**NADJ** · **VDM**, chacun pour son périmètre (tout livre FR peut fournir une règle, par PASSAGE) —
+**NADJ** · **VDM** · **HCVM** (fan : profils seuls), chacun pour son périmètre (tout livre FR peut fournir une règle, par PASSAGE) —
 chemins et chapitres : `docs/sources-vf.md`. `src/data/*.json` est la source APP-OWNED, éditable au
 Compendium, chaque entrée taguée à sa `source`.
 

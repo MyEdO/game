@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { it, expect } from 'vitest';
 import { testScenarios } from '../scenes/test-scenarios';
 import { allBuiltinCampaigns, paquetDuJeu } from '../scenes/campaign';
@@ -14,7 +15,7 @@ const catalogue = objetsDuCatalogue();
 
 const lots: { nom: string; scenes: Scene[]; narratif: NarratifBlock | null }[] = [
   ...testScenarios.map((s) => {
-    const b = s.construire();
+    const b = s.construire(idsDeTest);
     return { nom: `scénario ${s.id}`, scenes: [b.scene, ...(b.extraScenes ?? [])], narratif: b.narratif ?? null };
   }),
   ...allBuiltinCampaigns.map((c) => {

@@ -4,6 +4,7 @@
  * elle s'ouvre sur SON offre, et elle CÈDE à la modale de jet tant que l'arbitre en tient une — une
  * situation = une modale (`docs/ajouter-un-flux-de-jet.md`).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
@@ -22,7 +23,7 @@ import { activeSequence } from '../noyau/sequenceCore';
 import { ActiveModal } from './ActiveModal';
 import { ouvrirDialogue } from '../noyau/dialogue';
 import { setBourseBrass } from '../engine/bourse';
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 const PNJ = 'habitue-bras-de-fer';
 const g = useGame.getState;
@@ -36,7 +37,7 @@ beforeEach(() => {
   seedBattleRng(7);
   const dlg = scenarioConstruit.scene.dialogues.find((d) => d.id === 'dlg-bras-de-fer')!;
   useGame.setState({
-    party: pregenParty(PREGEN.soldat, PREGEN.chasseur),
+    party: pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur),
     scene: scenarioConstruit.scene,
     screen: 'campaign',
     dialogue: ouvrirDialogue(g(), dlg, PNJ),
@@ -115,7 +116,7 @@ describe('Taverne — la mise en sous de cuivre et l’effectif de table : l’�
   });
   const ouvrirAlZahr = () => {
     const [soldat] = g().party;
-    setBourseBrass(soldat, 11);
+    setBourseBrass(soldat, 11, idsDeTest);
     act(() => { useGame.setState({ party: [soldat], dialogue: null } as never); g().ouvrirLesJeux(); });
     const doc = monterRacine(<TavernGameModal />).container.ownerDocument;
     act(() => { [...doc.querySelectorAll('button')].find((b) => b.textContent?.trim() === findTavernGameById('al-zahr')!.label)!.click(); });

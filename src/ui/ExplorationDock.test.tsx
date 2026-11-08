@@ -7,6 +7,7 @@
  * combat SEULEMENT (en combat le pont est la console), les 7 ouvreurs assis SUR le pont avec leurs
  * conditions, et UNE seule bande de bord à bord (jamais des boîtes flottantes).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -50,7 +51,7 @@ function monter() {
 
 /** Combat en cours (un héros, son tour) : la console de combat prend le pont. */
 function enCombat() {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
   h.id = 'h1';
   h.pos = { x: 5, y: 5 };
   useGame.setState({
@@ -130,7 +131,7 @@ describe('Zone 11 — les 7 ouvreurs vivent SUR le pont, avec leurs conditions',
       affaires: [{ id: 'aff', titre: 'Affaire' }],
       indices: [{ id: 'ind', affaireId: 'aff', kind: 'indice', titre: 'Indice', stades: [{ id: 's1', prose: 'Prose.' }] }],
     } satisfies NarratifBlock;
-    const neuf = { stadeCourant: 's1', statut: 'révélé' as const, historique: [{ stade: 's1', at: 0 }] };
+    const neuf = { stadeCourant: 's1', statut: 'revele' as const, historique: [{ stade: 's1', at: 0 }] };
     const net = useGame.getState().net;
     useGame.setState({ campaignNarratif: enquete, clues: { ind: { ...neuf, vuParSiège: { 0: true } } }, net: { ...net, mySeat: 0 } });
     monter();
@@ -183,7 +184,7 @@ describe('Fouiller la pièce (#700) — un GESTE du groupe, dans son groupe nomm
   });
 
   it('DANS une pièce : offert dans « Gestes du groupe », jamais parmi les écrans de campagne ; le clic fouille', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
     useGame.setState({ scene: avecPiece(), partyPos: { x: 1, y: 1 }, party: [h], dialogue: null });
     const el = monter();
     const bouton = gestes()?.querySelector('button');

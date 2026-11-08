@@ -7,7 +7,7 @@
  */
 import {
   creerPartie, etatInitialDuJeu, preferenceDef, refusDesSurcharges, valeurDEntree,
-  type Cadence, type EntreesDeLaPartie, type LancementDeScenario, type IdDePreference, type PrefValue, type Jeton, type Partie, type Programme, type ResultatDeLAppel,
+  type Cadence, type EntreesDeLaPartie, type FabriqueDId, type LancementDeScenario, type IdDePreference, type PrefValue, type Jeton, type Partie, type Programme, type ResultatDeLAppel,
 } from '../noyau/index';
 import { lancementDuScenario, type TestScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios';
@@ -114,13 +114,13 @@ export interface PartieOuverte {
  *  `ouvrirLeLancement`). */
 export function ouvrirLaPartie(entete: Entete, persisterLeHeros: EntreesDeLaPartie['persisterLeHeros']): PartieOuverte {
   const scenario = scenarioDeTest(entete.scenario);
-  return ouvrirLeLancement(entete, () => lancementDuScenario(scenario), persisterLeHeros);
+  return ouvrirLeLancement(entete, (idNeuf) => lancementDuScenario(scenario, idNeuf), persisterLeHeros);
 }
 
 /** Ouvre la partie des entrées `entrees` : la partie du noyau sur l'état initial (`creerPartie`), le héros persisté par
- *  le service `persisterLeHeros` de l'hôte (`EntreesDeLaPartie`), puis le lancement que `lancement` construit, après
- *  elle (ses séquences d'ids repartent de zéro), lancé. Un lancement qui lève ferme la partie. */
-export function ouvrirLeLancement(entrees: EntreesDeLEntete, lancement: () => LancementDeScenario, persisterLeHeros: EntreesDeLaPartie['persisterLeHeros']): PartieOuverte {
+ *  le service `persisterLeHeros` de l'hôte (`EntreesDeLaPartie`), puis le lancement que `lancement` construit aux ids de la
+ *  partie (`forgerUnId`), lancé. Un lancement qui lève ferme la partie. */
+export function ouvrirLeLancement(entrees: EntreesDeLEntete, lancement: (idNeuf: FabriqueDId) => LancementDeScenario, persisterLeHeros: EntreesDeLaPartie['persisterLeHeros']): PartieOuverte {
   const partie = creerPartie(etatInitialDuJeu(), {
     graine: entrees.graine,
     reglesMaison: entrees.regles,
@@ -129,7 +129,7 @@ export function ouvrirLeLancement(entrees: EntreesDeLEntete, lancement: () => La
     persisterLeHeros,
   });
   try {
-    return { partie, jetons: tenueDesJetons(partie), lancement: partie.lancer(lancement()) };
+    return { partie, jetons: tenueDesJetons(partie), lancement: partie.lancer(lancement(partie.etat().forgerUnId)) };
   } catch (erreur) {
     partie.fermer();
     throw erreur;

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -6,6 +7,7 @@ import { vehicleCombatant } from '../engine/vehicle';
 import { findVehicleById } from '../data';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
+import { advanceTurn } from './combatFlow';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -18,7 +20,8 @@ describe('En flammes (navire) — N États, N Blessures par Round, par le chemin
 
   const hull = () => banc.getState().battle!.combatants.find((c) => c.id === 'navire')!;
 
-  /** Joue chaque Tour du Round par `terminerLeTour`, en vérifiant que la coque ne brûle pas entre deux Tours. */
+  /** Passe chaque Tour du Round par la fin de Tour du jeu (`advanceTurn`, celle de tout acteur, l'IA comprise), en vérifiant
+   *  que la coque ne brûle pas entre deux Tours. */
   function playRound(woundsAtStart: number) {
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
@@ -26,7 +29,7 @@ describe('En flammes (navire) — N États, N Blessures par Round, par le chemin
     let turns = 0;
     while (banc.getState().battle!.round === round) {
       expect(hull().wounds.current).toBe(woundsAtStart);
-      banc.getState().terminerLeTour();
+      advanceTurn(banc.getState, banc.setState);
       banc.abandonner();
       turns += 1;
     }
@@ -35,7 +38,7 @@ describe('En flammes (navire) — N États, N Blessures par Round, par le chemin
 
   it('2 États En flammes, 4 combattants : −2 Blessures au 1er Round, −4 après le 2e', () => {
     seedBattleRng(1);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

@@ -6,6 +6,7 @@
  * verrou : elle est donc OUVERTE à 0 PB — c'est son usage prévu. Le GESTE « Se relever », lui, ne rend
  * rien : il reste refusé (`LDB 16 l.35`). Deux verdicts différents, et c'est la règle.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -21,7 +22,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Héros ACTIF, À Terre, à `pb` Blessures et `resolve` points de Détermination. */
 function setup(pb: number, resolve: number, inst: Partial<ConditionInstance> = {}) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');

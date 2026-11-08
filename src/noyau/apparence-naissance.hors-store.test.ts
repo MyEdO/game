@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
@@ -13,7 +14,7 @@ const porteur = (id: string, espece = 'nains', carriere = 'soldat') => {
   const h = herosDeNaissance(espece, carriere);
   h.id = id;
   h.items = [];
-  return withBourseMoney(h, { gold: 100, silver: 0, brass: 0 });
+  return withBourseMoney(h, { gold: 100, silver: 0, brass: 0 }, idsDeTest);
 };
 const marchand = (): MerchantState => ({
   entityId: 'vendeur', archetype: 'armurier', settlement: 'ville', stock: [{ id: 'arme-simple', qty: 3 }],
@@ -49,7 +50,7 @@ describe('la naissance est câblée aux flux réels', () => {
     donner('nain');
     const objet = banc.getState().party[0].items!.find((i) => i.trappingId === 'arme-simple')!;
     expect(objet.apparence).toBe('naissance-naine');
-    banc.getState().transmettreLObjet(objet.uid, 'nain', 'humain');
+    banc.getState().transmettreLObjet(objet.uid, 'humain');
     expect(banc.getState().party[0].items?.some((i) => i.uid === objet.uid)).toBe(false);
     expect(banc.getState().party[1].items?.find((i) => i.uid === objet.uid)?.apparence).toBe('naissance-naine');
   });

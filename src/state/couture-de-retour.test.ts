@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
@@ -14,7 +15,7 @@ const tirages = (n = 6) => Array.from({ length: n }, () => battleRng().int(1, 10
 const cbt = (id: string) => inBattleId(useGame.getState().battle, id)!;
 
 function combat(): string {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   hero.talents.push({ talentId: 'magie-mineure', times: 1 });
   hero.spells = [];
   useGame.setState({ battle: null, party: [hero], pendingCascade: null, pendingRoundStart: null, journal: [] });

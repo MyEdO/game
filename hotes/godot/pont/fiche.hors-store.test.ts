@@ -1,97 +1,126 @@
 /**
- * LA FICHE D'UN HÉROS PAR LE PONT (#3328) : chaque héros du groupe est un bouton qui ouvre sa fiche ; la fiche dit son
- * nom, ses Blessures, ses Points de Destin, de Chance, de Résilience et de Détermination, puis l'onglet ouvert (ses
- * Caractéristiques, ses Compétences à la valeur de leur Test, ses Talents, sa description au survol, ses possessions,
- * les équipées d'abord) ; ses onglets se changent et elle se ferme par ses boutons, sans toucher la partie.
+ * LA FICHE D'UN COMBATTANT PAR LE PONT (#3328, #3678) : la fiche se montre en statbloc, comme l'Atelier des PNJ
+ * (PR #3633) : la tête de son porteur (son nom, son espèce et sa carrière, ses Blessures, ses Points s'il en a, ses
+ * États), son profil (Mouvement, Caractéristiques, Blessures), une section en bandeau par partie non vide (Attaques,
+ * Armure, Traits, Mutations, Compétences, Talents, Sorts, Prières, Possessions), chaque terme sa description au
+ * survol, puis la source de son profil. Chaque héros du groupe est un bouton qui ouvre la sienne ; tout combattant en
+ * combat a la sienne. Une possession s'y choisit et dit ses gestes ; elle s'ouvre et se ferme sans toucher la partie.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, erreurDe, suiteDe, table } from './pont.testkit';
+import { drainer, erreurDe, sectionDeLaFiche, suiteDe, table } from './pont.testkit';
 import type { Suite } from './pont';
 import type { Bouton, Choix, Entite, Puce } from '../../../src/hote/elements';
+import { findCreatureById, sourceRefLabel } from '../../../src/data';
 import talents from '../../../src/data/talents.json';
+import traits from '../../../src/data/traits.json';
+import spells from '../../../src/data/spells.json';
 
 const { appel } = table();
 
-/** Les puces de l'onglet ouvert de la fiche. */
-const puces = (x: Suite): Puce[] => x.vue.zones['fiche.corps'] as Puce[];
+/** Les puces de la section `id` de la fiche ouverte. */
+const puces = (s: Suite, id: string): Puce[] => sectionDeLaFiche(s.vue, id) as Puce[];
+/** Les armes de la section Attaques d'une suite, chacune une entité. */
+const armes = (s: Suite): Entite[] => sectionDeLaFiche(s.vue, 'attaques') as Entite[];
 
-describe('la fiche d’un héros par le pont', () => {
-  it('ouverte par le bouton du héros, elle dit ses Points, chaque onglet sa part, et se ferme', () => {
+/** Les zones de la fiche d'une suite. */
+const zonesDeLaFiche = (s: Suite) => (['fiche.porteur', 'fiche.gestes', 'fiche.profil', 'fiche.sections', 'fiche.source', 'fiche.objet'] as const).map((z) => s.vue.zones[z]);
+
+describe('la fiche d’un combattant par le pont', () => {
+  it('ouverte par le bouton d’un héros : sa tête, son profil, ses sections, une possession choisie, puis fermée', () => {
     const { suite: debut } = drainer(appel, appel('demarrer', { scenario: 'dome', graine: 7 }));
     const groupe = debut.vue.zones['groupe.heros'];
     expect(groupe.map((b) => b.libelle), 'chaque héros du groupe est un bouton qui le nomme').toEqual(['Ilyanwe la Voilée', 'Berta']);
     expect(groupe.some((b) => b.presse), 'aucune fiche ouverte').toBe(false);
-    expect([debut.vue.zones['fiche.heros'], debut.vue.zones['fiche.gestes'], debut.vue.zones['fiche.corps'], debut.vue.zones['fiche.objet']], 'sans fiche, ses zones sont vides').toEqual([[], [], [], []]);
+    expect(zonesDeLaFiche(debut), 'sans fiche, ses zones sont vides').toEqual([[], [], [], [], [], []]);
 
     let s = suiteDe(appel('fiche', groupe[0].jeu));
     expect(s.vue.projection.pas, 'ouvrir la fiche ne joue aucun geste de la partie').toBe(debut.vue.projection.pas);
     expect(s.vue.zones['groupe.heros'][0].presse, 'le héros de la fiche ouverte est pressé').toBe(true);
-    const [heros] = s.vue.zones['fiche.heros'] as Entite[];
+    const [heros] = s.vue.zones['fiche.porteur'];
     expect(heros.nom).toBe('Ilyanwe la Voilée');
+    expect(heros.elements.filter((e) => e.type === 'ligne').map((l) => [l.id, l.texte]), 'son espèce et sa carrière, chacune en ligne').toEqual([['espece', 'Hauts elfes'], ['carriere', 'Sorcière']]);
     const points = Object.fromEntries(heros.elements.filter((e): e is Puce => e.type === 'puce').map((p) => [p.libelle, p.valeur]));
     expect(points, 'ses Points de Destin, de Chance, de Résilience et de Détermination').toEqual({ Destin: '4', Chance: '4', 'Résilience': '3', 'Détermination': '3' });
-    const blessures = heros.elements.find((e) => e.id === 'blessures');
     const pb = s.vue.projection.combat!.voisins.liste.find((c) => c.id === heros.id)!.pb;
-    expect(blessures, 'ses Blessures en jauge').toMatchObject({ type: 'jauge', courant: pb[0], max: pb[1] });
-    expect(s.vue.zones['fiche.gestes'].map((b) => [b.libelle, b.presse]), 'ses onglets, l’ouvert pressé, puis sa fermeture')
-      .toEqual([['Caractéristiques', true], ['Compétences', false], ['Talents', false], ['Possessions', false], ['Fermer', false]]);
-    const caracteristiques = puces(s);
-    expect(caracteristiques.map((p) => p.libelle), 'ses dix Caractéristiques, par abréviation').toEqual(['CC', 'CT', 'F', 'E', 'I', 'Ag', 'Dex', 'Int', 'FM', 'Soc']);
-    expect(caracteristiques.find((p) => p.libelle === 'CC')?.detail, 'son nom au survol').toBe('Capacité de Combat');
-    expect(caracteristiques.every((p) => Number(p.valeur) > 0), 'chacune sa valeur').toBe(true);
+    expect(heros.elements.find((e) => e.id === 'blessures'), 'ses Blessures en jauge').toMatchObject({ type: 'jauge', courant: pb[0], max: pb[1] });
+    expect(s.vue.zones['fiche.gestes'].map((b) => b.libelle), 'sa fermeture').toEqual(['Fermer']);
 
-    const onglet = (id: string) => s.vue.zones['fiche.gestes'].find((b) => b.id === `onglet/${id}`)!;
-    s = suiteDe(appel('fiche', onglet('competences').jeu));
-    const competences = puces(s);
-    expect(competences.length, 'chacune de ses Compétences').toBe(19);
+    const profil = s.vue.zones['fiche.profil'];
+    expect(profil.map((p) => p.libelle), 'son profil, une colonne par puce').toEqual(['M', 'CC', 'CT', 'F', 'E', 'I', 'Ag', 'Dex', 'Int', 'FM', 'Soc', 'B']);
+    expect(profil.map((p) => p.detail), 'le nom de chaque colonne au survol')
+      .toEqual(['Mouvement', 'Capacité de Combat', 'Capacité de Tir', 'Force', 'Endurance', 'Initiative', 'Agilité', 'Dextérité', 'Intelligence', 'Force Mentale', 'Sociabilité', 'Blessures']);
+    expect(profil.every((p) => Number(p.valeur) > 0), 'chacune sa valeur').toBe(true);
+    expect(profil[profil.length - 1].valeur, 'ses Blessures à leur maximum').toBe(String(pb[1]));
+
+    expect(s.vue.zones['fiche.sections'].map((e) => e.nom), 'chaque section non vide, dans l’ordre du statbloc').toEqual(['Attaques', 'Compétences', 'Talents', 'Sorts', 'Possessions']);
+    const competences = puces(s, 'competences');
+    expect(competences.length, 'chacune de ses Compétences, une par spécialisation').toBe(18);
     expect(competences.map((p) => p.libelle), 'par nom').toEqual(competences.map((p) => p.libelle).sort((a, b) => a.localeCompare(b, 'fr')));
     expect(competences.every((p) => /^\d+$/.test(p.valeur!) && /^\S+ \d+ \+ \d+$/.test(p.detail!)), 'la valeur de son Test, sa Caractéristique et ses Augmentations au survol').toBe(true);
-
-    s = suiteDe(appel('fiche', onglet('talents').jeu));
-    const perspicace = puces(s).find((p) => p.libelle === 'Perspicace');
+    const [baton] = armes(s);
+    expect(baton.nom, 'une arme, une entité qui la nomme').toBe('Bâton de combat');
+    const termes = baton.elements as Puce[];
+    expect(termes[0], 'la valeur de son Test, celle de la Compétence qui l’emploie').toMatchObject({ id: 'test', libelle: 'Test', valeur: competences.find((p) => p.libelle === "Corps à corps (Armes d'hast)")!.valeur });
+    expect(termes.slice(1).map((p) => p.libelle), 'ses Dégâts résolus, son Allonge, ses Atouts et Défauts, chacun en puce')
+      .toEqual([expect.stringMatching(/^Dégâts \+BF\+\d+ \(\d+\)$/), expect.stringMatching(/^Allonge /), 'Assommante', 'Défensive']);
+    const perspicace = puces(s, 'talents').find((p) => p.libelle === 'Perspicace');
     expect(perspicace?.detail, 'un Talent se nomme ; sa description au survol').toBe(talents.find((x) => x.id === 'perspicace')!.desc);
-    expect(s.vue.zones['fiche.corps'].length, 'chacun de ses Talents').toBe(12);
-    const arcanes = puces(s).find((p) => p.libelle === 'Magie des Arcanes (Feu)')!.detail!;
+    const arcanes = puces(s, 'talents').find((p) => p.libelle === 'Magie des Arcanes (Feu)')!.detail!;
     expect(talents.find((x) => x.id === 'magie-des-arcanes')!.desc!.startsWith(arcanes.replace(/…$/, '')), 'une description longue : son premier paragraphe, coupé au mot').toBe(true);
     expect(arcanes.length <= 300 && !arcanes.includes('\n'), 'qui se lit d’un coup d’œil').toBe(true);
+    const flechette = puces(s, 'sorts').find((p) => p.libelle === 'Fléchette');
+    expect(flechette?.detail, 'un sort se nomme ; sa description au survol').toBe(spells.find((x) => x.id === 'flechette')!.desc);
+    expect(s.vue.zones['fiche.source'], 'un héros n’a pas de profil sourcé').toEqual([]);
 
-    s = suiteDe(appel('fiche', onglet('possessions').jeu));
-    const possessions = s.vue.zones['fiche.corps'] as Bouton[];
+    const possessions = sectionDeLaFiche(s.vue, 'possessions') as Bouton[];
     expect(possessions.every((b) => b.type === 'bouton' && !b.presse), 'chaque possession est un bouton ; aucune choisie').toBe(true);
     expect(possessions[0].libelle, 'les possessions équipées d’abord').toBe('Bâton de combat');
     expect(possessions.map((b) => b.libelle), 'les possessions pareilles comptées ensemble').toContain('Feuille de parchemin ×7');
     expect(s.vue.zones['fiche.objet'], 'aucune possession choisie, rien n’en est dit').toEqual([]);
     s = suiteDe(appel('fiche', possessions[0].jeu));
     expect(s.vue.projection.pas, 'choisir une possession ne joue aucun geste de la partie').toBe(debut.vue.projection.pas);
-    expect((s.vue.zones['fiche.corps'] as Bouton[]).filter((b) => b.presse).map((b) => b.libelle), 'la choisie est pressée').toEqual(['Bâton de combat']);
-    const [baton] = s.vue.zones['fiche.objet'] as Entite[];
-    expect([baton.nom, baton.ton], 'la possession choisie se nomme, au ton d’une équipée').toEqual(['Bâton de combat', 'reussite']);
-    const gestes = baton.elements.filter((e): e is Bouton | Choix => e.type === 'bouton' || e.type === 'liste');
+    expect((sectionDeLaFiche(s.vue, 'possessions') as Bouton[]).filter((b) => b.presse).map((b) => b.libelle), 'la choisie est pressée').toEqual(['Bâton de combat']);
+    const [objet] = s.vue.zones['fiche.objet'];
+    expect([objet.nom, objet.ton], 'la possession choisie se nomme, au ton d’une équipée').toEqual(['Bâton de combat', 'reussite']);
+    const gestes = objet.elements.filter((e): e is Bouton | Choix => e.type === 'bouton' || e.type === 'liste');
     expect(gestes.map((g) => [g.id, g.libelle]), 'une arme se tient dans une main du set actif, se range dans un sac où elle tient, se donne à un héros à ses côtés')
       .toEqual([['main', 'Main principale'], ['off', 'Main secondaire'], ['ranger', 'Ranger dans'], ['donner', 'Donner à']]);
     expect((gestes.find((g) => g.id === 'main') as Bouton | undefined)?.presse, 'la main qui la tient pressée').toBe(true);
     expect(gestes.every((g) => g.refus === 'En combat, l’équipement se gère depuis la barre d’action.'), 'en combat, chacun refusé, sa raison dite').toBe(true);
 
     const avance = drainer(appel, appel('jouer', debut.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu)).suite;
-    expect(avance.vue.zones['fiche.gestes'].find((b) => b.presse)?.id, 'la fiche reste ouverte, à son onglet, quand la partie avance').toBe('onglet/possessions');
+    expect(avance.vue.zones['fiche.objet'][0]?.nom, 'la fiche reste ouverte, sa possession choisie, quand la partie avance').toBe('Bâton de combat');
 
     s = suiteDe(appel('fiche', avance.vue.zones['fiche.gestes'].find((b) => b.id === 'fermer')!.jeu));
-    expect([s.vue.zones['fiche.heros'], s.vue.zones['fiche.gestes'], s.vue.zones['fiche.corps'], s.vue.zones['fiche.objet']], 'fermée, ses zones se vident').toEqual([[], [], [], []]);
+    expect(zonesDeLaFiche(s), 'fermée, ses zones se vident').toEqual([[], [], [], [], [], []]);
     s = suiteDe(appel('fiche', s.vue.zones['groupe.heros'][1].jeu));
-    expect((s.vue.zones['fiche.heros'][0] as Entite).nom, 'le bouton d’un autre héros ouvre sa fiche, à l’onglet de la dernière').toBe('Berta');
+    expect(s.vue.zones['fiche.porteur'][0].nom, 'le bouton d’un autre héros ouvre sa fiche').toBe('Berta');
     s = suiteDe(appel('fiche', s.vue.zones['groupe.heros'][1].jeu));
-    expect(s.vue.zones['fiche.heros'], 'son bouton pressé la ferme').toEqual([]);
+    expect(s.vue.zones['fiche.porteur'], 'son bouton pressé la ferme').toEqual([]);
   });
 
-  it('refuse un héros hors du groupe, un onglet inconnu, et une possession hors de l’onglet des possessions ou de la fiche', () => {
-    const a = appel;
-    const s = suiteDe(a('fiche', { fiche: { heros: 'sorciere', onglet: 'possessions' } }));
-    expect(erreurDe(a('fiche', { fiche: { heros: 'personne', onglet: 'talents' } })), 'le refus nomme les héros du groupe').toMatchObject({ categorie: 'validation', message: expect.stringContaining('(sorciere, protegee)') });
-    expect(erreurDe(a('fiche', { fiche: { heros: 'sorciere', onglet: 'grimoire' } })).categorie).toBe('validation');
-    expect(erreurDe(a('fiche', {})).categorie).toBe('validation');
-    const objet = (s.vue.zones['fiche.corps'] as Bouton[])[0];
-    expect(erreurDe(a('fiche', { fiche: { heros: 'sorciere', onglet: 'possessions', objet: 'personne' } })), 'le refus nomme les possessions de la fiche')
+  it('la fiche d’un adversaire : sans Points, ses Attaques, son Armure, ses Traits, la source de son profil', () => {
+    const s = suiteDe(appel('fiche', { fiche: { porteur: 'enemy-enc-dome-1' } }));
+    const [orc] = s.vue.zones['fiche.porteur'];
+    expect(orc.nom).toBe('Orc');
+    expect(orc.elements.map((e) => e.id).filter((id) => ['espece', 'carriere', 'destin', 'chance', 'resilience', 'determination'].includes(id)), 'ni espèce, ni carrière, ni Points pour une créature').toEqual([]);
+    expect(s.vue.zones['groupe.heros'].some((b) => b.presse), 'aucun héros pressé').toBe(false);
+    expect(s.vue.zones['fiche.sections'].map((e) => e.nom), 'chaque section non vide, dans l’ordre du statbloc').toEqual(['Attaques', 'Armure', 'Traits']);
+    expect(armes(s).map((a) => [a.nom, ...(a.elements as Puce[]).map((p) => [p.libelle, p.valeur])]), 'une arme : la valeur de son Test, ses Dégâts résolus')
+      .toEqual([['Arme', ['Test', '35'], ['Dégâts +8 (8)', null]]]);
+    expect(puces(s, 'armure').map((p) => [p.libelle, p.valeur])[0], 'les PA de chaque localisation qui en porte').toEqual(['Tête', '3']);
+    expect(puces(s, 'traits').find((p) => p.libelle === 'Belliqueux')?.detail, 'un Trait se nomme ; sa description au survol').toBe(traits.find((x) => x.id === 'belliqueux')!.desc);
+    expect(s.vue.zones['fiche.source'].map((l) => l.texte), 'la source du profil dont il est l’instance').toEqual([`Profil : ${sourceRefLabel(findCreatureById('orc')!.source)}`]);
+  });
+
+  it('refuse un porteur inconnu, une possession hors de la fiche et une entrée hors de sa forme', () => {
+    const s = suiteDe(appel('fiche', { fiche: { porteur: 'sorciere' } }));
+    expect(erreurDe(appel('fiche', { fiche: { porteur: 'personne' } })), 'le refus nomme les combattants à fiche')
+      .toMatchObject({ categorie: 'validation', message: expect.stringContaining('sorciere, protegee') });
+    expect(erreurDe(appel('fiche', { fiche: { heros: 'sorciere' } })).categorie).toBe('validation');
+    expect(erreurDe(appel('fiche', {})).categorie).toBe('validation');
+    const objet = (sectionDeLaFiche(s.vue, 'possessions') as Bouton[])[0];
+    expect(erreurDe(appel('fiche', { fiche: { porteur: 'sorciere', objet: 'personne' } })), 'le refus nomme les possessions de la fiche')
       .toMatchObject({ categorie: 'validation', message: expect.stringContaining((objet.jeu as { fiche: { objet: string } }).fiche.objet) });
-    expect(erreurDe(a('fiche', { fiche: { heros: 'sorciere', onglet: 'talents', objet: (objet.jeu as { fiche: { objet: string } }).fiche.objet } })).categorie, 'une possession hors de son onglet').toBe('validation');
   });
 });

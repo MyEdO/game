@@ -26,11 +26,11 @@ import { testValue, rawCombatTestBase, skillBaseValue } from '../../engine/skill
 import { type OpsCtx, nomDeSource } from '../../engine/ops';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import type { Combatant, Difficulty, EffectSource } from '../../engine/types';
-import type { SujetDuJet } from '../../data/schemas/grammaire/mecanique';
 import { dataLabel, derivedStake, testSkillLabel } from '../../data';
-import type { Flow } from '../../data/schemas/defs-scenes/effets';
-import { type EffectOp, type FlowTest, type ConditionCtx, evalCondition, flowHasImpureOp, flowHasOpADe, flowHasTest, poserEnjeu, resolveTestDifficulty, EMPTY_FLOW } from '../../engine/flowCore';
-import { combatConditionCtx, flowTestGated, runPureFlowLines } from './flowEval';
+import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
+import { type EffectOp, type FlowTest, type ConditionCtx, type ArretDeFlow, type PasDeFlow, type ResteDuFlow, executerFlow, flowHasImpureOp, flowHasOpADe, flowHasTest, poserEnjeu, EMPTY_FLOW } from '../../engine/flowCore';
+import { resoudreFlowTest } from '../../engine/decisionDuTest';
+import { combatConditionCtx, runPureFlowLines } from './flowEval';
 import type { Get, Set as SetFn } from '../flowTypes';
 import type { FreeAttackFreeze, BladeTrapFreeze, BatchParticipant, OpposedFreeze, PendingTest, Cloture } from '../pendings';
 import { battleRng } from '../battleRng';
@@ -74,7 +74,7 @@ export interface ExecCtx {
   /** Libellé de source (journal / ActiveEffect). */
   label: string;
   /** Contexte d'incantation des ops (combat) : sl/durée/location/woundsDealt… (cf. `OpsCtx`). */
-  opsCtx?: Omit<OpsCtx, 'rng'>;
+  opsCtx?: Omit<OpsCtx, 'rng' | 'idNeuf'>;
   /** Jet d'ATTAQUANT DÉJÀ FIGÉ pour les nœuds `test` OPPOSÉS de ce Flow : le producteur l'a jeté
    *  lui-même (`rollFrozenOpposedAttacker`) parce qu'UNE opposition vaut pour N défenseurs — l'embuscade
    *  oppose le MÊME Test de Discrétion à tous les guetteurs (LDB 13 l.77). Absent ⇒ `resolveFlowTest`
@@ -115,23 +115,23 @@ const conditionsDuFlow = (ctx: ExecCtx): ConditionCtx => combatConditionCtx(ctx.
  *    l'y envoyer serait une exception en pleine résolution. */
 export function applyTriggeredTestBranch(
   c: Combatant, t: Pick<TestResult, 'success' | 'sl'>, branches: { onSuccess: Flow; onFail: Flow },
-  exec?: { get: Get; set: SetFn; opsCtx?: ExecCtx['opsCtx']; freeAttack?: ExecCtx['freeAttack']; bladeTrap?: ExecCtx['bladeTrap'] },
+  exec: { get: Get; set: SetFn; opsCtx?: ExecCtx['opsCtx']; freeAttack?: ExecCtx['freeAttack']; bladeTrap?: ExecCtx['bladeTrap'] },
 ): string[] {
   const branch = t.success ? branches.onSuccess : branches.onFail;
   // Référent des Formules (« votre Force Mentale » — Forêt d'épines LDB 48 l.749) : le LANCEUR d'origine
   // (`exec.opsCtx.caster`) quand il est connu (zone de Sort posée par un tiers), sinon `c` lui-même
   // (Mâchoires/Contrôle de la Frénésie : effet auto-porté).
-  const caster = exec?.opsCtx?.caster ?? c;
+  const caster = exec.opsCtx?.caster ?? c;
   // Le contexte d'ops du Flow qui a posé le Test suit sa branche (horloge, libellé, source, durées…) ;
   // `sl` y devient le DR de CE Test.
-  const oc: Omit<OpsCtx, 'rng'> = { ...exec?.opsCtx, caster, sl: t.sl };
+  const oc: Omit<OpsCtx, 'rng' | 'idNeuf'> = { ...exec.opsCtx, caster, sl: t.sl };
   // TROIS raisons de passer par le walker de COMBAT plutôt que par le chemin PUR : une op IMPURE
   // (adossée à un hook), un Test imbriqué (cadence-aware), et — #1508 — une op qui DEMANDE UN DÉ à la
   // porte. Le chemin pur applique par `applyOps` : il tirerait hauteur et Dégâts en silence, alors que
   // le walker passe par `applyLeafOps`, qui les ANNONCE et défère. C'est ici, et nulle part ailleurs,
   // que la branche d'un Test déclenché choisit son chemin : les quatre appelants (bande d'équipage,
   // mono déclenché, traversée de zone, fin de Round) y convergent déjà.
-  if (exec && (flowHasImpureOp(branch) || flowHasTest(branch) || flowHasOpADe(branch))) {
+  if (flowHasImpureOp(branch) || flowHasTest(branch) || flowHasOpADe(branch)) {
     // L'ENTITÉ PORTEUSE (`source`) voyage dans la branche : un SECOND Test qui y est enfoui dérive son
     // enjeu de la même entité que le premier (#1262 V2 L6d).
     runCombatFlow({ get: exec.get, set: exec.set, target: c, caster, label: nomDeSource(oc), opsCtx: oc, ...(exec.freeAttack ? { freeAttack: exec.freeAttack } : {}), ...(exec.bladeTrap ? { bladeTrap: exec.bladeTrap } : {}) }, branch);
@@ -139,7 +139,7 @@ export function applyTriggeredTestBranch(
   }
   // La branche pure relaie le MÊME contexte : un effet actif y est posé ancré à sa source, comme partout
   // ailleurs (`condition` récurrente d'une rangée de Colère, `LDB 40 l.75`).
-  return runPureFlowLines(c, caster, branch, { ...oc, rng: battleRng() });
+  return runPureFlowLines(c, caster, branch, { ...oc, rng: battleRng(), idNeuf: exec.get().forgerUnId });
 }
 
 /** IDENTITÉ d'une étape `triggeredTest` — SOURCE UNIQUE des deux fabriques. La SITUATION entre dans
@@ -149,12 +149,6 @@ export function applyTriggeredTestBranch(
  *  (`jetLancer('cascade', id)` retrouve la première, déjà résolue). */
 function triggeredTestStepId(c: Combatant, label: string | undefined, skillLabel: string): string {
   return `triggeredTest-${c.id}-${label && label !== skillLabel ? `${label}-${skillLabel}` : skillLabel}`;
-}
-
-/** Le sujet du Test (`RollLineSpec.test`) pour les quatre producteurs d'étapes de ce module : la
- *  Compétence et la Caractéristique du `FlowTest`, sans son sens. */
-function sujetDuFlowTest(ft: FlowTest): SujetDuJet {
-  return { skill: ft.skill && structuredClone(ft.skill), characteristic: ft.characteristic }; // #2097
 }
 
 /**
@@ -179,13 +173,16 @@ export function withDerivedStake(ft: FlowTest, source: EffectSource | undefined)
  *  `bladeTrap`) ; absent pour une récupération. La possession (`actorId`) et la surface de l'étape sont
  *  posées par le mint `monoStep`, qui refuse une cible non calculable (`undefined` : aucun jet fantôme). */
 export function simpleTriggeredTestStep(
-  c: Combatant, ft: FlowTest, branches: { onSuccess: Flow; onFail: Flow }, after: Flow, difficulty: Difficulty, extraMeta: Record<string, unknown> = {},
+  c: Combatant, ft: FlowTest, cc: ConditionCtx, branches: { onSuccess: Flow; onFail: Flow }, after: Flow, extraMeta: Record<string, unknown> = {},
 ): BuiltCascadeStep | undefined {
+  const decision = resoudreFlowTest(ft, { cc, sujet: c });
+  if (!decision.joue) return undefined;
+  const { difficulty } = decision;
   const skillLabel = testSkillLabel(ft) ?? 'Test';
   return monoStep({
     id: triggeredTestStepId(c, ft.label, skillLabel),
     kind: 'triggeredTest', icon: 'nav/dice', rollLabel: skillLabel,
-    actor: c, ligne: { test: sujetDuFlowTest(ft), combat: { kind: 'test' } },
+    actor: c, ligne: { test: decision.sujet, combat: { kind: 'test' } },
     difficulty, label: dataLabel(ft.label, skillLabel),
     // ENJEU du Flow (#1117/#1262 V2 L6d) : déjà résolu par `withDerivedStake` chez l'appelant (déclaré,
     // sinon dérivé du porteur) — cette fabrique le TRANSMET, elle ne devine rien.
@@ -198,7 +195,7 @@ export function simpleTriggeredTestStep(
 }
 
 /** PRÉ-JET FIGÉ de l'ATTAQUANT d'un Test opposé (`FlowTest.opposed`) — SOURCE UNIQUE des deux voies.
- *  L'attaquant subit la MÊME Difficulté que le défenseur (LDB 12 l.166), et son bonus de DR propre
+ *  L'attaquant jette à la Difficulté DÉCLARÉE du Test (LDB 12 l.166), et son bonus de DR propre
  *  (`attackerBonusSL` — Furtif sur la Discrétion, LDB 85) est baké dans le `sl` figé, si bien que la
  *  voie cascade (`meta.opposed.aT`) et la voie inline ré-opposent à l'identique. Le producteur d'une
  *  opposition à N défenseurs l'appelle LUI-MÊME, une fois, et passe le résultat en `ctx.opposedFreeze`.
@@ -250,7 +247,7 @@ function opposedAttackerFreeze(opp: NonNullable<FlowTest['opposed']>): Pick<Oppo
  */
 export function frozenOpposedBatchStep(
   defenders: Combatant[], ft: FlowTest, branches: { onSuccess: Flow; onFail: Flow }, after: Flow,
-  difficulty: Difficulty, attacker: Combatant, aT: TestResult,
+  attacker: Combatant, aT: TestResult,
 ): BuiltCascadeStep | undefined {
   const opp = ft.opposed;
   if (!opp) throw new Error('frozenOpposedBatchStep : le FlowTest doit déclarer son opposition (`opposed`).');
@@ -258,11 +255,16 @@ export function frozenOpposedBatchStep(
   // `resist` (Résistance (Menace), LDB 10 l.1016-1020) s'y joue PAR RANGÉE — `FLOWS.cascadeBatch.caps`.
   const skillLabel = testSkillLabel(ft) ?? 'Test';
   const participants: BatchParticipant[] = [];
+  let declaree: Difficulty | undefined;
   for (const c of defenders) {
-    if (flowTestGated(ft, c, combatConditionCtx(c, { caster: attacker }))) continue;
+    // Difficulté RÉSOLUE au défenseur ; l'attaquant figé garde la déclarée (LDB 12 l.166).
+    const decision = resoudreFlowTest(ft, { cc: combatConditionCtx(c, { caster: attacker }), sujet: c });
+    declaree = decision.declaree;
+    if (!decision.joue) continue;
+    const { difficulty } = decision;
     participants.push({
       id: c.id, interactive: true, result: null, difficulty,
-      ...rollStep({ actor: c, test: sujetDuFlowTest(ft), difficulty }),
+      ...rollStep({ actor: c, test: decision.sujet, difficulty }),
       ...(ft.menace ? { menace: ft.menace } : {}),
       ...(ft.skill ? { skill: structuredClone(ft.skill) } : {}), // #2097
     });
@@ -274,7 +276,7 @@ export function frozenOpposedBatchStep(
     ...(ft.menace ? { menace: ft.menace } : {}),
     meta: {
       onSuccess: branches.onSuccess, onFail: branches.onFail, after, casterId: attacker.id,
-      opposed: { aT, attackerId: attacker.id, attackerName: attacker.label, ...opposedAttackerFreeze(opp), difficulty, ...(opp.bonusSL ? { bonusSL: opp.bonusSL } : {}), ...(opp.defenderMustWin ? { defenderMustWin: true } : {}) },
+      opposed: { aT, attackerId: attacker.id, attackerName: attacker.label, ...opposedAttackerFreeze(opp), ...(declaree ? { difficulty: declaree } : {}), ...(opp.bonusSL ? { bonusSL: opp.bonusSL } : {}), ...(opp.defenderMustWin ? { defenderMustWin: true } : {}) },
     },
   }, participants);
 }
@@ -296,15 +298,17 @@ export function frozenOpposedBatchStep(
  */
 export function simpleBatchTestStep(
   testers: Combatant[], ft: FlowTest, branches: { onSuccess: Flow; onFail: Flow }, after: Flow,
-  difficulty: Difficulty, id: string, hullId?: string,
+  id: string, opsCtx: Omit<OpsCtx, 'rng' | 'idNeuf'> = {},
 ): BuiltCascadeStep | undefined {
   const skillLabel = testSkillLabel(ft) ?? 'Test';
   const participants: BatchParticipant[] = [];
   for (const c of testers) {
-    if (flowTestGated(ft, c, combatConditionCtx(c, { caster: c }))) continue;
+    const decision = resoudreFlowTest(ft, { cc: combatConditionCtx(c, { ...opsCtx, caster: opsCtx.caster ?? c }), sujet: c });
+    if (!decision.joue) continue;
+    const { difficulty } = decision;
     participants.push({
       id: c.id, interactive: true, result: null, difficulty, label: skillLabel,
-      ...rollStep({ actor: c, test: sujetDuFlowTest(ft), difficulty, combat: { kind: 'test' } }),
+      ...rollStep({ actor: c, test: decision.sujet, difficulty, combat: { kind: 'test' } }),
       ...(ft.menace ? { menace: ft.menace } : {}),
       ...(ft.skill ? { skill: structuredClone(ft.skill) } : {}), // #2097
     });
@@ -313,7 +317,7 @@ export function simpleBatchTestStep(
     id, kind: 'triggeredBatchTest', icon: 'nav/dice', label: dataLabel(ft.label, skillLabel),
     ...(ft.stake ? { stake: ft.stake } : {}),
     ...(ft.menace ? { menace: ft.menace } : {}),
-    meta: { onSuccess: branches.onSuccess, onFail: branches.onFail, after, ...(hullId ? { hullId } : {}) },
+    meta: { onSuccess: branches.onSuccess, onFail: branches.onFail, after, ...(opsCtx.hull ? { hullId: opsCtx.hull.id } : {}) },
   }, participants);
 }
 
@@ -337,7 +341,7 @@ export function collectRoundEndTestSteps(get: Get, c: Combatant): BuiltCascadeSt
     for (const eff of src.effects) {
       if (eff.trigger !== 'onRoundEnd' || eff.flow.kind !== 'test') continue;
       const ft = eff.flow.test;
-      if (flowTestGated(ft, c, cc)) continue; // gate fermée (Brisé caché/Engagé ; pas en Frénésie) → pas d'étape
+      if (!resoudreFlowTest(ft, { cc, sujet: c }).joue) continue; // gate fermée (Brisé caché/Engagé ; pas en Frénésie) → pas d'étape
       if (eff.optional) {
         // « Vous pouvez… » : étape de CHOIX (applier générique `triggeredChoice`) — le Oui pousse le
         // Test influençable dans la MÊME cascade (runCombatFlow → resolveFlowTest, liveMerge).
@@ -348,7 +352,7 @@ export function collectRoundEndTestSteps(get: Get, c: Combatant): BuiltCascadeSt
           options: [{ key: 'yes', label: dataLabel(prompt) }, { key: 'no', label: t('opt.renoncer') }],
           defaultChoice: 'no',
           // ENTITÉ PORTEUSE (ids) : le OUI ouvre LE Test — il en dérive son enjeu (#1262 V2 L6d).
-          meta: { choiceYes: eff.flow, choiceNo: EMPTY_FLOW, after: EMPTY_FLOW, opsDeCtx: porterOpsCtx({ rng: battleRng(), caster: c, ...(eff.source ? { source: eff.source } : {}) }) },
+          meta: { choiceYes: eff.flow, choiceNo: EMPTY_FLOW, after: EMPTY_FLOW, opsDeCtx: porterOpsCtx({ idNeuf: get().forgerUnId, rng: battleRng(), caster: c, ...(eff.source ? { source: eff.source } : {}) }) },
         });
         pousseSi(optional, choix);
         continue;
@@ -357,8 +361,8 @@ export function collectRoundEndTestSteps(get: Get, c: Combatant): BuiltCascadeSt
       // coordonnée `entryId` du contrat d'enjeu (#1117) — le renvoi d'un Test déclenché doit viser
       // l'État/le Trait/le Talent/le symptôme qui l'exige, jamais une fiche générique. C'est AUSSI
       // l'entité dont l'étape DÉRIVE son enjeu quand la donnée n'en déclare pas (#1262 V2 L6d).
-      const step = simpleTriggeredTestStep(c, withDerivedStake(ft, eff.source), { onSuccess: eff.flow.success, onFail: eff.flow.fail }, EMPTY_FLOW, resolveTestDifficulty(ft, cc),
-        { opsDeCtx: porterOpsCtx({ rng: battleRng(), caster: c, ...(eff.source ? { source: eff.source } : {}) }) });
+      const step = simpleTriggeredTestStep(c, withDerivedStake(ft, eff.source), cc, { onSuccess: eff.flow.success, onFail: eff.flow.fail }, EMPTY_FLOW,
+        { opsDeCtx: porterOpsCtx({ idNeuf: get().forgerUnId, rng: battleRng(), caster: c, ...(eff.source ? { source: eff.source } : {}) }) });
       pousseSi(steps, step);
     }
   }
@@ -387,82 +391,70 @@ function suiteDeCombat(ctx: ExecCtx, porteur: Combatant, oc: OpsCtx, flow: Flow)
 }
 
 /**
- * EXÉCUTEUR à PILE d'un Flow EN COMBAT — calque `runFlow` (côté scène) pour porter la CONTINUATION : un
+ * Hôte de COMBAT d'`executerFlow` — comme `runFlow` (côté scène), il porte la CONTINUATION : un
  * nœud `test` enfoui suspend en empaquetant le reste de la pile dans `after` puis délègue à
  * `resolveFlowTest`. `do` ops → `applyOps` sur la bonne cible (`on:'caster'`/`target`) ; `if` → branche
  * sur `combatConditionCtx`. Le journal part dans la file différée (`pendingLogQueue`). Pas de boucle → termine.
  */
 export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
-  const stack: Flow[] = [structuredClone(flow)]; // #2097
-  const oc: OpsCtx = { rng: battleRng(), caster: ctx.caster, ...ctx.opsCtx };
-  while (stack.length) {
-    const node = stack.shift()!;
-    switch (node.kind) {
-      case 'seq': stack.unshift(...node.steps); break;
-      case 'do': {
-        if (node.effect.type === 'ops') {
-          const unit = node.effect.on === 'caster' ? ctx.caster : ctx.target;
-          // Trait psy envers une personne CHOISIE (VDM 10 l.327) : la personne est désignée AVANT `applyOps`.
-          if (unit && node.effect.ops.some(visePersonneChoisie)) {
-            if (designerLaPersonne(ctx, unit, node.effect, oc, stack)) return;
-            break;
-          }
-          if (unit) {
-            // Ops IMPURES `grantFreeAttack` : résolues par `accorderLAttaqueGratuite` (combatFlow) — la frappe
-            // vise le TIERS de `ctx.freeAttack` (chargeur/victime), pas `unit` (le porteur). `applyOps` les
-            // laisse inertes → on les passe quand même (no-op) pour garder le journal des autres ops.
-            // Une frappe qui SUSPEND (fenêtre de défense ouverte) arrête le dispatch : la suivante se
-            // déclarera à la fermeture, jamais par-dessus la fenêtre (#1852).
-            if (ctx.freeAttack) for (const op of node.effect.ops) if (op.op === 'grantFreeAttack' && accorderLAttaqueGratuite(ctx.get, ctx.set, unit, op, ctx.freeAttack)) break;
-            // Op IMPURE `interruptFocus` (LDB 46 l.144) : `applyFocusInterruption` (combatFlow) résout l'interruption
-            // sur `unit` (le focaliseur) — perte des DR + Imparfaite Mineure (qui peut appender sa propre étape).
-            for (const op of node.effect.ops) if (op.op === 'interruptFocus') applyFocusInterruption(ctx.get, ctx.set, unit);
-            // Op IMPURE `breakBlade` (LDB 62 l.280) : `applyBladeTrap` (combatFlow) désarme/brise la lame de
-            // l'attaquant ciblé (`ctx.bladeTrap`). `unit` = le défenseur piégeur ; son DR final (`ctx.opsCtx.sl`)
-            // alimente la marge nette (= victoire Stupéfiante → bris). Le hook EMPILE sa conséquence comme étape
-            // d'affichage propre (mirroir du Coup Critique) → rien à journaliser ici.
-            // La Sauvegarde Solide de la lame peut partir à la porte (#1508 T3b-4) : le reste du Flow est
-            // alors SA continuation, et le nœud re-entre PRIVÉ de l'op déjà jouée (jamais deux bris).
-            if (ctx.bladeTrap && node.effect.ops.some((op) => op.op === 'breakBlade')
-              && applyBladeTrap(ctx.get, ctx.set, unit, ctx.bladeTrap, ctx.opsCtx?.sl ?? 0) === OPS_DIFFEREES) {
-              const reste = { ...node, effect: { ...node.effect, ops: node.effect.ops.filter((op) => op.op !== 'breakBlade') } };
-              confierLaSuite(ctx.set, [suiteDeCombat(ctx, unit, oc, { kind: 'seq', steps: [reste, ...stack.splice(0)] })]);
-              return;
-            }
-            // `applyLeafOps` = SOURCE UNIQUE d'application d'une feuille : contexte de FEUILLE
-            // (untilTime/label bakés — consommable) + programmation des ops IMPURES `delayed`.
-            const lines = applyLeafOps(ctx.get, ctx.set, unit, node.effect, oc);
-            // Feuille partie à la PORTE (#1508) : le reste de la pile est SA continuation — MÊME geste
-            // que `case 'test'` ci-dessous, et pour la même raison. Poursuivre ici appliquerait les
-            // nœuds suivants AVANT la conséquence qui attend son dé, inversant l'ordre de l'auteur.
-            if (lines === OPS_DIFFEREES) {
-              const steps = stack.splice(0);
-              if (steps.length) confierLaSuite(ctx.set, [suiteDeCombat(ctx, unit, oc, { kind: 'seq', steps })]);
-              return;
-            }
-            ctx.set(touchActors(ctx.get())); queueLines(ctx.get, ctx.set, lines, unit.id);
-          }
-        }
-        break;
+  const oc: OpsCtx = { rng: battleRng(), idNeuf: ctx.get().forgerUnId, caster: ctx.caster, ...ctx.opsCtx };
+  executerFlow<Effect, void>(structuredClone(flow), { // #2097
+    conditions: () => conditionsDuFlow(ctx),
+    feuille: (node, reste) => {
+      if (node.effect.type !== 'ops') return undefined;
+      const unit = node.effect.on === 'caster' ? ctx.caster : ctx.target;
+      if (!unit) return undefined;
+      // Trait psy envers une personne CHOISIE (VDM 10 l.327) : la personne est désignée AVANT `applyOps`.
+      if (node.effect.ops.some(visePersonneChoisie)) return designerLaPersonne(ctx, unit, node.effect, oc, reste);
+      // Ops IMPURES `grantFreeAttack` : résolues par `accorderLAttaqueGratuite` (combatFlow) — la frappe
+      // vise le TIERS de `ctx.freeAttack` (chargeur/victime), pas `unit` (le porteur). `applyOps` les
+      // laisse inertes → on les passe quand même (no-op) pour garder le journal des autres ops.
+      // Une frappe qui SUSPEND (fenêtre de défense ouverte) arrête le dispatch : la suivante se
+      // déclarera à la fermeture, jamais par-dessus la fenêtre (#1852).
+      if (ctx.freeAttack) for (const op of node.effect.ops) if (op.op === 'grantFreeAttack' && accorderLAttaqueGratuite(ctx.get, ctx.set, unit, op, ctx.freeAttack)) break;
+      // Op IMPURE `interruptFocus` (LDB 46 l.144) : `applyFocusInterruption` (combatFlow) résout l'interruption
+      // sur `unit` (le focaliseur) — perte des DR + Imparfaite Mineure (qui peut appender sa propre étape).
+      for (const op of node.effect.ops) if (op.op === 'interruptFocus') applyFocusInterruption(ctx.get, ctx.set, unit);
+      // Op IMPURE `breakBlade` (LDB 62 l.280) : `applyBladeTrap` (combatFlow) désarme/brise la lame de
+      // l'attaquant ciblé (`ctx.bladeTrap`). `unit` = le défenseur piégeur ; son DR final (`ctx.opsCtx.sl`)
+      // alimente la marge nette (= victoire Stupéfiante → bris). Le hook EMPILE sa conséquence comme étape
+      // d'affichage propre (mirroir du Coup Critique) → rien à journaliser ici.
+      // La Sauvegarde Solide de la lame peut partir à la porte (#1508 T3b-4) : le reste du Flow est
+      // alors SA continuation, et le nœud re-entre PRIVÉ de l'op déjà jouée (jamais deux bris).
+      if (ctx.bladeTrap && node.effect.ops.some((op) => op.op === 'breakBlade')
+        && applyBladeTrap(ctx.get, ctx.set, unit, ctx.bladeTrap, ctx.opsCtx?.sl ?? 0) === OPS_DIFFEREES) {
+        const prive = { ...node, effect: { ...node.effect, ops: node.effect.ops.filter((op) => op.op !== 'breakBlade') } };
+        confierLaSuite(ctx.set, [suiteDeCombat(ctx, unit, oc, { kind: 'seq', steps: [prive, ...reste().steps] })]);
+        return FIN_DU_FLOW;
       }
-      case 'if': {
-        const branch = evalCondition(node.cond, conditionsDuFlow(ctx)) ? node.then : node.else;
-        if (branch) stack.unshift(branch);
-        break;
+      // `applyLeafOps` = SOURCE UNIQUE d'application d'une feuille : contexte de FEUILLE
+      // (untilTime/label bakés — consommable) + programmation des ops IMPURES `delayed`.
+      const lines = applyLeafOps(ctx.get, ctx.set, unit, node.effect, oc);
+      // Feuille partie à la PORTE (#1508) : le reste de la pile est SA continuation — MÊME geste
+      // que le `test` ci-dessous, et pour la même raison. Poursuivre ici appliquerait les
+      // nœuds suivants AVANT la conséquence qui attend son dé, inversant l'ordre de l'auteur.
+      if (lines === OPS_DIFFEREES) {
+        const steps = reste().steps;
+        if (steps.length) confierLaSuite(ctx.set, [suiteDeCombat(ctx, unit, oc, { kind: 'seq', steps })]);
+        return FIN_DU_FLOW;
       }
-      case 'test': {
-        const after: Flow = { kind: 'seq', steps: stack.splice(0) };
-        resolveFlowTest(ctx, node, after);
-        return;
-      }
-      case 'choice': {
-        const after: Flow = { kind: 'seq', steps: stack.splice(0) };
-        resolveFlowChoice(ctx, node, after);
-        return;
-      }
-    }
-  }
+      ctx.set(touchActors(ctx.get())); queueLines(ctx.get, ctx.set, lines, unit.id);
+      return undefined;
+    },
+    test: (node, reste) => {
+      resolveFlowTest(ctx, node, reste());
+      return FIN_DU_FLOW;
+    },
+    choix: (node, reste) => {
+      resolveFlowChoice(ctx, node, reste());
+      return FIN_DU_FLOW;
+    },
+    fin: () => undefined,
+  });
 }
+
+/** Arrêt d'un Flow de combat : ce qui reste de la pile a été confié à une étape, une modale ou une reprise. */
+const FIN_DU_FLOW: ArretDeFlow<void> = { arret: undefined };
 
 /**
  * POINT DE DÉCISION UNIQUE sur un nœud `test`. `target` = le combattant qui jette (référent = la cible
@@ -490,14 +482,15 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
   // Gates op-level (immunité/groupes) + GATE générique de Condition (`gate`, Brisé : « pas Engagé OU Cœur
   // vaillant, ET pions restants ») — SOURCE UNIQUE partagée avec la voie inline (`resolveInlineFlowTest`).
   const oc: ExecCtx['opsCtx'] = { ...(ctx.caster ? { caster: ctx.caster } : {}), ...ctx.opsCtx };
-  if (flowTestGated(ft, c, cc)) { playAfter(ctx.get, ctx.set, c, after, ctx.label, oc); return; }
+  const decision = resoudreFlowTest(ft, { cc, sujet: c });
+  if (!decision.joue) { playAfter(ctx.get, ctx.set, c, after, ctx.label, oc); return; }
   const opp = ft.opposed;
   // Valeur TESTÉE du jet INLINE (le squelette d'étape, lui, vient du monteur canonique) — pénalité d'État
   // comptée UNE seule fois (RAW : −10 d'Empoisonné/Sonné/… au Test, LDB 16, pas deux) :
   //  · Test SIMPLE → `base` BRUT (`rawCombatTestBase`, sans pénalité d'État) + `combatTestPenalty` (ci-dessous).
   //  · Test OPPOSÉ → `base` = `testValue` (porte déjà la pénalité d'État) + aucune pénalité ajoutée (penalty 0).
   const base = opp ? testValue(c, ft) : rawCombatTestBase(c, ft);
-  const difficulty: Difficulty = resolveTestDifficulty(ft, cc); // dynamique (Brisé : caché/proche/loin), sinon ft.difficulty
+  const { difficulty } = decision;
   const skillLabel = testSkillLabel(ft) ?? 'Test';
   const label = dataLabel(ft.label, skillLabel);
   // Test SIMPLE : `combatTestPenalty` (sur le `base` BRUT → −10 d'État compté une fois). Test OPPOSÉ : 0
@@ -509,7 +502,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
   // Un freeze FOURNI par le producteur (`ctx.opposedFreeze`) n'est jamais re-jeté : c'est l'opposition
   // UNIQUE de la situation (N défenseurs, un seul jet d'attaquant — LDB 13 l.77).
   const aT: TestResult | undefined = opp && attacker
-    ? (ctx.opposedFreeze ?? rollFrozenOpposedAttacker(attacker, opp, difficulty))
+    ? (ctx.opposedFreeze ?? rollFrozenOpposedAttacker(attacker, opp, decision.declaree))
     : undefined;
   // Piège-lame : on COMPLÈTE le freeze avec le DR de l'attaquant que CE Test jette (`aT`), pour que la
   // conséquence `breakBlade` recompose la marge nette sans re-jeter l'attaquant.
@@ -528,16 +521,16 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     // qui survit à la cadence asynchrone du héros).
     // Le contexte d'ops PORTÉ (`porterOpsCtx`) voyage aussi dans le `meta` : la branche et la continuation
     // rejouées par l'applier gardent l'horloge, la source et le porteur du Flow (#1262 V2 L6d ; #1463).
-    const extraMeta = { opsDeCtx: porterOpsCtx({ rng: battleRng(), ...oc }), ...(ctx.freeAttack ? { freeAttack: ctx.freeAttack } : {}), ...(btFreeze ? { bladeTrap: btFreeze } : {}), ...(ctx.opsCtx?.noReentryOwnTestFailed ? { noOwnTestFailed: true } : {}) };
+    const extraMeta = { opsDeCtx: porterOpsCtx({ idNeuf: ctx.get().forgerUnId, rng: battleRng(), ...oc }), ...(ctx.freeAttack ? { freeAttack: ctx.freeAttack } : {}), ...(btFreeze ? { bladeTrap: btFreeze } : {}), ...(ctx.opsCtx?.noReentryOwnTestFailed ? { noOwnTestFailed: true } : {}) };
     const step = aT && attacker
       ? monoStep({
         id: triggeredTestStepId(c, ft.label, skillLabel), kind: 'triggeredTest', icon: 'nav/dice', rollLabel: skillLabel,
-        actor: c, ligne: { test: sujetDuFlowTest(ft) }, label, difficulty,
+        actor: c, ligne: { test: decision.sujet }, label, difficulty,
         stake: ft.stake,
-        meta: { onSuccess: node.success, onFail: node.fail, after, opposed: { aT, attackerId: attacker.id, attackerName: attacker.label, ...opposedAttackerFreeze(opp!), difficulty, ...(opp!.bonusSL ? { bonusSL: opp!.bonusSL } : {}), ...(opp!.defenderMustWin ? { defenderMustWin: true } : {}) }, ...extraMeta },
+        meta: { onSuccess: node.success, onFail: node.fail, after, opposed: { aT, attackerId: attacker.id, attackerName: attacker.label, ...opposedAttackerFreeze(opp!), difficulty: decision.declaree, ...(opp!.bonusSL ? { bonusSL: opp!.bonusSL } : {}), ...(opp!.defenderMustWin ? { defenderMustWin: true } : {}) }, ...extraMeta },
         ...(ft.menace ? { menace: ft.menace } : {}),
       })
-      : simpleTriggeredTestStep(c, ft, { onSuccess: node.success, onFail: node.fail }, after, difficulty, extraMeta);
+      : simpleTriggeredTestStep(c, ft, cc, { onSuccess: node.success, onFail: node.fail }, after, extraMeta);
     // UNE INSTANCE = UN ID : deux Blessures critiques du même coup (LDB 18 l.17, l.53) appendent deux Tests
     // homonymes au même porteur ; l'INDEX d'append les distingue (patron `pushDeviationStep`).
     if (step) pushCombatStep(ctx.set, (index) => ({ ...step, id: `${step.id}-${index}` }));
@@ -643,7 +636,7 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
         // CONTEXTE d'ops PORTÉ (sl, horloge, libellé, sort et ENTITÉ PORTEUSE) : la branche le retrouve
         // à la reprise — sans lui, un Test ouvert par le OUI perdrait son enjeu (#1262 V2 L6d) et un effet
         // posé, sa source et sa durée.
-        opsDeCtx: porterOpsCtx({ rng: battleRng(), caster: ctx.caster, ...ctx.opsCtx }),
+        opsDeCtx: porterOpsCtx({ idNeuf: ctx.get().forgerUnId, rng: battleRng(), caster: ctx.caster, ...ctx.opsCtx }),
         ...(ctx.freeAttack ? { freeAttack: ctx.freeAttack } : {}),
       },
     });
@@ -658,16 +651,16 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
 
 /**
  * DÉSIGNE la personne d'une feuille portant un Trait psy `envers` (VDM 10 l.327, « nommer ou désigner ») :
- * le décideur (le lanceur) SURFACÉ la choisit à une étape `personneChoisie` — rend `true`, la pile restante
- * part avec elle ; sinon elle est désignée d'office (`personneDuDecideurAuto`, #3045) et la feuille
- * résolue (`fluxDEnvers`) reprend en tête de pile — rend `false`.
+ * le décideur (le lanceur) SURFACÉ la choisit à une étape `personneChoisie` — rend l'arrêt, le reste de
+ * la pile part avec elle ; sinon elle est désignée d'office (`personneDuDecideurAuto`, #3045) et rend la
+ * feuille résolue (`fluxDEnvers`), jouée en tête de pile.
  */
-function designerLaPersonne(ctx: ExecCtx, cible: Combatant, effet: EffectOp, oc: OpsCtx, stack: Flow[]): boolean {
+function designerLaPersonne(ctx: ExecCtx, cible: Combatant, effet: EffectOp, oc: OpsCtx, reste: ResteDuFlow<Effect>): PasDeFlow<Effect, void> {
   const decideur = ctx.caster ?? cible;
   const candidates = personnesCandidates(ctx.get(), cible);
   const auto = personneDuDecideurAuto(cible, candidates);
   if (candidates.length && surfaceOf(ctx.get, decideur.id)) {
-    const after: Flow = { kind: 'seq', steps: stack.splice(0) };
+    const after = reste();
     pushChoice(ctx.set, (i) => ({
       id: `personneChoisie-${decideur.id}-${i}`,
       kind: 'personneChoisie', actorId: decideur.id, icon: 'mechanic/mind',
@@ -676,11 +669,10 @@ function designerLaPersonne(ctx: ExecCtx, cible: Combatant, effet: EffectOp, oc:
       defaultChoice: (auto ?? candidates[0]).id,
       meta: { feuilleEnvers: { kind: 'do', effect: effet }, after, choiceTargetId: cible.id, opsDeCtx: porterOpsCtx(oc) },
     }));
-    return true;
+    return FIN_DU_FLOW;
   }
   queueLines(ctx.get, ctx.set, [ligneDeDesignation(cible, auto, oc)], cible.id);
-  stack.unshift(fluxDEnvers(effet, auto, !!auto && sontAmis(cible, auto)));
-  return false;
+  return fluxDEnvers(effet, auto, !!auto && sontAmis(cible, auto));
 }
 
 /** La ligne de journal qui dit la personne désignée pour `cible`, ou qu'il n'y en a aucune. */
@@ -706,7 +698,6 @@ export function routeTriggeredTest(get: Get, set: SetFn, target: Combatant, acto
   // `noOwnTestFailed` tamponne la ré-entrance (jetValider('test') ne ré-émet pas).
   if (!get().battle && flow.kind === 'test' && target.kind === 'hero') {
     const cc = combatConditionCtx(target, opsCtx ?? {});
-    if (flowTestGated(flow.test, target, cc)) return; // gate fermée → no-op (identique à la voie inline)
     // Un Test SUBI (effet déclenché : Venin, Hurlement, Crampes, zone franchie…) n'est pas soutenu —
     // LDB 12 l.197. Défaut de la VOIE, tri-état : la donnée peut le rouvrir (`noSupport:false`).
     // Enjeu DÉRIVÉ du porteur si la donnée n'en déclare pas (#1262 V2 L6d) — la modale HORS COMBAT dit
@@ -714,15 +705,15 @@ export function routeTriggeredTest(get: Get, set: SetFn, target: Combatant, acto
     const ft = { ...withDerivedStake(flow.test, opsCtx?.source), noSupport: flow.test.noSupport ?? true };
     // Le pending porte le VOCABULAIRE de la branche (`target`/`caster`) : c'est lui qui, à la reprise,
     // envoie branche et continuation au marcheur d'ACTEUR (`reprendreTestSubi`) plutôt qu'à celui de
-    // scène. Ids seuls, même prédicat que l'`extraMeta` de l'étape de cascade (`runCombatFlow`,
-    // `case 'test'`) : le lanceur n'entre que lorsqu'il DIFFÈRE du sujet. Le libellé de la source voyage
+    // scène. Ids seuls, même prédicat que l'`extraMeta` de l'étape de cascade (`resolveFlowTest`,
+    // `extraMeta`) : le lanceur n'entre que lorsqu'il DIFFÈRE du sujet. Le libellé de la source voyage
     // avec : la reprise la nomme comme la porte en combat (`nomDeSource`, ci-dessous).
     const subi = {
       ...(actor.id !== target.id ? { casterId: actor.id } : {}),
       ...(opsCtx?.label ? { label: opsCtx.label } : {}),
       ...(opsCtx?.source ? { source: opsCtx.source } : {}),
     };
-    openSkillTest(get, set, ft, flow.success, flow.fail, EMPTY_FLOW, { actorId: target.id, noOwnTestFailed: opsCtx?.noReentryOwnTestFailed, subi });
+    openSkillTest(get, set, ft, cc, flow.success, flow.fail, EMPTY_FLOW, { actorId: target.id, noOwnTestFailed: opsCtx?.noReentryOwnTestFailed, subi });
     return;
   }
   runCombatFlow({ get, set, target, caster: actor, label: nomDeSource(opsCtx), opsCtx }, flow);
@@ -732,7 +723,7 @@ export function routeTriggeredTest(get: Get, set: SetFn, target: Combatant, acto
  * REPRISE de la branche d'un Test SUBI (`PendingTest.subi`, posé par la porte ci-dessus) — le pendant
  * de la clôture `reprendreFlowDeCombat` (`combatFlow.ts`) pour la modale de Test : la branche et
  * la continuation d'un Test SUBI parlent `target`/`caster`, vocabulaire que seul `runCombatFlow`
- * honore (`case 'do'` : `on === 'caster'` → lanceur, sinon cible). Le contexte est RECONSTRUIT depuis
+ * honore (sa `feuille` : `on === 'caster'` → lanceur, sinon cible). Le contexte est RECONSTRUIT depuis
  * `get()` par ids — jamais capturé : entre l'ouverture et la reprise il y a une modale, donc
  * potentiellement une save, un rechargement ou un relais coop. La source se nomme comme à la porte en
  * combat (`nomDeSource`).
@@ -787,10 +778,7 @@ export function bandeTriggeredTest(
   }
   if (!surfaces.length) return undefined;
   const ft = withDerivedStake(node.test, opsCtx?.source);
-  return simpleBatchTestStep(
-    surfaces, ft, { onSuccess: node.success, onFail: node.fail }, EMPTY_FLOW,
-    resolveTestDifficulty(ft, combatConditionCtx(surfaces[0], opsCtx ?? {})), id, opsCtx?.hull?.id,
-  );
+  return simpleBatchTestStep(surfaces, ft, { onSuccess: node.success, onFail: node.fail }, EMPTY_FLOW, id, opsCtx);
 }
 
 /** Le Test de traversée d'une zone (`applyZoneCrossings`, combatPlacement.ts, #500) — un `crossTest` de
@@ -801,7 +789,7 @@ export function bandeTriggeredTest(
  *  ses lignes dans `pendingLogQueue`, SOURCE UNIQUE) — no-op pour la voie cascade (héros manuel, aucune
  *  ligne encore produite au retour de `routeTriggeredTest`, elle en poussera à la résolution du jet). */
 export function testerLaTraverseeDeZone(get: Get, set: SetFn, mover: Combatant, caster: Combatant, flow: Flow, label: string, source?: EffectSource): void {
-  routeTriggeredTest(get, set, mover, caster, flow, { rng: battleRng(), label, ...(source ? { source } : {}) });
+  routeTriggeredTest(get, set, mover, caster, flow, { idNeuf: get().forgerUnId, rng: battleRng(), label, ...(source ? { source } : {}) });
   const battle = get().battle;
   if (!battle) return;
   const drained = drainPendingLog(get, set);

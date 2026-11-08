@@ -60,7 +60,7 @@ import { idsDe } from '../../data/schemas/grammaire/ref';
 import { amateurSchema } from '../../data/schemas/grammaire/valeurs';
 import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfileSchema, sceneEffectZoneSchema, sceneSchema, sceneWeatherSchema, type ReliefDefaults } from '../../data/schemas/defs-scenes/scene';
 
-import { ApparencesObjetsField, ArmeEquipeeField, ReglagesApparence } from './ReglagesApparence';
+import { ApparencesObjetsField, ReglagesApparence } from './ReglagesApparence';
 import { armesDEntite, equipementDAuteurDe } from '../../noyau/equipementDessine';
 import { effectCtxOf } from './EffectList';
 import { ListeDIds, RefNarrativeField } from '../compendium/refField/RefField';
@@ -75,7 +75,7 @@ import { SeatAssignmentsField } from './SeatAssignmentsField';
 import { type Sel, type Tool, capDeLEntite, capsOfferts, effectZoneRect, lumiereAllumee, effectZoneArea, flowEffectCount } from '../../noyau/sceneEditLecture';
 import { scrollElementIntoPort } from './useEditorView';
 import type { FireArc, StructureData, NavalTraitRef } from '../../engine/types';
-import { DIFFICULTY_LABELS, type Difficulty } from '../../engine/types';
+import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, type Difficulty } from '../../engine/types';
 import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structures';
 import { RefField } from '../compendium/refField/RefField';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
@@ -1181,7 +1181,7 @@ export function Inspector({
                   <>
                     <div className="ed-field">
                       <span>Difficulté du Test</span>
-                      <select value={selW.climb.difficulty ?? 'intermediaire'} onChange={(e) => patchSelW({ climb: { ...selW.climb!, difficulty: e.target.value as Difficulty } })}>
+                      <select value={selW.climb.difficulty ?? DIFFICULTE_PAR_DEFAUT} onChange={(e) => patchSelW({ climb: { ...selW.climb!, difficulty: e.target.value as Difficulty } })}>
                         {Object.entries(DIFFICULTY_LABELS).map(([k, lbl]) => (<option key={k} value={k}>{lbl}</option>))}
                       </select>
                     </div>
@@ -1397,7 +1397,6 @@ function EntityPanel({
                 {optionsDuNoeud(roleAmbiantSchema).map(([role, libelle]) => <option key={role} value={role}>{libelle}</option>)}
               </select>
             </label>
-            <ArmeEquipeeField weapon={ent.weapon} onWeapon={(w) => updateSel({ weapon: w })} />
             <ApparencesObjetsField resolveTrapping={objetDuNarratif(narratif)}
               appearance={ent.appearance ?? {}}
               onChange={(appearance) => updateSel({ appearance })}

@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, expect, it } from 'vitest';
 import type { Combatant, ItemInstance } from './types';
 import type { RNG } from './dice';
@@ -44,7 +45,7 @@ describe('activeFlags — drapeaux portés par un ActiveEffect (Jalon 2.6 L9)', 
     const c = mk();
     c.activeEffects = [
       { label: 'Bénédiction de Chance', bonus: 0, duration: { scale: 'rounds', left: 6 }, freeReroll: true },
-      { label: 'Autre buff', bonus: 10, char: 'capacite-de-combat', duration: { scale: 'rounds', left: 6 } },
+      { label: 'Autre buff', bonus: 10, characteristic: 'capacite-de-combat', duration: { scale: 'rounds', left: 6 } },
     ];
     expect(consumeActiveFlag(c, 'freeReroll')).toBe('Bénédiction de Chance');
     expect(c.activeEffects).toHaveLength(1);
@@ -78,7 +79,7 @@ describe("Endurance de l'anachorète — « ne subit aucune pénalité causée p
   });
   it("op ignoreStatePenalties : pose l'effet actif à la durée du sort + journal", () => {
     const c = mk();
-    const lines = applyOps(c, [{ op: 'ignoreStatePenalties' }], { rng: desDuTest, label: 'Endurance de l’anachorète', defaultDurationRounds: 3 });
+    const lines = applyOps(c, [{ op: 'ignoreStatePenalties' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Endurance de l’anachorète', defaultDurationRounds: 3 });
     expect(c.activeEffects?.[0]).toMatchObject({ label: 'Endurance de l’anachorète', ignoreStatePenalties: true, duration: { scale: 'rounds', left: 3 } });
     expect(lines.join(' ')).toMatch(/pénalité d'État|pénalités d'État/i);
   });
@@ -92,7 +93,7 @@ describe('Sommeil — « Si la cible possède un État À Terre, elle gagne Inco
     const caster = mk({ id: 'w', label: 'Sorcier' });
     const target = mk({ id: 't', label: 'Cible' });
     addCondition(target, 'a-terre');
-    applyOps(target, [{ op: 'condition', id: 'inconscient', durationRounds: { bonusOf: 'force-mentale' }, onlyIfCondition: 'a-terre' }], { rng: desDuTest, caster, label: 'Sommeil' });
+    applyOps(target, [{ op: 'condition', id: 'inconscient', durationRounds: { bonusOf: 'force-mentale' }, onlyIfCondition: 'a-terre' }], { idNeuf: idsDeTest, rng: desDuTest, caster, label: 'Sommeil' });
     expect(hasCondition(target, 'inconscient')).toBe(true);
     expect(target.conditions.find((x) => x.id === 'inconscient')?.roundsLeft).toBe(4); // BFM 40 → 4
   });
@@ -102,7 +103,7 @@ describe('Sommeil — « Si la cible possède un État À Terre, elle gagne Inco
     applyOps(target, [
       { op: 'condition', id: 'inconscient', durationRounds: { bonusOf: 'force-mentale' }, onlyIfCondition: 'a-terre' },
       { op: 'condition', id: 'a-terre', unlessCondition: 'a-terre' },
-    ], { rng: desDuTest, caster, label: 'Sommeil' });
+    ], { idNeuf: idsDeTest, rng: desDuTest, caster, label: 'Sommeil' });
     expect(hasCondition(target, 'inconscient')).toBe(false);
     expect(hasCondition(target, 'a-terre')).toBe(true);
   });
@@ -110,7 +111,7 @@ describe('Sommeil — « Si la cible possède un État À Terre, elle gagne Inco
     const caster = mk({ id: 'w' });
     const target = mk({ id: 't' });
     addCondition(target, 'a-terre');
-    applyOps(target, [{ op: 'condition', id: 'a-terre', unlessCondition: 'a-terre' }], { rng: desDuTest, caster, label: 'Sommeil' });
+    applyOps(target, [{ op: 'condition', id: 'a-terre', unlessCondition: 'a-terre' }], { idNeuf: idsDeTest, rng: desDuTest, caster, label: 'Sommeil' });
     expect(target.conditions.filter((x) => x.id === 'a-terre')).toHaveLength(1);
     expect(target.conditions.find((x) => x.id === 'a-terre')?.value).toBe(1);
   });
@@ -141,7 +142,7 @@ describe('Baume pour un esprit blessé — « Tous les Traits Psychologiques son
       psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }, { type: 'phobie', cible: ciblePsy.groupe('serpent'), indice: 1 }],
       psychState: [{ type: 'animosite', cible: ciblePsy.groupe('elfe'), active: true }],
     });
-    const lines = applyOps(c, [{ op: 'suppressPsych' }], { rng: desDuTest, label: 'Baume pour un esprit blessé', defaultDurationRounds: 9999, defaultUntilTime: 120 });
+    const lines = applyOps(c, [{ op: 'suppressPsych' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Baume pour un esprit blessé', defaultDurationRounds: 9999, defaultUntilTime: 120 });
     expect(c.psychTraits).toEqual([]);
     expect(c.psychState).toEqual([]);
     const eff = c.activeEffects?.find((e) => e.suppressedPsych);
@@ -151,15 +152,15 @@ describe('Baume pour un esprit blessé — « Tous les Traits Psychologiques son
   });
   it('expiration en fin de Round : les Traits psy suspendus sont restitués', () => {
     const c = mk({ psychTraits: [{ type: 'haine', cible: ciblePsy.groupe('skaven') }] });
-    applyOps(c, [{ op: 'suppressPsych' }], { rng: desDuTest, label: 'Baume', defaultDurationRounds: 1 });
+    applyOps(c, [{ op: 'suppressPsych' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Baume', defaultDurationRounds: 1 });
     expect(c.psychTraits).toEqual([]);
-    endOfRound(c, desDuTest); // l'effet expire (1 round) → restitution
+    endOfRound(c, desDuTest, idsDeTest); // l'effet expire (1 round) → restitution
     expect(c.psychTraits).toEqual([{ type: 'haine', cible: ciblePsy.groupe('skaven') }]);
     expect(c.activeEffects?.some((e) => e.suppressedPsych)).toBe(false);
   });
   it('cible sans Trait psy : journal honnête, pas d’effet porteur', () => {
     const c = mk();
-    const lines = applyOps(c, [{ op: 'suppressPsych' }], { rng: desDuTest, label: 'Baume', defaultDurationRounds: 3 });
+    const lines = applyOps(c, [{ op: 'suppressPsych' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Baume', defaultDurationRounds: 3 });
     expect(c.activeEffects?.some((e) => e.suppressedPsych) ?? false).toBe(false);
     expect(lines.join(' ')).toMatch(/aucun Trait/i);
   });
@@ -169,7 +170,7 @@ describe('Baume pour un esprit blessé — « Tous les Traits Psychologiques son
     const orque = sourceCombattant(mk({ id: 'orque', groups: ['peau-verte'] }));
     expect(effectivePsychTraits(c)).toContainEqual({ type: 'haine', cible: ciblePsy.groupe('peau-verte') });
     expect(effectivePsychTraits(c)).toContainEqual({ type: 'haine', cible: ciblePsy.groupe('vivant') });
-    applyOps(c, [{ op: 'suppressPsych' }], { rng: desDuTest, label: 'Baume', defaultDurationRounds: 3 });
+    applyOps(c, [{ op: 'suppressPsych' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Baume', defaultDurationRounds: 3 });
     expect(c.activeEffects?.find((e) => e.suppressedPsych)?.suppressedPsych).toEqual([]);
     expect(effectivePsychTraits(c)).toEqual([]);
     expect(targetedTrigger(c, [orque])).toBeNull();
@@ -178,14 +179,14 @@ describe('Baume pour un esprit blessé — « Tous les Traits Psychologiques son
     for (const over of [{ talents: [{ talentId: 'frenesie', times: 1 }] }, { traits: [{ id: 'frenesie' }] }]) {
       const c = mk(over);
       expect(isFrenzyCapable(c)).toBe(true);
-      applyOps(c, [{ op: 'suppressPsych' }], { rng: desDuTest, label: 'Baume', defaultDurationRounds: 3 });
+      applyOps(c, [{ op: 'suppressPsych' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Baume', defaultDurationRounds: 3 });
       expect(isFrenzyCapable(c)).toBe(false);
     }
   });
   it('Animosité masquée par l’Ivresse (ignoreAnimosity) : l’effet se pose et la retire de la fiche', () => {
     const c = mk({ psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('peau-verte') }] });
     c.activeEffects = [{ label: 'Ivresse', bonus: 0, duration: { scale: 'rounds', left: 1 }, ignoreAnimosity: true }];
-    applyOps(c, [{ op: 'suppressPsych' }], { rng: desDuTest, label: 'Baume', defaultDurationRounds: 3 });
+    applyOps(c, [{ op: 'suppressPsych' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Baume', defaultDurationRounds: 3 });
     expect(c.psychTraits).toEqual([]);
     expect(c.activeEffects?.find((e) => e.suppressedPsych)?.suppressedPsych).toHaveLength(1);
   });
@@ -199,7 +200,7 @@ describe("N'écoutez point la Sorcière — « −20 aux Tests de Langue (Magick
     const priest = mk({ id: 'p', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 40 } as Combatant['characteristics'] });
     applyOps(priest, [
       { op: 'castWard', radius: { bonusOf: 'sociabilite' }, mod: -20, perSL: { every: 2, radiusFormula: { bonusOf: 'sociabilite' } } },
-    ], { rng: desDuTest, caster: priest, label: 'N’écoutez point la Sorcière', defaultDurationRounds: 4, sl: 4 });
+    ], { idNeuf: idsDeTest, rng: desDuTest, caster: priest, label: 'N’écoutez point la Sorcière', defaultDurationRounds: 4, sl: 4 });
     const eff = priest.activeEffects?.find((e) => e.castWard);
     expect(eff?.castWard?.radiusMeters).toBe(4 + 2 * 4); // BSoc 4 + 2 paliers (+2 DR) × BSoc
     expect(eff?.duration).toEqual({ scale: "rounds", left: 4 });
@@ -208,7 +209,7 @@ describe("N'écoutez point la Sorcière — « −20 aux Tests de Langue (Magick
     const priest = mk({ id: 'p', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 40 } as Combatant['characteristics'] });
     applyOps(priest, [
       { op: 'castWard', radius: { bonusOf: 'sociabilite' }, mod: -20, perSL: { every: 2, radiusFormula: { bonusOf: 'sociabilite' } } },
-    ], { rng: desDuTest, caster: priest, label: 'N’écoutez point la Sorcière', defaultDurationRounds: 4, sl: 0 });
+    ], { idNeuf: idsDeTest, rng: desDuTest, caster: priest, label: 'N’écoutez point la Sorcière', defaultDurationRounds: 4, sl: 0 });
     expect(priest.activeEffects?.find((e) => e.castWard)?.castWard?.radiusMeters).toBe(4);
   });
 });
@@ -219,13 +220,13 @@ describe('Putréfaction — « le cuir se racornit (perdant 1 PA à 1 Localisati
   } as unknown as ItemInstance);
   it('endommage de 1 PA une pièce de cuir portée (et re-dérive l’armure)', () => {
     const c = mk({ items: [leather()] });
-    const lines = applyOps(c, [{ op: 'damageArmour', material: 'cuir' }], { rng: desDuTest, label: 'Putréfaction' });
+    const lines = applyOps(c, [{ op: 'damageArmour', material: 'cuir' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Putréfaction' });
     expect(c.items![0].damageTaken).toBe(1);
     expect(lines.join(' ')).toMatch(/racornit|pourrit/i);
   });
   it('sans cuir porté : rien d’endommagé, journal honnête', () => {
     const c = mk();
-    const lines = applyOps(c, [{ op: 'damageArmour', material: 'cuir' }], { rng: desDuTest, label: 'Putréfaction' });
+    const lines = applyOps(c, [{ op: 'damageArmour', material: 'cuir' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Putréfaction' });
     expect(lines.join(' ')).toMatch(/pas de cuir|aucun cuir/i);
   });
 });

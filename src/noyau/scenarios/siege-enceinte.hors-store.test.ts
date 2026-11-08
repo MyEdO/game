@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { scenario } from '../../scenes/test-scenarios/siege-enceinte';
@@ -17,7 +18,7 @@ import { encounterDefSchema } from '../../data/schemas/defs-scenes/scene';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /**
  * Siège à grande échelle (siege-enceinte) — vérif LOGIQUE headless de la Scene PRODUITE par le `MapSpec`.
@@ -158,7 +159,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
   });
 
   it('défenseur z=1 ↔ assaillant z=0 : distance verticale (pas de mêlée à travers le vide), LdV de tir dégagée', () => {
-    banc.setState({ party: scenario.construire().party });
+    banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
     banc.getState().fenetreValider('roundStart');
@@ -179,7 +180,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     const assaut = scenarioConstruit.scene.encounters!.find((e) => e.id === 'assaut')!;
     expect(assaut.siege).toBe(true);
     // Copié TEL QUEL sur l'état de bataille au démarrage (aucune re-dérivation côté runtime).
-    banc.setState({ party: scenario.construire().party });
+    banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
     expect(banc.getState().battle!.siege).toBe(true);
@@ -205,7 +206,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
   });
 
   it('BATTERIE assaillante : le canon de siège BRÈCHE la porte tout seul (IA cible la structure)', () => {
-    banc.setState({ party: scenario.construire().party });
+    banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
     banc.getState().fenetreValider('roundStart');
@@ -230,7 +231,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
   });
 
   it('CONTRAT NÉGATIF : le MÊME canonnier, siège retiré → aucune structure en entrée, aucune décision de structure', () => {
-    banc.setState({ party: scenario.construire().party });
+    banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
     banc.getState().fenetreValider('roundStart');
@@ -248,7 +249,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
   });
 
   it('AUCUN défaut DÉRIVÉ : un objectif « détruire la structure » sans `siege` ne rend PAS de structures', () => {
-    banc.setState({ party: scenario.construire().party });
+    banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
     banc.getState().fenetreValider('roundStart');
@@ -267,7 +268,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
   });
 
   it('DÉFENSEURS : archers PNJ alliés-IA (agissent seuls) ; pièces INERTES servies (hors tour)', () => {
-    banc.setState({ party: scenario.construire().party });
+    banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
     banc.getState().fenetreValider('roundStart');
@@ -300,7 +301,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
   });
 
   it('ÉQUIPAGE QUALIFIÉ : chaque servant a la Projectiles du Groupe de SA pièce → compte dans l’effectif (AA 10 l.230)', () => {
-    banc.setState({ party: scenario.construire().party });
+    banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
     banc.getState().fenetreValider('roundStart');

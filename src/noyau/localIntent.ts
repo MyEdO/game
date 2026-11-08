@@ -16,11 +16,12 @@
  */
 import type { Get } from './flowTypes';
 import { computeChargeReach, computeRunReach, displayedReach } from './combatFlow';
-import { findActionById } from '../data/index';
+import { ACTIONS, findActionById } from '../data/index';
 import { unSiegeAgit } from './netOwnership';
 import type { Jeu } from './etat';
 import type { ActionDeClasse } from './intentionsDeSiege';
-import { armerLOffre, offreDeId, refusDeLOffre, type ContexteDOffre } from './actionRegistry';
+import { armerLOffre, refusDuGeste } from './actionRegistry';
+import type { VerbesDeLaBarre } from './actionsDuNoyau';
 
 /** Le mode d'intention ARMÉ (un seul à la fois) : l'id d'action du registre qui l'a posé. */
 export interface LocalIntent {
@@ -121,18 +122,18 @@ export const INTENT_VERDICT_ARGS: Readonly<Record<string, VerdictJoint>> = {
 /**
  * CE QUE L'ÉMETTEUR PRÉPARE CHEZ LUI AVANT D'ENVOYER UN INTENT, par action de la classe invité.
  *
- * L'armement d'une intention est LOCAL au client (hors snapshot) : l'hôte qui joue l'offre d'un invité ne l'arme pas
- * (`armerLOffre`). Une offre jouée chez l'hôte qui arme une intention (`attaque`) s'arme donc chez l'émetteur, au
- * geste, sur le verdict de son état (`refusDeLOffre`), comme `jouerLOffre` l'arme où il se joue. Une offre jouée chez
- * l'émetteur (`INTENT_ELECTION_LOCALE`) n'envoie rien : `jouerLOffre` l'arme lui-même.
+ * L'armement d'une intention est LOCAL au client (hors snapshot) : l'hôte qui joue le verbe de la barre d'un invité ne
+ * l'arme pas (`armerLOffre`). Un verbe de la barre dont l'offre arme une intention (`attaque`) l'arme donc chez
+ * l'émetteur, au geste, sur le refus de son geste dans son état (`refusDuGeste`), comme le verbe l'arme où il se joue.
  */
 type PreparationLocale = (get: Get, args: readonly unknown[]) => void;
-export const INTENT_PREPARATION_LOCALE: Readonly<Record<string, PreparationLocale>> = {
-  jouerLOffre: (get, [id, ctx]) => {
-    const def = offreDeId(id);
-    if (def && !refusDeLOffre(get(), def.id, (ctx ?? {}) as ContexteDOffre)) armerLOffre(get, def);
-  },
-} satisfies { readonly [A in ActionDeClasse<'invité'>]?: PreparationLocale };
+const armerChezLEmetteur = (verbe: keyof VerbesDeLaBarre): PreparationLocale => (get, args) => {
+  const verdict = refusDuGeste(get(), { verbe, args: [...args] });
+  if ('def' in verdict) armerLOffre(get, verdict.def);
+};
+export const INTENT_PREPARATION_LOCALE: Readonly<Record<string, PreparationLocale>> = Object.fromEntries(
+  ACTIONS.flatMap((def) => (def.intent && def.run && def.run !== 'armerLIntention' ? [[def.run, armerChezLEmetteur(def.run as keyof VerbesDeLaBarre)]] : [])),
+) satisfies { readonly [A in ActionDeClasse<'invité'>]?: PreparationLocale };
 
 /** Prépare chez l'émetteur l'intent `action` qu'il envoie (`INTENT_PREPARATION_LOCALE`). */
 export function preparerLIntentLocal(get: Get, action: string, args: readonly unknown[]): void {

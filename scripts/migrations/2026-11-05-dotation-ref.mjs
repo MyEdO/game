@@ -17,13 +17,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const FICHIERS = ['src/data/careerLevels.json', 'src/data/classes.json', 'src/data/creatures.json'];
 /** L'ancienne clé de chaque type de possession. */
 const ANCIENNES = { creatureId: 'creature', vehicleId: 'vehicle' };
 
-const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const fautes = [];
 let gestes = 0;
 

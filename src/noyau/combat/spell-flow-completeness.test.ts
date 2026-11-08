@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { runPureFlowLines } from './flowEval';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
@@ -36,7 +37,7 @@ describe('Complétude : tout sort porte ses effets dans un Flow exécutable (Spe
     const target = combattantDeTest({ id: 't', label: 'Cible', kind: 'enemy', dead: false, wounds: blessuresDeBase(20) });
     // un « sort » minimal : 6 Blessures + En flammes — exprimé en Flow EffectOp.
     const flow: Flow = { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 6 }, { op: 'condition', id: 'en-flammes' }] } }] };
-    const lines = runPureFlowLines(target, undefined, flow, { rng: desDuTest, label: 'Test' });
+    const lines = runPureFlowLines(target, undefined, flow, { idNeuf: idsDeTest, rng: desDuTest, label: 'Test' });
     expect(target.wounds.current).toBe(14); // wounds ignore BE/PA → 20 − 6
     expect(target.conditions.some((c) => c.id === 'en-flammes')).toBe(true);
     expect(lines.length).toBeGreaterThan(0); // journal produit

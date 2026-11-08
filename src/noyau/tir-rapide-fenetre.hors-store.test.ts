@@ -1,4 +1,6 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
+import { advanceTurn } from './combatFlow';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { initialFields } from './stateFields';
@@ -29,7 +31,7 @@ const etape = () => { const c = g().pendingCascade; return c?.participants[c.cur
  *  E1 a pris le talent deux fois : il tire d'abord (LDB 11 l.103). */
 function finDeRound(gmSeat?: number) {
   const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant => {
-    const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 3 });
+    const c = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 3 });
     c.id = id; c.label = id; c.kind = kind; c.pos = pos; c.fortune = 0;
     c.wounds = blessuresDeBase(200, 200, c);
     return c;
@@ -56,7 +58,7 @@ describe('#997 — Tir rapide de l’IA : chaque tir ouvre la fenêtre du défen
 
   it('deux tireurs : deux fenêtres, dans l’ordre du talent, puis le Round s’ouvre', () => {
     finDeRound();
-    g().terminerLeTour(); // → Round 2, pause de début de Round
+    advanceTurn(banc.getState, banc.setState); // → Round 2, pause de début de Round
     expect(g().pendingRoundStart).not.toBeNull();
     g().fenetreValider('roundStart');
     // 1ʳᵉ fenêtre : E1 (talent ×2) sur H1. La boucle est PARQUÉE : E2 n'a pas tiré, le Round n'est pas ouvert.
@@ -91,7 +93,7 @@ describe('#997 — Tir rapide du héros (`pa.interrupt`) : le défenseur surfac�
     const h1 = de('h1');
     h1.talents = [{ talentId: 'tir-rapide', times: 1 }];
     h1.weapons = [ARC()];
-    g().terminerLeTour();
+    advanceTurn(banc.getState, banc.setState);
     g().declencherLeTirPreventif('h1', 'e1');
     expect(g().pendingAttack?.interrupt).toBe(true);
     g().jetLancer('attack');
@@ -115,7 +117,7 @@ describe('#997 — Tir rapide d’un tireur à gratuite de créature : la suite 
     de('e1').traits = [{ id: 'morsure', value: 14 }];
     de('e1').advantage = 3; // coût d'Avantage de la Morsure payable
     de('e2').talents = []; // E1 seul tireur : sa fenêtre fermée, la boucle finit et le Round s'ouvre
-    g().terminerLeTour();
+    advanceTurn(banc.getState, banc.setState);
     g().fenetreValider('roundStart');
     expect(g().pendingDefense?.attackerId).toBe('e1');
     expect(g().pendingDefense?.weapon.uid, 'la fenêtre est celle du tir').toBe('arc');
@@ -136,7 +138,7 @@ describe('#1765 — Tir rapide : la Maladresse du défenseur suspend la boucle, 
 
   it('H1 rate sa défense sur un double : E2 attend le dé de Maladresse, puis tire UNE fois', () => {
     finDeRound();
-    g().terminerLeTour();
+    advanceTurn(banc.getState, banc.setState);
     g().fenetreValider('roundStart');
     expect(g().pendingDefense?.attackerId).toBe('e1');
     g().jetLancer('defense');
@@ -173,7 +175,7 @@ describe('#1765 — Tir rapide : Maladresse d’arme Bâclé+Solide, la boucle r
       de(id).weapons = [ARC()];
     }
     for (const id of ['e1', 'e2']) { de(id).talents = []; de(id).weapons = [LAME()]; }
-    g().terminerLeTour();
+    advanceTurn(banc.getState, banc.setState);
     g().fenetreValider('roundStart');
     expect(g().pendingDefense?.attackerId).toBe('h1');
     expect(g().pendingDefense?.defenderId).toBe('e1');
@@ -217,7 +219,7 @@ describe('#1765 — Tir rapide instantané : la sauvegarde de la cible suspend l
       de(id).aiControlled = true;
       de(id).traits = [{ id: 'protection', value: 10 }];
     }
-    g().terminerLeTour();
+    advanceTurn(banc.getState, banc.setState);
     g().fenetreValider('roundStart');
     expect(g().pendingDefense, 'aucune fenêtre de défense : le tir est instantané').toBeNull();
     expect(tirsDe('e1'), 'E1 a tiré').toBe(1);

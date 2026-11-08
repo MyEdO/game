@@ -36,7 +36,7 @@ describe('l’incantation par le pont', () => {
     expect(sorts, 'les sorts de l’actif sont un choix à eux').toMatchObject({ type: 'liste', libelle: 'Lancer ce sort' });
     expect(offres.find((c) => c.id === 'economie/action')!.valeurs.map((b) => b.id), 'l’offre par candidat quitte la rangée de sa part').not.toContain('cast-spell');
     const flechette = sorts.valeurs.find((b) => b.libelle === 'Fléchette')!;
-    expect(flechette.jeu, 'chaque sort joue l’offre sur son contexte').toEqual({ offre: 'cast-spell', ctx: { spellId: 'flechette' } });
+    expect(flechette.jeu, 'chaque sort joue le verbe de son offre, l’actif pour lanceur').toEqual({ type: 'incanterLeSort', args: [suite.vue.projection.combat!.actif!.id, 'flechette'] });
     const focaliser = offres.find((c): c is Choix => c.id === 'offre/focus-spell')!;
     expect(focaliser.valeurs.find((b) => b.libelle === 'Fléchette')?.refus, 'un sort qui ne se focalise pas est refusé avec sa raison').toBe('ce Sort ne se focalise pas');
 

@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { applyOps } from './ops';
 import { exposureNight } from './exposure';
@@ -27,7 +28,7 @@ describe('weatherWard — immunité à l’Exposition météo', () => {
 
   it('avec weatherWard : aucun Test, aucun échec, aucune Blessure', () => {
     const c = dummy({});
-    applyOps(c, [{ op: 'weatherWard' }], { rng: desDuTest, label: 'Peau de loup d’hiver', defaultDurationRounds: 9999 });
+    applyOps(c, [{ op: 'weatherWard' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Peau de loup d’hiver', defaultDurationRounds: 9999 });
     const r = exposureNight(c, 4, 15, makeRNG(3));
     expect(r.rolls).toHaveLength(0);
     expect(r.failures).toBe(0);

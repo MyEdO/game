@@ -61,7 +61,7 @@ export const TABLES = {
       if (!def || !wr || !h) return {};
       // ÉVITÉ : le dé garde sa ligne et la conséquence DIT l'issue (patron `authorPerils`).
       if (!step.result.success) return { consequences: freeCons([{ text: t('out.rienNAdvient', { label: wr.label }), tone: 'info' }]) };
-      const lignes = applyOps(h, wr.ops, {
+      const lignes = applyOps(h, wr.ops, { idNeuf: get().forgerUnId,
         rng: battleRng(), label: wr.label, now: get().gameTime, source: { kind: 'activity', id: def.id },
       });
       set({ party: [...get().party] });

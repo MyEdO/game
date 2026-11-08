@@ -5,6 +5,7 @@
  * `runPureFlowLines(..., { sl: t.sl })`). Donnée réelle : Gesundheit (`trappings.json`, MSRC 4 l.186) —
  * `reduceDiseaseDays.daysPerSL` sur `blessure-purulente`.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -17,12 +18,12 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function hero(name: string, over: Partial<Combatant> = {}): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1 });
   return { ...h, id: name, ...over } as Combatant;
 }
 
 function giveItem(h: Combatant, trappingId: string, uid: string): void {
-  const it = itemFromTrappingById(trappingId)!;
+  const it = itemFromTrappingById(trappingId, idsDeTest)!;
   it.uid = uid;
   h.items = [...(h.items ?? []), it];
 }
@@ -47,7 +48,7 @@ describe('Gesundheit hors combat (#458) — le DR du Test de scène atteint redu
     giveItem(h, 'gesundheit', 'g1');
     banc.setState({ party: [h] });
 
-    banc.getState().utiliserLObjet('h1', 'g1');
+    banc.getState().utiliserLObjet('g1');
     const pt = banc.getState().pendingTest!;
     expect(pt).toBeTruthy();
     expect(pt.actorId).toBe('h1');
@@ -65,7 +66,7 @@ describe('Gesundheit hors combat (#458) — le DR du Test de scène atteint redu
     giveItem(h, 'gesundheit', 'g1');
     banc.setState({ party: [h] });
 
-    banc.getState().utiliserLObjet('h1', 'g1');
+    banc.getState().utiliserLObjet('g1');
     const pt = banc.getState().pendingTest!;
     const before = banc.getState().party.find((c) => c.id === 'h1')!.diseases![0].minutesLeft;
     banc.setState({ pendingTest: { ...pt, roll: 1, success: true, sl: 0 } });

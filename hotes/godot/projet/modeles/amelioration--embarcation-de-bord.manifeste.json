@@ -1,0 +1,22 @@
+{
+  "schema": 3,
+  "categorie": "amelioration",
+  "cle": {
+    "amelioration": "embarcation-de-bord"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "montage": "ancrages",
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    }
+  ],
+  "glb": {
+    "sha256": "652ba6e8805e48028ec7ac96d6fd63c6c67f1f4016b7d66883bfa01049a78331",
+    "octets": 11312
+  }
+}

@@ -41,7 +41,7 @@ describe('#220 — archétype avitailleur (registre)', () => {
   it('le stock tiré (rollStock, RNG seedé) garantit l\'eau douce et les pièces détachées de navire', () => {
     const arch = garanti(findMerchantArchetypeById('avitailleur'), 'avitailleur', 'archétype de marchand');
     const cat: CatalogItem[] = trappings
-      .filter((t) => !arch.category.categories && t.subType != null && arch.category.subTypes!.includes(t.subType))
+      .filter((t) => !arch.category.categories && t.subType !== null && arch.category.subTypes!.includes(t.subType.id))
       .map((t) => ({ id: t.id, label: t.label, availability: (t.availability as CatalogItem['availability']) ?? null }));
     // seeds multiples : le curated doit ressortir quelle que soit l'issue du Test de Disponibilité du reste du stock
     for (const seed of [1, 2, 3, 42]) {
@@ -74,7 +74,7 @@ describe('curated garanti QUEL QUE SOIT le mode de marché (chemin réel `ouvrir
   for (const mode of ['simplifie', 'sans-disponibilite'] as const) {
     it(`mode « ${mode} » : la mitraille (Exotique, curatée par l’avitailleur) reste en stock`, () => {
       expect(findMerchantArchetypeById('avitailleur')?.curated).toContain('mitraille-et-poudre');
-      expect(trappings.find((t) => t.id === 'mitraille-et-poudre')!.availability).toBe('Exotique');
+      expect(trappings.find((t) => t.id === 'mitraille-et-poudre')!.availability).toBe('exotique');
       banc.setState({ party: [hero()], scene: sceneWithAvitailleur(mode) });
       banc.getState().ouvrirLeMarchand('pnj');
       expect(banc.getState().merchant!.stock.map((l) => l.id)).toContain('mitraille-et-poudre');

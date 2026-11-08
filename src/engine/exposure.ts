@@ -24,7 +24,7 @@
  * `exposureTestCount`/`exposureShelterFromTent`. La météo de scène donne la sévérité : pluie/neige
  * = difficile, tempête = extrême (froid). Pur : mute `c`, renvoie jets + journal.
  */
-import { CHAR_LABELS, type Combatant, type CharKey, type Difficulty, type ItemInstance } from './types';
+import { CHAR_LABELS, DIFFICULTE_PAR_DEFAUT, type Combatant, type CharKey, type Difficulty, type ItemInstance } from './types';
 import type { RNG } from './dice';
 import { rollTest } from './tests';
 import { addCondition, hasCondition, loseWounds } from './conditions';
@@ -164,7 +164,7 @@ export function applyExposureFailure(c: Combatant, failures: number, rng: RNG, k
   const effectId = kind === 'froid' ? 'exposition-froid' : 'exposition-chaleur';
   if (failures <= 2) {
     for (const k of (failures === 1 ? FIRST_FAIL : SECOND_FAIL)[kind]) {
-      applyActiveEffect(c, { label, effectId, char: k, bonus: -10, duration: { scale: 'permanent' }, expiresOnRespite: true });
+      applyActiveEffect(c, { label, effectId, characteristic: k, bonus: -10, duration: { scale: 'permanent' }, expiresOnRespite: true });
     }
     if (kind === 'chaleur') addCondition(c, 'extenue'); // « vous gagnez un État Exténué » (1ᵉʳ ET 2ᵉ échec, l.330)
     log.push(kind === 'froid'
@@ -204,7 +204,7 @@ export function exposureNight(
   const target = kind === 'froid' ? exposureTarget(c, resVal) : Math.max(0, resVal);
   const skin = kind === 'froid' ? sealskinDR(c) : 0;
   for (let i = 0; i < count; i++) {
-    const res = rollTest(target, opts.difficulty ?? 'intermediaire', rng);
+    const res = rollTest(target, opts.difficulty ?? DIFFICULTE_PAR_DEFAUT, rng);
     // Peau de phoque : « +1 DR … pour supporter l'exposition au froid » (MDG 14 l.277) — sur un Test
     // binaire, l'échec dont le DR remonte à ≥ +1 est TENU (lecture déclarée, cf. en-tête).
     const held = !res.success && skin > 0 && res.sl + skin >= 1;

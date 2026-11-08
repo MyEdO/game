@@ -1,22 +1,22 @@
 /**
- * Éditeur RÉUTILISABLE d'une `Weapon` (arme dérivée/naturelle conférée par une mutation, un trait, un
- * objet…). Édite le VRAI objet `Weapon` — pas de structure intermédiaire. Les champs de LOADOUT
+ * Éditeur RÉUTILISABLE d'un profil d'arme de DONNÉE (`ArmeDerivee` : arme dérivée/naturelle conférée par une
+ * mutation, un trait, un objet…), son Groupe désigné par `ref('weaponGroup')`. Les champs de LOADOUT
  * (hand/uid/reload/bypass/teinte) sont runtime et hors édition : on ne décrit ici que l'arme elle-même.
  */
 import type { Weapon, QualityInstance, ReachValue } from '../../engine/types';
 import { REACH_LABELS, REACH_VARIABLE } from '../../engine/types';
 import { damageString, parseDamage, REACH_IDS } from '../../engine/items';
-import { parseQualityInstance } from '../../engine/qualities/normalize';
-import { qualityRefLabel } from '../../data';
+import { parseQualityInstance } from '../../data/refFormatLivre';
+import { qualityRefLabel, type ArmeDerivee } from '../../data';
 import { NumberField } from '../NumberField';
-import { RefField, REF_FIELD } from '../compendium/refField/RefField';
+import { RefField, cfgDuType } from '../compendium/refField/RefField';
 
 /** Valeurs sélectionnables de l'Allonge = le vocabulaire FERMÉ `ReachValue` lui-même (les sept
  *  longueurs de l'axe, LDB 62 l.156-164, puis « Variable », l.31) : la `<option>` et la valeur
  *  écrite dans la donnée sont la MÊME liste typée — aucune reconversion de texte. */
 const REACH_OPTIONS: ReachValue[] = [...REACH_IDS.map((id) => REACH_LABELS[id]), REACH_VARIABLE];
 
-export function WeaponField({ value, onChange }: { value: Weapon | undefined; onChange: (v: Weapon | undefined) => void }) {
+export function WeaponField({ value, onChange }: { value: ArmeDerivee | undefined; onChange: (v: ArmeDerivee | undefined) => void }) {
   if (!value) {
     return (
       <div className="ed-field">
@@ -25,7 +25,8 @@ export function WeaponField({ value, onChange }: { value: Weapon | undefined; on
     );
   }
   const w = value;
-  const patch = (p: Partial<Weapon>) => onChange({ ...w, ...p });
+  const patch = (p: Partial<ArmeDerivee>) => onChange({ ...w, ...p });
+  const cfgGroupe = cfgDuType('weaponGroup');
   // Portée : SPEC (mètres fixes OU `{bf}` = BF×N, arme de jet). Toggle « ×BF » + valeur, sans perte de donnée.
   const rangeBf = typeof w.range === 'object' && w.range != null;
   const rangeNum: number | undefined = rangeBf ? (w.range as { bf: number }).bf : typeof w.range === 'number' ? w.range : undefined;
@@ -47,8 +48,8 @@ export function WeaponField({ value, onChange }: { value: Weapon | undefined; on
             <option value={2}>2</option>
           </select>
         </label>
-        <RefField cfg={REF_FIELD['trappings.subType']} label="Groupe" nullable value={w.subType ?? ''}
-          onChange={(v) => patch({ subType: typeof v === 'string' && v !== '' ? v : undefined })} />
+        {cfgGroupe && <RefField cfg={cfgGroupe} label="Groupe" nullable value={w.subType?.id ?? ''}
+          onChange={(v) => patch({ subType: typeof v === 'string' && v !== '' ? { id: v } : undefined })} />}
         {w.type === 'melee' ? (
           <label className="dr">Allonge
             {/* Choix FERMÉ sur l'axe (LDB 62 l.156-164) + « Variable » (l.31) : une saisie libre

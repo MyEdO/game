@@ -50,17 +50,17 @@ export interface EntreesDeLire {
   ligne?: number;
   toutes?: boolean;
 }
-export type GesteDeLAgent = { offre: string; ctx?: Record<string, unknown> } | { verbe: string; args?: unknown[]; siege?: number };
+export interface GesteDeLAgent { verbe: string; args?: unknown[]; siege?: number }
 export interface EntreesDeJouer {
   gestes: GesteDeLAgent[];
   partie?: string;
 }
 
-/** Le geste lu d'un geste de l'agent : une offre, ou un verbe et ses arguments, que `jouerUnGeste` contrôle. */
-const gesteLu = (g: GesteDeLAgent): Geste => lireGeste('offre' in g ? g : { type: g.verbe, args: g.args ?? [], siege: g.siege });
+/** Le geste lu d'un geste de l'agent : un verbe et ses arguments, que `jouerUnGeste` contrôle. */
+const gesteLu = (g: GesteDeLAgent): Geste => lireGeste({ type: g.verbe, args: g.args ?? [], siege: g.siege });
 
 /** Le nom d'un geste dans une réponse. */
-const nomDuGeste = (g: Geste): string => ('offre' in g ? `offre ${g.offre}` : g.type);
+const nomDuGeste = (g: Geste): string => g.type;
 
 /** Une erreur structurée, rendue : son texte borné et sa catégorie. */
 const reponseDErreur = (e: ErreurDeGeste): Reponse => ({
@@ -153,7 +153,7 @@ export function creerHote(disque: Disque) {
     const lue = partie(e.partie);
     const nom = lue.nom;
     let r = lue.r;
-    const refusAvant = r.partie.etat().refus?.nonce;
+    const refusAvant = r.partie.etat().refus;
     const appliques: string[] = [];
     const lignes: LigneNumerotee[] = [];
     let jetons = 0;
@@ -187,7 +187,7 @@ export function creerHote(disque: Disque) {
     const etat = r.partie.etat();
     const p = projection(r);
     const total = e.gestes.length;
-    const refusNeuf = etat.refus && etat.refus.nonce !== refusAvant ? ` · refus : ${etat.refus.texte}` : '';
+    const refusNeuf = etat.refus && etat.refus !== refusAvant ? ` · refus : ${etat.refus.texte}` : '';
     const issue = appliques.length
       ? [`${appliques.length === total ? '' : `${appliques.length}/${total} `}appliqué${appliques.length > 1 ? 's' : ''} : ${appliques.join(' · ')}${jetons ? ` · ${jetons} jeton${jetons > 1 ? 's' : ''} repris` : ''}${leves.length ? ` · levé : ${leves.join(', ')}` : ''}${refusNeuf}`]
       : [];

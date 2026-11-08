@@ -4,6 +4,7 @@
  * ET par la rangée qui la montre (`ReadyRow`). Le contrat est POSITIF : un siège nommé qui ne tient
  * aucun héros encore en jeu n'est PAS requis — l'attendre bloquait la table, l'afficher mentait.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -20,7 +21,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const src = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 
 function hero(id: string, label: string): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 11 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 11 });
   h.id = id;
   h.pos = { x: 3, y: 3 };
   return h;

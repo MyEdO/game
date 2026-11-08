@@ -59,15 +59,21 @@ export type TableDesClasses<S = ActionsDuNoyau> = { [A in ActionManuscrite<S>]: 
 
 /** Classe coop de chaque action manuscrite du noyau. */
 export const CLASSE_DES_ACTIONS_DU_NOYAU = {
-  // ═══ invité : COMBAT (le clic du champ, l'offre du registre, les OUVREURS de flux) ═══
+  // ═══ invité : COMBAT (le clic du champ, les verbes de la barre, les OUVREURS de flux) ═══
   // Le clic du champ (`cliquerLaCase`) : en combat, routé par ce qu'il désigne ; hors combat, le geste du siège du monde
   // (`netOwnership.ROUTES`).
   cliquerLaCase: 'invité', effacerLApercu: 'invité',
-  // L'offre du registre (`jouerLOffre`) : son corps se joue chez l'hôte, routé par le lieu de l'offre
-  // (`lieuDeLOffre`, `netOwnership.ROUTES`) ; un relais ou une pure intention se joue chez l'émetteur.
-  jouerLOffre: 'invité', desarmerLeMode: 'invité',
-  // Les gestes d'un lanceur et d'un porteur, en combat comme hors combat : routés par le siège du lanceur ou du porteur
-  // (1ᵉʳ argument, `netOwnership.ROUTES`).
+  // Les verbes de la barre de l'actif (`VerbesDeLaBarre`), jugés chez l'hôte par l'offre qui les déclare : le siège de
+  // l'actif (repli universel). L'armement d'une intention (`armerLIntention`) reste à l'émetteur, plus bas.
+  armerLeMode: 'invité', armerLAttaque: 'invité', lancerLAttaqueDeZone: 'invité', prendreLaVisee: 'invité',
+  rechargerLArme: 'invité', approvisionnerLArme: 'invité', basculerLaRepousse: 'invité', basculerLaPosture: 'invité',
+  aspergerDEau: 'invité', prendreLaDefensive: 'invité', rompreLEngagement: 'invité', gagnerLAvantage: 'invité',
+  seRemettreDeLEtat: 'invité', seRelever: 'invité', faireUnBattement: 'invité', tenterDeDistraire: 'invité',
+  entrerEnFrenesie: 'invité', manoeuvrerSurSoi: 'invité', monterEnSelle: 'invité', mettrePiedATerre: 'invité',
+  servirLePoste: 'invité', quitterLePoste: 'invité', pousserLEngin: 'invité', aiderLEquipe: 'invité',
+  ramasserLObjet: 'invité', manoeuvrerLeNavire: 'invité', chanterLaChanson: 'invité',
+  annulerLeDeplacement: 'invité', terminerLeTour: 'invité', desarmerLeMode: 'invité',
+  // Les gestes d'un lanceur et d'un porteur, en combat comme hors combat : `netOwnership.ROUTES`.
   incanterLeSort: 'invité', focaliserLeSort: 'invité', dissiperLeSort: 'invité', utiliserLObjet: 'invité',
   prendreLaPanoplie: 'invité', depenserLaDetermination: 'invité',
   // Le franchissement d'une arête (escalade, chute volontaire, enjambement d'une croisée #700) : la possession de l'actif
@@ -121,7 +127,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // ── Exploration (miroir V1) ───────────────────────────────────────────────────────────────────
   ouvrirLaCarte: 'hôte', ouvrirLeLieu: 'hôte', partirEnVoyage: 'hôte',
   marchanderLeBillet: 'hôte', reprendreLeVoyage: 'hôte',
-  fixerLaCadence: 'hôte', quitterLaScene: 'hôte', fouillerLaPiece: 'hôte',
+  fixerLaCadence: 'hôte', entrerAuPointDInteret: 'hôte', fouillerLaPiece: 'hôte',
   // Le groupe en exploration : offre d'une entité (pastille), porte, pas et pivot du regard.
   jouerAction: 'hôte', actionnerLaPorte: 'hôte', avancerDUnPas: 'hôte', pivoterLeGroupe: 'hôte',
   // ── Fiche de personnage : progression (PX), équipement, sorts hors combat ─────────────────────
@@ -152,7 +158,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   ouvrirLeRepos: 'hôte', depecerLaCreature: 'hôte',
   // ── La Chance regagnée (règle optionnelle), la fin de séance ──
   restaurerLaFortune: 'hôte', ouvrirLaFinDeSeance: 'hôte',
-  // Armement d'intention au clavier (registre `state/clavier/keybindings.ts`) : n'écrit que `localIntent`.
+  // L'armement d'une intention, verbe de la barre : n'écrit que `localIntent`, l'état local de l'émetteur.
   armerLIntention: 'local',
 } as const satisfies TableDesClasses;
 
@@ -196,24 +202,24 @@ type Ouvreurs<C extends ClasseCoop> = readonly [ActionDeClasse<C>, ...ActionDeCl
  */
 export type Ouverture = { parInvite: Ouvreurs<'invité'>; interne?: SiteInterne } | { parHote: Ouvreurs<'hôte'> } | { interne: SiteInterne };
 const OUVERTURE_DES_FLUX = {
-  attack: { parInvite: ['cliquerLaCase', 'jouerLOffre'] },
+  attack: { parInvite: ['cliquerLaCase'] },
   defense: { interne: 'réaction : combatFlow.maybeOpenDefense / openSurfacedDefense' },
-  cast: { parInvite: ['jouerLOffre', 'cliquerLaCase', 'incanterLeSort'] },
-  disengage: { parInvite: ['jouerLOffre'] },
+  cast: { parInvite: ['cliquerLaCase', 'incanterLeSort'] },
+  disengage: { parInvite: ['rompreLEngagement'] },
   auContact: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
   grapple: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
-  battement: { parInvite: ['jouerLOffre'] },
-  distraire: { parInvite: ['jouerLOffre'] },
+  battement: { parInvite: ['faireUnBattement'] },
+  distraire: { parInvite: ['tenterDeDistraire'] },
   maneuver: { parInvite: ['cliquerLaCase'] }, // manœuvre de créature : ciblage (targetingModes.attackClickCommit)
   run: { parInvite: ['cliquerLaCase'] }, // course armée (combatSlice.cliquerLaCaseDuCombat)
-  reload: { parInvite: ['jouerLOffre'] },
+  reload: { parInvite: ['rechargerLArme'] },
   // Main ensanglantée (AA 07 l.117) : posé par l'ouverture d'attaque (interne) ET par la 2ᵉ frappe à
   // deux armes, que joue le clic du combattant.
   handGate: { parInvite: ['cliquerLaCase'], interne: 'combatFlow.openAttackCascade (Test par Action)' },
-  recover: { parInvite: ['jouerLOffre'] },
-  focus: { parInvite: ['jouerLOffre', 'focaliserLeSort'] },
-  dispel: { parInvite: ['jouerLOffre', 'dissiperLeSort'] },
-  frenzy: { parInvite: ['jouerLOffre'] },
+  recover: { parInvite: ['seRemettreDeLEtat'] },
+  focus: { parInvite: ['focaliserLeSort'] },
+  dispel: { parInvite: ['dissiperLeSort'] },
+  frenzy: { parInvite: ['entrerEnFrenesie'] },
   approach: { parInvite: ['cliquerLaCase'] }, // gate de Peur (combatSlice.fearGateBlocks)
   ward: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
   heal: { parInvite: ['cliquerLaCase', 'soignerLePatient'] }, // ciblage (targetingModes) ; infirmerie
@@ -224,7 +230,7 @@ const OUVERTURE_DES_FLUX = {
   activity: { parInvite: ['pratiquerLActivite'] },
   bargain: { parHote: ['marchanderLePrix'] },
   appraise: { parHote: ['evaluerLObjet', 'evaluerLeButin'] },
-  shanty: { parInvite: ['jouerLOffre'] },
+  shanty: { parInvite: ['chanterLaChanson'] },
 } as const;
 type FluxOuverts = keyof typeof OUVERTURE_DES_FLUX;
 const _ouvertureTotale: Record<FluxMono, Ouverture> & Record<Exclude<FluxOuverts, FluxMono>, never> = OUVERTURE_DES_FLUX;

@@ -5,6 +5,7 @@
  * (elle disparaît de `battle.order` tant qu'elle est montée) ; à la descente elle le retrouve. Un destrier
  * (sans Nerveux) garderait son tour — non couvert ici (comportement inchangé).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
@@ -15,7 +16,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function setup() {
-  const hero = makePregens()[0];
+  const hero = makePregens(idsDeTest)[0];
   hero.pos = { x: 5, y: 5 };
   hero.initiative = 50;
   const horse = spawnEnemy({ ref: 'cheval' }, 'horse', { x: 6, y: 5 });

@@ -19,6 +19,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
+import { estObjet } from '../lib/objet.mjs';
 
 const ROOT = process.cwd();
 const RACINES = ['src/data', 'src/scenes'];
@@ -99,7 +100,7 @@ describe('monnaie — forme UNIQUE dans la donnée authorée (#1463)', () => {
         if (!Object.prototype.hasOwnProperty.call(o, nom)) continue;
         const v = o[nom];
         inc(classes[nom], classe(v));
-        if (v && typeof v === 'object' && !Array.isArray(v)) inc(signatures[nom], Object.keys(v).sort().join(','));
+        if (estObjet(v)) inc(signatures[nom], Object.keys(v).sort().join(','));
       }
     });
 

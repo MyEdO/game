@@ -12,6 +12,7 @@ import { CHEMIN_TSCONFIG } from './importGraph.mjs'
 import { dossierGitCommun } from './gitPorte.mjs'
 import { ecrireTexteAtomique } from './ecritureJsonAtomique.mjs'
 import { PEREMPTION_MS, purgerPerimes } from './purgerPerimes.mjs'
+import { estObjet } from '../../../src/lib/objet.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
 
@@ -98,7 +99,7 @@ export function memosDe(dossier, version, { lectureSeule = false, limiteFamille 
           texte = Buffer.concat(morceaux).toString('utf8')
         } else texte = readFileSync(fichier(nom), 'utf8')
         const lu = JSON.parse(texte)
-        if (lu?.version === version && lu.memos && typeof lu.memos === 'object' && !Array.isArray(lu.memos)) entrees = lu.memos
+        if (lu?.version === version && estObjet(lu.memos)) entrees = lu.memos
         else diagnostic(nom, 'corps invalide')
       } catch (e) {
         if (e.code === 'MEMOS_HORS_BORNE' && depassementStrict) throw e

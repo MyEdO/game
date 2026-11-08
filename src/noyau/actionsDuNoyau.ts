@@ -1,5 +1,7 @@
 import type { CharKey } from '../engine/types';
-import type { ContexteDOffre } from './actionRegistry';
+import type { BattleActionMode } from './actionRegistry';
+import type { ShootingStanceKey } from './etat';
+import type { AttackKind } from '../engine/creatureAttacks';
 import type { OptionDeDetermination } from './combatSlice';
 import type { OptionsDuClic } from './targetingModes';
 import type { IndiceAffiché } from './monde/clues';
@@ -11,36 +13,122 @@ import type { VerbeDeChoix } from './choixDesFenetres';
 import type * as tavernFlow from './tavernFlow';
 import type { Pt } from './monde/path';
 import type {
-  IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
-  IdDEntiteDeScene, IdDuClic, IdDeTireurRapide, IdDePorte, IdDIndice, IdDOffre, IdDeLigneDeButin,
+  IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet,
+  IdDEntiteDeScene, IdDuClic, IdDeTireurRapide, IdDePorte, IdDIndice, IdDIntention, IdDeLigneDeButin,
   IdDeCargaison, IdDePorteurDeCargaison, IdDOffreDeCargaison, IdDeDepot, IdDeSort, IdDePanoplie, IdDeCondition, IdDeFaveur,
   IdDActivite, IdDObjetDuCatalogue, IdDAtoutDArtisanat, IdDeDefautDArtisanat, IdDApparence, IdDeTalent, IdDeCarriere, IdDeCreneau,
-  IdDeCompetenceOuDeTalent, IdDEntrainement, IdDePointDEntree, IdDActionDEntite, IdDeServiceDuLieu, IdDArticle, IdDeRoute,
-  IdDeModeDeVoyage, IdDeRoleABord, IdDeStation, IdDePoste, IdDeTraitNaval, IdDeCompetence,
+  IdDeCompetenceOuDeTalent, IdDEntrainement, IdDActionDEntite, IdDeServiceDuLieu, IdDePointDInteret, IdDArticle, IdDeRoute,
+  IdDeModeDeVoyage, IdDeRoleABord, IdDeStation, IdDePoste, IdDeTraitNaval, IdDeCompetence, IdDAttaque, IdDeManoeuvre,
+  IdDObjetRamassable,
 } from './designations';
 import type { CiblesChoisies } from './verdictsDInterlude';
 import type { FenetreAValider, FenetreQuiSeFerme } from './modalArbiter';
 
 /** Un texte que le joueur écrit (un nom, une motivation) : jamais un id, que `DESIGNATIONS` désigne. */
 export type TexteLibre = string;
-/** Ce qu'un verbe reçoit entier sans le désigner, parce que le geste le crée : le brouillon d'un héros et l'id que
- *  son roster lui donne (`HerosEngage`). Le noyau en juge chaque champ (`herosDeLEngagement`). */
+/** Ce qu'un verbe reçoit sans le désigner, parce que le geste le crée : le brouillon d'un héros et l'id que son roster
+ *  lui donne (`HerosEngage`). Exempt de désignation seulement : l'hôte en lit chaque champ à sa forme (`lireALaForme`). */
 export type HorsDesignation<T> = T;
+/** L'Indice d'intérêts d'un placement en banque, choisi entre 1 et 10 (LDB 23 l.168). */
+export type IndiceDePlacement = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 /** Une Spécialisation de Compétence ou de Talent : un id du catalogue de l'entrée, ou, pour une entrée ouverte, un
  *  texte libre (`entreeOuverte`, LDB 09 l.40) ; le verbe la juge à l'entrée qu'il désigne. */
 type Specialisation = TexteLibre;
 /** Une Compétence désignée : son id, et sa Spécialisation (`RefDesignee`). */
 export interface CompetenceDesignee { id: IdDeCompetence; spec?: Specialisation }
 
+/** Les gestes de la BARRE de l'actif (#3610) : chacun est le verbe qu'une offre du registre déclare (`ENTREES_PAR_RUN`,
+ *  `actionRegistry.ts`), et nul autre geste ne le joue. Le refus de son geste le juge (`refusDuGeste`), dont l'offre
+ *  est la projection : refusé, et dit, hors de l'entrée qui l'admet ; l'intention que cette offre arme s'arme chez l'émetteur. */
+export interface VerbesDeLaBarre {
+  /** Arme l'intention de l'offre `actionId` (`ActionDef.intent`) : sa portée se peint, le clic du champ la commet. */
+  armerLIntention: (actionId: IdDIntention) => void;
+  /** Arme le mode `mode` du combat (`battle.action`) : le clic-cible le commet. */
+  armerLeMode: (mode: BattleActionMode) => void;
+  /** Arme une ATTAQUE (id d'`AttackOption` : 'arme'/'morsure'/'tentacule'/'pietinement'…) pour le clic-ennemi
+   *  — source UNIQUE de l'attaque armée. Toggle → 'arme'.
+   *  Le clic-ennemi résout l'attaque armée via l'approche-puis-frappe (cliquerLeCombattant). */
+  armerLAttaque: (id: IdDAttaque) => void;
+  /** Manœuvre de ZONE / soi immédiate (Souffle/Vomi/Langue/Hurlement/Regard/Étreinte) : résolution
+   *  directe par le résolveur moteur partagé. L'Étreinte glaciale coûte l'Action (LDB 85 l.112). */
+  lancerLAttaqueDeZone: (kind: AttackKind) => void;
+  /** Action « Viser » (sans jet) : +20 (Accessible) au prochain tir tant que c'est la dernière action. */
+  prendreLaVisee: () => void;
+  /** Recharger l'arme `weaponUid` du Tour, portée par l'actif ou pièce que sert son équipage (`rechargeDuTour`) : OUVRE
+   *  la modale du Test étendu de Projectiles de son porteur. LDB 62 l.335 ; MDG 12 l.462 */
+  rechargerLArme: (weaponUid?: IdDObjet) => void;
+  /** Sélectionne la munition à tirer (uid d'un item `kind 'ammo'`). */
+  approvisionnerLArme: (uid: IdDObjet, weaponUid?: IdDObjet) => void;
+  /** Perturbante (LDB 62 l.272-274) : bascule le mode « Repousser » (1 m/DR au lieu des Dégâts). */
+  basculerLaRepousse: () => void;
+  /** Bascule une POSTURE DE TIR pré-armée du combattant actif (`battle.stances`, spec HUD §1a G5) :
+   *  le choix se pose hors modale, le prochain `PendingAttack` le reçoit déjà armé. */
+  basculerLaPosture: (stance: ShootingStanceKey) => void;
+  /** « Asperger d'eau » (MDG 16 l.19, #497) — Action DIRECTE (aucune modale) : cible explicite ou
+   *  1ᵉʳ candidat éligible adjacent (patron `servirLePoste`). */
+  aspergerDEau: (targetId?: IdDeCombattant) => void;
+  /** « Sur la défensive » : utilise l'Action pour +20 en défense jusqu'au prochain tour. */
+  prendreLaDefensive: () => void;
+  /** Désengagement (LDB 15 l.43-68) : menu Sacrifier l'Avantage / Esquiver / Fuir / Renoncer. */
+  rompreLEngagement: () => void;
+  /** Action « cumuler l'Avantage » (LDB 09 l.305-308) : Test de la Compétence `skillId` (Intuition/
+   *  Savoir/Survie/Prière) via la modale de Test standard ; sur réussite +1 Avantage plafonné. Coûte l'Action. */
+  gagnerLAvantage: (skillId: IdDeCompetence) => void;
+  /** Se libérer (Empêtré, Test opposé de Force) / se rouler au sol (En flammes, Athlétisme) : OUVRE la modale (LDB 16 l.66/84). */
+  seRemettreDeLEtat: (state: IdDeCondition) => void;
+  /** Se relever d'À Terre (LDB 16 l.37) : consomme le Mouvement (pas l'Action) ; impossible à 0 PB (LDB 18 l.15). */
+  seRelever: () => void;
+  /** Battement (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé retirant de
+   *  l'Avantage adverse. `foeId` absent = 1er éligible (picker via réglage `battement.adversaire`). */
+  faireUnBattement: (foeId?: IdDeCombattant) => void;
+  /** Distraire (LDB 10 l.364 / AA 13 l.51) : MOUVEMENT, Test opposé Athlétisme vs Calme. Sur victoire,
+   *  le foe est distrait (ne gagne plus d'Avantage). `foeId` absent = 1er éligible en Ligne de vue
+   *  (picker via réglage `distraire.adversaire`). */
+  tenterDeDistraire: (foeId?: IdDeCombattant) => void;
+  /** Entrée en Frénésie d'un héros (LDB 21 l.31) : ouvrir la modale, lancer le Test de FM, Chance/Résilience, appliquer. */
+  entrerEnFrenesie: () => void;
+  /** Capacité SUR SOI octroyée par un trait (Métamorphose humain↔hybride de l'Enfant d'Ulric) : résout la
+   *  manœuvre `targeting:'self'` sur l'acteur et consomme l'Action (la 2ᵉ vient du `loseTurn` de ses effets). */
+  manoeuvrerSurSoi: (maneuverId: IdDeManoeuvre) => void;
+  /** Combat monté (cadre : LDB 14 l.175-187) : enfourcher une monture libre adjacente / en descendre.
+   *  Coût = MOUVEMENT sans jet ni Action — MAISON [entériné 2026-07-17] (« Met les en Maison pour le
+   *  moment », #526 ; aucune clause de coût citable, LDB 14/15/09 + AA 9 fouillés en entier) ;
+   *  Chevaucher sans Test : LDB 09 l.112. `mountId` = la monture DÉSIGNÉE (sa pastille sur le champ) ; absent = la
+   *  plus proche. */
+  monterEnSelle: (mountId?: IdDeCombattant) => void;
+  mettrePiedATerre: () => void;
+  /** « Servir cette pièce » (MDG 12) : le héros actif devient chef d'un poste de siège NON servi adjacent (arme octroyée) — coûte l'Action. KIND-AGNOSTIQUE. */
+  servirLePoste: (target?: { hullId: IdDeCombattant; posteUid: IdDObjet }) => void;
+  /** « Quitter la pièce » (release) : libère le poste servi pour un autre — coûte l'Action. */
+  quitterLePoste: () => void;
+  /** « Pousser » un engin de siège CREWÉ à roues (ADE II 8 l.258, #156) : ouvre le mode de
+   *  ciblage-CASE 'push' (le clic-sol suivant commet la translation de formation, `targetingModes.ts`).
+   *  Chef d'un poste d'engin MOBILE, Action dispo, Équipe ≥ moitié requise (sinon no-op, comme un tir
+   *  sous-effectif refusé). Mouvement SIMPLE, aucun jet ; plafonné à `rule('siege-engine-push-speed')`. */
+  pousserLEngin: () => void;
+  /** « Diriger l'équipe » (Commandant d'équipe, AA) : Test de Commandement (+0) pour aider une équipe d'Arme
+   *  d'équipe à portée de voix — sur réussite, elle tire au score de Projectiles du commandant. Coûte l'Action. */
+  aiderLEquipe: () => void;
+  /** Ramasser UN objet au sol pendant un Round (LDB 13 l.115-116) : applique au combattant
+   *  actif un item ramassable d'un `prop` interactif adjacent. Consomme l'Action, pas d'auto-équipe.
+   *  `key` = `eff:<index dans interact.effects>` (cf. entityPickables). */
+  ramasserLObjet: (entityId: IdDEntiteDeScene, key: IdDObjetRamassable) => void;
+  /** Manœuvre navale (MDG 13) : ouvre la modale du Test de Navigation pour le navire que sert `crewId`. */
+  manoeuvrerLeNavire: (crewId: IdDeCombattant) => void;
+  /** Chanson de marin (Talent, MDG 09 l.32-40) : ouvre la modale du chanteur (choix de chanson + Test de Chant). */
+  chanterLaChanson: (shipId: IdDeCombattant) => void;
+  /** Annule TOUT le déplacement décomposé du Tour (R6) tant qu'aucune Action n'a été prise :
+   *  restaure positions/orientation depuis `battle.moveSnapshot`. No-op après l'Action. */
+  annulerLeDeplacement: () => void;
+  /** FIN DU TOUR (spec §1c-bis COIN) : finir avec l'Action intacte ARME la fin (`armerLaFinDuTour`, empreinte de
+   *  l'économie du tour, répliquée), le geste suivant passe la main. */
+  terminerLeTour: () => void;
+}
+
 /** Les actions de JEU (#2817 D5) : tout hôte les porte ; aucune action d'interface. */
-export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoix {
+export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoix, VerbesDeLaBarre {
   /** Élit (ou oublie, `null`) le porteur `porteurId` du Sort à dissiper (`dispelCarrierId`). */
   designerLeSupport: (porteurId: IdDeCombattant | null) => void;
-  /** Arme (id d'action) ou dissout (`null`) l'intention locale. Re-armer la MÊME la dissout. */
-  armerLIntention: (actionId: IdDOffre | null) => void;
-  /** Joue l'offre `actionId` du registre (#2898) sur son contexte : refusée, et dite, quand `offresDeLActif` ne la rend
-   *  pas ouverte (`refusDeLOffre`) ; elle arme son intention chez l'émetteur, puis joue son entrée d'`OFFRES_PAR_RUN`. */
-  jouerLOffre: (actionId: IdDOffre, ctx?: ContexteDOffre) => void;
   /** Désarme le mode du combat (`battle.action`) et l'intention armée de l'émetteur : Échap, le re-clic d'une case armée,
    *  la sortie de la bordée. L'annulation est gratuite, rien n'étant engagé avant le clic-cible. */
   desarmerLeMode: () => void;
@@ -51,8 +139,8 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   focaliserLeSort: (lanceurId: IdDeCombattant, spellId: IdDeSort) => void;
   /** Dissipe le Sort permanent `spellId` que porte `porteurId`, pour l'Action de `lanceurId` (LDB 46 l.158-162). */
   dissiperLeSort: (lanceurId: IdDeCombattant, spellId: IdDeSort, porteurId: IdDeCombattant) => void;
-  /** Le porteur `porteurId` utilise le consommable `uid` de son inventaire, Action gratuite (LDB 13 l.106). */
-  utiliserLObjet: (porteurId: IdDePorteur, uid: IdDObjet) => void;
+  /** Le porteur du consommable `uid` (`porteurDeLObjet`) l'utilise, Action gratuite (LDB 13 l.106). */
+  utiliserLObjet: (uid: IdDObjet) => void;
   /** Prend le set d'armes `loadoutId` de `heroId`, Action gratuite (LDB 13 l.106), 1×/tour en combat. */
   prendreLaPanoplie: (heroId: IdDeHeros, loadoutId: IdDePanoplie) => void;
   /** Dépense un Point de Détermination de `combattantId` pour l'une de ses trois options, l'État `etat` pour le
@@ -97,8 +185,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   affecterLeHeros: (activityId: IdDActivite, heroIds: IdDeHeros[]) => void;
   /** Ouvre le Test de Résistance de guérison du Rassemblement (l.122). */
   rallierLesTroupes: () => void;
-  /** Tire/choisit le facteur environnemental du Round (l.309, 1d10). */
-  affronterLePeril: (roll?: number) => void;
+  /** Tire le facteur environnemental du Round au RNG de la partie (l.309, 1d10) ; le choisir parmi la table se joue par
+   *  `fenetreChoisir('batailleDeMasse', 'alea', …)`. Refus dit hors Round, Round joué ou aléa déjà posé (`refusDAlea`). */
+  affronterLePeril: () => void;
   /** Résout le Test spectaculaire de Puissance du Round (l.120). */
   engagerLaMelee: () => void;
   /** Passe au Round suivant après le Rassemblement (l.124). */
@@ -106,7 +195,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Activités (LDB 23) : `craftStart` engage l'ouvrage (matériaux ¼ prix + `Combatant.craft`) ; le
    *  LANCER passe par `pratiquerLActivite('craft')`. Passer commande (Exotique) + banque restent dédiés. */
   fabriquerLObjet: (heroId: IdDeHeros, trappingId: IdDObjetDuCatalogue, atouts: IdDAtoutDArtisanat[], defauts: IdDeDefautDArtisanat[]) => void;
-  deposerALaBanque: (heroId: IdDeHeros, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number, rate?: number) => void;
+  /** Opérations bancaires (LDB 23 l.164-170) : `indice` choisi pour un placement (`invest`), tiré au d10 s'il est absent
+   *  (LDB 23 l.168) ; refusé et dit sur un autre dépôt. */
+  deposerALaBanque: (heroId: IdDeHeros, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number, indice?: IndiceDePlacement) => void;
   retirerDeLaBanque: (depotId: IdDeDepot) => void;
   commanderLObjet: (heroId: IdDeHeros, trappingId: IdDObjetDuCatalogue) => void;
   /** Entraînement (ch.23 l.130-136) : Compétence/Caractéristique hors carrière, PX + tuteur 1D10 sc — sans jet. */
@@ -124,17 +215,17 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  transférée au siège qui possédait `oldId` ; ne touche pas la bourse) — créateur (édition) et bouton « Remplacer »
    *  du slot. */
   remplacerLeHeros: (oldId: IdDeHeros, heros: HerosEngage) => void;
-  equiperLObjet: (heroId: IdDePorteur, uid: IdDObjet) => void;
-  /** Range (`containerUid`) ou sort (null) un objet d'un héros d'un contenant (LDB 64). */
-  rangerLObjet: (heroId: IdDePorteur, uid: IdDObjet, containerUid: IdDObjet | null) => void;
+  equiperLObjet: (uid: IdDObjet) => void;
+  /** Range (`containerUid`) ou sort (null) un objet de son porteur d'un contenant (LDB 64). */
+  rangerLObjet: (uid: IdDObjet, containerUid: IdDObjet | null) => void;
   creerLaPanoplie: (heroId: IdDeHeros) => void;
   supprimerLaPanoplie: (heroId: IdDeHeros, loadoutId: IdDePanoplie) => void;
   garnirLaPanoplie: (heroId: IdDeHeros, loadoutId: IdDePanoplie, slot: 'main' | 'off', uid: IdDObjet | null) => void;
-  /** Donne un objet d'un héros à un autre (transfert d'inventaire). Arrive NON équipé chez le
+  /** Donne un objet de son porteur à `toHeroId` (transfert d'inventaire). Arrive NON équipé chez le
    *  destinataire ; recalcule les deux loadouts. Permet de confier une arme/armure au bon porteur. */
-  transmettreLObjet: (uid: IdDObjet, fromHeroId: IdDePorteur, toHeroId: IdDePorteur) => void;
+  transmettreLObjet: (uid: IdDObjet, toHeroId: IdDePorteur) => void;
   /** Choisit un id du catalogue d’apparences admis par l’objet ; le défaut retire la clé (#2113). */
-  poserLApparence: (heroId: IdDeHeros, uid: IdDObjet, apparence: IdDApparence) => void;
+  poserLApparence: (uid: IdDObjet, apparence: IdDApparence) => void;
   /** Achète une Augmentation de Caractéristique (coût in/hors-carrière auto, recalc Blessures). */
   acheterLaCaracteristique: (heroId: IdDeHeros, char: CharKey) => void;
   /** Achète une Augmentation de Compétence (identité skillId+spec) ; acquiert la Compétence de
@@ -155,10 +246,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Ouvre la fin de séance depuis le menu de jeu : refusée et dite hors exploration et chez l'invité (`refusDeFinDeSeance`). */
   ouvrirLaFinDeSeance: () => void;
   /** Entraîne une prothèse portée par dépense de PX (Fausse jambe → réapprendre l'Esquive, 200 PX, LDB 73). */
-  entrainerLaProthese: (heroId: IdDeHeros, uid: IdDObjet) => void;
+  entrainerLaProthese: (uid: IdDObjet) => void;
   /** Change de Carrière/Niveau (validation LDB 07 l.137 / LDB 08 : complétion, +100 hors Classe). */
   changerDeCarriere: (heroId: IdDeHeros, newCareer: IdDeCarriere, newLevel: number) => void;
-  quitterLaScene: (sceneId: IdDeScene, entry?: IdDePointDEntree, pos?: Pt) => void;
   /** Le clic de la case `pt`, sur ce que le geste y désigne (`entite`), le combat lu dans `battle`. En combat, un
    *  combattant désigné se joue par `cliquerLeCombattant` (le mode de ciblage, le Tir rapide de la pause de Round), une
    *  case libre par `cliquerLaCaseDuCombat` ; `opts` porte la confirmation et les verdicts d'armement (`OptionsDuClic`).
@@ -169,10 +259,10 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Ouvre ou ferme la porte d'un accès que le mobile du monde emprunte (`portesDuMobile`) : en combat toute porte,
    *  en exploration une porte fermée. Rend `true` si la porte a bougé. */
   actionnerLaPorte: (porte: IdDePorte) => boolean;
-  /** FRANCHIT l'arête de `de` (case du mobile) vers `vers` (case cardinale d'en face), selon la capacité qu'elle
-   *  porte (`capaciteDuPas`, `aretes.ts`). Porteur = le mobile de `gesteDArete` (exploration : le meneur, le groupe
-   *  suit ; combat : l'actif que ce siège mène, héros ou ennemi mené par le siège MJ) ; tout refus est NOMMÉ
-   *  (`refuserGeste`).
+  /** FRANCHIT l'arête de la case du mobile vers `vers` (case cardinale d'en face), selon la capacité qu'elle porte
+   *  (`capaciteDuPas`, `aretes.ts`). Porteur = le mobile de `gesteDArete`, dont la case se lit dans l'état
+   *  (exploration : le meneur, le groupe suit ; combat : l'actif que ce siège mène, héros ou ennemi mené par le siège
+   *  MJ) ; tout refus est NOMMÉ (`refuserGeste`), dont une destination sans arête franchissable depuis cette case.
    *  - `escalade` (`WallSeg.climb`, LDB 15 l.53-57) : `ladder` monte d'office (pas de Test) au coût du Mouvement à
    *    ½ vitesse ; `surface` déclenche un Test d'Escalade influençable (cascade RollShell) du mobile, dont l'échec
    *    fait chuter, et consomme l'Action en combat (LDB 13 l.86-88).
@@ -180,7 +270,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *    (Sauter / Tenter le Test `chute`).
    *  - `fenetre` (#700 ; LDB 15 l.55, allège `WallSeg.allege`) : enjamber une croisée de plain-pied ; exploration =
    *    le pas du groupe ; combat = Mouvement seul (1 case + l'allège à ½ vitesse), aucun Test, aucune Action. */
-  franchirLArete: (de: Pt, vers: Pt) => void;
+  franchirLArete: (vers: Pt) => void;
   /** POV : pivote le REGARD du meneur d'un cran de 45° (+1 = horaire/droite, -1 = anti-horaire/gauche) —
    *  aucun déplacement (donc pas de réorientation par `orienterSelonLeChemin`). */
   pivoterLeGroupe: (turn: 1 | -1) => void;
@@ -199,6 +289,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Marchand de LIEU (#369) — l'échoppe du service `serviceId` du lieu où se tient le groupe (forgeron du hub de
    *  ville…) : même système marchand, keyé sur `placeServiceMerchantId` (`worldMap.ts`). */
   ouvrirLaBoutique: (serviceId: IdDeServiceDuLieu) => void;
+  /** Entre au point d'intérêt `poi` du plan du lieu où se tient le groupe : l'écran du lieu se ferme sur la scène où il
+   *  mène ; refus dit hors de l'écran du lieu ou hors de ses entrées (`refusDEntrerAuPoint`, `lieuFlow.ts`). */
+  entrerAuPointDInteret: (poi: IdDePointDInteret) => void;
   /** Recherche active de Disponibilité (LDB 59 l.50) : passer une journée entière + un Test de Ragot →
    *  réassort frais avec +10 % de Disponibilité si le Ragot réussit (avance l'horloge d'une journée). */
   chercherLaDisponibilite: () => void;
@@ -218,12 +311,12 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   vendreLeLot: () => void;
   /** Réparation chez l'artisan : remet damageTaken à 0 contre le coût unifié — armure 10 %/PA (LDB 63 l.64)
    *  ou arme 10 %/point de Dégâts (LDB 62 l.135). Arme improvisée = irréparable. */
-  reparerLObjet: (uid: IdDObjet, heroId: IdDeHeros) => void;
+  reparerLObjet: (uid: IdDObjet) => void;
   /** Marchandage (LDB 59 l.43) : ouvre un Test opposé (1/visite) ; réduit ensuite les prix (`bargainBuyFactor`). */
   marchanderLePrix: (mode: 'buy' | 'sell') => void;
   /** Évaluation (LDB 59 l.41) : Test d'Évaluation (Int) ; un succès révèle l'objet + estime son prix.
    *  `mode:'detect'` = Détection d'artefact (LDB 10) : Intuition au toucher, une tentative par objet. */
-  evaluerLObjet: (uid: IdDObjet, heroId: IdDeHeros, mode?: 'evaluate' | 'detect') => void;
+  evaluerLObjet: (uid: IdDObjet, mode?: 'evaluate' | 'detect') => void;
 
   /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients, actes
    *  (Guérison/Hémorragie/Déchirure/Chirurgie) ; le PNJ payant s'ouvre par l'effet `medicalAid`. */

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -80,7 +81,7 @@ describe('Résilience pré-jet — autres modales (synthèse de succès)', () =>
   });
 
   it('frénésie : avant le jet → entrée garantie, 1 Résilience dépensée', () => {
-    const brute = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brute', seed: 1 }), id: 'e1', resilience: 1 };
+    const brute = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brute', seed: 1 }), id: 'e1', resilience: 1 };
     banc.setState({
       battle: { combatants: [brute] } as any,
       pendingFrenzy: { combatantId: 'e1', result: null } as any,

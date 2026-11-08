@@ -4,6 +4,7 @@
  * dédupliquée : traits abordables/légaux + Piétinement + mutation Tentacule) et le câblage des actions du noyau
  * (manœuvre de ZONE résolue directement ; manœuvre de mêlée CIBLÉE → pendingAttack avec freeKind).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { availableAttacks } from './combatManeuvers';
@@ -12,6 +13,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { findManeuverById } from '../data';
 import type { Combatant } from '../engine/types';
+import { recomputeLoadout } from '../engine/items';
 import type { BattleState } from './etat';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { cliquerSurLeCombattant } from './combatOrParty';
@@ -70,21 +72,29 @@ describe('availableAttacks — énumération (pur)', () => {
     expect(availableAttacks(heroNoAdv, mkBattle([heroNoAdv, small])).some((x) => x.id === 'pietinement')).toBe(false);
   });
 
-  it('mutation Tentacule : présente avec l’arme nat-tentacule + un ennemi + pas encore utilisée', () => {
+  it('trait Tentacules : présente avec l’arme que le trait accorde + un ennemi + pas encore utilisée', () => {
     const enemy = at('enemy', 'E', 5, 6);
-    const hero = at('hero', 'H', 5, 5, {
-      weapons: [{ label: 'Tentacule', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], uid: 'nat-tentacule' }] as Combatant['weapons'],
-    });
+    const hero = at('hero', 'H', 5, 5, { traits: [{ id: 'tentacules' }] });
+    recomputeLoadout(hero);
     const t = availableAttacks(hero, mkBattle([hero, enemy])).find((x) => x.id === 'tentacule');
     expect(t).toBeTruthy();
     expect(t!.targeting).toBe('melee');
     expect(t!.cost.advantage).toBe(0);
 
-    const used = at('hero', 'H', 5, 5, {
-      weapons: [{ label: 'Tentacule', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], uid: 'nat-tentacule' }] as Combatant['weapons'],
-      freeAttacksThisTurn: { tentacules: 1 }, // déjà jouée ce tour → plafond 1/tour atteint
-    });
+    const used = at('hero', 'H', 5, 5, { traits: [{ id: 'tentacules' }], freeAttacksThisTurn: { tentacules: 1 } }); // déjà jouée ce tour → plafond 1/tour atteint
+    recomputeLoadout(used);
     expect(availableAttacks(used, mkBattle([used, enemy])).some((x) => x.id === 'tentacule')).toBe(false);
+  });
+
+  it('deux sources de Tentacules : deux uids d’arme distincts, la manœuvre épingle l’une d’elles (#2907)', () => {
+    const enemy = at('enemy', 'E', 5, 6);
+    const hero = at('hero', 'H', 5, 5, { traits: [{ id: 'tentacules' }, { id: 'tentacules', src: { kind: 'mutation', id: 'tentacule-epais' } }] });
+    recomputeLoadout(hero);
+    const uids = hero.weapons.filter((w) => w.attackKind === 'tentacules').map((w) => w.uid);
+    expect(uids).toHaveLength(2);
+    expect(new Set(uids).size).toBe(2);
+    const t = availableAttacks(hero, mkBattle([hero, enemy])).find((x) => x.id === 'tentacule');
+    expect(uids).toContain(t?.weaponUid);
   });
 
   it('inclut l’Arme (1ʳᵉ attaque) mais exclut les manœuvres de Charge (Cornes)', () => {
@@ -105,7 +115,7 @@ describe('availableAttacks — énumération (pur)', () => {
 
 describe('manœuvres en combat (store)', () => {
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');

@@ -10,6 +10,7 @@
  * ne sélectionne l'entrée. `note` documente une exception explicite (maquette statique plutôt que
  * vivante) — jamais une exclusion silencieuse : la garde compte aussi les entrées notées.
  */
+import { fabriqueLocale } from '../../engine/fabriqueDId';
 import { tableTotale } from '../../lib/tableTotale';
 import { type ComponentType, type Dispatch, type SetStateAction, useRef, useState } from 'react';
 import { ScreenMeta } from '../ScreenMeta';
@@ -120,8 +121,7 @@ import { InspectPanel } from '../InspectPanel';
 import { EquipmentPanel } from '../EquipmentPanel';
 import { MediaSelect } from '../MediaSelect';
 import { RefField, refFieldCfg } from '../compendium/refField/RefField';
-import { itemFromTrappingById } from '../../engine/items';
-import type { ItemInstance } from '../../engine/types';
+import { gabaritDObjet, type GabaritDObjet } from '../../engine/items';
 
 // ── Données réelles pour les spécimens vivants (aucune donnée inventée), lues VIVANTES (#1692) ──
 const especeHumaine = memoParVersion('species', () => species.find((s) => s.id === 'humains-reiklander') ?? species[0]);
@@ -144,7 +144,7 @@ export const sectionsDEspeces = memoParVersion('species', (): PickGridSection[] 
 export const carriereExemple = memoParVersion('careers', () => careers.find((c) => c.id === 'agitateur') ?? careers[0]);
 export const niveauxDeLaCarriereExemple = memoParVersion(['careers', 'careerLevels'], () => levelsForCareer(carriereExemple().id));
 export const signeAstralExemple = memoParVersion('stars', () => stars[0]);
-export const herosExemples = memoParVersion('pregens', () => makePregens());
+export const herosExemples = memoParVersion('pregens', () => makePregens(fabriqueLocale('galerie')));
 export const herosExemple = () => herosExemples()[0];
 export const herosExempleB = () => herosExemples()[1] ?? herosExemples()[0];
 
@@ -314,12 +314,12 @@ function OptionChooserDemo() {
   );
 }
 
-/** Objets RÉELS du catalogue (`trappings.json`), instanciés par la fabrique du moteur — jamais un
+/** Objets RÉELS du catalogue (`trappings.json`), lus par la fabrique du moteur (`gabaritDObjet`) — jamais un
  *  objet forgé à la main : la galerie montre ce que le jeu rend. */
-function objetsExemple(): ItemInstance[] {
+function objetsExemple(): GabaritDObjet[] {
   return ['epee-batarde', 'hallebarde', 'arc', 'bouclier', 'justaucorps-de-cuir', 'corde']
-    .map((id) => itemFromTrappingById(id))
-    .filter((i): i is ItemInstance => i !== null);
+    .map((id) => gabaritDObjet(id))
+    .filter((i): i is GabaritDObjet => i !== null);
 }
 
 /** Glyphe de catégorie d'objet, aux trois tailles nommées. */
@@ -332,7 +332,7 @@ function ItemIconDemo() {
         <Row key={size} align="center" gap="lg">
           <span className="hint" style={{ width: 32 }}>{size}</span>
           {objets.map((item) => (
-            <span key={item.uid} title={item.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <span key={item.trappingId} title={item.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               <ItemIcon item={item} size={size} />
             </span>
           ))}
@@ -345,12 +345,12 @@ function ItemIconDemo() {
 /** Sélecteur visuel : rangées `média + libellé + détail`, là où un `<select>` natif ne porte pas d'icône. */
 function MediaSelectDemo() {
   const objets = objetsExemple();
-  const [choix, setChoix] = useState<string | undefined>(objets[0]?.uid);
+  const [choix, setChoix] = useState<string | undefined>(objets[0]?.trappingId);
   if (!objets.length) return <p className="hint">Aucun objet du catalogue n'a pu être instancié.</p>;
   return (
     <MediaSelect
       options={objets.map((item) => ({
-        key: item.uid,
+        key: item.trappingId!,
         media: <ItemIcon item={item} size="sm" />,
         label: item.label,
         sub: item.kind,
@@ -366,16 +366,16 @@ function MediaSelectDemo() {
 /** Picker de référence multilangue-safe : le LIBELLÉ s'affiche, l'`id` est stocké. Deux des quatre
  *  modes, tous deux sur des configs RÉELLES de `REF_FIELD` : `single` (dataset) et `vocab` (champ). */
 function RefFieldDemo() {
-  const [classe, setClasse] = useState<unknown>(undefined);
+  const [caracDeCompetence, setCaracDeCompetence] = useState<unknown>(undefined);
   const [carac, setCarac] = useState<unknown>(undefined);
-  const cfgClasse = refFieldCfg('careers', 'class');
+  const cfgCaracDeCompetence = refFieldCfg('skills', 'characteristic');
   const cfgCarac = refFieldCfg('species', 'refChar');
-  if (!cfgClasse || !cfgCarac) return <p className="hint">Config de champ-réf introuvable.</p>;
+  if (!cfgCaracDeCompetence || !cfgCarac) return <p className="hint">Config de champ-réf introuvable.</p>;
   return (
     <Stack>
-      <RefField cfg={cfgClasse} fieldKey="class" label="Classe de la carrière" value={classe} onChange={setClasse} nullable />
+      <RefField cfg={cfgCaracDeCompetence} fieldKey="characteristic" label="Caractéristique de la compétence" value={caracDeCompetence} onChange={setCaracDeCompetence} nullable />
       <RefField cfg={cfgCarac} fieldKey="refChar" label="Caractéristique de référence" value={carac} onChange={setCarac} nullable />
-      <p className="hint">Stocké : {JSON.stringify({ class: classe, refChar: carac })}</p>
+      <p className="hint">Stocké : {JSON.stringify({ characteristic: caracDeCompetence, refChar: carac })}</p>
     </Stack>
   );
 }

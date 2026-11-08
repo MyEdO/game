@@ -63,7 +63,7 @@ const CONSOLE_KEYS = [
   ...keysFrom(CONSOLE_SRC, /data-action="([^"]+)"()/g),
   // La console EXÉCUTE aussi des entrées sans alvéole (vignette de set, geste du bandeau de pause) :
   // son appel au registre est la surface, au même titre qu'une case.
-  ...keysFrom(CONSOLE_SRC, /jouerLOffre\(\s*'([^']+)'()/g),
+  ...keysFrom(CONSOLE_SRC, /jouerLOffreDeLEcran\([^,]+,\s*'([^']+)'()/g),
 ];
 
 /** La FRISE d'initiative est une surface d'accueil du registre (spec §1d : `raise-hand` y vit) : elle
@@ -88,7 +88,7 @@ const INTERLUDE_KEYS = INTERLUDE_BRANCHE ? ACTIONS.filter((a) => a.surface === '
  *  au DOM dans `CombatConsole.test.tsx` : débrancher le rendeur y vire rouge. */
 const GESTE_2E_BRANCHE = /surface === 'geste-secondaire'/.test(CONSOLE_SRC);
 const GESTE_2E_KEYS = GESTE_2E_BRANCHE
-  ? ACTIONS.filter((a) => a.surface === 'geste-secondaire' && a.hote && CONSOLE_KEYS.includes(a.hote)).map((a) => a.id)
+  ? ACTIONS.filter((a) => a.surface === 'geste-secondaire' && a.hote && CONSOLE_KEYS.includes(a.hote.id)).map((a) => a.id)
   : [];
 
 /** Un REMÈDE D'ÉTAT (Se relever, Se rouler, Se libérer) n'a plus d'id cité au site : sa PERTINENCE

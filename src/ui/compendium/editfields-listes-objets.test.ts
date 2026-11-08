@@ -20,12 +20,12 @@ import { refFieldCfg } from './refField/RefField';
 import { dedicatedFieldKeys } from '../editor/codex/CodexEdit';
 import { isEditableCategory, editableEntries, editableDataset, editableObjectDataset } from '../../data/atelierDuCodex';
 import { noeudDeLEntree, noeudObjet } from '../../data/schemas/validate';
+import { estObjet } from '../../lib/objet.mjs';
 
 const SCALAIRES: ReadonlySet<FieldKind> = new Set(['text', 'textarea', 'number', 'checkbox', 'select']);
 const LISTES: ReadonlySet<FieldKind> = new Set(['stringList', 'numberList', 'selectList']);
 
 type Rangee = Record<string, unknown>;
-const estObjet = (x: unknown): x is Rangee => x != null && typeof x === 'object' && !Array.isArray(x);
 const tableauDObjets = (v: unknown): v is Rangee[] => Array.isArray(v) && v.length > 0 && v.every(estObjet);
 
 /**

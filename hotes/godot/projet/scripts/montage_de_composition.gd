@@ -29,7 +29,7 @@ class Lecture extends RefCounted:
 static var modeles: Dictionary = {}
 ## Par fichier de `modeles/`, sa `Lecture`, d'un chargement des modèles au suivant.
 static var _lectures: Dictionary = {}
-## Par emblème, sa texture rastérisée (`_texture_de_l_embleme`), d'un chargement des modèles au suivant.
+## Par emblème, sa texture rastérisée (`texture_de_l_embleme`), d'un chargement des modèles au suivant.
 static var _textures: Dictionary = {}
 
 ## La base posée, `{}` sans base.
@@ -466,41 +466,55 @@ func choisir_l_embleme(id: String, embleme: String) -> String:
 
 ## L'élément monté à l'emplacement `id` habillé de la palette de la composition, chaque emplacement de palette que
 ## colore la `palette` de son entrée de `montes` (sa teinte, #3456) pris à celle-ci quand cette entrée monte cet élément,
-## et de l'emblème demandé (`_peindre`) ; rend si l'emblème est posé sur une surface au moins, et un emblème demandé
+## et de l'emblème demandé (`peindre`) ; rend si l'emblème est posé sur une surface au moins, et un emblème demandé
 ## qu'aucune ne reçoit donne `blason-sans-surface`.
 func _habiller(id: String) -> bool:
 	var element: String = montes[id]
 	var embleme: String = _emblemes_demandes.get(id, VIDE)
-	var texture: ImageTexture = null if embleme == VIDE else _texture_de_l_embleme(embleme)
+	var texture: ImageTexture = null if embleme == VIDE else texture_de_l_embleme(embleme)
 	var monte: Dictionary = cibles().get(id, {})
 	var palette: Dictionary = composee.get("palette", {}).duplicate()
 	if monte.get("element") == element:
 		palette.merge(monte.get("palette", {}), true)
-	var posee := _peindre(pieces[id], modeles.surfaces[element], texture, palette)
+	var posee := peindre(pieces[id], modeles.surfaces[element], texture, palette)
 	if texture != null and not posee:
 		erreurs.append("blason-sans-surface : %s" % element)
 	return posee
 
 
-## Les meshes de la base posée habillés des matériaux de la composition et de sa palette (`_peindre`, `surfaces` de la
-## base).
+## Les meshes de la base posée habillés des matériaux de la composition et de sa palette (`peindre`, `surfaces` de la
+## base) : chaque surface que `materiaux` nomme prend le matériau de la base de ce nom (`materiaux_de_la_base`), un nom
+## absent du GLB ajoutant `materiau-absent` aux erreurs.
 func habiller_la_base() -> void:
-	if not base.is_empty():
-		_peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}), composee.get("materiaux", {}))
+	if base.is_empty():
+		return
+	var remplacants := {}
+	var materiaux: Dictionary = composee.get("materiaux", {})
+	for surface in materiaux:
+		var remplacant: Material = materiaux_de_la_base.get(materiaux[surface])
+		if remplacant == null:
+			erreurs.append("materiau-absent : %s" % materiaux[surface])
+		else:
+			remplacants[surface] = remplacant
+	peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}), remplacants)
 
 
-## Chaque surface de `meshes` dont le matériau du GLB porte le `nom` d'une de `surfaces` prend le matériau de la base que
-## `remplacants` donne à ce nom (`materiaux` de la composition, `materiau-absent` aux erreurs s'il manque au GLB), puis
-## reçoit un matériau propre (`materiau_local`) si `palette` colore son emplacement de palette, ou si elle est `blason` et
-## `texture` n'est pas nulle : la couleur y remplace l'albédo du GLB, texture comprise, pour que la tête et le corps
-## d'une même peau aient la même couleur, et `texture` devient la couche de détail, en UV1 et en mélange. Toute autre
-## surface garde le matériau du GLB. Rend si `texture` est posée sur une surface au moins.
-func _peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary, remplacants: Dictionary = {}) -> bool:
+## Chaque surface de `meshes` dont le matériau du GLB porte le `nom` d'une de `surfaces` prend le matériau que
+## `remplacants` donne à ce nom, puis reçoit un matériau propre (`materiau_local`) si `palette` colore son emplacement de
+## palette, si elle est `blason` et `texture` n'est pas nulle, ou si la texture de sa `matiere` est au projet : celle-ci
+## l'habille comme le monde (`Monde.texturer`), l'albédo à blanc ; la couleur remplace l'albédo du GLB, texture comprise,
+## pour que la tête et le corps d'une même peau aient la même couleur, ou teint la texture de sa matière ; `texture`
+## devient la couche de détail, en mélange, lue aux UV du GLB : l'UV1, ou l'UV2 où la matière projette l'UV1 sur les
+## trois axes (`_uv2_des_emblemes`). Toute autre surface garde le matériau du GLB. Rend si `texture` est posée sur une
+## surface au moins.
+static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary, remplacants: Dictionary = {}) -> bool:
 	var par_nom := {}
 	for surface in surfaces:
 		par_nom[surface.nom] = surface
 	var posee := false
 	for piece: MeshInstance3D in meshes:
+		if texture != null:
+			_uv2_des_emblemes(piece, par_nom)
 		for rang in piece.mesh.get_surface_count():
 			piece.set_surface_override_material(rang, null)
 			var materiau := piece.get_active_material(rang)
@@ -508,27 +522,62 @@ func _peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Di
 			if surface.is_empty():
 				continue
 			if remplacants.has(surface.nom):
-				var remplacant: Material = materiaux_de_la_base.get(remplacants[surface.nom])
-				if remplacant == null:
-					erreurs.append("materiau-absent : %s" % remplacants[surface.nom])
-				piece.set_surface_override_material(rang, remplacant)
+				piece.set_surface_override_material(rang, remplacants[surface.nom])
 			var couleur: Variant = palette.get(surface.palette)
 			var blason: bool = texture != null and surface.get("blason", false)
-			if couleur == null and not blason:
+			var matiere := _matiere_texturee(surface)
+			var texturee := not matiere.is_empty()
+			if couleur == null and not blason and not texturee:
 				continue
 			var local := materiau_local(piece, rang)
 			if local == null:
 				continue
-			if couleur != null:
+			if texturee:
+				Monde.texturer(local, matiere)
+				local.albedo_color = Color.WHITE
+			elif couleur != null:
 				local.albedo_texture = null
+			if couleur != null:
 				local.albedo_color = Color(couleur)
 			if blason:
 				local.detail_enabled = true
 				local.detail_albedo = texture
-				local.detail_uv_layer = BaseMaterial3D.DETAIL_UV_1
+				local.detail_uv_layer = BaseMaterial3D.DETAIL_UV_2 if texturee else BaseMaterial3D.DETAIL_UV_1
 				local.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MIX
 				posee = true
 	return posee
+
+
+## La matière texturée d'une `surface` de `peindre`, ou "" : sa texture est au projet.
+static func _matiere_texturee(surface: Dictionary) -> String:
+	var matiere: String = surface.get("matiere", "")
+	return matiere if not matiere.is_empty() and ResourceLoader.exists(Monde.texture_de(matiere)) else ""
+
+
+## Le mesh de `piece` recopié, chaque surface `blason` de `par_nom` à matière texturée recevant en UV2 les UV du GLB : la
+## matière projette l'UV1 sur les trois axes (`Monde.texturer`), l'emblème garde son placement en UV2. Une pièce sans
+## telle surface, ou déjà recopiée, garde son mesh.
+static func _uv2_des_emblemes(piece: MeshInstance3D, par_nom: Dictionary) -> void:
+	var source := piece.mesh as ArrayMesh
+	var rangs := range(source.get_surface_count()).filter(func(rang: int) -> bool:
+		var materiau := source.surface_get_material(rang)
+		var surface: Dictionary = {} if materiau == null else par_nom.get(materiau.resource_name, {})
+		return surface.get("blason", false) and not _matiere_texturee(surface).is_empty() \
+			and source.surface_get_format(rang) & Mesh.ARRAY_FORMAT_TEX_UV2 == 0)
+	if rangs.is_empty():
+		return
+	var copie := ArrayMesh.new()
+	copie.blend_shape_mode = source.blend_shape_mode
+	for forme in source.get_blend_shape_count():
+		copie.add_blend_shape(source.get_blend_shape_name(forme))
+	for rang in source.get_surface_count():
+		var tableaux := source.surface_get_arrays(rang)
+		if rang in rangs:
+			tableaux[Mesh.ARRAY_TEX_UV2] = tableaux[Mesh.ARRAY_TEX_UV]
+		copie.add_surface_from_arrays(source.surface_get_primitive_type(rang), tableaux, source.surface_get_blend_shape_arrays(rang))
+		copie.surface_set_material(rang, source.surface_get_material(rang))
+		copie.surface_set_name(rang, source.surface_get_name(rang))
+	piece.mesh = copie
 
 
 ## Par emplacement monté dont une surface porte un matériau propre, la couleur d'albédo `#rrggbb` de ce matériau, par nom
@@ -549,7 +598,7 @@ func couleurs_posees() -> Dictionary:
 
 ## Le SVG de l'emblème `id`, offert par `emblemes` de la réponse de `modeles`, rastérisé à `LARGEUR_D_EMBLEME` pixels de
 ## large, ses mipmaps générées, une fois par chargement des modèles ; `null` (et une erreur) s'il ne se lit pas.
-func _texture_de_l_embleme(id: String) -> ImageTexture:
+func texture_de_l_embleme(id: String) -> ImageTexture:
 	if not _textures.has(id):
 		_textures[id] = _rasteriser_l_embleme(id)
 	return _textures[id]

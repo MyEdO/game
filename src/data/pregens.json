@@ -3,8 +3,12 @@
     "id": "sigmund-reikhardt",
     "type": "pregens",
     "label": "Sigmund Reikhardt",
-    "species": "humains-reiklander",
-    "career": "soldat",
+    "species": {
+      "id": "humains-reiklander"
+    },
+    "career": {
+      "id": "soldat"
+    },
     "seed": 101,
     "speciesTalentChoices": {
       "espece:talents:0": {
@@ -19,8 +23,12 @@
     "id": "grunni-pierre-de-fer",
     "type": "pregens",
     "label": "Grunni Pierre-de-Fer",
-    "species": "nains",
-    "career": "tueur",
+    "species": {
+      "id": "nains"
+    },
+    "career": {
+      "id": "tueur"
+    },
     "seed": 202,
     "motivation": "Honte (Malédiction du Tueur)",
     "ambitionShort": "Trouver une mort digne au combat",
@@ -30,8 +38,12 @@
     "id": "wilhelmina-faust",
     "type": "pregens",
     "label": "Wilhelmina Faust",
-    "species": "humains-reiklander",
-    "career": "sorcier",
+    "species": {
+      "id": "humains-reiklander"
+    },
+    "career": {
+      "id": "sorcier"
+    },
     "seed": 707,
     "speciesTalentChoices": {
       "espece:talents:0": {
@@ -54,8 +66,12 @@
     "id": "frere-anselm",
     "type": "pregens",
     "label": "Frère Anselm",
-    "species": "humains-reiklander",
-    "career": "pretre",
+    "species": {
+      "id": "humains-reiklander"
+    },
+    "career": {
+      "id": "pretre"
+    },
     "seed": 808,
     "speciesTalentChoices": {
       "espece:talents:0": {
@@ -74,8 +90,12 @@
     "id": "aelindra-feuille-d-argent",
     "type": "pregens",
     "label": "Aelindra Feuille-d’Argent",
-    "species": "elfes-sylvains",
-    "career": "chasseur",
+    "species": {
+      "id": "elfes-sylvains"
+    },
+    "career": {
+      "id": "chasseur"
+    },
     "seed": 303,
     "motivation": "Nature",
     "ambitionShort": "Pister la bête qui ravage la forêt",
@@ -85,8 +105,12 @@
     "id": "rosa-brandt",
     "type": "pregens",
     "label": "Rosa Brandt",
-    "species": "humains-reiklander",
-    "career": "apothicaire",
+    "species": {
+      "id": "humains-reiklander"
+    },
+    "career": {
+      "id": "apothicaire"
+    },
     "seed": 404,
     "speciesTalentChoices": {
       "espece:talents:0": {
@@ -102,8 +126,12 @@
     "id": "klein-burger",
     "type": "pregens",
     "label": "Klein Bürger",
-    "species": "halflings",
-    "career": "voleur",
+    "species": {
+      "id": "halflings"
+    },
+    "career": {
+      "id": "voleur"
+    },
     "seed": 505,
     "motivation": "Curiosité",
     "ambitionShort": "Mettre la main sur une bourse bien garnie",
@@ -113,8 +141,12 @@
     "id": "otto-hammerfest",
     "type": "pregens",
     "label": "Otto Hammerfest",
-    "species": "humains-reiklander",
-    "career": "repurgateur",
+    "species": {
+      "id": "humains-reiklander"
+    },
+    "career": {
+      "id": "repurgateur"
+    },
     "seed": 606,
     "speciesTalentChoices": {
       "espece:talents:0": {

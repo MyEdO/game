@@ -4,6 +4,7 @@
  * dépôt en banque (chaque genre fermé par son devis, le montant que la bourse couvre) ; leurs verbes les jouent, et
  * refusent en le disant l'ouvrage ou le genre laissé vide. LDB 23 l.74-78, l.164-170
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
@@ -13,7 +14,7 @@ import { withBourseMoney } from '../engine/bourse';
 
 /** Un banc sur un interlude d'une semaine, dés d'Événement posés, dont le forgeron porte 10 CO. */
 function forge() {
-  const h = withBourseMoney(createHero({ speciesId: 'nains', careerId: 'artisan', label: 'Forgeron', seed: 1602 }), { gold: 10, silver: 0, brass: 0 });
+  const h = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'nains', careerId: 'artisan', label: 'Forgeron', seed: 1602 }), { gold: 10, silver: 0, brass: 0 }, idsDeTest);
   if (!h.skills.some((s) => s.id === 'metier')) h.skills.push({ id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 10 });
   const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [h], screen: 'interlude' } });
   banc.actions.ouvrirLInterlude(1);

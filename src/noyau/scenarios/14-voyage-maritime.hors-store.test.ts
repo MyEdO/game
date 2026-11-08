@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { lancerLeScenario } from '../lancementDeScenario';
@@ -14,13 +15,13 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const scen = testScenarios.find((s) => s.id === 'voyage-maritime')!;
-const scenConstruit = scen.construire();
+const scenConstruit = scen.construire(idsDeTest);
 const get = () => banc.getState();
 
 /** Lance le scénario par le lanceur du menu (`lancerLeScenario`). */
 function launch(seed = 1) {
   seedBattleRng(seed);
-  lancerLeScenario(get, banc.setState, lancementDuScenario(scen));
+  lancerLeScenario(get, banc.setState, lancementDuScenario(scen, idsDeTest));
   // La carte d'ENTRÉE de zone est une étape d'AFFICHAGE de cascade (#942 L8) : comme toute fenêtre de
   // cascade, elle gèle les actions du bord (`partirEnVoyage` compris) tant qu'elle n'est pas acquittée.
   // Le scénario l'acquitte donc, comme un joueur, AVANT d'appareiller.
@@ -100,7 +101,7 @@ describe('Scénario Voyage maritime — durée bornée sur un échantillon de se
 });
 
 describe('Scénario Voyage maritime — beat de Magie des mers (lancer en mer)', () => {
-  const navi = scen.construire().party.find((h) => h.id === 'mar-navi')!;
+  const navi = scen.construire(idsDeTest).party.find((h) => h.id === 'mar-navi')!;
 
   it('le Navigateur est un Astromancien : il maîtrise l’incantation et connaît Bienfait de Bel Shanaar', () => {
     expect(knowsCastingSkill(navi, { id: 'langue', spec: 'magick' })).toBe(true); // incantation des Arcanes

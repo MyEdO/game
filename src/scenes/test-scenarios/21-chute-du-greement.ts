@@ -1,3 +1,4 @@
+import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { createHero } from '../../engine/character';
 import type { Combatant } from '../../engine/types';
 import type { Scene, SceneEntity } from '../../noyau/monde/scene';
@@ -29,15 +30,15 @@ import { especeDApparence } from '../../data';
  * voir. Le siège du joueur les tient tous les deux, donc les deux dés s'ouvrent en fenêtre (posables
  * sous « Dés fixés »).
  */
-function equipage(): Combatant[] {
-  const gabier = createHero({ speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Gabier Ott', motivation: 'Test', seed: 1508, id: 'gabier' });
+function equipage(idNeuf: FabriqueDId): Combatant[] {
+  const gabier = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Gabier Ott', motivation: 'Test', seed: 1508, id: 'gabier' });
   gabier.shipRole = 'mousse';
   gabier.shipStation = 'greement';
   renforcerCompetence(gabier, 'athletisme', 5); // il tombe volontiers : c'est l'échec qu'on vient voir
   renforcerCompetence(gabier, 'voile', 45, 'cogue');
   gabier.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
 
-  const vigie = createHero({ speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Vigie Nissa', motivation: 'Test', seed: 1509, id: 'vigie' });
+  const vigie = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Vigie Nissa', motivation: 'Test', seed: 1509, id: 'vigie' });
   vigie.shipRole = 'vigie';
   vigie.shipStation = 'nid-de-pie';
   renforcerCompetence(vigie, 'athletisme', 5);
@@ -110,6 +111,6 @@ export const scenario: TestScenario = {
     + 'NID-DE-PIE, la hauteur est un entier (25 m) : une seule étape. Coque MOYENNE portant l’Amélioration '
     + 'Nid-de-pie (aucun navire livré ne la porte).',
   partyNote: 'Gabier Ott (gréement) · Vigie Nissa (nid-de-pie) — Athlétisme faible, la chute arrive',
-  construire: () => ({ party: equipage(), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: equipage(idNeuf), scene: construireScene() }),
   autoCombat: 'greement',
 };

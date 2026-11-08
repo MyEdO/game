@@ -3,6 +3,7 @@
  * L'écran du créateur affiche les valeurs et les refus que le noyau applique (#3059) : PX offerts, bornes des compteurs
  * d'allocation, refus d'engagement (`refusDEngagement`).
  */
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -87,7 +88,7 @@ describe('engager : le refus du noyau au bouton', () => {
   }
 
   it('groupe complet : le bouton dit « Le groupe est complet (4 héros). » ; groupe libre : le clic engage', () => {
-    useGame.setState({ party: [1, 2, 3, 4].map((i) => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `M${i}`, seed: i })) });
+    useGame.setState({ party: [1, 2, 3, 4].map((i) => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: `M${i}`, seed: i })) });
     const plein = monterALaPresentation();
     expect(plein.container.querySelector('#creator-commit-reason')?.textContent).toBe('Le groupe est complet (4 héros).');
     plein.fermer();

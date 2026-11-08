@@ -11,14 +11,13 @@ import { rule } from '../engine/policy';
 import { favorRequiredActivities, type Favor, type FavorLevel } from '../engine/favor';
 import { t } from '../i18n';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
-import { nextEntityId } from '../lib/entityId';
 import { refusDeRompreUneFaveur, refuseSi } from './verrousDeFiche';
 import { refusDAcquitterUneFaveur } from './verdictsDInterlude';
 
 /** Crée une Faveur — primitive de création UNIQUE (contrepartie d'Activité/événement du Tableau,
  *  ou Effet d'éditeur `grantFavor`). */
 export function grantFavor(get: Get, set: Set, heroId: string, level: FavorLevel, owedTo: string, desc: string): Favor {
-  const favor: Favor = { id: nextEntityId('favor', (get().favors ?? []).map((f) => f.id)), heroId, level, owedTo, desc, progress: 0 };
+  const favor: Favor = { id: get().forgerUnId('favor'), heroId, level, owedTo, desc, progress: 0 };
   set({ favors: [...(get().favors ?? []), favor] });
   const h = get().party.find((x) => x.id === heroId);
   get().ecrireAuJournal(t('favor.granted', { name: h?.label ?? heroId, level, owedTo }));

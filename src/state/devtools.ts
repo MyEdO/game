@@ -94,7 +94,7 @@ import { battleRng } from '../noyau/battleRng';
 import { applyOps } from '../engine/ops';
 import { acquerirTalent } from '../engine/careerSlots';
 import { grantTrait } from '../engine/grantedTraits';
-import { parseQualityInstance } from '../engine/qualities/normalize';
+import { parseQualityInstance } from '../data/refFormatLivre';
 import { formatImperial } from '../engine/clock';
 import { testScenarios } from '../scenes/test-scenarios';
 import type { TestScenario } from '../scenes/test-scenarios/_shared';
@@ -149,6 +149,7 @@ import type { HitLocation } from '../engine/types';
 import { openSkillTest } from '../noyau/combatEffects';
 import { EMPTY_FLOW, type FlowTest } from '../engine/flowCore';
 import { idDEntropie } from '../web/entropie';
+import { estObjet } from '../lib/objet.mjs';
 
 function entreeDeRecette(dataset: string, id: string): unknown {
   if (!(CLES_DE_DATASET as readonly string[]).includes(dataset))
@@ -167,7 +168,7 @@ function entreeDeRecette(dataset: string, id: string): unknown {
     const matches = valeur.filter((v) => marque.de(v) === id);
     if (matches.length > 1) throw new Error(`__wfrp.entree : « ${dataset}/${id} » ambigu (${matches.length} entrées)`);
     entree = matches[0];
-  } else if (marque.forme === 'record' && !marque.sous && valeur && typeof valeur === 'object' && !Array.isArray(valeur)) {
+  } else if (marque.forme === 'record' && !marque.sous && estObjet(valeur)) {
     entree = Object.prototype.hasOwnProperty.call(valeur, id) ? (valeur as Record<string, unknown>)[id] : undefined;
   } else throw new Error(`__wfrp.entree : forme de « ${dataset} » non prise en charge`);
   if (entree === undefined) throw new Error(`__wfrp.entree : « ${dataset}/${id} » introuvable`);
@@ -678,7 +679,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!!spec.skill === !!spec.characteristic) throw new Error('__wfrp.testCompetence : fournir une compétence ou une caractéristique');
       if (!spec.stake) throw new Error('__wfrp.testCompetence : fournir l’enjeu du Test (stake)');
       if (g().pendingTest || g().pendingCascade) throw new Error('__wfrp.testCompetence : un Test est déjà ouvert');
-      if (!openSkillTest(g, useGame.setState, structuredClone(spec), EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW, { actorId }))
+      if (!openSkillTest(g, useGame.setState, structuredClone(spec), condCtx(g), EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW, { actorId }))
         throw new Error(`__wfrp.testCompetence : ouverture refusée pour « ${actorId} »`);
       return '✓ Test ouvert';
     },
@@ -1242,7 +1243,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       }
       const s = g();
       if (seed != null) s.ensemencerLeTirage(seed);
-      s.fixerLeGroupe(makeShowcaseParty()); // campagnes built-in sans pré-tirés propres — groupe canonique (4 piliers)
+      s.fixerLeGroupe(makeShowcaseParty(s.forgerUnId)); // campagnes built-in sans pré-tirés propres — groupe canonique (4 piliers)
       s.setPendingCampaign(lancee);
       const refus = lancerCampagne(g, lancee, sceneId);
       if (refus) return `✗ campagne « ${c.label} » refusée — ${refus}`;
@@ -1268,7 +1269,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const s = g();
       if (s.battle) return '✗ combat en cours — impossible d\'ouvrir un interlude (voir __wfrp.killEnemies())';
       if (s.interlude) return `interlude déjà ouvert (${Object.keys(s.interlude.perHero).length} héros) — écran 'interlude', à conduire à la main`;
-      if (!s.party.length) s.fixerLeGroupe(makeShowcaseParty()); // pas de groupe chargé → 4 piliers canoniques
+      if (!s.party.length) s.fixerLeGroupe(makeShowcaseParty(s.forgerUnId)); // pas de groupe chargé → 4 piliers canoniques
       s.ouvrirLInterlude(weeks);
       const after = useGame.getState();
       if (!after.interlude) return '✗ interlude non ouvert — voir __wfrp.state()/__wfrp.log()';
@@ -1564,7 +1565,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         const pv = useGame.getState().pendingVictory;
         const t = trappingsInstanciables().find((x) => x.qualities?.length);
         if (pv && t) {
-          const { gear } = gearFromEffects([{ type: 'giveTrapping', trappingId: t.id }], objetDuNarratif(useGame.getState().campaignNarratif));
+          const { gear } = gearFromEffects([{ type: 'giveTrapping', trappingId: t.id }], objetDuNarratif(useGame.getState().campaignNarratif), useGame.getState().forgerUnId);
           useGame.setState({ pendingVictory: { ...pv, gear: [...(pv.gear ?? []), ...gear] } });
           lootNote = ` — butin qualité ajouté : ${t.label} (${t.qualities.map((q) => q.id).join(', ')})`;
         } else if (!pv) {
@@ -1584,7 +1585,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!target) return `✗ « ${id} » introuvable dans le combat — voir __wfrp.battle()`;
       if (typeof n !== 'number' || !Number.isFinite(n)) return `✗ Dégâts « ${String(n)} » : un nombre fini est attendu`;
       const caster = s.battle.combatants.find((c) => c.kind === 'hero' && !isOutOfAction(c)) ?? target;
-      const lines = applyOps(target, [{ op: 'wounds', amount: n }], { rng: battleRng(), caster });
+      const lines = applyOps(target, [{ op: 'wounds', amount: n }], { idNeuf: useGame.getState().forgerUnId, rng: battleRng(), caster });
       useGame.setState({
         battle: { ...s.battle, log: [...s.battle.log, ev('info', `Recette : ${n} Dégâts infligés à ${target.label}.`), ...lines.map((l) => ev('info', l))] },
       });

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { t } from '../i18n';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -80,7 +81,7 @@ describe('vendreLaCargaison au port — cascade Ragot → acheteur → Marchanda
   });
 
   it('port producteur, Ragot au plancher (skill 0) → le journal enchaîne exactement UN dénouement (succès ou échec du Ragot), jamais les deux', async () => {
-    const hero = makePregens()[0];
+    const hero = makePregens(idsDeTest)[0];
     setSkill(hero, 'ragot', 0);
     setup({ taille: 4, richesse: 4, production: ['bois-mer'] }, [hero]);
     get().vendreLaCargaison('lot-1');
@@ -117,7 +118,7 @@ describe('vendreLaCargaison au port — cascade Ragot → acheteur → Marchanda
   });
 
   it('1ʳᵉ recherche d’acheteur ratée (d100 > nombre visé), la 2ᵉ sur la moitié du lot au MÊME nombre visé trouve preneur (MDG 15 l.362)', async () => {
-    const hero = makePregens()[0];
+    const hero = makePregens(idsDeTest)[0];
     setup({ taille: 5, richesse: 1, production: [] }, [hero]); // nombre visé 50 (MDG 15 l.362)
     imposeD100(51, 50);
     get().vendreLaCargaison('lot-1');
@@ -128,7 +129,7 @@ describe('vendreLaCargaison au port — cascade Ragot → acheteur → Marchanda
   });
 
   it('port SANS relation au bien, marchandeur compétent (skill 90) → Marchandage joué, gain crédité et journalisé', async () => {
-    const hero = makePregens()[0];
+    const hero = makePregens(idsDeTest)[0];
     setSkill(hero, 'marchandage', 90);
     setup({ taille: 10, richesse: 4, production: [] }, [hero]);
     const before = partyMoneyTotal(get).gold;
@@ -141,14 +142,14 @@ describe('vendreLaCargaison au port — cascade Ragot → acheteur → Marchanda
   });
 
   it('déterminisme seedé conservé : rejouer la MÊME graine + même parti produit le MÊME gain (byte-identique)', async () => {
-    const hero = makePregens()[0];
+    const hero = makePregens(idsDeTest)[0];
     setSkill(hero, 'marchandage', 90);
     setup({ taille: 10, richesse: 4, production: [] }, [hero]);
     get().vendreLaCargaison('lot-1');
     await drain();
     const gainA = partyMoneyTotal(get).gold;
 
-    const hero2 = makePregens()[0];
+    const hero2 = makePregens(idsDeTest)[0];
     setSkill(hero2, 'marchandage', 90);
     setup({ taille: 10, richesse: 4, production: [] }, [hero2]);
     get().vendreLaCargaison('lot-1');
@@ -191,7 +192,7 @@ describe('acheterLaCargaison au port — Marchandage d’achat SURFACÉ par casc
   });
 
   it('marchandeur présent → le Marchandage OUVRE une cascade (jet SURFACÉ, jamais silencieux)', () => {
-    const hero = makePregens()[0];
+    const hero = makePregens(idsDeTest)[0];
     setSkill(hero, 'marchandage', 90);
     setupBuy([hero]);
     get().acheterLaCargaison('vessel', 'bois-mer', 10);
@@ -201,7 +202,7 @@ describe('acheterLaCargaison au port — Marchandage d’achat SURFACÉ par casc
   });
 
   it('marchandeur compétent (skill 90) → Marchandage joué, cargaison embarquée, remise journalisée', async () => {
-    const hero = makePregens()[0];
+    const hero = makePregens(idsDeTest)[0];
     setSkill(hero, 'marchandage', 90);
     setupBuy([hero]);
     const before = partyMoneyTotal(get).gold;
@@ -214,14 +215,14 @@ describe('acheterLaCargaison au port — Marchandage d’achat SURFACÉ par casc
   });
 
   it('déterminisme seedé : rejouer la MÊME graine + même parti produit le MÊME coût', async () => {
-    const hero = makePregens()[0];
+    const hero = makePregens(idsDeTest)[0];
     setSkill(hero, 'marchandage', 90);
     setupBuy([hero]);
     get().acheterLaCargaison('vessel', 'bois-mer', 10);
     await drain();
     const spentA = 5000 - partyMoneyTotal(get).gold;
 
-    const hero2 = makePregens()[0];
+    const hero2 = makePregens(idsDeTest)[0];
     setSkill(hero2, 'marchandage', 90);
     setupBuy([hero2]);
     get().acheterLaCargaison('vessel', 'bois-mer', 10);
@@ -249,7 +250,7 @@ describe('Marchandage portuaire et Négociateur (MDG 15 l.335/385 → LDB 59 l.4
   beforeEach(() => setRule('test-auto-bands', 'off'));
 
   it('achat : PJ Négociateur gagnant de 6 DR ou plus → remise de 30 %', () => {
-    const hero = makePregens()[0];
+    const hero = makePregens(idsDeTest)[0];
     hero.talents = [...hero.talents, { talentId: 'negociateur', times: 1 }];
     const step = etapeMarchandage(hero, 'port-buy-bargain', 9, true, { cargoId: 'bois-mer', want: 20, basePrice: 10, merchantValue: 40, merchantNegotiator: false, sellerDR: 0 });
     imposeD100(95); // le commerçant (40) rate : DR −5
@@ -257,7 +258,7 @@ describe('Marchandage portuaire et Négociateur (MDG 15 l.335/385 → LDB 59 l.4
   });
 
   it('vente : l’acheteur Négociateur l’emporte de moins de 6 DR → le prix d’offre baisse de 20 %', () => {
-    const hero = makePregens()[0];
+    const hero = makePregens(idsDeTest)[0];
     const step = etapeMarchandage(hero, 'port-sell-bargain', -3, false, { lotId: 'lot-1', sellEnc: 20, offerPct: 100, merchantValue: 50, merchantNegotiator: true, sellerDR: 0 });
     setup({ taille: 4, richesse: 4, production: [] } as unknown as PortProfile, [hero]);
     imposeD100(40); // l’acheteur (50) réussit : DR +1

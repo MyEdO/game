@@ -7,6 +7,7 @@
     "test": null,
     "specs": [],
     "rand": null,
+    "codexOnly": true,
     "source": {
       "book": "livre-de-base",
       "page": 132
@@ -60,7 +61,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "sociabilite",
+        "characteristic": "sociabilite",
         "mod": 5
       }
     ]
@@ -356,7 +357,7 @@
         }
       ]
     },
-    "desc": "Appelé « parler à tort et à travers » dans le Nordland, ou simplement « raconter des âneries » au Ostland, Baratiner consiste à parler rapidement de façon incessante, ou parler longuement de façon volubile, en parlant de choses sans importance ou n'ayant aucun sens, pour embrouiller et déconcerter verbalement une cible. Vous utilisez votre Compétence Charme pour Baratiner. Tentez un Test opposé Charme/Intelligence. Un succès donne à votre adversaire un État Sonné. De plus, pour chaque niveau que vous possédez dans ce Talent, votre adversaire gagne un État Sonné supplémentaire. Les cibles Sonnées grâce à Baratiner ne peuvent rien faire d'autre que vous regarder, médusées et essayant de suivre ou de comprendre ce que vous racontez. Une fois que le dernier État Sonné touche à sa fin, la cible peut enfin placer un mot, et peut ne pas être très contente de vous. Après tout, vous avez parlé de choses sans importance ou n'ayant aucun sens pendant assez longtemps. Si vous arrêtez de parler, votre adversaire perd imm��diatement tout État Sonné causés par votre Talent Baratiner. En général, vous ne pouvez tenter de Baratiner un Personnage qu'une seule fois par scène, ou plus longtemps (le MJ détermine ce point), car la cible ne tarde pas à prendre conscience de vos simagrées.",
+    "desc": "Appelé « parler à tort et à travers » dans le Nordland, ou simplement « raconter des âneries » au Ostland, Baratiner consiste à parler rapidement de façon incessante, ou parler longuement de façon volubile, en parlant de choses sans importance ou n'ayant aucun sens, pour embrouiller et déconcerter verbalement une cible. Vous utilisez votre Compétence Charme pour Baratiner. Tentez un Test opposé **Charme/Intelligence**. Un succès donne à votre adversaire un État *Sonné*. De plus, pour chaque niveau que vous possédez dans ce Talent, votre adversaire gagne un État *Sonné* supplémentaire. Les cibles *Sonnées* grâce à Baratiner ne peuvent rien faire d'autre que vous regarder, médusées et essayant de suivre ou de comprendre ce que vous racontez. Une fois que le dernier État *Sonné* touche à sa fin, la cible peut enfin placer un mot, et peut ne pas être très contente de vous. Après tout, vous avez parlé de choses sans importance ou n'ayant aucun sens pendant assez longtemps. Si vous arrêtez de parler, votre adversaire perd immédiatement tous les États *Sonné* causés par votre Talent Baratiner. En général, vous ne pouvez tenter de Baratiner un Personnage qu'une seule fois par scène, ou plus longtemps (le MJ détermine ce point), car la cible ne tarde pas à prendre conscience de vos simagrées.",
     "specs": [],
     "rand": null,
     "source": {
@@ -493,6 +494,15 @@
           "page": 36,
           "note": "ADE II 02 l.919"
         }
+      },
+      {
+        "id": "plaine",
+        "label": "Plaine",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 184
+        },
+        "pool": false
       }
     ],
     "rand": null,
@@ -1433,7 +1443,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "dexterite",
+        "characteristic": "dexterite",
         "mod": 5
       }
     ]
@@ -2293,7 +2303,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "capacite-de-combat",
+        "characteristic": "capacite-de-combat",
         "mod": 5
       }
     ]
@@ -2465,7 +2475,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "force-mentale",
+        "characteristic": "force-mentale",
         "mod": 5
       }
     ]
@@ -3773,7 +3783,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "intelligence",
+        "characteristic": "intelligence",
         "mod": 5
       }
     ]
@@ -4045,7 +4055,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "agilite",
+        "characteristic": "agilite",
         "mod": 5
       }
     ]
@@ -4489,6 +4499,15 @@
       {
         "id": "voies-fluviales",
         "label": "Voies fluviales"
+      },
+      {
+        "id": "local",
+        "label": "Local",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 125
+        },
+        "pool": false
       }
     ],
     "rand": null,
@@ -4644,6 +4663,15 @@
           "book": "mer-des-griffes",
           "page": 56,
           "note": "MDG 07 l.250"
+        },
+        "pool": false
+      },
+      {
+        "id": "skavens",
+        "label": "Skavens",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 339
         },
         "pool": false
       }
@@ -4995,7 +5023,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "capacite-de-tir",
+        "characteristic": "capacite-de-tir",
         "mod": 5
       }
     ]
@@ -5375,7 +5403,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "force",
+        "characteristic": "force",
         "mod": 5
       }
     ]
@@ -5396,7 +5424,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "endurance",
+        "characteristic": "endurance",
         "mod": 5
       }
     ]
@@ -5419,7 +5447,7 @@
         }
       ]
     },
-    "desc": "Vous êtes doué pour jouer et gagner aux cartes, bien que vos méthodes puissent impliquer un peu de triche. Quand vous utilisez Pari ou Escamotage avec succès en jouant aux cartes, vous pouvez choisir, soit d'utiliser le DR obtenu, soit le chiffre des unités de votre dé. Donc, un succès de 28 peut être utilisé comme un DR de +8. Si vous jouez avec un jeu de cartes réel pour représenter ce qui se passe en jeu, vous pouvez recevoir un nombre suppl��mentaire de cartes par distribution égal à votre niveau de Tricheur, puis en défausser pour revenir à la taille de main appropriée avant chaque tour de jeu.",
+    "desc": "Vous êtes doué pour jouer et gagner aux cartes, bien que vos méthodes puissent impliquer un peu de triche. Quand vous utilisez Pari ou Escamotage avec succès en jouant aux cartes, vous pouvez choisir, soit d'utiliser le DR obtenu, soit le chiffre des unités de votre dé. Donc, un succès de 28 peut être utilisé comme un DR de +8. Si vous jouez avec un jeu de cartes réel pour représenter ce qui se passe en jeu, vous pouvez recevoir un nombre supplémentaire de cartes par distribution égal à votre niveau de Tricheur, puis en défausser pour revenir à la taille de main appropriée avant chaque tour de jeu.",
     "specs": [],
     "rand": null,
     "source": {
@@ -5563,7 +5591,7 @@
     "passive": [
       {
         "op": "charMod",
-        "char": "initiative",
+        "characteristic": "initiative",
         "mod": 5
       }
     ]

@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { CODEX, combatantSections } from './registry';
 import { pregen, PREGEN } from '../../data/pregens';
@@ -32,7 +33,7 @@ describe('Codex — aucun champ structuré rendu brut', () => {
     // WeaponDamageSpec qui doit passer par damageString, pas être rendu brut).
     const offenders: string[] = [];
     for (const key of Object.keys(PREGEN) as (keyof typeof PREGEN)[]) {
-      const c = pregen(PREGEN[key]);
+      const c = pregen(idsDeTest, PREGEN[key]);
       for (const sec of combatantSections(c)) {
         for (const row of sec.rows) {
           if (JSON.stringify(row).includes('[object Object]')) offenders.push(`${String(key)} › ${sec.title} › ${JSON.stringify(row)}`);

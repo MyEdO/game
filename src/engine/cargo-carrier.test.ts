@@ -1,3 +1,4 @@
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import {
   type CargoCarrier, type CargoLot,
@@ -89,7 +90,7 @@ describe('CargoCarrier — transfert co-localisé (décision 8)', () => {
   it('déplace le lot désigné, plafonné par la place libre de la cible, prix préservé', () => {
     const from = mkCarrier({ id: 'mule', capacity: 14, cargo: [lot('a', 'vin', 8, 5), lot('b', 'vin', 4, 7)] });
     const to = mkCarrier({ id: 'cart', capacity: 30, cargo: [lot('c', 'sel', 24)] }); // reste 6
-    const r = transferCargo(from, to, 'b', 100);
+    const r = transferCargo(from, to, 'b', 100, idsDeTest);
     expect(r.moved).toBe(4);
     expect(r.from.cargo).toEqual([lot('a', 'vin', 8, 5)]);
     expect(r.to.cargo).toEqual([lot('c', 'sel', 24), lot('b', 'vin', 4, 7)]);
@@ -98,7 +99,7 @@ describe('CargoCarrier — transfert co-localisé (décision 8)', () => {
   it('une part séparée naît avec son propre uid ; le reste garde celui du lot', () => {
     const from = mkCarrier({ id: 'mule', capacity: 14, cargo: [lot('a', 'vin', 8, 5), lot('b', 'vin', 4, 7)] });
     const to = mkCarrier({ id: 'cart', capacity: 30, cargo: [lot('c', 'sel', 24)] }); // reste 6
-    const r = transferCargo(from, to, 'a', 100);
+    const r = transferCargo(from, to, 'a', 100, idsDeTest);
     expect(r.moved).toBe(6); // plafonné par la place libre de la cible
     expect(r.from.cargo).toEqual([lot('a', 'vin', 2, 5), lot('b', 'vin', 4, 7)]);
     const [, part] = r.to.cargo;
@@ -109,7 +110,7 @@ describe('CargoCarrier — transfert co-localisé (décision 8)', () => {
   it('refuse (moved 0) si les porteurs ne sont pas co-localisés', () => {
     const from = mkCarrier({ id: 'mule', cargo: [lot('a', 'vin', 8)] });
     const to = mkCarrier({ id: 'cart', location: { kind: 'au-lieu', placeId: 'kemperbad' }, capacity: 30 });
-    const r = transferCargo(from, to, 'a', 8);
+    const r = transferCargo(from, to, 'a', 8, idsDeTest);
     expect(r.moved).toBe(0);
     expect(r.from).toBe(from);
     expect(r.to).toBe(to);
@@ -118,7 +119,7 @@ describe('CargoCarrier — transfert co-localisé (décision 8)', () => {
   it('transfert d’un lot absent de la source → moved 0', () => {
     const from = mkCarrier({ id: 'mule', cargo: [lot('a', 'vin', 8)] });
     const to = mkCarrier({ id: 'cart', capacity: 30 });
-    expect(transferCargo(from, to, 'b', 8).moved).toBe(0);
+    expect(transferCargo(from, to, 'b', 8, idsDeTest).moved).toBe(0);
   });
 });
 

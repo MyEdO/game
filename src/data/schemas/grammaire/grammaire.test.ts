@@ -32,6 +32,7 @@ import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { poserRegimeVivant } from './idsVivants';
 import { defDe, enfantsDe } from './descente';
 import { noeudObjet, validateDataset } from '../validate';
+import { estObjet } from '../../../lib/objet.mjs';
 
 type EntreeASpecs = { id: string; specs?: { id: string }[]; specsSource?: string };
 const UNE_COMPETENCE = skillsJson[0] as { id: string };
@@ -592,7 +593,7 @@ describe('defs/ — forme de FICHIER et EXPOSITION déclarée (#1472 sous-lot A)
       if (!e.dataset && !e.object && !e.none && !e.niche) fautifs.push(`${def.file} : \`edit\` sans route déclarée`);
       if (e.niche) {
         const carte = e.niche.categories;
-        const cats = carte && typeof carte === 'object' && !Array.isArray(carte) ? Object.keys(carte) : [];
+        const cats = estObjet(carte) ? Object.keys(carte) : [];
         if (!(cats.length && cats.every((k) => k.length && typeof carte![k] === 'string' && (carte![k] as string).length))) {
           fautifs.push(`${def.file} : \`edit.niche.categories\` vide ou mal formée`);
         } else if (!keys) {
@@ -690,7 +691,7 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     // classe — une entrée MÉTA ou sans prose citable dont la `desc: ""` est purgée, si bien
     // qu'exiger `desc` la refuserait :
     //   • vague 12  : `talents` (187ᵉ entrée `talent-aleatoire`, vocabulaire de tirage LDB 05 l.484,
-    //     exemptée d'obtenabilité par `META_CATALOG_ENTRIES`), purgée par la migration 12a ;
+    //     exemptée d'obtenabilité par `codexOnly`), purgée par la migration 12a ;
     //   • vague 12b : `species` (5ᵉ entrée `humains-tileens`), purgée par la migration 12b.
     // Les deux renvois viennent NOMMÉMENT de `2026-08-27-l1b-3h-desc-null.mjs:25-28`, verbatim :
     // « Les deux autres — `species.json[4]` et `talents.json[0]` — sont déclarés `desc: z.string()`

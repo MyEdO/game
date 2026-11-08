@@ -29,7 +29,9 @@
     "id": "montagnes-grises",
     "type": "locations",
     "label": "Montagnes Grises",
-    "parent": "les-montagnes-les-collines-et-le-vorbergland",
+    "parent": {
+      "id": "les-montagnes-les-collines-et-le-vorbergland"
+    },
     "prefix": null,
     "suffix": "Les",
     "desc": "Les pics inhospitaliers des Montagnes Grises sont criblés de tunnels et surmontés de passerelles en ruine, datant de l'époque où les nains régnaient sur la région. Mais cette ère est révolue, et seule une poignée de clans déterminés continue de défendre leurs forteresses ancestrales, ayant récemment réintégré Karak Azgaraz et l'imposante Karak Ziflin, deux des plus imposantes toujours debout.\n\nLes montagnes et les tunnels en dessous sont aujourd'hui infestés d'orcs et de gobelins, de trolls des montagnes, de skavens et souvent bien pire. Bien que cela rende les Montagnes Grises particulièrement dangereuses, beaucoup affirment que les Forteresses naines abandonnées dissimulent des trésors oubliés. Les téméraires et les désespérés sont alors attirés par les anciennes murailles comme des papillons de nuit par une torche. Bien peu survivent à leur cupidité.\n\nAccrochées de façon précaire aux bords accidentés des Montagnes Grises, les seigneuries du sud du Reikland ont investi de nombreuses mines dans le but d'extraire d'importantes richesses en minéraux et métaux de la chaîne. Elles sont protégées par de simples tours de guet et de hautes forteresses qui les mettent à l'abri des attaques venant de la montagne. Chacune d'elles est entourée des décombres d'anciennes fortifications ayant failli.\n\nL'arête glacée des Montagnes Grises est si haute qu'elle en devient presque impraticable, formant une frontière infranchissable entre le Reikland et les duchés de la Bretonnie au sud-est. Seules deux passes praticables percent les hauteurs gelées : le Défilé de la Hache bien défendu, gardé par les forteresses de Helmgart et Monfort, et la tortueuse Passe de la Dame Grise menant d'Ubersreik à Parravon. Les deux passes sont régulièrement patrouillées et taxées, conduisant certains marchands démunis ou contrebandiers à embaucher des guides de montagne pour les diriger à travers des passes secondaires telles que le Couloir tordu ou le Pas de Durak, une entreprise que peu de personnes recommanderaient.",
@@ -42,7 +44,9 @@
     "id": "hagercrybs",
     "type": "locations",
     "label": "Hägercrybs",
-    "parent": "les-montagnes-les-collines-et-le-vorbergland",
+    "parent": {
+      "id": "les-montagnes-les-collines-et-le-vorbergland"
+    },
     "prefix": null,
     "suffix": "Les",
     "desc": "Dominant le centre du Reikland, les Hägercrybs enveloppées de brume s'étendent de la Principauté d'Altdorf au nord jusqu'à la ville franche d'Ubersreik au sud. Elles sont si densément boisées qu'aucune route ne les traverse d'est en ouest. De longs trajets en perspective pour ceux voyageant d'un côté à l'autre.\n\nLes collines sont principalement peuplées de moutons gardés par leurs bergers, mais les antiquaires affirment que les Hägercrybs étaient autrefois le cimetière sacré des Unberogen, la tribu humaine de Sigmar en personne. Confirmant cette affirmation, d'anciens cairns sont visibles dans plusieurs régions montagneuses, et certaines sont aussi jonchées de menhirs menaçants. À cause d'eux, peut-être, les Hägercrybs ont la fâcheuse réputation d'être hantées, et peu d'audacieux osent s'enfoncer trop profondément dans ses forêts. Ceux qui voient des brouillards s'élevant d'anciens tumulus, y entendent résonner les gémissements des morts. Localement, de telles histoires sont rejetées avec nervosité, comme des divagations de bergers ivres, ayant trop forcé sur le cidre, car l'alternative est de croire aux histoires d'anciens rois avides de boire le sang des vivants.\n\nIgnorants de telles rumeurs, les seigneurs des Hägercrybs ordonnent régulièrement que des mines soient creusées dans les collines à la recherche de métaux et minerais rares. La plupart des tentatives échouent et l'on ne revoit jamais les mineurs. Mais une poignée d'entre elles a abouti et apporté une richesse considérable à la région.",
@@ -55,7 +59,9 @@
     "id": "collines-de-skaag",
     "type": "locations",
     "label": "collines de Skaag",
-    "parent": "les-montagnes-les-collines-et-le-vorbergland",
+    "parent": {
+      "id": "les-montagnes-les-collines-et-le-vorbergland"
+    },
     "prefix": null,
     "suffix": "Les",
     "desc": "Les collines rocheuses de Skaag s'étendent à l'ouest de la rivière Bögen et longent la rive sud du Reik avant de s'enfouir sous les arbres du Duché de Gorland. Près du centre, le Reikwald s'éloigne des rochers escarpés et des couches de roches stratifiées pour atteindre les hauts plateaux de la Crête de Prie. Une seule route traverse les pentes plus douces des collines de Skaag au sud, partant de Trosreut, dans l'ombre du Château Grauenberg, jusqu'à Holthusen, mais beaucoup de sentiers et de chemins secondaires traversent également la région, pour la plupart des sentiers de chèvres.\n\nAutrefois, les flancs des collines étaient animés de petites mines riches en filons d'argent et de fer. Au cours des siècles, la plupart se sont épuisées, laissant une multitude de colonies abandonnées, et beaucoup ont été avalées par la forêt. Les gens du coin n'approchent à présent de telles ruines qu'avec précaution, car les chasseurs, les hors-la-loi et autres personnes bien plus sinistres utilisent les bâtiments intacts restants.",
@@ -68,7 +74,9 @@
     "id": "vorbergland",
     "type": "locations",
     "label": "Vorbergland",
-    "parent": "les-montagnes-les-collines-et-le-vorbergland",
+    "parent": {
+      "id": "les-montagnes-les-collines-et-le-vorbergland"
+    },
     "prefix": null,
     "suffix": "Le",
     "desc": "Entre les pics menaçants des Montagnes Grises et les forêts profondes du Reikwald s'étend le Vorbergland, une région vallonnée longeant le Reikland, réputée pour ses vallées fertiles, ses prairies onduleuses et ses plaines balayées par les vents.\n\nLes provinces productives du Sud-Est autour de Böhrn, Ubersreik, Stimmigen et Dunkelberg sont connues localement sous le nom de Vorbergland Sud, et sont les régions les plus cultivées du Reikland. Elles comptent de nombreuses villes, villages, fermes et maints vignobles fleurissants, et sont souvent qualifiées de « Jardin de Ranald » à cause des grandes quantités de vin qu'elles produisent pour l'exportation.\n\nPlus à l'ouest, le Vorbergland est tourmenté par des attaques fréquentes d'orcs et de gobelins descendant des montagnes, ce qui signifie qu'une grande partie de la région est faiblement peuplée, à peine plus qu'un terrain de chasse pour les animaux sauvages et les monstres provenant des pics. Cela fait des baronnies et duchés locaux des destinations populaires pour les chasseurs et les historiens naturels du Zoo Impérial cherchant à capturer des spécimens rares, bien que seuls les imprudents voyagent dans cette région sans une bonne escorte et un guide compétent.",
@@ -81,7 +89,9 @@
     "id": "drachenberg",
     "type": "locations",
     "label": "Drachenberg",
-    "parent": "les-montagnes-les-collines-et-le-vorbergland",
+    "parent": {
+      "id": "les-montagnes-les-collines-et-le-vorbergland"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "S'élevant au-dessus du centre du Vorbergland, sa base enveloppée par la scintillante rivière Bögen, le pic tordu connu sous le nom de Drachenberg est visible à plusieurs kilomètres à la ronde. Chaque fois que des problèmes surviennent, les citadins voisins de Wheburg jettent un regard en direction de la montagne et font le signe de la comète de Sigmar pour éloigner le mal, car le Drachenberg possède une sombre réputation. Son nom se traduit approximativement par « Pic du dragon » et, comme son nom l'indique, la montagne a longtemps été le repaire favori de ces énormes bêtes, ainsi que d'autres créatures monstrueuses comme les basilics, les vouivres et les manticores.\n\nL'énorme dragon rouge, Caledair – la « Faux de Feu » - avait autrefois établi son antre dans les grottes près du pic de la montagne, et a chassé à travers les plaines du Vorbergland pendant des générations. Bien qu'il n'ait pas été vu depuis plus d'un siècle, nul ne peut dire avec certitude s'il est bel et bien parti ou s'il dort toujours sous la montagne.\n\nLe Drachenberg est traître, avec ses flancs escarpés qui bloquent les grimpeurs et aucune voie facile jusqu'à son sommet à pic. Bien que les arbres encombrent ses contreforts, ils se font plus rares le long des pentes supérieures et le sol au sommet est très instable, ce qui a fait dévisser plus d'un grimpeur vers une mort brutale. Malgré cela, les braves et les inconscients tentent toujours de gravir le Drachenberg, car qui sait quels trésors peuvent être découverts dans ses hauteurs inexplorées ?",
@@ -107,7 +117,9 @@
     "id": "foret-de-reikewald",
     "type": "locations",
     "label": "forêt de Reikewald",
-    "parent": "les-sinistres-et-sombres-forets",
+    "parent": {
+      "id": "les-sinistres-et-sombres-forets"
+    },
     "prefix": null,
     "suffix": "La",
     "desc": "La forêt de Reikwald recouvre presque entièrement le Reikland à l'extérieur du Vorbergland, ne s'éclaircissant qu'autour des collines de Skaag là où les villes et les villages longeant le fleuve Reik et ses nombreux affluents l'ont défrichée. La plupart des voyageurs traversant la région préfèrent la relative sécurité des voyages fluviaux aux voyages le long de routes douteuses, et cela pour une bonne raison : la forêt de Reikwald est le repaire favori de parias, de coupe-gorges et autres personnes sans foi ni loi. Bien que toutes les routes principales soient surveillées par des patrouilleurs routiers, leur nombre est trop faible et les routes trop longues. Il n'est donc pas rare de croiser des diligences renversées et autres signes évidents de banditisme. La majorité des clairières et des ruines abandonnées, suite aux guerres passées, sont revendiquées comme campements par les hors-la-loi ou par l'une des hordes d'hommes-bêtes errant dans les profondeurs des bois, et les incursions des régiments de l'Armée du Reikland pour nettoyer ces endroits isolés ne sont pas rares.\n\nDans la plupart des cas, les frondaisons de la forêt de Reikwald ne sont pas assez épaisses pour bloquer les rayons du soleil, mais les profondeurs des bois sont souvent lugubres, parcourues de lourdes brumes, en particulier le long des rives marécageuses du fleuve Reik. Les Érudits prétendent qu'avant la fondation de l'Empire, la tribu des humains Unberogen arpentait cette forêt brumeuse aux côtés d'anciens autres groupements dont les noms se sont perdus dans l'histoire. Des cercles concentriques de menhirs gravés appelés « oghams » datant de cette époque existent encore, bien que beaucoup soient recouverts de végétation et presque impossibles à dénicher sans un guide. Les communautés isolées qui continuent à suivre d'anciens préceptes – d'anciennes croyances considérées comme précédant l'arrivée de Sigmar – gardent de tels sites sacrés. Les intellectuels issus des Collèges de Magie prétendent que de terribles batailles ont eu lieu autrefois pour conserver ces anciens sites mégalithiques, et il n'est pas rare de voir les Magisters les plus riches financer des explorations dans les profondeurs de la forêt de Reikwald pour en apprendre plus sur les pierres magiques.",
@@ -120,7 +132,9 @@
     "id": "bois-de-pins-sanglants",
     "type": "locations",
     "label": "bois de pins sanglants",
-    "parent": "les-sinistres-et-sombres-forets",
+    "parent": {
+      "id": "les-sinistres-et-sombres-forets"
+    },
     "prefix": null,
     "suffix": "Les",
     "desc": "Au sud d'Altdorf, un affleurement de pins s'étend le long des faces sud des collines d'Ambre et se répand dans les profondeurs de la forêt de Reikwald. Appelé pin sanglant à cause de sa couleur d'un bordeaux profond, le bois d'œuvre est ici très recherché par les artisans d'Altdorf, le plus souvent utilisé pour produire du mobilier raffiné pour les marchés haut de gamme de Marienburg et Nuln. Récemment, le pin sanglant est devenu difficile à trouver, car les bois sont infestés de gobelins des forêts de la tribu des Griffes d'Araignées qui ont réussi à apprivoiser une poignée d'Araignées géantes rapides. Peu osent y travailler à présent, car ceux qui tentent de couper des arbres disparaissent tout simplement, leurs cris résonnant dans les brumes en haut des arbres avant de retomber soudain dans le silence. Bien entendu, cela n'a fait qu'augmenter la valeur du pin sanglant, ce qui a provoqué la colère des acheteurs. Plusieurs d'entre eux ont engagé des mercenaires et des groupes privés pour débarrasser la forêt des gobelins, imaginant qu'il serait moins coûteux de sacrifier quelques têtes pour régler le problème plutôt que de payer plus cher leur nouvelle armoire.",
@@ -133,7 +147,9 @@
     "id": "grissenwald",
     "type": "locations",
     "label": "Grissenwald",
-    "parent": "les-sinistres-et-sombres-forets",
+    "parent": {
+      "id": "les-sinistres-et-sombres-forets"
+    },
     "prefix": null,
     "suffix": "Le",
     "desc": "L'extrémité sud-est de la forêt de Reikwald se ramifie vers le sud le long de la frontière du Stirland et se rétrécit en remontant le fleuve en direction de la cité-État de Nuln. Cette vaste partie de la forêt est connue localement sous le nom de Grissenwald, dense et pleine d'arbres déformés et de broussailles entortillées, et dont les profondeurs sont réputées grouiller d'hommes-bêtes, de sorcières et de tribus de mutants sauvages. La plupart des bûcherons locaux voyagent donc en groupes et restent rarement dehors à la tombée de la nuit. Il est courant de trouver des annonces flottant au vent, affichées sur les arbres en bordure de route, offrant des récompenses pour retrouver de la famille ou des amis égarés dans les entrailles de la forêt.",
@@ -159,7 +175,9 @@
     "id": "reik",
     "type": "locations",
     "label": "Reik",
-    "parent": "les-rivieres-canaux-et-lacs",
+    "parent": {
+      "id": "les-rivieres-canaux-et-lacs"
+    },
     "prefix": null,
     "suffix": "Le",
     "desc": "Le Reik supporte plus de trafic et de commerce que toutes les autres rivières du Vieux Monde réunies. En effet, le fleuve est si gigantesque que près de la moitié des eaux douces du Vieux Monde s'écoulent sur toute sa longueur, car il draine non seulement tout le Reikland et ses nombreux affluents, mais également la majeure partie de l'Empire au-delà. Au moment où le Reik circule dans le Reikland, il est déjà si large qu'il ressemble souvent plus à un lac qu'à un fleuve, ce qui rend impossible d'établir des ponts en utilisant des méthodes d'ingénierie standard. Lorsque cet immense cours d'eau s'approche d'Altdorf pour rencontrer les eaux sombres du Talabec, les deux fleuves se divisent en un réseau complexe de canaux qui s'étalent vers l'extérieur pour former les plaines embrumées d'Altdorf. Beaucoup de bras moins larges formés de cette façon autorisent l'établissement de ponts, permettant à Altdorf d'être un centre naturel pour le commerce, car c'est le seul endroit où le Reik peut être parcouru à pied sur plusieurs centaines de kilomètres. Ce simple fait a assuré la prédominance d'Altdorf sur la région, tant sur le plan militaire que fiscal.\n\nAu-delà des plaines d'Altdorf, les canaux tourbeux convergent de nouveau et le Reik commence son long voyage vers l'ouest jusqu'à la mer. À ce stade, il est si large que la rive opposée disparaît parfois dans la brume, et il est si profond que même les plus grands navires de mer peuvent y naviguer sans crainte. En conséquence, les navires de guerre de la Marine impériale, certains si grands qu'ils possèdent des équipages dépassant les populations des plus petites villes, ne se contentent pas de patrouiller ces eaux mais y sont construits, la plupart mis à l'eau au Reiksport, un port profond construit sur les rives d'Altdorf. Les îles rocheuses sont courantes dans ce dernier tronçon, dont la plupart sont protégées par d'anciennes forteresses, neutralisées par des pirates fluviaux ou complètement abandonnées, ne comptant guère plus qu'une poignée de vieilles criques de contrebandiers.",
@@ -172,7 +190,9 @@
     "id": "bogen",
     "type": "locations",
     "label": "Bögen",
-    "parent": "les-rivieres-canaux-et-lacs",
+    "parent": {
+      "id": "les-rivieres-canaux-et-lacs"
+    },
     "prefix": null,
     "suffix": "La",
     "desc": "Le peuple de Bögenhafen affirme que Bögenauer, la divinité protectrice de leur ville,est à l'origine de la prospérité commerciale de la Bögen. Rivière relativement calme aux eaux claires et douces, mais pas trop rapides, la Bögen permet facilement au trafic de s'effectuer en amont presque aussi facilement qu'en aval. Sa grande profondeur permet aux navires les plus grands de naviguer en toute sécurité depuis le Reik jusqu'à Bögenhafen. Bien qu'elle prenne sa source au plus haut des pics glacés des Montagnes Grises, la Bögen se réchauffe en traversant les collines du Vorbergland, ce qui cause fréquemment d'épais brouillards le long de ses rives. La plupart des soirs, des doigts de brume mouvante s'élèvent de la rivière, enveloppant de leurs tentacules les colonies voisines et le Reikland environnant. Ils sont souvent suffisamment denses pour bloquer la vue, et voleurs et contrebandiers les utilisent donc pour dissimuler leurs activités nocturnes. ",
@@ -185,7 +205,9 @@
     "id": "canal-grunberg",
     "type": "locations",
     "label": "canal Grünberg",
-    "parent": "les-rivieres-canaux-et-lacs",
+    "parent": {
+      "id": "les-rivieres-canaux-et-lacs"
+    },
     "prefix": null,
     "suffix": "Le",
     "desc": "Le canal Grünberg est un ajout récent au réseau de voies navigables du Reikland. Commandé par l'Empereur Luitpold III, en tant qu'élément d'une dot importante payée au précédent Baron de Grünburg, il fut achevé en 2506 CI et a connu depuis un usage intensif. Le canal contourne les eaux peu profondes et périlleuses des marais Reiker, dominés par le Château Reikguard, et supporte à présent une grande partie du trafic fluvial de la rivière Teufel en direction d'Altdorf. Les murs de Grünburg protègent le péage à l'extrémité sud du canal, et toute barque désirant passer doit s'acquitter d'une taxe basée sur la longueur du vaisseau entrant dans le système de canaux. Les files d'attente sont fréquentes au petit jour et au crépuscule, mais sinon, le péage est peu fréquenté. À l'extrémité nord, à la périphérie de Prieze, se trouve une maison d'éclusier qui sert également de caserne et d'écurie pour les douze Patrouilleurs routiers payés pour inspecter le chemin du canal et aider les barques dans le besoin. Cette aide se présente généralement sous la forme d'une taxe de protection impromptue, qui, si elle n'est pas payée, laisse la barque concernée en proie aux attaques de bandits, attaques qui se produisent inévitablement pour ceux qui refusent de payer.",
@@ -198,7 +220,9 @@
     "id": "teufel",
     "type": "locations",
     "label": "Teufel",
-    "parent": "les-rivieres-canaux-et-lacs",
+    "parent": {
+      "id": "les-rivieres-canaux-et-lacs"
+    },
     "prefix": null,
     "suffix": "La",
     "desc": "La Teufel s'écoule depuis les montagnes vers Ubersreik, puis vers le nord en direction du Reik en passant par Auerswald et Grünburg. Ses eaux sont d'une teinte nettement rougeâtre due aux dépôts de fer dans la boue et le limon, même si les conteurs laissent sous-entendre que les interminables guerres entre les nains et les gobelins des Montagnes Grises ont coloré définitivement la rivière de rouge. D'importantes précipitations alimentent la Teufel entrainant régulièrement des crues, en particulier au printemps, et inondant fréquemment de ses eaux boueuses les forêts environnantes. Les auberges – souvent surélevées pour éviter les inondations – sont courantes le long de la Teufel, tout comme les bandits, car une grande partie de la rivière traverse le Reikwald. Les Patrouilleurs routiers inspectent régulièrement les berges de la Teufel et n'aiment pas ceux qui s'y attardent sans de bonnes raisons.",
@@ -211,7 +235,9 @@
     "id": "canaux-du-vorbergland",
     "type": "locations",
     "label": "canaux du Vorbergland",
-    "parent": "les-rivieres-canaux-et-lacs",
+    "parent": {
+      "id": "les-rivieres-canaux-et-lacs"
+    },
     "prefix": null,
     "suffix": "Les",
     "desc": "Les canaux du Vorbergland représentent une merveille d'ingénierie. Commandés par le précédent Archiduc de la Haute Teufel en collaboration avec les maisons marchandes de Nuln et Marienburg, les canaux font la fierté du Sud, transportant des marchandises depuis et vers Wissenland à travers le Vorbergland. Constitué de cinq canaux reliant les cinq affluents majeurs du Reik, ce système relie Nuln à Carroburg, en évitant entièrement les taxes élevées d'Altdorf.\n\nRécemment, les nains de Karak Azgaraz ont envoyé des délégations aux seigneurs du Vorbergland Sud pour réclamer la fermeture des canaux, affirmant que les anciens traités des siècles passés avaient été annulés du fait d'un grand nombre de malfaçons inadmissibles. Cela a entraîné l'indignation des diplômés de l'École des Ingénieurs Impériaux qui voient dans les écluses à aubes et les pompes à eau intelligentes le summum de l'ingénierie humaine.",
@@ -224,10 +250,12 @@
     "id": "canal-de-wessbruck",
     "type": "locations",
     "label": "canal de Wessbruck",
-    "parent": "les-rivieres-canaux-et-lacs",
+    "parent": {
+      "id": "les-rivieres-canaux-et-lacs"
+    },
     "prefix": null,
     "suffix": "Le",
-    "desc": "Reliant la B��gen et le Reik – en contournant les taxes de Carroburg du Middenland –, le canal de Weissbruck connaît un trafic régulier toute l'année grâce aux échanges commerciaux en provenance et à destination d'Altdorf. Une taxe est payée pour utiliser le canal à l'extrémité par laquelle entre le navire. Le canal mesure vingt-cinq mètres de large, et bénéficie sur toute sa longueur de points d'accostage fréquent et de nombreux endroits où séjourner.\n\nLes bateliers locaux n'en discutent pas facilement avec les étrangers, mais il circule beaucoup d'histoires insolites au sujet du canal. Il paraîtrait que les ingénieurs nains ont déterré des artefacts pré-Unberogen quand ils ont creusé la voie navigable pour la première fois, et que, depuis, les choses ne se sont plus jamais passées correctement dans la région. Certains jurent même que si Morrslieb – la plus petite des deux lunes – est pleine, on peut naviguer sur le canal vers un autre endroit que le Reik...",
+    "desc": "Reliant la Bögen et le Reik – en contournant les taxes de Carroburg du Middenland –, le canal de Weissbruck connaît un trafic régulier toute l'année grâce aux échanges commerciaux en provenance et à destination d'Altdorf. Une taxe est payée pour utiliser le canal à l'extrémité par laquelle entre le navire. Le canal mesure vingt-cinq mètres de large, et bénéficie sur toute sa longueur de points d'accostage fréquent et de nombreux endroits où séjourner.\n\nLes bateliers locaux n'en discutent pas facilement avec les étrangers, mais il circule beaucoup d'histoires insolites au sujet du canal. Il paraîtrait que les ingénieurs nains ont déterré des artefacts pré-Unberogen quand ils ont creusé la voie navigable pour la première fois, et que, depuis, les choses ne se sont plus jamais passées correctement dans la région. Certains jurent même que si Morrslieb – la plus petite des deux lunes – est pleine, on peut naviguer sur le canal vers un autre endroit que le Reik...",
     "source": {
       "book": "livre-de-base",
       "page": 270
@@ -250,7 +278,9 @@
     "id": "marais-grootscher",
     "type": "locations",
     "label": "marais Grootscher",
-    "parent": "les-marais-maudits-et-fetides",
+    "parent": {
+      "id": "les-marais-maudits-et-fetides"
+    },
     "prefix": null,
     "suffix": "Le",
     "desc": "Plus grand marécage du Reikland, le marais Grootscher s'étend sur les deux rives du Reik, sur une cinquantaine de kilomètres sur le Reikland et le Middenland depuis la frontière avec le Wasteland. Il est considéré par beaucoup comme un endroit maudit, car c'est le site de l'une des plus célèbres défaites militaires de l'Empire du siècle passé : la Bataille du marais Grootscher, à l'issue de laquelle le Wasteland a obtenu son indépendance de la domination impériale.\n\nDe nos jours, le marais Grootscher demeure le marais putride qu'il a toujours été, rempli d'oiseaux souffreteux et infesté de trolls des rivières. Durant les années de vaches maigres, quand la viande vient à manquer pour leur garde-manger en décomposition, les trolls crient famine et la rumeur raconte qu'ils se glissent dans le Reik pour arracher les imprudents à leurs navires de passage. Être envoyé pour nettoyer le marais Grootscher est considéré comme l'une des pires tâches punitives pour les Armées du Reikland ; même les soldats les plus endurcis hésitent quand ils y sont envoyés.\n\nCeux qui voyagent sur le Reik rapporte de temps à autre d'étranges cornes funestes résonnant à travers le brouillard qui se regroupent fréquemment dans le marais, et les habitants avisés remarquent que les trolls n'en utilisent pas. Les vétérans sur le Reik approuvent, puis changent rapidement de sujet...",
@@ -263,7 +293,9 @@
     "id": "plaines-d-altdorf",
     "type": "locations",
     "label": "plaines d'Altdorf",
-    "parent": "les-marais-maudits-et-fetides",
+    "parent": {
+      "id": "les-marais-maudits-et-fetides"
+    },
     "prefix": null,
     "suffix": "Les",
     "desc": "Le Reik et le Talabec se séparent autour de la cité d'Altdorf en centaines de chenaux changeants, de vasières noires et de marais qui s'étendent du nord au sud de la grande cité. Connus sous le nom des plaines d'Altdorf, ces immenses marécages, envahis par les joncs et les roseaux, sont réputés pour leur odeur nauséabonde et leurs tourbières infestées de trolls des rivières. À une vingtaine de kilomètres d'Altdorf, les chenaux sinueux convergent de nouveau avec le large fleuve Reik, dont les eaux coulent plus à l'est, jusqu'aux Principautés de Carroburg.\n\nLes plaines sont traversées par six chaussées principales qui partent des terres fertiles qui entourent immédiatement Altdorf. Chaque chaussée est ponctuée de plusieurs ponts de pierre, dont certains sont de fabrication naine et datent de l'Ère de Sigmar. Leurs routes sont toujours fréquentées par des diligences ou des convois marchands en provenance et à destination de la capitale, et sont donc activement surveillées par les Patrouilleurs routiers. De même, les voies navigables marécageuses constituent un paradis pour les contrebandiers cherchant à contourner les péages et les lourdes taxes d'Altdorf. Les Patrouilleurs fluviaux et Abordeurs sont donc très souvent aperçus naviguant sur les eaux peu sûres à la recherche de criminels et repoussant les plus grands monstres des marais.",
@@ -276,7 +308,9 @@
     "id": "marais-reiker",
     "type": "locations",
     "label": "marais Reiker",
-    "parent": "les-marais-maudits-et-fetides",
+    "parent": {
+      "id": "les-marais-maudits-et-fetides"
+    },
     "prefix": null,
     "suffix": "Les",
     "desc": "Situés entre les Hauts Reiker et les collines Hohesesienen, au confluent du Reik et de la Teufel, les marais Reiker sont connus pour leur traîtrise, et les capitaines inexpérimentés échouent souvent leur bateau dans leurs eaux trompeuses et peu profondes. Des drapeaux déchiquetés et des panneaux indicateurs rouillés signalent les sections les plus dangereuses, mais ils sont malheureusement insuffisants. Des guides de rivière connus localement sous le nom de « nautoniers » sont prêts à guider les bateaux sur les eaux pour un prix raisonnable, et la plupart se rassemblent dans les villes de Prieze et Badenborn sur le Reik et, en nombre beaucoup plus restreint, à Buxhead sur la Teufel. C'est dans le tronçon des cinq derniers kilomètres de la Teufel, là où il rencontre le Reik, que les eaux sont les plus dangereuses, connues localement sous le nom de « Folie de Léopold » après que l'Empereur eut essayé, et échoué, maintes et maintes fois à faire draguer les eaux limoneuses rouges dans le but de les rendre sûres pour les bateaux à fort tirant d'eau. Les capitaines de barges avisés les évitent soigneusement, préférant payer les taxes de péage pour passer par le Canal de Grünberg plutôt que de risquer équipage et cargaison.",
@@ -289,7 +323,9 @@
     "id": "tourbieres-d-uhland",
     "type": "locations",
     "label": "tourbières d'Uhland",
-    "parent": "les-marais-maudits-et-fetides",
+    "parent": {
+      "id": "les-marais-maudits-et-fetides"
+    },
     "prefix": null,
     "suffix": "Les",
     "desc": "Balayées par les vents, au sud du Comté de la Marche de l'Ouest, les tourbières d'Uhland, envahies de mousse, sont traversées par la rivière Westerfluss, frontière naturelle entre le Wasteland et le Reikland. Les tours de tourbe extraites de la tourbière sont empilées dans les petits villages autour du bourbier, où les blocs séchés sont utilisés ici pour alimenter les feux en hiver et expédiés pour être vendus le long du Reik. Dans les profondeurs du sud-ouest de la tourbière, un certain nombre d'anciennes pierres sculptées s'élèvent du sol détrempé, attirant les adeptes locaux de Rhya et de divinités plus anciennes, pour y exercer leur culte pendant les équinoxes importants. Un groupe de ces pierres, les Corbepierres, ont une très mauvaise réputation, et la tourbière environnante demeure toujours dans la pénombre. Les gens du coin conseillent de ne jamais s'y rendre à l'approche des fêtes Geheimnistag ou Hexenstag. Ils affirment que les corbeaux s'y rassemblent en très grand nombre et que des choses indicibles s'élèvent de la tourbière pour semer la terreur chez les vivants.",
@@ -315,7 +351,9 @@
     "id": "altdorf",
     "type": "locations",
     "label": "Altdorf",
-    "parent": "altdorf-et-les-villes-libres",
+    "parent": {
+      "id": "altdorf-et-les-villes-libres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "L'Empereur Karl Franz Ier siège à Altdorf, la capitale du Reikland et de l'Empire dans son ensemble. Elle se dresse fièrement au confluent du puissant Reik et du Talabec, là où aboutissent beaucoup de routes commerciales majeures, et c'est sans conteste la cité la plus riche de l'Empire, ce qui lui permet de s'agrandir et de se renouveler en permanence. De nouveaux aspirants ébahis arrivent quotidiennement, et plus de commandes de nouveaux ponts, bâtiments et merveilles d'ingénierie sont présentées chaque semaine aux bourgmestres que la plupart des villes ne peuvent en étudier en un an.\n\nAujourd'hui, Altdorf est une cité de ponts à vapeur, d'îles très diverses, d'énormes immeubles et d'un fourmillement infini de personnes : on ne peut traverser ses rues tortueuses sans devenir familier avec de parfaits étrangers. Comme elle attire des marchands et diplomates issus de tout le monde connu, elle est aussi étonnamment cosmopolite ; non seulement des personnes de tous rangs, de toutes races, de toutes croyances et de toutes origines se côtoient librement, mais même les Sorciers sont monnaie courante, avec pour tout signe d'hostilité, rien de plus qu'un regard méfiant ou une bénédiction murmurée.\n\nUn quartier elfe très peuplé et prospère, à l'étonnement des étrangers, se trouve près du Reiksport – le port en eau profonde et le chantier naval d'Altdorf – fondé par des princes marchands hauts elfes remontant le Reik, il y a plus d'un siècle, depuis Marienburg. L'ancienne alliance entre l'Empire et les nains s'est maintenue depuis l'ère de Sigmar et permet à de nombreux clans nains d'y résider également en communautés soudées. Certains ont travaillé dur à la maçonnerie de la cité durant d'innombrables générations, bien que leur nature obstinée les empêche de considérer Altdorf comme leur foyer. Pas mal de halflings gagnent leur vie en servant de la nourriture raffinée et des bières de qualité dans les auberges d'Altdorf, dont beaucoup sont protégées par l'importante population d'ogres de la cité. Mêmes des créatures des plus étranges se trouvent aussi dans la cité, mais aucune n'est plus fantastique que celles du Zoo Impérial, qui détient une myriade de monstres et d'animaux, y compris l'Abomination de Stirland et l'Engeance de la Drakwald, mises en cage et exposées pour le divertissement de tous.\n\nCette population dense et variée contribue à entretenir l'une des plus célèbres caractéristiques d'Altdorf : elle est, hélas, malodorante, affectueusement, et à juste titre, appelée « La Grande Puanteur ». Pendant les mois chauds de l'été, l'odeur qui émane des plaines d'Altdorf devient si forte que beaucoup des citoyens les plus riches de la cité fuient vers des domaines ruraux ou les somptueux palais baignés de soleil de Grenstadt en Averland du Sud.\n\nL'odeur fétide omniprésente ne contribue guère à calmer la population d'Altdorf, une foule particulièrement bruyante et encline à l'émeute à la moindre petite offense, en particulier si cela implique de nouvelles taxes. Même les actions apparemment anodines des bourgmestres et des nobles peuvent s'attirer sa colère ; mais même si beaucoup de leurs protestations sont parfaitement justifiées, cela n'atténue pas la ferveur que la Couronne manifeste à réprimer la rébellion de la populace qui peut descendre dans la rue.\n\nAltdorf est aussi un centre renommé pour l'apprentissage. Les fils et filles des foyers fortunés s'inscrivent à l'Université d'Altdorf, avec souvent peu d'égard pour les capacités académiques ; ceux qui possèdent un potentiel intellectuel, mais sans le poids financier nécessaire, trouvent souvent leur voie au Grand Temple de Verena, car la déesse de la Sagesse a toujours de la place pour ceux qui ont le don de l'intelligence. La célèbre École des Ingénieurs Impériaux – fondée par le génie tiléen Leonardo da Miragliano – se trouve également dans les murs d'Altdorf. Ici, certaines des âmes les plus courageuses et les plus téméraires de l'Empire conçoivent avec créativité des méthodes nouvelles pour faire pleuvoir une mort ardente sur les ennemis de l'humanité. Comme on pouvait sans doute s'y attendre, l'école a été reconstruite plus d'une douzaine de fois depuis sa fondation.\n\nLes Collèges de Magie représentent de toute évidence l'institution éducative la plus importante d'Altdorf et, sans doute, la plus mystérieuse. Fondés il y a plus de deux cents ans à l'initiative de l'Empereur Magnus le Pieux, les Collèges reposent sur les préceptes du Maître du savoir elfe, Teclis. Les Collèges sont chargés d'entraîner les citoyens doués de magie à canaliser leurs dangereux talents pour la défense de l'Empire. Des rumeurs sur l'influence déformante des importantes énergies magiques, rassemblées par tant de Sorciers, vivant dans une telle promiscuité, persistent ; les rues de la capitale elles-mêmes auraient été déformées, et certains édifices des Collèges seraient dissimulés aux yeux de tous sauf de quelques élus – ou devrait-on dire maudits – possédant la vision de sorcière, mais peu croient en de tels ragots.\n\nContrastant nettement avec les mystères arcaniques des Collèges de Magie, rempart contre les sorcières errantes et les Magisters malfaisants, Altdorf est aussi le cœur battant du Culte de Sigmar. Il y a plus de deux mille cinq cents ans, Sigmar est né, a grandi et a finalement été couronné Premier empereur à l'intérieur des frontières de l'actuelle Altdorf, et la cité compte désormais plus de temples et de sites sacrés Sigmarites que toutes les autres cités de l'Empire réunies. En effet, on dit souvent qu'on ne peut pas y lancer un hérétique sans toucher un temple de Sigmar.",
@@ -328,7 +366,9 @@
     "id": "auerswald",
     "type": "locations",
     "label": "Auerswald",
-    "parent": "altdorf-et-les-villes-libres",
+    "parent": {
+      "id": "altdorf-et-les-villes-libres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "La ville animée d'Auerswald s'élève au confluent de la Teufel, du Tranig et de l'Ober, de sorte qu'elle se situe sur l'une des routes commerciales du Reikland les plus fréquentées, et par conséquent les plus surveillées. Les habitants d'Auerswald sont souvent résolus et déterminés, mais leur charme facile et leur célèbre sagesse garantissent que leurs décisions, aussi inflexibles soient- elles, causent rarement d'offense.\n\nLe graf dirigeant, Ferdinand von Wallenstein, laisse la gestion d'Auerswald à un conseil de bourgmestres, préférant de loin séjourner dans les luxueux palais d'Altdorf et de Nuln, que de se salir les mains avec l'autorité directe. Son oncle, le Seigneur Adelbert von Wallenstein, est un grisonnant mais robuste vétéran qui passe la plus grande partie de son temps à éradiquer des gobelins et des bandits dans le Reikwald, à l'est de la ville.\n\nLa plus grande partie d'Auerswald est construite sur de solides pilotis, au-dessus de la plaine inondable de la rivière Teufel, souvent en crue. Dans ce labyrinthe déroutant de rampes, de ponts et d'échelles de cordes, les étrangers peuvent facilement se perdre. Plus d'un noctambule imprudent a trouvé la mort dans la boue après avoir un peu exagéré dans les tavernes locales. Ces dernières années, des rumeurs ont circulé au sujet de gangs organisés de maîtres-chanteurs et d'arnaqueurs opérant depuis la ville, bien qu'aucun témoin n'ait vécu assez longtemps pour attester de leur existence.",
@@ -341,7 +381,9 @@
     "id": "bogenhafen",
     "type": "locations",
     "label": "Bögenhafen",
-    "parent": "altdorf-et-les-villes-libres",
+    "parent": {
+      "id": "altdorf-et-les-villes-libres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "Bögenhafen, la plus grande et la plus populaire de toutes les villes marchandes du Vorbergland, s'étend au cœur même du Reikland et sert de carrefour à la Grande Province. À égale distance de la capitale Altdorf et de Monfort, elle constitue une étape cruciale sur la route principale entre l'Empire et la Bretonnie. Les marchandises provenant de la Bretonnie et des quatre coins de l'Empire sont échangées ici pour du bois de construction, de la laine et des métaux extraits des Montagnes Grises.\n\nBögenhafen est située dans le duché du graf Wilhelm von Saponatheim, mais ce dernier est tout à fait satisfait de laisser la ville être dirigée par un conseil local– dont les membres appartiennent majoritairement à la Guilde des Marchands de la cité, ainsi qu'aux Guildes de Débardeurs et de Charretiers – tant qu'il continue à avoir la main sur l'argent qui circule. Comme les marchandises venant du nord sont transférées de chariot à barque à Bögenhafen, la cité est toujours bien approvisionnée et ses entrepôts pleins à craquer de bons vins et de fromages chers et odorants.",
@@ -354,7 +396,9 @@
     "id": "diesdorf",
     "type": "locations",
     "label": "Diesdorf",
-    "parent": "altdorf-et-les-villes-libres",
+    "parent": {
+      "id": "altdorf-et-les-villes-libres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "Comptant parmi les nombreuses villes situées le long du Reik entre Altdorf et Nuln, Diesdorf et ses villages alentour sont voués à la production de maïs, principalement commercialisé en aval de la capitale. La dépendance de la ville vis-à-vis d'une seule culture signifie que si un fléau entraîne le flétrissement du maïs, la ville elle-même pourrait suivre. Cependant, ceux qui visitent Diesdorf peuvent en conclure que la principale exportation est, en réalité, la ferveur religieuse. Par le passé, Magnus le Pieux y a prononcé un légendaire discours poignant devant des gens venus de partout pour l'entendre.\n\nDepuis, Diesdorf est devenue un lieu de pèlerinage majeur pour les dévots Sigmarites, et la population de la ville double fréquemment lors des jours sacrés. Malgré sa relative petite taille, Diesdorf possède de nombreux temples et sanctuaires dédiés à Sigmar, et la plupart des familles de la ville comptent au moins un membre servant le clergé sigmarite.",
@@ -367,7 +411,9 @@
     "id": "dunkerlberg",
     "type": "locations",
     "label": "Dunkerlberg",
-    "parent": "altdorf-et-les-villes-libres",
+    "parent": {
+      "id": "altdorf-et-les-villes-libres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "Plus au sud des centres de commerce majeurs du Reikland, la ville marchande de Dunkelberg s'étend sur plusieurs collines le long des rives de la rivière Grissen. Les portions les plus riches et les plus anciennes de la ville siègent haut sur les collines, donnant aux nobles et à la classe marchande en plein essor, assez riches pour s'offrir les plus anciennes maisons de la ville, une vue imprenable sur la campagne environnante. Malgré sa perpétuelle expansion, les voyageurs remarquent l'âme « rustique » de Dunkelberg, avec ses marchés réguliers encombrant les rues sinueuses. Les acheteurs peuvent y trouver du bétail, des produits locaux, plusieurs excellents vins fruités produits dans les villages environnants, et des marchandises artisanales issues de l'autre côté du Vorbergland Sud. De vastes étendues de « blanchiment » s'étendent depuis la ville, car le lin local est blanchi par le soleil inondant les cultures.\n\nL'emplacement de Dunkelberg, près des menaçantes Montagnes Grises et la forêt sauvage de Graugrissen, prédispose à des attaques régulières de tribus gobelines. Bien que les portions les plus riches de la ville soient fortifiées et bien protégées par un haut mur de pierre, le reste de la ville manque de défenses significatives. Les citoyens les plus pauvres ont donc appris à ne pas s'attacher à leur maison, à leurs biens ni à leurs proches.",
@@ -380,7 +426,9 @@
     "id": "eilhart",
     "type": "locations",
     "label": "Eilhart",
-    "parent": "altdorf-et-les-villes-libres",
+    "parent": {
+      "id": "altdorf-et-les-villes-libres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "Connus et célébrés par les amateurs de vin à travers tout le Vieux Monde, les vignobles autour d'Eilhart produisent un raisin succulent, et par conséquent le vin, qui porte ce nom. Eilhart est considéré comme l'un des meilleurs vins du Reikland, apprécié non seulement pour sa saveur vive et légère, mais aussi pour la fameuse gueule de bois, modérée mais sans aggravation, quelle que soit la quantité dégustée la veille au soir, si l'on en croit les Eilharters. Récemment, Eilhart est également devenue célèbre au Reikland, jusqu'à la lointaine Marienburg, pour ses bières puissantes et amères élaborées à partir de houblon parfumé et du grain local.\n\nCompte tenu de l'excellente qualité de ses breuvages alcoolisés, Eilhart est devenue une destination prisée pour les croisières fluviales, alors que les épicuriens se rendent en ville pour déguster ses produits dans les nombreuses tavernes, brasseries et vignobles. Certains prétendent que le nombre élevé de visiteurs bretonniens – attirés par l'excellence du vin – peut expliquer le récent engouement local pour la bière.",
@@ -393,7 +441,9 @@
     "id": "grunburg",
     "type": "locations",
     "label": "Grünburg",
-    "parent": "altdorf-et-les-villes-libres",
+    "parent": {
+      "id": "altdorf-et-les-villes-libres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "En aval de plusieurs villes marchandes majeures, Grünburg n'est pas étrangère au commerce de marchandises en provenance du Reik, mais c'est dans la fabrication de bateaux que Grünburg excelle réellement. Les chantiers navals de la ville sont en constante activité, produisant les barques qui gardent le commerce du Reikland à flot.\n\nLes champs s'étendant au sud-est de Grünburg semblent verdoyants et paisibles, mais sont appelés ici les plaines de Bataille. C'est ici, il y a longtemps, que l'impitoyable avancée du redoutable Seigneur de guerre orc Gorbad Griff 'Eud'Fer a finalement été bloquée. Fait unique dans l'histoire militaire impériale, la Bataille de Grünburg a presque entièrement été disputée par les troupes montées des deux côtés. Cette bizarrerie de l'histoire a fait des plaines de Bataille un site d'intérêt pour les archéologues, les antiquaires et les pilleurs de tombes, tous désireux de déterrer des vestiges sous la terre imbibée de sang.",
@@ -406,7 +456,9 @@
     "id": "holthusen",
     "type": "locations",
     "label": "Holthusen",
-    "parent": "altdorf-et-les-villes-libres",
+    "parent": {
+      "id": "altdorf-et-les-villes-libres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "Nichée le long de la rivière Schilder, Holthusen est une étape majeure sur la route commerciale entre Eilhart et Marienburg. La ville vend principalement du vin et de la bière, et les barils dans lesquels ils sont stockés. Les tonneliers d'Holthusen sont à juste titre renommés pour leurs barils robustes, dont le plus connu est une barrique, censée être assez solide pour résister à un coup de canon sans mettre en péril le précieux liquide. La majorité des vignerons et des brasseurs de l'ouest du Vorbergland utilisent des barils Holthusen ; en effet, beaucoup font vieillir leurs stocks dans des entrepôts spécialisés, profondément enfoncés dans le sol pour les garder au frais.\n\nHolthusen est ceinte de plusieurs cercles de hautes palissades et les gens de la ville sont souvent anxieux, car si peu de bandits oseraient menacer la ville, de féroces hommes-bêtes des profondeurs de la forêt de Reikwald voisine attaquent régulièrement sans prévenir avant de disparaître à nouveau dans les bois. Beaucoup de citoyens pensent que les créatures sont tenaillées par une insatiable soif de vin, même si certains craignent que le sang ne soit leur boisson de prédilection. Dans tous les cas, la ville a décidé de laisser des barils de vin bon marché à la périphérie de la forêt environnante dans l'espoir que les bêtes acceptent leurs offrandes et partent en paix. Évidemment, si des Répurgateurs venaient à apprendre un tel arrangement, il y aurait certainement des comptes à rendre...",
@@ -419,7 +471,9 @@
     "id": "kemperbad",
     "type": "locations",
     "label": "Kemperbad",
-    "parent": "altdorf-et-les-villes-libres",
+    "parent": {
+      "id": "altdorf-et-les-villes-libres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "Ville ancienne à l'histoire longue et complexe, la grande ville franche Kemperbad est célébrée pour sa production du meilleur brandevin du Reikland. Bien que faisant partie du Reikland, Kemperbad s'étend sur la rive est du Reik ; la ville a été conquise et dirigée par des nobles du Talabecland, du Stirland et du Reikland, changeant maintes et maintes fois de propriétaires au cours d'une série de mariages, de traités et de guerres. Depuis qu'elle a obtenu de Boris l'Avide une charte lui conférant le droit de s'autogèrer en 1066 CI, Kemperbad est devenue une Freistadt dirigée par un conseil local.\n\nSon emplacement privilégié sur la rivière, associé à la capacité d'imposer et de maintenir ses propres taxes, a rendu la ville très riche. Les marchands de Kemperbad sont réputés pour leur vanité, revêtus de tenues si criardes qu'elles feraient rougir de honte un paon, et assez coûteuses pour que les gens aux moyens plus modestes ressemblent à des mendiants. Sans surprise, la noblesse voisine envie la richesse accumulée de Kemperbad, et certains envoient des agents pour déstabiliser la ville.",
@@ -432,7 +486,9 @@
     "id": "schadelheim",
     "type": "locations",
     "label": "Schädelheim",
-    "parent": "altdorf-et-les-villes-libres",
+    "parent": {
+      "id": "altdorf-et-les-villes-libres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "Proche du marais Grootscher, au confluent de la rivière Mos et du Reik, Schädelheim tire le meilleur parti de sa position lucrative sur la route commerciale entre Marienburg et Altdorf, et possède de nombreux quais d'amarrage et d'auberges pour les bateaux et les chalands de passage. Les bacs font régulièrement la navette entre les deux fleuves, ce qui en fait une plaque tournante pour les communautés diverses des marais voisins.\n\nUn ancien temple dédié à Morr, le Dieu de la Mort, se situe juste au sud du centre-ville. Le grand bâtiment en ruines domine Schädelheim depuis ses origines et existait probablement même avant la fondation de la ville. À cause de cela, beaucoup d'habitants possèdent une affinité intense avec Morr, une inclination rarement rencontrée dans l'Empire en dehors de l'Ostermark, et extrêmement inhabituelle pour le Reikland fortement sigmarite. Un point que les Sigmarites locaux sont désireux de rectifier.",
@@ -445,7 +501,9 @@
     "id": "schilderheim",
     "type": "locations",
     "label": "Schilderheim",
-    "parent": "altdorf-et-les-villes-libres",
+    "parent": {
+      "id": "altdorf-et-les-villes-libres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "Se dressant fièrement au confluent du Schilder et du Reik, Schilderheim est l'une des villes commerciales les plus importantes du Reikland. C'est également l'habitat d'un surprenant éventail d'oiseaux sauvages, en particulier des échassiers. L'espèce la plus notable est la grue rouge, un oiseau de rivière sédentaire nichant principalement sur le Reik, connue pour son utilisation de lourdes pierres pour briser des palourdes d'eau douce.\n\nBien qu'elle soit déjà une ville prospère, la Guilde des Marchands et les bourgmestres de Schilderheim entretiennent de grandes aspirations, lorgnant avec envie la richesse d'Altdorf et de Marienburg. Attendant sa part du gâteau, la Guilde locale de Débardeurs a récemment augmenté ses prix, une décision fortement impopulaire qui a suscité beaucoup d'insatisfactions, dont certaines se sont manifestées dans les rues. Pour éviter ces frais supplémentaires, de nombreux marchands ont parfois tenté de contourner les débardeurs, exerçant leur activité directement sur la rivière, échangeant pas seulement du stock, mais des barges entières. Des marchands liés à cette pratique ont récemment découvert des quais incendiés, des entrepôts saccagés et des barges coulées ; évidemment, les Débardeurs affirment que cela n'a rien à voir avec leurs honorables membres. La Guilde des Marchands, par conséquent, est disposée à payer une belle somme à quiconque pourrait le prouver.",
@@ -458,7 +516,9 @@
     "id": "stimmigen",
     "type": "locations",
     "label": "Stimmigen",
-    "parent": "altdorf-et-les-villes-libres",
+    "parent": {
+      "id": "altdorf-et-les-villes-libres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "Le pont principal sur la rivière Ober, associé à l'accès au système de canaux du Vorbergland, assure la liaison entre Stimmigen et Ubersreik, faisant de la ville l'une des plus animées du commerce du Vorbergland Sud. Elle est connue pour ses vergers luxuriants, et est à l'origine de la plus célèbre pomme du Reikland, la douce mais acidulée Ernwald. L'Ernwald ne se développe que dans les environs de Stimmigen, résistant aux tentatives de culture partout ailleurs dans l'Empire. Outre les horticulteurs curieux et les fermiers jaloux, l'Ernwald a attiré une importante population halfling dans la région, dont les délicieux crumbles, tartes aux pommes et pâtisseries – sans parler du cidre – peuvent être dégustés dans la plupart des auberges locales tout au long de l'année, et en particulier pendant la Semaine de la Tourte au début de l'automne. Ce festival halfling est célébré par tous à Stimmigen, une opportunité pour les riches comme pour les pauvres de profiter de dégustations et de compétitions culinaires, et de se gaver de toutes sortes de gourmandises sucrées.",
@@ -471,7 +531,9 @@
     "id": "ubersreik",
     "type": "locations",
     "label": "Ubersreik",
-    "parent": "altdorf-et-les-villes-libres",
+    "parent": {
+      "id": "altdorf-et-les-villes-libres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "La ville d'Ubersreik est située près de la passe de la Dame Grise, l'une des deux principales des Montagnes Grises menant en Bretonnie. Grâce à cela, la ville accueille régulièrement des marchands et des voyageurs venus de tout le Vieux Monde. La puissante forteresse du nom de Roche noire est attenante aux murs de la ville, au cas où des voyageurs moins désirables tenteraient d'entrer. Ubersreik est depuis longtemps associée aux clans nains voisins des Montagnes Grises et, situation n'existant qu'à Ubersreik, des représentants de la population naine de la ville siègent au conseil municipal. L'un des édifices les plus célèbres d'Ubersreik, le spectaculaire pont qui enjambe la Teufel, a été construit par les nains pendant l'ère de Magnus le Pieux. Considéré comme l'une des plus impressionnantes merveilles d'ingénierie que l'on puisse trouver au Reikland, il relie la route commerciale entre Bögenhafen et Dunkelberg, puis jusqu'à Nuln. Ubersreik traite toutes les sortes de commerce, mais est surtout connue pour le minerai et la métallurgie qualifiée des nains.\n\nPour plus de détails sur Ubersreik, voir la Boîte d'Initiation de Warhammer Fantasy.",
@@ -484,7 +546,9 @@
     "id": "weissbruck",
     "type": "locations",
     "label": "Weissbruck",
-    "parent": "altdorf-et-les-villes-libres",
+    "parent": {
+      "id": "altdorf-et-les-villes-libres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "À l'origine, l'un des nombreux et minuscules villages bordant la rivière Bögen, Weissbruck s'est rapidement développé au cours du siècle dernier pour devenir un port animé pour les marchandises et les voyageurs circulant entre Bögenhafen et Altdorf. Le changement de fortune de Weissbruck est dû à ses dirigeants astucieux, les Grubers, qui ont décidé d'exploiter les riches gisements de charbon et de fer situés dans les collines de Skaag. Cet approvisionnement en ressources nécessaires a permis aux Grubers, avec la permission et le partenariat du Prince d'Altdorf, de commander la construction d'un canal à leurs ingénieurs nains en 2462 CI, ce qui a rapidement accéléré la croissance de la ville, grâce à l'apport de toutes sortes de citoyens.\n\nAlors que l'extraction minière a ralenti ces dernières années, le commerce augmente régulièrement. Malgré la richesse de ses dirigeants, Weissbruck conserve un peu le caractère d'une ville minière typique ; de robustes mineurs et débardeurs assurent une paix fragile, et la menace de la violence n'est jamais très loin. Comme les extractions minières ont diminué, de plus en plus de mineurs sont descendus des collines de Skaag, une main-d'œuvre croissante, agitée et sans emploi qui n'a pas grand-chose à faire sinon avaler du tord-boyaux bon marché et menacer les étrangers.",
@@ -497,7 +561,9 @@
     "id": "wheburg",
     "type": "locations",
     "label": "Wheburg",
-    "parent": "altdorf-et-les-villes-libres",
+    "parent": {
+      "id": "altdorf-et-les-villes-libres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "Wheburg est la première ville abordée après avoir quitté les Montagnes Grises, sur la route menant de Helmgart à Bögenhafen. Sa proximité avec la forteresse d'Helmgart assure que des troupes y passent régulièrement, et la ville offre une caserne de taille convenable pour les soldats en visite. Ayant survécu aux conditions extrêmes de la montagne – pour ne rien dire des armées dévastatrices d'orcs et de gobelins, et d'éventuels monstres perchés sur le Drachenberg à proximité – la plupart des visiteurs arrivent à Wheburg avec un désir impérieux de célébrer la vie.\n\nPour satisfaire ce besoin, Wheburg a tout misé sur son hospitalité, et ses habitants sont considérés comme les plus amicaux de tout le Reikland – moyennant finance. Les rues sont bordées de tavernes, d'auberges et de maisons de jeu, sans parler de certains établissements moins salubres où l'on peut profiter de tous les plaisirs de la chair, ainsi que de substances illicites. Bien que les bagarres et les délits mineurs soient courants, les choses dégénèrent rarement étant donné le nombre important de soldats généralement disponibles pour disperser les fêtards bruyants (sauf, évidemment, si ces fêtards sont des soldats en repos). Passer du temps à Wheburg avant le mariage est devenu un rite de passage pour Reiklanders fortunés, et il est courant d'entendre des hommes et des femmes prétendre « ce qui se passe à Wheburg, reste à Wheburg » à tous les coins de rue.",
@@ -523,7 +589,9 @@
     "id": "tour-noire",
     "type": "locations",
     "label": "Tour noire",
-    "parent": "les-bastions-et-forteresses",
+    "parent": {
+      "id": "les-bastions-et-forteresses"
+    },
     "prefix": null,
     "suffix": "La",
     "desc": "Bien que les passes du Défilé de la Hache et de la Dame Grise soient les routes les plus connues des Montagnes Grises, elles ne sont pas les seules. Le Couloir tordu est une gorge étroite traversant les montagnes, non loin de la frontière avec le Wasteland. Il est impraticable pour la plupart des marchands, bien trop étroit pour les chariots ou les chevaux, d'autant plus dangereux que le chemin longe étroitement le bord de la falaise, ce qui fait que le moindre faux-pas peut mener à une mort bien peu glorieuse.\n\nParfaitement infranchissable l'hiver et dangereux le reste de l'année, le Couloir tordu était connu seulement des bergers et des contrebandiers, jusqu'à ce qu'une vague d'attaques de peaux-vertes attire l'attention des autorités sur la passe.\n\nIl y a plusieurs décennies, l'Empereur Mattheus II ordonna la construction d'une forteresse pour surveiller le Couloir tordu après une nouvelle invasion. Neuf ans plus tard, la Tour noire était achevée, tirant son nom de la pierre sombre, extraite localement, qui constitue ses murs, et de l'ardoise qui recouvre les toits de ses tours.\n\nSa position élevée au-dessus du Couloir tordu offrait aux tireurs d'élite de l'Empereur un perchoir parfait pour exercer leurs compétences létales ; cependant, son statut de bastion reiklander fut de courte durée. Une négligence lors de la phase d'élaboration eut pour conséquence la construction de la tour sur des terres revendiquées par les nains de Karak Ziflin. Pour ne pas contrarier les nains, l'Empereur céda la tour, au grand dam du Margrave de Geetburg qui avait aidé à la financer.\n\nAujourd'hui, les nains permettent « généreusement » à une garnison restreinte d'établir sa caserne aux côtés de leurs propres troupes à la Tour noire, une structure bien reconstruite. Alors que les Reiklanders souffrent sous le commandement des nains, et que ces derniers dénigrent constamment la piètre architecture humaine qu'ils ont toujours supplantée, la Tour est une poudrière de griefs et de ressentiments, à l'atmosphère tendue – et parfois même insupportable.",
@@ -536,7 +604,9 @@
     "id": "manoir-steirlich",
     "type": "locations",
     "label": "Manoir Steirlich",
-    "parent": "les-bastions-et-forteresses",
+    "parent": {
+      "id": "les-bastions-et-forteresses"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "Sur le versant sud des Hägercrybs, dans le Duché de Grauwerk, se dresse un manoir bien fortifié, au sommet d'une crête balayée par les vents. Le manoir est ancien, propriété de la famille von Bruner, et actuellement dirigé par le graf Steirlich : le Graf et son imposant manoir ont été ainsi nommés en l'honneur d'un ancêtre célèbre à qui la terre a été offerte par l'Empereur Mandred, Tueur de skavens, en 1138 CI.\n\nL'ambitieux Graf arbore un regard d'acier et des traits aussi larges que le Reik. Il est bien vu par la population locale pour sa détermination à déloger les bandits et à chasser d'autres menaces qui risqueraient de porter atteinte à sa propriété. En réalité, des bruits racontent qu'il serait peut-être un peu trop disposé à enquêter sur des événements surnaturels, car de sombres rumeurs de corruption entourent les héritiers de la lignée von Bruner.\n\nCertes, le séduisant et ténébreux Graf est toujours à la recherche de cœurs vaillants, de volontés d'acier et de bras armés pour l'aider à maintenir la paix, donc peu de gens osent exprimer leurs peurs à haute voix.",
@@ -549,7 +619,9 @@
     "id": "helmgart",
     "type": "locations",
     "label": "Helmgart",
-    "parent": "les-bastions-et-forteresses",
+    "parent": {
+      "id": "les-bastions-et-forteresses"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "Située haut dans les Montagnes Grises, la ville-forteresse d'Helmgart garde la frontière avec la Bretonnie du côté Est du Défilé de la Hache. Les relations entre l'Empire et la Bretonnie n'ont pas toujours été courtoises, et bien que les remparts d'Helmgart ne soient pas ornés d'anciens crânes dans des heaumes ciselés, il en reste très probablement dans les cellules du château. Ces derniers temps, les soldats d'Helmgart sont plus souvent appelés à patrouiller la passe, protégeant les voyageurs et les marchands contre les peaux-vertes, les bandits et autres menaces.\n\nLe donjon d'Helmgart a été directement creusé dans le flanc de la montagne par les nains il y a bien longtemps. Trois niveaux de robustes murs de pierre s'appuient sur une grande montagne de granit, dominant la région environnante et offrant un excellent point de vue sur la route en contrebas. Helmgart, à proprement dit, est un mur imposant uniquement interrompu par un unique long tunnel se faufilant entre les deux versants escarpés : la seule route qui mène à la Bretonnie. Les troupes en garnison dans la forteresse comptent plusieurs régiments légendaires. Le plus célèbre, les artilleurs des Maraudeurs de Mackensen – un régiment d'État reiklander –, est bien connu pour sa précision meurtrière, une réputation effrayante sans doute facilitée par le manque de couverture sur la route située sous des hauts murs. La forteresse siège à l'une des extrémités de la grande route menant directement à Bögenhafen, et de là à Altdorf.\n\nGardienne de la principale route de commerce de l'Empire depuis la Bretonnie, Helmgart est à la fois une imposante citadelle et une ville commerçante animée. Ici, les marchands bretonniens commercent du brandevin, du vin, des tissus fins, des armes et des armures, tandis que leurs homologues reiklanders acheminent des marchandises de leur province vers le sud. Les clans nains locaux échangent également des lingots d'argent, de plomb et de fer, ainsi que des précieuses pièces de métal forgées par leurs soins. Avec autant de marchands, le Marketplatz d'Helmgart est un endroit animé, offrant des opportunités infinies et fréquenté par d'innombrables voleurs.",
@@ -562,7 +634,9 @@
     "id": "le-rocher",
     "type": "locations",
     "label": "Le Rocher",
-    "parent": "les-bastions-et-forteresses",
+    "parent": {
+      "id": "les-bastions-et-forteresses"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "Surplombant l'une des nombreuses îles d'Essel sur le Reik, le promontoire massif, connu simplement sous le nom du Rocher, est visible à des kilomètres à la ronde. Un chemin sinueux s'enroule le long du versant abrupt et escarpé, depuis la petite jetée semblant insignifiante à sa base jusqu'aux murs sévères de la citadelle trapue couronnant le mont rocailleux. Les capitaines la contournent et les plus superstitieux d'entre eux font l'offrande de sel et d'acier au Grand-père Reik pour protéger leur passage. Aucun fanion ne flotte au sommet des sinistres remparts, bien que le reflet occasionnel du heaume d'un garde prouve que des troupes les parcourent.\n\nIgnoré par la plupart, le Rocher est une prison sûre gardant de dangereux criminels qui, pour diverses raisons politiques sensibles, ne peuvent pas être tout simplement exécutés. Certains ont des amis ou des proches puissants, ou sont eux- mêmes des nobles dont les crimes, s'ils venaient à s'ébruiter, pourraient causer scandale et honte aux puissants du Reikland. D'autres sont des otages politiques, maintenus captifs pour s'assurer la complaisance de parents entêtés. Évidemment, certains en savent trop, et leurs précieux secrets sont protégés dans le Rocher. Personne ne sait grand-chose sur ce qui se passe à l'intérieur des murs du Rocher, et personne ne veut véritablement le savoir.",
@@ -588,7 +662,9 @@
     "id": "monastere-de-la-parole-sacree",
     "type": "locations",
     "label": "Monastère de la Parole Sacrée",
-    "parent": "les-villages-hameaux-et-sites-sacres",
+    "parent": {
+      "id": "les-villages-hameaux-et-sites-sacres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "Au cœur de la forêt de la Reikwald à l'ouest d'Aldorf, loin de toute route facilement praticable, se dresse le Monastère de la Parole Sacrée. Ce site sacré est entretenu par les Sigmarites de l'Ordre de l'Enclume. L'Ordre est chargé du respect des lois qui régissent le Culte de Sigmar et de la conservation de tous les détails des pratiques du Culte.\n\nLe Monastère de la Parole Sacrée abrite le plus grand trésor de l'Ordre : le Testament de Sigmar. Récupéré peu de temps après l'abdication du Dieu, le Testament est un recueil de souvenirs de guerriers et de citoyens qui ont connu Sigmar Heldenhammer avant sa divine ascension. Considéré comme le recueil le plus précis des véritables paroles de Sigmar et des pratiques qu'il a observées toute sa vie, le Testament fait partie des œuvres les plus sacrées du Reikland.\n\nL'Ordre de l'Enclume n'a pas pour coutume d'accepter des visiteurs, mais le Monastère de la Parole Sacrée n'est pas un lieu de recueillement ordinaire. Les pénitents à la recherche de détails obscurs sur les origines de la Loi de Sigmar viennent des quatre coins de l'Empire pour interroger les moines à la robe noire et verte sur la doctrine.\n\nLes nobles et les marchands extrêmement fortunés qui ont manifesté à maintes reprises leur dévotion au Culte de Sigmar se verront parfois accorder l'autorisation d'effectuer un pèlerinage au Monastère de la Parole Sacrée. Bien que personne n'ait le droit de lire le Testament original, ni même de le toucher, l'autorisation de contempler une ou deux de ses pages est considérée comme un honneur inestimable.",
@@ -601,7 +677,9 @@
     "id": "rottfurt",
     "type": "locations",
     "label": "Rottfurt",
-    "parent": "les-villages-hameaux-et-sites-sacres",
+    "parent": {
+      "id": "les-villages-hameaux-et-sites-sacres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "Des dizaines de colonies sans grand intérêt bordent la Teufel, et sont même interchangeables. Ce n'est pas le cas de Rottfurt, dont le nom est prononcé à voix basse et avec déférence par les érudits et les Sorciers à travers l'Empire. Bien qu'étant surtout un village de bergers, produisant de la laine et de la viande de mouton, Rottfurt fournit également un célèbre – et très cher – parchemin de peau de mouton : l'Argenté de Rottfurt. Le parchemin montre un faible lustre, absorbe bien l'encre et résiste à la décoloration bien plus longtemps que des parchemins de moindre qualité.\n\nGrâce à cela, les moutons à la toison épaisse et pâle de Rottfurt font la fierté du village et permettent tout ce confort. Ils se nourrissent de l'herbe abondante des Hauts d'Hammastrat avoisinants et sont généralement autorisés à errer comme ils le souhaitent pendant la journée. Les bergers contribuent à une milice tournante, chargée de protéger le précieux cheptel coûte que coûte.\n\nMais, dernièrement, du bétail a disparu ; malgré tous leurs efforts, curieusement les personnes de garde se sont toujours endormies. À leur réveil, un autre mouton avait disparu. Ce qui a débuté comme une frustration mineure est devenu une obsession pour les gens du coin, faisant naître autant de théories farfelues et spectaculaires qu'il y a d'étoiles dans le ciel.",
@@ -614,7 +692,9 @@
     "id": "worlin",
     "type": "locations",
     "label": "Wörlin",
-    "parent": "les-villages-hameaux-et-sites-sacres",
+    "parent": {
+      "id": "les-villages-hameaux-et-sites-sacres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "Le petit hameau de pêcheurs de Wörlin est presque impossible à remarquer depuis la rivière. La colonie est entourée de nombreux petits îlots rocheux et de promontoires, et protégée par des centaines d'arbres courbés. Ces saules de Wörlin bordent les rives du Reik sur plusieurs kilomètres, et il semble que personne ne trouve d'intérêt à utiliser leur bois. Beaucoup d'échanges commerciaux transitent par Wörlin, mais très peu s'y déroulent, car la majorité des produits sont destinés à des marchés plus lucratifs.",
@@ -627,7 +707,9 @@
     "id": "zahnstadt",
     "type": "locations",
     "label": "Zahnstadt",
-    "parent": "les-villages-hameaux-et-sites-sacres",
+    "parent": {
+      "id": "les-villages-hameaux-et-sites-sacres"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "Zahnstadt l'isolé est considéré par les gens du coin comme étant le dernier village du Vorbergland, après lequel le paysage vallonné devient stérile et froid avant d'atteindre les Montagnes Grises infestées de peaux-vertes. Dans l'ombre de ces sommets, Zahnstadt se dissimule le long de la rive sud de la rivière Mos, au fond d'une vallée sombre où des rochers escarpés s'élèvent de tous côtés. En été, le soleil ne baigne le village que pendant une heure ou deux au beau milieu de la journée, se cachant derrière les falaises environnantes le matin et rampant derrière les montagnes durant la journée.\n\nEn hiver, le village ne bénéficie d'aucun soleil direct, et demeure enfermé dans un cercle lugubre de pénombre et de ténèbres. Malgré cela, le peuple de Zahnstadt est connu pour son caractère enjoué et sa perpétuelle gaieté, un trait que les étrangers trouvent souvent forcé et rebutant. Toutes les maisons à Zahnstadt sont peintes dans un mélange criard de couleurs diverses, bien souvent inharmonieux. Son auberge locale, le Soleil capricieux, est célèbre pour son foyer brûlant en permanence et pour ses chansons toujours joyeuses qui résonnent longuement dans la nuit.",
@@ -653,7 +735,9 @@
     "id": "cercle-de-pierres-noires",
     "type": "locations",
     "label": "Cercle de Pierres noires",
-    "parent": "sites-anciens-et-ruines-terrifiantes",
+    "parent": {
+      "id": "sites-anciens-et-ruines-terrifiantes"
+    },
     "prefix": null,
     "suffix": "Le",
     "desc": "L'homme sage ne s'aventure pas à proximité du Cercle de Pierres noires. Le chemin menant à cet endroit où repose un ancien et terrible pouvoir se trouve au nord de Blutroch, près de la route d'Altdorf-Bögenhafen. Lorsque la nuit tombe, les six pierres sculptées se mettent à briller d'une lueur verte pâle et brillante, telles des cires de Morrslieb.\n\nAu centre du Cercle de Pierres noires se trouve un bloc monolithique, fait d'une roche non identifiable, recouverte en permanence du sang d'innombrables innocents sacrifiés au fil des millénaires.\n\nMalgré la triste réputation du Cercle, les voyageurs semblent attirés vers ses environs malveillants, séduits par les légendes de potentiel mystique et d'artefacts perdus aux terribles pouvoirs arcaniques. Même les apparitions fréquentes d'hommes-bêtes et de cultistes – en particuliers aux alentours de Geheimnisnacht – ne peuvent dissuader ces braves, certains pourraient dire imprudentes, âmes.",
@@ -666,7 +750,9 @@
     "id": "chateau-drachenfels",
     "type": "locations",
     "label": "Château Drachenfels",
-    "parent": "sites-anciens-et-ruines-terrifiantes",
+    "parent": {
+      "id": "sites-anciens-et-ruines-terrifiantes"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "Semblables à des serres tordues et déformées, les sept tours du Château Drachenfels s'agrippent au ciel en un geste malveillant et rancunier. Chacune de ces tourelles déformées est ajourée de fenêtres, comme autant d'innombrables yeux, alertant de l'arrivée de tout voyageur assez malchanceux – ou insensé –, pour tomber par hasard sur le repaire du Grand Enchanteur, Constant Drachenfels.\n\nDrachenfels – sorcier, nécromancien et démonologue puissant et mythique–, a tourmenté l'humanité depuis bien avant l'ère de l'Empire ; il était déjà ancien lorsqu'il a subi sa première grande défaite des mains de Sigmar Heldenhammer. Il est retourné maintes et maintes fois dans son antre des Montagnes Grises, comme une plaie purulente qui refuse de guérir. Des rumeurs courent selon lesquelles les ruines apparemment calmes, pour la plupart réduites à l'état de gravats et abandonnées depuis longtemps, sont moins abandonnées qu'elles n'y paraissent...",
@@ -679,7 +765,9 @@
     "id": "helspire",
     "type": "locations",
     "label": "Helspire",
-    "parent": "sites-anciens-et-ruines-terrifiantes",
+    "parent": {
+      "id": "sites-anciens-et-ruines-terrifiantes"
+    },
     "prefix": null,
     "suffix": null,
     "desc": "S'élevant dangereusement des sommets surplombant le Défilé de la Hache, l'Helspire est une sinistre forteresse, taillée directement dans la roche vive des Montagnes Grises et incrustée des os d'innombrables défunts. Elle semble abandonnée depuis longtemps et aussi immobile qu'une tombe ; cependant, en de rares nuits d'importance occulte, même pendant les plus noires, des lumières étranges brillent le long des remparts, jetant des ombres inquiétantes sur la passe. Alors l'Helspire se révèle être une citadelle de morts sans repos et de chevaliers squelettes, parcourant la montagne, terrorisant à la fois les Reiklanders et les Bretonniens. On ne sait que très peu de choses sur le château, et aucun vivant n'affirme avoir percé ses sinistres murs ou savoir qui commande les légions de morts-vivants rôdant à l'intérieur. Certains disent qu'il s'agit du repaire d'une cabale de nécromanciens, d'autres de la crypte d'un vampire, et quelques-uns chuchotent même que la forteresse est dirigée par une puissante Liche, sorcier hors pair de son vivant, qui s'accroche à la non-mort pour assouvir sa vengeance sanglante pour un fait vieux de quelques siècles. Sans doute à cause de cette incertitude, on raconte que l'Helspire est remplie de riches trésors issus du Vieux Monde, mais personne ne connaît la vérité, et ceux qui ont recherché de tels trésors ne sont jamais revenus ou n'en ont jamais parlé.",
@@ -692,7 +780,9 @@
     "id": "lorlay",
     "type": "locations",
     "label": "Lorlay",
-    "parent": "sites-anciens-et-ruines-terrifiantes",
+    "parent": {
+      "id": "sites-anciens-et-ruines-terrifiantes"
+    },
     "prefix": null,
     "suffix": "La",
     "desc": "Avec une vue à couper le souffle, la Lorlay est une importante formation rocheuse qui se dresse fièrement au centre du Reik, à environ 40 kilomètres en aval du Grissenwald. Les chenaux situés de part et d'autres de l'île en saillie sont profonds et coulent rapidement, et malgré la relative étroitesse de la rivière à cet endroit, aucun passage n'a été construit avec succès.\n\nDes légendes romantiques prétendent qu'une belle elfe gracieuse, une vierge à la peau pâle nage dans les eaux rapides à l'aube et au crépuscule. Pour cela, la Lorlay est un endroit prisé par les Reiklanders fortunés pour organiser des enterrements de vie de garçons Taalites avant les mariages, et un nombre surprenant d'auberges de grande classe se trouvent donc à proximité. Les contes sur la vierge chantante des eaux sont particulièrement répandus parmi les marins du Reikland liés au fleuve, et si l'on en croit leurs récits, elle a été aperçue par la moitié des matelots de la Marine.",
@@ -705,7 +795,9 @@
     "id": "pierres-chantantes",
     "type": "locations",
     "label": "Pierres chantantes",
-    "parent": "sites-anciens-et-ruines-terrifiantes",
+    "parent": {
+      "id": "sites-anciens-et-ruines-terrifiantes"
+    },
     "prefix": null,
     "suffix": "Les",
     "desc": "À l'ouest de Schädelheim, au fond d'une vallée boisée,se dresse un ancien dolmen. Ses pierres sont vieilles au-delà de l'imaginable, disposées en spirale autour d'un arrangement d'épais piliers coiffés d'une énorme plaque, ressemblant ni plus ni moins à un autel titanesque. Depuis le sol, il est presque impossible de discerner le motif complexe des pierres, en particulier à cause des arbres et des arbustes qui ont poussé parmi les menhirs.\n\nLorsqu'un vent d'ouest souffle sur la vallée, en provenance du Wasteland, les pierres produisent une plainte étrange qui résonne à des kilomètres à la ronde. Bien que certains autochtones affirment qu'écouter le chant des pierres peut aider à résoudre les problèmes ou conférer une étrange sagesse, d'autres déclarent qu'une telle absurdité est une hérésie, sachant que rien, sauf des ennuis, ne ressort du phénomène d'un tel pouvoir impie, et sont plus que disposés à utiliser la violence pour sauver les âmes de la folie.",

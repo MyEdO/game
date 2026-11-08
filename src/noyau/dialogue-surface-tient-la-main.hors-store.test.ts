@@ -9,6 +9,7 @@
  * Contrats POSITIFS, un par surface : sous chacune la conversation ne répond pas ; au témoin, elle
  * répond.
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
@@ -33,7 +34,7 @@ const dlg: Dialogue = {
 function temoin(over: Partial<Jeu> = {}) {
   banc.setState({
     screen: 'campaign', mode: 'exploration', battle: null, scene: null, flags: {}, journal: [],
-    party: makeShowcaseParty(), dialogueHistory: [], merchant: null, tavernGames: null,
+    party: makeShowcaseParty(idsDeTest), dialogueHistory: [], merchant: null, tavernGames: null,
     document: null, pendingLoot: null, pendingTest: null, pendingLogQueue: [], pendingOrders: [],
     worldMapOpen: false, port: null, landMarket: null,
     dialogue: { dialogue: dlg, nodeId: 'n1', session: 1 },

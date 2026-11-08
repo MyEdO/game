@@ -1,3 +1,4 @@
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { fireTriggers, effectSourcesOf } from './triggeredEffects';
@@ -24,7 +25,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /** Héros H face à deux ennemis E et F en Ligne de Vue ; les autres ennemis du combat sont morts. */
 function setup() {
   seedBattleRng(3);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
@@ -207,7 +208,7 @@ describe('Famille défense, telle qu’avant #1463 : fin à la chute (LDB 21 l.7
     const b = banc.getState().battle!;
     const declenche = targetedTrigger(live(H.id), sourcesPsyEnVue(b, banc.getState().scene!, live(H.id), (v) => !isOutOfAction(v)));
     expect(declenche).toMatchObject({ type: 'camaraderie', sourceId: A.id });
-    applyOps(live(H.id), psychBranchOps({ kind: declenche!.type, cible: declenche!.cible, sourceId: declenche!.sourceId, indice: 0 }, { success: false }), { rng: battleRng() });
+    applyOps(live(H.id), psychBranchOps({ kind: declenche!.type, cible: declenche!.cible, sourceId: declenche!.sourceId, indice: 0 }, { success: false }), { idNeuf: idsDeTest, rng: battleRng() });
     expect(isAfflictionActive(etat(H, 'camaraderie')!)).toBe(true);
 
     applyAttackResult(banc.getState, banc.setState, live(menace.id), live(A.id), hache, coupMortel(live(A.id).wounds.current + 30));

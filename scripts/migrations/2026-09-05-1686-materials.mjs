@@ -35,6 +35,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const NOM = '2026-09-05-1686-materials';
@@ -147,7 +148,7 @@ for (const s of SOURCES) {
   if (!Array.isArray(doc)) echec(`${s.rel} : racine non-TABLEAU`);
   if (!doc.length) echec(`${s.rel} : 0 entrée — périmètre vidé`);
   for (const e of doc) {
-    if (!e || typeof e !== 'object' || Array.isArray(e)) echec(`${s.rel} : entrée non-objet`);
+    if (!estObjet(e)) echec(`${s.rel} : entrée non-objet`);
     if (typeof e.id !== 'string' || !e.id) echec(`${s.rel} : entrée sans \`id\` de chaîne non vide`);
     if (typeof e.label !== 'string' || !e.label) echec(`${s.rel} : ${e.id} sans \`label\` de chaîne non vide`);
     if ('domain' in e) echec(`${s.rel} : ${e.id} porte déjà un \`domain\` — le domaine est ce que cette migration POSE`);

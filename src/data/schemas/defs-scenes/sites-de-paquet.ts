@@ -15,6 +15,7 @@
  * forme n'est pas vérifiée : le document peut être brut (avant `normalizeScene`).
  */
 import { carriedFlows, isFlowNode, racinesDeFlow, walkFlow, type CheminDeFlow, type Flow, type GenreDeRacineDeFlow } from '../../../engine/flowCore';
+import { estObjet } from '../../../lib/objet.mjs';
 
 type Chemin = readonly (string | number)[];
 type Objet = Record<string, unknown>;
@@ -55,8 +56,7 @@ export interface PaquetASites {
 }
 
 const liste = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
-const objet = (v: unknown): Objet => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Objet) : {});
-const estObjet = (v: unknown): v is Objet => !!v && typeof v === 'object' && !Array.isArray(v);
+const objet = (v: unknown): Objet => (estObjet(v) ? v : {});
 const idDe = (o: Objet): string => (typeof o.id === 'string' ? o.id : '?');
 
 const NOM_DE_RACINE: { readonly [G in GenreDeRacineDeFlow]: string } = {

@@ -2,10 +2,11 @@
  * LES SURFACES D'UN MODÈLE (#2972, #3086) : chaque surface nomme un matériau du GLB et l'emplacement de palette dont il
  * prend la couleur ; une surface `blason: true` reçoit au montage l'emblème choisi (#3111) et porte l'UV `TEXCOORD_0` ;
  * `parSexe` nomme, par sexe du porteur, le matériau du GLB qui remplace le sien (#3188), sa variante
- * `KHR_materials_variants` du nom du sexe sur chaque primitive de la surface. Un élément (`element.ts`) et une base
- * (`manifesteDeBase.ts`) les déclarent ; seul un élément admet le blason, seule une base `parSexe`.
+ * `KHR_materials_variants` du nom du sexe sur chaque primitive de la surface ; une surface `matiere` s'habille de la
+ * texture de cette matière de décor du monde, `prop--<id>` (#2987). Un élément (`element.ts`) et une base
+ * (`manifesteDeBase.ts`) les déclarent ; seul un élément admet blason et matière, seule une base `parSexe`.
  */
-import { estObjet } from '../../../src/hote/formes.ts';
+import { estObjet } from '../../../src/lib/objet.mjs';
 import { SLOTS, type Slot } from '../../../src/lib/palette.ts';
 import { SEXES, type Sexe } from '../../../src/lib/sexe.ts';
 import type { ContenuGlb } from './glb.ts';
@@ -14,13 +15,14 @@ export interface Surface {
   readonly nom: string;
   readonly palette: Slot;
   readonly blason?: true;
+  readonly matiere?: string;
   readonly parSexe?: Readonly<Partial<Record<Sexe, string>>>;
 }
 
-/** Qui déclare des surfaces : un élément admet `blason`, une base `parSexe`. */
+/** Qui déclare des surfaces : un élément admet `blason` et `matiere`, une base `parSexe`. */
 export type PorteurDeSurfaces = 'element' | 'base';
 
-export type CodeDEcartDeSurface = 'forme' | 'palette-inconnue' | 'surface-absente' | 'uv-absente';
+export type CodeDEcartDeSurface = 'forme' | 'matiere-inconnue' | 'palette-inconnue' | 'surface-absente' | 'uv-absente';
 
 export interface EcartDeSurface {
   readonly code: CodeDEcartDeSurface;
@@ -30,7 +32,11 @@ export interface EcartDeSurface {
 
 const estSlot = (v: unknown): v is Slot => (SLOTS as readonly unknown[]).includes(v);
 
-const OPTION: Record<PorteurDeSurfaces, 'blason' | 'parSexe'> = { element: 'blason', base: 'parSexe' };
+const OPTIONS: Record<PorteurDeSurfaces, readonly string[]> = { element: ['blason', 'matiere'], base: ['parSexe'] };
+const ATTENDUES: Record<PorteurDeSurfaces, string> = {
+  element: '`{ nom, palette }` attendu, `blason: true` et `matiere` en option',
+  base: '`{ nom, palette }` attendu, `parSexe` en option',
+};
 
 /** `brut.parSexe` lu : une table d'un sexe (`SEXES`) au nom non vide d'un matériau ; `null` hors de cette forme. */
 function lireParSexe(brut: unknown): Partial<Record<Sexe, string>> | null {
@@ -39,22 +45,23 @@ function lireParSexe(brut: unknown): Partial<Record<Sexe, string>> | null {
   return entrees.every(([sexe, nom]) => (SEXES as readonly string[]).includes(sexe) && typeof nom === 'string' && nom !== '') ? Object.fromEntries(entrees) : null;
 }
 
-/** Les surfaces `brut` d'un modèle lues, et leurs écarts de forme ; `porteur` dit l'option qu'une surface admet. */
+/** Les surfaces `brut` d'un modèle lues, et leurs écarts de forme ; `porteur` dit les options qu'une surface admet. */
 export function lireSurfaces(brut: unknown, porteur: PorteurDeSurfaces): { readonly surfaces: Surface[]; readonly ecarts: EcartDeSurface[] } {
   const ecarts: EcartDeSurface[] = [];
   const refus = (code: CodeDEcartDeSurface, ou: string, detail: string) => ecarts.push({ code, ou, detail });
   if (!Array.isArray(brut)) return { surfaces: [], ecarts: [{ code: 'forme', ou: 'surfaces', detail: 'liste attendue' }] };
-  const option = OPTION[porteur];
-  const attendue = `\`{ nom, palette }\` attendu, \`${option}\` en option`;
+  const options = OPTIONS[porteur];
+  const attendue = ATTENDUES[porteur];
   const noms = new Set<string>();
   const surfaces = brut.flatMap((s: unknown, i): Surface[] => {
     const ou = `surfaces.${i}`;
-    const autres = estObjet(s) ? Object.keys(s).filter((c) => c !== 'nom' && c !== 'palette' && c !== option) : [];
+    const autres = estObjet(s) ? Object.keys(s).filter((c) => c !== 'nom' && c !== 'palette' && !options.includes(c)) : [];
     if (!estObjet(s) || typeof s.nom !== 'string' || s.nom === '' || s.palette === undefined || autres.length) {
       refus('forme', ou, attendue);
       return [];
     }
     if (s.blason !== undefined && s.blason !== true) refus('forme', `${ou}.blason`, `${String(s.blason)} : \`true\` ou absent attendu`);
+    if (s.matiere !== undefined && (typeof s.matiere !== 'string' || s.matiere === '')) refus('forme', `${ou}.matiere`, `${String(s.matiere)} : nom de matière ou absent attendu`);
     const parSexe = s.parSexe === undefined ? undefined : lireParSexe(s.parSexe);
     if (parSexe === null) refus('forme', `${ou}.parSexe`, `table d’un sexe (${SEXES.map((e) => `\`${e}\``).join(', ')}) au nom d’un matériau attendue`);
     if (noms.has(s.nom)) refus('forme', `${ou}.nom`, `${s.nom} nommée deux fois`);
@@ -63,9 +70,16 @@ export function lireSurfaces(brut: unknown, porteur: PorteurDeSurfaces): { reado
       refus('palette-inconnue', `${ou}.palette`, `${String(s.palette)} : ${SLOTS.map((e) => `\`${e}\``).join(', ')} attendue`);
       return [];
     }
-    return [{ nom: s.nom, palette: s.palette, ...(s.blason === true ? { blason: true } : {}), ...(parSexe ? { parSexe } : {}) }];
+    return [{ nom: s.nom, palette: s.palette, ...(s.blason === true && { blason: true as const }), ...(typeof s.matiere === 'string' && s.matiere !== '' && { matiere: s.matiere }), ...(parSexe ? { parSexe } : {}) }];
   });
   return { surfaces, ecarts };
+}
+
+/** Les écarts des surfaces `surfaces` aux matières de décor du monde `matieres` (`matieresDeDecor`, surface du noyau) :
+ *  une `matiere` qui n'en est pas une. */
+export function ecartsAuxMatieres(surfaces: readonly Surface[], matieres: readonly string[]): EcartDeSurface[] {
+  return surfaces.flatMap((s, i): EcartDeSurface[] => s.matiere === undefined || matieres.includes(s.matiere) ? []
+    : [{ code: 'matiere-inconnue', ou: `surfaces.${i}.matiere`, detail: `${s.matiere} : une matière de décor du monde attendue (\`prop--<id>\`, \`materials.json\`)` }]);
 }
 
 /** Les écarts des surfaces `surfaces` au GLB lu `glb` : un matériau qu'il ne nomme pas, un blason sans UV, un matériau

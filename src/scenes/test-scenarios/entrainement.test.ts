@@ -1,7 +1,8 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { scenario } from './entrainement';
 import { layerTiles } from '../../noyau/monde/scene';
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /**
  * Verrouille la Scene PRODUITE par `buildScene` dans `entrainement.ts` : dimensions, terrain 'sol' plein

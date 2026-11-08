@@ -4,9 +4,10 @@
 ## `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source
 ## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que la suite ajoute, `zones` : les lignes du journal) ;
 ## le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
-## (`Zone.geste` ; la fiche d'un héros, montrée ou fermée, par la méthode `fiche` ; la création d'un héros par la méthode
-## `creation`), ou un clic du champ (`vue.champ` : le verbe du clic, sur la case et le combattant qui s'y tient ;
-## `null`, le champ ne se clique pas), le combattant d'une case lu dans `vue.occupants`. Un refus se dit ; l'écran
+## (`Zone.geste` ; la fiche d'un combattant, montrée ou fermée, par la méthode `fiche` ; la création d'un héros par la
+## méthode `creation`), un clic du champ (`vue.champ` : le verbe du clic, sur la case et le combattant qui s'y tient ;
+## `null`, le champ ne se clique pas), ou un clic droit, qui montre la fiche du combattant de la case, le combattant
+## d'une case lu dans `vue.occupants`. Un refus se dit ; l'écran
 ## reste tel quel, saisies comprises. Avant la partie, il tire le listage des modèles et l'index du pont
 ## (`MontageDeComposition.lister`, `indexer`), que chaque corps du plateau monte ; un échec se dit dans l'avis de panne,
 ## et la partie se joue sans corps. Chaque vue montrée, et chaque corps changé, il publie à la page ce que l'écran porte
@@ -31,6 +32,7 @@ var _zones: Array[Zone] = []
 
 func _ready() -> void:
 	_plateau.case_cliquee.connect(_cliquer)
+	_plateau.case_inspectee.connect(_inspecter)
 	_plateau.habille.connect(_publier_l_ecran)
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
@@ -145,3 +147,10 @@ func _cliquer(case: Vector3i) -> void:
 	if occupant != null:
 		args.append(occupant)
 	_jouer({type = champ, args = args})
+
+
+## Un clic droit sur `case` : la fiche du combattant qui s'y tient, s'il y en a un.
+func _inspecter(case: Vector3i) -> void:
+	var occupant: Variant = _vue.occupants.get("%d,%d,%d" % [case.x, case.y, case.z])
+	if occupant != null:
+		_jouer({fiche = {porteur = occupant}})

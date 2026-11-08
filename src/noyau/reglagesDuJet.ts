@@ -161,8 +161,8 @@ export type PhaseDuReglage = 'avantLeJet' | 'apresLeJet' | 'horsDuJet';
 export type PorteeDuReglage = 'fenetre' | 'rangee';
 
 /** Ce que fait un choix, réglage de jet (`jetRegler`) ou choix de fenêtre (`fenetreChoisir`) : sa valeur se change
- *  jusqu'à la clôture de la fenêtre (`reprenable`), la rangée se déclare sans retour (`fige`), ou le choix applique
- *  l'issue et ferme la fenêtre (`clot`). Un choix qui ne clôt pas est une option de la fenêtre, pas un pas de sa
+ *  jusqu'à la clôture de la fenêtre (`reprenable`), elle se pose sans retour sur sa rangée ou sur la fenêtre, qui reste
+ *  ouverte (`fige`), ou le choix applique l'issue et ferme la fenêtre (`clot`). Un choix qui ne clôt pas est une option de la fenêtre, pas un pas de sa
  *  séquence (`GesteDeLaFenetre.reglage`, `src/hote/gestes.ts`). */
 export type EffetDuChoix = 'reprenable' | 'fige' | 'clot';
 

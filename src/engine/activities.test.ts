@@ -11,6 +11,7 @@
  *    Accessible (+20) de la Compétence de carrière ; Bronze 2d10 sc × Standing, Argent 1d10 pa
  *    × Standing, Or 1 CO × Standing ; échec → moitié ; Échec Stupéfiant (−6) → rien.
  */
+import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { RNG } from './dice';
 import { toBrass } from './money';
@@ -26,21 +27,21 @@ function seq(values: number[]): RNG {
 
 describe('craftTarget — Artisanat (LDB 23 l.68-85)', () => {
   it('gammes de prix : Bronze 5 / Argent 10 / Or 15 DR', () => {
-    expect(craftTarget('bronze', 'Commune', 0, 0).dr).toBe(5);
-    expect(craftTarget('argent', 'Commune', 0, 0).dr).toBe(10);
-    expect(craftTarget('or', 'Commune', 0, 0).dr).toBe(15);
+    expect(craftTarget('bronze', 'commune', 0, 0).dr).toBe(5);
+    expect(craftTarget('argent', 'commune', 0, 0).dr).toBe(10);
+    expect(craftTarget('or', 'commune', 0, 0).dr).toBe(15);
   });
   it('chaque Défaut ÷2 (avant Atouts), chaque Atout +5 après', () => {
-    expect(craftTarget('argent', 'Commune', 0, 1).dr).toBe(5); // 10 ÷ 2
-    expect(craftTarget('argent', 'Commune', 0, 2).dr).toBe(3); // 10 ÷ 4 → arrondi sup (min 1)
-    expect(craftTarget('argent', 'Commune', 2, 0).dr).toBe(20); // 10 + 2×5
-    expect(craftTarget('argent', 'Commune', 1, 1).dr).toBe(10); // (10 ÷ 2) + 5 — Atouts APRÈS Défauts
+    expect(craftTarget('argent', 'commune', 0, 1).dr).toBe(5); // 10 ÷ 2
+    expect(craftTarget('argent', 'commune', 0, 2).dr).toBe(3); // 10 ÷ 4 → arrondi sup (min 1)
+    expect(craftTarget('argent', 'commune', 2, 0).dr).toBe(20); // 10 + 2×5
+    expect(craftTarget('argent', 'commune', 1, 1).dr).toBe(10); // (10 ÷ 2) + 5 — Atouts APRÈS Défauts
   });
   it('difficulté par Disponibilité (Commune +20 … Exotique −30)', () => {
-    expect(craftTarget('bronze', 'Commune', 0, 0).difficulty).toBe('accessible');
-    expect(craftTarget('bronze', 'Limitée', 0, 0).difficulty).toBe('intermediaire');
-    expect(craftTarget('bronze', 'Rare', 0, 0).difficulty).toBe('complexe');
-    expect(craftTarget('bronze', 'Exotique', 0, 0).difficulty).toBe('tresDifficile');
+    expect(craftTarget('bronze', 'commune', 0, 0).difficulty).toBe('accessible');
+    expect(craftTarget('bronze', 'limitee', 0, 0).difficulty).toBe('intermediaire');
+    expect(craftTarget('bronze', 'rare', 0, 0).difficulty).toBe('complexe');
+    expect(craftTarget('bronze', 'exotique', 0, 0).difficulty).toBe('tresDifficile');
   });
 });
 
@@ -137,9 +138,9 @@ describe('craftCatalog / orderCatalog', () => {
     expect(cat.length).toBeGreaterThan(0);
     for (const o of cat) expect(o.priceBrass).toBeGreaterThan(0);
     // Aucune Commune/Limitée/Rare : celles-là se tiennent en stock (LDB 59 l.17-19) → marchand.
-    expect(cat.filter((o) => AVAILABILITIES.filter((a) => a !== 'Exotique').includes(findTrappingById(o.id)!.availability as never))).toEqual([]);
+    expect(cat.filter((o) => AVAILABILITIES.filter((a) => a !== 'exotique').includes(findTrappingById(o.id)!.availability as never))).toEqual([]);
     // Tous les Exotiques chiffrés y sont (LDB 59 l.21).
-    const exotiques = trappings.filter((t) => t.availability === 'Exotique' && toBrass(priceToMoney(t.price)) > 0).map((t) => t.id);
+    const exotiques = trappings.filter((t) => t.availability === 'exotique' && toBrass(priceToMoney(t.price)) > 0).map((t) => t.id);
     const ids = new Set(cat.map((o) => o.id));
     for (const id of exotiques) expect(ids.has(id), `${id} (Exotique chiffré) doit être commandable`).toBe(true);
   });
@@ -172,7 +173,7 @@ describe('craftCatalog / orderCatalog', () => {
 });
 
 describe('learnableTalents — « un Talent en dehors de votre Carrière » (ch.23 l.59)', () => {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'T', seed: 1 });
+  const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'T', seed: 1 });
   it('exclut les talents de la Carrière courante (eux passent par l’Avancement)', () => {
     const labels = learnableTalents(hero).map((t) => t.label);
     // « Guerrier né » est un talent du Soldat Niveau 1 (Recrue) → exclu de l'Apprentissage.
@@ -274,7 +275,7 @@ describe('postes d’Étape : agrégation des issues (EDOC 8 l.131)', () => {
 });
 
 describe('rôle de marche persistant (travelRole) — « les mêmes au même poste »', () => {
-  const mk = (n: string) => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: n, seed: 3 });
+  const mk = (n: string) => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: n, seed: 3 });
 
   it('defaultTravelRole : poste où la meilleure compétence du héros est la plus haute', () => {
     const guetteur = mk('G');
@@ -446,7 +447,7 @@ describe('entrainementTutorCost — « PX + 1D10 sous de cuivre » (LDB 23 l.132
 
 describe('entrainementOptions — Compétences/Caractéristiques HORS carrière seulement (LDB 23 l.130-136)', () => {
   it('exclut les Caractéristiques DE la carrière (Soldat : CC/End/FM), inclut les autres, PX déjà doublé hors carrière (LDB 07 l.91)', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const opts = entrainementOptions(h);
     const chars = opts.filter((o) => o.kind === 'characteristic');
     expect(chars.every((o) => !o.advanced)).toBe(true);
@@ -460,7 +461,7 @@ describe('entrainementOptions — Compétences/Caractéristiques HORS carrière 
     expect(soc!.xpCost).toBeGreaterThan(0);
   });
   it('marque `advanced` pour les Compétences Avancées, jamais pour une Compétence de Base', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const opts = entrainementOptions(h);
     const skillOpts = opts.filter((o) => o.kind === 'skill');
     expect(skillOpts.length).toBeGreaterThan(0);

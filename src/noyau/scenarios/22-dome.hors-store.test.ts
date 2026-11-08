@@ -1,3 +1,4 @@
+import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { scenario } from '../../scenes/test-scenarios/22-dome';
@@ -12,7 +13,7 @@ import { OPS_DIFFEREES } from '../../noyau/combatEffects';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
-const scenarioConstruit = scenario.construire();
+const scenarioConstruit = scenario.construire(idsDeTest);
 
 /**
  * DÔME (`LDB 47 l.410`) : preuve LIVE sur la scène RÉELLE du scénario — le sort du CATALOGUE (ses ops,
@@ -30,7 +31,7 @@ const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }
 
 /** Ouvre le combat du scénario et POSE le Dôme par les ops du sort CURÉ (jamais une aura à la main). */
 function startDome(): { sorciere: Combatant; protegee: Combatant; archer: Combatant; orc: Combatant } {
-  banc.setState({ battle: null, party: scenario.construire().party });
+  banc.setState({ battle: null, party: scenario.construire(idsDeTest).party });
   banc.getState().lancerLaScene(scenarioConstruit.scene);
   banc.getState().lancerLeCombat('enc-dome');
   banc.getState().fenetreValider('roundStart');

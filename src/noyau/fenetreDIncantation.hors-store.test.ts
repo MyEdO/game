@@ -5,6 +5,7 @@
  * Projectile en Zone d'Effet : LDB 47 l.453 ; Prières : LDB 40 ; Surincantation : LDB 47 l.15 ; pose de la zone :
  * LDB 47 l.15, l.28. Lanceur au siège MJ : réponse Q3 du design jugé (#3059).
  */
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { fenetreDIncantation, refusDuChoixCritique, refusDeLaForme, refusDuPasDeSurincantation, refusDeLaPose, refusDuReglage } from './fenetreDIncantation';
@@ -42,7 +43,7 @@ afterAll(() => { setDataset('spells', original); });
 
 /** Lanceur maîtrisant Langue (Magick) et Prière : le dé 11 est un double réussi (Incantation Critique). */
 function lanceur(id: string): Combatant {
-  const h = pregen(PREGEN.sorcier);
+  const h = pregen(idsDeTest, PREGEN.sorcier);
   h.id = id; h.label = id;
   h.skills = [
     ...h.skills.filter((s) => s.id !== 'langue' && s.id !== 'priere'),
@@ -173,7 +174,7 @@ describe('forme d’arme invoquée et ton de la Prière : le verbe refuse ce que
 
 /** Le combat de l'épreuve (`enc-mutants`) : le héros `H` et l'ennemi lanceur `E`, en Langue (Magick). */
 function enCombat(banc: Banc) {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'H', careerTalent: { id: 'magie-mineure' }, seed: 707 });
+  const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'H', careerTalent: { id: 'magie-mineure' }, seed: 707 });
   h.spells = ['explosion', 'carreau'];
   banc.setState({ party: [h] });
   banc.getState().lancerLaScene(testScene());

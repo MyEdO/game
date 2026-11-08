@@ -4,14 +4,17 @@
 ## ses nappes de toit retirées (`toitsLeves`), ses arêtes retirées, abattues sous le cran de la caméra
 ## (`aretesDegagees`), et ses couronnes crénelées, tombées avec leur mur (`couronnesAbattues`, `Monde.cacher_le_bati`),
 ## chaque combattant à sa case et sa couche (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, chacun sous son
-## corps (`vue.corps`, aucun sous son `refus`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
+## corps (`vue.corps`, aucun sous son `refus`) et son véhicule (`vue.corps.vehicules`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le
 ## pointeur jusqu'au clic, chacun sur le sol de sa case ; aucun combattant sous l'œil de l'immersion. Il ne rend que la
-## case cliquée : celle que le monde désigne sous le pointeur, ou que l'œil franchit ou vise.
+## case cliquée : celle que le monde désigne sous le pointeur, ou que l'œil franchit ou vise ; et, au clic droit, la
+## case inspectée sous le pointeur.
 class_name Plateau
 extends Node3D
 
 signal case_cliquee(case: Vector3i)
+## Le clic droit sur une case, qui ouvre la fiche de son occupant.
+signal case_inspectee(case: Vector3i)
 ## Le corps d'un combattant dessiné a changé (`Combattant.habille`).
 signal habille
 
@@ -63,7 +66,7 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 			_combattants.add_child(modele)
 			modele.habille.connect(habille.emit)
 			_modeles[c.id] = modele
-		_modeles[c.id].montrer(c, lieu, c.id == actif, null if vue.corps.refus != null else vue.corps.combattants.get(c.id), vue.plateau.metresParCase)
+		_modeles[c.id].montrer(c, lieu, c.id == actif, null if vue.corps.refus != null else vue.corps.combattants.get(c.id), vue.corps.vehicules.get(c.id), vue.plateau.metresParCase)
 	for ligne in journal:
 		var e: Variant = ligne.get("evenement")
 		if e != null and _modeles.has(e.get("actorId", "")) and _modeles.has(e.get("targetId", "")) and e.actorId != e.targetId:
@@ -165,6 +168,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		_peindre()
 		if case != null:
 			case_cliquee.emit(case)
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		var case: Variant = _monde.case_sous(event.position)
+		if case != null:
+			case_inspectee.emit(case)
 	else:
 		return
 	get_viewport().set_input_as_handled()

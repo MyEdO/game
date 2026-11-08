@@ -16,7 +16,7 @@ const HOTE = {
 } as const;
 const GESTE = {
   id: 'focus-spell', type: 'actions', label: 'Focaliser', icon: 'flag/focus', surface: 'geste-secondaire',
-  hote: 'cast-spell', gate: 'sort-focalisable', run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'action',
+  hote: { id: 'cast-spell' }, gate: 'sort-focalisable', run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'action',
 } as const;
 
 const sans = <T extends object, K extends keyof T>(o: T, k: K): Omit<T, K> => {
@@ -32,11 +32,11 @@ describe('actions.json — un geste secondaire mène TOUJOURS à une alvéole', 
 
   const refuses: [string, unknown[]][] = [
     ['m1 — geste secondaire SANS `hote` : aucune alvéole ne le porterait', [HOTE, sans(GESTE, 'hote')]],
-    ['m2 — `hote` FANTÔME : l’id ne résout aucune entrée du registre', [HOTE, { ...GESTE, hote: 'alveole-inexistante' }]],
+    ['m2 — `hote` FANTÔME : l’id ne résout aucune entrée du registre', [HOTE, { ...GESTE, hote: { id: 'alveole-inexistante' } }]],
     ['m3 — `hote` lui-même geste secondaire : aucune alvéole au bout de la chaîne', [
-      HOTE, GESTE, { ...GESTE, id: 'sur-focus', hote: 'focus-spell' },
+      HOTE, GESTE, { ...GESTE, id: 'sur-focus', hote: { id: 'focus-spell' } },
     ]],
-    ['m4 — `hote` porté par une entrée qui n’est PAS un geste secondaire', [{ ...HOTE, hote: 'cast-spell' }, GESTE]],
+    ['m4 — `hote` porté par une entrée qui n’est PAS un geste secondaire', [{ ...HOTE, hote: { id: 'cast-spell' } }, GESTE]],
     ['m5 — geste secondaire SANS `candidates` : sa population n’est pas déclarée', [HOTE, sans(GESTE, 'candidates')]],
   ];
   for (const [cas, data] of refuses)
@@ -48,7 +48,7 @@ describe('actions.json — un geste secondaire mène TOUJOURS à une alvéole', 
     const m1 = schema.safeParse([HOTE, sans(GESTE, 'hote')]);
     expect(m1.success).toBe(false);
     if (!m1.success) expect(m1.error.issues.map((i) => i.message).join('\n')).toContain('sans entrée hôte');
-    const m2 = schema.safeParse([HOTE, { ...GESTE, hote: 'alveole-inexistante' }]);
+    const m2 = schema.safeParse([HOTE, { ...GESTE, hote: { id: 'alveole-inexistante' } }]);
     expect(m2.success).toBe(false);
     if (!m2.success) expect(m2.error.issues.map((i) => i.message).join('\n')).toContain('absent du registre');
   });

@@ -1,6 +1,6 @@
 {"scenario":"dome","graine":7,"regles":{},"cadence":"manuel","desFixes":true}
 {"type":"fenetreValider","args":["roundStart"]}
-{"offre":"charge"}
+{"type":"armerLIntention","args":["charge"]}
 {"type":"cliquerLaCase","args":[{"x":7,"y":5},"enemy-enc-dome-1"]}
 {"type":"jetLancer","args":["attack"]}
 {"type":"jetImposerLeResultat","args":["attack",11]}

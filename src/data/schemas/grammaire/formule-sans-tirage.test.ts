@@ -48,7 +48,7 @@ describe('les champs de requête prennent la grammaire sans tirage', () => {
 
   it.each([
     ['skillDRBonus.bonus', { op: 'skillDRBonus', skill: { id: 'orientation' }, bonus: DE }],
-    ['charDRBonus.bonus', { op: 'charDRBonus', char: 'sociabilite', bonus: DE }],
+    ['charDRBonus.bonus', { op: 'charDRBonus', characteristic: 'sociabilite', bonus: DE }],
     ['incomingSpellDRMod.amount', { op: 'incomingSpellDRMod', amount: DE }],
   ])('`%s` à dés est refusé au parse', (_champ, op) => {
     const r = gameOpSchema.safeParse(op);

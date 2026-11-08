@@ -30,6 +30,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -54,7 +55,7 @@ const FICHIERS = ['src/data/actions.json', 'src/data/trappings.json', 'src/data/
 
 /** Les objets atteints par un chemin (un maillon absent ne produit rien). */
 function* atteints(noeud, chemin) {
-  if (chemin.length === 0) { if (noeud && typeof noeud === 'object' && !Array.isArray(noeud)) yield noeud; return; }
+  if (chemin.length === 0) { if (estObjet(noeud)) yield noeud; return; }
   if (noeud == null || typeof noeud !== 'object') return;
   const [tete, ...reste] = chemin;
   if (tete === '[]') {
