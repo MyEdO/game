@@ -30,7 +30,7 @@ import { checkBattleOver } from './combatFlow';
 import { applyEffects } from './combatEffects';
 import { addCondition } from '../engine/conditions';
 import { contractDisease } from '../engine/disease';
-import type { Combatant, Difficulty } from '../engine/types';
+import { DIFFICULTE_PAR_DEFAUT, type Combatant, type Difficulty } from '../engine/types';
 import type { CascadeStep, CascadeStepMeta } from './pendings';
 import { monoStep } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
@@ -62,7 +62,7 @@ function nuit(spec: {
 }): BuiltCascadeStep {
   const step = monoStep({
     id: spec.id, kind: spec.kind, actor: h(spec.hero ?? 'h1'), label: fixtureText(spec.label ?? ''),
-    rollLabel: spec.rollLabel ?? 'Résistance', difficulty: spec.difficulty ?? 'intermediaire',
+    rollLabel: spec.rollLabel ?? 'Résistance', difficulty: spec.difficulty ?? DIFFICULTE_PAR_DEFAUT,
     montee: { base: spec.base ?? 40, target: spec.target ?? 40 },
     stake: nightStakeRef('faim'),
     ...(spec.menace ? { menace: spec.menace } : {}),

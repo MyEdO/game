@@ -37,7 +37,7 @@ import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
-import { CHAR_KEYS, CHAR_LABELS, CharKey, DIFFICULTY_LABELS, Difficulty } from '../../engine/types';
+import { CHAR_KEYS, CHAR_LABELS, CharKey, DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, Difficulty } from '../../engine/types';
 import { ChaosAlign } from '../../engine/corruption';
 import { chaosAlignSchema, NATURES_D_INFLUENCE, type NatureDInfluence } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeLaNature } from './interne/libelleDeLaNature';
@@ -1051,7 +1051,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
                 </select>
               </label>
               <label className="dr">Difficulté
-                <select value={e.difficulty ?? 'intermediaire'} onChange={(ev) => upd({ difficulty: ev.target.value as Difficulty })}>
+                <select value={e.difficulty ?? DIFFICULTE_PAR_DEFAUT} onChange={(ev) => upd({ difficulty: ev.target.value as Difficulty })}>
                   {(Object.keys(DIFFICULTY_LABELS) as Difficulty[]).map((d) => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}
                 </select>
               </label>

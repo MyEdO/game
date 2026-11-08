@@ -344,7 +344,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
                 // trapping (toujours absent d'une ligne unité — `catalogEntryOf`).
                 const g = isUnitCat
                   ? (catalogEntryOf(l.id)?.unit?.kind === 'bete' ? 'montures' : 'vehicules')
-                  : (findTrappingById(l.id)?.subType ?? 'autres');
+                  : (findTrappingById(l.id)?.subType?.id ?? 'autres');
                 let bucket = groups.find((x) => x.key === g);
                 if (!bucket) {
                   const label = isUnitCat ? (g === 'montures' ? 'Montures' : 'Véhicules') : (weaponGroupLabel(g) || 'Autres');

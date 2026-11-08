@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 
 type Op = { op: string; mod?: number; amount?: number; resource?: string; skill?: string; ignoreTB?: boolean; ignoreAP?: boolean };
 type Trapping = {
-  id: string; label?: string; desc?: string; categorie?: string; subType: string | null; enc?: unknown; reach?: unknown; hands?: number; pa?: number | null;
+  id: string; label?: string; desc?: string; categorie?: string; subType: { id: string } | null; enc?: unknown; reach?: unknown; hands?: number; pa?: number | null;
   damage?: { plusBF: boolean; flat: number } | null;
   qualities: { id: string }[]; passive?: Op[]; onHitEffects?: unknown[];
   consumable?: unknown; consumableDuration?: unknown;
@@ -130,7 +130,7 @@ describe('objets maudits — Méfaits exprimés', () => {
   it('Hache de fureur incessante : profil d’Arme simple (LDB 62 l.32/l.127), aucun Atout du Bienfait', () => {
     const hache = byId('hache-de-fureur-incessante');
     expect(hache.hands).toBeUndefined();
-    expect(hache.subType).toBe('base');
+    expect(hache.subType?.id).toBe('base');
     expect(hache.enc).toBe(1);
     expect(hache.reach).toBe('Moyenne');
     expect(hache.damage).toEqual({ plusBF: true, flat: 4 });

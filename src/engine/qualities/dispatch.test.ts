@@ -239,7 +239,7 @@ describe('Indice d’un Atout — il atteint le COÛT du choix et le libellé IM
 
   it('la donnée porte l’Indice, et `resolveQualities` le fait TRAVERSER jusqu’à `indice`', () => {
     expect(flamberge.qualities?.find((q) => q.id === 'taillade')?.value, 'le porteur de référence a perdu son Indice en donnée').toBe(2);
-    const resolue = resolveQualities({ qualities: flamberge.qualities!, subType: flamberge.subType })
+    const resolue = resolveQualities({ qualities: flamberge.qualities!, subType: flamberge.subType?.id })
       .find((r) => r.id === 'taillade')!;
     expect(resolue.indice).toBe(2);
     expect(qualityRefLabel({ id: resolue.id, value: resolue.indice })).toBe('Taillade (2A)');
