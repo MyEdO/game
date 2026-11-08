@@ -320,17 +320,17 @@ export function harvestVictoryCreature(get: Get, set: SetFn, creatureId: string)
   const p = garanti(harvestProfileFor(creatureId), creatureId, 'profil de récolte');
   const name = c.label; // affichage depuis le record (résolu par id)
   const size = harvestSizeOf(c);
-  /** Les pièces prélevées au DR `dr` du jet ; aucune quand la quantité tombe à 0. ZI 13 l.320-321 */
+  /** Les pièces prélevées au DR `dr` du jet ; aucune quand la quantité tombe à 0. ZI 13 l.316 */
   const pieces = (dr: number): Flow => {
     const { enc, total } = harvestYield(p, size, dr, 'frais');
     return enc > 0 ? flowFromEffects([{ type: 'giveTrapping', custom: t('eff.harvestPart', { creature: name, enc }), price: total }]) : EMPTY_FLOW; // objet CUSTOM (hors catalogue)
   };
-  /** L'échec, Degré par Degré, jusqu'à la quantité nulle : un cran de moins par DR sous 0. ZI 13 l.320-321 */
+  /** L'échec, Degré par Degré, jusqu'à la quantité nulle : un cran de moins par DR sous 0. ZI 13 l.316 */
   const parDegre = (dr: number): Flow => (harvestYield(p, size, dr).enc === 0
     ? EMPTY_FLOW
     : { kind: 'if', cond: { kind: 'slThreshold', op: '>=', value: dr }, then: pieces(dr), else: parDegre(dr - 1) });
   const titre = stepDetail(t('eff.harvest'), dataLabel(name));
-  // ZI 13 l.322 : sans MJ, le récolteur joue sa meilleure Compétence admise (choix d'ingénierie de l'orchestrateur).
+  // ZI 13 l.316 : sans MJ, le récolteur joue sa meilleure Compétence admise (choix d'ingénierie de l'orchestrateur).
   const admis = testsDeRecolte(c);
   const { skill } = bestForTests(get().party, admis)?.test ?? admis[0];
   set({ pendingVictory: { ...pv, harvested: [...(pv.harvested ?? []), creatureId] } }); // grise le bouton

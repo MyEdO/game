@@ -144,7 +144,7 @@ describe('victory.depecer : le dépeçage est un choix de la victoire, à l’h�
   });
 });
 
-describe('victory.depecer : la récolte suit le DR du jet, et le récolteur sa meilleure Compétence admise (ZI 13 l.320-322)', () => {
+describe('victory.depecer : la récolte suit le DR du jet, et le récolteur sa meilleure Compétence admise (ZI 13 l.316)', () => {
   /** Dépèce `creatureId`, puis valide le jet ouvert à `roll` contre `target` : les pièces que reçoit la fenêtre du butin. */
   function recolter(creatureId: string, roll: number, target: number, h: Combatant = heros('a', { skills: [{ id: 'savoir', spec: 'betes-sauvages', characteristic: 'intelligence', advances: 10 }] as never })) {
     banc.setState({ party: [h], pendingVictory: victoire({ defeated: [{ label: 'X', count: 1, creatureId }] }) } as never);

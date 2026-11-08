@@ -24,12 +24,12 @@ describe('harvest — Précieuses Entrailles (ZI)', () => {
     expect(formatMoney(harvestYield(p, 'grande', 0, 'frais').total)).toBe('48 CO');
   });
 
-  it('quantité exploitable selon la Taille (ZI 13 l.307-313)', () => {
+  it('quantité exploitable selon la Taille (ZI 13 l.306-310)', () => {
     const p = harvestProfileFor('cockatrice')!;
     expect((['inf-moyenne', 'moyenne', 'grande', 'enorme', 'monstrueuse'] as const).map((taille) => harvestYield(p, taille, 0).enc)).toEqual([1, 2, 4, 8, 16]);
   });
 
-  it('chaque Degré d’échec retire un cran de quantité, jusqu’à 0 (ZI 13 l.320-321)', () => {
+  it('chaque Degré d’échec retire un cran de quantité, jusqu’à 0 (ZI 13 l.316)', () => {
     const p = harvestProfileFor('cockatrice')!;
     expect(harvestYield(p, 'grande', 0, 'conserve').enc).toBe(4); // Grande : DR 0, aucun Degré d'échec
     expect(harvestYield(p, 'grande', -1, 'conserve').enc).toBe(2); // → Moyenne
@@ -39,7 +39,7 @@ describe('harvest — Précieuses Entrailles (ZI)', () => {
     expect(harvestYield(p, 'enorme', -2).enc, 'exemple du livre : Énorme à −2 DR').toBe(2);
   });
 
-  it('les Tests admis selon la créature (ZI 13 l.322)', () => {
+  it('les Tests admis selon la créature (ZI 13 l.316)', () => {
     const noms = (id: string) => testsDeRecolte(findCreatureById(id)!).map((x) => `${x.skill?.id}/${x.skill?.spec}`);
     const toutes = ['savoir/betes-sauvages', 'savoir/remedes'];
     expect(noms('geant')).toEqual(toutes);

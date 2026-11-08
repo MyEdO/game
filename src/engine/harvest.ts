@@ -65,10 +65,10 @@ const METIER_EMPOISONNEUR: TestDesigne = { skill: { id: 'metier', spec: 'empoiso
 const SAVOIR_MAGIE: TestDesigne = { skill: { id: 'savoir', spec: 'magie' } };
 
 /** Le Test qu'ouvre un Trait de la créature, par id : vénéneuse ou venimeuse se lit au Trait `venin`, « mystique » au
- *  Trait `magique` (lecture d'ingénierie de l'orchestrateur). ZI 13 l.322 */
+ *  Trait `magique` (lecture d'ingénierie de l'orchestrateur). ZI 13 l.316 */
 const TEST_PAR_TRAIT: Readonly<Record<string, TestDesigne>> = { venin: METIER_EMPOISONNEUR, magique: SAVOIR_MAGIE };
 
-/** Les Tests qui reconnaissent les pièces de `creature`. ZI 13 l.322 */
+/** Les Tests qui reconnaissent les pièces de `creature`. ZI 13 l.316 */
 export function testsDeRecolte(creature: { traits?: TraitsDesignes }): TestDesigne[] {
   return [SAVOIR_BETES, SAVOIR_REMEDES, ...Object.entries(TEST_PAR_TRAIT).flatMap(([trait, test]) => (hasTraitKey(creature.traits, trait) ? [test] : []))];
 }
@@ -88,7 +88,7 @@ export interface HarvestResult {
 }
 
 /**
- * Récolte des pièces d'un cadavre. ZI 13 l.307-313, l.320-321
+ * Récolte des pièces d'un cadavre. ZI 13 l.306-310, l.316
  * @param savoirDR  DR du Test de reconnaissance des pièces (`testsDeRecolte`), réussi ou non.
  */
 export function harvestYield(
