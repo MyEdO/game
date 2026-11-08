@@ -299,7 +299,8 @@
         "matiere": "peau"
       },
       {
-        "id": "prejuge"
+        "id": "prejuge",
+        "arg": "maigrichons"
       },
       {
         "id": "taille",
@@ -8864,7 +8865,8 @@
     },
     "traits": [
       {
-        "id": "effraye"
+        "id": "effraye",
+        "arg": "lumiere"
       },
       {
         "id": "infravision"
@@ -13691,7 +13693,8 @@
         "matiere": "metal"
       },
       {
-        "id": "prejuge"
+        "id": "prejuge",
+        "arg": "etranger"
       }
     ],
     "optionals": [],
@@ -14123,7 +14126,8 @@
         "matiere": "leather"
       },
       {
-        "id": "prejuge"
+        "id": "prejuge",
+        "arg": "ceux-qu-elle-considere-faibles"
       }
     ],
     "optionals": [],
@@ -14998,7 +15002,8 @@
     },
     "traits": [
       {
-        "id": "prejuge"
+        "id": "prejuge",
+        "arg": "mauvais-auditeurs"
       }
     ],
     "optionals": [],
@@ -15464,7 +15469,8 @@
         "arg": "peau-verte"
       },
       {
-        "id": "prejuge"
+        "id": "prejuge",
+        "arg": "etranger"
       }
     ],
     "optionals": [],
@@ -15608,7 +15614,8 @@
         "arg": "peau-verte"
       },
       {
-        "id": "prejuge"
+        "id": "prejuge",
+        "arg": "nains-laches"
       }
     ],
     "optionals": [],
@@ -15731,7 +15738,8 @@
         "matiere": "metal"
       },
       {
-        "id": "prejuge"
+        "id": "prejuge",
+        "arg": "ceux-qui-n-apprecient-pas-le-middenball"
       }
     ],
     "optionals": [],
@@ -15848,10 +15856,24 @@
     },
     "traits": [
       {
-        "id": "animosite"
+        "id": "animosite",
+        "arg": "menteurs"
       },
       {
-        "id": "prejuge"
+        "id": "animosite",
+        "arg": "trompeurs"
+      },
+      {
+        "id": "animosite",
+        "arg": "sophistes"
+      },
+      {
+        "id": "prejuge",
+        "arg": "acteurs"
+      },
+      {
+        "id": "prejuge",
+        "arg": "amateurs-de-theatre"
       }
     ],
     "optionals": [],
@@ -15928,7 +15950,8 @@
     },
     "traits": [
       {
-        "id": "prejuge"
+        "id": "prejuge",
+        "arg": "artistes-moins-doues-qu-ils-ne-pensent"
       }
     ],
     "optionals": [],
@@ -16194,7 +16217,8 @@
         "arg": "peau-verte"
       },
       {
-        "id": "prejuge"
+        "id": "prejuge",
+        "arg": "ulricains-pas-assez-zeles"
       }
     ],
     "optionals": [],
@@ -16589,7 +16613,8 @@
     },
     "traits": [
       {
-        "id": "effraye"
+        "id": "effraye",
+        "arg": "creanciers"
       },
       {
         "id": "prejuge",
@@ -16600,7 +16625,12 @@
         "arg": "miliciens"
       },
       {
-        "id": "prejuge"
+        "id": "prejuge",
+        "arg": "reactionnaires"
+      },
+      {
+        "id": "prejuge",
+        "arg": "utilisateurs-de-mystracine"
       }
     ],
     "optionals": [],
@@ -20131,7 +20161,8 @@
         "id": "bestial"
       },
       {
-        "id": "effraye"
+        "id": "effraye",
+        "arg": "sel"
       },
       {
         "id": "immunite-psychologique"
@@ -20236,7 +20267,8 @@
         "id": "bestial"
       },
       {
-        "id": "effraye"
+        "id": "effraye",
+        "arg": "sel"
       },
       {
         "id": "immunite-psychologique"

@@ -736,7 +736,7 @@ export const DOTATIONS_TEXTES = [
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["suiveur-de-camp-1","trappings.text","","fc7e01eba0cb813d26c23e9825ea7c7bcd30ed2e3210ce5dd44689cd843f1608"]', occurrence: 1 },
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["suiveur-de-camp-4","trappings.text","","853a89ba7755b589e49bd0c08cd07a7849e13784c68551cc6e3a0b7c732bce58"]', occurrence: 1 },
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["tueur-1","trappings.text","","60d03610d44f01e7f00188bb0e5b0eaa46c5b91e6f9735c90fd1d10a9d6a9a74"]', occurrence: 1 },
-  { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["tueur-2","trappings.text","","f076b421d4e3c4083013b42fe4a39a643391810570daf17bab1bab6692811fca"]', occurrence: 1 },
+  { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["tueur-2","trappings.text","","60a9f4bc80374ecb737f3039def954de7a6a7f9b7ae35d955dd272e30911d1ee"]', occurrence: 1 },
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["tueur-3","trappings.text","","fabe6953ac280bc7cd6721e82051aa5728d7625604dd421f01a9c1fd0621e371"]', occurrence: 1 },
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["tueur-4","trappings.text","","7f93a246c0a32e9058cac434bbbbfbd8d5186532a1812cf5debcd19766b46530"]', occurrence: 1 },
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["umbramancien-2","trappings.text","","377a5d5ebf195613614582aa6a309b9a7d6767c458d22b4c018cc915a3875ded"]', occurrence: 1 },
