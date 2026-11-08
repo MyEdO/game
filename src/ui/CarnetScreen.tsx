@@ -72,7 +72,7 @@ function ClueBand({ indice, clue, nouveau, documents, onTogglePin }: { indice: I
   return (
     <Band
       title={
-        <span className={clue.statut === 'réfuté' ? 'clue-refuted' : undefined}>
+        <span className={clue.statut === 'refute' ? 'clue-refuted' : undefined}>
           {indice.titre}
         </span>
       }
@@ -80,12 +80,12 @@ function ClueBand({ indice, clue, nouveau, documents, onTogglePin }: { indice: I
         <Row as="span">
           {nouveau && <span className="chip tone-warn">{t('carnet.nouveau')}</span>}
           <span className="chip">{indice.kind === 'rumeur' ? 'Rumeur' : 'Indice'}</span>
-          {clue.statut === 'réfuté' && <span className="chip tone-danger">Fausse piste</span>}
+          {clue.statut === 'refute' && <span className="chip tone-danger">Fausse piste</span>}
           <EpingleButton clue={clue} onToggle={() => onTogglePin(indice.id)} />
         </Row>
       }
     >
-      <div className={clue.statut === 'réfuté' ? 'clue-refuted' : undefined}>
+      <div className={clue.statut === 'refute' ? 'clue-refuted' : undefined}>
         {stadeCourant && <StadeLu indice={indice} stade={stadeCourant} documents={documents} />}
         {précédents.length > 0 && (
           <div className="clue-history">

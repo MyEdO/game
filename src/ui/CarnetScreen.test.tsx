@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /** Carnet d'enquête (#670) — contrats POSITIFS : un indice absent de `clues` reste caché, une fausse
- *  piste (`statut: 'réfuté'`) reste lisible avec son marqueur, l'épingle route vers `epinglerLIndice`,
+ *  piste (`statut: 'refute'`) reste lisible avec son marqueur, l'épingle route vers `epinglerLIndice`,
  *  et l'état vide s'affiche sans indice découvert. */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
@@ -51,12 +51,12 @@ const narratif: NarratifBlock = {
 };
 
 const cluesUnSeulRévélé: Record<string, ClueState> = {
-  'ind-1': { stadeCourant: 's1', statut: 'révélé', historique: [{ stade: 's1', at: 0 }] },
+  'ind-1': { stadeCourant: 's1', statut: 'revele', historique: [{ stade: 's1', at: 0 }] },
 };
 
 const cluesAvecRéfuté: Record<string, ClueState> = {
-  'ind-1': { stadeCourant: 's1', statut: 'révélé', historique: [{ stade: 's1', at: 0 }] },
-  'ind-3': { stadeCourant: 's1', statut: 'réfuté', historique: [{ stade: 's1', at: 0 }] },
+  'ind-1': { stadeCourant: 's1', statut: 'revele', historique: [{ stade: 's1', at: 0 }] },
+  'ind-3': { stadeCourant: 's1', statut: 'refute', historique: [{ stade: 's1', at: 0 }] },
 };
 
 let container: HTMLDivElement;
@@ -143,7 +143,7 @@ describe('CarnetScreen — rendu (#670)', () => {
     };
     useGame.setState({
       campaignNarratif: narratifSourcé,
-      clues: { 'ind-src': { stadeCourant: 's1', statut: 'révélé', historique: [{ stade: 's1', at: 0 }] } },
+      clues: { 'ind-src': { stadeCourant: 's1', statut: 'revele', historique: [{ stade: 's1', at: 0 }] } },
     });
     await mount();
     const txt = container.textContent ?? '';
@@ -169,7 +169,7 @@ describe('CarnetScreen — rendu (#670)', () => {
     };
     useGame.setState({
       campaignNarratif: narratifAdapté,
-      clues: { 'ind-adapte': { stadeCourant: 's1', statut: 'révélé', historique: [{ stade: 's1', at: 0 }] } },
+      clues: { 'ind-adapte': { stadeCourant: 's1', statut: 'revele', historique: [{ stade: 's1', at: 0 }] } },
     });
     await mount();
     const txt = container.textContent ?? '';
@@ -189,7 +189,7 @@ describe('CarnetScreen — le document qu’un stade croise (#679)', () => {
     ],
   });
   const révélé = (stadeCourant: string, historique: string[]): Record<string, ClueState> => ({
-    'ind-doc': { stadeCourant, statut: 'révélé', historique: historique.map((stade) => ({ stade, at: 0 })) },
+    'ind-doc': { stadeCourant, statut: 'revele', historique: historique.map((stade) => ({ stade, at: 0 })) },
   });
   /** Les cartes-parchemin rendues : titre et texte de chacune. */
   const parchemins = () => [...container.querySelectorAll('.parchment-card')].map((c) => ({
@@ -223,7 +223,7 @@ describe('CarnetScreen — le document qu’un stade croise (#679)', () => {
 
 describe('CarnetScreen — nouveautés (#2415)', () => {
   /** Le siège local est le 0 (`net.mySeat`) : `lu` l'a affiché, `neuf` n'a été affiché par personne. */
-  const neuf: ClueState = { stadeCourant: 's1', statut: 'révélé', historique: [{ stade: 's1', at: 0 }] };
+  const neuf: ClueState = { stadeCourant: 's1', statut: 'revele', historique: [{ stade: 's1', at: 0 }] };
   const lu: ClueState = { ...neuf, vuParSiège: { 0: true } };
   /** Pastilles « Nouveau » des bandes d'indice (hors rangées de liste). */
   const pastillesDeBande = () => [...container.querySelectorAll('.chip.tone-warn')]

@@ -4,7 +4,8 @@ extends SceneTree
 ## `vehicules`) : chaque scène est peinte de sa propre palette, aux surfaces de son élément
 ## (`Combattant.peindre_l_element`), avant que la pièce ne monte à son poste (`Combattant.monter_au_poste`). Une pièce
 ## dont un matériau porte le même nom qu'un matériau du véhicule garde sa couleur ; une surface dont la palette ne
-## colore pas l'emplacement garde l'albédo du GLB. L'emblème du véhicule se pose sur ses seules surfaces `blason`
+## colore pas l'emplacement garde l'albédo du GLB. Une surface dont la texture de la `matiere` est au projet s'en habille
+## comme le monde, que la couleur de sa palette teint ; sans palette, son albédo est blanc. L'emblème du véhicule se pose sur ses seules surfaces `blason`
 ## (voiles, pavillon), en couche de détail ; une pièce peinte sans emblème n'en reçoit aucun.
 
 const RECETTE_AUTONOME := true
@@ -12,6 +13,8 @@ const BOIS := "bois"
 const CUIR := "cuir"
 const TOILE := "toile"
 const GRIS := Color(0.5, 0.5, 0.5)
+## Une matière dont le projet porte la texture, épinglée sous `textures/`.
+const PLANCHES := "terrain--planches"
 const ROUGE := "#ff0000"
 const VERT := "#00ff00"
 var _fautes: Array[String] = []
@@ -24,11 +27,11 @@ func _initialize() -> void:
 func _recetter() -> void:
 	print("[peinture-du-vehicule] version=", Engine.get_version_info().string)
 	MontageDeComposition.modeles = {surfaces = {
-		coque = [{nom = BOIS, palette = BOIS}, {nom = CUIR, palette = CUIR}, {nom = TOILE, palette = "vet1", blason = true}],
-		canon = [{nom = BOIS, palette = BOIS}],
+		coque = [{nom = BOIS, palette = BOIS, matiere = PLANCHES}, {nom = CUIR, palette = CUIR}, {nom = TOILE, palette = "vet1", blason = true}],
+		canon = [{nom = BOIS, palette = BOIS, matiere = "prop--sans-texture"}, {nom = CUIR, palette = CUIR, matiere = PLANCHES}],
 	}}
 	var coque := _scene([BOIS, CUIR, TOILE])
-	var canon := _scene([BOIS])
+	var canon := _scene([BOIS, CUIR])
 	root.add_child(coque)
 	var embleme := ImageTexture.create_from_image(Image.create(2, 2, false, Image.FORMAT_RGBA8))
 	if not Combattant.peindre_l_element(coque, "coque", {bois = ROUGE}, embleme):
@@ -38,7 +41,12 @@ func _recetter() -> void:
 	Combattant.monter_au_poste(coque, canon, {position = [0.0, 1.0, 0.0], bord = "tribord"})
 	_attendre(coque, 0, Color(ROUGE), "bois de la coque")
 	_attendre(coque, 1, GRIS, "cuir de la coque, que la palette ne colore pas")
-	_attendre(canon, 0, Color(VERT), "bois du canon monté sur la coque")
+	_attendre(canon, 0, Color(VERT), "bois du canon monté sur la coque, sa matière sans texture")
+	_attendre(canon, 1, Color.WHITE, "cuir du canon, sa matière texturée, que la palette ne colore pas")
+	var planches: Texture2D = load(Monde.texture_de(PLANCHES))
+	_attendre_la_matiere(coque, 0, planches, "bois de la coque, sa matière texturée teinte de la palette")
+	_attendre_la_matiere(canon, 1, planches, "cuir du canon, sa matière texturée")
+	_attendre_la_matiere(canon, 0, null, "bois du canon, sa matière sans texture")
 	_attendre_l_embleme(coque, 2, embleme, "toile de la coque, surface blason")
 	_attendre_l_embleme(coque, 0, null, "bois de la coque, sans blason")
 	for faute in _fautes:
@@ -62,6 +70,14 @@ func _scene(noms: Array) -> Node3D:
 	mesh.mesh = tableau
 	scene.add_child(mesh)
 	return scene
+
+
+## La surface `rang` du mesh de `scene` porte `texture` en albédo, projetée sur les trois axes comme le monde (`null` :
+## aucune texture).
+func _attendre_la_matiere(scene: Node3D, rang: int, texture: Texture2D, quoi: String) -> void:
+	var materiau := (scene.get_child(0) as MeshInstance3D).get_active_material(rang) as BaseMaterial3D
+	if materiau.albedo_texture != texture or materiau.uv1_triplanar != (texture != null):
+		_fautes.append("%s : texture %s (triplanaire %s), %s attendue" % [quoi, materiau.albedo_texture, materiau.uv1_triplanar, texture])
 
 
 ## L'albédo actif de la surface `rang` du mesh de `scene` vaut `couleur`.

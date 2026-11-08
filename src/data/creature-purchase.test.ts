@@ -46,7 +46,7 @@ describe('creatures achetables (T0-b, #611)', () => {
     const enTrop = structuredClone(creatures);
     enTrop.find((c) => c.id === 'poulet')!.purchase = {
       price: { gold: 0, silver: 0, brass: 5 },
-      availability: 'Commune',
+      availability: 'commune',
     };
     expect(porteursDePurchase(enTrop)).not.toEqual(ATTENDU);
 
@@ -124,7 +124,7 @@ describe('chien LDB vs chien de trait EDOC (#673)', () => {
     expect(traitsDe('chien-de-trait')).toEqual(['arme+5', 'dresse-dompte', 'dresse-trait', 'foulee', 'nerveux']);
     expect(c.optionals).toEqual([]);
     expect(c.source).toEqual({ book: 'ennemi-dans-l-ombre-compagnon', page: 22 });
-    expect(c.purchase).toEqual({ price: { gold: 2, silver: 0, brass: 0 }, availability: 'Rare' });
+    expect(c.purchase).toEqual({ price: { gold: 2, silver: 0, brass: 0 }, availability: 'rare' });
   });
 
   it('chien reste le profil LDB 78 folio 315, sans trait EDOC', () => {
@@ -133,7 +133,7 @@ describe('chien LDB vs chien de trait EDOC (#673)', () => {
     expect(c.char.B).toBe(5);
     expect(traitsDe('chien')).toEqual(['arme+5', 'bestial', 'foulee', 'nerveux', 'taille:petite', 'vision-nocturne']);
     expect(c.source).toEqual({ book: 'livre-de-base', page: 315 });
-    expect(c.purchase).toEqual({ price: { gold: 2, silver: 0, brass: 0 }, availability: 'Rare' });
+    expect(c.purchase).toEqual({ price: { gold: 2, silver: 0, brass: 0 }, availability: 'rare' });
   });
 
   it('la table de mouvement/charge (EDOC 07 folio 24) route vers le chien de trait, jamais le chien LDB', () => {

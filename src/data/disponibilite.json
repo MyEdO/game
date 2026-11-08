@@ -4,7 +4,7 @@
   "label": "Disponibilité & Troc",
   "dispoPct": [
     {
-      "availability": "Limitée",
+      "availability": "limitee",
       "pct": {
         "village": 30,
         "ville": 60,
@@ -17,7 +17,7 @@
       }
     },
     {
-      "availability": "Rare",
+      "availability": "rare",
       "pct": {
         "village": 15,
         "ville": 30,
@@ -32,21 +32,21 @@
   ],
   "barterRatios": [
     {
-      "give": "Commune",
+      "give": "commune",
       "ratios": {
-        "Commune": {
+        "commune": {
           "give": 1,
           "get": 1
         },
-        "Limitée": {
+        "limitee": {
           "give": 2,
           "get": 1
         },
-        "Rare": {
+        "rare": {
           "give": 4,
           "get": 1
         },
-        "Exotique": {
+        "exotique": {
           "give": 8,
           "get": 1
         }
@@ -58,21 +58,21 @@
       }
     },
     {
-      "give": "Limitée",
+      "give": "limitee",
       "ratios": {
-        "Commune": {
+        "commune": {
           "give": 1,
           "get": 2
         },
-        "Limitée": {
+        "limitee": {
           "give": 1,
           "get": 1
         },
-        "Rare": {
+        "rare": {
           "give": 2,
           "get": 1
         },
-        "Exotique": {
+        "exotique": {
           "give": 4,
           "get": 1
         }
@@ -84,21 +84,21 @@
       }
     },
     {
-      "give": "Rare",
+      "give": "rare",
       "ratios": {
-        "Commune": {
+        "commune": {
           "give": 1,
           "get": 4
         },
-        "Limitée": {
+        "limitee": {
           "give": 1,
           "get": 2
         },
-        "Rare": {
+        "rare": {
           "give": 1,
           "get": 1
         },
-        "Exotique": {
+        "exotique": {
           "give": 2,
           "get": 1
         }
@@ -110,21 +110,21 @@
       }
     },
     {
-      "give": "Exotique",
+      "give": "exotique",
       "ratios": {
-        "Commune": {
+        "commune": {
           "give": 1,
           "get": 8
         },
-        "Limitée": {
+        "limitee": {
           "give": 1,
           "get": 4
         },
-        "Rare": {
+        "rare": {
           "give": 1,
           "get": 2
         },
-        "Exotique": {
+        "exotique": {
           "give": 1,
           "get": 1
         }

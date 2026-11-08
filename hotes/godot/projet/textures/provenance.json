@@ -202,5 +202,77 @@
     "source": "https://ambientcg.com/view?id=Rock051 (Rock051_1K-JPG.zip : Rock051_1K-JPG_NormalGL.jpg)",
     "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
     "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--bois-chene.jpg": {
+    "sha256": "ed0e9142f8b623a82be610a70c6e37255793c9f241368626dbd8ba9adbc7b36a",
+    "source": "https://ambientcg.com/view?id=Planks037A (Planks037A_1K-JPG.zip : Planks037A_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--bois-chene.normale.jpg": {
+    "sha256": "09d27d027e08d719509869f2728a290c166c541c1496ae3f3edad0996472cc1a",
+    "source": "https://ambientcg.com/view?id=Planks037A (Planks037A_1K-JPG.zip : Planks037A_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--toile-ecrue.jpg": {
+    "sha256": "671d2607ce70c5a0b869912381b1a3af0ed36d7fd8617bff392dfbd11c7d6b81",
+    "source": "https://ambientcg.com/view?id=Fabric062 (Fabric062_1K-JPG.zip : Fabric062_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--toile-ecrue.normale.jpg": {
+    "sha256": "b20db2823eb342d2ec1e3cd8e8ba1bd6ab49c47d32ff602f3717767dab842475",
+    "source": "https://ambientcg.com/view?id=Fabric062 (Fabric062_1K-JPG.zip : Fabric062_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--toile-rouge.jpg": {
+    "sha256": "b14cee4480409d33a3f10d1bf11f703e9fc02b37946d1406979935db25be39cb",
+    "source": "https://ambientcg.com/view?id=Fabric040 (Fabric040_1K-JPG.zip : Fabric040_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--toile-rouge.normale.jpg": {
+    "sha256": "b90e1467677f79aedd72f9934cd2ad1854a9e098696c18d58ce0bc06b975abf9",
+    "source": "https://ambientcg.com/view?id=Fabric040 (Fabric040_1K-JPG.zip : Fabric040_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--fer-noirci.jpg": {
+    "sha256": "188b8ef2874f61207f73fe9fcdf927dc488a85bcf40ec5158c1cf65c67e22fcb",
+    "source": "https://ambientcg.com/view?id=Metal046B (Metal046B_1K-JPG.zip : Metal046B_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--fer-noirci.normale.jpg": {
+    "sha256": "72d3f783445a5e81226b0aed3bf6857dd9793187e5a095087e0c9adcab89a4f7",
+    "source": "https://ambientcg.com/view?id=Metal046B (Metal046B_1K-JPG.zip : Metal046B_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
+  },
+  "prop--corde.jpg": {
+    "sha256": "e3b0c8bd04dc04ee9db2d4994fbbec8a230c21614bd6356e35a80c5e2eca6685",
+    "source": "https://ambientcg.com/view?id=Rope001 (Rope001_1K-JPG.zip : Rope001_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x512! -duplicate 1 -append -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--corde.normale.jpg": {
+    "sha256": "320df2e34bdf078d09509fb074dacb9a91918cced249aec264564894180ef8ce",
+    "source": "https://ambientcg.com/view?id=Rope001 (Rope001_1K-JPG.zip : Rope001_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x256! -duplicate 1 -append -strip -quality 90"
+  },
+  "prop--laiton-dore.jpg": {
+    "sha256": "69e0f3aaf33c242509ae91695d8bc9606115225acd4a84044d7f167bb760fb68",
+    "source": "https://ambientcg.com/view?id=Metal042B (Metal042B_1K-JPG.zip : Metal042B_1K-JPG_Color.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 1024x1024! -strip -quality 85 -sampling-factor 4:2:0"
+  },
+  "prop--laiton-dore.normale.jpg": {
+    "sha256": "99a39d05526d34df40dde54cbb6301ddfb338738287415d80f16d6d2c639714f",
+    "source": "https://ambientcg.com/view?id=Metal042B (Metal042B_1K-JPG.zip : Metal042B_1K-JPG_NormalGL.jpg)",
+    "licence": "CC0-1.0 (https://docs.ambientcg.com/license/)",
+    "traitement": "ImageMagick : -resize 512x512! -strip -quality 90"
   }
 }

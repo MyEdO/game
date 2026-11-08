@@ -175,7 +175,7 @@
         "brass": 0
       },
       "crew": 4,
-      "availability": "Rare",
+      "availability": "rare",
       "range": "150",
       "damage": "+14",
       "traits": "Empaleuse, Perforante, Recharge 2",
@@ -195,7 +195,7 @@
         "brass": 0
       },
       "crew": 6,
-      "availability": "Limitée",
+      "availability": "limitee",
       "range": "Moyenne",
       "damage": "+BF +10",
       "traits": "Siège",
@@ -215,7 +215,7 @@
         "brass": 0
       },
       "crew": 4,
-      "availability": "Exotique",
+      "availability": "exotique",
       "range": "200",
       "damage": "+12",
       "traits": "Dangereuse, Explosion 15, Imprécise, Recharge 5",
@@ -235,7 +235,7 @@
         "brass": 0
       },
       "crew": 4,
-      "availability": "Exotique",
+      "availability": "exotique",
       "range": "100",
       "damage": "+14",
       "traits": "À Poudre noire, À répétition 3, Dangereuse, Explosion 5, Recharge 5",
@@ -255,7 +255,7 @@
         "brass": 0
       },
       "crew": 4,
-      "availability": "Exotique",
+      "availability": "exotique",
       "range": "120",
       "damage": "+20",
       "traits": "À Poudre noire, Dangereuse, Explosion 3, Recharge 3, Siège",
@@ -275,7 +275,7 @@
         "brass": 0
       },
       "crew": 4,
-      "availability": "Exotique",
+      "availability": "exotique",
       "range": "60",
       "damage": "Spéciaux",
       "traits": "Dangereuse, Explosion 5, Imprécise, Recharge 3",
@@ -295,7 +295,7 @@
         "brass": 0
       },
       "crew": 6,
-      "availability": "Rare",
+      "availability": "rare",
       "range": "60",
       "damage": "+10",
       "traits": "Explosion 5, Recharge 4, Siège",
@@ -315,7 +315,7 @@
         "brass": 0
       },
       "crew": 6,
-      "availability": "Rare",
+      "availability": "rare",
       "range": "100",
       "damage": "+12",
       "traits": "Explosion 5, Recharge 4, Siège",
@@ -335,7 +335,7 @@
         "brass": 0
       },
       "crew": 8,
-      "availability": "Limitée",
+      "availability": "limitee",
       "range": "150",
       "damage": "+14",
       "traits": "Explosion 5, Recharge 5, Siège",
@@ -355,7 +355,7 @@
         "brass": 0
       },
       "crew": 6,
-      "availability": "Exotique",
+      "availability": "exotique",
       "range": "200",
       "damage": "+20",
       "traits": "À Poudre noire, Dangereuse, Explosion 5, Imprécise, Recharge 2, Siège",

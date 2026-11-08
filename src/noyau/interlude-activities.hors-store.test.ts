@@ -310,7 +310,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     expect(banc.getState().pendingOrders).toHaveLength(0);
     expect(banc.getState().journal.join('\n')).toMatch(/s’achète chez un marchand|s'achète chez un marchand/);
     const exotic = findTrappingById('long-fusil-d-hochland'); // l'exemple du LDB (Exotique)
-    if (!exotic || exotic.availability !== 'Exotique') return; // garde : données absentes → couvert par le refus ci-dessus
+    if (!exotic || exotic.availability !== 'exotique') return; // garde : données absentes → couvert par le refus ci-dessus
     banc.getState().commanderLObjet(h.id, exotic.id);
     expect(banc.getState().pendingOrders).toEqual([{ heroId: h.id, trappingId: exotic.id }]);
     expect(st().left).toBe(2);

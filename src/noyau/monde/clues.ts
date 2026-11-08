@@ -8,8 +8,8 @@ import type { IdDIndice, IdDeStadeDIndice } from '../designations';
 export interface ClueState {
   /** id du stade actuellement atteint (dernier révélé). */
   stadeCourant: string;
-  /** 'révélé' = piste active ; 'réfuté' = fausse piste (barrée mais RELISIBLE au carnet). */
-  statut: 'révélé' | 'réfuté';
+  /** 'revele' = piste active ; 'refute' = fausse piste (barrée mais RELISIBLE au carnet). */
+  statut: 'revele' | 'refute';
   /** Suivi joueur (épingle en tête du carnet). */
   épinglé?: boolean;
   /** Progression : un stade franchi + le gameTime (minutes) où il l'a été. Ordre chronologique. */
@@ -20,13 +20,13 @@ export interface ClueState {
 }
 
 /**
- * Révèle/avance/RÉACTIVE un indice au carnet — résulte TOUJOURS en `statut: 'révélé'`. Les stades de
+ * Révèle/avance/RÉACTIVE un indice au carnet — résulte TOUJOURS en `statut: 'revele'`. Les stades de
  * `Indice.stades` sont des PALIERS ORDONNÉS : `stadeCourant` est le plus AVANCÉ (rang dans `stades`)
  * entre l'existant et le stade cible, jamais un recul ; `historique` porte AU PLUS UNE entrée par
  * stade (un stade déjà lu n'est pas ré-ajouté), un stade antérieur non lu s'y ajoute sans
  * bouger `stadeCourant`. `stade` omis cible le PREMIER stade si l'indice est absent, sinon le stade
  * courant. Stade inconnu : avertissement + no-op. Seul vrai no-op (même Record) : cible déjà lue,
- * `stadeCourant` inchangé et statut déjà 'révélé'. Renvoie un Record NEUF, jamais de mutation.
+ * `stadeCourant` inchangé et statut déjà 'revele'. Renvoie un Record NEUF, jamais de mutation.
  */
 export function revealClue(
   clues: Record<string, ClueState>,
@@ -50,13 +50,13 @@ export function revealClue(
   const rang = (id: string) => indice.stades.findIndex((s) => s.id === id);
   const déjàLu = existing?.historique.some((h) => h.stade === target) ?? false;
   const stadeCourant = existing && rang(existing.stadeCourant) >= rang(target) ? existing.stadeCourant : target;
-  if (existing && déjàLu && stadeCourant === existing.stadeCourant && existing.statut === 'révélé') return clues;
+  if (existing && déjàLu && stadeCourant === existing.stadeCourant && existing.statut === 'revele') return clues;
   const historique = déjàLu ? existing!.historique : [...(existing?.historique ?? []), { stade: target, at: now }];
-  return { ...clues, [indice.id]: { stadeCourant, statut: 'révélé', épinglé: existing?.épinglé, historique } };
+  return { ...clues, [indice.id]: { stadeCourant, statut: 'revele', épinglé: existing?.épinglé, historique } };
 }
 
 /**
- * Écarte un indice comme fausse piste (`statut: 'réfuté'`) — reste consultable au carnet, barré.
+ * Écarte un indice comme fausse piste (`statut: 'refute'`) — reste consultable au carnet, barré.
  * Absent → créé d'abord révélé à son premier stade (une fausse piste jamais montrée au joueur avant
  * d'être écartée reste relisible), puis réfuté dans le même appel. Idempotent : indice DÉJÀ réfuté →
  * no-op (Record inchangé, pas de journal de bruit côté handler).
@@ -69,11 +69,11 @@ export function discreditClue(
   const existing = clues[indice.id];
   if (!existing) {
     const premier = indice.stades[0].id;
-    return { ...clues, [indice.id]: { stadeCourant: premier, statut: 'réfuté', historique: [{ stade: premier, at: now }] } };
+    return { ...clues, [indice.id]: { stadeCourant: premier, statut: 'refute', historique: [{ stade: premier, at: now }] } };
   }
-  if (existing.statut === 'réfuté') return clues;
+  if (existing.statut === 'refute') return clues;
   const { vuParSiège: _vus, ...réfuté } = existing;
-  return { ...clues, [indice.id]: { ...réfuté, statut: 'réfuté' } };
+  return { ...clues, [indice.id]: { ...réfuté, statut: 'refute' } };
 }
 
 /** Épingle/désépingle un indice PRÉSENT au carnet. */

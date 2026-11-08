@@ -18,7 +18,7 @@ import {
 } from '../data';
 import { rollTest, difficultyFromModifier, type TestResult } from './tests';
 import type { Money } from './money';
-import { type Difficulty } from './types';
+import { type Availability, type Difficulty } from './types';
 import { RNG } from './dice';
 import { findTableEntry } from './tables';
 
@@ -29,7 +29,7 @@ export interface PowerEstimateRow { id: string; label: string; ally: number; ene
 /** Un modificateur de Puissance par ASPECT d'armée (l.36-47) : ±10/±20/±30 selon équipement/Vétérans/Taille. */
 export interface MightModifierRow { id: string; label: string; mod: number; example: string }
 /** Une machine de guerre (l.235-247) — statistiques verbatim ; `siege` = porte l'Atout Siège. */
-export interface WarMachineRow { id: string; label: string; price: Money; crew: number; availability: string; range: string; damage: string; traits: string; siege: boolean }
+export interface WarMachineRow { id: string; label: string; price: Money; crew: number; availability: Availability; range: string; damage: string; traits: string; siege: boolean }
 /** Une structure ciblable par les armes de siège (l.282-288) : BE + Blessures + Atout. */
 export interface StructureRow { id: string; label: string; be: number; wounds: number; traits: string }
 /** Un facteur environnemental d'aléa de bataille (l.311-322, 1d10) — texte verbatim. */
