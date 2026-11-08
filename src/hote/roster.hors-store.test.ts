@@ -6,8 +6,9 @@
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { ajouterAuRoster, chargerLeRoster, engagerLeHeros, mettreAJourLeRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from './roster';
-import { ouvrirLeBanc } from '../noyau/banc.testkit';
+import { ajouterAuRoster, chargerLeRoster, engagerLeHeros, importerAuRoster, mettreAJourLeRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from './roster';
+import { fabriqueLocale } from '../engine/fabriqueDId';
+import { ouvrirLeBanc, surUnBancHorsTest } from '../noyau/banc.testkit';
 import { newDraft } from '../noyau/creation/brouillon';
 import { createHero } from '../engine/character';
 import { ecrireLeRoster, type Combatant, type RosterEntry } from '../noyau/index';
@@ -15,6 +16,8 @@ import { stockageEnMemoire, stockageQuiLeve } from '../lib/stockage.testkit';
 import { brouillonComplet } from '../noyau/creation/engagement.testkit';
 
 const CLE = 'wfrp4.roster';
+/** L'entropie d'une session, telle que la plateforme la fournit : une source propre à la session. */
+const entropie = (session = 'session') => fabriqueLocale(`entropie-${session}`);
 const ETAT_CONNU = 'a-terre';
 const ETAT_INCONNU = 'etat-hors-registre';
 
@@ -101,6 +104,16 @@ describe('la procédure du roster sur un stockage', () => {
   });
 });
 
+describe('importer un héros au roster (#2907)', () => {
+  it('un héros dont l’id est déjà au roster y entre sous un id neuf, sans écraser l’autre', () => {
+    const s = stockageEnMemoire();
+    ajouterAuRoster(s, entry('h1', 'Présent'));
+    importerAuRoster(s, entry('h1', 'Importé'), () => 'h2');
+    importerAuRoster(s, entry('h3', 'Neuf'), () => 'jamais');
+    expect(chargerLeRoster(s).map((e) => `${e.hero.id}:${e.hero.label}`)).toEqual(['h1:Présent', 'h2:Importé', 'h3:Neuf']);
+  });
+});
+
 describe('engager un brouillon de création (#3059)', () => {
   const membre = (i: number) => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: `Membre ${i}`, seed: i });
 
@@ -108,7 +121,7 @@ describe('engager un brouillon de création (#3059)', () => {
     const s = stockageEnMemoire();
     const banc = ouvrirLeBanc();
     const d = brouillonComplet();
-    expect(engagerLeHeros(s, banc.getState(), d)).toBeNull();
+    expect(engagerLeHeros(s, banc.getState(), d, entropie())).toBeNull();
     const [entree] = chargerLeRoster(s);
     expect(entree.draft).toEqual(d);
     expect(banc.getState().party.map((h) => h.id)).toEqual([entree.hero.id]);
@@ -117,7 +130,7 @@ describe('engager un brouillon de création (#3059)', () => {
   it('une étape invalide refuse, sans rien écrire', () => {
     const s = stockageEnMemoire();
     const banc = ouvrirLeBanc();
-    expect(engagerLeHeros(s, banc.getState(), newDraft(4242))).toBe('Choisissez votre race.');
+    expect(engagerLeHeros(s, banc.getState(), newDraft(4242), entropie())).toBe('Choisissez votre race.');
     expect(chargerLeRoster(s)).toEqual([]);
     expect(banc.getState().party).toEqual([]);
   });
@@ -125,15 +138,21 @@ describe('engager un brouillon de création (#3059)', () => {
   it('un groupe complet refuse, sans rien écrire', () => {
     const s = stockageEnMemoire();
     const banc = ouvrirLeBanc({ etat: { party: [1, 2, 3, 4].map(membre) } });
-    expect(engagerLeHeros(s, banc.getState(), brouillonComplet())).toBe('Le groupe est complet (4 héros).');
+    expect(engagerLeHeros(s, banc.getState(), brouillonComplet(), entropie())).toBe('Le groupe est complet (4 héros).');
     expect(chargerLeRoster(s)).toEqual([]);
+  });
+
+  it('deux sessions engagent chacune un brouillon au même roster : il garde les deux héros (#2907 S2)', () => {
+    const s = stockageEnMemoire();
+    for (const label of ['Alda', 'Bruno']) surUnBancHorsTest((banc) => expect(engagerLeHeros(s, banc.getState(), brouillonComplet(label), entropie(label))).toBeNull());
+    expect(chargerLeRoster(s).map((e) => e.hero.label)).toEqual(['Alda', 'Bruno']);
   });
 
   it('en édition, le héros remplace en place celui qu’il modifie, son id conservé', () => {
     const s = stockageEnMemoire();
     const [a, b] = [membre(1), membre(2)];
     const banc = ouvrirLeBanc({ etat: { party: [a, b] } });
-    expect(engagerLeHeros(s, banc.getState(), brouillonComplet(), a.id)).toBeNull();
+    expect(engagerLeHeros(s, banc.getState(), brouillonComplet(), entropie(), a.id)).toBeNull();
     expect(banc.getState().party.map((h) => h.id)).toEqual([a.id, b.id]);
     expect(banc.getState().party[0].label).toBe(brouillonComplet().label);
   });

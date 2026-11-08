@@ -17,6 +17,11 @@ import { makePregens } from '../../data/pregens';
 import { pregens } from '../../data';
 import { etatInitialDuJeu, initialNet, type EtatDeJeu } from '../../noyau/etat';
 import { t } from '../../i18n';
+import { engagerLeHeros } from '../roster';
+import { creerFabriqueDIds } from '../../noyau/idsDuMonde';
+import { brouillonComplet } from '../../noyau/creation/engagement.testkit';
+import { stockageEnMemoire } from '../../lib/stockage.testkit';
+import { fabriqueLocale } from '../../engine/fabriqueDId';
 
 /** L'hôte (banc) d'une table à un invité au siège 1, qui remplit l'emplacement 2, relié par transport à l'invité. */
 function table() {
@@ -58,5 +63,25 @@ describe('Sièges en coop : la même lecture chez l’hôte et chez l’invité'
     guest.sendIntent('netAssignSlot', [3, 1]);
     host.broadcastSnapshot();
     expect(hote.getState().net.slots).toEqual(avant);
+  });
+});
+
+describe('Engager en coop : le héros de chaque siège entre au groupe (#2907 S3)', () => {
+  it('l’hôte puis l’invité engagent un brouillon depuis le même instantané : deux héros de plus au groupe', () => {
+    const { hote, invite, host, guest } = table();
+    // L'entropie de chaque siège est sa source propre (`idDEntropie` au web). Le jeu de l'invité : son miroir, son compteur d'ids lié au miroir comme celui de son store, ses intentions vers l'hôte.
+    const lireLeMiroir = () => invite.etat;
+    const ecrireLeMiroir = ((p: Partial<EtatDeJeu>) => { invite.etat = { ...invite.etat, ...p }; }) as Parameters<typeof creerFabriqueDIds>[1];
+    const jeuDeLInvite = {
+      ...invite.etat,
+      ...creerFabriqueDIds(lireLeMiroir as never, ecrireLeMiroir),
+      recruterLeHeros: (h: unknown) => guest.sendIntent('recruterLeHeros', [h]),
+      remplacerLeHeros: (id: string, h: unknown) => guest.sendIntent('remplacerLeHeros', [id, h]),
+    };
+    expect(engagerLeHeros(stockageEnMemoire(), hote.getState(), brouillonComplet('Hôte'), fabriqueLocale('entropie-hote'))).toBeNull();
+    expect(engagerLeHeros(stockageEnMemoire(), jeuDeLInvite, brouillonComplet('Invité'), fabriqueLocale('entropie-invite'))).toBeNull();
+    host.broadcastSnapshot();
+    expect(hote.getState().party.map((h) => h.label).slice(1).sort()).toEqual(['Hôte', 'Invité']);
+    expect(lecture(invite.etat)).toEqual(lecture(hote.getState()));
   });
 });

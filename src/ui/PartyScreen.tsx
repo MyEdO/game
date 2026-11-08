@@ -5,12 +5,13 @@ import { useGame, type GameState } from '../state/store';
 import type { NetState } from '../noyau/etat';
 import { makePregensWithWealth } from '../data/pregens';
 import { stockageDuRoster } from '../state/roster';
-import { ajouterAuRoster, chargerLeRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from '../hote/roster';
+import { chargerLeRoster, importerAuRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from '../hote/roster';
 import { rosterExport, rosterImport, type RosterEntry } from '../noyau/persistance/roster';
 import type { HerosEngage } from '../noyau/creation/engagement';
 import { nommerLesRetraits } from '../noyau/persistance/elagage';
 import { PARTY_MAX } from '../noyau/monde/combatants';
 import { downloadText, fileSlug } from '../web/fileIo';
+import { idDEntropie } from '../web/entropie';
 import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
 import { publishedProjects, campagneDeLEntree } from '../state/projectLibrary';
 import { playerEntryError } from '../noyau/worldMap';
@@ -671,7 +672,7 @@ export function CandidatePool({
       setImportErr(result.error);
       return;
     }
-    ajouterAuRoster(stockageDuRoster(), result.entry);
+    importerAuRoster(stockageDuRoster(), result.entry, idDEntropie);
     setRoster(chargerLeRoster(stockageDuRoster()));
     setImportErr(result.retraits ? t('picker.import.elague', { liste: nommerLesRetraits(result.retraits) }) : null);
     setTab('roster');
