@@ -4957,6 +4957,7 @@ export const fr = {
   'codex.fiche.immunite': 'Immunité',
   'codex.fiche.domaines': 'Domaines',
   'codex.fiche.projectile': 'Projectile',
+  'codex.fiche.origineVO': 'Origine VO',
   'codex.fiche.metalliques': 'métalliques',
   'codex.fiche.nonMagiques': 'non magiques',
   'codex.fiche.degats2': ' (+ Dégâts)',

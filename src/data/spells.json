@@ -26903,19 +26903,9 @@
       "span": "diameter",
       "meters": 5,
       "affects": {
-        "kind": "any",
-        "of": [
-          {
-            "kind": "relation",
-            "who": "target",
-            "is": "self"
-          },
-          {
-            "kind": "relation",
-            "who": "target",
-            "is": "ally"
-          }
-        ]
+        "kind": "relation",
+        "who": "target",
+        "is": "ally"
       }
     },
     "duration": {
@@ -27390,19 +27380,9 @@
       "span": "diameter",
       "meters": 85,
       "affects": {
-        "kind": "any",
-        "of": [
-          {
-            "kind": "relation",
-            "who": "target",
-            "is": "self"
-          },
-          {
-            "kind": "relation",
-            "who": "target",
-            "is": "ally"
-          }
-        ]
+        "kind": "relation",
+        "who": "target",
+        "is": "ally"
       }
     },
     "duration": {

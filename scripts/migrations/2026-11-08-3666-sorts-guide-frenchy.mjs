@@ -4,28 +4,30 @@
  * Clément, 2026-11-08 : « Oui, sourcés au guide » ; « Le jour où leurs vfs seront en ma possession, on mettra à
  * jour ses sorts ».
  *
- * GESTES, tous joués une seule fois (NO-OP dès que chaque sort est au catalogue et chaque pose sur son profil) :
- *  1. `books.json` : les livres VO que le guide nomme et que le registre n'a pas (`LIVRES_VO`), au rayon des
- *     cadres de campagne, sans `dir` ;
- *  2. `spells.json` : un sort par entrée de `SORTS` —
+ * GESTES, chacun sur sa seule forme d'avant (#3080) — une pose à faire : un profil du guide qui ne porte pas
+ * un sort de `POSES` ; NO-OP quand il n'en reste aucune ni aucun Trait perdu :
+ *  1. `books.json` : les livres VO que le registre n'a pas (`LIVRES_VO`) et qu'un sort entrant nomme, au rayon
+ *     des cadres de campagne, sans `dir` ;
+ *  2. `spells.json` : un sort de `SORTS`, absent du catalogue, qu'une pose à faire attend —
  *     - `desc` : la cellule « Effet » de la table imprimée à la page citée, VERBATIM (extraction du guide,
  *       `31b6c588b4^`, retirée par #3015 ; le guide n'a pas d'extraction sous `Source/`, chaque sort se cite par
  *       page comme ses profils) ; seule l'espace perdue autour d'une emphase soudée (« zone_SAUF_le ») est rétablie ;
  *     - NI, Portée, Cible, Durée : ceux de cette même table (le guide les imprime instanciés pour chaque lanceur) ;
  *     - `titreVO` et `livreVO` : le titre VO que la table imprime, et le livre VO que le guide nomme ;
  *     - `effects` : ce que le vocabulaire des GameOp porte ; le reste de la prose, en op `narrative` verbatim ;
- *  3. `creatures.json` : chaque sort neuf, et chaque sort VF officiel que le guide imprime sous un autre nom
- *     (`SORT_VF_DU_GUIDE`), s'ajoute à la liste `spells` des profils qui l'impriment (`POSES`) ;
+ *  3. `creatures.json` : chaque pose à faire, d'un sort du guide ou d'un sort VF officiel au catalogue que le
+ *     guide imprime sous un autre nom (`SORT_VF_DU_GUIDE`) ; un profil absent, un sort VF absent ou un id de
+ *     `SORTS` pris par un autre livre passe ;
  *  4. `creatures.json` : les Traits qu'une table de Traits coupée par un saut de page a perdus au bestiaire de
- *     #3656 (`TRAITS_PERDUS`) rejoignent leur profil, avant son premier Trait de menace (Peur, Terreur) ; la
+ *     #3656 (`TRAITS_PERDUS`) rejoignent leur profil, s'il est là, avant son premier Trait de menace (Peur, Terreur) ; la
  *     Taille (Grande) porte le Piétinement que le guide imprime (LDB 85 l.387).
  * Les sorts du guide qu'aucun GameOp ne porte restent hors du catalogue et des profils (solde de #3666).
  *
  * ENTRÉES : écrites — `src/data/books.json`, `spells.json`, `creatures.json` ; lues — `traits.json`,
  * `skills.json`, `etats.json`, `domains.json`.
- * FAIL-FAST — avant toute écriture, sortie 1 : document hors `serializeDataset`, id de sort déjà pris par un
- * autre sort, `narrative` qui n'est pas une sous-chaîne de sa `desc`, réf (livre, Trait, Compétence, État,
- * Domaine, créature invoquée, sort posé, Trait perdu) absente de son catalogue, profil posé absent ou hors du guide.
+ * FAIL-FAST — dès qu'un geste est à faire, avant toute écriture, sortie 1 : document hors `serializeDataset`,
+ * `narrative` d'un sort entrant qui n'est pas une sous-chaîne de sa `desc`, réf d'un sort entrant (livre, Trait,
+ * Compétence, État, Domaine, créature invoquée) ou Trait perdu absent de son catalogue.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -60,7 +62,7 @@ const un = { kind: 'count', n: 1 };
 const soi = { kind: 'self' };
 const zone = (meters, affects) => ({ kind: 'area', span: 'diameter', meters, ...(affects ? { affects } : {}) });
 const ADVERSAIRES = { kind: 'relation', who: 'target', is: 'opponent' };
-const ALLIES = { kind: 'any', of: [{ kind: 'relation', who: 'target', is: 'self' }, { kind: 'relation', who: 'target', is: 'ally' }] };
+const ALLIES = { kind: 'relation', who: 'target', is: 'ally' };
 const tours = (value, plus) => ({ kind: 'rounds', value, ...(plus ? { plus: true } : {}) });
 const arcane = (subType, domainId) => ({ family: 'arcane', ecole: 'Magie des Arcanes', subType, ...(domainId ? { domainId } : {}) });
 
@@ -314,8 +316,36 @@ const books = charger('books.json');
 const spells = charger('spells.json');
 const creatures = charger('creatures.json');
 const refs = { trait: ids('traits.json'), skill: ids('skills.json'), etat: ids('etats.json'), domain: ids('domains.json'), creature: new Set(creatures.map((c) => c.id)) };
+const profilDuGuide = (pid) => creatures.find((c) => c.id === pid && c.source?.book === LIVRE);
+const SORT = new Map(SORTS.map((s) => [s[0], s]));
 
-for (const livre of LIVRES_VO) if (!books.some((b) => b.id === livre.id)) books.splice(books.findIndex((b) => b.id === APRES) + 1, 0, livre);
+/** Forme d'avant de chaque pose : un profil du guide qui ne porte pas le sort, d'un sort du guide ou de
+ *  `SORT_VF_DU_GUIDE` au catalogue. Un profil ou un sort VF absent, ou une pose déjà faite, passe. */
+const posesAFaire = Object.entries(POSES).flatMap(([sort, profils]) => {
+  const pris = spells.find((s) => s.id === sort);
+  if (SORT.has(sort) ? pris && pris.source?.book !== LIVRE : !SORT_VF_DU_GUIDE.includes(sort) || !pris) return [];
+  return profils.map(profilDuGuide).filter((p) => p && !p.spells.includes(sort)).map((p) => [sort, p]);
+});
+/** Forme d'avant d'un Trait perdu : un profil du guide qui ne le porte pas, et porte un Trait de menace. */
+const traitsAFaire = Object.entries(TRAITS_PERDUS).flatMap(([pid, perdus]) => {
+  const p = profilDuGuide(pid);
+  if (!p || !p.traits.some((t) => t.id === 'peur' || t.id === 'terreur')) return [];
+  const manquants = perdus.filter((t) => !p.traits.some((x) => x.id === t.id));
+  return manquants.length ? [[p, manquants]] : [];
+});
+/** Un sort du guide n'entre que pour une pose à faire, et s'il manque au catalogue. */
+const aEntrer = [...new Set(posesAFaire.map(([sort]) => sort))].filter((sort) => SORT.has(sort) && !spells.some((s) => s.id === sort)).map((sort) => SORT.get(sort));
+
+if (!posesAFaire.length && !traitsAFaire.length) {
+  console.log('#3666 — aucune pose ni aucun Trait perdu à la forme d’avant : rien à écrire.');
+  process.exit(0);
+}
+
+for (const livre of LIVRES_VO) {
+  if (books.some((b) => b.id === livre.id) || !aEntrer.some((s) => s[4] === livre.id)) continue;
+  const i = books.findIndex((b) => b.id === APRES);
+  books.splice(i < 0 ? books.length : i + 1, 0, livre);
+}
 const livres = new Set(books.map((b) => b.id));
 
 /** Toute réf d'un arbre d'effets, vérifiée contre son catalogue. */
@@ -333,48 +363,25 @@ function verifierRefs(id, noeud) {
 const narratives = (noeud) => (Array.isArray(noeud) ? noeud.flatMap(narratives) : noeud && typeof noeud === 'object'
   ? [...(noeud.op === 'narrative' ? [noeud.text] : []), ...Object.values(noeud).flatMap(narratives)] : []);
 
-const neufs = [];
-for (const [id, label, page, titre, livre, champs] of SORTS) {
-  const pris = spells.find((s) => s.id === id);
-  if (pris) { if (pris.source?.book !== LIVRE) fautes.push(`${id} : id pris par un sort de ${pris.source?.book}`); continue; }
+const neufs = aEntrer.map(([id, label, page, titre, livre, champs]) => {
   if (livre && !livres.has(livre)) fautes.push(`${id} : livre VO ${livre} absent du registre`);
   if (champs.domainId && !refs.domain.has(champs.domainId)) fautes.push(`${id} : Domaine ${champs.domainId} absent`);
   for (const t of narratives(champs.effects)) if (!champs.desc.includes(t)) fautes.push(`${id} : narrative hors desc — « ${t} »`);
   verifierRefs(id, champs.effects);
   const { desc, effects, ...resolution } = champs;
-  neufs.push({ id, type: 'spells', label, ...resolution, desc, effects, source: source(page), titreVO: titre, ...(livre ? { livreVO: { id: livre } } : {}) });
-}
-const catalogue = new Set([...spells.map((s) => s.id), ...neufs.map((s) => s.id)]);
-for (const s of SORT_VF_DU_GUIDE) if (!spells.some((x) => x.id === s)) fautes.push(`SORT_VF_DU_GUIDE : ${s} absent du catalogue`);
-
-let poses = 0;
-for (const [sort, profils] of Object.entries(POSES)) {
-  if (!catalogue.has(sort)) { fautes.push(`POSES : sort ${sort} absent du catalogue`); continue; }
-  for (const pid of profils) {
-    const p = creatures.find((c) => c.id === pid);
-    if (!p || p.source?.book !== LIVRE) { fautes.push(`POSES ${sort} : ${pid} n'est pas un profil du guide`); continue; }
-    if (!p.spells.includes(sort)) { p.spells.push(sort); poses++; }
-  }
-}
-
-let traits = 0;
-for (const [pid, perdus] of Object.entries(TRAITS_PERDUS)) {
-  const p = creatures.find((c) => c.id === pid);
-  if (!p || p.source?.book !== LIVRE) { fautes.push(`TRAITS_PERDUS : ${pid} n'est pas un profil du guide`); continue; }
-  const menace = p.traits.findIndex((t) => t.id === 'peur' || t.id === 'terreur');
-  if (menace < 0) { fautes.push(`TRAITS_PERDUS : ${pid} n'a ni Peur ni Terreur`); continue; }
-  const manquants = perdus.filter((t) => { if (!refs.trait.has(t.id)) fautes.push(`TRAITS_PERDUS ${pid} : trait ${t.id} absent`); return !p.traits.some((x) => x.id === t.id); });
-  p.traits.splice(menace, 0, ...manquants);
-  traits += manquants.length;
-}
+  return { id, type: 'spells', label, ...resolution, desc, effects, source: source(page), titreVO: titre, ...(livre ? { livreVO: { id: livre } } : {}) };
+});
+for (const [p, manquants] of traitsAFaire) for (const t of manquants) if (!refs.trait.has(t.id)) fautes.push(`TRAITS_PERDUS ${p.id} : trait ${t.id} absent`);
 
 if (fautes.length) {
   console.error(`#3666 — rien n'est écrit :\n  ${fautes.join('\n  ')}`);
   process.exit(1);
 }
 spells.push(...neufs);
+for (const [sort, p] of posesAFaire) p.spells.push(sort);
+for (const [p, manquants] of traitsAFaire) p.traits.splice(p.traits.findIndex((t) => t.id === 'peur' || t.id === 'terreur'), 0, ...manquants);
 for (const [rel, { doc, avant }] of docs) {
   const apres = serializeDataset(doc);
   if (apres !== avant) fs.writeFileSync(DATA(rel), apres);
 }
-console.log(`#3666 — ${neufs.length} sort(s) neuf(s), ${poses} pose(s), ${traits} Trait(s) perdu(s).`);
+console.log(`#3666 — ${neufs.length} sort(s) neuf(s), ${posesAFaire.length} pose(s), ${traitsAFaire.reduce((n, [, m]) => n + m.length, 0)} Trait(s) perdu(s).`);
