@@ -9,8 +9,8 @@
  * garde-robe, où vont ses éléments liés au `squelette` ou en `surface` et ses accessoires, rigides compris ; le fichier GLB de chaque élément servi
  * (`fichiersDuModele`) et le libellé de la chose qu'il porte ; les surfaces de chaque base et de chaque élément servi
  * (`asset/surfaces.ts`), où se posent au montage la palette de la composition et les emblèmes de la garde-robe (#3111) ;
- * la table rôle → clip de chaque base et la vitesse au sol de son rôle `walk` ; le rapport de l'index, dont l'élément
- * n'est servi nulle part.
+ * la table rôle → clip de chaque base et la vitesse au sol de son rôle `walk` ; chaque véhicule servi, élément sans base
+ * (#2987), sous la fiche que nomme sa clé `definition` ; le rapport de l'index, dont l'élément n'est servi nulle part.
  */
 import type { Attache } from '../asset/attache';
 import type { ManifesteDElement } from '../asset/element';
@@ -69,6 +69,8 @@ export interface ModelesDeLAtelier {
   libelles: Record<string, string>;
   /** Les emblèmes de la garde-robe (`kind: 'embleme'`). */
   emblemes: EmblemeDeLAtelier[];
+  /** Par fiche de véhicule ou d'engin (`cle.definition`), l'id de l'élément `vehicule` servi qui la dessine (#2987). */
+  vehicules: Record<string, string>;
 }
 
 /** Un emblème offert au montage : son id, son libellé et son dessin. */
@@ -77,12 +79,14 @@ type EmblemeDeLAtelier = Pick<EmblemeDef, 'id' | 'label' | 'svg'>;
 /** La `cle` du manifeste d'élément `manifeste`. */
 export const cleDe = (manifeste: unknown): Readonly<Record<string, string | undefined>> => (manifeste as ManifesteDElement).cle;
 const modeDe = (e: EntreeDeModele) => (e.brut as ManifesteDElement).liaison.mode;
+/** La base de l'élément `e`, `undefined` s'il est sans base (`estSansBase`). */
+const baseDe = (e: EntreeDeModele): string | undefined => { const m = e.brut as ManifesteDElement; return 'base' in m ? m.base : undefined; };
 /** Les `nom` des surfaces `blason: true` du manifeste d'élément `manifeste`, dans l'ordre du manifeste. */
 export const blasonsDe = (manifeste: unknown): string[] => (manifeste as ManifesteDElement).surfaces.filter((s) => s.blason === true).map((s) => s.nom);
 
 /** Les modèles de `manifestes` (id de modèle → manifeste du listage servi, validé) : les bases, leurs points d'accroche et
- *  leurs lignes de pièce, les surfaces de chaque modèle servi, les emblèmes de la garde-robe, les refus de l'index et
- *  son rapport. Un objet lié en `rigide` se monte aux emplacements de sa base dont l'os est l'un de ses `osDesRigides` (id
+ *  leurs lignes de pièce, les surfaces de chaque modèle servi, les emblèmes de la garde-robe, les véhicules, les refus de
+ *  l'index et son rapport. Un objet lié en `rigide` se monte aux emplacements de sa base dont l'os est l'un de ses `osDesRigides` (id
  *  de modèle → os qui portent ses meshes rigides, du listage servi), et à chacune de ses prises si l'un d'eux est l'os d'une
  *  prise (#3319) ; toute pièce, accessoire rigide compris, à la ligne dont
  *  l'id vaut sa clé : `tete`, `coiffure`, `piece` d'un vêtement ou d'une armure, ou de la pièce de sa variante (`pieceRacine`,
@@ -107,7 +111,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     });
   const bases = [...index.bases.values()].map(({ id, brut }): BaseDeLAtelier => {
     const m = brut as ManifesteDeBase;
-    const deLaBase = elements.filter((e) => (e.brut as ManifesteDElement).base === m.base);
+    const deLaBase = elements.filter((e) => baseDe(e) === m.base);
     const estUnePiece = (e: EntreeDeModele) => modeDe(e) !== 'rigide' || (e.brut as ManifesteDElement).categorie === 'accessoire';
     const objets = deLaBase.filter((e) => !estUnePiece(e));
     const pieces = deLaBase.filter(estUnePiece);
@@ -146,5 +150,9 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     return { id, empreinte: m.glb.sha256, points, lignes, clips: m.clips, vitesseAuSol: m.appuis.vitesseAuSol };
   });
   const emblemes = gardeRobe.flatMap((e) => (e.kind === 'embleme' ? [{ id: e.id, label: e.label, svg: e.svg }] : []));
-  return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, emblemes };
+  const vehicules = Object.fromEntries(elements.flatMap((e) => {
+    const m = e.brut as ManifesteDElement;
+    return m.categorie === 'vehicule' ? [[m.cle.definition, servir([e])[0]]] : [];
+  }));
+  return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, emblemes, vehicules };
 }

@@ -63,7 +63,6 @@
     "docs:index-moteur": "node scripts/docs/build-index-moteur.mjs",
     "docs:registre-jets": "node scripts/docs/build-registre-jets.mjs",
     "docs:usages-jets": "node scripts/docs/build-usages-jets.mjs",
-    "docs:orphelines": "node scripts/docs/build-entity-orphans.mjs",
     "docs:test-scenarios": "node scripts/docs/build-test-scenarios.mjs",
     "docs:reprise": "node scripts/docs/build-reprise.mjs",
     "docs:icones": "node scripts/docs/build-icones.mjs",

@@ -1,4 +1,4 @@
-import { emplacementsNonOfferts, validerElement, type ManifesteDElement } from './element.ts';
+import { emplacementsNonOfferts, estSansBase, validerElement, type ManifesteDElement, type VerdictDElement } from './element.ts';
 import { lireGlb } from './glb.ts';
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { cheminsAbsolus, ligneDErreur } from './manifeste.ts';
@@ -15,21 +15,23 @@ export const fichiersDuModele = (id: string) => ({ glb: `${id}.glb`, manifeste: 
 
 /** Une base porte son squelette (`ManifesteDeBase.os`), champ qu'aucune catégorie d'élément n'admet (`element.ts`). */
 export const estBase = (m: unknown): boolean => estObjet(m) && Object.prototype.hasOwnProperty.call(m, 'os');
-const identite = (base: unknown, cle: Record<string, unknown>): string => JSON.stringify([base, Object.entries(cle).sort(([a], [b]) => a.localeCompare(b))]);
+const identite = (base: unknown, cle: Record<string, unknown>): string => JSON.stringify([base ?? null, Object.entries(cle).sort(([a], [b]) => a.localeCompare(b))]);
 
-/** L'index (base, clé) → élément et les bases, indépendants du nom de fichier et de l'ordre des champs de clé. `refus`
- *  bloque l'import et la Release ; `rapport` ne bloque rien, et son élément sort de `elements` (`emplacementsNonOfferts`). */
+/** L'index (base, clé) → élément et les bases, indépendants du nom de fichier et de l'ordre des champs de clé ; un
+ *  élément sans base (`estSansBase`) s'y range sous sa seule clé. `refus` bloque l'import et la Release ; `rapport` ne
+ *  bloque rien, et son élément sort de `elements` (`emplacementsNonOfferts`). */
 export function indexerModeles(entrees: readonly EntreeDeModele[]): { bases: ReadonlyMap<string, EntreeDeModele>; elements: ReadonlyMap<string, EntreeDeModele>; refus: string[]; rapport: string[] } {
   const bases = new Map<string, EntreeDeModele>();
   const cles = new Map<string, EntreeDeModele>();
   const refus: string[] = [];
   for (const entree of entrees) {
     const m = entree.brut;
-    if (!estObjet(m) || typeof m.base !== 'string' || !m.base) { refus.push(`[forme] ${entree.id}.base : identité non vide attendue`); continue; }
+    if (!estObjet(m) || (!estSansBase(m) && (typeof m.base !== 'string' || !m.base))) { refus.push(`[forme] ${entree.id}.base : identité non vide attendue`); continue; }
     if (estBase(m)) {
-      const precedente = bases.get(m.base);
-      if (precedente) refus.push(`[base-en-doublon] ${m.base} : ${precedente.id}, ${entree.id}`);
-      else bases.set(m.base, entree);
+      const nom = String(m.base);
+      const precedente = bases.get(nom);
+      if (precedente) refus.push(`[base-en-doublon] ${nom} : ${precedente.id}, ${entree.id}`);
+      else bases.set(nom, entree);
     } else if (estObjet(m.cle)) {
       const cle = identite(m.base, m.cle);
       const precedent = cles.get(cle);
@@ -37,7 +39,7 @@ export function indexerModeles(entrees: readonly EntreeDeModele[]): { bases: Rea
       else cles.set(cle, entree);
     }
   }
-  for (const { id, brut: m } of entrees) if (estObjet(m) && !estBase(m) && typeof m.base === 'string' && !bases.has(m.base)) refus.push(`[base-absente] ${id} : ${m.base}`);
+  for (const { id, brut: m } of entrees) if (estObjet(m) && !estBase(m) && !estSansBase(m) && typeof m.base === 'string' && !bases.has(m.base)) refus.push(`[base-absente] ${id} : ${m.base}`);
   const nonOfferts = emplacementsNonOfferts(new Map([...bases].map(([base, e]) => [base, e.brut])), [...cles.values()]);
   const rapportes = new Set(nonOfferts.map(({ id }) => id));
   const elements = new Map([...cles].filter(([, e]) => !rapportes.has(e.id)));
@@ -62,7 +64,10 @@ function validerBase(brut: unknown, octets: Uint8Array): VerdictDeBase {
   return ecarts.length ? { ok: false, ecarts } : v;
 }
 
-/** Un validateur par contrat : base au schéma `VERSION_DU_SCHEMA_DE_BASE`, élément schéma 3 contre sa base validée. */
+const verdictDElement = (v: VerdictDElement): VerdictDeModele => (v.ok ? v : { ok: false, refus: v.ecarts.map((e) => `[${e.code}] ${e.ou} : ${e.detail}`) });
+
+/** Un validateur par contrat : base au schéma `VERSION_DU_SCHEMA_DE_BASE`, élément schéma 3 contre sa base validée, ou
+ *  seul s'il est sans base (`estSansBase`). */
 export function validerModele(brut: unknown, octets: Uint8Array, bases: ReadonlyMap<string, BaseLivree> = new Map()): VerdictDeModele {
   try {
     const fuites = cheminsAbsolus(brut, 'manifeste');
@@ -71,13 +76,13 @@ export function validerModele(brut: unknown, octets: Uint8Array, bases: Readonly
       const v = validerBase(brut, octets);
       return v.ok ? v : { ok: false, refus: v.ecarts.map(e => `[${e.code}] ${e.ou} : ${e.detail}`) };
     }
+    if (estSansBase(brut)) return verdictDElement(validerElement(brut, null, octets, lireGlb(octets)));
     const nom = estObjet(brut) ? brut.base : undefined;
     const base = typeof nom === 'string' ? bases.get(nom) : undefined;
     if (!base) return { ok: false, refus: [`[base-absente] ${String(nom)}`] };
     const vBase = validerBase(base.brut, base.octets);
     if (!vBase.ok) return { ok: false, refus: vBase.ecarts.map(e => `[${e.code}] base ${e.ou} : ${e.detail}`) };
-    const v = validerElement(brut, vBase.manifeste, octets, lireGlb(octets));
-    return v.ok ? v : { ok: false, refus: v.ecarts.map(e => `[${e.code}] ${e.ou} : ${e.detail}`) };
+    return verdictDElement(validerElement(brut, vBase.manifeste, octets, lireGlb(octets)));
   } catch (e) {
     return { ok: false, refus: [`[glb-illisible] ${e instanceof Error ? e.message : String(e)}`] };
   }

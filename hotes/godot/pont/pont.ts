@@ -47,6 +47,10 @@ export interface CorpsDuCombat {
   /** Par id de combattant dessiné (`combat.voisins.liste`, sinon `exploration.heros`) : la base et la composition de sa
    *  portée sur elle (`composerSurLaBase`), `null` si sa portée est `null` (corps sans base de ce plan) ou sous refus. */
   combattants: Record<string, (CompositionSurLaBase & { base: string }) | null>;
+  /** Par id de combattant dessiné qui est un véhicule ou un engin (`CombattantProjete.vehicule`) dont un élément
+   *  `vehicule` est servi (`ModelesDeLAtelier.vehicules`, #2987) : cet élément et le côté de son empreinte, quelles que
+   *  soient les bases servies. */
+  vehicules: Record<string, { element: string; empreinte: number }>;
 }
 
 /** La vue : la projection commune (`projeter`), les corps de ses combattants (`CorpsDuCombat`), la disposition de la
@@ -166,7 +170,8 @@ export function creerPont() {
     return ouverte;
   };
 
-  /** Les corps des combattants dessinés de `projection`, chacun sa portée composée sur l'unique base servie. */
+  /** Les corps des combattants dessinés de `projection`, chacun sa portée composée sur l'unique base servie, et leurs
+   *  véhicules servis. */
   const corpsDe = (projection: Projection): CorpsDuCombat => {
     const dessines = projection.combat?.voisins.liste ?? projection.exploration?.heros ?? [];
     const bases = modeles?.modeles.bases ?? [];
@@ -177,6 +182,10 @@ export function creerPont() {
     return {
       refus,
       combattants: Object.fromEntries(dessines.map(({ id, portee }) => [id, base && portee ? { base: base.id, ...composerSurLaBase(base, modeles!.manifestes, portee) } : null])),
+      vehicules: Object.fromEntries(dessines.flatMap(({ id, vehicule }) => {
+        const element = vehicule && modeles?.modeles.vehicules[vehicule.definition];
+        return element ? [[id, { element, empreinte: vehicule.empreinte }]] : [];
+      })),
     };
   };
 

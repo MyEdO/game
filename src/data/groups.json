@@ -615,5 +615,175 @@
       "page": 36,
       "note": "ADE II 02 l.927"
     }
+  },
+  {
+    "id": "maigrichons",
+    "type": "groups",
+    "label": "Maigrichons",
+    "source": {
+      "book": "livre-de-base",
+      "page": 312,
+      "note": "LDB 77 l.66"
+    }
+  },
+  {
+    "id": "ceux-qu-elle-considere-faibles",
+    "type": "groups",
+    "label": "Ceux qu'elle considère faibles",
+    "source": {
+      "book": "middenheim",
+      "page": 72,
+      "note": "MCLB 02 l.1326"
+    }
+  },
+  {
+    "id": "nains-laches",
+    "type": "groups",
+    "label": "Ces nains lâches qui rechignent à guerroyer pour restaurer le Royaume éternel",
+    "source": {
+      "book": "middenheim",
+      "page": 95,
+      "note": "MCLB 02 l.2014"
+    }
+  },
+  {
+    "id": "ceux-qui-n-apprecient-pas-le-middenball",
+    "type": "groups",
+    "label": "Ceux qui ne savent pas apprécier un bon match de Middenball",
+    "source": {
+      "book": "middenheim",
+      "page": 95,
+      "note": "MCLB 02 l.2034"
+    }
+  },
+  {
+    "id": "menteurs",
+    "type": "groups",
+    "label": "Menteurs",
+    "source": {
+      "book": "middenheim",
+      "page": 100,
+      "note": "MCLB 02 l.2176"
+    }
+  },
+  {
+    "id": "trompeurs",
+    "type": "groups",
+    "label": "Trompeurs",
+    "source": {
+      "book": "middenheim",
+      "page": 100,
+      "note": "MCLB 02 l.2176"
+    }
+  },
+  {
+    "id": "sophistes",
+    "type": "groups",
+    "label": "Sophistes",
+    "source": {
+      "book": "middenheim",
+      "page": 100,
+      "note": "MCLB 02 l.2176"
+    }
+  },
+  {
+    "id": "acteurs",
+    "type": "groups",
+    "label": "Acteurs",
+    "source": {
+      "book": "middenheim",
+      "page": 100,
+      "note": "MCLB 02 l.2178"
+    }
+  },
+  {
+    "id": "amateurs-de-theatre",
+    "type": "groups",
+    "label": "Amateurs de théâtre",
+    "source": {
+      "book": "middenheim",
+      "page": 100,
+      "note": "MCLB 02 l.2178"
+    }
+  },
+  {
+    "id": "mauvais-auditeurs",
+    "type": "groups",
+    "label": "Mauvais auditeurs",
+    "source": {
+      "book": "middenheim",
+      "page": 100,
+      "note": "MCLB 02 l.2198"
+    }
+  },
+  {
+    "id": "artistes-moins-doues-qu-ils-ne-pensent",
+    "type": "groups",
+    "label": "Les artistes qui ne sont pas aussi doués qu'ils le pensent",
+    "source": {
+      "book": "middenheim",
+      "page": 106,
+      "note": "MCLB 02 l.2408"
+    }
+  },
+  {
+    "id": "ulricains-pas-assez-zeles",
+    "type": "groups",
+    "label": "Ulricains pas assez zélés",
+    "source": {
+      "book": "middenheim",
+      "page": 114,
+      "note": "MCLB 03 l.108"
+    }
+  },
+  {
+    "id": "creanciers",
+    "type": "groups",
+    "label": "Créanciers",
+    "source": {
+      "book": "middenheim",
+      "page": 142,
+      "note": "MCLB 07 l.299"
+    }
+  },
+  {
+    "id": "reactionnaires",
+    "type": "groups",
+    "label": "Réactionnaires",
+    "source": {
+      "book": "middenheim",
+      "page": 142,
+      "note": "MCLB 07 l.299"
+    }
+  },
+  {
+    "id": "utilisateurs-de-mystracine",
+    "type": "groups",
+    "label": "Utilisateurs de mystracine",
+    "source": {
+      "book": "middenheim",
+      "page": 142,
+      "note": "MCLB 07 l.299"
+    }
+  },
+  {
+    "id": "lumiere",
+    "type": "groups",
+    "label": "Lumière",
+    "source": {
+      "book": "zoo-imperial",
+      "page": 59,
+      "note": "ZI 05 l.298"
+    }
+  },
+  {
+    "id": "sel",
+    "type": "groups",
+    "label": "Sel",
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 86,
+      "note": "MSRC 15 l.40"
+    }
   }
 ]

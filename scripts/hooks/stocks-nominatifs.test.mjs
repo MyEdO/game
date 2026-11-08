@@ -1020,8 +1020,6 @@ test('stocks `.mjs` de garde à la forme NOMINATIVE — la porte voit CHAQUE ent
   // Une assertion PAR stock converti : sans elles, la mesure serait verte par VACUITÉ le jour où une
   // conversion se défait (le module sort du corpus sans un mot).
   for (const nom of [
-    'entityOrphanStock.mjs',
-    'tableConsumerStock.mjs',
     'folioLineAlignStock.mjs',
     'horsStrateStock.mjs',
     'spellNarratifStock.mjs',
@@ -1051,7 +1049,7 @@ test('stocks `.mjs` de garde à la forme NOMINATIVE — la porte voit CHAQUE ent
 // (`'apothicaire:tete:back#0'`), et `net 1` dès que l'entrée porte son def. Le cas ANCRE ses hunks :
 // il affirme d'abord où `entreesNominatives` pose les entrées de chaque image.
 test('stock `.mjs` nominatif — une entrée AJOUTÉE est vue par la porte de plage (net 1, exemple nommant)', () => {
-  const f = 'scripts/guards/lib/entityOrphanStock.mjs'
+  const f = 'scripts/guards/lib/spellNarratifStock.mjs'
   const entree = (occ) => `  { fichier: 'src/data/creatures.json', ref: 'bailli', occurrence: ${occ} },`
   const image = (...lignes) => [
     "/** @type {import('./stock.mjs').EntreeDeSite[]} */",

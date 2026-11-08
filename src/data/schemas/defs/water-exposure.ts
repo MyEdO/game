@@ -3,7 +3,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document, tableTiree } from '../grammaire/document';
 import { enumNomme, plageSchema } from '../grammaire/valeurs';
-import { exigerDuTest, flowTestSchema } from '../grammaire/mecanique';
+import { fixerLeTest, flowTestSchema } from '../grammaire/mecanique';
 
 export const file = 'water-exposure.json';
 export const famille = 'config';
@@ -73,7 +73,7 @@ const doc = document(
     diseases: { label: 'Maladies contractées', hint: "Table de tirage de la maladie contractée en cas d'échec" },
   },
   { codex: { keys: ['waterExposure'] }, edit: { object: 'single' } },
-  { affinerEntree: (entree) => entree.superRefine(exigerDuTest('skill', 'difficulty')) },
+  { affinerEntree: (entree) => entree.superRefine(fixerLeTest('skill', 'difficulty')) },
 );
 
 export const schema = doc.schema;

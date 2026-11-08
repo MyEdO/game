@@ -1,8 +1,8 @@
 /**
  * Évaluation d'un `FlowTest`/`Condition` EN COMBAT — briques PURES partagées par les trois voies de
  * résolution d'un Test déclenché (étape de cascade héros `triggeredTest`, jet inline ennemi/auto
- * `resolveFlowTest`, jet inline hors-cascade `resolveInlineFlowTest`). SOURCE UNIQUE : la vue d'acteur,
- * le `ConditionCtx` de combat et le calcul de gate vivent ICI (aucune copie par site).
+ * `resolveFlowTest`, jet inline hors-cascade `resolveInlineFlowTest`). SOURCE UNIQUE : la vue d'acteur et
+ * le `ConditionCtx` de combat vivent ICI ; la décision du Test, dans `engine/decisionDuTest`.
  *
  * Module FEUILLE : n'importe RIEN de combatFlow/combatEffects (que des briques engine + le modèle `flow`)
  * → aucun cycle. Définit le walker pur `runPureFlowLines` ; réutilisé par `triggeredEffects` (resolveInlineFlowTest)
@@ -10,9 +10,8 @@
  */
 import { type Combatant } from '../../engine/types';
 import { buildActorView } from '../../engine/actorView';
-import { groupMatch, groupesDe } from '../../engine/groups';
 import { applyOps, type GameOp, type OpsCtx } from '../../engine/ops';
-import { certainFlowOps, evalCondition, flowHasOpADe, leafOpsCtx, type Condition, type ConditionCtx, type FlowTest, flowTestGateOpen, flowHasTest } from '../../engine/flowCore';
+import { certainFlowOps, evalCondition, flowHasOpADe, leafOpsCtx, type Condition, type ConditionCtx, flowHasTest } from '../../engine/flowCore';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 
 
@@ -168,14 +167,4 @@ export function branchBlockingEntity(
   // qui suspend la promesse, pas l'appartenance. Sans lui, l'indécidabilité vient d'ailleurs.
   const taken = verdict ? branch.then : branch.else;
   return taken && flowHasTest(taken) ? { category, id: cond.value } : undefined;
-}
-
-/** Le Test est-il SAUTÉ (no-op : ni étape ni branche) pour `c` ? Réunit les gates op-level historiques
- *  (`onlyGroups`/`exceptGroups`) et la GATE générique de Condition (`gate`, Brisé : « pas
- *  Engagé OU Cœur vaillant, ET pions restants »). SOURCE UNIQUE — voie cascade (resolveFlowTest) et voie
- *  inline (resolveInlineFlowTest) la partagent → décision de gate identique. */
-export function flowTestGated(ft: FlowTest, c: Combatant, cc: ConditionCtx): boolean {
-  return (ft.onlyGroups != null && !ft.onlyGroups.some((g) => groupMatch(g, groupesDe(c))))
-    || (ft.exceptGroups != null && ft.exceptGroups.some((g) => groupMatch(g, groupesDe(c))))
-    || !flowTestGateOpen(ft, cc);
 }

@@ -49,7 +49,6 @@ script au nom différent du doc est entre parenthèses.
 | Relation inverse / index / auto-liage du Codex | `docs/codex-relations.md` |
 | Qui lit ce champ JSON avant de le renommer ? | `docs/consommateurs-de-champs.md` (`docs:field-consumers`) |
 | Forme d'un concept dans chaque dataset | `docs/structures-donnees.md` (`docs:structures`) |
-| Entrée de donnée orpheline ? | `docs/orphelines-donnees.md` (`docs:orphelines`) |
 | Absent à l'écran — gaté par une règle optionnelle ? | `docs/regles-optionnelles.md` |
 | Reprendre un chantier après pause | `docs/reprise-apres-pause.md` (`docs:reprise`) |
 | Sorts/miracles : état réel | `docs/sorts-implementation.md` (`docs:sorts`) |

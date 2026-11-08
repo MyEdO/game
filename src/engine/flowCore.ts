@@ -237,8 +237,8 @@ export type Condition =
   /** Le Test courant se joue-t-il pendant un Round de combat (`ctx.roundDeCombat`) ? Ligne « Tests : » de
    *  Pansement de fortune et de Chirurgie (LDB 10 l.182, l.897). Hors contexte = false. */
   | { kind: 'roundDeCombat' }
-  /** Distance (cases) à l'adversaire VIVANT le plus proche, comparée par `op` à `value` (Brisé : Très
-   *  difficile si ≤ 3, LDB 16 l.58). Précalculée (`ctx.nearestFoeDist`). Aucun adversaire / hors combat = +∞. */
+  /** Distance (cases) à l'adversaire VIVANT le plus proche, comparée par `op` à `value` (Brisé,
+   *  LDB 16 l.54). Précalculée (`ctx.nearestFoeDist`). Aucun adversaire / hors combat = +∞. */
   | { kind: 'nearestFoe'; op: CompareOp; value: number }
   /** Niveau d'une CAPACITÉ de combat (`CombatFeature`) de l'acteur `who`, comparé par `op` (défaut `>=`) à
    *  `value` (défaut 1) — Cœur vaillant (`braveheart`) octroyable par talent OU effet. Acteur absent = 0. */
@@ -463,19 +463,6 @@ export function conditionCtx(s: { flags: Record<string, boolean>; gameTime: numb
   return { flags: s.flags, gameTime: s.gameTime, party: s.party, money: s.money, etats: s.etats };
 }
 
-/** Difficulté EFFECTIVE d'un `FlowTest` : la PREMIÈRE entrée `difficultyBy` dont la Condition est vraie
- *  impose sa difficulté ; sinon `difficulty` (défaut Intermédiaire). SOURCE UNIQUE — voie inline (ennemi/
- *  auto), étape de cascade (héros) et hors-combat la partagent (Brisé : caché/proche/loin, LDB 16 l.58). */
-export function resolveTestDifficulty(ft: FlowTest, cc: ConditionCtx): Difficulty {
-  for (const d of ft.difficultyBy ?? []) if (evalCondition(d.cond, cc)) return d.difficulty;
-  return ft.difficulty ?? 'intermediaire';
-}
-
-/** Le `gate` d'un `FlowTest` est-il ouvert (Test à jouer) ? Vrai si absent ; sinon évalue la Condition. */
-export function flowTestGateOpen(ft: FlowTest, cc: ConditionCtx): boolean {
-  return ft.gate == null || evalCondition(ft.gate, cc);
-}
-
 /** Spécification d'un jet de compétence/caractéristique différé (→ modale) — TOUT le métier du Test,
  *  SANS les branches (portées par le nœud Flow `test`). Source UNIQUE : `Effect` 'test' est normalisé
  *  vers cette forme à l'exécution (un seul ouvreur de modale `openSkillTest`). */
@@ -522,7 +509,7 @@ export interface FlowTest {
    *  module le Test de Sociabilité de −2 à +2 DR (soit ±10 par DR sur la valeur, comme la réaction de
    *  Statut LDB 08). Authoré sur le Test d'un dialogue mené avec la créature. */
   vsCapricieux?: boolean;
-  /** Difficulté réduite si un héros possède la compétence/le talent requis. */
+  /** Difficulté réduite si l'allégeur possède la compétence/le talent requis (`resoudreFlowTest`). */
   easierIf?: { hasSkill?: { id: string; spec?: string }; hasTalent?: string; steps?: number };
   /** La difficulté EFFECTIVE vient de l'argument d'instance du porteur (« Venin (Difficile) ») —
    *  substituée à la collecte (`withArg`/`effectsOf`) ; `difficulty` ci-dessus est le défaut (arg absent).
@@ -551,8 +538,8 @@ export interface FlowTest {
    *  `poison` pour Venin/lames empoisonnées…). Copié sur l'étape de cascade du héros → offre
    *  l'auto-succès du talent (verbe `resist`, cf. engine/menace). Absent = Test non couvert. */
   menace?: MenaceId;
-  /** Difficulté DYNAMIQUE : la PREMIÈRE Condition vraie impose sa difficulté ; sinon `difficulty` (défaut
-   *  Intermédiaire). Brisé (LDB 16 l.58) : caché → Accessible, ennemi à ≤3 → Très difficile, sinon Intermédiaire. */
+  /** Difficulté DYNAMIQUE : la PREMIÈRE Condition vraie impose sa difficulté ; sinon `difficulty`
+   *  (`resoudreFlowTest`). Brisé : LDB 16 l.54. */
   difficultyBy?: { cond: Condition; difficulty: Difficulty }[];
   /** Test OPPOSÉ (Assommante, LDB 62 l.235 : « Test opposé Force/Résistance ») : le côté qui jette CE
    *  Test (`skill`/`characteristic` ci-dessus) est le DÉFENSEUR (la cible/victime) ; l'ATTAQUANT (le
@@ -578,8 +565,14 @@ export interface FlowTest {
     defenderMustWin?: boolean };
 }
 
-/** Un `FlowTest` dont le porteur EXIGE les champs `K` (`exigerDuTest`, `grammaire/mecanique.ts`). */
-export type TestExige<K extends 'skill' | 'difficulty'> = FlowTest & Required<Pick<FlowTest, K>>;
+/** Les champs de la DÉCISION d'un `FlowTest`, lus par `resoudreFlowTest` (`engine/decisionDuTest.ts`) seul. */
+export const CHAMPS_DE_DECISION = ['gate', 'difficultyBy', 'easierIf'] satisfies readonly (keyof FlowTest)[];
+/** Un champ de `CHAMPS_DE_DECISION`. */
+export type ChampDeDecision = (typeof CHAMPS_DE_DECISION)[number];
+
+/** Un `FlowTest` que son PORTEUR fixe (`fixerLeTest`, `grammaire/mecanique.ts`) : les champs `K` exigés,
+ *  aucune décision. */
+export type JetFixe<K extends 'skill' | 'difficulty' = never> = Omit<FlowTest, ChampDeDecision> & Required<Pick<FlowTest, K>>;
 
 /**
  * Un nœud de Flow, GÉNÉRIQUE sur le type de sa FEUILLE `E` (défaut `EffectOp` — engine pur ; la couche
@@ -616,6 +609,10 @@ export type ArgTemplate = typeof ARG_TEMPLATE;
 /** Le NŒUD `test` seul — la forme UNIQUE du jet en donnée (jet + conséquence des deux branches), telle
  *  qu'un porteur l'épingle hors d'un Flow complet (rangée de Critique, cycle de maladie). */
 export type FlowTestNode<E = EffectOp> = Extract<Flow<E>, { kind: 'test' }>;
+
+/** Un nœud `test` dont la Difficulté se décide au PORTEUR (`decisionAuPorteur`, `noeudTest`) : son Test
+ *  ne porte aucun champ de décision. */
+export type NoeudDecideAuPorteur<E = EffectOp> = Omit<FlowTestNode<E>, 'test'> & { test: Omit<FlowTest, ChampDeDecision> & Required<Pick<FlowTest, 'difficulty'>> };
 
 /** Flow vide (séquence sans étape) — neutre, sûr comme valeur par défaut d'un consommateur. Partagé
  *  par la donnée comme par l'état : gelé à sa définition (#2097). */
