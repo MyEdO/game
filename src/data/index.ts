@@ -27,6 +27,7 @@ import type { ambianceSchema, sceneSchema, ReliefDefaults, SceneRoofDefaults, Te
 import type { Flow, TriggeredEffect } from './schemas/defs-scenes/effets';
 import { slugId } from './slug';
 import { parLibelle } from '../lib/ordre.mjs';
+import { estObjet } from '../lib/objet.mjs';
 import { emplacementsDesPieces, localisationsDeLoc } from '../engine/classementDeTrait';
 import { norm } from '../lib/normalize';
 import { tableTotale } from '../lib/tableTotale';
@@ -782,6 +783,9 @@ export interface ClassData {
   grantGroups?: string[];
   /** Possessions de départ (`TrappingRef` : id du catalogue + quantité, ou `{text}` flavor hors catalogue). */
   trappings: TrappingRef[];
+  /** Classe dont cette Classe peut remplacer la portion du tableau des Carrières aléatoires
+   *  (MDG 09 l.9). Lu par `remplacementsDeClasse` (`noyau/creation/brouillon`). */
+  remplace?: { id: string };
   desc: string;
   source: SourceRef;
 }
@@ -793,8 +797,8 @@ export interface CareerData {
   /** Forme féminine d'AFFICHAGE (le LDB n'imprime que le masculin — féminisation standard MAISON) ;
    *  absent = forme épicène (identique au masculin). Lu par `careerLabelFor` (bord UI). */
   labelF?: string;
-  /** `id` de la Classe (`ClassData.id`) — réf d'entité, ≠ libellé. */
-  class: string;
+  /** Classe (`ClassData.id`). */
+  class: { id: string };
   /** Ids de `groups.json` accordés au titulaire de cette carrière (`groupesDe`), en plus de ceux de
    *  sa Classe. Absent = la carrière n'ouvre aucun Groupe d'appartenance. */
   grantGroups?: string[];
@@ -811,8 +815,8 @@ export interface CareerLevelData {
   label: string;
   /** Forme féminine d'AFFICHAGE du niveau (MAISON, cf. `CareerData.labelF`) ; absent = épicène. */
   labelF?: string;
-  /** `id` de la Carrière (`CareerData.id`) — réf d'entité, ≠ libellé. */
-  career: string;
+  /** Carrière (`CareerData.id`). */
+  career: { id: string };
   level: number;
   /** Compétences/talents d'emplacement (`AdvancementRef[]` : réf / `choix` / `{pick}`) — lus via
    *  `advancementLabel` (slotsOfLevel) ou structure. */
@@ -3189,8 +3193,9 @@ export function findCareerById(id: string | undefined): CareerData | undefined {
  * n'identifie rien seul → composite carrière + niveau.
  */
 export function entryKey(e: Record<string, unknown>): PlayerText {
-  if (typeof e.career === 'string' && typeof e.level === 'number')
-    return dataLabel(`${findCareerById(e.career)?.label ?? e.career} · N${e.level} ${e.label ?? ''}`.trim());
+  const carriere = estObjet(e.career) ? e.career.id : undefined;
+  if (typeof carriere === 'string' && typeof e.level === 'number')
+    return dataLabel(`${findCareerById(carriere)?.label ?? carriere} · N${e.level} ${e.label ?? ''}`.trim());
   return dataLabel(String(e.label ?? e.id ?? ''));
 }
 /** Choix d'AFFICHAGE masculin/féminin (source unique) : `labelF` si sexe F et disponible, sinon
@@ -3213,7 +3218,7 @@ export function findClassById(id: string | undefined): ClassData | undefined {
 /** Libellé de la Classe `id`, ou son absence nommée — SOURCE UNIQUE du libellé de Classe. */
 export const libelleDeClasse = (id: string): PlayerText => libelleOuAbsence(findClassById(id), 'classe', id);
 export function levelsForCareer(careerId: string): CareerLevelData[] {
-  return careerLevels.filter((c) => c.career === careerId).sort((a, b) => a.level - b.level);
+  return careerLevels.filter((c) => c.career.id === careerId).sort((a, b) => a.level - b.level);
 }
 export function firstLevel(careerId: string): CareerLevelData | undefined {
   return levelsForCareer(careerId)[0];

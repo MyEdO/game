@@ -4,7 +4,7 @@ import { charKeySchema, statutSchema } from '../grammaire/valeurs';
 import { trappingRefSchema } from '../grammaire/reference';
 import { avancement } from '../grammaire/avancement';
 import { document } from '../grammaire/document';
-import { idDe } from '../grammaire/ref';
+import { ref } from '../grammaire/ref';
 
 export const file = 'careerLevels.json';
 export const famille = 'entite';
@@ -13,8 +13,8 @@ const doc = document(
   'careerLevels',
   famille,
   {
-    /** `id` de la Carrière (`CareerData.id`). */
-    career: idDe('career'),
+    /** Carrière (`CareerData.id`). */
+    career: ref('career'),
     level: z.number(),
     skills: z.array(avancement('skill')),
     talents: z.array(avancement('talent')),

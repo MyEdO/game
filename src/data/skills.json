@@ -316,6 +316,78 @@
           "page": 35,
           "note": "ADE II 02 l.884"
         }
+      },
+      {
+        "id": "plaidoirie",
+        "label": "Plaidoirie",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 59
+        },
+        "pool": false
+      },
+      {
+        "id": "anecdotes-militaires",
+        "label": "Anecdotes militaires",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 62
+        },
+        "pool": false
+      },
+      {
+        "id": "urbain",
+        "label": "Urbain",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 102
+        },
+        "pool": false
+      },
+      {
+        "id": "seduction",
+        "label": "Séduction",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 285
+        },
+        "pool": false
+      },
+      {
+        "id": "grimaces-mimes",
+        "label": "Grimaces & mimes",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 321
+        },
+        "pool": false
+      },
+      {
+        "id": "fanfaron",
+        "label": "Fanfaron",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 435
+        },
+        "pool": false
+      },
+      {
+        "id": "gazouillis",
+        "label": "Gazouillis",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 458
+        },
+        "pool": false
+      },
+      {
+        "id": "ceremonie",
+        "label": "Cérémonie",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 470
+        },
+        "pool": false
       }
     ],
     "desc": "Cette Compétence vous permet de ravir les foules par la parole, peut-être en chantant, en jouant la comédie ou en faisant quelques blagues. Une utilisation réussie de la Compétence Divertissement signifie que vous avez assez amusé les spectateurs alentour pour qu'ils vous écoutent ; le DR indique à quel point vous avez réussi.\n\nEn combat, il est peu probable que Divertissement soit d'une grande utilité, bien que vous puissiez trouver une façon intéressante d'utiliser Divertissement (Interprétation) pour troubler ou leurrer vos adversaires.",
@@ -376,6 +448,15 @@
           "book": "mer-des-griffes",
           "page": 152,
           "note": "MDG 16 l.401"
+        },
+        "pool": false
+      },
+      {
+        "id": "rats",
+        "label": "Rats",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 398
         },
         "pool": false
       }
@@ -889,6 +970,24 @@
           "page": 10,
           "note": "AA 02 l.169"
         }
+      },
+      {
+        "id": "reliure",
+        "label": "Reliure",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 94
+        },
+        "pool": false
+      },
+      {
+        "id": "enluminure",
+        "label": "Enluminure",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 94
+        },
+        "pool": false
       }
     ],
     "desc": "Beaucoup de gens au Reikland embrassent une profession ; même les aventuriers ont souvent une Carrière plus fiable ou plus respectable sur laquelle compter entre deux épisodes palpitants.\n\nLa Compétence Métier représente votre capacité à créer quelque chose ou à fournir un service, ainsi que votre connaissance du savoir essentiel entourant votre profession.\n\nPosséder la Compétence est suffisant pour effectuer automatiquement les tâches associées à votre profession, en partant du principe que vous possédez les ressources et des outils adaptés. Vous avez besoin d'effectuer un Test de Métier uniquement si vous cherchez à créer quelque chose rapidement, que les conditions sont défavorables ou que vous cherchez à inventer ou créer un objet de grande qualité.\n\nLes Tests de Métier de ce type sont souvent des Tests étendus, dont le DR et le temps nécessaires dépendent de la portée ou de l'ampleur de ce qui est produit ; un repas rapide avec Métier (Cuisinier) pour impressionner un seigneur local prendra bien moins de temps que la construction d'un navire de guerre avec Métier (Charpentier de marine).\n\nVous pouvez aussi effectuer un Test de Métier comme une Compétence Savoir pour déterminer une information importante concernant la profession en question. Dans de telles circonstances, le MJ peut préférer utiliser l'Int plutôt que la Dex comme Caractéristique de base, bien que cela soit souvent ignoré pour simplifier.\n\nBien que beaucoup de Compétences Métier aient peu d'utilité en combat, il y a autant de Compétences Métier que de professions, et certaines peuvent être utilisées en fonction des circonstances. Par exemple, réussir un Test de Métier (Apothicaire) peut être utile si vous combattez dans une échoppe d'Apothicaire, car vous identifiez des substances âcres à jeter sur vos ennemis.\n\nLa Compétence Métier est aussi utilisée pour effectuer une Activité Artisanat (voir page 196).",
@@ -940,6 +1039,24 @@
       {
         "id": "violon",
         "label": "Violon"
+      },
+      {
+        "id": "flute",
+        "label": "Flûte",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 321
+        },
+        "pool": false
+      },
+      {
+        "id": "tambourin",
+        "label": "Tambourin",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 321
+        },
+        "pool": false
       }
     ],
     "desc": "Il s'agit de votre capacité à jouer d'un instrument de musique, assez bien, nous l'espérons, pour impressionner les autres. Un Test de Musique réussi vous permet de divertir les personnes suffisamment proches pour vous voir et vous entendre ; le DR indique la qualité du morceau joué.",
@@ -1149,6 +1266,24 @@
           "page": 18,
           "note": "AA 02 l.469"
         }
+      },
+      {
+        "id": "victimisation",
+        "label": "Victimisation",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 343
+        },
+        "pool": false
+      },
+      {
+        "id": "danse-tribale",
+        "label": "Danse tribale",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 441
+        },
+        "pool": false
       }
     ],
     "desc": "Vous avez appris un art physiquement exigeant, probablement pour gagner votre vie, peut-être en tant que saltimbanque ou membre d'un carnaval itinérant. Une utilisation réussie de la Compétence Représentation vous permet de divertir tous les spectateurs suffisamment proches pour vous voir et vous entendre ; le DR indique à quel point vous avez réussi.\n\nCertaines spécialisations physiques de Représentation peuvent vous donner un Avantage au combat. Avec l'accord de votre MJ, Représentation (Acrobaties) peut être utilisée à la place d'Esquive. D'autres Compétences Représentation peuvent être directement utilisées comme arme si vous possédez les équipements appropriés, comme avec Représentation (Cracheur de feu) !",
@@ -1566,6 +1701,60 @@
           "page": 135,
           "note": "LDB 10 l.239"
         }
+      },
+      {
+        "id": "ranald",
+        "label": "Ranald",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 116
+        },
+        "pool": false
+      },
+      {
+        "id": "rivieres",
+        "label": "Rivières",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 171
+        },
+        "pool": false
+      },
+      {
+        "id": "chemins",
+        "label": "Chemins",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 171
+        },
+        "pool": false
+      },
+      {
+        "id": "maladies",
+        "label": "Maladies",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 383
+        },
+        "pool": false
+      },
+      {
+        "id": "magie-peaux-verte",
+        "label": "Magie peaux-verte",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 450
+        },
+        "pool": false
+      },
+      {
+        "id": "siege",
+        "label": "Siège",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 468
+        },
+        "pool": false
       }
     ],
     "desc": "Posséder une Compétence Savoir signifie que vous avez officiellement étudié, ou avez appris d'une façon ou d'une autre, une branche de connaissances avancées. Vous possédez des données approfondies dans une spécialisation et n'avez donc pas besoin d'effectuer de Test pour que le MJ vous donne les éléments d'information utiles. Si vous recherchez des informations spécifiques moins connues, vous aurez besoin d'effectuer un Test de Savoir, modifié selon la nature obscure de l'information, où les DR indiqueront de combien de détails vous vous souvenez.\n\nEn combat, un Test de Savoir réussi peut éventuellement vous accorder +1 Avantage (avec l'accord de votre MJ). Par exemple, Savoir (Géologie) peut vous donner un Avantage si vous combattez dans une caverne, ou Savoir (Ingénierie) peut vous aider si vous combattez un ennemi armé d'un appareil mécanique complexe. Vous pouvez continuer à renforcer votre Avantage lors des tours ultérieurs, à condition que les circonstances le permettent (déterminé par le MJ) et que vous ne soyez pas interrompu ; de cette façon, vous pouvez gagner un maximum d'Avantages, égal à votre Bonus d'Intelligence.",
@@ -1699,6 +1888,15 @@
           "book": "ennemi-dans-l-ombre",
           "page": 143,
           "note": "EDO 10 l.736"
+        },
+        "pool": false
+      },
+      {
+        "id": "rebouteux",
+        "label": "Rebouteux",
+        "source": {
+          "book": "guide-frenchy",
+          "page": 139
         },
         "pool": false
       }

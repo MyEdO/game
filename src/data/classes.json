@@ -60,6 +60,9 @@
         "id": "vetements"
       }
     ],
+    "remplace": {
+      "id": "riverains"
+    },
     "desc": "La Classe Côtier est une nouvelle Classe à utiliser dans **Warhammer Fantasy le Jeu de Rôle**, qui représente les Carrières suivies par les gens vivant près des littoraux du Vieux Monde. La Classe Côtier et celle des Riverains ont beaucoup en commun et certaines Carrières appartiennent aux deux Classes, par exemple Nautonier, Marin et Naufrageur.",
     "source": {
       "book": "mer-des-griffes",

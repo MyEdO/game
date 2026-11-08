@@ -57,7 +57,7 @@ export function computeObtainability(root: string): ObtainabilityResult {
     }
   };
   for (const sp of species) walkAdvancement(sp.talents, `espece:${sp.id}`);
-  for (const cl of careerLevels) walkAdvancement(cl.talents, `carriere:${cl.career}#${cl.level}`);
+  for (const cl of careerLevels) walkAdvancement(cl.talents, `carriere:${cl.career.id}#${cl.level}`);
   for (const cr of creatures) for (const t of cr.talents ?? []) addTalentSource(t.id, `creature:${cr.id}`);
 
   for (const m of mutations) walkNode(m, (n) => { if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `mutation:${m.id}`); });

@@ -84,7 +84,7 @@ const activiteDeMecenat = (): ActivityDef | undefined => ACTIVITIES.find((a) => 
 /** Classe du héros, `id` STABLE (`ClassData.id`) — les événements visent une Classe par id
  *  (`revenueClasses`/`revenueBlockedClasses`, eux aussi en id). Carrière → id de classe. */
 export function heroClass(h: Combatant): string {
-  return findCareerById(h.career ?? '')?.class ?? '';
+  return findCareerById(h.career ?? '')?.class.id ?? '';
 }
 
 /** Libellé de l'Événement d'un héros — appelé sous une garde `fx` (le dé et `fx` sont écrits ENSEMBLE

@@ -365,16 +365,16 @@ function MediaSelectDemo() {
 /** Picker de référence multilangue-safe : le LIBELLÉ s'affiche, l'`id` est stocké. Deux des quatre
  *  modes, tous deux sur des configs RÉELLES de `REF_FIELD` : `single` (dataset) et `vocab` (champ). */
 function RefFieldDemo() {
-  const [classe, setClasse] = useState<unknown>(undefined);
+  const [caracDeCompetence, setCaracDeCompetence] = useState<unknown>(undefined);
   const [carac, setCarac] = useState<unknown>(undefined);
-  const cfgClasse = refFieldCfg('careers', 'class');
+  const cfgCaracDeCompetence = refFieldCfg('skills', 'characteristic');
   const cfgCarac = refFieldCfg('species', 'refChar');
-  if (!cfgClasse || !cfgCarac) return <p className="hint">Config de champ-réf introuvable.</p>;
+  if (!cfgCaracDeCompetence || !cfgCarac) return <p className="hint">Config de champ-réf introuvable.</p>;
   return (
     <Stack>
-      <RefField cfg={cfgClasse} fieldKey="class" label="Classe de la carrière" value={classe} onChange={setClasse} nullable />
+      <RefField cfg={cfgCaracDeCompetence} fieldKey="characteristic" label="Caractéristique de la compétence" value={caracDeCompetence} onChange={setCaracDeCompetence} nullable />
       <RefField cfg={cfgCarac} fieldKey="refChar" label="Caractéristique de référence" value={carac} onChange={setCarac} nullable />
-      <p className="hint">Stocké : {JSON.stringify({ class: classe, refChar: carac })}</p>
+      <p className="hint">Stocké : {JSON.stringify({ characteristic: caracDeCompetence, refChar: carac })}</p>
     </Stack>
   );
 }

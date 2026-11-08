@@ -282,9 +282,9 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
     targets.push({ career, level: l.level, label: l.label, cost: v.cost, ok: v.ok, reason: v.reason, refus: refusDeChangerDeCarriere(s, hero, career, l.level, completed) });
   }
 
-  const curClass = findCareerById(career)?.class;
+  const curClass = findCareerById(career)?.class.id;
   const changeCostFor = (careerId: string) =>
-    changeCost + (findCareerById(careerId)?.class === curClass ? 0 : 100); // LDB 07 l.144
+    changeCost + (findCareerById(careerId)?.class.id === curClass ? 0 : 100); // LDB 07 l.144
 
   return {
     xp,

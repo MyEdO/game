@@ -889,7 +889,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               .filter((c) => c.id !== v.career)
               .map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.label} ({libelleDeClasse(c.class)}) · {v.changeCostFor(c.id)} PX
+                  {c.label} ({libelleDeClasse(c.class.id)}) · {v.changeCostFor(c.id)} PX
                 </option>
               ))}
           </select>

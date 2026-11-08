@@ -171,7 +171,7 @@ function pageDeLEspece(d: CreatorDraft): RubriqueDeCreation[] {
 function pageDeLaCarriere(d: CreatorDraft): RubriqueDeCreation[] {
   const offertes = carrieresOffertes(d);
   const carriere = offertes.find((c) => c.id === d.careerId);
-  const classe = carriere?.class;
+  const classe = carriere?.class.id;
   const tirees = [...new Set(d.careerRolls.flatMap((r) => r.ids))];
   const relance = careerXpDuProchainJet(d);
   return [
@@ -183,10 +183,10 @@ function pageDeLaCarriere(d: CreatorDraft): RubriqueDeCreation[] {
         ]
       : [gesteDe('tirage', t('crea.vue.tirerCarriere', { px: XP_CAREER_FIRST }), geste('tirerLaCarriere'))]),
     choix('classe', t('crea.vue.classe'), classes.flatMap((cl) => {
-      const premiere = offertes.find((c) => c.class === cl.id);
+      const premiere = offertes.find((c) => c.class.id === cl.id);
       return premiere ? [option(libelleDeClasse(cl.id), geste('carriere', cl.id === classe ? d.careerId : premiere.id), cl.id === classe)] : [];
     })),
-    ...(classe ? [choix('carriere', t('crea.vue.carriere'), offertes.filter((c) => c.class === classe).map((c) => option(libelleDeCarriere(d, c.id), geste('carriere', c.id), c.id === d.careerId)))] : []),
+    ...(classe ? [choix('carriere', t('crea.vue.carriere'), offertes.filter((c) => c.class.id === classe).map((c) => option(libelleDeCarriere(d, c.id), geste('carriere', c.id), c.id === d.careerId)))] : []),
     gesteDe('restrictions', t('crea.vue.restrictions'), geste('restrictions', !d.ignoreRestrictions), null, d.ignoreRestrictions),
     ...(coastalSwapAvailable(d) ? [gesteDe('cotiers', t('crea.vue.cotiers'), geste('cotiers', !d.coastalSwap), d.careerRolls.length ? t('crea.vue.cotiersAvantLeJet') : null, d.coastalSwap)] : []),
     ...(carriere ? [valeur('carriereChoisie', libelleDeCarriere(d, carriere.id), null, findCareerById(carriere.id)?.desc ?? null)] : []),
