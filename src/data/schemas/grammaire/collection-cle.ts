@@ -20,13 +20,16 @@
  * Une collection n'est un ESPACE DE NOMS que si sa marque porte `espace` : une clé d'unicité seule
  * (`members`, `stations`, `layers`, `walls` de `defs-scenes/scene.ts`) n'en ouvre aucun, et une clé
  * d'élément qui est une feuille `idDe` (une RÉFÉRENCE) n'en ouvre jamais.
+ *
+ * Une liste à clé SANS `espace` est le catalogue d'une PORTÉE LOCALE (#2968 P-local) quand l'objet qui la
+ * porte l'ouvre (`ouvrirPortees`) : les références `ref(portee)` de son arbre y résolvent.
  */
 import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
 import { estObjet } from '../../../lib/objet.mjs';
 import { coDescendre, defDe, descendre, enfantsDe, ouverts, pasDeDonnee, type DecisionDeVisite, type PointDeDonnee } from './descente';
 import { baseDe, champsDiscriminants, cleDesLibelles, cleDesSpecs, cleDuVocabulaire, cleNichee, estPrefixeDeSuite, idsDeCollection, libellesDeCollection, lireCleDEspace, pasDeLaSuite, suiteAvecPas, type CleLue, type FiltreDEspace } from './cle-d-espace';
-import { estFeuilleDId } from './ref';
+import { estFeuilleDId, jugerRefLocale, porteeDeLaFeuille, type PorteeLocale } from './ref';
 import { LIBELLE_AU_LABEL, SOURCES_DE_SPECS, type SourceDeSpecs } from './sourcesDeSpecs';
 
 /** Clé d'un élément : un CHAMP de l'élément, une clé COMPOSÉE nommée (`walls` : `x,y,side,z`), ou
@@ -221,6 +224,53 @@ export function listeCle<E extends z.ZodType>(
 
 /** Marque de collection portée par un nœud, `undefined` sinon. */
 export const collectionDe = (noeud: unknown): MarqueDeCollection | undefined => (estObjet(noeud) ? COLLECTIONS.get(noeud) : undefined);
+
+/** Les objets construits par `ouvrirPortees`, avec les portées qu'ils ouvrent. */
+const OUVREURS = new WeakMap<object, readonly PorteeLocale[]>();
+
+/** Les portées locales qu'ouvre un objet construit par `ouvrirPortees`, aucune pour tout autre nœud. */
+export const porteesOuvertes = (noeud: unknown): readonly PorteeLocale[] => (estObjet(noeud) ? (OUVREURS.get(noeud) ?? []) : []);
+
+/**
+ * Ouvre les PORTÉES LOCALES `portees` sur `objet` : chaque référence `ref(portee)` de son arbre est jugée
+ * (`jugerRefLocale`) contre les ids de la collection `portee.collection` de la MÊME valeur. FAIL-FAST à la
+ * CONSTRUCTION : collection absente des champs ou qui n'est pas une liste à clé, collection marquée `espace`
+ * (un id local n'entre dans aucun espace de l'INDEX DES IDS), portée qu'aucune référence de l'arbre ne désigne.
+ */
+export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, portees: readonly PorteeLocale[]): N {
+  const marques = new Map(
+    portees.map((portee) => {
+      const champ = objet.shape[portee.collection];
+      const marque = champ === undefined ? undefined : ouverts([champ]).map(collectionDe).find((m) => m !== undefined);
+      if (marque?.forme !== 'liste')
+        throw new Error(`ouvrirPortees : « ${portee.collection} » n’est aucune liste à clé (\`listeCle\`) des champs de l’objet — la portée des ${portee.catalogue} n’a pas de collection.`);
+      if (marque.espace)
+        throw new Error(`ouvrirPortees : la collection « ${portee.collection} » ouvre un espace de l’INDEX DES IDS — un id local n’entre dans aucun catalogue global.`);
+      return [portee, marque] as const;
+    }),
+  );
+  const designees = new Set<PorteeLocale>();
+  descendre([objet], ({ noeud }) => {
+    const portee = porteeDeLaFeuille(noeud);
+    if (portee !== undefined && marques.has(portee)) designees.add(portee);
+  });
+  for (const portee of portees)
+    if (!designees.has(portee)) throw new Error(`ouvrirPortees : la portée des ${portee.catalogue} (« ${portee.collection} ») n’a aucune référence \`ref\` dans l’arbre de l’objet.`);
+  const ouvreur = objet.superRefine((valeur, ctx) => {
+    if (!estObjet(valeur)) return;
+    const ids = new Map([...marques].map(([portee, marque]) => [portee, new Set(idsDeCollection(marque, valeur[portee.collection]))]));
+    coDescendre(objet, valeur, ({ noeuds, valeur: id, chemin }) => {
+      if (typeof id !== 'string') return;
+      for (const noeud of noeuds) {
+        const portee = porteeDeLaFeuille(noeud);
+        const admis = portee === undefined ? undefined : ids.get(portee);
+        if (portee !== undefined && admis !== undefined) return jugerRefLocale(ctx, chemin, portee, id, admis.has(id));
+      }
+    });
+  });
+  OUVREURS.set(ouvreur, portees);
+  return ouvreur;
+}
 
 /** Collections à clé RETROUVÉES par la descente d'un schéma (`descendre`). */
 export function collectionsRetrouvees(schema: unknown): Set<object> {

@@ -1151,7 +1151,7 @@ const CODEX_SPECS = {
             p.tableId || p.fluxTableId
               ? {
                 title: tr('codex.fiche.tableAssociee'), layout: 'list',
-                rows: [p.tableId, p.fluxTableId].filter((id): id is string => !!id).map((id) => {
+                rows: [p.tableId, p.fluxTableId].flatMap((r) => (r ? [r.id] : [])).map((id) => {
                   const t = d.tables.find((x) => x.id === id);
                   return { t: 'ref', category: 'arcanePhenomena', id, label: t?.label ?? id, show: t?.label ?? id } as CodexRow;
                 }),

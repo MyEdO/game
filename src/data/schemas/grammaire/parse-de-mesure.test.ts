@@ -113,8 +113,8 @@ describe('le mode de mesure est BORNÉ à l’appel de `reperesDuParse`', () => 
 //  - SAUT : une feuille validée au parse normal n'est plus exécutée au parse de mesure (un id ABSENT
 //    de l'espace d'une feuille OUVERTE n'est pas une référence : il n'émet aucun repère, et ne compte pas) ;
 //  - COUVERTURE : un repère rendu vient d'une feuille que la marche instrumentée n'a pas atteinte.
-// Les deux familles de repère y passent : la référence (feuille `idDe`) et le nœud d'op (`emetteursDOp`,
-// `marquerOpAtteinte`), chacune reconnue par `familleDuRepere`.
+// Les deux familles de repère y passent : la référence (feuille `idDe`, objet qui ouvre une portée locale) et le
+// nœud d'op (`emetteursDOp`, `marquerOpAtteinte`), chacune reconnue par `familleDuRepere`.
 // ============================================================================
 
 /** Les nœuds qui émettent le repère d'op : le côté `in` du `gameOp` de CHAQUE famille construite
@@ -190,12 +190,12 @@ function instrumenter(racines: readonly (readonly [string, unknown])[]): { sonde
           }
         }
       }
-      // Repère qu'un PORTEUR émet pour sa clé (`recordDIds`, feuille `repereDuPorteur`) : une `invalid_key`
-      // faite d'un repère de référence qu'aucune feuille n'a déjà émis.
+      // Repère qu'un PORTEUR émet, qu'aucune feuille n'a déjà émis : pour sa clé (`recordDIds`, feuille
+      // `repereDuPorteur`), une `invalid_key` faite d'un repère de référence ; pour une référence de la portée
+      // locale qu'il ouvre (`ouvrirPortees`), le repère lui-même.
       if (sonde.mesure) {
         for (const i of nouvelles) {
-          if (i.code !== 'invalid_key') continue;
-          for (const j of i.issues ?? []) {
+          for (const j of i.code === 'invalid_key' ? (i.issues ?? []) : [i]) {
             if (familleDuRepere(j.params) !== 'reference' || sonde.emis.has(j.params!)) continue;
             sonde.emis.add(j.params!);
             sonde.nbEmis += 1;

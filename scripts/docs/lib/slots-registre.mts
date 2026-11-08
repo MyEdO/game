@@ -5,14 +5,15 @@
 //
 // Le DÉCLARÉ est ce que le PARSE valide : chaque document est parsé par son schéma réel
 // au PARSE DE MESURE (`reperesDuParse`, `src/data/schemas/grammaire/ref.ts`), et chaque case
-// `(porteur, clé)` dont la valeur est validée par `idDe` est un SLOT, avec son type.
+// `(porteur, clé)` dont la valeur est validée par `idDe`, ou par l'objet qui ouvre sa portée locale
+// (`ouvrirPortees`), est un SLOT, avec sa cible.
 //
 // MANDAT et ANGLES MORTS de ce volet : SOURCES UNIQUES `MANDAT_SLOTS` / `ANGLES_MORTS_SLOTS`
 // (`scripts/docs/lib/structures-lexique.mts`) — ils ne se reformulent nulle part.
 import { SCHEMA_DEFS } from '../../../src/data/schemas/_registry.generated';
 import { SCHEMA_DEFS_SCENES } from '../../../src/data/schemas/_registry-scenes.generated';
 import type { SchemaDef } from '../../../src/data/schemas/types';
-import { estFeuilleDId, mesureDuParse, reperesDuParse, type TypeEntite } from '../../../src/data/schemas/grammaire/ref';
+import { estFeuilleDId, mesureDuParse, reperesDuParse, type CibleDeReference } from '../../../src/data/schemas/grammaire/ref';
 import { defDe, descendre, enfantsDe, declarationDEnfants } from '../../../src/data/schemas/grammaire/descente';
 import { OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
 import { nomDeDocument, type OccurrenceDeReference, type ReferencesParPorteur } from './structures-scan.mjs';
@@ -28,14 +29,14 @@ export function defsDeDocument(): SchemaDef[] {
 }
 
 /**
- * Un SLOT : une case `(porteur, clé)` d'un document du scan dont la valeur est validée par `idDe` au
- * parse de mesure, avec son type. `path` : son path de DONNÉE, indices normalisés en `[]` ; une
+ * Un SLOT : une case `(porteur, clé)` d'un document du scan dont la valeur est validée au parse de
+ * mesure, par `idDe` ou par l'objet qui ouvre sa portée locale, avec sa cible. `path` : son path de DONNÉE, indices normalisés en `[]` ; une
  * référence portée par une CLÉ de record s'y écrit `{}` (la case est alors `(record, clé)`).
  */
 export type Slot = {
   readonly dataset: string;
   readonly path: string;
-  readonly type: TypeEntite;
+  readonly type: CibleDeReference;
   readonly porteur: object;
   readonly cle: string | number;
   readonly parCle: boolean;
@@ -199,7 +200,7 @@ export function occurrencesTouchees(scan: ScanDesReferences, slots: readonly Slo
 }
 
 /** Une ligne du registre des slots (doc §6.1) : un (document, path, type), ses valeurs et les couples qu'elles touchent. */
-export type LigneDeSlots = { dataset: string; path: string; type: TypeEntite; valeurs: number; couples: string[] };
+export type LigneDeSlots = { dataset: string; path: string; type: CibleDeReference; valeurs: number; couples: string[] };
 
 /** Le REGISTRE des slots, une ligne par (document, path de slot, type), triée. */
 export function registreDesSlots(scan: ScanDesReferences, slots: readonly Slot[]): LigneDeSlots[] {

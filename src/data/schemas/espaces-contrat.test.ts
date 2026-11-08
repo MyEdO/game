@@ -4,7 +4,8 @@
  *
  * La construction d'un schéma ne lit plus la table (`grammaire/ref.ts`, `idsVivants.ts`, en-tête) : ce qui
  * s'y attrapait s'attrape ici — chaque espace DÉSIGNÉ (`idDe`, `porteLeMarqueur`) a sa cible, chaque
- * document `entite`/`record` a son espace de racine, chaque source de spécialisations ses espaces.
+ * document `entite`/`record` a son espace de racine, chaque source de spécialisations ses espaces, chaque
+ * référence LOCALE l'objet qui ouvre sa portée.
  */
 import { describe, it, expect } from 'vitest';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
@@ -18,10 +19,11 @@ import { AMORCAGE_EN_DEUX_TEMPS, indexChargeable, TABLE_VIDE } from '../../../sc
 import { z } from 'zod';
 import { IDS_PAR_ESPACE } from './_ids.generated';
 import { SCHEMA_DEFS } from './_registry.generated';
-import './_registry-scenes.generated';
+import { SCHEMA_DEFS_SCENES } from './_registry-scenes.generated';
 import '../index';
-import { dansLaSousListe, espacesDesignes, idDe, mesureDuParse, refOuSpec, TYPES } from './grammaire/ref';
-import { collectionsDuDocument, listeCle } from './grammaire/collection-cle';
+import { dansLaSousListe, espacesDesignes, idDe, mesureDuParse, porteeDeLaFeuille, refOuSpec, TYPES } from './grammaire/ref';
+import { collectionsDuDocument, listeCle, porteesOuvertes } from './grammaire/collection-cle';
+import { descendre } from './grammaire/descente';
 import { HORS_DE_LA_GRAPHIE, baseDe, cleDeLaLecture, cleFiltree, cleDesLibelles, cleDesSpecs, estPrefixeDeSuite, lireCleDEspace, pasDeLaSuite, porteLeChampMarqueur, suiteAvecPas, vocabulaireDuFichier, type PasDeSuite, type SousListeMarquee } from './grammaire/cle-d-espace';
 import { VOCABULAIRES } from './grammaire/vocabulaires';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from './grammaire/sourcesDeSpecs';
@@ -68,6 +70,22 @@ describe('INDEX DES IDS — chaque cible a son espace', () => {
     expect(designes).toContain('props.json?volume');
     expect(designes).toContain('trappings.json?service');
     expect(designes.filter((c) => !(c in IDS_PAR_ESPACE))).toEqual([]);
+  });
+
+  it('chaque référence LOCALE (`ref(portee)`) des documents est sous un objet qui OUVRE sa portée (`ouvrirPortees`)', () => {
+    const locales = new Set<object>();
+    const jugees = new Set<object>();
+    descendre([...SCHEMA_DEFS, ...SCHEMA_DEFS_SCENES].map((d) => d.schema), ({ noeud }) => {
+      if (porteeDeLaFeuille(noeud) !== undefined) locales.add(noeud);
+      const ouvertes = porteesOuvertes(noeud);
+      if (ouvertes.length)
+        descendre([noeud], ({ noeud: n }) => {
+          const portee = porteeDeLaFeuille(n);
+          if (portee !== undefined && ouvertes.includes(portee)) jugees.add(n);
+        });
+    });
+    expect(locales.size, 'aucune référence locale : la preuve serait vacante').toBeGreaterThan(0);
+    expect([...locales].filter((n) => !jugees.has(n)).map((n) => porteeDeLaFeuille(n)?.collection)).toEqual([]);
   });
 
   it('chaque source de spécialisations a son univers et son pool à l’index, le pool ⊆ l’univers', () => {
