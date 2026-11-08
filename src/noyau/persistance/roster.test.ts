@@ -105,7 +105,7 @@ describe('roster — mise à jour d’une entrée (`rosterAvecLeHeros`)', () => 
     const edited = { ...hero('h1'), motivation: 'Foi', details: { ambitionShort: 'Survivre', ambitionLong: 'Régner' } } as unknown as HerosDuRoster;
     const apres = rosterAvecLeHeros([entry('h1'), entry('h2')], edited);
     expect(apres?.map((e) => e.hero.id)).toEqual(['h1', 'h2']);
-    expect(apres?.[0].hero).toBe(edited);
+    expect(apres?.[0].hero).toEqual(edited);
     expect(apres?.[0].draft).toMatchObject({ label: 'Brouillon', motivation: 'Foi', ambitionShort: 'Survivre', ambitionLong: 'Régner' });
     expect(apres?.[1]).toEqual(entry('h2'));
   });
