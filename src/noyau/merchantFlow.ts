@@ -866,20 +866,33 @@ function bestDetector(party: Combatant[]): { actor: Combatant; value: number; su
   return best ? { actor: best.actor, value: best.value, support: best.support } : null;
 }
 
-/** Meneur de l'Évaluation (Soutien LDB 12) ou de la Détection (`bestDetector`) ; `null` = personne qui puisse tenter. */
-function appraiseLeader(party: Combatant[], mode: 'evaluate' | 'detect'): { actor: Combatant; value: number; support: SupportDetail } | null {
-  return mode === 'detect' ? bestDetector(party) : partyAssisted(party, APPRAISE_SKILL.evaluate);
+/** Les héros sans tentative de la Détection de `cible`. LDB 10 l.336 */
+const sansDetection = (party: Combatant[], cible: CibleDeDetection): Combatant[] => party.filter((h) => !cible.detectTriedBy?.includes(h.id));
+
+/** Meneur de l'Évaluation (Soutien LDB 12) ou de la Détection de `cible` (`bestDetector`, parmi ceux qui ne l'ont pas
+ *  tentée) ; `null` = personne qui puisse tenter. */
+function appraiseLeader(party: Combatant[], mode: 'evaluate' | 'detect', cible: CibleDeDetection = {}): { actor: Combatant; value: number; support: SupportDetail } | null {
+  return mode === 'detect' ? bestDetector(sansDetection(party, cible)) : partyAssisted(party, APPRAISE_SKILL.evaluate);
 }
+
+/** Ce que la Détection lit de sa cible (objet porté ou ligne de butin) : qui l'a déjà tentée. */
+interface CibleDeDetection { label?: string; detectTriedBy?: readonly string[] }
 
 /** Détection : le refus nomme le Talent, pas la Compétence — LDB 10 l.336. */
 const appraiseNobody = (mode: 'evaluate' | 'detect'): string => refusPersonneNePeutTenter(
   mode === 'detect' ? { action: refLabel('talents', { id: DETECT_TALENT }) } : { skill: APPRAISE_SKILL[mode].skill },
 );
 
-/** Refus NOMMÉ d'une Évaluation/Détection que personne ne peut tenter (LDB 09 l.30) ; `null` sinon. Le geste
- *  de l'UI en dérive. */
-export function appraiseRefus(party: Combatant[], mode: 'evaluate' | 'detect' = 'evaluate'): string | null {
-  return appraiseLeader(party, mode) ? null : appraiseNobody(mode);
+/** Refus NOMMÉ d'une Évaluation que personne ne peut tenter (LDB 09 l.30) ; `null` sinon. Le geste de l'UI en dérive. */
+export function appraiseRefus(party: Combatant[]): string | null {
+  return appraiseLeader(party, 'evaluate') ? null : appraiseNobody('evaluate');
+}
+
+/** Refus de la Détection d'artefact de `cible` : personne n'a le Talent, ou chacun de ses porteurs l'a déjà tentée
+ *  sur elle ; `null` sinon. LDB 10 l.336 */
+export function refusDeDetection(party: Combatant[], cible: CibleDeDetection & { label: string }): string | null {
+  if (!bestDetector(party)) return appraiseNobody('detect');
+  return appraiseLeader(party, 'detect', cible) ? null : t('mf.detectDejaTentee', { label: cible.label });
 }
 
 /** Démarreur PARTAGÉ Évaluation/Détection — sur un objet d'inventaire (`itemUid`) OU une ligne de
@@ -887,9 +900,9 @@ export function appraiseRefus(party: Combatant[], mode: 'evaluate' | 'detect' = 
 function openAppraise(
   get: Get, set: Set,
   target: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; uid: IdDeLigneDeButin } },
-  itemName: string, mode: 'evaluate' | 'detect', trappingId?: string,
+  itemName: string, mode: 'evaluate' | 'detect', trappingId?: string, cible: CibleDeDetection = {},
 ): void {
-  const best = appraiseLeader(get().party, mode);
+  const best = appraiseLeader(get().party, mode, cible);
   if (!best) { get().ecrireAuJournal(appraiseNobody(mode)); return; }
   const t = trappingId ? findTrappingById(trappingId) : undefined;
   const ligne = rollLine({ actor: best.actor, test: APPRAISE_SKILL[mode], difficulty: 'intermediaire', valeur: best.value, ...(best.support.bonus > 0 ? { soutien: best.support } : {}) });
@@ -912,9 +925,9 @@ export function evaluerLObjet(get: Get, set: Set, uid: string, mode: 'evaluate' 
   if (refuseSi(get, set, refusDInventaire)) return;
   if (refuseSi(get, set, (s) => refusDuHerosPorteur(s, uid))) return;
   const item = get().party.find((h) => h.id === porteurDeLObjet(get(), uid))!.items!.find((i) => i.uid === uid)!;
-  if (mode === 'detect' && item.detectTried) return void refuserGeste(get, set, t('mf.detectDejaTentee', { label: item.label })); // LDB 10 l.336
+  if (mode === 'detect' && refuseSi(get, set, (s) => refusDeDetection(s.party, item))) return;
   if (mode === 'evaluate' && item.appraiseTriedDay === gameDay(get())) return void refuserGeste(get, set, t('mf.appraiseSameDay', { label: item.label }));
-  openAppraise(get, set, { itemUid: uid }, item.label, mode, item.trappingId);
+  openAppraise(get, set, { itemUid: uid }, item.label, mode, item.trappingId, item);
 }
 
 /** La ligne `uid` du butin `scope` encore en fenêtre. */
@@ -924,14 +937,16 @@ const ligneDuButin = (s: Jeu, scope: 'loot' | 'victory', uid: IdDeLigneDeButin) 
  *  de choisir qui l'emporte (demande utilisateur). */
 export function evaluerLeButin(get: Get, set: Set, scope: 'loot' | 'victory', uid: IdDeLigneDeButin, mode: 'evaluate' | 'detect' = 'evaluate'): void {
   const line = ligneDuButin(get(), scope, uid); if (!line) return;
-  if (mode === 'detect' && line.effect.detectTried) return;
-  if (mode === 'evaluate' && line.effect.appraiseTriedDay === gameDay(get())) return;
-  openAppraise(get, set, { gear: { scope, uid } }, line.label, mode, line.effect.trappingId);
+  if (mode === 'detect' && refuseSi(get, set, (s) => refusDeDetection(s.party, { label: line.label, detectTriedBy: line.effect.detectTriedBy }))) return;
+  if (mode === 'evaluate' && line.effect.appraiseTriedDay === gameDay(get())) return void refuserGeste(get, set, t('mf.appraiseSameDay', { label: line.label }));
+  openAppraise(get, set, { gear: { scope, uid } }, line.label, mode, line.effect.trappingId, line.effect);
 }
 
 /** Patch la cible de l'Évaluation/Détection — objet porté (party) ou ligne de butin en fenêtre. */
 function patchAppraiseTarget(get: Get, set: Set, pa: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; uid: IdDeLigneDeButin } },
-  patch: { identified?: boolean; magicKnown?: boolean; detectTried?: boolean; appraiseTriedDay?: number }): void {
+  { detecteur, ...patch }: { identified?: boolean; magicKnown?: boolean; detecteur?: string; appraiseTriedDay?: number }): void {
+  /** La Détection tentée par `detecteur` s'ajoute à la liste de sa cible. LDB 10 l.336 */
+  const avecDetecteur = (cible: { detectTriedBy?: string[] }) => (detecteur ? { detectTriedBy: [...(cible.detectTriedBy ?? []), detecteur] } : {});
   if (pa.gear) {
     const key = pa.gear.scope === 'loot' ? 'pendingLoot' : 'pendingVictory';
     const { uid } = pa.gear;
@@ -940,7 +955,7 @@ function patchAppraiseTarget(get: Get, set: Set, pa: { itemUid?: string; gear?: 
       if (!bucket?.gear?.some((g) => g.uid === uid)) return {};
       const gear = bucket.gear.map((g) => {
         if (g.uid !== uid) return g;
-        const effect = { ...g.effect, ...patch };
+        const effect = { ...g.effect, ...patch, ...avecDetecteur(g.effect) };
         if (patch.identified) delete (effect as { identified?: boolean }).identified; // identifié = champ absent
         return { ...g, magic: g.magic || !!patch.magicKnown, effect };
       });
@@ -954,7 +969,7 @@ function patchAppraiseTarget(get: Get, set: Set, pa: { itemUid?: string; gear?: 
     const clone: Combatant = structuredClone(h);
     const it = clone.items?.find((i) => i.uid === pa.itemUid);
     if (it) {
-      Object.assign(it, patch);
+      Object.assign(it, patch, avecDetecteur(it));
       if (patch.identified) delete it.suspectedQualities; // la vraie révélation dissipe les fausses certitudes
     }
     return clone;
@@ -962,7 +977,7 @@ function patchAppraiseTarget(get: Get, set: Set, pa: { itemUid?: string; gear?: 
 }
 
 /** Acquitte l'Évaluation (révèle `identified` + estimation, LDB 59 l.41) ou la Détection d'artefact
- *  (aura sentie + règles apprises par DR, LDB 10 l.336 ; tentative unique). */
+ *  (LDB 10 l.336). */
 function acquitterLEvaluation(get: Get, set: Set): void {
   const pa = get().pendingAppraise;
   if (!pa) return;
@@ -975,18 +990,18 @@ function acquitterLEvaluation(get: Get, set: Set): void {
     const isMagic = line ? line.magic : !!item && (item.identified === false || !!item.magicKnown);
     const rules = line ? (line.effect.qualities?.length ?? (line.effect.identified === false ? 1 : 0)) : 1;
     if (!pa.success) {
-      patchAppraiseTarget(get, set, pa, { detectTried: true });
+      patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId });
       get().ecrireAuJournal(t('mf.detectNothing', { actor: pa.actorName, item: pa.itemName }));
       return;
     }
     if (!isMagic) {
-      patchAppraiseTarget(get, set, pa, { detectTried: true });
+      patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId });
       get().ecrireAuJournal(t('mf.detectNotMagic', { actor: pa.actorName, item: pa.itemName }));
       return;
     }
     // Succès : aura sentie ; chaque DR apprend une règle → tout révélé quand DR couvre les règles.
     const allKnown = pa.sl >= Math.max(1, rules);
-    patchAppraiseTarget(get, set, pa, { detectTried: true, magicKnown: true, ...(allKnown ? { identified: true } : {}) });
+    patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId, magicKnown: true, ...(allKnown ? { identified: true } : {}) });
     get().ecrireAuJournal(t(allKnown ? 'mf.detectAll' : 'mf.detectPartial', { actor: pa.actorName, item: pa.itemName, dr: pa.sl }));
     return;
   }

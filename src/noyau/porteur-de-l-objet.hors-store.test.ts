@@ -216,10 +216,17 @@ describe('poserLApparence : chaque refus est dit', () => {
 });
 
 describe('evaluerLObjet : chaque refus est dit', () => {
-  it('la Détection déjà tentée sur cet objet (LDB 10 l.336)', () => {
-    banc.setState({ party: [heros('a', { items: [objet({ uid: 'inconnu', label: 'Anneau', identified: false, detectTried: true })] })] });
+  const detecteur = { talentId: 'detection-d-artefact', times: 1 };
+  it('la Détection déjà tentée par chaque détecteur (LDB 10 l.336)', () => {
+    banc.setState({ party: [heros('a', { talents: [detecteur], items: [objet({ uid: 'inconnu', label: 'Anneau', identified: false, detectTriedBy: ['a'] })] })] });
     g().evaluerLObjet('inconnu', 'detect');
     expect([dernier(), g().pendingAppraise]).toEqual([t('mf.detectDejaTentee', { label: 'Anneau' }), null]);
+  });
+
+  it('un second détecteur tente encore l’artefact qu’un premier a sondé (LDB 10 l.336)', () => {
+    banc.setState({ party: [heros('a', { talents: [detecteur], items: [objet({ uid: 'inconnu', label: 'Anneau', identified: false, detectTriedBy: ['a'] })] }), heros('b', { talents: [detecteur] })] });
+    g().evaluerLObjet('inconnu', 'detect');
+    expect(g().pendingAppraise?.actorId).toBe('b');
   });
 });
 

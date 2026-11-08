@@ -1915,36 +1915,45 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     expect(it2.qualities.some((q) => q.id === 'de-plaies-atroces')).toBe(true); // id de qualité runtime
   });
 
-  it('Détection d’artefact (LDB 10) : succès DR≥1 → identifié ; échec → tentative unique consommée', () => {
+  it('Détection d’artefact (LDB 10 l.336) : un échec consomme la tentative de CE détecteur, le refus se dit', () => {
     lootScene();
-    // Le looter reçoit le Talent : le bouton/flux ne s'arme que pour un porteur (Intuition).
     banc.setState({ party: [looter({ talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as Partial<Combatant>)] });
     banc.getState().interagirAvecLEntite('coffre');
-    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid, 'detect');
-    let pa = banc.getState().pendingAppraise!;
-    expect(pa.mode).toBe('detect');
-    expect(pa.skillLabel).toBe('Intuition');
-    // Échec : l'artefact ne se laisse plus sonder (detectTried), rien de révélé.
+    const uid = banc.getState().pendingLoot!.gear[0].uid;
+    banc.getState().evaluerLeButin('loot', uid, 'detect');
+    const pa = banc.getState().pendingAppraise!;
+    expect([pa.mode, pa.skillLabel]).toEqual(['detect', 'Intuition']);
     banc.setState({ pendingAppraise: { ...pa, roll: 95, success: false, sl: -5 } });
     banc.getState().jetValider('appraise');
-    let line = banc.getState().pendingLoot!.gear[0];
-    expect(line.effect.detectTried).toBe(true);
-    expect(line.effect.identified).toBe(false);
-    // Une 2e tentative est refusée (« une seule fois par artefact »).
-    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid, 'detect');
+    const line = banc.getState().pendingLoot!.gear[0];
+    expect([line.effect.detectTriedBy, line.effect.identified]).toEqual([['a'], false]);
+    banc.getState().evaluerLeButin('loot', uid, 'detect');
     expect(banc.getState().pendingAppraise).toBeNull();
-    // On force une nouvelle détection (autre ligne de vie du test) : succès DR 2 ≥ 1 règle → identifié.
-    line.effect.detectTried = false;
-    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid, 'detect');
-    pa = banc.getState().pendingAppraise!;
-    banc.setState({ pendingAppraise: { ...pa, roll: 5, success: true, sl: 2 } });
-    banc.getState().jetValider('appraise');
-    line = banc.getState().pendingLoot!.gear[0];
-    expect(line.effect.magicKnown).toBe(true);
-    expect(line.effect.identified).toBeUndefined(); // tout révélé
+    expect(banc.getState().journal.slice(-1)[0]).toBe(t('mf.detectDejaTentee', { label: line.label }));
   });
 
-  it('Détection sur un objet NON magique : « aucune aura », tentative consommée', () => {
+  it('Détection d’artefact (LDB 10 l.336) : un second détecteur tente le même artefact ; DR≥1 → identifié', () => {
+    lootScene();
+    const talent = { talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as Partial<Combatant>;
+    banc.setState({ party: [looter(talent), looter({ ...talent, id: 'b', label: 'B' } as Partial<Combatant>)] });
+    banc.getState().interagirAvecLEntite('coffre');
+    const uid = banc.getState().pendingLoot!.gear[0].uid;
+    banc.getState().evaluerLeButin('loot', uid, 'detect');
+    const premier = banc.getState().pendingAppraise!;
+    banc.setState({ pendingAppraise: { ...premier, roll: 95, success: false, sl: -5 } });
+    banc.getState().jetValider('appraise');
+    banc.getState().evaluerLeButin('loot', uid, 'detect');
+    const second = banc.getState().pendingAppraise!;
+    expect(second.actorId, 'le détecteur qui n’a pas tenté').not.toBe(premier.actorId);
+    banc.setState({ pendingAppraise: { ...second, roll: 5, success: true, sl: 2 } });
+    banc.getState().jetValider('appraise');
+    const line = banc.getState().pendingLoot!.gear[0];
+    expect(line.effect.magicKnown).toBe(true);
+    expect(line.effect.identified).toBeUndefined(); // tout révélé
+    expect([...line.effect.detectTriedBy!].sort()).toEqual(['a', 'b']);
+  });
+
+  it('Détection sur un objet NON magique : « aucune aura », tentative du détecteur consommée', () => {
     lootScene();
     banc.setState({ party: [looter({ talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as Partial<Combatant>)] });
     applyEffectsLoot(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId: 'dague' }], 'Sac');
@@ -1953,7 +1962,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     banc.setState({ pendingAppraise: { ...pa, roll: 5, success: true, sl: 2 } });
     banc.getState().jetValider('appraise');
     const line = banc.getState().pendingLoot!.gear[0];
-    expect(line.effect.detectTried).toBe(true);
+    expect(line.effect.detectTriedBy).toEqual(['a']);
     expect(line.effect.magicKnown).toBeUndefined();
   });
 

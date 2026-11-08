@@ -17,7 +17,7 @@ import { resolveCarrier, porteurLocalise, type Carrier } from './monde/carrier';
 import { refusDInventaire } from './verrousDeFiche';
 import { refusEmplacementDeMain } from './partyFlow';
 import { refusDeConsommer } from './consumableFlow';
-import { appraiseRefus, gameDay } from './merchantFlow';
+import { appraiseRefus, gameDay, refusDeDetection } from './merchantFlow';
 
 /** Une main du set actif : si elle tient l'objet (son geste la vide alors). */
 export interface MainDuSet extends GesteFermable { tenue: boolean }
@@ -84,6 +84,6 @@ export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' |
     }) } : null,
     utiliser: hero && consommable ? sur('utiliserLObjet', [uid], refusDeConsommer(hero, it)) : null,
     evaluer: inconnu && it.appraiseTriedDay !== gameDay(s) ? sur('evaluerLObjet', [uid], appraiseRefus(s.party)) : null,
-    detecter: inconnu && !it.detectTried ? sur('evaluerLObjet', [uid, 'detect'], appraiseRefus(s.party, 'detect')) : null,
+    detecter: inconnu ? sur('evaluerLObjet', [uid, 'detect'], refusDeDetection(s.party, it)) : null,
   };
 }
