@@ -347,7 +347,7 @@ Son argent : [L'argent des PNJ](#largent-des-pnj-edo).
 
 > « *Helga Langstrasse, le Doktor, a un Statut Argent 5, elle possède donc 5d10 pièces d'argent.* » — `EDO 11 l.46`
 
-La page 51 du Livre de base ouvre « Gagner de l'argent grâce au Statut » (`LDB 08 l.105`, folio 51), et non la Richesse initiale de la création (`LDB 05 l.574-583`, folio 37) : le jet est un Test, puis la somme du Statut.
+La page 51 du Livre de base ouvre « Gagner de l'argent grâce au Statut » (`LDB 08 l.105`, folio 51), et non la Richesse initiale de la création (`LDB 05 l.574-583`, folio 37). Ce passage joue un Test avant la somme du Statut :
 
 > « Lorsque vous Gagnez de l'argent, effectuez un Test **Spectaculaire Accessible (+20)** (voir page 152) contre votre Compétence de Carrière vous permettant de Gagner de l'argent (la Compétence indiquée en italique du premier Niveau de Carrière). Sur un succès, vous gagnez l'argent indiqué dans le tableau ci-dessous. Sur un Échec, vous ne gagnez que la moitié de la somme. Sur un Échec Stupéfiant (-6), vous avez passé une très mauvaise semaine et vous n'avez rien gagné (ou alors l'argent vous a été volé, ou vous avez vécu une mésaventure similaire). » — `LDB 08 l.110`
 
@@ -359,9 +359,9 @@ La page 51 du Livre de base ouvre « Gagner de l'argent grâce au Statut » (`LD
 
 — `LDB 08 l.114-118`
 
-Jeu sans MJ (règle 7) : le PNJ à Statut est le PNJ de carrière ([Créez le vôtre](#créez-le-vôtre--pnj-de-carrière-edo)), dont le Statut est celui du Niveau atteint. Son jet se tire à son apparition, sur la graine de son id, et l'argent va dans sa Bourse. L'exemple (`EDO 11 l.46`) donne la somme d'un succès.
+Arbitrage utilisateur du 2026-11-08, verbatim au ticket #3712 : le PNJ reçoit les dés seuls du tableau à son Statut, comme l'exemple (`EDO 11 l.46`) ; le Test Spectaculaire Accessible de `LDB 08 l.110` (la moitié sur un Échec, rien sur un Échec Stupéfiant) est écarté.
 
-La Compétence en italique n'est pas en donnée : même dette que [Revenus](activites.md#revenus).
+Jeu sans MJ (règle 7) : le PNJ à Statut est le PNJ de carrière ([Créez le vôtre](#créez-le-vôtre--pnj-de-carrière-edo)), dont le Statut est celui du Niveau atteint. Ses dés se tirent à son apparition, sur la graine de son id, et l'argent va dans sa Bourse.
 
 L'argent qu'une dotation de carrière indique en texte (les « Pistoles d'argent » du Marchand 1, les « 50 pistoles d'argent » du Colporteur 4) ne devient aucun objet : ce PNJ tire sa bourse comme s'il n'en portait pas.
 
@@ -502,7 +502,7 @@ Indices observés dans le bestiaire MDG : Redoutable 1 (Baudroye, Hydre d'os, Sa
 | Mods Taille en combat | `LDB 85 l.357-387` | ✅ |
 | Caractéristiques aléatoires | `LDB 77 l.108` | ✅ implémenté (`randomizeChars`) |
 | PNJ de carrière | `EDO 11 l.17-21` | ✅ implémenté (`porterAuParcours`, arbitrages #773) |
-| L'argent des PNJ | `EDO 11 l.42-44` | ✅ implémenté (`argentDuPnj`, `gagnerDeLArgent`) |
+| L'argent des PNJ | `EDO 11 l.42-46` | ✅ implémenté (`argentDuPnj`, `statusIncome`), arbitrage du 2026-11-08 |
 | Index Traits — déclenchement | `LDB 85 l.83-455` | ✅ tableau de synthèse |
 
 ### Catalogue créatures — flagué
@@ -513,7 +513,7 @@ Les chapitres `LDB 77-83`, `ZI`, `EDO`, `MSR/MSRC`, `PDT`, `NADJ`, `ADE I/II` co
 
 - `src/engine/size.ts` — `LDB 85 l.343-406` (7 catégories, Blessures, mods combat).
 - `src/noyau/monde/spawn.ts` — `LDB 76 l.45` (Facultatifs), `LDB 77 l.108` (carac. aléatoires).
-- `src/engine/pnjDeCarriere.ts` — `EDO 11 l.17-21` (PNJ de carrière : +5 par Niveau, Talents, dotations de la carrière actuelle), `EDO 11 l.42-44` (son argent, `argentDuPnj`).
+- `src/engine/pnjDeCarriere.ts` — `EDO 11 l.17-21` (PNJ de carrière : +5 par Niveau, Talents, dotations de la carrière actuelle), `EDO 11 l.42-46` (son argent, `argentDuPnj`).
 - `src/engine/creatureAttacks.ts` — `LDB 85 traits` (grantsManeuvers par id).
 - `src/engine/creatureEquip.ts` — `LDB 85 l.405` (Tentacules, compte/attaques gratuites).
 - `src/engine/combat.ts` — `LDB 85 l.253` (Nuée : ignore les règles de Taille), `l.360-362` (Atouts, multiplicateur de Dégâts, Frappe Mortelle par Taille), `l.366` (+10 au plus petit), `l.370` (pénalité de Parade), `l.387` (Piétinement).

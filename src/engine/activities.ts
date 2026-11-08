@@ -13,15 +13,13 @@ import { valeurSansTirage } from './formule';
 import { evalCondition, type Condition, type ConditionCtx, type FlowTest } from './flowCore';
 import { buildActorView } from './actorView';
 import type { ModLine } from './combat';
-import { bestSkilledOption, peutTenter, possesses, refusNePeutTenter, testValue, type TestDesigne } from './skills';
-import { actorStatus } from './social';
-import { garanti } from '../lib/garanti';
+import { bestSkilledOption, peutTenter, refusNePeutTenter, testValue, type TestDesigne } from './skills';
 import { maxBy } from './pick';
 import type { PlayerText } from '../i18n/playerText';
 import { refCouvre, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
 import type { FoyerDeRegle } from '../data/schemas/grammaire/valeurs';
-import { easeDifficulty, estJete, clampTarget, cibleDuTest, isAstoundingFailure, rollTest, ECHEC_SANS_JET, type EchecSansJet } from './tests';
-import { advancementBaseId, trappingsInstanciables, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, qualities, type TrappingData } from '../data';
+import { easeDifficulty, estJete, clampTarget, cibleDuTest, ECHEC_SANS_JET, type EchecSansJet } from './tests';
+import { trappingsInstanciables, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, qualities, type TrappingData } from '../data';
 import { memoParVersion } from '../data/versionDataset';
 import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';
@@ -1063,25 +1061,4 @@ export function statusIncome(
   let brass = toBrass(enPieces(unite, rollDice(de, rng)));
   if (outcome === 'fail') brass = Math.floor(brass / 2); // « la moitié de la somme »
   return fromBrass(brass);
-}
-
-/** Issue d'un Test de Gagner de l'argent : succès, échec, ou Échec Stupéfiant (-6). LDB 08 l.110 */
-export const issueDeGagnerDeLArgent = (success: boolean, sl: number): 'success' | 'fail' | 'astoundingFail' =>
-  success ? 'success' : isAstoundingFailure(success, sl) ? 'astoundingFail' : 'fail';
-
-/** Compétence de Carrière qui sert à Gagner de l'argent (dette `4e/activites#revenus`). LDB 07 l.82, LDB 08 l.110 */
-export function incomeSkillOf(h: Combatant): string {
-  const lvl1 = levelsForCareer(h.career ?? '')[0];
-  const ids = (lvl1?.skills ?? []).map(advancementBaseId).filter((x): x is string => !!x); // AdvancementRef → skillId
-  const owned = ids.find((id) => possesses(h, { id }));
-  return owned ?? ids[0] ?? 'athletisme';
-}
-
-/** Gagner de l'argent grâce au Statut, tiré sur `rng` : le Test de `incomeSkillOf` à la Difficulté de Revenus, puis la
- *  somme de son issue au Statut de `c` (`statusIncome`). LDB 08 l.105-119 */
-export function gagnerDeLArgent(c: Combatant, rng: RNG): Money {
-  const difficulte = garanti(activityById('revenus')?.difficulty, 'revenus', 'Difficulté de Revenus');
-  const test = rollTest(testValue(c, { skill: { id: incomeSkillOf(c) } }), difficulte, rng);
-  const { tier, standing } = actorStatus(c);
-  return statusIncome(tier, standing, rng, issueDeGagnerDeLArgent(test.success, test.sl));
 }

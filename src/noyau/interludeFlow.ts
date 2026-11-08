@@ -30,7 +30,7 @@ import {
 import { resetInterruptedFavorProgress } from './favorFlow';
 import { confirmBattleActivity, engagerLaBataille, battlePrepEntries, soutienCouteUneActivite } from './massBattleFlow';
 import {
-  craftTarget, craftSpecOf, issueDeGagnerDeLArgent, metierOf, statusIncome, statusIncomeMax, bankWithdrawOutcome, seuilDePerteBancaire, bankPayout, apprenticeshipTutorCost,
+  craftTarget, craftSpecOf, metierOf, statusIncome, statusIncomeMax, bankWithdrawOutcome, seuilDePerteBancaire, bankPayout, apprenticeshipTutorCost,
   entrainementTutorCost,
   ACTIVITIES, activitiesFor, activityById, matchOutcomes, activityAvailableAt,
   RESOLVER_OWNER,
@@ -594,8 +594,9 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // Échec Stupéfiant (-6), […] vous n'avez rien gagné. » Le crédit est DIFFÉRÉ (l.191 : « remis une
       // fois que vous avez disposé de l'argent de votre dernière aventure ») → `revenueBrass`, jamais
       // `money`. Revenus maintient aussi le Statut des Niveaux 3-4 (l.193 → `didRevenus`).
+      const outcome = pa.success ? 'success' : isAstoundingFailure(pa.success, pa.sl) ? 'astoundingFail' : 'fail';
       const { tier, standing } = actorStatus(h);
-      let brass = toBrass(statusIncome(tier, standing, battleRng(), issueDeGagnerDeLArgent(pa.success, pa.sl)));
+      let brass = toBrass(statusIncome(tier, standing, battleRng(), outcome));
       const lines: string[] = [];
       // Événements de la période : leurs pourcentages s'additionnent sur le gain de base. LDB 22
       const parEvenement = revenusDeLaPeriode(get(), h.id);

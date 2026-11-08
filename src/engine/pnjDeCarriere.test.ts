@@ -141,17 +141,18 @@ describe('refusDuParcours et parcoursRetouche', () => {
   });
 });
 
-describe('argentDuPnj — l’argent du PNJ qui n’en porte pas, dans sa Bourse (EDO 11 l.42-44)', () => {
-  it('le Doktor (Argent 5) tire sa Bourse à la graine de son id : la même à chaque apparition', () => {
-    const tire = () => {
-      const c = porte({ carrieres: { medecin: 3 } }, 'langstrasse');
-      argentDuPnj(c);
-      return bourseInstanceOf(c);
-    };
-    expect(toBrass(tire()!.money!)).toBeGreaterThan(0);
-    expect(tire()).toEqual(tire());
+describe('argentDuPnj — l’argent du PNJ qui n’en porte pas, dans sa Bourse (EDO 11 l.42-46)', () => {
+  const tire = (id: string) => {
+    const c = porte({ carrieres: { medecin: 3 } }, id);
+    argentDuPnj(c);
+    return bourseInstanceOf(c);
+  };
+  it('le Doktor (Argent 5) porte 5d10 pistoles d’argent, sans Test (EDO 11 l.46), à la graine de son id', () => {
+    const pistoles = ['langstrasse', 'a', 'b', 'c', 'd', 'e'].map((id) => toBrass(tire(id)!.money!) / 12);
+    expect(pistoles.every((p) => Number.isInteger(p) && p >= 5 && p <= 50), pistoles.join(', ')).toBe(true);
+    expect(tire('langstrasse')).toEqual(tire('langstrasse'));
   });
-  it('le PNJ qui porte déjà de l’argent ignore le jet', () => {
+  it('le PNJ qui porte déjà de l’argent ne tire rien', () => {
     const c = porte({ carrieres: { medecin: 3 } }, 'langstrasse');
     setBourseBrass(c, 7, () => 'langstrasse-bourse');
     argentDuPnj(c);

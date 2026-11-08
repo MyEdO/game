@@ -13,7 +13,6 @@ import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 import { emptyScene, type SceneEntity } from './scene';
 import { poserUneTroupe } from '../sceneEdit';
 import { bourseOf } from '../../engine/bourse';
-import { statusIncomeMax } from '../../engine/activities';
 import { toBrass } from '../../engine/money';
 
 
@@ -460,14 +459,16 @@ describe('PNJ de carrière : la fiche d’une entité portée à son parcours (E
   });
 });
 
-describe('L’argent des PNJ : un jet de Gagner de l’argent au Statut, dans la Bourse (EDO 11 l.42-44 ; #3712)', () => {
+describe('L’argent des PNJ : les dés du Statut, sans Test, dans la Bourse (EDO 11 l.42-46 ; #3712)', () => {
   const sansPreset = () => undefined;
   const doktor = (id: string): SceneEntity => ({ id, kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', carrieres: { medecin: 3 } });
 
-  it('le PNJ de carrière porte une Bourse remplie au plus de 5d10 pistoles (Argent 5, EDO 11 l.44), la même pour un même id', () => {
+  it('le PNJ de carrière porte une Bourse de 5d10 pistoles d’argent (Argent 5, EDO 11 l.46), la même pour un même id', () => {
     const argent = (id: string) => toBrass(bourseOf(ficheDEntite(doktor(id), sansPreset)));
-    expect(argent('langstrasse')).toBeGreaterThan(0);
-    expect(argent('langstrasse')).toBeLessThanOrEqual(toBrass(statusIncomeMax('argent', 5)));
+    const pistoles = argent('langstrasse') / 12;
+    expect(Number.isInteger(pistoles), 'des pistoles entières').toBe(true);
+    expect(pistoles).toBeGreaterThanOrEqual(5);
+    expect(pistoles).toBeLessThanOrEqual(50);
     expect(argent('langstrasse')).toBe(argent('langstrasse'));
     expect(new Set(['a', 'b', 'c', 'd', 'e'].map(argent)).size, 'cinq ids, au moins deux bourses différentes').toBeGreaterThan(1);
   });
