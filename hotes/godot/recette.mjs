@@ -1228,8 +1228,9 @@ async function parcoursEditeur() {
     await cliquerBouton(quoi)
   }
   /** La valeur `id` de la liste déroulante `liste` des options de l'outil choisie : la liste amenée sur le panneau,
-   *  ouverte d'un clic, qui n'y place aucun article, la flèche descendue du premier jusqu'à elle, puis Entrée. */
-  const choisirALaListe = async (liste, id, zone = 'editeur.options') => {
+   *  ouverte d'un clic, qui n'y place aucun article, la flèche descendue du premier jusqu'à elle, puis Entrée ; l'écran
+   *  attendu ensuite : la valeur pressée, sinon la condition `attendu`. */
+  const choisirALaListe = async (liste, id, zone = 'editeur.options', attendu = null) => {
     const libelle = (await editeur()).zones[zone].find((el) => el.id === liste).valeurs.find((b) => b.id === id).libelle
     const deroulante = await amenerAuPanneau({ element: `liste/${liste}` })
     const rang = deroulante.choix.indexOf(libelle)
@@ -1239,7 +1240,7 @@ async function parcoursEditeur() {
     for (let n = 0; n <= rang; n++) await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
     await marquer()
     await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['${zone}'].find((el) => el.id === '${liste}')?.valeurs.find((b) => b.id === '${id}')?.presse === true`)
+    await waitFor(session, attendu ?? `globalThis.wfrpEcran?.editeur?.zones['${zone}'].find((el) => el.id === '${liste}')?.valeurs.find((b) => b.id === '${id}')?.presse === true`)
   }
   let e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'couche/0')?.presse, true, 'la carte s’ouvre sur sa couche 0')
@@ -1506,8 +1507,7 @@ async function parcoursEditeur() {
   await capturer('3606-m1a-1-combat')
   await cliquerAuPanneau('Identité')
   const entree = inspecte(e, 'entite/couvre/ajouter').valeurs[0]
-  await choisirALaListe('entite/couvre/ajouter', entree.id, 'editeur.inspecteur')
-  await waitFor(session, montre(`entite/couvre/${entree.jeu.edition.patch.couvre[0]}`))
+  await choisirALaListe('entite/couvre/ajouter', entree.id, 'editeur.inspecteur', montre(`entite/couvre/${entree.jeu.edition.patch.couvre[0]}`))
   noter(`onglet Identité, « Couvrir une entrée de fiche » : ${(await editeur()).zones['editeur.inspecteur'].find((l) => l.id === `entite/couvre/${entree.jeu.edition.patch.couvre[0]}`).texte}`)
   await capturer('3606-m1a-2-identite')
   await cliquerAuPanneau({ element: 'bouton/entite/supprimer' })

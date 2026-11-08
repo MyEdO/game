@@ -85,6 +85,7 @@ source = "editeur.pointee"
 
 [node name="Inspecteur" type="TabContainer" parent="Interface/Outils/Defilement/Pile"]
 size_flags_horizontal = 3
+clip_tabs = false
 
 [node name="Combat" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
 
