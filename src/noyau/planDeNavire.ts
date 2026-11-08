@@ -76,6 +76,13 @@ function versLHote(cap: CellSide, w: number, h: number): (x: number, y: number) 
   }
 }
 
+/** Le vecteur (x, y) du plan tourné comme `versLHote` en tourne les cases : un quart horaire par quart du cap. */
+function tournerLeVecteur(cap: CellSide, v: { x: number; y: number }): { x: number; y: number } {
+  let { x, y } = v;
+  for (let q = 0; q < QUARTS[cap]; q++) [x, y] = [0 - y, x]; // `0 - y` : jamais de zéro négatif dans la donnée
+  return { x, y };
+}
+
 /** Les deux cases qu'une arête canonique sépare. */
 const casesDeLArete = (w: WallSeg): [{ x: number; y: number }, { x: number; y: number }] =>
   w.side === 'N' ? [{ x: w.x, y: w.y }, { x: w.x, y: w.y - 1 }] : [{ x: w.x, y: w.y }, { x: w.x + 1, y: w.y }];
@@ -128,7 +135,8 @@ export function poserLeNavire(hote: Scene, navire: Scene, pose: PoseDeNavire): S
       z: z0 + (zone.z ?? 0),
     };
   });
-  // Un décor garde son emprise : son ancre est le coin nord-ouest de ses cases tournées.
+  // Un décor garde son emprise : son ancre est le coin nord-ouest de ses cases tournées ; son calage tourne avec le
+  // pont (le coffre reste contre la même cloison) et son appui prend le préfixe de la pose.
   const decors: SceneEntity[] = (navire.entities ?? []).map((e) => {
     const cases = propFootTiles(e.ref, e.pos, e.facing, sceneMetresPerTile(navire)).map((c) => versHote(c.x, c.y));
     return {
@@ -137,6 +145,8 @@ export function poserLeNavire(hote: Scene, navire: Scene, pose: PoseDeNavire): S
       pos: { x: Math.min(...cases.map((c) => c.x)), y: Math.min(...cases.map((c) => c.y)) },
       z: z0 + (e.z ?? 0),
       facing: rotateDir8(e.facing ?? CAP_IDENTITE_PROP, 2 * QUARTS[pose.cap]),
+      ...(e.calage ? { calage: tournerLeVecteur(pose.cap, e.calage) } : {}),
+      ...(e.sur ? { sur: `${pose.id}-${e.sur}` } : {}),
     };
   });
   return { ...s, effectZones: [...(s.effectZones ?? []), ...pieces], entities: [...s.entities, ...decors] };

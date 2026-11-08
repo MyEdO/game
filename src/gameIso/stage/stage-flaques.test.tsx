@@ -47,7 +47,7 @@ import {
   POINT_LIGHT_BUDGET,
   type PointLightSlots,
 } from './stagePointLights';
-import { FLAME_LIFT_M } from '../../noyau/lumiereDeLaScene';
+import { FLAME_LIFT_M } from '../../noyau/monde/vision';
 import { itemFromTrappingById } from '../../engine/items';
 import type { ItemInstance } from '../../engine/types';
 

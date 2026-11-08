@@ -40,7 +40,10 @@ import { tileKey, type Pt as ScenePt } from './monde/path';
 import { premiereCaseEnAnneaux, tientDebout } from './monde/combatGeometry';
 import { entiteFootTiles } from './monde/spawn';
 import { ACTION_FOUILLER } from './monde/usable';
-import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
+import { CAP_IDENTITE_PROP, capDecorAdmis, type Calage } from '../data/props.types';
+import { ancreDuDecor } from './monde/footprint';
+import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from './monde/poseDuDecor';
+import { entitesEnCaseEtage } from './monde/decorIndex';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
 import { FORMULAIRES, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
@@ -738,21 +741,56 @@ export function changePropRef(scene: Scene, propId: string, ref: string): Scene 
 
 /** Pose une entité à p (id frais) depuis l'OUTIL tel que la palette le porte — il tient déjà le décor
  *  ou la fiche élue : aucun cas muet ne subsiste ici. Les props appliquent leurs défauts de catalogue
- *  (empreinte, interactif si fouillable) ; un personnage porte sa fiche en `ref` et le libellé de la
- *  fiche, son apparence se dérive du record (#1882). Une fiche absente du bestiaire lève. */
-export function placeEntity(scene: Scene, outil: EntityTool, p: Pt, z = 0): { scene: Scene; id: string } {
+ *  (empreinte, interactif si fouillable) et se posent au point visé `point` (`poseAuPoint` : case, calage, appui) ;
+ *  un personnage porte sa fiche en `ref` et le libellé de la fiche, son apparence se dérive du record (#1882). Une
+ *  fiche absente du bestiaire lève. */
+export function placeEntity(scene: Scene, outil: EntityTool, p: Pt, z = 0, point: Pt = p): { scene: Scene; id: string } {
   const id = nextEntityId(outil.kind, scene.entities.map((e) => e.id));
   const base: SceneEntity = { id, kind: outil.kind, pos: { ...p } };
   if (outil.kind === 'personnage' && !findCreatureById(outil.ref))
     throw new Error(`placeEntity : « ${outil.ref} » n'est pas une fiche du bestiaire — un personnage NOMME sa fiche par id STABLE (#1882)`);
   // #1463 S3 · #1882 : `nomDEntite`.
+  const decor = (ref: string): SceneEntity => {
+    const ent: SceneEntity = { ...base, ...propRefPatch(ref, undefined), label: findPropById(ref)?.label, ...(z ? { z } : {}) };
+    return { ...ent, ...poseAuPoint(scene, ent, point) };
+  };
   const ent: SceneEntity = outil.kind === 'prop'
-    ? { ...base, ...propRefPatch(outil.ref, undefined), label: findPropById(outil.ref)?.label }
+    ? decor(outil.ref)
     : outil.kind === 'personnage'
       ? { ...base, ref: outil.ref }
       : { ...base, label: libelleDeValeur(entityKindSchema, outil.kind) };
   return { scene: addEntity(scene, ent, z), id }; // l'étage se pose à la porte d'ajout
 }
+
+/** AIMANT du calage : une composante à moins de cette distance du centre ou d'un bord s'y pose, pour qu'un décor se
+ *  recentre ou se plaque sans viser au millimètre. */
+const AIMANT_DU_CALAGE = 0.15;
+
+const aimante = (c: number): number => (Math.abs(c) < AIMANT_DU_CALAGE ? 0 : Math.abs(c) > 1 - AIMANT_DU_CALAGE ? Math.sign(c) : c);
+
+/** La POSE du décor `ent` dont l'ancre tombe au point `a` (cases continues), sur sa couche : la case de l'empreinte
+ *  dont le centre est le plus proche du point, son calage dans son jeu libre (`calageDuDecalage`, aimanté, absent au
+ *  centre) et le décor sur le dessus duquel elle tombe alors (`appuiSous`, jamais `ent` ni ce qu'il porte). La règle
+ *  unique de la pose au point : la palette et le glissé la partagent. */
+function poseAuPoint(scene: Scene, ent: SceneEntity, a: Pt): { pos: Pt; calage?: Calage; sur?: string } {
+  const brut = poseDeLAncre(scene, ent, a);
+  const calage: Calage = { x: aimante(brut.calage.x), y: aimante(brut.calage.y) };
+  const pose = { pos: brut.pos, calage: calage.x || calage.y ? calage : undefined };
+  const support = appuiSous(scene, ancreDuDecor({ ...ent, ...pose }, sceneMetresPerTile(scene)), ent.z ?? 0, ent.id);
+  return { ...pose, sur: support?.id };
+}
+
+/** Pose le décor `id` au point `a` de la carte (`poseAuPoint`) : sa case, son calage et ce qui le porte, et ce qu'il
+ *  porte le suit (`emporterLesObjets`). Le geste de glissé d'un décor à l'éditeur. */
+export function poserLeDecorAuPoint(scene: Scene, id: string, a: Pt): Scene {
+  const ent = scene.entities.find((e) => e.id === id && e.kind === 'prop');
+  if (!ent) return scene;
+  const pose = poseAuPoint(scene, ent, a);
+  const posee = champ(champ({ ...ent, pos: pose.pos }, 'calage', pose.calage), 'sur', pose.sur);
+  const apres = { ...scene, entities: scene.entities.map((e) => (e.id === id ? posee : e)) };
+  return normaliserLaPose(emporterLesObjets(scene, apres, id));
+}
+
 
 /** Patch d'inspecteur quand on choisit un décor : pré-arme une action authorée `fouiller` si le prop
  *  est `searchable` ET que l'instance n'en porte encore AUCUNE. Ne touche jamais une liste d'actions
@@ -1254,7 +1292,7 @@ export function patchMember(scene: Scene, encId: string, entityId: string, patch
  *  Une entité DÉJÀ posée à (p,z) est réutilisée (enrôlée) plutôt que dupliquée — même garde que les
  *  outils `entity`/`emplacement` (`entityAt`, #835 FU-3). */
 export function addEnemyMember(scene: Scene, encId: string, ref: string, p: Pt, z = 0): { scene: Scene; encId: string; entityId: string } {
-  const existing = entityAt(scene, p, z);
+  const existing = entitesEnCaseEtage(scene, p.x, p.y, z).find((e) => e.kind === 'personnage');
   if (existing) {
     const { scene: out, encId: usedEnc } = addMember(scene, encId, existing.id);
     return { scene: out, encId: usedEnc, entityId: existing.id };
@@ -1274,9 +1312,10 @@ export function addEnemyMember(scene: Scene, encId: string, ref: string, p: Pt, 
   return { scene: out, encId: usedEnc, entityId: id };
 }
 
-/** Gomme : retire l'entité posée sur p à l'étage `z` (les autres couches se suppriment via leur sélection). */
-export function eraseAt(scene: Scene, p: Pt, z = 0): Scene {
-  const ent = entityAt(scene, p, z);
+/** Gomme : retire l'entité posée sur p à l'étage `z` la plus proche du point visé (`entityAt`) ; les autres couches se
+ *  suppriment via leur sélection. */
+export function eraseAt(scene: Scene, p: Pt, z = 0, point: Pt = p): Scene {
+  const ent = entityAt(scene, p, z, point);
   return ent ? removeEntity(scene, ent.id) : scene;
 }
 
@@ -1499,6 +1538,12 @@ export class IdentiteNonPatchable extends Error {
   }
 }
 
+/** LE SEAM de la pose authorée : tout écrivain d'entité de l'éditeur rend sa scène par lui. Les appuis qui ne tiennent
+ *  plus tombent (`normaliserLesAppuis` : l'objet retombe au sol), puis les places (`normaliseAssises`). */
+function normaliserLaPose(scene: Scene): Scene {
+  return normaliseAssises(normaliserLesAppuis(scene), GROUPE_A_L_AUTHORING);
+}
+
 /** Patch d'AUTHORING d'une entité (libellé, orientation, étage, ref, statblock…) : la seule porte
  *  d'écriture d'entité ouverte à `src/ui/**`. Traverse le seam — tourner ou monter d'un étage un
  *  meuble attablé recale ou lève ses places dans la MÊME mutation. Juge la TRANSITION du type
@@ -1513,12 +1558,12 @@ export function editEntity(scene: Scene, id: string, patch: Partial<SceneEntity>
   const apres = patchee.entities.find((e) => e.id === id);
   const absence = avant && apres && !typeNonNomme(avant) ? typeNonNomme(apres) : undefined;
   if (absence) throw new TypeNonNomme(absence);
-  return normaliseAssises(patchee, GROUPE_A_L_AUTHORING);
+  return normaliserLaPose(patchee);
 }
 
 /** Idem pour le sous-objet `combat` (fusion non écrasante) — même porte, même seam. */
 export function editEntityCombat(scene: Scene, id: string, patch: Partial<NonNullable<SceneEntity['combat']>>): Scene {
-  return normaliseAssises(patchEntityCombat(scene, id, patch), GROUPE_A_L_AUTHORING);
+  return normaliserLaPose(patchEntityCombat(scene, id, patch));
 }
 
 /** Pose d'AUTHORING d'une entité NEUVE (palette, collage, builder d'emplacement) — la seule porte
@@ -1527,23 +1572,23 @@ export function editEntityCombat(scene: Scene, id: string, patch: Partial<NonNul
  *  fabriquer la liste. L'ÉTAGE se pose ICI, une fois (`z` = couche demandée ; sol (0) = champ
  *  absent, convention du modèle) — l'appelant ne le recolle plus sur l'entité. */
 export function addEntity(scene: Scene, ent: SceneEntity, z = 0): Scene {
-  return normaliseAssises({ ...scene, entities: [...scene.entities, champ(ent, 'z', z || undefined)] }, GROUPE_A_L_AUTHORING);
+  return normaliserLaPose({ ...scene, entities: [...scene.entities, champ(ent, 'z', z || undefined)] });
 }
 
 /** Suppression d'AUTHORING d'une entité — traverse le seam. */
 export function removeEntity(scene: Scene, id: string): Scene {
-  return normaliseAssises({ ...scene, entities: scene.entities.filter((e) => e.id !== id) }, GROUPE_A_L_AUTHORING);
+  return normaliserLaPose({ ...scene, entities: scene.entities.filter((e) => e.id !== id) });
 }
 
 /** Déplacement d'AUTHORING d'une entité : pose la case demandée, lève le corps de sa place s'il quitte
- *  l'abord de son siège, puis traverse le seam (qui emmène les attablés quand c'est le MEUBLE qui
- *  bouge, et lève les places devenues inoccupables). */
+ *  l'abord de son siège, emmène ce qu'un décor porte (`emporterLesObjets`), puis traverse le seam (qui emmène les
+ *  attablés quand c'est le MEUBLE qui bouge, et lève les places devenues inoccupables). */
 export function moveEntityTo(scene: Scene, id: string, to: Pt): Scene {
-  const deplacee = { ...scene, entities: scene.entities.map((e) => (e.id === id ? { ...e, pos: { ...e.pos, x: to.x, y: to.y } } : e)) };
+  const deplacee = emporterLesObjets(scene, { ...scene, entities: scene.entities.map((e) => (e.id === id ? { ...e, pos: { ...e.pos, x: to.x, y: to.y } } : e)) }, id);
   const occupant: SeatOccupant = { kind: 'entity', entityId: id };
   const pose = seatPoseOf(scene, occupant);
   const quitte = !!pose && (pose.approach.x !== to.x || pose.approach.y !== to.y);
-  return normaliseAssises(quitte ? releaseSeat(deplacee, occupant) : deplacee, GROUPE_A_L_AUTHORING);
+  return normaliserLaPose(quitte ? releaseSeat(deplacee, occupant) : deplacee);
 }
 
 /** Patche le sous-objet `combat` d'une entité SANS écraser l'existant (fusionne skills/spells/optionals/
@@ -2143,14 +2188,16 @@ export function rederiveRoofMasses(scene: Scene): Scene {
 }
 
 /** Ce qu'un geste d'outil porte en plus de sa case : la couche active, la taille du pinceau, la
- *  rencontre que l'outil de rencontre complète et la fiche qu'il pose, l'arête visée par l'outil murs. */
-export type GesteDOutil = { z: number; brush: number; encId: string; encRef: string; side?: CellSide };
+ *  rencontre que l'outil de rencontre complète et la fiche qu'il pose, l'arête visée par l'outil murs, et le point
+ *  visé en cases continues (défaut le centre de la case), où la palette pose un décor et que la gomme désigne. */
+export type GesteDOutil = { z: number; brush: number; encId: string; encRef: string; side?: CellSide; point?: Pt };
 /** Ce qu'un geste rend : la scène, la sélection qu'il désigne, et la rencontre qu'il a complétée. */
 export type EffetDOutil = { scene: Scene; sel?: Sel; encId?: string };
 
 /** Applique l'outil `tool` à la case `p` — routine unique de l'appui et du glissé. null hors de la carte,
  *  pour un outil qui n'écrit pas à la case (sélection, zone au rectangle, tracé de volée), ou quand la pose
- *  est refusée. Sur une entité déjà posée, les outils de pose la désignent sans rien écrire. */
+ *  est refusée. Un décor se pose toujours, au point visé, parmi ce que la case porte déjà ; sur une entité déjà posée,
+ *  les autres outils de pose la désignent sans rien écrire. */
 export function appliquerOutil(scene: Scene, tool: Tool, p: Pt, geste: GesteDOutil): EffetDOutil | null {
   if (!dansLaCarte(scene, p)) return null;
   const { z, brush } = geste;
@@ -2159,10 +2206,14 @@ export function appliquerOutil(scene: Scene, tool: Tool, p: Pt, geste: GesteDOut
     case 'height': return { scene: paintHeight(scene, p, tool.metres, brush, z) };
     case 'crenellated': return { scene: paintCrenellated(scene, p, tool.structure, brush, z) };
     case 'zoneTiles': return { scene: paintEffectZone(scene, tool.zoneId, p, tool.paint) };
-    case 'erase': return { scene: eraseAt(scene, p, z) };
+    case 'erase': return { scene: eraseAt(scene, p, z, geste.point) };
     case 'entity':
     case 'emplacement': {
-      const existing = entityAt(scene, p, z);
+      if (tool.mode === 'entity' && tool.kind === 'prop') {
+        const out = placeEntity(scene, tool, p, z, geste.point);
+        return { scene: out.scene, sel: { type: 'entity', id: out.id } };
+      }
+      const existing = entityAt(scene, p, z, geste.point);
       if (existing) return { scene, sel: { type: 'entity', id: existing.id } };
       const out = tool.mode === 'entity' ? placeEntity(scene, tool, p, z) : placeEmplacement(scene, tool.trappingId, p, z);
       return out && { scene: out.scene, sel: { type: 'entity', id: out.id } };

@@ -22,7 +22,7 @@
  * feature de façade, le milieu de l'empreinte pour un ornement de faîte. L'orientation vient du cap
  * déclaré (`SceneEntity.facing` pour un décor posé).
  *
- * PLACES ASSISES : `noyau/monde/seating.ts` ancre les `seatSlots` d'un meuble sur `decorAncre`
+ * PLACES ASSISES : `noyau/monde/seating.ts` ancre les `seatSlots` d'un meuble sur `ancreDuDecor`
  * (`noyau/monde/footprint.ts`), le CENTRE de son empreinte effective — la même ancre que celle sur
  * laquelle le builder pose sa recette, et que le foyer de la lampe qu'il porte. Un meuble à places
  * couvre donc autant de cases que son corps : la chaise DESSINÉE et la place où le corps s'assoit
@@ -454,9 +454,20 @@ export function empreinteDeriveeDuProp(prop: PropData, facing: Dir8, mpt: number
   const cle = `${facing}|${mpt}`;
   const connue = parCap.get(cle);
   if (connue) return connue;
+  const corps = emprisePlanTournee(prop, facing, (primitive) => !placeAssiseDe(prop, primitive));
+  // LE site de conversion mètres → cases de ce module (#1507, déclaré par `noyau/monde/echelle-de-scene.test.ts`).
+  const enCases = (metres: number): number => Math.max(1, Math.ceil(metres / mpt - 1e-9));
+  const val = corps ? { w: enCases(corps.x1 - corps.x0), h: enCases(corps.y1 - corps.y0) } : UNE_CASE;
+  parCap.set(cle, val);
+  return val;
+}
+
+/** Emprise AU PLAN des primitives `retenue` d'une recette tournée au cap `facing`, en mètres autour de l'ancre,
+ *  mesurée sur `polygonesDePrimitive` ; `undefined` sans primitive retenue. PURE. */
+function emprisePlanTournee(prop: PropData, facing: Dir8, retenue: (p: PropPrimitive) => boolean): { x0: number; x1: number; y0: number; y1: number } | undefined {
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (const primitive of prop.volume.primitives) {
-    if (placeAssiseDe(prop, primitive)) continue;
+    if (!retenue(primitive)) continue;
     for (const poly of polygonesDePrimitive(primitive))
       for (const s of poly) {
         const [rx, ry] = rotatePropLocal(s.xM, s.yM, facing);
@@ -464,11 +475,7 @@ export function empreinteDeriveeDuProp(prop: PropData, facing: Dir8, mpt: number
         y0 = Math.min(y0, ry); y1 = Math.max(y1, ry);
       }
   }
-  // LE site de conversion mètres → cases de ce module (#1507, déclaré par `noyau/monde/echelle-de-scene.test.ts`).
-  const enCases = (metres: number): number => Math.max(1, Math.ceil(metres / mpt - 1e-9));
-  const val = Number.isFinite(x0) ? { w: enCases(x1 - x0), h: enCases(y1 - y0) } : UNE_CASE;
-  parCap.set(cle, val);
-  return val;
+  return Number.isFinite(x0) ? { x0, x1, y0, y1 } : undefined;
 }
 
 /**
@@ -484,11 +491,77 @@ export function empreinteDuProp(prop: PropData | undefined, facing: Dir8 | undef
 /**
  * OFFSET de l'ANCRE dans son empreinte : du coin NO (`SceneEntity.pos`) vers le CENTRE du bloc, en
  * cases. Écrite ICI parce que `src/data` ne peut pas remonter vers `src/noyau` sans cycle, et qu'il
- * n'en existe qu'UNE : `noyau/monde/footprint.ts` (`decorFootGeometry`, puis `decorAncre` qui la sert au
+ * n'en existe qu'UNE : `noyau/monde/footprint.ts` (`decorFootGeometry`, puis `ancreDuDecor` qui la sert au
  * monde) la LIT, elle ne la refait pas. 1×1 ⇒ (0,0). PURE.
  */
 export function offsetAncre(foot?: { w: number; h: number }): { x: number; y: number } {
   return { x: (Math.max(1, foot?.w ?? 1) - 1) / 2, y: (Math.max(1, foot?.h ?? 1) - 1) / 2 };
+}
+
+/** CALAGE d'un décor dans sa case (`SceneEntity.calage`) : où son corps se tient dans le JEU LIBRE de son empreinte, par
+ *  axe du monde, de -1 (plaqué à l'ouest, au nord) à +1 (à l'est, au sud) ; 0 = centré. */
+export interface Calage { x: number; y: number }
+
+/** Le JEU LIBRE d'un décor au cap `facing` à l'échelle `mpt`, en mètres par axe du monde : de combien son corps peut
+ *  glisser de chaque côté du centre de son empreinte sans en sortir, sièges COMPRIS (un tabouret ne passe pas le mur).
+ *  Chaque intervalle contient 0, si bien qu'un corps qui déborde déjà reste centré. PURE. */
+function jeuLibre(prop: PropData | undefined, facing: Dir8 | undefined, mpt: number): { x: readonly [number, number]; y: readonly [number, number] } {
+  const cap = facing ?? CAP_IDENTITE_PROP;
+  const corps = prop && emprisePlanTournee(prop, cap, () => true);
+  if (!corps) return { x: [0, 0], y: [0, 0] };
+  const { w, h } = empreinteDuProp(prop, cap, mpt);
+  const borne = (demi: number, a: number, b: number) => [Math.min(0, -demi - a), Math.max(0, demi - b)] as const;
+  return { x: borne(w * mpt / 2, corps.x0, corps.x1), y: borne(h * mpt / 2, corps.y0, corps.y1) };
+}
+
+/** Le DÉCALAGE de l'ancre d'un décor depuis le centre de son empreinte, en cases, que son `calage` dit. PURE. */
+export function decalageDuCalage(prop: PropData | undefined, facing: Dir8 | undefined, mpt: number, calage: Calage | undefined): { x: number; y: number } {
+  if (!calage) return { x: 0, y: 0 };
+  const jeu = jeuLibre(prop, facing, mpt);
+  // LE site de conversion mètres → cases du calage (#1507, déclaré par `noyau/monde/echelle-de-scene.test.ts`).
+  const axe = (c: number, [lo, hi]: readonly [number, number]) => (c >= 0 ? c * hi : -c * lo) / mpt;
+  return { x: axe(calage.x, jeu.x), y: axe(calage.y, jeu.y) };
+}
+
+/** Le CALAGE qui pose l'ancre d'un décor au `decalage` voulu (cases, depuis le centre de son empreinte), borné à son
+ *  jeu libre : l'inverse de `decalageDuCalage`. PURE. */
+export function calageDuDecalage(prop: PropData | undefined, facing: Dir8 | undefined, mpt: number, decalage: { x: number; y: number }): Calage {
+  const jeu = jeuLibre(prop, facing, mpt);
+  const axe = (cases: number, [lo, hi]: readonly [number, number]) => {
+    const m = cases * mpt;
+    return m >= 0 ? (hi > 0 ? Math.min(1, m / hi) : 0) : (lo < 0 ? Math.max(-1, -m / lo) : 0);
+  };
+  return { x: axe(decalage.x, jeu.x), y: axe(decalage.y, jeu.y) };
+}
+
+/** Point du plan dans un polygone (règle pair-impair). */
+function dansLePolygone(x: number, y: number, poly: readonly (readonly [number, number])[]): boolean {
+  let dedans = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i];
+    const [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) dedans = !dedans;
+  }
+  return dedans;
+}
+
+/** La hauteur, en mètres depuis son pied, du DESSUS d'un décor au cap `facing` à l'aplomb du point `(xM, yM)` (mètres
+ *  depuis son ancre, repère du monde) : le sommet de sa primitive la plus haute à cet aplomb, quand ce sommet y est une face
+ *  horizontale (`polygonesDePrimitive`), celle d'une caisse ou d'un cylindre debout. `undefined` sous un sommet qui n'est
+ *  pas plat (couvercle bombé, faîte) ou hors du décor. PURE. */
+export function dessusSous(prop: PropData | undefined, facing: Dir8 | undefined, xM: number, yM: number): number | undefined {
+  const cap = facing ?? CAP_IDENTITE_PROP;
+  const contient = (poly: readonly PropPoint3[]) => dansLePolygone(xM, yM, poly.map((s) => rotatePropLocal(s.xM, s.yM, cap)));
+  let haut: { h: number; plat: boolean } | undefined;
+  for (const primitive of prop?.volume.primitives ?? []) {
+    const faces = polygonesDePrimitive(primitive);
+    if (!faces.some(contient)) continue;
+    const sommet = empriseLocaleM(primitive).haut;
+    const plat = faces.some((poly) => poly.every((s) => Math.abs(s.hM - sommet) < 1e-9) && contient(poly));
+    if (!haut || sommet > haut.h + 1e-9) haut = { h: sommet, plat };
+    else if (Math.abs(sommet - haut.h) <= 1e-9) haut.plat ||= plat;
+  }
+  return haut?.plat ? haut.h : undefined;
 }
 
 /** Une place d'un décor, résolue dans le repère de l'INSTANCE : des offsets depuis `SceneEntity.pos`
@@ -516,7 +589,8 @@ export const caseDe = (x: number, y: number): { x: number; y: number } => ({ x: 
  * approche admise tombait dessus.
  *
  * Trois points, chacun dans son unité :
- *  - `ancre` = l'ancre du DÉCOR (`offsetAncre`, le centre de l'empreinte effective) plus l'ancre
+ *  - `ancre` = l'ancre du DÉCOR (`offsetAncre`, le centre de l'empreinte effective, décalé par le `calage` de
+ *    l'instance, `decalageDuCalage` ; le catalogue n'en a pas) plus l'ancre
  *    LOCALE de la place, en mètres au catalogue, divisée par l'échelle et tournée au cap ;
  *  - `siege` = la CASE qui porte cette ancre ;
  *  - `abord` = `approach` appliqué depuis la CASE DU SIÈGE, en cases entières. L'appliquer depuis
@@ -524,11 +598,13 @@ export const caseDe = (x: number, y: number): { x: number; y: number } => ({ x: 
  *    est paire, et deux places symétriques recevraient des abords asymétriques.
  * PURE.
  */
-export function placesLocalesDuProp(prop: PropData | undefined, facing: Dir8 | undefined, mpt: number): PlaceLocale[] {
+export function placesLocalesDuProp(prop: PropData | undefined, facing: Dir8 | undefined, mpt: number, calage?: Calage): PlaceLocale[] {
   const slots = prop?.seatSlots ?? [];
   if (!slots.length) return [];
   const cap = facing ?? CAP_IDENTITE_PROP;
-  const centre = offsetAncre(empreinteDuProp(prop, cap, mpt));
+  const milieu = offsetAncre(empreinteDuProp(prop, cap, mpt));
+  const decalage = decalageDuCalage(prop, cap, mpt, calage);
+  const centre = { x: milieu.x + decalage.x, y: milieu.y + decalage.y };
   return slots.map((slot) => {
     // LE site de conversion mètres → cases des places (#1507, déclaré par `noyau/monde/echelle-de-scene.test.ts`).
     const [ax, ay] = rotatePropLocal(slot.anchor.xM / mpt, slot.anchor.yM / mpt, cap);

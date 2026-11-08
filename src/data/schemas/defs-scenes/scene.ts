@@ -21,7 +21,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud } from '../grammaire/meta';
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { roleAmbiantSchema } from '../grammaire/valeurs';
-import { amateurSchema, cell2Schema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
+import { amateurSchema, cell2Schema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema, pointDuPlanSchema } from '../grammaire/valeurs';
 import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
 import { navalTraitRefSchema } from '../grammaire/reference';
 import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
@@ -211,6 +211,14 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
 const brancheDEntite = <R extends z.ZodType>(kind: EntityKindId, ref: R) =>
   nommerChamps(z.strictObject({ ...baseDEntiteSchema.shape, kind: z.literal(kind).pipe(entityKindSchema), ref }), { ...metaDesChamps(baseDEntiteSchema, { exigees: true }), kind: { label: "type"  }, ref: { label: "référence", texte: { regime: 'technique', usage: 'référence stable de l’entité résolue au registre' } } });
 
+/** Branche d'un DÉCOR : celle de toute entité, et sa POSE dans la case. `calage`, où son corps se tient dans le jeu libre
+ *  de son empreinte, de -1 (ouest, nord) à +1 (est, sud) par axe du monde, absent = centré (`decalageDuCalage`) ; `sur`, l'id du décor qui le porte, son pied sur le dessus de
+ *  celui-ci (`noyau/monde/poseDuDecor.ts`). L'empreinte, donc l'occupation de la grille, n'en dépend pas. */
+const brancheDuDecor = (() => {
+  const branche = brancheDEntite('prop', idDe('prop').optional());
+  return nommerChamps(branche.extend({ calage: pointDuPlanSchema.optional(), sur: z.string().optional() }), { ...metaDesChamps(branche, { exigees: true }), calage: { label: "calage dans la case" }, sur: { label: "posé sur", texte: { regime: "technique" } } });
+})();
+
 type EntityKindId = z.infer<typeof entityKindSchema>;
 
 /** `SceneEntity` (`noyau/monde/scene.ts:98`). `id` = identité STABLE partagée avec le `Combatant` au spawn.
@@ -229,11 +237,13 @@ export const sceneEntitySchema = z.discriminatedUnion('kind', [
     const carriere = refusDuPnjDeCarriere(ent);
     if (carriere) ctx.addIssue({ code: 'custom', path: ['carrieres'], message: carriere });
   }),
-  brancheDEntite('prop', idDe('prop').optional()).superRefine((ent, ctx) => {
+  brancheDuDecor.superRefine((ent, ctx) => {
     // TYPE NOMMÉ — verrou AU PARSE (#877) : `PORTEURS_DU_TYPE` ; sa résolution au registre est celle de la
     // feuille `idDe('prop')`. Une ref absente se DIT ici.
     const absence = porteurAbsent(ent);
     if (absence) ctx.addIssue({ code: 'custom', path: ['ref'], message: absence });
+    for (const axe of ['x', 'y'] as const)
+      if (ent.calage && Math.abs(ent.calage[axe]) > 1) ctx.addIssue({ code: 'custom', path: ['calage', axe], message: `calage ${axe} = ${ent.calage[axe]} — de -1 à +1, la part du jeu libre du décor dans sa case` });
     // CAP D'UN DÉCOR VOLUMIQUE — verrou AU PARSE (#1680 ligne 3) : un décor dont le TYPE porte une
     // recette ne prend qu'un cap CARDINAL : `data/props.types.ts` `capVolumique`. La sous-liste se lit au
     // régime vivant, sinon au registre généré (`porteLeMarqueur`).
