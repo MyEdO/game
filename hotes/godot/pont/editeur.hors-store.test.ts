@@ -625,6 +625,34 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     expect(ligneDe(presser(boutonDe(hallebardier, 'carriere/soldat/retirer')), 'carriere/profil/statut'), 'sa seule carrière retirée, le profil part').toBeUndefined();
   });
 
+  it('une troupe : le formulaire borné pose N copies sur des cases libres, ids neufs, profils tirés, rencontre héritée ; une annulation la défait (#3704)', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    presser(boutonDe(ouverte, 'outil/personnage'));
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const pnj = presser(boutonDe(jouer({ geste: 'relache', point: point(1, 1) }), 'rencontre/neuve'));
+    const original = pnj.surcouche.reperes.find((r) => r.choisi)!;
+    const enc = (pnj.vue.zones['editeur.inspecteur'].find((el) => el.type === 'choix' && el.id.startsWith('rencontre/') && el.valeurs.some((v) => v.id.endsWith('/enrole') && v.presse)) as Choix).id;
+    expect(pnj.vue.zones['editeur.inspecteur'].find((el) => el.id === 'troupe')).toMatchObject({ type: 'formulaire', verbe: 'troupe', champs: [{ type: 'saisieNombre', nom: 'nombre', min: 2, max: 30, pas: 1 }] });
+    for (const args of [[1], [31], [2.5], ['4'], [4, 1]]) expect(erreurDe(appel('editer', { type: 'troupe', args })).categorie, JSON.stringify(args)).toBe('validation');
+
+    const troupe = editionDe(appel('editer', { type: 'troupe', args: [4] }));
+    const avant = pnj.surcouche.reperes;
+    const copies = troupe.surcouche.reperes.filter((r) => !avant.some((a) => a.id === r.id));
+    expect(copies.map((c) => [c.sorte, c.z]), 'quatre personnages neufs, sur la couche de l’original').toEqual(Array(4).fill(['personnage', original.z]));
+    const cases = troupe.surcouche.reperes.map((r) => `${r.x},${r.y}`);
+    expect(new Set(cases).size, 'aucune copie ne chevauche une entité').toBe(cases.length);
+    expect(troupe.surcouche.reperes.find((r) => r.choisi)?.id, 'l’original reste sélectionné').toBe(original.id);
+    jouer({ geste: 'appui', point: point(copies[0].x, copies[0].y) });
+    const copie = jouer({ geste: 'relache', point: point(copies[0].x, copies[0].y) });
+    expect(copie.surcouche.reperes.find((r) => r.choisi)?.id).toBe(copies[0].id);
+    expect([boutonDe(copie, 'carriere/aleatoire').presse, boutonDe(copie, `${enc}/enrole`).presse], 'ses Caractéristiques tirées, enrôlée dans la rencontre de l’original').toEqual([true, true]);
+    const annulee = presser(boutonDe(copie, 'annuler'));
+    expect(annulee.surcouche.reperes.map((r) => r.id), 'un seul cran : l’annulation retire les quatre').toEqual(avant.map((r) => r.id));
+  });
+
   it('un personnage de carrière : un Talent qu’ajoute un Talent choisi est offert aux Niveaux suivants (LDB 10 l.467 ; #773)', () => {
     const { appel } = table();
     const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));

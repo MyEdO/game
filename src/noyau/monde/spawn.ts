@@ -351,9 +351,10 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
   // Compétences (refs `SkillRef` structurées, avances dérivées du profil SAISI) + talents du statbloc.
   const skills = skillsFromBook(sb.skills, chars, `spec:${id}`);
   const talents = talentsFromBook(sb.talents);
-  const rolled = !!extras?.charsRolled || !!sb.randomChars;
+  const aleatoire = !!sb.randomChars || !!extras?.randomChars;
+  const rolled = !!extras?.charsRolled || aleatoire;
   const livre = !rolled && typeof sb.char.B === 'number' ? sb.char.B : undefined;
-  chars = profilDeLIndividu(chars, id, extras?.charsRolled, sb.randomChars);
+  chars = profilDeLIndividu(chars, id, extras?.charsRolled, aleatoire);
   // Traits à modificateurs de PROFIL (Élite, Coriace, Brutal, Rapide… — LDB 85) : un statbloc d'ÉDITEUR
   // part d'un profil standard et AJOUTE les Traits (LDB 77) → tous appliqués en DIRECT via `liveTraits`
   // (collecteur passif). `characteristics` reste le profil de BASE saisi ; `effectiveChar` ajoute les traits.

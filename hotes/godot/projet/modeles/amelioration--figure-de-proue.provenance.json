@@ -1,0 +1,13 @@
+{
+  "model": "amelioration--figure-de-proue.glb",
+  "model_sha256": "2dbb90143210d0e6274dc2efc99a7bc7a179bb6fe9bd48dc6cf38eba219c15c8",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

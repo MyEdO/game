@@ -1,0 +1,13 @@
+{
+  "model": "amelioration--blindage-fer.glb",
+  "model_sha256": "f89f5c97ec5d40d1da487118ff99e2cccb412255cdf2f94203eeaabfa39df993",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

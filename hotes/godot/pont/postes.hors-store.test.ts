@@ -101,7 +101,7 @@ describe('les pièces montées aux postes d’un navire', () => {
   });
 
   it('chaque pièce dont un élément est servi se monte à la position suivante de son bord, si son navire l’offre', () => {
-    servir({ ...COMMITES.manifestes, [NAVIRE]: { ...vehiculeDeTest(NAVIRE), postes: { tribord: TRIBORD, proue: PROUE } }, 'canon-moyen': vehiculeDeTest('canon-moyen') });
+    servir({ [NAVIRE]: { ...vehiculeDeTest(NAVIRE), postes: { tribord: TRIBORD, proue: PROUE } }, 'canon-moyen': vehiculeDeTest('canon-moyen') });
     expect(vueDe(appel('vue')).corps.vehicules[id]).toEqual({
       element: NAVIRE, empreinte: 4, taille: 'empreinte', cap: 'E', palette: {},
       postes: [{ element: 'canon-moyen', bord: 'tribord', position: TRIBORD[0], palette: {} }, { element: 'canon-moyen', bord: 'proue', position: PROUE[0], palette: {} }],
@@ -111,12 +111,12 @@ describe('les pièces montées aux postes d’un navire', () => {
 
   it('la pièce servie d’une Amélioration de sa coque se monte à chacun de ses ancrages', () => {
     const BELIER = [[0, 0.5, 14]] as const;
-    servir({ ...COMMITES.manifestes, [NAVIRE]: { ...vehiculeDeTest(NAVIRE), ancrages: { belier: BELIER } }, 'belier': ameliorationDeTest('belier', 'ancrages') });
+    servir({ [NAVIRE]: { ...vehiculeDeTest(NAVIRE), ancrages: { belier: BELIER } }, 'belier': ameliorationDeTest('belier', 'ancrages') });
     expect(vueDe(appel('vue')).corps.vehicules[id].ameliorations).toEqual([{ element: 'belier', position: BELIER[0] }]);
   });
 
   it('sans élément de sa fiche servi, aucune pièce ne se monte', () => {
-    servir({ ...COMMITES.manifestes, [NAVIRE]: { ...vehiculeDeTest(NAVIRE), postes: { tribord: TRIBORD, proue: PROUE } } });
+    servir({ [NAVIRE]: { ...vehiculeDeTest(NAVIRE), postes: { tribord: TRIBORD, proue: PROUE } } });
     expect(vueDe(appel('vue')).corps.vehicules[id].postes).toEqual([]);
   });
 });

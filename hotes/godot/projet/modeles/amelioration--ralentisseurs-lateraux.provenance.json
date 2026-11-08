@@ -1,0 +1,13 @@
+{
+  "model": "amelioration--ralentisseurs-lateraux.glb",
+  "model_sha256": "e99416618754b6c4ec7279b435efc5bc633645cb34dc601deb6a4f122319f65f",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

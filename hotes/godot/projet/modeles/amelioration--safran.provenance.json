@@ -1,0 +1,13 @@
+{
+  "model": "amelioration--safran.glb",
+  "model_sha256": "d62705a37ee4c668f064f52723eabb83e65d28607a6578acd9fac6dc2ffb0663",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

@@ -1,0 +1,13 @@
+{
+  "model": "vehicule--canon-moyen.glb",
+  "model_sha256": "763a078a07520f89f1e4c2976f7c5d8a5ebcce4c0d955b967e02ff3ea25e9c7f",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}
