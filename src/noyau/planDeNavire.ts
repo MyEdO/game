@@ -21,16 +21,15 @@ import { AMELIORATIONS_DE_LA_CARAQUE, PLAN_DE_LA_CARAQUE } from './planDeLaCaraq
 /** Ce qu'une Amélioration ajoute aux ponts d'un type de navire. */
 export type ApportAuxPonts = Pick<MapSpec, 'terrainRects' | 'relief' | 'walls' | 'entities'>;
 
-/** Les ponts d'un type de navire, et ce que chacune de ses Améliorations (id de `naval-traits`) y ajoute. */
+/** Les ponts d'un type de navire (leur `id` est celui du véhicule), et ce que chacune de ses Améliorations (id de
+ *  `naval-traits`) y ajoute. */
 interface PlanDeNavire {
   ponts: MapSpec;
   ameliorations: Readonly<Record<string, ApportAuxPonts>>;
 }
 
-/** Les plans de chaque type de navire qui en a, par id de véhicule. */
-const PLANS_DE_NAVIRE: Readonly<Record<string, PlanDeNavire>> = {
-  caraque: { ponts: PLAN_DE_LA_CARAQUE, ameliorations: AMELIORATIONS_DE_LA_CARAQUE },
-};
+/** Les plans des types de navire qui en ont. */
+const PLANS_DE_NAVIRE: readonly PlanDeNavire[] = [{ ponts: PLAN_DE_LA_CARAQUE, ameliorations: AMELIORATIONS_DE_LA_CARAQUE }];
 
 /** Un navire posé : son type (`ref`, id de véhicule), l'id de la pose (préfixe de ses pièces et décors), la case
  *  hôte du coin nord-ouest de son emprise, son cap (où pointe la proue), l'étage hôte de son pont le plus bas, le
@@ -49,7 +48,7 @@ export interface PoseDeNavire {
 /** Les ponts du type `ref` avec ce qu'y ajoutent les Améliorations `upgrades` ; une Amélioration qui ne change
  *  rien à bord (Bélier, Lissage…) n'y ajoute rien. */
 export function pontsDuNavire(ref: string, upgrades: readonly NavalTraitRef[]): MapSpec {
-  const plan = garanti(PLANS_DE_NAVIRE[ref], ref, 'plan de navire');
+  const plan = garanti(PLANS_DE_NAVIRE.find((p) => p.ponts.id === ref), ref, 'plan de navire');
   return upgrades.reduce<MapSpec>((ponts, { id }) => {
     garanti(findNavalTrait(id), id, 'Amélioration de navire');
     const apport = plan.ameliorations[id];
