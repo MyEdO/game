@@ -9,7 +9,7 @@ import { recordTurn, DIALOGUE_HISTORY_CAP, type DialogueTurn } from './dialogueH
 import { speakerEntity, type Dialogue, type SceneEntity } from './scene';
 import { addEntity } from '../sceneEdit';
 import { nextEntityId } from '../../lib/entityId';
-import { creatureLabel } from '../../data';
+import { ficheDEntite } from './sceneNpc';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { createHero } from '../../engine/character';
 import { testScene } from '../../scenes/test-fixture';
@@ -112,14 +112,15 @@ describe('dialogue.reponse — archivage (#718)', () => {
     const base = testScene();
     const id = nextEntityId('personnage', base.entities.map((e) => e.id));
     const pose = { scene: addEntity(base, { id, kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 } }), id };
-    expect(pose.scene.entities.find((e) => e.id === pose.id)).not.toHaveProperty('label');
+    const ent = pose.scene.entities.find((e) => e.id === pose.id)!;
+    expect(ent).not.toHaveProperty('label');
     banc.setState({
       party: [hero()],
       scene: pose.scene,
       dialogue: { dialogue: { ...makeDialogue(), nodes: makeDialogue().nodes.map(({ speakerId: _s, ...n }) => n) }, nodeId: 'n1', speakerId: pose.id, session: 3 },
     });
     banc.getState().fenetreChoisir('dialogue', 'reponse', 'salut');
-    expect(banc.getState().dialogueHistory[0].speaker).toBe(creatureLabel('humain'));
+    expect(banc.getState().dialogueHistory[0].speaker).toBe(ficheDEntite(ent, () => undefined).label);
   });
 
   it('deux choix successifs archivent DEUX tours distincts', () => {

@@ -454,6 +454,14 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   le +5 par Niveau, un Talent par Niveau, les dotations matérialisées en objets réels. L'inventaire d'auteur s'y ajoute,
   et ce que l'auteur fait porter ôte la dotation qui chevauche. Ce que l'auteur laisse libre est tiré de la graine,
   l'id de l'entité. Ces champs s'éditent dans la section « Carrières » de l'inspecteur Godot (`src/hote/editeur.ts`).
+  Au spawn, le PNJ de carrière qui ne porte pas d'argent tire sa bourse (`argentDuPnj`, `EDO 11 l.42-44`) : un jet de
+  Gagner de l'argent à son Statut (`gagnerDeLArgent`, `LDB 08 l.105-118`), à la graine de son id.
+- **PNJ anonyme (#3712).** Un personnage sans `label`, sans `presetId` ni `statblock`, d'une fiche du bestiaire qui n'est
+  pas un individu nommé (`named`) et dont l'espèce (`appearance.species`, sinon celle de la fiche) est d'une race jouable,
+  porte un nom tiré de sa race et de son sexe (`appearance.sex`, sinon celui de la fiche, sinon masculin), et son âge, sa
+  taille, ses yeux et ses cheveux (`tirerLesDetails`, `LDB 05 l.701-768`), à la graine de son id (`nomDEntite`,
+  `ficheDEntite`, `src/noyau/monde/sceneNpc.ts`). Un `label` d'auteur prime. Une troupe (`poserUneTroupe`) donne donc des
+  noms et des visages différents.
 - **Prose adressée : forme dépôt, forme servie.** Sur le disque, un nœud adressé ne porte que `descRef` ;
   le plugin `wfrp:prose-source` (`scripts/source/prose-source-plugin.mjs`) matérialise son `desc` dans le
   module servi, pour tout document de `RACINES_PROSE` (catalogues ET projets livrés). `parseProject`

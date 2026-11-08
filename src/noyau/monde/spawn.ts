@@ -20,7 +20,7 @@ import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { apparencesObjetsDe, contexteDeNaissanceDObjet, deciderApparencesDesArmes, equipConflicts, hydratePoste, loadWeapon, objetsDeLInventaire, recomputeLoadout } from '../../engine/items';
-import { porterAuParcours, type ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
+import { argentDuPnj, porterAuParcours, type ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import { blessuresReconciliees, blessuresPosees } from '../../engine/characteristics';
 import { indiceSurLeProfil } from '../../engine/formule';
 import { resizeBySteps, SIZE_ORDER, SizeCategory, sizeFromTraits } from '../../engine/size';
@@ -477,6 +477,7 @@ export function spawnEnemy(
   // Tenue d'auteur (id) → `Combatant.career`, en combat comme en exploration.
   if (a?.tenue) c.career = a.tenue;
   if (c.items?.length || Object.keys(opts?.inventaire ?? {}).length) equiperDeLInventaire(c, opts?.inventaire ?? {});
+  if (porteur.parcours) argentDuPnj(c);
   deciderApparencesDesArmes(findTrappingById, c.weapons, c.appearanceOverride, c.creatureId, c.items);
   // Arme à distance CHARGÉE au spawn (miroir du héros dans lancerLeCombat) — LDB 62 l.335 : le `loaded` ne gate
   // que les armes à Recharge, un tireur fraîchement engagé peut donc tirer au 1er Round (pas de recharge à vide).

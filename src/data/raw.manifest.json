@@ -18,6 +18,12 @@
     "bloque": "topic documentaire (pointeur vers le catalogue creatures.json), aucune règle à implémenter"
   },
   {
+    "id": "4e/bestiaire#l-argent-des-pnj-edo",
+    "type": "raw.manifest",
+    "label": "L'argent des PNJ (EDO)",
+    "bloque": "`careerLevels.json` écrit en texte l'argent d'une dotation (« Pistoles d'argent » du Marchand 1, « 50 pistoles d'argent » du Colporteur 4, EDO 11 l.44) : aucun objet ne le porte, `argentDuPnj` tire donc la bourse de ce PNJ"
+  },
+  {
     "id": "4e/magie#seconde-vue",
     "type": "raw.manifest",
     "label": "Seconde Vue",

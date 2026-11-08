@@ -3,7 +3,7 @@
  * plusieurs carrières. EDO 11 l.17-21 ; arbitrages R1-R4 au ticket #773 (2026-11-08). L'auteur choisit les Talents,
  * les Compétences des emplacements à choix et les dotations à choix ; ce qu'il laisse se tire sur une graine stable,
  * l'id du porteur. Une Compétence ou un Talent qu'un Talent ajoute aux carrières (LDB 10 l.70, l.467, l.745, l.891)
- * est de carrière dès le Niveau où ce Talent est pris : arbitrage du 2026-11-08 au ticket #773.
+ * est de carrière dès le Niveau où ce Talent est pris : arbitrage du 2026-11-08 au ticket #773. Son argent : EDO 11 l.42-44.
  */
 import type { Combatant } from './types';
 import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
@@ -15,6 +15,9 @@ import { blessuresReconciliees } from './characteristics';
 import { buildInventory, contexteDeNaissanceDObjet } from './items';
 import { dotationsDuPnj, emplacementsDeDotation, resolveTrappingChoices, valeursDeLEmplacement, type ChoixDeDotation } from './trappingChoices';
 import { hashSeed, makeRNG, type RNG } from './dice';
+import { gagnerDeLArgent } from './activities';
+import { bourseOf, ensureBourseInstance } from './bourse';
+import { toBrass } from './money';
 
 /** Le parcours d'un PNJ de carrière, tel que l'auteur l'écrit (`SceneEntity`). */
 export interface ParcoursDeCarriere {
@@ -223,4 +226,12 @@ export function porterAuParcours(c: Combatant, p: ParcoursDeCarriere): void {
   let n = 0;
   c.items = buildInventory(resolveTrappingChoices(dotations, choixCompletes(dotations, p.dotationsDeCarriere ?? {}, rngDotations)), rngDotations, () => `${c.id}-dotation-${n++}`, contexteDeNaissanceDObjet(c));
   c.wounds = blessuresReconciliees(c);
+}
+
+/** L'argent du PNJ `c` qui n'en porte pas : un jet de Gagner de l'argent à son Statut (`gagnerDeLArgent`), tiré sur
+ *  la graine de son id, dans sa Bourse. EDO 11 l.42-44. Mute `c`. */
+export function argentDuPnj(c: Combatant): void {
+  if (toBrass(bourseOf(c)) > 0) return;
+  const bourse = ensureBourseInstance(c, () => `${c.id}-bourse`);
+  if (bourse) bourse.money = gagnerDeLArgent(c, makeRNG(hashSeed(`argent:${c.id}`)));
 }

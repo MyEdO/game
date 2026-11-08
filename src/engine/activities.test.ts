@@ -12,11 +12,13 @@
  *    × Standing, Or 1 CO × Standing ; échec → moitié ; Échec Stupéfiant (−6) → rien.
  */
 import { idsDeTest } from './idsDeTest.testkit';
+import { combattantDeTest } from './combattantDeTest.testkit';
+import { porterAuParcours } from './pnjDeCarriere';
 import { describe, it, expect } from 'vitest';
 import type { RNG } from './dice';
 import { toBrass } from './money';
 import { AVAILABILITIES } from './types';
-import { craftTarget, apprenticeshipTutorCost, entrainementTutorCost, entrainementTutorRange, entrainementOptions, bankWithdrawOutcome, seuilDePerteBancaire, statusIncome, ACTIVITIES, activitiesFor, activityById,
+import { craftTarget, apprenticeshipTutorCost, entrainementTutorCost, entrainementTutorRange, entrainementOptions, bankWithdrawOutcome, seuilDePerteBancaire, statusIncome, gagnerDeLArgent, ACTIVITIES, activitiesFor, activityById,
   aggregateActivityOutcomes, STAGE_OUTCOME_AGG, type TravelActivityResult,
   defaultTravelRole, stageAssignmentFromRoles, matchOutcomes, activityAvailableAt } from './activities';
 import { byId } from '../data';
@@ -470,5 +472,24 @@ describe('entrainementOptions — Compétences/Caractéristiques HORS carrière 
     expect(advanced!.tutorMaxBrass).toBe(20);
     const base = skillOpts.find((o) => !o.advanced);
     expect(base!.tutorMaxBrass).toBe(10);
+  });
+});
+
+describe('gagnerDeLArgent — le Test Accessible de la Compétence qui Gagne de l’argent, puis la somme du Statut (LDB 08 l.110-119)', () => {
+  const doktor = () => {
+    const c = combattantDeTest({ id: 'doktor' });
+    porterAuParcours(c, { carrieres: { medecin: 3 } }); // Argent 5, EDO 11 l.27
+    return c;
+  };
+  const cinqD10 = [3, 3, 3, 3, 3];
+  it('un succès gagne la somme entière : 5d10 pistoles d’argent à Argent 5', () => {
+    expect(gagnerDeLArgent(doktor(), desEnSuite([1, ...cinqD10]))).toEqual({ gold: 0, silver: 15, brass: 0 });
+  });
+  it('un échec n’en gagne que la moitié', () => {
+    expect(toBrass(gagnerDeLArgent(doktor(), desEnSuite([99, ...cinqD10])))).toBe((15 * 12) / 2);
+  });
+  it('un Échec Stupéfiant (-6) ne gagne rien', () => {
+    const sansAugmentations = combattantDeTest({ id: 'doktor', career: 'medecin', careerLevel: 3, characteristics: { 'force-mentale': 10 } }); // Calme 10 + 20 : 100 fait -7 DR
+    expect(toBrass(gagnerDeLArgent(sansAugmentations, desEnSuite([100, ...cinqD10])))).toBe(0);
   });
 });

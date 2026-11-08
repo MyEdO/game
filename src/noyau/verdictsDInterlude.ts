@@ -3,7 +3,7 @@
  * `noyau/favorFlow.ts`) et l'écran d'interlude les lisent, sans que l'un importe l'autre.
  * Le geste applique le verdict en tête (`refuseSi`) ; l'écran le lit sans le recalculer.
  */
-import { advancementBaseId, findCareerById, findSpellById, findTalentById, findTrappingById, levelsForCareer, libelleOuAbsence, refLabel } from '../data';
+import { findCareerById, findSpellById, findTalentById, findTrappingById, libelleOuAbsence, refLabel } from '../data';
 import { interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
 import { t, type MsgKey } from '../i18n';
 import type { IdDeDepot, IdDeSort, IdDeTalent, IdDeTraitPsyPorte, IdDObjet } from './designations';
@@ -23,7 +23,7 @@ import { identiteDeCiblage, refDeCible, type RefDeCible } from '../engine/psych/
 import { actorStatus } from '../engine/social';
 import { fromBrass, toBrass, toMoney, priceToMoney, formatMoney } from '../engine/money';
 import {
-  ACTIVITIES, RESOLVER_OWNER, activityAvailableAt, craftSpecOf, entrainementOptions, learnableTalents, metierOf, orderBlockOf, statusIncomeMax, travelActivitySpec,
+  ACTIVITIES, RESOLVER_OWNER, activityAvailableAt, craftSpecOf, entrainementOptions, incomeSkillOf, learnableTalents, metierOf, orderBlockOf, statusIncomeMax, travelActivitySpec,
   type ActivityDef, type EntrainementOption, type LearnOption, type ResolverOf, type TravelActivitySpec, type VoieDActivite,
 } from '../engine/activities';
 import { outOfTradeReason } from '../engine/disponibilite';
@@ -432,14 +432,6 @@ export function refusDeConfirmerLActivite(s: EtatDInterlude, pa: ConfirmationDAc
     ?? (opt && pa.success ? refusDePx(h, opt.xpCost) : null)
     ?? (pa.tutorBrass ? refusDeBourse(h, fromBrass(pa.tutorBrass), 'if.tuteurKo') : null)
     ?? (pa.costBrass ? refusDeBourse(h, fromBrass(pa.costBrass), 'if.reputationPurseKo') : null);
-}
-
-/** Compétence de Carrière qui sert à Gagner de l'argent (dette `4e/activites#revenus`). LDB 07 l.82, LDB 08 l.110 */
-export function incomeSkillOf(h: Combatant): string {
-  const lvl1 = levelsForCareer(h.career ?? '')[0];
-  const ids = (lvl1?.skills ?? []).map(advancementBaseId).filter((x): x is string => !!x); // AdvancementRef → skillId
-  const owned = ids.find((id) => possesses(h, { id }));
-  return owned ?? ids[0] ?? 'athletisme';
 }
 
 /** Pré-jet d'une Activité d'interlude : la spec de Test de `travelActivitySpec`. */

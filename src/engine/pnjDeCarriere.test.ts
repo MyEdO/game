@@ -3,12 +3,14 @@
  * parcours sur les carrières réelles du Livre de base.
  */
 import { describe, it, expect } from 'vitest';
-import { carriereActuelle, parcoursRetouche, porterAuParcours, refusDuParcours, talentsDuParcours, type ParcoursDeCarriere } from './pnjDeCarriere';
+import { argentDuPnj, carriereActuelle, parcoursRetouche, porterAuParcours, refusDuParcours, talentsDuParcours, type ParcoursDeCarriere } from './pnjDeCarriere';
 import { combattantDeTest } from './combattantDeTest.testkit';
 import { actorStatus } from './social';
 import { adresseDeCreation } from './adresseDeCreation';
 import { levelsForCareer } from '../data';
 import type { Combatant } from './types';
+import { bourseOf, bourseInstanceOf, setBourseBrass } from './bourse';
+import { toBrass } from './money';
 
 const porte = (p: ParcoursDeCarriere, id = 'pnj'): Combatant => {
   const c = combattantDeTest({ id });
@@ -136,5 +138,23 @@ describe('refusDuParcours et parcoursRetouche', () => {
   it('retouché, le parcours perd ce que ses Niveaux n’offrent plus', () => {
     const p: ParcoursDeCarriere = { carrieres: { medecin: 1 }, talentsDeCarriere: { medecin: [{ id: 'chirurgie' }, { id: 'lire-ecrire' }], soldat: [{ id: 'guerrier-ne' }] } };
     expect(parcoursRetouche(p)).toEqual({ carrieres: { medecin: 1 }, talentsDeCarriere: { medecin: [{ id: 'lire-ecrire' }] }, competencesDeCarriere: undefined, dotationsDeCarriere: undefined });
+  });
+});
+
+describe('argentDuPnj — l’argent du PNJ qui n’en porte pas, dans sa Bourse (EDO 11 l.42-44)', () => {
+  it('le Doktor (Argent 5) tire sa Bourse à la graine de son id : la même à chaque apparition', () => {
+    const tire = () => {
+      const c = porte({ carrieres: { medecin: 3 } }, 'langstrasse');
+      argentDuPnj(c);
+      return bourseInstanceOf(c);
+    };
+    expect(toBrass(tire()!.money!)).toBeGreaterThan(0);
+    expect(tire()).toEqual(tire());
+  });
+  it('le PNJ qui porte déjà de l’argent ignore le jet', () => {
+    const c = porte({ carrieres: { medecin: 3 } }, 'langstrasse');
+    setBourseBrass(c, 7, () => 'langstrasse-bourse');
+    argentDuPnj(c);
+    expect([toBrass(bourseOf(c)), c.items!.filter((i) => i.trappingId === 'bourse').length]).toEqual([7, 1]);
   });
 });
