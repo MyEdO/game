@@ -1,16 +1,17 @@
 /**
  * LE MANIFESTE D'UN ÉLÉMENT (#2972, schéma 3) : la pièce sémantique qu'un GLB dessine, et sa validation contre le
  * manifeste de la base pour laquelle il se construit (`manifesteDeBase.ts`). La catégorie fixe, par discriminant, la forme
- * de `cle` et de `liaison`, la présence de `couche`, `couvre`, `chaines`, `emplacements` et `silhouettes`, et si
+ * de `cle` et de `liaison`, la présence de `couche`, `couvre`, `chaines`, `emplacements`, `silhouettes` et `postes`, et si
  * l'élément a une base (`REGLES_DES_CATEGORIES`) : sans base (décor, véhicule, #2987), il ne nomme aucune base et ses
  * meshes restent à la racine de sa scène ou sous ses propres nœuds ; une clé bien formée se résout contre la donnée
  * du jeu (`ecartsDeCleDElement`, surface du noyau). Ses surfaces (`surfaces.ts`) admettent le blason.
  * Un vêtement ou une armure offre des `emplacements`, ids de la garde-robe (`estEmplacement`, #3116) ; un accessoire
  * dont l'emplacement n'est offert ni par sa base ni par une pièce de cette base est rapporté, ni refusé ni servi
- * (`emplacementsNonOfferts`, `indexerModeles`).
+ * (`emplacementsNonOfferts`, `indexerModeles`). Un véhicule offre des `postes` : par bord (`FIRE_ARCS`), les positions de
+ * sa scène où se montent les pièces des postes de ce bord (#2987).
  */
 import { estObjet } from '../../../src/lib/objet.mjs';
-import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, type CodeDEcartDeCle } from '../../../src/noyau/index.ts';
+import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, FIRE_ARCS, type CodeDEcartDeCle, type FireArc } from '../../../src/noyau/index.ts';
 import { ecartsAuGlb, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
 import { estListeDeChaines, estTriplet, type Attache } from './attache.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';
@@ -38,13 +39,16 @@ interface RegleDeCategorie {
   readonly chaines: boolean;
   readonly emplacements: boolean;
   readonly silhouettes: boolean;
+  /** L'élément offre des postes : par bord, les positions de sa scène, en mètres, où se montent les pièces des postes de ce
+   *  bord, chacune tournée vers lui. */
+  readonly postes: boolean;
   /** L'élément se construit pour une base : son manifeste la nomme, il se valide contre elle et ses meshes rigides pendent
    *  à ses os. Sans base (décor, véhicule, #2987), ses meshes restent à la racine de sa scène ou sous ses propres nœuds. */
   readonly base: boolean;
 }
 
-const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, base: true } as const;
-const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, base: true } as const;
+const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, postes: false, base: true } as const;
+const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, postes: false, base: true } as const;
 
 /** Les règles de chaque catégorie, seule source du type `ManifesteDElement` et de `validerElement`. */
 export const REGLES_DES_CATEGORIES = {
@@ -57,7 +61,7 @@ export const REGLES_DES_CATEGORIES = {
   rigide: { ...RIGIDE, cle: ['apparence'] },
   trait: { ...SKINNE, cle: ['trait'] },
   decor: { ...RIGIDE, cle: ['prop'], base: false },
-  vehicule: { ...RIGIDE, cle: ['definition'], base: false },
+  vehicule: { ...RIGIDE, cle: ['definition'], postes: true, base: false },
 } as const satisfies Record<string, RegleDeCategorie>;
 
 type Regles = typeof REGLES_DES_CATEGORIES;
@@ -66,6 +70,7 @@ export const CATEGORIES_D_ELEMENT = Object.keys(REGLES_DES_CATEGORIES) as readon
 
 type Rien = Record<never, never>;
 type Liste = readonly string[];
+type Triplet = readonly [number, number, number];
 
 type Selon<P, Requis, Optionnel> = P extends 'requis' ? Requis : P extends 'optionnel' ? Optionnel : Rien;
 
@@ -74,7 +79,8 @@ type ChampsDe<C extends CategorieDElement> = (Regles[C]['base'] extends true ? {
   & Selon<Regles[C]['couvre'], { readonly couvre: Liste }, { readonly couvre?: Liste }>
   & (Regles[C]['chaines'] extends true ? { readonly chaines?: Liste } : Rien)
   & (Regles[C]['emplacements'] extends true ? { readonly emplacements?: Readonly<Record<string, Attache>> } : Rien)
-  & (Regles[C]['silhouettes'] extends true ? { readonly silhouettes?: Liste } : Rien);
+  & (Regles[C]['silhouettes'] extends true ? { readonly silhouettes?: Liste } : Rien)
+  & (Regles[C]['postes'] extends true ? { readonly postes?: Readonly<Partial<Record<FireArc, readonly Triplet[]>>> } : Rien);
 
 export type ManifesteDElement = {
   [C in CategorieDElement]: {
@@ -105,6 +111,7 @@ export type CodeDEcartDElement =
   | 'emplacement-sur-os-absent'
   | 'emplacement-inconnu'
   | 'silhouette-absente'
+  | 'bord-inconnu'
   | CodeDEcartDeSurface
   | 'glb-different'
   | 'rigide-sans-mesh'
@@ -142,6 +149,7 @@ export function validerElement(brut: unknown, base: BaseDUnElement | null, octet
   const optionnels = [
     ...(regle.base ? ['base'] : []), ...(regle.couches ? ['couche'] : []), ...(regle.couvre === 'interdit' ? [] : ['couvre']),
     ...(regle.chaines ? ['chaines'] : []), ...(regle.emplacements ? ['emplacements'] : []), ...(regle.silhouettes ? ['silhouettes'] : []),
+    ...(regle.postes ? ['postes'] : []),
   ];
   const admis = new Set<string>([...CHAMPS_COMMUNS, ...optionnels]);
   for (const champ of Object.keys(brut)) if (!admis.has(champ)) refus('champ-hors-categorie', champ, `un élément \`${categorie}\` ne porte pas \`${champ}\``);
@@ -197,6 +205,14 @@ export function validerElement(brut: unknown, base: BaseDUnElement | null, octet
       if (!(estObjet(e) && typeof e.os === 'string' && estTriplet(e.position) && estTriplet(e.rotation) && Object.keys(e).length === 3)) refus('forme', `emplacements.${id}`, '`os` chaîne, `position` et `rotation` triplets de nombres attendus');
       else if (!osDeBase.includes(e.os)) refus('emplacement-sur-os-absent', `emplacements.${id}.os`, `${e.os} n’est pas un os de la base \`${nomDeBase}\``);
       if (!estEmplacement(id)) refus('emplacement-inconnu', `emplacements.${id}`, `${id} n’est aucun emplacement de \`garde-robe.json\``);
+    }
+  }
+
+  if (regle.postes && brut.postes !== undefined) {
+    if (!estObjet(brut.postes)) refus('forme', 'postes', 'objet attendu');
+    else for (const [bord, positions] of Object.entries(brut.postes)) {
+      if (!(FIRE_ARCS as readonly string[]).includes(bord)) refus('bord-inconnu', `postes.${bord}`, `${bord} : ${liste(FIRE_ARCS)} attendu`);
+      else if (!(Array.isArray(positions) && positions.every(estTriplet))) refus('forme', `postes.${bord}`, 'liste de triplets de nombres attendue');
     }
   }
 

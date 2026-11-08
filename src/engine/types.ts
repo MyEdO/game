@@ -384,10 +384,12 @@ export interface QualityInstance {
   value?: number;
 }
 
+/** Les côtés de montage d'une pièce d'artillerie sur un navire (`FireArc`), dans l'ordre horaire depuis la proue. */
+export const FIRE_ARCS = ['proue', 'tribord', 'poupe', 'babord'] as const;
 /** Côté de montage d'une pièce d'artillerie sur un navire (MDG 12-13), relatif au cap du bateau —
  *  pilote l'arc de tir. La LOGIQUE d'arc vit en `noyau/monde/fireArc.ts` (elle dépend du cap Dir8) ; ce TYPE pur
  *  vit ici pour que `Weapon`/`ItemInstance` le portent sans dépendance engine→state. */
-export type FireArc = 'proue' | 'tribord' | 'poupe' | 'babord';
+export type FireArc = (typeof FIRE_ARCS)[number];
 
 export interface Weapon extends ProprietesIntrinsequesDArme {
   label: string;

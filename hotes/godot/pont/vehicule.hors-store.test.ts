@@ -1,7 +1,7 @@
 /**
  * LE VÉHICULE D'UN COMBATTANT (#2987 ; `CONTRAT.md`, section « Corps d'un combattant ») : une coque ou un engin se
- * projette en véhicule, sa fiche et son empreinte ; la vue lui donne l'élément `vehicule` servi de sa fiche, sans base,
- * quelles que soient les bases servies.
+ * projette en véhicule, sa fiche, son empreinte, son cap et les pièces de ses postes à un bord ; la vue lui donne l'élément
+ * `vehicule` servi de sa fiche, sans base, quelles que soient les bases servies.
  */
 import { beforeAll, describe, expect, it } from 'vitest';
 import { baseDeTest, vehiculeDeTest } from '../asset/modeles.testkit.ts';
@@ -20,8 +20,8 @@ describe('le véhicule des combattants dans la vue', () => {
     barge = vue.projection.combat!.voisins.liste.find((c) => c.vehicule?.definition === 'barge-fluviale')!;
   });
 
-  it('une coque se projette en véhicule, sa fiche et son empreinte, sans portée', () => {
-    expect([barge.vehicule, barge.portee]).toEqual([{ definition: 'barge-fluviale', empreinte: 2 }, null]);
+  it('une coque se projette en véhicule, sa fiche, son empreinte, son cap et ses postes, sans portée', () => {
+    expect([barge.vehicule, barge.portee]).toEqual([{ definition: 'barge-fluviale', empreinte: 2, cap: 'E', postes: [] }, null]);
   });
 
   it('sans élément de sa fiche servi, aucun véhicule ; servi, son élément et son empreinte, même sous refus de base', () => {
@@ -30,6 +30,6 @@ describe('le véhicule des combattants dans la vue', () => {
     servir({ ...COMMITES.manifestes, 'barge-fluviale': vehiculeDeTest('barge-fluviale'), nain: baseDeTest('nain') });
     const { corps } = vueDe(appel('vue'));
     expect(corps.refus).toMatch(/^\[base-ambigue\] /);
-    expect(corps.vehicules).toEqual({ [barge.id]: { element: 'barge-fluviale', empreinte: 2 } });
+    expect(corps.vehicules).toEqual({ [barge.id]: { element: 'barge-fluviale', empreinte: 2, cap: 'E', postes: [] } });
   });
 });
