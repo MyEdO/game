@@ -770,9 +770,9 @@ describe('careerLevels — Schéma de Progression : cardinalité 3/1/1/1 et disj
   it('chaque Carrière : niveau 1 = 3 caractéristiques, niveaux 2/3/4 = 1 chacun, aucun doublon', () => {
     const byCareer = new Map<string, typeof careerLevels>();
     for (const l of careerLevels) {
-      const bucket = byCareer.get(l.career) ?? [];
+      const bucket = byCareer.get(l.career.id) ?? [];
       bucket.push(l);
-      byCareer.set(l.career, bucket);
+      byCareer.set(l.career.id, bucket);
     }
     const offenders: string[] = [];
     for (const [career, levels] of byCareer) {

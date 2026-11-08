@@ -50,7 +50,7 @@ describe('Classe Côtier — swap Riverains ↔ Côtiers (MDG 09 l.9, table l.21
     const ldb = poolFor('humains-reiklander', false);
     for (const r of [60, 65, 71, 73]) {
       const ids = rollCareer(ldb, humain, fixed(r))!.ids;
-      for (const id of ids) expect(findCareerById(id)!.class).toBe('riverains');
+      for (const id of ids) expect(findCareerById(id)!.class.id).toBe('riverains');
     }
   });
 
@@ -67,7 +67,7 @@ describe('Classe Côtier — swap Riverains ↔ Côtiers (MDG 09 l.9, table l.21
       const pool = poolFor('humains-reiklander', swap);
       for (let r = 1; r <= 100; r++) {
         const ids = rollCareer(pool, humain, fixed(r))!.ids;
-        const classes = new Set(ids.map((id) => findCareerById(id)!.class));
+        const classes = new Set(ids.map((id) => findCareerById(id)!.class.id));
         expect(classes.has('riverains') && classes.has('cotiers'), `d100=${r} swap=${swap}`).toBe(false);
       }
     }
@@ -77,7 +77,7 @@ describe('Classe Côtier — swap Riverains ↔ Côtiers (MDG 09 l.9, table l.21
     expect(coastalSwapAvailable(draft('humains-nordland', false))).toBe(false);
     // même cochée, la bascule ne troue pas la table : la colonne Nordland garde ses Riverains
     const table = poolFor('humains-nordland', true).filter((c) => c.rand?.nordland != null);
-    expect(table.some((c) => c.class === 'riverains')).toBe(true);
+    expect(table.some((c) => c.class.id === 'riverains')).toBe(true);
   });
 });
 
@@ -113,10 +113,10 @@ describe('Carrières norses (MDG 07 l.269-303) — colonne Norse + refCareer des
     const table = careers.filter((c) => c.rand?.norse != null);
     const bounds = [...new Set(table.map((c) => c.rand.norse as number))].sort((a, b) => a - b);
     expect(bounds[bounds.length - 1]).toBe(100);
-    for (const c of table.filter((x) => x.class === 'cotiers'))
+    for (const c of table.filter((x) => x.class.id === 'cotiers'))
       expect(['marin-cotier', 'naufrageur-cotier', 'nautonier-cotier', 'ratisseur-de-plages']).toContain(c.id);
     // aucune carrière Riverains dans la table norse (classe absente du tableau MDG 07)
-    expect(table.some((c) => c.class === 'riverains')).toBe(false);
+    expect(table.some((c) => c.class.id === 'riverains')).toBe(false);
   });
 });
 

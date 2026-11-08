@@ -28,10 +28,10 @@ export interface PregenDef extends Pick<ChoixDeCreation, ChoixDesPretires> {
   id: string;
   type: 'pregens';
   label: string;
-  /** `id` STABLE de l'espèce (`SpeciesData.id`). */
-  species: string;
-  /** `id` STABLE de la carrière (`CareerData.id`). */
-  career: string;
+  /** Espèce (`SpeciesData.id`). */
+  species: { id: string };
+  /** Carrière (`CareerData.id`). */
+  career: { id: string };
   motivation: string;
   /** Ambitions à court / long terme (LDB 05 l.730-736) — flavor APP-OWNED du pré-tiré, atterrit dans `details`. */
   ambitionShort?: string;
@@ -51,8 +51,8 @@ function buildPregenHero(d: PregenDef): Combatant {
   const authoredIds = choix.pettySpells ?? [];
   const hero = createHero({
     ...choix,
-    speciesId: species,
-    careerId: career,
+    speciesId: species.id,
+    careerId: career.id,
     label,
     id: `pregen-${d.seed}`,
     details: { age, ambitionShort, ambitionLong },
@@ -76,8 +76,8 @@ function buildPregenHero(d: PregenDef): Combatant {
  *  `fluxDeCreation(seed, 'bourse')`, que le créateur). */
 export function pretireAvecRichesse(d: PregenDef): { id: string; hero: Combatant; wealth: Money } {
   const hero = buildPregenHero(d);
-  const level = levelsForCareer(d.career).find((l) => l.level === 1);
-  if (!level) throw new Error(`Pré-tiré « ${d.label} » : aucun Niveau 1 pour la carrière « ${d.career} ».`);
+  const level = levelsForCareer(d.career.id).find((l) => l.level === 1);
+  if (!level) throw new Error(`Pré-tiré « ${d.label} » : aucun Niveau 1 pour la carrière « ${d.career.id} ».`);
   return { id: d.id, hero, wealth: rollInitialWealth(statutDeDonnee(level.status), fluxDeCreation(d.seed, 'bourse')).montant };
 }
 

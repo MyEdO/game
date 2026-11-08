@@ -45,7 +45,7 @@ export interface ContexteDeNaissanceDObjet {
 
 /** Contexte du destinataire au moment de la naissance, sans lecture d’état global. */
 export function contexteDeNaissanceDObjet(porteur: Pick<Combatant, 'species' | 'career'>): ContexteDeNaissanceDObjet {
-  return { espece: porteur.species, classe: findCareerById(porteur.career)?.class };
+  return { espece: porteur.species, classe: findCareerById(porteur.career)?.class.id };
 }
 
 function deciderApparenceALaNaissance(

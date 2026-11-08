@@ -81,7 +81,7 @@ export function groupesDe(c: PorteurDeGroupes): string[] {
   if (c.career) {
     const career = findCareerById(c.career);
     pushAll(career?.grantGroups);
-    pushAll(findClassById(career?.class)?.grantGroups);
+    pushAll(findClassById(career?.class.id)?.grantGroups);
   }
   for (const t of effectiveTalents(c)) {
     const def = findTalentById(t.talentId);

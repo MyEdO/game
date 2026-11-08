@@ -495,7 +495,7 @@ export function everBelongedClasses(h: Pick<Combatant, 'career' | 'careerHistory
   const ids = h.careerHistory ?? (h.career ? [h.career] : []);
   const out = new Set<string>();
   for (const id of ids) {
-    const cls = findCareerById(id)?.class;
+    const cls = findCareerById(id)?.class.id;
     if (cls) out.add(cls);
   }
   return out;
@@ -514,7 +514,7 @@ export function classGatedDifficulty(
   if (!gate) return base;
   const covered = gate.scope === 'ever'
     ? [...gate.classes].some((c) => everBelongedClasses(hero).has(c))
-    : gate.classes.includes(findCareerById(hero.career ?? '')?.class ?? '');
+    : gate.classes.includes(findCareerById(hero.career ?? '')?.class.id ?? '');
   if (covered) return base;
   return easeDifficulty(base, -gate.outsidePenalty);
 }

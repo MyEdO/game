@@ -45,13 +45,13 @@ const hero = (over: Partial<Combatant> = {}): Combatant =>
 // Savoir) — le scénario complet de désignation se joue dessus.
 const C1: CareerLevelData[] = [
   {
-    id: 'C1-1', type: 'careerLevels', label: 'N1', career: 'C1', level: 1,
+    id: 'C1-1', type: 'careerLevels', label: 'N1', career: { id: 'C1' }, level: 1,
     skills: [{ id: 'charme' }, { id: 'savoir', choix: true }],
     talents: [{ id: 'sens-aiguise', choix: true }, { id: 'baratiner' }],
     trappings: [], characteristics: ['force', 'endurance', 'sociabilite'], status: 'Bronze 1',
   },
   {
-    id: 'C1-2', type: 'careerLevels', label: 'N2', career: 'C1', level: 2,
+    id: 'C1-2', type: 'careerLevels', label: 'N2', career: { id: 'C1' }, level: 2,
     skills: [{ id: 'ragot' }, { id: 'savoir', choix: true }],
     talents: [{ id: 'sens-aiguise', choix: true }, { id: 'sociable' }],
     trappings: [], characteristics: ['agilite'], status: 'Bronze 2',
@@ -101,7 +101,7 @@ describe('scénario complet : Sens aiguisé espèce + emplacements « (Au choix)
     const slots1 = talentSlots(C1, 1);
     designateSlot(h, 'C1', slots1[0], 'sens-aiguise', 'ouie', slots1);
     // Carrière C2 (autre carrière, même type de slot) : aucune désignation → tout est libre.
-    const C2: CareerLevelData[] = [{ ...C1[0], id: 'C2-1', career: 'C2' }];
+    const C2: CareerLevelData[] = [{ ...C1[0], id: 'C2-1', career: { id: 'C2' } }];
     const slots = talentSlots(C2, 1);
     const des = designationsFor(h, 'C2');
     expect(des).toEqual({});

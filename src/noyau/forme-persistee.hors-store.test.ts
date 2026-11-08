@@ -158,7 +158,7 @@ describe('forme persistée — ce que le chargement lit', () => {
     const sv = talents.find((t) => t.id === 'savoir-vivre')!;
     expect(specAuCatalogue('talent', sv.id, 'Érudit'), 'valeur PERSISTÉE par un héros de 33').toBe(false);
     expect(specAuCatalogue('talent', sv.id, 'erudits')).toBe(true);
-    const slots = talentSlots(careerLevels.filter((l) => l.career === 'apothicaire'), 1);
+    const slots = talentSlots(careerLevels.filter((l) => l.career.id === 'apothicaire'), 1);
     const slot = slots.find((s) => s.options.some((o) => o.optionId === 'savoir-vivre'))!;
     expect(slotCovers(slot, 'savoir-vivre', 'Érudit')).toBe(false);
     expect(slotCovers(slot, 'savoir-vivre', 'erudits')).toBe(true);
