@@ -62,7 +62,10 @@ depuis les ponts des navires engagés.
 > arrière ; 24 pièces légendées, 6 échelles de trappe) ; tests `noyau/planDeLaCaraque.test.ts`. Les
 > emplacements des pièces d'artillerie vivent au manifeste 3D (`postes`, #3672) : ce sont des indices de RENDU,
 > **pas** des slots fixes — le placement reste LIBRE (par bord + poids vs Contenance, cf. `shipPostes.ts`).
-> ⏳ Reste : scène d'un navire posée par référence au type (#3686 lot 2) + couture du Pont à l'abordage (Phase 8).
+> Une scène pose un navire par référence à son type (`MapSpec.navires`, `noyau/planDeNavire.ts` : `PLANS_DE_NAVIRE`
+> par id de véhicule, `poserLeNavire` à une position, un cap et un étage hôte ; ses pièces prennent l'id de la pose
+> en préfixe) ; scénario de test `a-bord-de-la-caraque`.
+> ⏳ Reste : les Améliorations à bord (#3686 lot 2b) + couture du Pont à l'abordage (Phase 8).
 
 ### Améliorations (MDG ch.12) — modifient PHYSIQUEMENT le navire et son pont
 
@@ -212,7 +215,7 @@ dans l'éditeur, jouables via le menu 🧪.
    Test + **commande HUD « Manœuvrer »** + **init du cap au spawn** (`facing` depuis l'entité authorée) pour que
    l'arc soit réel en jeu.
 7. ⏳ **Fondation bateau-prefab + Améliorations** (§1bis) : ✅ ponts à étages de la caraque
-   (`PLAN_DE_LA_CARAQUE`, compilé par `buildScene` + tests, #3686) ; ✅ premiers effets de Traits/Améliorations (`navalTraits.ts` :
+   (`PLAN_DE_LA_CARAQUE`, compilé par `buildScene` + tests, #3686), posés dans une scène par `MapSpec.navires` ; ✅ premiers effets de Traits/Améliorations (`navalTraits.ts` :
    **Bélier**→`resolveCollision`, **Sabord**→`couvertDuPoste`) ; ⏳ reste des améliorations (Blindage/Lissage/
    Clinfoc/Nid-de-pie/Figure de proue/Vapeur) + catalogue DATA éditable au Codex + `upgrades[]` par instance.
 8. ⏳ **Composition du Pont + abordage** (collision → `engage` → coudre les ponts). **Critiques canon** :
