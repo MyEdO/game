@@ -4,7 +4,7 @@
  * l'arme re-dérivée d'une source garde son uid, que le choix d'arme d'une attaque en attente désigne.
  */
 import { describe, expect, it } from 'vitest';
-import { giveTrappingQualities, newUid, recomputeLoadout } from '../engine/items';
+import { giveTrappingQualities, itemFromTrappingById, newUid, recomputeLoadout } from '../engine/items';
 import { attachMutation } from '../engine/corruption';
 import { makeRNG } from '../engine/dice';
 import { mutationById } from '../data/mutations';
@@ -79,5 +79,18 @@ describe('l’arme re-dérivée garde son uid (#2907)', () => {
     const choisie = c.weapons.find((w) => w.natural)!;
     recomputeLoadout(c);
     expect(pickAttackWeaponList(undefined, c, pregen(PREGEN.tueur), choisie.uid).uid).toBe(choisie.uid);
+  });
+
+  it('l’arme dérivée d’un objet porté (Crochet, LDB 73) a un uid propre, stable, retrouvé après `recomputeLoadout`', () => {
+    const c = pregen(PREGEN.soldat);
+    const crochet = { ...itemFromTrappingById('crochet')!, equipped: true };
+    c.items = [...(c.items ?? []), crochet];
+    recomputeLoadout(c);
+    const derivee = c.weapons.find((w) => w.derivedFromItem === crochet.uid)!;
+    expect(derivee.uid).toBeDefined();
+    expect(derivee.uid).not.toBe(crochet.uid);
+    recomputeLoadout(c);
+    expect(c.weapons.find((w) => w.derivedFromItem === crochet.uid)?.uid).toBe(derivee.uid);
+    expect(pickAttackWeaponList(undefined, c, pregen(PREGEN.tueur), derivee.uid).uid).toBe(derivee.uid);
   });
 });
