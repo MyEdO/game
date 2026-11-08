@@ -15,7 +15,11 @@ import type { NomDIndividu } from '../../engine/psych/ciblage';
 import type { Jeu } from '../etat';
 import { inBattleId } from './combatants';
 import { typeNonNomme } from '../../data/schemas/defs-scenes/scene';
-import { findCreatureById, profilsStandard, refEntiteResolue } from '../../data';
+import { findCreatureById, findSpeciesById, isNamed, profilsStandard, refEntiteResolue } from '../../data';
+import { raceKeySchema, type RaceKey, type Sexe } from '../../data/schemas/grammaire/valeurs';
+import { generateName } from '../../engine/names';
+import { tirerLesDetails } from '../../engine/creation';
+import { hashSeed, makeRNG } from '../../engine/dice';
 
 /** Le porteur de fiche d'une entité et l'apparence qui l'accompagne — preset de PNJ nommé (#671),
  *  statbloc, puis réf, portée à son parcours de carrière s'il en a un (`parcoursDe`, #773), dans cet ordre ;
@@ -31,14 +35,30 @@ function porteurDeFiche(ent: SceneEntity, presetDe: ResolveurDePreset): { porteu
   return undefined;
 }
 
+/** L'individu ANONYME qu'est l'entité `ent` (#3712) : un personnage sans nom d'auteur, ni preset ni statbloc, d'une fiche
+ *  du bestiaire qui n'est pas un individu nommé (`isNamed`) et dont l'espèce, celle de l'auteur sinon celle de la fiche,
+ *  est d'une race (`RaceKey`) ; son sexe, celui de l'auteur sinon celui de la fiche, sinon `M` (#3253). */
+function individuAnonyme(ent: SceneEntity): { race: RaceKey; sexe: Sexe } | undefined {
+  if (ent.kind !== 'personnage' || ent.label || ent.presetId || ent.statblock || ent.ref === undefined) return undefined;
+  const creature = findCreatureById(ent.ref);
+  if (!creature || isNamed(creature)) return undefined;
+  const espece = ent.appearance?.species ?? creature.appearance?.species;
+  const race = findSpeciesById(espece)?.refChar ?? raceKeySchema.safeParse(espece).data;
+  return race && { race, sexe: ent.appearance?.sex ?? creature.appearance?.sex ?? 'M' };
+}
+
 /**
- * Le NOM d'une entité de scène (#1463 S3, #1882) : celui que l'auteur écrit (`label`), sinon celui de sa
- * fiche, dans l'ordre de `porteurDeFiche` (preset, statbloc, réf). `presetDe` résout un preset : le
- * narratif de la partie en jeu, celui du projet édité dans l'éditeur (`presetDuNarratif`).
+ * Le NOM d'une entité de scène (#1463 S3, #1882) : celui que l'auteur écrit (`label`), sinon celui que l'individu
+ * anonyme tire sur la graine de son id (`generateName`, #3712), sinon celui de sa fiche, dans l'ordre de
+ * `porteurDeFiche` (preset, statbloc, réf). `presetDe` résout un preset : le narratif de la partie en jeu, celui du
+ * projet édité dans l'éditeur (`presetDuNarratif`).
  */
 export function nomDEntite(ent: SceneEntity, presetDe: ResolveurDePreset): string | undefined {
   if (ent.label) return ent.label;
   if (ent.kind !== 'personnage') return undefined;
+  const anonyme = individuAnonyme(ent);
+  const tire = anonyme && generateName(anonyme.race, anonyme.sexe, makeRNG(hashSeed(`nom:${ent.id}`)));
+  if (tire) return tire;
   if (ent.presetId) {
     const preset = presetDe(ent.presetId);
     return preset && nomDePreset(preset);
@@ -62,7 +82,8 @@ export function nomDIndividu(etat: EtatDesIndividus): NomDIndividu {
 }
 
 /** La fiche sous le NOM de l'entité (`nomDEntite`) : la fiche donne les valeurs, l'entité le nom —
- *  en combat comme hors combat. */
+ *  en combat comme hors combat. L'individu anonyme y reçoit son âge, sa taille, ses yeux et ses cheveux, tirés sur la
+ *  graine de son id (`tirerLesDetails`, #3712). */
 function fiche(ent: SceneEntity, p: NonNullable<ReturnType<typeof porteurDeFiche>>, presetDe: ResolveurDePreset): Combatant {
   const c = spawnEnemy(p.porteur, ent.id, ent.z ? { ...ent.pos, z: ent.z } : { ...ent.pos }, {
     appearance: p.appearance, inventaire: ent.inventaire,
@@ -74,6 +95,8 @@ function fiche(ent: SceneEntity, p: NonNullable<ReturnType<typeof porteurDeFiche
   });
   const nom = nomDEntite(ent, presetDe);
   if (nom) c.label = nom;
+  const anonyme = individuAnonyme(ent);
+  if (anonyme) c.details = tirerLesDetails(anonyme.race, makeRNG(hashSeed(`details:${ent.id}`)));
   return c;
 }
 
