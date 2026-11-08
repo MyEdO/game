@@ -1177,17 +1177,17 @@ function printBlock(st){
     return '<div class="pnj'+(mm>0.6*283?' wide':'')+'">'+m.innerHTML+'</div>'}
   finally{m.remove()}}
 const printBody=list=>'<style>'+PRINT_CSS+'</style>'+list.map(printBlock).join('');
-/* Le cadre des artefacts claude.ai refuse window.print() (sandbox sans allow-modals) et les onglets ; le Ctrl+P de la page imprime ce cadre, à la hauteur que le document lui a déclarée au dernier redimensionnement. Le document se hausse donc à la zone d'impression dès qu'elle est remplie, et de beforeprint à afterprint ne montre qu'elle : l'encadré affiché, ou la liste du dernier clic sur Imprimer. */
-let printList=null;
+/* Le cadre des artefacts claude.ai refuse window.print() (sandbox sans allow-modals) et les onglets ; l'impression de la page (Ctrl+P, ou Partager puis Imprimer sur téléphone) imprime ce cadre, remonté en haut, à la hauteur que le document lui a déclarée au dernier redimensionnement. Le document se hausse donc à la zone d'impression dès qu'elle est remplie, et de beforeprint à afterprint ne montre qu'elle : l'encadré affiché, ou la liste du dernier clic sur Imprimer. */
+let printList=null,printScroll=0;
 const docEl=document.documentElement;
 const fillPrint=list=>{$('printArea').innerHTML=printBody(list);docEl.style.setProperty('--haut-impression',$('printArea').offsetHeight+'px')};
-addEventListener('beforeprint',()=>{fillPrint(printList||[S]);docEl.classList.add('imprime')});
-addEventListener('afterprint',()=>{docEl.classList.remove('imprime');docEl.style.removeProperty('--haut-impression');$('printArea').innerHTML='';printList=null});
+addEventListener('beforeprint',()=>{fillPrint(printList||[S]);printScroll=scrollY;docEl.classList.add('imprime');scrollTo(0,0)});
+addEventListener('afterprint',()=>{docEl.classList.remove('imprime');docEl.style.removeProperty('--haut-impression');$('printArea').innerHTML='';printList=null;scrollTo(0,printScroll)});
 function printNpcs(list){
   printList=list;fillPrint(list);
   let opened=false;const mark=()=>{opened=true};addEventListener('beforeprint',mark,{once:true});
   try{print()}catch(e){}
-  setTimeout(()=>{removeEventListener('beforeprint',mark);if(!opened)toast('Faites Ctrl+P (⌘P sur Mac) pour imprimer : '+(list.length>1?'seuls les encadrés choisis s\'impriment.':'seul l\'encadré s\'imprime.'))},400)}
+  setTimeout(()=>{removeEventListener('beforeprint',mark);if(!opened)toast((matchMedia('(pointer:coarse)').matches?'Imprimez depuis le navigateur (Partager, puis Imprimer) : ':'Faites Ctrl+P (⌘P sur Mac) pour imprimer : ')+(list.length>1?'seuls les encadrés choisis s\'impriment.':'seul l\'encadré s\'imprime.'))},400)}
 
 /* ---------- copie et sauvegarde ---------- */
 /* Une fenêtre modale passe au premier plan : le message s'affiche dans celle qui est ouverte. */
