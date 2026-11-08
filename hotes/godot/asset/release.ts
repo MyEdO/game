@@ -325,7 +325,7 @@ export function publierAssets(assets: readonly AssetAPublier[], gh: Gh = ghReel)
     appeler(['release', 'create', TAG, '--repo', DEPOT, '--prerelease', '--latest=false', '--title', 'Modèles 3D', '--notes', 'Modèles 3D du projet Godot, nommés par leur SHA-256 (#2948). Chaque fichier est épinglé par la provenance commitée hotes/godot/projet/modeles/<id>.provenance.json.']);
     presents = new Set();
   } else throw new Error(`gh release view ${TAG} : code ${String(vue.status)}\n${vue.stderr.trim()}`);
-  const aVerser = [...new Map(assets.filter((a) => !presents.has(a.nom)).map((a) => [a.nom, a])).values()];
+  const aVerser = assets.filter((a, i) => !presents.has(a.nom) && assets.findIndex((b) => b.nom === a.nom) === i);
   if (!aVerser.length) return [];
   for (const a of aVerser) {
     const empreinte = sha256(readFileSync(a.chemin));

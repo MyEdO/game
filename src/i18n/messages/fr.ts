@@ -603,6 +603,8 @@ export const fr = {
   'ecran.editeur.rencontre.allie': 'Allié',
   'ecran.editeur.rencontre.ia': 'Piloté par l’IA',
   'ecran.editeur.rencontre.neuve': 'Enrôler dans une nouvelle rencontre',
+  'ecran.editeur.troupe': 'Poser une troupe',
+  'ecran.editeur.troupe.nombre': 'Copies',
   'ecran.editeur.zones': 'Zone à tracer',
   'ecran.editeur.zone.room': 'Pièce',
   'ecran.editeur.zone.trigger': 'Déclencheur',
