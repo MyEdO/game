@@ -14,6 +14,13 @@ Ouvrir réellement l'illustration ; décrire ce qui est visible. Si elle manque 
 obtenir la référence avant de prétendre la reproduire. Illustration, contrat, captures et fiches
 de mesures restent hors dépôt. Garder provenance et licences des donneurs.
 
+La provenance cite chaque illustration par sa ligne de l'`INDEX.md` du recueil de référence (id
+de `src/data`, fichier, livre et page), jamais par une copie : les images restent hors dépôt,
+droits de l'éditeur. Chaque mesure se lit sur une illustration ou une donnée du jeu nommée (une
+longueur de `vehicles.json`, une échelle en pixels par mètre relevée sur le profil) ; une mesure
+qu'aucune ne donne est une **hypothèse**, listée comme telle dans la provenance avec sa valeur et
+sa raison, pour que la revue la tranche.
+
 Un élément est construit pour **une base identifiée**, avec son GLB, son manifeste complet haché
 et les preuves de sa porte d'animation L1. Sur l'humanoïde : squelette UAL, corps UBC compatible,
 chaînes et pistes cuites, zones, emplacements, prises, silhouettes et table de gabarit.
@@ -99,6 +106,14 @@ Lire la table exécutable des catégories avant d'écrire le manifeste :
 Chaque surface, quelle que soit la catégorie, nomme le matériau du GLB et l'emplacement de palette
 dont il prend la couleur (`{ "nom", "palette" }`, `SLOTS` de `src/lib/palette.ts`, `hotes/godot/asset/surfaces.ts`) ;
 la palette d'une composition donne à chaque emplacement une couleur du nuancier.
+
+Un élément sans base (`decor`, `vehicule`) se construit dans un repère fixe : en glTF, son avant
+vers +Z, sa gauche vers +X (bâbord d'un navire), son origine au sol ou, pour un navire, à la ligne
+de flottaison, son emprise recentrée en x et z ; l'hôte le pose sur son empreinte et le tourne vers
+son cap sans lire d'autre repère. Il se construit en mètres réels : l'hôte le réduit à son empreinte.
+Ce qui se monte, s'équipe ou s'améliore (arme, pièce d'artillerie, Amélioration de navire) n'est
+jamais modelé dans l'élément qui le porte : il est son propre élément, monté à un emplacement, ou à
+un poste d'un véhicule ; le porteur garde au plus son logement vide (sabord ouvert, fût de mât).
 
 Un champ de clé qui a sa ligne dans `CHAMPS` (`ecartsDeCleDElement`,
 `src/noyau/apparence/cleDElement.ts`) est résolu à l'import contre le fichier que nomme la colonne : absent, l'import le refuse `cle-inconnue` ; une pièce
