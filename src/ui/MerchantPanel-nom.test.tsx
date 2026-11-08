@@ -6,6 +6,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { MerchantPanel } from './MerchantPanel';
 import { useGame } from '../state/store';
 import { placeEntity } from '../noyau/sceneEdit';
+import { nomDEntite } from '../noyau/monde/sceneNpc';
 import { emptyScene } from '../noyau/monde/scene';
 import { creatureLabel, findMerchantArchetypeById } from '../data';
 import { garanti } from '../lib/garanti';
@@ -24,7 +25,7 @@ afterEach(() => {
 });
 
 describe('MerchantPanel — nom du marchand (#1463 S3)', () => {
-  it('un marchand POSÉ à l’éditeur sans libellé se nomme de sa fiche, pas de son archétype', () => {
+  it('un marchand POSÉ à l’éditeur sans libellé porte le nom de son entité (`nomDEntite`, anonyme : tiré, #3712), pas son archétype', () => {
     const pose = placeEntity(emptyScene('scene-test', 4, 4), { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 1, y: 1 });
     expect(pose.scene.entities.find((e) => e.id === pose.id)).not.toHaveProperty('label');
     useGame.setState({
@@ -36,6 +37,8 @@ describe('MerchantPanel — nom du marchand (#1463 S3)', () => {
     root = createRoot(container);
     act(() => { root!.render(<MerchantPanel />); });
     expect(garanti(findMerchantArchetypeById('armurier'), 'armurier', 'archétype de marchand').label).not.toBe(creatureLabel('humain'));
-    expect(container.querySelector('.dlg-speaker')?.textContent).toBe(creatureLabel('humain'));
+    const nom = nomDEntite(pose.scene.entities.find((e) => e.id === pose.id)!, () => undefined);
+    expect(nom).not.toBe(creatureLabel('humain'));
+    expect(container.querySelector('.dlg-speaker')?.textContent).toBe(nom);
   });
 });

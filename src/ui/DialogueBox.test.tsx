@@ -20,6 +20,7 @@ import { createHero } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
 import { spellMoney, toMoney } from '../engine/money';
 import { placeEntity } from '../noyau/sceneEdit';
+import { nomDEntite } from '../noyau/monde/sceneNpc';
 import { creatureLabel } from '../data';
 
 beforeAll(() => {
@@ -74,7 +75,7 @@ describe('DialogueBox — résolution du locuteur PAR ID (#669)', () => {
     expect(container.querySelector('.dlg-speaker')?.textContent).toBe('Bob');
   });
 
-  it('locuteur POSÉ à l’éditeur sans libellé : le nom de sa fiche (#1463 S3)', () => {
+  it('locuteur POSÉ à l’éditeur sans libellé : le nom de son entité (#1463 S3), tiré pour un anonyme (#3712)', () => {
     const pose = placeEntity(scene, { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 2, y: 2 });
     expect(pose.scene.entities.find((e) => e.id === pose.id)).not.toHaveProperty('label');
     useGame.setState({ scene: pose.scene, flags: {}, gameTime: campaignStart(), party: [], dialogue: { dialogue: dlg, nodeId: 'n1', speakerId: pose.id, session: 1 } });
@@ -82,7 +83,9 @@ describe('DialogueBox — résolution du locuteur PAR ID (#669)', () => {
     document.body.appendChild(container);
     root = createRoot(container);
     act(() => { root.render(<DialogueBox />); });
-    expect(container.querySelector('.dlg-speaker')?.textContent).toBe(creatureLabel('humain'));
+    const nom = nomDEntite(pose.scene.entities.find((e) => e.id === pose.id)!, () => undefined);
+    expect(nom).not.toBe(creatureLabel('humain'));
+    expect(container.querySelector('.dlg-speaker')?.textContent).toBe(nom);
   });
 });
 
