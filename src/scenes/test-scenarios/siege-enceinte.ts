@@ -38,7 +38,7 @@ import type { TestScenario } from './_shared';
 // QUE s'il la possède (sinon « n'est pas considéré comme un membre de l'équipe », AA 10 l.253). Dérivée de la pièce
 // (`weaponGroup` du trapping) → la Spé = id du Groupe (arbalete/poudre-noire/catapulte). Test ~40.
 const projForPiece = (trappingId: string): SkillRef[] => {
-  const g = findTrappingById(trappingId)?.weaponGroup;
+  const g = findTrappingById(trappingId)?.weaponGroup?.id;
   return g ? [{ id: 'projectiles', spec: g, value: 40 }] : [];
 };
 

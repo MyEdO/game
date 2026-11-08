@@ -19,7 +19,7 @@ type Kind = keyof typeof KINDS;
 
 /** CHARGE par `kind` (`espace.chargeParDiscriminant`) : seul le `kind` qui la déclare porte une clé. #3076 */
 const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = tableTotale(Object.keys(KINDS) as Kind[], (kind) =>
-  kind === 'armour' ? ['material', 'couche', 'seuil', 'teinte'] : kind === 'weapon' ? ['combat', 'maniement', 'poudre', 'manieAussi'] : kind === 'ammo' ? ['poudre'] : [],
+  kind === 'armour' ? ['material', 'couche', 'seuil', 'teinte'] : kind === 'weapon' ? ['combat', 'maniement', 'poudre', 'siege', 'manieAussi'] : kind === 'ammo' ? ['poudre'] : [],
 );
 /** Clés EXIGÉES de la charge (`espace.requisesParDiscriminant`). */
 const requisesParDiscriminant: Readonly<Record<string, readonly string[]>> = tableTotale(Object.keys(KINDS) as Kind[], (kind) =>
@@ -48,6 +48,8 @@ const doc = document(
     maniement: maniementSchema.optional(),
     /** LDB 62 l.99 ; LDB 62 l.129 */
     poudre: z.literal(true).optional(),
+    /** AA 10 l.136 */
+    siege: z.literal(true).optional(),
     /** AA 08 l.194 */
     manieAussi: manieAussiSchema.optional(),
   },
@@ -70,6 +72,7 @@ const doc = document(
     teinte: { label: 'Teinte (armure)', hint: 'Teinte d’objet que prend une pièce d’armure du Groupe, à défaut de la sienne' },
     maniement: { label: 'Maniement (arme)', hint: 'Animation d’une arme du Groupe dont la forme ne déclare pas de maniement' },
     poudre: { label: 'À poudre', hint: 'Arme ou munition à Poudre noire et d’Ingénierie' },
+    siege: { label: 'Engins de siège', hint: 'Les objets du Groupe sont des engins de siège, posés en combat et servis par une équipe' },
     manieAussi: { label: 'Armes aussi maniées en', hint: 'Par Groupe de Corps à corps qui manie aussi toute arme du Groupe : ses Atouts et Défauts, ses mains, à pied seulement' },
   },
   {
@@ -78,9 +81,10 @@ const doc = document(
   },
   // `combat` : univers des sources `weaponGroupsMelee`/`weaponGroupsRanged` (`grammaire/sourcesDeSpecs.ts`) ;
   // `kind` : la sous-liste `armour`, type d'armure d'une pièce (`subType`, `defs/trappings.ts`) ;
-  // `poudre` : la sous-liste des Groupes à poudre (`groupeAPoudre`, `src/engine/weaponGroup.ts`).
+  // `poudre` : la sous-liste des Groupes à poudre (`groupeAPoudre`, `src/engine/weaponGroup.ts`) ;
+  // `siege` : la sous-liste des Groupes d'engins de siège (`groupeDeSiege`, `src/data/index.ts`).
   {
-    espace: { discriminant: ['combat', 'kind'], champDeCharge: 'kind', chargeParDiscriminant, requisesParDiscriminant, marqueurs: ['poudre'] },
+    espace: { discriminant: ['combat', 'kind'], champDeCharge: 'kind', chargeParDiscriminant, requisesParDiscriminant, marqueurs: ['poudre', 'siege'] },
     affinerEntree: (entree) => entree.refine((g: { seuil?: number }) => g.seuil === undefined || g.seuil >= 0, { path: ['seuil'], message: 'le palier de PA d’un Groupe d’armure est ≥ 0' }),
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
