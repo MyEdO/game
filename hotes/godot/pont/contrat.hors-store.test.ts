@@ -10,7 +10,7 @@
 import { afterAll, describe, it, expect, vi } from 'vitest';
 import { drainer, erreurDe, fautesDeLaFenetre, suiteDe, table } from './pont.testkit';
 import type { VueDuPont } from './pont';
-import { CLICS_DU_CHAMP, cleDuGeste, plateauDeLaScene } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, cleDuGeste, plateauDeLaScene } from '../../../src/noyau/index';
 import { VERBES } from '../../../src/hote/verbes.generated';
 import { scenario } from '../../../src/scenes/test-scenarios/22-dome';
 import { baseDeTest, elementSchema3 } from '../asset/modeles.testkit.ts';
@@ -31,7 +31,7 @@ describe('le pont avant sa partie', () => {
   it('une méthode inconnue se refuse en `validation` et nomme les méthodes du contrat', () => {
     const e = erreurDe(appel('simulerAttaque', {}));
     expect(e.categorie).toBe('validation');
-    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, vue, jouer, fiche, creation, reprendre, modeles, composer, catalogues, presetDeComposition, erreursGlobales)');
+    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, vue, monde, jouer, regarder, fiche, creation, reprendre, modeles, composer, catalogues, presetDeComposition, editer, erreursGlobales)');
   });
 
   it('`modeles` rend les modèles de l’atelier sans partie ; une entrée sans `manifestes` ou sans `osDesRigides` se refuse', () => {
@@ -47,8 +47,8 @@ describe('le pont avant sa partie', () => {
     expect(erreurDe(appel('modeles', { manifestes, osDesRigides: { epee: 'root' } }))).toEqual(sansOs);
   });
 
-  it('`vue`, `jouer`, `fiche` et `reprendre` se refusent sans partie', () => {
-    for (const [methode, entree] of [['vue', undefined], ['jouer', { type: 'fenetreValider', args: ['roundStart'] }], ['fiche', { fiche: null }], ['reprendre', { jeton: 0 }]] as const) {
+  it('`vue`, `monde`, `jouer`, `fiche` et `reprendre` se refusent sans partie', () => {
+    for (const [methode, entree] of [['vue', undefined], ['monde', undefined], ['jouer', { type: 'fenetreValider', args: ['roundStart'] }], ['fiche', { fiche: null }], ['regarder', { regard: 'plateau' }], ['reprendre', { jeton: 0 }]] as const) {
       expect(erreurDe(appel(methode, entree)), methode).toEqual({ categorie: 'validation', message: 'aucune partie : demarrer d’abord' });
     }
   });
@@ -78,17 +78,21 @@ describe('le pont et sa partie', () => {
 
   it('la vue porte le plateau de la scène, chaque verbe de sa fenêtre en geste, et les clics du champ', () => {
     const v = vue();
-    const scene = scenario.construire().scene;
-    expect(v.plateau, 'le plateau de la scène du scénario').toEqual(plateauDeLaScene(scene));
-    const temoin = structuredClone(scene);
-    (temoin.layers[0].tiles as string[])[3 * scene.dimensions.w + 4] = 'mur';
-    const plateau = plateauDeLaScene(temoin);
-    expect(plateau.infranchissables, 'un mur posé en (4, 3) : infranchissable').toContainEqual({ x: 4, y: 3 });
-    expect(plateau.infranchissables, 'l’herbe voisine en (5, 3) : franchissable').not.toContainEqual({ x: 5, y: 3 });
-    expect(plateauDeLaScene({ ...temoin, metresPerTile: 1.5 }).metresParCase, 'l’échelle que la scène déclare').toBe(1.5);
+    const depart = scenario.construire();
+    expect(v.plateau, 'le plateau de la scène du scénario, sans toit à lever').toEqual(plateauDeLaScene(depart.scene, [], 'tactique'));
+    expect(plateauDeLaScene({ ...depart.scene, metresPerTile: 1.5 }, [], 'tactique').metresParCase, 'l’échelle que la scène déclare').toBe(1.5);
     expect(fautesDeLaFenetre(v), 'chaque verbe de la fenêtre ouverte, dessinable').toEqual([]);
     expect(v.champ, 'l’ouverture du round tient la main : le champ ne se clique pas').toBeNull();
-    for (const verbe of Object.values(CLICS_DU_CHAMP)) expect(VERBES[verbe], verbe).toBeDefined();
+    expect(VERBES[CLIC_DU_CHAMP], CLIC_DU_CHAMP).toBeDefined();
+  });
+
+  it('le regard choisi par `regarder` tranche le plateau ; l’immersion cède à la tactique en combat', () => {
+    const regard = (r: string) => (appel('regarder', { regard: r }) as { vue: VueDuPont }).vue.plateau!.regard;
+    expect(regard('plateau')).toBe('plateau');
+    expect(vue().plateau!.regard, 'gardé d’une vue à l’autre').toBe('plateau');
+    expect(regard('immersion'), 'le dôme est un combat').toBe('tactique');
+    expect(erreurDe(appel('regarder', { regard: 'oblique' }))).toEqual({ categorie: 'validation', message: 'regarder : regard, l’un de tactique, plateau, immersion' });
+    expect(regard('tactique')).toBe('tactique');
   });
 
   it('un jeton inconnu se refuse en `validation`', () => {
@@ -115,8 +119,8 @@ describe('le pont et sa partie', () => {
 
   it('chaque catégorie d’un geste refusé : `validation`, `permission`, `regle`', { timeout: 120_000 }, () => {
     drainer(appel, appel('jouer', { type: 'fenetreValider', args: ['roundStart'] }));
-    expect(erreurDe(appel('jouer', { type: 'jouerLOffre', args: ['end-turn'], siege: 0 })).categorie).toBe('validation');
-    expect(erreurDe(appel('jouer', { type: 'battleEndTurn', args: [], siege: 1 })).categorie).toBe('permission');
+    expect(erreurDe(appel('jouer', { type: 'terminerLeTour', args: [], siege: 0 })).categorie).toBe('validation');
+    expect(erreurDe(appel('jouer', { type: 'jouerLOffre', args: ['end-turn'], siege: 1 })).categorie).toBe('permission');
     expect(erreurDe(appel('jouer', { offre: 'disengage' })).categorie).toBe('regle');
   });
 

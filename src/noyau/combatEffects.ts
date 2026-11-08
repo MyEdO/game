@@ -2,6 +2,7 @@ import { libelleEffet, type Effect, type Flow } from '../data/schemas/defs-scene
 import type { Jeu } from './etat';
 import type { Get, PatchDeFlux, Set as SetFn } from './flowTypes';
 import { armChapterRecapIfDue } from './chapitreRecap';
+import { ouvrirLaFinDeSeance } from './partyFlow';
 import { tableTotale } from '../lib/tableTotale';
 import { tablesPosees, type ClotureApplier, type FragmentDeTables, type PartDeTable } from './tablesPosees';
 import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, OpsCtxPorte, PendingCascade, PendingTest, ScheduledEffect, Suite, RevealEntry } from './pendings';
@@ -10,10 +11,10 @@ import { revealToStep } from './revealStep';
 import { Combatant, type ModLine } from '../engine/types';
 import { RULE_REF } from '../engine/ruleRefs';
 import { battleRng } from './battleRng';
-import { d10, d100, roll as rollDice } from '../engine/dice';
+import { d10, d100, type RNG } from '../engine/dice';
 import { petitePriereAnswered } from '../engine/prayer';
-import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL,
-  type OpsCtx, type DemandeDe, type GameOp } from '../engine/ops';
+import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire, estOpDeLaBourseDuGroupe,
+  type OpsCtx, type DemandeDe, type Formula, type GameOp } from '../engine/ops';
 import { rule } from '../engine/policy';
 import { gainCorruption, corruptionTarget, poseCorruptionPending, expositionPending } from './corruptionFlow';
 import { verdictApprentissage } from '../engine/grimoire';
@@ -28,54 +29,60 @@ import { restoreFortune } from '../engine/fortune';
 import { hasTalent } from '../engine/magic';
 import { traumaOnImpossibleAmbition } from '../engine/psychology';
 import { grantPsychTrait } from '../engine/grantedTraits';
-import { contexteDeNaissanceDObjet, itemFromGive, giveTrappingLabel, avecObjet, type TrappingResolver } from '../engine/items';
+import { contexteDeNaissanceDObjet, itemFromGive, giveTrappingLabel, avecObjet, newUid, type TrappingResolver } from '../engine/items';
+import type { IdDeLigneDeButin } from './designations';
 import { documentDuNarratif, indiceDuNarratif, objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { revealClue, discreditClue } from './monde/clues';
 import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef, testSkillLabel } from '../data';
 import { MORALE_BASE } from '../engine/crewMorale';
-import { clampSaboteurDR } from './shipCrew';
+import { clampSaboteurDR, shipboardSouls } from './shipCrew';
 import { harvestProfileFor, harvestSizeOf, harvestYield } from '../engine/harvest';
 import { applySummon } from './summonFlow';
 import { contractDisease, applyContraction, diseaseDefs } from '../engine/disease';
 import { memoParVersion } from '../data/versionDataset';
 import { HEAL_SKILL, type HealMode } from '../engine/healing';
-import { openMedic } from './medicFlow';
-import { activeSeaPrecipitation, openPortAt, vesselManann, setVesselHull } from './seaVoyageFlow';
-import { applyManannFactor, addManann, findManannFactor } from '../engine/seaVoyage';
+import { ouvrirLeMedecin } from './medicFlow';
+import { ouvrirLesContagions } from './combatFlow';
+import { activeSeaPrecipitation, openPortAt, setVesselHull } from './seaVoyageFlow';
 import { placeById } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
 import { refusDOuvrirLaTaverne, tavernNpcOffers } from './tavernFlow';
-import { openRest, placesOfKind, sceneLieu } from './restFlow';
+import { ouvrirLeRepos, placesOfKind, sceneLieu } from './restFlow';
 import { avecSequelles, traumaById, dechirureFractureFicheId, permanentAmputations } from '../engine/trauma';
-import { DAY_PHASES, minutesUntilNext, scheduleAt } from '../engine/clock';
+import { DAY_PHASES, MINUTES_PER_DAY, minutesUntilNext, scheduleAt } from '../engine/clock';
 import { TIME_COST } from '../engine/timeCost';
 import { feedFromMeal, applyFaimTest, applySoifTest } from '../engine/provisions';
 import { isWeatherWarded, exposureTarget, exposureCoatMods, type ExposureKind } from '../engine/exposure';
 import { findSpellById } from '../data/index';
-import { toBrass, fromBrass, toMoney } from '../engine/money';
-import { distributeCredit, drainGroup, condCtx } from './bourseFlow';
+import { toBrass, fromBrass, toMoney, formatMoney } from '../engine/money';
+import { mouvementDeLaBourseDuGroupe, condCtx, partyMoneyTotal } from './bourseFlow';
 import { groupePosable, setDoorOpen, setDoorRevealed, setDoorTentee, type Trigger } from './monde/scene';
 import { triggersEnJeu } from './monde/decouvertePorteSecrete';
 import { computeStateVisible } from './visionState';
 import { placeCombatant } from './monde/spawn';
 import { refuserGeste } from './refusVisible';
 import { flowFromEffects, testFlow } from './monde/flow';
-import { type FlowTest, type EffectOp, type Condition, flowEffects, evalCondition, leafOpsCtx, EMPTY_FLOW } from '../engine/flowCore';
+import { type FlowTest, type EffectOp, type CibleDeRole, type CibleDeVolontaires, type Condition, flowEffects, evalCondition, flowTestGateOpen, leafOpsCtx, lierLesTirages, EMPTY_FLOW } from '../engine/flowCore';
+import { buildActorView } from '../engine/actorView';
 import { inRect, combatantsWithinRadius } from './monde/combatGeometry';
 import { removeEntity } from './combatPlacement';
 import { bus, EVT } from './bus';
 import { combatDistance } from './monde/footprint';
-import { type CascadeApplier, pushStep, idDeLaDernierePoussee, etapesDeLaFenetre, annoterEtapeDeLaFenetre } from './cascade';
+import { type CascadeApplier, pushStep, startCascade, idDeLaDernierePoussee, etapesDeLaFenetre, annoterEtapeDeLaFenetre } from './cascade';
 import { exposureWaveBand } from './nightBands';
-import { freeCons, rollStep, hostStep, idDansLaSequence, monoStep, openSequence, pousseSi, pushDie } from './rollSeam';
+import { choiceStep, freeCons, rollStep, hostStep, idDansLaSequence, monoStep, openChoice, openSequence, pousseSi, pushDie } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { startGroundPursuit } from './pursuitFlow';
 import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { loseWounds, hasCondition } from '../engine/conditions';
 import { touchActors } from './combatOrParty';
-import { actorIn, coqueParId, ecrireActeur, inBattleId } from './monde/combatants';
+import { actorIn, coqueParId, ecrireActeur, inBattleId, meneurDeboutDuMonde, meneurDuMonde } from './monde/combatants';
+import { appliquerAuNavire, ouvrirLeTestDEquipage, referentDuNavire } from './navireOps';
+import type { Referent } from '../engine/formule';
+import { marinsDuRole } from '../engine/shipCritical';
 import { garanti } from '../lib/garanti';
-import { addPossession } from './possessionsFlow';
+import { humanizeFlowSentence } from './codex/humanize';
+import { ajouterLaPossession } from './possessionsFlow';
 import { possessionLabel, type Possession, type PossessionInput } from '../engine/possession';
 import { effectiveTalents } from '../engine/talentEffects';
 import { ev } from './combatLog';
@@ -90,7 +97,7 @@ import { poserLeGroupe } from './marcheDuGroupe';
 /**
  * Effets de scène/campagne (`Effect[]`) appliqués par le store : le grand `applyEffects`
  * (setFlag/journal/dons/transitions/tests/soins…) + la brique de butin ATTRIBUABLE
- * (`gearFromEffects`/`applyEffectsLoot`/`assignGearAt`), les déclencheurs de zone
+ * (`gearFromEffects`/`applyEffectsLoot`/`attribuerLaLigne`), les déclencheurs de zone
  * (`checkTriggers`) et l'empilement des révélations en étapes d'affichage (`pushReveal`).
  * Module FEUILLE — n'importe RIEN de combatFlow.
  */
@@ -115,16 +122,13 @@ export const revealPurpose = (site: PendingCascade['purpose'], own: boolean) => 
 /** Empile une révélation en étape d'AFFICHAGE de cascade (`pushStep` : append à la séquence d'accueil,
  *  sinon elle l'ouvre). `purpose` = la séquence du SITE d'émission quand il en a une naturelle ;
  *  `own` = la révélation ne rejoint AUCUNE séquence en vol, elle ouvre la sienne (celle en vol est
- *  parquée puis reprise). ÉMETTEUR UNIQUE de toute révélation.
- *
- *  `autoClose` : DÉCLARE que cette révélation-là se referme seule, à la cadence de la gravité donnée
- *  (arbitrage #1270 — la fermeture explicite est le défaut ; un timer se justifie site par site). */
+ *  parquée puis reprise). ÉMETTEUR UNIQUE de toute révélation. */
 export function pushReveal(
   set: SetFn,
   entry: RevealEntry,
-  opts?: { table?: CascadeTableDone; purpose?: PendingCascade['purpose']; own?: boolean; autoClose?: NonNullable<RevealEntry['severity']> },
+  opts?: { table?: CascadeTableDone; purpose?: PendingCascade['purpose']; own?: boolean },
 ): void {
-  pushStep(set, (index) => revealToStep(entry, index, { table: opts?.table, ...(opts?.autoClose ? { autoClose: opts.autoClose } : {}) }), revealPurpose(opts?.purpose ?? 'affichage', !!opts?.own));
+  pushStep(set, (index) => revealToStep(entry, index, { table: opts?.table }), revealPurpose(opts?.purpose ?? 'affichage', !!opts?.own));
 }
 
 /** Vide la file de lignes de journal différées (`pendingLogQueue`) → événements de combat. SOURCE
@@ -197,7 +201,7 @@ export function flowRestant(entId: string, action: { id: string; flow: Flow }, f
 
 /** Joue les déclencheurs de zone (`triggersEnJeu` : authorés + dérivés des portes secrètes) où le groupe
  *  vient d'ENTRER. Seul appelant : la pose du groupe en exploration (`poserLeGroupe`) — ni le combat, ni l'entrée de scène
- *  (`transitionTo`/`startScene`) sans premier pas ne jouent un déclencheur. */
+ *  (`quitterLaScene`/`lancerLaScene`) sans premier pas ne jouent un déclencheur. */
 export function checkTriggers(get: Get, set: SetFn) {
   const { scene, partyPos, flags } = get();
   if (!scene) return;
@@ -239,7 +243,7 @@ export function gearFromEffects(effects: Effect[], objetDe: TrappingResolver): {
   const gear: LootGear[] = [];
   const rest: Effect[] = [];
   for (const e of effects) {
-    if (e.type === 'giveTrapping' && !e.heroId) gear.push({ label: giveTrappingLabel(e, objetDe), magic: !!e.qualities?.length || e.identified === false, effect: e });
+    if (e.type === 'giveTrapping' && !e.heroId) gear.push({ uid: newUid(), label: giveTrappingLabel(e, objetDe), magic: !!e.qualities?.length || e.identified === false, effect: e });
     else rest.push(e);
   }
   return { gear, rest };
@@ -279,20 +283,21 @@ export function applyEffectsLoot(get: Get, set: SetFn, effects: Effect[], title:
   return undefined;
 }
 
-/** Attribue la ligne `index` du butin (`pendingLoot` ou `pendingVictory`) au héros choisi :
+/** Attribue la ligne `uid` du butin (`pendingLoot` ou `pendingVictory`) au héros choisi :
  *  l'Effet d'origine s'applique avec ce heroId (qualités/teinte/identification conservées), la
- *  ligne quitte la fenêtre. Source unique de l'attribution (victoire ET fenêtre de loot). */
-export function assignGearAt(get: Get, set: SetFn, key: 'pendingLoot' | 'pendingVictory', index: number, heroId: string) {
-  const bucket = get()[key];
-  if (!bucket?.gear || index < 0 || index >= bucket.gear.length) return;
+ *  ligne quitte la fenêtre. Source unique de l'attribution (victoire ET fenêtre de loot), corps des choix
+ *  `loot.ligne` et `victory.ligne`. */
+export function attribuerLaLigne(get: Get, set: SetFn, key: 'pendingLoot' | 'pendingVictory', uid: IdDeLigneDeButin, heroId: string) {
+  const bucket = garanti(get()[key], key, 'butin ouvert');
+  const ligne = garanti(bucket.gear?.find((g) => g.uid === uid), uid, 'ligne de butin');
   // Une ligne de butin est un `giveTrapping` par construction (`gearFromEffects`) : elle ne porte aucun
   // canal de dés, donc le retrait qui suit ne peut pas passer devant un dé (#1508).
-  nePeutPasDifferer(applyEffects(get, set, [{ ...bucket.gear[index].effect, heroId }]), 'assignGearAt');
-  const retrait: PatchDeFlux = { [key]: { ...bucket, gear: bucket.gear.filter((_, i) => i !== index) } };
+  nePeutPasDifferer(applyEffects(get, set, [{ ...ligne.effect, heroId }]), 'attribuerLaLigne');
+  const retrait: PatchDeFlux = { [key]: { ...bucket, gear: (bucket.gear ?? []).filter((g) => g.uid !== uid) } };
   set(retrait);
 }
 
-/** Les créatures que `harvestCreature` accepte : les vaincues de `pendingVictory` à profil de récolte, pas encore
+/** Les créatures que `depecerLaCreature` accepte : les vaincues de `pendingVictory` à profil de récolte, pas encore
  *  récoltées. ZI 13. */
 export function creaturesADepecer(s: Jeu): string[] {
   const pv = s.pendingVictory;
@@ -351,7 +356,7 @@ function jouerEffetsProgrammes(get: Get, set: SetFn, entrees: ScheduledEffect[])
     // Reconstitution DIFFÉRÉE (Gardien éternel) : ré-invoque la créature programmée à la mort, près de sa
     // position de chute et dans son camp (`applySummon`, MÊME résolveur que les invocations de sort). Le
     // `caster` est un instantané minimal du défunt — applySummon n'en lit que id/name/kind/pos.
-    if (s.respawn) { for (const line of applySummon(get, set, s.respawn.caster as unknown as Combatant, s.respawn.summon, { rng: battleRng() })) get().log(line); continue; }
+    if (s.respawn) { for (const line of applySummon(get, set, s.respawn.caster as unknown as Combatant, s.respawn.summon, { rng: battleRng() })) get().ecrireAuJournal(line); continue; }
     if (!s.flow) continue;
     const issue = runFlow(get, set, s.flow, t('eff.flowTitleEvent'));
     if (issue === OPS_DIFFEREES) {
@@ -424,10 +429,10 @@ export type Applique = typeof OPS_DIFFEREES | undefined;
  * conséquence se dit, et il n'y a aucune suite à confier.
  *
  * Exceptions nommées, toutes deux une avance du CURSEUR de la cascade après l'appel :
- * - `advanceCombatJet` (`jetConfirm('attack')`). Il retient le curseur tant qu'une fenêtre `pending*` est
+ * - `advanceCombatJet` (`jetValider('attack')`). Il retient le curseur tant qu'une fenêtre `pending*` est
  *   ouverte ; un coup suspendu sur une ÉTAPE (sauvegarde, Déviation) l'a poussée dans la cascade, et le
  *   curseur avance DESSUS (`combatSlice.ts` `advanceCombatJet`).
- * - la validation qui clôt l'étape COURANTE (`jetConfirm('fumble')`, la Maladresse) : l'après-coup qui tient
+ * - la validation qui clôt l'étape COURANTE (`jetValider('fumble')`, la Maladresse) : l'après-coup qui tient
  *   la main a poussé ses étapes DERRIÈRE elle, et le curseur avance dessus.
  *
  * Ce qui suit AILLEURS (horloge, dialogue, retrait de décor, seam de Test raté) n'est PAS exempté :
@@ -733,8 +738,8 @@ export function effectTargets(get: Get, target: 'party' | 'hero', heroId?: strin
 }
 
 /**
- * VOCABULAIRE DE CIBLAGE d'un Effet de SCÈNE : une scène vise le GROUPE, ou UN héros désigné par son
- * `heroId` (`on` absent = `party`). `target`/`caster` sont ceux du DÉCLENCHÉ — cible et lanceur résolus
+ * VOCABULAIRE DE CIBLAGE d'un Effet de SCÈNE : une scène vise le GROUPE, UN héros désigné par son
+ * `heroId` (`on` absent = `party`), ou le NAVIRE de campagne (`noyau/navireOps.ts`). `target`/`caster` sont ceux du DÉCLENCHÉ — cible et lanceur résolus
  * par sa porte (`routeTriggeredTest`, `combat/triggeredTest.ts`) —, que le marcheur de scène ne connaît
  * pas. SOURCE UNIQUE de la LEVÉE du handler `ops`, de sa VALIDATION (`refs`, lue par `validateScene`)
  * et de l'entrée `scene` de `CIBLES_PAR_RACINE`.
@@ -742,8 +747,16 @@ export function effectTargets(get: Get, target: 'party' | 'hero', heroId?: strin
 export const CIBLES_D_EFFET_DE_SCENE = [
   { on: 'party', label: 'Tout le groupe' },
   { on: 'hero', label: 'Un héros' },
+  { on: 'navire', label: 'Le navire' },
+  { on: 'role', label: 'Un rôle d’équipage' },
+  { on: 'membreAuHasard', label: 'Un membre du bord au hasard' },
+  { on: 'volontaires', label: 'Les héros volontaires' },
 ] as const;
 export type CibleDEffetDeScene = (typeof CIBLES_D_EFFET_DE_SCENE)[number]['on'];
+
+/** Le GENRE d'une cible de feuille : la valeur de `on`, ou `role` / `volontaires` pour ses formes objet
+ *  (`CibleDeRole`, `CibleDeVolontaires`) — la clé que les tables de cibles (`CIBLES_PAR_RACINE`) et l'atelier lisent. */
+export const genreDeCible = (on: EffectOp['on']): string | undefined => (typeof on === 'object' ? ('role' in on ? 'role' : 'volontaires') : on);
 
 /**
  * REGISTRE des tables de cibles d'un Effet `ops`, une entrée par RACINE : chaque table offre EXACTEMENT
@@ -757,7 +770,9 @@ export type CibleDEffetDeScene = (typeof CIBLES_D_EFFET_DE_SCENE)[number]['on'];
  *    `applyHullCriticalToTarget` et `openCombatEndCascade` (`combatFlow.ts`) ;
  *  - `maladie` : `spellOps(node.fail, 'target')` (`engine/disease.ts`, `opsDeLEchec`) ;
  *  - `consommable` : `bakeConsumableFlow` réécrit toute feuille sur le buveur (`engine/consumables.ts`) ;
- *  - `critiqueDeCoque` : `bandeTriggeredTest` sur les marins touchés (`engine/shipCritical.ts`, `applyCrewHit`).
+ *  - `critiqueDeCoque` : `bandeTriggeredTest` sur les marins touchés (`engine/shipCritical.ts`, `applyCrewHit`) ;
+ *  - `evenementDeMer` : `runFlow` sur la `consequence` d'une rangée de `sea-events.json` (`resolveBoardEvent`,
+ *    `resolvePortArrival`, `finalizeFastVoyage`, `seaVoyageFlow.ts`) — le marcheur de scène, donc sa table.
  */
 export const CIBLES_PAR_RACINE = {
   scene: CIBLES_D_EFFET_DE_SCENE,
@@ -767,6 +782,7 @@ export const CIBLES_PAR_RACINE = {
   maladie: [{ on: 'target', label: 'Le malade' }],
   consommable: [{ on: 'target', label: 'Le buveur' }],
   critiqueDeCoque: [{ on: 'target', label: 'Le marin touché' }],
+  evenementDeMer: CIBLES_D_EFFET_DE_SCENE,
 } as const;
 export type RacineDEffet = keyof typeof CIBLES_PAR_RACINE;
 export type RacineDeCatalogue = Exclude<RacineDEffet, 'scene'>;
@@ -776,15 +792,59 @@ export type TableDeCibles = (typeof CIBLES_PAR_RACINE)[RacineDEffet];
 
 /** `on` (défaut `party`) appartient-il au vocabulaire de scène ? Garde de type : le handler narrowe
  *  dessus avant d'appeler `env.targets`. */
-export function estCibleDeScene(on: string | undefined): on is CibleDEffetDeScene {
-  return CIBLES_D_EFFET_DE_SCENE.some((c) => c.on === (on ?? 'party'));
+export function estCibleDeScene(on: EffectOp['on']): on is Exclude<CibleDEffetDeScene, 'role' | 'volontaires'> | CibleDeRole | CibleDeVolontaires {
+  return CIBLES_D_EFFET_DE_SCENE.some((c) => c.on === (genreDeCible(on) ?? 'party'));
+}
+
+/** Résout les ops de la BOURSE DU GROUPE de la feuille `e`, une fois chacune, montant résolu sur le référent de
+ *  scène (`referentDeScene`) ; rend la feuille sans elles, ou `null` s'il n'y reste rien. MDG 15 l.245-247 */
+function bougerLaBourseDuGroupe(env: EffectEnv, e: EffectOp, rng: RNG): EffectOp | null {
+  const bourse = e.ops.filter(estOpDeLaBourseDuGroupe);
+  if (!bourse.length) return e;
+  for (const o of meneurDuMonde(env.get()) ? bourse : []) {
+    const avant = toBrass(partyMoneyTotal(env.get));
+    mouvementDeLaBourseDuGroupe(env.get, env.set, Math.round(resolveFormula(o.montant.brass, referentDeScene(env.get, env.set), rng)));
+    const delta = toBrass(partyMoneyTotal(env.get)) - avant;
+    if (delta) env.log(t('eff.bourseDuGroupe', { sens: delta > 0 ? '+' : '−', montant: formatMoney(fromBrass(Math.abs(delta))) }));
+  }
+  const reste = e.ops.filter((o) => !estOpDeLaBourseDuGroupe(o));
+  return reste.length ? { ...e, ops: reste } : null;
+}
+
+/** La feuille `e` dont la durée `pendantJours` est TIRÉE une fois (sur `sujet`) puis bakée en échéance
+ *  d'horloge, sous la source du Flow ; la durée se dit au journal. MDG 15 l.211-212, l.233-234 */
+function avecDureeTiree(env: EffectEnv, e: EffectOp, pendantJours: Formula, sujet: Combatant, rng: RNG): EffectOp {
+  const { pendantJours: _tiree, ...reste } = e;
+  const jours = Math.max(0, Math.round(resolveFormula(pendantJours, sujet, rng)));
+  const label = e.label ?? env.label;
+  env.log(t('eff.pendantJours', { label: label ?? t('eff.flowTitle'), n: jours }));
+  return { ...reste, untilTime: env.get().gameTime + jours * MINUTES_PER_DAY, ...(label ? { label } : {}) };
+}
+
+/** Un membre du bord tiré au hasard, au prorata des âmes à bord (`shipboardSouls`) : un héros vivant, ou un marin
+ *  de l'effectif PNJ, sans fiche, qui ne rend aucune cible. MDG 15 l.161, l.176 */
+function membreDuBordAuHasard(get: Get, rng: RNG): Combatant[] {
+  const heros = effectTargets(get, 'party');
+  const ames = heros.length + shipboardSouls(get()).crew;
+  if (!ames) return [];
+  const i = rng.int(0, ames - 1);
+  return i < heros.length ? [heros[i]] : [];
 }
 
 /** Le refus, dit UNE fois — même phrase à la validation d'une scène et à la levée du marcheur. */
-export function messageCibleHorsScene(e: { label?: string; on?: string }, on: string): string {
+export function messageCibleHorsScene(e: { label?: string; on?: EffectOp['on'] }, on: string): string {
   return `Effet ${e.label ? `« ${e.label} » ` : ''}à « on: ${on} » : ce vocabulaire est celui d'un effet DÉCLENCHÉ `
     + '(cible et lanceur résolus par sa porte, `routeTriggeredTest`), que le marcheur de scène ne connaît pas. '
-    + 'Une scène vise `party` ou `hero` (+ `heroId`).';
+    + 'Une scène vise `party`, `hero` (+ `heroId`), `navire`, `membreAuHasard`, un rôle d’équipage (`{ role }`) ou des volontaires (`{ volontaires }`).';
+}
+
+/** Le refus d'une op de NAVIRE posée sur une autre cible que `navire` : elle n'y aurait aucun effet. */
+export function messageOpDuNavireHorsNavire(e: { on?: EffectOp['on']; ops: readonly GameOp[] }): string | undefined {
+  const ops = e.ops.filter(estOpDuNavire).map((o) => o.op);
+  const on = genreDeCible(e.on) ?? 'party';
+  return ops.length && on !== 'navire'
+    ? t('eff.opDuNavireHorsNavire', { on, ops: ops.join(', ') })
+    : undefined;
 }
 
 /** Ouvre la modale d'un Test de compétence — SOURCE UNIQUE (le nœud Flow `test` ET `Effect.test` y
@@ -797,17 +857,19 @@ export function openSkillTest(
     actorId?: string;
     noOwnTestFailed?: boolean;
     /** Action de combat « Cumuler l'Avantage » (LDB 09 l.305-308) : l'octroi porté par le pending et
-     *  appliqué par `jetConfirm('test')` — la couture reste la même, seule la conséquence est déclarée ici. */
+     *  appliqué par `jetValider('test')` — la couture reste la même, seule la conséquence est déclarée ici. */
     combatAdvantage?: { combatantId: string; cap: number };
     /** Test initié en COMBAT : annulable pré-jet (l'Action n'est pas encore dépensée). */
     cancellable?: boolean;
     /** Test SUBI : le vocabulaire de sa branche (`PendingTest.subi`) — posé par `routeTriggeredTest`. */
     subi?: PendingTest['subi'];
+    /** Les seuls héros qui peuvent jeter le Test (`FlowTest.gate`) ; le meilleur d'entre eux est proposé. */
+    parmi?: readonly string[];
   },
 ): boolean {
   // Modulateurs sociaux PAR ACTEUR (un Test social vs un interlocuteur) : malus psy Animosité/Préjugé
   // (LDB 21) + mod de Statut Échelon/Standing (LDB 08). Le Statut compare l'acteur à la cible `vsStatus`.
-  const isSocial = isSocialTest(spec.skill?.id, spec.characteristic);
+  const isSocial = isSocialTest(spec);
   const tgtStatus = isSocial && spec.vsStatus ? statutDeDonnee(spec.vsStatus) : undefined;
   const psychMod = spec.vsGroups?.length && isSocial ? (c: Combatant) => socialPsychMod(c, spec.vsGroups!) : undefined;
   // 1d10 « réaction au Statut » (option, LDB 08 l.40/59) tiré UNE fois par Test (RNG seedé) — appliqué à
@@ -855,13 +917,15 @@ export function openSkillTest(
   // L'acteur imposé est un COMBATTANT (`actorIn`) : en combat, un ennemi mené par le siège MJ en est un.
   const restrictId = opts?.actorId;
   const imposed = restrictId ? actorIn(get(), restrictId) : undefined;
+  const parmi = opts?.parmi;
+  const admis = (c: Combatant): boolean => !parmi || parmi.includes(c.id);
   const best = restrictId
     ? (imposed && !imposed.dead ? { actor: imposed } : null)
-    : partyBest(get().party, spec.skill?.id, spec.characteristic, socialMod, spec.skill?.spec);
+    : partyBest(get().party.filter(admis), spec, socialMod);
   if (!best) return false;
   const baseDifficulty = spec.difficulty ?? 'intermediaire';
   const eased = !!spec.easierIf && get().party.some((c) => !c.dead && (
-    (!!spec.easierIf!.hasSkill && actorHasSkill(c, spec.easierIf!.hasSkill.id, spec.easierIf!.hasSkill.spec)) ||
+    (!!spec.easierIf!.hasSkill && actorHasSkill(c, spec.easierIf!.hasSkill)) ||
     (!!spec.easierIf!.hasTalent && hasTalent(c, spec.easierIf!.hasTalent))
   ));
   const difficulty = eased ? easeDifficulty(baseDifficulty, spec.easierIf!.steps ?? 1) : baseDifficulty;
@@ -883,20 +947,19 @@ export function openSkillTest(
   // `opts.actorId`). Un Test qu'on ne peut pas soutenir se déclare `noSupport` (l.197), il ne se
   // dérive pas de la restriction du lanceur.
   const allies = (a: Combatant): Combatant[] => pool.filter((c) => c.kind === a.kind && !c.dead);
-  const runners = imposed ? [best.actor] : pool.filter((c) => c.kind === 'hero' && peutTenter(c, spec.skill?.id, spec.skill?.spec));
+  const runners = imposed ? [best.actor] : pool.filter((c) => c.kind === 'hero' && admis(c) && peutTenter(c, { skill: spec.skill }));
   const candidates = runners.map((actor) => {
     const living = allies(actor);
     // Soutien (LDB 12 l.187-200) : si CET acteur mène, les AUTRES membres capables l'assistent (+10, plafond
     // Bonus de Carac). Calculé par candidat car le sélecteur laisse le joueur choisir qui lance. `noSupport`
     // (l.197 : maladie/poison/peur/danger) coupe le Soutien à la source ; adjacence (l.196), gate GÉOMÉTRIQUE
     // via `combatDistance`, active quand `actor.pos` est posé (combat en cours).
-    const soutD = spec.noSupport ? null : soutienDetail(living, actor, spec.skill?.id, spec.characteristic, spec.skill?.spec,
-      battle && actor.pos ? (c) => !!c.pos && combatDistance(actor, c) <= 1 : undefined);
+    const soutD = spec.noSupport ? null : soutienDetail(living, actor, spec, battle && actor.pos ? (c) => !!c.pos && combatDistance(actor, c) <= 1 : undefined);
     const sout = soutD?.bonus ?? 0;
     // `spec.sense` (vue/ouïe, LDB 18) restreint le malus de Surdité au seul Test de Perception auditif — le
     // Soutien (`sout`, plafonné au Bonus de Carac du meneur) et le mod social ne dépendent pas du sens.
     const social = socialMod ? socialMod(actor) : 0;
-    const value = testValue(actor, spec.skill?.id, spec.characteristic, spec.skill?.spec, spec.sense) + social + sout;
+    const value = testValue(actor, spec, spec.sense) + social + sout;
     // Objet catalogué → match par `trappingId` STABLE (id, jamais le libellé).
     const tool = spec.tool ? actor.items?.find((i) => i.trappingId === spec.tool && !i.destroyed) : undefined;
     // Ligne montée par le MONTEUR CANONIQUE (`rollSeam.rollStep`) : la valeur FONDUE se déclare avec ses
@@ -905,7 +968,7 @@ export function openSkillTest(
     // Compétence nu ; la cible et l'écrêtage en dérivent par la MÊME primitive que `rollTest`.
     const line = rollStep({
       actor,
-      test: { skill: spec.skill?.id, char: spec.characteristic, spec: spec.skill?.spec, sense: spec.sense },
+      test: { skill: spec.skill, characteristic: spec.characteristic, sense: spec.sense },
       difficulty,
       valeur: value,
       ...(soutD ? { soutien: soutD } : {}),
@@ -932,12 +995,12 @@ export function openSkillTest(
   const parle = get().dialogue?.speakerId;
   const contrepartie = parle ? get().scene?.entities.find((e) => e.id === parle)?.amateur : undefined;
   // Compétence/Caractéristique RÉELLE (cadre de jet) ≠ intitulé de situation (titre). Char → libellé long.
-  const skill = testSkillLabel({ skill: spec.skill, char: spec.characteristic });
+  const skill = testSkillLabel(spec);
   const label = spec.label || skill || 'Test';
   set({
     pendingTest: {
       actorId: def.id, actorName: def.label, label, skill, skillValue: def.value, difficulty,
-      skillId: spec.skill?.id, spec: spec.skill?.spec, char: spec.characteristic, // réf structurée pour talentTestSLBonus (LDB 10)
+      sujet: { skill: spec.skill && structuredClone(spec.skill), characteristic: spec.characteristic }, // #2097 ; réf structurée pour talentTestSLBonus (LDB 10)
       requireSL: spec.requireSL ?? 0, target: def.target, clamped: def.clamped, base: def.base, mods: def.mods, psychMod: def.psychMod, psychDetail: def.psychDetail,
       itemUid: def.itemUid, isDouble: false, roll: null, success: false, sl: 0,
       support: def.support, easedBy,
@@ -953,8 +1016,8 @@ export function openSkillTest(
   });
   // « Une situation = une modale » : le Test EST une cascade à une étape `jet:'test'`, rendue par
   // `CascadeModal` (via `useTestJetProps`). `pendingTest` coexiste comme porteur de données (comme
-  // `pendingAttack` pour l'attaque) ; `jetConfirm('test')` ferme les deux. Pas d'applier : la conséquence
-  // (branche onSuccess/onFailure + continuation) est lancée par `jetConfirm('test')`.
+  // `pendingAttack` pour l'attaque) ; `jetValider('test')` ferme les deux. Pas d'applier : la conséquence
+  // (branche onSuccess/onFailure + continuation) est lancée par `jetValider('test')`.
   // ENJEU (#1117) : `FlowTest.stake` DESCEND sur l'étape qui lance — c'est elle que `CascadeModal` lit.
   // Second transporteur du champ, à parité avec les deux fabriques de `combat/triggeredTest.ts` : sans
   // lui, tout Flow joué par `runFlow` (Escalade, Saut, Récolte…) porterait un enjeu que rien n'affiche.
@@ -977,7 +1040,7 @@ function ouvrirGeste(get: Get, set: SetFn, e: Effect, suite: Flow, sl?: number):
  * vide le lot et prend la pile restante comme suite, comme `test` ; `if` vide d'abord le lot
  * (la condition lit l'état VIVANT — flags/horloge — donc après les Effets émis) puis branche ; `test`
  * vide le lot, ouvre la modale et SUSPEND — la branche choisie + la continuation (reste de la pile)
- * sont reprises par `jetConfirm('test')`. Pas de boucle → terminaison garantie.
+ * sont reprises par `jetValider('test')`. Pas de boucle → terminaison garantie.
  *
  * Rend `OPS_DIFFEREES` (#1508) quand un lot a ouvert un dé à la porte : la pile RESTANTE lui a été
  * confiée, et l'appelant n'a plus rien à jouer. CHAQUE vidange du lot est un point d'application, donc
@@ -986,7 +1049,7 @@ function ouvrirGeste(get: Get, set: SetFn, e: Effect, suite: Flow, sl?: number):
  * la conséquence aura produit).
  */
 export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff.flowTitle'), sl?: number): Applique {
-  const stack: Flow[] = [structuredClone(flow)]; // #2097
+  const stack: Flow[] = [lierLesTirages(structuredClone(flow), (de) => Math.round(resolveFormula(de, referentDeScene(get, set), battleRng())))]; // #2097
   const batch: Effect[] = [];
   const flush = (): Applique => {
     return batch.length ? applyEffectsLoot(get, set, batch.splice(0), label, sl) : undefined;
@@ -1001,6 +1064,15 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
     const node = stack.shift()!;
     switch (node.kind) {
       case 'do': {
+        // Les VOLONTAIRES décident avant la feuille : même patron que le `choice` ci-dessous.
+        const volontaires = node.effect.type === 'ops' && typeof node.effect.on === 'object' && 'volontaires' in node.effect.on ? node.effect.on.volontaires : undefined;
+        if (volontaires !== undefined) {
+          if (flush()) return confier(node);
+          const after: Flow = { kind: 'seq', steps: stack.splice(0) };
+          if (demanderLesVolontaires(get, set, node.effect as EffectOp, volontaires, after, label, sl)) return undefined;
+          stack.unshift(after);
+          break;
+        }
         // GESTE JOUEUR (`suspensif`) : même patron que le `test` ci-dessous — le lot se vide d'abord, le
         // reste de la pile devient la suite que son pending rejouera.
         if (!(EFFECT_HANDLERS[node.effect.type] as EffectHandler).suspensif) { batch.push(node.effect); break; }
@@ -1020,15 +1092,91 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
       case 'test': {
         if (flush()) return confier(node);
         const after: Flow = { kind: 'seq', steps: stack.splice(0) };
+        if (node.test.crewTestType) {
+          if (ouvrirLeTestDEquipage(get, set, node, after, label, sl)) return undefined;
+          // Aucun marin apte à bord : aucun DR au total, échec. MDG 14 l.13
+          stack.unshift(node.fail, after);
+          break;
+        }
         // Personne ne peut tenter → on saute le Test et on reprend directement la continuation.
-        if (!openSkillTest(get, set, node.test, node.success, node.fail, after)) return runFlow(get, set, after, label, sl);
+        const parmi = node.test.gate ? testeursAdmis(get, node.test) : undefined;
+        if (!openSkillTest(get, set, node.test, node.success, node.fail, after, parmi ? { parmi } : undefined)) return runFlow(get, set, after, label, sl);
         return undefined;
+      }
+      case 'choice': {
+        if (flush()) return confier(node);
+        const after: Flow = { kind: 'seq', steps: stack.splice(0) };
+        if (ouvrirLeChoixDuFlow(get, set, node, after, label, sl)) return undefined;
+        stack.unshift(node.no ?? EMPTY_FLOW, after);
+        break;
       }
     }
   }
   // Vidange FINALE : la pile est vide, il n'y a plus de suite à confier — le signal est rendu tel quel
   // à l'appelant, à qui de décider (c'est lui qui sait s'il enchaîne quelque chose).
   return flush();
+}
+
+/** Ce que fait une branche de choix, en prose joueur : la conséquence chiffrée (valeurs liées déjà tirées) se
+ *  lit avant de trancher. MDG 15 l.246 */
+const detailDeBranche = (f: Flow | undefined): { detail?: string } => {
+  const detail = f ? humanizeFlowSentence(f, []) : '';
+  return detail ? { detail } : {};
+};
+
+/** Référent d'une valeur de scène sans combattant (valeur liée `lierLesTirages`, bourse du groupe) : le navire de
+ *  campagne (Taille, valeur de la cargaison) quand il y en a un, sinon le meneur du groupe. MDG 15 l.246-247 */
+function referentDeScene(get: Get, set: SetFn): Referent | Combatant {
+  return referentDuNavire(get, set) ?? garanti(meneurDuMonde(get()), 'valeur liée', 'meneur du groupe');
+}
+
+/**
+ * Ouvre la DÉCISION d'un nœud `choice` d'un Flow de scène (`runFlow`) : une étape de choix `flowChoice`
+ * au MENEUR du groupe, oui / renoncer, dont l'applier joue la branche puis `after`. L'auto-pilote prend
+ * « oui » (`defaultChoice`), comme la décision automatique d'un choix de combat (`resolveFlowChoice`).
+ * `false` quand le nœud n'est pas offert : un coût d'Avantage hors combat (LDB 14 l.219), ou aucun
+ * meneur pour décider — la branche « non » se joue alors.
+ */
+function ouvrirLeChoixDuFlow(get: Get, set: SetFn, node: Extract<Flow, { kind: 'choice' }>, after: Flow, label: string, sl?: number): boolean {
+  const decideur = meneurDeboutDuMonde(get()) ?? meneurDuMonde(get());
+  if (node.advantageCost != null || !decideur) return false;
+  openChoice(get, set, {
+    title: label, purpose: 'test', icon: node.icon ?? 'ui/think',
+    id: `flowChoice-${node.prompt}`, kind: 'flowChoice', actorId: decideur.id, label: dataLabel(node.prompt),
+    options: [
+      { key: 'yes', label: dataLabel(node.prompt), ...detailDeBranche(node.yes) },
+      { key: 'no', label: t('opt.renoncer'), ...detailDeBranche(node.no) },
+    ],
+    defaultChoice: 'yes',
+    meta: { choiceYes: node.yes, choiceNo: node.no ?? EMPTY_FLOW, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) },
+  });
+  return true;
+}
+
+/** Les héros vivants qui ouvrent la `gate` du Test, évaluée sur chacun seul. MDG 15 l.197, l.231 */
+function testeursAdmis(get: Get, test: FlowTest): string[] {
+  const ctx = condCtx(get);
+  return get().party.filter((h) => !h.dead && flowTestGateOpen(test, { ...ctx, party: [h], target: buildActorView(h) })).map((h) => h.id);
+}
+
+/**
+ * Pose la question `question` à CHAQUE héros vivant, à son siège (étapes `flowVolontaire`) ; l'applier de la
+ * dernière joue la feuille `e` sur ceux qui ont dit oui, puis `after`. L'auto-pilote renonce (`defaultChoice`).
+ * `false` sans héros vivant : la feuille ne vise personne. MDG 15 l.196
+ */
+function demanderLesVolontaires(get: Get, set: SetFn, e: EffectOp, question: string, after: Flow, label: string, sl?: number): boolean {
+  const heros = effectTargets(get, 'party');
+  if (!heros.length) { get().ecrireAuJournal(t('eff.volontairesAucun', { question })); return false; }
+  const meta = { choiceYes: { kind: 'do' as const, effect: e }, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) };
+  const etapes = heros.map((h, i) => choiceStep({
+    id: `flowVolontaire-${question}-${h.id}`, kind: 'flowVolontaire', actorId: h.id, icon: 'ui/think',
+    label: stepPrecision(dataLabel(question), dataLabel(h.label)),
+    options: [{ key: 'yes', label: dataLabel(question) }, { key: 'no', label: t('opt.renoncer') }],
+    defaultChoice: 'no',
+    ...(i === heros.length - 1 ? { meta } : {}),
+  }));
+  startCascade(get, set, { title: label, purpose: 'test', icon: 'ui/think', steps: etapes.filter((x): x is BuiltCascadeStep => !!x) });
+  return true;
 }
 
 /** REPRISE de la suite qu'un GESTE JOUEUR (handler `suspensif`) a portée jusqu'à sa clôture — rien ne
@@ -1048,9 +1196,12 @@ export interface EffectEnv {
   set: SetFn;
   log(line: string): void;
   pushReveal(entry: RevealEntry): void;
-  /** DR (SL) du Test résolu qui a produit ce lot d'Effets (`jetConfirm('test')`/`pt.sl`, symétrique de
+  /** DR (SL) du Test résolu qui a produit ce lot d'Effets (`jetValider('test')`/`pt.sl`, symétrique de
    *  `opsCtx.sl` en combat, `triggeredTest.ts:159`) — absent hors Test (déclencheur de scène, etc.). */
   sl?: number;
+  /** Libellé du Flow qui applique ce lot (`runFlow`) : la SOURCE d'un effet durable ou d'un état du navire
+   *  qu'une feuille ne nomme pas (`EffectOp.label`). */
+  label?: string;
   /** Cibles d'un effet `party`/`hero` (héros vivants concernés, bon ensemble) — `effectTargets`. */
   targets(on: 'party' | 'hero', heroId?: string): Combatant[];
   /**
@@ -1071,12 +1222,13 @@ export interface EffectEnv {
   ): Combatant | null;
 }
 
-function makeEffectEnv(get: Get, set: SetFn, sl?: number): EffectEnv {
+function makeEffectEnv(get: Get, set: SetFn, sl?: number, label?: string): EffectEnv {
   return {
     get,
     set,
     sl,
-    log: (line) => get().log(line),
+    label,
+    log: (line) => get().ecrireAuJournal(line),
     pushReveal: (entry) => pushReveal(set, entry),
     targets: (on, heroId) => effectTargets(get, on, heroId),
     hero: (heroId, pick) => choisirHeros(get(), heroId, pick),
@@ -1204,7 +1356,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env, suite) => {
       const doc = documentDuNarratif(env.get().campaignNarratif)(e.documentId);
       if (!doc) { console.warn(`document : document inconnu « ${e.documentId} ».`); return; }
-      env.get().remettreDocument({ title: doc.titre, text: doc.prose, documentId: doc.id, suite, ...(doc.source ? { source: structuredClone(doc.source) } : {}) }); // #2097
+      env.get().remettreLeDocument({ title: doc.titre, text: doc.prose, documentId: doc.id, suite, ...(doc.source ? { source: structuredClone(doc.source) } : {}) }); // #2097
       return 'suspend';
     },
   },
@@ -1248,7 +1400,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Narration', label: libelleEffet('endDialogue'), icon: 'ui/close',
     make: () => ({ type: 'endDialogue' }),
     apply: (_e, env) => {
-      if (env.get().dialogue) env.get().advanceTime(TIME_COST.dialogue); // clôture d'une conversation ≈ dialogue min
+      if (env.get().dialogue) env.get().avancerLeTemps(TIME_COST.dialogue); // clôture d'une conversation ≈ dialogue min
       env.set({ dialogue: null });
     },
   },
@@ -1268,8 +1420,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     make: () => ({ type: 'designerHeros', etat: '' }),
     suspensif: true,
     // EDO 02 l.91 : décision de GROUPE (`pendingDesignationHeros`, modale `designationHeros`) refermée
-    // par `designerHerosChoisir`, qui rejoue la suite ; sans héros vivant, rien à désigner.
-    apply: (e, env, suite) => (env.get().designerHerosOuvrir({ etat: e.etat, ...(e.invite ? { invite: e.invite } : {}), suite }) ? 'suspend' : undefined),
+    // par son choix (`designationHeros.heros`) ou, sans héros vivant, par sa sortie, qui rejouent la suite.
+    apply: (e, env, suite) => (env.get().ouvrirLaDesignation({ etat: e.etat, ...(e.invite ? { invite: e.invite } : {}), suite }) ? 'suspend' : undefined),
   },
   setObjective: {
     group: 'Narration', label: libelleEffet('setObjective'), icon: 'map-tool/start-flag',
@@ -1377,7 +1529,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const input: PossessionInput = 'type' in r && r.type === 'vehicle'
         ? { nature: 'vehicule', vehicleId: r.id, ...commun }
         : { nature: e.nature === 'serviteur' ? 'serviteur' : 'bete', ref: 'custom' in r ? r : { id: r.id }, ...commun };
-      const uid = addPossession(env.get, env.set, input);
+      const uid = ajouterLaPossession(env.get, env.set, input);
       env.log(t('eff.recover', { name: owner.label, item: possessionLabel({ ...input, uid } as Possession) }));
     },
     // La bête ou le serviteur donné est une RÉFÉRENCE : sa fiche (monture de combat, `spawnEnemy`) s'y lit (#1882).
@@ -1393,13 +1545,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Récompenses', label: libelleEffet('giveMoney'), icon: 'resource/gold-purse',
     make: () => ({ type: 'giveMoney', montant: { gold: 0, silver: 0, brass: 0 } }),
     apply: (e, env) => {
-      // Argent de GROUPE sans bénéficiaire unique : positif = butin/récompense réparti PAR TÊTE
-      // (`distributeCredit`) ; négatif = perte SCRIPTÉE — `drainGroup` (glouton PLAFONNÉ, jamais
-      // esquivée par le tout-ou-rien de `payFromGroup` : une perte > total du groupe vide tout à 0).
+      // Argent de GROUPE sans bénéficiaire unique (`mouvementDeLaBourseDuGroupe`) : une perte > total du
+      // groupe vide tout à 0, jamais esquivée par le tout-ou-rien de `payFromGroup`.
       const m = e.montant;
-      const net = toBrass(toMoney(m));
-      if (net > 0) distributeCredit(env.get, env.set, fromBrass(net));
-      else if (net < 0) drainGroup(env.get, env.set, fromBrass(-net));
+      mouvementDeLaBourseDuGroupe(env.get, env.set, toBrass(toMoney(m)));
       const parts = [m.gold && t('eff.coin.gold', { n: m.gold }), m.silver && t('eff.coin.silver', { n: m.silver }), m.brass && t('eff.coin.brass', { n: m.brass })].filter(Boolean); // noms canon FR (couronne/pistole/sou)
       if (parts.length) env.log(t('eff.purse', { sign: (m.gold ?? 0) < 0 || (m.silver ?? 0) < 0 ? '' : '+', parts: parts.join(' ') }));
     },
@@ -1465,7 +1614,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   sessionEnd: {
     group: 'Récompenses', label: libelleEffet('sessionEnd'), icon: 'journal/detail',
     make: () => ({ type: 'sessionEnd' }),
-    apply: (_e, env) => { env.get().openSessionEnd(); }, // ouvre l'écran de fin de séance existant (SessionEndModal → endSession)
+    apply: (_e, env) => { ouvrirLaFinDeSeance(env.set); }, // la fin de séance (`fenetreValider('finDeSeance')`)
   },
   openCharacterCreator: {
     group: 'Récompenses', label: libelleEffet('openCharacterCreator'), icon: 'ui/add',
@@ -1488,7 +1637,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Faveur de départ de campagne ou octroi narratif (#509) — cible : héros désigné, sinon le
       // premier héros vivant (`env.targets` : même défaut que les autres Effets `hero`).
       const hero = env.targets('hero', e.heroId)[0];
-      if (hero) env.get().favorGrant(hero.id, e.level, e.owedTo, garanti(e.desc, e.owedTo, 'texte de la Faveur matérialisé'));
+      if (hero) env.get().accorderLaFaveur(hero.id, e.level, e.owedTo, garanti(e.desc, e.owedTo, 'texte de la Faveur matérialisé'));
     },
   },
 
@@ -1496,30 +1645,48 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   ops: {
     group: 'Afflictions', label: libelleEffet('ops'), icon: 'mechanic/stat-mod',
     make: () => ({ type: 'ops', on: 'party', ops: [{ op: 'wounds', amount: 5 }] }),
-    apply: (e, env) => {
+    apply: (feuilleAuthoree, env) => {
       // EffectOp : applique les GameOps (vocabulaire mécanique des sorts) à la cible de SCÈNE
       // (`party`/`hero`, défaut `party`). `applyLeafOps` = SOURCE UNIQUE : contexte de FEUILLE
       // (untilTime/label bakés par un consommable — la branche d'un `test` suspendu garde sa durée)
       // + programmation des ops `delayed`.
-      const on = e.on ?? 'party';
-      if (!estCibleDeScene(on)) throw new Error(messageCibleHorsScene(e, on));
-      const targets = env.targets(on, e.heroId);
-      if (!targets.length) return;
+      const on = feuilleAuthoree.on ?? 'party';
+      if (!estCibleDeScene(on)) throw new Error(messageCibleHorsScene(feuilleAuthoree, on));
+      const horsNavire = messageOpDuNavireHorsNavire(feuilleAuthoree);
+      if (horsNavire) throw new Error(horsNavire);
+      const base = { rng: battleRng(), sl: env.sl };
+      const e = bougerLaBourseDuGroupe(env, feuilleAuthoree, base.rng);
+      if (!e) return;
+      if (on === 'navire') { appliquerAuNavire(env.get, env.set, e, { ...base, label: e.label ?? env.label }).forEach((l) => env.log(l)); return; }
+      if (typeof on === 'object' && 'volontaires' in on) throw new Error(t('eff.volontairesHorsFlow', { question: on.volontaires }));
+      const targets = on === 'membreAuHasard' ? membreDuBordAuHasard(env.get, base.rng)
+        : typeof on === 'object' ? marinsDuRole(env.targets('party'), on.role.id) : env.targets(on, e.heroId);
+      if (!targets.length) {
+        if (typeof on === 'object') env.log(t('eff.roleSansTitulaire', { role: refLabel('crewRoles', on.role) }));
+        if (on === 'membreAuHasard') env.log(t('eff.membreAuHasardMarin'));
+        return;
+      }
+      // Durée TIRÉE une fois pour la feuille (MDG 15 l.212 « Pendant les 1d10 prochains jours ») puis
+      // bakée en échéance, sous la source du Flow.
+      const feuille = e.pendantJours == null ? e : avecDureeTiree(env, e, e.pendantJours, targets[0], base.rng);
       // Une cible dont la feuille part à la PORTE (#1508) n'a pas de ligne ICI : sa conséquence se dit
       // à la résolution de son dé. Les autres s'appliquent normalement, dans l'ordre des cibles.
       const lines: string[] = [];
       for (const c of targets) {
-        const issue = applyLeafOps(env.get, env.set, c, e, { rng: battleRng(), sl: env.sl, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get) });
+        const issue = applyLeafOps(env.get, env.set, c, feuille, { ...base, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get) });
         if (issue !== OPS_DIFFEREES) lines.push(...issue);
       }
       env.set(touchActors(env.get()));
       lines.forEach((l) => env.log(l));
+      if (!env.get().battle) ouvrirLesContagions(env.get, env.set, targets.map((c) => c.id));
     },
     // Un contenu de scène fautif se refuse dans l'ÉDITEUR (`validateScene`), avec le MÊME message
     // que la levée du marcheur.
     refs: (e) => {
       const on = e.on ?? 'party';
-      return estCibleDeScene(on) ? [] : [{ level: 'error', message: messageCibleHorsScene(e, on) }];
+      if (!estCibleDeScene(on)) return [{ level: 'error', message: messageCibleHorsScene(e, on) }];
+      const horsNavire = messageOpDuNavireHorsNavire(e);
+      return horsNavire ? [{ level: 'error', message: horsNavire }] : [];
     },
   },
   zoneBlast: {
@@ -1607,7 +1774,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         const line = t('eff.diseaseContracted', { name: who.label, disease: e.disease });
         env.log(line);
         // VISIBLE (le journal seul ne suffit pas) : effet d'AUTEUR → révélation témoin.
-        env.pushReveal({ kind: 'effet', title: t('eff.diseaseTitle', { disease: e.disease }), lines: [line], subjectId: whoId, severity: 'grave' });
+        env.pushReveal({ kind: 'effet', title: t('eff.diseaseTitle', { disease: e.disease }), lines: [line], subjectId: whoId });
       }
     },
   },
@@ -1674,7 +1841,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const lines: string[] = [];
       for (const c of heroes) {
         if (isWeatherWarded(c)) { lines.push(t('eff.weatherWarded', { name: c.label, what: t(kind === 'froid' ? 'eff.wardFroid' : 'eff.wardChaleur') })); continue; }
-        const resVal = testValue(c, 'resistance', 'endurance');
+        const resVal = testValue(c, { skill: { id: 'resistance' }, characteristic: 'endurance' });
         const target = kind === 'froid' ? exposureTarget(c, resVal) : Math.max(0, resVal);
         // Ligne montée ICI : au FROID la cible vient d'`exposureTarget` (le manteau manquant y est fondu,
         // et ressort en chip nommée) — une autre arithmétique que celle du monteur, à ne pas refaire.
@@ -1717,7 +1884,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         const line = t('eff.criticalSuffered', { name: who.label, kind: e.kind, location: e.location });
         env.log(line);
         // VISIBLE (le journal seul ne suffit pas) : effet d'AUTEUR → révélation témoin.
-        env.pushReveal({ kind: 'effet', title: t('eff.criticalTitle', { kind: e.kind }), lines: [line, ...labels], subjectId: whoId, severity: 'grave' });
+        env.pushReveal({ kind: 'effet', title: t('eff.criticalTitle', { kind: e.kind }), lines: [line, ...labels], subjectId: whoId });
       }
     },
   },
@@ -1745,7 +1912,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (!who) return;
       const line = t(acquired ? 'eff.ambitionTrauma' : 'eff.ambitionResisted', { name: who.label, roll: res.test.roll, target: res.test.target });
       env.log(line);
-      if (acquired) env.pushReveal({ kind: 'effet', title: t('eff.ambitionTitle'), lines: [line], subjectId: who.id, severity: 'grave' });
+      if (acquired) env.pushReveal({ kind: 'effet', title: t('eff.ambitionTitle'), lines: [line], subjectId: who.id });
     },
   },
   inflictPsychology: {
@@ -1807,7 +1974,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Repos déclenché par l'éditeur (trigger/dialogue) : ouvre la MODALE DE NUIT (couchage +
       // pitance par héros, prix RAW, bilan globalisé). `lodging` non renseigné dans l'effet ⇒
       // défaut maison (arbitrage de contexte, cf. `placesOfKind`).
-      openRest(env.get, env.set, { places: placesOfKind(e.lodging ?? 'maison'), lieu: sceneLieu(env.get), quality: e.quality, days: e.days ?? 1 });
+      ouvrirLeRepos(env.get, env.set, { places: placesOfKind(e.lodging ?? 'maison'), lieu: sceneLieu(env.get), quality: e.quality, days: e.days ?? 1 });
     },
   },
   mealParty: {
@@ -1830,7 +1997,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     make: () => ({ type: 'interlude', weeks: 1 }),
     apply: (e, env) => {
       // « Entre deux aventures » (LDB 22-23) — via l'action store (pas d'import direct : cycle).
-      env.get().startInterlude(e.weeks ?? 1);
+      env.get().ouvrirLInterlude(e.weeks ?? 1);
     },
   },
   setTime: {
@@ -1842,7 +2009,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const target = e.phase !== undefined
         ? (DAY_PHASES.find((p) => p.id === e.phase)?.seuil ?? 0)
         : (e.hour ?? 0) * 60 + (e.minute ?? 0);
-      env.get().advanceTime(minutesUntilNext(env.get().gameTime, target));
+      env.get().avancerLeTemps(minutesUntilNext(env.get().gameTime, target));
     },
   },
   delayedEffect: {
@@ -1863,7 +2030,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => {
       const cur = env.get();
       if (cur.scene) env.set({ previousScene: { id: cur.scene.id, pos: { ...cur.partyPos } } });
-      env.get().transitionTo(e.scene, e.entry);
+      env.get().quitterLaScene(e.scene, e.entry);
     },
     refs: (e, ctx) => ctx.sceneIds.has(e.scene) ? [] : [{ level: 'error', message: `Effet → scène inexistante « ${e.scene} »` }],
   },
@@ -1874,7 +2041,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const prev = env.get().previousScene;
       if (prev) {
         env.set({ previousScene: null });
-        env.get().transitionTo(prev.id, undefined, prev.pos);
+        env.get().quitterLaScene(prev.id, undefined, prev.pos);
       }
     },
   },
@@ -1884,7 +2051,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (_e, env) => {
       // « Partir en voyage » depuis une porte/route de la scène (#T2) — l'action est déjà gardée
       // (no-op sans carte ou en combat).
-      env.get().openWorldMap();
+      env.get().ouvrirLaCarte();
     },
   },
   setVessel: {
@@ -1915,29 +2082,6 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (!v.ship) return [{ level: 'error', message: `Effet → « ${v.label} » n'est pas un navire (pas de facette ship)` }];
       return [];
     },
-  },
-  adjustManann: {
-    group: 'Navigation', label: libelleEffet('adjustManann'), icon: 'travel/anchor',
-    make: () => ({ type: 'adjustManann', delta: { flat: 5, d10: 0, sign: 1 } }),
-    apply: (e, env) => {
-      const vessel = env.get().vessel;
-      if (!vessel) { env.log(t('eff.manannNoVessel')); return; }
-      const mood = vesselManann(vessel);
-      if (e.factorId) {
-        const already = mood.applied.includes(e.factorId);
-        const { mood: next, delta, label } = applyManannFactor(mood, e.factorId, battleRng());
-        if (already) { env.log(t('eff.manannAlready', { factor: label ?? e.factorId })); return; }
-        env.set({ vessel: { ...vessel, manann: next } });
-        env.log(t('eff.manannFactor', { delta: `${delta >= 0 ? '+' : ''}${delta}`, factor: label ?? e.factorId }));
-        return;
-      }
-      if (e.delta) {
-        const rolled = e.delta.sign * (e.delta.flat + (e.delta.d10 > 0 ? rollDice(e.delta.d10, 10, battleRng()) : 0));
-        env.set({ vessel: { ...vessel, manann: addManann(mood, rolled) } });
-        env.log(t('eff.manannRolled', { delta: `${rolled >= 0 ? '+' : ''}${rolled}` }));
-      }
-    },
-    refs: (e) => (e.factorId && !findManannFactor(e.factorId)) ? [{ level: 'error', message: `Effet → facteur Manann inexistant « ${e.factorId} »` }] : [],
   },
   adjustVessel: {
     group: 'Navigation', label: libelleEffet('adjustVessel'), icon: 'travel/anchor',
@@ -1970,7 +2114,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   startCombat: {
     group: 'Combat & social', label: libelleEffet('startCombat'), icon: 'action/attack',
     make: () => ({ type: 'startCombat', encounter: '' }),
-    apply: (e, env) => { env.get().startCombat(e.encounter); },
+    apply: (e, env) => { env.get().lancerLeCombat(e.encounter); },
     refs: (e, ctx) => ctx.encounterIds.has(e.encounter) ? [] : [{ level: 'error', message: `Effet → rencontre inexistante « ${e.encounter} »` }],
   },
   startPursuit: {
@@ -1994,7 +2138,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   startMassBattle: {
     group: 'Combat & social', label: libelleEffet('startMassBattle'), icon: 'map-tool/start-flag',
     make: () => ({ type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 50, plannedRounds: 3 } }),
-    apply: (e, env) => { env.get().startMassBattle(e.battle); }, // ouvre l'écran de bataille sur le spec authoré (ADE II 08)
+    apply: (e, env) => { env.get().amorcerLaBataille(e.battle); }, // ouvre l'écran de bataille sur le spec authoré (ADE II 08)
     // Les rencontres mappées aux Scènes de combat/menace doivent exister dans la scène courante.
     refs: (e, ctx) => Object.entries(e.battle.sceneEncounters ?? {}).flatMap(([sceneId, encId]) =>
       ctx.encounterIds.has(encId) ? [] : [{ level: 'error' as const, message: `Combat de masse → rencontre inexistante « ${encId} » (Scène ${sceneId})` }]),
@@ -2002,7 +2146,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   openMerchant: {
     group: 'Combat & social', label: libelleEffet('openMerchant'), icon: 'merchant/cart',
     make: () => ({ type: 'openMerchant', entityId: '' }),
-    apply: (e, env) => { env.get().openMerchant(e.entityId); }, // ouvre la boutique de l'entité (Marchand inclus dans un dialogue, #2)
+    apply: (e, env) => { env.get().ouvrirLeMarchand(e.entityId); }, // ouvre la boutique de l'entité (Marchand inclus dans un dialogue, #2)
   },
   openPort: {
     group: 'Navigation', label: libelleEffet('openPort'), icon: 'travel/anchor',
@@ -2027,7 +2171,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (refusDOuvrirLaTaverne(env.get())) return;
       const parle = env.get().dialogue?.speakerId;
       const propose = parle && tavernNpcOffers(env.get().scene, presetDuNarratif(env.get().campaignNarratif)).some((o) => o.id === parle);
-      env.get().openTavernGames(propose ? parle : undefined);
+      env.get().ouvrirLesJeux(propose ? parle : undefined);
     },
   },
   medicalAid: {
@@ -2041,7 +2185,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (!ctx.entityIds.has(e.entityId)) return [{ level: 'error', message: `Soins payants → PNJ soigneur inexistant « ${e.entityId || '(aucun)'} »` }];
       const npc = ctx.npcSheet(e.entityId);
       if (!npc) return [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId} » n'a aucune fiche (ni réf de bestiaire, ni profil, ni preset)` }];
-      return possesses(npc, HEAL_SKILL) ? [] : [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId} » ne possède pas la Compétence Guérison` }];
+      return possesses(npc, { id: HEAL_SKILL }) ? [] : [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId} » ne possède pas la Compétence Guérison` }];
     },
   },
   castSpell: {
@@ -2066,10 +2210,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         tablesPosees().lancerLeSort(get, set, caster, target, spell.id); // `castSpell`, `noyau/combatFlow` (#98)
         return;
       }
-      // HORS COMBAT (couture D) : seul un héros du GROUPE a un flux d'incantation jouable (`oocCastSpell`,
+      // HORS COMBAT (couture D) : seul un héros du GROUPE a un flux d'incantation jouable (`incanterLeSort`,
       // jet réel par modale) — un PNJ hors combat n'a pas de Combatant à faire incanter (`actorIn` ne
       // l'a alors résolu que depuis `party`), pas de pseudo-combat inventé pour ce cas.
-      get().oocCastSpell(caster.id, spell.id, target.id);
+      get().incanterLeSort(caster.id, spell.id, target.id);
     },
     // `spellId` : prouvé au schéma (`castSpellSchema`, `idDe('spell')`) ; `casterId` y est une chaîne libre.
     refs: (e) => (e.casterId ? [] : [{ level: 'error', message: 'Effet Incanter : lanceur manquant' }]),
@@ -2086,18 +2230,18 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // pool `battle.combatants` (héros positionnés) que `openSkillTest` quand un combat est en cours.
       const battle = env.get().battle;
       const pool = battle?.combatants.filter((c) => c.kind === 'hero') ?? env.get().party;
-      const leader = partyBest(pool, e.skill?.id, e.characteristic, undefined, e.skill?.spec)?.actor;
+      const leader = partyBest(pool, e)?.actor;
       const eligible = battle && leader?.pos ? (c: Combatant) => !!c.pos && combatDistance(leader, c) <= 1 : undefined;
-      const best = leader ? partyAssisted(pool, e.skill?.id, e.characteristic, undefined, e.skill?.spec, eligible) : null;
+      const best = leader ? partyAssisted(pool, e, undefined, eligible) : null;
       if (!best) return;
       const difficulty = e.difficulty ?? 'intermediaire';
       // Cible montée par le MONTEUR CANONIQUE : la valeur SOUTENUE de `partyAssisted` se déclare avec
       // son Soutien, l'écrêtage est celui de `rollTest` (`clampTarget`), plus une borne recopiée ici.
       const { target } = rollStep({
-        actor: best.actor, test: { skill: e.skill?.id, char: e.characteristic, spec: e.skill?.spec },
+        actor: best.actor, test: { skill: e.skill, characteristic: e.characteristic },
         difficulty, valeur: best.value, soutien: best.support,
       });
-      env.get().startExtendedTest({ actorId: best.actor.id, label: e.label, skillLabel: garanti(testSkillLabel({ skill: e.skill, char: e.characteristic }), e.skill?.id ?? e.characteristic, 'Compétence ou Caractéristique du Test étendu'), ...(e.skill ? { skill: e.skill } : {}), ...(e.characteristic ? { char: e.characteristic } : {}), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extended-test-roll'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
+      env.get().ouvrirLeTestEtendu({ actorId: best.actor.id, label: e.label, skillLabel: garanti(testSkillLabel(e), e.skill?.id ?? e.characteristic, 'Compétence ou Caractéristique du Test étendu'), ...(e.skill ? { skill: e.skill } : {}), ...(e.characteristic ? { characteristic: e.characteristic } : {}), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extended-test-roll'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
       return 'suspend';
     },
   },
@@ -2109,7 +2253,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Enfoncer une PORTE/objet à plusieurs (EDO Append. 2) : tout le groupe vivant frappe.
       const heroes = env.get().party.filter((h) => !h.dead).map((h) => h.id);
       if (!heroes.length) return;
-      env.get().startForceDoor({ label: e.label, doorBE: e.doorBE, doorB: e.doorB, heroIds: heroes, flag: e.flag, suite });
+      env.get().enfoncerLaPorte({ label: e.label, doorBE: e.doorBE, doorB: e.doorB, heroIds: heroes, flag: e.flag, suite });
       return 'suspend';
     },
   },
@@ -2140,7 +2284,7 @@ export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combata
       label: t('eff.waterExposure', { mode: e.mode === 'immersion' ? 'immersion' : 'ingestion', detail: detail ? ` (${detail})` : '' }),
       difficulty: WATER_EXPOSURE.test.difficulty,
       ligne: {
-        test: { skill: WATER_EXPOSURE.test.skill.id, spec: WATER_EXPOSURE.test.skill.spec },
+        test: { skill: WATER_EXPOSURE.test.skill },
         surLaCible: parts.map((m): ModLine => ({
           label: m.label, value: m.mod, famille: 'jet', ref: RULE_REF['exposition-hydrique'],
         })),
@@ -2176,7 +2320,7 @@ const appliquerLExpositionHydrique: CascadeApplier = (_get, _set, step, hero) =>
  * pending la rejouera à sa clôture et la boucle s'arrête là — aucun Effet ne se perd.
  */
 export function applyEffects(get: Get, set: SetFn, effects: Effect[], sl?: number, label?: string): Applique {
-  const env = makeEffectEnv(get, set, sl);
+  const env = makeEffectEnv(get, set, sl, label);
   const file = structuredClone(effects); // #2097
   let differe: Applique;
   while (file.length) {
@@ -2215,13 +2359,13 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: { acts?: { act: HealMode;
   // valeur de Guérison et son Bonus d'Intelligence s'y LISENT. Sans fiche, ou sans la Compétence
   // Avancée Guérison sur cette fiche (LDB 09 l.30), aucune infirmerie ne s'ouvre — et le refus se DIT.
   const npc = sceneNpc(get().scene, e.entityId, presetDuNarratif(get().campaignNarratif));
-  if (!npc) { get().log(t('eff.medicNoNpc', { id: e.entityId || '(aucun)' })); return; }
-  if (!possesses(npc, HEAL_SKILL)) { get().log(t('eff.medicNoHealSkill', { name: npc.label })); return; }
-  openMedic(get, set, {
+  if (!npc) { get().ecrireAuJournal(t('eff.medicNoNpc', { id: e.entityId || '(aucun)' })); return; }
+  if (!possesses(npc, { id: HEAL_SKILL })) { get().ecrireAuJournal(t('eff.medicNoHealSkill', { name: npc.label })); return; }
+  ouvrirLeMedecin(get, set, {
     npc: {
       id: e.entityId,
       label: npc.label,
-      skill: { id: HEAL_SKILL, value: testValue(npc, HEAL_SKILL) },
+      skill: { id: HEAL_SKILL, value: testValue(npc, { skill: { id: HEAL_SKILL } }) },
       intBonus: bonus(effectiveChar(npc, 'intelligence')),
       acts,
     },
@@ -2229,7 +2373,7 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: { acts?: { act: HealMode;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = [...WATER_EXPOSURE_KINDS, 'opsDe', 'chuteDe'] as const;
+export const GENRES_D_ETAPE = [...WATER_EXPOSURE_KINDS, 'opsDe', 'chuteDe', 'flowChoice', 'flowVolontaire'] as const;
 
 /** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */
 export const GENRES_HOTES = ['sceneTestJet'] as const;
@@ -2268,6 +2412,29 @@ export const TABLES = {
       // La suite confiée à cette étape est rejouée par le GOULOT (`cascade.commitStep`), une fois cette
       // conséquence journalisée (`jouerLesClotures`).
       return { consequences: freeCons(journal) };
+    },
+    /** Décision d'un nœud `choice` de `runFlow` (`ouvrirLeChoixDuFlow`) : la branche choisie, puis la
+     *  continuation du Flow, sous le libellé et le DR du Flow qui l'a ouverte. */
+    flowChoice: (get, set, step) => {
+      if (step.chosen !== 'yes' && step.chosen !== 'no') return;
+      const branche = (step.chosen === 'yes' ? step.meta?.choiceYes : step.meta?.choiceNo) ?? EMPTY_FLOW;
+      jouerFlowEntier(runFlow(get, set, { kind: 'seq', steps: [branche, step.meta?.after ?? EMPTY_FLOW] }, step.meta?.flowLabel, step.meta?.flowSl));
+      return { consequences: freeCons([]) };
+    },
+    /** Réponse d'un héros à la question des VOLONTAIRES (`demanderLesVolontaires`) : la dernière étape de la
+     *  série joue la feuille sur chaque héros qui a dit oui, puis la continuation du Flow. MDG 15 l.196 */
+    flowVolontaire: (get, set, step, _hero, sctx) => {
+      if (step.chosen !== 'yes' && step.chosen !== 'no') return;
+      const feuille = step.meta?.choiceYes;
+      if (!feuille || feuille.kind !== 'do' || feuille.effect.type !== 'ops') return { consequences: freeCons([]) };
+      const e = feuille.effect;
+      const oui = sctx.steps.slice(0, sctx.index + 1)
+        .filter((x) => x.kind === 'flowVolontaire' && x.id.startsWith(`flowVolontaire-${(e.on as CibleDeVolontaires).volontaires}-`) && x.chosen === 'yes' && x.actorId)
+        .map((x) => x.actorId!);
+      if (!oui.length) get().ecrireAuJournal(t('eff.volontairesAucun', { question: (e.on as CibleDeVolontaires).volontaires }));
+      const feuilles: Flow[] = oui.map((heroId) => ({ kind: 'do', effect: { ...e, on: 'hero', heroId } }));
+      jouerFlowEntier(runFlow(get, set, { kind: 'seq', steps: [...feuilles, step.meta?.after ?? EMPTY_FLOW] }, step.meta?.flowLabel, step.meta?.flowSl));
+      return { consequences: freeCons([]) };
     },
     chuteDe: (get, set, step, hero) => {
       const metres = step.meta?.chuteMetres;

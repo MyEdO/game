@@ -8,7 +8,7 @@
  *
  * La couture est UNIQUE et ne dépend d'AUCUN appelant : elle observe la transition d'état du store
  * (`transitionDuJeu`, jouée à chaque écriture du propriétaire du jeu) et compare les corps rang par rang. Ces tests l'attaquent donc par des
- * écrivains qui ne la connaissent pas — `setState` brut, `setParty` en bloc — autant que par les
+ * écrivains qui ne la connaissent pas — `setState` brut, `fixerLeGroupe` en bloc — autant que par les
  * primitives de recomposition.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -21,6 +21,7 @@ import { assignSeat, seatPoseOf } from './monde/seating';
 import { chargerSurLeBanc, sauverLeBanc } from './persistance/save.testkit';
 import type { Combatant } from '../engine/types';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { engage } from './creation/engagement.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -47,7 +48,7 @@ function attable(rangs: number[], party: Combatant[]): void {
     sc = r.scene;
   }
   banc.setState({ party, scene: null, mode: 'exploration', journal: [], battle: null, dialogue: null });
-  banc.getState().startScene(sc);
+  banc.getState().lancerLaScene(sc);
 }
 
 describe('recomposition du groupe — l’emplacement dont le corps change se lève', () => {
@@ -64,7 +65,7 @@ describe('recomposition du groupe — l’emplacement dont le corps change se l�
     attable([2, 3], [hero('h1'), hero('h2'), hero('h3')]);
     expect(poseDe(2)).toMatchObject({ slotId: 'place-2' });
     expect(poseDe(3)).toMatchObject({ slotId: 'place-3' });
-    banc.getState().partyRemoveHero('h1');
+    banc.getState().renvoyerLeHeros('h1');
     // h2 et h3 ont glissé d'un cran : « Héros 2 » désigne un AUTRE corps, « Héros 3 » plus personne.
     expect(banc.getState().party.map((h) => h.id)).toEqual(['h2', 'h3']);
     expect(poseDe(2)).toBeNull();
@@ -73,7 +74,7 @@ describe('recomposition du groupe — l’emplacement dont le corps change se l�
 
   it('REMPLACER un héros EN PLACE ne lève que SON emplacement — les rangs suivants tiennent', () => {
     attable([2, 3], [hero('h1'), hero('h2'), hero('h3')]);
-    banc.getState().partyReplaceHero('h2', hero('neuf'));
+    banc.getState().remplacerLeHeros('h2', engage('neuf'));
     expect(banc.getState().party.map((h) => h.id)).toEqual(['h1', 'neuf', 'h3']);
     expect(poseDe(2)).toBeNull();
     expect(poseDe(3)).toMatchObject({ slotId: 'place-3' }); // son corps n'a pas bougé : il garde sa chaise
@@ -82,14 +83,14 @@ describe('recomposition du groupe — l’emplacement dont le corps change se l�
   it('un remplacement À MÊME ID (édition en place) ne lève personne, et n’écrit pas la scène', () => {
     attable([1], [hero('h1')]);
     const avant = banc.getState().scene!;
-    banc.getState().partyReplaceHero('h1', { ...hero('h1'), label: 'Retouché' } as Combatant);
+    banc.getState().remplacerLeHeros('h1', engage('h1', 'Retouché'));
     expect(poseDe(1)).toMatchObject({ slotId: 'place-1' });
     expect(banc.getState().scene).toBe(avant); // aucune écriture inutile
   });
 
-  it('`setParty` en BLOC (devtools, écran de scénarios) lève la place du corps remplacé', () => {
+  it('`fixerLeGroupe` en BLOC (devtools, écran de scénarios) lève la place du corps remplacé', () => {
     attable([1], [hero('h1')]);
-    banc.getState().setParty([hero('autre')]);
+    banc.getState().fixerLeGroupe([hero('autre')]);
     expect(poseDe(1)).toBeNull();
     expect(placesDeGroupe()).toEqual([]);
   });
@@ -122,7 +123,7 @@ describe('recomposition du groupe — l’emplacement dont le corps change se l�
 
   it('RECRUTER un héros au rang suivant ne touche à rien de ce qui est assis', () => {
     attable([1], [hero('h1')]);
-    banc.getState().partyAddHero(hero('h2'));
+    banc.getState().recruterLeHeros(engage('h2'));
     expect(banc.getState().party.map((h) => h.id)).toEqual(['h1', 'h2']);
     expect(poseDe(1)).toMatchObject({ slotId: 'place-1' });
   });

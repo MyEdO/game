@@ -22,7 +22,7 @@ import { proseDeFiche, codexLookupById } from '../noyau/codex/registry';
 import { CodexEntry } from './compendium/CodexEntry';
 import { Prose } from './Prose';
 import { porteurDuNarratif } from './porteurDeProjet';
-import { CHEMINS_ADRESSES } from './liage';
+import { CHEMINS_ADRESSES } from '../noyau/codex/chemins-adresses';
 import type { Porteur } from '../noyau/codex/porteur';
 import { InspectPanel } from './InspectPanel';
 import { CampaignView } from './CampaignView';
@@ -76,14 +76,14 @@ const duNarratif = (cle: 'presetsPnj', id: string, suite: string): Porteur | und
 const CITATION = ' La Peur le précède.';
 
 /** Le contenu du scénario des presets EDO, les desc de profil augmentées de `CITATION`, chargé par
- *  `loadProject` comme `poserScenario` le charge : EN CAMPAGNE sous le document `PROJET`, ou en
+ *  `chargerLeProjet` comme `poserScenario` le charge : EN CAMPAGNE sous le document `PROJET`, ou en
  *  SCÉNARIO (`projet: null`). */
 function poser(enCampagne: boolean): void {
   const c = scenario.construire();
   const narratif = c.narratif!;
   const presetsPnj = narratif.presetsPnj.map((p) => (p.profil?.desc ? { ...p, profil: { ...p.profil, desc: p.profil.desc + CITATION } } : p));
-  useGame.getState().setParty(c.party);
-  useGame.getState().loadProject({
+  useGame.getState().fixerLeGroupe(c.party);
+  useGame.getState().chargerLeProjet({
     scenes: [c.scene, ...(c.extraScenes ?? [])],
     entryId: c.scene.id,
     worldMap: c.worldMap ?? null,
@@ -95,7 +95,7 @@ function poser(enCampagne: boolean): void {
 /** Le contenu posé (`poser`), combat `enc-knud` lancé. */
 function combatKnud(enCampagne = false): Combatant {
   poser(enCampagne);
-  useGame.getState().startCombat('enc-knud');
+  useGame.getState().lancerLeCombat('enc-knud');
   const knud = useGame.getState().battle?.combatants.find((c) => c.label === 'Knud Cratinx');
   expect(knud, 'Knud absent du combat').toBeTruthy();
   return knud!;
@@ -195,9 +195,9 @@ describe('InspectPanel — le geste d’inspection ouvre la fiche (geste réel, 
       el.dispatchEvent(new Event(el instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true }));
     });
     const titreDeFrise = (nom: string): HTMLElement | null => {
-      useGame.getState().setParty(makePregens().slice(0, 1));
-      useGame.getState().loadProject({ scenes: [scene], entryId: scene.id, narratif, projet: null });
-      useGame.getState().startCombat(pose.encId, undefined, { noSurprise: true });
+      useGame.getState().fixerLeGroupe(makePregens().slice(0, 1));
+      useGame.getState().chargerLeProjet({ scenes: [scene], entryId: scene.id, narratif, projet: null });
+      useGame.getState().lancerLeCombat(pose.encId, undefined, { noSurprise: true });
       useGame.setState({ inspectId: null });
       const el = monter(<CampaignView />);
       return el.querySelector<HTMLElement>(`.initiative-strip [title="${nom}"]`);
@@ -386,7 +386,7 @@ describe('proseDeFiche — provenance de la Description (#2206)', () => {
 describe('DoD #2206 — la Description d’un preset de `la-diligence`, portée par le projet', () => {
   it('campagne lancée par `lancerCampagne` : la desc de SON profil, rendue par `Prose` sous `narratif.presetsPnj[1].profil.desc`', () => {
     useGame.setState(useGame.getInitialState());
-    useGame.getState().setParty(makePregens().slice(0, 1));
+    useGame.getState().fixerLeGroupe(makePregens().slice(0, 1));
     expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign))).toBeNull();
     const gustav = sceneNpc(sceneAuPreset('edo-gustav-fondleburger'), 'pnj', presetPnjById)!;
     const desc = presetPnjById('edo-gustav-fondleburger')!.profil!.desc!;
@@ -399,7 +399,7 @@ describe('DoD #2206 — la Description d’un preset de `la-diligence`, portée 
 
   it('même chemin pour `edo-mutant-terenz` (rang 14), dont la desc cite le Codex : liens armés', () => {
     useGame.setState(useGame.getInitialState());
-    useGame.getState().setParty(makePregens().slice(0, 1));
+    useGame.getState().fixerLeGroupe(makePregens().slice(0, 1));
     expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign))).toBeNull();
     const terenz = sceneNpc(sceneAuPreset('edo-mutant-terenz'), 'pnj', presetPnjById)!;
     const desc = presetPnjById('edo-mutant-terenz')!.profil!.desc!;

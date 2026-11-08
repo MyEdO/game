@@ -41,10 +41,10 @@ export type GesteCarteAttendu =
   | ({ kind: (typeof KIND_DE_POSE)[PlacingZone['source']] } & Omit<PlacingZone, 'source'>)
   | { kind: 'cibles'; label: string; casterId: string; cibles: string[] };
 
-import { portRepairVessel, portCareenVessel, portInstallUpgrade, damageCampaignVessel } from '../noyau/seaVoyageFlow';
+import { portRepairVessel, portCareenVessel, installerLAmelioration, damageCampaignVessel } from '../noyau/seaVoyageFlow';
 import { seaBoardEventById } from '../engine/seaVoyage';
 import { beginShipwreck } from '../noyau/shipwreck';
-import { placeOfScene, placeById, routesCliquables, documentDeProjet, exigerUnRefus, type MapRoute, type WorldMap } from '../noyau/worldMap';
+import { lieuDuGroupe, placeById, routesCliquables, documentDeProjet, exigerUnRefus, type MapRoute, type WorldMap } from '../noyau/worldMap';
 import { MAISON_PROJET_AUTHORE } from '../data/schemas/defs-scenes/projet';
 import { buildRiverDayCascade } from '../noyau/riverVoyageFlow';
 import { findVehicleById, refLabel } from '../data';
@@ -96,7 +96,8 @@ import { acquerirTalent } from '../engine/careerSlots';
 import { grantTrait } from '../engine/grantedTraits';
 import { parseQualityInstance } from '../engine/qualities/normalize';
 import { formatImperial } from '../engine/clock';
-import { testScenarios, type TestScenario } from '../scenes/test-scenarios';
+import { testScenarios } from '../scenes/test-scenarios';
+import type { TestScenario } from '../scenes/test-scenarios/_shared';
 import { builtinCampaigns, allBuiltinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
 import { projectsLoad, projectSave } from './projectLibrary';
 import { type EntreeEcrite, type SavedProject } from '../noyau/persistance/bibliotheque';
@@ -203,7 +204,7 @@ function observerDialogueDuDessus(): { kind: string; plan: LayerPlan; nom: strin
   return { kind: couche.kind, plan: couche.plan, nom, selecteur: '[data-wfrp-dialogue-dessus]' };
 }
 
-/** Trace du DERNIER Test résolu (`jetConfirm('test')`, `EVT.TEST_RESOLVED`) — observation pure pour la
+/** Trace du DERNIER Test résolu (`jetValider('test')`, `EVT.TEST_RESOLVED`) — observation pure pour la
  *  recette navigateur (`__wfrp.lastRoll()`), JAMAIS dans l'état de jeu persisté (module DEV seul,
  *  chargé dynamiquement, #514). Abonnement au scope module = une SEULE souscription (`installDevtools`
  *  n'est appelé qu'une fois, `main.tsx`). */
@@ -212,9 +213,8 @@ bus.on(EVT.TEST_RESOLVED, (payload) => { lastRollTrace = payload as typeof lastR
 
 /** Routes qui portent un tracé de HIT au DOM de la carte du monde (`routesCliquables` depuis le lieu
  *  courant) : SOURCE UNIQUE du mapping DOM ↔ id, partagée par `routes()` et `clickRoute()` (#684). */
-function routesRendues(map: WorldMap, sceneId: string | undefined): { route: MapRoute; ouverte: boolean }[] {
-  const here = placeOfScene(map, sceneId);
-  return here ? routesCliquables(map, here.id, condCtx(useGame.getState)) : [];
+function routesRendues(map: WorldMap, lieu: string | null): { route: MapRoute; ouverte: boolean }[] {
+  return lieu ? routesCliquables(map, lieu, condCtx(useGame.getState)) : [];
 }
 
 /**
@@ -266,10 +266,10 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           sur une étape, ou coup joué sans fenêtre ; ✗ si rien ne part
  *   __wfrp.turnShip('id', 'tribord'|'babord'|crans) → vire le cap d'un NAVIRE (manœuvre) → re-mappe ses bordées
  *   __wfrp.modal()        → modale(s) ouvertes ; __wfrp.roll()/confirm()/cancel() → pilote LA modale
- *                           (convention jetRoll(flux)/jetConfirm(flux)/jetCancel(flux) ; reveals/Round ont leur verbe propre)
+ *                           (convention jetLancer(flux)/jetValider(flux)/jetAnnuler(flux) ; reveals/Round ont leur verbe propre)
  *   __wfrp.killEnemies()  → élimine tous les ennemis du combat et déclenche la victoire (flux normal) ;
  *                           killEnemies({withQualityLoot:true}) → ajoute au butin un objet catalogué à qualités
- *   __wfrp.interlude()    → arme un INTERLUDE de démo jouable (startInterlude — sans voyager jusqu'à Altdorf)
+ *   __wfrp.interlude()    → arme un INTERLUDE de démo jouable (ouvrirLInterlude — sans voyager jusqu'à Altdorf)
  *   __wfrp.dealDamage('id', n) → inflige n Dégâts (op wounds, VRAI pipeline : armure de coque, reddition/naufrage)
  *   __wfrp.combatEnd({…}) → arme les conséquences de fin de combat (critique infectant + exposition
  *                           Corruption) puis termine le combat en LAISSANT la cascade ouverte (influençable)
@@ -297,12 +297,12 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           maybeRunEnemyTurn), juste sans les délais de lisibilité (chorégraphie)
  *   __wfrp.advanceSeaDay() → symétrique VOYAGE de `fastForward` : pilote la journée en mer EN COURS
  *                           (cascade du jour, halte de nuit, Activités hebdo…) jusqu'au jour SUIVANT,
- *                           l'arrivée ou un combat — MÊME machinerie que le joueur (cascadeResolveAll/
- *                           Finish, fenetreValider('rest'), seaActivitiesConfirm…), juste sans les clics ;
+ *                           l'arrivée ou un combat — MÊME machinerie que le joueur (`jetLancer('cascade')`/
+ *                           Finish, fenetreValider('rest'), fenetreValider('seaActivities')…), juste sans les clics ;
  *                           advanceSeaDay({stopOnEveryEvent:true}) → s'arrête AUSSI au recap d'un événement
  *                           RACONTÉ (carte-parchemin de `travelDay.events`) — et SEULEMENT là : jamais
  *                           sur une étape STRUCTURELLE du jour (Progression, Orientation, Exposition…),
- *                           que `cascadeResolveAll` traverse aux défauts. Pour observer une étape
+ *                           que `jetLancer('cascade')` traverse aux défauts. Pour observer une étape
  *                           précise : advanceSeaDay({stopAt:'<kind>'}) → s'arrête AVANT de la résoudre
  *                           (ex. stopAt:'sea-progression-choice'), cascade rendue intacte
  *   __wfrp.skipToArrival() → comme `advanceSeaDay` mais ROULE jusqu'à l'ACCOSTAGE (ou interruption)
@@ -310,7 +310,7 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           COURS (cascade du jour, Exposition hydrique, halte de nuit) jusqu'au jour
  *                           SUIVANT, l'arrivée ou un combat — MÊME machinerie que le voyage maritime
  *   __wfrp.forceEncounter(id) → force un événement de bord maritime NOMMÉ (`sea-events.json`, id ou kind
- *                           ex. 'navire-hostile') au prochain jour — à dérouler avec `advanceSeaDay()`
+ *                           ex. 'cogue-pirate') au prochain jour — à dérouler avec `advanceSeaDay()`
  *   __wfrp.dealShipDamage(n) → inflige n Dégâts de coque HORS COMBAT (VRAI pipeline `damageCampaignVessel`
  *                           — SOURCE UNIQUE `state.vessel.wounds`, cf. `docs/recette-
  *                           navigateur.md` § piège des deux copies de coque) ; symétrique de `dealDamage`
@@ -348,7 +348,7 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           clics, jamais via ce raccourci
  */
 /** Flux « jet différé » pilotable parmi des `pending*` ouverts — convention pending<Flux> ↔
- *  `jetRoll(flux)`/`jetConfirm(flux)`/`jetCancel(flux)`. Les files à verbe propre (pause de Round, victoire) et les invites de
+ *  `jetLancer(flux)`/`jetValider(flux)`/`jetAnnuler(flux)`. Les files à verbe propre (pause de Round, victoire) et les invites de
  *  CIBLAGE (Cleave/DualStrike/choix de monture) sont exclues. */
 function devFluxOf(open: string[]): string | null {
   const special = new Set(['pendingRoundStart', 'pendingVictory', 'pendingCleave', 'pendingDualStrike', 'pendingMountTarget']);
@@ -382,15 +382,14 @@ function riverDayCascade(): string {
   if (!plan?.river) return '✗ aucune descente fluviale en cours (travelPlan.river)';
   const map = s.worldMap as import('../noyau/worldMap').WorldMap | undefined;
   const route = map?.routes.find((r) => r.id === plan.routeId);
-  const to = map ? placeById(map, plan.toPlaceId) : undefined;
-  if (!route || !to) return '✗ route ou destination introuvable sur la carte du monde';
+  if (!route) return '✗ route introuvable sur la carte du monde';
   // Le slot est REMPLACÉ, jamais complété : `startCascade` APPEND quand le `purpose` est déjà ouvert
   // (doctrine du slot, `cascade.ts` — voulue, et dont le combat dépend). Le chemin JOUEUR ne peut pas
   // rouvrir un `travelDay` déjà ouvert (`runRiverDays` refuse si `pendingCascade`) ; ce helper, lui,
   // court-circuite ce garde — sans cette purge il concaténait 2 journées (ids dupliqués, étapes
   // injouables, recette 5).
   useGame.setState({ pendingCascade: null });
-  const built = buildRiverDayCascade(useGame.getState, useGame.setState, route, { scene: to.scene ?? '', label: to.label });
+  const built = buildRiverDayCascade(useGame.getState, useGame.setState, route);
   startCascade(useGame.getState, useGame.setState, { title: 'Journée de descente', icon: 'travel/wave', purpose: 'travelDay', steps: built.steps });
   const kinds = built.steps.map((x: { kind: string }) => x.kind).join(', ');
   return `cascade du jour posée : ${built.steps.length} étape(s) [${kinds}]`;
@@ -447,7 +446,7 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
             return;
           }
           if (p.cursor < p.participants.length) {
-            s.cascadeResolveAll(); // « Tout lancer » — peut buter sur un CHOIX du joueur (cursor < length)
+            s.jetLancer('cascade'); // « Tout lancer » — peut buter sur un CHOIX du joueur (cursor < length)
             const after = useGame.getState().pendingCascade;
             if (after && after.cursor < after.participants.length) {
               const cur = after.participants[after.cursor];
@@ -460,7 +459,7 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
                 resolve(`✓ événement présenté — « ${cur.label} » attend une décision (${cur.options.map((o) => o.key).join(' / ')}) : __wfrp.modal()/state().pendingCascade`);
                 return;
               }
-              if (cur?.options?.length) useGame.getState().cascadeChoose(cur.id, cur.defaultChoice ?? cur.options[0].key);
+              if (cur?.options?.length) useGame.getState().jetRegler('cascade', 'choix', cur.defaultChoice ?? cur.options[0].key, cur.id);
             }
             real(tick, 0); return;
           }
@@ -469,7 +468,7 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
           real(tick, 0); return;
         }
         if (s.pendingRest) {
-          const jourClos = s.pendingRest.travelHalt ? s.travelPlan?.log?.[s.travelPlan.log.length - 1] : undefined; // `openRest`
+          const jourClos = s.pendingRest.travelHalt ? s.travelPlan?.log?.[s.travelPlan.log.length - 1] : undefined; // `ouvrirLeRepos`
           const evts = jourClos?.events ?? [];
           if (stopOnEvent && evts.length) {
             resolve(`✓ événement de bord raconté au recap (${evts.length}) — carte-parchemin visible à la halte de nuit (__wfrp.modal()/state()) ; fenetreValider('rest') ou advanceSeaDay() reprend`);
@@ -481,15 +480,15 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
         if (s.pendingSeaActivities) {
           const evts = s.pendingSeaActivities.day.events ?? [];
           if (stopOnEvent && evts.length) {
-            resolve(`✓ événement de bord raconté au recap (${evts.length}) — carte-parchemin visible (Activités hebdo ouvertes) ; seaActivitiesConfirm({}) ou advanceSeaDay() reprend`);
+            resolve(`✓ événement de bord raconté au recap (${evts.length}) — carte-parchemin visible (Activités hebdo ouvertes) ; fenetreValider('seaActivities') ou advanceSeaDay() reprend`);
             return;
           }
-          s.seaActivitiesConfirm({}); real(tick, 0); return;
+          s.fenetreValider('seaActivities'); real(tick, 0); return;
         }
         const sr = s as unknown as Record<string, unknown>;
         const open = Object.keys(sr).filter((k) => /^pending/.test(k) && (Array.isArray(sr[k]) ? (sr[k] as unknown[]).length > 0 : sr[k] != null));
         if (open.length) { devDriveModal('Roll'); devDriveModal('Confirm'); real(tick, 0); return; }
-        if (plan.interrupted) { s.resumeTravel(); real(tick, 0); return; }
+        if (plan.interrupted) { s.reprendreLeVoyage(); real(tick, 0); return; }
         // Rien à piloter LÀ (reprise différée d'un applier en vol, `setTimeout(0)` déjà posé côté
         // seaVoyageFlow) : re-scrute au tick suivant sans action, laisse la chaîne réelle rattraper.
         real(tick, 4);
@@ -626,19 +625,19 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     if (!sc) throw new Error(`__wfrp.scenario : « ${id} » introuvable — ids : ${scenarios.map((t) => t.id).join(', ')}`);
     clearAiTurnLog(); // trace IA vierge pour ce scénario
     const s = g();
-    if (seed != null) s.seedRng(seed);
+    if (seed != null) s.ensemencerLeTirage(seed);
     const construit = poserScenario(g, sc);
     // Un plateau VIDE est un refus, jamais un silence : la recette qui continue dessus attribue son
     // rouge au geste suivant. « Vide » se mesure sur la scène ACTIVE du store après chargement —
     // aucune scène (`scene` nul) ou aucune entité peuplée (`scene.entities`, la population que lisent
-    // le rendu comme les sondes `__wfrp.entities`/`visibleCount`). Le groupe n'y change rien : `setParty`
-    // ne pose que `state.party` (`partyFlow.ts`), et c'est `startScene` qui cherche son point de départ
+    // le rendu comme les sondes `__wfrp.entities`/`visibleCount`). Le groupe n'y change rien : `fixerLeGroupe`
+    // ne pose que `state.party` (`partyFlow.ts`), et c'est `lancerLaScene` qui cherche son point de départ
     // DANS `scene.entities` (`noyau/entreeEnScene.ts`, entité `heroStart`) — 0 entité = aucun sol sous le groupe.
     const chargee = g().scene;
     if (!chargee || chargee.entities.length === 0)
       throw new Error(
         `__wfrp.scenario : « ${id} » a chargé une scène VIDE (${chargee ? `scène « ${chargee.id} », 0 entité` : 'aucune scène active'}) — ` +
-          `plateau inexploitable : le groupe posé par setParty ne vit pas dans scene.entities, aucune entité = aucun point de départ (heroStart) ni décor.`,
+          `plateau inexploitable : le groupe posé par fixerLeGroupe ne vit pas dans scene.entities, aucune entité = aucun point de départ (heroStart) ni décor.`,
       );
     // La MÉMOIRE d'onglet ne retient qu'un lancement qui a passé les deux refus : mémoriser avant le
     // chargement ferait rejouer en boucle un scénario qui jette à `resumeLastScenario()`.
@@ -778,7 +777,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const s = g();
       const map = s.worldMap;
       if (!map || !s.scene) return '✗ aucune carte du monde ouverte (voir __wfrp.screen(\'worldmap\'))';
-      return routesRendues(map, s.scene.id).map(({ route: r, ouverte }) => ({
+      return routesRendues(map, s.lieu).map(({ route: r, ouverte }) => ({
         id: r.id,
         from: placeById(map, r.a)?.label ?? r.a,
         to: placeById(map, r.b)?.label ?? r.b,
@@ -847,7 +846,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const ent = find(id);
       if (!ent) return `✗ « ${id} » introuvable — voir __wfrp.entities()`;
       useGame.setState({ partyPos: { ...ent.pos } });
-      g().interactEntity(id);
+      g().interagirAvecLEntite(id);
       const s = g();
       if (s.dialogue) return `✓ dialogue ouvert (${id})`;
       if (s.merchant) return `✓ marchand ouvert (${id})`;
@@ -904,7 +903,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  — `stage/MondeDeCampagne.tsx` ne filtre `el.cell.z !== activeZ` que sous `planVue`
      *  (= `viewPolicy.etageIsole`, vrai pour le seul regard du dessus, `stage/viewPolicy.ts`). En vue
      *  ISO, les deux couches se peignent et c'est la loi de dégagement (`clearedSpace`,
-     *  `builders/roofs.ts`) qui découvre ce qui abrite le groupe : `viewLevel` n'y change RIEN au monde
+     *  `noyau/monde/volume/toits.ts`) qui découvre ce qui abrite le groupe : `viewLevel` n'y change RIEN au monde
      *  peint. Il reste partout l'étage que le PICKING résout par défaut (`etageActif`). */
     viewLevel: (z?: number | null) => {
       if (z === undefined) return { override: getViewZ(), note: 'null = auto (suit le groupe)' };
@@ -1225,7 +1224,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
 
     /** Charge une CAMPAGNE BUILT-IN sans dérouler le character creator ×4 à la main :
      *  __wfrp.campaign('loup-et-saumure', 42). Sans argument : liste les ids. `sceneId` (optionnel)
-     *  démarre ailleurs qu'à l'entrée par défaut. MÊME chemin que le picker `PartyScreen` (`setParty` +
+     *  démarre ailleurs qu'à l'entrée par défaut. MÊME chemin que le picker `PartyScreen` (`fixerLeGroupe` +
      *  `setPendingCampaign` + `lancerCampagne`) — jamais une reconstruction parallèle de l'état. */
     campaign: (id?: string, seed?: number, sceneId?: string) => {
       if (!id) return builtinCampaigns.map((c) => `${c.id} — ${c.label}`);
@@ -1242,8 +1241,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         return `✗ scène « ${sceneId} » introuvable dans « ${id} » — ids : ${lancee.scenes.map((sc) => sc.id).join(', ')}`;
       }
       const s = g();
-      if (seed != null) s.seedRng(seed);
-      s.setParty(makeShowcaseParty()); // campagnes built-in sans pré-tirés propres — groupe canonique (4 piliers)
+      if (seed != null) s.ensemencerLeTirage(seed);
+      s.fixerLeGroupe(makeShowcaseParty()); // campagnes built-in sans pré-tirés propres — groupe canonique (4 piliers)
       s.setPendingCampaign(lancee);
       const refus = lancerCampagne(g, lancee, sceneId);
       if (refus) return `✗ campagne « ${c.label} » refusée — ${refus}`;
@@ -1255,12 +1254,12 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     /** Lance une bataille de masse de démonstration (ADE II 08) sans scénario : __wfrp.massBattle(60, 40, 3).
      *  Les Scènes de COMBAT ne s'amorcent que si la scène courante porte les rencontres attendues. */
     massBattle: (ally = 50, enemy = 55, rounds = 3) => {
-      g().startMassBattle({ allyMight: ally, enemyMight: enemy, plannedRounds: rounds, terrain: 'Les deux armées se font face dans la plaine.' });
+      g().amorcerLaBataille({ allyMight: ally, enemyMight: enemy, plannedRounds: rounds, terrain: 'Les deux armées se font face dans la plaine.' });
       return `✓ bataille de masse lancée — Puissance ${ally} contre ${enemy}, ${rounds} Round(s)`;
     },
 
     /** RECETTE #380 : arme un INTERLUDE de démonstration jouable sans voyager jusqu'à Altdorf. MÊME
-     *  chemin que le flux réel (`startInterlude` : `state.interlude` peuplé — Événement d100 par héros,
+     *  chemin que le flux réel (`ouvrirLInterlude` : `state.interlude` peuplé — Événement d100 par héros,
      *  budget d'Activités `perHero[*].granted`, écran 'interlude') — le catalogue d'Activités reste dérivé
      *  de la DONNÉE (`interludeCatalog`/`activities.json`), rien d'inventé. Sans groupe chargé, pose le
      *  groupe canonique (`makeShowcaseParty`, comme `campaign()`/`scenario()`). À conduire à la main
@@ -1269,8 +1268,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const s = g();
       if (s.battle) return '✗ combat en cours — impossible d\'ouvrir un interlude (voir __wfrp.killEnemies())';
       if (s.interlude) return `interlude déjà ouvert (${Object.keys(s.interlude.perHero).length} héros) — écran 'interlude', à conduire à la main`;
-      if (!s.party.length) s.setParty(makeShowcaseParty()); // pas de groupe chargé → 4 piliers canoniques
-      s.startInterlude(weeks);
+      if (!s.party.length) s.fixerLeGroupe(makeShowcaseParty()); // pas de groupe chargé → 4 piliers canoniques
+      s.ouvrirLInterlude(weeks);
       const after = useGame.getState();
       if (!after.interlude) return '✗ interlude non ouvert — voir __wfrp.state()/__wfrp.log()';
       const budget = [...new Set(Object.values(after.interlude.perHero).map((h) => h.granted))].join('/');
@@ -1307,7 +1306,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       };
     },
 
-    /** DERNIER Test résolu (`jetConfirm('test')`, en/hors combat) — lecture SEULE de la trace posée par le
+    /** DERNIER Test résolu (`jetValider('test')`, en/hors combat) — lecture SEULE de la trace posée par le
      *  SEAM `EVT.TEST_RESOLVED` (`noyau/testsDeScene.ts`), pour lire le DR sans parser `innerText` (recette #514).
      *  `null` si aucun Test résolu depuis le chargement de la page. */
     lastRoll: () => (lastRollTrace ? { ...lastRollTrace } : null),
@@ -1453,7 +1452,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!b || !ship) return '✗ navire introuvable (combat uniquement)';
       const before = g().facing[shipId];
       if (!before) return `✗ ${ship.label} n'a pas de cap (facing) — pas un navire orienté ?`;
-      g().shipTurn(shipId, typeof side === 'number' ? side : side === 'tribord' ? 2 : -2);
+      g().virerLeNavire(shipId, typeof side === 'number' ? side : side === 'tribord' ? 2 : -2);
       return `✓ ${ship.label} : cap ${before} → ${g().facing[shipId]}`;
     },
 
@@ -1489,7 +1488,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       aiTurnLog().slice(-n).map((r) =>
         `R${r.round} ${r.label}: ${r.action}${r.top.length ? '  | ' + r.top.map((t) => `${t.kind}${t.spell ? ':' + t.spell : ''}${t.targetId ? '→' + t.targetId : ''}=${t.utility}`).join('  ') : '  (forcé)'}`),
 
-    /** Modale(s) `pending*` ouvertes + les gestes de pilotage dérivés (`jetRoll(flux)`/`jetConfirm(flux)`/`jetCancel(flux)`). */
+    /** Modale(s) `pending*` ouvertes + les gestes de pilotage dérivés (`jetLancer(flux)`/`jetValider(flux)`/`jetAnnuler(flux)`). */
     modal: () => {
       const s = g() as unknown as Record<string, unknown>;
       const open = Object.keys(s).filter((k) => /^pending/.test(k) && (Array.isArray(s[k]) ? (s[k] as unknown[]).length > 0 : s[k] != null));
@@ -1518,11 +1517,11 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return null;
     },
 
-    /** Lance le jet de LA modale ouverte (`jetRoll(flux)`) */
+    /** Lance le jet de LA modale ouverte (`jetLancer(flux)`) */
     roll: () => devDriveModal('Roll'),
-    /** Applique/acquitte LA modale ouverte (Round → fenetreValider('roundStart'), sinon jetConfirm(flux)). */
+    /** Applique/acquitte LA modale ouverte (Round → fenetreValider('roundStart'), sinon jetValider(flux)). */
     confirm: () => devDriveModal('Confirm'),
-    /** Annule LA modale ouverte (`jetCancel(flux)`). */
+    /** Annule LA modale ouverte (`jetAnnuler(flux)`). */
     cancel: () => devDriveModal('Cancel'),
 
     /** RECETTE : élimine tous les ennemis du combat en cours puis passe par le flux de
@@ -1556,7 +1555,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       // draine d'office (sans influence) TOUTE cascade jusqu'à atteindre la victoire, sinon le drive
       // resterait bloqué sur une modale. Borne dure (la reprise 'combat' relance la boucle checkBattleOver).
       for (let guard = 0; useGame.getState().pendingCascade && !useGame.getState().battle?.over && guard < 8; guard++) {
-        useGame.getState().cascadeResolveAll();
+        useGame.getState().jetLancer('cascade');
         if (!refusDeLaSortie(useGame.getState(), 'cascade')) useGame.getState().fenetreFermer('cascade');
         if (!useGame.getState().battle?.over) checkBattleOver(() => useGame.getState(), useGame.setState);
       }
@@ -1603,7 +1602,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *   - Destin/Résilience CRÉDITÉS au héros (≥1 chacun) → les boutons Chance/Résilience sont visibles
      *     dans la modale (preuve que le Test est INFLUENÇABLE avant l'écran de victoire).
      *  Puis tous les ennemis sont mis hors d'action et `checkBattleOver` ouvre la cascade
-     *  (`combatEndBoundary`) AVANT `pendingVictory` — à conduire à la main (jetRoll('cascade')/Next, Chance/
+     *  (`combatEndBoundary`) AVANT `pendingVictory` — à conduire à la main (jetLancer('cascade', id)/Next, Chance/
      *  Résilience), sa fermeture enchaîne sur l'écran de victoire. `corruption` ∈ `EXPOSURE_LADDER` ou false. */
     combatEnd: (opts?: { heroId?: string; critical?: boolean; corruption?: string | false }) => {
       const s = g();
@@ -1683,13 +1682,13 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
 
     /**
      * RECETTE : POSTE un membre d'équipage à une station de navire (#1508) — l'action RÉELLE du jeu
-     * (`setShipStation`), pas une écriture parallèle : c'est elle que la fiche de bord appelle.
+     * (`affecterALaStation`), pas une écriture parallèle : c'est elle que la fiche de bord appelle.
      */
     station: (heroId: string, stationId: string | null) => {
       const s = g();
       const hero = s.party.find((h) => h.id === heroId) ?? inBattleId(s.battle, heroId);
       if (!hero) return `✗ héros « ${heroId} » introuvable — ${s.party.map((h) => h.id).join(', ')}`;
-      useGame.getState().setShipStation(hero.id, stationId);
+      useGame.getState().affecterALaStation(hero.id, stationId);
       // Le porteur peut n'être QUE dans la file de combat (marin embarqué, pas dans `party`) : relire le
       // seul `party` rendait « station « — » » alors que l'épinglage venait d'être fait.
       const s2 = g();
@@ -1742,7 +1741,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       } : undefined;
       const log: string[] = [];
       applyHullCriticalToTarget(coque, gree, log, useGame.setState, { get: () => useGame.getState(), forcedLocRoll: de, forcedCritRoll, ...(ctx ? { ctx } : {}) });
-      for (const l of log) useGame.getState().log(l);
+      for (const l of log) useGame.getState().ecrireAuJournal(l);
       return [`✓ Critique de navire « ${location} » (d100 imposé ${de}) sur ${coque.label}`, ...log];
     },
 
@@ -2047,7 +2046,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
 
     /** RECETTE : saute vers une scène du projet/de la campagne par id (machinerie de transition). */
     go: (sceneId: string, entry?: string) => {
-      g().transitionTo(sceneId, entry);
+      g().quitterLaScene(sceneId, entry);
       const after = g().scene?.id;
       return after === sceneId ? `✓ scène → ${sceneId}` : `✗ « ${sceneId} » inconnue (scène : ${after ?? '—'})`;
     },
@@ -2058,7 +2057,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!encounterId) return encs.map((e) => e.id);
       if (!encs.some((e) => e.id === encounterId))
         return `✗ rencontre inconnue — dispo : ${encs.map((e) => e.id).join(', ') || 'aucune'}`;
-      g().startCombat(encounterId);
+      g().lancerLeCombat(encounterId);
       return g().battle ? `✓ combat lancé (${encounterId})` : `rien lancé (rencontre vide ?)`;
     },
 
@@ -2069,20 +2068,20 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const set = useGame.setState.bind(useGame);
       const lines = what === 'reparer' ? portRepairVessel(get, set)
         : what === 'carener' ? portCareenVessel(get, set)
-        : portInstallUpgrade(get, set, what, units);
+        : installerLAmelioration(get, set, what, units);
       return lines.join('\n');
     },
 
     /** RECETTE : avance l'horloge (purge les effets à durée d'horloge). */
     time: (minutes = 60) => {
-      g().advanceTime(minutes);
+      g().avancerLeTemps(minutes);
       return `${formatImperial(g().gameTime)}`;
     },
 
     /** RECETTE : le groupe dort N jours — déroule la cascade quotidienne #T3 (rations/faim,
      *  maladies, convalescence des critiques). */
     rest: (days = 1) => {
-      g().restParty(days);
+      g().reposerLeGroupe(days);
       return `+${days} j → ${formatImperial(g().gameTime)}`;
     },
 
@@ -2155,10 +2154,10 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** RECETTE : ré-ensemence le RNG de bataille (`makeRNG`/`seedBattleRng`, déterminisme) — MÊME action
-     *  que `store.seedRng` (utilisée par `scenario(id, seed)` au lancement), exposée pour re-seeder EN
+     *  que `store.ensemencerLeTirage` (utilisée par `scenario(id, seed)` au lancement), exposée pour re-seeder EN
      *  COURS de combat, recette reproductible sans relancer le scénario. */
     seed: (n: number) => {
-      g().seedRng(n);
+      g().ensemencerLeTirage(n);
       return `✓ RNG de bataille re-ensemencé (seed ${n})`;
     },
 
@@ -2346,14 +2345,13 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
 
     /** RECETTE #332 : force un ÉVÉNEMENT DE BORD maritime NOMMÉ (`sea-events.json`) au PROCHAIN jour de
      *  traversée — court-circuite le timer 1d10 + le tirage d100/Manann de `resolveSeaDayEvent` (le
-     *  garde `sea.forcedEventId`). `id` = id d'événement (`cogue-pirate`) OU son kind (`navire-hostile`,
-     *  premier match). À combiner avec `advanceSeaDay()`/`skipToArrival()` pour LE dérouler sans espérer
+     *  garde `sea.forcedEventId`). `id` = id d'événement (`cogue-pirate`). À combiner avec `advanceSeaDay()`/`skipToArrival()` pour LE dérouler sans espérer
      *  la bande d'Humeur. Rend la désertion/l'abordage observable sans dérouler des semaines de tirages. */
-    forceEncounter: (id = 'navire-hostile') => {
+    forceEncounter: (id = 'cogue-pirate') => {
       const plan = g().travelPlan;
       if (!plan?.sea) return '✗ aucune traversée maritime en cours (state.travelPlan.sea)';
       const event = seaBoardEventById(id);
-      if (!event) return `✗ événement « ${id} » introuvable — id ou kind d'événement de bord (sea-events.json)`;
+      if (!event) return `✗ événement « ${id} » introuvable — id d'événement de bord (sea-events.json)`;
       useGame.setState({ travelPlan: { ...plan, sea: { ...plan.sea, forcedEventId: id } } });
       return `✓ « ${event.label} » forcé au prochain jour — dérouler avec __wfrp.advanceSeaDay()`;
     },
@@ -2372,10 +2370,10 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!map || !s.scene) return '✗ aucune carte du monde ouverte (voir __wfrp.screen(\'worldmap\'))';
       const route = map.routes.find((r) => r.id === routeId);
       if (!route) return `✗ route « ${routeId} » introuvable — ids : ${map.routes.map((r) => r.id).join(', ')}`;
-      const here = placeOfScene(map, s.scene.id);
+      const here = lieuDuGroupe(s);
       // Seules les routes RENDUES portent un tracé de hit-test (`WorldMapView.tsx`) : extrémités
       // révélées + offerte depuis ici, ouverte OU fermée-consultable (`routesRendues`).
-      const rendue = routesRendues(map, s.scene.id).find((e) => e.route.id === routeId);
+      const rendue = routesRendues(map, s.lieu).find((e) => e.route.id === routeId);
       if (!rendue) return `✗ route « ${routeId} » non cliquable depuis ici (${here?.label ?? '?'})`;
       const etat = rendue.ouverte ? 'ouverte' : 'fermee-consultable';
       // La bande CLIQUABLE d'une route est le `path` de HIT de `MapCanvas`, qui porte l'id de son tracé

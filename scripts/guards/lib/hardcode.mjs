@@ -3,7 +3,7 @@
 // pur, exécutable par `node` nu — consommé par src/combat-hardcode-guard.test.ts ET par le
 // hook pre-commit (scripts/git-hooks/pre-commit.mjs). Les BASELINES (nombre de sites tolérés par fichier, gelées au recensement)
 // restent DONNÉES DE POLICY dans le test — ici ne vit QUE la mécanique de détection, généralisée à
-// TOUT src/engine + src/state (cf. docs/combat-events-coherence.md, Lot 8).
+// TOUT `SCAN_DIRS` du test (cf. docs/combat-events-coherence.md, Lot 8).
 
 /** Retire commentaires ET imports nommés (les ids/noms en commentaire ou en `import {…}` — y
  *  compris multi-lignes — ne sont PAS du code réactif : seuls les SITES d'appel comptent).
@@ -22,7 +22,7 @@ export function stripComments(src) {
 
 /**
  * Marqueurs réactifs par-nom, famille TRAIT/TALENT — recensés aux Lots 4bis/6 sur
- * noyau/combat/roundHooks.ts et noyau/combatFlow.ts, généralisés à tout src/engine + src/state
+ * noyau/combat/roundHooks.ts et noyau/combatFlow.ts, généralisés à tout `SCAN_DIRS`
  * (Lot 8) : une réaction de combat codée PAR-NOM (trait/talent) plutôt que par donnée.
  * Les appels `hasTraitKey(`/`hasTalent(` NE sont PAS ici : leur nocivité dépend de l'ARGUMENT-entité
  * (littéral en dur vs donnée), tranchée par `nameCallHasLiteralArg` (#385) — un `hasTalent(c, X)` dont
@@ -171,7 +171,7 @@ export const MACHINERY_RX = new RegExp([
   'criticalWounds', 'roundsAtZero', 'outOfRencontre', '\\.dead\\b', 'wounds\\.current\\s*<=\\s*0',
   'canTakeAction', 'isEngaged', 'controlsCombatant', 'movementUsed',
   'sizeGap', '\\breturn reach\\b', 'hasActiveCapability', 'pilotedByHuman', 'removeCondition',
-  '\\b(?:const|let)\\s+\\w+\\s*=\\s*stacks\\([^)]*\\);?\\s*$', 'log\\.push\\(', '\\.log\\(', '\\breturn tr\\(',
+  '\\b(?:const|let)\\s+\\w+\\s*=\\s*stacks\\([^)]*\\);?\\s*$', 'log\\.push\\(', '\\.(?:log|ecrireAuJournal)\\(', '\\breturn tr\\(',
   "return '(?:ambush|assault|combat|embuscade)'",
 ].join('|'));
 

@@ -47,7 +47,7 @@ describe('Nuée — Trait Nuée (LDB 85 l.251-253)', () => {
 
 /**
  * Volet SCÈNE : la Nuée d'un statbloc d'AUTEUR (`SceneEntity.statblock`) enrôlée dans une rencontre,
- * spawnée par `startCombat`, puis jouée par le noyau — build, perte de 1 PB par Round aux Engagés,
+ * spawnée par `lancerLeCombat`, puis jouée par le noyau — build, perte de 1 PB par Round aux Engagés,
  * départ libre d'un Engagement (LDB 85 l.251-253). Scène CONSTRUITE pour ce banc.
  */
 const ENC_NUEE = 'enc-nuee';
@@ -86,8 +86,8 @@ function nueeScene(avecTrait = true): { scene: Scene; nueeId: string; temoinId: 
 function startNuee(scene: Scene) {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], battle: null, pendingDisengage: null });
-  banc.getState().startScene(scene);
-  banc.getState().startCombat(ENC_NUEE);
+  banc.getState().lancerLaScene(scene);
+  banc.getState().lancerLeCombat(ENC_NUEE);
   banc.getState().fenetreValider('roundStart');
   banc.abandonner(); // les tours d'IA du Round sont différés : ce banc ne joue que ses propres gestes
   return { battle: banc.getState().battle!, heroId: hero.id };
@@ -96,7 +96,7 @@ function startNuee(scene: Scene) {
 /** Franchit le Round par le geste de fin de tour, depuis le dernier index de l'ordre. */
 function franchirLeRound(battle: ReturnType<typeof startNuee>['battle']) {
   banc.setState({ battle: { ...battle, turn: battle.order.length - 1, action: null, acted: false, movementUsed: 0 } });
-  banc.getState().battleEndTurn();
+  banc.getState().terminerLeTour();
   return banc.getState().battle!;
 }
 
@@ -152,7 +152,7 @@ describe('Nuée AUTHORÉE en scène — spawn et Round joués par le store (LDB 
   });
 
   it('la Nuée quitte un Engagement SANS Test, liens levés et déplacement rouvert', () => {
-    // Volet joué par la porte JOUEUR (`battleDisengage`) : la Nuée ENNEMIE se pilote sous un siège MJ
+    // Volet joué par la porte JOUEUR (`rompreLEngagement`) : la Nuée ENNEMIE se pilote sous un siège MJ
     // (`net.gmSeat`, `sieges.ts:65-68`, `netOwnership.ts:213-218`). L'IA, elle, ne joue PAS ce volet : `src/noyau/monde/ai.ts`
     // n'appelle jamais `startDisengage` — ticket ouvert par l'orchestratrice (#1718).
     const { scene, nueeId } = nueeScene();
@@ -164,7 +164,7 @@ describe('Nuée AUTHORÉE en scène — spawn et Round joués par le store (LDB 
     engage(nuee, hero);
     banc.setState({ battle: { ...battle, turn: battle.order.indexOf(nueeId), action: null, acted: false, movementUsed: 0 } });
 
-    banc.getState().battleDisengage();
+    banc.getState().rompreLEngagement();
 
     const st = banc.getState();
     expect(st.pendingDisengage).toBeNull(); // aucun Test opposé d'Esquive, aucun menu

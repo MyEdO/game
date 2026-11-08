@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { testValue, skillBaseValue, testValueParts } from './skills';
+import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import { volatileCharLines } from './characteristics';
 import { addCondition, COND, passivePartLine } from './conditions';
 import { talentPassiveMods } from './talentEffects';
@@ -12,10 +13,10 @@ import { t } from '../i18n';
  * GARDE DE CLÔTURE du décomposeur de `testValue` (#1153). L'écran n'a le droit d'annoncer une base NUE
  * (`LDB 09 l.17`, la grandeur qui départage à DR égal — `LDB 12 l.160`) que si TOUT l'écart avec la
  * valeur de Test se lit en composantes NOMMÉES : sinon on troque une divergence numérique contre une
- * chip anonyme « autres » (`ui/RollLine.tsx`), contraire à #1117.
+ * chip anonyme « autres », contraire à #1117.
  *
  * INVARIANT vérifié sur une GRILLE : nu, chaque poste SEUL, puis combinaisons —
- *     testValue(c, skill, char, spec) === skillBaseValue(c, skill, spec, char) + Σ testValueParts(…)
+ *     testValue(c, sujet) === skillBaseValue(c, sujet.skill?.id, sujet.skill?.spec, sujet.characteristic) + Σ testValueParts(…)
  * Un poste AJOUTÉ à `testValue` sans son producteur de parts fait ROUGIR ce test : c'est lui la garde
  * (le décomposeur ne peut pas « oublier » un canal en silence).
  */
@@ -39,7 +40,7 @@ type CasId =
   | 'sequelle' | 'instance-id-only' | 'etat+mutation' | 'etat+effet' | 'mutation+laid';
 
 /** Un cas de la grille : son id stable, son nom lisible, le cobaye, et le Test visé. */
-interface Cas { id: CasId; nom: string; c: Combatant; skill?: string; char?: CharKey; spec?: string }
+interface Cas { id: CasId; nom: string; c: Combatant; sujet: SujetDuJet }
 
 /** Le −20 de la mutation « Visage inversé » (`mutations.json`) — lue en DONNÉE, jamais recopiée. */
 const visageInverse = () => {
@@ -179,39 +180,39 @@ const IDS_PAR_CATEGORIE: Record<string, string[]> = {
 };
 
 const GRILLE: Cas[] = [
-  { id: 'nu', nom: 'nu (aucun modificateur)', c: hero(), skill: 'marchandage' },
-  { id: 'pure-carac', nom: 'Test de PURE Caractéristique', c: hero(), char: CK },
-  { id: 'etat', nom: 'État (Empoisonné −10)', c: withEtat(), skill: 'marchandage' },
-  { id: 'mutation', nom: 'mutation char-qualifiée (Visage inversé −20)', c: withMutation(), skill: 'marchandage' },
-  { id: 'qualite-laid', nom: 'qualité d’objet (Laid −10)', c: withLaid(), skill: 'marchandage' },
-  { id: 'effet-char', nom: 'effet actif char-qualifié (−10 Soc)', c: withEffetCharQualifie(), skill: 'marchandage' },
-  { id: 'port-armure', nom: 'port d’armure skill-qualifié (−10 Discrétion)', c: withArmureLourde(), skill: 'discretion' },
-  { id: 'encombrement', nom: 'Encombrement (Agilité)', c: withEncombrement(), skill: 'athletisme' },
-  { id: 'outil', nom: 'outil manquant (Crochetage sans crochets)', c: hero({ skills: [{ id: 'crochetage', advances: 15 }] as SkillInstance[] }), skill: 'crochetage' },
+  { id: 'nu', nom: 'nu (aucun modificateur)', c: hero(), sujet: { skill: { id: 'marchandage' } } },
+  { id: 'pure-carac', nom: 'Test de PURE Caractéristique', c: hero(), sujet: { characteristic: CK } },
+  { id: 'etat', nom: 'État (Empoisonné −10)', c: withEtat(), sujet: { skill: { id: 'marchandage' } } },
+  { id: 'mutation', nom: 'mutation char-qualifiée (Visage inversé −20)', c: withMutation(), sujet: { skill: { id: 'marchandage' } } },
+  { id: 'qualite-laid', nom: 'qualité d’objet (Laid −10)', c: withLaid(), sujet: { skill: { id: 'marchandage' } } },
+  { id: 'effet-char', nom: 'effet actif char-qualifié (−10 Soc)', c: withEffetCharQualifie(), sujet: { skill: { id: 'marchandage' } } },
+  { id: 'port-armure', nom: 'port d’armure skill-qualifié (−10 Discrétion)', c: withArmureLourde(), sujet: { skill: { id: 'discretion' } } },
+  { id: 'encombrement', nom: 'Encombrement (Agilité)', c: withEncombrement(), sujet: { skill: { id: 'athletisme' } } },
+  { id: 'outil', nom: 'outil manquant (Crochetage sans crochets)', c: hero({ skills: [{ id: 'crochetage', advances: 15 }] as SkillInstance[] }), sujet: { skill: { id: 'crochetage' } } },
   // Les canaux que la garde de la passe 3 ne voyait pas (sondes du juge).
-  { id: 'trait', nom: 'TRAIT à passif skillMod (Dressé pour divertir)', c: withTrait(), skill: 'divertissement' },
-  { id: 'sort-skillmods', nom: 'SORT à `skillMod` passif (effet actif temporaire)', c: withSortSkillMod(), skill: 'marchandage' },
-  { id: 'armure-custom', nom: 'pièce d’armure CUSTOM (hors catalogue)', c: withArmureCustom(), skill: 'discretion' },
-  { id: 'mutation-perimee', nom: 'mutation d’une sauvegarde périmée', c: withMutationPerimee(), skill: 'marchandage' },
-  { id: 'sequelle', nom: 'SÉQUELLE (traumatisme à skillMod)', c: withSequelle(), skill: 'marchandage' },
-  { id: 'instance-id-only', nom: 'instance ID-ONLY d’une sauvegarde périmée', c: withTalentPerime(), skill: 'marchandage' },
+  { id: 'trait', nom: 'TRAIT à passif skillMod (Dressé pour divertir)', c: withTrait(), sujet: { skill: { id: 'divertissement' } } },
+  { id: 'sort-skillmods', nom: 'SORT à `skillMod` passif (effet actif temporaire)', c: withSortSkillMod(), sujet: { skill: { id: 'marchandage' } } },
+  { id: 'armure-custom', nom: 'pièce d’armure CUSTOM (hors catalogue)', c: withArmureCustom(), sujet: { skill: { id: 'discretion' } } },
+  { id: 'mutation-perimee', nom: 'mutation d’une sauvegarde périmée', c: withMutationPerimee(), sujet: { skill: { id: 'marchandage' } } },
+  { id: 'sequelle', nom: 'SÉQUELLE (traumatisme à skillMod)', c: withSequelle(), sujet: { skill: { id: 'marchandage' } } },
+  { id: 'instance-id-only', nom: 'instance ID-ONLY d’une sauvegarde périmée', c: withTalentPerime(), sujet: { skill: { id: 'marchandage' } } },
   // COMBINAISONS — les postes doivent s'additionner sans trou ni double-compte.
-  { id: 'etat+mutation', nom: 'État + mutation', c: (() => { const c = withMutation(); addCondition(c, COND.empoisonne); return c; })(), skill: 'marchandage' },
-  { id: 'etat+effet', nom: 'État + effet char-qualifié', c: (() => { const c = withEffetCharQualifie(); addCondition(c, COND.empoisonne); return c; })(), skill: 'marchandage' },
-  { id: 'mutation+laid', nom: 'mutation + qualité Laid', c: hero({ mutations: [visageInverse()] as Combatant['mutations'], items: withLaid().items }), skill: 'marchandage' },
+  { id: 'etat+mutation', nom: 'État + mutation', c: (() => { const c = withMutation(); addCondition(c, COND.empoisonne); return c; })(), sujet: { skill: { id: 'marchandage' } } },
+  { id: 'etat+effet', nom: 'État + effet char-qualifié', c: (() => { const c = withEffetCharQualifie(); addCondition(c, COND.empoisonne); return c; })(), sujet: { skill: { id: 'marchandage' } } },
+  { id: 'mutation+laid', nom: 'mutation + qualité Laid', c: hero({ mutations: [visageInverse()] as Combatant['mutations'], items: withLaid().items }), sujet: { skill: { id: 'marchandage' } } },
 ];
 
 describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socle d’affichage)', () => {
-  it.each(GRILLE)('invariant : base NUE + Σ parts = valeur de Test — $nom', ({ c, skill, char, spec }) => {
-    const nue = skillBaseValue(c, skill, spec, char);
-    const parts = testValueParts(c, skill, char, spec);
+  it.each(GRILLE)('invariant : base NUE + Σ parts = valeur de Test — $nom', ({ c, sujet }) => {
+    const nue = skillBaseValue(c, sujet);
+    const parts = testValueParts(c, sujet);
     const somme = parts.reduce((s, p) => s + p.value, 0);
-    expect(nue + somme, `résidu NON nommé de ${testValue(c, skill, char, spec) - nue - somme} — un poste de \`testValue\` échappe au décomposeur`)
-      .toBe(testValue(c, skill, char, spec));
+    expect(nue + somme, `résidu NON nommé de ${testValue(c, sujet) - nue - somme} — un poste de \`testValue\` échappe au décomposeur`)
+      .toBe(testValue(c, sujet));
   });
 
-  it.each(GRILLE)('chaque part est NOMMÉE : ni vide, ni id brut, ni repli de FAMILLE — $nom', ({ c, skill, char, spec }) => {
-    for (const p of testValueParts(c, skill, char, spec)) {
+  it.each(GRILLE)('chaque part est NOMMÉE : ni vide, ni id brut, ni repli de FAMILLE — $nom', ({ c, sujet }) => {
+    for (const p of testValueParts(c, sujet)) {
       expect(p.label.length, `part sans libellé : ${JSON.stringify(p)}`).toBeGreaterThan(0);
       // Id BRUT : le libellé APPARTIENT au jeu d'ids d'une catégorie (contrat positif, pas une forme).
       for (const [cat, ids] of Object.entries(IDS_PAR_CATEGORIE)) {
@@ -229,20 +230,20 @@ describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socl
    */
   it('les composantes portent le NOM de leur émetteur, pas celui de leur famille', () => {
     const mutLabel = findMutationById('visage-inverse')!.label;
-    expect(testValueParts(withMutation(), 'marchandage').map((p) => p.label)).toEqual([mutLabel]);
+    expect(testValueParts(withMutation(), { skill: { id: 'marchandage' } }).map((p) => p.label)).toEqual([mutLabel]);
     const empoisonne = refLabel('etats', { id: 'empoisonne' });
-    expect(testValueParts(withEtat(), 'marchandage').map((p) => p.label)).toEqual([empoisonne]);
-    expect(testValueParts(withEffetCharQualifie(), 'marchandage').map((p) => p.label)).toEqual([MYSTRACINE]);
-    expect(testValueParts(withLaid(), 'marchandage').map((p) => p.label)).toEqual([refLabel('qualities', { id: 'laid' })]);
+    expect(testValueParts(withEtat(), { skill: { id: 'marchandage' } }).map((p) => p.label)).toEqual([empoisonne]);
+    expect(testValueParts(withEffetCharQualifie(), { skill: { id: 'marchandage' } }).map((p) => p.label)).toEqual([MYSTRACINE]);
+    expect(testValueParts(withLaid(), { skill: { id: 'marchandage' } }).map((p) => p.label)).toEqual([refLabel('qualities', { id: 'laid' })]);
     // Cumul : les deux composantes coexistent, chacune à son nom (aucune fusion anonyme).
     const cumul = (() => { const c = withMutation(); addCondition(c, COND.empoisonne); return c; })();
-    expect(testValueParts(cumul, 'marchandage').map((p) => p.label)).toEqual(expect.arrayContaining([empoisonne, mutLabel]));
-    expect(testValueParts(cumul, 'marchandage')).toHaveLength(2);
+    expect(testValueParts(cumul, { skill: { id: 'marchandage' } }).map((p) => p.label)).toEqual(expect.arrayContaining([empoisonne, mutLabel]));
+    expect(testValueParts(cumul, { skill: { id: 'marchandage' } })).toHaveLength(2);
   });
 
   /** SONDES DU JUGE (passe 3) promues en tests : les 3 canaux qui rendaient une chip anonyme/fausse. */
   it('(A) TRAIT : la composante porte le nom du trait, pas « Passif »', () => {
-    const parts = testValueParts(withTrait(), 'divertissement');
+    const parts = testValueParts(withTrait(), { skill: { id: 'divertissement' } });
     expect(parts).toEqual([{ label: refLabel('traits', { id: 'dresse-divertir' }), value: 10, famille: 'jet', ref: { category: 'traits', id: 'dresse-divertir' } }]);
   });
 
@@ -258,7 +259,7 @@ describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socl
   });
 
   it('(B) SORT : la composante porte le nom du SORT — jamais « Séquelle » (un sort n’est pas une mutilation)', () => {
-    const [part, ...reste] = testValueParts(withSortSkillMod(), 'marchandage');
+    const [part, ...reste] = testValueParts(withSortSkillMod(), { skill: { id: 'marchandage' } });
     expect(reste).toEqual([]);
     expect(part.label).toBe(SORT.label);
     expect(part.ref).toEqual({ category: 'spells', id: SORT.id }); // lien Codex VERS LE SORT
@@ -266,21 +267,21 @@ describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socl
   });
 
   it('(C) armure CUSTOM : NOMMÉE par le label que l’objet PORTE, lien absent (exception déclarée)', () => {
-    const [part, ...reste] = testValueParts(withArmureCustom(), 'discretion');
+    const [part, ...reste] = testValueParts(withArmureCustom(), { skill: { id: 'discretion' } });
     expect(reste).toEqual([]);
     expect(part.label).toBe(HARNOIS); // ni « Passif », ni un id brut
     expect(part.ref).toBeUndefined(); // aucune fiche à ouvrir : la pièce n'est pas au catalogue
   });
 
   it('(C bis) mutation d’une sauvegarde périmée : le NOM tient (objet complet), seul le LIEN manque', () => {
-    const [part, ...reste] = testValueParts(withMutationPerimee(), 'marchandage');
+    const [part, ...reste] = testValueParts(withMutationPerimee(), { skill: { id: 'marchandage' } });
     expect(reste).toEqual([]);
     expect(part.label).toBe(MUTATION_PERIMEE.label); // le Combattant porte l'objet COMPLET, pas une référence
     expect(part.ref).toBeUndefined(); // l'entrée a disparu du catalogue : pas de chip morte
   });
 
   it('(C ter) SÉQUELLE : NOMMÉE par le traumatisme porté (hors catégorie Codex, donc sans lien)', () => {
-    const [part, ...reste] = testValueParts(withSequelle(), 'marchandage');
+    const [part, ...reste] = testValueParts(withSequelle(), { skill: { id: 'marchandage' } });
     expect(reste).toEqual([]);
     expect(part.label).toBe(SEQUELLE);
     expect(part.ref).toBeUndefined();
@@ -295,7 +296,7 @@ describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socl
     const fracture = { label: 'Fracture', ops: [{ op: 'charMod', char: 'capacite-de-combat', mod: -30 }, { op: 'skillMod', skill: { id: 'marchandage' }, mod: -30 }] };
     const c = hero({ traumas: [fracture] as unknown as Combatant['traumas'] });
     const canalCharMod = volatileCharLines(c, 'capacite-de-combat').map((l) => l.label);
-    const canalSkillMod = testValueParts(c, 'marchandage').map((p) => p.label);
+    const canalSkillMod = testValueParts(c, { skill: { id: 'marchandage' } }).map((p) => p.label);
     expect(canalCharMod).toEqual([fracture.label]);
     expect(canalSkillMod).toEqual([fracture.label]);
     expect(canalCharMod).toEqual(canalSkillMod); // MÊME octroyeur ⇒ MÊME nom, quel que soit le canal
@@ -309,7 +310,7 @@ describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socl
   /** Le NOM n'a AUCUNE exception : c'est l'entité attachée qui le porte, elle l'a toujours. */
   it('aucun nom ne peut manquer : toute part de la grille porte un libellé non vide', () => {
     for (const cas of GRILLE) {
-      for (const p of testValueParts(cas.c, cas.skill, cas.char, cas.spec)) {
+      for (const p of testValueParts(cas.c, cas.sujet)) {
         expect(p.label.trim(), `nom VIDE (${cas.nom}) — l'émetteur n'a fourni ni \`label\` ni \`src\``).not.toBe('');
       }
     }
@@ -317,7 +318,7 @@ describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socl
 
   it('chaque part porte son renvoi Codex — sauf les exceptions DÉCLARÉES ci-dessous', () => {
     for (const cas of GRILLE) {
-      for (const p of testValueParts(cas.c, cas.skill, cas.char, cas.spec)) {
+      for (const p of testValueParts(cas.c, cas.sujet)) {
         if (SANS_REF_DECLARE.has(cas.id)) { expect(p.ref, `exception périmée (${cas.nom}) : la part « ${p.label} » a désormais un renvoi — la retirer de SANS_REF_DECLARE`).toBeUndefined(); continue; }
         expect(p.ref, `part sans renvoi Codex (${cas.nom}) : ${p.label} — poser le \`src\` à l'ÉMISSION, ou déclarer l'exception`).toBeTruthy();
       }
@@ -332,7 +333,7 @@ describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socl
    * rendre son lien (cas `withEffetCharQualifie` ci-dessus).
    */
   it('exception DÉCLARÉE : un effet actif sans source reste NOMMÉ, mais sans renvoi Codex', () => {
-    const [part, ...reste] = testValueParts(withEffetSansSource(), 'marchandage');
+    const [part, ...reste] = testValueParts(withEffetSansSource(), { skill: { id: 'marchandage' } });
     expect(reste).toEqual([]);
     expect(part.label).toBe(MALEDICTION); // nommé par l'effet lui-même
     expect(part.ref).toBeUndefined(); // …mais aucune entité à ouvrir : la source n'a pas été propagée
@@ -343,10 +344,10 @@ describe('#1153 — `testValueParts` décompose EXHAUSTIVEMENT `testValue` (socl
   it('cas de recette : aucun résidu « autres » ne subsiste, même postes cumulés', () => {
     const c = withMutation();
     addCondition(c, COND.empoisonne);
-    expect(skillBaseValue(c, 'marchandage')).toBe(55);
-    expect(testValue(c, 'marchandage')).toBe(25); // 55 − 10 (État) − 20 (mutation)
-    const parts = testValueParts(c, 'marchandage');
+    expect(skillBaseValue(c, { skill: { id: 'marchandage' } })).toBe(55);
+    expect(testValue(c, { skill: { id: 'marchandage' } })).toBe(25); // 55 − 10 (État) − 20 (mutation)
+    const parts = testValueParts(c, { skill: { id: 'marchandage' } });
     expect(parts.reduce((s, p) => s + p.value, 0)).toBe(-30); // l'écart ENTIER est nommé
-    expect(55 + (-30)).toBe(testValue(c, 'marchandage'));
+    expect(55 + (-30)).toBe(testValue(c, { skill: { id: 'marchandage' } }));
   });
 });

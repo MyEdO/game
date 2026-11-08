@@ -12,8 +12,8 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
- * #2547 — Marchandage de VENTE gagné par un Négociateur, par la couture du jeu (`startBargain` →
- * `jetRoll('bargain')` → `jetConfirm('bargain')`) : LDB 59 l.54, LDB 10 l.818 ; arbitrage #2547 (2026-10-09).
+ * #2547 — Marchandage de VENTE gagné par un Négociateur, par la couture du jeu (`marchanderLePrix` →
+ * `jetLancer('bargain')` → `jetValider('bargain')`) : LDB 59 l.54, LDB 10 l.818 ; arbitrage #2547 (2026-10-09).
  */
 const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
@@ -24,7 +24,7 @@ function negociateur(): Combatant {
   h.talents = [...h.talents.filter((t) => t.talentId !== 'negociateur'), { talentId: 'negociateur', times: 1 }];
   h.skills = h.skills.filter((s) => s.id !== 'marchandage');
   h.skills.push({ id: 'marchandage', advances: 0 } as SkillInstance);
-  h.skills[h.skills.length - 1].advances = 80 - testValue(h, 'marchandage');
+  h.skills[h.skills.length - 1].advances = 80 - testValue(h, { skill: { id: 'marchandage' } });
   return h;
 }
 
@@ -33,10 +33,10 @@ function marchanderLaVente(joueur: number, marchand: number): void {
   const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
   sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: 'armurier' } } as never);
   set({ party: [negociateur()], scene: sc, merchant: null, merchantStocks: {}, journal: [], pendingCascade: null, pendingBargain: null } as never);
-  get().openMerchant('pnj');
-  get().startBargain('sell');
+  get().ouvrirLeMarchand('pnj');
+  get().marchanderLePrix('sell');
   imposerLesD100(joueur, marchand);
-  get().jetRoll('bargain');
+  get().jetLancer('bargain');
 }
 
 describe('#2547 — vente marchandée par un Négociateur (LDB 59 l.54, LDB 10 l.818)', () => {
@@ -49,7 +49,7 @@ describe('#2547 — vente marchandée par un Négociateur (LDB 59 l.54, LDB 10 l
     expect(pb.negotiator).toBe(true);
     expect(pb.result!.attackerWins).toBe(true);
     expect(describeBargain(pb)).toBe('Gagné (½ du prix listé, +10 %)');
-    get().jetConfirm('bargain');
+    get().jetValider('bargain');
     expect(get().merchant!.bargainSell).toMatchObject({ won: true, negotiator: true });
   });
 

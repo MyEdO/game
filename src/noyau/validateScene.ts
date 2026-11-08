@@ -27,6 +27,7 @@ import { placeServices, type WorldMap } from './worldMap';
 import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
 import { seatAssignmentDefects } from './monde/seating';
 import { memoByRefDeps } from './monde/sceneMemo';
+import { allMusicDefs } from '../data/sons/musique';
 
 /** Vocabulaire du tag dérivé d'une réponse (`termeRecopie`), lu à ses sources. */
 const VOCABULAIRE_DU_TAG: VocabulaireDuTag = {
@@ -135,10 +136,9 @@ function messageDeFaute(f: ReturnType<typeof fautifDe>, message: string): string
 /**
  * Vérifie un PROJET (liste de scènes + carte du monde optionnelle) avant le runtime : réfs cassées
  * (dialogue / rencontre / scène / scène intérieure / nœud de dialogue / lieu et route de la carte),
- * zones hors-carte, ids dupliqués. `pistesDeMusique` : les ids des pistes que l'hôte sait jouer (son
- * registre, `audio/music.ts` pour l'hôte web) ; sans elles, la musique d'une scène n'est pas jugée. PUR.
+ * zones hors-carte, ids dupliqués, musique inconnue du registre (`allMusicDefs`). PUR.
  */
-export function validateScene(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock, pistesDeMusique?: ReadonlySet<string>): Warning[] {
+export function validateScene(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock): Warning[] {
   const presetDe = presetDuNarratif(narratif);
   const out: Warning[] = [];
   const sceneIds = new Set(project.map((s) => s.id));
@@ -173,8 +173,8 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
           addWm(r.id, `Route « ${r.id} » → rencontre d'embuscade inexistante « ${amb.encounter} » dans « ${amb.scene} »`);
       }
     }
-    // DÉPART DU GROUPE d'une scène-DESTINATION. Le runtime replie toujours (`noyau/entreeEnScene.ts` : `startScene`
-    // prend `findFreeTile` à défaut de `heroStart` ; `transitionTo` prend `pos`, puis le point d'arrivée
+    // DÉPART DU GROUPE d'une scène-DESTINATION. Le runtime replie toujours (`noyau/entreeEnScene.ts` : `lancerLaScene`
+    // prend `findFreeTile` à défaut de `heroStart` ; `quitterLaScene` prend `pos`, puis le point d'arrivée
     // NOMMÉ, puis `heroStart`, puis `findFreeTile`) — d'où un `warn`, jamais une erreur. Ne sont
     // concernées que les scènes où l'on débarque SANS point d'arrivée nommé : un lieu qui déclare son
     // `entry` (`MapPlace.entry`) désigne déjà sa case, un POI de plan n'en porte aucun.
@@ -237,8 +237,8 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       add('error', f.scope, f.element?.cle, messageDeFaute(f, faute.message), f.architectureRef);
     }
 
-    if (pistesDeMusique) for (const [slot, v] of Object.entries(s.music ?? {}))
-      if (typeof v === 'string' && !pistesDeMusique.has(v)) add('warn', 'scene', undefined, `Musique (${slot === 'ambient' ? 'ambiance' : 'combat'}) inconnue au registre « ${v} »`);
+    for (const [slot, v] of Object.entries(s.music ?? {}))
+      if (typeof v === 'string' && !allMusicDefs().some((d) => d.id === v)) add('warn', 'scene', undefined, `Musique (${slot === 'ambient' ? 'ambiance' : 'combat'}) inconnue au registre « ${v} »`);
 
     // Couches (`Scene.layers`) : ids d'étage valides pour rattacher les entités posées en hauteur.
     const layerZs = new Set(s.layers.map((l) => l.z));
@@ -360,7 +360,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
           add('error', 'architecture', mass.id, `Masse « ${mass.id} » : pente hors plage`, massRef);
         // INVARIANT d'ALTITUDE — les deux encodages de la même hauteur (l'INDEX d'étage `z` et la COTE
         // métrique que `layer.height` porte, lue par `heightAt`) ne peuvent pas diverger sans le dire.
-        // L'égout dérivé (`gameIso/builders/roofs.resolveMass`) et les murs qui le portent
+        // L'égout dérivé (`noyau/monde/volume/toits.resolveMass`) et les murs qui le portent
         // (`buildWalls`) lisent tous deux la COTE : le relief est donc libre — une masse sur une butte,
         // une terrasse, un quai surélevé est une carte légitime. Ce qui reste falsifiable est
         // l'EMPILEMENT : le plancher de l'étage `z` doit dominer celui de l'étage `z-1` d'au moins la

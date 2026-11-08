@@ -4,7 +4,7 @@
  * zone, ses textes déjà traduits et son ton ; un hôte range chaque type dans un composant à lui et n'écrit aucun
  * libellé. Les gestes sont des éléments aussi : chacun porte l'intention qu'il joue (`Jeu`), prête à envoyer.
  */
-import type { ActionRunCtx, CreatorDraft, GesteDuBrouillon, PageDeCreation, ValeurDuReglage } from '../noyau/index';
+import type { ContexteDOffre, CreatorDraft, GesteDEdition, GesteDuBrouillon, PageDeCreation } from '../noyau/index';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from './gestes';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 
@@ -63,9 +63,9 @@ export type GesteDeLaCreation = { geste: 'ouvrir'; args: [] } | { geste: 'engage
 /** L'intention qu'un geste joue : un verbe de la partie et ses arguments, une offre de l'actif (sur le contexte qui
  *  désigne son candidat, `CandidatEnVue`), une suite de verbes
  *  joués l'un après l'autre (un geste d'exploration : marcher jusqu'à une case, puis y agir), la fiche que l'hôte
- *  montre (`null` : aucune), qui ne touche pas la partie, ou un geste de la création d'un héros (`null` : la
- *  ferme). */
-export type Jeu = Appel | { offre: string; ctx?: ActionRunCtx } | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null };
+ *  montre (`null` : aucune), qui ne touche pas la partie, un geste de la création d'un héros (`null` : la
+ *  ferme), ou un geste de l'éditeur de carte (`editeur.ts`). */
+export type Jeu = Appel | { offre: string; ctx?: ContexteDOffre } | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition };
 
 /** Un geste d'un clic. `presse` : la valeur courante d'un choix, ou l'offre que l'actif vise ; `focus` : le geste que
  *  la fenêtre joue à l'Entrée ; `refus` : pourquoi il ne se joue pas, dit sous lui. */
@@ -81,24 +81,35 @@ export interface Choix { type: 'choix' | 'liste'; id: string; ton: Ton; libelle:
 export interface Valeur { libelle: string; valeur: unknown; presse: boolean; refus: string | null }
 
 /** Une saisie d'un formulaire : sa position parmi les arguments du verbe (`nom`), et son contrôle. `fixe` : posée par
- *  la fenêtre, jamais saisie. */
+ *  la fenêtre, jamais saisie ; `saisieCoches` : la liste des valeurs cochées, chacune pressée quand elle l'est déjà ;
+ *  `saisieMultiligne` : un texte sur plusieurs lignes, saisi tel quel. */
 export type Saisie =
   | { type: 'fixe'; id: string; nom: string; optionnel: boolean; valeur: unknown }
-  | { type: 'saisieChoix'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; valeurs: Valeur[] }
+  | { type: 'saisieChoix' | 'saisieCoches'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; valeurs: Valeur[] }
   | { type: 'saisieNombre'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; valeur: number; min: number; max: number; pas: number }
-  | { type: 'saisieTexte' | 'saisieJson'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; valeur: string }
+  | { type: 'saisieTexte' | 'saisieMultiligne' | 'saisieJson'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; valeur: string }
   | { type: 'saisieObjet'; id: string; ton: Ton; nom: string; optionnel: boolean; libelle: string; champs: Saisie[] };
 
 /** Un formulaire : ses saisies dans l'ordre des arguments du verbe, puis son bouton ; `refus` : pourquoi il ne se joue
  *  pas. */
 export interface Formulaire { type: 'formulaire'; id: string; libelle: string; verbe: string; focus: boolean; refus: string | null; champs: Saisie[] }
 
+/** Un point du plan : son nom, sa position dans le cadre du plan (0..1 sur chaque axe), son ton, et les éléments
+ *  qui se posent sous lui. */
+export interface PointDuPlan { type: 'point'; id: string; nom: string; x: number; y: number; ton: Ton; elements: Element[] }
+
+/** Un trait du plan, d'un point à l'autre (leurs ids), à son ton. */
+export interface TraitDuPlan { id: string; de: string; vers: string; ton: Ton }
+
+/** Un plan : des points nommés posés dans un cadre, et les traits qui les relient. */
+export interface Plan { type: 'plan'; id: string; points: PointDuPlan[]; traits: TraitDuPlan[] }
+
 /** Un élément de la vue. */
-export type Element = Ligne | Puce | Jauge | Jet | Entite | Bouton | Choix | Formulaire | Saisie;
+export type Element = Ligne | Puce | Jauge | Jet | Entite | Plan | Bouton | Choix | Formulaire | Saisie;
 
 /** Les bornes d'une saisie de nombre sans réglage : tout entier sur 32 bits, qu'un contrôle au pas de 1 tient
  *  exactement (le pas se cale sur l'écart à la borne, en réels). */
-const SANS_BORNE = { min: -(2 ** 31), max: 2 ** 31 - 1, pas: 1 };
+export const SANS_BORNE = { min: -(2 ** 31), max: 2 ** 31 - 1, pas: 1 };
 
 /** Les caractères au plus d'une description au détail d'un élément : son premier paragraphe, coupé au mot. */
 const DESCRIPTION_AU_DETAIL = 300;
@@ -124,7 +135,7 @@ function argumentsAvec(g: GesteDeLaFenetre, nom: string, valeur: unknown): unkno
 /** Les valeurs de l'argument à choisir `a` du geste `g`, chacune un bouton qui joue le geste avec elle, refusée avec
  *  le geste. */
 const valeursDuChoix = (g: GesteDeLaFenetre, a: ArgumentDuGeste): Bouton[] =>
-  (a.valeurs ?? []).map((v: ValeurDuReglage, i): Bouton => ({
+  (a.valeurs ?? []).map((v, i): Bouton => ({
     type: 'bouton', id: `${g.cle}/${i}`, libelle: v.libelle, jeu: { type: g.verbe, args: argumentsAvec(g, a.nom, v.valeur) },
     presse: v.valeur === a.valeur, focus: false, refus: v.refus ?? g.raison,
   }));
@@ -139,6 +150,7 @@ function saisie(id: string, a: ArgumentDuGeste): Saisie {
     case 'nombre': return { ...dite, type: 'saisieNombre', valeur: typeof a.valeur === 'number' ? a.valeur : 0, ...(a.bornes ? { min: a.bornes.min, max: a.bornes.max, pas: a.bornes.pas ?? 1 } : SANS_BORNE) };
     case 'objet': return { ...dite, type: 'saisieObjet', champs: (a.champs ?? []).map((c) => saisie(`${id}/${c.nom}`, c)) };
     case 'texte': return { ...dite, type: 'saisieTexte', valeur: a.valeur == null ? '' : String(a.valeur) };
+    case 'multiligne': return { ...dite, type: 'saisieMultiligne', valeur: a.valeur == null ? '' : String(a.valeur) };
     case 'json': return { ...dite, type: 'saisieJson', valeur: a.valeur == null ? '' : JSON.stringify(a.valeur) };
   }
 }

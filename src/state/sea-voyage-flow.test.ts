@@ -25,14 +25,14 @@ const seaMap: WorldMap = {
 describe('#296 — state.vessel SOURCE UNIQUE de la coque de trajet (non-divergence)', () => {
   beforeEach(() => {
     set({
-      party: makePregens().slice(0, 3), scene: emptyScene('port-a', 2, 2), battle: null, worldMap: seaMap,
+      party: makePregens().slice(0, 3), scene: emptyScene('port-a', 2, 2), battle: null, worldMap: seaMap, lieu: 'A',
       travelPlan: null, pendingRest: null, pendingCascade: null, gameTime: 8 * 60,
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     } as never);
   });
 
   it('la jauge de l’écran de traversée et la tuile de voyage lisent la MÊME source vive après un soin', () => {
-    get().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
     const hull0 = get().travelPlan!.vehicle!.wounds.current;
     damageVesselHull(get, set, get().travelPlan!.vehicle!, 10);
     healVesselHull(get, set, get().travelPlan!.vehicle!, 3);

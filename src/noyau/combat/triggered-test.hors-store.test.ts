@@ -17,7 +17,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * Mâchoires d'acier (LDB 10) en effet DÉCLENCHÉ `onGainCondition` data-driven, résolu cadence-aware
  * par la brique `combat/triggeredTest` : « chaque fois que vous gagnez un État Sonné… Test de
  * Résistance Intermédiaire → ignore 1 + DR ». On vérifie : (a) héros MANUEL gagnant Sonné en combat →
- * étape de cascade `triggeredTest` NON lancée (influençable) puis `jetRoll('cascade')`+`jetConfirm('cascade')` retire
+ * étape de cascade `triggeredTest` NON lancée (influençable) puis `jetLancer('cascade', id)`+`jetValider('cascade')` retire
  * 1 + DR ; (b) ENNEMI avec Mâchoires → résolu INLINE (jamais d'étape de cascade) ; (c) le filtre
  * `condition` : gagner un AUTRE État (Empoisonné) ne déclenche PAS Mâchoires.
  */
@@ -25,8 +25,8 @@ describe('Mâchoires d’acier — effet onGainCondition cadence-aware (brique t
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -68,17 +68,17 @@ describe('Mâchoires d’acier — effet onGainCondition cadence-aware (brique t
     H.activeEffects = [...(H.activeEffects ?? []), { id: 'fx-e', label: 'Mystracine', testModChar: 'endurance', testMod: -10 } as never];
     addCondition(H, COND.sonne, 2); // H porte Sonné AU MOMENT du Test → sa pénalité ne compte qu'UNE fois
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
-    const nue = skillBaseValue(H, 'resistance');
-    expect(nue, 'sonde inerte : sans écart nue/valeur testée, l’assert passerait par coïncidence').not.toBe(rawCombatTestBase(H, 'resistance'));
+    const nue = skillBaseValue(H, { skill: { id: 'resistance' } });
+    expect(nue, 'sonde inerte : sans écart nue/valeur testée, l’assert passerait par coïncidence').not.toBe(rawCombatTestBase(H, { skill: { id: 'resistance' } }));
     // `base` = Niveau de Compétence NU (`LDB 09 l.17`) ; `target` = valeur TESTÉE de combat + Intermédiaire(0)
     // + `combatTestPenalty` (UNE fois) ; tout l'écart entre les deux est NOMMÉ en `mods` (zéro chip anonyme).
     expect(step.base).toBe(nue);
-    expect(step.target).toBe(rawCombatTestBase(H, 'resistance') + DIFFICULTY_MODIFIERS.intermediaire + combatTestPenalty(H));
+    expect(step.target).toBe(rawCombatTestBase(H, { skill: { id: 'resistance' } }) + DIFFICULTY_MODIFIERS.intermediaire + combatTestPenalty(H));
     expect(inexplique(step)).toBe(0);
     expect(combatTestPenalty(H)).toBe(-20); // 2 pions de Sonné : −10 par pion (LDB 16 l.11) — comptés une fois
   });
 
-  it('héros MANUEL : jetRoll@cascade + jetConfirm@cascade retire 1 + DR États Sonné (Résistance réussie)', () => {
+  it('héros MANUEL : jetLancer@cascade + jetValider@cascade retire 1 + DR États Sonné (Résistance réussie)', () => {
     seedBattleRng(5);
     const { H } = setup();
     H.characteristics.endurance = 90; // Endurance élevée → Test de Résistance réussi
@@ -88,8 +88,8 @@ describe('Mâchoires d’acier — effet onGainCondition cadence-aware (brique t
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
     expect(step).toBeTruthy();
 
-    banc.getState().jetRoll('cascade', step.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetLancer('cascade', step.id);
+    banc.getState().jetValider('cascade');
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
     expect(stacks(h, COND.sonne)).toBeLessThan(2); // au moins 1 Sonné retiré (1 + DR)
   });

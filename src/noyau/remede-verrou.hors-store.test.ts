@@ -19,8 +19,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 function setup() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
-  banc.getState().startScene(testScene());
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
@@ -43,7 +43,7 @@ describe('remède d’État — un État VERROUILLÉ refuse le Test, et le dit',
     const verdict = actionGate('roll-fire', ctxDe());
     expect(verdict.ok, 'un remède offert sur un État que le Test ne peut pas ôter').toBe(false);
     expect(verdict.reason).toBe(t('cond.lockedByAct', { acte: ACTE_DE_DEVERROUILLAGE.medicalAid }));
-    banc.getState().battleRecoverState('en-flammes');
+    banc.getState().seRemettreDeLEtat('en-flammes');
     expect(banc.getState().pendingStateRecovery, 'le Test s’est ouvert sur un État verrouillé').toBeNull();
     expect(hasCondition(banc.getState().battle!.combatants.find((c) => c.id === H.id)!, 'en-flammes')).toBe(true);
   });
@@ -53,11 +53,11 @@ describe('remède d’État — un État VERROUILLÉ refuse le Test, et le dit',
     H.conditions = [{ id: 'en-flammes', value: 1 }] as ConditionInstance[];
     banc.setState({ battle: { ...banc.getState().battle! } });
     expect(actionGate('roll-fire', ctxDe()).ok).toBe(true);
-    banc.getState().battleRecoverState('en-flammes');
+    banc.getState().seRemettreDeLEtat('en-flammes');
     expect(banc.getState().pendingStateRecovery, 'le Test ne s’est pas ouvert').toBeTruthy();
   });
 
-  // Le Test de récupération est un prérequis du DISPATCHER (`battleRecoverState`), pas une propriété
+  // Le Test de récupération est un prérequis du DISPATCHER (`seRemettreDeLEtat`), pas une propriété
   // du remède : un remède-GESTE sur un État sans `recover` ni verrou reste OFFERT.
   it('un remède-GESTE sur un État sans Test ni verrou est OFFERT ; seul le gate de Test le refuse', () => {
     const { H } = setup();

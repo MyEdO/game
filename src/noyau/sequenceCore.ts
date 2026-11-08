@@ -24,6 +24,7 @@
  * s'ajoutent à `SequenceParams` avec le système qui les exerce — le socle ne porte que du vocabulaire vivant.
  */
 import type { Get, Set } from './flowTypes';
+import type { Jeu } from './etat';
 import { openSequence } from './rollSeam';
 import {
   SEQUENCE_MAX_ROUNDS, SEQUENCE_HARD_MAX_ROUNDS, SEQUENCE_PURPOSE, SEQUENCE_BORNE,
@@ -362,7 +363,7 @@ export function startSequence<P>(
 }
 
 /** La séquence EN COURS, typée par son domaine (le socle ne vérifie pas la charge : elle est à lui). */
-export function activeSequence<P>(get: Get): SequenceState<P> | null {
+export function activeSequence<P>(get: Get<Jeu>): SequenceState<P> | null {
   return (get().sequence as SequenceState<P> | null) ?? null;
 }
 
@@ -420,7 +421,7 @@ export function openSequenceRound(get: Get, set: Set): void {
       ...(manche.log ? { log: manche.log } : {}),
     });
   if (!resolues) return;
-  for (const l of manche.log ?? []) get().log(l);
+  for (const l of manche.log ?? []) get().ecrireAuJournal(l);
   closeSequenceRound(get, set, { participants: resolues });
 }
 
@@ -454,7 +455,7 @@ export function closeSequenceRound(get: Get, set: Set, done: MancheClose): void 
   const effets = verdict.roundActors
     ? sequenceRoundOps(get, apres as SequenceState, apres.round, verdict.roundActors, verdict.go === 'end' || borne)
     : [];
-  for (const l of [...(verdict.log ?? []), ...effets]) get().log(l);
+  for (const l of [...(verdict.log ?? []), ...effets]) get().ecrireAuJournal(l);
   // Fin de la séquence : son issue, sinon l'abandon demandé (`SequenceState.abandon`), sinon la borne.
   const outcome = verdict.go === 'end' ? verdict.outcome : seq.abandon ?? (borne ? SEQUENCE_BORNE : undefined);
   if (outcome === undefined) {
@@ -462,7 +463,7 @@ export function closeSequenceRound(get: Get, set: Set, done: MancheClose): void 
     openSequenceRound(get, set);
     return;
   }
-  if (outcome === SEQUENCE_BORNE) get().log(t('seq.borne', { max: borneOf(apres.params) }));
+  if (outcome === SEQUENCE_BORNE) get().ecrireAuJournal(t('seq.borne', { max: borneOf(apres.params) }));
   clearSequence(set);
   def.settle?.(get, set, apres as never, outcome);
 }
@@ -490,7 +491,7 @@ function mancheEntamee(pc: PendingCascade): boolean {
  *  fermé par la déclaration du domaine (son `refus`), ou manche entamée sans être résolue (LDB 12
  *  l.176, NADJ 16 l.111) — la raison dit alors la nature de l'étape due (`stepInteraction`). UNE
  *  lecture, pour la fenêtre ET pour l'action. */
-export function sequenceAbandonEtatOf(get: Get): SequenceAbandon | null {
+export function sequenceAbandonEtatOf(get: Get<Jeu>): SequenceAbandon | null {
   const seq = activeSequence(get);
   const pc = get().pendingCascade;
   if (!seq || pc?.purpose !== SEQUENCE_PURPOSE) return null;
@@ -506,7 +507,7 @@ export function sequenceAbandonEtatOf(get: Get): SequenceAbandon | null {
 }
 
 /** L'abandon OFFERT (`sequenceAbandonEtatOf` ouvert), `null` sinon. */
-export function sequenceAbandonOf(get: Get): SequenceAbandon | null {
+export function sequenceAbandonOf(get: Get<Jeu>): SequenceAbandon | null {
   const etat = sequenceAbandonEtatOf(get);
   return etat && etat.refus === undefined ? etat : null;
 }

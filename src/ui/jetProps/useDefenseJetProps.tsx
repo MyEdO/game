@@ -45,14 +45,14 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   const setParry = (v: ReglagesDuJet['defense']['armeDeParade']) => regler('defense', 'armeDeParade', v);
   const setShieldReaction = (v: ReglagesDuJet['defense']['porteBouclier']) => regler('defense', 'porteBouclier', v);
   const setRiposte = (v: ReglagesDuJet['defense']['riposte']) => regler('defense', 'riposte', v);
-  const roll = useGesteDeJet('jetRoll', 'defense');
-  const reroll = useGesteDeJet('jetReroll', 'defense');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'defense');
-  const darkPact = useGesteDeJet('jetDarkPact', 'defense');
-  const forceSuccess = useGesteDeJet('jetForceSuccess', 'defense');
-  const reverseVerb = useGesteDeJet('jetReverse', 'defense');
-  const confirm = useGesteDeJet('jetConfirm', 'defense');
-  const spendResolve = useGame((s) => s.spendResolveCondition);
+  const roll = useGesteDeJet('jetLancer', 'defense');
+  const reroll = useGesteDeJet('jetRelancer', 'defense');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'defense');
+  const darkPact = useGesteDeJet('jetPactiser', 'defense');
+  const forceSuccess = useGesteDeJet('jetForcerLaReussite', 'defense');
+  const reverseVerb = useGesteDeJet('jetInverser', 'defense');
+  const confirm = useGesteDeJet('jetValider', 'defense');
+  const spendResolve = useGame((s) => s.depenserLaDetermination);
   const vue = pd && battle ? fenetreDeDefense(useGame.getState()) : null;
   if (!pd || !battle || !vue) return null;
   const attacker = battle.combatants.find((c) => c.id === vue.attaquantId);
@@ -169,7 +169,7 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
           {porteBouclier}
           {riposteChoix}
         </div>
-        <DeterminationButton combatant={defender} onSpend={(name) => spendResolve(defender.id, name)} />
+        <DeterminationButton combatant={defender} onSpend={(name) => spendResolve(defender.id, 'retirerUnEtat', name)} />
       </>
     ),
     rows: [attackerRow, defenderRow],

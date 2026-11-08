@@ -13,7 +13,7 @@ const calls = (sf) => {
 };
 
 test('métadonnées : alias, namespace et arguments propriétaires seuls', () => {
-  const fichier = { rel: 'src/state/probe.ts', text: `
+  const fichier = { rel: 'src/noyau/probe.ts', text: `
     import { nommerChamps as champs } from '../data/schemas/grammaire/meta';
     import * as noms from '../data/schemas/grammaire/meta';
     champs({ xp: 1 }, { xp: { label: 'PX' } }, { nom: 'profil' });
@@ -29,7 +29,7 @@ test('métadonnées : alias, namespace et arguments propriétaires seuls', () =>
 });
 
 test('métadonnées : expressions exécutées, clés calculées et argument schéma restent lisibles', () => {
-  const fichier = { rel: 'src/state/probe.ts', text: `
+  const fichier = { rel: 'src/noyau/probe.ts', text: `
     import { nommerChamps } from '../data/schemas/grammaire/meta';
     nommerChamps({ kind: 'test', target: 1 }, {
       xp: { label: (hero.xp -= 1) },

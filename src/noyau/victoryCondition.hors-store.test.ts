@@ -7,6 +7,7 @@ import { testScene } from '../scenes/test-fixture';
 import { structureIsDown, structureDownKey } from './monde/scene';
 import type { Scene } from './monde/scene';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { t } from '../i18n';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -19,8 +20,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 function startFixtureCombat(scene: Scene = testScene()) {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero], battle: null });
-  banc.getState().startScene(scene);
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(scene);
+  banc.getState().lancerLeCombat('enc-mutants');
 }
 
 describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
@@ -101,13 +102,13 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
   });
 
   describe('woundsThreshold — reddition à seuil de dommage partiel (#215)', () => {
-    it("seuil franchi (Blessures < belowPercent%) → victoire, cible hors de combat, journal de reddition", () => {
+    it("seuil franchi (Blessures < atOrBelowPercent%) → victoire, cible hors de combat ; une créature est repoussée", () => {
       startFixtureCombat();
       const b = banc.getState().battle!;
       const enemy = b.combatants.find((c) => c.kind === 'enemy')!;
       enemy.wounds = blessuresDeBase(10, 4, enemy); // 40% < 50%
       banc.setState({
-        battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: enemy.id, belowPercent: 50 } },
+        battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: enemy.id, atOrBelowPercent: 50 } },
       });
       const over = checkBattleOver(banc.getState, banc.setState);
       draineCascade(banc.getState);
@@ -115,7 +116,20 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
       expect(banc.getState().battle!.over).toBe('victory');
       const resolved = banc.getState().battle!.combatants.find((c) => c.id === enemy.id)!;
       expect(resolved.outOfRencontre).toBe(true);
-      expect(banc.getState().battle!.log.some((e) => e.text.includes('amène son pavillon'))).toBe(true);
+      expect(resolved.exitReason).toBe('repousse');
+      expect(banc.getState().battle!.log.some((e) => e.text === t('cf.repousse', { name: resolved.label }))).toBe(true);
+    });
+
+    it("seuil ATTEINT (Blessures = atOrBelowPercent%) → la cible sort (MDG 15 l.143 « tombe à la moitié »)", () => {
+      startFixtureCombat();
+      const b = banc.getState().battle!;
+      const enemy = b.combatants.find((c) => c.kind === 'enemy')!;
+      enemy.wounds = blessuresDeBase(10, 5, enemy); // 50% = 50%
+      banc.setState({
+        battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: enemy.id, atOrBelowPercent: 50 } },
+      });
+      expect(checkBattleOver(banc.getState, banc.setState)).toBe(true);
+      expect(banc.getState().battle!.combatants.find((c) => c.id === enemy.id)!.outOfRencontre).toBe(true);
     });
 
     it("seuil NON franchi → le combat continue, cible toujours en jeu", () => {
@@ -124,7 +138,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
       const enemy = b.combatants.find((c) => c.kind === 'enemy')!;
       enemy.wounds = blessuresDeBase(10, 8, enemy); // 80% ≥ 50%
       banc.setState({
-        battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: enemy.id, belowPercent: 50 } },
+        battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: enemy.id, atOrBelowPercent: 50 } },
       });
       const over = checkBattleOver(banc.getState, banc.setState);
       expect(over).toBe(false);
@@ -140,7 +154,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
       enemy.wounds = blessuresDeBase(10, 0, enemy);
       enemy.dead = true;
       banc.setState({
-        battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: enemy.id, belowPercent: 50 } },
+        battle: { ...b, victoryCondition: { type: 'woundsThreshold', targetId: enemy.id, atOrBelowPercent: 50 } },
       });
       const over = checkBattleOver(banc.getState, banc.setState);
       draineCascade(banc.getState);

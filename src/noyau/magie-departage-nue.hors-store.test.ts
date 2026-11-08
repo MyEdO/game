@@ -62,7 +62,7 @@ describe('LDB 12 l.160 — dé POSÉ sur un Test opposé d’incantation (#1150)
       // `base: 30` sur le jet de départ = une valeur TESTÉE quelconque : elle ne doit pas servir au départage.
       { id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { ...RATE }, casterNetSL: 7, log: '' } },
     ] } } as never);
-    st().jetSetForcedRoll('counterspell', POSE, 'A');
+    st().jetImposerLeResultat('counterspell', POSE, 'A');
 
     const part = P<{ participants: { result: { dispelled: boolean; counter: { roll: number; sl: number; base?: number } } }[] }>('pendingCounterspell').participants[0];
     expect(part.result.counter.roll).toBe(POSE);
@@ -78,7 +78,7 @@ describe('LDB 12 l.160 — dé POSÉ sur un Test opposé d’incantation (#1150)
     banc.setState({ pendingCounterspell: { participants: [
       { id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { ...RATE }, casterNetSL: 7, log: '' } },
     ] } } as never);
-    st().jetSetForcedRoll('counterspell', POSE, 'A');
+    st().jetImposerLeResultat('counterspell', POSE, 'A');
 
     const part = P<{ participants: { result: { dispelled: boolean; counter: { base?: number } } }[] }>('pendingCounterspell').participants[0];
     expect(part.result.counter.base, 'Int 30 + 45 Augmentations').toBe(75);
@@ -86,10 +86,10 @@ describe('LDB 12 l.160 — dé POSÉ sur un Test opposé d’incantation (#1150)
   });
 
   it('Opposition d’incantation (Résistance à la Magie) : la nue de la cible survit au dé posé', () => {
-    banc.setState({ pendingCastOpposition: { test: { char: 'force-mentale' }, menace: 'magie', participants: [
+    banc.setState({ pendingCastOpposition: { test: { characteristic: 'force-mentale' }, menace: 'magie', participants: [
       { id: 'A', interactive: true, result: { oppose: { ...RATE }, resisted: false, margin: 7 } },
     ] } } as never);
-    st().jetSetForcedRoll('opposition', POSE, 'A');
+    st().jetImposerLeResultat('opposition', POSE, 'A');
 
     const part = P<{ participants: { result: { resisted: boolean; oppose: { roll: number; sl: number; base?: number } } }[] }>('pendingCastOpposition').participants[0];
     expect(part.result.oppose.roll).toBe(POSE);
@@ -115,7 +115,7 @@ describe('LDB 12 l.160 — seam de CASCADE opposée : la nue de l’étape, jama
 
   it('CONTRAT (c) : le dé posé oppose la BASE de l’étape (45), pas sa cible modifiée (25)', () => {
     openCascade(step());
-    st().jetSetForcedRoll('cascade', POSE, 's1'); // 23 sur cible 25 → DR 2-2 = 0… → cf. assertion de DR ci-dessous
+    st().jetImposerLeResultat('cascade', POSE, 's1'); // 23 sur cible 25 → DR 2-2 = 0… → cf. assertion de DR ci-dessous
 
     const r = P<{ participants: { result: { roll: number; sl: number; success: boolean } }[] }>('pendingCascade').participants[0].result;
     expect(r.roll).toBe(POSE);
@@ -125,7 +125,7 @@ describe('LDB 12 l.160 — seam de CASCADE opposée : la nue de l’étape, jama
 
   it('CONTRAT (c) : à DR ÉGAL, la nue 45 de l’étape bat la nue 40 de l’attaquant figé (la cible 25 perdrait)', () => {
     openCascade(step());
-    st().jetSetForcedRoll('cascade', 13, 's1'); // 13 sur cible 25 → DR 2-1 = 1, ÉGAL au DR figé de l'attaquant
+    st().jetImposerLeResultat('cascade', 13, 's1'); // 13 sur cible 25 → DR 2-1 = 1, ÉGAL au DR figé de l'attaquant
 
     const r = P<{ participants: { result: { roll: number; sl: number; success: boolean } }[] }>('pendingCascade').participants[0].result;
     expect(r.roll).toBe(13);
@@ -135,7 +135,7 @@ describe('LDB 12 l.160 — seam de CASCADE opposée : la nue de l’étape, jama
 
   it('CONTRAT (c) : une étape SANS base authorée retombe sur les cibles des DEUX camps (jamais un mixte)', () => {
     openCascade(step({ base: undefined }));
-    st().jetSetForcedRoll('cascade', 13, 's1');
+    st().jetImposerLeResultat('cascade', 13, 's1');
 
     const r = P<{ participants: { result: { sl: number; success: boolean } }[] }>('pendingCascade').participants[0].result;
     expect(r.sl).toBe(1);
@@ -143,15 +143,15 @@ describe('LDB 12 l.160 — seam de CASCADE opposée : la nue de l’étape, jama
     expect(r.success).toBe(false);
   });
 
-  it('CONTRAT (c) : chemin RNG (`jetRoll@cascade`) — à chaque DR égal rencontré, le verdict suit la Compétence', () => {
+  it('CONTRAT (c) : chemin RNG (`jetLancer@cascade`) — à chaque DR égal rencontré, le verdict suit la Compétence', () => {
     // Le jet RNG de l'étape est lancé sur la cible DÉJÀ modifiée : c'est là que le seam poserait une
     // CIBLE en guise de Niveau de Compétence. Propriété vérifiée sur 60 graines, sur les seuls tirages
     // qui ATTEIGNENT l'égalité de DR (les autres sont tranchés par le DR, LDB 12 l.160 première phrase).
     let egalites = 0;
     for (let seed = 1; seed <= 60; seed++) {
-      banc.getState().seedRng(seed);
+      banc.getState().ensemencerLeTirage(seed);
       openCascade(step({ result: null }));
-      st().jetRoll('cascade', 's1');
+      st().jetLancer('cascade', 's1');
       const r = P<{ participants: { result: { sl: number; success: boolean } | null }[] }>('pendingCascade').participants[0].result;
       if (!r || r.sl !== 1) continue; // 1 = DR de l'attaquant figé
       egalites++;

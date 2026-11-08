@@ -1,5 +1,5 @@
 /**
- * Détermination « Retirez un État » (`LDB 17 l.61`) : le geste `spendResolveCondition` lit le verdict
+ * Détermination « Retirez un État » (`LDB 17 l.61`) : le geste `depenserLaDetermination` lit le verdict
  * `refusDeDetermination`, celui du gate `determination-en-reserve` — ouvert à tout porteur (PNJ compris),
  * et son refus se DIT au siège qui pilote le porteur.
  */
@@ -17,8 +17,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 function setup() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
-  banc.getState().startScene(testScene());
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
@@ -29,12 +29,12 @@ function setup() {
 
 const vivant = (id: string): Combatant => banc.getState().battle!.combatants.find((c) => c.id === id)!;
 
-describe('spendResolveCondition — verdict `refusDeDetermination` (LDB 17 l.61)', () => {
+describe('depenserLaDetermination — verdict `refusDeDetermination` (LDB 17 l.61)', () => {
   it('PNJ à Détermination 2, Sonné ×2 : un pion retiré, un point débité', () => {
     const { E } = setup();
     E.resolve = 2;
     E.conditions = [{ id: 'sonne', value: 2 }] as ConditionInstance[];
-    banc.getState().spendResolveCondition(E.id, 'sonne');
+    banc.getState().depenserLaDetermination(E.id, 'retirerUnEtat', 'sonne');
     expect(stacks(vivant(E.id), 'sonne')).toBe(1);
     expect(vivant(E.id).resolve).toBe(1);
   });
@@ -43,7 +43,7 @@ describe('spendResolveCondition — verdict `refusDeDetermination` (LDB 17 l.61)
     const { H } = setup();
     H.resolve = 0;
     H.conditions = [{ id: 'sonne', value: 1 }] as ConditionInstance[];
-    banc.getState().spendResolveCondition(H.id, 'sonne');
+    banc.getState().depenserLaDetermination(H.id, 'retirerUnEtat', 'sonne');
     expect(banc.getState().refus?.texte).toBe(t('agate.noResolve'));
     expect(stacks(vivant(H.id), 'sonne')).toBe(1);
   });
@@ -52,7 +52,7 @@ describe('spendResolveCondition — verdict `refusDeDetermination` (LDB 17 l.61)
     const { H } = setup();
     H.resolve = 1;
     H.conditions = [];
-    banc.getState().spendResolveCondition(H.id, 'sonne');
+    banc.getState().depenserLaDetermination(H.id, 'retirerUnEtat', 'sonne');
     expect(banc.getState().refus?.texte).toBe(t('agate.stateNotCarried'));
     expect(vivant(H.id).resolve).toBe(1);
   });

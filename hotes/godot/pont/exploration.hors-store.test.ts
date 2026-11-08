@@ -1,11 +1,11 @@
 /**
  * L'EXPLORATION PAR LE PONT (#3328) : « La porte close » jouée comme Godot la joue. L'entrée de la scène poursuivie par
  * son geste en focus, le groupe projeté à sa case, les gestes d'exploration en boutons qui portent leur suite de verbes, le clic d'une case qui fait marcher
- * le groupe, la porte dessinée sur le plateau, fermée puis ouverte.
+ * le groupe, la porte dessinée sur le plateau, fermée puis ouverte, le volume du monde de la scène (`monde`).
  */
 import { describe, it, expect } from 'vitest';
 import { drainer, table } from './pont.testkit';
-import { CLICS_DE_L_EXPLORATION, type plateauDeLaScene } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, type plateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
 import type { Bouton } from '../../../src/hote/elements';
 
 const { appel } = table();
@@ -24,23 +24,30 @@ describe('l’exploration par le pont', () => {
     }
     const exploration = suite.vue.projection.exploration!;
     expect(exploration, 'hors combat, la vue est celle de l’exploration').not.toBeNull();
-    expect(suite.vue.champ, 'rien ne tient la main : un clic de case fait marcher le groupe').toEqual(CLICS_DE_L_EXPLORATION);
-    expect(exploration.heros.map((h) => h.pos), 'chaque héros se tient à la case du groupe').toEqual(exploration.heros.map(() => exploration.groupe));
+    expect(suite.vue.champ, 'rien ne tient la main : un clic de case fait marcher le groupe').toBe(CLIC_DU_CHAMP);
+    expect(exploration.heros.map((h) => h.pos), 'chaque héros se tient à la case du groupe').toEqual(exploration.heros.map(() => [...exploration.groupe, exploration.etage ?? 0]));
     expect(Object.keys(suite.vue.corps.combattants).sort(), 'chaque héros a son corps dans la vue').toEqual(exploration.heros.map((h) => h.id).sort());
+
+    const plateau = suite.vue.plateau!;
+    const { monde } = appel('monde') as unknown as { monde: VolumeDuMonde };
+    expect(monde.metresParCase, 'le monde à l’échelle du plateau').toBe(plateau.metresParCase);
+    expect(monde.positions.length, 'le sol de la scène, en triangles').toBeGreaterThanOrEqual(plateau.w * plateau.h * 2 * 9);
+    expect(monde.cases.length, 'la case de chaque triangle').toBe(monde.positions.length / 9);
+    expect(monde.hauteurs.map((c) => c.rangees.flat().length), 'la hauteur de chaque case de chaque couche').toEqual(monde.hauteurs.map(() => plateau.w * plateau.h));
 
     const boutons = suite.vue.zones['exploration.gestes'];
     expect(boutons.map((b) => b.libelle), 'chaque geste d’exploration est un bouton qui le nomme').toEqual(exploration.gestes.liste.map((g) => g.libelle));
     const porte = boutons.find((b) => 'suite' in b.jeu && b.jeu.suite.some((a) => a.type === 'actionnerLaPorte'));
     expect(porte, 'la porte fermée s’ouvre par un bouton').toBeDefined();
-    const porteDuPlateau = (aretes: ReturnType<typeof plateauDeLaScene>['aretes']) => aretes.find((a) => a.porte);
-    expect(porteDuPlateau(suite.vue.plateau!.aretes), 'le plateau dessine la porte, fermée, sur l’arête est de (2, 1)')
-      .toEqual({ milieu: { x: 2.5, y: 1 }, sens: { x: 0, y: 1 }, porte: true, ouverte: false });
-    expect(suite.vue.plateau!.aretes.filter((a) => !a.porte).map((a) => [a.milieu, a.ouverte]), 'ses deux murs pleins').toEqual([[{ x: 2.5, y: 0 }, false], [{ x: 2.5, y: 2 }, false]]);
+    const auMilieu = (aretes: ReturnType<typeof plateauDeLaScene>['aretes']) => aretes.find((a) => a.milieu.x === 2.5 && a.milieu.y === 1);
+    expect(auMilieu(suite.vue.plateau!.aretes), 'le plateau dessine la porte, fermée, sur l’arête est de (2, 1)')
+      .toEqual({ cle: '2,1,E,0', case: { x: 2, y: 1 }, milieu: { x: 2.5, y: 1 }, sens: { x: 0, y: 1 }, pied: 0, piece: 'porte-fermee', famille: 'colombage', hauteurM: 4 });
+    expect(suite.vue.plateau!.aretes.filter((a) => a !== auMilieu(suite.vue.plateau!.aretes)).map((a) => [a.milieu, a.piece]), 'ses deux murs pleins').toEqual([[{ x: 2.5, y: 0 }, 'mur'], [{ x: 2.5, y: 2 }, 'mur']]);
     ({ suite } = drainer(appel, appel('jouer', porte!.jeu)));
-    expect(porteDuPlateau(suite.vue.plateau!.aretes)?.ouverte, 'la porte ouverte, le plateau la dessine ouverte').toBe(true);
+    expect(auMilieu(suite.vue.plateau!.aretes)?.piece, 'la porte ouverte, le plateau la dessine ouverte').toBe('porte-ouverte');
 
     const reduit = { x: 4, y: 1 };
-    ({ suite } = drainer(appel, appel('jouer', { type: CLICS_DE_L_EXPLORATION.case, args: [reduit] })));
+    ({ suite } = drainer(appel, appel('jouer', { type: CLIC_DU_CHAMP, args: [reduit] })));
     expect(suite.vue.projection.exploration!.groupe, 'la porte ouverte, le clic d’une case du réduit y mène le groupe').toEqual([reduit.x, reduit.y]);
   });
 });

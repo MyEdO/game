@@ -44,7 +44,7 @@ const libelle = () => host.querySelector('.rm-roll-label')?.textContent ?? '';
 const poser = (roll: number) => {
   const cur = useGame.getState().pendingCascade!.participants[useGame.getState().pendingCascade!.cursor];
   // Le geste de la rangée : LANCER puis SUBSTITUER (`ui/forcedDieRow.ts`).
-  act(() => { if (!cur.result) useGame.getState().jetRoll('cascade', cur.id); useGame.getState().jetSetForcedRoll('cascade', roll, cur.id); });
+  act(() => { if (!cur.result) useGame.getState().jetLancer('cascade', cur.id); useGame.getState().jetImposerLeResultat('cascade', roll, cur.id); });
   render();
 };
 
@@ -95,7 +95,7 @@ describe('#2389 — la rangée seuil dit le verdict de SON étape', () => {
     const seuil = moraleBand(60).desertionRoll!;
     expect(seuil).toBe(4);
     openPortAt(useGame.getState, useGame.setState, { id: 'P', label: 'Erengrad', pos: { x: 0, y: 0 }, scene: 'monde-p', port: { taille: 3, richesse: 3, production: ['bois-mer'] } } as never);
-    useGame.getState().resolveShoreLeave(true);
+    useGame.getState().fenetreChoisir('shoreLeave', 'accorder', true);
     render();
     poser(seuil);
     expect(ligne()).toContain(String(t('seuil.sousLeSeuil')));

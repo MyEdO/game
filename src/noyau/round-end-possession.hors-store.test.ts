@@ -46,8 +46,8 @@ function setupCoop(withTalent = false): Combatant {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   if (withTalent) hero.talents = [...hero.talents, { talentId: 'controle-de-la-frenesie', times: 1 }];
   banc.setState({ party: [hero] });
-  g().startScene(testScene());
-  g().startCombat('enc-mutants');
+  g().lancerLaScene(testScene());
+  g().lancerLeCombat('enc-mutants');
   g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;
@@ -247,7 +247,7 @@ describe('#1262 lot 4 — les producteurs mintés : la CIBLE ne bouge pas, la ba
 
     const step = collectHeroRoundEndUpkeep(g, H, () => {}).find((s) => s.kind === 'aaBleedUnconscious')!;
     expect(step, 'l’étape est produite').toBeTruthy();
-    expect(step.target, 'CIBLE inchangée : celle du montage manuscrit (`base: res, target: res`)').toBe(testValue(H, 'resistance'));
+    expect(step.target, 'CIBLE inchangée : celle du montage manuscrit (`base: res, target: res`)').toBe(testValue(H, { skill: { id: 'resistance' } }));
     expect(step.base, 'la base n’est plus la valeur fondue : c’est le Niveau de Compétence NU').toBeGreaterThan(step.target!);
     expect(sommeLigne(step), 'base + Σ mods = cible : aucun écart « autres »').toBe(step.target);
     expect(step.mods?.some((m) => m.value === -20), 'les 2 Sonné sortent en ligne NOMMÉE').toBe(true);
@@ -264,7 +264,7 @@ describe('#1262 lot 4 — les producteurs mintés : la CIBLE ne bouge pas, la ba
 
     const step = collectHeroRoundEndUpkeep(g, H, () => {}).find((s) => s.kind === 'fatigue')!;
     expect(step, 'l’étape est produite').toBeTruthy();
-    expect(step.target, 'CIBLE inchangée : celle du montage manuscrit (`base: res, target: res`)').toBe(testValue(H, 'resistance'));
+    expect(step.target, 'CIBLE inchangée : celle du montage manuscrit (`base: res, target: res`)').toBe(testValue(H, { skill: { id: 'resistance' } }));
     expect(step.base).toBeGreaterThan(step.target!);
     expect(sommeLigne(step), 'base + Σ mods = cible : aucun écart « autres »').toBe(step.target);
     expect(step.mods?.some((m) => m.value === -20), 'les 2 Sonné sortent en ligne NOMMÉE').toBe(true);

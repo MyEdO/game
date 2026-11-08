@@ -12,8 +12,8 @@ describe('Entretien de Round en révélation (store)', () => {
   it('le début de combat MONTRE le champ (plan d’ensemble) — pas de modale d’Initiative (R2)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     const st = banc.getState();
     expect(st.pendingRoundStart?.round).toBe(1); // ouverture = pause du Round 1 : champ visible, IA gelée
     expect(st.battle!.turn).toBe(-1); // PERSONNE n'est actif pendant la pause (`lancerLeRound` posera le tour)
@@ -25,25 +25,24 @@ describe('Entretien de Round en révélation (store)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.conditions = [{ id: 'hemorragique', value: 2 }];
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     H.wounds = blessuresDeBase(20, 20, H); // survit à l'hémorragie
     const enemyIds = b.combatants.filter((c) => c.kind === 'enemy').map((c) => c.id);
-    const order = [...enemyIds, H.id]; // H dernier → battleEndTurn franchit le Round
+    const order = [...enemyIds, H.id]; // H dernier → terminerLeTour franchit le Round
     // Ennemis neutralisés : le franchissement de Round se joue sans qu'un tour d'IA ne suspende la séquence.
     b.combatants.filter((c) => c.kind === 'enemy').forEach((e) => (e.dead = true));
     banc.setState({ battle: { ...b, order, turn: order.length - 1 } });
 
-    banc.getState().battleEndTurn(); // franchit le Round → entretien
+    banc.getState().terminerLeTour(); // franchit le Round → entretien
 
     const step = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'round');
     const round = step?.reveal;
     expect(round).toBeTruthy();
     expect(round!.lines.some((l) => /Hémorragique|Blessure/i.test(l))).toBe(true);
-    expect(step!.autoCloseMs, 'l’entretien reste à l’écran jusqu’au clic (#1270)').toBeUndefined();
   });
 });

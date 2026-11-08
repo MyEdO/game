@@ -98,12 +98,19 @@ export function fromDate(d: ImperialDate): number {
   return totalDays * MINUTES_PER_DAY + d.hour * 60 + d.minute;
 }
 
+/** « 30 Jahrdrung 2512 CI » ou « Hexenstag 2512 CI » (intercalaire). */
+const jourDe = (d: ImperialDate): string => (d.intercalary ? `${d.intercalary} ${d.year} CI` : `${d.day} ${d.monthName} ${d.year} CI`);
+
 /** « 30 Jahrdrung 2512 CI · 14:30 » ou « Hexenstag 2512 CI · 08:00 » (intercalaire). */
 export function formatImperial(minutes: number): string {
   const d = toDate(minutes);
-  const hhmm = `${String(d.hour).padStart(2, '0')}:${String(d.minute).padStart(2, '0')}`;
-  const datePart = d.intercalary ? `${d.intercalary} ${d.year} CI` : `${d.day} ${d.monthName} ${d.year} CI`;
-  return `${datePart} · ${hhmm}`;
+  return `${jourDe(d)} · ${String(d.hour).padStart(2, '0')}:${String(d.minute).padStart(2, '0')}`;
+}
+
+/** « Festag · 30 Jahrdrung 2512 CI », ou « Hexenstag 2512 CI » (un intercalaire est hors de la semaine). */
+export function formatJourImperial(minutes: number): string {
+  const d = toDate(minutes);
+  return d.weekday ? `${d.weekday} · ${jourDe(d)}` : jourDe(d);
 }
 
 /** Début de la campagne (EiS) : dernier jour de Jahrdrung 2512, 08:00 (« fin Jahrdrung », année défaut WFRP4). */

@@ -8,7 +8,7 @@
  *     La valeur posée est celle que le code choisissait, terrain par terrain (table `MATIERE_DE_BLOC`) :
  *     l'identité de rendu est le contrat de ce lot, pas une occasion de retoucher le monde.
  *  2. `materials.json` — l'entrée de toiture qui EST le plan vu du dessus se DÉCLARE (`vueDeDessus`),
- *     au lieu d'être atteinte par son id littéral au call-site (`gameIso/authoring/roofsSvg.ts`, qui
+ *     au lieu d'être atteinte par son id littéral au call-site (le peintre des toits
  *     lit maintenant `matierePlan()`). Elle est identifiée par sa DONNÉE — la seule entrée `roof` sans
  *     `couverture` —, jamais par son nom.
  *

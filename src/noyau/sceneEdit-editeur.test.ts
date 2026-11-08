@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, isDescriptiveZone, Scene } from './monde/scene';
 import { propFootTiles } from './monde/footprint';
-import { entityAt, hitAt, EFFECT_ZONE_SEEDS, effectZoneRect, flowEffectCount, selRect, sameSel, pickArchitectureEdge, type Sel } from './sceneEditLecture';
-import { eraseAt, moveSel, pasteEntity, resizeSel, deleteSel, changePropRef, paintTiles, fillTerrainRect, addLayer, removeLayer, paintHeight, placeEntity, placeEntry, renameEntry, addTrigger, addRestZone, addEffectZone, addMember, addEnemyMember, removeMember, placeEmplacement, setPosteCrew, setPosteSide, setPosteEngine, addArchitectureBody, addArchitectureStorey, paintCrenellated, patchWall, addArchitecturePart, addFacadeSection, addBuildingMass, paintEffectZone, clearEffectZoneCarve } from './sceneEdit';
+import { entityAt, etageSuivant, hitAt, EFFECT_ZONE_SEEDS, effectZoneRect, flowEffectCount, poigneeDeLaSelection, selRect, sameSel, pickArchitectureEdge, type Sel } from './sceneEditLecture';
+import { eraseAt, moveSel, pasteEntity, resizeSel, deleteSel, changePropRef, paintTiles, fillTerrainRect, addLayer, removeLayer, paintHeight, placeEntity, placeEntry, renameEntry, addTrigger, addRestZone, addEffectZone, addMember, addEnemyMember, removeMember, placeEmplacement, setPosteCrew, setPosteSide, setPosteEngine, addArchitectureBody, addArchitectureStorey, paintCrenellated, patchWall, addArchitecturePart, addFacadeSection, addBuildingMass, paintEffectZone, clearEffectZoneCarve, patchZone } from './sceneEdit';
 import { TOUS_CALQUES } from './sceneEdit.testkit';
 import { validateScene } from './validateScene';
 import { findCreatureById, creatureLabel, siegeEngines } from '../data';
@@ -237,6 +237,46 @@ describe('édition de scène — moveSel (clampé)', () => {
   });
 });
 
+describe('édition de scène — patchZone et la poignée de la sélection', () => {
+  const s = sceneWith();
+  it('la poignée est au coin SE du rectangle, sur la couche de la zone seulement', () => {
+    expect(poigneeDeLaSelection(s, { type: 'trigger', id: 'trig-0' }, 0)).toEqual({ x: 5, y: 5 });
+    expect(poigneeDeLaSelection(s, { type: 'trigger', id: 'trig-0' }, 1)).toBeNull();
+    expect(poigneeDeLaSelection(s, { type: 'entity', id: 'perso-0' }, 0)).toBeNull();
+  });
+  it('un déclencheur rejoue, une zone de repos change de lieux et de qualité, chacune monte d’une couche', () => {
+    const trig = patchZone(s, { type: 'trigger', id: 'trig-0' }, { once: false, z: 1 }).triggers[0];
+    expect(trig).not.toHaveProperty('once');
+    expect(trig.rect).toEqual({ x: 4, y: 4, w: 2, h: 2, z: 1 });
+    const repos = patchZone(s, { type: 'restZone', idx: 0 }, { lieux: { auberge: true }, pietre: true }).restZones![0];
+    expect(repos).toMatchObject({ places: { ...s.restZones![0].places, auberge: true }, quality: 'pietre' });
+    expect(patchZone(s, { type: 'restZone', idx: 0 }, { pietre: false, z: 0 }).restZones![0]).not.toHaveProperty('quality');
+  });
+  it('une zone d’effet découpée emporte son emprise à sa nouvelle couche ; sa nature, sa forme, son aire entière', () => {
+    const { scene, id } = addEffectZone(emptyScene('z', 8, 8), { x: 1, y: 1, w: 2, h: 2 }, 0, EFFECT_ZONE_SEEDS.room);
+    const decoupee = paintEffectZone(scene, id, { x: 1, y: 1 }, 'remove');
+    const sel = { type: 'effectZone' as const, id };
+    const montee = patchZone(decoupee, sel, { z: 1 }).effectZones![0];
+    expect(montee.z).toBe(1);
+    expect(montee.tiles).toEqual([{ x: 2, y: 1, z: 1 }, { x: 1, y: 2, z: 1 }, { x: 2, y: 2, z: 1 }]);
+    expect(patchZone(decoupee, sel, { presentation: null }).effectZones![0]).not.toHaveProperty('presentation');
+    expect(patchZone(decoupee, sel, { presentation: 'exterior' }).effectZones![0].presentation).toBe('exterior');
+    expect(patchZone(decoupee, sel, { forme: 'disc' }).effectZones![0].area.kind).toBe('disc');
+    expect(patchZone(decoupee, sel, { pleine: true }).effectZones![0]).not.toHaveProperty('tiles');
+    expect(patchZone(decoupee, { type: 'entity', id: 'x' }, { z: 1 })).toBe(decoupee);
+  });
+  it('une zone d’effet coupe la vue et barre le passage, puis plus ; une zone couvre des entrées de fiche, `null` les retire', () => {
+    const { scene, id } = addEffectZone(emptyScene('z', 8, 8), { x: 1, y: 1, w: 2, h: 2 }, 0, EFFECT_ZONE_SEEDS.room);
+    const sel = { type: 'effectZone' as const, id };
+    const barree = patchZone(scene, sel, { blocksLoS: true, barrier: true, couvre: ['EDO-01#imp1'] });
+    expect(barree.effectZones![0]).toMatchObject({ blocksLoS: true, barrier: {}, couvre: ['EDO-01#imp1'] });
+    const ouverte = patchZone(barree, sel, { blocksLoS: false, barrier: false, couvre: null }).effectZones![0];
+    for (const champ of ['blocksLoS', 'barrier', 'couvre']) expect(ouverte).not.toHaveProperty(champ);
+    const trig = { type: 'trigger' as const, id: 'trig-0' };
+    expect(patchZone(patchZone(s, trig, { couvre: ['EDO-01#imp1'] }), trig, { couvre: null }).triggers[0]).not.toHaveProperty('couvre');
+  });
+});
+
 describe('édition de scène — resizeSel (coin NW fixe)', () => {
   const s = sceneWith();
   it('redimensionne un trigger vers la case visée', () => {
@@ -306,6 +346,13 @@ describe('édition de scène — couches (multi-niveaux)', () => {
     expect(addLayer(s1, 1)).toBe(s1); // no-op si déjà présente
     // insérée dans l'ordre des z même posée à l'envers
     expect(addLayer(addLayer(emptyScene('scene-test', 4, 4), 2), 1).layers.map((l) => l.z)).toEqual([0, 1, 2]);
+  });
+  it('etageSuivant : un cran au-dessus de la plus haute couche, z non contigus compris ; le rez sur un plan sans couche', () => {
+    const rez = emptyScene('scene-test', 4, 4);
+    expect(etageSuivant(rez)).toBe(1);
+    expect(etageSuivant(addLayer(rez, 1))).toBe(2);
+    expect(etageSuivant(addLayer(addLayer(rez, 3), 1))).toBe(4);
+    expect(etageSuivant({ layers: [] })).toBe(0);
   });
   it('removeLayer retire une couche mais protège le sol (z=0) et la dernière couche', () => {
     const s = addLayer(emptyScene('scene-test', 4, 4), 1);
@@ -521,36 +568,36 @@ describe('édition de scène — selRect / sameSel', () => {
     expect(sameSel({ type: 'trigger', id: 'a' }, { type: 'trigger', id: 'b' })).toBe(false);
     expect(sameSel(null, null)).toBe(true);
     expect(sameSel(null, { type: 'entity', id: 'x' })).toBe(false);
-    expect(sameSel({ type: 'effectZone', idx: 1 }, { type: 'effectZone', idx: 1 })).toBe(true);
-    expect(sameSel({ type: 'effectZone', idx: 0 }, { type: 'effectZone', idx: 1 })).toBe(false);
+    expect(sameSel({ type: 'effectZone', id: 'b' }, { type: 'effectZone', id: 'b' })).toBe(true);
+    expect(sameSel({ type: 'effectZone', id: 'a' }, { type: 'effectZone', id: 'b' })).toBe(false);
   });
 });
 
 describe('Zones d\'effet (pièges) — authoring éditeur', () => {
   it('addEffectZone : rect + graine de l\'outil (piège), id frais, sélectionnable', () => {
     const s0 = sceneWith();
-    const { scene, idx } = addEffectZone(s0, { x: 3, y: 3, w: 2, h: 1 }, 0, EFFECT_ZONE_SEEDS.effect);
-    const z = scene.effectZones![idx];
+    const { scene, id } = addEffectZone(s0, { x: 3, y: 3, w: 2, h: 1 }, 0, EFFECT_ZONE_SEEDS.effect);
+    const z = scene.effectZones![0];
     expect(z.area).toEqual({ kind: 'rect', x: 3, y: 3, w: 2, h: 1 });
     expect(z.onCross?.some((o) => o.op === 'wounds')).toBe(true);
     expect(z.id).toBeTruthy();
     // hitAt trouve la zone sous une de ses cases, aux calques de défaut : un piège fraîchement posé
     // est cliquable sans avoir à allumer quoi que ce soit.
-    expect(hitAt(scene, { x: 4, y: 3 }, TOUS_CALQUES)).toEqual({ type: 'effectZone', idx });
+    expect(hitAt(scene, { x: 4, y: 3 }, TOUS_CALQUES)).toEqual({ type: 'effectZone', id });
   });
 
   it('sans graine, la zone naît DESCRIPTIVE et libellée par son id — le créateur partagé n\'arme rien', () => {
-    const { scene, idx } = addEffectZone(sceneWith(), { x: 3, y: 3, w: 2, h: 1 });
-    const z = scene.effectZones![idx];
+    const { scene, id } = addEffectZone(sceneWith(), { x: 3, y: 3, w: 2, h: 1 });
+    const z = scene.effectZones![0];
     expect(isDescriptiveZone(z)).toBe(true);
     expect(z.label).toBe(z.id);
     // Descriptive ou mécanique, une zone se pique au MÊME calque : c'est son encre qui diffère.
-    expect(hitAt(scene, { x: 4, y: 3 }, TOUS_CALQUES)).toEqual({ type: 'effectZone', idx });
+    expect(hitAt(scene, { x: 4, y: 3 }, TOUS_CALQUES)).toEqual({ type: 'effectZone', id });
   });
 
   it('selRect/moveSel/resizeSel/deleteSel sur une zone d\'effet', () => {
     let scene = addEffectZone(sceneWith(), { x: 3, y: 3, w: 2, h: 2 }).scene;
-    const sel = { type: 'effectZone' as const, idx: 0 };
+    const sel = { type: 'effectZone' as const, id: scene.effectZones![0].id };
     expect(selRect(scene, sel)).toEqual({ x: 3, y: 3, w: 2, h: 2 });
     scene = moveSel(scene, sel, { x: 5, y: 5 });
     expect(scene.effectZones![0].area).toMatchObject({ kind: 'rect', x: 5, y: 5, w: 2, h: 2 });

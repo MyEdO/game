@@ -7,8 +7,7 @@
  * `dialogue-choice-N` avec lui.
  *
  * Contrats POSITIFS, un par surface : sous chacune la conversation ne répond pas ; au témoin, elle
- * répond. Les écrans par siège de l'adaptateur (fiche, menu système, codex) et la question du juge jouée par le
- * dispatcher RÉEL des touches se jouent en `src/state/dialogue-surface-tient-la-main.test.ts`.
+ * répond.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -17,6 +16,7 @@ import { conversationRepond } from './dialogue';
 import { withActingSeat } from './netOwnership';
 import { makeShowcaseParty } from '../data/pregens';
 import type { Dialogue } from './monde/scene';
+import { t } from '../i18n';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -84,6 +84,13 @@ describe('conversationRepond — une surface qui tient la main suspend la conver
     expect(repond()).toBe(false);
   });
 
+  it('sous une surface, la réponse choisie est refusée et le refus dit', () => {
+    temoin({ document: { title: 'Lettre', text: '…', remise: 1 } });
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'oui');
+    expect(banc.getState().dialogue?.nodeId).toBe('n1');
+    expect(banc.getState().journal.slice(-1)[0]).toBe(t('barre.mainTenue'));
+  });
+
   it('file de journal ou commande d’interlude en souffrance : aucune surface, elle répond', () => {
     temoin({ pendingLogQueue: [{ line: 'x' }], pendingOrders: [{ heroId: 'h', trappingId: 't' }] });
     expect(repond()).toBe(true);
@@ -95,7 +102,7 @@ describe('coop — l’écran PAR SIÈGE de l’hôte ne refuse pas la réponse 
   // Une surface PARTAGÉE (le document que tous lisent) met la réponse en attente.
   const repondreCommeInvite = (over: Partial<Jeu>) => {
     temoin({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } as Jeu['net'], ...over });
-    withActingSeat(1, () => banc.getState().chooseDialogue('oui'));
+    withActingSeat(1, () => banc.getState().fenetreChoisir('dialogue', 'reponse', 'oui'));
     return banc.getState().dialogue?.nodeId;
   };
 

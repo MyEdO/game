@@ -35,7 +35,7 @@ function setup() {
 
 beforeEach(() => {
   banc.setState({ battle: null, party: [], journal: [] });
-  banc.getState().seedRng(1);
+  banc.getState().ensemencerLeTirage(1);
 });
 
 describe('portée de mêlée d’un cavalier = empreinte de la monture', () => {

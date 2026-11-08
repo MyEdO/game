@@ -3,7 +3,7 @@
  *
  * Le moteur (`scatter`), le store (`path`, `vision`, IA, combat) et le rendu mesurent tous des
  * distances de cases : elles vivent ICI, jamais recopiées au site. Règle 3 (AGENTS.md) : `src/engine`
- * ne dépend pas de `src/state` — c'est donc le moteur qui porte la primitive et `noyau/monde/path` qui la
+ * ne dépend d'aucune couche au-dessus de lui — c'est donc le moteur qui porte la primitive et `noyau/monde/path` qui la
  * consomme, pas l'inverse.
  */
 

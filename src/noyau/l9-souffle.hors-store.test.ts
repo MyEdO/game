@@ -22,11 +22,11 @@ describe('Souffle — délégation à l’attaque de zone du Trait (LDB 47 l.509
   function setup() {
     const W = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
     banc.setState({ party: [W] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const b = banc.getState().battle!;
     const caster = b.combatants.find((c) => c.label === 'W')!;
     caster.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 10 });

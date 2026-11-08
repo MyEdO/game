@@ -42,11 +42,11 @@ import {
   flaquePart,
   pointLightWrites,
   FLAME_INTENSITY,
-  FLAME_LIFT_M,
   FOYER_NUIT_CIBLE,
   POINT_LIGHT_BUDGET,
   type PointLightSlots,
 } from './stagePointLights';
+import { FLAME_LIFT_M } from '../../noyau/lumiereDeLaScene';
 import { itemFromTrappingById } from '../../engine/items';
 import type { ItemInstance } from '../../engine/types';
 

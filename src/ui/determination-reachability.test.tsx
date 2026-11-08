@@ -47,7 +47,7 @@ function monter(hero: Combatant) {
         log: [], over: null, preview: null,
       } as unknown as BattleState,
       scene: emptyScene('scene-test', 20, 20),
-      mode: 'battle', party: [hero], pendingRoundStart: null, pendingAttack: null, pendingCast: null,
+      mode: 'battle', screen: 'campaign', party: [hero], pendingRoundStart: null, pendingAttack: null, pendingCast: null,
       pendingCleave: null, pendingDualStrike: null, pendingSiegeAim: null,
       net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
     });

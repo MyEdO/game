@@ -16,7 +16,7 @@ import { buildAdvancementView } from '../noyau/monde/advancement';
 import { isMagicMissile, isArcaneSpell, castBlockedBy, castInfoIsPrayer } from '../engine/magic';
 import { effectiveSpellOf } from '../noyau/combatFlow';
 import { GatedAction, raisonSi } from './GatedAction';
-import { refusAchatDeComposant, coutDuComposant } from '../noyau/partyFlow';
+import { refusAchatDeComposant, coutDuComposant, composantsOfferts } from '../noyau/partyFlow';
 import type { GestesDeLObjet } from '../noyau/gestesDeLObjet';
 import { libelleAvecSpec } from '../noyau/depenseDePx';
 import { refusDeSoins } from '../noyau/medicFlow';
@@ -105,7 +105,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
   const setSheetTab = useGame((s) => s.setSheetTab);
   const setSheetScroll = useGame((s) => s.setSheetScroll);
   const setSheetAlarmsSeen = useGame((s) => s.setSheetAlarmsSeen);
-  const openMedic = useGame((s) => s.openMedic);
+  const ouvrirLeMedecin = useGame((s) => s.ouvrirLeMedecin);
   const battle = useGame((s) => s.battle);
 
   // Règle d'atterrissage (§3.2) : force l'onglet État seulement à la PREMIÈRE ouverture depuis une
@@ -203,7 +203,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
             </div>
           </div>
           <SheetActiveEffects hero={hero} />
-          {/* Verdict du noyau (`refusDeSoins`), celui que rend `openMedic` : refusé, le bouton dit pourquoi. */}
+          {/* Verdict du noyau (`refusDeSoins`), celui que rend `ouvrirLeMedecin` : refusé, le bouton dit pourquoi. */}
           <Row>
             <GatedAction
               id="sheet-soins"
@@ -211,7 +211,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
               enabled={!refusSoins}
               {...raisonSi(refusSoins)}
               descOfferte="Soins du groupe (Tests de Guérison) — ouvre l'infirmerie sur ce héros"
-              onClick={() => openMedic({ patientId: hero.id })}
+              onClick={() => ouvrirLeMedecin({ patientId: hero.id })}
               primary={false}
               btnClassName="small"
             />
@@ -265,22 +265,21 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
  *  Les Projectiles magiques (offensifs) sont marqués « en combat » : ils exigent une cible ennemie. */
 function SpellbookSection({ hero }: { hero: Combatant }) {
   const party = useGame((s) => s.party);
-  // Les verbes `ooc*` sont des lanceurs HORS COMBAT : pendant un combat, le lancement passe par la
-  // console. Verdict du noyau (`refusDuLanceurDeFiche`), celui que les trois gestes appliquent.
+  // Pendant un combat, le lancement passe par la console : verdict du noyau (`refusDuLanceurDeFiche`).
   const battle = useGame((s) => s.battle);
   const refusLanceur = refusDuLanceurDeFiche({ battle });
-  const oocCastSpell = useGame((s) => s.oocCastSpell);
-  const oocFocusSpell = useGame((s) => s.oocFocusSpell);
-  const oocDispelSpell = useGame((s) => s.oocDispelSpell);
-  const buySpellComponent = useGame((s) => s.buySpellComponent);
-  const removeSpellComponent = useGame((s) => s.removeSpellComponent);
+  const incanterLeSort = useGame((s) => s.incanterLeSort);
+  const focaliserLeSort = useGame((s) => s.focaliserLeSort);
+  const dissiperLeSort = useGame((s) => s.dissiperLeSort);
+  const acheterLaComposante = useGame((s) => s.acheterLaComposante);
+  const retirerLaComposante = useGame((s) => s.retirerLaComposante);
   const [targetId, setTargetId] = useState(hero.id);
   const spells = (hero.spells ?? [])
     .map((x) => findSpellById(x)) // hero.spells = ids de sort (runtime)
     .filter((s): s is NonNullable<ReturnType<typeof findSpellById>> => !!s);
   // Lecture au grimoire (LDB 47 l.21, `VDM 12 l.646-647`). Le catalogue est ramené à sa forme
   // EFFECTIVE par `findSpellById` (variante réglée) et le NI de lecture vient de `effectiveSpellOf`
-  // — le MÊME couple que la résolution (`oocCastSpell(…, true)`), jamais un facteur recopié ici.
+  // — le MÊME couple que la résolution (`incanterLeSort(…, true)`), jamais un facteur recopié ici.
   const grimoireSpells = carriedGrimoire(hero)
     ? allSpells
         .map((s0) => findSpellById(s0.id))
@@ -339,7 +338,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                         {...raisonSi(refusLanceur ?? castBlockedBy(hero, 'focalisation'))}
                         primary={false}
                         btnClassName="small"
-                        onClick={() => oocFocusSpell(hero.id, sp.id)}
+                        onClick={() => focaliserLeSort(hero.id, sp.id)}
                       />
                       <CodexRef category="regles" id="focalisation-etendue" label="Test de Focalisation (étendu)" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
                     </>
@@ -351,7 +350,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                     {...raisonSi(refusDeLancer)}
                     primary={false}
                     btnClassName="small"
-                    onClick={() => oocCastSpell(hero.id, sp.id, targetId)}
+                    onClick={() => incanterLeSort(hero.id, sp.id, targetId)}
                   />
                 </Row>
               )}
@@ -375,7 +374,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                   {...raisonSi(refusLanceur ?? castBlockedBy(hero, castInfoIsPrayer(sp) ? 'priere' : 'langue'))}
                   primary={false}
                   btnClassName="small"
-                  onClick={() => oocCastSpell(hero.id, sp.id, targetId, true)}
+                  onClick={() => incanterLeSort(hero.id, sp.id, targetId, true)}
                 />
               </Row>
             )}
@@ -387,7 +386,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
         // Action » — n'est pas bornée au combat. Visible seulement si le héros a Langue (Magick)
         // ET qu'au moins un sort permanent est actif dans le groupe (calque le patron de la console
         // EN combat : `canDispel && dispellable.length > 0`).
-        if (!actorHasSkill(hero, 'langue', 'magick')) return null;
+        if (!actorHasSkill(hero, { id: 'langue', spec: 'magick' })) return null;
         const dispellable = dispellableSpellsOn(party);
         if (!dispellable.length) return null;
         return (
@@ -404,7 +403,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                       {d.label} · NI {d.ni} ({prog}/{d.ni})
                     </span>
                     <Row className="spell-actions">
-                      <button className="btn small" onClick={() => oocDispelSpell(hero.id, d.spellId, d.casterId)}>
+                      <button className="btn small" onClick={() => dissiperLeSort(hero.id, d.spellId, d.casterId)}>
                         <Icon id="action/dispel" size="sm" /> Dissiper
                       </button>
                     </Row>
@@ -419,7 +418,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
         // Composants d'incantation (LDB 46 l.107-113) : achetés PAR Sort d'Arcane/Domaine connu,
         // coût = NI pistoles d'argent ; absorbent le contrecoup (Imparfaite Majeure→Mineure,
         // Mineure→annulée) puis sont consumés à l'incantation. Visible seulement règle ON.
-        const arcane = spells.filter((sp) => isArcaneSpell(sp) && sp.cn != null);
+        const arcane = composantsOfferts(hero);
         if (!arcane.length) return null;
         const owned = hero.componentSpells ?? [];
         const countOf = (id: string) => owned.filter((x) => x === id).length;
@@ -441,7 +440,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                     </span>
                     <Row className="spell-actions">
                       {n > 0 && (
-                        <button className="btn small" title="Jeter un composant (pas de remboursement)" onClick={() => removeSpellComponent(hero.id, sp.id)}>
+                        <button className="btn small" title="Jeter un composant (pas de remboursement)" onClick={() => retirerLaComposante(hero.id, sp.id)}>
                           −
                         </button>
                       )}
@@ -451,7 +450,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                         ariaLabel={`Acheter un composant pour ${sp.label}`}
                         enabled={!refusAchat}
                         {...raisonSi(refusAchat)}
-                        onClick={() => buySpellComponent(hero.id, sp.id)}
+                        onClick={() => acheterLaComposante(hero.id, sp.id)}
                         primary={false}
                         btnClassName="small"
                       />
@@ -472,7 +471,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
  *  `penaliteDeMainSecondaire`, l'éligibilité `refusEmplacementDeMain`. Cliquer l'option déjà active la
  *  retire. LDB 14 l.78, l.138 */
 function HandPicker({ hero, it, mains }: { hero: Combatant; it: ItemInstance; mains: NonNullable<GestesDeLObjet['mains']> }) {
-  const setLoadoutSlot = useGame((s) => s.setLoadoutSlot);
+  const garnirLaPanoplie = useGame((s) => s.garnirLaPanoplie);
   const { set: loId, main: { tenue: isMain, refus: refusMain }, off: { tenue: isOff, refus: refusOff } } = mains;
   const malus = avecSigne(penaliteDeMainSecondaire(hero));
   return (
@@ -486,7 +485,7 @@ function HandPicker({ hero, it, mains }: { hero: Combatant; it: ItemInstance; ma
           selected: isMain,
           title: refusMain ? undefined : 'Tenir dans la main principale',
           refus: refusMain ?? undefined,
-          onSelect: () => setLoadoutSlot(hero.id, loId, 'main', isMain ? null : it.uid),
+          onSelect: () => garnirLaPanoplie(hero.id, loId, 'main', isMain ? null : it.uid),
         },
         {
           key: 'off',
@@ -496,7 +495,7 @@ function HandPicker({ hero, it, mains }: { hero: Combatant; it: ItemInstance; ma
           // par un `disabled` muet ; le `title` ne reste que pour l'option OFFERTE.
           title: refusOff ? undefined : `Main secondaire : ${malus} aux attaques de cette main`,
           refus: refusOff ?? undefined,
-          onSelect: () => setLoadoutSlot(hero.id, loId, 'off', isOff ? null : it.uid),
+          onSelect: () => garnirLaPanoplie(hero.id, loId, 'off', isOff ? null : it.uid),
         },
       ]}
     />
@@ -509,7 +508,7 @@ function ApparencePicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
   useVersionDesDatasets();
   const narratif = useGame((s) => s.campaignNarratif);
   const resolveTrapping = objetDuNarratif(narratif);
-  const choisirApparence = useGame((s) => s.choisirApparence);
+  const poserLApparence = useGame((s) => s.poserLApparence);
   const choices = apparencesAdmissiblesDObjet(it, resolveTrapping);
   if (choices.length < 2) return null;
   return (
@@ -522,15 +521,15 @@ function ApparencePicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
           choisirApparenceDObjet(apercu, a.id, resolveTrapping);
           return { key: a.id, media: <ItemIcon item={apercu} size="sm" />, label: a.label };
         })}
-        onSelect={(id) => choisirApparence(hero.id, it.uid, id)}
+        onSelect={(id) => poserLApparence(hero.id, it.uid, id)}
       />
     </div>
   );
 }
 
 function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' }) {
-  const usePartyItem = useGame((s) => s.usePartyItem);
-  const appraiseItem = useGame((s) => s.appraiseItem);
+  const utiliserLObjet = useGame((s) => s.utiliserLObjet);
+  const evaluerLObjet = useGame((s) => s.evaluerLObjet);
   const items = hero.items ?? [];
 
   return (
@@ -560,7 +559,7 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
                     enabled={!gestes.evaluer.refus}
                     {...raisonSi(gestes.evaluer.refus)}
                     descOfferte="Évaluation (Int) : révèle les qualités cachées et estime le prix — un échec verrouille jusqu'à demain"
-                    onClick={() => appraiseItem(it.uid, hero.id)}
+                    onClick={() => evaluerLObjet(it.uid, hero.id)}
                     primary={false}
                     btnClassName="small"
                   />
@@ -572,7 +571,7 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
                     enabled={!gestes.detecter.refus}
                     {...raisonSi(gestes.detecter.refus)}
                     descOfferte="Détection d'artefact (Intuition, au toucher) : sentir l'aura magique — une seule tentative par objet"
-                    onClick={() => appraiseItem(it.uid, hero.id, 'detect')}
+                    onClick={() => evaluerLObjet(it.uid, hero.id, 'detect')}
                     primary={false}
                     btnClassName="small"
                   />
@@ -585,7 +584,7 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
                     label="Utiliser"
                     enabled={!gestes.utiliser.refus}
                     {...raisonSi(gestes.utiliser.refus)}
-                    onClick={() => usePartyItem(hero.id, it.uid)}
+                    onClick={() => utiliserLObjet(hero.id, it.uid)}
                     primary={false}
                     btnClassName="small"
                   />
@@ -668,13 +667,13 @@ function AdvSection({ title, count, badge, children }: { title: string; count?: 
 }
 
 export function AdvancementPanel({ hero }: { hero: Combatant }) {
-  const buyCharAdvance = useGame((s) => s.buyCharAdvance);
-  const buySkillAdvance = useGame((s) => s.buySkillAdvance);
-  const buyTalent = useGame((s) => s.buyTalent);
-  const designateCareerSlot = useGame((s) => s.designateCareerSlot);
-  const buySpell = useGame((s) => s.buySpell);
-  const changeCareer = useGame((s) => s.changeCareer);
-  const trainProsthesis = useGame((s) => s.trainProsthesis);
+  const acheterLaCaracteristique = useGame((s) => s.acheterLaCaracteristique);
+  const acheterLaCompetence = useGame((s) => s.acheterLaCompetence);
+  const acheterLeTalent = useGame((s) => s.acheterLeTalent);
+  const designerLeCreneau = useGame((s) => s.designerLeCreneau);
+  const acheterLeSort = useGame((s) => s.acheterLeSort);
+  const changerDeCarriere = useGame((s) => s.changerDeCarriere);
+  const entrainerLaProthese = useGame((s) => s.entrainerLaProthese);
   const [target, setTarget] = useState('');
   const battle = useGame((s) => s.battle);
   const flags = useGame((s) => s.flags);
@@ -708,7 +707,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
             <GatedAction
               id={`adv-car-${c.key}`} primary={false} btnClassName="small"
               enabled={!c.refus} {...raisonSi(c.refus)}
-              onClick={() => buyCharAdvance(hero.id, c.key)}
+              onClick={() => acheterLaCaracteristique(hero.id, c.key)}
               label={`+1 · ${c.nextCost} PX`}
             />
           </div>
@@ -719,16 +718,16 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
       <AdvSection title="Compétences" count={v.skills.length + v.skillSlotsOpen.length}>
       <div className="adv-grid">
         {v.skills.map((s) => (
-          <div className={`adv-row ${s.known ? '' : 'acquire'}`} key={`${s.skillId}|${s.spec ?? ''}`}>
+          <div className={`adv-row ${s.known ? '' : 'acquire'}`} key={`${s.skill.id}|${s.skill.spec ?? ''}`}>
             <span className="adv-name">
-              {libelleAvecSpec(s.label, s.spec)} <em>{skillBaseValue(hero, s.skillId, s.spec)}</em> {pill(s.inCareer)}
+              {libelleAvecSpec(s.label, s.skill.spec)} <em>{skillBaseValue(hero, { skill: s.skill })}</em> {pill(s.inCareer)}
               {s.known ? '' : <span className="acquire-tag">à apprendre</span>}
             </span>
             <span className="adv-meta">+{s.advances}</span>
             <GatedAction
-              id={`adv-comp-${s.skillId}-${s.spec ?? ''}`} primary={false} btnClassName="small"
+              id={`adv-comp-${s.skill.id}-${s.skill.spec ?? ''}`} primary={false} btnClassName="small"
               enabled={!s.refus} {...raisonSi(s.refus)}
-              onClick={() => buySkillAdvance(hero.id, s.skillId, s.spec)}
+              onClick={() => acheterLaCompetence(hero.id, s.skill)}
               label={`${s.known ? '+1' : 'Apprendre'} · ${s.nextCost} PX`}
             />
           </div>
@@ -748,10 +747,10 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               refus: o.refus,
             }))}
             onPick={(key, owned) => {
-              const { id, spec } = parseRefKey(key);
-              if (owned) designateCareerSlot(hero.id, slot.slotKey, id, spec);
+              const ref = parseRefKey(key);
+              if (owned) designerLeCreneau(hero.id, slot.slotKey, ref.id, ref.spec);
               // Acheter la 1re Augmentation désigne l'emplacement (LDB 09 l.38).
-              else buySkillAdvance(hero.id, id, spec);
+              else acheterLaCompetence(hero.id, ref);
             }}
           />
         ))}
@@ -772,7 +771,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               <GatedAction
                 id={`adv-talent-${t.slotKey}`} primary={false} btnClassName="small"
                 enabled={!t.refus} {...raisonSi(t.refus)}
-                onClick={() => buyTalent(hero.id, t.talentId!, t.spec)}
+                onClick={() => acheterLeTalent(hero.id, t.talentId!, t.spec)}
                 label={`${t.times > 0 ? '+1' : 'Acquérir'} · ${t.nextCost} PX`}
               />
             </div>
@@ -785,8 +784,8 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               options={(t.options ?? []).map((o) => ({ key: o.refKey, display: o.display, owned: o.owned, cost: o.nextCost, maxReached: o.maxReached, refus: o.refus }))}
               onPick={(key, owned) => {
                 const { id, spec } = parseRefKey(key);
-                if (owned) designateCareerSlot(hero.id, t.slotKey, id, spec);
-                else buyTalent(hero.id, id, spec);
+                if (owned) designerLeCreneau(hero.id, t.slotKey, id, spec);
+                else acheterLeTalent(hero.id, id, spec);
               }}
             />
           ),
@@ -815,7 +814,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
                   <GatedAction
                     id={`adv-sort-${spell.id}`} primary={false} btnClassName="small"
                     enabled={!refusPx(cost)} {...raisonSi(refusPx(cost))}
-                    onClick={() => buySpell(hero.id, spell.id)}
+                    onClick={() => acheterLeSort(hero.id, spell.id)}
                     label={`${cost > 0 ? `Mémoriser · ${cost} PX` : 'Inclus au Talent'}${spell.family === 'chaos' ? ' · +1 Corruption' : ''}`}
                   />
                 </div>
@@ -841,7 +840,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
             key: `${it.uid}-${it.prosthesisReduced ?? 0}-${tier.grants ?? 'palier'}`,
             label: `${it.label} — ${tier.label}`, // libellé du palier : DONNÉE éditable, jamais un texte d'écran
             cost: tier.px,
-            onBuy: () => trainProsthesis(hero.id, it.uid),
+            onBuy: () => entrainerLaProthese(hero.id, it.uid),
           });
         }
         if (!rows.length) return null;
@@ -878,7 +877,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
             label={`${t.level > v.careerLevel ? 'Monter' : 'Redescendre'} : ${t.label} (niv. ${t.level}) · ${t.cost} PX`}
             enabled={!t.refus}
             {...raisonSi(t.refus)}
-            onClick={() => changeCareer(hero.id, t.career, t.level)}
+            onClick={() => changerDeCarriere(hero.id, t.career, t.level)}
             primary={false}
             btnClassName="small"
           />
@@ -899,7 +898,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
             enabled={!!target && !refusChangement}
             {...raisonSi(refusChangement)}
             onClick={() => {
-              if (target) changeCareer(hero.id, target, 1);
+              if (target) changerDeCarriere(hero.id, target, 1);
               setTarget('');
             }}
             label={`Changer${target ? ` · ${v.changeCostFor(target)} PX` : ''}`}

@@ -29,9 +29,9 @@ describe('désignation au spawn d’un `choix` de spécialisation (L2 #1548)', (
     expect(savoir).toHaveLength(1);
     const designee = savoir[0].spec;
     expect(poolDe('savoir')).toContain(designee);
-    expect(testValue(c, 'savoir', undefined, designee)).toBe(80);
+    expect(testValue(c, { skill: { id: 'savoir', spec: designee } })).toBe(80);
     const autre = poolDe('savoir').find((id) => id !== designee)!;
-    expect(testValue(c, 'savoir', undefined, autre)).not.toBe(80); // Compétence UNIQUE par spéc
+    expect(testValue(c, { skill: { id: 'savoir', spec: autre } })).not.toBe(80); // Compétence UNIQUE par spéc
     expect(skillInstanceLabel(savoir[0])).not.toMatch(/au choix/i);
   });
 
@@ -61,7 +61,7 @@ describe('désignation au spawn d’un `choix` de spécialisation (L2 #1548)', (
       const c = spawn('grand-aigle', uid);
       const langues = c.skills.filter((s) => s.id === 'langue').map((s) => s.spec);
       expect(langues.every((sp) => sp != null)).toBe(true);
-      expect(actorHasSkill(c, 'langue', 'magick')).toBe(langues.includes('magick'));
+      expect(actorHasSkill(c, { id: 'langue', spec: 'magick' })).toBe(langues.includes('magick'));
     }
   });
 
@@ -73,9 +73,9 @@ describe('désignation au spawn d’un `choix` de spécialisation (L2 #1548)', (
     for (const cr of creatures) {
       const c = creatureToCombatant(cr, `${cr.id}-cc`, { x: 0, y: 0 });
       const inst = c.skills.find((s) => s.id === 'langue' && s.spec === 'magick');
-      if (actorHasSkill(c, 'langue', 'magick') !== (inst != null)) ecarts.push(`${cr.id} : actorHasSkill fantôme`);
+      if (actorHasSkill(c, { id: 'langue', spec: 'magick' }) !== (inst != null)) ecarts.push(`${cr.id} : actorHasSkill fantôme`);
       const attendu = traitCapability(c.traits, 'spellcaster') || (inst != null && inst.advances >= 1);
-      if (knowsCastingSkill(c, 'langue', 'magick') !== attendu) ecarts.push(`${cr.id} : knowsCastingSkill hors contrat`);
+      if (knowsCastingSkill(c, { id: 'langue', spec: 'magick' }) !== attendu) ecarts.push(`${cr.id} : knowsCastingSkill hors contrat`);
     }
     expect(ecarts, ecarts.join(' | ')).toEqual([]);
   });

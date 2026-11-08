@@ -121,7 +121,7 @@ afterEach(() => {
 
 /** UN PAS : la case logique du sujet est déjà la destination (le store commet AVANT l'animation), la
  *  marche rejoue le trajet depuis la case quittée — le contrat de `bus.emit(ANIM_MOVE)` des deux
- *  producteurs (`combatSlice.battleClickTile`, `useStagePointer.moveAlong`). */
+ *  producteurs (`cliquerLaCase`, en combat comme en exploration). */
 const CHEMIN = [{ x: 1, y: 2 }, { x: 2, y: 2 }];
 /** DEUX pas d'un seul trait : ce que le combat émet (chemin ENTIER, un seul événement). */
 const COURSE = [{ x: 4, y: 2 }, { x: 3, y: 2 }, { x: 2, y: 2 }];
@@ -230,7 +230,7 @@ describe('Marche volumique — aucune géométrie reconstruite entre deux pas (#
     let tick: FrameRequestCallback | null = marcher('h1', CHEMIN);
     for (let i = 0; i < 4; i++) tick = image(tick!, STEP_MS / 8);
     expect(cuisson.mock.calls.length).toBe(cAvant);
-    act(() => { useGame.getState().faceToward('__sonde-orientation', { x: 0, y: 1 }, { x: 0, y: 0 }); }); // cap N
+    act(() => { useGame.getState().orienterVers('__sonde-orientation', { x: 0, y: 1 }, { x: 0, y: 0 }); }); // cap N
     expect(cuisson.mock.calls.length).toBe(cAvant);
   });
 });

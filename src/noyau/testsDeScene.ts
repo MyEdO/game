@@ -19,6 +19,7 @@ import { actorIn, inBattleId } from './monde/combatants';
 import { campGain } from './combat/advantagePool';
 import { markActed } from './combatFlow';
 import { reprendreTestSubi } from './combat/triggeredTest';
+import { poursuivreLAccostage } from './seaVoyageFlow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { garanti } from '../lib/garanti';
 import type { Cloture, PendingExtendedTest } from './pendings';
@@ -27,7 +28,7 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { CorpsDesReglages } from './reglagesDuJet';
 
 /** Issue du Round COURANT d'un Test étendu de scène, `null` avant son jet : lue par le geste
- *  (`jetConfirm('extendedTest')`) et par la fenêtre. LDB 12 l.170-185 */
+ *  (`jetValider('extendedTest')`) et par la fenêtre. LDB 12 l.170-185 */
 export function issueDuRound(p: PendingExtendedTest): ReturnType<typeof extendedTestStep> | null {
   const cur = p.rounds[p.rounds.length - 1];
   return cur?.result ? extendedTestStep(p.total, cur.result, p.targetDR) : null;
@@ -35,16 +36,16 @@ export function issueDuRound(p: PendingExtendedTest): ReturnType<typeof extended
 
 export function creerActionsDesTestsDeScene(get: Get, set: Set) {
   return {
-    startExtendedTest: (opts) => {
-      set({ pendingExtendedTest: { ...opts, total: 0, rounds: [{ id: 'round-1', interactive: true, result: null }] } });
+    ouvrirLeTestEtendu: ({ stake, ...donnee }) => {
+      set({ pendingExtendedTest: { ...donnee, total: 0, rounds: [{ id: 'round-1', interactive: true, result: null }] } });
       // Par la PORTE (#1262 V2 L4). Le mint vérifie que `pendingExtendedTest` est posé — il vient de
-      // l'être, ligne au-dessus.
+      // l'être, ligne au-dessus. L'enjeu vit sur l'ÉTAPE, que `CascadeModal` lit (`cur.stake`, #1117).
       const steps: BuiltCascadeStep[] = [];
-      pousseSi(steps, hostStep(get, { id: idDansLaSequence(get, 'ext-jet', 'test'), kind: 'extendedJet', jet: 'extended', actorId: opts.actorId }));
-      if (steps.length) openSequence(get, set, { title: opts.label, icon: 'ui/key', purpose: 'test', steps });
+      pousseSi(steps, hostStep(get, { id: idDansLaSequence(get, 'ext-jet', 'test'), kind: 'extendedJet', jet: 'extended', actorId: donnee.actorId, ...(stake ? { stake } : {}) }));
+      if (steps.length) openSequence(get, set, { title: donnee.label, icon: 'ui/key', purpose: 'test', steps });
     },
     // Enfoncer une porte à plusieurs (EDO Appendice 2) : flux multi PARALLÈLE (objet BE/B).
-    startForceDoor: (opts) => {
+    enfoncerLaPorte: (opts) => {
       set({ pendingForceDoor: { label: opts.label, doorBE: opts.doorBE, doorB: opts.doorB, doorBmax: opts.doorB, flag: opts.flag,
         ...(opts.suite ? { suite: opts.suite } : {}),
         participants: opts.heroIds.map((id) => ({ id, interactive: true, result: null })) } });
@@ -113,13 +114,13 @@ export const TABLES = {
     testRateDeLActeur: (get, set, c) => {
       const cascadeSet = !get().pendingCascade && !get().pendingTest ? set : undefined;
       const fired = fireOwnTestFailed(get, c.actorId, { sl: c.sl, rng: battleRng(), set: cascadeSet });
-      if (fired.length) fired.forEach((l) => get().log(l));
+      if (fired.length) fired.forEach((l) => get().ecrireAuJournal(l));
       set({ ...touchActors(get()) });
     },
   },
 } satisfies FragmentDeTables;
 
-/** Les clôtures des Tests de scène (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */
+/** Les clôtures des Tests de scène (`CloturesDuJet`) : `jetValider` les joue, tant que le flux les ouvre. */
 export function cloturesDesTestsDeScene(get: Get, set: Set) {
   return {
     extendedTest: () => {
@@ -133,13 +134,13 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
       const exhausted = !done && p.maxAttempts != null && p.rounds.length >= p.maxAttempts;
       if (done || exhausted) {
         set({ pendingExtendedTest: null, pendingCascade: null }); // ferme la cascade-hôte aussi
-        get().log(t('store.extendedDone', { label: p.label, issue: t(done ? 'store.extendedOk' : 'store.extendedKo'), total, target: p.targetDR }));
+        get().ecrireAuJournal(t('store.extendedDone', { label: p.label, issue: t(done ? 'store.extendedOk' : 'store.extendedKo'), total, target: p.targetDR }));
         if (done && p.dispel) {
           // DISSIPATION réussie (LDB 46 l.160) : retire tous les effets du Sort de tous ses porteurs.
           const b = get().battle;
           const n = b ? dissipateSpell(b.combatants, p.dispel.spellId, p.dispel.casterId) : 0;
           set(touchActors(get()));
-          get().log(t('cs.dispelDone', { spell: p.dispel.label, extra: n > 1 ? t('cs.fragDispelFreed', { n }) : '' }));
+          get().ecrireAuJournal(t('cs.dispelDone', { spell: p.dispel.label, extra: n > 1 ? t('cs.fragDispelFreed', { n }) : '' }));
         }
         if (done && p.flag) set({ flags: { ...get().flags, [p.flag]: true } }); // gate la suite (porte/serrure d'éditeur)
         // Issue de DOMAINE en donnée (kind-agnostique) : appliée qu'elle ait réussi ou buté sur `maxAttempts`.
@@ -147,7 +148,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
           const applier = tablesPosees().issuesDeTestEtendu[p.outcome.kind];
           const out = applier?.(get, set, p, total, done);
           const line = out?.consequences ? resultLine(out.consequences) : '';
-          if (line) get().log(line);
+          if (line) get().ecrireAuJournal(line);
         }
         reprendreLaSuite(get, set, p.suite);
         return;
@@ -161,13 +162,13 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
       const { degats: dmg, reste: doorB, cede } = bilanDuRound(p);
       if (cede) {
         set({ pendingForceDoor: null, pendingCascade: null }); // la porte cède → ferme la situation (data + cascade hôte)
-        get().log(t('store.doorYields', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '' }));
+        get().ecrireAuJournal(t('store.doorYields', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '' }));
         if (p.flag) set({ flags: { ...get().flags, [p.flag]: true } }); // ouverture en jeu (porte d'éditeur)
         reprendreLaSuite(get, set, p.suite);
       } else {
         // La porte tient : un nouveau Round s'ouvre (chacun re-frappe — jets remis à zéro).
         set({ pendingForceDoor: { ...p, doorB, participants: p.participants.map((x) => ({ ...x, result: null, rerolled: false, forced: false })) } });
-        get().log(t('store.doorHolds', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '', left: doorB, sB: doorB > 1 ? 's' : '' }));
+        get().ecrireAuJournal(t('store.doorHolds', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '', left: doorB, sB: doorB > 1 ? 's' : '' }));
       }
     },
     /** Acquitte un test de compétence : applique la branche réussite/échec. */
@@ -180,6 +181,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
       FLOWS.test.apply(get);
       // Le Test EST une cascade-hôte à une étape (rendu par CascadeModal) : on ferme LES DEUX avant de
       // lancer la branche (qui peut ouvrir d'autres pendings — combat, autre Test…).
+      const accostage = get().pendingCascade?.portArrival;
       set({ pendingTest: null, pendingCascade: null });
       const actor = get().party.find((c) => c.id === pt.actorId);
       const tool = pt.itemUid ? actor?.items?.find((i) => i.uid === pt.itemUid) : undefined;
@@ -193,7 +195,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
       if (tool && pt.isDouble && !pt.success && hasQuality(tool, 'bacle') && !isUnbreakable(tool)) {
         tool.destroyed = true;
         set({ party: [...get().party] }); // persiste la casse + re-render
-        get().log(t('store.toolBroken', { tool: tool.label, name: actor?.label ?? pt.actorName }));
+        get().ecrireAuJournal(t('store.toolBroken', { tool: tool.label, name: actor?.label ?? pt.actorName }));
       }
       // Action de combat « cumuler l'Avantage » (LDB 09 l.305-308) : sur réussite, +1 Avantage plafonné au
       // `cap` de la Compétence (via `gainAdvantage`, qui respecte aussi le plafond général) ; l'Action est
@@ -224,6 +226,8 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
       if (!effSuccess && !pt.noOwnTestFailed) clotures.push({ verbe: 'testRateDeLActeur', actorId: pt.actorId, sl: pt.sl });
       if (pt.dialogueNext) clotures.push({ verbe: 'dialogueSuivant', transition: pt.dialogueNext });
       cloturer(get, set, issue, clotures);
+      // Le Test d'un événement d'escale ferme sa cascade sans `dispatchCascadeDone` : l'accostage qu'elle portait suit la branche.
+      if (accostage) poursuivreLAccostage(get, set, accostage);
     },
   } satisfies Partial<CloturesDuJet>;
 }

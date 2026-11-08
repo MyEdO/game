@@ -22,7 +22,7 @@ beforeEach(() => { banc = ouvrirLeBanc({ etat: { party: makePregens().slice(0, 1
 /** Désigne le sosie (EDO 02 l.91) puis ferme chaque document remis (EDO 02 l.93-95), comme le joueur : la suite du
  *  geste se joue après. */
 const lireLesDocuments = (): void => {
-  if (banc.getState().pendingDesignationHeros) banc.getState().designerHerosChoisir(banc.getState().party[0].id);
+  if (banc.getState().pendingDesignationHeros) banc.getState().fenetreChoisir('designationHeros', 'heros', banc.getState().party[0].id);
   while (banc.getState().document) banc.getState().fenetreFermer('document');
 };
 
@@ -117,7 +117,7 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
     expect(objectifs()).toEqual(['edo-ch1-route']);
 
     const drapeauxAvantVirage = { ...get().flags };
-    banc.getState().transitionTo('route-principale-virage');
+    banc.getState().quitterLaScene('route-principale-virage');
     poserLeGroupe(banc.getState, banc.setState, { x: 36, y: 3 });
     expect(objectifs()).toEqual(['edo-ch1-route', 'edo-ch1-embuscade']);
     expect(get().flags, 'l’arrivée au virage ne pose que sa marque `once`')
@@ -127,7 +127,7 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
     expect(get().flags[CORPS]).toBe(true);
     expect(objectifs()).toEqual(['edo-ch1-route']);
 
-    banc.getState().transitionTo('altdorf-porte-sud');
+    banc.getState().quitterLaScene('altdorf-porte-sud');
     expect(get().flags[CLOS]).toBeFalsy();
     expect(get().pendingChapterRecap).toBeNull();
 
@@ -151,7 +151,7 @@ describe('ch.1 — chaque producteur se joue au geste ou au pas du groupe, sur d
     banc.getState().fenetreValider('ouverture');
   });
   const entrer = (id: string) => {
-    if (get().scene?.id !== id) banc.getState().transitionTo(id);
+    if (get().scene?.id !== id) banc.getState().quitterLaScene(id);
     const scene = get().scene!;
     expect(scene.id).toBe(id);
     return scene;

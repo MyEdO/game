@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import {
   accentCounts,
   accentMatrix,
+  dalleDeCase,
   groupAccents,
   mountGroundAccentLots,
   reposeGroundAccents,
@@ -14,11 +15,11 @@ import {
 } from './groundAccents';
 import { groundAccentsSvg, TUFT_LEAN_AMPLITUDE } from '../../authoring/detailSvg';
 import { terrainDetail } from '../../../noyau/monde/terrain';
-import { ISO_PX_PER_M } from '../../iso';
+import { ISO_PX_PER_M } from '../../../noyau/monde/iso';
 import { TUFT_FAN } from '../../detail/expand';
 import { projGP } from '../../authoring/project';
 import { worldFaces, type KeepEl, type TintAt } from './sceneMeshes';
-import { facePoly, coplanarRanks, COPLANAR_BIAS_M } from './worldTris';
+import { facePoly, coplanarRanks, COPLANAR_BIAS_M } from '../../../noyau/monde/volume/worldTris';
 import { buildScene } from '../../../noyau/mapSpec';
 import { spec as siegeSpec } from '../../../scenes/test-scenarios/siege-enceinte';
 import { testScenarios } from '../../../scenes/test-scenarios';
@@ -447,7 +448,7 @@ function nappesSemees() {
       const rangs = coplanarRanks(wfs.map((w) => facePoly(w.face, m2t)));
       wfs.forEach((wf, i) => {
         const mat = wf.face.material;
-        if (mat.domain !== 'terrain' || mat.part) return;
+        if (mat.domain !== 'terrain' || mat.part || !dalleDeCase(wf.face.poly)) return;
         const recette = terrainDetail(mat.id);
         if (!recette) return;
         out.push({
@@ -495,8 +496,8 @@ describe('groundAccents — contrat des NAPPES SEMÉES, sur TOUT le registre de 
   });
 
   it('toute nappe à recette est PLANE — le semis lit une seule hauteur pour la tuile entière', () => {
-    // `sceneGroundAccents` passe `poly[0].h` pour toute la face : le jour où un terrain à recette
-    // devient une rampe, les accents flotteraient ou s'enterreraient. Ce test le dira ce jour-là.
+    // `sceneGroundAccents` passe `poly[0].h` pour toute la face : il ne sème que la dalle plate d'une case,
+    // jamais ses marches ni sa pente, où les accents flotteraient ou s'enterreraient.
     const pentues = nappes.filter((n) => Math.max(...n.hs) - Math.min(...n.hs) > 1e-9);
     expect(pentues.map((n) => n.id)).toEqual([]);
   });

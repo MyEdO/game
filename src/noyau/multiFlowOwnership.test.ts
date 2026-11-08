@@ -60,7 +60,7 @@ const FIXTURES: Record<string, Partial<Jeu>> = {
     ] } },
   } as unknown as Partial<Jeu>,
   counterspell: { ...groupCascade, pendingCounterspell: { participants: parts } } as unknown as Partial<Jeu>,
-  opposition: { ...groupCascade, pendingCastOpposition: { test: { char: 'force-mentale' }, participants: parts } } as unknown as Partial<Jeu>,
+  opposition: { ...groupCascade, pendingCastOpposition: { test: { characteristic: 'force-mentale' }, participants: parts } } as unknown as Partial<Jeu>,
   forceDoor: {
     ...groupCascade,
     pendingForceDoor: { label: 'Porte', doorBE: 3, doorB: 10, doorBmax: 10, participants: parts },
@@ -107,8 +107,8 @@ describe('flux MULTI — possession par participant (dérivée de FLOW_VERBS)', 
   it('un flux inconnu, ou qui n’accepte pas le verbe, n’est possédé par AUCUN siège', () => {
     const s = base(FIXTURES.counterspell);
     for (const seat of [0, 1, 2]) {
-      expect(intentAllowedFor(s, seat, 'jetRoll', ['zz-inconnu', H_OWNER]), `siège ${seat}, flux inconnu`).toBe(false);
-      expect(intentAllowedFor(s, seat, 'jetResist', ['counterspell', H_OWNER]), `siège ${seat}, Résistance sur le Contre-sort`).toBe(false);
+      expect(intentAllowedFor(s, seat, 'jetLancer', ['zz-inconnu', H_OWNER]), `siège ${seat}, flux inconnu`).toBe(false);
+      expect(intentAllowedFor(s, seat, 'jetResister', ['counterspell', H_OWNER]), `siège ${seat}, Résistance sur le Contre-sort`).toBe(false);
     }
   });
 
@@ -151,19 +151,19 @@ describe('flux MULTI — possession par participant (dérivée de FLOW_VERBS)', 
     expect(verdicts, 'verbe de fenêtre tranché par une rangée au lieu du repli').toEqual([]);
   });
 
-  it('fallChoose : la DÉCLARATION d’une rangée de chute appartient au siège de SON tombant, jamais au propriétaire de la fenêtre', () => {
+  it('jetRegler(\'fall\', \'tenter\') : la DÉCLARATION d’une rangée de chute appartient au siège de SON tombant, jamais au propriétaire de la fenêtre', () => {
     const s = base({ pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: null })) } } as unknown as Partial<Jeu>);
-    expect(intentAllowedFor(s, 1, 'fallChoose', [H_OWNER, true]), 'le siège du héros déclare pour lui').toBe(true);
-    expect(intentAllowedFor(s, 0, 'fallChoose', [H_OWNER, true]), 'l’hôte, qui possède la fenêtre, ne déclare pas pour le héros d’un autre').toBe(false);
-    expect(intentAllowedFor(s, 2, 'fallChoose', [H_OWNER, false]), 'siège TIERS').toBe(false);
-    expect(intentAllowedFor(s, 1, 'fallChoose', [H_HOST, false]), 'le siège 1 ne déclare pas pour le héros de l’hôte').toBe(false);
-    expect(intentAllowedFor(s, 0, 'fallChoose', [H_HOST, false])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'jetRegler', ['fall', 'tenter', true, H_OWNER]), 'le siège du héros déclare pour lui').toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetRegler', ['fall', 'tenter', true, H_OWNER]), 'l’hôte, qui possède la fenêtre, ne déclare pas pour le héros d’un autre').toBe(false);
+    expect(intentAllowedFor(s, 2, 'jetRegler', ['fall', 'tenter', false, H_OWNER]), 'siège TIERS').toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetRegler', ['fall', 'tenter', false, H_HOST]), 'le siège 1 ne déclare pas pour le héros de l’hôte').toBe(false);
+    expect(intentAllowedFor(s, 0, 'jetRegler', ['fall', 'tenter', false, H_HOST])).toBe(true);
   });
 
-  it('fallChoose avec l’axe HAUTEUR (EDO 01 l.231) : même route, le siège du tombant déclare s’il se suspend', () => {
+  it('jetRegler(\'fall\', \'suspendre\') (EDO 01 l.231) : même route, le siège du tombant déclare s’il se suspend', () => {
     const s = base({ pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, suspendu: 2, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: null, suspendre: null })) } } as unknown as Partial<Jeu>);
-    expect(intentAllowedFor(s, 1, 'fallChoose', [H_OWNER, false, true]), 'le siège du héros déclare sa suspension').toBe(true);
-    expect(intentAllowedFor(s, 0, 'fallChoose', [H_OWNER, false, true]), 'l’hôte ne suspend pas le héros d’un autre').toBe(false);
-    expect(intentAllowedFor(s, 2, 'fallChoose', [H_OWNER, true, true]), 'siège TIERS').toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetRegler', ['fall', 'suspendre', true, H_OWNER]), 'le siège du héros déclare sa suspension').toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetRegler', ['fall', 'suspendre', true, H_OWNER]), 'l’hôte ne suspend pas le héros d’un autre').toBe(false);
+    expect(intentAllowedFor(s, 2, 'jetRegler', ['fall', 'suspendre', true, H_OWNER]), 'siège TIERS').toBe(false);
   });
 });

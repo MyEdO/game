@@ -15,7 +15,6 @@
  *    par Étape » (l.131) ; un échec octroie un Exténué (l.133).
  */
 import { battleRng } from './battleRng';
-import { rollDice } from '../engine/dice';
 import {
   travelActivitySpec, aggregateActivityOutcomes, activityById,
   type ActivityDef, type TravelActivityResult,
@@ -23,13 +22,14 @@ import {
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { refLabel, testSkillLabel, weatherStakeRef, voyageStakeRef } from '../data';
 import { stageEncounterCategory } from '../engine/travelEncounter';
-import { rollEncounter, ENCOUNTER_DIE, type EncounterCategory } from '../engine/travelTables';
+import { encounterTable, rollEncounter, encounterDie, type EncounterCategory } from '../engine/travelTables';
+import { facesDuDe } from '../engine/tables';
 import { applyOps, type GameOp } from '../engine/ops';
 import { applyHealWounds } from '../engine/healing';
 import { removeCondition, stacks } from '../engine/conditions';
 import { extendedTestSteps, type EchecSansJet } from '../engine/tests';
 import { appliquerIssueActivite } from './activityIssue';
-import { freeCons, resultLines, rollStep, monoStep, displayStep, bandStep, pousseSi, type Consequence } from './rollSeam';
+import { freeCons, resultLines, rollStep, monoStep, displayStep, bandStep, pousseSi, tableStep, type Consequence } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { toRecapLines } from './recapLine';
 import { t, type MsgKey } from '../i18n';
@@ -43,7 +43,7 @@ import { hasCoat, partyHasTent, applyExposureFailure, isWeatherWarded, exposureF
 import { rationCount } from '../engine/provisions';
 import { contractDiseaseOnce } from '../engine/disease';
 import { contexteDeNaissanceDObjet, itemFromGive, autoStowNewItem } from '../engine/items';
-import { effectiveSkillCharKey, idsDuTest } from '../engine/skills';
+import { effectiveSkillCharKey } from '../engine/skills';
 import type { Difficulty, Combatant } from '../engine/types';
 import type { ModLine } from '../engine/combat';
 import { weatherRef } from '../engine/travelStages';
@@ -52,6 +52,9 @@ import { partyMounts } from '../engine/mountTravel';
 import type { Possession } from '../engine/possession';
 import type { CascadeStepMeta, BatchParticipant } from './pendings';
 import type { Get, Set } from './flowTypes';
+import type { Jeu } from './etat';
+import type { TableStepDef } from './cascade';
+import { garanti } from '../lib/garanti';
 import { dataLabel } from '../data';
 import { stepDetail } from './rollSeam';
 import { postingTenu } from '../engine/activities';
@@ -173,20 +176,19 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
       // héros (`effectiveSkillCharKey`) — le −10 s'ajoute au mod météo (recalcul de la cible, dont les
       // bornes viennent de `getTestPolicy` via `clampTarget`, jamais d'un plafond écrit ici).
       const wMod = weatherModOf(def, weather);
-      const ids = idsDuTest(spec.test);
-      const char = effectiveSkillCharKey(hero, ids.skill, { explicit: ids.char, spec: ids.spec });
+      const char = effectiveSkillCharKey(hero, spec.test);
       const pMod = weatherTestMods(weather, char).reduce((s, l) => s + l.value, 0); // CANAL UNIQUE (#341)
       const mods = [...spec.mods, ...(stageActivityMods(weather, wMod, pMod) ?? [])];
       const difficulty = spec.difficulty;
       batchParts.push({
         id: hero.id,
-        label: testSkillLabel(ids),
+        label: testSkillLabel(spec.test),
         interactive: true,
         difficulty,
         result: null,
         // Les mods de MÉTÉO (`wMod`/`pMod`) s'ajoutent à la CIBLE, ils ne sont pas dans la valeur. Poste
         // qu'il ne peut pas tenter (`spec.refus`) : la ligne naît `ECHEC_SANS_JET` (LDB 09 l.30 ; #2588 Q1).
-        ...rollStep({ actor: hero, test: ids, valeur: spec.value, difficulty, surLaCible: mods, refus: spec.refus }),
+        ...rollStep({ actor: hero, test: spec.test, valeur: spec.value, difficulty, surLaCible: mods, refus: spec.refus }),
         ...(spec.drTarget != null ? { extendedDrDone: Math.min(plan.extendedProgress ?? 0, spec.drTarget), extendedDrTarget: spec.drTarget, extendedDrPartage: true } : {}),
       });
     }
@@ -232,7 +234,7 @@ export function buildWeatherResistanceSteps(get: Get, weather: Weather): BuiltCa
     parts.push({
       id: hero.id, label: refLabel('skills', { id: 'resistance' }), interactive: true,
       difficulty: rt.difficulty,
-      ...rollStep({ actor: hero, test: { skill: 'resistance', char: 'endurance' }, difficulty: rt.difficulty }),
+      ...rollStep({ actor: hero, test: { skill: { id: 'resistance' }, characteristic: 'endurance' }, difficulty: rt.difficulty }),
       result: null,
     });
   }
@@ -260,7 +262,7 @@ function buildExposureSteps(state: { party: Combatant[] }, stage: StageContext):
       rollLabel: refLabel('skills', { id: 'resistance' }), difficulty: diff as Difficulty,
       // MÊME Test d'Exposition que la nuit de repos : EDOC 08 l.90 renvoie à LDB p181, donc MÊME entrée.
       stake: voyageStakeRef('exposure', { chars: exposureFirstFailChars('froid') }),
-      ligne: { test: { skill: 'resistance', char: 'endurance' } },
+      ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } },
       meta: { weatherLabel: dataLabel(weatherCondition(stage.weather).label), warded: isWeatherWarded(h), coldSeason: isColdSeason(stage.season) },
     });
     pousseSi(out, st);
@@ -281,17 +283,71 @@ function coldExposureChill(hero: Combatant, coldSeason: boolean): string[] {
 
 export function creerActionsDesPostesDeVoyage(_get: Get, set: Set) {
   return {
-    setTravelRole: (heroId, role) => { if (!role || postingTenu(role)) set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role ?? undefined }))); },
+    attribuerLeRoleDeMarche: (heroId, role) => { if (!role || postingTenu(role)) set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role ?? undefined }))); },
   } satisfies FabriqueDuNoyau;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
 export const GENRES_D_ETAPE = [
-  'stagePoste', 'stagePosteBatch', 'weatherResistance', 'stageAggregate', 'stageExposure',
+  'stagePoste', 'stagePosteBatch', 'weatherResistance', 'stageAggregate', 'stageEncounter', 'stageExposure',
 ] as const;
 
 /** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */
 export const GENRES_HOTES = ['stagePosteDone'] as const;
+
+/** Le BILAN de l'Étape, lu sur l'état une fois ses postes résolus : les rations que le fourrage cumulé donne aux
+ *  héros qui n'en ont plus, les Exténués que chaque DR du camp retire, la progression des cartes (Test ÉTENDU
+ *  inter-Étapes, jets cumulés dans l'ordre des rangées comme leurs barres), la catégorie de Rencontre due, et
+ *  si un « Plein air » réussi dispense des Expositions. Lu par l'annonce de l'étape et par son application.
+ *  EDOC 8 l.141, l.161, l.180, l.182-233 ; LDB 12 l.170-185 */
+function bilanDeLEtape(s: Jeu, stages: number) {
+  const plan = s.travelPlan;
+  const results = plan?.stage?.results;
+  if (!plan || !results) return null;
+  let fourrage = results.filter((r) => r.resolver === 'forage' && r.success).reduce((n, r) => n + forageYield(r.sl, 'recherche'), 0);
+  const rations: string[] = [];
+  for (const h of s.party.filter((x) => !x.dead && !x.outOfRencontre)) {
+    if (fourrage <= 0) break;
+    if (rationCount(h) >= 1) continue;
+    rations.push(h.id);
+    fourrage -= 1;
+  }
+  const agg = aggregateActivityOutcomes(results);
+  let campDR = agg.stacks.campCare ?? 0;
+  const soins: { heroId: string; n: number }[] = [];
+  for (const h of s.party) {
+    if (campDR <= 0) break;
+    const n = Math.min(campDR, stacks(h, 'extenue'));
+    if (n <= 0) continue;
+    soins.push({ heroId: h.id, n });
+    campDR -= n;
+  }
+  const jetsDeCarte = agg.etendus.mapMade ?? [];
+  const cible = results.find((r) => r.drTarget != null)?.drTarget ?? 2 * stages;
+  return {
+    rations, soins,
+    carte: jetsDeCarte.length ? { cible, ...extendedTestSteps(plan.extendedProgress ?? 0, jetsDeCarte, cible) } : null,
+    rencontre: stageEncounterCategory(results),
+    pleinAir: agg.gates.includes('suppressExposure'),
+  };
+}
+
+/** Les lignes du bilan `b` : les rations, le camp, les cartes. */
+function lignesDuBilan(s: Jeu, b: NonNullable<ReturnType<typeof bilanDeLEtape>>): string[] {
+  const nom = (heroId: string) => garanti(s.party.find((h) => h.id === heroId), heroId, 'héros du bilan').label;
+  return [
+    ...b.rations.map((heroId) => t('tp.rationFound', { name: nom(heroId) })),
+    ...b.soins.map(({ heroId, n }) => t('tp.campCare', { name: nom(heroId), n })),
+    ...(b.carte ? [b.carte.done ? t('tp.mapDone', { dr: b.carte.cible }) : t('tp.mapProgress', { total: b.carte.total, target: b.carte.cible })] : []),
+  ];
+}
+
+/** Les catégories de Rencontre, une table tirable chacune. EDOC 8 l.186-233 */
+const CATEGORIES_DE_RENCONTRE = ['positives', 'fortuites', 'dangereuses'] as const satisfies readonly EncounterCategory[];
+const tableDeRencontre = (c: EncounterCategory) => `rencontres-${c}` as const;
+
+/** Les tables tirables que ce module déclare (table `tablesTirables`) : une par catégorie de Rencontre. */
+export const TABLES_TIRABLES: readonly string[] = CATEGORIES_DE_RENCONTRE.map(tableDeRencontre);
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
@@ -320,7 +376,7 @@ export const TABLES = {
         const cons = applyPoste(get, set, hero, def, posting.freeSkill, part.result ?? null);
         const lines = resultLines(cons); // #349 : ligne STRUCTURÉE (tone dérivé de la Consequence)
         part.outcome = lines; // conséquence SUR SA rangée (le portrait attribue)
-        for (const l of lines) get().log(l.text); // + journal/recap (une ligne par héros, pas d'agrégat)
+        for (const l of lines) get().ecrireAuJournal(l.text); // + journal/recap (une ligne par héros, pas d'agrégat)
       }
       set({ party: [...get().party] });
       return { consequences: [] };
@@ -338,86 +394,54 @@ export const TABLES = {
         applyOps(hero, [op], { rng: battleRng() });
         const lines = resultLines([{ ops: [op] }]);
         part.outcome = lines;
-        for (const l of lines) get().log(l.text);
+        for (const l of lines) get().ecrireAuJournal(l.text);
       }
       set({ party: [...get().party] });
       return { consequences: [] };
     },
-    /** AGRÉGATION de fin d'Étape (fourrage cumulé, camp, cartes, Rencontre) + INSERTION des jets d'Exposition
-     *  (option « Attraper froid », l.73), sautés si un « Plein air » a réussi (`suppressExposure`, l.141). */
+    /** Le BILAN de fin d'Étape (`bilanDeLEtape`), appliqué ; puis la Rencontre due, tirée à sa table, et
+     *  les jets d'Exposition (option « Attraper froid », l.73), sautés si un « Plein air » a réussi (l.141). */
     stageAggregate: (get, set, step) => {
+      const bilan = bilanDeLEtape(get(), Number(step.meta?.stages ?? 1));
       const plan = get().travelPlan;
-      const stage = plan?.stage;
-      if (!plan || !stage) return;
+      if (!bilan || !plan?.stage) return;
       const party = get().party;
-      const results = stage.results;
-      const j: string[] = [];
-
-      // Approvisionnement (résolveur « forage », CUMUL des fourrageurs) — mêmes rendements qu'inline.
-      const foraged = results.filter((r) => r.resolver === 'forage' && r.success).reduce((n, r) => n + forageYield(r.sl, 'recherche'), 0);
-      if (foraged > 0) {
-        let remaining = foraged;
-        for (const h of party.filter((x) => !x.dead && !x.outOfRencontre)) {
-          if (remaining <= 0) break;
-          if (rationCount(h) >= 1) continue;
-          const ration = itemFromGive({ trappingId: 'ration' }, undefined, undefined, contexteDeNaissanceDObjet(h));
-          h.items = [...(h.items ?? []), ration];
-          autoStowNewItem(h, ration); // #204 : rangement par défaut
-          remaining -= 1;
-          j.push(t('tp.rationFound', { name: h.label }));
-        }
+      for (const heroId of bilan.rations) {
+        const h = party.find((x) => x.id === heroId)!;
+        const ration = itemFromGive({ trappingId: 'ration' }, undefined, undefined, contexteDeNaissanceDObjet(h));
+        h.items = [...(h.items ?? []), ration];
+        autoStowNewItem(h, ration); // #204 : rangement par défaut
       }
-
-      const agg = aggregateActivityOutcomes(results);
-
-      // Monter le camp (CUMUL) : chaque DR retire un Exténué d'un Personnage (l.180).
-      let campDR = agg.stacks.campCare ?? 0;
-      for (const h of party) {
-        if (campDR <= 0) break;
-        const n = stacks(h, 'extenue');
-        if (n <= 0) continue;
-        const take = Math.min(campDR, n);
-        removeCondition(h, 'extenue', take);
-        campDR -= take;
-        j.push(t('tp.campCare', { name: h.label, n: take }));
-      }
-
-      // Établir des cartes : Test ÉTENDU inter-Étapes, jets cumulés dans l'ordre des rangées, comme leurs
-      // barres (`cumulEtenduDeRangee`). EDOC 8 l.161 ; LDB 12 l.170-185
-      const jetsDeCarte = agg.etendus.mapMade ?? [];
-      if (jetsDeCarte.length) {
-        const drTarget = results.find((r) => r.drTarget != null)?.drTarget ?? 2 * Number(step.meta?.stages ?? 1);
-        const { total, done } = extendedTestSteps(plan.extendedProgress ?? 0, jetsDeCarte, drTarget);
-        // ACHEVÉ : progression FIGÉE à la cible, `buildStageSteps` n'ouvre plus de jet (F1).
-        set({ travelPlan: { ...get().travelPlan!, extendedProgress: done ? drTarget : total } });
-        j.push(done ? t('tp.mapDone', { dr: drTarget }) : t('tp.mapProgress', { total, target: drTarget }));
-      }
-
-      // Individuel (Récupérer / Pratiquer / Recueillir infos) : le récit a déjà été poussé PAR POSTE (stagePoste).
-
-      // EDOC 8 l.182-233
-      const category = stageEncounterCategory(results);
-      if (category) {
-        const enc = rollEncounter(category, rollDice(ENCOUNTER_DIE, battleRng()));
-        j.push(t('out.travelEncounter', { category: t(ENCOUNTER_KEY[category]), label: enc.label, text: enc.desc }));
-        if (enc.stageOutcome === 'fullRecovery') {
-          for (const h of party.filter((x) => !x.dead)) {
-            // SOURCE UNIQUE `applyHealWounds` — plafond munition logée (LDB 62 l.250) même chemin que Guérison/repos.
-            if (h.wounds.current < h.wounds.max) applyHealWounds(h, h.wounds.max - h.wounds.current, { wake: false, log: () => [] });
-            const ex = stacks(h, 'extenue');
-            if (ex > 0) removeCondition(h, 'extenue', ex);
-          }
-          j.push(t('tp.calmTravel'));
-        }
-      }
+      for (const { heroId, n } of bilan.soins) removeCondition(party.find((x) => x.id === heroId)!, 'extenue', n);
+      // ACHEVÉ : progression FIGÉE à la cible, `buildStageSteps` n'ouvre plus de jet (F1).
+      if (bilan.carte) set({ travelPlan: { ...get().travelPlan!, extendedProgress: bilan.carte.done ? bilan.carte.cible : bilan.carte.total } });
       set({ party: [...get().party] });
-
-      // EXPOSITION de fin d'Étape (l.73) : INSÈRE un jet influençable par héros exposé (sauf « Plein air » l.141).
-      const suppress = agg.gates.includes('suppressExposure');
       const jours = get().travelPlan?.recap?.days ?? [];
-      if (suppress && jours.length) jours[jours.length - 1].pleinAir = true;
-      const insert = suppress ? [] : buildExposureSteps(get(), stage);
-      return { consequences: freeCons(j), insert };
+      if (bilan.pleinAir && jours.length) jours[jours.length - 1].pleinAir = true;
+      const rencontre = bilan.rencontre ? tableStep({
+        id: 'stage-encounter', kind: 'stageEncounter', worldOwner: true, icon: 'ui/warning', label: t(ENCOUNTER_KEY[bilan.rencontre]),
+        table: { tableId: tableDeRencontre(bilan.rencontre), spec: encounterDie() },
+        stake: voyageStakeRef('stageEncounter'),
+      }) : undefined;
+      return { consequences: freeCons(lignesDuBilan(get(), bilan)), insert: [...(rencontre ? [rencontre] : []), ...(bilan.pleinAir ? [] : buildExposureSteps(get(), plan.stage))] };
+    },
+    /** La Rencontre tirée (EDOC 8 l.182-233) : sa ligne, et le repos complet d'un voyage tranquille. */
+    stageEncounter: (get, set, step) => {
+      const tiree = step.table?.result;
+      const entree = tiree && CATEGORIES_DE_RENCONTRE.flatMap(encounterTable).find((e) => e.id === tiree.id);
+      if (!tiree || !entree) return;
+      const j = [...tiree.lines];
+      if (entree.stageOutcome === 'fullRecovery') {
+        for (const h of get().party.filter((x) => !x.dead)) {
+          // SOURCE UNIQUE `applyHealWounds` — plafond munition logée (LDB 62 l.250) même chemin que Guérison/repos.
+          if (h.wounds.current < h.wounds.max) applyHealWounds(h, h.wounds.max - h.wounds.current, { wake: false, log: () => [] });
+          const ex = stacks(h, 'extenue');
+          if (ex > 0) removeCondition(h, 'extenue', ex);
+        }
+        set({ party: [...get().party] });
+        j.push(t('tp.calmTravel'));
+      }
+      return { consequences: freeCons(j) };
     },
     /** Un Test d'EXPOSITION de fin d'Étape (l.73) : échec → escalade cumulative de froid (l.415), rhume
      *  CONTRACTÉ en saison froide ou PROLONGÉ (`coldExposureChill`). Protection magique = ignorée d'office.
@@ -439,4 +463,22 @@ export const TABLES = {
       return { consequences: freeCons(j) };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+  annonces: {
+    /** Ce que le bilan va appliquer, et la Rencontre qu'il va faire tirer. */
+    stageAggregate: (get, step) => {
+      const bilan = bilanDeLEtape(get(), Number(step.meta?.stages ?? 1));
+      if (!bilan) return [];
+      const lignes = [...lignesDuBilan(get(), bilan), ...(bilan.rencontre ? [t('tp.rencontreDue', { category: t(ENCOUNTER_KEY[bilan.rencontre]) })] : [])];
+      return lignes.length ? lignes : [t('tp.bilanSansSuite')];
+    },
+  } satisfies PartDeTable<'annonces', readonly ['stageAggregate']>,
+  tablesTirables: Object.fromEntries(CATEGORIES_DE_RENCONTRE.map((c) => [tableDeRencontre(c), {
+    label: t(ENCOUNTER_KEY[c]),
+    get die() { return facesDuDe(encounterDie()); },
+    get rows() { return encounterTable(c).map(({ id, min, max, label }) => ({ id, min, max, label })); },
+    lines: (roll: number) => {
+      const e = rollEncounter(c, roll);
+      return [t('out.travelEncounter', { label: e.label, text: e.desc })];
+    },
+  } satisfies TableStepDef])) as PartDeTable<'tablesTirables', typeof TABLES_TIRABLES>,
 } satisfies FragmentDeTables;

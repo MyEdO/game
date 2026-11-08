@@ -23,7 +23,7 @@ const COMPLET = ['suite 1/1\tUNKNOWN STEP\t2026-10-08T03:49:44.2282517Z [partie]
 
 test('dureesDuJournal : la ligne de MODULE ✓ ou ❯ (jamais celle d’un test), la `[durees] node` d’une gate, les `[partie]` attendues', () => {
   assert.deepEqual(dureesDuJournal(JOURNAL), {
-    vitest: { 'src/state/store.test.ts': 2960, 'src/data/schemas/grammaire/op-defs.test.ts': 105 },
+    vitest: { 'src/noyau/combatFlow-los.test.ts': 2960, 'src/data/schemas/grammaire/op-defs.test.ts': 105 },
     node: { 'scripts/docs/a.test.mjs': 1234, 'scripts/docs/b.test.mjs': 56 },
     lus: 2,
     attendus: 645 + 638 + 615,
@@ -76,7 +76,7 @@ test('rapatrierDureesCi : le mémo est REMPLACÉ — une entrée disparue de la 
   const { spawn, appels } = ghDe({ courses: COURSES, journal: COMPLET })
   const mesures = mesuresEnMemoire(ANCIEN)
   const rendu = rapatrierDureesCi({ mesures, spawn })
-  const memo = { run: 8, attempt: 2, sha: 'vert', date: '2026-10-08T04:00:00Z', vitest: { 'src/state/store.test.ts': 2960, 'src/data/schemas/grammaire/op-defs.test.ts': 105 }, node: { 'scripts/docs/a.test.mjs': 1234, 'scripts/docs/b.test.mjs': 56 } }
+  const memo = { run: 8, attempt: 2, sha: 'vert', date: '2026-10-08T04:00:00Z', vitest: { 'src/noyau/combatFlow-los.test.ts': 2960, 'src/data/schemas/grammaire/op-defs.test.ts': 105 }, node: { 'scripts/docs/a.test.mjs': 1234, 'scripts/docs/b.test.mjs': 56 } }
   assert.deepEqual(rendu, { disponible: true, valeur: { etat: 'rapatrie', memo } })
   assert.deepEqual(mesures.etat[DUREES_CI], memo)
   assert.equal(appels[1], 'run view 8 --attempt 2 --log')

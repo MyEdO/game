@@ -141,11 +141,11 @@ describe('spectatorSeatOfModal — le siège attendu sur la modale prioritaire',
 describe('possession réseau (netOwnership)', () => {
   it('sans modale : seul le propriétaire du combattant ACTIF agit', () => {
     const s = base({}); // actif = h1 (non attribué → hôte)
-    expect(intentAllowedFor(s, 0, 'battleEndTurn')).toBe(true);
-    expect(intentAllowedFor(s, 1, 'battleEndTurn')).toBe(false);
+    expect(intentAllowedFor(s, 0, 'jouerLOffre', ['end-turn'])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'jouerLOffre', ['end-turn'])).toBe(false);
     const s2 = base({ battle: { ...base({}).battle!, turn: 1 } }); // actif = h2 (siège 1)
-    expect(intentAllowedFor(s2, 1, 'battleClickEntity')).toBe(true);
-    expect(intentAllowedFor(s2, 0, 'battleClickEntity')).toBe(false);
+    expect(intentAllowedFor(s2, 1, 'cliquerLaCase')).toBe(true);
+    expect(intentAllowedFor(s2, 0, 'cliquerLaCase')).toBe(false);
   });
 
   it('modale ouverte : seul son CONCERNÉ agit (défense du héros de l’invité)', () => {
@@ -156,8 +156,8 @@ describe('possession réseau (netOwnership)', () => {
       pendingCascade: cascadeDeTest([{ id: 'd', jet: 'defense', kind: 'defenseJet', actorId: 'h2' }]),
     });
     expect(modalOwnerOf(s)).toBe('h2');
-    expect(intentAllowedFor(s, 1, 'jetRoll', ['defense'])).toBe(true);
-    expect(intentAllowedFor(s, 0, 'jetRoll', ['defense'])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetLancer', ['defense'])).toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetLancer', ['defense'])).toBe(false);
   });
 
   it("sort ENNEMI ('*') : tout le monde peut agir (Contre-sort multi)", () => {
@@ -175,22 +175,22 @@ describe('possession réseau (netOwnership)', () => {
   it('révélation SANS sujet (entretien) → hôte seul ; sans pause de Round ouverte, sa validation ne se route à aucun siège', () => {
     // #942 L8 : une révélation est une ÉTAPE d'affichage de la cascade — l'owner suit `actorId`
     // (absent pour un entretien de Round) → `seatOwns(…, undefined)` = l'hôte, et le verbe
-    // d'acquittement est celui de la cascade (`jetConfirm('cascade')`).
+    // d'acquittement est celui de la cascade (`jetValider('cascade')`).
     const s = base({
       pendingCascade: cascadeDeTest([{ id: 'r', kind: 'round', reveal: { kind: 'round', title: 'x', lines: [] } }]),
     });
-    expect(intentAllowedFor(s, 0, 'jetConfirm', ['cascade'])).toBe(true);
-    expect(intentAllowedFor(s, 1, 'jetConfirm', ['cascade'])).toBe(false);
+    expect(intentAllowedFor(s, 0, 'jetValider', ['cascade'])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'jetValider', ['cascade'])).toBe(false);
     expect(intentAllowedFor(s, 1, 'fenetreValider', ['roundStart'])).toBe(false);
   });
 
-  it("valider l'étape (`jetConfirm('cascade')`) : le propriétaire de la fenêtre — l'acteur de l'étape, tous sur une étape de groupe", () => {
+  it("valider l'étape (`jetValider('cascade')`) : le propriétaire de la fenêtre — l'acteur de l'étape, tous sur une étape de groupe", () => {
     const etape = (over: object) => base({ pendingCascade: cascadeDeTest([{ id: 'e', kind: 'round', ...over }]) });
     const acteur = etape({ actorId: 'h2' });
-    expect(intentAllowedFor(acteur, 1, 'jetConfirm', ['cascade']), 'le siège de l’acteur').toBe(true);
-    expect(intentAllowedFor(acteur, 0, 'jetConfirm', ['cascade']), 'un autre siège').toBe(false);
+    expect(intentAllowedFor(acteur, 1, 'jetValider', ['cascade']), 'le siège de l’acteur').toBe(true);
+    expect(intentAllowedFor(acteur, 0, 'jetValider', ['cascade']), 'un autre siège').toBe(false);
     const groupe = etape({ actorId: 'h2', groupOwner: true });
-    expect([0, 1].map((seat) => intentAllowedFor(groupe, seat, 'jetConfirm', ['cascade'])), 'étape de groupe').toEqual([true, true]);
+    expect([0, 1].map((seat) => intentAllowedFor(groupe, seat, 'jetValider', ['cascade'])), 'étape de groupe').toEqual([true, true]);
   });
 
   it('seatOwns : héros non attribué → hôte', () => {
@@ -200,14 +200,14 @@ describe('possession réseau (netOwnership)', () => {
     expect(seatOwns(s, 1, 'h2')).toBe(true);
   });
 
-  it('partyAddHero : la route laisse passer, le quota du siège se compte par `seatSlotsRemaining` (le geste tranche)', () => {
+  it('recruterLeHeros : la route laisse passer, le quota du siège se compte par `seatSlotsRemaining` (le geste tranche)', () => {
     // 2 slots au siège 1, il possède déjà h2 → 1 restant.
     const s = base({
       net: { mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1 }, slots: [0, 1, 1, 0] },
       battle: null,
     } as unknown as Partial<Jeu>);
     expect(seatSlotsRemaining(s, 1)).toBe(1);
-    expect(intentAllowedFor(s, 1, 'partyAddHero', [{ id: 'h3' }])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'recruterLeHeros', [{ id: 'h3' }])).toBe(true);
     // Quota épuisé : h3 ajouté au siège 1 → refus.
     const full = base({
       net: { mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1, h3: 1 }, slots: [0, 1, 1, 0] },
@@ -215,12 +215,12 @@ describe('possession réseau (netOwnership)', () => {
       battle: null,
     } as unknown as Partial<Jeu>);
     expect(seatSlotsRemaining(full, 1)).toBe(0);
-    expect(intentAllowedFor(full, 1, 'partyAddHero', [{ id: 'h4' }])).toBe(true);
+    expect(intentAllowedFor(full, 1, 'recruterLeHeros', [{ id: 'h4' }])).toBe(true);
   });
 
-  it('partyRemoveHero, partyReplaceHero : la route laisse passer, le geste tranche la possession (`refusDeComposerLeHeros`)', () => {
+  it('renvoyerLeHeros, remplacerLeHeros : la route laisse passer, le geste tranche la possession (`refusDeComposerLeHeros`)', () => {
     const s = base({ battle: null } as unknown as Partial<Jeu>);
-    for (const verbe of ['partyRemoveHero', 'partyReplaceHero']) {
+    for (const verbe of ['renvoyerLeHeros', 'remplacerLeHeros']) {
       expect(intentAllowedFor(s, 1, verbe, ['h2'])).toBe(true);
       expect(intentAllowedFor(s, 1, verbe, ['h1'])).toBe(true);
     }
@@ -229,12 +229,29 @@ describe('possession réseau (netOwnership)', () => {
   it('carnet d’enquête (#2415) : l’invité épingle et marque vu hors combat sans modale, en combat aussi', () => {
     const vu = [{ id: 'ind', étapes: 1, statut: 'révélé', stadeCourant: 's1' }];
     const horsCombat = base({ battle: null } as unknown as Partial<Jeu>);
-    expect(intentAllowedFor(horsCombat, 1, 'toggleCluePin', ['ind']), 'épingle refusée à l’invité hors combat').toBe(true);
-    expect(intentAllowedFor(horsCombat, 1, 'markCluesSeen', [vu]), 'nouveauté vue refusée à l’invité hors combat').toBe(true);
-    expect(intentAllowedFor(horsCombat, 1, 'interludeEntrainement', ['h1']), 'opposé : un geste POSSÉDÉ reste refusé').toBe(false);
+    expect(intentAllowedFor(horsCombat, 1, 'epinglerLIndice', ['ind']), 'épingle refusée à l’invité hors combat').toBe(true);
+    expect(intentAllowedFor(horsCombat, 1, 'marquerLesIndices', [vu]), 'nouveauté vue refusée à l’invité hors combat').toBe(true);
+    expect(intentAllowedFor(horsCombat, 1, 'suivreLEntrainement', ['h1']), 'opposé : un geste POSSÉDÉ reste refusé').toBe(false);
     const enCombat = base({}); // actif = h1 (hôte) : le repli refuserait le siège 1
-    expect(intentAllowedFor(enCombat, 1, 'toggleCluePin', ['ind'])).toBe(true);
-    expect(intentAllowedFor(enCombat, 1, 'markCluesSeen', [vu])).toBe(true);
+    expect(intentAllowedFor(enCombat, 1, 'epinglerLIndice', ['ind'])).toBe(true);
+    expect(intentAllowedFor(enCombat, 1, 'marquerLesIndices', [vu])).toBe(true);
+  });
+});
+
+describe('jouerLOffre (#3371) : la route se déduit du lieu de l’offre', () => {
+  it('un corps d’hôte suit le combattant actif ; un relais, une intention pure ou une offre inconnue ne voyagent pas', () => {
+    const s = base({}); // actif = h1 (non attribué → hôte)
+    expect(intentAllowedFor(s, 0, 'jouerLOffre', ['end-turn']), 'corps : le siège de l’actif').toBe(true);
+    expect(intentAllowedFor(s, 1, 'jouerLOffre', ['end-turn']), 'corps : un autre siège').toBe(false);
+    expect(intentAllowedFor(s, 0, 'jouerLOffre', ['round-start']), 'relais : élu chez l’émetteur').toBe(false);
+    expect(intentAllowedFor(s, 0, 'jouerLOffre', ['course']), 'intention pure : armée chez l’émetteur').toBe(false);
+    expect(intentAllowedFor(s, 0, 'jouerLOffre', ['inconnue']), 'offre inconnue').toBe(false);
+  });
+
+  it('le relais de la levée de main émet `leverLaMain`, admis hors de son tour dans les deux sens', () => {
+    const s = base({}); // actif = h1, au siège 0
+    expect(intentAllowedFor(s, 1, 'leverLaMain', [true])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'leverLaMain', [false])).toBe(true);
   });
 });
 
@@ -311,41 +328,41 @@ describe('Activités d’interlude en coop (audit M7/M8) — chacun mène SES h�
   const interludeState = (over: Partial<Jeu> = {}): Jeu => base({
     battle: null,
     interlude: { weeks: 2, phase: 'activities', perHero: { h1: { eventRoll: 1, left: 2, revenueBrass: 0 }, h2: { eventRoll: 2, left: 2, revenueBrass: 0 } } },
-    bank: [{ heroId: 'h2', kind: 'stash', brass: 100, rate: 0 }],
+    bank: [{ uid: 'depot-h2', heroId: 'h2', kind: 'stash', brass: 100, rate: 0 }],
     ...over,
   } as Partial<Jeu>);
 
   it('activité visant un héros : son propriétaire agit, pas les autres', () => {
     const s = interludeState();
-    expect(intentAllowedFor(s, 1, 'interludeActivity', ['h2', 'revenus'])).toBe(true);
-    expect(intentAllowedFor(s, 1, 'interludeActivity', ['h1', 'revenus'])).toBe(false);
-    expect(intentAllowedFor(s, 0, 'interludeCraftStart', ['h1', 'Dague', [], []])).toBe(true);
-    expect(intentAllowedFor(s, 0, 'interludeActivity', ['h2', 'learn', { talentId: 'chanceux' }])).toBe(false);
-    expect(intentAllowedFor(s, 1, 'interludeBank', ['h2', 'stash', 120])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'pratiquerLActivite', ['h2', 'revenus'])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'pratiquerLActivite', ['h1', 'revenus'])).toBe(false);
+    expect(intentAllowedFor(s, 0, 'fabriquerLObjet', ['h1', 'Dague', [], []])).toBe(true);
+    expect(intentAllowedFor(s, 0, 'pratiquerLActivite', ['h2', 'learn', { talentId: 'chanceux' }])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'deposerALaBanque', ['h2', 'stash', 120])).toBe(true);
   });
 
   it('Entraînement, Faveur (1er argument) et préparation de bataille (meneur en 2e argument) : son propriétaire agit, pas les autres', () => {
     const s = interludeState();
-    expect(intentAllowedFor(s, 1, 'interludeEntrainement', ['h2', 'characteristic', 'intelligence'])).toBe(true);
-    expect(intentAllowedFor(s, 1, 'interludeEntrainement', ['h1', 'characteristic', 'intelligence'])).toBe(false);
-    expect(intentAllowedFor(s, 1, 'favorSettle', ['h2'])).toBe(true);
-    expect(intentAllowedFor(s, 1, 'favorSettle', ['h1'])).toBe(false);
-    expect(intentAllowedFor(s, 1, 'massBattleActivity', ['planification', 'h2'])).toBe(true);
-    expect(intentAllowedFor(s, 1, 'massBattleActivity', ['planification', 'h1'])).toBe(false);
-    expect(intentAllowedFor(s, 0, 'massBattleActivity', ['planification', 'h2'])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'suivreLEntrainement', ['h2', 'characteristic', 'intelligence'])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'suivreLEntrainement', ['h1', 'characteristic', 'intelligence'])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'solderLaFaveur', ['h2'])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'solderLaFaveur', ['h1'])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'menerLActionDeBataille', ['planification', 'h2'])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'menerLActionDeBataille', ['planification', 'h1'])).toBe(false);
+    expect(intentAllowedFor(s, 0, 'menerLActionDeBataille', ['planification', 'h2'])).toBe(false);
   });
 
   it('retrait bancaire : le dépôt appartient à un héros — son propriétaire retire', () => {
     const s = interludeState();
-    expect(intentAllowedFor(s, 1, 'interludeWithdraw', [0])).toBe(true); // dépôt de h2 (siège 1)
-    expect(intentAllowedFor(s, 0, 'interludeWithdraw', [0])).toBe(false);
-    expect(intentAllowedFor(s, 0, 'interludeWithdraw', [99])).toBe(false); // index inconnu → personne
+    expect(intentAllowedFor(s, 1, 'retirerDeLaBanque', ['depot-h2'])).toBe(true); // dépôt de h2 (siège 1)
+    expect(intentAllowedFor(s, 0, 'retirerDeLaBanque', ['depot-h2'])).toBe(false);
+    expect(intentAllowedFor(s, 0, 'retirerDeLaBanque', ['depot-inconnu'])).toBe(false); // dépôt inconnu → personne
   });
 
   it('modale de jet d’Activité (arbitre M8) : owner = héros du pending', () => {
     const s = interludeState({ pendingActivity: { heroId: 'h2', kind: 'catalog', activityId: 'revenus' } as Jeu['pendingActivity'] });
     expect(modalOwnerOf(s)).toBe('h2');
-    expect(intentAllowedFor(s, 1, 'jetRoll', ['activity'])).toBe(true);
-    expect(intentAllowedFor(s, 0, 'jetRoll', ['activity'])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetLancer', ['activity'])).toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetLancer', ['activity'])).toBe(false);
   });
 });

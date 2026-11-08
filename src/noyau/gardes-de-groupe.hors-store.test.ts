@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
 import { pregenParty, PREGEN } from '../data/pregens';
-import { profilsStandard } from '../data';
+import { pregens, profilsStandard } from '../data';
 import { ensureBourse, setBourseBrass } from '../engine/bourse';
 import { seedBattleRng } from './battleRng';
 import { refusDAjoutAuGroupe } from './partyFlow';
@@ -32,13 +32,15 @@ const dernier = () => get().journal[get().journal.length - 1];
 
 const heros = (n: number): Combatant[] =>
   pregenParty(PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.pretre, PREGEN.chasseur).slice(0, n).map(ensureBourse);
+/** L'engagement du pré-tiré `h` par son id. */
+const pretireDe = (h: Combatant) => ({ pretire: pregens.find((p) => `pregen-${p.seed}` === h.id)!.id });
 
 describe('composition du groupe — `refusDAjoutAuGroupe`', () => {
   it('hôte coop au quota épuisé, groupe 1/4 : le verdict et le geste disent le quota', () => {
     const [a, b] = heros(2);
     banc.setState({ party: [a], net: { ...initialNet(), mode: 'host', slots: [0, 1, 1, 1], ownership: { [a.id]: 0 } } });
     expect(refusDAjoutAuGroupe(get(), undefined, 0)).toBe('Tous vos emplacements du groupe sont remplis.');
-    get().partyAddHero(b);
+    get().recruterLeHeros(pretireDe(b));
     expect(get().party.map((h) => h.id)).toEqual([a.id]);
     expect(dernier()).toBe('Tous vos emplacements du groupe sont remplis.');
   });
@@ -46,15 +48,23 @@ describe('composition du groupe — `refusDAjoutAuGroupe`', () => {
   it('groupe plein : le geste dit le groupe complet', () => {
     const cinq = heros(5);
     banc.setState({ party: cinq.slice(0, 4) });
-    get().partyAddHero(cinq[4]);
+    get().recruterLeHeros(pretireDe(cinq[4]));
     expect(get().party).toHaveLength(4);
     expect(dernier()).toBe('Le groupe est complet (4 héros).');
+  });
+
+  it('pré-tiré inconnu : le geste le refuse et le dit', () => {
+    const [a] = heros(1);
+    banc.setState({ party: [a] });
+    get().recruterLeHeros({ pretire: 'inconnu' });
+    expect(get().party.map((h) => h.id)).toEqual([a.id]);
+    expect(dernier()).toBe('Aucun pré-tiré ne porte l’id « inconnu ».');
   });
 
   it('héros déjà présent : le geste le nomme', () => {
     const [a] = heros(1);
     banc.setState({ party: [a] });
-    get().partyAddHero(a);
+    get().recruterLeHeros(pretireDe(a));
     expect(dernier()).toBe(`${a.label} fait déjà partie du groupe.`);
   });
 });
@@ -85,7 +95,7 @@ describe('table de taverne — `refusDeJouer` (NADJ 16 l.17)', () => {
     banc.setState({ party: [a] });
     const reglage = alZahr(a.id, { stakeBrass: 11, tablePlayers: 3 });
     expect(refusDeJouer(get(), reglage)).toBeNull();
-    get().playTavernGame(reglage);
+    get().jouerALaTaverne(reglage);
     expect((get().sequence!.payload as { stakeBrass: number }).stakeBrass).toBe(11);
   });
 
@@ -93,7 +103,7 @@ describe('table de taverne — `refusDeJouer` (NADJ 16 l.17)', () => {
     const [a] = heros(1);
     setBourseBrass(a, 11);
     banc.setState({ party: [a] });
-    get().playTavernGame(alZahr(a.id, { stakeBrass: 1, tablePlayers: 12 }));
+    get().jouerALaTaverne(alZahr(a.id, { stakeBrass: 1, tablePlayers: 12 }));
     expect((get().sequence!.payload as { seats: unknown[] }).seats).toHaveLength(12);
   });
 
@@ -103,7 +113,7 @@ describe('table de taverne — `refusDeJouer` (NADJ 16 l.17)', () => {
     const reglage = alZahr(a.id, { stakeBrass: 0 });
     const texte = `${a.label} ne pose aucune mise : aucune partie ne s’ouvre.`;
     expect(refusDeJouer(get(), reglage)).toBe(texte);
-    get().playTavernGame(reglage);
+    get().jouerALaTaverne(reglage);
     expect(get().sequence).toBeNull();
     expect(dernier()).toBe(texte);
   });
@@ -149,7 +159,7 @@ describe('récupération de nuit — `refusDeRecuperation` (LDB 18 l.338, LDB 16
 });
 
 describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () => {
-  const ouvrir = (places: Record<string, boolean>) => get().openRest({ lieu: fixtureText('Ici'), places } as never);
+  const ouvrir = (places: Record<string, boolean>) => get().offrirLeRepos({ lieu: fixtureText('Ici'), places } as never);
 
   it('solo, nuit gratuite : « Dormir » ouvre la nuit d’un appel', () => {
     banc.setState({ party: heros(1) });
@@ -186,13 +196,13 @@ describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () =
     setBourseBrass(a, 0);
     banc.setState({ party: [a] });
     ouvrir({ auberge: true });
-    get().restSet(a.id, { lodging: 'privee' });
+    get().fenetreChoisir('rest', 'couchage', 'privee', a.id);
     expect(toBrass(restCost(get().pendingRest!, get().party)), 'témoin : la chambre a un prix').toBeGreaterThan(0);
     expect(refusDeLaValidation(get(), 'rest')).toBe(t('jet.ferme.noteNonCouverte'));
   });
 });
 
-describe('dialogue — le refus d’une réponse est un TEXTE, dit par `chooseDialogue`', () => {
+describe('dialogue — le refus d’une réponse est un TEXTE, dit par le choix `dialogue.reponse`', () => {
   const dlg: Dialogue = { id: 'dlg-l7', start: 'n1', nodes: [{ id: 'n1', desc: 'Alors ?', choices: [{ id: 'payer', label: 'Payer', cost: { gold: 50 }, next: 'n1' }] }] } as Dialogue;
 
   it('bourse trop courte : l’écran et le geste disent le même texte', () => {
@@ -201,7 +211,7 @@ describe('dialogue — le refus d’une réponse est un TEXTE, dit par `chooseDi
     banc.setState({ party: [a] });
     banc.setState({ screen: 'campaign', dialogue: ouvrirDialogue(get(), dlg) });
     expect(reponsesDuNoeud(get())[0].refus).toBe('Pas assez d’argent pour cette option.');
-    get().chooseDialogue('payer');
+    get().fenetreChoisir('dialogue', 'reponse', 'payer');
     expect(dernier()).toBe('Pas assez d’argent pour cette option.');
   });
 
@@ -210,7 +220,7 @@ describe('dialogue — le refus d’une réponse est un TEXTE, dit par `chooseDi
     banc.setState({ party: [a], net: { ...initialNet(), mode: 'host', gmSeat: 1, seatNames: { 1: 'Greta' } } });
     banc.setState({ screen: 'campaign', dialogue: ouvrirDialogue(get(), dlg) });
     expect(reponsesDuNoeud(get())[0].refus).toBe('Greta répond pour le groupe.');
-    get().chooseDialogue('payer');
+    get().fenetreChoisir('dialogue', 'reponse', 'payer');
     expect(dernier()).toBe('Greta répond pour le groupe.');
   });
 });

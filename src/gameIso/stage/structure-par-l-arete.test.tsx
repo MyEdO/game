@@ -28,10 +28,10 @@ import { AreteOverlay } from './AreteOverlay';
  * (`stage/pickResolve.ts`) et peinte par le peintre unique (`stage/AreteOverlay.tsx`).
  *
  * LE CONTRAT QUE CE BANC TIENT : le geste d'une structure EST le clic de son jeton (la Structure est
- * un Combattant, c44ea0d86) — `battleClickEntity(cid, { confirm: hoverClickCommits() })`, l'aperçu et
+ * un Combattant, c44ea0d86) — `cliquerLaCase(case, cid, { confirm: hoverClickCommits() })`, l'aperçu et
  * le commit étant ceux du flux de combat (`noyau/targetingModes.ts`, `samePreview`) —, et le clic est
  * CONSOMMÉ : rien ne redescend au clic-sol, qui réécrit `preview` à chaque sortie de déplacement
- * (`noyau/combatSlice.ts:battleClickTile`). L'étage d'arête n'apporte que la GÉOMÉTRIE de prise que le
+ * (`noyau/combatSlice.ts:cliquerLaCaseDuCombat`). L'étage d'arête n'apporte que la GÉOMÉTRIE de prise que le
  * rayon ne rend pas : l'ancrage est la case du MUR, donc la prise se projette à SON lift et le survol
  * tombe sur le jeton visé. Le FRAPPEUR (héros actif) n'ouvre que l'OFFRE : hors de mon tour, rien.
  */
@@ -120,13 +120,6 @@ function pointerEvent(x: number, y: number) {
   } as unknown as React.PointerEvent;
 }
 
-const CLICK_ENTITY_VRAI = useGame.getState().battleClickEntity;
-const CLICK_TILE_VRAI = useGame.getState().battleClickTile;
-const BATTLE_VRAI = useGame.getState().battle;
-const MODE_VRAI = useGame.getState().mode;
-const SCENE_VRAIE = useGame.getState().scene;
-const SET_INSPECT_VRAI = useGame.getState().setInspectId;
-
 describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en donne que la prise', () => {
   let root: Root | null = null;
   let pointer: StagePointer | undefined;
@@ -156,10 +149,6 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
     }
     pointer = undefined;
     document.body.replaceChildren();
-    useGame.setState({
-      battle: BATTLE_VRAI, mode: MODE_VRAI, scene: SCENE_VRAIE,
-      battleClickEntity: CLICK_ENTITY_VRAI, battleClickTile: CLICK_TILE_VRAI, setInspectId: SET_INSPECT_VRAI,
-    });
   });
 
   it('la structure ENRÔLÉE est offerte en capacité `structure`, avec le `cid` du Combattant, sa largeur de prise et la case du MUR', () => {
@@ -189,11 +178,10 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
     expect(offre(null), 'hors combat, une enceinte n’est pas une cible').toEqual([]);
   });
 
-  it('le clic passe la main au FLUX DE COMBAT — `battleClickEntity` au régime du pointeur — et il est CONSOMMÉ', () => {
-    const battleClickEntity = vi.fn();
-    const battleClickTile = vi.fn();
+  it('le clic passe la main au FLUX DE COMBAT — `cliquerLaCase` sur le Combattant au régime du pointeur — et il est CONSOMMÉ', () => {
+    const cliquerLaCase = vi.fn();
     const battle = bataille([heros, mur]);
-    useGame.setState({ scene: scèneFortifiée(), mode: 'battle', dialogue: null, battle, battleClickEntity, battleClickTile });
+    useGame.setState({ scene: scèneFortifiée(), mode: 'battle', dialogue: null, battle, cliquerLaCase });
     const aretes = offre(battle);
     monter(aretes);
 
@@ -201,22 +189,19 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
 
     // Souris (pointeur FIN) : `hoverClickCommits()` vaut `true` — la visée a déjà tout montré, le clic
     // COMMET, exactement comme sur un jeton ennemi sous le rayon (`useStagePointer.performClick`).
-    expect(battleClickEntity).toHaveBeenCalledWith(CID, { confirm: true });
-    expect(battleClickEntity).toHaveBeenCalledTimes(1);
     // Rien ne redescend à la case : un clic-sol réécrirait `preview` (`noyau/combatSlice.ts`).
-    expect(battleClickTile).not.toHaveBeenCalled();
+    expect(cliquerLaCase.mock.calls).toEqual([[mur.pos, CID, { confirm: true }]]);
   });
 
   it('le geste SECONDAIRE de l’arête est celui d’un jeton (#1822) : le clic droit INSPECTE l’enceinte sans la frapper, le clic gauche la frappe sans l’inspecter', () => {
     // On REGARDE le profil d'un mur sans le pilonner : le clic droit résout la structure de l'arête
     // (`useStagePointer.ficheSous`), jamais la porte d'action.
-    const battleClickEntity = vi.fn();
-    const battleClickTile = vi.fn();
+    const cliquerLaCase = vi.fn();
     const setInspectId = vi.fn();
     const battle = bataille([heros, mur]);
     useGame.setState({
       scene: scèneFortifiée(), mode: 'battle', dialogue: null, battle,
-      battleClickEntity, battleClickTile, setInspectId,
+      cliquerLaCase, setInspectId,
     });
     const aretes = offre(battle);
     monter(aretes);
@@ -225,25 +210,24 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
     act(() => pointer!.handlers.onContextMenu({ clientX: x, clientY: y, preventDefault: () => undefined } as unknown as React.MouseEvent));
 
     expect(setInspectId).toHaveBeenCalledWith(CID);
-    expect(battleClickEntity, 'le clic droit ne frappe pas').not.toHaveBeenCalled();
-    expect(battleClickTile).not.toHaveBeenCalled();
+    expect(cliquerLaCase, 'le clic droit ne frappe pas').not.toHaveBeenCalled();
 
     cliquer(aretes[0]);
 
-    expect(battleClickEntity).toHaveBeenCalledWith(CID, { confirm: true });
+    expect(cliquerLaCase).toHaveBeenCalledWith(mur.pos, CID, { confirm: true });
     expect(setInspectId, 'le clic gauche n’inspecte pas').toHaveBeenCalledTimes(1);
   });
 
   it('la touche du peintre suit le MÊME chemin que le pixel', () => {
-    const battleClickEntity = vi.fn();
+    const cliquerLaCase = vi.fn();
     const battle = bataille([heros, mur]);
-    useGame.setState({ scene: scèneFortifiée(), mode: 'battle', dialogue: null, battle, battleClickEntity });
+    useGame.setState({ scene: scèneFortifiée(), mode: 'battle', dialogue: null, battle, cliquerLaCase });
     const aretes = offre(battle);
     monter(aretes);
 
     act(() => { pointer!.activerArete(aretes[0].arete); });
 
-    expect(battleClickEntity).toHaveBeenCalledWith(CID, { confirm: true });
+    expect(cliquerLaCase).toHaveBeenCalledWith(mur.pos, CID, { confirm: true });
   });
 
   it('sans survol (tactile), le régime est celui de TOUT jeton : deux taps identiques, aperçu puis commit par `samePreview`', () => {
@@ -251,10 +235,9 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
     // qui distingue l'aperçu du commit (`noyau/targetingModes.ts`). Un armement d'arête empilé par
     // dessus aurait demandé un tap de plus qu'un ennemi.
     vi.mocked(window.matchMedia).mockReturnValue({ matches: false } as unknown as MediaQueryList);
-    const battleClickEntity = vi.fn();
-    const battleClickTile = vi.fn();
+    const cliquerLaCase = vi.fn();
     const battle = bataille([heros, mur]);
-    useGame.setState({ scene: scèneFortifiée(), mode: 'battle', dialogue: null, battle, battleClickEntity, battleClickTile });
+    useGame.setState({ scene: scèneFortifiée(), mode: 'battle', dialogue: null, battle, cliquerLaCase });
     const aretes = offre(battle);
     monter(aretes);
 
@@ -263,8 +246,7 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
     act(() => { useGame.setState({ battle: bataille([heros, mur], { kind: 'attack', targetId: CID }) }); });
     cliquer(aretes[0]);
 
-    expect(battleClickEntity.mock.calls).toEqual([[CID, { confirm: false }], [CID, { confirm: false }]]);
-    expect(battleClickTile).not.toHaveBeenCalled();
+    expect(cliquerLaCase.mock.calls).toEqual([[mur.pos, CID, { confirm: false }], [mur.pos, CID, { confirm: false }]]);
   });
 
   it('le SURVOL de l’arête pose la case du MUR : le réticule de visée y trouve le Combattant-structure', () => {

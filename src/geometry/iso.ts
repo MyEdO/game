@@ -1,9 +1,9 @@
 /**
  * Projection isométrique (2.5D « à la Baldur's Gate ») — géométrie PURE (#161 :
- * hors du foyer `gameIso` car `state` (curseur de combat `combatCursor`, pas clavier d'exploration
+ * hors du foyer du rendu car l'orchestration (curseur de combat `combatCursor`, pas clavier d'exploration
  * `exploreNav`) en a besoin pour sa PROPRE logique — projection de tuile, pas du rendu SVG. Les dérivés
- * qui ont vraiment besoin du monde (métrique `WALL_H_M`/`isoPxToM`, via `noyau/monde/relief`) restent dans
- * `gameIso/iso.ts`, qui importe cette géométrie plutôt que la redéfinir.
+ * qui ont vraiment besoin du monde (métrique `WALL_H_M`/`isoPxToM`, via `noyau/monde/relief`) restent chez le
+ * rendu, qui importe cette géométrie plutôt que la redéfinir.
  *
  * Une tuile occupe TW de large et TH de haut en losange. Conventions partagées par le rendu ET le
  * picking (clic → tuile).
@@ -19,7 +19,7 @@ export const EDGE_W = TW * Math.SQRT1_2; // ≈ 45.25
 export const EDGE_H = TH * Math.SQRT1_2; // ≈ 22.63
 export const LEVEL_H = 96; // hauteur écran (px) d'un étage : un niveau z>0 est dessiné soulevé d'autant
 /** Hauteur écran (px) d'une cloison dressée sur une arête (mur `WallSeg`). UNIFIÉ : un mur = un ÉTAGE
- *  (`WALL_H = LEVEL_H` ⇒ `WALL_H_M = METRES_PER_LEVEL` dans `gameIso/iso.ts`, une seule échelle de
+ *  (`WALL_H = LEVEL_H` ⇒ `WALL_H_M = METRES_PER_LEVEL`, une seule échelle de
  *  hauteur dans tout le monde — un mur atteint le plafond, une herse remplit son ouverture, pas de
  *  « délire » mur 2,25 m / niveau 4 m). Le relief reste porté par le SOL, pas par les murs (un mur =
  *  cloison d'arête, pas une plateforme). */

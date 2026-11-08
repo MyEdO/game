@@ -7,13 +7,13 @@
  * `netOwnership` ne demande que « qui est ce combattant ? » ; or `combatOrParty` importe
  * `targetingModes` pour son affordance de clic, donc le moteur de combat — chaîne runtime LOURDE. Ces
  * primitives descendent donc ici, et la dépendance va du LOURD vers le LÉGER : `combatOrParty`
- * consomme ce module, jamais l'inverse. `src/state` est fermé au noyau, même pour un type (`COUCHES`,
- * `scripts/guards/lib/couches.mjs`).
+ * consomme ce module, jamais l'inverse.
  */
 import { isOutOfAction } from '../../engine/conditions';
 import type { Combatant } from '../../engine/types';
 import type { Dir8 } from '../../geometry/dir8';
 import type { Jeu } from '../etat';
+import type { Pt } from './path';
 
 /**
  * TAILLE MAXIMALE du groupe — les quatre aventuriers de la campagne. Constante CANONIQUE : toute
@@ -125,7 +125,7 @@ export function niMortNiATerre(h: Combatant): boolean {
  * lui que le jeton de groupe DESSINE et fait marcher, donc lui que suivent la caméra, le regard de
  * première personne, l'assise, le cap d'entrée de scène et les lampes portées par le groupe
  * (`noyau/visionState.ts` `sceneLightSources`). Définition UNIQUE — #1362 : tout lecteur du meneur
- * dans `src/state`, `src/gameIso`, `src/ui` passe par ici ; deux règles feraient marcher un jeton,
+ * passe par ici ; deux règles feraient marcher un jeton,
  * éclairer l'autre et pivoter un troisième. PRIVÉ : les appelants passent par `meneurDuMonde`.
  */
 function partyLeaderOf(party: readonly Combatant[]): Combatant | undefined {
@@ -149,7 +149,7 @@ function partyLeaderDeboutOf(party: readonly Combatant[]): Combatant | undefined
  */
 export type MondeDuMeneur = Pick<Jeu, 'party'>;
 
-/** MENEUR du monde, lu sur l'ÉTAT — signature de tous les lecteurs (`state`, `gameIso`, `ui`). */
+/** MENEUR du monde, lu sur l'ÉTAT — signature de tous les lecteurs. */
 export function meneurDuMonde(monde: MondeDuMeneur): Combatant | undefined {
   return partyLeaderOf(monde.party);
 }
@@ -161,7 +161,7 @@ export function meneurDeboutDuMonde(monde: MondeDuMeneur): Combatant | undefined
 
 /**
  * CLÉ du cap de GROUPE dans la table `facing`. Le groupe est UN sujet de cap, comme une coque : son
- * jeton d'exploration le porte en `capKey` (`gameIso/builders/tokens.ts:partyTokenOf`). Le cap n'est
+ * jeton d'exploration le porte en `capKey` (`partyTokenOf`). Le cap n'est
  * donc keyé par AUCUN héros — aucune mutation du roster (Blessure,
  * Inconscience, ajout, remplacement, retrait) ne peut le désynchroniser. Préfixée `__` comme tout
  * sujet non-combattant : aucun id de héros ne la collisionne.
@@ -177,10 +177,16 @@ export function capDuGroupe(monde: Pick<Jeu, 'facing'>): Dir8 | null {
   return monde.facing[CAP_GROUPE] ?? null;
 }
 
+/** Les cases où se tient le groupe, couche comprise : chaque héros posé en combat, sinon la case du groupe. PUR. */
+export function casesDuGroupe(monde: Pick<Jeu, 'battle' | 'partyPos'>): Pt[] {
+  if (!monde.battle) return [{ ...monde.partyPos }];
+  return monde.battle.combatants.flatMap((c) => (c.kind === 'hero' && c.pos ? [{ x: c.pos.x, y: c.pos.y, z: c.pos.z ?? 0 }] : []));
+}
+
 /**
  * CAP D'EXPLORATION posé : hors combat, l'orientation du regard est UNE valeur du GROUPE, stockée
  * SOUS `CAP_GROUPE` et nulle part ailleurs. ÉCRIVAIN UNIQUE du cap d'exploration — entrée de scène,
- * marche, pivot, pas relatif et assise passent par ici ; `faceToward`/`faceFromPath` restent la couture
+ * marche, pivot, pas relatif et assise passent par ici ; `orienterVers`/`orienterSelonLeChemin` restent la couture
  * des caps INDIVIDUELS du combat. Les caps des combattants et des coques présents dans la table sont
  * conservés tels quels. PUR : rend la table suivante.
  */

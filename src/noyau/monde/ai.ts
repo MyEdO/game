@@ -99,7 +99,7 @@ export type EnemyAction =
   | { kind: 'recover'; state: 'empetre' | 'en-flammes' } // se libérer / se rouler au sol (LDB 16 l.66/84)
   | { kind: 'spendResource'; resource: 'resolve'; via: 'removeCondition'; id: string } // dépense PROACTIVE de Détermination pour retirer un État verrouillant (Brisé) et se ressaisir (LDB 17 l.57-61)
   | { kind: 'grapple'; targetId: string; resolution: 'break' | 'test' } // Empoigné à son tour (LDB 14 l.161) : son Action EST le Test opposé de Force, OU « Briser » (Avantage supérieur) pour regagner sa liberté d'action puis re-décider
-  | { kind: 'manPoste'; hullId: string; posteUid: string } // « Servir cette pièce » (MDG 12) : devenir chef d'un poste de siège NON servi adjacent (l'arme de siège est octroyée) — coûte l'Action
+  | { kind: 'manPoste'; hullId: string; posteUid: string } // « Servir cette pièce » (MDG 12) : devenir chef d'un poste de siège NON servi adjacent (l'arme de siège est octroyée) — Action gratuite, LDB 13 l.106
   | { kind: 'selfManeuver'; maneuverId: string } // capacité SUR SOI (forme de combat lycanthrope, op transform) — coûte l'Action (2ᵉ via loseTurn)
   | { kind: 'end' }; // rien à faire, passe la main
 
@@ -143,7 +143,7 @@ export interface EnemyTurnInput {
   facing?: Record<string, Dir8>;
   /** ESCOUADE (Lot 4) : les ALLIÉS de l'ennemi encore en action et posés (l'ennemi lui-même EXCLU),
    *  résolus par l'appelant (couche impure qui a le `battle`). Sert au FEU CONCENTRÉ (surnombre RAW en
-   *  mêlée, LDB 14 — même `outnumberMod` et même décompte que la résolution, cf. combatFlow.ts:428) et
+   *  mêlée, LDB 14 — même `outnumberMod` et même décompte que la résolution, `effectifAuContact`, `noyau/combat/surnombre.ts`) et
    *  à la COHÉSION légère (ne pas s'isoler / ne pas bloquer l'allié). ABSENT = comportement Lot 3 STRICTEMENT
    *  inchangé (le golden et les fixtures sans escouade restent identiques). */
   squad?: Combatant[];
@@ -482,7 +482,7 @@ const TIER = {
   shoot: 4, // tir à distance
   melee: 5, // attaque de mêlée
   move: 6, // approche / repositionnement
-  manPoste: 7, // servir une pièce de siège (préparation : l'arme tire au tour suivant) — faute de mieux
+  manPoste: 7, // servir une pièce de siège (préparation) — faute de mieux
 } as const;
 
 /**
@@ -757,7 +757,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
 
   // --- HEURISTIQUES de SCORE (Lot 3 + escouade Lot 4) -----------------------
   /** FEU CONCENTRÉ via SURNOMBRE (RAW, LDB 14) — MÊME `outnumberMod` et MÊME décompte que la résolution
-   *  (`src/noyau/combatFlow.ts:428`) : N = (alliés de l'escouade à `combatDistance ≤ 1` de la cible) + 1
+   *  (`effectifAuContact`, `src/noyau/combat/surnombre.ts`) : N = (alliés de l'escouade à `combatDistance ≤ 1` de la cible) + 1
    *  (l'attaquant lui-même, qui SERA au contact en frappant). Renvoie le `ModLine` du bonus de toucher
    *  (+20 à 2c1, +40 à 3+c1) sous forme d'`env` injecté DANS `expectedDamage` (mêlée UNIQUEMENT — le
    *  surnombre RAW est mêlée-only, cf. combatFlow:425 qui ne sert que `attackEnv` de mêlée). Aucun
@@ -765,7 +765,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const outnumberEnvMelee = (target: Combatant): ModLine[] | undefined => {
     if (squad.length === 0) return undefined;
     const adj = squad.filter((c) => c.pos && combatDistance(c, target) <= 1).length;
-    const onm = outnumberMod(adj + 1); // +1 = l'attaquant courant (parité exacte avec combatFlow:425)
+    const onm = outnumberMod(adj + 1); // +1 = l'attaquant courant (parité avec `effectifAuContact`)
     return onm ? [onm] : undefined;
   };
 
@@ -1139,7 +1139,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   }
 
   // SERVIR UNE PIÈCE DE SIÈGE (MDG 12) : un combattant adjacent à un emplacement/coque portant un poste NON
-  // servi peut en devenir le chef (l'arme de siège lui est octroyée, elle tirera au tour SUIVANT). La liste des
+  // servi peut en devenir le chef (l'arme de siège lui est octroyée ; Action gratuite, LDB 13 l.106, puis l'IA re-décide). La liste des
   // postes servables est surfacée par l'appelant impur (`servablePostes`, KIND-AGNOSTIQUE) ; absente/vide (toute
   // fixture sans emplacement) → aucun candidat (parité golden). Utilité NEUTRE (0) : c'est une PRÉPARATION (comme
   // Recharger), choisie SEULEMENT faute d'attaque/approche jouable ce tour. Les tactiques fines (QUAND servir)

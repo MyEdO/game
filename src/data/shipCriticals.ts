@@ -1,11 +1,10 @@
 import shipCriticalsJson from './ship-criticals.json';
-import { parseDiceRequired, type DiceSpec, type Tirage } from '../engine/dice';
+import type { Tirage } from '../engine/dice';
+import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
 import riverCriticalsJson from './river-criticals.json';
 import type { ShipLocation } from '../engine/combat';
 import type { GameOp, Formula } from '../engine/ops';
 import type { FlowTestNode } from '../engine/flowCore';
-
-const deMaritime = parseDiceRequired(shipCriticalsJson.die, 'ship-criticals.die');
 
 /** QUI encaisse un coup à l'ÉQUIPAGE — les trois désignations imprimées : l'équipage d'une pièce
  *  (`MDG 13 l.763`), la ou les PRÉSENCES à bord (`ship-stations.json` — `MDG 13 l.680/l.714/l.730/
@@ -101,7 +100,7 @@ export const SHIP_CRITICAL_TABLES = {
  *  (chaque jeu ne couvre QUE ses Localisations — MDG couvre cargaison/équipements, MSRC gouvernail/
  *  superstructure ; la table de Localisation appariée ne produit jamais une clé absente du jeu). */
 export interface ShipCritSet {
-  die: DiceSpec | null;
+  die: DeDeTable | null;
   /** id STABLE du jeu — la valeur que porte `hull.criticalTable`. */
   id: string;
   /** Effet des Éclats — le SEUL jeu qui en porte est MDG (mot-clé « Éclats N », ch.13) ; MSRC ne
@@ -120,7 +119,7 @@ export interface ShipCritSet {
 /** Jeu MDG (mer, ch.13) — Éclats 9 Dégâts. */
 export const SHIP_CRIT_SET: ShipCritSet = {
   id: shipCriticalsJson.id,
-  die: deMaritime,
+  get die() { return deDeLaTableTiree(shipCriticalsJson); },
   shrapnelHit: SHRAPNEL_HIT,
   replisSansExpose: shipCriticalsJson.replisSansExpose as { cible: ShipCritKey; maison?: string },
   tablesDeChute: shipCriticalsJson.tablesDeChute as FallHeightTable[],
@@ -149,7 +148,7 @@ const FALL_TABLES = new Map(
 );
 
 /** Les tables de chute des jeux CHARGÉS, dans l'ordre de la donnée — CANDIDATS du champ `fall` de
- *  l'atelier (`ui/editor/GameOpEditor`). Dérivée du registre : un jeu qui en authore une l'y ajoute
+ *  l'atelier. Dérivée du registre : un jeu qui en authore une l'y ajoute
  *  sans une ligne de code de plus, et l'atelier ne code aucun id. */
 export const fallTables: FallHeightTable[] = [...FALL_TABLES.values()];
 

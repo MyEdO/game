@@ -114,7 +114,7 @@ describe('listes de livres recopiées — le code ne nomme aucun livre (#1825)',
     expect(estExclu('src/data/index.ts')).toBe(false);
     expect(estExclu('src/data/progression-schemas.test.ts')).toBe(false);
     expect(estExclu('scripts/raw/coverage.mjs')).toBe(false);
-    expect(estExclu('src/state/combat/advantage-group.test.ts')).toBe(false);
+    expect(estExclu('src/noyau/combat/advantage-group.test.ts')).toBe(false);
   });
 
   it('toute exemption AU SITE nomme sa ligne ET sa forme, et porte sa raison datée', () => {

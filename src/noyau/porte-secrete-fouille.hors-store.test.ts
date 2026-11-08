@@ -10,8 +10,7 @@ import { poserLeGroupe } from './marcheDuGroupe';
 
 /**
  * FOUILLER LA PIÈCE (#700) — second déclencheur de la découverte d'une porte secrète : `EDO 08 l.404`,
- * `LDB 12 l.189`, `LDB 12 l.200` ; une tentative par porte, quel que soit le déclencheur, hors combat. La touche R se
- * joue en `src/state/porte-secrete-fouille.test.ts`.
+ * `LDB 12 l.189`, `LDB 12 l.200` ; une tentative par porte, quel que soit le déclencheur, hors combat.
  */
 
 let banc: Banc;
@@ -52,7 +51,7 @@ const heros = () => ['A', 'B'].map((label, i) => {
 
 function explorer(scene: Scene, pos: { x: number; y: number }) {
   banc.setState({ party: heros() });
-  banc.getState().startScene(scene);
+  banc.getState().lancerLaScene(scene);
   banc.setState({ partyPos: pos, lightLevel: 1, dialogue: null });
 }
 const fouiller = () => banc.getState().fouillerLaPiece();
@@ -60,7 +59,7 @@ const fouiller = () => banc.getState().fouillerLaPiece();
 const DUREE = rule('fouille-piece-minutes') as number;
 const resoudre = (success: boolean) => {
   banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: success ? 1 : 99, success, sl: success ? 3 : -3 } });
-  banc.getState().jetConfirm('test');
+  banc.getState().jetValider('test');
 };
 
 describe('Fouiller la pièce — le second déclencheur de la découverte', () => {
@@ -68,7 +67,7 @@ describe('Fouiller la pièce — le second déclencheur de la découverte', () =
     explorer(plan([A]), { x: 1, y: 2 });
     fouiller();
     const pt = banc.getState().pendingTest!;
-    expect(pt.skillId).toBe('perception');
+    expect(pt.sujet?.skill?.id).toBe('perception');
     expect(pt.difficulty).toBe('complexe');
     expect(pt.label).toBe(t('eff.porteSecreteTest'));
     expect(pt.support?.bonus).toBeGreaterThan(0); // LDB 12 l.189
@@ -159,8 +158,8 @@ describe('Fouiller la pièce — le second déclencheur de la découverte', () =
 describe('Fouiller la pièce — combat : refus nommé', () => {
   it('en combat, le geste est refusé À L’ÉCRAN et ne lance rien', () => {
     banc.setState({ party: [heros()[0]] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.abandonner();
     banc.setState({ scene: plan([A]), partyPos: { x: 1, y: 2 }, refus: null });
     fouiller();

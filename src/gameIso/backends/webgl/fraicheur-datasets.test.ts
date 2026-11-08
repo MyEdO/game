@@ -1,7 +1,7 @@
 /**
  * CONTRAT DE FRAÎCHEUR (#1692), part du RENDU : une écriture au seam (`setDataset`) est vue par le bake
  * du monde (`worldBakeDeps`) et par l'arche solaire (`sunJeuHalfArcMin`), sans rechargement. Les
- * lecteurs de la donnée et des règles : `src/data/fraicheur-datasets.test.ts`.
+ * lecteurs de la donnée et des règles : `src/noyau/fraicheur-datasets.hors-store.test.ts`.
  *
  * Restauration `afterEach` par le seam lui-même : aucun test ne touche un dataset autrement.
  */
@@ -10,7 +10,7 @@ import { props, findPropById } from '../../../data/index';
 import { setDataset, datasetArray } from '../../../data/overrides';
 import { emptyScene, sceneMetresPerTile } from '../../../noyau/monde/scene';
 import { worldBakeDeps } from './sceneMeshes';
-import { sunJeuHalfArcMin } from './sunJeu';
+import { sunJeuHalfArcMin } from '../../../noyau/monde/soleil';
 
 const DECORS_LIVRES = [...props];
 const PHASES_LIVREES = structuredClone(datasetArray('calendarPhases'));

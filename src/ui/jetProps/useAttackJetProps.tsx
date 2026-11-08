@@ -40,19 +40,19 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   const setLocation = (v: ReglagesDuJet['attack']['localisation']) => regler('attack', 'localisation', v);
   const setWeapon = (v: ReglagesDuJet['attack']['arme']) => regler('attack', 'arme', v);
   const setDualMode = (v: ReglagesDuJet['attack']['deuxArmes']) => regler('attack', 'deuxArmes', v);
-  const roll = useGesteDeJet('jetRoll', 'attack');
-  const reroll = useGesteDeJet('jetReroll', 'attack');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'attack');
-  const darkPact = useGesteDeJet('jetDarkPact', 'attack');
-  const forceSuccess = useGesteDeJet('jetForceSuccess', 'attack');
-  const reverseVerb = useGesteDeJet('jetReverse', 'attack');
-  const confirm = useGesteDeJet('jetConfirm', 'attack');
-  const cancel = useGesteDeJet('jetCancel', 'attack');
+  const roll = useGesteDeJet('jetLancer', 'attack');
+  const reroll = useGesteDeJet('jetRelancer', 'attack');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'attack');
+  const darkPact = useGesteDeJet('jetPactiser', 'attack');
+  const forceSuccess = useGesteDeJet('jetForcerLaReussite', 'attack');
+  const reverseVerb = useGesteDeJet('jetInverser', 'attack');
+  const confirm = useGesteDeJet('jetValider', 'attack');
+  const cancel = useGesteDeJet('jetAnnuler', 'attack');
   const setHarpoonRopeCut = (v: ReglagesDuJet['attack']['sansLaCorde']) => regler('attack', 'sansLaCorde', v);
   const setWithhold = (v: ReglagesDuJet['attack']['retenirSesCoups']) => regler('attack', 'retenirSesCoups', v);
   const setGrapple = (v: ReglagesDuJet['attack']['empoigner']) => regler('attack', 'empoigner', v);
   const setCritLocation = (v: ReglagesDuJet['attack']['localisationDuCritique']) => regler('attack', 'localisationDuCritique', v);
-  const spendResolve = useGame((s) => s.spendResolveCondition);
+  const spendResolve = useGame((s) => s.depenserLaDetermination);
   const vue = pa && battle ? fenetreDAttaque(useGame.getState()) : null;
   if (!vue || !battle) return null;
   const attacker = inBattleId(battle, vue.attaquantId);
@@ -173,7 +173,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
         {vue.bloque && (
           <div className="rm-note" data-ton="bloque"><Icon id="ui/warning" size="sm" /> {vue.bloque}</div>
         )}
-        <DeterminationButton combatant={attacker} onSpend={(name) => spendResolve(attacker.id, name)} />
+        <DeterminationButton combatant={attacker} onSpend={(name) => spendResolve(attacker.id, 'retirerUnEtat', name)} />
       </>
     ),
     rows,

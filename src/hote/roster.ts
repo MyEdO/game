@@ -62,15 +62,17 @@ export function ajouterAuRoster(stockage: Stockage | null, entry: RosterEntry): 
 }
 
 /** ENGAGE le brouillon `d` dans le groupe de `jeu` (#3059) : refusé par `refusDEngagement`, rendu sans rien écrire ;
- *  sinon son entrée (`engagement`) entre au roster de `stockage`, puis le héros au groupe, en place de `heroId`
- *  (`partyReplaceHero`) ou ajouté avec sa Richesse (`partyAddHero`). `null` : engagé. */
+ *  sinon son entrée (`engagement`) entre au roster de `stockage`, puis le brouillon au groupe sous l'id de son entrée,
+ *  où le noyau bâtit le héros, en place de `heroId` (`remplacerLeHeros`) ou ajouté avec sa Richesse (`recruterLeHeros`).
+ *  `null` : engagé. */
 export function engagerLeHeros(stockage: Stockage | null, jeu: Jeu, d: CreatorDraft, heroId?: string): string | null {
   const refus = refusDEngagement(jeu, d, heroId);
   if (refus) return refus;
   const entree = engagement(d, heroId);
   ajouterAuRoster(stockage, entree);
-  if (heroId) jeu.partyReplaceHero(heroId, entree.hero);
-  else jeu.partyAddHero(entree.hero, entree.wealth);
+  const heros = { brouillon: d, id: entree.hero.id };
+  if (heroId) jeu.remplacerLeHeros(heroId, heros);
+  else jeu.recruterLeHeros(heros);
   return null;
 }
 

@@ -223,10 +223,13 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['hoteTexte', 'scenes', false, null],
       ['hoteTexte', 'engine', true, 'type'], // fermé (#2898)
       ['hoteTexte', 'state', true, 'type'],
+      ['hoteTexte', 'data', true, 'type'],
       ['noyau', 'hoteTexte', false, 'type'],
       ['hote', 'noyau', false, null], // importe (par sa porte, #2928)
       ['hote', 'scenes', false, null],
       ['hote', 'engine', true, 'type'], // fermé
+      ['hote', 'data', true, 'type'],
+      ['hote', 'state', true, 'type'],
       ['hote', 'hoteTexte', true, 'type'], // le module commun ne lit aucun hôte
       ['hote', 'hotes', true, 'type'],
       ['noyau', 'hote', true, 'type'],
@@ -275,12 +278,12 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     expect(paquets.map(([de, p]) => paquetFerme(de, p))).toEqual(paquets.map(([, , v]) => v));
   });
 
-  it('PÉRIMÈTRE : des fichiers RÉELS de chaque zone sont sous les murs, dans chaque dialecte ; la réexportation, en production de `src/state` et `src/noyau` hors de la surface', () => {
+  it('PÉRIMÈTRE : des fichiers RÉELS de chaque zone sont sous les murs, dans chaque dialecte ; la réexportation, en production de `src/state`, `src/noyau` et `src/scenes` hors de la surface', () => {
     const regles = (rel: string) => Object.keys(configPourFichier(rel).rules);
     for (const zone of ZONES) {
       for (const rel of sondes(zone)) {
         expect(regles(rel), rel).toEqual(expect.arrayContaining([REGLE, 'murs/zone', 'murs/suite-jouee']));
-        expect(regles(rel).includes(REEX), rel).toBe(['state', 'noyau'].includes(zone) && !estKitDeTest(rel));
+        expect(regles(rel).includes(REEX), rel).toBe(['state', 'noyau', 'scenes'].includes(zone) && !estKitDeTest(rel));
       }
     }
     for (const ext of ['.mjs', '.mts', '.cjs', '.js', '.jsx', '.tsx']) {
@@ -496,7 +499,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     }
   });
 
-  it('RÉEXPORTATION : un module de production de `src/state` ou `src/noyau` ne réexporte rien, sous aucune forme ; une déclaration locale, un réexport en valeur, la surface, `src/data` et un test passent', () => {
+  it('RÉEXPORTATION : un module de production de `src/state`, `src/noyau` ou `src/scenes` ne réexporte rien, sous aucune forme ; une déclaration locale, un réexport en valeur, la surface, `src/data` et un test passent', () => {
     const cas: [filePath: string, code: string, attendu: string][] = [
       ['src/noyau/zz-reex-0.ts', "export * from './a';\n", REEX],
       ['src/noyau/zz-reex-1.ts', "export * as c from './c';\n", REEX],
@@ -507,6 +510,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['src/noyau/zz-reex-6.ts', "import def from './def';\nexport { def as autre };\n", REEX],
       ['src/state/zz-reex-7.ts', "import type { T } from '../noyau/t';\nexport type { T };\n", REEX],
       ['src/state/zz-reex-8.ts', "export { x } from '../noyau/x';\n", REEX],
+      ['src/scenes/zz-reex-15.ts', "export { creerHeros } from '../engine/character';\n", REEX],
       ['src/noyau/zz-reex-9.ts', 'const locale = 1;\nexport { locale };\n', 'passe'],
       ['src/noyau/zz-reex-10.ts', "import { a } from './a';\nexport const valeur = a;\n", 'passe'],
       [SURFACE_DU_NOYAU, "export { a } from './a';\n", 'passe'],

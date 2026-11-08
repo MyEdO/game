@@ -1,15 +1,18 @@
 /**
- * Tableau des Événements « Entre deux aventures » (LDB `22 - Evenements.md`, d100) — manuscrit
+ * Tableau des Événements « Entre deux aventures » (LDB `22 - Evenements.md`) — manuscrit
  * VERBATIM (résumés fidèles). La DONNÉE vit dans `interludeEvents.json` (éditable, comme
- * `creatures.json`) ; ce module = types + chargement. `fx` ne porte QUE les effets mécaniques sans
- * ambiguïté du texte ; tout le reste est narratif (journalisé, rien d'inventé). Ajouter/régler un
- * événement = éditer le JSON, jamais ce fichier.
+ * `creatures.json`), dé de tirage `die` compris ; ce module = types + chargement. `fx` ne porte QUE
+ * les effets mécaniques sans ambiguïté du texte ; tout le reste est narratif (journalisé, rien
+ * d'inventé). Ajouter/régler un événement = éditer le JSON, jamais ce fichier.
  *
  * Classes canon visées par certains événements : Citadins, Courtisans, Guerriers, Itinérants,
  * Lettrés, Riverains, Roublards, Ruraux. (Le texte dit « Voleurs » pour les Roublards.)
  */
-import { findTableEntry } from '../engine/tables';
+import { facesDuDe, findTableEntry, type DeDeTable } from '../engine/tables';
 import { interludeEvents } from './index';
+import interludeEventsJson from './interludeEvents.json';
+import { deDeTirageDe } from './rangees';
+import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
 
 export interface InterludeEventFx {
   /** % appliqué à la bourse AVANT les Activités (le Prévôt −30, Kleptomane −50). */
@@ -37,7 +40,6 @@ export interface InterludeEventFx {
 
 export interface InterludeEvent {
   id: string;
-  type: 'interludeEvents';
   min: number;
   max: number;
   label: string;
@@ -51,8 +53,11 @@ export interface InterludeEvent {
 
 export const INTERLUDE_EVENTS = interludeEvents;
 
-/** Entrée du tableau pour un jet d100 (01-00). */
+/** Le dé du Tableau des Événements, lu à l'appel. */
+export const interludeEventDie = (): DeDeTable => deDeTirageDe<typeof tableauDesEvenements>(interludeEventsJson);
+
+/** Entrée du tableau pour un jet de son dé, borné à ses faces. */
 export function interludeEventFor(roll: number): InterludeEvent {
-  const r = Math.max(1, Math.min(100, roll));
+  const r = Math.max(1, Math.min(facesDuDe(interludeEventDie()), roll));
   return findTableEntry(INTERLUDE_EVENTS, r);
 }

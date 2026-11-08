@@ -162,21 +162,21 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
     ['artillery-misfire.json', artilleryMisfire],
     ['crew-morale.json', crewMorale, ['bands']],
     ['driving-mishap.json', drivingMishap],
-    // Deux tables de tirage distinctes : la qualité SECRÈTE du vin (d100 de prix) et les rumeurs
-    // commerciales (d100 de prose) — la seconde ne serait jamais atteinte sans descente.
+    // Deux tables de tirage distinctes : la qualité SECRÈTE du vin (MSRC 13 l.97) et les rumeurs
+    // commerciales (MSRC 13 l.283) — la seconde ne serait jamais atteinte sans descente.
     ['land-cargo.json', landCargo, ['wineQuality']],
     ['land-cargo.json', landCargo, ['rumours']],
-    ['mass-battle.json', massBattle, ['hazards']],
+    ['mass-battle.json', massBattle, ['hazards', 'entries']],
     ['naval-progression.json', navalProgression],
-    // Les deux tables d10 du vent fluvial partagent le MÊME schéma de rangée (`bandRow`) : chacune
+    // Les deux tables du vent fluvial partagent le MÊME schéma de rangée (`bandRow`) : chacune
     // se mesure, une composition débranchée ne pouvant se cacher derrière la première rencontrée.
     ['river-navigation.json', riverNavigation, ['windForces']],
     ['river-navigation.json', riverNavigation, ['windDirections']],
     ['sea-events.json', seaEvents, ['boardEvents']],
     ['sea-events.json', seaEvents, ['portEvents']],
-    ['sea-events.json', seaEvents, ['fastVoyage', 'paliers']],
-    ['sea-weather.json', seaWeather, ['table']],
-    ['sea-weather.json', seaWeather, ['roseDesVents']],
+    ['sea-events.json', seaEvents, ['fastVoyage', 'entries']],
+    ['sea-weather.json', seaWeather, ['table', 'entries']],
+    ['sea-weather.json', seaWeather, ['roseDesVents', 'entries']],
     ['steam-breakdown.json', steamBreakdown],
   ];
 
@@ -353,10 +353,11 @@ describe('bornesSchema — les deux bornes d’un réglage vont par paire', () =
     // 30→31 (#700, 2026-09-30) : `porte-secrete-rayon-m` (1..20 m), LDB 09 l.399 ne chiffre pas la distance.
     // 31→30 (#700, 2026-10-05) : `fenetre-hauteur-allege` supprimée, l'allège est une donnée de la croisée.
     // 30→31 (#700, 2026-10-05) : `fouille-piece-minutes` (1..120 min), LDB 12 l.200 ne chiffre pas la durée.
-    expect(bornees.length, 'plus aucun réglage borné : la sonde ne mesure rien.').toBe(31);
+    // 31→32 (#1652, 2026-11-07) : `cibleVulnerablePct` (10..300 %), MDG 15 l.150/171 ne chiffre pas la cible vulnérable.
+    expect(bornees.length, 'plus aucun réglage borné : la sonde ne mesure rien.').toBe(32);
     expect(
       bornees.filter((r) => r.kind !== 'param').map((r) => r.id),
-      'un réglage borné n’est pas un paramètre chiffré : la co-présence mesurée 31/31 ne porte plus sur la même population.',
+      'un réglage borné n’est pas un paramètre chiffré : la co-présence mesurée 32/32 ne porte plus sur la même population.',
     ).toEqual([]);
     const i = regles.indexOf(bornees[0]);
     const { max: _absente, ...ampute } = bornees[0];
@@ -455,7 +456,7 @@ describe('prix d’offre — les bandes couvrent leur domaine d’un seul tenant
     // et `max: null` est refusé AU TYPE, avant même la mesure de couverture.
     const ouverte = validateDataset('land-cargo.json', muter(landCargo, 'offerByRichesse', 4, { max: null }));
     expect(ouverte, 'la dernière bande terrestre accepte une borne haute OUVERTE').not.toBeNull();
-    expect(ouverte).toContain('Règles de vente › offre selon la richesse 5 › Maximum');
+    expect(ouverte).toContain('Règles de vente › Mise à prix selon la Richesse 5 › Maximum');
     expect(pathsRefuses('land-cargo.json', muter(landCargo, 'offerByRichesse', 4, { max: null }))).toContain('sell.offerByRichesse.4.max');
 
     // Le domaine s'arrête à 5 (MSRC 13 l.52-60) : une bande qui déborde n'a aucun indice à couvrir.

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { FLOW_HANDLERS } from './rollFlowSpecs';
 import { FLOW_VERBS, type FlowKey, type NomDeVerbeDeJet } from './flowVerbs';
+import { fermeturesDuFlux } from './verbesOuverts';
 import type { Combatant } from '../engine/types';
 import { FIXTURES, FLUX, FOE, HERO, PERDANT } from './inventaireDuDeFixe.testkit';
 
@@ -17,8 +18,8 @@ import { FIXTURES, FLUX, FOE, HERO, PERDANT } from './inventaireDuDeFixe.testkit
  * invariants du socle :
  *   1. un dé fixé PERDANT ne devient jamais une réussite ;
  *   2. la valeur APPLIQUÉE est la valeur SAISIE.
- * Un flux dont la fixture manque ÉCHOUE la garde : impossible d'en ajouter un en le laissant dehors. Le champ
- * « dé fixé » que la rangée offre se joue en `src/state/fixed-die-inventaire.test.ts`.
+ * Un flux dont la fixture manque ÉCHOUE la garde : impossible d'en ajouter un en le laissant dehors. Option active, la
+ * pose est OUVERTE sur chaque flux (`fermeturesDuFlux`).
  */
 let banc: Banc;
 /** Le verbe de jet `nom` sur le flux `k`, ses `args` puis la rangée `pid` d'un flux multi (`VerbesDeJet`). */
@@ -51,10 +52,16 @@ describe('socle du dé fixé — les flux passent TOUS par le même chemin', () 
     it(`${k} — un dé fixé PERDANT échoue, et la valeur appliquée est la valeur saisie`, () => {
       const f = FIXTURES[k]!;
       banc.setState(f.state as never);
-      jet('jetSetForcedRoll', k, f.pid, PERDANT);
+      jet('jetImposerLeResultat', k, f.pid, PERDANT);
       const got = f.read(banc.getState());
       expect(got.roll, `${k} : la valeur appliquée n'est pas la valeur saisie`).toBe(PERDANT);
       expect(got.success, `${k} : un dé PERDANT est devenu une réussite (réussite gratuite)`).toBe(false);
+    });
+
+    it(`${k} — option active, la pose est OUVERTE au siège qui contrôle le jet`, () => {
+      const f = FIXTURES[k]!;
+      banc.setState(f.state as never);
+      expect(fermeturesDuFlux(banc.getState(), k, f.pid).setForcedRoll, `${k} : la pose est fermée`).toBeNull();
     });
   }
 });
@@ -88,13 +95,13 @@ describe('socle du dé choisi (Résilience) — même chemin, politique en param
         battle: { combatants: [hero, foe], log: [], order: ['H', 'E'], turn: 0, round: 1 } as never,
       });
       banc.setState(f.state as never);
-      jet('jetForceSuccess', k, f.pid);
+      jet('jetForcerLaReussite', k, f.pid);
       const apres = banc.getState().battle!.combatants.find((c) => c.id === 'H')!.resilience;
       expect(apres, `${k} : la Résilience n'a pas été dépensée (le forçage n'a pas pris)`).toBe(2);
       const forced = f.read(banc.getState());
       expect(forced.success, `${k} : « Je ne faillirai pas ! » n'a pas produit de réussite`).toBe(true);
 
-      jet('jetSetForcedRoll', k, f.pid, CHOISI);
+      jet('jetImposerLeResultat', k, f.pid, CHOISI);
       const got = f.read(banc.getState());
       expect(got.roll, `${k} : le dé CHOISI n'est pas celui appliqué (jet relancé ou saisie ignorée)`).toBe(CHOISI);
       expect(got.success, `${k} : la réussite PAYÉE par le point de Résilience a été perdue`).toBe(true);

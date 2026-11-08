@@ -12,8 +12,8 @@ describe('Désengagement : Esquive du cavalier', () => {
   function ouvrir(monte: boolean) {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -24,19 +24,19 @@ describe('Désengagement : Esquive du cavalier', () => {
     H.engagedWith = [E.id]; E.engagedWith = [H.id];
     if (monte) H.mountId = 'monture-sonde';
     banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id), action: null, movementUsed: 0, acted: false } });
-    banc.getState().battleDisengage();
+    banc.getState().rompreLEngagement();
     expect(banc.getState().pendingDisengage?.phase).toBe('choice');
   }
   const cible = () => banc.getState().pendingDisengage!.def!.target;
 
-  it('jetRoll@disengage : le cavalier esquive à −20 de son homologue à pied', () => {
-    ouvrir(false); banc.getState().jetRoll('disengage'); const pied = cible();
-    ouvrir(true); banc.getState().jetRoll('disengage'); const monte = cible();
+  it('jetLancer@disengage : le cavalier esquive à −20 de son homologue à pied', () => {
+    ouvrir(false); banc.getState().jetLancer('disengage'); const pied = cible();
+    ouvrir(true); banc.getState().jetLancer('disengage'); const monte = cible();
     expect(monte).toBe(pied - 20);
   });
 
   it('relance par Chance (spec disengage) : même −20', () => {
-    ouvrir(true); banc.getState().jetRoll('disengage'); const premier = cible();
+    ouvrir(true); banc.getState().jetLancer('disengage'); const premier = cible();
     const mover = banc.getState().battle!.combatants.find((c) => c.id === banc.getState().pendingDisengage!.moverId)!;
     mover.fortune = 1;
     FLOWS.disengage.reroll(banc.getState, banc.setState);

@@ -87,6 +87,13 @@
     "bloque": "Tir ciblé vers un emplacement du véhicule (Harnachement, Roues, Sièges/chargement, EDOC 07 l.334-347) : aucun producteur de visée d'emplacement sur une coque routière, l'effet de l'emplacement sur Critique n'est pas joué. Test de Conduite d'attelage Difficile (-20) du conducteur d'un véhicule en mouvement après un Critique ou à 0 Blessures (EDOC 07 l.334) : aucun état « en mouvement » d'une coque routière au combat. Seul le refus de la Blessure Critique est joué"
   },
   {
+    "id": "4e/deplacement#humeur-de-manann-et-evenements-en-mer-mdg",
+    "type": "raw.manifest",
+    "label": "Humeur de Manann et événements en mer (MDG)",
+    "ticket": "#1652",
+    "bloque": "Événements de bord dont la donnée est posée mais que le flux ne joue pas : Culte de la personnalité (l.154-158), attaques des rats de l'Infestation sur une étape à DR négatif de l'Extermination (1d10 attaques, CC 35 et Arme +5 pour les rats géants, CC 25 et Arme +4 pour les rats, l.162-164, l.177-178 ; fièvre du rongeur pour qui est blessé par les rats géants, l.164) : aucune porte de jet ne joue une attaque subie hors combat, Némésis (l.148-149), rencontre de scénario qu'aucune campagne n'authore, Autres voyageurs (l.205-208) et Île inconnue (l.221-223), laissés au MJ : la rangée se raconte sans conséquence. Événements d'escale : cargaison cachée du Contrôle à quai (l.247), qu'aucune mécanique ne cache (toute la cargaison est déclarée, valeur maison), La tache noire (l.251-252), laissée au MJ, Pénuries (l.253), Constructeur itinérant (l.255), Trop beau pour être vrai (l.256), découverte du Passager clandestin au bout de 1d10 jours (l.258), Rumeurs commerciales (l.259), Offre de mission (l.261), Bonne pêche (l.262), Saturation de produits (l.263)"
+  },
+  {
     "id": "4e/maladies#maladie-type",
     "type": "raw.manifest",
     "label": "Maladie (Type)",

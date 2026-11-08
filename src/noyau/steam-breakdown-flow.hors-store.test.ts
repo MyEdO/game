@@ -2,12 +2,14 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
-import { buildSeaPlan, applySteamBreakdown, resolveSteamSave } from './seaVoyageFlow';
+import { buildSeaPlan, applySteamBreakdown, resolveSteamSave, engineerOf } from './seaVoyageFlow';
 import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
 import { seedBattleRng, battleRng } from './battleRng';
 import type { WorldMap } from './worldMap';
 import type { PendingSteamSave } from './pendings';
-import { evaluateTest } from '../engine/tests';
+import { evaluateTest, extendedTestStep, rollTest, type TestResult } from '../engine/tests';
+import { testValue } from '../engine/skills';
+import { makeRNG } from '../engine/dice';
 import { tableTotale } from '../lib/tableTotale';
 import { avanceEtapeCascade } from './cascade.testkit';
 import { t } from '../i18n';
@@ -43,6 +45,7 @@ function steamAtSea(milesToday = 80) {
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null,
     worldMap: seaMap,
+    lieu: 'A',
     travelPlan: null,
     gameTime: 8 * 60,
     vessel: { vehicleId: 'cogue', upgrades: [{ id: 'propulsion-a-vapeur' }], morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
@@ -107,6 +110,24 @@ describe('Panne de Vapeur — résolution first-class (MDG 12 l.313-352)', () =>
     expect(/relancé/i.test(lines)).toBe(true); // Métier (Ingénieur) de redémarrage
   });
 
+  it('« Feu éteint » : le Test étendu de Force cumule ses DR NÉGATIFS (LDB 12 l.170-185), par `extendedTestStep`', () => {
+    const force = entry('feu-eteint').restart![0];
+    const valeur = testValue(engineerOf(get().party)!, { characteristic: force.test.characteristic });
+    const issue = (seed: number, pas: (total: number, r: TestResult) => number) => {
+      const rng = makeRNG(seed);
+      let total = 0;
+      for (let i = 0; total < force.targetDR! && i < 20; i++) total = pas(total, rollTest(valeur, force.test.difficulty, rng));
+      return total >= force.targetDR!;
+    };
+    const cumul = (total: number, r: TestResult) => extendedTestStep(total, r, force.targetDR!).total;
+    const seed = Array.from({ length: 500 }, (_, i) => i + 1).find((s) => issue(s, cumul) !== issue(s, (total, r) => total + Math.max(0, r.sl)));
+    expect(seed, 'une graine où plancher chaque DR à 0 change l’issue').toBeDefined();
+    const jBefore = get().journal.length;
+    applySteamBreakdown(get, set, entry('feu-eteint'), makeRNG(seed!));
+    const attendue = t(issue(seed!, cumul) ? 'sv.engineCleared' : 'sv.engineStruggling');
+    expect(get().journal.slice(jBefore).some((l) => l.includes('Test étendu') && l.endsWith(attendue))).toBe(true);
+  });
+
   it('« Explosion » (compartmentDamage + engineDestroyed + hullCritical) : la personne au moteur est frappée, la vapeur est perdue, la coque encaisse un Critique', () => {
     const eng = get().party[0];
     const before = eng.wounds.current;
@@ -126,11 +147,11 @@ describe('Panne de Vapeur — déclenchée par le Test de Progression (MDG 12 l.
     banc.setState({
       party: makePregens().slice(0, 3).map((h) => ({ ...h, characteristics: tableTotale(Object.keys(h.characteristics), () => 99) })),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
-      battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null,
+      battle: null, worldMap: seaMap, lieu: 'A', travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null,
       pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0, pendingSteamSave: null, journal: [],
       vessel: { vehicleId: 'cogue', upgrades: [{ id: 'propulsion-a-vapeur' }], morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     } as never);
-    get().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
     for (let i = 0; i < 30 && !get().pendingRest; i++) {
       const pc = get().pendingCascade;
       if (!pc || pc.participants[pc.cursor]?.kind === 'progression') break;
@@ -147,7 +168,7 @@ describe('Panne de Vapeur — déclenchée par le Test de Progression (MDG 12 l.
       ...s, participants: s.participants!.map((part, j) => (j ? part : { ...part, result: { roll: 99, target: jet.target, sl: jet.sl, success: jet.success } })),
     }));
     set({ pendingCascade: { ...p, participants: poses } });
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     const panne = t('sv.steamBreakdown', { label: '' }).split(' —')[0];
     expect(get().journal.some((l) => l.includes(panne)), 'la table de panne de vapeur est tirée').toBe(true);
   });

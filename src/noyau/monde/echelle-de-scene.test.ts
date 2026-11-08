@@ -37,7 +37,7 @@ const SITES: readonly { fichier: string; texte: string; role: string }[] = [
   { fichier: 'noyau/monde/scene.ts', texte: 'return scene?.metresPerTile ?? 2;', role: 'sceneMetresPerTile — LE défaut du monde (LDB 15 l.12), lu par tous les autres' },
 
   // ── LES COUTURES du décor volumique (#1507) : une par CONCEPT, jamais deux pour le même
-  { fichier: 'gameIso/builders/propVolumes.ts', texte: 'const [rx, ry] = rotatePropLocal(p.xM / mpt, p.yM / mpt, facing);', role: 'GÉOMÉTRIE d’une recette de décor → cases du monde' },
+  { fichier: 'noyau/monde/volume/propVolumes.ts', texte: 'const [rx, ry] = rotatePropLocal(p.xM / mpt, p.yM / mpt, facing);', role: 'GÉOMÉTRIE d’une recette de décor → cases du monde' },
   { fichier: 'data/props.types.ts', texte: 'const [ax, ay] = rotatePropLocal(slot.anchor.xM / mpt, slot.anchor.yM / mpt, cap);', role: 'ANCRE d’une place assise → case du corps assis' },
   { fichier: 'noyau/monde/vision.ts', texte: 'const [x, y] = rotatePropLocal(emettrice.center.xM / mpt, emettrice.center.yM / mpt, facing ?? CAP_IDENTITE_PROP);', role: 'FOYER d’une lampe (centre de la primitive émettrice) → offset en cases' },
   { fichier: 'noyau/monde/vision.ts', texte: 'export const rayonEnCases = (radiusM: number, mpt: number): number => radiusM / mpt;', role: 'RAYON d’une source de lumière → cases (RÉEL : le dégradé le lit comme une longueur)' },
@@ -58,7 +58,7 @@ const SITES: readonly { fichier: string; texte: string; role: string }[] = [
   { fichier: 'noyau/sceneEdit.ts', texte: 'return Math.max(1, Math.floor(ROOF_GABLE_SPAN_MAX_M / sceneMetresPerTile(scene)));', role: 'PORTÉE maximale d’un pignon (m) → cases' },
   { fichier: 'gameIso/builders/highlights.ts', texte: 'const maxTiles = Math.ceil((rangeM * 3) / mpt);', role: 'BANDES de portée au sol (Portée ×3, m) → cases peintes' },
   { fichier: 'gameIso/backends/webgl/cameras.ts', texte: 'const s = CELL / mpt;', role: 'CADENCE de la caméra du dessus (px/m)' },
-  { fichier: 'gameIso/backends/webgl/worldTris.ts', texte: 'return (TW * Math.SQRT1_2) / mpt;', role: 'CADENCE de la projection (px/m) — `pxPerM`' },
+  { fichier: 'noyau/monde/volume/worldTris.ts', texte: 'return (TW * Math.SQRT1_2) / mpt;', role: 'CADENCE de la projection (px/m) — `pxPerM`' },
   { fichier: 'gameIso/stage/GameStage3D.tsx', texte: '() => (xM, zM, yM) => isSheltered(abris, xM / mpt, zM / mpt, yM),', role: 'point MÉTRIQUE du monde 3D → case, pour lire un abri' },
   { fichier: 'gameIso/stage/GameStage3D.tsx', texte: 'const section = shelterSectionAt(abris, xM / mpt, zM / mpt);', role: 'point métrique → case, pour nommer la section d’abri' },
   { fichier: 'gameIso/stage/GameStage3D.tsx', texte: '? { x: frame.partyPos.x + g.dx / mpt, y: frame.partyPos.y + g.dz / mpt, z: frame.partyPos.z }', role: 'déplacement métrique de la caméra → position en cases du groupe' },

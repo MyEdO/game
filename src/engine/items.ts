@@ -23,7 +23,7 @@ export type { TrappingResolver } from '../data/apparencesObjets';
 import type { TrappingResolver } from '../data/apparencesObjets';
 import type { EntityAppearance } from './authoringAppearance';
 import { slugId } from '../data/slug';
-import { localisationsDeZone } from './classementDeTrait';
+import { localisationsDeLoc } from './classementDeTrait';
 import { LOCALISATIONS_DE_COUP } from './localisations';
 import { dansLaSousListe } from '../data/schemas/grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../data/schemas/grammaire/sousListes';
@@ -33,7 +33,7 @@ import { rollDice, type RNG } from './dice';
 import { compteDeLaDotation } from './possessionGrants';
 import { garanti } from '../lib/garanti';
 import { itemCapability } from './capabilities';
-import { loadRegister, objetSourceDeLArme, type WeaponLoadState } from './weaponLoad';
+import { loadRegister, objetSourceDeLArme, aRecharger, chambrePleine, type WeaponLoadState } from './weaponLoad';
 import { nextEntityId } from '../lib/entityId';
 import { sequence } from './sequences';
 
@@ -364,12 +364,7 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
     throw new Error(`itemFromTrappingById: "${resolu.id}" porte un marqueur hors de INSTANCIABLE_PAR_ID (${INSTANCIABLE_PAR_ID.horsMarqueurs.join(', ')}) : pas un objet possédable.`);
   const t = structuredClone(resolu); // #2097
   const kind = kindOf(t.categorie);
-  const locs =
-    t.loc != null
-      ? t.loc
-          .split(',')
-          .flatMap((p) => localisationsDeZone(p) ?? [])
-      : undefined;
+  const locs = t.loc != null ? localisationsDeLoc(t.loc) : undefined;
   const objet: ItemInstance = {
     ...copierIntrinseques({ ...t, range: t.range ?? null }),
     uid: newUid(),
@@ -736,6 +731,17 @@ export function loadoutLabel(lo: WeaponLoadout, c: Combatant): string {
 export function activeLoadout(c: Combatant): WeaponLoadout | null {
   if (!c.loadouts?.length) return null;
   return c.loadouts.find((l) => l.id === c.activeLoadoutId) ?? c.loadouts[0];
+}
+
+/** Un SET porte-t-il une arme à distance à recharger (`aRecharger`) ? Chaque objet du set est projeté par
+ *  `weaponFromItem`, dont l'`uid` retombe sur le registre de charge de l'objet possédé : un set NON ACTIF, dont
+ *  les armes ne sont pas dans `c.weapons`, dit aussi son état. PUR. */
+export function setNonCharge(c: Combatant, lo: WeaponLoadout): boolean {
+  const items = c.items ?? [];
+  return [lo.main, lo.off].some((uid) => {
+    const it = uid ? items.find((i) => i.uid === uid) : undefined;
+    return !!it && it.kind === 'ranged' && aRecharger(c, weaponFromItem(it));
+  });
 }
 
 /** Une arme (par `uid` d'ItemInstance) est-elle ACTIVE dans le loadout courant ? Source de vérité = les
@@ -1363,13 +1369,23 @@ export function setReloadProgress(c: Combatant | undefined, weapon: Weapon | und
   if (reg) reg.reloadProgress = Math.max(0, dr);
 }
 
-/** CHOIX de munition « à charger au prochain rechargement » (`ammoUid`) — écrivain UNIQUE : hotbar du
- *  joueur, sélecteur de pièce du navire (MDG 12). Ne touche NI l'état de charge NI le coup capturé :
- *  changer d'avis ne décharge rien par lui-même (c'est l'appelant qui décide de décharger).
- *  `docs/plans/2026-08-16-hud-combat.md` §1. Mute en place. */
-export function setAmmoChoice(c: Combatant | undefined, weapon: Weapon | undefined, uid: string | undefined, poste?: ShipPoste): void {
-  const reg: WeaponLoadState | undefined = poste ?? (c && weapon ? loadRegister(c, weapon) : undefined);
-  if (reg) reg.ammoUid = uid;
+/** CHOIX de munition « à charger au prochain rechargement » (`ammoUid`) — écrivain UNIQUE : hotbar du joueur
+ *  (`approvisionnerLArme`), sélecteur de pièce du navire (`approvisionnerLaPiece`, MDG 12 l.410-424). La munition se
+ *  fixe AU CHARGEMENT (arbitrage utilisateur 2026-08-16 par AskUserQuestion, verbatim de la demande qui l'ouvre : « on
+ *  doit pouvoir choisir ses munitions avec nos armes de tir facilement depuis sa barre d'action ») : changer celle d'une
+ *  arme ou d'une pièce CHARGÉE d'une autre la DÉCHARGE (`unloadWeapon`), le Test étendu de recharge est à refaire
+ *  (LDB 62 l.335) et le chargeur d'une arme À répétition se vide avec ; re-choisir la munition chargée est sans effet ;
+ *  rien n'est détruit (décompte au tir, `consumeAmmo`). L'arme `weapon` de `c` lit son registre (`loadRegister`, la
+ *  pièce qu'elle sert comprise) ; sans arme résolue, la pièce `poste` seule. `docs/plans/2026-08-16-hud-combat.md` §1.
+ *  Mute en place. */
+export function choisirLaMunition(c: Combatant | undefined, weapon: Weapon | undefined, uid: string | undefined, poste?: ShipPoste): void {
+  const arme = c && weapon ? { c, weapon } : undefined;
+  const reg: WeaponLoadState | undefined = poste ?? (arme ? loadRegister(arme.c, arme.weapon) : undefined);
+  if (!reg) return;
+  const chargee = arme ? chambrePleine(arme.c, arme.weapon) : reg.loaded !== false;
+  const coup = arme ? loadedAmmo(arme.c, arme.weapon)?.uid : reg.loadedAmmoUid ?? reg.ammoUid;
+  reg.ammoUid = uid;
+  if (chargee && coup !== uid) unloadWeapon(c, weapon, poste);
 }
 
 /** Consomme UN coup du chargeur d'une arme À répétition (Indice) (LDB 62 l.229/231) — écrivain UNIQUE de

@@ -143,7 +143,7 @@ const ETAPES_HOTES: Record<HostJet, Fixture> = {
       pendingCascade: cascade(etapeHote('cast')),
       pendingCast: { casterId: E.id, targetId: H.id, spellId: 'alerte', missile: false, focused: false, result: { cast: true, roll: 21, target: 45, sl: 2, isCritical: false, isFumble: false, log: '' } },
       pendingCounterspell: { participants: [{ id: H.id, result: { dispelled: true, counter: tr(10, 50), casterNetSL: 0, log: '' } }] },
-      pendingCastOpposition: { test: { char: 'force-mentale' }, participants: [{ id: H.id, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, result: { oppose: tr(30, 40), resisted: true, margin: 1 } }] },
+      pendingCastOpposition: { test: { characteristic: 'force-mentale' }, participants: [{ id: H.id, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, result: { oppose: tr(30, 40), resisted: true, margin: 1 } }] },
     },
     flux: ['cast', 'counterspell', 'opposition'],
     oppose: true,
@@ -291,11 +291,11 @@ describe('jetsEnVue — la classe des fenêtres à jet', () => {
 describe('jetsEnVue — les deux témoins du dôme, par la surface de la partie', () => {
   const partieSur = (pendingCascade: PendingCascade) => creerPartie({ ...(BASE as EtatDeJeu), pendingCascade }, ENTREES);
 
-  it('« Résistance au Sonné » : après `jetRoll@cascade` puis `jetSetForcedRoll@cascade` à 30, la ligne dit Test, cible, dé, DR et verdict', () => {
+  it('« Résistance au Sonné » : après `jetLancer@cascade` puis `jetImposerLeResultat@cascade` à 30, la ligne dit Test, cible, dé, DR et verdict', () => {
     const partie = partieSur(cascade({ id: 'sonne', kind: 'triggeredTest', actorId: H.id, rollLabel: 'Résistance', target: 45, base: 45, result: null }));
     try {
-      partie.envoyer({ type: 'jetRoll', args: ['cascade', 'sonne'] });
-      partie.envoyer({ type: 'jetSetForcedRoll', args: ['cascade', 30, 'sonne'] });
+      partie.envoyer({ type: 'jetLancer', args: ['cascade', 'sonne'] });
+      partie.envoyer({ type: 'jetImposerLeResultat', args: ['cascade', 30, 'sonne'] });
       const { sl } = evaluateTest(30, 45);
       expect(jetsEnVue(partie.etat())).toEqual([{ flux: 'cascade', oppose: null, lignes: [{ genre: 'test', qui: H.id, test: 'Résistance', cible: 45, jet: { d100: 30, dr: sl, reussi: true } }] }]);
     } finally {
@@ -303,12 +303,12 @@ describe('jetsEnVue — les deux témoins du dôme, par la surface de la partie'
     }
   });
 
-  it('table : après `jetRoll(\'cascadeTirage\')`, la ligne dit la table, le dé et la ligne tirée', () => {
+  it('table : après `jetLancer(\'cascadeTirage\')`, la ligne dit la table, le dé et la ligne tirée', () => {
     const tableId = Object.values(CRIT_TABLE_IDS)[0];
     const partie = partieSur(cascade({ id: 't', kind: 'triggeredTest', actorId: H.id, table: { tableId, spec: { n: 1, sides: 100 } } }));
     try {
       expect(jetsEnVue(partie.etat())[0].lignes[0], 'avant le tirage : la table, à lancer').toMatchObject({ genre: 'table', jet: null });
-      partie.envoyer({ type: 'jetRoll', args: ['cascadeTirage', 't'] });
+      partie.envoyer({ type: 'jetLancer', args: ['cascadeTirage', 't'] });
       const r = partie.etat().pendingCascade!.participants[0].table!.result!;
       expect(jetsEnVue(partie.etat())[0].lignes).toEqual([{ genre: 'table', qui: H.id, table: tableStepDef(tableId)!.label, jet: { d100: r.roll, effectif: r.die, ligne: r.lines[0] } }]);
     } finally {

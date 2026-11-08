@@ -20,7 +20,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { CodexEdit, dedicatedFieldKeys } from '../editor/codex/CodexEdit';
 import { editableDataset, editableObjectDataset } from '../../data/atelierDuCodex';
 import { libelleDuChamp, inferFields } from '../../noyau/codex/editFields';
-import { metaPourFichier, chargeDiscriminee, schemaForFile } from '../../data/schemas/validate';
+import { metaPourFichier, chargeDiscriminee, noeudDeLEntree, schemaForFile } from '../../data/schemas/validate';
 import { CODEX } from '../../noyau/codex/registry';
 import { setDataset, datasetArray, datasetFile } from '../../data/overrides';
 import { creatures, materials, oups } from '../../data';
@@ -148,9 +148,11 @@ describe('atelier du Codex — charge du CAS d’un document discriminé (#1686)
   });
 
   it('Oups ! : l’Incident de Tir, hors table, n’édite ni borne ni modificateur', () => {
-    const meta = { meta: metaPourFichier('oups.json') };
-    const [min, max, mod] = (['min', 'max', 'mod'] as const).map((k) => libelleDuChamp(k, meta));
     const misfire = oups.find((o) => o.kind === 'misfire')!;
+    // Les libellés d'une RANGÉE sont ceux de son nœud (`defs/oups.ts`), pas la méta de la racine.
+    const rangee = { niveau: 'profondeur', noeud: noeudDeLEntree('oups', misfire) } as const;
+    const [min, max, mod] = (['min', 'max', 'mod'] as const).map((k) => libelleDuChamp(k, rangee));
+    expect([min, max, mod], 'la rangée ne nomme pas ses bornes — le filtre ne mesure rien').toEqual(['Borne basse du dé', 'Borne haute du dé', 'Modificateur de l’Action suivante']);
     monte('oups', misfire.id);
     const presentes = champsPresentes();
     expect(presentes, 'le formulaire de l’Incident de Tir n’est pas monté — la mesure ne mesure rien').toContain('Effet mécanique');
@@ -158,9 +160,10 @@ describe('atelier du Codex — charge du CAS d’un document discriminé (#1686)
   });
 
   it('Oups ! : le Malus d’Action édite ses bornes et son modificateur', () => {
-    const meta = { meta: metaPourFichier('oups.json') };
-    monte('oups', oups.find((o) => o.kind === 'actionPenalty')!.id);
-    expect(champsPresentes()).toEqual(expect.arrayContaining((['min', 'max', 'mod'] as const).map((k) => libelleDuChamp(k, meta))));
+    const malus = oups.find((o) => o.kind === 'actionPenalty')!;
+    const rangee = { niveau: 'profondeur', noeud: noeudDeLEntree('oups', malus) } as const;
+    monte('oups', malus.id);
+    expect(champsPresentes()).toEqual(expect.arrayContaining((['min', 'max', 'mod'] as const).map((k) => libelleDuChamp(k, rangee))));
   });
 
   it('TÉMOIN — un document sans `chargeParDiscriminant` DÉCLARÉ garde l’union', () => {
@@ -214,6 +217,16 @@ describe('cliquet — champs ÉTRANGERS présentés par les catégories éditabl
     // #1681 : la cascade de combat devient éditable avec `stakes` — la mesure VOIT sa PAIRE `template`
     // ⟺ `form` (`defs/stakes.ts`), même famille que `terrains` : une partition par PRÉSENCE.
     stakes: ['template', 'form'],
+    // #1684 : les deux catalogues de cargaisons fusionnent en `cargoes`, dont la charge se partitionne
+    // DEUX fois — par `voie` (déclarée : `wine` est terrestre) et par la valeur BOOLÉENNE `echangeable`
+    // (marchandise ⟺ `avail`/`price`, marqueur ⟺ `hint`/`tradeHub`, `affinerEntree` de `defs/cargoes.ts`).
+    // `chargeParDiscriminant` ne partitionne que par les valeurs d'UN champ chaîne : c'est ce qui soldera
+    // cette ligne.
+    cargoes: ['echangeable', 'hint', 'tradeHub'],
+    // #1666 : le palier de PA d'un Groupe d'armure (`seuil`, `palierSchema`) est UNIQUE parmi les Groupes d'armure
+    // (`defs/weaponGroups.ts`) : la valeur d'un donneur est refusée par construction. La dette préexistait sous
+    // `palierPA: null`, présent partout donc hors mesure ; même famille que `materials:vueDeDessus` (#1795 → #3006).
+    weaponGroups: ['seuil'],
   };
 
   it('le stock des catégories qui présentent un champ étranger est celui déclaré, et il DÉCROÎT', () => {

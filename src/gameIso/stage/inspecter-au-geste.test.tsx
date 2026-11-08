@@ -33,10 +33,6 @@ beforeEach(() => {
   vi.mocked(window.matchMedia).mockReturnValue({ matches: true } as unknown as MediaQueryList);
 });
 
-const CLICK_ENTITY_VRAI = useGame.getState().battleClickEntity;
-const CLICK_TILE_VRAI = useGame.getState().battleClickTile;
-const SET_INSPECT_VRAI = useGame.getState().setInspectId;
-
 /** Élément de stage MESURÉ au viewBox (un pixel client EST un point de viewBox), aux captures ESPIONNÉES. */
 function stageEl() {
   return {
@@ -72,7 +68,7 @@ afterEach(() => {
   pointer = undefined;
   vi.useRealTimers();
   setSpritePicker(null);
-  useGame.setState({ battle: null, mode: 'exploration', dialogue: null, inspectId: null, battleClickEntity: CLICK_ENTITY_VRAI, battleClickTile: CLICK_TILE_VRAI, setInspectId: SET_INSPECT_VRAI });
+  useGame.setState({ battle: null, mode: 'exploration', dialogue: null, inspectId: null });
 });
 
 describe('en combat : clic droit et appui long INSPECTENT, le clic gauche attaque', () => {
@@ -88,24 +84,23 @@ describe('en combat : clic droit et appui long INSPECTENT, le clic gauche attaqu
       turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null, preview: null,
     } as unknown as BattleState;
-    const battleClickEntity = vi.fn();
-    const battleClickTile = vi.fn();
+    const cliquerLaCase = vi.fn();
     const setInspectId = vi.fn();
     const scene: Scene = emptyScene('scene-test', 8, 8);
-    useGame.setState({ scene, mode: 'battle', dialogue: null, battle, party: [hero, ally], inspectId: null, battleClickEntity, battleClickTile, setInspectId });
+    useGame.setState({ scene, mode: 'battle', dialogue: null, battle, party: [hero, ally], inspectId: null, cliquerLaCase, setInspectId });
     monter(dims);
-    return { battleClickEntity, battleClickTile, setInspectId };
+    return { cliquerLaCase, setInspectId };
   }
 
   const clicDroit = (x: number, y: number) =>
     act(() => pointer!.handlers.onContextMenu({ clientX: x, clientY: y, preventDefault: () => undefined } as unknown as React.MouseEvent));
 
   it('clic droit sur un jeton ENNEMI : sa fiche, et AUCUNE attaque', () => {
-    const { battleClickEntity, setInspectId } = combat();
+    const { cliquerLaCase, setInspectId } = combat();
     const { cx, cy } = px(4, 4);
     clicDroit(cx, cy);
     expect(setInspectId).toHaveBeenCalledWith('e1');
-    expect(battleClickEntity, 'le clic droit n’attaque pas').not.toHaveBeenCalled();
+    expect(cliquerLaCase, 'le clic droit n’attaque pas').not.toHaveBeenCalled();
   });
 
   it('clic droit sur un jeton ALLIÉ : sa fiche', () => {
@@ -123,17 +118,17 @@ describe('en combat : clic droit et appui long INSPECTENT, le clic gauche attaqu
   });
 
   it('clic GAUCHE sur l’ennemi à portée : l’attaque, sans fiche', () => {
-    const { battleClickEntity, setInspectId } = combat();
+    const { cliquerLaCase, setInspectId } = combat();
     const { cx, cy } = px(4, 4);
     act(() => pointer!.handlers.onPointerDown(ev(cx, cy)));
     act(() => pointer!.handlers.onPointerUp(ev(cx, cy)));
-    expect(battleClickEntity).toHaveBeenCalledWith('e1', { confirm: true });
+    expect(cliquerLaCase).toHaveBeenCalledWith({ x: 4, y: 4 }, 'e1', { confirm: true });
     expect(setInspectId).not.toHaveBeenCalled();
   });
 
   it(`appui long (${DELAI_APPUI_LONG} ms immobile) sur l’ennemi : sa fiche — puis ni clic au relâchement, ni second geste au \`contextmenu\` dérivé`, () => {
     vi.useFakeTimers();
-    const { battleClickEntity, setInspectId } = combat();
+    const { cliquerLaCase, setInspectId } = combat();
     const { cx, cy } = px(4, 4);
     act(() => pointer!.handlers.onPointerDown(ev(cx, cy)));
     act(() => { vi.advanceTimersByTime(DELAI_APPUI_LONG - 1); });
@@ -141,14 +136,14 @@ describe('en combat : clic droit et appui long INSPECTENT, le clic gauche attaqu
     act(() => { vi.advanceTimersByTime(1); });
     expect(setInspectId).toHaveBeenCalledWith('e1');
     act(() => pointer!.handlers.onPointerUp(ev(cx, cy)));
-    expect(battleClickEntity, 'l’appui long a été servi : pas de `performClick`').not.toHaveBeenCalled();
+    expect(cliquerLaCase, 'l’appui long a été servi : pas de `performClick`').not.toHaveBeenCalled();
     clicDroit(cx, cy);
     expect(setInspectId, 'le `contextmenu` dérivé de l’appui est avalé').toHaveBeenCalledTimes(1);
   });
 
   it('un glisser de 7 px n’inspecte pas, et le panoramique garde sa capture jusqu’au relâchement', () => {
     vi.useFakeTimers();
-    const { setInspectId, battleClickEntity } = combat();
+    const { setInspectId, cliquerLaCase } = combat();
     const { cx, cy } = px(4, 4);
     act(() => pointer!.handlers.onPointerDown(ev(cx, cy)));
     expect(svg.setPointerCapture).toHaveBeenCalledTimes(1);
@@ -158,7 +153,7 @@ describe('en combat : clic droit et appui long INSPECTENT, le clic gauche attaqu
     expect(svg.releasePointerCapture, 'l’annulation de l’appui ne rend pas la capture du glisser').not.toHaveBeenCalled();
     act(() => pointer!.handlers.onPointerUp(ev(cx + 7, cy)));
     expect(svg.releasePointerCapture).toHaveBeenCalledTimes(1);
-    expect(battleClickEntity, 'un glisser n’est pas un clic').not.toHaveBeenCalled();
+    expect(cliquerLaCase, 'un glisser n’est pas un clic').not.toHaveBeenCalled();
   });
 
   it('un DEUXIÈME doigt annule l’appui : rien ne s’ouvre, et le geste suivant n’est pas avalé', () => {
@@ -179,32 +174,32 @@ describe('en combat : clic droit et appui long INSPECTENT, le clic gauche attaqu
     it(`${regime} : appui TENU puis relâché à 1300 ms — la fiche, et AUCUN clic au relâchement`, () => {
       vi.useFakeTimers();
       vi.mocked(window.matchMedia).mockReturnValue({ matches: survol } as unknown as MediaQueryList);
-      const { battleClickEntity, setInspectId } = combat();
+      const { cliquerLaCase, setInspectId } = combat();
       const { cx, cy } = px(4, 4);
       act(() => pointer!.handlers.onPointerDown(ev(cx, cy, 1, 0, type)));
       act(() => { vi.advanceTimersByTime(DELAI_APPUI_LONG); });
       expect(setInspectId).toHaveBeenCalledWith('e1');
       act(() => { vi.advanceTimersByTime(1300 - DELAI_APPUI_LONG); });
       act(() => pointer!.handlers.onPointerUp(ev(cx, cy, 1, 0, type)));
-      expect(battleClickEntity, 'l’appui tenu a été servi : pas de clic au relâchement').not.toHaveBeenCalled();
+      expect(cliquerLaCase, 'l’appui tenu a été servi : pas de clic au relâchement').not.toHaveBeenCalled();
     });
   }
 
   it('SOURIS : un clic gauche LENT (600 ms) sur l’ennemi ATTAQUE, sans fiche — la souris a le clic droit', () => {
     vi.useFakeTimers();
-    const { battleClickEntity, setInspectId } = combat();
+    const { cliquerLaCase, setInspectId } = combat();
     const { cx, cy } = px(4, 4);
     act(() => pointer!.handlers.onPointerDown(ev(cx, cy, 1, 0, 'mouse')));
     act(() => { vi.advanceTimersByTime(600); });
     act(() => pointer!.handlers.onPointerUp(ev(cx, cy, 1, 0, 'mouse')));
     expect(setInspectId).not.toHaveBeenCalled();
-    expect(battleClickEntity).toHaveBeenCalledWith('e1', { confirm: true });
+    expect(cliquerLaCase).toHaveBeenCalledWith({ x: 4, y: 4 }, 'e1', { confirm: true });
   });
 
   it('Android : `contextmenu` natif AVANT le minuteur, puis `pointercancel` — la fiche, aucun clic, la capture rendue', () => {
     vi.useFakeTimers();
     vi.mocked(window.matchMedia).mockReturnValue({ matches: false } as unknown as MediaQueryList);
-    const { battleClickEntity, setInspectId } = combat();
+    const { cliquerLaCase, setInspectId } = combat();
     const { cx, cy } = px(4, 4);
     act(() => pointer!.handlers.onPointerDown(ev(cx, cy, 1, 0, 'touch')));
     act(() => { vi.advanceTimersByTime(400); });
@@ -212,20 +207,20 @@ describe('en combat : clic droit et appui long INSPECTENT, le clic gauche attaqu
     expect(setInspectId).toHaveBeenCalledWith('e1');
     act(() => pointer!.handlers.onPointerCancel(ev(cx, cy, 1, 0, 'touch')));
     act(() => { vi.advanceTimersByTime(DELAI_APPUI_LONG * 2); });
-    expect(battleClickEntity, 'le `pointercancel` ne rejoue pas le clic').not.toHaveBeenCalled();
+    expect(cliquerLaCase, 'le `pointercancel` ne rejoue pas le clic').not.toHaveBeenCalled();
     expect(setInspectId, 'le minuteur, terminé, ne rouvre rien').toHaveBeenCalledTimes(1);
     expect(svg.releasePointerCapture).toHaveBeenCalledTimes(1);
   });
 
   it('un appui lent sur le SOL n’est pas armé : il reste un clic', () => {
     vi.useFakeTimers();
-    const { battleClickTile, setInspectId } = combat();
+    const { cliquerLaCase, setInspectId } = combat();
     const { cx, cy } = px(6, 1);
     act(() => pointer!.handlers.onPointerDown(ev(cx, cy)));
     act(() => { vi.advanceTimersByTime(DELAI_APPUI_LONG * 2); });
     act(() => pointer!.handlers.onPointerUp(ev(cx, cy)));
     expect(setInspectId).not.toHaveBeenCalled();
-    expect(battleClickTile).toHaveBeenCalledWith({ x: 6, y: 1 }, { confirm: true });
+    expect(cliquerLaCase).toHaveBeenCalledWith({ x: 6, y: 1 }, undefined, { confirm: true });
   });
 });
 

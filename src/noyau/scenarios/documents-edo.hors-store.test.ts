@@ -40,7 +40,7 @@ const A_COTE = { x: 2, y: 2 };
 function charger(): void {
   const { party, scene, narratif } = scenario.construire();
   banc.setState({ party, scene: null, dialogue: null, document: null, clues: {}, dialogueHistory: [] });
-  banc.getState().loadProject({ scenes: [scene], entryId: scene.id, narratif, projet: null });
+  banc.getState().chargerLeProjet({ scenes: [scene], entryId: scene.id, narratif, projet: null });
   banc.setState({ screen: 'campaign', pendingCascade: null });
 }
 
@@ -103,8 +103,8 @@ describe('documents-edo — la liasse sert le registre du paquet EDO', () => {
     const dlg = ouvrirLaLiasse();
     const chemin = cheminsVersLesDocuments(dlg).get(id);
     expect(chemin, `${id} offert par la liasse`).toBeDefined();
-    banc.getState().chooseDialogue(chemin!.chapitre);
-    banc.getState().chooseDialogue(chemin!.reponse);
+    banc.getState().fenetreChoisir('dialogue', 'reponse', chemin!.chapitre);
+    banc.getState().fenetreChoisir('dialogue', 'reponse', chemin!.reponse);
     const ouvert = banc.getState().document;
     expect(ouvert?.title).toBe(doc!.titre);
     expect(ouvert?.text).toBe(doc!.prose);
@@ -136,8 +136,8 @@ describe('documents-edo — la liasse sert le registre du paquet EDO', () => {
         return revele;
       });
       expect(reponse, `réponse qui révèle ${stade.id}`).toBeDefined();
-      if (banc.getState().dialogue?.nodeId !== 'ch8') banc.getState().chooseDialogue(versCh8);
-      banc.getState().chooseDialogue(reponse!.id);
+      if (banc.getState().dialogue?.nodeId !== 'ch8') banc.getState().fenetreChoisir('dialogue', 'reponse', versCh8);
+      banc.getState().fenetreChoisir('dialogue', 'reponse', reponse!.id);
       expect(banc.getState().clues['ind-billets-de-teugen']?.stadeCourant).toBe(stade.id);
     }
   });

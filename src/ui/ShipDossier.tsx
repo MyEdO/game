@@ -3,9 +3,9 @@ import { useGame } from '../state/store';
 import type { CampaignVessel } from '../noyau/etat';
 import type { Combatant } from '../engine/types';
 import { findVehicleById } from '../data';
-import { findCargoById, findManannFactor } from '../engine/seaVoyage';
+import { findManannFactor } from '../engine/seaVoyage';
+import { findCargoEntryById } from '../engine/cargo';
 import { dossierDuNavire } from '../noyau/seaVoyageFlow';
-import { foulingEffects } from '../engine/seaNavigation';
 import { moraleBand, findMoraleFactor } from '../engine/crewMorale';
 import { fromBrass } from '../engine/money';
 import { bulkCarriers, nomDuNavire } from '../noyau/carriers';
@@ -15,7 +15,7 @@ import { rigSchema } from '../data/schemas/defs/vehicles';
 import { rigDuNavire } from '../engine/shipBuild';
 import { Icon } from './Icon';
 import { NotchGauge, type GaugeTone } from './NotchGauge';
-import { moraleTone, crewRoleLabel } from './shipStatus';
+import { moraleTone, crewRoleLabel, SalissuresDeLaCoque } from './shipStatus';
 import { ScreenShell } from './ScreenShell';
 import { Tabs } from './composites/Tabs';
 import { CargoTransferPanel } from './CargoTransferPanel';
@@ -53,12 +53,12 @@ export function ShipDossier({ onClose, initialTab }: { onClose: () => void; init
   const vessel = useGame((s) => s.vessel);
   const party = useGame((s) => s.party);
   const possessions = useGame((s) => s.possessions);
-  const move = useGame((s) => s.moveCargo);
+  const move = useGame((s) => s.deplacerLaCargaison);
   // Transfert navire ↔ porteur terrestre CO-LOCALISÉ (`carriersColocated` : avec le groupe, ou au même Lieu).
   // `bulkCarriers` réunit cale + bêtes/véhicules.
   const carriers = useMemo(() => bulkCarriers({ party, vessel, possessions }), [party, vessel, possessions]);
   if (!vessel) return null;
-  const transfer = <CargoTransferPanel carriers={carriers} onMove={move} labelOf={(id) => findCargoById(id)?.label ?? id} />;
+  const transfer = <CargoTransferPanel carriers={carriers} onMove={move} labelOf={(id) => findCargoEntryById(id)?.label ?? id} />;
   return <ShipDossierView vessel={vessel} party={party} onClose={onClose} initialTab={initialTab} transfer={transfer} />;
 }
 
@@ -80,7 +80,6 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
   const manannScore = manann?.score ?? 0;
   const manannBound = Math.max(20, Math.abs(manannScore) + 5); // domaine centré sur 0, contient toujours la valeur
 
-  const foulLevel = vessel.fouling?.level ?? 0;
   const criticals = vessel.criticals ?? [];
 
   return (
@@ -147,7 +146,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
 
             <section className="panel port-section">
               <h3>État</h3>
-              <p className="port-hint">Salissures : niveau <b>{foulLevel}</b>{vessel.crabs ? ' · crabes boxeurs' : ''}{foulLevel > 0 ? ` — ${foulingEffects(foulLevel).desc}` : ''}</p>
+              <SalissuresDeLaCoque vessel={vessel} />
               {missing > 0 && <p className="port-hint">Avarie de coque : <b>{missing}</b> Blessure(s) à réparer au chantier.</p>}
               {criticals.length > 0 && (
                 <div>
@@ -200,7 +199,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
                   <tbody>
                     {cargo.map((lot, i) => (
                       <tr key={i}>
-                        <td>{findCargoById(lot.cargoId)?.label ?? lot.cargoId}</td>
+                        <td>{findCargoEntryById(lot.cargoId)?.label ?? lot.cargoId}</td>
                         <td>{lot.enc}</td>
                       </tr>
                     ))}

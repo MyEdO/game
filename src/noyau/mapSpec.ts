@@ -1,7 +1,7 @@
 /**
  * `MapSpec` — format DÉCLARATIF d'une carte, compilé en `Scene` par `buildScene` (headless-editor).
  *
- * PUR et Node-safe (ZÉRO import ui/gameIso) : le générateur d'arène (`scripts/arene`, `tsx` en Node)
+ * PUR et Node-safe (aucun import d'hôte) : le générateur d'arène (`scripts/arene`, `tsx` en Node)
  * l'exécute sans tirer le rendu. `buildScene` ne fait que REJOUER les primitives pures de l'éditeur
  * (`noyau/sceneEdit`) dans un ORDRE FIXE — aucune logique ad hoc, chaque section = un appel de primitive.
  *
@@ -685,7 +685,7 @@ export function buildScene(spec: MapSpec): Scene {
   //   arêtes internes d'une bande épaisse n'en portent pas (une seule herse à abattre). GÉNÉRAL, toute forme.
   const bandSet = new Set(cellCells.filter((c) => spec.cells![c.char].wall || spec.cells![c.char].gate).map((c) => `${c.x},${c.y},${c.z}`));
   // Apparence de CRÉNELURE de la bande = la structure du mur plein (`#`) — merlons de PÉRIMÈTRE dérivés par
-  // `crestGeometry` (décoration de rendu, ne coupe pas la LdV plongeante). Toute la bande la porte (crête continue).
+  // `cretesDePerimetre` (décoration de rendu, ne coupe pas la LdV plongeante). Toute la bande la porte (crête continue).
   const crestApp = Object.values(spec.cells ?? {}).find((r) => r.wall)?.wall?.structure;
   const cellWalls: WallSpec[] = [];
   for (const c of cellCells) {
@@ -970,7 +970,7 @@ export function buildScene(spec: MapSpec): Scene {
 
 /**
  * Tous les ids de CATALOGUE authorés par un `MapSpec`, validés à la compilation contre `src/data` —
- * un id faux ne produirait sinon qu'un `console.warn` DEV au rendu (`gameIso/catalog/missing.ts`) et la
+ * un id faux ne produirait sinon qu'un `console.warn` DEV au rendu (`noyau/monde/volume/missing.ts`) et la
  * carte se construirait avec une arête sans matière. La garde porte sur TOUTES les sources d'id du
  * spec, jamais sur la seule table la plus récente : `wallLegend` (y compris un char déclaré mais absent
  * de la grille), les arêtes COMPILÉES (`walled`, `walls[]`, diagonales, herses de `cells`),

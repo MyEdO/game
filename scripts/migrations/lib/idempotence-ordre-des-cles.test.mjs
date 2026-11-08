@@ -37,17 +37,25 @@ import path from 'node:path'
 import test from 'node:test'
 import { echapperRegex } from '../../../src/lib/regex.ts'
 import { ANTIDATE, depot, efface, joue, lireArbre } from './joue.mjs'
+import { estMonoTable } from './monoTable.mjs'
 import { DATEES, MIGRATIONS, RACINE } from '../../test/lib/bancIdempotence.mjs'
 
 /** Le texte d'une migration — les dérivations ci-dessous s'y font par regex. */
 const texteDe = (migration) => fs.readFileSync(path.join(MIGRATIONS, migration), 'utf8');
 
 /**
- * Ce que les migrations mesurées LISENT hors `src/data` : la lib de dérivation des labels d'art et
- * les defs d'art dont elle tire le label. COPIÉ, jamais monté en lien : le dépôt jetable ne doit
- * porter aucun chemin qui débouche sur l'arbre réel.
+ * Ce que les migrations mesurées LISENT hors `src/data` : les libs de gardes qu'elles importent.
+ * COPIÉ, jamais monté en lien : le dépôt jetable ne doit porter aucun chemin qui débouche sur
+ * l'arbre réel.
  */
-const LUS = ['scripts/guards/lib', 'src/gameIso/catalog/decor/defs'];
+const LUS = ['scripts/guards/lib'];
+
+/**
+ * La forme que les vagues mesurées ont LUE : un tableau racine de lignes, chacune ouvrant sur
+ * `id`, `type`. Un document devenu MONO-TABLE (`2026-11-06-1667-tableaux-racines-mono-tables.mjs`)
+ * rend ses rangées, le `type` du document reposé sur chacune — la forme d'avant qu'il a quittée.
+ */
+const formeDesVagues = (doc) => (estMonoTable(doc) ? doc.entries.map(({ id, ...reste }) => ({ id, type: doc.type, ...reste })) : doc);
 
 /**
  * Dépôt jetable : une COPIE de `src/data` (les migrations y écrivent) et des seuls répertoires que
@@ -56,7 +64,7 @@ const LUS = ['scripts/guards/lib', 'src/gameIso/catalog/decor/defs'];
  */
 function depotJetable(fichier, transforme) {
   const rel = `src/data/${fichier}`;
-  const avant = `${JSON.stringify(transforme(JSON.parse(lireArbre(rel))), null, 2)}`;
+  const avant = `${JSON.stringify(transforme(formeDesVagues(JSON.parse(lireArbre(rel)))), null, 2)}`;
   const jsons = fs.readdirSync(path.join(RACINE, 'src/data')).filter((f) => f.endsWith('.json')).map((f) => `src/data/${f}`);
   const { racine } = depot({ [rel]: avant }, [...LUS, ...jsons]);
   return { racine, cible: path.join(racine, rel), avant };

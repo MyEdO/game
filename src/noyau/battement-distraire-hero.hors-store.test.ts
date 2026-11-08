@@ -3,7 +3,7 @@
  * FLOWS.battement/FLOWS.distraire → resolveBattement/resolveDistraire produit bien l'effet RAW :
  *  - Battement (LDB 10 l.103) : Action, Test de CC non opposé → retire de l'Avantage adverse ;
  *  - Distraire (LDB 10 l.364) : Mouvement, Test opposé Athlétisme vs Calme → pose `distractedRounds`.
- * On pilote le VRAI flux (battleX → jetRoll(flux) → jetConfirm(flux)), avec des Caractéristiques rendant l'issue
+ * On pilote le VRAI flux (`faireUnBattement`/`tenterDeDistraire` → jetLancer(flux) → jetValider(flux)), avec des Caractéristiques rendant l'issue
  * déterministe, et on vérifie l'effet + le coût (Action pour Battement, Mouvement pour Distraire).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -21,12 +21,12 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () => {
   /** Un héros (avec les deux Talents) face à UN ennemi armé et pourvu d'Avantage, adjacent. */
   function setup() {
-    banc.getState().seedRng(1);
+    banc.getState().ensemencerLeTirage(1);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.talents = [{ talentId: 'battement', times: 1 }, { talentId: 'distraire', times: 1 }] as Combatant['talents'];
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -51,16 +51,16 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     engage(H, E); // Engagé (prérequis l.103)
     expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.advantage).toBe(3);
 
-    banc.getState().battleBattement(); // OUVRE la modale (défaut = 1er foe éligible), sans tirer
+    banc.getState().faireUnBattement(); // OUVRE la modale (défaut = 1er foe éligible), sans tirer
     const pb = banc.getState().pendingBattement;
     expect(pb).toBeTruthy();
     expect(pb!.foeId).toBe(E.id);
     expect(pb!.result).toBeNull(); // rien n’est tiré avant Lancer
 
-    banc.getState().jetRoll('battement'); // le flux tire le jet de CC (figé)
-    banc.getState().jetForceSuccess('battement'); // Résilience → le jet du flux est forcé en réussite (LDB 17 l.68)
+    banc.getState().jetLancer('battement'); // le flux tire le jet de CC (figé)
+    banc.getState().jetForcerLaReussite('battement'); // Résilience → le jet du flux est forcé en réussite (LDB 17 l.68)
     expect(banc.getState().pendingBattement!.result!.success).toBe(true);
-    banc.getState().jetConfirm('battement'); // Appliquer → resolveBattement
+    banc.getState().jetValider('battement'); // Appliquer → resolveBattement
 
     const st = banc.getState();
     expect(st.pendingBattement).toBeNull();
@@ -75,16 +75,16 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     E.characteristics['force-mentale'] = 5; // Calme (figé à l’ouverture) très bas → perd
     expect(E.distractedRounds ?? 0).toBe(0);
 
-    banc.getState().battleDistraire(); // OUVRE (fige le Calme du foe), sans tirer l’Athlétisme
+    banc.getState().tenterDeDistraire(); // OUVRE (fige le Calme du foe), sans tirer l’Athlétisme
     const pd = banc.getState().pendingDistraire;
     expect(pd).toBeTruthy();
     expect(pd!.foeId).toBe(E.id);
     expect(pd!.atk).toBeNull(); // Athlétisme du mover pas encore lancé
     expect(pd!.defRoll).toBeTruthy(); // Calme du foe déjà figé
 
-    banc.getState().jetRoll('distraire'); // le flux tire l’Athlétisme, opposé au Calme figé
+    banc.getState().jetLancer('distraire'); // le flux tire l’Athlétisme, opposé au Calme figé
     expect(banc.getState().pendingDistraire!.result).toBe('success');
-    banc.getState().jetConfirm('distraire'); // Appliquer → resolveDistraire
+    banc.getState().jetValider('distraire'); // Appliquer → resolveDistraire
 
     const st = banc.getState();
     expect(st.pendingDistraire).toBeNull();
@@ -98,10 +98,10 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     const { H, E } = setup();
     H.characteristics['capacite-de-combat'] = 1; // échec quasi certain
     engage(H, E);
-    banc.getState().battleBattement();
-    banc.getState().jetRoll('battement');
+    banc.getState().faireUnBattement();
+    banc.getState().jetLancer('battement');
     expect(banc.getState().pendingBattement!.result!.success).toBe(false);
-    banc.getState().jetConfirm('battement');
+    banc.getState().jetValider('battement');
     const e2 = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     expect(e2.advantage).toBe(3); // rien retiré sur un échec (manv.battementFail)
   });
@@ -117,12 +117,12 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
 describe('Battement & Distraire — le verdict d’offre porte la condition de CIBLE', () => {
   /** Un héros portant les deux Talents, face à UN ennemi armé, et la scène réelle du combat. */
   function terrain() {
-    banc.getState().seedRng(1);
+    banc.getState().ensemencerLeTirage(1);
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     h.talents = [{ talentId: 'battement', times: 1 }, { talentId: 'distraire', times: 1 }] as Combatant['talents'];
     banc.setState({ party: [h] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -156,9 +156,9 @@ describe('Battement & Distraire — le verdict d’offre porte la condition de C
       battle: { ...b, zones: [{ id: 'fumee', label: 'Fumée', tiles: [{ x: 8, y: 10 }], rounds: 1, permanent: true, blocksLoS: true }] } as typeof b,
     });
     expect(actionGate('distraire', ctx(H)).ok, 'une fumée entre les deux ne ferme pas le geste').toBe(true);
-    banc.getState().battleDistraire();
+    banc.getState().tenterDeDistraire();
     expect(banc.getState().pendingDistraire?.foeId, 'le dispatcher ouvre bien sur cet adversaire').toBe(E.id);
-    banc.getState().jetCancel('distraire');
+    banc.getState().jetAnnuler('distraire');
     const b2 = banc.getState().battle!;
     b2.combatants.filter((c) => c.kind === 'enemy').forEach((c) => (c.dead = true));
     banc.setState({ battle: { ...b2 } });

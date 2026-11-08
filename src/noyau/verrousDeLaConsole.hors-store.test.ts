@@ -35,7 +35,7 @@ function jusquAuTour(partie: Partie, tenu: (c: Combatant) => boolean): Combatant
     const actif = activeCombatant(partie.etat().battle!);
     if (actif && tenu(actif)) return actif;
     const e = partie.etat();
-    const intentions: Intention[] = e.pendingDefense ? [{ type: 'jetRoll', args: ['defense'] }, { type: 'jetConfirm', args: ['defense'] }] : [actif ? { type: 'battleEndTurn', args: [] } : { type: 'fenetreValider', args: ['roundStart'] }];
+    const intentions: Intention[] = e.pendingDefense ? [{ type: 'jetLancer', args: ['defense'] }, { type: 'jetValider', args: ['defense'] }] : [actif ? { type: 'jouerLOffre', args: ['end-turn'] } : { type: 'fenetreValider', args: ['roundStart'] }];
     for (const i of intentions) jouer(partie, partie.envoyer(i));
   }
   throw new Error('témoin : le tour attendu n’est pas venu');
@@ -62,11 +62,11 @@ const contexte = (partie: Partie): ActionCtx => {
 /** L'attendu par entrée : `true` = un gate de l'entrée se FERME sous l'État, avec la raison de l'État ; `false` = aucun
  *  gate de l'entrée ne bouge. Brisé : LDB 16 l.52. Sonné : LDB 16 l.125 ; Distraire coûte le Mouvement, LDB 10 l.364 ;
  *  Course coûte l'Action, LDB 15 l.41, et Brisé court pour fuir, LDB 16 l.52 ; Désengagement : l'Esquive coûte l'Action,
- *  LDB 15 l.49, Brisé s'éloigne, LDB 16 l.52 (porteur sans Avantage ni départ libre, LDB 15 l.47, LDB 85 l.253, l.373-374). */
+ *  LDB 15 l.49, Brisé s'éloigne, LDB 16 l.52 (porteur sans Avantage ni départ libre, LDB 15 l.47, LDB 85 l.253, l.373-374) ;
+ *  Action gratuite : LDB 13 l.106. */
 const MATRICE: Record<string, { brise: boolean; sonne: boolean }> = {
   reload: { brise: true, sonne: true },
   aim: { brise: true, sonne: true },
-  'use-item': { brise: true, sonne: true },
   heal: { brise: true, sonne: true },
   water: { brise: true, sonne: true },
   defend: { brise: true, sonne: true },
@@ -77,7 +77,6 @@ const MATRICE: Record<string, { brise: boolean; sonne: boolean }> = {
   'self-maneuver': { brise: true, sonne: true },
   'maneuver-area': { brise: true, sonne: true },
   'cast-spell': { brise: true, sonne: true },
-  'leave-poste': { brise: true, sonne: true },
   'maneuver-ship': { brise: true, sonne: true },
   'select-attack': { brise: true, sonne: true },
   dismount: { brise: true, sonne: false },
@@ -91,6 +90,8 @@ const MATRICE: Record<string, { brise: boolean; sonne: boolean }> = {
   'resolve-psych-immune': { brise: false, sonne: false },
   'resolve-ignore-crit': { brise: false, sonne: false },
   'resolve-remove-condition': { brise: false, sonne: false },
+  'use-item': { brise: false, sonne: false },
+  'leave-poste': { brise: false, sonne: false },
 };
 
 /** Les gates de `def` que l'État `etat`, posé par `addCondition`, fait passer d'ouvert à fermé, avec leur raison. */
@@ -139,14 +140,14 @@ describe('Matrice des verrous d’État : le registre ferme ce que la console gr
 });
 
 describe('État qui verrouille l’Action (LDB 16 l.52) : la raison du verdict est celle du dispatcher', () => {
-  it('Brisé : le mode armé que refuse `battleSelectAction` porte la MÊME raison que le gate', () => {
+  it('Brisé : l’offre du Soin, refusée, porte la MÊME raison que le gate', () => {
     const partie = auTour('pastilles-entite', (c) => c.kind === 'hero');
     try {
       const ctx = contexte(partie);
       addCondition(ctx.active, 'brise');
-      const r = partie.envoyer({ type: 'battleSelectAction', args: ['heal'] });
+      partie.envoyer({ type: 'jouerLOffre', args: ['heal'] });
       expect(partie.etat().battle!.action, 'le Brisé a armé le Soin').toBeNull();
-      expect(r.journal.flatMap((l) => (l.de === 'journal' ? [l.texte] : []))).toContain(actionGate('defend', ctx).reason);
+      expect(partie.etat().refus?.texte).toBe(actionGate('heal', ctx).reason);
     } finally {
       partie.fermer();
     }
@@ -170,9 +171,9 @@ describe('Préalables et pertinence : l’offre refuse ce que le dispatcher refu
     const partie = auTour('ecuries-clayonnage', tireur);
     try {
       const id = activeCombatant(partie.etat().battle!)!.id;
-      jouer(partie, partie.envoyer({ type: 'battleAim', args: [] }));
+      jouer(partie, partie.envoyer({ type: 'jouerLOffre', args: ['aim'] }));
       expect(activeCombatant(partie.etat().battle!)!.aiming, 'témoin : la visée n’a pas pris').toBe(true);
-      jouer(partie, partie.envoyer({ type: 'battleEndTurn', args: [] }));
+      jouer(partie, partie.envoyer({ type: 'jouerLOffre', args: ['end-turn'] }));
       jusquAuTour(partie, (c) => c.id === id && !partie.etat().battle!.acted);
       const ctx = contexte(partie);
       expect(actionGate('aim', ctx)).toEqual({ ok: false, reason: t('agate.alreadyAiming') });
@@ -182,7 +183,7 @@ describe('Préalables et pertinence : l’offre refuse ce que le dispatcher refu
     }
   });
 
-  it('Coque : la Bordée se ferme quand aucune pièce n’est chargée (`postesPretsAFaireFeu`, lu par `battleShipBattery`)', () => {
+  it('Coque : la Bordée se ferme quand aucune pièce n’est chargée (`postesPretsAFaireFeu`, lu par `ouvrirLaBordee`)', () => {
     const partie = auTour('duel-naval', (c) => !!c.postes?.length && c.kind === 'hero');
     try {
       const ctx = contexte(partie);
@@ -200,8 +201,8 @@ describe('Préalables et pertinence : l’offre refuse ce que le dispatcher refu
       const ctx = contexte(partie);
       expect(actionGate('sing-shanty', { ...ctx, args: { shipId: ctx.active.id } }).reason).toBe(t('agate.noShantySinger'));
       const poste = ctx.active.postes![0];
-      expect(poste.loaded, 'témoin : la pièce est déchargée').not.toBe(false);
-      expect(actionGate('ship-reload', { ...ctx, args: { shipId: ctx.active.id, posteUid: poste.item.uid } }).reason).toBe(t('agate.noPosteToReload'));
+      expect(poste.loaded, 'témoin : la pièce est chargée').not.toBe(false);
+      expect(actionGate('ship-reload', { ...ctx, args: { weaponUid: poste.item.uid } }).reason).toBe(t('agate.nothingToReload'));
     } finally {
       partie.fermer();
     }

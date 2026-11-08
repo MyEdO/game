@@ -288,8 +288,7 @@ export function outdoorLookup(scene: Scene): (x: number, y: number, z: number) =
 const interiorCellsByScene = memoByRef((_scene: Scene) => new Map<number, ReadonlySet<string>>());
 
 /** Cellules INTÉRIEURES d'un étage — LA source unique de « où est le bâtiment » (#881), consommée par
- *  la toiture (`realFloorAt`, `sceneEdit.ts`) et par l'enveloppe de rendu (`envelopeEdgesOf`,
- *  `gameIso/builders/walls.ts`).
+ *  la toiture (`realFloorAt`, `sceneEdit.ts`) et par l'enveloppe de rendu (`envelopeEdgesOf`).
  *
  *  `intérieur(z) = CLOS(z) (complément de `outdoorCells`) privé des cases déclarées `presentation:
  *  'exterior'` à cet étage.` L'ENCLOSURE SEULE (une boucle fermée de murs) NE SUFFIT PAS : une enceinte

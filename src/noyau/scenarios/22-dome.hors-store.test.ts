@@ -31,8 +31,8 @@ const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }
 /** Ouvre le combat du scénario et POSE le Dôme par les ops du sort CURÉ (jamais une aura à la main). */
 function startDome(): { sorciere: Combatant; protegee: Combatant; archer: Combatant; orc: Combatant } {
   banc.setState({ battle: null, party: scenario.construire().party });
-  banc.getState().startScene(scenarioConstruit.scene);
-  banc.getState().startCombat('enc-dome');
+  banc.getState().lancerLaScene(scenarioConstruit.scene);
+  banc.getState().lancerLeCombat('enc-dome');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;

@@ -40,11 +40,11 @@ const jouer = () => void draineCascade(g);
 /** `heros` héros (surfacés) face à `ennemis` ennemis (IA), tous de Taille moyenne et en vue, sans source ; la
  *  scène porte les Groupes `groups`. */
 function setup(heros = 1, ennemis = 1, groups?: string[]) {
-  banc.getState().seedRng(7);
+  banc.getState().ensemencerLeTirage(7);
   const party = Array.from({ length: heros }, (_, i) => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i + 1}`, seed: i + 1 }));
   banc.setState({ party });
-  g().startScene({ ...testScene(), groups });
-  g().startCombat('enc-mutants');
+  g().lancerLaScene({ ...testScene(), groups });
+  g().lancerLeCombat('enc-mutants');
   g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;
@@ -209,7 +209,7 @@ describe('Jet sans pilote de la passe (design B1b, D1 et D5)', () => {
       let n = 0;
       for (let graine = 1; graine <= 60; graine++) {
         const { H: [h], E: [e] } = setup();
-        g().seedRng(graine);
+        g().ensemencerLeTirage(graine);
         lu(h).causesTerreur = 2;
         lu(e).characteristics['force-mentale'] = 40;
         if (sangFroid) lu(e).traits = [...(lu(e).traits ?? []), { id: 'a-sang-froid' }];

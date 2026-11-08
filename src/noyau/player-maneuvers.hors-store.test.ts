@@ -14,6 +14,7 @@ import { findManeuverById } from '../data';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from './etat';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -106,8 +107,8 @@ describe('manœuvres en combat (store)', () => {
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -125,14 +126,14 @@ describe('manœuvres en combat (store)', () => {
   }
 
   it('Souffle CIBLÉ : battle.action=maneuver + clic = point d’impact → pendingManeuver{targetId} (jet différé)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }];
     H.characteristics['capacite-de-tir'] = 90; // Test opposé CT/Esquive → touche déterministe
     H.advantage = 3;
-    // La hotbar arme l'attaque (`battleSelectAttack`) ; le clic-entité désigne le point d’impact (zone : 1er clic).
-    banc.getState().battleSelectAttack('souffle');
-    banc.getState().battleClickEntity(E.id);
+    // La hotbar arme l'attaque (`armerLAttaque`) ; le clic-entité désigne le point d’impact (zone : 1er clic).
+    banc.getState().armerLAttaque('souffle');
+    cliquerSurLeCombattant(banc.getState, E.id);
     const pm = banc.getState().pendingManeuver;
     expect(pm).toBeTruthy(); // le Souffle ouvre la modale de jet d’attaquant
     expect(pm!.kind).toBe('souffle');
@@ -150,8 +151,8 @@ describe('manœuvres en combat (store)', () => {
     H.advantage = 3;
     const options = availableAttacks(H, banc.getState().battle!).filter((o) => o.kind === 'souffle');
     expect(options.map((o) => [o.id, o.label])).toEqual([['souffle', 'Souffle (Feu)'], ['souffle~2', 'Souffle (Froid)']]);
-    banc.getState().battleSelectAttack('souffle~2');
-    banc.getState().battleClickEntity(E.id);
+    banc.getState().armerLAttaque('souffle~2');
+    cliquerSurLeCombattant(banc.getState, E.id);
     const pm = banc.getState().pendingManeuver!;
     expect(pm.attaque).toBe('souffle~2');
     const a = attaqueDeCle(H.traits, pm.attaque)!;
@@ -162,8 +163,8 @@ describe('manœuvres en combat (store)', () => {
     const { H, E } = setup();
     H.traits = [{ id: 'morsure', value: 10 }];
     H.advantage = 2;
-    banc.getState().battleSelectAttack('morsure');
-    banc.getState().battleClickEntity(E.id, { confirm: true }); // 2e tap (parité attaque de base : 1er = aperçu)
+    banc.getState().armerLAttaque('morsure');
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true }); // 2e tap (parité attaque de base : 1er = aperçu)
     const pa = banc.getState().pendingAttack;
     expect(pa).toBeTruthy();
     expect(pa!.freeKind).toBe('morsure');
@@ -179,8 +180,8 @@ describe('manœuvres en combat (store)', () => {
     H.advantage = 2;
     E.pos = { x: 14, y: 10 }; // hors d'Allonge
     banc.setState({ battle: { ...banc.getState().battle!, acted: true, movementUsed: 0 } }); // Action déjà dépensée
-    banc.getState().battleSelectAttack('morsure');
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    banc.getState().armerLAttaque('morsure');
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) → ouvre la frappe
     const pa = banc.getState().pendingAttack;
     expect(pa!.freeKind).toBe('morsure');
@@ -194,8 +195,8 @@ describe('manœuvres en combat (store)', () => {
     H.advantage = 2;
     H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 0 }, range: 30, qualities: [], uid: 'bow' }] as Combatant['weapons']; // arme tenue = arc
     E.pos = { x: 14, y: 10 };
-    banc.getState().battleSelectAttack('morsure');
-    banc.getState().battleClickEntity(E.id, { confirm: true });
+    banc.getState().armerLAttaque('morsure');
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) → ouvre la frappe
     const pa = banc.getState().pendingAttack;
     expect(pa!.freeKind).toBe('morsure'); // la Morsure reste une attaque de MÊLÉE…
@@ -203,15 +204,15 @@ describe('manœuvres en combat (store)', () => {
   });
 
   it('manœuvre gratuite = 1/tour (RAW LDB 85 l.237) : Morsure indisponible après une 1ʳᵉ Morsure, même avec de l\'Avantage', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.traits = [{ id: 'morsure', value: 10 }];
     H.characteristics['capacite-de-combat'] = 90;
     H.advantage = 3; // assez pour 3 Morsures si elles n'étaient PAS plafonnées
-    banc.getState().battleSelectAttack('morsure');
-    banc.getState().battleClickEntity(E.id, { confirm: true }); // E adjacent → frappe directe
-    banc.getState().jetRoll('attack');
-    banc.getState().jetConfirm('attack');
+    banc.getState().armerLAttaque('morsure');
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true }); // E adjacent → frappe directe
+    banc.getState().jetLancer('attack');
+    banc.getState().jetValider('attack');
     const st = banc.getState();
     const h2 = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(h2.freeAttacksThisTurn?.morsure).toBe(1); // comptée

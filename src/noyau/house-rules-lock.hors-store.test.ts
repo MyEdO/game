@@ -7,7 +7,6 @@
  * combat faisait naître la réserve de camp À ZÉRO au premier `poolsOf`, et `mirrorPools` écrasait
  * l'Avantage individuel de TOUS les combattants. La porte vit au point d'ÉCRITURE joueur
  * (`noyau/reglesMaison`, lu par `hote/reglesMaison`), pas dans l'UI, et vaut pour la CLASSE entière (aucun id nommé).
- * Le geste du panneau web et la préférence de Cadence se jouent en `src/state/house-rules-lock.test.ts`.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { reglesMaisonMutables, surchargerUneRegleMaison } from './reglesMaison';
@@ -17,6 +16,7 @@ import { createHero } from '../engine/character';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { t } from '../i18n';
 
 let banc: Banc;
 beforeEach(() => {
@@ -28,9 +28,9 @@ const verrou = () => reglesMaisonMutables(banc.getState());
 function startFixtureCombat() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
-  banc.getState().startScene(testScene());
+  banc.getState().lancerLaScene(testScene());
   seedBattleRng(777);
-  banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
+  banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
   return banc.getState().battle!;
 }
 
@@ -50,6 +50,11 @@ describe('Règles optionnelles — verrouillées tant qu’un combat est en cour
     startFixtureCombat();
     const mutables = OPTIONAL_RULES.filter(() => verrou().mutable).map((r) => r.id);
     expect(mutables).toEqual([]);
+  });
+
+  it('en combat, le verrou DIT sa raison', () => {
+    startFixtureCombat();
+    expect(verrou()).toEqual({ mutable: false, reason: t('houseRules.lockedInBattle') });
   });
 
   it('combat ouvert le combat fini : la porte se rouvre', () => {

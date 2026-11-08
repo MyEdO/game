@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { PROPS, propSvg, missingPropSvg } from './decor';
-import { MISSING_TONE } from './missing';
+import { MISSING_TONE } from '../../noyau/monde/volume/missing';
 import { findPropById } from '../../data';
 import { CAP_IDENTITE_PROP, empreinteDuProp } from '../../data/props.types';
 import { sceneMetresPerTile } from '../../noyau/monde/scene';
@@ -75,15 +75,15 @@ describe('Opéra — props de théâtre', () => {
       expect(propSvg(id).length, id).toBeGreaterThan(120);
     }
   });
-  it('le mobilier de salle porte une empreinte 3×1, le garde-corps se pose à la CASE ; le lustre est en surplomb (sans empreinte)', () => {
+  it('le mobilier de salle porte une empreinte 3×1, le garde-corps se pose à la CASE, le lustre en surplomb sur la sienne', () => {
     // Le mobilier de salle est une RECETTE (#1343) : son 3×1 se DÉRIVE des corps (rangée de 5,40 m,
     // manteau de scène de 5,60 m) — c'est l'empreinte EFFECTIVE qui le porte, comme pour `table-2x1`.
     expect(empreinteDe('rangee-sieges')).toEqual({ w: 3, h: 1 });
     expect(empreinteDe('rideau-scene')).toEqual({ w: 3, h: 1 });
     // La rive d'un puits suit l'ovale en marches d'une à deux cases : une travée par case de rive
     // l'épouse, là qu'une volée de trois enjamberait les refends (`opera/floorplan.ts` `puitsRim`).
-    expect(findPropById('balustrade-loge')?.foot).toEqual({ w: 1, h: 1 });
-    expect(findPropById('lustre-opera')?.foot).toBeUndefined();
+    expect(empreinteDe('balustrade-loge')).toEqual({ w: 1, h: 1 });
+    expect(empreinteDe('lustre-opera')).toEqual({ w: 1, h: 1 });
   });
   it('les trois variantes longues 2×1 sont enregistrées, rendues, et empreintées par le catalogue', () => {
     for (const [id, base] of [['table-2x1', 'table'], ['bureau-2x1', 'bureau'], ['etabli-2x1', 'etabli']] as const) {

@@ -24,11 +24,11 @@ describe('Hurlement fantomatique — Test de Résistance influençable (héros m
     const H1 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 });
     const H2 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H2', seed: 2 });
     banc.setState({ party: [H1, H2] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const b = banc.getState().battle!;
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');
     enemies.slice(1).forEach((e) => (e.dead = true));
@@ -76,7 +76,7 @@ describe('Hurlement fantomatique — Test de Résistance influençable (héros m
   });
 
   it('après l’ATTAQUE PRINCIPALE : le Hurlement gratuit APPEND ses Tests DERRIÈRE l’étape défense — le curseur AVANCE (anti soft-lock)', () => {
-    // Séquence PRODUCTION : attaque de mêlée (étape `defenseJet` résolue) → `jetConfirm('defense')` →
+    // Séquence PRODUCTION : attaque de mêlée (étape `defenseJet` résolue) → `jetValider('defense')` →
     // `aiCreatureFreeAttacks` → Hurlement gratuit → son nœud `test` APPEND des `triggeredTest` DERRIÈRE
     // la défense (via pushCombatStep, ≠ maybeOpenDefense qui REMPLACE). Sans avance du curseur, la fenêtre
     // reste bloquée sur la défense résolue (pendingDefense null → `useDefenseJetProps` rend null = vide).
@@ -102,7 +102,7 @@ describe('Hurlement fantomatique — Test de Résistance influençable (héros m
       } as never,
       pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: H1.id }], { title: 'Défense', purpose: 'combat' }),
     });
-    banc.getState().jetConfirm('defense');
+    banc.getState().jetValider('defense');
 
     const p = banc.getState().pendingCascade;
     expect(p, 'le Hurlement gratuit doit ouvrir/étendre une cascade').toBeTruthy();

@@ -9,7 +9,7 @@ import { creerPont, type Pont, type Suite, type VueDuPont } from './pont';
 import type { CategorieDuPont } from './pont';
 import { cleDuGeste, horlogeVirtuelle, type LigneDuJournal } from '../../../src/noyau/index';
 import { parametresDuGeste } from '../../../src/hote/gestes';
-import type { Bouton, Choix, Element, Formulaire, Jeu, Ligne, Saisie } from '../../../src/hote/elements';
+import type { Bouton, Choix, Element, Formulaire, Jeu, Ligne, Plan, Saisie } from '../../../src/hote/elements';
 
 /** Une réponse décodée. */
 export type Reponse = ({ ok: true } & Partial<Suite> & Record<string, unknown>) | { ok: false; erreur: { categorie: CategorieDuPont; message: string } };
@@ -59,7 +59,7 @@ function fautesDeLaSaisie(ou: string, s: Saisie): string[] {
   if (s.type === 'fixe') return [];
   return [
     ...(!s.libelle || s.libelle === s.nom ? [`${ou} : libellé ${s.libelle}`] : []),
-    ...(s.type === 'saisieChoix' && (!s.valeurs.length || s.valeurs.some((v) => !v.libelle)) ? [`${ou} : un choix sans valeur nommée`] : []),
+    ...((s.type === 'saisieChoix' || s.type === 'saisieCoches') && (!s.valeurs.length || s.valeurs.some((v) => !v.libelle)) ? [`${ou} : un choix sans valeur nommée`] : []),
     ...(s.type === 'saisieObjet' ? s.champs.flatMap((c) => fautesDeLaSaisie(`${ou}.${c.nom}`, c)) : []),
   ];
 }
@@ -119,3 +119,9 @@ export function gesteDe(vue: VueDuPont, cle: string): Bouton | Choix | Formulair
 
 /** L'élément d'id `id` du corps de la fenêtre, `undefined` sans lui. */
 export const corpsDe = (vue: VueDuPont, id: string): Element | undefined => vue.zones['fenetre.corps'].find((e) => e.id === id);
+
+/** Le départ du trajet `route` sur la carte ouverte : le choix de ses modes, sous sa destination au plan. */
+export function departDeLaCarte(vue: VueDuPont, route: string): Choix {
+  const plan = corpsDe(vue, 'carte/plan') as Plan;
+  return plan.points.flatMap((p) => p.elements).find((e): e is Choix => e.type === 'choix' && e.id === route)!;
+}

@@ -8,7 +8,7 @@
  *    conversation naît avec sa `session`, l'id MONOTONE qui regroupe SES tours à la relecture ;
  *  · `reponsesDuNoeud` — la liste VISIBLE des réponses : filtre `when`, rang d'affichage 1..n,
  *    verdict d'offre (le siège qui décide, la bourse du groupe). Le RANG est celui de la liste
- *    visible, l'`id` celui de la donnée (c'est lui que reçoit `chooseDialogue`) ;
+ *    visible, l'`id` celui de la donnée (c'est lui que reçoit le choix `dialogue.reponse`) ;
  *  · `testAnnonce` — le Test que le flux d'une réponse DÉCLENCHE, en ids STABLES (jamais un libellé
  *    recopié dans la donnée), que `libelleDuTestAnnonce` résout en libellés au registre.
  */
@@ -57,7 +57,7 @@ export function ouvrirDialogue(
 
 /**
  * LA CONVERSATION RÉPOND-ELLE ? Prédicat NOMMÉ, UNIQUE, de toutes les portes par lesquelles une
- * réponse se choisit — le VERBE `chooseDialogue` (donc aussi l'intent coop appliqué par l'hôte) et
+ * réponse se choisit — le choix `dialogue.reponse` (donc aussi l'intent coop appliqué par l'hôte) et
  * les touches `dialogue-choice-N`. Trois termes, aucun recopié ailleurs :
  *  · une conversation est OUVERTE ;
  *  · CE siège décide pour le groupe (décision de groupe, #1262) ;
@@ -83,18 +83,18 @@ export interface TestAnnonce {
 
 /** Une réponse VISIBLE du nœud courant. */
 export interface ReponseDeDialogue {
-  /** Id STABLE de la réponse dans la DONNÉE (`DialogueChoice.id`) — l'argument de `chooseDialogue`. */
+  /** Id STABLE de la réponse dans la DONNÉE (`DialogueChoice.id`) — la valeur du choix `dialogue.reponse`. */
   id: IdDeReponseDeDialogue;
   /** Rang 1..n dans la liste VISIBLE — le numéro affiché, et la touche qui l'adresse. */
   rang: number;
   label: string;
   icon?: string;
-  /** Coût normalisé de la réponse payante (affiché, et payé par `chooseDialogue`). */
+  /** Coût normalisé de la réponse payante (affiché, et payé par le choix `dialogue.reponse`). */
   cost?: ReturnType<typeof toMoney>;
   /** La réponse est-elle OFFERTE ? Verdict PARTAGÉ par le clic et par la touche. */
   enabled: boolean;
   /** TEXTE du refus d'une réponse non offerte — ce siège ne décide pas pour le groupe (coop, #1262), ou
-   *  réponse payante que la bourse du groupe ne couvre pas : la fenêtre l'affiche, `chooseDialogue` le dit. */
+   *  réponse payante que la bourse du groupe ne couvre pas : la fenêtre l'affiche, le choix `dialogue.reponse` le dit. */
   refus?: string;
   test?: TestAnnonce;
 }
@@ -182,7 +182,7 @@ export function testAnnonce(flow: Flow | undefined, cc: ConditionCtx): TestAnnon
  * (garde `scripts/guards/lib/dialogueLabelTest.mjs`).
  */
 export function libelleDuTestAnnonce(test: TestAnnonce): string {
-  const quoi = testSkillLabel({ skill: test.skill, char: test.characteristic }) ?? '';
+  const quoi = testSkillLabel(test) ?? '';
   const diff = DIFFICULTY_LABELS[test.difficulty];
   return test.targetDR != null ? t('dlg.testTagCumul', { quoi, diff, dr: test.targetDR }) : t('dlg.testTag', { quoi, diff });
 }
@@ -190,7 +190,7 @@ export function libelleDuTestAnnonce(test: TestAnnonce): string {
 /** Une réponse en vue : ce qu'elle annonce (`libelleDuTestAnnonce`) et le geste qui la choisit. */
 export interface ReponseEnVue extends ReponseDeDialogue {
   annonce: string | null;
-  geste: { verbe: 'chooseDialogue'; args: [IdDeReponseDeDialogue] };
+  geste: { verbe: 'fenetreChoisir'; args: ['dialogue', 'reponse', IdDeReponseDeDialogue] };
 }
 
 /** La conversation en vue, pour un hôte qui la dessine. */
@@ -220,6 +220,6 @@ export function conversationEnVue(s: Jeu): ConversationEnVue | null {
   return {
     orateur: nomDeLInterlocuteur(s) ?? null,
     replique: node.desc ?? null,
-    reponses: reponsesDuNoeud(s).map((r) => ({ ...r, annonce: r.test ? libelleDuTestAnnonce(r.test) : null, geste: { verbe: 'chooseDialogue', args: [r.id] } })),
+    reponses: reponsesDuNoeud(s).map((r) => ({ ...r, annonce: r.test ? libelleDuTestAnnonce(r.test) : null, geste: { verbe: 'fenetreChoisir', args: ['dialogue', 'reponse', r.id] } })),
   };
 }

@@ -19,12 +19,12 @@
 // Toute autre zone lui est fermée, même pour un type.
 import { posix as cheminPosix } from 'node:path';
 
-/** La surface du noyau (#2817 D9) : la porte de `noyau` pour un hôte, le seul module de `src/state/` et
- *  `src/noyau/` qui réexporte (`murs/reexportation`, `couchesLint.mjs`). */
+/** La surface du noyau (#2817 D9) : la porte de `noyau` pour un hôte, le seul module de `src/state/`,
+ *  `src/noyau/` et `src/scenes/` qui réexporte (`murs/reexportation`, `couchesLint.mjs`). */
 export const SURFACE_DU_NOYAU = 'src/noyau/index.ts';
 
 /** Les zones dont la production ne réexporte rien hors de `SURFACE_DU_NOYAU` (#2817 D2, `murs/reexportation`). */
-export const ZONES_SANS_REEXPORTATION = Object.freeze(['state', 'noyau']);
+export const ZONES_SANS_REEXPORTATION = Object.freeze(['state', 'noyau', 'scenes']);
 
 /** Les paquets de l'hôte web (#2817 D9) : aucune zone qui survit à la bascule (`survit`) ne les charge. */
 export const PAQUETS_DE_L_HOTE_WEB = Object.freeze(['react', 'react-dom', 'zustand', 'three']);
@@ -59,7 +59,8 @@ export const COUCHES = Object.freeze({
       'hotes/godot/asset/charger.mjs': ['scripts/entree-d-hote.mjs'],
       'hotes/godot/asset/importer.ts': ['scripts/guards/lib/ecritureJsonAtomique.mjs'],
       'hotes/godot/asset/release.ts': ['scripts/guards/lib/ecritureJsonAtomique.mjs'],
-      'hotes/godot/recette.mjs': ['scripts/recette/lib.mjs'],
+      'hotes/godot/recette.mjs': ['scripts/recette/lib.mjs', 'scripts/guards/lib/projetsLivres.mjs'],
+      'hotes/godot/servir.mjs': ['scripts/guards/lib/projetsLivres.mjs', 'scripts/source/projetLivre.mjs', 'scripts/source/resoudre.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs'],
     },
     paquetsDOutillage: { 'hotes/godot/asset/evaluateur/': ['three'] },
   },
@@ -70,7 +71,7 @@ export const COUCHES = Object.freeze({
   },
   net: { importe: [...FEUILLES], types: ['hote'] },
   web: { importe: [...FEUILLES] },
-  audio: { importe: ['web', ...FEUILLES] },
+  audio: { importe: ['web', 'data', ...FEUILLES] },
   state: { importe: ['noyau', 'hote', 'web', 'engine', 'data', 'scenes', 'net', 'audio', ...FEUILLES], types: ['ui'] },
   ui: { importe: ['gameIso', 'hote', ...AMONT_DE_LA_PRESENTATION] },
   gameIso: { importe: ['ui', ...AMONT_DE_LA_PRESENTATION] },
@@ -89,6 +90,20 @@ export const RACINES_DES_ZONES = Object.freeze([...new Set(Object.keys(COUCHES).
 
 /** Les hôtes du noyau : les zones qui ne lisent le noyau que par sa porte (`portes`). */
 export const HOTES_DU_NOYAU = Object.freeze(Object.keys(COUCHES).filter((z) => COUCHES[z].portes?.noyau === SURFACE_DU_NOYAU));
+
+/** La portée d'une garde de corpus, dérivée de la table (#3556) : les dossiers (`dossierDe`) des zones `survivent`, qui
+ *  survivent à la bascule (`survit`), puis ceux des zones `web`, qui n'y survivent pas et que la garde balaie avec elles.
+ *  Une zone hors de la table, ou rangée du mauvais bord, lève : la portée suit la table, jamais un chemin écrit à la main.
+ *  PURE. */
+export function porteeDeGarde(survivent, web = []) {
+  const bord = (zones, attendu) => zones.map((z) => {
+    if (!estZone(z) || z === 'racine' || (COUCHES[z].survit === true) !== attendu) {
+      throw new Error(`porteeDeGarde : « ${z} » n’est pas une zone ${attendu ? 'qui survit' : 'de l’hôte web'} de \`COUCHES\``);
+    }
+    return dossierDe(z);
+  });
+  return Object.freeze([...bord(survivent, true), ...bord(web, false)]);
+}
 
 /** Les zones à dossier propre, du plus long dossier au plus court : un dossier imbriqué se lit avant son parent. */
 const PAR_DOSSIER = Object.keys(COUCHES).filter((z) => z !== 'racine').map((z) => [dossierDe(z), z]).sort(([a], [b]) => b.length - a.length);

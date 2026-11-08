@@ -27,7 +27,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * (`valeur` fondue + `soutien` + `dansLaValeur` + `surLaCible`) — sa garde d'exactitude (`exact`,
  * THROW en DEV) juge au passage que la valeur d'`openSkillTest` se RECONSTRUIT depuis le Niveau de
  * Compétence nu, ce qu'aucune mesure n'avait établi. Les fiches du Codex que citent les lignes sociales se jouent en
- * `src/state/openskilltest-monteur-parity.test.ts`.
+ * `src/noyau/codex/lignes-sociales-fiches.hors-store.test.ts`.
  */
 
 let banc: Banc;
@@ -79,7 +79,7 @@ describe('openSkillTest × monteur canonique — la cible est BIT-IDENTIQUE (#11
     const pt = banc.getState().pendingTest!;
     expect(pt.skillValue).toBe(45); // Ag 40 + 5 avances, rien d'autre
     const vieux = cibleHistorique(pt.skillValue, 'intermediaire');
-    const monteur = rollStep({ actor: h, test: { skill: 'athletisme' }, difficulty: 'intermediaire', valeur: pt.skillValue });
+    const monteur = rollStep({ actor: h, test: { skill: { id: 'athletisme' } }, difficulty: 'intermediaire', valeur: pt.skillValue });
     memeCible(vieux, monteur);
     expect([pt.target, pt.clamped]).toEqual([monteur.target, monteur.clamped]);
   });
@@ -108,7 +108,7 @@ describe('openSkillTest × monteur canonique — la cible est BIT-IDENTIQUE (#11
     expect(pt.support?.bonus).toBe(10); // Soutien de h2 (LDB 12)
     const vieux = cibleHistorique(pt.skillValue, 'difficile');
     const monteur = rollStep({
-      actor: h1, test: { skill: 'charme' }, difficulty: 'difficile',
+      actor: h1, test: { skill: { id: 'charme' } }, difficulty: 'difficile',
       valeur: pt.skillValue, soutien: pt.support,
       dansLaValeur: [{ label: 'Animosité', value: pt.psychMod!, famille: 'jet' }] as ModLine[],
     });
@@ -139,7 +139,7 @@ describe('openSkillTest × monteur canonique — la cible est BIT-IDENTIQUE (#11
     expect(pt.target).toBe(38); // Soc 50 +8 avances −10 Préjugé −10 Complexe (allégée d'un cran)
     const vieux = cibleHistorique(pt.skillValue, pt.difficulty as keyof typeof DIFFICULTY_MODIFIERS);
     const monteur = rollStep({
-      actor: h1, test: { skill: 'marchandage' }, difficulty: pt.difficulty,
+      actor: h1, test: { skill: { id: 'marchandage' } }, difficulty: pt.difficulty,
       valeur: pt.skillValue,
       dansLaValeur: [{ label: 'Préjugé', value: pt.psychMod!, famille: 'jet' }] as ModLine[],
     });
@@ -157,7 +157,7 @@ describe('openSkillTest × monteur canonique — la cible est BIT-IDENTIQUE (#11
     expect(pt.skillValue).toBe(40); // la météo n'entre PAS dans la valeur
     const vieux = cibleHistorique(pt.skillValue, 'intermediaire', -20);
     const monteur = rollStep({
-      actor: h, test: { skill: 'athletisme' }, difficulty: 'intermediaire', valeur: pt.skillValue,
+      actor: h, test: { skill: { id: 'athletisme' } }, difficulty: 'intermediaire', valeur: pt.skillValue,
       surLaCible: meteo as ModLine[],
     });
     memeCible(vieux, monteur);
@@ -174,7 +174,7 @@ describe('openSkillTest × monteur canonique — la cible est BIT-IDENTIQUE (#11
     const pt = banc.getState().pendingTest!;
     const vieux = cibleHistorique(pt.skillValue, 'tresFacile');
     expect(vieux.clamped).toBeLessThan(0); // le fixture DÉPASSE bien le plafond
-    const monteur = rollStep({ actor: h, test: { skill: 'athletisme' }, difficulty: 'tresFacile', valeur: pt.skillValue });
+    const monteur = rollStep({ actor: h, test: { skill: { id: 'athletisme' } }, difficulty: 'tresFacile', valeur: pt.skillValue });
     memeCible(vieux, monteur);
     expect([pt.target, pt.clamped]).toEqual([monteur.target, monteur.clamped]);
   });
@@ -184,7 +184,7 @@ describe('openSkillTest × monteur canonique — la cible est BIT-IDENTIQUE (#11
     // Sans ce cas, les parités ci-dessus prouveraient la cible mais pas la RECONSTRUCTION : un `exact`
     // faux passerait inaperçu si la garde ne mordait pas dans cet environnement.
     expect(() => rollStep({
-      actor: h, test: { skill: 'athletisme' }, difficulty: 'intermediaire', valeur: 45,
+      actor: h, test: { skill: { id: 'athletisme' } }, difficulty: 'intermediaire', valeur: 45,
       dansLaValeur: [{ label: 'jamais fondu', value: -20, famille: 'jet' }] as ModLine[],
     })).toThrow(/ne se reconstruit pas/);
   });

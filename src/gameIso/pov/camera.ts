@@ -9,15 +9,14 @@
  * unités de GRILLE ; l'axe vertical monde `z` sert d'axe « haut » écran.
  */
 import type { View } from '../facing';
-import { WALL_H_M } from '../iso';
-import { mix, parseHex } from '../shade';
+import { EYE_H, WALL_H_M } from '../../noyau/monde/iso';
+import { mix } from '../../lib/ombrage';
+import { parseHex } from '../../lib/couleurHex';
 import { heightAt, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import { DIR8_DELTA, type Dir8 } from '../../geometry/dir8';
 import { AMBIANCE } from '../catalog/ambiance';
 
 // — Constantes de caméra/projection — (hauteur de cloison : `WALL_H_M`, vérité partagée dans iso.ts)
-/** Hauteur de l'œil au-dessus de la surface où se tient le groupe (mètres). */
-export const EYE_H = 1.7;
 /** Hauteur de l'œil au-dessus de l'ASSISE d'un corps ASSIS (mètres) : le tronc, le cou et la tête
  *  restent, les jambes se replient — ce qui reste au-dessus du siège, et non au-dessus du sol. */
 export const EYE_H_ASSIS = 0.75;

@@ -12,7 +12,7 @@ import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from './combattan
  * GARDE DE CLASSE — tout `ActiveEffect` posé doit porter un ANCRAGE DE RÈGLE.
  *
  * Une pastille d'effet n'informe le joueur que si elle est reliée à une règle (arbitrage user
- * 2026-07-18) : `chipCodex` (`src/gameIso/effectIcons.ts`) résout par id STABLE — `sourceSpellId`
+ * 2026-07-18) : `chipCodex` résout par id STABLE — `sourceSpellId`
  * (sort/prière source) ou `effectId` (identité de l'effet) — et ne fabrique AUCUN repli. Un effet
  * posé sans l'un des deux s'affiche donc NU : icône + libellé, sans fiche ni popover.
  *
@@ -21,7 +21,7 @@ import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from './combattan
  * décide. Cette garde énumère les callsites `applyOps` dont les ops peuvent poser un effet actif et
  * dont le ctx n'apporte aucun ancrage.
  *
- * BASELINE : 21 callsites résiduels, listés NOMMÉMENT ci-dessous avec leur déclencheur (43 au relevé
+ * BASELINE : 20 callsites résiduels, listés NOMMÉMENT ci-dessous avec leur déclencheur (43 au relevé
  * initial du 2026-07-18 : les sorts, les activités de mer/voyage et TOUS les effets déclenchés — traits,
  * talents, qualités, symptômes, États, psychologie, via `effectSourcesOf` — sont désormais ancrés). La
  * garde échoue sur toute NOUVELLE source non ancrée, et AUSSI quand un callsite listé a été ancré sans
@@ -148,8 +148,6 @@ const BASELINE: string[] = [
   'noyau/combatFlow.ts | outcome.ops | { rng: battleRng() }', // ops de l'issue d'une manœuvre
   'noyau/medicFlow.ts | penalty | { rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }', // pénalité posée par un soin raté
   'noyau/seaVoyageFlow.ts | p.scaldOps | { rng: battleRng(), now: get().gameTime }', // brûlure de vapeur (scaldOps) d'une pièce de machine
-  "noyau/seaVoyageFlow.ts | [{ op: 'grantTalent', talent: { id: 'chanceux' } }] | { label: event.label, rng, defaultUntilTime: until }", // Talent Chanceux octroyé par un événement de bord
-  "noyau/seaVoyageFlow.ts | [ { op: 'skillDRBonus', skill: { id: 'focalisation' }, bonus: 2 }, { op: 'skillDRBonus', skill: { id: 'guerison' }, bonus: 2 }, { op: 'skillDRBonus', skill: { id: 'resistance' }, bonus: 2 }, ] | { label: event.label, rng, defaultUntilTime: until }", // bonus de DR octroyés par un événement de bord
   'noyau/travelFlow.ts | r.entry.occupantOps | { rng: battleRng() }', // ops subies par l'occupant d'une rencontre de voyage
   'noyau/travelPostes.ts | [op] | { rng: battleRng() }', // Exténué du Test de résistance de traversée (État : ancré par son condId)
   // #1279 S1 — EFFETS PAR MANCHE d'une séquence : les ops viennent de la DONNÉE de l'entrée qui joue

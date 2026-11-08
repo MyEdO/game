@@ -4,7 +4,7 @@
  * La référence est une propriété de la RÈGLE, pas du site qui pousse la `ModLine` : deux
  * producteurs de la même règle (« Main secondaire » en attaque et en Parade) consomment la MÊME
  * entrée. Module FEUILLE du moteur : aucun couplage UI — l'affichage résout `{category, id}` au
- * Codex, cf. `ui/RollLine.tsx`.
+ * Codex.
  *
  * Stock DÉNOMBRABLE : la garde `src/engine/rule-refs.test.ts` recense les producteurs de `ModLine`
  * SANS `ref` — toute règle nouvellement liée retire une ligne du cliquet.
@@ -22,7 +22,7 @@ export interface CodexTarget {
 /**
  * Provenance STRUCTURÉE d'un modificateur : QUI l'octroie, en identité stable.
  *
- * `id` seul suffit — le NOM se résout au RENDU (`ui/RollLine.tsx`), jamais au producteur : un
+ * `id` seul suffit — le NOM se résout au RENDU, jamais au producteur : un
  * résolveur passé de site en site s'oublie au premier site suivant, et l'écran affiche alors l'id
  * brut (« pregen-101 », recette B3a). `label` n'est renseigné que par une provenance qui n'a PAS
  * d'identité dans l'état (source hors combattants). `category` complète le lien Codex quand elle

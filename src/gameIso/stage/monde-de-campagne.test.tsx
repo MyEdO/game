@@ -12,8 +12,8 @@ import { props } from '../../data';
 import type { Combatant } from '../../engine/types';
 import * as propsBuilder from '../builders/props';
 import * as roomPortalsModule from '../../noyau/monde/roomPortals';
-import * as roofsBuilder from '../builders/roofs';
-import { buildRoofs } from '../builders/roofs';
+import * as roofsBuilder from '../../noyau/monde/volume/toits';
+import { buildRoofs } from '../../noyau/monde/volume/toits';
 import { estPropVolumique } from '../builders/types';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { capsuleCenter, tileCenter, LEVEL_H, type Dims } from '../../geometry/iso';
@@ -21,6 +21,7 @@ import { metricToLift } from '../../noyau/monde/relief';
 import { actorCapsuleOf } from './actorCapsule';
 import { VW, VH } from './useStageCamera';
 import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../../engine/combattantDeTest.testkit';
+import { REF_HORS_CATALOGUE } from '../../noyau/monde/volume/decorVolumique.testkit';
 
 /**
  * #817 — un rendu de PLUS (survol, pan caméra, tout état sans rapport avec scène/position
@@ -449,20 +450,10 @@ describe('MondeDeCampagne — un étage peint montre son décor, les deux voies 
     vi.restoreAllMocks();
   });
 
-  /** Refs DÉRIVÉES du catalogue — la vague volumique (#1343) convertit les refs lot par lot, donc
-   *  aucune n'est écrite en dur. Le jour où une VOIE disparaît du catalogue, ce banc n'a plus rien à
-   *  mesurer et doit le DIRE : un `!` y rendrait un `TypeError` opaque. */
-  const refDuCatalogue = (voie: 'volume' | 'billboard') => {
-    const p = props.find((q) => (voie === 'volume' ? !!q.volume : !q.volume));
-    if (!p) {
-      throw new Error(voie === 'volume'
-        ? 'plus aucune ref à recette au catalogue : ce banc n’a plus de voie volume à mesurer'
-        : 'plus aucune ref sans recette au catalogue : ce banc n’a plus de voie billboard à mesurer');
-    }
-    return p.id;
-  };
-  const REF_VOLUME = refDuCatalogue('volume');
-  const REF_BILLBOARD = refDuCatalogue('billboard');
+  /** Un décor de chaque voie : un type du catalogue, cuit en volume, et une ref hors catalogue, que seul
+   *  le repli d'ERREUR (#877) sert encore en billboard — chaque type porte sa recette (#3198). */
+  const REF_VOLUME = props[0].id;
+  const REF_BILLBOARD = REF_HORS_CATALOGUE;
 
   /** GALERIE : un rez et un étage, le groupe au REZ, et à l'ÉTAGE un décor de chaque voie. Aucune
    *  architecture, donc aucune nappe à lever : ce que l'écran retranche ne vient que de l'étage. */

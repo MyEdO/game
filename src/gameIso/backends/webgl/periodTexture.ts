@@ -31,7 +31,8 @@ import {
   type CourseVertical,
 } from '../../detail/courses';
 import { BLOCK_SHADE_K } from '../../detail/expand';
-import { parseHex, srgbToLinear } from '../../shade';
+import { srgbToLinear } from '../../../lib/ombrage';
+import { parseHex } from '../../../lib/couleurHex';
 import type { DetailRecipe } from '../../../data/materials.types';
 
 /** Les deux familles de période : appareillage VERTICAL (mur, pan de toit) et appareillage de SOL. */

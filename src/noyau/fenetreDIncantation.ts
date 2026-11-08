@@ -3,7 +3,7 @@
  * le Sort, son NI et sa Zone d'Effet, la ligne du jet (aperçu ou jet tombé), les réglages d'avant et d'après le jet
  * (ton de la Prière, forme de l'arme invoquée, effet d'Incantation Critique, Surincantation, jets sur le Tableau, pose
  * de la zone), chacun avec la raison qui le refuse, les fermetures du flux `cast`, l'annulation et l'issue. Lecteur PUR,
- * partagé par l'écran web (`ui/CastModal.tsx`) et par tout hôte qui lit la partie sans écran ; ses refus sont ceux que
+ * partagé par l'écran d'incantation et par tout hôte qui lit la partie sans écran ; ses refus sont ceux que
  * les réglages du jet (`jetRegler('cast', …)`, `reglagesDuCombat`) et la pose de la zone appliquent (`combatSlice.ts`).
  * Ses textes sortent du catalogue par `t()`.
  */
@@ -85,7 +85,7 @@ export interface FenetreDIncantation {
   /** Les pas de Surincantation de chaque axe ouvert, en choix réglés (`REGLAGE_DE_L_AXE`) : de 0 au budget, chaque pas
    *  avec la raison qui le refuse ; vide quand le jet n'ouvre aucun pas. LDB 47 l.15-17 */
   crans: ChoixNomme<number>[];
-  /** La pose de la zone après le jet (`castPlaceZone(true)`) : la raison qui la refuse ; `null` sans zone à poser. */
+  /** La pose de la zone après le jet (`jetRegler('cast', 'carte', 'zone')`) : la raison qui la refuse ; `null` sans zone à poser. */
   pose: { refus: string | null } | null;
   /** Les fermetures du flux `cast` (`FLOWS.cast.fermetures`). */
   fermetures: FermeturesDuJet;

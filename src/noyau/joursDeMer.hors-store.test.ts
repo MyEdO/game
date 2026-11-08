@@ -1,5 +1,5 @@
 /**
- * Jours de mer jugés par le NOYAU (#3059) : le geste `startTravel` en traversée RAPIDE pose
+ * Jours de mer jugés par le NOYAU (#3059) : le geste `partirEnVoyage` en traversée RAPIDE pose
  * `sea.fast.days` au M de croisière du navire (gréement + Améliorations), au rythme de la règle maison
  * `sea-night-sailing`, et refuse d'appareiller un navire sans M ou à la cale surchargée. L'estimation
  * de la carte du monde lit les mêmes fonctions. MDG 12 l.70-75 ; MDG 12 l.293 ; MDG 15 l.25 ;
@@ -28,7 +28,7 @@ const carte: WorldMap = {
 
 interface Navire { vehicleId: string; upgrades?: NavalTraitRef[]; cargo?: CargoLot[] }
 
-/** Appareille en traversée rapide par le geste `startTravel` et rend les jours que le noyau a posés
+/** Appareille en traversée rapide par le geste `partirEnVoyage` et rend les jours que le noyau a posés
  *  (`undefined` : aucun départ). */
 function joursDeLaTraverseeRapide(navire: Navire, reglesMaison: Record<string, unknown> = {}): number | undefined {
   const entrees: EntreesDeLaPartie = { graine: 7, reglesMaison, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
@@ -37,11 +37,12 @@ function joursDeLaTraverseeRapide(navire: Navire, reglesMaison: Record<string, u
     party: makePregens().slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     worldMap: carte,
+    lieu: 'A',
     gameTime: 8 * 60,
     vessel: { ...navire, morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
   }, entrees);
   try {
-    partie.envoyer({ type: 'startTravel', args: ['r1', 'mer', { fast: true }] });
+    partie.envoyer({ type: 'partirEnVoyage', args: ['r1', 'mer', { fast: true }] });
     return partie.etat().travelPlan?.sea?.fast?.days;
   } finally {
     partie.fermer();
@@ -52,7 +53,7 @@ const COGUE: Navire = { vehicleId: 'cogue' };
 const COGUE_LISSEE: Navire = { vehicleId: 'cogue', upgrades: [{ id: 'lissage' }] };
 const CORACLE_IMMOBILE: Navire = { vehicleId: 'coracle', upgrades: [{ id: 'bouteur' }, { id: 'bouteur' }, { id: 'bouteur' }] };
 /** Cogue chargée au double de sa Contenance, au-delà du plafond dur. */
-const COGUE_SURCHARGEE: Navire = { vehicleId: 'cogue', cargo: [{ cargoId: 'bois-mer', enc: 2 * findVehicleById('cogue')!.ship!.capacity, basePriceGold: 10 }] };
+const COGUE_SURCHARGEE: Navire = { vehicleId: 'cogue', cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: 2 * findVehicleById('cogue')!.ship!.capacity, basePriceGold: 10 }] };
 
 describe('#3059 — jours de mer : une seule durée pour la carte et le noyau', () => {
   it('cogue (M 5) qui vogue de nuit : 550 milles en 7 jours', () => {

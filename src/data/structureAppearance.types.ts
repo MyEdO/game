@@ -1,13 +1,18 @@
-/** Apparence PARTAGÉE d'une structure d'arête (mur/porte), consommée par l'iso (`gameIso/builders/walls.ts`)
- *  ET le volumique (`gameIso/backends/webgl/`). Donnée pure (`src/data/structureAppearance.json`), découplée de `StructureData` (règles).
+/** Apparence PARTAGÉE d'une structure d'arête (mur/porte), consommée par l'iso
+ *  ET le volumique. Donnée pure (`src/data/structureAppearance.json`), découplée de `StructureData` (règles).
  *  Couleurs : hex ou var CSS (`var(--struct-*)`, base.css). L'iso dérive l'ombrage par orientation via
  *  `shade()` à partir des couleurs de base ci-dessous ; le POV les teinte par la lumière. */
 import type { DetailRecipe } from './materials.types';
+
+/** Les familles de pièces du kit 3D des arêtes (`hotes/godot/asset/kit.ts`) : pan de bois, pierre, clôture. */
+export type FamilleDuKit = 'colombage' | 'pierre' | 'cloture';
 
 export interface StructureAppearanceDef {
   id: string;
   type: 'structureAppearance';
   label: string;
+  /** La famille de pièces du kit 3D que l'hôte Godot pose sur une arête de cette apparence (`aretes.ts`). */
+  kit: FamilleDuKit;
   /** Hauteur visuelle métrique de la face du mur ; défaut `WALL_H_M`. */
   wallHeightM?: number;
   /** Recette de détail de surface (appareillage/joints/mouchetis) — consommée par les backends (iso + POV). */
@@ -44,7 +49,7 @@ export interface StructureAppearanceDef {
    *  `jut` = SAILLIE par CÔTÉ d'une partie posée devant de la matière pleine (épaisseur totale =
    *  épaisseur du mur + 2×`jut`) ; `thick` = épaisseur TOTALE d'une partie qui BOUCHE une ouverture
    *  (rien derrière elle ; 0 = plan unique au médian). Absent = les défauts par partie de
-   *  `gameIso/catalog/structures/index.ts`. */
+   *  `noyau/monde/volume/structures.ts`. */
   relief?: {
     jut?: Partial<Record<WallPart, number>>;
     thick?: Partial<Record<WallPart, number>>;
@@ -53,7 +58,7 @@ export interface StructureAppearanceDef {
   };
 }
 
-/** Parties NOMMÉES d'un mur assemblé par le builder du pivot (`gameIso/builders/walls.ts`) — LISTE RUNTIME dont
+/** Parties NOMMÉES d'un mur assemblé par le builder du pivot — LISTE RUNTIME dont
  *  l'union `WallPart` dérive : le `switch` de `wallPartRelief` s'y mesure (garde d'exhaustivité), et le
  *  schéma de `structureAppearance.json` (`schemas/defs/structureAppearance.ts`) y contraint les clés de `relief`. Chaque backend résout la
  *  couleur de BASE d'une partie via `wallPartColor` puis applique SA lumière (orientation iso / tint POV). */

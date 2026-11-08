@@ -43,7 +43,7 @@ describe('événements de bord & de port (MDG 15 l.89 + l.127-129)', () => {
   it('port : 2d10 ±1 selon le signe de l’Humeur ; l’événement survient dans les 2d10 heures', () => {
     const e = rollPortEvent(-10, seq(5, 5, 3, 4)); // 5+5−1 = 9 → « Pas d'événement » (9-12)
     expect(e.roll).toBe(9);
-    expect(e.event.kind).toBe('rien');
+    expect(e.event.id).toBe('pas-d-evenement');
     expect(e.hours).toBe(7);
     const f = rollPortEvent(15, seq(10, 10, 1, 1)); // 10+10+1 = 21 → Saturation
     expect(f.roll).toBe(21);
@@ -147,7 +147,7 @@ describe('commerce maritime (MDG 15 l.309-436)', () => {
   });
 
   it('cargaison embarquée : total d’Enc, retrait par lots (avaries d’événement)', () => {
-    const lots = [{ cargoId: 'bois-mer', enc: 100, basePriceGold: 1.5 }, { cargoId: 'bois-mer', enc: 40, basePriceGold: 1 }, { cargoId: 'sel', enc: 20, basePriceGold: 2 }];
+    const lots = [{ uid: 'lot-1', cargoId: 'bois-mer', enc: 100, basePriceGold: 1.5 }, { uid: 'lot-2', cargoId: 'bois-mer', enc: 40, basePriceGold: 1 }, { uid: 'lot-3', cargoId: 'sel', enc: 20, basePriceGold: 2 }];
     expect(cargoTotalEnc(lots)).toBe(160);
     const r = removeCargo(lots, 'bois-mer', 120);
     expect(r.removed).toBe(120);

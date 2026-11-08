@@ -221,7 +221,7 @@ fabriques/lentilles partagées et les ${ATOMES.length} atomes obligatoires (lus 
 anti-dérive, jamais recopiés), et les ${GARDES_MESUREES.length} gardes avec l'intitulé de leur
 \`describe(...)\`. **Angles morts** : ce doc dit COMMENT poser un flux, pas d'où partent les jets
 existants (\`docs/registre-jets.md\`) ni comment chaque consommateur remplit la coquille
-(\`docs/usages-jets.md\`) ; le CONTENU d'un résolveur métier (ce que \`jetConfirm(flux)\` applique) n'est
+(\`docs/usages-jets.md\`) ; le CONTENU d'un résolveur métier (ce que \`jetValider(flux)\` applique) n'est
 dérivable d'aucun registre — c'est la règle du jeu ; les interdits et l'ordre des étapes sont de
 l'ÉDITORIAL fixé dans le script.
 
@@ -239,7 +239,7 @@ ${CYCLE.note ? `> ${CYCLE.note}\n` : ''}
 Source unique de la plomberie : \`makeRollFlow\` (\`${PARTAGES.find((p) => p.nom === 'makeRollFlow').site}\`).
 Elle centralise gardes, dépense de points et re-rendu ; le flux ne fournit que sa forme.
 **Le corps de la clôture reste écrit à la main** — ses effets sont la règle métier, pas de la plomberie ;
-le geste, lui, est le verbe de jet \`jetConfirm(flux)\`, jugé sur la fenêtre comme les autres.
+le geste, lui, est le verbe de jet \`jetValider(flux)\`, jugé sur la fenêtre comme les autres.
 
 ## 1. Le registre des flux — \`FLOW_VERBS\`
 
@@ -278,10 +278,10 @@ ${SANS_MODALE.length ? `Flux sans entrée propre dans \`MODAL_DEFS\` : ${SANS_MO
    forcée à la compilation.
 4. **Le corps de la clôture écrit à la main**, entrée du flux dans la table \`cloturesDe…(get, set)\` de son module
    (\`satisfies Partial<CloturesDuJet>\`), composée dans \`src/noyau/fabriquesDuNoyau.ts\` (\`satisfies CloturesDuJet\` :
-   un flux sans clôture ne compile pas) — \`jetConfirm(flux)\` en est le seul appelant : lire le résultat, appliquer
+   un flux sans clôture ne compile pas) — \`jetValider(flux)\` en est le seul appelant : lire le résultat, appliquer
    les effets métier (par \`GameOp\` si l'effet est un octroi / un soin / des dégâts), nuller le pending, et
    faire avancer la cascade hôte si le jet en est une étape — jamais une 2ᵉ fenêtre séparée. L'annulation est
-   le verbe de jet \`jetCancel(flux)\` : son effet métier se déclare au spec (\`onCancel\`). QUAND la fenêtre se clôt et s'annule se DÉCLARE au spec (\`clotures\`,
+   le verbe de jet \`jetAnnuler(flux)\` : son effet métier se déclare au spec (\`onCancel\`). QUAND la fenêtre se clôt et s'annule se DÉCLARE au spec (\`clotures\`,
    \`cloture\`, \`annulation\`, \`jetPose\`, \`jetImpose\`, \`perdu\`) : \`RollFlowHandlers.fermetures\` en tire ce que
    la coquille, les hôtes et les verbes de jet ouvrent. Un réglage du jet (l'arme, la localisation, la réaction…) se
    déclare à \`ReglagesDuJet\` / \`REGLAGES_DU_JET\` (\`src/noyau/reglagesDuJet.ts\` : forme de la valeur, phase, portée),
@@ -299,7 +299,7 @@ ${table(PARTAGES, ['Primitive', 'Site', 'Rôle (JSDoc)'], (p) => `| \`${p.nom}\`
 Le résolveur d'un flux est **UN SEUL** \`resolve\` pour tous les cas : jet normal (RNG), réussite
 forcée par défaut, dé CHOISI par le joueur, et DR imposé par la Résistance. Un flux qui n'expose pas
 la capacité correspondante n'offre simplement pas l'influence — les branches sont alors inertes.
-La Résilience avant le jet (« au lieu de lancer les dés », LDB 17 l.68) est UN geste du verbe de jet \`jetForceSuccess\`
+La Résilience avant le jet (« au lieu de lancer les dés », LDB 17 l.68) est UN geste du verbe de jet \`jetForcerLaReussite\`
 (\`auJetDu\`, encadré par \`withPreRollFixedDie\`) : le résolveur forcé se passe du dé quand il le sait, sinon le
 jet du flux tombe d'abord puis il est forcé ; aucune modale ne compose ce geste. Un Test opposé déclare
 \`perdu\` : sa Résilience reste ouverte sur un jet propre réussi dont l'opposition est perdue.

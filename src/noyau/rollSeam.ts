@@ -54,6 +54,8 @@ import { precipitationTestMods, type SeaPrecipitationId } from '../engine/seaWea
 import { startCascade, runCascadeImmediate, rollBatchParticipant, pushStep, tableStepPosee, clampStepAmount, porteursDeLEtape, compteurDeSequence } from './cascade';
 import { tablesPosees, type GenreDEtape, type GenreDeCascade } from './tablesPosees';
 import { testValue, partyBest, partyAssisted, testValueSplit, testValueParts, skillBaseValue, supportSplit, type SupportDetail } from '../engine/skills';
+import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { testStatePenaltyParts, testStatePenalty } from '../engine/conditions';
 import { tenuParUnHumain, seatOwns, conduitParLeSiegeDuMonde } from './sieges';
 import { porteurParId } from './monde/combatants';
@@ -82,7 +84,7 @@ export interface RollRequest {
    *  requête : son jet se déclare par `monoStep` (porteur `monde`) ou `worldStep`. */
   side:
     | { actorId: string }
-    | { partyBest: { skill?: string; char?: CharKey; assisted?: boolean } }
+    | { partyBest: { assisted?: boolean } }
     | { participants: BatchParticipant[] };
   /** Le NOM DE L'ACTION SEUL (« Forcer le rythme », « Prière », « Désertion »…) — CHAMP STRUCTURÉ
    *  DISTINCT de `test` (fix de classe #352 : l'ancien `test.label` texte-libre pouvait se confondre
@@ -91,11 +93,11 @@ export interface RollRequest {
   actionLabel: string;
   /** Le TEST déclaré — SEULE source des ids compétence/carac (réf structurée, passe telle quelle à
    *  `testValue`). AUCUN champ de texte ici : le libellé de compétence affiché est TOUJOURS DÉRIVÉ de
-   *  `skill`/`spec`/`char` par `testSkillLabel` (`data`) — insurchargeable,
+   *  `skill`/`spec`/`characteristic` par `testSkillLabel` (`data`) — insurchargeable,
    *  un call-site ne peut plus injecter de texte en position de compétence. */
   /** `noSupport` : Test de résistance (maladie/poison/peur/danger…) — coupe le Soutien du côté
    *  `partyBest` (LDB 12 l.197), pour éviter qu'un futur appelant câble un Soutien interdit. */
-  test: { skill?: string; char?: CharKey; spec?: string; sense?: PairedSense; menace?: MenaceId; noSupport?: boolean };
+  test: SujetDuJet & { sense?: PairedSense; menace?: MenaceId; noSupport?: boolean };
   difficulty: Difficulty;
   /** Requis pour un côté `participants` ; défaut `summed-dr` (Test d'équipage, MDG 14). */
   aggregate?: RollAggregate;
@@ -109,7 +111,7 @@ export interface RollRequest {
 /** Trois surfaces (Décision 3) : Modale influençable / Visible-lançable MJ / Inline-PV. */
 type Surface = 'M' | 'V' | 'I';
 
-/** Cible EFFECTIVE d'un Test skill/char AVEC l'écrêtage RÉELLEMENT subi — même arithmétique que
+/** Cible EFFECTIVE d'un Test skill/characteristic AVEC l'écrêtage RÉELLEMENT subi — même arithmétique que
  *  `rollTest`, par la primitive PARTAGÉE `clampTarget` (`engine/tests.ts`, plus de `clamp` recopié
  *  ici). L'écrêtage est RENDU, pas jeté : une base SOUTENUE peut franchir le plafond, et l'écart
  *  doit se NOMMER sur la ligne (« plafond 99 ») au lieu d'être avoué « autres » (#1117).
@@ -117,7 +119,7 @@ type Surface = 'M' | 'V' | 'I';
  *  de table d'un adversaire abstrait, `tavernFlow.combinedSecondTarget`) : un acteur désigné calcule
  *  TOUJOURS `testValue` ICI. */
 export function effectiveTargetClamped(actor: Combatant | undefined, test: RollRequest['test'], difficulty: Difficulty, baseOverride?: number): { target: number; clamped?: number } {
-  const value = baseOverride ?? (actor ? testValue(actor, test.skill, test.char, test.spec, test.sense) : 0);
+  const value = baseOverride ?? (actor ? testValue(actor, test, test.sense) : 0);
   return clampTarget(cibleDuTest(value, difficulty));
 }
 
@@ -257,7 +259,7 @@ function defaultOpsTone(ops: GameOp[]): RecapTone {
 
 /**
  * Rend la ou les conséquences d'une étape DÉJÀ dénouée en LIGNES STRUCTURÉES (#349) — LA forme
- * consommée par le renderer partagé (`ui/RecapLine.tsx`) : `CascadeStep.outcome`, `TravelRecapDay.
+ * consommée par le rendu de chaque hôte : `CascadeStep.outcome`, `TravelRecapDay.
  * lines`. Une entrée VIDE (`text` vide) est filtrée — `cons` vide ⇒ `[]`.
  *
  * Le TON reste celui qui a été AUTHORÉ (#1078 LOT B2) : une conséquence `say` sans `tone` n'en reçoit
@@ -275,7 +277,7 @@ export function resultLines(cons: Consequence[]): RecapLine[] {
 
 /**
  * Rend la ou les conséquences d'une étape DÉJÀ dénouée EN UNE CHAÎNE — repli pour les ~100 call-sites
- * NON convertis au rendu structuré (journal texte, `get().log()`) : joint `resultLines` (#349, source
+ * NON convertis au rendu structuré (journal texte, `get().ecrireAuJournal()`) : joint `resultLines` (#349, source
  * UNIQUE — ne recalcule rien). Le verdict ✓/✗ ±DR reste porté par la rangée de jet (`RollLine`) seule.
  */
 export function resultLine(cons: Consequence[]): string {
@@ -289,7 +291,7 @@ export type FreeConsLine = string | { text: string; tone?: RecapTone; icon?: str
 
 /** Enveloppe des lignes de conséquence DÉJÀ composées (sans roll/target/sl du jet visible) en
  *  `Consequence[]` (#295 Lot 1, `out.free` passthrough) — SOURCE UNIQUE, réutilisée par tous les
- *  appliers de cascade migrés (river/travel/sea/shipwreck/pursuit/combat/rest/embrigadement). */
+ *  appliers de cascade migrés (river/travel/sea/shipwreck/pursuit/combat/rest). */
 export const freeCons = (texts: FreeConsLine[]): Consequence[] => texts
   .map((x): { text: string; tone?: RecapTone; icon?: string } => (typeof x === 'string' ? { text: x } : x))
   .filter((x) => x.text.length > 0)
@@ -305,7 +307,7 @@ function resolveMonoSide(get: Get, req: RollRequest): { actorId?: string; actor?
     return { actorId: req.side.actorId, actor: porteurParId(get(), req.side.actorId) };
   }
   if ('partyBest' in req.side) {
-    const { skill, char, assisted } = req.side.partyBest;
+    const { assisted } = req.side.partyBest;
     // La SPÉCIALISATION et le SENS déclarés sur le Test entrent dans le choix du meneur ET dans sa
     // valeur : sans eux, `partyBest`/`partyAssisted` liraient une AUTRE instance de la compétence
     // (Métier (Charpentier) vs Métier (Serrurier)) et la valeur du meneur divergerait de celle que
@@ -313,10 +315,10 @@ function resolveMonoSide(get: Get, req: RollRequest): { actorId?: string; actor?
     // `noSupport` (LDB 12 l.197) : Test de résistance déclaré sur le spec → jamais de Soutien, même si
     // `assisted` n'a pas été mis à `false` au call-site.
     if (assisted === false || req.test.noSupport) {
-      const solo = partyBest(get().party, skill, char, undefined, req.test.spec, req.test.sense);
+      const solo = partyBest(get().party, req.test, undefined, req.test.sense);
       return solo ? { actorId: solo.actor.id, actor: solo.actor, baseValue: solo.value } : {};
     }
-    const picked = partyAssisted(get().party, skill, char, undefined, req.test.spec);
+    const picked = partyAssisted(get().party, req.test);
     if (!picked) return {};
     // Le DÉTAIL du Soutien remonte avec la valeur : la porte le pose sur l'étape (`buildMonoStep`),
     // la modale l'affiche en ligne de mod — un Soutien fondu sans détail est un bonus invisible.
@@ -412,7 +414,7 @@ export function surfaceDesEtapes(get: Get, steps: readonly CascadeStep[]): Surfa
  * route la sentinelle du monde). Cette fonction n'ajoute donc QUE la cadence : la fenêtre s'ouvre si
  * un siège humain tient le porteur et que la cadence n'est pas déférée à un automate. L'option de
  * confort « Dés fixés » n'entre PAS dans la surface : elle ne gate que la POSE du dé
- * (`netOwnership.canFixDie`, au site unique de la pose `ui/forcedDieRow`), jamais le fait de VOIR le jet.
+ * (`netOwnership.canFixDie`), jamais le fait de VOIR le jet.
  *
  * `isOutOfAction` n'entre PAS ici : « le sujet peut-il encore jouer » est un critère MÉTIER, tranché
  * au site ; les sites divergent (#1265).
@@ -558,7 +560,7 @@ export function bandCommonMeta(metas: readonly (CascadeStepMeta | undefined)[]):
  *  les porte. Les champs de JEU DÉJÀ POSÉ (influences, issue) descendent aussi : vides sur une étape
  *  fraîchement construite, peuplés sur une étape venue d'une sauvegarde. */
 const ROW_DEPUIS_ETAPE = [
-  'base', 'target', 'mods', 'clamped', 'difficulty', 'menace', 'skillId', 'spec',
+  'base', 'target', 'mods', 'clamped', 'difficulty', 'menace', 'skill',
   'rerolled', 'forced', 'fixed', 'outcome',
 ] as const;
 
@@ -637,7 +639,7 @@ interface RollLineBase {
   /** Le jeteur. Absent (côté MONDE : seuil d100 posé par l'appelant) ⇒ `valeur` tient lieu de base. */
   actor?: Combatant;
   /** Ids du Test — MÊME forme que `RollRequest['test']` (aucun texte : la ligne se NOMME depuis le catalogue). */
-  test?: { skill?: string; char?: CharKey; spec?: string; sense?: PairedSense };
+  test?: SujetDuJet & { sense?: PairedSense };
   difficulty: Difficulty;
   /** Modificateurs NOMMÉS qui s'ajoutent À LA CIBLE et que la valeur ne contient PAS (dérive MSRC 7
    *  l.38, hors de contrôle l.41, −5 cumulatif du redressement l.40, km déjà au pas de course EDOC 7
@@ -751,8 +753,8 @@ export interface RollLineParts {
  *  `testStatePenaltyParts`, `engine/skills.ts`) — un Test de COMBAT leur substitue `conditionModLines`.
  *  Le découpage positionnel est VÉRIFIÉ par l'oracle du canal (`rawCombatTestBase`), jamais supposé. */
 function partsHorsEtats(actor: Combatant, t: RollLineBase['test'] = {}): ModLine[] {
-  const etats = testStatePenaltyParts(actor, t.skill, { sense: t.sense }).filter((p) => p.value !== 0).length;
-  return testValueParts(actor, t.skill, t.char, t.spec, t.sense).slice(etats);
+  const etats = testStatePenaltyParts(actor, t.skill?.id, { sense: t.sense }).filter((p) => p.value !== 0).length;
+  return testValueParts(actor, t, t.sense).slice(etats);
 }
 
 /** DÉFAIT une valeur de COMBAT en base NUE + composantes NOMMÉES — jumeau de `testValueSplit` pour le
@@ -771,10 +773,10 @@ function combatValueSplit(
   if (!actor) return { ...sup, exact: true };
   const charLines = canal.kind === 'test' ? [] : volatileCharLines(actor, combatCharKey(canal.kind, canal.weapon));
   const nue = canal.kind === 'test'
-    ? skillBaseValue(actor, t?.skill, t?.spec, t?.char)
+    ? skillBaseValue(actor, t ?? {})
     : combatBaseValue(actor, canal.kind, canal.weapon) - charLines.reduce((s, l) => s + l.value, 0);
   const parts = canal.kind === 'test'
-    ? [...partsHorsEtats(actor, t), ...conditionModLines(actor, { skill: t?.skill, sense: t?.sense })]
+    ? [...partsHorsEtats(actor, t), ...conditionModLines(actor, { skill: t?.skill?.id, sense: t?.sense })]
     : [...charLines, ...combatValueModParts(actor, canal.kind, canal.weapon)];
   const sum = parts.reduce((s, p) => s + p.value, 0);
   if (nue + sum + fused !== sup.base) return { ...sup, exact: false };
@@ -789,8 +791,8 @@ function combatChannelValue(actor: Combatant | undefined, canal: RollLineCombat,
   // de la pénalité d'États hors combat). Sans cela, un Test de combat sense-scopé (Surdité, LDB 18)
   // verrait sa valeur et ses composantes diverger, et l'oracle THROW sur un site pourtant correct.
   return canal.kind === 'test'
-    ? testValue(actor, t?.skill, t?.char, t?.spec, t?.sense) - testStatePenalty(actor, t?.skill, { sense: t?.sense })
-      + conditionModLines(actor, { skill: t?.skill, sense: t?.sense }).reduce((s, m) => s + m.value, 0)
+    ? testValue(actor, t ?? {}, t?.sense) - testStatePenalty(actor, t?.skill?.id, { sense: t?.sense })
+      + conditionModLines(actor, { skill: t?.skill?.id, sense: t?.sense }).reduce((s, m) => s + m.value, 0)
     : combatBaseValue(actor, canal.kind, canal.weapon) + combatValueModParts(actor, canal.kind, canal.weapon).reduce((s, m) => s + m.value, 0);
 }
 
@@ -829,7 +831,7 @@ export function assertSeparabilite(surLaCible: ModLine[], combine: number, circC
 /**
  * MONTEUR CANONIQUE d'une ligne de jet (#1153) — le SEUL endroit du jeu où `base`/`mods`/`target`
  * d'une étape se calculent. La porte du seam (`buildMonoStep`) comme les monteurs LOCAUX des flux
- * (voyage fluvial/maritime/terrestre, embrigadement, activités hors combat) le consomment : un
+ * (voyage fluvial/maritime/terrestre, activités hors combat) le consomment : un
  * call-site DÉCLARE, il ne calcule plus — une erreur de cette famille se corrige ICI, une fois.
  *
  * INVARIANTS :
@@ -856,29 +858,29 @@ export function rollLine(spec: RollLineSpec): RollLineParts {
   // Un ACTEUR jette forcément QUELQUE CHOSE : sans valeur posée (`valeur`), sans canal de combat et
   // sans ids, `testValue` rendrait 0 et la ligne annoncerait une cible qui n'est la valeur de
   // personne — auto-échec MUET (#1657 B3-3). Le producteur nomme son Test, ou pose sa valeur.
-  if (spec.actor && spec.valeur === undefined && !spec.combat && !t.skill && !t.char) {
+  if (spec.actor && spec.valeur === undefined && !spec.combat && !t.skill && !t.characteristic) {
     throw new Error(`rollLine : Test de « ${spec.actor.label} » sans compétence ni caractéristique et sans valeur posée `
-      + '— la porte le jouerait sur 0 (auto-échec muet). Nommer `test.skill`/`test.char`, ou passer `valeur`.');
+      + '— la porte le jouerait sur 0 (auto-échec muet). Nommer `test.skill`/`test.characteristic`, ou passer `valeur`.');
   }
   const value = spec.valeur ?? (spec.combat
     ? combatChannelValue(spec.actor, spec.combat, t)
-    : (spec.actor ? testValue(spec.actor, t.skill, t.char, t.spec, t.sense) : 0));
+    : (spec.actor ? testValue(spec.actor, t, t.sense) : 0));
   const split = spec.combat
     ? combatValueSplit(spec.actor, spec.combat, t, value, spec.soutien, fusedSum)
     : testValueSplit(spec.actor, value, {
-      support: spec.soutien, skill: t.skill, characteristic: t.char, spec: t.spec, sense: t.sense, fused: fusedSum,
+      support: spec.soutien, sujet: t, sense: t.sense, fused: fusedSum,
     });
   if (!split.exact && !spec.valeurEtrangere) {
     const formule = spec.combat ? (spec.combat.kind === 'test' ? 'la valeur de Test de combat brute' : 'la valeur de combat NUE') : 'le Niveau de Compétence';
     const msg = `[seam] rollLine : la valeur (${value}) ne se reconstruit pas depuis ${formule} `
-      + `(${t.skill ?? t.char ?? spec.combat?.kind ?? '?'} ${spec.actor ? `de « ${spec.actor.label} »` : 'sans acteur'}) + ses composantes + ${fusedSum} déclaré(s) `
+      + `(${t.skill?.id ?? t.characteristic ?? spec.combat?.kind ?? '?'} ${spec.actor ? `de « ${spec.actor.label} »` : 'sans acteur'}) + ses composantes + ${fusedSum} déclaré(s) `
       + '— une poche est mal remplie (modificateur non fondu, ou fondu ET redéclaré). La base affichée serait FAUSSE.';
     console.error(msg);
     if (import.meta.env?.DEV) throw new Error(msg);
   }
   // Canal COMBAT : la valeur dérive du moteur, qui lit déjà `Combatant.envPrecipitation` (`engine/combat.ts`).
   if (spec.combat && spec.pont) throw new Error('rollLine : `pont` sur un canal de combat — le moteur de combat lit `Combatant.envPrecipitation`, la ligne serait comptée deux fois.');
-  const surLaCible = [...(spec.surLaCible ?? []), ...precipitationTestMods(spec.pont, t.skill, t.spec)];
+  const surLaCible = [...(spec.surLaCible ?? []), ...precipitationTestMods(spec.pont, t.skill)];
   const brut = surLaCible.reduce((s, m) => s + m.value, 0);
   // Mode plafonné (`LDB 14 l.91-96`) : la combinaison est celle du moteur, et la Difficulté AFFICHÉE
   // est celle que les circonstances composent — MÊME primitive que le post-jet (`bd`, `engine/combat.ts`).
@@ -921,12 +923,12 @@ export function rollStep(spec: RollLineSpec): LigneMontee {
   };
 }
 
-/** La Compétence lancée d'un Test de ligne, telle que l'étape la porte (`CascadeStepCore.skillId`). */
-function competenceDuTest(test: { skill?: string; spec?: string } | undefined): { skillId?: string; spec?: string } {
-  return { ...(test?.skill ? { skillId: test.skill } : {}), ...(test?.skill && test.spec ? { spec: test.spec } : {}) };
+/** La Compétence lancée d'un Test de ligne, telle que l'étape la porte (`CascadeStepCore.skill`). */
+function competenceDuTest(test: SujetDuJet | undefined): { skill?: RefDesignee } {
+  return test?.skill ? { skill: structuredClone(test.skill) } : {}; // #2097
 }
 
-/** Résout un test skill/char SIMPLE (mono, `hero-test`/`enemy`/`subi` à `actorId`) en `CascadeStep`
+/** Résout un test skill/characteristic SIMPLE (mono, `hero-test`/`enemy`/`subi` à `actorId`) en `CascadeStep`
  *  prêt pour `startCascade`/`runCascadeImmediate` — calque `openSkillTest` (`combatEffects.ts:308-392`)
  *  réduit au cas générique (pas de candidats/mod social : hors périmètre du seam Ronde 0). */
 function buildMonoStep(get: Get, req: RollRequest, kind: GenreDEtape, meta?: CascadeStepMeta): CascadeStep {
@@ -1024,15 +1026,15 @@ function ouvrirLEtape(get: Get, set: Set, step: CascadeStep, title: string): Cas
  */
 export function openPartyTest(
   get: Get, set: Set,
-  spec: { skill: string; char?: CharKey; assisted?: boolean; spec?: string; sense?: PairedSense; menace?: MenaceId; noSupport?: boolean; actionLabel: string; difficulty: Difficulty; stake?: StakeRef },
+  spec: { skill: RefDesignee; characteristic?: CharKey; assisted?: boolean; sense?: PairedSense; menace?: MenaceId; noSupport?: boolean; actionLabel: string; difficulty: Difficulty; stake?: StakeRef },
   kind: GenreDEtape,
   meta?: CascadeStepMeta,
 ): void {
-  const { skill, char, assisted, spec: specName, sense, menace, noSupport, actionLabel, difficulty, stake } = spec;
+  const { skill, characteristic, assisted, sense, menace, noSupport, actionLabel, difficulty, stake } = spec;
   openRoll(get, set, {
-    side: { partyBest: { skill, char, assisted } },
+    side: { partyBest: { assisted } },
     actionLabel,
-    test: { skill, char, spec: specName, sense, menace, noSupport },
+    test: { skill, characteristic, sense, menace, noSupport },
     difficulty,
     ...(stake ? { stake } : {}),
   }, kind, meta);
@@ -1141,8 +1143,7 @@ function bandRow(p: BandPorteur, difficulty: Difficulty): BatchParticipant {
     ...rollStep({ ...(p.ligne ?? {}), actor: p.actor, difficulty: diff }),
     ...(label ? { label } : {}),
     ...(p.menace ? { menace: p.menace } : {}),
-    ...(test?.skill ? { skillId: test.skill } : {}),
-    ...(test?.spec ? { spec: test.spec } : {}),
+    ...competenceDuTest(test),
     ...(p.essential ? { essential: true } : {}),
     ...(p.bonusSlOnSuccess ? { bonusSlOnSuccess: p.bonusSlOnSuccess } : {}),
     ...(p.meta ? { meta: p.meta } : {}),
@@ -1242,7 +1243,7 @@ export interface ChoiceSpec {
   /** Fiche de RÈGLE qui encadre le choix (une étape sans jet n'a pas d'enjeu à dériver). */
   stakeRule?: { category: string; id: string };
   /** HYBRIDE choix + RÉVÉLATION (#1262 B5) : la décision se prend DEVANT la charge riche qui la motive
-   *  (le Critique pré-tiré d'une déviation). Recopiée telle quelle sur l'étape — `ui/RevealBody` la rend
+   *  (le Critique pré-tiré d'une déviation). Recopiée telle quelle sur l'étape — l'hôte la rend
    *  sous les options. Le rendu d'une révélation n'est pas une seconde étape à enchaîner. */
   reveal?: RevealEntry;
   /** Lignes de conséquence DÉJÀ écrites qui exposent l'enjeu du choix (Piège-lame : ce que chaque voie

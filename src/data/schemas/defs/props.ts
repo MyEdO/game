@@ -1,7 +1,7 @@
 import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `props.json` — accessoires de scène : couche sémantique (solidité/opacité/couvert/lumière),
- * EMPREINTE de grille, recette VOLUMIQUE locale et places assises. Les sous-schémas sont des exports
+ * recette VOLUMIQUE locale, REQUISE (#3198, d'où les cases du décor se dérivent) et places assises. Les sous-schémas sont des exports
  * NOMMÉS de ce module (arbitrage vague mobilier), miroir de l'interface `PropData`
  * (`src/data/props.types.ts`) ; l'ENTRÉE elle-même est rendue par `document()`.
  */
@@ -93,7 +93,7 @@ export const propSeatSlotSchema = nommerChamps(z.strictObject({
 
 /** `PropData` (`src/data/props.types.ts`) — type de décor app-owned : vérité UNIQUE de l'empreinte,
  *  de la physique, de la recette volumique et des places assises. Entrée de `props.json`, et contrat
- *  partagé par `src/state` (walkability, LdV, lumière) et `src/gameIso` (rendu). Le `label` de
+ *  partagé par la règle (walkability, LdV, lumière) et le rendu. Le `label` de
  *  l'enveloppe est la seule source du libellé du décor. */
 const doc = document(
   'props',
@@ -106,8 +106,7 @@ const doc = document(
     // `tone` (#1245, L4) = APPARENCE seule (`lightTones.json` : couleur/intensité/vacillement),
     // résolue au bord du rendu ; le RAYON reste la seule chose que le moteur lise d'une source.
     light: nommerChamps(z.strictObject({ radiusM: z.number(), tone: idDe('lightTone').optional() }), { radiusM: { label: 'Rayon en mètres' }, tone: { label: 'Ton' } }).optional(),
-    foot: nommerChamps(z.strictObject({ w: z.number().int().positive(), h: z.number().int().positive() }), { w: { label: 'Largeur' }, h: { label: 'Hauteur' } }).optional(),
-    volume: propVolumeRecipeSchema.optional(),
+    volume: propVolumeRecipeSchema,
     seatSlots: z.array(propSeatSlotSchema).optional(),
   },
   {
@@ -116,7 +115,6 @@ const doc = document(
     opaque: { label: 'Bloque la vue', hint: 'Coupe la ligne de vue (LdV)' },
     cover: { label: 'Couvert', hint: 'Degré de couvert offert (imparfaite/moyenne/totale)' },
     light: { label: 'Source lumineuse', hint: 'Rayon éclairé (en mètres) et ton optionnel de la source' },
-    foot: { label: 'Empreinte au sol', hint: 'Largeur × profondeur en cases occupées par le décor' },
     volume: { label: 'Recette volumique', hint: 'Primitives (caisse/cylindre/prisme) composant le rendu volumique du décor — cotes en mètres' },
     seatSlots: { label: 'Places assises', hint: 'Ancres, orientation et case d’abord des places offertes par le décor' },
   },
@@ -136,29 +134,13 @@ const doc = document(
     /** LDB 74 l.43/56/58 ; LDB 14 l.72/81/86 */
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const e = v as { id: string; light?: unknown; cover?: unknown; opaque?: unknown; source?: unknown; maison?: unknown; foot?: unknown; volume?: unknown; seatSlots?: unknown };
+        const e = v as { id: string; light?: unknown; cover?: unknown; opaque?: unknown; source?: unknown; maison?: unknown };
         const regles = (['light', 'cover', 'opaque'] as const).filter((k) => e[k] !== undefined);
         if (regles.length && e.source === undefined && (typeof e.maison !== 'string' || !e.maison))
           ctx.addIssue({
             code: 'custom',
             path: ['maison'],
             message: `${e.id} : ${regles.join('/')} sans provenance — un champ de RÈGLE porte \`source\` (le folio) ou \`maison\` (l’étalon dont il est extrapolé)`,
-          });
-        // `foot` est la vérité d'un BILLBOARD, et de lui seul (#1509) : les cases d'un décor à RECETTE
-        // se dérivent de son corps tourné (`empreinteDeriveeDuProp`). Un `foot` posé à côté d'une
-        // recette n'est lu par personne et ment au premier cap E/O — le `foot` ne tourne pas, l'empreinte si.
-        if (e.volume !== undefined && e.foot !== undefined)
-          ctx.addIssue({
-            code: 'custom',
-            path: ['foot'],
-            message: `${e.id} : \`foot\` sur une recette volumique — les cases d’un décor à recette viennent de son CORPS tourné, pas d’une empreinte déclarée`,
-          });
-        // PLACES SANS RECETTE : `data/props.types.ts`, CAP D'IDENTITÉ.
-        if (e.seatSlots !== undefined && e.volume === undefined)
-          ctx.addIssue({
-            code: 'custom',
-            path: ['seatSlots'],
-            message: `${e.id} : places assises sans recette volumique — les \`seatSlots\` d’un décor s’écrivent dans le repère de sa recette (\`volume\`), un billboard n’en porte pas`,
           });
       }),
   },

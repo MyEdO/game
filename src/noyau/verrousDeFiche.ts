@@ -1,7 +1,8 @@
 /**
  * Verdicts « EN COMBAT » des gestes de la FICHE, en module feuille : chaque famille de geste de la fiche
- * (inventaire, lanceur hors combat, background, Faveur, dépense de PX, soins) est refusée pendant un combat
- * par UN verdict, que le geste applique en tête (`refuseSi`) et que l'écran lit sans recalculer.
+ * (inventaire, background, Faveur, dépense de PX, soins) est refusée pendant un combat par UN verdict, que le
+ * geste applique en tête (`refuseSi`) et que l'écran lit sans recalculer ; la surface de lancement de la fiche
+ * lit le sien (`refusDuLanceurDeFiche`).
  * `refusEnCombat` est la SEULE source de la question « en combat ? » de ces verdicts.
  */
 import { t, type MsgKey } from '../i18n';
@@ -17,16 +18,19 @@ export const refusEnCombat = (cle: MsgKey): VerdictDeGeste => (s) => (s.battle ?
 
 /** Refus de toucher à un objet de la fiche (porter, ranger, donner, évaluer, utiliser, tenir une arme,
  *  gérer ses sets) : en combat, l'équipement se gère depuis la barre d'action. L'apparence d'un objet
- *  (`choisirApparence`), cosmétique et sans règle qui la ferme, ne l'est pas. */
+ *  (`poserLApparence`), cosmétique et sans règle qui la ferme, ne l'est pas. */
 export const refusDInventaire: VerdictDeGeste = refusEnCombat('pf.inventoryLocked');
 
-/** Refus des lanceurs HORS COMBAT de la fiche (`oocCastSpell`, `oocFocusSpell`, `oocDispelSpell`) : en
- *  combat, le sort se lance depuis la console. */
+/** Refus de la surface de lancement de la fiche : en combat, le sort se lance depuis la console, où
+ *  `incanterLeSort`, `focaliserLeSort` et `dissiperLeSort` jouent leur corps de combat. */
 export const refusDuLanceurDeFiche: VerdictDeGeste = refusEnCombat('cs.oocInCombat');
 
 /** Refus d'éditer le background (Motivation, Ambitions) en combat : parité de l'écran d'avant (champs
  *  fermés en combat), sans appui au Source — le geste écrit pourtant les deux copies (`ecrireActeur`). */
 export const refusDuBackground: VerdictDeGeste = refusEnCombat('pf.backgroundInCombat');
+
+/** Refus d'une dépense de PX : la raison affichée, ou `null`. LDB 05 l.907 */
+export const refusDepensePx: VerdictDeGeste = refusEnCombat('pf.xpInCombat');
 
 /** Refus de rompre une Faveur due en plein combat : parité de l'écran d'avant, sans appui au Source. */
 export const refusDeRompreUneFaveur: VerdictDeGeste = refusEnCombat('favor.breakInCombat');

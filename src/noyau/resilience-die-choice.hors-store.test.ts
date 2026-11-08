@@ -40,17 +40,17 @@ function setupForcedAttack() {
       } as never,
     },
   });
-  banc.getState().jetForceSuccess('attack');
+  banc.getState().jetForcerLaReussite('attack');
 }
 
 beforeEach(() => {
   banc.setState({ pendingAttack: null, battle: null });
 });
 
-describe('jetSetForcedRoll@attack — choisir la valeur du dé d’un succès forcé (RAW LDB 17 l.68)', () => {
+describe('jetImposerLeResultat@attack — choisir la valeur du dé d’un succès forcé (RAW LDB 17 l.68)', () => {
   it('choisir un double ≤ cible (44) → Coup Critique (l’exemple Salundra)', () => {
     setupForcedAttack();
-    banc.getState().jetSetForcedRoll('attack', 44);
+    banc.getState().jetImposerLeResultat('attack', 44);
     const res = banc.getState().pendingAttack!.result!;
     expect(res.hit).toBe(true);
     expect(res.attackerRoll).toBe(44);
@@ -59,7 +59,7 @@ describe('jetSetForcedRoll@attack — choisir la valeur du dé d’un succès fo
 
   it('choisir 01 → réussite simple au DR maximal, pas de Critique', () => {
     setupForcedAttack();
-    banc.getState().jetSetForcedRoll('attack', 1);
+    banc.getState().jetImposerLeResultat('attack', 1);
     const res = banc.getState().pendingAttack!.result!;
     expect(res.hit).toBe(true);
     expect(res.attackerRoll).toBe(1);
@@ -70,14 +70,14 @@ describe('jetSetForcedRoll@attack — choisir la valeur du dé d’un succès fo
   it('valeur > cible refusée (le choix doit rester une réussite)', () => {
     setupForcedAttack();
     const avant = banc.getState().pendingAttack!.result!.attackerRoll; // dé PAR DÉFAUT (#941 : le MEILLEUR)
-    banc.getState().jetSetForcedRoll('attack', 77);
+    banc.getState().jetImposerLeResultat('attack', 77);
     expect(banc.getState().pendingAttack!.result!.attackerRoll).toBe(avant); // inchangé
   });
 
   it('ne dépense PAS de Résilience supplémentaire (même Test)', () => {
     setupForcedAttack();
     const before = banc.getState().battle!.combatants.find((c) => c.id === 'A')!.resilience;
-    banc.getState().jetSetForcedRoll('attack', 44);
+    banc.getState().jetImposerLeResultat('attack', 44);
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'A')!.resilience).toBe(before);
   });
 
@@ -93,7 +93,7 @@ describe('jetSetForcedRoll@attack — choisir la valeur du dé d’un succès fo
         result: { hit: true, attackerRoll: 22, netSL: 2, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: '', attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 22, success: true, sl: 2 } } as never,
       },
     });
-    banc.getState().jetSetForcedRoll('attack', 44);
+    banc.getState().jetImposerLeResultat('attack', 44);
     const res = banc.getState().pendingAttack!.result!;
     expect(res.attackerRoll).toBe(44);
     expect(res.attackerDetail!.success).toBe(true); // 44 ≤ 45 : réussite RÉELLE du dé, pas forcée
@@ -103,7 +103,7 @@ describe('jetSetForcedRoll@attack — choisir la valeur du dé d’un succès fo
   });
 });
 
-describe('jetSetForcedRoll@cast — même choix sur une INCANTATION forcée (parité des modales)', () => {
+describe('jetImposerLeResultat@cast — même choix sur une INCANTATION forcée (parité des modales)', () => {
   function setupForcedCast() {
     seedBattleRng(7);
     const caster = C({ id: 'A', label: 'Mage', resilience: 2 });
@@ -115,13 +115,13 @@ describe('jetSetForcedRoll@cast — même choix sur une INCANTATION forcée (par
         result: { cast: false, roll: 88, target: 45, sl: -4, isCritical: false, isFumble: false, log: 'raté' },
       } as never,
     });
-    banc.getState().jetForceSuccess('cast');
+    banc.getState().jetForcerLaReussite('cast');
   }
 
   it('11 (le plus bas double réussi) → Incantation Critique', () => {
     setupForcedCast();
     expect(banc.getState().pendingCast!.forced).toBe(true);
-    banc.getState().jetSetForcedRoll('cast', 11);
+    banc.getState().jetImposerLeResultat('cast', 11);
     const res = banc.getState().pendingCast!.result!;
     expect(res.roll).toBe(11);
     expect(res.cast).toBe(true);
@@ -130,17 +130,17 @@ describe('jetSetForcedRoll@cast — même choix sur une INCANTATION forcée (par
 
   it('01 → DR maximal (Surincantation), pas de Critique ; valeur > cible refusée', () => {
     setupForcedCast();
-    banc.getState().jetSetForcedRoll('cast', 1);
+    banc.getState().jetImposerLeResultat('cast', 1);
     const res = banc.getState().pendingCast!.result!;
     expect(res.roll).toBe(1);
     expect(res.isCritical).toBe(false);
     expect(res.sl).toBe(4); // dizaine(45) − dizaine(01)
-    banc.getState().jetSetForcedRoll('cast', 77);
+    banc.getState().jetImposerLeResultat('cast', 77);
     expect(banc.getState().pendingCast!.result!.roll).toBe(1); // inchangé
   });
 });
 
-describe('jetSetForcedRoll@defense — même choix sur une DÉFENSE forcée', () => {
+describe('jetImposerLeResultat@defense — même choix sur une DÉFENSE forcée', () => {
   function setupForcedDefense() {
     seedBattleRng(7);
     const attacker = C({ id: 'E', label: 'Orque', kind: 'enemy' });
@@ -160,7 +160,7 @@ describe('jetSetForcedRoll@defense — même choix sur une DÉFENSE forcée', ()
         suite: { mode: 'machine', coup: {} },
       } as never,
     });
-    banc.getState().jetForceSuccess('defense');
+    banc.getState().jetForcerLaReussite('defense');
   }
 
   it('le force pose `forced`, puis le défenseur choisit son dé (11 = double)', () => {
@@ -168,12 +168,12 @@ describe('jetSetForcedRoll@defense — même choix sur une DÉFENSE forcée', ()
     const pd = banc.getState().pendingDefense!;
     expect(pd.forced).toBe(true);
     expect(pd.result!.hit).toBe(false); // « vous l'emportez avec au moins DR +1 »
-    banc.getState().jetSetForcedRoll('defense', 11);
+    banc.getState().jetImposerLeResultat('defense', 11);
     const after = banc.getState().pendingDefense!;
     expect(after.def!.roll).toBe(11);
     expect(after.def!.isDouble).toBe(true);
     expect(after.result!.hit).toBe(false); // l'emporte toujours
-    banc.getState().jetSetForcedRoll('defense', 88); // > cible (50) : refusé
+    banc.getState().jetImposerLeResultat('defense', 88); // > cible (50) : refusé
     expect(banc.getState().pendingDefense!.def!.roll).toBe(11);
   });
 });

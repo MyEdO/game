@@ -16,6 +16,7 @@ import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, lireCleDEspace, marque
 import { norm } from '../../../lib/normalize';
 import { idsVivants } from './idsVivants';
 import { marquerProduit, produitDe } from './interne/produits';
+import { declarationDeFeuilleDId as declarationLue, declarerFeuilleDId, estFeuilleDId as feuilleLue, typeDeFeuilleDId as typeLu } from './interne/feuilles';
 import { enfantsDe } from './descente';
 
 declare const marqueDeType: unique symbol;
@@ -48,6 +49,7 @@ export const TYPES = {
   navalPort: { espace: 'naval-ports.json', catalogue: 'ports' },
   shipStation: { espace: 'ship-stations.json', catalogue: 'postes de navire' },
   crewRole: { espace: 'crew-roles.json', catalogue: 'rôles d’équipage' },
+  crewTestType: { espace: 'crew-test-types.json#types', catalogue: 'types de Test d’équipage' },
   table: { espace: 'tables.json', catalogue: 'tables' },
   etat: { espace: 'etats.json', catalogue: 'états' },
   maladie: { espace: 'maladies.json', catalogue: 'maladies' },
@@ -73,7 +75,10 @@ export const TYPES = {
   regle: { espace: 'regles.json', catalogue: 'règles' },
   quality: { espace: 'qualities.json', catalogue: 'qualités' },
   characteristic: { espace: 'characteristics.json', catalogue: 'caractéristiques' },
-  steamBreakdown: { espace: 'steam-breakdown.json', catalogue: 'pannes de navire à vapeur' },
+  steamBreakdown: { espace: 'steam-breakdown.json#entries', catalogue: 'pannes de navire à vapeur' },
+  // MDG 13 l.475-499, l.514-537 : le péril d'une op `perilDeMer` et l'évitement d'une op `navireMod` résolvent AU PARSE.
+  seaHazard: { espace: 'sea-perils.json#hazards', catalogue: 'périls en mer' },
+  tourbillon: { espace: 'sea-perils.json#tourbillons', catalogue: 'tourbillons' },
   // APPARENCE d'objet (#2948) : `trappings.json › shape`/`formChoices` résolvent AU PARSE contre les
   // racines du catalogue, une variante nomme sa racine et ses étiquettes de naissance.
   apparence: { espace: 'apparences.json', catalogue: 'apparences' },
@@ -82,6 +87,8 @@ export const TYPES = {
   gabarit: { espace: 'gabarits.json', catalogue: 'gabarits' },
   // RACE DE RENDU (#3113) : `presets-de-personnage.json › race` et l'id d'une tête de `garde-robe.json` résolvent AU PARSE.
   raceAppearance: { espace: 'raceAppearance.json', catalogue: 'races de rendu' },
+  // PLAN DE BESTIAIRE (#2993) : une espèce d'apparence (`especeDApparenceSchema`) résout AU PARSE.
+  planDeBestiaire: { espace: 'planDeBestiaire.json', catalogue: 'espèces du plan de bestiaire' },
   // GARDE-ROBE des éléments 3D (#3114) : un type, trois sous-listes discriminées par `kind`
   // (`idDe('gardeRobe', 'piece')`, patron `material`).
   gardeRobe: { espace: 'garde-robe.json', catalogue: 'garde-robe' },
@@ -96,8 +103,8 @@ export const TYPES = {
   book: { espace: 'books.json', catalogue: 'livres' },
   trauma: { espace: 'traumas.json', catalogue: 'séquelles' },
   lightTone: { espace: 'lightTones.json', catalogue: 'tons de lumière' },
-  seaCargo: { espace: 'sea-cargo.json#cargoes', catalogue: 'cargaisons maritimes' },
-  landCargo: { espace: 'land-cargo.json#cargoes', catalogue: 'cargaisons terrestres' },
+  // Catalogue des cargaisons (#1684) : sous-listes `mer`/`terre` par le discriminant `voie` de son def.
+  cargo: { espace: 'cargoes.json', catalogue: 'cargaisons' },
   merchant: { espace: 'merchants.json', catalogue: 'archétypes de marchand' },
 } as const satisfies Record<string, DeclarationDeType>;
 
@@ -196,7 +203,7 @@ const refusDeLaDiscriminee = (type: TypeEntite, sousListe: string, site: string,
 
 /** Le refus d'une sous-liste, jugé sur l'ENTRÉE résolue (objet du catalogue ou de la campagne) — la
  *  marquée sur ses champs (`marqueurPorte`), la discriminée sur son id —, lu par le sélecteur qui
- *  résout une saisie hors du registre (`ui/compendium/refField/RefField.tsx`). */
+ *  résout une saisie hors du registre. */
 export function refusDeLEntree(type: TypeEntite, sousListe: SousListe, entree: { readonly id: string }): string | null {
   return typeof sousListe === 'string'
     ? refusDeLaDiscriminee(type, sousListe, `refusDeLEntree('${type}')`, entree.id)
@@ -334,16 +341,15 @@ export interface FeuilleDId {
   readonly repereDuPorteur?: true;
 }
 
-/** Les feuilles construites par `idDe`, avec leur déclaration — ce que la garde du masquage
- *  (`parse-de-mesure.test.ts`) instrumente et ce que lit un sélecteur (`declarationDeFeuilleDId`). */
-const FEUILLES_D_ID = new WeakMap<object, FeuilleDId>();
-
-/** La déclaration (`FeuilleDId`) d'une feuille construite par `idDe`, `undefined` si le nœud n'en est pas une. */
-export const declarationDeFeuilleDId = (noeud: unknown): FeuilleDId | undefined =>
-  typeof noeud === 'object' && noeud !== null ? FEUILLES_D_ID.get(noeud) : undefined;
+/** La déclaration (`FeuilleDId`) d'une feuille construite par `idDe`, `undefined` si le nœud n'en est pas une :
+ *  la porte du registre des feuilles (`interne/feuilles.ts`), que lit la garde du masquage (`parse-de-mesure.test.ts`). */
+export const declarationDeFeuilleDId = (noeud: unknown): FeuilleDId | undefined => declarationLue(noeud);
 
 /** Le type référencé par une feuille construite par `idDe`, `undefined` si le nœud n'en est pas une. */
-export const typeDeFeuilleDId = (noeud: unknown): TypeEntite | undefined => declarationDeFeuilleDId(noeud)?.type;
+export const typeDeFeuilleDId = (noeud: unknown): TypeEntite | undefined => typeLu(noeud);
+
+/** Le nœud est-il une feuille construite par `idDe` ? */
+export const estFeuilleDId = (noeud: unknown): boolean => feuilleLue(noeud);
 
 /** Les espaces que les feuilles `idDe` et les `porteLeMarqueur` construits désignent : une clé d'espace
  *  (sous-liste marquée comprise), ou `<espace>\0<valeur>` pour une sous-liste discriminée — la cible que
@@ -359,9 +365,6 @@ export function espacesDesignes(): string[] {
     return cleDeSousListe(type, valeur, `idDe('${type}', '${valeur}')`);
   });
 }
-
-/** Le nœud est-il une feuille construite par `idDe` ? */
-export const estFeuilleDId = (noeud: unknown): boolean => typeDeFeuilleDId(noeud) !== undefined;
 
 /**
  * Schéma d'un id NU de `type` : refiné contre le registre, brandé `Id<type>` à la sortie. C'est la
@@ -414,7 +417,7 @@ function feuilleDId<T extends TypeEntite>(type: T, sousListe: SousListe | undefi
     })
     .transform((v) => v as Id<T>);
   const declaration: FeuilleDId = sousListe === undefined ? { type, ouverte } : { type, sousListe, ouverte };
-  FEUILLES_D_ID.set(feuille, avecRepere ? declaration : { ...declaration, repereDuPorteur: true });
+  declarerFeuilleDId(feuille, avecRepere ? declaration : { ...declaration, repereDuPorteur: true });
   if (typeof sousListe === 'string') DESIGNATIONS.add(`${espaceDe(type)}\u0000${sousListe}`);
   else {
     DESIGNATIONS.add(espaceDe(type));
@@ -629,7 +632,7 @@ export interface DeclarationDeRefTypee {
 }
 
 /** Les nœuds construits par `refTypee`, avec leur déclaration — ce que lit un sélecteur
- *  (`declarationDeRefTypee`), patron `FEUILLES_D_ID`. */
+ *  (`declarationDeRefTypee`), patron du registre des feuilles `idDe` (`interne/feuilles.ts`). */
 const REFS_TYPEES = new WeakMap<object, DeclarationDeRefTypee>();
 
 /** La déclaration d'un nœud construit par `refTypee`, `undefined` si le nœud n'en est pas un. */

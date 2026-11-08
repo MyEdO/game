@@ -1,6 +1,6 @@
 /**
  * Chemin JOUEUR de la Détermination contre une cause d'inconscience qui COURT ENCORE (`LDB 16 l.117`) :
- * le retrait a bien lieu (dispatcher `battleSpendResolve`, geste de la pastille d'État), et la fin du
+ * le retrait a bien lieu (dispatcher `depenserLaDetermination`, geste de la pastille d'État), et la fin du
  * Round REPOSE l'État en NOMMANT sa cause. La cause est ici la rangée 81-87 de la Colère des dieux
  * (« Purifier la chair », `LDB 40 l.75`), lue dans la DONNÉE — pas un op forgé.
  *
@@ -49,8 +49,8 @@ describe('Détermination contre une cause qui court (LDB 16 l.117) — chemin st
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     seedBattleRng(7);
@@ -79,7 +79,7 @@ describe('Détermination contre une cause qui court (LDB 16 l.117) — chemin st
 
   it('Détermination dépensée : l’État est RETIRÉ, puis REGAGNÉ en fin de Round par sa cause NOMMÉE', () => {
     const { H } = setup();
-    banc.getState().battleSpendResolve('inconscient');
+    banc.getState().depenserLaDetermination(H.id, 'retirerUnEtat', 'inconscient');
     const apres = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(hasCondition(apres, 'inconscient'), 'le retrait A LIEU (LDB 17 l.61)').toBe(false);
     expect(apres.resolve).toBe(0);
@@ -95,7 +95,7 @@ describe('Détermination contre une cause qui court (LDB 16 l.117) — chemin st
     const { H } = setup();
     for (let i = 0; i < 3; i++) finDeRound();
     expect((H.activeEffects ?? []).some((e) => e.opsPerRound), 'la cause a expiré').toBe(false);
-    banc.getState().battleSpendResolve('inconscient');
+    banc.getState().depenserLaDetermination(H.id, 'retirerUnEtat', 'inconscient');
     const lignes = finDeRound();
     expect(hasCondition(H, 'inconscient')).toBe(false);
     expect(lignes.some((l) => l.includes('regagne') && l.includes('Inconscient'))).toBe(false);

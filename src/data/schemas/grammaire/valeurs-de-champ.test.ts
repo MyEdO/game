@@ -78,6 +78,7 @@ const NOMMES = [
   // `VDM 04`–`VDM 11`, partagé par `windModifiers[].when` et `…cancelledBy.circumstance`.
   'feu-proche|volcan-actif|ville-en-flammes|charnier|lieu-de-massacre|lieu-sans-mort|eau-abondante|milieu-sec|mois-sommerzeit|mois-vorgeheim|mois-ulriczeit|mois-vorhexen|tour|colline-elevee|sommet-de-montagne|en-vol|voyage-vers-equateur|metaux-abondants|temps-orageux|temps-brumeux|temps-ensoleille|brise-legere|ville|cite|pleine-nature|region-reculee|middenheim|assistance-chantee',
   'clair|pluie|brouillard|neige|tempete',
+  'colombage|pierre|cloture',
   // `banishNarrationSchema` (#3045) : la prose du retrait du jeu (`banish.narration`).
   'chaos|unravel',
   'heroStart|personnage|prop',
@@ -94,6 +95,8 @@ const NOMMES = [
   'obsessions',
   // `windAspectSchema` (MDG 13 l.267-270).
   'arriere|lateral|face',
+  // `voie` du catalogue des cargaisons (#1684) : la table du livre qui porte l'entrée (MDG 15, MSRC 13).
+  'mer|terre',
   // `buildingAnchorSchema` (#1715) : où un ornement d'identité s'accroche sur un bâtiment.
   'ridge|facade|front',
   // `retestAt` (psychology, #1463) : le moment du re-test d'une affliction ciblée active.
@@ -104,6 +107,8 @@ const NOMMES = [
   'action|free|charge',
   'base|avancee',
   'capacite-de-combat|capacite-de-tir',
+  // `charKeySchema` (#3606) : les 10 Caractéristiques, nommées par `CHAR_LABELS`.
+  'capacite-de-combat|capacite-de-tir|force|endurance|initiative|agilite|dexterite|intelligence|force-mentale|sociabilite',
   'circonstance|jet',
   'esquive|parade|init|resist|auto',
   'feeding|praying|cowering|standing|howling',
@@ -148,10 +153,13 @@ const NOMMES = [
   'premier|courant|extreme',
   'proue|tribord|poupe|babord',
   'psych|perilDesEaux|bandages|amateurDArt|amateurDeTheatre',
+  'quadrupede|quadrupede-aile|oiseau|sans-jambes|theropode|arthropode-a-pinces|sans-membres|amorphe|arachnide|poisson|unique|cephalopode|squig',
   // `amateurSchema` : la contrepartie d'un Test de Sociabilité qu'une fiche déclare (ACE 12 l.60-62).
   'amateurDArt|amateurDeTheatre',
   'source-d-eau|blessures-et-etats',
   'success|failure|fumble',
+  // `issueDuTestSchema` : l'issue du Test de Commerce d'opportunité (MDG 15 l.274-286).
+  'success|failure',
   'test|combat|threat|hold|rally',
   'any|all',
   'group|talent|trait|psych|immunity',
@@ -184,7 +192,7 @@ const NOMMES = [
   // `defs/garde-robe.ts` (#3114, #3113, #3111) : le `kind` d'une entrée, la catégorie d'une pièce, le type de ce qu'un ensemble habille.
   'tete|coiffure|tenue|emplacement|piece|variante|ensemble|embleme',
   'vetement|armure|accessoire',
-  'trapping|apparence|tenue',
+  'trapping|tenue',
   // `mainSchema` (`grammaire/valeurs.ts`) : la main d'un objet tenu (`prises`) ou d'une arme (`weaponHand`).
   'main|off',
   // `relatifSchema` (`defs/groups.ts`, #3045) : le Groupe relatif, lu par rapport au porteur du Trait psy.
@@ -280,7 +288,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'opposed|extended',
   'party|enemies',
   'party|hero',
-  'party|hero|caster|target',
+  'party|hero|navire|membreAuHasard|caster|target',
   'pas|trot|galop',
   'pluie|averse|neige',
   'radius|diameter',
@@ -296,7 +304,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'sort|rituel',
   'source|group|any',
   'spell|prayer|talent|trait|trapping|quality|disease|symptom|mutation|condition|psychology|maneuver|creature|activity|rule|tavernGame|miscastMinor|miscastMajor|miscastWrath',
-  'success|failure',
   'success|stupefying',
   'suppressExposure|gatherInfo|noSurprise|mapMade|reverseToken|countsAsRest|campCare|extraActivity|skipStage|fullRecovery|worsenWeather',
   'team|thrower|pot|volley',

@@ -39,10 +39,10 @@ describe('LandMarketView — « Évaluer » le vin suit qui peut tenter le Test 
     useGame.setState({
       party: makePregens().slice(0, 3), possessions: [],
       scene: { ...emptyScene('ville-a', 2, 2), label: 'Ville', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
-      battle: null, worldMap: landMap, travelPlan: null, landMarket: null, journal: [],
+      battle: null, worldMap: landMap, lieu: 'A', travelPlan: null, landMarket: null, journal: [],
     } as never);
     seedBattleRng(3);
-    get().openLandMarket();
+    get().ouvrirLeMarche();
   });
 
   it('un héros formé à l’Évaluation : le geste est offert', () => {
@@ -76,29 +76,29 @@ describe('LandMarketView — « Acheter » lit le refus du noyau (#3059, MSRC 13
       party: makePregens().slice(0, 3),
       possessions: [{ uid: 'convoi', ownerId: makePregens()[0].id, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] }],
       scene: { ...emptyScene('ville-a', 2, 2), label: 'Ville', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
-      battle: null, worldMap: landMap, travelPlan: null, landMarket: null, journal: [], net: { ...get().net, mode: 'local' },
+      battle: null, worldMap: landMap, lieu: 'A', travelPlan: null, landMarket: null, journal: [], net: { ...get().net, mode: 'local' },
     } as never);
     creditBourse(get, useGame.setState.bind(useGame), get().party[0].id, { gold: 5000, silver: 0, brass: 0 });
     seedBattleRng(3);
-    get().openLandMarket();
+    get().ouvrirLeMarche();
   });
 
   it('lot sous le minimum, porteur libre et bourse pleine : le geste est fermé sur le lot minimal (MSRC 13 l.131)', () => {
-    const offre = get().landMarket!.offers.find((o) => o.enc >= minCargoEnc)!;
-    expect(acheter(offre.cargoId, offre.label, minCargoEnc - 1)).toEqual({ ferme: 'true', raison: t('lm.lotMinimal', { min: minCargoEnc }) });
+    const offre = get().landMarket!.offers.find((o) => o.enc >= minCargoEnc())!;
+    expect(acheter(offre.cargoId, offre.label, minCargoEnc() - 1)).toEqual({ ferme: 'true', raison: t('lm.lotMinimal', { min: minCargoEnc() }) });
   });
 
   it('le refus affiché est celui du devis du noyau', () => {
-    const offre = get().landMarket!.offers.find((o) => o.enc >= minCargoEnc)!;
-    const refus = devisDAchatDeCargaison(get(), offre.cargoId, minCargoEnc - 1).refus;
-    expect(refus).toEqual({ motif: 'lot-minimal', min: minCargoEnc });
-    expect(raisonDuRefusDAchatDeCargaison(refus!)).toBe(t('lm.lotMinimal', { min: minCargoEnc }));
+    const offre = get().landMarket!.offers.find((o) => o.enc >= minCargoEnc())!;
+    const refus = devisDAchatDeCargaison(get(), 'convoi', offre.cargoId, minCargoEnc() - 1).refus;
+    expect(refus).toEqual({ motif: 'lot-minimal', min: minCargoEnc() });
+    expect(raisonDuRefusDAchatDeCargaison(refus!)).toBe(t('lm.lotMinimal', { min: minCargoEnc() }));
   });
 
   it('siège invité : le geste est fermé par le refus de dépense du groupe, composé par le devis', () => {
     useGame.setState({ net: { ...get().net, mode: 'guest' } });
-    const offre = get().landMarket!.offers.find((o) => o.enc >= minCargoEnc)!;
-    expect(devisDAchatDeCargaison(get(), offre.cargoId, minCargoEnc).refus).toEqual({ motif: 'invite' });
-    expect(acheter(offre.cargoId, offre.label, minCargoEnc)).toEqual({ ferme: 'true', raison: t('groupe.hoteSeul') });
+    const offre = get().landMarket!.offers.find((o) => o.enc >= minCargoEnc())!;
+    expect(devisDAchatDeCargaison(get(), 'convoi', offre.cargoId, minCargoEnc()).refus).toEqual({ motif: 'invite' });
+    expect(acheter(offre.cargoId, offre.label, minCargoEnc())).toEqual({ ferme: 'true', raison: t('groupe.hoteSeul') });
   });
 });

@@ -11,7 +11,7 @@
  *
  * La fabrique centralise la plomberie commune (gardes, dépense de Chance/Résilience, drapeau
  * `rerolled`, patch de re-rendu) ; chaque flux ne déclare QUE sa partie métier via `RollFlowSpec`
- * (cf. `rollFlows.ts`). Le corps de « Appliquer » (`CloturesDuJet`, joué par `jetConfirm(flux)`) reste écrit à la
+ * (cf. `rollFlowSpecs.ts`). Le corps de « Appliquer » (`CloturesDuJet`, joué par `jetValider(flux)`) reste écrit à la
  * main : ses effets sont tous différents — c'est la règle, pas la plomberie.
  *
  * Garde-fou : les primitives de résolution (RNG, moteur) ne sont appelées QUE par `resolve`/
@@ -45,7 +45,7 @@ import { t } from '../i18n';
  * FENÊTRES D'INFLUENCE — prédicats PURS, écrits UNE fois, à côté des ops qui les exécutent
  * (`opReroll`, `opBonusSL`, `opDarkPact`, `opForceSuccess`) et qui les appellent pour se garder. Ils rendent
  * ce qui FERME le verbe (`FermetureDuJet`), `null` quand il est ouvert. La coquille d'affichage les consomme
- * (`ui/RollRow` → `ui/InfluenceRow` → `ui/ChanceButtons`), et la fabrique les compose en `fermetures` pour le
+ * (rangée, influence, Chance), et la fabrique les compose en `fermetures` pour le
  * lecteur des verbes ouverts (`verbesOuverts.ts`) : une modale ne déclare que les FAITS de son jet, jamais une
  * éligibilité.
  *
@@ -62,8 +62,8 @@ export type FermetureDuJet =
   | 'sansChance' | 'sansResilience' | 'sansDetermination' | 'reserveAuxHeros'
   | 'deNonFixable' | 'desFixesInactifs' | 'sansVoieDInversion' | 'sansMenace' | 'sansResistance' | 'sansMalusPsy'
   | 'declarationsDues' | 'oppositionsDues' | 'choixCritiqueDu' | 'actionEngagee'
-  | 'choixDu' | 'etapesDues' | 'etapesJouees' | 'rienADeclarer' | 'contreSortDu' | 'soinEnCours' | 'paieDue' | 'halteDeVoyage'
-  | 'quorumAttendu' | 'noteNonCouverte' | 'evenementsATirer' | 'rienARepartir';
+  | 'choixDu' | 'etapesDues' | 'etapesJouees' | 'rienADeclarer' | 'contreSortDu' | 'soinEnCours' | 'paieDue' | 'halteDeVoyage' | 'herosADesigner'
+  | 'quorumAttendu' | 'noteNonCouverte' | 'evenementsATirer' | 'rienARepartir' | 'seanceDuChapitre' | 'choixAReprendre';
 
 /** Les fermetures qui attendent une DÉCISION du joueur : le verbe se montre refusé, sa raison dite, au lieu de se taire. */
 export const FERMETURES_DITES: ReadonlySet<FermetureDuJet> = new Set<FermetureDuJet>(['declarationsDues', 'oppositionsDues', 'choixCritiqueDu', 'actionEngagee']);
@@ -256,6 +256,9 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
      *  le dit (`refuserGeste`) et ne fait rien ; une lecture (`reverseAvailable`) n'en écrit rien. Absent : tout slot
      *  se joue. */
     refusDuSlot?: (s: Jeu, pid: string) => string | null;
+    /** Le jet sans rangée de la fenêtre, quand il n'est pas celui de chaque rangée à lancer (`rangeesALancer`) : la
+     *  séquence entière (« Tout résoudre », `cascade`). Absent : chaque rangée à lancer. */
+    sansRangee?: (get: Get, set: Set) => void;
   };
   /** Le jet a-t-il déjà été lancé ? (`slot.result != null` / `slot.roll != null`). */
   rolled: (slot: Slot) => boolean;
@@ -355,7 +358,7 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    * exprimables par une lentille — attaque/défense/piétinement/coup dans le dos (`result.attackerDetail`),
    * incantation (`CastResult`, `critable` faux pour une Prière), étape de cascade (`step.result`/`target`),
    * Test `fuite` du fuyard (`slot.jet`). Le QUAND (Résilience vs dé fixé, avant/après le jet) ne s'écrit
-   * plus ici : il est arbitré une seule fois par `ui/forcedDieRow.ts`.
+   * plus ici : l'hôte l'arbitre une seule fois, à la pose du dé.
    */
   caps?: {
     forced?: boolean;
@@ -366,7 +369,7 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
     /** Détermination (immunité PSY temporaire, LDB 17 l.59) : MÊME catégorie que `resist` (dépenser une
      *  ressource pour infléchir un Test psy), PAS une réussite forcée. Le flux DÉCLARE l'effet SPÉCIFIQUE
      *  (dépense de Détermination + marqueur `immune` sur le slot psy), la fabrique fournit le CÂBLAGE
-     *  (interface store/intent/modale via le verbe `determine` → geste `jetDetermine(flux, …)`, le handler
+     *  (interface store/intent/modale via le verbe `determine` → geste `jetDepenserLaDetermination(flux, …)`, le handler
      *  ci-dessous GATE `actor` et la `fermeture` du flux, puis dispatche `appliquer`). Exposé par les seuls flux à
      *  `caps.determine`. */
     determine?: {
@@ -441,13 +444,15 @@ export interface RollFlowHandlers {
    *  c'est ce qui permet à `RollShell` de dériver le sélecteur de dé pour TOUT flux. `null` si le
    *  pending est fermé ou le `pid` inconnu. */
   slotOf: (get: Get, pid?: string) => PendingBase | null;
+  /** Les ids des rangées du flux ouvert (`multi.idOf` de chaque slot) ; vide : un flux à un jet, ou fermé. */
+  rangees: (get: Get<Jeu>) => string[];
   /** Refus du slot `pid` d'un flux multi (`spec.multi.refusDuSlot`), `null` s'il se joue : le texte que TOUT verbe
    *  du slot dit en se refusant (`locate`), lu tel quel par la rangée qui ferme ses gestes. */
   refusDuSlot: (get: Get, pid?: string) => string | null;
-  /** Les rangées d'un flux multi à lancer : sans jet et que le flux ne refuse pas ; `duSiege` (la rangée est son acteur,
-   *  `pidIsActor`), les seules rangées `interactive` que le siège qui décide influence (`influencesLocally`). Le jet
-   *  sans rangée les lance toutes. */
-  rangeesALancer: (get: Get, duSiege: boolean) => string[];
+  /** Le jet sans rangée d'un flux multi : son corps propre (`multi.sansRangee`), sinon chaque rangée à lancer, sans jet
+   *  et que le flux ne refuse pas ; `duSiege` (la rangée est son acteur, `pidIsActor`), les seules rangées `interactive`
+   *  que le siège qui décide influence (`influencesLocally`). */
+  lancerSansRangee: (get: Get, set: Set, duSiege: boolean) => void;
   /** ACTEUR du slot visé — celui que les verbes d'influence DÉBITENT (`spec.actor`, l'entrée de
    *  `opReroll`/`opBonusSL`/`opForceSuccess`/`opDarkPact`). Accesseur PUR en LECTURE SEULE, même
    *  patron que `slotOf` ci-dessus (extraction de `locate` sans son `commit`). Il ouvre le PORTEUR
@@ -535,7 +540,7 @@ export function opReroll<P extends PendingBase>(
   if (!patch) return;
   if (free) {
     const label = consumeActiveFlag(actor, 'freeReroll');
-    get().log(t('roll.freeReroll', { name: actor.label, src: label ?? t('roll.blessingFallback') }));
+    get().ecrireAuJournal(t('roll.freeReroll', { name: actor.label, src: label ?? t('roll.blessingFallback') }));
   } else {
     actor.fortune = (actor.fortune ?? 0) - 1;
   }
@@ -590,7 +595,7 @@ function opResist<P extends PendingBase>(
  *    celle du dé saisi, évaluée NORMALEMENT (réussite/échec, DR, doubles réels).
  *
  * AUCUNE gate de possession ici : l'option « Dés fixés » est CLIENT-SIDE (elle n'arme que l'affordance
- * de CELUI qui clique, cf. `ui/forcedDieRow.ts`), et l'autorisation d'un geste reçu par le réseau est
+ * de CELUI qui clique, `netOwnership.canFixDie`), et l'autorisation d'un geste reçu par le réseau est
  * celle du SIÈGE ÉMETTEUR (`netOwnership.intentAllowedFor`) — la ré-évaluer ici avec l'état LOCAL de
  * l'hôte faisait tomber en silence le geste légitime d'un invité sur son propre héros.
  * Renvoie `true` si un patch a été commis (l'appelant journalise la valeur RÉELLEMENT appliquée).
@@ -616,7 +621,7 @@ function opDarkPact<P extends PendingBase>(
   const patch = reresolve();
   if (!patch) return;
   const lines = gainCorruption(get, set, actor, 1);
-  for (const l of lines) get().log(l);
+  for (const l of lines) get().ecrireAuJournal(l);
   commit(patch, { touch: true });
 }
 
@@ -817,7 +822,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
         bonusSL: parActeur(() => fermetureDuBonus(vue, faits) ?? (bonusOffert(slot) ? null : 'nonOffert')),
         darkPact: impose ? 'jetImpose' : parActeur(() => fermetureDuPacte(vue, faits)),
         forceSuccess: fermetureDuForcage(s, get, p, slot, actor),
-        // Le dé FIXÉ se juge au siège qui le pose (`canFixDie`) ; l'op ne le rejuge pas (`VerbesDeJet.jetSetForcedRoll`).
+        // Le dé FIXÉ se juge au siège qui le pose (`canFixDie`) ; l'op ne le rejuge pas (`VerbesDeJet.jetImposerLeResultat`).
         setForcedRoll: fermetureDuDeChoisi(slot, actor, p) ?? (!slot.forced && !canFixDie(s, actor?.id) ? 'desFixesInactifs' : null),
         resist: !spec.caps?.resist ? 'nonOffert' : temoin ? 'rangeeTemoin' : parActeur((a) => fermetureDeLaResistance(a, menace, rolled, spec.outcome(slot))),
         determine: !spec.caps?.determine ? 'nonOffert' : parActeur((a) => spec.caps!.determine!.fermeture(s, slot, a)),
@@ -833,15 +838,21 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       const slots = spec.multi.slots(p);
       return (pid != null ? slots.find((x) => spec.multi!.idOf(x) === pid) : slots[0]) ?? null;
     },
+    rangees(get) {
+      const p = pendingOf(get());
+      return p && spec.multi ? spec.multi.slots(p).map(spec.multi.idOf) : [];
+    },
     refusDuSlot: (get, pid) => (pid != null ? spec.multi?.refusDuSlot?.(get(), pid) ?? null : null),
-    rangeesALancer(get, duSiege) {
+    lancerSansRangee(get, set, duSiege) {
       const s = get(); const p = pendingOf(s);
-      if (!p || !spec.multi) return [];
+      if (!p || !spec.multi) return;
       const multi = spec.multi;
-      return multi.slots(p)
+      if (multi.sansRangee) { multi.sansRangee(get, set); return; }
+      const aLancer = multi.slots(p)
         .filter((slot) => !spec.rolled(slot) && (!duSiege || (!!(slot as { interactive?: boolean }).interactive && influencesLocally(s, multi.idOf(slot)))))
         .map((slot) => multi.idOf(slot))
         .filter((id) => !multi.refusDuSlot?.(s, id));
+      for (const id of aLancer) handlers.roll(get, set, id);
     },
     // GOULOT d'acquittement des flux à fenêtre : l'issue est DÉRIVÉE de la déclaration du flux
     // (`spec.issue`), jamais composée au site. La LIGNE DE DÉ n'y est pas ré-émise : la fenêtre l'a
@@ -852,7 +863,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       if (!p || !spec.issue) return [];
       const out = spec.issue(p, s, opts?.ctx as Ctx);
       const lines = (Array.isArray(out) ? out : [out]).filter((l): l is string => !!l);
-      if (spec.issueChannel !== 'battle') for (const l of lines) s.log(l);
+      if (spec.issueChannel !== 'battle') for (const l of lines) s.ecrireAuJournal(l);
       return lines;
     },
     actorOf(get, pid) {

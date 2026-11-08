@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { chargerSurLeBanc, sauverLeBanc } from './persistance/save.testkit';
 import { pushReveal } from './combatEffects';
 import { revealToStep } from './revealStep';
 import { stepInteraction } from './cascade';
@@ -20,8 +21,7 @@ import { groupesDe } from '../engine/groups';
  * RÉVÉLATION = étape d'AFFICHAGE de la cascade (#942 L8) : `pushReveal` n'alimente plus une file
  * parallèle, il APPEND une étape dans la séquence d'accueil — celle en vol, sinon une séquence
  * d'affichage qu'il ouvre. Le contrat porte donc sur la SÉQUENCE : ordre d'arrivée, charge riche
- * portée par l'étape, cadence d'auto-fermeture dérivée de la gravité, acquittement par `jetConfirm('cascade')`. La traversée de
- * la sauvegarde du navigateur se joue en `src/state/reveal.test.ts`.
+ * portée par l'étape, acquittement par `jetValider('cascade')`, et traversée de la sauvegarde.
  */
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -30,7 +30,7 @@ describe('révélation → étape d’affichage de cascade', () => {
   beforeEach(() => banc.setState({ pendingCascade: null, suspendedCascades: [], battle: null }));
 
   it('hors combat sans séquence en vol : la révélation OUVRE une séquence d’affichage, titrée par elle', () => {
-    pushReveal(banc.setState, { kind: 'round', title: 'Entretien quotidien', lines: ['x'], severity: 'minor' });
+    pushReveal(banc.setState, { kind: 'round', title: 'Entretien quotidien', lines: ['x'] });
     const c = banc.getState().pendingCascade!;
     expect(c.purpose).toBe('affichage');
     expect(c.title).toBe('Entretien quotidien');
@@ -50,25 +50,25 @@ describe('révélation → étape d’affichage de cascade', () => {
     expect(c.participants.map((s) => s.id)).toEqual(['cons-round-0', 'cons-effet-1']); // ids uniques dans la séquence
   });
 
-  it('la GRAVITÉ n’arme AUCUN timer : la fermeture est EXPLICITE par défaut (arbitrage #1270)', () => {
-    pushReveal(banc.setState, { kind: 'round', title: 'A', lines: [], severity: 'minor' });
-    pushReveal(banc.setState, { kind: 'mutation', title: 'B', lines: [], severity: 'grave' });
-    pushReveal(banc.setState, { kind: 'effet', title: 'C', lines: [] });
-    expect(banc.getState().pendingCascade!.participants.map((s) => s.autoCloseMs)).toEqual([undefined, undefined, undefined]);
-  });
-
-  it('l’auto-fermeture se DÉCLARE au site, à la cadence de la gravité donnée', () => {
-    pushReveal(banc.setState, { kind: 'round', title: 'A', lines: [] }, { autoClose: 'minor' });
-    pushReveal(banc.setState, { kind: 'mutation', title: 'B', lines: [] }, { autoClose: 'grave' });
-    expect(banc.getState().pendingCascade!.participants.map((s) => s.autoCloseMs)).toEqual([3500, 9000]);
-  });
-
-  it('`jetConfirm@cascade` dépile étape par étape et ferme la séquence à la dernière', () => {
+  it('`jetValider@cascade` dépile étape par étape et ferme la séquence à la dernière', () => {
     pushReveal(banc.setState, { kind: 'round', title: 'A', lines: [] });
     pushReveal(banc.setState, { kind: 'round', title: 'B', lines: [] });
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade!.cursor).toBe(1);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
+    expect(banc.getState().pendingCascade).toBeNull();
+  });
+
+  it('une étape d’affichage EN VOL traverse la sauvegarde, et la séquence restaurée se dénoue', () => {
+    const reveal = { kind: 'mutation', title: 'Mutation — Écailles', dice: 42, lines: ['a', 'b'], subjectId: 'h1' } satisfies RevealEntry;
+    pushReveal(banc.setState, reveal);
+    const texte = sauverLeBanc(banc);
+    banc.setState({ pendingCascade: null });
+    chargerSurLeBanc(banc, texte);
+    const step = banc.getState().pendingCascade!.participants[0];
+    expect(step.kind).toBe('mutation');
+    expect(step.reveal).toEqual(reveal);
+    banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
   });
 
@@ -103,7 +103,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
       entities: [{ id: 'start', kind: 'heroStart', pos: { x: 2, y: 2 } }],
     });
     banc.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], pendingCascade: null, suspendedCascades: [], battle: null });
-    banc.getState().startScene(scene);
+    banc.getState().lancerLaScene(scene);
     expect(banc.getState().pendingCascade!.participants[0].reveal?.lines).toEqual([texte]);
   });
 
@@ -131,12 +131,12 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
 
   it('la carte passe DEVANT les Tests de rencontre, qui reprennent à sa clôture', () => {
     banc.setState({ party: [heroHaineux()], pendingCascade: null, suspendedCascades: [], battle: null });
-    banc.getState().startScene(CRYPTE);
+    banc.getState().lancerLaScene(CRYPTE);
     const c = banc.getState().pendingCascade!;
     expect(c.participants[0].kind).toBe('sceneEntry'); // la carte est l'étape COURANTE, pas la dernière
     expect(c.purpose).toBe('affichage');
     expect(banc.getState().suspendedCascades.map((s) => s.purpose)).toEqual(['test']); // Sang-froid PARQUÉ
-    banc.getState().jetConfirm('cascade'); // « Continuer » ferme la carte…
+    banc.getState().jetValider('cascade'); // « Continuer » ferme la carte…
     expect(banc.getState().suspendedCascades).toHaveLength(0);
     expect(banc.getState().pendingCascade!.purpose).toBe('test'); // …et rend la main aux Tests de rencontre
   });
@@ -146,32 +146,32 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     registerScene(CRYPTE);
     registerScene(suite);
     banc.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], pendingCascade: null, suspendedCascades: [], battle: null });
-    banc.getState().startScene(CRYPTE);
+    banc.getState().lancerLaScene(CRYPTE);
     expect(banc.getState().pendingCascade!.participants[0].reveal?.kind).toBe('sceneEntry');
     suspendActiveCascade(banc.getState, banc.setState); // ce que fait l'ouverture d'un combat sur la carte ouverte
     expect(banc.getState().suspendedCascades).toHaveLength(1);
-    banc.getState().transitionTo('probe-suite');
+    banc.getState().quitterLaScene('probe-suite');
     // La carte de la scène QUITTÉE a disparu de la pile ; celle de la scène d'arrivée est à l'écran.
     expect(banc.getState().suspendedCascades).toHaveLength(0);
     expect(banc.getState().pendingCascade!.title).toBe('Salle basse');
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade).toBeNull(); // rien derrière : la Crypte ne revient pas
   });
 
   it('une révélation appendue DERRIÈRE la carte survit à la transition SANS être sautée', () => {
-    // Scène de crypte JOUABLE en combat (la rencontre de fixture) : `startCombat` est le vrai parqueur.
+    // Scène de crypte JOUABLE en combat (la rencontre de fixture) : `lancerLeCombat` est le vrai parqueur.
     const crypteCombat: Scene = { ...CRYPTE, id: 'probe-crypte-combat', encounters: testScene().encounters, entities: testScene().entities };
     const suite: Scene = { ...testScene(), id: 'probe-suite-2', label: 'Salle basse', startMessage: { texte: 'Un escalier descend.' }, encounters: [], entities: [{ id: 'start', kind: 'heroStart', pos: { x: 2, y: 2 } }] };
     registerScene(crypteCombat);
     registerScene(suite);
     banc.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], pendingCascade: null, suspendedCascades: [], battle: null });
-    banc.getState().startScene(crypteCombat);
+    banc.getState().lancerLaScene(crypteCombat);
     pushReveal(banc.setState, { kind: 'effet', title: 'Conséquence B', lines: ['b'] }); // rejoint la séquence d'affichage EN VOL, derrière la carte
     expect(banc.getState().pendingCascade!.participants).toHaveLength(2);
-    banc.getState().jetConfirm('cascade'); // la carte est acquittée : le curseur pointe « Conséquence B »
+    banc.getState().jetValider('cascade'); // la carte est acquittée : le curseur pointe « Conséquence B »
     expect(banc.getState().pendingCascade!.cursor).toBe(1);
-    banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true }); // parque la séquence mixte
-    banc.getState().transitionTo('probe-suite-2'); // purge la carte de la scène quittée
+    banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true }); // parque la séquence mixte
+    banc.getState().quitterLaScene('probe-suite-2'); // purge la carte de la scène quittée
     const parked = banc.getState().suspendedCascades.find((c) => c.purpose === 'affichage')!;
     expect(parked.participants.map((s) => s.reveal?.title)).toEqual(['Conséquence B']);
     expect(parked.participants[parked.cursor]?.reveal?.title).toBe('Conséquence B'); // curseur RECALÉ : l'étape reste À JOUER, pas en bilan
@@ -182,7 +182,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     registerScene(CRYPTE);
     registerScene(suite);
     banc.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], pendingCascade: null, suspendedCascades: [], battle: null });
-    banc.getState().startScene(CRYPTE);
+    banc.getState().lancerLaScene(CRYPTE);
     suspendActiveCascade(banc.getState, banc.setState); // la carte d'entrée est parquée…
     // …et sous elle, un jour de voyage parqué plus tôt, curseur au milieu de ses étapes.
     banc.setState({
@@ -191,7 +191,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
         ...banc.getState().suspendedCascades,
       ],
     });
-    banc.getState().transitionTo('probe-suite-3');
+    banc.getState().quitterLaScene('probe-suite-3');
     const voyage = banc.getState().suspendedCascades.find((c) => c.purpose === 'travelDay')!;
     expect(voyage.cursor).toBe(1);
     expect(voyage.participants.map((s) => s.id)).toEqual(['j1', 'j2', 'j3']);

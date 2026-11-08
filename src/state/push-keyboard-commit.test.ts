@@ -11,8 +11,8 @@ async function ouvrirLeBelierAuTourDuSoldat() {
   const { scenario } = await import('../scenes/test-scenarios/42-belier-porte');
   const { party, scene } = scenario.construire();
   useGame.setState({ party });
-  useGame.getState().startScene(scene);
-  useGame.getState().startCombat('siege-belier');
+  useGame.getState().lancerLaScene(scene);
+  useGame.getState().lancerLeCombat('siege-belier');
   useGame.getState().fenetreValider('roundStart');
   const b0 = useGame.getState().battle!;
   const soldat = b0.combatants.find((c) => c.kind === 'hero' && !!c.mannedPoste)!;
@@ -33,7 +33,7 @@ describe('#199 — Entrée commet la poussée MÊME avec le focus résiduel du b
 
   it('flux complet clavier (arène 42-belier-porte) : 2 flèches + Entrée EXÉCUTENT la poussée (positions changent, moveSnapshot posé)', async () => {
     const soldat = await ouvrirLeBelierAuTourDuSoldat();
-    useGame.getState().battlePushEngine();
+    useGame.getState().pousserLEngin();
     expect(useGame.getState().battle!.action).toBe('push');
     const before = { ...soldat.pos! };
     // 1er appui : `nextCaseCursorTile` pose le curseur sur la case valide la plus proche (l'ancre elle-même,
@@ -51,13 +51,13 @@ describe('#199 — Entrée commet la poussée MÊME avec le focus résiduel du b
 
   it('« Annuler dépl. » défait une poussée commise au CLAVIER (chemin clic déjà couvert par push-cancel-move.hors-store.test.ts)', async () => {
     const soldat = await ouvrirLeBelierAuTourDuSoldat();
-    useGame.getState().battlePushEngine();
+    useGame.getState().pousserLEngin();
     const before = { ...soldat.pos! };
     useGame.getState().moveCursor('up');
     useGame.getState().moveCursor('up');
     useGame.getState().commitCursor();
     expect(useGame.getState().battle!.combatants.find((c) => c.id === soldat.id)!.pos).not.toEqual(before);
-    useGame.getState().cancelMove();
+    useGame.getState().annulerLeDeplacement();
     const st = useGame.getState();
     expect(st.battle!.combatants.find((c) => c.id === soldat.id)!.pos).toEqual(before);
     expect(st.battle!.moveSnapshot ?? null).toBeNull();
@@ -67,7 +67,7 @@ describe('#199 — Entrée commet la poussée MÊME avec le focus résiduel du b
 describe('42-belier-porte — le curseur clavier du mode Pousser', () => {
   it('BUG-B (recette) : au clavier, en mode Pousser, la case plein NORD est sélectionnable (curseur clavier, vue iso par défaut)', async () => {
     const soldat = await ouvrirLeBelierAuTourDuSoldat();
-    useGame.getState().battlePushEngine();
+    useGame.getState().pousserLEngin();
     const start = { ...soldat.pos! };
     const north = { x: start.x, y: start.y - 1 };
     expect(useGame.getState().battle!.reachable.has(`${north.x},${north.y}`)).toBe(true); // au menu du mode

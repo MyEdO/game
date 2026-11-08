@@ -7,26 +7,27 @@
  */
 import type { JSX } from 'react';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Scene, sceneMetresPerTile, isDescriptiveZone, type SceneEffectZone, type CellSide } from '../../noyau/monde/scene';
+import { Scene, sceneMetresPerTile, isDescriptiveZone, type SceneEffectZone } from '../../noyau/monde/scene';
 import { sceneZoneTiles } from '../../noyau/monde/zones';
 import { Dims, diamondPath, tileCenter, tileEdge, type EdgeSide, screenToTileAtZ, screenToTileF, stageSize, depth, TH } from '../../geometry/iso';
 import { buildProps } from '../../gameIso/builders/props';
 import { entiteFootTiles } from '../../noyau/monde/spawn';
-import { buildFloors } from '../../gameIso/builders/floors';
+import { buildFloors } from '../../noyau/monde/volume/floors';
 import { floorSvg } from '../../gameIso/authoring/floorsSvg';
-import { buildRoofs } from '../../gameIso/builders/roofs';
+import { buildRoofs } from '../../noyau/monde/volume/toits';
 import { roofDepth, roofSvg } from '../../gameIso/authoring/roofsSvg';
 import { detailPatternDefs, lodOf, LOD_ZOOM } from '../../gameIso/authoring/detailSvg';
 import { editorLowerLayerFilterCss } from '../../gameIso/catalog/ambiance';
 import { ViewControls } from '../ViewControls';
 import { IconG } from '../Icon';
-import { nearestNode, type CalibStep, type TraceTransform } from './traceCalibration';
+import { nearestNode, type CalibStep, type TraceTransform } from '../../noyau/edition/calage';
 import type { useEditorView } from './useEditorView';
 import { effectiveLowerLayerMode, gabaritTint, layerHidden, type LowerLayerMode } from './lowerLayerGabarit';
 import { projectedRangeAxes } from './lampMarker';
 import { gridLines } from '../../geometry/grid';
-import { type Tool, type Layers, type Sel, dansLaCarte, empriseDuPinceau, hitAt, selRect, selZ, sameSel, nearestEdge, canonEdge, pickWallEdge, pickArchitectureEdge } from '../../noyau/sceneEditLecture';
-import { type Rect, type Pt, type GesteDOutil, rectFrom, moveSel, resizeSel, appliquerOutil, validerRectangle, addFacadeSection } from '../../noyau/sceneEdit';
+import { type Tool, type Layers, type Sel, selRect, selZ, sameSel } from '../../noyau/sceneEditLecture';
+import type { Pt } from '../../noyau/sceneEdit';
+import { appuyer, areteVisee, glisser, planDuPointeur, relacher, saisirLaPoignee, type ContexteDuPointeur, type EffetDuPointeur, type GesteEnCours, type PointDeCarte } from '../../noyau/edition/pointeur';
 import { planFocusTiles, type PlanDefectAt } from '../../noyau/planDefects';
 import { GameStage3D } from '../../gameIso/stage/GameStage3D';
 import type { ActorPose, KeepEl, TintAt } from '../../gameIso/backends/webgl/sceneMeshes';
@@ -65,6 +66,7 @@ const MIDI_AUTHORING = 12 * 60;
 const PLEIN_JOUR = 1;
 const AUCUN_ACTEUR: readonly ActorPose[] = [];
 const AUCUNE_LAMPE: readonly LightSource[] = [];
+const AUCUNE_CASE: readonly Pt[] = [];
 
 /** Teintes des zones sur la carte, par NATURE : barrière (bleu de muraille), piège (orange de
  *  hasard), pièce nommée (liseré violacé). Une seule définition par nature — remplissage et contour
@@ -142,7 +144,6 @@ function zoneInk(zone: SceneEffectZone, isSel: boolean) {
  *  à la SEULE poignée de redimensionnement. */
 type ZoneDraw = {
   zone: SceneEffectZone;
-  idx: number;
   z: number;
   tiles: number;
   fill: string;
@@ -152,14 +153,13 @@ type ZoneDraw = {
 
 function buildZoneDraws(zones: readonly SceneEffectZone[] | undefined, dims: Dims): ZoneDraw[] {
   const out: ZoneDraw[] = [];
-  (zones ?? []).forEach((zone, idx) => {
+  (zones ?? []).forEach((zone) => {
     const tiles = sceneZoneTiles(zone);
     if (!tiles.length) return; // emprise entièrement effacée : plus une seule case à peindre
     const z = zone.z ?? 0;
     const a = zoneAnchorTile(tiles);
     out.push({
       zone,
-      idx,
       z,
       tiles: tiles.length,
       fill: zoneFillPath(tiles, dims, z),
@@ -175,7 +175,6 @@ export function EditorCanvas({
   view,
   setScene,
   setSceneNoHistory,
-  pushSnapshot,
   tool,
   brush,
   terrainRect,
@@ -205,7 +204,6 @@ export function EditorCanvas({
   view: ReturnType<typeof useEditorView>;
   setScene: (s: Scene) => void;
   setSceneNoHistory: (s: Scene) => void;
-  pushSnapshot: () => void;
   tool: Tool;
   brush: number;
   terrainRect: boolean;
@@ -286,32 +284,18 @@ export function EditorCanvas({
   // `dims` dérive de (scene.dimensions, rot, viewMode) — deps couvertes.
   const patternDefs = useMemo(() => (lod >= 1 ? detailPatternDefs(dims, mpt) : ''), [scene, lod, rot, viewMode, mpt]);
 
-  const dragStartRef = useRef<Pt | null>(null);
-  const [dragRect, setDragRect] = useState<Rect | null>(null);
-  const [painting, setPainting] = useState(false);
+  // ── GESTE DU POINTEUR EN COURS (`noyau/edition/pointeur`) : tenu en réf pour les événements qui se suivent avant
+  // le rendu, et en état pour l'aperçu (rectangle tiré, trait de terrain, gel du monde).
+  const gesteRef = useRef<GesteEnCours | null>(null);
+  const [gesteEnCours, setGesteEnCours] = useState<GesteEnCours | null>(null);
+  const poserGeste = (g: GesteEnCours | null) => {
+    gesteRef.current = g;
+    setGesteEnCours(g);
+  };
+  const dragRect = gesteEnCours?.sorte === 'rectangle' ? gesteEnCours.rect : null;
+  const traitCases = gesteEnCours?.sorte === 'trait' ? gesteEnCours.trace : AUCUNE_CASE;
   const [hoverEdge, setHoverEdge] = useState<{ x: number; y: number; side: 'N' | 'E' } | null>(null); // aperçu de l'arête sous le curseur (outil murs)
   const [calibNode, setCalibNode] = useState<{ x: number; y: number } | null>(null); // nœud de grille accroché pendant le calage 2 points (étapes tile1/tile2)
-  const moveRef = useRef<{ from: Pt; moved: boolean } | null>(null);
-  // Dernière case basculée par le tracé de volée EN COURS (cadence du pinceau, cf. `paintAt`).
-  const stairLastRef = useRef<Pt | null>(null);
-  const resizeRef = useRef<{ moved: boolean } | null>(null);
-  // ── TRAIT DE PINCEAU DE TERRAIN EN COURS (#1176, P3-3) : les cases que le geste courant a déjà
-  // peintes. Elles portent l'APERÇU du trait sur la voie volumique, où le monde reste sur la cuisson
-  // d'avant le geste (cf. `gelDuMonde`). Vidées au relâché, comme le reste de l'état de geste.
-  const [traitCases, setTraitCases] = useState<readonly Pt[]>([]);
-  const marquerTrait = (p: Pt, taille: number) => {
-    const cases = empriseDuPinceau(scene.dimensions, p, taille);
-    setTraitCases((prev) => {
-      const vues = new Set(prev.map((c) => `${c.x},${c.y}`));
-      const out = [...prev];
-      for (const c of cases) {
-        if (vues.has(`${c.x},${c.y}`)) continue;
-        vues.add(`${c.x},${c.y}`);
-        out.push(c);
-      }
-      return out.length === prev.length ? prev : out;
-    });
-  };
 
   /** Coordonnées écran locales (viewBox) d'un événement pointeur. */
   function localXY(ev: React.PointerEvent): { x: number; y: number } {
@@ -323,48 +307,34 @@ export function EditorCanvas({
     return { x: loc.x, y: loc.y };
   }
 
-  /** Point écran → tuile (projection iso, comme le jeu). */
-  function isoTile(ev: React.PointerEvent): Pt {
+  /** Ce que l'éditeur tient autour du geste du pointeur. */
+  const ctx: ContexteDuPointeur = {
+    tool,
+    z: currentLayer,
+    brush,
+    encId: encTarget,
+    encRef,
+    layers,
+    sel,
+    terrainRect,
+    architecture: architectureMode ? { z: architectureZ ?? currentLayer, action: architectureAction, bodyId: architectureBodyId } : null,
+  };
+
+  /** Point écran → point de la carte : la case sur le plan de la couche éditée (projection iso, comme le jeu), et
+   *  les coordonnées fractionnaires de case sur le plan du pointeur. */
+  function pointDeCarte(ev: React.PointerEvent): PointDeCarte {
     const { x, y } = localXY(ev);
-    return screenToTileAtZ(x, y, dims, currentLayer); // picking vers la couche en cours d'édition
+    return { case: screenToTileAtZ(x, y, dims, currentLayer), f: screenToTileF(x, y, dims, planDuPointeur(ctx)) };
   }
 
-  /** Point écran → case + ARÊTE la plus proche (outil murs) : offset fractionnaire au centre → nearestEdge. */
-  function wallHit(ev: React.PointerEvent): { p: Pt; side: CellSide } {
-    const { x, y } = localXY(ev);
-    const f = screenToTileF(x, y, dims, currentLayer);
-    const px = Math.round(f.x), py = Math.round(f.y);
-    return { p: { x: px, y: py }, side: nearestEdge(f.x - px, f.y - py) };
-  }
-
-  /** Le geste d'outil hors de sa case : couche active, pinceau, rencontre complétée et fiche posée. */
-  const geste: GesteDOutil = { z: currentLayer, brush, encId: encTarget, encRef };
-
-  /** Peint la case `p` avec l'outil courant — routine UNIQUE de l'appui ET du glissé : tout outil de
-   *  peinture répond au clic simple exactement comme au tracé, avec la même garde de bornes (un
-   *  glissé sorti du plateau n'écrit plus au-delà du bord). */
-  function paintAt(p: Pt) {
-    if (tool.mode === 'stair') {
-      // Tracé SEUL (aucune écriture de scène) : la volée n'est posée qu'une fois son plan validé,
-      // depuis la palette — un geste qui coterait au fil du glissé écrirait une volée impossible.
-      // `stairLastRef` = dernière case basculée par le tracé EN COURS (remise à zéro au relâché) :
-      // un glissement émet N événements par case, sans cette mémoire la case ferait l'aller-retour
-      // dans le tracé à chaque pixel parcouru.
-      if (!dansLaCarte(scene, p)) return;
-      if (stairLastRef.current?.x === p.x && stairLastRef.current?.y === p.y) return;
-      stairLastRef.current = p;
-      onStairTrace(p);
-      return;
-    }
-    const out = appliquerOutil(scene, tool, p, geste);
-    if (!out) return;
-    // La GOMME retire une ENTITÉ, jamais du terrain : un cran d'annulation par entité retirée, rien à
-    // prévisualiser. Les autres pinceaux coalescent le trait sous le cran posé à l'appui. Seul le
-    // terrain s'aperçoit au fil du trait : COTE et CRÉNELURE mutent la GÉOMÉTRIE, qu'un SVG plaqué ne
-    // relève pas, et se voient au RELÂCHÉ (#1176, P3-3).
-    if (tool.mode === 'erase') setScene(out.scene);
-    else setSceneNoHistory(out.scene);
-    if (tool.mode === 'tile') marquerTrait(p, brush);
+  /** L'effet d'un pas du pointeur, porté à l'éditeur. */
+  function porter(effet: EffetDuPointeur) {
+    poserGeste(effet.geste);
+    if (effet.scene) (effet.cran ? setScene : setSceneNoHistory)(effet.scene);
+    if (effet.encId) setEncTarget(effet.encId);
+    if (effet.volee) onStairTrace(effet.volee);
+    if (effet.sel !== undefined) onSelect(effet.sel);
+    if (effet.architectureFinie) onArchitectureActionComplete();
   }
 
   function pointerDown(e: React.PointerEvent) {
@@ -382,87 +352,7 @@ export function EditorCanvas({
       canvasRef.current?.setPointerCapture?.(e.pointerId);
       return;
     }
-    const p = isoTile(e);
-    if (!dansLaCarte(scene, p)) return;
-    switch (tool.mode) {
-      case 'select': {
-        if (architectureMode) {
-          const { x: lx, y: ly } = localXY(e);
-          const z = architectureZ ?? currentLayer;
-          const f = screenToTileF(lx, ly, dims, z);
-          const facade = pickArchitectureEdge(scene, f.x, f.y, z);
-          if (facade) {
-            onSelect(facade);
-            onArchitectureActionComplete();
-            return;
-          }
-          if (architectureAction === 'facade' && architectureBodyId) {
-            const px = Math.round(f.x), py = Math.round(f.y);
-            const edge = canonEdge(px, py, nearestEdge(f.x - px, f.y - py));
-            const out = addFacadeSection(scene, architectureBodyId, { ...edge, ...(z ? { z } : {}) });
-            if (out) {
-              setScene(out.scene);
-              onSelect({ type: 'facadeSection', bodyId: architectureBodyId, id: out.id });
-            }
-            onArchitectureActionComplete();
-            return;
-          }
-          const hit = hitAt(scene, p, layers, currentLayer, architectureBodyId ?? undefined);
-          onSelect(hit);
-          if (hit) moveRef.current = { from: p, moved: false };
-          return;
-        }
-        // Une arête-mur proche du curseur prime sur la tuile (sélection de cloison/porte → fold structure).
-        const { x: lx, y: ly } = localXY(e);
-        const f = screenToTileF(lx, ly, dims, currentLayer);
-        const we = pickWallEdge(scene, f.x, f.y, currentLayer);
-        if (we) { onSelect({ type: 'wall', x: we.x, y: we.y, side: we.side, z: currentLayer }); return; }
-        const hit = hitAt(scene, p, layers, currentLayer);
-        onSelect(hit);
-        if (hit) moveRef.current = { from: p, moved: false };
-        return;
-      }
-      case 'tile':
-        if (terrainRect) {
-          dragStartRef.current = p;
-          setDragRect({ x: p.x, y: p.y, w: 1, h: 1 });
-        } else {
-          pushSnapshot(); // 1 cran d'undo pour tout le trait
-          setPainting(true);
-          paintAt(p);
-        }
-        return;
-      case 'zone':
-        dragStartRef.current = p;
-        setDragRect({ x: p.x, y: p.y, w: 1, h: 1 });
-        return;
-      case 'zoneTiles':
-      case 'height':
-      case 'crenellated':
-        pushSnapshot(); // 1 cran d'undo pour tout le trait
-        setPainting(true);
-        paintAt(p);
-        return;
-      case 'stair':
-      case 'erase':
-        setPainting(true);
-        paintAt(p);
-        return;
-      case 'entity':
-      case 'emplacement':
-      case 'entry':
-      case 'encounter':
-      case 'wall': {
-        // L'outil murs vise l'ARÊTE la plus proche, depuis sa propre case.
-        const cible = tool.mode === 'wall' ? wallHit(e) : { p, side: undefined };
-        const out = appliquerOutil(scene, tool, cible.p, { ...geste, side: cible.side });
-        if (!out) return;
-        if (out.scene !== scene) setScene(out.scene);
-        if (out.encId && out.encId !== encTarget) setEncTarget(out.encId);
-        if (out.sel) onSelect(out.sel); // édition immédiate de ce que le geste a posé ou désigné
-        return;
-      }
-    }
+    porter(appuyer(scene, ctx, pointDeCarte(e)));
   }
 
   function pointerMove(e: React.PointerEvent) {
@@ -490,34 +380,12 @@ export function EditorCanvas({
       setView((v) => ({ ...v, x: pan.vx - dx, y: pan.vy - dy }));
       return;
     }
-    const p = isoTile(e);
-    onHover(p);
+    const pt = pointDeCarte(e);
+    onHover(pt.case);
     // Aperçu de l'arête ciblée (outil murs, sous-modes cloison/porte).
-    if (tool.mode === 'wall' && (tool.paint === 'wall' || tool.paint === 'door')) {
-      const wh = wallHit(e);
-      setHoverEdge(canonEdge(wh.p.x, wh.p.y, wh.side));
-    } else if (hoverEdge) setHoverEdge(null);
-    if (resizeRef.current) {
-      if (!resizeRef.current.moved) {
-        pushSnapshot(); // 1 cran d'undo pour tout le geste de resize
-        resizeRef.current.moved = true;
-      }
-      setSceneNoHistory(resizeSel(scene, sel, p));
-      return;
-    }
-    if (moveRef.current) {
-      const m = moveRef.current;
-      if (!m.moved && p.x === m.from.x && p.y === m.from.y) return; // clic simple = sélection, pas de déplacement
-      if (!m.moved) {
-        pushSnapshot(); // 1 cran d'undo au 1er déplacement réel
-        m.moved = true;
-      }
-      setSceneNoHistory(moveSel(scene, sel, p));
-      return;
-    }
-    if ((tool.mode === 'zone' || (tool.mode === 'tile' && terrainRect)) && dragStartRef.current)
-      setDragRect(rectFrom(dragStartRef.current, p));
-    else if (painting) paintAt(p); // MÊME routine qu'à l'appui : le tracé prolonge le clic, il ne le double pas
+    const arete = areteVisee(ctx, pt);
+    if (arete || hoverEdge) setHoverEdge(arete);
+    if (gesteRef.current) porter(glisser(scene, ctx, gesteRef.current, pt));
   }
 
   function pointerUp(e: React.PointerEvent) {
@@ -525,20 +393,8 @@ export function EditorCanvas({
       panRef.current = null;
       return;
     }
-    if (dragStartRef.current) {
-      const out = validerRectangle(scene, tool, rectFrom(dragStartRef.current, isoTile(e)), currentLayer);
-      if (out) {
-        setScene(out.scene);
-        if (out.sel) onSelect(out.sel); // un déclencheur ouvre le dock Logique dessus (Editor)
-      }
-    }
-    dragStartRef.current = null;
-    setDragRect(null);
-    setPainting(false);
-    stairLastRef.current = null; // le tracé est fini : un nouveau clic sur la même case la rebascule
-    setTraitCases([]); // le monde volumique reprend la scène VIVE : la cuisson se paie ICI, une fois
-    moveRef.current = null;
-    resizeRef.current = null;
+    // Le relâché clôt le geste : le monde volumique reprend la scène VIVE, la cuisson se paie ICI, une fois.
+    porter(relacher(scene, ctx, gesteRef.current, pointDeCarte(e)));
   }
 
   // Surlignage de la sélection : empreinte (entité), empreinte du toit, rect (zones).
@@ -574,7 +430,7 @@ export function EditorCanvas({
   // Les AUTRES gestes ne gèlent RIEN, et n'ont aucune raison de le faire : peindre une emprise de
   // zone, déplacer une entité ou GOMMER (`eraseAt` retire une ENTITÉ, jamais du terrain) ne touche
   // aucune dépendance de la cuisson — le monde suit au tick, sans une recuisson.
-  const gelDuMonde = painting && (tool.mode === 'tile' || tool.mode === 'height' || tool.mode === 'crenellated');
+  const gelDuMonde = gesteEnCours?.sorte === 'trait' && (tool.mode === 'tile' || tool.mode === 'height' || tool.mode === 'crenellated');
   const gelDuTrait = useRef(scene);
   if (!gelDuMonde) gelDuTrait.current = scene;
   const sceneGelée = gelDuTrait.current;
@@ -698,14 +554,8 @@ export function EditorCanvas({
           onPointerUp={pointerUp}
           onPointerLeave={() => {
             panRef.current = null;
-            dragStartRef.current = null;
-            setDragRect(null);
-            setPainting(false);
-            stairLastRef.current = null;
-            setTraitCases([]);
+            poserGeste(null);
             setHoverEdge(null);
-            moveRef.current = null;
-            resizeRef.current = null;
           }}
         >
           <defs dangerouslySetInnerHTML={{ __html: patternDefs }} />
@@ -970,7 +820,7 @@ export function EditorCanvas({
               {zoneDraws.map((zd) => {
                 if (zHidden(zd.z)) return null;
                 const dim = zd.z < currentLayer;
-                const ink = zoneInk(zd.zone, sel?.type === 'effectZone' && sel.idx === zd.idx);
+                const ink = zoneInk(zd.zone, sel?.type === 'effectZone' && sel.id === zd.zone.id);
                 return (
                   <g key={`ez-${zd.zone.id}`} data-zone={zd.zone.id} style={dim ? { filter: LOWER_LAYER_FILTER } : undefined}>
                     <path d={zd.fill} fill={ink.fill} fillOpacity={ink.fillOpacity} />
@@ -1028,7 +878,7 @@ export function EditorCanvas({
               cursor="nwse-resize"
               onPointerDown={(e) => {
                 e.stopPropagation();
-                resizeRef.current = { moved: false };
+                poserGeste(saisirLaPoignee(ctx));
                 canvasRef.current?.setPointerCapture?.(e.pointerId);
               }}
             />

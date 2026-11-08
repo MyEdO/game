@@ -52,10 +52,10 @@ describe('dé choisi d’un flux MULTI d’incantation — routage par pid + pla
         { id: 'B', interactive: true, declared: 'solo', result: { dispelled: false, counter: { ...rateTR }, casterNetSL: 7, log: '' } },
       ] },
     } as never);
-    st().jetForceSuccess('counterspell', 'B');
+    st().jetForcerLaReussite('counterspell', 'B');
     const apres = heroResilience('B');
     expect(apres, 'la Résilience de B n’a pas été dépensée').toBe(2);
-    st().jetSetForcedRoll('counterspell', CHOISI, 'B');
+    st().jetImposerLeResultat('counterspell', CHOISI, 'B');
 
     const parts = P<{ participants: { result: { dispelled: boolean; counter: { roll: number; sl: number; success: boolean } } }[] }>('pendingCounterspell').participants;
     const [cA, cB] = [parts[0].result, parts[1].result];
@@ -70,15 +70,15 @@ describe('dé choisi d’un flux MULTI d’incantation — routage par pid + pla
   it('opposition : idem sur l’autre participant (le dé ne fuit pas vers le témoin)', () => {
     banc.setState({
       pendingCast: { casterId: 'E', targetId: 'A', spellId: 'drain', missile: false, focused: false, result: ENEMY_CAST },
-      pendingCastOpposition: { test: { char: 'force-mentale' }, participants: [
+      pendingCastOpposition: { test: { characteristic: 'force-mentale' }, participants: [
         { id: 'A', interactive: true, result: { oppose: { ...rateTR }, resisted: false, margin: 7 } },
         { id: 'B', interactive: true, result: { oppose: { ...rateTR }, resisted: false, margin: 7 } },
       ] },
     } as never);
-    st().jetForceSuccess('opposition', 'A');
+    st().jetForcerLaReussite('opposition', 'A');
     const apres = heroResilience('A');
     expect(apres, 'la Résilience de A n’a pas été dépensée').toBe(2);
-    st().jetSetForcedRoll('opposition', CHOISI, 'A');
+    st().jetImposerLeResultat('opposition', CHOISI, 'A');
 
     const parts = P<{ participants: { result: { resisted: boolean; margin: number; oppose: { roll: number; sl: number } } }[] }>('pendingCastOpposition').participants;
     const [oA, oB] = [parts[0].result, parts[1].result];

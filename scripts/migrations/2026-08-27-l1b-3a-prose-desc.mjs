@@ -55,17 +55,21 @@ function porteur(o, ou) {
 }
 
 // ── Racine `src/data` : chemins DÉCLARÉS vers un tableau de porteurs ─────────────────────────────
-/** `null` en 2ᵉ position = le document EST le tableau de porteurs. */
+/** Un chemin vide = le document EST le tableau de porteurs. Plusieurs chemins = graphies de la MÊME
+ *  table, le premier qui résout en tableau est retenu : `rumours` était un tableau à l'écriture de cette
+ *  migration, `rumours.entries` et `hazards.entries` sont la forme que `2026-11-06-1667-tables-tirees-nichees.mjs` pose, et
+ *  les `entries` d'`interludeEvents`/`peripeties` celle de `2026-11-06-1667-tableaux-racines-mono-tables.mjs`
+ *  — une migration ANTÉRIEURE dans l'ordre lexical reconnaît la forme qu'une POSTÉRIEURE produit. */
 const DATA_CIBLES = [
   ['src/data/incidents-monture.json', ['entries']],
   ['src/data/problemes-vehicule.json', ['entries']],
   ['src/data/rencontres-edoc.json', ['tables', 'positives']],
   ['src/data/rencontres-edoc.json', ['tables', 'fortuites']],
   ['src/data/rencontres-edoc.json', ['tables', 'dangereuses']],
-  ['src/data/interludeEvents.json', []],
-  ['src/data/peripeties.json', []],
-  ['src/data/mass-battle.json', ['hazards']],
-  ['src/data/land-cargo.json', ['rumours']],
+  ['src/data/interludeEvents.json', ['entries'], []],
+  ['src/data/peripeties.json', ['entries'], []],
+  ['src/data/mass-battle.json', ['hazards', 'entries'], ['hazards']],
+  ['src/data/land-cargo.json', ['rumours', 'entries'], ['rumours']],
 ];
 
 /** Documents `src/data` chargés une fois (plusieurs chemins peuvent viser le même fichier). */
@@ -78,9 +82,10 @@ for (const [rel] of DATA_CIBLES) {
   docs.set(rel, { brut, doc, migres: 0, deja: 0 });
 }
 
-for (const [rel, chemin] of DATA_CIBLES) {
+for (const [rel, ...chemins] of DATA_CIBLES) {
   const etat = docs.get(rel);
   if (!etat) continue;
+  const chemin = chemins.find((c) => Array.isArray(c.reduce((n, k) => n?.[k], etat.doc))) ?? chemins[0];
   let parent = etat.doc;
   for (const k of chemin.slice(0, -1)) parent = parent?.[k];
   const cle = chemin.length ? chemin[chemin.length - 1] : null;

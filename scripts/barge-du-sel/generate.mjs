@@ -139,7 +139,7 @@ scenes.push(scene({
     },
     {
       // Le cap se prend SUR LES PLANCHES (rang 5) : le décor « Appareiller » est en (2,6) et
-      // `interactEntity` exige une adjacence de Chebyshev ≤ 1 (`noyau/interactionsDExploration.ts`), donc le groupe passe
+      // `interagirAvecLEntite` exige une adjacence de Chebyshev ≤ 1 (`noyau/interactionsDExploration.ts`), donc le groupe passe
       // forcément par ce rang pour embarquer — le drapeau est sur le chemin RÉEL, et jamais au
       // premier pas (le groupe naît en (2,3)).
       id: 'barge-du-sel-cap-donne', rect: { x: 0, y: 5, w: 12, h: 1 }, once: true,
@@ -204,7 +204,7 @@ scenes.push(scene({
       surprise: 'party',
       // Reddition à 40 % de Blessures (VictoryCondition.woundsThreshold, doc §8) : la cogue pirate amène
       // son pavillon avant le naufrage complet.
-      victoryCondition: { type: 'woundsThreshold', targetId: 'cogue-pirate', belowPercent: 40 },
+      victoryCondition: { type: 'woundsThreshold', targetId: 'cogue-pirate', atOrBelowPercent: 40 },
       members: [
         { entityId: 'louve-grise', side: 'ally' },
         { entityId: 'cogue-pirate', side: 'enemy' },

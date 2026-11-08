@@ -21,20 +21,20 @@
  *   Contrats : `src/gameIso/catalog/planche-qc-cuisson.test.ts` (loi d'orientation, projection,
  *   cliquet des littéraux) et `planche-qc-cap-identite.test.ts` (cap peint).
  */
-import { buildPropVolumes } from '../../../src/gameIso/builders/propVolumes';
-import { orienterPoly, shadeFamily, type Vec3 } from '../../../src/gameIso/backends/webgl/worldTris';
+import { buildPropVolumes } from '../../../src/noyau/monde/volume/propVolumes';
+import { orienterPoly, shadeFamily, type Vec3 } from '../../../src/noyau/monde/volume/worldTris';
 import { faceSurface, shadeFactorOf } from '../../../src/gameIso/backends/webgl/faceColors';
 import { affineScales, rotYaw } from '../../../src/gameIso/backends/webgl/cameras';
 import { projectStep, rotOffset, stepOf, type ProjKind, type Rot } from '../../../src/geometry/iso';
 import { propSvg } from '../../../src/gameIso/catalog/decor';
 import { findPropById, props } from '../../../src/data';
 import { defsGlobaux } from '../../../src/gameIso/sprites';
-import type { Face, GP } from '../../../src/gameIso/builders/types';
+import type { Face, GP } from '../../../src/noyau/monde/volume/types';
 import { CAP_IDENTITE_PROP } from '../../../src/data/props.types';
 
 /** DÉRIVÉE du catalogue : une recette de plus entre en planche par sa seule déclaration en donnée —
  *  une liste manuscrite laisserait les suivantes hors QC en silence. */
-export const RECETTES = props.filter((p) => p.volume).map((p) => p.id);
+export const RECETTES = props.map((p) => p.id);
 
 /** Les deux familles de projection que la planche montre — l'edge-on est le losange tourné de 45°, il
  *  ne dirait rien de plus qu'un cran de caméra. */
@@ -88,7 +88,7 @@ const versOeil = (p: Pt3, v: Pt3): number => p.x * v.x + p.y * v.y + p.h * v.h;
 
 /** CENTRE DE CARTE servi à la loi d'orientation : la planche n'a qu'une case, à l'origine. La loi n'en
  *  a besoin que pour une surface OUVERTE verticale, et une recette volumique n'en produit aucune
- *  (`builders/propVolumes.ts` déclare chaque face `oriented: true`). */
+ *  (`noyau/monde/volume/propVolumes.ts` déclare chaque face `oriented: true`). */
 const CENTRE_PLANCHE = { x: 0, z: 0 };
 
 /** Ancrage de PLANCHE : la recette au CAP D'IDENTITÉ (`CAP_IDENTITE_PROP`, jamais un cap littéral —
@@ -172,7 +172,7 @@ export function construireHtml(): { html: string; vides: string[] } {
   const vides: string[] = [];
   const lignes = RECETTES.map((id) => {
     const prop = findPropById(id);
-    if (!prop?.volume) throw new Error(`recette absente : ${id}`);
+    if (!prop) throw new Error(`décor absent : ${id}`);
     const faces = buildPropVolumes(prop, ancrageDePlanche, CASE_METRIQUE);
     const cellules = COLONNES.map(({ titre, rot, vue }) => {
       const { svg, peintes } = vueSvg(faces, rot, vue);

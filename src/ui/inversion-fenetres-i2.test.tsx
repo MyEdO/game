@@ -47,7 +47,7 @@ describe('Activité — bouton « Inverser »', () => {
     const h = heros('H1', studieux);
     const pa = {
       heroId: h.id, kind: 'catalog', label: 'Recherche universitaire', skillLabel: 'Recherche', skillValue: 55, difficulty: 'intermediaire',
-      ligne: { base: 55, mods: [], target: 55, difficulty: 'intermediaire' }, roll: 64, target: 55, sl: -1, success: false, chosenSkill: 'recherche',
+      ligne: { base: 55, mods: [], target: 55, difficulty: 'intermediaire' }, roll: 64, target: 55, sl: -1, success: false, chosenSkill: { id: 'recherche' },
     } as unknown as PendingActivity;
     useGame.setState({ party: [h], pendingActivity: pa });
     act(() => { root.render(<ActivityModal />); });
@@ -88,7 +88,7 @@ describe('Test étendu — bouton « Inverser »', () => {
   const ouvrir = (studieux: boolean) => {
     const h = heros('H1', studieux);
     useGame.setState({ party: [h], battle: null, pendingCascade: null });
-    useGame.getState().startExtendedTest({ actorId: h.id, label: 'Fouiller les archives', skillLabel: 'Recherche', skill: { id: 'recherche' }, target: 55, targetDR: 5 });
+    useGame.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'Fouiller les archives', skillLabel: 'Recherche', skill: { id: 'recherche' }, target: 55, targetDR: 5 });
     const p = useGame.getState().pendingExtendedTest!;
     useGame.setState({ pendingExtendedTest: { ...p, rounds: [{ ...p.rounds[0], result: { roll: 64, sl: -1, success: false } }] } });
     act(() => { root.render(<CascadeBody />); });

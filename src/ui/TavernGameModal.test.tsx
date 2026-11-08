@@ -46,7 +46,7 @@ afterEach(demonterRacines);
 afterAll(() => { resetRule('tavern-games'); });
 
 /** Le joueur choisit « Relever le défi. » dans le dialogue du PNJ — le geste réel. */
-const releverLeDefi = () => act(() => { g().chooseDialogue('relever-defi'); });
+const releverLeDefi = () => act(() => { g().fenetreChoisir('dialogue', 'reponse', 'relever-defi'); });
 
 describe('Taverne — la table s’ouvre sur l’offre du PNJ qui la propose', () => {
   it('le choix du dialogue ouvre la table AU NOM du proposeur', () => {
@@ -66,7 +66,7 @@ describe('Taverne — la table s’ouvre sur l’offre du PNJ qui la propose', (
 describe('Taverne — l’habitué joue une FICHE : un profil standard choisi (LDB 77 l.7, #1929)', () => {
   const ouvrirSeul = () => {
     const [soldat] = g().party;
-    act(() => { useGame.setState({ party: [soldat], dialogue: null } as never); g().openTavernGames(); });
+    act(() => { useGame.setState({ party: [soldat], dialogue: null } as never); g().ouvrirLesJeux(); });
     return monterRacine(<TavernGameModal />).container.ownerDocument;
   };
   const bouton = (doc: Document, texte: string) =>
@@ -100,7 +100,7 @@ describe('Taverne — une situation = une modale', () => {
   it('pendant la manche, seule la modale de jet est à l’écran : la table cède', () => {
     releverLeDefi();
     const [soldat] = g().party;
-    act(() => { g().playTavernGame({ gameId: 'bras-de-fer', challengerId: soldat.id, opponent: { kind: 'npc', id: PNJ } }); });
+    act(() => { g().jouerALaTaverne({ gameId: 'bras-de-fer', challengerId: soldat.id, opponent: { kind: 'npc', id: PNJ } }); });
     expect(pickActiveModalKey(g()), 'l’arbitre tient la manche').toBe('cascade');
     monterRacine(<><ActiveModal /><TavernGameModal /></>);
     expect(document.querySelectorAll('.modal-overlay')).toHaveLength(1);
@@ -116,7 +116,7 @@ describe('Taverne — la mise en sous de cuivre et l’effectif de table : l’�
   const ouvrirAlZahr = () => {
     const [soldat] = g().party;
     setBourseBrass(soldat, 11);
-    act(() => { useGame.setState({ party: [soldat], dialogue: null } as never); g().openTavernGames(); });
+    act(() => { useGame.setState({ party: [soldat], dialogue: null } as never); g().ouvrirLesJeux(); });
     const doc = monterRacine(<TavernGameModal />).container.ownerDocument;
     act(() => { [...doc.querySelectorAll('button')].find((b) => b.textContent?.trim() === findTavernGameById('al-zahr')!.label)!.click(); });
     return { doc, soldat };

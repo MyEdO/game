@@ -9,7 +9,7 @@
       "fantassin",
       "action-libre"
     ],
-    "run": "battleSelectAttack",
+    "run": "armerLAttaque",
     "mode": "attack",
     "intent": "portee-arme",
     "coutAction": "action",
@@ -94,7 +94,7 @@
       "action-libre-hors-frenesie",
       "pas-deja-en-joue"
     ],
-    "run": "battleAim",
+    "run": "prendreLaVisee",
     "coutAction": "action",
     "rule": {
       "id": "viser",
@@ -119,7 +119,7 @@
       "action-libre-hors-frenesie",
       "arme-a-recharger"
     ],
-    "run": "battleReload",
+    "run": "rechargerLArme",
     "candidates": "armes-a-recharge",
     "panneau": true,
     "coutAction": "action",
@@ -139,7 +139,7 @@
     "icon": "action/shoot",
     "surface": "deduite-du-set",
     "gate": "toujours",
-    "run": "battleSelectAmmo",
+    "run": "approvisionnerLArme",
     "candidates": "munitions-compatibles",
     "coutAction": "aucun",
     "maison": "fixe la munition à charger ; le coût réel est celui du Rechargement qui suit."
@@ -151,7 +151,7 @@
     "icon": "ui/undo",
     "surface": "deduite-du-set",
     "gate": "arme-de-repousse",
-    "run": "battleTogglePushback",
+    "run": "basculerLaRepousse",
     "coutAction": "aucun",
     "maison": "arme un MODE d’attaque (la prochaine attaque repousse au lieu de blesser) — le coût est celui de l’attaque.",
     "rule": {
@@ -172,7 +172,7 @@
       "tireur",
       "tir-immobile-armable"
     ],
-    "run": "battleToggleStance",
+    "run": "basculerLaPosture",
     "stance": "heldGround",
     "coutAction": "aucun",
     "maison": "la bascule ne consomme rien ; c'est le TIR effectué en posture qui dépense le Mouvement du Tour.",
@@ -194,7 +194,7 @@
       "tireur",
       "tir-dans-le-tas-armable"
     ],
-    "run": "battleToggleStance",
+    "run": "basculerLaPosture",
     "stance": "intoCrowd",
     "coutAction": "aucun",
     "maison": "la bascule ne consomme rien : elle change la Difficulté du TIR et la cible touchée, pas l'économie du Tour.",
@@ -213,7 +213,7 @@
     "icon": "journal/heal",
     "surface": "deduite-du-set",
     "gate": "action-libre-hors-frenesie",
-    "run": "battleSelectAction",
+    "run": "armerLeMode",
     "armed": "heal",
     "mode": "heal",
     "candidates": "cibles-soin",
@@ -234,7 +234,7 @@
     "icon": "action/water",
     "surface": "deduite-du-set",
     "gate": "action-libre-hors-frenesie",
-    "run": "battleWater",
+    "run": "aspergerDEau",
     "candidates": "cibles-aspersion",
     "coutAction": "action",
     "maison": "coût repris du site historique sans verbatim de coût cité ni Test exigé — à re-vérifier au Source (MDG).",
@@ -248,8 +248,8 @@
     "label": "Utiliser un objet",
     "icon": "action/consume",
     "surface": "deduite-du-set",
-    "gate": "action-libre-hors-frenesie",
-    "run": "battleUseItem",
+    "gate": "toujours",
+    "run": "utiliserLObjet",
     "candidates": "consommables",
     "coutAction": "gratuit",
     "source": {
@@ -269,7 +269,7 @@
     "icon": "flag/defensive",
     "surface": "grille",
     "gate": "action-libre-hors-frenesie-fantassin",
-    "run": "battleDefendTotal",
+    "run": "prendreLaDefensive",
     "coutAction": "action",
     "rule": {
       "id": "sur-la-defensive",
@@ -294,7 +294,7 @@
       "engage",
       "desengagement"
     ],
-    "run": "battleDisengage",
+    "run": "rompreLEngagement",
     "coutAction": "action",
     "rule": {
       "id": "desengagement",
@@ -316,7 +316,7 @@
     "icon": "action/cast",
     "surface": "grille",
     "gate": "action-libre-hors-frenesie",
-    "run": "battleSelectSpell",
+    "run": "incanterLeSort",
     "armed": "cast",
     "mode": "cast",
     "candidates": "sorts-du-heros",
@@ -336,7 +336,7 @@
       "action-libre-hors-frenesie",
       "sort-focalisable"
     ],
-    "run": "battleFocusSpell",
+    "run": "focaliserLeSort",
     "candidates": "sorts-du-heros",
     "coutAction": "action",
     "rule": {
@@ -351,7 +351,7 @@
     "icon": "action/dispel",
     "surface": "grille",
     "gate": "action-libre-hors-frenesie",
-    "run": "battleSelectAction",
+    "run": "armerLeMode",
     "armed": "dispel",
     "mode": "dispel",
     "candidates": "sorts-dissipables",
@@ -377,7 +377,7 @@
     "icon": "action/dispel",
     "surface": "grille",
     "gate": "action-libre-hors-frenesie",
-    "run": "battleDispelSpell",
+    "run": "dissiperLeSort",
     "candidates": "sorts-dissipables",
     "coutAction": "action",
     "rule": {
@@ -397,7 +397,7 @@
     "icon": "action/aim",
     "surface": "grille",
     "gate": "avantage-sous-plafond",
-    "run": "battleGainAdvantage",
+    "run": "gagnerLAvantage",
     "candidates": "competences-avantage",
     "coutAction": "action",
     "rule": {
@@ -419,7 +419,7 @@
       "etat-porte",
       "remede-atteignable"
     ],
-    "run": "battleStandUp",
+    "run": "seRelever",
     "coutAction": "mouvement",
     "rule": {
       "id": "a-terre",
@@ -445,7 +445,7 @@
       "etat-recuperable-par-test",
       "remede-atteignable"
     ],
-    "run": "battleRecoverState",
+    "run": "seRemettreDeLEtat",
     "coutAction": "action",
     "rule": {
       "id": "en-flammes",
@@ -467,7 +467,7 @@
       "etat-recuperable-par-test",
       "remede-atteignable"
     ],
-    "run": "battleRecoverState",
+    "run": "seRemettreDeLEtat",
     "coutAction": "action",
     "rule": {
       "id": "empetre",
@@ -488,7 +488,7 @@
       "action-libre-hors-frenesie",
       "battement-cible-eligible"
     ],
-    "run": "battleBattement",
+    "run": "faireUnBattement",
     "coutAction": "action",
     "rule": {
       "id": "battement",
@@ -514,7 +514,7 @@
       "hors-verrou-d-etat",
       "distraire-cible-eligible"
     ],
-    "run": "battleDistraire",
+    "run": "tenterDeDistraire",
     "coutAction": "mouvement",
     "rule": {
       "id": "distraire",
@@ -538,7 +538,7 @@
       "frenesie-possible",
       "action-libre"
     ],
-    "run": "battleFrenzy",
+    "run": "entrerEnFrenesie",
     "coutAction": "action",
     "rule": {
       "id": "frenesie",
@@ -555,7 +555,7 @@
     "icon": "flag/frenzy",
     "surface": "grille",
     "gate": "action-libre-hors-frenesie",
-    "run": "battleSelfManeuver",
+    "run": "manoeuvrerSurSoi",
     "candidates": "manoeuvres-sur-soi",
     "coutAction": "action",
     "maison": "la Métamorphose consomme DEUX Actions (celle-ci puis le tour perdu) — plafond maison, aucun verbatim de coût cité.",
@@ -573,7 +573,7 @@
       "hors-verrou-d-etat",
       "peut-agir"
     ],
-    "run": "battleSelectAttack",
+    "run": "armerLAttaque",
     "candidates": "attaques-de-trait",
     "coutAction": "aucun",
     "maison": "ARME l’attaque pour le clic-ennemi ; le coût est celui de l’attaque résolue.",
@@ -588,7 +588,7 @@
     "icon": "action/attack",
     "surface": "grille",
     "gate": "action-libre",
-    "run": "battleManeuverArea",
+    "run": "lancerLAttaqueDeZone",
     "candidates": "attaques-de-zone",
     "coutAction": "action",
     "keys": [
@@ -602,7 +602,7 @@
     "icon": "action/defend",
     "surface": "grille",
     "gate": "determination-en-reserve",
-    "run": "battleResolvePsychImmune",
+    "run": "immuniserALaPsychologie",
     "coutAction": "gratuit",
     "maison": "dépense d’un point de Détermination, hors Action/Mouvement — imputation du moteur.",
     "rule": {
@@ -617,7 +617,7 @@
     "icon": "journal/heal",
     "surface": "grille",
     "gate": "determination-en-reserve",
-    "run": "battleResolveIgnoreCrit",
+    "run": "ignorerLesCritiques",
     "coutAction": "gratuit",
     "maison": "dépense d’un point de Détermination, hors Action/Mouvement — imputation du moteur.",
     "rule": {
@@ -632,7 +632,7 @@
     "icon": "resource/resolve",
     "surface": "pastille-etat",
     "gate": "determination-en-reserve",
-    "run": "battleSpendResolve",
+    "run": "retirerUnEtat",
     "candidates": "etats-retirables",
     "coutAction": "gratuit",
     "maison": "dépense d’un point de Détermination, hors Action/Mouvement — imputation du moteur.",
@@ -648,7 +648,7 @@
     "icon": "action/mount",
     "surface": "pastille-entite",
     "gate": "mouvement-intact",
-    "run": "battleMount",
+    "run": "monterEnSelle",
     "candidates": "montures-adjacentes",
     "coutAction": "mouvement",
     "maison": "enfourcher n’exige aucun Test : l’imputation au Mouvement est notre arbitrage (la guideline ne tranche que les actes à Test).",
@@ -671,7 +671,7 @@
       "mouvement-intact",
       "hors-verrou-d-etat"
     ],
-    "run": "battleDismount",
+    "run": "mettrePiedATerre",
     "coutAction": "mouvement",
     "maison": "descendre n’exige aucun Test : l’imputation au Mouvement est notre arbitrage.",
     "rule": {
@@ -689,10 +689,14 @@
     "icon": "action/serve-engine",
     "surface": "pastille-entite",
     "gate": "toujours",
-    "run": "battleManPoste",
+    "run": "servirLePoste",
     "candidates": "pieces-servables",
     "coutAction": "gratuit",
-    "maison": "rejoindre une pièce est GRATUIT (on sert puis on agit le même Round) — arbitrage maison, aucun verbatim de coût cité.",
+    "source": {
+      "book": "livre-de-base",
+      "page": 158,
+      "note": "LDB 13 l.106 « Actions gratuites »"
+    },
     "keys": [
       "man-poste"
     ]
@@ -703,13 +707,14 @@
     "label": "Quitter la pièce",
     "icon": "action/leave-post",
     "surface": "geste-d-etat",
-    "gate": [
-      "poste-servi",
-      "action-libre"
-    ],
-    "run": "battleLeavePoste",
-    "coutAction": "action",
-    "maison": "quitter la pièce n’exige aucun Test : l’imputation à l’Action est notre arbitrage.",
+    "gate": "poste-servi",
+    "run": "quitterLePoste",
+    "coutAction": "gratuit",
+    "source": {
+      "book": "livre-de-base",
+      "page": 158,
+      "note": "LDB 13 l.106 « Actions gratuites »"
+    },
     "keys": [
       "leave-poste"
     ]
@@ -724,7 +729,7 @@
       "mouvement-intact",
       "equipage-suffisant"
     ],
-    "run": "battlePushEngine",
+    "run": "pousserLEngin",
     "candidates": "piece-poussable",
     "armed": "push",
     "mode": "push",
@@ -744,7 +749,7 @@
       "equipe-a-aider",
       "action-libre"
     ],
-    "run": "battleAidTeam",
+    "run": "aiderLEquipe",
     "coutAction": "action",
     "rule": {
       "id": "commandant-d-equipe",
@@ -761,7 +766,7 @@
     "icon": "action/pick-up",
     "surface": "pastille-entite",
     "gate": "action-libre-hors-frenesie",
-    "run": "battlePickup",
+    "run": "ramasserLObjet",
     "candidates": "objets-au-sol",
     "coutAction": "action",
     "maison": "ramasser n’exige aucun Test : l’imputation à l’Action est notre arbitrage.",
@@ -779,7 +784,7 @@
       "a-la-barre",
       "action-libre"
     ],
-    "run": "battleShipManeuver",
+    "run": "manoeuvrerLeNavire",
     "coutAction": "action",
     "rule": {
       "id": "test-equipage-manoeuvre",
@@ -800,7 +805,7 @@
       "navire-action",
       "pieces-au-navire"
     ],
-    "run": "battleSelectAction",
+    "run": "armerLeMode",
     "armed": "battery",
     "mode": "battery",
     "coutAction": "action",
@@ -822,7 +827,7 @@
       "navire",
       "navire-action"
     ],
-    "run": "battleCrewTest",
+    "run": "eprouverLEquipage",
     "coutAction": "action",
     "rule": {
       "id": "test-equipage-rude-epreuve",
@@ -842,7 +847,7 @@
       "navire",
       "chanteur-disponible"
     ],
-    "run": "battleSingShanty",
+    "run": "chanterLaChanson",
     "coutAction": "gratuit",
     "maison": "tâche PARALLÈLE : le chant occupe le chanteur, pas l’Action du navire — arbitrage maison (l’acte exige pourtant un Test).",
     "rule": {
@@ -861,11 +866,10 @@
     "surface": "grille",
     "gate": [
       "vehicule",
-      "piece-dechargee"
+      "arme-a-recharger"
     ],
-    "run": "battleShipReload",
-    "coutAction": "gratuit",
-    "maison": "tâche d’équipage PARALLÈLE : elle occupe l’équipage, pas le tour du navire — arbitrage maison (l’acte exige pourtant un Test).",
+    "run": "rechargerLArme",
+    "coutAction": "action",
     "rule": {
       "id": "recharge",
       "type": "quality"
@@ -881,7 +885,7 @@
     "icon": "ui/undo",
     "surface": "gouttiere-arche",
     "gate": "deplacement-annulable",
-    "run": "cancelMove",
+    "run": "annulerLeDeplacement",
     "coutAction": "aucun",
     "maison": "annulation d’un déplacement non commis — affordance d’interface, aucun coût de jeu.",
     "keys": [
@@ -895,7 +899,7 @@
     "icon": "ui/turn-end",
     "surface": "coin-de-tour",
     "gate": "toujours",
-    "run": "battleEndTurn",
+    "run": "terminerLeTour",
     "coutAction": "aucun",
     "maison": "clôture du tour — ne dépense rien (ce qui reste est perdu).",
     "keys": [
@@ -909,7 +913,7 @@
     "icon": "ui/round-start",
     "surface": "bandeau-de-phase",
     "gate": "pause-de-round",
-    "run": "roundStart",
+    "run": "lancerLeRound",
     "coutAction": "aucun",
     "maison": "ouverture du Round depuis la pause d’initiative — geste de table, aucun coût de jeu."
   },
@@ -920,7 +924,7 @@
     "icon": "ui/wait",
     "surface": "frise",
     "gate": "coop",
-    "run": "raiseHand",
+    "run": "leverLaMain",
     "coutAction": "aucun",
     "maison": "demande de pause au prochain début de Round — geste de table (coop), aucun coût de jeu.",
     "keys": [
@@ -934,10 +938,10 @@
     "icon": "item/weapon",
     "surface": "selecteur-de-sets",
     "gate": "set-commutable",
-    "run": "battleSwitchLoadout",
+    "run": "prendreLaPanoplie",
     "candidates": "sets-d-armes",
     "coutAction": "gratuit",
-    "maison": "la gratuité est RAW (LDB 13 l.106, « dégainer votre arme ») ; le plafond 1×/tour est l’arbitrage maison, porté par `battleSwitchLoadout`.",
+    "maison": "la gratuité est RAW (LDB 13 l.106, « dégainer votre arme ») ; le plafond 1×/tour est l’arbitrage maison, porté par `prendreLaPanoplie`.",
     "source": {
       "book": "livre-de-base",
       "page": 158,
@@ -979,7 +983,7 @@
     "icon": "action/aim",
     "surface": "interlude",
     "gate": "toujours",
-    "run": "castPickTargetsOff",
+    "run": "renoncerALaCarte",
     "mode": "overcast",
     "exitSafe": true,
     "role": "valide",
@@ -993,7 +997,7 @@
     "icon": "ui/undo",
     "surface": "interlude",
     "gate": "toujours",
-    "run": "placingZoneOff",
+    "run": "renoncerALaZone",
     "mode": "placing-zone",
     "exitSafe": true,
     "role": "renonce",
@@ -1007,7 +1011,7 @@
     "icon": "ui/undo",
     "surface": "interlude",
     "gate": "toujours",
-    "run": "batterySelectNone",
+    "run": "desarmerLaBatterie",
     "mode": "battery",
     "exitSafe": true,
     "role": "renonce",
@@ -1021,7 +1025,7 @@
     "icon": "ui/done",
     "surface": "interlude",
     "gate": "toujours",
-    "run": "teleportStay",
+    "run": "resterSurPlace",
     "mode": "teleport",
     "exitSafe": false,
     "role": "valide",

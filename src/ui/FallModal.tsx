@@ -20,7 +20,7 @@ import { useGesteDeJet } from './useGesteDeJet';
 /** Enjeu servi par chaque phase de la chute. */
 const FALL_STAKE: Record<'choice' | 'roll', FlowStakeId> = { choice: 'fall-choice', roll: 'fall-roll' };
 
-/** Ce qu'une option de la rangée DÉCLARE à `fallChoose` : le choix lit cette donnée, jamais sa clé. */
+/** Ce qu'une option de la rangée DÉCLARE (`jetRegler('fall', …)`) : le choix lit cette donnée, jamais sa clé. */
 type DeclarationDeChute = { attempt: boolean; suspendre?: boolean };
 
 /** Refus TRADUIT de chaque tombant qui doit encore déclarer — valeurs chaînes, stables pour `useShallow`. */
@@ -47,14 +47,14 @@ export function FallModal() {
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
   const owns = useOwns();
-  const roll = useGesteDeJet('jetRoll', 'fall');
-  const reroll = useGesteDeJet('jetReroll', 'fall');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'fall');
-  const darkPact = useGesteDeJet('jetDarkPact', 'fall');
-  const force = useGesteDeJet('jetForceSuccess', 'fall');
-  const confirm = useGesteDeJet('jetConfirm', 'fall');
-  const cancel = useGesteDeJet('jetCancel', 'fall');
-  const choose = useGame((s) => s.fallChoose);
+  const roll = useGesteDeJet('jetLancer', 'fall');
+  const reroll = useGesteDeJet('jetRelancer', 'fall');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'fall');
+  const darkPact = useGesteDeJet('jetPactiser', 'fall');
+  const force = useGesteDeJet('jetForcerLaReussite', 'fall');
+  const confirm = useGesteDeJet('jetValider', 'fall');
+  const cancel = useGesteDeJet('jetAnnuler', 'fall');
+  const regler = useGame((s) => s.jetRegler);
   const refusTests = useGame(useShallow(refusDesTests));
   const refusSuspensions = useGame(useShallow(refusDesSuspensions));
   if (!p) return null;
@@ -118,7 +118,9 @@ export function FallModal() {
           declare: {
             onChoose: (k: string) => {
               const d = declarations.find((x) => x.option.key === k)?.declaration;
-              if (d) choose(part.id, d.attempt, d.suspendre);
+              if (!d) return;
+              if (d.suspendre !== undefined) regler('fall', 'suspendre', d.suspendre, part.id);
+              regler('fall', 'tenter', d.attempt, part.id);
             },
             options: declarations.map((x) => x.option),
           },

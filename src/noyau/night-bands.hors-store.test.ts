@@ -87,7 +87,7 @@ beforeEach(() => {
 describe('CLÉ de bande = (entrée de règle, JOUR)', () => {
   it('3 jours franchis, 1 héros ivre → TROIS bandes de Dessoûlage (une par jour), jamais une bande à 3 rangées', () => {
     set({ party: [h('h1', { drunk: { failedTests: 3, drunk: true } })] } as never);
-    get().advanceTime(3 * MINUTES_PER_DAY);
+    get().avancerLeTemps(3 * MINUTES_PER_DAY);
 
     const bandes = bandsOf('dessoulage');
     expect(bandes).toHaveLength(3); // un Test par journée franchie (LDB 09 l.485), donc trois fenêtres
@@ -99,7 +99,7 @@ describe('CLÉ de bande = (entrée de règle, JOUR)', () => {
    *  seconde serait INJOIGNABLE (les verbes de rangée s'adressent à `part.id`). */
   it('INVARIANT : aucune bande de nuit ne contient deux rangées de même id', () => {
     set({ party: [h('h1', { drunk: { failedTests: 2, drunk: true } }), h('h2', { drunk: { failedTests: 1, drunk: true } })] } as never);
-    get().advanceTime(3 * MINUTES_PER_DAY);
+    get().avancerLeTemps(3 * MINUTES_PER_DAY);
 
     const doublons: string[] = [];
     for (const band of get().pendingCascade!.participants) {
@@ -179,7 +179,7 @@ describe('une bande, N rangées', () => {
   it('deux affamés le même jour → UNE fenêtre « Faim » à deux rangées', () => {
     const affame = (id: string) => h(id, { hunger: { days: 1, tests: 0, failures: 0 } });
     set({ party: [affame('h1'), affame('h2')] } as never);
-    get().advanceTime(MINUTES_PER_DAY);
+    get().avancerLeTemps(MINUTES_PER_DAY);
 
     const faim = bandsOf('faim');
     expect(faim).toHaveLength(1);
@@ -200,7 +200,7 @@ describe('POSSESSION d’une bande de nuit (#1268)', () => {
 
   it('DEUX dormeurs → `groupOwner` (chaque siège voit la fenêtre où se tient SA rangée)', () => {
     set({ party: [affame('h1'), affame('h2')] } as never);
-    get().advanceTime(MINUTES_PER_DAY);
+    get().avancerLeTemps(MINUTES_PER_DAY);
 
     const faim = bandsOf('faim')[0];
     expect(faim.groupOwner, 'plus d’un porteur : la fenêtre est partagée').toBe(true);
@@ -211,7 +211,7 @@ describe('POSSESSION d’une bande de nuit (#1268)', () => {
   it('UN dormeur → SON `actorId`, et la fenêtre part à SON siège (plus à l’hôte)', () => {
     const solo = affame('h1');
     set({ party: [solo] } as never);
-    get().advanceTime(MINUTES_PER_DAY);
+    get().avancerLeTemps(MINUTES_PER_DAY);
     const faim = bandsOf('faim')[0];
     expect(faim.actorId, 'une bande d’un seul porteur EST son porteur').toBe('h1');
     expect(faim.groupOwner).toBeUndefined();
@@ -232,7 +232,7 @@ describe('POSSESSION d’une bande de nuit (#1268)', () => {
    */
   it('une moitié de `splitBandRows` à UNE rangée NOMME son porteur (possession re-dérivée)', () => {
     set({ party: [affame('h1'), affame('h2')] } as never);
-    get().advanceTime(MINUTES_PER_DAY);
+    get().avancerLeTemps(MINUTES_PER_DAY);
     const faim = bandsOf('faim')[0];
     expect(faim.groupOwner, 'la bande d’origine est bien partagée').toBe(true);
 
@@ -257,7 +257,7 @@ describe('POSSESSION d’une bande de nuit (#1268)', () => {
 describe('gueule de bois (LDB 09 l.485) — due par TOUTE rangée du dessoûlage', () => {
   it('deux ivres, l’un réussit l’autre rate → UNE bande de gueule de bois à DEUX rangées', () => {
     set({ party: [h('h1', { drunk: { failedTests: 2, drunk: true } }), h('h2', { drunk: { failedTests: 4, drunk: true } })] } as never);
-    get().advanceTime(MINUTES_PER_DAY);
+    get().avancerLeTemps(MINUTES_PER_DAY);
     const desso = bandsOf('dessoulage')[0];
     expect(desso.participants).toHaveLength(2);
 
@@ -266,7 +266,7 @@ describe('gueule de bois (LDB 09 l.485) — due par TOUTE rangée du dessoûlage
       ...r, result: i === 0 ? { roll: 1, target: r.target, sl: 3, success: true } : { roll: 99, target: r.target, sl: -3, success: false },
     }));
     set({ pendingCascade: { ...p, participants: p.participants.map((s) => (s.id === desso.id ? { ...s, participants: rows } : s)) } });
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
 
     const hangover = bandsOf('dessoulageHangover');
     expect(hangover, 'le 2ᵉ Test est dû « une fois tous les effets dissipés », pas aux seuls perdants').toHaveLength(1);
@@ -297,8 +297,8 @@ describe('une bande par MALADIE', () => {
   it('CHEMIN RÉEL : un compagnon contagieux ouvre UNE fenêtre de Contagion, une rangée par héros sain', () => {
     const sick = contractDisease('verole-urticante', deFixe(1) as never, { incubation: 0, duration: 5 })!;
     set({ party: [h('m1', { diseases: [sick] }), h('s1'), h('s2')], scene: emptyScene('scene-test', 6, 6) } as never);
-    get().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
-    for (const id of ['m1', 's1', 's2']) get().restSet(id, { food: 'rien' });
+    get().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
+    for (const id of ['m1', 's1', 's2']) get().fenetreChoisir('rest', 'pitance', 'rien', id);
     get().fenetreValider('rest');
 
     const cont = bandsOf('contagion');
@@ -409,7 +409,7 @@ describe('file de fin de combat — SCISSION par pilote (invariant 7)', () => {
 describe('SONDE B — ids de bande UNIQUES dans la séquence', () => {
   it('deux jours de Dessoûlage → deux bandes de gueule de bois aux ids DISTINCTS', () => {
     set({ party: [h('h1', { drunk: { failedTests: 3, drunk: true } })] } as never);
-    get().advanceTime(2 * MINUTES_PER_DAY);
+    get().avancerLeTemps(2 * MINUTES_PER_DAY);
     expect(bandsOf('dessoulage')).toHaveLength(2);
 
     // Déroule TOUTE la séquence (chaque Dessoûlage INSÈRE sa gueule de bois derrière lui) en relevant
@@ -422,7 +422,7 @@ describe('SONDE B — ids de bande UNIQUES dans la séquence', () => {
       vus.push({ kind: cur.kind, id: String(cur.id) });
       const rows = cur.participants!.map((r) => ({ ...r, result: { roll: 50, target: r.target, sl: 0, success: true } }));
       set({ pendingCascade: { ...p, participants: p.participants.map((s, k) => (k === p.cursor ? { ...s, participants: rows } : s)) } });
-      get().jetConfirm('cascade');
+      get().jetValider('cascade');
     }
 
     const hangovers = vus.filter((v) => v.kind === 'dessoulageHangover');
@@ -454,15 +454,15 @@ describe('SONDE D — Exposition (chaleur) de bout en bout : drop → cancelsRow
     const p = get().pendingCascade!;
     const rows = wave0.participants!.map((r) => ({ ...r, result: { roll: 99, target: r.target, sl: -5, success: false } }));
     set({ pendingCascade: { ...p, participants: p.participants.map((s, k) => (k === p.cursor ? { ...s, participants: rows } : s)) } });
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
 
     // UN SEUL délestage inséré (h2 n'a rien de lourd à jeter — sa conséquence est immédiate).
     const cur = () => { const c = get().pendingCascade!; return c.participants[c.cursor]; };
     expect(cur().kind).toBe('exposure-heat-drop');
     expect(cur().actorId).toBe('h1');
     expect(cur().meta?.cancelsRowId).toBe(`${wave0.id}:h1`);
-    get().cascadeChoose(cur().id, 'jeter');
-    get().jetConfirm('cascade');
+    get().jetRegler('cascade', 'choix', 'jeter', cur().id);
+    get().jetValider('cascade');
 
     const wave1 = cur();
     expect(wave1.kind).toBe('exposure');

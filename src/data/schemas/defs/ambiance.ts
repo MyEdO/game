@@ -2,7 +2,7 @@ import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `ambiance.json` — AMBIANCE de rendu partagée iso ⇄ POV (ciel/brumes/vignette/voile chaud/
  * filtre d'étage), consommée comme `AmbianceDef` (objet RACINE unique, PAS un tableau) —
- * `src/data/ambiance.types.ts`, lue par `src/gameIso/catalog/ambiance.ts`.
+ * `src/data/ambiance.types.ts`.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
@@ -105,7 +105,7 @@ const brumeSchema = nommerChamps(z
       .max(4),
     /** RESSERREMENT de la portée première personne sous cette météo (part de la portée du milieu) :
      *  1 = portée intacte. Appliqué EN AMONT de la courbe de brume ET du plan lointain de la caméra
-     *  (`povDepth`, `gameIso/pov/camera.ts`) — les deux ou aucun. */
+     *  (`povDepth`) — les deux ou aucun. */
     povTightenK: z.number().gt(0).max(1).optional(),
   })
   .refine((b) => b.layers.every((l, i) => i === 0 || l.hM > b.layers[i - 1].hM), {
@@ -158,10 +158,10 @@ const tintFactor = z.number().min(0).max(1);
  *  disparaît. Le rapport max/min des verticales est plafonné : au-delà, la famille la plus sombre
  *  passe sous le plancher de luminance de la scène (palier `tenebres` × `fogTint.explored`).
  *
- *  `bas` a un producteur : le DESSOUS d'un décor volumique (`gameIso/builders/propVolumes.ts`), dont
+ *  `bas` a un producteur : le DESSOUS d'un décor volumique (`noyau/monde/volume/propVolumes.ts`), dont
  *  chaque face porte son propre dehors jusqu'à la cuisson. Les murs, eux, n'en produisent aucun —
- *  `wallBoxPolys` (`gameIso/backends/webgl/worldTris.ts`) omet le dessous d'un mur, et un sol présente
- *  toujours sa normale vers le haut (`gameIso/stage/modele-forme.test.ts`). */
+ *  `wallBoxPolys` (`noyau/monde/volume/worldTris.ts`) omet le dessous d'un mur, et un sol présente
+ *  toujours sa normale vers le haut. */
 const faceShadeSchema = nommerChamps(z
   .strictObject({
     haut: z.number().gt(0).max(1),
@@ -190,7 +190,7 @@ const doc = document(
   {
   ambientFloor: z.number(),
   // `fogTint` = APPLICATION de la politique de visibilité en facteur MULTIPLICATIF (0..1), partagée par
-  // les trois rendus (`gameIso/catalog/ambiance.ts`). Trois invariants la tiennent : un facteur reste
+  // les trois rendus. Trois invariants la tiennent : un facteur reste
   // dans [0,1] ; l'ordre des états ne s'inverse pas (une case jamais vue ne peut pas être plus lumineuse
   // qu'un souvenir, ni un souvenir plus lumineux que le vu) ; `explored` est le DÉNOMINATEUR du cran
   // d'ambiance de la première personne, donc strictement positif.

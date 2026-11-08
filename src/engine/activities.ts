@@ -13,13 +13,14 @@ import { valeurSansTirage } from './formule';
 import { evalCondition, type Condition, type ConditionCtx, type FlowTest } from './flowCore';
 import { buildActorView } from './actorView';
 import type { ModLine } from './combat';
-import { bestSkilledOption, idsDuTest, peutTenter, refusNePeutTenter, valeurDuTest, type TestDesigne } from './skills';
+import { bestSkilledOption, peutTenter, refusNePeutTenter, testValue, type TestDesigne } from './skills';
 import { maxBy } from './pick';
 import type { PlayerText } from '../i18n/playerText';
 import { refCouvre, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
 import type { FoyerDeRegle } from '../data/schemas/grammaire/valeurs';
 import { easeDifficulty, estJete, clampTarget, cibleDuTest, ECHEC_SANS_JET, type EchecSansJet } from './tests';
-import { trappingsInstanciables, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, type TrappingData } from '../data';
+import { trappingsInstanciables, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, qualities, type TrappingData } from '../data';
+import { memoParVersion } from '../data/versionDataset';
 import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';
 import { competenceEnCarriere, talentEnCarriere } from './talentEffects';
@@ -313,14 +314,14 @@ export type TestDOption = Pick<FlowTest, 'difficulty'> & ({ skill: RefDesignee; 
 
 /** Ce que désigne le Test d'une option : sa Compétence, sinon sa Caractéristique. PUR. */
 export function designeDe(test: TestDOption): TestDesigne {
-  return test.skill ? { skill: test.skill } : { char: test.characteristic };
+  return test.skill ? { skill: test.skill } : { characteristic: test.characteristic };
 }
 
 /** Difficulté que `def` déclare pour le Test `test` : celle de l'option qui le couvre (`refCouvre` — une
  *  option sans Spécialisation couvre toutes les siennes), sinon celle de l'Activité. Sert la voie qu'un
  *  résolveur DÉRIVE du héros (Savoir de la recherche, arme de l'entraînement). PUR. */
 function difficulteDeclaree(def: Pick<ActivityDef, 'tests' | 'difficulty'>, test: TestDesigne): Difficulty | undefined {
-  const option = def.tests?.find((o) => ('skill' in test ? !!o.skill && refCouvre(o.skill, test.skill) : o.characteristic === test.char));
+  const option = def.tests?.find((o) => (test.skill ? !!o.skill && refCouvre(o.skill, test.skill) : o.characteristic === test.characteristic));
   return option ? option.difficulty : def.difficulty;
 }
 
@@ -417,12 +418,12 @@ export interface ActivityDef {
    *  favorable facilite le Test. */
   difficultyFrom?: BattleDifficultyFrom;
   /** Genre d'une Scène de Round ('bataille-round') : `test` (Test de Compétence des PJ, delta de Puissance
-   *  par l'issue) ; `combat` (rencontre tactique — `startCombat` — touches/kills nourrissent le delta) ;
+   *  par l'issue) ; `combat` (rencontre tactique — `lancerLeCombat` — touches/kills nourrissent le delta) ;
    *  `threat` (Scène MENACE qui s'IMPOSE et pénalise les autres Scènes tant qu'elle vit, Intrus l.219) ;
    *  `hold` (Tenez votre position l.161 : Test OPPOSÉ récurrent, Point de rupture entre Rounds) ;
    *  `rally` (Rassemblement l.122 : Test de Résistance qui soigne les héros). Absent = Activité ordinaire. */
   sceneKind?: 'test' | 'combat' | 'threat' | 'hold' | 'rally';
-  /** Scène 'combat'/'threat' : id de rencontre de la scène à démarrer (`startCombat`). */
+  /** Scène 'combat'/'threat' : id de rencontre de la scène à démarrer (`lancerLeCombat`). */
   encounter?: string;
   /** Durée max en Rounds de Combat (indicatif narratif, l.139/157/175…). */
   rounds?: number;
@@ -481,7 +482,7 @@ export function activityRolls(def: Pick<ActivityDef, 'tests' | 'freeSkill' | 're
 
 /** Ligne de mod du modificateur de SITUATION d'un Test d'Activité (Menace `ADE II 8 l.219`,
  *  Planification l.75) — SOURCE UNIQUE, partagée par le CALCUL de la cible (`massBattleFlow`,
- *  `rollFlowSpecs`) et par son RENDU (`ui/ActivityModal.tsx`) : trois littéraux du même fait
+ *  `rollFlowSpecs`) et par son RENDU : trois littéraux du même fait
  *  divergeaient sinon. Aucun mod ⇒ aucune ligne (jamais un « Modificateur +0 » inventé). PURE. */
 export function activityModLines(mod: number | undefined, modLabel: string | undefined): ModLine[] {
   return mod ? [{ label: modLabel ?? 'Modificateur', value: mod, famille: 'jet' as const }] : [];
@@ -612,20 +613,20 @@ export function travelActivitySpec(
   const mods = [...activityModLines(situation.mod, situation.label), ...(opts.mods ?? [])];
   const surLaCible = skillMod + mods.reduce((s, m) => s + m.value, 0);
   const lues = voies.map((voie) => {
-    const value = voie.valeur ?? valeurDuTest(actor, voie.test);
+    const value = voie.valeur ?? testValue(actor, voie.test);
     const difficulty = classGatedDifficulty({ difficulty: voie.difficulty ?? difficulteDeclaree(def, voie.test), classGate: def.classGate }, actor);
     return { voie, value, difficulty, brute: cibleDuTest(value, difficulty, surLaCible) };
   });
   // Meilleure voie TENTABLE par cible (first-max, `maxBy`) ; aucune → la première et son refus nommé,
   // patron `crewRoleValue` (LDB 09 l.30 ; LDB 16 l.113).
-  const tentable = ({ test }: VoieDActivite): boolean => { const ids = idsDuTest(test); return peutTenter(actor, ids.skill, ids.spec); };
+  const tentable = ({ test }: VoieDActivite): boolean => peutTenter(actor, test);
   const best = maxBy(lues.filter((l) => tentable(l.voie)), (l) => l.brute)?.item;
   const retenue = best ?? lues[0];
   const { test } = retenue.voie;
   return {
     activityId: def.id, actorId: actor.id, test, value: retenue.value, difficulty: retenue.difficulty, mods,
     target: clampTarget(retenue.brute).target, skillMod, drTarget,
-    ...(best ? {} : { refus: refusNePeutTenter(actor, idsDuTest(test)) }),
+    ...(best ? {} : { refus: refusNePeutTenter(actor, test) }),
   };
 }
 
@@ -649,7 +650,7 @@ export function competencesAPratiquer(actor: Combatant, def: Pick<ActivityDef, '
       return specs.filter((spec) => !surFiche(sd.id, spec)).map((spec) => ({ id: sd.id, spec }));
     }),
   ];
-  return refs.filter((ref) => competenceOfferte(def, ref)).map((ref) => (peutTenter(actor, ref.id, ref.spec) ? { ref } : { ref, refus: refusNePeutTenter(actor, { skill: ref.id, ...(ref.spec ? { spec: ref.spec } : {}) }) }));
+  return refs.filter((ref) => competenceOfferte(def, ref)).map((ref) => (peutTenter(actor, { skill: ref }) ? { ref } : { ref, refus: refusNePeutTenter(actor, { skill: ref }) }));
 }
 
 /** Refus d'un candidat à une Activité de voyage, au PREMIER niveau du choix : la meilleure compétence du
@@ -825,6 +826,13 @@ export function entrainementTutorCost(advanced: boolean, rng: RNG): Money {
   return fromBrass(sc);
 }
 
+/** Atouts et Défauts qu'un ouvrage d'Artisanat peut viser : les qualités d'Objet de la donnée (`qualities.json`), par
+ *  polarité. LDB 60 l.9-62, LDB 23 l.78 */
+export const qualitesDArtisanat = memoParVersion('qualities', () => ({
+  atouts: qualities.filter((q) => q.polarite === 'atout' && q.subType === 'objet').map((q) => q.id),
+  defauts: qualities.filter((q) => q.polarite === 'defaut' && q.subType === 'objet').map((q) => q.id),
+}));
+
 /** Fourchette du prix du tuteur d'Entraînement (1d10 sc, doublé pour les Compétences Avancées) —
  *  pour afficher le risque AVANT de s'engager (le tirage réel reste `entrainementTutorCost`). */
 export function entrainementTutorRange(advanced: boolean): { minBrass: number; maxBrass: number } {
@@ -890,12 +898,17 @@ export function entrainementOptions(hero: Combatant): EntrainementOption[] {
   return [...chars, ...skillOptions.sort((a, b) => parLibelle(a.label, b.label))];
 }
 
-/** Retrait bancaire (LDB 23 l.168-170) : `roll` = le 1d100 du retrait. Planque : seuil de découverte
- *  fixe à 10 (LDB 23 l.170), sauf `rate` positionné (MDG 15 l.292 : 50 pour la Planque liée à une
- *  Carte marine). */
+/** Seuil de perte d'un dépôt au retrait : l'Indice borné à 1-10 pour un investissement (LDB 23 l.168),
+ *  10 pour une planque (LDB 23 l.170), sauf `rate` positionné (MDG 15 l.292 : 50 pour la Planque liée à
+ *  une Carte marine). */
+export function seuilDePerteBancaire(kind: 'invest' | 'stash', rate: number): number {
+  if (kind === 'invest') return Math.max(1, Math.min(10, rate));
+  return rate > 0 ? rate : 10;
+}
+
+/** Retrait bancaire (LDB 23 l.168-170) : `roll` = le 1d100 du retrait, perdu à `seuilDePerteBancaire` ou moins. */
 export function bankWithdrawOutcome(kind: 'invest' | 'stash', rate: number, roll: number): 'ok' | 'lost' {
-  if (kind === 'invest') return roll <= Math.max(1, Math.min(10, rate)) ? 'lost' : 'ok';
-  return roll <= (rate > 0 ? rate : 10) ? 'lost' : 'ok';
+  return roll <= seuilDePerteBancaire(kind, rate) ? 'lost' : 'ok';
 }
 
 /** Somme d'un dépôt récupéré avec intérêts (« les fonds de départ, plus les intérêts générés »,
@@ -976,7 +989,7 @@ export function tutorCostRange(talentXpCost: number): { minBrass: number; maxBra
 }
 
 export interface LearnOption {
-  /** `id` STABLE du Talent — clé de `learnFails` et `opts.talentId` d'`interludeActivity('learn')`. */
+  /** `id` STABLE du Talent — clé de `learnFails` et `opts.talentId` de `pratiquerLActivite('learn')`. */
   id: string;
   label: string;
   /** Coût PX de la PROCHAINE acquisition (talentCost × fois déjà prises). */

@@ -155,16 +155,16 @@ describe('Opéra — Théâtre : intrigue n°1 (la bombe de la loge royale)', ()
     const before = lonePartyAt(35).wounds.current;
     applyEffects(banc.getState, banc.setState, flowEffects(arm.flow));
     applyEffects(banc.getState, banc.setState, flowEffects(detect.success)); // désamorçage
-    banc.getState().advanceTime(120);
+    banc.getState().avancerLeTemps(120);
     expect(banc.getState().party[0].wounds.current).toBe(before); // intacte (pétards à l'écart, bombe annulée)
   });
 
   it('les pétards (intrigue n°2) éclatent à 20h30 : flash puis pénombre rétablie', () => {
     lonePartyAt(35);
     applyEffects(banc.getState, banc.setState, flowEffects(arm.flow));
-    banc.getState().advanceTime(10); // 20h30 : la mèche éclaire, les pétards éclatent
+    banc.getState().avancerLeTemps(10); // 20h30 : la mèche éclaire, les pétards éclatent
     expect(banc.getState().lightLevel).toBe(0.8); // flash
-    banc.getState().advanceTime(1); // la salle se rassoit
+    banc.getState().avancerLeTemps(1); // la salle se rassoit
     expect(banc.getState().lightLevel).toBe(0.35);
   });
 
@@ -205,7 +205,7 @@ describe('Opéra — Théâtre : intrigue n°1 (la bombe de la loge royale)', ()
   it('sans désamorçage, l’explosion frappe l’antichambre au bout de la mèche', () => {
     const before = lonePartyAt(35).wounds.current;
     applyEffects(banc.getState, banc.setState, flowEffects(arm.flow));
-    banc.getState().advanceTime(60);
+    banc.getState().avancerLeTemps(60);
     expect(banc.getState().party[0].wounds.current).toBeLessThanOrEqual(before - 15);
   });
 });

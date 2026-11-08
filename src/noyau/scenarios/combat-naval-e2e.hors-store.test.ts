@@ -84,7 +84,7 @@ function meleeDown(attacker: Combatant, target: Combatant): number {
 function settle(): void {
   checkBattleOver(() => banc.getState(), banc.setState);
   if (banc.getState().pendingCascade?.combatEndBoundary) {
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetLancer('cascade');
     banc.getState().fenetreFermer('cascade');
   }
 }

@@ -2,7 +2,7 @@
  * ÉCRIVAINS de la carte du monde (WorldMap → WorldMap) — ceux de l'éditeur, dont la carte vit hors du
  * store. Les lectures de jeu (routes offertes, lieux visibles, services) vivent dans `./worldMap`.
  * Chaque écrivain rend une NOUVELLE carte ; un refus rend la carte reçue, inchangée. L'id d'un lieu ou
- * d'une route neuve vient de l'hôte (#2817). NE JAMAIS importer `../ui/` ni `../gameIso/` ici.
+ * d'une route neuve vient de l'hôte (#2817).
  */
 import { semencesDeScene } from '../data';
 import type { TravelMode } from '../engine/travel';

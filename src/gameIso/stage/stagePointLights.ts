@@ -52,18 +52,13 @@ import { heightAt, type Scene } from '../../noyau/monde/scene';
 import type { LightSource } from '../../noyau/monde/vision';
 import { ambianceLuminance } from '../catalog/ambiance';
 import { LIGHT_COLOR } from '../backends/webgl/sceneMeshes';
+import { FLAME_LIFT_M } from '../../noyau/lumiereDeLaScene';
 
 /** Nombre de lampes ponctuelles montées EN PERMANENCE. Budget mesuré sur la population réelle : 3
  *  sources sur le terrain d'entraînement, ≤ 12 sur le hub de l'arène (#1245). Au-delà, ce sont les
  *  sources POSÉES qui passent (cf. `pointLightWrites`). */
 export const POINT_LIGHT_BUDGET = 12;
 
-/** Hauteur (m) par DÉFAUT d'une flamme au-dessus du sol de sa case — le foyer d'un émetteur qui n'a
- *  AUCUNE primitive déclarée : un billboard (dont le dessin n'a pas de volume monde où pointer) ou une
- *  lampe PORTÉE (dont le foyer est une main, pas une recette). Un décor VOLUMIQUE, lui, déclare sa
- *  primitive émettrice (`PropPrimitive.emet`) et sa source est posée à SON centre (`LightSource.foyer`,
- *  `noyau/monde/vision.ts`) : ce sont deux valeurs d'UN paramètre, pas deux régimes. Apparence, aucune règle. */
-export const FLAME_LIFT_M = 1;
 
 /** Luminance VISÉE au foyer d'UNE flaque au palier `nuit` (part d'albédo, `ambianceLum` comprise). En
  *  dessous de 1 par CONSTRUCTION : three ADDITIONNE les contributions et ce canevas n'a aucun tone
@@ -311,7 +306,7 @@ export function pointLightWrites(
     const ton = resolveTone(s.tone);
     // FOYER : le décor volumique qui déclare sa primitive émettrice pose sa lampe à SON centre — même
     // repère et même échelle que la géométrie cuite (`x`/`y` en cases × `mpt`, `h` en mètres au-dessus
-    // du sol de la case, cf. `backends/webgl/worldTris:gpToWorld` et `builders/propVolumes`). Sans
+    // du sol de la case, cf. `noyau/monde/volume/worldTris:gpToWorld` et `noyau/monde/volume/propVolumes`). Sans
     // foyer, la hauteur par défaut à l'aplomb de la case.
     const w: PointLightWrite = {
       srcId: s.srcId,

@@ -406,9 +406,15 @@
         },
         {
           "files": [
+            "cargoes.json"
+          ],
+          "desc": "Catalogue des cargaisons, une table par voie : maritime (MDG 15) et terrestre/fluviale (MSRC 13)"
+        },
+        {
+          "files": [
             "land-cargo.json"
           ],
-          "desc": "Cargaison terrestre (commerce)"
+          "desc": "Règles du commerce terrestre (MSRC 13)"
         },
         {
           "files": [
@@ -487,7 +493,7 @@
             "sea-weather.json",
             "sea-cargo.json"
           ],
-          "desc": "Navigation · périls · événements · météo · cargaison maritimes"
+          "desc": "Navigation · périls · événements · météo · règles du commerce maritimes"
         },
         {
           "files": [
@@ -550,6 +556,12 @@
             "raceAppearance.json"
           ],
           "desc": "Apparence par race (gabarit, palette, tenue, traits, yeux)"
+        },
+        {
+          "files": [
+            "planDeBestiaire.json"
+          ],
+          "desc": "LE plan de bestiaire — par espèce d'apparence, la base humanoïde à une race de rendu (`race`), un corps de générateur (`corps`, sa `famille`) ou, omise, son motif (`omis`), et l'échelle d'art (`echelle`) ; il fait le domaine des espèces d'apparence"
         },
         {
           "files": [

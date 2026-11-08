@@ -1,8 +1,8 @@
 /**
  * MATIÈRES DU MONDE (#1686 lot 2) — vue TS de `materials.json`, dataset UNIQUE des matières de rendu.
  *
- * L'identité d'une matière est le couple (`domain`, `id`) ; l'id reste unique sur tout le périmètre
- * (`src/gameIso/catalog/materials-identite.test.ts`), si bien qu'un homonyme se COMPOSE (`prop-ardoise` /
+ * L'identité d'une matière est le couple (`domain`, `id`) ; l'id reste unique sur tout le périmètre,
+ * si bien qu'un homonyme se COMPOSE (`prop-ardoise` /
  * `toit-ardoise`) plutôt que de compter sur son domaine pour être séparable.
  *
  * Le fichier porte UNE forme d'entrée (schéma `schemas/defs/materials.ts` : toutes les clés de charge
@@ -23,11 +23,9 @@ import type { Slot } from '../lib/palette';
  * plinthes/arases, mouchetis. DONNÉE PURE portée par les defs d'apparence (`StructureAppearanceDef`,
  * `RoofMaterialDef`, `ReliefMaterialDef`, `TerrainDef`) via leur champ optionnel `detail`.
  *
- * `expandRecipe` (`gameIso/detail/expand.ts`) déplie la recette en primitives UV en ESPACE DE FACE [0,1]² (+ mètres pour
- * les épaisseurs), consommées par DEUX peintres : `gameIso/authoring/detailSvg.ts` (SVG d'authoring)
- * et `gameIso/backends/webgl/faceBake.ts` (cuisson par face du rendu
- * volumique) ; le tracé de PÉRIODE (`gameIso/detail/courses.ts`) a les mêmes trois consommateurs
- * (`gameIso/authoring/detailSvg`, `gameIso/backends/webgl/periodTexture.ts`). Chaque peintre rasterise à sa
+ * `expandRecipe` déplie la recette en primitives UV en ESPACE DE FACE [0,1]² (+ mètres pour
+ * les épaisseurs), consommées par DEUX peintres : le SVG d'authoring et la cuisson par face du rendu
+ * volumique ; le tracé de PÉRIODE a les mêmes consommateurs. Chaque peintre rasterise à sa
  * résolution, les vues retombent sur le MÊME détail parce que le seed est dérivé de l'identité MONDE
  * (`hash32`, jamais stocké).
  *
@@ -89,13 +87,13 @@ export type Grade = 'flat' | 'ramp' | 'cliff';
 
 /**
  * PARTIES de relief — le vocabulaire des `MaterialRef.part` que le builder de sols ÉMET pour une face
- * de domaine `relief` (`src/gameIso/builders/floors.ts`), et RIEN d'autre : les deux liens verticaux
+ * de domaine `relief` (`src/noyau/monde/volume/floors.ts`), et RIEN d'autre : les deux liens verticaux
  * franchissables/infranchissables du relief (`Grade` moins `flat`, qui ne dessine aucune paroi), la
  * dalle fine d'un tablier de surplomb (`deck`) et le montant qui la porte (`pilier`).
  *
  * Il vit ICI, dans la couche donnée, parce que DEUX couches en dépendent et qu'aucune ne peut
  * importer l'autre : le schéma de scène en fait les CLÉS de `Scene.reliefDefaults` (matière posée par
- * partie), l'émetteur en type ses faces. Une partie de plus se déclare une fois, et la scène doit
+ * partie), le builder de sols les y lit. Une partie de plus se déclare une fois, et la scène doit
  * alors la matérialiser — le builder n'a aucun repli à offrir.
  */
 export const PARTS_RELIEF = ['cliff', 'ramp', 'deck', 'pilier'] as const satisfies readonly (
@@ -103,7 +101,6 @@ export const PARTS_RELIEF = ['cliff', 'ramp', 'deck', 'pilier'] as const satisfi
   | 'deck'
   | 'pilier'
 )[];
-export type PartRelief = (typeof PARTS_RELIEF)[number];
 
 /**
  * Domaines du catalogue des matières : sous-ensemble des domaines de `MaterialRef`, plus `objet` et `couleur`,
@@ -187,7 +184,7 @@ export interface RoofMaterialDef extends MatiereBase {
 
 /** Apparence de RENDU du relief d'environnement (falaise/rampe/tablier/pilier, iso et POV) :
  *  le renderer ne porte aucun littéral de couleur — l'identité du matériau vient d'ici, la
- *  lumière/l'ombrage vient de `shade.ts`. */
+ *  lumière/l'ombrage vient de `lib/ombrage.ts`. */
 export interface ReliefMaterialDef extends MatiereBase {
   domain: 'relief';
   /** Masse BÂTIE (maçonnerie, ouvrage) par opposition au relief NATUREL (talus, terre remuée) — même axe

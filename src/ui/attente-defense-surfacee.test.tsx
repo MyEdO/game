@@ -78,7 +78,7 @@ function playAttack(seed: number, opts?: Parameters<typeof duel>[0], pa?: Record
   seedBattleRng(seed);
   const g = useGame.getState;
   openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: opts?.atkWeapons ? opts.atkWeapons[0]?.uid : 'sw', ...pa } as never, 'Attaque', 'action/attack');
-  g().jetRoll('attack');
+  g().jetLancer('attack');
   return { enemy, hero, pa: g().pendingAttack! };
 }
 
@@ -225,7 +225,7 @@ describe('#1004 instance adjacente — sort DISSIPÉ : la ligne de Dégâts ne s
     const { hero } = duel();
     useGame.setState({
       pendingCast: { casterId: 'Rôdeur', targetId: hero.id, spellId: 'drain', missile: true, focused: false, result: { ...MISSILE } } as never,
-      pendingCastOpposition: { test: { char: 'force-mentale' }, menace: 'magie',
+      pendingCastOpposition: { test: { characteristic: 'force-mentale' }, menace: 'magie',
         participants: [{ id: hero.id, interactive: true, ligne: LIGNE_OPPOSITION, result: { resisted: true, margin: 2, oppose: { roll: 12, target: 40, sl: 2, success: true } } }] } as never,
     });
     act(() => { root.render(<CastModal />); });
@@ -237,7 +237,7 @@ describe('#1004 instance adjacente — sort DISSIPÉ : la ligne de Dégâts ne s
     const { hero } = duel();
     useGame.setState({
       pendingCast: { casterId: 'Rôdeur', targetId: hero.id, spellId: 'drain', missile: true, focused: false, result: { ...MISSILE } } as never,
-      pendingCastOpposition: { test: { char: 'force-mentale' }, menace: 'magie',
+      pendingCastOpposition: { test: { characteristic: 'force-mentale' }, menace: 'magie',
         participants: [{ id: hero.id, interactive: true, ligne: LIGNE_OPPOSITION, result: { resisted: false, margin: -3, oppose: { roll: 72, target: 40, sl: -3, success: false } } }] } as never,
     });
     act(() => { root.render(<CastModal />); });
@@ -256,7 +256,7 @@ describe('#1004 instance adjacente — sort DISSIPÉ : la ligne de Dégâts ne s
     useGame.setState({
       battle: { ...battle, combatants: [...battle.combatants, autre], order: [...battle.order, autre.id] } as never,
       pendingCast: { casterId: 'Rôdeur', targetId: hero.id, spellId: 'drain', missile: true, focused: false, result: { ...MISSILE } } as never,
-      pendingCastOpposition: { test: { char: 'force-mentale' }, menace: 'magie', participants: [
+      pendingCastOpposition: { test: { characteristic: 'force-mentale' }, menace: 'magie', participants: [
         { id: hero.id, interactive: true, ligne: LIGNE_OPPOSITION, result: { resisted: grunniResists, margin: grunniResists ? 3 : -3, oppose: { roll: grunniResists ? 12 : 72, target: 40, sl: grunniResists ? 3 : -3, success: grunniResists } } },
         { id: autre.id, interactive: true, ligne: LIGNE_OPPOSITION, result: { resisted: true, margin: 4, oppose: { roll: 8, target: 40, sl: 4, success: true } } },
       ] } as never,
@@ -277,7 +277,7 @@ describe('#1004 instance adjacente — sort DISSIPÉ : la ligne de Dégâts ne s
 });
 
 /**
- * T1 — LE TIR RAPIDE EN INTERRUPTION ATTEND SA DÉFENSE COMME TOUT TIR (#997, LDB 11 l.97-103) : `jetConfirm('attack')`
+ * T1 — LE TIR RAPIDE EN INTERRUPTION ATTEND SA DÉFENSE COMME TOUT TIR (#997, LDB 11 l.97-103) : `jetValider('attack')`
  * interpose la fenêtre du défenseur surfacé avant d'appliquer le tir. L'attente annoncée et la fenêtre
  * réellement ouverte se lisent sur la MÊME fixture, interruption ou non.
  */
@@ -290,7 +290,7 @@ describe('#1004 T1 / #997 — Tir rapide en interruption : l’attente annoncée
       expect(surfacedDefensePending(useGame.getState(), enemy, hero, attackWeaponOf(useGame.getState().battle!, enemy, hero, pa), pa)).toBe(true);
       act(() => { root.render(<AttackModal />); });
       expect(host.textContent).toContain('En attente de la Défense de Grunni.');
-      act(() => { useGame.getState().jetConfirm('attack'); });
+      act(() => { useGame.getState().jetValider('attack'); });
       expect(useGame.getState().pendingDefense, 'la fenêtre annoncée s’ouvre').toBeTruthy();
     });
   }
@@ -321,7 +321,7 @@ describe('#1026 SONDE2 — une seule vérité d’ARME entre l’écran et l’a
     act(() => { root.render(<AttackModal />); });
     expect(host.textContent, 'l’écran doit suivre l’arme RÉELLEMENT employée').toContain('En attente de la Défense de Grunni.');
     expect(host.textContent).not.toContain(pa.result!.log);
-    act(() => { useGame.getState().jetConfirm('attack'); });
+    act(() => { useGame.getState().jetValider('attack'); });
     expect(useGame.getState().pendingDefense, 'la fenêtre annoncée s’ouvre bel et bien').toBeTruthy();
   });
 });

@@ -4,14 +4,15 @@
  * (`libelleDuParametre`), hormis ce que la fenêtre pose (`argumentsPosesDuGeste` : `pid`, `flux`, `fenetre`) ; chaque valeur littérale que sa forme énumère a le
  * sien (`libelleDuLitteral`) ; chaque désignation qu'elle cite est une désignation du noyau (`DESIGNATIONS`), qui
  * nomme ses éléments. La valeur d'un réglage de jet (`jetRegler`, `REGLAGES`) se dit par son réglage
- * (`libelleDuReglage`), ses valeurs littérales par le nom du réglage. `fenetreADessiner` dessine ainsi, sans id à
+ * (`libelleDuReglage`), celle d'un choix de fenêtre (`fenetreChoisir`, `CHOIX`) par son choix (`libelleDuChoix`), ses
+ * valeurs littérales par le nom de l'axe. `fenetreADessiner` dessine ainsi, sans id à
  * l'écran, toute fenêtre ouverte.
  */
 import { describe, it, expect } from 'vitest';
-import { DESIGNATIONS, VERBE_DE_REGLAGE, libelleDuLitteral, libelleDuParametre, libelleDuReglage } from '../noyau/index';
+import { DESIGNATIONS, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, libelleDuChoix, libelleDuLitteral, libelleDuParametre, libelleDuReglage } from '../noyau/index';
 import { VERBES_DES_FENETRES } from '../noyau/fenetres.testkit';
 import type { Forme } from './formes';
-import { REGLAGES, VERBES } from './verbes.generated';
+import { CHOIX, REGLAGES, VERBES } from './verbes.generated';
 import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
 
 /** Les paramètres que la fenêtre pose d'office (`argumentsPosesDuGeste`) : aucun ne se saisit. */
@@ -41,11 +42,11 @@ function fautes(verbe: string, nom: string, f: Forme, ou: string): string[] {
 
 describe('chaque argument d’un verbe de fenêtre se dessine en mots du joueur', () => {
   it('le relevé couvre les verbes des fenêtres', () => {
-    expect(VERBES_DES_FENETRES.size, 'témoin : les verbes des fenêtres, les réglages des jets en un seul (#3368), les validations et sorties des fenêtres en deux (#3369)').toBeGreaterThan(40);
+    expect(VERBES_DES_FENETRES.size, 'témoin : les verbes des fenêtres, les réglages des jets en un seul (#3368), les validations et sorties des fenêtres en deux, leurs choix en un seul (#3369), les axes des flux en réglages (#3369 lot 3), les deux clics du champ en un seul (#3371 lot 3), butin, échoppe et repos en choix (#3371 lot 4)').toBeGreaterThan(21);
     expect([...VERBES_DES_FENETRES].filter((v) => !(v in VERBES)), 'verbe de fenêtre hors de VERBES').toEqual([]);
   });
 
-  it.each([...VERBES_DES_FENETRES].filter((v) => v !== VERBE_DE_REGLAGE && VERBES[v]?.length).map((v) => [v] as const))('%s', (verbe) => {
+  it.each([...VERBES_DES_FENETRES].filter((v) => v !== VERBE_DE_REGLAGE && v !== VERBE_DE_CHOIX && VERBES[v]?.length).map((v) => [v] as const))('%s', (verbe) => {
     expect(VERBES[verbe].flatMap((p) => fautes(verbe, p.nom, p.forme, `${verbe}.${p.nom}`))).toEqual([]);
   });
 
@@ -53,14 +54,18 @@ describe('chaque argument d’un verbe de fenêtre se dessine en mots du joueur'
     expect(libelleDuReglage(flux, reglage)).toBeTruthy();
     expect(fautesDesValeurs(VERBE_DE_REGLAGE, reglage, forme, `${flux}.${reglage}`)).toEqual([]);
   });
+
+  it.each(Object.entries(CHOIX).flatMap(([fenetre, formes]) => Object.entries(formes).map(([axe, forme]) => [`${fenetre}.${axe}`, fenetre, axe, forme] as const)))('choix %s', (_ou, fenetre, axe, forme) => {
+    expect(libelleDuChoix(fenetre as never, axe as never)).toBeTruthy();
+    expect(fautesDesValeurs(VERBE_DE_CHOIX, axe, forme, `${fenetre}.${axe}`)).toEqual([]);
+  });
 });
 
 describe('un argument qui désigne un élément de l’état se choisit parmi ses éléments nommés (#2937)', () => {
   it.each([
-    ['councilPay', 'decision', 'IdDeChoixDePaie'],
-    ['harvestCreature', 'creatureId', 'IdDeCreatureADepecer'],
-    ['roundStartPromote', 'heroId', 'IdDeCombattantPromouvable'],
-    ['armPreempt', 'heroId', 'IdDeTireurRapide'],
+    ['depecerLaCreature', 'creatureId', 'IdDeCreatureADepecer'],
+    ['promouvoirLeCombattant', 'heroId', 'IdDeCombattantPromouvable'],
+    ['armerLeTirPreventif', 'heroId', 'IdDeTireurRapide'],
   ])('%s.%s désigne %s', (verbe, nom, cle) => {
     const p = VERBES[verbe].find((x) => x.nom === nom)!;
     const membres = p.forme.genre === 'union' ? p.forme.membres : [p.forme];
@@ -75,6 +80,16 @@ describe('un argument qui désigne un élément de l’état se choisit parmi se
     ['forceDoor', 'arme', 'IdDObjet'],
   ])('réglage %s.%s désigne %s', (flux, reglage, cle) => {
     const f = REGLAGES[flux][reglage];
+    const membres = f.genre === 'union' ? f.membres : [f];
+    expect(membres.flatMap((m) => (m.genre === 'chaine' && m.designe ? [m.designe.cle] : []))).toEqual([cle]);
+  });
+
+  it.each([
+    ['council', 'paie', 'IdDeChoixDePaie'],
+    ['mountTarget', 'cible', 'IdDuCoupleMonte'],
+    ['medic', 'patient', 'IdDeHeros'],
+  ])('choix %s.%s désigne %s', (fenetre, axe, cle) => {
+    const f = CHOIX[fenetre][axe];
     const membres = f.genre === 'union' ? f.membres : [f];
     expect(membres.flatMap((m) => (m.genre === 'chaine' && m.designe ? [m.designe.cle] : []))).toEqual([cle]);
   });

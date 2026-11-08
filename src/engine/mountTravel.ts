@@ -28,7 +28,7 @@ import { possessionLabel, possessionCombatRideable } from './possession';
 import { rollDice, type RNG } from './dice';
 import { rollTest, testDetail } from './tests';
 import { testValue } from './skills';
-import { rollMountIncident, mountIncidentEffects, MOUNT_INCIDENT_DIE, type TravelTableEntry } from './travelTables';
+import { rollMountIncident, mountIncidentEffects, mountIncidentDie, type TravelTableEntry } from './travelTables';
 import { t, type MsgKey } from '../i18n';
 import { refLabel, dataLabel, testSkillLabel } from '../data';
 import { indexParId, memoParVersion } from '../data/versionDataset';
@@ -192,9 +192,9 @@ export function resolveMountIncident(entry: TravelTableEntry, mount: PartyMount,
     // Test du cavalier, sous peine de chute (l.166 / l.171). Une séquelle DÉJÀ portée grève ce Test (l.174).
     const carried = mountIncidentEffects(mount.possession.mountInjury)?.ridingPenalty ?? 0;
     const { skill, characteristic, difficulty = DIFFICULTE_PAR_DEFAUT } = eff.riderTest.test;
-    const base = Math.max(0, testValue(mount.hero, skill?.id, characteristic, skill?.spec) + carried);
+    const base = Math.max(0, testValue(mount.hero, { skill, characteristic }) + carried);
     const tst = rollTest(base, difficulty, rng);
-    out.riderTest = testDetail(testSkillLabel({ skill, char: characteristic }) ?? 'Test', base, tst);
+    out.riderTest = testDetail(testSkillLabel({ skill, characteristic }) ?? 'Test', base, tst);
     if (!tst.success) {
       out.riderFallM = eff.riderTest.fallM;
       out.lines.push(t('mt.riderFalls', { name: mount.hero.label, metres: `${eff.riderTest.fallM}` }));
@@ -264,7 +264,7 @@ export function resolveMountedDay(mounts: PartyMount[], hours: number, allure: A
       o.tests.push(testDetail(t('mt.testOf', { skill: refLabel('skills', { id: 'resistance' }), mount: possessionLabel(mount.possession) }), base, tst));
       if (!tst.success) {
         o.extenue += 1; // « l'animal prend un nouvel État Exténué » (l.146)
-        const inc = resolveMountIncident(rollMountIncident(rollDice(MOUNT_INCIDENT_DIE, rng)), mount, rng);
+        const inc = resolveMountIncident(rollMountIncident(rollDice(mountIncidentDie(), rng)), mount, rng);
         o.incidents.push(inc);
         o.lines.push(...inc.lines);
         // Bête qui ne peut plus être montée : la journée de selle s'arrête là pour elle.

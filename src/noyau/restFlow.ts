@@ -5,7 +5,7 @@
  * à l'aube — le « temps minimum entre deux repos » est le temps lui-même), entretien quotidien #T3
  * (anti-double-comptage), récupération + cauchemars par héros, contagion de promiscuité. Consommé
  * par : la MODALE de Repos (ci-dessous), la nuit de voyage (travelFlow), la clôture d'interlude et
- * la triche de recette (`restParty`).
+ * la triche de recette (`reposerLeGroupe`).
  *
  * La MODALE (pendingRest) ajoute par-dessus la phase RÉGLAGES par héros (couchage + pitance, coût
  * RAW calculé) ; « Dormir » ouvre ensuite une CHAÎNE de cascades séquentielles influençables (#347,
@@ -113,7 +113,7 @@ export interface NightEntry {
   group?: string;
   /** Vocabulaire PARTAGÉ (#349) — `RecapTone`, `noyau/recapLine.ts` (même trio que `RecapLine.tone`). */
   tone?: RecapTone;
-  /** Type de jet HÉROS de `sleepParty` (chemin EAGER — cheat `restParty`, clôture d'interlude) —
+  /** Type de jet HÉROS de `sleepParty` (chemin EAGER — cheat `reposerLeGroupe`, clôture d'interlude) —
    *  décoratif hors de ces deux chemins. */
   reKind?: 'recovery' | 'nightmare';
   /** Relance de Chance déjà consommée sur CETTE ligne (LDB 12 l.40 : une relance max par Test). */
@@ -126,7 +126,7 @@ export interface NightEntry {
 
 export interface PendingRest extends PendingBase {
   places: RestPlaces;
-  /** OÙ le groupe passe la nuit, nommé par l'APPELANT d'`openRest` (relais ou bivouac de la route,
+  /** OÙ le groupe passe la nuit, nommé par l'APPELANT d'`ouvrirLeRepos` (relais ou bivouac de la route,
    *  bord du bateau, scène courante) — seul lieu du titre de la modale. */
   lieu: PlayerText;
   /** Piètre : ½ prix, nourriture à risque (Courante galopante 10 %) — LDB 66. */
@@ -148,13 +148,15 @@ import type { Get, Set } from './flowTypes';
 import type { PendingBase } from './rollFlowFactory';
 import { dataLabel } from '../data';
 import { t } from '../i18n';
-import { placeById, type WorldMap } from './worldMap';
+import { lieuDuGroupe, placeById, placeServices, type WorldMap } from './worldMap';
+import { sceneDuRegistre } from './monde/registreDesScenes';
 import { garanti } from '../lib/garanti';
 import { stepPrecision } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
+import type { CorpsDesChoix } from './choixDesFenetres';
 import { tableTotale } from '../lib/tableTotale';
 import { type FragmentDeTables, type PartDeTable } from './tablesPosees';
 
@@ -165,7 +167,7 @@ const SKILL_CALME = (): string => refLabel('skills', { id: 'calme' });
 /**
  * LE moteur de nuit (sans modale) : avance l'horloge à l'aube (× days), entretien #T3, récupération
  * + cauchemars, contagion. Renvoie le bilan structuré ; écrit aussi le journal.
- * NB : on n'avance PAS l'horloge minute par minute (advanceTime rejouerait l'entretien de Round —
+ * NB : on n'avance PAS l'horloge minute par minute (avancerLeTemps rejouerait l'entretien de Round —
  * hémorragie/poison/feu tueraient le dormeur ; LDB 16 l.105 : le repos suppose des États stabilisés,
  * restRecovery refuse d'ailleurs un héros Hémorragique/En flammes/Empoisonné).
  */
@@ -182,7 +184,7 @@ export function sleepParty(
   const journal: string[] = [];
 
   // Soins prolongés (LDB 09) : présence d'un soignant valide (Guérison) → −1 jour/jour par maladie.
-  const caredFor = get().party.some((h) => peutTenter(h, HEAL_SKILL));
+  const caredFor = get().party.some((h) => peutTenter(h, { skill: { id: HEAL_SKILL } }));
   // La nuit passe — chaque journée de repos se termine à l'AUBE, UNE NUIT À LA FOIS : n nuits dormies
   // sont n RÉVEILS (`lastNightDay` posé à chaque aube atteinte, avant l'entretien de cette journée-là),
   // donc n émissions d'`onWake`. Un séjour de 7 nuits qui n'aurait sauté qu'à l'aube finale ne
@@ -236,7 +238,7 @@ export function sleepParty(
 
   const title = n > 1 ? t('rf.titleDays', { n }) : t('rf.titleNight');
   set({ party: [...get().party] });
-  get().log([title, ...journal]);
+  get().ecrireAuJournal([title, ...journal]);
   bus.emit(EVT.SCENE_DIRTY);
   return entries;
 }
@@ -251,7 +253,7 @@ function runContagion(party: Combatant[], n: number, rng: RNG): { actorId: strin
         if (other === sick || other.dead) continue;
         const def = diseaseDefs()[dz.id];
         for (let d = 0; d < n; d++) {
-          const log = rollContraction(other, dz.id, testValue(other, 'resistance'), def?.contractDifficulty ?? 'accessible', rng);
+          const log = rollContraction(other, dz.id, testValue(other, { skill: { id: 'resistance' } }), def?.contractDifficulty ?? 'accessible', rng);
           if (log.length) out.push({ actorId: other.id, dz: dz.id, log });
         }
       }
@@ -308,7 +310,7 @@ function buildExposureBand(party: Combatant[], camperIds: string[], count: numbe
     const st = monoStep({ id: `expo-${id}`, kind: 'exposure', actor: h, label: t('step.exposition'), icon: 'rest/cold',
       rollLabel: SKILL_RESISTANCE(), difficulty: 'intermediaire',
       stake: nightStakeRef('exposure'),
-      ligne: { test: { skill: 'resistance' }, surLaCible: coat } });
+      ligne: { test: { skill: { id: 'resistance' } }, surLaCible: coat } });
     pousseSi(steps, st);
   }
   return exposureWaveBand(steps, 'froid', count);
@@ -368,7 +370,7 @@ const UPKEEP_STEP_ICON: Record<string, string> = {
 /** Convertit les Tests d'entretien DIFFÉRÉS (`runDailyUpkeep` onDeferTest — Faim/Soif/maladie/
  *  convalescence/dessoûlage) en étapes de cascade influençables, avec leur enjeu verbatim (`stakes.json`)
  *  quand il est documenté. SOURCE UNIQUE partagée par la nuit (`buildNightCascade`) et l'avance
- *  d'horloge (`advanceTime`). `startIndex` = décalage d'id quand d'autres étapes précèdent (marche forcée). */
+ *  d'horloge (`avancerLeTemps`). `startIndex` = décalage d'id quand d'autres étapes précèdent (marche forcée). */
 export function deferredUpkeepSteps(party: Combatant[], deferred: DeferredUpkeepTest[], startIndex = 0): BuiltCascadeStep[] {
   const steps: BuiltCascadeStep[] = [];
   for (const t of deferred) {
@@ -410,7 +412,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   // Entretien quotidien (#T3) — la partie SANS jet est eager (rations consommées, jours décomptés) ;
   // TOUT Test de Résistance (Faim LDB 18 l.342, maladie l.110/135/162, convalescence LDB 18 l.202) est DIFFÉRÉ en
   // étape influençable (sinon il serait pré-résolu dans le journal AVANT que le joueur n'agisse).
-  const caredFor = party.some((h) => peutTenter(h, HEAL_SKILL));
+  const caredFor = party.some((h) => peutTenter(h, { skill: { id: HEAL_SKILL } }));
   const deferred: DeferredUpkeepTest[] = [];
   // `runDailyUpkeep` journalise DÉJÀ ses propres lignes (upkeep.ts, source unique anti-double-comptage,
   // #216) : on les garde dans `log` (retourné pour le bilan/la modale de cascade) SANS les re-journaliser
@@ -432,7 +434,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
     const st = monoStep({ id: `march-${id}`, kind: 'forcedMarch', actor: h, label: t('step.marcheForcee'), icon: 'travel/foot',
       rollLabel: SKILL_RESISTANCE(), difficulty: 'intermediaire',
       stake: nightStakeRef('forcedMarch'),
-      ligne: { test: { skill: 'resistance', char: 'endurance' } } });
+      ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } } });
     pousseSi(steps, st);
   }
   // Tests d'entretien DIFFÉRÉS (faim, soif, maladie, convalescence, dessoûlage) → étapes influençables.
@@ -441,12 +443,12 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   for (const c of [...collectContagion(party), ...(opts.extraContagion ?? [])]) {
     const h = party.find((x) => x.id === c.heroId);
     if (!h || h.dead) continue;
-    const st = monoStep({ id: `contagion-${c.heroId}-${steps.length}`, kind: 'contagion', actor: h, label: stepPrecision(t('step.contagion'), dataLabel(c.diseaseName)), icon: 'medical/infection',
+    const st = monoStep({ id: `contagion-${c.heroId}-${steps.length}`, kind: 'contagion', actor: h, label: stepPrecision(t('step.contagion'), diseaseLabel(c.diseaseName)), icon: 'medical/infection',
       rollLabel: SKILL_RESISTANCE(), difficulty: c.difficulty,
       stake: nightStakeRef('contagion'),
       // Contraction = « Test de Résistance » (`LDB 20 l.25`) : valeur de la porte, et les bonus d'effet
       // SCOPÉS à cette maladie (Fleur de lune, Tonique digestif) en lignes NOMMÉES sur la cible.
-      ligne: { test: { skill: 'resistance' }, surLaCible: diseaseTestModLines(h, c.diseaseName) },
+      ligne: { test: { skill: { id: 'resistance' } }, surLaCible: diseaseTestModLines(h, c.diseaseName) },
       meta: { diseaseName: c.diseaseName },
       menace: 'maladie' }); // Test de Contraction = « résister à la Maladie » (Résistance (Menace), LDB 10)
     pousseSi(steps, st);
@@ -461,14 +463,14 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
       const count = exposureTestCount(severity, true); // tente : extrême → rythme difficile, difficile → 0
       if (count > 0) steps.push(...buildExposureBand(party, camperIds, count));
     } else {
-      const best = partyAssisted(party, 'survie-en-exterieur'); // Soutien (LDB 12)
+      const best = partyAssisted(party, { skill: { id: 'survie-en-exterieur' } }); // Soutien (LDB 12)
       if (best) {
         const st = monoStep({ id: 'abri', kind: 'shelter', actor: best.actor, label: t('step.abriDeFortune'), icon: 'rest/camp',
           rollLabel: refLabel('skills', { id: 'survie-en-exterieur' }), difficulty: 'intermediaire',
           stake: nightStakeRef('shelter'),
           // `best.value` porte le Soutien FONDU : le monteur le ressort en ligne NOMMÉE (LDB 12 l.187-200),
           // et décompose le reste en Niveau de Compétence nu + composantes.
-          ligne: { test: { skill: 'survie-en-exterieur' }, valeur: best.value, soutien: best.support },
+          ligne: { test: { skill: { id: 'survie-en-exterieur' } }, valeur: best.value, soutien: best.support },
           meta: { severity, campers: camperIds.join(',') } });
         pousseSi(steps, st);
       } else {
@@ -487,7 +489,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
       const st = monoStep({ id: `recov-${h.id}`, kind: 'recovery', actor: h, label: t('step.recuperation'), icon: 'rest/bed',
         rollLabel: SKILL_RESISTANCE(), difficulty: 'accessible',
         stake: nightStakeRef('recovery'),
-        ligne: { test: { skill: 'resistance' } } });
+        ligne: { test: { skill: { id: 'resistance' } } } });
       pousseSi(steps, st);
     } else {
       const before = h.wounds.current;
@@ -500,7 +502,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
         rollLabel: SKILL_CALME(), difficulty: 'facile',
         stake: nightStakeRef('nightmare'),
         // Cauchemars = « Test de Calme Facile (+40) » (`LDB 21 l.95`) : valeur de la porte, États compris.
-        ligne: { test: { skill: 'calme' } } });
+        ligne: { test: { skill: { id: 'calme' } } } });
       pousseSi(steps, st);
     }
   }
@@ -512,7 +514,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   // Journal : le titre de nuit + tout ce qui s'est ajouté APRÈS l'entretien (tente, récupération sans
   // jet…) — l'entretien lui-même est déjà dans le journal (`runDailyUpkeep`, écriture unique, #216).
   set({ party: [...get().party] });
-  get().log([t('rf.titleNight'), ...log.slice(upkeepCount)]);
+  get().ecrireAuJournal([t('rf.titleNight'), ...log.slice(upkeepCount)]);
   bus.emit(EVT.SCENE_DIRTY);
   return { steps: banded, log, slept: { from, to: get().gameTime } };
 }
@@ -547,29 +549,43 @@ export function lodgingOptions(places: RestPlaces): RestLodging[] {
   return out;
 }
 
-/** Pitances proposées (orthogonales au couchage : manger à l'auberge et dormir dehors est permis).
+/** Pitances qu'offre le lieu (repas d'auberge, table de la maison), communes à toute la troupe. */
+const pitancesDuLieu = (places: RestPlaces): RestFood[] => [...(places.auberge ? ['repas' as const] : []), ...(places.maison ? ['maison' as const] : [])];
+
+/** Pitances proposées à un héros (orthogonales au couchage : manger à l'auberge et dormir dehors est permis).
  *  « ration » seulement si le héros en a une. */
 export function foodOptions(places: RestPlaces, hero: Combatant): RestFood[] {
-  const out: RestFood[] = [];
-  if (places.auberge) out.push('repas');
-  if (places.maison) out.push('maison');
-  if ((hero.items ?? []).some(isRation)) out.push('ration');
-  out.push('rien');
-  return out;
+  return [...pitancesDuLieu(places), ...((hero.items ?? []).some(isRation) ? ['ration' as const] : []), 'rien'];
 }
 
-/** Coût total du repos (chambres regroupées par 2, repas par convive), par nuit × days. */
-export function restCost(p: PendingRest, party: Combatant[]): Money {
+/** Pitances du choix « pour toute la troupe » : celles du lieu, sans la ration, qui dépend du sac de chacun. */
+export function nourrituresDeTroupe(places: RestPlaces): RestFood[] {
+  return [...pitancesDuLieu(places), 'rien'];
+}
+
+/** Part de chaque héros vivant réglé dans la note du repos, par nuit × days : une chambre privée loge 2
+ *  invités (LDB 66 l.28), sa part est sa moitié (valeur d'ingénierie, la source ne partage pas la
+ *  chambre) ; chambre commune et repas par convive. La somme des parts EST `restCost`. */
+export function partsDuRepos(p: PendingRest, party: Combatant[]): Record<string, Money> {
   const half = p.quality === 'pietre' ? 0.5 : 1;
-  let brass = 0;
   const heroes = party.filter((h) => !h.dead && p.perHero[h.id]);
-  const nPrivee = heroes.filter((h) => p.perHero[h.id].lodging === 'privee').length;
-  const nCommune = heroes.filter((h) => p.perHero[h.id].lodging === 'commune').length;
-  const nRepas = heroes.filter((h) => p.perHero[h.id].food === 'repas').length;
-  brass += Math.ceil(nPrivee / 2) * PRICE_BRASS.privee; // chambre pour 2 (grande pour 4 = ×2, équivalent)
-  brass += nCommune * PRICE_BRASS.commune;
-  brass += nRepas * PRICE_BRASS.repas;
-  return fromBrass(Math.ceil(brass * half) * Math.max(1, p.days));
+  const enPrivee = heroes.filter((h) => p.perHero[h.id].lodging === 'privee');
+  const parts: Record<string, Money> = {};
+  for (const h of heroes) {
+    const { lodging, food } = p.perHero[h.id];
+    const i = enPrivee.indexOf(h);
+    const seul = i === enPrivee.length - 1 && i % 2 === 0;
+    const chambre = lodging === 'privee' ? (seul ? PRICE_BRASS.privee : i % 2 === 0 ? Math.ceil(PRICE_BRASS.privee / 2) : Math.floor(PRICE_BRASS.privee / 2))
+      : lodging === 'commune' ? PRICE_BRASS.commune : 0;
+    const brass = chambre + (food === 'repas' ? PRICE_BRASS.repas : 0);
+    parts[h.id] = fromBrass(Math.ceil(brass * half) * Math.max(1, p.days));
+  }
+  return parts;
+}
+
+/** Coût total du repos : la somme des `partsDuRepos`. */
+export function restCost(p: PendingRest, party: Combatant[]): Money {
+  return fromBrass(Object.values(partsDuRepos(p, party)).reduce((n, m) => n + toBrass(m), 0));
 }
 
 /** Offre de repos À LA POSITION DU GROUPE : zone de repos (rect d'auteur) prioritaire, sinon
@@ -586,7 +602,7 @@ export function restPlacesHere(st: Jeu): { places: RestPlaces; quality: 'normale
   return { places, quality: zone?.quality ?? sc.rest?.quality ?? 'normale' };
 }
 
-/** Options d'`openRest` : l'APPELANT dit où le groupe dort (`places` = l'offre, `lieu` = son nom). */
+/** Options d'`ouvrirLeRepos` : l'APPELANT dit où le groupe dort (`places` = l'offre, `lieu` = son nom). */
 export interface OpenRestOpts {
   lieu: PlayerText;
   places?: RestPlaces;
@@ -598,8 +614,24 @@ export interface OpenRestOpts {
   travelMarch?: string[];
 }
 
+/** Le repos qu'offre l'endroit où se tient le groupe : à un lieu de la carte, l'auberge de ses services
+ *  (`placeServices`), à la qualité de la scène du lieu ; ailleurs, la scène à la position du groupe
+ *  (`restPlacesHere`) ; `null` : aucun. */
+export function reposDuLieu(get: Get): OpenRestOpts | null {
+  const s = get();
+  const ici = lieuDuGroupe(s);
+  if (ici) {
+    const scene = sceneDuRegistre(ici.scene);
+    const auberge = placeServices(ici, scene).find((svc) => svc.category === 'auberge' && svc.rest);
+    const quality = scene?.rest?.quality;
+    return auberge?.rest ? { places: auberge.rest, lieu: libelleOuAbsence(ici, 'lieu', ici.id), ...(quality ? { quality } : {}) } : null;
+  }
+  const scene = restPlacesHere(s);
+  return scene && { places: scene.places, lieu: sceneLieu(get), quality: scene.quality };
+}
+
 /** Ouvre la modale de Repos avec une OFFRE de lieux (effet, halte de voyage, bouton de Repos). */
-export function openRest(get: Get, set: Set, opts: OpenRestOpts): void {
+export function ouvrirLeRepos(get: Get, set: Set, opts: OpenRestOpts): void {
   const st = get();
   if (st.battle || st.pendingRest) return;
   const places = opts.places ?? { maison: true, camp: true };
@@ -617,14 +649,22 @@ export function openRest(get: Get, set: Set, opts: OpenRestOpts): void {
   set({ ...logPatch, pendingRest: { places, lieu: opts.lieu, quality: opts.quality ?? 'normale', days: Math.max(1, opts.days ?? 1), perHero, phase: 'setup', travelHalt: opts.travelHalt, travelMarch: opts.travelMarch } });
 }
 
-export function restSet(get: Get, set: Set, heroId: string, patch: Partial<{ lodging: RestLodging; food: RestFood }>): void {
-  const p = get().pendingRest;
-  if (!p || p.phase !== 'setup' || !p.perHero[heroId]) return;
-  const hero = get().party.find((h) => h.id === heroId);
-  if (!hero) return;
-  if (patch.lodging && !lodgingOptions(p.places).includes(patch.lodging)) return;
-  if (patch.food && !foodOptions(p.places, hero).includes(patch.food)) return;
-  set({ pendingRest: { ...p, perHero: { ...p.perHero, [heroId]: { ...p.perHero[heroId], ...patch } } } });
+/** Le dormeur `pid` de la nuit à régler : un héros du groupe qui dort ici, tant que la nuit n'est pas réglée. */
+export const dormeurDuRepos = (s: Pick<Jeu, 'pendingRest' | 'party'>, pid: string | undefined): Combatant | undefined =>
+  (s.pendingRest?.phase === 'setup' && pid !== undefined && s.pendingRest.perHero[pid] ? s.party.find((h) => h.id === pid) : undefined);
+
+/** Les choix de la nuit à régler (`CorpsDesChoix`) : le couchage et la pitance du dormeur de la rangée. */
+export function choixDuRepos(get: Get, set: Set) {
+  const regler = (pid: string, patch: Partial<PendingRest['perHero'][string]>) => {
+    const p = garanti(get().pendingRest, pid, 'nuit à régler');
+    set({ pendingRest: { ...p, perHero: { ...p.perHero, [pid]: { ...p.perHero[pid], ...patch } } } });
+  };
+  return {
+    rest: {
+      couchage: (lodging, pid) => regler(pid, { lodging }),
+      pitance: (food, pid) => regler(pid, { food }),
+    },
+  } satisfies Partial<CorpsDesChoix>;
 }
 
 /** Les bourses du groupe couvrent-elles la note de la halte réglée (`restCost`) ? Vrai sans halte. LDB 66 */
@@ -676,7 +716,7 @@ function dormir(get: Get, set: Set): void {
 /** Titre de la nuit — le couchage RÉELLEMENT choisi (pas l'OFFRE du lieu) : tout le monde dehors →
  *  Campement, même si une auberge était dispo (le joueur a choisi la belle étoile). Identique pour
  *  toutes les nuits d'un repos multi-jours (les choix de couchage ne changent pas en cours de séjour). */
-function nightTitle(p: PendingRest, party: Combatant[]): string {
+export function nightTitle(p: PendingRest, party: Combatant[]): string {
   const lodgings = party.filter((h) => !h.dead && p.perHero[h.id]).map((h) => p.perHero[h.id].lodging);
   return lodgings.some((l) => l === 'privee' || l === 'commune') ? t('rf.nightInn')
     : lodgings.some((l) => l === 'maison') ? t('rf.nightHome')
@@ -730,10 +770,13 @@ export function validationsDuRepos(get: Get, set: Set) {
 
 export function creerActionsDuRepos(get: Get, set: Set) {
   return {
-    openRest: (opts) => openRest(get, set, opts),
-    restSet: (heroId, patch) => restSet(get, set, heroId, patch),
+    ouvrirLeRepos: () => {
+      const repos = reposDuLieu(get);
+      if (repos) ouvrirLeRepos(get, set, repos);
+    },
+    offrirLeRepos: (opts) => ouvrirLeRepos(get, set, opts),
     // « Dormir » : sommeil de `days` journée(s) (défaut 1) — récup. (Exténué/Blessures) + cauchemars (LDB 16/18/21).
-    restParty: (days = 1) => { sleepParty(get, set, days); },
+    reposerLeGroupe: (days = 1) => { sleepParty(get, set, days); },
   } satisfies FabriqueDuNoyau;
 }
 
@@ -803,7 +846,7 @@ export const TABLES = {
       // (patron `insert`, re-bandée par la fabrique) : plus AUCUN jet silencieux (#253), et la gueule de bois
       // est due par TOUTE rangée du dessoûlage, pas seulement par les perdantes.
       const d = soberUpDissipate(hero, row.result!.sl);
-      const alcool = { skill: 'resistance-a-l-alcool', char: 'endurance' } as const;
+      const alcool = { skill: { id: 'resistance-a-l-alcool' }, characteristic: 'endurance' } as const;
       const hangover = monoStep({
         id: `dessoulageHangover-${hero.id}`, kind: 'dessoulageHangover', actor: hero, icon: 'time/night',
         rollLabel: testSkillLabel(alcool) ?? SKILL_RESISTANCE(), label: t('step.gueuleDeBois'), difficulty: 'intermediaire',

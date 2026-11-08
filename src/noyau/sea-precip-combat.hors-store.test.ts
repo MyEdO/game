@@ -42,9 +42,9 @@ describe('Précipitations Très abondantes au combat ouvert pendant un voyage en
   function ouvreLeCombat(): { H: Combatant; E: Combatant } {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     banc.setState({ travelPlan: seaPlan() });
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;

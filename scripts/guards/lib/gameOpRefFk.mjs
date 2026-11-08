@@ -79,8 +79,9 @@ export const GAMEOP_FIELD_TARGETS = {
   'grantNaturalWeapon.qualities': { registry: 'qualities' },
   'grantNaturalWeapon.subType': { registry: 'weaponGroups' },
   'rollMutation.table': { registry: 'mutationTables' },
-  // Tons de lumière (lightTones.json) — APPARENCE d'une source, résolue au bord du rendu
-  // (`gameIso/stage/stagePointLights.ts::resolveTone`). Absent = `flamme`.
+  'manann.factorId': { registry: 'seaManannFactors' },
+  // Tons de lumière (lightTones.json) — APPARENCE d'une source, résolue au bord du rendu.
+  // Absent = `flamme`.
   'light.tone': { registry: 'lightTones' },
   // ── Psychologie (psychology.json) ──
   'beginPsych.sourceId': { nonRef: 'id de combattant RUNTIME — la créature SOURCE d\'une Peur/Terreur (`targetedTrigger` le pose, src/engine/psychology.ts ; purgé à la mort par `clearPsychOf`), jamais authoré en donnée' },

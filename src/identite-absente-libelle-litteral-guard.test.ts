@@ -21,7 +21,7 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
  */
 
 const AUTHORE = 'libellé AUTHORÉ optionnel : un défaut d’affichage de donnée, aucune identité de porteur absente';
-const SANS_ARME = 'arme absente : l’absence EST l’état affiché (mains nues, pièce non désignée), pas une identité masquée';
+const SANS_ARME = 'arme absente : l’absence EST l’état affiché (mains nues, arme non désignée), pas une identité masquée';
 const CHOIX_OUVERT = 'création en cours : le choix reste OUVERT et l’écran le dit — aucune entité absente';
 const PLACEHOLDER = 'placeholder de saisie d’éditeur : aucune entité à nommer';
 const PRIMITIVE = 'corps d’une primitive d’absence : le repli nommé EST sa définition, tout lecteur passe par elle';
@@ -36,14 +36,13 @@ const EXEMPTES = new Map<string, string>([
   ["src/noyau/pursuitFlow.ts|row.label ?? t('step.pursuitMouvement')", AUTHORE],
   ["src/noyau/monde/usable.ts|a.label ?? t(`usable.${a.id}` as MsgKey)", AUTHORE],
   ['src/gameIso/stage/PastilleEntite.tsx|mark.label ?? \'\'', AUTHORE],
-  ['src/net/relay.ts|env.name ?? \'\'', OUTILLAGE],
+  ['src/hote/coop/relay.ts|env.name ?? \'\'', OUTILLAGE],
   ['src/noyau/cascade.ts|st.label ?? \'Conséquences\'', AUTHORE],
   ['src/noyau/combat/triggeredTest.ts|step.label ?? \'\'', AUTHORE],
   ['src/noyau/combat/triggeredTest.ts|step.label ?? \'Réaction\'', AUTHORE],
   ['src/noyau/combatEffects.ts|step.label ?? \'\'', AUTHORE],
   ['src/noyau/combatFlow.ts|step.label ?? \'\'', AUTHORE],
   ['src/noyau/combatFlow.ts|parryWeaponObj?.label ?? \'arme\'', SANS_ARME],
-  ['src/noyau/combatSlice.ts|w?.label ?? \'pièce\'', SANS_ARME],
   ['src/state/devtools.ts|c?.label ?? \'—\'', OUTILLAGE],
   ['src/state/devtools.ts|here?.label ?? \'?\'', OUTILLAGE],
   ['src/noyau/triggeredEffects.ts|eff.flow.test.label ?? \'Réaction\'', AUTHORE],

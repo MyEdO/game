@@ -19,7 +19,7 @@
  *    translation change par particule — trois écritures dans le tampon, pas une composition de matrice.
  *
  * SOUS COUVERT : la question « cette case est-elle abritée ? » n'est PAS reposée ici. Elle a une seule
- * réponse dans le dépôt (`shelterField`/`isSheltered`, `builders/roofs.ts`), celle-là même dont dépend
+ * réponse dans le dépôt (`shelterField`/`isSheltered`, `noyau/monde/volume/toits.ts`), celle-là même dont dépend
  * le dégagement d'architecture — sinon deux vérités de « suis-je sous un toit ? », et il pleut dans la
  * taverne. Le semis lit le verdict par le prédicat `sheltered` que lui passe l'écran ; un toit LEVÉ par
  * le cutaway reste un toit (le champ ne connaît pas la vue), et le couvert suit le PLAN — une scène
@@ -36,14 +36,10 @@
 import * as THREE from 'three';
 import type { WeatherPrecipDef } from '../../../data/ambiance.types';
 import { hash32, seedStream } from '../../../data/hash';
-import { heightAt, sceneMetresPerTile, type Scene } from '../../../noyau/monde/scene';
+import { MAX_PRECIP, sceneGroundSpan } from '../../../noyau/monde/meteo';
+import { sceneMetresPerTile, type Scene } from '../../../noyau/monde/scene';
 import { withRenderRank } from './renderRanks';
 import { materiauPlanTransparent } from './worldMaterials';
-
-/** BUDGET DUR d'instances du semis : au-delà, la densité de donnée est écrêtée. Une carte de ville
- *  entière sous la tempête demanderait des dizaines de milliers de quads pour un gain nul — au-delà
- *  de quelques milliers, la pluie est déjà un rideau plein. */
-export const MAX_PRECIP = 4000;
 
 /** Le VOLUME où le semis vit : l'emprise métrique de la carte, son sol le plus bas, et le plafond
  *  (donnée) au-dessus de ce sol. Repère three : `x` = est, `y` = haut, `z` = sud. */
@@ -73,26 +69,6 @@ export function precipArea(scene: Scene, def: WeatherPrecipDef): PrecipArea {
     z1: (h - 0.5) * mpt,
     groundM,
     topM: topGroundM + def.ceilingM,
-  };
-}
-
-/** Cotes EXTRÊMES du sol de la carte, tous niveaux confondus — la référence verticale des deux
- *  expressions volumiques de la météo : le recyclage du semis part du sol le plus BAS (ci-dessus), et
- *  les nappes de brume s'y empilent (`weatherSheets.ts`). Une seule mesure, donc un seul repère. PURE. */
-export function sceneGroundSpan(scene: Scene): { groundM: number; topGroundM: number } {
-  const { w, h } = scene.dimensions;
-  let groundM = Infinity;
-  let topGroundM = -Infinity;
-  for (const layer of scene.layers)
-    for (let y = 0; y < h; y++)
-      for (let x = 0; x < w; x++) {
-        const cote = heightAt(scene, x, y, layer.z);
-        if (cote < groundM) groundM = cote;
-        if (cote > topGroundM) topGroundM = cote;
-      }
-  return {
-    groundM: Number.isFinite(groundM) ? groundM : 0,
-    topGroundM: Number.isFinite(topGroundM) ? topGroundM : 0,
   };
 }
 

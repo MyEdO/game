@@ -22,8 +22,8 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
   /** Combat du Dôme ouvert, au DERNIER tour du Round 1, l'Action et le Mouvement de l'actif déjà dépensés. */
   function dernierTourSaigne(enTete?: (b: Combatant[]) => string): { sorciere: Combatant } {
     banc.setState({ party: scenario.construire().party });
-    banc.getState().startScene(scenarioConstruit.scene);
-    banc.getState().startCombat('enc-dome');
+    banc.getState().lancerLaScene(scenarioConstruit.scene);
+    banc.getState().lancerLeCombat('enc-dome');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const sorciere = b.combatants.find((c) => c.id === 'sorciere')!;
@@ -46,7 +46,7 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
     expect(revelation.participants.some((s) => s.kind === 'round'), 'la ligne d’entretien du héros ouvre sa révélation').toBe(true);
     expect(banc.getState().pendingRoundStart, 'le Round attend la fermeture de la révélation').toBeNull();
 
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
     expect(banc.getState().pendingRoundStart, 'la fermeture ouvre la pause de début de Round').toEqual({ round: 2 });
 
@@ -78,12 +78,12 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
     banc.setState({ battle: { ...b, turn: 0, round: 2 } });
     startCascade(banc.getState, banc.setState, {
       title: 'Hors combat', purpose: 'test',
-      steps: [revealToStep({ kind: 'round', title: 'Fixture', lines: ['ligne'], severity: 'minor' }, 0)],
+      steps: [revealToStep({ kind: 'round', title: 'Fixture', lines: ['ligne'] }, 0)],
     });
     resolveRoundBoundary(banc.getState, banc.setState);
     expect(banc.getState().pendingRoundStart).toBeNull();
     expect(banc.getState().pendingCascade?.roundBoundary, 'la séquence en vol porte la borne du Round').toBe(true);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
     expect(banc.getState().pendingRoundStart).toEqual({ round: 2 });
   });
@@ -91,7 +91,7 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
   it('IA en tête : après la pause, elle joue son tour', () => {
     dernierTourSaigne((cs) => cs.find((c) => c.kind === 'enemy' && !c.dead)!.id);
     advanceTurn(banc.getState, banc.setState);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(banc.getState().pendingRoundStart).toEqual({ round: 2 });
     banc.getState().fenetreValider('roundStart');
     const cle = () => `2:0:${banc.getState().battle!.order[0]}`;

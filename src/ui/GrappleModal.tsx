@@ -25,15 +25,14 @@ import { useGesteDeJet } from './useGesteDeJet';
 export function GrappleModal() {
   const pd = useGame((s) => s.pendingGrapple);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetRoll', 'grapple');
-  const reroll = useGesteDeJet('jetReroll', 'grapple');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'grapple');
-  const darkPact = useGesteDeJet('jetDarkPact', 'grapple');
-  const force = useGesteDeJet('jetForceSuccess', 'grapple');
-  const breakGrapple = useGame((s) => s.grappleBreak);
-  const confirm = useGesteDeJet('jetConfirm', 'grapple');
-  const choose = useGame((s) => s.grappleChoose);
-  const cancel = useGesteDeJet('jetCancel', 'grapple');
+  const roll = useGesteDeJet('jetLancer', 'grapple');
+  const reroll = useGesteDeJet('jetRelancer', 'grapple');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'grapple');
+  const darkPact = useGesteDeJet('jetPactiser', 'grapple');
+  const force = useGesteDeJet('jetForcerLaReussite', 'grapple');
+  const regler = useGame((s) => s.jetRegler);
+  const confirm = useGesteDeJet('jetValider', 'grapple');
+  const cancel = useGesteDeJet('jetAnnuler', 'grapple');
   if (!pd || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === pd.actorId);
   const foe = battle.combatants.find((c) => c.id === pd.foeId);
@@ -97,9 +96,9 @@ export function GrappleModal() {
             <OptionChooser
               layout="grid"
               options={[
-                { key: 'damage', label: <><Icon id="journal/damage" size="sm" /> Dégâts</>, primary: true, onSelect: () => choose('damage'), title: 'BF + DR Dégâts, en IGNORANT tous les Points d’Armure (Localisation au lancer de Force).' },
-                { key: 'entangle', label: <><Icon id="condition/entangled" size="sm" /> Empêtrer</>, onSelect: () => choose('entangle'), title: 'Conférer l’État Empêtré à l’adversaire.' },
-                { key: 'free', label: <><Icon id="melee/tumble" size="sm" /> Se libérer</>, onSelect: () => choose('free'), title: 'Te défaire de ton État Empêtré, et en retirer 1 de plus par DR obtenu.' },
+                { key: 'damage', label: <><Icon id="journal/damage" size="sm" /> Dégâts</>, primary: true, onSelect: () => regler('grapple', 'issue', 'damage'), title: 'BF + DR Dégâts, en IGNORANT tous les Points d’Armure (Localisation au lancer de Force).' },
+                { key: 'entangle', label: <><Icon id="condition/entangled" size="sm" /> Empêtrer</>, onSelect: () => regler('grapple', 'issue', 'entangle'), title: 'Conférer l’État Empêtré à l’adversaire.' },
+                { key: 'free', label: <><Icon id="melee/tumble" size="sm" /> Se libérer</>, onSelect: () => regler('grapple', 'issue', 'free'), title: 'Te défaire de ton État Empêtré, et en retirer 1 de plus par DR obtenu.' },
               ]}
             />
           </>
@@ -113,7 +112,7 @@ export function GrappleModal() {
     { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
     // Avantage supérieur : briser l'Empoignade gratuitement (par son Mouvement) — pré-jet uniquement.
     ...(pd.canBreak
-      ? [{ key: 'break', label: "Briser l'Empoignade", onClick: breakGrapple, title: 'Avantage supérieur : briser l’Empoignade gratuitement (par ton Mouvement).', verbe: 'roll' } as RollAction]
+      ? [{ key: 'break', label: "Briser l'Empoignade", onClick: () => regler('grapple', 'briser', true), title: 'Avantage supérieur : briser l’Empoignade gratuitement (par ton Mouvement).', verbe: 'roll' } as RollAction]
       : []),
     { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];

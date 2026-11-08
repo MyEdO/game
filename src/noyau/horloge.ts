@@ -16,7 +16,7 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables } from './tablesPosees';
 
 /** L'UNIQUE écrivain de l'avance d'horloge (#668, #1599, #2817 D7) : tout chemin qui fait passer le temps
- *  (advanceTime, repos, voyages terrestre, fluvial et en mer, chantier naval) l'appelle. */
+ *  (avancerLeTemps, repos, voyages terrestre, fluvial et en mer, chantier naval) l'appelle. */
 export function creerActionsDAvanceeDHorloge(get: Get, set: SetDesClesReservees) {
   return {
     avancerLHorloge: (minutes) => {
@@ -29,7 +29,7 @@ export function creerActionsDAvanceeDHorloge(get: Get, set: SetDesClesReservees)
 
 export function creerActionsDHorloge(get: Get, set: Set) {
   return {
-    advanceTime: (minutes) => {
+    avancerLeTemps: (minutes) => {
       if (minutes <= 0) return;
       get().avancerLHorloge(minutes);
 
@@ -40,7 +40,7 @@ export function creerActionsDHorloge(get: Get, set: Set) {
         if (rounds > 0) {
           const party = get().party;
           const log = outOfCombatUpkeep(party, rounds, battleRng());
-          if (log.length) { set({ party: [...party] }); get().log(log); }
+          if (log.length) { set({ party: [...party] }); get().ecrireAuJournal(log); }
           // L'agonie hors combat est la SEULE voie par laquelle un corps assis s'éteint sans combat :
           // la couture unique de libération y est appelée (no-op si personne n'est assis).
           releaseSeatsOfDowned(get, set);
@@ -59,7 +59,7 @@ export function creerActionsDHorloge(get: Get, set: Set) {
         // le témoin. `lastUpkeepDay` (posé par `runDailyUpkeep`) garde l'anti-double-résolution.
         const deferred: DeferredUpkeepTest[] = [];
         const upkeepLines = runDailyUpkeep(get, set, { onDeferTest: (t) => deferred.push(t) });
-        if (upkeepLines.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: upkeepLines, severity: 'minor' });
+        if (upkeepLines.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: upkeepLines });
         // La file porte des BANDES comme tout le reste de la nuit (#1117 L3) : la fenêtre est formée
         // ICI, à l'émission — `openCombatEndCascade` a seulement à trier ses rangées par pilote.
         const steps = nightBands(restFlow.deferredUpkeepSteps(get().party, deferred));
@@ -72,7 +72,7 @@ export function creerActionsDHorloge(get: Get, set: Set) {
         if (steps.length) openSequence(get, set, { title: 'Entretien quotidien', icon: 'time/night', purpose: 'upkeep', steps, log: upkeepLines });
         // Même `purpose:'upkeep'` que la branche à jets ci-dessus : les deux issues du MÊME entretien
         // quotidien ouvrent la MÊME séquence (le témoin groupé est le cas « zéro jet à influencer »).
-        else if (upkeepLines.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: upkeepLines, severity: 'minor' }, { purpose: 'upkeep' });
+        else if (upkeepLines.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: upkeepLines }, { purpose: 'upkeep' });
       }
       checkPartyWiped(get, set); // faim/agonie/maladie a-t-elle anéanti tout le groupe hors combat ? → défaite (recheck à la clôture de cascade)
     },
@@ -83,6 +83,6 @@ export function creerActionsDHorloge(get: Get, set: Set) {
 export const TABLES = {
   clotures: {
     /** L'horloge avance APRÈS le Flow de son site — verbe de CLÔTURE (#1508). */
-    avancerHorloge: (get, _set, c) => get().advanceTime(c.minutes),
+    avancerHorloge: (get, _set, c) => get().avancerLeTemps(c.minutes),
   },
 } satisfies FragmentDeTables;

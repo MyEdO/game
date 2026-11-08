@@ -7,7 +7,7 @@
  *  - 6 h de voyage par jour sans Test ; au-delà (marche forcée), Test de Résistance ou Exténué,
  *    +1 si Encombré (LDB 51 l.195) — à pied seulement (les passagers d'un transport ne marchent pas) ;
  *  - fatigue d'Encombrement par journée de voyage (LDB 61 l.46-48, `travelFatigue`) — à pied ;
- *  - péripéties (LDB 51 l.208, table l.210-221) : d10 quotidien, événement sur `perilDie` (défaut 8, paramétrable, 0 = off)
+ *  - péripéties (LDB 51 l.208, table l.210-221) : dé quotidien (`tirageQuotidien` de `peripeties.json`), événement sur `perilDie` (défaut 8, paramétrable, 0 = off)
  *    → tirage sur la table VERBATIM (`data/peripeties.ts`) ; en PLUS, péripéties d'AUTEUR par route
  *    (probabilité par jour + Effects d'éditeur).
  *
@@ -18,7 +18,7 @@
  * conséquences ; le recap final ne couvre que le DERNIER segment (plus de déroulé intégral).
  *
  * Une péripétie qui déclenche un combat/une transition INTERROMPT le voyage : `travelPlan` mémorise
- * la progression (`kmDone`) et la carte propose « Reprendre le voyage » (`resumeTravel`).
+ * la progression (`kmDone`) et la carte propose « Reprendre le voyage » (`reprendreLeVoyage`).
  */
 import { battleRng } from './battleRng';
 import { garanti } from '../lib/garanti';
@@ -26,9 +26,11 @@ import { buildAuthorPerilSteps } from './authorPerils';
 
 /** Id du protocole de reprise TERRESTRE (effets DIFFÉRÉS dans `travelPlan.land.interrupt`). */
 const LAND_PERIL_INTERRUPT = 'travel-land';
-import { openRest, placesOfKind, sceneLieu, routeLieu } from './restFlow';
+import { ouvrirLeRepos, placesOfKind, sceneLieu, routeLieu } from './restFlow';
 import type { Jeu } from './etat';
-import { placeById, placeOfScene, otherEnd, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
+import type { IdDeClasseDePassage } from './designations';
+import { arriverAuLieu, quitterLeLieu } from './lieuFlow';
+import { lieuDuGroupe, placeById, otherEnd, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
 import { billetApresDepart, offreDePassage, type OffreDePassage } from './billetFlow';
 import {
   TravelMode, TRAVEL_DEFAULTS, travelModeLabels, travelSpeed, transportCost, classeRetenue, forcedMarchTest, applyTravelFatigue,
@@ -44,14 +46,14 @@ import {
   type ForcedPaceAnimal, type ForcedPaceAnimalOutcome,
 } from '../engine/vehicle';
 import { bonus } from '../engine/characteristics';
-import { rollVehicleProblem, mountIncidentEffects, VEHICLE_PROBLEM_DIE } from '../engine/travelTables';
+import { rollVehicleProblem, mountIncidentEffects, vehicleProblemDie } from '../engine/travelTables';
 import { applyOps } from '../engine/ops';
 import { ouvrirChute, jouerFlowEntier, applyEffectsLoot } from './combatEffects';
 import { applyHealWounds } from '../engine/healing';
 import { declareDisease } from '../engine/disease';
 import { findVehicleById, voyageStakeRef, weather, libelleOuAbsence } from '../data';
 import { memoParVersion } from '../data/versionDataset';
-import { PERIPETIES } from '../data/peripeties';
+import { PERIPETIES, peripetieDie, peripetieSeuilDie } from '../data/peripeties';
 import { rollTest, testDetail } from '../engine/tests';
 import { partyAssisted, supportSplit, type SupportDetail } from '../engine/skills';
 import { addCondition, removeCondition, stacks } from '../engine/conditions';
@@ -61,6 +63,7 @@ import { condCtx, payFromGroup, totalDesBourses } from './bourseFlow';
 import { refuseSi } from './verrousDeFiche';
 import { evalCondition } from '../engine/flowCore';
 import { rollDice } from '../engine/dice';
+import { facesDuDe } from '../engine/tables';
 import { rule } from '../engine/policy';
 import { toDate, isTravelDaylight, dawnMinute, minutesUntilNext, dayIndex } from '../engine/clock';
 import { seasonOfMonth, weatherDie, weatherFromRoll, weatherCondition, type Season, type Weather } from '../engine/travelStages';
@@ -79,10 +82,9 @@ import type { Combatant } from '../engine/types';
 
 import type { Get, Set } from './flowTypes';
 import { traceLineOf } from '../engine/traceLine';
-import { dataLabel, refLabel } from '../data';
-import { stepDetail } from './rollSeam';
+import { refLabel } from '../data';
 import { DEFAULT_VOYAGE_ORDERS } from './voyageCadence';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
@@ -93,9 +95,9 @@ export interface TravelRecapDay {
   kmTo: number;
   hours: number;
   /** Fatigue, péripéties narratives, entretien… Ligne STRUCTURÉE (#349) : `{ text, icon?, tone?,
-   *  phase? }`, rendue par le renderer partagé `ui/RecapLine.tsx` — `phase` (jour terrestre
+   *  phase? }`, rendue par le renderer partagé — `phase` (jour terrestre
    *  seulement) rattache la ligne à `DAY_PHASE_CATALOG` (`noyau/recapLine.ts`), même catalogue que
-   *  l'agenda du jour EN COURS (`ui/VoyageScreen.dayAgenda`) : le sectionnement des jours CLOS en
+   *  l'agenda du jour EN COURS : le sectionnement des jours CLOS en
    *  tombe GRATUITEMENT (dette 3). */
   lines: RecapLine[];
   /** Les JETS du jour (marche forcée, Survie, Perception…) en lignes de jet structurées —
@@ -162,7 +164,7 @@ export interface TravelPlan {
   vehicleLame?: boolean;
   km: number;
   kmDone: number;
-  /** Interrompu par une péripétie (combat/transition) — reprise via `resumeTravel`. */
+  /** Interrompu par une péripétie (combat/transition) — reprise via `reprendreLeVoyage`. */
   interrupted: boolean;
   /** ORDRES permanents de la traversée (couche `voyageCadence`) : cadence COMMANDÉE (routine auto-résolue,
    *  PV du jour) ou JOUR-PAR-JOUR (modale par jet). Consommé par la mer ET le fluvial. */
@@ -200,7 +202,7 @@ export interface TravelPlan {
    *  (EDOC 09 l.21, `declareArrivalDiseases`). */
   diseasesAtStart?: string[];
   /** CHRONIQUE du voyage (#333) : les journées/Étapes DÉJÀ closes, accumulées à leur halte de nuit
-   *  (`openRest` porte le `travelDay` finalisé). Alimente le journal de voyage de l'écran-hub
+   *  (`ouvrirLeRepos` porte le `travelDay` finalisé). Alimente le journal de voyage de l'écran-hub
    *  (`VoyageScreen`) — une carte par jour passé. Vidé avec le plan à l'arrivée. */
   log?: TravelRecapDay[];
 }
@@ -212,8 +214,6 @@ export interface TravelPlan {
  *  d'INTERRUPTION d'une péripétie (combat/embuscade différé), et `arrived`. Jamais persisté au-delà d'une
  *  journée. La ligne de récap du jour vit dans `plan.recap.days[dernier]` (le `while` la relit). */
 export interface LandDayContext {
-  toScene: string;
-  toEntry?: string;
   toLabel: string;
   destLabel: string;
   marchHeroes: string[];
@@ -227,7 +227,7 @@ export interface LandDayContext {
 }
 
 const log = (get: Get, _set: Set, lines: string[]) => {
-  if (lines.length) get().log(lines);
+  if (lines.length) get().ecrireAuJournal(lines);
 };
 
 /** Heures de voyage/jour SANS Test (RAW LDB 51 l.195, défaut 6) — paramétrable au niveau carte. */
@@ -243,7 +243,7 @@ export function maxHoursPerDay(map: WorldMap | null): number {
 
 /** Plafond dur d'une journée EN SELLE (heures) — endurance maximale d'une bête au pas (EDOC 07 l.142,
  *  12 h) : au-delà, le groupe DOIT haltE (les allures plus rapides s'épuisent plus tôt, gérées par
- *  `resolveMountedDay`). Plafonne l'allure en selle choisie au départ (`startTravel`, estimation de la carte). */
+ *  `resolveMountedDay`). Plafonne l'allure en selle choisie au départ (`partirEnVoyage`, estimation de la carte). */
 export const MOUNT_MAX_HOURS = 12;
 
 /** Heures de voyage DÉJÀ parcourues le jour calendaire COURANT (accumulateur unique, `store.travelDayHours`)
@@ -257,7 +257,7 @@ export function hoursTravelledToday(st: Pick<Jeu, 'gameTime' | 'travelDayHours'>
 }
 
 /** Heures de route qu'il RESTE au jour courant (LDB 51 l.195) : l'allure choisie `hoursPerDay` moins les
- *  heures déjà parcourues aujourd'hui dans ce mode. Lu par le flux (`runTravelDays`, `startTravel`) ET
+ *  heures déjà parcourues aujourd'hui dans ce mode. Lu par le flux (`runTravelDays`, `partirEnVoyage`) ET
  *  par l'estimation de la carte. Transport payé : `hoursPerDay` entier, valeur maison. */
 export function travelDayBudget(mode: TravelMode, hoursPerDay: number, prior: { foot: number; mount: number }): number {
   if (mode === 'pied') return Math.max(0, hoursPerDay - prior.foot);
@@ -266,7 +266,7 @@ export function travelDayBudget(mode: TravelMode, hoursPerDay: number, prior: { 
 }
 
 /** La route du jour est FAITE : plus une heure de budget (LDB 51 l.195) — le départ attend l'aube.
- *  Lu par la porte de `startTravel` ET par le panneau de départ de la carte, avant le clic. */
+ *  Lu par la porte de `partirEnVoyage` ET par le panneau de départ de la carte, avant le clic. */
 export function routeDuJourFaite(mode: TravelMode, hoursPerDay: number, prior: { foot: number; mount: number }): boolean {
   return travelDayBudget(mode, hoursPerDay, prior) < 1e-9;
 }
@@ -303,13 +303,13 @@ function attendreLAube(get: Get, set: Set): void {
   const pd = get().pendingDeparture;
   set({ pendingDeparture: null });
   if (!pd) return;
-  openRest(get, set, { places: placesOfKind('camp'), lieu: sceneLieu(get) });
+  ouvrirLeRepos(get, set, { places: placesOfKind('camp'), lieu: sceneLieu(get) });
 }
 
 /** Halte de NUIT sur la route (modale de Repos, voyage suspendu jusqu'au matin). `travelDay` = le
  *  jour qu'elle clôt. */
 function openRouteHalt(get: Get, set: Set, route: MapRoute, travelMarch: string[], travelDay?: TravelRecapDay): void {
-  openRest(get, set, {
+  ouvrirLeRepos(get, set, {
     places: placesOfKind(route.inns ? 'auberge' : 'camp'), lieu: routeLieu(get().worldMap!, get().travelPlan!),
     travelHalt: true, travelMarch, travelDay,
   });
@@ -322,7 +322,7 @@ function differerALAube(get: Get, set: Set, depart: Omit<NonNullable<Jeu['pendin
 
 /** Le départ de `route` en `mode` est-il un passage PAYANT — un billet (EDO 01 l.142 ; implicite,
  *  LDB 51 l.178) ? Ni la marche, ni la selle, ni le navire de campagne, ni la descente fluviale jouée
- *  (`descenteJouee`). Lu par l'écran de départ ET par `startTravel`. */
+ *  (`descenteJouee`). Lu par l'écran de départ ET par `partirEnVoyage`. */
 export function passagePayant(get: Get<Jeu>, route: MapRoute, mode: TravelMode): boolean {
   return mode !== 'pied' && mode !== 'monture' && mode !== 'mer' && !descenteJouee(get, route, mode);
 }
@@ -330,11 +330,11 @@ export function passagePayant(get: Get<Jeu>, route: MapRoute, mode: TravelMode):
 /** Réglages d'un départ choisis à la carte du monde : classe du billet, heures de route par jour, allure,
  *  rythme forcé et cadence en mer, traversée rapide. */
 export interface OptionsDeDepart {
-  classeId?: string; hoursPerDay?: number; allure?: Allure; seaPace?: number; fast?: boolean;
+  classeId?: IdDeClasseDePassage; hoursPerDay?: number; allure?: Allure; seaPace?: number; fast?: boolean;
   cadence?: import('./voyageCadence').VoyageCadence;
 }
 
-/** Devis d'un départ sur `route` depuis `fromId` en `mode` : SOURCE UNIQUE de `startTravel`, de
+/** Devis d'un départ sur `route` depuis `fromId` en `mode` : SOURCE UNIQUE de `partirEnVoyage`, de
  *  `refusDeDepart` et de l'estimation de la carte du monde (#3059). PUR. */
 export interface DevisDeTrajet {
   /** Heures de route par jour (LDB 51 l.195 ; en selle, EDOC 07 l.142). */
@@ -386,8 +386,8 @@ export function devisDeTrajet(s: Jeu, route: MapRoute, fromId: string, mode: Tra
 
 /** Le trajet `routeId` au départ du lieu courant, ou la raison de son absence. */
 function trajetDIci(s: Jeu, routeId: string): { from: MapPlace; route: MapRoute; to: MapPlace } | string {
-  const { worldMap, scene } = s;
-  const from = worldMap && scene ? placeOfScene(worldMap, scene.id) : undefined;
+  const { worldMap } = s;
+  const from = lieuDuGroupe(s);
   if (!worldMap || !from) return t('wm.horsCarte');
   const route = worldMap.routes.find((r) => r.id === routeId);
   const to = route && (route.a === from.id || route.b === from.id) ? placeById(worldMap, otherEnd(route, from.id)) : undefined;
@@ -395,8 +395,8 @@ function trajetDIci(s: Jeu, routeId: string): { from: MapPlace; route: MapRoute;
   return { from, route, to };
 }
 
-/** Refus de partir sur `routeId` en `mode` (`null` : `startTravel` part, ou diffère à l'aube). Lu en tête
- *  par `startTravel` et par le bouton de départ de la carte du monde (#3059). La nuit (`departureGated`)
+/** Refus de partir sur `routeId` en `mode` (`null` : `partirEnVoyage` part, ou diffère à l'aube). Lu en tête
+ *  par `partirEnVoyage` et par le bouton de départ de la carte du monde (#3059). La nuit (`departureGated`)
  *  et la route du jour faite (`routeDuJourFaite`) DIFFÈRENT le départ, ils ne le refusent pas. */
 export function refusDeDepart(s: Jeu, routeId: string, mode: TravelMode, opts: OptionsDeDepart = {}): string | null {
   if (s.net.mode === 'guest') return t('wm.hoteDecide');
@@ -424,7 +424,7 @@ export function refusDeDepart(s: Jeu, routeId: string, mode: TravelMode, opts: O
 }
 
 /** Démarre un voyage depuis le lieu courant le long d'une route de la carte. */
-export function startTravel(get: Get, set: Set, routeId: string, mode: TravelMode, opts: OptionsDeDepart = {}): void {
+export function partirEnVoyage(get: Get, set: Set, routeId: string, mode: TravelMode, opts: OptionsDeDepart = {}): void {
   if (refuseSi(get, set, (s) => refusDeDepart(s, routeId, mode, opts))) return;
   const { from, route, to } = trajetDIci(get(), routeId) as Exclude<ReturnType<typeof trajetDIci>, string>;
   const { party } = get();
@@ -458,7 +458,7 @@ export function startTravel(get: Get, set: Set, routeId: string, mode: TravelMod
       return;
     }
     const seaPlan = garanti(buildSeaPlan(get, routeId, from.id, to.id, route, seaOpts), routeId, 'plan de traversée (`refusDuDepartEnMer`)');
-    set({ travelPlan: seaPlan, worldMapOpen: false, travelRecap: null, billetEnMain });
+    set({ travelPlan: seaPlan, worldMapOpen: false, travelRecap: null, billetEnMain, ...quitterLeLieu });
     log(get, set, [t('tf.seaDepart', { ship: seaPlan.vehicle!.label, to: to.label, km: route.km })]);
     runSeaDay(get, set);
     return;
@@ -469,7 +469,7 @@ export function startTravel(get: Get, set: Set, routeId: string, mode: TravelMod
   // payant. Repli sur le transport payant (« on paie un passeur ») si aucun batelier/embarcation.
   const riverPlan = descenteJouee(get, route, mode) ? buildRiverPlan(get, routeId, from.id, to.id, route, { cadence: opts.cadence }) : null;
   if (riverPlan) {
-    set({ travelPlan: riverPlan, worldMapOpen: false, travelRecap: null, billetEnMain: billetApresDepart(get().billetEnMain, routeId, mode) });
+    set({ travelPlan: riverPlan, worldMapOpen: false, travelRecap: null, billetEnMain: billetApresDepart(get().billetEnMain, routeId, mode), ...quitterLeLieu });
     log(get, set, [t('tf.riverDepart', { ship: riverPlan.vehicle!.label, to: to.label, km: route.km })]);
     runRiverDays(get, set);
     return;
@@ -509,14 +509,14 @@ export function startTravel(get: Get, set: Set, routeId: string, mode: TravelMod
     postes: rule('travel-etapes') ? stageAssignmentFromRoles(party) : undefined,
     ...(vehicle ? { vehicle } : {}),
   };
-  set({ travelPlan: plan, worldMapOpen: false, travelRecap: null, billetEnMain: billet });
+  set({ travelPlan: plan, worldMapOpen: false, travelRecap: null, billetEnMain: billet, ...quitterLeLieu });
   const allureLabel = allure ? t('tf.fragAllure', { allure: allureName(allure).toLowerCase() }) : '';
   log(get, set, [t('tf.depart', { to: to.label, km: route.km, mode: travelModeLabels()[mode].toLowerCase(), allure: allureLabel })]);
   runTravelDays(get, set);
 }
 
 /** Reprend un voyage interrompu (après une embuscade, par exemple). */
-export function resumeTravel(get: Get, set: Set): void {
+export function reprendreLeVoyage(get: Get, set: Set): void {
   const plan = get().travelPlan;
   if (!plan || get().battle) return;
   if (get().travelRecap?.then) return; // une embuscade ATTEND son acquittement — pas d'esquive
@@ -597,7 +597,7 @@ function runTravelDays(get: Get, set: Set): void {
       set({ travelPlan: null });
       log(get, set, [t('tf.arrival', { to: to.label }), ...travelArrivalCare(get, set), ...declareArrivalDiseases(get, set, atStart)]);
       finishRecap(get, set, recap, 'arrived', undefined, dureeMin);
-      get().transitionTo(to.scene, to.entry);
+      arriverAuLieu(set, to);
       return;
     }
 
@@ -608,7 +608,7 @@ function runTravelDays(get: Get, set: Set): void {
     const today0 = dayIndex(get().gameTime);
     const prior = hoursTravelledToday(get());
     const budget = travelDayBudget(plan.mode, plan.hoursPerDay, prior);
-    // Budget du jour épuisé — la reprise d'un jour interrompu, clos au log par `resumeTravel` : la halte
+    // Budget du jour épuisé — la reprise d'un jour interrompu, clos au log par `reprendreLeVoyage` : la halte
     // de nuit, sans jour de 0 h (LDB 51 l.195).
     if (budget < 1e-9) {
       openRouteHalt(get, set, route, []);
@@ -622,7 +622,7 @@ function runTravelDays(get: Get, set: Set): void {
     const forcedEligible = plan.allure === 'galop' && plan.mode !== 'monture' && !plan.vehicleLame && !!vehicleTravel(plan.mode)?.draft;
     // Sans conducteur qui puisse tenter la Conduite d'attelage (`peutTenter`, lu par `partyAssisted`),
     // l'attelage ne part pas au pas de course : la journée suit la cadence de base.
-    const forcedDriver = forcedEligible ? partyAssisted(party, 'conduite-d-attelage') : null;
+    const forcedDriver = forcedEligible ? partyAssisted(party, { skill: { id: 'conduite-d-attelage' } }) : null;
     // Conducteur dont le jet se SURFACE (#1262) : chaque Test de Conduite d'attelage au km devient une
     // ÉTAPE de la cascade `travelDay` (Chance/Pacte/Résilience possibles), chaînée par insertions
     // successives jusqu'au premier échec (`buildForcedPaceDaySteps`) — gameTime/kmDone sont alors
@@ -635,7 +635,7 @@ function runTravelDays(get: Get, set: Set): void {
       const recapDay: TravelRecapDay = { kmFrom: plan.kmDone, kmTo: plan.kmDone, hours: 0, lines: [], entries: [] };
       recap?.days.push(recapDay);
       if (recap) set({ travelPlan: { ...get().travelPlan!, recap } });
-      const daySteps = buildTravelDayCascade(get, set, route, recapDay, [], { toScene: to.scene, toEntry: to.entry, toLabel: to.label, destLabel: to.label });
+      const daySteps = buildTravelDayCascade(get, set, route, recapDay, [], { toLabel: to.label, destLabel: to.label });
       startCascade(get, set, { title: t('tf.dayTitleForced'), icon: 'travel/cart', purpose: 'travelDay', steps: [premierKm, ...daySteps] });
       return; // la clôture de la cascade (continueTravelDayAfterCascade) finalise le jour
     }
@@ -646,7 +646,7 @@ function runTravelDays(get: Get, set: Set): void {
     // L'ENTRETIEN du jour (rations/faim, maladies, convalescence) n'est PAS roulé ici : il se résout
     // dans la cascade de la halte de nuit (`buildNightCascade`), APRÈS le repas — sinon la Faim
     // s'installerait avant que le groupe ne mange. À l'ARRIVÉE (pas de nuit), le prochain
-    // `runDailyUpkeep` (repos/advanceTime) le rattrape via la garde `lastUpkeepDay`.
+    // `runDailyUpkeep` (repos/avancerLeTemps) le rattrape via la garde `lastUpkeepDay`.
     const kmDone = Math.min(plan.km, plan.kmDone + (forced ? forced.km : hoursToday * kmh));
     set({ travelPlan: { ...get().travelPlan!, kmDone } });
     const recapDay: TravelRecapDay = {
@@ -704,7 +704,7 @@ function runTravelDays(get: Get, set: Set): void {
     // Étapes éteinte ET pas de péripétie testable), la cascade est VIDE → on finalise directement (le
     // chemin jour-par-jour du LdB reste BYTE-IDENTIQUE).
     const daySteps = buildTravelDayCascade(get, set, route, recapDay, marchHeroes, {
-      toScene: to.scene, toEntry: to.entry, toLabel: to.label, destLabel: to.label,
+      toLabel: to.label, destLabel: to.label,
     });
     // Récap du SEGMENT posé sur le plan : la cascade suspend le `while`, donc son `recap`/`recapDay`
     // locaux ne survivent pas — `continueTravelDayAfterCascade` les relit depuis `plan.recap`.
@@ -771,7 +771,7 @@ export const stageWeatherRows = (entries: { min: number; max: number; weather: s
 const tablesDeMeteo = memoParVersion('weather', () => new Map<string, TableStepDef>(
   weather.map((saison) => [stageWeatherTableId(saison.id as Season), {
     label: t('step.stageWeather'),
-    die: weatherDie(saison.id as Season).sides,
+    die: facesDuDe(weatherDie(saison.id as Season)),
     rows: stageWeatherRows(saison.entries),
     lines: (die) => [t('out.stageWeather', { weather: weatherCondition(weatherFromRoll(die, saison.id as Season)).label })],
   }]),
@@ -779,7 +779,7 @@ const tablesDeMeteo = memoParVersion('weather', () => new Map<string, TableStepD
 
 function buildTravelDayCascade(
   get: Get, set: Set, route: MapRoute, recapDay: TravelRecapDay, marchHeroes: string[],
-  dest: { toScene: string; toEntry?: string; toLabel: string; destLabel: string },
+  dest: { toLabel: string; destLabel: string },
 ): CascadeStep[] {
   const steps: BuiltCascadeStep[] = [];
 
@@ -800,16 +800,16 @@ function buildTravelDayCascade(
   }
 
   // PÉRIPÉTIES du jour (LDB 51 l.208) : les péripéties d'AUTEUR (une étape de MONDE par péril), puis
-  // le d10 de SEUIL — un dé de MONDE à table, sur le patron de la météo : le siège qui possède
-  // l'environnement le POSE (« Dés fixés ») ou le voit passer. Sa rangée dit « aucune péripétie » ou
-  // insère le d10 de la table des péripéties (`landPerilTable`). Ordre des dés : d100 d'auteur ×N,
-  // d10 de seuil, d10 de table.
+  // le dé de SEUIL (`peripetieSeuilDie`) — un dé de MONDE à table, sur le patron de la météo : le siège
+  // qui possède l'environnement le POSE (« Dés fixés ») ou le voit passer. Sa rangée dit « aucune
+  // péripétie » ou insère le dé de la table des péripéties (`landPerilTable`). Ordre des dés : d100
+  // d'auteur ×N, dé de seuil, dé de table.
   steps.push(...buildAuthorPerilSteps(route, dest.destLabel, LAND_PERIL_INTERRUPT));
   const perilDie = route.perilDie ?? get().worldMap?.params?.perilDie ?? TRAVEL_DEFAULTS.perilDie;
   if (estFaceDeSeuil(perilDie)) {
     pousseSi(steps, tableStep({
       id: 'land-peril', kind: 'landPeril', worldOwner: true, icon: 'ui/warning', label: t('step.landPeril'),
-      table: { tableId: perilThresholdTableId(perilDie), spec: { n: 1, sides: 10 } },
+      table: { tableId: perilThresholdTableId(perilDie), spec: peripetieSeuilDie() },
       stake: voyageStakeRef('landPeril', { seuil: perilDie }),
       meta: { destLabel: dest.destLabel, seuil: perilDie },
     }));
@@ -819,8 +819,7 @@ function buildTravelDayCascade(
   // le build sur le chemin synchrone, ou par la chaîne `landForcedPace` sur le chemin différé).
   // L'interruption d'une péripétie s'y posera.
   set({ travelPlan: { ...get().travelPlan!, land: {
-    toScene: dest.toScene, toEntry: dest.toEntry, toLabel: dest.toLabel,
-    destLabel: dest.destLabel, marchHeroes: [...marchHeroes],
+    toLabel: dest.toLabel, destLabel: dest.destLabel, marchHeroes: [...marchHeroes],
   } } });
   void recapDay; // le récap du jour (plan.recap.days[dernier]) reçoit la tranche de journal à la clôture
   return steps;
@@ -829,7 +828,7 @@ function buildTravelDayCascade(
 /** Lignes STRUCTURÉES d'une étape de cascade DÉJÀ committée, phase-taguée (#349, dette 3) — un pas
  *  BATCH déplie ses PARTICIPANTS (chacun porte SA conséquence, `stagePosteBatch`/`weatherResistance`) ;
  *  un pas MONO lit `step.outcome`. `phaseOfKind` (catalogue PARTAGÉ, `noyau/recapLine.ts`, le MÊME que
- *  l'agenda du jour EN COURS `ui/VoyageScreen.dayAgenda`) rattache la ligne à sa phase — `undefined`
+ *  l'agenda du jour EN COURS) rattache la ligne à sa phase — `undefined`
  *  pour un `kind` hors catalogue (silencieux). */
 function stepRecapLines(step: CascadeStep): RecapLine[] {
   const phase = phaseOfKind(step.kind);
@@ -842,7 +841,7 @@ function stepRecapLines(step: CascadeStep): RecapLine[] {
  * fini de se JOUER (postes/exposition/péripéties validés) — reste à enchaîner. Roule la marche forcée
  * EAGER si le jour n'aboutit PAS sur une halte de nuit (arrivée/interruption : pas de nuit où la
  * présenter), sinon la DIFFÈRE à la cascade de nuit (`travelMarch`). Puis : interruption (péripétie) →
- * recap `interrupted` + suite différée ; arrivée → transition ; sinon → halte de nuit (`openRest`).
+ * recap `interrupted` + suite différée ; arrivée au lieu (`arriverAuLieu`) ; sinon → halte de nuit (`ouvrirLeRepos`).
  * Efface le contexte transitoire du jour. Renvoie `true` (le segment est toujours clos ici).
  * `done` : la cascade `travelDay` FINALISÉE (`dispatchCascadeDone`, `combatSlice.ts`) — ses étapes
  * committées portent les lignes de récap phase-taguées (#349) ; absente quand `buildTravelDayCascade`
@@ -881,7 +880,7 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
   const arrived = (get().travelPlan?.km ?? 0) - (get().travelPlan?.kmDone ?? 0) < 1e-9;
 
   // Efface les contextes transitoires du jour ; le `recap` d'un jour INTERROMPU reste jusqu'à
-  // `resumeTravel`, qui le clôt au log (#2533, 2026-10-09 01:51).
+  // `reprendreLeVoyage`, qui le clôt au log (#2533, 2026-10-09 01:51).
   set({ travelPlan: { ...get().travelPlan!, land: undefined, stage: undefined, ...(ctx?.interrupt ? {} : { recap: undefined }) } });
 
   // Marche forcée du jour (LDB 51 l.195) : DIFFÉRÉE à la nuit si halte ; sinon roulée EAGER (arrivée/interruption).
@@ -914,7 +913,7 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
     if (recapDay) recapDay.lines.push(...toRecapLines(care));
     log(get, set, [t('tf.arrival', { to: ctx.toLabel }), ...care]);
     finishRecap(get, set, recap, 'arrived', undefined, dureeMin);
-    get().transitionTo(ctx.toScene, ctx.toEntry);
+    arriverAuLieu(set, garanti(placeById(get().worldMap!, plan.toPlaceId), plan.toPlaceId, 'lieu d’arrivée'));
     return true;
   }
   // Nuit en route : HALTE — modale de Repos (auberge de relais si la route en a, sinon campement). Le
@@ -926,34 +925,33 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
 }
 
 // ── PÉRIPÉTIES du jour terrestre (cascade `travelDay`, LDB 51 l.208-221) : deux dés de MONDE à table.
-//    Le d10 de SEUIL (`landPeril`) insère le d10 de la TABLE (`landPerilTable`), dont l'applier résout
+//    Le dé de SEUIL (`landPeril`) insère le dé de la TABLE (`landPerilTable`), dont l'applier résout
 //    les kinds sans jet joueur et INSÈRE le jet influençable (Survie « éreintant » / Perception
 //    « attaque ») quand la péripétie en demande un.
 
-/** Faces du d10 de seuil : un seuil hors d'elles n'ouvre aucune étape (aucun résultat ne l'atteint). */
-const PERIL_THRESHOLD_FACES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
-type FaceDeSeuil = (typeof PERIL_THRESHOLD_FACES)[number];
-const estFaceDeSeuil = (die: number): die is FaceDeSeuil => (PERIL_THRESHOLD_FACES as readonly number[]).includes(die);
-const perilThresholdTableId = (die: FaceDeSeuil) => `land-peril-seuil-${die}` as const;
-/** Les tables tirables que ce module déclare (table `tablesTirables`) : une par face du d10 de seuil. */
-export const TABLES_TIRABLES = PERIL_THRESHOLD_FACES.map(perilThresholdTableId);
+/** Une face du dé de seuil : un seuil hors d'elles n'ouvre aucune étape (aucun résultat ne l'atteint). */
+const estFaceDeSeuil = (face: number): boolean => Number.isInteger(face) && face >= 1 && face <= facesDuDe(peripetieSeuilDie());
+const perilThresholdTableId = (face: number) => `land-peril-seuil-${face}`;
 
-/** Les rangées du d10 de seuil `die` : la face qui fait survenir l'événement, et les autres. */
-function perilThresholdRows(die: number): TableStepRow[] {
+/** Les rangées du dé de seuil à `faces` faces pour la face `face` : celle qui fait survenir l'événement, et les autres. */
+function perilThresholdRows(face: number, faces: number): TableStepRow[] {
   return [
-    ...(die > 1 ? [{ id: 'aucune-avant', min: 1, max: die - 1, label: t('tf.perilNone') }] : []),
-    { id: 'peripetie', min: die, max: die, label: t('tf.perilEvent') },
-    ...(die < 10 ? [{ id: 'aucune-apres', min: die + 1, max: 10, label: t('tf.perilNone') }] : []),
+    ...(face > 1 ? [{ id: 'aucune-avant', min: 1, max: face - 1, label: t('tf.perilNone') }] : []),
+    { id: 'peripetie', min: face, max: face, label: t('tf.perilEvent') },
+    ...(face < faces ? [{ id: 'aucune-apres', min: face + 1, max: faces, label: t('tf.perilNone') }] : []),
   ];
 }
 
-/** Les tables du d10 de seuil, une par face. */
-const tablesDeSeuil = Object.fromEntries<TableStepDef>(PERIL_THRESHOLD_FACES.map((die) => [perilThresholdTableId(die), {
-  label: t('step.landPeril'),
-  die: 10,
-  rows: perilThresholdRows(die),
-  lines: (roll: number) => [roll === die ? t('tf.perilEvent') : t('tf.perilNone')],
-} satisfies TableStepDef])) as PartDeTable<'tablesTirables', typeof TABLES_TIRABLES>;
+/** Les tables du dé de seuil, une par face — FAMILLE dérivée de `peripeties` (son `tirageQuotidien`). */
+const tablesDeSeuil = memoParVersion('peripeties', () => {
+  const faces = facesDuDe(peripetieSeuilDie());
+  return new Map<string, TableStepDef>(Array.from({ length: faces }, (_, i) => i + 1).map((face) => [perilThresholdTableId(face), {
+    label: t('step.landPeril'),
+    die: faces,
+    rows: perilThresholdRows(face, faces),
+    lines: (roll: number) => [roll === face ? t('tf.perilEvent') : t('tf.perilNone')],
+  }]));
+});
 
 const PERIL_TABLE_ID = 'land-peril-table';
 
@@ -961,7 +959,7 @@ const PERIL_TABLE_ID = 'land-peril-table';
  *  entrée, son `roll` pour fourchette, son id pour clé. */
 const tableDesPeripeties = memoParVersion('peripeties', () => new Map<string, TableStepDef>([[PERIL_TABLE_ID, {
   label: t('step.landPerilTable'),
-  die: 10,
+  die: facesDuDe(peripetieDie()),
   rows: PERIPETIES.map((p) => ({ id: p.id, min: p.roll, max: p.roll, label: p.label })),
   lines: (roll) => {
     const p = PERIPETIES.find((x) => x.roll === roll);
@@ -1145,7 +1143,7 @@ function forcedPaceDay(get: Get, set: Set, kmLeft: number, driver: NonNullable<R
 function applyVehicleProblemToTravel(get: Get, set: Set, out: Pick<ForcedPaceDayResult, 'lines' | 'entries'>): { vehicleOut: boolean; vehicleLame: boolean } {
   const vehicle = get().travelPlan?.vehicle;
   if (!vehicle) return { vehicleOut: false, vehicleLame: false }; // garde : coque toujours créée en allure forcée
-  const roll = rollDice(VEHICLE_PROBLEM_DIE, battleRng());
+  const roll = rollDice(vehicleProblemDie(), battleRng());
   let entry = rollVehicleProblem(roll);
   if (entry.id === 'incontrolable') {
     // EDOC 07 l.284, l.286 ; LDB 09 l.30.
@@ -1202,7 +1200,7 @@ function applyVehicleProblemEffects(get: Get, set: Set, entry: ReturnType<typeof
  *  d'attelage n'est pas un Test de résistance (l.197). SOURCE UNIQUE : le km courant, le km SUIVANT et
  *  la reprise de contrôle désignent le conducteur par CETTE fonction, jamais par une valeur figée. */
 function forcedPaceDriver(get: Get) {
-  return partyAssisted(get().party, 'conduite-d-attelage');
+  return partyAssisted(get().party, { skill: { id: 'conduite-d-attelage' } });
 }
 
 /** Construit l'ÉTAPE-JET de Conduite d'attelage au kilomètre COURANT (#270, conducteur JOUEUR) — pénalité
@@ -1213,11 +1211,11 @@ function buildForcedPaceStep(driver: { actor: Combatant; value: number; support?
   const penalty = ligneAllureForcee(galloped); // l.229, SOURCE UNIQUE avec le résolveur pur
   return monoStep({
     id: `land-forced-${galloped}`, kind: 'landForcedPace', actor: driver.actor, icon: 'travel/cart',
-    label: stepDetail(dataLabel(driver.actor.label), t('step.conduiteForcee')), rollLabel: 'Conduite d’attelage',
+    label: t('step.conduiteForcee'), rollLabel: 'Conduite d’attelage',
     difficulty: 'intermediaire',
     stake: voyageStakeRef('landForcedPace'),
     ligne: {
-      test: { skill: 'conduite-d-attelage' }, valeur: driver.value + (penalty?.value ?? 0), soutien: driver.support,
+      test: { skill: { id: 'conduite-d-attelage' } }, valeur: driver.value + (penalty?.value ?? 0), soutien: driver.support,
       ...(penalty ? { dansLaValeur: [penalty] } : {}),
     },
     meta: { kmLeft, galloped, km, hours },
@@ -1299,11 +1297,11 @@ function applyEreintant(get: Get, set: Set): string[] {
 
 export function creerActionsDuVoyage(get: Get, set: Set) {
   return {
-    openWorldMap: () => { if (!get().battle && get().worldMap) set({ worldMapOpen: true }); },
-    startTravel: (routeId, mode, opts) => startTravel(get, set, routeId, mode, opts),
-    resumeTravel: () => resumeTravel(get, set),
-    setVoyageCadence: (cadence) => { const p = get().travelPlan; if (p) set({ travelPlan: { ...p, orders: { ...(p.orders ?? DEFAULT_VOYAGE_ORDERS), cadence } } }); },
-  } satisfies Partial<ActionsDuNoyau>;
+    ouvrirLaCarte: () => { if (!get().battle && get().worldMap) set({ worldMapOpen: true }); },
+    partirEnVoyage: (routeId, mode, opts) => partirEnVoyage(get, set, routeId, mode, opts),
+    reprendreLeVoyage: () => reprendreLeVoyage(get, set),
+    fixerLaCadence: (cadence) => { const p = get().travelPlan; if (p) set({ travelPlan: { ...p, orders: { ...(p.orders ?? DEFAULT_VOYAGE_ORDERS), cadence } } }); },
+  } satisfies FabriqueDuNoyau;
 }
 
 /** La validation de la porte de départ : attendre l'aube (`attendreLAube`). */
@@ -1318,7 +1316,7 @@ export function sortiesDuVoyage(get: Get, set: Set) {
     departure: () => set({ pendingDeparture: null }),
     /** Acquitte le récit de voyage. Une EMBUSCADE différée (`recap.then`) se déclenche ICI :
      *  le joueur a lu ce qui lui arrive, le combat démarre — fermer la modale (bouton/Échap)
-     *  ne l'évite pas, et `resumeTravel` refuse tant qu'elle n'est pas acquittée. */
+     *  ne l'évite pas, et `reprendreLeVoyage` refuse tant qu'elle n'est pas acquittée. */
     recitDeVoyage: () => {
       const recap = get().travelRecap;
       set({ travelRecap: null });
@@ -1327,10 +1325,10 @@ export function sortiesDuVoyage(get: Get, set: Set) {
       if (then.kind === 'effects') {
         jouerFlowEntier(applyEffectsLoot(get, set, then.effects, t('eff.flowTitleDiscovery'))); // trouvaille d'étape de voyage → fenêtre aussi
       } else {
-        get().transitionTo(then.scene, then.entry);
-        get().startCombat(then.encounter, undefined, { noSurprise: then.noSurprise });
+        get().quitterLaScene(then.scene, then.entry);
+        get().lancerLeCombat(then.encounter, undefined, { noSurprise: then.noSurprise });
         // Vol terrestre (#327) : cette embuscade terrestre met la cargaison du convoi en jeu — la
-        // perte GRADUÉE se dénoue au teardown de combat. Posé APRÈS startCombat (le reset `combatStart`
+        // perte GRADUÉE se dénoue au teardown de combat. Posé APRÈS lancerLeCombat (le reset `combatStart`
         // n'efface donc pas le marqueur).
         if (get().battle) set({ cargoRaid: true });
       }
@@ -1376,7 +1374,7 @@ export const TABLES = {
       if (tiree.roll !== step.meta?.seuil) return { consequences: freeCons(tiree.lines) };
       const table = tableStep({
         id: 'land-peril-table', kind: 'landPerilTable', worldOwner: true, icon: 'ui/warning', label: t('step.landPerilTable'),
-        table: { tableId: PERIL_TABLE_ID, spec: { n: 1, sides: 10 } },
+        table: { tableId: PERIL_TABLE_ID, spec: peripetieDie() },
         stake: voyageStakeRef('landPerilTable'),
         meta: { destLabel: String(step.meta?.destLabel ?? '') },
       });
@@ -1406,12 +1404,12 @@ export const TABLES = {
         set({ party: [...party] });
       } else if (entry.kind === 'ereintant') {
         // Survie en extérieur Accessible (+20) INFLUENÇABLE → étape-jet insérée (échec = retard + Exténué).
-        const best = partyAssisted(party, 'survie-en-exterieur'); // Soutien (LDB 12)
+        const best = partyAssisted(party, { skill: { id: 'survie-en-exterieur' } }); // Soutien (LDB 12)
         const st = best && monoStep({
           id: 'peril-survie', kind: 'landPerilSurvie', actor: best.actor, icon: 'travel/compass', label: t('step.landPerilSurvie'),
           rollLabel: refLabel('skills', { id: 'survie-en-exterieur' }), difficulty: 'accessible',
           stake: voyageStakeRef('landPerilSurvie'),
-          ligne: { test: { skill: 'survie-en-exterieur' }, valeur: best.value, soutien: best.support },
+          ligne: { test: { skill: { id: 'survie-en-exterieur' } }, valeur: best.value, soutien: best.support },
         });
         if (st) return { consequences: freeCons(j), insert: [st] };
         j.push(...applyEreintant(get, set)); // personne pour tester : retard direct
@@ -1419,12 +1417,12 @@ export const TABLES = {
         // Perception Accessible (+20) INFLUENÇABLE → étape-jet insérée ; son applier pose l'embuscade
         // différée (le `noSurprise` suit le jet). Sans tester (aucun héros vivant) : interruption directe.
         const configured = !!(route.ambush?.scene && route.ambush.encounter);
-        const best = partyAssisted(party, 'perception'); // Soutien (LDB 12)
+        const best = partyAssisted(party, { skill: { id: 'perception' } }); // Soutien (LDB 12)
         const st = best && monoStep({
           id: 'peril-perception', kind: 'landPerilPerception', actor: best.actor, icon: 'ui/eye', label: t('step.landPerilPerception'),
           rollLabel: refLabel('skills', { id: 'perception' }), difficulty: 'accessible',
           stake: voyageStakeRef('landPerilPerception'),
-          ligne: { test: { skill: 'perception' }, valeur: best.value, soutien: best.support },
+          ligne: { test: { skill: { id: 'perception' } }, valeur: best.value, soutien: best.support },
           meta: { destLabel, configured, ambushScene: route.ambush?.scene ?? '', ambushEntry: route.ambush?.entry ?? '', ambushEnc: route.ambush?.encounter ?? '' },
         });
         if (st) return { consequences: freeCons(j), insert: [st] };
@@ -1508,20 +1506,20 @@ export const TABLES = {
         finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, vehicleOut: false, vehicleLame: false });
         return { consequences: freeCons(j) };
       }
-      const roll = rollDice(VEHICLE_PROBLEM_DIE, battleRng());
+      const roll = rollDice(vehicleProblemDie(), battleRng());
       let entry = rollVehicleProblem(roll);
       if (entry.id === 'incontrolable') {
         j.push(t('tf.vehicleProblem', { label: entry.label }));
         if (step.actorId && hero && driver) {
           const st = monoStep({
             id: `${step.id}-control`, kind: 'landForcedPaceControl', actor: driver.actor, icon: 'travel/cart',
-            label: stepDetail(dataLabel(driver.actor.label), t('step.reprendreControle')), rollLabel: 'Conduite d’attelage',
+            label: t('step.reprendreControle'), rollLabel: 'Conduite d’attelage',
             difficulty: 'intermediaire',
             stake: voyageStakeRef('landForcedPaceControl'),
             // MÊME jet que le km (Conduite d'attelage soutenue, `LDB 12 l.189`) : ni la pénalité de km
             // (`EDOC 07 l.253` ne la reconduit pas), ni une valeur figée. Les deux surfaces — étape
             // influençable et repli sans pilote ci-dessous — lisent le MÊME conducteur soutenu.
-            ligne: { test: { skill: 'conduite-d-attelage' }, valeur: driver.value, soutien: driver.support },
+            ligne: { test: { skill: { id: 'conduite-d-attelage' } }, valeur: driver.value, soutien: driver.support },
             meta: { finalKm, finalHours },
           });
           if (st) return { consequences: freeCons(j), insert: [st] };
@@ -1563,9 +1561,9 @@ export const TABLES = {
       return { consequences: freeCons(j) };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
-  tablesTirables: tablesDeSeuil,
   famillesTirables: [
     tablesDeMeteo,
+    tablesDeSeuil,
     tableDesPeripeties,
   ],
   interruptionsDePeril: {

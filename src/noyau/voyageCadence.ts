@@ -25,7 +25,7 @@ export interface VoyageOrders {
 }
 
 /** Ordres par DÉFAUT d'un `TravelPlan` construit sans cadence explicite — SOURCE UNIQUE, consommée par
- *  `buildSeaPlan`, `buildRiverPlan`, `setVoyageCadence` et le sélecteur de départ de `WorldMapView` (aucune copie en dur du littéral ailleurs). */
+ *  `buildSeaPlan`, `buildRiverPlan`, `fixerLaCadence` et le sélecteur de départ de `WorldMapView` (aucune copie en dur du littéral ailleurs). */
 export const DEFAULT_VOYAGE_ORDERS: VoyageOrders = { cadence: 'commande' };
 
 /**
@@ -42,7 +42,7 @@ export const DEFAULT_VOYAGE_ORDERS: VoyageOrders = { cadence: 'commande' };
  * Ce qui réunit ces jets est l'ORDRE donné au départ, attendu validé en recette #1426 « Traversée
  * commandée sans fenêtre » (#1479).
  *
- * INTERROMPENT toujours (hors liste, donc fenêtre) : les CRISES (`poursuite`, `tourbillon`), l'`ouragan`
+ * INTERROMPENT toujours (hors liste, donc fenêtre) : les CRISES (`poursuite`, `tourbillon`), le Test d'équipage d'un Flow (`flowCrewTest`)
  * et l'`extermination`, l'`embuscade` ancrée, le `voyage-rapide`, et tout Test dont l'échec ouvre une
  * DÉCISION. Les urgences (`pendingSteamSave`), les événements de bord à choix, le conseil de bord,
  * l'atterrage et le combat sont des surfaces PROPRES : ils suspendent la boucle par eux-mêmes.

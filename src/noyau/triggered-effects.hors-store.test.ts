@@ -294,8 +294,8 @@ describe('Affamé — Test de trigger onKill routé (cadence-aware)', () => {
     seedBattleRng(1); // → jet de FM 97 / 21 → échec → festoie (loseTurn)
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -389,8 +389,8 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
   function combat() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -420,7 +420,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
     addCrampes(H);
     fireOwnTestFailed(banc.getState, H, { rng: desDuTest, sl: -4, set: banc.setState });
     const before = cond(H, 'sonne')?.value ?? 0;
-    banc.getState().cascadeResolveAll(); // résout le FM (échec) → À Terre, PAS un 2ᵉ Sonné
+    banc.getState().jetLancer('cascade'); // résout le FM (échec) → À Terre, PAS un 2ᵉ Sonné
     const H2 = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(hasCondition(H2, 'a-terre')).toBe(true);
     expect(cond(H2, 'sonne')?.value ?? 0).toBe(before); // ré-entrance : aucun nouveau Sonné
@@ -446,7 +446,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
         { id: 'dt', kind: 'diseaseTick', actorId: hero.id, base: 0, target: 5, rollLabel: 'Endurance', result: null, meta: { diseaseName: 'x' } },
       ], { title: 'Entretien' }),
     });
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetLancer('cascade');
     expect(hasCondition(banc.getState().party[0], 'sonne')).toBe(true); // Crampes réagissent au Test d'Endurance raté
   });
 });
@@ -462,8 +462,8 @@ describe('onOwnTestFailed — jets d’ATTAQUE (attaquant ET défenseur, MSRC 16
   function combat() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;

@@ -17,7 +17,7 @@
  *     de poing). Les deux prennent la valeur de l'étalon qu'ils PORTENT : 5 et 10.
  *
  * (2) CINQ ÉMETTEURS NEUFS. Cinq décors dont l'ART montre une flamme ou une lampe n'éclairaient rien
- *     (classes `warm` de leur def d'art, `src/gameIso/catalog/decor/defs/`), alors que cinq autres au
+ *     (classes `warm` de leur def d'art), alors que cinq autres au
  *     même contenu éclairaient déjà. Ils reçoivent le rayon de l'étalon dont ils s'approchent le plus,
  *     nommé dans leur `maison`. Les lueurs DÉCORATIVES ou MAGIQUES (idole du Chaos, cercle runique,
  *     engin à malepierre) n'en reçoivent AUCUN : une lueur d'art n'est pas une source d'éclairage

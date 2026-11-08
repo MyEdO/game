@@ -34,15 +34,15 @@ export function CorruptionModal() {
   const pc = useGame((s) => s.pendingCorruption);
   const party = useGame((s) => s.party);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetRoll', 'corruption');
+  const roll = useGesteDeJet('jetLancer', 'corruption');
   const regler = useGame((s) => s.jetRegler);
   const setNature = (v: ReglagesDuJet['corruption']['nature']) => regler('corruption', 'nature', v);
-  const reroll = useGesteDeJet('jetReroll', 'corruption');
-  const bonusSL = useGesteDeJet('jetBonusSL', 'corruption');
-  const darkPact = useGesteDeJet('jetDarkPact', 'corruption');
-  const resistAct = useGesteDeJet('jetResist', 'corruption'); // Résistance (Menace) : auto-succès du talent (LDB 10)
-  const forceSuccess = useGesteDeJet('jetForceSuccess', 'corruption'); // Résilience (LDB 17 l.68)
-  const resolve = useGesteDeJet('jetConfirm', 'corruption');
+  const reroll = useGesteDeJet('jetRelancer', 'corruption');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'corruption');
+  const darkPact = useGesteDeJet('jetPactiser', 'corruption');
+  const resistAct = useGesteDeJet('jetResister', 'corruption'); // Résistance (Menace) : auto-succès du talent (LDB 10)
+  const forceSuccess = useGesteDeJet('jetForcerLaReussite', 'corruption'); // Résilience (LDB 17 l.68)
+  const resolve = useGesteDeJet('jetValider', 'corruption');
   if (!pc) return null;
   const pool = battle?.combatants ?? party;
   const hero = pool.find((c) => c.id === pc.heroId);

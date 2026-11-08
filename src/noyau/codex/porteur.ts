@@ -1,7 +1,7 @@
 /**
  * PORTEUR d'une prose du Codex — l'ADRESSE du champ d'où sort un texte rendu, que tout hôte passe au
- * tokeniseur d'auto-liage (`tokenizeLinks`, `./relations.ts`). Le périmètre des sites qui en portent un
- * reste à l'écran (`SITES_PROSE`, `src/ui/liage.ts`). PUR. #1392 #3059
+ * tokeniseur d'auto-liage (`tokenizeLinks`, `./relations.ts`). Les chemins qu'un porteur désigne :
+ * `CHEMINS_ADRESSES` (`./chemins-adresses.ts`). PUR. #1392 #3059
  */
 
 /**
@@ -16,7 +16,7 @@
  * de porteur — et ne lie donc rien.
  *
  * `chemin` n'est lu par AUCUN renderer : `<Prose>` ne consulte que `type`/`id` (ils arment
- * `tokenizeLinks`). Ses lecteurs sont les GARDES (`liens-du-catalogue.test.tsx` confronte le chemin
+ * `tokenizeLinks`). Ses lecteurs sont les GARDES (`chemins-adresses.hors-store.test.ts` confronte le chemin
  * émis à `CHEMINS_ADRESSES`). Il est donc l'ADRESSE du champ, à
  * garder juste même si l'écran ne change pas quand il ment.
  */

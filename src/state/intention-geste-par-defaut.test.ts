@@ -8,16 +8,15 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { combatHighlightsView } from '../gameIso/stage/highlightLayer';
 import { runBindingById } from './clavier/keybindings';
-import { runAction } from '../noyau/actionRegistry';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 
 /** Même combat témoin que `intention-portee.hors-store.test.ts` : un héros au tour ENTIER, ennemis parqués loin. */
 function setup() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-  useGame.setState({ party: [hero] });
-  useGame.getState().startScene(testScene());
-  useGame.getState().startCombat('enc-mutants');
+  useGame.setState({ party: [hero], screen: 'campaign' });
+  useGame.getState().lancerLaScene(testScene());
+  useGame.getState().lancerLeCombat('enc-mutants');
   useGame.getState().fenetreValider('roundStart');
   const b = useGame.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -41,7 +40,7 @@ describe('(a) le clic-SOL au-delà de la Marche exige la Course ARMÉE', () => {
     const vue = () => combatHighlightsView(get, get().battle!, { myTurn: true, pendingAttack: null, pendingCleave: null, pendingDualStrike: null, pendingCast: null, localIntent: get().localIntent, hovered: null });
     expect(vue().walkReach.size, 'témoin : la Marche est bien peinte').toBeGreaterThan(0);
     expect(vue().runReach.size, 'la zone de Course se peint sans avoir été demandée').toBe(0);
-    runAction('course', get);
+    get().jouerLOffre('course');
     expect(vue().runReach.size, 'la Course armée ne peint pas sa zone').toBeGreaterThan(0);
     runBindingById('intent-cancel', get);
     expect(vue().runReach.size, 'Échap laisse la zone de Course à l’écran').toBe(0);
@@ -52,7 +51,7 @@ describe('(d) l’annulation reste GRATUITE par construction', () => {
   it('armer puis Échap ne dépense NI Mouvement, NI Action, NI Avantage', () => {
     const { H } = setup();
     const avant = { mv: get().battle!.movementUsed ?? 0, acted: get().battle!.acted, adv: H.advantage };
-    runAction('course', get);
+    get().jouerLOffre('course');
     runBindingById('intent-cancel', get);
     expect(get().localIntent).toBeNull();
     const b = get().battle!;

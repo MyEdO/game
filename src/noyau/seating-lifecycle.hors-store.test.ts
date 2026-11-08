@@ -14,6 +14,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { engage } from './creation/engagement.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -35,32 +36,32 @@ function scèneDeTaverne(id: string): Scene {
   return s;
 }
 
-/** Assoit `party[0]` à la place « nord » par le geste RÉEL (`interactEntity`), jamais à la main. */
+/** Assoit `party[0]` à la place « nord » par le geste RÉEL (`interagirAvecLEntite`), jamais à la main. */
 function meneurAssis(party: Combatant[], sceneId = 'taverne'): void {
   banc.setState({ party, scene: null, mode: 'exploration', journal: [], battle: null, dialogue: null });
-  banc.getState().startScene(scèneDeTaverne(sceneId));
+  banc.getState().lancerLaScene(scèneDeTaverne(sceneId));
   banc.setState({ partyPos: { ...ABORD_NORD } });
-  banc.getState().interactEntity(PROP);
+  banc.getState().interagirAvecLEntite(PROP);
 }
 
 describe('composition du groupe — le corps qui sort quitte sa place', () => {
   it('party[0] REMPLACÉ : l’ancien meneur ne garde pas sa chaise', () => {
     meneurAssis([hero('h'), hero('b')]);
     expect(poseDe(1)).not.toBeNull();
-    banc.getState().partyReplaceHero('h', hero('neuf'));
+    banc.getState().remplacerLeHeros('h', engage('neuf'));
     expect(poseDe(1)).toBeNull(); // l'emplacement 1 est vide : ni l'ancien ni le remplaçant ne l'occupe
     expect(banc.getState().scene!.seatAssignments).toEqual({});
   });
 
   it('un remplacement À MÊME ID (édition en place) ne fait PAS lever le meneur', () => {
     meneurAssis([hero('h')]);
-    banc.getState().partyReplaceHero('h', { ...hero('h'), label: 'Retouché' } as Combatant);
+    banc.getState().remplacerLeHeros('h', engage('h', 'Retouché'));
     expect(poseDe(1)).toMatchObject({ slotId: 'place-1' });
   });
 
   it('héros RETIRÉ du groupe : sa place est rendue', () => {
     meneurAssis([hero('h'), hero('b')]);
-    banc.getState().partyRemoveHero('h');
+    banc.getState().renvoyerLeHeros('h');
     expect(poseDe(1)).toBeNull();
     expect(banc.getState().scene!.seatAssignments).toEqual({});
   });
@@ -68,7 +69,7 @@ describe('composition du groupe — le corps qui sort quitte sa place', () => {
   it('retirer un AUTRE héros ne touche pas la place du meneur, ni la référence de scène', () => {
     meneurAssis([hero('h'), hero('b')]);
     const avant = banc.getState().scene!;
-    banc.getState().partyRemoveHero('b');
+    banc.getState().renvoyerLeHeros('b');
     expect(poseDe(1)).toMatchObject({ slotId: 'place-1' });
     expect(banc.getState().scene).toBe(avant); // aucune écriture inutile
   });
@@ -81,15 +82,15 @@ describe('transition de scène — une scène quittée ne garde pas un héros ab
     b.id = 'scene-b';
     b.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     banc.setState({ party: [hero('h')], battle: null, journal: [] });
-    banc.getState().loadProject({ scenes: [a, b], entryId: 'scene-a', projet: null });
+    banc.getState().chargerLeProjet({ scenes: [a, b], entryId: 'scene-a', projet: null });
     banc.setState({ partyPos: { ...ABORD_NORD } });
-    banc.getState().interactEntity(PROP);
+    banc.getState().interagirAvecLEntite(PROP);
     expect(poseDe(1)).not.toBeNull();
 
-    banc.getState().transitionTo('scene-b');
+    banc.getState().quitterLaScene('scene-b');
     expect(banc.getState().scene!.id).toBe('scene-b');
     // Retour : la scène quittée a été capturée SANS le meneur assis.
-    banc.getState().transitionTo('scene-a');
+    banc.getState().quitterLaScene('scene-a');
     expect(poseDe(1)).toBeNull();
     expect(banc.getState().scene!.seatAssignments).toEqual({});
   });
@@ -99,7 +100,7 @@ describe('transition de scène — une scène quittée ne garde pas un héros ab
  * MORT / INDISPONIBILITÉ — un corps mis hors d'action ne tient plus sa chaise. La couture est UNIQUE
  * (`combatFlow.releaseSeatsOfDowned`) et branchée aux deux endroits où la mise hors de combat est
  * ACTÉE : `notifySlain` (tous les chemins de mort d'un combattant) et l'entretien hors combat de
- * `advanceTime` (agonie, Hémorragie, Poison, Flammes).
+ * `avancerLeTemps` (agonie, Hémorragie, Poison, Flammes).
  */
 describe('mort / indisponibilité d’un occupant', () => {
   it('la couture rend la place d’un héros MORT et celle d’un héros HORS D’ACTION', () => {
@@ -124,17 +125,17 @@ describe('mort / indisponibilité d’un occupant', () => {
     expect(banc.getState().scene).toBe(avant);
   });
 
-  it('l’AGONIE hors combat (advanceTime) déclenche la libération', () => {
+  it('l’AGONIE hors combat (avancerLeTemps) déclenche la libération', () => {
     meneurAssis([hero('h')]);
     banc.setState((s) => ({ party: s.party.map((x) => ({ ...x, dead: true })), battle: null }));
-    banc.getState().advanceTime(TIME_COST.combatRound);
+    banc.getState().avancerLeTemps(TIME_COST.combatRound);
     expect(poseDe(1)).toBeNull();
   });
 
   it('un PNJ attablé mis hors de combat libère sa place par `notifySlain`', () => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [h], battle: null, journal: [] });
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     const sc = banc.getState().scene!;
     const badaud: SceneEntity = { id: 'badaud', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 4 } };
     const entities: SceneEntity[] = [...sc.entities, { id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, ref: TABLE, facing: 'N', usable: { assise: true } }, badaud];
@@ -154,16 +155,16 @@ describe('ouverture de combat — le MENEUR assis se lève avec les autres enrô
   it('sa place est libérée dans l’écriture de pose du combat', () => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [h], battle: null });
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     const sc = banc.getState().scene!;
     // Table au NORD du groupe, cap `N` : son abord SUD est exactement la case du groupe.
     const table = { x: banc.getState().partyPos.x, y: banc.getState().partyPos.y - 1 };
     const entities: SceneEntity[] = [...sc.entities, { id: PROP, kind: 'prop', pos: table, ref: TABLE, facing: 'N', usable: { assise: true } }];
     banc.setState({ scene: { ...sc, entities } });
-    banc.getState().interactEntity(PROP);
+    banc.getState().interagirAvecLEntite(PROP);
     expect(poseDe(1)).toMatchObject({ slotId: 'place-3' });
 
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLeCombat('enc-mutants');
     expect(poseDe(1)).toBeNull();
   });
 });

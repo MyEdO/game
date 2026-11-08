@@ -29,7 +29,7 @@ import type { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 import { findStructureById, semencesDeScene } from '../../data';
 import type { Dir8 } from '../../geometry/dir8';
 import type { Pt } from './path';
-import { terrainHorsGrille, terrainWalkable } from './terrain';
+import { estAbsent, terrainHorsGrille, terrainWalkable } from './terrain';
 import { entityBlockedAt } from './sceneRules';
 import { gradeBetween, metricToLift, STEP_MAX_M } from './relief';
 import type { Grade } from '../../data/materials.types';
@@ -281,10 +281,10 @@ export interface Scene {
    *  tombent en nombres de cases jouables. Lue via `sceneMetresPerTile`.
    *  Elle décide de TOUT ce qui traduit entre mètres et cases : les bandes de portée (`rangeBandAt`,
    *  engine/combat.ts, #249) et l'avance des navires ; la géométrie des recettes de décor et l'ancre des
-   *  places assises, divisées par elle (`builders/propVolumes.ts`, `noyau/monde/seating.ts`, #1507) ; le rayon
+   *  places assises, divisées par elle (`noyau/monde/volume/propVolumes.ts`, `noyau/monde/seating.ts`, #1507) ; le rayon
    *  des sources de lumière (`rayonEnCases`, `noyau/monde/vision.ts`) ; et, du côté du RENDU, la cadence de la
-   *  cuisson (`gpToWorld`, `backends/webgl/worldTris.ts`), la pente des toits (`resolveMass`,
-   *  `builders/roofs.ts`) et la portée maximale d'un pignon (`gableSpanMaxTiles`, `noyau/sceneEdit.ts`). */
+   *  cuisson (`gpToWorld`, `noyau/monde/volume/worldTris.ts`), la pente des toits (`resolveMass`,
+   *  `noyau/monde/volume/toits.ts`) et la portée maximale d'un pignon (`gableSpanMaxTiles`, `noyau/sceneEdit.ts`). */
   metresPerTile?: number;
   /** Décor : 'interieur' (éclairé en permanence, l'horloge ne l'assombrit pas) vs 'exterieur'
    *  (jour/nuit = horloge). Absent = extérieur. */
@@ -302,7 +302,7 @@ export interface Scene {
   /** NORD de la carte — rotation HORAIRE (degrés, `[0,360[`) du nord réel par rapport au nord IMPLICITE
    *  du plan, qui est `−y` (la forme canonique de `WallSeg.side:'N'` ci-dessous). Absent = 0 = le nord
    *  implicite. Ne change AUCUNE géométrie ni aucun cap de jeu : seule la course du soleil s'y oriente
-   *  (rendu volumique, `gameIso/backends/webgl/sunJeu.ts`) — deux scènes voisines à la même heure y
+   *  (rendu volumique, `noyau/monde/soleil.ts`) — deux scènes voisines à la même heure y
    *  gagnent des ombres cohérentes entre elles. Posé par `setNorthDeg` (qui le ramène dans `[0,360[`). */
   northDeg?: number;
   /** OFFRE DE REPOS de la scène (bouton de Repos en exploration → modale de Repos) : lieux disponibles
@@ -324,7 +324,7 @@ export interface Scene {
    *  `null` = SILENCE forcé. Éditable dans l'éditeur (onglet Scène). */
   music?: { ambient?: string | null; combat?: string | null };
   /** MATIÈRE de chaque PARTIE de relief que le builder de sols émet (#1691) : falaise, rampe, dalle de
-   *  tablier, pilier. REQUISE — `gameIso/builders/floors.ts` la LIT, il ne choisit plus rien ; le schema
+   *  tablier, pilier. REQUISE — `noyau/monde/volume/floors.ts` la LIT, il ne choisit plus rien ; le schema
    *  refuse au parse une scène qui n'en porte pas, et `emptyScene` la pose à la création. La face d'un
    *  terrain à BLOC PLEIN (mur) tient sa matière de son TERRAIN (`terrains.json › matiere`), pas d'ici. */
   reliefDefaults: ReliefDefaults;
@@ -449,7 +449,7 @@ export function liftDe(scene: Scene, p: Pt): number {
 }
 
 /** Id de structure crénelée d'une case de chemin de ronde (couche `z`), ou `null`. Marqueur de RENDU PUR
- *  (le crest builder `crestGeometry` en dérive les merlons de PÉRIMÈTRE) — n'affecte NI passabilité NI LdV. PUR. */
+ *  (la crénelure `cretesDePerimetre` en dérive les merlons de PÉRIMÈTRE) — n'affecte NI passabilité NI LdV. PUR. */
 export function crenellatedAt(scene: Scene, x: number, y: number, z = 0): string | null {
   if (x < 0 || y < 0 || x >= scene.dimensions.w || y >= scene.dimensions.h) return null;
   const layer = scene.layers.find((l) => l.z === z) ?? scene.layers[0];
@@ -462,7 +462,7 @@ export function isCrenellated(scene: Scene, x: number, y: number, z = 0): boolea
 }
 
 /** Le GROUPE peut-il être posé en `pt`, case de SON étage ? Seule lecture de cette question : le pas du
- *  groupe (`moveParty`), l'atterrissage de l'Effet `fall` et la validation de ses réfs (`validateScene`). */
+ *  groupe (`deplacerLeGroupe`), l'atterrissage de l'Effet `fall` et la validation de ses réfs (`validateScene`). */
 export function groupePosable(scene: Scene, pt: { x: number; y: number; z?: number }): boolean {
   return isWalkable(scene, pt.x, pt.y, pt.z ?? 0);
 }
@@ -493,19 +493,20 @@ export function wallEnds(w: Pick<WallSeg, 'x' | 'y' | 'side'>): [Pt, Pt] {
   }
 }
 
-/** Le plateau d'une scène tel qu'un hôte le dessine : ses dimensions, les cases de sa couche de base que nul ne
- *  franchit à pied (`isWalkable`), ligne par ligne, et les arêtes de cette couche, chacune son milieu et son sens en
- *  coins de grille (`wallEnds`), si elle est une porte en jeu (`porteEnJeu`) et si elle laisse passer (`wallIsOpen`), et
- *  son échelle métrique (`sceneMetresPerTile`). */
-export function plateauDeLaScene(scene: Scene): { w: number; h: number; metresParCase: number; infranchissables: Pt[]; aretes: { milieu: Pt; sens: Pt; porte: boolean; ouverte: boolean }[] } {
+/** La hauteur (m) d'où le segment `seg` de `scene` se dresse : la plus basse des deux cases qu'il sépare qui portent un
+ *  sol sur sa couche ; sans sol de part et d'autre, le plus bas sol de sa couche ; sur une couche sans sol, sa case. Un
+ *  mur contre une volée reste debout sur le sol d'en bas ; le mur du pourtour d'un étage, sur son plancher, non sur le
+ *  vide d'à côté ; celui qui borde une trémie, au niveau de son étage. */
+export function piedDeLArete(scene: Scene, seg: Pick<WallSeg, 'x' | 'y' | 'side' | 'z'>): number {
+  const z = seg.z ?? 0;
+  const solsDe = (cases: readonly Pt[]) => cases
+    .filter(({ x, y }) => x >= 0 && y >= 0 && x < scene.dimensions.w && y < scene.dimensions.h && !estAbsent(tileAt(scene, x, y, z)))
+    .map(({ x, y }) => heightAt(scene, x, y, z));
+  const bords = solsDe(casesDeFace(seg, 'les-deux'));
+  if (bords.length) return Math.min(...bords);
   const { w, h } = scene.dimensions;
-  const infranchissables: Pt[] = [];
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (!isWalkable(scene, x, y)) infranchissables.push({ x, y });
-  const aretes = (scene.walls ?? []).filter((seg) => (seg.z ?? 0) === 0).map((seg) => {
-    const [a, b] = wallEnds(seg);
-    return { milieu: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, sens: { x: b.x - a.x, y: b.y - a.y }, porte: porteEnJeu(scene, seg), ouverte: wallIsOpen(scene, seg) };
-  });
-  return { w, h, metresParCase: sceneMetresPerTile(scene), infranchissables, aretes };
+  const couche = solsDe(Array.from({ length: w * h }, (_, i) => ({ x: i % w, y: Math.floor(i / w) })));
+  return couche.length ? Math.min(...couche) : heightAt(scene, seg.x, seg.y, z);
 }
 
 /** Lien vertical entre deux cases ADJACENTES (Chebyshev : cardinale OU diagonale, grille 8-connexe cf.

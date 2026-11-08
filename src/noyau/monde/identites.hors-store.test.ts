@@ -1,6 +1,6 @@
 /**
  * IDENTITÉ d'un état `heros` à l'affichage (EDO 02 l.112-127, #686) : le couple espèce × sexe du héros
- * se FIGE à sa désignation (EDO 02 l.114, `designerHerosChoisir`) ; `identitesResolues` y lit la ligne,
+ * se FIGE à sa désignation (EDO 02 l.114, choix `designationHeros.heros`) ; `identitesResolues` y lit la ligne,
  * `nommer` substitue ses repères dans une prose de paquet. Chemin réel : Effet `designerHeros`, puis le
  * choix du héros au noyau.
  */
@@ -12,6 +12,9 @@ import { narratifSchema, type NarratifBlock } from '../../data/schemas/defs-scen
 import { emptyScene } from './scene';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { runFlow } from '../combatEffects';
+import { newDraft, withSpecies } from '../creation/brouillon';
+import { fillDraftDefaults } from '../creation/defauts';
+import type { HerosEngage } from '../creation/engagement';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -39,6 +42,11 @@ const narratif = (): NarratifBlock => ({
 
 const heros = (id: string, speciesId: string, sex?: 'M' | 'F') =>
   ({ ...createHero({ speciesId, careerId: 'soldat', label: id, seed: 7, ...(sex ? { apparence: { sex } } : {}) }), id });
+/** L'engagement d'un brouillon complet de l'espèce `speciesId` et du sexe `sex`, sous l'id `id`. */
+const engageDe = (id: string, speciesId: string, sex: 'M' | 'F'): HerosEngage => {
+  const d = fillDraftDefaults(withSpecies(newDraft(7), speciesId), 'presentation');
+  return { brouillon: { ...d, label: id, apparence: { ...d.apparence, sex } }, id };
+};
 
 const get = () => banc.getState();
 const enVigueur = () => identitesResolues(get());
@@ -47,11 +55,11 @@ const enVigueur = () => identitesResolues(get());
 function designer(party: ReturnType<typeof heros>[], heroId?: string) {
   const s = emptyScene('scene-test', 4, 4); s.id = 'sc'; s.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
   banc.setState({ campaignNarratif: null, scene: null, etats: {}, identitesFigees: {}, pendingDesignationHeros: null, net: { ...get().net, mode: 'local' } });
-  get().loadProject({ scenes: [s], entryId: 'sc', narratif: narratif(), projet: null });
+  get().chargerLeProjet({ scenes: [s], entryId: 'sc', narratif: narratif(), projet: null });
   banc.setState({ party });
   if (heroId === undefined) return;
   runFlow(get, banc.setState, { kind: 'do', effect: { type: 'designerHeros', etat: 'sosie' } });
-  get().designerHerosChoisir(heroId);
+  get().fenetreChoisir('designationHeros', 'heros', heroId);
 }
 
 const LETTRE = '*Cher Herr Lieberung,*\n\nKastor Lieberung, dernier des Lieberung. Mon cher Herr Kuftsos.';
@@ -98,13 +106,13 @@ describe('identitesResolues + nommer — le paquet suit le héros désigné', ()
 
   it('le désigné REMPLACÉ dans le groupe : le nom reste celui figé à la désignation', () => {
     designer([heros('h1', 'humains-reiklander', 'M'), heros('h2', 'nains', 'F')], 'h2');
-    get().partyReplaceHero('h2', heros('h3', 'humains-reiklander', 'M'));
+    get().remplacerLeHeros('h2', engageDe('h3', 'humains-reiklander', 'M'));
     expect(nommer('Kastor Lieberung', enVigueur())).toBe('Kallar Linkassniz');
   });
 
   it('le désigné RÉÉDITÉ (même id, autre espèce et sexe) : le nom reste celui figé à la désignation', () => {
     designer([heros('h2', 'nains', 'F')], 'h2');
-    get().partyReplaceHero('h2', heros('h2', 'humains-reiklander', 'M'));
+    get().remplacerLeHeros('h2', engageDe('h2', 'humains-reiklander', 'M'));
     expect(nommer('Kastor Lieberung', enVigueur())).toBe('Kallar Linkassniz');
   });
 

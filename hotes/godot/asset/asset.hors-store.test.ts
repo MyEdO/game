@@ -15,10 +15,11 @@ import { depotDe, INDEX, listerImage } from '../../../scripts/guards/lib/gitPort
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 import { baseDeTest, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, LICENCE_DE_PRODUCTION, productionDeTest, deposerModeleDeTest, TEXTE_DE_LICENCE_DE_PRODUCTION } from './modeles.testkit.ts';
 import {
-  DOSSIER_DES_MODELES, modelesEpingles, ModeleIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
+  DOSSIER_DES_MODELES, modelesEpingles, AssetIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
   suivisHorsRelease, TAG, urlDAsset, type AssetAPublier, type Gh,
 } from './release.ts';
 import { fichiersDuModele, validerModele } from './modeles';
+import { epinglesAPublier, recupererEpingles } from './epingles.ts';
 
 /** Un GLB minimal : en-tête glTF 2 et chunk JSON portant `nodes` et `animations`. */
 function glb(noeuds: readonly string[], animations: readonly string[], options: { skinned?: readonly string[]; joints?: readonly string[] } = {}): Uint8Array {
@@ -455,7 +456,7 @@ describe('importerPersonnage', () => {
       return d;
     }, /^\[glb-illisible\] GLB illisible : 10 octets, en-tête incomplet$/],
     ['un manifeste sans empreinte', () => dossierDeProduction((m) => { delete (m as { model_sha256?: string }).model_sha256; }), /, manifest\.json déclare undefined$/],
-    ['un chemin absolu laissé', () => dossierDeProduction((m) => { m.manifeste = { ...m.manifeste, porteur: { ...m.manifeste.porteur, race: '/home/x/humain' } }; }), /^\[chemin-absolu\] manifeste\.porteur\.race : \/home\/x\/humain$/],
+    ['un chemin absolu laissé', () => dossierDeProduction((m) => { m.manifeste = { ...m.manifeste, porteur: { ...m.manifeste.porteur, espece: '/home/x/humain' } }; }), /^\[chemin-absolu\] manifeste\.porteur\.espece : \/home\/x\/humain$/],
     ['un manifest.json sans manifeste', () => dossierDeProduction((m) => { delete (m as { manifeste?: unknown }).manifeste; }), /^\[manifeste-absent\] manifest\.json : manifeste, le manifeste d’une base ou d’un élément attendu$/],
     ['une licence d’en-tête que le pack n’annonce pas', () => dossierDeProduction((m) => {
       m.components.corps.asset.explicit_header = ['# license AGPL3'];
@@ -469,7 +470,7 @@ describe('importerPersonnage', () => {
       writeFileSync(join(d, 'LICENSE-Pack.txt'), 'Pack\nLicense: MIT\n');
       return d;
     }, /^\[licence-inconnue\] LICENSE-Pack\.txt : « MIT »$/],
-    ['une base schéma 4 dont le texte de licence du pack manque', () => {
+    ['une base dont le texte de licence du pack manque', () => {
       const d = productionDeTest(temporaire(), baseDeTest(), GLB_DE_BASE);
       rmSync(join(d, LICENCE_DE_PRODUCTION));
       return d;
@@ -634,6 +635,62 @@ describe('modelesEpingles', () => {
   });
 });
 
+describe('recupererEpingles', () => {
+  const COULEUR = new Uint8Array(Buffer.from('couleur de l’herbe'));
+  const KIT = new Uint8Array(Buffer.from('le kit des arêtes'));
+  const urlDe = (octets: Uint8Array, extension: 'jpg' | 'glb') => urlDAsset(nomDAsset(sha256(octets), extension));
+  /** Un dossier épinglé dont la provenance porte `provenance`. */
+  const dossierEpingle = (provenance: unknown) => {
+    const d = temporaire();
+    writeFileSync(join(d, 'provenance.json'), JSON.stringify(provenance));
+    return d;
+  };
+  /** Le dossier des textures, qui épingle l'herbe, et celui du kit. */
+  const dossiers = () => [
+    dossierEpingle({ 'terrain--herbe.jpg': { sha256: sha256(COULEUR), licence: 'CC0-1.0' } }),
+    dossierEpingle({ 'kit.glb': { sha256: sha256(KIT), licence: 'CC0-1.0' } }),
+  ];
+  const release = () => serveur({ [urlDe(COULEUR, 'jpg')]: COULEUR, [urlDe(KIT, 'glb')]: KIT });
+  it('tire de la Release chaque fichier absent de chaque dossier, le dépose sous son nom ; le cache sert l’appel suivant', async () => {
+    const [textures, kit] = dossiers();
+    const cache = temporaire();
+    const { demandes, telecharger } = release();
+    await recupererEpingles({ dossiers: [textures, kit], cache, telecharger, journal: muet });
+    expect(readFileSync(join(textures, 'terrain--herbe.jpg'))).toEqual(Buffer.from(COULEUR));
+    expect(readFileSync(join(kit, 'kit.glb'))).toEqual(Buffer.from(KIT));
+    rmSync(join(kit, 'kit.glb'));
+    await recupererEpingles({ dossiers: [textures, kit], cache, telecharger, journal: muet });
+    expect(demandes).toEqual([urlDe(COULEUR, 'jpg'), urlDe(KIT, 'glb')]);
+  });
+  it('garde hors ligne un fichier du projet à la somme épinglée', async () => {
+    const [textures] = dossiers();
+    writeFileSync(join(textures, 'terrain--herbe.jpg'), COULEUR);
+    const { demandes, telecharger } = serveur({});
+    await recupererEpingles({ dossiers: [textures], cache: temporaire(), telecharger, journal: muet });
+    expect(demandes).toEqual([]);
+  });
+  it('remplace un fichier périmé du projet, et lève sur un fichier absent de la Release', async () => {
+    const [textures, kit] = dossiers();
+    writeFileSync(join(textures, 'terrain--herbe.jpg'), 'ancienne herbe');
+    await recupererEpingles({ dossiers: [textures], cache: temporaire(), telecharger: release().telecharger, journal: muet });
+    expect(readFileSync(join(textures, 'terrain--herbe.jpg'))).toEqual(Buffer.from(COULEUR));
+    await expect(recupererEpingles({ dossiers: [kit], cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).rejects.toThrow(AssetIntrouvable);
+  });
+  it.each<[string, unknown, string]>([
+    ['un fichier sans SHA-256', { 'kit.glb': { licence: 'CC0-1.0' } }, 'kit.glb.sha256 « undefined » n\'est pas un SHA-256'],
+    ['une extension que la Release ne porte pas', { 'kit.png': { sha256: sha256(KIT) } }, 'kit.png n\'a pas une extension de la Release'],
+  ])('refuse %s', (_, provenance, motif) => {
+    expect(() => epinglesAPublier([dossierEpingle(provenance)])).toThrow(motif);
+  });
+  it('nomme chaque fichier à verser par son empreinte', () => {
+    const [textures, kit] = dossiers();
+    expect(epinglesAPublier([textures, kit])).toEqual([
+      { chemin: join(textures, 'terrain--herbe.jpg'), nom: nomDAsset(sha256(COULEUR), 'jpg') },
+      { chemin: join(kit, 'kit.glb'), nom: nomDAsset(sha256(KIT), 'glb') },
+    ]);
+  });
+});
+
 describe('recupererModeles', () => {
   const url = urlDAsset(nomDAsset(EMPREINTE, 'glb'));
   it('tire de la Release le GLB_DE_BASE absent du cache, le vérifie et le dépose ; le cache sert l’appel suivant', async () => {
@@ -660,8 +717,8 @@ describe('recupererModeles', () => {
     await recupererModeles({ dossier, cache: temporaire(), telecharger, journal: muet });
     expect(demandes).toEqual([]);
   });
-  it('lève ModeleIntrouvable quand la Release répond 404 sur l’empreinte', async () => {
-    await expect(recupererModeles({ dossier: dossierDeModeles(), cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).rejects.toThrow(ModeleIntrouvable);
+  it('lève AssetIntrouvable quand la Release répond 404 sur l’empreinte', async () => {
+    await expect(recupererModeles({ dossier: dossierDeModeles(), cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).rejects.toThrow(AssetIntrouvable);
   });
   const sansCorps = async () => new ArrayBuffer(0);
   it.each<[string, Parameters<typeof recupererModeles>[0]['telecharger']]>([

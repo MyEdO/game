@@ -43,13 +43,13 @@ describe('Tour neuf — `etatDeTourNeuf`, source unique du début de Tour', () =
   it('`advanceTurn` : le suivant qui a perdu son Mouvement n’annule pas le déplacement du précédent', () => {
     const { A, B } = deuxHeros();
     const depart = { ...A.pos! };
-    g().battleClickTile({ x: depart.x + 2, y: depart.y }, { confirm: true });
+    g().cliquerLaCase({ x: depart.x + 2, y: depart.y }, undefined, { confirm: true });
     const arrivee = { ...g().battle!.combatants.find((c) => c.id === A.id)!.pos! };
     expect(arrivee).not.toEqual(depart);
     g().battle!.combatants.find((c) => c.id === B.id)!.loseNextMovement = true;
     advanceTurn(g, banc.setState);
     expect(g().battle!.moveSnapshot ?? null, 'l’instantané du Tour de A ne survit pas').toBeNull();
-    g().cancelMove();
+    g().annulerLeDeplacement();
     expect(g().battle!.combatants.find((c) => c.id === A.id)!.pos).toEqual(arrivee);
   });
 
@@ -57,7 +57,7 @@ describe('Tour neuf — `etatDeTourNeuf`, source unique du début de Tour', () =
     const { A, B } = deuxHeros('BA', 1);
     const de = (id: string) => g().battle!.combatants.find((c) => c.id === id)!;
     const depart = { ...de(A.id).pos! };
-    g().battleClickTile({ x: depart.x + 2, y: depart.y }, { confirm: true });
+    g().cliquerLaCase({ x: depart.x + 2, y: depart.y }, undefined, { confirm: true });
     const arrivee = { ...de(A.id).pos! };
     expect(arrivee).not.toEqual(depart);
     banc.setState({ battle: { ...g().battle!, selectedSpellId: 'fleche-magique' } });
@@ -73,7 +73,7 @@ describe('Tour neuf — `etatDeTourNeuf`, source unique du début de Tour', () =
     expect(b.movementUsed, 'B a perdu son Mouvement').toBeGreaterThan(0);
     expect(b.selectedSpellId).toBeNull();
     expect(b.moveSnapshot ?? null).toBeNull();
-    g().cancelMove();
+    g().annulerLeDeplacement();
     expect(de(A.id).pos).toEqual(arrivee);
   });
 
@@ -82,12 +82,12 @@ describe('Tour neuf — `etatDeTourNeuf`, source unique du début de Tour', () =
     advanceTurn(g, banc.setState);
     expect(g().pendingRoundStart, 'la pause').toBeTruthy();
     const pause = g().battle!;
-    // Les écrivains de l'état de Tour (`battleSelectAttack`, `battleClickTile` → aperçu/déplacement) exigent
+    // Les écrivains de l'état de Tour (`armerLAttaque`, `cliquerLaCase` → aperçu/déplacement) exigent
     // un combattant ACTIF : sous la pause (aucun), ils ne posent rien — la remise à neuf d'`ouvrirLeRound`
     // part donc d'un état déjà neuf.
-    g().battleSelectAttack('feinte');
-    g().battleClickTile({ x: A.pos!.x + 2, y: A.pos!.y });
-    g().battleClickTile({ x: A.pos!.x + 2, y: A.pos!.y }, { confirm: true });
+    g().armerLAttaque('feinte');
+    g().cliquerLaCase({ x: A.pos!.x + 2, y: A.pos!.y });
+    g().cliquerLaCase({ x: A.pos!.x + 2, y: A.pos!.y }, undefined, { confirm: true });
     expect(g().battle, 'aucun geste n’a réécrit la bataille sous la pause').toBe(pause);
     g().fenetreValider('roundStart');
     const b = g().battle!;

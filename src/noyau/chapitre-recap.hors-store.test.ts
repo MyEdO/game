@@ -36,7 +36,7 @@ const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
 beforeEach(() => {
-  banc.getState().startScene(testScene());
+  banc.getState().lancerLaScene(testScene());
   banc.setState({ party: [], campaignNarratif: null });
 });
 
@@ -122,7 +122,7 @@ describe('armement du récap — la CLÔTURE est une Condition relue après chaq
 });
 
 describe('cycle de vie de la borne (#717)', () => {
-  it('`loadProject` pose l’ouverture APRÈS `startScene` ; `startScene` seul efface le cadre', () => {
+  it('`chargerLeProjet` pose l’ouverture APRÈS `lancerLaScene` ; `lancerLaScene` seul efface le cadre', () => {
     const { scenes, narratif } = paquetDuJeu(diligenceCampaign);
     banc.setState({ party: [hero('h1', 10)] });
     expect(lancerCampagne(banc.getState, campagneDuJeu(diligenceCampaign), scenes[0].id)).toBeNull();
@@ -132,7 +132,7 @@ describe('cycle de vie de la borne (#717)', () => {
     expect(get().pendingOuverture).toBeNull();
     expect(get().chapitreDepuis).not.toBeNull();
 
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     expect(get().pendingOuverture).toBeNull();
     expect(get().chapitreDepuis).toBeNull();
   });
@@ -159,8 +159,10 @@ describe('la clôture se CONSOMME : « Terminer la séance » ferme le chapitre 
     expect(get().pendingChapterRecap?.chronique).toEqual([
       { text: 'Atteindre Altdorf', icon: 'map-tool/start-flag', tone: 'ok', paquet: true },
     ]);
+    expect(get().finDeSeance, 'le récap ouvre sa fin de séance, aucune case cochée').toEqual({ heros: {}, groupe: {} });
 
     banc.getState().fenetreValider('chapterRecap');
+    expect(get().finDeSeance).toBeNull();
     expect(get().clotureConsommee).toBe(true);
 
     // La Condition de clôture est TOUJOURS vraie (un drapeau ne se retire pas) : c'est le fait de
@@ -178,7 +180,7 @@ describe('la clôture se CONSOMME : « Terminer la séance » ferme le chapitre 
     banc.getState().fenetreValider('chapterRecap');
     expect(get().clotureConsommee).toBe(true);
 
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     expect(get().clotureConsommee).toBe(false);
   });
 });

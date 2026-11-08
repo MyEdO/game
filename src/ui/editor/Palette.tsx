@@ -17,15 +17,14 @@ import { Icon } from '../Icon';
 import { OptionChooser } from '../OptionChooser';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
 import { terrainIds, terrainLabel } from '../../noyau/monde/terrain';
-import { propDeclaredFoot } from '../../noyau/monde/footprint';
-import { terrainDef } from '../../gameIso/catalog/terrain';
+import { terrainDef } from '../../noyau/monde/volume/matieres';
 import { decorsDuCatalogue } from '../../gameIso/catalog/decor';
-import { premierOffert, profilsStandard, refEstVolumique, structures } from '../../data';
-import { structureAppearance } from '../../gameIso/catalog/structures';
-import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structures';
+import { premierOffert, profilsStandard } from '../../data';
 import { GatedAction } from '../GatedAction';
 import type { Pt } from '../../noyau/sceneEdit';
-import type { Tool, WallPaint, ZoneVariant } from '../../noyau/sceneEditLecture';
+import { HAUTEURS, PINCEAUX } from '../../noyau/edition/session';
+import { t } from '../../i18n';
+import { fichesDePersonnage, structuresCrenelables, structuresDeLArete, type Tool, type WallPaint, type ZoneVariant } from '../../noyau/sceneEditLecture';
 import { planStairFlight } from '../../noyau/stairFlight';
 import { siegeEngines } from '../../data';
 import { LayerField, layerLabel } from './LayerField';
@@ -57,15 +56,6 @@ const WALL_PAINTS: { paint: WallPaint; icon: ReactNode; label: string }[] = [
   { paint: 'door', icon: <Icon id="map-tool/door" />, label: 'Porte' },
   { paint: 'diagBack', icon: '◣', label: 'Diagonale ＼' },
   { paint: 'diagFwd', icon: '◢', label: 'Diagonale ／' },
-];
-
-/** Presets de HAUTEUR en MÈTRES (échelle RAW, cf. `relief.ts`). « Plat » remet la surface à 0. */
-const HEIGHT_PRESETS: { metres: number; label: string }[] = [
-  { metres: 0, label: 'Plat' },
-  { metres: 1, label: 'Estrade' },
-  { metres: 2, label: 'Surface' },
-  { metres: 4, label: 'Haute' },
-  { metres: -2, label: 'Fosse' },
 ];
 
 /** Ce qui reste à faire APRÈS le glissé, par variante de zone — dit où la suite s'édite. */
@@ -153,19 +143,15 @@ export function Palette({
   const [lastTerrain, setLastTerrain] = useState<Terrain>(DEFAULT_TERRAIN);
   const [lastProp, setLastProp] = useState(() => premierOffert(decorsDuCatalogue(), 'Décor'));
   const [lastEngine, setLastEngine] = useState(() => premierOffert(siegeEngines(), 'Engin de siège'));
-  // FICHES d'un personnage (#1882) : le bestiaire de l'éditeur, les profils standard (`LDB 77 l.7`,
-  // désignés par `species.json`) en tête.
   const standard = new Set(profilsStandard());
-  const fiches = [...enemyCreatures.filter((c) => standard.has(c.id)), ...enemyCreatures.filter((c) => !standard.has(c.id))];
+  const fiches = fichesDePersonnage();
   const [lastFiche, setLastFiche] = useState<string | undefined>(undefined);
   // Matériau MÉMORISÉ par sous-mode (Cloison/Porte) — l'outil porte son matériau comme un pinceau porte
   // sa couleur : la palette ne montre que ce qui est POSABLE sur une arête pour ce sous-mode (#830).
-  const wallEdgeStructures = structures.filter(isWallEdgeStructure);
-  const doorEdgeStructures = structures.filter(isDoorEdgeStructure);
   const [lastWallStructure, setLastWallStructure] = useState<string | undefined>(undefined);
-  // Structures posables au Crénelage : celles qui portent un PARAPET (`structureAppearance`) — une
+  // Structures posables au Crénelage : celles qui portent un PARAPET (`structuresCrenelables`) — une
   // structure sans parapet n'a rien à dessiner sur le pourtour (#841 FU-H).
-  const crenelStructures = structures.filter((s) => isWallEdgeStructure(s) && !!structureAppearance(s.id).parapet);
+  const crenelStructures = structuresCrenelables();
   const [lastCrenelStructure, setLastCrenelStructure] = useState<string | undefined>(crenelStructures[0]?.id);
   const [lastDoorStructure, setLastDoorStructure] = useState<string | undefined>(undefined);
   // Étages disponibles pour la VOLÉE : la première couche au-dessus de celle qu'on édite est la cible
@@ -293,7 +279,7 @@ export function Palette({
             <OptionChooser
               layout="seg"
               options={[
-                ...[1, 3, 5].map((n) => ({
+                ...PINCEAUX.map((n) => ({
                   key: String(n),
                   label: `${n}×${n}`,
                   selected: brush === n && !terrainRect,
@@ -349,7 +335,7 @@ export function Palette({
                 <div className="mini-title">Matériau du mur</div>
                 {searchBox('matériau…')}
                 <div className="pal-list">
-                  {filterByLabel(tool.paint === 'door' ? doorEdgeStructures : wallEdgeStructures, (s) => s.label, search).map((s) => (
+                  {filterByLabel(structuresDeLArete(tool.paint), (s) => s.label, search).map((s) => (
                     <button
                       key={s.id}
                       className={`pal-item${tool.structure === s.id ? ' active' : ''}`}
@@ -373,14 +359,14 @@ export function Palette({
             <div className="mini-title">Pinceau</div>
             <OptionChooser
               layout="seg"
-              options={[1, 3, 5].map((n) => ({ key: String(n), label: `${n}×${n}`, selected: brush === n, onSelect: () => setBrush(n) }))}
+              options={PINCEAUX.map((n) => ({ key: String(n), label: `${n}×${n}`, selected: brush === n, onSelect: () => setBrush(n) }))}
             />
             <div className="mini-title">Hauteur (mètres)</div>
             <OptionChooser
               layout="seg"
-              options={HEIGHT_PRESETS.map((p) => ({
-                key: p.label,
-                label: <>{p.label} <span className="chip">{p.metres > 0 ? '+' : ''}{p.metres} m</span></>,
+              options={HAUTEURS.map((p) => ({
+                key: p.cle,
+                label: <>{t(`ecran.editeur.hauteur.${p.cle}`)} <span className="chip">{p.metres > 0 ? '+' : ''}{p.metres} m</span></>,
                 selected: tool.metres === p.metres,
                 onSelect: () => setTool({ mode: 'height', metres: p.metres }),
               }))}
@@ -423,7 +409,7 @@ export function Palette({
             <div className="mini-title">Pinceau</div>
             <OptionChooser
               layout="seg"
-              options={[1, 3, 5].map((n) => ({ key: String(n), label: `${n}×${n}`, selected: brush === n, onSelect: () => setBrush(n) }))}
+              options={PINCEAUX.map((n) => ({ key: String(n), label: `${n}×${n}`, selected: brush === n, onSelect: () => setBrush(n) }))}
             />
             <div className="mini-title">Structure du parapet</div>
             <OptionChooser
@@ -475,17 +461,11 @@ export function Palette({
             <div className="pal-list">
               {filterByLabel(decorsDuCatalogue(), (p) => p.label, search).map((p) => {
                 // L'empreinte que la PALETTE annonce est celle que la scène posera : dérivée du corps
-                // pour un décor à recette (#1509), déclarée pour un billboard — au cap d'IDENTITÉ, le
-                // seul que la palette connaît (l'instance choisira le sien), et à l'échelle de la
-                // scène ÉDITÉE : la même recette ne couvre pas les mêmes cases à 2 et à 4 m/case.
-                const volumique = refEstVolumique(p.id);
-                const effective = volumique
-                  ? empreinteDuProp(p, CAP_IDENTITE_PROP, sceneMetresPerTile(scene))
-                  : propDeclaredFoot(p.id);
-                // Un décor à recette n'a plus de tri-état à montrer (son corps décide toujours) : sa
-                // chip ne dit quelque chose que s'il dépasse UNE case. Pour un billboard, la présence
-                // même du `foot` est l'information — elle reste annoncée telle quelle.
-                const empreinte = effective && (!volumique || effective.w > 1 || effective.h > 1) ? effective : undefined;
+                // (#1509) au cap d'IDENTITÉ, le seul que la palette connaît (l'instance choisira le
+                // sien), et à l'échelle de la scène ÉDITÉE : la même recette ne couvre pas les mêmes
+                // cases à 2 et à 4 m/case. Sa chip ne dit quelque chose que s'il dépasse UNE case.
+                const effective = empreinteDuProp(p, CAP_IDENTITE_PROP, sceneMetresPerTile(scene));
+                const empreinte = effective.w > 1 || effective.h > 1 ? effective : undefined;
                 return (
                 <button
                   key={p.id}

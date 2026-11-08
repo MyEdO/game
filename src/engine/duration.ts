@@ -11,7 +11,7 @@
  *  - `adventure`  : « pour votre prochaine aventure » (LDB 23 l.209/218/234 : Entraînement au Combat,
  *                   Observer une cible, Réputation) — posée à la clôture d'un interlude (`fenetreValider('interlude')`),
  *                   purgée à l'OUVERTURE de l'interlude SUIVANT (`purgeAdventureEffects`, appelée par
- *                   `startInterlude`) : la borne « fin d'aventure » n'a pas d'échéance CHIFFRABLE
+ *                   `ouvrirLInterlude`) : la borne « fin d'aventure » n'a pas d'échéance CHIFFRABLE
  *                   (Rounds/horloge) à la pose, contrairement à `clock`.
  *
  * Les deux échelles sont MUTUELLEMENT EXCLUSIVES par construction (un sort a une durée en Rounds OU en

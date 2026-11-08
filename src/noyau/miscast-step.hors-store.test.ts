@@ -52,7 +52,7 @@ function joueEnRetenant(max = 30): { des: number[]; lignes: string[] } {
     const p = banc.getState().pendingCascade!;
     const cur = p.participants[p.cursor];
     if (!cur) break;
-    if (cur.kind === 'miscastTable' && !cur.table?.result) banc.getState().jetRoll('cascadeTirage', cur.id);
+    if (cur.kind === 'miscastTable' && !cur.table?.result) banc.getState().jetLancer('cascadeTirage', cur.id);
     const jouee = banc.getState().pendingCascade?.participants[p.cursor];
     if (jouee?.kind === 'miscastTable' && jouee.table?.result && !vus.has(jouee.id)) {
       vus.add(jouee.id);
@@ -73,8 +73,8 @@ function mageSolo(seed = 3): Combatant {
 
 const steps = (): CascadeStep[] => (banc.getState().pendingCascade?.participants ?? []) as CascadeStep[];
 const stepAt = (i: number) => steps()[i];
-const poser = (id: string, roll: number) => banc.getState().jetSetForcedRoll('cascadeTirage', roll, id);
-const suivant = () => banc.getState().jetConfirm('cascade');
+const poser = (id: string, roll: number) => banc.getState().jetImposerLeResultat('cascadeTirage', roll, id);
+const suivant = () => banc.getState().jetValider('cascade');
 
 /** RNG scripté (dés imposés dans l'ordre) — même utilitaire que `noyau/mutation-step.hors-store.test.ts`. */
 function scripted(values: number[]) {
@@ -310,7 +310,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
   });
 
   it('SONDE E bis — « Tout lancer » sur la rafale : le mod vivant tient HORS modale, la garde de ligne reste muette', () => {
-    // Le pilote AUTOMATIQUE (`cascadeResolveAll`) doit composer la déclaration comme la modale :
+    // Le pilote AUTOMATIQUE (`jetLancer('cascade')`) doit composer la déclaration comme la modale :
     // sinon la 2ᵉ Colère se résoudrait au total périmé, sans personne pour le voir.
     const hero = mageSolo();
     hero.sinPoints = 2;
@@ -318,7 +318,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     applyMiscast(banc.getState, banc.setState, hero, 'colere');
     applyMiscast(banc.getState, banc.setState, hero, 'colere');
     const avant = steps().filter((s) => s.kind === 'miscastTable').map((s) => s.id);
-    expect(() => banc.getState().cascadeResolveAll(), 'la garde de ligne a levé sur un chemin légitime').not.toThrow();
+    expect(() => banc.getState().jetLancer('cascade'), 'la garde de ligne a levé sur un chemin légitime').not.toThrow();
     // « Tout lancer » laisse la séquence en BILAN (curseur en fin) : les étapes tirées s'y relisent.
     const tirees = avant.map((id) => steps().find((s) => s.id === id)!);
     expect(tirees.every(Boolean), 'une étape de la rafale a disparu du bilan').toBe(true);

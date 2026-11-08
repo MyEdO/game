@@ -189,8 +189,8 @@ export function pursuedMovement(h: Combatant, partyRole: 'fleeing' | 'pursuing')
  *  comparaison de la manche et `stepReady` ne l'attend jamais. */
 function pursuitRow(get: Get, h: Combatant, skill: string, label: string): BatchParticipant {
   const row: BatchParticipant = {
-    id: h.id, label, skillId: skill, difficulty: PURSUIT_DIFFICULTY, result: null, interactive: true,
-    ...rollStep({ actor: h, test: { skill }, difficulty: PURSUIT_DIFFICULTY }),
+    id: h.id, label, skill: { id: skill }, difficulty: PURSUIT_DIFFICULTY, result: null, interactive: true,
+    ...rollStep({ actor: h, test: { skill: { id: skill } }, difficulty: PURSUIT_DIFFICULTY }),
   };
   if (!cadenceAuto() && jetSurfaced(get(), h)) return row;
   return { ...row, interactive: false, result: rollBatchParticipant(row, battleRng()) };
@@ -220,12 +220,12 @@ function resolvePursuitFoe(f: PursuitFoeRef, index: number, skillId: string): Pu
   const id = f.id ?? `foe-${index + 1}`;
   const ref = f.ref;
   const fiche = spawnEnemy('id' in ref ? { ref: ref.id } : { statblock: ref.custom }, id, { x: 0, y: 0 });
-  return { id, label: fiche.label, movement: effectiveMovement(fiche), skill: testValue(fiche, skillId) };
+  return { id, label: fiche.label, movement: effectiveMovement(fiche), skill: testValue(fiche, { skill: { id: skillId } }) };
 }
 
 /** Démarre une poursuite terrestre (Effet `startPursuit`) : instancie le socle puis ouvre la 1ʳᵉ manche. */
 export function startGroundPursuit(get: Get, set: Set, spec: PursuitSpec): void {
-  if (!spec.foes.length || !runners(get).length) { get().log(t('pursuit.none')); return; }
+  if (!spec.foes.length || !runners(get).length) { get().ecrireAuJournal(t('pursuit.none')); return; }
   const escapeAt = spec.escapeAt ?? PURSUIT_ESCAPE_DISTANCE;
   // Distance de départ bornée dans la course (1 .. escapeAt−1) — hors bornes = déjà rattrapé/semé.
   const distance = Math.max(1, Math.min(escapeAt - 1, Math.round(spec.distance)));
@@ -237,7 +237,7 @@ export function startGroundPursuit(get: Get, set: Set, spec: PursuitSpec): void 
     policy: { ...PURSUIT_POLICY_DEFAUT, ...(spec.policy ?? {}) },
     manche: 0, phase: 'course', retires: [],
   };
-  get().log(t('pursuit.open', {
+  get().ecrireAuJournal(t('pursuit.open', {
     camp: t(partyRole === 'fleeing' ? 'pursuit.openFleeing' : 'pursuit.openPursuing'),
     distance, evasion: escapeAt,
   }));
@@ -501,21 +501,21 @@ function pursuitSettle(get: Get, _set: Set, seq: PursuitSequence, outcome: strin
   const p = seq.payload;
   if (outcome === 'escaped') {
     // LDB 15 l.94
-    get().log(t(p.partyRole === 'fleeing' ? 'pursuit.escaped' : 'pursuit.preyEscaped'));
+    get().ecrireAuJournal(t(p.partyRole === 'fleeing' ? 'pursuit.escaped' : 'pursuit.preyEscaped'));
     return;
   }
-  if (outcome === SEQUENCE_BORNE) { get().log(t('pursuit.exhausted')); return; }
+  if (outcome === SEQUENCE_BORNE) { get().ecrireAuJournal(t('pursuit.exhausted')); return; }
   if (outcome === 'abandon') {
-    if (p.partyRole === 'pursuing') { get().log(t('pursuit.giveUpChase')); return; }
+    if (p.partyRole === 'pursuing') { get().ecrireAuJournal(t('pursuit.giveUpChase')); return; }
     // Fuite abandonnée : combat si une rencontre est fournie.
-    get().log(t('pursuit.giveUpFlight'));
-    if (p.encounter) get().startCombat(p.encounter);
+    get().ecrireAuJournal(t('pursuit.giveUpFlight'));
+    if (p.encounter) get().lancerLeCombat(p.encounter);
     return;
   }
   // 'caught' (Distance ≤ 0, l.94) : rattrapage → combat si une rencontre est fournie, sinon récit.
   // LDB 15 l.94
-  get().log(t(p.partyRole === 'fleeing' ? 'pursuit.caught' : 'pursuit.caughtPrey'));
-  if (p.encounter) get().startCombat(p.encounter);
+  get().ecrireAuJournal(t(p.partyRole === 'fleeing' ? 'pursuit.caught' : 'pursuit.caughtPrey'));
+  if (p.encounter) get().lancerLeCombat(p.encounter);
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

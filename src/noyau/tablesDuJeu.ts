@@ -21,7 +21,6 @@ import { TABLES as triggeredTest } from './combat/triggeredTest';
 import { TABLES as riverVoyageFlow } from './riverVoyageFlow';
 import { TABLES as travelFlow } from './travelFlow';
 import { TABLES as restFlow } from './restFlow';
-import { TABLES as embrigadementFlow } from './embrigadementFlow';
 import { TABLES as seaVoyageFlow } from './seaVoyageFlow';
 import { TABLES as combatManeuvers } from './combatManeuvers';
 import { TABLES as encounterPsychFlow } from './encounterPsychFlow';
@@ -75,7 +74,7 @@ function uniques<T extends CombatHook | HitModifier>(table: string, liste: reado
 
 function assembler() {
   const appliers = disjointes('appliers', authorPerils.appliers, merchantFlow.appliers, travelPostes.appliers, triggeredTest.appliers,
-    riverVoyageFlow.appliers, travelFlow.appliers, restFlow.appliers, embrigadementFlow.appliers, seaVoyageFlow.appliers,
+    riverVoyageFlow.appliers, travelFlow.appliers, restFlow.appliers, seaVoyageFlow.appliers,
     combatManeuvers.appliers, encounterPsychFlow.appliers, tavernFlow.appliers, pursuitFlow.appliers, combatEffects.appliers,
     corruptionFlow.appliers, shipwreck.appliers, roundHooks.appliers, turnHooks.appliers, combatFlow.appliers,
     seaActivities.appliers, activityWorldRolls.appliers, interludeFlow.appliers, portFlow.appliers, landMarketFlow.appliers,
@@ -85,10 +84,11 @@ function assembler() {
   const generateursDEtal = disjointes('generateursDEtal', portFlow.generateursDEtal, landMarketFlow.generateursDEtal) satisfies TablesDuJeu['generateursDEtal'];
   return {
     appliers,
+    annonces: disjointes('annonces', travelPostes.annonces, interludeFlow.annonces),
     plis: disjointes('plis', combatFlow.plis),
     reglesDeSucces: disjointes('reglesDeSucces', seaVoyageFlow.reglesDeSucces),
     issuesDeTestEtendu: disjointes('issuesDeTestEtendu', seaActivities.issuesDeTestEtendu),
-    tablesTirables: disjointes('tablesTirables', travelFlow.tablesTirables, combatFlow.tablesTirables, interludeFlow.tablesTirables),
+    tablesTirables: disjointes('tablesTirables', travelPostes.tablesTirables, combatFlow.tablesTirables, interludeFlow.tablesTirables),
     famillesTirables: [...travelFlow.famillesTirables, ...seaVoyageFlow.famillesTirables, ...tavernFlow.famillesTirables,
       ...corruptionFlow.famillesTirables, ...combatFlow.famillesTirables],
     crochetsDeCombat: uniques('crochetsDeCombat', [...roundHooks.crochetsDeCombat, ...turnHooks.crochetsDeCombat]),

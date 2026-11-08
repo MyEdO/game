@@ -27,11 +27,11 @@ describe('choix d’un Sort lancé hors combat', () => {
     it(`${sort.id} : le lanceur tranche, chaque étape une seule fois`, () => {
       const [w, s] = pregenParty(PREGEN.sorcier, PREGEN.soldat);
       const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s] } });
-      banc.getState().oocCastSpell(w.id, sort.id, s.id);
-      banc.getState().jetRoll('cast');
+      banc.getState().incanterLeSort(w.id, sort.id, s.id);
+      banc.getState().jetLancer('cast');
       const pc = banc.getState().pendingCast!;
       banc.setState({ pendingCast: { ...pc, result: { ...pc.result!, cast: true, sl: 10, isCritical: false, isFumble: false } } });
-      banc.getState().jetConfirm('cast');
+      banc.getState().jetValider('cast');
       const vues = draineEtapes(banc.getState, 30);
       expect(banc.getState().pendingCascade, 'la cascade se clôt').toBeNull();
       const choix = vues.filter((v) => v.kind === 'triggeredChoice');

@@ -9,6 +9,7 @@ import { makeRNG, d100 } from '../engine/dice';
 import { resolveCritique, critTableRows } from '../engine/critical';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { critiqueTable, critTableKeyFor } from '../data/criticals';
+import { deDeLaTable, setDeDeTable } from '../data/overrides';
 import { findTableEntry } from '../engine/tables';
 import { createHero } from '../engine/character';
 import { setDesFixes, desFixes } from '../engine/fixedDie';
@@ -42,11 +43,11 @@ const LOCS: readonly HitLocation[] = LOCALISATIONS_DE_COUP;
 
 /** Combat de fixture : un héros (victime, sans PA — aucune offre de Déviation) et un ennemi attaquant. */
 function startFight(seed = 7) {
-  banc.getState().seedRng(seed);
+  banc.getState().ensemencerLeTirage(seed);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
   banc.setState({ party: [hero] });
-  banc.getState().startScene(structuredClone(testScene()));
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(structuredClone(testScene()));
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
@@ -104,6 +105,19 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     expect(resolveCritique('ldb', H, 'corps', battleRng(), { overkill: petit, forcedRoll: 7 }).roll).toBe(1);
   });
 
+  it('déclaration : le dé de l’étape est le `die` du tableau de la Localisation, lu VIVANT (LDB 18 l.53 ; #1667)', () => {
+    const { H } = startFight();
+    expect(critSeverityDecl(H, 'corps', 0).spec).toEqual({ n: 1, sides: 100 });
+    const imprime = deDeLaTable('criticalsCorps')!;
+    setDeDeTable('criticalsCorps', '2d10');
+    try {
+      expect(critSeverityDecl(H, 'corps', 0).spec, 'le dé suit la donnée').toEqual({ n: 2, sides: 10 });
+      expect(tableStepDef(CRIT_TABLE_IDS.corps)!.die, 'la table tirable suit le dé écrit').toBe(20);
+    } finally {
+      setDeDeTable('criticalsCorps', imprime);
+    }
+  });
+
   it('SONDE DIFFÉRENTIELLE (option ÉTEINTE) : même ligne ET même flux RNG que le tirage moteur d’avant', () => {
     const { H } = startFight();
     for (let seed = 1; seed <= 25; seed++) {
@@ -135,7 +149,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     expect(stepInteraction(etapes[0])).toBe('table');
     // Le dé tombe DANS la fenêtre (kit = ce que la fenêtre offre) : la ligne tirée par l'étape est
     // celle que le moteur applique, et la révélation riche la RAPPORTE.
-    banc.getState().jetRoll('cascadeTirage', etapes[0].id);
+    banc.getState().jetLancer('cascadeTirage', etapes[0].id);
     const ligne = banc.getState().pendingCascade!.participants[0].table!.result!.id;
     draineCascade(banc.getState);
     const victime = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
@@ -168,11 +182,11 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     applyAttackResult(banc.getState, banc.setState, E, H, hache, critHit('corps'));
     const step = banc.getState().pendingCascade!.participants[0];
     expect(step.kind).toBe('deviation');
-    banc.getState().jetSetForcedRoll('cascadeTirage', entry.min, step.id);
+    banc.getState().jetImposerLeResultat('cascadeTirage', entry.min, step.id);
     const posee = banc.getState().pendingCascade!.participants[0];
     expect(posee.table!.result).toMatchObject({ roll: entry.min, die: entry.min, id: entry.id });
     expect(posee.fixed, 'la provenance « dé fixé » vit sur l’étape').toBe(true);
-    banc.getState().jetConfirm('cascade'); // COMMIT : le Critique de CETTE ligne est résolu et appliqué
+    banc.getState().jetValider('cascade'); // COMMIT : le Critique de CETTE ligne est résolu et appliqué
     const victime = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(lastCrit(victime), 'la ligne posée n’est pas celle appliquée').toBe(entry.id);
     expect(victime.criticalWounds).toBe(1);
@@ -200,7 +214,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
       const brut = rng.int.bind(rng);
       let n = 0;
       (rng as { int: typeof brut }).int = (a: number, b: number) => { n++; return brut(a, b); };
-      try { banc.getState().jetSetForcedRoll('cascadeTirage', nat, step.id); } finally { (rng as { int: typeof brut }).int = brut; }
+      try { banc.getState().jetImposerLeResultat('cascadeTirage', nat, step.id); } finally { (rng as { int: typeof brut }).int = brut; }
       const apres = banc.getState().pendingCascade!.participants[0];
       return { crit: apres.deviation!.crit, ligne: apres.table!.result!.id, des: n };
     };
@@ -296,7 +310,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
    * UNE INSTANCE = UN ID (#1426) : deux Critiques sur la MÊME cible à la MÊME localisation dans la
    * MÊME séquence (Balayage, deux frappes du Maniement de deux armes) portaient un id d'étape
    * IDENTIQUE — les seams keyés par id (`liveMerge` de `commitStep`, la pose du dé
-   * `jetSetForcedRoll('cascadeTirage')`) ne les distinguaient plus. L'index d'append les sépare.
+   * `jetImposerLeResultat('cascadeTirage')`) ne les distinguaient plus. L'index d'append les sépare.
    */
   it('deux Critiques MÊME cible / MÊME localisation dans une séquence = DEUX ids d’étape', () => {
     const { H, E } = startFight();
@@ -309,7 +323,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     // Et la pose n'agit que sur l'étape SOUS LE CURSEUR : le dé de la seconde ne suit pas celui de la
     // première (avec un id partagé, elles répondaient au même geste).
     const entry = critiqueTable('ldb', 'corps').find((e) => !e.lethal && !e.amputation)!;
-    banc.getState().jetSetForcedRoll('cascadeTirage', entry.min, etapes[0].id);
+    banc.getState().jetImposerLeResultat('cascadeTirage', entry.min, etapes[0].id);
     const apres = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(apres[0].table!.result!.id).toBe(entry.id);
     expect(apres[1].table!.result, 'la SECONDE étape a été résolue par le geste de la première').toBeUndefined();
@@ -326,8 +340,8 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     setDesFixes(true);
     applyAttackResult(banc.getState, banc.setState, E, H, hache, critHit('corps'));
     const step = banc.getState().pendingCascade!.participants[0];
-    banc.getState().jetSetForcedRoll('cascadeTirage', 76, step.id); // exploré…
-    banc.getState().jetSetForcedRoll('cascadeTirage', 20, step.id); // …puis ABANDONNÉ
+    banc.getState().jetImposerLeResultat('cascadeTirage', 76, step.id); // exploré…
+    banc.getState().jetImposerLeResultat('cascadeTirage', 20, step.id); // …puis ABANDONNÉ
     const courante = banc.getState().pendingCascade!.participants[0];
     expect(Object.keys(courante.foldMemo ?? {}), 'sonde : le mémo doit bien porter les DEUX poses')
       .toEqual(expect.arrayContaining(['76', '20']));
@@ -337,7 +351,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     expect(brut(save.data), 'le secret de pose part dans la SAUVEGARDE').not.toMatch(/foldMemo/);
     expect(brut(instantaneDeLaCoop(banc.getState())), 'le secret de pose part dans le SNAPSHOT diffusé').not.toMatch(/foldMemo/);
     // …et l'état lui-même s'en défait au COMMIT (le mémo ne sert que tant que l'étape est courante).
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const committee = banc.getState().pendingCascade!.participants[0];
     expect(committee.committed).toBe(true);
     expect(committee.foldMemo, 'mémo survivant au commit').toBeUndefined();

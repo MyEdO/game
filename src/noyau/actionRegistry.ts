@@ -7,13 +7,22 @@
  *                        divergence a déjà coûté un bug — Détermination, commit `0e14119b`).
  *  - `ACTION_CANDIDATES` — les SÉLECTEURS impurs (listes de cibles/objets), enveloppes NOMMÉES des
  *                        fonctions existantes : aucune n'est réécrite ici.
- *  - `ACTION_RUN`      — les DISPATCHERS : une entrée par méthode `battle*` du store.
+ *  - `OFFRES_PAR_RUN`  — les DISPATCHERS : un corps, joué dans l'état qui fait foi, ou un relais, joué chez
+ *                        l'émetteur (`lieuDeLOffre`).
  *
- * `runAction(id, get, ctx)` est la porte unique : le clavier, la console et les pastilles y passent,
- * plus jamais par des closures anonymes publiées positionnellement.
+ * `jouerLOffre(id, ctx)` est le verbe unique : le clavier, la console, les pastilles et les hôtes y passent, au verdict
+ * de l'offre (`refusDeLOffre`), plus jamais par des closures anonymes publiées positionnellement.
  */
 import type { Combatant } from '../engine/types';
 import type { BattleState, Jeu } from './etat';
+import type { Get, Set } from './flowTypes';
+import type { FabriqueDuNoyau, JeuDuNoyau } from './machinerieDuNoyau';
+import type { AttackKind } from '../engine/creatureAttacks';
+import type {
+  IdDAttaque, IdDeCombattant, IdDeCompetence, IdDeCondition, IdDeManoeuvre, IdDEntiteDeScene, IdDeSort, IdDePanoplie, IdDeTestDEquipage, IdDObjet,
+  IdDObjetRamassable,
+} from './designations';
+import { refuserGesteDuSiege } from './refusVisible';
 import { entityPickables } from './combatEffects';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { currentTargetingMode } from './targetingModes';
@@ -22,8 +31,7 @@ import { isEngaged } from '../engine/engagement';
 import { desengagementSansAction, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { isFrenzied, isFrenzyCapable } from '../engine/psychology';
 import { isVehicle, estNavire } from '../engine/coque';
-import { compatibleAmmo, activeLoadout, isUnarmed } from '../engine/items';
-import { aRecharger } from '../engine/weaponLoad';
+import { compatibleAmmo, activeLoadout } from '../engine/items';
 import { canPushback } from '../engine/qualities/dispatch';
 import { hasBattement, hasDistraire } from '../engine/combatFeatures/dispatch';
 import { actorHasSkill } from '../engine/skills';
@@ -34,14 +42,14 @@ import { wastesAction, endTurnArmed } from './endTurnGuard';
 import { healableTargets, modesDOuverture } from '../engine/healing';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { canAidTeam } from './monde/commandTeam';
-import { controlsCombatant } from './netOwnership';
+import { controlsCombatant, decidingSeat, unSiegeAgit } from './netOwnership';
 import { surfaceTientLaMain } from './modalArbiter';
 import { dispellableSpellsOn } from '../engine/dispel';
 import { combatAdvantageSkills } from '../engine/skillCombatApps';
 import { activeCombatant, placingZoneOf, STANCE_BLOCK } from './combatFlow';
 import { canMove, mountablesNear } from './mount';
 import { refusActionDepensee, refusCoque, refusDeCharge, refusDeCourse, refusHorsDEtatDAgir, refusMouvementEntame, refusPriereImposee, refusSansMouvement } from './refusDuTour';
-import { servablePostes, crewPosteOf, shipOfCrew, posteARecharger } from './monde/shipPostes';
+import { servablePostes, crewPosteOf, shipOfCrew, rechargeDuTour } from './monde/shipPostes';
 import { chanteurDuNavire, quartChante } from './shipCrew';
 import { type ShipPoste } from '../engine/types';
 import { pushSlot } from './siegePush';
@@ -67,11 +75,11 @@ export interface ActionCtx {
   /** L'ENTRÉE évaluée, posée par `actionGate` à partir de l'entrée résolue : un gate y lit ce que
    *  l'action DÉCLARE (l'État qu'elle traite) au lieu de nommer un id. */
   def?: ActionDef;
-  /** PARAMÈTRES DE LA CASE (`ActionRunCtx` — la Compétence visée, l'arme, l'objet) : une entrée du
+  /** PARAMÈTRES DE LA CASE (`ContexteDOffre` — la Compétence visée, l'arme, l'objet) : une entrée du
    *  registre peut être rendue N fois, une par candidat, et le verdict d'offre porte alors sur CE
    *  candidat (« au plafond de CETTE méthode d'Avantage »). Les gates de règle pure les ignorent ; le
-   *  dispatcher reçoit exactement les mêmes (`runAction`), d'où une seule et même mesure. */
-  args?: ActionRunCtx;
+   *   *  dispatcher reçoit exactement les mêmes (`jouerLOffre`), d'où une seule et même mesure. */
+  args?: ContexteDOffre;
   /** L'heure de jeu (`Jeu.gameTime`) : le quart de veille (`chanteur-disponible`) s'y lit. Chaque surface la
    *  prend à SON état. */
   gameTime: number;
@@ -172,8 +180,8 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
     et(fantassin, ACTION_GATES['action-libre-hors-frenesie'])(ctx),
   'mouvement-intact': mouvementIntact,
   'mouvement-restant-fantassin': (ctx) => et(fantassin, ACTION_GATES['mouvement-restant'])(ctx),
-  /** MIROIR de la garde de `cancelMove` (`combatSlice.ts:976-980`) : le segment restaurable est le
-   *  SNAPSHOT, pas le compteur — `battleStandUp` écrit `movementUsed` sans en poser un, et le
+  /** MIROIR de la garde de `annulerLeDeplacement` (`combatSlice.ts:976-980`) : le segment restaurable est le
+   *  SNAPSHOT, pas le compteur — `seRelever` écrit `movementUsed` sans en poser un, et le
    *  dispatcher n'aurait rien à défaire. Le contrôle du siège n'entre pas ici (il est au dispatcher
    *  et aux contextes de surface : `live` pour la console, `cur` pour la touche). */
   'deplacement-annulable': ({ battle }) => {
@@ -184,9 +192,9 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
   'charge-possible': ({ active, battle }) => verdict(refusDeCharge(battle, active)),
   'mouvement-restant': ({ active, battle }) => (canMove(battle, active) ? ok : no(t('agate.noMovementLeft'))),
   desengagement: desengagementGate,
-  /** Course — verdict `refusDeCourse` (`refusDuTour.ts`, LDB 15 l.41), que lisent aussi `battleRun` et `computeRunReach`. */
+  /** Course — verdict `refusDeCourse` (`refusDuTour.ts`, LDB 15 l.41), que lisent aussi `ouvrirLaCourse` et `computeRunReach`. */
   'course-possible': ({ active, battle }) => verdict(refusDeCourse(battle, active)),
-  /** Verdict `refusDeDetermination` (LDB 17 l.59-61, LDB 20 l.188), que lisent aussi `spendResolveCondition` et `DeterminationButton`. */
+  /** Verdict `refusDeDetermination` (LDB 17 l.59-61, LDB 20 l.188), que lisent aussi `depenserLaDetermination` et `DeterminationButton`. */
   'determination-en-reserve': ({ active, args }) => verdict(refusDeDetermination(active, args?.conditionId) ?? null),
   'attaque-libre-frenesie': ({ active }) =>
     hasFreeWeaponAttack(active) ? ok : no(t('agate.noFreeWeaponAttack')),
@@ -201,7 +209,7 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
   /** PERTINENCE d'un remède : le porteur a l'État que l'entrée déclare. */
   [GATE_ETAT_PORTE]: (ctx) => (instanceDeLEtat(ctx) ? ok : no(t('agate.stateNotCarried'))),
   /** REMÈDE ATTEIGNABLE : le porteur n'est pas hors d'état d'agir (`isOutOfAction`, lu aussi par
-   *  `battleStandUp`), et l'instance de l'État n'est pas VERROUILLÉE — verrou de type (`etats.json`),
+   *  `seRelever`), et l'instance de l'État n'est pas VERROUILLÉE — verrou de type (`etats.json`),
    *  d'instance, ou acte de soin attendu. Ce verrou (`raisonVerrouEtat`) est l'invariant que les deux
    *  dispatchers de remède partagent avec cette case. `LDB 18 l.15`. */
   'remede-atteignable': (ctx) => {
@@ -211,14 +219,14 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
     const verrou = raisonVerrouEtat(inst, ctx.active);
     return verrou ? no(verrou) : ok;
   },
-  /** L'État se retire-t-il par un TEST ? Prérequis du dispatcher `battleRecoverState` (`EtatData.recover`),
+  /** L'État se retire-t-il par un TEST ? Prérequis du dispatcher `seRemettreDeLEtat` (`EtatData.recover`),
    *  pas une propriété du remède : un remède-GESTE ne le porte pas. */
   'etat-recuperable-par-test': (ctx) =>
     findConditionById(etatDeclare(ctx.def))?.recover ? ok : no(t('agate.stateNoRecoverTest')),
   /** Cumuler l'Avantage (LDB 09 l.305-308) : chaque méthode a SON plafond (`skillAdvantageCap`), et
    *  au plafond le Test ne peut plus rien rendre. Le refus est DIT (« Avantage au plafond (N) ») et la
    *  case reste dessinée : la faire disparaître privait le joueur de la raison. La méthode visée vient
-   *  des ARGS de la case — les mêmes que le dispatcher `battleGainAdvantage` reçoit. */
+   *  des ARGS de la case — les mêmes que le dispatcher `gagnerLAvantage` reçoit. */
   'avantage-sous-plafond': (ctx) =>
     et(ACTION_GATES['action-libre-hors-frenesie'], ({ active, args }) => {
       const methode = combatAdvantageSkills(active).find((s) => s.skillId === args?.skillId);
@@ -227,7 +235,7 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
         : ok;
     })(ctx),
   /** Postures de tir (spec §1a G5) — PRÉDICATS UNIQUES de `combatFlow`, partagés avec le store
-   *  (`battleToggleStance`), le versement dans le pending et la fenêtre de jet. Le refus est celui
+   *  (`basculerLaPosture`), le versement dans le pending et la fenêtre de jet. Le refus est celui
    *  du prédicat : la raison appartient à `STANCE_BLOCK`, jamais au gate. */
   'tir-immobile-armable': ({ active, battle }) => {
     const refus = STANCE_BLOCK.heldGround(battle, active);
@@ -238,17 +246,17 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
     return refus ? no(refus) : ok;
   },
   /** Battement (`LDB 10 l.103` · `AA 13 l.11-17` · `LDB 13 l.114`) : la case porte le prédicat du
-   *  dispatcher (`battementFoes`, `combatManeuvers.ts`) — offerte si et seulement si `battleBattement`
+   *  dispatcher (`battementFoes`, `combatManeuvers.ts`) — offerte si et seulement si `faireUnBattement`
    *  a un adversaire à traiter, sinon refusée AVEC sa raison. */
   'battement-cible-eligible': ({ active, battle }) =>
     battementFoes(active, battle).length > 0 ? ok : no(t('agate.noBattementTarget')),
   /** Distraire (`LDB 10 l.364` · `AA 13 l.46-51`) : même prédicat que le dispatcher (`distraireFoes`) —
-   *  offerte si et seulement si `battleDistraire` a un adversaire à traiter. */
+   *  offerte si et seulement si `tenterDeDistraire` a un adversaire à traiter. */
   'distraire-cible-eligible': ({ active, battle }) =>
     distraireFoes(active, battle).length > 0 ? ok : no(t('agate.noDistraireTarget')),
   /** Focalisation (`LDB 46` — fiche `regles/focalisation-etendue`) : le SORT visé vient des ARGS de
    *  l'alvéole (le geste secondaire de la case d'un sort), et le verdict porte donc sur CE sort.
-   *  MÊMES prédicats que le dispatcher `battleFocusSpell` (`isArcaneSpell`, `castBlockedBy`) et que
+   *  MÊMES prédicats que le dispatcher `focaliserLeSort` (`isArcaneSpell`, `castBlockedBy`) et que
    *  `resolveFocus` (`focusSkillFor`) : le refus se DIT au point du geste au lieu de partir au
    *  journal. */
   'sort-focalisable': ({ active, args }) => {
@@ -273,25 +281,17 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
     (pushSlot(active, battle.combatants).undercrew ? no(t('agate.pushUndercrew')) : ok),
   'navire-action': ({ battle }) => (battle.acted ? no(t('agate.vesselActionSpent')) : ok),
   // ── PRÉALABLES DE DISPATCHER : le prédicat même que lit le dispatcher, pour que l'offre refuse ce qu'il refuse.
-  /** L'arme de la case (`args.weaponUid`), ou à défaut l'une des armes du porteur, a un cycle de charge à faire
-   *  (`aRecharger`, lu par `battleReload`). */
-  'arme-a-recharger': ({ active, args }) => {
-    const armes = args?.weaponUid ? active.weapons.filter((w) => w.uid === args.weaponUid) : active.weapons;
-    return armes.some((w) => aRecharger(active, w)) ? ok : no(t('agate.nothingToReload'));
-  },
+  /** L'arme de la case (`args.weaponUid`), ou à défaut une arme du Tour, est à recharger par un porteur à l'Action
+   *  libre (`rechargeDuTour`, lu par `rechargerLArme`). */
+  'arme-a-recharger': ({ active, battle, args }) =>
+    (rechargeDuTour(active, battle, args?.weaponUid) ? ok : no(t('agate.nothingToReload'))),
   /** Chant de marin (MDG 09 l.32-40) : le quart n'a pas eu sa chanson (`quartChante`) et un chanteur est libre
-   *  (`chanteurDuNavire`) — les prédicats de `battleSingShanty`. */
+   *  (`chanteurDuNavire`) — les prédicats de `chanterLaChanson`. */
   'chanteur-disponible': ({ active, battle, gameTime }) => {
     if (quartChante(active, gameTime)) return no(t('agate.shantyQuartSung'));
     return chanteurDuNavire(active, battle) ? ok : no(t('agate.noShantySinger'));
   },
-  /** La pièce de la case (`args.posteUid`) est déchargée et son chef libre ce Round (`posteARecharger`, lu par
-   *  `battleShipReload`). LDB 62 l.335. */
-  'piece-dechargee': ({ active, battle, args }) => {
-    const poste = active.postes?.find((p) => p.item.uid === args?.posteUid);
-    return poste && posteARecharger(active, poste, battle) ? ok : no(t('agate.noPosteToReload'));
-  },
-  /** Une pièce du navire est prête à faire feu (`postesPretsAFaireFeu`, lu par `battleShipBattery` via `batteryBlock`). */
+  /** Une pièce du navire est prête à faire feu (`postesPretsAFaireFeu`, lu par `ouvrirLaBordee` via `batteryBlock`). */
   'pieces-au-navire': ({ active }) => (postesPretsAFaireFeu(active).length > 0 ? ok : no(t('agate.noLoadedPostes'))),
   // ── PERTINENCE (#2911) : l'entrée a-t-elle lieu d'être offerte à CE porteur (`GATES_DE_PERTINENCE`) ?
   fantassin,
@@ -308,7 +308,7 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
   'equipe-a-aider': ({ active, battle }) => (canAidTeam(active, battle.combatants) ? ok : no(t('agate.noTeamToAid'))),
   monte: ({ active }) => (active.mountId ? ok : no(t('agate.notMounted'))),
   'poste-servi': ({ active }) => (active.mannedPoste ? ok : no(t('agate.noPosteManned'))),
-  /** La barre : le BARREUR la tient (`shipOfCrew`), et la COQUE elle-même (`battleShipManeuver` accepte l'un ou l'autre). */
+  /** La barre : le BARREUR la tient (`shipOfCrew`), et la COQUE elle-même (`manoeuvrerLeNavire` accepte l'un ou l'autre). */
   'a-la-barre': ({ active, battle }) =>
     (estNavire(active) || shipOfCrew(battle.combatants, active.id) ? ok : no(t('agate.notAtHelm'))),
   navire: ({ active }) => (estNavire(active) ? ok : no(t('agate.notAVessel'))),
@@ -330,12 +330,12 @@ function armesADistance(active: Combatant) {
 }
 
 /** Le set au poing ouvre-t-il un corps à corps ? Arme de mêlée DU set, ou set MAINS NUES (`LDB 15 l.35-37`,
- *  `LDB 13 l.90`). Sans set (statbloc de créature), l'arsenal réel, Mains nues écartées (`isUnarmed`). */
+ *  `LDB 13 l.90`). Sans set (statbloc de créature), l'arsenal réel, Mains nues comprises (`LDB 14 l.155`). */
 function setDeMelee(active: Combatant): boolean {
   const set = activeLoadout(active);
   const armes = set
     ? [set.main, set.off].flatMap((uid) => active.weapons.filter((w) => !!uid && w.uid === uid))
-    : active.weapons.filter((w) => !isUnarmed(w));
+    : active.weapons;
   return armes.length === 0 || armes.some((w) => w.type === 'melee');
 }
 
@@ -396,7 +396,7 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
     hasWaterContainer(active) ? waterSprayCandidates(active, battle.combatants.filter((c) => c.kind === active.kind)) : [],
   /** Dissiper est un Test de Langue (Magick) (`LDB 46 l.158-162`) : sans elle, rien n'est dissipable par ce porteur. */
   'sorts-dissipables': ({ active, battle }) =>
-    actorHasSkill(active, 'langue', 'magick') ? dispellableSpellsOn(battle.combatants) : [],
+    actorHasSkill(active, { id: 'langue', spec: 'magick' }) ? dispellableSpellsOn(battle.combatants) : [],
   /** Méthodes d'Avantage POSSÉDÉES (dédupliquées par Compétence : un Savoir groupé = une case). Le
    *  PLAFOND ne filtre plus ici : il est le verdict d'offre `avantage-sous-plafond`, qui laisse la case
    *  dessinée fermée avec sa raison — une seule source, jamais un filtre muet doublé d'un gate. */
@@ -412,7 +412,7 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
   'etats-retirables': ({ active }) => active.conditions,
   consommables: ({ active }) => (active.items ?? []).filter(isConsumable),
   'armes-a-distance': ({ active }) => armesADistance(active),
-  /** Les armes à distance qui ont un cycle de charge (`reload`) : c'est l'arme que `battleReload` recharge. */
+  /** Les armes à distance qui ont un cycle de charge (`reload`) : c'est l'arme que `rechargerLArme` recharge. */
   'armes-a-recharge': ({ active }) => armesADistance(active).filter((w) => (w.reload ?? 0) > 0),
   /** Les munitions compatibles de l'arme visée, ou de chaque arme à distance quand aucune n'est visée. */
   'munitions-compatibles': ({ active, weaponUid }) => {
@@ -426,7 +426,7 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
     const flags = state.flags ?? {};
     return (state.scene?.entities ?? [])
       // La portée se lit à la SOURCE UNIQUE (`exploreNav.aPorteeDe`, étage compris) : ce que l'alvéole
-      // propose de ramasser est exactement ce que `battlePickup` acceptera.
+      // propose de ramasser est exactement ce que `ramasserLObjet` acceptera.
       .filter((e) => e.kind === 'prop' && aPorteeDe(active.pos!, e))
       // L'ÉPUISEMENT n'est plus une garde séparée : `entityPickables` ne rend que les feuilles des
       // actions ENCORE jouables (`actionsAuthorees` filtre les drapeaux), donc un décor épuisé sort
@@ -441,14 +441,14 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
  *  d'une coque, deux objets d'un tas). */
 export interface ActionPorteur {
   porteurId: string;
-  args: ActionRunCtx;
+  args: ContexteDOffre;
   /** Nom du CANDIDAT (pas de l'action), quand ce n'est pas une entité du champ : ce qui le distingue des autres
    *  candidats de la même entrée. */
   label?: string;
 }
 
 /** Les PORTEURS, par id de SÉLECTEUR (`candidates`) : une enveloppe NOMMÉE par sélecteur, qui traduit
- *  SON candidat en identité + arguments de dispatch. Même patron qu'`ACTION_RUN` (une entrée = une
+ *  SON candidat en identité + arguments de dispatch. Même patron qu'`OFFRES_PAR_RUN` (une entrée = une
  *  forme, jamais un aiguillage par type de candidat écrit dans une surface). C'est ce qui remplace la
  *  DEVINETTE d'identité (`o?.id ?? o?.uid`) : le registre la DÉCLARE, les deux surfaces qui offrent
  *  des candidats (pastilles du champ, gestes secondaires de la console) la LISENT. Toute action dont
@@ -479,12 +479,12 @@ export const ACTION_PORTEURS: Record<string, (candidat: unknown) => ActionPorteu
   /** Une ARME à distance : son `uid` porte le candidat (l'alvéole de recharge en est paramétrée). */
   'armes-a-distance': porteurDArme,
   'armes-a-recharge': porteurDArme,
-  /** Une ATTAQUE de trait : son id porte le candidat, et c'est lui que `battleSelectAttack` arme. */
+  /** Une ATTAQUE de trait : son id porte le candidat, et c'est lui que `armerLAttaque` arme. */
   'attaques-de-trait': (c) => {
     const a = c as AttackOption;
     return { porteurId: a.id, args: { attackId: a.id }, label: a.label };
   },
-  /** Une attaque de ZONE : `battleManeuverArea` la résout par son `kind`. */
+  /** Une attaque de ZONE : `lancerLAttaqueDeZone` la résout par son `kind`. */
   'attaques-de-zone': (c) => {
     const a = c as AttackOption;
     return { porteurId: a.id, args: { attackKind: a.kind }, label: a.label };
@@ -498,7 +498,7 @@ function porteurDArme(c: unknown): ActionPorteur {
 
 /** L'offre de `def` sur `args` est-elle armée ? Son intention est celle que vise le siège (`localIntent`), ou le mode
  *  qu'elle arme (`armed`) est celui du combat, sur le sort élu (`selectedSpellId`) quand elle en désigne un. */
-export function offreArmee(etat: Pick<Jeu, 'battle' | 'localIntent'>, def: ActionDef, args: ActionRunCtx = {}): boolean {
+export function offreArmee(etat: Pick<Jeu, 'battle' | 'localIntent'>, def: ActionDef, args: ContexteDOffre = {}): boolean {
   const b = etat.battle;
   if (def.intent && etat.localIntent?.actionId === def.id) return true;
   return !!def.armed && b?.action === def.armed && (!args.spellId || b.selectedSpellId === args.spellId);
@@ -510,151 +510,243 @@ export function actionCostLabel(def: ActionDef): string | null {
   return def.coutAction === 'aucun' ? null : t(`acost.${def.coutAction}`);
 }
 
-/** Paramètres d'exécution — l'action nomme SA cible ; jamais une closure qui la capture. */
-export interface ActionRunCtx {
-  targetId?: string;
-  weaponUid?: string;
-  ammoUid?: string;
-  spellId?: string;
-  casterId?: string;
-  skillId?: string;
-  itemUid?: string;
-  loadoutId?: string;
-  conditionId?: string;
-  maneuverId?: string;
-  attackId?: string;
-  attackKind?: string;
-  entityId?: string;
-  pickKey?: string;
+/** Le CONTEXTE d'une offre — elle nomme SA cible ; jamais une closure qui la capture. */
+export interface ContexteDOffre {
+  targetId?: IdDeCombattant;
+  weaponUid?: IdDObjet;
+  ammoUid?: IdDObjet;
+  spellId?: IdDeSort;
+  /** Le PORTEUR du Sort à dissiper (`dissiperLeSort`). */
+  casterId?: IdDeCombattant;
+  skillId?: IdDeCompetence;
+  itemUid?: IdDObjet;
+  loadoutId?: IdDePanoplie;
+  conditionId?: IdDeCondition;
+  maneuverId?: IdDeManoeuvre;
+  attackId?: IdDAttaque;
+  attackKind?: AttackKind;
+  entityId?: IdDEntiteDeScene;
+  pickKey?: IdDObjetRamassable;
   /** COQUE visée (`hullId`) — bordée, chant, rechargement de pièce, service d'un poste. */
-  shipId?: string;
-  /** MEMBRE D'ÉQUIPAGE qui agit sur la coque (`battleShipManeuver(crewId)`, `noyau/combatSlice.ts`) : c'est le
+  shipId?: IdDeCombattant;
+  /** MEMBRE D'ÉQUIPAGE qui agit sur la coque (`manoeuvrerLeNavire(crewId)`, `noyau/combatSlice.ts`) : c'est le
    *  barreur, pas le navire. Deux champs parce que ce sont deux entités — un seul mentait. */
-  crewId?: string;
-  posteUid?: string;
-  crewTestId?: string;
-  /** Bascule d'un mode ARMÉ : `true` = désarmer (re-clic sur la même case). */
-  toggleOff?: boolean;
+  crewId?: IdDeCombattant;
+  posteUid?: IdDObjet;
+  crewTestId?: IdDeTestDEquipage;
 }
 
-type Dispatcher = (get: () => Jeu, ctx: ActionRunCtx, def: ActionDef) => void;
+type Dispatcher = (get: Get<JeuDuNoyau>, ctx: ContexteDOffre, def: ActionDef) => void;
 
-/** Les DISPATCHERS, par id (`run` de `actions.json`) : une entrée = une méthode du store. */
-export const ACTION_RUN: Record<string, Dispatcher> = {
-  battleSelectAction: (get, ctx, def) =>
-    get().battleSelectAction(
-      (ctx.toggleOff ? null : (def.armed ?? null)) as Parameters<Jeu['battleSelectAction']>[0],
-    ),
-  battleSelectAttack: (get, ctx) => get().battleSelectAttack(ctx.attackId ?? 'arme'),
-  battleManeuverArea: (get, ctx) =>
-    get().battleManeuverArea(ctx.attackKind as Parameters<Jeu['battleManeuverArea']>[0]),
-  battleAim: (get) => get().battleAim(),
-  battleReload: (get, ctx) => get().battleReload(ctx.weaponUid),
-  battleSelectAmmo: (get, ctx) => { if (ctx.ammoUid) get().battleSelectAmmo(ctx.ammoUid, ctx.weaponUid); },
-  battleTogglePushback: (get) => get().battleTogglePushback(),
-  battleToggleStance: (get, _ctx, def) => { if (def.stance) get().battleToggleStance(def.stance); },
-  battleWater: (get, ctx) => get().battleWater(ctx.targetId),
-  battleUseItem: (get, ctx) => { if (ctx.itemUid) get().battleUseItem(ctx.itemUid); },
-  battleDefendTotal: (get) => get().battleDefendTotal(),
-  battleDisengage: (get) => get().battleDisengage(),
-  /** L'alvéole d'un sort ARME le mode d'incantation sur CE sort (`armed`) : le re-clic le désarme,
+/** OÙ se joue une offre (#3371) : `hote`, dans l'état qui fait foi, chez l'hôte en coop (un CORPS) ; `emetteur`, chez
+ *  qui fait le geste, le verbe qu'il appelle voyageant avec sa propre route (un RELAIS, ou une pure intention). */
+export type LieuDeLOffre = 'hote' | 'emetteur';
+
+interface EntreeDOffre {
+  lieu: LieuDeLOffre;
+  jouer: Dispatcher;
+}
+
+/** Un CORPS : il se joue dans l'état qui fait foi. */
+const corps = (jouer: Dispatcher): EntreeDOffre => ({ lieu: 'hote', jouer });
+/** Un RELAIS : il se joue chez l'émetteur, qui lit SON état, et appelle un verbe qui voyage avec sa propre route. */
+const relais = (jouer: Dispatcher): EntreeDOffre => ({ lieu: 'emetteur', jouer });
+
+/** Le combattant actif du combat, ou `undefined`. */
+const actif = (get: Get<JeuDuNoyau>): Combatant | undefined => {
+  const b = get().battle;
+  return b ? activeCombatant(b) : undefined;
+};
+
+/** Les entrées des offres, par id de dispatcher (`run` de `actions.json`) : une entrée = un corps ou un relais. */
+export const OFFRES_PAR_RUN: Readonly<Record<string, EntreeDOffre>> = {
+  armerLeMode: corps((get, _ctx, def) => get().armerLeMode((def.armed ?? null) as BattleActionMode | null)),
+  armerLAttaque: corps((get, ctx) => get().armerLAttaque(ctx.attackId ?? 'arme')),
+  lancerLAttaqueDeZone: corps((get, ctx) => { if (ctx.attackKind) get().lancerLAttaqueDeZone(ctx.attackKind); }),
+  prendreLaVisee: corps((get) => get().prendreLaVisee()),
+  rechargerLArme: corps((get, ctx) => get().rechargerLArme(ctx.weaponUid)),
+  approvisionnerLArme: corps((get, ctx) => { if (ctx.ammoUid) get().approvisionnerLArme(ctx.ammoUid, ctx.weaponUid); }),
+  basculerLaRepousse: corps((get) => get().basculerLaRepousse()),
+  basculerLaPosture: corps((get, _ctx, def) => { if (def.stance) get().basculerLaPosture(def.stance); }),
+  aspergerDEau: corps((get, ctx) => get().aspergerDEau(ctx.targetId)),
+  utiliserLObjet: corps((get, ctx) => { const a = actif(get); if (a && ctx.itemUid) get().utiliserLObjet(a.id, ctx.itemUid); }),
+  prendreLaDefensive: corps((get) => get().prendreLaDefensive()),
+  rompreLEngagement: corps((get) => get().rompreLEngagement()),
+  /** L'alvéole d'un sort ARME le mode d'incantation sur CE sort (`armed`) : le re-clic le désarme (`desarmerLeMode`),
    *  comme toute case à mode armé — annulation gratuite, rien n'est engagé avant le clic-cible. */
-  battleSelectSpell: (get, ctx) => {
-    if (ctx.toggleOff) { get().battleSelectAction(null); return; }
-    if (ctx.spellId) get().battleSelectSpell(ctx.spellId);
-  },
-  battleFocusSpell: (get, ctx) => { if (ctx.spellId) get().battleFocusSpell(ctx.spellId); },
-  battleDispelSpell: (get, ctx) => { if (ctx.spellId && ctx.casterId) get().battleDispelSpell(ctx.spellId, ctx.casterId); },
-  battleGainAdvantage: (get, ctx) => { if (ctx.skillId) get().battleGainAdvantage(ctx.skillId); },
+  incanterLeSort: corps((get, ctx) => { const a = actif(get); if (a && ctx.spellId) get().incanterLeSort(a.id, ctx.spellId); }),
+  focaliserLeSort: corps((get, ctx) => { const a = actif(get); if (a && ctx.spellId) get().focaliserLeSort(a.id, ctx.spellId); }),
+  dissiperLeSort: corps((get, ctx) => { const a = actif(get); if (a && ctx.spellId && ctx.casterId) get().dissiperLeSort(a.id, ctx.spellId, ctx.casterId); }),
+  gagnerLAvantage: corps((get, ctx) => { if (ctx.skillId) get().gagnerLAvantage(ctx.skillId); }),
   // L'État traité est celui que l'ENTRÉE déclare : aucun paramètre de case ne le porte.
-  battleRecoverState: (get, _ctx, def) => get().battleRecoverState(etatDeclare(def)),
-  battleStandUp: (get) => get().battleStandUp(),
-  battleBattement: (get, ctx) => get().battleBattement(ctx.targetId),
-  battleDistraire: (get, ctx) => get().battleDistraire(ctx.targetId),
-  battleFrenzy: (get) => get().battleFrenzy(),
-  battleSelfManeuver: (get, ctx) => { if (ctx.maneuverId) get().battleSelfManeuver(ctx.maneuverId); },
-  battleResolvePsychImmune: (get) => get().battleResolvePsychImmune(),
-  battleResolveIgnoreCrit: (get) => get().battleResolveIgnoreCrit(),
-  battleSpendResolve: (get, ctx) => { if (ctx.conditionId) get().battleSpendResolve(ctx.conditionId); },
-  battleMount: (get, ctx) => get().battleMount(ctx.targetId),
-  battleDismount: (get) => get().battleDismount(),
-  battleManPoste: (get, ctx) =>
-    get().battleManPoste(ctx.shipId && ctx.posteUid ? { hullId: ctx.shipId, posteUid: ctx.posteUid } : undefined),
-  battleLeavePoste: (get) => get().battleLeavePoste(),
-  battlePushEngine: (get) => get().battlePushEngine(),
-  battleAidTeam: (get) => get().battleAidTeam(),
-  battlePickup: (get, ctx) => { if (ctx.entityId && ctx.pickKey) get().battlePickup(ctx.entityId, ctx.pickKey); },
-  battleShipManeuver: (get, ctx) => { if (ctx.crewId) get().battleShipManeuver(ctx.crewId); },
-  battleCrewTest: (get, ctx) => { if (ctx.shipId && ctx.crewTestId) get().battleCrewTest(ctx.shipId, ctx.crewTestId); },
-  battleSingShanty: (get, ctx) => { if (ctx.shipId) get().battleSingShanty(ctx.shipId); },
-  battleShipReload: (get, ctx) => { if (ctx.shipId && ctx.posteUid) get().battleShipReload(ctx.shipId, ctx.posteUid); },
-  battleSwitchLoadout: (get, ctx) => { if (ctx.loadoutId) get().battleSwitchLoadout(ctx.loadoutId); },
+  seRemettreDeLEtat: corps((get, _ctx, def) => get().seRemettreDeLEtat(etatDeclare(def))),
+  seRelever: corps((get) => get().seRelever()),
+  faireUnBattement: corps((get, ctx) => get().faireUnBattement(ctx.targetId)),
+  tenterDeDistraire: corps((get, ctx) => get().tenterDeDistraire(ctx.targetId)),
+  entrerEnFrenesie: corps((get) => get().entrerEnFrenesie()),
+  manoeuvrerSurSoi: corps((get, ctx) => { if (ctx.maneuverId) get().manoeuvrerSurSoi(ctx.maneuverId); }),
+  immuniserALaPsychologie: corps((get) => { const a = actif(get); if (a) get().depenserLaDetermination(a.id, 'immuniserALaPsychologie'); }),
+  ignorerLesCritiques: corps((get) => { const a = actif(get); if (a) get().depenserLaDetermination(a.id, 'ignorerLesCritiques'); }),
+  retirerUnEtat: corps((get, ctx) => { const a = actif(get); if (a && ctx.conditionId) get().depenserLaDetermination(a.id, 'retirerUnEtat', ctx.conditionId); }),
+  monterEnSelle: corps((get, ctx) => get().monterEnSelle(ctx.targetId)),
+  mettrePiedATerre: corps((get) => get().mettrePiedATerre()),
+  servirLePoste: corps((get, ctx) =>
+    get().servirLePoste(ctx.shipId && ctx.posteUid ? { hullId: ctx.shipId, posteUid: ctx.posteUid } : undefined)),
+  quitterLePoste: corps((get) => get().quitterLePoste()),
+  pousserLEngin: corps((get) => get().pousserLEngin()),
+  aiderLEquipe: corps((get) => get().aiderLEquipe()),
+  ramasserLObjet: corps((get, ctx) => { if (ctx.entityId && ctx.pickKey) get().ramasserLObjet(ctx.entityId, ctx.pickKey); }),
+  manoeuvrerLeNavire: corps((get, ctx) => { if (ctx.crewId) get().manoeuvrerLeNavire(ctx.crewId); }),
+  eprouverLEquipage: corps((get, ctx) => { if (ctx.shipId && ctx.crewTestId) get().eprouverLEquipage(ctx.shipId, ctx.crewTestId); }),
+  chanterLaChanson: corps((get, ctx) => { if (ctx.shipId) get().chanterLaChanson(ctx.shipId); }),
+  prendreLaPanoplie: corps((get, ctx) => { const a = actif(get); if (a && ctx.loadoutId) get().prendreLaPanoplie(a.id, ctx.loadoutId); }),
   /** FIN DU TOUR — porte unique de la plaque de sortie de la console ET de la touche. Le garde-fou
    *  « tour gâché » (spec §1c-bis COIN) est la POLITIQUE DE CETTE ENTRÉE : finir avec l'Action intacte
-   *  ARME (empreinte de l'économie du tour, répliquée), le geste suivant passe la main. `battleEndTurn`
-   *  reste le verbe BRUT (l'IA et les flux internes passent, eux, par `advanceTurn`). */
-  battleEndTurn: (get) => {
+   *  ARME (empreinte de l'économie du tour, répliquée), le geste suivant passe la main. `terminerLeTour`
+   *  reste le commit BRUT (l'IA et les flux internes passent, eux, par `advanceTurn`). */
+  terminerLeTour: corps((get) => {
     const s = get();
     const b = s.battle;
     const active = b ? activeCombatant(b) : undefined;
-    if (b && active && wastesAction(active, b, s.pendingCleave) && !endTurnArmed(b)) { s.armEndTurn(); return; }
-    s.battleEndTurn();
-  },
-  cancelMove: (get) => get().cancelMove(),
+    if (b && active && wastesAction(active, b, s.pendingCleave) && !endTurnArmed(b)) { s.armerLaFinDuTour(); return; }
+    s.terminerLeTour();
+  }),
+  annulerLeDeplacement: corps((get) => get().annulerLeDeplacement()),
   /** PORTE UNIQUE de la pause d'initiative (LDB 17 l.25) : le bandeau de phase de la console ET la
    *  touche du registre (`keybindings.round-start`) passent ICI : la validation de la pause, qui marque le siège
-   *  PRÊT — c'est le quorum (sièges requis) qui lance, jamais un client ; en solo, le quorum est ce siège. Deux
-   *  branchements séparés laissaient le bouton court-circuiter le ready-check que la touche, elle, respectait. */
-  roundStart: (get) => get().fenetreValider('roundStart'),
-  /** Demande de pause au prochain Round — INTERRUPTEUR : `toggleOff` retire la demande (annulation
-   *  gratuite, `lowerHand`), même porte et même routage réseau que la pose. */
-  raiseHand: (get, ctx) => (ctx.toggleOff ? get().lowerHand() : get().raiseHand()),
+   *  PRÊT — c'est le quorum (sièges requis) qui lance, jamais un client ; en solo, le quorum est ce siège. */
+  lancerLeRound: relais((get) => get().fenetreValider('roundStart')),
+  /** Demande de pause au prochain Round — INTERRUPTEUR, lu dans l'état de l'émetteur : son siège l'a déjà posée, elle se
+   *  retire (annulation gratuite), sinon elle se pose. */
+  leverLaMain: relais((get) => {
+    const s = get();
+    s.leverLaMain(!(s.battle?.handRaisedBy ?? []).includes(decidingSeat(s)));
+  }),
   // ── SORTIES D'INTERLUDE (`surface: 'interlude'`) : une enveloppe NOMMÉE par entrée, jamais un
   //    dispatcher mutualisé — deux interludes ne partagent ni leur verbe ni ses gardes (la sortie du
-  //    balayage clôt l'étape-jet de la cascade, `battleSelectAction` est avalé sous `combatBusy`).
-  fermerLeBalayage: (get) => get().fenetreFermer('cleave'),
-  renoncerALaSecondeFrappe: (get) => get().fenetreFermer('dualStrike'),
-  castPickTargetsOff: (get) => get().castPickTargets(false),
+  //    balayage clôt l'étape-jet de la cascade).
+  fermerLeBalayage: relais((get) => get().fenetreFermer('cleave')),
+  renoncerALaSecondeFrappe: relais((get) => get().fenetreFermer('dualStrike')),
+  renoncerALaCarte: relais((get) => get().jetRegler('cast', 'carte', null)),
   /** Sortie du placeur de zone, ROUTÉE PAR LA SOURCE que mesure `placingZoneOf` — symétrique de
    *  `commitPlacedZone` (même aiguilleur pour poser et pour renoncer) : un sort revient à sa modale,
    *  un pilonnage referme son placeur. Une seule entrée d'interlude pour le mode `placing-zone`. */
-  placingZoneOff: (get) => {
+  renoncerALaZone: relais((get) => {
     const pz = placingZoneOf(get());
     if (!pz) return;
     switch (pz.source) {
-      case 'cast': get().castPlaceZone(false); return;
+      case 'cast': get().jetRegler('cast', 'carte', null); return;
       case 'siege': get().fenetreFermer('siegeAim'); return;
       default: pz.source satisfies never;
     }
-  },
-  batterySelectNone: (get) => get().battleSelectAction(null),
+  }),
+  desarmerLaBatterie: relais((get) => get().desarmerLeMode()),
   /** Téléportation (`combatFlow.ts:5381` : `action: 'teleport'` + `reachable` = `flyReachable` depuis
    *  la case du lanceur, qui contient donc SA case au coût 0, `path.ts:318`) : la sortie de l'interlude
    *  est un ARRIVAGE sur place — le même commit que le clic-sol, par la même porte. */
-  teleportStay: (get) => {
-    const battle = get().battle;
-    const active = battle && activeCombatant(battle);
-    if (active?.pos) get().battleClickTile({ ...active.pos });
-  },
+  resterSurPlace: relais((get) => {
+    const active = actif(get);
+    if (active?.pos) get().cliquerLaCase({ ...active.pos });
+  }),
 };
 
-/** Exécute une action par son ID. Porte UNIQUE — le clavier, les cases et les pastilles y passent.
- *  Une action déclarée `blocked` (aucun dispatcher) ne fait rien : le registre le DIT, il ne feint pas.
- *  Une action qui déclare une INTENTION (`intent`) arme d'abord le mode local qui peint sa portée
- *  (`localIntent.ts`, spec zone 4) : c'est le clic du champ, ensuite, qui commet le geste. Les deux
- *  ne s'excluent pas — l'attaque arme son option ET affiche sa portée. */
-export function runAction(actionId: string, get: () => Jeu, ctx: ActionRunCtx = {}): void {
-  const def = ACTIONS.find((a) => a.id === actionId);
-  if (!def) return;
-  if (def.intent) get().battleArmIntent(ctx.toggleOff ? null : def.id);
-  if (def.run) ACTION_RUN[def.run]?.(get, ctx, def);
+/** L'entrée d'offre de chaque action qui se joue (`run`), résolue au CHARGEMENT : un `run` absent d'`OFFRES_PAR_RUN`
+ *  lève ici, en nommant l'action. */
+const ENTREE_DE_L_ACTION: ReadonlyMap<string, EntreeDOffre> = new Map(ACTIONS.flatMap((def) =>
+  def.run ? [[def.id, garanti(Object.prototype.hasOwnProperty.call(OFFRES_PAR_RUN, def.run) ? OFFRES_PAR_RUN[def.run] : undefined, def.run, `dispatcher de l’offre ${def.id}`)] as const] : []));
+
+/** L'entrée du registre d'id `id`, ou `undefined`. */
+export const offreDeId = (id: unknown): ActionDef | undefined => ACTIONS.find((a) => a.id === id);
+
+/** Le LIEU de l'offre `id` (#3371) : celui de son entrée d'`OFFRES_PAR_RUN`, ou `emetteur` pour une pure intention (une
+ *  offre sans `run` ne fait qu'armer l'état local de l'émetteur) ; `undefined` pour un id inconnu. */
+export function lieuDeLOffre(id: unknown): LieuDeLOffre | undefined {
+  const def = offreDeId(id);
+  if (!def) return undefined;
+  return ENTREE_DE_L_ACTION.get(def.id)?.lieu ?? 'emetteur';
 }
 
-/** La forme ACTION de la porte `runAction` (#2898), pour un hôte qui joue en intentions : `jouerLOffre`. */
-export function creerActionsDuRegistre(get: () => Jeu) {
+/**
+ * LE VERDICT D'UNE OFFRE (#3371), que `jouerLOffre` applique et que la frontière des hôtes relit (`src/hote/geste.ts`) :
+ * la raison qui refuse l'offre `actionId` sur `args` dans l'état `s`, ou `null` quand `offresDeLActif` la rend
+ * ouverte. Un id inconnu, une barre qui n'est pas ouverte (`etatDeLaBarre`), une offre qu'aucun candidat ne désigne
+ * (`offreDesignee`, la raison de sa pertinence), une offre fermée (`actionGate`, sur ses arguments). Un RELAIS se
+ * joue hors du tour de son siège (pause de Round, levée de main, sortie d'interlude) : son verdict est celui de ses
+ * gates, sur le combat en cours, sans la barre ; le verbe qu'il appelle juge ensuite, avec sa route.
+ */
+export function refusDeLOffre(s: Jeu, actionId: string, args: ContexteDOffre = {}): string | null {
+  const def = offreDeId(actionId);
+  if (!def) return t('offre.inconnue', { id: actionId });
+  if (def.run && lieuDeLOffre(def.id) === 'emetteur') {
+    const b = s.battle && !s.battle.over ? s.battle : undefined;
+    const active = b && (activeCombatant(b) ?? b.combatants[0]);
+    if (!b || !active) return t('barre.personneNAgit');
+    const gate = actionGate(actionId, { active, battle: b, netMode: s.net.mode, gameTime: s.gameTime, args });
+    return gate.ok ? null : garanti(gate.reason, actionId, 'raison du refus de l’offre');
+  }
+  const barre = etatDeLaBarre(s);
+  if (barre.forme !== 'ouverte') return barre.raison;
+  const ctx: ActionSelectorCtx = { active: barre.active, battle: barre.battle, netMode: s.net.mode, gameTime: s.gameTime, state: s };
+  const offres = offresDeLActif(ctx);
+  const gate = actionGate(actionId, { ...ctx, args });
+  if (!offreDesignee(offres, actionId, args)) {
+    if (!gate.ok) return garanti(gate.reason, actionId, 'raison du refus de l’offre');
+    return t(offres.some((o) => o.actionId === actionId) ? 'offre.sansCandidatDuContexte' : 'offre.sansCandidat');
+  }
+  return gate.ok ? null : garanti(gate.reason, actionId, 'raison du refus de l’offre');
+}
+
+/** Arme l'intention que l'offre `def` déclare (`ActionDef.intent`) : l'armement est l'état LOCAL de l'émetteur
+ *  (`localIntent`), jamais posé chez l'hôte au nom d'un siège. `jouerLOffre` l'arme où il se joue ; l'invité qui envoie
+ *  une offre jouée chez l'hôte l'arme avant l'envoi (`INTENT_PREPARATION_LOCALE`, `localIntent.ts`). */
+export function armerLOffre(get: Get<JeuDuNoyau>, def: ActionDef): void {
+  if (def.intent && !unSiegeAgit()) get().armerLIntention(def.id);
+}
+
+/** Le verbe de l'offre (#2898, #3371) : `jouerLOffre`, et `desarmerLeMode`, la sortie gratuite de ce qu'une offre arme. */
+export function creerActionsDuRegistre(get: Get<JeuDuNoyau>, set: Set) {
   return {
-    jouerLOffre: (actionId: string, ctx?: ActionRunCtx) => runAction(actionId, get, ctx),
-  };
+    jouerLOffre: (actionId: string, ctx: ContexteDOffre = {}) => {
+      const refus = refusDeLOffre(get(), actionId, ctx);
+      if (refus) return void refuserGesteDuSiege(get, set, refus);
+      const def = garanti(offreDeId(actionId), actionId, 'offre du registre');
+      armerLOffre(get, def);
+      ENTREE_DE_L_ACTION.get(def.id)?.jouer(get, ctx, def);
+    },
+    desarmerLeMode: () => {
+      if (!unSiegeAgit()) get().armerLIntention(null);
+      get().armerLeMode(null);
+    },
+  } satisfies FabriqueDuNoyau;
+}
+
+/** La sonde : elle répond à toute lecture et à tout appel par elle-même, et se convertit en `0`. */
+const SONDE: unknown = new Proxy(function sonde() {}, {
+  get: (_cible, cle) => (cle === Symbol.toPrimitive ? () => 0 : SONDE),
+  apply: () => SONDE,
+});
+
+/** Les champs du contexte qu'une offre lit : ceux que son entrée d'`OFFRES_PAR_RUN` lit en se jouant sur la sonde, une
+ *  fois chaque champ présent, une fois chaque champ absent ; la sonde ne joue rien. Une entrée que la sonde fait lever
+ *  ne dit pas ce qu'elle lit : `null`. Un hôte y contrôle le contexte d'un geste (`src/hote/geste.ts`). */
+export function champsLusParLOffre(actionId: string): ReadonlySet<string> | null {
+  const def = garanti(offreDeId(actionId), actionId, 'offre du registre');
+  const entree = ENTREE_DE_L_ACTION.get(def.id);
+  const lus = new Set<string>();
+  try {
+    for (const valeur of [SONDE, undefined]) {
+      const ctx = new Proxy({}, {
+        get: (_cible, cle) => {
+          if (typeof cle === 'string') lus.add(cle);
+          return valeur;
+        },
+      });
+      entree?.jouer(() => SONDE as JeuDuNoyau, ctx as ContexteDOffre, def);
+    }
+  } catch {
+    return null;
+  }
+  return lus;
 }
 
 /** UNE offre : de quoi la peindre (libellé, icône, coût), la refuser avec sa raison (`gate`), et la
@@ -673,7 +765,7 @@ export interface Offre {
   icon: string;
   /** Coût dans l'économie du tour, en toutes lettres — `null` quand l'acte n'en prend aucun. */
   cost: string | null;
-  args: ActionRunCtx;
+  args: ContexteDOffre;
   gate: ActionGate;
 }
 
@@ -704,7 +796,7 @@ function pertinente(def: ActionDef, ctx: ActionCtx): boolean {
 export function offresDeLActif(ctx: ActionSelectorCtx): Offre[] {
   const etat = ctx.state;
   const interlude = etat ? currentInterludeAction(() => etat) : undefined;
-  const offre = (def: ActionDef, args: ActionRunCtx, p?: ActionPorteur): Offre => ({
+  const offre = (def: ActionDef, args: ContexteDOffre, p?: ActionPorteur): Offre => ({
     actionId: def.id, def, label: def.label, ...(p ? { porteurId: p.porteurId, candidat: p.label } : {}),
     icon: def.icon, cost: actionCostLabel(def), args, gate: actionGate(def.id, { ...ctx, args }),
   });
@@ -726,7 +818,7 @@ export function offresDeLActif(ctx: ActionSelectorCtx): Offre[] {
 /** L'offre que des ARGUMENTS de dispatch désignent : celle de l'entrée `actionId` dont chaque argument est repris par
  *  `args`. Une offre par candidat se reconnaît à ses arguments (le sort, l'arme, l'attaque) ; une offre unique, sans
  *  argument, à son seul id. La console y reconnaît ses cases, l'hôte texte le geste qu'il joue. */
-export function offreDesignee(offres: readonly Offre[], actionId: string, args: ActionRunCtx = {}): Offre | undefined {
+export function offreDesignee(offres: readonly Offre[], actionId: string, args: ContexteDOffre = {}): Offre | undefined {
   const voulus = args as Record<string, unknown>;
   return offres.find((o) => o.actionId === actionId && Object.entries(o.args).every(([k, v]) => voulus[k] === v));
 }

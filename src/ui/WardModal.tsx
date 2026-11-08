@@ -20,12 +20,12 @@ import { useGesteDeJet } from './useGesteDeJet';
 export function WardModal() {
   const pw = useGame((s) => s.pendingWard);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetRoll', 'ward');
-  const reroll = useGesteDeJet('jetReroll', 'ward');
-  const darkPact = useGesteDeJet('jetDarkPact', 'ward');
-  const force = useGesteDeJet('jetForceSuccess', 'ward');
-  const confirm = useGesteDeJet('jetConfirm', 'ward');
-  const cancel = useGesteDeJet('jetCancel', 'ward');
+  const roll = useGesteDeJet('jetLancer', 'ward');
+  const reroll = useGesteDeJet('jetRelancer', 'ward');
+  const darkPact = useGesteDeJet('jetPactiser', 'ward');
+  const force = useGesteDeJet('jetForcerLaReussite', 'ward');
+  const confirm = useGesteDeJet('jetValider', 'ward');
+  const cancel = useGesteDeJet('jetAnnuler', 'ward');
   if (!pw || !battle) return null;
   const attacker = battle.combatants.find((x) => x.id === pw.attackerId);
   if (!attacker) return null;

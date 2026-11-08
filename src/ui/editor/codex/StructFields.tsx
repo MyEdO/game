@@ -236,7 +236,7 @@ export function ShipCrewHitField({ value, onChange }: { value: ShipCrewHitValue 
 /* ─────────────────────────────────────────────────────────────────────────────
  * 1bis) talents.test — { raw verbatim, matches: TestMatch[] } (LDB 10 : +DR sur un Test lié)
  *    `raw` = la ligne « Tests : » du livre (affichage) ; `matches` = la règle STRUCTURÉE id-based
- *    (skill XOR char, spec / « au choix » / sauf-spec, contexte `when` mécanisable, `manual` narratif).
+ *    (skill XOR characteristic, spec / « au choix » / sauf-spec, contexte `when` mécanisable, `manual` narratif).
  * ──────────────────────────────────────────────────────────────────────────── */
 
 export function TalentTestField({ value, onChange }: { value: TalentTest | undefined; onChange: (v: TalentTest | undefined) => void }) {
@@ -252,17 +252,17 @@ export function TalentTestField({ value, onChange }: { value: TalentTest | undef
       {matches.map((m, i) => (
         <div key={i}>
           <div className="fieldrow">
-            <select value={m.char != null ? '@char' : (m.skill?.id ?? '')} onChange={(e) => {
+            <select value={m.characteristic != null ? '@char' : (m.skill?.id ?? '')} onChange={(e) => {
               const v = e.target.value;
-              if (v === '@char') setM(i, { skill: undefined, specFromInstance: undefined, exceptSpec: undefined, char: CHAR_KEYS[0] });
-              else setM(i, { char: undefined, exceptSpec: undefined, skill: reposerLId(m.skill ?? { id: '' }, v) });
+              if (v === '@char') setM(i, { skill: undefined, specFromInstance: undefined, exceptSpec: undefined, characteristic: CHAR_KEYS[0] });
+              else setM(i, { characteristic: undefined, exceptSpec: undefined, skill: reposerLId(m.skill ?? { id: '' }, v) });
             }}>
               <option value="">— compétence —</option>
               {skillsList.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
               <option value="@char">▸ Caractéristique…</option>
             </select>
-            {m.char != null && (
-              <select value={m.char} onChange={(e) => setM(i, { char: e.target.value as CharKey })}>
+            {m.characteristic != null && (
+              <select value={m.characteristic} onChange={(e) => setM(i, { characteristic: e.target.value as CharKey })}>
                 {CHAR_KEYS.map((ck) => <option key={ck} value={ck}>{CHAR_LABELS[ck]}</option>)}
               </select>
             )}
@@ -568,7 +568,7 @@ export function CharKeysField({ value, onChange }: { value: CharKey[] | undefine
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
- * 6) sea-cargo / land-cargo `avail` — DISPONIBILITÉ SAISONNIÈRE : quatre colonnes d100, chacune une
+ * 6) cargoes `avail` — DISPONIBILITÉ SAISONNIÈRE : quatre colonnes d100, chacune une
  *    fourchette `{min, max}` (`dispoSaisonniereSchema`). Une `PlageField` par saison.
  * ──────────────────────────────────────────────────────────────────────────── */
 

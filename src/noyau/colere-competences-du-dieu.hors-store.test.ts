@@ -44,7 +44,7 @@ function subirLaColere(p: Combatant, peche: number, de: number, rng: RNG) {
   return { m, lignes };
 }
 
-const valeurs = (p: Combatant, skills: readonly string[]) => skills.map((s) => testValue(p, s));
+const valeurs = (p: Combatant, skills: readonly string[]) => skills.map((s) => testValue(p, { skill: { id: s } }));
 const echeances = (p: Combatant) => (p.activeEffects ?? []).map((e) => (e.duration.scale === 'clock' ? e.duration.until : null));
 
 describe('Colère des dieux — malus aux Compétences associées à la divinité (LDB 40 l.61, l.70)', () => {
@@ -52,17 +52,17 @@ describe('Colère des dieux — malus aux Compétences associées à la divinit�
     const p = pretre();
     const skills = associees(p);
     const avant = valeurs(p, skills);
-    const horsListe = testValue(p, 'escalade');
+    const horsListe = testValue(p, { skill: { id: 'escalade' } });
     const { m } = subirLaColere(p, 1, 16, desEnSuite([4])); // 16 + 10 × 1 = 26 ; 1d10 = 4 → 5 heures
     expect(m.rowId).toBe('colere-vous-ne-comprenez-pas-ma-volonte');
     expect(valeurs(p, skills)).toEqual(avant.map((v) => v - 10));
-    expect(testValue(p, 'escalade')).toBe(horsListe);
+    expect(testValue(p, { skill: { id: 'escalade' } })).toBe(horsListe);
     expect(echeances(p)).toEqual([MAINTENANT + 5 * 60]);
 
     banc.setState({ party: [p] });
-    banc.getState().advanceTime(5 * 60 - 1);
+    banc.getState().avancerLeTemps(5 * 60 - 1);
     expect(valeurs(banc.getState().party[0], skills)).toEqual(avant.map((v) => v - 10));
-    banc.getState().advanceTime(1);
+    banc.getState().avancerLeTemps(1);
     expect(valeurs(banc.getState().party[0], skills)).toEqual(avant);
   });
 
@@ -76,9 +76,9 @@ describe('Colère des dieux — malus aux Compétences associées à la divinit�
     expect(echeances(p)).toEqual([MAINTENANT + 10 * MINUTES_PER_DAY]);
 
     banc.setState({ party: [p] });
-    banc.getState().advanceTime(10 * MINUTES_PER_DAY - 1);
+    banc.getState().avancerLeTemps(10 * MINUTES_PER_DAY - 1);
     expect(valeurs(banc.getState().party[0], skills)).toEqual(avant.map((v, i) => (i === 1 ? v - 10 : v)));
-    banc.getState().advanceTime(1);
+    banc.getState().avancerLeTemps(1);
     expect(valeurs(banc.getState().party[0], skills)).toEqual(avant);
   });
 

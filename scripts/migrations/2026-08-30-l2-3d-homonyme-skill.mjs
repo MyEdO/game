@@ -20,7 +20,7 @@
  * RENAME PUR : aucune valeur ne change. Le seul apport d'information est l'id `guerison` du geste 2 :
  * la MÉCANIQUE du soigneur PNJ reste sa VALEUR (`noyau/medicFlow.ts` ne lit que `npc.skill.value` —
  * un PNJ payant n'a pas de fiche, sa cible EST le seuil fourni) ; l'id porte le LIBELLÉ affiché au
- * joueur (`ui/MedicModal.tsx` → `skillRefLabel(npc.skill)`, jusqu'ici la chaîne « Guérison » en dur).
+ * joueur (`skillRefLabel(npc.skill)`, jusqu'ici la chaîne « Guérison » en dur).
  * PREUVE : les deux artefacts (avant, après) ramenés à la graphie D'ORIGINE sont deep-equal.
  * ENTRÉES : les quatre documents énumérés par `GESTES` ci-dessous — `src/data/advancementCosts.json`,
  * `src/scenes/arene/arene-projet.json`, `src/data/tavernGames.json`, `src/data/talents.json`.

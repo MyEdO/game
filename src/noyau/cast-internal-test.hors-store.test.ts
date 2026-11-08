@@ -28,8 +28,8 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
     wiz.spells = ['chute', ...(wiz.spells ?? [])];
     const ally = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 13 });
     banc.setState({ party: [wiz, ally] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const W = b.combatants.find((c) => c.kind === 'hero' && c.label === 'W')!;
@@ -43,7 +43,7 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
   }
 
   /** Reproduit `castSpell` de façon DÉTERMINISTE, dans SON ordre : pose le `pendingCast` au résultat
-   *  figé, puis ouvre la cascade `cast` qui l'hôte (étape `jet:'cast'` au curseur 0), prêt à `jetConfirm('cast')`. */
+   *  figé, puis ouvre la cascade `cast` qui l'hôte (étape `jet:'cast'` au curseur 0), prêt à `jetValider('cast')`. */
   function frozenCast(W: Combatant, target: Combatant) {
     banc.setState({
       pendingCast: {
@@ -73,7 +73,7 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
     expect(casc0.participants).toHaveLength(1);
     expect(casc0.participants[0].jet).toBe('cast'); // l'étape d'incantation, curseur dessus
 
-    banc.getState().jetConfirm('cast'); // applique le Sort : le nœud `test` interne suspend
+    banc.getState().jetValider('cast'); // applique le Sort : le nœud `test` interne suspend
 
     const enriched = banc.getState().pendingCascade!;
     expect(enriched.purpose).toBe('combat');
@@ -93,7 +93,7 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
     E.characteristics.dexterite = 1; // Dextérité ~imbattable à RATER → la branche échec (narration « l'objet tombe ») s'applique
     frozenCast(W, E);
 
-    banc.getState().jetConfirm('cast');
+    banc.getState().jetValider('cast');
 
     expect(banc.getState().pendingCascade).toBeNull();     // ennemi → jamais d'étape influençable
     const log = banc.getState().battle!.log.map((e) => e.text).join('\n');

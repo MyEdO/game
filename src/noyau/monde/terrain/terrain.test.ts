@@ -3,8 +3,7 @@
  *
  * Deux contrats : la RÈGLE (franchissabilité, précédence, repli bloquant d'un id inconnu) et la
  * FRAÎCHEUR (une entrée ajoutée à l'atelier est vue par la façade, alors que `setDataset` mute le
- * tableau EN PLACE et n'en change jamais l'identité). Le catalogue de rendu et les dégradés SVG :
- * `src/gameIso/catalog/terrain.test.ts`.
+ * tableau EN PLACE et n'en change jamais l'identité).
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import {

@@ -6,8 +6,8 @@
  * C'est le SEAM unique : la palette de l'éditeur, les ornements du rendu et la dérivation des toitures
  * (`toitureEffective`, `noyau/sceneEdit.ts`) passent par les accesseurs ci-dessous, jamais par le
  * tableau brut. La façade vit dans `src/noyau/monde` — patron `noyau/monde/terrain/index.ts` (#1690, même
- * domicile) : une façade de DONNÉE lue par le store obligerait sinon `src/state` à importer
- * `src/gameIso`, alors que le rendu dépend du store et jamais l'inverse (AGENTS.md règle 3, mur
+ * domicile) : une façade de DONNÉE lue par l'état obligerait sinon l'état à importer le rendu, alors
+ * que le rendu dépend de l'état et jamais l'inverse (AGENTS.md règle 3, mur
  * `murs/purete-imports`, `scripts/guards/lib/couches.mjs`).
  *
  * LECTURE VIVANTE, index O(1). Le tableau exporté par `src/data/index.ts` est le binding que `setDataset`
@@ -19,7 +19,7 @@
  * Le CUTAWAY, plus bas, est l'autre moitié du domaine : la structure réelle d'un bâtiment est faite de
  * murs d'arête (`WallSeg`, destructibles via `structure`) sur un sol de terrain — la walkability et la
  * vue passent par le terrain + `wallBetween` (plus aucune empreinte de bâtiment). Ne subsiste que le
- * RENDU du toit (masses de `ArchitectureBody`, `gameIso/builders/roofs.ts`), qui se lève en cutaway
+ * RENDU du toit (masses de `ArchitectureBody`, `noyau/monde/volume/toits.ts`), qui se lève en cutaway
  * quand un allié entre dans l'empreinte.
  */
 import { buildings } from '../../data/index';

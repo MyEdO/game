@@ -49,7 +49,7 @@ export function aPorteeDe(pos: Pt, ent: SceneEntity): boolean {
  *
  *  `null` = aucune marche : interaction sur place (on est déjà à côté), badaud déjà adjacent, ou aucune
  *  case adjacente atteignable. Pour un déplacement simple on renvoie la case telle quelle — le filtrage
- *  « marchable » reste à `pathTo` (aperçu) / `moveAlong` (clic), comme aujourd'hui. */
+ *  « marchable » reste à `pathTo` (aperçu) / `exploreMovePlan` (clic). */
 export function exploreMoveDest(sc: Scene, partyPos: Pt, tile: Pt): Pt | null {
   const tz = tile.z ?? 0;
   const ent = sc.entities.find((e) => e.pos.x === tile.x && e.pos.y === tile.y && (e.z ?? 0) === tz);
@@ -106,7 +106,7 @@ export interface ExploreMovePlan {
  *  d'`exploreMovePlan` (ou par un appelant qui a déjà décidé de l'assise) — il résout la géométrie,
  *  il ne décide pas de l'offre.
  *
- *  Le chemin retourné se termine EXACTEMENT sur l'abord : c'est ce que `interactEntity` exige pour
+ *  Le chemin retourné se termine EXACTEMENT sur l'abord : c'est ce que `interagirAvecLEntite` exige pour
  *  asseoir (le groupe doit être SUR la case d'abord, pas simplement à côté du meuble). Déjà sur
  *  l'abord → chemin d'un seul point, à l'appelant d'y voir « rien à marcher ». */
 export function exploreSeatPlan(
@@ -116,7 +116,7 @@ export function exploreSeatPlan(
   opts: PathOpts = { blocked: new Set() },
 ): { slotId: string; approach: Pt; path: Pt[] } | null {
   const libres = seatSlotsOf(scene, propId).filter((s) => !scene.seatAssignments?.[propId]?.[s.slotId]);
-  // La place SOUS LES PIEDS prime sur l'ordre du catalogue — c'est celle que `interactEntity` prendra
+  // La place SOUS LES PIEDS prime sur l'ordre du catalogue — c'est celle que `interagirAvecLEntite` prendra
   // (il n'accepte que le slot dont l'abord est exactement `partyPos`) : diverger ici ferait planifier
   // une marche vers une place que le geste refuserait à l'arrivée.
   const surPlace = libres.find((s) => memeCase(s.approach, partyPos));
@@ -163,7 +163,7 @@ export function exploreMovePlan(
  *  grille) colle à ~0.89–1.0 ; les repêchages hors-axe (pas simple-axe de grille, quasi-perpendiculaires
  *  en vertical du fait du ratio 2:1 TW/TH) tombent à ~0.45 — c'est ce rabattement trompeur qui
  *  provoquait le zigzag/oscillation silencieux au clavier. 0.6 sépare les deux paliers mesurés
- *  (clusters 0.4472 et 0.8944 en losange iso par défaut, `src/state/exploreNav-pas-clavier.test.ts`) sans jamais mordre sur
+ *  (clusters 0.4472 et 0.8944 en losange iso par défaut) sans jamais mordre sur
  *  la 8-connectivité en champ libre (le voisin idéal de chaque cardinal reste toujours ≥ 0.89).
  */
 const ALIGN_MIN = 0.6;

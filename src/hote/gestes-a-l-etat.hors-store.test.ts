@@ -2,8 +2,8 @@
  * LES ARGUMENTS D'UNE FENÊTRE OUVERTE SE CHOISISSENT PARMI CE QUE LE VERBE ACCEPTE (#2937) : `fenetreADessiner` rend un
  * argument désigné (`DESIGNATIONS`) en `choix` des seuls éléments que la garde de son op accepte, chacun nommé. Fichier
  * à part de `gestes.hors-store.test.ts`, dont la table (`fenetres.testkit.ts`) tient le jeu branché. Un argument qui
- * désigne une ligne de l'état sans id (ligne de butin, Blessure Critique) se choisit parmi les valeurs que le lecteur de
- * sa fenêtre nomme (`fenetreDuButin`, `fenetreDeLOperation`). Qui tient la main se dit par son genre
+ * désigne une ligne de l'état (ligne de butin, Blessure Critique) se choisit parmi les valeurs que le lecteur de sa
+ * fenêtre nomme (`fenetreDuButin`, `OUVERTS_DU_CHOIX`). Qui tient la main se dit par son genre
  * (`proprietaireDeLaFenetre`), en mots à l'hôte texte. Un verbe de jet que son flux ferme se dessine fermé, avec ce qui
  * le ferme (`fermeturesDeLaFenetre`, #2936).
  */
@@ -17,7 +17,7 @@ import { t } from '../i18n';
 import { nouvelEntete, ouvrirLaPartie } from './partie';
 import { projeter, rendreLaVue } from '../hoteTexte/vue';
 import { choixDePaieOuverts } from '../noyau/shipCrew';
-import { findMoraleFactor } from '../engine/crewMorale';
+import { findMoraleFactor, payChoices } from '../engine/crewMorale';
 import { locationLabel, type Trauma } from '../engine/types';
 
 /** L'état de la partie `dome` (graine 7) à son lancement, la pause de début de Round ouverte. */
@@ -30,9 +30,9 @@ function auDebutDuRound<T>(faire: (etat: Jeu) => T): T {
   }
 }
 
-/** L'argument `nom` du geste `verbe` de la fenêtre que `etat` dessine. */
+/** L'argument `nom` du geste `verbe` de la fenêtre que `etat` dessine, ou du geste de clé `verbe` (`cleDuGeste`). */
 function argumentDe(etat: Jeu, verbe: string, nom: string): ArgumentDuGeste {
-  const geste = fenetreADessiner(etat)?.gestes.find((g) => g.verbe === verbe);
+  const geste = fenetreADessiner(etat)?.gestes.find((g) => g.cle === verbe) ?? fenetreADessiner(etat)?.gestes.find((g) => g.verbe === verbe);
   const a = geste?.arguments.find((x) => x.nom === nom);
   if (!a) throw new Error(`${verbe}.${nom} absent de la fenêtre ${fenetreADessiner(etat)?.titre ?? 'fermée'}`);
   return a;
@@ -45,14 +45,14 @@ describe('une fenêtre ouverte n’offre que ce que son verbe accepte', () => {
       const b = etat.battle!;
       expect(b.combatants.some((c) => c.kind !== 'hero'), 'témoin : le dome a des ennemis').toBe(true);
       const camp = (id: unknown) => b.combatants.find((c) => c.id === id)?.kind;
-      const promouvoir = argumentDe(etat, 'roundStartPromote', 'heroId');
+      const promouvoir = argumentDe(etat, 'promouvoirLeCombattant', 'heroId');
       expect(promouvoir.saisie).toBe('choix');
       expect(promouvoir.valeurs!.length, 'témoin : un héros peut agir en premier').toBeGreaterThan(0);
-      expect(promouvoir.valeurs!.map((v) => camp(v.valeur)), 'roundStartPromote offre un non-héros').toEqual(promouvoir.valeurs!.map(() => 'hero'));
+      expect(promouvoir.valeurs!.map((v) => camp(v.valeur)), 'promouvoirLeCombattant offre un non-héros').toEqual(promouvoir.valeurs!.map(() => 'hero'));
       expect(promouvoir.valeurs!.every((v) => v.libelle === b.combatants.find((c) => c.id === v.valeur)!.label)).toBe(true);
-      const preempter = argumentDe(etat, 'armPreempt', 'heroId');
+      const preempter = argumentDe(etat, 'armerLeTirPreventif', 'heroId');
       expect(preempter.saisie).toBe('choix');
-      expect(preempter.valeurs!.filter((v) => v.valeur !== null).map((v) => camp(v.valeur)), 'armPreempt offre un non-héros').toEqual(preempter.valeurs!.filter((v) => v.valeur !== null).map(() => 'hero'));
+      expect(preempter.valeurs!.filter((v) => v.valeur !== null).map((v) => camp(v.valeur)), 'armerLeTirPreventif offre un non-héros').toEqual(preempter.valeurs!.filter((v) => v.valeur !== null).map(() => 'hero'));
       expect(fenetreADessiner(etat)!.gestes.find((g) => g.verbe === 'fenetreValider')!.rendu).toBe('bouton');
     });
   });
@@ -65,7 +65,7 @@ describe('une fenêtre ouverte n’offre que ce que son verbe accepte', () => {
         battle: { ...etat.battle!, over: 'victory' },
         pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [{ label: 'Griffon', count: 1, creatureId: 'griffon' }, { label: 'Humain', count: 1, creatureId: 'humain' }, { label: 'Pillard', count: 2 }], harvested: [] },
       };
-      const depecer = argumentDe(victoire, 'harvestCreature', 'creatureId');
+      const depecer = argumentDe(victoire, 'depecerLaCreature', 'creatureId');
       expect(depecer.saisie).toBe('choix');
       expect(depecer.valeurs!.map((v) => [v.valeur, v.libelle])).toEqual([['griffon', 'Griffon']]);
     });
@@ -90,31 +90,31 @@ describe('une fenêtre de combat ne désigne que les combattants que son verbe a
     const { E, etat } = leDuel();
     const monture = etat.battle!.combatants.find((c) => c.kind === 'enemy' && c.id !== E.id)!;
     const couple: Jeu = { ...etat, pendingMountTarget: { riderId: E.id, mountId: monture.id } };
-    expect(valeurs(argumentDe(couple, 'mountTargetSelect', 'id'))).toEqual(['choix', [[E.id, E.label], [monture.id, monture.label]]]);
+    expect(valeurs(argumentDe(couple, 'fenetreChoisir', 'valeur'))).toEqual(['choix', [[E.id, E.label], [monture.id, monture.label]]]);
   });
 });
 
-describe('un argument qui désigne une ligne sans id se choisit parmi les lignes que sa fenêtre nomme', () => {
+describe('un argument qui désigne une ligne se choisit parmi les lignes que sa fenêtre nomme', () => {
   const lignes = (a: ArgumentDuGeste) => [a.saisie, a.valeurs?.map((v) => [v.valeur, v.libelle])];
-  const gear = [{ label: 'Épée', magic: false, effect: { type: 'giveTrapping', trappingId: 'epee' } }, { label: 'Bouclier', magic: false, effect: { type: 'giveTrapping', trappingId: 'bouclier' } }] as never;
-  const nommees = ['choix', [[0, 'Épée'], [1, 'Bouclier']]];
+  const gear = [{ uid: 'L0', label: 'Épée', magic: false, effect: { type: 'giveTrapping', trappingId: 'epee' } }, { uid: 'L1', label: 'Bouclier', magic: false, effect: { type: 'giveTrapping', trappingId: 'bouclier' } }] as never;
+  const nommees = ['choix', [['L0', 'Épée'], ['L1', 'Bouclier']]];
 
   it('Victoire : attribuer et évaluer désignent une ligne du butin, l’évaluation porte sur la victoire', { timeout: 120_000 }, () => {
     auDebutDuRound((etat) => {
       const victoire: Jeu = { ...etat, pendingRoundStart: null, battle: { ...etat.battle!, over: 'victory' }, pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear, defeated: [], harvested: [] } };
-      expect(lignes(argumentDe(victoire, 'assignVictoryGear', 'index'))).toEqual(nommees);
-      expect(lignes(argumentDe(victoire, 'appraiseGear', 'index'))).toEqual(nommees);
-      expect(lignes(argumentDe(victoire, 'appraiseGear', 'scope'))).toEqual(['choix', [['victory', t('valeur.victory')]]]);
+      expect(lignes(argumentDe(victoire, 'fenetreChoisir@victory#ligne', 'valeur'))).toEqual(nommees);
+      expect(lignes(argumentDe(victoire, 'evaluerLeButin', 'uid'))).toEqual(nommees);
+      expect(lignes(argumentDe(victoire, 'evaluerLeButin', 'scope'))).toEqual(['choix', [['victory', t('valeur.victory')]]]);
       const sansLigne: Jeu = { ...victoire, pendingVictory: { ...victoire.pendingVictory!, gear: [] } };
-      expect(fenetreADessiner(sansLigne)!.gestes.filter((g) => !g.ouvert).map((g) => g.verbe), 'sans ligne ni créature à dépecer, rien à attribuer, dépecer ni évaluer').toEqual(['assignVictoryGear', 'harvestCreature', 'appraiseGear']);
+      expect(fenetreADessiner(sansLigne)!.gestes.filter((g) => !g.ouvert).map((g) => g.cle), 'sans ligne ni créature à dépecer, rien à attribuer, dépecer ni évaluer').toEqual(['fenetreChoisir@victory#ligne', 'depecerLaCreature', 'evaluerLeButin']);
     });
   });
 
   it('Butin hors combat : attribuer désigne une ligne du butin, l’évaluation porte sur le butin', { timeout: 120_000 }, () => {
     auDebutDuRound((etat) => {
       const butin: Jeu = { ...etat, pendingRoundStart: null, battle: null, pendingLoot: { title: 'Coffre', gear } };
-      expect(lignes(argumentDe(butin, 'assignLootGear', 'index'))).toEqual(nommees);
-      expect(lignes(argumentDe(butin, 'appraiseGear', 'scope'))).toEqual(['choix', [['loot', t('valeur.loot')]]]);
+      expect(lignes(argumentDe(butin, 'fenetreChoisir@loot#ligne', 'valeur'))).toEqual(nommees);
+      expect(lignes(argumentDe(butin, 'evaluerLeButin', 'scope'))).toEqual(['choix', [['loot', t('valeur.loot')]]]);
     });
   });
 
@@ -124,9 +124,13 @@ describe('un argument qui désigne une ligne sans id se choisit parmi les lignes
       const patient = { ...etat.party[0], traumas: plaies };
       const operation = { kind: 'surgery', difficulty: 'intermediaire', healerName: 'Berta', skill: 40, intBonus: 3, traumaUid: 'crane', targetDR: 5, cumDR: 0, stake: {} } as never;
       const infirmerie: Jeu = { ...etat, pendingRoundStart: null, battle: null, party: [patient, ...etat.party.slice(1)], medic: { patientId: patient.id, surgery: operation } };
-      const plaie = argumentDe(infirmerie, 'medicSetWound', 'uid');
+      const plaie = argumentDe(infirmerie, 'fenetreChoisir@medic#plaie', 'valeur');
       expect(lignes(plaie)).toEqual(['choix', [['bras', t('medic.plaie', { plaie: 'Bras broyé', localisation: locationLabel('brasG') })], ['crane', t('medic.plaie', { plaie: 'Crâne fendu', localisation: locationLabel('tete') })]]]);
       expect(plaie.valeur, 'la plaie visée est la valeur courante').toBe('crane');
+      const choix = (cle: string) => fenetreADessiner(infirmerie)!.gestes.find((g) => g.cle === cle);
+      expect(choix('fenetreChoisir@medic#patient')?.reglage, 'le patient se reprend (`reprenable`) : une option de la fenêtre').toBe(true);
+      expect(choix('fenetreChoisir@medic#plaie')?.reglage, 'la plaie se reprend (`reprenable`)').toBe(true);
+      expect(choix('fenetreChoisir@medic#abandon')?.reglage, 'l’abandon clôt l’opération (`clot`) : un pas de la fenêtre').toBe(false);
     });
   });
 
@@ -134,11 +138,37 @@ describe('un argument qui désigne une ligne sans id se choisit parmi les lignes
     auDebutDuRound((etat) => {
       const conseil = (wageBrass: number): Jeu => ({ ...etat, battle: null, pendingRoundStart: null, vessel: { id: 'nef' } as never, pendingCouncil: { phase: 'choix', wageBrass, today: 1 } as never });
       for (const c of [conseil(0), conseil(1_000_000)]) {
-        const paie = argumentDe(c, 'councilPay', 'decision');
+        const paie = argumentDe(c, 'fenetreChoisir', 'valeur');
         expect(paie.saisie).toBe('choix');
-        expect(paie.valeurs!.map((v) => [v.valeur, v.libelle])).toEqual(choixDePaieOuverts(c).map((id) => [id, findMoraleFactor(id)!.label]));
+        expect(paie.valeurs!.map((v) => [v.valeur, v.libelle])).toEqual(payChoices().map(({ factorId }) => [factorId, findMoraleFactor(factorId)!.label]));
+        expect(paie.valeurs!.filter((v) => v.refus === null).map((v) => v.valeur), 'les choix ouverts, les autres disent leur refus').toEqual(choixDePaieOuverts(c));
       }
       expect(choixDePaieOuverts(conseil(0)).length, 'témoin : sans gages, chaque choix est ouvert').toBeGreaterThan(choixDePaieOuverts(conseil(1_000_000)).length);
+    });
+  });
+
+  it('Semaine en mer : chaque choix vise le héros de sa rangée (`pid`), saisi parmi ceux auxquels il ouvre une valeur ; l’hôte valide', { timeout: 120_000 }, () => {
+    auDebutDuRound((etat) => {
+      const [a, ...autres] = etat.party;
+      const semaine: Jeu = { ...etat, battle: null, pendingRoundStart: null, party: [a, ...autres.map((h) => ({ ...h, dead: true }))], vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [] } as never, pendingSeaActivities: { picks: { [a.id]: { activityId: 'commerce-opportunite' } }, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } } };
+      const fenetre = fenetreADessiner(semaine)!;
+      expect(fenetre.gestes.map((g) => g.cle)).toEqual(['fenetreChoisir@seaActivities#activite', 'fenetreChoisir@seaActivities#investir', 'fenetreChoisir@seaActivities#cacher', 'fenetreValider@seaActivities']);
+      expect(lignes(argumentDe(semaine, 'fenetreChoisir@seaActivities#activite', 'pid')), 'le seul héros vivant').toEqual(['choix', [[a.id, a.label]]]);
+      expect(lignes(argumentDe(semaine, 'fenetreChoisir@seaActivities#investir', 'pid')), 'la mise ne s’ouvre qu’au Commerce d’opportunité').toEqual(['choix', [[a.id, a.label]]]);
+      expect(argumentDe(semaine, 'fenetreChoisir@seaActivities#cacher', 'pid').valeurs, 'aucune Cartographie : aucune planque').toEqual([]);
+      expect(fenetre.gestes.find((g) => g.cle === 'fenetreValider@seaActivities')!.rendu).toBe('bouton');
+    });
+  });
+
+  it('Fin de séance : les cases du groupe, celles de chaque héros (`pid`), sa validation et sa sortie', { timeout: 120_000 }, () => {
+    auDebutDuRound((etat) => {
+      const seance: Jeu = { ...etat, battle: null, pendingRoundStart: null, finDeSeance: { heros: {}, groupe: {} } };
+      const fenetre = fenetreADessiner(seance)!;
+      expect(fenetre.gestes.map((g) => g.cle)).toEqual([
+        'fenetreChoisir@finDeSeance#ambitionCourte', 'fenetreChoisir@finDeSeance#ambitionLongue', 'fenetreChoisir@finDeSeance#ambitionPersonnelleCourte',
+        'fenetreChoisir@finDeSeance#ambitionPersonnelleLongue', 'fenetreChoisir@finDeSeance#motivation', 'fenetreValider@finDeSeance', 'fenetreFermer@finDeSeance',
+      ]);
+      expect(lignes(argumentDe(seance, 'fenetreChoisir@finDeSeance#motivation', 'pid')), 'chaque héros du groupe').toEqual(['choix', seance.party.map((h) => [h.id, h.label])]);
     });
   });
 });
@@ -184,17 +214,17 @@ describe('un verbe de jet que son flux ferme ne se dessine pas, et dit pourquoi 
     const { E, patch } = auContact(garde);
     const partie = creerPartie({ ...garde, ...patch }, ENTREES);
     try {
-      partie.envoyer({ type: 'battleClickEntity', args: [E.id, { confirm: true }] });
-      expect(geste(partie, 'jetRoll@attack')).toEqual({ ouvert: true, raison: null });
+      partie.envoyer({ type: 'cliquerLaCase', args: [{ ...E.pos! }, E.id, { confirm: true }] });
+      expect(geste(partie, 'jetLancer@attack')).toEqual({ ouvert: true, raison: null });
       expect(geste(partie, 'jetRegler@attack#localisation')).toEqual({ ouvert: true, raison: null });
-      expect(geste(partie, 'jetSetForcedRoll@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
-      expect(geste(partie, 'jetConfirm@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
-      partie.envoyer({ type: 'jetRoll', args: ['attack'] });
-      expect(geste(partie, 'jetRoll@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
-      expect(geste(partie, 'jetCancel@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
+      expect(geste(partie, 'jetImposerLeResultat@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
+      expect(geste(partie, 'jetValider@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
+      partie.envoyer({ type: 'jetLancer', args: ['attack'] });
+      expect(geste(partie, 'jetLancer@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
+      expect(geste(partie, 'jetAnnuler@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
       expect(geste(partie, 'jetRegler@attack#localisation').ouvert, 'la Localisation se vise avant le jet').toBe(false);
-      expect(geste(partie, 'jetSetForcedRoll@attack')).toEqual({ ouvert: true, raison: null });
-      expect(geste(partie, 'jetConfirm@attack')).toEqual({ ouvert: true, raison: null });
+      expect(geste(partie, 'jetImposerLeResultat@attack')).toEqual({ ouvert: true, raison: null });
+      expect(geste(partie, 'jetValider@attack')).toEqual({ ouvert: true, raison: null });
     } finally {
       partie.fermer();
     }

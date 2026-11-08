@@ -1,9 +1,10 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { servablePostes, serveAtPoste, leaveChef, isPosteManned, applyShipPostes, servingCrewPresent, serveTargetPoste, posteCrewSplit, isCrewQualified } from './monde/shipPostes';
-import { firedWeapon, resolveAttack, buildAiInput } from './combatFlow';
+import { firedWeapon, resolveAttack, buildAiInput, runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
 import { availableAttacks } from './combatManeuvers';
 import { chooseEnemyAction, type EnemyTurnInput } from './monde/ai';
-import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
+import { itemFromTrappingById, recomputeLoadout, unarmedWeapon } from '../engine/items';
+import { addCondition } from '../engine/conditions';
 import { crewedPenalty } from '../engine/crewedWeapon';
 import { seedBattleRng } from './battleRng';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -13,6 +14,7 @@ import type { Combatant, ShipPoste, FireArc } from '../engine/types';
 import type { Scene } from './monde/scene';
 import { initialNet } from './etat'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -25,8 +27,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * (factorisée en `serveChef`). « Quitter la pièce » (`leaveChef`) libère le poste pour un autre.
  *
  * « Tout le monde peut servir une arme de siège » (user) → la disponibilité (`servablePostes`) et la mutation
- * (`serveAtPoste`/`leaveChef`) ne regardent JAMAIS le `kind` ; l'affordance JOUEUR (`battleManPoste`/
- * `battleLeavePoste`) et l'énumération IA (`buildAiInput.servablePostes` → `chooseEnemyAction` candidat
+ * (`serveAtPoste`/`leaveChef`) ne regardent JAMAIS le `kind` ; l'affordance JOUEUR (`servirLePoste`/
+ * `quitterLePoste`) et l'énumération IA (`buildAiInput.servablePostes` → `chooseEnemyAction` candidat
  * `manPoste`) consomment la MÊME source.
  */
 
@@ -62,7 +64,7 @@ const groundScene = (): Scene =>
     layers: [{ z: 0, tiles: new Array(40 * 40).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] }) as unknown as Scene;
 
 const mkGet = (sc: Scene, combatants: Combatant[], facing: Record<string, string> = {}): (() => JeuDuNoyau) =>
-  (() => ({ scene: sc, battle: { combatants, movementUsed: 0 }, facing, gameTime: 0, net: initialNet(), log: () => {} })) as unknown as () => JeuDuNoyau;
+  (() => ({ scene: sc, battle: { combatants, movementUsed: 0 }, facing, gameTime: 0, net: initialNet(), ecrireAuJournal: () => {} })) as unknown as () => JeuDuNoyau;
 
 // ───────────────────────────────────────────────────────────────────────────────────────────────
 // (A) DISPONIBILITÉ kind-agnostique — `servablePostes` voit un poste NON servi pour un combattant adjacent.
@@ -155,9 +157,9 @@ describe('(C) Release — « Quitter la pièce » libère le poste pour un autre
 });
 
 // ───────────────────────────────────────────────────────────────────────────────────────────────
-// (D) AFFORDANCE JOUEUR — `battleManPoste` / `battleLeavePoste` (actions du noyau) sur le héros actif.
+// (D) AFFORDANCE JOUEUR — `servirLePoste` / `quitterLePoste` (actions du noyau) sur le héros actif.
 // ───────────────────────────────────────────────────────────────────────────────────────────────
-describe('(D) Affordance joueur — store `battleManPoste` / `battleLeavePoste`', () => {
+describe('(D) Affordance joueur — store `servirLePoste` / `quitterLePoste`', () => {
   const setup = (mannedByActive = false) => {
     const poste = mkPoste('baliste', mannedByActive ? [] : ['s1']);
     const hero = mkActor('hero', 'hero', { x: 5, y: 6 }, 80);
@@ -174,23 +176,41 @@ describe('(D) Affordance joueur — store `battleManPoste` / `battleLeavePoste`'
 
   it('le héros ACTIF prend la pièce adjacente : mannedPoste, crewIds[0], baliste, SANS coûter l’Action', () => {
     const { poste } = setup();
-    banc.getState().battleManPoste();
+    banc.getState().servirLePoste();
     const st = banc.getState();
     const hero = st.battle!.combatants.find((c) => c.id === 'hero')!;
     expect(hero.mannedPoste!.item.uid).toBe(poste.item.uid);
     expect(poste.crewIds![0]).toBe('hero');
     expect(hero.weapons.some((w) => w.uid === poste.item.uid)).toBe(true);
-    expect(st.battle!.acted).toBe(false); // servir est GRATUIT : on s'installe puis on tire/pousse le même Round
+    expect(st.battle!.acted).toBe(false); // LDB 13 l.106
+  });
+
+  it('Sonné, le héros prend quand même la pièce : son verrou est l’Action (LDB 16 l.125, LDB 13 l.106)', () => {
+    const { poste, hero } = setup();
+    addCondition(hero, 'sonne');
+    banc.getState().servirLePoste();
+    expect(banc.getState().battle!.combatants.find((c) => c.id === 'hero')!.mannedPoste?.item.uid).toBe(poste.item.uid);
   });
 
   it('Quitter libère la pièce : mannedPoste retiré, arme retirée, SANS coûter l’Action', () => {
     const { poste } = setup(true);
-    banc.getState().battleLeavePoste();
+    banc.getState().quitterLePoste();
     const st = banc.getState();
     const hero = st.battle!.combatants.find((c) => c.id === 'hero')!;
     expect(hero.mannedPoste).toBeUndefined();
     expect(hero.weapons.some((w) => w.uid === poste.item.uid)).toBe(false);
-    expect(st.battle!.acted).toBe(false); // quitter est GRATUIT (LDB 13 l.106 : aucun Test → action gratuite)
+    expect(st.battle!.acted).toBe(false); // LDB 13 l.106
+  });
+
+  it('Engagé, le héros prend puis quitte la pièce, toujours sans Action (LDB 13 l.106, arbitrage #3595 du 2026-11-07)', () => {
+    const { poste } = setup();
+    const st0 = banc.getState().battle!;
+    st0.combatants.find((c) => c.id === 'hero')!.engagedWith = ['s1'];
+    banc.getState().servirLePoste();
+    expect(banc.getState().battle!.combatants.find((c) => c.id === 'hero')!.mannedPoste?.item.uid).toBe(poste.item.uid);
+    banc.getState().quitterLePoste();
+    expect(banc.getState().battle!.combatants.find((c) => c.id === 'hero')!.mannedPoste).toBeUndefined();
+    expect(banc.getState().battle!.acted).toBe(false);
   });
 });
 
@@ -231,6 +251,25 @@ describe('(E) Affordance IA — un combattant IA adjacent PEUT servir', () => {
     const action = chooseEnemyAction(input(enemy, [far], { servablePostes: [{ hullId: 'emplacement', posteUid: 'baliste-x' }] }));
     expect(action.kind).toBe('manPoste');
     expect(action).toMatchObject({ hullId: 'emplacement', posteUid: 'baliste-x' });
+  });
+
+  it('le tour de l’IA prend la pièce sans dépenser l’Action, puis re-décide (LDB 13 l.106, arbitrage #3595)', () => {
+    const poste = mkPoste('baliste');
+    const enemy = mkActor('e', 'enemy', { x: 5, y: 6 });
+    enemy.movement = 0; // immobile → aucune approche
+    enemy.weapons = [unarmedWeapon()]; // à mains nues → aucune attaque à portée
+    const hero = mkEnemyTarget('hero', 5, 10);
+    hero.kind = 'hero' as never;
+    hero.weapons = [unarmedWeapon()];
+    const all = [mkEmplacement(poste), enemy, hero];
+    banc.setState({
+      battle: { combatants: all, order: ['e', 'emplacement', 'hero'], turn: 0, round: 1, acted: false, log: [], crewActed: {} } as never,
+      party: [hero], partyPos: { x: 0, y: 0 }, facing: {}, scene: groundScene() as never, gameTime: 0, lightLevel: 1,
+    });
+    clearAiTurnLog();
+    runEnemyAI(banc.getState, banc.setState, 'e');
+    expect(poste.crewIds![0]).toBe('e'); // chef de la pièce
+    expect(aiTurnLog()[aiTurnLog().length - 1]?.action).not.toMatch(/^manPoste/); // l'Action reste à jouer : l'IA a re-décidé
   });
 
   it('sans poste servable, le même ennemi immobile/désarmé passe la main (pas de candidat fantôme)', () => {
@@ -332,7 +371,7 @@ describe('(G) Token — `serveTargetPoste` + clic-pièce rejoignent l’équipe 
     expect(serveTargetPoste(hero, hull, all)).toBeUndefined(); // sert déjà une pièce
   });
 
-  it('battleManPoste({hullId,posteUid}) sert la pièce CIBLÉE précise (clic), pas juste la première', () => {
+  it('servirLePoste({hullId,posteUid}) sert la pièce CIBLÉE précise (clic), pas juste la première', () => {
     const posteA = mkPoste('baliste');
     const posteB = mkPoste('baliste');
     const hullA = mkEmplacement(posteA, { x: 5, y: 5 });
@@ -345,14 +384,14 @@ describe('(G) Token — `serveTargetPoste` + clic-pièce rejoignent l’équipe 
       party: [hero], facing: {}, scene: groundScene() as never,
       pendingCleave: null, pendingDualStrike: null, pendingCast: null,
     });
-    banc.getState().battleManPoste({ hullId: 'hullB', posteUid: posteB.item.uid });
+    banc.getState().servirLePoste({ hullId: 'hullB', posteUid: posteB.item.uid });
     const h = banc.getState().battle!.combatants.find((c) => c.id === 'hero')!;
     expect(h.mannedPoste!.item.uid).toBe(posteB.item.uid); // c'est bien la pièce B (ciblée) qui est servie
     expect(posteB.crewIds![0]).toBe('hero');
     expect(posteA.crewIds ?? []).not.toContain('hero');
   });
 
-  it('battleClickEntity sur la pièce sert le héros actif (clic-token = action « Servir », via ATTACK_MODE)', () => {
+  it('cliquerLaCase sur la pièce sert le héros actif (clic-token = action « Servir », via ATTACK_MODE)', () => {
     const poste = mkPoste('baliste');
     const hull = mkEmplacement(poste, { x: 5, y: 5 });
     const hero = mkActor('hero', 'hero', { x: 5, y: 6 }, 80);
@@ -361,7 +400,7 @@ describe('(G) Token — `serveTargetPoste` + clic-pièce rejoignent l’équipe 
       party: [hero], facing: {}, scene: groundScene() as never,
       pendingCleave: null, pendingDualStrike: null, pendingCast: null, pendingAttack: null,
     });
-    banc.getState().battleClickEntity('emplacement');
+    cliquerSurLeCombattant(banc.getState, 'emplacement');
     const h = banc.getState().battle!.combatants.find((c) => c.id === 'hero')!;
     expect(h.mannedPoste!.item.uid).toBe(poste.item.uid); // le clic-token a servi la pièce
     expect(poste.crewIds![0]).toBe('hero');

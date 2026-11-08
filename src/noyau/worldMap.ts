@@ -20,14 +20,15 @@ import { garanti } from '../lib/garanti';
 import { t } from '../i18n';
 import { normalizeScene } from './monde/scene';
 import type { TravelMode, PalierDeBillet } from '../engine/travel';
-import { findCargoEntryById, isEchangeable, type PortProfile } from '../engine/seaVoyage';
-import { findLandCargoEntryById, type LandMarketProfile } from '../engine/landCargo';
+import { isEchangeable, type PortProfile } from '../engine/seaVoyage';
+import { findCargoEntryById } from '../engine/cargo';
+import { type LandMarketProfile } from '../engine/landCargo';
 import { isTradeHubEntry } from '../engine/cargo';
 import type { RestPlaces } from './restFlow';
 import { evalCondition, type Condition, type ConditionCtx } from '../engine/flowCore';
 import { findNavalPortById, findLieuServiceById, coreAxisIds, semencesDeScene } from '../data';
 
-/** Lieu posé sur la carte. Être dans `scene` = être à ce lieu ; y arriver → transition vers elle. */
+/** Lieu posé sur la carte. On y arrive par un trajet (`arriverAuLieu`) ; « Explorer » entre dans sa `scene`. */
 export interface MapPlace {
   id: string;
   label: string;
@@ -62,7 +63,7 @@ export interface MapPlace {
    *  coordonnées PLAN-LOCALES 0-100 (indépendantes de `pos`, qui reste la position du lieu sur la
    *  carte du MONDE). Absent/vide ⇒ le lieu n'offre pas d'onglet Plan. */
   poi?: PlacePoi[];
-  /** Bande d'ambiance du hub de ce lieu (id du registre `src/ui/backdrops`) — surcharge le défaut
+  /** Bande d'ambiance du hub de ce lieu (id du registre des fonds de l'hôte) — surcharge le défaut
    *  éventuel porté par le service (`lieux-services.json`, ex. auberge). Éditable dans `WorldMapEditor`. */
   backdrop?: string;
   /** Le lieu EXISTE-t-il sur la carte (algèbre `Condition`, cf. `evalCondition`) — axe NŒUD du gating
@@ -74,7 +75,7 @@ export interface MapPlace {
 }
 
 /** Un POI de PLAN (#345 phase 5) : cible EXCLUSIVE `sceneId` (transition vers une scène du projet,
- *  `transitionTo`) OU `serviceKind` (`id` d'un service RÉSOLU du lieu — `placeServices`, dont le
+ *  `quitterLaScene`) OU `serviceKind` (`id` d'un service RÉSOLU du lieu — `placeServices`, dont le
  *  port/marché AUTOMATIQUES `'port'`/`'marche'` — le MÊME panneau de service que l'onglet Services),
  *  jamais les deux. `id` STABLE (référencé par l'éditeur et les tests, `validateScene`) ; `label` est
  *  le SEUL champ d'affichage (doctrine ids internes, AGENTS.md). */
@@ -283,34 +284,19 @@ export function portVersDepot(port: MapPlace['port']): MapPlace['port'] {
   return { ref: port.ref, ...surcharges, ...(port.lighthouse !== undefined ? { lighthouse: port.lighthouse } : {}) } as MapPlace['port'];
 }
 
-/** Lieu correspondant à une scène (être dans la scène = être à ce lieu). */
+/** Le lieu dont `sceneId` est la scène. */
 export function placeOfScene(map: WorldMap | null | undefined, sceneId: string | undefined): MapPlace | undefined {
   if (!map || !sceneId) return undefined;
   return map.places.find((p) => p.scene === sceneId);
-}
-
-/** Lieu courant du groupe sur la carte du monde : la place dont la scène EST la scène courante (« Être
- *  dans `scene` = être à ce lieu »). `null` hors carte. SOURCE UNIQUE des gestes qui demandent « où est le
- *  groupe ? » (Activités à gate `where`, possessions laissées). */
-export function currentPlaceId(s: { scene: { id: string } | null; worldMap: WorldMap | null }): string | null {
-  return placeOfScene(s.worldMap, s.scene?.id)?.id ?? null;
 }
 
 export function placeById(map: WorldMap, id: string): MapPlace | undefined {
   return map.places.find((p) => p.id === id);
 }
 
-/** Le groupe est-il À UN LIEU de la carte (hub de ville ouvrable, #343) : en exploration, hors voyage
- *  en cours, sur une scène qui EST un lieu. Retourne ce lieu (sinon `undefined` — route, camp sauvage,
- *  combat…). SOURCE UNIQUE de la porte du hub, partagée par `CampaignView` et son test. */
-export function atLocationPlace(args: {
-  mode: string;
-  travelPlan: unknown;
-  worldMap: WorldMap | null | undefined;
-  sceneId: string | undefined;
-}): MapPlace | undefined {
-  if (args.mode !== 'exploration' || args.travelPlan || !args.worldMap) return undefined;
-  return placeOfScene(args.worldMap, args.sceneId);
+/** Le lieu où se tient le groupe (`lieu`), `undefined` en route ou hors carte. */
+export function lieuDuGroupe(s: { lieu: string | null; worldMap: WorldMap | null }): MapPlace | undefined {
+  return s.lieu && s.worldMap ? placeById(s.worldMap, s.lieu) : undefined;
 }
 
 /** Catégorie d'un service résolu — routage du hub de lieu (#343). `port`/`marche`/`auberge` ont un
@@ -333,10 +319,10 @@ export interface ResolvedPlaceService {
   rest?: RestPlaces;
   /** Réplique de boniment (catalogue `lieux-services.json`) du bandeau d'interlocuteur statique. */
   hostLine?: string;
-  /** Bande d'ambiance par défaut (catalogue `lieux-services.json`, id du registre `src/ui/backdrops`). */
+  /** Bande d'ambiance par défaut (catalogue `lieux-services.json`, id du registre des fonds de l'hôte). */
   backdrop?: string;
   /** Archétype marchand (catalogue `lieux-services.json`, ex. `armurier` pour le forgeron) — porte vers
-   *  le système marchand EXISTANT (`openPlaceMerchant`, #369), aucun système neuf. */
+   *  le système marchand EXISTANT (`ouvrirLaBoutique`, #369), aucun système neuf. */
   merchantArchetype?: string;
   /** Écran plein-champ EXISTANT vers lequel le service porte (catalogue `lieux-services.json`) :
    *  `port` = l'écran de port (onglet Chantier par défaut), sous garde de navire de campagne. */
@@ -445,11 +431,10 @@ export function lieuAUnPlan(place: MapPlace): boolean {
 /** Colonne Produits/Production d'un profil commercial, TERRESTRE ou MARITIME (MSRC 13 ; MDG 15 l.321) :
  *  la plaque tournante (entrée marqueur `tradeHub`) et les seules MARCHANDISES, en libellés. PUR. */
 export function produitsDuProfil(production: readonly string[] | undefined): { plaque: string | null; marchandises: string[] } {
-  const entree = (id: string) => findLandCargoEntryById(id) ?? findCargoEntryById(id);
   const ids = production ?? [];
   return {
-    plaque: ids.map(entree).find(isTradeHubEntry)?.label ?? null,
-    marchandises: ids.filter((id) => { const e = entree(id); return !e || isEchangeable(e); }).map((id) => entree(id)?.label ?? id),
+    plaque: ids.map(findCargoEntryById).find(isTradeHubEntry)?.label ?? null,
+    marchandises: ids.filter((id) => { const e = findCargoEntryById(id); return !e || isEchangeable(e); }).map((id) => findCargoEntryById(id)?.label ?? id),
   };
 }
 
@@ -459,7 +444,7 @@ export function produitsDuProfil(production: readonly string[] | undefined): { p
  *  absent : aucune évaluation, toutes les routes reliées sont rendues.
  *
  *  Lecteur du VOYAGE : le moteur ne propose jamais un trajet fermé, et n'en démarre jamais un —
- *  `startTravel` (`travelFlow.ts`) réévalue `when` au départ, au même niveau que le sens unique `from`.
+ *  `partirEnVoyage` (`travelFlow.ts`) réévalue `when` au départ, au même niveau que le sens unique `from`.
  *  La VUE lit `routesEtat`, qui rend aussi les trajets fermés — le joueur doit VOIR qu'il ne peut plus
  *  y aller (et pourquoi). */
 export function routesFrom(map: WorldMap, placeId: string, ctx?: ConditionCtx): MapRoute[] {
@@ -510,6 +495,19 @@ export function otherEnd(route: MapRoute, placeId: string): string {
 }
 
 // ── Anti-chevauchement des médaillons (rendu seulement — n'affecte JAMAIS `pos`) ─────────────
+/** Le cadre de la carte, en unités du viewBox. */
+export const CADRE = { w: 100, h: 64 } as const;
+
+/** Écart mini visé entre deux médaillons (unités viewBox) : un médaillon et son cartouche s'y lisent sans se coller. */
+const ECART_DES_MEDAILLONS = 8;
+
+/** La position de rendu de chaque lieu de `places` sur la carte `map`, en unités du viewBox (x 0..100, y 0..64) : à
+ *  son `pos` exact sur une vraie carte de fond (`background`), écartée de ses voisins sinon (`declutterPositions`). */
+export function positionsDeRendu(map: WorldMap, places: readonly MapPlace[]): Map<string, { x: number; y: number }> {
+  const pts = places.map((p) => ({ id: p.id, x: p.pos.x, y: p.pos.y * 0.64 }));
+  return map.background ? new Map(pts.map((p) => [p.id, { x: p.x, y: p.y }])) : declutterPositions(pts, ECART_DES_MEDAILLONS, 80);
+}
+
 /** Point de rendu d'un lieu : id + position en unités du viewBox de la carte (x 0..100, y 0..64). */
 export interface RenderPoint { id: string; x: number; y: number }
 
@@ -540,7 +538,7 @@ export function declutterPositions(
   points: RenderPoint[],
   minDist: number,
   iterations = 60,
-  frame: { w: number; h: number } = { w: 100, h: 64 },
+  frame: { w: number; h: number } = CADRE,
 ): Map<string, { x: number; y: number }> {
   // Copie de travail (on ne mute pas l'entrée) ; l'ordre est celui de `points` → déterministe.
   const pts = points.map((p) => ({ id: p.id, x: p.x, y: p.y }));
@@ -712,8 +710,7 @@ export function messageDeRefusJoueur(geste: GesteDuJoueur): string {
 }
 
 /** Message à afficher au JOUEUR quand une campagne de SA bibliothèque ne passe plus la porte
- *  `parseProject` au moment du `geste` — même frontière que `playerImportError`
- *  (`ui/CampaignLibraryScreen.tsx`). SOURCE UNIQUE des écrans qui la jouent ou l'exportent. */
+ *  `parseProject` au moment du `geste` — même frontière que `playerImportError`. SOURCE UNIQUE des écrans qui la jouent ou l'exportent. */
 export function playerEntryError(err: unknown, geste: GesteDuJoueur): string {
   return refusJoueur(
     err,
@@ -791,4 +788,9 @@ export function projetVersDepot<T extends { worldMap?: WorldMap }>(doc: T): T {
   const carte = disque.worldMap;
   if (!carte) return disque;
   return { ...disque, worldMap: { ...carte, places: carte.places.map((p) => (p.port ? { ...p, port: portVersDepot(p.port) } : p)) } };
+}
+
+/** Le TEXTE du fichier commité d'un document de projet : sa forme dépôt (`projetVersDepot`), au format du dépôt. */
+export function texteDuDepot<T extends { worldMap?: WorldMap }>(doc: T): string {
+  return `${JSON.stringify(projetVersDepot(doc), null, 1)}\n`;
 }

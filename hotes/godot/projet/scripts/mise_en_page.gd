@@ -1,11 +1,11 @@
-## La mise en page de l'hôte : la case du plateau vers le monde et retour, le centre du plateau, le quart de tour de la
+## La mise en page de l'hôte : la case du plateau vers le monde, le centre du plateau, le quart de tour de la
 ## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
 ## pas de la marche de l'atelier, l'orbite de sa caméra et son cadrage, le gabarit d'une base posé sur ses os, ses pieds
 ## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, le coin d'une bulle au-dessus
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
-## d'une arête (mur ou porte) sur le côté de sa case, l'échelle métrique d'un modèle sur le plateau et la hauteur d'un
-## point du corps à son gabarit. Seul script où l'arithmétique et la mesure sont permises
+## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
+## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan et le coin de ce qui se pose sous lui. Seul script où l'arithmétique et la mesure sont permises
 ## (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des fonctions statiques, chacune typée et sur au
 ## plus un vecteur, sans état.
 class_name MiseEnPage
@@ -13,6 +13,10 @@ extends RefCounted
 
 const MS_PAR_SECONDE := 1000.0
 const DEMI_CASE := 0.5
+## L'écart du calque de référence au sol de son plan, en unités du plateau.
+const DECALAGE_DU_CALQUE := 0.01
+## Le côté, en mètres, du motif d'une texture du sol posée sur le volume du monde.
+const METRES_PAR_MOTIF := 2.0
 const QUART_DE_TOUR := PI / 2.0
 const PAS_DE_ZOOM := 1.15
 const TOLERANCE_D_IMAGE := 0.001
@@ -25,12 +29,26 @@ const RADIANS_PAR_PIXEL := 0.005
 ## Le tangage de l'orbite, borné entre la vue plongeante et la vue rasante au-dessus du sol.
 const TANGAGE_MINIMAL := -1.2
 const TANGAGE_MAXIMAL := 0.2
+## Le tangage de la caméra au regard `plateau`, à la verticale du plateau.
+const TANGAGE_DU_PLATEAU := -PI / 2.0
+## La plus longue image de marche (s) que compte l'immersion.
+const DUREE_D_UNE_IMAGE_DE_MARCHE := 0.1
+## Le tangage de l'œil au regard `immersion`, borné de part et d'autre de l'horizon, en deçà de la verticale.
+const TANGAGE_DE_L_OEIL := 1.4
+## Le lacet d'une caméra qui regarde vers chaque cap (`Dir8`) du plateau : le nord vers -Z, l'ouest vers -X.
+const LACETS_DES_CAPS := {N = 0.0, NO = PI / 4.0, O = PI / 2.0, SO = 3.0 * PI / 4.0, S = PI, SE = -3.0 * PI / 4.0, E = -PI / 2.0, NE = -PI / 4.0}
 ## L'écart, en pixels, entre une bulle et le point de l'écran qu'elle désigne.
 const ECART_DE_BULLE := 12.0
 ## La largeur, en pixels, au-delà de laquelle le texte d'une bulle se replie au mot (`Bulle`).
 const LARGEUR_DE_BULLE := 420.0
-## La hauteur, au-dessus du sol, du nom d'une entité de la scène.
+## La hauteur, au-dessus du sol de sa case, du nom d'une entité de la scène.
 const HAUTEUR_DU_NOM := 1.2
+## La marge, en pixels, entre le bord d'un plan et ses points.
+const MARGE_DU_PLAN := 28.0
+## Le rayon, en pixels, d'un point du plan.
+const RAYON_DU_POINT := 7.0
+## L'écart, en pixels, entre un point du plan et ce qui se pose sous lui.
+const ECART_SOUS_LE_POINT := 2.0
 
 
 ## La largeur du texte d'une bulle qui, sur une ligne, en prendrait `largeur` : la sienne, au pixel supérieur, au plus
@@ -44,14 +62,21 @@ static func diametre(rayon: float) -> float:
 	return 2.0 * rayon
 
 
-## Le point, au-dessus du centre de la case `case`, où se dit le nom de ce qui l'occupe.
-static func au_dessus_de_la_case(case: Vector2i) -> Vector3:
-	return Vector3(case.x + DEMI_CASE, HAUTEUR_DU_NOM, case.y + DEMI_CASE)
+## Le point, au-dessus du centre de la case `case` dont le sol est à `sol`, où se dit le nom de ce qui l'occupe.
+static func au_dessus_de_la_case(case: Vector2i, sol: float) -> Vector3:
+	return Vector3(case.x + DEMI_CASE, sol + HAUTEUR_DU_NOM, case.y + DEMI_CASE)
 
 
-## Le centre d'une arête de `hauteur` dont le milieu est `milieu`, en coins de grille (`plateauDeLaScene`).
-static func centre_d_arete(milieu: Vector2, hauteur: float) -> Vector3:
-	return Vector3(milieu.x + DEMI_CASE, hauteur / 2.0, milieu.y + DEMI_CASE)
+## Le centre d'une arête de `hauteur` (unités du plateau) debout à son pied `pied` (mètres, `areteDessinee`) sur un
+## plateau de `metres_par_case` mètres par case, dont le milieu est `milieu`, en coins de grille.
+static func centre_d_arete(milieu: Vector2, pied: float, metres_par_case: float, hauteur: float) -> Vector3:
+	return Vector3(milieu.x + DEMI_CASE, hauteur_au_plateau(pied, metres_par_case) + hauteur / 2.0, milieu.y + DEMI_CASE)
+
+
+## Le cran de caméra (`Rot` de `src/geometry/iso.ts`, 0 à 3) d'une caméra dont l'arrière (`global_basis.z`) est
+## `arriere` : 0 au sud-est du plateau, puis un cran par quart de tour vers le sud-ouest, le nord-ouest et le nord-est.
+static func rotation_iso(arriere: Vector3) -> float:
+	return fposmod(roundf((atan2(arriere.z, arriere.x) - QUART_DE_TOUR / 2.0) / QUART_DE_TOUR), 4.0)
 
 
 ## Le lacet d'une arête qui court selon `sens` sur le plateau.
@@ -64,9 +89,26 @@ static func longueur_d_arete(sens: Vector2) -> float:
 	return sens.length()
 
 
+## L'échelle d'une pièce du kit des arêtes (longue de 1, haute de 1, épaisse en mètres : `hotes/godot/asset/kit.ts`)
+## posée sur une arête qui court selon `sens`, haute de `hauteur` mètres, sur un plateau de `metres_par_case`.
+static func echelle_de_piece(sens: Vector2, hauteur: float, metres_par_case: float) -> Vector3:
+	return Vector3(longueur_d_arete(sens), hauteur_au_plateau(hauteur, metres_par_case), echelle_metrique(metres_par_case))
+
+
 ## L'échelle qui porte un modèle mesuré en mètres sur un plateau de `metres_par_case` mètres par case.
 static func echelle_metrique(metres_par_case: float) -> float:
 	return 1.0 / metres_par_case
+
+
+## Une hauteur de `hauteur` mètres sur le plateau d'une scène de `metres_par_case`.
+static func hauteur_au_plateau(hauteur: float, metres_par_case: float) -> float:
+	return hauteur * echelle_metrique(metres_par_case)
+
+
+## La hauteur du calque de référence posé sur le plan `plan` (mètres), décalé de `decalage` : juste au-dessus du sol
+## qu'il recouvre, ou juste dessous.
+static func hauteur_du_calque(plan: float, metres_par_case: float, decalage: float) -> float:
+	return hauteur_au_plateau(plan, metres_par_case) + decalage
 
 
 ## La hauteur `hauteur` d'un point du corps neutre portée au gabarit dont le sommet des os est à `sommet`, celui du corps
@@ -75,9 +117,30 @@ static func hauteur_au_gabarit(hauteur: float, sommet: float, sommet_neutre: flo
 	return hauteur * echelle_de_cadrage(sommet, sommet_neutre)
 
 
-## Le centre de la case `case` sur le sol (y = 0).
-static func centre_de_case(case: Vector2i) -> Vector3:
-	return Vector3(case.x + DEMI_CASE, 0.0, case.y + DEMI_CASE)
+## Le centre de la case `case` sur son sol, à `sol` au-dessus du plan du plateau.
+static func centre_de_case(case: Vector2i, sol: float) -> Vector3:
+	return Vector3(case.x + DEMI_CASE, sol, case.y + DEMI_CASE)
+
+
+## Le point du plateau au-dessus du point (`x`, `y`) de la carte, en cases continues (une case centrée sur l'entier), à
+## `hauteur`.
+static func point_de_la_carte(x: float, y: float, hauteur: float) -> Vector3:
+	return Vector3(x + DEMI_CASE, hauteur, y + DEMI_CASE)
+
+
+## Le sens où éclaire une lumière directionnelle qui vient de `direction` (vers la source).
+static func sens_d_eclairage(direction: Vector3) -> Vector3:
+	return -direction
+
+
+## La profondeur, depuis la caméra, de ce qui est à `cases` au-delà du point qu'elle vise à `distance`.
+static func profondeur_de_brume(distance: float, cases: float) -> float:
+	return distance + cases
+
+
+## L'énergie `energie` d'une flamme qui vacille de la part `amplitude` à `hz` hertz, à l'instant `secondes`.
+static func energie_vacillante(energie: float, amplitude: float, hz: float, secondes: float) -> float:
+	return energie * (1.0 + amplitude * sin(TAU * hz * secondes))
 
 
 ## Le centre du sol d'un plateau de `taille` cases.
@@ -85,9 +148,34 @@ static func centre_du_plateau(taille: Vector2i) -> Vector3:
 	return Vector3(taille.x / 2.0, 0.0, taille.y / 2.0)
 
 
-## La case qui porte le point `sol` du sol.
-static func case_du_point(sol: Vector3) -> Vector2i:
-	return Vector2i(floori(sol.x), floori(sol.z))
+## Le point de la carte, en cases continues (une case centrée sur l'entier), sous le lieu `lieu` du plateau : celui que
+## l'éditeur de carte désigne (`PointDeCarte.f`, `src/noyau/edition/pointeur.ts`).
+static func point_de_carte_du_lieu(lieu: Vector3) -> Vector2:
+	return Vector2(lieu.x - DEMI_CASE, lieu.z - DEMI_CASE)
+
+
+## Le lacet de la caméra au regard `plateau` sous le lacet `lacet` du regard `tactique`, en biais d'un demi-quart de tour :
+## les bords du plateau droits à l'écran.
+static func lacet_du_plateau(lacet: float) -> float:
+	return lacet - QUART_DE_TOUR / 2.0
+
+
+## L'œil à `oeil` mètres au-dessus du sol `sol`, sur un plateau de `metres_par_case` mètres par case.
+static func oeil_sur(sol: Vector3, oeil: float, metres_par_case: float) -> Vector3:
+	return Vector3(sol.x, sol.y + hauteur_au_plateau(oeil, metres_par_case), sol.z)
+
+
+## Les mètres d'une image de marche de `duree` secondes à `vitesse` m/s, l'image bornée à `DUREE_D_UNE_IMAGE_DE_MARCHE` :
+## une image lente ne fait jamais sauter une case.
+static func metres_de_marche(vitesse: float, duree: float) -> float:
+	return vitesse * minf(duree, DUREE_D_UNE_IMAGE_DE_MARCHE)
+
+
+## Le lieu `lieu` après `metres` mètres de marche, sur un plateau de `metres_par_case` mètres par case : vers l'entrée de
+## force `gauche`, `droite`, `avant` et `arriere` par action, bornée à l'unité, tournée du lacet `lacet`.
+static func lieu_apres_la_marche(lieu: Vector3, gauche: float, droite: float, avant: float, arriere: float, lacet: float, metres: float, metres_par_case: float) -> Vector3:
+	var direction := Vector3(droite - gauche, 0.0, arriere - avant).limit_length(1.0).rotated(Vector3.UP, lacet)
+	return lieu + direction * hauteur_au_plateau(metres, metres_par_case)
 
 
 ## Le lacet de la caméra tourné d'un quart de tour dans le sens `sens` (1 ou -1).
@@ -142,9 +230,9 @@ static func lacet_glisse(lacet: float, pixels: float) -> float:
 	return lacet - pixels * RADIANS_PAR_PIXEL
 
 
-## Le tangage de l'orbite tourné par un glissé de `pixels` à la souris, borné à [`TANGAGE_MINIMAL`, `TANGAGE_MAXIMAL`].
-static func tangage_glisse(tangage: float, pixels: float) -> float:
-	return clampf(tangage - pixels * RADIANS_PAR_PIXEL, TANGAGE_MINIMAL, TANGAGE_MAXIMAL)
+## Le tangage tourné par un glissé de `pixels` à la souris, borné à [`minimum`, `maximum`].
+static func tangage_glisse(tangage: float, pixels: float, minimum: float, maximum: float) -> float:
+	return clampf(tangage - pixels * RADIANS_PAR_PIXEL, minimum, maximum)
 
 
 ## L'échelle de pose `echelle` de l'os `racine` du gabarit à l'échelle uniforme `facteur` (`CONTRAT.md`, « Gabarit d'une
@@ -235,3 +323,23 @@ static func origine_de_rangement(emplacement: Basis, point: Vector3, arriere: fl
 ## Le coin d'une bulle de `largeur` sur `hauteur`, centrée au-dessus du point `point` de l'écran.
 static func bulle_au_dessus(point: Vector2, largeur: float, hauteur: float) -> Vector2:
 	return Vector2(point.x - largeur / 2.0, point.y - hauteur - ECART_DE_BULLE)
+
+
+## L'échelle de projection d'une texture du sol dans le repère du volume, en mètres : un motif tous les
+## `METRES_PAR_MOTIF`.
+static func echelle_de_motif() -> Vector3:
+	return Vector3.ONE / METRES_PAR_MOTIF
+
+
+## Le point d'un plan de `taille` pixels où se pose un point placé en (`x`, `y`) de son cadre (0..1 sur chaque axe),
+## la marge du plan autour.
+static func point_du_plan(taille: Vector2, x: float, y: float) -> Vector2:
+	return Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN) + Vector2(x, y) * (taille - Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN) * 2.0)
+
+
+## Le coin d'un contrôle de `largeur` sur `hauteur` centré sous le point du plan `centre`, gardé dans le plan de
+## `largeur_du_plan` sur `hauteur_du_plan`.
+static func sous_le_point(centre: Vector2, largeur: float, hauteur: float, largeur_du_plan: float, hauteur_du_plan: float) -> Vector2:
+	return Vector2(
+		clampf(centre.x - largeur / 2.0, 0.0, maxf(0.0, largeur_du_plan - largeur)),
+		clampf(centre.y + RAYON_DU_POINT + ECART_SOUS_LE_POINT, 0.0, maxf(0.0, hauteur_du_plan - hauteur)))

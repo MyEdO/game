@@ -22,6 +22,7 @@ import type { CascadeStep } from './pendings';
 import { OPS_DIFFEREES } from './combatEffects';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -57,12 +58,12 @@ const live = (id: string) => banc.getState().battle!.combatants.find((c) => c.id
 
 /** Un combat de fixture avec N héros du groupe. `ownership` : héros TENUS par le siège INVITÉ (1). */
 function combat(nb: number, seed = 7, invites: number[] = []) {
-  banc.getState().seedRng(seed);
+  banc.getState().ensemencerLeTirage(seed);
   const heros = Array.from({ length: nb }, (_, i) =>
     createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: seed + i }));
   banc.setState({ party: heros });
-  banc.getState().startScene(structuredClone(testScene()));
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(structuredClone(testScene()));
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
@@ -256,7 +257,7 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
         },
       },
     } as never);
-    banc.getState().jetConfirm('flee');
+    banc.getState().jetValider('flee');
 
     const st = parKind('fleeMove')!;
     expect(st, 'la fuite a son étape de REPRISE').toBeTruthy();
@@ -333,8 +334,8 @@ describe('#1262 lot 5b — HÔTES du store : le pending d’abord, le mint ensui
     const b = banc.getState().battle!;
     banc.setState({ battle: { ...b, turn: b.order.indexOf(hero.id), action: null, movementUsed: 0, acted: false } } as never);
 
-    banc.getState().battleSelectAttack('pietinement');
-    banc.getState().battleClickEntity(cible.id, { confirm: true });
+    banc.getState().armerLAttaque('pietinement');
+    cliquerSurLeCombattant(banc.getState, cible.id, { confirm: true });
 
     expect(banc.getState().pendingAttack?.freeKind, 'la donnée que la fenêtre rend').toBe('pietinement');
     const st = steps().find((s) => s.jet === 'attack')!;
@@ -364,7 +365,7 @@ describe('#1262 lot 5b — HÔTES du store : le pending d’abord, le mint ensui
     expect(avant.groupOwner, 'à l’ouverture, la fenêtre est celle du seul fuyard').toBeUndefined();
     expect(modalOwnerOf(banc.getState())).toBe(fuyard.id);
 
-    banc.getState().disengageFlee();
+    banc.getState().jetRegler('disengage', 'fuir', true);
 
     const apres = steps()[banc.getState().pendingCascade!.cursor] as unknown as Record<string, unknown>;
     expect(apres.groupOwner, 'deux acteurs JOUÉS → moment partagé, posé par le mint').toBe(true);

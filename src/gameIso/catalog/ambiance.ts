@@ -4,38 +4,13 @@
  *  les MÊMES defs SVG assemblées ici —
  *  plus aucune de ces couleurs en dur dans un renderer. */
 import { ambiance } from '../../data';
-import { ao, luminanceHex, spec } from '../shade';
+import { ao, luminanceHex, spec } from '../../lib/ombrage';
 import type { Dims } from '../../geometry/iso';
-import type { AmbianceDef, RadialVeilDef, WeatherBrumeDef, WeatherFxDef, WeatherPrecipDef } from '../../data/ambiance.types';
-import { isIndoor, type Scene } from '../../noyau/monde/scene';
+import type { AmbianceDef, RadialVeilDef } from '../../data/ambiance.types';
+import { sceneWeatherFx } from '../../noyau/monde/meteo';
+import type { Scene } from '../../noyau/monde/scene';
 
 export const AMBIANCE: AmbianceDef = ambiance;
-
-/** PORTE UNIQUE de la météo à l'écran (#1176 P2-6) : la scène a-t-elle une météo à MONTRER, et
- *  laquelle ? Une scène d'INTÉRIEUR n'en montre aucune. C'est le semis de particules du monde
- *  volumique (`backends/webgl/weatherParticles.ts`) qui la lit. Le verdict d'intérieur lui-même vient
- *  de `isIndoor` (`noyau/monde/scene.ts`), la porte de toutes les vues.
- *  C'est le REGISTRE qui décide de ce qui se montre : un id sans entrée au catalogue — `clair`
- *  compris — ne montre rien. */
-export function sceneWeatherFx(scene: Pick<Scene, 'weather' | 'ambiance'>): WeatherFxDef | null {
-  if (isIndoor(scene)) return null;
-  const id = scene.weather;
-  if (!id) return null;
-  const registre: Partial<Record<string, WeatherFxDef>> = AMBIANCE.iso.weather;
-  return registre[id] ?? null;
-}
-
-/** La PRÉCIPITATION monde de la scène — ce qui tombe, ou `null`. Même porte, lue par la voie
- *  volumique : un type sans `precip` en donnée (le brouillard) ne fait tomber aucune particule. */
-export function scenePrecip(scene: Pick<Scene, 'weather' | 'ambiance'>): WeatherPrecipDef | null {
-  return sceneWeatherFx(scene)?.precip ?? null;
-}
-
-/** La BRUME monde de la scène — les nappes à poser, ou `null` (#1247). Même porte que le semis : un
- *  type sans `brume` en donnée (la pluie, la neige) n'en pose aucune. */
-export function sceneBrume(scene: Pick<Scene, 'weather' | 'ambiance'>): WeatherBrumeDef | null {
-  return sceneWeatherFx(scene)?.brume ?? null;
-}
 
 /** Ce que la météo fait à la LUMIÈRE de la scène (#1247). */
 export interface WeatherLight {

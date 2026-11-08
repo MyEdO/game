@@ -13,7 +13,7 @@
  * citation est portée par la spec/table qui l'emploie ; ce qui n'est pas
  * modélisable reste une op `narrative` (journalisée, arbitrage MJ, rien d'inventé).
  */
-import { RNG, parseDiceRequired, roll, type DiceSpec, rollDice, totalDuDe } from './dice';
+import { RNG, roll, type DiceSpec, type EffetSigne, rollDice, totalDuDe } from './dice';
 import { bonus, effectiveChar, effectiveArmourAt, blessuresReconciliees } from './characteristics';
 import { LOCALISATIONS_DE_COUP } from './localisations';
 import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, aUnVerrouLevePar, syncDerivedConditions, removeActiveEffects, pionsRetirables } from './conditions';
@@ -24,19 +24,21 @@ import { groupMatch, groupesDe } from './groups';
 import { findTableEntry } from './tables';
 import { applyFall } from './movement';
 import { hullShipSize } from './shipBuild';
-import { findFallTable } from '../data/shipCriticals';
-import { ALL_MAGIC, type CastPenalty } from './types';
-import { refCouvre, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
+import { findFallTable, type ShipCritKey } from '../data/shipCriticals';
+import type { SeaWeather } from './seaWeather';
+import { ALL_MAGIC, type CastPenalty, type Difficulty } from './types';
+import { refCouvre, type Id, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { contexteDeTestSchema, type NatureDInfluence, type SourceRef } from '../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import type { PorteeDAssaut, TirageDeCible } from '../data/schemas/grammaire/mecanique';
 import { bypassedAP } from './armourBypass';
 import { dernierIndex, grantTrait, grantPsychTrait, memeTraitPsy, removeGrantedTrait, sameInstance, traitsAccordesPar } from './grantedTraits';
-import { caracDuCombattant, evaluer, slBonus, valeurSansTirage } from './formule';
+import { caracDuCombattant, evaluer, slBonus, valeurSansTirage, type Referent } from './formule';
 import { traitsOctroyes } from './traitOctroye';
 import { rollMutation } from '../data/mutations';
 import { attachMutation, easeExposure, corruptionEaseSteps } from './corruption';
-import { findEffectTableById } from '../data/effectTables';
+import { effectTableDie, findEffectTableById } from '../data/effectTables';
+import { deDeTirageDe } from '../data/rangees';
 import { peutEtreEmpoigne, setGrapple } from './grapple'; // cycle runtime (grapple→structures→…→conditions→ops) : appelés à l'application, jamais à l'init du module
 import type { CodexTarget } from './ruleRefs'; // module FEUILLE (aucun import) : type de l'identité de source portée par PassiveMod
 import { cureDiseases, blessDiseaseDuration, maladieABenir, aucuneMaladieABenir } from './rest';
@@ -64,7 +66,7 @@ import { gainAdvantage as gainAvantage, avantageApresGain, avantageApresPerte } 
 // Type-only (effacé à la compilation) : la FORME unifiée des effets « à la touche » d'une arme
 // enchantée/invoquée = un `TriggeredEffect` (feuille EffectOp — noyau engine pur, jamais de transition),
 // dispatché par `noyau/triggeredEffects` (pas ici).
-import type { TriggeredEffect, FlowTest } from './flowCore';
+import type { TriggeredEffect, FlowTest, Flow } from './flowCore';
 import {
   ActiveEffect,
   EffectSource,
@@ -103,7 +105,14 @@ export type TermeDeJet =
    *  un socle). Mendier : « un nombre de sous de cuivre égal à votre Bonus de Sociabilité x DR par heure »
    *  (LDB 09 l.97) s'écrit `{times:{of:{times:{of:{bonusOf:'sociabilite'},factor:{sl:true}}},factor:{rule:…}}}`.
    *  Hors contexte de Test (aucun `ctx.sl`) : 0, jamais NaN. */
-  | { sl: true };
+  | { sl: true }
+  | TermeLie;
+
+/** VALEUR LIÉE dans la portée d'un Flow : `{tire, de}` la DÉFINIT, `{tire}` la RELIT. Toutes sont tirées
+ *  UNE fois au départ du Flow et substituées par leur valeur (`lierLesTirages`, `engine/flowCore.ts`) avant
+ *  toute évaluation : « Vous pouvez les récupérer » rend les MÊMES 2d10 marins (MDG 15 l.245). Lue non
+ *  liée, elle lève. */
+export type TermeLie = { tire: string; de?: Formula };
 
 /** La grammaire d'une quantité, paramétrée par les termes de jet qu'elle admet (`J`). */
 export type FormuleDe<J> =
@@ -126,6 +135,15 @@ export type FormuleDe<J> =
    *  Condition `woundsDealt`. Absorption « Toute attaque qui touche la créature inflige une quantité ÉGALE
    *  de Dégâts à la victime absorbée » (EDO 11 l.222) : `wounds { amount: { woundsDealt: true } }`. 0 hors contexte. */
   | { woundsDealt: true }
+  /** BLESSURES MAXIMALES du référent (`wounds.max`) — « Le vaisseau perd 75 % de ses Blessures » (MDG 15
+   *  l.33) s'écrit `{parTranche:4, of:{times:{of:{blessuresMax:true}, factor:3}}}`. 0 sans combattant. */
+  | { blessuresMax: true }
+  /** TAILLE du navire référent, sa longueur en mètres (MDG 12 l.54) : « payer 1d10 CO plus la Taille du
+   *  navire en pistoles » (MDG 15 l.246). 0 hors du référent du navire de campagne (`referentDuNavire`). */
+  | { tailleDuNavire: true }
+  /** VALEUR de la cargaison en cale du navire référent, en sous de cuivre (Enc × prix de base de chaque lot) :
+   *  « 10 % de la valeur de toute la cargaison » (MDG 15 l.247). 0 hors du référent du navire de campagne. */
+  | { valeurCargaison: true }
   /** SOMME de termes (composition) — « 1d10 + (pions − 1) » des Dégâts d'En Flammes (LDB 16 l.84). Permet
    *  d'authorer une formule composée sans coder en dur l'addition au moteur. Récursif. */
   | { sum: FormuleDe<J>[] }
@@ -159,8 +177,13 @@ export type FormuleSansTirage = FormuleDe<never>;
 /** Résout une formule contre son référent (`ref`) — RNG seedable pour les dés. `rolled` = valeur du
  *  jet courant d'un `rollThreshold` (injectée par l'op ; 0 hors de ce contexte) ; `indice` = Indice
  *  de l'attaque naturelle d'une manœuvre (`{indiceOf}`, 0 hors contexte). */
-export function resolveFormula(f: Formula, ref: Combatant, rng: RNG, rolled?: number, indice?: number, stacks?: number, gap?: number, woundsDealt?: number, sl?: number): number {
-  return evaluer<TermeDeJet>(f, caracDuCombattant(ref), (t) => ('rolled' in t ? rolled ?? 0 : 'sl' in t ? sl ?? 0 : rollDice(t.dice, rng)), indice, stacks, gap, woundsDealt);
+export function resolveFormula(f: Formula, ref: Combatant | Referent, rng: RNG, rolled?: number, indice?: number, stacks?: number, gap?: number, woundsDealt?: number, sl?: number): number {
+  return evaluer<TermeDeJet>(f, 'bonusDe' in ref ? ref : caracDuCombattant(ref), (t) => ('rolled' in t ? rolled ?? 0 : 'sl' in t ? sl ?? 0 : 'tire' in t ? valeurNonLiee(t) : rollDice(t.dice, rng)), indice, stacks, gap, woundsDealt);
+}
+
+/** Une valeur liée atteint l'évaluation sans avoir été tirée : anomalie de portée, jamais un 0 muet. */
+export function valeurNonLiee(t: TermeLie): never {
+  throw new Error(`#1652 — valeur liée « ${t.tire} » évaluée hors de la portée d'un Flow qui la tire (lierLesTirages).`);
 }
 
 /** L'Avantage d'un CAMP SANS FICHE (habitué, figurants) après des ops DÉCLARÉES : seul le vocabulaire
@@ -180,7 +203,7 @@ export function avantageDeCampSansFiche(avant: number, ops: readonly GameOp[], p
 /** Clés reconnues d'une `Formula` OBJET — SOURCE UNIQUE, alignée sur l'union `Formula` et sur les
  *  branches de `resolveFormula`. Réutilisée par le garde-fou d'intégrité des données
  *  (`src/data/data-wellformed.test.ts`) pour valider les champs Formula des `GameOp` sans re-coder la liste. */
-export const FORMULA_OBJECT_KEYS = ['bonusOf', 'charOf', 'dice', 'rolled', 'indiceOf', 'stacks', 'engagedAdvantageGap', 'woundsDealt', 'sl', 'rule', 'sum', 'times', 'minimum', 'parTranche'] as const;
+export const FORMULA_OBJECT_KEYS = ['bonusOf', 'charOf', 'dice', 'rolled', 'indiceOf', 'stacks', 'engagedAdvantageGap', 'woundsDealt', 'blessuresMax', 'tailleDuNavire', 'valeurCargaison', 'sl', 'tire', 'rule', 'sum', 'times', 'minimum', 'parTranche'] as const;
 
 /** Une valeur est-elle une `Formula` VALIDE — résoluble par `resolveFormula` sans planter ? `number` FINI,
  *  ou objet portant exactement une clé connue (`sum` récursif). PUR. Rejette une string (un `'$indice'`
@@ -192,6 +215,7 @@ export function isValidFormula(f: unknown): f is Formula {
   if ('minimum' in o) return typeof o.minimum === 'number' && Number.isFinite(o.minimum) && isValidFormula(o.of);
   if ('parTranche' in o) return Number.isInteger(o.parTranche) && (o.parTranche as number) > 0 && isValidFormula(o.of);
   if ('sum' in o) return Array.isArray(o.sum) && o.sum.every(isValidFormula);
+  if ('tire' in o) return typeof o.tire === 'string' && (o.de === undefined || isValidFormula(o.de));
   if ('times' in o) {
     const t = o.times as Record<string, unknown> | null;
     return !!t && typeof t === 'object' && isValidFormula(t.of) && isValidFormula(t.factor);
@@ -247,22 +271,22 @@ export function formulaExpectation(f: Formula, ref: Combatant): number {
   return evaluer<TermeDeJet>(f, caracDuCombattant(ref), jetEspere);
 }
 
-/** Le terme de jet à son espérance (`formulaExpectation`) : dé moyen, `{rolled}` 5,5, `{sl}` et tout objet
- *  inconnu (formule malformée) 0. */
+/** Le terme de jet à son espérance (`formulaExpectation`) : dé moyen, `{rolled}` 5,5, `{sl}`, une valeur liée et
+ *  tout objet inconnu (formule malformée) 0. */
 function jetEspere(t: TermeDeJet): number {
   if ('dice' in t) return totalDuDe(t.dice, t.dice.n * (t.dice.sides + 1) / 2);
   if ('rolled' in t) return 5.5;
   return 0;
 }
 
-/** Somme des bonus de DR à une Compétence (`skillId`) conférés au porteur — op `skillDRBonus` PASSIVE
+/** Somme des bonus de DR à une Compétence (`skill`, Spécialisation comprise) conférés au porteur — op `skillDRBonus` PASSIVE
  *  (`TraitData.passive`, lue PAR ID — Furtif : +Bonus d'Agilité au DR de Discrétion, LDB 85), PROJETÉE
  *  par une aura (`auraMods`), portée par une SÉQUELLE (`traumaPassiveMods` — LDB 18 l.61/l.72), OU
  *  TEMPORISÉE par un effet actif (`ActiveEffect.drBonus` — chansons de marin, MDG 09). Distincte de
  *  `skillMod` (valeur du Test) — consommée au calcul du DR d'un Test
  *  RÉUSSI (Discrétion de la Surprise, incantation, attaque, Test générique). */
-export function skillDRBonus(c: Combatant, skillId: string, spec?: string): number {
-  const matches = (s?: RefDesignee) => s != null && refCouvre(s, { id: skillId, spec });
+export function skillDRBonus(c: Combatant, skill: RefDesignee): number {
+  const matches = (s?: RefDesignee) => s != null && refCouvre(s, skill);
   let n = 0;
   for (const t of c.traits ?? []) {
     for (const op of findTraitById(t.id)?.passive ?? []) {
@@ -279,7 +303,7 @@ export function skillDRBonus(c: Combatant, skillId: string, spec?: string): numb
   // comme les passifs de trait.
   for (const m of c.auraMods ?? []) if (m.op.op === 'skillDRBonus' && matches(m.op.skill)) n += valeurSansTirage(m.op.bonus, c);
   // Effets ACTIFS temporisés (op `skillDRBonus` exécutée — chanson de marin « Jacques Bret », MDG 09 l.228).
-  for (const e of c.activeEffects ?? []) for (const b of e.drBonus ?? []) if (b.skill != null && matches({ id: b.skill, spec: b.spec })) n += b.bonus;
+  for (const e of c.activeEffects ?? []) for (const b of e.drBonus ?? []) if ('skill' in b && matches(b.skill)) n += b.bonus;
   // Objets POSSÉDÉS : leur `passive` skillDRBonus (Boussole : « Les Tests d'Orientation bénéficient de
   // +1 DR avec l'aide d'une boussole », MDG 14 l.275) — NON gaté sur le port, comme `lockpicks`/`isRations`
   // (l'outil se sort pour servir) ; les passifs de VALEUR d'objet (skillMod des Bésicles) restent, eux,
@@ -319,7 +343,7 @@ export function offTerrainMoveCap(c: Combatant): number | null {
 /** Malus de DR à TOUS les Tests hors de son terrain (op `offTerrainMod.testDR` — Créature marine :
  *  « tous les Tests qu'elle effectue subissent –2 DR », MDG 16 l.17), gaté par `c.offTerrain`. Σ. Consommé
  *  aux épines de Test : attaque (`applyHit` via les sites `skillDRBonus` de combat.ts), Test générique
- *  (`rollFlows`), incantation (`magicTestSLBonus`). PUR. */
+ *  (`rollFlowSpecs`), incantation (`magicTestSLBonus`). PUR. */
 export function offTerrainTestDR(c: Combatant): number {
   if (!c.offTerrain) return 0;
   return offTerrainOps(c).reduce((s, o) => s + (o.testDR ?? 0), 0);
@@ -346,7 +370,7 @@ export function charDRBonusOf(c: Combatant, char: CharKey | undefined): number {
     }
   }
   for (const m of c.auraMods ?? []) if (m.op.op === 'charDRBonus' && m.op.char === char) n += valeurSansTirage(m.op.bonus, c);
-  for (const e of c.activeEffects ?? []) for (const b of e.drBonus ?? []) if (b.char === char) n += b.bonus;
+  for (const e of c.activeEffects ?? []) for (const b of e.drBonus ?? []) if ('char' in b && b.char === char) n += b.bonus;
   return n;
 }
 
@@ -602,10 +626,10 @@ export type GameOp =
   | { op: 'statusMod'; amount: Formula }
   /** Jeton d'INVERSION de Test CONSOMMABLE « pour la prochaine aventure » (LDB 23 l.209/218) — durée
    *  `{scale:'adventure'}`, consommé par `consumeReverseToken` (rollFlowSpecs). `skill` absent = tout
-   *  Test (« concernant votre cible », l.218) ; `char` : tout Test de cette Caractéristique ; `contexte` :
-   *  le jeton ne vaut que sur un Test de ce contexte (ADE II 09 l.33) ; `illimite` : jamais consommé
-   *  (ACE 12 l.60). */
-  | { op: 'grantReverseToken'; skill?: RefDesignee; char?: CharKey; contexte?: ContexteDeTest; illimite?: true }
+   *  Test (« concernant votre cible », l.218) ; `characteristic` : tout Test de cette Caractéristique ;
+   *  `contexte` : le jeton ne vaut que sur un Test de ce contexte (ADE II 09 l.33) ; `illimite` : jamais
+   *  consommé (ACE 12 l.60). */
+  | { op: 'grantReverseToken'; skill?: RefDesignee; characteristic?: CharKey; contexte?: ContexteDeTest; illimite?: true }
   /** Trait de créature TEMPORISÉ (Jalon 2.6 — « vous gagnez le Trait X tant que le Sort est
    *  actif ») : posé dans `c.traits` (vu par TOUS les consommateurs — dispatch, psy, IA,
    *  déplacement), retiré à l'expiration de l'ActiveEffect porteur. `trait` : le Trait OCTROYÉ, résolu
@@ -715,7 +739,7 @@ export type GameOp =
   /** Aide Médicale : lève l'escalade en attente et les verrous d'État « par Aide Médicale » (LDB 18 l.308-311). */
   | { op: 'aideMedicale' }
   /** EXPOSE la cible à une Maladie (`disease` = id de `maladies.json`) → Test de Contraction au bilan de
-   *  fin de combat (LDB 20 l.25/51). Op GÉNÉRIQUE : Infecté → 'blessure-purulente', trait Maladie →
+   *  fin de combat, ou tout de suite hors combat (`ouvrirLesContagions`) (LDB 20 l.25/51). Op GÉNÉRIQUE : Infecté → 'blessure-purulente', trait Maladie →
    *  l'`arg` (ex. 'fievre-du-rongeur' pour les rats/skavens). Cumule sans doublon dans `diseaseExposure`
    *  (double exposition à la même maladie → on garde la PIRE : shift le plus dur, `instant` si l'une
    *  l'impose). Contagieux (Type), EDO App.2 l.228-230 : `difficultyShift: -2` (« le Test est de 2
@@ -829,8 +853,11 @@ export type GameOp =
    *  et le solde ne descend jamais sous 0. FRONTIÈRE avec l'Effet de scène `giveMoney`
    *  (`data/schemas/defs-scenes/effets.ts`) : celui-ci est un mouvement de GROUPE (réparti/drainé sur
    *  toutes les bourses par `distributeCredit`/`drainGroup`) ; `money` vise UN porteur, celui que
-   *  `applyOps` traite. Les deux composent les MÊMES parts (`engine/bourse.ts`) — aucune 2ᵉ arithmétique. */
-  | { op: 'money'; montant: { brass: Formula } }
+   *  `applyOps` traite. Les deux composent les MÊMES parts (`engine/bourse.ts`) — aucune 2ᵉ arithmétique.
+   *  `groupe` : le mouvement vise la BOURSE DU GROUPE (`mouvementDeLaBourseDuGroupe`, la couture de
+   *  `giveMoney`), une fois pour la feuille qui la porte (`estOpDeLaBourseDuGroupe`) ; `applyOps` la laisse
+   *  inerte. MDG 15 l.245-247 */
+  | { op: 'money'; montant: { brass: Formula }; groupe?: true }
   /** Invoque une arme MAGIQUE temporaire (Arme aethyrique : Dégâts = BFM ; Faux de Shyish : Arme
    *  d'hast, BFM+3 ; Épée ardente de Rhuin : Dégâts +6, Percutante). `damage` (résolue vs lanceur)
    *  + `damagePlus` (offset constant) donnent la composante chiffrée ; `plusBF` y ajoute le Bonus de
@@ -1202,7 +1229,78 @@ export type GameOp =
    *  du Flow de consommable d'une boisson (le Test de Résistance à l'alcool est le nœud `test` du Flow). */
   | { op: 'intoxicate' }
   /** Narration de campagne : texte Markdown et provenance locale. #2001. */
-  | { op: 'narrative'; text: string; source?: SourceRef; adapteDe?: SourceRef };
+  | { op: 'narrative'; text: string; source?: SourceRef; adapteDe?: SourceRef }
+  /** MORAL de l'équipage du navire (MDG 14) : `delta` signé tiré. Op de NAVIRE (`OPS_DU_NAVIRE`) — inerte
+   *  dans `applyOps`, résolue sur la cible `navire` (`noyau/navireOps.ts`). MDG 15 l.180, l.220 */
+  | { op: 'shipMorale'; delta: EffetSigne }
+  /** HUMEUR DE MANANN du navire : `delta` signé libre, OU un facteur du tableau (`factorId`, appliqué une
+   *  fois par navire, MDG 15 l.85). Op de NAVIRE. MDG 15 l.83-125 */
+  | { op: 'manann'; delta: EffetSigne; factorId?: never }
+  | { op: 'manann'; factorId: string; delta?: never }
+  /** COUPS CRITIQUES de coque : `count` Critiques sur `location`, ou sur une localisation tirée
+   *  (`aleatoire`) ; `equipageEpargne` ignore les Dégâts qu'ils infligent à l'équipage. Op de NAVIRE.
+   *  MDG 15 l.153, l.49-51 */
+  | { op: 'shipCritical'; location: ShipCritKey | 'aleatoire'; count: Formula; equipageEpargne?: true }
+  /** MODIFICATEUR du navire : `m` au Mouvement, `manDR` en DR aux Tests de Manœuvre, `evite` les périls que le
+   *  navire ne heurte pas (op `perilDeMer`), jusqu'au carénage (`carenage`), jusqu'au prochain événement de
+   *  bord (`evenementDeBord`) ou pendant `jours` jours. Op de NAVIRE. MDG 15 l.184-185, l.187-188, l.228, l.229 */
+  | { op: 'navireMod'; m?: number; manDR?: number; evite?: string[]; jusqua: 'carenage' | 'evenementDeBord' | { jours: Formula } }
+  /** MÉTÉO IMPOSÉE au navire pendant `jours` jours : les axes de `meteo` remplacent la météo tirée, le vent
+   *  souffle à l'opposé des dominants (`ventInverse`), et chaque matin `aggravation.de` ≥ `seuil` impose en
+   *  plus `aggravation.meteo`. Posée sur le navire, elle vaut au départ d'un port. Op de NAVIRE.
+   *  MDG 15 l.189, l.196-197, l.199, l.219, l.226-227, l.248, l.257 */
+  | { op: 'meteoImposee'; jours: Formula; meteo?: Partial<SeaWeather>; ventInverse?: true; aggravation?: AggravationMeteo }
+  /** CARGAISON chargée dans la cale du navire : `enc` Enc d'une cargaison tirée au hasard pour la saison, à
+   *  son prix de base ; OU `perteAuDechargement` Enc perdus du prochain lot déchargé dans ce port ; OU
+   *  `perduePct` % de l'Enc de la cale perdus ; OU `perdueEnc` Enc de la cale perdus. Op de NAVIRE.
+   *  MDG 15 l.209-210, l.224-225, l.250, l.33-36, l.159-164, l.174-178 */
+  | { op: 'cargaison'; enc: Formula; perteAuDechargement?: never; perduePct?: never; perdueEnc?: never }
+  | { op: 'cargaison'; perteAuDechargement: Formula; enc?: never; perduePct?: never; perdueEnc?: never }
+  | { op: 'cargaison'; perduePct: number; enc?: never; perteAuDechargement?: never; perdueEnc?: never }
+  | { op: 'cargaison'; perdueEnc: Formula; enc?: never; perteAuDechargement?: never; perduePct?: never }
+  /** ÉQUIPAGE du navire : `delta` marins (négatif : perdus ; positif : recueillis, dans la limite de
+   *  l'effectif nominal) ; le recueilli qui tient un rôle d'équipage (`role`) entre au rôle, sans solde
+   *  jusqu'au prochain port (`sansSolde`). OU `perdusPct` % des PNJ de l'équipage à bord perdus. Op de
+   *  NAVIRE. MDG 15 l.202-204, l.213-218, l.258, l.33-35 */
+  | { op: 'equipage'; delta: Formula; role?: { id: Id<'crewRole'> }; sansSolde?: 'jusquAuPort'; perdusPct?: never }
+  | { op: 'equipage'; perdusPct: number; delta?: never; role?: never; sansSolde?: never }
+  /** PROVISIONS de bord : `jours` jours de vivres de l'équipage gagnés, OU `gateesPct` % des provisions à
+   *  bord gâtées (cale et rations des héros), OU `rations` rations de mer, OU `eauTonneaux` tonneaux d'eau
+   *  douce, exclusifs. Op de NAVIRE. MDG 15 l.169-170, l.235-236, l.194 ; MDG 14 l.242 */
+  | { op: 'provisions'; jours: Formula; gateesPct?: never; rations?: never; eauTonneaux?: never }
+  | { op: 'provisions'; gateesPct: number; jours?: never; rations?: never; eauTonneaux?: never }
+  | { op: 'provisions'; rations: Formula; jours?: never; gateesPct?: never; eauTonneaux?: never }
+  | { op: 'provisions'; eauTonneaux: Formula; jours?: never; gateesPct?: never; rations?: never }
+  /** PÉRIL DE MER : le navire heurte le péril `collision` (`sea-perils.json` hazards), OU un tourbillon
+   *  (`tourbillon`) l'aspire à la périphérie de sa zone. Op de NAVIRE. MDG 15 l.140-141, l.146, l.181-183 ;
+   *  MDG 13 l.446, l.475-499, l.514-537 */
+  | { op: 'perilDeMer'; collision: { id: string }; tourbillon?: never }
+  | { op: 'perilDeMer'; tourbillon: { id: string }; collision?: never }
+  /** NAVIRE HOSTILE en vue : la coque `navire`, son `equipage` (créature type, effectif total), son `chef`, ses
+   *  `grandsCanons` ; s'il juge le navire vulnérable il approche, et exige de fouiller la cale (`fouille`), sinon
+   *  il attaque. Op de NAVIRE. MDG 15 l.150-151, l.171-173 */
+  | { op: 'navireHostile'; navire: { id: string }; equipage: { id: string; nombre: number }; chef?: { id: string }; grandsCanons?: number; exigence?: 'fouille' }
+  /** INFESTATION du navire : jusqu'à ce que l'équipage cumule `targetDR` DR au Test d'équipage étendu
+   *  `crewTestType` (`difficulty`, un Test par jour en mer), `chaqueNuit` se joue chaque nuit. Op de NAVIRE.
+   *  MDG 15 l.159-164, l.174-178 ; MDG 14 l.98-104 */
+  | { op: 'infestation'; crewTestType: { id: string }; difficulty: Difficulty; targetDR: number; chaqueNuit: Flow }
+  /** COMBAT EN MER contre `adversaire.nombre` créatures (Traits facultatifs `optionals` posés) sur le pont du
+   *  navire ; chacune est repoussée à `repousseAPct` % de ses Blessures de départ ou moins, et `victoire` se joue
+   *  quand le combat est gagné. Op de NAVIRE. MDG 15 l.136-139, l.142-143, l.165-168 */
+  | { op: 'combatEnMer'; adversaire: { id: string; nombre: number; optionals?: TraitPose[] }; repousseAPct?: number; victoire?: Flow };
+
+/** Aggravation d'une météo imposée : le dé de chaque matin, son seuil, et les axes qu'il impose. MDG 15 l.248 */
+export interface AggravationMeteo { de: Formula; seuil: number; meteo: Partial<SeaWeather> }
+
+/** Les ops de NAVIRE : résolues sur la seule cible `navire` d'un EffectOp (`noyau/navireOps.ts`), inertes
+ *  partout ailleurs. */
+export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage', 'perilDeMer', 'navireHostile', 'infestation', 'combatEnMer'] as const satisfies readonly GameOp['op'][];
+export type OpDuNavire = Extract<GameOp, { op: (typeof OPS_DU_NAVIRE)[number] }>;
+export const estOpDuNavire = (o: GameOp): o is OpDuNavire => (OPS_DU_NAVIRE as readonly string[]).includes(o.op);
+
+/** Op de la BOURSE DU GROUPE (`money` à `groupe`) : résolue une fois par la feuille de scène qui la porte
+ *  (Effet `ops`, `noyau/combatEffects.ts`), inerte dans `applyOps`. */
+export const estOpDeLaBourseDuGroupe = (o: GameOp): o is Extract<GameOp, { op: 'money' }> => o.op === 'money' && o.groupe === true;
 
 /** Op d'une liste lue par le collecteur `passiveMods` : sans `auTotal` (#3060). */
 export type OpPassive = Exclude<GameOp, { op: 'attrMod'; attr: 'wounds' }> | { op: 'attrMod'; attr: 'wounds'; mod: FormuleSansTirage; auTotal?: never };
@@ -1342,7 +1440,7 @@ export interface OpsCtx {
   /**
    * DÉS DÉJÀ POSÉS par la porte pour CES ops (#1508) — clé (`cleDeDe`) → valeur du dé, telle que
    * `demandesDeDes` l'a ANNONCÉE. C'est le CANAL op → applier : le moteur FABRIQUE la demande (quels
-   * dés, pour quoi), la couche `state` OUVRE la fenêtre (étape à dé nu, affichable/lançable/posable) et
+   * dés, pour quoi), la couche `noyau` OUVRE la fenêtre (étape à dé nu, affichable/lançable/posable) et
    * REVERSE ici ce qui est tombé. Le dé posé REMPLACE le tirage : aucun rng n'est consommé pour lui.
    *
    * Absent (pilote headless : moteur pur, test, résolveur inline) ⇒ l'op tire elle-même, au même
@@ -1544,7 +1642,7 @@ export function cleDeDe(rang: number, champ: string): string {
 }
 
 /**
- * DÉ QU'UNE OP DEMANDE À LA PORTE (#1508) — ce que le moteur FABRIQUE pour que la couche `state`
+ * DÉ QU'UNE OP DEMANDE À LA PORTE (#1508) — ce que le moteur FABRIQUE pour que la couche `noyau`
  * OUVRE : quels dés (`spec`), sous quelle clé les reverser (`cle`, cf. `cleDeDe`), ce qu'ils décident
  * (`libelle`) et dans quelle unité se lit leur total (`unite` — « m », affichage pur).
  *
@@ -1744,7 +1842,7 @@ export function gelerOpsCtx(ctx: OpsCtx): OpsCtxGele {
 /**
  * DÉS QUE CES OPS DEMANDENT À LA PORTE (#1508) — ÉNUMÉRATION PURE, ni tirage ni mutation : ce que
  * l'applier doit OUVRIR en étapes de dé avant d'appeler `applyOps`, et ce qu'il lui reversera dans
- * `ctx.des`. Le canal op → applier tient dans ce couple : le moteur FABRIQUE, `state` OUVRE (patron
+ * `ctx.des`. Le canal op → applier tient dans ce couple : le moteur FABRIQUE, `noyau` OUVRE (patron
  * `shipCritical.applyCrewHit`, qui REND son `testFlow` au lieu de le jouer).
  *
  * LÈVE sur donnée malformée (table de chute inconnue, coque absente…) AVANT qu'aucune op de la feuille
@@ -2275,10 +2373,10 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'grantReverseToken': {
         target.activeEffects = target.activeEffects ?? [];
-        target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: { scale: 'adventure' }, reverseToken: { skill: o.skill?.id, spec: o.skill?.spec, ...(o.char ? { char: o.char } : {}), ...(o.contexte ? { contexte: o.contexte } : {}), ...(o.illimite ? { illimite: true } : {}) } });
+        target.activeEffects.push({ label: nomDeSource(ctx), bonus: 0, duration: { scale: 'adventure' }, reverseToken: { skill: o.skill ? structuredClone(o.skill) : undefined, ...(o.characteristic ? { characteristic: o.characteristic } : {}), ...(o.contexte ? { contexte: o.contexte } : {}), ...(o.illimite ? { illimite: true } : {}) } });
         lines.push(t('op.grantReverseToken', {
           name: target.label,
-          skill: o.skill ? refLabel('skills', o.skill) : o.char ? t('op.reverseCharTest', { char: deElide(CHAR_LABELS[o.char]) }) : t('op.reverseAnyTest'),
+          skill: o.skill ? refLabel('skills', o.skill) : o.characteristic ? t('op.reverseCharTest', { char: deElide(CHAR_LABELS[o.characteristic]) }) : t('op.reverseAnyTest'),
           contexte: o.contexte ? ` ${libelleDeValeur(contexteDeTestSchema, o.contexte)}` : '',
           fois: t(o.illimite ? 'op.reverseIllimite' : 'op.reverseUneFois'),
         }));
@@ -2699,6 +2797,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'money': {
+        if (o.groupe) break;
         const n = Math.round(formuleDuCtx(o.montant.brass, ref, ctx));
         if (n === 0) break;
         const avant = bourseBrass(target);
@@ -2728,7 +2827,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // Table INLINE (`entries`) ou RÉFÉRENCÉE (`tableId` → tables.json, fail-fast) — jamais les deux.
         const table = 'tableId' in o ? findEffectTableById(o.tableId) : o;
         const rows: { min: number; max: number; ops: GameOp[] }[] = table.entries;
-        const de = parseDiceRequired(table.die, 'rollTable.die');
+        const de = 'tableId' in o ? effectTableDie(o.tableId) : deDeTirageDe(o);
         // Modificateur CONSTANT (Haute Alchimie « 1d10 + 3 », VDM 03 l.698) + |DR négatif| (Vers de carie,
         // MSRC 16 l.90) → lookup `[min,max]` (source unique) → ops de la rangée.
         const modifier = (o.mod ?? 0) + (o.addNegativeSL ? Math.max(0, -(ctx.sl ?? 0)) : 0);
@@ -2911,12 +3010,25 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'teleport':
       case 'chain':
       case 'delayed':
+      case 'shipMorale':
+      case 'manann':
+      case 'shipCritical':
+      case 'navireMod':
+      case 'meteoImposee':
+      case 'cargaison':
+      case 'provisions':
+      case 'equipage':
+      case 'perilDeMer':
+      case 'navireHostile':
+      case 'infestation':
+      case 'combatEnMer':
         // Effets IMPURS (grille + initiative / reconstitution programmée / zones de bataille / ouverture
         // d'une frappe / interruption de Focalisation / désarmement-bris de Piège-lame / poussée /
         // téléportation / rebond de Projectile / ops différées à échéance d'horloge) — résolus par la
         // couche state (combatFlow : applySummon / scheduleRespawn → file horloge / placeSpellZone ; les
         // hooks `freeAttack`/`focusInterrupt`/`bladeTrap` appelés par `runCombatFlow` ; `applyCast` scanne
-        // push/teleport/chain ; `delayed` → `scheduleDelayedOps` aux points d'application d'un EffectOp),
+        // push/teleport/chain ; `delayed` → `scheduleDelayedOps` aux points d'application d'un EffectOp ;
+        // les ops de navire → `noyau/navireOps.ts`),
         // qui détient get/set et le combattant. `applyOps` (moteur pur) les laisse INERTES.
         break;
       case 'polymorph':
@@ -2992,7 +3104,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
           label: nomDeSource(ctx), bonus: 0, duration: durationFromCtx(ctx),
-          drBonus: [{ skill: o.skill?.id, ...(o.skill?.spec != null ? { spec: o.skill.spec } : {}), bonus: formuleDuCtx(o.bonus, ref, ctx) }],
+          drBonus: [{ skill: o.skill ? structuredClone(o.skill) : undefined, bonus: formuleDuCtx(o.bonus, ref, ctx) }],
         });
         lines.push(t('op.drBonus', { name: target.label, what: o.skill?.id ?? o.testType ?? '', src: nomDeSource(ctx) }));
         break;

@@ -8,7 +8,7 @@ import { setDataset, resetData } from '../../../data/overrides';
 import type { MaterialEntry } from '../../../data/materials.types';
 import type { TerrainDef } from '../../../data/terrains.types';
 import { effectiveArchitecture } from '../../../noyau/sceneEdit';
-import { roofMaterial } from '../../catalog/roofs';
+import { roofMaterial } from '../../../noyau/monde/volume/matieres';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../../scenes/campaign';
 import { testScenarios } from '../../../scenes/test-scenarios';
 
@@ -217,7 +217,7 @@ describe('Zones de pièce — hors du monde CUIT, résolues sur la scène VIVE (
  *
  * `propRecipeDeps` porte le domaine `prop` ; les deux autres domaines cuits entrent par `matiereDeps`
  * — les toitures que la SCÈNE nomme, et le domaine `relief` ENTIER (les ids de relief sont écrits dans
- * `builders/floors.ts`, les recopier ici en ferait une seconde vérité).
+ * `noyau/monde/volume/floors.ts`, les recopier ici en ferait une seconde vérité).
  */
 describe('Cuisson du monde — les MATIÈRES entrent dans le read-set (#1686)', () => {
   afterEach(() => resetData());
@@ -288,7 +288,7 @@ const plancherScenes = (): number =>
 
 /**
  * SUR-ENSEMBLE DU READ-SET DES TOITURES (#1686 lot 3a-1) — `buildRoofs` résout la couverture de CHAQUE
- * masse par `roofMaterial(mass.material)` (`builders/roofs.ts`), et les masses qu'il voit sont les
+ * masse par `roofMaterial(mass.material)` (`noyau/monde/volume/toits.ts`), et les masses qu'il voit sont les
  * masses EFFECTIVES : celles que l'auteur a écrites ET celles que `deriveArchitectureMasses` calcule
  * depuis `roofDefaults`. Le read-set, lui, se déclare sur `scene.architecture` (l'intention). La
  * question que cette garde tranche est donc : l'intention couvre-t-elle, PAR IDENTITÉ D'OBJET, tout
@@ -331,9 +331,9 @@ describe('Cuisson du monde — les matières de TOIT du read-set couvrent les ma
 describe('Cuisson du monde — la part RECETTES du read-set se compte en DEFS, pas en instances (#1343)', () => {
   afterEach(() => resetData());
 
-  /** Les deux premières recettes du catalogue, DÉRIVÉES : cette garde mesure une TAILLE de liste, pas
-   *  une def en particulier. */
-  const [DEF_A, DEF_B] = props.filter((p) => p.volume).map((p) => p.id);
+  /** Les deux recettes les plus SOBRES du catalogue, DÉRIVÉES : cette garde mesure une TAILLE de liste,
+   *  pas une def en particulier, et trois cents corps d'une recette chargée ne cuisent pas dans le budget. */
+  const [DEF_A, DEF_B] = [...props].sort((a, b) => a.volume.primitives.length - b.volume.primitives.length).map((p) => p.id);
 
   const salle = (defs: readonly string[], parDef: number): Scene => {
     const scene = emptyScene('scene-test', 40, 40);
@@ -380,7 +380,7 @@ describe('Cuisson du monde — la part RECETTES du read-set se compte en DEFS, p
     const clé = {};
     const depsAvant = worldBakeDeps(scene, mptS);
     const avant = memo(clé, depsAvant, () => bakeWorldGeometry(scene, mptS, 'jeu'));
-    setDataset('props', props.map((p) => (p.id === DEF_A ? { ...p, volume: { ...p.volume!, primitives: [...p.volume!.primitives] } } : p)));
+    setDataset('props', props.map((p) => (p.id === DEF_A ? { ...p, volume: { ...p.volume, primitives: [...p.volume.primitives] } } : p)));
     expect(memesDeps(depsAvant, worldBakeDeps(scene, mptS))).toBe(false);
     const après = memo(clé, worldBakeDeps(scene, mptS), () => bakeWorldGeometry(scene, mptS, 'jeu'));
     expect(après).not.toBe(avant);

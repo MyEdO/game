@@ -27,7 +27,7 @@ let root: Root | null = null;
 /**
  * LE CLIC D'UNE SURFACE RÉELLE (curseur clavier/manette) sur une case : `commitCursor` →
  * `intentionDuClicDeCase` → la porte partagée des 3 surfaces (`combatantClickActs`) → clic-jeton ou
- * clic-sol. Jamais `battleClickEntity`/`battleClickTile` en direct : ils court-circuiteraient la porte
+ * clic-sol. Jamais `cliquerLaCase` en direct : ils court-circuiteraient la porte
  * même que ces contrats mesurent (un refus non prononcé passerait vert).
  */
 function cliqueLaCase(pt: { x: number; y: number }) {
@@ -41,8 +41,8 @@ function cliqueLaCase(pt: { x: number; y: number }) {
 function setup() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
-  useGame.getState().startScene(testScene());
-  useGame.getState().startCombat('enc-mutants');
+  useGame.getState().lancerLaScene(testScene());
+  useGame.getState().lancerLeCombat('enc-mutants');
   useGame.getState().fenetreValider('roundStart');
   const battle = useGame.getState().battle!;
   const active = battle.combatants.find((combatant) => combatant.kind === 'hero')!;
@@ -285,7 +285,7 @@ describe('useHoverTargeting — pendant un interlude piloté par la carte, le su
     foe.pos = { x: active.pos!.x + 1, y: active.pos!.y };
     const off = { label: 'Dague', name: 'Dague', type: 'melee', uid: 'off-1', hand: 'off', damage: { plusBF: true, flat: 2 }, qualities: [] };
     active.weapons = [...active.weapons, off as never];
-    // L'interlude tel que `jetConfirm('attack')` le pose : l'étape `attack` au curseur, son slot vidé
+    // L'interlude tel que `jetValider('attack')` le pose : l'étape `attack` au curseur, son slot vidé
     // (`pendingAttack` null), le coup fermé ; la 2ᵉ frappe attend une cible SUR LA CARTE.
     useGame.setState({
       pendingAttack: null,

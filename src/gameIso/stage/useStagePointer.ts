@@ -22,7 +22,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useGame } from '../../state/store';
 import { sceneNpc } from '../../noyau/monde/sceneNpc';
 import type { Pt } from '../../noyau/monde/path';
-import { marcheOuverte, porteActionnable } from '../../noyau/marcheDuGroupe';
+import { gesteDuPortail } from '../../noyau/marcheDuGroupe';
 import { bus, EVT } from '../../noyau/bus';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { controlsActive } from '../../noyau/netOwnership';
@@ -185,15 +185,15 @@ export function useStagePointer({
 
   const activatePortal = (portal: RoomPortal) => {
     const st = useGame.getState();
-    if (st.dialogue || !st.scene) return;
-    if (porteActionnable(st.mode, portal)) {
-      if (st.actionnerLaPorte(portal)) setAreteSurvolee(null);
+    const geste = gesteDuPortail(st, portal);
+    if (!geste) return;
+    if (geste.verbe === 'actionnerLaPorte') {
+      if (st.actionnerLaPorte(...geste.args)) setAreteSurvolee(null);
       return;
     }
-    if (!marcheOuverte(st)) return;
     setHover(null);
     setAreteSurvolee(null);
-    st.cliquerLaCase(portal.to);
+    st.cliquerLaCase(...geste.args);
   };
 
   /** Les VERBES que la table des gestes appelle (`stage/geste.ts`) : le franchissement vit ici, parce
@@ -273,7 +273,7 @@ export function useStagePointer({
     if (!sc || st.dialogue || !v || !t) return;
     // ARÊTE : elle a déjà tranché en tête de chaîne, son geste prime sur la case qu'elle borde et
     // consomme le clic — rien ne redescend au clic-sol, qui écraserait l'aperçu qu'une frappe vient de
-    // poser (`combatSlice.battleClickTile` réécrit `preview` à chaque sortie de déplacement).
+    // poser (`combatSlice.cliquerLaCaseDuCombat` réécrit `preview` à chaque sortie de déplacement).
     if (v.nature === 'arete') { activerArete(v.arete); return; }
     if (st.mode === 'battle') {
       if (!controlsActive(st)) return; // coop : tour du héros d'un AUTRE joueur — clics inertes

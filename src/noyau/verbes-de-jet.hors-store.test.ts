@@ -3,7 +3,7 @@
  * frontière (JSON d'un hôte, intention d'un siège), un flux qui n'accepte pas le verbe, ou une rangée absente ou en
  * trop, se refuse et se dit (`creerVerbesDeJet`) ; la Résilience avant le jet lance le dé de son flux, mono comme multi
  * (LDB 17 l.68) ; le pilote d'auto-cadence joue le drive d'une étape-jet par ses gestes, chacun sur son flux ; la
- * clôture `jetConfirm(flux)` (#3324) se juge sur la fermeture que la fenêtre montre, et dit celle qui attend une décision.
+ * clôture `jetValider(flux)` (#3324) se juge sur la fermeture que la fenêtre montre, et dit celle qui attend une décision.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -28,10 +28,10 @@ describe('frontière : un geste de jet que son flux refuse se dit, et ne change 
   });
 
   it.each([
-    ['un flux inconnu', () => (g().jetRoll as (flux: string) => void)('zz-inconnu'), 'jet.refus.gesteAbsent'],
-    ['un flux qui n’a pas ce verbe (Résistance sur l’incantation)', () => (g().jetResist as (flux: string) => void)('cast'), 'jet.refus.gesteAbsent'],
-    ['une rangée absente sur un flux à plusieurs jets', () => (g().jetReroll as (flux: string) => void)('fall'), 'jet.refus.rangee'],
-    ['une rangée posée sur un flux à un jet', () => g().jetRoll('attack', 'x'), 'jet.refus.rangee'],
+    ['un flux inconnu', () => (g().jetLancer as (flux: string) => void)('zz-inconnu'), 'jet.refus.gesteAbsent'],
+    ['un flux qui n’a pas ce verbe (Résistance sur l’incantation)', () => (g().jetResister as (flux: string) => void)('cast'), 'jet.refus.gesteAbsent'],
+    ['une rangée absente sur un flux à plusieurs jets', () => (g().jetRelancer as (flux: string) => void)('fall'), 'jet.refus.rangee'],
+    ['une rangée posée sur un flux à un jet', () => g().jetLancer('attack', 'x'), 'jet.refus.rangee'],
   ] as const)('%s', (_cas, geste, cle) => {
     const avant = g();
     geste();
@@ -41,7 +41,7 @@ describe('frontière : un geste de jet que son flux refuse se dit, et ne change 
   });
 
   it('la possession refuse à TOUT siège un geste que le flux n’accepte pas : l’annulation d’une Défense', () => {
-    for (const seat of [0, 1, 2]) expect(intentAllowedFor(g(), seat, 'jetCancel', ['defense']), `siège ${seat}`).toBe(false);
+    for (const seat of [0, 1, 2]) expect(intentAllowedFor(g(), seat, 'jetAnnuler', ['defense']), `siège ${seat}`).toBe(false);
   });
 });
 
@@ -57,7 +57,7 @@ describe('Résilience AVANT le jet (LDB 17 l.68) : le dé du flux tombe, puis la
         { id: H.id, interactive: true, attempt: true, result: null },
       ] },
     } as unknown as Partial<Jeu>);
-    g().jetForceSuccess('fall', H.id);
+    g().jetForcerLaReussite('fall', H.id);
     const rangee = g().pendingFall!.participants.find((p) => p.id === H.id)!;
     expect(rangee.result, 'le jet de la rangée est tombé').not.toBeNull();
     expect(g().battle!.combatants.find((c) => c.id === H.id)!.resilience).toBe(resilience - 1);
@@ -72,11 +72,11 @@ describe('le pilote d’auto-cadence joue le drive d’une étape-jet, chaque ge
     expect(g().pendingAttack?.result, 'témoin : le jet d’attaque attend').toBeNull();
     tickCombatAuto(g, banc.setState);
     banc.jusquA((s) => !s.pendingAttack, 20);
-    expect(g().pendingAttack, 'le drive `jetRoll@attack` puis `jetConfirm(\'attack\')` a clos l’attaque').toBeNull();
+    expect(g().pendingAttack, 'le drive `jetLancer@attack` puis `jetValider(\'attack\')` a clos l’attaque').toBeNull();
   });
 });
 
-describe('la clôture `jetConfirm(flux)` (#3324) : jugée sur la fenêtre, comme les autres verbes de jet', () => {
+describe('la clôture `jetValider(flux)` (#3324) : jugée sur la fenêtre, comme les autres verbes de jet', () => {
   beforeEach(() => { banc = ouvrirLeBanc(); });
 
   it.each([
@@ -84,7 +84,7 @@ describe('la clôture `jetConfirm(flux)` (#3324) : jugée sur la fenêtre, comme
     ['une bande, que valide sa cascade', 'cascadeBatch'],
   ] as const)('refuse et dit %s', (_cas, flux) => {
     heroFaceAUnEnnemi(banc, testScene());
-    (g().jetConfirm as (flux: string) => void)(flux);
+    (g().jetValider as (flux: string) => void)(flux);
     expect(g().refus?.texte).toBe(t('jet.refus.gesteAbsent'));
   });
 
@@ -92,17 +92,17 @@ describe('la clôture `jetConfirm(flux)` (#3324) : jugée sur la fenêtre, comme
     const { H, E } = heroFaceAUnEnnemi(banc, testScene());
     openAttackCascade(g, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null, weaponUid: H.weapons[0].uid }, 'Attaque', 'action/attack');
     const avant = g().pendingAttack;
-    g().jetConfirm('attack');
+    g().jetValider('attack');
     expect(g().pendingAttack).toBe(avant);
     expect(g().refus).toBeFalsy();
   });
 
   it('une opposition au Sort qu’une cible n’a pas jetée : la clôture se dit refusée, comme la fenêtre la montre', () => {
     const { H } = heroFaceAUnEnnemi(banc, testScene());
-    banc.setState({ pendingCastOpposition: { test: { char: 'force-mentale' }, participants: [{ id: H.id, interactive: true, base: 40, target: 40, result: null }] } } as unknown as Partial<Jeu>);
+    banc.setState({ pendingCastOpposition: { test: { characteristic: 'force-mentale' }, participants: [{ id: H.id, interactive: true, base: 40, target: 40, result: null }] } } as unknown as Partial<Jeu>);
     const avant = g().pendingCastOpposition;
     expect(fermeturesDuFlux(g(), 'opposition').confirm).toBe('oppositionsDues');
-    g().jetConfirm('opposition');
+    g().jetValider('opposition');
     expect(g().refus?.texte).toBe(libelleDeLaFermeture('oppositionsDues'));
     expect(g().pendingCastOpposition).toBe(avant);
   });
@@ -116,7 +116,7 @@ describe('la clôture `jetConfirm(flux)` (#3324) : jugée sur la fenêtre, comme
     } as unknown as Partial<Jeu>);
     const avant = g().pendingFall;
     expect(fermeturesDuFlux(g(), 'fall').confirm).toBe('declarationsDues');
-    g().jetConfirm('fall');
+    g().jetValider('fall');
     expect(g().refus?.texte).toBe(libelleDeLaFermeture('declarationsDues'));
     expect(g().pendingFall).toBe(avant);
   });
@@ -127,7 +127,7 @@ describe('la clôture `jetConfirm(flux)` (#3324) : jugée sur la fenêtre, comme
     const fermetures = fermeturesDuFlux(g(), 'counterspell');
     expect([fermetures.confirm, fermetures.cancel]).toEqual(['declarationsDues', 'declarationsDues']);
     const avant = g().pendingCounterspell;
-    g().jetConfirm('counterspell');
+    g().jetValider('counterspell');
     expect(g().refus?.texte).toBe(libelleDeLaFermeture('declarationsDues'));
     expect(g().pendingCounterspell).toBe(avant);
   });

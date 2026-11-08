@@ -16,7 +16,8 @@
  * Toute couleur vient de la recette (donnée) ou dérive du fill par `shade` — aucun littéral ici.
  */
 import { hash32, seedStream } from '../../data/hash';
-import { expandRecipe, ACCENT_FRAC, BLOCK_INSET_M, BLOCK_SHADE_K, TIMBER_V0, TIMBER_V1, TINT_SPREAD } from '../detail/expand';
+import { expandRecipe, ACCENT_FRAC, BLOCK_INSET_M, BLOCK_SHADE_K, TIMBER_V0, TIMBER_V1 } from '../detail/expand';
+import { TINT_SPREAD } from '../../noyau/monde/volume/matieres';
 import {
   coursesKey,
   coursesPeriod,
@@ -30,14 +31,14 @@ import {
   type CourseVertical,
 } from '../detail/courses';
 import type { DetailRecipe } from '../../data/materials.types';
-import { shade, ao, spec } from '../shade';
+import { shade, ao, spec } from '../../lib/ombrage';
 import { isSquareView, type Dims } from '../../geometry/iso';
-import { ISO_PX_PER_M } from '../iso';
+import { ISO_PX_PER_M } from '../../noyau/monde/iso';
 import { tousLesTerrains, terrainEntree, terrainStopsOrdonnes } from '../../noyau/monde/terrain';
 import { terrainGradientId } from '../catalog/terrain';
 import { structureAppearances, matieresDe } from '../../data';
 import { projGP, type Pt2 } from './project';
-import type { GP } from '../builders/types';
+import type { GP } from '../../noyau/monde/volume/types';
 
 // ── LOD ──────────────────────────────────────────────────────────────────────────────────────────────
 export type Lod = 0 | 1 | 2;

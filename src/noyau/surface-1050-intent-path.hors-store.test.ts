@@ -5,12 +5,12 @@
  * joue sur SON état local, et le snapshot suivant de l'hôte l'efface — sans message ni journal.
  *
  * Quatre familles, une par cause :
- *  - opposition de cible (`jetResist('opposition')`/`jetConfirm('opposition')`) : la cible d'un Sort opposé pouvait
+ *  - opposition de cible (`jetResister('opposition')`/`jetValider('opposition')`) : la cible d'un Sort opposé pouvait
  *    jeter mais pas appliquer ;
- *  - hotbar (`battleSelectAttack`) : rendue dès `controlsCombatant`, clic invité = no-op silencieux ;
- *  - Tir rapide (`armPreempt`/`preemptRangedShot`, Talent « Tir rapide ») : pendant la pause de début
+ *  - hotbar (`jouerLOffre('attaque')`) : rendue dès `controlsCombatant`, clic invité = no-op silencieux ;
+ *  - Tir rapide (`armerLeTirPreventif`/`declencherLeTirPreventif`, Talent « Tir rapide ») : pendant la pause de début
  *    de Round il n'y a AUCUN combattant actif, donc le repli universel rendait l'hôte ;
- *  - Résistance (Menace) d'une étape de cascade (`jetResist('cascade')`).
+ *  - Résistance (Menace) d'une étape de cascade (`jetResister('cascade')`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -25,6 +25,7 @@ import { cascadeDeTest } from './cascade.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { cleDeFixture } from './noyau.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -59,7 +60,7 @@ function setup(net: Record<string, unknown> = {}, turn = 0) {
     movementUsed: 0, movedPreAction: false, acted: false, loadoutSwapped: false, log: [], over: null,
   } as unknown as BattleState;
   banc.setState({
-    ...initialFields(), battle, mode: 'battle', scene: SCENE(), party: [h2, h3], gameTime: 0,
+    ...initialFields(), battle, mode: 'battle', screen: 'campaign', scene: SCENE(), party: [h2, h3], gameTime: 0,
     net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { h2: 1, h3: 2 },
            slots: [1, 2, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité A', 2: 'Invité B' }, ...net },
   });
@@ -78,28 +79,28 @@ function ouvreOpposition() {
       casterId: 'e1', targetId: 'h2', spellId: 'fauche-demon', missile: false, focused: false,
       result: { cast: true, roll: 30, target: 70, sl: 6, isCritical: false, isFumble: false, log: 'x' },
     } as never,
-    pendingCastOpposition: { participants: [{ id: 'h2', interactive: true, result: null }], test: { char: 'force-mentale' }, menace: 'magie' } as never,
+    pendingCastOpposition: { participants: [{ id: 'h2', interactive: true, result: null }], test: { characteristic: 'force-mentale' }, menace: 'magie' } as never,
   });
 }
 
 describe('#1050 — opposition de cible : la cible invitée RÉSISTE et APPLIQUE (Sort ennemi)', () => {
-  it('jetResist@opposition : seul le siège de la CIBLE l’obtient, et son auto-succès est écrit', () => {
+  it('jetResister@opposition : seul le siège de la CIBLE l’obtient, et son auto-succès est écrit', () => {
     setup();
     ouvreOpposition();
-    expect(applyIntent(2, 'jetResist', ['opposition', 'h2']), 'un tiers brûlait le Talent de la cible').toBe('refusee');
-    expect(applyIntent(0, 'jetResist', ['opposition', 'h2']), 'l’hôte n’est pas le porteur de la rangée').toBe('refusee');
+    expect(applyIntent(2, 'jetResister', ['opposition', 'h2']), 'un tiers brûlait le Talent de la cible').toBe('refusee');
+    expect(applyIntent(0, 'jetResister', ['opposition', 'h2']), 'l’hôte n’est pas le porteur de la rangée').toBe('refusee');
     expect(banc.getState().pendingCastOpposition!.participants[0].result).toBeNull();
-    expect(applyIntent(1, 'jetResist', ['opposition', 'h2'])).toBe('appliquee');
+    expect(applyIntent(1, 'jetResister', ['opposition', 'h2'])).toBe('appliquee');
     const part = banc.getState().pendingCastOpposition!.participants[0];
     expect(part.result!.resisted, 'la cible résiste (LDB : le Test réussit d’office)').toBe(true);
     expect(part.result!.oppose.sl, 'DR imposé = Bonus d’Endurance').toBe(bonus(43));
   });
 
-  it('jetConfirm@opposition : la cible invitée APPLIQUE — la fenêtre d’opposition se referme', () => {
+  it('jetValider@opposition : la cible invitée APPLIQUE — la fenêtre d’opposition se referme', () => {
     setup();
     ouvreOpposition();
-    expect(applyIntent(1, 'jetResist', ['opposition', 'h2'])).toBe('appliquee');
-    expect(applyIntent(1, 'jetConfirm', ['opposition']), 'la cible pouvait jeter mais pas appliquer').toBe('appliquee');
+    expect(applyIntent(1, 'jetResister', ['opposition', 'h2'])).toBe('appliquee');
+    expect(applyIntent(1, 'jetValider', ['opposition']), 'la cible pouvait jeter mais pas appliquer').toBe('appliquee');
     expect(banc.getState().pendingCastOpposition, 'l’opposition reste ouverte : le Sort ne se résout jamais').toBeNull();
   });
 
@@ -107,26 +108,26 @@ describe('#1050 — opposition de cible : la cible invitée RÉSISTE et APPLIQUE
     setup();
     ouvreOpposition();
     const s = banc.getState();
-    // Router `jetConfirm('opposition')` sur le LANCEUR (patron mono `jetOwner`) rendrait le Sort inapplicable :
+    // Router `jetValider('opposition')` sur le LANCEUR (patron mono `jetOwner`) rendrait le Sort inapplicable :
     // le lanceur est un ENNEMI et aucun siège ne porte le rôle MJ → personne ne peut le clore.
     for (const seat of [0, 1, 2]) expect(seatInfluences(s, seat, 'e1'), `siège ${seat} sur le lanceur ennemi`).toBe(false);
     // La règle retenue (repli sur le owner de la fenêtre, '*') laisse la fenêtre applicable par ses
     // participants — l'agrégation elle-même REFUSE tant qu'une rangée interactive n'a pas jeté.
-    for (const seat of [0, 1, 2]) expect(intentAllowedFor(s, seat, 'jetConfirm', ['opposition']), `siège ${seat}`).toBe(true);
-    applyIntent(0, 'jetConfirm', ['opposition']);
+    for (const seat of [0, 1, 2]) expect(intentAllowedFor(s, seat, 'jetValider', ['opposition']), `siège ${seat}`).toBe(true);
+    applyIntent(0, 'jetValider', ['opposition']);
     expect(banc.getState().pendingCastOpposition, 'agrégation d’une rangée DUE : refusée par l’action').not.toBeNull();
   });
 
   it('NON-RÉGRESSION SOLO : hors coop, la cible résiste et applique comme avant', () => {
     setup({ mode: 'local', mySeat: 0, ownership: {}, slots: [0, 0, 0, 0] });
     ouvreOpposition();
-    banc.getState().jetResist('opposition', 'h2');
-    banc.getState().jetConfirm('opposition');
+    banc.getState().jetResister('opposition', 'h2');
+    banc.getState().jetValider('opposition');
     expect(banc.getState().pendingCastOpposition).toBeNull();
   });
 
   /**
-   * « Tout lancer » (`jetRoll('opposition')` sans rangée, #3327) roule les seules rangées que le siège ÉMETTEUR influence :
+   * « Tout lancer » (`jetLancer('opposition')` sans rangée, #3327) roule les seules rangées que le siège ÉMETTEUR influence :
    * l'hôte exécute au nom de ce siège (`influencesLocally`), un siège sans rangée due ne lance rien.
    */
   it('« Tout lancer » : le siège émetteur roule SA rangée, jamais celle d’un autre siège', () => {
@@ -136,9 +137,9 @@ describe('#1050 — opposition de cible : la cible invitée RÉSISTE et APPLIQUE
     banc.setState({ pendingCastOpposition: { ...pco, participants: [
       { id: 'h2', interactive: true, result: null }, { id: 'h3', interactive: true, result: null },
     ] } as never });
-    expect(applyIntent(3, 'jetRoll', ['opposition'])).toBe('appliquee');
+    expect(applyIntent(3, 'jetLancer', ['opposition'])).toBe('appliquee');
     expect(banc.getState().pendingCastOpposition!.participants.every((p) => p.result === null), 'un siège sans rangée due lançait celle d’autrui').toBe(true);
-    expect(applyIntent(1, 'jetRoll', ['opposition'])).toBe('appliquee');
+    expect(applyIntent(1, 'jetLancer', ['opposition'])).toBe('appliquee');
     const parts = banc.getState().pendingCastOpposition!.participants;
     expect(parts.find((p) => p.id === 'h2')!.result, 'la rangée du siège émetteur').not.toBeNull();
     expect(parts.find((p) => p.id === 'h3')!.result, 'l’hôte roulait la rangée d’un AUTRE siège').toBeNull();
@@ -146,18 +147,18 @@ describe('#1050 — opposition de cible : la cible invitée RÉSISTE et APPLIQUE
 });
 
 describe('#1050 — hotbar : le geste de l’invité sur SON héros actif atteint l’hôte', () => {
-  it('battleSelectAttack : le siège du combattant ACTIF arme son attaque ; un tiers est refusé', () => {
+  it('l’offre `attaque` : le siège du combattant ACTIF arme son attaque ; un tiers est refusé', () => {
     setup(); // tour de `h2` (siège 1)
-    expect(applyIntent(2, 'battleSelectAttack', ['arme-2']), 'un tiers pilotait le tour d’autrui').toBe('refusee');
-    expect(applyIntent(0, 'battleSelectAttack', ['arme-2']), 'l’hôte ne possède pas le combattant actif').toBe('refusee');
+    expect(applyIntent(2, 'jouerLOffre', ['attaque', { attackId: 'arme-2' }]), 'un tiers pilotait le tour d’autrui').toBe('refusee');
+    expect(applyIntent(0, 'jouerLOffre', ['attaque', { attackId: 'arme-2' }]), 'l’hôte ne possède pas le combattant actif').toBe('refusee');
     expect(banc.getState().battle!.selectedAttack).toBeNull();
-    expect(applyIntent(1, 'battleSelectAttack', ['arme-2'])).toBe('appliquee');
+    expect(applyIntent(1, 'jouerLOffre', ['attaque', { attackId: 'arme-2' }])).toBe('appliquee');
     expect(banc.getState().battle!.selectedAttack, 'le geste s’exécutait chez l’invité puis mourait au snapshot').toBe('arme-2');
   });
 
   it('NON-RÉGRESSION SOLO : le joueur arme son attaque hors coop', () => {
     setup({ mode: 'local', mySeat: 0, ownership: {}, slots: [0, 0, 0, 0] });
-    banc.getState().battleSelectAttack('arme-2');
+    banc.getState().armerLAttaque('arme-2');
     expect(banc.getState().battle!.selectedAttack).toBe('arme-2');
   });
 });
@@ -168,44 +169,44 @@ describe('#1050 — Tir rapide (Talent) : l’invité arme sa visée et tire pen
     banc.setState({ pendingRoundStart: { round: 2 } as never });
   };
 
-  it('armPreempt : le siège du TIREUR arme ; l’hôte (que le repli désignait) est refusé', () => {
+  it('armerLeTirPreventif : le siège du TIREUR arme ; l’hôte (que le repli désignait) est refusé', () => {
     pause();
-    expect(applyIntent(2, 'armPreempt', ['h2']), 'un tiers armait la visée d’autrui').toBe('refusee');
-    expect(applyIntent(0, 'armPreempt', ['h2']), 'sans route, le repli rendait l’hôte (aucun actif en pause)').toBe('refusee');
+    expect(applyIntent(2, 'armerLeTirPreventif', ['h2']), 'un tiers armait la visée d’autrui').toBe('refusee');
+    expect(applyIntent(0, 'armerLeTirPreventif', ['h2']), 'sans route, le repli rendait l’hôte (aucun actif en pause)').toBe('refusee');
     expect(banc.getState().preemptAiming).toBeNull();
-    expect(applyIntent(1, 'armPreempt', ['h2'])).toBe('appliquee');
+    expect(applyIntent(1, 'armerLeTirPreventif', ['h2'])).toBe('appliquee');
     expect(banc.getState().preemptAiming).toBe('h2');
   });
 
   it('clic-token sous visée armée : le tir d’interruption s’ouvre pour le TIREUR, pas pour un tiers', () => {
     pause();
-    expect(applyIntent(1, 'armPreempt', ['h2'])).toBe('appliquee');
-    expect(applyIntent(2, 'battleClickEntity', ['e1']), 'un tiers déclenchait le Tir rapide d’autrui').toBe('refusee');
+    expect(applyIntent(1, 'armerLeTirPreventif', ['h2'])).toBe('appliquee');
+    expect(applyIntent(2, 'cliquerLaCase', [{ x: 3, y: 0 }, 'e1']), 'un tiers déclenchait le Tir rapide d’autrui').toBe('refusee');
     expect(banc.getState().pendingAttack).toBeNull();
-    expect(applyIntent(1, 'battleClickEntity', ['e1'])).toBe('appliquee');
+    expect(applyIntent(1, 'cliquerLaCase', [{ x: 3, y: 0 }, 'e1'])).toBe('appliquee');
     const pa = banc.getState().pendingAttack;
     expect(pa?.attackerId).toBe('h2');
     expect(pa?.targetId).toBe('e1');
     expect(pa?.interrupt, 'le tir hors de l’ordre d’Initiative').toBe(true);
   });
 
-  it('preemptRangedShot est la machinerie du clic (#3370) : hors allowlist, même pour le tireur', () => {
+  it('declencherLeTirPreventif est la machinerie du clic (#3370) : hors allowlist, même pour le tireur', () => {
     pause();
-    for (const seat of [0, 1, 2]) expect(applyIntent(seat, 'preemptRangedShot', ['h2', 'e1']), `siège ${seat}`).toBe('hors-allowlist');
+    for (const seat of [0, 1, 2]) expect(applyIntent(seat, 'declencherLeTirPreventif', ['h2', 'e1']), `siège ${seat}`).toBe('hors-allowlist');
     expect(banc.getState().pendingAttack).toBeNull();
   });
 
   it('hors pause de Round, le geste n’appartient à personne (la fenêtre n’existe pas)', () => {
     setup(); // aucun `pendingRoundStart`
-    for (const seat of [0, 1, 2]) expect(applyIntent(seat, 'armPreempt', ['h2']), `siège ${seat}`).toBe('refusee');
+    for (const seat of [0, 1, 2]) expect(applyIntent(seat, 'armerLeTirPreventif', ['h2']), `siège ${seat}`).toBe('refusee');
   });
 
   it('NON-RÉGRESSION SOLO : le joueur arme et tire son Tir rapide hors coop', () => {
     setup({ mode: 'local', mySeat: 0, ownership: {}, slots: [0, 0, 0, 0] }, -1);
     banc.setState({ pendingRoundStart: { round: 2 } as never });
-    banc.getState().armPreempt('h2');
+    banc.getState().armerLeTirPreventif('h2');
     expect(banc.getState().preemptAiming).toBe('h2');
-    banc.getState().battleClickEntity('e1');
+    cliquerSurLeCombattant(banc.getState, 'e1');
     expect(banc.getState().pendingAttack?.interrupt).toBe(true);
   });
 });
@@ -221,12 +222,12 @@ describe('#1050 — Résistance (Menace) d’une étape de cascade : routée sur
     });
   };
 
-  it('jetResist@cascade : le siège de l’acteur de l’étape agit ; la fenêtre partagée n’ouvre PAS le geste à tous', () => {
+  it('jetResister@cascade : le siège de l’acteur de l’étape agit ; la fenêtre partagée n’ouvre PAS le geste à tous', () => {
     cascadeMenace();
-    expect(applyIntent(2, 'jetResist', ['cascade', 'st0']), 'étape partagée : un tiers brûlait la Résistance d’autrui').toBe('refusee');
-    expect(applyIntent(0, 'jetResist', ['cascade', 'st0'])).toBe('refusee');
+    expect(applyIntent(2, 'jetResister', ['cascade', 'st0']), 'étape partagée : un tiers brûlait la Résistance d’autrui').toBe('refusee');
+    expect(applyIntent(0, 'jetResister', ['cascade', 'st0'])).toBe('refusee');
     expect(banc.getState().pendingCascade!.participants[0].result).toBeUndefined();
-    expect(applyIntent(1, 'jetResist', ['cascade', 'st0'])).toBe('appliquee');
+    expect(applyIntent(1, 'jetResister', ['cascade', 'st0'])).toBe('appliquee');
     const step = banc.getState().pendingCascade!.participants[0];
     expect(step.result!.success).toBe(true);
     expect(step.result!.sl, 'DR imposé = Bonus d’Endurance').toBe(bonus(43));
@@ -234,31 +235,31 @@ describe('#1050 — Résistance (Menace) d’une étape de cascade : routée sur
 
   it('étape INCONNUE (fermée) : personne ne joue le verbe', () => {
     cascadeMenace();
-    for (const seat of [0, 1, 2]) expect(applyIntent(seat, 'jetResist', ['cascade', 'inexistante']), `siège ${seat}`).toBe('refusee');
+    for (const seat of [0, 1, 2]) expect(applyIntent(seat, 'jetResister', ['cascade', 'inexistante']), `siège ${seat}`).toBe('refusee');
   });
 });
 
 describe('#3327 — Maladresse et dé d’étape : leurs verbes de jet se jouent au siège de la fenêtre de l’étape', () => {
-  it('jetRoll@fumble sans rangée puis jetConfirm@fumble : la Maladresse d’un ennemi se tire et s’applique au siège de sa fenêtre, jamais chez un invité', () => {
+  it('jetLancer@fumble sans rangée puis jetValider@fumble : la Maladresse d’un ennemi se tire et s’applique au siège de sa fenêtre, jamais chez un invité', () => {
     const { e1 } = setup();
     banc.setState({ pendingCascade: cascadeDeTest([{ id: 'f0', kind: 'triggeredTest', actorId: 'e1', jet: 'fumble', fumble: { weapon: e1.weapons[0], result: null } }]) });
-    expect(applyIntent(1, 'jetRoll', ['fumble']), 'un invité tirait la Maladresse de l’ennemi').toBe('refusee');
+    expect(applyIntent(1, 'jetLancer', ['fumble']), 'un invité tirait la Maladresse de l’ennemi').toBe('refusee');
     expect(banc.getState().pendingCascade!.participants[0].fumble!.result).toBeNull();
-    expect(applyIntent(0, 'jetRoll', ['fumble'])).toBe('appliquee');
+    expect(applyIntent(0, 'jetLancer', ['fumble'])).toBe('appliquee');
     expect(banc.getState().pendingCascade!.participants[0].fumble!.result, 'la rangée d’une étape sans acteur propre se lance sans possession de siège').toBeTruthy();
-    expect(applyIntent(1, 'jetConfirm', ['fumble'])).toBe('refusee');
-    expect(applyIntent(0, 'jetConfirm', ['fumble'])).toBe('appliquee');
+    expect(applyIntent(1, 'jetValider', ['fumble'])).toBe('refusee');
+    expect(applyIntent(0, 'jetValider', ['fumble'])).toBe('appliquee');
     expect(banc.getState().pendingCascade, 'la Maladresse appliquée clôt l’étape').toBeNull();
     expect(banc.getState().battle!.log.map((e) => e.text).join(' | '), 'les Oups ! tirés sont écrits au journal de combat').toMatch(/^e1 — Maladresse/);
   });
 
-  it('jetRoll@cascadeTirage et jetSetForcedRoll@cascadeTirage : le dé de l’étape d’un héros se joue à SON siège', () => {
+  it('jetLancer@cascadeTirage et jetImposerLeResultat@cascadeTirage : le dé de l’étape d’un héros se joue à SON siège', () => {
     setup();
     banc.setState({ pendingCascade: cascadeDeTest([{ id: 'd0', kind: 'triggeredTest', actorId: 'h2', de: { spec: { n: 1, sides: 10 } } }]) });
-    expect(applyIntent(2, 'jetRoll', ['cascadeTirage', 'd0']), 'un tiers tirait le dé du héros d’autrui').toBe('refusee');
-    expect(applyIntent(0, 'jetSetForcedRoll', ['cascadeTirage', 3, 'd0'])).toBe('refusee');
+    expect(applyIntent(2, 'jetLancer', ['cascadeTirage', 'd0']), 'un tiers tirait le dé du héros d’autrui').toBe('refusee');
+    expect(applyIntent(0, 'jetImposerLeResultat', ['cascadeTirage', 3, 'd0'])).toBe('refusee');
     expect(banc.getState().pendingCascade!.participants[0].de!.result).toBeUndefined();
-    expect(applyIntent(1, 'jetRoll', ['cascadeTirage', 'd0'])).toBe('appliquee');
+    expect(applyIntent(1, 'jetLancer', ['cascadeTirage', 'd0'])).toBe('appliquee');
     expect(banc.getState().pendingCascade!.participants[0].de!.result).toBeTruthy();
   });
 });

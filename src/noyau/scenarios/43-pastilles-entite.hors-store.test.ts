@@ -15,13 +15,13 @@ const scenarioConstruit = scenario.construire();
  *
  * Aucun scénario ne combinait jusqu'ici un combat, un décor à ramasser à ≥ 2 objets et une pièce
  * servie : la recette navigateur des pastilles n'avait donc pas de banc. Cette sonde mesure le banc
- * lui-même, sur l'état RÉEL que produit le scénario (`startScene` + `startCombat`) : les trois
+ * lui-même, sur l'état RÉEL que produit le scénario (`lancerLaScene` + `lancerLeCombat`) : les trois
  * familles d'entités offrent bien leurs gestes à l'actif, à une case, sans un pas de déplacement.
  */
 function ouvrir() {
   banc.setState({ party: scenario.construire().party });
-  banc.getState().startScene(scenarioConstruit.scene);
-  banc.getState().startCombat('enc-pastilles');
+  banc.getState().lancerLaScene(scenarioConstruit.scene);
+  banc.getState().lancerLeCombat('enc-pastilles');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   // L'ordre du Round est tiré à l'Initiative : on se place au TOUR DU SOLDAT, celui que le joueur

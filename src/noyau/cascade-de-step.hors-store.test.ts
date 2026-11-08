@@ -22,8 +22,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * 2026-09-04 : « Vu que tous les jets passé par le même point d'entrée, il est inutile de se demander
  * si le jeu est configuré pour » — un site n'a aucune classe à choisir, il déclare son dé.
  *
- * Contrats POSITIFS, exercés par les VRAIES coutures du noyau (`jetRoll('cascadeTirage')`/
- * `jetSetForcedRoll('cascadeTirage')`/`jetConfirm('cascade')`/`cascadeResolveAll`) et par le pilote immédiat.
+ * Contrats POSITIFS, exercés par les VRAIES coutures du noyau (`jetLancer('cascadeTirage')`/
+ * `jetImposerLeResultat('cascadeTirage')`/`jetValider('cascade')`/`jetLancer('cascade')`) et par le pilote immédiat.
  */
 describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#1508)', () => {
   const tombes: { roll: number; total: number }[] = [];
@@ -40,15 +40,15 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
       spec: { n: 2, sides: 10 }, unite: 'm', worldOwner: true, ...over,
     })!;
 
-  it('(i) une étape `de` mintée n’est PAS prête, et `jetRoll(\'cascadeTirage\')` pose un total DANS la plage naturelle', () => {
+  it('(i) une étape `de` mintée n’est PAS prête, et `jetLancer(\'cascadeTirage\')` pose un total DANS la plage naturelle', () => {
     const st = chute('d1');
     expect(stepInteraction(st)).toBe('de');
     expect(stepReady(st, banc.getState())).toBe(false);
-    banc.getState().seedRng(4);
+    banc.getState().ensemencerLeTirage(4);
     startCascade(banc.getState, banc.setState, { title: 'Chute', purpose: 'test', steps: [st] });
-    banc.getState().jetConfirm('cascade'); // pas encore tiré → no-op : la fenêtre force d'abord le dé
+    banc.getState().jetValider('cascade'); // pas encore tiré → no-op : la fenêtre force d'abord le dé
     expect(tombes).toHaveLength(0);
-    banc.getState().jetRoll('cascadeTirage', 'd1');
+    banc.getState().jetLancer('cascadeTirage', 'd1');
     const res = banc.getState().pendingCascade!.participants[0].de!.result!;
     const plage = plageNaturelle({ n: 2, sides: 10 });
     expect(plage).toEqual({ min: 2, max: 20 });
@@ -56,31 +56,31 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
     expect(res.roll).toBeLessThanOrEqual(plage.max);
     expect(res.total, 'sans mod ni plus, le total EST le naturel').toBe(res.roll);
     expect(stepReady(banc.getState().pendingCascade!.participants[0], banc.getState())).toBe(true);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(tombes).toEqual([{ roll: res.roll, total: res.total }]);
     expect(banc.getState().pendingCascade).toBeNull();
   });
 
-  it('(ii) `jetSetForcedRoll(\'cascadeTirage\')` : total = n + mod, le dé posé n’est JAMAIS retiré', () => {
+  it('(ii) `jetImposerLeResultat(\'cascadeTirage\')` : total = n + mod, le dé posé n’est JAMAIS retiré', () => {
     startCascade(banc.getState, banc.setState, { title: 'Chute', purpose: 'test', steps: [chute('d1', { mod: 3 })] });
-    banc.getState().jetSetForcedRoll('cascadeTirage', 14, 'd1');
+    banc.getState().jetImposerLeResultat('cascadeTirage', 14, 'd1');
     const etape = () => banc.getState().pendingCascade!.participants[0];
     expect(etape().de!.result).toEqual({ roll: 14, total: 17 });
     expect(etape().fixed, 'la provenance du dé est marquée').toBe(true);
     // RE-POSE tant que l'étape est COURANTE (parité exacte avec la table) : le résultat se recalcule.
-    banc.getState().jetSetForcedRoll('cascadeTirage', 5, 'd1');
+    banc.getState().jetImposerLeResultat('cascadeTirage', 5, 'd1');
     expect(etape().de!.result).toEqual({ roll: 5, total: 8 });
     // Un dé POSÉ n'est jamais re-tiré, même par le verbe de lancer.
-    banc.getState().jetRoll('cascadeTirage', 'd1');
+    banc.getState().jetLancer('cascadeTirage', 'd1');
     expect(etape().de!.result).toEqual({ roll: 5, total: 8 });
   });
 
   it('(iii) hors plage : la saisie est RAMENÉE aux naturels que ces dés savent sortir (2d10 = 2..20)', () => {
     startCascade(banc.getState, banc.setState, { title: 'Chute', purpose: 'test', steps: [chute('d1')] });
     const etape = () => banc.getState().pendingCascade!.participants[0];
-    banc.getState().jetSetForcedRoll('cascadeTirage', 99, 'd1');
+    banc.getState().jetImposerLeResultat('cascadeTirage', 99, 'd1');
     expect(etape().de!.result, 'un 2d10 ne sort pas 99').toEqual({ roll: 20, total: 20 });
-    banc.getState().jetSetForcedRoll('cascadeTirage', 0, 'd1');
+    banc.getState().jetImposerLeResultat('cascadeTirage', 0, 'd1');
     expect(etape().de!.result, 'ni 0 — deux dés font au moins 2').toEqual({ roll: 2, total: 2 });
   });
 
@@ -101,7 +101,7 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
   });
 
   it('(iv) `runCascadeImmediate` résout un `de` d’office ET le JOURNALISE (dé + total avec son unité)', () => {
-    banc.getState().seedRng(9);
+    banc.getState().ensemencerLeTirage(9);
     const out = runCascadeImmediate(banc.getState, banc.setState, [chute('d3', { forcedRoll: 13 })])!;
     expect(out[0].de!.result).toEqual({ roll: 13, total: 13 });
     expect(tombes).toEqual([{ roll: 13, total: 13 }]);
@@ -112,9 +112,9 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
   });
 
   it('(iv bis) « Tout lancer » résout les `de` restants par le MÊME résolveur', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     startCascade(banc.getState, banc.setState, { title: 'Chute', purpose: 'test', steps: [chute('a'), chute('b')] });
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetLancer('cascade');
     expect(tombes).toHaveLength(2);
     for (const t of tombes) { expect(t.roll).toBeGreaterThanOrEqual(2); expect(t.roll).toBeLessThanOrEqual(20); }
   });

@@ -131,11 +131,11 @@ describe('câblages moteur', () => {
   });
   it('À sang-froid (LDB 85 l.13) : un Test de Force Mentale raté est inversé s’il devient réussi', () => {
     const froid = mk({ traits: [{ id: 'a-sang-froid' }] });
-    expect(inversionDeTalent(froid, { skill: 'calme' }, 91, 40)).toEqual({ roll: 19, sl: 3, success: true }); // 91 → 19
-    expect(inversionDeTalent(froid, { char: 'force-mentale' }, 91, 40)).toEqual({ roll: 19, sl: 3, success: true });
-    expect(inversionDeTalent(froid, { skill: 'calme' }, 99, 40)).toBeNull(); // 99 → 99
-    expect(reverseAvailable(froid, { skill: 'athletisme' }, 91, 40)).toBe(false); // pas un Test de Force Mentale
-    expect(inversionDeTalent(mk({}), { skill: 'calme' }, 91, 40)).toBeNull();
+    expect(inversionDeTalent(froid, { skill: { id: 'calme' } }, 91, 40)).toEqual({ roll: 19, sl: 3, success: true }); // 91 → 19
+    expect(inversionDeTalent(froid, { characteristic: 'force-mentale' }, 91, 40)).toEqual({ roll: 19, sl: 3, success: true });
+    expect(inversionDeTalent(froid, { skill: { id: 'calme' } }, 99, 40)).toBeNull(); // 99 → 99
+    expect(reverseAvailable(froid, { skill: { id: 'athletisme' } }, 91, 40)).toBe(false); // pas un Test de Force Mentale
+    expect(inversionDeTalent(mk({}), { skill: { id: 'calme' } }, 91, 40)).toBeNull();
   });
   it('Belliqueux : immunité psy si plus d’Avantages que l’adversaire', () => {
     const c = mk({ traits: [{ id: 'belliqueux' }], advantage: 2 });

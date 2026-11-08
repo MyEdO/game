@@ -19,7 +19,7 @@ function wiz() {
 describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
   beforeEach(() => {
     useGame.setState({ battle: null, party: [], journal: [], pendingCast: null, refus: null, combatCursor: null });
-    useGame.getState().seedRng(17);
+    useGame.getState().ensemencerLeTirage(17);
   });
 
   function setupBattle() {
@@ -40,7 +40,7 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
   }
 
   /** Le clic d'une SURFACE réelle (curseur clavier/manette) : même porte partagée que la carte et la
-   *  frise. Jamais `battleClickEntity` en direct — il sauterait la porte qu'on mesure. */
+   *  frise. Jamais `cliquerLaCase` en direct — il sauterait la porte qu'on mesure. */
   function cliqueParLeCurseur(pt: { x: number; y: number }) {
     useGame.setState({ combatCursor: { tile: { ...pt } } });
     useGame.getState().commitCursor();

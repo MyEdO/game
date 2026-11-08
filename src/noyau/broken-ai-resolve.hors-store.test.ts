@@ -15,7 +15,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * Lot 1 — IA : un acteur VERROUILLÉ (`restrictsAction`, ex. Brisé) dépense PROACTIVEMENT sa Détermination
  * pour se RESSAISIR (retirer l'État, LDB 17 l.57-61) au lieu de fuir/subir tout le combat. GÉNÉRIQUE et
  * data-driven (aucun nom d'État en dur) : la décision PURE vit dans `chooseEnemyAction` (`spendResource`),
- * l'exécution dans `runEnemyAI` (dépense via l'action du noyau `spendResolveCondition`, puis vraie action).
+ * l'exécution dans `runEnemyAI` (dépense via l'action du noyau `depenserLaDetermination`, puis vraie action).
  */
 const scene = () =>
   ({ id: 's', label: '', dimensions: { w: 12, h: 12 }, layers: [{ z: 0, tiles: Array(144).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [], flags: {} } as never);
@@ -64,7 +64,7 @@ describe('IA Brisé — dépense PROACTIVE de Détermination (LDB 17 l.57-61), d
 describe('IA Brisé — dispatch : la dépense retire l\'État puis une vraie action suit le MÊME tour', () => {
   beforeEach(() => { clearAiTurnLog(); banc.setState({ battle: null, party: [] }); });
 
-  it('ennemi Brisé+Détermination, Engagé → spendResolveCondition retire le Brisé (−1 Détermination), action réelle dispatchée', () => {
+  it('ennemi Brisé+Détermination, Engagé → depenserLaDetermination retire le Brisé (−1 Détermination), action réelle dispatchée', () => {
     const e = spawnEnemy({ ref: 'humain' }, 'e', { x: 5, y: 5 });
     e.kind = 'enemy';
     e.conditions = [{ id: 'brise', value: 1 }];

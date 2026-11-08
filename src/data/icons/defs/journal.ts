@@ -1,6 +1,6 @@
 import type { IconFamily } from '../types';
 
-/* Événements du feed de combat (journal + bandeau — sens : src/gameIso/combatNarration.ts).
+/* Événements du feed de combat (journal + bandeau).
    Charte : voir defs/action.ts (grille 24×24, trait 1.8 rond, silhouette pleine, une métaphore). */
 
 /** Trait principal. */

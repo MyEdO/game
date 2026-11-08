@@ -10,13 +10,15 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
 import { applierDe } from './cascade';
 import { WATER_EXPOSURE } from '../data';
+import { datasetObject, setObjectDataset } from '../data/overrides';
 import { RULE_REF } from '../engine/ruleRefs';
 import { autoExposureMods, sourceExposureMod, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { createHero } from '../engine/character';
 import { type RNG } from '../engine/dice';
+import { deDeLaTableTiree, facesDuDe } from '../engine/tables';
 import { seedBattleRng } from './battleRng';
 import type { Combatant } from '../engine/types';
-import { desEnSuite } from '../engine/dice.testkit';
+import { deMax, desEnSuite } from '../engine/dice.testkit';
 import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -30,14 +32,14 @@ function hero(name: string, over: Partial<Combatant> = {}): Combatant {
 }
 
 describe('water-exposure.json — la donnée MSRC 16 l.23-61', () => {
-  it('la table d100 partitionne 1..100 sans trou ni chevauchement', () => {
+  it('la table partitionne les faces de son dé sans trou ni chevauchement (MSRC 16 l.53)', () => {
     let next = 1;
-    for (const e of WATER_EXPOSURE.diseases) {
+    for (const e of WATER_EXPOSURE.diseases.entries) {
       expect(e.min).toBe(next);
       expect(e.max).toBeGreaterThanOrEqual(e.min);
       next = e.max + 1;
     }
-    expect(next).toBe(101);
+    expect(next).toBe(facesDuDe(deDeLaTableTiree(WATER_EXPOSURE.diseases)) + 1);
   });
   it('« Par État Assommé » (MSRC) → id LDB `sonne` (le LDB 16 n\'a pas d\'État « Assommé » — glissement de traduction)', () => {
     const m = WATER_EXPOSURE.modifiers.find((x) => x.id === 'par-etat-assomme')!;
@@ -71,7 +73,16 @@ describe('modificateurs dérivés du Combatant (tableau 2, « tous les modificat
   });
 });
 
-describe('drawWaterDisease — d100 « +10 pour chaque DR négatif » + « Relancez si le Personnage n\'est pas blessé »', () => {
+describe('drawWaterDisease — dé de la table « +10 pour chaque DR négatif » + « Relancez si le Personnage n\'est pas blessé »', () => {
+  it('le jet se tire au `die` VIVANT de la table, et le modifié plafonne à ses faces (MSRC 16 l.53 ; #1667)', () => {
+    const imprime = structuredClone(datasetObject('waterExposure'));
+    try {
+      setObjectDataset('waterExposure', { ...imprime, diseases: { ...imprime.diseases, die: 'd50' } });
+      expect(drawWaterDisease(9, false, deMax), 'd50 au max, +90 plafonné à 50 → Colique (41-60)').toMatchObject({ roll: 50, modified: 50, disease: 'colique' });
+    } finally {
+      setObjectDataset('waterExposure', imprime);
+    }
+  });
   it('jet 35 sans DR négatif → Courante galopante (01-40)', () => {
     expect(drawWaterDisease(0, false, seq([35]))).toMatchObject({ roll: 35, modified: 35, disease: 'courante-galopante', rerolled: 0 });
   });

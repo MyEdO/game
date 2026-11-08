@@ -5,10 +5,9 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { currentTargetingMode, spellAffinity, TILE_MODES, TARGETING_MODES } from './targetingModes';
-import { combatantClickActs, intentionDuClicDeCase, jouerLeClicDeCase } from './combatOrParty';
+import { combatantClickActs, intentionDuClicDeCase, jouerLeClicDeCase, cliquerSurLeCombattant } from './combatOrParty';
 import { t } from '../i18n';
 import { tilePreviewAt } from './targeting';
-import { runAction } from './actionRegistry';
 import { flyReachable } from './monde/path';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
@@ -162,7 +161,7 @@ describe('réticule du Piétinement', () => {
     hero.size = 'grande';
     hero.advantage = 2;
     banc.setState({ battle: { ...banc.getState().battle! } });
-    banc.getState().battleSelectAttack('pietinement');
+    banc.getState().armerLAttaque('pietinement');
     const r = currentTargetingMode(banc.getState).affordance!(banc.getState, hero, e1);
     expect(r.kind).toBe('ok');
     expect((r as { skill: string }).skill).toBe('Corps à corps (Bagarre)');
@@ -230,7 +229,7 @@ describe('interlude `placing-zone` — la sortie du registre MORD, par source', 
     combat({ selectedAttack: 'servir-mortier' });
     banc.setState({ pendingSiegeAim: { gunnerId: 'h1', weaponUid: 'w', radius: 2, rangeTiles: 10 } as never });
     expect(currentTargetingMode(banc.getState).id).toBe('placing-zone');
-    runAction('place-zone-back', banc.getState);
+    banc.getState().jouerLOffre('place-zone-back');
     expect(banc.getState().pendingSiegeAim, 'le placeur de siège doit être refermé').toBeNull();
     expect(banc.getState().battle!.selectedAttack, 'l’option « Servir … » se désarme avec lui').toBeUndefined();
     expect(currentTargetingMode(banc.getState).id).not.toBe('placing-zone');
@@ -240,7 +239,7 @@ describe('interlude `placing-zone` — la sortie du registre MORD, par source', 
     combat();
     banc.setState({ pendingCast: { casterId: 'h1', spellId: 'carreau', result: { cast: true }, zone: { placing: true, radius: 2 } } as never });
     expect(currentTargetingMode(banc.getState).id).toBe('placing-zone');
-    runAction('place-zone-back', banc.getState);
+    banc.getState().jouerLOffre('place-zone-back');
     expect(banc.getState().pendingCast, 'le sort JETÉ survit : on revient à sa modale').not.toBeNull();
     expect(banc.getState().pendingCast!.zone!.placing).toBe(false);
     expect(currentTargetingMode(banc.getState).id).not.toBe('placing-zone');
@@ -281,10 +280,10 @@ describe('téléportation — les cases se lisent à la clé de `flyReachable`, 
 
     it(`z=${z} : « Rester sur place » SORT du mode, et un clic valide TÉLÉPORTE`, () => {
       const { hero } = armer(z);
-      runAction('teleport-place', banc.getState);
+      banc.getState().jouerLOffre('teleport-place');
       expect(banc.getState().battle!.action, 'la sortie doit désarmer la téléportation').toBeNull();
       const { hero: h2 } = armer(z);
-      banc.getState().battleClickTile({ x: 7, y: 6, ...(z ? { z } : {}) });
+      banc.getState().cliquerLaCase({ x: 7, y: 6, ...(z ? { z } : {}) });
       expect(h2.pos).toEqual({ x: 7, y: 6, ...(z ? { z } : {}) });
       expect(banc.getState().battle!.action).toBeNull();
       expect(hero.id).toBe(h2.id);
@@ -353,7 +352,7 @@ describe('DISPEL_MODE — le clic-token élit le PORTEUR, il n’attaque jamais'
     const { hero, e1 } = combat({ action: 'dispel' });
     hero.skills.push({ id: 'langue', spec: 'magick', advances: 0 } as never);
     porteur(e1, 2);
-    banc.getState().battleClickEntity('e1');
+    cliquerSurLeCombattant(banc.getState, 'e1');
     expect(banc.getState().dispelCarrierId, 'le porteur est élu — le SORT reste à choisir').toBe('e1');
     expect(banc.getState().pendingAttack, 'cliquer le porteur ne l’attaque JAMAIS en mode Dissiper').toBeNull();
     expect(banc.getState().pendingDispel, 'rien n’est engagé tant que le paramètre n’est pas choisi').toBeNull();
@@ -363,7 +362,7 @@ describe('DISPEL_MODE — le clic-token élit le PORTEUR, il n’attaque jamais'
     const { hero, e1 } = combat({ action: 'dispel' });
     hero.skills.push({ id: 'langue', spec: 'magick', advances: 0 } as never);
     porteur(e1, 1);
-    banc.getState().battleClickEntity('e1');
+    cliquerSurLeCombattant(banc.getState, 'e1');
     expect(banc.getState().dispelCarrierId, 'aucun paramètre à demander').toBeNull();
     expect(banc.getState().pendingDispel).toMatchObject({ spellId: 'sort-1', spellCasterId: 'e2', ni: 3 });
   });

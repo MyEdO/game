@@ -21,8 +21,8 @@ import { CELL, TH, TW, type ProjKind, type Rot } from '../../../geometry/iso';
 import type { Scene } from '../../../noyau/monde/scene';
 import type { Dir8 } from '../../../geometry/dir8';
 import { FOV_X, NEAR, makeCamera } from '../../pov/camera';
-import { pxPerM } from './worldTris';
-import { ISO_PX_PER_M } from '../../iso';
+import { pxPerM } from '../../../noyau/monde/volume/worldTris';
+import { ISO_PX_PER_M } from '../../../noyau/monde/iso';
 
 /**
  * TAMPONS DE MODULE (#1404) — une image ne doit rien allouer : la pose d'une caméra s'écrit dans ces

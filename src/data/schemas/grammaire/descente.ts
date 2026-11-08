@@ -1,3 +1,4 @@
+// CLASSEMENT DU DÉTECTEUR (#2969) : ce module voyage avec le détecteur de la porte des comptes (`scripts/guards/lib/corpusDesComptes.mts`).
 /**
  * DESCENTE d'un schéma zod 4.4.3 composé — la seule lecture de la forme d'un nœud (`defDe`), de ses
  * enfants (`enfantsDe`, par les champs de `CHAMPS_D_ENFANTS`), du parcours de son arbre (`descendre`)

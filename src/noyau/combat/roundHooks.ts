@@ -40,7 +40,7 @@ import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
 
 /** Test de prolongation d'un effet à Durée « + » (LDB 47 l.311) : SOURCE UNIQUE du jet PNJ inline, de
  *  l'étape héros (`spellPlusTest`) et du libellé de son choix (`opt.tenterProlonger`). */
-const TEST_PROLONGATION = { char: 'force-mentale' } as const satisfies RollRequest['test'];
+const TEST_PROLONGATION = { characteristic: 'force-mentale' } as const satisfies RollRequest['test'];
 
 // ============================================================================================
 // Séquence RAW de franchissement de Round, migrée ISO-COMPORTEMENT depuis advanceTurn (corps copiés
@@ -118,7 +118,7 @@ export function collectHeroRoundEndUpkeep(get: Get, c: Combatant, _sink: (line: 
   if (rule('combat-aa-blessures') === 'aa' && aaBleedUnconsciousDue(c)) {
     const step = monoStep({
       id: `aaBleed-${c.id}`, kind: 'aaBleedUnconscious', icon: 'condition/bleeding', label: t('step.perteDeSang'),
-      actor: c, ligne: { test: { skill: 'resistance' } }, difficulty: 'intermediaire',
+      actor: c, ligne: { test: { skill: { id: 'resistance' } } }, difficulty: 'intermediaire',
       stake: combatStakeRef('aaBleedUnconscious'),
     });
     pousseSi(steps, step);
@@ -132,7 +132,7 @@ export function collectHeroRoundEndUpkeep(get: Get, c: Combatant, _sink: (line: 
   if (rule('combat-se-fatiguer') && (c.effortRounds ?? 0) >= fatigueThreshold(c)) {
     const step = monoStep({
       id: `fatigue-${c.id}`, kind: 'fatigue', icon: 'condition/fatigued', label: t('step.effortSoutenu'),
-      actor: c, ligne: { test: { skill: 'resistance' } }, difficulty: 'intermediaire',
+      actor: c, ligne: { test: { skill: { id: 'resistance' } } }, difficulty: 'intermediaire',
       stake: combatStakeRef('fatigue'),
     });
     pousseSi(steps, step);
@@ -259,7 +259,7 @@ export const TABLES = {
           // Résilience), collectée par `collectHeroRoundEndUpkeep` — MIROIR strict de son prédicat.
           if (!surfaceOf(get, c.id)) {
             for (const e of pendingPlusExtensions(c)) {
-              const res = rollSansPilote(get, c, testValue(c, undefined, TEST_PROLONGATION.char), 'intermediaire', battleRng());
+              const res = rollSansPilote(get, c, testValue(c, { characteristic: TEST_PROLONGATION.characteristic }), 'intermediaire', battleRng());
               resolvePlusExtension(c, e, res.success).forEach((l) => sink(l, c));
             }
           }
@@ -280,7 +280,7 @@ export const TABLES = {
         let revealed = false;
         for (const c of battle.combatants) {
           if (c.kind !== 'hero' || isOutOfAction(c) || !hasSecondeVue(c)) continue;
-          const res = rollTest(testValue(c, 'perception'), 'facile', battleRng());
+          const res = rollTest(testValue(c, { skill: { id: 'perception' } }), 'facile', battleRng());
           if (res.success) { revealed = true; sink(t('cs.windsOfMagicSeen', { name: c.label }), c); }
         }
         battle.windsOfMagic = { roll, mod, revealed };
@@ -374,7 +374,7 @@ export const TABLES = {
         if (rule('combat-aa-blessures') !== 'aa') return; // inerte en LDB (aucun RNG consommé → golden préservé)
         for (const c of battle.combatants) {
           if (!aaBleedUnconsciousDue(c) || surfaceOf(get, c.id)) continue; // porteur surfacé → étape de cascade (MIROIR du collecteur)
-          const res = rollSansPilote(get, c, testValue(c, 'resistance'), 'intermediaire', battleRng());
+          const res = rollSansPilote(get, c, testValue(c, { skill: { id: 'resistance' } }), 'intermediaire', battleRng());
           const line = aaBleedUnconsciousApply(c, res.success);
           if (line) sink(line, c);
         }
@@ -455,7 +455,7 @@ export const TABLES = {
           if (c.effortRounds < fatigueThreshold(c)) continue;
           // Porteur SURFACÉ au seuil : différé à la cascade influençable (MIROIR du collecteur). Sinon (monstre/rapide/auto) : silence ici.
           if (surfaceOf(get, c.id)) continue;
-          const t = rollSansPilote(get, c, testValue(c, 'resistance'), 'intermediaire', battleRng());
+          const t = rollSansPilote(get, c, testValue(c, { skill: { id: 'resistance' } }), 'intermediaire', battleRng());
           const line = fatigueApply(c, t.success, t.sl);
           if (line) sink(line, c);
         }

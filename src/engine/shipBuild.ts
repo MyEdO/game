@@ -29,9 +29,11 @@
  */
 import shipConstructionJson from '../data/ship-construction.json';
 import steamBreakdownJson from '../data/steam-breakdown.json';
-import { findTableEntry, findTableEntryIndex, tableOuverte } from './tables';
+import { findTableEntry, findTableEntryIndex, tableOuverte, type DeDeTable } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { roll as rollDice, type RNG, type Tirage } from './dice';
+import { roll, rollDice, type RNG, type Tirage } from './dice';
+import { deDeTirageDe, rangeesDe } from '../data/rangees';
+import type * as panneDeVapeur from '../data/schemas/defs/steam-breakdown';
 import { rollTest } from './tests';
 import type { Difficulty } from './types';
 import type { TestExige } from './flowCore';
@@ -285,9 +287,9 @@ export interface RepairTick { roll: number; target: number; success: boolean; wo
  *  monte de 50 % (ch.12 l.295). PUR (RNG injecté). */
 export function rollPortRepair(skillValue: number, woundsMissing: number, rng: RNG, opts: { lissage?: boolean; difficulty?: Difficulty } = {}): RepairTick {
   const t = rollTest(skillValue, opts.difficulty ?? 'intermediaire', rng);
-  const hours = rollDice(1, 10, rng);
+  const hours = roll(1, 10, rng);
   if (!t.success) return { roll: t.roll, target: t.target, success: false, wounds: 0, hours, costGold: 0 };
-  const wounds = Math.min(woundsMissing, rollDice(1, 10, rng));
+  const wounds = Math.min(woundsMissing, roll(1, 10, rng));
   const costGold = wounds * (opts.lissage ? 1.5 : 1);
   return { roll: t.roll, target: t.target, success: true, wounds, hours, costGold };
 }
@@ -297,13 +299,13 @@ export function rollPortRepair(skillValue: number, woundsMissing: number, rng: R
  *  voyage et à chaque Manœuvre (l.651) — suivi par l'appelant (`temporaryPatched`). PUR. */
 export function rollTemporaryRepair(skillValue: number, woundsMissing: number, difficulty: Difficulty, rng: RNG): RepairTick {
   const t = rollTest(skillValue, difficulty, rng);
-  return { roll: t.roll, target: t.target, success: t.success, wounds: t.success ? Math.min(woundsMissing, rollDice(1, 10, rng)) : 0, hours: 1, costGold: 0 };
+  return { roll: t.roll, target: t.target, success: t.success, wounds: t.success ? Math.min(woundsMissing, roll(1, 10, rng)) : 0, hours: 1, costGold: 0 };
 }
 
 /** Dégâts d'une réparation temporaire qui CÈDE (l.651 : « Chaque Test raté inflige 1d10–4 Dégâts »),
  *  plancher 0. PUR. */
 export function temporaryRepairFailureDamage(rng: RNG): number {
-  return Math.max(0, rollDice(1, 10, rng) - 4);
+  return Math.max(0, roll(1, 10, rng) - 4);
 }
 
 // ── Panne de Vapeur (MDG 12 l.313-352) ────────────────────────────────────────────────────────
@@ -312,7 +314,6 @@ export interface SteamBreakdownEntry {
   min: number;
   max: number;
   id: string;
-  type: 'steam-breakdown';
   label: string;
   desc: string;
   mMod?: number;
@@ -328,13 +329,20 @@ export interface SteamBreakdownEntry {
   restart?: ({ test: TestExige<'difficulty'> } & Partial<CibleEtendue>)[];
 }
 
-export const STEAM_BREAKDOWNS = steamBreakdownJson as SteamBreakdownEntry[];
+export const STEAM_BREAKDOWNS = rangeesDe<typeof panneDeVapeur>(steamBreakdownJson) as SteamBreakdownEntry[];
+/** Le dé du tableau PANNE DE VAPEUR, lu à l'appel. */
+export const steamBreakdownDie = (): DeDeTable => deDeTirageDe<typeof panneDeVapeur>(steamBreakdownJson);
 
 /** Tirage du tableau PANNE DE VAPEUR (ch.12 l.313 : « Chaque fois que quelqu'un obtient un double sur
  *  un Test de Métier (Ingénieur) raté, que le résultat est un Échec Stupéfiant ou que le bateau subit
  *  un Coup Critique à la Coque »). PUR (RNG injecté). */
 export function steamBreakdownFor(roll: number): SteamBreakdownEntry {
   return findTableEntry(STEAM_BREAKDOWNS, roll);
+}
+
+/** La Panne de Vapeur tirée au dé de son tableau (`steamBreakdownDie`). PUR (RNG injecté). */
+export function rollSteamBreakdown(rng: RNG): SteamBreakdownEntry {
+  return steamBreakdownFor(rollDice(steamBreakdownDie(), rng));
 }
 
 /** Le Test de Métier (Ingénieur) déclenche-t-il une Panne de Vapeur (ch.12 l.313) ? Double sur un Test

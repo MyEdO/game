@@ -80,13 +80,13 @@ test('directImportsOf : AST et diagnostics préparés gardent les arcs sans sess
   const close = API.prototype.close
   const spy = mock.method(API.prototype, 'close', function () { return close.call(this) })
   try {
-    const rel = 'src/ui/A.tsx'
-    const text = "import {\n  X,\n} from '@/ui/Cible';\nimport './Cible';\nconst faux = './Faux';\n"
-    const options = { racine, existe: (abs) => abs === resolve(racine, 'src/ui/Cible.tsx').replaceAll('\\', '/'), alias: [{ prefixe: '@/', vers: `${racine.replaceAll('\\', '/')}/src/` }] }
-    assert.deepEqual(directImportsOf(rel, text, options), ['src/ui/Cible.tsx'])
+    const rel = 'src/noyau/A.tsx'
+    const text = "import {\n  X,\n} from '@/noyau/Cible';\nimport './Cible';\nconst faux = './Faux';\n"
+    const options = { racine, existe: (abs) => abs === resolve(racine, 'src/noyau/Cible.tsx').replaceAll('\\', '/'), alias: [{ prefixe: '@/', vers: `${racine.replaceAll('\\', '/')}/src/` }] }
+    assert.deepEqual(directImportsOf(rel, text, options), ['src/noyau/Cible.tsx'])
     const avant = spy.mock.callCount()
     for (const { sourceFile, diagnostics } of analyserCorpus([{ rel, text }])) {
-      assert.deepEqual(directImportsOf(rel, sourceFile, { ...options, diagnostics }), ['src/ui/Cible.tsx'])
+      assert.deepEqual(directImportsOf(rel, sourceFile, { ...options, diagnostics }), ['src/noyau/Cible.tsx'])
       assert.equal(spy.mock.callCount(), avant)
     }
     assert.equal(spy.mock.callCount(), avant + 1)
@@ -391,7 +391,7 @@ test('L3 projections : compatibilité stricte des spécificateurs/arcs et arbre 
   const existe = (abs) => [explicite, source].includes(abs)
   assert.deepEqual(arcsDe(entree, texte, { existe, alias: [] }), [{ ...spec[0], cible: explicite }])
   assert.equal(resolveImport(entree, './x.mjs', (abs) => abs === source, []), source)
-  const aucun = arcsDe(join(RACINE, 'src', 'audio', 'music.ts'), "import './types';", { existe: () => false, alias: [] })
+  const aucun = arcsDe(join(RACINE, 'src', 'noyau', 'music.ts'), "import './types';", { existe: () => false, alias: [] })
   assert.deepEqual(aucun, [])
 })
 
@@ -671,9 +671,9 @@ test('`typesEffaces` : la marche suit ce que le BUNDLER garde — tout arc effac
 
 test('resolveImport : un spécificateur sous l’ALIAS de tsconfig.json (`@/…`) se résout sous sa cible ; un paquet npm reste hors graphe', () => {
   const racine = fileURLToPath(new URL('../../..', import.meta.url)).replace(/\\/g, '/').replace(/\/$/, '')
-  const depuis = `${racine}/src/ui/Ailleurs.tsx`
-  assert.equal(resolveImport(depuis, '@/ui/RollShell'), `${racine}/src/ui/RollShell.tsx`)
-  assert.equal(resolveImport(depuis, '@/ui/RollShell'), resolveImport(depuis, './RollShell'), 'alias et relatif désignent le même fichier')
+  const depuis = `${racine}/src/noyau/Ailleurs.ts`
+  assert.equal(resolveImport(depuis, '@/noyau/rollSeam'), `${racine}/src/noyau/rollSeam.ts`)
+  assert.equal(resolveImport(depuis, '@/noyau/rollSeam'), resolveImport(depuis, './rollSeam'), 'alias et relatif désignent le même fichier')
   assert.equal(resolveImport(depuis, 'react'), null)
 })
 
@@ -682,17 +682,17 @@ test('directImportsOf : l’alias se résout sous `racine` (son `tsconfig.json`)
   const imbrique = join(externe, '.wt-x')
   try {
     for (const r of [externe, imbrique]) {
-      mkdirSync(join(r, 'src', 'ui'), { recursive: true })
+      mkdirSync(join(r, 'src', 'noyau'), { recursive: true })
       writeFileSync(join(r, 'tsconfig.json'), JSON.stringify({ compilerOptions: { baseUrl: '.', paths: { '@/*': ['src/*'] } } }))
-      writeFileSync(join(r, 'src', 'ui', 'Cible.tsx'), 'export const C = 1\n')
+      writeFileSync(join(r, 'src', 'noyau', 'Cible.tsx'), 'export const C = 1\n')
     }
-    const texte = "import { C } from '@/ui/Cible'\n"
-    assert.deepEqual(directImportsOf('src/ui/X.tsx', texte, { racine: externe }), ['src/ui/Cible.tsx'])
-    assert.deepEqual(directImportsOf('src/ui/X.tsx', texte, { racine: imbrique }), ['src/ui/Cible.tsx'])
+    const texte = "import { C } from '@/noyau/Cible'\n"
+    assert.deepEqual(directImportsOf('src/noyau/X.tsx', texte, { racine: externe }), ['src/noyau/Cible.tsx'])
+    assert.deepEqual(directImportsOf('src/noyau/X.tsx', texte, { racine: imbrique }), ['src/noyau/Cible.tsx'])
     assert.deepEqual(aliasDe(null, externe), [], 'un arbre sans `tsconfig.json` n’a aucun alias')
-    const [alias, ...autres] = aliasDe(JSON.stringify({ compilerOptions: { baseUrl: 'src', paths: { '~/*': ['ui/*'] } } }), externe)
+    const [alias, ...autres] = aliasDe(JSON.stringify({ compilerOptions: { baseUrl: 'src', paths: { '~/*': ['noyau/*'] } } }), externe)
     assert.deepEqual([alias.prefixe, autres], ['~/', []])
-    assert.equal(resolve(alias.vers), join(externe, 'src', 'ui'), 'la cible se pose sous `racine` via `baseUrl`')
+    assert.equal(resolve(alias.vers), join(externe, 'src', 'noyau'), 'la cible se pose sous `racine` via `baseUrl`')
     assert.match(alias.vers, /^[^\\]*\/$/, 'graphie POSIX, barre finale')
   } finally {
     rmSync(externe, { recursive: true, force: true })

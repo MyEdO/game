@@ -12,6 +12,7 @@ import { spawnEnemy } from './monde/spawn';
 import { itemFromTrappingById, recomputeLoadout, loadWeapon } from '../engine/items';
 import { firedAttackBlock, attackWeaponOf, runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
 import type { Combatant, ItemInstance } from '../engine/types';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -63,7 +64,7 @@ const pendingWeaponLabel = (): string => {
 };
 
 beforeEach(() => {
-  banc.getState().seedRng(11);
+  banc.getState().ensemencerLeTirage(11);
 });
 
 describe('set de TIR pur : aucune arme de mêlée fabriquée (#1348)', () => {
@@ -75,7 +76,7 @@ describe('set de TIR pur : aucune arme de mêlée fabriquée (#1348)', () => {
   it('Engagé : le clic-ennemi est REFUSÉ (refus DIT), aucun pendingAttack, aucune Action consommée', () => {
     const h = shooter('arbalete');
     const e = battleWith(h, true);
-    banc.getState().battleClickEntity(e.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, e.id, { confirm: true });
     expect(banc.getState().pendingAttack).toBeNull();
     expect(banc.getState().battle!.acted).toBe(false);
     // Le refus se dit au canal VISIBLE du combat (`state.refus`), pas au journal (spec § 2026-08-19).
@@ -85,9 +86,9 @@ describe('set de TIR pur : aucune arme de mêlée fabriquée (#1348)', () => {
   it('après commutation vers le set de MÊLÉE (action gratuite), l’attaque PART', () => {
     const h = shooter('arbalete');
     const e = battleWith(h, true);
-    banc.getState().battleSwitchLoadout('lo-melee');
+    banc.getState().prendreLaPanoplie(h.id, 'lo-melee');
     expect(live(h.id).weapons.map((w) => w.label)).toEqual(['Arme simple']);
-    banc.getState().battleClickEntity(e.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, e.id, { confirm: true });
     expect(banc.getState().pendingAttack).not.toBeNull();
     expect(pendingWeaponLabel()).toBe('Arme simple');
   });
@@ -98,7 +99,7 @@ describe('tir en étant Engagé — Atout Pistolet (LDB 14 l.41)', () => {
     const h = shooter('pistolet');
     const e = battleWith(h, true);
     expect(firedAttackBlock(banc.getState, live(h.id), live(e.id))).toBeNull();
-    banc.getState().battleClickEntity(e.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, e.id, { confirm: true });
     expect(banc.getState().pendingAttack).not.toBeNull();
     expect(pendingWeaponLabel()).toMatch(/Pistolet/);
   });
@@ -124,7 +125,7 @@ describe('set réellement DÉSARMÉ : les Mains nues reviennent', () => {
     recomputeLoadout(h);
     expect(h.weapons.map((w) => w.label)).toEqual(['Mains nues']);
     const e = battleWith(h, true);
-    banc.getState().battleClickEntity(e.id, { confirm: true });
+    cliquerSurLeCombattant(banc.getState, e.id, { confirm: true });
     expect(pendingWeaponLabel()).toBe('Mains nues');
   });
 });

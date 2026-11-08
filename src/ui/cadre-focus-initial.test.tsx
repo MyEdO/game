@@ -190,7 +190,7 @@ describe('infirmerie réelle (`MedicModal`) — le focus d’un cadre, rendu à 
       screen: 'campaign', mode: 'exploration', gameMenuOpen: false, dialogue: null, battle: null,
       party: [soigneur, patient], pendingHeal: null, pendingSurgery: null, medic: null,
     } as never);
-    act(() => useGame.getState().openMedic({ patientId: patient.id }));
+    act(() => useGame.getState().ouvrirLeMedecin({ patientId: patient.id }));
   });
   afterEach(() => {
     act(() => useGame.setState({ battle: null, party: [], pendingHeal: null, pendingSurgery: null, medic: null } as never));

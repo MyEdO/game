@@ -3,7 +3,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { findActionById } from '../data/index';
-import { actionGate, runAction } from './actionRegistry';
+import { actionGate } from './actionRegistry';
 import { openAttackCascade, previewAttack, STANCE_BLOCK } from './combatFlow';
 import type { Combatant } from '../engine/types';
 import { ligneDe } from '../engine/modLine.testkit';
@@ -24,9 +24,9 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.setState({ party: [hero], screen: 'campaign' });
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -39,13 +39,13 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
     return { H, E };
   }
 
-  const armer = () => runAction('posture-tir', banc.getState);
+  const armer = () => banc.getState().jouerLOffre('posture-tir');
   const posturee = (id: string) => !!banc.getState().battle!.stances?.[id]?.heldGround;
 
   it('l’entrée du registre est VIVANTE : dispatcher + champ de posture, aucune dette déclarée', () => {
     const def = findActionById('posture-tir')!;
     expect(def.blocked, 'la posture ne se déclare plus bloquée').toBeUndefined();
-    expect(def.run).toBe('battleToggleStance');
+    expect(def.run).toBe('basculerLaPosture');
     expect(def.stance).toBe('heldGround');
   });
 
@@ -88,7 +88,7 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
     expect(mobile.heldGround, 'sans posture armée, rien n’est pré-rempli').toBeUndefined();
     const vMobile = previewAttack(banc.getState, attaquant(), cible(), undefined, { heldGround: mobile.heldGround });
 
-    banc.setState({ pendingAttack: null });
+    banc.setState({ pendingAttack: null, pendingCascade: null }); // la fenêtre du premier tir tiendrait la main
     armer();
     openAttackCascade(banc.getState, banc.setState, pa(), 'Tir', 'action/shoot');
     const immobile = banc.getState().pendingAttack!;
@@ -114,14 +114,14 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
     const { H } = setup();
     armer();
     expect(posturee(H.id)).toBe(true);
-    banc.getState().battleEndTurn();
+    banc.getState().terminerLeTour();
     expect(banc.getState().battle!.stances?.[H.id]?.heldGround).toBeFalsy();
   });
 
   it('MÊLÉE : une attaque au contact ne porte JAMAIS une posture de tir', () => {
     const { H, E } = setup();
     armer();
-    runAction('posture-tas', banc.getState); // l'autre posture aussi, si le contexte l'offre
+    banc.getState().jouerLOffre('posture-tas'); // l'autre posture aussi, si le contexte l'offre
     const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }, uid: 'ep', qualities: [] } as never;
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     h.weapons = [...h.weapons, epee];
@@ -142,9 +142,9 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
 describe('G5 — postures et KIND du tireur (parité stricte avec `attackEnv`)', () => {
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
-    banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.setState({ party: [hero], screen: 'campaign' });
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -177,7 +177,7 @@ describe('G5 — postures et KIND du tireur (parité stricte avec `attackEnv`)',
         result: { hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '' },
       },
     });
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
     expect(banc.getState().battle!.movementUsed, 'aucun gain de posture → aucun Mouvement dépensé').toBe(0);
   });
 });
@@ -191,9 +191,9 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
   /** `serre` : deux badauds AU CONTACT de la cible → groupe de 3 avec elle (seuil `crowdMod`). */
   function setup(serre: boolean) {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 5 });
-    banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.setState({ party: [hero], screen: 'campaign' });
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -225,7 +225,7 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
     const cible = () => banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     expect(foes.length, 'la rencontre doit fournir de quoi faire un groupe').toBeGreaterThanOrEqual(3);
 
-    runAction('posture-tas', banc.getState);
+    banc.getState().jouerLOffre('posture-tas');
     expect(banc.getState().battle!.stances?.[H.id]?.intoCrowd).toBe(true);
     openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Tir', 'action/shoot');
     const pa = banc.getState().pendingAttack!;
@@ -245,8 +245,8 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
    */
   it('un tir IMMOBILE ne désarme que SA posture : « Dans le tas » survit au coup', () => {
     const { H, E } = setup(true);
-    runAction('posture-tir', banc.getState);
-    runAction('posture-tas', banc.getState);
+    banc.getState().jouerLOffre('posture-tir');
+    banc.getState().jouerLOffre('posture-tas');
     const armees = () => banc.getState().battle!.stances?.[H.id] ?? {};
     expect(armees().heldGround, 'tir immobile armé').toBe(true);
     expect(armees().intoCrowd, '« Dans le tas » armée').toBe(true);
@@ -257,18 +257,18 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
     banc.setState({
       pendingAttack: { ...pa, result: { hit: true, attackerRoll: 30, netSL: 1, location: 'corps', damage: 3, woundsLost: 3, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '' } } as never,
     });
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
 
     expect(banc.getState().battle!.movementUsed, 'le tir immobile a bien payé son Mouvement').toBeGreaterThan(0);
     expect(armees().heldGround, 'la posture DÉPENSÉE tombe').toBeFalsy();
     expect(armees().intoCrowd, 'la posture SANS PRIX reste armée').toBe(true);
-    banc.getState().battleEndTurn();
+    banc.getState().terminerLeTour();
     expect(banc.getState().battle!.stances?.[H.id]?.intoCrowd, 'et le Tour, lui, la vide').toBeFalsy();
   });
 
   it('la posture se refuse hors contexte : sans groupe, le store ne l’arme pas', () => {
     const { H } = setup(false);
-    runAction('posture-tas', banc.getState);
+    banc.getState().jouerLOffre('posture-tas');
     expect(banc.getState().battle!.stances?.[H.id]?.intoCrowd).toBeFalsy();
   });
 });
@@ -281,10 +281,10 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
 describe('G5 — le prédicat de posture n’est recodé nulle part', () => {
   it('aucune surface ne re-dérive le Mouvement de la posture (`STANCE_BLOCK` seul)', () => {
     const lire = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
-    // Périmètre = les SURFACES de la posture (fenêtre de jet, console, registre) : c'est là qu'un
+    // Périmètre = la SURFACE de la posture au noyau (le registre des actions) : c'est là qu'un
     // second prédicat naît. `combatSlice` porte le même motif pour l'économie du Mouvement elle-même
     // (Maladresse, annulation de segment), qui n'a rien d'une posture.
-    for (const rel of ['../ui/jetProps/useAttackJetProps.tsx', '../ui/console/CombatConsole.tsx', '../noyau/actionRegistry.ts']) {
+    for (const rel of ['../noyau/actionRegistry.ts']) {
       expect(lire(rel), `${rel} recode le prédicat de posture`).not.toMatch(/movementUsed\s*===\s*0/);
     }
     // … et le prédicat, lui, l'exprime bien (une garde qui ne mesure rien serait verte pour rien).

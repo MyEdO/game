@@ -8,8 +8,7 @@ import type { Combatant } from '../engine/types';
 import { refCouvre } from '../data/schemas/grammaire/ref';
 import { crewRoleValue, competencesDuRole, moraleBand, MORALE_BASE, undercrewPenalty, weeklyCrewWageBrass, recalcMorale, payChoiceCostBrass, payChoices, isPayChoice, isFreePayChoice, freePayChoiceId, recommendedPayChoiceId, type CrewAssignment, type UndercrewPenalty } from '../engine/crewMorale';
 import { fromBrass, canAfford, formatMoney, type Money } from '../engine/money';
-import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe } from './bourseFlow';
-import { refuserGeste } from './refusVisible';
+import { partyMoneyTotal, payFromGroup } from './bourseFlow';
 import { cadenceAuto } from '../engine/cadence';
 import { deMonde, type RNG } from '../engine/dice';
 import type { BattleState, CampaignVessel, Jeu } from './etat';
@@ -28,13 +27,17 @@ import { removeActiveEffects, isOutOfAction } from '../engine/conditions';
 import { battleRng } from './battleRng';
 import { t } from '../i18n';
 import type { Get, Set as SetFn } from './flowTypes';
+import type { CorpsDesChoix } from './choixDesFenetres';
 import { equipageApte, ecrireActeur, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { propulsionDuNavire, milieuDuVoyage } from '../engine/shipBuild';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
-import { unloadWeapon, setAmmoChoice } from '../engine/items';
+import { choisirLaMunition } from '../engine/items';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
+import type { Scene } from './monde/scene';
+import { spawnEnemy } from './monde/spawn';
+import { freeTilesNear, inscrireEnBataille } from './summonFlow';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 
 /**
@@ -53,7 +56,7 @@ export const BENCHED = 'repos';
 function trainedForRole(c: Combatant, roleId: string, navigation: RefDesignee): boolean {
   const role = findCrewRoleById(roleId);
   return !!role && competencesDuRole(role, navigation).some((s) =>
-    (c.skills ?? []).some((k) => refCouvre(s, k)) && peutTenter(c, s.id, s.spec));
+    (c.skills ?? []).some((k) => refCouvre(s, k)) && peutTenter(c, { skill: s }));
 }
 
 /**
@@ -75,10 +78,10 @@ export function shipDefaultRoles(crew: Combatant[], testTypeId: string, navigati
   for (const roleId of specific) {
     if ([...out.values()].includes(roleId)) continue; // déjà tenu (épinglé)
     const role = findCrewRoleById(roleId)!;
-    // Meilleur marin FORMÉ encore libre : `partyBest` (skill/char indéfinis → `testValue`=0) score PUREMENT sur
+    // Meilleur marin FORMÉ encore libre : `partyBest` (skill/characteristic indéfinis → `testValue`=0) score PUREMENT sur
     // `crewRoleValue`. Le `.filter` préserve l'ordre d'`apte` → first-max identique à la boucle strict-`>` d'origine.
     const candidates = apte.filter((c) => free.has(c.id) && trainedForRole(c, roleId, navigation));
-    const winner = partyBest(candidates, undefined, undefined, (c) => crewRoleValue(c, role, navigation).value ?? -Infinity)?.actor;
+    const winner = partyBest(candidates, {}, (c) => crewRoleValue(c, role, navigation).value ?? -Infinity)?.actor;
     if (winner) { out.set(winner.id, roleId); free.delete(winner.id); }
   }
   // Le reste → Mousse (rôle par défaut, l.15) s'il sait Voile/Ramer.
@@ -218,7 +221,7 @@ export const quartIndex = (gameTime: number): number => Math.floor(gameTime / QU
 export const quartChante = (ship: Combatant, gameTime: number): boolean => ship.lastShantyQuart === quartIndex(gameTime);
 
 /** Le CHANTEUR du navire (`exposedCrew`, `knownShanties`, `singingShanty`), lu par le gate `chanteur-disponible`
- *  et `battleSingShanty`. MDG 09 l.32-38. */
+ *  et `chanterLaChanson`. MDG 09 l.32-38. */
 export function chanteurDuNavire(ship: Combatant, battle: BattleState): Combatant | undefined {
   const crew = exposedCrew((ship.crewIds ?? []).map((id) => inBattleId(battle, id)).filter((c): c is Combatant => !!c));
   return crew.filter((c) => knownShanties(c).length > 0 && !c.singingShanty)
@@ -236,11 +239,11 @@ const SHANTY_LABEL = (label: string): string => t('crew.shantyLabel', { label })
  * sur le chanteur (interruption sur Dégâts, l.38) et consomme le QUART du navire (l.40). Renvoie le journal.
  */
 /** MDG 09 l.36. */
-const TEST_DE_CHANSON = { skill: 'divertissement', spec: 'chant' } as const;
+const TEST_DE_CHANSON = { skill: { id: 'divertissement', spec: 'chant' } } as const;
 
 /** Valeur du Test de Chanson de marin — MDG 09 l.34-36. */
 export function valeurDeChanson(singer: Combatant): number {
-  return testValue(singer, TEST_DE_CHANSON.skill, undefined, TEST_DE_CHANSON.spec);
+  return testValue(singer, TEST_DE_CHANSON);
 }
 
 /** Ligne du Test de Chanson de marin (`rollLine`) — MDG 09 l.34-36. */
@@ -327,6 +330,33 @@ export function resolveShipUnits(combatants: Combatant[]): string[] {
       hull.exitReason = 'prise'; // #237 : coque amenée, lue « rendu » (pavillon baissé) au token de coque
       lines.push(t('crew.taken', { ship: hull.label }));
     }
+  }
+  return lines;
+}
+
+/**
+ * VAGUES D'ABORDAGE : une coque dont tout l'équipage exposé (`crewIds`) est hors de combat et qui garde des
+ * marins en RÉSERVE (`reserveDAbordage`) en fait monter une vague neuve, placée près d'elle, inscrite à
+ * l'initiative après elle et rattachée à son équipage. Passe AVANT `resolveShipUnits`, qui sinon déclarerait
+ * la coque prise. Mute EN PLACE, renvoie le journal. Appelé par `checkBattleOver`. MDG 15 l.150, l.171
+ */
+export function monterLesVagues(battle: BattleState, scene: Scene): string[] {
+  const lines: string[] = [];
+  for (const hull of [...battle.combatants]) {
+    const r = hull.reserveDAbordage;
+    if (!r?.restant || !hull.pos || !hull.crewIds?.length || isOutOfAction(hull)) continue;
+    if (!hull.crewIds.every((id) => { const c = inBattleId(battle, id); return !c || isOutOfAction(c); })) continue;
+    const base = battle.combatants.length;
+    const montes = freeTilesNear(scene, battle, hull.pos, Math.min(r.vague, r.restant)).map((pos, i) => {
+      const c = spawnEnemy({ ref: r.ref }, `${hull.id}-vague-${base}-${i}`, pos);
+      c.kind = hull.kind;
+      return c;
+    });
+    if (!montes.length) continue;
+    for (const c of montes) inscrireEnBataille(battle, c, hull.id);
+    hull.crewIds = [...hull.crewIds, ...montes.map((c) => c.id)];
+    hull.reserveDAbordage = { ...r, restant: r.restant - montes.length };
+    lines.push(t('crew.vagueDAbordage', { ship: hull.label, n: montes.length, restant: r.restant - montes.length }));
   }
   return lines;
 }
@@ -487,26 +517,25 @@ function factorLedger(rolls: MoraleRoll[]): NightEntry[] {
 
 /**
  * CONSEIL DE BORD — le joueur ARRÊTE la paie de la semaine (#229). Phase `choix` (aucune mutation encore) →
- * `councilPay(decision)` prélève la solde, recalcule le Moral (`resolveVesselWeek`, cœur PUR partagé avec la
- * cadence auto) et bascule en phase `bilan` où le recalcul se JOUE (PV des facteurs + delta + nouvelle bande).
- * Choix invalide / non payable rejeté (l'UI désactive déjà l'option non payable ; le choix GRATUIT reste toujours offert).
+ * `fenetreChoisir('council', 'paie', decision)` prélève la solde, recalcule le Moral (`resolveVesselWeek`, cœur PUR
+ * partagé avec la cadence auto) et bascule en phase `bilan` où le recalcul se JOUE (PV des facteurs + delta + nouvelle
+ * bande). Le verbe n'admet qu'un choix que `refusDeChoixDePaie` ouvre (`OUVERTS_DU_CHOIX`) ; le choix GRATUIT reste
+ * toujours offert.
  */
-export function councilPay(get: Get, set: SetFn, decision: string): void {
-  const p = get().pendingCouncil;
+function arreterLaPaie(get: Get, set: SetFn, decision: string): void {
+  const p = garanti(get().pendingCouncil, decision, 'Conseil de bord');
   const vessel = get().vessel;
-  if (!p || !vessel) return;
-  const refus = refusDeChoixDePaie(get(), decision);
-  if (refus) { refuserGeste(get, set, refus); return; }
+  if (!vessel) return;
   const out = resolveVesselWeek(vessel, partyMoneyTotal(get), decision, p.today, battleRng());
   if (out.costBrass > 0) payFromGroup(get, set, fromBrass(out.costBrass), { purpose: 'gages équipage' });
   set({
     vessel: out.vessel,
     pendingCouncil: { ...p, phase: 'bilan', decision, results: factorLedger(out.factorRolls), delta: out.delta, before: out.before, after: out.after },
   });
-  get().log(out.lines);
+  get().ecrireAuJournal(out.lines);
 }
 
-/** Les choix de paie que `councilPay` accepte : ceux du registre (`payChoices`) que la bourse du groupe couvre, le choix
+/** Les choix de paie que `fenetreChoisir('council', 'paie', …)` accepte : ceux du registre (`payChoices`) que la bourse du groupe couvre, le choix
  *  gratuit compris. Vide hors phase `choix` du Conseil. #229 */
 export function choixDePaieOuverts(s: Jeu): string[] {
   const p = s.pendingCouncil;
@@ -515,10 +544,10 @@ export function choixDePaieOuverts(s: Jeu): string[] {
   return payChoices().map((c) => c.factorId).filter((id) => isFreePayChoice(id) || canAfford(bourse, fromBrass(payChoiceCostBrass(p.wageBrass, id))));
 }
 
-/** Refus d'un choix de paie du Conseil : `refusDeGesteSurLeGroupe`, ou la bourse ne couvre pas ce choix ;
- *  `null` sinon. Tombe dans `councilPay`, lu par l'écran du Conseil. #229 */
+/** Refus d'un choix de paie du Conseil : la bourse ne couvre pas ce choix ; `null` sinon. Lu par le choix de la paie
+ *  (`OUVERTS_DU_CHOIX`), que `refusDuChoix` refuse d'abord à un invité. #229 */
 export function refusDeChoixDePaie(s: Jeu, decision: string): string | null {
-  return refusDeGesteSurLeGroupe(s) ?? (choixDePaieOuverts(s).includes(decision) ? null : t('crew.paieHorsBourse'));
+  return choixDePaieOuverts(s).includes(decision) ? null : t('crew.paieHorsBourse');
 }
 
 /** Les chansons que réglage `shanty.chanson` accepte : celles que le chanteur de `pendingShanty` connaît (`knownShanties`) et que
@@ -530,11 +559,10 @@ export function chansonsDuChanteur(s: Jeu): string[] {
 }
 
 /**
- * Applique un DELTA d'effectif PNJ CUMULÉ du navire de CAMPAGNE (Embrigadement — MDG 15 l.245 : perte de
- * 2d10 membres d'équipage, recouvrable par Ragot puis rançon/Discrétion) : PERSISTE sur
- * `CampaignVessel.crewLost`, plafonné à `[0, nominal]` (`vehicles.json` ship.crew — même source que
- * `shipUndercrew`) dans les deux sens. `delta` positif = perte, négatif = recouvrement (séquence
- * Ragot/rançon/Discrétion : `openEmbrigadementRecovery`, `embrigadementFlow`). Renvoie le journal.
+ * Applique un DELTA d'effectif PNJ CUMULÉ du navire de CAMPAGNE (op de navire `equipage`, MDG 15 l.245) :
+ * PERSISTE sur `CampaignVessel.crewLost`, plafonné à `[0, nominal]` (`vehicles.json` ship.crew — même
+ * source que `shipUndercrew`) dans les deux sens. `delta` positif = perte, négatif = recouvrement. Renvoie
+ * le journal.
  */
 export function applyVesselCrewLoss(get: Get, set: SetFn, delta: number): string[] {
   const vessel = get().vessel;
@@ -570,6 +598,11 @@ export function resolveShoreLeaveDesertion(get: Get, set: SetFn, rng: RNG): stri
   return [t('crew.desertion', { n: deserters }), ...applyVesselCrewLoss(get, set, deserters)];
 }
 
+/** Le choix du Conseil de bord (`CorpsDesChoix`) : la paie de la semaine. #229 */
+export function choixDeLEquipage(get: Get, set: SetFn) {
+  return { council: { paie: (decision) => arreterLaPaie(get, set, decision) } } satisfies Partial<CorpsDesChoix>;
+}
+
 /** Le Conseil de bord se lève au bilan (`MODAL_DEFS.council.sortieFermee`) : le recalcul a déjà été appliqué à la
  *  validation de la paie. #229 */
 export function sortiesDeLEquipage(_get: Get, set: SetFn) {
@@ -578,28 +611,19 @@ export function sortiesDeLEquipage(_get: Get, set: SetFn) {
 
 export function creerActionsDeLEquipage(get: Get, set: SetFn) {
   return {
-    // Conseil de bord : paie hebdomadaire et Moral.
-    councilPay: (decision) => councilPay(get, set, decision),
-    setShipRole: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
-    setShipStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
-    setPosteAmmo: (shipId, posteUid, ammoUid) => {
+    attribuerLeRoleABord: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
+    affecterALaStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
+    approvisionnerLaPiece: (shipId, posteUid, ammoUid) => {
       const b = get().battle;
       const ship = inBattleId(b, shipId);
       const poste = ship?.postes?.find((p) => p.item.uid === posteUid);
       if (!b || !poste) return;
       // Le poste est PARTAGÉ par référence avec `mannedPoste` du chef (serveChef) → muter la même instance
-      // suffit ; le `set` re-render (pattern combat : mutation + refresh).
-      // La munition se fixe au CHARGEMENT — arbitrage utilisateur 2026-08-16 par AskUserQuestion, verbatim de la demande qui
-      // l'ouvre : « on doit pouvoir choisir ses munitions avec nos armes de tir facilement depuis sa barre
-      // d'action ». Changer celle d'une pièce CHARGÉE la DÉCHARGE — Test étendu de
-      // recharge à refaire (LDB 62 l.335) ; re-sélectionner la même est sans effet ; rien n'est détruit (décompte
-      // au tir). Le CHEF qui la sert perd aussi son gate de tir : la pièce n'a plus de coup.
-      if (poste.loaded !== false && (poste.loadedAmmoUid ?? poste.ammoUid) !== (ammoUid ?? undefined)) {
-        const chef = poste.crewIds?.[0] ? inBattleId(b, poste.crewIds[0]) : undefined;
-        const gun = chef?.mannedPoste === poste ? chef.weapons.find((w) => w.uid === poste.item.uid) : undefined;
-        unloadWeapon(gun ? chef : undefined, gun, poste); // couture UNIQUE : la pièce, et l'arme dérivée du chef
-      }
-      setAmmoChoice(undefined, undefined, ammoUid ?? undefined, poste); // écrivain UNIQUE de la sélection
+      // suffit ; le `set` re-render (pattern combat : mutation + refresh). Le CHEF qui la sert lit la pièce par son
+      // arme : la décharge lui ôte aussi son coup (`choisirLaMunition`).
+      const chef = poste.crewIds?.[0] ? inBattleId(b, poste.crewIds[0]) : undefined;
+      const gun = chef?.mannedPoste === poste ? chef.weapons.find((w) => w.uid === poste.item.uid) : undefined;
+      choisirLaMunition(gun ? chef : undefined, gun, ammoUid ?? undefined, poste);
       set({ battle: { ...b } });
     },
   } satisfies FabriqueDuNoyau;

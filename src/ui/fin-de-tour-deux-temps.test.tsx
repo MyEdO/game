@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 /**
  * GARDE-FOU « TOUR GÂCHÉ » (#1411 P2-A) — finir son tour avec l'Action INTACTE demande DEUX gestes,
- * et c'est la politique de l'ENTRÉE DE REGISTRE `end-turn` : le dispatcher (`battleEndTurn`) arme
+ * et c'est la politique de l'ENTRÉE DE REGISTRE `end-turn` : le dispatcher (`terminerLeTour`) arme
  * puis passe la main. Les deux surfaces — la plaque de sortie de la console et la touche Espace —
- * franchissent la MÊME porte (`runAction('end-turn')`), donc le même garde-fou ; le libellé « Finir
+ * franchissent la MÊME porte (`jouerLOffre('end-turn')`), donc le même garde-fou ; le libellé « Finir
  * quand même ? » se lit dans l'état du combat (`battle.endTurnArmed`), jamais dans un état d'écran.
  *
  * L'armement porte l'EMPREINTE de l'économie du tour : tout geste qui la change (un pas, l'Action,
  * le tour suivant) le périme sans remise à zéro dispersée. L'annulation d'un déplacement, elle, REND
- * l'économie d'avant le segment : elle désarme explicitement (`cancelMove`, inverse unique).
+ * l'économie d'avant le segment : elle désarme explicitement (`annulerLeDeplacement`, inverse unique).
  */
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
@@ -16,7 +16,6 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import type { BattleState } from '../noyau/etat';
 import { createHero } from '../engine/character';
-import { runAction } from '../noyau/actionRegistry';
 import { runBindingById } from '../state/clavier/keybindings';
 import { endTurnArmed } from '../noyau/endTurnGuard';
 import { emptyScene } from '../noyau/monde/scene';
@@ -59,6 +58,7 @@ function combat() {
 const battle = () => useGame.getState().battle!;
 
 beforeEach(() => {
+  useGame.setState({ screen: 'campaign' });
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
@@ -86,7 +86,7 @@ describe('fin de tour — l’Action intacte demande deux gestes, quelle que soi
         battle: { ...battle(), movementUsed: 3, moveSnapshot: { pos: { h1: { ...h.pos } }, facing: {}, movedPreAction: false } } as unknown as BattleState,
       });
     });
-    runAction('undo-move', useGame.getState);
+    useGame.getState().jouerLOffre('undo-move');
     expect(battle().movementUsed, 'l’annulation de déplacement n’a rien rendu').toBe(0);
     runBindingById('end-turn', useGame.getState);
     expect(battle().turn, 'le tour a basculé juste après une annulation de déplacement').toBe(0);
@@ -98,10 +98,10 @@ describe('fin de tour — l’Action intacte demande deux gestes, quelle que soi
     combat();
     runBindingById('end-turn', useGame.getState); // 1er geste : armement sur l'économie « 0 pas »
     expect(endTurnArmed(battle()), 'le 1er geste n’a rien armé').toBe(true);
-    act(() => { useGame.getState().battleClickTile({ x: 5, y: 4 }, { confirm: true }); }); // un VRAI pas
+    act(() => { useGame.getState().cliquerLaCase({ x: 5, y: 4 }, undefined, { confirm: true }); }); // un VRAI pas
     expect(battle().movementUsed, 'le pas n’a rien coûté : rien à annuler ensuite').toBeGreaterThan(0);
     expect(endTurnArmed(battle()), 'le pas n’a pas périmé l’armement').toBe(false);
-    runAction('undo-move', useGame.getState);
+    useGame.getState().jouerLOffre('undo-move');
     expect(battle().movementUsed, 'l’annulation n’a rien rendu').toBe(0);
     expect(endTurnArmed(battle()), 'l’économie rendue a RESSUSCITÉ l’armement du 1er geste').toBe(false);
     runBindingById('end-turn', useGame.getState);

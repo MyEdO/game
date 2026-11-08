@@ -9,7 +9,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { refusNePeutTenter } from '../engine/skills';
-import type { PendingSeaActivities } from '../noyau/seaActivities';
+import { seaActivitiesCatalog, type PendingSeaActivities } from '../noyau/seaActivities';
 import type { Combatant } from '../engine/types';
 import { SeaActivitiesModal } from './SeaActivitiesModal';
 import { poserLayoutJsdom } from './layoutJsdom.testkit';
@@ -62,7 +62,7 @@ describe('Activités en mer — une Activité non tentable est FERMÉE par candi
     useGame.setState({
       party: [HILDA, KARL],
       vessel: null,
-      pendingSeaActivities: { day: { events: [] } } as unknown as PendingSeaActivities,
+      pendingSeaActivities: { picks: {}, day: { events: [] } } as unknown as PendingSeaActivities,
     });
     act(() => root.render(<SeaActivitiesModal />));
   });
@@ -72,7 +72,7 @@ describe('Activités en mer — une Activité non tentable est FERMÉE par candi
     expect(fermee.getAttribute('aria-disabled')).toBe('true');
     expect(fermee.hasAttribute('disabled'), 'atteignable, jamais disabled').toBe(false);
     const raison = document.getElementById(fermee.getAttribute('aria-describedby')!);
-    expect(raison?.textContent).toContain(refusNePeutTenter(HILDA, { skill: 'metier', spec: 'cartographe' }));
+    expect(raison?.textContent).toContain(refusNePeutTenter(HILDA, { skill: { id: 'metier', spec: 'cartographe' } }));
     expect(option('Karl', 'Cartographie').getAttribute('aria-disabled')).toBeNull();
   });
 
@@ -82,22 +82,28 @@ describe('Activités en mer — une Activité non tentable est FERMÉE par candi
   });
 });
 
-describe('#3059 — siège invité : « Valider la semaine » lit le refus de groupe du noyau, le choix reste ouvert', () => {
+describe('#3059 — siège invité : « Valider la semaine » lit le refus de validation du noyau, le choix de SON héros reste ouvert', () => {
+  const choix: unknown[][] = [];
   beforeEach(() => {
+    choix.length = 0;
     useGame.setState({
       party: [HILDA, KARL],
       vessel: null,
-      net: { ...useGame.getState().net, mode: 'guest' },
-      pendingSeaActivities: { day: { events: [] } } as unknown as PendingSeaActivities,
+      net: { ...useGame.getState().net, mode: 'guest', mySeat: 1, ownership: { h2: 1 } },
+      pendingSeaActivities: { picks: {}, day: { events: [] } } as unknown as PendingSeaActivities,
+      fenetreChoisir: (...args: unknown[]) => { choix.push(args); },
     });
     act(() => root.render(<SeaActivitiesModal />));
   });
 
-  it('bouton fermé avec la raison « hôte seul » ; Cartographie de Karl choisie', () => {
+  it('bouton fermé avec la raison « hôte seul » ; Cartographie de Karl choisie à son siège, Hilda jouée à un autre', () => {
     const valider = [...host.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === 'Valider la semaine')!;
     expect(valider.getAttribute('aria-disabled')).toBe('true');
-    expect(document.getElementById(valider.getAttribute('aria-describedby')!)?.textContent).toContain(t('groupe.hoteSeul'));
+    expect(document.getElementById(valider.getAttribute('aria-describedby')!)?.textContent).toContain(t('validation.refus.hoteSeul'));
+    const hilda = option('Hilda', 'Repos');
+    expect(document.getElementById(hilda.getAttribute('aria-describedby')!)?.textContent).toContain(t('choix.refus.autreSiege'));
+    const cartographie = seaActivitiesCatalog().find((d) => d.label === 'Cartographie')!;
     act(() => { option('Karl', 'Cartographie').click(); });
-    expect(option('Karl', 'Cartographie').getAttribute('aria-pressed')).toBe('true');
+    expect(choix).toEqual([['seaActivities', 'activite', cartographie.id, 'h2']]);
   });
 });

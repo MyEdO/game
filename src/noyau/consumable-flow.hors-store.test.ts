@@ -1,7 +1,7 @@
 /**
  * RUNNER DE CONSOMMABLE (#50) — le Flow d'un objet consommé s'exécute cadence-aware sur son BUVEUR :
  *  - hors combat, un nœud `test` ouvre la modale de Test RESTREINTE AU BUVEUR (pas le meilleur du
- *    groupe) ; branche + continuation reprises par `jetConfirm('test')` avec la DURÉE bakée sur les feuilles ;
+ *    groupe) ; branche + continuation reprises par `jetValider('test')` avec la DURÉE bakée sur les feuilles ;
  *  - les ops `delayed` sont PROGRAMMÉES (file `scheduledEffects`) et tirées au franchissement d'horloge ;
  *  - les effets durables expirent à l'échéance (`purgeClockEffects`), États d'horloge compris.
  * Sur la DONNÉE RÉELLE (belladone / mystracine / bonnet-de-fou — LDB 71/72).
@@ -43,7 +43,7 @@ describe('belladone (LDB 72 l.18) — Test au boire RESTREINT au buveur, sommeil
     giveItem(h2, 'belladone', 'bel1');
     banc.setState({ party: [h1, h2] });
 
-    banc.getState().usePartyItem('h2', 'bel1');
+    banc.getState().utiliserLObjet('h2', 'bel1');
     const pt = banc.getState().pendingTest!;
     expect(pt).toBeTruthy();
     expect(pt.actorId).toBe('h2'); // restreint au buveur (pas partyBest)
@@ -52,13 +52,13 @@ describe('belladone (LDB 72 l.18) — Test au boire RESTREINT au buveur, sommeil
 
     // Échec forcé → la branche `fail` programme le sommeil « au bout de 2-3 heures » (150 min).
     banc.setState({ pendingTest: { ...pt, roll: 99, success: false, sl: -2 } });
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     const sched = banc.getState().scheduledEffects;
     expect(sched).toHaveLength(1);
     expect(sched[0].executeAt).toBe(8 * 60 + 150);
 
     // Franchissement de l'échéance → Inconscient (durée d'horloge 1d10+4 h → untilTime posé).
-    banc.getState().advanceTime(150);
+    banc.getState().avancerLeTemps(150);
     const sleeper = banc.getState().party.find((c) => c.id === 'h2')!;
     expect(hasCondition(sleeper, 'inconscient')).toBe(true);
     const cond = sleeper.conditions.find((x) => x.id === 'inconscient')!;
@@ -67,7 +67,7 @@ describe('belladone (LDB 72 l.18) — Test au boire RESTREINT au buveur, sommeil
     expect(cond.untilTime).toBeLessThanOrEqual(start + 14 * 60);
 
     // Après l'échéance : l'État se dissipe (purgeClockEffects).
-    banc.getState().advanceTime(14 * 60 + 1);
+    banc.getState().avancerLeTemps(14 * 60 + 1);
     expect(hasCondition(banc.getState().party.find((c) => c.id === 'h2')!, 'inconscient')).toBe(false);
   });
 
@@ -75,9 +75,9 @@ describe('belladone (LDB 72 l.18) — Test au boire RESTREINT au buveur, sommeil
     const h2 = hero('h2');
     giveItem(h2, 'belladone', 'bel1');
     banc.setState({ party: [h2] });
-    banc.getState().usePartyItem('h2', 'bel1');
+    banc.getState().utiliserLObjet('h2', 'bel1');
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 1, success: true, sl: 3 } });
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     expect(banc.getState().scheduledEffects).toHaveLength(0);
   });
 });
@@ -87,7 +87,7 @@ describe('mystracine (LDB 71 l.33) — durée « 1d10 × 10 minutes » bakée, p
     const h = hero('h1');
     giveItem(h, 'mystracine', 'mys1');
     banc.setState({ party: [h] });
-    banc.getState().usePartyItem('h1', 'mys1');
+    banc.getState().utiliserLObjet('h1', 'mys1');
     const p = banc.getState().party.find((c) => c.id === 'h1')!;
     const fx = (p.activeEffects ?? []).filter((e) => e.testModChar);
     expect(fx).toHaveLength(5); // +10 E/FM, −10 Ag/I/Int (LDB 71 l.33)
@@ -95,7 +95,7 @@ describe('mystracine (LDB 71 l.33) — durée « 1d10 × 10 minutes » bakée, p
       expect(e.label).toBe('Mystracine');
       expect(e.duration.scale).toBe('clock');
     }
-    banc.getState().advanceTime(101); // 1d10×10 ≤ 100 min
+    banc.getState().avancerLeTemps(101); // 1d10×10 ≤ 100 min
     expect((banc.getState().party.find((c) => c.id === 'h1')!.activeEffects ?? []).filter((e) => e.testModChar)).toHaveLength(0);
   });
 });
@@ -106,7 +106,7 @@ describe('bonnet-de-fou (LDB 71 l.20) — +4 Blessures (attrMod exécutable) + p
     giveItem(h, 'bonnet-de-fou', 'bf1');
     banc.setState({ party: [h] });
     const maxBefore = h.wounds.max;
-    banc.getState().usePartyItem('h1', 'bf1');
+    banc.getState().utiliserLObjet('h1', 'bf1');
     const p = banc.getState().party.find((c) => c.id === 'h1')!;
     // « +4 Blessures » au total, Force +10 comprise (#3060).
     expect((p.activeEffects ?? []).find((e) => e.attrMods?.wounds)?.attrMods?.wounds).toBe(4);
@@ -124,12 +124,12 @@ describe('bonnet-de-fou (LDB 71 l.20) — +4 Blessures (attrMod exécutable) + p
 
     // Échec → Infection mineure contractée.
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 99, success: false, sl: -1 } });
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     expect((banc.getState().party.find((c) => c.id === 'h1')!.diseases ?? []).some((d) => d.id === 'infection-mineure')).toBe(true);
 
     // Dissipation (≤ 20 min) : la perte 1d10 PB tire d'abord (file), puis les effets sont purgés
     // (max revient à sa valeur, les PB courants suivent le delta) → il manque 1 à 10 PB au total.
-    banc.getState().advanceTime(21); // 2d10 ≤ 20 min
+    banc.getState().avancerLeTemps(21); // 2d10 ≤ 20 min
     const after = banc.getState().party.find((c) => c.id === 'h1')!;
     expect(after.wounds.max).toBe(maxBefore);
     expect(after.wounds.current).toBeGreaterThanOrEqual(maxBefore - 10);

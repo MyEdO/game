@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // CLI de preuve de PERFORMANCE (cadence rAF + profil CPU) sur un scénario de test — réutilise le
 // socle CDP de lib.mjs (mêmes primitives que shot-screen.mjs), ZÉRO second socle. Un scénario se
-// charge par `window.__wfrp.scenario(id, seed)` (state/devtools.ts) — tout id de
+// charge par `window.__wfrp.scenario(id, seed)` — tout id de
 // `src/scenes/test-scenarios/*.ts` est jouable (ex. diligence, arene).
 //
 // Usage :

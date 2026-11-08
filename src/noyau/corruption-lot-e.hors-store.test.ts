@@ -22,7 +22,7 @@ function hero(): Combatant {
 
 beforeEach(() => {
   banc.setState({ battle: null, party: [], journal: [], pendingCorruption: null, pendingRenounce: null });
-  banc.getState().seedRng(7);
+  banc.getState().ensemencerLeTirage(7);
 });
 
 describe('Âme pure (LDB 10) — seuil de Corruption +niveau', () => {
@@ -51,9 +51,9 @@ describe('« Je te renie ! » (LDB 17 l.67)', () => {
     banc.setState({ party: [h] });
     gainCorruption(banc.getState, banc.setState, lu(), 1);
     expect(banc.getState().pendingCorruption?.kind).toBe('seuil'); // le jet est VISIBLE
-    banc.getState().jetRoll('corruption');
+    banc.getState().jetLancer('corruption');
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 99, target: 5, sl: -9, success: false } });
-    banc.getState().jetConfirm('corruption');
+    banc.getState().jetValider('corruption');
   }
   it('héros avec Résilience → la mutation est SUSPENDUE (pendingRenounce)', () => {
     const h = hero();
@@ -62,7 +62,7 @@ describe('« Je te renie ! » (LDB 17 l.67)', () => {
     expect(banc.getState().pendingRenounce).toBeTruthy();
     expect(lu().mutations ?? []).toEqual([]);
     const before = lu().corruption!;
-    banc.getState().renounceResolve(true);
+    banc.getState().fenetreChoisir('renounce', 'renier', true);
     expect(banc.getState().pendingRenounce).toBeNull();
     expect(lu().resilience).toBe(0); // 1 Point de Résilience dépensé
     expect(lu().mutations ?? []).toEqual([]); // pas de mutation
@@ -73,7 +73,7 @@ describe('« Je te renie ! » (LDB 17 l.67)', () => {
     h.resilience = 1;
     corruptPastThreshold(h);
     expect(banc.getState().pendingRenounce).toBeTruthy();
-    banc.getState().renounceResolve(false);
+    banc.getState().fenetreChoisir('renounce', 'renier', false);
     draineCascade(banc.getState); // les dés de la mutation sont des étapes : elle tombe en les jouant
     expect((lu().mutations ?? []).length).toBe(1);
   });

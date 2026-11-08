@@ -1,46 +1,47 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useGame } from '../state/store';
 import { Modal } from './Modal';
 import { CharFrame } from './CharFrame';
 import { OptionChooser } from './OptionChooser';
 import { Prose } from './Prose';
-import {
-  seaActivitiesCatalog, seaActivityBlocked, seaActivityRefus, plafondDeMiseDOpportunite, plafondDePlanque,
-  type SeaActivityPick,
-} from '../noyau/seaActivities';
+import { seaActivitiesCatalog } from '../noyau/seaActivities';
+import { reglageDuChoixDeFenetre, refusDuChoix } from '../noyau/choixDeFenetre';
+import { refusDeLaValidation } from '../noyau/validationDeFenetre';
+import type { IdDActiviteEnMer } from '../noyau/designations';
 import { findRegleById } from '../data';
 import { encLibreNominale } from '../noyau/portFlow';
-import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
+import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { Coins } from './Coins';
 import { NumberField } from './NumberField';
 import { Icon } from './Icon';
 import { Grid } from './Layout';
 import { GatedAction, raisonSi } from './GatedAction';
 
-/** MDG 15 l.266-306 */
+/** MDG 15 l.266-306 — chaque choix est un choix de la fenêtre (`fenetreChoisir('seaActivities', axe, valeur, héros)`),
+ *  lu dans le noyau avec ses refus (`refusDuChoix`) ; l'hôte valide la semaine (`fenetreValider('seaActivities')`). */
 export function SeaActivitiesModal() {
   const pending = useGame((s) => s.pendingSeaActivities);
   const party = useGame((s) => s.party);
   const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
-  const confirm = useGame((s) => s.seaActivitiesConfirm);
+  const choisir = useGame((s) => s.fenetreChoisir);
+  const valider = useGame((s) => s.fenetreValider);
   const vessel = useGame((s) => s.vessel);
-  const net = useGame((s) => s.net);
+  // Le siège et la possession des héros ouvrent ou ferment chaque rangée (`refusDuChoix`).
+  useGame((s) => s.net);
   const catalog = useMemo(() => seaActivitiesCatalog(), []);
   // Le texte d'ouverture est une fiche de Règle ADRESSÉE (`regles.json`), pas une constante de code.
   const intro = findRegleById('activites-en-mer');
-  const [picks, setPicks] = useState<Record<string, SeaActivityPick | null>>({});
   if (!pending) return null;
+  const s = useGame.getState();
   const heroes = party.filter((h) => !h.dead && !h.outOfRencontre);
-  const investCap = plafondDeMiseDOpportunite({ vessel, party });
-  const refusGroupe = refusDeGesteSurLeGroupe({ net });
+  const refusDeValider = refusDeLaValidation(s, 'seaActivities');
   const freeEnc = encLibreNominale(vessel);
-  const set = (id: string, pick: SeaActivityPick | null) => setPicks((p) => ({ ...p, [id]: pick }));
 
   return (
     <Modal title={<><Icon id="travel/anchor" size="sm" /> Activités en mer — semaine écoulée</>} taille="large"
       footer={
         <>
-          <GatedAction id="sea-act-confirm" label="Valider la semaine" enabled={refusGroupe == null} {...raisonSi(refusGroupe)} onClick={() => confirm(picks)} />
+          <GatedAction id="sea-act-confirm" label="Valider la semaine" enabled={refusDeValider == null} {...raisonSi(refusDeValider)} onClick={() => valider('seaActivities')} />
         </>
       }
     >
@@ -51,56 +52,57 @@ export function SeaActivitiesModal() {
       )}
       <Grid min="md" stackBelow={700}>
         {heroes.map((h) => {
-          const pick = picks[h.id];
-          const chosen = pick?.activityId ?? '';
+          const activite = reglageDuChoixDeFenetre(s, 'seaActivities', 'activite', h.id);
+          const chosen = typeof activite.courant === 'string' ? activite.courant : '';
           const chosenDef = chosen ? catalog.find((d) => d.id === chosen) : undefined;
-          const stashCap = plafondDePlanque(h);
+          const mise = reglageDuChoixDeFenetre(s, 'seaActivities', 'investir', h.id);
+          const planque = reglageDuChoixDeFenetre(s, 'seaActivities', 'cacher', h.id);
           return (
             <section key={h.id} className="panel sea-act-hero">
               <h4><CharFrame c={h} variant="identity" size="xs" /></h4>
               <OptionChooser
                 layout="grid"
-                options={[
-                  { key: 'repos', label: 'Repos', selected: !chosen, onSelect: () => set(h.id, null) },
-                  ...catalog.map((def) => {
-                    // Fermée pour tous (`seaActivityBlocked`), ou pour CE héros seul (`seaActivityRefus`, LDB 09 l.30 ; #2588).
-                    const refus = seaActivityBlocked(useGame.getState, def) ?? seaActivityRefus(h, def);
-                    return {
-                      key: def.id,
-                      label: def.label,
-                      selected: chosen === def.id,
-                      ...(refus ? { refus } : { title: def.label }),
-                      onSelect: () => set(h.id, { activityId: def.id }),
-                    };
-                  }),
-                ]}
+                options={(activite.valeurs ?? []).map((v) => {
+                  const valeur = v.valeur as IdDActiviteEnMer | null;
+                  // Fermée pour tous, pour CE héros seul (LDB 09 l.30 ; #2588), ou à un autre siège : `refusDuChoix`.
+                  const refus = refusDuChoix(s, 'seaActivities', 'activite', valeur, h.id);
+                  return {
+                    key: valeur ?? 'repos',
+                    label: v.libelle,
+                    selected: activite.courant === valeur,
+                    ...(refus ? { refus } : valeur ? { title: v.libelle } : {}),
+                    onSelect: () => choisir('seaActivities', 'activite', valeur, h.id),
+                  };
+                })}
               />
               {chosen && (
                 <div className="sea-act-detail">
                   <Prose md={chosenDef?.desc ?? ''} porteur={chosenDef && { type: 'activities', id: chosenDef.id, chemin: 'desc' }} />
-                  {catalog.find((d) => d.id === chosen)?.resolver === 'opportunityTrade' && (
+                  {mise.bornes && (
                     <label className="sea-act-invest">
-                      Mise (CO, max {investCap})
+                      Mise (CO, max {mise.bornes.max})
                       <NumberField
                         variant="nu"
-                        label={`Mise (CO, max ${investCap})`}
+                        label={`Mise (CO, max ${mise.bornes.max})`}
                         min={0}
-                        max={investCap}
-                        value={pick?.investGold ?? 0}
-                        onChange={(investGold) => set(h.id, { activityId: chosen, investGold })}
+                        max={mise.bornes.max}
+                        value={Number(mise.courant)}
+                        disabled={refusDuChoix(s, 'seaActivities', 'investir', mise.courant, h.id) != null}
+                        onChange={(investGold) => choisir('seaActivities', 'investir', investGold, h.id)}
                       />
                     </label>
                   )}
-                  {catalog.find((d) => d.id === chosen)?.resolver === 'seaChart' && (
+                  {planque.bornes && (
                     <label className="sea-act-invest">
-                      Planque gratuite (CO, max {stashCap})
+                      Planque gratuite (CO, max {planque.bornes.max})
                       <NumberField
                         variant="nu"
-                        label={`Planque gratuite (CO, max ${stashCap})`}
+                        label={`Planque gratuite (CO, max ${planque.bornes.max})`}
                         min={0}
-                        max={stashCap}
-                        value={pick?.stashGold ?? 0}
-                        onChange={(stashGold) => set(h.id, { activityId: chosen, stashGold })}
+                        max={planque.bornes.max}
+                        value={Number(planque.courant)}
+                        disabled={refusDuChoix(s, 'seaActivities', 'cacher', planque.courant, h.id) != null}
+                        onChange={(stashGold) => choisir('seaActivities', 'cacher', stashGold, h.id)}
                       />
                     </label>
                   )}

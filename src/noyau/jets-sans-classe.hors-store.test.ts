@@ -47,7 +47,7 @@ const SOUS_ORDRES = [...KINDS_SOUS_ORDRES];
 /** Les `kind` de l'entretien-survie maritime, tels que les émettent les trois phases du jour. */
 const KINDS_DE_MER = ['sea-tonneau-expose', 'sea-tonneau-contamine', 'sea-mal-de-mer', 'sea-scorbut', 'sea-exposition', 'sea-epuisement'] as const;
 
-const ligne = { test: { skill: 'resistance', char: 'endurance' } } as const;
+const ligne = { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } } as const;
 
 function bandeDe(kind: GenreDeCascade, porteurs: Combatant[]): BuiltCascadeStep {
   return buildBand(get, { id: kind, kind, label: fixtureText(kind), difficulty: 'intermediaire', porteurs: porteurs.map((actor) => ({ actor, ligne })) })!;
@@ -161,7 +161,7 @@ describe('#1479 — le mono qu’AUCUN humain ne tient ne bloque plus la cascade
     const casc = get().pendingCascade!;
     expect(casc.participants[0].result, 'personne ne la tient : le dé tombe à la pose du curseur').toBeTruthy();
     expect(casc.cursor, 'et la fenêtre s’ouvre bien SUR elle — c’est « Suivant » qui la franchit').toBe(0);
-    get().jetConfirm('cascade');
+    get().jetValider('cascade');
     const apres = get().pendingCascade!;
     expect(apres.cursor, 'le curseur a franchi l’étape non tenue et s’est posé sur celle du joueur').toBe(1);
     expect(apres.participants[1].result, 'que son joueur tient : elle attend SON dé').toBeNull();
@@ -190,7 +190,7 @@ describe('#1479 — le mono qu’AUCUN humain ne tient ne bloque plus la cascade
 describe('mono non tentable = cas N=0 de la bande (LDB 09 l.30 ; #2588 Q1)', () => {
   it('`monoStep` à ligne refusée naît ÉCHEC SANS JET avec son refus, et la séquence n’y tire aucun dé', () => {
     const h = get().party[0];
-    const refus = refusNePeutTenter(h, { skill: 'resistance' });
+    const refus = refusNePeutTenter(h, { skill: { id: 'resistance' } });
     const step = monoStep({
       id: 'muet', kind: cleDeFixture('sonde-1479'), actor: h, label: fixtureText('muet'), difficulty: 'intermediaire', ligne: { ...ligne, refus },
       stake: voyageStakeRef('sea-epuisement', { condition: 'Exténué' }),
@@ -199,7 +199,7 @@ describe('mono non tentable = cas N=0 de la bande (LDB 09 l.30 ; #2588 Q1)', () 
     expect(step.refus).toBe(refus);
     seedBattleRng(9);
     startCascade(get, set, { title: 'Sonde', purpose: 'test', steps: [step] });
-    get().jetRoll('cascade', 'muet');
+    get().jetLancer('cascade', 'muet');
     expect(get().pendingCascade!.participants[0].result).toEqual(ECHEC_SANS_JET);
     expect(battleRng().int(1, 1_000_000)).toBe(makeRNG(9).int(1, 1_000_000));
   });

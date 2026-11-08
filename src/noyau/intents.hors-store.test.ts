@@ -1,8 +1,7 @@
 /**
  * Garde-fou de l'allowlist coop : chaque intent DOIT exister comme action du noyau (un
  * renommage d'action casse ici, pas en prod chez un invité) — et l'allowlist reste
- * combat-only (aucune action de persistance/économie n'y traîne). La table de l'adaptateur web, l'émission des écrans
- * et le nettoyage des arguments se jouent en `src/state/intents.test.ts`.
+ * combat-only (aucune action de persistance/économie n'y traîne).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -23,7 +22,7 @@ describe('#2724 — table TOTALE des classes coop : une action non classée ne c
       // @ts-expect-error — `actionNeuve` n'a pas de classe
       t;
     const classee = (t: TableDesClasses): TableDesClasses<EtatAvecActionNeuve> => ({ ...t, actionNeuve: 'hôte' });
-    const table = { battleEndTurn: 'invité' } as TableDesClasses;
+    const table = { jouerLOffre: 'invité' } as TableDesClasses;
     expect(sansClasse(table)).toBe(table);
     expect(classee(table).actionNeuve).toBe('hôte');
   });
@@ -33,34 +32,19 @@ describe('#2724 — table TOTALE des classes coop : une action non classée ne c
     // @ts-expect-error — un champ d'état n'est pas une action
     const champ: ActionManuscrite<EtatAvecActionNeuve> = 'champNeuf';
     // @ts-expect-error — un verbe de jet a sa classe DÉRIVÉE de `FLOW_VERBS`
-    const delegue: ActionManuscrite = 'jetReroll';
+    const delegue: ActionManuscrite = 'jetRelancer';
     // @ts-expect-error — trois classes, aucune autre
     const classe: ClasseCoop = 'miroir';
     expect([neuve, champ, delegue, classe]).toHaveLength(4);
   });
 
-  it('une action `<prefix><Maj>…` d’un flux de jet est `invité` (#1017, #1050)', () => {
-    type EtatAvecActionDeFlux = Jeu & { attackSetFoo: (x: number) => void; castSetBar: () => void };
-    const avec = (t: TableDesClasses, c: 'hôte' | 'local'): TableDesClasses<EtatAvecActionDeFlux> => ({
-      ...t,
-      // @ts-expect-error — action d'un flux exposé hors surface invité
-      attackSetFoo: c,
-      // @ts-expect-error — idem, en `local`
-      castSetBar: c,
-    });
-    const exposee = (t: TableDesClasses): TableDesClasses<EtatAvecActionDeFlux> => ({ ...t, attackSetFoo: 'invité', castSetBar: 'invité' });
-    const table = { battleEndTurn: 'invité' } as TableDesClasses;
-    expect(avec(table, 'hôte').attackSetFoo).toBe('hôte');
-    expect(exposee(table).castSetBar).toBe('invité');
-  });
-
   it('un ouvreur `parHote` reste `hôte`, une élection locale reste `local`', () => {
-    const t = { battleEndTurn: 'invité' } as TableDesClasses;
-    // @ts-expect-error — `appraiseItem` ouvre le flux `appraise` depuis un écran d'hôte
-    const ouvreur: TableDesClasses = { ...t, appraiseItem: 'invité' };
-    // @ts-expect-error — `dispelSelectCarrier` n'écrit qu'un champ hors snapshot
-    const election: TableDesClasses = { ...t, dispelSelectCarrier: 'invité' };
-    expect([ouvreur.appraiseItem, election.dispelSelectCarrier]).toEqual(['invité', 'invité']);
+    const t = { jouerLOffre: 'invité' } as TableDesClasses;
+    // @ts-expect-error — `evaluerLObjet` ouvre le flux `appraise` depuis un écran d'hôte
+    const ouvreur: TableDesClasses = { ...t, evaluerLObjet: 'invité' };
+    // @ts-expect-error — `designerLeSupport` n'écrit qu'un champ hors snapshot
+    const election: TableDesClasses = { ...t, designerLeSupport: 'invité' };
+    expect([ouvreur.evaluerLObjet, election.designerLeSupport]).toEqual(['invité', 'invité']);
   });
 
   it('une ouverture `interne` nomme son site `<module>.<fonction>`', () => {
@@ -73,7 +57,7 @@ describe('#2724 — table TOTALE des classes coop : une action non classée ne c
   });
 });
 
-describe('allowlist coop (state/intents)', () => {
+describe('allowlist coop', () => {
   it('chaque intent correspond à une action existante du store', () => {
     const state = banc.getState() as unknown as Record<string, unknown>;
     const missing = [...GUEST_INTENTS].filter((name) => typeof state[name] !== 'function');
@@ -81,16 +65,16 @@ describe('allowlist coop (state/intents)', () => {
   });
 
   it('la composition du groupe est allowlistée (chaque joueur remplit SES emplacements)', () => {
-    for (const name of ['partyAddHero', 'partyRemoveHero', 'partyReplaceHero']) {
+    for (const name of ['recruterLeHeros', 'renvoyerLeHeros', 'remplacerLeHeros']) {
       expect(PARTY_INTENTS.has(name), name).toBe(true);
       expect(GUEST_INTENTS.has(name), name).toBe(true);
     }
   });
 
   it('aucune action de persistance/économie/exploration dans l’allowlist (périmètre combat + groupe)', () => {
-    for (const forbidden of ['saveGame', 'loadGame', 'importGame', 'confirmSell', 'payCart',
-      'startTravel', 'moveParty', 'transitionTo', 'startInterlude', 'loadProject',
-      'startScene', 'setParty', 'grantXp', 'seedRng', 'netAssignSlot', 'netAssign']) {
+    for (const forbidden of ['saveGame', 'loadGame', 'importGame', 'vendreLeLot', 'payerLesAchats',
+      'partirEnVoyage', 'deplacerLeGroupe', 'quitterLaScene', 'ouvrirLInterlude', 'chargerLeProjet',
+      'lancerLaScene', 'fixerLeGroupe', 'accorderLesPx', 'ensemencerLeTirage', 'netAssignSlot', 'netAssign']) {
       expect(GUEST_INTENTS.has(forbidden), forbidden).toBe(false);
     }
   });
@@ -99,7 +83,7 @@ describe('allowlist coop (state/intents)', () => {
 describe('Activités d’interlude allowlistées (audit M7) — l’ouverture/clôture reste à l’hôte', () => {
   it('les activités par héros et le flux de jet sont permis à l’invité', () => {
     for (const name of INTERLUDE_INTENTS) expect(GUEST_INTENTS.has(name), name).toBe(true);
-    expect(INTERLUDE_INTENTS.has('interludeActivity')).toBe(true); // chemin UNIQUE des Activités à jet
-    expect(GUEST_INTENTS.has('jetConfirm'), 'la clôture du jet d’Activité').toBe(true);
+    expect(INTERLUDE_INTENTS.has('pratiquerLActivite')).toBe(true); // chemin UNIQUE des Activités à jet
+    expect(GUEST_INTENTS.has('jetValider'), 'la clôture du jet d’Activité').toBe(true);
   });
 });

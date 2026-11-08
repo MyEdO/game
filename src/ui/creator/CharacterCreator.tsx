@@ -40,6 +40,8 @@ import {
   levelsForCareer,
   charAbr,
   stars as starsTable,
+  starDie,
+  starSubDie,
   celestialHouses,
   indexParId,
   spells as allSpells,
@@ -54,7 +56,7 @@ import {
 } from '../../data';
 import { SIZE_LABEL } from '../../engine/size';
 import { refKey, splitLabel } from '../../engine/careerSlots';
-import { CAREER_SKILL_ADVANCES, MAX_ADV_PER_SKILL, cleDOption, libreDEspece, poolDuJoker } from '../../engine/character';
+import { BASE_HUMAINE, CAREER_SKILL_ADVANCES, MAX_ADV_PER_SKILL, baseDEspece, cleDOption, libreDEspece, poolDuJoker } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { bandeAuDe } from '../../engine/tables';
 import { brancheChoisie, emplacementsDeDotation, estEmplacementDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
@@ -81,7 +83,7 @@ import { SpecSelect } from '../compendium/refField/RefField';
 import { Prose, mdToText } from '../Prose';
 import { CodexSections } from '../compendium/CodexEntry';
 import { EntityRef, EntityChoice, cleDAvancement, SkillChip, TalentChip } from '../EntityChip';
-import { raceSkillSection, raceTalentSection, type CodexSection } from '../../noyau/codex/registry';
+import { caracteristiqueDEspece, raceSkillSection, raceTalentSection, type CodexSection } from '../../noyau/codex/registry';
 import { CharStatsGrid } from '../CharStatsGrid';
 import { GameOpChips } from '../GameOpChips';
 import { previewHero } from './CreatorSummary';
@@ -239,7 +241,7 @@ export function CharacterCreator() {
   const setEditingHero = useGame((s) => s.setEditingHero);
 
   // MODE ÉDITION : héros déjà dans le groupe (bouton « Modifier ») → on rouvre son brouillon.
-  // Round-trip SANS perte si le roster a gardé le `draft` exact ; sinon reconstruction partielle
+  // Round-trip SANS perte si le héros est au roster, qui garde son `draft` exact ; sinon reconstruction partielle
   // (espèce/carrière/identité/apparence — pas les tirages figés ni les allocations).
   const editing = useMemo(() => {
     if (!editingHeroId) return null;
@@ -247,7 +249,7 @@ export function CharacterCreator() {
     if (!hero) return null;
     const saved = chargerLeRoster(stockageDuRoster()).find((e) => e.hero.id === editingHeroId);
     const draft = saved?.draft ?? draftFromHero(hero, graineDEntropie());
-    return { heroId: hero.id, draft, lossless: !!saved?.draft };
+    return { heroId: hero.id, draft, lossless: !!saved };
   }, [editingHeroId, party]);
 
   const [d, setD] = useState<CreatorDraft>(() => editing?.draft ?? newDraft(graineDEntropie()));
@@ -591,8 +593,8 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
         </>
       }
       // Caractéristiques : `CharStatsGrid` (source unique de la plaque .char-stats, #418) avec
-      // `sp.baseChar` — plus de rows codex-kv ; le delta vs base humaine (20) passe en `note` (tooltip
-      // discret), jamais dans la valeur affichée. Compétences/Talents : mêmes sections que le Codex
+      // `caracteristiqueDEspece` — plus de rows codex-kv ; l'écart à la colonne Humain passe en `note`
+      // (tooltip discret), jamais dans la valeur affichée. Compétences/Talents : mêmes sections que le Codex
       // (source unique `raceSkillSection`/`raceTalentSection`), « ou » en chips SÉPARÉES codex-liées.
       sections={
         <>
@@ -600,11 +602,10 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
             <div className="mini-title">Caractéristiques de base</div>
             <CharStatsGrid
               size="md"
-              value={(k) => sp.baseChar?.[k] ?? 20}
+              value={(k) => caracteristiqueDEspece(sp, k).base}
               note={(k) => {
-                const base = sp.baseChar?.[k] ?? 20;
-                const diff = base - 20;
-                return diff !== 0 ? `Base humaine 20 (${diff > 0 ? '+' : ''}${diff})` : undefined;
+                const { ecart } = caracteristiqueDEspece(sp, k);
+                return ecart ? `Base humaine ${BASE_HUMAINE} (${ecart})` : undefined;
               }}
             />
           </div>
@@ -995,7 +996,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
                     // SOUS le nom (`.ck-cell .id > .rf`, « base 20 »), jamais à sa droite. En méta
                     // (`white-space:nowrap`) elle disputait la largeur au nom — d'où « Initiative »
                     // qui chevauchait « base 20 » dans une colonne de grille à deux.
-                    sub={`base ${sp.baseChar[k] ?? 20}`}
+                    sub={`base ${baseDEspece(sp, k)}`}
                     meta={
                       <>
                         {d.charMode !== 'pointBuy' && rowRolling && (
@@ -1233,7 +1234,7 @@ export function StarScreen({ d, setD }: StepProps) {
               // destins de L'Étoile du Sorcier partagent « Signe de la Magie » (elle vaut donc pour
               // la position), là où des destins discordants ne pourraient pas se résumer d'un mot.
               sub: selPos.members.every((m) => m.signe === selPos.members[0].signe) ? selPos.members[0].signe : null,
-              note: bandeAuDe('d100', selPos.from, selPos.rand),
+              note: bandeAuDe(starDie(), selPos.from, selPos.rand),
             }
           }
         />
@@ -1262,7 +1263,7 @@ export function StarScreen({ d, setD }: StepProps) {
                 <PlaqueRow
                   key={m.id}
                   content={splitLabel(m.label).spec ?? m.label}
-                  meta={m.sub && <span className="hint">{bandeAuDe('d10', m.sub.min, m.sub.max)}</span>}
+                  meta={m.sub && <span className="hint">{bandeAuDe(starSubDie(), m.sub.min, m.sub.max)}</span>}
                   selected={m.id === d.star}
                   onClick={() => setD(withStar(d, m.id))}
                 />
@@ -2166,7 +2167,7 @@ function Rubrique({ title, children }: { title: ReactNode; children: ReactNode }
 function topSkillTests(hero: Combatant, max = 3): { skillId: string; spec?: string; label: string; value: number }[] {
   return [...hero.skills]
     .filter((s) => s.advances > 0)
-    .map((s) => ({ skillId: s.id, spec: s.spec, label: skillInstanceLabel(s), value: skillBaseValue(hero, s.id, s.spec) }))
+    .map((s) => ({ skillId: s.id, spec: s.spec, label: skillInstanceLabel(s), value: skillBaseValue(hero, { skill: s }) }))
     .sort((a, b) => b.value - a.value)
     .slice(0, max);
 }

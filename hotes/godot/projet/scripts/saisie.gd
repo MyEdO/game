@@ -1,7 +1,8 @@
 ## Une saisie d'un formulaire (#3328, `Saisie` de `src/hote/elements.ts`) : la valeur que le contrôle qui la porte, son
 ## parent, dit à l'instant où le formulaire se joue. `lire` rend `[]` (rien de saisi) ou `[valeur]` : la valeur posée
-## d'une saisie `fixe`, la valeur choisie d'une liste, le nombre d'une boîte à nombre, le texte d'un champ (lu en JSON
-## pour une saisie `saisieJson`), et l'objet de chaque champ saisi d'une saisie `saisieObjet`.
+## d'une saisie `fixe`, la valeur choisie d'une liste, la liste des valeurs cochées d'une rangée de cases, le nombre
+## d'une boîte à nombre, le texte d'un champ ou d'une zone de texte multiligne (lu en JSON pour une saisie
+## `saisieJson`), et l'objet de chaque champ saisi d'une saisie `saisieObjet`.
 class_name Saisie
 extends Node
 
@@ -22,9 +23,12 @@ func lire() -> Array:
 		"saisieChoix":
 			var liste := cible as OptionButton
 			return [] if liste.selected == -1 else [_element.valeurs[liste.selected].valeur]
+		"saisieCoches":
+			var cases := cible.get_children().filter(func(n: Node) -> bool: return n is CheckBox)
+			return [range(cases.size()).filter(func(i: int) -> bool: return (cases[i] as CheckBox).button_pressed).map(func(i: int) -> Variant: return _element.valeurs[i].valeur)]
 		"saisieNombre":
 			return [(cible as SpinBox).value]
-	var texte := (cible as LineEdit).text
+	var texte: String = (cible as TextEdit).text if _element.type == "saisieMultiligne" else (cible as LineEdit).text
 	if texte.is_empty():
 		return []
 	return [JSON.parse_string(texte)] if _element.type == "saisieJson" else [texte]

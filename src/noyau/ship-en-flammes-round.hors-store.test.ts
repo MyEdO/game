@@ -18,7 +18,7 @@ describe('En flammes (navire) — N États, N Blessures par Round, par le chemin
 
   const hull = () => banc.getState().battle!.combatants.find((c) => c.id === 'navire')!;
 
-  /** Joue chaque Tour du Round par `battleEndTurn`, en vérifiant que la coque ne brûle pas entre deux Tours. */
+  /** Joue chaque Tour du Round par `terminerLeTour`, en vérifiant que la coque ne brûle pas entre deux Tours. */
   function playRound(woundsAtStart: number) {
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
@@ -26,7 +26,7 @@ describe('En flammes (navire) — N États, N Blessures par Round, par le chemin
     let turns = 0;
     while (banc.getState().battle!.round === round) {
       expect(hull().wounds.current).toBe(woundsAtStart);
-      banc.getState().battleEndTurn();
+      banc.getState().terminerLeTour();
       banc.abandonner();
       turns += 1;
     }
@@ -37,8 +37,8 @@ describe('En flammes (navire) — N États, N Blessures par Round, par le chemin
     seedBattleRng(1);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     const b = banc.getState().battle!;
     const ship = vehicleCombatant(findVehicleById('diligence')!, 'navire')!;
     addCondition(ship, 'en-flammes-navire', 2);

@@ -167,11 +167,11 @@ function SlotCell({ id, nom, item, pa, fallback, options, value, onSelect, refus
 }
 
 export function EquipmentPanel({ hero }: { hero: Combatant }) {
-  const toggleEquip = useGame((s) => s.toggleEquip);
-  const setLoadoutSlot = useGame((s) => s.setLoadoutSlot);
-  const setActiveLoadout = useGame((s) => s.setActiveLoadout);
-  const createLoadout = useGame((s) => s.createLoadout);
-  const deleteLoadout = useGame((s) => s.deleteLoadout);
+  const equiperLObjet = useGame((s) => s.equiperLObjet);
+  const garnirLaPanoplie = useGame((s) => s.garnirLaPanoplie);
+  const prendreLaPanoplie = useGame((s) => s.prendreLaPanoplie);
+  const creerLaPanoplie = useGame((s) => s.creerLaPanoplie);
+  const supprimerLaPanoplie = useGame((s) => s.supprimerLaPanoplie);
   const battle = useGame((s) => s.battle);
   // Verrou de l'équipement : le verdict du noyau (`refusDInventaire`), celui que rendent ses gestes.
   const refusSets = refusDInventaire({ battle });
@@ -220,7 +220,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                     refus={refusSets ?? undefined}
                     desc={`${layer.label} — équiper`}
                     options={[{ key: '', label: '— retirer —', disabled: !worn }, ...candidates.map(armourOpt)]}
-                    onSelect={(v) => toggleEquip(hero.id, v || worn!.uid)}
+                    onSelect={(v) => equiperLObjet(hero.id, v || worn!.uid)}
                   />
                 );
               })}
@@ -242,7 +242,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
             refus={refusSets ?? undefined}
             desc="Équiper une cape"
             options={[{ key: '', label: '— retirer —', disabled: !wornCape }, ...cape.candidats.map(capeOpt)]}
-            onSelect={(v) => toggleEquip(hero.id, v || wornCape!.uid)}
+            onSelect={(v) => equiperLObjet(hero.id, v || wornCape!.uid)}
           />
         </div>
       </div>
@@ -279,7 +279,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                       value={lo.main ?? ''}
                       desc="Main principale — choisir une arme"
                       options={[{ key: '', label: '— mains nues —' }, ...weapons.filter((w) => !refusMain(w.uid)).map(weaponOpt)]}
-                      onSelect={(v) => setLoadoutSlot(hero.id, lo.id, 'main', v || null)}
+                      onSelect={(v) => garnirLaPanoplie(hero.id, lo.id, 'main', v || null)}
                     />
                     <span className="set-slot-cap">Principale</span>
                   </div>
@@ -293,7 +293,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                       value={lo.off ?? ''}
                       desc="2nde — arme de mêlée à une main, bouclier ou pistolet"
                       options={[{ key: '', label: mainTwoHanded ? '— (2 mains) —' : '— vide —' }, ...weapons.filter((w) => w.uid !== lo.main && !refusOff(w.uid)).map(weaponOpt)]}
-                      onSelect={(v) => setLoadoutSlot(hero.id, lo.id, 'off', v || null)}
+                      onSelect={(v) => garnirLaPanoplie(hero.id, lo.id, 'off', v || null)}
                     />
                     <span className="set-slot-cap">2nde <CodexRef category="regles" id="main-secondaire" label="Attaque de la main secondaire" className="off-malus">{avecSigne(penaliteDeMainSecondaire(hero))}</CodexRef></span>
                   </div>
@@ -311,7 +311,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                       label="Activer"
                       enabled={!refusSets}
                       {...raisonSi(refusSets)}
-                      onClick={() => setActiveLoadout(hero.id, lo.id)}
+                      onClick={() => prendreLaPanoplie(hero.id, lo.id)}
                       primary={false}
                       btnClassName="small"
                     />
@@ -322,7 +322,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                     ariaLabel="Supprimer ce set"
                     enabled={!refusSuppression}
                     {...raisonSi(refusSuppression)}
-                    onClick={() => deleteLoadout(hero.id, lo.id)}
+                    onClick={() => supprimerLaPanoplie(hero.id, lo.id)}
                     primary={false}
                     btnClassName="small"
                   />
@@ -337,7 +337,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
             label="+ Set d’armes"
             enabled={!refusSets}
             {...raisonSi(refusSets)}
-            onClick={() => createLoadout(hero.id)}
+            onClick={() => creerLaPanoplie(hero.id)}
             primary={false}
             btnClassName="small set-add"
           />

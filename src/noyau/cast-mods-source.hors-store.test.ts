@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
-import { resolveCasting, resolveCounterspell, resolveFocus, castingValue, castTestOf, castTestDRMods } from '../engine/magic';
+import { resolveCasting, resolveCounterspell, resolveFocus, castingValue, castTestOf, castTestDRMods, incantationArcane } from '../engine/magic';
 import type { SpellLike } from '../engine/magic';
 import { setRule, resetRule } from '../engine/policy';
 import { evaluateTest } from '../engine/tests';
@@ -90,7 +90,7 @@ beforeEach(() => {
     battle: { combatants: [A, E], log: [], order: ['A', 'E'], turn: 0, round: 1 } as never,
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
   } as never);
-  VALEUR = castingValue(A, 'langue', 'magick');
+  VALEUR = castingValue(A, incantationArcane());
   DR_NU = evaluateTest(DE, VALEUR).sl;
   DR_DISSIPATION = DR_NU + TALENT;
   DR_INCANTATION = DR_NU + TALENT - PA;
@@ -118,7 +118,7 @@ describe('modificateurs d’un Test d’incantation — une source, trois voies 
   it('contre-sort — voie 1 (store) : un jet RNG quelconque porte les mêmes modificateurs', () => {
     seedBattleRng(12345);
     openCounterspell();
-    st().jetRoll('counterspell', 'A');
+    st().jetLancer('counterspell', 'A');
     const c = counterOf();
     const nu = evaluateTest(c.roll, VALEUR).sl;
     expect(c.sl, 'jet du store : DR autre que le Talent lié seul').toBe(c.roll <= VALEUR ? nu + TALENT : nu);
@@ -126,7 +126,7 @@ describe('modificateurs d’un Test d’incantation — une source, trois voies 
 
   it('contre-sort — voie 2 : le dé SAISI passe par la source', () => {
     openCounterspell({ dispelled: false, counter: { roll: 88, target: VALEUR, sl: -4, success: false, isDouble: true }, casterNetSL: 4, log: '' });
-    st().jetSetForcedRoll('counterspell', DE, 'A');
+    st().jetImposerLeResultat('counterspell', DE, 'A');
     const c = counterOf();
     expect(c.roll).toBe(DE);
     expect(c.sl, 'dé fixé : DR autre que le Talent lié seul').toBe(DR_DISSIPATION);
@@ -134,12 +134,12 @@ describe('modificateurs d’un Test d’incantation — une source, trois voies 
 
   it('contre-sort — voie 3 : la RÉSILIENCE passe par la source (dé par défaut, puis dé choisi)', () => {
     openCounterspell();
-    st().jetForceSuccess('counterspell', 'A');
+    st().jetForcerLaReussite('counterspell', 'A');
     const c = counterOf();
     expect(c.roll, 'la Résilience n’a pas pris son dé par défaut').toBe(DE);
     expect(c.sl, 'Résilience : DR autre que le Talent lié seul').toBe(DR_DISSIPATION);
 
-    st().jetSetForcedRoll('counterspell', DE, 'A');
+    st().jetImposerLeResultat('counterspell', DE, 'A');
     expect(counterOf().sl, 'Résilience + dé choisi : DR autre que le Talent lié seul').toBe(DR_DISSIPATION);
   });
 
@@ -153,7 +153,7 @@ describe('modificateurs d’un Test d’incantation — une source, trois voies 
 
   it('incantation — voie 2 : le dé SAISI passe par la source', () => {
     openCast(88, VALEUR);
-    st().jetSetForcedRoll('cast', DE);
+    st().jetImposerLeResultat('cast', DE);
     const r = castOf();
     expect(r.roll).toBe(DE);
     expect(r.sl, 'dé fixé : DR autre que Talent lié et armure').toBe(DR_INCANTATION);
@@ -161,12 +161,12 @@ describe('modificateurs d’un Test d’incantation — une source, trois voies 
 
   it('incantation — voie 3 : la RÉSILIENCE passe par la source (dé par défaut, puis dé choisi)', () => {
     openCast(88, VALEUR);
-    st().jetForceSuccess('cast');
+    st().jetForcerLaReussite('cast');
     const r = castOf();
     expect(r.roll, 'la Résilience n’a pas pris son dé par défaut').toBe(DE);
     expect(r.sl, 'Résilience : DR autre que Talent lié et armure').toBe(DR_INCANTATION);
 
-    st().jetSetForcedRoll('cast', DE);
+    st().jetImposerLeResultat('cast', DE);
     expect(castOf().sl, 'Résilience + dé choisi : DR autre que Talent lié et armure').toBe(DR_INCANTATION);
   });
 });
@@ -284,13 +284,13 @@ describe('Focalisation — trois voies, même DR à dé égal (#948)', () => {
 
       // Voie 2 — dé SAISI (option « Dés fixés »).
       openFocus();
-      st().jetSetForcedRoll('focus', DE);
+      st().jetImposerLeResultat('focus', DE);
       const saisi = focusOf();
       expect(saisi.roll, 'le dé saisi n’est pas celui appliqué').toBe(DE);
 
       // Voie 3 — RÉSILIENCE (dé par défaut = le meilleur, 01 en policy standard).
       poser(hero); openFocus();
-      st().jetForceSuccess('focus');
+      st().jetForcerLaReussite('focus');
       const resil = focusOf();
       expect(resil.roll, 'la Résilience n’a pas pris son dé par défaut').toBe(DE);
 
@@ -319,30 +319,30 @@ describe('portée de l’armure — trois voies × PA 0/2 (#948)', () => {
     const naturel = resolveCounterspell(hero, castT, RNG_DE).counter.sl;
     // Voie 2 — dé saisi.
     poser(hero, { pendingCast: { casterId: 'E', targetId: 'A', spellId: SPELL_ID, missile: false, focused: false, result: ENEMY_CAST },
-      pendingCounterspell: { participants: [{ id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { roll: 88, target: castingValue(hero, 'langue', 'magick'), sl: -4, success: false, isDouble: true }, casterNetSL: 4, log: '' } }] } });
+      pendingCounterspell: { participants: [{ id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { roll: 88, target: castingValue(hero, incantationArcane()), sl: -4, success: false, isDouble: true }, casterNetSL: 4, log: '' } }] } });
     setDesFixes(true);
-    st().jetSetForcedRoll('counterspell', DE, 'A');
+    st().jetImposerLeResultat('counterspell', DE, 'A');
     const saisi = counterOf().sl;
     // Voie 3 — Résilience.
     poser(hero, { pendingCast: { casterId: 'E', targetId: 'A', spellId: SPELL_ID, missile: false, focused: false, result: ENEMY_CAST },
       pendingCounterspell: { participants: [{ id: 'A', interactive: true, declared: 'solo' }] } });
-    st().jetForceSuccess('counterspell', 'A');
+    st().jetForcerLaReussite('counterspell', 'A');
     const resil = counterOf().sl;
     return { naturel, saisi, resil };
   };
 
   const incDR = (pa: number) => {
     const hero = lanceur(pa);
-    const cible = castingValue(hero, 'langue', 'magick');
+    const cible = castingValue(hero, incantationArcane());
     const naturel = resolveCasting(hero, findSpellById(SPELL_ID)!, RNG_DE).sl;
     const pending = { casterId: 'A', targetId: 'E', spellId: SPELL_ID, missile: false, focused: false,
       result: { cast: false, roll: 88, target: cible, sl: evaluateTest(88, cible).sl, isCritical: false, isFumble: false, log: '' } };
     poser(hero, { pendingCast: pending });
     setDesFixes(true);
-    st().jetSetForcedRoll('cast', DE);
+    st().jetImposerLeResultat('cast', DE);
     const saisi = castOf().sl;
     poser(hero, { pendingCast: pending });
-    st().jetForceSuccess('cast');
+    st().jetForcerLaReussite('cast');
     const resil = castOf().sl;
     return { naturel, saisi, resil };
   };

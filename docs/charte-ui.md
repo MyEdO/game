@@ -333,7 +333,7 @@ module de sa primitive, déclaré au manifeste des primitives (champ `css`) et m
 | `option-chooser.css` | `OptionChooser` | `.rm-loc-grid` (+ `[data-notes]`), `.rm-option`, `.rm-loc-inline` (+ `[data-bascule]`), `.rm-loc-select`, `.rm-range` |
 | `recap-line.css` | `RecapLine` / `RecapLineList` | `.recap-line`, `.recap-lines`, `.recap-phase`, `.recap-phase-label` |
 | `multi-roll-list.css` | `MultiRollList` | `.mrl`, `.mrl-row`, `.mrl-port`, `.mrl-label`, `.mrl-roll`, `.mrl-text` |
-| `reveal-body.css` | `RevealBody` / `RevealTimer` | `.crit-stats`, `.crit-stat`, `.crit-effects`, `.crit-effect`, `.crit-cond` ; minuteur de fermeture : `.reveal-timer`, `@keyframes reveal-timer-drain`, durée en variable `--reveal-timer-duree` |
+| `reveal-body.css` | `RevealBody` | `.crit-stats`, `.crit-stat`, `.crit-effects`, `.crit-effect`, `.crit-cond` |
 | `vs-header.css` | `VsHeader` | `.rm-vs`, `.rm-vs-arrow`, `.rm-weapon` — `.rm-weapon` sert aussi de QUALIFICATIF hors bandeau A→B (l'arme dégainée de `HandGateModal`, déclarée en `poseurs` au manifeste) : c'est la même matière, pas une copie |
 | `team-segments.css` | `TeamSegments` | `.nm-ally`, `.nm-foe` |
 | `combat-banner.css` | `CombatBanner` | `.combat-feed`, `.cb-ev`, `.cb-now`, `.cb-tone-strong`, `.cb-tone-grave` |
@@ -354,7 +354,7 @@ module de sa primitive, déclaré au manifeste des primitives (champ `css`) et m
 | `spectator-chip.css` | `SpectatorChip` | `.spectator-chip` — l'ANCRAGE est un état de la primitive (`data-pose='ecran'`), pas une règle recopiée chez chacun de ses trois hôtes |
 | `ready-row.css` | `ReadyRow` | `.ready-row`, `.ready-chip` (+ `.ok`), `.ready-seat` |
 | `gear-assign-list.css` | `GearAssignList` | `.gear-list`, `.gear-row`, `.gear-name`, `.gear-unid`, `.gear-acts`, `.gear-act`, `.gear-assign` |
-| `reward-recap.css` | `RewardRecap` | `.reward-msg`, `.reward-stat` (+ son `<b>`, posée sur un `Row`), `.reward-unit`, `.reward-section` (+ son `h3`) — une seule forme, celle du corps de toute modale : le placement est celui des `Stack`/`Row` qu'elle compose, le GESTE DE SORTIE n'est pas à elle : l'hôte le pose au pied de son cadre (`Modal` `footer`), la rubrique à TOUCHER est un ÉTAT de la primitive (prop `enAvant` d'une `RecapSection` → `.reward-section[data-avant]`, posée sur `.panel.gold`). CLAVIER (butin et victoire, focus canonique de `Modal`) : avec de l'équipement à attribuer, le focus d'entrée est le 1er portrait de la 1re ligne (le `PortraitPicker` est un groupe de choix `.rm-loc-grid` non tranché) ; Entrée répétée donne chaque ligne au 1er héros, puis tombe sur « Continuer » et ferme — assumé : `transferItem` rend toute attribution réversible (banc `RewardRecap.test.tsx`) |
+| `reward-recap.css` | `RewardRecap` | `.reward-msg`, `.reward-stat` (+ son `<b>`, posée sur un `Row`), `.reward-unit`, `.reward-section` (+ son `h3`) — une seule forme, celle du corps de toute modale : le placement est celui des `Stack`/`Row` qu'elle compose, le GESTE DE SORTIE n'est pas à elle : l'hôte le pose au pied de son cadre (`Modal` `footer`), la rubrique à TOUCHER est un ÉTAT de la primitive (prop `enAvant` d'une `RecapSection` → `.reward-section[data-avant]`, posée sur `.panel.gold`). CLAVIER (butin et victoire, focus canonique de `Modal`) : avec de l'équipement à attribuer, le focus d'entrée est le 1er portrait de la 1re ligne (le `PortraitPicker` est un groupe de choix `.rm-loc-grid` non tranché) ; Entrée répétée donne chaque ligne au 1er héros, puis tombe sur « Continuer » et ferme — assumé : `transmettreLObjet` rend toute attribution réversible (banc `RewardRecap.test.tsx`) |
 | `cadre.css` | `CadrePied` (`Cadre.tsx`) | `.cadre-pied` — le pied des trois cadres (`Modal`, `EmbeddedShell`, `ScreenShell`), qui le composent ; il suit la largeur du corps. La croix `CadreFermer` n'y a aucune règle : `.btn.small` la peint, `.cadre-fermer` est son marqueur (`CROIX_DU_CADRE`, jamais cible du focus initial) |
 | `planche.css` | `Planche` | `.sheet-layout`, `.sheet-aside`, `.sheet-main`, `.sheet-tabbody`, `.planche-nom` — le squelette de la fiche et de la feuille de navire ; au-delà de 700px un défileur par colonne, en dessous la planche entière et elle seule |
 | `modal.css` | `Modal` | `.modal-overlay` (+ `[data-voile]`, `[data-champ]`, `[data-plein]`, `[data-taille]`, `[data-gangrene]`), `.modal`, `.modal-tete`, `.modal-title`, `.modal-subject`, `.modal-body` |
@@ -582,7 +582,10 @@ le signe de comparaison ne se lit pas comme un modificateur, ce que ferait « 50
 négative prend le signe moins « − » et la bande le séparateur « à » (« DR −4 à −3 », « DR −2 à 0 »,
 « DR ≤−5 ») : « -4–-3 » enchaîne deux traits que l'œil ne départage pas, et le livre écrit lui-même
 « –3 à –4 » (MDG 13 l.74). Graphie unique : `fourchette` (`src/engine/tables.ts`) ; précédée du libellé de
-son dé (« 1d100 01–35 »), `bandeAuDe`, même fichier. Cliquet : `src/ui/bande-en-ligne-guard.test.ts`.
+son dé (« 1d100 01–35 »), `bandeAuDe`, même fichier. Cliquet : `src/noyau/codex/bande-en-ligne-guard.test.ts`.
+Ce dé est celui que la table porte en donnée : `bandeAuDe` et `facesDuDe` ne prennent qu'un `DeDeTable`,
+que seul `deDeLaTableTiree` forge depuis le nœud de la table (`deDeTirageDe` pour un document) ; un dé
+écrit en littéral ne compile pas, le cast qui nomme la marque est refusé par `murs/marques`.
 
 **Règle transverse** : toute nouvelle surface de jet **compose** ces primitives — jamais un markup
 recomposé, jamais une classe de rôle empruntée (`.rm-vs` appartient à `VsHeader`, cliquet

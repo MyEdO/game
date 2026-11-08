@@ -10,7 +10,7 @@
  * `aggregate:'none'`). Le jet est le Test de Calme GÉNÉRIQUE de la bande (`FLOWS.cascadeBatch` →
  * `rollTest(Calme)`, kind-agnostique) ; la CONSÉQUENCE (psychState, Brisé de Terreur dérivé du DR)
  * vit dans l'applier `'encounterPsych'`, appliquée RANGÉE PAR RANGÉE. La Détermination (immunité,
- * LDB 17 l.59) est offerte par la coquille via `jetDetermine('cascadeBatch')` sur la rangée.
+ * LDB 17 l.59) est offerte par la coquille via `jetDepenserLaDetermination('cascadeBatch')` sur la rangée.
  */
 import type { PlayerText } from '../i18n/playerText';
 import type { Get, Set } from './flowTypes';
@@ -76,8 +76,8 @@ function psychRow(hero: Combatant, kind: PsychType, sansPeur: boolean): BatchPar
   const label = refLabel('skills', skill);
   return {
     id: hero.id, interactive: true, result: null,
-    label: sansPeur ? stepSansPeur(label) : label, skillId: skill.id, difficulty,
-    ...rollStep({ actor: hero, test: { skill: skill.id, spec: skill.spec }, difficulty }),
+    label: sansPeur ? stepSansPeur(label) : label, skill: structuredClone(skill), difficulty, // #2097
+    ...rollStep({ actor: hero, test: { skill }, difficulty }),
     ...(sansPeur ? { meta: { sansPeur: true } } : {}),
   };
 }
@@ -228,7 +228,7 @@ export const TABLES = {
         if (!hero || !part.result) { part.outcome = []; continue; }
         const lines = resultLines(resolvePsychRow(get, set, hero, ep, part.result, !!part.immune, !!part.meta?.sansPeur));
         part.outcome = lines;
-        for (const l of lines) get().log(l.text);
+        for (const l of lines) get().ecrireAuJournal(l.text);
       }
       set(touchActors(get()));
       return { consequences: [] };

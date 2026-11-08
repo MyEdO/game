@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { useGame } from '../../state/store';
 import { scenario } from '../../scenes/test-scenarios/siege-enceinte';
 import { buildTokens } from './tokens';
-import { isOverhang, capsSolid } from './floors';
+import { isOverhang, capsSolid } from '../../noyau/monde/volume/floors';
 import { computeStateVisibleAndLight } from '../../noyau/visionState';
 
 const scenarioConstruit = scenario.construire();
@@ -16,8 +16,8 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
    */
   it('RENDU : depuis la cour, la garnison du chemin de ronde (défenseurs ET pièces servies) sort en jetons', () => {
     useGame.setState({ party: scenario.construire().party });
-    useGame.getState().startScene(scenarioConstruit.scene);
-    useGame.getState().startCombat('assaut');
+    useGame.getState().lancerLaScene(scenarioConstruit.scene);
+    useGame.getState().lancerLeCombat('assaut');
     useGame.getState().fenetreValider('roundStart');
     const st = useGame.getState();
     const b = st.battle!;

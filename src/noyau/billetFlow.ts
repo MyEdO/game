@@ -3,12 +3,12 @@
  * d'avance, marchandable) et LDB 51 l.178 (billet IMPLICITE d'une route sans billet d'auteur : classe × km).
  *
  * UNE offre par départ (`offreDePassage`), lue par l'écran de départ (`WorldMapView`) ET par le débit
- * (`travelFlow.startTravel`) : l'estimation et le paiement appellent la même fonction de prix
+ * (`travelFlow.partirEnVoyage`) : l'estimation et le paiement appellent la même fonction de prix
  * (`engine/travel.transportCost`). Le billet payé vit dans `billetEnMain` jusqu'à son dernier tronçon ;
  * l'issue de son Marchandage dans `marchandagesDeBillet` (un Test par billet).
  */
 import type { Get, Set } from './flowTypes';
-import { cleDeBillet, otherEnd, placeOfScene, type MapRoute, type RouteBillet, type WorldMap } from './worldMap';
+import { cleDeBillet, lieuDuGroupe, otherEnd, type MapRoute, type RouteBillet, type WorldMap } from './worldMap';
 import { billetImplicite, type TarifDePassage, type TravelMode } from '../engine/travel';
 import type { BargainOutcome } from '../engine/bargain';
 import { t } from '../i18n';
@@ -108,24 +108,24 @@ export function offreDePassage(
 
 /** L'offre de passage du lieu courant, sur `routeId` en `vehicule`, lue dans l'état. */
 function offreIci(get: Get, routeId: string, vehicule: string): OffreDePassage | null {
-  const { worldMap, scene, billetEnMain, marchandagesDeBillet } = get();
-  const ici = placeOfScene(worldMap, scene?.id);
+  const { worldMap, billetEnMain, marchandagesDeBillet } = get();
+  const ici = lieuDuGroupe(get());
   const route = worldMap?.routes.find((r) => r.id === routeId);
   return worldMap && ici && route ? offreDePassage(worldMap, route, vehicule, ici.id, billetEnMain, marchandagesDeBillet) : null;
 }
 
 /** « Marchander » le billet (EDO 01 l.142) : Test opposé contre le vendeur du preset, UN par billet. */
-export function startBilletBargain(get: Get, set: Set, routeId: string, vehicule: string): void {
+export function marchanderLeBillet(get: Get, set: Set, routeId: string, vehicule: string): void {
   if (get().battle || get().pendingBargain) return;
   const offre = offreIci(get, routeId, vehicule);
   if (!offre || offre.couvert || !offre.vendeurPresetId || offre.issue) return;
   const vendeur = pnjAuPreset(offre.vendeurPresetId, `vendeur-${offre.cle}`, presetDuNarratif(get().campaignNarratif));
   if (!vendeur) return;
-  ouvrirMarchandage(get, set, { kind: 'billet', routeId, vehicule, depuis: offre.depuis, titre: t('out.bargainTitreBillet') }, { label: vendeur.label, valeur: skillBaseValue(vendeur, 'marchandage'), portrait: vendeur });
+  ouvrirMarchandage(get, set, { kind: 'billet', routeId, vehicule, depuis: offre.depuis, titre: t('out.bargainTitreBillet') }, { label: vendeur.label, valeur: skillBaseValue(vendeur, { skill: { id: 'marchandage' } }), portrait: vendeur });
 }
 
 export function creerActionsDuBillet(get: Get, set: Set) {
   return {
-    startBilletBargain: (routeId, vehicule) => startBilletBargain(get, set, routeId, vehicule),
+    marchanderLeBillet: (routeId, vehicule) => marchanderLeBillet(get, set, routeId, vehicule),
   } satisfies FabriqueDuNoyau;
 }

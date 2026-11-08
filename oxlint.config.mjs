@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { collectLabelEntityResolvers } from './scripts/guards/lib/labelLogic.mjs';
 import { RACINES_DES_ZONES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe } from './scripts/guards/lib/couches.mjs';
 
-const MARQUES = '/^(Built(CascadeStep|RollRow)|PlayerText|AdresseDeCreation|CiblePsy|MaximumDesBlessures)$/';
-const MSG_FORGE = 'Marque d’origine (#1262/#1318/#3045/#1463) : forger un `Built*`/`PlayerText`/`AdresseDeCreation`/`CiblePsy`/`MaximumDesBlessures` par cast rend la marque décorative. Passer par un constructeur de la porte (rollSeam), par `revealToStep`, par un minteur de texte (`t`, `refLabel`, `composeRollLabel`), par une fabrique d’adresse (`adresseDeCreation`, `adresseLue`), par la fabrique de Cible (`ciblePsy`), ou par celles des Blessures (`blessuresPosees`, `blessuresReconciliees`).';
+const MARQUES = '/^(Built(CascadeStep|RollRow)|PlayerText|AdresseDeCreation|CiblePsy|MaximumDesBlessures|DeDeTable)$/';
+const MSG_FORGE = 'Marque d’origine (#1262/#1318/#3045/#1463/#1667) : forger un `Built*`/`PlayerText`/`AdresseDeCreation`/`CiblePsy`/`MaximumDesBlessures`/`DeDeTable` par cast rend la marque décorative. Passer par un constructeur de la porte (rollSeam), par `revealToStep`, par un minteur de texte (`t`, `refLabel`, `composeRollLabel`), par une fabrique d’adresse (`adresseDeCreation`, `adresseLue`), par la fabrique de Cible (`ciblePsy`), par celles des Blessures (`blessuresPosees`, `blessuresReconciliees`), ou par le constructeur du dé de table (`deDeLaTableTiree`).';
 
 const VERROU_MARQUES = [{
   selector: `TSAsExpression TSTypeReference > Identifier[name=${MARQUES}]`,
@@ -24,7 +24,7 @@ const VERROU_MARQUES = [{
     `TSTypeAliasDeclaration > TSUnionType > TSArrayType > TSTypeReference > Identifier[name=${MARQUES}]`,
     `TSTypeAliasDeclaration > TSUnionType > TSTypeOperator > TSArrayType > TSTypeReference > Identifier[name=${MARQUES}]`,
   ].join(', '),
-  message: 'Marque d’origine (#1262/#1318/#3045/#1463) : aliaser un `Built*`/`PlayerText`/`CiblePsy`/`MaximumDesBlessures` rouvre la route de forge par cast (le verrou filtre par NOM). Nommer la marque au site, ou passer par un minteur.',
+  message: 'Marque d’origine (#1262/#1318/#3045/#1463/#1667) : aliaser un `Built*`/`PlayerText`/`CiblePsy`/`MaximumDesBlessures`/`DeDeTable` rouvre la route de forge par cast (le verrou filtre par NOM). Nommer la marque au site, ou passer par un minteur.',
 }, {
 
   selector: [
@@ -96,6 +96,31 @@ const VERROU_CONSOLE = [{
   selector: ':matches(ObjectExpression, :matches(AssignmentExpression, ForOfStatement, ForInStatement) > ObjectPattern.left, :matches(AssignmentExpression, ForOfStatement, ForInStatement) > :matches(ObjectPattern, ArrayPattern).left ObjectPattern) > Property[key.type="Identifier"][key.name="title"][computed=false][shorthand=false][method=false][kind="init"]',
   message: `Propriété \`title\` de littéral dans la console : elle finit en attribut \`title\` au rendu ; une case nomme son geste et pointe sa règle (\`rule\`, \`gate\`) ; ${REMEDE_CONSOLE}.`,
 }];
+
+const CLE_CHAR = 'Property:matches([key.name="char"], [key.value="char"])';
+const CLE_DU_SUJET = 'Property:matches([key.name=/^(skill|skillId|difficulty|spec)$/], [key.value=/^(skill|skillId|difficulty|spec)$/])';
+const SPREAD_CONDITIONNEL = 'SpreadElement > :matches(ConditionalExpression, LogicalExpression) > ObjectExpression';
+const CHAMP_CHAR = 'TSPropertySignature:matches([key.name="char"], [key.value="char"])';
+const CHAMP_DU_SUJET = 'TSPropertySignature:matches([key.name=/^(skill|skillId|difficulty|spec)$/], [key.value=/^(skill|skillId|difficulty|spec)$/])';
+const MSG_SUJET_CHAR = 'Sujet d’un Test (#3012, LDB 12 l.7) : il se nomme `characteristic`, comme `sujetDuJetSchema`. Une clé `char` à côté de `skill`/`skillId`/`difficulty`/`spec`, dans un littéral ou un type, en est l’ancienne graphie, que tsc laisse passer sur un objet non frais, un spread conditionnel ou un cast. `char` reste la Caractéristique seule (`charMod`, `actGate`, `CharRef`…).';
+const VERROU_SUJET_CHAR = [
+  `ObjectExpression:has(> ${CLE_CHAR}):has(> ${CLE_DU_SUJET})`,
+  `ObjectExpression:has(> ${CLE_DU_SUJET}) > ${SPREAD_CONDITIONNEL} > ${CLE_CHAR}`,
+  `ObjectExpression:has(> ${CLE_CHAR}) > ${SPREAD_CONDITIONNEL} > ${CLE_DU_SUJET}`,
+  `:matches(TSTypeLiteral, TSInterfaceBody):has(> ${CHAMP_CHAR}):has(> ${CHAMP_DU_SUJET})`,
+].map((selector) => ({ selector, message: MSG_SUJET_CHAR }));
+
+const CLE_SKILL = 'Property:matches([key.name="skill"], [key.value="skill"])';
+const CLE_SPEC = 'Property:matches([key.name="spec"], [key.value="spec"])';
+const CHAMP_SKILL = 'TSPropertySignature:matches([key.name="skill"], [key.value="skill"])';
+const CHAMP_SPEC = 'TSPropertySignature:matches([key.name="spec"], [key.value="spec"])';
+const MSG_SUJET_SPEC = 'Compétence d’un Test (#3012, LDB 09 l.44) : chaque Spécialisation est une Compétence unique, la référence la porte, `skill: { id, spec }` (`RefDesignee`, `SujetDuJet`). Une clé `spec` à côté de `skill`, dans un littéral ou un type, en est la graphie à plat, que tsc laisse passer sur un objet non frais, un spread conditionnel ou un cast.';
+const VERROU_SUJET_SPEC = [
+  `ObjectExpression:has(> ${CLE_SKILL}):has(> ${CLE_SPEC})`,
+  `ObjectExpression:has(> ${CLE_SKILL}) > ${SPREAD_CONDITIONNEL} > ${CLE_SPEC}`,
+  `ObjectExpression:has(> ${CLE_SPEC}) > ${SPREAD_CONDITIONNEL} > ${CLE_SKILL}`,
+  `:matches(TSTypeLiteral, TSInterfaceBody):has(> ${CHAMP_SKILL}):has(> ${CHAMP_SPEC})`,
+].map((selector) => ({ selector, message: MSG_SUJET_SPEC }));
 
 const PROPRIETAIRE_DATALIST = 'src/ui/compendium/refField/**';
 const MSG_DATALIST = 'Datalist (#286, #2724) : le motif `<input list>`/`<datalist>` appartient à `RefField` (`src/ui/compendium/refField/`) — composer `RefField` (modes `freeText`, `vocab`) ou sa saisie libre à suggestions `SaisieSuggeree`.';
@@ -561,6 +586,11 @@ export const BLOCS_LINT = [
     rules: {
       'murs/console-sans-title': ['error', ...VERROU_CONSOLE],
     },
+  },
+  {
+    // #3012
+    files: ['src/**'],
+    rules: { 'murs/sujet-char': ['error', ...VERROU_SUJET_CHAR], 'murs/sujet-spec': ['error', ...VERROU_SUJET_SPEC] },
   },
   {
     // #286, #2724

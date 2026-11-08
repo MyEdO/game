@@ -14,7 +14,9 @@ import { woundsFromHit } from './woundsCalc';
 import { peutEtreEmpoigne } from './grapple';
 import { isInanimate, isStructure, structureEnduranceMult, structureTaille, structureImmune } from './structures';
 import { agilityTestPenalty } from './encumbrance';
-import { skillBaseValue, testValue } from './skills';
+import { skillBaseValue, testValue, type TestDesigne } from './skills';
+import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { Combatant, HitLocation, Weapon, BodyShape, RangeBandId, DIFFICULTY_MODIFIERS, locationLabel, type CharKey, type Difficulty, type ModLine } from './types';
 import { weatherTestMods } from './weatherTestMod';
 import { precipitationTestMods } from './seaWeather';
@@ -204,7 +206,7 @@ export function combatCharKey(kind: 'melee' | 'ranged', weapon?: Weapon): CharKe
 /** Compétence RETENUE pour un Test de combat : Caractéristique testée + Spé du Groupe de l'arme
  *  (LDB 62 l.138-139) et ses Augmentations. Aucun modificateur — SÉLECTION pure, partagée par la
  *  valeur NUE (`combatBaseValue`) et la somme des modificateurs (`combatValueMods`). */
-function combatSkillPick(c: Combatant, kind: 'melee' | 'ranged', weapon?: Weapon): { charKey: CharKey; skillId?: string; spec?: string; advances: number } {
+function combatSkillPick(c: Combatant, kind: 'melee' | 'ranged', weapon?: Weapon): { charKey: CharKey; skill?: RefDesignee; advances: number } {
   // Résolution ALTERNATIVE déclarée par l'arme (bélier → Force, ADE II 8 l.233) : Caractéristique BRUTE,
   // aucune Compétence associée (comme l'Empoignade, `rollGrappleForce`) — court-circuite CC/CT et la Spé du Groupe.
   if (weapon?.resolveChar) return { charKey: weapon.resolveChar, advances: 0 };
@@ -213,9 +215,9 @@ function combatSkillPick(c: Combatant, kind: 'melee' | 'ranged', weapon?: Weapon
   const skillId = weaponSkillId(kind);
   const matching = c.skills.filter((s) => s.id === skillId);
   if (matching.length === 0) return { charKey, advances: 0 };
-  if (!weapon || !weapon.subType) return { charKey, skillId, advances: Math.max(0, ...matching.map((s) => s.advances)) };
+  if (!weapon || !weapon.subType) return { charKey, skill: { id: skillId }, advances: Math.max(0, ...matching.map((s) => s.advances)) };
   const m = matchGroupSpec(c, weapon, kind);
-  return { charKey, skillId, spec: m?.spec, advances: m?.advances ?? 0 };
+  return { charKey, skill: { id: skillId, ...(m?.spec ? { spec: m.spec } : {}) }, advances: m?.advances ?? 0 };
 }
 
 /**
@@ -234,8 +236,8 @@ export function combatBaseValue(c: Combatant, kind: 'melee' | 'ranged', weapon?:
   // Caractéristique IMPOSÉE par le combat (CC/CT, ou celle de la résolution alternative de l'arme).
   // Quand la Spé retenue n'est pas désignable par sa `spec` (meilleure Spé disponible, Spé absente,
   // arme non maîtrisée, carac brute), seules ses Augmentations retenues s'ajoutent à cette carac.
-  return p.skillId != null && p.spec != null
-    ? skillBaseValue(c, p.skillId, p.spec, p.charKey)
+  return p.skill?.spec != null
+    ? skillBaseValue(c, { skill: p.skill, characteristic: p.charKey })
     : effectiveChar(c, p.charKey) + p.advances;
 }
 
@@ -275,10 +277,10 @@ export function combatValue(c: Combatant, kind: 'melee' | 'ranged', weapon?: Wea
  * SOURCE UNIQUE des deux (jamais un binaire `kind` recalculé séparément). La Spé nommée est celle que
  * `combatSkillPick` retient pour le jet, sinon le Groupe que l'arme demande (LDB 85 l.387 ; LDB 62 l.184).
  */
-export function attackTestOf(c: Combatant, weapon: Weapon | undefined, kind: 'melee' | 'ranged'): { skill: string; spec?: string } | { char: CharKey } {
-  if (weapon?.resolveChar) return { char: weapon.resolveChar };
-  const spec = combatSkillPick(c, kind, weapon).spec ?? (weapon ? acceptableSpecs(c, weapon, kind)[0]?.spec : undefined);
-  return { skill: weaponSkillId(kind), ...(spec ? { spec } : {}) };
+export function attackTestOf(c: Combatant, weapon: Weapon | undefined, kind: 'melee' | 'ranged'): TestDesigne {
+  if (weapon?.resolveChar) return { characteristic: weapon.resolveChar };
+  const spec = combatSkillPick(c, kind, weapon).skill?.spec ?? (weapon ? acceptableSpecs(c, weapon, kind)[0]?.spec : undefined);
+  return { skill: { id: weaponSkillId(kind), ...(spec ? { spec } : {}) } };
 }
 
 /** Libellé du Test d'attaque : `testSkillLabel` des ids d'`attackTestOf`. */
@@ -350,7 +352,7 @@ export function defaultParryWeapon(c: Combatant): Weapon | undefined {
 export function defenseBaseValue(c: Combatant, mode: DefenseMode, weapon?: Weapon, socialBase?: number): number {
   if (mode === 'social') return socialBase ?? 0; // base = Test de la Compétence sociale (Intimidation/Dressage), calculée en amont
   if (mode === 'parade') return combatBaseValue(c, 'melee', weapon ?? defaultParryWeapon(c));
-  return skillBaseValue(c, 'esquive', undefined, 'agilite');
+  return skillBaseValue(c, { skill: { id: 'esquive' }, characteristic: 'agilite' });
 }
 
 /**
@@ -383,10 +385,10 @@ export function defenseValue(c: Combatant, mode: DefenseMode, weapon?: Weapon, s
 }
 /** Ids du Test de défense, MÊME sélection que `defenseBaseValue` : Parade = `attackTestOf` de mêlée à l'arme
  *  parante, Esquive, ou la Compétence substituée `socialSkillId` (LDB 13 l.161-167). */
-export function defenseTestOf(c: Combatant, mode: DefenseMode, weapon?: Weapon, socialSkillId?: string): { skill?: string; spec?: string; char?: CharKey } {
+export function defenseTestOf(c: Combatant, mode: DefenseMode, weapon?: Weapon, socialSkillId?: string): SujetDuJet {
   if (mode === 'parade') return attackTestOf(c, weapon ?? defaultParryWeapon(c), 'melee');
-  if (mode === 'esquive') return { skill: 'esquive' };
-  return { skill: socialSkillId };
+  if (mode === 'esquive') return { skill: { id: 'esquive' } };
+  return { skill: socialSkillId ? { id: socialSkillId } : undefined };
 }
 
 /** Détail d'un jet (pour l'affichage : base, modificateurs, cible, d100 et DR). */
@@ -396,14 +398,13 @@ export function defenseTestOf(c: Combatant, mode: DefenseMode, weapon?: Weapon, 
 export type { ModLine } from './types';
 
 /** Degré de masquage d'une ligne de jet à l'écran — DÉFINITION UNIQUE, partagée par le jet RÉSOLU
- *  (`RollBreakdown`) et le pré-jet (`PendingRoll`). Rendu par le site unique `ui/RollLine.tsx`. */
+ *  (`RollBreakdown`) et le pré-jet (`PendingRoll`). Rendu par la ligne de jet. */
 export type RollMask = 'value' | 'roll';
 
 /**
  * SECONDE LECTURE d'une ligne de jet (Test COMBINÉ, `LDB 12 l.202-208`) — DÉFINITION UNIQUE, partagée
  * par le jet RÉSOLU (`RollBreakdown.second` : le verdict de la seconde valeur) et le pré-jet
- * (`PendingRoll.second` : sa seule cible, le dé n'étant pas tombé). Rendue par le site unique
- * `ui/RollLine.tsx`, sous la ligne qu'elle prolonge — un seul dé, deux lectures.
+ * (`PendingRoll.second` : sa seule cible, le dé n'étant pas tombé). Rendue sous la ligne qu'elle prolonge — un seul dé, deux lectures.
  */
 export interface SecondReadLine {
   label: string;
@@ -422,7 +423,7 @@ export interface RollBreakdown {
    *  il PORTE le verdict que la ligne rend, sans ✓±DR (#2389, `noyau/pendings.LectureDuDe`). Absent = Test. */
   seuil?: { reussite: string; echec: string };
   /** Difficulté du Test — NATURE du jet, pas un modificateur circonstanciel : elle se lit
-   *  sur la LIGNE (texte + valeur, `ui/RollLine.tsx`) et n'entre JAMAIS dans `mods` (#1072). Sa
+   *  sur la LIGNE (texte + valeur) et n'entre JAMAIS dans `mods` (#1072). Sa
    *  valeur reste comprise dans `modifier`/`target`. */
   difficulty?: Difficulty;
   /** Modificateur RÉEL des circonstances quand il ne tombe sur AUCUN cran de l'échelle
@@ -467,7 +468,7 @@ export interface RollBreakdown {
   mask?: RollMask;
   /** Z5c — RAISON du verdict de CETTE ligne quand la comparaison des DR ne le dit pas seule
    *  (départage d'un Test opposé, LDB 12 l.160). Posée par le résolveur du Test opposé sur la ligne
-   *  concernée ; `ui/RollLine.tsx` en rend la phrase. Absente = rien à expliquer. */
+   *  concernée ; la ligne de jet en rend la phrase. Absente = rien à expliquer. */
   decided?: VerdictReason;
   /** SECONDE LECTURE du MÊME dé — Test COMBINÉ (`LDB 12 l.202-208`, verbatim l.206 : « Faire un seul
    *  Test, en comparant donc un unique jet de pourcentage avec la valeur de ces deux Compétences »).
@@ -879,7 +880,7 @@ export function attackModifiers(
   out.push(...weatherTestMods(attacker.envWeather, opts.kind === 'ranged' ? 'capacite-de-tir' : 'capacite-de-combat'));
   // Précipitations sur le pont (MDG 13 l.185, #1936) : canal `precipitationTestMods`, lu depuis `attacker.envPrecipitation`.
   const tested = combatSkillPick(attacker, opts.kind, weapon); // LDB 62 l.180
-  out.push(...precipitationTestMods(attacker.envPrecipitation, tested.skillId, tested.spec));
+  out.push(...precipitationTestMods(attacker.envPrecipitation, tested.skill));
   // Modificateurs WEAPON-CONTEXTUELS dérivés de la SCÈNE (couvert / obscurité / météo au TIR (rangedMod/
   // poudre) / mouvement / tir-mêlée), calculés côté state (combatFlow) et injectés ici — la table de
   // Difficultés de Combat n'est pas exhaustive. La pénalité « Tests physiques » n'y est PLUS (canal ci-dessus).
@@ -943,13 +944,13 @@ export function defenseModifiers(defender: Combatant, mode: DefenseMode, dodgeMo
 
 /** Compétence RÉELLE d'un mode de défense (Parade = Corps à corps, Esquive = Esquive) — clé du canal de
  *  Précipitations (MDG 13 l.187-200). La substitution sociale n'en désigne aucune. */
-function defenseTestSkill(mode: DefenseMode): string | undefined {
-  return mode === 'parade' ? 'corps-a-corps' : mode === 'esquive' ? 'esquive' : undefined;
+function defenseTestSkill(mode: DefenseMode): RefDesignee | undefined {
+  return mode === 'parade' ? { id: 'corps-a-corps' } : mode === 'esquive' ? { id: 'esquive' } : undefined;
 }
 
 /** Le jet est-il le Test d'attaque, ou un Test de défense de Corps à corps ? LDB 13 l.183 ; LDB 62 l.248. */
 function testDArmeOuDeCorpsACorps(b: RollBreakdown): boolean {
-  return !b.mode || defenseTestSkill(b.mode) === 'corps-a-corps';
+  return !b.mode || b.mode === 'parade';
 }
 
 /** Caractéristique RÉELLE d'un mode de défense (Parade = Test de CC, Esquive = Agilité) — pour le canal météo
@@ -984,7 +985,7 @@ export function baseTestModLines(c: Combatant, ck?: CharKey, ctx: EtatTestCtx = 
   if (adv) out.push(adv);
   out.push(...conditionModLines(c, ctx));
   out.push(...weatherTestMods(c.envWeather, ck ?? null));
-  out.push(...precipitationTestMods(c.envPrecipitation, ctx.skill)); // MDG 13 l.185, #1936
+  out.push(...precipitationTestMods(c.envPrecipitation, ctx.skill ? { id: ctx.skill } : undefined)); // MDG 13 l.185, #1936
   return out;
 }
 
@@ -1287,7 +1288,7 @@ export function resolveMeleePassive(
  *  MDG 09 l.232 ; MDG 16 l.17 */
 function attackTestDR(attacker: Combatant, defender: Combatant, weapon: Weapon, atk: TestResult, kind: 'melee' | 'ranged'): number {
   return atk.sl + craftTestDRAdjust(weapon, atk.success) + attackDRAdjust(weapon, atk.success) + psychDRAdjust(attacker, defender)
-    + (atk.success ? skillDRBonus(attacker, kind === 'ranged' ? 'projectiles' : 'corps-a-corps') : 0)
+    + (atk.success ? skillDRBonus(attacker, { id: kind === 'ranged' ? 'projectiles' : 'corps-a-corps' }) : 0)
     + offTerrainTestDR(attacker);
 }
 
@@ -1360,7 +1361,7 @@ export function resolveMelee(
 
 /** Bande de portée applicable : la première rangée de `portee-d-une-arme` (`LDB 62 l.196-206`, `LDB 14
  *  l.50-86`) dont le plafond, en facteur de la Portée `rangeMeters`, contient la distance ; `undefined` au-delà.
- *  `metresPerTile` = échelle de la Scène (défaut 2 m/case, `LDB 15 l.12`, PUR — jamais lu depuis `state`). */
+ *  `metresPerTile` = échelle de la Scène (défaut 2 m/case, `LDB 15 l.12`, PUR — jamais lu depuis l'état de jeu). */
 function rangeBandAt(distanceTiles: number, rangeMeters: number, metresPerTile = 2): RangeeDeRegleData | undefined {
   const m = distanceTiles * metresPerTile;
   return rangeesDeRegle('portee-d-une-arme').find((b) => m <= rangeMeters * b.plafond!);
@@ -1855,7 +1856,7 @@ export function initiativeOrder(combatants: Combatant[], rng: RNG): Combatant[] 
   const groupSize = new Map<string, number>();
   for (const c of combatants) groupSize.set(groupKey(c), (groupSize.get(groupKey(c)) ?? 0) + 1);
   // Roulé dans l'ordre d'ENTRÉE, uniquement pour les égalités exactes → consommation RNG minimale et déterministe.
-  for (const c of combatants) if ((groupSize.get(groupKey(c)) ?? 0) > 1) tieTest.set(c, rollTest(testValue(c, undefined, 'agilite'), 'intermediaire', rng));
+  for (const c of combatants) if ((groupSize.get(groupKey(c)) ?? 0) > 1) tieTest.set(c, rollTest(testValue(c, { characteristic: 'agilite' }), 'intermediaire', rng));
   return [...combatants].sort((a, b) => {
     const ia = initOf(a), ib = initOf(b);
     if (ib !== ia) return ib - ia;

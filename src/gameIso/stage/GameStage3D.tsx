@@ -44,7 +44,7 @@
  * INTEMPÉRIES (#1247) : la météo authorée de la scène a TROIS expressions dans le volume, toutes
  * dérivées de la MÊME donnée (`iso.weather`, `src/data/ambiance.json`) :
  *  - ce qui TOMBE (`precip`) : un semis de quads instanciés qui descend à la cadence de la frame, borné
- *    par le MÊME couvert bâti que le dégagement (`shelterField`, `builders/roofs.ts`) — rien ne tombe
+ *    par le MÊME couvert bâti que le dégagement (`shelterField`, `noyau/monde/volume/toits.ts`) — rien ne tombe
  *    sous un toit, y compris sous une nappe que le cutaway a levée, et rien ne se REND au-dessus d'une
  *    nappe que la vue ne peint plus (`nappeVue`) ;
  *  - ce qui STAGNE (`brume`) : des nappes horizontales aux cotes de la donnée, sur les seules colonnes à
@@ -68,7 +68,7 @@ import { hauteurDe, type LectureDArete, type Scene } from '../../noyau/monde/sce
 import type { Dir8 } from '../../geometry/dir8';
 import { reposerAffineCamera, reposerPovCamera, StretchedOrthographicCamera } from '../backends/webgl/cameras';
 import { fogCurveOf, povDepth } from '../pov/camera';
-import { pxPerM } from '../backends/webgl/worldTris';
+import { pxPerM } from '../../noyau/monde/volume/worldTris';
 import {
   billboardView,
   subjectQuad,
@@ -143,8 +143,9 @@ import { poserLampesDuCiel, stageLightScalars, type LampesDuCiel } from './stage
 import { viewPolicy } from './viewPolicy';
 import { applyFlicker, applyPointLights, createPointLightPool, hasFlicker, pointLightWrites, POINT_LIGHT_BUDGET, type PointLightSlots } from './stagePointLights';
 import type { LightSource } from '../../noyau/monde/vision';
-import { AMBIANCE, sceneBrume, scenePrecip } from '../catalog/ambiance';
-import { isSheltered, shelterField, shelterSectionAt } from '../builders/roofs';
+import { AMBIANCE } from '../catalog/ambiance';
+import { sceneBrume, scenePrecip } from '../../noyau/monde/meteo';
+import { isSheltered, shelterField, shelterSectionAt } from '../../noyau/monde/volume/toits';
 import { buildBrumeSheets, retainBrumeSheets, type BrumeSlot } from '../backends/webgl/weatherSheets';
 import {
   buildPrecipMesh,
@@ -697,7 +698,7 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
   // matériaux est une fonction de la frame, écrite par la passe de pose).
   const poolsHalos = useRef<HaloPools>({});
   // Le SOL d'une case : la hauteur MÉTRIQUE de sa surface, celle où le monde volumique bâtit sa dalle
-  // (`builders/floors.ts`) — la couche 0 porte du relief comme les autres, et c'est de là que le
+  // (`noyau/monde/volume/floors.ts`) — la couche 0 porte du relief comme les autres, et c'est de là que le
   // glissement vertical de la marche se compte. RETENU sur la scène : c'est une DÉPENDANCE du redessin
   // (la passe de frame le lit), et une fonction neuve par rendu y ferait peindre une image à chaque
   // commit de l'hôte.
@@ -789,7 +790,7 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
   const semisRetenu = useRef<PrecipSlot | null>(null);
   semisRetenu.current = precip ? retainWeatherField(semisRetenu.current, scene, precip, 'meteo') : null;
   const champ = semisRetenu.current?.champ ?? null;
-  // SOUS COUVERT : le MÊME champ que le dégagement d'architecture interroge (`builders/roofs.ts`) —
+  // SOUS COUVERT : le MÊME champ que le dégagement d'architecture interroge (`noyau/monde/volume/toits.ts`) —
   // une seule vérité de « suis-je sous un toit ? ». Il ignore la vue : une nappe levée par le cutaway
   // abrite toujours ; le couvert suit le PLAN, et se recalcule avec la scène qui le porte.
   // Retenu sur le read-set de la CUISSON (`worldBakeDeps`) : le couvert se déduit des masses bâties,

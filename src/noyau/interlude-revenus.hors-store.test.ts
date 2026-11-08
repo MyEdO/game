@@ -16,7 +16,7 @@ const REPRESSION_DU_CRIME = 20;
 function apresLaRepression(careerId: string, label: string): { banc: Banc; heroId: string } {
   const h = createHero({ speciesId: 'humains-reiklander', careerId, label, seed: 1701 });
   const banc = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [h] } });
-  banc.actions.startInterlude(1);
+  banc.actions.ouvrirLInterlude(1);
   draineCascade(banc.getState, 200, poseSurDeNonTombe(REPRESSION_DU_CRIME));
   expect(banc.getState().interlude?.phase, 'témoin : le tirage est dénoué').toBe('activities');
   expect(banc.getState().interlude?.perHero[h.id].eventRoll, 'témoin : l’Événement posé').toBe(REPRESSION_DU_CRIME);
@@ -30,7 +30,7 @@ describe('refusDeRevenus — le geste Revenus d’un héros dont la Classe est b
     expect(raison).toBe('Larron ne peut pas entreprendre Revenus (événement : Répression du crime).');
     const avant = JSON.stringify(banc.getState().interlude);
     const journal = banc.getState().journal.length;
-    banc.actions.interludeActivity(heroId, 'revenus');
+    banc.actions.pratiquerLActivite(heroId, 'revenus');
     expect(banc.getState().journal.slice(journal)).toEqual([raison]);
     expect(JSON.stringify(banc.getState().interlude), 'une Activité a été consommée').toBe(avant);
     expect(banc.getState().pendingActivity).toBeNull();
@@ -39,7 +39,7 @@ describe('refusDeRevenus — le geste Revenus d’un héros dont la Classe est b
   it('un guerrier sous le même Événement : aucun refus, les Revenus s’ouvrent', () => {
     const { banc, heroId } = apresLaRepression('soldat', 'Vétéran');
     expect(refusDeRevenus(banc.getState(), heroId)).toBeNull();
-    banc.actions.interludeActivity(heroId, 'revenus');
+    banc.actions.pratiquerLActivite(heroId, 'revenus');
     expect(banc.getState().pendingActivity?.heroId).toBe(heroId);
   });
 });

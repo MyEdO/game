@@ -5,7 +5,7 @@
  * MOTIF MESURÉ : deux records portaient encore le libellé français en CLÉ — `names.json` (7 banques
  * de noms, clé racine) et les 5 `texts.*.bySpecies` de `details.json` (surcharges d'aide par espèce).
  * Le code y accédait par un pont id→libellé (`RACE_KEY_LABEL`, `src/data/index.ts`), consommé par
- * `engine/names.poolOf` et `ui/compendium/registry.raceDetailSection`. Le pont MEURT avec cette
+ * `engine/names.poolOf` et la section de race du Compendium. Le pont MEURT avec cette
  * migration : les deux records se manipulent par `RaceKey` (`schemas/grammaire/valeurs.ts:290`).
  * Les VALEURS (pools de noms, textes d'aide) ne changent pas — seules les clés sont réécrites.
  *

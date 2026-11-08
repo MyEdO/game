@@ -159,21 +159,21 @@ describe('#166 — « Épaule luxée »/« Genou démis » : membre désactivé 
     expect(traumas).toHaveLength(1);
     const t = traumas[0];
     expect(t.location).toBe('brasD');
-    expect(t.restoreDR).toBe(6);
+    expect(t.targetDR).toBe(6);
     expect(t.awaitingMedicalAid).toBe(true);
     expect(t.ops).toEqual([{ op: 'maxWeaponHands', hands: 1 }]);
     expect(t.recoveryPenalty).toEqual([{ op: 'charMod', char: 'capacite-de-combat', mod: -10 }]);
   });
 
   it('le membre désactivé grève passivement (bras → 2 mains impossibles ; jambe → Mouvement ÷2)', () => {
-    const arm = C({ traumas: [{ uid: 't2', label: 'x', location: 'brasD', awaitingMedicalAid: true, restoreDR: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }] }] });
+    const arm = C({ traumas: [{ uid: 't2', label: 'x', location: 'brasD', awaitingMedicalAid: true, targetDR: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }] }] });
     expect(cannotWieldTwoHanded(arm)).toBe(true);
-    const leg = C({ traumas: [{ uid: 't3', label: 'x', location: 'jambeD', awaitingMedicalAid: true, restoreDR: 6, ops: [{ op: 'moveScale', num: 1, den: 2 }] }] });
+    const leg = C({ traumas: [{ uid: 't3', label: 'x', location: 'jambeD', awaitingMedicalAid: true, targetDR: 6, ops: [{ op: 'moveScale', num: 1, den: 2 }] }] });
     expect(traumaMovementHalved(leg)).toBe(true);
   });
 
   it('récupération BLOQUÉE tant que l’Aide Médicale n’est pas reçue, puis débloquée (LDB 18 l.120/179)', () => {
-    const c = C({ traumas: [{ uid: 't4', label: 'x', location: 'brasD', awaitingMedicalAid: true, restoreDR: 6, recoveryPenalty: [{ op: 'charMod', char: 'capacite-de-combat', mod: -10 }] }] });
+    const c = C({ traumas: [{ uid: 't4', label: 'x', location: 'brasD', awaitingMedicalAid: true, targetDR: 6, recoveryPenalty: [{ op: 'charMod', char: 'capacite-de-combat', mod: -10 }] }] });
     expect(hasLimbAwaitingAid(c)).toBe(true);
     expect(hasRecoverableTrauma(c)).toBe(false); // le Test étendu demeure indisponible avant l’Aide Médicale
     receiveMedicalAid(c);
@@ -183,7 +183,7 @@ describe('#166 — « Épaule luxée »/« Genou démis » : membre désactivé 
 
   it('`recoverDisabledLimb` retire la séquelle et rend sa `recoveryPenalty` (posée par l’appelant, 1d10 j)', () => {
     const c = C({ traumas: [
-      { uid: 't5', label: 'Genou démis (jambe perdue)', location: 'jambeD', restoreDR: 6, ops: [{ op: 'moveScale', num: 1, den: 2 }], recoveryPenalty: [{ op: 'testMod', char: 'agilite', amount: -10, movementOnly: true }, { op: 'moveScale', num: 1, den: 2 }] },
+      { uid: 't5', label: 'Genou démis (jambe perdue)', location: 'jambeD', targetDR: 6, ops: [{ op: 'moveScale', num: 1, den: 2 }], recoveryPenalty: [{ op: 'testMod', char: 'agilite', amount: -10, movementOnly: true }, { op: 'moveScale', num: 1, den: 2 }] },
     ] });
     const { penalty, log } = recoverDisabledLimb(c, 't5');
     expect(c.traumas).toHaveLength(0); // le membre désactivé est retiré (usage récupéré)
@@ -194,14 +194,14 @@ describe('#166 — « Épaule luxée »/« Genou démis » : membre désactivé 
   // #193 — « Tests effectués avec ce bras » (LDB/AA) : `recoverDisabledLimb` scope le `testMod{char:'capacite-de-combat'}`
   // à la main RÉELLE du membre (convention DROITIER, MÊME donnée pour brasD/brasG).
   it("`recoverDisabledLimb` injecte `weaponHand` sur un `testMod{char:'capacite-de-combat'}` selon la Localisation (brasD → main, brasG → off)", () => {
-    const cD = C({ traumas: [{ uid: 't6', label: 'x', location: 'brasD', restoreDR: 6, recoveryPenalty: [{ op: 'testMod', char: 'capacite-de-combat', amount: -10 }] }] });
+    const cD = C({ traumas: [{ uid: 't6', label: 'x', location: 'brasD', targetDR: 6, recoveryPenalty: [{ op: 'testMod', char: 'capacite-de-combat', amount: -10 }] }] });
     expect(recoverDisabledLimb(cD, 't6').penalty).toEqual([{ op: 'testMod', char: 'capacite-de-combat', amount: -10, weaponHand: 'main' }]);
-    const cG = C({ traumas: [{ uid: 't7', label: 'x', location: 'brasG', restoreDR: 6, recoveryPenalty: [{ op: 'testMod', char: 'capacite-de-combat', amount: -10 }] }] });
+    const cG = C({ traumas: [{ uid: 't7', label: 'x', location: 'brasG', targetDR: 6, recoveryPenalty: [{ op: 'testMod', char: 'capacite-de-combat', amount: -10 }] }] });
     expect(recoverDisabledLimb(cG, 't7').penalty).toEqual([{ op: 'testMod', char: 'capacite-de-combat', amount: -10, weaponHand: 'off' }]);
   });
 
   it('Sonné « jusqu’à Aide Médicale » (Épaule luxée/Genou démis) : `unlockBy:medicalAid` le retient, l’Aide le retire', () => {
-    const c = C({ traumas: [{ uid: 't8', label: 'x', location: 'brasD', awaitingMedicalAid: true, restoreDR: 6 }] });
+    const c = C({ traumas: [{ uid: 't8', label: 'x', location: 'brasD', awaitingMedicalAid: true, targetDR: 6 }] });
     addCondition(c, 'sonne', 1, undefined, undefined, undefined, undefined, { unlockBy: 'medicalAid' });
     removeCondition(c, 'sonne'); // récupération d’État normale : INERTE (verrouillé)
     expect(hasCondition(c, 'sonne')).toBe(true);
@@ -212,8 +212,8 @@ describe('#166 — « Épaule luxée »/« Genou démis » : membre désactivé 
   it('resolveCritique(aa, « Épaule luxée » 96-109) stampe le membre désactivé (usage à récupérer)', () => {
     const c = C({});
     const res = resolveCritique('aa', c, 'brasD', seq([100])); // d100=100 → aa-bras-96 (96-109)
-    const t = res.traumas.find((x) => x.restoreDR != null);
-    expect(t?.restoreDR).toBe(6);
+    const t = res.traumas.find((x) => x.targetDR != null);
+    expect(t?.targetDR).toBe(6);
     expect(t?.awaitingMedicalAid).toBe(true);
     expect(t?.location).toBe('brasD');
     expect(t?.ops).toEqual([{ op: 'maxWeaponHands', hands: 1 }]);

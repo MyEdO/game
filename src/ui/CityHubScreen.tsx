@@ -1,13 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useGame } from '../state/store';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
-import { placeServices, produitsDuProfil, lieuAUnPlan, placeServiceMerchantId, serviceIcon, poiIcon, type ResolvedPlaceService, type MapPlace } from '../noyau/worldMap';
+import { placeServices, produitsDuProfil, lieuAUnPlan, serviceIcon, poiIcon, type ResolvedPlaceService, type MapPlace } from '../noyau/worldMap';
 import type { Scene } from '../noyau/monde/scene';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sceneWeatherSchema } from '../data/schemas/defs-scenes/scene';
 import { restServicePrice, type RestPlaces } from '../noyau/restFlow';
-import { libelleOuAbsence } from '../data';
-import { findLandCargoById } from '../engine/landCargo';
+import { findCargoEntryById } from '../engine/cargo';
 import { innGatherInfoMinutes } from '../noyau/innFlow';
 import { ScreenShell } from './ScreenShell';
 import { MasterDetail } from './MasterDetail';
@@ -70,13 +69,13 @@ export function CityHubScreen({
   const gameTime = useGame((s) => s.gameTime);
   const worldMap = useGame((s) => s.worldMap);
   const tradeRumours = useGame((s) => s.tradeRumours);
-  const openRest = useGame((s) => s.openRest);
-  const openPort = useGame((s) => s.openPort);
+  const ouvrirLeRepos = useGame((s) => s.ouvrirLeRepos);
+  const ouvrirLePort = useGame((s) => s.ouvrirLePort);
   const vessel = useGame((s) => s.vessel);
-  const openLandMarket = useGame((s) => s.openLandMarket);
-  const openPlaceMerchant = useGame((s) => s.openPlaceMerchant);
-  const gatherInnInfo = useGame((s) => s.gatherInnInfo);
-  const transitionTo = useGame((s) => s.transitionTo);
+  const ouvrirLeMarche = useGame((s) => s.ouvrirLeMarche);
+  const ouvrirLaBoutique = useGame((s) => s.ouvrirLaBoutique);
+  const recueillirLesRumeurs = useGame((s) => s.recueillirLesRumeurs);
+  const quitterLaScene = useGame((s) => s.quitterLaScene);
 
   const services = placeServices(place, scene, rest?.places);
   const [selId, setSelId] = useState<string | null>(services[0]?.id ?? null);
@@ -94,7 +93,7 @@ export function CityHubScreen({
   /** OUVREURS par écran DÉCLARÉ (`ResolvedPlaceService.opensScreen`) : la valeur du catalogue choisit
    *  l'ouvreur ET sa garde. Table TOTALE de l'union — un écran de plus ne compile pas sans sa ligne. */
   const SCREEN_ROUTES: Record<NonNullable<ResolvedPlaceService['opensScreen']>, { open: () => void; refus: () => string | null }> = {
-    port: { open: openPort, refus: () => refusPort },
+    port: { open: ouvrirLePort, refus: () => refusPort },
   };
 
   /** Panneau de détail d'un SERVICE résolu — source UNIQUE, appelée pour la sélection de l'onglet
@@ -115,8 +114,8 @@ export function CityHubScreen({
           porteur={porteurSvc}
           actions={
             <>
-              {svc.rest && <button type="button" className="btn btn-primary" onClick={() => openRest({ places: svc.rest, lieu: libelleOuAbsence(place, 'lieu', place.id), quality: rest?.quality })}>Dormir</button>}
-              <button type="button" className="btn btn-primary" onClick={gatherInnInfo}>
+              {svc.rest && <button type="button" className="btn btn-primary" onClick={() => ouvrirLeRepos()}>Dormir</button>}
+              <button type="button" className="btn btn-primary" onClick={recueillirLesRumeurs}>
                 Recueillir des informations (≈{Math.round(innGatherInfoMinutes() / 60)} h)
               </button>
             </>
@@ -140,7 +139,7 @@ export function CityHubScreen({
               ? <p className="city-hub-empty">Aucune rumeur pour l’instant.</p>
               : <ul className="city-hub-hint">{tradeRumours.map((r, i) => {
                   const target = worldMap?.places.find((p) => p.id === r.placeId)?.label ?? r.placeId;
-                  const biens = r.biens.map((id) => findLandCargoById(id)?.label ?? id).join(', ');
+                  const biens = r.biens.map((id) => findCargoEntryById(id)?.label ?? id).join(', ');
                   return <li key={i}>{biens} — recherchés à {target}.</li>;
                 })}</ul>}
           </section>
@@ -159,7 +158,7 @@ export function CityHubScreen({
               label="Entrer au port"
               enabled={refusPort == null}
               {...raisonSi(refusPort)}
-              onClick={() => enter(openPort)}
+              onClick={() => enter(ouvrirLePort)}
             />
           }
         >
@@ -173,7 +172,7 @@ export function CityHubScreen({
           id={`pane-svc-${svc.id}`}
           icon={serviceIcon(svc)}
           title={svc.label}
-          actions={<button type="button" className="btn btn-primary" onClick={() => enter(openLandMarket)}>Entrer au marché</button>}
+          actions={<button type="button" className="btn btn-primary" onClick={() => enter(ouvrirLeMarche)}>Entrer au marché</button>}
         >
           <ProfileSynth taille={svc.market.taille} richesse={svc.market.richesse} production={svc.market.produits} />
         </ActivityPane>
@@ -191,7 +190,7 @@ export function CityHubScreen({
           actions={
             <button
               type="button" className="btn btn-primary"
-              onClick={() => enter(() => openPlaceMerchant(placeServiceMerchantId(place.id, svc.id), svc.merchantArchetype!, svc.backdrop))}
+              onClick={() => enter(() => ouvrirLaBoutique(svc.id))}
             >
               Entrer chez le forgeron
             </button>
@@ -278,7 +277,7 @@ export function CityHubScreen({
         icon={poiIcon(poiSel, services)}
         title={poiSel.label}
         desc="Ce point mène à un autre endroit."
-        actions={<button type="button" className="btn btn-primary" onClick={() => enter(() => transitionTo(poiSel.sceneId!))}>Entrer</button>}
+        actions={<button type="button" className="btn btn-primary" onClick={() => enter(() => quitterLaScene(poiSel.sceneId!))}>Entrer</button>}
       />
     );
   } else {

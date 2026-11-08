@@ -27,8 +27,8 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -110,7 +110,7 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
     });
     // Valide toutes les étapes (révélation Imparfaite committée, PUIS l'étape de Test déjà résultée) → la
     // branche d'échec : Sonné, ET le palier `slThreshold ≤ −4` : Inconscient EN PLUS.
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetLancer('cascade');
     const h = live(H.id);
     expect(hasCondition(h, 'sonne')).toBe(true);        // onFail : Sonné
     expect(hasCondition(h, 'inconscient')).toBe(true);  // onFailHard (slThreshold ≤ −4) : Inconscient EN PLUS

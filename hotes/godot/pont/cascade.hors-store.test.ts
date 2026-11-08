@@ -1,16 +1,17 @@
 /**
  * ENTRÉE DANS LA CASCADE (#3328) : « bestiaire » joué au geste en focus, comme la touche Entrée le joue. Une étape à
  * plusieurs jets (le Sang-froid face à la Terreur) jette chaque rangée puis se valide ; une étape qui attend un choix
- * (dévier ou subir le Coup Critique) ne se valide, ne se résout ni ne se termine avant lui, et rien n'y prend le focus.
+ * (dévier ou subir le Coup Critique), un réglage de l'étape (`fenetre.reglages`), ne se valide, ne se résout ni ne se
+ * termine avant lui, et rien n'y prend le focus.
  * Le Coup Critique d'une Défense ne montre pas la Défense de l'attaque suivante, déjà en attente.
  */
 import { describe, it, expect } from 'vitest';
 import { drainer, table } from './pont.testkit';
-import { CLICS_DU_CHAMP } from '../../../src/noyau/index';
+import { clicDuCombattant } from './pont';
 import type { Bouton, Choix, Element } from '../../../src/hote/elements';
 
 const { appel } = table();
-const NAVIGATION = ['jetConfirm@cascade', 'cascadeResolveAll', 'fenetreFermer@cascade'];
+const NAVIGATION = ['jetValider@cascade', 'jetLancer@cascade*', 'fenetreFermer@cascade'];
 
 describe('Entrée dans la cascade', () => {
   it('chaque rangée jetée puis l’étape validée ; le choix d’une étape attendu avant sa navigation ; le Coup Critique seul', () => {
@@ -23,14 +24,14 @@ describe('Entrée dans la cascade', () => {
       if (fenetre) {
         const gestes: Element[] = suite.vue.zones['fenetre.gestes'];
         const focus = gestes.find((g): g is Bouton => g.type === 'bouton' && g.focus);
-        if (fenetre.etape?.interaction === 'batch' && focus?.id === 'jetConfirm@cascade') vus.batchValide = true;
+        if (fenetre.etape?.interaction === 'batch' && focus?.id === 'jetValider@cascade') vus.batchValide = true;
         if (fenetre.etape?.genre === 'critical') {
           vus.critique = true;
           expect(suite.vue.zones['fenetre.corps'].filter((e) => e.id.startsWith('defense/')), 'le Coup Critique sans la Défense d’une autre attaque').toEqual([]);
         }
         if (focus) jeu = focus.jeu;
         else {
-          const choix = gestes.find((g): g is Choix => g.type === 'choix' && g.id === 'cascadeChoose');
+          const choix = suite.vue.zones['fenetre.reglages'].find((g): g is Choix => g.type === 'choix' && g.id === 'jetRegler@cascade#choix');
           expect(choix, `sans focus, la fenêtre ${fenetre.cle} attend un choix`).toBeDefined();
           expect(gestes.map((g) => g.id).filter((id) => NAVIGATION.includes(id)), 'ni valider, ni tout résoudre, ni terminer avant le choix').toEqual([]);
           vus.choix = true;
@@ -43,7 +44,7 @@ describe('Entrée dans la cascade', () => {
         expect(combat && !combat.fin, 'le combat se poursuit').toBeTruthy();
         const offres = suite.vue.zones['combat.offres'].flatMap((x) => x.valeurs).filter((b) => !b.refus);
         jeu = combat!.intention && combat!.cibles.liste.length
-          ? { type: CLICS_DU_CHAMP.combattant, args: [combat!.cibles.liste[0]] }
+          ? clicDuCombattant(suite.vue, combat!.cibles.liste[0])!
           : (offres.find((o) => o.id === 'attaque' && !combat!.intention) ?? offres.find((o) => o.id === 'end-turn'))!.jeu;
       }
       ({ suite } = drainer(appel, appel('jouer', jeu)));

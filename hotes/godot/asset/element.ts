@@ -173,7 +173,7 @@ export function validerElement(brut: unknown, base: BaseDUnElement, octets: Uint
         else if (os === null || !base.os.includes(os)) refus('rigide-sur-os-absent', 'liaison.mode', `${mesh} pend à ${os ?? `l’articulation sans nom noeud ${articulation}`}, qui n’est pas un os de la base \`${base.base}\``);
       }
       const seconde = (brut.liaison as Record<string, unknown>).secondePrise;
-      const osDesPrises = [base.prises.main.os, base.prises.off.os];
+      const osDesPrises = base.prises ? [base.prises.main.os, base.prises.off.os] : [];
       if (seconde !== undefined && !estRepere(seconde)) refus('forme', 'liaison.secondePrise', '`position` et `rotation` triplets de nombres, seuls, attendus');
       else if (seconde !== undefined && !glb.meshes.some((m) => m.os !== null && osDesPrises.includes(m.os))) refus('seconde-prise-sans-prise', 'liaison.secondePrise', `aucun mesh ne pend à l’os d’une prise de la base \`${base.base}\` (${liste(osDesPrises)}) : la seconde prise n’a pas de première`);
     }

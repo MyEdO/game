@@ -104,7 +104,7 @@ describe('bordée — la portée se juge aux BANDES, jamais à la Portée moyenn
   it('120 m (bande LONGUE) : le tir PART — la bande porte son malus, elle ne refuse pas', () => {
     monter(enemyHull({ x: 5 + 60, y: 5 })); // 60 cases × 2 m = 120 m
     expect(rangeBandName(60, canon), 'témoin : 120 m avec Portée 75 est bien la bande Longue').toBe('Longue');
-    banc.getState().battleShipBattery('ship', 'target');
+    banc.getState().ouvrirLaBordee('ship', 'target');
     expect(banc.getState().pendingShipBattery, 'un tir à portée Longue doit ouvrir son Test d’équipage').not.toBeNull();
     expect(banc.getState().refus).toBeNull();
   });
@@ -112,24 +112,24 @@ describe('bordée — la portée se juge aux BANDES, jamais à la Portée moyenn
   it('230 m (au-delà d’Extrême = 225 m) : refus DIT, aucun Test ouvert', () => {
     monter(enemyHull({ x: 5 + 115, y: 5 })); // 115 cases × 2 m = 230 m
     expect(rangeBandName(115, canon), 'témoin : 230 m est hors de toute bande').toBeNull();
-    banc.getState().battleShipBattery('ship', 'target');
+    banc.getState().ouvrirLaBordee('ship', 'target');
     expect(banc.getState().pendingShipBattery, 'aucune volée hors de portée').toBeNull();
     expect(banc.getState().refus?.texte, 'et le refus se dit au point du geste').toBeTruthy();
   });
 });
 
 describe('flux shipBattery (store) — bordée jouable bout-en-bout (MDG 14 l.128)', () => {
-  it('battleShipBattery ouvre le Test des Artilleurs (bord auto) ; roll ; Feu ! → la coque encaisse', () => {
+  it('ouvrirLaBordee ouvre le Test des Artilleurs (bord auto) ; roll ; Feu ! → la coque encaisse', () => {
     seedBattleRng(7);
     banc.setState({ battle: { combatants: [firingShip(), gunnerPJ(), enemyHull()], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never, party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, scene: null as never });
-    banc.getState().battleShipBattery('ship', 'target');
+    banc.getState().ouvrirLaBordee('ship', 'target');
     const p = banc.getState().pendingShipBattery!;
     expect(p.side).toBe('tribord'); // cible plein est, cap N → bordée tribord
     expect(p.participants.some((x) => x.id === 'gunner' && x.essential)).toBe(true); // l'Artilleur est ESSENTIEL (★)
     const before = banc.getState().battle!.combatants.find((c) => c.id === 'target')!.wounds.current;
-    banc.getState().jetRoll('shipBattery', 'gunner'); // le PJ Artilleur lance SON jet
+    banc.getState().jetLancer('shipBattery', 'gunner'); // le PJ Artilleur lance SON jet
     expect(banc.getState().pendingShipBattery!.participants.every((x) => x.result)).toBe(true);
-    banc.getState().jetConfirm('shipBattery');
+    banc.getState().jetValider('shipBattery');
     expect(banc.getState().pendingShipBattery).toBeNull();
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'target')!.wounds.current).toBeLessThan(before); // la coque encaisse
   });
@@ -137,29 +137,29 @@ describe('flux shipBattery (store) — bordée jouable bout-en-bout (MDG 14 l.12
   it('aucune pièce ne porte sur le bord visé (cible en proue, pièces à tribord) → n’ouvre rien', () => {
     seedBattleRng(7);
     banc.setState({ battle: { combatants: [firingShip(), gunnerPJ(), enemyHull({ x: 5, y: 1 })], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never, party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, scene: null as never });
-    banc.getState().battleShipBattery('ship', 'target');
+    banc.getState().ouvrirLaBordee('ship', 'target');
     expect(banc.getState().pendingShipBattery).toBeNull();
   });
 
   it('Recharge : une pièce qui a tiré est DÉCHARGÉE (pas de 2e bordée avant rechargement, MDG 12 / LDB 62)', () => {
     seedBattleRng(7);
     banc.setState({ battle: { combatants: [firingShip(), gunnerPJ(), enemyHull()], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never, party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, scene: null as never });
-    banc.getState().battleShipBattery('ship', 'target');
-    banc.getState().jetRoll('shipBattery', 'gunner');
-    banc.getState().jetConfirm('shipBattery');
+    banc.getState().ouvrirLaBordee('ship', 'target');
+    banc.getState().jetLancer('shipBattery', 'gunner');
+    banc.getState().jetValider('shipBattery');
     const poste = banc.getState().battle!.combatants.find((c) => c.id === 'ship')!.postes![0];
     expect(poste.loaded).toBe(false); // a tiré → déchargée, reste muette jusqu'à la fin du Test étendu de recharge
     expect(poste.reloadProgress).toBe(0); // recharge à zéro (RAW : pas d'auto-rechargement passif)
-    banc.getState().battleShipBattery('ship', 'target'); // 2e bordée même Round → pièce déchargée → aucune ne porte
+    banc.getState().ouvrirLaBordee('ship', 'target'); // 2e bordée même Round → pièce déchargée → aucune ne porte
     expect(banc.getState().pendingShipBattery).toBeNull();
   });
 
   it('équipage-ressource : après une bordée, les contributeurs sont marqués « engagés ce Round » (crewActed)', () => {
     seedBattleRng(7);
     banc.setState({ battle: { combatants: [firingShip(), gunnerPJ(), enemyHull()], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never, party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, scene: null as never });
-    banc.getState().battleShipBattery('ship', 'target');
-    banc.getState().jetRoll('shipBattery', 'gunner');
-    banc.getState().jetConfirm('shipBattery');
+    banc.getState().ouvrirLaBordee('ship', 'target');
+    banc.getState().jetLancer('shipBattery', 'gunner');
+    banc.getState().jetValider('shipBattery');
     expect(banc.getState().battle!.crewActed?.['ship']).toContain('gunner'); // l'Artilleur a agi ce Round
     // Parallélisme (MDG 14 l.37) : la bordée est une tâche d'équipage, elle NE consomme PAS le tour du navire
     // (≠ `acted`) → manœuvre + bordée(s) + recharge coexistent le même Round, bornées par l'équipage (crewActed).
@@ -191,9 +191,9 @@ const setupNaval = (poste: ShipPoste, hull: Combatant, extra: Combatant[] = []) 
   const ship = shipWith(poste);
   banc.setState({ battle: { combatants: [ship, gunnerPJ(), hull, ...extra], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
     party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, scene: navScene() as never });
-  banc.getState().battleShipBattery('ship', 'target');
-  banc.getState().jetRoll('shipBattery', 'gunner');
-  banc.getState().jetConfirm('shipBattery');
+  banc.getState().ouvrirLaBordee('ship', 'target');
+  banc.getState().jetLancer('shipBattery', 'gunner');
+  banc.getState().jetValider('shipBattery');
 };
 
 describe('bordée à munition à AIRE — balaie l’équipage exposé du navire cible (MDG 13 × ch.12)', () => {
@@ -270,9 +270,9 @@ describe('bordée — chaque coup passe par la couture du coup, quelle que soit 
 
   it('créature : la bordée jouée bout-en-bout la blesse, sans aucun État naval', () => {
     monter(pirate());
-    banc.getState().battleShipBattery('ship', 'target');
-    banc.getState().jetRoll('shipBattery', 'gunner');
-    banc.getState().jetConfirm('shipBattery');
+    banc.getState().ouvrirLaBordee('ship', 'target');
+    banc.getState().jetLancer('shipBattery', 'gunner');
+    banc.getState().jetValider('shipBattery');
     expect(cible().wounds.current).toBeLessThan(30);
     expect(cible().conditions.filter((c) => /navire|voie-d-eau/.test(c.id))).toEqual([]);
     expect(banc.getState().battle!.acted, 'la bordée ne consomme pas l’Action du navire (MDG 14 l.37)').toBe(false);
@@ -306,9 +306,9 @@ describe('bordée — chaque coup passe par la couture du coup, quelle que soit 
     const ship = { ...firingShip(), postes: [aireePoste([{ id: 'a-explosion', value: 4 }])] } as Combatant;
     banc.setState({ battle: { combatants: [ship, gunnerPJ(), chariot(), voisin], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
       party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, scene: { ...navScene(), metresPerTile: 2 } as never });
-    banc.getState().battleShipBattery('ship', 'target');
-    banc.getState().jetRoll('shipBattery', 'gunner');
-    banc.getState().jetConfirm('shipBattery');
+    banc.getState().ouvrirLaBordee('ship', 'target');
+    banc.getState().jetLancer('shipBattery', 'gunner');
+    banc.getState().jetValider('shipBattery');
     expect(cible().wounds.current).toBeLessThan(90);
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'm1')!.wounds.current).toBeLessThan(6);
   });
@@ -323,10 +323,10 @@ describe('bordée et véhicule routier réel (chariot-lourd) — EDOC 07 l.332-3
     seedBattleRng(7);
     banc.setState({ battle: { combatants: [firingShip(), gunnerPJ(), lourd({})], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
       party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, pendingCascade: null, refus: null, scene: navScene() as never });
-    banc.getState().battleShipBattery('ship', 'target');
+    banc.getState().ouvrirLaBordee('ship', 'target');
     expect(banc.getState().pendingShipBattery, `refus : ${banc.getState().refus?.texte}`).not.toBeNull();
-    banc.getState().jetRoll('shipBattery', 'gunner');
-    expect(() => banc.getState().jetConfirm('shipBattery')).not.toThrow();
+    banc.getState().jetLancer('shipBattery', 'gunner');
+    expect(() => banc.getState().jetValider('shipBattery')).not.toThrow();
     const c = banc.getState().battle!.combatants.find((x) => x.id === 'target')!;
     expect(c.wounds.current).toBeLessThan(90);
     expect(c.conditions.filter((x) => /navire|voie-d-eau/.test(x.id))).toEqual([]);
@@ -337,7 +337,7 @@ describe('bordée et véhicule routier réel (chariot-lourd) — EDOC 07 l.332-3
     const tireur = lourd({ id: 'ship', kind: 'npc', crewIds: ['gunner'], postes: [battPoste()], pos: { x: 5, y: 5 } });
     banc.setState({ battle: { combatants: [tireur, gunnerPJ(), enemyHull()], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
       party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, refus: null, scene: navScene() as never });
-    expect(() => banc.getState().battleShipBattery('ship', 'target')).not.toThrow();
+    expect(() => banc.getState().ouvrirLaBordee('ship', 'target')).not.toThrow();
     expect(banc.getState().pendingShipBattery).toBeNull();
     expect(banc.getState().refus?.texte).toBe(t('cs.bordeeSansNavire', { ship: 'Chariot lourd' }));
   });

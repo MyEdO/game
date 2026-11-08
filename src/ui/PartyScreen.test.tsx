@@ -10,7 +10,7 @@ import { areneCampaign, builtinCampaigns, paquetDuJeu } from '../scenes/campaign
 import { datasetArray, setDataset } from '../data/overrides';
 import { resolveActiveAxes } from '../noyau/worldMap';
 import { emptyScene } from '../noyau/monde/scene';
-import { allAxes } from '../data';
+import { allAxes, pregens } from '../data';
 import { useGame } from '../state/store';
 import { heroSubtitle } from './CharCard';
 import { makePregens } from '../data/pregens';
@@ -22,6 +22,8 @@ import { t } from '../i18n';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';
+import { brouillonComplet } from '../noyau/creation/engagement.testkit';
+import type { HerosEngage } from '../noyau/creation/engagement';
 
 /** Le verdict de composition OUVERT pour chaque héros de `party` (vue pure, sans conteneur). */
 const ouverts = (party: Combatant[]) => Object.fromEntries(party.map((h) => [h.id, null]));
@@ -54,7 +56,7 @@ describe('HeroSelector — sélecteur dédié (écran plein-champ) : recrutement
   });
 
   it('roster non vide : MÊME carte-portrait (nom complet + recruter + outils export/suppr)', () => {
-    ajouterAuRoster(stockageDuRoster(), { hero: savedHero(), wealth: { gold: 1, silver: 0, brass: 0 } });
+    ajouterAuRoster(stockageDuRoster(), { hero: savedHero(), wealth: { gold: 1, silver: 0, brass: 0 }, draft: brouillonComplet() });
     const html = renderToStaticMarkup(<HeroSelector party={[]} mode="recruit" onPick={noop} onClose={noop} />);
     expect(html).toContain('Aventurière Sauvegardée'); // nom COMPLET
     expect(html).toContain('candidate-name');
@@ -64,7 +66,7 @@ describe('HeroSelector — sélecteur dédié (écran plein-champ) : recrutement
 
   it('remplacement : cartes compactes, membre du groupe grisé « Déjà choisi »', () => {
     const h = savedHero();
-    ajouterAuRoster(stockageDuRoster(), { hero: h, wealth: { gold: 0, silver: 5, brass: 0 } });
+    ajouterAuRoster(stockageDuRoster(), { hero: h, wealth: { gold: 0, silver: 5, brass: 0 }, draft: brouillonComplet() });
     const html = renderToStaticMarkup(<HeroSelector party={[h]} mode="replace" replaceName={h.label} onPick={noop} onClose={noop} />);
     expect(html).toContain('Remplacer Aventurière Sauvegardée'); // titre du mode remplacement
     expect(html).toContain('candidate-remplacement');
@@ -108,6 +110,19 @@ describe('HeroSelector — le témoin d’un roster d’un autre format (#2404)'
     expect(onglet(t('picker.tab.roster')).getAttribute('aria-selected')).toBe('true');
     expect(temoins()).toHaveLength(1);
     expect(avantLaListe()).toBe(true);
+  });
+
+  it('recruter un pré-tiré engage son id, recruter un personnage du roster engage son brouillon sous son id : le noyau bâtit le héros', () => {
+    const d = brouillonComplet('Aventurière Sauvegardée');
+    ajouterAuRoster(stockageDuRoster(), { hero: savedHero(), wealth: { gold: 1, silver: 0, brass: 0 }, draft: d });
+    const choisis: HerosEngage[] = [];
+    act(() => root.render(<HeroSelector party={[]} mode="recruit" onPick={(h) => choisis.push(h)} onClose={noop} />));
+    const recruter = () => [...host.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.includes('Recruter'))!;
+    const onglet = (nom: string) => [...host.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find((b) => b.textContent === nom)!;
+    act(() => recruter().click());
+    act(() => onglet(t('picker.tab.pregens')).click());
+    act(() => recruter().click());
+    expect(choisis).toEqual([{ brouillon: d, id: 'roster-test-1' }, { pretire: pregens[0].id }]);
   });
 });
 
@@ -461,7 +476,7 @@ describe('PartyScreen — « Lancer » sans choix lance l’Arène par la porte 
     await act(async () => bouton.click());
   }
 
-  it('sans choix : l’Arène est lancée par `loadProject` — sa scène d’entrée, sa carte, son paquet au snapshot', async () => {
+  it('sans choix : l’Arène est lancée par `chargerLeProjet` — sa scène d’entrée, sa carte, son paquet au snapshot', async () => {
     await lancer();
     const paquet = paquetDuJeu(areneCampaign);
     const s = useGame.getState();

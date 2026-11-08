@@ -30,8 +30,8 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -43,12 +43,12 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
   }
 
   it('Assaut féroce (onHit) : une touche du héros déclenche UNE attaque supplémentaire (1/Round)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.talents = [...(H.talents ?? []), { talentId: 'assaut-feroce', times: 1 }];
     H.advantage = 3; // de quoi payer l'attaque supplémentaire (coût Avantage)
     banc.setState({ battle: { ...banc.getState().battle!, acted: false }, pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT } });
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.freeAttacksThisTurn?.['assaut-feroce']).toBe(1); // le talent a tiré son attaque supplémentaire, 1× ce Round
   });
@@ -57,7 +57,7 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
   // réserve de son camp, et sa porte lit le solde que `campSpend` débite.
   it('Assaut féroce (mode groupe) : une invocation alliée paie sur la réserve du camp', () => {
     setRule('combat-aa-avantage-groupe', true);
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     campGain(banc.getState, H, 2);
     applySummon(banc.getState, banc.setState, H, { ref: 'loup' } as never, { rng: desDuTest });
@@ -71,11 +71,11 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
   });
 
   it('sans le talent : une touche ne déclenche AUCUNE attaque supplémentaire', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.advantage = 3;
     banc.setState({ battle: { ...banc.getState().battle!, acted: false }, pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT } });
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.freeAttacksThisTurn?.['assaut-feroce']).toBeUndefined();
   });
@@ -91,7 +91,7 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
   }
 
   it('Frappe réactive (onCharged) : héros MANUEL → modale de CHOIX puis Test d’Init INFLUENÇABLE ; succès → riposte', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.talents = [...(H.talents ?? []), { talentId: 'frappe-reactive', times: 1 }];
     H.characteristics.initiative = 99; // Test d'Initiative Intermédiaire quasi-garanti
@@ -111,7 +111,7 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
   });
 
   it('Frappe réactive : « Renoncer » → aucune riposte (décision opt-in respectée)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.talents = [...(H.talents ?? []), { talentId: 'frappe-reactive', times: 1 }];
     resolveFreeAttacks(banc.getState, banc.setState, H, 'onCharged', E);
@@ -122,7 +122,7 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
 
   it('Frappe réactive (auto) : un héros en cadence AUTO riposte INLINE si le Test d’Init réussit, 1× par chargeur', () => {
     setCadence('auto');
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.talents = [...(H.talents ?? []), { talentId: 'frappe-reactive', times: 1 }];
     H.characteristics.initiative = 99; // Test d'Initiative quasi-garanti
@@ -131,8 +131,8 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
     // Maladresse est un dé du HÉROS (`jetSurfaced`), que le pilote mène par `JET_AUTO.fumble`.
     const pc = banc.getState().pendingCascade!;
     expect(pc.participants[pc.cursor]).toMatchObject({ jet: 'fumble', actorId: H.id });
-    banc.getState().jetRoll('fumble');
-    banc.getState().jetConfirm('fumble');
+    banc.getState().jetLancer('fumble');
+    banc.getState().jetValider('fumble');
     expect(banc.getState().pendingCascade).toBeNull();
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.freeAttacksThisTurn?.['frappe-reactive']).toBe(1); // a riposté 1× contre ce chargeur

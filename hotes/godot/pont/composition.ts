@@ -2,20 +2,22 @@
  * LA COMPOSITION D'UN PERSONNAGE SUR UNE BASE (#3086, D2 et son amendement ; `CONTRAT.md`, section « Composition d'un
  * personnage ») : ce que porte un corps (`PorteeDeComposition`, d'une composition ou d'un combattant, surface du noyau),
  * résolu en éléments de la base sur ses lignes et ses points (`modelesDeLAtelier`), avec la pose de son gabarit (`poseDuGabarit`), les poids de ses
- * silhouettes (`poidsDeSilhouettes`) et sa palette résolue au nuancier (`findCouleurById`).
+ * silhouettes (`poidsDeSilhouettes`) et sa palette résolue au nuancier (`findCouleurById`), chaque élément monté à la palette
+ * de sa teinte (`findTeinteById`, #3456).
  */
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import { poidsDeSilhouettes, poseDuGabarit, type PoseDuGabarit } from '../asset/gabarit';
 import { BUILD_NEUTRE } from '../../../src/lib/corpulence';
-import { findCouleurById, pieceRacine, emblemeDuPorteur, type EmblemeResolu, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from '../../../src/noyau/index';
+import { findCouleurById, findTeinteById, pieceRacine, emblemeDuPorteur, type EmblemeResolu, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from '../../../src/noyau/index';
 import { blasonsDe, cleDe, type BaseDeLAtelier, type LigneDePiece } from './atelier';
 
-/** Un emplacement de montage d'une chose portée (`"<point>"` ou la clé de sa ligne, `cleDuPanneau`) et l'élément de
- *  la base qui la monte, `null` s'il n'y en a aucun. */
+/** Un emplacement de montage d'une chose portée (`"<point>"` ou la clé de sa ligne, `cleDuPanneau`), l'élément de
+ *  la base qui la monte, `null` s'il n'y en a aucun, et, monté, la palette de sa teinte (`Portee.teinte`). */
 export interface Monte {
   ligne: string;
   element: string | null;
   embleme?: EmblemeResolu;
+  palette?: Record<string, string>;
 }
 
 /** Une chose portée sans élément de la base : son emplacement de montage, la clé qui la désigne, son libellé et ce
@@ -33,7 +35,9 @@ export interface CompositionSurLaBase {
   manquants: Manquant[];
   /** Les objets ni tenus ni rangés (`PorteeDeComposition.rapport`). */
   rapport: string[];
-  gabarit: PoseDuGabarit;
+  /** Absente sur un corps sans table de gabarit (`ManifesteDeBase.gabarit`). */
+  gabarit?: PoseDuGabarit;
+  /** Vide sur un corps sans table de gabarit. */
   morphes: Record<string, number>;
   /** La couleur `#rrggbb` de chaque emplacement de palette que la composition colore (`couleurs`). */
   palette: Record<string, string>;
@@ -71,16 +75,17 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
     const element = ids.map((id) => elements.find((e) => cleDe(manifestes[e])[p.cle.champ] === id)).find((e) => e !== undefined);
     const embleme = Object.prototype.hasOwnProperty.call(surcharges, ligne) ? emblemeDuPorteur(surcharges[ligne]) : portee.embleme;
     const porteUnBlason = element !== undefined && blasonsDe(manifestes[element]).length > 0;
-    montes.push({ ligne, element: element ?? null, ...(porteUnBlason && embleme ? { embleme } : {}) });
+    const teinte = element === undefined ? undefined : findTeinteById(p.teinte);
+    montes.push({ ligne, element: element ?? null, ...(porteUnBlason && embleme ? { embleme } : {}), ...(teinte ? { palette: { ...teinte.palette } } : {}) });
     if (element === undefined) manquants.push({ ligne, champ: p.cle.champ, id: p.cle.id, label: p.label, ...(p.par ? { par: p.par } : {}) });
   }
-  const manifeste = manifestes[base.id] as ManifesteDeBase;
+  const { gabarit, appuis } = manifestes[base.id] as ManifesteDeBase;
   return {
     montes,
     manquants,
     rapport: portee.rapport,
-    gabarit: poseDuGabarit(manifeste, portee.facteurs),
-    morphes: poidsDeSilhouettes({ sex: portee.sex, build: portee.build ?? BUILD_NEUTRE, st: portee.facteurs.st }, manifeste.gabarit),
+    ...(gabarit ? { gabarit: poseDuGabarit({ gabarit, appuis }, portee.facteurs) } : {}),
+    morphes: gabarit ? poidsDeSilhouettes({ sex: portee.sex, build: portee.build ?? BUILD_NEUTRE, st: portee.facteurs.st }, gabarit) : {},
     palette: Object.fromEntries(Object.entries(portee.couleurs ?? {}).map(([slot, { id }]) => [slot, findCouleurById(id)!.color])),
   };
 }

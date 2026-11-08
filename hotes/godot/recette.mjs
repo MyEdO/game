@@ -23,6 +23,20 @@
 //   la main, sa sortie en focus ; sa sortie à l'Entrée rend la main à la scène.
 // - `exploration` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, le groupe à sa case, la porte
 //   ouverte par le bouton de son geste d'exploration, puis un clic sur une case du réduit qui y mène le groupe.
+// - `relief` (`--scenario grimpant`, #3476) : la fenêtre du round à l'Entrée, le chasseur sur son plateau de 4 m ; un
+//   clic sur une case du plateau à une case de lui, au bord de la falaise, en montre l'aperçu : la case cliquée est
+//   celle de la surface sous le pointeur, à sa hauteur.
+// - `etage` (`--scenario fenetre-ecuries`, #3476) : l'entrée de la scène poursuivie à l'Entrée, le groupe à l'étage du
+//   relais ; un clic sur une case du couloir de l'étage y mène le groupe : la case cliquée est celle du plancher sous le
+//   pointeur, à sa couche, pas celle de la salle basse dessous.
+// - `regards` (`--scenario fenetre-ecuries`, #3476) : l'entrée de la scène poursuivie à l'Entrée, le groupe à l'étage du
+//   relais ; en tactique, D tenue fait glisser la caméra, Origine la ramène au groupe ; la touche V passe du regard
+//   tactique au plateau, puis à l'immersion ; en immersion, une touche de marche
+//   tenue (Z, Q, S ou D) mène le groupe à une case voisine, que le noyau a jouée ; V rend la tactique.
+// - `meteo` (`--scenario voyage`, #3625) : le village sous la pluie ; en tactique, des averses tombent dans le monde ; au
+//   plateau, rien ne tombe ; en immersion, la pluie tombe autour de l'œil.
+// - `brume` (`--scenario brouillard`, #3625) : la clairière sous le brouillard ; en tactique, les nappes de la donnée ;
+//   en immersion, aucune nappe et la brume de profondeur part de l'œil, plus serrée.
 // - `dialogue` (`--scenario dialogue-multi`) : l'entrée de la scène poursuivie à l'Entrée, un clic sur une case à côté de
 //   Gustav, son offre « Parler » cliquée parmi les gestes d'exploration, la conversation dessinée, puis la première
 //   réponse cliquée : l'interlocuteur suivant prend la parole.
@@ -32,6 +46,21 @@
 // - `incantation` (`--scenario magie`) : le groupe franchit la ligne d'engagement, la liste des sorts de la Haute
 //   Sorcière ouverte, Fléchette choisie au clavier, sa cible cliquée : la fenêtre d'incantation ; le jet à l'Entrée,
 //   un pas de Surincantation alloué à la Portée par son bouton, puis « Appliquer » à l'Entrée referme la fenêtre.
+// - `soin` (`--scenario magie`) : le groupe franchit la ligne d'engagement, les tours passent jusqu'à Grunni, son offre
+//   « Soigner » cliquée puis son patient : la fenêtre du soin nomme le patient, l'acte et le Test en choix ; le jet à
+//   l'Entrée.
+// - `voyage` (`--scenario voyage`) : l'entrée de la scène poursuivie, « Carte du monde » ouvre la carte, chaque trajet
+//   et ses modes, le plan de ses lieux ; « À pied » vers Steinbruck part, les journées et la halte passent jusqu'au
+//   récit de l'arrivée, puis l'écran du lieu, ses services et ses trajets.
+// - `repit` (`--scenario bataille-de-masse`) : les dés d'Événement tombent, l'entre-deux-aventures montre un onglet par
+//   héros, ses Activités restantes et chaque Activité fermée par sa raison ; « Revenus » cliqué ouvre son jet, lancé à
+//   l'Entrée puis appliqué : l'onglet du héros compte une Activité de moins.
+// - `ouvrage` (`--scenario entre-deux-aventures`) : les dés d'Événement tombent ; dans l'onglet du forgeron, la molette
+//   amène ses formulaires, l'Atout « Solide » coché, le premier ouvrage ouvert choisi dans la liste au clavier,
+//   « Entreprendre un ouvrage » l'engage : l'Artisanat en cours le remplace.
+// - `bataille` (`--scenario bataille-de-masse`) : l'interlude clos, la bataille montre ses armées et les Scènes du
+//   Round ; « Résoudre » ouvre le jet de la première Scène à postes, lancé à l'Entrée puis appliqué : la Scène se
+//   ferme ; le Test spectaculaire ouvre l'entre-deux-Rounds, « Round suivant » le Round 2.
 // - `fiche` : la fenêtre du round à l'Entrée, puis la fiche du premier héros ouverte par son bouton, chacun de ses
 //   onglets cliqué, un Talent survolé (sa description en bulle), et la fiche fermée par son bouton « Fermer ».
 // - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, la fiche de Rosa Brandt à
@@ -39,6 +68,44 @@
 // - `creation` (`--scenario marche-equipement`) : l'entrée de la scène poursuivie à l'Entrée, « Nouveau héros » ouvre
 //   la création sur la race, sans résultat ni suivante avant le d100 ; le d100 tiré, la suivante à l'Entrée ; la
 //   carrière tirée, puis les Caractéristiques ; « Nouveau héros » pressé ferme la création sans héros nouveau.
+// - `editeur` (#3508), servi avec une copie des projets manuscrits du dépôt (`servir.mjs`, `depot`) : « Éditeur » ouvre la
+//   Diligence telle que le dépôt la sert, sur sa couche 0, rien à enregistrer ; l'outil Hauteur, « Haute (4 m) » et le
+//   pinceau 3×3 choisis à leurs boutons, un glissé de deux cases sur la carte : bouton tenu, la surcouche couvre
+//   l'emprise du pinceau sur chaque case et le monde reste tel quel ; relâché, la surface des cases peintes monte à
+//   l'écran. « Enregistrer » l'écrit à la copie du dépôt, puis rien à enregistrer ; « Annuler » rend la surface à sa
+//   place. L'outil Murs, un clic sur le côté commun de deux de ces cases pose une cloison sur le monde ; l'outil
+//   Sélection, un clic au même point la choisit, gainée, et la dit ; à l'inspecteur, « Porte » en fait une porte, puis
+//   « Fermée au départ » la ferme, que le monde dessine ; « Annuler » trois fois la retire. L'outil Volée, un clic trace
+//   une case, en surcouche, et « Poser la volée » se refuse d'une case seule, sa raison en clair au panneau ; « Effacer le
+//   tracé » la retire. L'outil Crénelage, un clic marque la case d'un parapet, que la case pointée dit ; « Annuler »
+//   l'efface. L'outil Décor, un clic sur une case libre y pose le premier décor du catalogue, sélectionné, son nom au-dessus d'elle ;
+//   son nom effacé au champ de l'inspecteur, un autre tapé, « Renommer » le pose au-dessus de la case ; « Copier »,
+//   l'outil Sélection, un clic sur une case libre puis « Coller » y pose la copie, nommée de même ; à l'inspecteur de la
+//   copie, « Source de lumière » l'allume à 6 m, « Rayon +1 m » la porte à 7 m. L'outil Emplacement de siège, un clic sur
+//   une case libre y pose le premier engin, nommé comme lui ; « Droite (tribord) » fixe son créneau. L'outil Sélection,
+//   un clic sur une case libre vide la sélection. L'outil Zone, une pièce tirée de deux cases sur deux, nommée et munie de
+//   sa poignée ; l'outil Sélection, la poignée glissée l'agrandit ; à son inspecteur (#3606), « Ajouter : Test de
+//   traversée », la difficulté choisie en liste et « sans assistance » au clic ; « Supprimer » la retire. L'outil
+//   Architecture, un clic sur une case libre puis « Nouveau corps » y pose un corps, dont l'inspecteur dit la toiture ;
+//   « Poser une façade », un clic sur le côté nord de la case y pose une façade, « Ajouter une ouverture » lui en donne
+//   une ; « Tirer une exclusion de toiture », un rectangle tiré à côté l'ajoute au corps ; un clic sur la case puis
+//   « Nouvelle masse de toiture » y pose une masse, que « +1 » monte à deux niveaux. L'outil Sélection, un clic sur la
+//   case voisine du décor choisit le déclencheur qui la couvre : à son inspecteur, sa condition « TOUS (ET) » choisie en
+//   liste, puis « Ajouter » lui donne une condition dans son contenu ; « Annuler » deux fois la retire.
+//   « Charger une planche… » ouvre le choix d'un fichier de la page, que la recette remplit d'une planche quadrillée : le
+//   calque se pose sur toute la carte ; « Caler par deux points », puis le centre d'une case comme premier point de
+//   l'image, son coin comme son nœud, et le centre de la case quatre plus loin comme second point, le coin de la case
+//   huit plus loin comme son nœud : la planche s'étire du double, son échelle dite en pixels par case moitié de celle
+//   d'avant.
+//   « Couche 1 » édite l'étage, sans calque. À l'ouverture, sans sélection, l'inspecteur est celui de la scène : « +15° »
+//   tourne son nord, « Annuler » le rend au haut du plan ; son message de départ tapé au clavier sur deux lignes (#3606),
+//   « Écrire le message de départ » le pose, « Annuler » le retire. « Nouvelle scène » l'ajoute au projet, « Retirer la scène »
+//   rend la précédente. Une seconde « Nouvelle scène » reçoit, dans un bloc de cases à l'écran, les ouvrages de la
+//   Diligence : une couche ajoutée, un palier peint en Dallage à 4 m ; douze côtés en Mur à ossature en bois autour de
+//   trois cases sur trois, une porte au nord, une fenêtre au sud ; la pièce tirée sur elles ; un corps, son étage, une
+//   façade au nord et son ouverture ; une volée de quatre cases tirée vers le palier, posée ; un décor tourné à l’est,
+//   un départ, un déclencheur tiré : la validation ne dit aucune erreur. « Enregistrer » écrit au dépôt la scène et
+//   chacun de ces ouvrages ; « Tester la scène » ouvre le combat sur elle.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
@@ -63,7 +130,11 @@
 //   node hotes/godot/recette.mjs --web <dossier de l'export> --captures <dossier> [--scenario dome] [--graine 7]
 //   node hotes/godot/recette.mjs --scenario embleme-au-combat --web <export> --captures <dossier> --modeles <dossier neuf>
 //     --element <production d'un élément à surface blason>
+//   node hotes/godot/recette.mjs --scenario teinte-au-combat --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours exploration --scenario porte-close --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours relief --scenario grimpant --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours etage --scenario fenetre-ecuries --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours regards --scenario fenetre-ecuries --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours creation --scenario marche-equipement --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours dialogue --scenario dialogue-multi --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours atelier --web <export> --captures <dossier> --modeles <dossier neuf>
@@ -72,13 +143,16 @@
 //     --base <production> --piece <production skinnée>
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { basename, join, resolve } from 'node:path'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
+import { crc32, deflateSync } from 'node:zlib'
 import { servir } from './servir.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, realKey, realKeyDown, realKeyUp, shot, sleep, survoler, waitFor } from '../../scripts/recette/lib.mjs'
+import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
+import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, poserFichier, realKey, realKeyDown, realKeyUp, shot, sleep, survoler, waitFor } from '../../scripts/recette/lib.mjs'
 
 import { chargerAssets } from './asset/charger.mjs'
 
@@ -86,7 +160,7 @@ const chaine = { type: 'string' }
 const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|fiche|inventaire|creation|atelier|composition]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|brume|fiche|inventaire|creation|editeur|atelier|composition]')
 if (o.parcours === 'atelier' && !(o.modeles && o.base && o.element && o.reexport)) throw new Error('--parcours atelier attend --modeles <dossier neuf> --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
@@ -94,7 +168,15 @@ if (['atelier', 'composition', 'combat'].includes(o.parcours) && o.modeles && ex
 
 /** Le WebGL 2 de l'export, en logiciel dans un Chrome sans GPU, sans l'avertissement de repli. */
 const WEBGL_LOGICIEL = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
-const srv = await servir({ web: o.web, ...(o.modeles && { modeles: o.modeles }) })
+/** Les projets manuscrits du dépôt, chacun par son chemin relatif au corpus (`listerProjetsLivres`). */
+const MANUSCRITS = listerProjetsLivres().filter((rel) => Object.hasOwn(PROJETS_MANUSCRITS, basename(rel)))
+/** Le dépôt que sert le parcours `editeur` : une copie neuve de ses projets manuscrits, que l'enregistrement écrit. */
+const depot = o.parcours === 'editeur' ? mkdtempSync(join(tmpdir(), 'recette-editeur-')) : null
+for (const rel of depot ? MANUSCRITS : []) {
+  mkdirSync(dirname(join(dossierDesProjetsLivres(depot), rel)), { recursive: true })
+  cpSync(join(dossierDesProjetsLivres(), rel), join(dossierDesProjetsLivres(depot), rel))
+}
+const srv = await servir({ web: o.web, ...(o.modeles && { modeles: o.modeles }), ...(depot && { depot }) })
 const session = await launchSession({ width: 1280, height: 720, timeoutMs: 30000, args: WEBGL_LOGICIEL })
 const garde = consoleGuard(session)
 const noter = (t) => console.log('·', t)
@@ -144,8 +226,8 @@ async function cliquerBouton(quoi) {
   if (!b) throw new Error(`bouton ${JSON.stringify(quoi)} absent ; boutons : ${boutons.map((x) => x.element ?? x.cle ?? x.texte).join(' | ')}`)
   await cliquerPoint(b.x, b.y)
 }
-async function cliquerCase({ x, y }) {
-  const [px, py] = (await ecran()).cases[`${x},${y}`]
+async function cliquerCase({ x, y, z = 0 }) {
+  const [px, py] = (await ecran()).cases[`${x},${y},${z}`]
   await cliquerPoint(px, py)
 }
 async function capturer(nom) {
@@ -207,12 +289,30 @@ async function prouverLEmbleme(elementId) {
   await capturer('3253-embleme-au-combat')
 }
 
+/** Chaque teinte de la vue posée à l'écran (#3456) : pour chaque entrée de `montes` d'un corps qui porte une `palette`,
+ *  chaque surface de son élément (manifeste du dossier servi) dont cette palette colore l'emplacement porte sa couleur
+ *  (`wfrpEcran.corps[id].couleurs`) ; une vue qui en porte se capture. */
+async function prouverLesTeintes() {
+  const dossier = o.modeles ?? fileURLToPath(new URL('./projet/modeles', import.meta.url))
+  const v = await vue()
+  const attendues = Object.entries(v.corps.combattants).flatMap(([id, c]) =>
+    (c?.montes ?? []).filter((m) => m.element !== null && m.palette).flatMap((m) =>
+      (JSON.parse(readFileSync(join(dossier, `${m.element}.manifeste.json`), 'utf8')).surfaces ?? [])
+        .filter((s) => m.palette[s.palette] !== undefined)
+        .map((s) => ({ id, ligne: m.ligne, nom: s.nom, couleur: m.palette[s.palette] }))))
+  if (!attendues.length) return noter('aucune surface teinte dans la vue')
+  await waitFor(session, `(() => { const c = globalThis.wfrpEcran?.corps; return !!c && ${JSON.stringify(attendues)}.every((a) => c[a.id]?.couleurs?.[a.ligne]?.[a.nom] === a.couleur) })()`, { timeoutMs: 120000 })
+  noter(`teintes posées : ${attendues.map((a) => `${a.id} ${a.ligne} ${a.nom} ${a.couleur}`).join(' ; ')}`)
+  await capturer('3456-teinte-au-combat')
+}
+
 async function parcoursCombat() {
   const elementId = o.element ? await preparerLesModeles() : null
   await cliquerBouton('Combat')
   noter('menu : bouton « Combat » cliqué')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   if (elementId) await prouverLEmbleme(elementId)
+  await prouverLesTeintes()
   let v = await vue()
   assert.ok(v.projection.fenetre, 'la fenêtre du round tient la main')
   assert.equal(v.projection.combat.round, 1)
@@ -236,7 +336,7 @@ async function parcoursCombat() {
   const proche = v.projection.combat.voisins.liste.filter((c) => v.projection.combat.cibles.liste.includes(c.id)).sort((a, b) => a.distance - b.distance)[0]
   assert.ok(proche, `la charge offre une cible ; cibles : ${JSON.stringify(v.projection.combat.cibles.liste)}`)
   noter(`offre ${charge.libelle} : intention charge, ${v.cases.length} cases peintes`)
-  await cliquerCase({ x: proche.pos[0], y: proche.pos[1] })
+  await cliquerCase({ x: proche.pos[0], y: proche.pos[1], z: proche.pos[2] })
   await attendreLaVue("v.projection.fenetre?.etape?.genre === 'attackJet'")
   v = await vue()
   assert.equal(element(v, 'fenetre.corps', 'jet')?.qui, heros.nom, 'la charge ouvre l’attaque du héros')
@@ -277,14 +377,14 @@ async function parcoursCombat() {
   noter(`fin du tour de ${heros.nom} ; actif ${second.nom}`)
   await cliquerCase(vers)
   v = await vue()
-  assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y]], 'le premier clic montre l’aperçu')
+  assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y, vers.z ?? 0]], 'le premier clic montre l’aperçu')
   const apercu = element(v, 'combat.apercu', 'apercu')
   assert.ok(apercu, 'l’aperçu dit ce qu’il coûte, près de sa case')
   noter(`premier clic sur (${vers.x}, ${vers.y}) : ${apercu.texte}`)
   await capturer('2928-6c-4-deplacement-apercu')
   await cliquerCase(vers)
   v = await vue()
-  assert.deepEqual(actif(v).pos, [vers.x, vers.y], 'le second clic déplace le héros')
+  assert.deepEqual(actif(v).pos, [vers.x, vers.y, vers.z ?? 0], 'le second clic déplace le héros')
   noter(`second clic : ${second.nom} en ${actif(v).pos}`)
   await finirLeTour()
   await attendreLaVue("v.projection.fenetre?.etape?.genre === 'defenseJet'", 60000)
@@ -343,7 +443,7 @@ async function jouerEnJoueurPresse(fini, quoi) {
       await nouvelEcran()
     } else if (c.intention && c.cibles.liste.length) {
       const cible = c.voisins.liste.find((x) => x.id === c.cibles.liste[0])
-      await cliquerCase({ x: cible.pos[0], y: cible.pos[1] })
+      await cliquerCase({ x: cible.pos[0], y: cible.pos[1], z: cible.pos[2] })
     } else if (c.barre.forme === 'ouverte') await cliquerBouton(bouton(offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'end-turn')))
     else {
       await marquer()
@@ -392,7 +492,7 @@ async function parcoursExploration() {
   }
   const x = v.projection.exploration
   assert.ok(x, 'hors combat, la vue est celle de l’exploration')
-  assert.deepEqual(x.heros.map((h) => h.pos), x.heros.map(() => x.groupe), 'chaque héros se tient à la case du groupe')
+  assert.deepEqual(x.heros.map((h) => h.pos), x.heros.map(() => [...x.groupe, x.etage ?? 0]), 'chaque héros se tient à la case du groupe')
   noter(`Entrée : l’entrée de la scène poursuivie ; groupe en ${x.groupe}, gestes ${zone(v, 'exploration.gestes').map((b) => b.libelle).join(' | ')}`)
   await capturer('3328-e1-2-exploration')
   const porte = zone(v, 'exploration.gestes').find((b) => b.jeu.suite?.some((a) => a.type === 'actionnerLaPorte'))
@@ -404,6 +504,165 @@ async function parcoursExploration() {
   await attendreLaVue(`v.projection.exploration?.groupe.join() === '${reduit.x},${reduit.y}'`)
   noter(`clic sur la case ${reduit.x},${reduit.y} : le groupe y marche`)
   await capturer('3328-e1-3-reduit')
+}
+
+async function parcoursRelief() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  let v = await vue()
+  await capturer('3476-r1-round')
+  while (v.projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+    v = await vue()
+  }
+  const heros = actif(v)
+  assert.equal(heros?.camp, 'hero', 'un héros est actif')
+  const plateau = v.cases.filter((c) => c.zone === 'marche' && c.cout === 1 && c.case.y === 2)
+  assert.ok(plateau.length > 0, `une case du bord du plateau à une case de ${heros.nom} en ${heros.pos}`)
+  const vers = plateau[0].case
+  await cliquerCase(vers)
+  v = await vue()
+  assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y, vers.z ?? 0]], 'la case cliquée est celle du plateau sous le pointeur')
+  noter(`clic sur (${vers.x}, ${vers.y}), au bord du plateau de 4 m : son aperçu`)
+  await capturer('3476-r2-plateau')
+}
+
+async function parcoursEtage() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  let v = await vue()
+  while (v.projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+    v = await vue()
+  }
+  assert.equal(v.projection.exploration?.etage, 1, 'le groupe se tient à l’étage du relais')
+  await capturer('3476-c4-1-etage')
+  const couloir = { x: 5, y: 4, z: 1 }
+  await cliquerCase(couloir)
+  await attendreLaVue(`v.projection.exploration?.groupe.join() === '${couloir.x},${couloir.y}' && v.projection.exploration.etage === ${couloir.z}`)
+  noter(`clic sur la case ${couloir.x},${couloir.y} du couloir de l’étage : le groupe y marche, à l’étage`)
+  await capturer('3476-c4-2-couloir')
+}
+
+async function parcoursRegards() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  let v = await vue()
+  while (v.projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+    v = await vue()
+  }
+  assert.equal(v.plateau.regard, 'tactique', 'la partie commence en tactique')
+  await capturer('3476-v1-tactique')
+  const x0 = v.projection.exploration
+  const cle = `${x0.groupe[0]},${x0.groupe[1]},${x0.etage ?? 0}`
+  const [px] = (await ecran()).cases[cle]
+  const D = { key: 'd', code: 'KeyD', windowsVirtualKeyCode: 68 }
+  await realKeyDown(session, D)
+  await sleep(800)
+  await realKeyUp(session, D)
+  await waitFor(session, `wfrpEcran.cases['${cle}'][0] < ${px - 20}`)
+  noter(`D tenue en tactique : la caméra glisse, la case du groupe de ${Math.round(px)} à ${Math.round((await ecran()).cases[cle][0])} px`)
+  await realKey(session, { key: 'Home', code: 'Home', windowsVirtualKeyCode: 36 })
+  await waitFor(session, `Math.abs(wfrpEcran.cases['${cle}'][0] - ${px}) < 2`)
+  noter('Origine : la caméra revient au groupe')
+  const V = { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }
+  for (const regard of ['plateau', 'immersion']) {
+    await realKey(session, V)
+    await attendreLaVue(`v.plateau.regard === '${regard}'`)
+    await sleep(600)
+    noter(`V : le regard ${regard}`)
+    await capturer(`3476-v2-${regard}`)
+  }
+  const depart = (await vue()).projection.exploration
+  const marches = [['z', 'KeyW', 87], ['q', 'KeyA', 65], ['s', 'KeyS', 83], ['d', 'KeyD', 68]]
+  let arrivee = null
+  for (const [key, code, windowsVirtualKeyCode] of marches) {
+    await realKeyDown(session, { key, code, windowsVirtualKeyCode })
+    await sleep(2000)
+    await realKeyUp(session, { key, code, windowsVirtualKeyCode })
+    const x = (await vue()).projection.exploration
+    if (x.groupe.join() !== depart.groupe.join() || x.etage !== depart.etage) {
+      arrivee = x
+      noter(`${key.toUpperCase()} tenue : le groupe marche de ${depart.groupe} à ${x.groupe}, à l’étage ${x.etage}`)
+      break
+    }
+  }
+  assert.ok(arrivee, 'une touche de marche tenue mène le groupe à une case voisine')
+  await sleep(300)
+  await capturer('3476-v3-immersion-marche')
+  await realKey(session, V)
+  await attendreLaVue("v.plateau.regard === 'tactique'")
+  noter('V : la tactique, à la suite du groupe')
+  await sleep(600)
+  await capturer('3476-v4-tactique-suivie')
+}
+
+async function parcoursMeteo() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  let v = await vue()
+  while (v.projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+    v = await vue()
+  }
+  const meteo = async () => JSON.parse(await evaluate(session, "wfrpPont.appeler('monde')")).meteo
+  const particules = (m) => (m?.pluie?.averses ?? []).reduce((n, a) => n + a.nombre, 0)
+  let m = await meteo()
+  assert.ok(particules(m) > 0, `en tactique, la pluie tombe : ${JSON.stringify(m)?.slice(0, 200)}`)
+  noter(`tactique : ${m.pluie.averses.length} averses, ${particules(m)} particules`)
+  await sleep(1500)
+  await capturer('3625-m1-tactique-pluie')
+  const V = { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }
+  await realKey(session, V)
+  await attendreLaVue("v.plateau.regard === 'plateau'")
+  m = await meteo()
+  assert.equal(m.pluie, null, 'au plateau, rien ne tombe')
+  noter('plateau : rien ne tombe')
+  await realKey(session, V)
+  await attendreLaVue("v.plateau.regard === 'immersion'")
+  assert.ok(particules(await meteo()) > 0, 'en immersion, la pluie tombe')
+  await sleep(1500)
+  await capturer('3625-m2-immersion-pluie')
+  noter('immersion : la pluie tombe autour de l’œil')
+}
+
+async function parcoursBrume() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  let v = await vue()
+  while (v.projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+    v = await vue()
+  }
+  const meteo = async () => JSON.parse(await evaluate(session, "wfrpPont.appeler('monde')")).meteo
+  let m = await meteo()
+  assert.ok(m.nappes.length > 0 && m.pluie === null, `en tactique, les nappes du brouillard, rien ne tombe : ${JSON.stringify(m)?.slice(0, 200)}`)
+  const loin = v.lumiere.brume.finCases
+  noter(`tactique : ${m.nappes.length} nappes (${m.nappes.map((n) => n.alpha).join(', ')}), brume de profondeur à ${loin} cases du point visé`)
+  await capturer('3625-b1-tactique-nappes')
+  const V = { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }
+  for (const regard of ['plateau', 'immersion']) {
+    await realKey(session, V)
+    await attendreLaVue(`v.plateau.regard === '${regard}'`)
+  }
+  v = await vue()
+  m = await meteo()
+  assert.equal(m.nappes.length, 0, 'en immersion, aucune nappe')
+  assert.ok(v.lumiere.brume.depuisLOeil && v.lumiere.brume.finCases < loin, `en immersion, la brume part de l’œil, plus serrée : ${JSON.stringify(v.lumiere.brume)}`)
+  noter(`immersion : brume depuis l’œil, de ${v.lumiere.brume.debutCases} à ${v.lumiere.brume.finCases} cases`)
+  await sleep(600)
+  await capturer('3625-b2-immersion-brume')
 }
 
 async function parcoursDialogue() {
@@ -507,7 +766,7 @@ async function parcoursIncantation() {
   v = await vue()
   noter(`Fléchette choisie : ${v.projection.combat.cibles.liste.length} cibles`)
   const cible = v.projection.combat.voisins.liste.find((c) => c.id === v.projection.combat.cibles.liste[0])
-  await cliquerCase({ x: cible.pos[0], y: cible.pos[1] })
+  await cliquerCase({ x: cible.pos[0], y: cible.pos[1], z: cible.pos[2] })
   await attendreLaVue('!!v.projection.fenetre')
   v = await vue()
   noter(`clic sur ${cible.nom} : fenêtre « ${zone(v, 'fenetre.titre')[0]?.texte} »`)
@@ -531,6 +790,264 @@ async function parcoursIncantation() {
   await attendreLaVue("v.zones['fenetre.titre'][0]?.texte !== 'Incantation'")
   noter('« Appliquer » : la fenêtre d’incantation se referme')
   await capturer('3328-j1-6-appliquee')
+}
+
+async function parcoursSoin() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
+  const viderLesFenetres = async () => {
+    for (let v = await vue(); v.projection.fenetre; v = await vue()) {
+      await marquer()
+      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+      await nouvelEcran()
+    }
+  }
+  await viderLesFenetres()
+  await cliquerCase({ x: 16, y: 11 })
+  await attendreLaVue('!!v.projection.combat')
+  await viderLesFenetres()
+  /** La main à un héros : sa barre offre la fin du tour, toute fenêtre vidée. */
+  const aUnHeros = async () => {
+    for (;;) {
+      await attendreLaVue("!!v.projection.fenetre || v.zones['combat.offres'].flatMap((c) => c.valeurs).some((b) => b.id === 'end-turn')", 120000)
+      if (!(await vue()).projection.fenetre) return
+      await viderLesFenetres()
+    }
+  }
+  for (let tours = 0; (await aUnHeros(), zone(await vue(), 'combat.actif')[0]?.nom !== 'Grunni Pierre-de-Fer'); tours++) {
+    assert.ok(tours < 5, `Grunni prend la main : ${zone(await vue(), 'combat.actif')[0]?.nom}`)
+    await finirLeTour()
+  }
+  let v = await vue()
+  const soigner = offre(v, 'heal')
+  assert.ok(soigner && !soigner.refus, `Grunni soigne : ${JSON.stringify(soigner)}`)
+  await cliquerBouton(bouton(soigner))
+  v = await vue()
+  const patient = v.projection.combat.voisins.liste.find((c) => c.id === v.projection.combat.cibles.liste[0])
+  noter(`« Soigner » : intention ${JSON.stringify(v.projection.combat.intention)}, patients ${v.projection.combat.cibles.liste.join(', ')} ; ${patient.nom} en ${patient.pos}`)
+  await cliquerCase({ x: patient.pos[0], y: patient.pos[1], z: patient.pos[2] })
+  noter(`clic : fenêtre ${JSON.stringify((await vue()).projection.fenetre?.cle ?? null)}`)
+  await attendreLaVue("v.zones['fenetre.corps'].some((e) => e.id === 'soin')")
+  v = await vue()
+  noter(`clic sur ${patient.nom} : ${corps(v)} ; réglages ${zone(v, 'fenetre.reglages').map((c) => c.libelle).join(' | ')}`)
+  await capturer('3328-k1-1-soin')
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  v = await vue()
+  noter(`jet à l'Entrée : ${corps(v)}`)
+  await capturer('3328-k1-2-jet')
+}
+
+async function parcoursVoyage() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
+  /** Joue le geste que l'Entrée jouerait, sinon le premier bouton ouvert, tant qu'une fenêtre autre que `jusqua` tient la
+   *  main. */
+  const avancer = async (jusqua) => {
+    for (let v = await vue(), pas = 0; v.projection.fenetre && v.projection.fenetre.cle !== jusqua; v = await vue(), pas++) {
+      assert.ok(pas < 80, `les fenêtres se vident jusqu'à ${jusqua} : ${corps(v)}`)
+      const gestes = zone(v, 'fenetre.gestes')
+      if (gestes.some((b) => b.type === 'bouton' && b.focus)) {
+        await marquer()
+        await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+        await nouvelEcran()
+      } else await cliquerBouton(bouton(gestes.find((b) => b.type === 'bouton' && !b.refus)))
+    }
+  }
+  await avancer()
+  await cliquerBouton('Carte du monde')
+  await attendreLaVue("v.projection.fenetre?.cle === 'carteDuMonde'")
+  let v = await vue()
+  const points = zone(v, 'fenetre.corps').find((e) => e.type === 'plan').points
+  noter(`carte : ${points.map((p) => `${p.nom} [${p.ton}] (${p.elements.map((x) => `${x.libelle} : ${x.valeurs.map((b) => b.libelle).join(', ')}`).join(' ; ')})`).join(' | ')}`)
+  await capturer('3328-l1-1-carte')
+  await cliquerBouton('À pied · 2 j')
+  await avancer('recitDeVoyage')
+  await attendreLaVue("v.projection.fenetre?.cle === 'recitDeVoyage'")
+  v = await vue()
+  noter(`récit : ${corps(v)}`)
+  await capturer('3328-l1-2-recit')
+  await avancer('ecranDuLieu')
+  await attendreLaVue("v.projection.fenetre?.cle === 'ecranDuLieu'")
+  v = await vue()
+  noter(`lieu : ${zone(v, 'fenetre.titre')[0].texte} ; ${zone(v, 'fenetre.corps').map((e) => e.nom ?? e.texte).join(' | ')}`)
+  await capturer('3534-l2-lieu')
+  await cliquerBouton(bouton(zone(v, 'fenetre.corps').find((e) => e.id === 'service/forgeron').elements[0]))
+  await attendreLaVue("v.projection.fenetre?.cle === 'marchand'")
+  v = await vue()
+  noter(`échoppe : ${zone(v, 'fenetre.corps').map((e) => `${e.id} (${(e.elements ?? []).map((b) => b.libelle).join(', ')})`).join(' | ')}`)
+  await capturer('3534-echoppe-1-etal')
+  const article = zone(v, 'fenetre.corps').filter((e) => e.id.startsWith('etal/')).flatMap((e) => e.elements).find((b) => !b.refus)
+  await cliquerBouton(bouton(article))
+  await attendreLaVue("v.zones['fenetre.corps'].find((e) => e.id === 'panier').elements.length > 1")
+  noter(`panier : ${zone(await vue(), 'fenetre.corps').find((e) => e.id === 'panier').elements.map((b) => b.libelle).join(', ')}`)
+  await capturer('3534-echoppe-2-panier')
+}
+
+async function parcoursMarche() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.boutons', { timeoutMs: 120000 })
+  /** L'Entrée tant qu'une fenêtre autre que `jusqua` tient la main. */
+  const entrer = async (jusqua) => {
+    for (let v = await vue(), pas = 0; v.projection.fenetre && v.projection.fenetre.cle !== jusqua; v = await vue(), pas++) {
+      assert.ok(pas < 20, `l'Entrée mène à ${jusqua} : ${corps(v)}`)
+      await marquer()
+      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+      await nouvelEcran()
+    }
+  }
+  await entrer()
+  await cliquerBouton('Le lieu')
+  await attendreLaVue("v.projection.fenetre?.cle === 'ecranDuLieu'")
+  await cliquerBouton(bouton(zone(await vue(), 'fenetre.corps').find((e) => e.id === 'service/marche').elements[0]))
+  await entrer('marcheDeTerre')
+  await attendreLaVue("v.projection.fenetre?.cle === 'marcheDeTerre'")
+  let v = await vue()
+  noter(`halle : ${zone(v, 'fenetre.corps').map((e) => `${e.id} (${(e.elements ?? []).map((x) => x.libelle ?? x.id).join(', ')})`).join(' | ')}`)
+  await capturer('3534-halle-1-offres')
+  await cliquerBouton('Acheter')
+  await attendreLaVue("v.zones['fenetre.corps'].some((e) => e.id.startsWith('lot/'))")
+  v = await vue()
+  noter(`lot : ${zone(v, 'fenetre.corps').filter((e) => e.id.startsWith('lot/')).map((e) => `${e.nom} (${e.elements.map((x) => x.valeur ?? x.libelle).join(', ')})`).join(' | ')}`)
+  await capturer('3534-halle-2-lot')
+}
+
+async function parcoursRepos() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
+  /** L'Entrée tant qu'une fenêtre autre que `jusqua` tient la main. */
+  const entrer = async (jusqua) => {
+    for (let v = await vue(), pas = 0; v.projection.fenetre && v.projection.fenetre.cle !== jusqua; v = await vue(), pas++) {
+      assert.ok(pas < 40, `l'Entrée mène à ${jusqua} : ${corps(v)}`)
+      await marquer()
+      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+      await nouvelEcran()
+    }
+  }
+  await entrer()
+  await cliquerBouton('Carte du monde')
+  await attendreLaVue("v.projection.fenetre?.cle === 'carteDuMonde'")
+  await cliquerBouton('À pied · 2 j')
+  await entrer('rest')
+  let v = await vue()
+  noter(`repos : ${corps(v)}`)
+  await capturer('3328-r1-1-nuit')
+  const dormeur = (v) => zone(v, 'fenetre.corps').find((e) => e.id === 'repos/bjorn').elements.find((x) => x.id === 'couchage').valeurs.map((b) => `${b.libelle}${b.presse ? '*' : ''}`).join(' ')
+  assert.equal(dormeur(v), 'Privée* Commune Dehors', 'Bjorn en chambre privée')
+  await cliquerBouton('Dehors')
+  await attendreLaVue("v.zones['fenetre.corps'].find((e) => e.id === 'repos/bjorn').elements.find((x) => x.id === 'couchage').valeurs[2].presse")
+  v = await vue()
+  noter(`Bjorn : ${dormeur(v)}`)
+  await capturer('3328-r1-2-dehors')
+  await entrer()
+  noter(`après « Dormir » : ${(await vue()).disposition}`)
+}
+
+async function parcoursRepit() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.boutons', { timeoutMs: 120000 })
+  /** L'Entrée tant qu'un geste a le focus et que la disposition n'est pas `jusqua`. */
+  const entrer = async (jusqua) => {
+    for (let v = await vue(), pas = 0; v.disposition !== jusqua; v = await vue(), pas++) {
+      assert.ok(pas < 12, `l'Entrée mène à ${jusqua} : ${corps(v)}`)
+      assert.ok(zone(v, 'fenetre.gestes').some((b) => b.type === 'bouton' && b.focus), `un geste a le focus : ${corps(v)}`)
+      await marquer()
+      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+      await nouvelEcran()
+    }
+  }
+  /** Les puces de l'onglet du premier héros. */
+  const puces = (v) => zone(v, 'fenetre.corps').find((e) => e.type === 'entite').elements.filter((x) => x.type === 'puce').map((x) => x.libelle)
+  await entrer('interlude')
+  let v = await vue()
+  noter(`répit : ${zone(v, 'fenetre.corps')[0].texte} ; ${puces(v).join(' ; ')}`)
+  assert.deepEqual(puces(v)[0], 'Activités : 3 / 3')
+  await capturer('3328-m1-1-repit')
+  await cliquerBouton('Revenus')
+  await attendreLaVue("v.disposition === 'activity'")
+  await capturer('3328-m1-2-revenus')
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  await cliquerBouton('Appliquer')
+  await attendreLaVue("v.disposition === 'interlude'")
+  v = await vue()
+  assert.equal(puces(v)[0], 'Activités : 2 / 3', 'une Activité de moins')
+  await capturer('3328-m1-3-repit-apres')
+}
+
+async function parcoursOuvrage() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.boutons', { timeoutMs: 120000 })
+  for (let v = await vue(), pas = 0; v.disposition !== 'interlude'; v = await vue(), pas++) {
+    assert.ok(pas < 8, `les dés d'Événement mènent à l'interlude : ${corps(v)}`)
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+  }
+  await capturer('3328-o1-1-forgeron')
+  /** Le bouton publié qui porte `texte`, amené à l'écran par la molette sur l'onglet du héros. */
+  const amenerTexte = async (texte) => {
+    for (let n = 0; !trouver((await ecran()).boutons, texte); n++) {
+      assert.ok(n < 30, `« ${texte} » amené par la molette`)
+      await molette(session, { surface: 'canvas', x: 600, y: 420 }, 100)
+      await sleep(250)
+    }
+  }
+  await amenerTexte('Entreprendre un ouvrage')
+  await capturer('3328-o1-2-formulaires')
+  /** Un clic sur le bouton publié `b`, qui ne publie aucun écran neuf (une case, une liste ouverte). */
+  const cliquerSurPlace = (b) => geste(session, { surface: 'canvas', x: b.x, y: b.y }, { qui: `clic sur ${b.texte}` }, clic())
+  await cliquerSurPlace(trouver((await ecran()).boutons, 'Solide'))
+  const ouvrage = zone(await vue(), 'fenetre.corps').find((e) => e.id === 'repit/durin').elements.find((x) => x.id === 'ouvrage/durin')
+  const ouverts = ouvrage.champs.find((c) => c.nom === 'trappingId').valeurs.filter((v) => !v.refus)
+  const liste = (await ecran()).boutons.find((b) => b.choix?.includes(ouverts[0].libelle))
+  assert.ok(liste, `la liste des ouvrages est à l'écran`)
+  await cliquerSurPlace(liste)
+  await sleep(400)
+  await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await sleep(300)
+  await cliquerBouton('Entreprendre un ouvrage')
+  await attendreLaVue("v.zones['fenetre.corps'].find((e) => e.id === 'repit/durin').elements.some((x) => x.id === 'craft')")
+  const v = await vue()
+  noter(`ouvrage engagé : ${zone(v, 'fenetre.corps').find((e) => e.id === 'repit/durin').elements.find((x) => x.id === 'craft').libelle}`)
+  await capturer('3328-o1-3-ouvrage-engage')
+}
+
+async function parcoursBataille() {
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.boutons', { timeoutMs: 120000 })
+  for (let v = await vue(), pas = 0; v.disposition !== 'interlude'; v = await vue(), pas++) {
+    assert.ok(pas < 12, `les dés d'Événement mènent à l'interlude : ${corps(v)}`)
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+  }
+  await cliquerBouton('Clore l’interlude')
+  await attendreLaVue("v.disposition === 'batailleDeMasse'")
+  /** L'élément `id` du corps de la fenêtre. */
+  const element = (v, id) => zone(v, 'fenetre.corps').find((e) => e.id === id)
+  let v = await vue()
+  noter(`bataille : ${element(v, 'bataille/round').texte} ; ${zone(v, 'fenetre.corps').filter((e) => e.id.startsWith('scene/')).map((e) => e.nom).join(', ')}`)
+  await capturer('3328-n1-1-bataille')
+  const [scene] = zone(v, 'fenetre.corps').filter((e) => e.id.startsWith('scene/') && e.elements.some((x) => x.id === 'postes'))
+  await cliquerBouton('Résoudre')
+  await attendreLaVue("v.disposition === 'activity'")
+  await marquer()
+  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  await nouvelEcran()
+  await cliquerBouton('Appliquer')
+  await attendreLaVue("v.disposition === 'batailleDeMasse'")
+  v = await vue()
+  assert.equal(element(v, scene.id).elements.find((x) => x.id === 'engager').refus, 'Cette Scène est déjà résolue.', `${scene.nom} se ferme`)
+  await cliquerBouton('Test spectaculaire de Puissance')
+  await attendreLaVue("v.zones['fenetre.corps'].some((e) => e.libelle === 'Round suivant')")
+  await capturer('3328-n1-2-entre-deux-rounds')
+  await cliquerBouton('Round suivant')
+  await attendreLaVue("v.zones['fenetre.corps'].some((e) => e.texte === 'Round de bataille 2 / 3')")
+  await capturer('3328-n1-3-round-2')
 }
 
 async function parcoursFiche() {
@@ -607,6 +1124,536 @@ async function presser(z, id) {
   await cliquerBouton(bouton(b))
   return vue()
 }
+/** L'éditeur publié (`wfrpEcran.editeur`) : ses zones et sa surcouche. */
+const editeur = async () => (await ecran()).editeur
+/** Le bouton d'id `id` des zones de l'éditeur publié, posé seul ou parmi les valeurs d'un choix. */
+const boutonDeLEditeur = (e, id) => Object.values(e.zones).flat().flatMap((el) => (el.type === 'bouton' ? [el] : el.valeurs ?? [])).find((b) => b.id === id)
+
+/** Écrit au chemin `chemin` une planche PNG de `cote` pixels de côté : un fond clair quadrillé de sombre tous les
+ *  `pas` pixels. */
+function ecrirePlanche(chemin, cote = 400, pas = 40) {
+  const rangees = Buffer.alloc(cote * (1 + cote * 3))
+  for (let y = 0; y < cote; y++) {
+    for (let x = 0; x < cote; x++) rangees.fill(x % pas < 2 || y % pas < 2 ? 40 : 225, y * (1 + cote * 3) + 1 + x * 3, y * (1 + cote * 3) + 4 + x * 3)
+  }
+  const bloc = (type, donnees) => {
+    const tete = Buffer.alloc(8)
+    tete.writeUInt32BE(donnees.length)
+    tete.write(type, 4)
+    const crc = Buffer.alloc(4)
+    crc.writeUInt32BE(crc32(Buffer.concat([tete.subarray(4), donnees])))
+    return Buffer.concat([tete, donnees, crc])
+  }
+  const ihdr = Buffer.alloc(13)
+  ihdr.writeUInt32BE(cote, 0)
+  ihdr.writeUInt32BE(cote, 4)
+  ihdr.set([8, 2, 0, 0, 0], 8)
+  writeFileSync(chemin, Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), bloc('IHDR', ihdr), bloc('IDAT', deflateSync(rangees)), bloc('IEND', Buffer.alloc(0))]))
+}
+
+async function parcoursEditeur() {
+  await cliquerBouton('Éditeur')
+  await waitFor(session, '!!globalThis.wfrpEcran?.editeur && !!wfrpEcran.cases', { timeoutMs: 120000 })
+  /** Le bouton `quoi` du panneau d'outils, amené à l'écran par la molette sur le panneau, vers le bas jusqu'à ce que
+   *  l'écran ne bouge plus, puis vers le haut, puis cliqué : chaque cran republie l'écran. */
+  const amenerAuPanneau = async (quoi) => {
+    let sens = 100
+    let avant = null
+    for (let n = 0; !trouver((await ecran()).boutons, quoi); n++) {
+      assert.ok(n < 120, `${JSON.stringify(quoi)} amené par la molette sur le panneau`)
+      const vus = JSON.stringify((await ecran()).boutons.map((b) => [b.element, b.y]))
+      if (vus === avant) sens = -sens
+      avant = vus
+      await molette(session, { surface: 'canvas', x: 160, y: 400 }, sens)
+      await sleep(250)
+    }
+    return trouver((await ecran()).boutons, quoi)
+  }
+  const cliquerAuPanneau = async (quoi) => {
+    await amenerAuPanneau(quoi)
+    await cliquerBouton(quoi)
+  }
+  /** La valeur `id` de la liste déroulante `liste` des options de l'outil choisie : la liste amenée sur le panneau,
+   *  ouverte d'un clic, qui n'y place aucun article, la flèche descendue du premier jusqu'à elle, puis Entrée. */
+  const choisirALaListe = async (liste, id, zone = 'editeur.options') => {
+    const libelle = (await editeur()).zones[zone].find((el) => el.id === liste).valeurs.find((b) => b.id === id).libelle
+    const deroulante = await amenerAuPanneau({ element: `liste/${liste}` })
+    const rang = deroulante.choix.indexOf(libelle)
+    assert.ok(rang >= 0, `${libelle} est offert : ${deroulante.choix.join(', ')}`)
+    await geste(session, { surface: 'canvas', x: deroulante.x, y: deroulante.y }, { qui: `liste ${liste}` }, clic())
+    await sleep(400)
+    for (let n = 0; n <= rang; n++) await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['${zone}'].find((el) => el.id === '${liste}')?.valeurs.find((b) => b.id === '${id}')?.presse === true`)
+  }
+  let e = await editeur()
+  assert.equal(boutonDeLEditeur(e, 'couche/0')?.presse, true, 'la carte s’ouvre sur sa couche 0')
+  assert.equal(boutonDeLEditeur(e, 'enregistrer')?.refus, 'Rien à enregistrer', 'la carte s’ouvre telle que le dépôt la sert')
+  noter(`éditeur ouvert : ${e.zones['editeur.titre'][0].texte}, couches ${e.zones['editeur.couches'][0].valeurs.map((b) => b.libelle).join(', ')}`)
+  await capturer('3508-l1-1-ouverte')
+  const nord = () => e.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte
+  assert.equal(nord(), 'Nord : vers le haut du plan', 'sans sélection, l’inspecteur est celui de la scène')
+  await cliquerAuPanneau({ element: 'bouton/scene/nord/plus' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte === 'Nord : 15° dans le sens horaire'`)
+  e = await editeur()
+  noter(`inspecteur de la scène, « +15° » : ${nord()}`)
+  await capturer('3508-l6-1-scene')
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte === 'Nord : vers le haut du plan'`)
+  noter('« Annuler » : le nord rendu au haut du plan')
+  const message = 'Au relais\nEn route'
+  const champDuMessage = async () => (await ecran()).saisies.find((x) => x.element === 'saisieMultiligne/introduire/texte')
+  for (let n = 0; !((await champDuMessage())?.y <= 480); n++) {
+    assert.ok(n < 20, 'le champ du message de départ amené par la molette au milieu du panneau')
+    await molette(session, { surface: 'canvas', x: 160, y: 400 }, 100)
+    await sleep(250)
+  }
+  const champMessage = await champDuMessage()
+  assert.equal(champMessage.texte, '', 'la Diligence n’a pas de message de départ')
+  await geste(session, { surface: 'canvas', x: champMessage.x, y: champMessage.y }, { qui: 'le champ du message de départ' }, clic())
+  for (const lettre of message) {
+    await realKey(session, lettre === '\n' ? { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 }
+      : lettre === ' ' ? { key: ' ', code: 'Space', windowsVirtualKeyCode: 32 }
+        : { key: lettre, code: `Key${lettre.toUpperCase()}`, windowsVirtualKeyCode: lettre.toUpperCase().charCodeAt(0) })
+  }
+  await waitFor(session, `globalThis.wfrpEcran?.saisies.find((x) => x.element === 'saisieMultiligne/introduire/texte')?.texte === ${JSON.stringify(message)}`)
+  await cliquerAuPanneau({ element: 'formulaire/introduire' })
+  const valeurDuMessage = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'introduire')?.champs[0].valeur`
+  await waitFor(session, `${valeurDuMessage} === ${JSON.stringify(message)}`)
+  noter(`inspecteur de la scène, le message de départ tapé sur deux lignes, « ${(await editeur()).zones['editeur.inspecteur'].find((l) => l.id === 'introduire').libelle} » : ${JSON.stringify(message)}`)
+  await capturer('3606-m0c-1-message-de-depart')
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `${valeurDuMessage} === ''`)
+  noter('« Annuler » : la scène rendue sans message de départ')
+  for (let n = 0; n < 20; n++) await molette(session, { surface: 'canvas', x: 160, y: 400 }, -100)
+  e = await editeur()
+  for (const id of ['outil/height', 'hauteur/haute', 'pinceau/3']) {
+    await cliquerAuPanneau({ element: `bouton/${id}` })
+    assert.equal(boutonDeLEditeur(await editeur(), id)?.presse, true, `${id} choisi à son bouton`)
+  }
+  const cases = (await ecran()).cases
+  const aLEcran = ([x, y]) => x > 360 && x < 1240 && y > 40 && y < 680
+  const depart = Object.keys(cases).map((k) => k.split(',').map(Number)).find(([x, y]) => [0, 1, 2].every((d) => cases[`${x + d},${y}`] && aLEcran(cases[`${x + d},${y}`])) && x > 1 && y > 1)
+  assert.ok(depart, 'trois cases voisines à l’écran, hors du panneau')
+  const [x0, y0] = depart
+  const avant = cases[`${x0 + 2},${y0}`]
+  const [px, py] = cases[`${x0},${y0}`]
+  let tenu = null
+  await geste(session, { surface: 'canvas', x: px, y: py }, { qui: `glissé depuis la case ${x0},${y0}` }, async ({ x, y }, emettre) => {
+    await emettre('souris', { type: 'mouseMoved', x, y })
+    await emettre('souris', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
+    for (const d of [1, 2]) {
+      const [cx, cy] = cases[`${x0 + d},${y0}`]
+      await emettre('souris', { type: 'mouseMoved', x: cx, y: cy, button: 'left', buttons: 1 })
+      await sleep(300)
+    }
+    tenu = { surcouche: (await editeur()).surcouche, point: (await ecran()).cases[`${x0 + 2},${y0}`] }
+    const [fx, fy] = cases[`${x0 + 2},${y0}`]
+    await emettre('souris', { type: 'mouseReleased', x: fx, y: fy, button: 'left', clickCount: 1 })
+  })
+  assert.equal(tenu.surcouche.cases.length, 15, `bouton tenu, la surcouche couvre l’emprise 3×3 sur trois cases : ${JSON.stringify(tenu.surcouche.cases)}`)
+  assert.deepEqual(tenu.point, avant, 'bouton tenu, le monde reste tel quel')
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.surcouche.cases.length === 0 && wfrpEcran.cases['${x0 + 2},${y0}'][1] < ${avant[1] - 20}`)
+  e = await editeur()
+  noter(`glissé de (${x0}, ${y0}) à (${x0 + 2}, ${y0}) : ${tenu.surcouche.cases.length} cases en surcouche, puis la surface montée de ${Math.round(avant[1] - (await ecran()).cases[`${x0 + 2},${y0}`][1])} px ; ${e.zones['editeur.pointee'][0]?.texte}`)
+  await capturer('3508-l1-2-peinte')
+  const fichiers = MANUSCRITS.map((rel) => join(dossierDesProjetsLivres(depot), rel))
+  const lus = () => fichiers.map((f) => readFileSync(f, 'utf8'))
+  const avantLEnregistrement = lus()
+  await cliquerAuPanneau({ element: 'bouton/enregistrer' })
+  await waitFor(session, `Object.values(globalThis.wfrpEcran?.editeur?.zones ?? {}).flat().some((el) => el.id === 'enregistrer' && el.refus === 'Rien à enregistrer')`)
+  const ecrits = lus().filter((texte, i) => texte !== avantLEnregistrement[i])
+  assert.equal(ecrits.length, 1, '« Enregistrer » écrit la carte au dépôt')
+  noter(`« Enregistrer » : ${MANUSCRITS[lus().findIndex((texte, i) => texte !== avantLEnregistrement[i])]} écrit (${ecrits[0].length} caractères), puis rien à enregistrer`)
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `Math.abs(globalThis.wfrpEcran?.cases['${x0 + 2},${y0}'][1] - ${avant[1]}) < 0.5`)
+  noter('« Annuler » : la surface revient à sa place')
+  const aretes = (await editeur()).aretes
+  const [ax, ay] = cases[`${x0},${y0}`]
+  const [bx, by] = cases[`${x0 + 1},${y0}`]
+  const cote = [(ax + bx) / 2, (ay + by) / 2]
+  await cliquerAuPanneau({ element: 'bouton/outil/wall' })
+  assert.equal(boutonDeLEditeur(await editeur(), 'arete/wall')?.presse, true, 'l’outil Murs pose une cloison')
+  await cliquerPoint(...cote)
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.aretes === ${aretes + 1}`)
+  noter(`outil Murs, clic entre (${x0}, ${y0}) et (${x0 + 1}, ${y0}) : ${aretes} puis ${aretes + 1} arêtes sur le monde`)
+  e = await editeur()
+  const releves = e.zones['editeur.validation'].filter((el) => el.type === 'ligne' && /^validation\/\d+$/.test(el.id))
+  const neuf = releves.find((l) => l.texte.includes(`(${x0},${y0})`) || l.texte.includes(`(${x0 + 1},${y0})`))
+  assert.ok(neuf && boutonDeLEditeur(e, `${neuf.id}/aller`), `la cloison seule relevée par la validation, « Y aller » offert : ${JSON.stringify(releves.map((l) => l.texte))}`)
+  await cliquerAuPanneau({ element: `bouton/${neuf.id}/aller` })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.surcouche.zones ?? []).some((z) => z.sorte === 'defaut')`)
+  e = await editeur()
+  noter(`validation : ${e.zones['editeur.validation'][0].texte} ; « Y aller » sur « ${neuf.texte.slice(0, 80)}… » : ${e.surcouche.zones.find((z) => z.sorte === 'defaut').cases.length} case(s) suivie(s)`)
+  await capturer('3508-l6-2-validation')
+  await cliquerAuPanneau({ element: 'bouton/outil/select' })
+  await cliquerPoint(...cote)
+  await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.arete != null')
+  e = await editeur()
+  const choisie = e.zones['editeur.pointee'].find((l) => l.id === 'arete')
+  assert.match(choisie?.texte ?? '', /^Arête .* · couche 0 · mur · /, 'la sélection dit l’arête choisie')
+  noter(`outil Sélection, même point : ${choisie.texte}, gainée`)
+  await capturer('3508-l2-1-cloison-choisie')
+  await cliquerAuPanneau({ element: 'bouton/arete/porte' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.surcouche.arete?.piece.startsWith('porte-') === true`)
+  await cliquerAuPanneau({ element: 'bouton/arete/fermee' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.surcouche.arete?.piece === 'porte-fermee'`)
+  e = await editeur()
+  assert.equal(boutonDeLEditeur(e, 'arete/fermee')?.presse, true, 'la porte fermée au départ, à l’inspecteur')
+  noter(`inspecteur : « Porte » puis « Fermée au départ » : ${e.zones['editeur.pointee'].find((l) => l.id === 'arete')?.texte}, ${e.aretes} arêtes`)
+  await capturer('3508-l2-3-porte-fermee')
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.aretes === ${aretes} && globalThis.wfrpEcran.editeur.surcouche.arete === null`)
+  noter('« Annuler » trois fois : la cloison retirée')
+  await cliquerAuPanneau({ element: 'bouton/outil/stair' })
+  await cliquerPoint(ax, ay)
+  await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.cases.length === 1')
+  e = await editeur()
+  const poser = boutonDeLEditeur(e, 'volee/poser')
+  assert.ok(poser?.refus, '« Poser la volée » se refuse d’une case seule')
+  assert.equal(e.zones['editeur.options'].find((l) => l.id === 'plan')?.texte, poser.refus, 'la raison du refus, en clair au panneau')
+  noter(`outil Volée, un clic : ${e.zones['editeur.options'].find((l) => l.id === 'trace')?.texte}, en surcouche ; « Poser la volée » refusé : ${poser.refus}`)
+  await capturer('3508-l2-2-volee-tracee')
+  await cliquerAuPanneau({ element: 'bouton/volee/effacer' })
+  await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.cases.length === 0')
+  noter('« Effacer le tracé » : la surcouche vide')
+  await cliquerAuPanneau({ element: 'bouton/outil/crenellated' })
+  await cliquerPoint(ax, ay)
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.pointee'] ?? []).some((l) => l.id === 'crenelage')`)
+  e = await editeur()
+  noter(`outil Crénelage, un clic : ${e.zones['editeur.pointee'].find((l) => l.id === 'crenelage').texte}`)
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.pointee'] ?? []).length > 0 && !globalThis.wfrpEcran.editeur.zones['editeur.pointee'].some((l) => l.id === 'crenelage')`)
+  noter('« Annuler » : la marque effacée')
+  await cliquerAuPanneau({ element: 'bouton/outil/prop' })
+  e = await editeur()
+  const catalogue = e.zones['editeur.options'].find((c) => c.id === 'decors').valeurs.find((b) => b.presse)
+  /** Une case à l'écran sans repère à deux cases d'elle : aucun décor posé ne la couvre. */
+  const libre = ([x, y]) => aLEcran(cases[`${x},${y}`] ?? [0, 0]) && !e.surcouche.reperes.some((r) => Math.abs(r.x - x) <= 2 && Math.abs(r.y - y) <= 2)
+  const [dx, dy] = Object.keys(cases).map((k) => k.split(',').map(Number)).find(([x, y]) => libre([x, y]) && libre([x + 2, y]))
+  await cliquerPoint(...cases[`${dx},${dy}`])
+  await waitFor(session, '(globalThis.wfrpEcran?.editeur?.surcouche.reperes ?? []).some((r) => r.choisi)')
+  e = await editeur()
+  const decor = e.surcouche.reperes.find((r) => r.choisi)
+  assert.deepEqual([decor.sorte, decor.x, decor.y, decor.nom, e.noms[`${dx},${dy},0`]], ['prop', dx, dy, catalogue.libelle, catalogue.libelle], 'l’outil Décor pose le décor choisi sur la case cliquée, sélectionné, nommé au-dessus d’elle')
+  noter(`outil Décor, un clic : ${e.zones['editeur.pointee'].find((l) => l.id === 'entite').texte}`)
+  const champDuNom = async () => (await ecran()).saisies.find((x) => x.element === 'saisieTexte/nommer/nom')
+  for (let n = 0; !((await champDuNom())?.y <= 480); n++) {
+    assert.ok(n < 20, 'le champ du nom amené par la molette au milieu du panneau')
+    await molette(session, { surface: 'canvas', x: 160, y: 400 }, 100)
+    await sleep(250)
+  }
+  const champ = await champDuNom()
+  assert.equal(champ?.texte, decor.nom, 'le champ du nom, prérempli, à l’inspecteur')
+  await geste(session, { surface: 'canvas', x: champ.x, y: champ.y }, { qui: 'le champ du nom' }, clic())
+  await realKey(session, { key: 'End', code: 'End', windowsVirtualKeyCode: 35 })
+  for (let n = 0; n < champ.texte.length; n++) await realKey(session, { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 })
+  for (const lettre of 'Comptoir') await realKey(session, { key: lettre, code: `Key${lettre.toUpperCase()}`, windowsVirtualKeyCode: lettre.toUpperCase().charCodeAt(0) })
+  await waitFor(session, `globalThis.wfrpEcran?.saisies.find((x) => x.element === 'saisieTexte/nommer/nom')?.texte === 'Comptoir'`)
+  await cliquerAuPanneau({ element: 'formulaire/nommer' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.noms['${dx},${dy},0'] === 'Comptoir'`)
+  noter(`« Renommer » : ${(await editeur()).zones['editeur.pointee'].find((l) => l.id === 'entite').texte}`)
+  await capturer('3508-l3-1-decor-nomme')
+  await cliquerAuPanneau({ element: 'bouton/copier' })
+  await cliquerAuPanneau({ element: 'bouton/outil/select' })
+  await cliquerPoint(...cases[`${dx + 2},${dy}`])
+  await cliquerAuPanneau({ element: 'bouton/coller' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.noms['${dx + 2},${dy},0'] === 'Comptoir'`)
+  e = await editeur()
+  noter(`« Copier », un clic sur la case ${dx + 2}, ${dy}, « Coller » : ${e.surcouche.reperes.filter((r) => r.nom === 'Comptoir').map((r) => `${r.x}, ${r.y}`).join(' et ')}`)
+  await capturer('3508-l3-2-decor-colle')
+  const inspecte = (e, id) => e.zones['editeur.inspecteur'].find((el) => el.id === id)
+  await cliquerAuPanneau({ element: 'bouton/lumiere' })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'lumiere/rayon')`)
+  await cliquerAuPanneau({ element: 'bouton/lumiere/plus' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'lumiere/rayon')?.texte.includes('7 m')`)
+  e = await editeur()
+  noter(`« Source de lumière », « Rayon +1 m » : ${inspecte(e, 'lumiere/rayon').texte}`)
+  await capturer('3508-l3b-1-lumiere')
+  const [ex, ey] = Object.keys(cases).map((k) => k.split(',').map(Number)).find(([x, y]) => libre([x, y]) && !e.surcouche.reperes.some((r) => Math.abs(r.x - x) <= 2 && Math.abs(r.y - y) <= 2))
+  await cliquerAuPanneau({ element: 'bouton/outil/emplacement' })
+  await cliquerPoint(...cases[`${ex},${ey}`])
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((c) => c.id === 'poste/arc')`)
+  await cliquerAuPanneau({ element: 'bouton/poste/arc/tribord' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((c) => c.id === 'poste/arc')?.valeurs.find((b) => b.id === 'poste/arc/tribord')?.presse === true`)
+  e = await editeur()
+  const engin = inspecte(e, 'poste/engin').valeurs.find((b) => b.presse).libelle
+  assert.equal(e.surcouche.reperes.find((r) => r.choisi)?.nom, engin, 'l’emplacement porte le nom de son engin')
+  noter(`outil Emplacement de siège, un clic sur la case ${ex}, ${ey}, puis « Droite (tribord) » : ${engin}, créneau tribord`)
+  await capturer('3508-l3b-2-emplacement')
+  await cliquerAuPanneau({ element: 'bouton/outil/zone' })
+  e = await editeur()
+  assert.equal(boutonDeLEditeur(e, 'zone/room')?.presse, true, 'l’outil Zone trace d’abord une pièce')
+  const loin = ([x, y]) => aLEcran(cases[`${x},${y}`] ?? [0, 0]) && !e.surcouche.reperes.some((r) => Math.abs(r.x - x) <= 2 && Math.abs(r.y - y) <= 2)
+  const auCentre = ([x, y]) => Math.hypot(cases[`${x},${y}`][0] - 800, cases[`${x},${y}`][1] - 380)
+  const [zx, zy] = Object.keys(cases).map((k) => k.split(',').map(Number)).filter(([x, y]) => [0, 1, 2, 3].every((d) => loin([x + d, y]) && loin([x + d, y + 1])))
+    .sort((a, b) => auCentre(a) - auCentre(b))[0]
+  /** Glisse le pointeur de la case `de` à la case `a`, bouton tenu. */
+  const glisserDe = async (de, a, qui) => geste(session, { surface: 'canvas', x: cases[de][0], y: cases[de][1] }, { qui }, async ({ x, y }, emettre) => {
+    await emettre('souris', { type: 'mouseMoved', x, y })
+    await emettre('souris', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
+    await sleep(200)
+    await emettre('souris', { type: 'mouseMoved', x: cases[a][0], y: cases[a][1], button: 'left', buttons: 1 })
+    await sleep(300)
+    await emettre('souris', { type: 'mouseReleased', x: cases[a][0], y: cases[a][1], button: 'left', clickCount: 1 })
+  })
+  await glisserDe(`${zx},${zy}`, `${zx + 1},${zy + 1}`, `la pièce tirée de ${zx},${zy}`)
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.surcouche.zones.find((z) => z.choisi)?.cases.length === 4`)
+  e = await editeur()
+  assert.equal(e.noms[`${zx},${zy},0`], 'Pièce', 'la pièce tracée, nommée au-dessus de sa première case')
+  assert.deepEqual(e.surcouche.poignee, { x: zx + 1, y: zy + 1, z: 0 }, 'sa poignée, au coin sud-est')
+  noter(`outil Zone, pièce tirée de (${zx}, ${zy}) à (${zx + 1}, ${zy + 1}) : ${e.zones['editeur.pointee'].find((l) => l.id === 'zone').texte}`)
+  await capturer('3508-l4-1-piece-tracee')
+  await cliquerAuPanneau({ element: 'bouton/outil/select' })
+  await glisserDe(`${zx + 1},${zy + 1}`, `${zx + 3},${zy + 1}`, 'la poignée de la pièce')
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.surcouche.zones.find((z) => z.choisi)?.cases.length === 8`)
+  e = await editeur()
+  noter(`outil Sélection, la poignée glissée de deux cases à l’est : ${e.zones['editeur.pointee'].find((l) => l.id === 'zone').texte}`)
+  await capturer('3508-l4-2-piece-agrandie')
+  await cliquerAuPanneau({ element: 'bouton/valeur/crossTest/ajouter' })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'valeur/crossTest/difficulty')`)
+  /** L'id du bouton qui joue la valeur `valeur` du choix `choix` de l'inspecteur (`{ type: 'valeur', args: [porteur, chemin, valeur] }`). */
+  const idDeLaValeur = (e, choix, valeur) => inspecte(e, choix).valeurs.find((b) => b.jeu.args[2] === valeur).id
+  e = await editeur()
+  await choisirALaListe('valeur/crossTest/difficulty', idDeLaValeur(e, 'valeur/crossTest/difficulty', 'difficile'), 'editeur.inspecteur')
+  const sansSoutien = idDeLaValeur(e, 'valeur/crossTest/noSupport', true)
+  await cliquerAuPanneau({ element: `bouton/${sansSoutien}` })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/crossTest/noSupport')?.valeurs.find((b) => b.id === '${sansSoutien}')?.presse === true`)
+  e = await editeur()
+  const difficulte = inspecte(e, 'valeur/crossTest/difficulty').valeurs.find((b) => b.presse).libelle
+  noter(`« Ajouter Test de traversée », difficulté « ${difficulte} », soutien refusé : ${e.zones['editeur.validation'][0].texte}`)
+  await capturer('3606-m0a-1-test-de-traversee')
+  await cliquerAuPanneau({ element: 'bouton/zone/supprimer' })
+  await waitFor(session, '!globalThis.wfrpEcran?.editeur?.surcouche.zones.some((z) => z.choisi)')
+  noter('« Supprimer » : la pièce retirée')
+  await cliquerAuPanneau({ element: 'bouton/outil/architecture' })
+  await cliquerPoint(...cases[`${zx},${zy}`])
+  await cliquerAuPanneau({ element: 'bouton/batir/corps' })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'toiture')`)
+  e = await editeur()
+  noter(`outil Architecture, un clic sur la case ${zx}, ${zy}, « Nouveau corps » : ${e.zones['editeur.options'].find((c) => c.id === 'corps').valeurs.find((b) => b.presse).libelle} ; ${inspecte(e, 'toiture').texte}`)
+  await cliquerAuPanneau({ element: 'bouton/architecture/facade' })
+  const [[nx, ny], [sx, sy]] = [cases[`${zx},${zy - 1}`], cases[`${zx},${zy}`]]
+  await cliquerPoint((nx + sx) / 2, (ny + sy) / 2)
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'facade/apparence')`)
+  await cliquerAuPanneau({ element: 'bouton/baie/ajouter' })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('baie/') && l.id.endsWith('/sorte'))`)
+  e = await editeur()
+  const baie = e.zones['editeur.inspecteur'].find((l) => l.id.startsWith('baie/') && l.id.endsWith('/sorte'))
+  noter(`« Poser une façade », un clic sur le côté nord de la case, « Ajouter une ouverture » : ${baie.valeurs.find((b) => b.presse).libelle}, ${inspecte(e, baie.id.replace(/sorte$/, 'position')).texte}`)
+  await capturer('3508-l5-1-facade')
+  await cliquerAuPanneau({ element: 'bouton/architecture/exclusion' })
+  await glisserDe(`${zx + 1},${zy}`, `${zx + 2},${zy + 1}`, 'l’exclusion de toiture tirée')
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'toiture/exclusion/0')`)
+  e = await editeur()
+  assert.equal(boutonDeLEditeur(e, 'architecture/select')?.presse, true, 'l’exclusion tirée, le clic revient à la sélection')
+  noter(`« Tirer une exclusion de toiture », de (${zx + 1}, ${zy}) à (${zx + 2}, ${zy + 1}) : ${inspecte(e, 'toiture/exclusion/0').texte}`)
+  await cliquerPoint(...cases[`${zx},${zy}`])
+  await cliquerAuPanneau({ element: 'bouton/batir/masse' })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'masse/niveaux')`)
+  await cliquerAuPanneau({ element: 'bouton/masse/niveaux/plus' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'masse/niveaux')?.texte === 'Niveaux : 2'`)
+  e = await editeur()
+  assert.equal(e.surcouche.zones.find((z) => z.choisi)?.sorte, 'masse', 'la masse bâtie, sélectionnée en surcouche')
+  noter(`un clic sur la case, « Nouvelle masse de toiture », « +1 » : ${e.zones['editeur.pointee'].find((l) => l.id === 'zone')?.texte} ; ${inspecte(e, 'masse/niveaux').texte}`)
+  await capturer('3508-l5-2-masse')
+  await cliquerAuPanneau({ element: 'bouton/outil/select' })
+  await cliquerPoint(...cases[`${dx + 1},${dy}`])
+  await waitFor(session, '(globalThis.wfrpEcran?.editeur?.zones["editeur.pointee"] ?? []).some((l) => l.id === "zone")')
+  noter(`outil Sélection, un clic sur la case ${dx + 1}, ${dy} : ${(await editeur()).zones['editeur.pointee'].find((l) => l.id === 'zone').texte}`)
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'valeur/when/kind')`)
+  e = await editeur()
+  await choisirALaListe('valeur/when/kind', inspecte(e, 'valeur/when/kind').valeurs.find((b) => b.libelle === 'TOUS (ET)').id, 'editeur.inspecteur')
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'valeur/when/of/ajouter')`)
+  await cliquerAuPanneau({ element: 'bouton/valeur/when/of/ajouter' })
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'valeur/when/of/0/kind')`)
+  e = await editeur()
+  const sousCondition = inspecte(e, 'valeur/when/of/0/kind').valeurs.find((b) => b.presse)?.libelle
+  noter(`à l’inspecteur du déclencheur, la condition « ${inspecte(e, 'valeur/when/kind').valeurs.find((b) => b.presse).libelle} », puis « Ajouter » : une condition « ${sousCondition} » dans son contenu`)
+  await capturer('3606-m0b-1-condition-du-declencheur')
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/when/of'))`)
+  const planche = join(depot, 'planche.png')
+  ecrirePlanche(planche)
+  await session.rpc('Page.setInterceptFileChooserDialog', { enabled: true })
+  await cliquerAuPanneau({ element: 'bouton/calque/charger' })
+  await waitFor(session, '!!document.querySelector("input[data-planche]")')
+  await poserFichier(session, 'input[data-planche]', planche)
+  await waitFor(session, 'globalThis.wfrpEcran?.editeur?.calque_pose === true', { timeoutMs: 30000 })
+  e = await editeur()
+  const ligneDuCalque = (e, id) => e.zones['editeur.calque'].find((l) => l.id === id)?.texte
+  const echelle = (e) => Number(ligneDuCalque(e, 'calque/echelle').split(' ')[0])
+  const avantLeCalage = echelle(e)
+  noter(`« Charger une planche… » : ${ligneDuCalque(e, 'calque')}, coins ${JSON.stringify(e.calque.coins)}, ${ligneDuCalque(e, 'calque/opacite')}, ${ligneDuCalque(e, 'calque/echelle')}`)
+  await capturer('3508-l1b-1-planche-posee')
+  const rangee = Object.keys(cases).map((k) => k.split(',').map(Number))
+    .find(([x, y]) => Array.from({ length: 20 }, (_, i) => cases[`${x + (i % 10)},${y + Math.floor(i / 10)}`]).every((c) => c && aLEcran(c)))
+  assert.ok(rangee, 'deux rangées de dix cases voisines à l’écran, hors du panneau')
+  const [cx, cy] = rangee
+  /** Le point de l'écran du nœud au coin bas-droit de la case `x`, `cy` : le milieu des centres des quatre cases qui le bordent. */
+  const noeud = (x) => [0, 1].map((axe) => [[x, cy], [x + 1, cy], [x, cy + 1], [x + 1, cy + 1]].reduce((somme, [a, b]) => somme + cases[`${a},${b}`][axe], 0) / 4)
+  await cliquerAuPanneau({ element: 'bouton/calque/caler' })
+  for (const point of [cases[`${cx},${cy}`], noeud(cx), cases[`${cx + 4},${cy}`], noeud(cx + 8)]) {
+    await cliquerPoint(...point)
+    await sleep(200)
+  }
+  await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.calque'] ?? []).some((l) => l.id === 'calque/calage')`)
+  e = await editeur()
+  assert.ok(Math.abs(echelle(e) / avantLeCalage - 0.5) < 0.02, `calée, la planche s’étire du double : ${avantLeCalage} puis ${echelle(e)} px par case`)
+  noter(`« Caler par deux points », la case ${cx}, ${cy} sur son nœud, la case ${cx + 4}, ${cy} sur celui de la case ${cx + 8}, ${cy} : ${avantLeCalage} puis ${ligneDuCalque(e, 'calque/echelle')}`)
+  await capturer('3508-l1b-2-planche-calee')
+  await cliquerAuPanneau({ element: 'bouton/couche/1' })
+  e = await editeur()
+  assert.equal(boutonDeLEditeur(e, 'couche/1')?.presse, true, 'la couche 1 s’édite')
+  assert.equal(e.calque_pose, false, 'la couche 1 n’a pas de calque')
+  await capturer('3508-l1-3-couche-1')
+  const scenes = (z) => z['editeur.scenes'].find((el) => el.id === 'scenes').valeurs
+  const avantLAjout = scenes(e.zones)
+  await cliquerAuPanneau({ element: 'bouton/scenes/ajouter' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0].texte === 'Nouvelle scène'`)
+  e = await editeur()
+  assert.equal(scenes(e.zones).length, avantLAjout.length + 1, '« Nouvelle scène » l’ajoute au projet')
+  assert.equal(boutonDeLEditeur(e, 'couche/0')?.presse, true, 'la scène neuve s’édite sur sa couche 0')
+  noter(`« Nouvelle scène » : ${scenes(e.zones).length} scènes, ${e.zones['editeur.titre'][0].texte} éditée, ${Object.keys((await ecran()).cases).length} cases`)
+  await capturer('3508-l6-3-scene-neuve')
+  await cliquerAuPanneau({ element: 'bouton/scenes/retirer' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.scenes'].find((el) => el.id === 'scenes').valeurs.length === ${avantLAjout.length}`)
+  e = await editeur()
+  assert.equal(e.zones['editeur.titre'][0].texte, avantLAjout.at(-1).libelle, 'retirée, sa précédente s’édite')
+  noter(`« Retirer la scène » : ${scenes(e.zones).length} scènes, ${e.zones['editeur.titre'][0].texte} éditée`)
+  await cliquerAuPanneau({ element: 'bouton/scenes/ajouter' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.titre'][0].texte === 'Nouvelle scène'`)
+  const sceneNeuve = (await ecran()).cases
+  const largeur = Math.max(...Object.keys(sceneNeuve).map((k) => Number(k.split(',')[0]))) + 1
+  const hauteur = Math.max(...Object.keys(sceneNeuve).map((k) => Number(k.split(',')[1]))) + 1
+  /** L'origine du bâti : le bloc de ses cases, de (-1, -1) à (9, 6), à l'écran hors du panneau et dans la carte. */
+  const origine = Object.keys(sceneNeuve).map((k) => k.split(',').map(Number))
+    .find(([x, y]) => x >= 1 && y >= 1 && x + 9 < largeur && y + 6 < hauteur && Array.from({ length: 11 * 8 }, (_, i) => sceneNeuve[`${x - 1 + (i % 11)},${y - 1 + Math.floor(i / 11)}`]).every(aLEcran))
+  assert.ok(origine, 'un bloc de onze cases sur huit de la scène neuve à l’écran, hors du panneau')
+  const [ox, oy] = origine
+  /** Le point de l'écran de la case (`dx`, `dy`) du bâti, tel que l'écran le publie maintenant. */
+  const aLaCase = async (dx, dy) => (await ecran()).cases[`${ox + dx},${oy + dy}`]
+  const cliquerLaCase = async (dx, dy) => cliquerPoint(...(await aLaCase(dx, dy)))
+  /** Un clic sur la case (`dx`, `dy`) du bâti, tout près de son côté qui la sépare de sa voisine (`vx`, `vy`). */
+  const cliquerLeCote = async ([dx, dy], [vx, vy]) => {
+    const [[ax, ay], [bx, by]] = [await aLaCase(dx, dy), await aLaCase(vx, vy)]
+    await cliquerPoint(ax + 0.45 * (bx - ax), ay + 0.45 * (by - ay))
+  }
+  /** Le pointeur tenu de la première case du bâti de `chemin` à la dernière, par chacune. */
+  const tirerPar = async (chemin, qui) => {
+    const points = await Promise.all(chemin.map(([dx, dy]) => aLaCase(dx, dy)))
+    await marquer()
+    await geste(session, { surface: 'canvas', x: points[0][0], y: points[0][1] }, { qui }, async ({ x, y }, emettre) => {
+      await emettre('souris', { type: 'mouseMoved', x, y })
+      await emettre('souris', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
+      await sleep(200)
+      for (const [px, py] of points.slice(1)) {
+        await emettre('souris', { type: 'mouseMoved', x: px, y: py, button: 'left', buttons: 1 })
+        await sleep(300)
+      }
+      const [fx, fy] = points[points.length - 1]
+      await emettre('souris', { type: 'mouseReleased', x: fx, y: fy, button: 'left', clickCount: 1 })
+    })
+    await nouvelEcran()
+  }
+  const presserTour = async (...ids) => {
+    for (const id of ids) await cliquerAuPanneau({ element: `bouton/${id}` })
+  }
+  const options = async () => (await editeur()).zones['editeur.options'].filter((l) => l.type === 'ligne').map((l) => l.texte)
+  const palier = [[8, 0], [8, 1], [8, 2]]
+  await presserTour('couche/ajouter', 'outil/tile', 'pinceau/1')
+  await choisirALaListe('terrains', 'terrain/dalle')
+  for (const c of palier) await cliquerLaCase(...c)
+  await presserTour('outil/height', 'pinceau/1', 'hauteur/haute')
+  for (const c of palier) await cliquerLaCase(...c)
+  await presserTour('couche/0')
+  e = await editeur()
+  assert.equal(boutonDeLEditeur(e, 'couche/1')?.libelle, 'Couche 1', 'la scène neuve a deux couches')
+  noter(`« Ajouter une couche », le palier peint en Dallage à 4 m sur la couche 1 : ${e.zones['editeur.couches'][0].valeurs.map((b) => b.libelle).join(', ')}`)
+  const aretesAvantLesMurs = e.aretes
+  await presserTour('outil/wall')
+  await choisirALaListe('structures', 'structure/mur-a-ossature-en-bois')
+  for (const d of [0, 1, 2]) {
+    await cliquerLeCote([d, 0], [d, -1])
+    await cliquerLeCote([d, 2], [d, 3])
+    await cliquerLeCote([0, d], [-1, d])
+    await cliquerLeCote([2, d], [3, d])
+  }
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.aretes === ${aretesAvantLesMurs + 12}`)
+  await presserTour('arete/door')
+  await cliquerLeCote([1, 0], [1, -1])
+  await presserTour('outil/select')
+  await cliquerLeCote([2, 2], [2, 3])
+  await presserTour('arete/fenetre')
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.pointee'] ?? []).some((l) => l.id === 'arete' && l.texte.includes(' · fenêtre · '))`)
+  e = await editeur()
+  noter(`outil Murs, « Mur à ossature en bois », douze côtés cliqués autour de trois cases sur trois, une porte au nord, une fenêtre au sud : ${e.zones['editeur.pointee'].find((l) => l.id === 'arete').texte}`)
+  await presserTour('outil/zone', 'zone/room')
+  await tirerPar([[0, 0], [1, 1], [2, 2]], 'la pièce tirée')
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.surcouche.zones.find((z) => z.choisi)?.cases.length === 9`)
+  await presserTour('outil/architecture')
+  await cliquerLaCase(0, 0)
+  await presserTour('batir/corps', 'batir/etage')
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.couches'][0].valeurs.find((b) => b.presse)?.id === 'couche/1'`)
+  await presserTour('couche/0', 'architecture/facade')
+  await cliquerLeCote([2, 0], [2, -1])
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'facade/apparence')`)
+  await presserTour('baie/ajouter')
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('baie/') && l.id.endsWith('/sorte'))`)
+  noter('outil Zone, la pièce tirée sur les neuf cases ; outil Architecture, « Nouveau corps », « Nouvel étage », une façade au nord et son ouverture')
+  await presserTour('outil/stair', 'etage/1')
+  await tirerPar([[4, 1], [5, 1], [6, 1], [7, 1]], 'la volée tracée')
+  await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.cases.length === 4')
+  const plan = await options()
+  assert.deepEqual(plan, ['Tracé : 4 cases', '0 m → 4 m · cotes 1 · 2 · 3 · 4 m'], 'la volée tracée monte au palier')
+  await presserTour('volee/poser')
+  await waitFor(session, 'globalThis.wfrpEcran?.editeur?.surcouche.cases.length === 0')
+  noter(`outil Volée, quatre cases tirées vers le palier : ${plan.join(', ')} ; « Poser la volée »`)
+  await presserTour('outil/prop')
+  await cliquerLaCase(5, 4)
+  await presserTour('outil/select')
+  await cliquerLaCase(5, 4)
+  await presserTour('entite/cap/E')
+  await presserTour('outil/heroStart')
+  await cliquerLaCase(3, 5)
+  await presserTour('outil/zone', 'zone/trigger')
+  await tirerPar([[6, 4], [7, 5], [8, 6]], 'le déclencheur tiré')
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.surcouche.zones.find((z) => z.choisi)?.cases.length === 9`)
+  e = await editeur()
+  const validation = e.zones['editeur.validation'][0].texte
+  assert.match(validation, /^Validation : 0 erreur\(s\)/, 'la scène bâtie ne porte aucune erreur')
+  noter(`un décor tourné à l’est, un départ, un déclencheur tiré sur trois cases sur trois : ${validation}`)
+  await capturer('3508-l7-1-batie')
+  const avantLeBati = lus()
+  await cliquerAuPanneau({ element: 'bouton/enregistrer' })
+  await waitFor(session, `Object.values(globalThis.wfrpEcran?.editeur?.zones ?? {}).flat().some((el) => el.id === 'enregistrer' && el.refus === 'Rien à enregistrer')`)
+  const ecrit = lus().findIndex((texte, i) => texte !== avantLeBati[i])
+  const anciennes = new Set(JSON.parse(avantLeBati[ecrit]).scenes.map((sc) => sc.id))
+  const batie = JSON.parse(lus()[ecrit]).scenes.find((sc) => !anciennes.has(sc.id))
+  const ici = (dx, dy) => ({ x: ox + dx, y: oy + dy })
+  assert.deepEqual(batie.layers.map((l) => l.z), [0, 1], 'deux couches')
+  assert.deepEqual([4, 5, 6, 7].map((dx) => batie.layers[0].height[(oy + 1) * largeur + ox + dx]), [1, 2, 3, 4], 'la volée cotée de cran en cran')
+  assert.equal(batie.walls.filter((w) => w.structure === 'mur-a-ossature-en-bois').length, 11, 'onze murs à ossature en bois')
+  assert.deepEqual(batie.walls.filter((w) => w.door).map((w) => [w.x, w.y, w.side]), [[ox + 1, oy, 'N']], 'la porte au nord')
+  assert.deepEqual(batie.walls.filter((w) => w.window).map((w) => [w.x, w.y, w.side]), [[ox + 2, oy + 3, 'N']], 'la fenêtre au sud')
+  assert.deepEqual(batie.architecture[0].storeys.map((st) => st.z), [0, 1], 'un corps de deux étages')
+  assert.equal(batie.architecture[0].facades.flatMap((f) => f.features ?? []).length, 1, 'une façade et son ouverture')
+  assert.deepEqual(batie.effectZones.map((z) => [z.presentation, z.area]), [['interior', { kind: 'rect', ...ici(0, 0), w: 3, h: 3 }]], 'la pièce')
+  assert.deepEqual(batie.entities.map((en) => [en.kind, en.pos, en.facing]), [['prop', ici(5, 4), 'E'], ['heroStart', ici(3, 5), undefined]], 'le décor tourné, le départ')
+  assert.deepEqual(batie.triggers.map((tr) => [tr.rect, tr.flow]), [[{ ...ici(6, 4), w: 3, h: 3 }, { kind: 'seq', steps: [] }]], 'le déclencheur, au flux vide')
+  noter(`« Enregistrer » : ${MANUSCRITS[ecrit]} porte la scène ${batie.id} : ${batie.layers.length} couches, ${batie.walls.length} arêtes, ${batie.architecture[0].storeys.length} étages, ${batie.effectZones.length} pièce, ${batie.entities.length} entités, ${batie.triggers.length} déclencheur`)
+  await cliquerAuPanneau({ element: 'bouton/tester' })
+  await waitFor(session, '!globalThis.wfrpEcran?.editeur && !!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  const v = await vue()
+  assert.equal(v.projection.scene?.nom, 'Nouvelle scène', '« Tester la scène » ouvre le combat sur la scène bâtie')
+  noter(`« Tester la scène » : partie ouverte sur ${v.projection.scene.nom}, ${Object.keys((await ecran()).cases).length} cases`)
+  await capturer('3508-l7-2-essai')
+}
+
 /** La page ouverte de la création : son titre. */
 const pageOuverte = (v) => zone(v, 'creation.titre')[0]?.texte
 
@@ -1236,7 +2283,7 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, exploration: parcoursExploration, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null
@@ -1257,5 +2304,6 @@ try {
   for (const e of [...erreurs, ...garde.warnings()]) console.log(' ', e.level, e.text)
   await session.close()
   srv.fermer()
+  if (depot) rmSync(depot, { recursive: true, force: true })
 }
 process.exitCode = echec || garde.errors().length ? 1 : 0

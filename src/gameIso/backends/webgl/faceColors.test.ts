@@ -1,22 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { faceSurface, surfaceKeyOf, tintVarFactor } from './faceColors';
+import { faceSurface, surfaceKeyOf } from './faceColors';
+import { reliefMaterial, tintVarFactor, TINT_SPREAD } from '../../../noyau/monde/volume/matieres';
 import { coursesPeriodM, groundPeriodM } from '../../detail/courses';
 import { terrainFillGradient } from '../../authoring/detailSvg';
-import { TINT_SPREAD } from '../../detail/expand';
-import { reliefMaterial } from '../../catalog/relief';
-import { roofMaterial } from '../../catalog/roofs';
-import { structureAppearance } from '../../catalog/structures';
+import { roofMaterial } from '../../../noyau/monde/volume/matieres';
+import { structureAppearance } from '../../../noyau/monde/volume/structures';
 import { tousLesTerrains } from '../../../noyau/monde/terrain';
 import { terrainGradient, terrainGradientId, MISSING_GRADIENT } from '../../catalog/terrain';
-import { propMaterial } from '../../catalog/propMaterials';
-import { MISSING_ID, MISSING_LABEL, MISSING_TONE, MISSING_TONE_DARK } from '../../catalog/missing';
+import { propMaterial } from '../../../noyau/monde/volume/matieres';
+import { MISSING_ID, MISSING_LABEL, MISSING_TONE, MISSING_TONE_DARK } from '../../../noyau/monde/volume/missing';
 import { matieresDe } from '../../../data';
-import { buildFloors } from '../../builders/floors';
+import { buildFloors } from '../../../noyau/monde/volume/floors';
 import { buildWalls } from '../../builders/walls';
-import { buildRoofs } from '../../builders/roofs';
+import { buildRoofs } from '../../../noyau/monde/volume/toits';
 import { buildScene } from '../../../noyau/mapSpec';
 import { spec as siegeSpec } from '../../../scenes/test-scenarios/siege-enceinte';
-import type { Face } from '../../builders/types';
+import type { Face } from '../../../noyau/monde/volume/types';
 
 /**
  * Les attendus sont LUS DANS LA DONNÉE, pas récités depuis l'implémentation : chaque couleur ci-dessous
@@ -226,7 +225,7 @@ describe('faceSurface — matériau de DÉCOR volumique (domaine `prop`)', () =>
 });
 
 /**
- * REPLI VISIBLE (#877, `catalog/missing.ts`) — contrat POSITIF des QUATRE domaines que `faceSurface`
+ * REPLI VISIBLE (#877, `noyau/monde/volume/missing.ts`) — contrat POSITIF des QUATRE domaines que `faceSurface`
  * résout par un registre indexé (relief, toiture, terrain, matière de décor) : un id absent rend le TON
  * D'ALARME et n'emprunte l'identité d'AUCUNE entrée réelle — une donnée fautive se VOIT au lieu de se
  * déguiser en sol. La formulation est NÉGATIVE PAR CONSTRUCTION (« aucune entrée réelle ») : elle

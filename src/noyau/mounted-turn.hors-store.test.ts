@@ -37,13 +37,13 @@ function setup() {
 
 beforeEach(() => {
   banc.setState({ battle: null, party: [], journal: [] });
-  banc.getState().seedRng(1);
+  banc.getState().ensemencerLeTirage(1);
 });
 
 describe('monture Nerveux chevauchée = pas de tour propre', () => {
   it('enfourcher un Cheval (Nerveux) le retire de l’ordre d’initiative', () => {
     const { hero } = setup();
-    banc.getState().battleMount();
+    banc.getState().monterEnSelle();
     const b = banc.getState().battle!;
     expect(hero.mountId).toBe('horse'); // appairage effectué
     expect(b.order).not.toContain('horse'); // la monture Nerveux quitte l'ordre
@@ -52,10 +52,10 @@ describe('monture Nerveux chevauchée = pas de tour propre', () => {
 
   it('descendre réintègre la monture dans l’ordre', () => {
     const { hero } = setup();
-    banc.getState().battleMount();
+    banc.getState().monterEnSelle();
     // Le mouvement vient d'être dépensé par l'enfourchement → le remettre à 0 pour autoriser la descente.
     banc.setState({ battle: { ...banc.getState().battle!, movementUsed: 0 } });
-    banc.getState().battleDismount();
+    banc.getState().mettrePiedATerre();
     const b = banc.getState().battle!;
     expect(hero.mountId).toBeFalsy();
     expect(b.order).toContain('horse');

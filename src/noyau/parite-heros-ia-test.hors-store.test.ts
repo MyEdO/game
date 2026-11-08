@@ -49,8 +49,8 @@ describe('même Test, héros et IA Sonnés ×3 : même cible (LDB 16 l.125)', ()
   it('entrée en Frénésie (Test de Force Mentale, LDB 21 l.31)', () => {
     const { H, E } = jumeauxSonnes();
     H.traits = [{ id: 'frenesie' }]; E.traits = [{ id: 'frenesie' }];
-    g().battleFrenzy();
-    g().jetRoll('frenzy');
+    g().entrerEnFrenesie();
+    g().jetLancer('frenzy');
     const cible = g().pendingFrenzy!.result!.target!;
     memeCible(cible, 30, (de) => {
       E.psychState = [];
@@ -64,7 +64,7 @@ describe('même Test, héros et IA Sonnés ×3 : même cible (LDB 16 l.125)', ()
     const { H, E } = jumeauxSonnes();
     (H as { activeEffects?: unknown[] }).activeEffects = [{ label: 'Bénédiction de Protection', bonus: 0, duration: { scale: 'rounds', left: 6 }, attackWardFM: true }];
     banc.setState({ pendingWard: { attackerId: H.id, targetId: E.id, targetName: E.label, result: null } } as never);
-    g().jetRoll('ward');
+    g().jetLancer('ward');
     const cible = g().pendingWard!.result!.target!;
     memeCible(cible, 50, (de) => attackWardGate(E, H, deFixe(de)).allowed);
   });

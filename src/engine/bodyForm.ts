@@ -1,7 +1,7 @@
 /**
  * Forme du corps d'une ESPÈCE → Tableau de Localisation (LDB 76 l.15-29). SOURCE DE VÉRITÉ RÈGLES,
  * neutre (aucune dépendance au rendu). `noyau/monde/spawn` (`bodyShapeOf`) en dérive la
- * `BodyShape` d'un Combattant sans importer `gameIso` (#187 : découplage taxonomie de forme ↔ rendu).
+ * `BodyShape` d'un Combattant sans importer le rendu (#187 : découplage taxonomie de forme ↔ rendu).
  *
  * Seules les espèces NON humanoïdes sont listées (défaut = humanoïde, table par défaut LDB 76 l.17 —
  * les gabarits sans Localisation Alternative canon, céphalopode/amorphe/squig/spectral/jabberslythe,

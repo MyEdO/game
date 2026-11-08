@@ -38,7 +38,7 @@ import {
   mutationTableIds, mutationAt, mutationOfRow, mutationSubTableFor, mutationTableDie, mutationTablePlayerLabel, mutationTableRows,
 } from '../data/mutations';
 import { species, mutationBodyMaxForSpecies, combatStakeRef, refLabel } from '../data';
-import { findTableEntry } from '../engine/tables';
+import { facesDuDe, findTableEntry } from '../engine/tables';
 import { pushStep, type TableStepDef } from './cascade';
 import { memoParVersion } from '../data/versionDataset';
 import { touchActors } from './combatOrParty';
@@ -46,7 +46,7 @@ import { actorIn } from './monde/combatants';
 import type { PendingCascade, PendingCorruption, PendingMutationStep } from './pendings';
 import { rule } from '../engine/policy';
 import { rollTest } from '../engine/tests';
-import { valeurDuTest } from '../engine/skills';
+import { testValue } from '../engine/skills';
 import { pushReveal } from './combatEffects';
 import { checkPartyWiped } from './partyWipe';
 import { journaliser } from './combatLog';
@@ -59,6 +59,7 @@ import { stepDetail } from './rollSeam';
 import { NATURES_D_INFLUENCE, type NatureDInfluence } from '../data/schemas/grammaire/valeurs';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import type { CorpsDesReglages } from './reglagesDuJet';
+import type { CorpsDesChoix } from './choixDesFenetres';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Le Test d'EXPOSITION de nature `nature` : la fiche `influences-corruptrices` (LDB 19 l.29). SEULE
@@ -127,7 +128,7 @@ export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, a
   // REPLI AUTO-RÉSOLU — atteint SEULEMENT quand AUCUN siège humain ne tient le porteur (le `return`
   // ci-dessus a déjà emporté tous les autres) : l'automate ne tient aucune modale, ni de seuil, ni de
   // renoncement. Le Test est donc jeté ici et la mutation appliquée d'office.
-  const tst = rollTest(valeurDuTest(hero, test), test.difficulty, rng);
+  const tst = rollTest(testValue(hero, test), test.difficulty, rng);
   if (tst.success) {
     lines.push(resultLine(freeCons([t('cor.contained', { name: hero.label })])));
     return lines;
@@ -187,7 +188,7 @@ const tablesDeMutation = memoParVersion(['mutationTables', 'mutations'], () => {
     const rows = mutationTableRows(id);
     tables.set(id, {
       label: mutationTablePlayerLabel(id),
-      die: mutationTableDie(id).sides,
+      die: facesDuDe(mutationTableDie(id)),
       rows,
       lines: (die) => [mutationAt(id, die).label],
       entryCategory: 'mutations', // la ligne tirée EST la mutation : sa fiche est le foyer de l'enjeu
@@ -277,7 +278,7 @@ function finishMutation(
     lines.push(t('cor.damned', { name: hero.label }));
   }
   if (tenuParUnHumain(get(), hero.id))
-    pushReveal(set, { kind: 'mutation', title: t('cor.revealTitle', { label: m.label }), dice: m.roll, lines: [...lines], subjectId: hero.id, severity: 'grave' });
+    pushReveal(set, { kind: 'mutation', title: t('cor.revealTitle', { label: m.label }), dice: m.roll, lines: [...lines], subjectId: hero.id });
   checkPartyWiped(get, set); // damnation du dernier héros hors combat → défaite (no-op en combat)
   return lines;
 }
@@ -291,10 +292,10 @@ export function resolveRenounce(get: Get, set: Set, renounce: boolean): void {
   const hero = corruptionTarget(get(), pr.heroId);
   if (!hero) { releaseCorruptionSlot(get, set); return; }
   const lines: string[] = [];
-  if (renounce && (hero.resilience ?? 0) > 0) {
+  if (renounce) {
     hero.resilience = (hero.resilience ?? 0) - 1;
     lines.push(t('cor.renounced', { name: hero.label }));
-    pushReveal(set, { kind: 'mutation', title: t('cor.renounceTitle'), lines: [...lines], subjectId: hero.id, severity: 'minor' });
+    pushReveal(set, { kind: 'mutation', title: t('cor.renounceTitle'), lines: [...lines], subjectId: hero.id });
   } else {
     lines.push(...applyMutation(get, set, hero, { roll: pr.testRoll, target: pr.testTarget }, pr.align));
   }
@@ -329,12 +330,12 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
     // Le jet (roll/target) est DÉJÀ affiché par la rangée de la modale de Corruption — pas de
     // re-print au journal (#295 Lot 4).
     if (pc.success) {
-      get().log(resultLine(freeCons([t('cor.contained', { name: hero.label })])));
+      get().ecrireAuJournal(resultLine(freeCons([t('cor.contained', { name: hero.label })])));
     } else if ((hero.resilience ?? 0) > 0) {
-      get().log(resultLine(freeCons([t('cor.thresholdFail', { name: hero.label })])));
+      get().ecrireAuJournal(resultLine(freeCons([t('cor.thresholdFail', { name: hero.label })])));
       set({ pendingRenounce: { heroId: hero.id, testRoll: pc.roll, testTarget: pc.target ?? 0, align: pc.align } });
     } else {
-      for (const l of applyMutation(get, set, hero, { roll: pc.roll, target: pc.target ?? 0 }, pc.align)) get().log(l);
+      for (const l of applyMutation(get, set, hero, { roll: pc.roll, target: pc.target ?? 0 }, pc.align)) get().ecrireAuJournal(l);
     }
     set({ ...touchActors(get()) });
     return;
@@ -342,10 +343,10 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
   const gain = corruptionGain(pc.level ?? 'mineure', !!pc.success, pc.sl ?? 0);
   if (gain <= 0) {
     // Le jet est DÉJÀ affiché par la rangée de la modale de Corruption — pas de re-print (#295 Lot 5).
-    get().log(resultLine(freeCons([t('cor.repelled', { name: hero.label })])));
+    get().ecrireAuJournal(resultLine(freeCons([t('cor.repelled', { name: hero.label })])));
     return;
   }
-  for (const l of gainCorruption(get, set, hero, gain, pc.align)) get().log(l);
+  for (const l of gainCorruption(get, set, hero, gain, pc.align)) get().ecrireAuJournal(l);
   set({ ...touchActors(get()) });
 }
 
@@ -355,6 +356,11 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
 export function corruptionTarget(s: Jeu, heroId?: string): Combatant | undefined {
   const pool = s.battle?.combatants.filter((c) => followsCharacterRules(c)) ?? s.party;
   return (heroId ? pool.find((h) => h.id === heroId) : undefined) ?? pool.find((h) => !h.dead && !h.outOfRencontre);
+}
+
+/** Le choix de « Je te renie ! » (`CorpsDesChoix`, LDB 17 l.67) : `resolveRenounce`. */
+export function choixDeCorruption(get: Get, set: Set): Pick<CorpsDesChoix, 'renounce'> {
+  return { renounce: { renier: (renier) => resolveRenounce(get, set, renier) } };
 }
 
 /** Le réglage de l'exposition à une Influence corruptrice (`CorpsDesReglages`) : en EXPOSITION seulement, jamais quand la
@@ -410,7 +416,7 @@ export const TABLES = {
   ],
 } satisfies FragmentDeTables;
 
-/** Les clôtures de la Corruption (`CloturesDuJet`) : `jetConfirm` les joue, tant que le flux les ouvre. */
+/** Les clôtures de la Corruption (`CloturesDuJet`) : `jetValider` les joue, tant que le flux les ouvre. */
 export function cloturesDeCorruption(get: Get, set: Set) {
   return {
     /** Acquitte l'exposition (Points selon niveau + DR, puis seuil) OU le Test du SEUIL

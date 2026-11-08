@@ -122,13 +122,14 @@ describe('billet de la diligence — chemin du joueur', () => {
   it('au virage, billet en main : « Billet payé jusqu’à … (classe) », départ sans paiement', async () => {
     aBord();
     creditBourse(get, useGame.setState, get().party[0].id, { gold: 0, silver: 4, brass: 0 }); // 4 × 4/- au toit
-    get().startTravel(T1, 'diligence', { classeId: 'exterieur' });
+    get().partirEnVoyage(T1, 'diligence', { classeId: 'exterieur' });
     expect(get().billetEnMain?.routesRestantes).toEqual([T2]);
     draineCascade(get);
     if (get().travelRecap) get().fenetreFermer('recitDeVoyage');
+    get().fenetreFermer('ecranDuLieu');
     poserLeGroupe(get, useGame.setState, { x: 36, y: 3 });
     get().jouerAction('cadavre-kastor-lieberung', 'fouiller');
-    get().designerHerosChoisir(get().party[0].id);
+    get().fenetreChoisir('designationHeros', 'heros', get().party[0].id);
     // EDO 02 l.93-95 : les Documents 3 et 4 se lisent, puis la fouille reprend sa suite.
     while (get().document) get().fenetreFermer('document');
     expect(get().flags['edo-ch1-corps-kastor-fouille']).toBe(true);

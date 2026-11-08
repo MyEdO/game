@@ -2,8 +2,8 @@
  * Manifeste des CHAMPS TRANSITOIRES du store (pendings, modales de jet, files de révélation,
  * vue éphémère…) — SOURCE UNIQUE de leur valeur initiale ET des contextes qui les réinitialisent.
  *
- * Les trois sites de reset (état initial `create()`, `transitionTo` = changement de scène,
- * `startCombat` = ouverture de combat) lisent UN tableau, par deux dérivés : aucun site ne re-liste
+ * Les trois sites de reset (état initial `create()`, `quitterLaScene` = changement de scène,
+ * `lancerLeCombat` = ouverture de combat) lisent UN tableau, par deux dérivés : aucun site ne re-liste
  * un champ `pending*` à la main.
  *
  * - `initialFields()` : le bloc `{ champ: init }` complet — l'état `create()` le spread (forme à plat
@@ -16,8 +16,8 @@
  */
 import type { EtatDeJeu } from './etat';
 
-/** Contextes de réinitialisation. `scene` = changement de scène (`transitionTo`) ;
- *  `combatStart` = ouverture de combat (`startCombat`). */
+/** Contextes de réinitialisation. `scene` = changement de scène (`quitterLaScene`) ;
+ *  `combatStart` = ouverture de combat (`lancerLeCombat`). */
 export type ResetScope = 'scene' | 'combatStart';
 
 /** TOUTES les clés `pending*` de `EtatDeJeu` — DÉRIVÉ (jamais une re-liste manuelle). Borne à la
@@ -44,7 +44,7 @@ const STATE_FIELDS = {
   actorAoe: { init: null, resetOn: ['combatStart'] },
   // Retour d'IHM du dernier geste refusé (`refusVisible.ts`) : per-combat/per-scène comme le
   // télégraphe `actorAim` ci-dessus — un refus prononcé dans un combat n'ouvre pas le suivant, et
-  // n'entre pas dans le checkpoint d'entrée de scène (`transitionTo` → `autoSave`).
+  // n'entre pas dans le checkpoint d'entrée de scène (`quitterLaScene` → `autoSave`).
   refus: { init: null, resetOn: ['scene', 'combatStart'] },
   pendingReload: { init: null, resetOn: ['scene', 'combatStart'] },
   pendingStateRecovery: { init: null, resetOn: ['scene', 'combatStart'] },
@@ -72,7 +72,8 @@ const STATE_FIELDS = {
   // `openCombatEndCascade`. Réinitialisés à chaque nouveau combat/scène (per-combat, jamais reportés).
   deferredUpkeepQueue: { init: [], resetOn: ['scene', 'combatStart'] },
   sequence: { init: null, resetOn: ['scene', 'combatStart'] },
-  sessionEndOpen: { init: false, resetOn: ['scene'] },
+  // La fin de séance survit au changement de scène, comme le récap de chapitre qui l'ouvre avec lui.
+  finDeSeance: { init: null, resetOn: [] },
   pendingCastOpposition: { init: null, resetOn: ['combatStart'] }, // MÊME portée que l'incantation qu'elle oppose (pendingCast/pendingCounterspell) : la fenêtre ne survit pas à son Sort
   pendingHeal: { init: null, resetOn: ['combatStart'] },
   pendingSurgery: { init: null, resetOn: [] }, // hors-combat, vit DANS l'infirmerie (medic, resetOn []) — purgé avec elle
@@ -102,7 +103,7 @@ const STATE_FIELDS = {
   pendingFateSave: { init: null, resetOn: [] },
   pendingVictory: { init: null, resetOn: ['combatStart'] },
   // Vol terrestre en cours (#327 A5.1) : marqueur SURVIVANT à l'ouverture de combat (posé APRÈS
-  // startCombat), éteint explicitement au teardown (`resolveCargoRaid`). Transitoire — jamais persisté.
+  // lancerLeCombat), éteint explicitement au teardown (`denouerLeVol`). Transitoire — jamais persisté.
   cargoRaid: { init: false, resetOn: ['scene'] },
   pendingLoot: { init: null, resetOn: [] },
   document: { init: null, resetOn: [] },
@@ -111,33 +112,30 @@ const STATE_FIELDS = {
   // transient de voyage (ne survit à rien d'autre que la confirmation → halte de nuit).
   port: { init: null, resetOn: ['scene'] },
   pendingSeaActivities: { init: null, resetOn: [] },
-  // Survit à `transitionTo` : posé JUSTE avant la transition vers la scène de port (resolvePortArrival),
-  // il doit rester actif dans la nouvelle scène (comme pendingSeaActivities ci-dessus).
-  pendingManannPriest: { init: null, resetOn: [] },
   // Posé à l'accostage AVANT toute transition de scène (celle-ci n'intervient qu'à la résolution du
-  // choix, `resolveShoreLeave`) — aucune scène à survivre, mais transitoire de voyage comme les autres.
+  // choix `shoreLeave.accorder`) — aucune scène à survivre, mais transitoire de voyage comme les autres.
   pendingShoreLeave: { init: null, resetOn: [] },
   // Campagne publiée choisie au menu (PartyScreen) : survit jusqu'à la constitution du groupe, jamais
   // remis par un changement de scène/combat (posé AVANT toute scène de jeu).
   pendingCampaign: { init: null, resetOn: [] },
-  // Document source du paquet de campagne chargé (#766) : posé par `loadProject`, SURVIT aux transitions
+  // Document source du paquet de campagne chargé (#766) : posé par `chargerLeProjet`, SURVIT aux transitions
   // de scène (`resetOn: []`) — c'est lui qui, au chargement d'une save, ré-enregistre TOUTES les scènes
   // et re-dérive `campaignNarratif`. Entre au snapshot par ce manifeste (patron `pendingCampaign`).
   campaignDoc: { init: null, resetOn: [] },
   // Instances runtime de scène (#707) : delta capturé au départ (entités retirées, flags de porte/
-  // structure) par `sceneId`, réappliqué au clone frais au revisit (`transitionTo`). SURVIT aux
+  // structure) par `sceneId`, réappliqué au clone frais au revisit (`quitterLaScene`). SURVIT aux
   // transitions (`resetOn: []`), embarqué au snapshot par ce manifeste (patron `campaignDoc`) ;
-  // vidé en nouvelle partie (`startScene` → reset à l'init).
+  // vidé en nouvelle partie (`lancerLaScene` → reset à l'init).
   sceneInstances: { init: {}, resetOn: [] },
   // Commandes d'interlude (LDB 22-23) : purgées explicitement à l'ouverture du prochain interlude
-  // (`startInterlude`), jamais par `resetFields` (elles doivent SURVIVRE au combat/aux scènes entre-temps).
+  // (`ouvrirLInterlude`), jamais par `resetFields` (elles doivent SURVIVRE au combat/aux scènes entre-temps).
   pendingOrders: { init: [], resetOn: [] },
-  // Jet d'Activité d'interlude/bataille de masse : clos par `jetCancel('activity')`/`jetConfirm('activity')`, jamais
+  // Jet d'Activité d'interlude/bataille de masse : clos par `jetAnnuler('activity')`/`jetValider('activity')`, jamais
   // par un changement de scène/combat (l'interlude n'ouvre pas de combat pendant qu'une Activité est en cours).
   pendingActivity: { init: null, resetOn: [] },
-  // Cadre de campagne (#717) : l'ouverture est posée par `loadProject` APRÈS `startScene` et le récap
+  // Cadre de campagne (#717) : l'ouverture est posée par `chargerLeProjet` APRÈS `lancerLaScene` et le récap
   // est armé en plein jeu — tous deux doivent SURVIVRE aux transitions de scène et à l'ouverture d'un
-  // combat (`resetOn: []`, patron `campaignDoc`) ; ils meurent avec la partie (`startScene` → init).
+  // combat (`resetOn: []`, patron `campaignDoc`) ; ils meurent avec la partie (`lancerLaScene` → init).
   pendingOuverture: { init: null, resetOn: [] },
   pendingChapterRecap: { init: null, resetOn: [] },
   // Porte d'heure de départ (maison, #340) : posée sur la carte du monde, effacée en quittant la scène/carte.

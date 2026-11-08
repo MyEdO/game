@@ -1,22 +1,13 @@
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 13 l.162-306 */
 import { z } from 'zod';
-import { document, type EnveloppeDocument } from '../grammaire/document';
-import { difficultySchema, enumNomme, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { document, tableTiree, type EnveloppeDocument } from '../grammaire/document';
+import { difficultySchema, enumNomme, meteoMarineSchema, parSaison, plageSchema, sourceRefSchema, ventMarinSchema } from '../grammaire/valeurs';
 import { refOuSpec } from '../grammaire/ref';
-import { seasonLabel } from '../../index';
 
 export const file = 'sea-weather.json';
 export const famille = 'config';
 
-const windForce = z.enum([
-  'calme-plat',
-  'legere-brise',
-  'brise-fraiche',
-  'vent-modere',
-  'vent-violent',
-  'violente-tempete',
-]);
 /** MDG 13 l.267-270 */
 export const windAspectSchema = enumNomme({ arriere: 'vent arrière', lateral: 'vent latéral', face: 'vent de face' });
 const windEffectCell = nommerChamps(z.strictObject({
@@ -32,37 +23,26 @@ const windEffectCell = nommerChamps(z.strictObject({
   affaler: { label: 'Amener les voiles' },
   virement: { label: 'Virement' },
 });
-const windEffectTable = z.record(windForce, z.record(windAspectSchema, windEffectCell));
+const windEffectTable = z.record(ventMarinSchema, z.record(windAspectSchema, windEffectCell));
 
 const champs = {
-  table: z.array(
+  /** MDG 13 l.170 */
+  table: tableTiree(
     nommerChamps(z.strictObject({
       ...plageSchema.shape,
-      precipitations: z.enum(['aucune', 'legeres', 'abondantes', 'tres-abondantes']),
-      temperature: z.enum(['caniculaire', 'chaude', 'mediane', 'froide', 'glaciale']),
-      visibilite: z.enum(['degage', 'brume', 'brouillard', 'puree-de-pois']),
-      vent: windForce,
+      ...meteoMarineSchema.shape,
       source: sourceRefSchema,
     }), {
       ...metaDesChamps(plageSchema, { exigees: true }),
-      precipitations: { label: 'Précipitations' },
-      temperature: { label: 'Température' },
-      visibilite: { label: 'Visibilité' },
-      vent: { label: 'Vent' },
+      ...metaDesChamps(meteoMarineSchema, { exigees: true }),
       source: { label: 'Source' },
     }),
   ),
   seasonMod: nommerChamps(z.strictObject({
-    ete: z.number(),
-    automne: z.number(),
-    printemps: z.number(),
-    hiver: z.number(),
+    saisons: parSaison(z.number()),
     source: sourceRefSchema,
   }), {
-    ete: { get label() { return seasonLabel('ete'); } },
-    automne: { get label() { return seasonLabel('automne'); } },
-    printemps: { get label() { return seasonLabel('printemps'); } },
-    hiver: { get label() { return seasonLabel('hiver'); } },
+    saisons: { label: 'Saisons' },
     source: { label: 'Source' },
   }),
   warmSeaMod: z.number(),
@@ -128,7 +108,8 @@ const champs = {
   vents: z.array(nommerChamps(z.strictObject({ id: z.string(), label: z.string(), source: sourceRefSchema }), { id: { label: 'Identifiant' }, label: { label: 'Libellé' }, source: { label: 'Source' } })),
   windTickThreshold: z.number(),
   windTicksPerDay: z.number(),
-  roseDesVents: z.array(
+  /** MDG 13 l.252 */
+  roseDesVents: tableTiree(
     nommerChamps(z.strictObject({
       ...plageSchema.shape,
       direction: z.enum(['dominant', 'nord', 'sud', 'ouest', 'est']),
@@ -162,7 +143,7 @@ const doc = document(
   {
     table: {
       label: 'Tirage quotidien',
-      hint: 'Tirage 1d10 + modificateur saisonnier, PAR ASPECT (4 tirages : précipitations/température/visibilité/vent)',
+      hint: 'Tirage au dé de la table + modificateur saisonnier, PAR ASPECT (4 tirages : précipitations/température/visibilité/vent)',
     },
     seasonMod: { label: 'Modificateur saisonnier', hint: 'Décalage du tirage météo par saison' },
     warmSeaMod: { label: 'Modificateur mer chaude', hint: 'Décalage du tirage météo en mer chaude' },
@@ -178,7 +159,7 @@ const doc = document(
       hint: 'Résultat exact du d10 qui fait changer la FORCE du vent d’un cran',
     },
     windTicksPerDay: { label: 'Bascules par jour', hint: 'Nombre de tirages de vent par journée en mer' },
-    roseDesVents: { label: 'Rose des vents', hint: 'Tirage d10 de la direction du vent (« dominant » = vents dominants du plan d’eau)' },
+    roseDesVents: { label: 'Rose des vents', hint: 'Tirage de la direction du vent (« dominant » = vents dominants du plan d’eau)' },
     effetDuVent: { label: 'Effet du vent', hint: 'Table croisée force×vent relatif (% voiles/autre, encalminage, affalage, virement)' },
     effetDuVentClinfoc: { label: 'Effet du vent (clinfoc)', hint: 'Même table, variante clinfoc' },
     effetDuVentGreementDelta: { label: 'Delta gréement de course', hint: 'Delta de % voiles ajouté au tableau standard, par vent relatif' },

@@ -7,8 +7,8 @@
 import { describe, expect, it } from 'vitest';
 import { periodTextureData, jointFactor, PERIOD_PX_PER_M } from './periodTexture';
 import { coursesPeriod, coursesPeriodM, coursesKey, patternWM, N_VARIANTS } from '../../detail/courses';
-import { facadeStructureAppearance } from '../../catalog/facades';
-import { wallPartColor } from '../../catalog/structures';
+import { facadeStructureAppearance } from '../../../noyau/monde/volume/structures';
+import { wallPartColor } from '../../../noyau/monde/volume/structures';
 import { matieresDe } from '../../../data';
 import type { DetailRecipe } from '../../../data/materials.types';
 

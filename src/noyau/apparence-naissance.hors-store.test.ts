@@ -44,24 +44,24 @@ describe('la naissance est câblée aux flux réels', () => {
     expect(banc.getState().party[0].items?.find((i) => i.trappingId === 'arme-simple')?.apparence).toBe('naissance-naine');
   });
 
-  it('transferItem transmet la même décision et le même uid entre deux héros de contextes différents', () => {
+  it('transmettreLObjet transmet la même décision et le même uid entre deux héros de contextes différents', () => {
     banc.setState({ party: [porteur('nain'), porteur('humain', 'humains-reiklander', 'noble')] });
     donner('nain');
     const objet = banc.getState().party[0].items!.find((i) => i.trappingId === 'arme-simple')!;
     expect(objet.apparence).toBe('naissance-naine');
-    banc.getState().transferItem(objet.uid, 'nain', 'humain');
+    banc.getState().transmettreLObjet(objet.uid, 'nain', 'humain');
     expect(banc.getState().party[0].items?.some((i) => i.uid === objet.uid)).toBe(false);
     expect(banc.getState().party[1].items?.find((i) => i.uid === objet.uid)?.apparence).toBe('naissance-naine');
   });
 
   it('le panier fait naître sans propriétaire : aucune apparence, et la répartition n’en décide aucune', () => {
     banc.setState({ party: [porteur('nain'), porteur('humain', 'humains-reiklander')], merchant: marchand() });
-    banc.getState().payCart();
+    banc.getState().payerLesAchats();
     const attribution = banc.getState().merchant!.pendingDistribution?.[0];
     const objet = attribution && 'item' in attribution ? attribution.item : undefined;
     expect(objet).toBeDefined();
     expect(objet).not.toHaveProperty('apparence');
-    banc.getState().assignDistribution(0, 'humain');
+    banc.getState().fenetreChoisir('marchand', 'repartition', attribution!.uid, 'humain');
     banc.getState().fenetreValider('marchand');
     expect(banc.getState().party[1].items?.find((i) => i.uid === objet?.uid)).not.toHaveProperty('apparence');
   });

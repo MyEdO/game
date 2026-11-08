@@ -43,7 +43,7 @@ describe('coop — l’écran PAR SIÈGE de l’hôte ne refuse pas la réponse 
   // verbe. Une surface PARTAGÉE (le document que tous lisent) met la réponse en attente.
   const repondreCommeInvite = (over: Partial<GameState>) => {
     temoin({ net: { ...useGame.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } as GameState['net'], ...over });
-    withActingSeat(1, () => useGame.getState().chooseDialogue('oui'));
+    withActingSeat(1, () => useGame.getState().fenetreChoisir('dialogue', 'reponse', 'oui'));
     return useGame.getState().dialogue?.nodeId;
   };
 
@@ -70,7 +70,7 @@ describe('dlg-kramer-nuit-du-chat — la touche 2 sous le document que la répon
     runBindingById('dialogue-choice-1', get); // « L’interroger sur sa nuit »
     expect(get().pendingTest, 'la réponse ouvre la fenêtre de jet').toBeTruthy();
     useGame.setState({ pendingTest: { ...get().pendingTest!, roll: 99, success: false } });
-    get().jetConfirm('test');
+    get().jetValider('test');
     expect(get().document, 'la branche ouvre le document').toBeTruthy();
     expect(get().dialogue?.nodeId, 'la conversation revient à son nœud, derrière le document').toBe('nc1');
     expect(get().dialogueHistory).toHaveLength(1);

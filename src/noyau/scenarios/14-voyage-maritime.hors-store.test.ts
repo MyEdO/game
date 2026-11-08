@@ -22,7 +22,7 @@ function launch(seed = 1) {
   seedBattleRng(seed);
   lancerLeScenario(get, banc.setState, lancementDuScenario(scen));
   // La carte d'ENTRÉE de zone est une étape d'AFFICHAGE de cascade (#942 L8) : comme toute fenêtre de
-  // cascade, elle gèle les actions du bord (`startTravel` compris) tant qu'elle n'est pas acquittée.
+  // cascade, elle gèle les actions du bord (`partirEnVoyage` compris) tant qu'elle n'est pas acquittée.
   // Le scénario l'acquitte donc, comme un joueur, AVANT d'appareiller.
   draineCascade(get);
 }
@@ -40,15 +40,15 @@ function sleepThroughHalt(): void {
 function sailToPort(maxSteps = 400): string[] {
   const kinds: string[] = [];
   for (let i = 0; i < maxSteps; i++) {
-    if (!get().travelPlan && get().scene?.id === 'test-mer-arrivee') break; // arrivé
+    if (!get().travelPlan && get().lieu === 'p-marienburg') break; // arrivé
     if (get().pendingCascade) {
       const k = avanceEtapeCascade(get);
       if (k !== undefined) kinds.push(k);
       continue;
     }
-    if (get().pendingSeaActivities) { get().seaActivitiesConfirm({}); continue; }
+    if (get().pendingSeaActivities) { get().fenetreValider('seaActivities'); continue; }
     if (get().pendingRest) { sleepThroughHalt(); continue; }
-    if (get().pendingShoreLeave) { get().resolveShoreLeave(true); continue; } // accoste : relâche accordée par défaut (MDG 15 l.245)
+    if (get().pendingShoreLeave) { get().fenetreChoisir('shoreLeave', 'accorder', true); continue; } // accoste : relâche accordée par défaut (MDG 15 l.245)
     if (!get().travelPlan) break; // sécurité : plus de plan et pas au port → on s'arrête
   }
   return kinds;
@@ -90,7 +90,7 @@ describe('Scénario Voyage maritime — durée bornée sur un échantillon de se
     for (let seed = 1; seed <= 15; seed++) {
       launch(seed);
       const t0 = get().gameTime;
-      get().startTravel('route-marienburg', 'mer');
+      get().partirEnVoyage('route-marienburg', 'mer');
       sailToPort(2000);
       days.push((get().gameTime - t0) / (24 * 60));
     }
@@ -103,8 +103,8 @@ describe('Scénario Voyage maritime — beat de Magie des mers (lancer en mer)',
   const navi = scen.construire().party.find((h) => h.id === 'mar-navi')!;
 
   it('le Navigateur est un Astromancien : il maîtrise l’incantation et connaît Bienfait de Bel Shanaar', () => {
-    expect(knowsCastingSkill(navi, 'langue', 'magick')).toBe(true); // incantation des Arcanes
-    expect(knowsCastingSkill(navi, 'focalisation')).toBe(true); // Test étendu de Focalisation
+    expect(knowsCastingSkill(navi, { id: 'langue', spec: 'magick' })).toBe(true); // incantation des Arcanes
+    expect(knowsCastingSkill(navi, { id: 'focalisation' })).toBe(true); // Test étendu de Focalisation
     expect(navi.spells).toContain('bienfait-de-bel-shanaar'); // runtime = id de sort
     const sp = findSpellById('bienfait-de-bel-shanaar')!;
     expect(sp.domainId).toBe('cieux');
@@ -128,7 +128,7 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
   it('appareille, enchaîne des jours de mer (Tests d’équipage + haltes) et ACCOSTE au Grand Port', () => {
     const t0 = get().gameTime;
     expect(get().scene?.id).toBe('test-mer-depart');
-    get().startTravel('route-marienburg', 'mer', { cadence: 'jour-par-jour' }); // mode MER : appareillage sur le navire de campagne
+    get().partirEnVoyage('route-marienburg', 'mer', { cadence: 'jour-par-jour' }); // mode MER : appareillage sur le navire de campagne
     expect(get().travelPlan?.mode).toBe('mer');
     expect(get().travelPlan?.sea).toBeTruthy();
 
@@ -136,7 +136,7 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
 
     // ARRIVÉE : la traversée est finie, on est à Marienburg, plusieurs jours ont passé.
     expect(get().travelPlan).toBeNull();
-    expect(get().scene?.id).toBe('test-mer-arrivee');
+    expect(get().lieu).toBe('p-marienburg');
     expect(get().gameTime - t0).toBeGreaterThan(24 * 60); // plus d’un jour de mer
     expect(kinds).toContain('sea-epuisement'); // la Timonière manie la voile chaque jour navigable (MDG 13 l.111)
     // Les Tests d’équipage de VOYAGE ont bien été joués (Progression quotidienne, Orientation).
@@ -148,20 +148,20 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
   });
 
   it('à quai : l’écran Port ouvre et propose réparation + offres de commerce', () => {
-    get().startTravel('route-marienburg', 'mer');
+    get().partirEnVoyage('route-marienburg', 'mer');
     sailToPort();
-    expect(get().scene?.id).toBe('test-mer-arrivee');
+    expect(get().lieu).toBe('p-marienburg');
 
     // Coque endommagée persistée sur le navire de campagne → réparable au chantier (1 CO/Blessure).
     const woundsBefore = get().vessel!.wounds!.current;
     expect(woundsBefore).toBeLessThan(get().vessel!.wounds!.max);
     const goldBefore = partyMoneyTotal(get).gold;
-    get().portRepair();
+    get().reparerLeNavire();
     expect(get().vessel!.wounds!.current).toBe(get().vessel!.wounds!.max); // remise à neuf
     expect(partyMoneyTotal(get).gold).toBeLessThan(goldBefore); // 1 CO par Blessure
 
     // Écran Port : offres de commerce du grand port cosmopolite (Production + Surplus).
-    get().openPort();
+    get().ouvrirLePort();
     expect(get().port!.placeId).toBe('p-marienburg');
     expect(get().port!.offers.length).toBeGreaterThan(0);
   });

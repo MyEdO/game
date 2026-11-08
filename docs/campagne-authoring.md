@@ -44,8 +44,10 @@ Câblé par des **Effects** (`src/data/schemas/defs-scenes/effets.ts`), jamais e
   Manann, dégâts de coque et Moral accumulés — pour un patch, utiliser `adjustVessel`.
 - `adjustVessel` — patch INCRÉMENTAL (`name`/`morale`/`hullCurrent`/`saboteurDR`…) sans réinitialiser le
   reste (ex. `saboteurDR` remis à 0 quand un sabotage est levé, sans toucher la coque).
-- `adjustManann` — décale l'Humeur de Manann par `factorId` RÉEL de `src/data/sea-events.json` (validé par
-  `findManannFactor()`, `src/engine/seaVoyage.ts`), jamais un delta brut anonyme.
+- `ops` sur `on: 'navire'` — les ops de NAVIRE (`manann`, `shipMorale`, `shipCritical`, `OPS_DU_NAVIRE`,
+  `src/engine/ops.ts`) et les ops de coque (`wounds`) sur le navire de campagne (`src/noyau/navireOps.ts`).
+  L'Humeur de Manann d'une campagne se décale par `{ op: 'manann', factorId }`, `factorId` RÉEL de
+  `src/data/sea-events.json` (réf. de registre `seaManannFactors`), jamais un delta brut anonyme.
 - `saboteurDR` (dans `[-5,0]`) — malus discret aux Tests d'équipage de COMBAT ; s'authore SUR le
   `setVessel`. Effet de combat SEULEMENT : le pipeline de voyage ne lit aucun `GameOp`.
 - `crew` — roster SALARIÉ (`{ roleId, count }`, barème `wage`). `roleId` ∈ ids RÉELS de
@@ -83,7 +85,7 @@ persistance — chaque combat spawn une coque fraîche.
   (pit #408, traversées interminables).
 - `when` (`Condition`) — PRATICABILITÉ du trajet, axe ARÊTE du gating narratif (anti-backtracking) :
   absent = toujours praticable ; faux = le trajet reste À L'ÉCRAN (le lieu déjà visité ne disparaît pas)
-  mais le départ est REFUSÉ — `startTravel` (`src/noyau/travelFlow.ts`) le revérifie au départ, au même
+  mais le départ est REFUSÉ — `partirEnVoyage` (`src/noyau/travelFlow.ts`) le revérifie au départ, au même
   niveau que `from` : la vue n'est pas le verrou.
 - `refus` — raison JOUEUR de l'indisponibilité, rendue en infobulle par `GatedAction`. **EXIGÉE dès que
   `when` est posé** (`mapRouteSchema`, `src/data/schemas/defs-scenes/worldmap.ts`) : un trajet fermé MUET
@@ -151,7 +153,7 @@ pour les scènes de TRAVERSÉE ; réserver le modèle navire-unité au jour où 
 
 Six formes (`VictoryCondition`, `src/noyau/monde/scene.ts`), défaut `allEnemiesDead` :
 `allEnemiesDead` · `destroyStructure` (arête) · `surviveRounds` · `reachZone` (rect) · `woundsThreshold`
-(reddition d'une cible sous `belowPercent` de ses Blessures) · `firstBlood` (fin de rencontre au premier
+(une cible à `atOrBelowPercent` % de ses Blessures ou moins sort du combat ; sans `targetId`, chaque adversaire) · `firstBlood` (fin de rencontre au premier
 sang — la première cible neutralisée clôt le combat, `threshold?` = seuil de Blessures ; le tir est banni
 par défaut, duel). `onVictory` = un `Flow` (aplati en Effets).
 
@@ -188,7 +190,7 @@ L'état narratif d'une partie se partitionne par la FORME de ce que le récit re
   à l'AFFICHAGE, chaque site de prose de paquet (`SITES_PROSE` › `paquet`, `src/ui/liage.ts` ; `<Prose
   paquet>`, ou `mdToText(nommer(…))`) substitue chaque repère, en mot entier et en une passe, par la valeur
   de la ligne du couple espèce (`refChar`) × sexe d'apparence FIGÉ au choix du héros (`GameState.identitesFigees`,
-  posé par `designerHerosChoisir`, EDO 02 l.114) : mort, remplacé ou réédité, le sosie garde son nom
+  posé par le choix `designationHeros.heros`, EDO 02 l.114) : mort, remplacé ou réédité, le sosie garde son nom
   (`identitesResolues` / `nommer`, `src/noyau/monde/identites.ts`). Non désigné, sans sexe d'apparence, ou sans
   ligne : verbatim. Un
   site de catalogue (à `porteur`) ne nomme jamais. L'onglet **États** édite l'identité (ancres, repères
@@ -216,12 +218,12 @@ tant qu'une référence le désigne) un état et ses valeurs. Pas de compteur co
 Un `Dialogue` (`Scene.dialogues`) est un arbre de `DialogueNode` (`id`, `desc`, `choices`) — la
 réplique du nœud est de la PROSE (`desc`), l'étiquette d'un `DialogueChoice` est un LIBELLÉ (`label`),
 deux rôles distincts, deux clés (#1467 L1b). Chaque `DialogueChoice` porte son `id` stable, unique dans son nœud
-(refusé en double au chargement) : c'est lui que `chooseDialogue` reçoit, jamais son rang (#3369). **Aucun nom
+(refusé en double au chargement) : c'est lui que reçoit le choix `fenetreChoisir('dialogue', 'reponse', id)`, jamais son rang (#3369). **Aucun nom
 en clair** n'est jamais authoré dans un nœud (doctrine id-only, AGENTS.md « on ne MANIPULE que des
 IDs ») : le portrait ET le nom de l'interlocuteur se résolvent TOUJOURS par ID d'entité, jamais par une
 chaîne de nom dupliquée dans la donnée.
 
-- **Locuteur de SESSION** — ouvrir un dialogue en interagissant avec une entité (`interactEntity`) pose
+- **Locuteur de SESSION** — ouvrir un dialogue en interagissant avec une entité (`interagirAvecLEntite`) pose
   `dialogue.speakerId = ent.id` automatiquement ; un `startDialogue.speakerId` explicite le fait pour un
   dialogue lancé par script (trigger, effet). C'est le locuteur PAR DÉFAUT de tous les nœuds.
 - **Locuteur PAR NŒUD** — `DialogueNode.speakerId` (id d'une `SceneEntity` de la MÊME scène) surcharge le
@@ -233,8 +235,8 @@ chaîne de nom dupliquée dans la donnée.
   les choix d'un même nœud d'accueil sur un flag posé au premier passage (« premier contact » vs
   « on se reconnaît »). Voir `src/scenes/test-scenarios/dialogue-multi.ts` (patron complet, alternance +
   reprise).
-- **Coop** — un dialogue est une décision de GROUPE (jeton d'exploration unique) : `chooseDialogue`/
-  `interactEntity` sont réservés au siège hôte/MJ (`netOwnership.intentAllowedFor`), les
+- **Coop** — un dialogue est une décision de GROUPE (jeton d'exploration unique) : le choix `dialogue.reponse` et
+  `cliquerLaCase` sont réservés au siège hôte/MJ (`netOwnership.intentAllowedFor`), les
   autres sièges LISENT. Un Test social DÉCLENCHÉ depuis un choix reste arbitré normalement par le
   propriétaire du héros testeur (`openSkillTest`→`pendingTest`→`modalArbiter`).
 - **Ce que la réponse ANNONCE est DÉRIVÉ, jamais écrit** (#1869) — la fenêtre rend
@@ -273,8 +275,8 @@ mécanisme dédié de rendu) — voir le patron complet dans
 ### 9quater. Persistance d'état des scènes au revisit (#707)
 
 Quand le groupe QUITTE puis REVIENT dans une scène déjà visitée, ses mutations de jeu sont conservées
-— une couche d'INSTANCE par `sceneId` (`sceneInstances`, posée par `transitionTo`, `src/noyau/entreeEnScene.ts`) capture le delta au
-départ et le réapplique au clone frais du document à l'entrée (`transitionTo`). Le document projet
+— une couche d'INSTANCE par `sceneId` (`sceneInstances`, posée par `quitterLaScene`, `src/noyau/entreeEnScene.ts`) capture le delta au
+départ et le réapplique au clone frais du document à l'entrée (`quitterLaScene`). Le document projet
 reste la SOURCE (rééditable) ; l'instance est superposée, sérialisée dans la save, répliquée en coop.
 
 **Ce qui PERSISTE au revisit** : les entités RETIRÉES (décor `interact.consume` fouillé, PNJ tués en
@@ -301,7 +303,7 @@ dépliable.
 - `clearObjective { id? }` — retire l'objectif `id`, ou TOUS si `id` absent (fin d'acte).
 
 La pile TRAVERSE les scènes (persistée hors `stateFields`, comme `flags`) et n'est vidée qu'en nouvelle
-partie (`startScene`). Chaque pose/maj/retrait est aussi archivé au `journal`. L'étalon de campagne câble
+partie (`lancerLaScene`). Chaque pose/maj/retrait est aussi archivé au `journal`. L'étalon de campagne câble
 les objectifs acte par acte (passage dédié) — l'auteur n'a rien à coder en dur.
 
 ### 10bis. Échéances (`ScheduleSpec`, `delayedEffect` & `setObjective`)
@@ -321,7 +323,7 @@ en minute absolue par `scheduleAt(now, spec)` — priorité `atDate` > `afterDay
 
 Une échéance déjà passée à la pose (date antérieure, ou `afterDays:0` avec l'heure du jour déjà écoulée)
 donne `executeAt <= now` : ce n'est PAS une erreur — l'effet/l'objectif tire au tout prochain
-`advanceTime` (repos, voyage, avance de temps), comme tout `delayedEffect` en retard.
+`avancerLeTemps` (repos, voyage, avance de temps), comme tout `delayedEffect` en retard.
 
 ## 10ter. Bloc narratif (`narratif`, paquet auto-suffisant #765)
 
@@ -354,7 +356,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   `narratif.documents` ; `apply` la résout (`documentDuNarratif`) et ouvre la modale `DocumentModal`
   (`store.document`, qui porte `documentId` : sa prose est nommée par les identités, § 9). L'Effet est
   SUSPENSIF : la suite du Flow attend la fermeture (`fenetreFermer('document')`), si bien que deux documents remis
-  à la suite se lisent l'un après l'autre (EDO 02 l.89-95). Toute remise passe par `remettreDocument`, qui
+  à la suite se lisent l'un après l'autre (EDO 02 l.89-95). Toute remise passe par `remettreLeDocument`, qui
   l'estampille (`document.remise`) ; le document traverse les scènes jusqu'à sa fermeture. En coop, seul
   l'hôte ferme et rejoue la suite ; l'invité masque cette remise. Un id inconnu n'ouvre rien
   (avertissement console), la suite se joue.
@@ -458,7 +460,7 @@ directement sur sa scène d'entrée et ne se ferme jamais — aucun paquet exist
 
 - **`ouverture`** (`OuvertureBlock`, `src/data/schemas/defs-scenes/narratif.ts`) : `surtitre?`, `titre`,
   `sousTitre?`, `chapitre?`, `pitch` (Markdown), `source?`, `ambiance?` (`veillee` | `parchemin`,
-  défaut `veillee`). `loadProject` la pose dans `pendingOuverture` **après** `startScene` (qui remet
+  défaut `veillee`). `chargerLeProjet` la pose dans `pendingOuverture` **après** `lancerLaScene` (qui remet
   l'état à l'init) ; `CampaignView` monte alors `CampaignOpeningScreen` par-dessus la vue. Le `pitch`
   est verbatim quand `source` est posé (règle stricte 5) ; sans `source`, texte maison (fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`) ;
   rendu par `<Prose>`. Un pitch sourcé se vérifie au fichier `Source/` — garde transverse sur tout paquet livré qui déclare un `source`
@@ -471,8 +473,9 @@ directement sur sa scène d'entrée et ne se ferme jamais — aucun paquet exist
 - **Le récap est une DIFFÉRENCE.** « Prendre la route » pose la borne `chapitreDepuis` (PX par héros,
   vivants, date) ; l'Effet `clearObjective` DÉPLACE désormais l'objectif soldé dans `objectifsSoldes`
   au lieu de le perdre. `ChapterRecapScreen` en dérive PX du chapitre, chronique, tombés en chemin et
-  lieux révélés, puis enchaîne sur la fin de séance (`SessionEndBody`, même formulaire que le menu
-  système). Aucun journal parallèle n'est écrit.
+  lieux révélés, puis enchaîne sur la fin de séance que le récap ouvre avec lui (`finDeSeance`, même
+  formulaire que le menu système, `useSessionEnd`), terminée par sa validation
+  `fenetreValider('chapterRecap')`. Aucun journal parallèle n'est écrit.
 - **Édition.** Onglet « Cadre » du `NarratifEditor` (champs texte, pitch, ambiance, `ConditionEditor`
   pour la clôture) — le cadre est de la DONNÉE de campagne, jamais du texte au catalogue i18n.
 

@@ -13,7 +13,7 @@ import { mountProfileForCreature } from './mountTravel';
 import type { MountInjury } from './mountTravel';
 import { mountIncidentEffects } from './travelTables';
 import type { CrewHire, ShipMoraleState } from './crewMorale';
-import type { ManannMood } from './seaVoyage';
+import type { ManannMood, MeteoImposeeDuNavire, ModificateurDuNavire } from './seaVoyage';
 import { findVehicleById, findCreatureById, tailleDuProfil } from '../data';
 import { SIZE_SHIPBOARD_ENC, type SizeCategory } from './size';
 
@@ -45,12 +45,15 @@ export interface NavalPossessionState {
   manann?: ManannMood;
   saboteurDR?: number;
   criticals?: string[];
-  crabs?: boolean;
+  modificateurs?: ModificateurDuNavire[];
+  meteosImposees?: MeteoImposeeDuNavire[];
   waterLitres?: number;
   provisions?: number;
   lastVoyageMilles?: number;
   crewLost?: number;
   wagesOwed?: number;
+  recueillisSansSolde?: CrewHire[];
+  perteAuDechargement?: number;
 }
 
 /** CORPS — union discriminée : zéro champ étranger à sa nature. */

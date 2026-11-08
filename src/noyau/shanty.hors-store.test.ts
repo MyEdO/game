@@ -44,10 +44,10 @@ describe('Vocabulaire des chansons (ops génériques → ActiveEffect)', () => {
 
   it('skillDRBonus appliqué (« Jacques Bret », l.228) → lu par le lecteur skillDRBonus (effets actifs)', () => {
     const c = mk('m2');
-    expect(skillDRBonus(c, 'corps-a-corps')).toBe(0);
+    expect(skillDRBonus(c, { id: 'corps-a-corps' })).toBe(0);
     applyOps(c, [{ op: 'skillDRBonus', skill: { id: 'corps-a-corps' }, bonus: 1 }], { label: 'Chanson', rng: makeRNG(1), defaultUntilTime: 100 });
-    expect(skillDRBonus(c, 'corps-a-corps')).toBe(1);
-    expect(skillDRBonus(c, 'calme')).toBe(0); // pas de fuite vers une autre Compétence
+    expect(skillDRBonus(c, { id: 'corps-a-corps' })).toBe(1);
+    expect(skillDRBonus(c, { id: 'calme' })).toBe(0); // pas de fuite vers une autre Compétence
   });
 
   it('charDRBonus Soc (« Camarades d’équipage », l.236) → charDRBonusOf', () => {
@@ -84,13 +84,13 @@ function openShanty() {
     battle: { combatants: [ship(), singer(), marin()], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
     party: [singer(), marin()], facing: { ship: 'N' }, pendingShanty: null, scene: null as never, gameTime: 0,
   });
-  banc.getState().battleSingShanty('ship');
+  banc.getState().chanterLaChanson('ship');
 }
 
 describe('Flux « Chanson de marin » (Talent, MDG 09 l.32-40)', () => {
   beforeEach(() => banc.setState({ pendingShanty: null }));
 
-  it('battleSingShanty ouvre la modale (chanteur = le marin au Talent) ; UNE chanson connue → présélectionnée', () => {
+  it('chanterLaChanson ouvre la modale (chanteur = le marin au Talent) ; UNE chanson connue → présélectionnée', () => {
     openShanty();
     const p = banc.getState().pendingShanty!;
     expect(p.singerId).toBe('barde');
@@ -100,36 +100,36 @@ describe('Flux « Chanson de marin » (Talent, MDG 09 l.32-40)', () => {
   it('réussite → l’effet couvre TOUT l’équipage (3 min + DR) ; le quart est consommé (l.40)', () => {
     openShanty();
     // Jet FORCÉ (Résilience) : succès garanti, déterministe — le flux réel passe par la même modale.
-    banc.getState().jetForceSuccess('shanty');
-    banc.getState().jetConfirm('shanty');
+    banc.getState().jetForcerLaReussite('shanty');
+    banc.getState().jetValider('shanty');
     const st = banc.getState();
     const crew = st.battle!.combatants.filter((c) => c.id === 'barde' || c.id === 'marin');
-    for (const c of crew) expect(skillDRBonus(c, 'corps-a-corps')).toBe(1); // « +1 DR sur tout Test de Corps à corps réussi »
+    for (const c of crew) expect(skillDRBonus(c, { id: 'corps-a-corps' })).toBe(1); // « +1 DR sur tout Test de Corps à corps réussi »
     const hull = st.battle!.combatants.find((c) => c.id === 'ship')!;
     expect(hull.lastShantyQuart).toBe(quartIndex(0));
     const bard = st.battle!.combatants.find((c) => c.id === 'barde')!;
     expect(bard.singingShanty?.shantyId).toBe('jacques-bret-a-rencontre-notre-acier');
     // « Une seule chanson de marin peut être chantée lors de chaque quart » → 2e tentative refusée.
-    banc.getState().battleSingShanty('ship');
+    banc.getState().chanterLaChanson('ship');
     expect(banc.getState().pendingShanty).toBeNull();
   });
 
   it('fin de chant sur Dégâts (l.38) : endShanty retire l’effet de TOUT l’équipage', () => {
     openShanty();
-    banc.getState().jetForceSuccess('shanty');
-    banc.getState().jetConfirm('shanty');
+    banc.getState().jetForcerLaReussite('shanty');
+    banc.getState().jetValider('shanty');
     const st = banc.getState();
     const bard = st.battle!.combatants.find((c) => c.id === 'barde')!;
     const lines = endShanty(banc.getState, bard);
     expect(lines.length).toBe(1);
-    for (const c of st.battle!.combatants) expect(skillDRBonus(c, 'corps-a-corps')).toBe(0);
+    for (const c of st.battle!.combatants) expect(skillDRBonus(c, { id: 'corps-a-corps' })).toBe(0);
     expect(bard.singingShanty).toBeUndefined();
   });
 
   it('les effets de chant portent effectId === shantyId ; endShanty retire PAR effectId (pas par libellé)', () => {
     openShanty();
-    banc.getState().jetForceSuccess('shanty');
-    banc.getState().jetConfirm('shanty');
+    banc.getState().jetForcerLaReussite('shanty');
+    banc.getState().jetValider('shanty');
     const st = banc.getState();
     const bard = st.battle!.combatants.find((c) => c.id === 'barde')!;
     const marinC = st.battle!.combatants.find((c) => c.id === 'marin')!;
@@ -148,12 +148,12 @@ describe('Flux « Chanson de marin » (Talent, MDG 09 l.32-40)', () => {
 
   it('QUART = 4 h : au quart suivant, on peut de nouveau chanter', () => {
     openShanty();
-    banc.getState().jetForceSuccess('shanty');
-    banc.getState().jetConfirm('shanty');
+    banc.getState().jetForcerLaReussite('shanty');
+    banc.getState().jetValider('shanty');
     banc.setState({ gameTime: QUART_MINUTES }); // quart suivant
     const bard = banc.getState().battle!.combatants.find((c) => c.id === 'barde')!;
     delete bard.singingShanty; // le chant précédent est fini
-    banc.getState().battleSingShanty('ship');
+    banc.getState().chanterLaChanson('ship');
     expect(banc.getState().pendingShanty).not.toBeNull();
   });
 });

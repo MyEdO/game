@@ -2,7 +2,7 @@
  * `validerFormeVivante` (#2001, `data/schemas/validate.ts`) — la porte d'une forme VIVANTE valide le
  * schéma sur la forme disque (`versDisque`) et la complétude de la prose (`proseNonMaterialisee`) sur
  * le reçu, à ses trois sites : `parseProject`, `parseSceneDeProjet` et `validateScene`. La modale « Avancé » de
- * l'éditeur (`lireBlocsAvances`) se joue en `src/state/forme-vivante.test.ts`.
+ * l'éditeur (`lireBlocsAvances`) se joue en `src/data/schemas/forme-vivante.test.ts`.
  */
 import { describe, it, expect } from 'vitest';
 import { parseProject, parseSceneDeProjet, projetVersDepot, ProjetRefuse, emptyWorldMap } from './worldMap';
@@ -91,7 +91,7 @@ describe('parseProject — forme vivante', () => {
     expect(r.fautes.map((f) => f.chemin)).toContainEqual(CHEMIN_NOEUD);
   });
 
-  it('T3 : un JOURNAL à `desc` vide sous une adresse (changement de type, `ui/editor/AddMenu.tsx`) est refusé à son chemin', () => {
+  it('T3 : un JOURNAL à `desc` vide sous une adresse (changement de type à l’atelier) est refusé à son chemin', () => {
     const r = refus(() => parseProject(projet(scene(MATERIALISE, { desc: '', descRef: DESC_REF }))));
     expect(r.cause).toBe('prose-non-materialisee');
     expect(r.fautes.map((f) => f.chemin.slice(0, 4))).toEqual([['scenes', 0, 'triggers', 0]]);

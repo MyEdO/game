@@ -7,15 +7,15 @@
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { Fragment, useEffect, useId, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
-import { datasetArray, datasetObject, datasetFile, datasetObjectFile } from '../../../data/overrides';
+import { datasetArray, datasetObject, datasetFile, datasetObjectFile, deDeLaTable, type DatasetKey } from '../../../data/overrides';
 import { REF_LIST_DATASET, editableDataset, editableEntries, editableObjectDataset, enregistrerEntree, validateEntry } from '../../../data/atelierDuCodex';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
 import type { SteamBreakdownEntry } from '../../../engine/shipBuild';
 import { metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, noeudDeLEntree, RangeeSansNoeud, rapportDeFautes } from '../../../data/schemas/validate';
-import { enfantsDe } from '../../../data/schemas/grammaire/descente';
+import { enfantsDe, ouverts } from '../../../data/schemas/grammaire/descente';
 import * as fs from '../../../web/fsPersist';
 import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, type FieldDesc } from '../../../noyau/codex/editFields';
-import { libelleDeValeur, optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
+import { libelleDeValeur, metaDesChamps, optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { categoryByKey } from '../../../noyau/codex/registry';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../../engine/activities';
 import type { ActivityContext, OutcomeBand, BattleOutcome, BattleSide, BattleOutcomeTarget, BattleOutcomeScale, BattleCond, ActivityResolver, ResolverOwner } from '../../../engine/activities';
@@ -34,6 +34,7 @@ import { SourceRefField, SuiviDesSaisies, useSaisieEnCours, useSuiviDesSaisies }
 import { useClesDeRangees } from '../../useClesDeRangees';
 import { PlageField, type PlageDomaine, type PlageValue } from '../../PlageField';
 import { formatDice, parseDice, totalDuDe } from '../../../engine/dice';
+import { deDeLaTableTiree, facesDuDe } from '../../../engine/tables';
 import { GatedAction } from '../../GatedAction';
 import { raceKeySchema } from '../../../data/schemas/grammaire/valeurs';
 import { ApparencesObjetsField, ReglagesApparence, apparenceSuivante } from '../ReglagesApparence';
@@ -65,7 +66,7 @@ import type { DiseaseSymptom } from '../../../data/schemas/defs/maladies';
 import type { CombatFeature } from '../../../engine/combatFeatures/types';
 import type { AdvancementRef, TrappingRef, TalentTest, SpecEntry, WaterExposureData, WaterExposureModifier } from '../../../data';
 import { skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../../data';
-import { specsSourceSchema, symptomSeveritySchema } from '../../../data/schemas/grammaire/valeurs';
+import { deDeTirageSchema, specsSourceSchema, symptomSeveritySchema } from '../../../data/schemas/grammaire/valeurs';
 import { parseSkillRef, parseTalentRef } from '../../../data/refFormatLivre';
 import type { SecondaryRef, SourceRef, Variant } from '../../../data/schemas/grammaire/valeurs';
 import { OPTIONAL_RULES, type RuleKind, type RuleValue } from '../../../engine/policy';
@@ -176,6 +177,9 @@ const porteAlsoIn = (categoryKey: string): boolean => {
  * SOURCE UNIQUE : utilisée par le filtre de `CodexEdit` ET par le garde-fou `no-json-fields.test` (qui
  * vérifie qu'aucun champ d'aucun dataset éditable ne retombe en `kind:'json'`). Ajouter un éditeur dédié
  * = ajouter sa/ses clé(s) ici (et le composant dans le rendu). */
+/** Les tables d'événements de mer (`sea-events.json`), dont la `consequence` est un Flow de racine `evenementDeMer`. */
+const EVENEMENTS_DE_MER: readonly string[] = ['seaBoardEvents', 'seaPortEvents'];
+
 export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   const k = new Set<string>();
   const add = (...keys: string[]) => keys.forEach((x) => k.add(x));
@@ -195,6 +199,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'mutationTables' || categoryKey === 'weather') add('entries');
   if (['mutations', 'trappings'].includes(categoryKey)) add('derivedWeapon');
   if (categoryKey === 'trappings') add('consumable', 'consumableDuration', 'onHitEffects'); // onHitEffects → TriggeredEffectsField (#175)
+  if (EVENEMENTS_DE_MER.includes(categoryKey)) add('consequence'); // Flow joué par `runFlow` → FlowEditor (#1652)
   // #1318 : paliers d'entraînement d'une PROTHÈSE (LDB 73) — `{cost,label,reduces?,grants?}[]`,
   // tableau d'objets HOMOGÈNES → éditeur GÉNÉRIQUE commun (`GenericArrayField`), jamais le repli JSON.
   if (categoryKey === 'trappings') add('prosthesisTraining');
@@ -230,21 +235,16 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   // poursuite/reparation…) recourt déjà au sous-formulaire récursif (`ObjectField`), hors guard.
   if (categoryKey === 'seaNavigation') add('forcerLeRythme');
   if (categoryKey === 'seaPerils') add('hazards', 'detroits', 'tourbillons', 'gestionDesPerils');
-  if (categoryKey === 'seaWeather') add('table', 'precipitations', 'temperatures', 'visibilites', 'vents', 'roseDesVents');
+  if (categoryKey === 'seaWeather') add('precipitations', 'temperatures', 'visibilites', 'vents');
   // #422 (suite) : Disponibilité & Troc (`disponibilite`, mode 'single', patron `waterExposure`) —
   // `dispoPct`/`barterRatios` (tableaux top-level) → éditeur GÉNÉRIQUE commun (`GenericArrayField`).
   if (categoryKey === 'disponibilite') add('dispoPct', 'barterRatios');
-  // #422 : Navigation fluviale (`riverNavigation`, mode 'single', patron `waterExposure`) —
-  // `windForces`/`windDirections` (tableaux top-level) → éditeur GÉNÉRIQUE commun (`GenericArrayField`).
-  // `windEffect`/`capsize`/`outOfControl`/`echouage`/`temporaryRepair` sont des objets
-  // (hétérogènes ou Record de Record) déjà couverts par le sous-formulaire récursif (`ObjectField`).
-  if (categoryKey === 'riverNavigation') add('windForces', 'windDirections');
   // Fourchettes à DEUX bornes (#1659) — toutes servies par la MÊME primitive (`PlageField`) : la
   // longueur de coque (bande finale ouverte, MDG 12 l.129), le sous-tirage astral (1d10, ADE II 03
   // l.63) ci-dessus, et les quatre colonnes de disponibilité saisonnière (d100). Sans cette ligne,
   // `avail` retombait sur le sous-formulaire générique et rendait ses clefs techniques à l'écran.
   if (categoryKey === 'shipHullSizes') add('lengthM');
-  if (categoryKey === 'seaCargo' || categoryKey === 'landCargo') add('avail');
+  if (categoryKey === 'cargoes') add('avail');
   // #168 : Activité — Test « posté » (contexts/tests « au choix »/difficulty) + table d'issues
   // `outcomes` (OutcomeBand[]) → éditeurs dédiés ; `onSuccess` couvert par opsFieldsOf ci-dessus.
   // `resolver` (#1318 V6) : vocabulaire FERMÉ → sélecteur dédié, jamais le champ texte générique.
@@ -319,6 +319,10 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   }, [obj, categoryKey, id, isNew]);
 
   const [entry, setEntry] = useState<Entry>(() => structuredClone(src.initial));
+  // DÉ DE TIRAGE porté par un ANCÊTRE de la table (`deDeLaTable`) : commun à toutes ses rangées, il
+  // s'écrit dans la même transaction que l'entrée (#1667). `undefined` : la table n'en porte pas.
+  const deImprime = obj ? undefined : deDeLaTable(src.dataset as DatasetKey);
+  const [deSaisi, setDeSaisi] = useState(deImprime);
   // Libellé COURANT de l'entrée (`entryKey`), celui de sa catégorie tant qu'elle n'en porte pas (#1830).
   const libelle = entryKey(entry).trim() || categoryByKey(categoryKey)!.label;
   const { dir, needsGrant } = connexion;
@@ -391,8 +395,8 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const hasCharKeys = categoryKey === 'careerLevels';
   // Étoile : `sub` = la fourchette du 1d10 interne (Étoile du Sorcier, ADE II 03 l.63) → `PlageField`.
   const hasStarSub = categoryKey === 'stars';
-  // Cargaison (maritime/terrestre) : `avail` = quatre colonnes d100, une fourchette par saison.
-  const hasDispoSaisonniere = categoryKey === 'seaCargo' || categoryKey === 'landCargo';
+  // Cargaison : `avail` = quatre colonnes d100, une fourchette par saison.
+  const hasDispoSaisonniere = categoryKey === 'cargoes';
   // Domaine de magie : `castBonus`/`missile`/`casterOps` = attributs de domaine (éditeur dédié).
   const hasDomainEffects = categoryKey === 'domains';
   // Créature : `traits`/`optionals` = TraitPose[] (réutilise `TraitListField` du StatblockEditor),
@@ -423,9 +427,6 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // #422 (suite) : Disponibilité & Troc (`disponibilite`, mode 'single') — `dispoPct`/`barterRatios`
   // (tableaux top-level) au MÊME éditeur générique commun que les fiches navales ci-dessus.
   const isDisponibilite = categoryKey === 'disponibilite';
-  // #422 : Navigation fluviale (`riverNavigation`, mode 'single') — `windForces`/`windDirections`
-  // (tableaux top-level) au MÊME éditeur générique commun que les fiches ci-dessus.
-  const isRiverNavigation = categoryKey === 'riverNavigation';
   const hasHullLength = categoryKey === 'shipHullSizes'; // `lengthM` : [minM,maxM]
   // #168 : Activité (`activities`) — Test « posté » (contexts/tests « au choix »/difficulty) +
   // table d'issues `outcomes` (OutcomeBand[]) ; `onSuccess` reste sur le lot GameOpEditor commun.
@@ -452,7 +453,10 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
     }
   }, [src.dataset, entry, libelle]);
   const noeudEntree = rangee.noeud;
-  const allFields = useMemo(() => inferFields(src.entries as Record<string, unknown>[], { meta: metaPourFichier(src.file), noeud: noeudEntree }), [src.entries, src.file, noeudEntree]);
+  // Les LIBELLÉS de premier niveau sont ceux du nœud de la rangée (`nommerChamps`) : la méta du fichier
+  // nomme la racine du document, qui n'est l'entrée éditée que pour un dataset de racine.
+  const metaDeLEntree = useMemo(() => ouverts([noeudEntree]).map(metaDesChamps).find((m) => m !== undefined) ?? metaPourFichier(src.file), [noeudEntree, src.file]);
+  const allFields = useMemo(() => inferFields(src.entries as Record<string, unknown>[], { meta: metaDeLEntree, noeud: noeudEntree }), [src.entries, metaDeLEntree, noeudEntree]);
   // Un éditeur DÉDIÉ de tableau d'objets reçoit le NŒUD de SON champ, comme le chemin générique
   // (`Field` → `GenericArrayField`, `field.noeud`) : c'est le nœud qui porte le libellé des VALEURS
   // (`enumNomme`, #1694), donc le `select` nommé à toute profondeur du sous-formulaire.
@@ -487,7 +491,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
 
   const save = async () => {
     // Transaction d'enregistrement de la donnée (`enregistrerEntree`) ; l'écriture disque reste ici.
-    const issue = enregistrerEntree(categoryKey, entry, src.index);
+    const issue = enregistrerEntree(categoryKey, entry, src.index, deSaisi === deImprime ? undefined : deSaisi);
     if (!issue.ok) { setSchemaError(issue.erreurs.join('\n')); setMsg(''); return; }
     setSchemaError(null);
     const text = issue.texte;
@@ -530,6 +534,12 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
       )}
       <SuiviDesSaisies signaler={saisies.signaler}>
       <div className="codex-edit-form">
+        {deSaisi !== undefined && (
+          <div className="ed-field">
+            <span>dé de tirage de la table — commun à toutes ses rangées</span>
+            <DeDeTirageField value={deSaisi} onChange={(d) => { setDeSaisi(d); setDirty(true); setSchemaError(null); }} />
+          </div>
+        )}
         {hasAppearance && <AppearanceField traits={entry.traits as TraitPose[]} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
         {isSpell && <SpellEffectsField value={entry.effects as Flow | undefined} onChange={(v) => edit('effects', v)} />}
         {CRITICAL_CATEGORIES.includes(categoryKey) && (
@@ -601,6 +611,13 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
               onChange={(f) => edit('consumable', f.kind === 'seq' && f.steps.length === 0 ? undefined : f)} />
           </div>
         )}
+        {EVENEMENTS_DE_MER.includes(categoryKey) && (
+          <div className="ed-field">
+            <span>conséquence de l’événement — Flow joué à bord ou à l’escale (ops du groupe, d’un héros ou du navire, branches, Tests, choix)</span>
+            <FlowEditor flow={(entry.consequence as Flow | undefined) ?? EMPTY_FLOW} ctx={ctxDeCatalogue('evenementDeMer')}
+              onChange={(f) => edit('consequence', f.kind === 'seq' && f.steps.length === 0 ? undefined : f)} />
+          </div>
+        )}
         {hasConsumable && <ConsumableDurationField value={entry.consumableDuration as ConsumableDuration | undefined} onChange={(v) => edit('consumableDuration', v)} />}
         {isDisease && <SymptomsField value={entry.symptoms as DiseaseSymptom[] | undefined} onChange={(v) => edit('symptoms', v)} />}
         {isDisease && <DiseaseDailyTestField value={entry.dailyTest as DiseaseDailyTest | undefined} onChange={(v) => edit('dailyTest', v)} />}
@@ -648,7 +665,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {categoryKey === 'characteristics' && <GenericArrayField chemin={chemin('options')} noeud={noeudDe('options')} label="options (dépenses de la ressource — verbatim du Source)" value={entry.options as Record<string, unknown>[] | undefined} onChange={(v) => edit('options', v)} />}
         {/* NADJ 16 l.119 ; NADJ 16 l.111 ; NADJ 16 l.25 ; NADJ 16 l.82 */}
         {categoryKey === 'tavernGames' && (['options', 'table', 'sides', 'specials'] as const).map((champ) => (
-          <GenericArrayField key={champ} chemin={chemin(champ)} noeud={noeudDe(champ)} label={metaPourFichier(src.file)?.[champ]?.label ?? champ} value={entry[champ] as Record<string, unknown>[] | undefined} onChange={(v) => edit(champ, v.length ? v : undefined)} />
+          <GenericArrayField key={champ} chemin={chemin(champ)} noeud={noeudDe(champ)} label={metaDeLEntree?.[champ]?.label ?? champ} value={entry[champ] as Record<string, unknown>[] | undefined} onChange={(v) => edit(champ, v.length ? v : undefined)} />
         ))}
         {/* Ornements d'identité d'un bâtiment (#1715) : `{id, anchor}[]` — le nœud porte les libellés des ancrages. */}
         {categoryKey === 'buildings' && <GenericArrayField chemin={chemin('features')} noeud={noeudDe('features')} label="ornements d’identité (décor posé et son ancrage)" value={entry.features as Record<string, unknown>[] | undefined} onChange={(v) => edit('features', v.length ? v : undefined)} />}
@@ -684,26 +701,22 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {isShipCrit && <ShipCrewHitField value={entry.crewHit as ShipCrewHitValue | undefined} onChange={(v) => edit('crewHit', v)} />}
         {isWaterExposure && <WaterTestField value={entry.test as WaterTest | undefined} onChange={(v) => edit('test', v)} />}
         {isWaterExposure && <WaterModifiersField value={entry.modifiers as WaterExposureModifier[] | undefined} onChange={(v) => edit('modifiers', v)} />}
-        {isWaterExposure && <WaterDiseasesField value={entry.diseases as WaterExposureData['diseases'] | undefined} onChange={(v) => edit('diseases', v)} />}
+        {isWaterExposure && <WaterDiseasesField value={entry.diseases as WaterExposureData['diseases']} onChange={(v) => edit('diseases', v)} />}
         {isSeaNavigation && <GenericArrayField chemin={chemin('forcerLeRythme')} noeud={noeudDe('forcerLeRythme')} label="forcerLeRythme (bonus M → difficulté Voile/Rames)" value={entry.forcerLeRythme as Record<string, unknown>[] | undefined} onChange={(v) => edit('forcerLeRythme', v)} />}
         {isSeaPerils && <GenericArrayField chemin={chemin('hazards')} noeud={noeudDe('hazards')} label="hazards (dangers flottants)" value={entry.hazards as Record<string, unknown>[] | undefined} onChange={(v) => edit('hazards', v)} />}
         {isSeaPerils && <GenericArrayField chemin={chemin('detroits')} noeud={noeudDe('detroits')} label="detroits" value={entry.detroits as Record<string, unknown>[] | undefined} onChange={(v) => edit('detroits', v)} />}
         {isSeaPerils && <GenericArrayField chemin={chemin('tourbillons')} noeud={noeudDe('tourbillons')} label="tourbillons" value={entry.tourbillons as Record<string, unknown>[] | undefined} onChange={(v) => edit('tourbillons', v)} />}
         {isSeaPerils && <GenericArrayField chemin={chemin('gestionDesPerils')} noeud={noeudDe('gestionDesPerils')} label="gestionDesPerils" value={entry.gestionDesPerils as Record<string, unknown>[] | undefined} onChange={(v) => edit('gestionDesPerils', v)} />}
-        {isSeaWeather && <GenericArrayField chemin={chemin('table')} noeud={noeudDe('table')} label="table (tirage quotidien)" value={entry.table as Record<string, unknown>[] | undefined} onChange={(v) => edit('table', v)} />}
         {isSeaWeather && <GenericArrayField chemin={chemin('precipitations')} noeud={noeudDe('precipitations')} label="precipitations" value={entry.precipitations as Record<string, unknown>[] | undefined} onChange={(v) => edit('precipitations', v)} />}
         {isSeaWeather && <GenericArrayField chemin={chemin('temperatures')} noeud={noeudDe('temperatures')} label="temperatures" value={entry.temperatures as Record<string, unknown>[] | undefined} onChange={(v) => edit('temperatures', v)} />}
         {isSeaWeather && <GenericArrayField chemin={chemin('visibilites')} noeud={noeudDe('visibilites')} label="visibilites" value={entry.visibilites as Record<string, unknown>[] | undefined} onChange={(v) => edit('visibilites', v)} />}
         {isSeaWeather && <GenericArrayField chemin={chemin('vents')} noeud={noeudDe('vents')} label="vents" value={entry.vents as Record<string, unknown>[] | undefined} onChange={(v) => edit('vents', v)} />}
-        {isSeaWeather && <GenericArrayField chemin={chemin('roseDesVents')} noeud={noeudDe('roseDesVents')} label="roseDesVents" value={entry.roseDesVents as Record<string, unknown>[] | undefined} onChange={(v) => edit('roseDesVents', v)} />}
         {isDisponibilite && <GenericArrayField chemin={chemin('dispoPct')} noeud={noeudDe('dispoPct')} label="dispoPct (% de Disponibilité par taille de colonie)" value={entry.dispoPct as Record<string, unknown>[] | undefined} onChange={(v) => edit('dispoPct', v)} />}
         {isDisponibilite && <GenericArrayField chemin={chemin('barterRatios')} noeud={noeudDe('barterRatios')} label="barterRatios (Ratios de Troc)" value={entry.barterRatios as Record<string, unknown>[] | undefined} onChange={(v) => edit('barterRatios', v)} />}
         {isArcanePhenomena && <GenericArrayField chemin={chemin('saturationLevels')} noeud={noeudDe('saturationLevels')} label="saturationLevels (Paliers de Saturation)" value={entry.saturationLevels as Record<string, unknown>[] | undefined} onChange={(v) => edit('saturationLevels', v)} />}
         {isArcanePhenomena && <GenericArrayField chemin={chemin('windSaturationEffects')} noeud={noeudDe('windSaturationEffects')} label="windSaturationEffects (Effets de Saturation par Vent)" value={entry.windSaturationEffects as Record<string, unknown>[] | undefined} onChange={(v) => edit('windSaturationEffects', v)} />}
         {isArcanePhenomena && <GenericArrayField chemin={chemin('phenomena')} noeud={noeudDe('phenomena')} label="phenomena (Phénomènes arcaniques)" value={entry.phenomena as Record<string, unknown>[] | undefined} onChange={(v) => edit('phenomena', v)} />}
         {isArcanePhenomena && <GenericArrayField chemin={chemin('tables')} noeud={noeudDe('tables')} label="tables (Tables du chapitre)" value={entry.tables as Record<string, unknown>[] | undefined} onChange={(v) => edit('tables', v)} />}
-        {isRiverNavigation && <GenericArrayField chemin={chemin('windForces')} noeud={noeudDe('windForces')} label="windForces (Force du vent, 1d10)" value={entry.windForces as Record<string, unknown>[] | undefined} onChange={(v) => edit('windForces', v)} />}
-        {isRiverNavigation && <GenericArrayField chemin={chemin('windDirections')} noeud={noeudDe('windDirections')} label="windDirections (Direction du vent, 1d10)" value={entry.windDirections as Record<string, unknown>[] | undefined} onChange={(v) => edit('windDirections', v)} />}
         {hasHullLength && (
           <PlageField
             label="Longueur"
@@ -1240,28 +1253,33 @@ function WaterModifiersField({ value, onChange }: { value: WaterExposureModifier
   );
 }
 
-/** Maladies contractées sur Exposition hydrique (`waterExposure.diseases`, MSRC 16 l.49-61) : plage d100
- *  (jet APRÈS échec du Test) → maladie référencée par ID (sélecteur, comme `SkillSpecListField`/
- *  `ProsthesisField`/`MutationTableField` — la donnée est un id, jamais un label). */
-function WaterDiseasesField({ value, onChange }: { value: WaterExposureData['diseases'] | undefined; onChange: (v: WaterExposureData['diseases']) => void }) {
-  const list = value ?? [];
+/** Maladies contractées sur Exposition hydrique (`waterExposure.diseases`, MSRC 16 l.49-61) : le dé de la
+ *  table (`die`, jet APRÈS échec du Test) et ses plages → maladie référencée par ID (sélecteur, comme
+ *  `SkillSpecListField`/`ProsthesisField`/`MutationTableField` — la donnée est un id, jamais un label). */
+function WaterDiseasesField({ value, onChange }: { value: WaterExposureData['diseases']; onChange: (v: WaterExposureData['diseases']) => void }) {
+  const { die, entries: list } = value;
+  const de = deDeLaTableTiree(value);
+  const [bas, haut] = [totalDuDe(de, de.n), facesDuDe(de)];
+  const libelleDe = formatDice(de);
   const maladieOpts = datasetArray('maladies') as { id: string; label: string }[];
-  const set = (i: number, patch: Partial<WaterExposureData['diseases'][number]>) => onChange(list.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const poser = (entries: WaterExposureData['diseases']['entries']) => onChange({ die, entries });
+  const set = (i: number, patch: Partial<WaterExposureData['diseases']['entries'][number]>) => poser(list.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   return (
     <div className="ed-field">
-      <span>maladies contractées — jet d100 après échec du Test de Résistance (MSRC 16 l.49-61)</span>
+      <span>maladies contractées — jet {libelleDe} après échec du Test de Résistance (MSRC 16 l.49-61)</span>
+      <DeDeTirageField value={die} onChange={(d) => onChange({ die: d, entries: list })} />
       {list.map((r, i) => (
         <div className="tf-row" key={i}>
-          <label className="dr">d100&nbsp;<NumberField variant="nu" label="Plage d100 — borne basse" min={1} max={100} value={r.min} onChange={(min) => set(i, { min })} />–<NumberField variant="nu" label="Plage d100 — borne haute" min={1} max={100} value={r.max} onChange={(max) => set(i, { max })} /></label>
+          <label className="dr">{libelleDe}&nbsp;<NumberField variant="nu" label={`Plage ${libelleDe} — borne basse`} min={bas} max={haut} value={r.min} onChange={(min) => set(i, { min })} />–<NumberField variant="nu" label={`Plage ${libelleDe} — borne haute`} min={bas} max={haut} value={r.max} onChange={(max) => set(i, { max })} /></label>
           <select value={r.disease} onChange={(e) => set(i, { disease: e.target.value })}>
             <option value="">— (choisir une maladie) —</option>
             {maladieOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
           <label className="dr"><input type="checkbox" checked={!!r.rerollUnlessWounded} onChange={(e) => set(i, { rerollUnlessWounded: e.target.checked || undefined })} /> relance si indemne</label>
-          <button className="btn small danger" title="Retirer" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
+          <button className="btn small danger" title="Retirer" onClick={() => poser(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => onChange([...list, { min: 1, max: 1, disease: '' }])}>+ Maladie</button>
+      <button className="btn small" onClick={() => poser([...list, { min: bas, max: bas, disease: '' }])}>+ Maladie</button>
     </div>
   );
 }
@@ -1464,6 +1482,18 @@ interface MutationRange { min: number; max: number; mutation: string; }
 
 /** DOMAINE d'une plage tirée au dé de sa table (`die`) : son nom et ses bornes de saisie — aucun tant
  *  que la chaîne en cours d'édition ne se lit pas (le schéma la refuse à l'enregistrement). */
+/** Saisie du DÉ DE TIRAGE d'une table (`deDeTirageSchema`) : une expression illisible n'est pas retenue. */
+function DeDeTirageField({ value, onChange }: { value: string; onChange: (die: string) => void }) {
+  return (
+    <label className="dr">Dé
+      <SaisieEnBrouillon
+        ariaLabel="Dé de tirage" placeholder="ex. d10, 2d10" value={value} afficher={(d) => d}
+        relire={(texte, avant) => (deDeTirageSchema.safeParse(texte.trim()).success ? texte.trim() : avant)}
+        onChange={onChange} />
+    </label>
+  );
+}
+
 function domaineDuDe(die: unknown): PlageDomaine {
   const spec = typeof die === 'string' ? parseDice(die) : null;
   return spec ? { nom: formatDice(spec), min: totalDuDe(spec, spec.n), max: totalDuDe(spec, spec.n * spec.sides) } : {};

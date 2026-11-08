@@ -113,7 +113,7 @@ func _arreter() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
 		orbite.rotation.y = MiseEnPage.lacet_glisse(orbite.rotation.y, event.relative.x)
-		tangage.rotation.x = MiseEnPage.tangage_glisse(tangage.rotation.x, event.relative.y)
+		tangage.rotation.x = MiseEnPage.tangage_glisse(tangage.rotation.x, event.relative.y, MiseEnPage.TANGAGE_MINIMAL, MiseEnPage.TANGAGE_MAXIMAL)
 	elif event is not InputEventMouseButton or not event.pressed or get_viewport().gui_get_hovered_control() != null:
 		return
 	elif event.button_index == MOUSE_BUTTON_WHEEL_UP:

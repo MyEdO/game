@@ -41,7 +41,7 @@ const OSSATURE = 'mur-a-ossature-en-bois';
 /**
  * (2W+1)×(2H+1) — `c` = clayonnage, `M` = mur à ossature, sur les colonnes d'ARÊTES.
  * Les marqueurs sont lus PUIS effacés (`scanMarkers`) : `A` archer, `g` gobelin de la stalle voisine,
- * `G` gobelin derrière le mur, `H` les deux cases où `startCombat` pose le groupe, `S` le départ.
+ * `G` gobelin derrière le mur, `H` les deux cases où `lancerLeCombat` pose le groupe, `S` le départ.
  */
 const ROWS = [
   '             ',
@@ -96,8 +96,8 @@ const groupe = () => [pregen(PREGEN.chasseur), pregen(PREGEN.soldat)];
 function ouvrirCombat() {
   seedBattleRng(1234);
   banc.setState({ party: groupe() });
-  banc.getState().startScene(carte());
-  banc.getState().startCombat(ENC);
+  banc.getState().lancerLaScene(carte());
+  banc.getState().lancerLeCombat(ENC);
   banc.getState().fenetreValider('roundStart');
   return banc.getState().battle!;
 }
@@ -117,7 +117,7 @@ describe('carte-fixture — deux stalles, une arête qui laisse voir, une qui fe
     expect(structureAt(sc, GOBELIN_VOISIN.x, GOBELIN_VOISIN.y, 'E', 0)?.structure).toBe(CLAYONNAGE);
     expect(structureAt(sc, ARCHER.x, ARCHER.y, 'E', 0)?.structure).toBe(CLAYONNAGE);
     expect(structureAt(sc, GOBELIN_DERRIERE_MUR.x - 1, GOBELIN_DERRIERE_MUR.y, 'E', 0)?.structure).toBe(OSSATURE);
-    // Les cases `H` du plan sont celles où `startCombat` POSE réellement le groupe — relevées sur le
+    // Les cases `H` du plan sont celles où `lancerLeCombat` POSE réellement le groupe — relevées sur le
     // combat ouvert, jamais recopiées de la formule de pose.
     const poses = ouvrirCombat().combatants.filter((c) => c.kind === 'hero').map((c) => ({ x: c.pos!.x, y: c.pos!.y }));
     expect(poses).toEqual(HEROS);

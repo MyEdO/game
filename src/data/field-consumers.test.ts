@@ -367,7 +367,7 @@ const RECOUVRES: readonly (readonly [string, string, string])[] = [
   ['CountSpec', 'roll', 'src/data/index.ts @count'],
   ['TrappingRef', 'label', 'src/engine/possessionGrants.ts @possessionGrantsFromRefs'],
   ['FlowTest', 'argDifficulty', 'src/noyau/triggeredEffects.ts @visit'],
-  ['TravelTableEntry', 'stageOutcome', 'src/noyau/travelPostes.ts @stageAggregate'],
+  ['TravelTableEntry', 'stageOutcome', 'src/noyau/travelPostes.ts @stageEncounter'],
   ['TraitInstance', 'hidden', 'src/engine/groups.ts @hiddenGroupsOf'],
 ];
 
@@ -385,6 +385,7 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
   ActivityDef: ['rounds', 'stake', 'stakeForm', 'unavailableIfExtenue'],
   ActivityStakeEntry: ['stakeForm'],
   AdvanceCostBand: ['max', 'min'],
+  CritDoc: ['die'],
   DetailColorData: ['randByRace'],
   DomainData: ['grantGroups'],
   EtatData: ['severity'],
@@ -393,16 +394,16 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
   LocationData: ['prefix', 'suffix'],
   ManeuverDef: ['stakeForm'],
   MiscastTableDef: ['die'],
+  PlanDEspece: ['corps', 'echelle', 'famille', 'omis'],
   PsychologyData: ['stakeForm'],
   QualityData: ['aspect'],
-  RaceAppearanceData: ['scale'],
   ReseauRoutierData: [
     'effectifMax', 'effectifMin', 'effectifRouteReculeeMax', 'effectifRouteReculeeMin', 'espacementKm',
     'espacementKmMax', 'espacementKmMin', 'etapeChevalJours', 'etapeDiligenceJours', 'etapePiedJours',
     'facteurGrandsTroublesMax', 'facteurGrandsTroublesMin', 'facteurZoneDangereuse', 'kind', 'largeurMaxM',
     'largeurMinM', 'prixSurcotePct', 'tarifBrassMax', 'tarifBrassMin',
   ],
-  SeaPerilsData: ['hazardsWeightNote', 'tourbillonSwim'],
+  SeaPerilsData: ['tourbillonSwim'],
   SeaWeatherData: ['encalmine'],
   SkillData: ['specsOpen'],
   StakeEntry: ['entryFromSource', 'form'],
@@ -421,7 +422,9 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
  *  une autre vue) ou par clé dynamique. Les clés d'ENVELOPPE sans lecteur, elles, sont classées par le
  *  rapport (`CLES_ENVELOPPE`). */
 const RAISONS_DES_ZEROS: Readonly<Record<string, string>> = {
+  'CritDoc.die': 'lu par la porte `deDeTirageDe` (`src/data/rangees.ts`), qui lit `die` à la racine JSON du document',
   'MiscastTableDef.die': 'lu par la porte `deDeTirageDe` (`src/data/rangees.ts`), qui lit `die` à la racine JSON du document',
+  'PlanDEspece.echelle': 'lu par `jugerDeclaration` (`scripts/personnage-3d/base/declaration.mjs`), qui juge l’échelle d’art du porteur d’une base',
   'TrappingData.service': 'lu par clé dynamique : marqueur de la sous-liste `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`)',
 };
 

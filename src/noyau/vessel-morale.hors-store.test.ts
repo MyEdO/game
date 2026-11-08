@@ -29,14 +29,14 @@ beforeEach(() => {
 describe('Moral du navire de campagne — recalcul hebdomadaire dans l’entretien quotidien', () => {
   it('moins d’une semaine écoulée → Moral inchangé', () => {
     banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: ['pas-de-paie'] } } });
-    banc.getState().advanceTime(3 * MINUTES_PER_DAY);
+    banc.getState().avancerLeTemps(3 * MINUTES_PER_DAY);
     expect(banc.getState().vessel!.morale.score).toBe(75);
     expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(0);
   });
 
   it('franchissement de semaine → Moral recalculé (pas-de-paie −3d10) et journalisé', () => {
     banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: ['pas-de-paie'] } } });
-    banc.getState().advanceTime(8 * MINUTES_PER_DAY);
+    banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
     const v = banc.getState().vessel!;
     expect(v.morale.lastMoraleWeek).toBe(1);
     expect(v.morale.score).toBeLessThan(75); // « Pas de paie » fait toujours chuter le Moral
@@ -44,7 +44,7 @@ describe('Moral du navire de campagne — recalcul hebdomadaire dans l’entreti
   });
 
   it('sans navire (vessel null) → aucun effet, aucun plantage', () => {
-    banc.getState().advanceTime(8 * MINUTES_PER_DAY);
+    banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
     expect(banc.getState().vessel).toBeNull();
   });
 });
@@ -59,7 +59,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] },
     });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 10, silver: 0, brass: 0 }); // Mousse hebdo = 288 sc, largement couvert
-    banc.getState().advanceTime(8 * MINUTES_PER_DAY);
+    banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
     const v = banc.getState().vessel!;
     expect(v.morale.lastMoraleWeek).toBe(1);
     expect(v.morale.score).toBeGreaterThan(75); // « La paie est régulière » = +1d10
@@ -74,7 +74,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] },
     });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 0, silver: 10, brass: 0 }); // 120 sc < 288
-    banc.getState().advanceTime(8 * MINUTES_PER_DAY);
+    banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
     const v = banc.getState().vessel!;
     expect(v.morale.score).toBeLessThan(75); // « Pas de paie »
     expect(v.wagesOwed).toBe(288); // solve due cumulée en sous de cuivre
@@ -87,7 +87,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 5, silver: 0, brass: 0 });
-    banc.getState().advanceTime(8 * MINUTES_PER_DAY);
+    banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
     const v = banc.getState().vessel!;
     expect(v.morale.lastMoraleWeek).toBe(1);
     expect(v.morale.score).toBe(75); // aucun facteur actif → delta 0
@@ -95,7 +95,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(toBrass({ gold: 5, silver: 0, brass: 0 })); // bourse intacte
   });
 
-  it('halte de nuit (openRest puis la validation du repos) franchissant la semaine → le bilan de paie ne se journalise QU’UNE FOIS', () => {
+  it('halte de nuit (ouvrirLeRepos puis la validation du repos) franchissant la semaine → le bilan de paie ne se journalise QU’UNE FOIS', () => {
     // Repro #216 : trois écritures indépendantes du MÊME bilan (upkeep.ts, buildNightCascade,
     // fenetreValider('rest')) écrivaient chacune le journal — l'Argent ne bougeait qu'une fois (garde hebdo
     // interne à `tickCampaignVesselWeek`), mais le texte apparaissait ×3 à l'écran.
@@ -105,7 +105,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] },
     });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 10, silver: 0, brass: 0 });
-    banc.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
     banc.getState().fenetreValider('rest');
     const wageLines = banc.getState().journal.filter((l) => l.includes('Solde hebdomadaire'));
     expect(wageLines).toHaveLength(1);
@@ -122,7 +122,7 @@ describe('Conseil de bord (#229) — cadence MANUELLE : la paie remonte en modal
 
   it('franchissement de semaine avec équipage salarié → pendingCouncil (choix), AUCUNE mutation avant validation', () => {
     withCrew();
-    banc.getState().advanceTime(8 * MINUTES_PER_DAY);
+    banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
     const s = banc.getState();
     expect(s.pendingCouncil?.phase).toBe('choix');
     expect(s.pendingCouncil?.wageBrass).toBe(288); // barème mousse (paie régulière)
@@ -133,8 +133,8 @@ describe('Conseil de bord (#229) — cadence MANUELLE : la paie remonte en modal
 
   it('choix « chiche » → facteur paie-chiche (−2d10) + demi-solde prélevée, bilan joué', () => {
     withCrew();
-    banc.getState().advanceTime(8 * MINUTES_PER_DAY);
-    banc.getState().councilPay('paie-chiche');
+    banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
+    banc.getState().fenetreChoisir('council', 'paie', 'paie-chiche');
     const s = banc.getState();
     expect(s.pendingCouncil?.phase).toBe('bilan');
     expect(s.vessel!.morale.score).toBeLessThan(75); // « La paie est chiche » fait chuter le Moral
@@ -147,10 +147,10 @@ describe('Conseil de bord (#229) — cadence MANUELLE : la paie remonte en modal
 
   it('bourse vide → seule « pas de paie » résout (option payante rejetée), dette cumulée', () => {
     withCrew({ gold: 0, silver: 0, brass: 0 });
-    banc.getState().advanceTime(8 * MINUTES_PER_DAY);
-    banc.getState().councilPay('paie-reguliere'); // non payable → rejeté
+    banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
+    banc.getState().fenetreChoisir('council', 'paie', 'paie-reguliere'); // non payable → rejeté
     expect(banc.getState().pendingCouncil?.phase).toBe('choix'); // reste en choix
-    banc.getState().councilPay('pas-de-paie');
+    banc.getState().fenetreChoisir('council', 'paie', 'pas-de-paie');
     const s = banc.getState();
     expect(s.pendingCouncil?.phase).toBe('bilan');
     expect(s.vessel!.wagesOwed).toBe(288); // solde régulière due cumulée
@@ -159,7 +159,7 @@ describe('Conseil de bord (#229) — cadence MANUELLE : la paie remonte en modal
 
   it('sans équipage salarié → pas de conseil même en manuel (recalcul immédiat, non-régression)', () => {
     banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: ['pas-de-paie'] } } });
-    banc.getState().advanceTime(8 * MINUTES_PER_DAY);
+    banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
     expect(banc.getState().pendingCouncil).toBeNull();
     expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(1); // recalculé sur place
   });

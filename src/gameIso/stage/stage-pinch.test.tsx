@@ -8,7 +8,7 @@
  */
 import { useRef } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Dims } from '../../geometry/iso';
 import { emptyScene } from '../../noyau/monde/scene';
 import { getStagePan, poserPan } from '../../state/stagePan';
@@ -26,12 +26,6 @@ function stageEl(): SVGSVGElement {
     releasePointerCapture: () => undefined,
   } as unknown as SVGSVGElement;
 }
-
-// Ce banc remplace des ACTIONS du store par des sondes (`setZoom`, `moveParty`). Le store est partagé
-// par toute la suite (`isolate: false`) : une action laissée stubbée fait tourner à vide le geste d'un
-// fichier voisin, qui mesure alors un monde qui ne bouge plus.
-const ACTIONS_VRAIES = { setZoom: useGame.getState().setZoom, moveParty: useGame.getState().moveParty };
-afterEach(() => useGame.setState(ACTIONS_VRAIES));
 
 /** Événement de pointeur TACTILE : c'est le `pointerId` qui fait le doigt (le régime se lit à leur nombre). */
 const doigt = (pointerId: number, x: number, y: number) =>
@@ -99,9 +93,9 @@ describe('useStagePointer — pincer à deux doigts', () => {
   });
 
   it('le RELÂCHEMENT d’un doigt du pincer ne commet aucun clic (pas d’ordre de déplacement au bout d’un zoom)', () => {
-    const moveParty = vi.fn();
+    const deplacerLeGroupe = vi.fn();
     const { pointer } = monter();
-    useGame.setState({ moveParty });
+    useGame.setState({ deplacerLeGroupe: deplacerLeGroupe });
 
     pointer.handlers.onPointerDown(doigt(1, 100, 100));
     pointer.handlers.onPointerDown(doigt(2, 200, 100));
@@ -109,6 +103,6 @@ describe('useStagePointer — pincer à deux doigts', () => {
     pointer.handlers.onPointerUp(doigt(2, 300, 100));
     pointer.handlers.onPointerUp(doigt(1, 100, 100));
 
-    expect(moveParty).not.toHaveBeenCalled();
+    expect(deplacerLeGroupe).not.toHaveBeenCalled();
   });
 });

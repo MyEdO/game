@@ -88,7 +88,7 @@ describe('Étape à DÉ NU en fenêtre (#1508) — la même coquille qu’une ta
 
   it('(vii bis) APRÈS le dé : la MÊME rangée porte le dé et le TOTAL avec son unité', () => {
     openDie(3);
-    useGame.getState().jetSetForcedRoll('cascadeTirage', 10, 'dn');
+    useGame.getState().jetImposerLeResultat('cascadeTirage', 10, 'dn');
     render();
     const ligne = host.querySelector('.rm-roll.table')!;
     expect(ligne.textContent).toContain('Hauteur de chute (2d10)');
@@ -191,7 +191,7 @@ describe('Dé à SEUIL en fenêtre (#1508) — la rangée dit ce qu’on joue AV
 
   it('(E1) APRÈS le lancer : la MÊME cellule porte le total confronté, et Z1 nomme ENCORE le porteur', () => {
     openSauvegarde();
-    useGame.getState().jetSetForcedRoll('cascadeTirage', 6, 'sv');
+    useGame.getState().jetImposerLeResultat('cascadeTirage', 6, 'sv');
     render();
     expect(host.querySelector('.rm-roll.table .rm-table-result')?.textContent).toBe('6 ≥ Protection (6+) du Dôme');
     // Le nom ne disparaît pas à l'instant où l'on LIT le résultat et où l'on clique « Terminer » :

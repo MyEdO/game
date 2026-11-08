@@ -11,9 +11,6 @@ extends Node3D
 ## L'id d'un élément ou d'un emblème absent : aucun.
 const VIDE := "vide"
 const ORIGINE := [0.0, 0.0, 0.0]
-const DELAI_DE_REQUETE_S := 10.0
-## Le plus grand bloc que HTTPRequest lit par image : un GLB de base se reçoit en quelques images, pas en une par 64 Kio.
-const BLOC_DE_TELECHARGEMENT := 16777216
 ## La largeur en pixels à laquelle le SVG d'un emblème se rastérise (#3111).
 const LARGEUR_D_EMBLEME := 512.0
 
@@ -69,10 +66,10 @@ static func retenir_les_modeles(reponse: Dictionary) -> void:
 	_textures = {}
 
 
-## Le listage du serveur (`GET modeles/`, `hotes/godot/pont/CONTRAT.md`, « Atelier 3D »), par une requête que porte
-## `hote` ; ses erreurs à `recueil`, vide s'il ne se lit pas.
+## Le listage du serveur (`GET modeles/`, `hotes/godot/pont/CONTRAT.md`, « Atelier 3D »), par le pont que `hote`
+## rejoint (`PontDuNoyau.requeter`) ; ses erreurs à `recueil`, vide s'il ne se lit pas.
 static func lister(hote: Node, recueil: Array[String]) -> Dictionary:
-	var octets := await _telecharger(hote, "modeles/", recueil)
+	var octets := await (hote.get_node("/root/Pont") as PontDuNoyau).requeter("modeles/", recueil)
 	var listage: Variant = JSON.parse_string(octets.get_string_from_utf8()) if not octets.is_empty() else null
 	if not listage is Dictionary:
 		recueil.append("listage-illisible : modeles/")
@@ -134,27 +131,6 @@ static func porte_un_blason(element: String) -> bool:
 	return modeles.surfaces[element].any(func(surface: Dictionary) -> bool: return surface.get("blason", false))
 
 
-## Les octets de `relative`, adresse relative à la page, par une requête que porte `hote` ; vides (et une erreur à
-## `recueil`) si la requête échoue ou expire.
-static func _telecharger(hote: Node, relative: String, recueil: Array[String]) -> PackedByteArray:
-	var requete := HTTPRequest.new()
-	requete.timeout = DELAI_DE_REQUETE_S
-	requete.download_chunk_size = BLOC_DE_TELECHARGEMENT
-	hote.add_child(requete)
-	var pont: PontDuNoyau = hote.get_node("/root/Pont")
-	var code := requete.request(pont.adresse(relative))
-	if code != OK:
-		requete.queue_free()
-		recueil.append("requete-refusee : %s (%s)" % [relative, error_string(code)])
-		return PackedByteArray()
-	var resultat: Array = await requete.request_completed
-	requete.queue_free()
-	if resultat[0] != HTTPRequest.RESULT_SUCCESS or resultat[1] != 200:
-		recueil.append("requete-echouee : %s (resultat %s, HTTP %s)" % [relative, resultat[0], resultat[1]])
-		return PackedByteArray()
-	return resultat[3]
-
-
 ## Le GLB du modèle `id`, sous le fichier que lui donne `glb` de la réponse retenue, en scène neuve : téléchargé une fois
 ## par chargement des modèles, chaque demande d'un même fichier attendant la première, puis lu à chaque demande, car un
 ## `GLTFState` ne génère qu'une scène dont le squelette trouve ses os par leur nom (`generate_scene` rappelé : `find_bone`
@@ -188,7 +164,7 @@ func scene_du_glb(id: String, recueil: Array[String]) -> Node3D:
 
 
 func _lire(fichier: String, lecture: Lecture) -> void:
-	lecture.octets = await _telecharger(self, "modeles/%s" % fichier, lecture.erreurs)
+	lecture.octets = await (get_node("/root/Pont") as PontDuNoyau).requeter("modeles/%s" % fichier, lecture.erreurs)
 	if lecture.octets.is_empty() and _lectures.get(fichier) == lecture:
 		_lectures.erase(fichier)
 	lecture.en_vol = false
@@ -472,14 +448,19 @@ func choisir_l_embleme(id: String, embleme: String) -> String:
 	return pose
 
 
-## L'élément monté à l'emplacement `id` habillé de la palette de la composition et de l'emblème demandé (`_peindre`) ;
-## rend si l'emblème est posé sur une surface au moins, et un emblème demandé qu'aucune ne reçoit donne
-## `blason-sans-surface`.
+## L'élément monté à l'emplacement `id` habillé de la palette de la composition, chaque emplacement de palette que
+## colore la `palette` de son entrée de `montes` (sa teinte, #3456) pris à celle-ci quand cette entrée monte cet élément,
+## et de l'emblème demandé (`_peindre`) ; rend si l'emblème est posé sur une surface au moins, et un emblème demandé
+## qu'aucune ne reçoit donne `blason-sans-surface`.
 func _habiller(id: String) -> bool:
 	var element: String = montes[id]
 	var embleme: String = _emblemes_demandes.get(id, VIDE)
 	var texture: ImageTexture = null if embleme == VIDE else _texture_de_l_embleme(embleme)
-	var posee := _peindre(pieces[id], modeles.surfaces[element], texture)
+	var monte: Dictionary = cibles().get(id, {})
+	var palette: Dictionary = composee.get("palette", {}).duplicate()
+	if monte.get("element") == element:
+		palette.merge(monte.get("palette", {}), true)
+	var posee := _peindre(pieces[id], modeles.surfaces[element], texture, palette)
 	if texture != null and not posee:
 		erreurs.append("blason-sans-surface : %s" % element)
 	return posee
@@ -488,16 +469,15 @@ func _habiller(id: String) -> bool:
 ## Les meshes de la base posée habillés de la palette de la composition (`_peindre`, `surfaces` de la base).
 func habiller_la_base() -> void:
 	if not base.is_empty():
-		_peindre(_pieces_de_la_base, modeles.surfaces[base.id], null)
+		_peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}))
 
 
 ## Chaque surface de `meshes` dont le matériau du GLB porte le `nom` d'une de `surfaces` reçoit un matériau propre
-## (`materiau_local`) si la `palette` de la composition colore son emplacement de palette, ou si elle est `blason` et
+## (`materiau_local`) si `palette` colore son emplacement de palette, ou si elle est `blason` et
 ## `texture` n'est pas nulle : la couleur y remplace l'albédo du GLB, texture comprise, pour que la tête et le corps
 ## d'une même peau aient la même couleur, et `texture` devient la couche de détail, en UV1 et en mélange. Toute autre
 ## surface garde le matériau du GLB. Rend si `texture` est posée sur une surface au moins.
-func _peindre(meshes: Array, surfaces: Array, texture: ImageTexture) -> bool:
-	var palette: Dictionary = composee.get("palette", {})
+func _peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary) -> bool:
 	var par_nom := {}
 	for surface in surfaces:
 		par_nom[surface.nom] = surface
@@ -526,6 +506,22 @@ func _peindre(meshes: Array, surfaces: Array, texture: ImageTexture) -> bool:
 				local.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MIX
 				posee = true
 	return posee
+
+
+## Par emplacement monté dont une surface porte un matériau propre, la couleur d'albédo `#rrggbb` de ce matériau, par nom
+## du matériau du GLB.
+func couleurs_posees() -> Dictionary:
+	var couleurs := {}
+	for id in pieces:
+		var posees := {}
+		for piece: MeshInstance3D in pieces[id]:
+			for rang in piece.mesh.get_surface_count():
+				var local := piece.get_surface_override_material(rang) as BaseMaterial3D
+				if local != null:
+					posees[local.resource_name] = "#" + local.albedo_color.to_html(false)
+		if not posees.is_empty():
+			couleurs[id] = posees
+	return couleurs
 
 
 ## Le SVG de l'emblème `id`, offert par `emblemes` de la réponse de `modeles`, rastérisé à `LARGEUR_D_EMBLEME` pixels de

@@ -18,9 +18,9 @@ function combat(): string {
   hero.talents.push({ talentId: 'magie-mineure', times: 1 });
   hero.spells = [];
   useGame.setState({ battle: null, party: [hero], pendingCascade: null, pendingRoundStart: null, journal: [] });
-  useGame.getState().startScene(testScene());
+  useGame.getState().lancerLaScene(testScene());
   seedBattleRng(777);
-  useGame.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
+  useGame.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
   vi.clearAllTimers();
   return hero.id;
 }

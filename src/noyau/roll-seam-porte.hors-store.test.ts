@@ -51,7 +51,7 @@ describe('#1262 — openBand : la porte monte, surface et POSSÈDE', () => {
     openBand(banc.getState, banc.setState, {
       id: 'peur', kind: 'encounterPsych', label: fixtureText('Peur'), title: 'Peur', purpose: 'test',
       difficulty: 'intermediaire',
-      porteurs: [{ actor: h1, ligne: { test: { char: 'force-mentale' } } }, { actor: h2, ligne: { test: { char: 'force-mentale' } } }],
+      porteurs: [{ actor: h1, ligne: { test: { characteristic: 'force-mentale' } } }, { actor: h2, ligne: { test: { characteristic: 'force-mentale' } } }],
     });
     const step = etapeCourante();
     expect(step.groupOwner, 'deux porteurs ⇒ owner de GROUPE (chaque siège voit la fenêtre où se tient SA rangée)').toBe(true);
@@ -69,7 +69,7 @@ describe('#1262 — openBand : la porte monte, surface et POSSÈDE', () => {
     openBand(banc.getState, banc.setState, {
       id: 'resistance', kind: cleDeFixture('upkeepTest'), label: fixtureText('Résistance'), title: 'Entretien', purpose: 'upkeep',
       difficulty: 'intermediaire',
-      porteurs: [{ actor: h1, ligne: { test: { char: 'endurance' } } }],
+      porteurs: [{ actor: h1, ligne: { test: { characteristic: 'endurance' } } }],
     });
     const step = etapeCourante();
     expect(step.groupOwner).toBeUndefined();
@@ -87,7 +87,7 @@ describe('#1262 — openBand : la porte monte, surface et POSSÈDE', () => {
     openBand(banc.getState, banc.setState, {
       id: 'peur', kind: 'encounterPsych', label: fixtureText('Peur'), title: 'Peur', purpose: 'test',
       difficulty: 'intermediaire',
-      porteurs: [{ actor: h1, ligne: { test: { char: 'force-mentale' } } }, { actor: h2, ligne: { test: { char: 'force-mentale' } } }],
+      porteurs: [{ actor: h1, ligne: { test: { characteristic: 'force-mentale' } } }, { actor: h2, ligne: { test: { characteristic: 'force-mentale' } } }],
     });
     const step = etapeCourante();
     expect(step.groupOwner, 'la possession ne dépend pas de la cadence : deux porteurs restent une bande de GROUPE').toBe(true);
@@ -224,9 +224,9 @@ describe('#1262 — « `result` ⇒ close » ne vaut QU’À L’OUVERTURE', () 
     openBand(banc.getState, banc.setState, {
       id: 'peur', kind: 'encounterPsych', label: fixtureText('Peur'), title: 'Peur', purpose: 'test',
       difficulty: 'intermediaire',
-      porteurs: [{ actor: h1, ligne: { test: { char: 'force-mentale' } } }, { actor: h2, ligne: { test: { char: 'force-mentale' } } }],
+      porteurs: [{ actor: h1, ligne: { test: { characteristic: 'force-mentale' } } }, { actor: h2, ligne: { test: { characteristic: 'force-mentale' } } }],
     });
-    banc.getState().jetRoll('cascadeBatch', 'H1');
+    banc.getState().jetLancer('cascadeBatch', 'H1');
     const jouee = etapeCourante().participants!.find((p) => p.id === 'H1')!;
     expect(jouee.result, 'le dé est tombé').toBeTruthy();
     expect(jouee.interactive, 'la rangée reste influençable — c’est pourquoi la règle de la porte ne vaut qu’au montage').toBe(true);

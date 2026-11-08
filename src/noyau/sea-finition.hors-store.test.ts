@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { t } from '../i18n';
+import { jouerLaSemaine } from './semaineEnMer.testkit';
 import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
@@ -7,6 +9,7 @@ import { buildSeaPlan } from './seaVoyageFlow';
 import { encLibreNominale, vesselMaxLoadEnc } from './portFlow';
 import { seaActivityBlocked } from './seaActivities';
 import { activityById } from '../engine/activities';
+import { activityStakeRef } from '../data';
 import { toBrass, PA_PER_CO } from '../engine/money';
 import { partyMoneyTotal, creditBourse, debitBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
@@ -49,6 +52,7 @@ function freshState() {
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null,
     worldMap: seaMap,
+    lieu: 'A',
     travelPlan: null,
     travelRecap: null,
     pendingCrewTest: null,
@@ -66,7 +70,7 @@ function freshState() {
 /** Déroule la journée maritime jusqu'à une SUSPENSION (halte, Activités en mer) — la journée est
  *  désormais UNE cascade `purpose:'travelDay'` (#275 Ronde 2 cran 3) : chaque étape est soit MONO
  *  (Forcer le rythme/Prière) soit À PARTICIPANTS (batch, Tests d'équipage MDG
- *  ch.14 — `jetRoll('cascadeBatch')` par contributeur). Garde-fou 40 pas (crises/événements possibles).
+ *  ch.14 — `jetLancer('cascadeBatch')` par contributeur). Garde-fou 40 pas (crises/événements possibles).
  *  `await tick()` reprend le jeton de reprise (`programmer`, 0 ms) d'un applier surfacé isolément
  *  (Ouragan/Prière — `seaVoyageFlow.ts`), comme un vrai clic UI l'espacerait. */
 const tick = async (): Promise<void> => { banc.avancer(0); };
@@ -94,8 +98,8 @@ async function runSeaActivities() {
     // La fenêtre `extended` d'abord : son étape hôte n'est prête que quand elle a rendu sa donnée (#1765).
     if (ext) {
       const cur = ext.rounds[ext.rounds.length - 1];
-      if (!cur.result) get().jetRoll('extendedTest', cur.id);
-      get().jetConfirm('extendedTest');
+      if (!cur.result) get().jetLancer('extendedTest', cur.id);
+      get().jetValider('extendedTest');
       await tick();
       continue;
     }
@@ -123,7 +127,7 @@ describe('#27 Forcer le rythme (MDG 13 l.95-107)', () => {
     // Voile est une Compétence Avancée (LDB 09 l.30) : un PJ formé tente le Test du rythme forcé.
     const [marin, ...reste] = get().party;
     set({ party: [{ ...marin, skills: [...marin.skills, { id: 'voile', characteristic: 'agilite', advances: 10 }] }, ...reste] } as never);
-    get().startTravel('r1', 'mer', { seaPace: 1, cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r1', 'mer', { seaPace: 1, cadence: 'jour-par-jour' });
     const vues: CascadeStep[] = [];
     const kinds = await runOneSeaDay(vues);
     // Le recap du jour (halte de nuit) porte la journée ENTIÈRE — le journal, capé à 40 lignes,
@@ -139,7 +143,7 @@ describe('#27 Forcer le rythme (MDG 13 l.95-107)', () => {
     seedBattleRng(1);
     // Aucun prétiré n'a d'Augmentation en Voile : le rythme demandé ne peut pas être tenté.
     expect(get().party.some((h) => h.skills.some((sk) => sk.id === 'voile' && (sk.advances ?? 0) > 0))).toBe(false);
-    get().startTravel('r1', 'mer', { seaPace: 1, cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r1', 'mer', { seaPace: 1, cadence: 'jour-par-jour' });
     const kinds = await runOneSeaDay();
     const day = get().travelPlan!.log!.slice(-1)[0]!.lines.map((l) => l.text).join('\n');
     expect(day).toContain('Forcer le rythme : Personne dans le groupe ne peut tenter le Test de Voile (Cogue). Le navire garde son allure.');
@@ -154,7 +158,7 @@ describe('#28 Température en mer (MDG 13 l.203-225) — câblée au jour', () =
   it('la journée en mer consomme de l’eau selon la bande de Température (tonneaux suivis)', async () => {
     seedBattleRng(3);
     set({ vessel: { ...get().vessel!, waterLitres: 500 } });
-    get().startTravel('r1', 'mer');
+    get().partirEnVoyage('r1', 'mer');
     await runOneSeaDay();
     // Une journée entière est passée : l'eau a été consommée (crew × litres de la bande).
     expect(get().vessel!.waterLitres).toBeLessThan(500);
@@ -170,14 +174,14 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
     // On amorce au 7ᵉ jour révolu : la journée suivante franchit la 8ᵉ → pendingSeaActivities.
     set({ travelPlan: { ...plan, kmDone: 40, sea: { ...plan.sea!, daysAtSea: 7 } } });
-    get().resumeTravel();
+    get().reprendreLeVoyage();
     await runOneSeaDay();
     // Soit la modale d'Activités s'ouvre (8ᵉ jour), soit l'arrivée/halte (selon les milles) — mais
     // sur 550 milles à ~40 milles restants elle ne peut pas arriver : la modale doit s'ouvrir.
     expect(get().pendingSeaActivities).toBeTruthy();
   });
 
-  it('seaActivitiesConfirm — Cartographie réussie → une Carte marine (+2 DR d’Orientation) sur le héros', async () => {
+  it('la semaine validée — Cartographie réussie → une Carte marine (+2 DR d’Orientation) sur le héros', async () => {
     seedBattleRng(3);
     const heroes = get().party;
     // Un cartographe hors pair : Métier (Cartographe) à 90.
@@ -185,8 +189,8 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     (heroes[0] as Combatant).characteristics = { ...heroes[0].characteristics, dexterite: 40 };
     set({ party: [...heroes], pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } } });
     // Seam de jet (#273 Étape 2) : Cartographie est désormais une étape de CASCADE influençable —
-    // `seaActivitiesConfirm` ouvre `pendingCascade`, à dérouler (`runSeaActivities`).
-    get().seaActivitiesConfirm({ [heroes[0].id]: { activityId: 'cartographie' } });
+    // La validation de la semaine ouvre `pendingCascade`, à dérouler (`runSeaActivities`).
+    jouerLaSemaine(get, { [heroes[0].id]: { activityId: 'cartographie' } });
     await runSeaActivities();
     const owner = get().party[0];
     const chart = (owner.items ?? []).find((it) => it.trappingId === 'carte-marine');
@@ -199,7 +203,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
 
   it('Entraînement d’équipage est BLOQUÉ (équipage PNJ abstrait, MDG 14 l.39)', () => {
     const def = activityById('entrainement-equipage')!;
-    expect(seaActivityBlocked(get, def)).toMatch(/équipage/i);
+    expect(seaActivityBlocked(get(), def)).toMatch(/équipage/i);
   });
 
   it('Cartographie réussie + stashGold → Planque gratuite (MDG 15 l.292, découverte ≤ 50)', async () => {
@@ -211,7 +215,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     set({ party: [...heroes], pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } } });
     // Planque = DÉBIT solo du cartographe (soloPayer, seaActivities.ts) → SA bourse (freshState : 5000 CO).
     const before = toBrass(bourseOf(get().party[0]));
-    get().seaActivitiesConfirm({ [heroes[0].id]: { activityId: 'cartographie', stashGold: 50 } });
+    jouerLaSemaine(get, { [heroes[0].id]: { activityId: 'cartographie', stashGold: 50 } });
     await runSeaActivities();
     const dep = get().bank.find((b) => b.heroId === heroes[0].id && b.kind === 'stash');
     expect(dep).toBeTruthy();
@@ -227,7 +231,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     (heroes[0] as Combatant).skills = [{ id: 'metier', spec: 'cartographe', advances: 80 } as never];
     (heroes[0] as Combatant).characteristics = { ...heroes[0].characteristics, dexterite: 60 };
     set({ party: [...heroes], pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } } });
-    get().seaActivitiesConfirm({ [heroes[0].id]: { activityId: 'cartographie' } });
+    jouerLaSemaine(get, { [heroes[0].id]: { activityId: 'cartographie' } });
     await runSeaActivities();
     expect(get().bank.find((b) => b.heroId === heroes[0].id && b.kind === 'stash')).toBeUndefined();
   });
@@ -242,11 +246,13 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     });
     fund(heroes[0].id, { gold: 100, silver: 0, brass: 0 }); // investissement de GROUPE (payFromGroup)
     const before = toBrass(partyMoneyTotal(get));
-    get().seaActivitiesConfirm({ [heroes[0].id]: { activityId: 'commerce-opportunite', investGold: 10 } });
+    jouerLaSemaine(get, { [heroes[0].id]: { activityId: 'commerce-opportunite', investGold: 10 } });
     // La mise est débitée D'OFFICE (avant tout jet) — comme l'ancien bulk synchrone.
     expect(toBrass(partyMoneyTotal(get))).toBe(before - 10 * PA_PER_CO);
     expect(get().pendingExtendedTest).toBeTruthy(); // Test étendu ouvert (primitive #273 Étape 1)
     expect(get().pendingExtendedTest!.maxAttempts).toBe(3);
+    // L'enjeu est celui de l'Activité, sur l'étape que la fenêtre lit (#1117).
+    expect(get().pendingCascade?.participants.find((e) => e.jet === 'extended')?.stake).toEqual(activityStakeRef('commerce-opportunite'));
     await runSeaActivities();
     // La halte suit la clôture du Test étendu (file `opportunityQueue` vidée).
     expect(get().pendingExtendedTest).toBeNull();
@@ -256,7 +262,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
   });
 });
 
-/** Draine la CASCADE de vente au port (`portSellCargo`, dernier reliquat #275/#274 — Ragot → acheteur
+/** Draine la CASCADE de vente au port (`vendreLaCargaison` au port, dernier reliquat #275/#274 — Ragot → acheteur
  *  → Marchandage, chacun un `openRoll` séparé enchaîné via `chainStep`/`programmer(…, 0)`, patron
  *  `seaVoyageFlow.ts` `sea-desertion`) : un `tick()` par itération reprend le jeton d'une étape
  *  déférée, comme un clic UI l'espacerait. */
@@ -270,29 +276,29 @@ async function drainPortSellCascade(): Promise<void> {
 describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
   beforeEach(freshState);
 
-  it('openPort génère les offres d’achat de l’escale (Production + Surplus)', () => {
+  it('ouvrirLePort génère les offres d’achat de l’escale (Production + Surplus)', () => {
     seedBattleRng(2); // d10 non-1 → disponibilités non nulles (le 1 sur le d10 = « aucune », l.327)
-    get().openPort();
+    get().ouvrirLePort();
     const st = get().port!;
     expect(st.placeId).toBe('A');
     expect(st.offers.length).toBeGreaterThan(0); // bois (Production) et/ou produits de luxe (Surplus)
   });
 
-  it('portBuyCargo débite la bourse et embarque la cargaison ; portSellCargo la revend (cascade Ragot→acheteur→Marchandage)', async () => {
+  it('acheterLaCargaison débite la bourse et embarque la cargaison ; vendreLaCargaison la revend (cascade Ragot→acheteur→Marchandage)', async () => {
     seedBattleRng(2);
-    get().openPort();
+    get().ouvrirLePort();
     const offer = get().port!.offers[0];
     const before = partyMoneyTotal(get).gold;
-    get().portBuyCargo(offer.cargoId, Math.min(10, offer.enc));
+    get().acheterLaCargaison('vessel', offer.cargoId, Math.min(10, offer.enc));
     await drainPortSellCascade(); // #266 — l'achat marchande par cascade (openRoll), comme la vente
     const vessel = get().vessel!;
     expect((vessel.cargo ?? []).length).toBe(1);
     expect(partyMoneyTotal(get).gold).toBeLessThanOrEqual(before);
     // Vente dans un autre port : on pose le navire à Marienburg (« commerce ») et on solde le lot.
-    set({ vessel: { ...get().vessel!, lastVoyageMilles: 550 }, port: null, scene: { ...emptyScene('port-b', 2, 2), label: 'P', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] } });
-    get().openPort();
+    set({ vessel: { ...get().vessel!, lastVoyageMilles: 550 }, port: null, lieu: 'B' });
+    get().ouvrirLePort();
     const cargoLen = (get().vessel!.cargo ?? []).length;
-    get().portSellCargo(0);
+    get().vendreLaCargaison(get().vessel!.cargo![0].uid);
     await drainPortSellCascade();
     // La cascade se termine TOUJOURS (jamais de pendingCascade qui traîne) — vendu, ou refusé (RNG),
     // jamais cassé.
@@ -302,21 +308,21 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
   });
 
   it('#243 — headroom nominal vs plafond dur de surcharge (Cogue : Contenance 300, dur 450)', () => {
-    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois-mer', enc: 290, basePriceGold: 1 }] } });
+    set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: 290, basePriceGold: 1 }] } });
     expect(encLibreNominale(get().vessel)).toBe(10); // 300 − 290 (nominal)
     expect(vesselMaxLoadEnc(get)).toBe(160); // 450 − 290 (surcharge possible)
-    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois-mer', enc: 440, basePriceGold: 1 }] } });
+    set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot-2', cargoId: 'bois-mer', enc: 440, basePriceGold: 1 }] } });
     expect(encLibreNominale(get().vessel)).toBe(0); // au-delà de la Contenance : plus de headroom nominal
     expect(vesselMaxLoadEnc(get)).toBe(10); // 450 − 440
   });
 
   it('#243 — l’achat au-delà de la Contenance surcharge (jusqu’à 150 %) et l’avertit ; jamais au-delà du plafond dur', async () => {
     seedBattleRng(2);
-    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois-mer', enc: 290, basePriceGold: 1 }] } });
+    set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot-3', cargoId: 'bois-mer', enc: 290, basePriceGold: 1 }] } });
     fund(get().party[0].id, { gold: 100000, silver: 0, brass: 0 }); // bourse large pour l'achat en surcharge
-    get().openPort();
+    get().ouvrirLePort();
     const offer = get().port!.offers[0]; // production/surplus copieux (Taille 4 + Richesse 4 × d10 × 10)
-    get().portBuyCargo(offer.cargoId, 1000); // demande énorme → clampée au plafond dur (450 − 290 = 160)
+    get().acheterLaCargaison('vessel', offer.cargoId, 1000); // demande énorme → clampée au plafond dur (450 − 290 = 160)
     await drainPortSellCascade(); // #266 — Marchandage d'achat SURFACÉ (cascade openRoll)
     const enc = (get().vessel!.cargo ?? []).reduce((s, l) => s + l.enc, 0);
     expect(enc).toBeLessThanOrEqual(450); // jamais au-delà du maximum absolu (150 %)
@@ -324,14 +330,47 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
     expect(get().journal.some((l) => /SURCHARG/i.test(l))).toBe(true); // achat en zone de surcharge → avertissement
   });
 
-  it('portDumpCargo brade à ¼ du prix de base dans un port « commerce »', () => {
+  it('jeterLaCargaison brade à ¼ du prix de base dans un port « commerce »', () => {
     seedBattleRng(2);
-    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'bois-mer', enc: 100, basePriceGold: 2 }] } });
-    set({ scene: { ...emptyScene('port-b', 2, 2), label: 'P', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] } });
-    get().openPort();
+    set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot-4', cargoId: 'bois-mer', enc: 100, basePriceGold: 2 }] }, lieu: 'B' });
+    get().ouvrirLePort();
     const before = partyMoneyTotal(get).gold;
-    get().portDumpCargo(0);
+    get().jeterLaCargaison('lot-4');
     expect((get().vessel!.cargo ?? []).length).toBe(0);
     expect(partyMoneyTotal(get).gold).toBeGreaterThan(before); // ¼ × 100 × 2 = 50 CO
+  });
+
+  it('Gangs des quais : la perte en attente frappe le premier lot déchargé dans ce port, puis se lève (MDG 15 l.250)', () => {
+    seedBattleRng(2);
+    set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot-4', cargoId: 'bois-mer', enc: 100, basePriceGold: 2 }, { uid: 'lot-5', cargoId: 'bois-mer', enc: 10, basePriceGold: 2 }], perteAuDechargement: 30 }, lieu: 'B' });
+    get().ouvrirLePort();
+    const before = partyMoneyTotal(get).gold;
+    get().jeterLaCargaison('lot-4');
+    expect(partyMoneyTotal(get).gold - before).toBe(35); // ¼ × (100 − 30) × 2
+    expect(get().vessel!.perteAuDechargement).toBeUndefined();
+    get().jeterLaCargaison('lot-5');
+    expect(partyMoneyTotal(get).gold - before).toBe(35 + 5); // ¼ × 10 × 2 : la perte ne frappe qu'une fois
+  });
+
+  it('acheterLaCargaison au port : seule la cale du navire se négocie, un autre porteur est refusé en le disant', () => {
+    seedBattleRng(2);
+    get().ouvrirLePort();
+    const offer = get().port!.offers[0];
+    const before = partyMoneyTotal(get).gold;
+    get().acheterLaCargaison('pos-mule', offer.cargoId, Math.min(10, offer.enc));
+    expect(get().vessel!.cargo ?? []).toEqual([]);
+    expect(partyMoneyTotal(get).gold).toBe(before);
+    expect(get().journal.slice(-1)[0]).toBe(t('port.horsDuNavire'));
+  });
+
+  it('jeterLaCargaison au port : deux lots du même bien, seul le lot désigné quitte la cale, à SON prix', () => {
+    seedBattleRng(2);
+    const garde = { uid: 'lot-a', cargoId: 'bois-mer', enc: 100, basePriceGold: 2 };
+    set({ vessel: { ...get().vessel!, cargo: [garde, { uid: 'lot-b', cargoId: 'bois-mer', enc: 100, basePriceGold: 6 }] }, lieu: 'B' });
+    get().ouvrirLePort();
+    const before = partyMoneyTotal(get).gold;
+    get().jeterLaCargaison('lot-b');
+    expect(get().vessel!.cargo).toEqual([garde]);
+    expect(partyMoneyTotal(get).gold).toBe(before + 150); // ¼ × 100 × 6 CO
   });
 });

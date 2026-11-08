@@ -1,7 +1,7 @@
 /**
  * Cicatrices sociales post-guérison — LDB 18 l.61 (Blessure spectaculaire) et l.72 (Nez cassé).
  * Sonde sur le chemin RÉEL : la valeur du Test vient de `testValue`, le jet du flux `test` du noyau
- * (`jetRoll('test')`, RNG de combat seedé), et le DR de l'op `skillDRBonus` du collecteur (engine/ops).
+ * (`jetLancer('test')`, RNG de combat seedé), et le DR de l'op `skillDRBonus` du collecteur (engine/ops).
  * Deux mesures : un jet AU-DESSUS de la valeur reste un échec (aucun DR n'entre) ; un jet réussi
  * gagne exactement +1 DR par rapport au MÊME jet sans la cicatrice.
  */
@@ -35,14 +35,14 @@ function rollIntimidation(c: Combatant, seed: number) {
   banc.setState({ party: [c] });
   banc.setState({
     pendingTest: {
-      actorId: c.id, actorName: c.label, label: 'Test d’Intimidation', skillId: 'intimidation',
-      skillValue: testValue(c, 'intimidation'), difficulty: 'intermediaire', requireSL: 0,
-      target: testValue(c, 'intimidation'), roll: null, success: false, sl: 0,
+      actorId: c.id, actorName: c.label, label: 'Test d’Intimidation', sujet: { skill: { id: 'intimidation' } },
+      skillValue: testValue(c, { skill: { id: 'intimidation' } }), difficulty: 'intermediaire', requireSL: 0,
+      target: testValue(c, { skill: { id: 'intimidation' } }), roll: null, success: false, sl: 0,
       onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,
     } as never,
   });
   seedBattleRng(seed);
-  banc.getState().jetRoll('test');
+  banc.getState().jetLancer('test');
   return banc.getState().pendingTest!;
 }
 
@@ -56,11 +56,11 @@ beforeEach(() => {
 describe('Cicatrice impressionnante (LDB 18 l.61) — le bonus vit au DR, pas à la valeur du Test', () => {
   it('la valeur du Test d’Intimidation est inchangée (35), le DR vaut +1', () => {
     const c = hero('cicatrice-spectaculaire');
-    expect(testValue(c, 'intimidation')).toBe(35);
-    expect(testValue(hero(), 'intimidation')).toBe(35);
-    expect(skillDRBonus(c, 'intimidation')).toBe(1);
-    expect(skillDRBonus(c, 'charme')).toBe(0); // hors du périmètre arbitré
-    expect(skillDRBonus(hero(), 'intimidation')).toBe(0);
+    expect(testValue(c, { skill: { id: 'intimidation' } })).toBe(35);
+    expect(testValue(hero(), { skill: { id: 'intimidation' } })).toBe(35);
+    expect(skillDRBonus(c, { id: 'intimidation' })).toBe(1);
+    expect(skillDRBonus(c, { id: 'charme' })).toBe(0); // hors du périmètre arbitré
+    expect(skillDRBonus(hero(), { id: 'intimidation' })).toBe(0);
   });
 
   it('jet 38 contre 35 : ÉCHEC, identique au héros sans cicatrice (aucune réussite fabriquée)', () => {
@@ -86,17 +86,17 @@ describe('Cicatrice impressionnante (LDB 18 l.61) — le bonus vit au DR, pas à
 describe('Nez cassé (LDB 18 l.72) — DR +1 / −1 selon le périmètre arbitré', () => {
   it('Intimidation +1 DR, Charme −1 DR, valeurs de Test inchangées', () => {
     const c = hero('cicatrice-nez-casse');
-    expect(skillDRBonus(c, 'intimidation')).toBe(1);
-    expect(skillDRBonus(c, 'charme')).toBe(-1);
-    expect(testValue(c, 'intimidation')).toBe(35);
-    expect(testValue(c, 'charme')).toBe(35);
+    expect(skillDRBonus(c, { id: 'intimidation' })).toBe(1);
+    expect(skillDRBonus(c, { id: 'charme' })).toBe(-1);
+    expect(testValue(c, { skill: { id: 'intimidation' } })).toBe(35);
+    expect(testValue(c, { skill: { id: 'charme' } })).toBe(35);
   });
 });
 
 describe('témoin — les autres sources du collecteur de DR sont intactes', () => {
   it('Furtif (LDB 85) : +Bonus d’Agilité au DR de Discrétion', () => {
     const c = { ...hero(), traits: [{ id: 'furtif' }] } as Combatant;
-    expect(skillDRBonus(c, 'discretion')).toBe(bonus(effectiveChar(c, 'agilite'))); // Ag 45 → 4
-    expect(skillDRBonus(c, 'intimidation')).toBe(0);
+    expect(skillDRBonus(c, { id: 'discretion' })).toBe(bonus(effectiveChar(c, 'agilite'))); // Ag 45 → 4
+    expect(skillDRBonus(c, { id: 'intimidation' })).toBe(0);
   });
 });

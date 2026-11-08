@@ -2,6 +2,7 @@
 // système de carnet, seulement de la prose d'enquête. `Indice`/`Affaire` (données, `data/schemas/defs-scenes/narratif.ts`)
 // restent la SOURCE ; ce module ne porte que l'ÉTAT RUNTIME (quel stade est atteint, statut, épingle, nouveauté).
 import type { Indice } from '../../data/schemas/defs-scenes/narratif';
+import type { IdDIndice, IdDeStadeDIndice } from '../designations';
 
 /** État runtime d'un indice révélé au carnet. Absent de `Jeu.clues` = indice CACHÉ. */
 export interface ClueState {
@@ -75,7 +76,7 @@ export function discreditClue(
   return { ...clues, [indice.id]: { ...réfuté, statut: 'réfuté' } };
 }
 
-/** Épingle/désépingle un indice PRÉSENT au carnet — no-op si l'indice est encore caché. */
+/** Épingle/désépingle un indice PRÉSENT au carnet. */
 export function togglePin(clues: Record<string, ClueState>, indiceId: string): Record<string, ClueState> {
   const existing = clues[indiceId];
   if (!existing) return clues;
@@ -90,10 +91,10 @@ export function estNouveauPour(clue: ClueState, seat: number): boolean {
 /** Ce qu'un Carnet a AFFICHÉ d'un indice : la longueur de son `historique`, son `statut` et son
  *  `stadeCourant` (#2415). */
 export interface IndiceAffiché {
-  id: string;
+  id: IdDIndice;
   étapes: number;
   statut: ClueState['statut'];
-  stadeCourant: string;
+  stadeCourant: IdDeStadeDIndice;
 }
 
 /** L'affichage d'un indice tel qu'il est MAINTENANT — ce que le Carnet envoie à `marquerVus`. */

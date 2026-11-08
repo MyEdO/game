@@ -19,7 +19,7 @@ import type { Combatant } from '../engine/types';
 import type { Possession } from '../engine/possession';
 import { possessionLabel, possessionCapacity, possessionLoadEnc, embarkedEnc } from '../engine/possession';
 import { cargoTotalEnc } from '../engine/cargo';
-import { findCargoById } from '../engine/seaVoyage';
+import { findCargoEntryById } from '../engine/cargo';
 import {
   mountProfileForCreature, ALLURES, allureLabel, ALLURE_KMH_PER_M, allureEnduranceHours,
 } from '../engine/mountTravel';
@@ -73,16 +73,16 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
   const party = useGame((s) => s.party);
   const possessions = useGame((s) => s.possessions);
   const worldMap = useGame((s) => s.worldMap);
-  const scene = useGame((s) => s.scene);
+  const lieu = useGame((s) => s.lieu);
   const gameTime = useGame((s) => s.gameTime);
-  const renamePossession = useGame((s) => s.renamePossession);
-  const stablePossession = useGame((s) => s.stablePossession);
-  const retrievePossession = useGame((s) => s.retrievePossession);
-  const embark = useGame((s) => s.embark);
-  const disembark = useGame((s) => s.disembark);
-  const abandonPossession = useGame((s) => s.abandonPossession);
+  const renommerLaPossession = useGame((s) => s.renommerLaPossession);
+  const remiserLaPossession = useGame((s) => s.remiserLaPossession);
+  const recupererLaPossession = useGame((s) => s.recupererLaPossession);
+  const embarquer = useGame((s) => s.embarquer);
+  const debarquer = useGame((s) => s.debarquer);
+  const cederLaPossession = useGame((s) => s.cederLaPossession);
   const vessel = useGame((s) => s.vessel);
-  const moveCargo = useGame((s) => s.moveCargo);
+  const deplacerLaCargaison = useGame((s) => s.deplacerLaCargaison);
   const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
   const carriers = useMemo(
     () => bulkCarriers({ party, vessel, possessions }),
@@ -111,7 +111,7 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
 
   // Verdicts du noyau (`refusGestePossession`), ceux que les gestes appliquent au clic ; navires qui
   // accueillent `selected` MAINTENANT (#620 Lot 2c — le joueur CHOISIT sa cale de destination).
-  const etat: EtatDesPossessions = { party, possessions, worldMap, scene };
+  const etat: EtatDesPossessions = { party, possessions, lieu };
   const refusDe = (kind: 'laisser' | 'reprendre' | 'debarquer' | 'abandonner') => (selected ? refusGestePossession(etat, selected.uid, { kind }) : null);
   const embarquement = selected ? ciblesDEmbarquement(etat, selected.uid) : { cibles: [], refus: null };
 
@@ -173,11 +173,11 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
     <>
       <div className="bar">
         <GatedAction id="pos-laisser" label="Laisser" enabled={!refusLaisser} {...raisonSi(refusLaisser)}
-          onClick={() => stablePossession(selected.uid)} primary={false} />
+          onClick={() => remiserLaPossession(selected.uid)} primary={false} />
         <GatedAction id="pos-reprendre" label="Reprendre" enabled={!refusReprendre} {...raisonSi(refusReprendre)}
-          onClick={() => retrievePossession(selected.uid)} primary={false} />
+          onClick={() => recupererLaPossession(selected.uid)} primary={false} />
         <GatedAction id="pos-debarquer" label="Débarquer" enabled={!refusDebarquer} {...raisonSi(refusDebarquer)}
-          onClick={() => disembark(selected.uid)} primary={false} />
+          onClick={() => debarquer(selected.uid)} primary={false} />
         {embarquement.cibles.length > 0 ? (
           <MediaSelect
             align="left"
@@ -189,7 +189,7 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
               label: possessionLabel(navire),
               sub: `Cale ${embarkedEnc(navire.uid, possessions)}/${possessionCapacity(navire) ?? '∞'}`,
             }))}
-            onSelect={(navireUid) => embark(selected.uid, navireUid)}
+            onSelect={(navireUid) => embarquer(selected.uid, navireUid)}
           />
         ) : (
           <GatedAction id="pos-embarquer" label="Embarquer" enabled={false} {...raisonSi(embarquement.refus)}
@@ -200,7 +200,7 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
             { key: 'cancel', label: 'Annuler', ghost: true, onSelect: () => setConfirmingAbandon(false) },
             {
               key: 'confirm', label: 'Confirmer l’abandon', primary: true, disabled: !!refusAbandonner,
-              onSelect: () => { abandonPossession(selected.uid); setSelectedUid(null); setConfirmingAbandon(false); },
+              onSelect: () => { cederLaPossession(selected.uid); setSelectedUid(null); setConfirmingAbandon(false); },
             },
           ]} />
         ) : (
@@ -232,7 +232,7 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
                       aria-label="Renommer"
                       value={selected.label ?? ''}
                       placeholder={possessionLabel(selected)}
-                      onChange={(e) => renamePossession(selected.uid, e.target.value)}
+                      onChange={(e) => renommerLaPossession(selected.uid, e.target.value)}
                     />
                   </label>
                 }
@@ -259,8 +259,8 @@ export function PossessionsScreen({ onClose, initialUid = null }: { onClose: () 
           <NotchGauge label="Cale" value={cargoTotalEnc(selected.cargo ?? [])} max={selectedCapacity!} stacked />
           <CargoTransferPanel
             carriers={carriers}
-            onMove={moveCargo}
-            labelOf={(id) => findCargoById(id)?.label ?? id}
+            onMove={deplacerLaCargaison}
+            labelOf={(id) => findCargoEntryById(id)?.label ?? id}
           />
         </>
       ) : mountProfile ? (

@@ -9,10 +9,12 @@ import { AssignRow } from './console/AssignRow';
 import { battleScenesToStations, type Station } from '../noyau/stations';
 import {
   massBattleThreatPenalty, armyMight, armyStartMight,
-  battleSceneById, battleSceneEffectLabel, battleActionRefus, refusDeRassemblement,
+  battleSceneById, battleSceneEffectLabel, herosLibres, refusDeRassemblement, refusDeSceneDeBataille,
   type MassBattleState, type MassBattleArmy,
 } from '../noyau/massBattleFlow';
 import { BATTLE_HAZARDS } from '../engine/massBattle';
+import { formatDice } from '../engine/dice';
+import { massBattleHazardsDie } from '../data';
 import type { Combatant } from '../engine/types';
 import { GatedAction, raisonSi } from './GatedAction';
 import { Grid } from './Layout';
@@ -80,10 +82,10 @@ function ArmyBar({ army, side }: { army: MassBattleArmy; side: 'ally' | 'enemy' 
 }
 
 function RoundPanel({ mb }: { mb: MassBattleState }) {
-  const rollHazard = useGame((s) => s.massBattleHazard);
-  const clash = useGame((s) => s.massBattleClash);
-  const rally = useGame((s) => s.massBattleRally);
-  const advance = useGame((s) => s.massBattleAdvance);
+  const rollHazard = useGame((s) => s.affronterLePeril);
+  const clash = useGame((s) => s.engagerLaMelee);
+  const rally = useGame((s) => s.rallierLesTroupes);
+  const advance = useGame((s) => s.avancerLaBataille);
   const scene = useGame((s) => s.scene);
   const partyZ = useGame((s) => s.partyPos.z ?? 0); // le plan suit l'étage du groupe
   const [selectedStationId, setSelectedStationId] = useState<string | undefined>(undefined);
@@ -134,7 +136,7 @@ function RoundPanel({ mb }: { mb: MassBattleState }) {
         </div>
       ) : (
         <div className="bar mb-actions">
-          <button className="btn small" disabled={mb.awaitingNext} onClick={() => rollHazard()}>Tirer un facteur (1d10)</button>
+          <button className="btn small" disabled={mb.awaitingNext} onClick={() => rollHazard()}>{t('mbf.tirerAlea', { die: formatDice(massBattleHazardsDie()) })}</button>
           <select
             className="mb-select"
             defaultValue=""
@@ -171,12 +173,12 @@ function RoundPanel({ mb }: { mb: MassBattleState }) {
  * description VERBATIM, puis résolution. La CARDINALITÉ suit le RAW : une Scène de combat/menace engage
  * TOUT le groupe (pas d'affectation par PJ) ; une Scène de Compétence/Tenue est MULTI-PJ (ADE II 8
  * l.116-118 : « les Personnages peuvent choisir de participer à l'une des Scènes ») → `AssignRow`
- * (max Infinity) : le joueur affecte N PJ, résolus en SOUTIEN (l.153/157). La désactivation du Résoudre
- * reste IDENTIQUE à l'ancienne liste plate (résolue / Round figé / plus de PJ pour un Test·Tenue / rompue).
+ * (max Infinity) : le joueur affecte N PJ, résolus en SOUTIEN (l.153/157). Le Résoudre est fermé par le verdict
+ * du verbe (`refusDeSceneDeBataille`).
  */
 function SceneStationDetail({ mb, station }: { mb: MassBattleState; station: Station }) {
-  const chooseScene = useGame((s) => s.massBattleScene);
-  const setHero = useGame((s) => s.setMassBattleHero);
+  const chooseScene = useGame((s) => s.jouerLaScene);
+  const setHero = useGame((s) => s.affecterLeHeros);
   const party = useGame((s) => s.party);
   if (station.ref.kind !== 'battleScene') return null;
   const sceneId = station.ref.sceneId;
@@ -186,19 +188,12 @@ function SceneStationDetail({ mb, station }: { mb: MassBattleState; station: Sta
   const kindLabel = sc.sceneKind === 'combat' ? 'Combat' : sc.sceneKind === 'threat' ? 'Menace' : sc.sceneKind === 'hold' ? 'Tenue' : 'Compétence';
   const hold = mb.sceneState[sceneId];
   const living = party.filter((h) => !h.dead);
-  // PJ encore libres ce Round.
-  const available = living.filter((h) => !mb.actedHeroes.includes(h.id));
-  const remaining = available.length;
+  const available = herosLibres(mb, party);
   // Équipage POSTÉ à cette Scène (Scène MULTI-PJ) — ids résolus en héros vivants, ordre préservé.
   const postedIds = mb.assignment[sceneId] ?? [];
   const posted = postedIds.map((id) => living.find((h) => h.id === id)).filter((h): h is Combatant => !!h);
-  // Un combat (Scène 'combat'/'threat', incl. le Duel) engage tout le groupe → PAS de garde « plus de PJ libre ».
   const isCombat = sc.sceneKind === 'combat' || sc.sceneKind === 'threat';
-  const broken = sc.sceneKind === 'hold' && !!hold?.broken;
-  const refusTenter = isCombat ? null : battleActionRefus(mb, available, sc);
-  const disabled = resolved || mb.awaitingNext
-    || (!isCombat && remaining === 0)
-    || broken || !!refusTenter;
+  const refus = refusDeSceneDeBataille({ massBattle: mb, party }, sceneId);
   return (
     <div className={`mb-scene${resolved ? ' mb-scene-done' : ''}`}>
       <div className="bar mb-scene-head">
@@ -231,12 +226,8 @@ function SceneStationDetail({ mb, station }: { mb: MassBattleState; station: Sta
         <GatedAction
           id={`mb-scene-${sceneId}`}
           label={resolved ? 'Scène résolue' : isCombat ? 'Engager le combat' : 'Résoudre'}
-          enabled={!disabled}
-          {...raisonSi(resolved ? 'Cette Scène est déjà résolue.'
-            : mb.awaitingNext ? 'Résolvez le Round en cours avant d’engager une Scène.'
-            : !isCombat && remaining === 0 ? 'Plus aucun Personnage libre ce Round.'
-            : broken ? 'La position est perdue — cette Scène ne se tient plus.'
-            : refusTenter)}
+          enabled={!refus}
+          {...raisonSi(refus)}
           onClick={() => chooseScene(sceneId)}
           btnClassName="small"
         />

@@ -259,6 +259,8 @@ Si vous êtes *Engagé* et ne souhaitez plus échanger de coups, deux options po
 
 Certains actes ne comptent **pas** comme votre Action du Round — « dégainer votre arme ou boire une potion, par exemple. » **C'est le MJ qui décide** de ce qui coûte une Action et de ce qui est gratuit. Règle générale : « si un acte nécessite un Test, c'est que c'est une Action plutôt qu'une Action gratuite. » Être *Engagé* peut **interdire** une Action gratuite « qui nécessite une certaine concentration ou qui pourrait octroyer un bonus à l'ennemi qui vous attaque » (`LDB 13 l.106-107`).
 
+Arbitrage utilisateur (#3595, 2026-11-07) : le critère du livre tranche les pièces d'artillerie. Prendre et quitter une pièce sont des Actions gratuites, *Engagé* compris (`servirLePoste`, `quitterLePoste`, et le tour de l'IA) ; la recharge d'une pièce coûte l'Action de son chef comme celle d'une arme portée (`rechargerLArme`, `MDG 12 l.462` pour le Soutien de l'équipage).
+
 ### Option : Sur la Défensive
 
 Pour votre **Action**, vous pouvez vous mettre **Sur la Défensive** : choisissez une **Compétence défensive** (parer, esquiver, tenir une position, ou *Langue (Magick)* pour une salve de dissipations). Vous gagnez alors **+20 à tous les Tests de défense** que vous effectuez **jusqu'au début de votre prochain Tour** (`LDB 13 l.108-110`).
@@ -1604,9 +1606,9 @@ Trois cas, du plus simple au plus exigeant :
 
 | Situation | Test requis | Coût / vitesse |
 |---|---|---|
-| **Surface facile** (échelle ou équivalent) | Aucun Test | Vitesse **½** : il faut dépenser **4 m de Mouvement** pour gravir une échelle de **2 m** |
-| **Surface facile, plus vite** | **Escalade Accessible (+20)** (consomme l'**Action**) | Distance supplémentaire = **Mouvement + DR** mètres (ex. M 4, DR +2 → +6 m) |
-| **Surface verticale à prises** (deux mains libres) | **Escalade** (difficulté fixée par le MJ ; consomme l'**Action**) | Vitesse de montée ou de descente = **(½ Mouvement + DR)** mètres |
+| **Surface facile** (échelle ou équivalent) | Aucun Test | Vitesse **½** : il faut dépenser **4 m de Mouvement** pour gravir une échelle de **2 m** (LDB 15 l.55) |
+| **Surface facile, plus vite** | **Escalade Accessible (+20)** (consomme l'**Action**) | Distance supplémentaire = **Mouvement + DR** mètres (ex. M 4, DR +2 → +6 m) (LDB 15 l.55) |
+| **Surface verticale à prises** (deux mains libres) | **Escalade** (difficulté fixée par le MJ ; consomme l'**Action**) | Vitesse de montée ou de descente = **(½ Mouvement + DR)** mètres (LDB 15 l.57) |
 
 Certaines escalades sont **trop difficiles** pour un Personnage ne possédant pas le Talent **Grimpeur** (LDB 15 l.57, renvoi p.138).
 

@@ -27,6 +27,7 @@ import { FICHE_DE_TEST, poserFicheDeTest, restaurerFiche, testDeFiche, testDuJeu
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { draineCascade } from './cascade.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 /**
  * CÂBLAGE des Tests nommés (#2779, #1173) : la compétence et la Difficulté d'un Test que nomme une règle
@@ -37,7 +38,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  */
 const cible = (c: Combatant, regle: keyof typeof FICHE_DE_TEST, cle: string) => {
   const [skill, d] = (FICHE_DE_TEST[regle] as Record<string, [string, Difficulty]>)[cle];
-  return clampTarget(testValue(c, skill) + DIFFICULTY_MODIFIERS[d]).target;
+  return clampTarget(testValue(c, { skill: { id: skill } }) + DIFFICULTY_MODIFIERS[d]).target;
 };
 
 let banc: Banc;
@@ -52,8 +53,8 @@ function heros(): Combatant {
 /** Combat de la scène de test, tour du héros, rien d'engagé. */
 function auCombat(): { H: Combatant; E: Combatant } {
   banc.setState({ party: [heros()], pendingRun: null, pendingApproach: null, pendingDisengage: null, pendingCascade: null });
-  g().startScene(testScene());
-  g().startCombat('enc-mutants');
+  g().lancerLaScene(testScene());
+  g().lancerLeCombat('enc-mutants');
   g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;
@@ -71,7 +72,7 @@ function auCombat(): { H: Combatant; E: Combatant } {
  *  cavalier), sinon le cheval attend à une case. */
 function enSelle({ dejaEnSelle = true } = {}): { R: Combatant; monture: Combatant } {
   lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(testScenarios.find((sc) => sc.id === 'entrainement')!));
-  if (!g().battle) g().startCombat('enc-entrainement');
+  if (!g().battle) g().lancerLeCombat('enc-entrainement');
   if (g().pendingRoundStart) g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;
@@ -97,53 +98,53 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     banc = ouvrirLeBanc();
     poserFicheDeTest();
     banc.setState({ battle: null, journal: [], pendingCorruption: null, pendingRenounce: null, corruptionQueue: [], pendingFall: null });
-    g().seedRng(4);
+    g().ensemencerLeTirage(4);
   });
   afterEach(() => {
     banc.abandonner();
     restaurerFiche();
   });
 
-  it('Course : `battleRun` pose le Test de `course`, `jetRoll@run` le jette', () => {
+  it('Course : `ouvrirLaCourse` pose le Test de `course`, `jetLancer@run` le jette', () => {
     const { H } = auCombat();
-    g().battleRun({ x: 16, y: 10 });
+    g().ouvrirLaCourse({ x: 16, y: 10 });
     expect(g().pendingRun!.test).toMatchObject(testDeFiche('course', 'courir'));
-    g().jetRoll('run');
+    g().jetLancer('run');
     expect(g().pendingRun!.result!.target).toBe(cible(H, 'course', 'courir'));
   });
 
   it('Course d’un cavalier : le clic de case au-delà de la Marche, Course armée, ouvre le Test de `course` sur Chevaucher (LDB 14 l.179), Difficulté de la fiche', () => {
     const { R } = enSelle();
     const cible = caseDeCourse();
-    g().battleClickTile(cible, { courseArmee: true });
-    g().battleClickTile(cible, { courseArmee: true });
+    g().cliquerLaCase(cible, undefined, { courseArmee: true });
+    g().cliquerLaCase(cible, undefined, { courseArmee: true });
     expect(g().pendingRun, 'la Course s’ouvre').toMatchObject({ combatantId: R.id, dest: cible });
     expect(g().pendingRun!.test).toMatchObject({ skill: { id: 'chevaucher' }, difficulty: testDeFiche('course', 'courir').difficulty });
   });
 
   it('Course d’un cavalier qui vient de monter : « Monter » a pris le Mouvement du Tour, la Course vient en plus (LDB 15 l.41) et s’ouvre sur Chevaucher', () => {
     const { R, monture } = enSelle({ dejaEnSelle: false });
-    g().battleMount(monture.id);
+    g().monterEnSelle(monture.id);
     expect(g().battle!.combatants.find((c) => c.id === R.id)!.mountId).toBe(monture.id);
     expect(displayedReach(g).size, 'témoin : la Marche est épuisée').toBe(0);
     const [cle] = [...computeRunReach(g)].sort((a, b) => b[1] - a[1])[0];
     const [x, y] = cle.split(',').map(Number);
     const cible = { x, y };
-    g().battleClickTile(cible, { courseArmee: true });
-    g().battleClickTile(cible, { courseArmee: true });
+    g().cliquerLaCase(cible, undefined, { courseArmee: true });
+    g().cliquerLaCase(cible, undefined, { courseArmee: true });
     expect(g().pendingRun, 'la Course s’ouvre').toMatchObject({ combatantId: R.id, dest: cible });
     expect(g().pendingRun!.test).toMatchObject({ skill: { id: 'chevaucher' } });
   });
 
-  it('Chute volontaire : `fallAcross` pose le Test de `chute`, `jetRoll@fall` le jette', () => {
+  it('Chute volontaire : `franchirLArete` pose le Test de `chute`, `jetLancer@fall` le jette', () => {
     const s = emptyScene('scene-test', 4, 4);
     s.layers[0].height = Array.from({ length: 16 }, (_, i) => (i === 2 ? 4 : 0));
     const hero = heros();
     banc.setState({ party: [hero], mode: 'exploration', partyPos: { x: 2, y: 0 }, scene: s, pendingCascade: null });
-    g().fallAcross({ x: 2, y: 0 }, { x: 2, y: 1 });
+    g().franchirLArete({ x: 2, y: 0 }, { x: 2, y: 1 });
     expect(g().pendingFall!.test).toMatchObject(testDeFiche('chute', 'tenter'));
-    g().fallChoose(hero.id, true);
-    g().jetRoll('fall', hero.id);
+    g().jetRegler('fall', 'tenter', true, hero.id);
+    g().jetLancer('fall', hero.id);
     expect(g().pendingFall!.participants[0].result!.target).toBe(cible(hero, 'chute', 'tenter'));
   });
 
@@ -156,7 +157,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     }
   });
 
-  it('Fuite : `disengageFlee` pose le Test de `fuite` sur le slot du fuyard, `jetRoll@flee` le jette', () => {
+  it('Fuite : `jetRegler(\'disengage\', \'fuir\')` pose le Test de `fuite` sur le slot du fuyard, `jetLancer@flee` le jette', () => {
     const { H, E } = auCombat();
     E.characteristics['capacite-de-combat'] = 90;
     H.engagedWith = [E.id];
@@ -165,9 +166,9 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
       battle: { ...g().battle! },
       pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
     });
-    g().disengageFlee();
+    g().jetRegler('disengage', 'fuir', true);
     expect(fleeTouche(g().pendingDisengage!)!.test).toMatchObject(testDeFiche('fuite', 'touche-en-fuyant'));
-    g().jetRoll('flee', H.id);
+    g().jetLancer('flee', H.id);
     expect(fleeTouche(g().pendingDisengage!)!.jet!.target).toBe(cible(H, 'fuite', 'touche-en-fuyant'));
   });
 
@@ -175,9 +176,9 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const { H, E } = auCombat();
     H.psychState = [{ type: 'peur', sourceId: E.id, indice: 2, calmeDR: 0 }];
     banc.setState({ battle: { ...g().battle!, reachable: new Map([['11,10', 1]]) } });
-    g().battleClickTile({ x: 11, y: 10 }, { confirm: true });
+    g().cliquerLaCase({ x: 11, y: 10 }, undefined, { confirm: true });
     expect(g().pendingApproach!.test).toMatchObject(testDeFiche('calme-d-approche', 'se-rapprocher'));
-    g().jetRoll('approach');
+    g().jetLancer('approach');
     expect(g().pendingApproach!.result!.target).toBe(cible(H, 'calme-d-approche', 'se-rapprocher'));
   });
 
@@ -185,7 +186,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const { H, E } = auCombat();
     H.psychState = [{ type: 'peur', sourceId: E.id, indice: 2, calmeDR: 0 }];
     E.pos = { x: 13, y: 10 };
-    g().battleClickEntity(E.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(g, E.id, { confirm: true, approche: true });
     expect(g().pendingApproach!.test).toMatchObject(testDeFiche('calme-d-approche', 'se-rapprocher'));
   });
 
@@ -195,7 +196,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     approachFearTrigger(g, banc.setState, E, { x: 15, y: 10 }, { x: 12, y: 10 });
     const rangee = g().pendingCascade!.participants.find((s) => s.kind === 'triggeredBatchTest')!.participants!.find((p) => p.id === H.id)!;
     const { skill, difficulty } = testDeFiche('calme-d-approche', 'source-se-rapproche');
-    expect({ skillId: rangee.skillId, difficulty: rangee.difficulty }).toEqual({ skillId: skill.id, difficulty });
+    expect({ skill: rangee.skill, difficulty: rangee.difficulty }).toEqual({ skill, difficulty });
   });
 
   it('Focalisation interrompue : l’étape porte le Test de `interruption-de-focalisation`', () => {
@@ -214,7 +215,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     expect(g().pendingCorruption).toMatchObject({ nature: 'physique', test: testDeFiche('influences-corruptrices', 'physique') });
     g().jetRegler('corruption', 'nature', 'spirituelle');
     expect(g().pendingCorruption).toMatchObject({ nature: 'spirituelle', test: testDeFiche('influences-corruptrices', 'spirituelle') });
-    g().jetRoll('corruption');
+    g().jetLancer('corruption');
     expect(g().pendingCorruption!.target).toBe(cible(hero, 'influences-corruptrices', 'spirituelle'));
   });
 
@@ -223,18 +224,18 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     hero.items = [...(hero.items ?? []), { uid: 'art1', name: 'Amulette étrange', kind: 'trapping', qualities: [], enc: 0, equipped: false, identified: false } as never];
     hero.skills.push({ id: 'recherche', characteristic: 'intelligence', advances: 5 }); // le Test de Recherche se tente (LDB 09 l.30)
     banc.setState({ party: [hero], interlude: null, bank: [], pendingOrders: [], pendingActivity: null });
-    g().startScene(testScene());
+    g().lancerLaScene(testScene());
     banc.abandonner();
-    banc.setState({ worldMap: { id: 'w', label: 'Monde', places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 50, y: 50 }, scene: testScene().id }], routes: [] } });
-    g().startInterlude(3);
+    banc.setState({ worldMap: { id: 'w', label: 'Monde', places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 50, y: 50 }, scene: testScene().id }], routes: [] }, lieu: 'altdorf' });
+    g().ouvrirLInterlude(3);
     draineCascade(g);
     const itl = g().interlude!;
     itl.perHero[hero.id] = { ...itl.perHero[hero.id], fx: undefined, left: 3 };
     banc.setState({ interlude: { ...itl } });
-    g().interludeActivity(hero.id, 'tester-objets-magiques', { itemUid: 'art1' });
-    g().jetRoll('activity');
+    g().pratiquerLActivite(hero.id, 'tester-objets-magiques', { itemUid: 'art1' });
+    g().jetLancer('activity');
     banc.setState({ pendingActivity: { ...g().pendingActivity!, roll: 98, success: false, sl: -5 } });
-    g().jetConfirm('activity');
+    g().jetValider('activity');
     expect(g().pendingCorruption).toMatchObject({ nature: 'physique', test: testDeFiche('influences-corruptrices', 'physique') });
   });
 
@@ -260,7 +261,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     for (let graine = 1; graine <= 30; graine++) {
       const enemy = C('enemy', 'e', 2);
       const input: EnemyTurnInput = { enemy, heroes: [C('hero', 'h', 25)], scene, blocked: new Set(['25,10']), movement: 4, spells: [] };
-      const budget = (s: string, x: Difficulty) => 4 + resolveRun(testValue(enemy, s), x, 4, makeRNG(graine)).bonusCases;
+      const budget = (s: string, x: Difficulty) => 4 + resolveRun(testValue(enemy, { skill: { id: s } }), x, 4, makeRNG(graine)).bonusCases;
       expect(aiApproachPlan(input, enemy, chooseEnemyAction(input), makeRNG(graine)).ran?.budget, `graine ${graine}`).toBe(budget(skill, d));
       if (budget(jeuSkill, d) !== budget(skill, d)) ecarts.competence++;
       if (budget(skill, jeuDiff) !== budget(skill, d)) ecarts.difficulte++;
@@ -281,11 +282,11 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     E.characteristics.endurance = 85;
     const [jeuSkill, jeuDiff] = testDuJeu('corrompu', 'contenir');
     const [skill, d] = FICHE_DE_TEST.corrompu.contenir;
-    const reussit = (graine: number, s: string, x: Difficulty) => rollTest(testValue(E, s), x, makeRNG(graine)).success;
+    const reussit = (graine: number, s: string, x: Difficulty) => rollTest(testValue(E, { skill: { id: s } }), x, makeRNG(graine)).success;
     const ecarts = { competence: 0, difficulte: 0 };
     for (let graine = 1; graine <= 60; graine++) {
       E.corruption = 99;
-      g().seedRng(graine);
+      g().ensemencerLeTirage(graine);
       const lignes = gainCorruption(g, banc.setState, E, 1);
       expect(g().pendingCorruption).toBeNull();
       expect(lignes.some((l) => String(l).includes(t('cor.contained', { name: E.label }))), `graine ${graine}`).toBe(reussit(graine, skill, d));
@@ -301,7 +302,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     banc.setState({ party: [hero] });
     gainCorruption(g, banc.setState, hero, 1);
     expect(g().pendingCorruption).toMatchObject({ kind: 'seuil', test: testDeFiche('corrompu', 'contenir') });
-    g().jetRoll('corruption');
+    g().jetLancer('corruption');
     expect(g().pendingCorruption!.target).toBe(cible(hero, 'corrompu', 'contenir'));
   });
 });

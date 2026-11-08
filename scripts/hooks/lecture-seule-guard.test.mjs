@@ -202,7 +202,7 @@ fs.writeFileSync(join(tmpdir(), '${dossierClaude(platform)}', '${SLUG}', '${SESS
     ['Bash', `node -r "${P}/ecrit-hors.mjs" -e 1`, 'juge', 'deny', /ecrit-hors\.mjs : writeFileSync hors du scratchpad/],
     ['Bash', `node --import=file:///${P.replace(/^\//, '')}/ecrit-hors.mjs -e 1`, 'juge', 'deny', /ecrit-hors\.mjs : writeFileSync hors du scratchpad/],
     ['Bash', 'node --test', 'juge', null],
-    ['Bash', `cp src/gameIso/stage/GameStage3D.tsx "${P}/GameStage3D.bak" && perl -i -pe 's/x/y/' src/gameIso/stage/GameStage3D.tsx`, 'juge', 'deny', /perl hors du scratchpad/],
+    ['Bash', `cp src/noyau/rollSeam.ts "${P}/rollSeam.bak" && perl -i -pe 's/x/y/' src/noyau/rollSeam.ts`, 'juge', 'deny', /perl hors du scratchpad/],
     ['Bash', `perl -i -pe 's/x/y/' "${P}/a.txt"`, 'juge', null],
     ['Bash', 'tsc', 'juge', null],
     ['Bash', 'tsc -b', 'juge', 'deny', /tsc -b : écrivain .* — canal : un outil de la table de lecture de `npx`/],

@@ -18,23 +18,29 @@ import type { Condition, EffectOp, PartySelector } from '../../engine/flowCore';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { contexteDeTestSchema } from '../../data/schemas/grammaire/valeurs';
 import { armourBypassCategorieSchema, loseTurnWhatSchema, senseSchema, tablesDeCiblesSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
-import { INDICE_TEMPLATE, type ActorRef, type CompareOp, type CompareSubject } from '../../engine/flowCore';
+import { INDICE_TEMPLATE, seuilDeBourse, type ActorRef, type CompareOp, type CompareSubject } from '../../engine/flowCore';
 import { estCausePersistante, type GameOp, type Formula, type FormuleSansTirage, type ResolveWindow } from '../../engine/ops';
 import type { Camp, Relation } from '../../engine/relations';
-import { CHAR_LABELS, HIT_LOCATION_LABELS, type CharKey, type ArmourBypass } from '../../engine/types';
+import { CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, type CharKey, type ArmourBypass } from '../../engine/types';
 import { formatWardSave, traitLabelById, traitLisible } from '../../engine/traits/dispatch';
 import { giveTrappingLabel } from '../../engine/items';
 import { traumaLabelOf } from '../../engine/trauma';
 import { cibleDeRef, libelleDePsy } from '../../engine/psych/ciblage';
 import { libelleDuTraitOctroye } from '../../engine/psych/opsPsy';
-import { formatMoney } from '../../engine/money';
-import { formatDice } from '../../engine/dice';
+import { formatMoney, fromBrass } from '../../engine/money';
+import { formatDice, formatEffetSigne } from '../../engine/dice';
+import { seaWeatherLabel } from '../../engine/seaWeather';
+import { shipLocationLabel } from '../../engine/shipCritical';
+import { findSeaHazard, findWhirlpool } from '../../engine/seaPerils';
 import { rule, ruleDef } from '../../engine/policy';
 import {
   conditionLabel, psychologyLabel, groupLabel, symptomLabel, creatureLabel,
   diseaseLabel, refLabel, qualityRefLabel, testSkillLabel,
 } from '../../data';
 import { findFallTable } from '../../data/shipCriticals';
+import { effectTableDie, findEffectTableById } from '../../data/effectTables';
+import { deDeTirageDe } from '../../data/rangees';
+import { facesDuDe, fourchette } from '../../engine/tables';
 import { deElide, t, type MsgKey } from '../../i18n';
 import type { EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { libelleDEtat } from './libellesNarratifs';
@@ -75,6 +81,14 @@ export function traitOctroyeLisible(o: Extract<GameOp, { op: 'grantTrait' }>, fo
   const table = o.cible && libelleDeValeur(tablesDeCiblesSchema, o.cible.table.id);
   const cible = o.cible ? ` ${t(o.cible.pick > 1 ? 'codex.trait.cibleTireeFois' : 'codex.trait.cibleTiree', { table: table!, pick: o.cible.pick })}` : '';
   return `${traitLisible(nombre ? { ...pose, value } : pose)}${indice}${cible}`;
+}
+
+/** Les rangées d'une table en ligne (`rollTable.entries`) : chaque bande au dé de la table, puis ses ops. */
+function rangeesLisibles(o: Extract<GameOp, { op: 'rollTable'; entries: unknown }>): string {
+  const faces = facesDuDe(deDeTirageDe(o));
+  return t('codex.op.rollTable.rangees', {
+    rangees: o.entries.map((r) => `${fourchette(r.min, r.max, faces)} : ${r.ops.length ? r.ops.map(humanizeOp).join(', ') : t('codex.op.rollTable.rien')}`).join(' ; '),
+  });
 }
 
 /** « de » + une formule humanisée, AVEC la contraction française : `de le` → `du`, `de les` → `des`
@@ -138,7 +152,11 @@ function formuleEnMots(f: Formula, regles: string[] | null): string {
   if ('stacks' in f) return t('codex.f.stacks');
   if ('engagedAdvantageGap' in f) return t('codex.f.engagedAdvantageGap');
   if ('woundsDealt' in f) return t('codex.f.woundsDealt');
+  if ('blessuresMax' in f) return t('codex.f.blessuresMax');
+  if ('tailleDuNavire' in f) return t('codex.f.tailleDuNavire');
+  if ('valeurCargaison' in f) return t('codex.f.valeurCargaison');
   if ('sl' in f) return t('codex.f.sl');
+  if ('tire' in f) return f.de === undefined ? t('codex.f.tire', { nom: f.tire }) : t('codex.f.tire.de', { de: formuleEnMots(f.de, regles), nom: f.tire });
   // Les formes NON numériques (`flag`/`mode`) n'ont pas de nombre à montrer : elles se nomment, quel que
   // soit le rendu demandé. Un id hors du registre (brouillon d'éditeur) se nomme par son id : `ruleDef` le
   // lit avant `rule()`, qui lève (#1463 LD.1).
@@ -260,7 +278,13 @@ export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], n
       const label = c.trappingId || '?';
       return `${t(neg ? 'codex.c.hasItem.non' : 'codex.c.hasItem', { objet: label })}${c.count && c.count > 1 ? ` (×${c.count})` : ''}`;
     }
-    case 'money': return t(neg ? 'codex.c.money.non' : 'codex.c.money', { montant: formatMoney({ gold: c.atLeast.gold ?? 0, silver: c.atLeast.silver ?? 0, brass: c.atLeast.brass ?? 0 }) });
+    case 'money': {
+      const seuil = seuilDeBourse(c.atLeast);
+      const montant = 'lie' in seuil
+        ? t('codex.f.tire', { nom: seuil.lie })
+        : formatMoney({ gold: seuil.montant.gold ?? 0, silver: seuil.montant.silver ?? 0, brass: seuil.montant.brass ?? 0 });
+      return t(neg ? 'codex.c.money.non' : 'codex.c.money', { montant });
+    }
     case 'partyDead': {
       if (!neg) return t('codex.c.partyDead', { sujet: sujetDuGroupe(c.who) });
       return c.who === 'all' ? t('codex.c.partyDead.nonTous') : c.who === 'any' ? t('codex.c.partyDead.nonAucun') : t('codex.c.partyDead.non', { sujet: sujetDuGroupe(c.who) });
@@ -304,6 +328,7 @@ export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], n
       const sujet = sujetDuGroupe(c.who);
       return `${t(neg ? 'codex.c.skill.non' : 'codex.c.skill', { sujet, nom: refLabel('skills', { id: c.id, spec: c.spec }) })}${c.advances ? ` (≥${c.advances})` : ''}`;
     }
+    case 'talent': return t(neg ? 'codex.c.talent.non' : 'codex.c.talent', { sujet: sujetDuGroupe(c.who), nom: refLabel('talents', { id: c.id, spec: c.spec }) });
     case 'career': return t(neg ? 'codex.c.career.non' : 'codex.c.career', { sujet: sujetDuGroupe(c.who), nom: refLabel('careers', { id: c.id }) });
     case 'species': return t(neg ? 'codex.c.species.non' : 'codex.c.species', { sujet: sujetDuGroupe(c.who), nom: refLabel('races', { id: c.id }) });
     case 'status': return t(neg ? 'codex.c.status.non' : 'codex.c.status', { sujet: sujetDuGroupe(c.who), statut: c.atLeast });
@@ -436,12 +461,15 @@ export function humanizeOp(o: GameOp): string {
     case 'castPenalty': return effetDeContrecoup(o);
     case 'money': {
       const debit = estDebit(o.montant.brass);
-      const { valeur, note } = humanizeQuantite(debit ? sansSigne(o.montant.brass) : o.montant.brass);
+      const montant = debit ? sansSigne(o.montant.brass) : o.montant.brass;
+      if (o.groupe && typeof montant === 'number') return t(debit ? 'codex.op.money.groupe.perd' : 'codex.op.money.groupe.gagne', { valeur: formatMoney(fromBrass(montant)) });
+      const { valeur, note } = humanizeQuantite(montant);
+      if (o.groupe) return `${t(debit ? 'codex.op.money.groupe.perd' : 'codex.op.money.groupe.gagne', { valeur: t('codex.op.money.enSous', { valeur }) })}${note}`;
       return `${t(debit ? 'codex.op.money.perd' : 'codex.op.money.gagne', { valeur })}${note}`;
     }
     case 'statusMod': return t(typeof o.amount === 'number' && o.amount < 0 ? 'codex.op.statusMod.perd' : 'codex.op.statusMod.gagne', { n: humanizeFormula(o.amount) });
     case 'grantReverseToken': return t(o.illimite ? 'codex.op.grantReverseToken.illimite' : 'codex.op.grantReverseToken', {
-      quoi: o.skill ? refLabel('skills', o.skill) : o.char ? t('codex.op.grantReverseToken.car', { car: deElide(CHAR_LABELS[o.char]) }) : t('codex.op.grantReverseToken.cible'),
+      quoi: o.skill ? refLabel('skills', o.skill) : o.characteristic ? t('codex.op.grantReverseToken.car', { car: deElide(CHAR_LABELS[o.characteristic]) }) : t('codex.op.grantReverseToken.cible'),
       contexte: o.contexte ? ` ${libelleDeValeur(contexteDeTestSchema, o.contexte)}` : '',
     });
     case 'grantTrait': return t('codex.op.grantTrait', { trait: traitOctroyeLisible(o, humanizeFormula), duree: pendant(o) });
@@ -509,11 +537,11 @@ export function humanizeOp(o: GameOp): string {
     case 'perRound': return t('codex.op.perRound', { ops: o.ops.map(humanizeOp).join(' ; ') });
     case 'rollThreshold': return t('codex.op.rollThreshold', { faces: o.sides });
     case 'rollTable': return t('codex.op.rollTable', {
-      table: 'tableId' in o ? t('codex.op.rollTable.table', { table: o.tableId }) : t('codex.op.rollTable.uneTable'),
-      de: 'tableId' in o ? 'd10/d100' : o.die,
+      table: 'tableId' in o ? t('codex.op.rollTable.table', { table: findEffectTableById(o.tableId).label }) : t('codex.op.rollTable.uneTable'),
+      de: 'tableId' in o ? formatDice(effectTableDie(o.tableId)) : o.die,
       negatifs: o.addNegativeSL ? t('codex.op.rollTable.negatifs') : '',
       extra: o.extraRollsPerStep ? t('codex.op.rollTable.extra', { n: o.extraRollsPerStep }) : '',
-    });
+    }) + ('entries' in o ? rangeesLisibles(o) : '');
     case 'rollMutation': return t(o.duration === 'permanent' ? 'codex.op.rollMutation.permanente' : 'codex.op.rollMutation', { table: o.table });
     case 'charDamage': return t('codex.op.charDamage', { n: humanizeFormula(o.amount), car: CHAR_LABELS[o.char] });
     case 'summon': return `${t('codex.op.summon', { n: humanizeFormula(o.count), nom: creatureLabel(o.ref) })}${o.allyOfCaster === false ? t('codex.op.summon.hostile') : ''}`;
@@ -564,6 +592,59 @@ export function humanizeOp(o: GameOp): string {
     case 'light': return t('codex.op.light', { n: o.radiusM });
     case 'intoxicate': return t('codex.op.intoxicate');
     case 'narrative': return o.text;
+    case 'shipMorale': return t('codex.op.shipMorale', { delta: formatEffetSigne(o.delta) });
+    case 'manann': return o.factorId !== undefined
+      ? t('codex.op.manann.facteur', { nom: refLabel('seaManannFactors', { id: o.factorId }) })
+      : t('codex.op.manann', { delta: formatEffetSigne(o.delta) });
+    case 'shipCritical': return t('codex.op.shipCritical', {
+      n: humanizeFormula(o.count),
+      loc: o.location === 'aleatoire' ? t('codex.op.shipCritical.aleatoire') : shipLocationLabel(o.location),
+    }) + (o.equipageEpargne ? t('codex.op.shipCritical.equipageEpargne') : '');
+    case 'navireMod': return t('codex.op.navireMod', {
+      axes: [
+        ...(o.m !== undefined ? [t('eff.navireModM', { m: `${o.m >= 0 ? '+' : '−'}${Math.abs(o.m)}` })] : []),
+        ...(o.manDR !== undefined ? [t('eff.navireModMan', { dr: `${o.manDR >= 0 ? '+' : '−'}${Math.abs(o.manDR)}` })] : []),
+        ...(o.evite ? [t('eff.navireModEvite', { perils: o.evite.map((id) => findSeaHazard(id)?.label ?? id).join(', ') })] : []),
+      ].join(', '),
+      duree: o.jusqua === 'carenage' ? t('eff.jusquAuCarenage') : o.jusqua === 'evenementDeBord' ? t('eff.jusquAuProchainEvenement') : t('codex.op.pendantJours', { n: humanizeFormula(o.jusqua.jours) }),
+    });
+    case 'meteoImposee': return t('codex.op.meteoImposee', {
+      meteo: [...(o.meteo ? [seaWeatherLabel(o.meteo)] : []), ...(o.ventInverse ? [t('codex.op.meteoImposee.ventInverse')] : [])].join(', '),
+      n: humanizeFormula(o.jours),
+    });
+    case 'cargaison': return o.perteAuDechargement !== undefined
+      ? t('codex.op.cargaison.perte', { enc: humanizeFormula(o.perteAuDechargement) })
+      : o.perduePct !== undefined
+        ? t('codex.op.cargaison.perduePct', { pct: o.perduePct })
+        : o.perdueEnc !== undefined
+          ? t('codex.op.cargaison.perdueEnc', { enc: humanizeFormula(o.perdueEnc) })
+          : t('codex.op.cargaison', { enc: humanizeFormula(o.enc) });
+    case 'equipage': return o.perdusPct !== undefined
+      ? t('codex.op.equipage.perdusPct', { pct: o.perdusPct })
+      : `${t('codex.op.equipage', { delta: humanizeFormula(o.delta) })}${o.role ? t('codex.op.equipage.role', { role: refLabel('crewRoles', o.role) }) : ''}${o.sansSolde ? t('codex.op.equipage.sansSolde') : ''}`;
+    case 'provisions': return o.gateesPct !== undefined
+      ? t('codex.op.provisions.gatees', { pct: o.gateesPct })
+      : o.rations !== undefined
+        ? t('codex.op.provisions.rations', { n: humanizeFormula(o.rations) })
+        : o.eauTonneaux !== undefined
+          ? t('codex.op.provisions.eau', { n: humanizeFormula(o.eauTonneaux) })
+          : t('codex.op.provisions.jours', { n: humanizeFormula(o.jours) });
+    case 'perilDeMer': return o.collision !== undefined
+      ? t('codex.op.perilDeMer.collision', { peril: findSeaHazard(o.collision.id)?.label ?? o.collision.id })
+      : t('codex.op.perilDeMer.tourbillon', { tourbillon: findWhirlpool(o.tourbillon.id)?.label ?? o.tourbillon.id });
+    case 'navireHostile': return `${t('codex.op.navireHostile', { navire: refLabel('vehicles', o.navire), nombre: o.equipage.nombre, equipage: creatureLabel(o.equipage.id) })}`
+      + `${o.chef ? t('codex.op.navireHostile.chef', { chef: creatureLabel(o.chef.id) }) : ''}`
+      + `${o.grandsCanons ? t('codex.op.navireHostile.canons', { n: o.grandsCanons }) : ''}`
+      + `${o.exigence === 'fouille' ? t('codex.op.navireHostile.fouille') : ''}`;
+    case 'infestation': return t('codex.op.infestation', {
+      test: testSkillLabel({ crewTestType: o.crewTestType.id }) ?? o.crewTestType.id,
+      difficulte: DIFFICULTY_LABELS[o.difficulty], dr: o.targetDR,
+      nuit: humanizeFlow(o.chaqueNuit, []),
+    });
+    case 'combatEnMer': return t('codex.op.combatEnMer', { nombre: o.adversaire.nombre, adversaire: creatureLabel(o.adversaire.id) })
+      + `${o.adversaire.optionals ? t('codex.op.combatEnMer.optionals', { traits: o.adversaire.optionals.map((p) => traitLisible(p)).join(', ') }) : ''}`
+      + `${o.repousseAPct !== undefined ? t('codex.op.combatEnMer.repousse', { pct: o.repousseAPct }) : ''}`
+      + `${o.victoire ? t('codex.op.combatEnMer.victoire', { victoire: humanizeFlow(o.victoire, []) }) : ''}`;
   }
   return assertNever(o);
 }
@@ -575,13 +656,17 @@ export function humanizeOp(o: GameOp): string {
 /** Met une majuscule initiale (première phrase d'un effet). */
 const cap = (s: string): string => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
+/** La durée TIRÉE d'une feuille `ops` (`pendantJours`), en suffixe ; vide sans elle. */
+export const dureeDeLaFeuille = (e: EffectOp): string =>
+  (e.pendantJours === undefined ? '' : ` (${t('codex.op.pendantJours', { n: humanizeFormula(e.pendantJours) })})`);
+
 /** Effet MÉCANIQUE d'un Flow en prose JOUEUR — « Si {condition}, {conséquence}. » / « Jet de … : en cas
  *  de réussite … ». Switch EXHAUSTIF sur les 5 kinds de Flow (never en default). SOURCE UNIQUE joueur. */
 export function humanizeFlow(f: Flow, etats: readonly EtatDeclare[]): string {
   switch (f.kind) {
     case 'do': {
       const e = f.effect as EffectOp;
-      if (e && e.type === 'ops') return e.ops.map(humanizeOp).filter(Boolean).join(' ; ');
+      if (e && e.type === 'ops') return `${e.ops.map(humanizeOp).filter(Boolean).join(' ; ')}${dureeDeLaFeuille(e)}`;
       return (f.effect as { type?: string }).type ?? '';
     }
     case 'seq': return f.steps.map((s) => humanizeFlow(s, etats)).filter(Boolean).join(' ; ');
@@ -590,8 +675,9 @@ export function humanizeFlow(f: Flow, etats: readonly EtatDeclare[]): string {
       return f.else ? `${base}${t('codex.flow.sinon', { sinon: humanizeFlow(f.else, etats) })}` : base;
     }
     case 'test': {
-      const who = testSkillLabel({ skill: f.test.skill, char: f.test.characteristic }) ?? t('codex.flow.unTest');
-      return t(f.test.opposed ? 'codex.flow.jetOppose' : 'codex.flow.jet', { sujet: deElide(who), ok: humanizeFlow(f.success, etats), ko: humanizeFlow(f.fail, etats) });
+      const who = testSkillLabel(f.test) ?? t('codex.flow.unTest');
+      const sujet = `${deElide(who)}${f.test.gate ? t('codex.flow.jetGate', { cond: humanizeCondition(f.test.gate, etats) }) : ''}`;
+      return t(f.test.opposed ? 'codex.flow.jetOppose' : 'codex.flow.jet', { sujet, ok: humanizeFlow(f.success, etats), ko: humanizeFlow(f.fail, etats) });
     }
     case 'choice': {
       const cout = coutAvantageTexte(f.advantageCost);

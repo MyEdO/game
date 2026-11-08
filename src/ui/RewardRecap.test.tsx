@@ -116,7 +116,7 @@ describe('Modal — le cadre que le récapitulatif habite', () => {
 
 describe('LootModal — focus d’entrée : le canonique de `Modal`, mesuré', () => {
   const heros = () => [hero('h1', 'Magnus'), hero('h2', 'Elsa')];
-  const gear = (label: string) => ({ label, magic: false, effect: { type: 'giveTrapping' as const, custom: label } });
+  const gear = (label: string) => ({ uid: label, label, magic: false, effect: { type: 'giveTrapping' as const, custom: label } });
 
   /** Une frappe d'Entrée telle que le document la reçoit. `Modal` laisse un BOUTON focalisé à son
    *  activation native (il ne l'empêche pas) : jsdom n'active pas un bouton sur `keydown`, le banc
@@ -130,7 +130,7 @@ describe('LootModal — focus d’entrée : le canonique de `Modal`, mesuré', (
     await tacheSuivante();
   }
 
-  it('AVEC équipement : focus au 1er portrait ; Entrée répétée attribue ligne à ligne au 1er héros, puis « Continuer » ferme (déclaré, réversible par `transferItem`)', async () => {
+  it('AVEC équipement : focus au 1er portrait ; Entrée répétée attribue ligne à ligne au 1er héros, puis « Continuer » ferme (déclaré, réversible par `transmettreLObjet`)', async () => {
     useGame.setState({ party: heros(), pendingLoot: { title: 'Coffre', gear: [gear('Fiole'), gear('Lettre')] } });
     monterRacine(<LootModal />);
     const items = (i: number) => (useGame.getState().party[i].items ?? []).map((x) => x.label);

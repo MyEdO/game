@@ -44,7 +44,7 @@ function table(): { banc: Banc; guest: GuestSession; hote: Combatant; invite: Co
       favors: [hote, invite].map((h) => ({ id: `faveur-${h.id}`, heroId: h.id, level: 'mineure' as const, owedTo: 'Un échevin', desc: 'Un service', progress: 0 })),
     },
   });
-  banc.actions.startInterlude(1);
+  banc.actions.ouvrirLInterlude(1);
   draineCascade(banc.getState);
   expect(banc.getState().interlude?.phase, 'témoin : les Activités sont ouvertes').toBe('activities');
   const host = new HostSession({
@@ -67,22 +67,22 @@ describe('Interlude en coop : l’invité mène les Activités de SON héros', (
   it('Entraînement : l’Activité de son héros est dépensée', () => {
     const { banc, guest, invite } = table();
     const avant = left(banc, invite.id);
-    guest.sendIntent('interludeEntrainement', [invite.id, 'characteristic', 'intelligence']);
+    guest.sendIntent('suivreLEntrainement', [invite.id, 'characteristic', 'intelligence']);
     expect(left(banc, invite.id)).toBe(avant - 1);
   });
 
   it('Faveur : son Activité acquitte la Faveur de son héros', () => {
     const { banc, guest, invite } = table();
     const avant = left(banc, invite.id);
-    guest.sendIntent('favorSettle', [invite.id, `faveur-${invite.id}`]);
+    guest.sendIntent('solderLaFaveur', [invite.id, `faveur-${invite.id}`]);
     expect(left(banc, invite.id)).toBe(avant - 1);
     expect(banc.getState().favors.some((f) => f.heroId === invite.id)).toBe(false);
   });
 
   it('préparation de bataille : le jet s’ouvre MENÉ par son héros', () => {
     const { banc, guest, invite } = table();
-    banc.actions.startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
-    guest.sendIntent('massBattleActivity', [prepaDe(invite), invite.id]);
+    banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    guest.sendIntent('menerLActionDeBataille', [prepaDe(invite), invite.id]);
     expect(banc.getState().pendingActivity?.heroId).toBe(invite.id);
   });
 });
@@ -90,12 +90,12 @@ describe('Interlude en coop : l’invité mène les Activités de SON héros', (
 describe('Interlude en coop : l’invité est refusé sur le héros d’un autre siège', () => {
   it('Entraînement, Faveur, préparation de bataille du héros de l’hôte : rien ne bouge, le refus se dit', () => {
     const { banc, guest, hote } = table();
-    banc.actions.startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().favors, banc.getState().pendingActivity]);
     const journal = banc.getState().journal.length;
-    guest.sendIntent('interludeEntrainement', [hote.id, 'characteristic', 'intelligence']);
-    guest.sendIntent('favorSettle', [hote.id, `faveur-${hote.id}`]);
-    guest.sendIntent('massBattleActivity', [prepaDe(hote), hote.id]);
+    guest.sendIntent('suivreLEntrainement', [hote.id, 'characteristic', 'intelligence']);
+    guest.sendIntent('solderLaFaveur', [hote.id, `faveur-${hote.id}`]);
+    guest.sendIntent('menerLActionDeBataille', [prepaDe(hote), hote.id]);
     expect(JSON.stringify([banc.getState().interlude, banc.getState().favors, banc.getState().pendingActivity])).toBe(avant);
     expect(banc.getState().journal.slice(journal)).toEqual([REFUS_DE_SIEGE, REFUS_DE_SIEGE, REFUS_DE_SIEGE]);
   });
@@ -106,8 +106,8 @@ describe('Interlude en coop : la table de taverne est celle de l’hôte', () =>
     const [a, b] = [heros('Hôtelier', 1601), heros('Invitée', 1602)];
     const banc = ouvrirLeBanc({ reglesMaison: { 'tavern-games': true }, etat: { party: [a, b], net: { ...NET_DE_L_HOTE(b.id), mode: 'guest', mySeat: 1 } } });
     const journal = banc.getState().journal.length;
-    banc.actions.openTavernGames();
-    banc.actions.playTavernGame({ gameId: 'dominos', challengerId: b.id, opponent: { kind: 'hero', id: a.id } });
+    banc.actions.ouvrirLesJeux();
+    banc.actions.jouerALaTaverne({ gameId: 'dominos', challengerId: b.id, opponent: { kind: 'hero', id: a.id } });
     expect(banc.getState().tavernGames).toBeNull();
     expect(banc.getState().sequence ?? null).toBeNull();
     expect(banc.getState().journal.slice(journal)).toEqual([HOTE_SEUL, HOTE_SEUL]);

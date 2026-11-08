@@ -5,7 +5,7 @@ import {
   allBuiltinCampaigns, areneCampaign, builtinCampaigns, campagneALancer, campagneDuJeu, copieDuJeu, diligenceCampaign, documentDuJeu, paquetDuJeu,
   type BuiltinCampaign,
 } from './campaign';
-import { parseProject, projetVersDepot, ProjetRefuse, type ProjectDoc } from '../noyau/worldMap';
+import { parseProject, texteDuDepot, ProjetRefuse, type ProjectDoc } from '../noyau/worldMap';
 import { allAxes } from '../data';
 import { campagnesLivrees as livrees } from './projetsLivres.testkit';
 // @ts-expect-error - résolveur ESM JS (pas de types) — même convention que `vite.config.ts`
@@ -14,8 +14,8 @@ import areneProjet from './arene/arene-projet.json';
 
 /**
  * Registre des campagnes du jeu (#211) : « Nouvelle partie → Changer » les liste toutes via
- * `CampaignSelect` (`ui/PartyScreen.tsx`), au MÊME mécanisme que les projets publiés de l'éditeur
- * (`pendingCampaign` + `loadProject`) — jamais un chemin parallèle.
+ * `CampaignSelect`, au MÊME mécanisme que les projets publiés de l'éditeur
+ * (`pendingCampaign` + `chargerLeProjet`) — jamais un chemin parallèle.
  */
 describe('builtinCampaigns — registre des campagnes exposées au picker', () => {
   it('« Le Loup et la Saumure » y est enregistrée, projet valide', () => {
@@ -121,7 +121,7 @@ describe('copieDuJeu — la copie d’une campagne du jeu', () => {
 
 /**
  * L'export PORTABLE d'une campagne livrée garde `desc` ET `descRef` : il se relit sans le `Source/`,
- * et sa FORME DÉPÔT (`projetVersDepot`) est le fichier committé, octet pour octet, pour chaque projet livré (#680).
+ * et sa FORME DÉPÔT (`texteDuDepot`) est le fichier committé, octet pour octet, pour chaque projet livré (#680).
  */
 describe('export portable d’une campagne livrée — la prose ADRESSÉE fait l’aller-retour (#680)', () => {
   const DISQUE = readFileSync(join(__dirname, 'diligence/diligence-projet.json'), 'utf8');
@@ -145,9 +145,9 @@ describe('export portable d’une campagne livrée — la prose ADRESSÉE fait l
     expect(campagne.fichier).toBe(rel.split('/').pop());
   });
 
-  it.each(livrees)('%s : la FORME DÉPÔT de l’export (`projetVersDepot`, format du dépôt) EST le fichier committé, à l’octet', (_rel, campagne, texte) => {
+  it.each(livrees)('%s : la FORME DÉPÔT de l’export (`texteDuDepot`) EST le fichier committé, à l’octet', (_rel, campagne, texte) => {
     const exporte = JSON.parse(JSON.stringify(documentDuJeu(campagne))) as ProjectDoc;
-    expect(`${JSON.stringify(projetVersDepot(exporte), null, 1)}\n`).toBe(texte);
+    expect(texteDuDepot(exporte)).toBe(texte);
   });
 
   it('`materialiser` sur l’export LÈVE, en nommant le nœud : il porte déjà son texte', () => {

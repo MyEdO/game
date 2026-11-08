@@ -18,6 +18,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { ALLOWED_CHARS } from '../guards/lib/emojiAffordance.mjs'
+import { RACINES_DES_ZONES } from '../guards/lib/couches.mjs'
 import { REGISTRIES } from './lib/cibles-registres.mjs'
 
 const OUTIL = 'build-icones'
@@ -195,12 +196,12 @@ function rendu(entree) {
   }))
   if (!PLAGES.length) abandon('les plages `EMOJI_RANGES` de scripts/guards/lib/emojiAffordance.mjs sont illisibles')
 
-  const NO_EMOJI = lire('src/ui/no-emoji-affordance.test.ts')
+  const NO_EMOJI = lire('src/no-emoji-affordance.test.ts')
   const EXCLUSIONS = capture(
     NO_EMOJI,
     /\/\*\* Exclusions par NATURE([\s\S]*?)\*\/\nconst EXCLUDED/,
     'le bloc « Exclusions par NATURE »',
-    'src/ui/no-emoji-affordance.test.ts',
+    'src/no-emoji-affordance.test.ts',
   )
     .split('\n')
     .map((l) => l.replace(/^\s*\*\s?/, '').trimEnd())
@@ -218,19 +219,20 @@ function rendu(entree) {
   for (const nom of IDENTIFIANTS_GARDE) {
     if (CONCEPTS_DE_STOCK.test(nom)) {
       abandon(
-        `src/ui/no-emoji-affordance.test.ts déclare « ${nom} » : la garde porte de nouveau un STOCK d'exceptions, donc le § 7 de docs/ajouter-une-icone.md ne peut plus annoncer une couverture EXHAUSTIVE sans liste opt-in. Retirer le stock, ou réécrire ce § avant de régénérer.`,
+        `src/no-emoji-affordance.test.ts déclare « ${nom} » : la garde porte de nouveau un STOCK d'exceptions, donc le § 7 de docs/ajouter-une-icone.md ne peut plus annoncer une couverture EXHAUSTIVE sans liste opt-in. Retirer le stock, ou réécrire ce § avant de régénérer.`,
       )
     }
   }
 
-  const RACINE_SCAN = capture(NO_EMOJI, /const SRC = '([^']+)'/, 'la racine de scan `SRC`', 'src/ui/no-emoji-affordance.test.ts')
+  capture(NO_EMOJI, /readCorpus\((RACINES_DES_ZONES),/, 'le balayage des racines des zones `RACINES_DES_ZONES`', 'src/no-emoji-affordance.test.ts')
+  const RACINE_SCAN = RACINES_DES_ZONES.join('/`, `')
   /** Les extensions que la garde demande à `readCorpus` (`exts: ['.ts', '.tsx', '.json']`), rendues en
    *  la forme que le § 7 affiche — un motif de fin de nom, comme la garde le lit. */
   const EXTENSIONS_SCAN = `/\\.(${capture(
     NO_EMOJI,
     /exts: \[([^\]]+)\]/,
     'les extensions de `readCorpus`',
-    'src/ui/no-emoji-affordance.test.ts',
+    'src/no-emoji-affordance.test.ts',
   )
     .split(',')
     .map((e) => e.trim().replace(/^'\.?|'$/g, ''))
@@ -267,7 +269,7 @@ constantes de trait de \`src/data/icons/defs/action.ts\`, la regex de nommage et
 de \`src/data/icons/icons.test.ts\`, les signatures des trois rendus de \`src/ui/Icon.tsx\`, l'entrée
 \`ICON_FAMILIES\` de \`scripts/docs/lib/cibles-registres.mjs\`, les valeurs \`"icon"\` des \`src/data/*.json\`, et le
 périmètre + les glyphes tolérés du garde anti-emoji
-(\`scripts/guards/lib/emojiAffordance.mjs\`, \`src/ui/no-emoji-affordance.test.ts\`) — dont l'ABSENCE de
+(\`scripts/guards/lib/emojiAffordance.mjs\`, \`src/no-emoji-affordance.test.ts\`) — dont l'ABSENCE de
 stock d'exceptions, contrôlée aux identifiants déclarés/importés par cette garde. **Angles morts** :
 le comptage d'icônes en DONNÉE est textuel (clé \`"icon"\` d'un JSON de \`src/data/\`) — une icône
 référencée sous un AUTRE nom de champ, ou depuis du TS, n'est pas comptée ici (la garde de
@@ -279,7 +281,7 @@ Toute AFFORDANCE de l'UI (bouton, badge, libellé d'action, icône de donnée JS
 **registre auto-collecté** \`src/data/icons/\` : 1 famille d'icônes = 1 fichier dans
 \`${CHAMPS_ENTREE.dir}/<famille>.ts\`, ramassé par \`npm run gen\` (câblé dans \`npm run build\`).
 **Aucune table centrale à éditer.** Plus jamais d'emoji dans le code ou la donnée — garde
-\`src/ui/no-emoji-affordance.test.ts\`.
+\`src/no-emoji-affordance.test.ts\`.
 
 ## 0. Le registre : familles existantes
 
@@ -379,7 +381,7 @@ Génère une galerie HTML (dans \`npm run galleries\`) : chaque icône rendue au
 (${SIZES.map((s) => s.split(':')[1].trim()).join('/')}) + loupe, groupée par famille — vérifier la
 lisibilité à la plus petite taille et l'absence de couleur en dur AVANT de committer.
 
-## 7. Bannir les émojis (garde \`src/ui/no-emoji-affordance.test.ts\`)
+## 7. Bannir les émojis (garde \`src/no-emoji-affordance.test.ts\`)
 
 **Couverture EXHAUSTIVE, sans liste opt-in** : le test balaie TOUT \`${RACINE_SCAN}/\` en récursif
 (extensions \`${EXTENSIONS_SCAN}\`) et fait échouer la suite sur tout emoji détecté. Aucun stock
@@ -405,7 +407,7 @@ emoji, même « juste pour l'instant ».
 
 - \`npm test -- src/data/icons/icons.test.ts\` — ${TITRES_ICONS_TEST.map((t) => `${t}`).join(' ; ')}.
 - \`npm test -- src/ui/Icon.test.ts\` — ${TITRES_RENDU_TEST.join(' ; ')}.
-- \`npm test -- src/ui/no-emoji-affordance.test.ts\` — zéro emoji dans tout \`${RACINE_SCAN}/\`,
+- \`npm test -- src/no-emoji-affordance.test.ts\` — zéro emoji dans tout \`${RACINE_SCAN}/\`,
   hors exclusions par nature.
 - \`npm test -- src/data/data-wellformed.test.ts\` — ${CAS_ICONE.length} cas résolvent une icône
   dans \`ICON_DEFS\`.

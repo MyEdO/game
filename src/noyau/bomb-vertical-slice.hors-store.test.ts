@@ -39,10 +39,10 @@ describe('Tranche verticale — la bombe compose en données (Lot 0 + Lot 3)', (
     applyEffects(banc.getState, banc.setState, [bomb]);
     expect(banc.getState().scheduledEffects).toHaveLength(1);
 
-    banc.getState().advanceTime(59); // 21:01 — pas encore
+    banc.getState().avancerLeTemps(59); // 21:01 — pas encore
     expect(banc.getState().party[0].wounds.current).toBe(30);
 
-    banc.getState().advanceTime(1); // 22:02 — franchit l'échéance
+    banc.getState().avancerLeTemps(1); // 22:02 — franchit l'échéance
     expect(banc.getState().party[0].wounds.current).toBe(15);
     expect(banc.getState().scheduledEffects).toHaveLength(0);
   });
@@ -51,7 +51,7 @@ describe('Tranche verticale — la bombe compose en données (Lot 0 + Lot 3)', (
     lonePartyAt(30);
     applyEffects(banc.getState, banc.setState, [bomb]);
     banc.setState({ flags: { bombeDesamorcee: true } }); // un Effet setFlag d'un autre trigger, ici simulé
-    banc.getState().advanceTime(120);
+    banc.getState().avancerLeTemps(120);
     expect(banc.getState().party[0].wounds.current).toBe(30);
     expect(banc.getState().scheduledEffects).toHaveLength(0); // consommée SANS s'appliquer
   });

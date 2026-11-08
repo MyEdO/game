@@ -1,8 +1,7 @@
 /**
  * Routage des révélations témoin (arbitrage 2026-06-11, spec coop §4bis) : une modale ne
  * s'affiche que si un HÉROS est concerné (il subit ou inflige) — un Coup Critique purement
- * ennemi↔ennemi reste au journal/bandeau ; les révélations gardées portent leur gravité
- * (auto-fermeture : 'grave' = critique/mutation, 'minor' = entretien/informatif).
+ * ennemi↔ennemi reste au journal/bandeau.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -35,23 +34,21 @@ describe('routage des révélations (spec coop §4bis)', () => {
     expect(log.length).toBeGreaterThan(0); // le détail vit dans le journal
   });
 
-  it('un HÉROS inflige le Critique à un ennemi → séquence inline (panneau grave)', () => {
+  it('un HÉROS inflige le Critique à un ennemi → séquence inline', () => {
     const log: string[] = [];
     applyCriticalToTarget(mkEnemy('e1'), 'corps', 0, log, banc.setState,
       { ctx: { attackerId: 'h1', attackerKind: 'hero' }, get: banc.getState });
     const crit = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'critical');
     expect(crit).toBeTruthy();
-    expect(crit!.reveal?.severity).toBe('grave');
   });
 
-  it('un HÉROS subit le Critique → séquence inline (panneau grave)', () => {
+  it('un HÉROS subit le Critique → séquence inline', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
     const log: string[] = [];
     applyCriticalToTarget(hero, 'corps', 0, log, banc.setState,
       { ctx: { attackerId: 'e1', attackerKind: 'enemy' }, get: banc.getState });
     const crit = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'critical');
     expect(crit).toBeTruthy();
-    expect(crit!.reveal?.severity).toBe('grave');
   });
 });
 
@@ -60,8 +57,8 @@ describe('entretien de fin de Round — partition héros/ennemis (spec coop §4b
     seedBattleRng(7);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
   });
@@ -73,7 +70,7 @@ describe('entretien de fin de Round — partition héros/ennemis (spec coop §4b
       battle: { ...st.battle!, order: [H.id], turn: 0, action: null, movementUsed: 0, movedPreAction: false, acted: false },
       pendingRoundStart: null,
     });
-    banc.getState().battleEndTurn(); // seul dans l'ordre → franchit le Round
+    banc.getState().terminerLeTour(); // seul dans l'ordre → franchit le Round
     banc.avancer(3000);
   };
 

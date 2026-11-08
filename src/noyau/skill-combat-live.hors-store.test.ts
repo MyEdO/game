@@ -46,11 +46,11 @@ describe('Substitution sociale en défense LIVE (LDB 09 l.287)', () => {
     seedBattleRng(1);
     setDefense(H, E);
     banc.getState().jetRegler('defense', 'reaction', 'social');
-    banc.getState().jetRoll('defense');
+    banc.getState().jetLancer('defense');
     const dd = banc.getState().pendingDefense!.result!.defenderDetail!;
     expect(dd.mode).toBe('social');
     expect(dd.label).toBe('Intimidation');
-    expect(dd.base).toBe(skillBaseValue(H, 'intimidation'));
+    expect(dd.base).toBe(skillBaseValue(H, { skill: { id: 'intimidation' } }));
   });
 
   it('la substitution NE casse PAS la Parade (Corps à corps intact)', () => {
@@ -60,7 +60,7 @@ describe('Substitution sociale en défense LIVE (LDB 09 l.287)', () => {
     seedBattleRng(1);
     setDefense(H, E);
     banc.getState().jetRegler('defense', 'reaction', 'parade');
-    banc.getState().jetRoll('defense');
+    banc.getState().jetLancer('defense');
     const dd = banc.getState().pendingDefense!.result!.defenderDetail!;
     expect(dd.mode).toBe('parade');
     expect(dd.base).toBe(combatValue(H, 'melee', H.weapons[0]));
@@ -74,11 +74,11 @@ describe('Cumuler l’Avantage par une Compétence LIVE (LDB 09 l.305-308)', () 
     const { H } = combat();
     const cap = skillAdvantageCap(H, 'intuition'); // = Bonus d'Intelligence, > 0 (Intuition possédée)
     expect(cap).toBeGreaterThan(0);
-    banc.getState().battleGainAdvantage('intuition');
+    banc.getState().gagnerLAvantage('intuition');
     const pt = banc.getState().pendingTest!;
     expect(pt.combatAdvantage).toEqual({ combatantId: H.id, cap });
     banc.setState({ pendingTest: { ...pt, roll: 5, success: true, sl: 2 } });
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.advantage).toBe(1);
     expect(b.acted).toBe(true);
@@ -86,10 +86,10 @@ describe('Cumuler l’Avantage par une Compétence LIVE (LDB 09 l.305-308)', () 
 
   it('Intuition ratée → aucun gain, mais l’Action est tout de même consommée', () => {
     const { H } = combat();
-    banc.getState().battleGainAdvantage('intuition');
+    banc.getState().gagnerLAvantage('intuition');
     const pt = banc.getState().pendingTest!;
     banc.setState({ pendingTest: { ...pt, roll: 99, success: false, sl: -3 } });
-    banc.getState().jetConfirm('test');
+    banc.getState().jetValider('test');
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === H.id)!.advantage).toBe(0);
     expect(b.acted).toBe(true);
@@ -98,13 +98,13 @@ describe('Cumuler l’Avantage par une Compétence LIVE (LDB 09 l.305-308)', () 
   it('déjà au plafond de la méthode → l’action ne s’ouvre pas', () => {
     const { H } = combat();
     H.advantage = skillAdvantageCap(H, 'intuition'); // = Bonus d'Int (plafond de la méthode)
-    banc.getState().battleGainAdvantage('intuition');
+    banc.getState().gagnerLAvantage('intuition');
     expect(banc.getState().pendingTest).toBeNull();
   });
 
   it('Compétence sans application « Avantage » (Corps à corps) → aucune action ouverte', () => {
     combat();
-    banc.getState().battleGainAdvantage('corps-a-corps');
+    banc.getState().gagnerLAvantage('corps-a-corps');
     expect(banc.getState().pendingTest).toBeNull();
   });
 });

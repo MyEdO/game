@@ -18,8 +18,8 @@ import {
   type KeepEl,
 } from './sceneMeshes';
 import { memoByRefDeps } from '../../../noyau/monde/sceneMemo';
-import { facesGeometry } from './worldTris';
-import { faceDepthOf } from './faceRelief';
+import { facesGeometry } from '../../../noyau/monde/volume/worldTris';
+import { faceDepthM } from '../../../noyau/monde/volume/profondeur';
 import { mountGroundAccentLots, reposeGroundAccents, sceneGroundAccents } from './groundAccents';
 import type { SceneEl } from '../../builders/types';
 import { scenario as arene } from '../../../scenes/test-scenarios/arene';
@@ -122,7 +122,7 @@ const empreinte = (baked: BakedWorld) => empreinteDe(facesRendues(baked));
 function empreinteBakeFiltré(scn: Scene, keepEl: KeepEl): { groupes: number; faces: number; digest: string } {
   const m = sceneMetresPerTile(scn);
   const listées = worldFaces(scn, 'jeu').filter((wf) => keepEl(wf.el));
-  const geoms = facesGeometry(listées.map((f) => f.face), m, faceDepthOf());
+  const geoms = facesGeometry(listées.map((f) => f.face), m, faceDepthM);
   const { groups, faceIndices } = surfaceGrouping(listées, m);
   const parGroupe = new Map<string, string[]>();
   faceIndices.forEach((idx, k) => {

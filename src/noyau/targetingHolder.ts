@@ -94,7 +94,7 @@ export function coupFerme(s: Partial<Jeu>): boolean {
 
 /** Le champ de combat attend-il sa fenêtre ? Vrai quand le coup est ouvert (`coupFerme`) et qu'aucune
  *  zone n'est en pose (`zoneEnPose`) : la pose d'une zone EST le geste de carte de la fenêtre. Lu par
- *  `battleClickTile`, `battleClickEntity` et `combatantClickActs`. */
+ *  `cliquerLaCaseDuCombat`, `cliquerLeCombattant` et `combatantClickActs`. */
 export function champAttendSaFenetre(s: Partial<Jeu>): boolean {
   return !coupFerme(s) && !zoneEnPose({ pendingCast: s.pendingCast ?? null, pendingSiegeAim: s.pendingSiegeAim ?? null });
 }

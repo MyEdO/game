@@ -82,8 +82,8 @@ describe('Test opposé à jet figé en coop : masqué chez l’invité avant sa 
     });
     const { guest, chezLInvite } = table(banc, 'h');
     openAttackCascade(banc.getState, banc.setState, { attackerId: 'e', targetId: 'h', location: null, result: null, weaponUid: 'ra' }, 'Attaque', 'action/attack');
-    banc.getState().jetRoll('attack');
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetLancer('attack');
+    banc.getState().jetValider('attack');
     expect(banc.getState().pendingDefense?.result, 'chemin : la Défense du héros de l’invité s’ouvre, sans réponse').toBeNull();
     expect(attaqueVue(banc.getState()).revele, 'l’hôte a jeté l’attaque : il la voit').toBe(true);
     expect(attaqueVue(chezLInvite()).revele, 'l’invité n’a pas répondu : l’attaque lui est masquée').toBe(false);
@@ -91,7 +91,7 @@ describe('Test opposé à jet figé en coop : masqué chez l’invité avant sa 
     expect(ligneEnVue(chezLInvite(), 'defense', 'e'), 'jets en vue de l’invité : l’attaque à lancer, sans d100 ni DR ni verdict')
       .toEqual({ genre: 'test', qui: 'e', test: 'Attaque', cible: null, jet: null });
     expect(jetsEnVue(chezLInvite()).find((v) => v.flux === 'defense')?.oppose, 'aucune gagnante ni DR net chez l’invité').toBeNull();
-    guest.sendIntent('jetRoll', ['defense']);
+    guest.sendIntent('jetLancer', ['defense']);
     expect(banc.getState().pendingDefense?.result, 'la réponse de l’invité est posée chez l’hôte').toBeTruthy();
     expect(attaqueVue(chezLInvite())).toEqual({ ...attaqueVue(banc.getState()), revele: true });
     expect(ligneEnVue(chezLInvite(), 'defense', 'e')?.jet, 'après la réponse : l’attaque tombée chez l’invité').toMatchObject({ d100: expect.any(Number) });
@@ -102,8 +102,8 @@ describe('Test opposé à jet figé en coop : masqué chez l’invité avant sa 
     const L = pregen(PREGEN.sorcier);
     L.id = 'L'; L.label = 'L';
     const banc = ouvrirLeBanc({ desFixes: true, etat: { party: [L], net: NET('host', 0, 'L') } });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const [E, ...autres] = b.combatants.filter((c) => c.kind === 'enemy');
@@ -128,8 +128,8 @@ describe('Test opposé à jet figé en coop : masqué chez l’invité avant sa 
     expect(incantationVue(chezLInvite()).revele, 'l’invité n’a pas répondu : le sort lui est masqué').toBe(false);
     expect(ligneEnVue(banc.getState(), 'cast', E.id)?.jet, 'jets en vue de l’hôte : l’incantation tombée').toEqual({ d100: 30, dr: 3, reussi: true });
     expect(ligneEnVue(chezLInvite(), 'cast', E.id), 'jets en vue de l’invité : l’incantation à lancer, sans d100 ni DR ni verdict').toMatchObject({ cible: null, jet: null });
-    guest.sendIntent('counterspellDeclare', ['L', 'solo']);
-    guest.sendIntent('jetRoll', ['counterspell', 'L']);
+    guest.sendIntent('jetRegler', ['counterspell', 'declaration', 'solo', 'L']);
+    guest.sendIntent('jetLancer', ['counterspell', 'L']);
     expect(banc.getState().pendingCounterspell?.participants[0]?.result, 'la réponse de l’invité est posée chez l’hôte').toBeTruthy();
     expect(incantationVue(chezLInvite())).toEqual({ ...incantationVue(banc.getState()), revele: true });
     expect(ligneEnVue(chezLInvite(), 'cast', E.id)?.jet, 'après la réponse : l’incantation tombée chez l’invité').toEqual({ d100: 30, dr: 3, reussi: true });

@@ -4,7 +4,7 @@ import { emptyScene, type Scene, type SceneEntity } from './scene';
 
 /**
  * Index case → entités (`noyau/monde/decorIndex.ts`), vue ANCRAGE (`entitesEnCaseEtage`) : la lecture PAR
- * POSITION du picking (`gameIso/stage/useStagePointer.ts`). Elle répond sur la case d'ANCRAGE, TOUTES
+ * POSITION du picking. Elle répond sur la case d'ANCRAGE, TOUTES
  * natures, dans l'ordre du document — là où les deux vues d'EMPREINTE (`decorEnCase`/`decorEnCaseEtage`)
  * ne répondent que du DÉCOR qui couvre la case.
  *

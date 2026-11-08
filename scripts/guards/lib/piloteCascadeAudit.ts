@@ -7,14 +7,14 @@
  * les dialectes que ses prédicats reconnaissent (`EXTENSIONS_DE_SCRIPT`) — boucle
  * (`for`, `for…of`, `for…in`, `while`, `do`), callback d'un itérateur (`ITERATEURS` ; le receveur ne
  * s'itère pas) ou fonction nommée qui s'appelle elle-même — qui PILOTE la cascade À LA MAIN : elle LIT
- * `pendingCascade` et JOUE un verbe `cascade*` du store, à côté du kit (`cascade.testkit.ts`). Quand un flux
+ * `pendingCascade` et JOUE un verbe de jet du store sur un flux de cascade, à côté du kit (`cascade.testkit.ts`). Quand un flux
  * est refondu, c'est elle qui dérive. Une fonction À UNE ÉTAPE (lire, poser, valider) n'est pas un pilote :
  * c'est le grain auquel un test exerce et observe une étape ; la boucle qui l'appelle en est un.
  *
  * LIRE, c'est nommer `pendingCascade`, nu, par point ou par accès calculé à chaîne littérale
  * (`s['pendingCascade']`) — hors la CLÉ d'une propriété `pendingCascade: …`, qui l'écrit ; JOUER, c'est
- * appeler un verbe `cascade*`, par son nom, par point ou par accès calculé à chaîne littérale
- * (`s['cascadeChoose']()`). Un appel au KIT n'est ni un verbe ni une exemption : un nom importé de
+ * appeler un verbe de jet (`jet*`) dont le premier argument est un flux de cascade, par son nom, par point ou par
+ * accès calculé à chaîne littérale (`s['jetRegler']('cascade', …)`). Un appel au KIT n'est ni un verbe ni une exemption : un nom importé de
  * `cascade.testkit` — par `import { … }`, ou par `import * as kit` (`kit.x(…)`, `kit['x'](…)`) — ne joue rien.
  *
  * HELPER : une fonction locale NOMMÉE (déclaration, ou `const` flèche/fonction), non récursive, dont aucune
@@ -72,7 +72,7 @@
  *    (`module` au besoin) — 0 occurrence (sonde : #1765 issuecomment-6195158339 L-B, variante `methodes`) ;
  *  - un statut se lit par NOM : deux fonctions locales homonymes de statuts différents se confondent — 3
  *    occurrences, aucune sous un site (sonde : #1765 issuecomment-6195158339 L-B, `homonymes`) ;
- *  - un verbe ou `pendingCascade` atteints par un ALIAS (`const choisir = s.cascadeChoose`) ne comptent pas —
+ *  - un verbe ou `pendingCascade` atteints par un ALIAS (`const regler = s.jetRegler`) ne comptent pas —
  *    5 occurrences, non pilotes (sonde : #1765 issuecomment-6195158339 L-B, `alias / acces calcule`) ;
  *  - un geste à côté d'un SOUS-SITE : l'itération qui l'englobe se juge hors du sous-arbre de TOUT sous-site
  *    déjà retenu (post-ordre), exempté ou non, que le geste le précède ou le suive ; l'exemption n'agit qu'au
@@ -109,9 +109,7 @@ import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
  *  cascade (`MODULE_DU_KIT`), qui EST le pilote partagé. */
 const estMesure = (rel: string): boolean => (estSuiteVitest(rel) || estKitDeTest(rel)) && !MODULE_DU_KIT.test(rel);
 
-/** Un verbe de la cascade du store (`cascadeChoose`, `cascadeAmount`…). */
-const VERBE = /^cascade[A-Z]/;
-/** Un verbe de jet du noyau (`jetRoll`…), qui joue sur la cascade quand son flux, en premier argument, en est un
+/** Un verbe de jet du noyau (`jetLancer`, `jetRegler`…), qui joue sur la cascade quand son flux, en premier argument, en est un
  *  (`'cascade'`, `'cascadeBatch'`, `'cascadeTirage'`, `'fumble'`). */
 const VERBE_DE_JET = /^jet[A-Z]/;
 const FLUX_DE_CASCADE = /^(cascade(Batch|Tirage)?|fumble)$/;
@@ -131,11 +129,14 @@ const DIFFERES = new Set([...BLOCS_DE_TEST, 'beforeEach', 'afterEach', 'beforeAl
 /** Une exemption AU SITE : la suite, le motif ANCRÉ du `ref` du site, la raison. */
 export interface ExemptionPilote { fichier: string; motif: RegExp; raison: string }
 
+const RAISON_ABANDON_REFUSE = 'le verbe joué est l’abandon que le titre teste (`jetRegler(\'cascade\', \'abandon\', true)`), refusé : il ne pilote pas la cascade';
 const RAISON_GESTE_TESTE = 'la boucle porte sur des GRAINES ; le verbe joué est le geste que le titre teste, le confier au kit détruirait le test';
 export const EXEMPTIONS: readonly ExemptionPilote[] = [
-  { fichier: 'src/noyau/defense-hote-prete.hors-store.test.ts', motif: /^it:un « Suivant » de trop sur l’étape de défense ne la franchit pas : sa fenêtre reste élue$/, raison: `${RAISON_GESTE_TESTE} (\`jetConfirm('cascade')\`)` },
-  { fichier: 'src/noyau/defense-hote-prete.hors-store.test.ts', motif: /^it:« Tout lancer » des Tests de la Déstabilisante s’arrête sur la défense du maillon$/, raison: `${RAISON_GESTE_TESTE} (\`cascadeResolveAll\`)` },
-  { fichier: 'src/noyau/combat/opposed-base-explicite.hors-store.test.ts', motif: /^it:HÉROS MANUEL : nue haute \+ États lourds — le défenseur l’emporte au départage que ses CIBLES perdraient$/, raison: `${RAISON_GESTE_TESTE} (\`jetRoll('cascade')\`)` },
+  { fichier: 'src/noyau/defense-hote-prete.hors-store.test.ts', motif: /^it:un « Suivant » de trop sur l’étape de défense ne la franchit pas : sa fenêtre reste élue$/, raison: `${RAISON_GESTE_TESTE} (\`jetValider('cascade')\`)` },
+  { fichier: 'src/noyau/defense-hote-prete.hors-store.test.ts', motif: /^it:« Tout lancer » des Tests de la Déstabilisante s’arrête sur la défense du maillon$/, raison: `${RAISON_GESTE_TESTE} (\`jetLancer('cascade')\`)` },
+  { fichier: 'src/noyau/combat/opposed-base-explicite.hors-store.test.ts', motif: /^it:HÉROS MANUEL : nue haute \+ États lourds — le défenseur l’emporte au départage que ses CIBLES perdraient$/, raison: `${RAISON_GESTE_TESTE} (\`jetLancer('cascade', id)\`)` },
+  { fichier: 'src/noyau/tavern-al-zahr.hors-store.test.ts', motif: /^it:ABANDON en cours de manche \(l\.17\) : FERMÉ « entre deux manches »/, raison: RAISON_ABANDON_REFUSE },
+  { fichier: 'src/ui/SequencePanel.test.tsx', motif: /^it:Fléchettes : un CHOIX dû après le jet — fermé, la raison nomme le choix/, raison: RAISON_ABANDON_REFUSE },
 ];
 
 /** Une itération-site repérée : son fichier, sa ligne (1-based), son contexte nommé, l'exemption qui la couvre. */
@@ -150,7 +151,7 @@ export const corpusMesure = (): FichierSource[] =>
 const chaineLitterale = (ts: typeof TS, e: TS.Node): e is TS.StringLiteral | TS.NoSubstitutionTemplateLiteral =>
   ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e);
 
-/** Un accès NOMMÉ — par point (`s.cascadeChoose`) ou calculé à chaîne littérale (`s['cascadeChoose']`) : son
+/** Un accès NOMMÉ — par point (`s.jetRegler`) ou calculé à chaîne littérale (`s['jetRegler']`) : son
  *  receveur et le nom désigné. */
 function accesNomme(ts: typeof TS, e: TS.Node): { receveur: TS.Expression; nom: string } | undefined {
   if (ts.isPropertyAccessExpression(e)) return { receveur: e.expression, nom: e.name.text };
@@ -158,7 +159,7 @@ function accesNomme(ts: typeof TS, e: TS.Node): { receveur: TS.Expression; nom: 
   return undefined;
 }
 
-/** Le nom appelé par `call` : l'identifiant nu, ou le nom de l'accès (`get().cascadeChoose`, `get()['cascadeChoose']`). */
+/** Le nom appelé par `call` : l'identifiant nu, ou le nom de l'accès (`get().jetRegler`, `get()['jetRegler']`). */
 function nomAppele(ts: typeof TS, call: TS.CallExpression): string | undefined {
   const callee = call.expression;
   return ts.isIdentifier(callee) ? callee.text : accesNomme(ts, callee)?.nom;
@@ -286,14 +287,12 @@ const appelleLeKit = (ts: typeof TS, call: TS.CallExpression, duKit: ReadonlySet
   return !!receveur && ts.isIdentifier(receveur) && duKit.has(receveur.text);
 };
 
-/** Un appel de verbe de la cascade du STORE (`cascade*`, ou verbe de jet sur un flux de cascade) : un appel au kit (`cascadeDeTest`…) n'en est jamais un. */
+/** Un appel de verbe de jet du STORE sur un flux de cascade : un appel au kit (`cascadeDeTest`…) n'en est jamais un. */
 const appelleVerbe = (ts: typeof TS, n: TS.Node, duKit: ReadonlySet<string>): boolean => {
   if (!ts.isCallExpression(n) || appelleLeKit(ts, n, duKit)) return false;
   const nom = nomAppele(ts, n);
-  if (!nom) return false;
-  if (VERBE.test(nom)) return true;
   const [flux] = n.arguments;
-  return VERBE_DE_JET.test(nom) && !!flux && ts.isStringLiteral(flux) && FLUX_DE_CASCADE.test(flux.text);
+  return !!nom && VERBE_DE_JET.test(nom) && !!flux && ts.isStringLiteral(flux) && FLUX_DE_CASCADE.test(flux.text);
 };
 
 /** Les noms locaux qui désignent `cascade.testkit` ou l'un de ses exports : liens nommés, défaut, espace de noms. */

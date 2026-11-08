@@ -143,7 +143,7 @@
       "when": "manual",
       "label": "Regagner la Chance maintenant",
       "icon": "resource/fortune",
-      "run": "restoreFortuneNow"
+      "run": "restaurerLaFortune"
     }
   },
   {
@@ -725,7 +725,7 @@
     "type": "reglesOptionnelles",
     "label": "Assister une Entreprise coûte un créneau (maison)",
     "ref": "LDB 12 l.189 / ADE II 8 l.81",
-    "maison": "#257 — LDB 23 l.5 / ADE II 8 l.65 bornent le budget par « participer à une Activité » ; le Soutien (LDB 12 l.187-200) et Planification (ADE II 8 l.81) ne chiffrent aucun coût d’Activité pour l’assistant. Défaut `false` : `jetConfirm('activity')` ne décompte que le meneur.",
+    "maison": "#257 — LDB 23 l.5 / ADE II 8 l.65 bornent le budget par « participer à une Activité » ; le Soutien (LDB 12 l.187-200) et Planification (ADE II 8 l.81) ne chiffrent aucun coût d’Activité pour l’assistant. Défaut `false` : `jetValider('activity')` ne décompte que le meneur.",
     "group": "Activités",
     "kind": "flag",
     "default": false,
@@ -1308,14 +1308,28 @@
     "type": "reglesOptionnelles",
     "label": "Abordage — nombre d’assaillants qui montent à bord",
     "ref": "MDG 15 l.150/171",
-    "maison": "MDG 15 l.150/171 décrit l’assaut sans chiffrer la VAGUE qui monte à bord (la coque ennemie entière est l’effectif du navire, jamais l’effectif du pont) : nombre maison.",
+    "maison": "MDG 15 l.150/171 chiffre l’équipage du navire hostile sans chiffrer la VAGUE qui monte à bord : nombre maison (consigne utilisateur du 2026-11-07 : « N attends pas les arbitrages, met ce qui te semble juste »).",
     "group": "Voyage",
     "kind": "param",
     "default": 5,
     "min": 1,
     "max": 12,
     "step": 1,
-    "hint": "Un abordage (MDG 14/15) dérivé d’un événement de navire hostile engendre une vague d’assaillants de CE nombre (individus de l’équipage type de la coque), plus le chef éventuel — la coque ennemie entière (25/45 marins) est l’effectif du navire, jamais autant de figurants sur le pont. Le RAW décrit l’assaut sans chiffrer la vague → paramètre maison, éditable."
+    "hint": "Un abordage (MDG 14/15) par un navire hostile (op `navireHostile`) met en jeu tout son équipage RAW (25 marins de la Cogue, 45 du Langskip, chef compris) : CE nombre de marins monte à bord avec le chef, puis une nouvelle vague de CE nombre monte chaque fois que le pont est dégagé, jusqu’à épuiser la réserve. Le RAW décrit l’assaut sans chiffrer la vague → paramètre maison, éditable."
+  },
+  {
+    "id": "cibleVulnerablePct",
+    "type": "reglesOptionnelles",
+    "label": "Navire hostile — seuil de cible vulnérable (% de notre effectif)",
+    "ref": "MDG 15 l.150/171",
+    "maison": "MDG 15 l.150/171 : le navire hostile n’attaque que s’il juge sa cible vulnérable, sans chiffrer ce jugement : comparaison maison de l’effectif et des grands canons (consigne utilisateur du 2026-11-07 : « N attends pas les arbitrages, met ce qui te semble juste »).",
+    "group": "Voyage",
+    "kind": "param",
+    "default": 100,
+    "min": 10,
+    "max": 300,
+    "step": 10,
+    "hint": "Un navire hostile (op `navireHostile`) juge notre navire vulnérable si son équipage atteint CE pourcentage de nos âmes à bord, ou s’il porte plus de grands canons que nous. Sinon il passe son chemin. 100 % : il attaque dès qu’il est au moins aussi nombreux. Valeur maison, éditable."
   },
   {
     "id": "sea-overspeed-tests-per-day",

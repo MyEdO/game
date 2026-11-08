@@ -14,14 +14,8 @@ import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Prose } from '../Prose';
 import { CODEX, combatantSections, type CodexRow, type CodexSection } from '../../noyau/codex/registry';
-import { CHEMINS_ADRESSES } from '../liage';
-import { adressesDesEntreesEmbarquees } from '../../data/schemas/grammaire/document';
-import { projetSchema } from '../../data/schemas/defs-scenes/projet';
 import { porteurDeRangee } from '../../noyau/codex/porteur'; // la SEULE composition rangée+entrée — celle du rendu
 import { pregen, PREGEN } from '../../data/pregens';
-import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
-import { cheminsProseNommee } from '../../../scripts/guards/lib/proseNommee.mjs';
-import { detenteur } from '../../lib/detenteur.testkit';
 
 interface Rangee {
   cat: string;
@@ -94,44 +88,5 @@ describe('liens du catalogue — une rangée SANS porteur ne lie RIEN (#1392 §1
     const totalPortees = RANGEES.filter((r) => r.porteur).length;
     console.log([`TOTAL rangées t:'text' = ${totalRangees} · portées = ${totalPortees} · liens rendus = ${totalLiens}`, ...lignes].join('\n'));
     expect(totalRangees).toBeGreaterThan(0);
-  });
-});
-
-describe('câblage `CHEMINS_ADRESSES` ⇄ porteurs réellement émis (#1392 §10)', () => {
-  /** Un chemin émis, ramené à sa forme DÉCLARÉE : les index et les clés variables sont génériques. */
-  const forme = (chemin: string): string => chemin.replace(/\[\d+\]/g, '[]').replace(/bySpecies\.[^.]+$/, 'bySpecies.<espèce>');
-  const emis = new Set(RANGEES.filter((r) => r.porteur).map((r) => `${r.porteur!.type}|${forme(r.porteur!.chemin)}`));
-
-  it('tout porteur émis par le registre est DANS la liste fermée', () => {
-    const declares = new Set(CHEMINS_ADRESSES.map((c) => `${c.type}|${c.chemin}`));
-    const generiques = new Set(CHEMINS_ADRESSES.filter((c) => c.type === '*').map((c) => c.chemin));
-    const hors = [...emis].filter((e) => {
-      const [, chemin] = e.split('|');
-      return !declares.has(e) && !generiques.has(chemin);
-    }).sort();
-    expect(hors).toEqual([]);
-  });
-
-  /* CÂBLAGE des chemins de PROJET : l'inventaire (`CHAMPS_PROSE_DE_SCENE`) ne vaut que si CHAQUE
-   * chemin a son SITE DE DÉCLARATION dans les defs de scène ou la grammaire qu'elles composent.
-   * Recopier le triplet attendu ici ne prouverait que la recopie ; on le confronte donc au CODE RÉEL
-   * (corpus partagé). */
-  const DEFS_SCENES = detenteur(() => readCorpus(['src/data/schemas/defs-scenes', 'src/data/schemas/grammaire']));
-  const DECLARES = detenteur(
-    () => new Set(cheminsProseNommee(DEFS_SCENES())),
-  );
-
-  it('chaque chemin de PROJET est composé par `proseNommee()` dans une def de scène, hors enveloppes des entrées embarquées', () => {
-    const embarquees = adressesDesEntreesEmbarquees([projetSchema]);
-    expect(embarquees.length, 'la projection des entrées embarquées est vide').toBeGreaterThan(0);
-    const projets = CHEMINS_ADRESSES.filter((c) => c.type === 'projet').map((c) => c.chemin);
-    expect(projets.some((c) => DECLARES().has(c))).toBe(true);
-    const enveloppes = embarquees.flatMap((a) => CHEMINS_ADRESSES.filter((x) => x.type === '*').map((x) => `${a}.${x.chemin}`));
-    expect(projets.filter((c) => !DECLARES().has(c)).sort()).toEqual(enveloppes.sort());
-  });
-
-  it('aucune def de scène ne déclare un chemin HORS inventaire', () => {
-    const projets = new Set(CHEMINS_ADRESSES.filter((c) => c.type === 'projet').map((c) => c.chemin));
-    expect([...DECLARES()].filter((c) => !projets.has(c)).sort()).toEqual([]);
   });
 });

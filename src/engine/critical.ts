@@ -127,7 +127,7 @@ export interface CriticalResolved {
   /** Le(s) Test(s) que la Blessure impose, à OUVRIR PAR LA PORTE canonique — le nœud `test` de la
    *  rangée (LDB 18 / AA 07) et ceux qu'un déclencheur de séquelle fait feu (`Trauma.critTrigger`,
    *  LDB 18 l.74), enjeu posé. Un nœud `test` EST déjà un `Flow` ; plusieurs voyagent en `seq`, joué
-   *  en séquence par l'exécuteur. L'appelant `state` l'ouvre (`routeTriggeredTest`), le moteur ne le
+   *  en séquence par l'exécuteur. L'appelant (`noyau`) l'ouvre (`routeTriggeredTest`), le moteur ne le
    *  roule jamais — patron `MiscastResult.testFlow` (`miscast.ts`). */
   testFlow?: Flow;
   lethal: boolean;
@@ -449,7 +449,7 @@ export function lancerDuTableau(rng: RNG, twice: boolean): number {
 
 /**
  * Résout une Blessure critique sur `target` à la `location`, dans le `jeu` donné. Le nœud `test` de
- * l'entrée n'est PAS joué ici : il ressort en `testFlow`, enjeu posé, et l'appelant `state` l'ouvre
+ * l'entrée n'est PAS joué ici : il ressort en `testFlow`, enjeu posé, et l'appelant (`noyau`) l'ouvre
  * par la porte canonique (`user-doctrine-forme-canonique-unique-jets`).
  * La Localisation n'est JAMAIS re-tirée ici (LDB 18 l.53 / AA 07 l.32) — l'appelant la fournit.
  */

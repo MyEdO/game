@@ -6,7 +6,9 @@
  * Énumération : chaque schéma DISTINCT, sous le nom de son DOCUMENT (`nomDuDocument`), chaque nœud à son plus court
  * chemin de schéma (`cheminsDeSchema`). Sont des sites les nœuds
  * objets et les nœuds non validants (`unknown`, `any`, `custom`) ; ne le sont pas la racine, l'entrée d'un
- * document `entite` et les objets d'enveloppe (`CLES_ENVELOPPE`) qu'y pose `document()`.
+ * document `entite`, la rangée d'un document `config` à rangées (mono-table : la ligne d'un tableau racine sous une
+ * autre enveloppe, #3012) et les objets d'enveloppe (`CLES_ENVELOPPE`) qu'y pose `document()`. Les sous-objets
+ * d'une rangée restent des sites.
  *
  * Classes, jugées dans cet ordre (`classeDuNoeud`) :
  *   D5  nœud non validant ;
@@ -28,7 +30,9 @@
  * enveloppes, côtés d'un pipe —, puis, de proche en proche, les enfants de même segment de nœuds conjoints
  * (intersection implicite). Un point est UN site, de la classe la plus lourde de ses nœuds objets ou non validants
  * (`D5` > `L` > `G1` > `G`), d'empreinte les champs fusionnés de ses objets. Le reste (`.*`) d'un objet conjoint
- * n'est pas un site quand son point est déjà `D5` ou qu'un autre objet y ferme le reste (`catchall` `never`).
+ * n'est pas un site quand son point est déjà `D5`, qu'un autre objet y ferme le reste (`catchall` `never`), ou que son
+ * point est `G` : le reste d'un nœud PARTAGÉ de la grammaire est la dette de la grammaire, pas du document qui le
+ * compose (`gameOp`, porte `DETTE_OPS`, #1468).
  *
  * L'EMPREINTE d'un site (ses clés déclarées et le type zod de chaque enfant) vit dans la mesure, hors du
  * stock : la porte des comptes (`occurrencesStock.mjs`, `renommagesDeStructure`) apparie par elle un site
@@ -49,6 +53,7 @@ import { declarationDEnfants, defDe, descendre, enfantsDe, ouverts, valeursAdmis
 import { CLES_ENVELOPPE } from '../../../src/data/schemas/grammaire/document';
 import { famillesConstruites, OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
 import { classeDeProduit } from '../../../src/data/schemas/grammaire/produits';
+import { estDocumentARangees } from './documentARangees.mts';
 import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { listerEntrees, parUnitesDeCode } from './lister.mjs';
@@ -253,10 +258,17 @@ const EXPORTS_DE_GRAMMAIRE: readonly unknown[] = (await Promise.all(
 /** Le chemin de schéma où `document()` pose l'enveloppe : l'entrée d'un document `entite`, sinon la racine. */
 const cheminDEnveloppe = (famille: SchemaDef['famille']): string => (famille === 'entite' ? '[]' : '');
 
-/** La position d'un chemin qui n'est pas un site : racine, entrée d'un document `entite`, objet d'enveloppe. */
-function horsSite(path: string, famille: SchemaDef['famille']): boolean {
+/** Le chemin de schéma des RANGÉES d'un document `config` à rangées (`options.rangee`, corps `corps.rangees` de
+ *  `document()`), `null` pour tout autre schéma : la rangée d'un document mono-table est son ENTRÉE, comme la ligne
+ *  d'un tableau racine (#3012). PURE. */
+const cheminDesRangees = (schema: unknown, famille: SchemaDef['famille']): string | null =>
+  estDocumentARangees(schema, famille) ? '.entries[]' : null;
+
+/** La position d'un chemin qui n'est pas un site : racine, entrée d'un document `entite`, rangée d'un document
+ *  mono-table (`cheminDesRangees`), objet d'enveloppe. */
+function horsSite(path: string, famille: SchemaDef['famille'], rangees: string | null): boolean {
   const entree = cheminDEnveloppe(famille);
-  if (path === '' || path === entree) return true;
+  if (path === '' || path === entree || path === rangees) return true;
   const m = /^\.([A-Za-z]+)(\[\])?$/.exec(path.slice(entree.length));
   return path.startsWith(entree) && m !== null && (CLES_ENVELOPPE as readonly string[]).includes(m[1]);
 }
@@ -283,7 +295,7 @@ function nomDuDocument(documents: readonly SchemaDef[], chemins: ReadonlyMap<obj
 
 /** Un schéma DISTINCT des `defs` : le nom de son document (`nomDuDocument`), sa famille et le plus court chemin de chacun
  *  de ses nœuds (`cheminsDeSchema`). */
-type SchemaNomme = { readonly fichier: string; readonly schema: unknown; readonly famille: SchemaDef['famille']; readonly chemins: Map<object, Chemin> };
+type SchemaNomme = { readonly fichier: string; readonly schema: unknown; readonly famille: SchemaDef['famille']; readonly rangees: string | null; readonly chemins: Map<object, Chemin> };
 
 /** Les schémas DISTINCTS des `defs`, chacun sous le nom de son document. PURE sur les defs. Lève sur deux schémas d'un
  *  même nom. */
@@ -297,7 +309,7 @@ function schemasNommes(defs: readonly SchemaDef[]): SchemaNomme[] {
     const homonyme = noms.get(fichier);
     if (homonyme) throw new Error(`structures locales : ${fichier} nomme deux schémas (${[...homonyme, ...documents].map((x) => x.file).join(', ')})`);
     noms.set(fichier, documents);
-    return { fichier, schema, famille: documents[0].famille, chemins };
+    return { fichier, schema, famille: documents[0].famille, rangees: cheminDesRangees(schema, documents[0].famille), chemins };
   });
 }
 
@@ -327,31 +339,34 @@ export function noeudsDeStructure(defs: readonly SchemaDef[] = [...SCHEMA_DEFS, 
       : (composeurs.get(n)?.size ?? 0) >= 2 || payloads.has(n);
     return partage ? 'G' : 'G1';
   };
+  /** La classe d'un point : la plus lourde de ses nœuds (`POIDS`). */
+  const classeDuPoint = (noeuds: readonly object[]): ClasseDeStructure => noeuds.map(classe).reduce((a, b) => (POIDS[b] > POIDS[a] ? b : a));
   const estDeSite = (n: object): boolean => defDe(n)!.type === 'object' || NON_VALIDANTS.has(defDe(n)!.type);
   const out: NoeudDeStructure[] = [];
-  for (const { fichier, famille, chemins } of nommes) {
+  for (const { fichier, famille, rangees, chemins } of nommes) {
     const point = pointsConjoints(chemins);
     const membres = new Map<object, object[]>();
-    const parentDuReste = new Map<object, object>();
+    /** Les objets dont chaque nœud est le reste : une fabrique en partage un entre ses produits. */
+    const parentsDuReste = new Map<object, object[]>();
     for (const n of chemins.keys()) {
       if (estDeSite(n)) membres.set(point(n), [...(membres.get(point(n)) ?? []), n]);
-      for (const e of enfantsDe(n)) if (e.segment === '.*' && estNoeud(e.noeud)) parentDuReste.set(e.noeud, n);
+      for (const e of enfantsDe(n)) if (e.segment === '.*' && estNoeud(e.noeud)) parentsDuReste.set(e.noeud, [...(parentsDuReste.get(e.noeud) ?? []), n]);
     }
-    /** Le point est-il D5, ou un de ses objets ferme-t-il le reste (`catchall` `never`) ? */
+    /** Le point est-il D5 ou G, ou un de ses objets ferme-t-il le reste (`catchall` `never`) ? */
     const resteJuge = (p: readonly object[]): boolean =>
-      p.some((m) => NON_VALIDANTS.has(defDe(m)!.type) || defDe(enfantsDe(m).find((e) => e.segment === '.*')?.noeud)?.type === 'never');
+      ['D5', 'G'].includes(classeDuPoint(p)) || p.some((m) => defDe(enfantsDe(m).find((e) => e.segment === '.*')?.noeud)?.type === 'never');
     const parCle = new Map<string, object>();
     for (const [r, noeuds] of membres) {
       const { path } = chemins.get(noeuds[0])!;
-      if (horsSite(path, famille)) continue;
-      const porteur = noeuds.map((n) => parentDuReste.get(n)).find((p) => p !== undefined && `${chemins.get(p)?.path}.*` === path);
+      if (horsSite(path, famille, rangees)) continue;
+      const porteur = noeuds.flatMap((n) => parentsDuReste.get(n) ?? []).find((p) => `${chemins.get(p)?.path}.*` === path);
       if (porteur !== undefined && resteJuge(membres.get(point(porteur)) ?? [])) continue;
       const deja = parCle.get(path);
       if (deja !== undefined && deja !== r) throw new Error(`structures locales : deux nœuds à la même clé ${fichier} :: ${path}`);
       parCle.set(path, r);
       out.push(noeuds.length === 1
         ? { fichier, ref: path, noeud: noeuds[0], classe: classe(noeuds[0]), empreinte: empreinteDeSite(noeuds[0]) }
-        : { fichier, ref: path, noeud: noeuds[0], classe: noeuds.map(classe).reduce((a, b) => (POIDS[b] > POIDS[a] ? b : a)), empreinte: empreinteConjointe(noeuds) });
+        : { fichier, ref: path, noeud: noeuds[0], classe: classeDuPoint(noeuds), empreinte: empreinteConjointe(noeuds) });
     }
   }
   return out.sort((a, b) => parUnitesDeCode(a.fichier, b.fichier) || parUnitesDeCode(a.ref, b.ref));

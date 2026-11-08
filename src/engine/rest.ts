@@ -20,7 +20,7 @@
  * #T3 (cascade d'horloge) : la PROGRESSION des maladies (LDB 20 — incubation/durée en jours
  * CALENDAIRES) et la CONVALESCENCE des traumas (LDB 18 l.222 — « un nombre de jours égal à 30 – votre Bonus d'Endurance »)
  * ne dépendent PAS du sommeil : elles sont décomptées par l'entretien quotidien (`noyau/upkeep.ts`,
- * sur franchissement de jour, quel que soit le chemin — advanceTime, repos, voyage). `restRecovery`
+ * sur franchissement de jour, quel que soit le chemin — avancerLeTemps, repos, voyage). `restRecovery`
  * ne garde que ce qui dépend du SOMMEIL. `dailyDiseaseUpkeep` (ci-dessous) reste dans ce module
  * (pur) car il réconcilie les États DÉRIVÉS des passifs de maladie (`syncDerivedConditions`), ce qui
  * importe `conditions` — interdit dans `disease.ts` (cycle d'import via characteristics).
@@ -227,8 +227,9 @@ export function restRecovery(c: Combatant, rng: RNG, days = 1, collect?: RestRol
     // volet a (LDB 18 l.296) : Test de Résistance Accessible (+20) — lancé seulement si utile (PB < max, non affamé).
     let roll: { sl: number; success: boolean } | null = null;
     if (needsRecoveryRoll(c)) {
-      const res = rollTest(testValue(c, 'resistance'), 'accessible', rng);
-      collect?.push({ kind: 'recovery', base: testValue(c, 'resistance'), target: res.target, roll: res.roll, sl: res.sl, success: res.success });
+      const base = testValue(c, { skill: { id: 'resistance' } });
+      const res = rollTest(base, 'accessible', rng);
+      collect?.push({ kind: 'recovery', base, target: res.target, roll: res.roll, sl: res.sl, success: res.success });
       roll = { sl: res.sl, success: res.success };
     }
     // Conséquence du jour (dissipation + soin volets a/b + plafond blessé + réveil) — logique PARTAGÉE.
@@ -237,7 +238,7 @@ export function restRecovery(c: Combatant, rng: RNG, days = 1, collect?: RestRol
     if (c.nightmares) {
       const before = stacks(c, 'extenue');
       const out: { base: number; result: import('./tests').TestResult }[] = [];
-      nightmareCheck(c, testValue(c, 'calme'), rng, out); // LDB 21 l.95 — Test de Calme, valeur de la porte
+      nightmareCheck(c, testValue(c, { skill: { id: 'calme' } }), rng, out); // LDB 21 l.95 — Test de Calme, valeur de la porte
       for (const o of out) collect?.push({ kind: 'nightmare', base: o.base, target: o.result.target, roll: o.result.roll, sl: o.result.sl, success: o.result.success });
       if (stacks(c, 'extenue') > before) nightmareNights++;
     }

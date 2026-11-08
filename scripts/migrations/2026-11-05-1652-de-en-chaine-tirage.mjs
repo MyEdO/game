@@ -6,7 +6,9 @@
  *   effet signé      `"+2d10"` / `"-3d10"` (crew-morale)        → `{ "sign": ±1, "dice": { n, sides } }`
  *   effet de Manann  `{ sign, flat, d10 }` (sea-events)         → `{ "sign": ±1, "dice": { n: d10, sides: 10, plus?: flat } }`
  *
- * La clé `die` d'une table (dé de tirage de l'enveloppe) n'est pas une valeur tirée : jamais touchée.
+ * La clé `die` d'une table (dé de tirage de l'enveloppe) n'est pas une valeur tirée : jamais touchée ; l'enjeu
+ * `stake` d'un Test de `consequence` non plus (`values` = texte de gabarit, forme que pose
+ * `2026-11-07-1652-moral-manann.mjs`, reconnue au rejeu).
  * Lecteurs : `tirer` / `tirerSigne` (`src/engine/dice.ts`), schémas `tirageSchema` / `effetSigneSchema`
  * (`src/data/schemas/grammaire/valeurs.ts`).
  *
@@ -14,10 +16,10 @@
  * src/data/river-navigation.json, src/data/river-perils.json, src/data/sea-events.json,
  * src/data/sea-navigation.json, src/data/ship-criticals.json, src/data/steam-breakdown.json.
  *
- * CARDINAL ASSERTÉ SUR LE RÉSULTAT, par document : aucun dé en chaîne hors `die`, et le RECENSEMENT des
- * tirages (`{dice:{n,sides…}}`) et effets signés (`{sign, dice}`) vaut exactement `ATTENDU` — vrai sur
- * l'arbre d'avant comme au rejeu (no-op byte-identique). Tout écart, toute chaîne hors du patron ou tout
- * document non canonique est un ARRÊT nominatif (exit 1), AUCUNE écriture.
+ * PORTE SUR LE RÉSULTAT, par document : aucun dé en chaîne hors `die` — vrai sur l'arbre d'avant comme au
+ * rejeu (no-op byte-identique). Aucun cardinal gelé : les tables sont éditables et une migration suivante
+ * peut y ajouter des tirages ou des effets signés (#1812). Toute chaîne hors du patron ou tout document non
+ * canonique est un ARRÊT nominatif (exit 1), AUCUNE écriture.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -25,18 +27,18 @@ import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
-/** Recensement attendu sur le résultat : [tirages, effets signés] par document. */
-const ATTENDU = {
-  'arcane-phenomena.json': [1, 0],
-  'crew-morale.json': [0, 28],
-  'problemes-vehicule.json': [3, 0],
-  'river-navigation.json': [1, 0],
-  'river-perils.json': [4, 0],
-  'sea-events.json': [38, 26],
-  'sea-navigation.json': [4, 0],
-  'ship-criticals.json': [4, 0], // dont 3 écrits en `DiceSpec` (`tablesDeChute[].hauteurs.greement`)
-  'steam-breakdown.json': [3, 0],
-};
+/** Documents porteurs de dés authorés. */
+const DOCUMENTS = [
+  'arcane-phenomena.json',
+  'crew-morale.json',
+  'problemes-vehicule.json',
+  'river-navigation.json',
+  'river-perils.json',
+  'sea-events.json',
+  'sea-navigation.json',
+  'ship-criticals.json',
+  'steam-breakdown.json',
+];
 
 /** Graphie en chaîne : signe ?, constante + ?, NdM, ±constante ? (espaces tolérés). */
 const CHAINE = /^([+-])?(?:(\d+)\+)?(\d*)d(\d+)([+-]\d+)?$/i;
@@ -59,7 +61,7 @@ function migrer(noeud, chemin, fichier) {
 }
 
 function migrerValeur(v, cle, chemin, fichier) {
-  if (cle === 'die') return v;
+  if (cle === 'die' || cle === 'stake') return v;
   if (fichier === 'sea-events.json' && cle === 'effect' && v && typeof v === 'object' && 'd10' in v) {
     const { sign, flat, d10 } = v;
     return { sign, dice: { n: d10, sides: 10, ...(flat ? { plus: flat } : {}) } };
@@ -75,30 +77,27 @@ function migrerValeur(v, cle, chemin, fichier) {
   return cle === 'dice' ? lu.de : { dice: lu.de };
 }
 
-const estDe = (d) => d != null && typeof d === 'object' && typeof d.n === 'number' && typeof d.sides === 'number';
-
-/** [tirages, effets signés, dés en chaîne restants] du document. */
-function recenser(noeud, acc = [0, 0, []], chemin = '') {
+/** Dés en chaîne restants du document, par chemin. */
+function recenser(noeud, acc = [], chemin = '') {
   if (Array.isArray(noeud)) { noeud.forEach((v, i) => recenser(v, acc, `${chemin}[${i}]`)); return acc; }
   if (!noeud || typeof noeud !== 'object') return acc;
-  if (estDe(noeud.dice)) acc[typeof noeud.sign === 'number' ? 1 : 0]++;
   for (const [k, v] of Object.entries(noeud)) {
-    if (k !== 'die' && estChaineDeDe(v)) acc[2].push(`${chemin}.${k}`);
+    if (k === 'die' || k === 'stake') continue;
+    if (estChaineDeDe(v)) acc.push(`${chemin}.${k}`);
     else recenser(v, acc, `${chemin}.${k}`);
   }
   return acc;
 }
 
 const ecritures = [];
-for (const [fichier, [tirages, signes]] of Object.entries(ATTENDU)) {
+for (const fichier of DOCUMENTS) {
   const chemin = `${ROOT}src/data/${fichier}`;
   const brut = readFileSync(chemin, 'utf8');
   const doc = JSON.parse(brut);
   if (brut !== serializeDataset(doc)) { arrets.push(`${fichier} : forme non canonique`); continue; }
   migrer(doc, '', fichier);
-  const [t, s, restants] = recenser(doc);
+  const restants = recenser(doc);
   if (restants.length) arrets.push(`${fichier} : dé(s) en chaîne restant(s) — ${restants.join(', ')}`);
-  if (t !== tirages || s !== signes) arrets.push(`${fichier} : ${t} tirage(s) et ${s} effet(s) signé(s), attendu ${tirages} et ${signes}`);
   const out = serializeDataset(doc);
   if (out !== brut) ecritures.push([chemin, fichier, out]);
 }

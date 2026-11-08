@@ -62,6 +62,24 @@ export const META_CHARGE: Readonly<Record<CleCharge, MetaChamp>> = {
   die: { label: 'Dé de tirage', hint: 'Expression du dé lancé pour tirer une rangée (ex. « 1d10 », « d100 »)' },
 };
 
+/**
+ * TABLE TIRÉE nichée dans un document : la charge d'un document à rangées tiré au dé
+ * (`options.rangee` + `options.deDeTirage`), posée sous un champ — son dé `die` (`deDeTirageSchema`) et
+ * ses rangées `entries` (au moins une), nommés par `META_CHARGE`. L'`enveloppe` apporte les champs propres à la table
+ * (`weather.json › seasons[]` : `id`, `label`, `source`), chacun avec sa méta.
+ */
+export function tableTiree<R extends z.ZodType, E extends z.ZodRawShape = Record<never, never>>(rangee: R, enveloppe?: { champs: E; meta: MetaDesChamps<E> }) {
+  const champs = enveloppe?.champs ?? ({} as E);
+  const meta = { ...enveloppe?.meta, ...META_CHARGE } as MetaDesChamps<E & Record<CleCharge, z.ZodType>>;
+  return marquerProduit(nommerChamps(z.strictObject({ ...champs, die: deDeTirageSchema, entries: rangeesDeCharge(z.array(rangee).min(1)) }), meta), 'tableTiree', 'table', champs);
+}
+
+/** Les RANGÉES d'une charge (`entries`), collection à clé `id` quand la rangée en déclare un, sous l'`espace` de
+ *  noms que le document leur ouvre. */
+function rangeesDeCharge<R extends z.ZodType>(rangees: z.ZodArray<R>, espace?: EspaceDeNoms): z.ZodArray<R> {
+  return pasDeDonnee(ouverts([rangees.element]), 'id').length ? marquerCollection(rangees, marqueDeListe<{ id: string }>('id', espace)) : rangees;
+}
+
 /** Clés d'enveloppe qu'un document ne peut pas EXIGER : `id`/`type`/`label` sont déjà requises,
  *  `variants` n'est pas un champ simple (la fabrique le compose depuis `options.variantes`), et
  *  `descRef` n'est pas un porteur exigible — l'exigence de PROSE se dit `exiges: ['desc']` et
@@ -231,7 +249,9 @@ export interface OptionsDocument {
   readonly affinerDataset?: (dataset: z.ZodType<unknown>) => z.ZodType<unknown>;
   /**
    * Paramètres de l'ESPACE DE NOMS de racine (`discriminant`, `marqueurs` : `EspaceDeNoms`,
-   * `grammaire/collection-cle.ts`) — refusés hors des familles `entite`/`record`, qui seules en ouvrent un.
+   * `grammaire/collection-cle.ts`) — ouvert par les familles `entite`/`record`, et par un document
+   * `config` à rangées sur ses `entries` (`<fichier>#entries`) : ses rangées portent un id qu'une
+   * référence désigne, et leur charge par discriminant y est bornée au parse de chaque rangée.
    */
   readonly espace?: EspaceDeNoms;
 }
@@ -480,8 +500,11 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
       `document('${type}') : \`rangee\` et la famille « record » sont EXCLUSIVES — un record porte sa charge par CLÉ (\`valeurRecord\`), une liste ordonnée de rangées est un autre document.`,
     );
   }
-  if (famille === 'config' && options.espace) {
-    throw new Error(`document('${type}') : \`espace\` n'a de sens que pour les familles « entite » et « record » (ici « config ») — un document de réglage n'ouvre aucun espace de noms de racine.`);
+  if (famille === 'config' && options.espace && !rangee) {
+    throw new Error(`document('${type}') : \`espace\` n'a de sens que pour les familles « entite » et « record », ou pour les rangées d'un document « config » (ici sans \`rangee\`) — un document de réglage n'ouvre aucun espace de noms de racine.`);
+  }
+  if (famille === 'config' && espace.marqueurs) {
+    throw new Error(`document('${type}') : l'espace des rangées d'un document « config » n'a pas de \`marqueurs\`.`);
   }
   if (deDeTirage && !rangee) {
     throw new Error(`document('${type}') : \`deDeTirage\` exige \`rangee\` — un dé de tirage tire une RANGÉE.`);
@@ -490,6 +513,14 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   const clesCharge: readonly CleCharge[] = famille === 'record' ? ['entries'] : rangee ? ['entries', 'die'] : [];
   /** Celles que la fabrique pose RÉELLEMENT sur l'entrée — et dont elle publie la méta FR. */
   const clesPosees = clesCharge.filter((k) => k !== 'die' || deDeTirage);
+  // L'ESPACE DE NOMS est celui de la liste du document (`entite`), de sa carte (`record`), ou celui de
+  // ses RANGÉES (`config`), dont la charge par discriminant se borne alors au parse de chaque rangée.
+  const espaceDesRangees = famille === 'config' ? options.espace : undefined;
+  const espaceDuDocument = famille === 'config' ? {} : espace;
+  const refusDeRangee = espaceDesRangees && rangee && refusDeCharge(type, espaceDesRangees, rangee instanceof z.ZodObject ? Object.keys(rangee.shape) : []);
+  const rangeeChargee = rangee && refusDeRangee
+    ? nommerChamps((rangee as z.ZodObject<z.ZodRawShape>).superRefine((v, ctx) => refusDeRangee(v as Record<string, unknown>, ctx)), metaDesChamps(rangee) ?? {})
+    : rangee;
   const cles = Object.keys(champs);
   for (const k of cles) {
     if ((clesCharge as readonly string[]).includes(k)) {
@@ -539,7 +570,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
         ? marquerProduit(z.strictObject({
             ...complet.shape,
             ...(deDeTirage ? { die: deDeTirageSchema } : {}),
-            entries: pasDeDonnee(ouverts([rangee]), 'id').length ? marquerCollection(z.array(rangee), marqueDeListe<{ id: string }>('id')) : z.array(rangee),
+            entries: rangeesDeCharge(z.array(rangeeChargee!), espaceDesRangees),
           }) as z.ZodObject<z.ZodRawShape>, 'document', 'corps.rangees', champsDuDef)
         : complet;
   const noms = { ...nomsEntree, ...tableTotale(clesPosees, k => META_CHARGE[k]), ...(declarees.length ? { variants: { label: LIBELLES_ENVELOPPE.variants } } : {}) };
@@ -551,7 +582,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   const clesEntree: readonly string[] = Object.keys(corps.shape);
   // Un MARQUEUR d'espace est un champ de l'entrée : un nom hors de ses clés ouvrirait une sous-liste
   // qu'aucune donnée ne saurait jamais remplir (`gen-espaces` admet une sous-liste marquée VIDE).
-  for (const marqueur of espace.marqueurs ?? [])
+  for (const marqueur of espaceDuDocument.marqueurs ?? [])
     if (!clesEntree.includes(marqueur))
       throw new Error(`document('${type}') : le marqueur d’espace « ${marqueur} » n’est aucun champ de l’entrée.`);
   // PROVENANCE : `source` OU `maison`, jamais NI L'UN NI L'AUTRE. Une entrée sans folio n'est pas
@@ -575,7 +606,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   // au même stade que la provenance et la prose. Un record porte sa charge par CLÉ, jamais par cas.
   if (famille === 'record' && espace.chargeParDiscriminant)
     throw new Error(`document('${type}') : \`chargeParDiscriminant\` partitionne les ENTRÉES d’une liste — un record porte sa charge par clé.`);
-  const refusCharge = refusDeCharge(type, espace, clesEntree);
+  const refusCharge = refusDeCharge(type, espaceDuDocument, clesEntree);
   const avecCharge = refusCharge
     ? (avecProse.superRefine((v, ctx) => refusCharge(v as Record<string, unknown>, ctx)) as z.ZodObject<z.ZodRawShape>)
     : avecProse;

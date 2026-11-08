@@ -59,7 +59,7 @@ const ATTENDU_NORD: Record<Dir8, { dx: number; dy: number; facing: Dir8; approch
  * `Scene.metresPerTile` (cf. `noyau/monde/echelle-de-scene.test.ts`) : le corps assis reste donc à la
  * MÊME distance MÉTRIQUE du meuble quelle que soit la finesse de la grille — c'est l'invariant, et
  * c'est le siège lui-même qui bouge de case quand l'échelle change, jamais la géométrie du meuble.
- * Même patron que `gameIso/builders/propVolumes.test.ts` pour la géométrie.
+ * Même patron que `noyau/monde/volume/propVolumes.test.ts` pour la géométrie.
  */
 describe('seatSlotsOf — l’ÉCHELLE de la scène ne déplace pas le corps assis, en mètres', () => {
   const ecartMetrique = (mpt: number) => {

@@ -10,6 +10,7 @@ import { rollMiscast } from './miscast';
 import { applyOps, type GameOp } from './ops';
 import {
   castingValue, castBlockedBy, prayerMaxZeroDR, evaluateCasting, castPenaltyMod,
+  incantationArcane,
 } from './magic';
 import { endOfRound, removeCondition, hasCondition, isMagicallyAsleep } from './conditions';
 import { outOfCombatUpkeep } from '../noyau/outOfCombatUpkeep';
@@ -35,14 +36,14 @@ function hero(p: Partial<Combatant> = {}): Combatant {
 describe('castPenalty — pénalités/blocages temporisés', () => {
   it('Langue maladroite : −10 aux Tests de Langue pendant N Rounds, dissipé par endOfRound', () => {
     const c = hero();
-    const base = castingValue(c, 'langue', 'magick');
+    const base = castingValue(c, incantationArcane());
     applyOps(c, [{ op: 'castPenalty', skill: { id: 'langue' }, mod: -10, rounds: 2 }], { rng: desDuTest, label: 'Langue maladroite' });
-    expect(castingValue(c, 'langue', 'magick')).toBe(base - 10);
+    expect(castingValue(c, incantationArcane())).toBe(base - 10);
     expect(castPenaltyMod(c, 'priere')).toBe(0); // ne touche pas la Prière
     endOfRound(c, makeRNG(1));
-    expect(castingValue(c, 'langue', 'magick')).toBe(base - 10); // round 1 restant
+    expect(castingValue(c, incantationArcane())).toBe(base - 10); // round 1 restant
     const log = endOfRound(c, makeRNG(1));
-    expect(castingValue(c, 'langue', 'magick')).toBe(base); // expiré
+    expect(castingValue(c, incantationArcane())).toBe(base); // expiré
     expect(log.join('\n')).toMatch(/Langue maladroite se dissipe/);
   });
 
@@ -326,7 +327,7 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
 
   it('retiré (Détermination) alors que la cause court : REGAGNÉ à la fin du Round, 1 pion, cause NOMMÉE (LDB 16 l.117)', () => {
     const { c } = palier(3);
-    removeCondition(c, 'inconscient'); // chemin `battleSpendResolve` : le retrait A LIEU
+    removeCondition(c, 'inconscient'); // chemin `depenserLaDetermination` : le retrait A LIEU
     expect(hasCondition(c, 'inconscient')).toBe(false);
     const log = endOfRound(c, makeRNG(7));
     expect(c.conditions.find((x) => x.id === 'inconscient')?.value, 'un seul pion — l’État ne se cumule pas (LDB 16 l.115)').toBe(1);

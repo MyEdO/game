@@ -20,7 +20,8 @@ import { battleRng } from './battleRng';
 import { nomDuNavire } from './carriers';
 import { garanti } from '../lib/garanti';
 import { checkPartyWiped } from './partyWipe';
-import { placeById, placeOfScene, visiblePlaces, type WorldMap, type MapPlace } from './worldMap';
+import { arriverAuLieu } from './lieuFlow';
+import { lieuDuGroupe, placeById, visiblePlaces, type WorldMap, type MapPlace } from './worldMap';
 import { condCtx } from './bourseFlow';
 import { testValue } from '../engine/skills';
 import { isOutOfAction } from '../engine/conditions';
@@ -34,10 +35,9 @@ import type { CascadeStep } from './pendings';
 import type { Get, Set } from './flowTypes';
 import { voyageStakeRef } from '../data';
 import { traceLineOf } from '../engine/traceLine';
-import { dataLabel, refLabel } from '../data';
+import { refLabel } from '../data';
 import { t } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
-import { stepDetail } from './rollSeam';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Libellé du Test de survie : la Compétence vient de `skills.json` (jamais bakée), sa difficulté de
@@ -59,7 +59,7 @@ function nearestPlaceTo(places: MapPlace[], pos: { x: number; y: number }): MapP
 }
 
 /** Lieu d'échouage : le plus proche de la position estimée sur la traversée (`kmDone/km` interpolé entre
- *  départ et arrivée), sinon le lieu de la scène courante. `undefined` = pas de carte (on reste sur place). */
+ *  départ et arrivée), sinon le lieu où se tient le groupe. `undefined` = pas de carte (on reste sur place). */
 function shorePlace(get: Get): MapPlace | undefined {
   const map = get().worldMap as WorldMap | undefined;
   if (!map) return undefined;
@@ -73,7 +73,7 @@ function shorePlace(get: Get): MapPlace | undefined {
       return nearestPlaceTo(visiblePlaces(map, condCtx(get)), est);
     }
   }
-  return placeOfScene(map, get().scene?.id);
+  return lieuDuGroupe(get());
 }
 
 /**
@@ -132,7 +132,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
   // Navire + cargaison sombrent avec la coque (#244, règle 7) : purgé IMMÉDIATEMENT, indépendant de
   // l'issue des jets de Natation (le navire est perdu dès qu'il coule, pas seulement s'il y a des noyés).
   set({ party, vessel: null, travelPlan: null, travelRecap: null, worldMapOpen: false });
-  get().log([t('wreck.banner'), ...opening]);
+  get().ecrireAuJournal([t('wreck.banner'), ...opening]);
 
   if (!swimmerIds.length) { emitShipwreckLines(get, finishShipwreck(get, set, shore, [], journalMark)); return; }
 
@@ -146,7 +146,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
     for (const h of swimmers) {
       // Aucune rangée nulle part sur ce chemin (repli sans pilote humain, aucune cascade démarrée) —
       // le journal est la SEULE surface, et sa ligne se DÉRIVE (`traceLineOf`) comme toute ligne de dé.
-      const value = testValue(h, 'natation', 'force');
+      const value = testValue(h, { skill: { id: 'natation' }, characteristic: 'force' });
       const tr = rollSansPilote(get, h, value, diff, rng);
       lines.push(traceLineOf({
         who: h.label, label: swimTestLabel(diff), roll: tr.roll, target: tr.target, success: tr.success,
@@ -168,13 +168,13 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
   // n'a rien à router).
   const meta = { shoreId: shore?.id ?? '', journalMark };
   const steps: CascadeStep[] = swimmers.map((h) => {
-    const value = testValue(h, 'natation', 'force');
+    const value = testValue(h, { skill: { id: 'natation' }, characteristic: 'force' });
     const human = humanControlled(get(), h);
     const result = human ? null : (() => { const t = rollSansPilote(get, h, value, diff, rng); return { roll: t.roll, target: t.target, sl: t.sl, success: t.success }; })();
     return {
       id: `shipwreck-${h.id}`, kind: 'shipwreckSwim', actorId: h.id, icon: 'nautical/swim',
-      label: stepDetail(dataLabel(h.label), t('step.natation')), rollLabel: refLabel('skills', { id: 'natation' }), difficulty: diff,
-      ...rollStep({ actor: h, test: { skill: 'natation', char: 'force' }, difficulty: diff }),
+      label: t('step.natation'), rollLabel: refLabel('skills', { id: 'natation' }), difficulty: diff,
+      ...rollStep({ actor: h, test: { skill: { id: 'natation' }, characteristic: 'force' }, difficulty: diff }),
       stake: voyageStakeRef('shipwreckSwim'),
       result,
       meta,
@@ -183,15 +183,15 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
   startCascade(get, set, { title: t('wreck.title'), icon: 'nautical/swim', purpose: 'test', steps });
 }
 
-/** Journalise (réellement, `get().log`) une liste de lignes accumulées AVANT qu'elles n'existent dans
+/** Journalise (réellement, `get().ecrireAuJournal`) une liste de lignes accumulées AVANT qu'elles n'existent dans
  *  le journal (chemin inline/sans-nageur — le pilote CASCADE les fait vivre via le retour d'applier,
  *  poussées par `commitStep`). Petite brique pour ne pas dupliquer la boucle aux deux sites inline. */
 function emitShipwreckLines(get: Get, lines: string[]): void {
-  for (const l of lines) get().log(l);
+  for (const l of lines) get().ecrireAuJournal(l);
 }
 
 /** Clôture commune (inline ET cascade) : rescapés déduits de `swimmerIds` (les vivants parmi eux),
- *  échouage au rivage le plus proche + transition, modale document (texte = la tranche de journal
+ *  échouage au rivage le plus proche (`arriverAuLieu`), modale document (texte = la tranche de journal
  *  DÉJÀ écrite depuis `journalMark`, complétée des lignes renvoyées ICI), puis `checkPartyWiped`.
  *  Renvoie les lignes à journaliser par l'appelant (dans le BON ordre — cascade : via le retour
  *  d'applier ; inline : via `emitShipwreckLines`). */
@@ -205,8 +205,8 @@ function finishShipwreck(get: Get, set: Set, shore: MapPlace | undefined, swimme
     ? t('wreck.survivors', { names: survivors.join(', '), place: shore.label })
     : t('wreck.noSurvivor'));
   // #686
-  if (survivors.length && shore) get().transitionTo(shore.scene, shore.entry);
-  get().remettreDocument({ title: t('wreck.title'), text: [...get().journal.slice(journalMark), ...lines].join('\n\n') });
+  if (survivors.length && shore) arriverAuLieu(set, shore);
+  get().remettreLeDocument({ title: t('wreck.title'), text: [...get().journal.slice(journalMark), ...lines].join('\n\n') });
   // Aucun survivant → défaite hors combat (écran unique `checkPartyWiped`).
   checkPartyWiped(get, set);
   return lines;

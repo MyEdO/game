@@ -17,7 +17,8 @@ import type { BattleState } from '../noyau/etat';
 import type { Combatant, ShipPoste } from '../engine/types';
 import type { WorldMap } from '../noyau/worldMap';
 import { builtinCampaigns, paquetDuJeu } from '../scenes/campaign';
-import { testScenarios, type TestScenario } from '../scenes/test-scenarios';
+import { testScenarios } from '../scenes/test-scenarios';
+import type { TestScenario } from '../scenes/test-scenarios/_shared';
 import { editeur } from './editeurBridge';
 import { signalerEntreeEnScene } from './entreeEnScene';
 import { buildOperaFloorplan } from '../scenes/opera/floorplan';
@@ -82,8 +83,8 @@ describe('__wfrp — setup #1561', () => {
 
   it('trauma instancie la factory et écrit le même acteur dans le groupe et le combat', () => {
     const hero = useGame.getState().party[0];
-    useGame.getState().startScene(testScene());
-    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().lancerLaScene(testScene());
+    useGame.getState().lancerLeCombat('enc-mutants');
     const traumaId = 'dechirure-autre-mineure';
     const opts = { be: 3 };
     const out = buildApi().trauma(hero.id, traumaId, opts, 'brasG');
@@ -105,7 +106,7 @@ describe('__wfrp — setup #1561', () => {
     expect(api.testCompetence(hero.id, { skill: { id: 'calme' }, stake: { authored: 'Setup de recette.' } })).toContain('ouvert');
     const pending = useGame.getState().pendingTest!;
     expect(pending.actorId).toBe(hero.id);
-    expect(pending.skillId).toBe('calme');
+    expect(pending.sujet?.skill?.id).toBe('calme');
     expect(pending.roll).toBeNull();
     expect(() => api.testCompetence(hero.id, { skill: { id: 'calme' }, stake: { authored: 'Setup de recette.' } })).toThrow(/déjà ouvert/);
     useGame.setState({ pendingTest: null });
@@ -192,8 +193,8 @@ describe('__wfrp.killEnemies — commande de recette (élimine les ennemis, vict
   it('en combat : tous les ennemis hors de combat + victoire par le flux normal (pendingVictory)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene());
-    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().lancerLaScene(testScene());
+    useGame.getState().lancerLeCombat('enc-mutants');
     useGame.getState().fenetreValider('roundStart');
     vi.clearAllTimers();
 
@@ -224,7 +225,7 @@ describe('__wfrp — autres commandes de recette', () => {
     vi.clearAllTimers();
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ battle: null, party: [hero] });
-    useGame.getState().startScene(testScene());
+    useGame.getState().lancerLaScene(testScene());
     vi.clearAllTimers();
   });
   afterEach(() => {
@@ -265,7 +266,7 @@ describe('__wfrp — autres commandes de recette', () => {
 
   it('trait (#555) : EN COMBAT, pose le Trait en un appel sur un ennemi puis sur le héros, relu au combattant', () => {
     const hero = useGame.getState().party[0];
-    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().lancerLeCombat('enc-mutants');
     useGame.getState().fenetreValider('roundStart');
     vi.clearAllTimers();
     const relu = (id: string) => useGame.getState().battle!.combatants.find((c) => c.id === id)!;
@@ -278,7 +279,7 @@ describe('__wfrp — autres commandes de recette', () => {
 
   it('psych : EN COMBAT, pose l’état psychologique par l’op beginPsych, relu au combattant', () => {
     const hero = useGame.getState().party[0];
-    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().lancerLeCombat('enc-mutants');
     useGame.getState().fenetreValider('roundStart');
     vi.clearAllTimers();
     const relu = (id: string) => useGame.getState().battle!.combatants.find((c) => c.id === id)!;
@@ -288,7 +289,7 @@ describe('__wfrp — autres commandes de recette', () => {
 
   it('psych : refuse un type absent de psychology.json en listant les ids valides, sans rien poser', () => {
     const hero = useGame.getState().party[0];
-    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().lancerLeCombat('enc-mutants');
     useGame.getState().fenetreValider('roundStart');
     vi.clearAllTimers();
     const avant = structuredClone(useGame.getState().battle!.combatants.find((c) => c.id === hero.id)!.psychState ?? []);
@@ -300,7 +301,7 @@ describe('__wfrp — autres commandes de recette', () => {
 
   it('condition : refuse un id d’État hors catalogue (un libellé) en listant les ids valides, sans rien poser', () => {
     const hero = useGame.getState().party[0];
-    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().lancerLeCombat('enc-mutants');
     useGame.getState().fenetreValider('roundStart');
     vi.clearAllTimers();
     const relu = () => useGame.getState().battle!.combatants.find((c) => c.id === hero.id)!;
@@ -313,7 +314,7 @@ describe('__wfrp — autres commandes de recette', () => {
 
   it('condition : pose un État du catalogue (sonne) comme un marqueur narratif (petrifie), relus au combattant', () => {
     const hero = useGame.getState().party[0];
-    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().lancerLeCombat('enc-mutants');
     useGame.getState().fenetreValider('roundStart');
     vi.clearAllTimers();
     const relu = () => useGame.getState().battle!.combatants.find((c) => c.id === hero.id)!;
@@ -362,7 +363,7 @@ describe('__wfrp — autres commandes de recette', () => {
         onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,
       },
     });
-    useGame.getState().jetConfirm('test');
+    useGame.getState().jetValider('test');
     expect(buildApi().lastRoll()).toEqual({ actorId: hero.id, success: true, sl: 1, roll: 42, target: 50 });
   });
 
@@ -386,8 +387,8 @@ describe('__wfrp — autres commandes de recette', () => {
     expect(useGame.getState().gameTime).toBe(before + 90);
   });
 
-  it('seed : re-ensemence le RNG de bataille (même action que store.seedRng)', () => {
-    const spy = vi.spyOn(useGame.getState(), 'seedRng');
+  it('seed : re-ensemence le RNG de bataille (même action que store.ensemencerLeTirage)', () => {
+    const spy = vi.spyOn(useGame.getState(), 'ensemencerLeTirage');
     expect(buildApi().seed(42)).toContain('42');
     expect(spy).toHaveBeenCalledWith(42);
   });
@@ -469,9 +470,9 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     hero.spells = [];
     heroId = hero.id;
     useGame.setState({ battle: null, party: [hero], pendingCascade: null, pendingRoundStart: null });
-    useGame.getState().startScene(testScene());
+    useGame.getState().lancerLaScene(testScene());
     seedBattleRng(777);
-    useGame.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
+    useGame.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
     vi.clearAllTimers();
   });
   afterEach(() => {
@@ -600,9 +601,9 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     const g = useGame.getState;
     const ici = combattant().pos!;
     for (const e of g().battle!.combatants.filter((c) => c.kind === 'enemy')) e.pos = { x: ici.x + 12, y: ici.y + 12 };
-    g().battleRun({ x: ici.x + 3, y: ici.y });
-    g().jetRoll('run');
-    g().jetConfirm('run');
+    g().ouvrirLaCourse({ x: ici.x + 3, y: ici.y });
+    g().jetLancer('run');
+    g().jetValider('run');
     expect(g().battle!.runBudget, 'la Course a posé son budget').toBeGreaterThan(0);
     expect(api.turn(heroId)).toMatch(/^✓/);
     const b = g().battle!;
@@ -944,8 +945,8 @@ describe('__wfrp.fastForward — avance-rapide des tours IA (garde anti-boucle, 
     vi.clearAllTimers();
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ battle: null, party: [hero] });
-    useGame.getState().startScene(testScene());
-    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().lancerLaScene(testScene());
+    useGame.getState().lancerLeCombat('enc-mutants');
     vi.clearAllTimers();
   });
   afterEach(() => {
@@ -1049,6 +1050,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null,
       worldMap: seaMap,
+      lieu: 'A',
       travelPlan: null,
       travelRecap: null,
       pendingCrewTest: null,
@@ -1073,7 +1075,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
   });
 
   it('advanceSeaDay() fait avancer d’UN jour (cascade + halte de nuit résolues), s’arrête sur la cascade FRAÎCHE du jour suivant', async () => {
-    useGame.getState().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
+    useGame.getState().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
     const p = buildApi().advanceSeaDay();
     await vi.runAllTimersAsync();
     const msg = await p;
@@ -1094,7 +1096,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
   });
 
   it('skipToArrival() roule jusqu’à l’accostage (travelPlan vidé, route courte de 100 milles)', async () => {
-    useGame.getState().startTravel('r1', 'mer');
+    useGame.getState().partirEnVoyage('r1', 'mer');
     const p = buildApi().skipToArrival();
     await vi.runAllTimersAsync();
     const msg = await p;
@@ -1104,7 +1106,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
   });
 
   it('dealShipDamage() inflige des Dégâts HORS COMBAT via la SOURCE UNIQUE vessel.wounds (#296)', () => {
-    useGame.getState().startTravel('r1', 'mer');
+    useGame.getState().partirEnVoyage('r1', 'mer');
     // À l'appareillage, `vessel.wounds` reste `undefined` jusqu'à la première écriture (piège #296) —
     // la coque de trajet (`travelPlan.vehicle`) porte la valeur RÉELLE tant qu'aucun Dégât/jour n'écrit.
     const before = useGame.getState().travelPlan!.vehicle!.wounds.current;
@@ -1181,9 +1183,9 @@ describe('__wfrp.campaign — charge une campagne BUILT-IN sans le character cre
     expect(msg).toContain('Le Loup et la Saumure');
     const s = useGame.getState();
     expect(s.party.length).toBe(4);
-    // `pendingCampaign` est le champ TRANSITOIRE du picker (avant lancement) — `loadProject` appelle
-    // `startScene`, qui réinitialise l'état à l'INITIAL (hors le sous-ensemble préservé, cf.
-    // `noyau/entreeEnScene.ts:startScene`) : `pendingCampaign` n'y figure pas et redevient `null` après chargement,
+    // `pendingCampaign` est le champ TRANSITOIRE du picker (avant lancement) — `chargerLeProjet` appelle
+    // `lancerLaScene`, qui réinitialise l'état à l'INITIAL (hors le sous-ensemble préservé, cf.
+    // `noyau/entreeEnScene.ts:lancerLaScene`) : `pendingCampaign` n'y figure pas et redevient `null` après chargement,
     // EXACTEMENT comme le flux réel du picker (`PartyScreen.startCampaign`) — pas une régression d'ici.
     expect(s.pendingCampaign).toBeNull();
     expect(s.scene).toBeTruthy();

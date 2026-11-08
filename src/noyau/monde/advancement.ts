@@ -32,9 +32,10 @@ import {
 import { competenceEnCarriere, talentsAjoutesALaCarriere, baseWithTalents } from '../../engine/talentEffects';
 import { rule } from '../../engine/policy';
 import { levelsForCareer, byId, findCareerById, refLabel, specLabel, displayLabelForSex } from '../../data';
-import { memeSpecialisation } from '../../data/schemas/grammaire/ref';
+import { memeSpecialisation, type RefDesignee } from '../../data/schemas/grammaire/ref';
 import { t } from '../../i18n';
-import { refusDepensePx, mentorRequis, libelleAvecSpec, refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement } from '../depenseDePx';
+import { mentorRequis, libelleAvecSpec, refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement } from '../depenseDePx';
+import { refusDepensePx } from '../verrousDeFiche';
 import type { Jeu } from '../etat';
 
 export interface CharAdvanceRow {
@@ -44,22 +45,21 @@ export interface CharAdvanceRow {
   advances: number;
   inCareer: boolean;
   nextCost: number;
-  /** Refus de l'achat (combat, mentor requis, PX insuffisants) — le même que rend `buyCharAdvance`. */
+  /** Refus de l'achat (combat, mentor requis, PX insuffisants) — le même que rend `acheterLaCaracteristique`. */
   refus: string | null;
 }
 export interface SkillAdvanceRow {
-  /** `id` STABLE de la Compétence — câblage (achat/désignation). */
-  skillId: string;
+  /** Référence STABLE de la Compétence — câblage (achat/désignation). */
+  skill: RefDesignee;
   /** Libellé D'AFFICHAGE seulement. */
   label: string;
-  spec?: string;
   characteristic: CharKey;
   advances: number;
   /** Le héros possède-t-il déjà la Compétence (sinon : acquérable à 0 si in-carrière). */
   known: boolean;
   inCareer: boolean;
   nextCost: number;
-  /** Refus de l'achat (combat, mentor requis, PX insuffisants) — le même que rend `buySkillAdvance`. */
+  /** Refus de l'achat (combat, mentor requis, PX insuffisants) — le même que rend `acheterLaCompetence`. */
   refus: string | null;
 }
 /** Emplacement de Compétence « (Au choix) » non désigné : à apprendre/désigner via un choix de spec. */
@@ -92,7 +92,7 @@ export interface TalentSlotRow {
   nextCost: number;
   /** Slot à choix non désigné : au Maxi quand TOUTES ses options le sont. */
   maxReached: boolean;
-  /** Refus de l'acquisition (combat, Maxi, Domaine arcanique, PX) — celui que rend `buyTalent` ; slot à
+  /** Refus de l'acquisition (combat, Maxi, Domaine arcanique, PX) — celui que rend `acheterLeTalent` ; slot à
    *  choix non désigné : le refus de toute dépense (chaque option porte le sien). */
   refus: string | null;
   /** Slot à choix non désigné : options proposées — `refKey` = clé de câblage OPAQUE id+spec (produite
@@ -124,7 +124,7 @@ export interface AdvancementView {
   targets: CareerTarget[];
   /** Coût d'un changement vers une carrière donnée (id, sélecteur) : +100 hors Classe (LDB 07 l.144). */
   changeCostFor: (careerId: string) => number;
-  /** Refus du changement vers le niveau 1 d'une carrière donnée (sélecteur) — celui que rend `changeCareer`. */
+  /** Refus du changement vers le niveau 1 d'une carrière donnée (sélecteur) — celui que rend `changerDeCarriere`. */
   refusChangementVers: (careerId: string) => string | null;
   /** Refus de TOUTE dépense de PX dans l'état courant (`refusDepensePx`), ou `null`. */
   refus: string | null;
@@ -162,8 +162,8 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
     return { key, label: CHAR_LABELS[key], value: baseWithTalents(hero, key), advances, inCareer, nextCost, refus: refusDAugmentation(inCareer, CHAR_LABELS[key], nextCost) };
   });
 
-  // Compétences connues — identité (skillId, spec) : chaque Spécialisation est une Compétence
-  // distincte (LDB 09 l.42). In-carrière = slot explicite / désigné / joker libre, OU
+  // Compétences connues — identité : la référence, chaque Spécialisation étant une Compétence
+  // distincte (LDB 09 l.44). In-carrière = slot explicite / désigné / joker libre, OU
   // compétence ajoutée par un talent (« à n'importe quelle Carrière », LDB 10).
   const skills: SkillAdvanceRow[] = hero.skills.map((s) => {
     const sName = byId('skill', s.id)?.label ?? s.id; // AFFICHAGE seulement
@@ -171,9 +171,8 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
     const inCareer = statut != null;
     const nextCost = advanceCost(s.advances, 'skill', inCareer, discount);
     return {
-      skillId: s.id,
+      skill: { id: s.id, ...(s.spec ? { spec: s.spec } : {}) },
       label: sName,
-      spec: s.spec,
       characteristic: s.characteristic,
       advances: s.advances,
       known: true,
@@ -189,10 +188,10 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
     const o = slot.options[0];
     if (!o.optionId) continue; // tirage aléatoire sans identité réelle : jamais acquérable ainsi
     if (knows(o.optionId, o.spec)) continue;
-    if (skills.some((r) => !r.known && r.skillId === o.optionId && memeSpecialisation(r.spec, o.spec))) continue;
+    if (skills.some((r) => !r.known && r.skill.id === o.optionId && memeSpecialisation(r.skill.spec, o.spec))) continue;
     const characteristic = byId('skill', o.optionId)?.characteristic ?? 'intelligence';
     const nextCost = advanceCost(0, 'skill', true);
-    skills.push({ skillId: o.optionId, label: o.label, spec: o.spec, characteristic, advances: 0, known: false, inCareer: true, nextCost, refus: refusPx(nextCost) });
+    skills.push({ skill: { id: o.optionId, ...(o.spec ? { spec: o.spec } : {}) }, label: o.label, characteristic, advances: 0, known: false, inCareer: true, nextCost, refus: refusPx(nextCost) });
   }
   // Emplacements de Compétence « (Au choix) » non désignés → choix de spec (désigner/apprendre).
   const skillSlotsOpen: SkillSlotRow[] = [];

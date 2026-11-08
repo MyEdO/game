@@ -11,7 +11,7 @@
  * COUVERTURE, et ses deux bords : (1) la marche ignore les lignes de COMMENTAIRE — une table du RAW
  * recopiée en JSDoc (`src/engine/travelStages.ts:74`, tableau de Météo EDOC 8) est une citation, pas
  * un libellé d'écran ; (2) elle ignore les fichiers de TEST, qui doivent pouvoir asserter le texte
- * RENDU — c'est là que les libellés attendus se vérifient (`src/ui/PlageField.test.tsx`).
+ * RENDU — c'est là que les libellés attendus se vérifient.
  */
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
@@ -33,7 +33,7 @@ describe('libellés de saison — une SOURCE, la donnée (#1659)', () => {
     const initiales = structuredClone(weather);
     let noeudSaisonnier: z.ZodObject | undefined;
     descendre([seaWeatherSchema], ({ noeud, path }) => {
-      if (path === '.seasonMod' && noeud instanceof z.ZodObject) { noeudSaisonnier = noeud; return 'arreter'; }
+      if (path === '.seasonMod.saisons' && noeud instanceof z.ZodObject) { noeudSaisonnier = noeud; return 'arreter'; }
     });
     expect(noeudSaisonnier).toBeDefined();
     if (!noeudSaisonnier) throw new Error('objet saisonnier absent du schéma maritime');

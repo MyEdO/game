@@ -1,6 +1,6 @@
 /**
  * Contrecoups d'incantation — câblage du noyau (LDB 46/40) : gate des actions
- * d'incantation/Focalisation, purge par l'horloge (advanceTime), persistance.
+ * d'incantation/Focalisation, purge par l'horloge (avancerLeTemps), persistance.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -21,39 +21,39 @@ function priest() {
 
 beforeEach(() => {
   banc.setState({ gameTime: 8 * 60 });
-  banc.getState().seedRng(5);
+  banc.getState().ensemencerLeTirage(5);
 });
 
 describe('gates d\'incantation', () => {
-  it('blocage de Prière actif → oocCastSpell refuse (pas de modale), journal explicite', () => {
+  it('blocage de Prière actif → incanterLeSort refuse (pas de modale), journal explicite', () => {
     const p = priest();
     p.castPenalties = [{ label: 'Vous abusez de ma patience', skill: 'priere', blocked: true, roundsLeft: 5 }];
     banc.setState({ party: [p] as Combatant[] });
-    banc.getState().oocCastSpell(p.id, 'benediction-de-guerison', p.id);
+    banc.getState().incanterLeSort(p.id, 'benediction-de-guerison', p.id);
     expect(banc.getState().pendingCast).toBeNull();
     expect(banc.getState().journal.join('\n')).toMatch(/ne peut pas prier/);
   });
 
-  it('blocage de Focalisation → oocFocusSpell refuse', () => {
+  it('blocage de Focalisation → focaliserLeSort refuse', () => {
     const wiz = pregen(PREGEN.sorcier);
     wiz.spells = ['arme-aethyrique'];
     wiz.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 5 } as never);
     wiz.castPenalties = [{ label: 'Vue assombrie', skill: 'focalisation', blocked: true, roundsLeft: 3 }];
     banc.setState({ party: [wiz] as Combatant[] });
-    banc.getState().oocFocusSpell(wiz.id, 'arme-aethyrique');
+    banc.getState().focaliserLeSort(wiz.id, 'arme-aethyrique');
     expect(banc.getState().pendingFocus).toBeNull();
   });
 });
 
-describe('purge par l\'horloge (advanceTime)', () => {
+describe('purge par l\'horloge (avancerLeTemps)', () => {
   it('un contrecoup à untilTime expiré est purgé et journalisé', () => {
     const p = priest();
     const now = banc.getState().gameTime;
     p.castPenalties = [{ label: 'Drain de puissance', skill: 'langue', blocked: true, untilTime: now + 10 }];
     banc.setState({ party: [p] as Combatant[] });
-    banc.getState().advanceTime(5);
+    banc.getState().avancerLeTemps(5);
     expect(banc.getState().party[0].castPenalties).toHaveLength(1); // pas encore
-    banc.getState().advanceTime(10);
+    banc.getState().avancerLeTemps(10);
     expect(banc.getState().party[0].castPenalties).toHaveLength(0);
     expect(banc.getState().journal.join('\n')).toMatch(/Drain de puissance se dissipe/);
   });

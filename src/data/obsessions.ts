@@ -6,7 +6,7 @@
  * (source + folio, dé de tirage `die`) ; tirage `rollDice` + lookup partagé `findTableEntry`.
  */
 import { rollDice, type RNG } from '../engine/dice';
-import { findTableEntry } from '../engine/tables';
+import { findTableEntry, type DeDeTable } from '../engine/tables';
 import type { TableDeCibles } from './schemas/grammaire/mecanique';
 import type * as obsessions from './schemas/defs/obsessions';
 import { deDeTirageDe, rangeesDe } from './rangees';
@@ -16,10 +16,12 @@ import obsessionsJson from './obsessions.json';
 export const OBSESSIONS = rangeesDe<typeof obsessions>(obsessionsJson);
 /** Provenance (livre + folio) — traçabilité (EDOC 12 folio 69). */
 export const OBSESSIONS_SOURCE = obsessionsJson.source;
+/** Le dé du Tableau des Obsessions, lu à l'appel. */
+export const obsessionsDie = (): DeDeTable => deDeTirageDe<typeof obsessions>(obsessionsJson);
 
 /** Le tirage de chaque table de Cibles, RNG seedable : l'id du Groupe de la rangée tirée. */
 export const TIRAGE_DE_CIBLE: Readonly<Record<TableDeCibles, (rng: RNG) => string>> = {
-  obsessions: (rng) => findTableEntry(OBSESSIONS, rollDice(deDeTirageDe<typeof obsessions>(obsessionsJson), rng)).id,
+  obsessions: (rng) => findTableEntry(OBSESSIONS, rollDice(obsessionsDie(), rng)).id,
 };
 
 /** Les Groupes que chaque table de Cibles peut tirer : ses rangées, lues à l'appel. */

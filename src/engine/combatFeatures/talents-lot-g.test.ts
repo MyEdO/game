@@ -112,7 +112,7 @@ describe('défense / récupération (LDB 10)', () => {
     expect(contreSurDefenseGagnee(mk([{ name: 'Riposte', times: 1 }]), w())).toBeNull(); // arme NON Rapide → pas de Riposte
     expect(hasStealAdvantage(mk([{ name: 'Renversement', times: 1 }]))).toBe(true);
   });
-  it('Endurci : niveau d’ignorance du saignement (la réduction des dégâts est data-driven, cf. state/etat-perround)', () => {
+  it('Endurci : niveau d’ignorance du saignement (la réduction des dégâts est data-driven)', () => {
     const c = mk([{ name: 'Endurci', times: 1 }], { conditions: [{ id: 'hemorragique', value: 2 }] });
     endOfRound(c, makeRNG(3));
     expect(c.wounds.current).toBe(12); // endOfRound ne saigne plus (dégâts d'Hémorragique migrés en données)
@@ -130,15 +130,15 @@ describe('défense / récupération (LDB 10)', () => {
 describe('tests hors combat (LDB 10)', () => {
   it('Menaçant : +niveau DR aux Tests d’Intimidation (règle universelle, matcher structuré)', () => {
     const c = mk([{ name: 'Menaçant', times: 2 }]);
-    expect(talentTestSLBonus(c, { skill: 'intimidation' })).toBe(2);
-    expect(talentTestSLBonus(c, { skill: 'charme' })).toBe(0);
+    expect(talentTestSLBonus(c, { skill: { id: 'intimidation' } })).toBe(2);
+    expect(talentTestSLBonus(c, { skill: { id: 'charme' } })).toBe(0);
   });
   it('talents d’inversion : Sociable (Ragot), Pansement de fortune (Guérison avec des Bandages, plafond +1 DR — LDB 10 l.899)', () => {
     const c = mk([{ name: 'Sociable', times: 1 }, { name: 'Pansement de fortune', times: 1 }]);
-    expect(talentReverseFailed(c, { skill: 'ragot' })).toEqual({ capDR: undefined });
-    expect(talentReverseFailed(c, { skill: 'guerison', contexte: 'bandages' })).toEqual({ capDR: 1 });
-    expect(talentReverseFailed(c, { skill: 'guerison' })).toBeNull();
-    expect(talentReverseFailed(c, { skill: 'charme' })).toBeNull();
+    expect(talentReverseFailed(c, { skill: { id: 'ragot' } })).toEqual({ capDR: undefined });
+    expect(talentReverseFailed(c, { skill: { id: 'guerison' }, contexte: 'bandages' })).toEqual({ capDR: 1 });
+    expect(talentReverseFailed(c, { skill: { id: 'guerison' } })).toBeNull();
+    expect(talentReverseFailed(c, { skill: { id: 'charme' } })).toBeNull();
   });
   it('Ambidextre toujours fonctionnel après la refonte (régression)', () => {
     expect(offHandPenalty(mk([{ name: 'Ambidextre', times: 1 }]), modDeRegle('main-secondaire', 'main-secondaire'))).toBe(-10);

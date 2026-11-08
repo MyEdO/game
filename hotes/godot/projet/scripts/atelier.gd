@@ -934,25 +934,9 @@ func _publier_l_ecran() -> void:
 			os = _positions_des_os(),
 			peaux = _peaux(),
 			morphes = _morphes_des_meshes(),
-			couleurs = _couleurs_posees(),
+			couleurs = _montage.couleurs_posees(),
 		},
 	})
-
-
-## Par emplacement monté dont une surface porte un matériau propre, la couleur d'albédo `#rrggbb` de ce matériau, par nom
-## du matériau du GLB.
-func _couleurs_posees() -> Dictionary:
-	var couleurs := {}
-	for id in _montage.pieces:
-		var posees := {}
-		for piece: MeshInstance3D in _montage.pieces[id]:
-			for rang in piece.mesh.get_surface_count():
-				var local := piece.get_surface_override_material(rang) as BaseMaterial3D
-				if local != null:
-					posees[local.resource_name] = "#" + local.albedo_color.to_html(false)
-		if not posees.is_empty():
-			couleurs[id] = posees
-	return couleurs
 
 
 ## Godot 4.7, Skeleton3D::_notification, NOTIFICATION_UPDATE_SKELETON, skeleton_updated.

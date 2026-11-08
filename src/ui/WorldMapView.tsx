@@ -4,7 +4,7 @@ import { shipboardSouls } from '../noyau/shipCrew';
 import { useGame } from '../state/store';
 import { DEFAULT_VOYAGE_ORDERS, type VoyageCadence } from '../noyau/voyageCadence';
 import { t, deElide } from '../i18n';
-import { placeOfScene, placeById, routesCliquables, routesEtat, visiblePlaces, otherEnd, declutterPositions, MapRoute, MapPlace } from '../noyau/worldMap';
+import { placeById, routesCliquables, routesEtat, visiblePlaces, otherEnd, positionsDeRendu, MapRoute, MapPlace } from '../noyau/worldMap';
 import { baseHoursPerDay, maxHoursPerDay, devisDeTrajet, refusDeDepart, MOUNT_MAX_HOURS, type OptionsDeDepart } from '../noyau/travelFlow';
 import { clockLabel } from '../engine/duration';
 import { descenteJouee } from '../noyau/riverVoyageFlow';
@@ -63,11 +63,6 @@ function routeCurve(ax: number, ay: number, bx: number, by: number, id: string) 
   return { d: `M ${ax} ${ay} Q ${cx} ${cy} ${bx} ${by}`, lx, ly };
 }
 
-// ── Cadre logique de la carte (unités du viewBox) ────────────────────────────────────────────
-/** Écart mini visé entre deux médaillons (unités viewBox) — un médaillon fait r≈2.9 + cartouche,
- *  ~8 les sépare confortablement sans les coller. */
-const DECLUTTER_MIN = 8;
-
 /**
  * Carte du monde (#T2 Voyage) — overlay plein écran en exploration : carte au PARCHEMIN dessinée
  * (texture vieillie, cadre orné, routes en chemins, lieux en médaillons, rose des vents), lieux et
@@ -75,10 +70,9 @@ const DECLUTTER_MIN = 8;
  * voyage depuis le lieu courant (mode, classe, allure — RAW section « Voyage » du LDB) et reprise
  * d'un voyage interrompu par une péripétie. Mobile-first : panneau en bas, carte au-dessus.
  */
-/** `hereSceneId`/`initialRouteId` : seams de test (rendu statique : le store SSR sert l'état initial). */
-export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?: string; hereSceneId?: string } = {}) {
+/** `hereId`/`initialRouteId` : seams de test (rendu statique : le store SSR sert l'état initial). */
+export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: string; hereId?: string } = {}) {
   const map = useGame((s) => s.worldMap);
-  const scene = useGame((s) => s.scene);
   const party = useGame((s) => s.party);
   const possessions = useGame((s) => s.possessions);
   // Bourse de groupe = somme des bourses personnelles (T-bourse #531) ; recalculée quand le groupe change.
@@ -87,13 +81,13 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   const travelPlan = useGame((s) => s.travelPlan);
   const fermer = useGame((s) => s.fenetreFermer);
   const close = () => fermer('carteDuMonde');
-  const startTravel = useGame((s) => s.startTravel);
-  const startBilletBargain = useGame((s) => s.startBilletBargain);
+  const partirEnVoyage = useGame((s) => s.partirEnVoyage);
+  const marchanderLeBillet = useGame((s) => s.marchanderLeBillet);
   // Abonnements du devis et du refus de départ, lus dans l'état (`devisDeTrajet`, `refusDeDepart`).
   useGame((s) => s.travelDayHours);
   useGame((s) => s.billetEnMain);
   useGame((s) => s.marchandagesDeBillet);
-  const resumeTravel = useGame((s) => s.resumeTravel);
+  const reprendreLeVoyage = useGame((s) => s.reprendreLeVoyage);
   // Porte d'heure de départ (maison, #340) : départ terrestre/fluvial de nuit → attendre l'aube / annuler.
   const pendingDeparture = useGame((s) => s.pendingDeparture);
   const valider = useGame((s) => s.fenetreValider);
@@ -123,7 +117,9 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   /** Lieu survolé — révèle son nom sur une carte dense (les non-pertinents n'ont pas de cartouche fixe). */
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  const here = placeOfScene(map, hereSceneId ?? scene?.id);
+  const lieu = useGame((s) => s.lieu);
+  const ici = hereId ?? lieu;
+  const here = map && ici ? placeById(map, ici) : undefined;
   // Gating narratif (#684) : le `ConditionCtx` se fabrique CHEZ L'APPELANT (patron `condCtx`,
   // `bourseFlow.ts`) — `worldMap.ts` reste un lecteur pur, sans accès au store.
   const flags = useGame((s) => s.flags);
@@ -149,13 +145,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
 
   // Anti-chevauchement : positions de RENDU décluttérées (les `pos` d'authoring restent intacts).
   // Le repère de rendu est celui du viewBox (y aplati par 0.64) → l'écartement travaille dessus.
-  const layout = useMemo(() => {
-    // Vraie carte de fond ⇒ les lieux restent à leurs `pos` EXACTS (l'auteur les a posés sur la carte) :
-    // pas de déchevauchement, qui les décalerait de leur vraie position géographique.
-    if (!map || map.background) return new Map<string, { x: number; y: number }>();
-    const pts = places.map((p) => ({ id: p.id, x: p.pos.x, y: p.pos.y * 0.64 }));
-    return declutterPositions(pts, DECLUTTER_MIN, 80, { w: VB_W, h: VB_H });
-  }, [map, places]);
+  const layout = useMemo(() => (map ? positionsDeRendu(map, places) : new Map<string, { x: number; y: number }>()), [map, places]);
   /** Position de rendu décluttérée d'un lieu (repli sur `pos` brut si absent). */
   const posOf = (p: MapPlace) => layout.get(p.id) ?? { x: p.pos.x, y: p.pos.y * 0.64 };
 
@@ -224,7 +214,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   // COQUE qui portera l'équipage — la seule chose dont l'épinglage des STATIONS a besoin (ses RÉFS
   // navales gatent `cale`/`nid-de-pie`). Deux porteurs, deux adaptateurs, un seul gate : le navire de
   // campagne en mer, le bateau du trajet sur une route FLUVIALE jouée (même condition qu'au départ,
-  // `travelFlow.startTravel`). Pas de coque = pas de panneau : il n'y a nulle part où se tenir.
+  // `travelFlow.partirEnVoyage`). Pas de coque = pas de panneau : il n'y a nulle part où se tenir.
   const fluvialJoue = !!selRoute && descenteJouee(useGame.getState, selRoute, mode);
   const stationsTraits: NavalTraitRef[] | null = mode === 'mer'
     ? (vessel ? vesselNavalTraits(vessel) : null)
@@ -236,7 +226,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   // Forcer le rythme : MDG 13 l.95-107, MDG 12 l.311.
   const seaRig = seaPropulsion && seaPropulsion.mode !== 'vapeur' ? { mode: seaPropulsion.mode, competence: seaPropulsion.competence } : null;
   /** Traversée RAPIDE TRANSMISE au départ (MDG 15 l.21-37) : source unique de l'`aria-pressed` du
-   *  sélecteur de cadence et des ordres passés à `startTravel`. */
+   *  sélecteur de cadence et des ordres passés à `partirEnVoyage`. */
   const fastJoue = mode === 'mer' && seaFast;
   const seaPaceChoices = seaRig ? [0, 1, 2].filter((b) => b === 0 || forcePaceDifficulty(b, seaRig.mode) != null) : [0];
   const seaPaceRefus = seaRig ? forcePaceRefus(party, seaRig.competence) : null;
@@ -245,7 +235,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   // Population embarquée pour le manifeste d'avitaillement (#245) : MDG 14 l.238.
   const seaCrewCount = shipboardSouls({ party, vessel }).crew;
 
-  // Le départ demandé : les MÊMES réglages font le devis, le refus et le geste (`travelFlow.startTravel`).
+  // Le départ demandé : les MÊMES réglages font le devis, le refus et le geste (`travelFlow.partirEnVoyage`).
   const base = baseHoursPerDay(map);
   const maxH = maxHoursPerDay(map);
   const opts: OptionsDeDepart = {
@@ -488,7 +478,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               ariaLabel={t('wm.reprendre')}
               enabled={!isGuest}
               reason={t('wm.hoteDecide')}
-              onClick={resumeTravel}
+              onClick={reprendreLeVoyage}
             />
           </Row>
         </div>
@@ -568,7 +558,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
                     label={t('wm.marchander')}
                     enabled={!isGuest && !achat.issue}
                     reason={isGuest ? t('wm.hoteDecide') : t('wm.marchandageFait')}
-                    onClick={() => startBilletBargain(selRoute.id, mode)}
+                    onClick={() => marchanderLeBillet(selRoute.id, mode)}
                     primary={false}
                     btnClassName="small"
                   />
@@ -675,7 +665,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
           {mode === 'mer' && vessel ? <ShipRolesPanel /> : rule('travel-etapes') && <TravelRolesPanel />}
           {/* STATIONS à bord, EMPILÉES sous les postes (maquette validée 2026-09-04) : partout où un
               bateau porte l'équipage — le navire de campagne en mer, et le bateau du trajet FLUVIAL
-              (même gate qu'au départ, `travelFlow.startTravel`). Le fleuve n'a PAS de roster de
+              (même gate qu'au départ, `travelFlow.partirEnVoyage`). Le fleuve n'a PAS de roster de
               postes d'équipage (MSRC 7 ne connaît ni rôles MDG ni Moral) : les stations y sont
               seules, et c'est ce que le livre demande. */}
           {stationsTraits && <ShipStationsPanel traits={stationsTraits} />}
@@ -691,7 +681,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               enabled={!refusDuDepart}
               {...raisonSi(refusDuDepart)}
               onClick={() => {
-                startTravel(selRoute.id, mode, opts);
+                partirEnVoyage(selRoute.id, mode, opts);
                 if (aLAube) attendreLAube(); // la porte a différé le départ : la nuit se passe sur place, d'un geste
               }}
             />

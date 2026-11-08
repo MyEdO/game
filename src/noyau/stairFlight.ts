@@ -1,6 +1,6 @@
 /**
  * VOLÉE d'escalier — INVARIANT UNIQUE, partagé par le compilateur ASCII (`mapSpec.ts`, recettes
- * `cells.stair`) et par l'outil « Volée » de l'éditeur (`ui/editor`).
+ * `cells.stair`) et par l'outil « Volée » de l'éditeur.
  *
  * Une volée n'est PAS un objet : c'est une file LINÉAIRE de cases dont les cotes montent par crans
  * franchissables (`STEP_MAX_M`, `relief.ts`) entre deux surfaces déjà cotées. La connexité verticale

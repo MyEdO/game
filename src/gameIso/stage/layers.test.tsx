@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { emptyScene, tileAt, type Scene } from '../../noyau/monde/scene';
 import { terrainSolidHeightM } from '../../noyau/monde/terrain';
 import { buildWalls } from '../builders/walls';
-import { buildRoofs } from '../builders/roofs';
+import { buildRoofs } from '../../noyau/monde/volume/toits';
 import type { Dims } from '../../geometry/iso';
 import { wallLayerObjs, wallTraitObjs } from './layers';
 import { scenario as entrainement } from '../../scenes/test-scenarios/entrainement';
@@ -13,8 +13,8 @@ const entrainementConstruit = entrainement.construire();
  * Couche des MURS au trait (plan de station, aperçu d'éditeur). Les couches de SOLS et de TOITS
  * projetées en SVG sont mortes avec la voie de jeu affine (#1176 P3-4, commit C5a) : les vérités de
  * SCÈNE qu'elles bakaient (ghost/solidOverhang, hauteur métrique, relations de pièce) sont celles des
- * BUILDERS, et s'y testent — `builders/floors.test.ts`, `builders/props.test.ts`,
- * `builders/roofs.test.ts`. Ce qui reste ici est la PROJECTION, et elle seule.
+ * BUILDERS, et s'y testent — `noyau/monde/volume/floors.test.ts`, `builders/props.test.ts`,
+ * `noyau/monde/volume/toits.test.ts`. Ce qui reste ici est la PROJECTION, et elle seule.
  */
 const DIMS = (s: { dimensions: { w: number; h: number } }): Dims => ({ ...s.dimensions, rot: 0, view: 'iso' });
 const OPTS = { zoom: 1, mpt: 2 };

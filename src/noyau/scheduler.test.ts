@@ -6,7 +6,7 @@ import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 /** Harnais minimal {get,set} : applyEffects/fireScheduledEffects ne touchent que flags/scheduledEffects
  *  pour des effets `setFlag` (pas de combat, butin ni journal). */
 function fakeStore(init: Record<string, unknown> = {}) {
-  let s: any = { battle: undefined, flags: {}, scheduledEffects: [], gameTime: 0, journal: [], log: () => {}, ...init };
+  let s: any = { battle: undefined, flags: {}, scheduledEffects: [], gameTime: 0, journal: [], ecrireAuJournal: () => {}, ...init };
   const get = () => s;
   const set = (patch: any) => {
     s = { ...s, ...(typeof patch === 'function' ? patch(s) : patch) };

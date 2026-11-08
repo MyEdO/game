@@ -2,8 +2,8 @@
  * LA FENÊTRE D'ATTAQUE EN DONNÉES — ce que la modale du jet d'attaque montre, lu de l'état : l'intitulé, l'arme et
  * ses Dégâts, les options d'avant le jet (deux armes, arme, Localisation visée, postures de tir, corde, coups
  * retenus, Empoignade), la ligne de l'attaquant (aperçu ou jet), celle de la défense adverse, les entrées du cycle
- * d'influence, l'issue et l'attente d'une Défense surfacée. Lecteur PUR, partagé par l'écran web
- * (`ui/jetProps/useAttackJetProps.tsx`) et par tout hôte qui lit la partie sans écran ; ses textes sortent du
+ * d'influence, l'issue et l'attente d'une Défense surfacée. Lecteur PUR, partagé par l'écran
+ * de jet et par tout hôte qui lit la partie sans écran ; ses textes sortent du
  * catalogue par `t()`, comme ceux de `jetsEnVue`.
  */
 import type { Jeu } from './etat';
@@ -121,9 +121,9 @@ export interface FenetreDAttaque {
 function refDuNomDuJet(attaquant: Combatant, arme: Weapon | undefined, kind: 'melee' | 'ranged'): RollLabelRef {
   const test = attackTestOf(attaquant, arme, kind);
   const label = testSkillLabel(test);
-  return 'char' in test
-    ? { category: 'characteristics', id: test.char, label }
-    : { category: 'skills', id: test.skill, label };
+  return test.skill
+    ? { category: 'skills', id: test.skill.id, label }
+    : { category: 'characteristics', id: test.characteristic, label };
 }
 
 /** La fenêtre d'attaque ouverte (`pendingAttack`), `null` sans attaque en attente. PUR. */

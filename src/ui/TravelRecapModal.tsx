@@ -40,7 +40,7 @@ export function TravelRecapModal({ seam }: { seam?: TravelRecap } = {}) {
   const gameTime = useGame((s) => s.gameTime);
   const fermer = useGame((s) => s.fenetreFermer);
   const dismiss = () => fermer('recitDeVoyage');
-  const openWorldMap = useGame((s) => s.openWorldMap);
+  const ouvrirLaCarte = useGame((s) => s.ouvrirLaCarte);
   const recap = seam ?? storeRecap;
   if (!recap) return null;
   const ambush = !!recap.then; // une embuscade ATTEND : l'acquittement déclenche le combat
@@ -53,7 +53,7 @@ export function TravelRecapModal({ seam }: { seam?: TravelRecap } = {}) {
         ? <><Icon id="scenario/travel" size="sm" /> {t('trm.titreInterrompu')}</>
         : <><Icon id="scenario/travel" size="sm" /> {t('trm.titreArret')}</>;
   const kmLeft = Math.max(0, Math.round(recap.km - recap.kmDone));
-  const onContinue = () => { dismiss(); openWorldMap(); };
+  const onContinue = () => { dismiss(); ouvrirLaCarte(); };
   return (
     <Modal title={title} onClose={dismiss} backdropClose={!ambush}
       footer={
@@ -84,7 +84,7 @@ export function TravelRecapModal({ seam }: { seam?: TravelRecap } = {}) {
           {recap.days.map((d, i) => (
             <li key={i}>
               <span className="travel-recap-day">
-                Jour {i + 1} — {routeDistanceLabel(d.kmTo - d.kmFrom, sea)} en {Math.round(d.hours)} h de route
+                {t('trm.jour', { n: i + 1, distance: routeDistanceLabel(d.kmTo - d.kmFrom, sea), heures: Math.round(d.hours) })}
               </span>
               <TravelDayBody day={d} />
             </li>
@@ -92,9 +92,9 @@ export function TravelRecapModal({ seam }: { seam?: TravelRecap } = {}) {
         </ol>
       )}
       {ambush ? (
-        <p className="travel-recap-foot">{t('trm.piedEmbuscade')} <Icon id="nav/campaign" size="sm" />.)</p>
+        <p className="travel-recap-foot">{t('trm.piedEmbuscade')}</p>
       ) : recap.status === 'interrupted' ? (
-        <p className="travel-recap-foot">{t('trm.piedInterrompu')} (<Icon id="nav/campaign" size="sm" />).</p>
+        <p className="travel-recap-foot">{t('trm.piedInterrompu')}</p>
       ) : recap.status === 'stalled' ? (
         <p className="travel-recap-foot">{t('trm.piedSurcharge')}</p>
       ) : null}

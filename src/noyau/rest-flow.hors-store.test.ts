@@ -4,7 +4,7 @@
  * PLUSIEURS passent par une CHAÎNE de cascades séquentielles influençables (#347, `openRestNight`/
  * `continueRestNights`) — chaque jet = une étape, verrouillée à « Valider » avant le suivant, chaque
  * nuit reconstruite APRÈS que la précédente ait été validée (jamais de jet pré-résolu). Le moteur de
- * nuit `sleepParty` (chemin EAGER — cheat `restParty`, clôture d'interlude) reste testé par
+ * nuit `sleepParty` (chemin EAGER — cheat `reposerLeGroupe`, clôture d'interlude) reste testé par
  * rest.hors-store.test / upkeep-cascade.
  */
 import { fixtureText } from '../i18n/fixtureText';
@@ -59,8 +59,8 @@ function failCurrent(): void {
 function rollCurrent(): void {
   const p = banc.getState().pendingCascade!;
   const cur = p.participants[p.cursor];
-  if (cur.participants) { for (const r of cur.participants) if (!r.result) banc.getState().jetRoll('cascadeBatch', r.id); }
-  else if (cur.target != null && !cur.result) banc.getState().jetRoll('cascade', cur.id);
+  if (cur.participants) { for (const r of cur.participants) if (!r.result) banc.getState().jetLancer('cascadeBatch', r.id); }
+  else if (cur.target != null && !cur.result) banc.getState().jetLancer('cascade', cur.id);
 }
 
 /** Déroule la cascade de nuit (lance + valide chaque étape) jusqu'à la fin ; renvoie les `kind` vus
@@ -71,7 +71,7 @@ function walkCascade(): string[] {
   while (banc.getState().pendingCascade && guard++ < 60) {
     kinds.push(banc.getState().pendingCascade!.participants[banc.getState().pendingCascade!.cursor].kind);
     rollCurrent();
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
   }
   return kinds;
 }
@@ -86,7 +86,7 @@ function walkCascadeAbriFails(): { kind: string; rows: number }[] {
     const cur = p.participants[p.cursor];
     seen.push({ kind: cur.kind, rows: cur.participants?.length ?? 0 });
     failCurrent();
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
   }
   return seen;
 }
@@ -108,13 +108,13 @@ beforeEach(() => {
   setGroupPurse({ gold: 2, silver: 0, brass: 0 }); // bourse de bande = 2 CO (480 sc)
 });
 
-describe('openRest / choix par héros', () => {
+describe('ouvrirLeRepos / choix par héros', () => {
   it('auberge : choix PERSONNELS et orthogonaux — un héros en chambre+repas, l’autre dort dehors avec sa ration', () => {
-    banc.getState().openRest({ lieu: fixtureText('Ici'), places: { auberge: true, camp: true } });
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true, camp: true } });
     const p = banc.getState().pendingRest!;
     expect(p.perHero['h1'].lodging).toBe('privee'); // défaut auberge
-    banc.getState().restSet('h2', { lodging: 'dehors' });
-    banc.getState().restSet('h2', { food: 'ration' }); // manger sa ration et dormir à la belle étoile
+    banc.getState().fenetreChoisir('rest', 'couchage', 'dehors', 'h2');
+    banc.getState().fenetreChoisir('rest', 'pitance', 'ration', 'h2'); // manger sa ration et dormir à la belle étoile
     const cfg = banc.getState().pendingRest!.perHero;
     expect(cfg['h2']).toEqual({ lodging: 'dehors', food: 'ration' });
     // Coût : 1 chambre privée (couvre 2, ici 1 occupant) 10 pa + 1 repas 1 pa = 132 sc.
@@ -132,22 +132,22 @@ describe('openRest / choix par héros', () => {
   });
 
   it('chambres regroupées par 2 (RAW : « convient à 2 invités ») : 2 héros en privée = 1 chambre (10 pa)', () => {
-    banc.getState().openRest({ lieu: fixtureText('Ici'), places: { auberge: true } });
-    banc.getState().restSet('h2', { lodging: 'privee' });
-    banc.getState().restSet('h1', { food: 'rien' });
-    banc.getState().restSet('h2', { food: 'rien' });
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true } });
+    banc.getState().fenetreChoisir('rest', 'couchage', 'privee', 'h2');
+    banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'h1');
+    banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'h2');
     banc.getState().fenetreValider('rest');
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(480 - 120); // 1 chambre, 0 repas
   });
 
   it('bourse insuffisante : Dormir refusé (on peut alors choisir la belle étoile, gratuite)', () => {
     setGroupPurse({ gold: 0, silver: 0, brass: 5 });
-    banc.getState().openRest({ lieu: fixtureText('Ici'), places: { auberge: true, camp: true } });
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true, camp: true } });
     banc.getState().fenetreValider('rest'); // refus (privée + repas impayables)
     expect(banc.getState().pendingRest?.phase).toBe('setup');
     for (const id of ['h1', 'h2']) {
-      banc.getState().restSet(id, { lodging: 'dehors' });
-      banc.getState().restSet(id, { food: 'rien' });
+      banc.getState().fenetreChoisir('rest', 'couchage', 'dehors', id);
+      banc.getState().fenetreChoisir('rest', 'pitance', 'rien', id);
     }
     banc.getState().fenetreValider('rest'); // gratuit → dort (cascade, plus de bilan)
     expect(banc.getState().pendingRest).toBeNull();
@@ -159,7 +159,7 @@ describe('openRest / choix par héros', () => {
     const sc = emptyScene('scene-test', 10, 10);
     sc.weather = 'pluie'; // difficile → 2 Tests/nuit si pas d'abri
     banc.setState({ scene: sc });
-    banc.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
     banc.getState().fenetreValider('rest');
     const cas = banc.getState().pendingCascade!;
     expect(cas.participants[0].kind).toBe('shelter'); // l'abri de fortune ouvre la séquence
@@ -172,7 +172,7 @@ describe('openRest / choix par héros', () => {
   });
 
   it('cascade : valider un TEST QUOTIDIEN de maladie raté applique son `onFail` (applicateur diseaseTick, #674)', () => {
-    // DERNIER maillon de prod : la bande est verrouillée par `jetConfirm('cascade')`, l'applier `diseaseTick`
+    // DERNIER maillon de prod : la bande est verrouillée par `jetValider('cascade')`, l'applier `diseaseTick`
     // lit `row.meta.onFail` et le passe à `applyOps`. Aucun appel direct au moteur ici.
     const h = banc.getState().party[0];
     h.diseases = [contractDisease('pneumonie', battleRngFor())!];
@@ -186,12 +186,12 @@ describe('openRest / choix par héros', () => {
     ], { title: 'Entretien', purpose: 'travel' });
 
     banc.setState({ pendingCascade: bande('bande-dz1') });
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const fievre = () => banc.getState().party[0].diseases![0].symptoms.find((s) => s.symptomId === 'fievre');
     expect(fievre()!.severity, '1er échec : la Fièvre passe Grave').toBe('grave');
 
     banc.setState({ pendingCascade: bande('bande-dz2') });
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     const symptomes = banc.getState().party[0].diseases![0].symptoms.map((s) => s.symptomId);
     expect(symptomes, '2ᵉ échec, Fièvre DÉJÀ Grave : l’échelon suivant tombe').toContain('toxine');
   });
@@ -204,7 +204,7 @@ describe('openRest / choix par héros', () => {
       { id: 'bande-m1', kind: 'forcedMarch', label: fixtureText('Marche forcée'), aggregate: 'none',
         participants: [{ id: h.id, interactive: true, label: 'Résistance', base: 40, target: 40, result: { roll: 99, target: 40, sl: -4, success: false } }] },
     ], { title: 'Marche', purpose: 'travel' }) });
-    banc.getState().jetConfirm('cascade'); // verrouille l'échec → +Exténué (applyForcedMarch)
+    banc.getState().jetValider('cascade'); // verrouille l'échec → +Exténué (applyForcedMarch)
     expect(stacks(banc.getState().party[0], 'extenue')).toBe(exten0 + 1);
     expect(banc.getState().pendingCascade).toBeNull();
   });
@@ -214,7 +214,7 @@ describe('openRest / choix par héros', () => {
     sc.weather = 'pluie';
     banc.setState({ scene: sc });
     banc.getState().party[1].items!.push({ ...itemFromTrappingById('tente')!, uid: 't', enc: 2, equipped: false });
-    banc.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
     banc.getState().fenetreValider('rest');
     const cas = banc.getState().pendingCascade!;
     expect(cas.participants.some((s) => s.kind === 'exposure')).toBe(false); // tente → 0 Test difficile
@@ -236,9 +236,9 @@ describe('régression T-bourse (#531, buildNightCascade) — gages débités CET
     creditBourse(banc.getState, banc.setState, 'h1', { gold: 10, silver: 0, brass: 0 }); // couvre largement le gage du Mousse (288 sc)
     expect(stacks(banc.getState().party[0], 'extenue')).toBe(1);
 
-    banc.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
-    banc.getState().restSet('h1', { lodging: 'dehors' });
-    banc.getState().restSet('h1', { food: 'ration' }); // mange sa ration : jamais affamé, la récupération s'applique
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
+    banc.getState().fenetreChoisir('rest', 'couchage', 'dehors', 'h1');
+    banc.getState().fenetreChoisir('rest', 'pitance', 'ration', 'h1'); // mange sa ration : jamais affamé, la récupération s'applique
     banc.getState().fenetreValider('rest');
 
     // Les gages ont bien été prélevés cette nuit-là (le débit CLONE l'objet héros — `withBourseMoney`).
@@ -261,7 +261,7 @@ describe('couchage À BORD (MDG) — le navire n’est pas un bivouac', () => {
     const sc = emptyScene('scene-test', 10, 10);
     sc.weather = 'tempete'; // extrême à terre — mais on est à bord (hamacs, abrité)
     banc.setState({ scene: sc });
-    banc.getState().openRest({ lieu: fixtureText('Ici'), places: { bord: true } });
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { bord: true } });
     expect(banc.getState().pendingRest!.perHero['h1'].lodging).toBe('bord'); // défaut = à bord
     banc.getState().fenetreValider('rest');
     const cas = banc.getState().pendingCascade!;
@@ -295,7 +295,7 @@ describe('repos MULTI-JOURS (#347) — chaîne de cascades nuit-par-nuit, jamais
       }
       sawEmpty = false;
       forceFailCurrent();
-      banc.getState().jetConfirm('cascade');
+      banc.getState().jetValider('cascade');
     }
     return nights;
   }
@@ -303,8 +303,8 @@ describe('repos MULTI-JOURS (#347) — chaîne de cascades nuit-par-nuit, jamais
   it('2 nuits d’affilée sans ration : CHAQUE nuit est SA PROPRE cascade influençable, non pré-résolue', () => {
     const starving = hero({ id: 'h1', label: 'Hilda', hunger: { days: 1, tests: 0, failures: 0 } });
     banc.setState({ party: [starving], scene: emptyScene('scene-test', 10, 10), pendingRest: null }); // camp (gratuit) → aucune bourse à semer
-    banc.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true }, days: 4 }); // days>1 → repos multi-jours authoré (op `rest`)
-    banc.getState().restSet('h1', { food: 'rien' });
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true }, days: 4 }); // days>1 → repos multi-jours authoré (op `rest`)
+    banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'h1');
     banc.getState().fenetreValider('rest');
 
     // Nuit 1 (jour 1→2) : le Test de Faim tombe (l.417 : tous les 2 jours) — étape NON pré-résolue.
@@ -318,7 +318,7 @@ describe('repos MULTI-JOURS (#347) — chaîne de cascades nuit-par-nuit, jamais
 
     // Valider la nuit 1 (échec garanti) → conséquence appliquée UNE fois.
     forceFailCurrent();
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(banc.getState().party[0].hunger!.tests).toBe(1);
     expect(banc.getState().party[0].hunger!.failures).toBe(1); // 1er échec (l.422)
 
@@ -333,8 +333,8 @@ describe('repos MULTI-JOURS (#347) — chaîne de cascades nuit-par-nuit, jamais
   it('escalade CUMULATIVE de la Faim PORTÉE d’une nuit à l’autre (compteur persisté sur le héros)', () => {
     const starving = hero({ id: 'h1', label: 'Hilda', hunger: { days: 0, tests: 0, failures: 0 } });
     banc.setState({ party: [starving], scene: emptyScene('scene-test', 10, 10), pendingRest: null }); // camp (gratuit) → aucune bourse à semer
-    banc.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true }, days: 4 });
-    banc.getState().restSet('h1', { food: 'rien' });
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true }, days: 4 });
+    banc.getState().fenetreChoisir('rest', 'pitance', 'rien', 'h1');
     banc.getState().fenetreValider('rest');
     walkNightChain();
 
@@ -411,7 +411,7 @@ describe('effet `rest` (éditeur)', () => {
  * nuit s'ouvre → l'étape « Blessé » porte SON symptôme, donc son renvoi de règle pointe la fiche du
  * SYMPTÔME (Codex « Symptômes »), pas l'intro du chapitre des maladies.
  *
- * Ce test passe par `openRest` + `fenetreValider('rest')` — les DEUX bâtisseurs de la nuit s'exécutent, dans le
+ * Ce test passe par `ouvrirLeRepos` + `fenetreValider('rest')` — les DEUX bâtisseurs de la nuit s'exécutent, dans le
  * MÊME ordre qu'en jeu. Une version qui n'appelait que `deferredUpkeepSteps` était VERTE alors que le
  * navigateur était ROUGE : le second bâtisseur écrasait la clé. Le test suit le chemin du joueur.
  */
@@ -430,7 +430,7 @@ describe('CHEMIN RÉEL — la règle d’une étape de maladie est celle du SYMP
   it('« Dormir » à l’auberge → l’étape du symptôme porte son `entryId` et renvoie à SA fiche', () => {
     malade();
     setGroupPurse({ gold: 5, silver: 0, brass: 0 });
-    banc.getState().openRest({ lieu: fixtureText('Ici'), places: { auberge: true } });
+    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true } });
     banc.getState().fenetreValider('rest');
     const p = banc.getState().pendingCascade;
     expect(p, 'la cascade de nuit s’ouvre').toBeTruthy();

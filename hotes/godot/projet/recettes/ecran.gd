@@ -125,14 +125,17 @@ func _dessines(zone: Zone) -> Array:
 	return zone.get_parent().get_children().filter(func(n: Node) -> bool: return n.has_meta(Zone.META))
 
 
-## Chaque texte visible sous `noeud` : étiquettes, boutons, champs, chaque entrée d'une liste déroulante, et la bulle
-## de chaque contrôle.
+## Chaque texte lisible sous `noeud` (`_lisible`) : le titre de son onglet, étiquettes, boutons, champs, chaque entrée
+## d'une liste déroulante, et la bulle de chaque contrôle.
 func _textes(noeud: Node) -> Array:
 	var textes := []
+	if noeud.get_parent() is TabContainer:
+		var onglets := noeud.get_parent() as TabContainer
+		textes.append(onglets.get_tab_title(onglets.get_tab_idx_from_control(noeud)))
 	var controles: Array = noeud.find_children("*", "Control", true, false)
 	controles.push_front(noeud)
 	for n in controles:
-		if not (n as Control).is_visible_in_tree():
+		if not _lisible(n):
 			continue
 		if n is Label or n is Button or n is LineEdit:
 			textes.append(n.text)
@@ -144,20 +147,31 @@ func _textes(noeud: Node) -> Array:
 	return textes
 
 
+## Visible, ou dans un onglet que son `TabContainer` ne montre pas : il se lit en choisissant son onglet.
+func _lisible(n: Control) -> bool:
+	var c: Node = n
+	while c is Control:
+		if not (c as Control).visible and not c.get_parent() is TabContainer:
+			return false
+		c = c.get_parent()
+	return true
+
+
 ## Chaque texte que l'élément `e` et ses éléments imbriqués disent (`DITS`, le nom d'une entité, la valeur d'une
-## puce). Une valeur de saisie ou de liste se dit par son libellé seul : son refus la désactive.
+## puce, le nom d'un point du plan). Une valeur de saisie ou de liste se dit par son libellé seul : son refus la
+## désactive. Les traits d'un plan se dessinent sans rien dire.
 func _dits(e: Variant, valeur: bool = false) -> Array:
 	var dits := []
 	if e is Array:
 		for x in e:
 			dits.append_array(_dits(x, valeur))
-	elif e is Dictionary:
+	elif e is Dictionary and e.has("type"):
 		for champ in e:
 			var v: Variant = e[champ]
-			if v is String and (champ == "libelle" or not valeur and (DITS.has(champ) or champ == "nom" and e.type == "entite" or champ == "valeur" and e.type == "puce")):
+			if v is String and (champ == "libelle" or not valeur and (DITS.has(champ) or champ == "nom" and (e.type == "entite" or e.type == "point") or champ == "valeur" and e.type == "puce")):
 				dits.append(v)
 			elif v is Array:
-				dits.append_array(_dits(v, e.type == "liste" or e.type == "saisieChoix"))
+				dits.append_array(_dits(v, e.type == "liste" or e.type == "saisieChoix" or e.type == "saisieCoches"))
 	return dits
 
 
@@ -169,7 +183,7 @@ func _presser(vue: Dictionary, noeud: Node, e: Dictionary) -> void:
 			_attendre(vue, e.id, func() -> void: (noeud.get_node("Presser") as BaseButton).pressed.emit(), e.jeu)
 		"choix":
 			for v in e.valeurs:
-				var bouton: Node = noeud.find_children("*", "", true, false).filter(func(b: Node) -> bool: return b.get_meta(Zone.META, "") == "bouton/%s" % v.id).front()
+				var bouton := _composant_de(noeud, v)
 				_attendre(vue, v.id, func() -> void: (bouton.get_node("Presser") as BaseButton).pressed.emit(), v.jeu)
 		"liste":
 			var liste: OptionButton = noeud.find_children("*", "OptionButton", true, false).front()
@@ -183,10 +197,17 @@ func _presser(vue: Dictionary, noeud: Node, e: Dictionary) -> void:
 		"formulaire":
 			var jouer: Node = noeud.get_node("Jouer")
 			_attendre(vue, e.id, func() -> void: (jouer as BaseButton).pressed.emit(), vue.attendus.get(e.id))
-		"entite":
+		"plan":
+			for p in e.points:
+				_presser(vue, _composant_de(noeud, p), p)
+		"entite", "point":
 			for x in e.elements:
-				var composant: Node = noeud.find_children("*", "", true, false).filter(func(n: Node) -> bool: return n.get_meta(Zone.META, "") == "%s/%s" % [x.type, x.id]).front()
-				_presser(vue, composant, x)
+				_presser(vue, _composant_de(noeud, x), x)
+
+
+## Le composant de l'élément `e` sous `noeud`.
+func _composant_de(noeud: Node, e: Dictionary) -> Node:
+	return noeud.find_children("*", "", true, false).filter(func(n: Node) -> bool: return n.get_meta(Zone.META, "") == Zone.cle(e)).front()
 
 
 func _attendre(vue: Dictionary, id: String, presser: Callable, attendu: Variant) -> void:

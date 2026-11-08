@@ -5,13 +5,13 @@
  * généré : `npm run docs:hote-texte`.
  */
 import {
-  effectiveArmourAt, effectiveTalents, actionGate, etatDeLaBarre, endTurnArmed, porteurParId, CLICS_DU_CHAMP,
+  effectiveArmourAt, effectiveTalents, actionGate, etatDeLaBarre, endTurnArmed, porteurParId, CLIC_DU_CHAMP,
   LOCALISATIONS_DE_COUP, ACTIONS, cleDuGeste,
   type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type LigneDeJet, type Offre,
 } from '../noyau/index';
 import type { LigneNumerotee } from './partieTexte';
 import { t } from '../i18n';
-import { ecritALaForme, signature, type ParametreDeVerbe } from '../hote/formes';
+import { signature, type ParametreDeVerbe } from '../hote/formes';
 import { VERBES } from '../hote/verbes.generated';
 import { parametresDuGeste } from '../hote/gestes';
 import { apercuDe, combattantsTries, projeter as projeterAuxBornes, type Apercu, type BornesDeLaProjection, type CaseAtteignable, type CombattantProjete, type OffreEnVue, type Projection, type ProprietaireDeLaFenetre } from '../hote/projection';
@@ -56,8 +56,8 @@ export function borner(entrees: readonly string[], commande: Commande): string[]
   return gardees.map((l) => coupeAuMot(l, BORNES.largeur));
 }
 
-/** Une case écrite `(x,y)`, `(—)` sans case. */
-const pos = (p: [number, number] | null): string => (p ? `(${p[0]},${p[1]})` : '(—)');
+/** Une case écrite `(x,y)`, suivie de son étage hors du sol, `(—)` sans case. */
+const pos = (p: readonly [x: number, y: number, z?: number] | null): string => (p ? `(${p[0]},${p[1]})${p[2] ? ` étage ${p[2]}` : ''}` : '(—)');
 
 /** Un État écrit : son id, et sa valeur au-delà de 1 (`id×n`). */
 const etatEcrit = (id: string, valeur: number): string => (valeur > 1 ? `${id}×${valeur}` : id);
@@ -171,12 +171,8 @@ const ligneDeJets = (j: JetEnVue): string[] => replier(`jet ${j.flux} : ${j.lign
 const ligneDApercu = (a: Apercu): string =>
   `aperçu : ${a.genre} → ${versEcrit(a)}${a.cout === null ? '' : ` · coût ${a.cout}`} (le même clic confirme)`;
 
-/** Les gestes d'un geste d'exploration tels que la vue les écrit : chaque argument à la forme de son paramètre. */
-export const gestesEcrits = (g: GesteDExploration): { verbe: string; args: unknown[] }[] =>
-  g.gestes.map(({ verbe, args }) => ({ verbe, args: args.map((a, i) => { const p = VERBES[verbe]?.[i]; return p ? ecritALaForme(a, p.forme) : a; }) }));
-
 /** Un geste d'exploration : son libellé et l'appel qui le joue. */
-export const ligneDeGeste = (g: GesteDExploration): string[] => replier(`${g.libelle} : ${appelEcrit('jouer', { gestes: gestesEcrits(g) })}`);
+export const ligneDeGeste = (g: GesteDExploration): string[] => replier(`${g.libelle} : ${appelEcrit('jouer', { gestes: g.gestes })}`);
 
 const libelleDOffre = (o: OffreEnVue): string => `${o.id}${o.n > 1 ? `×${o.n}` : ''}→${o.cout ?? '—'}${o.refus === null ? '' : ` (fermée : ${o.refus})`}`;
 
@@ -196,7 +192,7 @@ export function rendreLaVue(p: Projection): string[] {
       const liste = c.offres.liste.map(libelleDOffre);
       lignes.push(`offres : ${liste.length ? [...liste, ...enPlus(c.offres.enPlus, `(${appelEcrit('lire', { quoi: 'offres' })})`)].join(' · ') : 'aucune offre légale'}`);
       if (c.cibles.liste.length) lignes.push(`cibles : ${[...c.cibles.liste, ...enPlus(c.cibles.enPlus, 'autres')].join(', ')}`);
-      lignes.push(...replier(`champ : ${Object.values(CLICS_DU_CHAMP).map((v) => signature(v, VERBES[v] ?? [])).join(' · ')}`));
+      lignes.push(...replier(`champ : ${signature(CLIC_DU_CHAMP, VERBES[CLIC_DU_CHAMP] ?? [])}`));
     } else if (!c.fin) lignes.push(`barre ${c.barre.forme} : ${c.barre.raison}`);
   } else {
     lignes.push(`${p.scene ? `scène ${p.scene.id} « ${p.scene.nom} »` : 'aucune scène'} · écran ${p.ecran} · pas ${p.pas}`);

@@ -1,4 +1,4 @@
-/** Entrée en scène : partie neuve (`startScene`, `loadProject`) et changement de scène (`transitionTo`). */
+/** Entrée en scène : partie neuve (`lancerLaScene`, `chargerLeProjet`) et changement de scène (`quitterLaScene`). */
 import { registerScene, sceneDuRegistre } from './monde/registreDesScenes';
 import { startOf } from './monde/scene';
 import { findFreeTile } from './monde/combatGeometry';
@@ -16,17 +16,18 @@ import * as partyFlow from './partyFlow';
 import { captureMutation, applyMutation as applySceneMutation } from './monde/sceneInstance';
 import { resetFields } from './stateFields';
 import { TIME_COST } from '../engine/timeCost';
+import { placeOfScene } from './worldMap';
 import type { Get, SetDesClesReservees } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 
 export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
   return {
-    startScene: (scene, narratif) => {
+    lancerLaScene: (scene, narratif) => {
       registerScene(scene);
       const start = scene.entities.find((e) => e.kind === 'heroStart');
       const pos = startOf(scene) ?? findFreeTile(scene);
       // Démarrage d'une partie / d'un scénario : on repart de l'état NEUF du jeu (`etatInitialDuJeu`). On ne
-      // conserve QUE l'écran, le groupe (posé par `setParty`) et la SESSION COOP (net : héberger une partie
+      // conserve QUE l'écran, le groupe (posé par `fixerLeGroupe`) et la SESSION COOP (net : héberger une partie
       // PUIS la lancer ne doit pas dissoudre le salon — Jalon 7). L'interface se remet chez son hôte, à
       // l'entrée en scène (`EVT.ARRIVEE_EN_SCENE`).
       const { screen, party, net } = get();
@@ -48,9 +49,9 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
       if (scene.startMessage) bus.emit(EVT.LIGNE_AU_JOURNAL, { texte: scene.startMessage.texte });
       bus.emit(EVT.ARRIVEE_EN_SCENE, { sceneId: scene.id, neuve: true });
       // Semis des Possessions de dotation (#617/#618) — ICI, jamais `loadGame` (qui restaure
-      // `data.possessions` de la save) : `startScene` est le SEUL seam qui repart d'un registre
+      // `data.possessions` de la save) : `lancerLaScene` est le SEUL seam qui repart d'un registre
       // `possessions` vidé (le reset ci-dessus), pour toute partie neuve (créateur → campagne,
-      // devtools scenario()/campaign()) — `transitionTo`/`loadProject` (scène suivante d'un même
+      // devtools scenario()/campaign()) — `quitterLaScene`/`chargerLeProjet` (scène suivante d'un même
       // projet) n'y repassent pas, `party` déjà doté n'est jamais re-semé (garde de la fonction).
       possessionsFlow.seedStartingPossessions(get, set);
       bus.emit(EVT.SCENE_DIRTY);
@@ -61,30 +62,30 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
       // sont parqués par la doctrine du slot et repris à la clôture de la carte — jamais perdus.
       if (scene.startMessage) pushReveal(set, { kind: 'sceneEntry', title: scene.label, lines: [scene.startMessage.texte], sceneId: scene.id }, { own: true });
     },
-    loadProject: ({ scenes, entryId, worldMap, narratif, projet }) => {
+    chargerLeProjet: ({ scenes, entryId, worldMap, narratif, projet }) => {
       // Enregistre toutes les scènes du projet (pour que les portes reveal:'door'
       // résolvent leurs intérieurs), puis démarre la scène d'entrée.
       const entry = scenes.find((s) => s.id === entryId);
-      if (!entry) throw new Error(`loadProject : scène d’entrée « ${entryId} » absente (${scenes.map((s) => s.id).join(', ')})`);
+      if (!entry) throw new Error(`chargerLeProjet : scène d’entrée « ${entryId} » absente (${scenes.map((s) => s.id).join(', ')})`);
       for (const s of scenes) registerScene(s);
-      get().startScene(entry, narratif);
+      get().lancerLaScene(entry, narratif);
       // La carte du PROJET remplace la carte vide de l'état de départ (remise par le reset de
-      // startScene) ; un projet sans carte n'offre pas de voyage.
-      if (worldMap !== undefined) set({ worldMap });
-      // Ouverture cérémonielle du chapitre (#717) : posée ICI, `startScene` vient de remettre l'état à
+      // lancerLaScene) ; un projet sans carte n'offre pas de voyage. Le groupe se tient au lieu de la scène d'entrée.
+      if (worldMap !== undefined) set({ worldMap, lieu: placeOfScene(worldMap, entry.id)?.id ?? null });
+      // Ouverture cérémonielle du chapitre (#717) : posée ICI, `lancerLaScene` vient de remettre l'état à
       // l'init. Absente du paquet = démarrage direct.
       set({ pendingOuverture: structuredClone(narratif?.ouverture ?? null) }); // #2097
       // Document SOURCE de la partie (#766) : snapshot AUTO-SUFFISANT du paquet, embarqué au save par
       // `stateFields` → au chargement, `applyLoadedSave` ré-enregistre ces scènes et re-dérive le narratif.
-      // Posé APRÈS startScene (qui vide `campaignDoc` via le reset à l'init).
+      // Posé APRÈS lancerLaScene (qui vide `campaignDoc` via le reset à l'init).
       set({ campaignDoc: { scenes, worldMap: worldMap ?? null, narratif: narratif ?? emptyNarratif(), startSceneId: entry.id, projet } });
     },
     /** Transition vers une autre scène (conserve groupe, flags, inventaire, argent).
      *  `pos` force la case d'arrivée (utilisé par `transitionBack`). */
-    transitionTo: (sceneId, entry, pos) => {
+    quitterLaScene: (sceneId, entry, pos) => {
       const target = sceneDuRegistre(sceneId);
       if (!target) {
-        get().log(t('store.sceneMissing', { scene: sceneId }));
+        get().ecrireAuJournal(t('store.sceneMissing', { scene: sceneId }));
         return;
       }
       const heroStart = target.entities.find((e) => e.kind === 'heroStart');
@@ -94,7 +95,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
       // l'ancienne scène n'a aucun sens ici — en POV il peut regarder le vide hors-carte).
       const authored = !pos && !(entry && target.entryPoints?.[entry]) ? heroStart?.facing : undefined;
       // Couture UNIVERSELLE de suspension (noyau/cascade.ts) : une cascade active PARQUÉE au lieu d'être
-      // perdue par `resetFields('scene')` ci-dessous (ex. un abordage ouvre `startCombat` PUIS transitionne
+      // perdue par `resetFields('scene')` ci-dessous (ex. un abordage ouvre `lancerLeCombat` PUIS transitionne
       // vers sa scène — l'ORDRE des deux appels varie selon l'appelant, cette couture protège les deux).
       suspendActiveCascade(get, set);
       // …puis la pile parquée perd les cartes d'entrée de la scène QUITTÉE (`dropSceneEntrySteps`) :
@@ -139,15 +140,15 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
         battle: null,
         campaignSceneId: target.id,
       }));
-      if (target.startMessage) get().log(target.startMessage.texte);
-      get().advanceTime(TIME_COST.sceneTransition); // seam « tout est horodaté » : 0 en intérieur (paramétrable, #T2 extérieur/voyage)
+      if (target.startMessage) get().ecrireAuJournal(target.startMessage.texte);
+      get().avancerLeTemps(TIME_COST.sceneTransition); // seam « tout est horodaté » : 0 en intérieur (paramétrable, #T2 extérieur/voyage)
       bus.emit(EVT.SCENE_DIRTY);
       // Point de reprise de l'hôte AVANT qu'une rencontre ne démarre le combat.
       bus.emit(EVT.ARRIVEE_EN_SCENE, { sceneId: target.id, neuve: false });
       openEncounterPsych(get, set); // couture C : Psychologie à la rencontre dans la nouvelle scène
       // N1 : entrée de zone (transition) en MODALE — étape d'AFFICHAGE skippable (Journal = archive),
       // poussée APRÈS `openEncounterPsych` et en séquence PROPRE (`own`), pour la même raison qu'à
-      // `startScene` : la carte passe devant, les Tests de rencontre sont parqués puis repris.
+      // `lancerLaScene` : la carte passe devant, les Tests de rencontre sont parqués puis repris.
       if (target.startMessage) pushReveal(set, { kind: 'sceneEntry', title: target.label, lines: [target.startMessage.texte], sceneId: target.id }, { own: true });
     },
   } satisfies FabriqueDuNoyau;

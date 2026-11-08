@@ -3,6 +3,7 @@
  * (hors combat) : Caractéristique + Augmentations de la compétence.
  */
 import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
+import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import { Combatant, CharKey } from './types';
 import { byId, psychologies, refLabel, testSkillLabel } from '../data';
 import { t, deElide } from '../i18n';
@@ -47,16 +48,12 @@ export function skillCharKeyById(skillId: string): CharKey | undefined {
  *  `castingValue`) : explicite > carac de l'INSTANCE possédée (défaut DATA-DRIVEN : un statbloc peut
  *  porter une carac alternative) > carac de la Compétence (JSON, par id) > repli ; PUIS surcharge par
  *  règle optionnelle « caractéristique alternative » (`altCharKey` : Métier/Intimidation/Magie ogre). */
-export function effectiveSkillCharKey(
-  c: Combatant,
-  skillId: string | undefined,
-  opts: { explicit?: CharKey; spec?: string; fallback?: CharKey } = {},
-): CharKey {
-  const { explicit, spec, fallback = 'dexterite' } = opts;
+export function effectiveSkillCharKey(c: Combatant, sujet: SujetDuJet, fallback: CharKey = 'dexterite'): CharKey {
+  const { skill: ref, characteristic: explicit } = sujet;
   if (explicit) return explicit;
-  const sk = skillId ? c.skills.find((s) => refCouvre({ id: skillId, spec }, s)) : undefined;
-  let ck: CharKey = sk?.characteristic ?? (skillId ? skillCharKeyById(skillId) : undefined) ?? fallback;
-  if (skillId) ck = altCharKey(c, skillId, ck);
+  const sk = ref ? c.skills.find((s) => refCouvre(ref, s)) : undefined;
+  let ck: CharKey = sk?.characteristic ?? (ref ? skillCharKeyById(ref.id) : undefined) ?? fallback;
+  if (ref) ck = altCharKey(c, ref.id, ck);
   return ck;
 }
 
@@ -68,14 +65,16 @@ export function effectiveSkillCharKey(
  *  l'appelant/la scène, cf. Talent Sens aiguisé `manual:true`) ; restreint les `skillMod` sense-scopés
  *  (Surdité, LDB 18 — `traumaSkillPenalty`). Absent = comportement historique (le RAW n'est pas levé
  *  faute d'info sur le Test précis). */
-export function testValue(c: Combatant, skill?: string, characteristic?: CharKey, spec?: string, sense?: PairedSense): number {
-  if (!skill && !characteristic) return 0;
-  // `skill` = skillId STABLE (multilingue : jamais un libellé). La compétence possédée est trouvée par id ;
-  // `spec` cible une spécialisation précise (Savoir (Magie), Métier (Forgeron)…) quand le héros en possède
+export function testValue(c: Combatant, sujet: SujetDuJet, sense?: PairedSense): number {
+  const { skill: ref, characteristic } = sujet;
+  if (!ref && !characteristic) return 0;
+  // `ref.id` = skillId STABLE (multilingue : jamais un libellé). La compétence possédée est trouvée par id ;
+  // `ref.spec` cible une spécialisation précise (Savoir (Magie), Métier (Forgeron)…) quand le héros en possède
   // plusieurs avec des avances différentes — sinon (spec absent) la première instance de l'id suffit.
-  const sk = skill ? c.skills.find((s) => refCouvre({ id: skill, spec }, s)) : undefined;
+  const skill = ref?.id;
+  const sk = ref ? c.skills.find((s) => refCouvre(ref, s)) : undefined;
   // Caractéristique : POINT UNIQUE partagé avec castingValue (carac d'instance data-driven + carac alternative).
-  const ck = effectiveSkillCharKey(c, skill, { explicit: characteristic, spec });
+  const ck = effectiveSkillCharKey(c, sujet);
   const base = effectiveChar(c, ck);
   const states = testStatePenalty(c, skill, { sense });
   const enc = ck === 'agilite' ? agilityTestPenalty(c) : 0; // charge : couche d'ÉTAT orthogonale (≠ passif d'élément)
@@ -94,43 +93,25 @@ export function testValue(c: Combatant, skill?: string, characteristic?: CharKey
 
 /** Ce qu'un Test désigne : sa Compétence (`TestNomme` d'une fiche, `RefDesignee` d'une donnée) ou sa
  *  seule Caractéristique. */
-export type TestDesigne = { readonly skill: RefDesignee } | { readonly char: CharKey };
-
-/** Le `testValue` d'un Test désigné (Compétence et spécialité, ou Caractéristique) : la valeur jetée. */
-export function valeurDuTest(c: Combatant, test: TestDesigne): number {
-  return 'skill' in test ? testValue(c, test.skill.id, undefined, test.skill.spec) : testValue(c, undefined, test.char);
-}
-
-/** Les ids À PLAT d'un Test désigné (`{ skill, spec }` ou `{ char }`) : la forme que nomment une ligne de
- *  jet (`rollLine`), un libellé de Test (`testSkillLabel`) et un pending. */
-export function idsDuTest(test: TestDesigne): { skill: string; spec?: string; char?: never } | { char: CharKey; skill?: never; spec?: never } {
-  return 'skill' in test ? { skill: test.skill.id, ...(test.skill.spec ? { spec: test.skill.spec } : {}) } : { char: test.char };
-}
-
-/** `valeurDuTest` DÉCOMPOSÉE pour sa ligne de jet (`testValueSplit`) : base nue et composantes nommées
- *  (États, passifs, encombrement…), que la ligne rend en chips. */
-export function valeurDecomposee(c: Combatant, test: TestDesigne): { base: number; mods: ModLine[] } {
-  const { base, mods } = 'skill' in test
-    ? testValueSplit(c, valeurDuTest(c, test), { skill: test.skill.id, spec: test.skill.spec })
-    : testValueSplit(c, valeurDuTest(c, test), { characteristic: test.char });
-  return { base, mods };
-}
+export type TestDesigne = { readonly skill: RefDesignee; readonly characteristic?: undefined } | { readonly characteristic: CharKey; readonly skill?: undefined };
 
 /**
  * DÉCOMPOSITION EXHAUSTIVE de `testValue` en composantes NOMMÉES — LE socle d'affichage de tout Test
  * hors combat, et la garantie que l'écran annonce ce que le moteur calcule. INVARIANT vérifié par la
  * garde `test-value-parts.test.ts` :
  *
- *     testValue(c, skill, char, spec, sense) === skillBaseValue(c, skill, spec, char) + Σ testValueParts(…)
+ *     testValue(c, sujet, sense) === skillBaseValue(c, sujet) + Σ testValueParts(…)
  *
  * Un poste AJOUTÉ à `testValue` sans son producteur de parts casse cette garde — c'est ELLE qui
  * interdit la dérive, pas ce commentaire. Chaque part tire son libellé de la DONNÉE (le `src` du
  * collecteur `passiveMods`, via `passivePartLine`/`refLabel`) : aucun branchement par id d'entité.
  * L'ORDRE des postes suit celui de `testValue`, poste pour poste.
  */
-export function testValueParts(c: Combatant, skill?: string, characteristic?: CharKey, spec?: string, sense?: PairedSense): ModLine[] {
-  if (!skill && !characteristic) return []; // ni compétence ni caractéristique : `testValue` rend 0
-  const ck = effectiveSkillCharKey(c, skill, { explicit: characteristic, spec });
+export function testValueParts(c: Combatant, sujet: SujetDuJet, sense?: PairedSense): ModLine[] {
+  const { skill: ref, characteristic } = sujet;
+  if (!ref && !characteristic) return []; // ni compétence ni caractéristique : `testValue` rend 0
+  const skill = ref?.id;
+  const ck = effectiveSkillCharKey(c, sujet);
   const out: ModLine[] = [];
   out.push(...testStatePenaltyParts(c, skill, { sense })); // États + Sort global + symptôme global (LDB 16 / MSRC 16)
   // Encombrement (LDB 61 « Surchargé ») : ne pèse QUE sur un Test d'Agilité — aucune source d'entité à
@@ -171,11 +152,11 @@ export function skillToolMod(c: Combatant, skill?: string): number {
  *  `magic.castingBaseValue`), jamais un recalcul parallèle de la formule. `skill` absent = Test de
  *  PURE Caractéristique (`explicitChar` seule, aucune Augmentation) — même porte que `testValue`,
  *  qui accepte la même forme ; ni compétence ni caractéristique ⇒ 0 (rien à tester). */
-export function skillBaseValue(c: Combatant, skill?: string, spec?: string, explicitChar?: CharKey): number {
-  if (!skill && !explicitChar) return 0;
-  const ck = effectiveSkillCharKey(c, skill, { spec, explicit: explicitChar });
-  const adv = skill ? c.skills.find((s) => refCouvre({ id: skill, spec }, s))?.advances ?? 0 : 0;
-  return effectiveChar(c, ck) + adv;
+export function skillBaseValue(c: Combatant, sujet: SujetDuJet): number {
+  const { skill: ref, characteristic } = sujet;
+  if (!ref && !characteristic) return 0;
+  const adv = ref ? c.skills.find((s) => refCouvre(ref, s))?.advances ?? 0 : 0;
+  return effectiveChar(c, effectiveSkillCharKey(c, sujet)) + adv;
 }
 
 /** Valeur de Test « brute » pour un Test de COMBAT : `testValue` PRIVÉE de la pénalité d'États HORS combat
@@ -183,37 +164,37 @@ export function skillBaseValue(c: Combatant, skill?: string, spec?: string, expl
  *  (`combatTestPenalty`) UNE SEULE fois, sans double-compte. = Caractéristique effective + avances + passifs
  *  intrinsèques + Encombrement/Traumatisme, SANS la pénalité d'État (réappliquée en version combat par
  *  l'appelant). Utilisée par les Tests de RÉCUPÉRATION d'États (Empoisonné… : −10 d'État compté une fois). */
-export function rawCombatTestBase(c: Combatant, skill?: string, characteristic?: CharKey, spec?: string): number {
-  return testValue(c, skill, characteristic, spec) - testStatePenalty(c, skill);
+export function rawCombatTestBase(c: Combatant, sujet: SujetDuJet): number {
+  return testValue(c, sujet) - testStatePenalty(c, sujet.skill?.id);
 }
 
 /** Le personnage possède-t-il la compétence `skillId` (et, si `spec` fourni, cette spécialisation —
  *  ex. Projectiles (Poudre noire)) ? Par id STABLE. Sert aux modulateurs (ex. `easierIf`). */
-export function actorHasSkill(c: Combatant, skillId: string, spec?: string): boolean {
-  return c.skills.some((s) => refCouvre({ id: skillId, spec }, s));
+export function actorHasSkill(c: Combatant, ref: RefDesignee): boolean {
+  return c.skills.some((s) => refCouvre(ref, s));
 }
 
 /** Le personnage POSSÈDE-t-il la Compétence (Base = toujours ; Avancée = au moins une Augmentation) ?
  *  LDB 09 l.25, LDB 09 l.30. `spec` cible une spécialisation précise (sinon la première instance de l'id,
  *  comme `skillBaseValue`). Une Compétence `specsSoeursDeBase` dont le porteur a augmenté UNE
  *  Spécialisation est de Base dans toutes les autres : LDB 09 l.571. */
-export function possesses(c: Combatant, skillId: string, spec?: string): boolean {
-  const sd = byId('skill', skillId);
+export function possesses(c: Combatant, ref: RefDesignee): boolean {
+  const sd = byId('skill', ref.id);
   if (!sd) return false;
-  const inst = c.skills?.find((s) => refCouvre({ id: skillId, spec }, s));
-  const soeurAugmentee = sd.specsSoeursDeBase === true && (c.skills ?? []).some((s) => refCouvre({ id: skillId }, s) && (s.advances ?? 0) > 0);
+  const inst = c.skills?.find((s) => refCouvre(ref, s));
+  const soeurAugmentee = sd.specsSoeursDeBase === true && (c.skills ?? []).some((s) => refCouvre({ id: ref.id }, s) && (s.advances ?? 0) > 0);
   return sd.acces === 'base' || (inst?.advances ?? 0) > 0 || soeurAugmentee;
 }
 
 /** Qui peut TENTER un Test ACTIF — le mener, le soutenir, s'y porter candidat. LDB 09 l.30, LDB 16 l.113.
  *  Contrat : Test ACTIF seulement ; un Test SUBI (LDB 16 l.74) ne le lit pas. Sans `skill` (Test de
  *  Caractéristique), seule la mise hors d'action compte. */
-export function peutTenter(c: Combatant, skill?: string, spec?: string): boolean {
-  return !isOutOfAction(c) && (!skill || possesses(c, skill, spec));
+export function peutTenter(c: Combatant, sujet: SujetDuJet = {}): boolean {
+  return !isOutOfAction(c) && (!sujet.skill || possesses(c, sujet.skill));
 }
 
 /** Ce que nomme un refus : le Test d'une Compétence (spécialisation comprise) ou d'une Caractéristique, ou une action. */
-type QuoiRefuse = { skill: string; spec?: string } | { char: CharKey } | { action: string };
+type QuoiRefuse = TestDesigne | { action: string };
 function quoiRefuse(quoi: QuoiRefuse): PlayerText {
   return 'action' in quoi ? t('refus.quoiAction', { action: quoi.action }) : t('refus.quoiTest', { de: deElide(testSkillLabel(quoi)) });
 }
@@ -231,8 +212,8 @@ export function refusNePeutTenter(c: Combatant, quoi: QuoiRefuse): PlayerText {
 
 /** Le personnage a-t-il AU MOINS UNE Augmentation dans `skillId` (spécialisation ciblée si `spec`) ?
  *  Prédicat d'éligibilité au SOUTIEN — LDB 12 l.195. Plus strict que `actorHasSkill` (simple présence). */
-function hasSkillAdvance(c: Combatant, skillId: string, spec?: string): boolean {
-  return c.skills.some((s) => refCouvre({ id: skillId, spec }, s) && (s.advances ?? 0) >= 1);
+function hasSkillAdvance(c: Combatant, ref: RefDesignee): boolean {
+  return c.skills.some((s) => refCouvre(ref, s) && (s.advances ?? 0) >= 1);
 }
 
 /** Le malus social « contenu » de `type` s'applique-t-il envers `targetGroups` ? (LDB 21) Vrai si le
@@ -286,9 +267,9 @@ export function socialPsychLabel(tester: Combatant, targetGroups: string[]): str
 
 /** Un Test (compétence ou caractéristique) relève-t-il de la **Sociabilité** (LDB 21 : malus psy −20/−10) ?
  *  Vrai si la caractéristique sous-jacente est `sociabilite` (Charme, Marchandage, Intimidation, Commérage…). */
-export function isSocialTest(skill?: string, characteristic?: CharKey): boolean {
+export function isSocialTest({ skill, characteristic }: SujetDuJet): boolean {
   if (characteristic) return characteristic === 'sociabilite';
-  if (skill) return skillCharKeyById(skill) === 'sociabilite';
+  if (skill) return skillCharKeyById(skill.id) === 'sociabilite';
   return false;
 }
 
@@ -297,20 +278,12 @@ export function isSocialTest(skill?: string, characteristic?: CharKey): boolean 
  *  `sense` (optionnel) : transmis tel quel à `testValue` (sens NARRATIVEMENT sollicité par CE Test précis). */
 export function partyBest(
   party: Combatant[],
-  skill?: string,
-  characteristic?: CharKey,
+  sujet: SujetDuJet,
   extraMod?: (c: Combatant) => number,
-  spec?: string, // spécialisation ciblée (Métier (Serrurier)…) — transmise à `testValue` pour la bonne instance
   sense?: PairedSense,
 ): { actor: Combatant; value: number } | null {
-  const r = maxBy(party.filter((c) => peutTenter(c, skill, spec)), (c) => testValue(c, skill, characteristic, spec, sense) + (extraMod?.(c) ?? 0));
+  const r = maxBy(party.filter((c) => peutTenter(c, sujet)), (c) => testValue(c, sujet, sense) + (extraMod?.(c) ?? 0));
   return r ? { actor: r.item, value: r.value } : null;
-}
-
-/** Le Test désigné est-il tentable par `c` (`peutTenter`, LDB 09 l.30) ? */
-function peutTenterLeTest(c: Combatant, test: TestDesigne): boolean {
-  const ids = idsDuTest(test);
-  return peutTenter(c, ids.skill, ids.spec);
 }
 
 /** Meilleur PJ pour une liste de Tests AU CHOIX (celui qui donne la plus haute valeur décide) ; le
@@ -324,8 +297,7 @@ export function bestForTests(
   // Le meilleur ACTEUR par Test, puis argmax sur les Tests (first-max via `maxBy`). Un Test ne
   // concourt que si le groupe fournit un porteur (`partyBest` null ⇒ groupe vide ⇒ résultat null).
   const perTest = tests.flatMap((test) => {
-    const ids = idsDuTest(test);
-    const best = partyBest(party, ids.skill, ids.char, undefined, ids.spec, sense);
+    const best = partyBest(party, test, undefined, sense);
     return best ? [{ test, best }] : [];
   });
   const r = maxBy(perTest, (x) => x.best.value);
@@ -339,10 +311,10 @@ export function bestForCombined(
   t1: TestDesigne,
   t2: TestDesigne,
 ): { actor: Combatant; value1: number; value2: number } | null {
-  const able = party.filter((c) => peutTenterLeTest(c, t1) && peutTenterLeTest(c, t2));
-  const r = maxBy(able, (c) => Math.min(valeurDuTest(c, t1), valeurDuTest(c, t2)));
+  const able = party.filter((c) => peutTenter(c, t1) && peutTenter(c, t2));
+  const r = maxBy(able, (c) => Math.min(testValue(c, t1), testValue(c, t2)));
   if (!r) return null;
-  return { actor: r.item, value1: valeurDuTest(r.item, t1), value2: valeurDuTest(r.item, t2) };
+  return { actor: r.item, value1: testValue(r.item, t1), value2: testValue(r.item, t2) };
 }
 
 /** Meilleure OPTION TENTABLE pour un acteur parmi un catalogue d'options portant des Tests (`testsDe`) :
@@ -364,12 +336,12 @@ export function bestSkilledOption<T>(
 /** DÉTAIL d'un Soutien (LDB 12 l.187-200) tel qu'il s'AFFICHE : combien de membres soutiennent et le
  *  bonus total qu'ils octroient. FORME UNIQUE, partagée par le moteur (`partyAssisted`/
  *  `bestAssistedOption`), les pendings qui la portent (`noyau/pendings.ts`) et la primitive de
- *  breakdown qui la rend en ligne de mod (`ui/breakdown.ts` — `soutienMod`). */
+ *  breakdown qui la rend en ligne de mod (`soutienMod`). */
 export interface SupportDetail {
   count: number;
   bonus: number;
   /** Les SOUTIENS eux-mêmes, par id de Combattant — la provenance du bonus est une STRUCTURE, jamais
-   *  un libellé composé. Rendue en micro-chips par `ui/RollLine.tsx` (`ModLine.by`). */
+   *  un libellé composé. Rendue en micro-chips (`ModLine.by`). */
   ids: string[];
 }
 
@@ -377,7 +349,7 @@ export interface SupportDetail {
  *  comme TOUT autre modificateur (ligne du breakdown, verte si +), pas fondu dans la base ni relégué
  *  en sous-titre. `undefined` si personne ne soutient (aucune ligne « Soutien +0 » inventée).
  *  La provenance ne porte QUE des ids : le moteur est pur, et le NOM se résout au RENDU (couture
- *  unique `ui/RollLine.tsx`) — un résolveur à fournir par appelant s'oublie, et l'écran affiche
+ *  unique) — un résolveur à fournir par appelant s'oublie, et l'écran affiche
  *  alors l'id brut (recette B3a, « pregen-101 »). */
 export function soutienMod(support?: SupportDetail): ModLine | undefined {
   if (!support || support.count <= 0) return undefined;
@@ -422,15 +394,16 @@ export function supportSplit(value: number, support?: SupportDetail): { base: nu
 export function testValueSplit(
   c: Combatant | undefined,
   value: number,
-  opts?: { support?: SupportDetail; skill?: string; characteristic?: CharKey; spec?: string; sense?: PairedSense; fused?: number },
+  opts?: { support?: SupportDetail; sujet?: SujetDuJet; sense?: PairedSense; fused?: number },
 ): { base: number; mods: ModLine[]; exact: boolean } {
   const sup = supportSplit(value, opts?.support);
+  const sujet = opts?.sujet;
   // Rien à décomposer (côté MONDE, Test sans compétence ni caractéristique) : la valeur EST la base,
   // il n'y a aucune reconstruction à rater.
-  if (!c || (!opts?.skill && !opts?.characteristic)) return { ...sup, exact: true };
-  const parts = testValueParts(c, opts.skill, opts.characteristic, opts.spec, opts.sense);
+  if (!c || !sujet || (!sujet.skill && !sujet.characteristic)) return { ...sup, exact: true };
+  const parts = testValueParts(c, sujet, opts.sense);
   const sum = parts.reduce((s, p) => s + p.value, 0);
-  const nu = skillBaseValue(c, opts.skill, opts.spec, opts.characteristic);
+  const nu = skillBaseValue(c, sujet);
   if (nu + sum + (opts.fused ?? 0) !== sup.base) return { ...sup, exact: false };
   return { base: sup.base - sum, mods: [...sup.mods, ...parts], exact: true };
 }
@@ -448,30 +421,26 @@ export function testValueSplit(
  *  GÉOMÉTRIQUE additionnel (adjacence, l.196) — voir `soutienBonus`. */
 export function partyAssisted(
   party: Combatant[],
-  skill?: string,
-  characteristic?: CharKey,
+  sujet: SujetDuJet,
   extraMod?: (c: Combatant) => number,
-  spec?: string,
   eligible?: (c: Combatant) => boolean,
 ): { actor: Combatant; value: number; base: number; support: SupportDetail } | null {
-  return soutenuPar(party, partyBest(party, skill, characteristic, extraMod, spec), skill, characteristic, spec, eligible);
+  return soutenuPar(party, partyBest(party, sujet, extraMod), sujet, eligible);
 }
 
 /** Le Test SOUTENU d'un meneur déjà retenu (`leader`, sa valeur seule) : `partyAssisted` sans le choix du meneur. */
 function soutenuPar(
   party: Combatant[],
   leader: { actor: Combatant; value: number } | null,
-  skill?: string,
-  characteristic?: CharKey,
-  spec?: string,
+  sujet: SujetDuJet,
   eligible?: (c: Combatant) => boolean,
 ): { actor: Combatant; value: number; base: number; support: SupportDetail } | null {
   if (!leader) return null;
-  const support = soutienDetail(party, leader.actor, skill, characteristic, spec, eligible);
+  const support = soutienDetail(party, leader.actor, sujet, eligible);
   return {
     actor: leader.actor,
     value: leader.value + support.bonus,
-    base: skillBaseValue(leader.actor, skill, spec, characteristic),
+    base: skillBaseValue(leader.actor, sujet),
     support,
   };
 }
@@ -487,15 +456,14 @@ function soutenuPar(
 export function soutienDetail(
   party: Combatant[],
   leader: Combatant,
-  skill?: string,
-  characteristic?: CharKey,
-  spec?: string,
+  sujet: SujetDuJet,
   eligible?: (c: Combatant) => boolean,
 ): SupportDetail {
+  const ref = sujet.skill;
   const elig = party.filter((c) => c.id !== leader.id && peutTenter(c)
-    && (skill ? hasSkillAdvance(c, skill, spec) : true) // LDB 12 l.195
+    && (ref ? hasSkillAdvance(c, ref) : true) // LDB 12 l.195
     && (eligible ? eligible(c) : true));
-  const ck = effectiveSkillCharKey(leader, skill, { explicit: characteristic, spec });
+  const ck = effectiveSkillCharKey(leader, sujet);
   const b = assistBonus(elig.length, bonusDe(leader, ck));
   return { count: b / 10, bonus: b, ids: elig.slice(0, b / 10).map((c) => c.id) };
 }
@@ -504,12 +472,10 @@ export function soutienDetail(
 export function soutienBonus(
   party: Combatant[],
   leader: Combatant,
-  skill?: string,
-  characteristic?: CharKey,
-  spec?: string,
+  sujet: SujetDuJet,
   eligible?: (c: Combatant) => boolean,
 ): number {
-  return soutienDetail(party, leader, skill, characteristic, spec, eligible).bonus;
+  return soutienDetail(party, leader, sujet, eligible).bonus;
 }
 
 /** Meilleur résultat SOUTENU d'un groupe pour une Scène à Tests AU CHOIX (ADE II 8) : pour chaque
@@ -526,10 +492,9 @@ export function bestAssistedOption(
   // Chaque Test est résolu en Soutien sur TOUT l'équipage `crew`, mené par `meneur` quand le geste le
   // nomme, par le plus compétent sinon.
   const perTest = tests.flatMap((test) => {
-    const ids = idsDuTest(test);
     const res = meneur
-      ? soutenuPar(crew, partyBest([meneur], ids.skill, ids.char, undefined, ids.spec), ids.skill, ids.char, ids.spec)
-      : partyAssisted(crew, ids.skill, ids.char, undefined, ids.spec);
+      ? soutenuPar(crew, partyBest([meneur], test), test)
+      : partyAssisted(crew, test);
     return res ? [{ test, res }] : [];
   });
   const r = maxBy(perTest, (x) => x.res.value);

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -19,8 +20,8 @@ describe('Approche sous Peur (store)', () => {
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -40,13 +41,13 @@ describe('Approche sous Peur (store)', () => {
   it('avancer VERS la source ouvre le Test de Calme (sans bouger) ; s’en éloigner reste libre', () => {
     const { H, E } = setup();
     // Vers la source (15,10) : 11,10 réduit la distance → modale d'approche, pas de déplacement.
-    banc.getState().battleClickTile({ x: 11, y: 10 }, { confirm: true });
+    banc.getState().cliquerLaCase({ x: 11, y: 10 }, undefined, { confirm: true });
     let st = banc.getState();
     expect(st.pendingApproach).toMatchObject({ combatantId: H.id, sourceId: E.id, intent: { kind: 'tile', pt: { x: 11, y: 10 } } });
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 10, y: 10 });
-    banc.getState().jetCancel('approach'); // renoncer avant le jet : aucune trace
+    banc.getState().jetAnnuler('approach'); // renoncer avant le jet : aucune trace
     // S'éloigner (9,10) : aucun Test.
-    banc.getState().battleClickTile({ x: 9, y: 10 }, { confirm: true });
+    banc.getState().cliquerLaCase({ x: 9, y: 10 }, undefined, { confirm: true });
     st = banc.getState();
     expect(st.pendingApproach).toBeNull();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 9, y: 10 });
@@ -54,34 +55,34 @@ describe('Approche sous Peur (store)', () => {
 
   it('Test réussi → l’intention est relancée (déplacé) et les approches du Tour sont libres', () => {
     const { H } = setup();
-    banc.getState().battleClickTile({ x: 11, y: 10 }, { confirm: true });
+    banc.getState().cliquerLaCase({ x: 11, y: 10 }, undefined, { confirm: true });
     banc.setState({ pendingApproach: { ...banc.getState().pendingApproach!, result: { success: true, roll: 5, target: 50, sl: 4 } } });
-    banc.getState().jetConfirm('approach');
+    banc.getState().jetValider('approach');
     const st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 11, y: 10 }); // relancé
     expect(st.battle!.fearGate).toBe('passed');
     // Approche suivante du MÊME Tour : plus de modale.
     banc.setState({ battle: { ...st.battle!, reachable: new Map([['12,10', 1]]) } });
-    banc.getState().battleClickTile({ x: 12, y: 10 }, { confirm: true });
+    banc.getState().cliquerLaCase({ x: 12, y: 10 }, undefined, { confirm: true });
     expect(banc.getState().pendingApproach).toBeNull();
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 12, y: 10 });
   });
 
   it('Test raté → pas de déplacement, et plus AUCUNE approche ce Tour (sans nouvelle modale)', () => {
     const { H } = setup();
-    banc.getState().battleClickTile({ x: 11, y: 10 }, { confirm: true });
+    banc.getState().cliquerLaCase({ x: 11, y: 10 }, undefined, { confirm: true });
     banc.setState({ pendingApproach: { ...banc.getState().pendingApproach!, result: { success: false, roll: 96, target: 50, sl: -4 } } });
-    banc.getState().jetConfirm('approach');
+    banc.getState().jetValider('approach');
     let st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 10, y: 10 });
     expect(st.battle!.fearGate).toBe('failed');
     // Re-clic d'approche : bloqué net, pas de nouvelle modale (une tentative par Tour).
-    banc.getState().battleClickTile({ x: 11, y: 10 }, { confirm: true });
+    banc.getState().cliquerLaCase({ x: 11, y: 10 }, undefined, { confirm: true });
     st = banc.getState();
     expect(st.pendingApproach).toBeNull();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 10, y: 10 });
     // Mais s'éloigner reste possible.
-    banc.getState().battleClickTile({ x: 9, y: 10 }, { confirm: true });
+    banc.getState().cliquerLaCase({ x: 9, y: 10 }, undefined, { confirm: true });
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 9, y: 10 });
   });
 
@@ -89,7 +90,7 @@ describe('Approche sous Peur (store)', () => {
     const { H, E } = setup();
     E.pos = { x: 13, y: 10 }; // distance 3 ≤ 2M+1 (M4) → charge possible
     // Charge ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : le clic ne s'approche plus tout seul.
-    banc.getState().battleClickEntity(E.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, approche: true });
     let st = banc.getState();
     // Le verdict d'armement est CAPTURÉ dans le pending : la relance après le Test `se-rapprocher` ne relit
     // pas l'intention (dissoute par ce clic), sans quoi le geste gagné serait refusé.
@@ -97,7 +98,7 @@ describe('Approche sous Peur (store)', () => {
     expect(st.pendingAttack).toBeNull(); // la charge attend le Test
     banc.setState({ pendingApproach: { ...st.pendingApproach!, result: { success: true, roll: 5, target: 50, sl: 4 } } });
     banc.abandonner();
-    banc.getState().jetConfirm('approach');
+    banc.getState().jetValider('approach');
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) relancé → ouvre la frappe
     st = banc.getState();
     expect(st.pendingAttack?.fromCharge).toBe(true); // charge relancée après le succès

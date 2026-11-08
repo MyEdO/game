@@ -8,18 +8,23 @@ import { estJete, extendedTestStep, extendedTestSteps } from '../engine/tests';
 import { reloadDRBonus } from '../engine/combatFeatures/dispatch';
 import { pasDePeur } from '../engine/psychology';
 import { dispelOwnSpellDR } from '../engine/magic';
-import type { Combatant } from '../engine/types';
+import type { Combatant, Weapon } from '../engine/types';
+
+/** L'arme que recharge `pr` aux mains de son `tireur` (`weaponUid` vide : l'arme sans objet, LDB 62 l.335). */
+export function armeDuJetDeRecharge(pr: PendingReload, tireur: Combatant): Weapon | undefined {
+  return tireur.weapons.find((w) => (w.uid ?? '') === pr.weaponUid);
+}
 
 /** Progrès d'un Rechargement après son jet : DR du jet + `reloadDRBonus` du tireur, vers la cible
- *  BAKÉE du pending (`pr.reload`). Lu par `jetConfirm('reload')` (arme et poste) et par la fenêtre.
+ *  BAKÉE du pending (`pr.reload`). Lu par `jetValider('reload')` (arme et poste) et par la fenêtre.
  *  LDB 62 l.335 ; LDB 12 l.170-185 ; MDG 12 l.462 */
 export function progresDeRecharge(pr: PendingReload, tireur: Combatant | undefined): ReturnType<typeof extendedTestStep> {
-  const talent = pr.success && tireur ? reloadDRBonus(tireur, tireur.weapons.find((w) => w.uid === pr.weaponUid)) : 0;
+  const talent = pr.success && tireur ? reloadDRBonus(tireur, armeDuJetDeRecharge(pr, tireur)) : 0;
   return extendedTestStep(pr.progressBefore, { success: pr.success, sl: pr.sl + talent }, pr.reload);
 }
 
 /** Progrès d'une Dissipation après son jet, depuis le cumul du lanceur sur CE Sort. Lu par
- *  `jetConfirm('dispel')` et par la fenêtre. LDB 46 l.160 ; VDM 02 l.182-186 ; LDB 12 l.170-185 */
+ *  `jetValider('dispel')` et par la fenêtre. LDB 46 l.160 ; VDM 02 l.182-186 ; LDB 12 l.170-185 */
 export function progresDeDissipation(pd: PendingDispel, lanceur: Combatant): { prev: number; sl: number; step: ReturnType<typeof extendedTestStep> | null } {
   const prev = lanceur.dispel?.spellId === pd.spellId && lanceur.dispel.spellCasterId === pd.spellCasterId ? lanceur.dispel.total : 0;
   if (!pd.result) return { prev, sl: 0, step: null };
@@ -52,7 +57,7 @@ export function progresDActivite(pa: PendingActivity): (ReturnType<typeof extend
 }
 
 /** Progrès d'une Focalisation après son jet, depuis la réserve du lanceur sur CE Sort, vers son NI : une
- *  réussite cumule son `dr`, un échec son DR brut. Lu par `jetConfirm('focus')` et par la fenêtre.
+ *  réussite cumule son `dr`, un échec son DR brut. Lu par `jetValider('focus')` et par la fenêtre.
  *  LDB 46 l.130 ; VDM 02 l.131 ; LDB 12 l.170-185 */
 export function progresDeFocalisation(pf: PendingFocus, lanceur: Combatant, ni: number): { prev: number; step: ReturnType<typeof extendedTestStep> | null } {
   const prev = lanceur.focus?.spell === pf.spellId ? lanceur.focus.dr : 0;

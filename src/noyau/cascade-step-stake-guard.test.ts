@@ -3,6 +3,9 @@ import { readFileSync } from 'node:fs';
 import { join, sep } from 'node:path';
 import { stripLiterals } from './cascade-step-difficulty-guard.test';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { PENDING_BY_JET } from './slotsDeJet';
+import { cibleEtendueSchema } from '../data/schemas/grammaire/valeurs';
+import { porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
 
 /**
  * CLIQUET — une étape de cascade qui LANCE dit son ENJEU (#1117, arbitrage user : « Louvoyage… ça
@@ -22,16 +25,16 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * DÉCROISSANTE (`BASELINE_REQ`) : un site doté ABAISSE sa ligne.
  */
 
-/** COUVERTURE des quatre scans : `src/state` et `src/noyau` (les flux) ET `src/scenes` (les Flows AUTHORÉS des
- *  documents de scène — ils décrivent des jets pour de vrai, et un `testFlow` y est aussi muet
- *  qu'ailleurs). Un détecteur ne mesure que sa couverture : elle est NOMMÉE ici, la clé de baseline
- *  porte le dossier (`state/…`, `noyau/…`, `scenes/…`). */
+/** COUVERTURE des quatre scans : les flux (`src/noyau`, avec les zones de l'hôte web que `porteeDeGarde` balaie)
+ *  ET `src/scenes` (les Flows AUTHORÉS des documents de scène — ils décrivent des jets pour de vrai, et un
+ *  `testFlow` y est aussi muet qu'ailleurs). Un détecteur ne mesure que sa couverture : elle est NOMMÉE ici,
+ *  la clé de baseline porte le dossier (`noyau/…`, `scenes/…`). */
 const SRC = join(process.cwd(), 'src');
-const SCAN_ROOTS = [join(SRC, 'state'), join(SRC, 'noyau'), join(SRC, 'scenes')];
+const SCAN_ROOTS = porteeDeGarde(['noyau', 'scenes'], ['state']).map((d) => join(process.cwd(), d));
 
 /** Corpus RÉEL d'un jeu de racines : marche, lecture et mémoïsation par clé dans
  *  `scripts/guards/lib/sourceCorpus.mjs` — PARESSEUX, payé au 1ᵉʳ `it` qui le demande, jamais à la
- *  collecte des tests. Le PÉRIMÈTRE reste ici : `.ts` seuls (aucun `.tsx` sous `state/`+`noyau/`+`scenes/`),
+ *  collecte des tests. Le PÉRIMÈTRE reste ici : `.ts` seuls (aucun `.tsx` sous ces racines),
  *  hors tests. */
 function corpus(roots: string[]): { file: string; src: string }[] {
   return readCorpus(roots, { exts: ['.ts'] }).map(({ abs, text }) => ({ file: abs, src: text }));
@@ -91,6 +94,63 @@ function hasTopLevelKey(lit: string, name: string): boolean {
     else if (depth === 1) return true;
   }
   return false;
+}
+
+/** Ce qui dit COMMENT un descripteur se lance : sa difficulté (fixe ou dynamique), son OPPOSITION, ou la
+ *  cible d'un Test ÉTENDU, qui n'a pas de difficulté en porteur (`cibleEtendueSchema`, LDB 12 l.174). */
+export const COMMENT_IL_SE_LANCE = ['difficulty', 'difficultyBy', 'opposed', ...Object.keys(cibleEtendueSchema.shape)];
+
+/** Le `jet` dont le littéral en `start` porte la DONNÉE : celui-ci est la valeur d'une propriété nommée
+ *  par un slot porteur d'étape (`pendingTest: {…}`, table `PENDING_BY_JET` de `slotsDeJet.ts`). */
+const JET_DU_PORTEUR = new Map<string, string>(Object.entries(PENDING_BY_JET).flatMap(([jet, slot]) => (slot ? [[slot, jet]] : [])));
+function jetDuPorteur(s: string, start: number): string | undefined {
+  const m = /[{,]\s*([A-Za-z_$][\w$]*)\s*:\s*$/.exec(s.slice(Math.max(0, start - 200), start));
+  return m ? JET_DU_PORTEUR.get(m[1]) : undefined;
+}
+
+/** La 1ʳᵉ étape hôte de `jet` montée APRÈS `from` (`hostStep(get, { …, jet: '<jet>' })`) porte-t-elle un
+ *  enjeu ? Le slot se pose AVANT son étape : `hostStep` refuse une étape dont le slot est vide. */
+function hoteAvecEnjeu(src: string, s: string, from: number, jet: string): boolean {
+  for (const m of s.slice(from).matchAll(/\bhostStep\s*\(/g)) {
+    const o = s.indexOf('{', from + m.index! + m[0].length);
+    if (o < 0) return false;
+    let depth = 0;
+    let c = -1;
+    for (let j = o + 1; j < s.length; j++) {
+      if (s[j] === '{') depth++;
+      else if (s[j] === '}') { if (depth === 0) { c = j; break; } depth--; }
+    }
+    if (c < 0) return false;
+    // La valeur du `jet` est une chaîne, que `stripLiterals` blanchit : lue sur la source ORIGINALE.
+    if (!new RegExp(`\\bjet\\s*:\\s*'${jet}'`).test(src.slice(o, c))) continue;
+    return /\bstake\s*(?:[,:]|$)/.test(s.slice(o, c));
+  }
+  return false;
+}
+
+/** Une RANGÉE de bande (`BatchParticipant` : son `result` et son `interactive`, qu'aucun descripteur de
+ *  jet ne porte) est la DONNÉE d'une étape `bandStep`, qui porte l'enjeu (`BandSpec.stake`,
+ *  `CascadeModal` le lit sur l'étape). */
+const estRangeeDeBande = (lit: string): boolean => hasTopLevelKey(lit, 'result') && hasTopLevelKey(lit, 'interactive');
+
+/** Les bandes du fichier — `bandStep({…})` et les déclarations `makeBandFactory({…})`, dont la
+ *  `situation` pose l'étape — portent-elles toutes un enjeu ? Faux sans aucune bande : une rangée sans
+ *  étape qui la monte n'a d'enjeu nulle part. Mesure au FICHIER, la rangée étant montée par une
+ *  fonction que la bande appelle (`pursuitRow` → `pursuitRoundBand`). */
+function bandesAvecEnjeu(s: string): boolean {
+  let bandes = 0;
+  for (const m of s.matchAll(/\b(?:bandStep|makeBandFactory)\s*(?:<[^>(]*>)?\s*\(\s*\{/g)) {
+    const o = s.indexOf('{', m.index!);
+    let depth = 0;
+    let c = -1;
+    for (let j = o + 1; j < s.length; j++) {
+      if (s[j] === '{') depth++;
+      else if (s[j] === '}') { if (depth === 0) { c = j; break; } depth--; }
+    }
+    if (c < 0 || !/\bstake\s*(?:[,:]|$)/.test(s.slice(o, c))) return false;
+    bandes++;
+  }
+  return bandes > 0;
 }
 
 /** Étapes qui LANCENT (cible posée), sans `stake` — renvoie leurs numéros de ligne (1-based). */
@@ -237,12 +297,20 @@ export function flowTestsWithoutStake(src: string): number[] {
  * précédents mesurent des PORTES (le littéral d'étape, la `RollRequest` du seam, le 1ᵉʳ argument de
  * `testFlow`) ; or un jet se DÉCRIT dans un littéral, et ce littéral entre par bien d'autres portes :
  * un nœud `{ kind:'test', test:{…} }` monté à la main, un `FlowTest` passé DIRECTEMENT à
- * `openSkillTest`, un `spec` d'`openPartyTest`, un `extendedTest`, un pending de chirurgie. Toutes
- * produisent un jet, aucune n'était mesurée.
+ * `openSkillTest`, un `spec` d'`openPartyTest`, un `extendedTest`, l'argument de `ouvrirLeTestEtendu`
+ * (qui pose son enjeu sur l'étape `extendedJet`), l'opération armée de chirurgie
+ * (`medic.surgery`, dont `useSurgeryJetProps` lit l'enjeu). Toutes produisent un jet, aucune n'était
+ * mesurée.
+ *
+ * PORTEUR D'ÉTAPE : le littéral posé dans un slot de `PENDING_BY_JET` (`pendingTest: {…}`) est la
+ * DONNÉE d'une étape hôte, pas la forme qui lance : `CascadeModal` lit l'enjeu sur l'étape
+ * (`cur.stake`). L'enjeu se demande donc à l'étape hôte de ce `jet` montée après lui, et un littéral
+ * de porteur sans elle, ou dont l'étape n'en porte aucun, reste rouge. De même une RANGÉE de bande
+ * (`estRangeeDeBande`) est la donnée d'un `bandStep` : l'enjeu se demande aux bandes du fichier.
  *
  * Le discriminant est donc la FORME du DESCRIPTEUR, pas la fonction qui le reçoit : un littéral qui
- * nomme CE QU'ON TESTE (`skill` / `characteristic`) ET COMMENT (difficulté fixe, dynamique, ou
- * opposition) DÉCRIT un jet, et doit dire ce qu'il met en jeu. Cette couverture est un SUR-ENSEMBLE de
+ * nomme CE QU'ON TESTE (`skill` / `characteristic`) ET COMMENT (`COMMENT_IL_SE_LANCE` : difficulté fixe,
+ * dynamique, opposition, ou cible d'un Test étendu) DÉCRIT un jet, et doit dire ce qu'il met en jeu. Cette couverture est un SUR-ENSEMBLE de
  * celle de `flowTestsWithoutStake` — c'est exactement ce que PROUVE le rejeu de l'ancien périmètre
  * ci-dessous, site par site.
  *
@@ -274,9 +342,12 @@ export function literalTestsWithoutStake(src: string): number[] {
     const lit = s.slice(start, end);
     // Un `FlowTest` réel nomme SA difficulté (fixe ou dynamique) OU son OPPOSITION (un Test opposé n'a
     // pas de difficulté propre — Piège-lame, LDB 62 l.280 : sans cette branche, la mesure perdrait un
-    // site que l'ancien scan voyait, cf. le rejeu ci-dessous).
-    if (!hasTopLevelKey(lit, 'difficulty') && !hasTopLevelKey(lit, 'difficultyBy') && !hasTopLevelKey(lit, 'opposed')) continue;
+    // site que l'ancien scan voyait, cf. le rejeu ci-dessous), OU la cible d'un Test étendu.
+    if (!COMMENT_IL_SE_LANCE.some((k) => hasTopLevelKey(lit, k))) continue;
     if (/\bstake\s*(?:[,:]|$)/.test(lit)) continue;
+    if (estRangeeDeBande(lit) && bandesAvecEnjeu(s)) continue;
+    const jet = jetDuPorteur(s, start);
+    if (jet && hoteAvecEnjeu(src, s, end, jet)) continue;
     lines.push(src.slice(0, start).split('\n').length);
   }
   return lines;
@@ -402,6 +473,40 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
     expect(literalTestsWithoutStake(pasUnTest)).toHaveLength(0);
   });
 
+  it('PORTEUR D’ÉTAPE (4ᵉ forme) : l’enjeu se demande à l’étape hôte de son `jet`, jamais effacé', () => {
+    const porteurs = Object.entries(PENDING_BY_JET).flatMap(([jet, slot]) => (slot ? [{ jet, slot }] : []));
+    expect(porteurs.length).toBeGreaterThan(0);
+    // Un porteur à difficulté, et un porteur SANS : la cible d'un Test étendu, lue au SCHÉMA et non à la
+    // garde, pour que la retirer de `COMMENT_IL_SE_LANCE` rende ce cas rouge.
+    for (const { jet, slot } of porteurs) for (const comment of ['difficulty', ...Object.keys(cibleEtendueSchema.shape)]) {
+      const pose = `set({ ${slot}: { actorId: a.id, characteristic: 'force', ${comment}, roll: null } });`;
+      const hote = (j: string, enjeu: string) => `const e = hostStep(get, { id: 'x', kind: 'k', jet: '${j}', actorId: a.id${enjeu} });`;
+      const autre = porteurs.find((p) => p.jet !== jet)?.jet ?? 'fumble';
+      const cas = `${slot} (${comment})`;
+      expect(literalTestsWithoutStake(`${pose}\n${hote(jet, ', ...(f.stake ? { stake: f.stake } : {})')}`), `${cas} : l’étape porte l’enjeu`).toHaveLength(0);
+      expect(literalTestsWithoutStake(`${pose}\n${hote(jet, '')}`), `${cas} : étape hôte sans enjeu`).toHaveLength(1);
+      expect(literalTestsWithoutStake(pose), `${cas} : aucune étape hôte`).toHaveLength(1);
+      expect(literalTestsWithoutStake(`${hote(jet, ', stake')}\n${pose}`), `${cas} : étape montée AVANT le slot`).toHaveLength(1);
+      expect(literalTestsWithoutStake(`${pose}\n${hote(autre, ', stake')}`), `${cas} : étape d’un autre jet`).toHaveLength(1);
+    }
+    const horsPorteur = `set({ medic: { ...m, surgery: { kind: act, skill: h.skill, difficulty: 'intermediaire' } } });\nconst e = hostStep(get, { id: 'x', kind: 'k', jet: 'test', actorId: a.id, stake });`;
+    expect(literalTestsWithoutStake(horsPorteur), 'un slot hors `PENDING_BY_JET` est la forme lue par le joueur').toHaveLength(1);
+  });
+
+  it('RANGÉE DE BANDE (4ᵉ forme) : l’enjeu se demande à la bande qui la monte, jamais effacé', () => {
+    const rangee = `const r = { id: h.id, label, skill: { id: s }, difficulty: 'intermediaire', result: null, interactive: true };`;
+    const bande = (enjeu: string) => `return bandStep({ id: 'x', kind: 'k', label${enjeu} }, rangees);`;
+    expect(literalTestsWithoutStake(`${rangee}\n${bande(', stake: combatStakeRef(\'pursuitMove\')')}`), 'la bande porte l’enjeu').toHaveLength(0);
+    expect(literalTestsWithoutStake(`${rangee}\n${bande('')}`), 'bande sans enjeu').toHaveLength(1);
+    expect(literalTestsWithoutStake(rangee), 'aucune bande').toHaveLength(1);
+    expect(literalTestsWithoutStake(`${rangee}\n${bande(', stake')}\n${bande('')}`), 'une des bandes sans enjeu').toHaveLength(1);
+    const fabrique = (enjeu: string) => `const b = makeBandFactory<Due>({ cle: (d) => d.k, rangee: (d) => d.row, situation: (d) => ({ id: 'x', kind: 'k'${enjeu} }) });`;
+    expect(literalTestsWithoutStake(`${rangee}\n${fabrique(', stake: combatStakeRef(\'combatPsych\')')}`), 'la fabrique de bandes porte l’enjeu').toHaveLength(0);
+    expect(literalTestsWithoutStake(`${rangee}\n${fabrique('')}`), 'fabrique sans enjeu').toHaveLength(1);
+    const descripteur = `const t = { skill: { id: s }, difficulty: 'intermediaire' };\n${bande(', stake')}`;
+    expect(literalTestsWithoutStake(descripteur), 'un descripteur, sans `result`/`interactive`, n’est pas une rangée').toHaveLength(1);
+  });
+
   /** Les `FlowTest` : les 7 producteurs de Flow (vague 5) fournissent leur `FlowTest.stake`
    *  (Escalade et Saut → la fiche Chute ; Surprise → l'État Surpris ; Vigilance → le Talent ;
    *  Focalisation interrompue et Récolte → leur fiche ; Piège-lame → l'Atout qui la porte), et les Flows
@@ -517,23 +622,23 @@ describe('« un signe, un sens » — les enjeux et leurs conséquences parlent 
 /**
  * L'enjeu AUTHORÉ reste au CONTENU (#1262 V2 L6c). `AuthoredStake` (`{ authored: '…' }`) est la forme
  * ouverte aux DOCUMENTS de campagne par l'arbitrage user du 2026-08-12 — « l'enjeu d'un Flow authoré
- * s'AUTHORE DANS LA SCÈNE ». Ce n'est PAS une amnistie du texte au call-site : le MOTEUR (`src/state`,
- * `src/noyau`, `src/engine`) continue de passer par les portes fail-closed de dataset, sans quoi la zone d'enjeu
+ * s'AUTHORE DANS LA SCÈNE ». Ce n'est PAS une amnistie du texte au call-site : le MOTEUR (`src/noyau`,
+ * `src/engine`) continue de passer par les portes fail-closed de dataset, sans quoi la zone d'enjeu
  * redeviendrait le champ libre que l'arbitrage Z5 a fermé — et une paraphrase de règle y rentrerait
  * par la fenêtre.
  *
- * COUVERTURE, nommée : les sources de `src/state`, `src/noyau` et `src/engine`, hors tests. L'ÉDITEUR
- * (`src/ui/editor`) en écrit, lui, par construction — c'est la plume de l'auteur ; les documents
+ * COUVERTURE, nommée : les sources de `src/noyau` et `src/engine`, avec les zones de l'hôte web que
+ * `porteeDeGarde` balaie, hors tests. L'ÉDITEUR en écrit, lui, par construction — c'est la plume de l'auteur ; les documents
  * (`src/scenes`, projets JSON) en portent.
  */
 describe('l’enjeu AUTHORÉ reste au contenu — le moteur passe par les datasets (#1262 V2 L6c)', () => {
-  const MOTEUR = [join(SRC, 'state'), join(SRC, 'noyau'), join(SRC, 'engine')];
+  const MOTEUR = porteeDeGarde(['noyau', 'engine'], ['state']).map((d) => join(process.cwd(), d));
   // La FORME du littéral d'enjeu authoré : `{ authored: … }` — `AuthoredStake` n'a que ce champ (ses
   // deux autres sont `never`), il ouvre donc toujours son accolade. Une ANNOTATION de paramètre
   // (`captureMutation(current: Scene, authored: Scene)`) ne pose aucun enjeu et suit une virgule.
   const AUTHORED = /\{\s*authored\s*:/;
 
-  it('aucun enjeu authoré à la main dans `src/state` / `src/noyau` / `src/engine`', () => {
+  it('aucun enjeu authoré à la main dans le moteur', () => {
     const fautifs: string[] = [];
     for (const { file, src } of corpus(MOTEUR)) {
       if (AUTHORED.test(strip(src))) fautifs.push(keyOf(file));

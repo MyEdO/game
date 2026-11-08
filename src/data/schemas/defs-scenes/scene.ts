@@ -232,7 +232,7 @@ export const architectureStoreySchema = nommerChamps(z.strictObject({
   parts: listeCle(architecturePartSchema, 'id'),
   roomZoneIds: z.array(z.string()),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, z: { label: "étage" }, parts: { label: "parties" }, roomZoneIds: { label: "pièces" , texte: { regime: "technique"} } });
-/** Nature d'un ornement de façade — les trois `KINDS_DE_DECOR` (`builders/walls.ts`) portent le libellé
+/** Nature d'un ornement de façade — les trois `KINDS_DE_DECOR` (`noyau/monde/facades`) portent le libellé
  *  du prop que le catalogue de façades leur pose (`data/props.json`). */
 export const facadeFeatureKindSchema = enumNomme({
   gable: 'Pignon',
@@ -308,7 +308,7 @@ const matiereReliefSchema: z.ZodType<string, string> = idDe('material', 'relief'
 /**
  * MATIÈRES DE RELIEF de la scène, UNE par PARTIE émise (#1691) : falaise, rampe, dalle de tablier,
  * pilier. Les clés sont EXACTEMENT le vocabulaire `PARTS_RELIEF` de la couche donnée — celui que
- * `gameIso/builders/floors.ts` pose en `MaterialRef.part`, jamais une traduction.
+ * `noyau/monde/volume/floors.ts` pose en `MaterialRef.part`, jamais une traduction.
  *
  * Le champ est EXIGÉ sur la scène : le builder n'a plus AUCUN choix de matière à faire, donc aucun
  * repli à offrir — une scène qui n'en porte pas est refusée AU PARSE, nommément, plutôt que rendue
@@ -360,7 +360,7 @@ export const sceneRoofDefaultsSchema = nommerChamps(z.strictObject({
 /** `Scene.roofDefaults` — matière, pente de référence et borne de comble de la scène (#1715). */
 export type SceneRoofDefaults = z.infer<typeof sceneRoofDefaultsSchema>;
 /** MASSE de bâtiment (#823, remplace `RoofSection` authoré à la main) : l'INTENTION, jamais la
- *  géométrie du toit — `gameIso/builders/roofs.ts` DÉRIVE pans/faîte/noues/croupes par une formule
+ *  géométrie du toit — `noyau/monde/volume/toits.ts` DÉRIVE pans/faîte/noues/croupes par une formule
  *  UNIQUE (`hauteur(case) = hauteurÉgout + distance(case, bord de la masse) × métresParCase ×
  *  tan(pente)`), et `roomZoneIds` par intersection avec `Scene.effectZones` (plus de redistribution
  *  manuelle). `z` = étage du PLANCHER SOMMET couvert par le toit (le dessous immédiat de la masse) ;
@@ -439,7 +439,7 @@ export const architectureBodySchema = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string().optional(),
   /** TYPE de bâtiment du corps (`buildings.json`) : il porte la couverture de référence du type et
-   *  ses ornements d'identité (`buildingFeatures`, `gameIso/builders/props.ts`). ABSENT =
+   *  ses ornements d'identité (`buildingFeatures`). ABSENT =
    *  corps sans identité de bâtiment (un bourg, un hameau : plusieurs bâtiments sous UN corps) — la
    *  dérivation le coiffe, aucun ornement n'est émis. */
   style: typeDeBatimentSchema.optional(),
@@ -466,8 +466,8 @@ export const dialogueChoiceSchema = nommerChamps(z.strictObject({
    *  du bouton que le joueur clique, et l'archive de dialogue la stocke comme telle. */
   label: z.string(),
   /** Icône d'affordance (registre `src/data/icons/`, rendue par `<Icon>` dans `DialogueBox`) — jamais
-   *  un emoji collé au `label` (#290, doctrine anti-emoji). Id de string brute (couture UI hors de
-   *  `src/state`, cf. AGENTS.md : la logique reste pure, `<Icon>` valide l'id au rendu). */
+   *  un emoji collé au `label` (#290, doctrine anti-emoji). Id de string brute (cf. AGENTS.md : la
+   *  logique reste pure, `<Icon>` valide l'id au rendu). */
   icon: z.string().optional(),
   /** Condition d'AFFICHAGE du choix (algèbre `Condition`, cf. `evalCondition`). Absente = toujours visible. */
   when: conditionSchema.optional(),
@@ -485,7 +485,7 @@ export const dialogueNodeSchema = proseNommee(nommerChamps(z.strictObject({
   id: z.string(),
   /** Id d'une `SceneEntity` de la scène courante → son PORTRAIT et son NOM (label) pour CE nœud.
    *  Permet d'alterner les interlocuteurs dans une même conversation. À défaut, l'interlocuteur de
-   *  SESSION (`state.dialogue.speakerId`, posé par `interactEntity` ou `startDialogue.speakerId`). */
+   *  SESSION (`state.dialogue.speakerId`, posé par `interagirAvecLEntite` ou `startDialogue.speakerId`). */
   speakerId: z.string().optional(),
   choices: listeCle(dialogueChoiceSchema, 'id'),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, speakerId: { label: "locuteur" , texte: { regime: "technique"} }, choices: { label: "réponses" } }), 'dialogues[].nodes[].desc');
@@ -529,11 +529,13 @@ export const threatTierSchema = z.enum(['dangereuse', 'tresDangereuse', 'extreme
  *  à la BRÈCHE, indépendamment du sort des combattants. `surviveRounds` : victoire posée au début du
  *  Round `rounds + 1` (le groupe a tenu N Rounds complets). `reachZone` réutilise le rectangle de zone
  *  des `Trigger`/`SceneEffectZone` (`inRect`, `combatGeometry.ts`) — aucun 2e mécanisme de zone.
- *  `woundsThreshold` (#215) : REDDITION à seuil de dommage partiel — `targetId` référence l'id
- *  STABLE d'une entité de scène (`SceneEntity.id` = `Combatant.id` au spawn, identité unifiée).
- *  Le RAW ne chiffre AUCUN seuil de reddition (silence confirmé) ; seul précédent chiffré, la
- *  reddition d'un monstre marin à mi-Blessures (`MDG 15 l.143`, `l.166-168`). `belowPercent` reste
- *  une valeur ÉDITABLE par rencontre, sans seuil RAW imposé (AGENTS.md règle 7).
+ *  `woundsThreshold` (#215) : sortie à seuil de dommage partiel — une cible à `atOrBelowPercent` % de
+ *  ses Blessures de départ OU MOINS sort du combat : `targetId` référence l'id STABLE d'une entité de
+ *  scène (`SceneEntity.id` = `Combatant.id` au spawn, identité unifiée) ; absent, CHAQUE adversaire sort
+ *  ainsi, et la victoire vient quand aucun ne reste (`MDG 15 l.143`, `l.166-168`). Un navire amène son
+ *  pavillon, une créature est repoussée. Le RAW ne chiffre AUCUN seuil de reddition ; seul précédent
+ *  chiffré, le monstre marin à la moitié de ses Blessures (`MDG 15 l.143`, `l.166-168`).
+ *  `atOrBelowPercent` reste une valeur ÉDITABLE par rencontre (AGENTS.md règle 7).
  *  `firstBlood` (#471) : DUEL JUDICIAIRE — « le premier sang est la première attaque qui cause une
  *  perte de plus de 3 Blessures […] ; un adversaire est incapable de continuer lorsqu'il est réduit
  *  à 0 Blessure » (`NADJ 06 l.175-177`) — les DEUX fins restent actives en parallèle, la seconde étant
@@ -550,8 +552,8 @@ export const victoryConditionSchema = z.discriminatedUnion('type', [
     rect: architectureRectSchema,
     camp: campSchema.optional(),
   }), { type: { label: "type"  }, rect: { label: "rectangle" }, camp: { label: "camp"  } }),
-  /** Reddition à seuil de dommage partiel (#215) — `targetId` = `SceneEntity.id`. */
-  nommerChamps(z.strictObject({ type: z.literal('woundsThreshold'), targetId: z.string(), belowPercent: z.number() }), { type: { label: "type"  }, targetId: { label: "cible" , texte: { regime: "technique"} }, belowPercent: { label: "seuil en pourcentage" } }),
+  /** Sortie à seuil de dommage partiel (#215) — `targetId` = `SceneEntity.id`, absent = chaque adversaire. */
+  nommerChamps(z.strictObject({ type: z.literal('woundsThreshold'), targetId: z.string().optional(), atOrBelowPercent: z.number() }), { type: { label: "type"  }, targetId: { label: "cible" , texte: { regime: "technique"} }, atOrBelowPercent: { label: "seuil en pourcentage" } }),
   /** Duel judiciaire (`NADJ 06 l.175-177`) — `threshold` ÉDITABLE, défaut 3. */
   nommerChamps(z.strictObject({ type: z.literal('firstBlood'), threshold: z.number().optional() }), { type: { label: "type"  }, threshold: { label: "seuil" } }),
 ]);
@@ -636,7 +638,7 @@ export const layerSchema = nommerChamps(z.strictObject({
   tiles: z.array(idDe('terrain')),
   height: z.array(z.number()).optional(),
   /** CRÉNELURE (RENDU PUR) : parallèle à `tiles` (`y·w+x`). `null` = pas de crénelure ; une chaîne = id de
-   *  structure crénelée (`structureAppearance.json`) → le crest builder (`crestGeometry`) en dérive des MERLONS
+   *  structure crénelée (`structureAppearance.json`) → la crénelure (`cretesDePerimetre`) en dérive des MERLONS
    *  sur le PÉRIMÈTRE (arête dont le voisin même-z n'est pas crénelé) — jamais à l'intérieur. Marqueur de
    *  DÉCORATION seulement (comme un toit auto-dessiné) : n'affecte NI la passabilité NI la LdV plongeante. */
   crenellated: z.array(z.string().nullable()).optional(),
@@ -763,7 +765,7 @@ export const wallSegSchema = nommerChamps(z.strictObject({
 /**
  * UNE arête, UN segment — verrou AU PARSE (#1624). L'index d'arêtes (`noyau/monde/wallIndex.ts`) est la
  * seule lecture de « quels segments tiennent cette arête ? », et ses consommateurs prennent le
- * PREMIER (`aretesA(...)[0]`, composé par `gameIso/builders/roofs.ts`) : un second segment sur la
+ * PREMIER (`aretesA(...)[0]`, composé par `noyau/monde/volume/toits.ts`) : un second segment sur la
  * même clé `x,y,side,z` serait une donnée MUETTE, jamais rendue ni lue. `setEdgeWall`
  * (`noyau/sceneEdit.ts`) dédoublonne à la pose, mais l'authoring littéral, `asciiMap` et les
  * documents relus par la porte (`parseProject`, `parseSceneDeProjet`, `noyau/worldMap.ts`) ne passent
@@ -813,7 +815,7 @@ export const sceneSchema = nommerChamps(z.strictObject({
   environment: z.enum(['rural', 'urbain', 'sauvage']).optional(),
   /** Météo (`LDB 14 l.68-82`) — l'ABSENCE est une VALEUR : temps non spécifié, aucun modificateur de
    *  combat et aucune ambiance de météo. Lue SANS REPLI par `noyau/monde/sceneRules.ts`
-   *  (`sceneCombatModifiers`) et par `gameIso/catalog/ambiance.ts`. */
+   *  (`sceneCombatModifiers`) et par l'ambiance de rendu. */
   weather: sceneWeatherSchema.optional(),
   /** Id d'un `lightLevels`, ou `'auto'`/absent = suit l'horloge via `ambiance`. */
   ambientLight: z.string().optional(),

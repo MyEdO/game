@@ -26,7 +26,7 @@ describe('fenetreFermer', () => {
     expect(banc.getState().pendingCascade?.cursor, 'la séquence reste à sa première étape').toBe(0);
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('jet.ferme.etapesDues'));
 
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetLancer('cascade');
     expect(banc.getState().pendingCascade?.cursor, 'bilan').toBe(TROIS_ETAPES.length);
     expect(fermeturesDeLaFenetre(banc.getState()).get('fenetreFermer@cascade')).toBeNull();
     banc.getState().fenetreFermer('cascade');
@@ -53,6 +53,15 @@ describe('fenetreFermer', () => {
     expect(intentAllowedFor(banc.getState(), 0, 'fenetreFermer', ['chapterRecap'])).toBe(true);
     banc.getState().fenetreFermer('chapterRecap');
     expect(banc.getState().pendingChapterRecap).toBeNull();
+  });
+
+  it('l’infirmerie ne se ferme pas tant qu’une passe d’opération est posée : refusée et dite', () => {
+    const banc = ouvrirLeBanc();
+    banc.setState({ medic: { patientId: null }, pendingSurgery: { healerId: 'h1' } as never });
+    expect(fermeturesDeLaFenetre(banc.getState()).get('fenetreFermer@medic')).toBe('soinEnCours');
+    banc.getState().fenetreFermer('medic');
+    expect(banc.getState().medic, 'l’infirmerie reste ouverte').not.toBeNull();
+    expect(banc.getState().journal.slice(-1)[0]).toBe(t('jet.ferme.soinEnCours'));
   });
 
   it('la sortie du propriétaire suit son siège : l’infirmerie, à tous, se ferme d’un invité ; une fenêtre inconnue, de personne', () => {

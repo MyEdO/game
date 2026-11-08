@@ -7,9 +7,7 @@ import { activityById } from '../engine/activities';
 import { isUnarmed, itemFromTrappingById, customTrapping } from '../engine/items';
 import { CHAR_KEYS } from '../engine/types';
 import { ruleDef } from '../engine/policy';
-import { isTradeHubEntry, isEchangeable } from '../engine/cargo';
-import { LAND_CARGO_ENTRIES, isLandTradeHub } from '../engine/landCargo';
-import { CARGO_ENTRIES, isSeaTradeHub } from '../engine/seaVoyage';
+import { CARGO_ENTRIES, isTradeHubColumn, isTradeHubEntry, isEchangeable } from '../engine/cargo';
 
 /**
  * PARITÉ des CHAMPS DÉCLARÉS qui ont remplacé un branchement par id (#1318 E4/C4-δ2).
@@ -22,7 +20,7 @@ import { CARGO_ENTRIES, isSeaTradeHub } from '../engine/seaVoyage';
  * marque aujourd'hui sont EXACTEMENT celles que le moteur nommait — ni une de plus (un comportement
  * accordé par mégarde à une autre entrée), ni une de moins (le comportement perdu en silence).
  *
- * C'est le pendant du plafond `src/ui/registry-id-branch-guard.test.ts` : là-bas on compte les
+ * C'est le pendant du plafond `src/registry-id-branch-guard.test.ts` : là-bas on compte les
  * branchements restants, ici on prouve que leur remplacement DÉCLARÉ couvre la même population.
  */
 describe('#1318 E4/C4-δ2 — parité « le moteur ne nomme plus d’id, l’entrée porte la marque »', () => {
@@ -172,19 +170,21 @@ describe('#1318 E4/C4-δ3 — parité des champs déclarés de la couche activit
     expect(sangle.riderTest).toEqual({ test: { skill: { id: 'chevaucher' }, characteristic: 'agilite', difficulty: 'complexe' }, fallM: 2 });
   });
 
-  it('CARGAISONS — `tradeHub` : exactement le marqueur « Commerce » des DEUX catalogues, et les deux commerces le lisent', () => {
+  it('CARGAISONS — `tradeHub` : exactement le marqueur « Commerce » de CHAQUE voie, et les deux commerces le lisent', () => {
     // Le concept « plaque tournante » vivait sur 6 sites `production.includes('commerce')` : il est
     // désormais DÉCLARÉ sur l'entrée marqueur, lu par `isTradeHubEntry` (`engine/cargo.ts`).
-    expect(LAND_CARGO_ENTRIES.filter(isTradeHubEntry).map((e) => e.id)).toEqual(['commerce-terre']);
-    expect(CARGO_ENTRIES.filter(isTradeHubEntry).map((e) => e.id)).toEqual(['commerce-mer']);
+    const marqueurs = (voie: string, hub: boolean) =>
+      CARGO_ENTRIES.filter((e) => e.voie === voie && !isEchangeable(e) && isTradeHubEntry(e) === hub).map((e) => e.id);
+    expect(marqueurs('terre', true)).toEqual(['commerce-terre']);
+    expect(marqueurs('mer', true)).toEqual(['commerce-mer']);
     // Les autres marqueurs (« Subsistance », « Minimum vital ») ne le portent PAS.
-    expect(LAND_CARGO_ENTRIES.filter((e) => !isEchangeable(e) && !isTradeHubEntry(e)).map((e) => e.id)).toEqual(['subsistance']);
-    expect(CARGO_ENTRIES.filter((e) => !isEchangeable(e) && !isTradeHubEntry(e)).map((e) => e.id)).toEqual(['minimum-vital']);
-    // …et les deux prédicats de colonne le lisent, chacun sur SON catalogue.
-    expect(isLandTradeHub(['commerce-terre', 'vin-eau-de-vie'])).toBe(true);
-    expect(isLandTradeHub(['subsistance', 'vin-eau-de-vie'])).toBe(false);
-    expect(isLandTradeHub(undefined)).toBe(false);
-    expect(isSeaTradeHub(['commerce-mer'])).toBe(true);
-    expect(isSeaTradeHub(['minimum-vital'])).toBe(false);
+    expect(marqueurs('terre', false)).toEqual(['subsistance']);
+    expect(marqueurs('mer', false)).toEqual(['minimum-vital']);
+    // …et le prédicat de colonne le lit, quelle que soit la voie de la colonne.
+    expect(isTradeHubColumn(['commerce-terre', 'vin-eau-de-vie'])).toBe(true);
+    expect(isTradeHubColumn(['subsistance', 'vin-eau-de-vie'])).toBe(false);
+    expect(isTradeHubColumn(undefined)).toBe(false);
+    expect(isTradeHubColumn(['commerce-mer'])).toBe(true);
+    expect(isTradeHubColumn(['minimum-vital'])).toBe(false);
   });
 });

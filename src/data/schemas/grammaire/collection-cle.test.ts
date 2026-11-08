@@ -67,6 +67,7 @@ describe('anti-perte — le seul détecteur du zéro SILENCIEUX', () => {
  */
 const LISTES_DE_REFERENCES: Readonly<Record<string, string>> = {
   '.scenes[].effectZones[].onCross[]^summon.addTraits[]': 'références de Traits (traits.json)',
+  '.scenes[].effectZones[].onCross[]^combatEnMer.adversaire.optionals[]': 'références de Traits facultatifs (traits.json)',
   '.scenes[].effectZones[].onCross[]^suppressTalents.talents[]': 'références de Talents (talents.json)',
   '.scenes[].effectZones[].onCross[]^testMod.exceptSkills[]': 'références de Compétences (skills.json)',
   '.scenes[].triggers[].when.of[]': 'conditions composées : `id` d’un objet/talent désigné',
@@ -253,7 +254,7 @@ describe('clé de collection — la co-descente re-dérive les racines, les cat�
       const racine = fichier === undefined ? undefined : racines.get(fichier);
       return racine === undefined || racine === tableau ? [] : [{ k, attendue: `${fichier}#${chercher(racine, tableau, '')}`, tableau }];
     });
-    expect(nichees).toHaveLength(53);
+    expect(nichees).toHaveLength(56);
     const fichiersNiches = new Set(nichees.map(({ attendue }) => attendue.split('#')[0]));
     const mesurees = collectionsDesDocuments(DEFS, new Map([...racines].filter(([f]) => fichiersNiches.has(f))));
     const parTableau = nichees.map(({ k, tableau }) => [k, mesurees.filter((c) => c.valeur === tableau).map((c) => c.cle)]);

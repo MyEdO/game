@@ -1,0 +1,34 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://cadres/monde.tscn" id="1_monde"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+
+[node name="Monde" instance=ExtResource("1_monde")]
+
+[node name="Defilement" type="ScrollContainer" parent="Cadre/Marges/Colonne/Contenu"]
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Lieu" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Defilement"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 24
+
+[node name="Services" type="GridContainer" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu"]
+theme_override_constants/h_separation = 40
+theme_override_constants/v_separation = 20
+columns = 3
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu/Services"]
+script = ExtResource("2_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("service/")
+
+[node name="Separation" type="HSeparator" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu"]
+
+[node name="Trajets" type="HFlowContainer" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu"]
+theme_override_constants/h_separation = 40
+theme_override_constants/v_separation = 20
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu/Trajets"]
+script = ExtResource("2_zone")
+source = "fenetre.corps"

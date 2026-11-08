@@ -4,9 +4,11 @@
 //
 // DÉTECTEURS CONSTANTS : la base et la tête se MESURENT par le même code, posé dans chaque image — deux fois,
 // par le détecteur de la tête (`scripts/` de son image git) et par celui de la base (`scripts/` de son image git).
-// La constance couvre la MESURE ; les GÉNÉRATEURS appartiennent à l'image. L'image est celle de SON commit :
-// `src/` — donnée, defs, grammaire, `OP_DEFS` — et ses cibles de code, produites par son propre `genererCode`
-// (scripts/docs/build-all.mjs), une fois par commit, avant la pose du détecteur. Une mesure impossible sous ces
+// Le CLASSEMENT que la mesure exécute sous `src/` — registres, fabriques, classifieurs, parcours — est du code du
+// détecteur : chaque module qui porte la MARQUE (`MARQUE_DE_CLASSEMENT`) voyage avec lui (#2969). La constance
+// couvre la MESURE ; les GÉNÉRATEURS et les DÉCLARATIONS appartiennent à l'image. L'image est celle de SON commit :
+// `src/` — donnée, defs, vocabulaire `TYPES`, `OP_DEFS`, table des poses — et ses cibles de code, produites par son
+// propre `genererCode` (scripts/docs/build-all.mjs), une fois par commit, avant la pose du détecteur. Une mesure impossible sous ces
 // cibles se rejoue sous celles des générateurs du DÉTECTEUR (`comptesDuCommit`) : une borne se mesure si UNE des deux
 // configurations aboutit, sinon sa paire est sautée et nommée avec les deux raisons ; une paire sautée refuse.
 // Ce qui monte, naît ou cède sous l'un ou l'autre détecteur est le SCHÉMA (un `idDe` relâché se voit, `FEUILLES_D_ID`)
@@ -22,9 +24,9 @@
 // voit un chemin `idDe` présent à ses deux bornes.
 // La preuve d’un FAUX-POSITIF est du texte, sans vérification de sa vérité ; `SOUS_LA_PORTE`, ses identités et
 // la politique du juge courant restent des entrées de confiance.
-// Le classement `estFeuilleDId`/`descente` et `OP_DEFS`, importé de `src/`, suit l’image : sa modification peut masquer une baisse sous les deux détecteurs (#2969).
-// La marque de produit de fabrique (`marquerProduit`, `grammaire/interne/produits.ts`) se lit dans l’image : la changer
-// re-classe les STRUCTURES LOCALES sous les deux détecteurs (#3012).
+// Un algorithme de classement de `src/` sans la MARQUE suit l’image, et un détecteur antérieur à la marque d’un module
+// mesure par celui de l’image : leur changement peut masquer une baisse sous les deux détecteurs. Un export d’un module
+// de classement que l’image importe et que l’autre détecteur ne porte pas empêche une mesure.
 // La table des poses (`grammaire/interne/poses.ts`) se lit dans l’image : la changer re-classe les formes de
 // l’inventaire sous les deux détecteurs, hors porte. Une composition ajoutée dans un second def, sans donnée, fait
 // sortir un nœud G1 sous les deux détecteurs ; c’est une forme partagée réelle, pas un re-classement (#3012).
@@ -110,8 +112,15 @@ export function refusDesComptes(base: Comptes, tete: Comptes): string[] {
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url));
 /** Ce que le détecteur apporte à une image : son code et sa configuration de modules. */
 const DU_DETECTEUR = ['scripts', 'package.json', 'tsconfig.json'];
-/** Ce que l'image apporte : `src/` (donnée ET schémas) et `Source/` (les chapitres que mesure `SOURCE_FORMAT`). */
-const DE_L_IMAGE = ['src', 'Source'];
+/** La première ligne d'un module de CLASSEMENT de `src/` (#2969) : le détecteur qui le porte le pose dans l'image. */
+export const MARQUE_DE_CLASSEMENT = '// CLASSEMENT DU DÉTECTEUR';
+/** Le dossier des modules de classement. */
+const RACINE_DU_CLASSEMENT = 'src/data/schemas/grammaire';
+/** Le texte d'un module est-il du classement ? */
+const estDuClassement = (texte: string): boolean => texte.startsWith(MARQUE_DE_CLASSEMENT);
+/** Ce que l'image apporte : `src/` (donnée ET schémas), `Source/` (les chapitres que mesure `SOURCE_FORMAT`) et
+ *  `docs/dossiers/` (les fiches que lit le registre `FICHIERS_DE_DOSSIER`, cible de code de `src/`). */
+const DE_L_IMAGE = ['src', 'Source', 'docs/dossiers'];
 /** Les fichiers TEXTE que la mesure lit ; un fichier binaire ne se pose pas. */
 const TEXTE = /\.(?:md|json|ts|tsx|mts|mjs|js|cjs|css|snap)$/;
 /** Le point d'entrée de la mesure, dans le code d'un détecteur. */
@@ -123,23 +132,27 @@ class MesureImpossible extends Error {}
 /** Le dossier d'une image est DANS un dépôt git : ses cibles de code y verraient l'écrivain de ce dépôt (`gitDirContenant`). */
 class ImageDansUnDepot extends Error {}
 
-/** Les fichiers texte de `dossiers` dans l'image `arbre`, écrits sous `dossier`. */
-function ecrireDeLImage(depot: Depot, arbre: string, dossier: string, dossiers: readonly string[]): void {
+/** Les fichiers texte de `dossiers` dans l'image `arbre` que `retenir` garde, écrits sous `dossier`. */
+function ecrireDeLImage(depot: Depot, arbre: string, dossier: string, dossiers: readonly string[], retenir = (_texte: string): boolean => true): void {
   for (const [rel, texte] of lireEnLot(depot, arbre, listerImage(depot, arbre, ...dossiers).filter((c) => TEXTE.test(c)))) {
-    if (texte === null) continue;
+    if (texte === null || !retenir(texte)) continue;
     mkdirSync(dirname(join(dossier, rel)), { recursive: true });
     writeFileSync(join(dossier, rel), texte);
   }
 }
 
-/** Un DÉTECTEUR : son nom, sa clé de mémo, et la pose de son code (`DU_DETECTEUR`) dans une image. */
+/** Un DÉTECTEUR : son nom, sa clé de mémo, et la pose de son code (`DU_DETECTEUR`, son classement) dans une image. */
 type Detecteur = { readonly nom: string; readonly cle: string; readonly poser: (dossier: string) => void };
 
-/** Le détecteur du commit `sha` : son `scripts/`, son `package.json` et son `tsconfig.json`, lus par git. */
+/** Le détecteur du commit `sha` : son `scripts/`, son `package.json`, son `tsconfig.json` et ses modules de classement
+ *  (`MARQUE_DE_CLASSEMENT`), lus par git. */
 export const detecteurDuCommit = (depot: Depot, sha: string): Detecteur => ({
   nom: `détecteur de la base (${sha.slice(0, 9)})`,
   cle: sha,
-  poser: (dossier) => ecrireDeLImage(depot, sha, dossier, DU_DETECTEUR),
+  poser: (dossier) => {
+    ecrireDeLImage(depot, sha, dossier, DU_DETECTEUR);
+    ecrireDeLImage(depot, sha, dossier, [RACINE_DU_CLASSEMENT], estDuClassement);
+  },
 });
 
 /** La première ligne d'erreur d'un processus enfant : la première `…Error`, sinon la dernière ligne de son stderr. */
@@ -212,11 +225,13 @@ function imageGeneree(depot: Depot, sha: string, configuration: string): string 
   return image;
 }
 
-/** Les comptes de `sha` sous les cibles de SON image (`imageGeneree`), le code du `detecteur` posé à la place du sien. */
+/** Les comptes de `sha` sous les cibles de SON image (`imageGeneree`), le code du `detecteur` posé à la place du sien,
+ *  sur le classement de l'image qu'une pose précédente a pu recouvrir. */
 function mesurerSousLesCiblesDeLImage(depot: Depot, sha: string, detecteur: Detecteur): Comptes {
   const configuration = `${sha.slice(0, 9)} sous les cibles de l’image`;
   const image = imageGeneree(depot, sha, configuration);
   rmSync(join(image, 'scripts'), { recursive: true, force: true });
+  ecrireDeLImage(depot, sha, image, [RACINE_DU_CLASSEMENT]);
   detecteur.poser(image);
   return mesurerImage(image, configuration);
 }

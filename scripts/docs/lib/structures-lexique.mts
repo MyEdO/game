@@ -115,10 +115,10 @@ export const ANGLES_MORTS: readonly string[] = [
   'Le classement est ORDONNÉ : une VALEUR (reconnue à sa pose, sinon à son noyau) passe avant une RÉFÉRENCE ; un objet qui recoupe deux concepts n’est compté qu’une fois.',
   'Deux comparateurs de `water-exposure.json` (`<=`/`>=` sous `woundsRemaining`/`woundsLost`) échappent à `conditionSchema` et restent comptés en op.',
   'Le scan AST est borné aux littéraux `z.object`/`z.strictObject`/`z.looseObject` (et au 3ᵉ argument de `document()`) des modules de schéma des documents, lus aux dossiers des registres de `SchemaDef` (`DOSSIERS_DE_DEFS`, `scripts/docs/lib/cibles-registres.mjs`) et keyés par BASENAME (deux modules homonymes LÈVENT) : il ne voit ni les clés ajoutées par `.extend(...)`, ni un schéma composé par une fabrique, ni un littéral hors de ces dossiers. Le « schéma commun candidat » est apparié par SIGNATURE EXACTE.',
-  'SPREADS (`...X.shape` d’un schéma, `...X` d’un objet de shapes) : un littéral de def s’apparie et se classe sur ses seules clés PROPRES, une clé venue d’un spread étant composée, jamais re-tapée ; la grammaire, elle, les résout récursivement pour signer ses schémas communs (`profilDeVoileSchema` = `crew,m,spec`), et un spread qu’elle ne sait pas résoudre (`.pick(...)`, fabrique, paramètre) rend son littéral PARTIEL, exclu des communs. Angle mort : un re-tapage RÉPARTI entre spread et clés propres (`{ ...profilDePropulsionSchema.shape, spec }` qui recompose `profilDeVoileSchema`) n’est pas vu. Mesuré 2026-11-06 : 51 littéraux de def à spread, 7 littéraux de grammaire partiels ; le compte courant est au § 4 du doc (`angleMortDesSpreads`).',
+  'SPREADS (`...X.shape` d’un schéma, `...X` d’un objet de shapes) : un littéral de def s’apparie et se classe sur ses seules clés PROPRES, une clé venue d’un spread étant composée, jamais re-tapée ; la grammaire, elle, les résout récursivement pour signer ses schémas communs (`jetSchema` = `characteristic,difficulty,skill`), et un spread qu’elle ne sait pas résoudre (`.pick(...)`, fabrique, paramètre) rend son littéral PARTIEL, exclu des communs. Angle mort : un re-tapage RÉPARTI entre spread et clés propres (`{ ...sujetDuJetSchema.shape, difficulty }` qui recompose `jetSchema`) n’est pas vu. Mesuré 2026-11-06 : 54 littéraux de def à spread, 7 littéraux de grammaire partiels ; le compte courant est au § 4 du doc (`angleMortDesSpreads`).',
   '`schemasCommuns` ne garde qu’UN nom par SIGNATURE (le premier vu, racines avant niches) : deux nœuds de grammaire de même signature se masquent l’un l’autre, et l’arrivée du second RENOMME le « commun » recommandé d’une ligne de redéclaration sans qu’aucun porteur n’ait bougé — mesuré 2026-09-01, `miscast.ts | dice` est passé de `formulaSchema` à `tirageSchema` (#1463 L-gram-3, #1652) à donnée, def et signature INCHANGÉS.',
-  'Les portes MOTEUR (`src/engine`, `src/state`) et les JSON hors documents (outillage, `public/qc/*`, baselines de gardes) ne sont pas mesurés : ce contrat parle de la DONNÉE authorée et de ses schémas.',
-  'Le concept `test` reconnaît un Test à son SUJET (`coPresence` : `skill`, `characteristic` ou `char`), l’invariant de `flowTestSchema` (#1657 B3-3), et CÈDE tout objet qui DÉSIGNE une entité (clause `horsDesignation`) : un porteur de `difficulty` sans sujet n’est pas un Test. Angle mort déclaré : la Difficulté d’un Test dont la RÈGLE fixe le sujet au code (`criticals › amputation`, `land-cargo › gossip`, `weather › resistanceTest`…) n’est pas classée `test` ; ces paramètres restent comptés en L à `STRUCTURES_LOCALES`, et le lecteur qui en fait un Test (`critical.ts`, `landMarketFlow.ts`, `travelPostes.ts`) échappe à la mesure, qui ne lit pas le code.',
+  'Les portes MOTEUR (`src/engine`, `src/noyau`) et les JSON hors documents (outillage, `public/qc/*`, baselines de gardes) ne sont pas mesurés : ce contrat parle de la DONNÉE authorée et de ses schémas.',
+  'Le concept `test` reconnaît un Test à son SUJET (`coPresence` : `skill` ou `characteristic`, les clés de `sujetDuJetSchema`, ou le type de Test d’équipage `crewTestType` qui les exclut), l’invariant de `flowTestSchema` (#1657 B3-3, #1652), et CÈDE tout objet qui DÉSIGNE une entité (clause `horsDesignation`) : un porteur de `difficulty` sans sujet n’est pas un Test. Angle mort déclaré : la Difficulté d’un Test dont la RÈGLE fixe le sujet au code (`criticals › amputation`, `land-cargo › gossip`, `weather › resistanceTest`…) n’est pas classée `test` ; ces paramètres restent comptés en L à `STRUCTURES_LOCALES`, et le lecteur qui en fait un Test (`critical.ts`, `landMarketFlow.ts`, `travelPostes.ts`) échappe à la mesure, qui ne lit pas le code.',
   'Une ÉTIQUETTE (`clé: z.literal(v)`) nomme une VARIANTE : un littéral n’entre dans un concept POSÉ que si chacune de ses étiquettes est admise par un nœud posé du concept qu’atteignent les schémas du registre (`etiquettesDesPoses` : valeurs admises du nœud posé, ou d’un produit de la classe posée, plus tout type d’entité de `TYPES` pour un produit `refTypee`) — `{id, type: setObjective}` n’est pas une référence typée, `{indiceId, type: discreditClue}` n’est pas un effet narratif posé. Un concept SANS pose n’a pour nœuds que des littéraux : il n’est REdéclaré que s’il est déclaré PLUS D’UNE FOIS, grammaire et modules réunis — son littéral unique est sa DÉFINITION (`formeNarratif`, `src/data/schemas/defs-scenes/narratif.ts`, que la grammaire ne peut importer ; mesuré 2026-11-05, #3012, seul littéral de module d’un concept sans pose), et un concept sans pose qu’un seul module déclare n’est pas vu.',
   'Le lexique FERMÉ est le PLAFOND de détection des redéclarations : un littéral dont le concept n’est pas au lexique n’est compté que s’il a un schéma commun de MÊME signature exacte — deux defs divergents sur un champ d’un concept absent restent invisibles aux occurrences, et seul le compte GLOBAL des littéraux (`totalLitteraux`) bouge.',
 ];
@@ -541,9 +541,9 @@ export const CONCEPTS: readonly Concept[] = [
     noyau: ['fixed'],
   },
   // Porte : `palierSchema` (`src/data/schemas/grammaire/valeurs.ts`), lu par `findTierEntry`
-  // (`src/engine/tables.ts`). #1666. Noyau MESURÉ sur les 2 racines (2026-11-05) : `seuil` ne vit que sous
-  // `surincantation.entries[]`, `calendarPhases[]`, `regles[].rangees[]` et
-  // `billets.*.marchandage.paliers[]` (EDO 01 l.142).
+  // (`src/engine/tables.ts`). #1666. Noyau MESURÉ sur les 2 racines (2026-11-06) : `seuil` ne vit que sous
+  // `surincantation.entries[]`, `calendarPhases[]`, `regles[].rangees[]`, `weaponGroups[]` (palier de PA d'un
+  // Groupe d'armure) et `billets.*.marchandage.paliers[]` (EDO 01 l.142).
   {
     id: 'palier',
     label: 'palier d’une table à seuils (seuil)',
@@ -682,7 +682,7 @@ export const CONCEPTS: readonly Concept[] = [
   //       quand elle porte la Difficulté de sa ligne ;
   //   (2) `coPresence` : le Test NOMME son sujet, invariant de `flowTestSchema`
   //       (`src/data/schemas/grammaire/mecanique.ts`, #1657 B3-3). Un porteur de `difficulty` sans
-  //       `skill`, `characteristic` ni `char` sert un Test dont le sujet vit AILLEURS : au code (paramètre
+  //       `skill` ni `characteristic` sert un Test dont le sujet vit AILLEURS : au code (paramètre
   //       de règle, `critical.ts`, `landMarketFlow.ts`), sous une autre clé (`sea-events › params`,
   //       `testType`) ou sur le Test parent (`etats › difficultyBy`, `tavernGames › volley.rows`) ;
   //   (3) `horsDesignation` : un objet qui DÉSIGNE une entité (clé de `CLES_IDENTITE`, ou clé en
@@ -704,7 +704,6 @@ export const CONCEPTS: readonly Concept[] = [
     strate: 'Valeur',
     signatures: [
       { sig: 'difficulty,skill', statut: 'cible', note: 'Test nommé de `flowTestSchema` (#2779)' },
-      { sig: 'char,difficulty', statut: 'historique' },
       { sig: 'characteristic,difficulty', statut: 'cible', note: 'Test de caractéristique de `flowTestSchema` (#2779)' },
       { sig: 'skill', statut: 'cible', note: '`difficulty` est OPTIONNELLE à `flowTestSchema`' },
       { sig: 'characteristic', statut: 'cible', note: 'idem' },
@@ -717,7 +716,7 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'characteristic,difficulty,skill', statut: 'cible', pose: 'test', note: '`skill` et `characteristic` coexistent à `flowTestSchema` (#1657 B3-3)' },
     ],
     noyau: ['difficulty'],
-    coPresence: ['skill', 'characteristic', 'char'],
+    coPresence: ['skill', 'characteristic', 'crewTestType'],
     horsDesignation: true,
   },
   // ---------------------------------------------------------------------------------------------
@@ -1010,7 +1009,7 @@ export const ROLES_ENVELOPPE: Record<string, RoleEnveloppe> = {
   //   `crew-morale.json › factors[].effect` et `sea-events.json › manann.factors[].effect` = effet de
   //     dés signé `{sign, dice}` (`effetSigneSchema`, `src/data/schemas/grammaire/valeurs.ts`) ;
   //   `hint` = qualificatif d'affichage d'un marqueur de cargaison
-  //     (`cargoMarqueur` de `src/data/schemas/defs/land-cargo.ts`) et aide de saisie d'une règle
+  //     (`CLES_DE_MARQUEUR` de `src/data/schemas/defs/cargoes.ts`) et aide de saisie d'une règle
   //     optionnelle (`src/data/schemas/defs/reglesOptionnelles.ts`).
   // Les `effect` qui ÉTAIENT des issues ou une clé de registre ont, eux, été migrés (`outcome`,
   // `potEffectId`, `ops`) plutôt que retirés de la mesure.

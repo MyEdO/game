@@ -12,7 +12,6 @@ import { setStageRendererFactory, type StageRenderer } from '../../gameIso/stage
 import { hasSpritePicker } from '../../gameIso/stage/spritePicker';
 import { buildTokens } from '../../gameIso/builders/tokens';
 import * as propsBuilder from '../../gameIso/builders/props';
-import { props as catalogueProps } from '../../data';
 import { scenario as scenarioToits } from '../../scenes/test-scenarios/zones-pieces';
 import { RENDER_ORDER } from '../../gameIso/backends/webgl/renderRanks';
 import { CALAGE_APLAT, NOM_ARETES_CALAGE, rangsDeDecor as rangsDeDecorDuMonde } from '../../gameIso/backends/webgl/calageProps';
@@ -20,6 +19,7 @@ import type { WorldGeometry } from '../../gameIso/backends/webgl/sceneMeshes';
 import { effectiveLowerLayerMode, layerHidden, LOWER_LAYER_ISOLATE_BELOW } from './lowerLayerGabarit';
 import type { PlanDefectAt } from '../../noyau/planDefects';
 import { brancherArdoise } from '../../gameIso/stage/banc-volumique';
+import { REF_HORS_CATALOGUE } from '../../noyau/monde/volume/decorVolumique.testkit';
 const scenarioToitsConstruit = scenarioToits.construire();
 
 /**
@@ -91,14 +91,11 @@ function sceneDeuxCouches(): Scene {
   return { ...s, layers: [base, { ...base, z: 1, tiles: [...base.tiles] }] };
 }
 
-/** Deux couches, un DÉCOR billboard sur chacune : de quoi mesurer ce que le canevas fait du DESSUS.
- *  La ref est DÉRIVÉE du catalogue — la vague volumique (#1343) convertit les refs lot par lot, et le
- *  jour où il n'en reste aucune ce banc doit le DIRE plutôt que rendre un `TypeError` opaque. */
+/** Deux couches, un DÉCOR billboard sur chacune : de quoi mesurer ce que le canevas fait du DESSUS. */
 function sceneDeuxDecors(): Scene {
   const s = sceneDeuxCouches();
-  const sansRecette = catalogueProps.find((p) => !p.volume);
-  if (!sansRecette) throw new Error('plus aucune ref sans recette au catalogue : ce banc n’a plus de voie billboard à mesurer');
-  const ref = sansRecette.id;
+  // Seul le repli d'ERREUR d'une ref hors catalogue (#877) se sert encore en billboard : chaque type porte sa recette (#3198).
+  const ref = REF_HORS_CATALOGUE;
   const decor = (id: string, z: number) =>
     ({ id, kind: 'prop', pos: { x: 2, y: 2 }, ...(z ? { z } : {}), ref }) as unknown as Scene['entities'][number];
   return { ...s, entities: [decor('decor-rez', 0), decor('decor-etage', 1)] };
@@ -140,7 +137,6 @@ type Plaque = ReturnType<typeof plaque>;
 
 function baseProps() {
   return {
-    pushSnapshot: () => {},
     brush: 1,
     terrainRect: false,
     encTarget: '',

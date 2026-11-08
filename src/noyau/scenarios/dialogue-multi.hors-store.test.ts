@@ -3,9 +3,8 @@
  *
  * Gustav ouvre toujours `dlg-tablee` (`dialogueId` fixe) : le 2ᵉ passage se distingue par le `when`
  * de ses réponses. Contrats POSITIFS, un par passage, joués sur le banc du noyau par le verbe
- * (`chooseDialogue`) : le numéro est le RANG de la liste visible, la réponse masquée n'en consomme pas. Le 2ᵉ
- * passage naît de la FIN RÉELLE du 1ᵉʳ (le flag que la donnée pose), jamais d'un flag injecté. La touche du rang
- * (`dialogue-choice-N`, dispatcher RÉEL) se joue en `src/state/dialogue-multi-touches.test.ts`.
+ * (le choix `dialogue.reponse`) : le numéro est le RANG de la liste visible, la réponse masquée n'en consomme pas. Le 2ᵉ
+ * passage naît de la FIN RÉELLE du 1ᵉʳ (le flag que la donnée pose), jamais d'un flag injecté.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
@@ -24,8 +23,8 @@ function parlerAGustav() {
   banc.setState({ dialogue: ouvrirDialogue(get(), tablee, 'gustav') });
 }
 
-/** Choisit la réponse visible de rang `rang`, par son id de donnée (`chooseDialogue`). */
-const choisir = (rang: number) => get().chooseDialogue(reponsesDuNoeud(get()).find((r) => r.rang === rang)!.id);
+/** Choisit la réponse visible de rang `rang`, par son id de donnée (le choix `dialogue.reponse`). */
+const choisir = (rang: number) => get().fenetreChoisir('dialogue', 'reponse', reponsesDuNoeud(get()).find((r) => r.rang === rang)!.id);
 
 /** Le 1ᵉʳ passage joué jusqu'au bout, au rang 1, puis Gustav de nouveau abordé. */
 function secondPassage() {

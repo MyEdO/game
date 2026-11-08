@@ -1,6 +1,6 @@
 /**
  * #718 — Archive verbatim des tours de dialogue : helper pur (`recordTurn`), résolution du
- * locuteur (`speakerEntity`), câblage `chooseDialogue`, survie cross-scène, reset nouvelle partie,
+ * locuteur (`speakerEntity`), câblage le choix `dialogue.reponse`, survie cross-scène, reset nouvelle partie,
  * save/load, sur le banc du noyau.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -83,7 +83,7 @@ describe('speakerEntity (helper pur)', () => {
   });
 });
 
-describe('chooseDialogue — archivage (#718)', () => {
+describe('dialogue.reponse — archivage (#718)', () => {
   beforeEach(() => {
     banc.setState({ screen: 'campaign', battle: null, scene: null, mode: 'exploration', flags: {}, journal: [], dialogueHistory: [], pendingTest: null, dialogue: null });
   });
@@ -94,7 +94,7 @@ describe('chooseDialogue — archivage (#718)', () => {
       scene: { ...testScene(), entities: [...testScene().entities, ...entities] },
       dialogue: { dialogue: makeDialogue(), nodeId: 'n1', session: 7 },
     });
-    banc.getState().chooseDialogue('salut');
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'salut');
     const h = banc.getState().dialogueHistory;
     expect(h.length).toBe(1);
     expect(h[0]).toMatchObject({
@@ -117,7 +117,7 @@ describe('chooseDialogue — archivage (#718)', () => {
       scene: pose.scene,
       dialogue: { dialogue: { ...makeDialogue(), nodes: makeDialogue().nodes.map(({ speakerId: _s, ...n }) => n) }, nodeId: 'n1', speakerId: pose.id, session: 3 },
     });
-    banc.getState().chooseDialogue('salut');
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'salut');
     expect(banc.getState().dialogueHistory[0].speaker).toBe(creatureLabel('humain'));
   });
 
@@ -127,8 +127,8 @@ describe('chooseDialogue — archivage (#718)', () => {
       scene: { ...testScene(), entities: [...testScene().entities, ...entities] },
       dialogue: { dialogue: makeDialogue(), nodeId: 'n1', session: 7 },
     });
-    banc.getState().chooseDialogue('salut');
-    banc.getState().chooseDialogue('non-merci'); // le nœud courant est n2
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'salut');
+    banc.getState().fenetreChoisir('dialogue', 'reponse', 'non-merci'); // le nœud courant est n2
     const h = banc.getState().dialogueHistory;
     expect(h.length).toBe(2);
     expect(h[1].nodeText).toBe('Autre chose ?');
@@ -136,27 +136,27 @@ describe('chooseDialogue — archivage (#718)', () => {
   });
 });
 
-describe('dialogueHistory / journal — survie cross-scène (transitionTo)', () => {
+describe('dialogueHistory / journal — survie cross-scène (quitterLaScene)', () => {
   it('les DEUX slots SURVIVENT à une transition de scène (campagne-scopés)', () => {
     banc.setState({ screen: 'campaign', battle: null, mode: 'exploration', flags: {}, dialogue: null, pendingTest: null });
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     banc.setState({ party: [hero()] });
-    banc.getState().log('événement récent');
+    banc.getState().ecrireAuJournal('événement récent');
     banc.setState({ dialogueHistory: [{ nodeText: 'n', choiceText: 'c', at: 0, dialogueId: 'd', session: 1 }] });
-    banc.getState().transitionTo(testScene().id);
+    banc.getState().quitterLaScene(testScene().id);
     expect(banc.getState().dialogueHistory.length).toBe(1);
     expect(banc.getState().journal).toContain('événement récent');
   });
 });
 
-describe('startScene (nouvelle partie) — reset', () => {
+describe('lancerLaScene (nouvelle partie) — reset', () => {
   it('remet dialogueHistory ET journal à leur état neuf', () => {
     banc.setState({
       party: [hero()],
       dialogueHistory: [{ nodeText: 'n', choiceText: 'c', at: 0, dialogueId: 'd', session: 1 }],
       journal: ['un vieux message'],
     });
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     expect(banc.getState().dialogueHistory).toEqual([]);
     expect(banc.getState().journal).not.toContain('un vieux message');
   });
@@ -164,7 +164,7 @@ describe('startScene (nouvelle partie) — reset', () => {
 
 describe('save/load — dialogueHistory round-trip', () => {
   beforeEach(() => {
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     banc.setState({ party: [hero()] });
   });
 
@@ -172,7 +172,7 @@ describe('save/load — dialogueHistory round-trip', () => {
     const seeded: DialogueTurn[] = [{ speaker: 'Garde', nodeText: 'n1', choiceText: 'c1', at: 5, dialogueId: 'd-archive', sceneId: testScene().id, session: 3 }];
     banc.setState({ dialogueHistory: seeded });
     const texte = sauverLeBanc(banc);
-    banc.getState().startScene(testScene()); // « nouvelle partie » : dialogueHistory repart à zéro
+    banc.getState().lancerLaScene(testScene()); // « nouvelle partie » : dialogueHistory repart à zéro
     expect(banc.getState().dialogueHistory).toEqual([]);
     chargerSurLeBanc(banc, texte);
     expect(banc.getState().dialogueHistory).toEqual(seeded);
@@ -182,7 +182,7 @@ describe('save/load — dialogueHistory round-trip', () => {
     banc.setState({ dialogueHistory: [{ nodeText: 'n', choiceText: 'c', at: 0, dialogueId: 'd', session: 1 }] });
     // une save dont le `data` ne porte PAS la clé : elle est optionnelle au chargement
     const texte = sansLaCleDeJeu(sauverLeBanc(banc), 'dialogueHistory');
-    banc.getState().startScene(testScene());
+    banc.getState().lancerLaScene(testScene());
     chargerSurLeBanc(banc, texte);
     expect(banc.getState().dialogueHistory).toEqual([]);
   });

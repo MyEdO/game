@@ -46,7 +46,7 @@ function naturel(roll: number, target: number): IssueDuDe {
 
 /** Caractéristique du Test `q` pour `c` : celle de sa Compétence, sinon la Caractéristique testée. */
 function caracDuTest(c: Combatant, q: ReverseQuery): CharKey | undefined {
-  return q.skill ? effectiveSkillCharKey(c, q.skill, { spec: q.spec }) : q.char;
+  return q.skill ? effectiveSkillCharKey(c, { skill: q.skill }) : q.characteristic;
 }
 
 /** Contexte PLUS LARGE qu'un contexte inclut : un amateur de théâtre est un amateur d'art (décision de
@@ -65,14 +65,14 @@ function contexteCouvre(jeton: ContexteDeTest, test: ContexteDeTest | undefined)
 function tokenMatches(c: Combatant, tok: JetonDInversion, q: ReverseQuery): boolean {
   if (q.horsAventure) return false;
   if (tok.contexte != null && !contexteCouvre(tok.contexte, q.contexte)) return false;
-  if (tok.char != null && tok.char !== caracDuTest(c, q)) return false;
+  if (tok.characteristic != null && tok.characteristic !== caracDuTest(c, q)) return false;
   if (tok.skill == null) return true;
-  return refCouvre({ id: tok.skill, spec: tok.spec }, { id: q.skill, spec: q.spec });
+  return refCouvre(tok.skill, q.skill ?? {});
 }
 
 /** Rang d'un jeton : l'illimité d'abord (rien ne se brûle), puis contexte, Compétence, Spécialisation. */
 function specificite(tok: JetonDInversion): number {
-  return (tok.illimite ? 8 : 0) + (tok.contexte != null ? 4 : 0) + (tok.skill != null || tok.char != null ? 2 : 0) + (tok.spec != null ? 1 : 0);
+  return (tok.illimite ? 8 : 0) + (tok.contexte != null ? 4 : 0) + (tok.skill != null || tok.characteristic != null ? 2 : 0) + (tok.skill?.spec != null ? 1 : 0);
 }
 
 /** Le jeton de `c` qui couvre `q` — le PLUS SPÉCIFIQUE : un jeton générique (« Observer une cible ») ne

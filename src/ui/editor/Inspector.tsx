@@ -49,23 +49,17 @@ import type { Settlement } from '../../engine/disponibilite';
 import { roleAmbiantSchema } from '../../data/schemas/grammaire/valeurs';
 import { decorsDuCatalogue } from '../../gameIso/catalog/decor';
 import { buildingsMeta } from '../../noyau/monde/buildings';
-import { FACADE_APPEARANCE_IDS } from '../../gameIso/catalog/facades';
+import { FACADE_APPEARANCE_IDS } from '../../noyau/monde/facades';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
-import { allMusicDefs } from '../../audio/music';
-import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleById, findPropById, matieresCouvrantes, matieresDe, structureAppearances, refEstVolumique, siegeEngines, MERCHANT_ARCHETYPES } from '../../data';
-import { renameActionAuthoree, toitureEffective, TypeNonNomme, changePropRef, deleteSel, renameEntry, renameEffectZone, addMember, removeMember, patchMember, setEffectZoneArea, clearEffectZoneCarve, setPosteCrew, setPosteSide, setPosteEngine, editEntity, editEntityCombat, patchWall, setNorthDeg, setSceneFlags, removeSceneFlag, setSceneScalaires, setSceneLabel, renameScene, editEntry, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, patchStartMessage, setReliefDefault, patchSceneRoofDefaults, setSceneRest, patchTrigger, patchRestZone, replaceEffectZone, patchArchitectureBody, poseToitureDuCorps, addRoofExclusion, patchRoofExclusion, removeRoofExclusion, patchArchitectureStorey, patchArchitecturePart, patchFacadeSection, setFacadeSectionZ, patchBuildingMass, addFacadeFeature, patchFacadeFeature, removeFacadeFeature, BORNES_D_OUVERTURE } from '../../noyau/sceneEdit';
-import { activitiesFor } from '../../engine/activities';
+import { allMusicDefs } from '../../data/sons/musique';
+import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleById, findPropById, matieresCouvrantes, matieresDe, structureAppearances, siegeEngines, MERCHANT_ARCHETYPES } from '../../data';
+import { renameActionAuthoree, toitureEffective, TypeNonNomme, changePropRef, deleteSel, renameEntry, renameEffectZone, addMember, removeMember, patchMember, setEffectZoneArea, clearEffectZoneCarve, setPosteCrew, setPosteSide, setPosteEngine, editEntity, editEntityCombat, patchWall, setNorthDeg, setSceneFlags, removeSceneFlag, setSceneScalaires, setSceneLabel, renameScene, editEntry, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, patchStartMessage, setReliefDefault, patchSceneRoofDefaults, setSceneRest, patchTrigger, patchRestZone, patchZone, replaceEffectZone, patchArchitectureBody, poseToitureDuCorps, addRoofExclusion, patchRoofExclusion, removeRoofExclusion, patchArchitectureStorey, patchArchitecturePart, patchFacadeSection, setFacadeSectionZ, patchBuildingMass, addFacadeFeature, patchFacadeFeature, removeFacadeFeature, BORNES_D_OUVERTURE } from '../../noyau/sceneEdit';
+import { ciblesDAncreDeBataille } from '../../noyau/massBattleFlow';
 import { hintDeValeur, libelleDeValeur, optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { idsDe } from '../../data/schemas/grammaire/ref';
 import { amateurSchema } from '../../data/schemas/grammaire/valeurs';
 import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfileSchema, sceneEffectZoneSchema, sceneSchema, sceneWeatherSchema, type ReliefDefaults } from '../../data/schemas/defs-scenes/scene';
 
-/** Cibles d'une ANCRE de bataille (`Scene.stations[].sceneId`) : les Scènes de Round du catalogue
- *  d'Activités (contexte `bataille-round`) — le SEUL espace d'ids que le consommateur sait résoudre
- *  (`noyau/stations.battleScenesToStations` → `battleSceneById`). Les Scènes du PROJET sont un autre
- *  espace : une ancre qui en nomme une est ignorée sans un mot (#841). */
-const battleAnchorTargets = (): { id: string; label: string }[] =>
-  activitiesFor('bataille-round').map((def) => ({ id: def.id, label: def.label }));
 import { ApparencesObjetsField, ArmeEquipeeField, ReglagesApparence } from './ReglagesApparence';
 import { armesDEntite, equipementDAuteurDe } from '../../noyau/equipementDessine';
 import { effectCtxOf } from './EffectList';
@@ -78,7 +72,7 @@ import { StatblockEditor } from './StatblockEditor';
 import { emptyStatblock } from '../../data/valeursNeuves';
 import { CreatureProfile, OptionalTraitsPicker, SpellsField } from './OptionalTraitsPicker';
 import { SeatAssignmentsField } from './SeatAssignmentsField';
-import { type Sel, type Tool, effectZoneRect, effectZoneArea, flowEffectCount } from '../../noyau/sceneEditLecture';
+import { type Sel, type Tool, capDeLEntite, capsOfferts, effectZoneRect, lumiereAllumee, effectZoneArea, flowEffectCount } from '../../noyau/sceneEditLecture';
 import { scrollElementIntoPort } from './useEditorView';
 import type { FireArc, StructureData, NavalTraitRef } from '../../engine/types';
 import { DIFFICULTY_LABELS, type Difficulty } from '../../engine/types';
@@ -90,21 +84,12 @@ import type { IconIdInput } from '../../data/icons';
 import { ListRow } from '../ListRow';
 import { OptionChooser } from '../OptionChooser';
 import { LayerField, LayerChip, sceneLayerZs } from './LayerField';
-import { estCardinal, type Dir8 } from '../../geometry/dir8';
+import { t } from '../../i18n';
 import { propFootTiles } from '../../noyau/monde/footprint';
 import { Row, Stack } from '../Layout';
 import { ChipDeRefus } from '../ChipDeRefus';
-import { CAP_IDENTITE_PROP } from '../../data/props.types';
 import { CouvreField } from './CouvreField';
 
-/** Caps OFFERTS au sélecteur d'orientation, dans l'ordre horaire de `DIR8_ORDER` : les huit pour une
- *  entité ordinaire, les quatre CARDINAUX pour un décor volumique (`Dir4`, #1680 ligne 3). Un seul
- *  couple id→libellé, jamais deux listes de `<option>` recopiées. */
-const CAPS_OFFERTS: readonly (readonly [Dir8, string])[] = [
-  ['N', 'Nord'], ['NE', 'Nord-Est'], ['E', 'Est'], ['SE', 'Sud-Est'],
-  ['S', 'Sud'], ['SO', 'Sud-Ouest'], ['O', 'Ouest'], ['NO', 'Nord-Ouest'],
-];
-const CAPS_OFFERTS_CARDINAUX = CAPS_OFFERTS.filter(([cap]) => estCardinal(cap));
 
 /** Valeur que porte le sélecteur de décor quand l'instance ne NOMME aucun type : SENTINELLE de
  *  FORMULAIRE — un `<select>` doit avoir une valeur, et sans valeur explicite le DOM élit la première
@@ -223,13 +208,13 @@ export function Inspector({
   const panelRef = useRef<HTMLElement>(null);
   const selT = sel?.type === 'trigger' ? scene.triggers.find((t) => t.id === sel.id) ?? null : null;
   const zone = sel?.type === 'restZone' ? scene.restZones?.[sel.idx] ?? null : null;
-  const efz = sel?.type === 'effectZone' ? scene.effectZones?.[sel.idx] ?? null : null;
+  const efz = sel?.type === 'effectZone' ? scene.effectZones?.find((z) => z.id === sel.id) ?? null : null;
   // Identité STABLE de la zone sélectionnée : elle survit au renommage de son id (`EntryRename`).
   const clesZones = useClesDeRangees(scene.effectZones);
-  const cleZone = sel?.type === 'effectZone' ? clesZones[sel.idx] : undefined;
+  const cleZone = sel?.type === 'effectZone' ? clesZones[(scene.effectZones ?? []).findIndex((z) => z.id === sel.id)] : undefined;
   const setEfz = (z: SceneEffectZone) => {
     if (sel?.type !== 'effectZone') return;
-    setScene(replaceEffectZone(scene, sel.idx, z));
+    setScene(replaceEffectZone(scene, sel.id, z));
   };
   const entry = sel?.type === 'entry' ? scene.entryPoints?.[sel.id] ?? null : null;
   const selW = sel?.type === 'wall' ? scene.walls?.find((w) => w.x === sel.x && w.y === sel.y && w.side === sel.side && (w.z ?? 0) === sel.z) ?? null : null;
@@ -322,7 +307,7 @@ export function Inspector({
     if (architectureBody) setScene(patchRoofExclusion(scene, architectureBody.id, i, patch));
   };
   const addExclusion = () => {
-    if (architectureBody) setScene(addRoofExclusion(scene, architectureBody.id, architectureStorey?.z ?? 0));
+    if (architectureBody) setScene(addRoofExclusion(scene, architectureBody.id, architectureStorey?.z ?? 0, { x: 0, y: 0, w: 2, h: 2 }));
   };
   const removeExclusion = (i: number) => {
     if (architectureBody) setScene(removeRoofExclusion(scene, architectureBody.id, i));
@@ -878,7 +863,7 @@ export function Inspector({
                     </label>
                   ))}
                 </div>
-                <LayerField z={selT.rect.z} layers={sceneLayerZs(scene)} onChange={(z) => updateSelT({ rect: { ...selT.rect, z: z || undefined } })} />
+                <LayerField z={selT.rect.z} layers={sceneLayerZs(scene)} onChange={(z) => setScene(patchZone(scene, sel, { z }))} />
               </Fold>
               <div className="insp-actions">
                 <button className="btn small btn-primary" onClick={() => openLogic('triggers', selT.id)}>
@@ -908,7 +893,7 @@ export function Inspector({
                     </label>
                   ))}
                 </div>
-                <LayerField z={zone.rect.z} layers={sceneLayerZs(scene)} onChange={(z) => updateZone({ rect: { ...zone.rect, z: z || undefined } })} />
+                <LayerField z={zone.rect.z} layers={sceneLayerZs(scene)} onChange={(z) => setScene(patchZone(scene, sel, { z }))} />
                 <div className="ed-rest-places">
                   {([['auberge', <><Icon id="rest/bed" size="sm" /> Auberge</>], ['maison', <><Icon id="rest/home" size="sm" /> Chez soi</>], ['camp', <><Icon id="rest/camp" size="sm" /> Camper</>]] as const).map(([k, label]) => (
                     <label key={k} className="ed-check">
@@ -945,7 +930,13 @@ export function Inspector({
                     Nom
                     <input value={efz.label} onChange={(e) => setEfz({ ...efz, label: e.target.value })} />
                   </label>
-                  <EntryRename label={efz.id} caption="Identifiant (référencé par les façades — « Pièces révélées »)" onRename={(next) => setScene(renameEffectZone(scene, efz.id, next))} />
+                  <EntryRename label={efz.id} caption="Identifiant (référencé par les façades — « Pièces révélées »)" onRename={(next) => {
+                    const out = renameEffectZone(scene, efz.id, next);
+                    if (out !== scene) {
+                      setScene(out);
+                      setSel({ type: 'effectZone', id: next.trim() });
+                    }
+                  }} />
                   <label className="ed-field">
                     Nature
                     <select
@@ -999,7 +990,7 @@ export function Inspector({
                       ))}
                     </div>
                   )}
-                  <LayerField z={efz.z} layers={sceneLayerZs(scene)} onChange={(z) => setEfz({ ...efz, z: z || undefined })} />
+                  <LayerField z={efz.z} layers={sceneLayerZs(scene)} onChange={(z) => setScene(patchZone(scene, sel, { z }))} />
                   <ZoneTilesBrush zone={efz} tool={tool} onArm={armZoneTiles} onChange={setEfz} focusKey={zoneFocusKey} port={panelRef} />
                   <CouvreField value={efz.couvre} sujet="de la zone" onChange={(couvre) => setEfz({ ...efz, couvre })} />
                 </Fold>
@@ -1328,23 +1319,21 @@ function EmpreinteDeLInstance({ scene, ent }: { scene: Scene; ent: SceneEntity }
 }
 
 /**
- * ORIENTATION d'une entité. Un décor VOLUMIQUE n'a que les quatre cardinaux À OFFRIR (#1509, #1680
- * ligne 3) : `data/props.types.ts` `capVolumique` ; source : le CATALOGUE (`refEstVolumique`), la même
- * que lit le schéma de scène au parse et `validateScene` à l'écran. Un cap que la donnée porte HORS de l'offre se MONTRE en option
+ * ORIENTATION d'une entité : les caps que son type admet (`capsOfferts`, #1509, #1680 ligne 3), la même
+ * règle que lit le schéma de scène au parse et `validateScene` à l'écran. Un cap que la donnée porte HORS de l'offre se MONTRE en option
  * non élisible, comme l'état de `SelecteurDeDecor` : sans elle, le DOM afficherait la première option
  * comme si c'était le cap de l'instance, et la choisir n'émettrait aucun `change`.
  */
 function SelecteurDOrientation({ ent, updateSel }: { ent: SceneEntity; updateSel: (patch: Partial<SceneEntity>) => void }) {
-  const offerts = refEstVolumique(ent.ref) && ent.kind === 'prop' ? CAPS_OFFERTS_CARDINAUX : CAPS_OFFERTS;
-  const cap = ent.facing ?? CAP_IDENTITE_PROP;
-  const horsOffre = offerts.some(([c]) => c === cap) ? null : CAPS_OFFERTS.find(([c]) => c === cap);
+  const offerts = capsOfferts(ent);
+  const cap = capDeLEntite(ent);
   return (
     <label className="ed-field">
       Orientation
       <select value={cap} onChange={(e) => updateSel({ facing: e.target.value as SceneEntity['facing'] })}>
-        {horsOffre && <option value={cap} disabled>{horsOffre[1]} — refusé pour ce décor</option>}
-        {offerts.map(([c, libelle]) => (
-          <option key={c} value={c}>{libelle}</option>
+        {!offerts.includes(cap) && <option value={cap} disabled>{t(`ecran.editeur.cap.${cap}`)} — refusé pour ce décor</option>}
+        {offerts.map((c) => (
+          <option key={c} value={c}>{t(`ecran.editeur.cap.${c}`)}</option>
         ))}
       </select>
     </label>
@@ -1575,7 +1564,7 @@ function EntityPanel({
             <input
               type="checkbox"
               checked={!!ent.light}
-              onChange={(e) => updateSel({ light: e.target.checked ? { ...ent.light, radiusM: ent.light?.radiusM ?? 6 } : undefined })}
+              onChange={(e) => updateSel({ light: e.target.checked ? lumiereAllumee(ent) : undefined })}
             />{' '}
             <Icon id="ui/eye" size="sm" /> Source de lumière (override de l'instance — sinon rayon du type de décor)
           </label>
@@ -1959,7 +1948,7 @@ function sceneContent(scene: Scene, narratif: NarratifBlock): ContentRow[] {
   const rows: ContentRow[] = [];
   for (const e of scene.entities)
     rows.push({ key: `ent:${e.id}`, icon: entIcon(e), label: nomDEntite(e, presetDuNarratif(narratif)) ?? e.id, at: `(${e.pos.x},${e.pos.y})`, z: e.z, sel: { type: 'entity', id: e.id } });
-  (scene.effectZones ?? []).forEach((efz, i) => {
+  (scene.effectZones ?? []).forEach((efz) => {
     const r = effectZoneRect(efz.area);
     rows.push({
       key: `zone:${efz.id}`,
@@ -1968,7 +1957,7 @@ function sceneContent(scene: Scene, narratif: NarratifBlock): ContentRow[] {
       at: `(${r.x},${r.y})`,
       tag: isDescriptiveZone(efz) ? undefined : 'mécanique',
       z: efz.z,
-      sel: { type: 'effectZone', idx: i },
+      sel: { type: 'effectZone', id: efz.id },
     });
   });
   for (const [name, pos] of Object.entries(scene.entryPoints ?? {}))
@@ -2009,8 +1998,7 @@ function SceneProps({
   const shown = filterByLabel(content, (row) => `${row.label} ${row.key}`, filter);
   const layerZs = sceneLayerZs(scene);
   const patchStationDe = (i: number, patch: Partial<SceneStationAnchor>) => setScene(patchStation(scene, i, patch));
-  // Cibles = Scènes de bataille du CATALOGUE (cf. `battleAnchorTargets`), jamais les Scènes du projet.
-  const anchorTargets = battleAnchorTargets();
+  const anchorTargets = ciblesDAncreDeBataille();
   const ajouterStation = () => setScene(addStation(scene, anchorTargets[0]!.id));
   const retirerStation = (i: number) => setScene(removeStation(scene, i));
   const [newFlagKey, setNewFlagKey] = useState('');

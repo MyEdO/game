@@ -267,6 +267,12 @@ export interface CrewHire {
   count: number;
 }
 
+/** `n` de plus au rôle `roleId` d'un roster. PUR. */
+export const ajouterAuRoster = (roster: readonly CrewHire[] | undefined, roleId: string, n: number): CrewHire[] =>
+  (roster ?? []).some((h) => h.roleId === roleId)
+    ? (roster ?? []).map((h) => (h.roleId === roleId ? { ...h, count: h.count + n } : h))
+    : [...(roster ?? []), { roleId, count: n }];
+
 /** Solde HEBDOMADAIRE due par un roster salarié (Σ count × coût hebdomadaire du rôle), en sous de
  *  cuivre (MDG 14 l.293-302). Un rôle sans barème (`wage` absent) ne coûte rien. PUR. #216 */
 export function weeklyCrewWageBrass(crew: CrewHire[] | undefined): number {
@@ -350,10 +356,10 @@ export function crewRoleValue(crew: Combatant, role: CrewRoleData, navigation: R
     const sk = skills[0];
     return {
       ...(sk ? { used: { id: sk.id, ...(sk.spec ? { spec: sk.spec } : {}) } } : {}),
-      refus: refusNePeutTenter(crew, sk ? { skill: sk.id, ...(sk.spec ? { spec: sk.spec } : {}) } : { action: role.label }),
+      refus: refusNePeutTenter(crew, sk ? { skill: sk } : { action: role.label }),
     };
   }
-  return { value: b.value + crewTestModOf(crew), used: 'skill' in b.test ? b.test.skill : undefined };
+  return { value: b.value + crewTestModOf(crew), used: b.test.skill };
 }
 
 /** Valeur d'un membre à son rôle : la Compétence tenue et sa valeur, OU — quand il ne peut tenter
@@ -368,7 +374,7 @@ export type CrewRoleValue =
  *  (`rollCrewRole`/`forceCrewRole`, `resolveCrewTestByRoles`) et de l'affichage des modales d'équipage. PUR. */
 export function crewRoleTestMods(crew: Combatant, role: CrewRoleData, navigation: RefDesignee, sense?: PairedSense): ModLine[] {
   const used = crewRoleValue(crew, role, navigation, sense).used;
-  return precipitationTestMods(crew.envPrecipitation, used?.id, used?.spec);
+  return precipitationTestMods(crew.envPrecipitation, used);
 }
 
 /** +DR de TALENT d'un membre sur SON jet de rôle RÉUSSI, en contexte TEST D'ÉQUIPAGE — règle UNIVERSELLE
@@ -381,8 +387,8 @@ export function crewTalentDR(crew: Combatant, role: CrewRoleData, navigation: Re
   const rv = crewRoleValue(crew, role, navigation);
   const used = rv.used;
   if (!used || rv.refus) return 0;
-  return talentTestSLBonus(crew, { skill: used.id, spec: used.spec }, (cond) => cond.kind === 'crewTest')
-    + skillDRBonus(crew, used.id, used.spec);
+  return talentTestSLBonus(crew, { skill: used }, (cond) => cond.kind === 'crewTest')
+    + skillDRBonus(crew, used);
 }
 
 /**

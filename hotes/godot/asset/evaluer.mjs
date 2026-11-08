@@ -90,6 +90,10 @@ function afficherFiche(fiche) {
   const { segments } = fiche.mesures
   const triplet = (t) => `(${t.map((v) => (v === null ? '—' : v.toFixed(4))).join(', ')})`
   if (segments) console.log(`segments du gabarit (S_b → rapport par axe local) : ${segments.segments.map((s) => `${s.os} (${s.attendu.join(', ')}) → ${triplet(s.rapport)}`).join(', ')} ; écart relatif à S_b ${segments.ecartALEchelle.toFixed(4)}`)
+  for (const c of fiche.mesures.chaines) {
+    const r = c.rotationMax
+    console.log(`chaîne ${c.chaine} : ${c.os} os, pistes dans ${c.clipsPistes}/${fiche.mesures.clips.length} clips, rotation jouée max ${r ? `${r.degres.toFixed(1)}° (${r.os}, ${r.clip} t=${r.t.toFixed(3)})` : '—'}`)
+  }
   for (const e of fiche.ecarts) console.log(ligneDEcart(e))
   const parGarde = fiche.ecarts.reduce((n, e) => ({ ...n, [e.garde]: (n[e.garde] ?? 0) + 1 }), {})
   console.log(`${fiche.ecarts.length} écart(s)${fiche.ecarts.length ? ` : ${Object.entries(parGarde).map(([g, n]) => `${g} ${n}`).join(', ')}` : ''}`)
@@ -100,6 +104,7 @@ try {
     const { validerManifesteDeBase } = await chargerEvaluateur('../manifesteDeBase.ts')
     const verdict = validerManifesteDeBase(entree.manifeste, entree.base)
     if (!verdict.ok) throw new Error(`--etats-gabarit : manifeste invalide : ${verdict.ecarts.map((e) => `[${e.code}] ${e.ou} : ${e.detail}`).join('; ')}`)
+    if (!verdict.manifeste.gabarit) throw new Error(`--etats-gabarit : la base ${verdict.manifeste.base} ne porte pas de table de gabarit`)
     const { etatsDuGabarit } = await chargerEvaluateur('../etatsDuGabarit.ts')
     const liste = etatsDuGabarit(verdict.manifeste.gabarit, verdict.manifeste.silhouettes)
     const etats = []

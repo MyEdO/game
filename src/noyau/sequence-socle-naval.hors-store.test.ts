@@ -87,7 +87,7 @@ describe('Structure d’orchestrateur — garde structurelle (elle ne connaît a
       expect.arrayContaining(AUTORISES),
     );
     const lus = new Set([...CODE.matchAll(/get\(\)\.(\w+)/g)].map((m) => m[1]));
-    for (const champ of lus) expect([...AUTORISES, 'pendingCascade', 'log']).toContain(champ);
+    for (const champ of lus) expect([...AUTORISES, 'pendingCascade', 'ecrireAuJournal']).toContain(champ);
   });
 });
 
@@ -117,7 +117,7 @@ beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [NAV
     traceNavale.push({ round: seq.round, metres: seq.payload.metres, cum: { ...seq.cum } });
     const step = monoStep({
       id: `crise-${seq.round}`, kind: cleDeFixture('testCriseNavale'), label: fixtureText(`Manœuvre — manche ${seq.round}`),
-      actor: barreur, difficulty: 'intermediaire', ligne: { test: { skill: 'navigation' } },
+      actor: barreur, difficulty: 'intermediaire', ligne: { test: { skill: { id: 'navigation' } } },
       stake: combatStakeRef('pursuitMove', { values: { distance: seq.payload.metres, evasion: 500 } }),
     });
     if (!step) return undefined;
@@ -158,7 +158,7 @@ describe('Structure d’orchestrateur — instanciable par une crise NAVALE (2 m
   beforeEach(() => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Barreur', seed: 1 });
     banc.setState({ battle: null, party: [h], journal: [], pendingCascade: null, sequence: null });
-    banc.getState().seedRng(9);
+    banc.getState().ensemencerLeTirage(9);
   });
 
   it('deux manches s’enchaînent, l’état PERSISTE entre elles et la charge navale traverse intacte', () => {

@@ -83,11 +83,11 @@ function bandeInversee() {
 describe('G4 — BANDE OPPOSÉE : le départage suit la NUE sur le résolveur de production', () => {
   it('nues inversées par rapport aux cibles : c’est la NUE qui désigne le vainqueur, sans repli', () => {
     const { def, att } = bandeInversee();
-    const nueDef = skillBaseValue(def, 'resistance');
-    const nueAtt = skillBaseValue(att, undefined, undefined, 'force');
+    const nueDef = skillBaseValue(def, { skill: { id: 'resistance' } });
+    const nueAtt = skillBaseValue(att, { characteristic: 'force' });
     expect(nueDef, 'sonde inerte : sans nues distinctes, aucun départage ne se joue').toBeGreaterThan(nueAtt);
-    expect(testValue(def, 'resistance'), 'les CIBLES doivent s’inverser, sinon le test ne discrimine rien')
-      .toBeLessThan(testValue(att, undefined, 'force'));
+    expect(testValue(def, { skill: { id: 'resistance' } }), 'les CIBLES doivent s’inverser, sinon le test ne discrimine rien')
+      .toBeLessThan(testValue(att, { characteristic: 'force' }));
 
     const avant = REPLIS_DEUX_CIBLES.count;
     let joue = false;
@@ -111,7 +111,7 @@ describe('G4 — BANDE OPPOSÉE : le départage suit la NUE sur le résolveur de
     const avant = REPLIS_DEUX_CIBLES.count;
     // Freeze fabriqué HORS `rollFrozenOpposedAttacker` (producteur tiers, sauvegarde d'une version
     // antérieure) : il ne porte aucune nue.
-    const externe: TestResult = evaluateTest(41, testValue(att, undefined, 'force'));
+    const externe: TestResult = evaluateTest(41, testValue(att, { characteristic: 'force' }));
     expect(externe.base).toBeUndefined();
     const row = frozenOpposedBatchStep([def], FT_OPP, BRANCHES, EMPTY_FLOW, 'intermediaire', att, externe)!.participants![0];
     const roll = rollBatchParticipant(row, makeRNG(9), { aT: externe });
@@ -127,8 +127,8 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
   function scene() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -148,10 +148,10 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
     wielder.characteristics.force = 45;
     // Résistance NUE du héros portée au-dessus de la Force nue de l'attaquant, puis 2 Exténué (−20)
     // qui fondent sa valeur TESTÉE en dessous : les deux grandeurs s'inversent.
-    H.characteristics.endurance += 55 - skillBaseValue(H, 'resistance');
+    H.characteristics.endurance += 55 - skillBaseValue(H, { skill: { id: 'resistance' } });
     H.conditions.push({ id: 'extenue', value: 2 } as never);
-    expect(skillBaseValue(H, 'resistance')).toBe(55);
-    expect(testValue(H, 'resistance')).toBeLessThan(testValue(wielder, undefined, 'force'));
+    expect(skillBaseValue(H, { skill: { id: 'resistance' } })).toBe(55);
+    expect(testValue(H, { skill: { id: 'resistance' } })).toBeLessThan(testValue(wielder, { characteristic: 'force' }));
 
     const avant = REPLIS_DEUX_CIBLES.count;
     let joue = false;
@@ -161,9 +161,9 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
       fireTriggers(banc.getState, wielder, 'onHit', { victim: H, weapon: assommante(), location: 'tete', rng: makeRNG(1), set: banc.setState });
       const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
       const aT = step.meta!.opposed!.aT;
-      expect(aT.base, 'le pré-jet de l’attaquant porte sa Force NUE').toBe(skillBaseValue(wielder, undefined, undefined, 'force'));
+      expect(aT.base, 'le pré-jet de l’attaquant porte sa Force NUE').toBe(skillBaseValue(wielder, { characteristic: 'force' }));
       expect(step.base, 'l’étape du défenseur porte sa Résistance NUE').toBe(55);
-      banc.getState().jetRoll('cascade', step.id);
+      banc.getState().jetLancer('cascade', step.id);
       const r = jete(banc.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
       const verdict = resolveOpposed(aT, { roll: r.roll, target: r.target, success: r.success, sl: r.sl, isDouble: false, base: step.base });
       if (verdict.decidedBy !== 'valeur') continue;
@@ -197,8 +197,8 @@ describe('G4 — producteurs de Tests SIMPLES : leur base est la NUE, aucun dép
     const c = combatant({ id: 'simple', conditions: [{ id: 'sonne', value: 1 }] as never });
     // L'enjeu vient du PORTEUR, comme en production (#1262 V2 L6d) : `MonoSpec.stake` est requis.
     const ft: FlowTest = withDerivedStake({ skill: { id: 'resistance' }, label: 'Résister' }, { kind: 'condition', id: 'empoisonne' });
-    const nue = skillBaseValue(c, 'resistance');
-    expect(nue, 'sonde inerte : sans État, nue et valeur testée se confondraient').not.toBe(testValue(c, 'resistance'));
+    const nue = skillBaseValue(c, { skill: { id: 'resistance' } });
+    expect(nue, 'sonde inerte : sans État, nue et valeur testée se confondraient').not.toBe(testValue(c, { skill: { id: 'resistance' } }));
     expect(simpleTriggeredTestStep(c, ft, BRANCHES, EMPTY_FLOW, 'intermediaire')!.base).toBe(nue);
     expect(simpleBatchTestStep([c], ft, BRANCHES, EMPTY_FLOW, 'intermediaire', 'bande')!.participants![0].base).toBe(nue);
   });
@@ -225,7 +225,7 @@ describe('G9 — « se libérer » d’Empêtré (`escapeStrength` FIGÉE) : nu 
     setBattle([pris], 'pris');
     const rt = resolveRecoverTest(pris, 'empetre', banc.getState().battle!)!;
     expect(rt.opposition).toBeDefined();
-    expect(rt.skillBase, 'Force NUE de l’acteur (LDB 09 l.17)').toBe(skillBaseValue(pris, undefined, undefined, 'force'));
+    expect(rt.skillBase, 'Force NUE de l’acteur (LDB 09 l.17)').toBe(skillBaseValue(pris, { characteristic: 'force' }));
     expect(rt.opposition?.base, 'l’entrave FIGÉE est sa propre nue — aucun porteur à décomposer').toBe(55);
     expect(rt.opposition?.value).toBe(55);
   });
@@ -236,8 +236,8 @@ describe('G9 — « se libérer » d’Empêtré (`escapeStrength` FIGÉE) : nu 
       seedBattleRng(seed);
       const pris = combatant({ id: 'pris', conditions: [{ id: 'empetre', value: 1, escapeStrength: 55 }] as never });
       setBattle([pris], 'pris');
-      banc.getState().battleRecoverState('empetre');
-      banc.getState().jetRoll('recover');
+      banc.getState().seRemettreDeLEtat('empetre');
+      banc.getState().jetLancer('recover');
     }
     expect(REPLIS_DEUX_CIBLES.count).toBe(avant);
   });

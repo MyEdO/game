@@ -12,7 +12,7 @@
  * Vite (`vite.config.ts`, donc chaque run Vitest). Ajouter une entrée = déposer un fichier dans le `defs/` correspondant, puis relancer.
  */
 import { readFileSync } from 'node:fs';
-import { listerDossier } from './guards/lib/lister.mjs';
+import { listerArbre, listerDossier } from './guards/lib/lister.mjs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -92,6 +92,15 @@ function renduDuRegistre(r) {
     listerDossier(r.dir);
   } catch {
     return null;
+  }
+  if (r.json) {
+    const files = listerArbre(r.dir, { filtre: (f) => f.endsWith('.json') });
+    const body =
+      `// GÉNÉRÉ par scripts/gen-registry.mjs — NE PAS ÉDITER À LA MAIN.\n` +
+      `// Ajouter une entrée = déposer un fichier dans ${r.dir}/ puis \`npm run gen\`.\n` +
+      files.map((f, i) => `import e${i} from '${importDir}/${f}';\n`).join('') + '\n' +
+      `export const ${r.arrayName}: Readonly<Record<string, unknown>> = {${files.map((f, i) => ` '${f}': e${i},`).join('')} };\n`;
+    return { body, files: files.length, union: null };
   }
   // Registre à champ `file` : un module du dossier qui ne DÉCLARE pas de document (modules de
   // FORME partagés entre defs) n'est pas une entrée — critère STRUCTUREL, jamais une liste de noms.

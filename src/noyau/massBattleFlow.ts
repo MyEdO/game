@@ -16,20 +16,20 @@
  * les Scènes sont des `ActivityDef` (contextes 'bataille'/'bataille-round') d'`activities.json`, dont
  * l'issue (bandes `outcomes` + `battle`) est appliquée à l'ARMÉE par `confirmBattleActivity`. Le Test
  * spectaculaire NON opposé est un jet d'ARMÉE (sans Chance/Résilience personnelles) résolu directement.
- * Une Scène `combat`/`threat` réutilise le combat tactique existant (`startCombat`).
+ * Une Scène `combat`/`threat` réutilise le combat tactique existant (`lancerLeCombat`).
  */
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
-import type { Combatant, CharKey, Difficulty } from '../engine/types';
+import type { Combatant, Difficulty } from '../engine/types';
 import { battleRng } from './battleRng';
 import { ecrireActeur } from './monde/combatants';
-import { d10, d100, type RNG } from '../engine/dice';
-import { testValue, skillBaseValue, bestForTests, bestForCombined, bestAssistedOption, idsDuTest, peutTenter, refusPersonneNePeutTenter, type SupportDetail, type TestDesigne } from '../engine/skills';
+import { d100, rollDice, type RNG } from '../engine/dice';
+import { testValue, skillBaseValue, bestForTests, bestForCombined, bestAssistedOption, peutTenter, refusPersonneNePeutTenter, type SupportDetail, type TestDesigne } from '../engine/skills';
 import { isStructure } from '../engine/structures';
 import { inanimateCombatant } from '../engine/inanimate';
 import { applyOps } from '../engine/ops';
 import { bonus, effectiveChar, blessuresPosees } from '../engine/characteristics';
-import { dataLabel, testSkillLabel } from '../data';
+import { dataLabel, massBattleHazardsDie, testSkillLabel } from '../data';
 import { clampTarget } from '../engine/tests';
 import { rollLine, type RollLineParts } from './rollSeam';
 import {
@@ -179,7 +179,7 @@ export interface MassBattleState {
   lastClash?: ClashResult;
   /** Issue finale (phase 'over'). */
   outcome?: BattleOutcome;
-  /** Scène de combat tactique en attente de reprise (startCombat). */
+  /** Scène de combat tactique en attente de reprise (lancerLeCombat). */
   combatScene?: MassBattleCombatScene;
   /** Rencontres à démarrer pour les Scènes de COMBAT/MENACE (par id de Scène → id d'encounter). */
   sceneEncounters?: Record<string, string>;
@@ -201,13 +201,17 @@ export function battleSceneById(id: string): ActivityDef | undefined {
   const d = activityById(id);
   return d?.contexts.includes('bataille-round') ? d : undefined;
 }
+/** Les cibles d'une ancre de bataille (`Scene.stations[].sceneId`), chacune son id et son libellé : les Scènes de
+ *  Round du catalogue, le seul espace d'ids que `battleScenesToStations` résout (`battleSceneById`), jamais les Scènes
+ *  du projet. */
+export const ciblesDAncreDeBataille = (): { id: string; label: string }[] => ROUND_SCENES().map((def) => ({ id: def.id, label: def.label }));
 /** Activité de préparation par id (repli undefined). */
 export function battleActivityById(id: string): ActivityDef | undefined {
   const d = activityById(id);
   return d?.contexts.includes('bataille') ? d : undefined;
 }
 
-/** Une Scène est-elle un COMBAT tactique (combat/menace) ? (engage tout le groupe, `startCombat`). */
+/** Une Scène est-elle un COMBAT tactique (combat/menace) ? (engage tout le groupe, `lancerLeCombat`). */
 function isCombatScene(def: ActivityDef): boolean {
   return def.sceneKind === 'combat' || def.sceneKind === 'threat';
 }
@@ -262,8 +266,8 @@ export function nomDArmee(spec: MassBattleSpec, camp: 'ally' | 'enemy'): string 
 }
 
 /** Ouvre une bataille de masse et bascule sur sa vue. */
-export function startMassBattle(get: Get, set: Set, spec: MassBattleSpec): void {
-  if (get().battle) { get().log(t('mbf.inCombat')); return; }
+export function amorcerLaBataille(get: Get, set: Set, spec: MassBattleSpec): void {
+  if (get().battle) { get().ecrireAuJournal(t('mbf.inCombat')); return; }
   const allyMight = clampMight(spec.allyMight);
   const enemyMight = clampMight(spec.enemyMight);
   // Le Rassemblement (sceneKind 'rally', l.122) n'est PAS une Scène cinématique de la pioche : il s'ouvre
@@ -307,19 +311,19 @@ export function startMassBattle(get: Get, set: Set, spec: MassBattleSpec): void 
   if (get().interlude) {
     set({ screen: 'interlude' });
   } else {
-    massBattleBegin(get, set);
+    engagerLaBataille(get, set);
     set({ screen: 'massBattle' });
   }
 }
 
 /** Passe de la phase pré-bataille aux Rounds : compose la situation du Round 1. */
-export function massBattleBegin(get: Get, set: Set): void {
+export function engagerLaBataille(get: Get, set: Set): void {
   const mb = get().massBattle;
   if (!mb || mb.phase !== 'prep') return;
   const { situation, activeThreats, imposed } = composeSituation(mb, battleRng());
   const threatLine = describeThreats(activeThreats);
   set({ massBattle: { ...mb, phase: 'round', situation, activeThreats, imposed, log: threatLine ? [...mb.log, threatLine] : mb.log } });
-  if (threatLine) get().log(threatLine);
+  if (threatLine) get().ecrireAuJournal(threatLine);
 }
 
 function describeThreats(threats: string[]): string | null {
@@ -333,9 +337,9 @@ function describeThreats(threats: string[]): string | null {
 /** Ouverture d'un Test de bataille (préparation ou Scène) : le meneur, sa valeur et ce qui pèse sur la cible. */
 interface OuvertureDeBataille {
   actor: Combatant; battle: 'prep' | 'round'; def: ActivityDef;
-  skillValue: number; skillId?: string; spec?: string; char?: CharKey; difficulty: Difficulty;
+  skillValue: number; test?: TestDesigne; difficulty: Difficulty;
   label?: string; mod?: number; modLabel?: string;
-  combined?: { skillId?: string; spec?: string; char?: CharKey; value: number };
+  combined?: { test: TestDesigne; value: number };
   opposition?: ActivityOppositionOn;
   heroIds?: string[]; support?: SupportDetail;
 }
@@ -347,21 +351,21 @@ export interface TestDeBataille { pending: PendingActivity; ligne2?: RollLinePar
 
 /** Monte le Test de bataille de `o`. PUR. */
 function pendingDeBataille(o: OuvertureDeBataille): TestDeBataille {
-  const skillLabel = testSkillLabel({ skill: o.skillId, spec: o.spec, char: o.char }) ?? t('mbf.testFallback');
+  const skillLabel = (o.test && testSkillLabel(o.test)) ?? t('mbf.testFallback');
   // Cibles montées par le monteur canonique (`rollLine`, #1153) : le modificateur de SITUATION (Menace
   // ADE II 8 l.219 / Planification l.75) pèse SUR LA CIBLE (il n'est pas dans la valeur) et se nomme.
   const surLaCible = activityModLines(o.mod, o.modLabel);
   const ligne = rollLine({
     actor: o.actor,
-    ...(o.skillId || o.char ? { test: { skill: o.skillId, char: o.char, spec: o.spec } } : {}),
+    ...(o.test ? { test: o.test } : {}),
     valeur: o.skillValue, soutien: o.support, difficulty: o.difficulty, surLaCible,
   });
   const ligne2 = o.combined
-    ? rollLine({ actor: o.actor, test: { skill: o.combined.skillId, char: o.combined.char, spec: o.combined.spec }, valeur: o.combined.value, difficulty: o.difficulty, surLaCible })
+    ? rollLine({ actor: o.actor, test: o.combined.test, valeur: o.combined.value, difficulty: o.difficulty, surLaCible })
     : undefined;
   const target = ligne.target;
   const combined = o.combined && ligne2
-    ? { skill2: testSkillLabel({ skill: o.combined.skillId, spec: o.combined.spec, char: o.combined.char }), skillValue2: o.combined.value, target2: ligne2.target }
+    ? { skill2: testSkillLabel(o.combined.test), skillValue2: o.combined.value, target2: ligne2.target }
     : {};
   const pa: PendingActivityFields = {
     heroId: o.actor.id, kind: 'catalog', activityId: o.def.id, battle: o.battle,
@@ -370,7 +374,7 @@ function pendingDeBataille(o: OuvertureDeBataille): TestDeBataille {
     ...(o.mod ? { mod: o.mod, modLabel: o.modLabel } : {}),
     ...(o.support ? { support: o.support } : {}),
     ...(o.heroIds ? { heroIds: o.heroIds } : {}),
-    ...(o.skillId ? { chosenSkill: o.skillId, ...(o.spec ? { chosenSkillSpec: o.spec } : {}) } : {}),
+    ...(o.test?.skill ? { chosenSkill: structuredClone(o.test.skill) } : {}), // #2097
     ...combined,
   };
   return { pending: o.opposition ? { ...pa, ...o.opposition } : pa, ...(ligne2 ? { ligne2 } : {}) };
@@ -407,12 +411,6 @@ function difficulteDeLOption(def: ActivityDef, tests: readonly TestDesigne[], te
 export function battleActivityDifficulty(def: ActivityDef, mb: MassBattleState, tests: readonly TestDesigne[], test: TestDesigne): Difficulty {
   const d = def.difficultyFrom;
   return d ? gapDifficulty(battleMeasureGap(mb, d.gap), d.roundTo ?? 1) : difficulteDeLOption(def, tests, test);
-}
-
-/** Les champs d'ouverture que nomme un Test désigné. PUR. */
-function champsDuTest(test: TestDesigne): { skillId?: string; spec?: string; char?: CharKey } {
-  const ids = idsDuTest(test);
-  return { ...(ids.skill ? { skillId: ids.skill } : {}), ...(ids.spec ? { spec: ids.spec } : {}), ...(ids.char ? { char: ids.char } : {}) };
 }
 
 /** Valeur COURANTE d'un réservoir de modificateur de Test d'armée, lu par l'Activité qui le DÉCLARE
@@ -486,7 +484,7 @@ export function assignedHeroesFor(mb: MassBattleState, party: Combatant[], actio
 }
 
 /** Enregistre l'AFFECTATION de PJ à une action du Round (Scène MULTI-PJ / Activité). */
-export function setMassBattleHero(get: Get, set: Set, actionId: string, heroIds: string[]): void {
+export function affecterLeHeros(get: Get, set: Set, actionId: string, heroIds: string[]): void {
   const mb = get().massBattle;
   if (!mb) return;
   const assignment = { ...mb.assignment };
@@ -497,7 +495,7 @@ export function setMassBattleHero(get: Get, set: Set, actionId: string, heroIds:
 /** Le Personnage peut-il TENTER le Test de cette action de bataille ? Les deux compétences d'un Test combiné,
  *  l'une des compétences au choix sinon. LDB 09 l.30, LDB 12 l.202-206, ADE II 8 l.75. */
 export function peutTenterAction(c: Combatant, def: ActivityDef): boolean {
-  const tentable = (test: TestDesigne): boolean => { const ids = idsDuTest(test); return peutTenter(c, ids.skill, ids.spec); };
+  const tentable = (test: TestDesigne): boolean => peutTenter(c, test);
   const tests = testsDeLActivite(def);
   if (def.combined && tests.length >= 2) return tentable(tests[0]) && tentable(tests[1]);
   return tests.length ? tests.some(tentable) : peutTenter(c);
@@ -528,7 +526,7 @@ function resolveAssistedTeam(
   const solo = bestForTests(party, tests)?.actor;
   const team = crew.length ? crew : (solo ? [solo] : []);
   const picked = bestAssistedOption(team, tests);
-  if (!picked) { get().log(refusTenterAction(crew, def)); return null; }
+  if (!picked) { get().ecrireAuJournal(refusTenterAction(crew, def)); return null; }
   return { team, picked, difficulty: difficulteDeLOption(def, tests, picked.test) };
 }
 
@@ -543,12 +541,12 @@ export function preJetDePreparation(s: EtatDInterlude, mb: MassBattleState, hero
   // l'écart d'armées (Discours inspirant, `difficultyFrom`, l.71).
   const mod = def.testModFrom ? battleTestModPool(mb, def.testModFrom) : 0;
   const tests = testsDeLActivite(def);
-  const commun = (test: TestDesigne) => ({ battle: 'prep' as const, def, ...champsDuTest(test), difficulty: battleActivityDifficulty(def, mb, tests, test), mod, modLabel: mod ? t('mbf.modPrep') : undefined });
+  const commun = (test: TestDesigne) => ({ battle: 'prep' as const, def, test, difficulty: battleActivityDifficulty(def, mb, tests, test), mod, modLabel: mod ? t('mbf.modPrep') : undefined });
   if (def.combined && tests.length >= 2) {
     const [t1, t2] = tests;
     const picked = bestForCombined([hero], t1, t2);
     return picked
-      ? pendingDeBataille({ ...commun(t1), actor: picked.actor, skillValue: picked.value1, combined: { ...champsDuTest(t2), value: picked.value2 } })
+      ? pendingDeBataille({ ...commun(t1), actor: picked.actor, skillValue: picked.value1, combined: { test: t2, value: picked.value2 } })
       : null;
   }
   if (def.assisted) {
@@ -577,24 +575,40 @@ export function openMassBattleActivity(get: Get, set: Set, activityId: string, h
 
 // ── Scènes cinématiques (l.116-225) ──────────────────────────────────────────────────────────────
 
+/** Les PJ vivants qui n'ont pas encore agi ce Round. ADE II 8 l.116-118 */
+export const herosLibres = (mb: MassBattleState, party: readonly Combatant[]): Combatant[] => party.filter((h) => !h.dead && !mb.actedHeroes.includes(h.id));
+
+/** Raison du refus d'engager la Scène `sceneId`, ou `null` — verdict UNIQUE de `openMassBattleScene` et de ce
+ *  qu'un hôte montre : une Scène de la situation du Round, ni déjà résolue, ni après le Test spectaculaire ; une
+ *  Scène de combat engage tout le groupe ; une autre attend un PJ libre qui puisse la tenter, et une position
+ *  rompue ne se tient plus. ADE II 8 l.116-118, l.161 */
+export function refusDeSceneDeBataille(s: Pick<Jeu, 'massBattle' | 'party'>, sceneId: string): string | null {
+  const mb = s.massBattle;
+  const scene = battleSceneById(sceneId);
+  if (!mb || mb.phase !== 'round' || !scene || !mb.situation.includes(sceneId)) return t('mbf.sceneHorsSituation');
+  if (mb.awaitingNext) return t('mbf.roundJoue');
+  if (mb.resolvedScenes.includes(sceneId)) return t('mbf.sceneResolue');
+  if (isCombatScene(scene)) return null;
+  if (scene.sceneKind === 'hold' && mb.sceneState[sceneId]?.broken) return t('mbf.holdAlreadyBroken', { scene: scene.label });
+  const libres = herosLibres(mb, s.party);
+  return libres.length ? battleActionRefus(mb, libres, scene) : t('mbf.allActed');
+}
+
 /** Choisit une Scène de la SITUATION : 'test' → modale de jet ; 'hold' → Test opposé de tenue ;
  *  'combat'/'threat' → combat tactique. Scène MULTI-PJ (l.116-118) résolue en SOUTIEN (LDB 12). */
 export function openMassBattleScene(get: Get, set: Set, sceneId: string): void {
-  const mb = get().massBattle;
-  const scene = battleSceneById(sceneId);
-  if (!mb || mb.phase !== 'round' || mb.awaitingNext || !scene) return;
-  if (!mb.situation.includes(sceneId) || mb.resolvedScenes.includes(sceneId)) return;
+  if (refuseSi(get, set, (s) => refusDeSceneDeBataille(s, sceneId))) return;
+  const mb = get().massBattle!;
+  const scene = battleSceneById(sceneId)!;
   if (isCombatScene(scene)) { startBattleCombat(get, set, scene); return; }
   if (scene.sceneKind === 'hold') { openHoldScene(get, set, scene); return; }
   // Scène 'test' MULTI-PJ (l.116-118/151/153) : compétences AU CHOIX, Soutien LDB 12.
-  const party = get().party.filter((h) => !h.dead && !mb.actedHeroes.includes(h.id));
-  if (!party.length) { get().log(t('mbf.allActed')); return; }
-  const at = resolveAssistedTeam(get, mb, party, scene);
+  const at = resolveAssistedTeam(get, mb, herosLibres(mb, get().party), scene);
   if (!at) return;
   const { team, picked, difficulty } = at;
   const mod = massBattleThreatPenalty(mb); // Intrus l.219 : −20 aux Tests des autres Scènes.
   openBattlePending(set, {
-    actor: picked.actor, battle: 'round', def: scene, skillValue: picked.value, ...champsDuTest(picked.test),
+    actor: picked.actor, battle: 'round', def: scene, skillValue: picked.value, test: picked.test,
     difficulty, mod, modLabel: mod ? t('mbf.modThreat') : undefined,
     heroIds: team.map((h) => h.id), support: picked.support,
   });
@@ -606,10 +620,7 @@ function openHoldScene(get: Get, set: Set, scene: ActivityDef): void {
   const mb = get().massBattle;
   if (!mb || !scene.hold) return;
   const state = mb.sceneState[scene.id] ?? initHoldState();
-  if (state.broken) { get().log(t('mbf.holdAlreadyBroken', { scene: scene.label })); return; }
-  const party = get().party.filter((h) => !h.dead && !mb.actedHeroes.includes(h.id));
-  if (!party.length) { get().log(t('mbf.allActed')); return; }
-  const at = resolveAssistedTeam(get, mb, party, scene);
+  const at = resolveAssistedTeam(get, mb, herosLibres(mb, get().party), scene);
   if (!at) return;
   const { team, picked, difficulty } = at;
   const enemyBonus = holdEnemyBonus(scene.hold, state.held); // +10 cumulatif par Round déjà tenu (l.163).
@@ -619,7 +630,7 @@ function openHoldScene(get: Get, set: Set, scene: ActivityDef): void {
   // Les quatre voyagent ensemble jusqu'au verdict — aucun site en aval ne re-dérive une nue.
   // Niveau de Compétence NU du PJ retenu (`LDB 09 l.17`) — Compétence si le Test retenu en nomme une,
   // Caractéristique effective sinon.
-  const skillBase = 'skill' in picked.test ? skillBaseValue(picked.actor, picked.test.skill.id, picked.test.skill.spec) : effectiveChar(picked.actor, picked.test.char);
+  const skillBase = 'skill' in picked.test ? skillBaseValue(picked.actor, { skill: picked.test.skill }) : effectiveChar(picked.actor, picked.test.characteristic);
   const opposition: ActivityOppositionOn = {
     // Seuil de l'opposition (aucune Difficulté : Puissance + tenue) — écrêté par la primitive PARTAGÉE.
     enemyValue: clampTarget(armyMight(mb.enemy) + enemyBonus).target,
@@ -628,7 +639,7 @@ function openHoldScene(get: Get, set: Set, scene: ActivityDef): void {
     skillBase,
   };
   openBattlePending(set, {
-    actor: picked.actor, battle: 'round', def: scene, skillValue: picked.value, ...champsDuTest(picked.test),
+    actor: picked.actor, battle: 'round', def: scene, skillValue: picked.value, test: picked.test,
     difficulty, mod, modLabel: mod ? t('mbf.modThreat') : undefined,
     opposition, heroIds: team.map((h) => h.id), support: picked.support,
   });
@@ -658,12 +669,12 @@ export function openMassBattleRally(get: Get, set: Set): void {
   if (!def) return;
   const hero = heroDuRassemblement(mb, get().party)!;
   openBattlePending(set, {
-    actor: hero, battle: 'round', def, skillValue: testValue(hero, 'resistance'), skillId: 'resistance',
+    actor: hero, battle: 'round', def, skillValue: testValue(hero, { skill: { id: 'resistance' } }), test: { skill: { id: 'resistance' } },
     difficulty: 'intermediaire', label: t('mbf.rallyLabel'), heroIds: [hero.id],
   });
 }
 
-// ── Application des issues (appelée par `jetConfirm('activity')` pour une `PendingActivity` de bataille) ───
+// ── Application des issues (appelée par `jetValider('activity')` pour une `PendingActivity` de bataille) ───
 
 /** Applique un delta de Puissance COURANTE à un camp par `GameOp` (`heal`/`wounds`). */
 function applyDelta(mb: MassBattleState, side: 'ally' | 'enemy', delta: number): MassBattleState {
@@ -799,9 +810,9 @@ function applyHoldResolution(
   return { mb: next, lines };
 }
 
-/** Applique l'issue d'une `PendingActivity` de BATAILLE à `MassBattleState` (appelé par `jetConfirm('activity')`).
+/** Applique l'issue d'une `PendingActivity` de BATAILLE à `MassBattleState` (appelé par `jetValider('activity')`).
  *  Route selon le contexte (préparation / Scène de Round) et le genre. Le budget d'Activité (une prépa =
- *  une Activité d'interlude, l.65) est décrémenté par `jetConfirm('activity')`, PAS ici (application ⊥ budget). */
+ *  une Activité d'interlude, l.65) est décrémenté par `jetValider('activity')`, PAS ici (application ⊥ budget). */
 export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): void {
   const mb = get().massBattle;
   if (!mb || pa.roll == null || !pa.activityId) return;
@@ -851,7 +862,7 @@ export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): 
   }
 
   set({ massBattle: { ...next, log: [...next.log, ...lines] } });
-  for (const l of lines) get().log(l);
+  for (const l of lines) get().ecrireAuJournal(l);
 }
 
 // ── Scène de COMBAT tactique (l.137-145/211-225) ─────────────────────────────────────────────────
@@ -863,12 +874,12 @@ function startBattleCombat(get: Get, set: Set, scene: ActivityDef): void {
   const encId = mb.sceneEncounters?.[scene.id] ?? scene.encounter;
   const enc = encId && get().scene?.encounters.find((e) => e.id === encId);
   if (!enc) {
-    get().log(t('mbf.noEncounter', { scene: scene.label, enc: encId ?? '?' }));
+    get().ecrireAuJournal(t('mbf.noEncounter', { scene: scene.label, enc: encId ?? '?' }));
     return;
   }
   set({ massBattle: { ...mb, combatScene: { sceneId: scene.id, hits: 0, hitters: [] } }, screen: 'campaign' });
-  get().log(t('mbf.engage', { scene: scene.label }));
-  get().startCombat(encId);
+  get().ecrireAuJournal(t('mbf.engage', { scene: scene.label }));
+  get().lancerLeCombat(encId);
 }
 
 /** Comptage EN DIRECT des touches d'une Scène de COMBAT (l.139/145) — appelé par `applyAttackResult`. */
@@ -901,23 +912,23 @@ export function massBattleResumeCombat(get: Get, set: Set, kills: number, outcom
     lines.push(...applied.lines);
   }
   set({ massBattle: { ...next, log: [...next.log, ...lines] }, screen: 'massBattle' });
-  for (const l of lines) get().log(l);
+  for (const l of lines) get().ecrireAuJournal(l);
 }
 
 // ── Aléa, Test spectaculaire, Rounds, issue (l.120-124/309) ──────────────────────────────────────
 
-/** Tire (ou choisit) le facteur environnemental du Round (l.309, 1d10). */
+/** Tire (ou choisit) le facteur environnemental du Round (ADE II 08 l.309-311). */
 export function massBattleSetHazard(get: Get, set: Set, roll?: number): void {
   const mb = get().massBattle;
   if (!mb || mb.phase !== 'round') return;
-  const h = battleHazard(roll ?? d10(battleRng()));
+  const h = battleHazard(roll ?? rollDice(massBattleHazardsDie(), battleRng()));
   set({ massBattle: { ...mb, hazard: { label: h.label, text: h.desc }, log: [...mb.log, t('mbf.hazardLog', { label: h.label })] } });
-  get().log(t('mbf.hazard', { label: h.label }));
+  get().ecrireAuJournal(t('mbf.hazard', { label: h.label }));
 }
 
 /** Résout le Test spectaculaire de Puissance du Round (l.120) puis marque l'attente du Rassemblement /
- *  passage au Round suivant (l.122-124). Ne fait PAS avancer le Round (cf. `massBattleAdvance`). */
-export function massBattleClash(get: Get, set: Set): void {
+ *  passage au Round suivant (l.122-124). Ne fait PAS avancer le Round (cf. `avancerLaBataille`). */
+export function engagerLaMelee(get: Get, set: Set): void {
   const mb = get().massBattle;
   if (!mb || mb.phase !== 'round' || mb.awaitingNext) return;
   const allyMod = mb.allyMod + (mb.round === 1 ? mb.firstRoundBonus : 0);
@@ -938,11 +949,11 @@ export function massBattleClash(get: Get, set: Set): void {
     next = { ...next, awaitingNext: true };
   }
   set({ massBattle: { ...next, log: [...next.log, ...lines] } });
-  for (const l of lines) get().log(l);
+  for (const l of lines) get().ecrireAuJournal(l);
 }
 
 /** Passe au Round suivant (l.124) : compose la nouvelle SITUATION et réinitialise l'état par-Round. */
-export function massBattleAdvance(get: Get, set: Set): void {
+export function avancerLaBataille(get: Get, set: Set): void {
   const mb = get().massBattle;
   if (!mb || mb.phase !== 'round' || !mb.awaitingNext) return;
   const advanced: MassBattleState = { ...mb, round: mb.round + 1 };
@@ -955,7 +966,7 @@ export function massBattleAdvance(get: Get, set: Set): void {
     hazard: undefined, awaitingNext: false,
   };
   set({ massBattle: { ...next, log: threatLine ? [...next.log, threatLine] : next.log } });
-  if (threatLine) get().log(threatLine);
+  if (threatLine) get().ecrireAuJournal(threatLine);
 }
 
 function outcomeLine(mb: MassBattleState, outcome: BattleOutcome, destroyed: boolean): string {
@@ -969,7 +980,7 @@ function outcomeLine(mb: MassBattleState, outcome: BattleOutcome, destroyed: boo
  *  la bataille jusqu'à son issue (`confirmBattleActivity`) : la clôture est alors REFUSÉE, jamais purgée. */
 function cloreLaBataille(get: Get, set: Set): void {
   const enCours = get().pendingActivity;
-  if (enCours?.battle) { get().log(t('mbf.endTestEnCours', { test: enCours.label })); return; }
+  if (enCours?.battle) { get().ecrireAuJournal(t('mbf.endTestEnCours', { test: enCours.label })); return; }
   set({ massBattle: null, screen: get().scene ? 'campaign' : 'menu' });
 }
 
@@ -1007,15 +1018,15 @@ export function battleSceneEffectLabel(def: ActivityDef): string {
 export function creerActionsDeBatailleDeMasse(get: Get, set: Set) {
   return {
     // Combat de masse / Puissance de Bataille (ADE II 08) — flux d'orchestration + jet de PJ différé.
-    startMassBattle: (spec) => startMassBattle(get, set, spec),
-    massBattleBegin: () => massBattleBegin(get, set),
-    massBattleActivity: (activityId, heroId) => openMassBattleActivity(get, set, activityId, heroId),
-    massBattleScene: (sceneId) => openMassBattleScene(get, set, sceneId),
-    setMassBattleHero: (actionId, heroIds) => setMassBattleHero(get, set, actionId, heroIds),
-    massBattleRally: () => openMassBattleRally(get, set),
-    massBattleHazard: (roll) => massBattleSetHazard(get, set, roll),
-    massBattleClash: () => massBattleClash(get, set),
-    massBattleAdvance: () => massBattleAdvance(get, set),
+    amorcerLaBataille: (spec) => amorcerLaBataille(get, set, spec),
+    engagerLaBataille: () => engagerLaBataille(get, set),
+    menerLActionDeBataille: (activityId, heroId) => openMassBattleActivity(get, set, activityId, heroId),
+    jouerLaScene: (sceneId) => openMassBattleScene(get, set, sceneId),
+    affecterLeHeros: (actionId, heroIds) => affecterLeHeros(get, set, actionId, heroIds),
+    rallierLesTroupes: () => openMassBattleRally(get, set),
+    affronterLePeril: (roll) => massBattleSetHazard(get, set, roll),
+    engagerLaMelee: () => engagerLaMelee(get, set),
+    avancerLaBataille: () => avancerLaBataille(get, set),
   } satisfies FabriqueDuNoyau;
 }
 

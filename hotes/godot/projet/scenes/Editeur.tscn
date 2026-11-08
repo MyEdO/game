@@ -1,0 +1,118 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/editeur.gd" id="1_editeur"]
+[ext_resource type="PackedScene" path="res://scenes/Monde.tscn" id="2_monde"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="3_zone"]
+
+[sub_resource type="Theme" id="Avis"]
+Label/font_sizes/font_size = 18
+
+[node name="Editeur" type="Node"]
+script = ExtResource("1_editeur")
+
+[node name="Monde" parent="." instance=ExtResource("2_monde")]
+
+[node name="Interface" type="CanvasLayer" parent="."]
+
+[node name="Outils" type="PanelContainer" parent="Interface"]
+custom_minimum_size = Vector2(320, 0)
+mouse_force_pass_scroll_events = false
+anchors_preset = 9
+anchor_bottom = 1.0
+grow_vertical = 2
+theme_type_variation = &"Panneau"
+
+[node name="Defilement" type="ScrollContainer" parent="Interface/Outils"]
+horizontal_scroll_mode = 0
+
+[node name="Pile" type="VBoxContainer" parent="Interface/Outils/Defilement"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="Titre" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Titre"]
+script = ExtResource("3_zone")
+source = "editeur.titre"
+
+[node name="Scenes" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Scenes"]
+script = ExtResource("3_zone")
+source = "editeur.scenes"
+
+[node name="Outils" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Outils"]
+script = ExtResource("3_zone")
+source = "editeur.outils"
+
+[node name="Options" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Options"]
+script = ExtResource("3_zone")
+source = "editeur.options"
+
+[node name="Couches" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Couches"]
+script = ExtResource("3_zone")
+source = "editeur.couches"
+
+[node name="Historique" type="HBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Historique"]
+script = ExtResource("3_zone")
+source = "editeur.historique"
+
+[node name="Presse" type="HBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Presse"]
+script = ExtResource("3_zone")
+source = "editeur.presse"
+
+[node name="Fichier" type="HBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Fichier"]
+script = ExtResource("3_zone")
+source = "editeur.fichier"
+
+[node name="Pointee" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Pointee"]
+script = ExtResource("3_zone")
+source = "editeur.pointee"
+
+[node name="Inspecteur" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
+script = ExtResource("3_zone")
+source = "editeur.inspecteur"
+
+[node name="Validation" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Validation"]
+script = ExtResource("3_zone")
+source = "editeur.validation"
+
+[node name="Calque" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Calque"]
+script = ExtResource("3_zone")
+source = "editeur.calque"
+
+[node name="Avis" type="VBoxContainer" parent="Interface"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_top = 24.0
+grow_horizontal = 2
+theme = SubResource("Avis")
+
+[node name="Refus" type="Label" parent="Interface/Avis"]
+horizontal_alignment = 1
+theme_type_variation = &"alerte"
+
+[node name="Panne" type="Label" parent="Interface/Avis"]
+horizontal_alignment = 1
+theme_type_variation = &"echec"

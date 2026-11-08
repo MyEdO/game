@@ -110,13 +110,13 @@ describe('possessionTotalEnc — scénario-étalon TERRESTRE (§5, T1-c2, #616)'
     uid: 'pos-charrette', ownerId: 'h1', location: { kind: 'au-lieu', placeId: 'ecurie' },
     items: [{ uid: 'it-1', trappingId: 'lanterne', enc: 2 }] as Possession['items'],
     nature: 'vehicule', vehicleId: 'charrette',
-    cargo: [{ cargoId: 'grain', enc: 15, basePriceGold: 3 }],
+    cargo: [{ uid: 'lot-1', cargoId: 'grain', enc: 15, basePriceGold: 3 }],
   };
   const muleChargee: Possession = {
     uid: 'pos-mule', ownerId: 'h1', location: { kind: 'avec-le-groupe' },
     items: [{ uid: 'it-2', trappingId: 'sac-de-couchage', enc: 1 }] as Possession['items'],
     nature: 'bete', ref: { id: 'mule' },
-    cargo: [{ cargoId: 'vin', enc: 4, basePriceGold: 8 }],
+    cargo: [{ uid: 'lot-2', cargoId: 'vin', enc: 4, basePriceGold: 8 }],
   };
   const registry = [charrette, muleChargee];
 
@@ -166,13 +166,13 @@ describe('possessionLoadEnc — charge PORTÉE, EXCLUT le poids propre (#620 Lot
     uid: 'pos-charrette', ownerId: 'h1', location: { kind: 'au-lieu', placeId: 'ecurie' },
     items: [{ uid: 'it-1', trappingId: 'lanterne', enc: 2 }] as Possession['items'],
     nature: 'vehicule', vehicleId: 'charrette',
-    cargo: [{ cargoId: 'grain', enc: 15, basePriceGold: 3 }],
+    cargo: [{ uid: 'lot-3', cargoId: 'grain', enc: 15, basePriceGold: 3 }],
   };
   const muleChargee: Possession = {
     uid: 'pos-mule', ownerId: 'h1', location: { kind: 'avec-le-groupe' },
     items: [{ uid: 'it-2', trappingId: 'sac-de-couchage', enc: 1 }] as Possession['items'],
     nature: 'bete', ref: { id: 'mule' },
-    cargo: [{ cargoId: 'vin', enc: 4, basePriceGold: 8 }],
+    cargo: [{ uid: 'lot-4', cargoId: 'vin', enc: 4, basePriceGold: 8 }],
   };
   const registry = [charrette, muleChargee];
 

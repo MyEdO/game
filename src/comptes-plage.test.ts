@@ -6,13 +6,13 @@
  */
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { z } from 'zod';
 import {
-  baissesDuDetecteur, detecteurDuCommit, jugerLesComptes, refsAPlat, refusDesComptes, sitesDeDetteDOps,
+  baissesDuDetecteur, detecteurDuCommit, jugerLesComptes, MARQUE_DE_CLASSEMENT, refsAPlat, refusDesComptes, sitesDeDetteDOps,
   verdictDesDetecteurs, type Comptes,
 } from '../scripts/guards/lib/corpusDesComptes.mts';
 import { idDe, ref, refs } from './data/schemas/grammaire/ref';
@@ -26,6 +26,7 @@ import { renommagesDeStructure, SOUS_LA_PORTE, type EntreeDeStructure } from '..
 import { cheminsDeDocument } from '../scripts/guards/lib/structuresLocales.mts';
 import { commitDe, depotDe, reussi, shaDe } from '../scripts/guards/lib/gitPorte.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { CHEMINS_EXPORTES } from '../scripts/migrations/replay-head.mjs';
 
 const comptes = (entrees: Partial<Record<string, object[]>>): Comptes => new Map(Object.entries(entrees)) as Comptes;
 
@@ -216,22 +217,31 @@ describe('verdictDesDetecteurs — deux détecteurs constants, la tête et la ba
     expect(verdict.texte).toContain('aucune paire de détecteur ne se lie');
   });
 
-  it('le détecteur de la base pose le `scripts/` DU COMMIT de base, pas celui qui tourne', () => {
+  it('le détecteur de la base pose le `scripts/` et le CLASSEMENT DU COMMIT de base, pas ceux qui tournent ; une déclaration reste à l’image (#2969)', () => {
     const racine = mkdtempSync(join(tmpdir(), 'detecteur-base-'));
     const image = mkdtempSync(join(tmpdir(), 'detecteur-image-'));
     try {
       const git = (...args: string[]) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { cwd: racine, env: envDeDepotForge(), encoding: 'utf8' });
+      const grammaire = join(racine, 'src/data/schemas/grammaire');
+      const versions = (n: number) => {
+        writeFileSync(join(racine, 'scripts/detecteur.mjs'), `export const version = ${n};\n`);
+        writeFileSync(join(grammaire, 'classement.ts'), `${MARQUE_DE_CLASSEMENT}\nexport const version = ${n};\n`);
+        writeFileSync(join(grammaire, 'declaration.ts'), `export const version = ${n};\n`);
+      };
       git('init', '-q');
       mkdirSync(join(racine, 'scripts'));
-      writeFileSync(join(racine, 'scripts/detecteur.mjs'), 'export const version = 1;\n');
+      mkdirSync(grammaire, { recursive: true });
+      versions(1);
       writeFileSync(join(racine, 'package.json'), '{}\n');
       git('add', '.');
       git('commit', '-q', '-m', 'base');
       const base = git('rev-parse', 'HEAD').trim();
-      writeFileSync(join(racine, 'scripts/detecteur.mjs'), 'export const version = 2;\n');
+      versions(2);
       git('commit', '-q', '-am', 'tête');
       detecteurDuCommit(depotDe(racine, { env: envDeDepotForge() }), base).poser(image);
       expect(readFileSync(join(image, 'scripts/detecteur.mjs'), 'utf8')).toBe('export const version = 1;\n');
+      expect(readFileSync(join(image, 'src/data/schemas/grammaire/classement.ts'), 'utf8')).toBe(`${MARQUE_DE_CLASSEMENT}\nexport const version = 1;\n`);
+      expect(existsSync(join(image, 'src/data/schemas/grammaire/declaration.ts')), 'une déclaration ne voyage pas avec le détecteur').toBe(false);
     } finally {
       rmSync(racine, { recursive: true, force: true });
       rmSync(image, { recursive: true, force: true });
@@ -368,6 +378,7 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
   const FERMES_AU_GESTE: Readonly<Record<string, RegExp | null>> = {
     'src/data/advancementCosts.json': /ne couvrent pas/,
     'src/data/ambiance.json': /doivent croître STRICTEMENT/,
+    'src/data/cargoes.json': /ne couvre pas le d100/,
     'src/data/naval-progression.json': /ne couvrent pas/,
     'src/data/obsessions.json': /est absent du catalogue des groupes/,
     'src/data/structure-criticals.json': /ne couvrent pas/,
@@ -380,10 +391,9 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
   it('dans chaque document, liste, record ou config (projets de scène compris), une entrée copiée sous un id neuf et une entrée NON référencée retirée tant que son schéma l’admet, un projet de scène neuf, cibles de code régénérées : aucun refus dans les deux sens, chaque volet inchangé', { timeout: 260_000 }, () => {
     const dossier = mkdtempSync(join(tmpdir(), 'comptes-2995-'));
     try {
-      for (const rel of ['src', 'scripts'])
-        cpSync(join(ROOT, rel), join(dossier, rel), { recursive: true, filter: (p) => !p.includes('node_modules') && (!/\.[A-Za-z0-9]+$/.test(p) || TEXTE.test(p)) });
-      for (const rel of ['package.json', 'tsconfig.json']) cpSync(join(ROOT, rel), join(dossier, rel));
-      symlinkSync(join(ROOT, 'Source'), join(dossier, 'Source'), 'junction');
+      for (const rel of Object.keys(CHEMINS_EXPORTES))
+        if (rel === 'Source') symlinkSync(join(ROOT, rel), join(dossier, rel), 'junction');
+        else cpSync(join(ROOT, rel), join(dossier, rel), { recursive: true, filter: (p) => !p.includes('node_modules') && (!/\.[A-Za-z0-9]+$/.test(p) || TEXTE.test(p)) });
       const documents = scanDuCorpus(ROOT).scan.documents;
       const lus = documents.map((d) => JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8')) as unknown);
       const code = readCorpus(['src'], { exts: ['.ts', '.tsx', '.mts', '.mjs'], tests: true }).filter((f) => !f.rel.includes('.generated.')).map((f) => f.text);

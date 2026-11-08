@@ -15,8 +15,8 @@
  */
 import type { Combatant } from './types';
 import { WATER_EXPOSURE, type WaterExposureMode, type WaterExposureModifier } from '../data';
-import { findTableEntry } from './tables';
-import { d100, type RNG } from './dice';
+import { deDeLaTableTiree, facesDuDe, findTableEntry } from './tables';
+import { rollDice, type RNG } from './dice';
 
 /** Le personnage est-il « blessé » (PB courants < max) ? Gate du reroll « Relancez si le Personnage
  *  n'est pas blessé » (Infection mineure / Blessure Purulente, MSRC 16 l.63). */
@@ -59,21 +59,23 @@ export function sourceExposureMod(sourceId: string | undefined): { label: string
   return m ? { label: m.label, mod: m.mod } : null;
 }
 
-/** Tirage de la maladie sur la table d100, « avec un modificateur de +10 pour chaque DR négatif » ;
+/** Tirage de la maladie au dé de sa table (MSRC 16 l.53), « avec un modificateur de +10 pour chaque DR négatif » ;
  *  « Relancez si le Personnage n'est pas blessé » (entrées ¹). Le jet modifié est PLAFONNÉ à la table
  *  (findTableEntry replie sur la dernière entrée). Borne de sûreté anti-boucle : après 20 relances d'un
  *  tirage non-blessé, on garde la dernière entrée NON gatée en re-balayant la table (déterministe). */
 export function drawWaterDisease(negativeSL: number, wounded: boolean, rng: RNG): { roll: number; modified: number; disease: string; rerolled: number } {
   const mod = WATER_EXPOSURE.rollModPerNegativeSL * Math.max(0, negativeSL);
+  const { entries } = WATER_EXPOSURE.diseases;
+  const de = deDeLaTableTiree(WATER_EXPOSURE.diseases);
   let rerolled = 0;
   for (;;) {
-    const roll = d100(rng);
-    const modified = Math.min(100, roll + mod);
-    const entry = findTableEntry(WATER_EXPOSURE.diseases, modified);
+    const roll = rollDice(de, rng);
+    const modified = Math.min(facesDuDe(de), roll + mod);
+    const entry = findTableEntry(entries, modified);
     if (!entry.rerollUnlessWounded || wounded) return { roll, modified, disease: entry.disease, rerolled };
     rerolled++;
     if (rerolled >= 20) {
-      const fallback = WATER_EXPOSURE.diseases.find((e) => !e.rerollUnlessWounded) ?? entry;
+      const fallback = entries.find((e) => !e.rerollUnlessWounded) ?? entry;
       return { roll, modified, disease: fallback.disease, rerolled };
     }
   }

@@ -95,7 +95,7 @@ function monte(charge: Charge, susp: Suspension | null, temoin = false): void {
   } as unknown as AttackResult;
   const suite = ennemiDefend ? { enchainement: { mode: 'aucun' as const } } : undefined;
   expect(maybeOpenDefense(g, banc.setState, attaquant, defenseur, attaquant.weapons[0], suite), 'la fenêtre du défenseur s’ouvre').toBe(true);
-  g().jetRoll('defense');
+  g().jetLancer('defense');
   banc.setState({ pendingDefense: {
     ...g().pendingDefense!, result: res, mode: 'parade', parryWeaponUid: parade.uid,
     ...(charge === 'reaction' ? { shieldReaction: 'push' as const } : {}),
@@ -110,8 +110,8 @@ function jouer(): string[] {
     const pd = g().pendingDefense;
     if (pd) {
       trace.push(`defense(${pd.weapon.label}→${pd.defenderId})`);
-      if (!pd.result) { g().jetRoll('defense'); g().jetSetForcedRoll('defense', 97); }
-      g().jetConfirm('defense');
+      if (!pd.result) { g().jetLancer('defense'); g().jetImposerLeResultat('defense', 97); }
+      g().jetValider('defense');
       continue;
     }
     const pc = g().pendingCascade;
@@ -187,7 +187,7 @@ describe('après-coup — le cas suspendu rejoint le témoin (#1508 T3b-4)', () 
 
   it('réaction de Porte-Bouclier sur un coup suspendu : jouée APRÈS l’application, le repoussé reste désengagé', () => {
     monte('reaction', 'sauvegarde');
-    g().jetConfirm('defense');
+    g().jetValider('defense');
     expect(g().battle!.combatants.find((c) => c.id === 'e')!.pos, 'rien ne bouge devant le dé de sauvegarde').toEqual({ x: 1, y: 0 });
     const trace = jouer();
     expect(trace, trace.join(' | ')).toContain('engagé(e)=false');
@@ -222,19 +222,19 @@ describe('Maladresse de l’ATTAQUANT : une écriture, au temps `oupsAttaquant` 
   it('héros qui rate sur un double : UNE Maladresse, AVANT la suite (Action de la manœuvre rendue ensuite)', () => {
     const { h, e } = duel();
     openAttackCascade(g, banc.setState, { attackerId: h.id, targetId: e.id, location: null, result: null, weaponUid: 'sw', freeKind: 'morsure' }, 'Attaque', 'action/attack');
-    g().jetRoll('attack');
+    g().jetLancer('attack');
     banc.setState({ pendingAttack: { ...g().pendingAttack!, result: {
       hit: true, attackerRoll: 33, netSL: 1, location: 'corps', damage: 5, woundsLost: 3, critical: false, advantageTo: null,
       defenderDefeated: false, log: 'touche.', attackerDetail: { roll: 33, success: false, sl: -2 },
     } as unknown as AttackResult } });
-    g().jetConfirm('attack');
+    g().jetValider('attack');
     const maladresses = () => (g().pendingCascade?.participants ?? []).filter((st) => st.jet === 'fumble' && st.actorId === h.id);
     expect(maladresses(), 'une seule étape de Maladresse pour l’attaquant').toHaveLength(1);
     expect(g().battle!.acted, 'la suite attend la Maladresse').toBe(true);
     const pc = g().pendingCascade!;
     expect(pc.participants[pc.cursor].jet, 'le curseur est sur la Maladresse').toBe('fumble');
-    g().jetRoll('fumble');
-    g().jetConfirm('fumble');
+    g().jetLancer('fumble');
+    g().jetValider('fumble');
     expect(g().battle!.acted, 'la suite (Action de la manœuvre gratuite rendue) joue après la Maladresse').toBe(false);
     const log = g().battle!.log.map((l) => l.text);
     expect(log.filter((l) => l.startsWith('h — Maladresse !')), log.join(' | ')).toHaveLength(1);
@@ -279,7 +279,7 @@ describe('Piétinement d’un plus grand : le balayage suit, l’Action rendue �
       let restitutions = 0;
       const unsub = banc.subscribe((s, p) => { if (p.battle?.acted === true && s.battle?.acted === false) restitutions++; });
       try {
-        g().jetConfirm('attack');
+        g().jetValider('attack');
         jouer();
         expect(g().battle!.combatants.find((c) => c.id === 'e1')!.wounds.current, 'le Piétinement a porté').toBeLessThan(200);
         const pc = g().pendingCleave;
@@ -324,7 +324,7 @@ describe('Piétinement suspendu par une sauvegarde : la suite joue à la reprise
       let restitutions = 0;
       const unsub = banc.subscribe((s, p) => { if (p.battle?.acted === true && s.battle?.acted === false) restitutions++; });
       try {
-        g().jetConfirm('attack');
+        g().jetValider('attack');
         expect(etape()?.de, 'une étape à dé (sauvegarde) tient la main').toBeTruthy();
         expect(g().pendingCleave, 'le balayage n’est pas offert avant le dé').toBeNull();
         expect(g().battle!.combatants.find((c) => c.id === 'e1')!.wounds.current, 'aucune Blessure avant le dé').toBe(200);

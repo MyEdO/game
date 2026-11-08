@@ -17,8 +17,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /**
  * #1030 — la cadence AUTO résout les FENÊTRES RÉACTIVES de l'étape `jet:'cast'` (Contre-sort #1028,
  * opposition de cible #949) comme elle résout les jets de la cascade. Sans politique, le drive de
- * l'étape (`jetRoll('cast')`/`jetConfirm('cast')`) ne pouvait traverser ni l'une ni l'autre — `jetConfirm('cast')`
- * s'abstient sous Contre-sort, `jetConfirm('opposition')` refuse d'agréger tant qu'une rangée interactive
+ * l'étape (`jetLancer('cast')`/`jetValider('cast')`) ne pouvait traverser ni l'une ni l'autre — `jetValider('cast')`
+ * s'abstient sous Contre-sort, `jetValider('opposition')` refuse d'agréger tant qu'une rangée interactive
  * n'a pas jeté — et la chaîne attendait sous Auto-combat + siège MJ un clic qui ne vient jamais.
  * Ici : chaque fenêtre se résout SANS clic, l'issue reste celle des agrégations canoniques, et la
  * cadence MANUELLE ne bouge pas.
@@ -33,8 +33,8 @@ function setup(spells: string[], n = 1, magick = true) {
   });
   hero.spells = spells;
   banc.setState({ party: [hero] });
-  banc.getState().startScene(testScene());
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
@@ -61,12 +61,12 @@ describe('#1030 — Contre-sort : politique d’auto-résolution de la cadence A
   /** Ouvre la fenêtre : le héros incante sur le 1ᵉʳ ennemi, dont la rangée est tenue par le siège MJ. */
   function openWindow(H: Combatant, target: Combatant) {
     castSpell(banc.getState, banc.setState, H, target, 'flechette');
-    banc.getState().jetRoll('cast');
+    banc.getState().jetLancer('cast');
     return banc.getState().pendingCounterspell;
   }
 
   it('a — Auto-combat + siège MJ : la fenêtre surfacée se résout SANS clic, la chaîne va au bout', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     setCadence('auto');
     const { H, cibles } = setup(['flechette']);
     seedBattleRng(11);
@@ -85,7 +85,7 @@ describe('#1030 — Contre-sort : politique d’auto-résolution de la cadence A
   });
 
   it('b — cadence MANUELLE : la fenêtre attend le MJ (inchangé)', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const { H, cibles } = setup(['flechette']); // cadence manuelle (défaut)
     seedBattleRng(11);
     expect(openWindow(H, cibles[0])).toBeTruthy();
@@ -100,7 +100,7 @@ describe('#1030 — Contre-sort : politique d’auto-résolution de la cadence A
   });
 
   it('c — le drive ne re-tire plus à vide : plus aucun beat en vol une fois la chaîne close', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     setCadence('auto');
     const { H, cibles } = setup(['flechette']);
     seedBattleRng(11);
@@ -111,24 +111,24 @@ describe('#1030 — Contre-sort : politique d’auto-résolution de la cadence A
   });
 
   it('d — l’issue auto est celle de l’agrégation #1040 (tous chantent, un succès dissipe / meilleur DR)', () => {
-    banc.getState().seedRng(3);
-    // (1) référence MANUELLE : les deux rangées chantent, `jetConfirm('counterspell')` agrège.
+    banc.getState().ensemencerLeTirage(3);
+    // (1) référence MANUELLE : les deux rangées chantent, `jetValider('counterspell')` agrège.
     const manual = setup(['flechette'], 2);
     seedBattleRng(23);
     const pcsM = openWindow(manual.H, manual.cibles[0])!;
     expect(pcsM.participants).toHaveLength(2);
     // PHASE 1 (#1042/#1059) : la composition se déclare avant les dés — le drive auto pose le même
-    // geste (`counterspellDeclareAll`), la référence manuelle le pose à la main.
-    for (const p of pcsM.participants) banc.getState().counterspellDeclare(p.id, 'solo');
-    for (const p of pcsM.participants) banc.getState().jetRoll('counterspell', p.id);
-    banc.getState().jetConfirm('counterspell');
+    // geste sans rangée (`jetRegler('counterspell', 'declaration', 'solo')`), la référence manuelle le pose à la main.
+    for (const p of pcsM.participants) banc.getState().jetRegler('counterspell', 'declaration', 'solo', p.id);
+    for (const p of pcsM.participants) banc.getState().jetLancer('counterspell', p.id);
+    banc.getState().jetValider('counterspell');
     const ref = banc.getState().pendingCast!.result;
     const refChanted = manual.cibles.map((c) => !!c.dispelledThisRound);
     expect(refChanted.some(Boolean), 'référence non vide : au moins une rangée a chanté').toBe(true);
     expect(ref!.log, 'la référence porte bien une issue de Contre-sort').toContain('Contre-sort');
 
     // (2) MÊME jet, résolu par la CADENCE AUTO : même issue déposée dans `pendingCast`.
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     setCadence('auto');
     const auto = setup(['flechette'], 2);
     seedBattleRng(23);
@@ -145,7 +145,7 @@ describe('#1030 — Contre-sort : politique d’auto-résolution de la cadence A
    *  pilotent. Le drive doit donc se juger RANGÉE PAR RANGÉE, sinon un siège en Auto-combat referme
    *  « Appliquer » sur la fenêtre d'un autre et FORFAIT son jet (sonde P-F du juge de #1030). */
   it('e — la fenêtre dont une rangée DUE appartient à un AUTRE siège n’est pas drivée : elle ATTEND (jet jamais forfait)', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     setCadence('auto');
     const { H, cibles } = setup(['flechette']);
     seedBattleRng(11);
@@ -166,7 +166,7 @@ describe('#1030 — Contre-sort : politique d’auto-résolution de la cadence A
   });
 
   it('f — deux sièges dans la MÊME fenêtre : rien n’est jeté tant qu’une rangée d’un autre siège est due', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     setCadence('auto');
     const { H, cibles } = setup(['flechette']);
     seedBattleRng(11);
@@ -200,10 +200,10 @@ describe('#1030 — Contre-sort : politique d’auto-résolution de la cadence A
 
 /**
  * MÊME CLASSE, MÊME PATRON — l'opposition de cible (`SpellSpec.opposed`) s'ouvre DANS la même étape
- * `cast`, APRÈS le Contre-sort (`resolveCastChain` : la Dissipation d'abord, `jetConfirm('cast')` s'abstient
+ * `cast`, APRÈS le Contre-sort (`resolveCastChain` : la Dissipation d'abord, `jetValider('cast')` s'abstient
  * sous fenêtre ouverte) — POUR UNE MÊME INCANTATION, les deux ne sont jamais dues ensemble. Son
  * blocage était PIRE qu'une attente —
- * `jetConfirm('opposition')` refusant d'agréger, le drive repassait par `jetConfirm('cast')`, qui RÉOUVRAIT la
+ * `jetValider('opposition')` refusant d'agréger, le drive repassait par `jetValider('cast')`, qui RÉOUVRAIT la
  * fenêtre (`openCastOppositionStep`) et jetait les jets déjà faits.
  */
 describe('#1030 — opposition de cible : même politique d’auto-résolution', () => {
@@ -222,7 +222,7 @@ describe('#1030 — opposition de cible : même politique d’auto-résolution',
     openCastCascade(banc.getState, banc.setState, H);
     expect(banc.getState().pendingCascade?.participants[0].jet).toBe('cast');
   }
-  /** Dernier `opposedOutcome` posé par `jetConfirm('opposition')` (le Sort s'applique dans la foulée). */
+  /** Dernier `opposedOutcome` posé par `jetValider('opposition')` (le Sort s'applique dans la foulée). */
   function captureOutcome() {
     let last: unknown = null;
     const stop = banc.subscribe((s) => { if (s.pendingCast?.opposedOutcome) last = s.pendingCast.opposedOutcome; });
@@ -230,7 +230,7 @@ describe('#1030 — opposition de cible : même politique d’auto-résolution',
   }
 
   it('a — Auto-combat + siège MJ : la fenêtre d’opposition se résout SANS clic, la chaîne va au bout', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     setCadence('auto');
     const { H, cibles } = setup(['parole-de-tzeentch'], 1, false);
     seedBattleRng(11);
@@ -256,11 +256,11 @@ describe('#1030 — opposition de cible : même politique d’auto-résolution',
   });
 
   it('b — cadence MANUELLE : la rangée surfacée attend son joueur (inchangé)', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     const { H, cibles } = setup(['parole-de-tzeentch'], 1, false); // cadence manuelle (défaut)
     seedBattleRng(11);
     frozenOpposedCast(H, cibles[0]);
-    banc.getState().jetConfirm('cast'); // le lanceur applique : l'opposition s'ouvre
+    banc.getState().jetValider('cast'); // le lanceur applique : l'opposition s'ouvre
     const part = banc.getState().pendingCastOpposition!.participants[0];
     expect(part.interactive, 'cible ENNEMIE sous siège MJ : rangée jouée').toBe(true);
     expect(part.result).toBeNull();
@@ -275,7 +275,7 @@ describe('#1030 — opposition de cible : même politique d’auto-résolution',
   });
 
   it('c — le drive ne re-tire plus à vide : plus aucun beat en vol une fois la chaîne close', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     setCadence('auto');
     const { H, cibles } = setup(['parole-de-tzeentch'], 1, false);
     seedBattleRng(11);
@@ -285,24 +285,24 @@ describe('#1030 — opposition de cible : même politique d’auto-résolution',
     expect(banc.enAttente(), 'la boucle de drive s’est ARRÊTÉE (elle réouvrait la fenêtre sans fin)').toBe(0);
   });
 
-  it('d — l’issue auto est celle de l’agrégation d’`jetConfirm(\'opposition\')` (référence manuelle, même dé)', () => {
+  it('d — l’issue auto est celle de l’agrégation d’`jetValider(\'opposition\')` (référence manuelle, même dé)', () => {
     // (1) référence MANUELLE : la rangée du MJ oppose son Test, « Appliquer » agrège.
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     const manual = setup(['parole-de-tzeentch'], 1, false);
     seedBattleRng(23);
     frozenOpposedCast(manual.H, manual.cibles[0]);
-    banc.getState().jetConfirm('cast');
+    banc.getState().jetValider('cast');
     const capM = captureOutcome();
-    banc.getState().jetRoll('opposition', manual.cibles[0].id);
+    banc.getState().jetLancer('opposition', manual.cibles[0].id);
     const rowRef = banc.getState().pendingCastOpposition!.participants[0].result;
-    banc.getState().jetConfirm('opposition');
+    banc.getState().jetValider('opposition');
     capM.stop();
     const ref = capM.read();
     expect(rowRef, 'référence non vide : la rangée a bien opposé').toBeTruthy();
     expect(ref, 'l’agrégation a bien déposé son `opposedOutcome`').toBeTruthy();
 
     // (2) MÊME dé, résolu par la CADENCE AUTO.
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     setCadence('auto');
     const auto = setup(['parole-de-tzeentch'], 1, false);
     seedBattleRng(23);
@@ -319,14 +319,14 @@ describe('#1030 — opposition de cible : même politique d’auto-résolution',
    *  Contrôle de causalité du juge de #1030 (P-B2) : une fenêtre ORPHELINE d'un combat précédent
    *  bloquait, via la garde d'idempotence, l'application d'une incantation NON opposée du suivant. */
   it('e — une fenêtre d’opposition ne SURVIT PAS à son combat (aucun orphelin ne bloque le combat suivant)', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     const { H, cibles } = setup(['parole-de-tzeentch', 'flechette'], 1, false);
     seedBattleRng(11);
     frozenOpposedCast(H, cibles[0]);
-    banc.getState().jetConfirm('cast');
+    banc.getState().jetValider('cast');
     expect(banc.getState().pendingCastOpposition, 'une fenêtre d’opposition est ouverte').toBeTruthy();
 
-    banc.getState().startCombat('enc-mutants'); // combat SUIVANT
+    banc.getState().lancerLeCombat('enc-mutants'); // combat SUIVANT
     expect(banc.getState().pendingCastOpposition, 'le slot est PURGÉ avec l’incantation qu’il opposait').toBeNull();
 
     // …et une incantation NON opposée du nouveau combat s'applique normalement.
@@ -339,7 +339,7 @@ describe('#1030 — opposition de cible : même politique d’auto-résolution',
         result: { cast: true, roll: 30, target: 70, sl: 4, isCritical: false, isFumble: false, log: 'x' },
       },
     } as unknown as Partial<Jeu>);
-    banc.getState().jetConfirm('cast');
+    banc.getState().jetValider('cast');
     expect(banc.getState().pendingCast, 'le Sort s’applique — plus rien ne le bloque').toBeNull();
   });
 });

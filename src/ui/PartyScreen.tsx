@@ -5,7 +5,8 @@ import type { NetState } from '../noyau/etat';
 import { makePregensWithWealth } from '../data/pregens';
 import { stockageDuRoster } from '../state/roster';
 import { ajouterAuRoster, chargerLeRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from '../hote/roster';
-import { rosterExport, rosterImport } from '../noyau/persistance/roster';
+import { rosterExport, rosterImport, type RosterEntry } from '../noyau/persistance/roster';
+import type { HerosEngage } from '../noyau/creation/engagement';
 import { nommerLesRetraits } from '../noyau/persistance/elagage';
 import { PARTY_MAX } from '../noyau/monde/combatants';
 import { downloadText, fileSlug } from '../web/fileIo';
@@ -37,8 +38,8 @@ import { ChipDeRefus } from './ChipDeRefus';
 
 /**
  * Écran d'équipe — solo ET coop. En coop, l'hôte attribue chaque SIÈGE (`net.slots`) ; chaque joueur
- * remplit LES SIENS (créer / roster local / pré-tiré) via `partyAddHero` — enveloppé en intent côté
- * invité, l'hôte reste autoritaire.
+ * remplit LES SIENS (créer / roster local / pré-tiré) via `recruterLeHeros` — enveloppé en intent côté
+ * invité, l'hôte reste autoritaire : le geste porte le brouillon ou l'id du pré-tiré, le noyau bâtit le héros.
  *
  * STRUCTURE (arbitrage user 2026-07-13) : l'écran de groupe = LA COMPAGNIE SEULE (aucune galerie de
  * candidats inline — c'est un écran à part). Une grille de sièges : occupé = carte RICHE (portrait +
@@ -69,9 +70,9 @@ export function PartyScreen() {
   const setScreen = useGame((s) => s.setScreen);
   const pendingCampaign = useGame((s) => s.pendingCampaign);
   const inProgress = useGame(partieEnCours);
-  const addHero = useGame((s) => s.partyAddHero);
-  const removeHero = useGame((s) => s.partyRemoveHero);
-  const replaceHero = useGame((s) => s.partyReplaceHero);
+  const addHero = useGame((s) => s.recruterLeHeros);
+  const removeHero = useGame((s) => s.renvoyerLeHeros);
+  const replaceHero = useGame((s) => s.remplacerLeHeros);
   const refusDeComposition = useGame(refusComposition);
   const refusDAjout = useGame((s) => refusDAjoutAuGroupe(s, undefined, s.net.mySeat));
   const setEditingHero = useGame((s) => s.setEditingHero);
@@ -115,7 +116,7 @@ export function PartyScreen() {
         refusAjout={refusDAjout}
         onAddHero={addHero}
         onRemoveHero={removeHero}
-        onReplaceHero={(oldId, hero) => replaceHero(oldId, hero)}
+        onReplaceHero={replaceHero}
         onAssignSlot={assignSlot}
         onStart={startCampaign}
         onResume={() => setScreen('campaign')}
@@ -333,11 +334,11 @@ export function PartyScreenView({
   onCreate: () => void;
   /** Ouvre le créateur en MODIFICATION pour ce héros (bouton « Modifier »). Absent = non éditable. */
   onEditHero?: (heroId: string) => void;
-  onAddHero: (h: Combatant, wealth?: Money) => void;
+  onAddHero: (heros: HerosEngage) => void;
   onRemoveHero: (heroId: string) => void;
   /** Remplace EN PLACE le héros `oldId` par celui choisi dans le sélecteur (bouton « Remplacer »).
-   *  Absent = pas de bouton « Remplacer ». La bourse (`wealth`) est ignorée (pas un recrutement). */
-  onReplaceHero?: (oldId: string, hero: Combatant, wealth?: Money) => void;
+   *  Absent = pas de bouton « Remplacer ». La bourse est ignorée (pas un recrutement). */
+  onReplaceHero?: (oldId: string, heros: HerosEngage) => void;
   onAssignSlot: (slot: number, seat: number) => void;
   onStart: () => void;
   onResume?: () => void;
@@ -371,12 +372,12 @@ export function PartyScreenView({
   const refusLancer = refusDeLancer({ party, net });
 
   // Recrutement / remplacement : un seul chemin, le SÉLECTEUR dédié.
-  const onSelectorPick = (h: Combatant, wealth?: Money) => {
+  const onSelectorPick = (heros: HerosEngage) => {
     if (!selector) return;
     if (selector.mode === 'replace') {
-      onReplaceHero?.(selector.heroId, h, wealth);
+      onReplaceHero?.(selector.heroId, heros);
     } else {
-      onAddHero(h, wealth);
+      onAddHero(heros);
     }
     setSelector(null);
   };
@@ -578,7 +579,7 @@ export function HeroSelector({
   axisIds?: string[];
   /** Nom du héros remplacé (titre du mode `replace`). */
   replaceName?: string;
-  onPick: (h: Combatant, wealth?: Money) => void;
+  onPick: (heros: HerosEngage) => void;
   onClose: () => void;
   /** Ouvre le créateur (carte-action « Créer un personnage »). */
   onCreate?: () => void;
@@ -615,7 +616,7 @@ export function CandidatePool({
   onCreate,
 }: {
   party: Combatant[];
-  onPick: (h: Combatant, wealth?: Money) => void;
+  onPick: (heros: HerosEngage) => void;
   /** `gallery` = recrutement (les recrutés quittent l'étal) ; `remplacement` : membres grisés. */
   variant?: 'gallery' | 'remplacement';
   /** Écarte du vivier les personnages DÉJÀ dans le groupe (recrutement) : un recruté quitte l'étal. Le
@@ -655,7 +656,7 @@ export function CandidatePool({
     retirerDuRoster(stockageDuRoster(), id);
     setRoster(chargerLeRoster(stockageDuRoster()));
   };
-  const exportHero = (entry: { hero: Combatant; wealth: Money }) =>
+  const exportHero = (entry: RosterEntry) =>
     downloadText(`wfrp4-perso-${fileSlug(entry.hero.label)}.json`, rosterExport(entry));
   const startCreate = () => {
     if (onCreate) return onCreate();
@@ -700,7 +701,7 @@ export function CandidatePool({
           list={
             <div className="candidate-grid">
               {tab === 'roster'
-                ? shownRoster.map(({ hero, wealth }) => (
+                ? shownRoster.map(({ hero, wealth, draft }) => (
                     <CandidateCard
                       key={hero.id}
                       hero={hero}
@@ -709,13 +710,13 @@ export function CandidatePool({
                       wealth={wealth}
                       axisIds={axisIds}
                       selected={selected?.hero.id === hero.id}
-                      onRecruit={() => onPick(hero, wealth)}
+                      onRecruit={() => onPick({ brouillon: draft, id: hero.id })}
                       onPresent={() => setSelectedId(hero.id)}
-                      onExport={() => exportHero({ hero, wealth })}
+                      onExport={() => exportHero({ hero, wealth, draft })}
                       onDelete={() => removeSaved(hero.id)}
                     />
                   ))
-                : shownPregens.map(({ hero: h, wealth }) => (
+                : shownPregens.map(({ id, hero: h, wealth }) => (
                     <CandidateCard
                       key={h.id}
                       hero={h}
@@ -724,7 +725,7 @@ export function CandidatePool({
                       wealth={wealth}
                       axisIds={axisIds}
                       selected={selected?.hero.id === h.id}
-                      onRecruit={() => onPick(h, wealth)}
+                      onRecruit={() => onPick({ pretire: id })}
                       onPresent={() => setSelectedId(h.id)}
                     />
                   ))}

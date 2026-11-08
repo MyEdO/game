@@ -4,11 +4,13 @@
 ## l'ordre suit la source ; en `ajout` (un journal), un élément déjà dessiné reste tel quel et le nouveau s'ajoute au
 ## pied, montré par le défilement qui le contient. Chaque élément se pose sur son composant : chaque `Liaison`, `Geste`
 ## et `Saisie` le reçoit, et chaque zone imbriquée y lit le champ que sa `source` nomme, son geste relayé par celle-ci.
-## `masque` se cache quand aucune des zones qui le nomment n'a rien à montrer.
+## `masque` se cache quand aucune des zones qui le nomment n'a rien à montrer. Sous un `TabContainer`, chaque élément
+## est un onglet, titré de son nom (`nom`, sinon `libelle`), qui ne le redit pas (son `Nom` caché).
 ##
 ## La source d'une zone de l'écran est une clé de `vue.zones` (`CONTRAT.md`). Une zone qui nomme des `ids` n'en montre
-## que les éléments de ces ids, dans l'ordre de la source ; une zone sans `ids` montre ceux qu'aucune autre zone de sa
-## source ne nomme (`montrer_toutes`) : une disposition range les éléments d'une source sans en perdre aucun.
+## que les éléments de ces ids, dans l'ordre de la source, un id fini par `/` nommant chaque id qui commence par lui (une
+## famille aux ids tirés de la donnée) ; une zone sans `ids` montre ceux qu'aucune autre zone de sa source ne nomme
+## (`montrer_toutes`) : une disposition range les éléments d'une source sans en perdre aucun.
 class_name Zone
 extends Node
 
@@ -33,7 +35,7 @@ func montrer(elements: Array) -> void:
 	var gardes := {}
 	var dernier: Node = null
 	for e in elements:
-		var cle := "%s/%s" % [e.type, e.id]
+		var cle := Zone.cle(e)
 		gardes[cle] = true
 		var noeud: Node = dessines.get(cle)
 		if noeud != null and ajout:
@@ -44,6 +46,11 @@ func montrer(elements: Array) -> void:
 			conteneur.add_child(noeud)
 		conteneur.move_child(noeud, -1)
 		Zone.poser(noeud, e, self)
+		if conteneur is TabContainer:
+			var onglets := conteneur as TabContainer
+			onglets.set_tab_title(onglets.get_tab_idx_from_control(noeud), str(e.nom if e.has("nom") else e.libelle))
+			if noeud.has_node("Nom"):
+				(noeud.get_node("Nom") as Control).visible = false
 		dernier = noeud
 	if not ajout:
 		for cle in dessines:
@@ -52,6 +59,11 @@ func montrer(elements: Array) -> void:
 				dessines[cle].queue_free()
 	if ajout and dernier != null:
 		_montrer_le_pied(dernier)
+
+
+## La clé de l'élément `e`, que porte son composant (`META`) : son type et son id.
+static func cle(e: Dictionary) -> String:
+	return "%s/%s" % [e.type, e.id]
 
 
 ## Chaque zone de `zones` montre les éléments de sa source dans `sources` qui lui reviennent (`ids`).
@@ -71,12 +83,17 @@ static func montrer_toutes(zones: Array[Zone], sources: Dictionary) -> void:
 static func elements_de(zones: Array[Zone], zone: Zone, sources: Dictionary) -> Array:
 	var elements: Array = sources.get(zone.source, [])
 	if not zone.ids.is_empty():
-		return elements.filter(func(e: Dictionary) -> bool: return zone.ids.has(e.id))
+		return elements.filter(func(e: Dictionary) -> bool: return Zone._nomme(zone.ids, e.id))
 	var nommes := PackedStringArray()
 	for autre in zones:
 		if autre.source == zone.source:
 			nommes.append_array(autre.ids)
-	return elements.filter(func(e: Dictionary) -> bool: return not nommes.has(e.id))
+	return elements.filter(func(e: Dictionary) -> bool: return not Zone._nomme(nommes, e.id))
+
+
+## Si `ids` nomme `id` : tel quel, ou par une famille (un id de `ids` fini par `/` dont `id` commence).
+static func _nomme(ids: PackedStringArray, id: String) -> bool:
+	return ids.has(id) or Array(ids).any(func(i: String) -> bool: return i.ends_with("/") and id.begins_with(i))
 
 
 ## `element` posé sur le composant `racine` et ses descendants, hors des composants d'une zone imbriquée.

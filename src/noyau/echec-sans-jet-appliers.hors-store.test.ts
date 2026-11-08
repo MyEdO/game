@@ -6,10 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { buildStageSteps } from './travelPostes';
-import { buildSeaGenericStep, seaActivityRefus } from './seaActivities';
-import { creditBourse } from './bourseFlow';
-import { bourseOf } from '../engine/bourse';
-import { toBrass } from '../engine/money';
+import { seaActivityRefus } from './seaActivities';
 import { applierDe, startCascade } from './cascade';
 import { spyApplier } from './cascade.testkit';
 import { ECHEC_SANS_JET } from '../engine/tests';
@@ -48,13 +45,13 @@ const INCONSCIENT = { conditions: [{ id: 'inconscient', value: 1 }] } as Partial
 const appliquer = (step: CascadeStep, hero?: Combatant) =>
   applierDe(step.kind)!(banc.getState, banc.setState, step, hero, { steps: [step], index: 0 });
 const ligneDe = (out: ReturnType<typeof appliquer>): string => resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? []);
-const refusRagot = (h: Combatant) => refusNePeutTenter(h, { skill: 'ragot' });
+const refusRagot = (h: Combatant) => refusNePeutTenter(h, { skill: { id: 'ragot' } });
 
 /** Étape MONO de Ragot non tentable, montée par `monoStep` avec le refus de son porteur. */
 const ragotSansJet = (kind: GenreDEtape, hero: Combatant, label: PlayerText, meta: Record<string, string | number>): CascadeStep =>
   monoStep({
     id: kind, kind, label, actor: hero, difficulty: 'intermediaire', stake: combatStakeRef(kind),
-    ligne: { test: { skill: 'ragot', char: 'sociabilite' }, refus: refusRagot(hero) },
+    ligne: { test: { skill: { id: 'ragot' }, characteristic: 'sociabilite' }, refus: refusRagot(hero) },
     meta,
   })!;
 
@@ -75,7 +72,7 @@ describe('Poste de voyage : la meilleure compétence TENTABLE, sinon un échec s
     const h = heros(INCONSCIENT);
     const spec = travelActivitySpec(h, activityById('rester-aux-aguets')!)!;
     expect(spec.test).toEqual({ skill: { id: 'perception' } });
-    expect(spec.refus).toBe(refusNePeutTenter(h, { skill: 'perception' }));
+    expect(spec.refus).toBe(refusNePeutTenter(h, { skill: { id: 'perception' } }));
   });
 
   it('applyTravelActivityResult : ECHEC_SANS_JET → échec, aucun effet de réussite, Exténué', () => {
@@ -102,14 +99,14 @@ describe('Poste de voyage : la meilleure compétence TENTABLE, sinon un échec s
       const batch = buildStageSteps(banc.getState, banc.setState, 'beau', 'ete').find((s) => s.kind === 'stagePosteBatch')!;
       const part = batch.participants!.find((p) => p.id === 'h')!;
       expect(part.result).toBe(ECHEC_SANS_JET);
-      expect(part.refus).toBe(refusNePeutTenter(banc.getState().party[0], { skill: 'perception' }));
+      expect(part.refus).toBe(refusNePeutTenter(banc.getState().party[0], { skill: { id: 'perception' } }));
       expect(part.interactive).toBe(false);
     });
 
     it('validée, la rangée applique l’échec : Exténué (EDOC 8 l.133)', () => {
       const batch = buildStageSteps(banc.getState, banc.setState, 'beau', 'ete').find((s) => s.kind === 'stagePosteBatch')!;
       startCascade(banc.getState, banc.setState, { title: 'Étape', purpose: 'test', steps: [batch] });
-      banc.getState().jetConfirm('cascade');
+      banc.getState().jetValider('cascade');
       const hilda = banc.getState().party.find((h) => h.id === 'h')!;
       expect(hasCondition(hilda, 'extenue')).toBe(true);
     });
@@ -119,43 +116,12 @@ describe('Poste de voyage : la meilleure compétence TENTABLE, sinon un échec s
 describe('Activités en mer non tentables', () => {
   beforeEach(() => banc.setState({ party: [heros()], journal: [] }));
 
-  const semaine = () => banc.setState({
-    pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } },
-    pendingCascade: null, pendingExtendedTest: null, pendingRest: null,
-    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [], lastVoyageMilles: 0 },
-    travelPlan: { routeId: 'r', km: 40, sea: { lines: [] } },
-  } as never);
-
   it('seaActivityRefus : Métier (Cartographe), compétence avancée, ferme la Cartographie au seul héros qui ne l’a pas (MDG 15 l.290)', () => {
     const sans = heros();
     const avec = heros({ id: 'c', skills: [{ id: 'metier', spec: 'cartographe', advances: 10 }] as Combatant['skills'] });
     const carto = activityById('cartographie')!;
-    expect(seaActivityRefus(sans, carto)).toBe(refusNePeutTenter(sans, { skill: 'metier', spec: 'cartographe' }));
+    expect(seaActivityRefus(sans, carto)).toBe(refusNePeutTenter(sans, { skill: { id: 'metier', spec: 'cartographe' } }));
     expect(seaActivityRefus(avec, carto)).toBeUndefined();
-  });
-
-  it('sea-activity-chart : buildSeaChartStep monte la ligne du héros sans Métier (Cartographe) sans jet, refus nommé ; appliquée, aucune Carte marine', () => {
-    semaine();
-    const hero = banc.getState().party[0];
-    banc.getState().seaActivitiesConfirm({ h: { activityId: 'cartographie' } });
-    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'sea-activity-chart')!;
-    expect(step.result).toBe(ECHEC_SANS_JET);
-    expect(step.refus).toBe(refusNePeutTenter(hero, { skill: 'metier', spec: 'cartographe' }));
-    const out = appliquer(step, hero);
-    expect(ligneDe(out)).toBe(t('sact.chartKo', { name: 'Hilda' }));
-    expect(hero.items).toEqual([]);
-  });
-
-  it('Commerce d’opportunité d’un héros Inconscient : ni mise ni Test étendu, son refus nommé au bilan (MDG 15 l.274-286)', () => {
-    banc.setState({ party: [heros(INCONSCIENT)] });
-    semaine();
-    creditBourse(banc.getState, banc.setState, 'h', { gold: 100, silver: 0, brass: 0 });
-    const hero = banc.getState().party[0];
-    const avant = toBrass(bourseOf(hero));
-    banc.getState().seaActivitiesConfirm({ h: { activityId: 'commerce-opportunite', investGold: 10 } });
-    expect(banc.getState().pendingExtendedTest).toBeNull();
-    expect(toBrass(bourseOf(banc.getState().party[0]))).toBe(avant);
-    expect(banc.getState().travelPlan!.log!.slice(-1)[0]!.lines.map((l) => l.text)).toContain(refusNePeutTenter(hero, { skill: 'marchandage' }));
   });
 
   // Porte de `CodexEdit.save` : la racine sérialisée du dataset, validée contre le schéma de son fichier.
@@ -172,23 +138,6 @@ describe('Activités en mer non tentables', () => {
     expect(avecActivite(activiteMer(), enregistrement)).toBeNull();
     expect(avecActivite(activiteMer({ failExtenue: true }), enregistrement))
       .toMatch(/veille-en-mer : une Activité de contexte mer ne déclare pas « Échec inflige Exténué »/);
-  });
-
-  describe('sea-activity-generic : une Activité de contexte mer sans résolveur', () => {
-    beforeEach(() => banc.setState({ party: [heros(INCONSCIENT)] }));
-
-    it('héros Inconscient : la ligne naît sans jet, refus nommé ; appliquée, aucun Exténué, aucune conséquence', () => {
-      const hero = banc.getState().party[0];
-      const mer = activiteMer();
-      avecActivite(mer, () => {
-        const step = buildSeaGenericStep(banc.getState, banc.setState, hero, mer)!;
-        expect(step.kind).toBe('sea-activity-generic');
-        expect(step.result).toBe(ECHEC_SANS_JET);
-        expect(step.refus).toBe(refusNePeutTenter(hero, { skill: mer.tests![0].skill!.id, spec: mer.tests![0].skill!.spec }));
-        expect(appliquer(step, hero)).toEqual({ consequences: [] });
-      });
-      expect(hasCondition(hero, 'extenue')).toBe(false);
-    });
   });
 });
 
@@ -209,11 +158,11 @@ describe('Ragot non tentable : la journée de recherche est perdue (LDB 59 l.50)
   it('port-sell-gossip : aucun acheteur, aucune recherche d’acheteur enchaînée (MDG 15 l.366-372)', () => {
     const PORT = { taille: 4, richesse: 4, production: [] } as unknown as PortProfile;
     banc.setState({
-      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ cargoId: 'bois-mer', enc: 40, basePriceGold: 10 }], lastVoyageMilles: 0 },
+      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: 40, basePriceGold: 10 }], lastVoyageMilles: 0 },
       port: { placeId: 'P', label: 'Port', port: PORT, offers: [] },
     } as never);
     const hero = banc.getState().party[0];
-    const out = appliquer(ragotSansJet('port-sell-gossip', hero, t('port.buyerSearch'), { cargoIndex: 0 }), hero);
+    const out = appliquer(ragotSansJet('port-sell-gossip', hero, t('port.buyerSearch'), { lotId: 'lot-1' }), hero);
     expect(ligneDe(out)).toBe(t('port.gossipSansJet', { name: 'Hilda', issue: t('port.gossipFail', { relation: t('port.produces') }) }));
     expect(banc.getState().pendingCascade).toBeNull();
   });
@@ -223,7 +172,7 @@ describe('Psychologie non tentable : la source garde son emprise (LDB 21)', () =
   const decl = { kind: 'peur' as const, sourceId: 'goule', sourceName: 'la Goule', indice: 1 };
   const bande = (cle: 'encounterPsych' | 'combatPsych'): CascadeStep => {
     const hero = banc.getState().party[0];
-    const ligne = rollStep({ actor: hero, test: { skill: 'calme' }, difficulty: 'intermediaire', refus: refusNePeutTenter(hero, { skill: 'calme' }) });
+    const ligne = rollStep({ actor: hero, test: { skill: { id: 'calme' } }, difficulty: 'intermediaire', refus: refusNePeutTenter(hero, { skill: { id: 'calme' } }) });
     return bandStep({ id: cle, kind: cle, [cle]: decl }, [{ id: hero.id, interactive: true, result: null, ...ligne }])!;
   };
 
@@ -267,19 +216,19 @@ describe('SEAM `onOwnTestFailed` : un échec sans jet est un Test raté de son p
     const hero = banc.getState().party[0];
     const step = monoStep({
       id: 'mono-sans-jet', kind: cleDeFixture('mono-sans-jet'), label: t('mf.rechercheActive'), actor: hero, difficulty: 'intermediaire', stake: combatStakeRef('merchant-ragot'),
-      ligne: { test: { skill: 'ragot' }, refus: refusRagot(hero) },
+      ligne: { test: { skill: { id: 'ragot' } }, refus: refusRagot(hero) },
     })!;
     startCascade(banc.getState, banc.setState, { title: 'X', purpose: 'test', steps: [step] });
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(hasCondition(banc.getState().party[0], 'sonne'), 'Test raté à DR 0 : Sonné posé par le symptôme').toBe(true);
     expect(hasCondition(banc.getState().party[0], 'a-terre'), 'aucun DR négatif').toBe(false);
   });
 
   it('rangée de BANDE sans jet : SON porteur subit l’effet de son Test raté, à DR 0', () => {
     const hero = banc.getState().party[0];
-    const ligne = rollStep({ actor: hero, test: { skill: 'ragot' }, difficulty: 'intermediaire', refus: refusRagot(hero) });
+    const ligne = rollStep({ actor: hero, test: { skill: { id: 'ragot' } }, difficulty: 'intermediaire', refus: refusRagot(hero) });
     startCascade(banc.getState, banc.setState, { title: 'X', purpose: 'test', steps: [bandStep({ id: 'bande-sans-jet', kind: cleDeFixture('bande-sans-jet') }, [{ id: hero.id, interactive: true, result: null, ...ligne }])!] });
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(hasCondition(banc.getState().party[0], 'sonne'), 'Test raté à DR 0 : Sonné posé par le symptôme').toBe(true);
     expect(hasCondition(banc.getState().party[0], 'a-terre'), 'aucun DR négatif').toBe(false);
   });

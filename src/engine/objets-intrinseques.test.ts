@@ -95,10 +95,10 @@ describe('propriétés intrinsèques de l’objet (#2967)', () => {
       { op: 'light', radiusM: 8, tone: 'ambre' },
     ] });
     hero.pos = { x: 2, y: 3 };
-    expect(skillDRBonus(hero, 'orientation')).toBe(3);
+    expect(skillDRBonus(hero, { id: 'orientation' })).toBe(3);
     expect(combatantLights(hero, 2)[0]?.radiusTiles).toBe(4);
     setDataset('trappings', [...catalogue, { ...objet, passive: [] }]);
-    expect(skillDRBonus(hero, 'orientation')).toBe(3);
+    expect(skillDRBonus(hero, { id: 'orientation' })).toBe(3);
     expect(combatantLights(hero, 2)[0]?.radiusTiles).toBe(4);
     expect(item).toHaveProperty('passive', objet.passive);
   });

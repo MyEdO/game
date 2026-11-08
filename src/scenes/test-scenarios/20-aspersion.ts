@@ -5,7 +5,7 @@ import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 
 /**
- * ASPERSION (MDG 16 l.19, #497) : « Asperger d'eau » (`battleWater`) gate ses cibles
+ * ASPERSION (MDG 16 l.19, #497) : « Asperger d'eau » (`aspergerDEau`) gate ses cibles
  * sur `waterSprayCandidates(active, battle.combatants.filter(c => c.kind === active.kind))` — VOULU
  * (« ≥1 ALLIÉ Créature marine adjacent ») : la créature marine à asperger doit donc entrer en jeu
  * avec le MÊME `kind` que le héros, jamais `kind:'enemy'`. Mécanisme canonique = `side:'ally'` sur un
@@ -20,7 +20,7 @@ import type { Scene } from '../../noyau/monde/scene';
  *
  * Terrain 100 % terrestre (aucune tuile d'eau) : `spawn.ts` (`placeCombatant`) dérive `offTerrain:
  * true` au placement, sans intervention manuelle. Adjacence AU SPAWN (pas de déplacement requis pour
- * la recette) : `startCombat` place le héros SOLO à `(heroStart.x − 1, heroStart.y)`
+ * la recette) : `lancerLeCombat` place le héros SOLO à `(heroStart.x − 1, heroStart.y)`
  * (`combatSlice.ts:2425`) — l'anguille est posée exactement à `heroStart`, donc à distance 1.
  */
 function porteurDOutre() {
@@ -60,7 +60,7 @@ export const scenario: TestScenario = {
     "Action « Asperger d'eau » (#497) : une Créature marine ALLIÉE (anguille mâcheprise, " +
     "`side:'ally'` → `kind:'hero'`) échouée sur la terre (`offTerrain`, aucune tuile d'eau, adjacente " +
     "AU SPAWN) suffoque Round après Round (`suffocationTick`, #477) sauf si le Soldat, outre à eau en " +
-    "poche (`hasWaterContainer`), l'asperge (`battleWater` pose `wateredThisRound`, aucun jet, consomme " +
+    "poche (`hasWaterContainer`), l'asperge (`aspergerDEau` pose `wateredThisRound`, aucun jet, consomme " +
     "l'Action) ; `waterSprayCandidates` filtre STRICTEMENT par `kind` identique à l'aspergeur.",
   partyNote: 'Soldat solo, outre à eau en poche.',
   construire: () => ({ party: [porteurDOutre()], scene: construireScene() }),

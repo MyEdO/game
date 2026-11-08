@@ -9,9 +9,8 @@ import { createHero } from '../engine/character';
 
 /**
  * POV (vue subjective) — MOVEMENT + STATE. `povStepDest` réutilise la connectivité 8-connexe UNIQUE
- * (`walkNeighbors`), et les actions du noyau (`pivotParty`/`stepPartyRelative`) tournent le cap MONDE du
- * GROUPE (une entrée, `CAP_GROUPE`) puis passent par le PIPELINE de pas EXISTANT (`moveParty`). Aucun système de mouvement parallèle.
- * La bascule de la vue (`togglePov`) se joue en `src/state/pov-move.test.ts`.
+ * (`walkNeighbors`), et les actions du noyau (`pivoterLeGroupe`/`avancerDUnPas`) tournent le cap MONDE du
+ * GROUPE (une entrée, `CAP_GROUPE`) puis passent par le PIPELINE de pas EXISTANT (`deplacerLeGroupe`). Aucun système de mouvement parallèle.
  */
 
 /** Rend une case non-marchable (vide) sur z0. `emptyScene` remplit d'herbe marchable partout. */
@@ -42,7 +41,7 @@ describe('povStepDest — cap MONDE → surface voisine connectée', () => {
   });
 });
 
-describe('store — actions POV (pivotParty / stepPartyRelative)', () => {
+describe('store — actions POV (pivoterLeGroupe / avancerDUnPas)', () => {
   let banc: Banc;
   /** Groupe minimal + scène ouverte, meneur posé au centre, mode exploration. */
   function setup(facing: Dir8 = 'S') {
@@ -65,37 +64,37 @@ describe('store — actions POV (pivotParty / stepPartyRelative)', () => {
     banc.setState({ dialogue: null, battle: null, mode: 'exploration' });
   });
 
-  it('pivotParty(1) fait avancer le regard de 45° (horaire) sans déplacer le groupe', () => {
+  it('pivoterLeGroupe(1) fait avancer le regard de 45° (horaire) sans déplacer le groupe', () => {
     setup('N');
     const pos0 = banc.getState().partyPos;
-    banc.getState().pivotParty(1);
+    banc.getState().pivoterLeGroupe(1);
     expect(capDuGroupe(banc.getState())).toBe('NE'); // N +1 cran horaire
     expect(banc.getState().partyPos).toEqual(pos0); // aucun déplacement
   });
 
-  it("pivotParty(-1) fait reculer le regard de 45° (anti-horaire)", () => {
+  it("pivoterLeGroupe(-1) fait reculer le regard de 45° (anti-horaire)", () => {
     setup('N');
-    banc.getState().pivotParty(-1);
+    banc.getState().pivoterLeGroupe(-1);
     expect(capDuGroupe(banc.getState())).toBe('NO'); // N -1 cran anti-horaire
   });
 
-  it("stepPartyRelative('forward') avance d'une case le long du regard ET garde le cap", () => {
+  it("avancerDUnPas('forward') avance d'une case le long du regard ET garde le cap", () => {
     setup('E'); // regard EST
-    banc.getState().stepPartyRelative('forward');
+    banc.getState().avancerDUnPas('forward');
     expect(banc.getState().partyPos).toEqual({ x: 4, y: 3 }); // un pas à l'est
     expect(capDuGroupe(banc.getState())).toBe('E'); // cap conservé
   });
 
-  it("stepPartyRelative('left') fait un pas de côté à 90° à gauche MAIS préserve le regard", () => {
+  it("avancerDUnPas('left') fait un pas de côté à 90° à gauche MAIS préserve le regard", () => {
     setup('E'); // regard EST → gauche relatif = NORD (E tourné de 6 crans = N)
-    banc.getState().stepPartyRelative('left');
+    banc.getState().avancerDUnPas('left');
     expect(banc.getState().partyPos).toEqual({ x: 3, y: 2 }); // un pas au nord (y-1)
     expect(capDuGroupe(banc.getState())).toBe('E'); // regard INCHANGÉ (pas latéral)
   });
 
-  it("stepPartyRelative('back') recule d'une case MAIS préserve le regard", () => {
+  it("avancerDUnPas('back') recule d'une case MAIS préserve le regard", () => {
     setup('E'); // dos = OUEST
-    banc.getState().stepPartyRelative('back');
+    banc.getState().avancerDUnPas('back');
     expect(banc.getState().partyPos).toEqual({ x: 2, y: 3 }); // un pas à l'ouest (x-1)
     expect(capDuGroupe(banc.getState())).toBe('E'); // regard INCHANGÉ
   });
@@ -104,7 +103,7 @@ describe('store — actions POV (pivotParty / stepPartyRelative)', () => {
     setup('E');
     banc.setState({ mode: 'battle' });
     const pos0 = banc.getState().partyPos;
-    banc.getState().stepPartyRelative('forward');
+    banc.getState().avancerDUnPas('forward');
     expect(banc.getState().partyPos).toEqual(pos0);
   });
 });

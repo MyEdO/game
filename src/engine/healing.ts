@@ -29,7 +29,7 @@ export type TestDeSoin = 'guerison' | 'dexterite';
 export const TESTS_DE_SOIN: readonly TestDeSoin[] = ['guerison', 'dexterite'];
 
 /** Les ids testés par chaque Test de soin. */
-export const IDS_DU_TEST_DE_SOIN: Record<TestDeSoin, TestIds> = { guerison: { skill: HEAL_SKILL }, dexterite: { char: 'dexterite' } };
+export const IDS_DU_TEST_DE_SOIN: Record<TestDeSoin, TestIds> = { guerison: { skill: { id: HEAL_SKILL } }, dexterite: { characteristic: 'dexterite' } };
 
 /** Ce que le soigneur déclare avant le jet, lu à l'identique par l'annonce et par le résolveur. */
 export interface ParametresDeSoin { test: TestDeSoin; bandages: boolean }
@@ -39,7 +39,7 @@ export function porteDesBandages(c: Combatant): boolean {
   return objetDuTrapping(c, BANDAGES) !== undefined;
 }
 
-/** Retire UNE unité de Bandages à `c` (une instance, comme `usePartyItem`). Rend `false` s'il n'en porte aucune. */
+/** Retire UNE unité de Bandages à `c` (une instance, comme `utiliserLObjet`). Rend `false` s'il n'en porte aucune. */
 export function retirerUnBandage(c: Combatant): boolean {
   const unite = objetDuTrapping(c, BANDAGES);
   if (!unite) return false;
@@ -55,7 +55,7 @@ export const actePanse = (mode: HealMode): boolean => mode === 'wounds' || mode 
  *  décision de l'orchestrateur (2026-11-03, #3059) : ouverte à tout soigneur, Bandages exigés. VERDICT UNIQUE de
  *  l'ouverture (`soinDOuverture`), du choix du Test (réglage `heal.test`), du choix d'acte (réglage `heal.mode`) et de la fenêtre. */
 export function refusDuTestDeSoin(soigneur: Combatant | null, mode: HealMode, p: ParametresDeSoin): string | null {
-  if (p.test === 'guerison') return soigneur && !possesses(soigneur, HEAL_SKILL) ? t('heal.raisonSansGuerison') : null;
+  if (p.test === 'guerison') return soigneur && !possesses(soigneur, { id: HEAL_SKILL }) ? t('heal.raisonSansGuerison') : null;
   if (!soigneur) return t('heal.raisonDexteriteSansFiche');
   if (mode !== 'bleed') return t('heal.raisonDexteriteHorsHemorragie');
   return p.bandages ? null : t('heal.raisonDexteriteSansBandages');
@@ -144,7 +144,7 @@ const ACTES_IMMEDIATS: readonly HealMode[] = ['wounds', 'bleed', 'ammo'];
 export const estActeImmediat = (mode: HealMode): boolean => ACTES_IMMEDIATS.includes(mode);
 
 /** `raisonDeModeDeSoin` en combat : un mode hors-combat y est fermé. Verdict UNIQUE des gestes de soin en
- *  combat (`battleHeal`, réglage `heal.mode` et fenêtre du soin, `refusDuModeDuSoin`). */
+ *  combat (`ouvrirLaGuerison`, réglage `heal.mode` et fenêtre du soin, `refusDuModeDuSoin`). */
 export function raisonDeModeDeSoinEnCombat(target: Combatant, mode: HealMode): string | null {
   return estActeImmediat(mode) ? raisonDeModeDeSoin(target, mode) : t('heal.raisonHorsCombat');
 }

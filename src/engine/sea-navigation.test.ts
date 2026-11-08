@@ -7,7 +7,8 @@ import {
 } from './seaNavigation';
 import type { RNG } from './dice';
 import type { Combatant } from './types';
-import { desEnSuite } from './dice.testkit';
+import { deMax, desEnSuite } from './dice.testkit';
+import { datasetObject, setObjectDataset } from '../data/overrides';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
@@ -76,6 +77,16 @@ describe('Orientation — Repères & Changement de cap (MDG 13 l.307-331)', () =
     expect(rollCourseChange(seq(10, 1))).toMatchObject({ outcome: 'quart-de-tour' });
     expect(rollCourseChange(seq(10, 1), 2)).toMatchObject({ outcome: 'demi-tour' }); // 10 + 2 (dérive majeure)
   });
+
+  it('Changement de cap se tire au `die` VIVANT de sa table (MDG 13 l.326 ; #1667)', () => {
+    const imprime = structuredClone(datasetObject('seaNavigation'));
+    try {
+      setObjectDataset('seaNavigation', { ...imprime, orientation: { ...imprime.orientation, changementDeCap: { ...imprime.orientation.changementDeCap, die: 'd3' } } });
+      expect(rollCourseChange(deMax), 'd3 au max → 3 : Sans conséquences').toMatchObject({ roll: 3, outcome: 'aucun' });
+    } finally {
+      setObjectDataset('seaNavigation', imprime);
+    }
+  });
 });
 
 describe('Phares & clochers (MDG 13 l.333-351)', () => {
@@ -111,9 +122,9 @@ describe('Boussole — +1 DR aux Tests d’Orientation (MDG 14 l.275, passif d�
       ...hull(30), id: 'nav2',
       items: [{ ...itemFromTrappingById('boussole')!, uid: 'u1' }],
     } as unknown as Combatant;
-    expect(skillDRBonus(c, 'orientation')).toBe(1);
-    expect(skillDRBonus(c, 'perception')).toBe(0);
-    expect(skillDRBonus({ ...c, items: [] } as unknown as Combatant, 'orientation')).toBe(0);
+    expect(skillDRBonus(c, { id: 'orientation' })).toBe(1);
+    expect(skillDRBonus(c, { id: 'perception' })).toBe(0);
+    expect(skillDRBonus({ ...c, items: [] } as unknown as Combatant, { id: 'orientation' })).toBe(0);
   });
 });
 

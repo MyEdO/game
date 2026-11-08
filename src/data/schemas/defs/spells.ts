@@ -8,9 +8,9 @@ import { nommerChamps } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { charKeySchema, formulaSchema, formuleSansTirageSchema, maisonSchema } from '../grammaire/valeurs';
-import { conditionSchema, mecaniqueDe } from '../grammaire/mecanique';
-import { idDe, refOuSpec } from '../grammaire/ref';
+import { formulaSchema, formuleSansTirageSchema, maisonSchema } from '../grammaire/valeurs';
+import { conditionSchema, mecaniqueDe, sujetDuJetSchema } from '../grammaire/mecanique';
+import { idDe } from '../grammaire/ref';
 import { messagePorteSansDuree } from '../../../engine/ops';
 
 export const file = 'spells.json';
@@ -126,9 +126,8 @@ const champs = {
   breathAttack: z.literal(true).optional(),
   opposed: nommerChamps(z.strictObject({
     kind: z.enum(['resist', 'contact']),
-    char: charKeySchema.optional(),
-    skill: refOuSpec('skill').optional(),
-  }), { kind: { label: 'Type' }, char: { label: 'Caractéristique' }, skill: { label: 'Compétence' } }).optional(),
+    ...sujetDuJetSchema.shape,
+  }), { kind: { label: 'Type' }, skill: { label: 'Compétence' }, characteristic: { label: 'Caractéristique' } }).optional(),
   /** Famille des sorts : le Trait psy d'un sort vise une personne choisie, à durée d'horloge (VDM 10 l.327-330). */
   effects: mecaniqueDe({ 'grantPsychTrait.envers': 'admis', 'grantPsychTrait.resistanceSiAmis': 'admis', 'grantPsychTrait.durationHours': 'admis' }).flow.optional(),
 };

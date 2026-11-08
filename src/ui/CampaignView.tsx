@@ -3,10 +3,11 @@ import { useGame } from '../state/store';
 import { actFirstIds, freeActFirst } from '../noyau/turnEconomy';
 import { preemptShooterIds } from '../noyau/targeting';
 import { findActionById } from '../data/index';
-import { actionGate, runAction } from '../noyau/actionRegistry';
+import { actionGate } from '../noyau/actionRegistry';
 import { actorIn, inBattleId } from '../noyau/monde/combatants';
 import { sceneNpc } from '../noyau/monde/sceneNpc';
 import { refusDeSauvegarde } from '../noyau/persistance/save';
+import { refusDeFinDeSeance } from '../noyau/partyFlow';
 import type { IconIdInput } from '../data/icons';
 import { ciblageEntiteArme } from '../noyau/targetingModes';
 import { MondeDeCampagne } from '../gameIso/stage/MondeDeCampagne';
@@ -50,7 +51,6 @@ import { PortView } from './PortView';
 import { ShipDossier } from './ShipDossier';
 import { LandMarketView } from './LandMarketView';
 import { SeaActivitiesModal } from './SeaActivitiesModal';
-import { ManannPriestModal } from './ManannPriestModal';
 import { ShoreLeaveModal } from './ShoreLeaveModal';
 import { TravelRecapModal } from './TravelRecapModal';
 import { VoyageScreen } from './VoyageScreen';
@@ -58,12 +58,13 @@ import { CityHubScreen } from './CityHubScreen';
 import { CarnetScreen } from './CarnetScreen';
 import { DialogueHistoryScreen } from './DialogueHistoryScreen';
 import { voyageHubActive, voyageStepPending } from '../noyau/modalArbiter';
-import { placeOfScene, atLocationPlace, placeServices } from '../noyau/worldMap';
-import { restPlacesHere, sceneLieu } from '../noyau/restFlow';
+import { lieuDuGroupe } from '../noyau/worldMap';
+import { sceneDuRegistre } from '../noyau/monde/registreDesScenes';
+import { restPlacesHere } from '../noyau/restFlow';
 import { fouilleOuverte } from '../noyau/interactionsDExploration';
 import { hoverClickCommits } from './pointerCaps';
 import { controlsActive } from '../noyau/netOwnership';
-import { jouerLeClicDuCombattant } from '../noyau/combatOrParty';
+import { cliquerSurLeCombattant, jouerLeClicDuCombattant } from '../noyau/combatOrParty';
 import { useGamepad } from './useGamepad';
 import { lancerCampagne } from '../scenes/campaign';
 import { estNouveauPour } from '../noyau/monde/clues';
@@ -118,18 +119,19 @@ export function CampaignView() {
   const dialogue = useGame((s) => s.dialogue);
   const battle = useGame((s) => s.battle);
   const merchant = useGame((s) => s.merchant);
-  const sessionEndOpen = useGame((s) => s.sessionEndOpen); // Effet `sessionEnd` (#83) : ouvre la même modale
+  const finDeSeance = useGame((s) => s.finDeSeance);
+  const ouvrirLaFinDeSeance = useGame((s) => s.ouvrirLaFinDeSeance);
+  const refusFinDeSeance = useGame(refusDeFinDeSeance);
   const fermer = useGame((s) => s.fenetreFermer);
   const pendingRoundStart = useGame((s) => s.pendingRoundStart);
-  const roundStartPromote = useGame((s) => s.roundStartPromote);
+  const promouvoirLeCombattant = useGame((s) => s.promouvoirLeCombattant);
   const gameTime = useGame((s) => s.gameTime);
   const worldMap = useGame((s) => s.worldMap);
   const worldMapOpen = useGame((s) => s.worldMapOpen);
-  const openWorldMap = useGame((s) => s.openWorldMap);
+  const ouvrirLaCarte = useGame((s) => s.ouvrirLaCarte);
   const port = useGame((s) => s.port);
   const landMarket = useGame((s) => s.landMarket);
   const pendingSeaActivities = useGame((s) => s.pendingSeaActivities);
-  const pendingManannPriest = useGame((s) => s.pendingManannPriest);
   const pendingShoreLeave = useGame((s) => s.pendingShoreLeave);
   const vessel = useGame((s) => s.vessel);
   const travelPlan = useGame((s) => s.travelPlan);
@@ -138,10 +140,9 @@ export function CampaignView() {
   const partyWiped = useGame((s) => s.partyWiped);
   const party = useGame((s) => s.party);
   const povActive = useGame((s) => s.povActive);
-  const battleClickEntity = useGame((s) => s.battleClickEntity);
   const netMode = useGame((s) => s.net.mode);
   const refusSave = useGame((s) => refusDeSauvegarde(s, s.net.mySeat));
-  const openRest = useGame((s) => s.openRest);
+  const ouvrirLeRepos = useGame((s) => s.ouvrirLeRepos);
   const partyPos = useGame((s) => s.partyPos);
   // Offre de repos LÀ OÙ SE TIENT le groupe (zone d'auteur > scène > camp ; null = interdit).
   const restHere = mode === 'exploration' && scene ? restPlacesHere({ scene, partyPos } as Parameters<typeof restPlacesHere>[0]) : null;
@@ -160,7 +161,6 @@ export function CampaignView() {
   const [saveOpen, setSaveOpen] = useState(false); // modale Sauvegarder/Charger (Jalon 5)
   const [dossierOpen, setDossierOpen] = useState(false); // dossier du navire persistant (#227, EN et HORS combat)
   const [voyageMin, setVoyageMin] = useState(false); // écran-hub de voyage RÉDUIT (#333) — forcé ouvert dès qu'une étape attend
-  const [cityHubOpen, setCityHubOpen] = useState(false); // hub de ville (#343) — s'ouvre depuis le bouton du lieu
   const [carnetOpen, setCarnetOpen] = useState(false); // carnet d'enquête (#670) — s'ouvre depuis le bouton dédié
   const [historyOpen, setHistoryOpen] = useState(false); // relecture des conversations (#718 dernier lot) — s'ouvre depuis le tiroir-journal
   const dialogueHistory = useGame((s) => s.dialogueHistory);
@@ -171,9 +171,14 @@ export function CampaignView() {
   const pendingOuverture = useGame((s) => s.pendingOuverture);
   const pendingChapterRecap = useGame((s) => s.pendingChapterRecap);
   // Hub de ville (#343) : le groupe est À un lieu de la carte → UN écran-lieu remplace les boutons
-  // flottants Port/Marché/Dormir. `hubPlace` = le lieu courant (null hors lieu : route, camp sauvage).
-  const hubPlace = atLocationPlace({ mode, travelPlan, worldMap, sceneId: scene?.id });
-  const hubServices = hubPlace ? placeServices(hubPlace, scene ?? undefined) : [];
+  // flottants Port/Marché/Dormir. `hubPlace` = le lieu où se tient le groupe (null en route ou hors carte) ; l'écran
+  // tient la main tant que `lieuOuvert`, « Explorer » (sa sortie) entre dans la scène du lieu.
+  const lieu = useGame((s) => s.lieu);
+  const lieuOuvert = useGame((s) => s.lieuOuvert);
+  const ouvrirLeLieu = useGame((s) => s.ouvrirLeLieu);
+  const hubPlace = mode === 'exploration' && !travelPlan ? lieuDuGroupe({ lieu, worldMap }) : undefined;
+  const hubScene = hubPlace ? sceneDuRegistre(hubPlace.scene) : undefined;
+  const hubRest = hubPlace && scene?.id === hubPlace.scene ? restHere : null;
   const pendingCascade = useGame((s) => s.pendingCascade);
   const pendingRest = useGame((s) => s.pendingRest);
   // Écran-hub de voyage (#333) : actif tout au long d'un voyage EN COURS (source unique `voyageHubActive`).
@@ -182,7 +187,6 @@ export function CampaignView() {
   const voyageHub = voyageHubActive({ travelPlan, travelRecap, mode, worldMapOpen, battle });
   const voyageStepUp = voyageStepPending({ pendingCascade, pendingRest, pendingShoreLeave });
   const showVoyage = voyageHub && (!voyageMin || voyageStepUp);
-  const [sessionOpen, setSessionOpen] = useState(false); // écran de fin de séance (Ambitions/Détermination)
   // La fiche INSPECTÉE : le combattant en combat, hors combat le héros du groupe (`actorIn`) ou le PNJ de
   // scène (`sceneNpc`) — le geste secondaire d'un jeton hors combat n'est offert que là où elle se résout.
   const inspected = useMemo(
@@ -205,11 +209,11 @@ export function CampaignView() {
   });
   // LDB 10.
   const preemptAiming = useGame((s) => s.preemptAiming);
-  const armPreempt = useGame((s) => s.armPreempt);
+  const armerLeTirPreventif = useGame((s) => s.armerLeTirPreventif);
   const canPreemptIds = preemptShooterIds(useGame.getState); // source UNIQUE (partagée avec le ciblage clavier)
   // PAUSE AU PROCHAIN ROUND (`raise-hand`) : l'interrupteur du pied de frise. Verdict d'offre et
   // dispatcher viennent du REGISTRE — la vue ne connaît qu'un id d'action, et la bascule repasse par
-  // la MÊME porte que la pose (`toggleOff`), ce qui rend l'annulation gratuite et symétrique.
+  // la MÊME offre que la pose (le relais lit la main levée), ce qui rend l'annulation gratuite et symétrique.
   // La commande n'est DESSINÉE qu'en coop (pertinence de SITE : elle s'adresse aux autres joueurs,
   // comme la rangée de ready-check) ; le gate `coop` du registre reste la politique de l'entrée —
   // aucune surface, dessinée ou non, ne franchit la porte hors coop.
@@ -238,16 +242,16 @@ export function CampaignView() {
   const isTargeting = controls && cibleDesEntites;
   // LDB 10.
   const onStripPortrait = (id: string) => {
-    // Tir rapide armé : router le clic vers `battleClickEntity` (source UNIQUE carte ⇄ frise) — il déclenche
+    // Tir rapide armé : router le clic vers `cliquerLaCase` (source UNIQUE carte ⇄ frise) — il déclenche
     // l'interruption sur un adversaire valide, même pendant la pause où il n'y a pas de combattant actif.
-    if (preemptAiming) { battleClickEntity(id); return; }
+    if (preemptAiming) { cliquerSurLeCombattant(useGame.getState, id); return; }
     // MÊME comportement que cliquer le token sur la carte (IsoStage) : action de combat si la cible est
     // actionnable ET qu'on contrôle l'actif (coop : ton tour) ; l'inspection est le geste SECONDAIRE du
     // portrait (`onInspect`). `jouerLeClicDuCombattant` = clic PARTAGÉ carte ⇄ frise.
     if (controls) jouerLeClicDuCombattant(useGame.getState, id, hoverClickCommits()); // desktop : un clic commet (cf. pointerCaps)
   };
   const onDockPortrait = (id: string) => {
-    if (isTargeting) { battleClickEntity(id, { confirm: hoverClickCommits() }); return; }
+    if (isTargeting) { cliquerSurLeCombattant(useGame.getState, id, { confirm: hoverClickCommits() }); return; }
     setSheetId(id);
   };
 
@@ -278,7 +282,7 @@ export function CampaignView() {
             (`ScreenMeta`), les ouvreurs d'écrans à l'extrémité droite du pont d'exploration hors
             combat, sur le rail d'outils en combat. Sauvegarder : sauf `refusDeSauvegarde`. */}
         <Row className="hud-topbar" align="start">
-        <GameMenu sceneName={scene?.label} time={gameTime} onQuit={() => setScreen('party')} onSaveLoad={() => setSaveOpen(true)} refusDeSauvegarde={refusSave} onEndSession={() => setSessionOpen(true)} refusDeFinDeSeance={mode !== 'exploration' ? t('gameMenu.endSession.horsExploration') : netMode === 'guest' ? t('gameMenu.endSession.invite') : null} />
+        <GameMenu sceneName={scene?.label} time={gameTime} onQuit={() => setScreen('party')} onSaveLoad={() => setSaveOpen(true)} refusDeSauvegarde={refusSave} onFinDeSeance={ouvrirLaFinDeSeance} refusDeFinDeSeance={refusFinDeSeance} />
         {/* Lieu courant : premier étage de la pile — le nom de la scène se lit sur le HUD, sans ouvrir
             le menu. Sans nom authoré, aucune plaque (rien à annoncer). La MATIÈRE du nom est celle du
             chrome de nom (`CodexTitre`), posée sur le halo partagé des textes du monde nu. */}
@@ -304,15 +308,15 @@ export function CampaignView() {
                forcé ouvert). */
             onVoyage={voyageHub && voyageMin && !voyageStepUp ? () => setVoyageMin(false) : undefined}
             /* Carte du monde (#T2) : la scène est un lieu connu, ou un voyage interrompu attend. */
-            worldMap={worldMap && (placeOfScene(worldMap, scene?.id) || travelPlan) ? { onOpen: openWorldMap, interrupted: !!travelPlan?.interrupted } : undefined}
+            worldMap={worldMap && (lieu || travelPlan) ? { onOpen: ouvrirLaCarte, interrupted: !!travelPlan?.interrupted } : undefined}
             /* Hub de ville (#343) : à un lieu offrant au moins un service, ou un couchage sur place. */
-            hub={hubPlace && (hubServices.length > 0 || restHere) ? { label: hubPlace.label, icon: hubPlace.icon ?? 'nav/campaign', onOpen: () => setCityHubOpen(true) } : undefined}
+            hub={hubPlace ? { label: hubPlace.label, icon: hubPlace.icon ?? 'nav/campaign', onOpen: ouvrirLeLieu } : undefined}
             /* Dormir ici HORS lieu (route, camp sauvage) — l'offre vient de la ZONE où se tient le
                groupe, sinon de la scène. À un lieu, le repos vit DANS le hub. */
             rest={!travelPlan && restHere && !hubPlace
               ? {
                   title: t(restHere.places.auberge ? 'cv.dormirAuberge' : restHere.places.maison ? 'cv.dormirChezSoi' : 'cv.camperSurPlace'),
-                  onOpen: () => openRest({ places: restHere.places, lieu: sceneLieu(useGame.getState), quality: restHere.quality }),
+                  onOpen: () => ouvrirLeRepos(),
                 }
               : undefined}
             onFouiller={fouilleOfferte ? fouillerLaPiece : undefined}
@@ -326,7 +330,8 @@ export function CampaignView() {
             modale système au-dessus resterait invisible/inatteignable sous elle sans cette garde. */}
         {saveOpen && !dialogue && <SaveLoadModal mode="save" onClose={() => setSaveOpen(false)} />}
         {!dialogue && <RetraitsDeChargement />}
-        {(sessionOpen || sessionEndOpen) && !dialogue && <SessionEndModal onClose={() => { setSessionOpen(false); if (sessionEndOpen) fermer('finDeSeance'); }} />}
+        {/* La fin de séance du récap de chapitre se joue dans son écran (`ChapterRecapScreen`). */}
+        {finDeSeance && !dialogue && !pendingChapterRecap && <SessionEndModal />}
         <PartyDock heroes={dockHeroes} targeting={isTargeting} onOpen={onDockPortrait} onInspect={setInspectId} />
         {/* LA RANGÉE DU MONDE (#1848, `.stage-flot` — hud.css) : tout ce qui s'ancre AU BAS DU CHAMP
             vit ICI, dans la rangée du plateau qui s'arrête au bord haut du pont. Aucune de ces
@@ -350,16 +355,16 @@ export function CampaignView() {
               onInspect={setInspectId}
               onHover={setHoverCombatant}
               hoveredId={hovered}
-              onPromote={roundStartPromote}
+              onPromote={promouvoirLeCombattant}
               canPreemptIds={canPreemptIds}
               preemptArmedId={preemptAiming}
-              onPreempt={armPreempt}
+              onPreempt={armerLeTirPreventif}
               hand={netMode === 'local' ? undefined : {
                 raised: handRaised,
                 reason: handVerdict.ok ? undefined : handVerdict.reason,
                 label: <><Icon id={handDef.icon as IconIdInput} size="sm" /> {handRaised ? 'Pause demandée' : 'Pause'}{autresMains > 0 ? ` +${autresMains}` : ''}</>,
                 ariaLabel: `${handRaised ? `${handDef.label} : retirer ma demande` : handDef.label}${autresMains > 0 ? ` — déjà demandée par ${autresMains} autre${autresMains > 1 ? 's' : ''} joueur${autresMains > 1 ? 's' : ''}` : ''}`,
-                onToggle: () => runAction(handDef.id, useGame.getState, { toggleOff: handRaised }),
+                onToggle: () => useGame.getState().jouerLOffre(handDef.id),
               }}
             />
           )}
@@ -410,15 +415,14 @@ export function CampaignView() {
             la modale de repos (`pendingRest` → `ActiveModal` clé `rest`) : « Dormir » depuis le panneau
             auberge armait `pendingRest` SANS fermer le hub, qui restait monté DERRIÈRE la modale flottante
             (bouton « Recueillir des informations » écrasé sous son bord, #376 pt.4). */}
-        {cityHubOpen && hubPlace && mode === 'exploration' && !worldMapOpen && !port && !landMarket && !pendingRest && (
-          <CityHubScreen place={hubPlace} scene={scene ?? undefined} rest={restHere} onClose={() => setCityHubOpen(false)} />
+        {lieuOuvert && hubPlace && !worldMapOpen && !port && !landMarket && !pendingRest && !merchant && (
+          <CityHubScreen place={hubPlace} scene={hubScene} rest={hubRest} onClose={() => fermer('ecranDuLieu')} />
         )}
         {carnetOpen && mode === 'exploration' && <CarnetScreen onClose={() => setCarnetOpen(false)} />}
         {historyOpen && mode === 'exploration' && <DialogueHistoryScreen onClose={() => setHistoryOpen(false)} />}
         {landMarket && mode === 'exploration' && <LandMarketView />}
         {pendingSeaActivities && mode === 'exploration' && <SeaActivitiesModal />}
         {/* Au port ouvert, ces décisions sont surfacées par l'onglet Escale du hub (#228) — pas de double surface. */}
-        {pendingManannPriest && mode === 'exploration' && !port && <ManannPriestModal />}
         {/* Relâche à terre : incrustée au CENTRE du hub de voyage quand il est actif (VoyageScreen) ;
             modale flottante seulement HORS hub (arbitrage user 2026-07-11). */}
         {pendingShoreLeave && mode === 'exploration' && !port && !voyageHub && <ShoreLeaveModal />}

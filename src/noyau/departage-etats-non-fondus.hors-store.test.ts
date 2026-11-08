@@ -8,7 +8,7 @@ import { applierDe } from './cascade';
 import { resultLine } from './rollSeam';
 import { rollMerchantSkill, rollMerchantOpposition, type PortProfile } from '../engine/seaVoyage';
 import { rollMerchantSkill as rollLandMerchantSkill } from '../engine/landCargo';
-import { landBuyCargo } from './landMarketFlow';
+import { acheterALaHalle } from './landMarketFlow';
 import { d100 } from '../engine/dice';
 import { evaluateTest } from '../engine/tests';
 import { testValue, skillBaseValue } from '../engine/skills';
@@ -43,7 +43,7 @@ function setSkill(c: Combatant, skillId: string, advances: number): void {
 /** Cale le Niveau de Compétence NU de `c` à EXACTEMENT `want`, puis l'Empoisonne. */
 function marchandeurEmpoisonne(c: Combatant): Combatant {
   setSkill(c, 'marchandage', 0);
-  setSkill(c, 'marchandage', NUE - skillBaseValue(c, 'marchandage'));
+  setSkill(c, 'marchandage', NUE - skillBaseValue(c, { skill: { id: 'marchandage' } }));
   addCondition(c, COND.empoisonne);
   return c;
 }
@@ -99,9 +99,9 @@ describe('#1153 L2 — PORT : l’État ne se fond plus dans la grandeur du dép
     marchandeurEmpoisonne(leader);
     setupPort([leader]);
     seedBattleRng(1);
-    get().portBuyCargo('bois-mer', LOT_ENC);
+    get().acheterLaCargaison('vessel', 'bois-mer', LOT_ENC);
     const step = get().pendingCascade!.participants[0] as CascadeStep;
-    expect(testValue(leader, 'marchandage')).toBe(NUE + ETAT); // l'État pèse sur la valeur de Test…
+    expect(testValue(leader, { skill: { id: 'marchandage' } })).toBe(NUE + ETAT); // l'État pèse sur la valeur de Test…
     expect(step.base).toBe(NUE); // …mais PAS sur la Compétence (LDB 09 l.17)
     expect(step.target).toBe(NUE + ETAT); // CIBLE INVARIANTE : elle reste la valeur de Test fondue
   });
@@ -114,7 +114,7 @@ describe('#1153 L2 — PORT : l’État ne se fond plus dans la grandeur du dép
     expect(merchant).toBeGreaterThan(NUE + ETAT); // la valeur de Test EMPOISONNÉE perdrait (le piège)
     expect(merchant).toBeLessThan(NUE); // …la Compétence NUE, elle, l'emporte (l.160)
     seedBattleRng(seed);
-    get().portBuyCargo('bois-mer', LOT_ENC);
+    get().acheterLaCargaison('vessel', 'bois-mer', LOT_ENC);
     const opened = get().pendingCascade!.participants[0] as CascadeStep;
     expect(opened.meta?.merchantValue).toBe(merchant);
     const step = { ...opened, result: { roll: die, target: opened.target!, sl, success: true } } as CascadeStep;
@@ -148,7 +148,7 @@ function setupLand(): Combatant {
   return leader;
 }
 
-/** Rejoue la séquence de `landBuyCargo` : marchand 2d10+30 (l.129), puis les deux d100 opposés. */
+/** Rejoue la séquence de `acheterALaHalle` : marchand 2d10+30 (l.129), puis les deux d100 opposés. */
 function probeLandBuy(seed: number): { merchant: number; merchantSL: number; heroRoll: number } {
   seedBattleRng(seed);
   const rng = battleRng();
@@ -173,12 +173,12 @@ describe('#1153 L2 — MARCHÉ TERRESTRE : l’État ne se fond plus dans la gra
     }
     expect(found).not.toBeNull();
     const leader = setupLand();
-    expect(testValue(leader, 'marchandage')).toBe(NUE + ETAT);
-    expect(skillBaseValue(leader, 'marchandage')).toBe(NUE);
+    expect(testValue(leader, { skill: { id: 'marchandage' } })).toBe(NUE + ETAT);
+    expect(skillBaseValue(leader, { skill: { id: 'marchandage' } })).toBe(NUE);
     expect(found!.merchant).toBeGreaterThan(NUE + ETAT);
     expect(found!.merchant).toBeLessThan(NUE);
     seedBattleRng(found!.seed);
-    landBuyCargo(get, set, 'vin-eau-de-vie', LOT_ENC);
+    acheterALaHalle(get, set, LAND_CARRIER, 'vin-eau-de-vie', LOT_ENC);
     expect(bargainLineOf()).toMatch(/remise de \d+ %/);
     expect(bargainLineOf()).not.toMatch(/surcoût/);
   });

@@ -178,7 +178,7 @@ test('les murs mordent dans leur portée et passent leurs témoins neutres ou ex
     ['src/ui/hud/parite-atelier.tsx',"import {GameOpEditor} from '../editor/GameOpEditor';GameOpEditor();",'murs/atelier',1],
     ['src/ui/parite-atelier-alias.tsx',"import {ConditionEditor} from '@/ui/editor/ConditionEditor';ConditionEditor();",'murs/atelier',1],
     ['src/ui/compendium/parite-atelier.tsx',"import {GameOpEditor} from '../editor/GameOpEditor';GameOpEditor();",'murs/atelier',1],
-    ['src/ui/hud/parite-atelier-refs.tsx',"import {OP_LABEL} from '../../data/refsDOp';OP_LABEL.x;",'murs/atelier',1],
+    ['src/ui/hud/parite-atelier-refs.tsx',"import {OP_REF_FIELDS} from '../../data/refsDOp';OP_REF_FIELDS.x;",'murs/atelier',1],
     ['src/ui/editor/codex/parite-atelier.tsx',"import {GameOpEditor} from '../../editor/GameOpEditor';GameOpEditor();",'murs/atelier',0],
     ['src/ui/hud/parite-atelier.test.tsx',"import {GameOpEditor} from '../editor/GameOpEditor';GameOpEditor();",'murs/atelier',0],
     ['src/state/parite-minuterie.ts','setTimeout(f,0);','murs/minuteries',1],
@@ -524,6 +524,69 @@ test('murs/resolveur-par-libelle : un test ou un script ne nomme aucun résolveu
     ['src/state/parite-resolveur-enumere.test.ts',"import * as data from '../data';\nexport const s=Object.values(data);",0],
     ['src/state/parite-resolveur-local.test.ts',"function findSkill(id) { return id; }\nexport const s=findSkill('x');",0],
     ['src/state/parite-resolveur-prod.ts',"import { findSpell } from '../data';\nexport const s=findSpell('x');",0],
+  ]
+  const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
+  for(let i=0;i<cas.length;i++) {
+    const vus=selectionnerMessages(resultats[i],m=>m.ruleId===REGLE)
+    assert.equal(vus.length,cas[i][2],`${cas[i][0]}: ${JSON.stringify(resultats[i].messages)}`)
+    for(const m of vus) {assert.equal(m.severity,2);assert.equal(m.line,1)}
+  }
+})
+
+test('murs/sujet-char : sous src, le sujet d’un Test ne reprend pas la clé `char` à côté de `skill`/`skillId`/`difficulty`/`spec`, ni dans un littéral ni dans un type', () => {
+  const REGLE='murs/sujet-char'
+  const cas = [
+    ['src/noyau/parite-sujet-char.ts',"export const p={skillId:s.id,char:c,difficulty:d};",1],
+    ['src/noyau/parite-sujet-char-non-frais.ts',"const t={skill:'x',char:c}; export const u=f(t);",1],
+    ['src/engine/parite-sujet-char-cast.ts',"export const t={skill:'x',char:c} as TestIds;",1],
+    ['src/state/parite-sujet-char-spread.ts',"export const t={skill:s,...(c?{char:c}:{})};",1],
+    ['src/data/parite-sujet-char-logique.ts',"export const t={difficulty:d,...(c&&{char:c})};",1],
+    ['src/noyau/parite-sujet-char-inverse.ts',"export const t={char:c,...(s?{spec:s}:{})};",1],
+    ['src/noyau/parite-sujet-char-chaine.ts',"export const t={'char':c,skill:s};",1],
+    ['src/noyau/parite-sujet-char-raccourci.ts',"export const t={char,difficulty};",1],
+    ['src/engine/parite-sujet-char.test.ts',"export const t={skill:s,char:c};",1],
+    ['src/ui/parite-sujet-char.tsx',"export const t={spec:s,char:c};",1],
+    ['src/noyau/parite-sujet-char-type.ts',"export type T={skill?:string;char?:CharKey};",1],
+    ['src/noyau/parite-sujet-char-interface.ts',"export interface P {skillId?:string;'char'?:CharKey;difficulty:Difficulty}",1],
+    ['src/engine/parite-sujet-char-union.ts',"export type D=({skill?:string;spec?:string;bonus:number}|{char:CharKey;bonus:number})[];",0],
+    ['src/engine/parite-sujet-char-grammaire-type.ts',"export type T={skill?:string;characteristic?:CharKey;spec?:string};",0],
+    ['src/noyau/parite-sujet-char-caracteristique.ts',"export const op={op:'charMod',char:'force',mod:5};",0],
+    ['src/noyau/parite-sujet-char-grammaire.ts',"export const t={skill:s,characteristic:c,difficulty:d};",0],
+    ['src/noyau/parite-sujet-char-profil.ts',"export const t={skill:s,profil:{char:{force:30}}};",0],
+    ['src/noyau/parite-sujet-char-motif.ts',"const {char,skill}=x; export const y=[char,skill];",0],
+    ['scripts/parite-sujet-char.mjs',"export const t={skill:s,char:c};",0],
+  ]
+  const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
+  for(let i=0;i<cas.length;i++) {
+    const vus=selectionnerMessages(resultats[i],m=>m.ruleId===REGLE)
+    assert.equal(vus.length,cas[i][2],`${cas[i][0]}: ${JSON.stringify(resultats[i].messages)}`)
+    for(const m of vus) {assert.equal(m.severity,2);assert.equal(m.line,1)}
+  }
+})
+
+test('murs/sujet-spec : sous src, la Spécialisation d’une Compétence vit dans sa référence, jamais en clé `spec` à côté de `skill`, ni dans un littéral ni dans un type', () => {
+  const REGLE='murs/sujet-spec'
+  const cas = [
+    ['src/noyau/parite-sujet-spec.ts',"export const t={skill:'savoir',spec:'loi'};",1],
+    ['src/noyau/parite-sujet-spec-non-frais.ts',"const t={skill:s,spec:p}; export const u=f(t);",1],
+    ['src/engine/parite-sujet-spec-cast.ts',"export const t={skill:'x',spec:p} as TestIds;",1],
+    ['src/state/parite-sujet-spec-spread.ts',"export const t={skill:s,...(p?{spec:p}:{})};",1],
+    ['src/data/parite-sujet-spec-logique.ts',"export const t={skill:s,...(p&&{spec:p})};",1],
+    ['src/noyau/parite-sujet-spec-inverse.ts',"export const t={spec:p,...(s?{skill:s}:{})};",1],
+    ['src/noyau/parite-sujet-spec-chaine.ts',"export const t={'skill':s,'spec':p};",1],
+    ['src/noyau/parite-sujet-spec-raccourci.ts',"export const t={skill,spec,characteristic};",1],
+    ['src/engine/parite-sujet-spec.test.ts',"export const t={skill:s,spec:p};",1],
+    ['src/ui/parite-sujet-spec.tsx',"export const t={spec:p,skill:s};",1],
+    ['src/noyau/parite-sujet-spec-type.ts',"export type T={skill?:string;spec?:string;characteristic?:CharKey};",1],
+    ['src/noyau/parite-sujet-spec-interface.ts',"export interface P {'skill':string;spec?:string}",1],
+    ['src/engine/parite-sujet-spec-union.ts',"export type D=({skill?:string;spec?:string;bonus:number}|{char:CharKey;bonus:number})[];",1],
+    ['src/noyau/parite-sujet-spec-emboite.ts',"export const t={skill:{id:s,spec:p},characteristic:c};",0],
+    ['src/noyau/parite-sujet-spec-emboite-type.ts',"export type T={skill?:{id:string;spec?:string};characteristic?:CharKey};",0],
+    ['src/noyau/parite-sujet-spec-rangee.ts',"export const r={skillId:s,spec:p,label:l};",0],
+    ['src/noyau/parite-sujet-spec-instance.ts',"export const i={id:s,spec:p,advances:0};",0],
+    ['src/noyau/parite-sujet-spec-profondeur.ts',"export const t={skill:s,ligne:{spec:p}};",0],
+    ['src/noyau/parite-sujet-spec-motif.ts',"const {skill,spec}=x; export const y=[skill,spec];",0],
+    ['scripts/parite-sujet-spec.mjs',"export const t={skill:s,spec:p};",0],
   ]
   const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
   for(let i=0;i<cas.length;i++) {

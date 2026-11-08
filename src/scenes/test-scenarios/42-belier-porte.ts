@@ -24,7 +24,7 @@ import type { Scene } from '../../noyau/monde/scene';
  * → `siege-engine-push-speed`, plafond maison 2 cases/poussée) — EXACTEMENT 2 poussées plein Nord (2 cases
  * puis le reliquat de 1) amènent l'empreinte au contact DIRECT de la porte (dx=0, jamais en diagonale) : la
  * démonstration reste courte, zéro dérive de trajectoire. Un gobelin défend l'autre côté de la porte (5,2).
- * `heroStart` pose le GROUPE (4 héros) en colonne à `x−1` (`startCombat`, combatSlice.ts) → le Soldat (1er
+ * `heroStart` pose le GROUPE (4 héros) en colonne à `x−1` (`lancerLeCombat`, combatSlice.ts) → le Soldat (1er
  * du groupe que rend `construire` ci-dessous) atterrit en (3,8), qui EST le flanc gauche de la formation
  * (`crewFormationSlots` en (px−1,py) pour un affût posé en (4,8)) — les 5 servants occupent les autres
  * cases de la formation, aucune sur la colonne des 3 autres héros ((3,9)/(3,10)/(3,11)) ni sur l'affût.
@@ -38,7 +38,7 @@ const RAM_CREW = [
 // celle de la porte (5,4) : pousser plein Nord amène l'empreinte au contact DIRECT (dx=0), jamais en
 // diagonale. Pointant vers la porte (heading 'N', l'engin frappe au Nord) — `crewFormationSlots` donne
 // l'anneau ORDONNÉ (droite/gauche/angles-arrière/arrière, JAMAIS l'avant où l'engin frappe) autour de cette
-// empreinte ; la colonne des 3 autres héros du groupe (x=3, y=9..11, posée par `heroStart`/`startCombat`)
+// empreinte ; la colonne des 3 autres héros du groupe (x=3, y=9..11, posée par `heroStart`/`lancerLeCombat`)
 // recouvre le flanc gauche SOUS le Soldat (3,8) — on l'écarte : le Soldat atterrit là par `heroStart`, les
 // 5 servants prennent les 5 cases RESTANTES.
 const RAM_POS = { x: 4, y: 8 };

@@ -11,6 +11,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { reluDans } from './combatDeTest.testkit';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -20,8 +21,8 @@ const g = () => banc.getState();
 function engage(): { H: Combatant; E: Combatant } {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
-  g().startScene(testScene());
-  g().startCombat('enc-mutants');
+  g().lancerLaScene(testScene());
+  g().lancerLeCombat('enc-mutants');
   g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;
@@ -40,18 +41,18 @@ function engage(): { H: Combatant; E: Combatant } {
 
 /** Cible annoncée par le réticule de l'attaque armée, puis cible du jet que le clic ouvre. */
 function reticuleEtJet(attaque: string, H: Combatant, E: Combatant): { reticule: number; jet: number; avantage: number } {
-  g().battleSelectAttack(attaque);
+  g().armerLAttaque(attaque);
   const ht = hoverTargeting(g, H, E);
   if (ht.kind !== 'ok' || ht.base == null || ht.mod == null) throw new Error(`réticule ${ht.kind}`);
-  g().battleClickEntity(E.id, { confirm: true });
-  g().jetRoll('attack');
+  cliquerSurLeCombattant(g, E.id, { confirm: true });
+  g().jetLancer('attack');
   const d = g().pendingAttack!.result!.attackerDetail!;
   return { reticule: ht.base + ht.mod, jet: d.target, avantage: H.advantage };
 }
 
 describe('Gratuite payée en Avantage : le réticule annonce la cible du jet', () => {
   beforeEach(() => {
-    g().seedRng(2);
+    g().ensemencerLeTirage(2);
   });
 
   it('Piétinement (1 Avantage) : réticule.target === jet.target, sur l’Avantage restant', () => {

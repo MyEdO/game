@@ -9,7 +9,8 @@ import { inFireArc } from './fireArc';
 import { mannedPosteWeapon, loadWeapon, lacherLArme } from '../../engine/items';
 import { hasWeaponGroupSkill } from '../../engine/combat';
 import { exposedCrew } from '../../engine/shipCritical';
-import { isOutOfAction } from '../../engine/conditions';
+import { canTakeAction, isOutOfAction } from '../../engine/conditions';
+import { aRecharger } from '../../engine/weaponLoad';
 import { combatDistance, footprintN, footprintTiles } from './footprint';
 import { rotateDir8, DIR8_DELTA, DIR8_ORDER, DELTA_DIR8, type Dir8 } from '../../geometry/dir8';
 import { isWalkable, tileAt, type Scene } from './scene';
@@ -17,7 +18,7 @@ import { pointDeCase, tileKey } from './path';
 import { estAbsent, terrainHorsGrille } from './terrain';
 import { casesTenues, findFreeTile } from './combatGeometry';
 import { placeCombatant } from './spawn';
-import type { Combatant, ShipPoste, ShipDeck, FireArc } from '../../engine/types';
+import type { Combatant, ShipPoste, ShipDeck, FireArc, Weapon } from '../../engine/types';
 
 
 type Pt = { x: number; y: number };
@@ -269,7 +270,7 @@ export function assignCrewFormation(
  * de la coque. Un servant à une position DISTINCTE de la coque (authorée à la main) n'est JAMAIS touché —
  * le placement d'AUTEUR prime toujours. Ne lit QUE `hull.postes[].crewIds` (postes terrestres, bélier/
  * baliste) — l'équipage de COQUE navale (`Combatant.crewIds`, MDG 14) est PASSAGER hors case propre,
- * hors du champ de cette fonction. Mute en place ; appelé une fois au spawn (`combatSlice.startCombat`).
+ * hors du champ de cette fonction. Mute en place ; appelé une fois au spawn (`combatSlice.lancerLeCombat`).
  */
 export function autoFormCrews(combatants: Combatant[], scene: Scene, facingOf?: (hull: Combatant) => Dir8 | undefined): void {
   for (const hull of combatants) {
@@ -368,12 +369,24 @@ export function crewPosteOf(id: string, combatants: Combatant[]): { hull: Combat
   return undefined;
 }
 
-/** La pièce `poste` de la coque `ship` se recharge-t-elle ce Round (`loaded`, chef `crewIds[0]`, `crewActed`) ?
- *  Lu par le gate `piece-dechargee` et `battleShipReload`. LDB 62 l.333-335. */
-export function posteARecharger(ship: Combatant, poste: ShipPoste, battle: { combatants: Combatant[]; crewActed?: Record<string, string[]> }): boolean {
-  const chefId = poste.crewIds?.[0];
-  if (poste.loaded !== false || !chefId || !battle.combatants.some((c) => c.id === chefId)) return false;
-  return !(battle.crewActed?.[ship.id] ?? []).includes(chefId);
+/** L'arme que recharge le Tour de `active` (`weaponUid`, à défaut la première à recharger) et son PORTEUR, qui fait le
+ *  Test et y dépense son Action : `active` lui-même, son Action du Tour (`acted`) ; le chef d'une pièce de `active`
+ *  sans Tour propre (`order`), son engagement du Round (`crewActed`). Lu par le gate `arme-a-recharger` et
+ *  `rechargerLArme`. LDB 62 l.335 ; LDB 13 l.106 (arbitrage #3595, 2026-11-07) ; MDG 14 l.37 */
+export function rechargeDuTour(
+  active: Combatant,
+  battle: { combatants: Combatant[]; order: string[]; acted?: boolean; crewActed?: Record<string, string[]> },
+  weaponUid?: string,
+): { porteur: Combatant; arme: Weapon } | undefined {
+  const engages = battle.crewActed?.[active.id] ?? [];
+  const chefs = (active.postes ?? []).flatMap((p) => battle.combatants.filter((c) =>
+    c.id === p.crewIds?.[0] && c.mannedPoste?.item.uid === p.item.uid && !battle.order.includes(c.id) && !engages.includes(c.id)));
+  const porteurs = [...(battle.acted ? [] : [active]), ...chefs].filter((c) => !isOutOfAction(c) && canTakeAction(c));
+  for (const porteur of porteurs) {
+    const arme = porteur.weapons.find((w) => (weaponUid == null || w.uid === weaponUid) && aRecharger(porteur, w));
+    if (arme) return { porteur, arme };
+  }
+  return undefined;
 }
 
 /** Postes qu'un `actor` peut REJOINDRE maintenant : ceux d'un emplacement/coque ADJACENT (empreinte, ≤ 1 case)

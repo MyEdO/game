@@ -4,7 +4,7 @@
  *
  * RÉUTILISATION (pas de duplication de la machinerie de voyage) : ce flux est le PENDANT FLUVIAL de
  * `seaVoyageFlow` (mer, MDG). Comme lui, il s'appuie sur la machinerie de voyage EXISTANTE — halte de nuit
- * (`openRest`), entretien quotidien (`runDailyUpkeep`), coque de trajet PERSISTÉE au coup par coup
+ * (`ouvrirLeRepos`), entretien quotidien (`runDailyUpkeep`), coque de trajet PERSISTÉE au coup par coup
  * (`damageVesselHull`/`healVesselHull`, #296 — SOURCE UNIQUE `vessel.wounds`), récap du jour
  * (`TravelRecapDay`) — et n'écrit QUE la résolution navale du jour. Il ne réimplémente ni la boucle de
  * nuit, ni l'entretien, ni la persistance.
@@ -25,8 +25,9 @@ import type { PlayerText } from '../i18n/playerText';
 import { battleRng } from './battleRng';
 import { minutesUntilNext, duskMinute } from '../engine/clock';
 import { effectTargets, openWaterExposure } from './combatEffects';
-import { openRest, placesOfKind, routeLieu } from './restFlow';
-import { placeById, type MapRoute, type WorldMap } from './worldMap';
+import { ouvrirLeRepos, placesOfKind, routeLieu } from './restFlow';
+import { placeById, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
+import { arriverAuLieu } from './lieuFlow';
 import { damageVesselHull, healVesselHull, syncHullWoundsFromVessel, spoilVesselCargoOnLeak } from './seaVoyageFlow';
 import { baseHoursPerDay } from './travelFlow';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
@@ -136,17 +137,13 @@ export interface RiverDayContext {
   forceDrift: boolean;
   /** Le vent impose un louvoyage (Modéré/Fort de côté) : le `windPct` n'est acquis qu'avec `riverTack` réussi. */
   tack?: boolean;
-  /** Libellé de destination (repris à la clôture pour la halte/arrivée). */
-  toScene: string;
-  toEntry?: string;
-  toLabel: string;
   /** Longueur du journal au DÉBUT du jour (repère) : le RÉCAP de la halte (`TravelRecapDay.lines`,
    *  affiché en tête de la modale de nuit) = la tranche de journal écrite depuis ce repère. */
   journalMark: number;
 }
 
 const log = (get: Get, _set: Set, lines: string[]) => {
-  if (lines.length) get().log(lines);
+  if (lines.length) get().ecrireAuJournal(lines);
 };
 
 /** La COQUE de trajet fluviale : le navire de campagne si c'en est un, sinon le véhicule-bateau de la route
@@ -169,14 +166,14 @@ function riverHull(get: Get<Jeu>, route: MapRoute): { coque: Combatant } | null 
 
 /** Un « batelier » : un PJ vivant qui a augmenté la `competence` de Navigation du bateau (MSRC 5 l.11-17),
  *  Spécialisation sœur comprise (`possesses`, LDB 09 l.571). Sans batelier, on paie un passeur (repli
- *  transport payant côté `startTravel`). */
+ *  transport payant côté `partirEnVoyage`). */
 export function hasBatelier(party: Combatant[], competence: RefDesignee): boolean {
   return party.some((h) => !h.dead && aAugmente(h, competence));
 }
 
 /** `c` a-t-il augmenté `competence` (LDB 09 l.30, l.571) ? PUR. */
 function aAugmente(c: Combatant, competence: RefDesignee): boolean {
-  return possesses(c, competence.id, competence.spec) && (c.skills ?? []).some((s) => refCouvre({ id: competence.id }, s) && s.advances > 0);
+  return possesses(c, competence) && (c.skills ?? []).some((s) => refCouvre({ id: competence.id }, s) && s.advances > 0);
 }
 
 /** La coque d'une descente JOUABLE : un bateau et un batelier — `null` sinon (→ repli transport payant) ;
@@ -219,18 +216,18 @@ export function runRiverDays(get: Get, set: Set): void {
   const to = worldMap ? placeById(worldMap, plan.toPlaceId) : undefined;
   if (!route || !to) { set({ travelPlan: null }); return; }
   if (plan.km - plan.kmDone < 1e-9) { arriveRiver(get, set, to); return; }
-  resolveRiverDay(get, set, route, to);
+  resolveRiverDay(get, set, route);
 }
 
-function arriveRiver(get: Get, set: Set, to: { scene: string; entry?: string; label: string }): void {
+function arriveRiver(get: Get, set: Set, to: MapPlace): void {
   set({ travelPlan: null });
   log(get, set, [t('rv.arrive', { to: to.label })]);
-  get().transitionTo(to.scene, to.entry);
+  arriverAuLieu(set, to);
 }
 
 /** Meilleur pilote (barreur/rameur) de l'équipage apte avec Soutien (LDB 12) pour la Compétence de Navigation. */
 function riverPilot(get: Get, competence: RefDesignee) {
-  return partyAssisted(equipageApte(get().party), competence.id, undefined, undefined, competence.spec);
+  return partyAssisted(equipageApte(get().party), { skill: competence });
 }
 
 /**
@@ -243,8 +240,8 @@ function riverPilot(get: Get, competence: RefDesignee) {
  * → `continueRiverDayAfterCascade`), le store calcule les km du jour à partir des résultats d'étape
  * — SEUL endroit où ils se calculent — puis enchaîne la halte de nuit ou l'arrivée.
  */
-function resolveRiverDay(get: Get, set: Set, route: MapRoute, to: { scene: string; entry?: string; label: string }): void {
-  const { steps, log: lines } = buildRiverDayCascade(get, set, route, to);
+function resolveRiverDay(get: Get, set: Set, route: MapRoute): void {
+  const { steps, log: lines } = buildRiverDayCascade(get, set, route);
   for (const l of lines) log(get, set, [l]);
   if (!steps.length) {
     // Aucun jet influençable (bateau coulé d'entrée, personne à la barre) : on finalise directement,
@@ -312,7 +309,7 @@ function riverPropulsion(hull: Combatant | undefined): PropulsionDuNavire {
  * (`river.day`) que la clôture relira pour les km. Renvoie aussi les lignes de journal d'ambiance
  * (vent du jour) déjà connues. Consomme ZÉRO RNG (les jets vivent dans les étapes / appliers).
  */
-export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute, to: { scene: string; entry?: string; label: string }): { steps: BuiltCascadeStep[]; log: string[] } {
+export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { steps: BuiltCascadeStep[]; log: string[] } {
   const plan = get().travelPlan!;
   const river = plan.river!;
   const worldMap = get().worldMap as WorldMap;
@@ -336,7 +333,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute, to: { 
   // % de vent, louvoyage requis. Les appliers le complètent (perte de contrôle, chavirage → dérive).
   const dayCtx: RiverDayContext = {
     baseKm, windPct: eff.pct ?? 0, forceDrift: !!eff.drift || !!river.outOfControl || !!river.broken,
-    tack: !!eff.tack, toScene: to.scene, toEntry: to.entry, toLabel: to.label, journalMark: get().journal.length,
+    tack: !!eff.tack, journalMark: get().journal.length,
   };
   set({ travelPlan: { ...get().travelPlan!, river: { ...river, day: dayCtx } } });
 
@@ -344,7 +341,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute, to: { 
   // testent la MÊME grandeur (même barreur, même Compétence, même Soutien) — seuls la Difficulté et
   // les modificateurs de situation changent.
   const pilotLigne: BandLigne | undefined = pilot
-    ? { test: { skill: competence.id, spec: competence.spec }, valeur: pilot.value, soutien: pilot.support }
+    ? { test: { skill: competence }, valeur: pilot.value, soutien: pilot.support }
     : undefined;
 
   // 1. Réparation du gréement/avirons brisés d'une étape précédente (l.78-82 / note 5) : rend le contrôle.
@@ -361,12 +358,12 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute, to: { 
   if (pilot) {
     const savoir = savoirVoiesFluvialesBonus(pilot.actor);
     const navTest = riverNavTest(river, eff);
-    pousseSi(steps, riverStep('river-nav', 'riverNav', pilot.actor, composeRollLabel(undefined, t('step.navigation'), { skill: competence.id, spec: competence.spec }), 'travel/sail-ship',
+    pousseSi(steps, riverStep('river-nav', 'riverNav', pilot.actor, composeRollLabel(undefined, t('step.navigation'), { skill: competence }), 'travel/sail-ship',
       refLabel('skills', competence), { ...pilotLigne!, surLaCible: navTest.mods }, navTest.difficulty, { savoir },
       { stake: voyageStakeRef('riverNav', { driftKm: Math.round(riverDriftKm(baseKm)), driftPct: driftPctOfSpeed() }) }));
   } else {
     // Personne ne peut tenter la Navigation : ÉCHEC sans jet, conséquence de l'échec (LDB 09 l.30 ; #2588 Q1).
-    logs.push(refusPersonneNePeutTenter({ skill: competence.id, spec: competence.spec }), t('rv.noPilot'));
+    logs.push(refusPersonneNePeutTenter({ skill: competence }), t('rv.noPilot'));
     dayCtx.forceDrift = !riverControlKept(ECHEC_SANS_JET.success, ECHEC_SANS_JET.sl, 0);
     set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, day: { ...dayCtx } } } });
   }
@@ -449,9 +446,7 @@ export function continueRiverDayAfterCascade(get: Get, set: Set): void {
   const ctx = river.day;
   const worldMap = get().worldMap as WorldMap;
   const route = worldMap?.routes.find((r) => r.id === plan.routeId);
-  const to = ctx
-    ? { scene: ctx.toScene, entry: ctx.toEntry, label: ctx.toLabel }
-    : (worldMap ? placeById(worldMap, plan.toPlaceId) : undefined);
+  const to = worldMap ? placeById(worldMap, plan.toPlaceId) : undefined;
   if (!route || !to) { set({ travelPlan: null }); return; }
 
   const sunk = !!river.sunk;
@@ -595,7 +590,7 @@ function rightingStep(get: Get, source: CascadeStep, round: number, be: number):
     // (`testValueSplit` : « rien à décomposer » dès qu'aucune compétence ni caractéristique n'est
     // déclarée), porteur nommé ou non. Les deux régimes passent donc par la MÊME entrée `ligne`.
     ligne: pilot
-      ? { test: { skill: competence.id, spec: competence.spec }, valeur: pilot.value, soutien: pilot.support, ...(cumul ? { surLaCible: cumul } : {}) }
+      ? { test: { skill: competence }, valeur: pilot.value, soutien: pilot.support, ...(cumul ? { surLaCible: cumul } : {}) }
       : { valeur: Number(source.meta?.pilotValue ?? source.base ?? 0), valeurEtrangere: true, ...(cumul ? { surLaCible: cumul } : {}) },
   });
 }
@@ -641,14 +636,14 @@ function applyBoatCritical(get: Get, set: Set, plan: TravelPlan, river: RiverVoy
  *  gréement) — rend AUSSI la DÉCLARATION du jet (`ligne`), le malus du réparateur de substitution
  *  compris : c'est ici, et nulle part ailleurs, qu'on sait quelle spécialisation a servi. */
 function bestShipwright(get: Get): { actor: Combatant; value: number; ligne: BandLigne } | null {
-  const build = partyAssisted(get().party, 'metier', undefined, undefined, SPEC.constructionBateaux);
+  const build = partyAssisted(get().party, { skill: { id: 'metier', spec: SPEC.constructionBateaux } });
   if (build) {
     return {
       actor: build.actor, value: build.value,
-      ligne: { test: { skill: 'metier', spec: SPEC.constructionBateaux }, valeur: build.value, soutien: build.support },
+      ligne: { test: { skill: { id: 'metier', spec: SPEC.constructionBateaux } }, valeur: build.value, soutien: build.support },
     };
   }
-  const c = partyAssisted(get().party, 'metier', undefined, undefined, SPEC.charpentier);
+  const c = partyAssisted(get().party, { skill: { id: 'metier', spec: SPEC.charpentier } });
   if (!c) return null;
   // Réparateur de SUBSTITUTION (`MSRC 5 l.113-117`) : le −10 est DÉJÀ fondu dans la valeur jetée,
   // donc il se déclare en `dansLaValeur` — le monteur le sort de la base et le rend en chip NOMMÉE.
@@ -657,7 +652,7 @@ function bestShipwright(get: Get): { actor: Combatant; value: number; ligne: Ban
   return {
     actor: c.actor, value,
     ligne: {
-      test: { skill: 'metier', spec: SPEC.charpentier }, valeur: value, soutien: c.support,
+      test: { skill: { id: 'metier', spec: SPEC.charpentier } }, valeur: value, soutien: c.support,
       dansLaValeur: [{ label: specLabel('skills', 'metier', SPEC.charpentier), value: penalty, famille: 'jet' as const, ref: { category: 'skills', id: 'metier' } }],
     },
   };
@@ -739,13 +734,13 @@ function resolveRiverPerilConsequence(get: Get, set: Set, peril: NonNullable<Ret
       const st = monoStep({
         id: `${step.id}-detect`, kind: 'riverPerilDetect', actor: pilot, icon: 'nautical/snag', label: stepDetail(dataLabel(peril.label), t('step.detection')),
         rollLabel: t('char.agilite'), difficulty: 'intermediaire',
-        ligne: { test: { char: 'agilite' } },
+        ligne: { test: { characteristic: 'agilite' } },
         stake: voyageStakeRef('riverPerilDetect', { damage: peril.onHit.hullDamage }),
         meta: { perilId: peril.id },
       });
       pousseSi(insert, st);
     } else {
-      const detect = pilot ? rollTest(testValue(pilot, undefined, 'agilite'), 'intermediaire', rng) : { success: false };
+      const detect = pilot ? rollTest(testValue(pilot, { characteristic: 'agilite' }), 'intermediaire', rng) : { success: false };
       j.push(t('rv.detectLine', { peril: peril.label, roll: 'roll' in detect ? (detect as TestResult).roll : t('rv.fragNoRoll'), issue: t(detect.success ? 'rv.detectOk' : 'rv.detectKo') }));
       if (!detect.success) {
         const impact = resolveRiverImpact(peril.onHit, rng);
@@ -767,7 +762,7 @@ export function applyEchouage(get: Get, set: Set, tell: (l: string[]) => void): 
   const { penalite, encTxt } = echouagePenalty(get);
   // Chemin IA/synchrone (`riverEchouageForce` gate l'acteur JOUEUR ci-dessus) : aucune rangée nulle
   // part pour ce jet — le journal est la SEULE surface, il PORTE le jet (#295 Lot 5, gardé nominativement).
-  const force = partyAssisted(get().party, undefined, 'force');
+  const force = partyAssisted(get().party, { characteristic: 'force' });
   const res = force ? rollTest(force.value, ECHOUAGE_DIFFICULTY, battleRng(), penalite?.value ?? 0) : null;
   tell([t('rv.grounded', { dmg: echouageDamage(), suite: res ? t('rv.fragRefloat', { diff: DIFFICULTY_LABELS[ECHOUAGE_DIFFICULTY], enc: encTxt, roll: res.roll, target: res.target, issue: t(res.success ? 'rv.refloatOk' : 'rv.refloatKo') }) : t('rv.fragDot') })]);
 }
@@ -790,7 +785,7 @@ function echouagePenalty(get: Get): { penalite: ModLine | null; encTxt: string }
  *  devient une étape-jet INFLUENÇABLE (`riverEchouageForce`) quand le jet de l'acteur se surface —
  *  sinon délègue à `applyEchouage` (chemin IA/synchrone inchangé). */
 function applyEchouageSteps(get: Get, set: Set, idPrefix: string, j: import('./rollSeam').FreeConsLine[]): BuiltCascadeStep[] {
-  const force = partyAssisted(get().party, undefined, 'force');
+  const force = partyAssisted(get().party, { characteristic: 'force' });
   if (!force || !surfaceOf(get, force.actor.id)) {
     applyEchouage(get, set, (l) => j.push(...l));
     return [];
@@ -802,7 +797,7 @@ function applyEchouageSteps(get: Get, set: Set, idPrefix: string, j: import('./r
   const st = monoStep({
     id: `${idPrefix}-echouage`, kind: 'riverEchouageForce', actor: force.actor, icon: 'travel/repair',
     label: t('step.riverEchouage'), rollLabel: t('char.force'), difficulty: ECHOUAGE_DIFFICULTY,
-    ligne: { test: { char: 'force' }, valeur: force.value, soutien: force.support, ...(penalite ? { surLaCible: [penalite] } : {}) },
+    ligne: { test: { characteristic: 'force' }, valeur: force.value, soutien: force.support, ...(penalite ? { surLaCible: [penalite] } : {}) },
     stake: voyageStakeRef('riverEchouageForce'),
   });
   return st ? [st] : [];
@@ -811,7 +806,7 @@ function applyEchouageSteps(get: Get, set: Set, idPrefix: string, j: import('./r
 /** Fin de journée : horloge avancée (arrivée = +24 h ; halte = jusqu'au crépuscule), puis arrivée ou
  *  halte de nuit (la coque est déjà PERSISTÉE au coup par coup, `damageVesselHull`/`healVesselHull`,
  *  #296). L'entretien du jour se résout dans la cascade de nuit. */
-function finishRiverDay(get: Get, set: Set, to: { scene: string; entry?: string; label: string }, kmDay: number, dayLines: string[]): void {
+function finishRiverDay(get: Get, set: Set, to: MapPlace, kmDay: number, dayLines: string[]): void {
   const plan = get().travelPlan!;
   const river = plan.river!;
 
@@ -849,7 +844,7 @@ function finishRiverDay(get: Get, set: Set, to: { scene: string; entry?: string;
   // Sur la rivière on peut mouiller le long de la berge : coucher À BORD (hamacs, MDG 03 l.71) offert
   // en plus du campement/de l'auberge de la halte — la belle étoile sur la berge reste possible.
   const places = { ...placesOfKind(route?.inns ? 'auberge' : 'camp'), ...(get().vessel ? { bord: true } : {}) };
-  openRest(get, set, { places, lieu: routeLieu(get().worldMap!, plan), travelHalt: true, travelDay: recapDay });
+  ouvrirLeRepos(get, set, { places, lieu: routeLieu(get().worldMap!, plan), travelHalt: true, travelDay: recapDay });
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
@@ -984,7 +979,7 @@ export const TABLES = {
           id: `${step.id}-nav`, kind: 'riverPerilNav', actor: pilot.actor, icon: 'nautical/snag', label: stepDetail(dataLabel(peril.label), t('step.evitement')),
           rollLabel: String(step.meta?.navLabel ?? riverPilotSkillLabel(get)), difficulty: navBaseDifficulty(),
           ligne: {
-            test: { skill: competence.id, spec: competence.spec }, valeur: pilot.value, soutien: pilot.support,
+            test: { skill: competence }, valeur: pilot.value, soutien: pilot.support,
             surLaCible: navPenaltyMods({ drift: !!step.meta?.navDrift, outOfControl: !!step.meta?.navOutOfControl }),
           },
           stake: voyageStakeRef('riverPerilNav', { hits: onFail.hullHits, damagePerHit: onFail.damagePerHit }),
@@ -1001,7 +996,7 @@ export const TABLES = {
         // (Force soutenue — bélier comme déblaiement), sinon le premier vivant. La porte de choix exige un
         // porteur : sans lui la fenêtre échoit à l'hôte, qui trancherait pour un autre siège.
         const decideur = step.actorId
-          ?? partyAssisted(get().party, undefined, 'force')?.actor.id
+          ?? partyAssisted(get().party, { characteristic: 'force' })?.actor.id
           ?? get().party.find((h) => !h.dead)?.id ?? '';
         const st = choiceStep({
           id: `${step.id}-obstacle`, kind: 'riverObstacleChoice', actorId: decideur, icon: 'ui/warning',

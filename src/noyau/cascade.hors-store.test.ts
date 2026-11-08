@@ -3,12 +3,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { combatStakeRef } from '../data';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
-import { startCascade, type CascadeApplier, stepInteraction, stepReady, buildConsequenceSteps, runCascadeImmediate, pushStep, stepOpposedFreeze, advanceCascade, resolveRemainingCascade, compteurDeSequence } from './cascade';
+import { startCascade, type CascadeApplier, stepInteraction, stepReady, runCascadeImmediate, pushStep, stepOpposedFreeze, advanceCascade, resolveRemainingCascade, compteurDeSequence } from './cascade';
 import { freeCons, monoStep, displayStep, buildBand } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { spyApplier } from './cascade.testkit';
 import { fermeturesDeLaFenetre, fermeturesDuFlux } from './verbesOuverts';
-import { fenetreDuJeu } from './combatAuto';
+import { fenetreDuJeu, TOUT_RESOUDRE } from './combatAuto';
 import { cleDuGeste } from './modalArbiter';
 import type { FermetureDuJet } from './rollFlowFactory';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
@@ -48,21 +48,21 @@ describe('Cascade séquentielle influençable', () => {
     ({ id, kind: cleDeFixture('tally'), actorId, label: fixtureText(id), rollLabel: 'Résistance', base: target, target, result: null});
 
   it('présente une étape à la fois, applique chaque conséquence dans l’ordre, puis finalise', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const h = hero();
     startCascade(banc.getState, banc.setState, {
       title: 'Nuit', purpose: 'test', steps: [step('s1', h.id), step('s2', h.id)],
     });
     // Étape 1 : seule l'étape COURANTE (cursor) est active.
     expect(banc.getState().pendingCascade!.cursor).toBe(0);
-    banc.getState().jetRoll('cascade', 's1');
+    banc.getState().jetLancer('cascade', 's1');
     expect(banc.getState().pendingCascade!.participants[0].result).toBeTruthy();
-    banc.getState().jetConfirm('cascade'); // valide s1 → conséquence appliquée, avance sur s2
+    banc.getState().jetValider('cascade'); // valide s1 → conséquence appliquée, avance sur s2
     expect(applied).toHaveLength(1);
     expect(banc.getState().pendingCascade!.cursor).toBe(1);
     // Étape 2 → fin de cascade.
-    banc.getState().jetRoll('cascade', 's2');
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetLancer('cascade', 's2');
+    banc.getState().jetValider('cascade');
     expect(applied).toHaveLength(2);
     expect(banc.getState().pendingCascade).toBeNull(); // finalisée
     expect(banc.getState().journal.some((l) => l.startsWith('s1'))).toBe(true); // journal des conséquences
@@ -71,13 +71,13 @@ describe('Cascade séquentielle influençable', () => {
   it('« Étape suivante » est un no-op tant que l’étape courante n’est pas lancée', () => {
     const h = hero();
     startCascade(banc.getState, banc.setState, { title: 'Nuit', purpose: 'test', steps: [step('s1', h.id)] });
-    banc.getState().jetConfirm('cascade'); // pas encore lancé → rien ne se passe
+    banc.getState().jetValider('cascade'); // pas encore lancé → rien ne se passe
     expect(applied).toHaveLength(0);
     expect(banc.getState().pendingCascade!.cursor).toBe(0);
   });
 
   it('une conséquence peut INSÉRER des étapes suivantes (dépendance abri → Exposition)', () => {
-    banc.getState().seedRng(5);
+    banc.getState().ensemencerLeTirage(5);
     const h = hero();
     appliers.shelter = spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success }), (step) => ({ insert: step.result?.success ? [] : [step1Insert(h, 'expo-a'), step1Insert(h, 'expo-b')] }));
     // Une étape insérée passe par un mint de la porte (`insert` n'accepte aucun littéral) : valeur
@@ -89,18 +89,18 @@ describe('Cascade séquentielle influençable', () => {
     const shelter: CascadeStep = { id: 'abri', kind: 'shelter', actorId: h.id, label: fixtureText('Abri'), rollLabel: 'Survie', base: 40, target: 40, result: { roll: 99, target: 40, sl: -5, success: false }};
     startCascade(banc.getState, banc.setState, { title: 'Camp', purpose: 'test', steps: [shelter] });
     expect(banc.getState().pendingCascade!.participants).toHaveLength(1);
-    banc.getState().jetConfirm('cascade'); // valide l'abri raté → +2 étapes
+    banc.getState().jetValider('cascade'); // valide l'abri raté → +2 étapes
     expect(banc.getState().pendingCascade!.participants).toHaveLength(3); // abri + 2 Exposition
     expect(banc.getState().pendingCascade!.cursor).toBe(1); // on enchaîne sur la 1ʳᵉ insérée
   });
 
   it('« Tout lancer » résout d’office les étapes restantes puis montre le BILAN avant fermeture', () => {
-    banc.getState().seedRng(9);
+    banc.getState().ensemencerLeTirage(9);
     const h = hero();
     startCascade(banc.getState, banc.setState, {
       title: 'Nuit', purpose: 'test', steps: [step('s1', h.id), step('s2', h.id), step('s3', h.id)],
     });
-    banc.getState().cascadeResolveAll(); // auto-résout s1..s3
+    banc.getState().jetLancer('cascade'); // auto-résout s1..s3
     expect(applied).toHaveLength(3); // toutes les conséquences se sont appliquées
     // BILAN : la modale reste ouverte (curseur EN FIN) pour voir les conséquences, avant fermeture explicite.
     expect(banc.getState().pendingCascade!.cursor).toBe(3);
@@ -112,10 +112,10 @@ describe('Cascade séquentielle influençable', () => {
     const h = hero();
     const failed: CascadeStep = { id: 's1', kind: cleDeFixture('tally'), actorId: h.id, label: fixtureText('s1'), rollLabel: 'Résistance', base: 30, target: 30, result: { roll: 88, target: 30, sl: -5, success: false }, rerolled: false};
     startCascade(banc.getState, banc.setState, { title: 'Nuit', purpose: 'test', steps: [failed] });
-    banc.getState().jetReroll('cascade', 's1');
+    banc.getState().jetRelancer('cascade', 's1');
     expect(banc.getState().party[0].fortune).toBe(1); // 1 Point de Chance dépensé
     // Résilience : étape garantie réussie.
-    banc.getState().jetForceSuccess('cascade', 's1');
+    banc.getState().jetForcerLaReussite('cascade', 's1');
     expect(banc.getState().pendingCascade!.participants[0].result!.success).toBe(true);
     expect(banc.getState().party[0].resilience).toBe(0);
   });
@@ -148,13 +148,13 @@ describe('Cascade séquentielle influençable', () => {
     const choix: CascadeStep = { id: 'c', kind: cleDeFixture('pick'), actorId: h.id, options: [{ key: 'devier', label: fixtureText('Dévier') }, { key: 'subir', label: fixtureText('Subir') }]};
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [choix] });
     expect(fermeturesDuFlux(banc.getState(), 'cascade').confirm, 'la validation attend le choix').toBe('choixDu');
-    banc.getState().jetConfirm('cascade'); // pas de choix → no-op
+    banc.getState().jetValider('cascade'); // pas de choix → no-op
     expect(applied).toHaveLength(0);
     expect(banc.getState().pendingCascade!.cursor).toBe(0);
-    banc.getState().cascadeChoose('c', 'devier');
+    banc.getState().jetRegler('cascade', 'choix', 'devier', 'c');
     expect(banc.getState().pendingCascade!.participants[0].chosen).toBe('devier');
     expect(fermeturesDuFlux(banc.getState(), 'cascade').confirm, 'tranchée, l’étape se valide').toBeNull();
-    banc.getState().jetConfirm('cascade'); // valide → applier voit 'devier' + insère 'suite'
+    banc.getState().jetValider('cascade'); // valide → applier voit 'devier' + insère 'suite'
     expect(applied[0]).toEqual({ kind: 'pick', success: true });
     expect(banc.getState().pendingCascade!.participants).toHaveLength(2);
     expect(banc.getState().pendingCascade!.cursor).toBe(1);
@@ -165,7 +165,7 @@ describe('Cascade séquentielle influençable', () => {
     appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }), (step) => ({ consequences: freeCons([`${step.id}`]) }));
     const aff: CascadeStep = { id: 'd', kind: cleDeFixture('note'), actorId: h.id};
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [aff] });
-    banc.getState().jetConfirm('cascade'); // affichage → acquitté directement, cascade finalisée
+    banc.getState().jetValider('cascade'); // affichage → acquitté directement, cascade finalisée
     expect(applied).toEqual([{ kind: 'note', success: true }]);
     expect(banc.getState().pendingCascade).toBeNull();
   });
@@ -174,10 +174,10 @@ describe('Cascade séquentielle influençable', () => {
     const h = hero();
     appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }));
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [{ id: 'd', kind: cleDeFixture('note'), actorId: h.id }] });
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetLancer('cascade');
     expect(banc.getState().pendingCascade?.cursor, 'bilan').toBe(1);
     expect(fermeturesDuFlux(banc.getState(), 'cascade').confirm).toBe('etapesJouees');
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade, 'la validation ne termine pas le bilan').not.toBeNull();
     banc.getState().fenetreFermer('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
@@ -186,46 +186,46 @@ describe('Cascade séquentielle influençable', () => {
   it('la validation se juge sur la fenêtre entière : avant le jet, l’id d’étape que la fenêtre désigne ne l’ouvre pas', () => {
     const h = hero();
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [step('s1', h.id)] });
-    const valider = cleDuGeste({ verbe: 'jetConfirm', flux: 'cascade' });
+    const valider = cleDuGeste({ verbe: 'jetValider', flux: 'cascade' });
     const avant = banc.getState();
     const fenetre = fenetreDuJeu(avant);
     expect(fenetre?.pid, 'la fenêtre désigne l’étape').toBe('s1');
     expect(fermeturesDuFlux(avant, 'cascade', 's1').confirm, 'jugée sur la rangée, la validation serait ouverte').toBeNull();
     expect(fermeturesDeLaFenetre(avant, fenetre).get(valider)).toBe('jetNonLance');
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade, 'refusée, la validation ne change rien').toEqual(avant.pendingCascade);
     expect(applied).toHaveLength(0);
-    banc.getState().jetRoll('cascade', 's1');
+    banc.getState().jetLancer('cascade', 's1');
     expect(fermeturesDeLaFenetre(banc.getState()).get(valider), 'le jet lancé, elle s’ouvre').toBeNull();
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(applied).toHaveLength(1);
   });
 
   it('« Tout résoudre » s’annonce fermé exactement quand le jouer ne change rien', () => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const h = hero();
     appliers.pick = spyApplier(applied, (step) => ({ kind: 'pick', success: step.chosen === 'a' }));
     const choix: CascadeStep = { id: 'c', kind: cleDeFixture('pick'), actorId: h.id, options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] };
-    const toutResoudre = cleDuGeste({ verbe: 'cascadeResolveAll' });
+    const toutResoudre = cleDuGeste(TOUT_RESOUDRE);
     /** L'annonce de « Tout résoudre » dans la fenêtre, et si le jouer change la cascade. */
     const annonceEtEffet = (): [FermetureDuJet | null | undefined, boolean] => {
       const avant = banc.getState();
       const annonce = fermeturesDeLaFenetre(avant).get(toutResoudre);
-      banc.getState().cascadeResolveAll();
+      banc.getState().jetLancer('cascade');
       return [annonce, JSON.stringify(banc.getState().pendingCascade) !== JSON.stringify(avant.pendingCascade)];
     };
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [step('s1', h.id), choix] });
     expect(annonceEtEffet(), 'une étape-jet : ouvert, joué').toEqual([null, true]);
     expect(banc.getState().pendingCascade?.cursor, 'arrêté sur le choix').toBe(1);
     expect(annonceEtEffet(), 'un choix non tranché : fermé, refusé').toEqual(['choixDu', false]);
-    banc.getState().cascadeChoose('c', 'a');
+    banc.getState().jetRegler('cascade', 'choix', 'a', 'c');
     expect(annonceEtEffet(), 'le choix tranché : ouvert, joué').toEqual([null, true]);
     expect(banc.getState().pendingCascade?.cursor, 'bilan').toBe(2);
     expect(annonceEtEffet(), 'au bilan : fermé, refusé').toEqual(['etapesJouees', false]);
   });
 
   it('« Tout résoudre » résout les étapes auto mais S\'ARRÊTE sur un CHOIX (pas d\'auto-tranche)', () => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const h = hero();
     appliers.pick = spyApplier(applied, (step) => ({ kind: 'pick', success: step.chosen === 'a' }));
     appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }));
@@ -235,19 +235,19 @@ describe('Cascade séquentielle influençable', () => {
       { id: 'd', kind: cleDeFixture('note'), actorId: h.id}, // affichage (pas atteint tant que le choix n'est pas tranché)
     ];
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps });
-    banc.getState().cascadeResolveAll();
+    banc.getState().jetLancer('cascade');
     expect(applied.map((a) => a.kind)).toEqual(['tally']); // le jet est résolu, on S'ARRÊTE sur le choix
     expect(banc.getState().pendingCascade!.cursor).toBe(1); // curseur SUR le choix (le joueur doit trancher)
     // Le joueur tranche → on enchaîne le reste.
-    banc.getState().cascadeChoose('c', 'a');
-    banc.getState().jetConfirm('cascade'); // valide le choix → affichage
-    banc.getState().jetConfirm('cascade'); // valide l'affichage → fin
+    banc.getState().jetRegler('cascade', 'choix', 'a', 'c');
+    banc.getState().jetValider('cascade'); // valide le choix → affichage
+    banc.getState().jetValider('cascade'); // valide l'affichage → fin
     expect(applied.map((a) => a.kind)).toEqual(['tally', 'pick', 'note']);
     expect(banc.getState().pendingCascade).toBeNull();
   });
 
   it('runCascadeImmediate : CHOIX sans `defaultChoice` authoré → S\'ARRÊTE PENDANTE (jamais `options[0]` en silence, #351)', () => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const h = hero();
     appliers.pick = spyApplier(applied, (step) => ({ kind: 'pick', success: step.chosen === 'a' }));
     appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }));
@@ -268,7 +268,7 @@ describe('Cascade séquentielle influençable', () => {
 
   it('runCascadeImmediate : étape HÔTE dont la fenêtre vit (`pendingExtendedTest`) → S’ARRÊTE PENDANTE, non validée (#1765)', () => {
     const h = hero();
-    banc.getState().startExtendedTest({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 15 });
+    banc.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 15 });
     const hote = banc.getState().pendingCascade!.participants[0];
     banc.setState({ pendingCascade: null });
     const resolved = runCascadeImmediate(banc.getState, banc.setState, [hote]);
@@ -286,7 +286,7 @@ describe('Cascade séquentielle influençable', () => {
     appliers.extendedJet = spyApplier(applied, () => ({ kind: 'extendedJet', success: true }));
     appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }));
     const sequence = (): CascadeStep[] => {
-      g().startExtendedTest({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 15 });
+      g().ouvrirLeTestEtendu({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 15 });
       const hote = g().pendingCascade!.participants[0];
       s({ pendingCascade: null });
       return [hote, step('s1', h.id), { id: 'd', kind: cleDeFixture('note'), actorId: h.id }];
@@ -294,14 +294,14 @@ describe('Cascade séquentielle influençable', () => {
 
     const temoinSteps = sequence();
     s({ pendingExtendedTest: null });
-    g().seedRng(7);
+    g().ensemencerLeTirage(7);
     const temoin = runCascadeImmediate(g, s, temoinSteps)!;
     const appliquesTemoin = [...applied];
     expect(appliquesTemoin.map((a) => a.kind)).toEqual(['extendedJet', 'tally', 'note']);
 
     applied.length = 0;
     const steps = sequence();
-    g().seedRng(7);
+    g().ensemencerLeTirage(7);
     expect(runCascadeImmediate(g, s, steps), 'pilote PARQUÉ sur l’hôte').toBeUndefined();
     expect(g().pendingCascade!.piloteImmediat, 'la séquence parquée sur l’hôte ne porte pas la reprise').toEqual({ sansContexte: true });
     expect(applied).toEqual([]);
@@ -318,7 +318,7 @@ describe('Cascade séquentielle influençable', () => {
   });
 
   it('runCascadeImmediate : CHOIX avec `defaultChoice` authoré → tranché sans surfacer (comportement inchangé)', () => {
-    banc.getState().seedRng(7);
+    banc.getState().ensemencerLeTirage(7);
     const h = hero();
     appliers.pick = spyApplier(applied, (step) => ({ kind: 'pick', success: step.chosen === 'a' }));
     const steps: CascadeStep[] = [
@@ -339,14 +339,14 @@ describe('Cascade séquentielle influençable', () => {
       { id: 'd', kind: cleDeFixture('note'), actorId: h.id},
     ];
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps });
-    banc.getState().jetConfirm('cascade'); // valide l'affichage → figé, avance sur 'd'
+    banc.getState().jetValider('cascade'); // valide l'affichage → figé, avance sur 'd'
     const committed = banc.getState().pendingCascade!.participants[0];
     expect(committed.committed).toBe(true);
     expect(committed.outcome).toEqual([{ text: 'Sonné appliqué (Assommante)' }]); // contenu pré-posé NON effacé
   });
 
   it('étape « batch » (participants — seam de jet #275 Décision 4 cran 1) : agrège les contributeurs à la validation', () => {
-    banc.getState().seedRng(11);
+    banc.getState().ensemencerLeTirage(11);
     const h1 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Timonier', seed: 2 });
     const h2 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vigie', seed: 3 });
     banc.setState({ party: [h1, h2] });
@@ -361,13 +361,13 @@ describe('Cascade séquentielle influençable', () => {
     startCascade(banc.getState, banc.setState, { title: 'Voyage', purpose: 'test', steps: [batch] });
     expect(stepInteraction(banc.getState().pendingCascade!.participants[0])).toBe('batch');
     expect(stepReady(banc.getState().pendingCascade!.participants[0], banc.getState())).toBe(false); // aucun participant lancé
-    banc.getState().jetConfirm('cascade'); // batch pas prêt → no-op (aucun participant lancé)
+    banc.getState().jetValider('cascade'); // batch pas prêt → no-op (aucun participant lancé)
     expect(applied).toHaveLength(0);
-    banc.getState().jetRoll('cascadeBatch', h1.id);
+    banc.getState().jetLancer('cascadeBatch', h1.id);
     expect(stepReady(banc.getState().pendingCascade!.participants[0], banc.getState())).toBe(false); // h2 pas encore lancé
-    banc.getState().jetRoll('cascadeBatch', h2.id);
+    banc.getState().jetLancer('cascadeBatch', h2.id);
     expect(stepReady(banc.getState().pendingCascade!.participants[0], banc.getState())).toBe(true);
-    banc.getState().jetConfirm('cascade'); // agrège (essentiel ×2, MDG 14 l.19) puis applique
+    banc.getState().jetValider('cascade'); // agrège (essentiel ×2, MDG 14 l.19) puis applique
     expect(applied).toHaveLength(1);
     expect(banc.getState().pendingCascade).toBeNull();
     expect(banc.getState().journal.some((l) => l.startsWith('Progression → DR'))).toBe(true);
@@ -385,7 +385,7 @@ describe('Cascade séquentielle influençable', () => {
       return { consequences: freeCons(['la conclusion, dite par l’applier']), dejaDites: true };
     };
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [{ id: 'd', kind: cleDeFixture('deja'), actorId: h.id }] });
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetValider('cascade');
     expect(banc.getState().journal.filter((l) => l === 'la conclusion, dite par l’applier'),
       'le goulot ne la ré-écrit pas').toHaveLength(1);
   });
@@ -394,20 +394,7 @@ describe('Cascade séquentielle influençable', () => {
     const h = hero();
     appliers.dejaVide = () => ({ dejaDites: true });
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [{ id: 'v', kind: cleDeFixture('dejaVide'), actorId: h.id }] });
-    expect(() => banc.getState().jetConfirm('cascade')).toThrow(/dejaDites.*sans conclusion à désigner/s);
-  });
-
-  it('buildConsequenceSteps : groupes non vides → étapes d’affichage (outcome pré-posé), vides ignorés', () => {
-    const steps = buildConsequenceSteps([
-      { kind: 'miscast', label: 'Imparfaite', icon: 'action/cast', lines: ['Le Vent se déchaîne.', 'L’incantateur perd 3 PB.'], actorId: 'x' },
-      { kind: 'effet', label: 'Effets', lines: [] }, // vide → ignoré
-      { kind: 'effet', label: 'Effets', icon: 'magic/power', lines: ['Cible Aveuglée 2 rounds.'] },
-    ]);
-    expect(steps.map((s) => s.kind)).toEqual(['miscast', 'effet']);
-    expect(steps[0].outcome).toEqual([{ text: 'Le Vent se déchaîne.' }, { text: 'L’incantateur perd 3 PB.' }]);
-    expect(stepInteraction(steps[0])).toBe('affichage'); // ni target ni options
-    expect(steps[0].actorId).toBe('x');
-    expect(steps[1].outcome).toEqual([{ text: 'Cible Aveuglée 2 rounds.' }]);
+    expect(() => banc.getState().jetValider('cascade')).toThrow(/dejaDites.*sans conclusion à désigner/s);
   });
 
   it('liveMerge : un applier qui APPEND une étape (conséquence foldée) la préserve à la validation', () => {
@@ -422,7 +409,7 @@ describe('Cascade séquentielle influençable', () => {
     appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }));
     const trig: CascadeStep = { id: 't', kind: cleDeFixture('trigger'), actorId: h.id, outcome: [{ text: 'déclencheur' }]};
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [trig] });
-    banc.getState().jetConfirm('cascade'); // valide 'trigger' → APPEND 'appended' ; le pending NE se ferme PAS
+    banc.getState().jetValider('cascade'); // valide 'trigger' → APPEND 'appended' ; le pending NE se ferme PAS
     const p = banc.getState().pendingCascade;
     expect(p).toBeTruthy(); // pas finalisé : l'étape appendée est conservée
     expect(p!.participants.map((s) => s.id)).toEqual(['t', 'appended']);
@@ -431,13 +418,13 @@ describe('Cascade séquentielle influençable', () => {
 
   // DOCTRINE DU SLOT (#942 L1) : `pendingCascade` porte UNE séquence et rien n'y est jamais écrasé —
   // append à même `purpose` (bilan compris), suspension sinon, REPRISE à la clôture. Tout est joué par
-  // les VRAIES coutures du noyau (`jetRoll('cascade')`/`jetConfirm('cascade')`/`cascadeResolveAll`/`fenetreFermer('cascade')`) : la
+  // les VRAIES coutures du noyau (`jetLancer('cascade', id)`/`jetValider('cascade')`/`jetLancer('cascade')`/`fenetreFermer('cascade')`) : la
   // reprise n'est jamais simulée à la main.
   describe('doctrine du slot : aucun écrasement (#942 L1)', () => {
     /** Résout puis TERMINE la séquence en place par les vraies actions du noyau (bouton « Tout lancer »
      *  puis « Terminer ») — c'est `dispatchCascadeDone` qui s'exécute, dénouement et reprise compris. */
     const terminerEnPlace = () => {
-      banc.getState().cascadeResolveAll();
+      banc.getState().jetLancer('cascade');
       banc.getState().fenetreFermer('cascade');
     };
 
@@ -464,7 +451,7 @@ describe('Cascade séquentielle influençable', () => {
     it('MÊME purpose sur un BILAN : la séquence est RÉOUVERTE (append), son dénouement n’est pas jeté', () => {
       const h = hero();
       startCascade(banc.getState, banc.setState, { title: 'Nuit', purpose: 'test', steps: [step('s1', h.id)], travelHalt: true });
-      banc.getState().cascadeResolveAll(); // → BILAN : curseur en fin, en attente du « Terminer »
+      banc.getState().jetLancer('cascade'); // → BILAN : curseur en fin, en attente du « Terminer »
       expect(banc.getState().pendingCascade!.cursor).toBe(1);
       startCascade(banc.getState, banc.setState, { title: 'Autre', purpose: 'test', steps: [step('s9', h.id)] });
       const p = banc.getState().pendingCascade!;
@@ -477,7 +464,7 @@ describe('Cascade séquentielle influençable', () => {
     it('purpose DIFFÉRENT : la séquence en vol est PARQUÉE, et REPRISE par la clôture de l’autre (vraie couture)', () => {
       const h = hero();
       startCascade(banc.getState, banc.setState, { title: 'Voyage', purpose: 'travelDay', steps: [step('s1', h.id), step('s2', h.id)], travelHalt: true });
-      banc.getState().jetRoll('cascade', 's1'); // la 1ʳᵉ étape est déjà lancée : son jet ne doit pas disparaître
+      banc.getState().jetLancer('cascade', 's1'); // la 1ʳᵉ étape est déjà lancée : son jet ne doit pas disparaître
       const roll = banc.getState().pendingCascade!.participants[0].result;
       startCascade(banc.getState, banc.setState, { title: 'Test de scène', purpose: 'test', steps: [step('t1', h.id)] });
       expect(banc.getState().pendingCascade!.participants.map((s) => s.id)).toEqual(['t1']);
@@ -497,7 +484,7 @@ describe('Cascade séquentielle influençable', () => {
     it('BILAN d’un AUTRE purpose : parqué (jamais jeté) puis repris à la clôture, prêt à être terminé', () => {
       const h = hero();
       startCascade(banc.getState, banc.setState, { title: 'Journée', purpose: 'travelDay', steps: [step('s1', h.id)], travelHalt: true });
-      banc.getState().cascadeResolveAll(); // bilan travelDay en attente de « Terminer »
+      banc.getState().jetLancer('cascade'); // bilan travelDay en attente de « Terminer »
       startCascade(banc.getState, banc.setState, { title: 'Test de scène', purpose: 'test', steps: [step('t1', h.id)] });
       expect(banc.getState().suspendedCascades[0]?.purpose).toBe('travelDay');
       terminerEnPlace(); // clôture du 'test' → reprise du bilan parqué
@@ -516,7 +503,7 @@ describe('Cascade séquentielle influençable', () => {
       };
       const outer: CascadeStep = { id: 'day', kind: cleDeFixture('opens'), actorId: h.id, outcome: [{ text: 'journée' }]};
       startCascade(banc.getState, banc.setState, { title: 'Journée', purpose: 'travelDay', steps: [outer, step('later', h.id)] });
-      banc.getState().jetConfirm('cascade'); // valide 'day' → l'applier prend le slot
+      banc.getState().jetValider('cascade'); // valide 'day' → l'applier prend le slot
       expect(banc.getState().pendingCascade!.purpose).toBe('test'); // la nouvelle séquence tient le slot
       expect(banc.getState().pendingCascade!.participants.map((s) => s.id)).toEqual(['inner']);
       const stack = banc.getState().suspendedCascades;
@@ -658,7 +645,7 @@ describe('startCascade pendant une application : la fenêtre, comme pushStep', (
       { id: 'x', kind: cleDeFixture('fenB'), label: fixtureText('x') },
     ];
     expect(runCascadeImmediate(g, s, steps, { title: 'T', purpose: 'test' })).toBeUndefined();
-    g().cascadeChoose('decision', 'o');
+    g().jetRegler('cascade', 'choix', 'o', 'decision');
     const done = advanceCascade(g, s)!;
     expect(done.participants.map((x) => x.id)).toEqual(['decision', 'x', 'borne']);
     expect(done.roundBoundary, 'la borne collectée à la reprise n’arrive pas au dénouement').toBe(true);
@@ -681,7 +668,7 @@ describe('startCascade pendant une application : la fenêtre, comme pushStep', (
 describe('reprise du pilote immédiat : le contexte de lancement voyage avec la séquence parquée', () => {
   const g = () => banc.getState();
   const s: Banc['setState'] = (p) => banc.setState(p);
-  const ligne = { test: { skill: 'resistance', char: 'endurance' } } as const;
+  const ligne = { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } } as const;
   const appliers: Record<string, CascadeApplier> = {
     repriseNeutre: () => {},
     repriseCombat: (_get, set) => { set({ battle: {} as never }); },
@@ -694,14 +681,14 @@ describe('reprise du pilote immédiat : le contexte de lancement voyage avec la 
   const choix = (): CascadeStep => ({ id: 'decision', kind: cleDeFixture('repriseNeutre'), label: fixtureText('Décision'), options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] });
 
   it('`rowSurface` déclarée au lancement : la bande résolue APRÈS la décision ne redit pas ses dés au journal, et la clôture la rend', () => {
-    g().seedRng(5);
+    g().ensemencerLeTirage(5);
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
     s({ party: [h] });
     const bande = buildBand(g, { id: 'bande', kind: cleDeFixture('repriseNeutre'), label: fixtureText('Bande'), difficulty: 'intermediaire', porteurs: [{ actor: h, ligne }] })!;
     expect(runCascadeImmediate(g, s, [choix(), bande], { title: 'Jour', purpose: 'test', rowSurface: 'pv' })).toBeUndefined();
     expect(g().pendingCascade!.piloteImmediat).toEqual({ rowSurface: 'pv' });
 
-    g().cascadeChoose('decision', 'a');
+    g().jetRegler('cascade', 'choix', 'a', 'decision');
     const done = advanceCascade(g, s)!;
     expect(done.participants[1].participants?.[0].result, 'la bande n’a pas été résolue à la reprise').toBeTruthy();
     expect(done.piloteImmediat, 'la clôture ne sait pas que ses rangées vont au PV').toEqual({ rowSurface: 'pv' });
@@ -713,7 +700,7 @@ describe('reprise du pilote immédiat : le contexte de lancement voyage avec la 
     expect(runCascadeImmediate(g, s, steps)).toBeUndefined();
     expect(g().pendingCascade!.piloteImmediat).toEqual({ sansContexte: true });
 
-    g().cascadeChoose('decision', 'a');
+    g().jetRegler('cascade', 'choix', 'a', 'decision');
     advanceCascade(g, s);
     expect(g().battle, 'l’applier n’a pas ouvert son combat').toBeTruthy();
     expect(g().suspendedCascades, 'la reprise a empilé une séquence que son lancement n’aurait pas empilée').toEqual([]);

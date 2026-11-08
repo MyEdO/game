@@ -9,7 +9,7 @@ import type { Scene } from '../../noyau/monde/scene';
  * via `DialogueNode.speakerId` (id d'une `SceneEntity` de la scène → SON portrait + SON nom, jamais
  * un nom en clair — AGENTS.md, § « Pour TOUT agent »). Ouvert en parlant à Gustav
  * (`dialogueId: 'dlg-tablee'`) : le nœud d'accueil n'a PAS de `speakerId` → il hérite du locuteur de
- * SESSION posé par `interactEntity` (Gustav, l'entité qu'on a cliquée). Les nœuds suivants alternent
+ * SESSION posé par `interagirAvecLEntite` (Gustav, l'entité qu'on a cliquée). Les nœuds suivants alternent
  * vers Isolde puis Phillipe (`speakerId` explicite), avant de revenir à Gustav (session, par défaut).
  * PATRON DE REPRISE, dans le dialogue même de l'entité (`dialogueId` est fixe : une reprise ne peut
  * vivre qu'à l'intérieur) : les CHOIX du nœud d'accueil sont gatés par `when` sur le flag que pose la
@@ -38,7 +38,7 @@ const construireAuberge = (): Scene => buildScene({
       start: 'a1',
       nodes: [
         {
-          // Pas de speakerId : hérite du locuteur de SESSION (Gustav, l'entité cliquée par interactEntity).
+          // Pas de speakerId : hérite du locuteur de SESSION (Gustav, l'entité cliquée par interagirAvecLEntite).
           id: 'a1',
           desc: '« Vous tombez bien — on refaisait le monde. Isolde soutient qu’un dragon a survolé le Nordland la semaine dernière. »',
           choices: [
@@ -78,7 +78,7 @@ export const scenario: TestScenario = {
   title: 'Dialogue multi-interlocuteurs',
   tests:
     'Dialogue #669 : `DialogueNode.speakerId` (id d’entité de scène → portrait + nom) alterne le ' +
-    'locuteur d’un nœud à l’autre — Gustav (session, `interactEntity`) → Isolde → Phillipe → Gustav ; ' +
+    'locuteur d’un nœud à l’autre — Gustav (session, `interagirAvecLEntite`) → Isolde → Phillipe → Gustav ; ' +
     'ZÉRO nom en clair dans la donnée. Reparler à Gustav après la tablée : reprise par `when` sur flag ' +
     'dans le MÊME dialogue — la réponse masquée ne consomme pas de numéro (touche 1 = 1ʳᵉ visible).',
   partyNote: 'Sigmund (Soldat) · Tueur nain · Sorcier · Chasseur',

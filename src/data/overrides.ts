@@ -15,7 +15,7 @@ import { tableTotale } from '../lib/tableTotale';
 import { GELER_LA_DONNEE, gelerProfond } from '../lib/gelerProfond';
 import {
   characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
-  qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, props, eyes, hairs, stars, locations, books, raceAppearance, gods, structures,
+  qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, props, eyes, hairs, stars, locations, books, raceAppearance, planDeBestiaire, gods, structures,
   materials, terrains, buildings, apparences, gabarits, gardeRobe, presetsDePersonnage,
   pregens, oups, interludeEvents, peripeties, details, semencesDeScene, defautsDeCompilation, names, allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
@@ -23,7 +23,7 @@ import {
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS,
   WATER_EXPOSURE, navalPorts,
   seaNavigation, seaPerils, seaWeather, shipConstruction,
-  disponibilite, riverNavigation,
+  disponibilite, riverNavigation, seaCargo, landCargo,
   GRAPPLE, STAKES,
   regles,
 } from './index';
@@ -33,14 +33,15 @@ import {
 // même que celle lue par le moteur → l'édition Codex (splice en place) reste visible en jeu.
 import type { TraumaFiche } from '../engine/trauma';
 import { versDisque } from './schemas/grammaire/prose';
+import { parseDiceRequired } from '../engine/dice';
 import { ACTIVITIES } from '../engine/activities';
 import { MOUNT_PROFILES } from '../engine/mountTravel';
 import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, encounterTable } from '../engine/travelTables';
 import { TAVERN_GAMES } from '../engine/tavernGame';
 import { OBSESSIONS } from './obsessions';
 import { STRUCTURE_CRITICALS } from './structureCriticals';
-import { LAND_CARGO_ENTRIES, type LandCargoEntry } from '../engine/landCargo';
-import { CARGO_ENTRIES, type CargoEntry, MANANN_FACTORS, BOARD_EVENTS, PORT_EVENTS } from '../engine/seaVoyage';
+import { CARGO_ENTRIES, type CargoEntry } from '../engine/cargo';
+import { MANANN_FACTORS, BOARD_EVENTS, PORT_EVENTS } from '../engine/seaVoyage';
 import { RIVER_PERILS } from '../engine/riverNavigation';
 import { MORALE_FACTORS, MORALE_BANDS } from '../engine/crewMorale';
 import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
@@ -121,7 +122,7 @@ const rencontresDangereuses = encounterTable('dangereuses');
 /** Datasets-tableaux mutables (clé éditeur → MÊME référence d'array que l'export de la façade). */
 const ARRAYS = {
   characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
-  qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, props, eyes, hairs, stars, locations, books, raceAppearance, gods, structures,
+  qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, props, eyes, hairs, stars, locations, books, raceAppearance, planDeBestiaire, gods, structures,
   // Matières du monde (#1686) : UN document, le domaine PORTÉ par l'entrée. Ce binding EST le seam de
   // mutation en place, et c'est lui qui rend vivante la lecture des vues par domaine (`matieresDe`,
   // `src/data/index.ts`) : une matière retouchée se voit au rendu sans rechargement. Son def déclare
@@ -130,7 +131,7 @@ const ARRAYS = {
   materials,
   // Terrains du monde (#1690) : UN document, règle et rendu dans la même entrée. Ce binding EST le
   // seam de mutation en place, et c'est lui qui rend vivante la lecture de la façade `src/noyau/monde/terrain`
-  // et du catalogue `gameIso/catalog/terrain` — tous deux indexent le TABLEAU et revérifient son
+  // et du catalogue de rendu des terrains — tous deux indexent le TABLEAU et revérifient son
   // contenu à chaque accès (`indexDesTerrains`), un splice étant invisible à l'identité du tableau.
   terrains,
   // Types de bâtiment (#1715) : UN document, l'empreinte et la couverture offertes à la pose plus les
@@ -160,11 +161,11 @@ const ARRAYS = {
   montures: MOUNT_PROFILES, incidentsMonture: MOUNT_INCIDENTS, problemesVehicule: VEHICLE_PROBLEMS,
   tavernGames: TAVERN_GAMES, obsessions: OBSESSIONS,
   structureCriticals: STRUCTURE_CRITICALS, traumas,
-  // Catalogues de cargaison : le dataset éditable est le tableau BRUT du JSON (marchandises ET
-  // marqueurs de l'Index), pas la vue filtrée `cargoes`/`landCargoes` — sinon une réécriture du
-  // dataset perdrait les marqueurs. Le Compendium, lui, n'affiche que les marchandises (filtre à la
+  // Catalogue des cargaisons (#1684) : le dataset éditable est le tableau BRUT du JSON (marchandises ET
+  // marqueurs de l'Index, des deux voies), pas la vue filtrée `marchandisesDe` — sinon une réécriture
+  // du dataset perdrait les marqueurs. Le Compendium, lui, n'affiche que les marchandises (filtre à la
   // VUE, `noyau/codex/registry.ts`).
-  landCargo: LAND_CARGO_ENTRIES as LandCargoEntry[], seaCargo: CARGO_ENTRIES as CargoEntry[], riverPerils: RIVER_PERILS,
+  cargoes: CARGO_ENTRIES as CargoEntry[], riverPerils: RIVER_PERILS,
   crewMoraleFactors: MORALE_FACTORS, crewMoraleBands: MORALE_BANDS, steamBreakdowns: STEAM_BREAKDOWNS,
   criticalsTete, criticalsBras, criticalsCorps, criticalsJambe,
   aaCriticalsTete, aaCriticalsBras, aaCriticalsCorps, aaCriticalsJambe,
@@ -247,6 +248,8 @@ const OBJECTS = {
   disponibilite,
   // #422 : Navigation fluviale (MSRC 7) — fiche de règle UNIQUE, même patron.
   riverNavigation,
+  // #3433 : règles de négoce maritime (MDG 15) et terrestre (MSRC 13) — fiches de règle UNIQUES, même patron.
+  seaCargo, landCargo,
   // #422 (FINAL) : Empoignade (LDB 14) — fiche de règle UNIQUE, même patron.
   grapple: GRAPPLE,
   // Barres par catégorie de Taille (mod de tir LDB 14, Enc à bord MDG 12, empreinte de grille MAISON) —
@@ -381,6 +384,49 @@ const idsVivantsDeLEspace = (cle: string): ReadonlySet<string> | undefined =>
   lectureVivante(cle) && idsDeLEspace(cle, (c) => lectureVivante(c) ?? lectureDeVocabulaire(c));
 poserRegimeVivant(idsVivantsDeLEspace);
 
+/** Le PORTEUR du dé de tirage de la collection `cible` dans `racine` : son ancêtre objet le plus proche
+ *  qui porte un `die` (le document d'une table, `tableTiree`, ou la racine qui le partage entre ses
+ *  tables), trouvé par IDENTITÉ ; `undefined` quand aucun ancêtre n'en porte — le dé est alors un champ
+ *  de l'ENTRÉE (`setDataset`), ou la table n'en a pas. */
+function porteurDuDe(racine: unknown, cible: unknown): Record<string, unknown> | undefined {
+  const ancetres: Record<string, unknown>[] = [];
+  const chercher = (v: unknown): boolean => {
+    if (v === cible) return true;
+    if (v === null || typeof v !== 'object') return false;
+    const objet = !Array.isArray(v);
+    if (objet) ancetres.push(v as Record<string, unknown>);
+    for (const enfant of Object.values(v)) if (chercher(enfant)) return true;
+    if (objet) ancetres.pop();
+    return false;
+  };
+  return chercher(racine) ? ancetres.reverse().find((n) => typeof n.die === 'string') : undefined;
+}
+
+/** Porteur du dé de chaque dataset-tableau dont la table tire au dé d'un ancêtre (#1667). */
+const PORTEUR_DU_DE = new Map<DatasetKey, Record<string, unknown>>();
+for (const k of DATASET_KEYS) {
+  const porteur = porteurDuDe(RACINES_VIVANTES[DATASET_FICHIER_DERIVE[k]], ARRAYS[k]);
+  if (porteur) PORTEUR_DU_DE.set(k, porteur);
+}
+/** Seeds des dés de table, pour `resetData()`. */
+const DE_SEED = new Map([...PORTEUR_DU_DE].map(([k, porteur]) => [k, porteur.die as string] as const));
+
+/** Le DÉ DE TIRAGE de la table du dataset `key`, quand un ancêtre de sa collection le porte. */
+export function deDeLaTable(key: DatasetKey): string | undefined {
+  return PORTEUR_DU_DE.get(key)?.die as string | undefined;
+}
+
+/** Écrit EN PLACE le DÉ DE TIRAGE de la table du dataset `key` sur son porteur et VERSIONNE l'écriture
+ *  pour toutes les clés de son fichier (#1667) — un dé partagé (`rencontres-edoc.json`) l'est par toutes
+ *  ses tables. LÈVE sur une expression illisible, et sur un dataset dont aucun ancêtre ne porte le dé. */
+export function setDeDeTable(key: DatasetKey, die: string): void {
+  const porteur = PORTEUR_DU_DE.get(key);
+  if (!porteur) throw new Error(`setDeDeTable('${key}') : aucun ancêtre de la collection ne porte de dé de tirage — un dé d'ENTRÉE s'écrit par \`setDataset\`.`);
+  parseDiceRequired(die, `${key} › die`);
+  porteur.die = die;
+  for (const cle of CLES_DU_FICHIER.get(DATASET_FICHIER_DERIVE[key]) ?? []) bumperDataset(cle);
+}
+
 /** Ce dataset a-t-il une route d'ÉDITION déclarée ? (sinon `datasetFile` refuse — #1530) */
 export function datasetEditable(key: DatasetKey): boolean {
   return DATASETS_EDITABLES_DERIVE.has(key);
@@ -429,6 +475,7 @@ export function setObjectDataset<K extends ObjectDatasetKey>(key: K, next: (type
 
 /** Réinitialise tous les datasets (tableaux ET objets) au seed d'origine (JSON app-owned). */
 export function resetData(): void {
+  for (const [k, die] of DE_SEED) PORTEUR_DU_DE.get(k)!.die = die;
   for (const k of DATASET_KEYS) {
     const arr = ARRAYS[k] as unknown[];
     arr.splice(0, arr.length, ...structuredClone(SEED[k]));

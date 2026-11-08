@@ -1,13 +1,13 @@
 /**
  * Contrats NEUTRES du décor : type de prop app-owned (`props.json`), recette VOLUMIQUE locale, matériaux
- * et places assises. Vivent hors de `src/data/index.ts` pour rester importables par `src/state` comme par
- * `src/gameIso` sans traverser le chargeur app-owned. PUR — aucune donnée, aucune caméra, aucun rendu.
+ * et places assises. Vivent hors de `src/data/index.ts` pour rester importables sans traverser le
+ * chargeur app-owned. PUR — aucune donnée, aucune caméra, aucun rendu.
  *
  * RÈGLE D'UNITÉ (#1507) : une recette est en MÈTRES dans son repère local ; le monde est en CASES ; la
  * traduction mètres→cases se fait par DIVISION par `metresPerTile` de la scène, et cases→mètres par
- * UNE multiplication (`gpToWorld`, `gameIso/backends/webgl/worldTris.ts`).
+ * UNE multiplication (`gpToWorld`, `noyau/monde/volume/worldTris.ts`).
  * Un CONCEPT du décor = UNE couture, nommée — quatre en tout, et pas deux pour le même concept :
- *  - la GÉOMÉTRIE de la recette → `buildPropVolumes` (`gameIso/builders/propVolumes.ts`) ;
+ *  - la GÉOMÉTRIE de la recette → `buildPropVolumes` (`noyau/monde/volume/propVolumes.ts`) ;
  *  - l'ANCRE d'une place assise → `placesPartielles` (`noyau/monde/seating.ts`) ;
  *  - le FOYER d'une lampe (le centre de la primitive `emet`) → `foyerDe` (`noyau/monde/vision.ts`) ;
  *  - le RAYON d'une source de lumière → `rayonEnCases` (`noyau/monde/vision.ts`).
@@ -16,8 +16,8 @@
  * `noyau/monde/echelle-de-scene.test.ts` : un site de plus s'y déclare, ou il sort rouge.
  *
  * Repère LOCAL d'une recette : origine à l'ANCRE du décor, `xM`/`yM` en mètres dans le plan, `hM` en
- * mètres depuis le pied de l'ancrage. L'ancre est le point MONDE que le builder déclare (`AncrageDecor`,
- * `gameIso/builders/props.ts`) : le CENTRE de l'empreinte pour un décor d'entité (donc le centre de sa
+ * mètres depuis le pied de l'ancrage. L'ancre est le point MONDE que le builder déclare (`AncrageDecor`) :
+ * le CENTRE de l'empreinte pour un décor d'entité (donc le centre de sa
  * case quand elle est 1×1, le milieu du bloc au-delà), le point fractionnaire de l'arête pour une
  * feature de façade, le milieu de l'empreinte pour un ornement de faîte. L'orientation vient du cap
  * déclaré (`SceneEntity.facing` pour un décor posé).
@@ -31,7 +31,7 @@
  * L'EMPREINTE TOURNE AVEC LE CAP (#1509) : les cases d'un décor à recette sont celles de son CORPS
  * tourné, sièges exclus (`empreinteDeriveeDuProp` ci-dessous, servie à tous les consommateurs par
  * `empreinteDuProp` puis `noyau/monde/footprint.ts` `propFootTiles`). Une table 2×1 au cap E occupe 1×2.
- * Un BILLBOARD, qui n'a pas de corps, garde son empreinte DÉCLARÉE (`foot`).
+ * Chaque type de décor porte sa recette (`PropData.volume`, requise, #3198) : aucun ne déclare de cases.
  *
  * CAP D'IDENTITÉ = `S` (`CAP_IDENTITE_PROP`) — contrat de DONNÉE, à connaître pour authorer : une
  * recette (et les `seatSlots` qui l'accompagnent) s'écrit telle qu'elle se voit à l'instance SANS
@@ -40,7 +40,7 @@
  * le DÉFAUT DU MONDE (`capVolumique`) : ce que l'auteur écrit est ce que la scène montre.
  * Chaque recette le DÉCLARE (`PropVolumeRecipe.capIdentite`, requis du compilateur comme du schéma) —
  * le repère est dans la donnée, pas dans la tête de l'auteur. Matérialisé par
- * `builders/propVolumes.test.ts`.
+ * `noyau/monde/volume/propVolumes.test.ts`.
  */
 import { DIR8_ORDER, estCardinal, type Dir4, type Dir8 } from '../geometry/dir8';
 import type { PropMaterialData } from './materials.types';
@@ -54,10 +54,10 @@ import type { PropMaterialData } from './materials.types';
  * diagonale muterait 2×2 cases pour un corps qui n'en occupe vraiment aucune entière : du
  * SUR-blocage, pas du débordement ; (2) le corps ne se cuit qu'au cap cardinal (`AncrageVolume`).
  * Le prédicat est `capDecorAdmis`, lu tel quel : `undefined` = cap refusé, que le cuiseur du monde
- * rend en billboard d'ERREUR (`gameIso/builders/props.ts`, #877) sans lever. La chaîne : le schéma de
+ * rend en billboard d'ERREUR (#877) sans lever. La chaîne : le schéma de
  * scène la refuse au parse (`schemas/defs-scenes/scene.ts`), `changePropRef` la fait retomber au cap
- * d'identité (`propRefPatch`, `noyau/sceneEdit.ts`), le sélecteur d'orientation ne l'offre pas
- * (`ui/editor/Inspector.tsx`), `noyau/validateScene.ts` la nomme à l'écran. PURE.
+ * d'identité (`propRefPatch`, `noyau/sceneEdit.ts`), le sélecteur d'orientation de l'éditeur ne l'offre
+ * pas, `noyau/validateScene.ts` la nomme à l'écran. PURE.
  */
 export function capVolumique(facing: Dir8 | undefined): Dir4 | undefined {
   const cap = facing ?? CAP_IDENTITE_PROP;
@@ -84,7 +84,7 @@ export const cransDepuisCapIdentite = (facing: Dir8): number =>
  * Rotation d'un point du repère LOCAL d'une recette vers le repère de la scène, au cap d'auteur —
  * l'UNIQUE définition de ce que `SceneEntity.facing` fait subir à une géométrie de décor (volumes,
  * ancres de place, cases d'abord). Vit ici, à l'étage NEUTRE, pour être servie aussi bien au
- * builder volumique (`gameIso`) qu'à la résolution d'assise (`state`) : deux copies divergeraient.
+ * builder volumique qu'à la résolution d'assise : deux copies divergeraient.
  * `CAP_IDENTITE_PROP` est l'identité ; chaque cran vaut 45° horaires. PURE.
  */
 export function rotatePropLocal(x: number, y: number, facing: Dir8): [number, number] {
@@ -112,7 +112,7 @@ export interface PropPoint3 { xM: number; yM: number; hM: number }
 export interface PropSize3 { xM: number; yM: number; hM: number }
 
 /** Côtés admis d'un cylindre. 12 est EXCLU : ses faces latérales tombent sur l'arête de couteau du
- *  modelé de forme (4 normales à ±45°, `backends/webgl/worldTris:shadeFamily` départage alors des
+ *  modelé de forme (4 normales à ±45°, `noyau/monde/volume/worldTris:shadeFamily` départage alors des
  *  familles de 4/3/3/2 au lieu de 3/3/3/3) — un fût de la même recette y prend deux tons de trop. */
 export type PropCylinderSides = 8 | 16;
 export const PROP_CYLINDER_SIDES: readonly PropCylinderSides[] = [8, 16];
@@ -157,7 +157,7 @@ export interface PropVolumeRecipe { capIdentite: typeof CAP_IDENTITE_PROP; primi
 // GÉOMÉTRIE LOCALE d'une primitive — UNE définition, deux consommateurs
 // ————————————————————————————————————————————————————————————————
 // Vit ici, à l'étage NEUTRE, pour la même raison que `rotatePropLocal` : le builder volumique
-// (`gameIso/builders/propVolumes.ts`, qui la tourne et la pose dans le monde) et le validateur de
+// (`noyau/monde/volume/propVolumes.ts`, qui la tourne et la pose dans le monde) et le validateur de
 // catalogue (`validatePropCatalog`, plus bas, qui vérifie la fermeture de la coquille) lisent les
 // MÊMES polygones. Deux copies divergeraient, et le contrat de fermeture ne prouverait plus rien
 // sur ce qui est réellement cuit.
@@ -292,7 +292,7 @@ export function polygonesDePrimitive(p: PropPrimitive): PropPoint3[][] {
  * Un SOMMET pour la mesure de FERMETURE : trois coordonnées, SANS unité. La fermeture est une
  * propriété TOPOLOGIQUE — elle vaut aussi bien sur la géométrie LOCALE d'une recette (mètres,
  * `PropPoint3`) que sur les faces MONDE qu'un builder en tire (cases dans le plan, mètres en
- * hauteur — `GP`, `gameIso/builders/types.ts`). Ces deux repères ne portent PLUS les mêmes noms de
+ * hauteur — `GP`). Ces deux repères ne portent PLUS les mêmes noms de
  * champs depuis #1507, et c'est le verrou : le triplet est l'unique forme qu'ils partagent, et
  * chaque appelant DIT lequel des deux il mesure.
  */
@@ -352,7 +352,7 @@ export type { PropMaterialData };
 
 /**
  * Type de PROP/décor app-owned : couche SÉMANTIQUE (physique `solid`, opacité `opaque`, classe de
- * `cover`, émission de lumière `light`, empreinte `foot`) ET géométrie locale (`volume`, `seatSlots`) —
+ * `cover`, émission de lumière `light`) ET géométrie locale (`volume`, `seatSlots`) —
  * le rendu SVG de vignette reste au catalogue gameIso. Vérité UNIQUE des dimensions d'un
  * décor : une instance de scène ne redéclare aucune empreinte. Lu par la walkability (`sceneRules`), la
  * Ligne de Vue/couvert (`lineOfSight`), la lumière (`vision`) et le monde volumique. Édité au Codex.
@@ -372,14 +372,12 @@ export interface PropData {
    *  (LDB 74 l.43/58). Le LECTEUR le divise par le `metresPerTile` de la scène pour en faire les cases
    *  d'une `LightSource` (`noyau/monde/vision.ts`, `rayonEnCases`). */
   light?: { radiusM: number; tone?: string };
-  foot?: { w: number; h: number };
-  volume?: PropVolumeRecipe;
+  volume: PropVolumeRecipe;
   seatSlots?: PropSeatSlot[];
 }
 
-/** Empreinte DÉCLARÉE d'un type de prop — défaut 1×1. Vérité des dimensions d'un décor SANS recette
- *  (billboard) ; un décor à recette tire la sienne de son CORPS (`empreinteDeriveeDuProp`). */
-export const propFootOf = (prop: PropData | undefined): { w: number; h: number } => prop?.foot ?? { w: 1, h: 1 };
+/** L'empreinte d'un décor que le catalogue ne RÉSOUT pas (#877) : sa seule case. */
+const UNE_CASE: { w: number; h: number } = { w: 1, h: 1 };
 
 /** Boîte englobante d'une primitive dans le repère LOCAL, en mètres : au plan (`x0..x1`, `y0..y1`),
  *  et en hauteur (`bas..haut`) — mesurée sur `polygonesDePrimitive`, la seule géométrie que le
@@ -405,7 +403,7 @@ export function empriseLocaleM(p: PropPrimitive): { x0: number; x1: number; y0: 
  *
  * UNE définition, deux lecteurs : l'empreinte dérivée ci-dessous, qui exclut les sièges du corps qui
  * décide des cases (un tabouret n'est pas un obstacle : c'est par lui qu'on s'assoit), et le contrat
- * de catalogue `gameIso/catalog/props-volumiques.test.ts`. PURE.
+ * de catalogue `noyau/monde/volume/props-volumiques.test.ts`. PURE.
  */
 export function placeAssiseDe(prop: PropData, primitive: PropPrimitive): PropSeatSlot | undefined {
   const e = empriseLocaleM(primitive);
@@ -448,7 +446,6 @@ const empreintesDerivees = new WeakMap<PropVolumeRecipe, WeakMap<readonly PropSe
  * PURE (mémoïsée par identité de recette, cap et échelle).
  */
 export function empreinteDeriveeDuProp(prop: PropData, facing: Dir8, mpt: number): { w: number; h: number } {
-  if (!prop.volume) return propFootOf(prop);
   let parPlaces = empreintesDerivees.get(prop.volume);
   if (!parPlaces) { parPlaces = new WeakMap(); empreintesDerivees.set(prop.volume, parPlaces); }
   const places = prop.seatSlots ?? SANS_PLACES;
@@ -458,7 +455,7 @@ export function empreinteDeriveeDuProp(prop: PropData, facing: Dir8, mpt: number
   const connue = parCap.get(cle);
   if (connue) return connue;
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-  for (const primitive of prop.volume?.primitives ?? []) {
+  for (const primitive of prop.volume.primitives) {
     if (placeAssiseDe(prop, primitive)) continue;
     for (const poly of polygonesDePrimitive(primitive))
       for (const s of poly) {
@@ -469,24 +466,24 @@ export function empreinteDeriveeDuProp(prop: PropData, facing: Dir8, mpt: number
   }
   // LE site de conversion mètres → cases de ce module (#1507, déclaré par `noyau/monde/echelle-de-scene.test.ts`).
   const enCases = (metres: number): number => Math.max(1, Math.ceil(metres / mpt - 1e-9));
-  const val = Number.isFinite(x0) ? { w: enCases(x1 - x0), h: enCases(y1 - y0) } : propFootOf(prop);
+  const val = Number.isFinite(x0) ? { w: enCases(x1 - x0), h: enCases(y1 - y0) } : UNE_CASE;
   parCap.set(cle, val);
   return val;
 }
 
 /**
  * EMPREINTE EFFECTIVE d'un type de décor au cap d'une instance — la couture UNIQUE que lisent tous les
- * consommateurs de cases (walkability, Ligne de Vue, lumière, halo). Un décor à recette la tire de son
- * CORPS tourné ; un BILLBOARD, qui n'a pas de corps, garde son empreinte déclarée. PURE.
+ * consommateurs de cases (walkability, Ligne de Vue, lumière, halo) : le CORPS tourné de sa recette ;
+ * un type que le catalogue ne résout pas (#877) n'occupe que sa case. PURE.
  */
 export function empreinteDuProp(prop: PropData | undefined, facing: Dir8 | undefined, mpt: number): { w: number; h: number } {
-  if (!prop?.volume) return propFootOf(prop);
+  if (!prop) return UNE_CASE;
   return empreinteDeriveeDuProp(prop, facing ?? CAP_IDENTITE_PROP, mpt);
 }
 
 /**
  * OFFSET de l'ANCRE dans son empreinte : du coin NO (`SceneEntity.pos`) vers le CENTRE du bloc, en
- * cases. Écrite ICI parce que `src/data` ne peut pas remonter vers `src/state` sans cycle, et qu'il
+ * cases. Écrite ICI parce que `src/data` ne peut pas remonter vers `src/noyau` sans cycle, et qu'il
  * n'en existe qu'UNE : `noyau/monde/footprint.ts` (`decorFootGeometry`, puis `decorAncre` qui la sert au
  * monde) la LIT, elle ne la refait pas. 1×1 ⇒ (0,0). PURE.
  */
@@ -591,7 +588,7 @@ export function validatePropCatalog(entries: readonly PropData[], mpt: number): 
     // Le JSON n'est pas typé à l'EXÉCUTION (même raison que les côtés de cylindre ci-dessus) : le REPÈRE
     // déclaré par la recette doit être celui que `rotatePropLocal` implémente, sans quoi la géométrie
     // sort d'un demi-tour sans que rien ne le dise.
-    if (prop.volume && prop.volume.capIdentite !== CAP_IDENTITE_PROP)
+    if (prop.volume.capIdentite !== CAP_IDENTITE_PROP)
       errors.push(`${prop.id}: recette au repère « ${prop.volume.capIdentite} » (seul ${CAP_IDENTITE_PROP} est implémenté)`);
     // COUVERT D'UN DÉCOR OPAQUE — un décor qui coupe la Ligne de Vue est lu par `tileBlocksSight`
     // (`noyau/monde/lineOfSight.ts:tileBlocksSight`), qui rend « bloqué » ou force « totale » au contact AVANT que la
@@ -599,17 +596,17 @@ export function validatePropCatalog(entries: readonly PropData[], mpt: number): 
     // moteur n'applique jamais. Le catalogue ne peut donc pas la porter.
     if (prop.opaque && prop.cover !== 'totale')
       errors.push(`${prop.id}: opaque avec cover ${prop.cover ? `« ${prop.cover} »` : 'absent'} — un décor opaque ne rend que « totale » (lineOfSight)`);
-    const formes = (prop.volume?.primitives ?? []).map((primitive) => erreursDePrimitive(prop.id, primitive));
+    const formes = prop.volume.primitives.map((primitive) => erreursDePrimitive(prop.id, primitive));
     for (const forme of formes) errors.push(...forme.errors);
     // FOYER D'UNE SOURCE VOLUMIQUE (#1680 ligne 5) — les trois anomalies sont les trois façons dont
     // `emet` et `light` peuvent se contredire, et aucune n'est rattrapable au rendu : une lumière dont
     // le foyer n'est pas DÉCLARÉ se devinerait, et deviner l'ancre d'une lampe est ce que ce lot supprime.
-    const emettrices = (prop.volume?.primitives ?? []).filter((p) => p.emet);
+    const emettrices = prop.volume.primitives.filter((p) => p.emet);
     if (emettrices.length > 1)
       errors.push(`${prop.id}: ${emettrices.length} primitives « emet » — une source ponctuelle n’a qu’UN foyer`);
     if (emettrices.length && !prop.light)
       errors.push(`${prop.id}: primitive « emet » sans \`light\` — un foyer sans source n’éclaire rien`);
-    if (prop.light && prop.volume && !emettrices.length)
+    if (prop.light && !emettrices.length)
       errors.push(`${prop.id}: \`light\` sur une recette volumique sans primitive « emet » — le foyer d’un volume se DÉCLARE, il ne se devine pas`);
     for (const slot of prop.seatSlots ?? []) {
       if (!slot.id.trim()) errors.push(`${prop.id}: slot sans id`);

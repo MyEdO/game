@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   CIEL_OUVERT,
-  MAX_PRECIP,
   makeWeatherField,
   precipArea,
   precipBasis,
@@ -11,8 +10,9 @@ import {
   writePrecipMatrices,
   type PrecipArea,
 } from './weatherParticles';
-import { isSheltered, shelterField } from '../../builders/roofs';
-import { AMBIANCE, scenePrecip } from '../../catalog/ambiance';
+import { isSheltered, shelterField } from '../../../noyau/monde/volume/toits';
+import { MAX_PRECIP } from '../../../noyau/monde/meteo';
+import { AMBIANCE } from '../../catalog/ambiance';
 import type { WeatherPrecipDef } from '../../../data/ambiance.types';
 import { emptyScene, sceneMetresPerTile, type BuildingMass, type Scene } from '../../../noyau/monde/scene';
 
@@ -203,17 +203,6 @@ describe('Semis de précipitation — la DONNÉE seule décide (#1176 P2-6)', ()
     stepWeatherField(a, 0.3, CIEL_OUVERT);
     stepWeatherField(b, 0.3, CIEL_OUVERT);
     expect([...a.pos]).toEqual([...b.pos]);
-  });
-
-  it('la donnée du JEU est complète pour ce qui TOMBE, et muette pour ce qui ne tombe pas', () => {
-    expect(scenePrecip({ weather: 'pluie' })).toBe(AMBIANCE.iso.weather.pluie!.precip);
-    expect(scenePrecip({ weather: 'neige' })!.fallMs).toBeLessThan(scenePrecip({ weather: 'pluie' })!.fallMs);
-    expect(scenePrecip({ weather: 'tempete' })!.density).toBeGreaterThan(scenePrecip({ weather: 'pluie' })!.density);
-    expect(Math.abs(scenePrecip({ weather: 'tempete' })!.windMs.x))
-      .toBeGreaterThan(Math.abs(scenePrecip({ weather: 'pluie' })!.windMs.x));
-    expect(scenePrecip({ weather: 'brouillard' })).toBeNull(); // le brouillard ne TOMBE pas
-    expect(scenePrecip({ weather: 'clair' })).toBeNull();
-    expect(scenePrecip({ weather: 'pluie', ambiance: 'interieur' })).toBeNull(); // il ne pleut pas dedans
   });
 });
 

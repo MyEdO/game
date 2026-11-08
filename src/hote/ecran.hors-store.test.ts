@@ -3,8 +3,11 @@ import { nouvelEntete, ouvrirLaPartie } from './partie';
 import { lignesDuJournal, zonesDeLEcran } from './ecran';
 import { fenetreADessiner } from './gestes';
 import { projeter } from './projection';
-import type { Jeu, LigneDuJournal } from '../noyau/index';
+import { dayIndex, formatJourImperial, type Jeu, type LigneDuJournal } from '../noyau/index';
+import { MINUTES_PER_DAY } from '../engine/clock';
 import { turnEconomyStamp } from '../noyau/endTurnGuard';
+import { choixPiegeLame } from '../noyau/combatFlow';
+import { choiceStep } from '../noyau/rollSeam';
 import { t } from '../i18n';
 
 describe('le journal de l’écran (`journal.lignes`)', () => {
@@ -14,10 +17,12 @@ describe('le journal de l’écran (`journal.lignes`)', () => {
       const etat = partie.etat();
       const heros = etat.battle!.combatants.find((c) => c.kind === 'hero')!;
       const ennemi = etat.battle!.combatants.find((c) => c.kind === 'enemy')!;
-      const combat = (kind: Extract<LigneDuJournal, { de: 'combat' }>['evenement']['kind'], text: string, actorId?: string, targetId?: string): LigneDuJournal =>
-        ({ de: 'combat', evenement: { kind, text, actorId, targetId } });
-      const lignes = lignesDuJournal(etat, 3, [
-        { de: 'journal', texte: 'Vous entrez.' },
+      const jour = dayIndex(etat.gameTime);
+      const heure = etat.gameTime;
+      const combat = (kind: Extract<LigneDuJournal, { de: 'combat' }>['evenement']['kind'], text: string, actorId?: string, targetId?: string, h = heure): LigneDuJournal =>
+        ({ de: 'combat', evenement: { kind, text, actorId, targetId }, heure: h });
+      const { lignes, jour: dernier } = lignesDuJournal(etat, 3, [
+        { de: 'journal', texte: 'Vous entrez.', heure },
         combat('round', 'Round 2'),
         combat('attack', 'Coup porté.', heros.id, ennemi.id),
         combat('detail', '  ↳ Tête, 4 Blessures'),
@@ -25,7 +30,7 @@ describe('le journal de l’écran (`journal.lignes`)', () => {
         combat('crit', 'Critique au bras.', ennemi.id, heros.id),
         combat('death', 'Hors de combat.', ennemi.id),
         combat('info', ''),
-      ]);
+      ], jour);
       expect(lignes.map(({ id, ton, texte, detail }) => ({ id, ton, texte, detail }))).toEqual([
         { id: 'journal/3', ton: 'neutre', texte: 'Vous entrez.', detail: null },
         { id: 'journal/4', ton: 'alerte', texte: 'Round 2', detail: null },
@@ -33,7 +38,18 @@ describe('le journal de l’écran (`journal.lignes`)', () => {
         { id: 'journal/8', ton: 'echec', texte: 'Critique au bras.', detail: null },
         { id: 'journal/9', ton: 'reussite', texte: 'Hors de combat.', detail: null },
       ]);
-      expect(lignesDuJournal(etat, 0, [combat('detail', '↳ Seule')]), 'une sous-ligne sans ligne avant elle dans l’appel reste une ligne').toMatchObject([{ texte: '↳ Seule', detail: null }]);
+      expect(dernier, 'le jour de la dernière ligne').toBe(jour);
+      expect(lignesDuJournal(etat, 0, [combat('detail', '↳ Seule')], jour).lignes, 'une sous-ligne sans ligne avant elle dans l’appel reste une ligne').toMatchObject([{ texte: '↳ Seule', detail: null }]);
+      const lendemain = heure + MINUTES_PER_DAY;
+      expect(lignesDuJournal(etat, 0, [{ de: 'journal', texte: 'Premier mot.', heure }, { de: 'journal', texte: 'Au matin.', heure: lendemain }], null), 'chaque jour s’ouvre sur sa date, le premier compris').toMatchObject({
+        lignes: [
+          { id: `journal/jour/${jour}`, ton: 'alerte', texte: formatJourImperial(heure) },
+          { id: 'journal/0', texte: 'Premier mot.' },
+          { id: `journal/jour/${jour + 1}`, ton: 'alerte', texte: formatJourImperial(lendemain) },
+          { id: 'journal/1', texte: 'Au matin.' },
+        ],
+        jour: jour + 1,
+      });
     } finally {
       partie.fermer();
     }
@@ -52,8 +68,10 @@ describe('la fenêtre du Destin (`fenetre.corps`, `fenetre.gestes`)', () => {
       };
       const lent = ecran('slow');
       expect(lent['fenetre.corps'], 'l’enjeu en alerte, puis les Points de Destin du héros').toMatchObject([{ id: 'destin/enjeu', ton: 'alerte' }, { id: 'destin/points', valeur: String(heros.fate ?? 0) }]);
-      expect(lent['fenetre.gestes'].map((g) => g.id), 'une mort lente ne s’évite pas : survivre ou l’accepter (LDB 17 l.31)').toEqual(['fateSurvive', 'fateAccept']);
-      expect(ecran('hit')['fenetre.gestes'].map((g) => g.id), 'un coup qui porte s’évite aussi (LDB 17 l.32)').toEqual(['fateNegate', 'fateSurvive', 'fateAccept']);
+      const issues = (zones: ReturnType<typeof ecran>) => zones['fenetre.gestes'].flatMap((g) => ('valeurs' in g ? g.valeurs.map((v) => ('args' in v.jeu ? v.jeu.args : null)) : []));
+      expect(lent['fenetre.gestes'].map((g) => g.id), 'un seul choix, qui clôt la fenêtre').toEqual(['fenetreChoisir@fateSave#issue']);
+      expect(issues(lent), 'une mort lente ne s’évite pas : survivre ou l’accepter (LDB 17 l.31)').toEqual([['fateSave', 'issue', 'survive'], ['fateSave', 'issue', 'accept']]);
+      expect(issues(ecran('hit')), 'un coup qui porte s’évite aussi (LDB 17 l.32)').toEqual([['fateSave', 'issue', 'negate'], ['fateSave', 'issue', 'survive'], ['fateSave', 'issue', 'accept']]);
     } finally {
       partie.fermer();
     }
@@ -70,7 +88,7 @@ describe('la fenêtre de la victoire (`fenetre.corps`, `fenetre.gestes`)', () =>
         { id: 'victoire/xp', valeur: '+30' }, { id: 'victoire/argent', valeur: '5/–' },
         { id: 'victoire/vaincu/0', texte: 'Gobelin ×2' }, { id: 'victoire/vaincu/1', texte: 'Chef' }, { id: 'victoire/message/0', texte: 'La foule acclame.' },
       ]);
-      expect(zones['fenetre.gestes'].map((g) => g.id), 'un choix sans valeur ne se dessine pas').not.toContain('harvestCreature');
+      expect(zones['fenetre.gestes'].map((g) => g.id), 'un choix sans valeur ne se dessine pas').not.toContain('depecerLaCreature');
     } finally {
       partie.fermer();
     }
@@ -102,8 +120,27 @@ describe('le début du Round (`fenetre.gestes`)', () => {
       const debut = partie.etat();
       const gestes = (etat: Jeu) => zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, null)['fenetre.gestes'].map((g) => g.id);
       expect(debut.pendingRoundStart, 'le combat du dôme s’ouvre sur la pause de Round').not.toBeNull();
-      expect(gestes(debut), 'seul : qui agit en premier, et le lancer').toEqual(['roundStartPromote', 'fenetreValider@roundStart']);
-      expect(gestes({ ...debut, net: { ...debut.net, mode: 'host' } }), 'en réseau : le même geste, qui marque le siège prêt').toEqual(['roundStartPromote', 'fenetreValider@roundStart']);
+      expect(gestes(debut), 'seul : qui agit en premier, et le lancer').toEqual(['promouvoirLeCombattant', 'fenetreValider@roundStart']);
+      expect(gestes({ ...debut, net: { ...debut.net, mode: 'host' } }), 'en réseau : le même geste, qui marque le siège prêt').toEqual(['promouvoirLeCombattant', 'fenetreValider@roundStart']);
+    } finally {
+      partie.fermer();
+    }
+  });
+});
+
+describe('ce que l’étape de la cascade annonce (`fenetre.corps`)', () => {
+  it('le choix d’une parade Piège-lame dit sa portée et son issue avant qu’on tranche', () => {
+    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    try {
+      const combattants = partie.etat().battle!.combatants;
+      const heros = combattants.find((c) => c.kind === 'hero')!;
+      const ennemi = combattants.find((c) => c.kind === 'enemy')!;
+      const lame = ennemi.weapons[0];
+      const parade = heros.weapons[0];
+      const etape = choiceStep(choixPiegeLame({ defenderId: heros.id, attackerId: ennemi.id, weapon: lame, parryWeaponUid: parade.uid!, defSL: 2, roll: 34 }, heros, ennemi, parade))!;
+      const etat: Jeu = { ...partie.etat(), pendingCascade: { title: t('step.paradePiegerLame'), icon: 'item/weapon', purpose: 'combat', cursor: 0, log: [], participants: [etape], seq: 1 } };
+      const corps = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, null)['fenetre.corps'];
+      expect(corps.filter((e) => e.id.startsWith('issue/')).map((e) => 'texte' in e && e.texte), 'ses deux lignes, dans l’ordre du flux').toEqual(etape.outcome!.map((l) => l.text));
     } finally {
       partie.fermer();
     }

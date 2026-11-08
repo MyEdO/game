@@ -5,7 +5,8 @@
  * test la nomme. Une fenêtre dont les verbes désignent une rangée par son id (flux de jet multi, verbes d'étape)
  * déclare de quoi rendre ce `pid`. Une surface partagée qui se ferme (`SURFACES_A_SORTIE`) en est une, sa sortie pour
  * verbe. Chaque fenêtre a son titre (`libelleDeLaFenetre`), et chaque réglage d'un flux de
- * jet (`REGLAGES_DU_JET`) est un geste d'une fenêtre : aucun ne se joue hors de celle qui le dessine.
+ * jet (`REGLAGES_DU_JET`) et chaque choix d'une fenêtre (`CHOIX_DES_FENETRES`) est un geste d'une fenêtre, ou de la
+ * conversation qui dessine ses réponses (`conversationEnVue`) : aucun ne se joue hors de celle qui le dessine.
  */
 import { describe, it, expect } from 'vitest';
 import type { Jeu } from './index';
@@ -13,6 +14,8 @@ import { AUCUN_VERBE_DE_JOUEUR } from './modalArbiter';
 import { cleDuGeste } from './modalArbiter';
 import { fenetreDuJeu } from './combatAuto';
 import { REGLAGES_DU_JET } from './reglagesDuJet';
+import { CHOIX_DES_FENETRES } from './choixDesFenetres';
+import { conversationEnVue } from './dialogue';
 import { libelleDeLaFenetre, libelleDuGeste } from './libelles';
 import type { CascadeStep } from './pendings';
 import { cleDeFixture } from './noyau.testkit';
@@ -56,10 +59,21 @@ describe('chaque fenêtre que `fenetreDuJeu` peut rendre nomme ses verbes', () =
     expect(declares.filter((cle) => !gestes.has(cle)), 'réglage qu’aucune fenêtre ne déclare').toEqual([]);
   });
 
+  it('chaque choix d’une fenêtre (`CHOIX_DES_FENETRES`) est un geste de cette fenêtre', () => {
+    const declares = Object.entries(CHOIX_DES_FENETRES).flatMap(([fenetre, axes]) => Object.keys(axes).map((axe) => `fenetreChoisir@${fenetre}#${axe}`));
+    // La conversation, surface qui ne tient pas la main, dessine ses réponses hors de `fenetreDuJeu` (`conversationEnVue`).
+    const conversation = conversationEnVue({ ...ETAT, dialogue: { dialogue: { id: 'd', start: 'n1', nodes: [{ id: 'n1', choices: [{ id: 'r1', label: 'Oui' }] }] }, nodeId: 'n1', session: 1 } } as unknown as Jeu);
+    const reponses = (conversation?.reponses ?? []).map(({ geste: { verbe, args: [fenetre, axe] } }) => `${verbe}@${fenetre}#${axe}`);
+    expect(reponses, 'témoin : la réponse de la conversation').toHaveLength(1);
+    const gestes = new Set([...FENETRES.flatMap((f) => f.gestes.map(cleDuGeste)), ...reponses]);
+    expect(declares.length, 'témoin : les choix des fenêtres de la partie').toBeGreaterThan(7);
+    expect(declares.filter((cle) => !gestes.has(cle)), 'choix qu’aucune fenêtre ne déclare').toEqual([]);
+  });
+
   it('`fenetreDuJeu` rend les gestes déclarés : le Sauvetage par Destin, la porte de départ de nuit, la défaite, le repli, l’anéantissement', () => {
     const destin = fenetreDuJeu({ ...ETAT, pendingFateSave: { heroId: 'h1' } } as unknown as Jeu);
     expect(destin).toMatchObject({ cle: 'fateSave', proprietaire: 'h1' });
-    expect(destin!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['fateNegate', 'fateSurvive', 'fateAccept']));
+    expect(destin!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['fenetreChoisir@fateSave#issue']));
     const depart = fenetreDuJeu({ ...ETAT, pendingDeparture: { mode: 'pied', cause: 'nuit', dawnAt: 0 } } as unknown as Jeu);
     expect(depart).toMatchObject({ cle: 'departure', gestes: [{ verbe: 'fenetreValider', fenetre: 'departure' }, { verbe: 'fenetreFermer', fenetre: 'departure' }] });
     const defaite = fenetreDuJeu({ ...ETAT, mode: 'battle', battle: { over: 'defeat' } } as unknown as Jeu);
@@ -73,9 +87,9 @@ describe('chaque fenêtre que `fenetreDuJeu` peut rendre nomme ses verbes', () =
     const tombants = [{ id: 't1', interactive: true, attempt: false, result: { chute: 1 } }, { id: 't2', interactive: true, attempt: null, result: null }];
     const chute = fenetreDuJeu({ ...ETAT, pendingFall: { initiateurId: 't1', participants: tombants } } as unknown as Jeu);
     expect(chute).toMatchObject({ cle: 'fall', pid: 't2' });
-    expect(chute!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@fall', 'fallChoose', 'jetConfirm@fall']));
+    expect(chute!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetLancer@fall', 'jetRegler@fall#tenter', 'jetValider@fall']));
     const bande = fenetreDuJeu({ ...ETAT, pendingCascade: { title: 'Témoin', purpose: 'test', cursor: 0, log: [], seq: 1, participants: [ETAPE_TEMOIN] } });
     expect(bande).toMatchObject({ cle: 'cascade', pid: 'rangee' });
-    expect(bande!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetRoll@cascadeBatch', 'jetConfirm@cascade']));
+    expect(bande!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['jetLancer@cascadeBatch', 'jetValider@cascade']));
   });
 });

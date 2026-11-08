@@ -27,7 +27,7 @@ const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   ...over,
 }) as Combatant);
 
-const get = (() => ({ log: () => {}, battle: undefined })) as never;
+const get = (() => ({ ecrireAuJournal: () => {}, battle: undefined })) as never;
 const hit: AttackResult = { hit: true, woundsLost: 3 } as AttackResult;
 const empetre = (c: Combatant) => c.conditions.find((x) => x.id === 'empetre');
 const aTerre = (c: Combatant) => c.conditions.find((x) => x.id === 'a-terre');
@@ -96,7 +96,7 @@ describe('effets onHit des manœuvres de zone/action (data) — appliqués par l
  * `seq[ do(1d10) , test{Résistance → Brisé} , do(3 Assourdi) ]`. Routé par les actions du noyau (un `test` non routé
  * LÈVE). La manœuvre cible `allFoes` → un banshee ENNEMI hurle sur le HÉROS : héros MANUEL → le Test
  * suspend en ÉTAPE de cascade `triggeredTest` INFLUENÇABLE (avec `meta.after` = le `do(3 Assourdi)`) ; le
- * `do(1d10)` AVANT s'applique tout de suite ; après `jetRoll('cascade')`+`jetConfirm('cascade')`, la branche PUIS la
+ * `do(1d10)` AVANT s'applique tout de suite ; après `jetLancer('cascade', id)`+`jetValider('cascade')`, la branche PUIS la
  * continuation `after` (3 Assourdi) s'appliquent — preuve que l'ordre du Flow `seq` est préservé.
  */
 describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-aware)', () => {
@@ -104,8 +104,8 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     seedBattleRng(5);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -130,8 +130,8 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     expect(step.meta?.after).toBeTruthy();  // la continuation (3 Assourdi) voyage dans le meta (sérialisable)
     expect(banc.getState().pendingLogQueue.some((q) => /Blessure/.test(q.line))).toBe(true); // 1d10 déjà subi
 
-    banc.getState().jetRoll('cascade', step.id);
-    banc.getState().jetConfirm('cascade');
+    banc.getState().jetLancer('cascade', step.id);
+    banc.getState().jetValider('cascade');
 
     const live = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(live.conditions.find((c) => c.id === 'assourdi')?.value).toBe(3); // continuation `after` rejouée
@@ -148,8 +148,8 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     seedBattleRng(5);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -188,8 +188,8 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     seedBattleRng(5);
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;

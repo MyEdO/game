@@ -17,9 +17,9 @@ describe('Désengagement après avoir attaqué (option A — LDB 15 l.47)', () =
   it('héros Engagé ayant DÉJÀ agi peut se désengager en sacrifiant l’Avantage', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().seedRng(3);
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().ensemencerLeTirage(3);
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -30,13 +30,13 @@ describe('Désengagement après avoir attaqué (option A — LDB 15 l.47)', () =
     // L'Action est DÉJÀ dépensée (le héros vient d'attaquer) :
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, acted: true } });
 
-    banc.getState().battleDisengage(); // doit ouvrir le menu malgré l'Action dépensée
+    banc.getState().rompreLEngagement(); // doit ouvrir le menu malgré l'Action dépensée
     const pd = banc.getState().pendingDisengage;
     expect(pd).not.toBeNull();
     expect(pd!.canSacrifice).toBe(true);
     expect(pd!.refusEsquive).toBe(t('agate.actionSpent')); // Esquive indisponible (coûte l'Action, LDB 15 l.49) → pas de boucle infinie
 
-    banc.getState().disengageConfirmA();
+    banc.getState().jetRegler('disengage', 'sacrifier', true);
     st = banc.getState();
     expect(st.battle!.action).toBeNull(); expect(st.battle!.reachable.size).toBeGreaterThan(0); // mouvement libre rouvert (budget posé)
     expect(st.battle!.acted).toBe(true); // l'option A NE consomme PAS l'Action (préservée)

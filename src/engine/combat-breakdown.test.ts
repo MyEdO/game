@@ -423,7 +423,7 @@ describe('Charge montée — dégâts à la Force + Taille de la monture (LDB 14
  * partait en chip « autres ». La Difficulté est désormais COMPOSÉE une fois par qui roule le jet, puis
  * TRANSPORTÉE (`frozenDifficulty`) : dépenser un point de Chance ne rejoue pas les circonstances.
  */
-/** L'arithmétique EXACTE de l'écran (`ui/RollLine.tsx` : `reconciled`) — reste ≠ 0 ⇒ chip « autres ». */
+/** L'arithmétique EXACTE de l'écran (`reconciled`) — reste ≠ 0 ⇒ chip « autres ». */
 const inexplique = (d: RollBreakdown): number =>
   d.target - d.base
   - (d.difficultyCombined ?? (d.difficulty ? DIFFICULTY_MODIFIERS[d.difficulty] : 0))

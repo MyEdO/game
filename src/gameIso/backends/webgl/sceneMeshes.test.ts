@@ -33,39 +33,42 @@ import {
   LIGHT_COLOR,
   SHADOW_MAP_SIZE,
   SHADOW_NORMAL_BIAS_TEXELS,
-  SUN_ELEVATION_DEG,
   SUN_INTENSITY,
 } from './sceneMeshes';
-import { facesGeometry, polyBounds, type Vec3 } from './worldTris';
-import { faceDepthOf } from './faceRelief';
+import { SUN_ELEVATION_DEG } from '../../../noyau/monde/soleil';
+import { facesGeometry, polyBounds, type Vec3 } from '../../../noyau/monde/volume/worldTris';
+import { faceDepthM } from '../../../noyau/monde/volume/profondeur';
 import { anchorAndSize, BILLBOARD_H_M, BILLBOARD_BOX_ASPECT } from './billboardMath';
 import { tintOf } from './visibilityTint';
-import { faceSurface, tintVarFactor } from './faceColors';
+import { faceSurface } from './faceColors';
+import { tintVarFactor } from '../../../noyau/monde/volume/matieres';
 import { faceBakeData, FACE_PX_PER_M } from './faceBake';
 import { coursesPeriodM, groundPeriodM, roofCourseStepM, variantOf, N_VARIANTS } from '../../detail/courses';
-import { facadeStructureAppearance } from '../../catalog/facades';
-import { FASCIA_THICK_M, roofMaterial } from '../../catalog/roofs';
-import { wallPartRelief } from '../../catalog/structures';
+import { facadeStructureAppearance } from '../../../noyau/monde/volume/structures';
+import { FASCIA_THICK_M, roofMaterial } from '../../../noyau/monde/volume/matieres';
+import { wallPartRelief } from '../../../noyau/monde/volume/structures';
 import { WALL_PARTS } from '../../../data/structureAppearance.types';
-import { ROOF_SLOPE_M } from '../../builders/roofs';
+import { ROOF_SLOPE_M } from '../../../noyau/monde/volume/toits';
 import { buildWalls } from '../../builders/walls';
 import { tousLesTerrains } from '../../../noyau/monde/terrain';
-import { estPropVolumique, type Face, type SceneEl } from '../../builders/types';
+import { estPropVolumique, type SceneEl } from '../../builders/types';
+import { type Face } from '../../../noyau/monde/volume/types';
 import { buildScene } from '../../../noyau/mapSpec';
 import { spec as siegeSpec } from '../../../scenes/test-scenarios/siege-enceinte';
 import { scenario as arene } from '../../../scenes/test-scenarios/arene';
 import { scenario as pontVitrine } from '../../../scenes/test-scenarios/pont-vitrine';
 import { scenario as diligence } from '../../../scenes/test-scenarios/diligence';
+import { REF_HORS_CATALOGUE } from '../../../noyau/monde/volume/decorVolumique.testkit';
 import { buildOperaFloorplan } from '../../../scenes/opera/floorplan';
 import { buildVitrineScene } from '../../../scenes/vitrine-batiments';
-import { emptyScene, sceneMetresPerTile, type Scene } from '../../../noyau/monde/scene';
+import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../../noyau/monde/scene';
 import type { Terrain } from '../../../data/schemas/defs-scenes/scene';
 import { PROPS, propSvg } from '../../catalog/decor';
 import { AMBIANCE, ambianceLuminance } from '../../catalog/ambiance';
 import { schema as ambianceSchema } from '../../../data/schemas/defs/ambiance';
 import { fogAt, fogCurveOf } from '../../pov/camera';
 import { memoByRef, memoByRefDeps } from '../../../noyau/monde/sceneMemo';
-import { srgbToLinear, toHex } from '../../shade';
+import { srgbToLinear, toHex } from '../../../lib/ombrage';
 const diligenceConstruit = diligence.construire();
 const pontVitrineConstruit = pontVitrine.construire();
 const areneConstruit = arene.construire();
@@ -169,7 +172,7 @@ describe('ORIENTATION — les triangles regardent DEHORS (la carte d’ombre en 
     const m = sceneMetresPerTile(scn);
     const listées = worldFaces(scn, 'jeu');
     const pos = monde(scn, m).getAttribute('position').array as Float32Array;
-    const geoms = facesGeometry(listées.map((f) => f.face), m, faceDepthOf());
+    const geoms = facesGeometry(listées.map((f) => f.face), m, faceDepthM);
     // La fusion émet les faces GROUPÉES par surface (un groupe = un dessin) : le bilan les parcourt
     // dans CET ordre, sinon il compare le triangle d'une face à la normale d'une autre.
     const ordre = surfaceGrouping(listées, m).faceIndices.flat();
@@ -222,8 +225,11 @@ describe('ORIENTATION — les triangles regardent DEHORS (la carte d’ombre en 
 
 describe('BILLBOARDS — sujets de la scène', () => {
   it('seul le décor est collecté, ancré aux pieds, avec son SVG isolé (#3160)', () => {
-    const els = wholeSceneBillboardEls(scene);
-    const subs = collectBillboards(scene, mpt, els);
+    // Chaque type du catalogue se cuit en volume (#3198) : seul le repli d'ERREUR d'une ref hors
+    // catalogue (#877) se sert encore en billboard.
+    const avecRepli: Scene = { ...scene, entities: [...scene.entities, { id: 'repli', kind: 'prop', pos: { x: 1, y: 1 }, ref: REF_HORS_CATALOGUE } as SceneEntity] };
+    const els = wholeSceneBillboardEls(avecRepli);
+    const subs = collectBillboards(avecRepli, mpt, els);
     expect(subs.length).toBeGreaterThan(0);
     expect(subs).toHaveLength(els.props.length);
     for (const [i, sub] of subs.entries()) {
@@ -264,7 +270,7 @@ describe('CONTENU — ce qu’un cadrage doit tenir', () => {
       // Toute face NON-TERRAIN (relief, structure, toiture) tient dans la boîte de contenu. Les rangs
       // coplanaires se mesurent sur la liste ENTIÈRE (contrat de `coplanarRanks`) : on filtre APRÈS.
       const toutes = worldFaces(scn, 'jeu').map((f) => f.face);
-      const geoms = facesGeometry(toutes, m, faceDepthOf());
+      const geoms = facesGeometry(toutes, m, faceDepthM);
       let bati = 0;
       let dehors = 0;
       for (let i = 0; i < toutes.length; i++) {

@@ -11,14 +11,19 @@ import { SCHEMA_DEFS } from '../../../src/data/schemas/_registry.generated.ts'
 import { LIENS_SCHEMA_TYPES } from './fieldConsumerTargets.mjs'
 import { CLES_ENVELOPPE } from '../../../src/data/schemas/grammaire/document.ts'
 import { classeDeProduit } from '../../../src/data/schemas/grammaire/produits.ts'
+import { estDocumentARangees } from './documentARangees.mts'
 import { creerProvenanceFs } from './provenanceFs.mjs'
 
 const norm = p => p.replaceAll('\\', '/')
-/** Les PORTES d'un document-table (`src/data/rangees.ts`) : un appel lit son champ de la racine JSON qu'il
- *  reçoit (et, par id de document, d'un fichier qui en porte plusieurs). `rangeesDe` rend `entries` au type
- *  dérivé du schéma ; `deDeTirageDe` lit `die` et rend un `DiceSpec`, jamais une valeur JSON. */
-const MODULE_DES_PORTES = 'src/data/rangees.ts'
-const CHAMP_DE_LA_PORTE = { rangeesDe: 'entries', deDeTirageDe: 'die' }
+/** Les PORTES d'une table : un appel lit son champ du nœud JSON qu'il reçoit (et, par id de document, d'un
+ *  fichier qui en porte plusieurs). `rangeesDe` (`src/data/rangees.ts`) rend `entries` au type dérivé du
+ *  schéma ; `deDeTirageDe` (même module) lit `die`, et `deDeLaTableTiree` (`src/engine/tables.ts`) le `die`
+ *  du nœud, ou le `dice` d'un `Tirage` : tous deux rendent un `DeDeTable`, jamais une valeur JSON. */
+const PORTES = {
+  rangeesDe: { module: 'src/data/rangees.ts', champ: () => 'entries' },
+  deDeTirageDe: { module: 'src/data/rangees.ts', champ: () => 'die' },
+  deDeLaTableTiree: { module: 'src/engine/tables.ts', champ: (checker, type) => (parts(type).some((t) => checker.getPropertyOfType(t, 'dice')) ? 'dice' : 'die') },
+}
 const parts = type => type?.isUnionType() || type?.isIntersectionType() ? type.getTypes().flatMap(parts) : type ? [type] : []
 const step = (checker, types, key, node) => types.flatMap(type => parts(type).flatMap(t => {
   if (key === '[]') return checker.isArrayType(t) || checker.isTupleType(t) ? checker.getTypeArguments(t) : checker.getIndexInfosOfType(t).filter(i => i.keyType.flags & TypeFlags.NumberLike).map(i => i.valueType)
@@ -82,7 +87,7 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
   // Noms sous lesquels une porte peut être appelée : le sien, et ceux que lui donnent les `import`/`export
   // { … as … }` du Program, à point fixe. Un appel sous un autre nom ne la résout pas : le symbole n'est
   // demandé qu'aux appels qui portent l'un de ces noms.
-  const nomsDeLaPorte = new Set(Object.keys(CHAMP_DE_LA_PORTE))
+  const nomsDeLaPorte = new Set(Object.keys(PORTES))
   const renommages = program.getSourceFileNames().map(file => program.getSourceFile(file)).filter(sf => !sf.isDeclarationFile).flatMap(sf => sf.statements)
     .flatMap(n => (ts.isImportDeclaration(n) ? n.importClause?.namedBindings?.elements : ts.isExportDeclaration(n) ? n.exportClause?.elements : undefined) ?? [])
     .flatMap(e => e.propertyName ? [[e.propertyName.text, e.name.text]] : [])
@@ -144,10 +149,12 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
   const porteDuDocument = call => {
     const nom = !ts.isCallExpression(call) ? null : ts.isIdentifier(call.expression) ? call.expression.text : ts.isPropertyAccessExpression(call.expression) ? call.expression.name.text : null
     const fn = nomsDeLaPorte.has(nom) && resolvedSymbol(call.expression)?.declarations?.[0]?.resolve()
-    const champ = fn && ts.isFunctionDeclaration(fn) && Object.hasOwn(CHAMP_DE_LA_PORTE, fn.name?.text) ? CHAMP_DE_LA_PORTE[fn.name.text] : null
-    if (!champ || norm(resolve(fn.getSourceFile().fileName)) !== norm(resolve(root, MODULE_DES_PORTES))) return null
+    const porte = fn && ts.isFunctionDeclaration(fn) && Object.hasOwn(PORTES, fn.name?.text) ? PORTES[fn.name.text] : null
+    if (!porte || norm(resolve(fn.getSourceFile().fileName)) !== norm(resolve(root, porte.module))) return null
     const racine = origin(call.arguments[0])
-    return racine && { file: racine.file, path: [...racine.path, ...(call.arguments.length > 1 ? ['[]', champ] : [champ])], rendJson: champ === CHAMP_DE_LA_PORTE.rangeesDe }
+    if (!racine) return null
+    const champ = porte.champ(checker, checker.getTypeAtLocation(call.arguments[0]))
+    return { file: racine.file, path: [...racine.path, ...(call.arguments.length > 1 ? ['[]', champ] : [champ])], rendJson: porte === PORTES.rangeesDe }
   }
   const originCache = new Map()
   const origin = (node, seen = new Set()) => {
@@ -383,7 +390,7 @@ function natureDuType(root, type) {
 /**
  * Les CIBLES de catalogue du rapport des consommateurs par champ, DÉRIVÉES de la jointure : pour chaque
  * def, le type que ses chargements donnent EXPLICITEMENT à son ENTRÉE (élément du tableau racine, valeur
- * d'un enregistrement racine, sinon la racine), domicilié au module qui le déclare, avec les clés de
+ * d'un enregistrement racine, rangée d'un document à rangées, sinon la racine), domicilié au module qui le déclare, avec les clés de
  * l'entrée au schéma (`champsDeclares`, sceau `document()` descendu). Un type atteint par plusieurs defs
  * est UNE cible, à l'union de leurs clés. Un def dont aucun chargement ne nomme l'entrée SORT avec la
  * raison mesurée. Ordre total : cibles par `(home, position)`, sorties par `file`.
@@ -393,8 +400,9 @@ export function ciblesDeCatalogue(root, session, files, definitions = SCHEMA_DEF
   const { claims } = relierChargements(root, session, { files, definitions, lectures: false })
   const cibles = new Map(), sorties = []
   for (const d of [...definitions].sort((a, b) => parUnites(a.file, b.file))) {
-    const declares = champsDeclares(d.schema)
-    const entree = []
+    // L'ENTRÉE d'un document à rangées est sa rangée (`documentARangees.mts`, #3012).
+    const entree = estDocumentARangees(d.schema, d.famille) ? ['entries', '[]'] : []
+    const declares = champsDeclares(d.schema).filter(p => entree.every((k, i) => p[i] === k))
     while (declares.length && ['[]', '{}'].includes(declares[0][entree.length]) && declares.every(p => p[entree.length] === declares[0][entree.length])) entree.push(declares[0][entree.length])
     const cles = declares.filter(p => p.length === entree.length + 1).map(p => p.at(-1))
     const duDataset = claims.filter(c => c.file === d.file)

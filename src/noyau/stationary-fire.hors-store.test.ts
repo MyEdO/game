@@ -23,8 +23,8 @@ describe('Tir immobile (heldGround)', () => {
   function setup() {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -43,7 +43,7 @@ describe('Tir immobile (heldGround)', () => {
       battle: { ...banc.getState().battle!, acted: false, movementUsed: 0, movedPreAction: false },
       pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT, heldGround: true },
     });
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
     const st = banc.getState();
     const h = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(st.battle!.movementUsed).toBe(M); // Mouvement consommé par l'immobilisation
@@ -56,7 +56,7 @@ describe('Tir immobile (heldGround)', () => {
       battle: { ...banc.getState().battle!, acted: false, movementUsed: 0, movedPreAction: false },
       pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT },
     });
-    banc.getState().jetConfirm('attack');
+    banc.getState().jetValider('attack');
     const st = banc.getState();
     const h = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(st.battle!.movementUsed).toBe(0); // pas d'immobilisation → Mouvement intact

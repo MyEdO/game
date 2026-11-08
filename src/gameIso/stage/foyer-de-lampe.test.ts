@@ -5,7 +5,7 @@
  *
  * Il se mesure contre la CUISSON RÉELLE, pas contre la donnée : le référent est le barycentre des
  * faces que le builder produit pour cette primitive (`builders/props.ts` → `buildPropVolumes`), passé
- * en monde par la MÊME conversion que le renderer (`backends/webgl/worldTris:gpToWorld`). Une lampe
+ * en monde par la MÊME conversion que le renderer (`noyau/monde/volume/worldTris:gpToWorld`). Une lampe
  * calée sur la donnée mais fausse à la cuisson (repère, cap, échelle de case, altitude de sol) sortirait
  * verte d'un test écrit sur la donnée seule ; ici elle sort rouge.
  *
@@ -19,8 +19,9 @@ import { mapLights } from '../../noyau/monde/vision';
 import { props, findPropById, type PropVolumeRecipe } from '../../data';
 import { setDataset } from '../../data/overrides';
 import { buildProps } from '../builders/props';
-import { gpToWorld } from '../backends/webgl/worldTris';
-import { pointLightWrites, FLAME_LIFT_M } from './stagePointLights';
+import { gpToWorld } from '../../noyau/monde/volume/worldTris';
+import { pointLightWrites } from './stagePointLights';
+import { FLAME_LIFT_M } from '../../noyau/lumiereDeLaScene';
 import type { Dir4 } from '../../geometry/dir8';
 
 /** Tolérance du contrat, en mètres — « la lampe est au foyer », pas « la lampe est à peu près là ». */
@@ -152,9 +153,10 @@ describe('la lampe d’un décor VOLUMIQUE est posée sur sa primitive émettric
   });
 
   it('un émetteur SANS primitive déclarée garde la hauteur par DÉFAUT, à l’aplomb de sa case', () => {
-    // Le brasero est un BILLBOARD qui éclaire : aucune recette, donc aucun foyer à déclarer. Ce n'est
-    // pas un second régime — c'est l'autre valeur du même paramètre.
-    const scene = sceneAvec('brasero', 'S');
+    // Un tonneau que son INSTANCE fait éclairer : sa recette ne déclare aucun foyer. Ce n'est pas un
+    // second régime — c'est l'autre valeur du même paramètre.
+    const scene = sceneAvec('tonneau', 'S');
+    scene.entities = [{ ...scene.entities[0], light: { radiusM: 6 } } as Scene['entities'][number]];
     expect(mapLights(scene)[0].foyer).toBeUndefined();
     const lampe = lampeDe(scene);
     const mpt = sceneMetresPerTile(scene);

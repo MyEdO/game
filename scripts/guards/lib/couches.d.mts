@@ -17,7 +17,7 @@ export interface Couche {
   readonly paquetsDOutillage?: Readonly<Record<string, readonly string[]>>;
 }
 
-/** La surface du noyau : porte de `noyau`, seul module de `src/state/` et `src/noyau/` qui réexporte. */
+/** La surface du noyau : porte de `noyau`, seul module de `src/state/`, `src/noyau/` et `src/scenes/` qui réexporte. */
 export const SURFACE_DU_NOYAU: "src/noyau/index.ts";
 
 /** Les zones dont la production ne réexporte rien hors de la surface du noyau. */
@@ -51,6 +51,10 @@ export const RACINES_DES_ZONES: readonly string[];
 
 /** Les hôtes du noyau : les zones qui ne lisent le noyau que par sa porte. */
 export const HOTES_DU_NOYAU: readonly string[];
+
+/** La portée d'une garde de corpus : les dossiers des zones `survivent`, qui survivent à la bascule, puis ceux des zones
+ *  `web`, qui n'y survivent pas ; une zone hors de la table, `racine` ou du mauvais bord lève. */
+export function porteeDeGarde(survivent: readonly string[], web?: readonly string[]): readonly string[];
 
 /** La zone d'un chemin relatif à la racine du dépôt, `null` hors des zones ; sous `src/`, un sous-dossier sans ligne
  *  rend son dossier (`src/<segment>`), qui n'est jamais une zone. */

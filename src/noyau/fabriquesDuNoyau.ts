@@ -7,66 +7,94 @@ import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { JeuDuNoyau, MachinerieDuNoyau } from './machinerieDuNoyau';
 import type { Get, SetDesClesReservees } from './flowTypes';
 import { creerReglageDuJet, creerVerbesDeJet, type CloturesDuJet } from './rollFlowSpecs';
-import type { CorpsDesReglages } from './reglagesDuJet';
-import type { FlowKey, NomDeVerbeDeJet, RollVerb } from './flowVerbs';
-import { cloturesDuCombat, createCombatSlice, reglagesDuCombat, sortiesDuCombat, validationsDuCombat } from './combatSlice';
+import type { CorpsDesReglages, VerbeDeReglage } from './reglagesDuJet';
+import type { ActionDeJet, NomDeVerbeDeJet } from './flowVerbs';
+import type { Majuscule } from './intentionsDeSiege';
+import { choixDuCombat, cloturesDuCombat, createCombatSlice, reglagesDuCombat, sortiesDuCombat, validationsDuCombat } from './combatSlice';
 import { creerSortieDeFenetre, type SortiesDeFenetre } from './sortieDeFenetre';
 import { creerValidationDeFenetre, type ValidationsDeFenetre } from './validationDeFenetre';
+import { creerChoixDeFenetre } from './choixDeFenetre';
+import type { CorpsDesChoix } from './choixDesFenetres';
 import { creerActionsDuRegistre } from './actionRegistry';
 import { creerActionsDOrientation } from './orientation';
 import { creerActionsDeManoeuvre } from './shipManeuver';
 import { sortiesDuChapitre, validationsDuChapitre } from './chapitreRecap';
-import { creerActionsDeCampagne, sortiesDeCampagne } from './campagne';
+import { choixDeCampagne, creerActionsDeCampagne, sortiesDeCampagne } from './campagne';
 import { creerActionsDEntreeEnScene } from './entreeEnScene';
 import { cloturesDInterlude, creerActionsDInterlude, validationsDInterlude } from './interludeFlow';
 import { creerActionsDeBatailleDeMasse, sortiesDeBatailleDeMasse } from './massBattleFlow';
 import { creerActionsDesFaveurs } from './favorFlow';
-import { creerActionsDuGroupe, sortiesDuGroupe } from './partyFlow';
+import { choixDeLaFinDeSeance, creerActionsDuGroupe, sortiesDuGroupe, validationsDuGroupe } from './partyFlow';
 import { creerActionsDesPossessions } from './possessionsFlow';
 import { creerActionsDeMarche } from './marcheDuGroupe';
-import { cloturesDeFranchissement, creerActionsDeFranchissement } from './gesteDArete';
+import { cloturesDeFranchissement, creerActionsDeFranchissement, reglagesDeFranchissement } from './gesteDArete';
 import { creerActionsDInteraction } from './interactionsDExploration';
-import { creerActionsDeConversation } from './conversation';
-import { cloturesDuMarchand, creerActionsDuMarchand, sortiesDuMarchand, validationsDuMarchand } from './merchantFlow';
+import { choixDeConversation } from './conversation';
+import { choixDuMarchand, cloturesDuMarchand, creerActionsDuMarchand, sortiesDuMarchand, validationsDuMarchand } from './merchantFlow';
 import { creerActionsDeTaverne, sortiesDeLaTaverne } from './tavernFlow';
 import { creerActionsDesDes } from './battleRng';
-import { creerActionsDIssueDeCombat, sortiesDIssueDeCombat } from './issueDeCombat';
-import { cloturesDuMedecin, creerActionsDuMedecin, sortiesDuMedecin } from './medicFlow';
-import { creerActionsDuRepos, sortiesDuRepos, validationsDuRepos } from './restFlow';
-import { creerActionsDeLEquipage, sortiesDeLEquipage } from './shipCrew';
-import { creerActionsDesConsommables } from './consumableFlow';
+import { choixDuButin, creerActionsDIssueDeCombat, sortiesDIssueDeCombat } from './issueDeCombat';
+import { choixDuMedecin, cloturesDuMedecin, creerActionsDuMedecin, sortiesDuMedecin } from './medicFlow';
+import { choixDuRepos, creerActionsDuRepos, sortiesDuRepos, validationsDuRepos } from './restFlow';
+import { choixDeLEquipage, creerActionsDeLEquipage, sortiesDeLEquipage } from './shipCrew';
 import { cloturesDesTestsDeScene, creerActionsDesTestsDeScene, reglagesDesTestsDeScene } from './testsDeScene';
 import { cloturesDuLotDEtal } from './etalLotFlow';
-import { cloturesDeCorruption, reglagesDeCorruption } from './corruptionFlow';
+import { choixDeCorruption, cloturesDeCorruption, reglagesDeCorruption } from './corruptionFlow';
 import { creerActionsDuJournal } from './journal';
 import { creerActionsDAvanceeDHorloge, creerActionsDHorloge } from './horloge';
 import { creerActionsDuVoyage, sortiesDuVoyage, validationsDuVoyage } from './travelFlow';
+import { creerActionsDuLieu, sortiesDuLieu } from './lieuFlow';
 import { creerActionsDesPostesDeVoyage } from './travelPostes';
 import { creerActionsDuBillet } from './billetFlow';
 import { creerActionsDuPort, sortiesDuPort } from './portFlow';
-import { creerActionsDuVoyageEnMer } from './seaVoyageFlow';
+import { choixDuVoyageEnMer, creerActionsDuVoyageEnMer } from './seaVoyageFlow';
 import { creerActionsDuMarcheTerrestre, sortiesDuMarcheTerrestre } from './landMarketFlow';
+import { creerActionsDeLaCargaison } from './cargaison';
 import { creerActionsDeLAuberge } from './innFlow';
-import { creerActionsDesActivitesEnMer } from './seaActivities';
+import { choixDeLaSemaineEnMer, validationsDeLaSemaineEnMer } from './seaActivities';
 
-/** Les actions MANUSCRITES : aucune ne porte le nom d'un verbe de jet (`NomDeVerbeDeJet`) ni un nom `<flux><Verbe>`
- *  (clé de `FLOW_VERBS`, verbe de `RollVerb`) — un geste de jet est le verbe générique de son verbe, le flux en
- *  argument ; le verbe d'un flux s'ajoute à sa ligne de `FLOW_VERBS` et à sa spec, jamais à côté. Aucune ne porte non
- *  plus un nom de réglage d'un flux (`<flux>Set…`, `<flux>Toggle…`, `<flux>Alloc…`) : un jet se règle par `jetRegler`,
- *  le réglage déclaré dans `ReglagesDuJet` et son corps dans `reglagesDuJet`. Ni un nom de sortie de fenêtre
- *  (`close…`, `dismiss…`, `…Cancel`, `…Skip`) : une fenêtre se ferme par `fenetreFermer`, la fenêtre déclarée dans son
- *  registre (`sortie`) et son corps dans `sortiesDeFenetre` ; ni un nom de validation (`…Ready`) : une fenêtre se valide
- *  par `fenetreValider`, la fenêtre déclarée dans son registre (`validation`) et son corps dans `validationsDeFenetre`.
- *  Une telle clé ne compile pas.
- *  Toute fabrique manuscrite s'étale DANS cet appel : hors de lui, le verrou ne la voit pas. */
-type NomDeDelegue = `${FlowKey}${Capitalize<RollVerb>}` | NomDeVerbeDeJet
-  | `${FlowKey}${'Set' | 'Toggle' | 'Alloc'}${string}`
-  | `close${string}` | `dismiss${string}` | `${string}Cancel` | `${string}Skip` | `${string}Ready`;
-function horsDelegues<T extends object>(actions: T & { [K in Extract<keyof T, NomDeDelegue>]: 'geste de jet, réglage de jet, sortie ou validation de fenêtre : verbe générique' }): T {
-  return actions;
-}
+/** Les actions du lexique des verbes (#3371 §3.1) : un verbe manuscrit se nomme `<action>` ou `<action><Complément>`. */
+type ActionDuLexique = 'acheter' | 'actionner' | 'affecter' | 'affronter' | 'approvisionner' | 'armer' | 'attribuer' | 'avancer'
+  | 'carener' | 'ceder' | 'changer' | 'chercher' | 'cliquer' | 'commander' | 'creer' | 'debarquer' | 'depecer'
+  | 'depenser' | 'deplacer' | 'deposer' | 'desarmer' | 'designer' | 'dissiper' | 'ecrire' | 'effacer' | 'embarquer'
+  | 'engager' | 'entrainer' | 'epingler' | 'equiper' | 'evaluer' | 'fabriquer' | 'fixer' | 'focaliser' | 'fouiller'
+  | 'franchir' | 'garnir' | 'incanter' | 'installer' | 'jeter' | 'jouer' | 'lever' | 'marchander' | 'marquer'
+  | 'mener' | 'ouvrir' | 'partir' | 'payer' | 'pivoter' | 'poser' | 'pratiquer' | 'prendre' | 'promouvoir'
+  | 'quitter' | 'rallier' | 'ranger' | 'recruter' | 'recueillir' | 'recuperer' | 'refuser' | 'remiser'
+  | 'remplacer' | 'renommer' | 'renvoyer' | 'reparer' | 'reprendre' | 'restaurer' | 'retirer' | 'rompre'
+  | 'signaler' | 'soigner' | 'solder' | 'suivre' | 'supprimer' | 'transmettre' | 'troquer' | 'utiliser' | 'vendre';
+/** Les actions des verbes de fenêtre, `fenetre<Action>` (`VerbeDeChoix`, `fenetreValider`, `fenetreFermer`). */
+type ActionDeFenetre = 'choisir' | 'valider' | 'fermer';
 
-/** Le corps de la clôture de chaque flux, que seul `jetConfirm(flux)` appelle : un flux sans clôture ne compile pas. */
+/** Les noms du lexique : un verbe manuscrit, un verbe de jet ou de réglage de jet, un verbe de fenêtre. */
+type NomDeVerbe = NomDAction<ActionDuLexique>
+  | Extract<NomDeVerbeDeJet | keyof VerbeDeReglage, `jet${Capitalize<ActionDeJet>}${string}`>
+  | `fenetre${Capitalize<ActionDeFenetre>}`;
+
+/** Les actions propres à la machinerie (#3605) : une écriture du noyau se nomme dans le lexique des verbes ou par l'une
+ *  d'elles, chacune l'action d'un membre de `MachinerieDuNoyau`. Un verbe ne les prend pas. */
+type ActionDeLaMachinerie = ActionDuLexique | 'accorder' | 'aider' | 'ajouter' | 'amorcer' | 'annuler' | 'apprendre'
+  | 'asperger' | 'basculer' | 'chanter' | 'charger' | 'declencher' | 'denouer' | 'enfoncer' | 'ensemencer' | 'entrer'
+  | 'eprouver' | 'faire' | 'frapper' | 'gagner' | 'interagir' | 'lancer' | 'manoeuvrer' | 'mettre' | 'monter' | 'offrir' | 'orienter'
+  | 'pousser' | 'ramasser' | 'recharger' | 'relever' | 'remettre' | 'reposer' | 'sauter' | 'servir' | 'tenter' | 'terminer'
+  | 'tirer' | 'virer';
+
+/** Un nom formé sur les actions `A` : `<action>` ou `<action><Complément>`. */
+type NomDAction<A extends string> = A | `${A}${Majuscule}${string}`;
+/** Les noms de la machinerie : une action ou sa forme pronominale (`seRelever`), avec ou sans complément. */
+type NomDeMachinerie = NomDAction<ActionDeLaMachinerie> | `se${Capitalize<NomDAction<ActionDeLaMachinerie>>}`;
+
+/** `true` si et seulement si chaque nom de `Noms` est de `Lexique` ; sinon, les noms en faute. */
+type Verrou<Noms extends string, Lexique extends string> = [Exclude<Noms, Lexique>] extends [never] ? true : { horsLexique: Exclude<Noms, Lexique> };
+/** `true` si et seulement si `Noms` est du lexique des verbes ; sinon, les noms en faute. */
+export type VerrouDuLexique<Noms extends string> = Verrou<Noms, NomDeVerbe>;
+/** `true` si et seulement si `Noms` est du lexique de la machinerie ; sinon, les noms en faute. */
+export type VerrouDeLaMachinerie<Noms extends string> = Verrou<Noms, NomDeMachinerie>;
+/** VERROU : tout verbe du noyau se nomme dans le lexique des verbes, toute machinerie dans le sien. */
+const verrousDuLexique: [VerrouDuLexique<keyof ActionsDuNoyau>, VerrouDeLaMachinerie<keyof MachinerieDuNoyau>] = [true, true];
+void verrousDuLexique;
+
+/** Le corps de la clôture de chaque flux, que seul `jetValider(flux)` appelle : un flux sans clôture ne compile pas. */
 function cloturesDuJet(get: Get, set: SetDesClesReservees): CloturesDuJet {
   return {
     ...cloturesDuCombat(get, set),
@@ -85,9 +113,29 @@ function cloturesDuJet(get: Get, set: SetDesClesReservees): CloturesDuJet {
 function reglagesDuJet(get: Get, set: SetDesClesReservees): CorpsDesReglages {
   return {
     ...reglagesDuCombat(get, set),
+    ...reglagesDeFranchissement(get, set),
     ...reglagesDeCorruption(get, set),
     ...reglagesDesTestsDeScene(get, set),
   } satisfies CorpsDesReglages;
+}
+
+/** Le corps de chaque choix d'une fenêtre, que seul `fenetreChoisir(fenetre, axe, …)` appelle : un choix déclaré
+ *  (`ChoixDesFenetres`) sans corps ne compile pas. */
+function choixDesFenetres(get: Get, set: SetDesClesReservees): CorpsDesChoix {
+  return {
+    ...choixDuCombat(get, set),
+    ...choixDeCorruption(get, set),
+    ...choixDuMedecin(get, set),
+    ...choixDeConversation(get, set),
+    ...choixDeCampagne(get, set),
+    ...choixDeLEquipage(get, set),
+    ...choixDuVoyageEnMer(get, set),
+    ...choixDeLaSemaineEnMer(get, set),
+    ...choixDeLaFinDeSeance(get, set),
+    ...choixDuMarchand(get, set),
+    ...choixDuButin(get, set),
+    ...choixDuRepos(get, set),
+  } satisfies CorpsDesChoix;
 }
 
 /** Le corps de la sortie de chaque fenêtre qui se ferme, que seul `fenetreFermer` appelle : une fenêtre qui déclare sa
@@ -106,6 +154,7 @@ function sortiesDeFenetre(get: Get, set: SetDesClesReservees): SortiesDeFenetre 
     ...sortiesDuRepos(get, set),
     ...sortiesDeLEquipage(get, set),
     ...sortiesDuVoyage(get, set),
+    ...sortiesDuLieu(get, set),
     ...sortiesDuPort(get, set),
     ...sortiesDuMarcheTerrestre(get, set),
   } satisfies SortiesDeFenetre;
@@ -121,6 +170,8 @@ function validationsDeFenetre(get: Get, set: SetDesClesReservees): ValidationsDe
     ...validationsDuMarchand(get, set),
     ...validationsDuRepos(get, set),
     ...validationsDuVoyage(get, set),
+    ...validationsDeLaSemaineEnMer(get, set),
+    ...validationsDuGroupe(get, set),
   } satisfies ValidationsDeFenetre;
 }
 
@@ -132,46 +183,45 @@ export function creerActionsDuNoyau(get: Get<JeuDuNoyau>, set: SetDesClesReserve
     ...creerVerbesDeJet(get, set, cloturesDuJet(get, set)),
     // Le réglage d'un jet, le flux et le réglage en arguments : son SEUL écrivain.
     ...creerReglageDuJet(get, set, reglagesDuJet(get, set)),
+    // Le choix d'une fenêtre, la fenêtre et l'axe en arguments : son SEUL écrivain.
+    ...creerChoixDeFenetre(get, set, choixDesFenetres(get, set)),
     // La sortie d'une fenêtre, la fenêtre en argument : son SEUL écrivain.
     ...creerSortieDeFenetre(get, set, sortiesDeFenetre(get, set)),
     // La validation d'une fenêtre, la fenêtre en argument : son SEUL écrivain.
     ...creerValidationDeFenetre(get, set, validationsDeFenetre(get, set)),
-    ...horsDelegues({
-      ...createCombatSlice(get, set),
-      ...creerActionsDuRegistre(get),
-      ...creerActionsDOrientation(get, set),
-      ...creerActionsDeManoeuvre(get, set),
-      ...creerActionsDeCampagne(get, set),
-      ...creerActionsDEntreeEnScene(get, set),
-      ...creerActionsDInterlude(get, set),
-      ...creerActionsDeBatailleDeMasse(get, set),
-      ...creerActionsDesFaveurs(get, set),
-      ...creerActionsDuGroupe(get, set),
-      ...creerActionsDesPossessions(get, set),
-      ...creerActionsDeMarche(get, set),
-      ...creerActionsDeFranchissement(get, set),
-      ...creerActionsDInteraction(get, set),
-      ...creerActionsDeConversation(get, set),
-      ...creerActionsDuMarchand(get, set),
-      ...creerActionsDeTaverne(get, set),
-      ...creerActionsDesDes(get, set),
-      ...creerActionsDIssueDeCombat(get, set),
-      ...creerActionsDuMedecin(get, set),
-      ...creerActionsDuRepos(get, set),
-      ...creerActionsDeLEquipage(get, set),
-      ...creerActionsDesConsommables(get, set),
-      ...creerActionsDesTestsDeScene(get, set),
-      ...creerActionsDuJournal(get, set),
-      ...creerActionsDAvanceeDHorloge(get, set),
-      ...creerActionsDHorloge(get, set),
-      ...creerActionsDuVoyage(get, set),
-      ...creerActionsDesPostesDeVoyage(get, set),
-      ...creerActionsDuBillet(get, set),
-      ...creerActionsDuPort(get, set),
-      ...creerActionsDuVoyageEnMer(get, set),
-      ...creerActionsDuMarcheTerrestre(get, set),
-      ...creerActionsDeLAuberge(get, set),
-      ...creerActionsDesActivitesEnMer(get, set),
-    }),
+    ...createCombatSlice(get, set),
+    ...creerActionsDuRegistre(get, set),
+    ...creerActionsDOrientation(get, set),
+    ...creerActionsDeManoeuvre(get, set),
+    ...creerActionsDeCampagne(get, set),
+    ...creerActionsDEntreeEnScene(get, set),
+    ...creerActionsDInterlude(get, set),
+    ...creerActionsDeBatailleDeMasse(get, set),
+    ...creerActionsDesFaveurs(get, set),
+    ...creerActionsDuGroupe(get, set),
+    ...creerActionsDesPossessions(get, set),
+    ...creerActionsDeMarche(get, set),
+    ...creerActionsDeFranchissement(get, set),
+    ...creerActionsDInteraction(get, set),
+    ...creerActionsDuMarchand(get, set),
+    ...creerActionsDeTaverne(get, set),
+    ...creerActionsDesDes(get, set),
+    ...creerActionsDIssueDeCombat(get, set),
+    ...creerActionsDuMedecin(get, set),
+    ...creerActionsDuRepos(get, set),
+    ...creerActionsDeLEquipage(get, set),
+    ...creerActionsDesTestsDeScene(get, set),
+    ...creerActionsDuJournal(get, set),
+    ...creerActionsDAvanceeDHorloge(get, set),
+    ...creerActionsDHorloge(get, set),
+    ...creerActionsDuVoyage(get, set),
+    ...creerActionsDuLieu(get, set),
+    ...creerActionsDesPostesDeVoyage(get, set),
+    ...creerActionsDuBillet(get, set),
+    ...creerActionsDuPort(get, set),
+    ...creerActionsDuVoyageEnMer(get, set),
+    ...creerActionsDuMarcheTerrestre(get, set),
+    ...creerActionsDeLaCargaison(get, set),
+    ...creerActionsDeLAuberge(get, set),
   };
 }

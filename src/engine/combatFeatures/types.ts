@@ -23,7 +23,7 @@ export interface CombatFeatureCtx {
  * Une capacité de combat/de jeu conférée par un TALENT (LDB 10) — registre `defs/` généré
  * (gen-registry.mjs), même patron que `engine/qualities`. Chaque champ décrit UN effet écrit de la
  * source ; les helpers de `dispatch.ts` les agrègent et les consommateurs (combat.ts, combatFlow,
- * rollFlows, store) les appellent aux moments de jeu. `level` = nombre de fois pris (times).
+ * rollFlowSpecs, store) les appellent aux moments de jeu. `level` = nombre de fois pris (times).
  *
  * Les talents de CRÉATION (+5 carac., compétence/talent ajouté aux carrières, Blessures/Chance/
  * Détermination/Mouvement) restent pilotés par les données via `talentEffects.ts` (ops `GameOp`) ;
@@ -177,7 +177,7 @@ export interface CombatFeature {
   commandTeam?: boolean;
   /** Chanson de marin (MDG 09 l.32-40) : peut ENTONNER une chanson de marin connue (une spec du Talent =
    *  une chanson apprise, l.36) — Test de Divertissement (Chant), effet 3 min + DR sur tout l'équipage,
-   *  une seule chanson par quart. Lu par `shantySingers` (affordance) + `battleSingShanty` (state). */
+   *  une seule chanson par quart. Lu par `shantySingers` (affordance) + `chanterLaChanson` (state). */
   seaShanty?: boolean;
   /** Frappe blessante — variante « Nouveaux talents et talents mis à jour » (AA 13 l.57) : au lieu de
    *  Blessures supplémentaires (`critExtraWounds`), lance deux fois le tableau de Blessures Critiques et

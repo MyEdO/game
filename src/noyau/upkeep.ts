@@ -1,7 +1,7 @@
 /**
  * Entretien QUOTIDIEN du groupe (#T2/#T3) — source unique, anti-double-comptage.
  *
- * « Tout est horodaté » : chaque chemin qui avance l'horloge (advanceTime, repos, voyage) appelle
+ * « Tout est horodaté » : chaque chemin qui avance l'horloge (avancerLeTemps, repos, voyage) appelle
  * `runDailyUpkeep`, qui traite les FRANCHISSEMENTS DE JOUR entre `lastUpkeepDay` et le jour courant
  * — une journée n'est jamais comptée deux fois, quel que soit le chemin emprunté.
  *
@@ -32,7 +32,7 @@ import { dailyFoodUpkeep, dailyWaterUpkeep, feedFromMeal } from '../engine/provi
 import { testValue } from '../engine/skills';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { loseWounds, removeActiveEffects, syncDerivedConditions } from '../engine/conditions';
-import { type CharKey, type Difficulty, type UpkeepDeferTest, type NightTestKind } from '../engine/types';
+import { type Difficulty, type UpkeepDeferTest, type NightTestKind, type TestIds } from '../engine/types';
 import { rollStep } from './rollSeam';
 import type { ModLine } from '../engine/combat';
 import { dailyDiseaseUpkeep } from '../engine/rest';
@@ -77,7 +77,7 @@ export function purgeClockEffects(get: Get, set: Set): string[] {
     // de conscience de LDB 20 l.170 (Détermination) se referme ICI — l'État repart par la réconciliation.
     expiredLog.push(...syncDerivedConditions(h));
   }
-  if (expiredLog.length) { set({ party: [...get().party] }); get().log(expiredLog); }
+  if (expiredLog.length) { set({ party: [...get().party] }); get().ecrireAuJournal(expiredLog); }
   return expiredLog;
 }
 
@@ -86,7 +86,7 @@ export function purgeClockEffects(get: Get, set: Set): string[] {
 const dissipationsDHorloge: string[] = [];
 
 /** Purge d'horloge tirée par la COUTURE UNIQUE de l'avance du temps : tout chemin qui la signale
- *  (`avancerLHorloge`, écrivain unique de `gameTime` : advanceTime, repos, voyages terrestre, fluvial et en
+ *  (`avancerLHorloge`, écrivain unique de `gameTime` : avancerLeTemps, repos, voyages terrestre, fluvial et en
  *  mer, chantier naval) dissipe ce qui est échu, y compris ceux qui n'appellent PAS `runDailyUpkeep` (le voyage terrestre et la journée de
  *  mer diffèrent l'entretien à la cascade de nuit). Les lignes attendent le prochain bilan. */
 export function purgeSurAvanceDHorloge(get: Get, set: Set): void {
@@ -96,7 +96,7 @@ export function purgeSurAvanceDHorloge(get: Get, set: Set): void {
 /** Purge les effets « pour la prochaine aventure » (`ActiveEffect.duration.scale === 'adventure'` —
  *  LDB 23 l.209/218/234 : Entraînement au Combat, Observer une cible, Réputation) : la borne « fin
  *  d'aventure » n'a pas d'échéance chiffrable à la pose — elle est la PROCHAINE ouverture d'interlude
- *  (`startInterlude`, seul appelant). RENVOIE les dissipations (journalisées par l'appelant). */
+ *  (`ouvrirLInterlude`, seul appelant). RENVOIE les dissipations (journalisées par l'appelant). */
 export function purgeAdventureEffects(get: Get, set: Set): string[] {
   const expiredLog: string[] = [];
   for (const h of get().party) {
@@ -105,13 +105,13 @@ export function purgeAdventureEffects(get: Get, set: Set): string[] {
     for (const e of fx) expiredLog.push(t('upkeep.fadesAdventure', { name: h.label, what: e.label }));
     expiredLog.push(...porte);
   }
-  if (expiredLog.length) { set({ party: [...get().party] }); get().log(expiredLog); }
+  if (expiredLog.length) { set({ party: [...get().party] }); get().ecrireAuJournal(expiredLog); }
   return expiredLog;
 }
 
 /** Traite les journées écoulées depuis le dernier entretien (rations/faim, maladies, convalescence)
  *  + purge des effets d'horloge. No-op (hors purge) si aucun franchissement de jour. Appelé par
- *  advanceTime, le repos (`opts.caredFor` = un soignant Guérison veille le groupe) et le voyage.
+ *  avancerLeTemps, le repos (`opts.caredFor` = un soignant Guérison veille le groupe) et le voyage.
  *  RENVOIE les lignes du bilan : chaque appelant les AFFICHE (révélation témoin / bilan de nuit /
  *  recap de voyage) — le journal seul ne suffit pas (personne ne le lit). */
 /** Un Test de Résistance d'entretien DIFFÉRÉ, prêt à devenir une étape de cascade de nuit. */
@@ -128,7 +128,7 @@ export interface DeferredUpkeepTest {
   base: number;
   /** Ids du Test (`UpkeepDeferTest.test`) quand le producteur les porte — la base est alors le Niveau
    *  de Compétence NU et le libellé de compétence de l'étape s'en DÉRIVE (`testSkillLabel`). */
-  test?: { skill?: string; char?: CharKey; spec?: string };
+  test?: TestIds;
   /** Difficulté DÉCLARÉE du Test (comprise dans `target`) — la ligne de jet la DIT (#1112). */
   difficulty: Difficulty;
   /** Modificateurs NOMMÉS compris dans `target` (Faim/Soif : « -10 % de plus pour chaque Test », LDB 18 l.338). */
@@ -186,19 +186,19 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
           });
         };
       // 1. Nourriture (LDB 18 l.337-343).
-      const r = dailyFoodUpkeep(h, testValue(h, 'resistance', 'endurance'), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
+      const r = dailyFoodUpkeep(h, testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' }), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
       if (r.rationConsumed) rations++;
       if (r.damage > 0) loseWounds(h, r.damage);
       lines.push(...r.log);
       // 1bis. Eau / Soif (LDB 18 l.340) — accès à l'eau calculé plus haut (`hasWater`).
-      const w = dailyWaterUpkeep(h, hasWater, testValue(h, 'resistance', 'endurance'), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
+      const w = dailyWaterUpkeep(h, hasWater, testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' }), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
       if (w.damage > 0) loseWounds(h, w.damage);
       lines.push(...w.log);
       // 1ter. Dessoûlage (LDB 09 l.485) : une nuit sans boire dégrise. Deux Tests de Résistance à l'alcool
       //       Intermédiaires fixent la dissipation (10−DR h) et la gueule de bois (Exténué 5−DR h, horloge).
       if (h.drunk) {
-        const alcool = { skill: 'resistance-a-l-alcool', char: 'endurance' } as const;
-        const alc = testValue(h, alcool.skill, alcool.char);
+        const alcool = { skill: { id: 'resistance-a-l-alcool' }, characteristic: 'endurance' } as const;
+        const alc = testValue(h, alcool);
         // DIFFÉRÉ comme ses voisins (faim/soif) : le Test de Résistance à l'alcool est une étape de
         // cascade, jamais un jet roulé ici (sinon pré-résolu).
         defer({ kind: 'dessoulage', label: t('upkeep.sobering'), base: alc, test: alcool, difficulty: 'intermediaire' });
@@ -234,7 +234,7 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
   // recalcule qu'au franchissement de semaine). #216.
   set({ lastUpkeepDay: today, party: [...party] }); // persiste faim/eau/maladies/convalescence AVANT le débit des gages
   lines.push(...tickCampaignVesselWeek(get, set, today, battleRng())); // débite les bourses PAR-DESSUS (lit get().party à jour)
-  get().log(lines);
+  get().ecrireAuJournal(lines);
   if (lines.length) bus.emit(EVT.SCENE_DIRTY);
   return [...purged, ...lines]; // les dissipations du jour font partie du bilan affiché
 }

@@ -14,20 +14,20 @@
  */
 import { Scene, tileAt, heightAt, porteNonSecrete, sceneMetresPerTile, wallEnds, type ArchitectureRect } from '../../noyau/monde/scene';
 import { roofHidden, massFootBBox } from '../../noyau/monde/buildings';
-import { effectiveArchitecture } from '../../noyau/sceneEdit';
+import { DEFAUTS_D_OUVERTURE, effectiveArchitecture } from '../../noyau/sceneEdit';
 import { decorAncre, decorFootGeometry } from '../../noyau/monde/footprint';
 import { findPropById, refEstVolumique } from '../../data';
-import { buildPropVolumes } from './propVolumes';
+import { facesDuDecor } from '../../noyau/monde/volume/propVolumes';
 import { terrainOverlayProp } from '../../noyau/monde/terrain';
 import { buildingFeatures } from '../../noyau/monde/buildings';
-import { facadeFeatureViz } from '../catalog/facades';
-import { WALL_H_M } from '../iso';
+import { edgeKey, facadeFeatureViz } from '../../noyau/monde/facades';
+import { WALL_H_M } from '../../noyau/monde/iso';
 import { capVolumique, empreinteDuProp } from '../../data/props.types';
-import type { Dir4, Dir8 } from '../../geometry/dir8';
-import { edgeKey, fieldHeightAt, nappeKey, resolveNappes, WALL_NB, type RoofField, type RoofShapeSpec } from './roofs';
-import type { FloorView } from './floors';
+import { DIR8_DELTA, type Dir4, type Dir8 } from '../../geometry/dir8';
+import { fieldHeightAt, nappeKey, resolveNappes, WALL_NB, type RoofField, type RoofShapeSpec } from '../../noyau/monde/volume/toits';
+import type { FloorView } from '../../noyau/monde/volume/floors';
 import type { PropEl, OrigineDecor } from './types';
-import { CARD_NB, outwardSide } from './walls';
+import { outwardSide } from './walls';
 
 /** La scène porte-t-elle AU MOINS un décor volumique désignable ? Ce que le pointeur demande pour
  *  savoir si une face du monde peut nommer une entité sous le pixel — seul un décor d'ENTITÉ porte un
@@ -68,7 +68,7 @@ interface AncrageDecorBase {
  *  d'un décor. La règle elle-même vit dans le CATALOGUE (`refEstVolumique`, `src/data/index.ts`) — cet
  *  émetteur la LIT, comme la lisent le validateur de scène (`noyau/validateScene.ts`) et le sélecteur
  *  d'orientation de l'éditeur (`ui/editor/Inspector.tsx`) ; aucun d'eux ne la redevine. Volume = la
- *  recette compilée sur l'ancre (`buildPropVolumes`) ; billboard = le dessin ancré aux pieds, décalé de
+ *  recette compilée sur l'ancre (`facesDuDecor`) ; billboard = le dessin ancré aux pieds, décalé de
  *  `ancre − cell`. Les deux portent la MÊME identité, la même empreinte et les mêmes vérités de scène. */
 function elDeDecor(a: AncrageDecor, mpt: number): PropEl {
   const origine: OrigineDecor = a.source === 'entity'
@@ -82,27 +82,26 @@ function elDeDecor(a: AncrageDecor, mpt: number): PropEl {
     states: a.states,
     ...origine,
   };
-  const prop = !a.sansVolume && refEstVolumique(a.ref) ? findPropById(a.ref) : undefined;
-  const facing = prop?.volume ? capVolumique(a.facing) : undefined;
-  if (a.ref !== undefined && prop?.volume && facing) {
+  const faces = a.sansVolume ? null : facesDuDecor(a.ref, {
+    ancre: a.ancre,
+    ...(a.facing ? { facing: a.facing } : {}),
+    baseHeightM: a.solM + (a.liftM ?? 0),
+    ...(a.entId ? { entId: a.entId } : {}),
+  }, mpt);
+  if (faces) {
     return {
       ...commun,
-      ref: a.ref,
-      facing,
+      ref: a.ref!,
+      facing: capVolumique(a.facing)!,
       ...(a.nappe ? { nappe: a.nappe } : {}),
       ...(a.roomZoneIds?.length ? { roomZoneIds: a.roomZoneIds } : {}),
-      faces: buildPropVolumes(prop, {
-        ancre: a.ancre,
-        facing,
-        baseHeightM: a.solM + (a.liftM ?? 0),
-        ...(a.entId ? { entId: a.entId } : {}),
-      }, mpt),
+      faces,
     };
   }
   return {
     ...commun,
     // Cap refusé d'un décor volumique (`capVolumique`) : billboard d'ERREUR (#877), jamais son art.
-    ...(prop?.volume ? { ref: undefined } : {}),
+    ...(!a.sansVolume && refEstVolumique(a.ref) ? { ref: undefined } : {}),
     ...(a.facing ? { facing: a.facing } : {}),
     ...(a.architectureFeatureId ? { architectureFeatureId: a.architectureFeatureId } : {}),
     foot: { offX: a.ancre.x - a.cell.x, offY: a.ancre.y - a.cell.y, scale: a.echelle ?? 1 },
@@ -193,7 +192,7 @@ export function buildProps(scene: Scene, visible?: ReadonlySet<string>, view?: F
         const viz = facadeFeatureViz(section.appearance, feature.kind);
         if (!viz) continue;
         emittedFeatures.add(featureId);
-        const offset = feature.offset ?? 0.5;
+        const offset = feature.offset ?? DEFAUTS_D_OUVERTURE.offset;
         const [a, b] = wallEnds(edge);
         const ancre = {
           x: a.x + (b.x - a.x) * offset,
@@ -296,7 +295,7 @@ export function buildProps(scene: Scene, visible?: ReadonlySet<string>, view?: F
         // large — son billboard, dessiné à plat sur la case, mordrait sinon cette profondeur de mur — et
         // pend en haut de la façade ; l'ÉTAL reste plaqué au sol devant la porte. Les deux tournés vers
         // l'EXTÉRIEUR (face à qui approche).
-        const [ox, oy] = CARD_NB[door.facing];
+        const { gx: ox, gy: oy } = DIR8_DELTA[door.facing];
         const facade = feat.anchor === 'facade';
         out.push(elDeDecor({
           ...base,

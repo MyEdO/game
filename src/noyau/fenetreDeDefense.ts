@@ -2,12 +2,13 @@
  * LA FENÊTRE DE DÉFENSE EN DONNÉES (#2928) — ce que la fenêtre de la Défense surfacée montre autour de ses lignes de
  * jet, lu de l'état : qui attaque qui et avec quelle arme, le Test de la réaction choisie et son jet avant le dé, ses
  * choix (la réaction, l'arme de parade, la réaction de Porte-Bouclier, la Riposte), chacun nommant le verbe qui le
- * règle (`reglages.ts`), et l'issue du coup. Lecteur PUR, partagé par l'écran web (`ui/jetProps/useDefenseJetProps.tsx`) et par tout hôte
+ * règle (`reglages.ts`), et l'issue du coup. Lecteur PUR, partagé par l'écran de défense et par tout hôte
  * qui lit la partie sans écran.
  */
 import type { Jeu } from './etat';
 import type { Combatant, Weapon } from '../engine/types';
 import { inBattleId } from './monde/combatants';
+import { spendableAdvantage } from './combat/advantagePool';
 import { defenseSubOf, parryWeaponOf } from './rollFlowSpecs';
 import { ligneDeDefense } from './combatFlow';
 import { defenseDodgeMods } from './mount';
@@ -94,7 +95,7 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
     if (res) return genre === 'damage' && !gagnee ? t('defense.refus.degatsSansDefenseGagnee') : jetLance;
     if (pd.shieldReaction === genre) return null;
     if (defenseur.usedShieldReactionRound) return t('defense.refus.bouclierUtilise');
-    const avantage = defenseur.advantage ?? 0;
+    const avantage = spendableAdvantage(battle, defenseur);
     return avantage < coutDuBouclier ? t('defense.refus.avantages', { cout: coutDuBouclier, nom: defenseur.label, avantage }) : null;
   };
   // LDB 10 l.1037

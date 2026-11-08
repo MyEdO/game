@@ -1,15 +1,19 @@
 /**
- * #3253 — ce que porte un combattant (`porteeDuCombattant`) : sa race de rendu, sa tête, ses armes tenues puis rangées,
- * les objets équipés qu'un ensemble habille et son emblème, par le même assembleur d'objet qu'une composition. Les
- * attendus se lisent au catalogue, jamais recopiés.
+ * #3253, #3456 — ce que porte un combattant (`porteeDuCombattant`) : sa race de rendu, sa tête, ses armes tenues puis
+ * rangées, les objets équipés qui revêtent des pièces, son armure (équipée, sinon de statbloc déclarée portée), la teinte
+ * de ses objets, la tenue de sa carrière et son emblème, par le même assembleur d'objet qu'une composition. Les attendus
+ * se lisent au catalogue, jamais recopiés.
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { porteeDuCombattant } from './combattant';
-import { facteursDeComposition } from './composition';
+import { facteursDeComposition, porteesDeLaTenue } from './composition';
 import { piecesDEnsemble } from './gardeRobe';
 import { createHero } from '../../engine/character';
 import { itemFromGive, loadoutCreate, loadoutSetActive, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
-import { findCreatureById, findSpeciesById, findTrappingById, raceAppearance } from '../../data';
+import { findCreatureById, findGroupeDArmureById, findPlanDEspeceById, findSpeciesById, findTenueDeCarriere, findTrappingById, piecesCouvrant, piecesDeLObjet, raceAppearance, weaponGroups, type GroupeDArmure } from '../../data';
+import { findTierEntry } from '../../engine/tables';
+import { resetData, setDataset } from '../../data/overrides';
+import { localisationsDeLoc } from '../../engine/classementDeTrait';
 import { spawnEnemy } from '../monde/spawn';
 import { ficheDEntite } from '../monde/sceneNpc';
 import type { Combatant, ItemInstance } from '../../engine/types';
@@ -37,6 +41,21 @@ function herosArme(tenue: string, rangee: string): Combatant {
 
 const creature = (id: string): Combatant => spawnEnemy({ presetCreature: findCreatureById(id)!, presetId: id }, `${id}-1`, { x: 0, y: 0 });
 
+/** Un héros d'une carrière sans tenue, qui porte `items`. */
+const herosVetu = (...items: ItemInstance[]): Combatant => ({ ...heros({ careerId: 'agitateur' }), items });
+
+const equipe = (trappingId: string): ItemInstance => ({ ...objet(trappingId), equipped: true });
+
+/** Les pièces portées de `c`, chacune par l'id de l'objet qui l'apporte et sa teinte. */
+const pieces = (c: Combatant) =>
+  porteeDuCombattant(c)!.portees.flatMap((p) => (p.cle.champ === 'piece' ? [{ piece: p.cle.id, par: p.par?.id, ...(p.teinte ? { teinte: p.teinte } : {}) }] : []));
+
+/** `weaponGroups.json` où chaque Groupe d'armure a pour teinte `teintes[id]`. */
+const teindreLesGroupes = (teintes: Record<string, string>) =>
+  setDataset('weaponGroups', weaponGroups.map((g) => (g.kind === 'armour' && teintes[g.id] ? { ...g, teinte: { id: teintes[g.id] } } : g)));
+
+afterEach(() => resetData());
+
 describe('porteeDuCombattant', () => {
   it('un héros d’espèce jouable : la race de rendu de son espèce (`refChar`), la tête de cette race et ses facteurs', () => {
     const race = raceAppearance.find((r) => r.id === findSpeciesById(REIKLANDER)!.refChar)!;
@@ -53,6 +72,13 @@ describe('porteeDuCombattant', () => {
     expect(porteeDuCombattant(creature('cheval'))).toBeNull();
   });
 
+  it('une créature prend la base humanoïde à la race que le plan de bestiaire donne à son espèce (#2993)', () => {
+    const race = findPlanDEspeceById(findCreatureById('gor')!.appearance.species)!.race!.id;
+    expect(race).not.toBe('gor');
+    expect(porteeDuCombattant(creature('gor'))!.portees[0].cle).toEqual({ champ: 'tete', id: race });
+    expect(porteeDuCombattant(creature('gor'))!.facteurs).toEqual(facteursDeComposition(undefined, raceAppearance.find((r) => r.id === race)!));
+  });
+
   it('l’arme tenue porte sa forme à sa main, l’arme rangée au rangement de son trapping', () => {
     const { portees } = porteeDuCombattant(herosArme('arme-simple', 'dague'))!;
     expect(portees.filter((p) => p.cle.champ === 'apparence').map(({ cle, point }) => [cle.id, point])).toEqual([
@@ -62,12 +88,65 @@ describe('porteeDuCombattant', () => {
   });
 
   it('un objet équipé qu’un ensemble habille apporte les pièces de l’ensemble', () => {
-    const c = heros();
-    c.items = [{ ...objet('heaume'), equipped: true }];
-    const { portees } = porteeDuCombattant(c)!;
-    expect(portees.filter((p) => p.par?.id === 'heaume').map((p) => p.cle)).toEqual(
-      piecesDEnsemble({ type: 'trapping', id: 'heaume' }).map((id) => ({ champ: 'piece', id })),
-    );
+    expect(pieces(herosVetu(equipe('gants')))).toEqual(piecesDEnsemble({ type: 'trapping', id: 'gants' }).map((piece) => ({ piece, par: 'gants' })));
+  });
+
+  it('une armure équipée revêt les pièces qui couvrent ses localisations, à la teinte de son Groupe d’armure', () => {
+    const veste = findTrappingById('veste-de-cuir')!;
+    teindreLesGroupes({ [veste.subType!]: 'shyish' });
+    const attendues = piecesCouvrant(localisationsDeLoc(veste.loc));
+    expect(attendues.length).toBeGreaterThan(1);
+    expect(pieces(herosVetu(equipe('veste-de-cuir')))).toEqual(attendues.map((piece) => ({ piece, par: 'veste-de-cuir', teinte: 'shyish' })));
+  });
+
+  it('la teinte de l’objet passe avant celle de son Groupe d’armure', () => {
+    teindreLesGroupes({ [findTrappingById('veste-de-cuir')!.subType!]: 'shyish' });
+    expect(pieces(herosVetu({ ...equipe('veste-de-cuir'), teinte: 'aethyrique' })).map((p) => p.teinte)).toEqual(piecesDeLObjet('veste-de-cuir').map(() => 'aethyrique'));
+  });
+
+  it('une pièce que revêtent deux armures est celle de la couche du dessus', () => {
+    const [dessous, dessus] = ['veste-de-cuir', 'chemise-de-mailles'].sort((a, b) => findGroupeDArmureById(findTrappingById(a)!.subType)!.couche - findGroupeDArmureById(findTrappingById(b)!.subType)!.couche);
+    const communes = piecesDeLObjet(dessus).filter((p) => piecesDeLObjet(dessous).includes(p));
+    expect(communes.length).toBeGreaterThan(0);
+    const portees = pieces(herosVetu(equipe(dessous), equipe(dessus)));
+    for (const piece of communes) expect(portees.filter((p) => p.piece === piece)).toEqual([{ piece, par: dessus }]);
+  });
+
+  it('l’arme teintée porte sa teinte', () => {
+    const { portees } = porteeDuCombattant(herosArme('arme-simple', 'dague'))!;
+    expect(portees.every((p) => p.teinte === undefined)).toBe(true);
+    const c = herosArme('arme-simple', 'dague');
+    c.items = c.items!.map((i) => (i.uid === 'arme-simple' ? { ...i, teinte: 'aethyrique' } : i));
+    recomputeLoadout(c);
+    expect(porteeDuCombattant(c)!.portees.find((p) => p.point === 'main')?.teinte).toBe('aethyrique');
+  });
+
+  it('une armure de statbloc déclarée portée revêt les pièces des localisations à PA, à la teinte du Groupe de leur palier', () => {
+    const c = creature('helmut-beckenbauer');
+    expect(c.items?.some((i) => i.equipped && i.kind === 'armor')).toBeFalsy();
+    const locs = (Object.keys(c.armour) as (keyof typeof c.armour)[]).filter((l) => c.armour[l] > 0);
+    expect(locs.length).toBeGreaterThan(0);
+    const palier = findTierEntry(weaponGroups.filter((g): g is GroupeDArmure & { seuil: number } => g.kind === 'armour' && g.seuil !== undefined), c.armour.corps)!;
+    teindreLesGroupes({ [palier.id]: 'ardente-de-rhuin' });
+    expect(pieces(c)).toEqual(piecesCouvrant(locs).map((piece) => ({ piece, par: undefined, teinte: 'ardente-de-rhuin' })));
+  });
+
+  it('sans `armurePortee`, ni PA ni armure ne revêtent de pièce ; une armure équipée passe avant celle du statbloc', () => {
+    const c = creature('helmut-beckenbauer');
+    expect(pieces({ ...c, appearanceOverride: { ...c.appearanceOverride, armurePortee: false } })).toEqual([]);
+    expect(pieces({ ...c, items: [equipe('heaume')] })).toEqual(piecesDeLObjet('heaume').map((piece) => ({ piece, par: 'heaume' })));
+  });
+
+  it('la tenue de sa carrière, après ce qu’il porte : une pièce déjà revêtue ne l’est pas deux fois', () => {
+    const tenue = findTenueDeCarriere('soldat')!;
+    const uniforme = porteesDeLaTenue(tenue.id).map((p) => p.cle.id);
+    expect(pieces({ ...heros(), items: [] }).map((p) => p.piece)).toEqual(uniforme);
+    const gants: readonly string[] = piecesDEnsemble({ type: 'trapping', id: 'gants' });
+    expect(pieces({ ...heros(), items: [equipe('gants')] })).toEqual([
+      ...gants.map((piece) => ({ piece, par: 'gants' })),
+      ...uniforme.filter((p) => !gants.includes(p)).map((piece) => ({ piece, par: tenue.id })),
+    ]);
+    expect(pieces(herosVetu())).toEqual([]);
   });
 
   it('l’emblème est celui de l’apparence d’auteur', () => {

@@ -3,7 +3,7 @@
  *
  * Une entrée porte la couverture de référence du type et les ornements d'identité que le rendu émet
  * en billboard. Le bâtiment réel est fait de murs d'arête (`WallSeg`) sur un sol de terrain, sa nappe
- * de toit venant du pivot `gameIso/builders/roofs.ts`.
+ * de toit venant du pivot `noyau/monde/volume/toits.ts`.
  *
  * Le fichier porte UNE forme d'entrée (schéma `schemas/defs/buildings.ts`) : le handle de la
  * fabrique scelle ses nœuds (`z.infer` vaut `unknown`), aucun type n'est dérivé du schéma — la vue
@@ -28,6 +28,6 @@ export interface BuildingDef {
   maison: string;
   /** Couverture de référence du type (id de `materials.json`, domaine `roof`). */
   roofMaterial: string;
-  /** Ornements d'identité posés en billboard par `gameIso/builders/props.ts`. Absent = bâtiment sobre. */
+  /** Ornements d'identité que le rendu pose en billboard. Absent = bâtiment sobre. */
   features?: BuildingFeature[];
 }

@@ -1,5 +1,5 @@
 /**
- * Vision — moteur PUR de visibilité & champ de lumière (brouillard de guerre). Vit en `state`
+ * Vision — moteur PUR de visibilité & champ de lumière (brouillard de guerre). Vit au noyau
  * (couplé à `Scene`, comme `lineOfSight.ts`) ; aucune dépendance au store/RNG → testable.
  *
  * Un viewer voit une case si la Ligne de Vue n'est pas bloquée (murs/décor/fumée via
@@ -47,12 +47,12 @@ export interface LightSource {
   srcId?: string;
   /** La source est-elle PORTÉE par un sujet qui se déplace (lanterne, sort de Lumière) plutôt que POSÉE
    *  sur la carte (brasero, torche murale) ? Le rendu s'en sert pour arbitrer un budget de lampes
-   *  saturé : le décor de la scène garde ses flaques, les porteurs remplissent le reste
-   *  (`gameIso/stage/stagePointLights.ts`). Absent = posée. */
+   *  saturé : le décor de la scène garde ses flaques, les porteurs remplissent le reste.
+   *  Absent = posée. */
   carried?: boolean;
   /** TON de la source (#1245, L4) : id d'un `lightTones` — APPARENCE seule (couleur, part d'intensité,
    *  vacillement). Le champ de lumière mécanique l'IGNORE : il ne connaît que le rayon (LDB 74) ; seul
-   *  le rendu le résout (`gameIso/stage/stagePointLights.ts`). Absent = `flamme`. */
+   *  le rendu le résout. Absent = `flamme`. */
   tone?: string;
   /** FOYER de la source, RELATIF à `pos` : le centre de la primitive que la recette du décor déclare
    *  émettrice (`PropPrimitive.emet`, `data/props.types.ts`). `x`/`y` en CASES, `h` en MÈTRES au-dessus
@@ -64,7 +64,7 @@ export interface LightSource {
    *  Comme le `tone`, le champ de lumière MÉCANIQUE l'ignore : le couvert et la portée se comptent en
    *  cases depuis `pos`, et un décalage sous-métrique dans la case n'y change rien. Seul le RENDU le
    *  lit. Absent = la source n'a pas de primitive déclarée (billboard, lampe portée) : le rendu applique
-   *  alors sa hauteur par défaut (`FLAME_LIFT_M`). */
+   *  alors sa hauteur par défaut (`FLAME_LIFT_M`, `noyau/lumiereDeLaScene.ts`). */
   foyer?: { x: number; y: number; h: number };
 }
 
@@ -218,17 +218,17 @@ export function mapLights(scene: Scene): LightSource[] {
  * Il se compose EXACTEMENT comme la géométrie, et depuis les MÊMES deux sources qu'elle :
  *  - l'ANCRE du décor (`decorAncre`, `noyau/monde/footprint.ts`) — le centre de son empreinte EFFECTIVE
  *    (`empreinteDuProp`, corps tourné depuis #1509), que
- *    `gameIso/builders/props.ts` lit pour poser la recette ; une empreinte 2×2 la décale d'une
+ *    le rendu lit pour poser la recette ; une empreinte 2×2 la décale d'une
  *    demi-case sur chaque axe, et une lampe calée sur `pos` seul s'en détacherait de 1,414 m ;
  *  - la ROTATION au cap de l'instance (`rotatePropLocal`, `data/props.types.ts`), l'unique définition
  *    de ce que `SceneEntity.facing` fait subir à une géométrie de décor.
  * Aucun des deux n'est recalculé ici : un second calcul d'offset divergerait au premier changement
  * d'ancrage, et c'est précisément ce que ce foyer ne doit pas pouvoir faire.
  *
- * Rien à rendre sans recette ou sans `emet` : la source garde alors le défaut du rendu. PUR.
+ * Rien à rendre sans type résolu ou sans `emet` : la source garde alors le défaut du rendu. PUR.
  */
 function foyerDe(prop: PropData | undefined, pos: Pt, facing: Dir8 | undefined, mpt: number): { foyer?: LightSource['foyer'] } {
-  const emettrice = prop?.volume?.primitives.find((p) => p.emet);
+  const emettrice = prop?.volume.primitives.find((p) => p.emet);
   if (!emettrice) return {};
   const ancre = decorAncre(pos, empreinteDuProp(prop, facing, mpt));
   const [x, y] = rotatePropLocal(emettrice.center.xM / mpt, emettrice.center.yM / mpt, facing ?? CAP_IDENTITE_PROP);

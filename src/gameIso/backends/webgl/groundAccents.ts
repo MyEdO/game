@@ -26,7 +26,7 @@ import { hash32, seedStream } from '../../../data/hash';
 import type { DetailRecipe } from '../../../data/materials.types';
 import { terrainDetail } from '../../../noyau/monde/terrain';
 import type { LectureDArete, Scene } from '../../../noyau/monde/scene';
-import type { Vec3 } from './worldTris';
+import type { Vec3 } from '../../../noyau/monde/volume/worldTris';
 import type { SceneEl } from '../../builders/types';
 import { worldFaces, type KeepEl, type TintAt } from './sceneMeshes';
 
@@ -95,7 +95,14 @@ export interface SceneGroundAccent extends GroundAccent {
   el: SceneEl;
 }
 
-/** Accents de toute la scène : les faces de TERRAIN NU (`domain === 'terrain'` sans `part` — la même
+/** La face couvre-t-elle sa case entière, à plat ? Une case en marches ou en pente (`noyau/monde/volume/pente.ts`)
+ *  n'a pas de nappe. */
+export function dalleDeCase(poly: readonly { x: number; y: number; h: number }[]): boolean {
+  const etendue = (v: number[]) => Math.max(...v) - Math.min(...v);
+  return poly.every((p) => p.h === poly[0].h) && etendue(poly.map((p) => p.x)) >= 1 && etendue(poly.map((p) => p.y)) >= 1;
+}
+
+/** Accents de toute la scène : les dalles de TERRAIN NU (`domain === 'terrain'` sans `part` — la même
  *  porte) portant une recette d'accent, chacune semée à
  *  l'identité de SA case. INVARIANT à la visibilité ET au dégagement, comme le bake du monde
  *  (`bakeWorldGeometry`) : le semis coûte 12,1 ms sur l'arène (mesuré #1176) et ne se rejoue qu'à la
@@ -105,7 +112,7 @@ export function sceneGroundAccents(scene: Scene, mpt: number, lecture: LectureDA
   const out: SceneGroundAccent[] = [];
   for (const wf of worldFaces(scene, lecture)) {
     const m = wf.face.material;
-    if (m.domain !== 'terrain' || m.part) continue;
+    if (m.domain !== 'terrain' || m.part || !dalleDeCase(wf.face.poly)) continue;
     const recipe = terrainDetail(m.id);
     if (!recipe) continue;
     for (const a of tileGroundAccents(recipe, wf.cell, wf.face.poly[0].h, mpt)) out.push({ ...a, el: wf.el });

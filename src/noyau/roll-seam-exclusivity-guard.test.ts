@@ -190,7 +190,7 @@ describe('garde-fou « seam de jet » — exclusivité de rollTest/d100/TestOutc
   });
 
   it('(M) ne blanchit pas un Test déguisé : un d100 qui nourrit une valeur de Test reste une violation', () => {
-    const deguise = "const sl = Math.floor(testValue(c, 'perception') / 10) - Math.floor(d100(rng) / 10);";
+    const deguise = "const sl = Math.floor(testValue(c, { skill: { id: 'perception' } }) / 10) - Math.floor(d100(rng) / 10);";
     expect(scanRollSeamExclusivity('src/state/x.ts', deguise).length).toBe(1);
   });
 
@@ -248,7 +248,7 @@ describe('garde-fou « seam de jet » — exclusivité de rollTest/d100/TestOutc
 
   it('pré-filtre : les formes espacées/multilignes/génériques passent la garde ET sont détectées', () => {
     const formes: [string, string][] = [
-      ['C1b d100 espacé', "const t = rollTest(1,'moyen',rng);\nconst r = d100 (rng);\nconst dr = Math.floor(testValue(c,'x')/10) - Math.floor(r/10);"],
+      ['C1b d100 espacé', "const t = rollTest(1,'moyen',rng);\nconst r = d100 (rng);\nconst dr = Math.floor(testValue(c,{ skill: { id: 'x' } })/10) - Math.floor(r/10);"],
       ['C3b TestOutcome .seal multiligne', "const t = rollTest(1,'moyen',rng);\nreturn TestOutcome\n  .seal({ roll: 1, target: 40, success: true, sl: 1, isDouble: false });"],
       ['C4b rollTest espacé', "const x = d100(rng);\nconst t = rollTest (40, 'moyen', battleRng());"],
       ['F2 rollTest générique', "const t = rollTest<string>(40, 'moyen', battleRng());"],
@@ -390,7 +390,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
     const clean = [
       "import { rollTavernTest } from '../engine/tavernGame';",
       "import { battleRng } from '../noyau/battleRng';",
-      "const v = testValue(hero, 'pari');",
+      "const v = testValue(hero, { skill: { id: 'pari' } });",
       "const opponentTR = rollTavernTest(opponentValue, battleRng());",
     ].join('\n');
     expect(scanBattleRngEngineLeak('src/state/x.ts', clean, contexte()).length).toBe(0);
@@ -729,10 +729,10 @@ describe('REGISTRE des chemins de jet (#1066) — les angles morts DÉCLARÉS so
     ).toEqual([]);
   });
 
-  it('angle mort : un dé qui n’est ni `rollTest` ni `d100` (ex. `d10`) n’est vu par AUCUN des trois scanners', () => {
+  it('angle mort : un dé qui n’est ni `rollTest` ni `d100` (ex. `rollDice`) n’est vu par AUCUN des trois scanners', () => {
     const src = readFileSync(join(ROOT, 'src/noyau/massBattleFlow.ts'), 'utf8');
     const hazard = /export function massBattleSetHazard[\s\S]*?\n}/.exec(src)?.[0] ?? '';
-    expect(hazard, 'massBattleSetHazard a bougé — l’exemple d’angle mort cité par la doc doit rester mesurable').toContain('d10(battleRng())');
+    expect(hazard, 'massBattleSetHazard a bougé — l’exemple d’angle mort cité par la doc doit rester mesurable').toContain('rollDice(massBattleHazardsDie(), battleRng())');
     expect(scanRollSeamExclusivity('src/noyau/massBattleFlow.ts', hazard)).toEqual([]);
     expect(scanPendingJetFabrication('src/noyau/massBattleFlow.ts', hazard)).toEqual([]);
     expect(scanEngineDelegatedRoll('src/noyau/massBattleFlow.ts', hazard, delegues())).toEqual([]);
@@ -785,7 +785,7 @@ const LIGNE_A_LA_MAIN_STOCK: Record<string, number> = {
   // COMBAT : SOLDÉ — toute cible de Test se forme par `cibleDuTest` (`engine/tests.ts`), y compris la
   // rangée batch du Test de Peur (`encounterPsychFlow`) et le dé d'une manœuvre (`rollFlowSpecs`).
   // HORS COMBAT — les sites de jet sont routés par `rollLine`/`rollStep` ; ce qui reste n'est pas une cible.
-  'src/noyau/seaVoyageFlow.ts': 1, // reste : conversion Difficulté→DR d'une infestation (pas une cible)
+  'src/noyau/seaVoyageFlow.ts': 1, // reste : conversion Difficulté→DR d'un Test d'équipage (`buildVoyageCrewStep`, pas une cible)
 };
 
 /** Dette TOTALE MESURÉE sur `HEAD` + ce lot : 1 occurrence / 1 fichier, aucune en combat — verrou
@@ -883,7 +883,8 @@ const TOTAL_ETAPES = Object.values(ETAPE_A_LA_MAIN_STOCK).reduce((s, n) => s + n
  *  (interface), `scenes/test-scenarios/18-effets-scriptes.ts` (deux effets d'un même tableau),
  *  `noyau/monde/jumpMove.ts` et `noyau/corruptionFlow.ts` (corps de fonction) faussement comptés, et
  *  `engine/rest.ts` retombant de 3 à 2 parce qu'un englobant avale deux vrais sites). Le compte
- *  deviendrait faux dans les DEUX sens. */
+ *  deviendrait faux dans les DEUX sens. Ce que ce niveau ne voit pas, la passe d'arbre
+ *  (`litterauxProfonds`) le lit. */
 const LITTERAL_RX = /\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/gs;
 
 /** La PORTE DE FORGE de la ligne (#1262 V2) : `MonoSpec.montee` accepte une ligne DÉJÀ étalée. Quand
@@ -893,17 +894,70 @@ const LITTERAL_RX = /\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/gs;
  *  `...(cond ? { mods } : {})` est justement ce qui échappe à `LITTERAL_RX`). */
 const MONTEE_FORGEE_RX = /montee:\s*\{/g;
 
-function etapesALaMain(src: string, rel = 'src/state/probe.ts'): number {
-  src = canon.sansDeclarationsDeMetadonnees({ rel, text: src });
+const sansEnveloppe = (e: ts.Expression): ts.Expression =>
+  (ts.isParenthesizedExpression(e) || ts.isAsExpression(e) || ts.isSatisfiesExpression(e) || ts.isNonNullExpression(e) ? sansEnveloppe(e.expression) : e);
+
+/** Les littéraux d'objet que `LITTERAL_RX` n'a pas lus (aucun de ses appariements ne les contient),
+ *  à PROFONDEUR QUELCONQUE : une étape `{ kind: …, target: testValue(c, { skill: { id } }) }` imbrique
+ *  trois niveaux et lui échappe. Comptés au même critère que lui, lu sur l'arbre : une clé `kind` et une
+ *  clé `target` écrites `clé: valeur` (directes ou dans un spread conditionnel), ni spread du monteur
+ *  (`...rollStep(…)`, `...rollLine(…)`) ni `montee` qui en sort. Une clé que `sansDeclarationsDeMetadonnees` a blanchie n'existe
+ *  pas. Limite DÉCLARÉE, commune aux deux passes : une clé abrégée (`{ kind, target }`) n'est pas lue ;
+ *  mesurée à un site, `noyau/massBattleFlow.ts` (`pendingDeBataille`), qui relaie la `target` d'une
+ *  ligne de `rollLine`. */
+function litterauxProfonds(sf: ts.SourceFile, texte: string, lus: readonly [number, number][]): number {
+  const vive = (nom: ts.Node): boolean => texte.slice(nom.getStart(sf), nom.end).trim() !== '';
+  const duMonteur = (e: ts.Expression): boolean => {
+    const x = sansEnveloppe(e);
+    return ts.isCallExpression(x) && ts.isIdentifier(x.expression) && /^roll(Step|Line)$/.test(x.expression.text);
+  };
+  const cles = (o: ts.ObjectLiteralExpression, noms: Set<string>): boolean => {
+    let monte = false;
+    for (const p of o.properties) {
+      if (ts.isPropertyAssignment(p) && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) && vive(p.name)) {
+        noms.add(p.name.text);
+        if (p.name.text === 'montee' && duMonteur(p.initializer)) monte = true;
+      } else if (ts.isSpreadAssignment(p)) {
+        const e = sansEnveloppe(p.expression);
+        if (duMonteur(e)) monte = true;
+        const branches = ts.isConditionalExpression(e) ? [e.whenTrue, e.whenFalse] : ts.isBinaryExpression(e) ? [e.right] : [];
+        for (const b of branches) { const x = sansEnveloppe(b); if (ts.isObjectLiteralExpression(x)) monte = cles(x, noms) || monte; }
+      }
+    }
+    return monte;
+  };
+  let n = 0;
+  const walk = (x: ts.Node): void => {
+    if (ts.isObjectLiteralExpression(x) && !lus.some(([d, f]) => d <= x.getStart(sf) && x.end <= f)) {
+      const noms = new Set<string>();
+      if (!cles(x, noms) && noms.has('kind') && noms.has('target')) n++;
+    }
+    x.forEachChild(walk);
+  };
+  walk(sf);
+  return n;
+}
+
+type Analyse = { sourceFile: ts.SourceFile | null; checker?: Parameters<typeof canon.sansDeclarationsDeMetadonnees>[2] };
+
+function etapesALaMain(src: string, rel = 'src/state/probe.ts', analyse?: Analyse): number {
+  if (!analyse) {
+    for (const a of analyserCorpus([{ rel, text: src }])) return etapesALaMain(src, rel, a);
+    throw new Error(`etapesALaMain : aucun arbre pour ${rel}`);
+  }
+  const sf = analyse.sourceFile!;
+  src = canon.sansDeclarationsDeMetadonnees({ rel, text: src }, sf, analyse.checker);
   let n = (src.match(MONTEE_FORGEE_RX) ?? []).length;
+  const lus: [number, number][] = [];
   for (const m of src.matchAll(LITTERAL_RX)) {
     const lit = m[0];
+    lus.push([m.index, m.index + lit.length]);
     if (!/(^|[\s,{])kind:\s/.test(lit)) continue;
     if (!/(^|[\s,{])target:\s/.test(lit)) continue;
     if (/\.\.\.roll(Step|Line)\(/.test(lit)) continue;
     n++;
   }
-  return n;
+  return n + litterauxProfonds(sf, src, lus);
 }
 
 describe('CLIQUET 2 — une étape-JET ne se monte plus à la main, même sans arithmétique (#1153)', () => {
@@ -946,7 +1000,8 @@ describe('CLIQUET 2 — une étape-JET ne se monte plus à la main, même sans a
    * l'arithmétique à la main — c'est ce que le scanner doit continuer de compter.
    *
    * Le cas MORDANT est le NID (`...(cond ? { mods } : {})` DANS `montee`) : le littéral d'étape qui le
-   * porte échappe à `LITTERAL_RX` (un seul niveau d'imbrication), et sans la passe dédiée
+   * porte échappe à `LITTERAL_RX` (un seul niveau d'imbrication) et ne porte ni `kind` ni `target`
+   * pour la passe d'arbre (`litterauxProfonds`) ; sans la passe dédiée
    * (`MONTEE_FORGEE_RX`) la baseline décroîtrait pour la mauvaise raison — un site TOUJOURS là,
    * simplement devenu invisible.
    */
@@ -962,12 +1017,33 @@ describe('CLIQUET 2 — une étape-JET ne se monte plus à la main, même sans a
     expect(etapesALaMain(parLeMonteur), 'la SORTIE du monteur canonique n’est pas un montage à la main').toBe(0);
   });
 
+  it('le scanner VOIT une étape montée à la main à PROFONDEUR QUELCONQUE — sujet emboîté d’un `testValue` en ligne (#3012)', () => {
+    const profonde = `
+      steps.push({ id: 'abri', kind: 'shelter', actorId: h.id, label: 'Abri de fortune',
+        target: testValue(h, { skill: { id: 'survie-en-exterieur' } }), result: null, interactive: true });`;
+    const vuParLeNiveau = [...profonde.matchAll(LITTERAL_RX)].some((m) => /kind:\s/.test(m[0]) && /target:\s/.test(m[0]));
+    expect(vuParLeNiveau, 'témoin : trois niveaux d’imbrication échappent à `LITTERAL_RX`').toBe(false);
+    expect(etapesALaMain(profonde), 'la passe d’arbre lit le littéral entier').toBe(1);
+    const conditionnelle = `
+      steps.push({ id: 'abri', kind: 'shelter', actorId: h.id, label: 'Abri de fortune',
+        ...(fixe ? { target: testValue(h, { skill: { id: 'survie-en-exterieur' } }) } : {}), result: null });`;
+    expect(etapesALaMain(conditionnelle), 'une `target` posée par un spread conditionnel est la même clé').toBe(1);
+    const parLeMonteur = `
+      steps.push({ id: 'abri', kind: 'shelter', actorId: h.id, label: 'Abri de fortune',
+        ...rollStep({ actor: h, test: { skill: { id: 'survie-en-exterieur' } }, difficulty: 'intermediaire' }), result: null });`;
+    expect(etapesALaMain(parLeMonteur), 'contre-épreuve : routé par le monteur, rien à voir').toBe(0);
+    const deuxObjets = `
+      const a = { kind: 'shelter', opts: f({ cible: { id: 'x' } }) }; const b = { target: g({ skill: { id: 'y' } }) };`;
+    expect(etapesALaMain(deuxObjets), 'contre-épreuve : `kind` et `target` de deux littéraux distincts ne font pas une étape').toBe(0);
+  });
+
   it('aucune NOUVELLE étape montée à la main (le stock ne peut que décroître)', () => {
     const mesure: Record<string, number> = {};
-    for (const { rel, text } of prodFiles('src')) {
-      if (rel === 'src/noyau/rollSeam.ts') continue; // le monteur lui-même
-      if (HORS_PERIMETRE_COMBAT.some((p) => rel.startsWith(p))) continue; // frontière déclarée, lot dédié
-      const n = etapesALaMain(text, rel);
+    const perimetre = prodFiles('src').filter(({ rel }) => rel !== 'src/noyau/rollSeam.ts' // le monteur lui-même
+      && !HORS_PERIMETRE_COMBAT.some((p) => rel.startsWith(p))); // frontière déclarée, lot dédié
+    for (const analyse of analyserCorpus(perimetre)) {
+      const { rel, text } = analyse.fichier;
+      const n = etapesALaMain(text, rel, analyse);
       if (n > 0) mesure[rel] = n;
     }
     const ecarts: string[] = [];
@@ -982,11 +1058,15 @@ describe('CLIQUET 2 — une étape-JET ne se monte plus à la main, même sans a
 
   it('le stock DÉCLARÉ suit la dette RÉELLE (baseline trop haute = mensonge de 1 site migré)', () => {
     const perimees: string[] = [];
-    for (const [file, attendu] of Object.entries(ETAPE_A_LA_MAIN_STOCK)) {
-      const abs = join(ROOT, file);
-      if (!existsSync(abs)) { perimees.push(`${file} : fichier absent — retirer du stock`); continue; }
-      const n = etapesALaMain(readFileSync(abs, 'utf8'), file);
-      if (n < attendu) perimees.push(`${file} : baseline ${attendu}, réel ${n} — ABAISSER`);
+    const presents = Object.keys(ETAPE_A_LA_MAIN_STOCK).filter((file) => {
+      if (existsSync(join(ROOT, file))) return true;
+      perimees.push(`${file} : fichier absent — retirer du stock`);
+      return false;
+    });
+    for (const analyse of analyserCorpus(presents.map((rel) => ({ rel, text: readFileSync(join(ROOT, rel), 'utf8') })))) {
+      const { rel: file, text } = analyse.fichier;
+      const n = etapesALaMain(text, file, analyse);
+      if (n < ETAPE_A_LA_MAIN_STOCK[file]) perimees.push(`${file} : baseline ${ETAPE_A_LA_MAIN_STOCK[file]}, réel ${n} — ABAISSER`);
     }
     expect(perimees, `Stock périmé (dette déjà résorbée, à refléter) :\n${perimees.join('\n')}`).toEqual([]);
   });

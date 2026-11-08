@@ -187,8 +187,8 @@ describe('deux bornes : une seule graphie, et rien d’emboîté (#1463 L4, vagu
     const positions = paires.filter((p) => p.bornes.every((b) => bornesOuvertes.has(b))).map((p) => p.site).sort();
     expect(positions, 'les positions qui composent `plageOuverteSchema` ont changé : chacune se nomme ici.').toEqual([
       'advancementCosts.json::[]', 'crew-morale.json::.bands[]', 'criticals.json::[].entries[]', 'miscast.json::[].entries[]',
-      'naval-progression.json::.entries[]', 'sea-cargo.json::.sell.offerPrice[]', 'sea-events.json::.boardEvents[]',
-      'sea-events.json::.fastVoyage.paliers[]', 'sea-navigation.json::.orientation.changementDeCap[]',
+      'naval-progression.json::.entries[]', 'sea-cargo.json::.sell.offerPrice[]', 'sea-events.json::.boardEvents.entries[]',
+      'sea-events.json::.fastVoyage.entries[]', 'sea-navigation.json::.orientation.changementDeCap.entries[]',
       'sea-navigation.json::.orientation.reperes[]', 'sea-navigation.json::.phares.voirLaLumiere[]',
       'sea-navigation.json::.poursuite.drDeltas[]', 'sea-navigation.json::.vitesseMax.table[]',
       'ship-construction.json::.standard[].lengthM', 'structure-criticals.json::.entries[]', 'tables.json::[].entries[]',
@@ -201,8 +201,8 @@ describe('deux bornes : une seule graphie, et rien d’emboîté (#1463 L4, vagu
   });
 
   it('F — aucun schéma de document n’admet une paire de nombres en TUPLE hors d’une recette de RENDU (`detailRecipeSchema`)', () => {
-    // Un paramètre de recette de RENDU est un intervalle géométrique lu POSITIONNELLEMENT
-    // (`src/gameIso/detail/courses.ts:44`), pas une bande de table : aucun d100 ne le traverse. Une paire
+    // Un paramètre de recette de RENDU est un intervalle géométrique lu POSITIONNELLEMENT,
+    // pas une bande de table : aucun d100 ne le traverse. Une paire
     // de bornes de tirage s'écrit `{min, max}`, la forme que `findTableEntry` lit.
     const recette = atteints(detailRecipeSchema);
     const paires = NOEUDS_DE_DOCUMENT.filter(([, n]) => {

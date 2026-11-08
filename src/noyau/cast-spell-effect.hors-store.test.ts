@@ -1,7 +1,7 @@
 /**
  * Effet d'auteur `castSpell` (#98) : lancer scripté depuis un dialogue/trigger. EN COMBAT, route par
  * le flux d'incantation STANDARD (`castSpell`, combatFlow) — même chemin que l'IA. HORS COMBAT, un
- * héros du groupe route par `oocCastSpell` (couture D, jet réel) ; un PNJ hors combat (pas de
+ * héros du groupe route par `incanterLeSort` (couture D, jet réel) ; un PNJ hors combat (pas de
  * Combatant) est refusé — pas de pseudo-combat inventé. `mode:'forceSuccess'` (arbitrage d'auteur)
  * joue le Flow du sort à DR = NI, sans jet, en combat comme hors combat.
  */
@@ -20,8 +20,8 @@ describe('Effet castSpell (#98)', () => {
       const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
       const ally = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 13 });
       banc.setState({ party: [wiz, ally] });
-      banc.getState().startScene(testScene());
-      banc.getState().startCombat('enc-mutants');
+      banc.getState().lancerLaScene(testScene());
+      banc.getState().lancerLeCombat('enc-mutants');
       banc.getState().fenetreValider('roundStart');
       const b = banc.getState().battle!;
       const W = b.combatants.find((c) => c.kind === 'hero' && c.label === 'W')!;
@@ -58,7 +58,7 @@ describe('Effet castSpell (#98)', () => {
       const pc = banc.getState().pendingCast;
       expect(pc).not.toBeNull();
       expect(pc!.casterId).toBe(E.id);
-      expect(pc!.result).not.toBeNull(); // IA : `jetRoll('cast')` auto-roulé (même branche que `castSpell` direct, combatFlow)
+      expect(pc!.result).not.toBeNull(); // IA : `jetLancer('cast')` auto-roulé (même branche que `castSpell` direct, combatFlow)
     });
 
     it('mode "forceSuccess" EN COMBAT : applique les effets du sort SANS jet, aucun `pendingCast` ouvert', () => {
@@ -76,7 +76,7 @@ describe('Effet castSpell (#98)', () => {
   });
 
   describe('HORS COMBAT (couture D)', () => {
-    it('un héros du groupe route par `oocCastSpell` (jet réel, `pendingCast` ouvert)', () => {
+    it('un héros du groupe route par `incanterLeSort` (jet réel, `pendingCast` ouvert)', () => {
       const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
       banc.setState({ party: [wiz], battle: null, pendingCast: null });
       applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: wiz.id, spellId: 'chute' }]);

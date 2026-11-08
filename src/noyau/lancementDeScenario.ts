@@ -1,8 +1,8 @@
 /**
  * LE LANCEMENT D'UN SCÉNARIO (#2898) : ce qu'un hôte lance (`LancementDeScenario`, le contenu construit d'un
  * scénario de test et ses réglages de lancement) et l'UNIQUE séquence qui le joue, en deux temps, sur les actions
- * du noyau : la pose (`poserLeLancement`), puis le démarrage (`demarrerLeLancement`). Le web la joue par
- * `src/state/scenarioFlow.ts`, la partie par `Partie.lancer` (`partie.ts`). Le noyau ne lit ni le registre des
+ * du noyau : la pose (`poserLeLancement`), puis le démarrage (`demarrerLeLancement`). La partie la joue par
+ * `Partie.lancer` (`partie.ts`). Le noyau ne lit ni le registre des
  * scénarios ni leur fiche : l'hôte construit le lancement (`lancementDuScenario`, `scenes/test-scenarios/_shared.ts`).
  */
 import { setRule, type RuleValue } from '../engine/policy';
@@ -24,7 +24,7 @@ export interface ContenuDeScenario {
   extraScenes?: Scene[];
   /** Carte du monde du scénario (#T2 Voyage). */
   worldMap?: WorldMap;
-  /** Bloc narratif du scénario (presets de PNJ/affaires/indices) — posé au chargement (`loadProject`)
+  /** Bloc narratif du scénario (presets de PNJ/affaires/indices) — posé au chargement (`chargerLeProjet`)
    *  pour que les `presetId` des entités de scène résolvent (#671). */
   narratif?: NarratifBlock;
   /** Bataille de masse (ADE II 08) : amorce le sous-système de Puissance de Bataille après le chargement
@@ -46,23 +46,22 @@ export interface LancementDeScenario extends ContenuDeScenario {
 /** POSE du lancement : règles, groupe, projet ou scène. */
 export function poserLeLancement(get: Get, l: LancementDeScenario): void {
   if (l.regles) for (const [id, v] of Object.entries(l.regles)) setRule(id, v);
-  get().setParty(l.party);
-  if (l.extraScenes?.length || l.worldMap || l.narratif) get().loadProject({ scenes: [l.scene, ...(l.extraScenes ?? [])], entryId: l.scene.id, worldMap: l.worldMap ?? null, narratif: l.narratif, projet: null });
-  else get().startScene(l.scene);
+  get().fixerLeGroupe(l.party);
+  if (l.extraScenes?.length || l.worldMap || l.narratif) get().chargerLeProjet({ scenes: [l.scene, ...(l.extraScenes ?? [])], entryId: l.scene.id, worldMap: l.worldMap ?? null, narratif: l.narratif, projet: null });
+  else get().lancerLaScene(l.scene);
 }
 
-/** DÉMARRAGE du lancement posé : bourse, navire, combat direct, interlude (ADE II 8 l.65) puis bataille de
- *  masse, sinon écran de campagne. */
+/** DÉMARRAGE du lancement posé : bourse, navire, combat direct, interlude, puis bataille de masse dont il est la
+ *  préparation (ADE II 8 l.65) ; sans l'un ni l'autre, écran de campagne. */
 export function demarrerLeLancement(get: Get, set: Set, l: LancementDeScenario): void {
   // Bourse et navire APRÈS le reset que pose le chargement de la scène.
   const lead = get().party[0];
   if (l.bourse && lead) creditBourse(get, set, lead.id, l.bourse);
   if (l.vessel) set({ vessel: l.vessel });
-  if (l.combatDirect) get().startCombat(l.combatDirect);
-  if (l.massBattle) {
-    if (l.semainesDInterlude) get().startInterlude(l.semainesDInterlude);
-    get().startMassBattle(l.massBattle);
-  } else set({ screen: 'campaign' });
+  if (l.combatDirect) get().lancerLeCombat(l.combatDirect);
+  if (l.semainesDInterlude) get().ouvrirLInterlude(l.semainesDInterlude);
+  if (l.massBattle) get().amorcerLaBataille(l.massBattle);
+  else if (!l.semainesDInterlude) set({ screen: 'campaign' });
 }
 
 /** Lancement complet : `poserLeLancement` puis `demarrerLeLancement`. */

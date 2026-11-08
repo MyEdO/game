@@ -8,11 +8,9 @@ import { talentMaxReached, arcaneDomainGate } from '../engine/careerSlots';
 import { findTalentById, refLabel, findCareerById, levelsForCareer } from '../data/index';
 import { t } from '../i18n';
 import type { Jeu } from './etat';
-import { refusEnCombat, type VerdictDeGeste } from './verrousDeFiche';
+import { refusDepensePx } from './verrousDeFiche';
 import type { Combatant } from '../engine/types';
 
-/** Refus d'une dépense de PX : la raison affichée, ou `null`. LDB 05 l.907 */
-export const refusDepensePx: VerdictDeGeste = refusEnCombat('pf.xpInCombat');
 
 /** Une Augmentation hors carrière exige-t-elle un mentor absent (règle `advancement-mentor`, flag de
  *  partie `mentor`) ? Verdict UNIQUE de l'achat et de la vue d'avancement. LDB 07 l.89 */
@@ -26,7 +24,7 @@ export function libelleAvecSpec(name: string, spec?: string): string {
 }
 
 /** Refus d'acquérir le Talent (id, spec) propre au Talent : Maxi atteint (LDB 10), puis Domaine
- *  arcanique refusé (`arcaneDomainGate`, LDB 46 l.177). Verdict UNIQUE de `buyTalent` et de la vue
+ *  arcanique refusé (`arcaneDomainGate`, LDB 46 l.177). Verdict UNIQUE d'`acheterLeTalent` et de la vue
  *  d'avancement ; le combat et les PX se refusent à part (`refusDepensePx`). */
 export function refusDAcquerirLeTalent(hero: Combatant, talentId: string, spec: string | undefined): string | null {
   const label = refLabel('talents', { id: talentId, spec });
@@ -54,7 +52,7 @@ export function contexteDeChangement(hero: Combatant, newCareer: string, newLeve
 }
 
 /** Refus de changer de Carrière : combat, cible fermée (`validateCareerChange`), puis PX — la raison que
- *  rend `changeCareer`, ou `null`. Verdict UNIQUE du geste et de la vue d'avancement. */
+ *  rend `changerDeCarriere`, ou `null`. Verdict UNIQUE du geste et de la vue d'avancement. */
 export function refusDeChangerDeCarriere(
   s: Pick<Jeu, 'battle'>, hero: Combatant, newCareer: string, newLevel: number, completed: boolean,
 ): string | null {

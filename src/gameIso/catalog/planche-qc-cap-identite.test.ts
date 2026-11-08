@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { CAP_IDENTITE_PROP } from '../../data/props.types';
 import { findPropById } from '../../data';
-import { buildPropVolumes } from '../builders/propVolumes';
+import { buildPropVolumes } from '../../noyau/monde/volume/propVolumes';
 import { ancrageDePlanche, MPT_DE_PLANCHE } from '../../../scripts/qc/lib/plancheVolumique';
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));

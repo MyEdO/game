@@ -74,7 +74,7 @@ describe('Convalescence des Blessures critiques (LDB 18)', () => {
     const c = C({ traumas: avecSequelles([], [t]), criticalWounds: 1 });
     const { specs: collected, defer } = porteFracture();
     tickTraumaRecovery(c, 1, defer);
-    expect(collected[0]?.test, 'LDB 18 l.202 — « Test de Résistance »').toEqual({ skill: 'resistance' });
+    expect(collected[0]?.test, 'LDB 18 l.202 — « Test de Résistance »').toEqual({ skill: { id: 'resistance' } });
     expect(collected[0]?.kind).toBe('traumaFracture'); // Test de fin DIFFÉRÉ en étape
     expect(c.traumas!.length).toBe(0); // la fracture est retirée (résolution déférée)
     expect(c.criticalWounds).toBe(0);
@@ -141,7 +141,7 @@ describe('Convalescence des Blessures critiques (LDB 18)', () => {
     expect(traumaSkillPenalty(c, 'langue')).toBe(-10); // séquelle de Langue (par id stable)
     expect(traumaSkillPenalty(c, 'charme')).toBe(0);
     // testValue intègre la séquelle : Int 30 + 20 avances − 10 = 40.
-    expect(testValue(c, 'langue')).toBe(40);
+    expect(testValue(c, { skill: { id: 'langue' } })).toBe(40);
   });
 
   it('Chirurgie : une fracture MAJEURE exige la chirurgie ; removeSurgicalTrauma la retire (criticalWounds--)', () => {

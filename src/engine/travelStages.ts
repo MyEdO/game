@@ -12,14 +12,13 @@
  * (« Trouver de la nourriture et des herbes », LDB 09 l.565-572). Les valeurs RAW sont citées en
  * commentaire ; rien n'est inventé.
  */
-import { parseDiceRequired, type DiceSpec } from './dice';
 import type { CharKey, Difficulty } from './types';
 import { rule } from './policy';
 import type { CodexTarget } from './ruleRefs';
-import { weather, weatherConditions, weatherPhysicalTestChars } from '../data';
-import { indexParId } from '../data/versionDataset';
+import { weatherConditions, weatherPhysicalTestChars } from '../data';
+import { saisonParId } from '../data/saisons';
 import { weatherIdSchema } from '../data/schemas/defs/weather';
-import { findTableEntry } from './tables';
+import { deDeLaTableTiree, findTableEntry, type DeDeTable } from './tables';
 import type { ExposureSeverity } from './exposure';
 
 /** Les quatre saisons du tableau de Météo (EDOC 8 l.52). */
@@ -67,17 +66,16 @@ export function weatherRef(w: Weather): CodexTarget {
 /** Une rangée de la table de Météo d'une saison. */
 interface WeatherRange { min: number; max: number; weather: Weather; }
 
-const saisonParId = indexParId('weather', weather);
 /** Rangées d'une saison, LIVE (le dataset `weather` est éditable au Codex). EDOC 8 l.52-59 */
 export function weatherRanges(season: Season): WeatherRange[] {
   return (saisonParId(season)?.entries ?? []) as WeatherRange[];
 }
 
 /** Le DÉ DE TIRAGE de la table de Météo d'une saison (`die`), LIVE — FAIL-FAST sur une saison absente. */
-export function weatherDie(season: Season): DiceSpec {
+export function weatherDie(season: Season): DeDeTable {
   const saison = saisonParId(season);
   if (!saison) throw new Error(`weatherDie : aucune saison « ${season} » dans weather.json.`);
-  return parseDiceRequired(saison.die, `weather.json › ${season}.die`);
+  return deDeLaTableTiree(saison);
 }
 
 /** Météo depuis un jet explicite et une saison — lecture LIVE de la donnée éditable. */

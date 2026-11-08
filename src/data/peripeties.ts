@@ -1,10 +1,10 @@
 /**
- * Table des Péripéties de voyage (1d10) — `LDB 51 l.210-221` ; seuil du d10 quotidien : `LDB 51 l.208`
- * (`MapRoute.perilDie`, défaut 8, 0 = éteint).
+ * Table des Péripéties de voyage — `LDB 51 l.210-221` ; seuil quotidien : `LDB 51 l.208` (son dé
+ * `tirageQuotidien` en donnée ; sa face, `MapRoute.perilDie`, défaut 8, 0 = éteint).
  *
- * La DONNÉE vit dans `peripeties.json` (éditable, comme `creatures.json`) ; ce module = type +
- * chargement. Ajouter/régler une péripétie = éditer le JSON, jamais ce fichier. Le tirage est une
- * étape de MONDE à table (`landPerilTable`, `noyau/travelFlow.ts`).
+ * La DONNÉE vit dans `peripeties.json` (éditable, comme `creatures.json`), dé `die` compris ; ce
+ * module = type + chargement. Ajouter/régler une péripétie = éditer le JSON, jamais ce fichier. Le
+ * tirage est une étape de MONDE à table (`landPerilTable`, `noyau/travelFlow.ts`).
  *
  * `kind` = ce que le MOTEUR sait jouer :
  *  - 'reposant'  : `LDB 51 l.212` ;
@@ -13,10 +13,13 @@
  *  - 'narratif'  : le texte de la ligne, journalisé tel quel.
  */
 import { peripeties } from './index';
+import peripetiesJson from './peripeties.json';
+import { deDeTirageDe } from './rangees';
+import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
+import type * as tableDesPeripeties from './schemas/defs/peripeties';
 
 export interface Peripetie {
   id: string;
-  type: 'peripeties';
   roll: number;
   label: string;
   desc: string;
@@ -24,3 +27,7 @@ export interface Peripetie {
 }
 
 export const PERIPETIES = peripeties;
+/** Le dé de la Table des Péripéties, lu à l'appel. */
+export const peripetieDie = (): DeDeTable => deDeTirageDe<typeof tableDesPeripeties>(peripetiesJson);
+/** Le dé du seuil quotidien des Péripéties (`tirageQuotidien`), lu à l'appel. */
+export const peripetieSeuilDie = (): DeDeTable => deDeLaTableTiree(peripetiesJson.tirageQuotidien);

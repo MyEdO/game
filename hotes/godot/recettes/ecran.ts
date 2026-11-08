@@ -10,15 +10,17 @@
  * dans `magie` la Fléchette choisie parmi les sorts de l'actif, sa fenêtre d'incantation avant puis après le jet et un pas
  * de Surincantation alloué, la création d'un héros hors de la partie (`zonesDeLaCreation` sur
  * l'état initial : la race avant puis après son d100, la carrière tirée, les Caractéristiques en 100 points, chacune en
- * liste), et un formulaire
- * de chaque saisie près d'un geste refusé (`elementsDesGestes`). Chaque vue porte
+ * liste), la carte du monde et le récit d'une arrivée dans `voyage`, puis dans `bataille-de-masse` l'entre-deux-aventures
+ * (un onglet par héros), les Scènes du premier Round de la bataille et l'entre-deux-Rounds, dans
+ * `entre-deux-aventures` les formulaires d'ouvrage et de dépôt du forgeron, et un formulaire de chaque saisie près d'un geste refusé (`elementsDesGestes`) et d'une rangée
+ * de cases. Chaque vue porte
  * ses zones, les lignes que le combat du dôme a ajoutées au journal sous `journal.lignes` (où le routeur `combat.gd` les range),
  * et l'intention que chaque formulaire joue pressé tel qu'il est dessiné (`attendus`).
  */
-import { creerPont, type Suite } from '../pont/pont';
-import { CLICS_DE_L_EXPLORATION, CLICS_DU_CHAMP, brouillonDeLaPartie, etatInitialDuJeu, horlogeVirtuelle } from '../../../src/noyau/index';
+import { clicDuCombattant, creerPont, type Suite } from '../pont/pont';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, etatInitialDuJeu, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
-import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type CreationOuverte, type GesteDeLaCreation, type Jeu, type Ligne } from '../../../src/hote/elements';
+import { elementsDesGestes, ligne, ONGLETS_DE_LA_FICHE, type Bouton, type Choix, type CreationOuverte, type Element, type Entite, type Formulaire, type GesteDeLaCreation, type Jeu, type Ligne, type Plan, type Saisie } from '../../../src/hote/elements';
 import { apresLaCreation, zonesDeLaCreation } from '../../../src/hote/creation';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from '../../../src/hote/gestes';
 
@@ -43,14 +45,58 @@ const FORMULAIRE: GesteDeLaFenetre = {
     argument('choix', 'choix', { valeur: 'b', valeurs: [{ valeur: 'a', libelle: 'Valeur A', refus: null }, { valeur: 'b', libelle: 'Valeur B', refus: null }, { valeur: 'c', libelle: 'Valeur C', refus: 'Refusée' }] }),
     argument('nombre', 'nombre', { valeur: 3, bornes: { min: 0, max: 10, pas: 1 } }),
     argument('texte', 'texte', { valeur: 'mot' }),
+    argument('multiligne', 'multiligne', { valeur: 'deux\nlignes' }),
     argument('json', 'json', { valeur: { a: 1 } }),
     argument('objet', 'objet', { champs: [argument('x', 'nombre', { valeur: 2 }), argument('y', 'texte', { valeur: 'z' })] }),
   ],
 };
-const ARGUMENTS_DU_FORMULAIRE = ['designe', 'b', 3, 'mot', { a: 1 }, { x: 2, y: 'z' }];
+const ARGUMENTS_DU_FORMULAIRE = ['designe', 'b', 3, 'mot', 'deux\nlignes', { a: 1 }, { x: 2, y: 'z' }];
+
+/** Un formulaire d'une rangée de cases, une case cochée, une libre, une refusée : il joue la liste des cochées. */
+const CASES: Formulaire = {
+  type: 'formulaire', id: 'cases', libelle: 'Jouer les cases', verbe: 'verbeDeRecette', focus: false, refus: null,
+  champs: [{
+    type: 'saisieCoches', id: 'cases/c', ton: 'neutre', nom: 'c', optionnel: false, libelle: 'Saisie c',
+    valeurs: [{ libelle: 'Case A', valeur: 'a', presse: true, refus: null }, { libelle: 'Case B', valeur: 'b', presse: false, refus: null }, { libelle: 'Case C', valeur: 'c', presse: false, refus: 'Refusée' }],
+  }],
+};
 
 /** Un geste ouvert que sa fermeture refuse, sa raison dite. */
 const REFUSE: GesteDeLaFenetre = { cle: 'refuse', verbe: 'verbeDeRecette', libelle: 'Geste refusé', arguments: [], rendu: 'bouton', aChoisir: null, attendu: false, ouvert: true, raison: 'Fermé par le jet', reglage: false };
+
+/** Ce que la saisie `c` dit dessinée, comme Godot la lit (`Saisie.lire`, `saisie.gd`) : `[]` rien de saisi, sinon sa
+ *  valeur posée ou pressée, la liste des valeurs pressées d'une rangée de cases, l'objet de ses champs. */
+function lueDessinee(c: Saisie): unknown[] {
+  switch (c.type) {
+    case 'fixe': return [c.valeur];
+    case 'saisieChoix': return c.valeurs.filter((v) => v.presse).map((v) => v.valeur);
+    case 'saisieCoches': return [c.valeurs.filter((v) => v.presse).map((v) => v.valeur)];
+    case 'saisieNombre': return [c.valeur];
+    case 'saisieTexte':
+    case 'saisieMultiligne': return c.valeur ? [c.valeur] : [];
+    case 'saisieJson': return c.valeur ? [JSON.parse(c.valeur)] : [];
+    case 'saisieObjet': return [Object.fromEntries(c.champs.flatMap((x) => {
+      const lue = lueDessinee(x);
+      return !lue.length && x.optionnel ? [] : [[x.nom, lue.length ? lue[0] : null]];
+    }))];
+  }
+}
+
+/** L'intention que le formulaire `f` joue pressé tel qu'il est dessiné (`Saisie.arguments`) : un champ optionnel vide
+ *  clôt les arguments, un champ requis vide part `null`. */
+function telQueDessine(f: Formulaire): Jeu {
+  const args: unknown[] = [];
+  for (const c of f.champs) {
+    const lue = lueDessinee(c);
+    if (!lue.length && c.optionnel) break;
+    args.push(lue.length ? lue[0] : null);
+  }
+  return { type: f.verbe, args };
+}
+
+/** Chaque formulaire de `elements` et des entités qu'ils portent. */
+const formulaires = (elements: readonly Element[]): Formulaire[] =>
+  elements.flatMap((e) => (e.type === 'formulaire' ? [e] : e.type === 'entite' ? formulaires(e.elements) : []));
 
 export function figerVuesDeLEcran(): VueFigee[] {
   const lignes: Ligne[] = [];
@@ -77,7 +123,10 @@ export function figerVuesDeLEcran(): VueFigee[] {
     };
     return { appeler, jouer, fermer: pont.fermer };
   };
-  const figer = (nom: string, s: Suite) => vues.push({ nom, disposition: s.vue.disposition, zones: { ...s.vue.zones, 'journal.lignes': [...lignes] }, attendus: {} });
+  const figer = (nom: string, s: Suite) => vues.push({
+    nom, disposition: s.vue.disposition, zones: { ...s.vue.zones, 'journal.lignes': [...lignes] },
+    attendus: Object.fromEntries(Object.values(s.vue.zones).flatMap((z) => formulaires(z)).map((f) => [f.id, telQueDessine(f)])),
+  });
   const enFocus = (s: Suite): Jeu => {
     const b = s.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus);
     if (!b) throw new Error(`aucun bouton que l’Entrée joue dans ${JSON.stringify(s.vue.zones['fenetre.gestes'].map((g) => g.id))}`);
@@ -92,7 +141,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
   s = jouer('jouer', { offre: 'charge' });
   figer('charge armée', s);
   const [cible] = s.vue.projection.combat!.cibles.liste;
-  s = jouer('jouer', { type: CLICS_DU_CHAMP.combattant, args: [cible] });
+  s = jouer('jouer', clicDuCombattant(s.vue, cible)!);
   figer('fenêtre d’attaque', s);
   s = jouer('jouer', enFocus(s));
   figer('jet d’attaque tombé', s);
@@ -114,7 +163,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
       return g.some((b) => b.type === 'bouton' && b.focus) ? enFocus(s) : g.flatMap((x) => (x.type === 'choix' ? x.valeurs : [])).find((b) => !b.refus)!.jeu;
     }
     const offres = s.vue.zones['combat.offres'].flatMap((x) => x.valeurs).filter((b) => !b.refus);
-    return c.intention && c.cibles.liste.length ? { type: CLICS_DU_CHAMP.combattant, args: [c.cibles.liste[0]] }
+    return c.intention && c.cibles.liste.length ? clicDuCombattant(s.vue, c.cibles.liste[0])!
       : (offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'end-turn')!).jeu;
   };
   for (let pas = 0; s.vue.projection.fenetre?.etape?.genre !== 'critical'; pas++) {
@@ -150,7 +199,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
 
   const liasse = unPont([]);
   s = viderLesFenetres(liasse.jouer, liasse.jouer('demarrer', { scenario: 'documents-edo', graine: 7 }));
-  s = liasse.jouer('jouer', { type: CLICS_DE_L_EXPLORATION.case, args: [{ x: 2, y: 2 }] });
+  s = liasse.jouer('jouer', { type: CLIC_DU_CHAMP, args: [{ x: 2, y: 2 }] });
   s = liasse.jouer('jouer', s.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Liasse de documents : Parcourir la liasse')!.jeu);
   const reponse = (debut: string) => s.vue.zones['dialogue.reponses'].find((b) => b.libelle.startsWith(debut))!.jeu;
   s = liasse.jouer('jouer', reponse('Chapitre 1'));
@@ -160,17 +209,88 @@ export function figerVuesDeLEcran(): VueFigee[] {
 
   const magie = unPont([]);
   s = viderLesFenetres(magie.jouer, magie.jouer('demarrer', { scenario: 'magie', graine: 7 }));
-  s = viderLesFenetres(magie.jouer, magie.jouer('jouer', { type: CLICS_DE_L_EXPLORATION.case, args: [{ x: 16, y: 11 }] }));
+  s = viderLesFenetres(magie.jouer, magie.jouer('jouer', { type: CLIC_DU_CHAMP, args: [{ x: 16, y: 11 }] }));
   const sorts = s.vue.zones['combat.offres'].find((c): c is Choix => c.id === 'offre/cast-spell')!;
   s = magie.jouer('jouer', sorts.valeurs.find((b) => b.libelle === 'Fléchette')!.jeu);
   figer('sort choisi parmi ceux de l’actif', s);
-  s = magie.jouer('jouer', { type: CLICS_DU_CHAMP.combattant, args: [s.vue.projection.combat!.cibles.liste[0]] });
+  s = magie.jouer('jouer', clicDuCombattant(s.vue, s.vue.projection.combat!.cibles.liste[0])!);
   figer('fenêtre d’incantation', s);
   s = magie.jouer('jouer', enFocus(s));
   figer('jet d’incantation tombé', s);
   s = magie.jouer('jouer', (s.vue.zones['fenetre.reglages'][0] as Choix).valeurs[1].jeu);
   figer('un pas de Surincantation alloué', s);
   magie.fermer();
+
+  const voyage = unPont([]);
+  s = viderLesFenetres(voyage.jouer, voyage.jouer('demarrer', { scenario: 'voyage', graine: 7 }));
+  s = voyage.jouer('jouer', s.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Carte du monde')!.jeu);
+  figer('carte du monde', s);
+  const plan = s.vue.zones['fenetre.corps'].find((e): e is Plan => e.type === 'plan')!;
+  s = voyage.jouer('jouer', plan.points.flatMap((p) => p.elements).find((e): e is Choix => e.id === 'r-grandroute')!.valeurs[0].jeu);
+  for (let pas = 0; !s.vue.zones['fenetre.corps'].some((e) => e.id === 'recit/issue'); pas++) {
+    if (pas > 80) throw new Error(`aucun récit de voyage après ${pas} gestes : ${JSON.stringify(s.vue.zones['fenetre.titre'])}`);
+    if (s.vue.zones['fenetre.corps'].some((e) => e.id === 'repos/nuit')) figer('repos, la nuit à régler', s);
+    s = voyage.jouer('jouer', presse(s));
+  }
+  figer('récit de voyage, arrivée', s);
+  s = voyage.jouer('jouer', enFocus(s));
+  figer('écran du lieu, ses services et ses trajets', s);
+  const forgeron = s.vue.zones['fenetre.corps'].find((e): e is Entite => e.id === 'service/forgeron')!;
+  s = voyage.jouer('jouer', (forgeron.elements[0] as Bouton).jeu);
+  figer('échoppe : l’étal et ses prix, le panier vide, les possessions à vendre', s);
+  const article = s.vue.zones['fenetre.corps'].filter((e): e is Entite => e.id.startsWith('etal/')).flatMap((f) => f.elements as Bouton[]).find((b) => !b.refus)!;
+  s = voyage.jouer('jouer', article.jeu);
+  figer('échoppe : un article au panier, son total à payer', s);
+  voyage.fermer();
+
+  const repit = unPont([]);
+  s = repit.jouer('demarrer', { scenario: 'bataille-de-masse', graine: 7 });
+  for (let pas = 0; !s.vue.zones['fenetre.corps'].some((e) => e.id === 'repit/semaines'); pas++) {
+    if (pas > 12) throw new Error(`aucun répit entre deux aventures après ${pas} gestes : ${JSON.stringify(s.vue.zones['fenetre.titre'])}`);
+    s = repit.jouer('jouer', enFocus(s));
+  }
+  figer('entre deux aventures, un onglet par héros', s);
+  s = repit.jouer('jouer', enFocus(s));
+  const geste = (s: Suite, id: string): Jeu => {
+    const b = s.vue.zones['fenetre.corps'].find((e): e is Bouton => e.type === 'bouton' && e.id === id);
+    if (!b) throw new Error(`aucun geste ${id} dans ${JSON.stringify(s.vue.zones['fenetre.corps'].map((e) => e.id))}`);
+    return b.jeu;
+  };
+  figer('bataille de masse, les Scènes du Round', s);
+  s = repit.jouer('jouer', geste(s, 'bataille/geste/0'));
+  figer('bataille de masse, entre deux Rounds', s);
+  repit.fermer();
+
+  const forge = unPont([]);
+  s = forge.jouer('demarrer', { scenario: 'entre-deux-aventures', graine: 7 });
+  for (let pas = 0; !s.vue.zones['fenetre.corps'].some((e) => e.id === 'repit/semaines'); pas++) {
+    if (pas > 8) throw new Error(`aucun répit entre deux aventures après ${pas} gestes : ${JSON.stringify(s.vue.zones['fenetre.titre'])}`);
+    s = forge.jouer('jouer', enFocus(s));
+  }
+  figer('entre deux aventures, l’ouvrage et le dépôt du forgeron', s);
+  forge.fermer();
+
+  /** Le marché du scénario `scenario`, entré par le seul service de son lieu ; ses dés tombés, il montre la bourse. */
+  const auMarche = (scenario: string) => {
+    const p = unPont([]);
+    let m = viderLesFenetres(p.jouer, p.jouer('demarrer', { scenario, graine: 7 }));
+    m = p.jouer('jouer', m.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Le lieu')!.jeu);
+    m = p.jouer('jouer', (m.vue.zones['fenetre.corps'].find((e): e is Entite => e.id.startsWith('service/'))!.elements[0] as Bouton).jeu);
+    for (let pas = 0; !m.vue.zones['fenetre.corps'].some((e) => e.id === 'bourse'); pas++) {
+      if (pas > 12) throw new Error(`aucun marché après ${pas} gestes : ${JSON.stringify(m.vue.zones['fenetre.titre'])}`);
+      m = p.jouer('jouer', presse(m));
+    }
+    return { p, m };
+  };
+  const halle = auMarche('commerce-fluvial');
+  figer('halle : chaque offre, son prix par Enc et son achat', halle.m);
+  const achat = halle.m.vue.zones['fenetre.corps'].flatMap((e) => (e.type === 'entite' ? e.elements : [])).find((x): x is Formulaire => x.id === 'acheter')!;
+  const valeurDe = (c: Saisie) => (c.type === 'saisieChoix' ? c.valeurs.find((v) => v.presse)!.valeur : c.type === 'fixe' || c.type === 'saisieNombre' ? c.valeur : null);
+  figer('halle : un lot acheté, sa vente, son bradage, son transfert', halle.p.jouer('jouer', { type: achat.verbe, args: achat.champs.map(valeurDe) }));
+  halle.p.fermer();
+  const port = auMarche('voyage-maritime');
+  figer('escale maritime : la bourse et la cale du navire', port.m);
+  port.p.fermer();
 
   const vides: ZonesDeLEcran = {
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
@@ -199,8 +319,8 @@ export function figerVuesDeLEcran(): VueFigee[] {
   vues.push({
     nom: 'formulaire de chaque saisie',
     disposition: null,
-    zones: { ...vides, 'fenetre.titre': [ligne('titre', 'Formulaire de recette')], 'fenetre.gestes': elementsDesGestes([FORMULAIRE, REFUSE]), 'journal.lignes': [...lignes] },
-    attendus: { [FORMULAIRE.cle]: { type: FORMULAIRE.verbe, args: ARGUMENTS_DU_FORMULAIRE } },
+    zones: { ...vides, 'fenetre.titre': [ligne('titre', 'Formulaire de recette')], 'fenetre.gestes': [...elementsDesGestes([FORMULAIRE, REFUSE]), CASES], 'journal.lignes': [...lignes] },
+    attendus: { [FORMULAIRE.cle]: { type: FORMULAIRE.verbe, args: ARGUMENTS_DU_FORMULAIRE }, [CASES.id]: { type: CASES.verbe, args: [['a']] } },
   });
   return vues;
 }

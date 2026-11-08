@@ -19,7 +19,8 @@
 import type { RNG } from './dice';
 import { rollTest, resolveOpposed, isDoubleRoll, evaluateTest, clampTarget, cibleDuTest, TestResult, reverseRoll } from './tests';
 import { getTestPolicy } from './testPolicy';
-import { refCouvre } from '../data/schemas/grammaire/ref';
+import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
+import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import { rule } from './policy';
 import { traitCapability } from './traits/dispatch';
 import { bonus, effectiveChar, effectiveArmourAt } from './characteristics';
@@ -89,14 +90,24 @@ export function hasTalent(c: Combatant, talentId: string): boolean {
   return effectiveTalents(c).some((t) => t.talentId === talentId && (t.times ?? 1) >= 1);
 }
 
+/** Test de la famille Incantation : sa Compétence, et si la Caractéristique d'incantation du Domaine
+ *  arcanique du lanceur la remplace (`castingChar`, ADE II 2 l.728 : Langue (Magick) d'un boucher ogre). */
+export interface TestDIncantation {
+  skill: RefDesignee;
+  caracDuDomaine?: true;
+}
+
 /** Branche d'incantation déduite du type de sort. */
-export interface CastInfo {
-  /** id STABLE de la Compétence de test (skills.json — `'priere'` / `'langue'`), multilangue. */
-  skill: 'priere' | 'langue';
-  /** Spécialisation requise pour la compétence, le cas échéant. */
-  spec?: string;
+export interface CastInfo extends TestDIncantation {
+  /** Compétence de test, Spécialisation requise comprise (id STABLE de skills.json — `'priere'` / `'langue'`). */
+  skill: { id: 'priere' | 'langue'; spec?: string };
   /** Faut-il comparer le DR au Niveau d'Incantation ? (faux pour les Prières.) */
   requireNI: boolean;
+}
+
+/** Le Test d'Incantation arcanique, Langue (Magick) (LDB 46 l.22-24) — aussi celui de la Dissipation. */
+export function incantationArcane(): CastInfo {
+  return { skill: { id: 'langue', spec: 'magick' }, requireNI: true, caracDuDomaine: true };
 }
 
 /** Le sort relève-t-il d'une Prière (Bénédiction/Miracle) ? Discriminant UNIQUE : la `family`
@@ -108,9 +119,9 @@ export function castInfoIsPrayer(spell: SpellLike): boolean {
 /** Détermine la branche (et donc la Compétence) selon le sort : Prière vs Sort. `LDB 40 l.13` */
 export function castInfo(spell: SpellLike): CastInfo {
   if (castInfoIsPrayer(spell)) {
-    return { skill: 'priere', requireNI: false };
+    return { skill: { id: 'priere' }, requireNI: false };
   }
-  return { skill: 'langue', spec: 'magick', requireNI: true };
+  return incantationArcane();
 }
 
 /** Vrai pour les Sorts d'Arcane/Domaine pouvant être alimentés par Focalisation. */
@@ -127,8 +138,8 @@ function penaltyMatches(p: { skill: string }, skill: 'priere' | 'langue' | 'foca
  *  Compétences Langue (Magick) et Focalisation ») porté par le `passive: OpPassive[]` d'un Trait/mutation —
  *  MÊME vocabulaire `{op:'castPenalty', skill, blocked}` que le contrecoup temporisé (`applyOps`), sans
  *  `rounds`/`minutes`/`hours`/`days` → jamais purgé (dure tant que le Trait est porté). L'exception « sauf
- *  pour dissiper » (l.250) est satisfaite STRUCTURELLEMENT : la Dissipation (`battleDispelSpell`/
- *  `oocDispelSpell`, `dispel.ts`) est une Action DISTINCTE de l'incantation qui ne consulte JAMAIS
+ *  pour dissiper » (l.250) est satisfaite STRUCTURELLEMENT : la Dissipation (`dissiperLeSort`,
+ *  `dispel.ts`) est une Action DISTINCTE de l'incantation qui ne consulte JAMAIS
  *  `castBlockedBy` — aucun champ d'exception à porter en donnée. */
 function passiveCastPenalties(c: Combatant): CastPenalty[] {
   const sources: { label: string; ops: import('./ops').GameOp[] }[] = [
@@ -224,16 +235,13 @@ export function prayerTalentMissing(c: Combatant, spell: SpellLike): 'beni' | 'i
 /**
  * Caractéristique d'un Test d'incantation — POINT UNIQUE, lu par la valeur du Test (`castingValue`)
  * comme par le plafond de Soutien (LDB 12 l.198). Carac d'instance (data-driven, `skills.ts`) sinon
- * défaut LDB (Prière→Soc, Focalisation→FM, Langue→Int). Surcharge DATA du Domaine pour Langue
- * (Magick) : la Magie de la Gueule (réservée aux ogres) se lance sur l'Endurance (ADE II 2 l.728) —
- * attribut `castingChar` du domaine, AUCUN sniff d'espèce.
+ * celle de `skills.json`. Surcharge DATA du Domaine quand le Test la déclare (`caracDuDomaine`) : la
+ * Magie de la Gueule (réservée aux ogres) se lance sur l'Endurance (ADE II 2 l.728) — attribut
+ * `castingChar` du domaine, AUCUN sniff d'espèce.
  */
-export function castingCharKey(c: Combatant, skillName: string, spec?: string): CharKey {
-  const domChar = skillName === 'langue' ? findDomainById(arcaneDomainIdOf(c))?.castingChar : undefined;
-  return domChar ?? effectiveSkillCharKey(c, skillName, {
-    spec,
-    fallback: skillName === 'priere' ? 'sociabilite' : skillName === 'focalisation' ? 'force-mentale' : 'intelligence',
-  });
+export function castingCharKey(c: Combatant, test: TestDIncantation): CharKey {
+  const domChar = test.caracDuDomaine ? findDomainById(arcaneDomainIdOf(c))?.castingChar : undefined;
+  return domChar ?? effectiveSkillCharKey(c, { skill: test.skill });
 }
 
 /**
@@ -245,23 +253,25 @@ export function castingCharKey(c: Combatant, skillName: string, spec?: string): 
  * est un MODIFICATEUR : il entre dans la cible, jamais ici. Aucun site ne re-dérive cette valeur par
  * soustraction — ils appellent CETTE fonction.
  */
-export function castingBaseValue(c: Combatant, skillName: string, spec?: string): number {
-  // `skillName` EST déjà l'id stable de la Compétence (skills.json) ; la FORMULE reste celle de
-  // `skillBaseValue` — seule la Caractéristique est imposée ici (surcharge de Domaine, `castingCharKey`).
-  return skillBaseValue(c, skillName, spec, castingCharKey(c, skillName, spec));
+export function castingBaseValue(c: Combatant, test: TestDIncantation): number {
+  // La FORMULE reste celle de `skillBaseValue` — seule la Caractéristique est imposée ici (surcharge
+  // de Domaine, `castingCharKey`).
+  return skillBaseValue(c, { skill: test.skill, characteristic: castingCharKey(c, test) });
 }
 
 /**
- * Valeur TESTÉE d'une incantation : le Niveau de Compétence (`castingBaseValue`) une fois modulé par
- * les contrecoups actifs (castPenalties) et, EN COMBAT, par l'Avantage (« Les Avantages s'appliquent
- * aux Tests d'Incantation, pas aux Tests de Focalisation », LDB 46 l.123-125).
+ * Valeur TESTÉE d'une incantation (Prière, Langue (Magick)) : le Niveau de Compétence
+ * (`castingBaseValue`) une fois modulé par les contrecoups actifs (castPenalties) et, EN COMBAT, par
+ * l'Avantage (LDB 46 l.125).
  */
-export function castingValue(c: Combatant, skillName: string, spec?: string): number {
-  const penalty = skillName === 'priere' || skillName === 'langue' || skillName === 'focalisation'
-    ? castPenaltyMod(c, skillName)
-    : 0;
-  const advantage = skillName === 'focalisation' ? 0 : 10 * (c.advantage ?? 0);
-  return castingBaseValue(c, skillName, spec) + penalty + advantage;
+export function castingValue(c: Combatant, test: Pick<CastInfo, 'skill' | 'caracDuDomaine'>): number {
+  return castingBaseValue(c, test) + castPenaltyMod(c, test.skill.id) + 10 * (c.advantage ?? 0);
+}
+
+/** Valeur TESTÉE d'une Focalisation : le Niveau de Compétence et les contrecoups, sans l'Avantage
+ *  (LDB 46 l.125). */
+export function focalisationValue(c: Combatant, skill: { id: 'focalisation'; spec?: string }): number {
+  return castingBaseValue(c, { skill }) + castPenaltyMod(c, skill.id);
 }
 
 /**
@@ -312,7 +322,7 @@ export function focusWindLabel(spell: SpellLike): string | undefined {
 /** Valeur du Test de Focalisation de `c` pour CE sort, Vents exclus ; `null` sans Compétence. LDB 46 l.130 */
 export function focusValueOf(c: Combatant, spell: SpellLike): number | null {
   const sk = focusSkillFor(c, spell);
-  return sk ? castingValue(c, 'focalisation', sk.spec) : null;
+  return sk ? focalisationValue(c, { id: 'focalisation', spec: sk.spec }) : null;
 }
 
 /** La Focalisation de `c` a-t-elle atteint le NI de `spell` : le Sort se lance au NI 0. LDB 46 l.128, l.132 */
@@ -339,11 +349,10 @@ export function focusSkillFor(c: Combatant, spell: SpellLike) {
  * les statblocs du bestiaire ne portent pas de Compétences ; le Test se fait alors
  * sur la Caractéristique seule (castingValue, avances 0).
  */
-export function knowsCastingSkill(c: Combatant, skillName: string, spec?: string): boolean {
+export function knowsCastingSkill(c: Combatant, skill: RefDesignee): boolean {
   if (traitCapability(c.traits, 'spellcaster')) return true;
-  // `skillName` EST déjà l'id stable de la Compétence (skills.json) — lookup direct.
   return c.skills.some(
-    (s) => refCouvre({ id: skillName, spec }, s) && s.advances >= 1,
+    (s) => refCouvre(skill, s) && s.advances >= 1,
   );
 }
 
@@ -366,23 +375,23 @@ export function isMagicMissile(spell: SpellLike): boolean {
 }
 
 /** Un `TestMatch` (donnée `talent.test.matches`) s'applique-t-il au Test interrogé ? PUR : le matching
- *  id/spec/char vit dans le moteur ; l'évaluation du contexte `when` (Condition, couche state) est
+ *  id/spec/characteristic vit dans le moteur ; l'évaluation du contexte `when` (Condition, couche state) est
  *  INJECTÉE par `whenHolds` (le moteur reste pur — règle 3). `manual` (contexte narratif) = jamais auto.
  *  Spec : `specFromInstance` → la spec CHOISIE du talent (Métier (Au choix)) ; sinon `spec` fixe ; aucune
  *  → toute spec. */
 function matchApplies(
   m: TestMatch, inst: { spec?: string },
-  q: { skill?: string; char?: CharKey; spec?: string },
+  q: SujetDuJet,
   whenHolds: (cond: import('./flowCore').Condition) => boolean,
 ): boolean {
   if (m.manual) return false;
   if (m.skill != null) {
-    if (m.skill.id !== q.skill) return false;
+    if (m.skill.id !== q.skill?.id) return false;
     const wantSpec = m.specFromInstance ? inst.spec : m.skill.spec;
-    if (wantSpec != null && wantSpec !== q.spec) return false;
-    if (m.exceptSpec != null && m.exceptSpec === q.spec) return false; // Linguistique : toute Langue SAUF Magick
-  } else if (m.char != null) {
-    if (m.char !== q.char) return false;
+    if (wantSpec != null && wantSpec !== q.skill.spec) return false;
+    if (m.exceptSpec != null && m.exceptSpec === q.skill.spec) return false; // Linguistique : toute Langue SAUF Magick
+  } else if (m.characteristic != null) {
+    if (m.characteristic !== q.characteristic) return false;
   } else return false;
   return m.when ? whenHolds(m.when) : true;
 }
@@ -392,13 +401,13 @@ function matchApplies(
  * pour toute utilisation RÉUSSIE de la Compétence liée au Talent. » SOURCE UNIQUE du bonus de DR de Talent
  * (incantation ET Tests de compétence) : Σ des acquisitions des Talents dont un `TestMatch` structuré
  * (`talent.test.matches`, lu sur l'entrée EFFECTIVE — la variante réglée active peut republier la ligne
- * « Tests » du Talent, #563/#564) correspond au Test `{ skill|char, spec }`. Plus AUCUN match par libellé.
+ * « Tests » du Talent, #563/#564) correspond au Test (`SujetDuJet`). Plus AUCUN match par libellé.
  * `whenHolds` évalue les contextes `when` (injecté par la couche state ; défaut conservateur = un `when`
  * non vérifiable ne s'applique pas — p.ex. au casting, sans vue de combat).
  */
 export function talentTestSLBonus(
   c: Combatant,
-  q: { skill?: string; char?: CharKey; spec?: string },
+  q: SujetDuJet,
   whenHolds: (cond: import('./flowCore').Condition) => boolean = () => false,
 ): number {
   let n = 0;
@@ -413,9 +422,9 @@ export function talentTestSLBonus(
  *  PLUS les auras de +DR (`skillDRBonus` ; projection des auras : `src/engine/conditions.ts`,
  *  vocabulaire des déclencheurs : `docs/vocabulaire-mecanique.md`). Le
  *  casting n'a pas de vue de combat → les `when` ne s'appliquent pas (aucun talent d'incantation n'en a). */
-export function castTestTalentDR(c: Combatant, skill: 'langue' | 'focalisation' | 'priere', spec?: string): number {
+export function castTestTalentDR(c: Combatant, skill: RefDesignee): number {
   // + hors de son terrain : −DR à TOUS les Tests, l'incantation comprise (Créature marine, MDG 16 l.17).
-  return talentTestSLBonus(c, { skill, spec }) + skillDRBonus(c, skill, spec) + offTerrainTestDR(c);
+  return talentTestSLBonus(c, { skill }) + skillDRBonus(c, skill) + offTerrainTestDR(c);
 }
 
 /**
@@ -651,13 +660,12 @@ export function castTestDRMods(caster: Combatant, kind: CastTestKind, ctx: CastT
   const spell = kind === 'dissipation' ? null : ctx.spell ?? null;
   const info = kind === 'incantation' && spell ? castInfo(spell) : null;
   // Compétence du Test : LDB 46 l.22-24 · l.130 · l.156 (LDB 40 l.13 pour la Prière, via `castInfo`).
-  const skill = info ? info.skill : kind === 'focalisation' ? 'focalisation' : 'langue';
-  const spec = info ? info.spec : kind === 'dissipation' ? 'magick' : undefined;
+  const skill: RefDesignee = info ? info.skill : kind === 'focalisation' ? { id: 'focalisation' } : kind === 'dissipation' ? { id: 'langue', spec: 'magick' } : { id: 'langue' };
   // LDB 46 l.150 · LDB 46 l.22-24 · LDB 46 l.156
   const pen = kind === 'dissipation' ? 0 : armourCastDRPenalty(caster);
   // LDB 10 l.19 — appliqué au JET (pas à l'évaluation : `rederiveCastSL`, Chance « +1 DR », repart
   // du DR déjà boosté).
-  const tal = success ? castTestTalentDR(caster, skill, spec) : 0;
+  const tal = success ? castTestTalentDR(caster, skill) : 0;
   // MDG 02 l.178-186 · VDM 04 l.48-56 : indexés sur le Domaine du SORT.
   const seaDR = success && spell
     ? (kind === 'focalisation'
@@ -703,8 +711,8 @@ export function resolveCasting(
   niMods: readonly CastingNumberMod[] = [],
 ): CastResult {
   const info = castInfo(spell);
-  if (!knowsCastingSkill(caster, info.skill, info.spec)) {
-    const skill = info.spec ? `${info.skill} (${info.spec})` : info.skill;
+  if (!knowsCastingSkill(caster, info.skill)) {
+    const skill = info.skill.spec ? `${info.skill.id} (${info.skill.spec})` : info.skill.id;
     return {
       cast: false,
       roll: 0,
@@ -715,7 +723,7 @@ export function resolveCasting(
       log: `${caster.label} ne maîtrise pas ${skill} et ne peut pas incanter ${spell.label}.`,
     };
   }
-  const value = castingValue(caster, info.skill, info.spec) + extraMod;
+  const value = castingValue(caster, info) + extraMod;
   const t = rollTest(value, difficulty, rng);
   // Modificateurs propres du Test — SOURCE UNIQUE, partagée avec le Contre-sort (`castTestDRMods`).
   const delta = castTestDRMods(caster, 'incantation', { success: t.success, spell, sea, wind, env });
@@ -742,8 +750,8 @@ export function castTestTarget(
   extraMod = 0,
 ): number {
   const info = castInfo(spell);
-  if (!knowsCastingSkill(caster, info.skill, info.spec)) return 0;
-  return clampTarget(cibleDuTest(castingValue(caster, info.skill, info.spec), difficulty, extraMod)).target;
+  if (!knowsCastingSkill(caster, info.skill)) return 0;
+  return clampTarget(cibleDuTest(castingValue(caster, info), difficulty, extraMod)).target;
 }
 
 /**
@@ -755,9 +763,9 @@ export function castTestTarget(
  */
 export function castLandProbability(caster: Combatant, spell: SpellLike, focusedNI0 = false, wind: WindContext = {}, env: MagicEnvironment = {}, niMods: readonly CastingNumberMod[] = []): number {
   const info = castInfo(spell);
-  if (!knowsCastingSkill(caster, info.skill, info.spec)) return 0;
+  if (!knowsCastingSkill(caster, info.skill)) return 0;
   const policy = getTestPolicy();
-  const value = castingValue(caster, info.skill, info.spec);
+  const value = castingValue(caster, info);
   const delta = castTestDRMods(caster, 'incantation', { spell, wind, env });
   const reserve = malepierreReserveOf(caster);
   const ni = castingNumberOf(spell, focusedNI0, env, niMods, caster);
@@ -792,7 +800,7 @@ export function evaluateCasting(
   const info = castInfo(spell);
   // « Pensez à vos actes » (Colère des dieux, LDB 40) : tout Test de PRIÈRE réussi
   // ne peut pas obtenir plus de 0 DR pendant la durée du contrecoup.
-  if (info.skill === 'priere' && t.success && t.sl > 0 && prayerMaxZeroDR(caster)) {
+  if (castInfoIsPrayer(spell) && t.success && t.sl > 0 && prayerMaxZeroDR(caster)) {
     t = { ...t, sl: 0 };
   }
   const ni = castingNumberOf(spell, focusedNI0, env, niMods, caster);
@@ -811,7 +819,7 @@ export function evaluateCasting(
   }
   // `base` : le Niveau de Compétence du lanceur, RELU à sa source canonique — jamais `t.base`, que le
   // seam de jet a chargé de la valeur TESTÉE (Avantage, contrecoup, ward, Soutien fondus). LDB 12 l.160.
-  return { cast, roll: t.roll, target: t.target, sl: t.sl, base: castingBaseValue(caster, info.skill, info.spec), isCritical, isFumble, log, ...(info.requireNI ? { niRequired: ni } : {}) };
+  return { cast, roll: t.roll, target: t.target, sl: t.sl, base: castingBaseValue(caster, info), isCritical, isFumble, log, ...(info.requireNI ? { niRequired: ni } : {}) };
 }
 
 // ── Résistance à la Magie : le DR du Sort CONTRE une cible ────────────────────────────────────────
@@ -911,7 +919,7 @@ export function castTestOf(res: Pick<CastResult, 'roll' | 'target' | 'sl' | 'bas
  *  jamais héritée du `counterT` reçu — dont la valeur testée porte le Soutien du groupe uni
  *  (`LDB 12 l.189`) et les modificateurs propres du chant. LDB 12 l.160. */
 export function counterspellOutcomeFrom(counter: Combatant, counterT: TestResult, castT: TestResult): CounterspellOutcome {
-  const nue = { ...counterT, base: castingBaseValue(counter, 'langue', 'magick') };
+  const nue = { ...counterT, base: castingBaseValue(counter, incantationArcane()) };
   const opp = resolveOpposed(castT, nue); // le lanceur tient le rôle « attaquant »
   const dispelled = opp.winner === 'defender';
   const net = castT.sl - counterT.sl;
@@ -941,7 +949,7 @@ export function resolveCounterspell(counter: Combatant, castT: TestResult, rng: 
 /** Valeur du Test de Contre-sort de `counter`, Soutien exclu : lue par le jet, la Résilience, le meneur d'un groupe uni et
  *  la fenêtre. LDB 46 l.156 */
 export function counterspellValue(counter: Combatant): number {
-  return castingValue(counter, 'langue', 'magick');
+  return castingValue(counter, incantationArcane());
 }
 
 /** Domaine d'incantation d'un contre-lanceur pour l'appariement du Test Soutenu (`LDB 46 l.162` :
@@ -974,7 +982,7 @@ export function soutenuLeaderOf(unis: readonly Combatant[]): Combatant | undefin
  * réactive (`LDB 46 l.156` porte à FM/2 cases), maison, verbatim au ticket #1042.
  */
 export function soutenuBonusOf(unis: readonly Combatant[], leader: Combatant): number {
-  return soutienBonus([...unis], leader, 'langue', castingCharKey(leader, 'langue', 'magick'), 'magick');
+  return soutienBonus([...unis], leader, { skill: incantationArcane().skill, characteristic: castingCharKey(leader, incantationArcane()) });
 }
 
 export interface MissileResult extends CastResult {

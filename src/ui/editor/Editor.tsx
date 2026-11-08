@@ -1,10 +1,9 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
 import { Scene, emptyScene, tileAt, type CellSide } from '../../noyau/monde/scene';
-import { resizeGrid, editEntity, TypeNonNomme, IdentiteNonPatchable, type Pt, type ProjectScenes, deleteSel, nudgeSel, pasteEntity, addLayer, removeLayer, addArchitectureBody, addStoreyAbove, addArchitecturePart, addBuildingMass, addProjectScene, duplicateProjectScene, deleteProjectScene, switchProjectScene, poseBlocsAvances } from '../../noyau/sceneEdit';
+import { resizeGrid, editEntity, TypeNonNomme, IdentiteNonPatchable, type Pt, type ProjectScenes, deleteSel, dupliquerLEntite, nudgeSel, pasteEntity, addLayer, removeLayer, addArchitectureBody, addStoreyAbove, addArchitecturePart, addBuildingMass, addProjectScene, duplicateProjectScene, deleteProjectScene, switchProjectScene, poseBlocsAvances } from '../../noyau/sceneEdit';
 import { placeStairFlight } from '../../noyau/stairFlight';
 import { architectureSelectionForWarning, validateScene, type Warning } from '../../noyau/validateScene';
-import { idsDesPistesDeMusique } from '../../audio/music';
 import { planDefectKey, planFocusAt, planFocusTiles } from '../../noyau/planDefects';
 import { testScene } from '../../scenes/test-fixture';
 import { creatures, premierOffert } from '../../data';
@@ -28,22 +27,23 @@ import { projectSave, projectsLoad, projetDeLEntree } from '../../state/projectL
 import { type EntreeListee } from '../../noyau/persistance/bibliotheque';
 import { downloadText } from '../../web/fileIo';
 import { sceneToAscii, type SceneAsciiExport } from '../../noyau/monde/sceneToAscii';
-import { testScenarios, type TestScenario } from '../../scenes/test-scenarios';
+import { testScenarios } from '../../scenes/test-scenarios';
+import type { TestScenario } from '../../scenes/test-scenarios/_shared';
 import { allBuiltinCampaigns, copieDuJeu, type BuiltinCampaign } from '../../scenes/campaign';
-import { WorldMap, parseProject, projetVersDepot, documentDeProjet, type ProjectDoc, type ProjectIdentite } from '../../noyau/worldMap';
+import { WorldMap, parseProject, texteDuDepot, documentDeProjet, type ProjectDoc, type ProjectIdentite } from '../../noyau/worldMap';
 import { MAISON_PROJET_AUTHORE } from '../../data/schemas/defs-scenes/projet';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { REGISTRES_NARRATIFS } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { publierEditeur } from '../../state/editeurBridge';
-import { type Tool, type Sel } from '../../noyau/sceneEditLecture';
+import { entiteDeLaSelection, etageSuivant, type Tool, type Sel } from '../../noyau/sceneEditLecture';
 import { Icon } from '../Icon';
 import { Modal } from '../Modal';
 import { Row } from '../Layout';
 import { TraceLayerPanel } from './TraceLayerPanel';
 import { useEditorAutosave } from './useEditorAutosave';
 import { autosaveDelete } from '../../state/editorAutosave';
-import { advanceCalibration, identityTransform, nearestNode, type CalibProgress } from './traceCalibration';
+import { advanceCalibration, identityTransform, nearestNode, type CalibProgress } from '../../noyau/edition/calage';
 import {
   traceLayerLoad, takeCalqueEcarte, traceLayerSave, traceLayerDelete, panelExpandedLoad, panelExpandedSave, type TraceLayerRecord,
 } from '../../state/traceLayer';
@@ -88,10 +88,10 @@ export function Editor({
   onSceneChange?: (scene: Scene) => void;
 } = {}) {
   const setScreen = useGame((s) => s.setScreen);
-  const loadProject = useGame((s) => s.loadProject);
+  const chargerLeProjet = useGame((s) => s.chargerLeProjet);
   const party = useGame((s) => s.party);
 
-  const { scene, setScene, setSceneNoHistory, pushSnapshot, reecrireHistorique, undo, redo, resetScene, canUndo, canRedo } = useSceneHistory(() => clone(initialScene ?? testScene()));
+  const { scene, setScene, setSceneNoHistory, reecrireHistorique, undo, redo, resetScene, canUndo, canRedo } = useSceneHistory(() => clone(initialScene ?? testScene()));
   // Filet de crash : sauvegarde locale débattue de LA scène active, indépendante de
   // « Fichier → Enregistrer » — un crash de rendu (`SceneErrorBoundary`) ne perd plus le travail en
   // mémoire. `setScene` (jamais `resetScene`) au restaurer : une restauration erronée reste ANNULABLE
@@ -453,22 +453,19 @@ export function Editor({
         annuler: undo,
         retablir: redo,
         copier: () => {
-          if (sel?.type !== 'entity') return;
-          const ent = scene.entities.find((x) => x.id === sel.id);
-          if (ent) setClip(clone(ent));
+          const ent = entiteDeLaSelection(scene, sel);
+          if (ent) setClip(ent);
         },
         coller: () => {
           if (!clip) return;
-          const out = pasteEntity(scene, clip, hoverRef.current);
+          const out = pasteEntity(scene, clip, hoverRef.current, currentLayer);
           setScene(out.scene);
           setSel({ type: 'entity', id: out.id });
         },
         dupliquer: () => {
-          if (sel?.type !== 'entity') return;
-          const ent = scene.entities.find((x) => x.id === sel.id);
+          const ent = entiteDeLaSelection(scene, sel);
           if (!ent) return;
-          const { w, h } = scene.dimensions;
-          const out = pasteEntity(scene, ent, { x: Math.min(w - 1, ent.pos.x + 1), y: Math.min(h - 1, ent.pos.y + 1) });
+          const out = dupliquerLEntite(scene, ent);
           setScene(out.scene);
           setSel({ type: 'entity', id: out.id });
         },
@@ -559,12 +556,12 @@ export function Editor({
           return `✓ entité « ${entityId} » patchée — posé : ${nommer(true)} | retiré : ${nommer(false)}`;
         },
       }),
-    [scene, sel, clip, undo, redo, setScene, worldMap, view.canvasRef, view.rot, view.viewMode],
+    [scene, sel, clip, currentLayer, undo, redo, setScene, worldMap, view.canvasRef, view.rot, view.viewMode],
   );
 
   // Avertissements de LA scène éditée + ceux de la carte du monde.
   const warnings = useMemo(
-    () => validateScene(scenesDuProjet, worldMap, narratif, idsDesPistesDeMusique())
+    () => validateScene(scenesDuProjet, worldMap, narratif)
       .filter((w) => w.sceneId === scene.id || w.scope === 'worldMap'),
     [scenesDuProjet, scene.id, worldMap, narratif],
   );
@@ -605,8 +602,7 @@ export function Editor({
       if (scene.layers.some((layer) => layer.z === at.z)) setCurrentLayer(at.z);
       setTool({ mode: 'select' });
       if (at.kind === 'zone') {
-        const idx = (scene.effectZones ?? []).findIndex((z) => z.id === at.zoneId);
-        if (idx >= 0) setSel({ type: 'effectZone', idx });
+        if (scene.effectZones?.some((z) => z.id === at.zoneId)) setSel({ type: 'effectZone', id: at.zoneId });
       }
       return;
     }
@@ -682,7 +678,7 @@ export function Editor({
     downloadText(`${project.id}-projet.json`, JSON.stringify(project, null, 2));
   }
   /** Export en FORME DÉPÔT (DEV) d'une campagne livrée : le fichier que l'on commite sous `src/scenes/`
-   *  (`projetVersDepot`), sous SON nom et au format du dépôt. Libellé : celui de la campagne tant que le
+   *  (`texteDuDepot`), sous SON nom et au format du dépôt. Libellé : celui de la campagne tant que le
    *  nom posé à l'ouverture n'a pas bougé, sinon le nom que l'auteur a donné. Équivalent projet de
    *  `datasetSerializeRoot` (`data/overrides.ts`) ; la même porte que l'export passe AVANT. */
   function exportDepot(origine: NonNullable<typeof origineLivree>) {
@@ -694,7 +690,7 @@ export function Editor({
       return;
     }
     setRefusDuGeste(null);
-    downloadText(origine.fichier, `${JSON.stringify(projetVersDepot(project), null, 1)}\n`);
+    downloadText(origine.fichier, texteDuDepot(project));
   }
   /**
    * Un fichier peut être refusé pour DEUX causes, et l'auteur ne corrige pas la même chose : le
@@ -756,7 +752,7 @@ export function Editor({
       return;
     }
     setRefusDuGeste(null);
-    loadProject({ scenes: scenesDuProjet, entryId: scene.id, worldMap, narratif, projet: { id: doc.id } });
+    chargerLeProjet({ scenes: scenesDuProjet, entryId: scene.id, worldMap, narratif, projet: { id: doc.id } });
     setScreen('campaign');
   }
   function loadScenario(sc: TestScenario) {
@@ -1016,7 +1012,6 @@ export function Editor({
           view={view}
           setScene={setScene}
           setSceneNoHistory={setSceneNoHistory}
-          pushSnapshot={pushSnapshot}
           tool={tool}
           brush={brush}
           terrainRect={terrainRect}
@@ -1078,7 +1073,7 @@ export function Editor({
             className="btn small"
             title="Ajouter un étage au-dessus"
             onClick={() => {
-              const z = Math.max(...scene.layers.map((l) => l.z)) + 1;
+              const z = etageSuivant(scene);
               setScene(addLayer(scene, z));
               setCurrentLayer(z);
             }}

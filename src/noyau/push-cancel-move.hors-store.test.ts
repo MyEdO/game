@@ -12,7 +12,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /**
  * #199 — « Annuler dépl. » sans effet sur la poussée d'un engin de siège crewé (bélier-porte). Cause
  * racine : `pushCommitTile` (targetingModes.ts) ne peuplait JAMAIS `battle.moveSnapshot` (seul
- * `battleClickTile` le faisait) → `cancelMove` n'avait rien à restaurer. Fixé en mutualisant la capture
+ * `cliquerLaCase` le faisait) → `annulerLeDeplacement` n'avait rien à restaurer. Fixé en mutualisant la capture
  * (`captureMoveSnapshot`, combatGeometry.ts) entre les trois sites de premier segment.
  */
 
@@ -59,16 +59,16 @@ function reachDest(from: { x: number; y: number }): { x: number; y: number } {
   return keys.find((p) => p.x !== from.x || p.y !== from.y)!;
 }
 
-describe('#199 — cancelMove défait une poussée d’engin de siège (pushCommitTile)', () => {
+describe('#199 — annulerLeDeplacement défait une poussée d’engin de siège (pushCommitTile)', () => {
   beforeEach(() => banc.setState({ battle: null, party: [], scene: undefined }));
 
   it('pousse d’une case : engin + chef + servants avancent, servants marqués loseNextMovement', () => {
     const { chef, hull, s1, s2 } = pushSetup();
-    banc.getState().battlePushEngine();
+    banc.getState().pousserLEngin();
     expect(banc.getState().battle!.action).toBe('push');
     expect(banc.getState().battle!.reachable.size).toBeGreaterThan(0);
     const dest = reachDest(chef.pos!);
-    banc.getState().battleClickTile(dest);
+    banc.getState().cliquerLaCase(dest);
     const st = banc.getState();
     const find = (id: string) => st.battle!.combatants.find((c) => c.id === id)!;
     expect(find(chef.id).pos).toEqual(dest);
@@ -78,17 +78,17 @@ describe('#199 — cancelMove défait une poussée d’engin de siège (pushComm
     expect(st.battle!.moveSnapshot).not.toBeNull(); // #199 : DOIT être peuplé (c'était le bug)
   });
 
-  it('cancelMove restaure positions/facing de l’engin + chef + servants ET défait loseNextMovement', () => {
+  it('annulerLeDeplacement restaure positions/facing de l’engin + chef + servants ET défait loseNextMovement', () => {
     const { chef, hull, s1, s2 } = pushSetup();
     const from = { chef: { ...chef.pos! }, hull: { ...hull.pos! }, s1: { ...s1.pos! }, s2: { ...s2.pos! } };
-    banc.getState().battlePushEngine();
+    banc.getState().pousserLEngin();
     const dest = reachDest(from.chef);
-    banc.getState().battleClickTile(dest);
+    banc.getState().cliquerLaCase(dest);
     // Précondition : la poussée a bien bougé tout le monde et posé loseNextMovement (sinon le test ne
     // vérifie rien) — voir le test précédent pour l'assertion détaillée.
     expect(banc.getState().battle!.combatants.find((c) => c.id === chef.id)!.pos).toEqual(dest);
 
-    banc.getState().cancelMove();
+    banc.getState().annulerLeDeplacement();
     const st = banc.getState();
     const find = (id: string) => st.battle!.combatants.find((c) => c.id === id)!;
     expect(find(chef.id).pos).toEqual(from.chef);

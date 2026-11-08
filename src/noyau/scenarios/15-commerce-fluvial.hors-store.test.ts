@@ -34,10 +34,10 @@ function launch() {
 function drainCascade(): void {
   draineCascade(get, 200, undefined, () => 'forcer');
 }
-function bargeTo(routeId: string, destSceneId: string, maxSteps = 60): void {
-  get().startTravel(routeId, 'barge');
+function bargeTo(routeId: string, destPlaceId: string, maxSteps = 60): void {
+  get().partirEnVoyage(routeId, 'barge');
   for (let i = 0; i < maxSteps; i++) {
-    if (!get().travelPlan && get().scene?.id === destSceneId) return;
+    if (!get().travelPlan && get().lieu === destPlaceId) return;
     // Les jets du JOUR fluvial (et l'exposition) sont une cascade influençable : la drainer.
     if (get().pendingCascade) { drainCascade(); continue; }
     if (get().pendingRest) { get().fenetreValider('rest'); drainCascade(); continue; }
@@ -71,7 +71,7 @@ describe('Scénario Commerce fluvial — qui tient la barre', () => {
     // Otto devient le plus agile du groupe : sans la porte `peutTenter`, sa Voile non augmentée l'élirait.
     banc.setState({ party: get().party.map((h) => (h.id === 'com-otto' ? { ...h, characteristics: { ...h.characteristics, agilite: 95 } } : h)) });
     drainCascade();
-    get().startTravel('r-grunburg-altdorf', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-grunburg-altdorf', 'barge', { cadence: 'jour-par-jour' });
     const barre = get().pendingCascade?.participants.find((p) => p.kind === 'riverNav');
     expect(barre?.actorId).toBe('com-gunnar');
   });
@@ -80,7 +80,7 @@ describe('Scénario Commerce fluvial — qui tient la barre', () => {
     drainCascade();
     const gunnar = get().party.find((h) => h.id === 'com-gunnar')!;
     expect(gunnar.skills.filter((k) => k.id === 'voile').map((k) => [k.spec, k.advances])).toEqual([['chaland', 40]]);
-    get().startTravel('r-grunburg-altdorf', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-grunburg-altdorf', 'barge', { cadence: 'jour-par-jour' });
     const barre = get().pendingCascade?.participants.find((p) => p.kind === 'riverNav');
     expect(barre?.base).toBe(gunnar.characteristics.agilite + 40);
   });
@@ -96,8 +96,8 @@ describe('Scénario Commerce fluvial — boucle acheter → barge → revendre a
 
     // ── ACHAT à Grünburg (R 2) ──
     seedBattleRng(7);
-    get().openLandMarket();
-    get().jetConfirm('etalLot'); // #1426 : la fenêtre de LOT s'ouvre d'abord ; l'étal se pose à sa validation
+    get().ouvrirLeMarche();
+    get().jetValider('etalLot'); // #1426 : la fenêtre de LOT s'ouvre d'abord ; l'étal se pose à sa validation
     drainCascade(); // #274 : le Test de Ragot est surfacé par la porte (héros piloté-humain → modale)
     const offers = get().landMarket!.offers;
     expect(offers.length).toBeGreaterThan(0);
@@ -106,28 +106,29 @@ describe('Scénario Commerce fluvial — boucle acheter → barge → revendre a
     const carrierId = primaryCargoCarrier(get())!.id;
     const buyEnc = Math.min(carrierFreeEnc(primaryCargoCarrier(get())!), offer.enc);
     const purseBeforeBuy = toBrass(partyMoneyTotal(get));
-    get().landBuyCargo(offer.cargoId, buyEnc);
+    get().acheterLaCargaison(carrierId, offer.cargoId, buyEnc);
     const spent = purseBeforeBuy - toBrass(partyMoneyTotal(get));
     expect(spent).toBeGreaterThan(0);
     expect(primaryCargoCarrier(get())!.cargo.length).toBe(1);
     expect(primaryCargoCarrier(get())!.cargo[0].cargoId).toBe(offer.cargoId);
+    const lotId = primaryCargoCarrier(get())!.cargo[0].uid;
     get().fenetreFermer('marcheDeTerre');
 
     // ── DESCENTE du Reik en BARGE (le convoi voyage avec le groupe) ──
-    bargeTo('r-grunburg-altdorf', 'quai-altdorf');
+    bargeTo('r-grunburg-altdorf', 'p-altdorf');
     expect(get().travelPlan).toBeNull();
-    expect(get().scene?.id).toBe('quai-altdorf'); // arrivé à la capitale
+    expect(get().lieu).toBe('p-altdorf'); // arrivé à la capitale
     expect(primaryCargoCarrier(get())!.cargo.length).toBe(1); // cargaison PERSISTÉE pendant le voyage
 
     // ── VENTE à Altdorf (Florissant R 5 → Mise à prix +10 %, l.156) ──
     seedBattleRng(3);
-    get().openLandMarket();
-    get().jetConfirm('etalLot');
+    get().ouvrirLeMarche();
+    get().jetValider('etalLot');
     drainCascade();
     const purseBeforeSell = toBrass(partyMoneyTotal(get));
     // Le dé d'acheteur est un dé de MONDE : le joueur le LANCE dans sa fenêtre (#1426), et la vente
     // s'enchaîne sur ses maillons différés (mise à prix, Marchandage).
-    get().landSellCargo(carrierId, 0);
+    get().vendreLaCargaison(lotId);
     draineCascadeDifferee(get, () => banc.reprendreTout());
     const earned = toBrass(partyMoneyTotal(get)) - purseBeforeSell;
     expect(earned).toBeGreaterThan(0);
@@ -151,7 +152,7 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
   function descendre(cadence?: 'jour-par-jour', decisions: string[] = []): string[] {
     drainCascade(); // l'entrée de scène du lanceur (affichage, aucun jet)
     const fenetres: string[] = [];
-    get().startTravel('r-grunburg-altdorf', 'barge', cadence ? { cadence } : undefined);
+    get().partirEnVoyage('r-grunburg-altdorf', 'barge', cadence ? { cadence } : undefined);
     for (let i = 0; i < 40 && get().travelPlan; i++) {
       const p = get().pendingCascade;
       const cur = p?.participants[p.cursor];
@@ -176,19 +177,19 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
   it('graine 5, cadence par défaut, barrage posé : aucune fenêtre de jour ni d’Exposition jusqu’à Altdorf, chaque jet au journal', () => {
     seedBattleRng(5);
     barragePose();
-    // Le journal du store est plafonné : chaque ligne se capte à son puits (`log`), le temps de la descente.
+    // Le journal du store est plafonné : chaque ligne se capte à son puits (`ecrireAuJournal`), le temps de la descente.
     const journal: string[] = [];
-    const puits = get().log;
-    banc.setState({ log: (msg) => { journal.push(...(Array.isArray(msg) ? msg : [msg])); puits(msg); } });
+    const puits = get().ecrireAuJournal;
+    banc.setState({ ecrireAuJournal: (msg) => { journal.push(...(Array.isArray(msg) ? msg : [msg])); puits(msg); } });
     const decisions: string[] = [];
     try {
       expect(descendre(undefined, decisions), 'aucune fenêtre de jet sur la descente').toEqual([]);
     } finally {
-      banc.setState({ log: puits });
+      banc.setState({ ecrireAuJournal: puits });
     }
     expect(decisions.length, 'le barrage posé est rencontré').toBeGreaterThan(0);
     expect(new Set(decisions), 'le barrage (MSRC 7 l.128) est la seule décision de la descente').toEqual(new Set(['riverObstacleChoice']));
-    expect(get().scene?.id).toBe('quai-altdorf');
+    expect(get().lieu).toBe('p-altdorf');
     const jours = journal.filter((l) => /^Progression du jour/.test(l)).length;
     expect(jours, `journal :\n${journal.join('\n')}`).toBeGreaterThan(1);
     // Un dé d'Exposition par jour, et un Test de Résistance par héros pour chaque exposition.

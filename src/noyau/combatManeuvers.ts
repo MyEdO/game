@@ -163,7 +163,7 @@ export const MANEUVER_ICON: Record<AttackKind, IconId> = {
 export const MELEE_MANEUVER_KINDS: AttackKind[] = ['morsure', 'caudale', 'tentacules', 'pietinement'];
 
 /** ATTAQUE activable par le héros actif — descripteur UNIFIÉ (arme tenue + attaques gratuites/zone),
- *  SOURCE UNIQUE de la liste d'attaques (hotbar) ET de la résolution (`battleClickEntity`). `targeting`
+ *  SOURCE UNIQUE de la liste d'attaques (hotbar) ET de la résolution (`cliquerLeCombattant`). `targeting`
  *  pilote la résolution : 'melee' → approche-puis-frappe (attackPlan + pendingAttack) ; 'zone' →
  *  resolveManeuver (pendingManeuver). `cost.action` = coûte l'Action (Arme), sinon gratuite ;
  *  `cost.movement` = paie l'Action de Mouvement (`freeAttackCost`). `reach`/`forceMelee` = Allonge de
@@ -597,7 +597,7 @@ function openManeuverDefenseCascade(
 
 /** Le défenseur choisit sa meilleure réaction : Parade (Corps à corps) ou Esquive (Agilité + avances,
  *  pénalité d'Encombrement incluse) — la plus haute valeur. Vit ICI (feuille) : SOURCE UNIQUE,
- *  importée par combatFlow/rollFlows sans cycle.
+ *  importée par combatFlow/rollFlowSpecs sans cycle.
  *  Bestial (LDB 85 l.59) : « En défense, elle peut seulement utiliser la Compétence Esquive. » */
 export function bestDefenseMode(defender: Combatant): 'parade' | 'esquive' {
   if (isBestial(defender.traits)) return 'esquive';
@@ -659,25 +659,25 @@ export function resolveDistraire(attacker: Combatant, foe: Combatant, atk: TestR
 /** Valeurs du Test opposé d'Athlétisme/Calme du Distraire (LDB 10 l.364) — SOURCE des jets de
  *  `resolveDistraire`. Pur. */
 export function distraireAttackValue(c: Combatant): number {
-  return testValue(c, 'athletisme');
+  return testValue(c, { skill: { id: 'athletisme' } });
 }
 export function distraireDefenseValue(c: Combatant): number {
-  return testValue(c, 'calme');
+  return testValue(c, { skill: { id: 'calme' } });
 }
 /** Niveaux de Compétence NUS du départage du Distraire — LDB 12 l.160, LDB 09 l.17. Pur. */
 export function distraireAttackBase(c: Combatant): number {
-  return skillBaseValue(c, 'athletisme');
+  return skillBaseValue(c, { skill: { id: 'athletisme' } });
 }
 export function distraireDefenseBase(c: Combatant): number {
-  return skillBaseValue(c, 'calme');
+  return skillBaseValue(c, { skill: { id: 'calme' } });
 }
 
 /** Lignes du Test opposé de Distraire (`rollLine`, mêmes valeurs que le jet) — LDB 10 l.364. */
 export function ligneDeDistraire(mover: Combatant): RollLineParts {
-  return rollLine({ actor: mover, test: { skill: 'athletisme' }, valeur: distraireAttackValue(mover), difficulty: 'intermediaire' });
+  return rollLine({ actor: mover, test: { skill: { id: 'athletisme' } }, valeur: distraireAttackValue(mover), difficulty: 'intermediaire' });
 }
 export function ligneDuCalmeDistrait(foe: Combatant): RollLineParts {
-  return rollLine({ actor: foe, test: { skill: 'calme' }, valeur: distraireDefenseValue(foe), difficulty: 'intermediaire' });
+  return rollLine({ actor: foe, test: { skill: { id: 'calme' } }, valeur: distraireDefenseValue(foe), difficulty: 'intermediaire' });
 }
 
 /** Ligne du Corps à corps « brut » (`rollLine`, mêmes valeur et modificateurs que `rollDisengageAttack`)
@@ -693,7 +693,7 @@ export function ligneDeCorpsACorpsBrut(c: Combatant): RollLineParts {
  *  — LDB 14 l.161. */
 export function ligneDeForceDEmpoignade(c: Combatant): RollLineParts {
   return rollLine({
-    actor: c, test: { char: 'force' }, valeur: effectiveChar(c, 'force'), valeurEtrangere: true, difficulty: 'intermediaire',
+    actor: c, test: { characteristic: 'force' }, valeur: effectiveChar(c, 'force'), valeurEtrangere: true, difficulty: 'intermediaire',
     surLaCible: baseTestModLines(c, 'force', GRAPPLE_TEST_CTX),
   });
 }
@@ -727,7 +727,7 @@ export function adversairesADistraire(s: Jeu): Combatant[] {
 }
 
 /** Ouvre la modale de Battement d'un héros (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps
- *  NON opposé. AUCUN jet ici — il se fait au « Lancer » (`jetRoll('battement')`). */
+ *  NON opposé. AUCUN jet ici — il se fait au « Lancer » (`jetLancer('battement')`). */
 export function startBattement(_get: Get, set: SetFn, attacker: Combatant, foe: Combatant): void {
   set({ pendingBattement: { attackerId: attacker.id, foeId: foe.id, result: null } });
 }

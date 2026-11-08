@@ -20,8 +20,8 @@ const embuscadeConstruit = embuscade.construire();
 describe('IA — sélection de loadout tir/mêlée (Chasseur fronde)', () => {
   function setup() {
     banc.setState({ party: makeShowcaseParty() });
-    banc.getState().startScene(embuscadeConstruit.scene);
-    banc.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
+    banc.getState().lancerLaScene(embuscadeConstruit.scene);
+    banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const ael = b.combatants.find((c) => /aelindra/i.test(c.label))!; // PREGEN.chasseur (fronde + arme simple)

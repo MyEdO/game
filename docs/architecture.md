@@ -100,7 +100,7 @@ qui le rend inutile.
 | `hote` | module commun aux hôtes du noyau | la porte du noyau, `scenes`, feuilles | oui |
 | `hoteTexte`, `hotes` (`hotes/`) | hôte texte (MCP), hôte Godot | les droits de `hote`, et `hote` | oui |
 | `web` | services d'exécution du navigateur : minuteries, IndexedDB, stockage local, fichiers | feuilles | non |
-| `net`, `audio` | services de l'hôte web | feuilles (`net` : et `hote` en type ; `audio` : et `web`) | non |
+| `net`, `audio` | services de l'hôte web | feuilles (`net` : et `hote` en type ; `audio` : et `web`, `data`) | non |
 | `state` | adaptateur du store web : pose le résultat du noyau, sélectionne pour l'affichage, persiste | tout ce qui précède hors `hoteTexte` et `hotes` (`hote` compris) ; `ui` en type seul | non |
 | `ui`, `gameIso` | présentation de l'hôte web, deux zones qui s'importent l'une l'autre | tout ce qui précède hors `hoteTexte` et `hotes` (`hote` : `ui` seule) | non |
 | racine de `src/` | entrée de l'hôte web (`main.tsx`) et tests transverses | tout | non |
@@ -117,11 +117,11 @@ qui le rend inutile.
 - **Gel structurel de `ui` et `gameIso`** : ces deux zones seront remplacées. On n'y investit aucune
   restructuration, et les gardes de #2724 dont tout le périmètre y est restent en l'état jusqu'à la
   bascule, où elles partent avec leur code. Le gel porte sur la structure, pas sur le jeu.
-- **Question reportée : les outils d'auteur.** Le Compendium, l'atelier de cartes et les galeries de
-  contrôle restent-ils web après la bascule ? laurent a choisi « Plus tard » sur une carte le 2026-10-21,
-  conséquence affichée : « On migre d'abord l'écran de jeu, et on tranche quand le premier écran Godot
-  tourne. » D'ici là, ce qui ne sert que l'atelier reste dans `src/ui/editor/` (le calage du calque,
-  `traceCalibration.ts`).
+- **Les outils d'auteur passent en Godot.** Le Compendium, l'atelier de cartes et les galeries de
+  contrôle suivent l'écran de jeu dans la bascule : laurent, 2026-11-06, « Tout passe en Godot. »
+  Leur version web entre dans le gel de `ui` : on n'y corrige rien de structurel, et ses défauts
+  s'inventorient au sujet global #3006 pour être soldés dans la version Godot. Le calage du calque,
+  que l'atelier web et l'éditeur Godot partagent, vit au noyau (`src/noyau/edition/calage.ts`).
 
 ## Arborescence
 
@@ -161,7 +161,7 @@ un chargeur que la lecture ne suit pas (renommé, déstructuré, atteint par un 
 code : `src/test-setup.ts`, environnement de la suite principale (`setupFiles`), charge le store pour toute la suite
 web sans être un arc d'un test ; un test posé sous `src/state/` ou à la racine de `src/` est, par sa zone, un test
 de la coque web, que la sonde `scripts/ops/sondes/classement-tests-state/` classe ; `murs/suite-jouee` refuse une suite qu'aucune suite Vitest ne joue (`racinesDeLaSuite.mjs`) ;
-`murs/reexportation` refuse, en production de `src/state/` et `src/noyau/` (`ZONES_SANS_REEXPORTATION`), toute réexportation hors de la surface
+`murs/reexportation` refuse, en production de `src/state/`, `src/noyau/` et `src/scenes/` (`ZONES_SANS_REEXPORTATION`), toute réexportation hors de la surface
 du noyau ; `murs/quarantaine` refuse, aux fichiers que la config nomme, tout arc vers une cible de ses `cibles`
 (le batch générique de cascade et le domaine naval, #328). Banc : `src/eslint-ordre-total-et-purete.test.ts`. Les outils qui lisent le code des zones en dérivent :
 les murs d'oxlint, le périmètre des gardes et les lectures des gates (`RACINES_PRESENTES`, les racines que l'arbre
@@ -212,7 +212,9 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             `idUnion.out` (`scripts/docs/lib/cibles-registres.mjs`), jamais éditée
                             SEAM d'ÉCRITURE (`overrides.ts`) : `setDataset`/`setObjectDataset`/`resetData`
                             remplacent le CONTENU d'un dataset sans réassigner son binding (`splice` en
-                            place) ET VERSIONNENT l'écriture (`bumperDataset`, module FEUILLE
+                            place), `setDeDeTable` écrit le dé de tirage qu'un ANCÊTRE de la collection
+                            porte (document de table, racine qui le partage), et tous VERSIONNENT
+                            l'écriture (`bumperDataset`, module FEUILLE
                             `versionDataset.ts`) — l'identité du tableau ne bougeant jamais, cette version
                             est le SEUL témoin qu'un lecteur indexé peut consulter. Tout index de niveau
                             module se bâtit donc par `indexParId`/`indexParChamp`/`memoParVersion`
@@ -348,7 +350,7 @@ src/web/                     Services d'exécution du NAVIGATEUR (`window`, `doc
 src/geometry/                Géométrie/simulation PURE, feuille de `COUCHES` (#161 : `state` en a
                             besoin pour SA PROPRE logique — curseur de combat, IA, cadence des beats —
                             pas seulement le rendu ; zéro dépendance framework). `iso.ts` : projection
-                            isométrique (Dims, tileCenter, rotTile…) — `gameIso/iso.ts` la ré-importe pour
+                            isométrique (Dims, tileCenter, rotTile…) — `noyau/monde/iso.ts` la ré-importe pour
                             ses dérivés qui ont besoin du MONDE (WALL_H_M/isoPxToM, via noyau/monde/relief).
                             `walk.ts` : interpolation temporelle le long d'un chemin (walkMs/walkXY,
                             STEP_MS) — cadence l'attente de fin de marche AVANT résolution de combat.
@@ -525,7 +527,7 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             ne lisent ni ne posent d'état de combat ni de flux : IA (`ai.ts`), apparition
                             (`spawn.ts`), navires (`ship*.ts`), marchands (`merchants/`), narratif de
                             campagne, pièces, vision, authoring ASCII (`asciiMap.ts`, et son export inverse `sceneToAscii.ts`).
-  monde/scene.ts            SCÈNE : 48 fonctions PURES (tuiles, murs, portes, relief) + 34 types exportés,
+  monde/scene.ts            SCÈNE : fonctions PURES (tuiles, murs, portes, relief) + 34 types exportés,
                             dont 24 `z.infer` des schémas de `data/schemas/defs-scenes/`. Restent 10
                             MANUSCRITS : `Scene`, `SceneEntity`,
                             `AuMoinsUnPorteurDeFiche` (au moins un porteur de fiche, dérivé de
@@ -537,7 +539,7 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `LectureDArete` (lecture `auteur`/`jeu` d'une arête, `porteSelon`),
                             `Atterrissage` (où l'on atterrit en quittant une surface,
                             `surfaceDAtterrissage`), `CellSide` (alias primitif). Comptes
-                            et liste GATÉS par `ui/editor/scene-field-editability-guard.test.ts`.
+                            et liste GATÉS par `src/scene-field-editability-guard.test.ts`.
                             Les types que la donnée lit vivent avec leurs schémas : l'union `Effect` et
                             ses deux annotations du `z.lazy` (`DelayedEffect`, `PetitePriere`) dans
                             `defs-scenes/effets.ts` ; `Terrain`, `ReliefDefaults` et `SceneRoofDefaults`
@@ -566,6 +568,11 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             spawn de rencontre (`combatSlice` → `ficheDEntite` → `spawnEnemy` canal `{ presetCreature, presetId }`, `monde/spawn.ts` reste sans
                             import de cette couche).
   monde/spawn.ts            apparition des entités de scène et de rencontre (`spawnEnemy`)
+  edition/                  L'ÉDITEUR DE CARTE sans hôte (#3508) : `pointeur.ts` (appui, glissé, relâché d'un point de la carte
+                            routés vers les écrivains de `sceneEdit.ts` selon l'outil, avec le cran d'annulation et la
+                            sélection que le geste porte), `historique.ts` (annuler, rétablir, crans bornés), `session.ts`
+                            (la session d'édition et son réducteur `editer` sur l'union des gestes) ; l'éditeur web
+                            appelle le pointeur et l'historique, l'éditeur Godot joue la session par le pont (`editer`).
   creation/                 BROUILLON DE CRÉATION de personnage (LDB 04/05), sans écran : `brouillon.ts` (état pur :
                             tirages figés, bonus PX, validation, `buildHero`), `defauts.ts` (`fillDraftDefaults`)
   persistance/              documents PERSISTÉS, sans stockage : `elagage.ts` (`elaguerLePersiste`, seul élagage
@@ -598,7 +605,9 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             `elements.ts` (l'union fermée des éléments de la vue, nommés par forme de
                             donnée, et les gestes de la fenêtre en éléments), `ecran.ts` (`zonesDeLEcran` : chaque zone
                             de l'écran d'un hôte qui dessine la partie et ses éléments, leurs textes tirés du catalogue
-                            et des lecteurs du noyau), `roster.ts` (la procédure du roster
+                            et des lecteurs du noyau), `editeur.ts` (`zonesDeLEditeur` : les zones de l'éditeur de carte,
+                            lues de la session d'édition du noyau, et la surcouche du geste en cours, #3508),
+                            `roster.ts` (la procédure du roster
                             sur le `Stockage` que l'hôte fournit : charger, ajouter, retirer, mettre à jour — le
                             service `persisterLeHeros` d'un hôte qui a un stockage ; le chargement REND ses témoins de
                             retrait et d'élagage), `reglesMaison.ts` et `preferences.ts` (leur persistance sur le même
@@ -650,7 +659,7 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                             décider d'aucun effet de jeu (§ Couches).
   audioWiring.ts            câblage audio de l'hôte : sons ponctuels sur le bus (`brancherLesSons`), musique
                             de fond depuis l'état du store (`musicSelectionOf`, `initAudioWiring`) ;
-                            `src/audio/` garde le registre et la lecture.
+                            `src/audio/` garde la lecture, `src/data/sons/` le registre.
   campaignData.ts           lecture de la couche CHARGÉE dans le store pour `ui` et `gameIso` : `presetPnjById` (le narratif
                             de la partie passé à `presetDuNarratif`).
   store.ts                  store Zustand : `GameState` = `Jeu` (`noyau/etat.ts`) + l'état et les actions
@@ -735,12 +744,11 @@ src/gameIso/                Rendu du monde. Le moteur est le monde VOLUMIQUE thr
                             token, discriminé par kind) + floors/walls/roofs/props/tokens/highlights/
                             dynamicMarks/interactHalos/tokenChrome. Un builder n'importe NI caméra NI
                             Dims — sa sortie survit à toute rotation et sert les deux vues.
-                            propVolumes.ts = compilation PURE de la recette volumique d'un décor
-                            (`buildPropVolumes` : primitives locales × cap × ancre monde, posées sur le
-                            pied de l'ancrage = sol de la case + surélévation déclarée → `Face[]`
-                            monde). Chaque site de `buildProps` (entité, feature de façade, ornement de
-                            bâtiment) DÉCLARE son ancrage et un émetteur unique tranche : recette →
-                            volume, sinon billboard
+                            Chaque site de `buildProps` (entité, feature de façade, ornement de
+                            bâtiment) DÉCLARE son ancrage et un émetteur unique tranche par
+                            `facesDuDecor` (`src/noyau/monde/volume/propVolumes.ts`, compilation PURE
+                            de la recette volumique d'un décor, que le volume du monde des hôtes lit
+                            aussi) : recette → volume, sinon billboard
   backends/webgl/           SEUL backend du monde : cuisson des SceneEl en géométrie three (sceneMeshes,
                             faceBake, periodTexture, atlasBake des billboards) + caméras réelles
                             (cameras.ts, ortho pour les vues de plateau, perspective en POV)
@@ -802,7 +810,7 @@ src/ui/                     React : menus, CampaignView (HUD), CharacterSheet, m
                               (elle reste dans WorldMapView, premier consommateur ; le plan de ville #343-B sera
                               le second). Caméra pure = `worldMapViewport.ts` (clamp/fit/viewOn).
   editor/                     Éditeur v2 : Editor.tsx (shell ; ses écrivains PURS dans `noyau/sceneEdit.ts`,
-                              outil/sélection/picking dans `noyau/sceneEditLecture.ts`), EditorCanvas (pointeur/overlays/resize), Palette (rail
+                              outil/sélection/picking dans `noyau/sceneEditLecture.ts`, pointeur et historique dans `noyau/edition/`), EditorCanvas (pointeur/overlays/resize), Palette (rail
                               d'outils + contenu contextuel), Inspector (DOCKÉ, folds ; scène si rien
                               de sélectionné), LogicDock (triggers/dialogues/rencontres/validation en
                               master-détail, édition live), EffectList (rangées repliées + picker),
@@ -828,9 +836,10 @@ src/noyau/monde/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios 
                             largeurs inégales / char inconnu → throw. Entités/props/départ : poser des
                             MARQUEURS custom dans l'ASCII (ex. `@BFLr`), nettoyer avant le parse (`replace`)
                             puis scanner leurs positions.
-src/net/                    Coop en ligne de l'hôte web (relay WebSocket) : relay.ts (RelayClient heartbeat/backoff,
-                            RoomHost = un Transport virtuel par siège, RoomGuest), compress.ts ; la session et le
-                            protocole : `src/hote/coop/`
+src/net/                    compress.ts : la compression de l'hôte web (CompressionStream), port `Compression` du relay
+src/hote/coop/              Coop en ligne, plateforme injectée : protocol.ts, session.ts, relay.ts (RelayClient
+                            heartbeat/backoff, RoomHost = un Transport virtuel par siège, RoomGuest), salon.ts
+                            (politique de session) ; `src/state/netFlow.ts` en branche les ports web
                             — codes de room 6 chars, reconnexion auto par token (grace 2 min)
                             Reprise du lien invité ou retour de l'hôte (host-up) : GuestSession.rejoin
                             relance le handshake, puis reçoit campagne et snapshot autoritaire frais.
@@ -907,10 +916,10 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
   `netOwnership.controlsActive`). Garde : `src/noyau/jets-sans-classe.hors-store.test.ts` (coop × commandée),
   `src/noyau/voyage-cadence.hors-store.test.ts` (jour sous ordres par route). Lever ⇒ router les Tests de routine par
   owner de poste comme le fait déjà le registre de modales pour les interruptions.
-- **Conseil de bord (paie hebdomadaire + Moral, #229) hostOnly** — `src/noyau/modalArbiter.ts` l.110-112 :
-  décision de bourse PARTAGÉE (argent du groupe) → seul l'hôte la tranche, comme les autres actions à
-  l'argent du groupe (achat/vente marchand…) ; aucun routage d'intent coop pour cette décision. Lever
-  ⇒ router `pendingCouncil` en intent coop (vote/délégation) comme le reste des décisions partagées.
+- **Conseil de bord (paie hebdomadaire + Moral, #229) hostOnly** — `CHOIX_DES_FENETRES.council`
+  (`src/noyau/choixDesFenetres.ts`, `qui: 'hote'`) : décision de bourse PARTAGÉE (argent du groupe) → seul
+  l'hôte la tranche, comme les autres actions à l'argent du groupe (achat/vente marchand…) ; le choix d'un
+  invité se refuse à la frontière (`choix.refus.hoteSeul`). Lever ⇒ un vote ou une délégation de la paie.
 
 ## Systèmes clés (état actuel)
 

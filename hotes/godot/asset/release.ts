@@ -5,7 +5,7 @@
  * qui porte l'empreinte. `recupererModeles` tire de la Release le GLB qui manque dans le cache, le vérifie et le dépose
  * sous le nom que le projet Godot attend ; `publierAssets` y verse ceux qui n'y sont pas. Un modèle dont la provenance
  * porte `hors_release` (`CLE_HORS_RELEASE`) vit sur le poste seulement : ni dans la Release, ni suivi par git
- * (`suivisHorsRelease`).
+ * (`suivisHorsRelease`). Les textures du sol et le kit des arêtes y vivent de même (`./epingles.ts`, #3476).
  */
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
@@ -45,8 +45,12 @@ export async function enCacheOuTire(chemin: string, attendue: string, nom: strin
   ecrireTexteAtomique(chemin, octets);
 }
 
+/** Les extensions d'un fichier de la Release. */
+export const EXTENSIONS_D_ASSET = ['glb', 'blend', 'jpg'] as const;
+type ExtensionDAsset = (typeof EXTENSIONS_D_ASSET)[number];
+
 /** Le nom, dans la Release, du fichier d'empreinte `empreinte`. */
-export const nomDAsset = (empreinte: string, extension: 'glb' | 'blend'): string => `${empreinte}.${extension}`;
+export const nomDAsset = (empreinte: string, extension: ExtensionDAsset): string => `${empreinte}.${extension}`;
 
 /** L'URL publique du fichier `nom` de la Release. */
 export const urlDAsset = (nom: string): string => `https://github.com/${DEPOT}/releases/download/${TAG}/${nom}`;
@@ -175,41 +179,47 @@ export function suivisHorsRelease(modeles: readonly ModeleEpingle[], suivis: rea
   return suivis.filter((f) => prefixes.some((p) => f.startsWith(p)) || (FICHIER_DE_LICENCE.test(f) && !licencesPubliees.has(f)));
 }
 
-/** Un modèle absent de la Release : elle répond 404 sur son empreinte. */
-export class ModeleIntrouvable extends Error {
-  constructor(modele: ModeleEpingle, url: string) {
-    super(`${modele.model} (${modele.empreinte}) : HTTP 404 sur ${url}, absent de la Release ${TAG} de ${DEPOT}`);
-    this.name = 'ModeleIntrouvable';
+/** Un fichier de la Release : son nom au projet et son empreinte. */
+export interface FichierEpingle {
+  readonly fichier: string;
+  readonly empreinte: string;
+}
+
+/** Un fichier absent de la Release : elle répond 404 sur son empreinte. */
+export class AssetIntrouvable extends Error {
+  constructor({ fichier, empreinte }: FichierEpingle, url: string) {
+    super(`${fichier} (${empreinte}) : HTTP 404 sur ${url}, absent de la Release ${TAG} de ${DEPOT}`);
+    this.name = 'AssetIntrouvable';
   }
 }
 
 /** Une Release qui ne répond pas : réseau coupé, ou tout statut HTTP autre que 404. */
 export class ReleaseInjoignable extends Error {
-  constructor(modele: ModeleEpingle, url: string, raison: string) {
-    super(`${modele.model} (${modele.empreinte}) : Release ${TAG} de ${DEPOT} injoignable sur ${url} (${raison})`);
+  constructor({ fichier, empreinte }: FichierEpingle, url: string, raison: string) {
+    super(`${fichier} (${empreinte}) : Release ${TAG} de ${DEPOT} injoignable sur ${url} (${raison})`);
     this.name = 'ReleaseInjoignable';
   }
 }
 
-type Telecharger = (url: string) => Promise<{ readonly ok: boolean; readonly status: number; arrayBuffer(): Promise<ArrayBuffer> }>;
+export type Telecharger = (url: string) => Promise<{ readonly ok: boolean; readonly status: number; arrayBuffer(): Promise<ArrayBuffer> }>;
 
-/** Les octets du GLB de `modele` tirés de la Release : `ModeleIntrouvable` sur un 404, `ReleaseInjoignable` sur une
- *  erreur réseau, avant ou pendant le corps de la réponse, ou tout autre statut. */
-async function tirerDeLaRelease(modele: ModeleEpingle, telecharger: Telecharger, journal: (ligne: string) => void): Promise<Uint8Array> {
-  const url = urlDAsset(nomDAsset(modele.empreinte, 'glb'));
-  journal(`[modèles] ${modele.model} : téléchargement de ${url}`);
+/** Les octets de `epingle`, d'extension `extension`, tirés de la Release : `AssetIntrouvable` sur un 404,
+ *  `ReleaseInjoignable` sur une erreur réseau, avant ou pendant le corps de la réponse, ou tout autre statut. */
+export async function tirerDeLaRelease(epingle: FichierEpingle, extension: ExtensionDAsset, telecharger: Telecharger, journal: (ligne: string) => void): Promise<Uint8Array> {
+  const url = urlDAsset(nomDAsset(epingle.empreinte, extension));
+  journal(`[release] ${epingle.fichier} : téléchargement de ${url}`);
   let reponse: Awaited<ReturnType<Telecharger>>;
   try {
     reponse = await telecharger(url);
   } catch (e) {
-    throw new ReleaseInjoignable(modele, url, (e as Error).message);
+    throw new ReleaseInjoignable(epingle, url, (e as Error).message);
   }
-  if (reponse.status === 404) throw new ModeleIntrouvable(modele, url);
-  if (!reponse.ok) throw new ReleaseInjoignable(modele, url, `HTTP ${reponse.status}`);
+  if (reponse.status === 404) throw new AssetIntrouvable(epingle, url);
+  if (!reponse.ok) throw new ReleaseInjoignable(epingle, url, `HTTP ${reponse.status}`);
   try {
     return new Uint8Array(await reponse.arrayBuffer());
   } catch (e) {
-    throw new ReleaseInjoignable(modele, url, `corps de la réponse interrompu : ${(e as Error).message}`);
+    throw new ReleaseInjoignable(epingle, url, `corps de la réponse interrompu : ${(e as Error).message}`);
   }
 }
 
@@ -232,7 +242,7 @@ export async function recupererModeles({ dossier, cache = CACHE_DES_MODELES, tel
     const dansLeProjet = join(dossier, modele.model);
     const duProjet = sommeDuFichier(dansLeProjet) === modele.empreinte;
     if (modele.hors_release !== undefined && !duProjet) throw new Error(`[hors-release] ${modele.model} (${modele.empreinte}) : ${modele.hors_release} ; absent de la Release, GLB du poste attendu (reconstruire puis réimporter)`);
-    await enCacheOuTire(enCache, modele.empreinte, modele.model, async () => (duProjet ? readFileSync(dansLeProjet) : tirerDeLaRelease(modele, telecharger, journal)));
+    await enCacheOuTire(enCache, modele.empreinte, modele.model, async () => (duProjet ? readFileSync(dansLeProjet) : tirerDeLaRelease({ fichier: modele.model, empreinte: modele.empreinte }, 'glb', telecharger, journal)));
     if (!duProjet) ecrireTexteAtomique(dansLeProjet, readFileSync(enCache));
     octetsParId.set(modele.id, readFileSync(dansLeProjet));
   }

@@ -57,7 +57,7 @@ describe('TravelRolesPanel — un poste que le héros ne peut pas tenter est FER
     expect(ferme.getAttribute('aria-disabled')).toBe('true');
     expect(ferme.hasAttribute('disabled'), 'atteignable, jamais disabled').toBe(false);
     const raison = document.getElementById(ferme.getAttribute('aria-describedby')!);
-    expect(raison?.textContent).toContain(refusNePeutTenter(GUNNAR, { skill: 'perception' }));
+    expect(raison?.textContent).toContain(refusNePeutTenter(GUNNAR, { skill: { id: 'perception' } }));
     expect(candidat(panneau, 'Hilda').getAttribute('aria-disabled')).toBeNull();
   });
 
@@ -86,7 +86,7 @@ describe('TravelRolesPanel — Pratiquer une Compétence demande la Compétence'
     expect(useGame.getState().party[0].travelRole).toBeUndefined();
     const fermee = candidat(panneau, refLabel('skills', { id: 'evaluation' }));
     expect(fermee.getAttribute('aria-disabled')).toBe('true');
-    expect(document.getElementById(fermee.getAttribute('aria-describedby')!)?.textContent).toContain(refusNePeutTenter(ERUDIT, { skill: 'evaluation' }));
+    expect(document.getElementById(fermee.getAttribute('aria-describedby')!)?.textContent).toContain(refusNePeutTenter(ERUDIT, { skill: { id: 'evaluation' } }));
     act(() => { fermee.click(); });
     expect(useGame.getState().party[0].travelRole).toBeUndefined();
   });
@@ -142,7 +142,7 @@ describe('TravelRolesPanel — Pratiquer une Compétence : jamais épinglé sans
 describe('TravelRolesPanel — un poste non tenu (`postingTenu`) ne s’affiche jamais comme affecté', () => {
   it('un rôle épinglé que l’édition du catalogue rend non tenu quitte sa case', () => {
     useGame.setState({ party: [hero('h4', 'Aldric')] });
-    useGame.getState().setTravelRole('h4', { activityId: 'recuperer' });
+    useGame.getState().attribuerLeRoleDeMarche('h4', { activityId: 'recuperer' });
     const affecteARecuperer = (): boolean => {
       container = document.createElement('div');
       document.body.appendChild(container);

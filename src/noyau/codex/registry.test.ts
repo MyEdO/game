@@ -7,6 +7,7 @@ import { creatures, etats, trappings, gods, spells, species, findTraitById, find
 import { windSaturationEffects } from '../../data/arcanePhenomena';
 import { datasetObject, setDataset } from '../../data/overrides';
 import { CHAR_KEYS } from '../../engine/types';
+import { deDeLaTableTiree, facesDuDe } from '../../engine/tables';
 import { charAbr } from '../../data';
 import { MORALE_BANDS } from '../../engine/crewMorale';
 
@@ -228,6 +229,12 @@ describe('Codex registry — Bataille de masse (ADE II 8, #148)', () => {
   });
 });
 
+describe('Codex registry — demeures célestes (ADE II 03)', () => {
+  it('chaque demeure porte sa bande imprimée, sans dé : aucune ne se tire (l.504-512, l.514)', () => {
+    expect(categoryByKey('celestialHouses')!.items.map((i) => i.sub)).toEqual(['1–2', '3–4', '5–6', '7–8', '9–10']);
+  });
+});
+
 describe('Codex registry — #157 (audit d’exposition : datasets de contenu manquants au Codex)', () => {
   it('les nouveaux catalogues de contenu sont exposés, peuplés et ÉDITABLES au Codex', () => {
     const keys = [
@@ -235,7 +242,7 @@ describe('Codex registry — #157 (audit d’exposition : datasets de contenu ma
       'traumas', 'criticalsTete', 'criticalsBras', 'criticalsCorps', 'criticalsJambe',
       'aaCriticalsTete', 'aaCriticalsBras', 'aaCriticalsCorps', 'aaCriticalsJambe',
       'incidentsMonture', 'problemesVehicule', 'montures', 'tavernGames', 'obsessions', 'structureCriticals',
-      'landCargo', 'seaCargo', 'riverPerils', 'crewMoraleFactors', 'crewMoraleBands', 'steamBreakdowns',
+      'cargoes', 'riverPerils', 'crewMoraleFactors', 'crewMoraleBands', 'steamBreakdowns',
     ];
     for (const key of keys) {
       const cat = categoryByKey(key);
@@ -383,6 +390,43 @@ describe('Codex registry — #157 (suite) : 5 derniers catalogues de CONTENU (Cr
   });
 });
 
+describe('Codex registry — règles de négoce (#3433, MDG 15 et MSRC 13)', () => {
+  it('les fiches « Commerce maritime » et « Commerce terrestre et fluvial » sont exposées et ÉDITABLES au Codex', () => {
+    for (const key of ['seaCargo', 'landCargo']) {
+      expect(categoryByKey(key)!.items, key).toHaveLength(1);
+      expect(isEditableCategory(key), key).toBe(true);
+    }
+  });
+
+  it('la fiche maritime projette chaque barème de `sea-cargo.json`, issues du Commerce d’opportunité nommées', () => {
+    const c = datasetObject('seaCargo');
+    const item = categoryByKey('seaCargo')!.items[0];
+    expect(item.label).toBe(c.label);
+    expect(item.source?.book).toBe('MDG');
+    const titres = item.sections!.map((s) => s.title);
+    expect(titres).toEqual(['Achat', 'Prix d’offre (Richesse + Taille + Demande)', 'Vente', 'Surcharge de la cale', 'Commerce d’opportunité']);
+    const offre = item.sections!.find((s) => s.title.startsWith('Prix d’offre'))!;
+    expect(offre.rows.map((r) => r.t === 'kv' && r.k)).toEqual(['1', '2', '3', '4+']);
+    const opportunite = item.sections!.find((s) => s.title === 'Commerce d’opportunité')!;
+    const cles = opportunite.rows.flatMap((r) => (r.t === 'kv' ? [r.k] : []));
+    expect(cles).toContain('Échec · manque ≥ 6 DR');
+    expect(cles).toContain('Succès · +6 DR ou plus');
+    expect(cles.some((k) => /success|failure/.test(k))).toBe(false);
+  });
+
+  it('la fiche terrestre projette la qualité du vin, la mise à prix par Richesse et les rumeurs liées aux cargaisons', () => {
+    const c = datasetObject('landCargo');
+    const item = categoryByKey('landCargo')!.items[0];
+    expect(item.label).toBe(c.label);
+    expect(item.source?.book).toBe('MSRC');
+    const vin = item.sections!.find((s) => s.title === 'Qualité du vin (1d10)')!;
+    expect(vin.rows).toHaveLength(c.wineQuality.entries.length);
+    const rumeurs = item.sections!.find((s) => s.title === 'Rumeurs commerciales (1d100)')!;
+    expect(rumeurs.rows.filter((r) => r.t === 'text')).toHaveLength(c.rumours.entries.length);
+    expect(rumeurs.rows.some((r) => r.t === 'ref' && r.category === 'cargoes')).toBe(true);
+  });
+});
+
 describe('Codex registry — LOT 1 #422 (famille NAVALE : Ports, Progression, Navigation, Périls, Météo, Construction navale)', () => {
   it('les 8 nouvelles catégories navales sont exposées, peuplées et ÉDITABLES au Codex', () => {
     const keys = [
@@ -405,7 +449,7 @@ describe('Codex registry — LOT 1 #422 (famille NAVALE : Ports, Progression, Na
     expect(marienburg.group).toBe('Wasteland');
     const prodSec = marienburg.sections?.find((s) => s.title === 'Production');
     expect(prodSec, 'section Production').toBeTruthy();
-    expect(prodSec!.rows.some((r) => r.t === 'ref' && r.category === 'seaCargo')).toBe(true);
+    expect(prodSec!.rows.some((r) => r.t === 'ref' && r.category === 'cargoes')).toBe(true);
   });
 
   it('la table de Progression de navire (MDG 13) porte ses 5 modes avec leur fourchette de DR', () => {
@@ -432,10 +476,10 @@ describe('Codex registry — LOT 1 #422 (famille NAVALE : Ports, Progression, Na
   });
 
   it('« Changement de cap » (MDG 13 l.324-331) : le titre porte le dé ET le bonus de dérive majeure qui mène ses bandes au-delà de 10', () => {
-    const n = datasetObject('seaNavigation') as { orientation: { driftMajorBonus: number; changementDeCap: { max: number }[] } };
+    const n = datasetObject('seaNavigation') as { orientation: { driftMajorBonus: number; changementDeCap: { die: string; entries: { max: number }[] } } };
     const sec = categoryByKey('seaNavigation')!.items[0].sections!.find((s) => s.title.startsWith('Changement de cap'))!;
     expect(sec.title.startsWith(`Changement de cap (1d10, +${n.orientation.driftMajorBonus} à DR `), sec.title).toBe(true);
-    expect(Math.max(...n.orientation.changementDeCap.map((r) => r.max))).toBe(10 + n.orientation.driftMajorBonus);
+    expect(Math.max(...n.orientation.changementDeCap.entries.map((r) => r.max))).toBe(facesDuDe(deDeLaTableTiree(n.orientation.changementDeCap)) + n.orientation.driftMajorBonus);
   });
 
   it('la fiche « Périls en mer » (dataset-OBJET, MDG 13) projette Dangers flottants + Détroits + Tourbillons', () => {

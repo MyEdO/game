@@ -1,5 +1,8 @@
 import { Fragment, type ReactNode } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGame } from '../state/store';
+import { refusDuChoix } from '../noyau/choixDeFenetre';
+import { fermetureDeLaSortie } from '../noyau/sortieDeFenetre';
 import { flowStakeRef, skillRefLabel } from '../data';
 import { stakeRuleOf } from './StakeNote';
 import { CodexRef } from './compendium/CodexRef';
@@ -10,9 +13,9 @@ import { Coins } from './Coins';
 import { DrBar } from './DrBar';
 import { useHealJetProps } from './jetProps/useHealJetProps';
 import { EmbeddedShell, useRollShell } from './RollShell';
-import { isHealable, lodgedAmmoCount, HEAL_MODES, type HealMode } from '../engine/healing';
+import { lodgedAmmoCount, HEAL_MODES, type HealMode } from '../engine/healing';
 import { stacks } from '../engine/conditions';
-import { bestHealerFor, fenetreDeLOperation, refusDActeDeSoin, HEAL_STAKE } from '../noyau/medicFlow';
+import { bestHealerFor, plaiesNommees, refusDActeDeSoin, HEAL_STAKE } from '../noyau/medicFlow';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { toMoney } from '../engine/money';
 import { Icon } from './Icon';
@@ -47,11 +50,11 @@ export function MedicModal() {
   const ps = useGame((s) => s.pendingSurgery);
   const party = useGame((s) => s.party);
   const money = partyMoneyTotal(useGame.getState); // somme des bourses (le groupe est abonné via `party`)
-  const selectPatient = useGame((s) => s.medicSelectPatient);
-  const act = useGame((s) => s.medicAct);
-  const setWound = useGame((s) => s.medicSetWound);
-  const openPass = useGame((s) => s.openSurgeryPass);
-  const cancelSurgery = useGame((s) => s.medicAbandonSurgery);
+  const choisir = useGame((s) => s.fenetreChoisir);
+  const sortieFermee = useGame((s) => fermetureDeLaSortie(s, 'medic'));
+  const refusDuPatient = useGame(useShallow((s) => Object.fromEntries(s.party.map((h) => [h.id, refusDuChoix(s, 'medic', 'patient', h.id)]))));
+  const act = useGame((s) => s.soignerLePatient);
+  const openPass = useGame((s) => s.ouvrirLaChirurgie);
   const fermer = useGame((s) => s.fenetreFermer);
   const close = () => fermer('medic');
   const soin = useHealJetProps({ embedded: true });
@@ -60,7 +63,6 @@ export function MedicModal() {
   if (!medic) return null;
   const patient = party.find((c) => c.id === medic.patientId) ?? null;
   const sg = medic.surgery;
-  const busy = !!ph || !!sg || !!ps; // jet posé ou opération en cours : patients verrouillés, pas de sortie
   const npc = medic.npc;
   const paid = npc?.acts.some((a) => a.cost);
 
@@ -72,7 +74,7 @@ export function MedicModal() {
   // opération armée ; sinon, la sortie.
   const footer = jet ? jet.gestes : sg ? (
     <>
-      <button className={sg.last ? 'btn btn-ghost danger' : 'btn btn-ghost'} onClick={cancelSurgery} title={sg.last ? 'Le cumul de DR est perdu' : 'Renoncer (acte remboursé)'}>
+      <button className={sg.last ? 'btn btn-ghost danger' : 'btn btn-ghost'} onClick={() => choisir('medic', 'abandon', true)} title={sg.last ? 'Le cumul de DR est perdu' : 'Renoncer (acte remboursé)'}>
         {sg.kind === 'recovery' ? 'Arrêter la rééducation' : 'Arrêter l’opération'}
       </button>
       <button className="btn btn-primary" onClick={openPass}><Icon id={HEAL_ACT[sg.kind].icon} size="sm" /> {sg.kind === 'recovery' ? 'Rééduquer (une passe)' : 'Opérer (une passe)'}</button>
@@ -82,7 +84,7 @@ export function MedicModal() {
   );
 
   return (
-    <Modal title={npc ? <><Icon id="journal/heal" size="sm" /> Soins — {npc.label}</> : <><Icon id="journal/heal" size="sm" /> Soins</>} onClose={jet ? jet.escClose : busy ? undefined : close} footer={footer} etape={`${medic.patientId ?? ''}:${sg?.kind ?? ''}`}>
+    <Modal title={npc ? <><Icon id="journal/heal" size="sm" /> Soins — {npc.label}</> : <><Icon id="journal/heal" size="sm" /> Soins</>} onClose={jet ? jet.escClose : sortieFermee ? undefined : close} footer={footer} etape={`${medic.patientId ?? ''}:${sg?.kind ?? ''}`}>
       {paid && <span className="medic-purse hint">Bourse <Coins money={money} ton="discret" /></span>}
 
       {/* Bandeau PATIENTS : tuile full (jauge + États = le diagnostic), sélection or. */}
@@ -94,8 +96,8 @@ export function MedicModal() {
             variant="full"
             size="md"
             selected={h.id === medic.patientId}
-            onClick={!busy && isHealable(h) ? () => selectPatient(h.id) : undefined}
-            nom={isHealable(h) ? h.label : `${h.label} — rien à soigner`}
+            onClick={refusDuPatient[h.id] ? undefined : () => choisir('medic', 'patient', h.id)}
+            nom={refusDuPatient[h.id] ? `${h.label} — ${refusDuPatient[h.id]}` : h.label}
           />
         ))}
       </div>
@@ -110,10 +112,10 @@ export function MedicModal() {
         <div className="medic-dossier" hidden={!!ph} inert={!!ph}>
           {sg && (() => {
             const recovery = sg.kind === 'recovery';
-            const plaies = fenetreDeLOperation(useGame.getState())?.plaie?.options ?? [];
+            const plaies = plaiesNommees(useGame.getState());
             const acte = HEAL_ACT[sg.kind];
             // Le chirurgien n'est un `Combatant` que s'il est du GROUPE : un PNJ tarifé (`healerId`
-            // sentinelle, `medicFlow.medicAct`) n'a ni portrait ni fiche — son nom EST le titre de la
+            // sentinelle, `medicFlow.soignerLePatient`) n'a ni portrait ni fiche — son nom EST le titre de la
             // fenêtre (« Soins — <PNJ> »). Sans acteur, `VsHeader` n'a pas d'A→B à rendre (il tairait
             // aussi son `label`) : l'acte et le patient se disent alors en note.
             const surgeon = sg.healerId ? party.find((c) => c.id === sg.healerId) : undefined;
@@ -137,11 +139,11 @@ export function MedicModal() {
                 <OptionChooser
                   layout="grid"
                   idPrefix="medic-plaie"
-                  options={plaies.flatMap(({ valeur, libelle }) => (valeur === null ? [] : [{ key: valeur, label: libelle, selected: valeur === sg.traumaUid, onSelect: () => setWound(valeur) }]))}
+                  options={plaies.map(({ uid, libelle }) => ({ key: uid, label: libelle, selected: uid === sg.traumaUid, onSelect: () => choisir('medic', 'plaie', uid) }))}
                 />
               )}
               {/* EXCEPTION nommée au site unique `RollRow.extendedDr` (arbitrage user 2026-07-11, verrou
-                  `travel-carto.hors-store.test.ts`) : cet état d'OPÉRATION ARMÉE est visible AVANT/ENTRE les passes,
+                  `barre-de-dr-site-unique.test.ts`) : cet état d'OPÉRATION ARMÉE est visible AVANT/ENTRE les passes,
                   hors de toute rangée de jet (`useSurgeryJetProps` n'a pas de rangée tant qu'aucune passe n'est
                   ouverte) — ce n'est pas la barre d'UN jet mais le cumul PERSISTANT de l'opération. */}
               <DrBar cum={sg.cumDR} target={sg.targetDR} />
@@ -163,7 +165,7 @@ export function MedicModal() {
               // L'acte est SA propre porte de règle (#1078) : le bouton s'englobe dans `CodexRef wrap`,
               // dont la cible est le FOYER de l'enjeu de CE jet (`HEAL_STAKE`) et l'`instance` le nom de
               // l'acte. Un acte qui ARME une opération (`surgery`/`recovery`) n'a pas de cible au Codex avant
-              // l'armement, où naît la valeur de son enjeu (`targetDR`, `medicAct`) : le même `CodexRef`
+              // l'armement, où naît la valeur de son enjeu (`targetDR`, `soignerLePatient`) : le même `CodexRef`
               // reste monté, `category`/`id` absents, et ne s'ouvre que s'il a quelque chose à dire — la
               // raison d'un refus (`refus`), sinon rien.
               const stake = a === 'surgery' || a === 'recovery' ? undefined : flowStakeRef(HEAL_STAKE[a]);

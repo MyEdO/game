@@ -99,7 +99,7 @@ describe('focus d’étape — `CascadeBody` réel, le geste d’enchaînement s
     act(() => root.render(<StrictMode><button id="dehors">Dehors</button><CascadeBody /></StrictMode>));
     await vider();
     document.querySelector<HTMLElement>('#dehors')!.focus();
-    act(() => useGame.getState().jetConfirm('cascade'));
+    act(() => useGame.getState().jetValider('cascade'));
     await vider();
     expect(useGame.getState().pendingCascade?.cursor, 'étape 2 atteinte').toBe(1);
     expect(actif(), 'le focus reste où le joueur l’a mis').toBe('Dehors');
@@ -127,7 +127,7 @@ describe('focus d’étape — `CascadeBody` réel, le geste d’enchaînement s
     ouvrir('affichage', [{ ...choix('c-a', sigmund), chosen: '0' } as never]);
     act(() => root.render(<StrictMode><button>Jouer</button><CascadeBody /></StrictMode>));
     await vider();
-    act(() => useGame.getState().cascadeResolveAll());
+    act(() => useGame.getState().jetLancer('cascade'));
     await vider();
     const bilan = useGame.getState().pendingCascade!;
     expect(bilan.cursor, 'bilan : curseur en fin').toBe(bilan.participants.length);

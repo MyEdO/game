@@ -37,7 +37,7 @@ const battle = (combatants: Combatant[]): BattleState =>
   ({ combatants, order: combatants.map((c) => c.id), turn: 0, movementUsed: 0, action: null, selectedSpellId: null, acted: false, over: null }) as unknown as BattleState;
 
 const mkGet = (combatants: Combatant[], heading: string): (() => JeuDuNoyau) =>
-  (() => ({ battle: battle(combatants), facing: { hull: heading }, gameTime: 0, log: () => {} })) as unknown as () => JeuDuNoyau;
+  (() => ({ battle: battle(combatants), facing: { hull: heading }, gameTime: 0, ecrireAuJournal: () => {} })) as unknown as () => JeuDuNoyau;
 
 describe('Étape 3 — Servir un poste (availableAttacks + arc)', () => {
   it('un chef de pièce voit l’attaque « Servir », portant l’arme du poste (weaponUid épinglé)', () => {

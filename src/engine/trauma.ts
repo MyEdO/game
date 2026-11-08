@@ -14,6 +14,7 @@ import { Combatant, CharKey, CHAR_LABELS, HitLocation, ItemInstance, Trauma, Dif
 import { RNG } from './dice';
 import type { Duration } from './duration';
 import type { CritEscalation } from '../data/criticals';
+import type { CibleEtendue } from '../data/schemas/grammaire/valeurs';
 import { poserEnjeu, type FlowTestNode } from './flowCore';
 import type { StakeRef } from '../data';
 import { isPainless, traitPassiveMods } from './traits/dispatch';
@@ -337,7 +338,7 @@ export function tickTraumaRecovery(c: Combatant, days: number, defer: UpkeepDefe
   // appliquée par l'applier `traumaFracture` (`applyFractureEnd`). La porte est EXIGÉE au type : il n'y
   // a pas de chemin où cette fracture se résout dans le dos du joueur.
   for (const f of fractureTests) {
-    defer({ kind: 'traumaFracture', label: `Convalescence — ${f.label}`, test: { skill: 'resistance' }, difficulty: fractureEndDifficulty(f.severity),
+    defer({ kind: 'traumaFracture', label: `Convalescence — ${f.label}`, test: { skill: { id: 'resistance' } }, difficulty: fractureEndDifficulty(f.severity),
       meta: { severity: f.severity, location: f.location, traumaLabel: f.label } });
   }
   return log;
@@ -543,7 +544,7 @@ export function tickTraumaEscalation(c: Combatant): string[] {
  *    plaie (séquelle posée si pas de Chirurgie à temps ; décompté à l'entretien par `tickTraumaRecovery`) ;
  *  - « Épaule luxée »/« Genou démis » (`medicalAidGate`) → POUSSE une NOUVELLE séquelle « membre désactivé » à
  *    `location` (pas de plaie chirurgicale : le membre n'est pas amputé mais inutilisable), porteuse de
- *    `restoreDR`/`recoveryPenalty`/`awaitingMedicalAid`.
+ *    `targetDR`/`recoveryPenalty`/`awaitingMedicalAid`.
  * Mute `traumas` en place. No-op si l'entrée ne déclare pas d'escalade (ou, pour finger/pied, pas de plaie).
  */
 export function stampCriticalEscalation(
@@ -579,7 +580,7 @@ export function stampCriticalEscalation(
       location,
       ops: g.disable.map((o) => ({ ...o })),
       awaitingMedicalAid: true,
-      restoreDR: g.targetDR,
+      targetDR: g.targetDR,
       recoveryPenalty: g.recoveryPenalty.map((o) => ({ ...o })),
     });
   }
@@ -640,7 +641,7 @@ export function settleHealedCriticals(c: Combatant): string[] {
  *  Résistance ou Inconscient, LDB 18 l.74) armés sur `target` (`Trauma.critTrigger`) que le critique COURANT
  *  (à `location`) fait feu : pour chaque signature DISTINCTE dont le personnage porte l'État `whileCondition`
  *  et dont la `location` correspond (ou est absente), le nœud `test` de sauvegarde est RENDU — jamais roulé :
- *  l'appelant `state` l'ouvre par la porte, dans le geste du critique qui l'a fait feu. Lu au point unique de
+ *  l'appelant (`noyau`) l'ouvre par la porte, dans le geste du critique qui l'a fait feu. Lu au point unique de
  *  résolution (`resolveCritique`) ; PUR, aucun RNG. */
 export function fireCritTriggers(target: Combatant, location: HitLocation): FlowTestNode[] {
   const out: FlowTestNode[] = [];
@@ -669,8 +670,8 @@ export function reinjuryBleed(c: Combatant, location: HitLocation): number {
 
 /** Séquelles « membre désactivé » (`medicalAidGate`) dont l'Aide Médicale a été reçue et qui attendent le Test
  *  étendu de Guérison de récupération (acte « Guérison » de l'Infirmerie). */
-export function recoverableTraumas(c: Combatant): Trauma[] {
-  return (c.traumas ?? []).filter((t) => t.restoreDR != null && !t.awaitingMedicalAid);
+export function recoverableTraumas(c: Combatant): (Trauma & CibleEtendue)[] {
+  return (c.traumas ?? []).filter((t): t is Trauma & CibleEtendue => t.targetDR != null && !t.awaitingMedicalAid);
 }
 /** Le personnage a-t-il un membre désactivé prêt à récupérer son usage (Aide Médicale reçue) ? */
 export function hasRecoverableTrauma(c: Combatant): boolean {
@@ -679,7 +680,7 @@ export function hasRecoverableTrauma(c: Combatant): boolean {
 /** Un membre désactivé attend-il ENCORE l'Aide Médicale (le Test de récupération est bloqué tant qu'elle
  *  n'est pas donnée, LDB 18 l.120/179 : « Après application de cette Aide… ») ? */
 export function hasLimbAwaitingAid(c: Combatant): boolean {
-  return (c.traumas ?? []).some((t) => t.restoreDR != null && t.awaitingMedicalAid);
+  return (c.traumas ?? []).some((t) => t.targetDR != null && t.awaitingMedicalAid);
 }
 /** Main tenant l'arme concernée par une Localisation de BRAS (convention DROITIER partagée avec `disarm`/
  *  `handGate` : `brasD`→`main`, `brasG`→`off`) ; `undefined` pour toute autre Localisation (jambe/tête/corps,
@@ -813,7 +814,7 @@ function tierAcquis(it: ItemInstance, tier: ProsthesisTier, cumul: number): bool
  *  (`TrappingData.prosthesisTraining`, dans l'ordre) qui reste à acquérir — un aspect à lever (`grants`)
  *  ou une tranche de pénalité à racheter (`reduces`, l.19). `undefined` si l'objet n'est pas une prothèse
  *  entraînable, n'est pas porté, ou est déjà entièrement maîtrisé.
- *  SOURCE UNIQUE partagée par l'écran d'Avancement et `trainProsthesis` (noyau/partyFlow.ts). */
+ *  SOURCE UNIQUE partagée par l'écran d'Avancement et `entrainerLaProthese` (noyau/partyFlow.ts). */
 export function nextProsthesisTier(it: ItemInstance): ProsthesisTier | undefined {
   if (!it.equipped) return undefined;
   const tiers = it.prosthesisTraining ?? [];
@@ -1168,7 +1169,7 @@ export function traumaCharPenalties(c: Combatant, key: CharKey): number[] {
 
 /** Pénalité de mobilité/Esquive due aux traumatismes de jambe (≤ 0 ; sommée, LDB 14 l.95). Une prothèse
  *  qui annule TOUT (Merveille d'ingénierie, LDB 73) lève aussi l'Esquive ; la Fausse jambe SEULE laisse le
- *  −20 subsister tant qu'elle n'est pas ENTRAÎNÉE (200 PX, `ItemInstance.prosthesisTrained` — `trainProsthesis`,
+ *  −20 subsister tant qu'elle n'est pas ENTRAÎNÉE (200 PX, `ItemInstance.prosthesisTrained` — `entrainerLaProthese`,
  *  noyau/partyFlow.ts) : entraînée, `prosthesisCancels` l'élève à `'all'` et lève aussi l'Esquive. */
 export function traumaDodgePenaltyParts(c: Combatant): PassiveMod[] {
   return pmodsFull(c, 'skillMod', false).filter((m) => {

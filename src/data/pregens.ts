@@ -7,9 +7,9 @@
  * `rollInitialWealth`) n'est PAS produite par `createHero` (créditée au groupe par l'appelant) —
  * exposée séparément par `makePregensWithWealth`.
  *
- * `src/data` ne doit JAMAIS importer `src/ui` (inversion de couche, #421 REDO) : ce module ne
+ * `src/data` n'importe JAMAIS une couche qui la consomme (inversion de couche, #421 REDO) : ce module ne
  * consomme QUE des primitives `engine` (`createHero`, `rollInitialWealth`, `pettySpellQuotaFor`,
- * `fillPettySpellsToQuota`), jamais `ui/creator`.
+ * `fillPettySpellsToQuota`).
  *
  * Les DÉFINITIONS (espèce/carrière/seed/talent/sorts…) vivent dans `pregens.json` (éditable, comme
  * `creatures.json`) ; ce module = type + chargement + fabrique. Ajouter un pré-tiré = éditer le
@@ -72,19 +72,22 @@ function buildPregenHero(d: PregenDef): Combatant {
   return hero;
 }
 
-/** Fabrique tous les pré-tirés + leur Richesse initiale (LDB 05 l.578, tirée par
- *  `rollInitialWealth` — même formule et même flux, `fluxDeCreation(seed, 'bourse')`, que le créateur). Résilient : un pré-tiré fautif est ignoré
- *  plutôt que de faire planter l'écran. */
-export function makePregensWithWealth(): { hero: Combatant; wealth: Money }[] {
-  const out: { hero: Combatant; wealth: Money }[] = [];
+/** Le pré-tiré `d` et sa Richesse initiale (LDB 05 l.578, tirée par `rollInitialWealth` — même formule et même flux,
+ *  `fluxDeCreation(seed, 'bourse')`, que le créateur). */
+export function pretireAvecRichesse(d: PregenDef): { id: string; hero: Combatant; wealth: Money } {
+  const hero = buildPregenHero(d);
+  const level = levelsForCareer(d.career).find((l) => l.level === 1);
+  if (!level) throw new Error(`Pré-tiré « ${d.label} » : aucun Niveau 1 pour la carrière « ${d.career} ».`);
+  return { id: d.id, hero, wealth: rollInitialWealth(statutDeDonnee(level.status), fluxDeCreation(d.seed, 'bourse')).montant };
+}
+
+/** Fabrique tous les pré-tirés + leur Richesse initiale (`pretireAvecRichesse`). Résilient : un pré-tiré fautif est
+ *  ignoré plutôt que de faire planter l'écran. */
+export function makePregensWithWealth(): { id: string; hero: Combatant; wealth: Money }[] {
+  const out: { id: string; hero: Combatant; wealth: Money }[] = [];
   for (const d of pregens) {
     try {
-      const hero = buildPregenHero(d);
-      const level = levelsForCareer(d.career).find((l) => l.level === 1);
-      if (!level) throw new Error(`Pré-tiré « ${d.label} » : aucun Niveau 1 pour la carrière « ${d.career} ».`);
-      const status = statutDeDonnee(level.status);
-      const wealth = rollInitialWealth(status, fluxDeCreation(d.seed, 'bourse')).montant;
-      out.push({ hero, wealth });
+      out.push(pretireAvecRichesse(d));
     } catch (e) {
       console.error(`Pré-tiré « ${d.label} » ignoré :`, e);
     }

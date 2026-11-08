@@ -333,9 +333,9 @@ function resolveInlineFlowTest(c: Combatant, porteur: Combatant, flow: Flow, ctx
   if (flowTestGated(ft, c, cc)) return [];
   // `base` BRUT (sans pénalité d'État) + `combatTestPenalty` une SEULE fois (RAW : −10 d'Empoisonné/Sonné/
   // Brisé compté une fois, LDB 16) — MÊME convention que `simpleTriggeredTestStep` (héros) → récupération identique.
-  const base = rawCombatTestBase(c, ft.skill?.id, ft.characteristic, ft.skill?.spec);
+  const base = rawCombatTestBase(c, ft);
   const difficulty: Difficulty = resolveTestDifficulty(ft, cc);
-  const skillLabel = testSkillLabel({ skill: ft.skill, char: ft.characteristic }) ?? 'Test';
+  const skillLabel = testSkillLabel(ft) ?? 'Test';
   const rng = ctx.rng;
   const res = rollTest(base, difficulty, rng, combatTestPenalty(c, { skill: ft.skill?.id }));
   const branch = res.success ? flow.success : flow.fail;

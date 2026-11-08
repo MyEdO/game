@@ -1,8 +1,8 @@
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { nomDuSiege } from '../noyau/sieges';
 import { useGame } from '../state/store';
-import { interludeEventFor } from '../data/interludeEvents';
-import { memoParVersion } from '../data/versionDataset';
+import { interludeEventDie, interludeEventFor } from '../data/interludeEvents';
+import { formatDice } from '../engine/dice';
 import { formatMoney, formuleDeRevenus, libelleDEchelon, fromBrass, toBrass, PA_PER_SC, type Money, type Status } from '../engine/money';
 import { bourseOf } from '../engine/bourse';
 import { actorStatus } from '../engine/social';
@@ -18,7 +18,7 @@ import { refusDOuvrirLaTaverne } from '../noyau/tavernFlow';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
 import { armyMight, noteDeSoutien, preJetDePreparation, refusDePrepaDeBataille, type MassBattleState } from '../noyau/massBattleFlow';
 import {
-  craftCatalog, craftTarget, learnableTalents, orderCatalog, bankPayout, entrainementOptions, entrainementTutorRange,
+  craftCatalog, craftTarget, qualitesDArtisanat, learnableTalents, orderCatalog, bankPayout, seuilDePerteBancaire, entrainementOptions, entrainementTutorRange,
   activityById, testsDeLActivite,
   type ActivityDef, type ActivityResolver, type CraftOption, type LearnOption, type EntrainementOption,
 } from '../engine/activities';
@@ -26,7 +26,7 @@ import { nomDeSource } from '../engine/ops';
 import { DIFFICULTY_LABELS, CHAR_LABELS } from '../engine/types';
 import { describeQuality } from '../engine/qualities/describe';
 import type { TestDesigne } from '../engine/skills';
-import { findTalentById, skillInstanceLabel, findTrappingById, qualities, refLabel, activityStakeRef, hasActivityStake, libelleDeClasse, libelleOuAbsence } from '../data';
+import { findTalentById, skillInstanceLabel, findTrappingById, refLabel, activityStakeRef, hasActivityStake, libelleDeClasse, libelleOuAbsence } from '../data';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { favorLevelSchema } from '../data/schemas/defs-scenes/effets';
 import { trappingCategorieSchema } from '../data/schemas/defs/trappings';
@@ -75,10 +75,6 @@ const RAISON_ACTIVITE_FERMEE = 'Cette Activité n’est pas ouverte pour ce hér
 const refusDuVolet = (paneId: string, banniere: ReactNode, raison: string | undefined): PropsDeRaison =>
   (banniere ? { reasonId: idBlocage(paneId) } : { reason: raison ?? RAISON_ACTIVITE_FERMEE });
 
-/** Atouts/Défauts d'artisanat (LDB 60 l.9-62) — dérivés de la DONNÉE éditable (`qualities.json`,
- *  qualités d'Objet) par `id` ; tooltips/libellés via le registre (`describeQuality`). */
-const atoutsDObjet = memoParVersion('qualities', () => qualities.filter((q) => q.polarite === 'atout' && q.subType === 'objet').map((q) => q.id));
-const defautsDObjet = memoParVersion('qualities', () => qualities.filter((q) => q.polarite === 'defaut' && q.subType === 'objet').map((q) => q.id));
 /** Libellé + desc d'une qualité d'artisanat par id (registre via `describeQuality`). */
 const craftQual = (id: string) => describeQuality({ id }) ?? { label: id, desc: undefined };
 
@@ -118,8 +114,8 @@ export interface InterludeSeam {
    *  en jeu, dérivé du store (`interludeCatalog`) ; en SSR, fourni par le seam (le store SSR sert
    *  l'état initial, comme les autres lectures). */
   catalog?: ActivityDef[];
-  /** Le lieu courant (scène, carte du monde) que lisent les verdicts d'Activité — en SSR, fourni par le seam. */
-  lieu?: Pick<EtatDeDepot, 'scene' | 'worldMap'>;
+  /** Le lieu courant que lisent les verdicts d'Activité — en SSR, fourni par le seam. */
+  lieu?: Pick<EtatDeDepot, 'lieu'>;
   net?: InterludeNet;
   /** L'heure de jeu dont part la clôture — en SSR, fournie par le seam. */
   gameTime?: number;
@@ -160,18 +156,16 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
   const net: InterludeNet = seam?.net ?? storeNet;
   const gameTime = seam?.gameTime ?? storeGameTime;
   // Catalogue d'Activités data-driven (`activities.json`) : contexte 'interlude' + gate `where`
-  // résolu contre le LIEU courant (place de la carte du monde ↔ scène courante).
-  const storeWorldMap = useGame((s) => s.worldMap);
-  const storeScene = useGame((s) => s.scene);
-  const worldMap = seam?.lieu ? seam.lieu.worldMap : storeWorldMap;
-  const scene = seam?.lieu ? seam.lieu.scene : storeScene;
+  // résolu contre le lieu où se tient le groupe (`lieu`).
+  const storeLieu = useGame((s) => s.lieu);
+  const lieu = seam?.lieu ? seam.lieu.lieu : storeLieu;
   const storeMassBattle = useGame((s) => s.massBattle);
   const massBattle = seam?.massBattle ?? storeMassBattle;
   // Le catalogue inclut les Activités de PRÉPARATION de bataille quand une bataille est en attente de prépa
   // (`interludeCatalog` lit `massBattle`) — « Interlude c'est interlude » : pas d'écran à part.
   const catalog = useMemo(
-    () => seam?.catalog ?? interludeCatalog({ scene, worldMap, massBattle }),
-    [seam?.catalog, scene, worldMap, massBattle],
+    () => seam?.catalog ?? interludeCatalog({ lieu, massBattle }),
+    [seam?.catalog, lieu, massBattle],
   );
   const [phase, setPhase] = useState<'events' | 'activities' | 'closing'>(seam?.phase ?? 'events');
   // Héros ACTIF (les onglets sélectionnent — un seul volet d'Activités rendu à la fois, #330) +
@@ -189,7 +183,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
   // La validation de l'interlude se juge sur l'état de la partie, l'interlude et le siège que le seam lui donne.
   const etatDuJeu = useGame.getState();
   const refusClore = refusDeLaValidation({ ...etatDuJeu, interlude, net: { ...etatDuJeu.net, ...net } }, 'interlude');
-  const etat: EtatDeDepot & EtatDeFaveur = { interlude, party, bank, scene, worldMap, favors };
+  const etat: EtatDeDepot & EtatDeFaveur = { interlude, party, bank, lieu, favors };
   return (
     <div className="interlude-shell tx-ink">
       <div className="interlude-column">
@@ -253,7 +247,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
                 <Icon id="resource/gold-purse" size="sm" /> {t('interlude.close.warning')}
               </p>
               {massBattle?.phase === 'prep'
-                /* Bataille en attente : la clôture ENGAGE la bataille (`fenetreValider('interlude')` → massBattleBegin, C2b) —
+                /* Bataille en attente : la clôture ENGAGE la bataille (`fenetreValider('interlude')` → engagerLaBataille, C2b) —
                    le bouton de clôture porte alors ce libellé, une SEULE porte de sortie (pas de 2e écran). */
                 ? <GatedAction id="interlude-close" label={<><Icon id="action/attack" size="sm" /> {t('interlude.close.bataille')}</>}
                     descOfferte={t('interlude.close.bataille.desc')} enabled={!refusClore} {...raisonSi(refusClore)} onClick={() => setPhase('closing')} />
@@ -339,7 +333,7 @@ function BattleBanner({ mb }: { mb: MassBattleState }) {
 
 /** Entrée « Jeux de taverne » (NADJ 16) : ouvre la modale de jeu (choix jeu + adversaire). */
 function TavernGamesEntry() {
-  const open = useGame((s) => s.openTavernGames);
+  const open = useGame((s) => s.ouvrirLesJeux);
   const refus = useGame(refusDOuvrirLaTaverne);
   return (
     <section className="interlude-hero panel">
@@ -392,7 +386,7 @@ function EventsIntro({ heroes, etat, onDone }: { heroes: Combatant[]; etat: Etat
   return (
     <>
       <p className="interlude-phase-hint">
-        {t('interlude.events.hint')}
+        {t('interlude.events.hint', { die: formatDice(interludeEventDie()) })}
       </p>
       <div className="interlude-chronicle">
         {heroes.map((h) => {
@@ -454,9 +448,9 @@ const withStake = (p: PendingRoll, activityId: string): PendingRoll =>
 
 /** Puce du Test que retient un pré-jet : sa Compétence (Spé comprise), ou sa Caractéristique. */
 function PuceDuTest({ test }: { test: TestDesigne }) {
-  return 'skill' in test
+  return test.skill
     ? <SkillChip skillId={test.skill.id} show={test.skill.spec ? skillInstanceLabel(test.skill) : undefined} />
-    : <b>{CHAR_LABELS[test.char]}</b>;
+    : <b>{CHAR_LABELS[test.characteristic]}</b>;
 }
 
 /** Pré-jet d'une Activité monté dans son volet : la ligne du Test que pose son geste (`preJetDActivite`). */
@@ -629,7 +623,7 @@ function ActivityList({ hero, catalog, favors, pane, onPane, canDrive, refusDe, 
 
 /** Revenus : la formule ET le pré-jet sont lisibles AVANT d'entreprendre. LDB 08 l.105-120 */
 function RevenusPane({ hero, etat, status, refus, desc, porteur }: { hero: Combatant; etat: EtatDInterlude; status: Status; refus?: string; desc?: string; porteur?: Porteur }) {
-  const activity = useGame((s) => s.interludeActivity);
+  const activity = useGame((s) => s.pratiquerLActivite);
   return (
     <ActivityPane
       id="pane-revenus"
@@ -658,7 +652,7 @@ function RevenusPane({ hero, etat, status, refus, desc, porteur }: { hero: Comba
 function CraftProgressPane({ hero, etat, craft, refus, desc, porteur }: {
   hero: Combatant; etat: EtatDInterlude; craft: NonNullable<Combatant['craft']>; refus?: string; desc?: string; porteur?: Porteur;
 }) {
-  const activity = useGame((s) => s.interludeActivity);
+  const activity = useGame((s) => s.pratiquerLActivite);
   const label = findTrappingById(craft.trappingId)?.label ?? craft.trappingId;
   return (
     <ActivityPane
@@ -721,7 +715,7 @@ function TrappingSelect({ options, value, onChange, detail }: {
 
 /** Engager un Artisanat (LDB 23 l.76) : catalogue + Atouts/Défauts visés ; matériaux ¼ du prix. */
 function CraftPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant; etat: EtatDInterlude; mene?: string; choix?: string; desc?: string; porteur?: Porteur }) {
-  const craftStart = useGame((s) => s.interludeCraftStart);
+  const craftStart = useGame((s) => s.fabriquerLObjet);
   const catalog = useMemo(() => craftCatalog(), []);
   const [id, setId] = useState(choix ?? '');
   const [atouts, setAtouts] = useState<string[]>([]);
@@ -758,12 +752,12 @@ function CraftPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant
     >
       <TrappingSelect options={catalog} value={id} onChange={setId} />
       <div className="interlude-craft-q">
-        {atoutsDObjet().map((q) => (
+        {qualitesDArtisanat().atouts.map((q) => (
           <label key={q} title={mdToText(craftQual(q).desc ?? '')}>
             <input type="checkbox" checked={atouts.includes(q)} onChange={() => toggle(atouts, setAtouts, q)} /> {craftQual(q).label}
           </label>
         ))}
-        {defautsDObjet().map((q) => (
+        {qualitesDArtisanat().defauts.map((q) => (
           <label key={q} title={mdToText(craftQual(q).desc ?? '')}>
             <input type="checkbox" checked={defauts.includes(q)} onChange={() => toggle(defauts, setDefauts, q)} /> {craftQual(q).label} (défaut)
           </label>
@@ -775,7 +769,7 @@ function CraftPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant
 
 /** Apprentissage particulier : Talent hors carrière, PX et tuteur lus sur `learnableTalents`. LDB 23 l.66-72 */
 function LearnPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant; etat: EtatDeDepot; mene?: string; choix?: string; desc?: string; porteur?: Porteur }) {
-  const activity = useGame((s) => s.interludeActivity);
+  const activity = useGame((s) => s.pratiquerLActivite);
   const options = useMemo(() => learnableTalents(hero), [hero]);
   const [id, setId] = useState(choix ?? '');
   const { search, setSearch, filtered } = useFilteredList(options, (o) => o.label);
@@ -824,7 +818,7 @@ function LearnPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant
 /** Entraînement : Compétence ou Caractéristique hors carrière, sans jet, PX et tuteur lus sur
  *  `entrainementOptions`. LDB 23 l.132-136 */
 function EntrainementPane({ hero, etat, mene, choix, desc, porteur }: { hero: Combatant; etat: EtatDInterlude; mene?: string; choix?: string; desc?: string; porteur?: Porteur }) {
-  const entrainement = useGame((s) => s.interludeEntrainement);
+  const entrainement = useGame((s) => s.suivreLEntrainement);
   const options = useMemo(() => entrainementOptions(hero), [hero]);
   const [key, setKey] = useState(choix ?? '');
   const keyOf = (o: EntrainementOption) => `${o.kind}|${o.id}|${o.spec ?? ''}`;
@@ -876,7 +870,7 @@ function EntrainementPane({ hero, etat, mene, choix, desc, porteur }: { hero: Co
  *  volet lit le verdict `refusDAcquitterUneFaveur`. Rupture de la chaîne : `resetInterruptedFavorProgress`
  *  (noyau/favorFlow, #1040 [entériné 2026-08-03]). LDB 23 l.147-151, #509 */
 function FavorSettlePane({ hero, etat, mene, favors }: { hero: Combatant; etat: EtatDeFaveur; mene?: string; favors: Favor[] }) {
-  const settle = useGame((s) => s.favorSettle);
+  const settle = useGame((s) => s.solderLaFaveur);
   const [id, setId] = useState(favors[0]?.id ?? '');
   const sel = favors.find((f) => f.id === id) ?? favors[0];
   const required = sel ? favorRequiredActivities(sel.level) : null;
@@ -916,7 +910,7 @@ function FavorSettlePane({ hero, etat, mene, favors }: { hero: Combatant; etat: 
 /** Passer commande (LDB 23 l.178-184) : objet Exotique payé MAINTENANT, livré au prochain interlude.
  *  Pas de jet — le pied porte le coût et la formule. */
 function OrderPane({ hero, etat, mene, choix }: { hero: Combatant; etat: EtatDInterlude; mene?: string; choix?: string }) {
-  const order = useGame((s) => s.interludeOrder);
+  const order = useGame((s) => s.commanderLObjet);
   const catalog = useMemo(() => orderCatalog(), []);
   const [id, setId] = useState(choix ?? '');
   const sel = catalog.find((o) => o.id === id);
@@ -949,7 +943,7 @@ function OrderPane({ hero, etat, mene, choix }: { hero: Combatant; etat: EtatDIn
 /** Opérations bancaires (LDB 23 l.164-176) + Mécénat (ACE 12 l.45-49) : dépôt sans jet — le pied porte
  *  les formules (Indice d'intérêts, découverte de planque) et les trois dépôts possibles. */
 function BankPane({ hero, etat, mene, money, mecenat }: { hero: Combatant; etat: EtatDeDepot; mene?: string; money: Money; mecenat?: ActivityDef }) {
-  const bankDeposit = useGame((s) => s.interludeBank);
+  const bankDeposit = useGame((s) => s.deposerALaBanque);
   const [amountPa, setAmountPa] = useState(10);
   const purseBrass = toBrass(money);
   const pa = Math.max(1, Math.floor(amountPa));
@@ -1024,7 +1018,7 @@ function BankPane({ hero, etat, mene, money, mecenat }: { hero: Combatant; etat:
 
 /** Identifier un artefact : choisir un objet NON identifié du sac. ADE II 4 l.41 */
 function IdentifyPane({ hero, etat, mene, desc, porteur }: { hero: Combatant; etat: EtatDeDepot; mene?: string; desc?: string; porteur?: Porteur }) {
-  const activity = useGame((s) => s.interludeActivity);
+  const activity = useGame((s) => s.pratiquerLActivite);
   const def = activityById('identify')!;
   const items = ciblesDActivite(hero, def).artefacts;
   const [choisi, setUid] = useState('');
@@ -1068,7 +1062,7 @@ function IdentifyPane({ hero, etat, mene, desc, porteur }: { hero: Combatant; et
 /** Volet d'une Activité du CATALOGUE data-driven : description VERBATIM (`<Prose>`) ; pré-jet, cibles et
  *  refus lus au noyau (`preJetDActivite`, `ciblesDActivite`, `refusDOuvertureDActivite`). */
 function CatalogPane({ hero, def, etat, mene }: { hero: Combatant; def: ActivityDef; etat: EtatDeDepot; mene?: string }) {
-  const start = useGame((s) => s.interludeActivity);
+  const start = useGame((s) => s.pratiquerLActivite);
   const [targetUid, setTargetUid] = useState('');
   const [spellId, setSpellId] = useState('');
   const [traitChoisi, setTraitPsy] = useState('');
@@ -1076,8 +1070,7 @@ function CatalogPane({ hero, def, etat, mene }: { hero: Combatant; def: Activity
   const uid = targetUid || weapons[0]?.uid || artefacts[0]?.uid || '';
   const spell = spellId || spellOptions[0]?.spell.id || '';
   const traitPsy = traitChoisi || traitsPsy[0]?.cle || '';
-  const traitVise = traitsPsy.find((x) => x.cle === traitPsy)?.vise;
-  const cible = { ...(uid ? { itemUid: uid } : {}), ...(spell ? { spellId: spell } : {}), ...(traitVise ? { traitPsy: traitVise } : {}) };
+  const cible = { ...(uid ? { itemUid: uid } : {}), ...(spell ? { spellId: spell } : {}), ...(traitPsy ? { traitPsy } : {}) };
   const verdict = refusDOuvertureDActivite(etat, hero.id, def, cible) ?? undefined;
   const blocked = mene ? undefined : verdict;
   const prejet = prejetDuVolet(preJetDActivite(etat, hero.id, def, cible), def.id);
@@ -1129,7 +1122,7 @@ function CatalogPane({ hero, def, etat, mene }: { hero: Combatant; def: Activity
 
 /** Volet d'une Activité de PRÉPARATION de bataille (ADE II 8), rendu DANS le menu d'interlude par le
  *  gabarit `ActivityPane` (comme toute Activité). « Entreprendre » ouvre le jet MENÉ par ce héros par le
- *  canal UNIQUE de bataille (`massBattleActivity`) — l'issue porte sur l'ARMÉE,
+ *  canal UNIQUE de bataille (`menerLActionDeBataille`) — l'issue porte sur l'ARMÉE,
  *  le budget d'Activité consommé est celui, UNIQUE, de l'interlude. Le pré-jet rend la ligne du Test que
  *  monte le geste (`preJetDePreparation`). */
 function BattlePrepPane({ hero, etat, def, refus, massBattle: mb }: {
@@ -1137,7 +1130,7 @@ function BattlePrepPane({ hero, etat, def, refus, massBattle: mb }: {
   /** La bataille en attente de préparation : son verdict `refusDePrepaDeBataille`. */
   massBattle: MassBattleState | null;
 }) {
-  const battleActivity = useGame((s) => s.massBattleActivity);
+  const battleActivity = useGame((s) => s.menerLActionDeBataille);
   // Pré-jet : les lignes du Test que monte le geste (`preJetDePreparation`) — Soutien, Test combiné,
   // Caractéristique déclarée et réservoir de modificateur compris.
   const test = mb ? preJetDePreparation(etat, mb, hero, def) : null;
@@ -1186,12 +1179,12 @@ function BankList({ etat, canDrive }: {
   etat: EtatDeDepot;
   canDrive: (heroId: string) => boolean;
 }) {
-  const withdraw = useGame((s) => s.interludeWithdraw);
+  const withdraw = useGame((s) => s.retirerDeLaBanque);
   return (
     <div className="interlude-actions">
       {etat.bank.map((b, i) => {
         const owner = etat.party.find((h) => h.id === b.heroId);
-        const refus = canDrive(b.heroId) ? refusDeRetrait(etat, i) : t('interlude.depositForeign');
+        const refus = canDrive(b.heroId) ? refusDeRetrait(etat, b.uid) : t('interlude.depositForeign');
         return (
           <GatedAction
             key={i}
@@ -1205,12 +1198,12 @@ function BankList({ etat, canDrive }: {
             enabled={!refus}
             {...raisonSi(refus)}
             descOfferte={b.kind === 'invest'
-              ? `Retirer (1 Activité) : ${fmt(bankPayout('invest', b.brass, b.rate))} si la banque tient (faillite sur d100 ≤ ${b.rate})`
+              ? `Retirer (1 Activité) : ${fmt(bankPayout('invest', b.brass, b.rate))} si la banque tient (faillite sur d100 ≤ ${seuilDePerteBancaire('invest', b.rate)})`
               // ACE 12 l.49/57-65
               : b.kind === 'mecenat'
                 ? 'Retirer le mécénat (1 Activité) : Test d’Évaluation Intermédiaire (+0) — rendu de 120 % à la perte totale'
-                : `Retirer la planque (libre) : ${fmt(b.brass)} — découverte sur d100 ≤ ${b.rate > 0 ? b.rate : 10}`}
-            onClick={() => withdraw(i)}
+                : `Retirer la planque (libre) : ${fmt(b.brass)} — découverte sur d100 ≤ ${seuilDePerteBancaire('stash', b.rate)}`}
+            onClick={() => withdraw(b.uid)}
             primary={false}
             btnClassName="small"
           />

@@ -54,11 +54,6 @@ export const TUFT_FAN = 0.3;
  *  l'écran (`timberOverlaySvg`), la cuisson par face du WebGL les pose aux MÊMES marges (`faceBake`). */
 export const TIMBER_V0 = 0.13;
 export const TIMBER_V1 = 0.88;
-/** Variantes de variance de TEINTE par case (facteurs d'étalement du `tintVar` d'une recette) — dosage
- *  PARTAGÉ par les TROIS backends : dégradés de terrain de l'affine, teinte de tuile du POV, couleur de
- *  sommet du WebGL. La variante se choisit au hash de l'identité MONDE de la case, jamais stockée. */
-export const TINT_SPREAD = [-1, -0.4, 0.35, 1];
-
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
 /** Déplie `recipe` pour une face de `faceWM`×`faceHM` mètres au `seed` donné. PUR. */

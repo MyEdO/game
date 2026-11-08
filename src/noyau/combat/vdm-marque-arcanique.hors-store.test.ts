@@ -35,8 +35,8 @@ describe('Marque Arcanique — le Talent marqué est RÉELLEMENT possédé', () 
   function setup(): Combatant {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     banc.abandonner();
     const b = banc.getState().battle!;
@@ -66,7 +66,7 @@ describe('Marque Arcanique — le Talent marqué est RÉELLEMENT possédé', () 
     const H = setup();
     // Témoin AVANT : rien n'est possédé, aucun +DR.
     expect(hasTalent(H, 'empreint-de-hysh')).toBe(false);
-    expect(talentTestSLBonus(H, { skill: 'recherche' })).toBe(0);
+    expect(talentTestSLBonus(H, { skill: { id: 'recherche' } })).toBe(0);
 
     seedBattleRng(seed);
     applyMiscast(banc.getState, banc.setState, H, 'mineure', { suppressReveal: true, domainId: DOMAIN });
@@ -74,8 +74,8 @@ describe('Marque Arcanique — le Talent marqué est RÉELLEMENT possédé', () 
 
     const marque = live(H.id);
     expect(hasTalent(marque, 'empreint-de-hysh')).toBe(true);
-    expect(talentTestSLBonus(marque, { skill: 'recherche' })).toBe(1);
-    expect(talentTestSLBonus(marque, { skill: 'natation' })).toBe(0);
+    expect(talentTestSLBonus(marque, { skill: { id: 'recherche' } })).toBe(1);
+    expect(talentTestSLBonus(marque, { skill: { id: 'natation' } })).toBe(0);
     // La Marque est DÉFINITIVE : acquisition structurelle, pas un effet actif qui expire.
     expect(marque.talents.some((t) => t.talentId === TALENT)).toBe(true);
     expect((marque.activeEffects ?? []).some((e) => e.grantedTalent?.talentId === TALENT)).toBe(false);
@@ -93,6 +93,6 @@ describe('Marque Arcanique — le Talent marqué est RÉELLEMENT possédé', () 
     expect(marque.talents.filter((t) => t.talentId === TALENT)).toHaveLength(1);
     expect(marque.talents.find((t) => t.talentId === TALENT)!.times).toBe(1);
     expect((marque.activeEffects ?? []).filter((e) => e.grantedTalent?.talentId === TALENT)).toHaveLength(0);
-    expect(talentTestSLBonus(marque, { skill: 'recherche' })).toBe(1);
+    expect(talentTestSLBonus(marque, { skill: { id: 'recherche' } })).toBe(1);
   });
 });

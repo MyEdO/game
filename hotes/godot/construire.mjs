@@ -15,8 +15,9 @@
 // son préréglage nomme (`modeleDuPreset`) : tiré par tranches (`Range`) de l'archive des modèles publiée, vérifié par sa
 // somme épinglée (`EDITEUR.modeles`), gardé sous `CACHE` (#2943), donné par `custom_template/release`. Godot ne
 // travaille que sur une copie du projet sous le dossier temporaire : l'arbre n'en reçoit rien, ni les modèles d'export
-// du profil Godot (`export_templates`). Avant d'ouvrir Godot, `--sonde` et `--export` déposent les GLB du projet, tirés
-// de la Release des modèles et vérifiés par l'empreinte de leur provenance commitée (`recupererModeles`, #2948).
+// du profil Godot (`export_templates`). Avant d'ouvrir Godot, `--sonde` et `--export` déposent les GLB, les textures et le
+// kit des arêtes du projet, tirés de la Release des modèles et vérifiés par l'empreinte de leur provenance commitée
+// (`recupererModeles`, #2948 ; `recupererEpingles`, #3476).
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
@@ -31,7 +32,10 @@ import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { chargerAssets } from './asset/charger.mjs'
 
-const { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, verifierSomme, figerVuesDeLEcran } = await chargerAssets(["export { figerVuesDeLEcran } from '/hotes/godot/recettes/ecran.ts';"])
+const { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, recupererEpingles, verifierSomme, figerVuesDeLEcran } = await chargerAssets([
+  "export { figerVuesDeLEcran } from '/hotes/godot/recettes/ecran.ts';",
+  "export { recupererEpingles } from '/hotes/godot/asset/epingles.ts';",
+])
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const PROJET = join(RACINE, 'hotes', 'godot', 'projet')
@@ -358,12 +362,14 @@ async function principal() {
   if (options.mode === 'pont') return pont(options.sortie)
   if (options.mode === 'sonde') {
     await recupererModeles({ dossier: DOSSIER_DES_MODELES })
+    await recupererEpingles({})
     return verdict(sonder(await editeur()))
   }
   mkdirSync(options.sortie, { recursive: true })
   const code = await pont(options.sortie)
   if (code) return code
   await recupererModeles({ dossier: DOSSIER_DES_MODELES })
+  await recupererEpingles({})
   const sortie = verdict(exporter(await editeur(), options.sortie, await modeleWeb()))
   if (!sortie) console.log(`[godot] export Web : ${listerDossier(options.sortie).map((f) => `${f} ${octets(statSync(join(options.sortie, f)).size)}`).join(', ')}`)
   return sortie

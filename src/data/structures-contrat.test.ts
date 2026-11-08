@@ -46,9 +46,10 @@ import { SANS_LIVRE_DEFINITIF, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/
 import { marquerCollection, marqueDeRecord } from './schemas/grammaire/collection-cle';
 import type { SchemaDef } from './schemas/types';
 import { TYPES, espaceDe, idDe, ref, type TypeEntite } from './schemas/grammaire/ref';
+import { lireCleDEspace } from './schemas/grammaire/cle-d-espace';
 
 import { STRUCTURES_CIBLES, STRUCTURES_REDECLARATIONS } from '../../scripts/guards/lib/structuresStock.mjs';
-import { jetSchema } from './schemas/grammaire/mecanique';
+import { sujetDuJetSchema } from './schemas/grammaire/mecanique';
 
 /**
  * EN-TÊTE STRUCTURÉ de la garde (#1475).
@@ -184,7 +185,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
   });
 
   /**
-   * SPREADS : la grammaire les résout pour signer ses communs (`profilDeVoileSchema` = `crew,m,spec`) ; un
+   * SPREADS : la grammaire les résout pour signer ses communs (`jetSchema` = `characteristic,difficulty,skill`) ; un
    * littéral de def ne s'apparie que sur ses clés PROPRES. Grammaire réelle copiée ; seul le module de def est posé.
    */
   it('redéclarations : un commun de la grammaire se signe spreads résolus, un littéral de def sur ses seules clés propres', () => {
@@ -195,16 +196,16 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       writeFileSync(
         join(dossier, 'src/data/schemas/defs/fixture.ts'),
         [
-          'const voile = z.strictObject({ m: z.number(), crew: z.number(), spec: s });',
+          'const jet = z.strictObject({ skill: s, characteristic: c, difficulty: d });',
           'const evasion = z.strictObject({ difficulty: d, ...plageSchema.shape });',
           'const rangee = z.strictObject({ ...plageSchema.shape, extra: z.number() });',
-          'const recompose = z.strictObject({ ...profilDePropulsionSchema.shape, spec: s });',
+          'const recompose = z.strictObject({ ...sujetDuJetSchema.shape, difficulty: d });',
         ].join('\n'),
       );
       expect(
         scannerRedeclarations(dossier).redeclarations.filter((r) => r.def === 'fixture.ts').map((r) => `${r.def}:${r.ligne} | ${r.signature} | ${r.commun}`),
-        'la voile re-tapée redéclare `profilDeVoileSchema` ; `{ difficulty, ...X.shape }` et `{ ...plage, extra }` composent ; le re-tapage réparti est l’angle mort déclaré.',
-      ).toEqual(['fixture.ts:1 | crew,m,spec | profilDeVoileSchema']);
+        'le jet re-tapé redéclare `jetSchema` ; `{ difficulty, ...X.shape }` et `{ ...plage, extra }` composent ; le re-tapage réparti est l’angle mort déclaré.',
+      ).toEqual(['fixture.ts:1 | characteristic,difficulty,skill | jetSchema']);
     } finally {
       rmSync(dossier, { recursive: true, force: true });
     }
@@ -564,7 +565,8 @@ describe('la référence est ANCRÉE sur l’index des ids (contrats positifs)',
   it('une référence TYPÉE `{id,type}` résout vers le SEUL espace que son type nomme — jamais ambiguë (#2820)', () => {
     const typees = scan.formes.filter((f) => f.concept === 'reference' && f.signature === 'id,type');
     expect(typees.length, 'aucune référence typée mesurée : le contrat ne dirait rien').toBeGreaterThan(0);
-    const espaces = new Set((Object.keys(TYPES) as TypeEntite[]).map(espaceDe));
+    // Le scan résout au FICHIER : l'espace d'une collection nichée (`fichier#chemin`) s'y lit par son fichier.
+    const espaces = new Set((Object.keys(TYPES) as TypeEntite[]).map((t) => lireCleDEspace(espaceDe(t)).fichier));
     const hors = typees.flatMap((f) => f.cibles.filter((c) => !espaces.has(c)).map((c) => `${f.dataset} › ${f.champ} → ${c}`));
     expect(hors, 'une référence typée résout hors de l’espace de son type').toEqual([]);
     const sites = new Set(typees.map((f) => `${f.dataset}|${f.champ}`));
@@ -647,12 +649,13 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
   it('les porteurs de `difficulty` se PARTITIONNENT en plage / identité / référence / sans sujet / sujet nommé, et « sujet nommé » EST le concept `test`', () => {
     const ID = new Set(CLES_IDENTITE as readonly string[]);
     // Le SUJET du Test : les clés que l'invariant de `flowTestSchema` exige (#1657 B3-3), lues au nœud
-    // canonique ; le lexique les DÉCLARE en `coPresence`, avec la graphie historique `char`.
+    // canonique `sujetDuJetSchema`, ou son type de Test d'équipage exclusif (`crewTestType`, #1652) ; le
+    // lexique les DÉCLARE en `coPresence`, aucune autre graphie.
     const sujets = CONCEPTS.find((c) => c.id === 'test')?.coPresence ?? [];
     expect(
-      Object.keys(jetSchema.shape).filter((k) => k !== 'difficulty').filter((k) => !sujets.includes(k)),
-      'une clé de SUJET du nœud canonique manque à la `coPresence` du concept `test`.',
-    ).toEqual([]);
+      [...sujets].sort(),
+      'la `coPresence` du concept `test` est exactement le SUJET du nœud canonique.',
+    ).toEqual([...Object.keys(sujetDuJetSchema.shape), 'crewTestType'].sort());
     const porteurs: { site: string; famille: string }[] = [];
     const intersections: Record<string, number> = { 'plage∩identité': 0, 'plage∩référence': 0, 'identité∩référence': 0 };
     const marche = (v: unknown, dataset: string, champ: string): void => {
@@ -1489,13 +1492,10 @@ const SONDE_DEF = [
 const SAISONS = (valeur: string) =>
   `z.strictObject({ printemps: ${valeur}, ete: ${valeur}, automne: ${valeur}, hiver: ${valeur} })`;
 
-/** Une contrefaçon RE-TAPÉE dans les deux defs de commerce d'une racine (`schemas` = son dossier de schémas) : le
- *  champ `cle` de la rangée marchande (`cargaisonMarchandeSchema`) re-déclaré au site. */
-const reTape = (cle: string, valeur: string) => (schemas: string) => {
-  for (const def of ['sea-cargo.ts', 'land-cargo.ts']) {
-    const chemin = join(schemas, 'defs', def);
-    writeFileSync(chemin, `${readFileSync(chemin, 'utf8')}\nexport const contrefacon = z.strictObject({ ${cle}: ${valeur} });\n`, 'utf8');
-  }
+/** Une contrefaçon RE-TAPÉE dans le def du catalogue des cargaisons d'une racine (`schemas` = son dossier de schémas). */
+const reTape = (remplace: (source: string) => string) => (schemas: string) => {
+  const chemin = join(schemas, 'defs', 'cargoes.ts');
+  writeFileSync(chemin, remplace(readFileSync(chemin, 'utf8')), 'utf8');
 };
 
 /** Le Test COMPOSÉ de `sea-perils.ts › freeTest`, tel que le def l'écrit. */
@@ -1519,8 +1519,13 @@ const SONDES = Object.fromEntries(DOSSIERS_DE_DEFS.map((dossier) => [sondeDans(d
 /** Les mutations, chacune posée sur le dossier de schémas de SA racine `apres`. La clé nomme le verdict. */
 const MUTATIONS: Record<string, (schemas: string) => void> = {
   ...SONDES,
-  cfAvail: reTape('avail', SAISONS('plageSchema')),
-  cfPrix: reTape('price', `z.union([${SAISONS('z.number()')}, z.strictObject({ dice: diceSpecSchema })])`),
+  cfAvail: reTape((source) => source.replace('avail: dispoSaisonniereSchema.optional(),', `avail: ${SAISONS('plageSchema')}.optional(),`)),
+  cfPrix: reTape((source) =>
+    source.replace(
+      'price: z.union([prixSaisonnierSchema, tirageSchema]).optional(),',
+      `price: z.union([${SAISONS('z.number()')}, z.strictObject({ dice: diceSpecSchema })]).optional(),`,
+    ),
+  ),
   cfTestNomme: reTapeFreeTest('skill: z.string(), difficulty: difficultySchema'),
   cfTestSansSujet: reTapeFreeTest('difficulty: difficultySchema'),
 };
@@ -1589,19 +1594,18 @@ describe('scannerRedeclarations — contrôle POSITIF du détecteur (#1654)', ()
  *
  * La décrue d'un stock de redéclarations est toujours suspecte : un nœud de grammaire inventé pour
  * UN porteur ferait DISPARAÎTRE la ligne sans que la structure change (le scan ne résout ni une
- * fabrique ni un spread). Ici c'est l'INVERSE qu'on prouve : si les deux defs de commerce RE-TAPAIENT
+ * fabrique ni un spread). Ici c'est l'INVERSE qu'on prouve : si le def du catalogue des cargaisons RE-TAPAIT
  * ce que la grammaire déclare — la colonne à quatre saisons (CF1) ou l'union de prix (CF2) —, le
  * scanner le VERRAIT, nominativement. Le lot a donc rendu 3 lignes parce que les littéraux ont
  * disparu, pas parce que la mesure s'est éteinte.
  */
 describe('scannerRedeclarations — CONTREFACTUEL `parSaison` / `prix` (#1463 L-gram-3)', () => {
-  it('CF1 — `avail` re-tapé à la place de `parSaison` : DEUX lignes naissent, nominatives', () => {
+  it('CF1 — `avail` re-tapé à la place de `parSaison` : sa ligne naît, nominative', () => {
     const diff = verdictRedecl('cfAvail');
     expect(diff.avant, 'la copie NON MUTÉE ne mesure pas le même arbre que `scannerRedeclarations(ROOT)`.').toBe(redeclarations.length);
     expect(diff.perdues, 'la copie a PERDU des redéclarations : la contrefaçon n’est pas isolée.').toEqual([]);
     expect(diff.nees, 'un `avail` re-tapé n’est PAS vu : `parSaison` masquerait la mesure au lieu de la solder.').toEqual([
-      'land-cargo.ts | avail | automne,ete,hiver,printemps |  | hors lexique | parSaison',
-      'sea-cargo.ts | avail | automne,ete,hiver,printemps |  | hors lexique | parSaison',
+      'cargoes.ts | avail | automne,ete,hiver,printemps |  | hors lexique | parSaison',
     ]);
   });
 
@@ -1610,10 +1614,8 @@ describe('scannerRedeclarations — CONTREFACTUEL `parSaison` / `prix` (#1463 L-
     expect(diff.avant, 'la copie NON MUTÉE ne mesure pas le même arbre que `scannerRedeclarations(ROOT)`.').toBe(redeclarations.length);
     expect(diff.perdues, 'la copie a PERDU des redéclarations : la contrefaçon n’est pas isolée.').toEqual([]);
     expect(diff.nees, 'un `price` re-tapé n’est PAS vu : les deux nœuds `prix` masqueraient la mesure.').toEqual([
-      'land-cargo.ts | price | automne,ete,hiver,printemps | prix | declaree | parSaison',
-      'land-cargo.ts | price | dice | prix | declaree | tirageSchema',
-      'sea-cargo.ts | price | automne,ete,hiver,printemps | prix | declaree | parSaison',
-      'sea-cargo.ts | price | dice | prix | declaree | tirageSchema',
+      'cargoes.ts | price | automne,ete,hiver,printemps | prix | declaree | parSaison',
+      'cargoes.ts | price | dice | prix | declaree | tirageSchema',
     ]);
   });
 });

@@ -42,7 +42,7 @@ describe('Dissipation permanente — Action de combat', () => {
 
   it('ouvre le pending avec le NI du sort + Soutien « même Domaine »', () => {
     setup();
-    banc.getState().battleDispelSpell('malefice', 'ennemi');
+    banc.getState().dissiperLeSort('mage', 'malefice', 'ennemi');
     const pd = banc.getState().pendingDispel!;
     expect(pd).toBeTruthy();
     expect(pd.ni).toBe(2);
@@ -52,21 +52,21 @@ describe('Dissipation permanente — Action de combat', () => {
 
   it('cumule le DR et dissipe le sort quand le DR cumulé atteint le NI', () => {
     const { cible } = setup();
-    banc.getState().battleDispelSpell('malefice', 'ennemi');
+    banc.getState().dissiperLeSort('mage', 'malefice', 'ennemi');
     const pd = banc.getState().pendingDispel!;
     // Round 1 : DR +1 (cumul 1/2) → sort toujours actif, progression persistée.
     banc.setState({ pendingDispel: { ...pd, result: { roll: 10, target: pd.value, sl: 1, success: true } } });
-    banc.getState().jetConfirm('dispel');
+    banc.getState().jetValider('dispel');
     const mage1 = banc.getState().battle!.combatants.find((c) => c.id === 'mage')!;
     expect(mage1.dispel).toEqual({ spellId: 'malefice', spellCasterId: 'ennemi', total: 1 });
     expect((banc.getState().battle!.combatants.find((c) => c.id === 'cible')!.activeEffects ?? []).length).toBe(1); // toujours là
 
     // Round 2 : re-Dissiper, DR +1 (cumul 2/2) → dissipé.
     banc.setState({ battle: { ...banc.getState().battle!, acted: false } as BattleState });
-    banc.getState().battleDispelSpell('malefice', 'ennemi');
+    banc.getState().dissiperLeSort('mage', 'malefice', 'ennemi');
     const pd2 = banc.getState().pendingDispel!;
     banc.setState({ pendingDispel: { ...pd2, result: { roll: 10, target: pd2.value, sl: 1, success: true } } });
-    banc.getState().jetConfirm('dispel');
+    banc.getState().jetValider('dispel');
     const cibleAfter = banc.getState().battle!.combatants.find((c) => c.id === 'cible')!;
     expect((cibleAfter.activeEffects ?? []).some((e) => e.spell?.spellId === 'malefice')).toBe(false); // dissipé
     const mage2 = banc.getState().battle!.combatants.find((c) => c.id === 'mage')!;
@@ -78,7 +78,7 @@ describe('Dissipation permanente — Action de combat', () => {
   // MÊME primitive `combatDistance` que `openSkillTest` (patron `support-adjacency-gate.hors-store.test.ts`).
   it('Soutien « même Domaine », adjacent (l.196) : compte', () => {
     setup();
-    banc.getState().battleDispelSpell('malefice', 'ennemi');
+    banc.getState().dissiperLeSort('mage', 'malefice', 'ennemi');
     const pd = banc.getState().pendingDispel!;
     expect(soutienDe(pd)).toMatchObject({ value: 10, by: [{ id: 'allie' }] });
     expect(pd.value).toBe(60 + 10);
@@ -94,7 +94,7 @@ describe('Dissipation permanente — Action de combat', () => {
     } as unknown as Combatant) as Combatant;
     const battle = { combatants: [mage, allie, cible], order: ['mage', 'allie', 'cible'], turn: 0, round: 1, acted: false, over: false, log: [] } as unknown as BattleState;
     banc.setState({ battle });
-    banc.getState().battleDispelSpell('malefice', 'ennemi');
+    banc.getState().dissiperLeSort('mage', 'malefice', 'ennemi');
     const pd = banc.getState().pendingDispel!;
     expect(soutienDe(pd)).toBeUndefined();
     expect(pd.value).toBe(60); // Int 40 + 20 avances Langue, pas de Soutien (allie hors de portée)
@@ -114,10 +114,10 @@ describe('Dissipation permanente — Action de combat', () => {
       const battle = { combatants: [mage], order: ['mage'], turn: 0, round: 1, acted: false, over: false, log: [] } as unknown as BattleState;
       banc.setState({ battle, pendingDispel: null });
       if (rule) setRule('magic-vdm-incantation', true);
-      banc.getState().battleDispelSpell('malefice', 'mage');
+      banc.getState().dissiperLeSort('mage', 'malefice', 'mage');
       const pd = banc.getState().pendingDispel!;
       banc.setState({ pendingDispel: { ...pd, result: { roll: 10, target: pd.value, sl: 1, success: true } } });
-      banc.getState().jetConfirm('dispel');
+      banc.getState().jetValider('dispel');
       const total = banc.getState().battle!.combatants.find((c) => c.id === 'mage')!.dispel!.total;
       if (rule) resetRule('magic-vdm-incantation');
       return total;

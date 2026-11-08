@@ -2,7 +2,7 @@
  * CE QU'UNE RÉPONSE OFFRE ET ANNONCE VIENT DE SA DONNÉE (#1869) — contrats POSITIFS du vocabulaire
  * pur du dialogue (`noyau/dialogue.ts`), la SOURCE UNIQUE que la fenêtre et les touches consomment :
  *  · le RANG est celui de la liste VISIBLE (une réponse masquée par son `when` ne prend pas de
- *    numéro), et l'`id` reste celui de la DONNÉE — c'est lui que reçoit `chooseDialogue` ;
+ *    numéro), et l'`id` reste celui de la DONNÉE — c'est lui que reçoit le choix `dialogue.reponse` ;
  *  · l'OFFRE tombe pour une bourse trop courte et pour un siège qui ne décide pas ;
  *  · le TEST annoncé est celui que le flux DÉCLARE, en ids stables (nœud `test`, `seq`, `if`, effet
  *    `extendedTest` avec son DR cumulé) ; un flux sans jet n'annonce rien ;
@@ -133,7 +133,7 @@ describe('ouvrirDialogue — une conversation naît avec sa SESSION', () => {
   it('une conversation qui a ARCHIVÉ un tour cède le numéro SUIVANT', () => {
     const premiere = ouvrirDialogue({ dialogueHistory: [] }, dlg, 'pnj');
     expect(premiere.session).toBe(1);
-    // …le joueur répond : le tour part à l'archive avec CETTE session (`chooseDialogue`).
+    // …le joueur répond : le tour part à l'archive avec CETTE session (le choix `dialogue.reponse`).
     const seconde = ouvrirDialogue({ dialogueHistory: [archive(premiere.session)] }, dlg, 'pnj');
     expect(seconde.session).toBe(2);
   });

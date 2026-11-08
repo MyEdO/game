@@ -22,8 +22,8 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     });
     hero.spells = ['flechette'];
     banc.setState({ party: [hero] });
-    banc.getState().startScene(testScene());
-    banc.getState().startCombat('enc-mutants');
+    banc.getState().lancerLaScene(testScene());
+    banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('roundStart');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -51,20 +51,20 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
   });
 
   it('IA : l’ennemie chante un Contre-sort contre le Sort du héros (déclaré au jet, 1/Round)', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const { H, E } = setup();
     castSpell(banc.getState, banc.setState, H, E, 'flechette');
-    banc.getState().jetRoll('cast');
+    banc.getState().jetLancer('cast');
     const pc = banc.getState().pendingCast!;
     if (!pc.result!.isCritical) {
       expect(pc.result!.log).toContain('Contre-sort de');
       expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.dispelledThisRound).toBe(true);
     }
     // 2e incantation du même Round : l'essai est consommé, plus de Contre-sort. (La 1re situation se
-    // referme à la main — après le jet, `jetCancel('cast')` REFUSE de renoncer, #1031.)
+    // referme à la main — après le jet, `jetAnnuler('cast')` REFUSE de renoncer, #1031.)
     banc.setState({ pendingCast: null, pendingCascade: null, pendingCounterspell: null });
     castSpell(banc.getState, banc.setState, H, E, 'flechette');
-    banc.getState().jetRoll('cast');
+    banc.getState().jetLancer('cast');
     const pc2 = banc.getState().pendingCast!;
     expect(pc2.result!.log).not.toContain('Contre-sort de');
   });
@@ -92,14 +92,14 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
   });
 
   it('IA : le Sort ennemi SUSPEND le tour ; résoudre la réaction rend la main', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const { H, E } = setup();
     H.wounds = blessuresDeBase(99, 99, H); // survit au Carreau : le sujet est la suspension
     banc.setState({
       battle: { ...banc.getState().battle!, order: [H.id, E.id], turn: 0, action: null, movementUsed: 0, movedPreAction: false, acted: false },
       pendingRoundStart: null, 
     });
-    banc.getState().battleEndTurn(); // H finit → E actif → IA : Carreau pré-roulé (aucun « Lancer »)
+    banc.getState().terminerLeTour(); // H finit → E actif → IA : Carreau pré-roulé (aucun « Lancer »)
     banc.avancer(5000);
     let st = banc.getState();
     expect(st.pendingCast?.casterId).toBe(E.id); // incantation ennemie figée → tour suspendu sur le lanceur
@@ -109,8 +109,8 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     // Le Contre-sort passe par SA phase de déclaration (#1042/#1059) : les rangées surfacées passent, la
     // dernière déclaration referme la fenêtre par le résolveur canonique.
     if (st.pendingCounterspell) {
-      for (const p of st.pendingCounterspell.participants) banc.getState().counterspellDeclare(p.id, 'pass');
-    } else banc.getState().jetConfirm('cast');
+      for (const p of st.pendingCounterspell.participants) banc.getState().jetRegler('counterspell', 'declaration', 'pass', p.id);
+    } else banc.getState().jetValider('cast');
     banc.avancer(2000);
     // Une Maladresse de l'IA déclare son étape à table comme partout (#1426) : la main ne repasse
     // qu'une fois la séquence de conséquence jouée (le socle a déjà tiré ce que nul siège ne tient).
@@ -130,14 +130,14 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
   });
 
   it('une Prière ne se dissipe pas (LDB 46 : « Si un SORT vous cible »)', () => {
-    banc.getState().seedRng(3);
+    banc.getState().ensemencerLeTirage(3);
     const { H } = setup();
     const hero = banc.getState().battle!.combatants.find((c) => c.id === H.id)! as Combatant;
     hero.skills = [...hero.skills, { id: 'priere', characteristic: 'sociabilite', advances: 5 }];
     acquerirTalent(hero, { id: 'beni', spec: 'shallya' }); // LDB 10 l.109
     hero.spells = ['benediction-de-guerison'];
     castSpell(banc.getState, banc.setState, hero, hero, 'benediction-de-guerison');
-    banc.getState().jetRoll('cast');
+    banc.getState().jetLancer('cast');
     expect(banc.getState().pendingCast!.result!.log).not.toContain('Contre-sort');
   });
 });

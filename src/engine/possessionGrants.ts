@@ -14,7 +14,7 @@ export function compteDeLaDotation(ref: TrappingRef, tirer: (de: DiceSpec) => nu
   return 'count' in ref && ref.count ? ('fixed' in ref.count ? ref.count.fixed : tirer(ref.count.roll)) : 1;
 }
 
-/** PUR — n'écrit rien, l'appelant (noyau/possessionsFlow.ts) matérialise via `addPossession`. Ignore
+/** PUR — n'écrit rien, l'appelant (noyau/possessionsFlow.ts) matérialise via `ajouterLaPossession`. Ignore
  *  `{id}` (objet de sac, buildInventory) et `{text}` (flavor hors catalogue). `count.fixed` spawn N
  *  possessions ; `count.roll` (dé, ex. « Bateaux de patrouille » 1d10) TIRE N via le rouleur canonique
  *  (`rollDice`, `engine/dice.ts`) sur le `RNG` seedable injecté (#663) ; sans `count`, 1 possession. */
@@ -24,7 +24,7 @@ export function possessionGrantsFromRefs(refs: TrappingRef[], ownerId: string, r
     const n = compteDeLaDotation(ref, (de) => rollDice(de, rng));
     if (!('type' in ref)) continue;
     if (ref.type === 'vehicle') {
-      // Objet NEUF à CHAQUE itération (jamais la même réf poussée N fois) — `addPossession` ne fait
+      // Objet NEUF à CHAQUE itération (jamais la même réf poussée N fois) — `ajouterLaPossession` ne fait
       // qu'un spread SUPERFICIEL (`{...p, uid}`, possessionsFlow.ts) : un `items`/`location` partagé
       // entre N possessions dupliquées les ferait muter ensemble (embarquer sur l'une affecterait
       // les autres).

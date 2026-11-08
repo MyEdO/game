@@ -34,8 +34,8 @@ const NET0 = initialNet();
 function coop(vivants = 1): { H: Combatant[]; E: Combatant[] } {
   const party = [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H0', seed: 1 })];
   set({ party });
-  g().startScene(testScene());
-  g().startCombat('enc-mutants');
+  g().lancerLaScene(testScene());
+  g().lancerLeCombat('enc-mutants');
   g().fenetreValider('roundStart');
   banc.abandonner();
   const b = g().battle!;
@@ -119,7 +119,7 @@ describe('Le héros d’un siège DISTANT garde ses fenêtres chez l’hôte (#1
       pendingDisengage: { moverId: H[0].id, foeId: E[0].id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
     } as never);
 
-    g().disengageFlee();
+    g().jetRegler('disengage', 'fuir', true);
 
     const pd = g().pendingDisengage;
     expect(pd, 'la fenêtre de fuite a été résolue sans le fuyard').toBeTruthy();

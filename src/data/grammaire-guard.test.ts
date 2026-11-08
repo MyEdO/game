@@ -23,6 +23,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { envDeDepotForge } from '../../scripts/guards/lib/depotGabarit.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
 import { neufsDe } from '../../scripts/migrations/replay.mjs';
 import { scan } from '../../scripts/guards/lib/grammaireGuard.mjs';
 import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
@@ -45,7 +46,7 @@ const GARDE = {
     'de `readCorpus` (`sourceCorpus.mjs`) — jamais une regex de ligne. Les RÈGLES (signatures, alias) sont ' +
     'DÉRIVÉES par introspection des schémas de la grammaire, jamais recopiées.',
   perimetre:
-    'les `*.ts` de PRODUCTION de `src/data/schemas/defs/`, `src/data/schemas/defs-scenes/`, `src/state/` et `src/noyau/` ' +
+    'les `*.ts` de PRODUCTION de `src/data/schemas/defs/`, `src/data/schemas/defs-scenes/` et des zones de `porteeDeGarde` (`PERIMETRE`) ' +
     '(redéclarations + `.extend`), plus `src/data/schemas/grammaire/` pour le seul `.extend` — les littéraux ' +
     'de la grammaire SONT le canon, ils ne le redéclarent pas.',
   angleMort: [
@@ -68,8 +69,8 @@ const GARDE = {
       'd’un module de grammaire (alias et import type compris ; défaut et namespace exclus) ' +
       '(ou une const locale en `…Schema` d’un module de grammaire) : `picked.partial().extend(…)` dans une ' +
       'fabrique générique (`variantOf`, `valeurs.ts`) échappe au scan, son récepteur étant un paramètre.',
-    'le périmètre est celui de l’invariant (defs, defs-scenes, state, + grammaire pour `.extend`) : une ' +
-      'redéclaration posée dans `src/engine/**` ou `src/ui/**` est HORS garde.',
+    'le périmètre est celui de l’invariant (defs, defs-scenes, les zones de `porteeDeGarde`, + grammaire pour `.extend`) : une ' +
+      'redéclaration posée dans `src/engine/**` est HORS garde.',
     'un symbole DÉPLACÉ vers `src/data/schemas/grammaire/` y perd ses trouvailles `alias` sans qu’aucune ' +
       'graphie n’ait bougé : la graphie de la grammaire EST le canon (`PERIMETRE_FABRIQUES`, scanné ' +
       '`sansRedeclaration`), donc sa ligne de stock devient périmée par SORTIE DE PÉRIMÈTRE et non par ' +
@@ -90,7 +91,7 @@ const GARDE = {
 } as const;
 
 /** Périmètre des DEUX volets (redéclaration + `.extend`). */
-const PERIMETRE = ['src/data/schemas/defs', 'src/data/schemas/defs-scenes', 'src/state', 'src/noyau'];
+const PERIMETRE = ['src/data/schemas/defs', 'src/data/schemas/defs-scenes', ...porteeDeGarde(['noyau'], ['state'])];
 /** Périmètre du seul volet `.extend` — les littéraux de la grammaire SONT le canon. */
 const PERIMETRE_FABRIQUES = ['src/data/schemas/grammaire'];
 
@@ -343,7 +344,6 @@ describe('formes re-tapées et portes étendues — stock nominatif daté, DÉCR
       // `giveTrapping` est une op TYPÉE (#1903) : l'objet se nomme par `trappingId`, la graphie de
       // `GameOp` (`src/engine/ops.ts`) et de `conditionSchema`.
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.giveTrapping|trappingId',
-      'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.grantReverseToken|skill',
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.polymorph|ref',
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.scheduleRespawn|ref',
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.skillDRBonus|skill',
@@ -352,7 +352,7 @@ describe('formes re-tapées et portes étendues — stock nominatif daté, DÉCR
       // (`engine/ops.ts`), tenu par `idDe('creature')`.
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.summon|ref',
       'src/data/schemas/grammaire/mecanique.ts:conditionSchema|trappingId',
-      'src/data/schemas/grammaire/mecanique.ts:jetSchema|skill',
+      'src/data/schemas/grammaire/mecanique.ts:sujetDuJetSchema|skill',
       'src/data/schemas/grammaire/reference.ts:trappingRefSchema|wildcard',
     ]);
     const auStock = dansLaGrammaire.filter((cle) => cle in GRAMMAIRE_STOCK);

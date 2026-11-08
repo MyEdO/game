@@ -44,7 +44,7 @@ import type { Combatant } from '../../engine/types';
 import type { Scene } from '../../noyau/monde/scene';
 import { CampaignView } from '../../ui/CampaignView';
 import { nudgeStageYaw, resetStageYaw, viewRot } from '../../state/stageYaw';
-import { clearedSpace } from '../builders/roofs';
+import { clearedSpace } from '../../noyau/monde/volume/toits';
 import { massFootprintCells } from '../../noyau/monde/buildings';
 import { effectiveArchitecture } from '../../noyau/sceneEdit';
 import { setStageRendererFactory } from './GameStage3D';
@@ -266,7 +266,7 @@ const HUB = parseProject(
   areneProjet,
 ).scenes.find((sc) => sc.id === 'arene-hub')!;
 
-/** Le poste de départ authoré du groupe (`heroStart`) — la même lecture que `store.startScene`. */
+/** Le poste de départ authoré du groupe (`heroStart`) — la même lecture que `store.lancerLaScene`. */
 const DÉPART = { ...(HUB.entities.find((e) => e.kind === 'heroStart')!.pos) };
 
 /** Une case COUVERTE du hub (sous une masse bâtie) : c'est en y entrant que le groupe fait tomber le
@@ -335,14 +335,14 @@ const monterHub = (): Promise<void> => monterÉcran(HUB, DÉPART);
  *  c'est l'état où un tour se joue et où la frise se survole. */
 async function monterCombat(): Promise<void> {
   useGame.setState({ party: [{ ...HÉROS }] });
-  await act(async () => { useGame.getState().startScene(testScene()); });
+  await act(async () => { useGame.getState().lancerLaScene(testScene()); });
   viderCaptures();
   hôte = document.createElement('div');
   document.body.appendChild(hôte);
   root = createRoot(hôte);
   await act(async () => { root!.render(<CampaignView />); });
   await attendrePopulation();
-  await act(async () => { useGame.getState().startCombat('enc-mutants', undefined, { noSurprise: true }); });
+  await act(async () => { useGame.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true }); });
   await attendreRepos('l’engagement du combat doit être servi');
   await act(async () => { useGame.getState().fenetreValider('roundStart'); });
   await attendreRepos('la levée de la pause de début de round doit être servie');
@@ -384,7 +384,7 @@ const BATTERIE: readonly Geste[] = [
       await attendreRepos('la bascule en première personne doit être servie avant le geste');
     },
     témoin: () => String(capDuGroupe(useGame.getState()) ?? '—'),
-    agir: async () => { await act(async () => { useGame.getState().pivotParty(1); }); },
+    agir: async () => { await act(async () => { useGame.getState().pivoterLeGroupe(1); }); },
   },
   {
     nom: 'une heure',
@@ -429,7 +429,7 @@ const BATTERIE: readonly Geste[] = [
     nom: 'un tour de combat',
     monter: monterCombat,
     témoin: () => String(useGame.getState().battle?.turn ?? '—'),
-    agir: async () => { await act(async () => { useGame.getState().battleEndTurn(); }); },
+    agir: async () => { await act(async () => { useGame.getState().terminerLeTour(); }); },
   },
 ];
 

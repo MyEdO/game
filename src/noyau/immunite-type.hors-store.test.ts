@@ -23,6 +23,7 @@ import { evaluateMissile, type CastResult } from '../engine/magic';
 import { spellOps } from '../engine/flowCore';
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
+import { cliquerSurLeCombattant } from './combatOrParty';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -33,8 +34,8 @@ const immunitesDe = (id: string) => creatureToCombatant(findCreatureById(id)!, i
 function setup() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
-  banc.getState().startScene(testScene());
-  banc.getState().startCombat('enc-mutants');
+  banc.getState().lancerLaScene(testScene());
+  banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('roundStart');
   banc.abandonner();
   const b = banc.getState().battle!;
@@ -60,10 +61,10 @@ function souffler(H: Combatant, E: Combatant, type: string) {
   H.traits = [{ id: 'souffle', value: 10, arg: type }];
   H.characteristics['capacite-de-tir'] = 90;
   H.advantage = 3;
-  banc.getState().battleSelectAttack('souffle');
-  banc.getState().battleClickEntity(E.id);
-  banc.getState().jetRoll('maneuver');
-  banc.getState().jetConfirm('maneuver');
+  banc.getState().armerLAttaque('souffle');
+  cliquerSurLeCombattant(banc.getState, E.id);
+  banc.getState().jetLancer('maneuver');
+  banc.getState().jetValider('maneuver');
 }
 
 function finDeRound() {
@@ -83,7 +84,7 @@ function projeter(H: Combatant, E: Combatant, spell: NonNullable<ReturnType<type
 
 describe('Immunité (Type) — Dégâts typés ignorés (LDB 85 l.174)', () => {
   it('Souffle (Poison) sur le basilic, Immunité (Poison) : ni Dégâts ni Empoisonné', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = immunitesDe('basilic');
     const avant = E.wounds.current;
@@ -93,7 +94,7 @@ describe('Immunité (Type) — Dégâts typés ignorés (LDB 85 l.174)', () => {
   });
 
   it('Souffle (Poison) sur Caledair, Immunité (Feu) : Dégâts et Empoisonné', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = immunitesDe('caledair-la-faux-de-feu');
     const avant = E.wounds.current;
@@ -103,7 +104,7 @@ describe('Immunité (Type) — Dégâts typés ignorés (LDB 85 l.174)', () => {
   });
 
   it('En flammes sur Caledair, Immunité (Feu) : aucune Blessure en fin de Round (VDM 10 l.153)', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { E } = setup();
     E.traits = immunitesDe('caledair-la-faux-de-feu');
     addCondition(E, 'en-flammes', 2);
@@ -113,7 +114,7 @@ describe('Immunité (Type) — Dégâts typés ignorés (LDB 85 l.174)', () => {
   });
 
   it('En flammes sans Immunité (Feu) : les Blessures de fin de Round tombent', () => {
-    banc.getState().seedRng(2);
+    banc.getState().ensemencerLeTirage(2);
     const { E } = setup();
     E.traits = immunitesDe('basilic');
     addCondition(E, 'en-flammes', 2);

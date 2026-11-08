@@ -4,7 +4,7 @@ import { poseDynamicMarks, ringDashes, ringSolidStepPx, tetherDashCount, type Dy
 import { buildDynamicMarkMesh, dynSlotLiftM } from '../backends/webgl/dynamicMarkMeshes';
 import { slotLiftM } from '../backends/webgl/highlightMeshes';
 import { SPECKLE_LIFT_M } from '../backends/webgl/groundAccents';
-import { pxPerM } from '../backends/webgl/worldTris';
+import { pxPerM } from '../../noyau/monde/volume/worldTris';
 import { JEU_ENT_H_M } from '../backends/webgl/billboardMath';
 import { resetDiagOnce } from '../devDiag';
 import { CELL, projectStep, rotOffset, stepOf, type ProjKind } from '../../geometry/iso';

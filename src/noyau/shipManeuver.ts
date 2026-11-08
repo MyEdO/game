@@ -3,8 +3,8 @@
  * `fireArc`/`shipPostes` ; le moteur reste pur). Le « Personnage à la barre » jette un Test de Navigation —
  * **Voile** si le navire avance à la voile, **Ramer** s'il avance aux avirons — modifié par le **Man** du
  * navire (`resolveShipManeuver`, moteur pur). Sur réussite du Test qui le porte (`ManeuverResult.success`), le
- * navire VIRE de `turnSteps` crans (`shipTurn` re-mappe d'un coup ses arcs de bordée) ; il avance TOUJOURS le
- * long du cap (`shipAdvance`).
+ * navire VIRE de `turnSteps` crans (`virerLeNavire` re-mappe d'un coup ses arcs de bordée) ; il avance TOUJOURS le
+ * long du cap (`avancerLeNavire`).
  *
  * SÉPARATION jet ⟂ application (patron des flux différés, cf. `run`) : `rollShipManeuver` résout le Test
  * (RNG, AUCUNE mutation) → `ManeuverResult` ; `applyShipManeuver` exécute le virage + l'avance (mutation).
@@ -130,11 +130,11 @@ export function deriveManeuverFromCrew(ship: Combatant, crewTotal: number, milie
 
 /** Le barreur : parmi l'équipage présent (`exposedCrew` : vivant, Blessures > 0) qui peut tenter le Test
  *  (`peutTenter`, lu par `partyBest` — un Inconscient ne tient pas la barre, LDB 16 l.113), celui qui a la
- *  MEILLEURE valeur de Test de `skillId` (Voile/Ramer). */
+ *  MEILLEURE valeur de Test de `competence` (Voile/Ramer). */
 function bestHelmsman(crew: Combatant[], competence: RefDesignee): Combatant | undefined {
   // Argmax sur l'axe ACTEUR (`partyBest` = maxBy sur `testValue`) : first-max strict, identique au tri desc stable
   // qui rendait le PREMIER max en `[0]`.
-  return partyBest(exposedCrew(crew), competence.id, undefined, undefined, competence.spec)?.actor;
+  return partyBest(exposedCrew(crew), { skill: competence })?.actor;
 }
 
 export interface ManeuverResult extends ShipManeuverOutcome {
@@ -227,30 +227,29 @@ export function rollShipManeuver(get: Get, shipId: string, helmsmanId?: string):
   const ship = inBattleId(battle, shipId);
   if (!battle || !ship) return null;
   const params = shipManeuverParams(ship, milieuDuVoyage(get().travelPlan));
-  const { id: skillId, spec } = params.competence;
   const crew = (ship.crewIds ?? [])
     .map((id) => inBattleId(battle, id))
     .filter((c): c is Combatant => !!c);
   const imposed = helmsmanId ? inBattleId(battle, helmsmanId) : undefined;
-  const helm = helmsmanId ? (imposed && peutTenter(imposed, skillId, spec) ? imposed : undefined) : bestHelmsman(crew, params.competence);
+  const helm = helmsmanId ? (imposed && peutTenter(imposed, { skill: params.competence }) ? imposed : undefined) : bestHelmsman(crew, params.competence);
   // LDB 09 l.30, MSRC 7 l.17 ; #2588 Q1.
-  if (!helm) return imposed ? maneuverSansJet(params, refusNePeutTenter(imposed, { skill: skillId, spec }), imposed.label) : maneuverSansJet(params, refusPersonneNePeutTenter({ skill: skillId, spec }));
-  return deriveManeuver(params, ship, rollTest(testValue(helm, skillId, undefined, spec), 'intermediaire', battleRng()), helm.label);
+  if (!helm) return imposed ? maneuverSansJet(params, refusNePeutTenter(imposed, { skill: params.competence }), imposed.label) : maneuverSansJet(params, refusPersonneNePeutTenter({ skill: params.competence }));
+  return deriveManeuver(params, ship, rollTest(testValue(helm, { skill: params.competence }), 'intermediaire', battleRng()), helm.label);
 }
 
 /**
- * APPLIQUE une manœuvre résolue (mutation) : sur réussite, vire de `turnSteps` crans (`shipTurn` re-mappe les
- * arcs) ; le navire avance TOUJOURS le long du cap (`shipAdvance`, MDG 13 — déplacement INCONDITIONNEL,
- * M÷2 plancher). Renvoie les cases avancées. Logue le succès (via `shipTurn`) ou l'échec.
+ * APPLIQUE une manœuvre résolue (mutation) : sur réussite, vire de `turnSteps` crans (`virerLeNavire` re-mappe les
+ * arcs) ; le navire avance TOUJOURS le long du cap (`avancerLeNavire`, MDG 13 — déplacement INCONDITIONNEL,
+ * M÷2 plancher). Renvoie les cases avancées. Logue le succès (via `virerLeNavire`) ou l'échec.
  */
 export function applyShipManeuver(get: Get, shipId: string, result: ManeuverResult, turnSteps: number): number {
   const ship = inBattleId(get().battle, shipId);
-  if (result.success) get().shipTurn(shipId, turnSteps); // vire + re-mappe les arcs + logue le nouveau cap
+  if (result.success) get().virerLeNavire(shipId, turnSteps); // vire + re-mappe les arcs + logue le nouveau cap
   else {
-    if (result.refus != null) get().log(result.refus);
-    get().log(t('shipManv.failLine', { helmsman: result.helmsman ?? t('shipManv.crewFallback'), ship: ship?.label ?? shipId, dr: result.dr }));
+    if (result.refus != null) get().ecrireAuJournal(result.refus);
+    get().ecrireAuJournal(t('shipManv.failLine', { helmsman: result.helmsman ?? t('shipManv.crewFallback'), ship: ship?.label ?? shipId, dr: result.dr }));
   }
-  return get().shipAdvance(shipId, result.movement);
+  return get().avancerLeNavire(shipId, result.movement);
 }
 
 /**
@@ -267,7 +266,7 @@ export function maneuverShip(get: Get, shipId: string, turnSteps: number, helmsm
 
 export function creerActionsDeManoeuvre(get: Get, set: Set) {
   return {
-    shipTurn: (shipId, turnSteps) => {
+    virerLeNavire: (shipId, turnSteps) => {
       const { facing, battle } = get();
       const cur = facing[shipId];
       if (!cur) return; // navire sans cap initial → rien à virer
@@ -275,10 +274,10 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
       set({ facing: { ...facing, [shipId]: next } });
       // Re-mappe TOUS les arcs de bordée d'un coup : firedAttackBlock / targeting relisent facing[shipId].
       const ship = inBattleId(battle, shipId);
-      get().log(t('store.shipTack', { ship: ship?.label ?? shipId, dir: next }));
+      get().ecrireAuJournal(t('store.shipTack', { ship: ship?.label ?? shipId, dir: next }));
       bus.emit(EVT.SCENE_DIRTY);
     },
-    shipAdvance: (shipId, cases) => {
+    avancerLeNavire: (shipId, cases) => {
       const { facing, battle, scene } = get();
       const dir = facing[shipId];
       const hull = inBattleId(battle, shipId);
@@ -309,7 +308,7 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
         victim = undefined;
       }
       for (const { mobile, depart } of deplaces ?? []) bus.emit(EVT.ANIM_MOVE, { id: mobile.id, path: [depart, { ...mobile.pos! }] });
-      if (moved > 0) get().log(t('store.shipAdvance', { ship: hull.label, n: moved, s: moved > 1 ? 's' : '', dir }));
+      if (moved > 0) get().ecrireAuJournal(t('store.avancerLeNavire', { ship: hull.label, n: moved, s: moved > 1 ? 's' : '', dir }));
       else if (voulu > 0) refuserGeste(get, set, t('cs.refusFormationBloquee'));
       // Éperonnage (MDG 13) : on percute de la PROUE (avance vers l'avant) ; FRONTAL si la victime tient un cap
       // ~opposé (octant opposé ±1). Dégâts sur les DEUX coques par la langue unique (`applyShipCollision`→`applyOps`).
@@ -317,7 +316,7 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
         const opp = rotateDir8(dir, 4);
         const vf = facing[victim.id];
         const frontal = vf === opp || vf === rotateDir8(opp, 1) || vf === rotateDir8(opp, -1);
-        for (const line of applyShipCollision(hull, victim, milieuDuVoyage(get().travelPlan), { ramProue: true, frontal }, battleRng()).lines) get().log(line);
+        for (const line of applyShipCollision(hull, victim, milieuDuVoyage(get().travelPlan), { ramProue: true, frontal }, battleRng()).lines) get().ecrireAuJournal(line);
       }
       if (moved > 0 || victim) { set({ battle: { ...battle } }); bus.emit(EVT.SCENE_DIRTY); }
       return moved;
