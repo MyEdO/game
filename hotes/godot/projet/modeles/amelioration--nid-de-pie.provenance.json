@@ -1,0 +1,13 @@
+{
+  "model": "amelioration--nid-de-pie.glb",
+  "model_sha256": "9b69fc4a995e064b6bcaf06156c923c2ad83bd1149d399b156f64f799c0951b7",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}
