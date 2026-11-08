@@ -124,7 +124,7 @@ export function NoeudTestField({ value, onChange, desc, racine, retirable = true
 export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: FlowTest) => void }) {
   const identite = useId();
   // lecture déclarée : l'éditeur montre et réécrit les valeurs authorées
-  const { difficulty, easierIf } = test;
+  const { difficulty, easierIf, gate } = test;
   const upd = (patch: Partial<FlowTest>) => onChange({ ...test, ...patch });
   const setEase = (patch: Partial<NonNullable<FlowTest['easierIf']>>) => {
     const m = { ...(easierIf ?? {}), ...patch };
@@ -176,9 +176,9 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
       {/* GATE : no-op si fausse ; dans un Flow de scène, filtre les héros qui peuvent jeter (MDG 15 l.197). */}
       <div className="tf-row">
         <label className="ed-check" title="Le Test n’a lieu que si cette Condition est vraie ; en scène, seuls les héros qui la satisfont peuvent le jeter">
-          <input type="checkbox" checked={test.gate !== undefined} onChange={(e) => upd({ gate: e.target.checked ? { kind: 'always' } : undefined })} /> Condition d’accès
+          <input type="checkbox" checked={gate !== undefined} onChange={(e) => upd({ gate: e.target.checked ? { kind: 'always' } : undefined })} /> Condition d’accès
         </label>
-        {test.gate && <ConditionEditor cond={test.gate} onChange={(gate) => upd({ gate })} />}
+        {gate && <ConditionEditor cond={gate} onChange={(g) => upd({ gate: g })} />}
       </div>
       {isSocialTest(test) && (
         <div className="tf-row">
