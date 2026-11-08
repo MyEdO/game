@@ -19,7 +19,7 @@ import { initialNet, type BattleState } from './etat';
 import { draineCascade } from './cascade.testkit';
 import { openAttackCascade } from './combatFlow';
 import { gainCorruption } from './corruptionFlow';
-import { ouvrirLeMedecin, soignerLePatient } from './medicFlow';
+import { ouvrirLeMedecin } from './medicFlow';
 import { intentAllowedFor } from './netOwnership';
 import { NOM_DU_VERBE_DE_JET, type RollVerb } from './flowVerbs';
 import { modalOwnerOf } from './modalArbiter';
@@ -91,10 +91,10 @@ describe('#1015 — sonde 1 : `corruption` sous une fenêtre PRIORITAIRE d’un 
 });
 
 describe('#1015 — sonde 2 : `heal` par un SOIGNEUR PNJ (hors `actorIn`)', () => {
-  it('AUCUN siège n’influence le jet d’un soigneur PNJ', () => {
+  it('AUCUN siège n’influence le jet d’un soigneur PNJ ; son lancer suit le repli universel', () => {
     // Un PNJ n'a ni Chance ni Résilience à dépenser : personne n'influence son jet, et l'AFFICHAGE
     // comme l'INTENT répondent pareil (même prédicat `seatInfluences`). Le pending porte l'id du PNJ
-    // (`soignerLePatient` : `healerId: healer.id ?? 'pnj-soigneur'`), absent du groupe ET du combat — le Test
+    // (`soinDeLActe` : `healerId: soigneur.id ?? 'pnj-soigneur'`), absent du groupe ET du combat — le Test
     // roule sur une valeur BAKÉE (`p.skillValue`, drapeau `actorless`, rollFlowSpecs.ts:349-350 :
     // « L'INFLUENCE (Chance/Résilience) reste gérée à part par la fabrique via `spec.actor` (no-op si
     // l'acteur est un PNJ). »).
@@ -103,9 +103,11 @@ describe('#1015 — sonde 2 : `heal` par un SOIGNEUR PNJ (hors `actorIn`)', () =
     hero.wounds = { ...hero.wounds, current: hero.wounds.max - 5 };
     banc.setState({ battle: null, mode: 'exploration', scene: testScene(), party: [hero], net: NET_COOP });
     ouvrirLeMedecin(g, banc.setState, { patientId: 'b', npc: { id: 'medecin-de-scene', label: 'Barbier-chirurgien', skill: { id: 'guerison', value: 45 }, intBonus: 3, acts: [{ act: 'wounds' }] } });
-    soignerLePatient(g, banc.setState, 'wounds');
-    expect(g().pendingHeal?.healerId, 'précondition : le soigneur est le PNJ de scène').toBe('medecin-de-scene');
-    for (const i of HEAL_VERBS) expect(seats(i), `${i} : un PNJ n’a ni Chance ni Résilience à dépenser`).toEqual([false, false, false]);
+    expect(g().pendingHeal?.healerId, 'précondition : le brouillon du soin, au PNJ de scène').toBe('medecin-de-scene');
+    for (const i of HEAL_VERBS.filter((v) => v !== 'jetLancer@heal')) expect(seats(i), `${i} : un PNJ n’a ni Chance ni Résilience à dépenser`).toEqual([false, false, false]);
+    // Le lancer ne dépense rien : sans siège au porteur, il suit le repli universel — l'infirmerie, à tous tant
+    // qu'aucun jet n'est lancé (`decideurDuSoin`).
+    expect(seats('jetLancer@heal')).toEqual([true, true, true]);
   });
 });
 

@@ -43,7 +43,7 @@ export const REPORT_DE_COMBATTANT = {
   singingShanty: rencontre(REGLE), // MDG 09 l.38
   teamCommanderId: rencontre(REGLE), // AA 13 l.29-35
   species: PERSISTE, career: PERSISTE, careerHistory: PERSISTE,
-  offTerrain: rencontre(POSITION), size: PERSISTE, footprint: PERSISTE, bodyShape: PERSISTE,
+  offTerrain: rencontre(POSITION), surSesPonts: rencontre(POSITION), size: PERSISTE, footprint: PERSISTE, bodyShape: PERSISTE,
   structureEdge: rencontre(COQUE), inert: rencontre(COQUE), aiControlled: rencontre('pilotage d’un allié PNJ de la rencontre'),
   effondree: rencontre(REGLE), // AA 10 l.127
   causesPeur: PERSISTE, causesTerreur: PERSISTE, psychImmune: PERSISTE,

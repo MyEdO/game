@@ -1916,8 +1916,8 @@ const CODEX_SPECS = {
           { t: 'kv', k: tr('codex.fiche.metresParCase'), v: `${semencesDeScene.metresPerTile} m` },
           // Absent = `auto` : l’éclairage suit l’horloge (même convention que `Scene.ambientLight`).
           { t: 'kv', k: tr('codex.fiche.eclairage'), v: semencesDeScene.ambientLight ?? tr('codex.fiche.automatiqueSuitLHorloge') },
-          { t: 'kv', k: tr('codex.fiche.solDeDepart'), v: semencesDeScene.terrain },
-          { t: 'kv', k: tr('codex.fiche.matieresDeRelief'), v: Object.entries(semencesDeScene.reliefDefaults).map(([part, mat]) => `${part} : ${mat}`).join(' · ') },
+          { t: 'kv', k: tr('codex.fiche.solDeDepart'), v: semencesDeScene.terrain.id },
+          { t: 'kv', k: tr('codex.fiche.matieresDeRelief'), v: Object.entries(semencesDeScene.reliefDefaults).map(([part, mat]) => `${part} : ${mat.id}`).join(' · ') },
           { t: 'kv', k: tr('codex.fiche.toiture'), v: tr('codex.fiche.combleEtageS', { material: semencesDeScene.roofDefaults.material, pitchDeg: semencesDeScene.roofDefaults.pitchDeg, riseMaxStoreys: semencesDeScene.roofDefaults.riseMaxStoreys }) },
         ] as CodexRow[],
       }),
@@ -1932,9 +1932,9 @@ const CODEX_SPECS = {
       sections: sections({
         title: tr('codex.fiche.ceQueLeCompilateurPoseA'), layout: 'list',
         rows: [
-          { t: 'kv', k: tr('codex.fiche.cheminDeRonde'), v: defautsDeCompilation.cheminDeRonde },
-          { t: 'kv', k: tr('codex.fiche.masseDUnMurPlein'), v: defautsDeCompilation.masse },
-          { t: 'kv', k: tr('codex.fiche.pontDeNavire'), v: defautsDeCompilation.pont },
+          { t: 'kv', k: tr('codex.fiche.cheminDeRonde'), v: defautsDeCompilation.cheminDeRonde.id },
+          { t: 'kv', k: tr('codex.fiche.masseDUnMurPlein'), v: defautsDeCompilation.masse.id },
+          { t: 'kv', k: tr('codex.fiche.pontDeNavire'), v: defautsDeCompilation.pont.id },
         ] as CodexRow[],
       }),
     }],
@@ -2007,8 +2007,8 @@ const CODEX_SPECS = {
           fact(nom('opaque'), t.opaque ? tr('codex.fiche.oui') : null),
           fact(nom('built'), t.built ? tr('codex.fiche.oui') : null),
           fact(nom('solidHeightM'), t.solidHeightM != null ? `${t.solidHeightM} m` : null),
-          fact(nom('matiere'), t.matiere ? matiereLabel(t.matiere) : null),
-          fact(nom('overlayProp'), t.overlayProp ? propLabel(t.overlayProp) : null),
+          fact(nom('matiere'), t.matiere ? matiereLabel(t.matiere.id) : null),
+          fact(nom('overlayProp'), t.overlayProp ? propLabel(t.overlayProp.id) : null),
         ),
         // Les DEUX porteurs de couleur du terrain (teinte d'aperçu + arrêts de la rampe) tiennent la
         // MÊME section : ce sont des couleurs, rendues par la même rangée `couleur` (pastille peinte +

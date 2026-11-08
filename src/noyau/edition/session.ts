@@ -11,6 +11,7 @@ import type { FabriqueDId } from '../../engine/fabriqueDId';
 import type { ArchitectureBody, ArchitectureStorey, BuildingMass, FacadeFeature, RoofDefaults, Scene, SceneEntity, SceneStationAnchor, WallSecret, WallSeg } from '../monde/scene';
 import { apparencesDeLOuverture } from '../monde/facades';
 import type { ReliefDefaults, SceneRoofDefaults } from '../../data/schemas/defs-scenes/scene';
+import { PARTS_RELIEF } from '../../data/materials.types';
 import type { Dir8 } from '../../geometry/dir8';
 import type { FireArc } from '../../engine/types';
 import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
@@ -173,7 +174,10 @@ function scenePatchee(scene: Scene, patch: PatchDeScene): Scene {
   if (patch.scalaires) sc = setSceneScalaires(sc, Object.fromEntries(Object.entries(patch.scalaires).map(([k, v]) => [k, v ?? undefined])));
   if (patch.dimensions) sc = resizeGrid(sc, patch.dimensions.w, patch.dimensions.h);
   if (patch.nord !== undefined) sc = setNorthDeg(sc, patch.nord ?? undefined);
-  for (const [part, matiere] of Object.entries(patch.relief ?? {}) as [keyof ReliefDefaults, string][]) sc = setReliefDefault(sc, part, matiere);
+  for (const part of PARTS_RELIEF) {
+    const matiere = patch.relief?.[part];
+    if (matiere) sc = setReliefDefault(sc, part, matiere);
+  }
   if (patch.toiture) sc = patchSceneRoofDefaults(sc, patch.toiture);
   if (patch.repos) sc = setSceneRest(sc, { ...patch.repos.lieux, ...(patch.repos.pietre !== undefined && { quality: patch.repos.pietre ? 'pietre' : undefined }) });
   for (const [cle, valeur] of Object.entries(patch.drapeaux ?? {})) sc = valeur === null ? removeSceneFlag(sc, cle) : setSceneFlags(sc, { [cle]: valeur });

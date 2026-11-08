@@ -78,7 +78,7 @@ const MUTATIONS: Record<Exclude<keyof Scene, 'type'>, (s: Scene) => Scene> = {
     effectZones: [...(s.effectZones ?? []), { id: 'zone-neuve', label: 'Zone neuve', presentation: 'interior', area: { kind: 'rect', x: 2, y: 2, w: 2, h: 2 } }],
   }),
   music: (s) => ({ ...s, music: { ambient: null } }),
-  reliefDefaults: (s) => ({ ...s, reliefDefaults: { ...s.reliefDefaults, cliff: 'pierre' } }),
+  reliefDefaults: (s) => ({ ...s, reliefDefaults: { ...s.reliefDefaults, cliff: { id: 'pierre' } } }),
   roofDefaults: (s) => ({ ...s, roofDefaults: { ...s.roofDefaults, material: 'chaume' } }),
   layers: (s) => ({ ...s, layers: cloneLayers(s) }),
   walls: (s) => ({ ...s, walls: [...(s.walls ?? [])] }),

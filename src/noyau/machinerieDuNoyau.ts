@@ -12,7 +12,6 @@ import type { Flow } from '../data/schemas/defs-scenes/effets';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { MassBattleSpec } from '../engine/massBattle';
 import type { PossessionInput } from '../engine/possession';
-import type { HealMode } from '../engine/healing';
 import type { PendingDesignationHeros, PendingExtendedTest } from './pendings';
 import type { Scene } from './monde/scene';
 import type { Pt } from './monde/path';
@@ -87,7 +86,7 @@ export interface MachinerieDuNoyau {
   /** Maniement de deux armes (LDB 10 l.767-773) : 2ᵉ frappe (main secondaire) contre la cible choisie. */
   frapperDeLaSecondeArme: (targetId: IdDeCombattant) => void;
   /** Guérison (LDB 09-Compétences) — ouvre la modale de soin EN COMBAT (soi/allié adjacent). */
-  ouvrirLaGuerison: (targetId: IdDeCombattant, mode: HealMode) => void;
+  ouvrirLaGuerison: (targetId: IdDeCombattant) => void;
   /** Course (LDB 15 l.41) : ouvrir la modale, lancer le Test `course`, Chance/Résilience, appliquer (déplacement étendu). */
   ouvrirLaCourse: (dest?: Pt, movement?: { path: Pt[]; cost: number }) => void;
   /** Bordée (« Tir de batterie », MDG 14 l.128) : ouvre la modale du Test d'équipage des Artilleurs sur `targetId`. */

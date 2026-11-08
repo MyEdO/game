@@ -112,7 +112,7 @@ function reconciled(mods: ModLine[], modifier: number, target: number, clamped?:
   // sert de sonde au cliquet « zéro chip anonyme » (#1153) ; en PROD, rien à dire au joueur.
   if (rest && import.meta.env?.DEV) {
     ANONYMES.count += 1;
-    console.error(`[RollLine] chip « autres » (${rest}) : la ligne ne s'explique pas — itemiser la source à l'ÉMISSION (rollSeam.rollLine).`);
+    console.error(`[RollLine] chip « autres » (${rest}) : la ligne ne s'explique pas — itemiser la source à l'ÉMISSION (ligneDeJet.rollLine).`);
   }
   // Les deux lignes ci-dessous sont des artefacts de réconciliation d'AFFICHAGE, jamais lus par
   // `combineMods` : leur `famille` est un DÉFAUT, pas un classement de règle. « plafond/plancher N »
