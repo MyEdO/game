@@ -128,10 +128,10 @@ describe('validateScene', () => {
     const s = base();
     s.effectZones = [{ id: 'salle', label: 'Salle', presentation: 'interior', z: 0, area: { kind: 'rect', x: 0, y: 0, w: 2, h: 2 } }];
     s.architecture = [{
-      id: 'corps', style: 'maison',
+      id: 'corps', style: { id: 'maison' },
       storeys: [{ id: 'z0', z: 0, parts: [{ id: 'nef', foot: { x: 1, y: 1, w: 2, h: 2 } }], roomZoneIds: ['salle'] }],
       facades: [],
-      masses: [{ id: 'toit', z: 0, footprint: [{ x: 1, y: 1, w: 2, h: 2 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: 'tuile' }],
+      masses: [{ id: 'toit', z: 0, footprint: [{ x: 1, y: 1, w: 2, h: 2 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: { id: 'tuile' } }],
     }];
     Object.assign(s.architecture[0].masses[0], patch);
     expect(validateScene([s]).some((w) => w.scope === 'architecture' && w.level === 'error')).toBe(true);
@@ -144,10 +144,10 @@ describe('validateScene', () => {
     const s = base();
     s.effectZones = [{ id: 'salle', label: 'Salle', presentation: 'interior', z: 0, area: { kind: 'rect', x: 0, y: 0, w: 2, h: 2 } }];
     s.architecture = [{
-      id: 'corps', style: 'maison',
+      id: 'corps', style: { id: 'maison' },
       storeys: [{ id: 'z0', z: 0, parts: [{ id: 'nef', foot: { x: 1, y: 1, w: 2, h: 2 } }], roomZoneIds: ['salle'] }],
       facades: [],
-      masses: [{ id: 'toit', z: 0, footprint: [{ x: 1, y: 1, w: 2, h: 2 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: materiau }],
+      masses: [{ id: 'toit', z: 0, footprint: [{ x: 1, y: 1, w: 2, h: 2 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: { id: materiau } }],
     }];
     return s;
   };
@@ -183,7 +183,7 @@ describe('validateScene', () => {
       { id: 'combles', label: 'Combles', presentation: 'interior', z: 1, area: { kind: 'rect', x: 0, y: 0, w: 2, h: 2 } },
     ];
     s.architecture = [{
-      id: 'corps', style: 'maison',
+      id: 'corps', style: { id: 'maison' },
       storeys: [
         { id: 'rez', z: 0, parts: [{ id: 'partie-rez', foot: { x: 1, y: 1, w: 2, h: 2 } }], roomZoneIds: ['combles'] },
         { id: 'etage', z: 1, parts: [{ id: 'partie-etage', foot: { x: 1, y: 1, w: 2, h: 2 } }], roomZoneIds: ['rez-de-chaussee'] },
@@ -200,8 +200,8 @@ describe('validateScene', () => {
     const s = base();
     s.layers.push({ z: 1, tiles: new Array(25).fill('sol') });
     s.architecture = [{
-      id: 'corps', style: 'maison', storeys: [], facades: [],
-      masses: [{ id: 'toit', z: 1, footprint: [{ x: 1, y: 1, w: 2, h: 2 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: 'tuile' }],
+      id: 'corps', style: { id: 'maison' }, storeys: [], facades: [],
+      masses: [{ id: 'toit', z: 1, footprint: [{ x: 1, y: 1, w: 2, h: 2 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: { id: 'tuile' } }],
     }];
     // Couche d'étage NON cotée : plancher, murs et toiture de l'étage retombent tous au rez.
     expect(validateScene([s]).some((w) => w.scope === 'architecture' && w.refId === 'toit' && w.level === 'error' && /plancher/.test(w.message))).toBe(true);
@@ -219,15 +219,15 @@ describe('validateScene', () => {
   it('architecture : refuse ids dupliqués, arêtes invalides et valeurs de masse incohérentes', () => {
     const s = base();
     s.architecture = [{
-      id: 'corps', style: 'maison',
+      id: 'corps', style: { id: 'maison' },
       storeys: [
         { id: 'z', z: 0, parts: [{ id: 'p', foot: { x: 1, y: 1, w: 2, h: 2 } }, { id: 'p', foot: { x: 1, y: 1, w: 2, h: 2 } }], roomZoneIds: [] },
         { id: 'z', z: 0, parts: [], roomZoneIds: [] },
       ],
       facades: [{ id: 'f', z: 0, edges: [{ x: 5, y: 0, side: 'S' as never, z: 1 }], appearance: 'mur', features: [{ id: 'g', kind: 'gable', edge: { x: 5, y: 0, side: 'S' as never } }] }],
-      masses: [{ id: 'r', z: 0, footprint: [{ x: 1, y: 1, w: 2, h: 2 }], levels: -1, profile: 'bad' as never, ridge: 'z' as never, pitchDeg: 0, material: 'inconnu' }],
+      masses: [{ id: 'r', z: 0, footprint: [{ x: 1, y: 1, w: 2, h: 2 }], levels: -1, profile: 'bad' as never, ridge: 'z' as never, pitchDeg: 0, material: { id: 'inconnu' } }],
     }, {
-      id: 'corps', style: 'maison', storeys: [], facades: [], masses: [],
+      id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [],
     }];
     const w = validateScene([s]).filter((x) => x.scope === 'architecture' && x.level === 'error');
     expect(w.length).toBeGreaterThanOrEqual(10);
@@ -243,7 +243,7 @@ describe('validateScene', () => {
   ])('architecture : refuse une feature avec %s', (_label, patch, champ) => {
     const s = base();
     s.architecture = [{
-      id: 'corps', style: 'maison', storeys: [], masses: [],
+      id: 'corps', style: { id: 'maison' }, storeys: [], masses: [],
       facades: [{
         id: 'facade', z: 0, edges: [{ x: 2, y: 2, side: 'N' }], appearance: 'auberge-relais-imperiale',
         features: [{ id: 'feature', kind: 'gable', edge: { x: 2, y: 2, side: 'N' }, ...patch }],
@@ -257,7 +257,7 @@ describe('validateScene', () => {
     const s = base();
     s.architecture = [{
       id: 'corps',
-      style: 'maison',
+      style: { id: 'maison' },
       storeys: [{
         id: 'z0',
         z: 0,
@@ -279,7 +279,7 @@ describe('validateScene', () => {
         profile: 'gable',
         ridge: 'x',
         pitchDeg: 42,
-        material: 'tuile',
+        material: { id: 'tuile' },
       }],
     }];
 
@@ -306,7 +306,7 @@ describe('validateScene', () => {
     const s = base();
     s.architecture = [{
       id: 'corps',
-      style: 'maison',
+      style: { id: 'maison' },
       storeys: [
         {
           id: 'etage',
@@ -343,7 +343,7 @@ describe('validateScene', () => {
         profile: 'gable',
         ridge: 'x',
         pitchDeg: 42,
-        material: 'tuile',
+        material: { id: 'tuile' },
       }, {
         id: 'toiture',
         z: 0,
@@ -352,11 +352,11 @@ describe('validateScene', () => {
         profile: 'gable',
         ridge: 'x',
         pitchDeg: 42,
-        material: 'tuile',
+        material: { id: 'tuile' },
       }],
     }, {
       id: 'corps',
-      style: 'maison',
+      style: { id: 'maison' },
       storeys: [],
       facades: [],
       masses: [],

@@ -15,7 +15,7 @@
 import { Scene, tileAt, heightAt, porteNonSecrete, sceneMetresPerTile, wallEnds, type ArchitectureRect } from '../../noyau/monde/scene';
 import { roofHidden, massFootBBox } from '../../noyau/monde/buildings';
 import { DEFAUTS_D_OUVERTURE, effectiveArchitecture } from '../../noyau/sceneEdit';
-import { decorAncre, decorFootGeometry } from '../../noyau/monde/footprint';
+import { ancreDuDecor, decorFootGeometry } from '../../noyau/monde/footprint';
 import { findPropById, refEstVolumique } from '../../data';
 import { facesDuDecor } from '../../noyau/monde/volume/propVolumes';
 import { terrainOverlayProp } from '../../noyau/monde/terrain';
@@ -164,7 +164,7 @@ export function buildProps(scene: Scene, visible?: ReadonlySet<string>, view?: F
     out.push(elDeDecor({
       key: `prop:${ent.id}`,
       cell: { x: ent.pos.x, y: ent.pos.y, z },
-      ancre: decorAncre(ent.pos, empreinte),
+      ancre: ancreDuDecor(ent, mpt),
       echelle: dessin.scale,
       solM: heightAt(scene, ent.pos.x, ent.pos.y, z),
       span: { w: empreinte.w, h: empreinte.h },

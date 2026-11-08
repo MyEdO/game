@@ -56,7 +56,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -772,7 +774,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -6280,7 +6284,9 @@
        "levels": 1,
        "profile": "gable",
        "pitchDeg": 30,
-       "material": "tuile"
+       "material": {
+        "id": "tuile"
+       }
       },
       {
        "id": "chapelle",
@@ -6296,7 +6302,9 @@
        "levels": 1,
        "profile": "gable",
        "pitchDeg": 30,
-       "material": "toit-ardoise"
+       "material": {
+        "id": "toit-ardoise"
+       }
       },
       {
        "id": "forge",
@@ -6312,7 +6320,9 @@
        "levels": 1,
        "profile": "gable",
        "pitchDeg": 30,
-       "material": "toit-ardoise"
+       "material": {
+        "id": "toit-ardoise"
+       }
       },
       {
        "id": "echoppe",
@@ -6328,7 +6338,9 @@
        "levels": 1,
        "profile": "gable",
        "pitchDeg": 38,
-       "material": "chaume"
+       "material": {
+        "id": "chaume"
+       }
       }
      ]
     }
@@ -6428,7 +6440,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -7457,7 +7471,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -8420,7 +8436,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -9470,7 +9488,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -10359,7 +10379,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -11603,7 +11625,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -12767,7 +12791,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -13734,7 +13760,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -14871,7 +14899,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -16266,7 +16296,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -17477,7 +17509,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -18567,7 +18601,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -20194,7 +20230,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -21937,7 +21975,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -23290,7 +23330,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -25040,7 +25082,9 @@
        "profile": "gable",
        "ridge": "x",
        "pitchDeg": 28,
-       "material": "tuile"
+       "material": {
+        "id": "tuile"
+       }
       },
       {
        "id": "maison-2",
@@ -25057,7 +25101,9 @@
        "profile": "gable",
        "ridge": "x",
        "pitchDeg": 28,
-       "material": "tuile"
+       "material": {
+        "id": "tuile"
+       }
       },
       {
        "id": "maison-3",
@@ -25074,7 +25120,9 @@
        "profile": "gable",
        "ridge": "x",
        "pitchDeg": 28,
-       "material": "tuile"
+       "material": {
+        "id": "tuile"
+       }
       },
       {
        "id": "maison-prevot",
@@ -25090,7 +25138,9 @@
        "levels": 1,
        "profile": "gable",
        "pitchDeg": 28,
-       "material": "toit-ardoise"
+       "material": {
+        "id": "toit-ardoise"
+       }
       },
       {
        "id": "maison-4",
@@ -25107,7 +25157,9 @@
        "profile": "gable",
        "ridge": "x",
        "pitchDeg": 28,
-       "material": "tuile"
+       "material": {
+        "id": "tuile"
+       }
       }
      ]
     }
@@ -25206,7 +25258,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },

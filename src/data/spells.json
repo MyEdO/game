@@ -25878,5 +25878,1798 @@
       "sacrifices": "Lors de chaque Round de Focalisation, le lanceur de sorts doit effectuer un Test de **Résistance Accessible (+20)** ou perdre définitivement 1 point de Force ou d'Endurance (déterminé aléatoirement).",
       "consequences": "Le Rituel échoue. Le cœur-de-pierre est conservé."
     }
+  },
+  {
+    "id": "armure-d-obscurite",
+    "type": "spells",
+    "label": "Armure d’Obscurité",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Ombres (skaven)",
+    "cn": 6,
+    "range": {
+      "kind": "self"
+    },
+    "target": {
+      "kind": "self"
+    },
+    "duration": {
+      "kind": "clock",
+      "value": 40,
+      "unit": "minutes"
+    },
+    "desc": "le sorcier bénéficie de 2 Points d’Armure (corps entier) et d’un Bonus +20 en Discrétion.",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "ap",
+                "amount": 2
+              },
+              {
+                "op": "skillMod",
+                "skill": {
+                  "id": "discretion"
+                },
+                "mod": 20
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 377
+    },
+    "titreVO": "Armour of Darkness",
+    "livreVO": {
+      "id": "rat-cornu-compagnon"
+    }
+  },
+  {
+    "id": "rage-meurtriere-hcvm",
+    "type": "spells",
+    "label": "Rage Meurtrière",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Arcanes skaven",
+    "cn": 5,
+    "range": {
+      "kind": "touch"
+    },
+    "target": {
+      "kind": "count",
+      "n": 1
+    },
+    "duration": {
+      "kind": "rounds",
+      "value": 4,
+      "plus": true
+    },
+    "desc": "La cible du sort gagne l’État « Frénésie ». Une cible récalcitrante peut tenter de résister en réussissant un test de Calme (+0). En ce cas, la cible perd 1 PB.",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "test",
+          "test": {
+            "skill": {
+              "id": "calme"
+            },
+            "difficulty": "intermediaire"
+          },
+          "success": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "wounds",
+                  "amount": 1,
+                  "ignoreTB": true,
+                  "ignoreAP": true
+                }
+              ]
+            }
+          },
+          "fail": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "grantTrait",
+                  "trait": {
+                    "id": "frenesie"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 374
+    },
+    "titreVO": "Death Frenzy",
+    "livreVO": {
+      "id": "rat-cornu-compagnon"
+    }
+  },
+  {
+    "id": "pattes-gluantes",
+    "type": "spells",
+    "label": "Pattes Gluantes",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Ombres (skaven)",
+    "cn": 8,
+    "range": {
+      "kind": "self"
+    },
+    "target": {
+      "kind": "self"
+    },
+    "duration": {
+      "kind": "clock",
+      "value": 7,
+      "unit": "minutes"
+    },
+    "desc": "Le skaven gagne le Trait (_Wallcrawler_) : il peut progresser sur n’importe quelle surface avec sa pleine valeur de Mouvement et sans Tests d’Escalade. Y compris au plafond, la tête à l’envers.",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "grantTrait",
+                "trait": {
+                  "id": "grimpant"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 380
+    },
+    "titreVO": "Sticky Paws"
+  },
+  {
+    "id": "poudre-d-escampette",
+    "type": "spells",
+    "label": "Poudre d’Escampette",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Ombres (skaven)",
+    "cn": 4,
+    "range": {
+      "kind": "self"
+    },
+    "target": {
+      "kind": "self"
+    },
+    "duration": {
+      "kind": "rounds",
+      "value": {
+        "sum": [
+          {
+            "sl": true
+          },
+          4
+        ]
+      }
+    },
+    "desc": "Le skaven obtient un Bonus de +2 en Mouvement. Pour chaque +2 DR au-dessus de +0, le Mouvement peut encore être augmenté de +1.",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "moveMod",
+                "mod": 2
+              },
+              {
+                "op": "narrative",
+                "text": "Pour chaque +2 DR au-dessus de +0, le Mouvement peut encore être augmenté de +1."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 374
+    },
+    "titreVO": "Swift Scamper"
+  },
+  {
+    "id": "flamme-verdatre",
+    "type": "spells",
+    "label": "Flamme Verdâtre",
+    "family": "mineure",
+    "ecole": "Magie mineure",
+    "subType": "Skaven",
+    "cn": 0,
+    "range": {
+      "kind": "distance",
+      "value": 20,
+      "unit": "m"
+    },
+    "target": {
+      "kind": "count",
+      "n": 1
+    },
+    "duration": {
+      "kind": "special",
+      "text": "1 Heure OU Instantané"
+    },
+    "missile": true,
+    "damage": 5,
+    "desc": "Le mage fait apparaître une bulle gazeuse qui s’enflamme dans les airs. S’il s'en sert de source lumineuse, elle éclaire comme une torche pendant 1 heure. S’il s’en sert de projectile, le mage utilise la Compétence Tir (Jet / Lancer). Le projectile inflige 5 Points de Dégâts (armures OK).",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "narrative",
+                "text": "S’il s'en sert de source lumineuse, elle éclaire comme une torche pendant 1 heure."
+              },
+              {
+                "op": "narrative",
+                "text": "S’il s’en sert de projectile, le mage utilise la Compétence Tir (Jet / Lancer)."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 362
+    },
+    "titreVO": "Ghostly Flame",
+    "livreVO": {
+      "id": "rat-cornu-compagnon"
+    }
+  },
+  {
+    "id": "hebetement",
+    "type": "spells",
+    "label": "Hébètement",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Arcanes skaven",
+    "cn": 0,
+    "range": {
+      "kind": "distance",
+      "value": 2,
+      "unit": "m"
+    },
+    "target": {
+      "kind": "count",
+      "n": 1
+    },
+    "duration": {
+      "kind": "instant"
+    },
+    "desc": "Le sorcier envoie une étincelle depuis son doigt vers sa cible. La cible effectue un test de Résistance (+0) VS 1 État « Étourdi ».",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "test",
+          "test": {
+            "skill": {
+              "id": "resistance"
+            },
+            "difficulty": "intermediaire"
+          },
+          "success": {
+            "kind": "seq",
+            "steps": []
+          },
+          "fail": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "condition",
+                  "id": "sonne"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 362
+    },
+    "titreVO": "Wrack",
+    "livreVO": {
+      "id": "rat-cornu-compagnon"
+    }
+  },
+  {
+    "id": "crepitement-funeste",
+    "type": "spells",
+    "label": "Crépitement Funeste",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Ruine (skaven)",
+    "cn": 5,
+    "range": {
+      "kind": "distance",
+      "value": 2,
+      "unit": "m"
+    },
+    "target": {
+      "kind": "count",
+      "n": 1
+    },
+    "duration": {
+      "kind": "instant"
+    },
+    "desc": "Le sorcier provoque un arc d’énergie verdâtre qui frappe sa cible et inflige 6 Points de Dégâts (armure OK). La cible effectue un Test de Résistance (+0) VS 1 État « Étourdi ».",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "wounds",
+                "amount": 6,
+                "ignoreTB": false,
+                "ignoreAP": false
+              }
+            ]
+          }
+        },
+        {
+          "kind": "test",
+          "test": {
+            "skill": {
+              "id": "resistance"
+            },
+            "difficulty": "intermediaire"
+          },
+          "success": {
+            "kind": "seq",
+            "steps": []
+          },
+          "fail": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "condition",
+                  "id": "sonne"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 362
+    },
+    "titreVO": "Crackling Doom",
+    "livreVO": {
+      "id": "rat-cornu-compagnon"
+    }
+  },
+  {
+    "id": "depecage",
+    "type": "spells",
+    "label": "Dépeçage",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Ruine (skaven)",
+    "cn": 6,
+    "range": {
+      "kind": "distance",
+      "value": 2,
+      "unit": "m"
+    },
+    "target": {
+      "kind": "count",
+      "n": 1
+    },
+    "duration": {
+      "kind": "instant"
+    },
+    "missile": true,
+    "damage": 6,
+    "ignorePA": true,
+    "desc": "Projectile magique qui inflige 6 Points de Dégâts (pas d’armure).",
+    "effects": {
+      "kind": "seq",
+      "steps": []
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 362
+    },
+    "titreVO": "Flensing Ruin",
+    "livreVO": {
+      "id": "rat-cornu-compagnon"
+    }
+  },
+  {
+    "id": "bouclier-hcvm",
+    "type": "spells",
+    "label": "Bouclier",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Ruine (skaven)",
+    "cn": 6,
+    "range": {
+      "kind": "self"
+    },
+    "target": {
+      "kind": "self"
+    },
+    "duration": {
+      "kind": "rounds",
+      "value": 2,
+      "plus": true
+    },
+    "desc": "Le sorcier bénéficie de +10 Points d’Armure. Si un adversaire attaque à mains nues ou avec une arme métallique, il encaisse 7 Points de Dégâts à cause des interférences (pas de PA d’armure métallique).",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "ap",
+                "amount": 10
+              },
+              {
+                "op": "narrative",
+                "text": "Si un adversaire attaque à mains nues ou avec une arme métallique, il encaisse 7 Points de Dégâts à cause des interférences (pas de PA d’armure métallique)."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 362
+    },
+    "titreVO": "Warp Shield",
+    "livreVO": {
+      "id": "rat-cornu-compagnon"
+    }
+  },
+  {
+    "id": "rafale-hurlante",
+    "type": "spells",
+    "label": "Rafale Hurlante",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Ruine (skaven)",
+    "cn": 7,
+    "range": {
+      "kind": "self"
+    },
+    "target": {
+      "kind": "area",
+      "span": "diameter",
+      "meters": 4,
+      "affects": {
+        "kind": "relation",
+        "who": "target",
+        "is": "opponent"
+      }
+    },
+    "duration": {
+      "kind": "rounds",
+      "value": 4,
+      "plus": true
+    },
+    "desc": "Les ennemis dans la zone ne peuvent pas voler. Les Tirs des ennemis ont un Malus de -10. Les alliés du sorcier ne sont pas affectés.",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "skillMod",
+                "skill": {
+                  "id": "projectiles"
+                },
+                "mod": -10
+              },
+              {
+                "op": "narrative",
+                "text": "Les ennemis dans la zone ne peuvent pas voler."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 365
+    },
+    "titreVO": "Howling Warpgale",
+    "livreVO": {
+      "id": "rat-cornu-compagnon"
+    }
+  },
+  {
+    "id": "immuno-deficience",
+    "type": "spells",
+    "label": "Immuno - Déficience",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Arcanes skaven",
+    "cn": 0,
+    "range": {
+      "kind": "distance",
+      "value": 4,
+      "unit": "m"
+    },
+    "target": {
+      "kind": "count",
+      "n": 1
+    },
+    "duration": {
+      "kind": "clock",
+      "value": 24,
+      "unit": "hours"
+    },
+    "desc": "La cible effectue un Test de Résistance (+0). En cas d’échec, elle a un Malus de -20 pour résister aux maladies pendant 24 heures.",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "test",
+          "test": {
+            "skill": {
+              "id": "resistance"
+            },
+            "difficulty": "intermediaire"
+          },
+          "success": {
+            "kind": "seq",
+            "steps": []
+          },
+          "fail": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "diseaseTestMod",
+                  "amount": -20
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 387
+    },
+    "titreVO": "Vector",
+    "livreVO": {
+      "id": "rat-cornu-compagnon"
+    }
+  },
+  {
+    "id": "arme-souillee",
+    "type": "spells",
+    "label": "Arme Souillée",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Peste (skaven)",
+    "cn": 6,
+    "range": {
+      "kind": "touch"
+    },
+    "target": {
+      "kind": "count",
+      "n": 1
+    },
+    "duration": {
+      "kind": "special",
+      "text": "8 Minutes +"
+    },
+    "desc": "Le démon frotte 1 arme sur une blessure purulente. Une cible touchée per cette arme ou ces munitions souffre de 1 État « Empoisonné » en plus des dégâts. Les Tests de Résistance se font à (+0).",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "augmentWeapon",
+                "onHitEffects": [
+                  {
+                    "trigger": "onHit",
+                    "on": "victim",
+                    "flow": {
+                      "kind": "do",
+                      "effect": {
+                        "type": "ops",
+                        "on": "target",
+                        "ops": [
+                          {
+                            "op": "condition",
+                            "id": "empoisonne"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "op": "narrative",
+                "text": "Les Tests de Résistance se font à (+0)."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 306
+    },
+    "titreVO": "Bless With Filth",
+    "livreVO": {
+      "id": "rat-cornu-compagnon"
+    }
+  },
+  {
+    "id": "nuee-de-mouches",
+    "type": "spells",
+    "label": "Nuée de Mouches",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Peste (skaven)",
+    "cn": 6,
+    "range": {
+      "kind": "self"
+    },
+    "target": {
+      "kind": "area",
+      "span": "diameter",
+      "meters": 8
+    },
+    "duration": {
+      "kind": "rounds",
+      "value": 8,
+      "plus": true
+    },
+    "desc": "Le démon développe le Trait « Distraction ». Les alliés et ennemis à moins de 3 mètres du démon subissent un Malus de -20 à _TOUS_ leurs Tests.",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "caster",
+            "ops": [
+              {
+                "op": "grantTrait",
+                "trait": {
+                  "id": "perturbant"
+                }
+              },
+              {
+                "op": "narrative",
+                "text": "Les alliés et ennemis à moins de 3 mètres du démon subissent un Malus de -20 à _TOUS_ leurs Tests."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 306
+    },
+    "titreVO": "Veil of Flies",
+    "livreVO": {
+      "id": "rat-cornu-compagnon"
+    }
+  },
+  {
+    "id": "haleine-fetide",
+    "type": "spells",
+    "label": "Haleine Fétide",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Peste (skaven)",
+    "cn": 8,
+    "range": {
+      "kind": "distance",
+      "value": 8,
+      "unit": "m"
+    },
+    "target": {
+      "kind": "special",
+      "text": "Cône Longueur (8 Mètres) x Largeur (2 Mètres)"
+    },
+    "duration": {
+      "kind": "instant"
+    },
+    "desc": "Le démon exhale une haleine fétide. Quiconque est dans la zone d’effet effectue un Test de Résistance (-10) VS 8 PB (pas d’armures). Pour chaque +2 DR au-dessus de +0, la largeur peut augmenter de +1 Mètre.",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "test",
+          "test": {
+            "skill": {
+              "id": "resistance"
+            },
+            "difficulty": "complexe"
+          },
+          "success": {
+            "kind": "seq",
+            "steps": []
+          },
+          "fail": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "wounds",
+                  "amount": 8,
+                  "ignoreTB": false,
+                  "ignoreAP": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "caster",
+            "ops": [
+              {
+                "op": "narrative",
+                "text": "Pour chaque +2 DR au-dessus de +0, la largeur peut augmenter de +1 Mètre."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 311
+    },
+    "titreVO": "Pestilent Breath",
+    "livreVO": {
+      "id": "rat-cornu-compagnon"
+    }
+  },
+  {
+    "id": "avatar-du-rat-cornu",
+    "type": "spells",
+    "label": "Avatar du Rat Cornu",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Arcanes skaven",
+    "cn": 4,
+    "range": {
+      "kind": "self"
+    },
+    "target": {
+      "kind": "self"
+    },
+    "duration": {
+      "kind": "rounds",
+      "value": 5
+    },
+    "desc": "Le visage du sorcier se tord et prend l’aspect du Rat Cornu en personne. Le sorcier gagne les Traits suivants : Belligérant, Peur 1, Haine. Pour chaque +2 DR au-dessus de +0 le Trait Peur augmente de +1. À la fin du sort, le sorcier effectue un Test de Résistance (+0) VS 1 État « Fatigue ».",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "grantTrait",
+                "trait": {
+                  "id": "belliqueux"
+                }
+              },
+              {
+                "op": "grantTrait",
+                "trait": {
+                  "id": "peur",
+                  "value": 1
+                },
+                "indicePerSL": {
+                  "every": 2,
+                  "amount": 1
+                }
+              },
+              {
+                "op": "grantTrait",
+                "trait": {
+                  "id": "haine"
+                }
+              },
+              {
+                "op": "narrative",
+                "text": "À la fin du sort, le sorcier effectue un Test de Résistance (+0) VS 1 État « Fatigue »."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 418
+    },
+    "titreVO": "Aspect of the Horned Rat"
+  },
+  {
+    "id": "cacophonie-scabreuse",
+    "type": "spells",
+    "label": "Cacophonie Scabreuse",
+    "family": "chaos",
+    "ecole": "Magie du Chaos",
+    "subType": "Slaanesh",
+    "cn": 6,
+    "range": {
+      "kind": "self"
+    },
+    "target": {
+      "kind": "area",
+      "span": "diameter",
+      "meters": 8,
+      "affects": {
+        "kind": "relation",
+        "who": "target",
+        "is": "opponent"
+      },
+      "excludesCaster": true
+    },
+    "duration": {
+      "kind": "instant"
+    },
+    "desc": "Le démon hurle des obscénités. Tous les ennemis dans la zone subissent 3 Points de Dégâts par DR + 8 Points de Dégâts (pas d’armure).",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "wounds",
+                "amount": 8,
+                "perSL": {
+                  "every": 1,
+                  "amount": 3
+                },
+                "ignoreTB": false,
+                "ignoreAP": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 290
+    },
+    "titreVO": "Cacophonic Caress",
+    "livreVO": {
+      "id": "pouvoir-derriere-le-trone-compagnon"
+    }
+  },
+  {
+    "id": "langue-aceree",
+    "type": "spells",
+    "label": "Langue Acérée",
+    "family": "chaos",
+    "ecole": "Magie du Chaos",
+    "subType": "Slaanesh",
+    "cn": 6,
+    "range": {
+      "kind": "distance",
+      "value": 8,
+      "unit": "m"
+    },
+    "target": {
+      "kind": "count",
+      "n": 1
+    },
+    "duration": {
+      "kind": "rounds",
+      "value": 8
+    },
+    "desc": "Le démon projette sa langue devenue un instant protractile. La cible subit 11 Points de Dégâts (pas d’armure).",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "wounds",
+                "amount": 11,
+                "ignoreTB": false,
+                "ignoreAP": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 290
+    },
+    "titreVO": "Cutting Wit",
+    "livreVO": {
+      "id": "pouvoir-derriere-le-trone-compagnon"
+    }
+  },
+  {
+    "id": "courage-du-loup",
+    "type": "spells",
+    "label": "Courage du Loup",
+    "family": "invocation",
+    "ecole": "Invocation",
+    "subType": "Ulric",
+    "cn": null,
+    "range": {
+      "kind": "self"
+    },
+    "target": {
+      "kind": "area",
+      "span": "diameter",
+      "meters": 5,
+      "affects": {
+        "kind": "relation",
+        "who": "target",
+        "is": "ally"
+      }
+    },
+    "duration": {
+      "kind": "rounds",
+      "value": 5
+    },
+    "desc": "Tous les alliés dans la zone perdent leur État « En Déroute ». Pendant la durée du miracle, ils sont immunisés VS Peur / Terreur / Intimidation.",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "removeCondition",
+                "id": "brise",
+                "all": true
+              },
+              {
+                "op": "narrative",
+                "text": "Pendant la durée du miracle, ils sont immunisés VS Peur / Terreur / Intimidation."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 93
+    },
+    "titreVO": "Heart of the Wolf",
+    "livreVO": {
+      "id": "pouvoir-derriere-le-trone-compagnon"
+    }
+  },
+  {
+    "id": "piste-froide",
+    "type": "spells",
+    "label": "Piste Froide",
+    "family": "invocation",
+    "ecole": "Invocation",
+    "subType": "Ranald",
+    "cn": null,
+    "range": {
+      "kind": "self"
+    },
+    "target": {
+      "kind": "self"
+    },
+    "duration": {
+      "kind": "clock",
+      "value": 5,
+      "unit": "hours"
+    },
+    "desc": "Après avoir commis un crime (cambriolage…), les personnes que croise le PJ l’ignorent, y compris les autorités ou le Guet. Le miracle prend fin si le prêtre commet un nouveau crime. Tant que le miracle est actif, le prêtre a un Malus de -3 DR pour les Tests de Sociabilité car ses interlocuteurs ne parviennent pas à se concentrer sur ce que le prêtre dit.",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "charDRBonus",
+                "characteristic": "sociabilite",
+                "bonus": -3
+              },
+              {
+                "op": "narrative",
+                "text": "Après avoir commis un crime (cambriolage…), les personnes que croise le PJ l’ignorent, y compris les autorités ou le Guet. Le miracle prend fin si le prêtre commet un nouveau crime."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 120
+    },
+    "titreVO": "The Heat is Off",
+    "livreVO": {
+      "id": "deft-steps-light-fingers"
+    }
+  },
+  {
+    "id": "crepitements-vengeurs",
+    "type": "spells",
+    "label": "Crépitements Vengeurs",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Waaagh mineure (Mork)",
+    "cn": 6,
+    "range": {
+      "kind": "distance",
+      "value": 30,
+      "unit": "m"
+    },
+    "target": {
+      "kind": "area",
+      "span": "diameter",
+      "meters": 3
+    },
+    "duration": {
+      "kind": "instant"
+    },
+    "missile": true,
+    "damage": 7,
+    "desc": "Des éclairs verts jaillissent des doigts du shaman. Projectile magique qui inflige 7 Points de Dégâts (armure OK). Les cibles blessées effectuent un Test de Calme (+0) VS État « Étourdi ».",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "if",
+          "cond": {
+            "kind": "woundsDealt",
+            "op": ">",
+            "value": 0
+          },
+          "then": {
+            "kind": "test",
+            "test": {
+              "skill": {
+                "id": "calme"
+              },
+              "difficulty": "intermediaire"
+            },
+            "success": {
+              "kind": "seq",
+              "steps": []
+            },
+            "fail": {
+              "kind": "do",
+              "effect": {
+                "type": "ops",
+                "on": "target",
+                "ops": [
+                  {
+                    "op": "condition",
+                    "id": "sonne"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 449
+    },
+    "titreVO": "Vindictive Glare",
+    "livreVO": {
+      "id": "tribes-and-tribulations"
+    }
+  },
+  {
+    "id": "lune-de-malheur",
+    "type": "spells",
+    "label": "Lune de Malheur",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Waaagh mineure (Mork)",
+    "cn": 8,
+    "range": {
+      "kind": "distance",
+      "value": 6,
+      "unit": "m"
+    },
+    "target": {
+      "kind": "area",
+      "span": "diameter",
+      "meters": 6
+    },
+    "duration": {
+      "kind": "rounds",
+      "value": 6
+    },
+    "desc": "Le shaman invoque une lune grimaçante qui flotte dans les airs. Les personnes ou créatures dans la zone sont maudites : elles subissent 1 État « Fatigue » et elles ne peuvent pas utiliser de Points de détermination pendant la durée du sort.",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "condition",
+                "id": "extenue"
+              },
+              {
+                "op": "narrative",
+                "text": "elles ne peuvent pas utiliser de Points de détermination pendant la durée du sort."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 456
+    },
+    "titreVO": "Curse of da Bad Moon",
+    "livreVO": {
+      "id": "tribes-and-tribulations"
+    }
+  },
+  {
+    "id": "prise-de-tete",
+    "type": "spells",
+    "label": "Prise de Tête",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Waaagh majeure (Gork)",
+    "cn": 4,
+    "range": {
+      "kind": "distance",
+      "value": 5,
+      "unit": "m"
+    },
+    "target": {
+      "kind": "count",
+      "n": 1
+    },
+    "duration": {
+      "kind": "instant"
+    },
+    "desc": "Le sort fait bouillir la cervelle de la cible qui subit immédiatement 1 État « À Terre » + 1 État « Étourdi ». Pour chaque +1 DR au-dessus de +0, on ajoute +1 État « Étourdi ». Si le nombre d’État « Étourdi » subis dépasse le Bonus d’Endurance de la cible, elle effectue un Test de Calme (+20). En cas d’échec, la cible encaisse un Coup Critique à la Tête.",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "condition",
+                "id": "a-terre"
+              },
+              {
+                "op": "condition",
+                "id": "sonne",
+                "value": 1,
+                "valuePerSL": {
+                  "every": 1,
+                  "amount": 1
+                }
+              },
+              {
+                "op": "narrative",
+                "text": "Si le nombre d’État « Étourdi » subis dépasse le Bonus d’Endurance de la cible, elle effectue un Test de Calme (+20). En cas d’échec, la cible encaisse un Coup Critique à la Tête."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 473
+    },
+    "titreVO": "Brainbursta",
+    "livreVO": {
+      "id": "tribes-and-tribulations"
+    }
+  },
+  {
+    "id": "z-oeils-de-mork",
+    "type": "spells",
+    "label": "Z’Oeils de Mork",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Waaagh majeure (Gork)",
+    "cn": 4,
+    "range": {
+      "kind": "distance",
+      "value": 55,
+      "unit": "m"
+    },
+    "target": {
+      "kind": "special",
+      "text": "Spécial"
+    },
+    "duration": {
+      "kind": "instant"
+    },
+    "desc": "Un rayon vert surgit des yeux du shaman. Toute personne ou créature sur la trajectoire du rayon encaisse 4 PB. Les structures dont l’Endurance est inférieure à 65 peuvent également être endommagées.",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "wounds",
+                "amount": 4,
+                "ignoreTB": true,
+                "ignoreAP": true
+              },
+              {
+                "op": "narrative",
+                "text": "Les structures dont l’Endurance est inférieure à 65 peuvent également être endommagées."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 473
+    },
+    "titreVO": "Gaze of Mork",
+    "livreVO": {
+      "id": "tribes-and-tribulations"
+    }
+  },
+  {
+    "id": "coup-d-boule",
+    "type": "spells",
+    "label": "Coup d’Boule !",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Waaagh majeure (Gork)",
+    "cn": 5,
+    "range": {
+      "kind": "distance",
+      "value": 5,
+      "unit": "m"
+    },
+    "target": {
+      "kind": "count",
+      "n": 1
+    },
+    "duration": {
+      "kind": "instant"
+    },
+    "missile": true,
+    "damage": 1,
+    "desc": "Projectile magique qui touche _TOUJOURS_ la tête de la cible en infligeant +1 PB. Si la cible est un mage, les Dégâts montent à +6 !",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "narrative",
+                "text": "Projectile magique qui touche _TOUJOURS_ la tête de la cible"
+              },
+              {
+                "op": "narrative",
+                "text": "Si la cible est un mage, les Dégâts montent à +6 !"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 473
+    },
+    "titreVO": "’Eadbutt !",
+    "livreVO": {
+      "id": "tribes-and-tribulations"
+    }
+  },
+  {
+    "id": "soleil-noir",
+    "type": "spells",
+    "label": "Soleil Noir",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Waaagh majeure (Gork)",
+    "cn": 11,
+    "range": {
+      "kind": "distance",
+      "value": 8,
+      "unit": "m"
+    },
+    "target": {
+      "kind": "area",
+      "span": "diameter",
+      "meters": 8
+    },
+    "duration": {
+      "kind": "rounds",
+      "value": 8
+    },
+    "desc": "Un soleil grimaçant apparaît. Les cibles dans la zone encaisse 8 Points de Dégâts à chaque Tour (armure OK). Les cibles effectue également, à chaque Tour, un Test Résistance (+0) VS 1 État « En Feu ».",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "caster",
+            "ops": [
+              {
+                "op": "zone",
+                "shape": "disc",
+                "radiusMeters": 4,
+                "perRound": [
+                  {
+                    "op": "wounds",
+                    "amount": 8,
+                    "ignoreTB": false,
+                    "ignoreAP": false
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "narrative",
+                "text": "Les cibles effectue également, à chaque Tour, un Test Résistance (+0) VS 1 État « En Feu »."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 481
+    },
+    "titreVO": "The Evil Sun",
+    "livreVO": {
+      "id": "tribes-and-tribulations"
+    }
+  },
+  {
+    "id": "waaagh",
+    "type": "spells",
+    "label": "WAAAGH !",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Waaagh majeure (Gork)",
+    "cn": 11,
+    "range": {
+      "kind": "self"
+    },
+    "target": {
+      "kind": "area",
+      "span": "diameter",
+      "meters": 85,
+      "affects": {
+        "kind": "relation",
+        "who": "target",
+        "is": "ally"
+      }
+    },
+    "duration": {
+      "kind": "rounds",
+      "value": 8
+    },
+    "desc": "Chaque cible dans la zone ajoute +1 Avantage dans la Réserve des Peaux-Vertes. Les alliés du shaman dans la zone perdent leurs États « En Déroute » et gagnent un Bonus de +2 DR pour les Tests de Calme et de Résistance.",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "removeCondition",
+                "id": "brise",
+                "all": true
+              },
+              {
+                "op": "skillDRBonus",
+                "skill": {
+                  "id": "calme"
+                },
+                "bonus": 2
+              },
+              {
+                "op": "skillDRBonus",
+                "skill": {
+                  "id": "resistance"
+                },
+                "bonus": 2
+              },
+              {
+                "op": "narrative",
+                "text": "Chaque cible dans la zone ajoute +1 Avantage dans la Réserve des Peaux-Vertes."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 481
+    },
+    "titreVO": "WAAAGH !",
+    "livreVO": {
+      "id": "tribes-and-tribulations"
+    }
+  },
+  {
+    "id": "algues-cruelles",
+    "type": "spells",
+    "label": "Algues Cruelles",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": null,
+    "cn": 5,
+    "range": {
+      "kind": "distance",
+      "value": 90,
+      "unit": "m"
+    },
+    "target": {
+      "kind": "area",
+      "span": "diameter",
+      "meters": 9
+    },
+    "duration": {
+      "kind": "special",
+      "text": "Spécial"
+    },
+    "desc": "Les algues répondent à la volonté du mage. Elles agrippent toute personne dans la zone d’effet et inflige 1 État « Enchevêtré » par DR du Test de Langue (Magick) avec une Force égale à la FM du mage. Au Tour suivant, les algues attirent les cibles sous l’eau (appliquer les règles de noyade).",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "condition",
+                "id": "empetre",
+                "value": 0,
+                "valuePerSL": {
+                  "every": 1,
+                  "amount": 1
+                },
+                "escapeStrength": {
+                  "charOf": "force-mentale"
+                }
+              },
+              {
+                "op": "narrative",
+                "text": "Au Tour suivant, les algues attirent les cibles sous l’eau (appliquer les règles de noyade)."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 503
+    },
+    "titreVO": "Tangleweed"
+  },
+  {
+    "id": "vague-scelerate",
+    "type": "spells",
+    "label": "Vague Scélérate",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": null,
+    "cn": 11,
+    "range": {
+      "kind": "special",
+      "text": "Spécial"
+    },
+    "target": {
+      "kind": "special",
+      "text": "Zone Diamètre 9 mètres +"
+    },
+    "duration": {
+      "kind": "rounds",
+      "value": 1
+    },
+    "desc": "Il faut que le mage soit à proximité immédiate d’un fleuve ou d’un lac. Le mage invoque une vague géante qui peut atteindre des cibles à (2 x Bonus FM mage) mètres du bord. C’est une attaque magique qui inflige 10 Points de Dégâts (armure OK) à toute personne ou créature dans la zone d’effet. Celles qui sont entre la source d’eau et la zone d’effet encaissent 5 Points de Dégâts. Toutes ces cibles effectuent un Test d’Athlétisme (+0). En cas d’échec, elles sont entraînées par le reflux et se retrouvent à l’eau à (DR Test Langue (Magick) + DR Test Athlétisme).",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "wounds",
+                "amount": 10,
+                "ignoreTB": false,
+                "ignoreAP": false
+              },
+              {
+                "op": "narrative",
+                "text": "Il faut que le mage soit à proximité immédiate d’un fleuve ou d’un lac."
+              },
+              {
+                "op": "narrative",
+                "text": "Celles qui sont entre la source d’eau et la zone d’effet encaissent 5 Points de Dégâts."
+              }
+            ]
+          }
+        },
+        {
+          "kind": "test",
+          "test": {
+            "skill": {
+              "id": "athletisme"
+            },
+            "difficulty": "intermediaire"
+          },
+          "success": {
+            "kind": "seq",
+            "steps": []
+          },
+          "fail": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "narrative",
+                  "text": "elles sont entraînées par le reflux et se retrouvent à l’eau à (DR Test Langue (Magick) + DR Test Athlétisme)."
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 503
+    },
+    "titreVO": "Angry Wave"
+  },
+  {
+    "id": "forme-spectrale",
+    "type": "spells",
+    "label": "Forme Spectrale",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": "Nécromancie",
+    "domainId": "necromancie",
+    "cn": 4,
+    "range": {
+      "kind": "self"
+    },
+    "target": {
+      "kind": "self"
+    },
+    "duration": {
+      "kind": "rounds",
+      "value": 7
+    },
+    "desc": "Le nécromancien devient « Éthéré » : il peut passer à travers les objets solides (portes, murs) et ne peut être blessé qu’avec des armes magiques ou des sorts.",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "grantTrait",
+                "trait": {
+                  "id": "ethere"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 523
+    },
+    "titreVO": "Spirit Walk",
+    "livreVO": {
+      "id": "empire-en-ruine-compagnon"
+    }
+  },
+  {
+    "id": "invocation-d-un-colosse-necrofex",
+    "type": "spells",
+    "label": "Invocation d’un Colosse Necrofex",
+    "family": "arcane",
+    "ecole": "Magie des Arcanes",
+    "subType": null,
+    "cn": 180,
+    "range": {
+      "kind": "distance",
+      "value": 70,
+      "unit": "m"
+    },
+    "target": {
+      "kind": "special",
+      "text": "1 Cimetère / Charnier / Champ de Bataille"
+    },
+    "duration": {
+      "kind": "untilDawn"
+    },
+    "desc": "Voir le profil de la créature par ailleurs.",
+    "effects": {
+      "kind": "seq",
+      "steps": [
+        {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "caster",
+            "ops": [
+              {
+                "op": "summon",
+                "ref": "colosse-necrofex",
+                "count": 1,
+                "allyOfCaster": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "source": {
+      "book": "guide-frenchy",
+      "page": 524
+    },
+    "titreVO": "Create Construct"
   }
 ]

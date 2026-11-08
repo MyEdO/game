@@ -1,5 +1,6 @@
 import { type Scene, type SceneEntity, isWalkable } from './scene';
 import { entityBlockedAt } from './sceneRules';
+import { entitesEnCaseEtage } from './decorIndex';
 import { pathTo, walkNeighbors, type MoveEnv, type Pt } from './path';
 import { portalsForParty } from './roomPortals';
 import { memeCase, placesJouables, seatSlotsOf } from './seating';
@@ -52,7 +53,7 @@ export function aPorteeDe(pos: Pt, ent: SceneEntity): boolean {
  *  « marchable » reste à `pathTo` (aperçu) / `exploreMovePlan` (clic). */
 export function exploreMoveDest(sc: Scene, partyPos: Pt, tile: Pt): Pt | null {
   const tz = tile.z ?? 0;
-  const ent = sc.entities.find((e) => e.pos.x === tile.x && e.pos.y === tile.y && (e.z ?? 0) === tz);
+  // Plusieurs entités tiennent dans une case : celle qui arrête la marche (utilisable, personnage ou décor qui occupe).
   // On ne marche jamais SUR un personnage ni sur un décor qui OCCUPE sa case : on s'approche d'une case
   // adjacente (sinon le groupe entrerait dans le corps du PNJ, et la case d'un décor bloquant est
   // infranchissable). L'occupation ne se lit PAS au `kind` : c'est la règle unique de blocage
@@ -61,8 +62,9 @@ export function exploreMoveDest(sc: Scene, partyPos: Pt, tile: Pt): Pt | null {
   // action) reste du SOL — on marche DESSUS, comme sur la case nue.
   // L'ABORD se décide sur l'OFFRE qui EXISTE, drapeaux non comptabilisés : on s'approche d'un coffre
   // qu'on a déjà vidé comme on s'en approchait avant — c'est le geste, arrivé, qui dit qu'il est vide.
-  const occupe = !!ent && ent.kind === 'prop' && entityBlockedAt(sc, tile.x, tile.y, tz);
-  if (ent && (estUtilisable(sc, ent) || ent.kind === 'personnage' || occupe)) {
+  const occupe = entityBlockedAt(sc, tile.x, tile.y, tz);
+  const ent = entitesEnCaseEtage(sc, tile.x, tile.y, tz).find((e) => estUtilisable(sc, e) || e.kind === 'personnage' || (e.kind === 'prop' && occupe));
+  if (ent) {
     if (aPorteeDe(partyPos, ent)) return null; // déjà à portée → interaction/échange/badaud sur place
     return adjacentWalkable(sc, ent.pos, partyPos);
   }
@@ -140,10 +142,10 @@ export function exploreMovePlan(
   // Les places AJOUTENT une destination, elles n'en retirent AUCUNE : sans place servable (toutes
   // prises, aucun abord atteignable), on REPASSE la main à la marche générique — un meuble plein qui
   // porte une fouille se rejoint encore par une case adjacente.
-  const meuble = scene.entities.find((e) => e.kind === 'prop' && e.pos.x === tile.x && e.pos.y === tile.y && (e.z ?? 0) === (tile.z ?? 0));
   // ...et seulement si l'auteur a ACTIVÉ l'instance (`placesJouables`, #1687) : la destination du
   // clic est une lecture d'INTERACTION, comme le halo et le curseur.
-  if (meuble && placesJouables(scene, meuble.id).length) {
+  const meuble = entitesEnCaseEtage(scene, tile.x, tile.y, tile.z ?? 0).find((e) => e.kind === 'prop' && placesJouables(scene, e.id).length);
+  if (meuble) {
     const place = exploreSeatPlan(scene, partyPos, meuble.id, opts);
     if (place && place.path.length >= 2) return { dest: place.approach, path: place.path };
   }

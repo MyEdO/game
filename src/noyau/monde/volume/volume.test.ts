@@ -135,7 +135,7 @@ describe('toitsDuMonde, toitsLeves (#3476)', () => {
   const scene = (): Scene => ({
     ...emptyScene('toits', 10, 8),
     walls: perimeterWallSegs([MAISON]),
-    architecture: [{ id: 'bourg', storeys: [], facades: [], masses: [{ id: 'maison', z: 0, footprint: [MAISON], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 30, material: 'tuile' }] }],
+    architecture: [{ id: 'bourg', storeys: [], facades: [], masses: [{ id: 'maison', z: 0, footprint: [MAISON], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 30, material: { id: 'tuile' } }] }],
   });
 
   it('une nappe par masse, ses pans de couverture et ses pignons de la matière du mur qu’ils prolongent', () => {

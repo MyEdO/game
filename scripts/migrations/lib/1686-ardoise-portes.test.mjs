@@ -9,6 +9,8 @@
  *
  * Le TÉMOIN ouvre le banc : sur la copie FIDÈLE de l'arbre (déjà migré), la migration sort 0 sans
  * rien écrire — sans lui, les deux rouges ne prouveraient pas que le dépôt jetable est jouable.
+ * Les documents de projet sont posés dans l'état que la migration produit : la couverture en id nu
+ * (#2968 L12).
  *
  * Ce banc vit sous `lib/` : `replay.mjs` scanne le dossier des migrations à PLAT et n'y admet que
  * des `.mjs` à préfixe DATÉ — un `.test.mjs` posé à côté des migrations y serait rejoué ou refusé.
@@ -34,13 +36,26 @@ const PROJETS = fs
 
 const DATASETS = ['src/data/materials.json', 'src/data/props.json'];
 
+/** La couverture `{ id }` de `porteur` rendue en id nu, l'état que la migration produit. */
+const couvertureNue = (porteur) => (porteur?.material === undefined ? porteur : { ...porteur, material: porteur.material.id });
+
+/** Le document de projet `doc`, chaque couverture (scène, intention de toiture d'un corps, masse) en id nu. */
+const projetEnIdNu = (doc) => ({
+  ...doc,
+  scenes: (doc.scenes ?? []).map((s) => ({
+    ...s,
+    roofDefaults: couvertureNue(s.roofDefaults),
+    ...(s.architecture ? { architecture: s.architecture.map((b) => ({ ...b, ...(b.roofDefaults ? { roofDefaults: couvertureNue(b.roofDefaults) } : {}), masses: b.masses.map(couvertureNue) })) } : {}),
+  })),
+});
+
 /**
  * Dépôt jetable portant EXACTEMENT ce que la migration lit — les documents de l'arbre, sous leur
- * forme canonique. `mute` reçoit `{ docs }` (documents parsés, keyés par chemin relatif) et les
- * modifie en place avant la pose.
+ * forme canonique, ceux de projet à leur couverture en id nu. `mute` reçoit `{ docs }` (documents
+ * parsés, keyés par chemin relatif) et les modifie en place avant la pose.
  */
 function depotMute(mute) {
-  const docs = tableTotale([...DATASETS, ...PROJETS], (rel) => JSON.parse(lireArbre(rel)));
+  const docs = tableTotale([...DATASETS, ...PROJETS], (rel) => (PROJETS.includes(rel) ? projetEnIdNu : (d) => d)(JSON.parse(lireArbre(rel))));
   mute(docs);
   return depot(
     Object.fromEntries(

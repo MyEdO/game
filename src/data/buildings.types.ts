@@ -26,8 +26,8 @@ export interface BuildingDef {
   label: string;
   /** Provenance MAISON en clair — aucun folio n'imprime de catalogue de bâtiments (`grammaire/document.ts`). */
   maison: string;
-  /** Couverture de référence du type (id de `materials.json`, domaine `roof`). */
-  roofMaterial: string;
+  /** Couverture de référence du type (`materials.json`, domaine `roof`). */
+  roofMaterial: { id: string };
   /** Ornements d'identité que le rendu pose en billboard. Absent = bâtiment sobre. */
   features?: BuildingFeature[];
 }

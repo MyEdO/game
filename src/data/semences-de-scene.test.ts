@@ -25,7 +25,7 @@ const LIVRE = {
   metresPerTile: semencesDeScene.metresPerTile,
   terrain: semencesDeScene.terrain,
   reliefDefaults: { ...semencesDeScene.reliefDefaults },
-  roofDefaults: { ...semencesDeScene.roofDefaults },
+  roofDefaults: structuredClone(semencesDeScene.roofDefaults),
   facade: semencesDeScene.facade,
   lieu: semencesDeScene.lieu,
   carte: semencesDeScene.carte,

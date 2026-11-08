@@ -44,7 +44,7 @@ const doc = document(
     terrain: ref('terrain'),
     reliefDefaults: reliefDefaultsSchema,
     roofDefaults: sceneRoofDefaultsSchema,
-    facade: idDe('structure'),
+    facade: ref('structure'),
     lieu: z.string().min(1),
     carte: z.string().min(1),
     profil: z.string().min(1),

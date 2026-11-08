@@ -21,7 +21,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud } from '../grammaire/meta';
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { roleAmbiantSchema } from '../grammaire/valeurs';
-import { amateurSchema, cell2Schema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
+import { amateurSchema, cell2Schema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema, pointDuPlanSchema } from '../grammaire/valeurs';
 import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
 import { navalTraitRefSchema } from '../grammaire/reference';
 import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
@@ -211,6 +211,14 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
 const brancheDEntite = <R extends z.ZodType>(kind: EntityKindId, ref: R) =>
   nommerChamps(z.strictObject({ ...baseDEntiteSchema.shape, kind: z.literal(kind).pipe(entityKindSchema), ref }), { ...metaDesChamps(baseDEntiteSchema, { exigees: true }), kind: { label: "type"  }, ref: { label: "référence", texte: { regime: 'technique', usage: 'référence stable de l’entité résolue au registre' } } });
 
+/** Branche d'un DÉCOR : celle de toute entité, et sa POSE dans la case. `calage`, où son corps se tient dans le jeu libre
+ *  de son empreinte, de -1 (ouest, nord) à +1 (est, sud) par axe du monde, absent = centré (`decalageDuCalage`) ; `sur`, l'id du décor qui le porte, son pied sur le dessus de
+ *  celui-ci (`noyau/monde/poseDuDecor.ts`). L'empreinte, donc l'occupation de la grille, n'en dépend pas. */
+const brancheDuDecor = (() => {
+  const branche = brancheDEntite('prop', idDe('prop').optional());
+  return nommerChamps(branche.extend({ calage: pointDuPlanSchema.optional(), sur: z.string().optional() }), { ...metaDesChamps(branche, { exigees: true }), calage: { label: "calage dans la case" }, sur: { label: "posé sur", texte: { regime: "technique" } } });
+})();
+
 type EntityKindId = z.infer<typeof entityKindSchema>;
 
 /** `SceneEntity` (`noyau/monde/scene.ts:98`). `id` = identité STABLE partagée avec le `Combatant` au spawn.
@@ -229,11 +237,13 @@ export const sceneEntitySchema = z.discriminatedUnion('kind', [
     const carriere = refusDuPnjDeCarriere(ent);
     if (carriere) ctx.addIssue({ code: 'custom', path: ['carrieres'], message: carriere });
   }),
-  brancheDEntite('prop', idDe('prop').optional()).superRefine((ent, ctx) => {
+  brancheDuDecor.superRefine((ent, ctx) => {
     // TYPE NOMMÉ — verrou AU PARSE (#877) : `PORTEURS_DU_TYPE` ; sa résolution au registre est celle de la
     // feuille `idDe('prop')`. Une ref absente se DIT ici.
     const absence = porteurAbsent(ent);
     if (absence) ctx.addIssue({ code: 'custom', path: ['ref'], message: absence });
+    for (const axe of ['x', 'y'] as const)
+      if (ent.calage && Math.abs(ent.calage[axe]) > 1) ctx.addIssue({ code: 'custom', path: ['calage', axe], message: `calage ${axe} = ${ent.calage[axe]} — de -1 à +1, la part du jeu libre du décor dans sa case` });
     // CAP D'UN DÉCOR VOLUMIQUE — verrou AU PARSE (#1680 ligne 3) : un décor dont le TYPE porte une
     // recette ne prend qu'un cap CARDINAL : `data/props.types.ts` `capVolumique`. La sous-liste se lit au
     // régime vivant, sinon au registre généré (`porteLeMarqueur`).
@@ -315,22 +325,18 @@ export const sceneWeatherSchema = enumNomme(
 /** Côté d'égout bas (OBLIGATOIRE pour `shed`, ignoré sinon). */
 export const eaveSideSchema = z.enum(['N', 'E', 'S', 'O']);
 /**
- * Matière de COUVERTURE d'une masse : la porte est la fabrique canonique (`idDe('material', 'roof')`),
- * qui refine l'id AU PARSE contre la sous-liste `roof` de `materials.json` — une matière de décor ou de
- * relief posée sur un toit n'entre pas. La FORME DE SORTIE, elle, est DÉCLARÉE `string` et non inférée
- * (même patron que `RefASpecialisation`, `grammaire/ref.ts`) : `BuildingMass`/`RoofDefaults` sont des
- * `z.infer` LUS par l'éditeur et par la dérivation, où la matière est une valeur de `<select>` et un
- * littéral d'authoring — y faire remonter la marque de type imposerait un `as` à chaque site de saisie.
- * Que la matière COUVRE vraiment un pan (champ `couverture`) reste un sous-filtre de SCÈNE, dit par
- * `noyau/validateScene.ts` : le domaine `roof` porte aussi le « plan » vu du dessus.
+ * Matière de COUVERTURE d'une masse : `ref('material')` sur la sous-liste `roof` de `materials.json` (une
+ * matière de décor ou de relief posée sur un toit n'entre pas). La FORME DE SORTIE est DÉCLARÉE `{ id: string }`
+ * et non inférée (même patron que `RefASpecialisation`, `grammaire/ref.ts`) : `BuildingMass`/`RoofDefaults`
+ * sont des `z.infer` LUS par l'éditeur et par la dérivation, où la matière se pose depuis une valeur de
+ * `<select>` et un littéral d'authoring. Que la matière COUVRE vraiment un pan (champ `couverture`) reste un
+ * sous-filtre de SCÈNE, dit par `noyau/validateScene.ts` : le domaine `roof` porte aussi le « plan » vu du
+ * dessus.
  */
-const couvertureSchema: z.ZodType<string, string> = idDe('material', 'roof');
-/**
- * TYPE de bâtiment d'un corps architectural (`buildings.json`) : même porte et MÊME patron de sortie
- * que `couvertureSchema` ci-dessus — `ArchitectureBody` est un `z.infer` LU par l'éditeur, où le type
- * est une valeur de `<select>`, et par l'authoring TS des scénarios.
- */
-const typeDeBatimentSchema: z.ZodType<string, string> = idDe('building');
+const couvertureSchema: z.ZodType<{ id: string }, { id: string }> = ref('material', undefined, 'roof');
+/** TYPE de bâtiment d'un corps architectural : `ref('building')`, sortie élargie comme `couvertureSchema`
+ *  (`ArchitectureBody` est lu par l'éditeur et par l'authoring TS des scénarios). */
+const typeDeBatimentSchema: z.ZodType<{ id: string }, { id: string }> = ref('building');
 /** Matière de RELIEF — `ref('material')` sur la sous-liste `relief` de `materials.json` (une couverture de
  *  toit ou une matière de décor posée sur une falaise n'entre pas), sortie élargie comme `couvertureSchema`. */
 const matiereReliefSchema: z.ZodType<{ id: string }, { id: string }> = ref('material', undefined, 'relief');

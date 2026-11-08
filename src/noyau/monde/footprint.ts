@@ -14,11 +14,12 @@
  * vérité unique de l'empreinte d'un prop — ce module n'est donc pas sans dépendance de données.
  */
 import { findPropById } from '../../data';
-import { empreinteDuProp, offsetAncre } from '../../data/props.types';
+import { decalageDuCalage, empreinteDuProp, offsetAncre } from '../../data/props.types';
 import type { Dir8 } from '../../geometry/dir8';
 import { effectiveSize, sizeFootprintSide, type SizeCategory } from '../../engine/size';
 import type { Combatant } from '../../engine/types';
 import type { Pt } from './path';
+import type { SceneEntity } from './scene';
 import { verticalTiles } from './relief';
 
 /** Côté N de l'empreinte carrée pour une Taille créature (défaut Moyenne = 1). */
@@ -49,17 +50,19 @@ export function occupiesTile(pos: Pt, n: number, x: number, y: number): boolean 
 }
 
 /**
- * ANCRE MONDE d'un décor posé en `pos` — le point sur lequel TOUT ce que le décor projette se pose :
- * sa géométrie volumique (`buildPropVolumes`), son dessin billboard, et
+ * ANCRE MONDE d'un décor posé — le point sur lequel TOUT ce que le décor projette se pose :
+ * sa géométrie volumique (`buildPropVolumes`), son dessin billboard, ses places assises et
  * le FOYER de la source qu'il porte (`noyau/monde/vision.ts` → `LightSource.foyer`). Un décor s'ancre au
- * CENTRE de son empreinte : `pos` en est le coin NO, `decorFootGeometry` donne le décalage
- * fractionnaire vers ce centre. UNE définition, parce qu'une lampe calée sur un autre point que sa
- * propre géométrie s'en détacherait dès la première empreinte non 1×1 — mesuré à 1,414 m sur une
- * empreinte 2×2 (#1680 ligne 5). PURE.
+ * CENTRE de son empreinte (`pos` en est le coin NO, `decorFootGeometry` donne le décalage
+ * fractionnaire vers ce centre), décalé dans son jeu libre par son `calage` (`decalageDuCalage`). UNE définition,
+ * parce qu'une lampe calée sur un autre point que sa propre géométrie s'en détacherait dès la première empreinte
+ * non 1×1 — mesuré à 1,414 m sur une empreinte 2×2 (#1680 ligne 5). PURE.
  */
-export function decorAncre(pos: { x: number; y: number }, foot?: { w: number; h: number }): { x: number; y: number } {
-  const { offX, offY } = decorFootGeometry(foot);
-  return { x: pos.x + offX, y: pos.y + offY };
+export function ancreDuDecor(ent: Pick<SceneEntity, 'pos' | 'ref' | 'facing' | 'calage'>, mpt: number): { x: number; y: number } {
+  const prop = findPropById(ent.ref);
+  const { offX, offY } = decorFootGeometry(empreinteDuProp(prop, ent.facing, mpt));
+  const decalage = decalageDuCalage(prop, ent.facing, mpt, ent.calage);
+  return { x: ent.pos.x + offX + decalage.x, y: ent.pos.y + offY + decalage.y };
 }
 
 /**

@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { proseNommee } from '../grammaire/prose';
 import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionCondCtxSchema } from '../grammaire/campagne';
-import { enumNomme, pointDuCanevasSchema } from '../grammaire/valeurs';
+import { enumNomme, pointDuPlanSchema } from '../grammaire/valeurs';
 import { routeBilletSchema, provenancesDeRouteSchema } from '../grammaire/route';
 import { idDe, recordDIds, ref, refs } from '../grammaire/ref';
 import { refuserLesIndividus } from '../grammaire/reference';
@@ -101,7 +101,7 @@ export const placePoiSchema = nommerChamps(z
     id: z.string(),
     label: z.string(),
     /** Coordonnées PLAN-LOCALES, indépendantes de `MapPlace.pos`. */
-    pos: pointDuCanevasSchema,
+    pos: pointDuPlanSchema,
     icon: z.string().optional(),
     sceneId: z.string().optional(),
     serviceKind: z.string().optional(),
@@ -120,7 +120,7 @@ export const mapPlaceSchema = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
   /** Position sur la carte du monde. */
-  pos: pointDuCanevasSchema,
+  pos: pointDuPlanSchema,
   /** Scène liée (id du registre de scènes du projet). */
   scene: z.string(),
   entry: z.string().optional(),

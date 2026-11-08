@@ -1,5 +1,6 @@
 import { libelleEffet, type Effect, type Flow } from '../data/schemas/defs-scenes/effets';
 import type { Jeu } from './etat';
+import { objetDuSol } from './objetsAuSol';
 import type { Get, PatchDeFlux, Set as SetFn } from './flowTypes';
 import { armChapterRecapIfDue } from './chapitreRecap';
 import { ouvrirLaFinDeSeance } from './partyFlow';
@@ -93,6 +94,7 @@ import { actionsAuthorees, type Drapeaux } from './monde/usable';
 import type { SceneEntity } from './monde/scene';
 import { campAdvantageHooks, creditOpposingAdvantage } from './combat/advantagePool';
 import { poserLeGroupe } from './marcheDuGroupe';
+import { emporterLesObjets, normaliserLesAppuis } from './monde/poseDuDecor';
 
 /**
  * Effets de scène/campagne (`Effect[]`) appliqués par le store : le grand `applyEffects`
@@ -160,12 +162,12 @@ export function pushCombatStep(set: SetFn, step: BuiltCascadeStep | ((index: num
   pushStep(set, step, 'combat');
 }
 
-/** Items ramassables d'un décor : un par feuille `do` « donneuse » de CHAQUE action authorée encore
- *  jouable (`actionsAuthorees`). `key` = `<actionId>:eff:<index dans flowEffects(action.flow)>` — elle
- *  porte l'action, parce que le ramassage épuise UNE action, pas un décor. Effets non-objet &
- *  branches (test) ignorés. */
-export function entityPickables(ent: SceneEntity, flags: Drapeaux, objetDe: TrappingResolver): { key: string; label: string }[] {
-  const out: { key: string; label: string }[] = [];
+/** Items ramassables d'un décor : l'objet posé au sol qu'il montre (`objetDuSol`, clé = son uid), puis un par feuille
+ *  `do` « donneuse » de CHAQUE action authorée encore jouable (`actionsAuthorees`). `key` =
+ *  `<actionId>:eff:<index dans flowEffects(action.flow)>` — elle porte l'action, parce que le ramassage épuise UNE
+ *  action, pas un décor. Effets non-objet & branches (test) ignorés. */
+export function entityPickables(ent: SceneEntity, flags: Drapeaux, objetDe: TrappingResolver, objetsAuSol: Jeu['objetsAuSol']): { key: string; label: string }[] {
+  const out: { key: string; label: string }[] = objetDuSol(ent, objetsAuSol);
   for (const a of actionsAuthorees(ent, flags))
     flowEffects(a.flow).forEach((e, i) => {
       if (flags[cleFeuilleRamassee(ent.id, a.id, i)]) return; // déjà pris, un objet à la fois
@@ -177,7 +179,7 @@ export function entityPickables(ent: SceneEntity, flags: Drapeaux, objetDe: Trap
 
 /**
  * Clé du drapeau qui ferme UNE feuille donneuse d'une action authorée : en combat, on ramasse un objet
- * à la fois (`LDB 13 l.115-116`), et ce qui est pris ne se redonne pas — ni au ramassage suivant, ni
+ * à la fois (`pickup` de `actions.json`), et ce qui est pris ne se redonne pas — ni au ramassage suivant, ni
  * à la fouille en exploration. `index` = rang de la feuille dans `flowEffects(action.flow)`, STABLE
  * parce que le document de scène n'est jamais réécrit : l'état de jeu vit dans les drapeaux.
  */
@@ -1471,7 +1473,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (!sc) return;
       const ent = sc.entities.find((x) => x.id === e.id);
       if (!ent) return; // entité introuvable → no-op
-      if (e.to) env.set({ scene: { ...sc, entities: sc.entities.map((x) => (x.id === e.id ? { ...x, pos: { x: e.to!.x, y: e.to!.y }, z: e.to!.z ?? x.z } : x)) } });
+      // Ce que l'entité porte la suit, et ce qui ne tient plus sur elle (une autre couche) retombe au sol.
+      if (e.to) env.set({ scene: normaliserLesAppuis(emporterLesObjets(sc, { ...sc, entities: sc.entities.map((x) => (x.id === e.id ? { ...x, pos: { x: e.to!.x, y: e.to!.y }, z: e.to!.z ?? x.z } : x)) }, e.id)) });
       if (e.remove) removeEntity(env.get, env.set, e.id); // APRÈS le repositionnement (fuite-puis-disparition)
     },
   },

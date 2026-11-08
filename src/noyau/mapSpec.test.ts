@@ -779,10 +779,10 @@ describe('buildScene — architecture authorée', () => {
     const spec = {
       id: 'architecture', label: 'Architecture', size: [8, 8] as [number, number],
       architecture: [{
-        id: 'corps', style: 'maison',
+        id: 'corps', style: { id: 'maison' },
         storeys: [{ id: 'corps-z0', z: 0, parts: [{ id: 'nef', foot: { x: 1, y: 1, w: 4, h: 3 } }], roomZoneIds: ['salle'] }],
         facades: [{ id: 'facade-sud', z: 0, edges: [{ x: 1, y: 3, side: 'N' as const }], appearance: 'mur-a-ossature-en-bois', features: [{ id: 'pignon', kind: 'gable' as const, edge: { x: 1, y: 3, side: 'N' as const } }] }],
-        masses: [{ id: 'toit-nef', z: 0, footprint: [{ x: 1, y: 1, w: 4, h: 3 }, { x: 4, y: 4, w: 1, h: 1 }], levels: 1, profile: 'gable' as const, ridge: 'x' as const, pitchDeg: 42, material: 'tuile' }],
+        masses: [{ id: 'toit-nef', z: 0, footprint: [{ x: 1, y: 1, w: 4, h: 3 }, { x: 4, y: 4, w: 1, h: 1 }], levels: 1, profile: 'gable' as const, ridge: 'x' as const, pitchDeg: 42, material: { id: 'tuile' } }],
       }],
       zoneMap: { z0: ['........', '.SSSS...', '.SSSS...', '.SSSS...', '....S...', '........', '........', '........'] },
       zoneLegend: { S: { id: 'salle', label: 'Salle', presentation: 'interior' as const } },
@@ -847,7 +847,7 @@ describe('buildScene — validation FAIL-FAST des masses de bâtiment (#823)', (
   ].join('\n');
   const goodMass: BuildingMass = {
     id: 'm', z: 0, footprint: [{ x: 1, y: 1, w: 4, h: 4 }], levels: 1,
-    profile: 'gable' as const, ridge: 'x' as const, pitchDeg: 40, material: 'tuile',
+    profile: 'gable' as const, ridge: 'x' as const, pitchDeg: 40, material: { id: 'tuile' },
   };
   const specWith = (masses: BuildingMass[], patchSpec: Partial<Parameters<typeof buildScene>[0]> = {}) => ({
     id: 't', label: 'T', size: [12, 12] as [number, number], terrain: 'herbe',
@@ -855,7 +855,7 @@ describe('buildScene — validation FAIL-FAST des masses de bâtiment (#823)', (
     zoneMap: { z0: salleZoneMap },
     zoneLegend: { S: { id: 'salle', label: 'Salle', presentation: 'interior' as const } },
     walls: perimeterEdges([{ x: 1, y: 1, w: 4, h: 4 }]),
-    architecture: [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses }],
+    architecture: [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses }],
     ...patchSpec,
   });
 
@@ -983,7 +983,7 @@ describe('buildScene — dérivation par défaut des masses de bâtiment (#829)'
   });
 
   it('AUCUNE masse déclarée → la toiture couvre tout le bâti sans qu\'un auteur ait rien authoré', () => {
-    const scene = buildScene(baseSpec({ architecture: [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [] }] }));
+    const scene = buildScene(baseSpec({ architecture: [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [] }] }));
     const corps = scene.architecture!.find((b) => b.id === 'corps')!;
     expect(corps.masses.length).toBeGreaterThan(0);
     const covered = new Set<string>();
@@ -997,7 +997,7 @@ describe('buildScene — dérivation par défaut des masses de bâtiment (#829)'
   it('une surcharge explicite PRIME sur la dérivation (cour non coiffée par `roofExclusions`)', () => {
     const scene = buildScene(baseSpec({
       architecture: [{
-        id: 'corps', style: 'maison', storeys: [], facades: [], masses: [],
+        id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [],
         roofExclusions: [{ z: 0, rect: { x: 2, y: 2, w: 2, h: 2 } }],
       }],
     }));
@@ -1032,7 +1032,7 @@ describe('buildScene — dérivation par défaut des masses de bâtiment (#829)'
     const scene = buildScene(baseSpec({
       zoneMap: { z0: biggerZoneMap },
       walls: perimeterEdges([{ x: 1, y: 1, w: 5, h: 5 }]), // le mur agrandi lui aussi (#881, walls = source de la pièce)
-      architecture: [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [] }],
+      architecture: [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [] }],
     }));
     const corps = scene.architecture!.find((b) => b.id === 'corps')!;
     const covered = new Set<string>();
@@ -1045,8 +1045,8 @@ describe('buildScene — dérivation par défaut des masses de bâtiment (#829)'
 
   it('deux corps NON BORNÉS sur la MÊME scène → REFUS nommé, quel que soit l’ORDRE du tableau', () => {
     const deux = [
-      { id: 'diligence', style: 'maison', storeys: [], facades: [], masses: [] },
-      { id: 'architecture-0', style: 'maison', storeys: [], facades: [], masses: [] },
+      { id: 'diligence', style: { id: 'maison' }, storeys: [], facades: [], masses: [] },
+      { id: 'architecture-0', style: { id: 'maison' }, storeys: [], facades: [], masses: [] },
     ];
     for (const architecture of [deux, [...deux].reverse()]) {
       let message = '';
@@ -1061,8 +1061,8 @@ describe('buildScene — dérivation par défaut des masses de bâtiment (#829)'
   it('un corps non borné qui ne déclare RIEN et ne dérive RIEN est de la donnée MORTE → REFUS avec message de purge', () => {
     // Le corps « salle » est BORNÉ à toute l'emprise bâtie : il ne reste aucune case au corps vide.
     const architecture = [
-      { id: 'salle', style: 'maison', storeys: [{ id: 'z0', z: 0, parts: [{ id: 'p', foot: { x: 1, y: 1, w: 4, h: 4 } }], roomZoneIds: [] }], facades: [], masses: [] },
-      { id: 'architecture-0', style: 'maison', storeys: [{ id: 'z0', z: 0, parts: [], roomZoneIds: [] }], facades: [], masses: [] },
+      { id: 'salle', style: { id: 'maison' }, storeys: [{ id: 'z0', z: 0, parts: [{ id: 'p', foot: { x: 1, y: 1, w: 4, h: 4 } }], roomZoneIds: [] }], facades: [], masses: [] },
+      { id: 'architecture-0', style: { id: 'maison' }, storeys: [{ id: 'z0', z: 0, parts: [], roomZoneIds: [] }], facades: [], masses: [] },
     ];
     expect(() => buildScene(baseSpec({ architecture }))).toThrow(/« architecture-0 ».*donnée MORTE/s);
   });
@@ -1070,8 +1070,8 @@ describe('buildScene — dérivation par défaut des masses de bâtiment (#829)'
   it('un SEUL résiduel reste toléré et dérive tout le plancher que les corps bornés n’ont pas pris', () => {
     const scene = buildScene(baseSpec({
       architecture: [
-        { id: 'aile', style: 'maison', storeys: [{ id: 'z0', z: 0, parts: [{ id: 'p', foot: { x: 1, y: 1, w: 4, h: 2 } }], roomZoneIds: [] }], facades: [], masses: [] },
-        { id: 'residuel', style: 'maison', storeys: [], facades: [], masses: [] },
+        { id: 'aile', style: { id: 'maison' }, storeys: [{ id: 'z0', z: 0, parts: [{ id: 'p', foot: { x: 1, y: 1, w: 4, h: 2 } }], roomZoneIds: [] }], facades: [], masses: [] },
+        { id: 'residuel', style: { id: 'maison' }, storeys: [], facades: [], masses: [] },
       ],
     }));
     const covered = new Map<string, string>();
@@ -1102,7 +1102,7 @@ describe('buildScene — la nappe passe AU-DESSUS de la trémie d’une volée (
     elevate: { Q: 4 }, // le plancher d'étage à sa cote (METRES_PER_LEVEL) — la volée y monte
     cells: { E: { terrain: 'pierre' as const, stair: { to: 'z1' } } },
     walls: perimeterEdges([{ x: 1, y: 1, w: 6, h: 6 }]),
-    architecture: [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [] }],
+    architecture: [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [] }],
   };
 
   it('la volée ouvre bien une trémie dans le plancher de l’étage', () => {
@@ -1152,10 +1152,10 @@ describe('buildScene — règle 1 : seule une OUVERTURE adoptable dispense du pl
     elevate: { Q: 4 },
     walls: perimeterEdges([{ x: 1, y: 1, w: 6, h: 4 }]),
     architecture: [{
-      id: 'corps', style: 'maison', storeys: [], facades: [],
+      id: 'corps', style: { id: 'maison' }, storeys: [], facades: [],
       masses: [{
         id: 'toit', z: 1, footprint: [{ x: 1, y: 1, w: 6, h: 4 }], levels,
-        profile: 'gable' as const, ridge: 'x' as const, pitchDeg: 42, material: 'tuile',
+        profile: 'gable' as const, ridge: 'x' as const, pitchDeg: 42, material: { id: 'tuile' },
       }],
     }],
   });
@@ -1183,12 +1183,12 @@ describe('buildScene — la couverture des masses se juge sur l\'EMPRISE du corp
   const B: Foot = { x: 7, y: 1, w: 3, h: 3 };
 
   const body = (id: string, foot: Foot, footprint: Foot[] = [foot]) => ({
-    id, style: 'maison',
+    id, style: { id: 'maison' },
     storeys: [{ id: `${id}-z0`, z: 0, parts: [{ id: `${id}-volume`, foot }], roomZoneIds: [`piece-${id}`] }],
     facades: [],
     masses: footprint.map((rect, i) => ({
       id: `toit-${id}-${i}`, z: 0, footprint: [{ ...rect }], levels: 1,
-      profile: 'gable' as const, ridge: 'x' as const, pitchDeg: 42, material: 'tuile',
+      profile: 'gable' as const, ridge: 'x' as const, pitchDeg: 42, material: { id: 'tuile' },
     })),
   });
 
@@ -1280,7 +1280,7 @@ describe('buildScene — la couverture des masses se juge sur l\'EMPRISE du corp
       id: 't', label: 'T', size: [12, 12] as [number, number], terrain: 'herbe',
       levels: { z0: Array.from({ length: 12 }, () => '.'.repeat(12)).join('\n') },
       walls: perimeterEdges([A]),
-      architecture: [{ id: 'corps-sans-volume', style: 'maison', storeys: [], facades: [], masses: [] }],
+      architecture: [{ id: 'corps-sans-volume', style: { id: 'maison' }, storeys: [], facades: [], masses: [] }],
     });
     expect(scene.architecture![0].masses.length).toBeGreaterThan(0);
   });
@@ -1294,7 +1294,7 @@ describe('buildScene — couverture PAR ÉTAGE et COMPLÉTUDE de scène (#1158)'
   const dedans = (r: { x: number; y: number; w: number; h: number }, x: number, y: number) =>
     x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
   const toit = (id: string, z: number, foot: { x: number; y: number; w: number; h: number }) => ({
-    id, z, footprint: [foot], levels: 1, profile: 'gable' as const, ridge: 'x' as const, pitchDeg: 42, material: 'tuile',
+    id, z, footprint: [foot], levels: 1, profile: 'gable' as const, ridge: 'x' as const, pitchDeg: 42, material: { id: 'tuile' },
   });
   const socle = {
     id: 't', label: 'T', size: [N, N] as [number, number], terrain: 'herbe',
@@ -1325,12 +1325,12 @@ describe('buildScene — couverture PAR ÉTAGE et COMPLÉTUDE de scène (#1158)'
     legend: { P: 'plancher' as const },
     architecture: [
       {
-        id: 'corps-rez', style: 'maison',
+        id: 'corps-rez', style: { id: 'maison' },
         storeys: [{ id: 'rez-z0', z: 0, parts: [{ id: 'rez-v', foot: salle }], roomZoneIds: ['piece-rez'] }],
         facades: [], masses: [toit('toit-rez', 0, salle)],
       },
       {
-        id: 'corps-etage', style: 'maison',
+        id: 'corps-etage', style: { id: 'maison' },
         storeys: [{ id: 'et-z1', z: 1, parts: [{ id: 'et-v', foot: etage }], roomZoneIds: [] }],
         facades: [], masses: [toit('toit-etage', 1, etage)],
       },
@@ -1349,7 +1349,7 @@ describe('buildScene — couverture PAR ÉTAGE et COMPLÉTUDE de scène (#1158)'
     ...socle,
     levels: { z0: grid(() => '.') },
     architecture: [{
-      id: 'corps', style: 'maison',
+      id: 'corps', style: { id: 'maison' },
       storeys: foot ? [{ id: 'z0', z: 0, parts: [{ id: 'v', foot }], roomZoneIds: ['piece-rez'] }] : [],
       facades: [], masses: [],
     }],

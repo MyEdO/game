@@ -45,7 +45,7 @@ import { parUnitesDeCode } from '../../../lib/ordre.mjs';
 /** Le nom PEINT sur le plan pour une pièce de nappe (`authoring/roofsSvg`) : le libellé authoré du
  *  corps, sinon celui de son TYPE de bâtiment (`buildings.json`), sinon son id technique. */
 function bodyLabel(body: ArchitectureBody): string {
-  return body.label ?? (body.style === undefined ? undefined : buildingsMeta()[body.style]?.label) ?? body.id;
+  return body.label ?? (body.style === undefined ? undefined : buildingsMeta()[body.style.id]?.label) ?? body.id;
 }
 
 /** Montée de la nappe par CRAN de profondeur d'avant-toit (17 px-iso), en mètres — une seule
@@ -1246,7 +1246,7 @@ function roofGeometry(scene: Scene): Viewed<RoofEl, ClearedSpace>[] {
       const space = { sectionId: mass.id, roomZoneIds, cells: massSpaceCells(mass, cells) };
       const rule: ViewRule<ClearedSpace> = { kind: 'contexte', truth: (cleared) => cutawayForSection(space, cleared) === 'hidden' };
       const simplifiedCourses = cells.size > GROUPED_DETAIL_CELL_THRESHOLD;
-      const def = roofMaterial(mass.material);
+      const def = roofMaterial(mass.material.id);
       const courses = def.detail?.courses?.hM
         ? Math.max(1, Math.round(field.shape.pitch / def.detail.courses.hM))
         : undefined;
@@ -1255,7 +1255,7 @@ function roofGeometry(scene: Scene): Viewed<RoofEl, ClearedSpace>[] {
         const [x, y] = key.split(',').map(Number);
         return { x, y };
       });
-      const geometry = roofPans(cells, mass.material, simplifiedCourses ? 1 : courses, eave, field.shape, field);
+      const geometry = roofPans(cells, mass.material.id, simplifiedCourses ? 1 : courses, eave, field.shape, field);
       for (const pan of geometry.pans ?? []) {
         const panCellsList = panCells(pan.face, sectionCells);
         const minX = Math.min(...panCellsList.map((cell) => cell.x));
@@ -1278,7 +1278,7 @@ function roofGeometry(scene: Scene): Viewed<RoofEl, ClearedSpace>[] {
             cell: { x: minX, y: minY, z: mass.z },
             span: { w: maxX - minX + 1, h: maxY - minY + 1 },
             cells: panCellsList,
-            material: mass.material,
+            material: mass.material.id,
             label: bodyLabel(body),
             faces: pan.faces,
             lines: pan.lines,
@@ -1323,7 +1323,7 @@ function roofGeometry(scene: Scene): Viewed<RoofEl, ClearedSpace>[] {
             cell: { x: minX, y: minY, z: mass.z },
             span: { w: maxX - minX + 1, h: maxY - minY + 1 },
             cells: end.inside,
-            material: mass.material,
+            material: mass.material.id,
             label: bodyLabel(body),
             faces: [{ poly: end.poly, material: { domain: 'structure', id: appearance, part: 'face' }, side: closureSide, oriented: false }],
             lines: [],

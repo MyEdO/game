@@ -751,12 +751,12 @@ const listeDObjet = (id: string, libelle: string, g: GesteAChoix<unknown>): Choi
 /** La possession choisie de la fiche `f` (`FicheOuverte.objet`) en entité : son nom, au ton `reussite` quand elle est
  *  équipée ; son nombre, son argent et le contenant où elle est rangée en puces ; puis chacun de ses gestes
  *  (`gestesDeLObjet`), refusé avec sa raison : la porter, la tenir dans une main, l'utiliser, la ranger dans un
- *  contenant ou l'en sortir, la donner à un porteur à ses côtés, l'évaluer, la détecter. */
+ *  contenant ou l'en sortir, la donner à un porteur à ses côtés, la poser au sol, l'évaluer, la détecter. */
 function objetDeLaFiche(etat: Jeu, f: FicheDuPorteur, ouverte: FicheOuverte): Entite[] {
   const p = f.possessions.find((x) => x.uid === ouverte.objet);
   const g = p && gestesDeLObjet(etat, f.id, p.uid);
   if (!p || !g) return [];
-  const simple = (id: 'porter' | 'utiliser' | 'sortir' | 'evaluer' | 'detecter', presse = false): Bouton | null => {
+  const simple = (id: 'porter' | 'utiliser' | 'sortir' | 'poser' | 'evaluer' | 'detecter', presse = false): Bouton | null => {
     const x = g[id];
     return x && boutonDeGeste(id, t(`ecran.objet.${id}`), x.geste, x.refus, presse);
   };
@@ -770,6 +770,7 @@ function objetDeLaFiche(etat: Jeu, f: FicheDuPorteur, ouverte: FicheOuverte): En
     g.ranger && listeDObjet('ranger', t('ecran.objet.ranger'), g.ranger),
     simple('sortir'),
     g.donner && listeDObjet('donner', t('ecran.objet.donner'), g.donner),
+    simple('poser'),
     simple('evaluer'),
     simple('detecter'),
   ];

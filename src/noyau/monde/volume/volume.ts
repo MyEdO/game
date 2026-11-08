@@ -10,9 +10,11 @@ import { parseHex } from '../../../lib/couleurHex';
 import { MISSING_TONE } from './missing';
 import { buildFloors } from './floors';
 import { facesDuDecor } from './propVolumes';
-import { decorAncre } from '../footprint';
-import { findPropById, matieresDe } from '../../../data';
-import { empreinteDuProp } from '../../../data/props.types';
+import { ancreDuDecor } from '../footprint';
+import { piedDuDecor } from '../poseDuDecor';
+import { matieresDe } from '../../../data';
+import { hash32 } from '../../../data/hash';
+import { jsonCanonique } from '../../../lib/jsonCanonique.mjs';
 import { couleurDeMatiere, recetteDeMatiere, tintVarFactor } from './matieres';
 import { faceDepthM } from './profondeur';
 import { crownFaces, cretesDePerimetre } from './creneaux';
@@ -82,7 +84,8 @@ const arrondi = (v: number): number => Math.round(v * 1000) / 1000;
 
 /** Les faces des décors volumiques de la scène (`facesDuDecor`), chacune avec sa case, jusqu'à la couche `activeZ` :
  *  le décor que son terrain pose sur chaque case (`terrainOverlayProp`, le bois et ses arbres), au centre de la case, et
- *  les entités `prop`, ancrées au centre de leur empreinte à leur cap (`decorAncre`), sur le sol de leur case. */
+ *  les entités `prop`, à leur ancre (`ancreDuDecor`) et à leur cap, sur leur pied (`piedDuDecor` : le sol de leur case ou
+ *  le dessus de leur support). */
 function decorsVolumiques(scene: Scene, activeZ: number, mpt: number): FaceListee[] {
   const { w, h } = scene.dimensions;
   const duTerrain = scene.layers.filter((l) => l.z <= activeZ).flatMap(({ z }) =>
@@ -93,10 +96,15 @@ function decorsVolumiques(scene: Scene, activeZ: number, mpt: number): FaceListe
   return duTerrain.concat(scene.entities.flatMap((ent) => {
     const z = ent.z ?? 0;
     if (ent.kind !== 'prop' || z > activeZ) return [];
-    const ancre = decorAncre(ent.pos, empreinteDuProp(findPropById(ent.ref), ent.facing, mpt));
-    const faces = facesDuDecor(ent.ref, { ancre, ...(ent.facing ? { facing: ent.facing } : {}), baseHeightM: heightAt(scene, ent.pos.x, ent.pos.y, z), entId: ent.id }, mpt);
+    const faces = facesDuDecor(ent.ref, { ancre: ancreDuDecor(ent, mpt), ...(ent.facing ? { facing: ent.facing } : {}), baseHeightM: piedDuDecor(scene, ent), entId: ent.id }, mpt);
     return (faces ?? []).map((face) => ({ face, cell: { ...ent.pos, z } }));
   }));
+}
+
+/** L'empreinte des entités `prop` de la scène, celles que le volume pose (`decorsVolumiques`), chacune entière : elle
+ *  change quand un décor est ajouté, retiré ou changé en jeu. PUR. */
+export function empreinteDesDecors(scene: Scene): string {
+  return hash32(...scene.entities.flatMap((e) => (e.kind === 'prop' ? [jsonCanonique(e)] : []))).toString(36);
 }
 
 /** Les faces `listees` triangulées (`facesGeometry`), orientées (`trianglesOrientes`) et colorées depuis la donnée, chacune
