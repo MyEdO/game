@@ -9,16 +9,16 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { pregen, PREGEN } from '../../data/pregens';
 import { spells, blessingsOf, miraclesOf, findSkill, findTalent, especeDApparence } from '../../data';
-import { slugId } from '../../data/slug';
 import { refCouvre, memeSpecialisation } from '../../data/schemas/grammaire/ref';
 import { acquerirTalent, splitLabel } from '../../engine/careerSlots';
 import { contexteDeNaissanceDObjet, itemFromTrappingById, recomputeLoadout } from '../../engine/items';
 import type { Combatant, CharKey, SkillInstance, ItemInstance } from '../../engine/types';
 import { blessuresPosees } from '../../engine/characteristics';
 
-/** Monte (ou ajoute) une Compétence à un niveau d'avances donné. */
+/** Monte (ou ajoute) une Compétence à un niveau d'avances donné. Un libellé qu'aucune Compétence ne porte lève. */
 export function boostSkill(c: Combatant, name: string, spec: string | undefined, characteristic: CharKey, advances: number): void {
-  const skillId = findSkill(name)?.id ?? slugId(name);
+  const skillId = findSkill(name)?.id;
+  if (!skillId) throw new Error(`boostSkill : « ${name} » n'est aucune Compétence`);
   const s = c.skills.find((x) => refCouvre({ id: skillId, spec }, x));
   if (s) s.advances = Math.max(s.advances, advances);
   else c.skills.push({ id: skillId, spec, characteristic, advances } as SkillInstance);
@@ -28,11 +28,12 @@ export const setChars = (c: Combatant, over: Partial<Record<CharKey, number>>): 
   for (const [k, v] of Object.entries(over)) c.characteristics[k as CharKey] = v as number;
 };
 
-/** Ajoute des Talents (libellés concrets) sans doublon. */
+/** Ajoute des Talents (libellés concrets) sans doublon. Un libellé qu'aucun Talent ne porte lève. */
 export function addTalents(c: Combatant, names: string[]): void {
   for (const name of names) {
     const { name: base, spec } = splitLabel(name);
-    const talentId = findTalent(base)?.id ?? slugId(base);
+    const talentId = findTalent(base)?.id;
+    if (!talentId) throw new Error(`addTalents : « ${base} » n'est aucun Talent`);
     if (!c.talents.some((t) => t.talentId === talentId && memeSpecialisation(t.spec, spec))) acquerirTalent(c, { id: talentId, spec });
   }
 }
@@ -59,7 +60,8 @@ export const ARC_DOMAINS = ['Feu', 'Mort', 'Cieux', 'Bête', 'Vie'];
 
 /**
  * Haute Sorcière elfe MULTI-DOMAINE + Nécromancie (invocations) — arsenal arcane COMPLET (Magie mineure,
- * Arcanes communs, ses Domaines, Nécromancie). Self-contained (tire son propre pré-tiré sorcier).
+ * Arcanes communs, ses Domaines et la Nécromancie, chacun son talent Magie des Arcanes). Self-contained (tire son
+ * propre pré-tiré sorcier).
  */
 export function makeSorceress(idNeuf: FabriqueDId, id: string, name: string, pos: { x: number; y: number }, domains: string[] = ARC_DOMAINS): Combatant {
   const sorc = pregen(idNeuf, PREGEN.sorcier);
@@ -70,7 +72,7 @@ export function makeSorceress(idNeuf: FabriqueDId, id: string, name: string, pos
   sorc.fate = 4; sorc.fortune = 4; sorc.resilience = 3; sorc.resolve = 3;
   boostSkill(sorc, 'Langue', 'magick', 'intelligence', 55);
   for (const dom of domains) boostSkill(sorc, 'Focalisation', dom, 'force-mentale', 40);
-  addTalents(sorc, ['Magie mineure', ...domains.map((d) => `Magie des Arcanes (${d})`), 'Nécromancie']);
+  addTalents(sorc, ['Magie mineure', ...[...domains, 'Nécromancie'].map((d) => `Magie des Arcanes (${d})`)]);
   sorc.spells = [
     ...spellsOf('Magie mineure'),
     ...spellsOf('Magie des Arcanes', [null, ...domains, 'Nécromancie']),

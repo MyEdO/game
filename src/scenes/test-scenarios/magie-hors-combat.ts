@@ -1,22 +1,15 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { pregenParty, PREGEN } from '../../data/pregens';
 import { buildScene } from '../../noyau/mapSpec';
-import { findSkill } from '../../data';
-import { slugId } from '../../data/slug';
 import type { TestScenario } from './_shared';
+import { boostSkill } from './_casters';
 import { t } from '../../i18n';
 import type { Scene } from '../../noyau/monde/scene';
 import type { Combatant, CharKey } from '../../engine/types';
-import { refCouvre } from '../../data/schemas/grammaire/ref';
 
 /** Garantit qu'un héros peut TENTER une Compétence d'incantation (avancée ≥ 1, LDB 09-Compétences) —
  *  fixture de vérif : un pré-tiré peut avoir la Compétence à 0 avance (donc non tentable). */
-function ensureSkill(h: Combatant, name: string, characteristic: CharKey, spec?: string) {
-  const skillId = findSkill(name)?.id ?? slugId(name);
-  const sk = h.skills.find((s) => refCouvre({ id: skillId, spec }, s));
-  if (sk) sk.advances = Math.max(sk.advances, 5);
-  else h.skills.push({ id: skillId, spec, characteristic, advances: 5 });
-}
+const ensureSkill = (h: Combatant, name: string, characteristic: CharKey, spec?: string): void => boostSkill(h, name, spec, characteristic, 5);
 
 const construireScene = (): Scene => buildScene({
   id: 'test-magie-hors-combat',
