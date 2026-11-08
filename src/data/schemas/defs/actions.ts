@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { blocageDeLivraison, foyerDeRegleSchema } from '../grammaire/valeurs';
+import { ref } from '../grammaire/ref';
 
 export const file = 'actions.json';
 export const famille = 'entite';
@@ -52,7 +53,7 @@ type EntreeAction = {
   blocked?: { ticket: string; raison: string };
   exitSafe?: boolean;
   role?: 'valide' | 'renonce';
-  hote?: string;
+  hote?: { id: string };
   mode?: string;
 };
 
@@ -99,9 +100,9 @@ const doc = document(
      *  (« Renoncer », « Retour », « Annuler »). C'est un rôle, PAS un style : la proéminence du
      *  bouton s'en DÉDUIT au rendu (même doctrine que `RollShell`), elle ne se déclare pas ici. */
     role: z.enum(['valide', 'renonce']).optional(),
-    /** ENTRÉE HÔTE d'un geste secondaire (`surface: 'geste-secondaire'` uniquement, requis) : l'id de
-     *  l'action dont l'alvéole porte le geste. Déclaré ICI pour qu'aucune console ne teste un id. */
-    hote: z.string().optional(),
+    /** ENTRÉE HÔTE d'un geste secondaire (`surface: 'geste-secondaire'` uniquement, requis) : l'action
+     *  dont l'alvéole porte le geste. Déclaré ICI pour qu'aucune console ne teste un id. */
+    hote: ref('action').optional(),
     /** L'action FAIT NAÎTRE un panneau-paramètre (`PanneauParametre`) de SON alvéole : la surface qui
      *  la rend y pose l'ANCRE du panneau. Déclaré ICI pour qu'aucune console ne teste un id. */
     panneau: z.boolean().optional(),
@@ -188,11 +189,11 @@ const doc = document(
         const par = new Map(actions.map((a) => [a.id, a]));
         for (const a of actions) {
           if (!a.hote) continue;
-          const hote = par.get(a.hote);
+          const hote = par.get(a.hote.id);
           if (!hote) {
-            ctx.addIssue({ code: 'custom', message: `${a.id} : hote « ${a.hote} » absent du registre` });
+            ctx.addIssue({ code: 'custom', message: `${a.id} : hote « ${a.hote.id} » absent du registre` });
           } else if (hote.surface === 'geste-secondaire') {
-            ctx.addIssue({ code: 'custom', message: `${a.id} : hote « ${a.hote} » est lui-même un geste secondaire (aucune alvéole au bout)` });
+            ctx.addIssue({ code: 'custom', message: `${a.id} : hote « ${a.hote.id} » est lui-même un geste secondaire (aucune alvéole au bout)` });
           }
         }
       }),

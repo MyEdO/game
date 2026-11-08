@@ -1,7 +1,6 @@
 /**
  * Schéma de `locations.json` — Lieux de la carte du monde, miroir strict de `LocationData`
- * (`src/data/index.ts`). `parent` est une réf id (≠ libellé) vers un autre `LocationData.id`,
- * ou `null` si racine.
+ * (`src/data/index.ts`). `parent` désigne un autre Lieu (`ref('location')`), ou vaut `null` si racine.
  *
  * `prefix`/`suffix` : AUCUN consommateur mesuré dans `src/**` hors ce def, et `prefix` vaut `null`
  * sur 100 % des entrées — leur libellé d'atelier reste donc DESCRIPTIF de la forme, pas de l'usage
@@ -10,6 +9,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { ref } from '../grammaire/ref';
 
 export const file = 'locations.json';
 export const famille = 'entite';
@@ -18,7 +18,7 @@ const doc = document(
   'locations',
   famille,
   {
-    parent: z.string().nullable(),
+    parent: ref('location').nullable(),
     prefix: z.string().nullable(),
     suffix: z.string().nullable(),
   },

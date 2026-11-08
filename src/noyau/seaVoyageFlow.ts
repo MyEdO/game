@@ -588,7 +588,7 @@ export function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEt
   const contributors = crewTestContributors(ship, party, testTypeId, new Set(party.map((h) => h.id)), navigation, opts.sense);
   if (!contributors.length) return undefined;
   const testType = findCrewTestTypeById(testTypeId);
-  const essentialRoleId = testType?.essential;
+  const essentialRoleId = testType?.essential.id;
   const pont = activeSeaPrecipitation(get); // MDG 13 l.185
   // Le flux propriétaire (naval) RÉSOUT la présentation (rôle tenu) et DÉCLARE le jet de chaque
   // contributeur au MONTEUR CANONIQUE (`rollStep`) — le séquenceur/modale génériques n'y liront QUE

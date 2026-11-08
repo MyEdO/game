@@ -3327,7 +3327,7 @@ describe('CombatConsole — tour d’un siège distant : exactement UNE puce de 
 
 /**
  * GESTE SECONDAIRE D'UNE ALVÉOLE (#1411 P2-B) — Focaliser n'est plus une case : c'est le geste
- * secondaire de l'alvéole du SORT (`surface: 'geste-secondaire'`, `hote: 'cast-spell'`), atteint au
+ * secondaire de l'alvéole du SORT (`surface: 'geste-secondaire'`, `hote: { id: 'cast-spell' }`), atteint au
  * clic droit, à l'appui long, à la touche Menu et à RB. Le rendeur est GÉNÉRIQUE : la console ne
  * nomme aucun id — elle apparie `hote` et population de candidats. Un geste de plus = une ligne de
  * JSON, ce que mesure ici une entrée FABRIQUÉE.
@@ -3480,7 +3480,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
   it('DEUX gestes secondaires sur le même hôte (entrée FABRIQUÉE) : panneau ancré, 2 candidats, Échap gratuit', () => {
     const fabrique: ActionDef = {
       id: 'test-geste-2e-fabrique', label: 'Geste fabriqué', icon: 'flag/focus',
-      surface: 'geste-secondaire', hote: 'cast-spell', gate: 'toujours',
+      surface: 'geste-secondaire', hote: { id: 'cast-spell' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
     ACTIONS.push(fabrique);
@@ -3505,7 +3505,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
   it('SURFACE ⇄ RENDEUR : le geste secondaire n’a pas d’alvéole propre — son rendeur est celle de son HÔTE', () => {
     monter(mage(['carreau']));
     expect(findActionById('focus-spell')!.surface).toBe('geste-secondaire');
-    expect(findActionById('focus-spell')!.hote).toBe('cast-spell');
+    expect(findActionById('focus-spell')!.hote?.id).toBe('cast-spell');
     expect(host.querySelector('[data-action="focus-spell"]'), 'aucune case propre : le geste n’est pas une alvéole').toBeNull();
     const porteur = host.querySelector('[data-action="cast-spell"][data-geste-2e~="focus-spell"]');
     expect(porteur, 'l’alvéole de l’hôte PORTE le geste').toBeTruthy();
@@ -3521,7 +3521,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
   it('APPUI LONG puis `contextmenu` NATIF : UN seul déclenchement (le doigt ne bascule pas le panneau)', () => {
     const fabrique: ActionDef = {
       id: 'test-geste-2e-fabrique', label: 'Geste fabriqué', icon: 'flag/focus',
-      surface: 'geste-secondaire', hote: 'cast-spell', gate: 'toujours',
+      surface: 'geste-secondaire', hote: { id: 'cast-spell' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
     vi.useFakeTimers();
@@ -3618,7 +3618,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
   it('CLIC DROIT MAINTENU (contextmenu À L’APPUI, macOS/Linux) : le minuteur d’appui long ne rejoue pas le geste', () => {
     const fabrique: ActionDef = {
       id: 'test-geste-2e-fabrique', label: 'Geste fabriqué', icon: 'flag/focus',
-      surface: 'geste-secondaire', hote: 'cast-spell', gate: 'toujours',
+      surface: 'geste-secondaire', hote: { id: 'cast-spell' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
     vi.useFakeTimers();
@@ -3667,7 +3667,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
     };
     const fabrique: ActionDef = {
       id: 'test-geste-2e-reload', label: 'Geste de recharge', icon: 'flag/focus',
-      surface: 'geste-secondaire', hote: 'reload', gate: 'toujours',
+      surface: 'geste-secondaire', hote: { id: 'reload' }, gate: 'toujours',
       run: 'rechargerLArme', candidates: 'armes-a-distance', coutAction: 'gratuit',
     };
     monter(tireur());

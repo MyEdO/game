@@ -106,6 +106,8 @@ export const TYPES = {
   // Catalogue des cargaisons (#1684) : sous-listes `mer`/`terre` par le discriminant `voie` de son def.
   cargo: { espace: 'cargoes.json', catalogue: 'cargaisons' },
   merchant: { espace: 'merchants.json', catalogue: 'archétypes de marchand' },
+  action: { espace: 'actions.json', catalogue: 'actions' },
+  location: { espace: 'locations.json', catalogue: 'lieux' },
 } as const satisfies Record<string, DeclarationDeType>;
 
 export type TypeEntite = keyof typeof TYPES;

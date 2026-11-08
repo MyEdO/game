@@ -199,8 +199,8 @@ const graph = versionCached<ReverseGraph>(() => {
 
   // 14) Mutation ← Table de Corruption qui la tire (inversion de mutationTable.entries[].mutation).
   for (const tab of mutationTables) for (const r of tab.entries) addReverse('mutations', r.mutation, { category: 'mutationTables', id: tab.id, label: tab.label, detail: fourchette(r.min, r.max, facesDuDe(deDeLaTableTiree(tab))) }, 'Tables de Corruption la tirant');
-  // 15) Lieu ← sous-lieux (inversion de location.parent, un id de parent).
-  for (const l of locations) if (l.parent) addReverse('locations', l.parent, { category: 'locations', id: l.id, label: l.label }, 'Sous-lieux');
+  // 15) Lieu ← sous-lieux (inversion de location.parent).
+  for (const l of locations) if (l.parent) addReverse('locations', l.parent.id, { category: 'locations', id: l.id, label: l.label }, 'Sous-lieux');
 
   return { reverse: REVERSE, titles: TITLES };
 });

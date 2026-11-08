@@ -1700,9 +1700,9 @@ const CODEX_SPECS = {
   },
   locations: {
     label: 'codex.fiche.lieux', group: 'monde',
-    // `parent` est un id → résolu en libellé pour l'affichage ; la réf inverse « Sous-lieux » clé par id.
+    // `parent` résolu en libellé pour l'affichage ; la réf inverse « Sous-lieux » clé par id.
     build: () => locations.map((l) => {
-      const parentLabel = findLocationById(l.parent)?.label;
+      const parentLabel = findLocationById(l.parent?.id)?.label;
       return depuisEnveloppe(l, {
         sub: parentLabel, group: parentLabel,
         sections: sections(...reverseSections('locations', l.id)),
@@ -2094,7 +2094,7 @@ const CODEX_SPECS = {
   crewTestTypes: {
     label: 'codex.fiche.testsDEquipageTypes', group: 'monde',
     build: () => crewTestTypes.map((t) => depuisEnveloppe(t, {
-      meta: facts(fact(tr('codex.fiche.roleEssentiel'), crewRoles.find((r) => r.id === t.essential)?.label ?? t.essential)),
+      meta: facts(fact(tr('codex.fiche.roleEssentiel'), crewRoles.find((r) => r.id === t.essential.id)?.label ?? t.essential.id)),
       sections: sections(
         chips(tr('codex.fiche.rolesContributeurs'), t.roles.map((id) => idRefRow('crewRoles', id))),
         regleChips(t.rule),
