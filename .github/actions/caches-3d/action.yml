@@ -2,7 +2,9 @@ name: Caches 3D
 description: >-
   Restaure, puis sauve en fin de job, les deux caches hors de l'arbre de la chaîne 3D : les fichiers épinglés de la
   Release, GLB des modèles, textures et kit (`CACHE_DES_MODELES`, hotes/godot/asset/release.ts et epingles.ts), keyé
-  par toutes leurs provenances (#3680), et l'éditeur Godot (`CACHE`, hotes/godot/construire.mjs).
+  par toutes leurs provenances et restauré, à clé neuve, du dernier cache des modèles : chaque fichier y est nommé et
+  vérifié par sa somme, `godot:sonde` ne tire que ceux qui manquent (#3680) ; et l'éditeur Godot (`CACHE`,
+  hotes/godot/construire.mjs).
   Un cache ne se lit que depuis sa ref ou depuis `main` : `caches.yml` les remplit sur `main` (#3412).
 
 outputs:
@@ -18,6 +20,7 @@ runs:
       with:
         path: ~/.cache/wfrp-modeles-3d
         key: modeles-3d-${{ hashFiles('hotes/godot/projet/modeles/*.provenance.json', 'hotes/godot/projet/*/provenance.json') }}
+        restore-keys: modeles-3d-
     - id: godot
       uses: actions/cache@v4
       with:

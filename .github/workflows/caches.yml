@@ -34,8 +34,6 @@ jobs:
         run: npm ci
       - if: ${{ steps.caches.outputs.complets != 'true' }}
         run: npm run godot:sonde
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Ce workflow n'a pas de porte : il se NOMME en rougissant — registre scripts/gates/workflowsDuDepot.mjs
       # (#1779). Le signaleur est posé par `actions/checkout` et n'importe que `node:*`.

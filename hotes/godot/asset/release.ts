@@ -222,10 +222,18 @@ async function demander(telecharger: Telecharger, url: string, headers: Readonly
   }
 }
 
-/** Les en-têtes d'API de GitHub : `accept`, et le jeton de `GH_TOKEN` ou `GITHUB_TOKEN` quand l'environnement en porte un. */
-const enTetesDAPI = (accept: string): Record<string, string> => {
-  const jeton = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
-  return { accept, 'x-github-api-version': '2022-11-28', ...(jeton ? { authorization: `Bearer ${jeton}` } : {}) };
+/** La liste des fichiers de la Release (`URL_API_DE_LA_RELEASE`), lue une fois par `Telecharger` : nom → URL d'API de
+ *  ses octets, ou `{ raison }` quand l'API ne répond pas. */
+const listesDeLaRelease = new WeakMap<Telecharger, Promise<ReadonlyMap<string, string> | { readonly raison: string }>>();
+const listeDeLaRelease = (telecharger: Telecharger) => {
+  const lue = listesDeLaRelease.get(telecharger) ?? demander(telecharger, URL_API_DE_LA_RELEASE, { accept: 'application/vnd.github+json' }).then((reponse) => {
+    if (!(reponse instanceof Uint8Array)) return reponse;
+    const release: unknown = JSON.parse(new TextDecoder().decode(reponse));
+    const assets: unknown[] = estObjet(release) && Array.isArray(release.assets) ? release.assets : [];
+    return new Map(assets.flatMap((a) => (estObjet(a) && typeof a.name === 'string' && typeof a.url === 'string' ? [[a.name, a.url] as const] : [])));
+  });
+  listesDeLaRelease.set(telecharger, lue);
+  return lue;
 };
 
 /** Les octets de `epingle`, d'extension `extension`, tirés de la Release : par son lien direct, puis, sur toute autre
@@ -240,12 +248,11 @@ export async function tirerDeLaRelease(epingle: FichierEpingle, extension: Exten
   if (direct instanceof Uint8Array) return direct;
   if (direct.status === 404) throw new AssetIntrouvable(epingle, url);
   journal(`[release] ${epingle.fichier} : ${direct.raison} sur le lien direct, repli sur ${URL_API_DE_LA_RELEASE}`);
-  const liste = await demander(telecharger, URL_API_DE_LA_RELEASE, enTetesDAPI('application/vnd.github+json'));
-  if (!(liste instanceof Uint8Array)) throw new ReleaseInjoignable(epingle, url, `${direct.raison} ; API : ${liste.raison}`);
-  const release: unknown = JSON.parse(new TextDecoder().decode(liste));
-  const asset = (estObjet(release) && Array.isArray(release.assets) ? release.assets : []).find((a: unknown) => estObjet(a) && a.name === nom);
-  if (!estObjet(asset) || typeof asset.url !== 'string') throw new AssetIntrouvable(epingle, URL_API_DE_LA_RELEASE, `${nom} non listé`);
-  const octets = await demander(telecharger, asset.url, enTetesDAPI('application/octet-stream'));
+  const liste = await listeDeLaRelease(telecharger);
+  if ('raison' in liste) throw new ReleaseInjoignable(epingle, url, `${direct.raison} ; API : ${liste.raison}`);
+  const urlDAPI = liste.get(nom);
+  if (urlDAPI === undefined) throw new AssetIntrouvable(epingle, URL_API_DE_LA_RELEASE, `${nom} non listé`);
+  const octets = await demander(telecharger, urlDAPI, { accept: 'application/octet-stream' });
   if (!(octets instanceof Uint8Array)) throw new ReleaseInjoignable(epingle, url, `${direct.raison} ; API : ${octets.raison}`);
   return octets;
 }

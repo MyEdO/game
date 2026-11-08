@@ -190,8 +190,6 @@ jobs:
       - name: Godot — scripts et recettes autonomes
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:sonde
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # `personnage-3d:tests` (#3145) : `scripts/personnage-3d/tests.py` dans le venv épinglé de
       # `scripts/personnage-3d/environnement.mjs`, sous le CPython de son `PYTHON` (marqueur `python_version` de
       # requirements.txt), après `godot:sonde`, qui dépose les GLB du projet que lit `ModeleCommite`. Le cache de pip
