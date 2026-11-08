@@ -89,14 +89,13 @@ type Lire = (v: unknown, f: Forme, ou: string) => Lecture;
 /** La forme qu'une `ref` désigne, ou `f` elle-même. */
 const resolue = (f: Forme, formes: FormesNommees): Forme => (f.genre === 'ref' ? formes[f.type] : f);
 
-/** Le membre objet d'une union dont une clé requise est présente dans `v`, s'il est seul : celui que `v` vise. */
-function membreVise(v: unknown, membres: readonly Forme[], formes: FormesNommees): number {
-  if (!estObjet(v)) return -1;
-  const vises = membres.flatMap((m, i) => {
+/** Les membres objets d'une union dont une clé requise est présente dans `v` : ceux que `v` vise. */
+function membresVises(v: unknown, membres: readonly Forme[], formes: FormesNommees): number[] {
+  if (!estObjet(v)) return [];
+  return membres.flatMap((m, i) => {
     const r = resolue(m, formes);
     return (r.genre === 'objet' || r.genre === 'dictionnaire') && (r.champs ?? []).some((c) => !c.optionnel && v[c.nom] !== undefined) ? [i] : [];
   });
-  return vises.length === 1 ? vises[0] : -1;
 }
 
 /** L'écart d'une valeur qu'aucun membre de l'union `f` n'admet : une énumération de littéraux nomme ses valeurs. */
@@ -111,8 +110,8 @@ const PROFONDEUR_LUE = 256;
 
 /** La valeur JSON `v` lue à sa forme `f`, au chemin `ou`, à toute profondeur, bornée (`PROFONDEUR_LUE`) : un id désigné
  *  se contrôle contre les ids de l'état (`designes`), une `ref` à la forme que `formes` nomme ; rend la valeur lue, ou
- *  l'écart. Dans une union d'objets, l'écart est celui du membre que la valeur vise (`membreVise`). `profondeur` : le
- *  nombre de lectures qui l'englobent. */
+ *  l'écart. Un objet refuse une clé qu'il ne déclare pas ; dans une union d'objets, l'écart est celui des membres que la
+ *  valeur vise (`membresVises`). `profondeur` : le nombre de lectures qui l'englobent. */
 export function lireALaForme(v: unknown, f: Forme, ou: string, designes: Designes, formes: FormesNommees, profondeur = 0): Lecture {
   if (profondeur > PROFONDEUR_LUE) return { ecart: `${ou} : plus de ${PROFONDEUR_LUE} niveaux d’imbrication` };
   const lire: Lire = (x, g, o) => lireALaForme(x, g, o, designes, formes, profondeur + 1);
@@ -129,8 +128,9 @@ export function lireALaForme(v: unknown, f: Forme, ou: string, designes: Designe
     case 'ref': return lire(v, formes[f.type], ou);
     case 'union': {
       const lectures = f.membres.map((m) => lire(v, m, ou));
-      const vise = membreVise(v, f.membres, formes);
-      return lectures.find((l) => 'valeur' in l) ?? lectures.find((l) => 'inconnu' in l) ?? (vise >= 0 ? lectures[vise] : horsDeLUnion(v, f, ou));
+      const ecarts = membresVises(v, f.membres, formes).flatMap((i) => { const l = lectures[i]; return 'ecart' in l ? [l.ecart] : []; });
+      return lectures.find((l) => 'valeur' in l) ?? lectures.find((l) => 'inconnu' in l)
+        ?? (ecarts.length === 1 ? { ecart: ecarts[0] } : ecarts.length ? { ecart: `${ou} : vise plusieurs membres de ${formeEcrite(f)} (${ecarts.join(' ; ')})` } : horsDeLUnion(v, f, ou));
     }
     case 'tableau': {
       if (!Array.isArray(v)) return { ecart: `${ou} : un tableau JSON attendu` };
@@ -154,6 +154,9 @@ export function lireALaForme(v: unknown, f: Forme, ou: string, designes: Designe
     }
     case 'objet': {
       if (!estObjet(v)) return { ecart: `${ou} : un objet JSON ${formeEcrite(f)} attendu` };
+      const admises = f.champs.map((c) => c.nom);
+      const inconnue = Object.keys(v).find((k) => v[k] !== undefined && !admises.includes(k));
+      if (inconnue !== undefined) return { ecart: `${ou}.${inconnue} : clé inconnue (admises : ${admises.join(', ')})` };
       const valeur: Record<string, unknown> = { ...v };
       return lireLesChamps(v, f.champs, formeEcrite(f), ou, lire, valeur) ?? { valeur };
     }

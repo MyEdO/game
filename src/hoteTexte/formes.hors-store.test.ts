@@ -15,6 +15,7 @@ import { ecrireLeRoster, lireLeRoster } from '../noyau/persistance/roster';
 import { gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../hote/geste';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie } from '../hote/partie';
 import { adresseDeCreation } from '../engine/adresseDeCreation';
+import { pregens } from '../data';
 import type { GesteDeLAgent } from './serveur';
 
 afterEach(fermerLaTable);
@@ -94,6 +95,14 @@ describe('la frontière lit le brouillon entier, à la forme du type du verbe', 
     const rerolls = 'args' in lu ? (lu.args[0] as { brouillon: { talentRerolls: object } }).brouillon.talentRerolls : null;
     expect(rerolls && Object.getOwnPropertyDescriptor(rerolls, '__proto__')?.value).toBe(3);
     expect(rerolls && Object.getPrototypeOf(rerolls)).toBe(Object.prototype);
+  });
+  it('une clé que l’objet ne déclare pas se refuse : `brouillon` et `pretire` ensemble ; chacun seul passe', () => {
+    const pretire = pregens[0].id;
+    expect(refus('recruterLeHeros', [{ brouillon: complet(), pretire }]))
+      .toContain('heros : vise plusieurs membres de HerosEngage (heros.pretire : clé inconnue (admises : brouillon, id) ; heros.brouillon : clé inconnue (admises : pretire))');
+    expect(refus('recruterLeHeros', [{ brouillon: { ...complet(), zzz: 1 } }])).toContain('heros.brouillon.zzz : clé inconnue (admises : ');
+    expect(lire('recruterLeHeros', [{ pretire }])).toHaveProperty('args');
+    expect(lire('recruterLeHeros', [{ brouillon: complet() }])).toHaveProperty('args');
   });
   it('une énumération de littéraux se refuse en nommant ses valeurs', () => {
     expect(refus('jetLancer', ['zzz'])).toMatch(/flux : "zzz" n’est pas FluxDuVerbe \(admises : .*"attack"/);
