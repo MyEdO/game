@@ -837,6 +837,11 @@ describe('publierAssets', () => {
     expect(appels.map((a) => a.slice(0, 3))).toEqual([['release', 'view', TAG], ['release', 'create', TAG], ['release', 'upload', TAG]]);
     expect(appels[2]?.[appels[2].length - 1]?.endsWith(`${EMPREINTE}.glb`)).toBe(true);
   });
+  it('verse une fois un fichier que plusieurs modèles partagent', () => {
+    const { appels, gh } = ghSimule([]);
+    expect(publierAssets([asset(), asset()], gh)).toEqual([`${EMPREINTE}.glb`]);
+    expect(appels.filter((a) => a[1] === 'upload').map((a) => a.filter((x) => x.endsWith('.glb')))).toEqual([[expect.stringMatching(new RegExp(`${EMPREINTE}\\.glb$`))]]);
+  });
   it('ne reverse pas un fichier que la Release porte déjà', () => {
     const { appels, gh } = ghSimule([`${EMPREINTE}.glb`]);
     expect(publierAssets([asset()], gh)).toEqual([]);

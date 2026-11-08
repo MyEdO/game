@@ -98,19 +98,19 @@ describe('porteeDuCombattant', () => {
 
   it('une armure équipée revêt les pièces qui couvrent ses localisations, à la teinte de son Groupe d’armure', () => {
     const veste = findTrappingById('veste-de-cuir')!;
-    teindreLesGroupes({ [veste.subType!]: 'shyish' });
+    teindreLesGroupes({ [veste.subType!.id]: 'shyish' });
     const attendues = piecesCouvrant(localisationsDeLoc(veste.loc));
     expect(attendues.length).toBeGreaterThan(1);
     expect(pieces(herosVetu(equipe('veste-de-cuir')))).toEqual(attendues.map((piece) => ({ piece, par: 'veste-de-cuir', teinte: 'shyish' })));
   });
 
   it('la teinte de l’objet passe avant celle de son Groupe d’armure', () => {
-    teindreLesGroupes({ [findTrappingById('veste-de-cuir')!.subType!]: 'shyish' });
+    teindreLesGroupes({ [findTrappingById('veste-de-cuir')!.subType!.id]: 'shyish' });
     expect(pieces(herosVetu({ ...equipe('veste-de-cuir'), teinte: 'aethyrique' })).map((p) => p.teinte)).toEqual(piecesDeLObjet('veste-de-cuir').map(() => 'aethyrique'));
   });
 
   it('une pièce que revêtent deux armures est celle de la couche du dessus', () => {
-    const [dessous, dessus] = ['veste-de-cuir', 'chemise-de-mailles'].sort((a, b) => findGroupeDArmureById(findTrappingById(a)!.subType)!.couche - findGroupeDArmureById(findTrappingById(b)!.subType)!.couche);
+    const [dessous, dessus] = ['veste-de-cuir', 'chemise-de-mailles'].sort((a, b) => findGroupeDArmureById(findTrappingById(a)!.subType?.id)!.couche - findGroupeDArmureById(findTrappingById(b)!.subType?.id)!.couche);
     const communes = piecesDeLObjet(dessus).filter((p) => piecesDeLObjet(dessous).includes(p));
     expect(communes.length).toBeGreaterThan(0);
     const portees = pieces(herosVetu(equipe(dessous), equipe(dessus)));

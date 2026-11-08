@@ -6,11 +6,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { WeaponField } from './WeaponField';
 import { REACH_IDS } from '../../engine/items';
 import { REACH_LABELS, REACH_VARIABLE } from '../../engine/types';
-import type { Weapon } from '../../engine/types';
+import type { ArmeDerivee } from '../../data';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const melee: Weapon = { label: 'Tentacule', type: 'melee', damage: { plusBF: true, flat: 2 }, reach: 'Longue', qualities: [] };
+const melee: ArmeDerivee = { label: 'Tentacule', type: 'melee', damage: { plusBF: true, flat: 2 }, reach: 'Longue', qualities: [] };
 
 describe('WeaponField — Allonge = choix FERMÉ sur l’axe (LDB 62 l.156-164)', () => {
   const html = () => renderToStaticMarkup(<WeaponField value={melee} onChange={() => {}} />);
@@ -35,13 +35,13 @@ describe('WeaponField — Allonge = choix FERMÉ sur l’axe (LDB 62 l.156-164)'
   });
 });
 
-describe('WeaponField — Groupe = id du dataset `weaponGroups` (RefField), vide = pas de Groupe (LDB 85 l.31-33)', () => {
+describe('WeaponField — Groupe = `ref` d’une entrée du dataset `weaponGroups` (RefField), vide = pas de Groupe (LDB 85 l.31-33)', () => {
   /** Monte le champ, choisit `choix` dans le sélecteur de Groupe, rend l'arme émise. */
-  function choisirGroupe(depart: Weapon, choix: string): Weapon | undefined {
+  function choisirGroupe(depart: ArmeDerivee, choix: string): ArmeDerivee | undefined {
     const host = document.createElement('div');
     document.body.appendChild(host);
     const root = createRoot(host);
-    let emise: Weapon | undefined;
+    let emise: ArmeDerivee | undefined;
     act(() => { root.render(<WeaponField value={depart} onChange={(v) => { emise = v; }} />); });
     const select = [...host.querySelectorAll('select')].find((s) => s.querySelector('option[value="armes-d-hast"]'));
     expect(select, 'sélecteur de Groupe absent').toBeDefined();
@@ -54,12 +54,12 @@ describe('WeaponField — Groupe = id du dataset `weaponGroups` (RefField), vide
     return emise;
   }
 
-  it('choisir un Groupe écrit son id dans `subType`', () => {
-    expect(choisirGroupe(melee, 'armes-d-hast')?.subType).toBe('armes-d-hast');
+  it('choisir un Groupe le désigne dans `subType`', () => {
+    expect(choisirGroupe(melee, 'armes-d-hast')?.subType).toEqual({ id: 'armes-d-hast' });
   });
 
   it('le choix vide retire le Groupe', () => {
-    const emise = choisirGroupe({ ...melee, subType: 'base' }, '');
+    const emise = choisirGroupe({ ...melee, subType: { id: 'base' } }, '');
     expect(emise).toBeDefined();
     expect(emise!.subType).toBeUndefined();
   });

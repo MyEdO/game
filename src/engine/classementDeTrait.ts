@@ -100,10 +100,10 @@ export function aspectAToutesLocalisations(aspect: string): boolean {
  *  nomme pas, ou dont les pièces candidates divergent par leurs Emplacements, rend `undefined`. LDB 63 l.13 ;
  *  LDB 63 l.39-58. */
 export function emplacementsDesPieces(
-  catalogue: readonly { label: string; loc?: string | null; pa?: number | null; subType?: string | null }[],
+  catalogue: readonly { label: string; loc?: string | null; pa?: number | null; subType?: { id: string } | null }[],
   matiereDuGroupe: (groupe: string) => MatiereDArmure | undefined = () => undefined,
 ): PiecesDArmure {
-  const pieces = catalogue.flatMap((p) => (p.loc ? [{ nom: nomDePiece(p.label), locs: localisationsDeLoc(p.loc), pa: p.pa ?? undefined, groupe: p.subType ?? undefined }] : []));
+  const pieces = catalogue.flatMap((p) => (p.loc ? [{ nom: nomDePiece(p.label), locs: localisationsDeLoc(p.loc), pa: p.pa ?? undefined, groupe: p.subType?.id }] : []));
   return (nom) => {
     const cle = PIECES_HORS_TABLE[nomDePiece(nom)] ?? nomDePiece(nom);
     const exactes = pieces.filter((p) => p.nom === cle);

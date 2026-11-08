@@ -134,14 +134,14 @@ describe('lireMatiere', () => {
   /** Catalogue de fixture à Groupes et PA, LDB 63 l.41-58 ; matières des Groupes de `weaponGroups.json`. */
   const MATIERES: Record<string, 'leather' | 'metal'> = { 'cuir-souple': 'leather', 'cuir-bouilli': 'leather', mailles: 'metal', plate: 'metal' };
   const table = emplacementsDesPieces([
-    { label: 'Calotte de cuir', loc: 'Tête', pa: 1, subType: 'cuir-souple' },
-    { label: 'Veste de cuir', loc: 'Bras, Corps', pa: 1, subType: 'cuir-souple' },
-    { label: 'Jambières de cuir', loc: 'Jambes', pa: 1, subType: 'cuir-souple' },
-    { label: 'Chemise de mailles', loc: 'Corps', pa: 2, subType: 'mailles' },
-    { label: 'Cotte de mailles', loc: 'Bras, Corps', pa: 2, subType: 'mailles' },
-    { label: 'Heaume', loc: 'Tête', pa: 2, subType: 'plate' },
-    { label: 'Plastron', loc: 'Corps', pa: 2, subType: 'plate' },
-    { label: "Jambières d'acier", loc: 'Jambes', pa: 2, subType: 'plate' },
+    { label: 'Calotte de cuir', loc: 'Tête', pa: 1, subType: { id: 'cuir-souple' } },
+    { label: 'Veste de cuir', loc: 'Bras, Corps', pa: 1, subType: { id: 'cuir-souple' } },
+    { label: 'Jambières de cuir', loc: 'Jambes', pa: 1, subType: { id: 'cuir-souple' } },
+    { label: 'Chemise de mailles', loc: 'Corps', pa: 2, subType: { id: 'mailles' } },
+    { label: 'Cotte de mailles', loc: 'Bras, Corps', pa: 2, subType: { id: 'mailles' } },
+    { label: 'Heaume', loc: 'Tête', pa: 2, subType: { id: 'plate' } },
+    { label: 'Plastron', loc: 'Corps', pa: 2, subType: { id: 'plate' } },
+    { label: "Jambières d'acier", loc: 'Jambes', pa: 2, subType: { id: 'plate' } },
   ], (groupe) => MATIERES[groupe]);
   it('pièces de la table : la matière de leur Groupe (MCLB 02 l.101, EDO 03 l.303, EDO 02 l.284)', () => {
     expect(lireMatiere('Plastron et Heaume', { indice: 2, pieces: table })).toBe('metal');

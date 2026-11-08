@@ -1,0 +1,13 @@
+{
+  "model": "vehicule--caraque.glb",
+  "model_sha256": "4fb00b670648a79ff1a6bddaa65a4789be2c587b28db45d2575941f6bee9bb2e",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}
