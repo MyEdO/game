@@ -228,8 +228,8 @@ export interface PatchDOuverture {
 export type PatchDArete = { [K in Exclude<keyof WallSeg, 'x' | 'y' | 'side' | 'z'>]?: WallSeg[K] | null };
 
 /** Ce que l'inspecteur écrit sur l'entité sélectionnée : son type (décor ou fiche), son cap, sa couche ; la lumière
- *  d'un décor (`null` l'éteint), son assise ; l'embuscade, l'inventaire, le parcours de carrière et le tirage des
- *  Caractéristiques d'un personnage ; l'équipage exposé à bord. */
+ *  d'un décor (`null` l'éteint), son assise ; l'embuscade, l'inventaire, le parcours de carrière, le tirage des
+ *  Caractéristiques et les sorts choisis d'un personnage ; l'équipage exposé à bord. */
 export interface PatchDEntite {
   ref?: string;
   facing?: Dir8;
@@ -242,6 +242,8 @@ export interface PatchDEntite {
   parcours?: ParcoursDeCarriere;
   /** Caractéristiques tirées au hasard au spawn (`combat.randomChars`, LDB 77 l.108). */
   aleatoire?: boolean;
+  /** Les sorts choisis entiers (`combat.spells`, `sortsDuPnj`) ; vides, ils sont retirés. */
+  sorts?: string[];
   crewIds?: string[];
 }
 
@@ -566,10 +568,10 @@ function ecrireSurLaSelection<T>(s: SessionDEdition, scene: Scene, lire: (sc: Sc
 }
 
 /** Le patch `patch` de l'inspecteur en patch d'entité pour `ent` : le type d'un décor avec ses défauts de pose
- *  (`propRefPatch`), la couche 0 comme son absence, un inventaire, un parcours sans carrière ou un équipage vide
- *  comme son absence. */
+ *  (`propRefPatch`), la couche 0 comme son absence, un inventaire, un parcours sans carrière, des sorts ou un équipage
+ *  vides comme leur absence. */
 function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEntity> {
-  const { ref, z, light, assise, embusque, inventaire, parcours, aleatoire, crewIds, ...reste } = patch;
+  const { ref, z, light, assise, embusque, inventaire, parcours, aleatoire, sorts, crewIds, ...reste } = patch;
   const avecCarrieres = parcours && Object.keys(parcours.carrieres).length ? parcours : undefined;
   const usable = { ...ent.usable, assise: assise || undefined };
   return {
@@ -578,7 +580,12 @@ function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEnt
     ...(z === undefined ? {} : { z: z || undefined }),
     ...(light === undefined ? {} : { light: light ?? undefined }),
     ...(assise === undefined ? {} : { usable: usable.assise || usable.actions?.length ? usable : undefined }),
-    ...(embusque === undefined && aleatoire === undefined ? {} : { combat: { ...ent.combat, ...(embusque === undefined ? {} : { hiddenUntilCombat: embusque || undefined }), ...(aleatoire === undefined ? {} : { randomChars: aleatoire || undefined }) } }),
+    ...(embusque === undefined && aleatoire === undefined && sorts === undefined ? {} : { combat: {
+      ...ent.combat,
+      ...(embusque === undefined ? {} : { hiddenUntilCombat: embusque || undefined }),
+      ...(aleatoire === undefined ? {} : { randomChars: aleatoire || undefined }),
+      ...(sorts === undefined ? {} : { spells: sorts.length ? sorts : undefined }),
+    } }),
     ...(parcours === undefined ? {} : {
       carrieres: avecCarrieres?.carrieres,
       talentsDeCarriere: avecCarrieres?.talentsDeCarriere,
