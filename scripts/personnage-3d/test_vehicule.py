@@ -1,7 +1,8 @@
 """Construction des véhicules (#2987) : chaque modèle de `vehicule/` reconstruit depuis le dépôt les GLB et les
 manifestes publiés sous `hotes/godot/projet/modeles/`, octet pour octet (l'empreinte du manifeste) ; chaque véhicule et
 chaque Amélioration publiés y ont leur modèle ; une sortie dans le dépôt est refusée. La caraque suit ses ponts
-(`ponts` de sa fiche, #3686) à une épaisseur de cloison près, et une caraque allongée dans la source aussi."""
+(`ponts` de sa fiche, #3686) à une épaisseur de cloison près, et une caraque allongée dans la source aussi. Sur chaque
+navire, toute case des ponts s'atteint et tient un occupant debout (#3790)."""
 import copy
 import hashlib
 import json
@@ -193,6 +194,60 @@ class Ponts(unittest.TestCase):
         P = plan_de_jeu.depuis(fiche)
         self.assertEqual(P['W'], plan_de_jeu.depuis(self.fiche())['W'] + 3)
         self.verifier(fiche)
+
+
+STEP_MAX_M = 1.0      # la plus haute marche franchie à pied (`src/noyau/monde/relief.ts`)
+CARRURE = 0.25        # la carrure d'un adulte, 0,5 m, en cases : le plus étroit où un pion se tient (#3767)
+BLOQUANTES = plan_de_jeu.MURS + plan_de_jeu.SABORD + 'o'
+
+
+def atteintes(P, depart):
+    """Les cases des ponts `P` qu'un pion atteint depuis `depart`, comme le pas à pied du noyau (`neighborsOf` de
+    `src/noyau/monde/path.ts`) : une case voisine de tout pont, à une marche (`STEP_MAX_M`) près, sans mur ni sabord ni
+    fenêtre sur leur arête au plus haut des deux ponts (une porte s'ouvre) ; ou de l'autre côté d'une échelle de son pont."""
+    aretes = {(s, x, y, z): g for s, x, y, z, g in P['aretes']}
+
+    def arete(z, x, y, nx, ny):
+        return aretes.get(('t', max(x, nx), y, z) if nx != x else ('l', x, max(y, ny), z), ' ')
+
+    vues, pile = {depart}, [depart]
+    while pile:
+        x, y, z = pile.pop()
+        h = P['hauteurs'][P['cases'][(x, y, z)]]
+        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            for nz in range(P['ponts']):
+                n = (nx, ny, nz)
+                if n in vues or n not in P['cases']:
+                    continue
+                mot = arete(max(z, nz), x, y, nx, ny)
+                echelle = nz == z and mot == plan_de_jeu.ECHELLE
+                if echelle or (mot not in BLOQUANTES + plan_de_jeu.ECHELLE and abs(P['hauteurs'][P['cases'][n]] - h) <= STEP_MAX_M + 1e-9):
+                    vues.add(n)
+                    pile.append(n)
+    return vues
+
+
+class Navires(unittest.TestCase):
+    """Chaque navire à ponts (`ponts` de sa fiche) : toute case de ses ponts s'atteint, et l'emprise libre que son modèle
+    publié laisse à chaque case (`cases` de son manifeste) tient un occupant debout."""
+
+    def navires(self):
+        sortie = [f for f in json.loads(plan_de_jeu.VEHICULES.read_text(encoding='utf-8')) if 'ponts' in f]
+        self.assertTrue(sortie, 'aucun navire à ponts')
+        return sortie
+
+    def test_toute_case_des_ponts_s_atteint(self):
+        for fiche in self.navires():
+            with self.subTest(navire=fiche['id']):
+                P = plan_de_jeu.depuis(fiche)
+                self.assertEqual(sorted(set(P['cases']) - atteintes(P, min(P['cases']))), [])
+
+    def test_l_emprise_libre_de_chaque_case_tient_un_occupant_debout(self):
+        for fiche in self.navires():
+            with self.subTest(navire=fiche['id']):
+                publie = MODELES / f'vehicule--{fiche["id"]}.manifeste.json'
+                emprises = json.loads(publie.read_text(encoding='utf-8')).get('cases', {})
+                self.assertEqual({k: e for k, e in emprises.items() if min(e[2] - e[0], e[3] - e[1]) < CARRURE}, {})
 
 
 class Sortie(unittest.TestCase):
