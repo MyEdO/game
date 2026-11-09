@@ -85,7 +85,7 @@ export const WORKFLOWS = Object.freeze({
     etat: 'manuel',
     raison:
       '`on: workflow_dispatch:` seul : lancé et regardé par une main humaine (AGENTS.md § Pile et ' +
-      'commandes, « prod — sur demande explicite SEULEMENT »)',
+      'commandes : cible `jeu`, « prod — sur demande explicite SEULEMENT » ; cible `dev`, le test de l’hôte Godot)',
   },
 })
 

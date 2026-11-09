@@ -1416,17 +1416,17 @@ export const TABLES = {
       } else if (entry.kind === 'attaque') {
         // Perception Accessible (+20) INFLUENÇABLE → étape-jet insérée ; son applier pose l'embuscade
         // différée (le `noSurprise` suit le jet). Sans tester (aucun héros vivant) : interruption directe.
-        const configured = !!(route.ambush?.scene && route.ambush.encounter);
+        const configured = !!(route.ambush?.scene.id && route.ambush.encounter);
         const best = partyAssisted(party, { skill: { id: 'perception' } }); // Soutien (LDB 12)
         const st = best && monoStep({
           id: 'peril-perception', kind: 'landPerilPerception', actor: best.actor, icon: 'ui/eye', label: t('step.landPerilPerception'),
           rollLabel: refLabel('skills', { id: 'perception' }), difficulty: 'accessible',
           stake: voyageStakeRef('landPerilPerception'),
           ligne: { test: { skill: { id: 'perception' } }, valeur: best.value, soutien: best.support },
-          meta: { destLabel, configured, ambushScene: route.ambush?.scene ?? '', ambushEntry: route.ambush?.entry ?? '', ambushEnc: route.ambush?.encounter ?? '' },
+          meta: { destLabel, configured, ambushScene: route.ambush?.scene.id ?? '', ambushEntry: route.ambush?.entry ?? '', ambushEnc: route.ambush?.encounter ?? '' },
         });
         if (st) return { consequences: freeCons(j), insert: [st] };
-        if (configured) { j.push(...markLandInterrupt(get, set, { kind: 'ambush', scene: route.ambush!.scene, entry: route.ambush!.entry, encounter: route.ambush!.encounter, noSurprise: false }, destLabel)); return { consequences: freeCons(j) }; }
+        if (configured) { j.push(...markLandInterrupt(get, set, { kind: 'ambush', scene: route.ambush!.scene.id, entry: route.ambush!.entry, encounter: route.ambush!.encounter, noSurprise: false }, destLabel)); return { consequences: freeCons(j) }; }
         j.push(t('tf.noAmbushConfigured'));
       }
       // narratif (default) : le texte au journal suffit.

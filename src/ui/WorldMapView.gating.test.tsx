@@ -31,13 +31,13 @@ const carte: WorldMap = {
   id: 'ch1',
   label: 'Chapitre 1',
   places: [
-    { id: 'auberge', label: 'La Diligence', pos: { x: 10, y: 30 }, scene: 's-auberge' },
-    { id: 'altdorf', label: 'Altdorf', pos: { x: 20, y: 30 }, scene: 's-altdorf' },
+    { id: 'auberge', label: 'La Diligence', pos: { x: 10, y: 30 }, scene: { id: 's-auberge' } },
+    { id: 'altdorf', label: 'Altdorf', pos: { x: 20, y: 30 }, scene: { id: 's-altdorf' } },
     {
       id: 'bogenhafen',
       label: 'Bögenhafen',
       pos: { x: 96, y: 62 },
-      scene: 's-bogenhafen',
+      scene: { id: 's-bogenhafen' },
       when: { kind: 'flag', expr: 'lieu-revele' },
     },
   ],
@@ -222,12 +222,12 @@ const carteMuette: WorldMap = {
   id: 'ch1',
   label: 'Chapitre 1',
   places: [
-    { id: 'auberge', label: 'La Diligence', pos: { x: 10, y: 30 }, scene: 's-auberge' },
+    { id: 'auberge', label: 'La Diligence', pos: { x: 10, y: 30 }, scene: { id: 's-auberge' } },
     {
       id: 'altdorf',
       label: 'Altdorf',
       pos: { x: 90, y: 60 },
-      scene: 's-altdorf',
+      scene: { id: 's-altdorf' },
       when: { kind: 'flag', expr: 'destination-revelee' },
     },
   ],

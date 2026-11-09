@@ -264,15 +264,15 @@ const worldMap = {
   id: 'carte-barge-du-sel',
   label: 'La Barge du Sel',
   places: [
-    { id: 'quai-du-sel', label: 'Le quai de départ', pos: { x: 20, y: 60 }, scene: 'barge-du-sel-quai', icon: 'scenario/port' },
+    { id: 'quai-du-sel', label: 'Le quai de départ', pos: { x: 20, y: 60 }, scene: { id: 'barge-du-sel-quai' }, icon: 'scenario/port' },
     // GATING NARRATIF, les DEUX axes : tant que le cap n'est pas donné, l'îlot n'existe pas sur la
     // carte (nœud) et sa route n'est pas praticable (arête, avec sa raison JOUEUR).
-    { id: 'ilot-du-sel', label: 'L’îlot du sel', pos: { x: 60, y: 40 }, scene: 'barge-du-sel-ilot', icon: 'scenario/port', when: flagWhen(FLAG_CAP) },
+    { id: 'ilot-du-sel', label: 'L’îlot du sel', pos: { x: 60, y: 40 }, scene: { id: 'barge-du-sel-ilot' }, icon: 'scenario/port', when: flagWhen(FLAG_CAP) },
   ],
   routes: [
     {
       id: 'route-quai-ilot', a: { id: 'quai-du-sel' }, b: { id: 'ilot-du-sel' }, km: 30, modes: ['mer'], sea: true, seaHeading: 'nord',
-      ambush: { scene: 'barge-du-sel-embuscade', encounter: 'enc-embuscade-sel', at: 0.5 },
+      ambush: { scene: { id: 'barge-du-sel-embuscade' }, encounter: 'enc-embuscade-sel', at: 0.5 },
       when: flagWhen(FLAG_CAP),
       refus: { texte: "Aucun cap n'est donné : la Louve grise ne sait pas encore où porter le sel." },
     },
@@ -287,7 +287,6 @@ for (const s of scenes) {
   const starts = s.entities.filter((e) => e.kind === 'heroStart');
   if (starts.length !== 1) throw new Error(`${s.id} : ${starts.length} heroStart (1 attendu)`);
 }
-for (const p of worldMap.places) if (!ids.has(p.scene)) throw new Error(`carte : lieu ${p.id} → scène inconnue ${p.scene}`);
 
 // ── Cadre de chapitre (#717) — ouverture cérémonielle et clôture ──────────────────────────
 const narratif = {

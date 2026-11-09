@@ -92,12 +92,12 @@ const construireCarte = (): WorldMap => ({
   label: 'Mer des Griffes (test)',
   places: [
     {
-      id: 'p-salzenmund', label: 'Salzenmund', pos: { x: 20, y: 30 }, scene: 'test-mer-depart', icon: 'scenario/port',
+      id: 'p-salzenmund', label: 'Salzenmund', pos: { x: 20, y: 30 }, scene: { id: 'test-mer-depart' }, icon: 'scenario/port',
       // port de production côtière (sel/poisson) — permet aussi réparer/caréner au départ
       port: { taille: 3, richesse: 3, production: ['sel', 'poisson-sale'], surplus: { sel: 1 } },
     },
     {
-      id: 'p-marienburg', label: 'Marienburg', pos: { x: 75, y: 55 }, scene: 'test-mer-arrivee', icon: 'scenario/port',
+      id: 'p-marienburg', label: 'Marienburg', pos: { x: 75, y: 55 }, scene: { id: 'test-mer-arrivee' }, icon: 'scenario/port',
       // grand port cosmopolite (MDG 15 l.343) + phare à l'atterrage (MDG 13 l.337)
       port: { taille: 4, richesse: 5, production: ['commerce-mer', 'produits-de-luxe-mer'], surplus: { 'produits-de-luxe-mer': 1 }, cosmopolite: true, lighthouse: true },
     },

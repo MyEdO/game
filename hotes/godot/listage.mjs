@@ -1,7 +1,7 @@
-// LE DOSSIER DES MODÈLES ET SON LISTAGE (#2987, `pont/CONTRAT.md`, section « Atelier 3D ») : ce que `GET /modeles/` de
-// `servir.mjs` rend, et ce que la sonde de `construire.mjs` fige pour la recette du véhicule. Sans écrivain : la gate
-// `pont:godot` l'atteint par `construire.mjs`.
-import { readFileSync } from 'node:fs'
+// LE DOSSIER DES MODÈLES ET SON LISTAGE (#2987, `pont/CONTRAT.md`, section « Atelier 3D ») : ce que `GET modeles/listage.json`
+// de `servir.mjs` rend, ce que la sonde de `construire.mjs` fige pour la recette du véhicule, et le dossier `modeles/` que
+// son export Web dépose à côté de la page (#3778). Sans écrivain : la gate `pont:godot` l'atteint par `construire.mjs`.
+import { cpSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { chargerAssets } from './asset/charger.mjs'
 
@@ -12,6 +12,9 @@ const { DOSSIER_DES_MODELES, fichiersDuModele, lireGlb, manifestesDesModeles, ve
 ])
 
 export { DOSSIER_DES_MODELES }
+
+/** Le fichier du listage, sous `modeles/` à côté de la page. */
+export const LISTAGE = 'listage.json'
 
 /** Le listage de `dossier` : les manifestes que `verdictsDesModeles` accepte contre leur GLB, de chacun les os qui portent
  *  ses meshes rigides (`os` des `meshes` sans skin de `lireGlb`), et les erreurs (manifeste illisible, GLB illisible, refus,
@@ -41,4 +44,12 @@ export function listage(dossier) {
   } catch (e) {
     return { manifestes: {}, osDesRigides: {}, erreurs: [`${dossier} : ${e.code ?? e.message}`] }
   }
+}
+
+/** Le dossier des modèles `dossier` copié sous `modeles/` de `sortie`, avec son listage (`LISTAGE`) : ce que `servir.mjs` sert
+ *  sous `modeles/`, en fichiers statiques. */
+export function deposerLesModeles(dossier, sortie) {
+  const cible = join(sortie, 'modeles')
+  cpSync(dossier, cible, { recursive: true })
+  writeFileSync(join(cible, LISTAGE), JSON.stringify(listage(dossier)))
 }

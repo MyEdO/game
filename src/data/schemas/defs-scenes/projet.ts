@@ -8,8 +8,9 @@
  * `icon` et la provenance (`source` ∨ `maison`), la fabrique scelle, et les sémantiques restantes du
  * seam passent par `options.affinerEntree` — FK intra-document des références narratives
  * (`refsNarrativesPendantes` : `entity.presetId`, Effects). `activeAxes` résout au registre par `refs('axe')`. Les invariants du bloc narratif restent portés par
- * `narratifSchema`. Anti-collisions et résolutions de spécialisation restent des `superRefine` :
- * jamais des `ref()` (une référence intra-document n'entre pas au registre global).
+ * `narratifSchema`. Anti-collisions et résolutions de spécialisation restent des `superRefine`. La racine
+ * OUVRE la portée des scènes (`ouvrirPortees`, `SCENES_DU_PROJET`) : une scène visée est un `ref(portee)`,
+ * jugé contre les `scenes` du MÊME projet, hors de l'index des ids.
  *
  * L'ENVELOPPE est PLATE (#1467 L1b) : les champs d'identité vivent à la RACINE, sans poche `meta`.
  * L'identité n'est plus facultative (arbitrage utilisateur 2026-08-31, AskUser verbatim : « Un projet
@@ -22,7 +23,8 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { refs } from '../grammaire/ref';
-import { listeCle } from '../grammaire/collection-cle';
+import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
+import { SCENES_DU_PROJET } from './communs';
 import { sceneSchema } from './scene';
 import { worldMapSchema } from './worldmap';
 import { narratifSchema, validerReferencesDObjetsDansCampagne, type NarratifBlock } from './narratif';
@@ -73,7 +75,7 @@ export const projetDoc = document(
   },
   {
     affinerEntree: (entree) =>
-      nommerChamps(entree, {
+      ouvrirPortees(nommerChamps(entree, {
         ...metaDesChamps(entree),
         id: { label: 'Identifiant', texte: { regime: 'technique', usage: 'id stable du projet' } },
         label: { label: 'Nom', texte: { regime: 'designation' } },
@@ -88,7 +90,7 @@ export const projetDoc = document(
          *  `documentId`/`indiceId`/`stade` d'Effect, Flows portés compris) et de la carte du monde résout
          *  au narratif du document — visiteur unique `./refs-narratives.ts`. */
         for (const f of refsNarrativesPendantes(doc, doc.narratif)) ctx.addIssue({ code: 'custom', path: [...f.chemin], message: f.message });
-      }),
+      }), [SCENES_DU_PROJET]),
   },
 );
 

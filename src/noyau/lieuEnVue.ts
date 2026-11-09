@@ -44,7 +44,7 @@ function gestesDuService(s: Jeu, svc: ResolvedPlaceService): GesteDuService[] {
 export function lieuEnVue(s: Jeu): LieuEnVue | null {
   const ici = fenetreDuJeu(s)?.cle === 'ecranDuLieu' ? lieuDuGroupe(s) : undefined;
   if (!s.worldMap || !ici) return null;
-  const services = placeServices(ici, sceneDuRegistre(ici.scene))
+  const services = placeServices(ici, sceneDuRegistre(ici.scene.id))
     .map((svc): ServiceEnVue => ({ id: svc.id, nom: svc.label, gestes: gestesDuService(s, svc) }))
     .filter((svc) => svc.gestes.length > 0);
   const pointsDInteret = entreesDuLieu(s).map((p): PointDInteretEnVue => ({

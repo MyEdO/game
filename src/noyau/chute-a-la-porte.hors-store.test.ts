@@ -887,7 +887,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     monte([
       { label: 'Abordage', chancePct: 100, effects: [
         { type: 'fall', target: 'party', metres: 4 },
-        { type: 'transition', scene: 'ailleurs' },
+        { type: 'transition', scene: { id: 'ailleurs' } },
       ] },
       { label: 'Jamais joué', chancePct: 100, effects: [{ type: 'journal', desc: 'PERIL-APRES-ARRET' }] },
     ], SEA_PERIL_INTERRUPT);
@@ -910,7 +910,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     monte([
       { label: 'Abordage', chancePct: 100, effects: [
         { type: 'fall', target: 'party', metres: 4 },
-        { type: 'transition', scene: 'ailleurs' },
+        { type: 'transition', scene: { id: 'ailleurs' } },
       ] },
       { label: 'Jamais joué', chancePct: 100, effects: [{ type: 'journal', desc: 'PERIL-APRES-ARRET' }] },
     ], SEA_PERIL_INTERRUPT);
@@ -932,7 +932,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     monte([
       { label: 'Abordage', chancePct: 100, effects: [
         { type: 'fall', target: 'party', metres: 4 },
-        { type: 'transition', scene: 'ailleurs' },
+        { type: 'transition', scene: { id: 'ailleurs' } },
       ] },
       { label: 'Jamais joué', chancePct: 100, effects: [{ type: 'journal', desc: 'PERIL-APRES-ARRET' }] },
     ], SEA_PERIL_INTERRUPT);

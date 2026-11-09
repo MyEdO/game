@@ -1,4 +1,4 @@
-## L'atelier 3D (#3086) : les modèles que le serveur de l'export liste (`GET modeles/`), indexés par le pont
+## L'atelier 3D (#3086) : les modèles listés à côté de l'export (`GET modeles/listage.json`), indexés par le pont
 ## (`modeles`, `hotes/godot/pont/atelier.ts`), et chaque GLB chargé à l'exécution (`GET modeles/<id>.glb`). Le joueur y
 ## choisit un corps, compose un personnage depuis un preset ou ses axes (`composer`, `catalogues`, `presetDeComposition`,
 ## `hotes/godot/pont/composition.ts`), le colore au nuancier, monte un élément par point d'accroche ou par ligne de pièce,
@@ -1225,7 +1225,9 @@ func _positions_des_os() -> Dictionary:
 
 ## Par id d'emplacement monté qui porte un mesh skinné, la boîte de ses meshes skinnés posés par le moteur sur la pose
 ## courante (`MeshInstance3D.bake_mesh_from_current_skeleton_pose`) : son centre monde (`centre`) et sa taille dans le
-## repère du squelette (`taille`).
+## repère du squelette (`taille`). Un mesh que le moteur ne pose pas (son squelette sans os, `mesh_instance_3d.cpp:722`,
+## Godot 4.7-stable) n'a pas de boîte : l'appel typé sur le `null` rendu ferait planter le modèle d'export release, qui
+## ne vérifie pas le `null` (#3778).
 func _peaux() -> Dictionary:
 	var peaux := {}
 	for id in _montage.pieces:
@@ -1234,7 +1236,10 @@ func _peaux() -> Dictionary:
 		for piece: MeshInstance3D in _montage.pieces[id]:
 			if not is_instance_valid(piece) or piece.skin == null:
 				continue
-			var posee: AABB = piece.bake_mesh_from_current_skeleton_pose().get_aabb()
+			var cuit := piece.bake_mesh_from_current_skeleton_pose()
+			if cuit == null:
+				continue
+			var posee: AABB = cuit.get_aabb()
 			boite = posee if boite == null else (boite as AABB).merge(posee)
 			porteuse = piece
 		if porteuse != null:

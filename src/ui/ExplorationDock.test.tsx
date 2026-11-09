@@ -155,7 +155,7 @@ describe('Zone 11 — les 7 ouvreurs vivent SUR le pont, avec leurs conditions',
       useGame.setState({
         worldMap: {
           id: 'carte', label: 'Carte', routes: [],
-          places: [{ id: 'lieu', label: 'Terrain de test', pos: { x: 50, y: 50 }, scene: testScene().id }],
+          places: [{ id: 'lieu', label: 'Terrain de test', pos: { x: 50, y: 50 }, scene: { id: testScene().id } }],
         } satisfies WorldMap,
         lieu: 'lieu',
       });

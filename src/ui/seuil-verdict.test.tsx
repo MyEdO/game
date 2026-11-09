@@ -94,7 +94,7 @@ describe('#2389 — la rangée seuil dit le verdict de SON étape', () => {
     useGame.setState({ vessel: { vehicleId: 'cogue', label: 'Le Cormoran', morale: { score: 60, lastMoraleWeek: 0, factors: [] } } } as never);
     const seuil = moraleBand(60).desertionRoll!;
     expect(seuil).toBe(4);
-    openPortAt(useGame.getState, useGame.setState, { id: 'P', label: 'Erengrad', pos: { x: 0, y: 0 }, scene: 'monde-p', port: { taille: 3, richesse: 3, production: ['bois-mer'] } } as never);
+    openPortAt(useGame.getState, useGame.setState, { id: 'P', label: 'Erengrad', pos: { x: 0, y: 0 }, scene: { id: 'monde-p' }, port: { taille: 3, richesse: 3, production: ['bois-mer'] } } as never);
     useGame.getState().fenetreChoisir('shoreLeave', 'accorder', true);
     render();
     poser(seuil);
