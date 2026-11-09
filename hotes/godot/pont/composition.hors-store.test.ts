@@ -101,9 +101,9 @@ describe('composerSurLaBase', () => {
   });
 
   it('un objet porté sans ensemble ni rangement va au rapport, sans point', () => {
-    const { rapport, manquants } = composer({ humanoide }, { ...soldat, objets: ['plastron', 'cape'] });
-    expect(rapport).toEqual(['objet « cape » : ni prise, ni ensemble, ni rangement']);
-    expect(manquants.map((m) => m.par?.id)).not.toContain('cape');
+    const { rapport, manquants } = composer({ humanoide }, { ...soldat, objets: ['plastron', 'rocher'] });
+    expect(rapport).toEqual(['objet « rocher » : ni prise, ni ensemble, ni rangement']);
+    expect(manquants.map((m) => m.par?.id)).not.toContain('rocher');
   });
 });
 
