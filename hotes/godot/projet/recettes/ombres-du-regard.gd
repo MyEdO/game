@@ -28,17 +28,17 @@ func _recetter() -> void:
 		cases = [[0, 0, 0], [0, 0, 0]], surfaces = [{debut = 0, fin = 6, matiere = "terrain--terre"}],
 		hauteurs = [{z = 0, rangees = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]}],
 		ombre = _nappe("etage", 3.0)})
-	monde.poser_les_nappes([_nappe("maison", 5.0)], [_nappe("boite", 3.0), _nappe("kit", 3.0), _nappe("abattue", 3.0)])
-	monde.poser_les_aretes([ARETE.merged({cle = "boite", famille = null}), ARETE.merged({cle = "kit", famille = "colombage"})])
+	monde.volume.poser_les_nappes([_nappe("maison", 5.0)], [_nappe("boite", 3.0), _nappe("kit", 3.0), _nappe("abattue", 3.0)])
+	monde.volume.poser_les_aretes([ARETE.merged({cle = "boite", famille = null}), ARETE.merged({cle = "kit", famille = "colombage"})])
 	var degagees := ["boite", "kit"].map(func(cle: String) -> Dictionary: return {cle = cle, abattueSous = [0, 1, 2, 3]})
 	monde.cacher_le_bati(["maison"], ["abattue"], degagees)
-	var toit: Node3D = monde.get_node("Volume/Toits").get_child(0)
-	var etage: Node3D = monde.get_node("Volume/Ombre")
+	var toit: Node3D = monde.get_node("VolumeDeScene/Volume/Toits").get_child(0)
+	var etage: Node3D = monde.get_node("VolumeDeScene/Volume/Ombre")
 	var retires := {toit = toit, etage = etage}
-	for arete: Node3D in monde.get_node("Aretes").get_children():
+	for arete: Node3D in monde.get_node("VolumeDeScene/Aretes").get_children():
 		retires["arête " + arete.get_meta("cle")] = arete
 	var couronnes := {}
-	for couronne: Node3D in monde.get_node("Volume/Couronnes").get_children():
+	for couronne: Node3D in monde.get_node("VolumeDeScene/Volume/Couronnes").get_children():
 		couronnes[couronne.get_meta("cle")] = couronne
 	retires["couronne boite"] = couronnes.boite
 	retires["couronne kit"] = couronnes.kit

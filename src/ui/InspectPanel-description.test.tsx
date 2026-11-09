@@ -166,7 +166,7 @@ describe('InspectPanel — le geste d’inspection ouvre la fiche (geste réel, 
   });
 
   it('un personnage POSÉ à l’éditeur puis passé au preset se nomme du preset — titre de l’inspection et frise ; un nom d’auteur l’emporte (#1463 S3)', () => {
-    const narratif: NarratifBlock = { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-tavernier', base: 'humain', profil: { label: 'Le Tavernier' } }] };
+    const narratif: NarratifBlock = { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-tavernier', base: { id: 'humain' }, profil: { label: 'Le Tavernier' } }] };
     const vide = emptyScene('scene-test', 8, 8);
     vide.id = 'sc-pose';
     vide.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 1, y: 1 } });
@@ -346,7 +346,7 @@ describe('proseDeFiche — provenance de la Description (#2206)', () => {
 
   it('preset au profil MUET sur base décrite : la desc de la BASE, portée par la base — liens Codex actifs', () => {
     // Base `squelette` : sa desc cite des entrées du Codex (celle de `mutant` n'en cite aucune).
-    useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-muet', base: 'squelette', profil: { label: 'Squelette muet' } }] } });
+    useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-muet', base: { id: 'squelette' }, profil: { label: 'Squelette muet' } }] } });
     const c = sceneNpc(sceneAuPreset('pnj-muet'), 'pnj', presetPnjById)!;
     const p = proseDeFiche(c, presetPnjById, duNarratif)!;
     expect(p.section.rows).toEqual([{ t: 'text', text: findCreatureById('squelette')!.desc, porteur: { chemin: 'desc' } }]);
@@ -361,7 +361,7 @@ describe('proseDeFiche — provenance de la Description (#2206)', () => {
     const figee = mergeCreatureProfile(findCreatureById('squelette')!, { desc: 'Un texte écrit ailleurs.' });
     const c = spawnEnemy({ presetCreature: figee, presetId: 'pnj-fige' }, 'f', { x: 0, y: 0 });
     const enCampagne = (): Porteur => ({ type: 'projet', id: PROJET, chemin: 'narratif.presetsPnj[0].profil.desc' });
-    const presetDe = (id: string) => (id === 'pnj-fige' ? { id, base: 'squelette', profil: { desc: 'Le texte du profil, depuis réécrit.' } } : undefined);
+    const presetDe = (id: string) => (id === 'pnj-fige' ? { id, base: { id: 'squelette' }, profil: { desc: 'Le texte du profil, depuis réécrit.' } } : undefined);
     const p = proseDeFiche(c, presetDe, enCampagne)!;
     expect(findCreatureById('squelette')?.desc).toBeTruthy();
     expect(p.section.rows).toEqual([{ t: 'text', text: 'Un texte écrit ailleurs.', porteur: undefined }]);
@@ -468,7 +468,7 @@ describe('Aller-retour de l’état : `presetId` survit, `presetPnjById` répond
 
 describe('InspectPanel — hauteur stable entre onglets', () => {
   it('les deux panneaux restent montés dans la même cellule ; seul l’actif est lisible', () => {
-    useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-muet', base: 'squelette', profil: { label: 'Squelette muet' } }] } });
+    useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-muet', base: { id: 'squelette' }, profil: { label: 'Squelette muet' } }] } });
     const el = monter(<InspectPanel combatant={sceneNpc(sceneAuPreset('pnj-muet'), 'pnj', presetPnjById)!} onClose={() => {}} />).ownerDocument.body;
     const lisibles = () => panneaux(el).map((p) => !p.hasAttribute('inert') && p.getAttribute('aria-hidden') !== 'true');
     expect(el.querySelector('.insp-onglets')).toBeTruthy();

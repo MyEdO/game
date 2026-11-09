@@ -346,7 +346,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   avancé atteint, jamais un recul, et un stade antérieur lu après coup s'ajoute à son historique
   (`revealClue`, `src/noyau/monde/clues.ts`) ; un stade (`IndiceStade`) porte sa `prose` (verbatim quand `source` est posé, maison sans), un `documentId` (id d'un
   `narratif.documents`, #679), ou les deux — au moins l'un ; **`presetsPnj`** (`PresetPnj`) — PNJ
-  pré-composés (`base` = id d'une créature globale surchargé par `profil`/`apparence`) ; **`objets`**
+  pré-composés (`base` = `ref('creature')`, la créature globale surchargée par `profil`/`apparence`) ; **`objets`**
   (`TrappingData`) — possessions propres à la campagne ; **`documents`** (`DocumentNarratif`,
   `{ id, titre, prose, source? }`, #679) — les documents remis au joueur, `prose` en Markdown VERBATIM
   (règle 5), non vide ; **`etats`** (`{ id, label, source?, maison?, forme }`, #2539) — les états de campagne
@@ -365,7 +365,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   l'hôte ferme et rejoue la suite ; l'invité masque cette remise. Un id inconnu n'ouvre rien
   (avertissement console), la suite se joue.
 - **Frontière RÉFÉRENCE vs NARRATIF.** Le narratif RÉFÉRENCE la règle globale (`src/data`) PAR ID
-  (`base` → id de `creatures.json`), il ne la copie PAS et n'entre JAMAIS dans `src/data` global : c'est
+  (`base` → `{ id }` d'une entrée de `creatures.json`), il ne la copie PAS et n'entre JAMAIS dans `src/data` global : c'est
   du contenu EMBARQUÉ dans le JSON, révélé seulement en jeu. `narratifSchema`
   (`src/data/schemas/defs-scenes/narratif.ts`, composé par `projetSchema`) garde cet invariant
   fail-fast au parse : aucun id narratif ne peut collisionner avec un id global (créature/possession),

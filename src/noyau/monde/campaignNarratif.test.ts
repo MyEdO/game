@@ -33,7 +33,7 @@ const validNarratif = (): NarratifBlock => ({
     { id: 'in-quai', affaireId: 'af-sel', kind: 'indice', titre: 'Le quai désert', stades: [{ id: 'st1', prose: 'Un quai vide.' }] },
     { id: 'ru-taverne', affaireId: 'af-sel', kind: 'rumeur', titre: 'On chuchote', stades: [{ id: 'st1', prose: 'Une rumeur.' }], refs: ['in-quai'] },
   ],
-  presetsPnj: [{ id: 'pnj-marin', base: GLOBAL_CREATURE }],
+  presetsPnj: [{ id: 'pnj-marin', base: { id: GLOBAL_CREATURE } }],
   objets: [{ id: 'obj-lettre', label: 'Lettre cachetée', categorie: 'trapping', subType: null } as NarratifBlock['objets'][number]],
 });
 
@@ -47,7 +47,7 @@ describe('paquet de campagne — bloc narratif', () => {
   it('doc peuplé valide restitue son narratif', () => {
     const res = parseProject(doc(validNarratif()));
     expect(res.narratif.affaires.map((a) => a.id)).toEqual(['af-sel']);
-    expect(res.narratif.presetsPnj[0].base).toBe(GLOBAL_CREATURE);
+    expect(res.narratif.presetsPnj[0].base).toEqual({ id: GLOBAL_CREATURE });
   });
 
   it('(a) LÈVE si un id narratif collisionne avec un id de la règle globale', () => {
@@ -64,7 +64,7 @@ describe('paquet de campagne — bloc narratif', () => {
 
   it('(c) LÈVE si preset.base ne résout aucune créature globale (FK `creatures.json`)', () => {
     const n = validNarratif();
-    n.presetsPnj[0].base = 'creature-inexistante';
+    n.presetsPnj[0].base = { id: 'creature-inexistante' };
     expect(() => parseProject(doc(n))).toThrow(/« creature-inexistante » est absent du catalogue des créatures \(creatures\.json\)/);
   });
 
@@ -120,7 +120,7 @@ describe('paquet de campagne — bloc narratif', () => {
   // ── #1342 L3 : la référence PAR ID va jusqu'à la spécialisation d'une Compétence de profil.
   const presetSkill = (spec: string, id = 'savoir') => {
     const n = validNarratif();
-    n.presetsPnj.push({ id: 'pnj-savant', base: GLOBAL_CREATURE, profil: { skills: [{ id, spec, value: 40 }] } as NarratifBlock['presetsPnj'][number]['profil'] });
+    n.presetsPnj.push({ id: 'pnj-savant', base: { id: GLOBAL_CREATURE }, profil: { skills: [{ id, spec, value: 40 }] } as NarratifBlock['presetsPnj'][number]['profil'] });
     return n;
   };
 
@@ -140,7 +140,7 @@ describe('paquet de campagne — bloc narratif', () => {
 
   const presetTalent = (spec: string, id = 'savoir-vivre') => {
     const n = validNarratif();
-    n.presetsPnj.push({ id: 'pnj-mondain', base: GLOBAL_CREATURE, profil: { talents: [{ id, spec }] } as NarratifBlock['presetsPnj'][number]['profil'] });
+    n.presetsPnj.push({ id: 'pnj-mondain', base: { id: GLOBAL_CREATURE }, profil: { talents: [{ id, spec }] } as NarratifBlock['presetsPnj'][number]['profil'] });
     return n;
   };
 
@@ -155,7 +155,7 @@ describe('paquet de campagne — bloc narratif', () => {
 
   it('(m) preset PNJ : un Talent SANS catalogue de spécs porte un texte d’instance, admis comme dans creatures.json (#1621)', () => {
     const n = validNarratif();
-    n.presetsPnj.push({ id: 'pnj-promis', base: GLOBAL_CREATURE, profil: { talents: [{ id: 'destinee', spec: "L'escroc, le cerf et le loup dans la nuit" }] } as NarratifBlock['presetsPnj'][number]['profil'] });
+    n.presetsPnj.push({ id: 'pnj-promis', base: { id: GLOBAL_CREATURE }, profil: { talents: [{ id: 'destinee', spec: "L'escroc, le cerf et le loup dans la nuit" }] } as NarratifBlock['presetsPnj'][number]['profil'] });
     expect(parseProject(doc(n)).narratif.presetsPnj.length).toBe(2);
   });
 });

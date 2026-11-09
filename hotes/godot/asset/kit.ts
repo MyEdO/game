@@ -1,9 +1,9 @@
 /**
- * LE KIT DES ARÊTES (#3476, lot C, décision 5) : les pièces 3D que le monde de Godot pose sur les arêtes de la scène
- * (`projet/scripts/monde.gd`, `poser_les_aretes`), assemblées en un seul GLB (`projet/kit/kit.glb`) depuis les glTF
- * d'un pack modulaire (`PACK`). Chaque pièce y est un nœud racine nommé `<famille>--<pièce>` (`CONTRAT.md`, section
+ * LE KIT DES ARÊTES (#3476, lot C, décision 5) : les pièces 3D que le volume de la scène de Godot pose sur les arêtes de
+ * la scène (`projet/scripts/volume_de_scene.gd`, `poser_les_aretes`), assemblées en un seul GLB (`projet/kit/kit.glb`)
+ * depuis les glTF d'un pack modulaire (`PACK`). Chaque pièce y est un nœud racine nommé `<famille>--<pièce>` (`CONTRAT.md`, section
  * « Plateau »), ramenée au repère d'une arête : son premier élément, le mur, occupe une longueur de 1 sur X centrée,
- * une hauteur de 1 sur Y depuis 0, et son épaisseur en mètres centrée sur Z ; le monde l'étire à la longueur de
+ * une hauteur de 1 sur Y depuis 0, et son épaisseur en mètres centrée sur Z ; le volume l'étire à la longueur de
  * l'arête et à la hauteur du mur. Une image n'est embarquée qu'une fois, une normale prise en convention OpenGL
  * (`NORMALES_OPENGL`), qui est celle de Godot.
  */

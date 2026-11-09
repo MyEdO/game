@@ -13,7 +13,7 @@ const narratif = (): NarratifBlock => ({
   ...emptyNarratif(),
   presetsPnj: [
     { id: 'p-nomme', profil: { label: 'Gunther le passeur' } },
-    { id: 'p-de-base', base: base.id },
+    { id: 'p-de-base', base: { id: base.id } },
     { id: 'p-anonyme' },
   ],
   documents: [{ id: 'd1', titre: 'Lettre de Kastor' }],

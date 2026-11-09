@@ -2371,10 +2371,10 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     expect(banc.getState().pendingRoundStart).toBeNull();
   });
 
-  it('promouvoirLeCombattant place le héros en tête et dépense 1 Chance', () => {
+  it('roundStart.promouvoir place le héros en tête et dépense 1 Chance', () => {
     const { H } = endOfRoundBattle(2);
     advanceTurn(banc.getState, banc.setState);
-    banc.getState().promouvoirLeCombattant(H.id);
+    banc.getState().fenetreChoisir('roundStart', 'promouvoir', H.id);
     const st = banc.getState();
     expect(st.battle!.order[0]).toBe(H.id);
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.fortune).toBe(1);
@@ -2383,7 +2383,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
   it('la validation de la pause (`fenetreValider(\'roundStart\')`) ferme la modale et active le héros promu en premier', () => {
     const { H } = endOfRoundBattle(1);
     advanceTurn(banc.getState, banc.setState);
-    banc.getState().promouvoirLeCombattant(H.id);
+    banc.getState().fenetreChoisir('roundStart', 'promouvoir', H.id);
     banc.getState().fenetreValider('roundStart');
     const st = banc.getState();
     expect(st.pendingRoundStart).toBeNull();

@@ -11,6 +11,21 @@
 class_name GabaritDuSquelette
 extends SkeletonModifier3D
 
+## @contrat Gabarit d'une base
+## Godot applique actuellement (1) la lecture du plus bas des os `appuis.pieds` sans gabarit, (2) la composition des
+## facteurs après le clip, puis (3) la translation qui ramène ces os à leur minimum de (1), dans `GabaritDuSquelette`
+## ; à l'étape (2), sur le clip engagé à son lecteur (`AnimationPlayer.assigned_animation`,
+## `MontageDeComposition.lecteur`) s'il est dans `clipsPlantes`, il plie les jambes comme `poserLeGabarit`, dans le
+## repère du squelette : il monte la racine et pose la visée de chaque pied, puis des modificateurs natifs posés à sa
+## suite, `TwoBoneIK3D` (le genou vers sa place courante) et `CopyTransformModifier3D` (l'orientation de la visée),
+## plient chaque jambe, avant la translation (3) (recette `projet/recettes/marche-au-gabarit.gd`, legs 0,62, 1 et
+## 1,12). `TwoBoneIK3D` mesure les os sur leurs positions de pose sans l'échelle de pose de leurs parents (Godot 4.7)
+## : sa cible se pose à l'échelle de cette mesure autour de la hanche (`MiseEnPage.visee_de_l_ik`). Le lot GD devra
+## remplacer (1) par le minimum des copies `appuis.plusBas` skinnées sans gabarit et sans clés `gabarit_*`, (2) par la
+## même mesure avec les binds compensés et les formes au gabarit, et (3) par la translation vers `sl` fois le minimum
+## de (1). Le code de l'hôte reste celui des os jusqu'à ce lot. `appuis.pieds` reste consommé par les surfaces de
+## marche (`evaluer.ts`, `surfacesDesPieds`), par la composition et par les mesures de l'atelier Godot.
+
 ## Le gabarit posé est mesuré au repos : `mesures()` porte `neutre` et `repos`.
 signal mesure
 

@@ -1,7 +1,7 @@
 /**
  * L'EXPLORATION PAR LE PONT (#3328) : « La porte close » jouée comme Godot la joue. L'entrée de la scène poursuivie par
  * son geste en focus, le groupe projeté à sa case, les gestes d'exploration en boutons qui portent leur suite de verbes, le clic d'une case qui fait marcher
- * le groupe, la porte dessinée sur le plateau, fermée puis ouverte, le volume du monde de la scène (`monde`).
+ * le groupe et rend le chemin de son meneur (#3822), la porte dessinée sur le plateau, fermée puis ouverte, le volume du monde de la scène (`monde`).
  */
 import { describe, it, expect } from 'vitest';
 import { drainer, table } from './pont.testkit';
@@ -46,8 +46,13 @@ describe('l’exploration par le pont', () => {
     ({ suite } = drainer(appel, appel('jouer', porte!.jeu)));
     expect(auMilieu(suite.vue.plateau!.aretes)?.piece, 'la porte ouverte, le plateau la dessine ouverte').toBe('porte-ouverte');
 
-    const reduit = { x: 4, y: 1 };
-    ({ suite } = drainer(appel, appel('jouer', { type: CLIC_DU_CHAMP, args: [reduit] })));
-    expect(suite.vue.projection.exploration!.groupe, 'la porte ouverte, le clic d’une case du réduit y mène le groupe').toEqual([reduit.x, reduit.y]);
+    const reduit = { x: 4, y: 0 };
+    const meneur = suite.vue.projection.exploration!.heros[0].id;
+    const clic = drainer(appel, appel('jouer', { type: CLIC_DU_CHAMP, args: [reduit] }));
+    expect(clic.suite.vue.projection.exploration!.groupe, 'la porte ouverte, le clic d’une case du réduit y mène le groupe').toEqual([reduit.x, reduit.y]);
+    expect(clic.effets.find((e) => e.quoi === 'deplacement'), 'le meneur, le seul héros dessiné, parcourt le chemin par la porte, chaque pas à sa longueur (#3822)').toEqual({
+      quoi: 'deplacement', qui: meneur,
+      cases: [{ x: 1, y: 1, z: 0, metres: 0 }, { x: 2, y: 1, z: 0, metres: 2 }, { x: 3, y: 1, z: 0, metres: 2 }, { x: 4, y: 0, z: 0, metres: 2 * Math.SQRT2 }],
+    });
   });
 });
