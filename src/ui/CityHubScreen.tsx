@@ -266,7 +266,8 @@ export function CityHubScreen({
     };
   });
 
-  const poiServiceTarget = poiSel?.serviceKind ? services.find((s) => s.id === poiSel.serviceKind) : undefined;
+  const poiService = poiSel?.serviceKind;
+  const poiServiceTarget = poiService ? services.find((s) => s.id === poiService.id) : undefined;
   let poiDetail: React.ReactNode;
   if (!poiSel) {
     poiDetail = <p className="city-hub-empty">Ce lieu n’a aucun point d’intérêt.</p>;

@@ -37,7 +37,7 @@ describe('H5 de construction, ancres fixes (#3104)', () => {
     }
     bones[0].updateMatrixWorld(true);
     const facteurs = { ...FACTEURS_NEUTRES, legs: BORNES.legs.min, arms: BORNES.arms.max };
-    const obtenu = matricesDePeauDuGabarit(c.squelette, c.table, facteurs, new Float32Array(poses));
+    const obtenu = matricesDePeauDuGabarit(c.squelette, c.table, facteurs, new Float32Array(poses), [false, false]);
     const pose = poseDuGabarit({ gabarit: c.table }, facteurs);
     const enfants = enfantsDuGabarit(pose, (nom) => bones.find((b) => b.name === nom)!);
     const binds = bindsAuGabarit(c.squelette, pose);
@@ -53,7 +53,26 @@ describe('H5 de construction, ancres fixes (#3104)', () => {
       bones[3].rotation.z -= angle;
     }
     bones.forEach((b, i) => b.position.toArray().forEach((v, j) => expect(v).toBeCloseTo(avant[i][j], 12)));
-    expect(() => matricesDePeauDuGabarit(c.squelette, c.table, facteurs, new Float32Array(3))).toThrow(/tronquées/);
+    expect(() => matricesDePeauDuGabarit(c.squelette, c.table, facteurs, new Float32Array(3), [])).toThrow(/tronquées/);
+    expect(() => matricesDePeauDuGabarit(c.squelette, c.table, facteurs, new Float32Array(poses), [false])).toThrow(/1 drapeau\(x\) de plantation pour 2/);
+  });
+
+  it('plie les jambes des échantillons plantés : le pied garde sa matrice monde du clip, le haut du corps suit le gabarit', () => {
+    const c = jouet(), poses: number[] = [], bones = c.squelette.bones;
+    bones[3].rotation.z += 0.4;
+    bones[0].updateMatrixWorld(true);
+    const neutres = bones.map((b) => b.matrixWorld.clone());
+    for (let k = 0; k < 2; k++) for (const b of bones) poses.push(...b.matrixWorld.clone().transpose().elements);
+    bones[3].rotation.z -= 0.4;
+    bones[0].updateMatrixWorld(true);
+    const facteurs = { ...FACTEURS_NEUTRES, legs: BORNES.legs.max };
+    const obtenu = matricesDePeauDuGabarit(c.squelette, c.table, facteurs, new Float32Array(poses), [false, true]);
+    const binds = bindsAuGabarit(c.squelette, poseDuGabarit({ gabarit: c.table }, facteurs));
+    const monde = (rang: number, os: number) => new Matrix4().fromArray(Array.from(obtenu.subarray((rang * bones.length + os) * 16, (rang * bones.length + os + 1) * 16))).transpose().multiply(binds[os].clone().invert());
+    const pied = bones.findIndex((b) => b.name === 'foot');
+    const ecart = (a: Matrix4, b: Matrix4) => Math.max(...a.elements.map((v, i) => Math.abs(v - b.elements[i])));
+    expect(ecart(monde(1, pied), neutres[pied])).toBeLessThan(1e-5);
+    expect(ecart(monde(0, pied), neutres[pied])).toBeGreaterThan(1e-2);
   });
 
   it('énumère les extrémités cuites depuis les bornes', () => {

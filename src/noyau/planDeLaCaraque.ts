@@ -1,7 +1,7 @@
 /**
  * Les ponts de la caraque en `MapSpec` que `buildScene` compile (#3686), lus dans la seule source de leur forme :
  * `ponts` de sa fiche (`vehicles.json`), que la construction de son modèle 3D lit aussi
- * (`scripts/personnage-3d/vehicule/caraque/plan_de_jeu.py`). Une case de 2 m (`sceneMetresPerTile`), la proue à
+ * (`scripts/personnage-3d/vehicule/plan_de_jeu.py`). Une case de 2 m (`sceneMetresPerTile`), la proue à
  * `x = 0`, tribord à `y = 0`, la hauteur en mètres depuis la flottaison ; le centre du plan est l'origine du modèle.
  * Un étage par pont : `z0` cale, `z1` pont principal (la batterie), `z2` pont supérieur (l'embelle, le dessous du
  * gaillard d'avant et le château de poupe), `z3` gaillard d'avant, passerelle et plage arrière. Une

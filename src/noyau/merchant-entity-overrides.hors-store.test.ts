@@ -26,7 +26,7 @@ const hero = (): Combatant => combattantDeTest({ id: 'h', label: 'H', items: [],
 
 const sceneWith = (merchant: Record<string, unknown>) => {
   const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
-  sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: 'armurier', ...merchant } });
+  sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' }, ...merchant } });
   return sc;
 };
 

@@ -1,6 +1,6 @@
-"""sol.surfaces_des_pieds et sol.garder_les_poids_des_pieds sur un squelette synthétique : la surface d'un pied compte le
-poids du pied et de ses descendants jusqu'à `MAJORITE_DU_POIDS`, et un sommet retouché par la correction des poids qui y
-tombe arrête la construction en le nommant."""
+"""sol.surfaces_des_pieds, sol.poids_rigides et sol.garder_les_poids_des_pieds sur un squelette synthétique : la surface
+d'un pied compte le poids du pied et de ses descendants jusqu'à `MAJORITE_DU_POIDS`, elle ne suit que le pied sous la
+cheville, et un sommet retouché par la correction des poids qui y tombe arrête la construction en le nommant."""
 import sys
 import unittest
 from pathlib import Path
@@ -11,7 +11,7 @@ import numpy
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 from seuils import MAJORITE_DU_POIDS  # noqa: E402
-from sol import garder_les_poids_des_pieds, surfaces_des_pieds  # noqa: E402
+from sol import garder_les_poids_des_pieds, poids_rigides, surfaces_des_pieds  # noqa: E402
 from faux_rig import Bones  # noqa: E402
 
 PIED = 'foot_l'
@@ -39,6 +39,19 @@ class SurfacesDesPieds(unittest.TestCase):
     def test_la_surface_compte_le_pied_et_ses_descendants_jusqu_a_la_majorite(self):
         surfaces = surfaces_des_pieds(squelette(), poids(), [PIED])
         self.assertEqual(numpy.flatnonzero(surfaces[PIED]).tolist(), [0, 1, 2])
+
+
+class PoidsRigides(unittest.TestCase):
+    def test_sous_la_cheville_la_surface_ne_garde_que_le_pied_et_ses_descendants(self):
+        w = poids()
+        x = numpy.array([(0, 0, z, 1) for z in (0.01, 0.01, 0.01, 0.01, 0.01)], dtype=numpy.float64)
+        rigides = poids_rigides(x, w, [2, 3], 0.08)
+        numpy.testing.assert_allclose(rigides, [(0, 0, 1, 0), (0, 0, 0.2, 0.8), (0, 0, 1, 0), w[3], w[4]])
+
+    def test_au_dessus_de_la_cheville_la_surface_garde_ses_poids(self):
+        w = poids()
+        x = numpy.array([(0, 0, 0.09, 1)] * len(w), dtype=numpy.float64)
+        numpy.testing.assert_array_equal(poids_rigides(x, w, [2, 3], 0.08), w)
 
 
 class PoidsDesPieds(unittest.TestCase):

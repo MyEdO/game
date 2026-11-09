@@ -524,7 +524,7 @@ describe('validateScene', () => {
 
 describe('validateScene — POI de plan (#345 phase 5)', () => {
   // `services` : le lieu doit RÉSOUDRE (`placeServices`) la cible d'un POI de service (#360 — un POI
-  // peut aussi cibler le port/marché AUTOMATIQUES du lieu, `'port'`/`'marche'`, pas que le catalogue).
+  // peut aussi cibler le port/marché AUTOMATIQUES du lieu, `port`/`marche`, sans service déclaré).
   const place = (poi: MapPlace['poi'], services?: MapPlace['services']): MapPlace => ({ id: 'lieu', label: 'Lieu', pos: { x: 0, y: 0 }, scene: { id: 'A' }, poi, services });
   const wm = (poi: MapPlace['poi'], services?: MapPlace['services']): WorldMap => ({ id: 'w', label: 'Carte', places: [place(poi, services)], routes: [] });
 
@@ -535,19 +535,19 @@ describe('validateScene — POI de plan (#345 phase 5)', () => {
 
   it('POI bien formé ciblant un service DÉCLARÉ par le lieu → aucune erreur', () => {
     const w = validateScene([base()], wm(
-      [{ id: 'poi-1', label: 'Auberge', pos: { x: 10, y: 10 }, serviceKind: 'auberge' }],
-      [{ kind: 'auberge' }],
+      [{ id: 'poi-1', label: 'Auberge', pos: { x: 10, y: 10 }, serviceKind: { id: 'auberge' } }],
+      [{ kind: { id: 'auberge' } }],
     ));
     expect(w.filter((x) => x.level === 'error')).toEqual([]);
   });
 
-  it('POI ciblant le PORT automatique du lieu (`serviceKind: "port"`, sans catalogue) → aucune erreur', () => {
+  it('POI ciblant le PORT automatique du lieu (`serviceKind` `port`, sans service déclaré) → aucune erreur', () => {
     const w = validateScene([base()], {
       id: 'w', label: 'Carte',
       places: [{
         id: 'lieu', label: 'Lieu', pos: { x: 0, y: 0 }, scene: { id: 'A' },
         port: { ref: undefined, taille: 1, richesse: 1, production: [] } as unknown as MapPlace['port'],
-        poi: [{ id: 'poi-1', label: 'Le port', pos: { x: 10, y: 10 }, serviceKind: 'port' }],
+        poi: [{ id: 'poi-1', label: 'Le port', pos: { x: 10, y: 10 }, serviceKind: { id: 'port' } }],
       }],
       routes: [],
     });
@@ -557,8 +557,8 @@ describe('validateScene — POI de plan (#345 phase 5)', () => {
   it('id de POI dupliqué (même lieu) → erreur du SCHÉMA de carte, le POI répété nommé par son libellé', () => {
     const w = validateScene([base()], wm([
       { id: 'poi-1', label: 'A', pos: { x: 1, y: 1 }, sceneId: { id: 'A' } },
-      { id: 'poi-1', label: 'B', pos: { x: 2, y: 2 }, serviceKind: 'auberge' },
-    ], [{ kind: 'auberge' }]));
+      { id: 'poi-1', label: 'B', pos: { x: 2, y: 2 }, serviceKind: { id: 'auberge' } },
+    ], [{ kind: { id: 'auberge' } }]));
     expect(w.filter((x) => x.level === 'error')).toEqual([
       expect.objectContaining({ scope: 'worldMap', refId: 'poi-1', message: 'points d’intérêt « B » : « poi-1 » dupliqué : « id » identifie l’élément dans sa liste, il y est unique.' }),
     ]);
@@ -583,7 +583,7 @@ describe('validateScene — POI de plan (#345 phase 5)', () => {
   });
 
   it('scène ET service à la fois → erreur EXCLUSIVE', () => {
-    const w = validateScene([base()], wm([{ id: 'poi-1', label: 'Les deux', pos: { x: 1, y: 1 }, sceneId: { id: 'A' }, serviceKind: 'auberge' }]));
+    const w = validateScene([base()], wm([{ id: 'poi-1', label: 'Les deux', pos: { x: 1, y: 1 }, sceneId: { id: 'A' }, serviceKind: { id: 'auberge' } }]));
     expect(msgs(w).some((m) => /cible EXCLUSIVE/.test(m))).toBe(true);
   });
 
@@ -592,9 +592,14 @@ describe('validateScene — POI de plan (#345 phase 5)', () => {
     expect(msgs(w).some((m) => /scène inexistante/.test(m))).toBe(true);
   });
 
-  it('serviceKind inconnu du catalogue → erreur', () => {
-    const w = validateScene([base()], wm([{ id: 'poi-1', label: 'Faux', pos: { x: 1, y: 1 }, serviceKind: 'nawak' }]));
-    expect(msgs(w).some((m) => /service inconnu/.test(m))).toBe(true);
+  it('serviceKind inconnu du catalogue → erreur du SCHÉMA, le catalogue nommé', () => {
+    const w = validateScene([base()], wm([{ id: 'poi-1', label: 'Faux', pos: { x: 1, y: 1 }, serviceKind: { id: 'nawak' } }]));
+    expect(msgs(w).some((m) => /« nawak » est absent du catalogue des services de lieu/.test(m))).toBe(true);
+  });
+
+  it('serviceKind du catalogue que le lieu n’offre pas → erreur', () => {
+    const w = validateScene([base()], wm([{ id: 'poi-1', label: 'Temple', pos: { x: 1, y: 1 }, serviceKind: { id: 'temple' } }]));
+    expect(msgs(w.filter((x) => x.level === 'error'))).toEqual(['POI « Temple » → service absent du lieu « temple »']);
   });
 });
 

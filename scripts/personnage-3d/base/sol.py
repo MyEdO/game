@@ -169,6 +169,39 @@ def surfaces_des_pieds(rig, w, pieds):
             >= MAJORITE_DU_POIDS for pied in pieds}
 
 
+def poids_rigides(x, w, chaine, cheville):
+    """Les poids `w` des sommets `x` (repère monde, au repos) où chaque sommet de la surface du pied d'os `chaine` (le pied
+    et ses descendants, indices de colonnes ; `surfaces_des_pieds`) sous la hauteur `cheville` de la tête du pied ne
+    garde que ses poids sur `chaine`, renormalisés : sous la cheville, le pied est rigide, et le plié des jambes au
+    gabarit, qui garde le pied du clip neutre, y garde ses sommets (#3314)."""
+    rigides = numpy.flatnonzero((w[:, chaine].sum(axis=1) >= MAJORITE_DU_POIDS) & (x[:, 2] < cheville))
+    sortie = w.copy()
+    sortie[rigides] = 0.0
+    sortie[numpy.ix_(rigides, chaine)] = w[numpy.ix_(rigides, chaine)] / w[numpy.ix_(rigides, chaine)].sum(axis=1, keepdims=True)
+    return sortie
+
+
+def rigidifier_les_pieds(rig, peaux, pieds):
+    """Pose sur chaque peau de `peaux` les `poids_rigides` de chaque pied de `pieds` du rig, au repos."""
+    noms = [b.name for b in rig.data.bones]
+    indice = {nom: i for i, nom in enumerate(noms)}
+    for peau in peaux:
+        x, w = peau_lineaire(peau, noms)
+        rigides = w
+        for pied in pieds:
+            chaine = [indice[pied], *(indice[b.name] for b in rig.data.bones[pied].children_recursive)]
+            rigides = poids_rigides(x, rigides, chaine, (rig.matrix_world @ rig.data.bones[pied].head_local).z)
+        changes = numpy.flatnonzero(numpy.any(rigides != w, axis=1))
+        for s in changes:
+            for g in list(peau.data.vertices[int(s)].groups):
+                peau.vertex_groups[g.group].remove([int(s)])
+            for i in numpy.flatnonzero(rigides[s]):
+                groupe = peau.vertex_groups.get(noms[i]) or peau.vertex_groups.new(name=noms[i])
+                groupe.add([int(s)], float(rigides[s, i]), 'REPLACE')
+        if len(changes):
+            print('PIEDS RIGIDES', peau.name, len(changes), 'sommet(s)', flush=True)
+
+
 def garder_les_poids_des_pieds(peau, retouches, surfaces):
     """Arrête la construction si un sommet de `retouches`, les indices que la correction des poids a retouchés sur la peau
     `peau` (nom), tombe dans une surface de pied de `surfaces` (`surfaces_des_pieds`) : G8 du plan de #3101

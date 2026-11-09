@@ -37,7 +37,7 @@ describe('BargainModal — le marchand à preset joue sa fiche', () => {
     const scene = {
       type: 'scene', id: 's', label: 'S', dimensions: { w: 4, h: 4 }, reliefDefaults: structuredClone(DEFAULT_RELIEF_DEFAULTS), roofDefaults: structuredClone(DEFAULT_ROOF_DEFAULTS),
       layers: [{ z: 0, tiles: Array(16).fill('herbe') }], dialogues: [], triggers: [], encounters: [], flags: {},
-      entities: [{ id: 'marchand', kind: 'personnage', pos: { x: 1, y: 1 }, presetId: 'marchand-nomme', merchant: { archetype: 'armurier' } }],
+      entities: [{ id: 'marchand', kind: 'personnage', pos: { x: 1, y: 1 }, presetId: 'marchand-nomme', merchant: { archetype: { id: 'armurier' } } }],
     } as unknown as Scene;
     const negociateur = blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'hero', items: [], characteristics: profilDeTest({ sociabilite: 40 }), skills: [], talents: [], wounds: blessuresDeBase(10), conditions: [], weapons: [], armour: {} }) as unknown as Combatant;
     useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'marchand-nomme', base: { id: 'nain' }, profil: { label: 'Gunther le Négociant' } }] }, scene, party: [negociateur] });

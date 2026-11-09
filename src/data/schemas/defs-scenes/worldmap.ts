@@ -83,7 +83,7 @@ export const landMarketProfileSchema = nommerChamps(z.strictObject({
 /** `PlaceService` — service extensible d'un lieu (`kind` = id de `lieux-services.json`), hors
  *  port/marché qui portent leur schéma riche. `rest` = offre de couchage PROPRE au lieu. */
 export const placeServiceSchema = nommerChamps(z.strictObject({
-  kind: z.string(),
+  kind: ref('serviceDeLieu'),
   label: z.string().optional(),
   rest: nommerChamps(z
     .strictObject({
@@ -104,7 +104,7 @@ export const placePoiSchema = nommerChamps(z
     pos: pointDuPlanSchema,
     icon: z.string().optional(),
     sceneId: ref(SCENES_DU_PROJET).optional(),
-    serviceKind: z.string().optional(),
+    serviceKind: ref('serviceDeLieu').optional(),
   })
   .superRefine((poi, ctx) => {
     if ((poi.sceneId === undefined) === (poi.serviceKind === undefined)) {
