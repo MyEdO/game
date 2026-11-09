@@ -21,7 +21,7 @@ from script_node import lancer  # noqa: E402
 from chaines import ajouter_chaines, cuire_chaines  # noqa: E402
 from corpulence import ajouter_corpulence  # noqa: E402
 from diagnostic_poids import imprimer_retournements  # noqa: E402
-from poids import (PASSES_MAX, peau_lineaire, etats_ponderes, sommets_des_surfaces,  # noqa: E402
+from poids import (PASSES_MAX, SUITE_DE_CORRECTION, peau_lineaire, etats_ponderes, sommets_des_surfaces,  # noqa: E402
                    jumeaux, preparer_correction, avancer_correction, appliquer_correction, imprimer_correction, refuser_correction,
                    verifier_repos_cuit)
 from pas_des_poids import cellules_du_domaine  # noqa: E402
@@ -183,21 +183,24 @@ def faces_des_noeuds(peau, noeud):
     return t[(t[:, 0] != t[:, 1]) & (t[:, 1] != t[:, 2]) & (t[:, 0] != t[:, 2])]
 
 
-def preparer_moteurs(rig, peaux, clips, table, etats, courantes, contraintes, ressources, repos_cuit=False, captures=None):
-    """#3104 issuecomment-6549354475 ; #3101 issuecomment-6516197619."""
+def preparer_moteurs(rig, peaux, clips, table, etats, courantes, contraintes, ressources, repos_cuit=False, captures=None,
+                     suites=None):
+    """#3104 issuecomment-6549354475 ; #3101 issuecomment-6516197619. `suites` : par peau, la suite de sa correction
+    (`SUITE_DE_CORRECTION`) lue dans une reprise."""
     cellules = cellules_du_domaine(etats)
     demandes = etats['etats']
     def sous(groupes, os, diagnostic):
         groupes = [({'etats': groupe, 'cellulesSilhouettes': cellules}, matrices, clips) for groupe, matrices, clips in groupes]
         moteurs = []
-        for peau in peaux:
+        for i, peau in enumerate(peaux):
             x, w = peau_lineaire(peau, os)
             jumeau = jumeaux(x)
             fixes = np.empty(0, dtype=int) if contraintes is None else np.unique(
                 jumeau[sommets_des_surfaces(contraintes[peau.name])])
             etat = preparer_correction(
                 peau.name, x, w, jumeau, aretes_des_triangles(peau, jumeau), etats_ponderes(x, courantes[peau.name], groupes), fixes,
-                {**diagnostic, 'noms': list(os)}, () if contraintes is None else os_des_pieds(rig, os))
+                {**diagnostic, 'noms': list(os)}, () if contraintes is None else os_des_pieds(rig, os),
+                None if suites is None else suites[i])
             if captures is not None:
                 etat['h5'] = captures[peau.name]
             moteurs.append((peau, os, etat))
@@ -249,8 +252,8 @@ def construire(args):
     declaration = json.loads(DECLARATION.read_text(encoding='utf-8'))
     marches = [declaration['clips']['walk']]
     noms = [b.name for b in squelette.data.bones]
-    reprises = None if args.reprises is None else Reprises(
-        args.reprises, empreinte_de_construction(ICI.parents[2], {k: v for k, v in vars(args).items() if k not in ('reprises', 'sortie')}),
+    reprises = Reprises(
+        empreinte_de_construction(ICI.parents[2], {k: v for k, v in vars(args).items() if k != 'sortie'}),
         lambda chemin: bpy.ops.wm.save_as_mainfile(filepath=str(chemin), copy=True, relative_remap=False, compress=False),
         lambda chemin: bpy.ops.wm.open_mainfile(filepath=str(chemin), load_ui=False))
     noms_des_objets = {'squelette': squelette.name, 'squelette_f': squelette_f.name, 'objets_f': [o.name for o in objets_f],
@@ -290,18 +293,17 @@ def construire(args):
     moteurs = []
     ressources = ExitStack()
     ecart_cles = 0
+    etats = courantes = suites = None
 
-    def preparer_phase():
-        nonlocal phase_actuelle, a_preparer, renouveler, references, precedentes
-        nonlocal moteurs, ecart_cles, etats_silhouettes
-        ressources.close()
-        clear_animation(squelette)
-        bpy.context.view_layer.update()
-        ecart_cles = 0
+    def ouvrir_la_phase():
+        """Pose la phase `phase` sur la scène et en tire ses états et les déplacements courants des peaux."""
+        nonlocal renouveler, references, precedentes, ecart_cles, etats_silhouettes, etats, courantes
         if phase == 'neutre':
+            ecart_cles = 0
             etats = etats_aux_facteurs_neutres(table, [])
             courantes = {p.name: {} for p in peaux}
         elif phase == 'silhouettes':
+            ecart_cles = 0
             if renouveler:
                 etats_silhouettes = poser_les_silhouettes()
                 renouveler = False
@@ -322,10 +324,20 @@ def construire(args):
                 float(np.abs(d - precedentes[nom][cle]).max(initial=0))
                 for nom, champs in courantes.items() for cle, d in champs.items())
             precedentes = courantes
+
+    def preparer_phase():
+        nonlocal phase_actuelle, a_preparer, moteurs, suites
+        ressources.close()
         clear_animation(squelette)
         bpy.context.view_layer.update()
-        moteurs = preparer_moteurs(squelette, peaux, clips, table, etats, courantes, contraintes,
-                                  ressources, repos_cuit=phase == 'gabarit', captures=captures if phase == 'gabarit' else None)
+        if suites is None:
+            ouvrir_la_phase()
+        clear_animation(squelette)
+        bpy.context.view_layer.update()
+        moteurs = preparer_moteurs(squelette, peaux, clips, table, etats, courantes, contraintes, ressources,
+                                  repos_cuit=phase == 'gabarit' and suites is None,
+                                  captures=captures if phase == 'gabarit' else None, suites=suites)
+        suites = None
         phase_actuelle = phase
         a_preparer = False
         print('CONSTRUCTION_PHASE', phase_actuelle, flush=True)
@@ -348,6 +360,7 @@ def construire(args):
             imprimer_correction(etat, passe)
         hors = sum(int(e['hors'].sum()) for _, _, e in moteurs)
         if hors:
+            ecrire_la_reprise(f'passe-{passe:04d}', passe)
             return {'aretes': hors, 'phase': 1}
         retouches = sum(len(e['retouches']) for _, _, e in moteurs)
         for peau, _, etat in moteurs:
@@ -361,21 +374,27 @@ def construire(args):
         if fini:
             return {'aretes': 0, 'phase': 0}
         a_preparer = True
-        if reprises is not None:
-            ecrire_la_reprise(f'passe-{passe:04d}', passe)
+        ecrire_la_reprise(f'passe-{passe:04d}', passe)
         return {'sommets': retouches, 'phase': 1,
                 'ecartCles': ecart_cles if ecart_cles > TOLERANCE_JUMEAUX_POSITION_M else 0}
 
     def ecrire_la_reprise(nom, passe):
-        ressources.close()
+        """Écrit la reprise `nom` après la passe `passe` : en fin de phase, l'état de la boucle ; au milieu d'une phase,
+        aussi les états et déplacements de la phase et la suite de chaque correction."""
+        au_milieu = not a_preparer and phase != 'fini'
+        if not au_milieu:
+            ressources.close()
         clear_animation(squelette)
         bpy.context.view_layer.update()
         for image in bpy.data.images:
-            if image.has_data:
+            if image.has_data and not image.packed_file:
                 image.pack()
         reprises.ecrire(nom, {'passe': passe, 'phase': phase, 'renouveler': renouveler, 'etats_silhouettes': etats_silhouettes,
                               'references': references, 'precedentes': precedentes, 'captures': captures,
-                              'contraintes': contraintes, 'rabot': rabot, 'objets': noms_des_objets})
+                              'contraintes': contraintes, 'rabot': rabot, 'objets': noms_des_objets, 'ecart_cles': ecart_cles,
+                              'etats': etats if au_milieu else None, 'courantes': courantes if au_milieu else None,
+                              'suites': [{cle: etat[cle] for cle in SUITE_DE_CORRECTION} for _, _, etat in moteurs]
+                              if au_milieu else None})
 
     def refuser(passe, reste):
         raison = f'construction : point fixe absent après {passe} passes, phase {phase_actuelle}, reste {reste}'
@@ -388,7 +407,7 @@ def construire(args):
                 erreurs.append(erreur)
         raise erreurs[0]
 
-    reprise = None if reprises is None else reprises.lire()
+    reprise = reprises.lire()
     if reprise is not None:
         objets_lus = reprise['objets']
         squelette, squelette_f = bpy.data.objects[objets_lus['squelette']], bpy.data.objects[objets_lus['squelette_f']]
@@ -400,14 +419,14 @@ def construire(args):
         phase, renouveler, etats_silhouettes = reprise['phase'], reprise['renouveler'], reprise['etats_silhouettes']
         references, precedentes, captures = reprise['references'], reprise['precedentes'], reprise['captures']
         contraintes, rabot, passes = reprise['contraintes'], reprise['rabot'], reprise['passe']
+        etats, courantes, suites, ecart_cles = reprise['etats'], reprise['courantes'], reprise['suites'], reprise['ecart_cles']
     if reprise is None or phase != 'fini':
         try:
             passes = atteindre_le_point_fixe(construire_tour, PASSES_MAX, refuser, depuis=1 if reprise is None else passes + 1)
         finally:
             ressources.close()
-        if reprises is not None:
-            phase = 'fini'
-            ecrire_la_reprise('point-fixe', passes)
+        phase = 'fini'
+        ecrire_la_reprise('point-fixe', passes)
     print('SOL tenu en', passes, 'passe(s)', flush=True)
     clear_animation(squelette)
     bpy.context.view_layer.update()
@@ -451,6 +470,7 @@ def construire(args):
           'EMPLACEMENTS', len(manifeste['emplacements']), 'SILHOUETTES', formes, 'ST', bornes,
           'POSITION', manifeste['osAPositionAnimee'], flush=True)
     manifeste_mjs(args, entree=json.dumps(manifeste, ensure_ascii=False))
+    reprises.effacer()
     print('HUMANOIDE_OK', args.sortie, flush=True)
 
 
@@ -469,8 +489,6 @@ def main():
                         help='dossier `data` de MPFB (3dobjs, targets) : donneur de la clé `corpulence`')
     parser.add_argument('--sortie', type=Path, required=True, help='humanoide.glb produit')
     parser.add_argument('--os', type=int, default=65, help="nombre d'os du squelette UAL")
-    parser.add_argument('--reprises', type=Path, help='dossier des reprises (`reprises.py`) : écrites à chaque fin de phase '
-                        'du point fixe et à sa fin, la dernière relue au lancement')
     construire(parser.parse_args())
 
 
