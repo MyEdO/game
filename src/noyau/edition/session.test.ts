@@ -15,7 +15,9 @@
 import { describe, expect, it } from 'vitest';
 import { emptyScene, heightAt, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
-import { champDuMessage, editer, groupesDuLieu, ouvrirLEdition, planDeLaVolee, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
+import { avertissementsDeLaSession, champDuMessage, editer, groupesDuLieu, ouvrirLEdition, planDeLaVolee, sceneEditee, vueDeLaScene, type GesteDEdition, type SessionDEdition } from './session';
+import { provenanceDesNavires } from '../planDeNavire';
+import { garanti } from '../../lib/garanti';
 import { addArchitectureBody, addFacadeFeature, addFacadeSection } from '../sceneEdit';
 import { ciblesDAncreDeBataille } from '../massBattleFlow';
 import { apparencesDeLOuverture } from '../monde/facades';
@@ -418,5 +420,56 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a)', () => {
       const issues = sceneEntitySchema.safeParse(ent).error?.issues.filter((i) => i.code === 'custom') ?? [];
       expect(issues.map((i) => ({ chemin: i.path, message: i.message })), nom).toEqual(fautes(ent));
     }
+  });
+});
+
+describe('le navire de la scène éditée (#3772)', () => {
+  const bassin = (metresPerTile = 2) => ({ ...emptyScene('bassin', 24, 16), metresPerTile });
+  const poserLaCaraque = (s: SessionDEdition, cap: 'N' | 'E' | 'S' | 'O' = 'E') =>
+    [{ geste: 'outil', outil: { mode: 'navire', ref: 'caraque', cap } }, { geste: 'appui', point: point(10, 6) }].reduce<SessionDEdition>((t, g) => editer(t, g as GesteDEdition), s);
+  const caraque = { id: 'navire-0', kind: 'personnage', ref: 'caraque', pos: { x: 10, y: 6 }, facing: 'E', label: 'Caraque' };
+
+  it('l’outil navire pose la caraque à la case visée, à son cap, sélectionnée : la scène éditée ne porte que son entité', () => {
+    const s = poserLaCaraque(ouverteSur(bassin()));
+    expect(sceneEditee(s)).toEqual({ ...bassin(), entities: [caraque] });
+    expect(s.sel).toEqual({ type: 'entity', id: 'navire-0' });
+    expect(s.historique.passe).toHaveLength(1);
+  });
+
+  it('ses ponts sont des couches de la vue, où l’on vise : une case de pont désigne le navire, un personnage s’y pose', () => {
+    const s = poserLaCaraque(ouverteSur(bassin()));
+    expect(vueDeLaScene(s).layers.map((l) => l.z)).toEqual([0, 1, 2, 3]);
+    const surLePont = editer(editer(s, { geste: 'outil', outil: { mode: 'select' } }), { geste: 'couche', z: 2 });
+    expect(surLePont.z).toBe(2);
+    const [x, y] = garanti([...provenanceDesNavires(vueDeLaScene(s)).cases.keys()].find((cle) => cle.endsWith(',2')), 'pont', 'case du pont 2').split(',').map(Number);
+    const vise = editer(surLePont, { geste: 'appui', point: point(x, y) });
+    expect([vise.sel, vise.pointee]).toEqual([{ type: 'entity', id: 'navire-0' }, { x, y, z: 2 }]);
+    const marin = editer(editer(surLePont, { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'humain' } }), { geste: 'appui', point: point(x, y) });
+    expect(sceneEditee(marin).entities.find((e) => e.ref === 'humain')).toMatchObject({ pos: { x, y }, z: 2 });
+    expect(avertissementsDeLaSession(marin).map((w) => w.message).filter((m) => m.includes('inexistant'))).toEqual([]);
+    expect(sceneEditee(marin).layers.map((l) => l.z), 'la scène éditée ne reçoit aucune couche des ponts').toEqual([0]);
+  });
+
+  it('une couche que seuls les ponts posent ne se retire pas ; ajouter une couche la pose au-dessus des ponts', () => {
+    const s = editer(poserLaCaraque(ouverteSur(bassin())), { geste: 'couche', z: 3 });
+    expect(editer(s, { geste: 'retirerCouche' })).toBe(s);
+    const ajoutee = editer(s, { geste: 'ajouterCouche' });
+    expect([ajoutee.z, sceneEditee(ajoutee).layers.map((l) => l.z)]).toEqual([4, [0, 4]]);
+  });
+
+  it('le cap change à l’inspecteur : ses ponts tournent avec lui, la scène éditée ne porte toujours que son entité', () => {
+    const s = poserLaCaraque(ouverteSur(bassin()));
+    const tourne = editer(s, { geste: 'entite', patch: { facing: 'N' } });
+    expect(sceneEditee(tourne)).toEqual({ ...bassin(), entities: [{ ...caraque, facing: 'N' }] });
+    const empriseDe = (t: SessionDEdition) => [...provenanceDesNavires(vueDeLaScene(t)).cases.keys()].map((cle) => cle.split(',').map(Number));
+    const etendue = (cases: number[][], axe: 0 | 1) => Math.max(...cases.map((c) => c[axe])) - Math.min(...cases.map((c) => c[axe])) + 1;
+    expect([etendue(empriseDe(s), 0), etendue(empriseDe(s), 1)]).toEqual([18, 5]);
+    expect([etendue(empriseDe(tourne), 0), etendue(empriseDe(tourne), 1)]).toEqual([5, 18]);
+  });
+
+  it('une scène qui n’est pas à l’échelle de son plan refuse le navire', () => {
+    const s = poserLaCaraque(ouverteSur(bassin(10)));
+    expect(sceneEditee(s).entities).toEqual([]);
+    expect(s.historique.passe).toEqual([]);
   });
 });

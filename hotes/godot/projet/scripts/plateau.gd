@@ -6,8 +6,8 @@
 ## chaque combattant à sa case et sa couche (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, à
 ## la station d'une case que le modèle d'un navire rogne (`Monde.poser_les_stations`), chacun sous son corps (`vue.corps`,
 ## aucun sous son `refus`) et son véhicule (`vue.corps.vehicules`), chaque navire de la scène sous le modèle
-## de son corps (`vue.corps.navires`, `MontageDeVehicule`), sous tout regard, coupé sous les ponts que le regard
-## retire (`plateau.coupesDesNavires`), sa mer bordée par sa coque (`VolumeDeScene.border_la_mer`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
+## de son corps (`vue.corps.navires`, `MontageDesNavires`), sous tout regard, coupé sous les ponts que le regard
+## retire (`plateau.coupesDesNavires`), sa mer bordée par sa coque, et chaque entité de la scène nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le
 ## pointeur jusqu'au clic, chacun sur le sol de sa case ; aucun combattant sous l'œil de l'immersion ; les effets de chaque
 ## appel entre ses combattants (`Effets`), dont le chemin de chaque déplacement, que son combattant parcourt (#3822). Il ne rend que la
@@ -33,16 +33,12 @@ const CLES_DU_CADRAGE := {
 
 @onready var _monde: Monde = $Monde
 @onready var _combattants: Node3D = $Combattants
-@onready var _navires: Node3D = $Navires
-## Le montage qui tire les GLB des navires (`MontageDeComposition.scene_du_glb`) et en recueille les erreurs.
-@onready var _chargeur: MontageDeComposition = $Navires/Chargeur
+@onready var _navires: MontageDesNavires = $Navires
 @onready var _immersion: Immersion = $Immersion
 
 ## Les effets des appels, rendus au plateau (`Effets`).
 var _effets := Effets.new()
 var _modeles: Dictionary = {}
-## Par id d'entité, le montage de chaque navire posé (`_poser_les_navires`).
-var _navires_montes: Dictionary = {}
 var _vue: Dictionary = {}
 var _survol: Variant = null
 
@@ -50,6 +46,7 @@ var _survol: Variant = null
 func _ready() -> void:
 	_monde.cadrage_change.connect(func() -> void: _survoler(_monde.case_sous(get_viewport().get_mouse_position())))
 	_immersion.case_jouee.connect(case_cliquee.emit)
+	_navires.pose.connect(habille.emit)
 	_effets.name = "Effets"
 	add_child(_effets)
 	_effets.depart.connect(_agir)
@@ -80,7 +77,7 @@ func montrer(vue: Dictionary) -> void:
 			_monde.suivre(_lieu(suivi[0].pos))
 	_immersion.montrer(vue)
 	if vue.plateau != null:
-		_poser_les_navires(vue.corps.navires, vue.plateau.coupesDesNavires, vue.plateau.metresParCase)
+		_navires.poser(vue.corps.navires, vue.plateau.coupesDesNavires, vue.plateau.metresParCase)
 	for c in dessines:
 		if c.pos == null:
 			continue
@@ -128,43 +125,6 @@ func _parcourir(qui: String, lieux: Array, metres: Array) -> void:
 		_modeles[qui].parcourir(lieux, metres)
 
 
-## Chaque navire de `navires` (`vue.corps.navires`) monté sous `Navires` (`_monter_le_navire`), coupé à la hauteur de
-## coupe du plus bas des sols que le regard lui retire (`coupes`, `plateau.coupesDesNavires`, `MiseEnPage.hauteur_de_coupe`),
-## entier sinon ; ceux que la vue ne sert plus, retirés.
-func _poser_les_navires(navires: Dictionary, coupes: Dictionary, metres_par_case: float) -> void:
-	for id: String in _navires_montes.keys():
-		if not navires.has(id):
-			_navires_montes[id].queue_free()
-			_navires_montes.erase(id)
-	for id: String in navires:
-		if not _navires_montes.has(id):
-			var montage := MontageDeVehicule.new()
-			_navires.add_child(montage)
-			_navires_montes[id] = montage
-		_navires_montes[id].couper(MiseEnPage.hauteur_de_coupe(coupes[id], metres_par_case) if coupes.has(id) else null)
-		_monter_le_navire(id, navires[id], metres_par_case)
-
-
-## Le corps du navire `navire` d'id `id` monté (`MontageDeVehicule.monter`) et posé (`_poser_le_navire`) ; posé, la mer de
-## sa flottaison bordée par ce que sa coque plonge sous la hauteur 0 de la scène (`MontageDeVehicule.contour_sous`,
-## `VolumeDeScene.border_la_mer`).
-func _monter_le_navire(id: String, navire: Dictionary, metres_par_case: float) -> void:
-	var montage: MontageDeVehicule = _navires_montes[id]
-	var pose: bool = await montage.monter(navire.corps, _chargeur, _poser_le_navire.bind(navire, metres_par_case))
-	if pose and montage.scene != null:
-		_monde.volume.border_la_mer(id, montage.contour_sous(MiseEnPage.hauteur_au_plateau(0.0, metres_par_case)))
-		habille.emit()
-
-
-## La scène nue `scene` du navire `navire` à l'échelle métrique du plateau de `metres_par_case`, sa proue, le +Z de son
-## repère, tournée vers son cap (`MiseEnPage.lacet_de_proue`), son origine au point de la carte sous elle (`centre`), à
-## la hauteur 0 de la scène, sa flottaison.
-func _poser_le_navire(scene: Node3D, navire: Dictionary, metres_par_case: float) -> void:
-	var echelle := MiseEnPage.echelle_metrique(metres_par_case)
-	var origine := MiseEnPage.point_de_la_carte(navire.centre.x, navire.centre.y, 0.0)
-	scene.transform = scene.transform.scaled(Vector3(echelle, echelle, echelle)).rotated(Vector3.UP, MiseEnPage.lacet_de_proue(MiseEnPage.LACETS_DES_CAPS[navire.corps.cap])).translated(origine)
-
-
 ## Chaque entité de la scène nommée au-dessus de sa case (`Monde.etiqueter`).
 func _nommer_les_entites(entites: Array) -> void:
 	var noms := {}
@@ -174,9 +134,9 @@ func _nommer_les_entites(entites: Array) -> void:
 	_monde.etiqueter(noms)
 
 
-## Les ids des navires de la scène dont le modèle est posé (`_monter_le_navire`).
+## Les ids des navires de la scène dont le modèle est posé (`MontageDesNavires.poses`).
 func navires() -> Array:
-	return _navires_montes.keys().filter(func(id: String) -> bool: return _navires_montes[id].scene != null)
+	return _navires.poses()
 
 
 ## La caméra posée sur le cadrage `cadrage` (`CONTRAT.md`, section « Écran publié », `wfrpCadrer`), sous le regard du

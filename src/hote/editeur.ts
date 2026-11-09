@@ -1,7 +1,8 @@
 /**
  * L'ÉDITEUR DE CARTE À L'ÉCRAN D'UN HÔTE (#3508) : ses zones et leurs éléments (`elements.ts`), lus de la session
  * d'édition du noyau (`SessionDEdition`). Les outils, les options de l'outil actif (pinceau, terrains, hauteurs, sorte
- * et structure d'une arête, étage rejoint et plan d'une volée, engin d'un emplacement de siège), les couches de la scène, l'historique, la presse,
+ * et structure d'une arête, étage rejoint et plan d'une volée, engin d'un emplacement de siège, type et cap d'un navire), les couches
+ * de la vue de la scène, ponts de ses navires compris, l'historique, la presse,
  * l'enregistrement au dépôt, la case pointée et la sélection, l'inspecteur de l'entité, de l'entrée, de la zone ou de l'arête sélectionnée et le
  * calque de référence de la couche ; chaque geste porte le geste d'édition qu'il joue (`{ edition }`), prêt à envoyer. Ce que le
  * pointeur trace sur la carte en cours de geste, le tracé de la volée, l'arête sélectionnée, les zones de la couche et la poignée de la
@@ -24,6 +25,7 @@ import {
   findCareerById, levelsForCareer, libelleDeLaValeur, parcoursDe, parcoursRetouche, parseRefKey, prisParLesAutres, refKey, refLabel, skillSlots, sousEmplacement, talentsDuParcours,
   trappingRefLabel, valeursDeLEmplacement, type EmplacementDeDotation, type ParcoursDeCarriere,
   findSpellById, listesDeSorts, refusDesSortsChoisis, sceneNpc, sortsImprimes, spells,
+  aLEchelleDesPonts, CAPS_DES_PONTS, estPoseParSesPonts, TYPES_DE_NAVIRE, vueDeLaScene,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -126,7 +128,8 @@ function optionsDeLaVolee(s: SessionDEdition, toZ: number): (Choix | Ligne | Bou
 
 /** Les options de l'outil actif : la taille du pinceau (et le rectangle du terrain), puis les terrains, les hauteurs ou
  *  la structure du parapet, ou la gomme de sa marque ; la sorte et le matériau d'une arête ; la volée ; la sorte de
- *  zone à tracer ; le sens du pinceau d'emprise et sa fin. La gomme n'en a aucune : elle efface la chose de la case. */
+ *  zone à tracer ; le sens du pinceau d'emprise et sa fin ; le type et le cap du navire à poser. La gomme n'en a
+ *  aucune : elle efface la chose de la case. */
 function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   const outil = s.outil;
   if (outil.mode === 'select' || outil.mode === 'erase' || outil.mode === 'entry' || (outil.mode === 'entity' && outil.kind === 'heroStart')) return [];
@@ -140,6 +143,15 @@ function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   if (outil.mode === 'emplacement') {
     return [choix('engins', t('ecran.editeur.engins'),
       siegeEngines().map((e) => bouton(`engin/${e.id}`, e.label, { geste: 'outil', outil: { mode: 'emplacement', trappingId: e.id } }, outil.trappingId === e.id)), 'liste')];
+  }
+  if (outil.mode === 'navire') {
+    const scene = sceneEditee(s);
+    return [
+      choix('navires', t('ecran.editeur.navires'), TYPES_DE_NAVIRE.map(({ id, label }) =>
+        bouton(`navire/${id}`, label, { geste: 'outil', outil: { ...outil, ref: id } }, outil.ref === id, refusDuNavire(scene, id))), 'liste'),
+      choix('navire/cap', t('ecran.editeur.entite.cap'), CAPS_DES_PONTS.map((cap) =>
+        bouton(`navire/cap/${cap}`, t(`ecran.editeur.cap.${cap}`), { geste: 'outil', outil: { ...outil, cap } }, outil.cap === cap))),
+    ];
   }
   if (outil.mode === 'entity') {
     const kind = outil.kind;
@@ -270,13 +282,21 @@ function listeDIds(id: string, famille: 'zone.couvre' | 'scene.groupes', poses: 
 const couverture = (id: string, couvre: readonly string[] | undefined, jeu: (couvre: string[] | null) => GesteDEdition): (Choix | Ligne)[] =>
   listeDIds(id, 'zone.couvre', couvre, COURT_DE_L_ENTREE, jeu);
 
-/** La rangée des couches de la scène éditée de `s`, la couche `z` pressée, chacune jouant `jeu`. */
+/** Pourquoi le navire du type `ref` ne se pose pas dans `scene` : elle n'est pas à l'échelle de ses ponts
+ *  (`aLEchelleDesPonts`) ; `null` s'il s'y pose. */
+const refusDuNavire = (scene: Scene, ref: string): string | null =>
+  aLEchelleDesPonts(scene, ref) ? null : t('ecran.editeur.navire.echelle', { m: sceneMetresPerTile(scene) });
+
+/** Les couches de la vue de la scène éditée de `s` (`vueDeLaScene`), dans l'ordre. */
+const couchesDeLaVue = (s: SessionDEdition): number[] => vueDeLaScene(s).layers.map((l) => l.z).sort((a, b) => a - b);
+
+/** La rangée des couches de la vue de la scène éditée de `s`, la couche `z` pressée, chacune jouant `jeu`. */
 const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: number) => GesteDEdition): Choix =>
-  choix(id, t('ecran.editeur.entite.couche'), sceneEditee(s).layers.map((l) => l.z).sort((a, b) => a - b)
+  choix(id, t('ecran.editeur.entite.couche'), couchesDeLaVue(s)
     .map((c) => bouton(`${id}/${c}`, t('ecran.editeur.couche', { z: c }), jeu(c), c === z)));
 
 /** L'inspecteur de l'entité sélectionnée de la session `s` : son nom ; le type d'un décor, la fiche d'un personnage du
- *  bestiaire ; son cap parmi ceux que son type admet ; sa couche ; la lumière et les places d'un décor ; le poste d'un
+ *  bestiaire ; son cap parmi ceux que son type admet, ceux de ses ponts pour un navire qu'ils posent ; sa couche ; la lumière et les places d'un décor ; le poste d'un
  *  emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son parcours de carrière, son
  *  profil porté, ses sorts, ses rencontres, et le formulaire qui en pose une troupe ; les entrées de fiche qu'elle
  *  couvre ; le formulaire tiré du schéma de son type (`formulaireDe`) ; la supprimer. */
@@ -284,11 +304,12 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
   const fiches = fichesDePersonnage();
   const types = ent.kind === 'prop' ? props : ent.kind === 'personnage' && fiches.some((f) => f.id === ent.ref) ? fiches : [];
   const cap = capDeLEntite(ent);
+  const caps = estPoseParSesPonts(sceneEditee(s), ent.id) ? CAPS_DES_PONTS : capsOfferts(ent);
   return [
     formulaireDuNom(ent.label, true),
     ...(types.length ? [choix('entite/type', t(ent.kind === 'prop' ? 'ecran.editeur.entite.type' : 'ecran.editeur.entite.fiche'),
       types.map((o) => bouton(`entite/type/${o.id}`, o.label, { geste: 'entite', patch: { ref: o.id } }, ent.ref === o.id)), 'liste')] : []),
-    choix('entite/cap', t('ecran.editeur.entite.cap'), capsOfferts(ent).map((c) => bouton(`entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } }, c === cap))),
+    choix('entite/cap', t('ecran.editeur.entite.cap'), caps.map((c) => bouton(`entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } }, c === cap))),
     choixDeLaCouche(s, 'entite/couche', ent.z ?? 0, (z) => ({ geste: 'entite', patch: { z } })),
     ...(ent.kind === 'prop' ? [...lumiere(ent), ...places(s, ent)] : []),
     ...(ent.postes?.length ? poste(s, ent, ent.postes[0]) : []),
@@ -1285,13 +1306,16 @@ function refusDEnregistrer(s: SessionDEdition): string | null {
   return memes ? t('ecran.editeur.rien.enregistrer') : null;
 }
 
-/** Les zones de l'éditeur de la session `s`. Le terrain s'ouvre sur le premier terrain, ou garde celui de l'outil. */
+/** Les zones de l'éditeur de la session `s`. Le terrain s'ouvre sur le premier terrain, ou garde celui de l'outil ; le
+ *  navire, sur le premier type et le premier cap. Les couches et la case pointée se lisent sur la vue de la scène
+ *  (`vueDeLaScene`), ses navires posés par leurs ponts. */
 export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
   const scene = sceneEditee(s);
   const terrain = s.outil.mode === 'tile' ? s.outil.terrain : terrainIds()[0];
   const outil = s.outil;
   const kindDeLOutil = (kind: 'prop' | 'personnage') => (outil.mode === 'entity' && outil.kind === kind ? outil.ref : undefined);
-  const etages = scene.layers.map((l) => l.z).sort((a, b) => a - b);
+  const etages = couchesDeLaVue(s);
+  const navire = outil.mode === 'navire' ? outil : { ref: TYPES_DE_NAVIRE[0].id, cap: CAPS_DES_PONTS[0] };
   const outils = [
     bouton('outil/select', t('ecran.editeur.outil.select'), { geste: 'outil', outil: { mode: 'select' } }, s.outil.mode === 'select'),
     bouton('outil/tile', t('ecran.editeur.outil.tile'), { geste: 'outil', outil: { mode: 'tile', terrain } }, s.outil.mode === 'tile'),
@@ -1301,6 +1325,7 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
     bouton('outil/crenellated', t('ecran.editeur.outil.crenellated'), { geste: 'outil', outil: { mode: 'crenellated', structure: structuresCrenelables()[0]?.id ?? null } }, s.outil.mode === 'crenellated'),
     bouton('outil/prop', t('ecran.editeur.outil.prop'), { geste: 'outil', outil: { mode: 'entity', kind: 'prop', ref: kindDeLOutil('prop') ?? props[0].id } }, kindDeLOutil('prop') !== undefined),
     bouton('outil/personnage', t('ecran.editeur.outil.personnage'), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: kindDeLOutil('personnage') ?? fichesDePersonnage()[0].id } }, kindDeLOutil('personnage') !== undefined),
+    bouton('outil/navire', t('ecran.editeur.outil.navire'), { geste: 'outil', outil: { mode: 'navire', ref: navire.ref, cap: navire.cap } }, outil.mode === 'navire', refusDuNavire(scene, navire.ref)),
     bouton('outil/emplacement', t('ecran.editeur.outil.emplacement'), { geste: 'outil', outil: { mode: 'emplacement', trappingId: outil.mode === 'emplacement' ? outil.trappingId : siegeEngines()[0].id } }, outil.mode === 'emplacement'),
     bouton('outil/heroStart', t('ecran.editeur.outil.heroStart'), { geste: 'outil', outil: { mode: 'entity', kind: 'heroStart' } }, s.outil.mode === 'entity' && s.outil.kind === 'heroStart'),
     bouton('outil/entry', t('ecran.editeur.outil.entry'), { geste: 'outil', outil: { mode: 'entry' } }, s.outil.mode === 'entry'),
@@ -1310,6 +1335,7 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
   ];
   const couches = etages.map((z) => bouton(`couche/${z}`, t('ecran.editeur.couche', { z }), { geste: 'couche', z }, s.z === z));
   const p = s.pointee;
+  const vue = vueDeLaScene(s);
   return {
     'editeur.titre': [ligne('scene', scene.label || scene.id)],
     'editeur.scenes': scenesDuProjet(s),
@@ -1318,7 +1344,8 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
     'editeur.couches': [
       choix('couches', t('ecran.editeur.couches'), couches),
       bouton('couche/ajouter', t('ecran.editeur.couche.ajouter'), { geste: 'ajouterCouche' }),
-      bouton('couche/retirer', t('ecran.editeur.couche.retirer'), { geste: 'retirerCouche' }, false, s.z === 0 ? t('ecran.editeur.couche.rez') : null),
+      bouton('couche/retirer', t('ecran.editeur.couche.retirer'), { geste: 'retirerCouche' }, false,
+        s.z === 0 ? t('ecran.editeur.couche.rez') : scene.layers.some((l) => l.z === s.z) ? null : t('ecran.editeur.couche.ponts')),
     ],
     'editeur.historique': [
       bouton('annuler', t('ecran.editeur.annuler'), { geste: 'annuler' }, false, s.historique.passe.length ? null : t('ecran.editeur.rien.annuler')),
@@ -1330,7 +1357,7 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
       bouton('tester', t('ecran.editeur.tester'), { geste: 'tester' }),
     ],
     'editeur.pointee': [
-      ...(p ? [ligne('pointee', t('ecran.editeur.pointee', { x: p.x, y: p.y, z: p.z, terrain: terrainLabel(tileAt(scene, p.x, p.y, p.z)), hauteur: heightAt(scene, p.x, p.y, p.z) }))] : []),
+      ...(p ? [ligne('pointee', t('ecran.editeur.pointee', { x: p.x, y: p.y, z: p.z, terrain: terrainLabel(tileAt(vue, p.x, p.y, p.z)), hauteur: heightAt(vue, p.x, p.y, p.z) }))] : []),
       ...ligneDuParapet(s),
       ...ligneDeLArete(s),
       ...ligneDeLaSelection(s),

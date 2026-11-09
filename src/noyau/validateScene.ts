@@ -29,6 +29,7 @@ import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './pl
 import { seatAssignmentDefects } from './monde/seating';
 import { fauteDAppui, type FauteDAppui } from './monde/poseDuDecor';
 import { memoByRefDeps } from './monde/sceneMemo';
+import { poserLesNavires } from './planDeNavire';
 import { allMusicDefs } from '../data/sons/musique';
 
 /** Ce que l'auteur lit d'un appui qui ne tient pas (`fauteDAppui`). */
@@ -250,10 +251,12 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
 
     // Couches (`Scene.layers`) : ids d'étage valides pour rattacher les entités posées en hauteur.
     const layerZs = new Set(s.layers.map((l) => l.z));
+    // Une entité se pose aussi sur les ponts d'un navire, couches que la scène reçoit à son chargement (`poserLesNavires`).
+    const couchesDesEntites = new Set(poserLesNavires(s).layers.map((l) => l.z));
     const realFloor = realFloorAt(s); // plancher RÉEL par étage — la vérité partagée avec la dérivation
     for (const e of s.entities) {
       if (!within(e.pos.x, e.pos.y)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} hors carte (${e.pos.x},${e.pos.y})`);
-      if (e.z && !layerZs.has(e.z)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} sur étage ${e.z} inexistant`);
+      if (e.z && !couchesDesEntites.has(e.z)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} sur étage ${e.z} inexistant`);
       const appui = fauteDAppui(s, e);
       if (appui) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} ${DIT_DE_L_APPUI[appui.faute](appui.support)} — repose-le au glissé`);
       const npc = e.combat?.spells?.length ? sceneNpc(s, e.id, presetDe) : undefined;

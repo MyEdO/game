@@ -2,8 +2,10 @@
 ## il ouvre la campagne du jeu de l'adresse de la page (`?campagne=<id>`, sinon `CAMPAGNE`), telle que le dépôt la sert
 ## (`GET depot/<id>`) s'il la sert, sinon telle que le jeu l'embarque, et applique chaque réponse. Le texte qu'une
 ## réponse donne à enregistrer s'écrit au dépôt (`PUT depot/<id>`), et l'issue de l'écriture revient au pont.
-## Le monde rendu va au monde (`Monde.poser`), sur la couche éditée, avec les arêtes de la couche
-## (`VolumeDeScene.poser_les_aretes`) ; la surcouche : chaque zone de la couche nommée au-dessus de sa première case, les cases de
+## Avant d'ouvrir, il indexe les modèles du serveur (`MontageDeComposition.indexer_les_modeles`), que le pont lit pour
+## servir le corps de chaque navire. Le monde rendu va au monde (`Monde.poser`), sur la couche éditée, avec les arêtes de
+## la couche (`VolumeDeScene.poser_les_aretes`) et les navires de la scène, chacun sous le modèle de son corps
+## (`MontageDesNavires`) ; la surcouche : chaque zone de la couche nommée au-dessus de sa première case, les cases de
 ## la zone sélectionnée en plaques, la poignée de la sélection en survol, puis chaque repère d'une entité ou d'une entrée
 ## de la couche, en plaque sur le sol de sa case, celle du repère sélectionné en survol, et nommé au-dessus d'elle
 ## (`Monde.etiqueter`), puis le geste en cours, en plaques sur le sol de ses cases (`Monde.peindre`), et l'arête sélectionnée, gainée (`Monde.choisir_l_arete`) ; le calque de référence de la couche sous sa planche
@@ -22,6 +24,7 @@ const CAMPAGNE := "la-diligence"
 const CALQUES := "user://calques"
 
 @onready var _monde: Monde = $Monde
+@onready var _navires: MontageDesNavires = $Navires
 @onready var _interface: CanvasLayer = $Interface
 @onready var _refus: Label = $Interface/Avis/Refus
 @onready var _panne: Label = $Interface/Avis/Panne
@@ -56,6 +59,9 @@ func _ready() -> void:
 			(noeud as TextEdit).text_changed.connect(_publier_l_ecran))
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
+	var recueil: Array[String] = await MontageDeComposition.indexer_les_modeles(self)
+	if not recueil.is_empty():
+		_panne.text = "\n".join(PackedStringArray(recueil))
 	var campagne := _pont.parametre("campagne")
 	_campagne = campagne if campagne != "" else CAMPAGNE
 	var ouvrir := {ouvrir = _campagne}
@@ -77,7 +83,7 @@ func _pointer(geste: String, touche: Dictionary) -> void:
 	_jouer({edition = {geste = geste, point = {case = {x = touche.case.x, y = touche.case.y}, f = {x = touche.f.x, y = touche.f.y}}}})
 
 
-## Une réponse de `editer` : le monde et ses arêtes posés s'il y en a un, la surcouche peinte, le calque posé, les zones
+## Une réponse de `editer` : le monde, ses arêtes et ses navires posés s'il y en a un, la surcouche peinte, le calque posé, les zones
 ## montrées, le texte à enregistrer écrit au dépôt, les calques gardés, et la planche demandée choisie ; la scène mise
 ## à l'essai se joue au combat.
 func _suivre(reponse: Dictionary) -> void:
@@ -87,6 +93,7 @@ func _suivre(reponse: Dictionary) -> void:
 	if reponse.has("monde"):
 		_monde.poser(reponse.monde)
 		_monde.volume.poser_les_aretes(reponse.aretes)
+		_navires.poser(reponse.navires, {}, reponse.monde.metresParCase)
 	_vue = reponse.vue
 	_surcouche = reponse.surcouche
 	_monde.choisir_l_arete(_surcouche.arete)
