@@ -365,6 +365,15 @@ func role_du_clip(nom: String) -> String:
 	return ""
 
 
+## Le rôle du clip engagé au lecteur (`role_du_clip`) quand la tenue posée lui donne un autre clip (`clip`) ; `""` sinon,
+## ou sans clip engagé.
+func role_a_rejouer() -> String:
+	if lecteur == null or lecteur.assigned_animation == "":
+		return ""
+	var role := role_du_clip(lecteur.assigned_animation)
+	return "" if role == "" or clip(role) == lecteur.assigned_animation else role
+
+
 ## Les os qui portent `piece` : celui de son `BoneAttachment3D` pour un mesh rigide (l'import glTF le pose sous l'attache
 ## de son os) ; pour un mesh skinné, le nom de chaque liaison de son skin (`Skin.get_bind_name`, posé à l'import par
 ## `scene_du_glb`) ; aucun pour un mesh à la racine.
