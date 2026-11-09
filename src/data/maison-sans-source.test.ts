@@ -72,7 +72,7 @@ describe('maison sans source — collections nominatives', () => {
       'decorPalette', 'defauts-de-compilation', 'donnees.manifest', 'gabarits', 'garde-robe', 'groups', 'lieux-services', 'lightLevels',
       'lightTones', 'materials', 'merchantFamilies', 'merchants', 'names', 'planDeBestiaire', 'pregens',
       'primitives.manifest', 'progression-schemas.derived', 'props',
-      'raceAppearance', 'raw.manifest',
+      'raceAppearance', 'raw.manifest', 'rendus',
       'semences-de-scene', 'speciesRace', 'structureAppearance',
       'systemes.manifest', 'teintesJeu', 'terrains',
     ]);

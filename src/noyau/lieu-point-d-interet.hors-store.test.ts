@@ -25,10 +25,10 @@ function scene(id: string): Scene {
 const worldMap: WorldMap = {
   id: 'poi-carte', label: 'Carte', routes: [],
   places: [{
-    id: 'bourg', label: 'Bourg', pos: { x: 0, y: 0 }, scene: 'poi-place',
+    id: 'bourg', label: 'Bourg', pos: { x: 0, y: 0 }, scene: { id: 'poi-place' },
     poi: [
-      { id: 'poi-cave', label: 'La cave', pos: { x: 10, y: 10 }, sceneId: 'poi-cave' },
-      { id: 'poi-perdu', label: 'Le puits', pos: { x: 20, y: 20 }, sceneId: 'nulle-part' },
+      { id: 'poi-cave', label: 'La cave', pos: { x: 10, y: 10 }, sceneId: { id: 'poi-cave' } },
+      { id: 'poi-perdu', label: 'Le puits', pos: { x: 20, y: 20 }, sceneId: { id: 'nulle-part' } },
       { id: 'poi-auberge', label: 'L’auberge', pos: { x: 30, y: 30 }, serviceKind: 'auberge' },
     ],
   }],

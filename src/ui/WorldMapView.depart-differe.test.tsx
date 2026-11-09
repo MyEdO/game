@@ -28,8 +28,8 @@ beforeAll(() => {
 const carte: WorldMap = {
   id: 'c', label: 'Carte',
   places: [
-    { id: 'auberge', label: 'La Diligence', pos: { x: 10, y: 30 }, scene: 's-auberge' },
-    { id: 'altdorf', label: 'Altdorf', pos: { x: 20, y: 30 }, scene: 's-altdorf' },
+    { id: 'auberge', label: 'La Diligence', pos: { x: 10, y: 30 }, scene: { id: 's-auberge' } },
+    { id: 'altdorf', label: 'Altdorf', pos: { x: 20, y: 30 }, scene: { id: 's-altdorf' } },
   ],
   routes: [{ id: 'auberge-altdorf', a: { id: 'auberge' }, b: { id: 'altdorf' }, km: 30, modes: ['pied'] }],
 };

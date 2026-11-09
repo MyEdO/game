@@ -36,8 +36,8 @@ function scenes(): Scene[] {
 
 function baseMap(): WorldMap {
   const m = emptyWorldMap('carte-test');
-  const place: MapPlace = { id: 'p1', label: 'Altdorf', pos: { x: 10, y: 10 }, scene: 's1' };
-  const place2: MapPlace = { id: 'p2', label: 'Marienburg', pos: { x: 40, y: 20 }, scene: 's2' };
+  const place: MapPlace = { id: 'p1', label: 'Altdorf', pos: { x: 10, y: 10 }, scene: { id: 's1' } };
+  const place2: MapPlace = { id: 'p2', label: 'Marienburg', pos: { x: 40, y: 20 }, scene: { id: 's2' } };
   const route: MapRoute = { id: 'r1', a: { id: 'p1' }, b: { id: 'p2' }, km: 20, modes: ['pied'] };
   return { ...m, places: [place, place2], routes: [route] };
 }

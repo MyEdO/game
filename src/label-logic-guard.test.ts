@@ -163,9 +163,9 @@ describe('garde « logique par libellé » : un corpus, une composition, deux st
     expect(scanLabelLogicFichier(rel, porteur(resolution + resolution), ctx).map((s) => s.statut), 'une clé de couture désigne UN site').toEqual(['nu', 'nu']);
     expect(scanLabelLogicFichier(rel, `export function autre(label: string): Sonde | undefined {\n${resolution}}\n`, ctx).map((s) => s.statut)).toEqual(['nu']);
     const faute = "x.label === 'Épée';"; // deux volets sans stock : `label-logic`, puis `label-literal`
-    const dette = Object.keys(DETTES_DE_LIBELLE).find((k) => k.endsWith('#label-entity-resolver-call'))!;
+    const dette = Object.keys(DETTES_DE_LIBELLE).find((k) => k.endsWith('#face-affichage-identite'))!;
     const f = fichierDeDette(dette);
-    const sites = scanLabelLogicFichier(f, `${faute}\nresoudre(nom);\n`, { ...ctx, resolveurs: new Set(['resoudre']) });
+    const sites = scanLabelLogicFichier(f, `${faute}\nexport const c = face(ref) === x;\n`, { ...ctx, faces: new Map([['face', 'src/data/index.ts']]) });
     expect(sites.map((s) => [cleDeDette(s), s.statut])).toEqual([[`${f}#label-logic`, 'nu'], [`${f}#label-literal`, 'nu'], [dette, 'dette']]);
     expect(scanLabelLogicFichier('src/scenes/sonde.ts', faute, ctx).map((s) => s.statut)).toEqual(['nu', 'nu']);
   });

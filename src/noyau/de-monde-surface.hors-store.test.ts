@@ -228,7 +228,7 @@ const marche = (id: string, label: string) => buildScene({ id, label, desc: '.',
 function carte(): WorldMap {
   return {
     id: 'm', label: 'Le Reik',
-    places: [{ id: 'B', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: 'marche-b', market: profile() }],
+    places: [{ id: 'B', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: { id: 'marche-b' }, market: profile() }],
     routes: [],
   };
 }
@@ -694,16 +694,16 @@ describe('#1426 — la fenêtre de LOT d’un étal (halle terrestre)', () => {
 const carteMonde: WorldMap = {
   id: 'cm', label: 'Reikland',
   places: [
-    { id: 'pa', label: 'A', pos: { x: 20, y: 50 }, scene: 'monde-a' },
-    { id: 'pb', label: 'B', pos: { x: 70, y: 40 }, scene: 'monde-b' },
+    { id: 'pa', label: 'A', pos: { x: 20, y: 50 }, scene: { id: 'monde-a' } },
+    { id: 'pb', label: 'B', pos: { x: 70, y: 40 }, scene: { id: 'monde-b' } },
   ],
   routes: [{ id: 'rt', a: { id: 'pa' }, b: { id: 'pb' }, km: 400, modes: ['pied'], perilDie: 0 }],
 };
 const carteMer: WorldMap = {
   id: 'cmer', label: 'Mer des Griffes',
   places: [
-    { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'monde-a' },
-    { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'monde-b', port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
+    { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: { id: 'monde-a' } },
+    { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: { id: 'monde-b' }, port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
   ],
   routes: [{ id: 'rmer', a: { id: 'A' }, b: { id: 'B' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
 };

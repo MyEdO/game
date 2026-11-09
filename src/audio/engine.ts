@@ -7,6 +7,7 @@
  * la musique se relance au premier geste utilisateur.
  */
 import { SOUND_DEFS } from '../data/sons/_registry.generated';
+import { findSonById } from '../data/sons/registre';
 import type { SoundDef } from '../data/sons/types';
 import { musicDefsFor, type MusicSelection } from '../data/sons/musique';
 import { lireDictionnaire } from '../lib/stockage';
@@ -14,7 +15,6 @@ import { stockageWeb } from '../web/stockageWeb';
 import { entierDEntropie } from '../web/entropie';
 
 const LS_KEY = 'wfrp4.audio';
-const byId = new Map<string, SoundDef>(SOUND_DEFS.map((d) => [d.id, d]));
 
 export interface AudioPrefs {
   volume: number; // effets 0..1
@@ -71,7 +71,7 @@ export function setMuted(m: boolean): void {
 /** Joue un son du registre (variante au hasard). No-op : sourdine, id inconnu, hors navigateur. */
 export function playSfx(id: string): void {
   if (prefs.muted || prefs.volume <= 0 || typeof Audio === 'undefined') return;
-  const def = byId.get(id);
+  const def = findSonById(id);
   if (!def || !def.files.length) return;
   const file = def.files[entierDEntropie(def.files.length)];
   const a = new Audio(`${import.meta.env.BASE_URL}audio/${file}`);

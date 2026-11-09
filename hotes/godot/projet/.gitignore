@@ -1,6 +1,7 @@
 .godot/
 # Les GLB se tirent de la Release des modèles (`hotes/godot/asset/release.ts`, #2948).
 /modeles/*.glb
-# Les textures du sol et le kit des arêtes aussi (`hotes/godot/asset/epingles.ts`, #3476).
+# Les textures du sol, le kit des arêtes et les sons aussi (`hotes/godot/asset/epingles.ts`, #3476, #3771).
 /textures/*.jpg
 /kit/*.glb
+/sons/*.ogg

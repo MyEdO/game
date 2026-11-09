@@ -396,7 +396,7 @@ export function ouvrirLeMarchand(get: Get, set: Set, entityId: string): void {
 /** Les services à échoppe (`merchantArchetype`) du lieu où se tient le groupe (`lieuDuGroupe`). */
 export function echoppesDuLieu(s: Jeu): ResolvedPlaceService[] {
   const ici = lieuDuGroupe(s);
-  return ici ? placeServices(ici, sceneDuRegistre(ici.scene)).filter((svc) => svc.merchantArchetype) : [];
+  return ici ? placeServices(ici, sceneDuRegistre(ici.scene.id)).filter((svc) => svc.merchantArchetype) : [];
 }
 
 /** Marchand de LIEU (#369) — ouvre le système marchand EXISTANT pour l'échoppe `serviceId` du lieu du groupe

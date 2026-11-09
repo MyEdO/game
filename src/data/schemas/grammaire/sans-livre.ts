@@ -18,6 +18,7 @@ export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
   decorPalette: 'configuration de rendu — palette de teintes du décor, valeurs d’art',
   lightLevels: 'configuration de rendu — paliers d’éclairage du monde volumique',
   lightTones: 'configuration de rendu — teintes de lumière du monde volumique',
+  rendus: 'configuration de rendu — visuels et sons des coups et des incantations, aucun folio ne les imprime',
   props:
     'catalogue des placeables de décor — le DOCUMENT est de l’art (volume, libellé, empreinte, et la solidité physique de l’objet : aucune table ne chiffre qu’un tonneau bloque le passage). Trois de ses CHAMPS sont des règles et ne sont pas couverts par cette exemption : `light` (éclairage, LDB 74 l.43/56/58), `cover` et `opaque` (couvert, LDB 14 l.72/81/86) — les entrées qui en portent un exigent `source` OU `maison` À L’ENTRÉE, par `affinerEntree` de `schemas/defs/props.ts`, et chacune porte son `maison`',
   raceAppearance: 'configuration de rendu — apparences par race, art maison',

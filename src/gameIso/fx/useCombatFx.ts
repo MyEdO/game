@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGame } from '../../state/store';
 import { bus, EVT } from '../../noyau/bus';
-import { isSupportiveCast, spellFxForLabel } from './spellClips';
+import { spellFxForSpell } from './spellClips';
 import { conditionMeta } from '../effectIcons';
 import { conditionLabel } from '../../data';
 import type { Combatant } from '../../engine/types';
@@ -33,7 +33,7 @@ export const FLOAT_COLOR: Record<FloatKind, string> = {
 };
 
 // Projectiles volants (distance + sort-missile) : vol from→to synchronisé à l'impact.
-// `gradient` = tintage à l'école pour un sort (cf. spellFxForLabel) ; absent pour une flèche.
+// `gradient` = tintage à l'école pour un sort (cf. spellFxForSpell) ; absent pour une flèche.
 export type Proj = { key: number; from: { x: number; y: number }; to: { x: number; y: number }; kind: string; gradient?: string };
 
 // Halos d'incantation, tintés à l'école (arcane/divin). Deux usages :
@@ -142,20 +142,18 @@ export function useCombatFx() {
       const to = b?.combatants.find((c) => c.id === d.to)?.pos;
       if (!from || !to) return;
       if (d.kind === 'spell') {
-        const fx = spellFxForLabel(d.spell);
+        const fx = spellFxForSpell(d.spell);
         // Canalisation à l'école sur le lanceur (toute incantation : offensive ou soutien).
         const ck = ++auraId.current;
         setAuras((a) => [...a, { key: ck, x: from.x, y: from.y, gradient: fx.gradient, core: fx.core, channel: true }]);
         setTimeout(() => setAuras((a) => a.filter((x) => x.key !== ck)), 480);
-        const caster = b?.combatants.find((c) => c.id === d.from);
-        const tgt = b?.combatants.find((c) => c.id === d.to);
-        if (isSupportiveCast(caster?.kind, tgt?.kind, d.from === d.to)) {
-          const key = ++auraId.current; // soutien : halo sur la cible, pas de projectile
+        if (!d.projectile) {
+          const key = ++auraId.current; // incantation sans projectile : halo sur la cible
           setAuras((a) => [...a, { key, x: to.x, y: to.y, gradient: fx.gradient, core: fx.core }]);
           setTimeout(() => setAuras((a) => a.filter((x) => x.key !== key)), 620);
           return;
         }
-        const key = ++projId.current; // offensif : projectile magique tinté
+        const key = ++projId.current; // Projectile : trait magique tinté
         setProjs((p) => [...p, { key, from, to, kind: d.kind, gradient: fx.gradient }]);
         setTimeout(() => setProjs((p) => p.filter((x) => x.key !== key)), 340);
         return;

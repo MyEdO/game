@@ -134,6 +134,8 @@ const doc = document(
     categorie: trappingCategorieSchema,
     subType: ref('weaponGroup').nullable(),
     weaponGroup: ref('weaponGroup').optional(),
+    /** #3771 */
+    rendu: ref('rendu').optional(),
     soloSimple: z.boolean().optional(),
     /** LDB 62 l.28 */
     unarmed: z.literal(true).optional(),
@@ -212,6 +214,10 @@ const doc = document(
     weaponGroup: {
       label: 'Groupe d’armes',
       hint: 'Groupe d’armes régissant cette arme (Qualités communes, Spécialisation de Groupe)',
+    },
+    rendu: {
+      label: 'Rendu du coup',
+      hint: 'Rendu visuel et sonore de l’arme (`rendus.json`), à la place de celui de son Groupe : un engin de siège, dont le Groupe dit qui le sert, pas ce qu’il tire',
     },
     soloSimple: {
       label: 'Simple en solo',

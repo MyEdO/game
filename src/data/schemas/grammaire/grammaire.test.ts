@@ -723,7 +723,8 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     //   #1667 : `oups`, `interludeEvents`, `steam-breakdown`, `stars` et `peripeties` deviennent des
     //         documents mono-tables `config` (84 → 79) — leurs lignes passent en `rangee`.
     //   #2993 : `planDeBestiaire` naît SCELLÉ (79 → 80) — le plan de bestiaire devient un dataset.
-    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 80, mesures: 0 });
+    //   #3771 : `rendus` naît SCELLÉ (80 → 81) — le catalogue des rendus des coups et des incantations.
+    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 81, mesures: 0 });
   });
 
 });

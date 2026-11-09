@@ -66,8 +66,8 @@ function skill(c: Combatant, skillId: string, advances: number, spec?: string): 
 const seaMap: WorldMap = {
   id: 'm', label: 'Mer des Griffes',
   places: [
-    { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a' },
-    { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b' },
+    { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: { id: 'port-a' } },
+    { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: { id: 'port-b' } },
   ],
   routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
 };
@@ -132,8 +132,8 @@ function riverMap(extra: Partial<MapRouteTrace> = {}): WorldMap {
   return {
     id: 'm', label: 'Le Reik',
     places: [
-      { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: 'quai-a' },
-      { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: 'quai-b' },
+      { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'quai-a' } },
+      { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: { id: 'quai-b' } },
     ],
     routes: [{ id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 45, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0, ...extra }],
   };
@@ -198,8 +198,8 @@ describe('#1262 V2 — l’allure FORCÉE ouvre sa cascade pour le conducteur d�
         buildScene({ id: 'lieu-b', label: 'B', desc: '.', size: [8, 6], terrain: 'herbe', heroStart: [2, 3] })],
       entryId: 'lieu-a',
       worldMap: { id: 'c', label: 'c', places: [
-        { id: 'pa', label: 'A', pos: { x: 0, y: 0 }, scene: 'lieu-a' },
-        { id: 'pb', label: 'B', pos: { x: 70, y: 0 }, scene: 'lieu-b' },
+        { id: 'pa', label: 'A', pos: { x: 0, y: 0 }, scene: { id: 'lieu-a' } },
+        { id: 'pb', label: 'B', pos: { x: 70, y: 0 }, scene: { id: 'lieu-b' } },
       ], routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km: 20, modes: ['diligence', 'pied'], perilDie: 0 }] } as WorldMap,
       projet: null,
     });

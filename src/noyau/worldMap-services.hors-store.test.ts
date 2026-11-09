@@ -16,7 +16,7 @@ import type { LandMarketProfile } from '../engine/landCargo';
 const market: LandMarketProfile = { taille: 3, richesse: 2, produits: ['commerce-terre'] };
 
 const place = (over: Partial<MapPlace> = {}): MapPlace => ({
-  id: 'bogenhafen', label: 'Bögenhafen', pos: { x: 40, y: 30 }, scene: 'sc-bogen', ...over,
+  id: 'bogenhafen', label: 'Bögenhafen', pos: { x: 40, y: 30 }, scene: { id: 'sc-bogen' }, ...over,
 });
 
 const townPlace = (): MapPlace => place({
