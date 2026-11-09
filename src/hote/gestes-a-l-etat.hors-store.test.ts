@@ -46,14 +46,12 @@ describe('une fenêtre ouverte n’offre que ce que son verbe accepte', () => {
       const b = etat.battle!;
       expect(b.combatants.some((c) => c.kind !== 'hero'), 'témoin : le dome a des ennemis').toBe(true);
       const camp = (id: unknown) => b.combatants.find((c) => c.id === id)?.kind;
-      const promouvoir = argumentDe(etat, 'promouvoirLeCombattant', 'heroId');
+      const promouvoir = argumentDe(etat, 'fenetreChoisir@roundStart#promouvoir', 'valeur');
       expect(promouvoir.saisie).toBe('choix');
       expect(promouvoir.valeurs!.length, 'témoin : un héros peut agir en premier').toBeGreaterThan(0);
-      expect(promouvoir.valeurs!.map((v) => camp(v.valeur)), 'promouvoirLeCombattant offre un non-héros').toEqual(promouvoir.valeurs!.map(() => 'hero'));
+      expect(promouvoir.valeurs!.map((v) => camp(v.valeur)), 'promouvoir offre un non-héros').toEqual(promouvoir.valeurs!.map(() => 'hero'));
       expect(promouvoir.valeurs!.every((v) => v.libelle === b.combatants.find((c) => c.id === v.valeur)!.label)).toBe(true);
-      const preempter = argumentDe(etat, 'armerLeTirPreventif', 'heroId');
-      expect(preempter.saisie).toBe('choix');
-      expect(preempter.valeurs!.filter((v) => v.valeur !== null).map((v) => camp(v.valeur)), 'armerLeTirPreventif offre un non-héros').toEqual(preempter.valeurs!.filter((v) => v.valeur !== null).map(() => 'hero'));
+      expect(argumentDe(etat, 'fenetreChoisir@roundStart#viser', 'valeur').valeurs, 'sans tireur, aucune visée ne s’offre').toEqual([]);
       expect(fenetreADessiner(etat)!.gestes.find((g) => g.verbe === 'fenetreValider')!.rendu).toBe('bouton');
     });
   });
