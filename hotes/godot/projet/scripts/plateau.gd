@@ -85,20 +85,29 @@ func montrer(vue: Dictionary) -> void:
 	_peindre()
 
 
-## Rend `effets` (`suite.effets`, `Effets.jouer`) entre les combattants dessinés : l'auteur d'un coup ou d'une
-## incantation se tourne vers sa cible et l'anime à son départ, la cible d'un coup qui touche l'accuse à son arrivée.
+## Rend `effets` (`suite.effets`, `Effets.jouer`) entre les combattants dessinés et sur le sol des cases de chaque
+## zone : l'auteur d'un coup, d'une incantation ou d'une zone se tourne vers sa cible et l'anime à son départ, la cible
+## d'un coup qui touche l'accuse à son arrivée.
 func jouer_les_effets(effets: Array) -> void:
 	if _vue.plateau == null:
 		return
 	var lieux := {}
 	for id: String in _modeles:
 		lieux[id] = _modeles[id].position
+	for effet: Dictionary in effets:
+		if effet.quoi == "zone":
+			var cases: Array = effet.cases.duplicate()
+			cases.append(effet.centre)
+			for case: Dictionary in cases:
+				lieux[Effets.cle_de_case(case)] = _lieu([case.x, case.y, case.get("z", 0)])
 	_effets.jouer(effets, lieux, _vue.plateau.metresParCase)
 
 
-func _agir(de: String, vers: String) -> void:
-	if de != vers:
-		_modeles[de].agir_vers(_modeles[vers].position)
+## L'auteur `de` d'un effet se tourne vers `vers` et s'anime, sauf sur lui-même (un sort sur soi, un hurlement).
+func _agir(de: String, vers: Vector3) -> void:
+	var auteur: Node3D = _modeles[de]
+	if not auteur.position.is_equal_approx(vers):
+		auteur.agir_vers(vers)
 
 
 func _subir(vers: String, touche: bool) -> void:

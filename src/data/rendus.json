@@ -327,7 +327,11 @@
     "impactSon": {
       "id": "sort-feu"
     },
-    "manqueVisuel": "gerbe-de-flammes"
+    "manqueVisuel": "gerbe-de-flammes",
+    "zoneVisuel": "nappe-de-flammes",
+    "zoneSon": {
+      "id": "sort-feu"
+    }
   },
   {
     "id": "priere",
@@ -346,5 +350,161 @@
       "id": "sort"
     },
     "manqueVisuel": "halo"
+  },
+  {
+    "id": "souffle",
+    "type": "rendus",
+    "label": "Souffle",
+    "couleur": "#d0d0d0",
+    "departSon": {
+      "id": "souffle"
+    },
+    "projectile": "jet-de-souffle",
+    "vitesseMs": 18,
+    "cloche": 0,
+    "zoneVisuel": "nuage"
+  },
+  {
+    "id": "souffle-de-feu",
+    "type": "rendus",
+    "label": "Souffle de feu",
+    "couleur": "#ff6a20",
+    "departSon": {
+      "id": "souffle"
+    },
+    "projectile": "jet-de-flammes",
+    "vitesseMs": 18,
+    "cloche": 0,
+    "zoneVisuel": "nappe-de-flammes",
+    "zoneSon": {
+      "id": "sort-feu"
+    }
+  },
+  {
+    "id": "souffle-de-froid",
+    "type": "rendus",
+    "label": "Souffle de froid",
+    "couleur": "#a8dcff",
+    "departSon": {
+      "id": "souffle"
+    },
+    "projectile": "jet-de-souffle",
+    "vitesseMs": 18,
+    "cloche": 0,
+    "zoneVisuel": "nuage"
+  },
+  {
+    "id": "souffle-corrosif",
+    "type": "rendus",
+    "label": "Souffle corrosif",
+    "couleur": "#a6d03a",
+    "departSon": {
+      "id": "souffle"
+    },
+    "projectile": "jet-de-souffle",
+    "vitesseMs": 18,
+    "cloche": 0,
+    "zoneVisuel": "nuage"
+  },
+  {
+    "id": "souffle-electrique",
+    "type": "rendus",
+    "label": "Souffle électrique",
+    "couleur": "#ffe066",
+    "departSon": {
+      "id": "souffle"
+    },
+    "projectile": "jet-de-souffle",
+    "vitesseMs": 18,
+    "cloche": 0,
+    "zoneVisuel": "etincelles"
+  },
+  {
+    "id": "souffle-empoisonne",
+    "type": "rendus",
+    "label": "Souffle empoisonné",
+    "couleur": "#6fbf3f",
+    "departSon": {
+      "id": "souffle"
+    },
+    "projectile": "jet-de-souffle",
+    "vitesseMs": 18,
+    "cloche": 0,
+    "zoneVisuel": "nuage"
+  },
+  {
+    "id": "souffle-de-fumee",
+    "type": "rendus",
+    "label": "Souffle de fumée",
+    "couleur": "#808080",
+    "departSon": {
+      "id": "souffle"
+    },
+    "projectile": "jet-de-souffle",
+    "vitesseMs": 18,
+    "cloche": 0,
+    "zoneVisuel": "nuage"
+  },
+  {
+    "id": "souffle-gluant",
+    "type": "rendus",
+    "label": "Bave gluante",
+    "couleur": "#c2cc6a",
+    "departSon": {
+      "id": "souffle"
+    },
+    "projectile": "jet-de-souffle",
+    "vitesseMs": 18,
+    "cloche": 0,
+    "zoneVisuel": "nuage"
+  },
+  {
+    "id": "souffle-soporifique",
+    "type": "rendus",
+    "label": "Souffle soporifique",
+    "couleur": "#c8a8e8",
+    "departSon": {
+      "id": "souffle"
+    },
+    "projectile": "jet-de-souffle",
+    "vitesseMs": 18,
+    "cloche": 0,
+    "zoneVisuel": "nuage"
+  },
+  {
+    "id": "souffle-de-cauchemars",
+    "type": "rendus",
+    "label": "Souffle de cauchemars",
+    "couleur": "#5a2a7a",
+    "departSon": {
+      "id": "souffle"
+    },
+    "projectile": "jet-de-souffle",
+    "vitesseMs": 18,
+    "cloche": 0,
+    "zoneVisuel": "nuage"
+  },
+  {
+    "id": "vomissement",
+    "type": "rendus",
+    "label": "Vomissement",
+    "couleur": "#8f9a3a",
+    "departSon": {
+      "id": "vomissement"
+    },
+    "projectile": "jet-de-souffle",
+    "vitesseMs": 12,
+    "cloche": 0.15,
+    "zoneVisuel": "nuage"
+  },
+  {
+    "id": "hurlement",
+    "type": "rendus",
+    "label": "Hurlement",
+    "couleur": "#e8e8ff",
+    "departSon": {
+      "id": "hurlement"
+    },
+    "zoneVisuel": "onde"
   }
 ]
