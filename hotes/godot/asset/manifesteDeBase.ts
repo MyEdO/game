@@ -1,6 +1,6 @@
 /**
- * LE MANIFESTE D'UNE BASE, c'est-à-dire d'un CORPS (#2972, #2991, schéma 5) : son squelette, ses chaînes d'appendice, ses
- * zones, ses emplacements, ses prises s'il en a, ses shape keys, la table du gabarit du seul corps qui en porte (la base
+ * LE MANIFESTE D'UNE BASE, c'est-à-dire d'un CORPS (#2972, #2991, #2992, schéma 6) : son squelette, ses bornes
+ * articulaires, ses chaînes d'appendice, ses zones, ses emplacements, ses prises s'il en a, ses shape keys, la table du gabarit du seul corps qui en porte (la base
  * humanoïde), son porteur de référence, sa table rôle → clip, ses appuis et ses os à position animée, et ses surfaces
  * (`surfaces.ts`), validés contre le GLB livré (`lireGlb`, `glb.ts`). Les rôles et les clips de la table se jugent dans le
  * graphe de l'hôte (`ecartsDeClips`, `clips.ts`).
@@ -15,7 +15,7 @@ import { FACTEURS_NEUTRES } from './facteursDuGabarit.ts';
 import { ecartsAuGlb, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
 import type { TableDeClips, TablesDeuxMains } from './clips.ts';
 
-export const VERSION_DU_SCHEMA_DE_BASE = 5;
+export const VERSION_DU_SCHEMA_DE_BASE = 6;
 
 export const CLES_DU_GABARIT = ['legs', 'arms', 'head'] as const;
 export const PREFIXE_DES_CLES_DU_GABARIT = 'gabarit_';
@@ -37,6 +37,13 @@ export interface TableDeGabarit {
   /** Les bornes de `st` : `carrure_moins` atteint 1 à `min`, `carrure_plus` atteint 1 à `max`. */
   readonly st: { readonly min: number; readonly max: number };
 }
+
+/** Les axes du vecteur de rotation d'un os depuis son repos, dans le repère de l'os au repos (`gardes/amplitude.ts`). */
+export const AXES_ARTICULAIRES = ['x', 'y', 'z'] as const;
+
+/** Par os du corps, par axe, `[min, max]` en degrés de la composante du vecteur de rotation de l'os depuis son repos ;
+ *  `-180 <= min <= 0 <= max <= 180`. Un os libre se déclare en `[-180, 180]` sur chaque axe. */
+export type BornesArticulaires = Readonly<Record<string, Readonly<Record<typeof AXES_ARTICULAIRES[number], readonly [number, number]>>>>;
 
 /** Le porteur de la planche du corps : son espèce au plan de bestiaire, son gabarit si le corps porte la table du
  *  gabarit, et sa Taille, par id, à l'échelle d'art `echelleDArt`. */
@@ -64,6 +71,7 @@ export interface ManifesteDeBase {
   readonly schema: typeof VERSION_DU_SCHEMA_DE_BASE;
   readonly base: string;
   readonly os: readonly string[];
+  readonly bornesArticulaires: BornesArticulaires;
   readonly chaines: Readonly<Record<string, readonly string[]>>;
   readonly zones: readonly string[];
   readonly emplacements: Readonly<Record<string, Attache>>;
@@ -112,7 +120,7 @@ export type VerdictDeBase = { readonly ok: true; readonly manifeste: ManifesteDe
 
 type Brut = Record<string, unknown>;
 
-/** La réduction de `brut` au schéma 5, ou ses écarts de forme. */
+/** La réduction de `brut` au schéma 6, ou ses écarts de forme. */
 function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeBase[] } {
   const ecarts: EcartDeBase[] = [];
   const forme = (ou: string, detail: string) => ecarts.push({ code: 'forme', ou, detail });
@@ -149,6 +157,16 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
   };
   const base = chaine(brut.base, 'base');
   const os = liste(brut.os, 'os');
+  const bornesArticulaires = Object.fromEntries(Object.entries(objet(brut.bornesArticulaires, 'bornesArticulaires')).map(([nom, b]) => {
+    const ou = `bornesArticulaires.${nom}`, parAxe = objet(b, ou);
+    for (const cle of Object.keys(parAxe)) if (!(AXES_ARTICULAIRES as readonly string[]).includes(cle)) forme(`${ou}.${cle}`, 'champ inconnu');
+    return [nom, tableTotale(AXES_ARTICULAIRES, (axe): readonly [number, number] => {
+      const plage = parAxe[axe];
+      if (Array.isArray(plage) && plage.length === 2 && plage.every((v) => typeof v === 'number' && Number.isFinite(v)) && -180 <= plage[0] && plage[0] <= 0 && plage[1] >= 0 && plage[1] <= 180) return [plage[0], plage[1]];
+      forme(`${ou}.${axe}`, '[min, max] en degrés, -180 <= min <= 0 <= max <= 180 attendu');
+      return [0, 0];
+    })];
+  }));
   const chaines = Object.fromEntries(Object.entries(objet(brut.chaines, 'chaines')).map(([id, c]) => [id, liste(c, `chaines.${id}`)]));
   const zones = liste(brut.zones, 'zones');
   const emplacements = Object.fromEntries(Object.entries(objet(brut.emplacements, 'emplacements')).flatMap(([id, e]) => {
@@ -251,10 +269,10 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
   const glb = objet(brut.glb, 'glb');
   const empreinte = { sha256: chaine(glb.sha256, 'glb.sha256'), octets: nombre(glb.octets, 'glb.octets') };
   if (ecarts.length || (prisesBrutes && (!prises.main || !prises.off))) return { ecarts };
-  return { ecarts, manifeste: { schema: VERSION_DU_SCHEMA_DE_BASE, base, os, chaines, zones, emplacements, ...(prises.main && prises.off ? { prises: { main: prises.main, off: prises.off } } : {}), silhouettes, ...(gabarit ? { gabarit } : {}), porteur, clips: { ...clips, walk: clips.walk }, ...(clipsDeuxMains ? { clipsDeuxMains } : {}), appuis, osAPositionAnimee, ...(lues ? { surfaces: lues.surfaces } : {}), glb: empreinte } };
+  return { ecarts, manifeste: { schema: VERSION_DU_SCHEMA_DE_BASE, base, os, bornesArticulaires, chaines, zones, emplacements, ...(prises.main && prises.off ? { prises: { main: prises.main, off: prises.off } } : {}), silhouettes, ...(gabarit ? { gabarit } : {}), porteur, clips: { ...clips, walk: clips.walk }, ...(clipsDeuxMains ? { clipsDeuxMains } : {}), appuis, osAPositionAnimee, ...(lues ? { surfaces: lues.surfaces } : {}), glb: empreinte } };
 }
 
-/** Le manifeste `brut` réduit au schéma 5 et validé contre le GLB de la base `octets`. */
+/** Le manifeste `brut` réduit au schéma 6 et validé contre le GLB de la base `octets`. */
 export function validerManifesteDeBase(brut: unknown, octets: Uint8Array): VerdictDeBase {
   const { manifeste: m, ecarts } = reduire(brut);
   if (!m) return { ok: false, ecarts };
@@ -268,7 +286,9 @@ export function validerManifesteDeBase(brut: unknown, octets: Uint8Array): Verdi
     ...m.appuis.pieds.map((o, i): [string, string] => [`appuis.pieds.${i}`, o]),
     ...m.appuis.plusBas.flatMap((c, i) => c.os.map((o, j): [string, string] => [`appuis.plusBas.${i}.os.${j}.nom`, o.nom])),
     ...m.osAPositionAnimee.map((o, i): [string, string] => [`osAPositionAnimee.${i}`, o]),
+    ...Object.keys(m.bornesArticulaires).map((o): [string, string] => [`bornesArticulaires.${o}`, o]),
   ];
+  for (const o of m.os) if (!(o in m.bornesArticulaires)) refus('forme', `bornesArticulaires.${o}`, `l’os déclaré ${o} n’a pas de bornes`);
   for (const [ou, o] of osNommes) if (!declares.has(o)) refus('os-inconnu', ou, `${o} n’est pas un os déclaré`);
   for (const [id, c] of Object.entries(m.chaines)) c.forEach((o, i) => { if (!declares.has(o) || !contenu.os.has(o)) refus('chaine-sur-os-absent', `chaines.${id}.${i}`, o); });
   for (const z of m.zones) if (!contenu.zones.has(z)) refus('zone-sans-mesh', `zones`, `aucun mesh du GLB ne porte \`extras.zone = ${z}\``);

@@ -1,9 +1,10 @@
 /**
  * L'ÉCHANTILLONNAGE D'UNE SCÈNE ANIMÉE (#2972, #3098) : pour chaque (clip, t) de la grille à pas fixe et des clés du clip, les positions monde déformées de chaque
  * sommet des meshes demandés (`getVertexPosition` : shape keys et skinning) et les matrices monde des os, joués par
- * `AnimationMixer` ; et la même mesure sur la pose de repos, gabarit et silhouettes appliqués.
+ * `AnimationMixer` ; la même mesure sur la pose de repos, gabarit et silhouettes appliqués ; et la rotation locale d'un
+ * os, tirée des matrices monde d'une pose (`rotationLocale`).
  */
-import { AnimationMixer, LoopOnce, Vector3, type AnimationClip, type Bone, type Matrix4, type Mesh, type Object3D } from 'three';
+import { AnimationMixer, LoopOnce, Matrix4, Vector3, type AnimationClip, type Bone, type Mesh, type Object3D, type Quaternion } from 'three';
 import { reposerGabarit, type GabaritPose } from './gabarit.ts';
 import seuils from './gardes/seuils.json';
 
@@ -48,6 +49,20 @@ function poseCourante(scene: Object3D, meshes: readonly Mesh[]): Pose {
 
 /** La pose de repos de `scene` (gabarit et silhouettes déjà posés) pour `meshes`. */
 export const poseDeRepos = (scene: Object3D, meshes: readonly Mesh[]): Pose => poseCourante(scene, meshes);
+
+const parent = new Matrix4();
+const locale = new Matrix4();
+const position = new Vector3();
+const echelle = new Vector3();
+
+/** La rotation locale de l'os `os` dans `pose`, sous l'os `nomDuParent`, ou dans le monde si la pose n'a pas cet os. */
+export function rotationLocale(pose: Pose, os: string, nomDuParent: string | undefined, sortie: Quaternion): Quaternion {
+  const monde = pose.os.get(os);
+  if (!monde) throw new Error(`échantillonnage : os ${os} absent de la pose`);
+  const du = nomDuParent === undefined ? undefined : pose.os.get(nomDuParent);
+  locale.copy(du ? parent.copy(du).invert().multiply(monde) : monde).decompose(position, sortie, echelle);
+  return sortie;
+}
 
 /** Deux instants plus proches que cet écart, en secondes, sont un seul instant (clés glTF en float32). Partagé avec la
  *  construction (`scripts/personnage-3d/seuils.py`) : `gardes/seuils.json`. */
