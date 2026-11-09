@@ -7,9 +7,11 @@ import { structureAppearances } from '../../data';
 import type { FamilleDuKit, StructureAppearanceDef } from '../../data/structureAppearance.types';
 import { apparenceDArete, edgeKey, facadeEdges } from './facades';
 import type { Pt } from './path';
-import { EYE_H } from './iso';
+import { EYE_H, hauteurDeLOeil } from './iso';
 import { METRES_PER_LEVEL } from './relief';
-import { casesDeFace, heightAt, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
+import { casesDeFace, heightAt, isWalkable, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
+import { memoByRef } from './sceneMemo';
+import { spaceCellKey } from './volume/architectureVisibility';
 import type { Rot } from '../../geometry/iso';
 import { cutawayOverhead, frontFacadeCutaway, type ClearedSpace } from './volume/architectureVisibility';
 import { clearedSpace } from './volume/toits';
@@ -139,14 +141,29 @@ export function volumeDuRegard(scene: Scene, allies: readonly Pt[], regard: Rega
   return volumeDuMonde(scene, activeZ, couvercle);
 }
 
+/** La hauteur de l'œil de chaque case marchable de `scene` où elle est plus basse que debout (`hauteurDeLOeil`), par
+ *  sa clé `x,y,z` (`spaceCellKey`). Mémoïsée par scène. */
+const oeilsSousPlafond = memoByRef((scene: Scene): Record<string, number> => {
+  const { w, h } = scene.dimensions;
+  const oeils: Record<string, number> = {};
+  for (const { z } of scene.layers)
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        if (!isWalkable(scene, x, y, z)) continue;
+        const oeil = hauteurDeLOeil(scene, { x, y, z });
+        if (oeil < EYE_H) oeils[spaceCellKey(x, y, z)] = oeil;
+      }
+  return oeils;
+});
+
 /** Le plateau d'une scène tel qu'un hôte le dessine sous le regard `regard` : ses dimensions, les arêtes de toutes ses
  *  couches hors des ponts de ses navires (`aretesHorsDesNavires`, `areteDessinee`), son échelle métrique (`sceneMetresPerTile`), la hauteur de l'œil au-dessus du sol
- *  (`EYE_H`), le regard et celui qui le suit dans `REGARDS`, la clé du volume que le regard demande (`cleDuMonde`, qui change quand `volumeDuRegard` ou `meteoDuRegard` changent, décors posés ou retirés en jeu compris : `empreinteDesDecors`), ce que
+ *  debout (`EYE_H`) et sous le plafond de chaque case qui l'abaisse (`oeilsSousPlafond`), le regard et celui qui le suit dans `REGARDS`, la clé du volume que le regard demande (`cleDuMonde`, qui change quand `volumeDuRegard` ou `meteoDuRegard` changent, décors posés ou retirés en jeu compris : `empreinteDesDecors`), ce que
  *  le regard retire pour le groupe posé sur `allies` : les nappes de toit (`toitsLeves` : en tactique, celles qu'il
  *  dégage ; au plateau, toutes), les arêtes (`aretesDegagees` : en tactique, celles qu'il dégage ; au plateau,
  *  celles des couches au-dessus de la sienne, sous tout cran) et le haut des navires (`coupesDesNavires`, la hauteur de
  *  la coupe de chacun, `retraitDuRegard`) ; et les couronnes crénelées tombées (`couronnesAbattues`). */
-export function plateauDeLaScene(scene: Scene, allies: readonly Pt[], regard: Regard): { w: number; h: number; metresParCase: number; oeilM: number; regard: Regard; regardSuivant: Regard; cleDuMonde: string; aretes: AreteDessinee[]; aretesDegagees: AreteDegagee[]; toitsLeves: string[]; couronnesAbattues: string[]; coupesDesNavires: Record<string, number> } {
+export function plateauDeLaScene(scene: Scene, allies: readonly Pt[], regard: Regard): { w: number; h: number; metresParCase: number; oeilM: number; oeilsSousPlafond: Record<string, number>; regard: Regard; regardSuivant: Regard; cleDuMonde: string; aretes: AreteDessinee[]; aretesDegagees: AreteDegagee[]; toitsLeves: string[]; couronnesAbattues: string[]; coupesDesNavires: Record<string, number> } {
   const { w, h } = scene.dimensions;
   const { activeZ, couvercle, coupes } = retraitDuRegard(scene, allies, regard);
   const dessinees = aretesHorsDesNavires(scene);
@@ -156,7 +173,7 @@ export function plateauDeLaScene(scene: Scene, allies: readonly Pt[], regard: Re
     return dessinees.filter((seg) => (seg.z ?? 0) > coucheDuGroupe(allies)).map((seg) => ({ cle: edgeKey(seg), abattueSous: [...CRANS] }));
   };
   return {
-    w, h, metresParCase: sceneMetresPerTile(scene), oeilM: EYE_H, regard, regardSuivant: REGARDS[(REGARDS.indexOf(regard) + 1) % REGARDS.length],
+    w, h, metresParCase: sceneMetresPerTile(scene), oeilM: EYE_H, oeilsSousPlafond: oeilsSousPlafond(scene), regard, regardSuivant: REGARDS[(REGARDS.indexOf(regard) + 1) % REGARDS.length],
     cleDuMonde: [regard, scene.weather ?? '', activeZ ?? '', empreinteDesDecors(scene), ...couvercle].join('|'),
     aretes: dessinees.map((seg) => areteDessinee(scene, seg)), aretesDegagees: aretesRetirees(),
     toitsLeves: regard === 'tactique' ? toitsLeves(scene, allies) : regard === 'plateau' ? toutesLesNappes(scene) : [],

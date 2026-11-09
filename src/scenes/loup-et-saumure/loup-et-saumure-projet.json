@@ -334,7 +334,9 @@
      "label": "Cambuse du port (rations/eau)",
      "facing": "N",
      "merchant": {
-      "archetype": "taverniere"
+      "archetype": {
+       "id": "taverniere"
+      }
      },
      "appearance": {
       "species": "humains-reiklander",
@@ -353,7 +355,9 @@
      "label": "Arsenal du port (munitions/pièces)",
      "facing": "N",
      "merchant": {
-      "archetype": "armurier"
+      "archetype": {
+       "id": "armurier"
+      }
      },
      "appearance": {
       "species": "humains-reiklander",
@@ -372,7 +376,9 @@
      "label": "Chandelier du quai (eau, rations de mer, pièces, boulets)",
      "facing": "S",
      "merchant": {
-      "archetype": "avitailleur"
+      "archetype": {
+       "id": "avitailleur"
+      }
      },
      "appearance": {
       "species": "humains-reiklander",
@@ -3765,13 +3771,19 @@
     },
     "services": [
      {
-      "kind": "auberge"
+      "kind": {
+       "id": "auberge"
+      }
      },
      {
-      "kind": "forgeron"
+      "kind": {
+       "id": "forgeron"
+      }
      },
      {
-      "kind": "temple"
+      "kind": {
+       "id": "temple"
+      }
      }
     ],
     "poi": [
@@ -3782,7 +3794,9 @@
        "x": 30,
        "y": 45
       },
-      "serviceKind": "auberge"
+      "serviceKind": {
+       "id": "auberge"
+      }
      },
      {
       "id": "salzenmund-forgeron",
@@ -3791,7 +3805,9 @@
        "x": 62,
        "y": 60
       },
-      "serviceKind": "forgeron"
+      "serviceKind": {
+       "id": "forgeron"
+      }
      },
      {
       "id": "salzenmund-temple",
@@ -3800,7 +3816,9 @@
        "x": 48,
        "y": 30
       },
-      "serviceKind": "temple"
+      "serviceKind": {
+       "id": "temple"
+      }
      },
      {
       "id": "salzenmund-port",
@@ -3809,7 +3827,9 @@
        "x": 15,
        "y": 70
       },
-      "serviceKind": "port"
+      "serviceKind": {
+       "id": "port"
+      }
      }
     ]
    },
@@ -3832,13 +3852,19 @@
     },
     "services": [
      {
-      "kind": "auberge"
+      "kind": {
+       "id": "auberge"
+      }
      },
      {
-      "kind": "guilde"
+      "kind": {
+       "id": "guilde"
+      }
      },
      {
-      "kind": "chantier"
+      "kind": {
+       "id": "chantier"
+      }
      }
     ],
     "poi": [
@@ -3849,7 +3875,9 @@
        "x": 40,
        "y": 50
       },
-      "serviceKind": "auberge"
+      "serviceKind": {
+       "id": "auberge"
+      }
      },
      {
       "id": "erengrad-port",
@@ -3858,7 +3886,9 @@
        "x": 20,
        "y": 70
       },
-      "serviceKind": "port"
+      "serviceKind": {
+       "id": "port"
+      }
      },
      {
       "id": "erengrad-guilde",
@@ -3867,7 +3897,9 @@
        "x": 60,
        "y": 25
       },
-      "serviceKind": "guilde"
+      "serviceKind": {
+       "id": "guilde"
+      }
      },
      {
       "id": "erengrad-chantier",
@@ -3876,7 +3908,9 @@
        "x": 75,
        "y": 55
       },
-      "serviceKind": "chantier"
+      "serviceKind": {
+       "id": "chantier"
+      }
      }
     ]
    }

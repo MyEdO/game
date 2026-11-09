@@ -22,7 +22,7 @@
     "public/**",
     ".claude/skills/*/{hooks,types,tests}/**"
   ],
-  "ignoreBinaries": ["lean-ctx"],
+  "ignoreBinaries": ["ffmpeg", "lean-ctx"],
   "ignoreDependencies": ["oxlint"],
   "oxlint": { "config": ["oxlint.config.mjs"] },
   "ignoreExportsUsedInFile": true

@@ -179,10 +179,11 @@ export function volumeDuMonde(scene: Scene, activeZ = Math.max(...scene.layers.m
     const navire = navires.get(cleDe(cell));
     return navire ? { navire } : {};
   };
-  const solsMontres = new Set(buildFloors(scene, undefined, { activeZ }).filter((el) => !el.states.ghost).map((el) => cleDe(el.cell)));
-  const sol = buildFloors(scene, undefined, { activeZ: haut })
-    .filter((el) => navires.has(cleDe(el.cell)) || !flottaison.has(cleDe(el.cell)))
-    .flatMap((el) => el.faces.map((face) => ({ face, cell: el.cell, ...duNavire(el.cell), auDessus: !solsMontres.has(cleDe(el.cell)) })));
+  const montres = buildFloors(scene, undefined, { activeZ }).filter((el) => !el.states.ghost);
+  const dessus = scene.layers.filter((l) => l.z > activeZ).flatMap((l) => buildFloors(scene, undefined, { activeZ: haut, viewZ: l.z }));
+  const sol = [...montres.map((el) => ({ el, auDessus: false })), ...dessus.map((el) => ({ el, auDessus: true }))]
+    .filter(({ el }) => navires.has(cleDe(el.cell)) || !flottaison.has(cleDe(el.cell)))
+    .flatMap(({ el, auDessus }) => el.faces.map((face) => ({ face, cell: el.cell, ...duNavire(el.cell), auDessus })));
   const mer = [...flottaison].flatMap(([cle, navire]) => {
     const [x, y, z] = cle.split(',').map(Number);
     return facesDuDessus({ x, y, h: 0, quarts: [], pente: false, marches: false, divisions: 1 }, MER).map((face) => ({ face, cell: { x, y, z }, flottaison: navire, auDessus: z > activeZ }));

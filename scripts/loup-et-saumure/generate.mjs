@@ -171,9 +171,9 @@ scenes.push(scene({
     NPC('aldo', 8, 3, 'Frère Aldo', { facing: 'S', dialogueId: { id: 'dlg-aldo' }, appearance: ALDO_APPEARANCE }),
     NPC('kramer', 11, 3, 'Dame Vasilika Kramer', { facing: 'S', dialogueId: { id: 'dlg-kramer' }, appearance: KRAMER_APPEARANCE }),
     NPC('griet', 5, 6, 'Griet', { facing: 'N', dialogueId: { id: 'dlg-griet' }, appearance: GRIET_APPEARANCE }),
-    NPC('avitailleuse', 9, 6, 'Cambuse du port (rations/eau)', { facing: 'N', merchant: { archetype: 'taverniere' }, appearance: { species: 'humains-reiklander', tenue: 'bourgeois', sex: 'F' } }),
-    NPC('armurier', 12, 6, 'Arsenal du port (munitions/pièces)', { facing: 'N', merchant: { archetype: 'armurier' }, appearance: { species: 'humains-reiklander', tenue: 'artisan', sex: 'M' } }),
-    NPC('avitailleur', 13, 4, 'Chandelier du quai (eau, rations de mer, pièces, boulets)', { facing: 'S', merchant: { archetype: 'avitailleur' }, appearance: { species: 'humains-reiklander', tenue: 'bourgeois', sex: 'M' } }),
+    NPC('avitailleuse', 9, 6, 'Cambuse du port (rations/eau)', { facing: 'N', merchant: { archetype: { id: 'taverniere' } }, appearance: { species: 'humains-reiklander', tenue: 'bourgeois', sex: 'F' } }),
+    NPC('armurier', 12, 6, 'Arsenal du port (munitions/pièces)', { facing: 'N', merchant: { archetype: { id: 'armurier' } }, appearance: { species: 'humains-reiklander', tenue: 'artisan', sex: 'M' } }),
+    NPC('avitailleur', 13, 4, 'Chandelier du quai (eau, rations de mer, pièces, boulets)', { facing: 'S', merchant: { archetype: { id: 'avitailleur' } }, appearance: { species: 'humains-reiklander', tenue: 'bourgeois', sex: 'M' } }),
     P(2, 8, 'tonneau', {
       label: 'La jetée d’appareillage',
       usable: { actions: [{
@@ -701,13 +701,13 @@ const worldMap = {
       port: { ref: 'salzenmund' }, // #217 — Taille/Richesse/Production/Surplus/Demande RAW coulent du catalogue
       // `temple` : `naval-ports.json#salzenmund.desc` (RAW MDG p.138) — « Grand Temple d'Ulric et temple de
       // Manann Resplendissant » — Frère Aldo (NPC de la scène) l'incarne (bénédiction du départ, #360).
-      services: [{ kind: 'auberge' }, { kind: 'forgeron' }, { kind: 'temple' }],
+      services: [{ kind: { id: 'auberge' } }, { kind: { id: 'forgeron' } }, { kind: { id: 'temple' } }],
       // POI (#345 phase 5, densifié #360) : onglet Plan du hub — services réels du quai, cliquables sur le plan.
       poi: [
-        { id: 'salzenmund-auberge', label: 'Auberge du Port', pos: { x: 30, y: 45 }, serviceKind: 'auberge' },
-        { id: 'salzenmund-forgeron', label: 'Arsenal du Port', pos: { x: 62, y: 60 }, serviceKind: 'forgeron' },
-        { id: 'salzenmund-temple', label: 'Temple de Manann', pos: { x: 48, y: 30 }, serviceKind: 'temple' },
-        { id: 'salzenmund-port', label: 'Le port', pos: { x: 15, y: 70 }, serviceKind: 'port' },
+        { id: 'salzenmund-auberge', label: 'Auberge du Port', pos: { x: 30, y: 45 }, serviceKind: { id: 'auberge' } },
+        { id: 'salzenmund-forgeron', label: 'Arsenal du Port', pos: { x: 62, y: 60 }, serviceKind: { id: 'forgeron' } },
+        { id: 'salzenmund-temple', label: 'Temple de Manann', pos: { x: 48, y: 30 }, serviceKind: { id: 'temple' } },
+        { id: 'salzenmund-port', label: 'Le port', pos: { x: 15, y: 70 }, serviceKind: { id: 'port' } },
       ],
     },
     {
@@ -717,12 +717,12 @@ const worldMap = {
       // `guilde` : la guilde marchande d'Erengrad (dlg-rumeur-olg, prime sur Olg Blóðsalt) ; `chantier` :
       // `naval-ports.json#erengrad.surplus` (RAW MDG p.138) — surplus « pièces détachées de navire » —
       // le Charpentier de bord (NPC de la scène, réparation du Grimm) l'incarne (#360).
-      services: [{ kind: 'auberge' }, { kind: 'guilde' }, { kind: 'chantier' }],
+      services: [{ kind: { id: 'auberge' } }, { kind: { id: 'guilde' } }, { kind: { id: 'chantier' } }],
       poi: [
-        { id: 'erengrad-auberge', label: 'Auberge du Quai', pos: { x: 40, y: 50 }, serviceKind: 'auberge' },
-        { id: 'erengrad-port', label: 'Le port', pos: { x: 20, y: 70 }, serviceKind: 'port' },
-        { id: 'erengrad-guilde', label: 'Guilde marchande', pos: { x: 60, y: 25 }, serviceKind: 'guilde' },
-        { id: 'erengrad-chantier', label: 'Chantier naval', pos: { x: 75, y: 55 }, serviceKind: 'chantier' },
+        { id: 'erengrad-auberge', label: 'Auberge du Quai', pos: { x: 40, y: 50 }, serviceKind: { id: 'auberge' } },
+        { id: 'erengrad-port', label: 'Le port', pos: { x: 20, y: 70 }, serviceKind: { id: 'port' } },
+        { id: 'erengrad-guilde', label: 'Guilde marchande', pos: { x: 60, y: 25 }, serviceKind: { id: 'guilde' } },
+        { id: 'erengrad-chantier', label: 'Chantier naval', pos: { x: 75, y: 55 }, serviceKind: { id: 'chantier' } },
       ],
     },
   ],

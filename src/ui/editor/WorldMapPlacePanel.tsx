@@ -81,7 +81,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
           {/* ── Services du lieu (auberge/temple/forgeron/guilde…, catalogue lieux-services.json #343) ── */}
           <div className="mini-title">Services du lieu</div>
           {lieuxServices.map((sv) => {
-            const has = (place.services ?? []).some((s) => s.kind === sv.id);
+            const has = (place.services ?? []).some((s) => s.kind.id === sv.id);
             return (
               <label
                 key={sv.id}
@@ -93,7 +93,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                   checked={has}
                   onChange={() => {
                     const cur = place.services ?? [];
-                    const next = has ? cur.filter((s) => s.kind !== sv.id) : [...cur, { kind: sv.id }];
+                    const next = has ? cur.filter((s) => s.kind.id !== sv.id) : [...cur, { kind: { id: sv.id } }];
                     updPlace(place.id, { services: next.length ? next : undefined });
                   }}
                 />
@@ -289,7 +289,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                         value={poi.sceneId != null ? 'scene' : poi.serviceKind != null ? 'service' : ''}
                         onChange={(e) => {
                           if (e.target.value === 'scene') updPoi(poi.id, { sceneId: { id: scenes[0]?.id ?? '' }, serviceKind: undefined });
-                          else if (e.target.value === 'service') updPoi(poi.id, { serviceKind: lieuxServices[0]?.id ?? '', sceneId: undefined });
+                          else if (e.target.value === 'service') updPoi(poi.id, { serviceKind: { id: lieuxServices[0]?.id ?? '' }, sceneId: undefined });
                           else updPoi(poi.id, { sceneId: undefined, serviceKind: undefined });
                         }}
                       >
@@ -314,8 +314,8 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                         options={lieuxServices}
                         getId={(sv) => sv.id}
                         getLabel={(sv) => sv.label}
-                        value={poi.serviceKind}
-                        onChange={(v) => updPoi(poi.id, { serviceKind: v })}
+                        value={poi.serviceKind.id}
+                        onChange={(v) => updPoi(poi.id, { serviceKind: { id: v } })}
                       />
                     )}
                     <div className="bar">
