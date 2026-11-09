@@ -13,7 +13,7 @@ const zoneDe = (e: Effet) => {
   return e;
 };
 
-describe('la vitrine des effets de l’atelier (#3777, #3783, #3825)', () => {
+describe('la vitrine des effets de l’atelier (#3777, #3783, #3825, #3822)', () => {
   const v = vitrineDesEffets();
 
   it('chaque engin de siège attaque par le rendu de son objet', () => {
@@ -88,5 +88,12 @@ describe('la vitrine des effets de l’atelier (#3777, #3783, #3825)', () => {
 
   it('chaque musique de fond se joue, ses pistes du registre', () => {
     expect(v.musiques.map((m) => [m.id, m.musique.pistes.map((p) => p.id)])).toEqual(allMusicDefs().map((d) => [d.id, [d.id]]));
+  });
+
+  it('l’auteur parcourt un chemin qui tourne depuis sa case, chaque pas à sa longueur sur le sol plat (#3822)', () => {
+    const d = v.metresParCase;
+    expect(v.deplacement).toEqual({ quoi: 'deplacement', qui: v.de, cases: [
+      { x: 0, y: 0, z: 0, metres: 0 }, { x: 1, y: 0, z: 0, metres: d }, { x: 2, y: 1, z: 0, metres: Math.SQRT2 * d }, { x: 2, y: 2, z: 0, metres: d },
+    ] });
   });
 });
