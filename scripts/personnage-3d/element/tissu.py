@@ -15,7 +15,7 @@ import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
-from formes import aretes_des_triangles, aux_noeuds, decalages, poser_la_cle, rapports, region_locale, transferer_les_cles
+from formes import aretes_des_triangles, aux_noeuds, decalages, poser_la_cle, rapports, region_locale, retournees_par, transferer_les_cles
 
 BORNES_DES_CLES = (0.4, 2.5)
 """Rapport de longueur d'arête sous une clé transférée (clé / repos) hors duquel `Base.transferer` lisse la clé : marge
@@ -147,15 +147,32 @@ class Base:
         triangles `orientes`), l'intérieure à `epaisseur` en retrait le long des normales."""
         return double_nappe(nom, X, normales, poids_normalises(W, self.os), orientes, mat, self.rig, epaisseur)
 
-    def transferer(self, piece, zones, bornes=BORNES_DES_CLES):
+    def transferer(self, piece, zones, bornes=BORNES_DES_CLES, publies=None):
         """Silhouettes déclarées par la base et toutes ses clés `gabarit_*`, transférées sur `piece` par liaison de
-        surface depuis la copie jointe des zones `zones` qu'elle traverse ; rend les noms des clés."""
+        surface depuis la copie jointe des zones `zones` qu'elle traverse et des meshes des éléments publiés `publies`
+        (`{id: zones de ses meshes}`) sur lesquels elle repose, porteurs des mêmes clés : la pièce y suit le vêtement,
+        pas le corps dessous ; rend les noms des clés."""
         copies = []
         for nom in zones:
             copie = self.zones[nom].copy()
             copie.data = self.zones[nom].data.copy()
             bpy.context.scene.collection.objects.link(copie)
             copies.append(copie)
+        importes = []
+        for id_, zones_publiees in (publies or {}).items():
+            avant = set(bpy.data.objects)
+            bpy.ops.import_scene.gltf(filepath=str(self.publies(id_)))
+            nouveaux = [o for o in bpy.data.objects if o not in avant]
+            gardes = [o for o in nouveaux if o.type == 'MESH' and o.get('zone') in zones_publiees]
+            if not gardes:
+                raise ValueError(f'{id_} : aucun mesh des zones {zones_publiees}')
+            importes += [o for o in nouveaux if o not in gardes]
+            for o in gardes:
+                o.modifiers.clear()
+                monde = o.matrix_world.copy()
+                o.parent = None
+                o.matrix_world = monde
+                copies.append(o)
         with bpy.context.temp_override(active_object=copies[0], selected_editable_objects=copies, object=copies[0]):
             bpy.ops.object.join()
         source = copies[0]
@@ -165,7 +182,8 @@ class Base:
             raise ValueError(f'silhouettes absentes des zones porteuses : {manquantes}')
         cles = list(self.manifeste['silhouettes']) + [k for k in noms_cles if k.startswith('gabarit_')]
         transferer_les_cles(source, piece, cles)
-        bpy.data.objects.remove(source, do_unlink=True)
+        for o in [source, *importes]:
+            bpy.data.objects.remove(o, do_unlink=True)
         lisser_aux_aretes_fautives(piece, cles, bornes)
         return cles
 
@@ -451,7 +469,8 @@ def lisser_aux_aretes_fautives(piece, cles, bornes, passes_max=400):
     """Chaque clé transférée dont une arête sort de `bornes` est lissée (moyenne laplacienne des décalages sur le graphe
     de la pièce) aux seuls nœuds de ces arêtes, puis de leurs anneaux quand une passe ne réduit plus le défaut : un
     sommet qui ponte un creux du corps (entrejambe) ou deux nappes liées à des faces différentes suivent la moyenne de
-    leurs voisins au lieu de s'écarter. Ailleurs la clé reste la liaison de surface."""
+    leurs voisins au lieu de s'écarter. Une arête que la clé retourne (sens opposé au repos) est fautive quelle que soit
+    sa longueur. Ailleurs la clé reste la liaison de surface."""
     x = np.array([v.co[:] for v in piece.data.vertices])
     _, premier, noeud = np.unique(np.round(x * 1e5).astype(np.int64), axis=0, return_index=True, return_inverse=True)
     noeud = noeud.ravel()
@@ -466,11 +485,11 @@ def lisser_aux_aretes_fautives(piece, cles, bornes, passes_max=400):
         champ = aux_noeuds(decalages(piece, nom), noeud)
         anneaux, pire, passe = 0, None, 0
         while passe < passes_max:
-            r = rapports(xn, champ, aretes)
-            fautives = (r < bas) | (r > haut)
+            r, retournees = rapports(xn, champ, aretes), retournees_par(xn, champ, aretes)
+            fautives = (r < bas) | (r > haut) | retournees
             if not fautives.any():
                 break
-            ecart = float(np.maximum(bas / r.min(), r.max() / haut))
+            ecart = int(retournees.sum()) + float(np.maximum(bas / r.min(), r.max() / haut))
             if pire is not None and ecart > pire - 1e-3:
                 anneaux += 1
             pire = ecart
@@ -478,7 +497,7 @@ def lisser_aux_aretes_fautives(piece, cles, bornes, passes_max=400):
             champ[dans] = 0.5 * champ[dans] + 0.5 * np.array([champ[voisins[i]].mean(axis=0) for i in dans])
             passe += 1
         r = rapports(xn, champ, aretes)
-        reste = int(((r < bas) | (r > haut)).sum())
+        reste = int(((r < bas) | (r > haut) | retournees_par(xn, champ, aretes)).sum())
         if reste:
-            raise ValueError(f'{piece.name} {nom} : {reste} arête(s) hors {bornes} après {passe} passes de lissage')
+            raise ValueError(f'{piece.name} {nom} : {reste} arête(s) hors {bornes} ou retournée(s) après {passe} passes de lissage')
         poser_la_cle(piece, nom, champ[noeud])

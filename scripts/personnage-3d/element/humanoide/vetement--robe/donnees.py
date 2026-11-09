@@ -56,11 +56,17 @@ EVASEMENT_ARRIERE = 2.0            # HYPOTHÈSE (dos non montré) : jupe plus pl
 OURLET_ROBE = 0.13                 # illustration : la robe de dessus tombe à la cheville (tête de `foot_l` à 0,096 m)
 OURLET_DESSOUS = 0.10              # illustration : la robe de dessous dépasse de ~3 cm sous celle de dessus, à la cheville
 RANGEES_JUPE = [1.00, 0.90, 0.76, 0.60, 0.44, 0.28]   # hauteurs des rangées intermédiaires, m (HYPOTHÈSE de maillage)
-OUVERTURE_TAILLE = 2.0             # illustration : la robe de dessus s'ouvre en V sous la ceinture ; demi-angle en degrés à la première rangée
+OUVERTURE_TAILLE = 6.0             # illustration : la robe de dessus s'ouvre en V sous la ceinture ; demi-angle en degrés à la
+                                   # première rangée : à 2°, les intervalles du pan de dessous dans l'ouverture font 5 mm
+                                   # à 0,90 m et s'étirent ×3,7 sous `corpulence` (Jump_Land, Roll)
 OUVERTURE_OURLET = 26.0            # illustration : demi-angle de l'ouverture devant à l'ourlet, degrés
 RECOUVREMENT_DESSOUS = 3           # HYPOTHÈSE : le pan de dessous court sous les 3 premières colonnes de chaque bord
                                    # de la robe de dessus (~60° à la taille, ~75° à l'ourlet)
-COLONNES_OUVERTURE = 4             # intervalles du pan de dessous dans l'ouverture (maillage)
+COLONNES_OUVERTURE = 4             # intervalles du pan de dessous dans l'ouverture (maillage), pair : un sommet sur l'axe ;
+                                   # une paire de part et d'autre de l'axe, entre les genoux, se croise sous `corpulence`
+                                   # (la clé suit l'intérieur des genoux) et l'arête retournée se replie en Slide_Exit ;
+                                   # à 2 intervalles, la corde de l'ourlet (26°) rentre sur le pied, qui la traverse
+                                   # sous `carrure_plus`
 REMONTEE_DESSOUS = 0.012           # HYPOTHÈSE : hors de l'ouverture, l'ourlet du dessous remonte à 1,2 cm au-dessus de
                                    # celui de la robe, caché dessous (pas de bande écrue tronquée sur les côtés)
 ECART_DESSOUS = 0.008              # HYPOTHÈSE : le pan de dessous court 8 mm sous la robe de dessus
@@ -69,13 +75,22 @@ ECART_DESSOUS = 0.008              # HYPOTHÈSE : le pan de dessous court 8 mm s
 # Le poids d'un brin décroît linéairement de 1 à son angle à 0 à l'angle des brins voisins (90°) : tout secteur où un brin
 # porte seul la jupe raidit le fondu et étire les arêtes au-delà de la porte en clip (×6 en Sword_Attack à 50°, ×3,6 à
 # 15°, mesurés en passe neutre).
-FONDU_BRIN = 0.10                  # HYPOTHÈSE : sous la tête des brins, hauteur sur laquelle la jupe passe du bassin au brin
-FORCE_A_L_OURLET = 0.40            # HYPOTHÈSE : part du brin dans les poids à l'ourlet ; 1 à la tête des brins, le reste au
-                                   # bassin : le pan tombe du genou au lieu de se lever d'un bloc, et l'étirement en clip,
-                                   # proportionnel au déplacement du brin, reste dans la porte (×5,4 en Roll, Slide_* à
-                                   # force 1 ; arêtes de l'ourlet arrière écrasées à 0,005 en Melee_Hook à
-                                   # 0,55 ; ×3,8 sous `corpulence`, ×3,7 sous `feminin` à 0,45 depuis
-                                   # `Z_HANCHES`)
+# Part des brins à la hauteur z (le reste au bassin) : deux brins voisins, ou un brin et le bassin, tournés l'un de
+# l'autre de φ écartent un point à L sous la tête des brins de c·L, c = 2·sin(φ/2). Arête horizontale : deux colonnes
+# voisines, d'angles θ et θ+Δθ, diffèrent de part·Δθ/90° en poids de brin, et l'arête, longue de r·Δθ, se replie dès que
+# part·c·L/(π/2) atteint r, quel que soit Δθ. Arête verticale : sous la rangée au bassin, l'écart part·c·L croît plus
+# vite que la hauteur dès que part atteint 1/c. La part vaut donc MARGE_DE_PLI/c·min(1, π·r(z)/(2L)), bornée à 1,
+# r(z) le plus petit rayon de la rangée aux quatre brins (le devant : l'arête la plus courte à Δθ donné) ; sous
+# `Z_HANCHES`, les poids du corps sont ceux de la ligne des hanches.
+ROTATION_RELATIVE_MAX = 120.0      # HYPOTHÈSE : rotation relative de deux brins voisins dans les clips de la base (le brin
+                                   # avant suit la cuisse la plus avancée, flexion jusqu'à ~120° en Roll, Slide_*,
+                                   # Jump_Land, le brin latéral la seule abduction)
+MARGE_DE_PLI = 0.8                 # HYPOTHÈSE : part bornée à 80 % du repli ; à part linéaire de 1 sous la tête à 0,40 à
+                                   # l'ourlet, arêtes repliées (l_c/l_b < 0,01) à mi-jambe en Shield_Dash, Hit_Knockback,
+                                   # Sword_Dash, LayToIdle ; à part 0,8 au fondu sous la tête, arête verticale repliée
+                                   # entre 1,00 et 0,90 m en Roll ; au rayon moyen de la rangée, arêtes repliées à
+                                   # l'ourlet devant du dessous en Sword_Regular_A_Rec (`corpulence`) et à 0,60 m en
+                                   # Jump_Start (`feminin`), mesurées sous silhouettes
 
 # --- Manches : anneaux perpendiculaires aux os du bras (segment, fraction de l'os, aisance, pan) ; `pan` : rayon
 # ajouté vers le bas-arrière du bras (`ANGLE_DU_PAN`), en lobe (cos²) ---

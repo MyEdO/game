@@ -99,12 +99,22 @@ def construire(D, materiaux, b):
         evasement = D['EVASEMENT_DEVANT'] + (D['EVASEMENT_ARRIERE'] - D['EVASEMENT_DEVANT']) * (1 - math.cos(math.radians(theta))) / 2
         return max(hanches * (1 + (evasement - 1) * t), appui + jeu)
 
+    rayons_min = {}
+
+    def part_des_brins(z):
+        """Part des brins à la hauteur `z`, bornée sous le repli des arêtes (`donnees.py`, poids de la jupe)."""
+        if z >= z_brin:
+            return 0.0
+        if z not in rayons_min:
+            rayons_min[z] = min(rayon(z, t) for t in (0.0, 90.0, 180.0, 270.0))
+        c = 2 * math.sin(math.radians(D['ROTATION_RELATIVE_MAX']) / 2)
+        return min(1.0, D['MARGE_DE_PLI'] / c * min(1.0, math.pi * rayons_min[z] / (2 * (z_brin - z))))
+
     def poids_de_jupe(p, z, theta):
-        force = 1.0 - (1.0 - D['FORCE_A_L_OURLET']) * min(1.0, max(0.0, (z_brin - z) / (z_brin - D['OURLET_ROBE'])))
-        part = min(1.0, max(0.0, (z_brin - z) / D['FONDU_BRIN'])) * force
+        part = part_des_brins(z)
         w = np.zeros(len(b.os))
         if part < 1:
-            corps_ = emprunter(np.array([p[0], p[1], max(z, z_brin - D['FONDU_BRIN'])]), porteurs['J'])[0]
+            corps_ = emprunter(np.array([p[0], p[1], max(z, D['Z_HANCHES'])]), porteurs['J'])[0]
             for os_ in OS_DES_JAMBES:
                 corps_[b.indice_os['pelvis']] += corps_[b.indice_os[os_]]
                 corps_[b.indice_os[os_]] = 0.0
