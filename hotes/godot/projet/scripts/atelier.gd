@@ -293,6 +293,18 @@ func _remettre_a_zero() -> void:
 	_boutons_des_emblemes = {}
 
 
+## @contrat Atelier 3D
+## Un emplacement de montage est un point ou une ligne de pièce. Le panneau porte en tête le choix du modèle (#3792) :
+## la rangée « Corps », sa liste (`cle` `modele/corps`) de chaque base par son id, puis la rangée « Véhicule ou engin
+## » ; chaque liste montre le modèle posé ou demandé, l'autre aucun choix. Suivent six bascules d'onglet d'un même
+## groupe : « Personnage », montré à l'ouverture, « Équipement », « Couleurs », « Animation », « Effets » et « Outils
+## » ; chacun a son défilement, jamais imbriqué. Une bascule ne se montre que si le modèle posé offre son onglet
+## (`_onglets_offerts`, `.claude/rules/hote-godot.md`) : « Personnage », une base posée ; « Équipement », une section
+## qui porte une rangée, ou un reste à produire ; « Couleurs », une surface posée qui prend une couleur de palette ; «
+## Animation », un clip au lecteur du modèle posé, ou une attaque de l'engin posé ; « Effets » et « Outils »,
+## toujours. L'onglet montré qui cesse d'être offert cède la place au premier offert. L'état (la base posée et son
+## empreinte, ou les `erreurs`, en rouge) reste en pied du panneau, sous tous les onglets.
+
 ## En tête du panneau, la rangée « Corps », la liste de clé `modele/corps` de chaque base de la réponse `reponse` de
 ## `modeles` par son id, puis la rangée « Véhicule ou engin », la liste de clé `modele/vehicule` de chaque fiche de
 ## `vehicules`, dans son ordre, au libellé de son élément : choisi, un article pose son modèle.
@@ -317,6 +329,41 @@ func _montrer_le_modele_pose() -> void:
 	_selectionner(_listes_des_modeles.corps, _montage.base.get("id") if _definition_du_vehicule == null else null)
 	_selectionner(_listes_des_modeles.vehicule, _definition_du_vehicule)
 
+
+## @contrat Atelier 3D
+## Un véhicule s'affiche dans l'atelier à côté des bases (#2987). La liste de tête « Véhicule ou engin » (`cle`
+## `modele/vehicule`) offre chaque fiche de `vehicules`, dans son ordre, au libellé de son élément (`libelles`) :
+## choisie, elle retire la base posée, ses emplacements, ses surcharges d'emblème et ses clips, et demande le
+## véhicule, sans pièce ni Amélioration. Godot l'obtient du pont, jamais en relisant un manifeste : il appelle
+## `vehicule` (section « Méthodes ») sur la fiche, les pièces et les Améliorations demandées, les `couleurs` de la
+## composition courante et l'emblème de ses voiles, et la réponse porte `vehicule`, le corps à monter, `places`,
+## chaque place de ses postes en vigueur (`postesEnVigueur`, `atelier.ts`), bord après bord dans l'ordre de
+## `FIRE_ARCS`, `{ bord, rang, label, piece }` (`PlaceDuVehicule`, `pont.ts` : son rang parmi les places du bord,
+## compté de 0, son libellé, celui du bord, `libelleDuBord`, surface du noyau, suivi du rang compté de 1, et la fiche
+## de la pièce que le corps y monte, `null` sans pièce), `pieces`, les fiches servies qui se montent à un poste, dans
+## l'ordre de `vehicules`, `ameliorations`, celles que le véhicule porte (`vehiculeDuCombattant`), et `montables`,
+## celles qu'il peut monter : les clés de `ameliorations` de la réponse de `modeles`, dans leur ordre, que nomment les
+## `ancrages` ou le `selon` du manifeste de son élément (`ameliorationsMontables`, `atelier.ts`). Le corps se monte
+## sous le nœud `Vehicule` de l'atelier par `MontageDeVehicule`, comme au combat (section « Corps d'un combattant »),
+## sa scène nue posée au sol, sa boîte centrée sur l'origine et son dessous sur le sol, à l'échelle de son auteur (un
+## mètre du modèle vaut un mètre), puis l'orbite cadre la boîte entière, pièces comprises, sa diagonale tenant dans la
+## hauteur que la caméra de la scène voit au pivot (`MarcheDeLAtelier.cadrer_la_boite`,
+## `MiseEnPage.echelle_de_la_boite`) ; le zoom se borne de 0,3 à 3 fois l'échelle de ce cadre, comme autour du cadre
+## d'un corps (`MiseEnPage.echelle_zoomee`). L'onglet « Équipement » porte alors, sous les sections du personnage, «
+## Postes » : une rangée par place de `places`, à son `label`, sa liste déroulante (`cle` `poste/<bord>/<rang>`)
+## offrant « Aucun » puis chaque fiche de `pieces` au libellé de son élément, sur sa `piece` ; « Améliorations » : une
+## case par Amélioration de `montables` (`cle` `amelioration/<id>`, au libellé de son élément), cochée si
+## `ameliorations` de la réponse de `vehicule` la porte, aucune section sans Amélioration montable ; et « Emblème »,
+## si l'élément du véhicule porte une surface `blason`, la rangée « Voiles et pavillon » et sa liste (`cle`
+## `vehicule/embleme`) : « Aucun », puis chaque emblème. Une pièce choisie remplace la `piece` de sa place, et
+## l'atelier redemande la pièce de chaque place qui en a une, dans l'ordre de `places` : le noyau les monte comme les
+## pièces d'un combattant (`postesMontes`), une place vide prenant la pièce suivante de son bord, et la réponse dit où
+## chacune est montée ; les pièces que la réponse ne place plus (un bord réduit) ne se redemandent pas. Une case
+## installe ou retire son Amélioration, les Améliorations installées suivant l'ordre de la réponse de `modeles`.
+## L'emblème choisi surcharge celui de la composition, comme à un emplacement ; une couleur de l'onglet « Couleurs »,
+## un preset ou un axe recompose le véhicule. Chaque geste rappelle `vehicule` et remonte le corps rendu, l'état de
+## l'atelier publiant `vehicule` (section « Écran publié »). « Recharger les modèles » redemande le véhicule s'il est
+## toujours servi, ses GLB relus. Une base choisie retire le véhicule.
 
 ## Le véhicule de fiche `definition` demandé (#2987) : le dernier clic gagne, contre le modèle posé comme contre celui en
 ## chargement ; ni base ni pièce, ni Amélioration, ni surcharge d'emblème, la marche sans clip ni vitesse, puis le
@@ -464,6 +511,33 @@ func _vehicule_publie() -> Variant:
 		demande = {postes = _postes_du_vehicule, ameliorations = _ameliorations_du_vehicule},
 	}
 
+
+## @contrat Atelier 3D
+## « Équipement » range les emplacements qui offrent au moins un élément en quatre sections titrées, dans cet ordre :
+## « Tête et coiffure » (les sélecteurs `tete` et `coiffure`), « Vêtements et armures » (les lignes `piece`), «
+## Accessoires » (les lignes `emplacement` et les points `emplacement`) et « Objets tenus » (les points `prise`) ;
+## dans chaque section, les emplacements suivent l'ordre des points puis des lignes. Un point, une ligne `emplacement`
+## ou un sélecteur est une rangée : son `label` en tête, puis une liste déroulante (`cle` l'id de l'emplacement : l'id
+## du point, `ligne/<sorte>` d'un sélecteur, `ligne/emplacement/<id>`) qui offre « Aucun », puis chaque élément par le
+## libellé de sa chose (`libelles`), ou, pour un sélecteur, chaque choix dont `elements` n'est pas vide, par son
+## `label`, qui monte son élément ; « Aucun » démonte. Une ligne `piece` d'un seul élément est une case à bascule (son
+## `label`, `cle` `ligne/piece/<id>`) qui monte cet élément ou le démonte s'il l'est ; avec ses variantes (#3446),
+## elle est une rangée comme une ligne `emplacement`, de liste `ligne/piece/<id>`. L'élément d'un choix de sélecteur
+## est unique, la clé (base, clé) étant unique à l'index. Ce qu'aucun élément ne porte n'a pas de rangée : un bouton
+## replié « À produire (N) » ouvre la liste de ses N libellés, une ligne chacun
+## (`<label du sélecteur> : <label du choix>`, ou le `label` d'une pièce ou d'un emplacement d'accessoire), et
+## disparaît si N vaut 0. « Animation » porte la liste des clips (`cle` `clip`) du modèle posé, ceux de la base ou
+## ceux du véhicule, le lecteur, l'instant, les vitesses, et « Actions », montré quand le véhicule posé a sa fiche
+## dans `attaques` de la vitrine : « Attaquer », qui joue son coup et, une fois, le clip de son rôle `ranged`, à
+## défaut `melee`, puis son repos ; « Outils » porte « Recharger les modèles », chaque aide dont le modèle posé porte
+## un repère et le `rapport` de `modeles` s'il n'est pas vide. « Effets » montre la vitrine (`vitrine`, section «
+## Effets », #3777) : « Armes » et « Sorts », une rangée par entrée, à son `label`, qui porte un bouton par variante
+## (`cle` `effet/<id>/<variante>`) ; « Zones et souffles », un bouton par manœuvre de zone et par Type de Souffle
+## (`cle` `manoeuvre/<id>`, `souffle/<id>`) ; « Lumières », un bouton par ton (`cle` `lumiere/<id>`), qui pose son
+## `Foyer` sur la cible à sa hauteur, à la place du précédent ; « Sons », un bouton par son (`cle` `son/<id>`). Chaque
+## bouton rejoue son effet par le nœud `Effets` de l'atelier, de l'auteur posé à l'origine vers la cible (le nœud
+## `Cible`, montré sur cet onglet seul, posé à `distanceM` mètres, `MiseEnPage.lieu_de_la_cible`), un mètre du modèle
+## valant un mètre, l'orbite cadrant l'un, l'autre et le véhicule posé.
 
 ## L'emplacement de montage `id`, de clé publiée `cle` dans `publie` (`montes` ou `lignes`), qui offre `elements` : son
 ## bloc posé dans la section `section` de l'onglet Équipement, sans contrôle encore.
@@ -666,6 +740,16 @@ func _choisir(emplacement: Dictionary, element: String, embleme: String = VIDE) 
 	_montrer_l_etat()
 
 
+## @contrat Atelier 3D
+## Un élément monté dont une surface porte `blason: true` (`surfaces`) offre, sous la rangée de son emplacement, une
+## rangée « Emblème » : une liste déroulante (`cle` `"<emplacement>/embleme"`, `<emplacement>` valant l'id du point ou
+## `ligne/<ligne>`) qui offre « Aucun », puis chaque entrée d'`emblemes` (son `label`).
+##
+## Démonter un emplacement (ou y monter un autre élément) efface son emblème, sa rangée et sa surcharge. Un remontage
+## manuel applique le défaut de la composition. Appliquer un preset efface toutes les surcharges. « Recharger les
+## modèles » remonte les éléments montés, rigides et skinnés, que leurs emplacements offrent encore sous l'emblème
+## qu'ils portaient, s'il est toujours offert (« Aucun » sinon) ; changer de base n'en garde aucun.
+
 ## Sous la rangée d'`emplacement`, si `element` qui y est monté porte une surface `blason` (`surfaces` de la réponse de
 ## `modeles`) : la rangée « Emblème », la liste de clé `<emplacement>/embleme` (« Aucun », puis chaque emblème).
 func _ligne_des_emblemes(emplacement: Dictionary, element: String) -> void:
@@ -687,6 +771,14 @@ func _embleme_de_l_emplacement(id: String) -> String:
 	var reference: Variant = _surcharges_des_emblemes.get(id, _composition.get("embleme"))
 	return VIDE if reference == null else str(reference.id)
 
+
+## @contrat Atelier 3D
+## Les boutons d’emblème tiennent leurs surcharges explicites séparément des emblèmes effectivement posés et les
+## transmettent à `composer`. Un changement d’emblème seul appelle `MontageDeComposition.choisir_l_embleme` sur les
+## meshes déjà montés. Une composition qui change l’élément d’un emplacement efface sa surcharge et le monte sous le
+## défaut de la composition ; sur un emplacement inchangé, elle pose l’emblème de son entrée de `montes` s’il diffère
+## du dernier demandé, posé ou non : un emblème qui ne se pose pas n’est pas redemandé, et son erreur n’est pas
+## répétée. Changer de base efface les surcharges.
 
 ## Le choix manuel de l'emblème `embleme` à l'emplacement `id` : sa surcharge, transmise à chaque `composer`, puis sa pose.
 func _surcharger_l_embleme(id: String, embleme: String) -> void:
@@ -1010,6 +1102,42 @@ func _attaquer() -> void:
 	if _lecteur() != null and _lecteur().has_animation(repos):
 		_jouer_le_clip(repos)
 
+
+## @contrat Atelier 3D
+## « Personnage » porte la composition courante (section « Composition d'un personnage »), que Godot tient, vide à
+## l'ouverture : un bouton par preset de `catalogues` (son `label`), qui la remplace par sa `composition` ; puis une
+## rangée par entrée de `catalogues().axes`, dans leur ordre, son `label` en tête. Un axe `ref` ou `valeur` est une
+## liste déroulante (`cle` `"axe/<champ>"`) : « Aucun », puis les choix de sa `liste` de `catalogues`, chacun par son
+## `label` ; il pose l'id choisi dans son `champ` (`{ id }` pour `ref`, l'id nu pour `valeur`) ou retire le champ sous
+## « Aucun ». Un axe `plage` est une glissière bornée par `min` et `max`, au pas de 0,05, suivie d'un bouton « neutre
+## » (`cle` `"axe/<champ>/neutre"`) ; elle pose sa valeur dans son `champ`, « neutre » retire le champ, et sans champ
+## elle montre `neutre`. Godot ne nomme aucun axe ni aucune liste. Chaque liste et chaque glissière montre le champ de
+## la composition courante. « Couleurs » porte une rangée par emplacement de palette (`couleurs` de `catalogues`),
+## montrée si une surface posée le prend (`surfaces` de `modeles` : celles du véhicule posé, de ses pièces et de ses
+## Améliorations, sinon celles de la base et de ses éléments montés), son `label` en tête, puis une liste déroulante
+## (`cle` `"couleur/<emplacement>"`) : « Par défaut », puis chaque couleur du `nuancier`, son `label` précédé d'une
+## pastille de sa `couleur` ; une couleur choisie se pose dans `couleurs` de la composition courante (`{ id }`), « Par
+## défaut » la retire, et un `couleurs` vide se retire. Chaque liste montre le champ de la composition courante. Un
+## preset appliqué, un axe changé ou une couleur changée appelle `composer` sur la base posée : chaque emplacement
+## monte l'élément que `montes` lui donne (le premier non nul quand plusieurs entrées visent le même emplacement) et
+## démonte les autres, au montage décrit ci-dessous ; `gabarit` et `morphes` se posent (section « Gabarit d'une base
+## »), le squelette remis à sa pose de repos puis le clip engagé reposé à son instant. Une composition que `composer`
+## refuse, `{}` compris (erreur `validation`, section « Composition d'un personnage »), ne compose rien : chaque
+## emplacement est démonté, ni gabarit ni morphe ne reste, et « composition refusée : » suivi du message de l'erreur,
+## qui porte le chemin de chaque faute, prend la place des manquants ; le message va aussi aux `erreurs`. Un os de
+## `gabarit` que la base n'a pas donne `os-absent : <os>` aux `erreurs` du gabarit posé, que chaque pose du gabarit
+## remplace : à chaque composition, à chaque « Recharger les modèles » et à chaque changement de base. Un preset
+## appliqué, un axe changé, une couleur changée et « Copier la composition » sont des gestes de composition : les
+## `erreurs` de chacun (refus, montage qu'il demande) remplacent celles du précédent, et chaque composition efface le
+## texte de la copie. Les `morphes` se reposent à chaque élément monté et à chaque « Recharger les modèles », qui
+## garde la composition composée ; changer de base l'efface. Sous les axes, « À produire pour ce personnage : » puis
+## une ligne par entrée de `manquants`, son `label` suivi de `par.label`, entre parenthèses, le libellé de ce qui
+## l'apporte, ou « Rien ne manque à ce personnage. » ; puis le `rapport` de `composer` s'il n'est pas vide. « Copier
+## la composition » rend par `presetDeComposition` la composition courante, avec `preset`, l'id du dernier preset
+## appliqué, s'il y en a un ; il affiche son verdict (« verdict : valide », ou une ligne `chemin : message` par faute)
+## puis l'entrée, et copie l'entrée au presse-papiers (`DisplayServer.clipboard_set`) ; refusé (erreur `validation`),
+## il affiche « composition refusée : » suivi du message à la place du verdict, sans entrée ni copie. Godot n'écrit
+## aucun champ de l'enveloppe.
 
 ## Les presets et les axes de `catalogues` (#3086, D2 et D3) : un bouton par preset (son `label`), puis chaque axe de
 ## `axes`, dans leur ordre, son `label` en tête : la liste de ses choix (leur `label`, l'id stocké), « aucun » en tête,

@@ -8,6 +8,13 @@
 class_name Effets
 extends Node3D
 
+## @contrat Effets
+## Le plateau (`projet/scripts/plateau.gd`) rend `suite.effets` par son nœud `Effets` (`projet/scripts/effets.gd`), l'un
+## après l'autre : chaque visuel est un éclat de particules à textures procédurales et son éclair, au point de sa
+## phase ; chaque son joue en 3D à son point. Au départ d'un coup ou d'une incantation, l'auteur se tourne vers sa cible
+## et joue son clip d'attaque ; à l'arrivée d'un coup qui touche, la cible accuse le coup. La recette
+## `projet/recettes/effets.gd` les vérifie.
+
 ## Un coup, une incantation ou une zone part de son auteur `de` (son id), vers le point au sol `vers`.
 signal depart(de: String, vers: Vector3)
 ## La phase d'arrivée d'un coup ou d'une incantation joue sur `vers` ; `touche` : un coup qui touche.

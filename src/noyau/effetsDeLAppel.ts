@@ -18,17 +18,64 @@ import { FLAME_LIFT_M } from './monde/vision';
 import { discTiles } from './monde/zones';
 import type { Evenement } from './partie';
 
-/** Une phase rendue : le visuel que l'hôte dessine à son point, le son qu'il y joue. */
+/**
+ * `suite.effets` (`Effet[]`, `src/noyau/effetsDeLAppel.ts`) est ce que l'appel a joué en coups, incantations, zones et
+ * sons, chacun son rendu résolu au catalogue éditable `src/data/rendus.json` : Godot dessine et joue ce qu'il reçoit,
+ * sans rien décider.
+ * @contrat Effets
+ */
+export type Effet =
+  /**
+   * Un `coup` (une arme, une attaque naturelle, un Projectile magique) va du combattant `de` au combattant `vers` : la
+   * phase `depart` joue à l'attaquant, le projectile du `trajet` (`null` en mêlée) vole jusqu'à la cible en `dureeS`
+   * secondes, sa cloche haute de `hauteurM` mètres à mi-vol (la vitesse et la cloche de son rendu sur la distance des
+   * deux combattants, bornée par un vol le plus court), puis la phase `arrivee` de son `issue` joue sur la cible :
+   * l'impact d'une touche ou d'un critique, le manque, ou la parade de l'arme qui a paré. Le rendu d'une arme est celui
+   * de son objet (un engin de siège, `trappings.json › rendu`), à défaut celui de son Groupe (`weaponGroups.json ›
+   * rendu`) ; celui d'un sort, celui de son Domaine (`domains.json › rendu`), teint de sa `couleur` ; une Prière a le
+   * sien.
+   */
+  | { quoi: 'coup'; de: string; vers: string; issue: IssueDuCoup; couleur: string; depart: PhaseRendue | null; trajet: TrajetRendu | null; arrivee: PhaseRendue | null }
+  /**
+   * Une `incantation` (un sort sans projectile : bénédiction, soin, sort sur soi, où `vers` vaut `de`) joue son
+   * `depart` au lanceur, puis, `reussie`, son `arrivee` sur sa cible.
+   */
+  | { quoi: 'incantation'; de: string; vers: string; reussie: boolean; couleur: string; depart: PhaseRendue | null; arrivee: PhaseRendue | null }
+  /**
+   * Une `zone` (un sort de zone, un souffle, une manœuvre de zone, #3783) part de l'auteur `de` : la phase `depart` y
+   * joue, le projectile du `trajet` (`null` quand la zone se centre sur l'auteur) vole jusqu'à la case `centre`, puis
+   * la phase `nappe` pose son visuel sur chacune des `cases` et joue son son au centre. Son rendu est celui de son sort
+   * (le Domaine, teint de sa couleur), sinon celui de la manœuvre (`maneuvers.json › rendu`), le souffle d'une créature
+   * prenant celui de son Type de Souffle (`breath-types.json › rendu`) ; sa `nappe` est le `zoneVisuel` et le `zoneSon`
+   * du rendu, à défaut son impact. Godot reçoit le lieu de chaque case sous la clé `x,y,z` (`Effets.cle_de_case`).
+   */
+  | { quoi: 'zone'; de: string; centre: CaseDeZone; cases: CaseDeZone[]; couleur: string; depart: PhaseRendue | null; trajet: TrajetRendu | null; nappe: PhaseRendue | null }
+  /**
+   * Un `son` de scène (l'Effet de scène `playSfx`) joue partout.
+   */
+  | { quoi: 'son'; son: SonDEffet };
+
+/**
+ * Une phase rendue : le visuel que l'hôte dessine à son point, le son qu'il y joue.
+ * @contrat Effets
+ */
 export interface PhaseRendue {
+  /** le visuel que l'hôte dessine à son point (`VisuelDEffet` : `src/data/schemas/defs/effets.ts`). */
   visuel: VisuelDEffet | null;
+  /** le son qu'il y joue. */
   son: SonDEffet | null;
 }
 
-/** Le vol d'un projectile jusqu'à la cible : sa durée (s), à la vitesse de son rendu sur la distance des deux
- *  combattants, et la hauteur (m) de sa cloche. */
+/**
+ * Le vol d'un projectile jusqu'à la cible.
+ * @contrat Effets
+ */
 export interface TrajetRendu {
+  /** le projectile qui vole. */
   projectile: Projectile;
+  /** sa durée (s), à la vitesse de son rendu sur la distance des deux combattants. */
   dureeS: number;
+  /** la hauteur (m) de sa cloche. */
   hauteurM: number;
 }
 
@@ -36,17 +83,6 @@ export type IssueDuCoup = 'touche' | 'critique' | 'pare' | 'manque';
 
 /** Une case d'une zone d'effet : (x, y) et sa couche. */
 export type CaseDeZone = ChargeDeZone['centre'];
-
-/** Un coup porté de `de` à `vers` : la phase de départ à l'attaquant, le trajet du projectile, et la phase d'arrivée de
- *  son issue sur la cible (l'impact, le manque, ou la parade de l'arme qui a paré). Une incantation de `de` sur `vers`
- *  (`de` lui-même pour un sort sur soi), sa phase d'arrivée nulle quand elle échoue. Une zone d'effet que `de` pose sur
- *  `cases` autour de `centre` : sa phase de départ à l'auteur, le jet qui vole jusqu'au centre (aucun quand l'auteur
- *  en est le centre), puis la nappe sur chaque case. Un son de scène. */
-export type Effet =
-  | { quoi: 'coup'; de: string; vers: string; issue: IssueDuCoup; couleur: string; depart: PhaseRendue | null; trajet: TrajetRendu | null; arrivee: PhaseRendue | null }
-  | { quoi: 'incantation'; de: string; vers: string; reussie: boolean; couleur: string; depart: PhaseRendue | null; arrivee: PhaseRendue | null }
-  | { quoi: 'zone'; de: string; centre: CaseDeZone; cases: CaseDeZone[]; couleur: string; depart: PhaseRendue | null; trajet: TrajetRendu | null; nappe: PhaseRendue | null }
-  | { quoi: 'son'; son: SonDEffet };
 
 /** Les rendus de repli : une arme de mêlée, de tir, naturelle, sans rendu propre ni de Groupe ; un sort hors Domaine ;
  *  une Prière. */
@@ -145,6 +181,14 @@ function distanceDesCombattants(etat: Jeu, de: string, vers: string): number | n
   return a && b ? Math.hypot(b.x - a.x, b.y - a.y) * sceneMetresPerTile(etat.scene) : null;
 }
 
+/**
+ * - Un coup, une incantation ou une zone dont un combattant n'est pas posé sur le plateau, ou l'attaque spéciale d'une
+ *   créature sur elle-même, ne rend aucun effet.
+ * - `couleur` (`#rrggbb`) teint les visuels qui prennent la teinte de l'effet. Un son nomme ses variantes, des noms nus
+ *   que Godot lit sous `res://sons/` et joue l'une au hasard (`AudioStreamRandomizer`), le dossier épinglé des sons
+ *   (`projet/sons/provenance.json`, `hotes/godot/asset/epingles.ts`), et son `volume` propre (0..1).
+ * @contrat Effets
+ */
 /** Les effets des événements `evenements` d'un appel (`ResultatDeLAppel.evenements`) sur l'état `etat` qui le suit, dans
  *  leur ordre ; un coup, une incantation ou une zone dont un combattant n'est pas posé, ou l'attaque spéciale d'une
  *  créature sur elle-même, n'en rend aucun. */
@@ -189,22 +233,45 @@ export interface EffetDeVitrine {
   effet: Effet;
 }
 
-/** La vitrine des effets que le jeu joue (#3777), de l'auteur `de` à la cible `vers` posée à `distanceM` mètres, sur
- *  des cases de `metresParCase` mètres où l'auteur tient la case (0, 0) et la cible la case (`distanceM` /
- *  `metresParCase`, 0) : chaque rendu d'arme, chaque Domaine, le sort hors Domaine et la Prière, la zone de chaque
- *  manœuvre de zone et de chaque Type de Souffle (#3783), chaque son d'effet du registre, chaque ton de lumière posé au
- *  lieu de la cible, et l'attaque qui touche de chaque engin de siège, par son id d'objet. */
+/**
+ * La vitrine (`vitrine`, #3777) donne à l'atelier chaque effet que le jeu joue, de l'auteur `de`, en case (0, 0), à la
+ * cible `vers` posée à `distanceM` mètres, des cases de `metresParCase` mètres, chacun résolu comme en combat :
+ * @contrat Effets
+ */
 export interface VitrineDesEffets {
+  /** l'auteur, en case (0, 0). */
   de: string;
+  /** la cible, en case (`distanceM` / `metresParCase`, 0). */
   vers: string;
+  /** les mètres qui séparent l'auteur de la cible. */
   distanceM: number;
+  /** les mètres du côté d'une case. */
   metresParCase: number;
+  /**
+   * chaque rendu d'arme (`{ id, label, variantes }`), ses variantes `touche`, `manque`, et `pare` quand son rendu porte
+   * une parade ;
+   */
   armes: EntreeDeVitrine[];
+  /**
+   * chaque Domaine, le sort hors Domaine et la Prière, leurs variantes `touche` et `manque` (le trait) puis
+   * `incantation` et `incantation-ratee` (sans projectile), puis `zone`, centrée sur la case de la cible ; un rendu de
+   * sort ne se montre jamais parmi les armes ;
+   */
   sorts: EntreeDeVitrine[];
+  /**
+   * chaque manœuvre de zone (`{ id, label, effet }`), centrée sur la cible si elle vise une zone, sinon sur l'auteur ;
+   */
   manoeuvres: EffetDeVitrine[];
+  /** chaque Type de Souffle, sa zone centrée sur la cible ; aucun rendu de zone ne se montre parmi les armes ; */
   souffles: EffetDeVitrine[];
+  /** chaque son d'effet du registre (`{ id, label, effet }`), musique exclue ; */
   sons: EffetDeVitrine[];
+  /** chaque ton de lumière (`{ id, label, source }`), sa source posée au lieu de la cible (section « Lumière ») ; */
   lumieres: { id: string; label: string; source: SourceDeLumiere }[];
+  /**
+   * par id d'objet, le coup qui touche de chaque engin de siège, résolu par le rendu de son objet, celui que l'atelier
+   * joue quand l'engin posé attaque.
+   */
   attaques: Record<string, Effet>;
 }
 

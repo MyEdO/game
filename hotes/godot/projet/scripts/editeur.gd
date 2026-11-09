@@ -16,6 +16,27 @@
 ## change ses boutons à l'écran, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), que la recette lit.
 extends Node
 
+## @contrat Éditeur
+## Le routeur `projet/scripts/editeur.gd` (scène `projet/scenes/Editeur.tscn`, ouverte par le bouton « Éditeur » du
+## menu) ouvre la campagne de l'adresse de la page (`?campagne=<id>`, la Diligence sans elle), avec le `projet` que sert
+## `GET depot/<id>` s'il répond (`PontDuNoyau.requeter`), pose le monde rendu (`Monde.poser`) et ses arêtes
+## (`Monde.poser_les_aretes`), la surcouche en plaques sur le sol de ses cases (`Monde.peindre`) : chaque zone nommée
+## au-dessus de sa première case, les cases de la zone sélectionnée, la poignée de la sélection en survol, chaque
+## repère, celui de la sélection en survol, nommé au-dessus de sa case (`Monde.etiqueter`), puis le geste en cours,
+## l'arête sélectionnée gainée (`Monde.choisir_l_arete`) et le calque de la couche sous sa planche
+## (`Monde.poser_le_calque` : un quadrilatère sur ses quatre coins, juste au-dessus de son plan et sans test de
+## profondeur s'il passe dessus, sinon juste dessous), et les zones dans son panneau d'outils, à gauche. Il garde les
+## calques de la campagne dans `user://calques/<id>.json`, qu'il passe à `{ ouvrir }` et réécrit à chaque `memoire`,
+## dont il efface les planches à oublier et déplace les planches à déplacer ; chaque planche dans `user://<image>.png`.
+## Une réponse qui porte `planche` ouvre le choix d'un fichier par la page (`PontDuNoyau.choisir_une_image`, par
+## `wfrpPont.choisirUneImage`, `hotes/godot/pont/fichier.ts` : un `<input type=file>` marqué `data-planche`, posé au
+## document le temps du choix) ; l'image lue, PNG, JPEG ou WebP, s'écrit au chemin de la planche, et sa taille revient
+## au pont, ou `null` si l'auteur renonce ou si elle ne se lit pas. Il envoie le geste de l'élément pressé, et le
+## pointeur sur le monde : l'appui au point touché (`Monde.touche_sous`), un glissé à chaque case nouvelle sous le
+## bouton tenu, le relâché au point touché, le dernier si le pointeur a quitté le monde. Une réponse qui porte `depot`
+## part en `PUT depot/<id>`, et son issue revient au pont ; une écriture refusée dit sa raison. Une réponse qui porte
+## `essai` ouvre le combat (`projet/scenes/Combat.tscn`), qui démarre l'essai (`PontDuNoyau.essai`).
+
 ## La campagne qui s'ouvre sans `campagne` à l'adresse : celle de la Diligence, la carte que l'éditeur bâtit (#3508).
 const CAMPAGNE := "la-diligence"
 ## Le dossier des calques gardés, et de leurs planches.

@@ -16,6 +16,30 @@
 ## case.
 extends Node
 
+## @contrat L'écran de Godot
+## Le routeur `projet/scripts/combat.gd` est le seul script qui lit la vue et le seul qui appelle le pont. L'écran est
+## une scène sans script (`projet/scenes/Ecran.tscn`) : chaque zone y est un nœud `Zone` (`projet/scripts/zone.gd`) posé
+## dans le conteneur qui la montre, sa `source` une clé de `vue.zones` ou des `zones` de la suite, qu'elle ajoute
+## (`ajout`) au lieu de les remplacer. Une zone dessine chaque élément par le composant de son type
+## (`projet/composants/<type>.tscn`, une scène sans script), le réconcilie par type et par id, et le pose sur son
+## composant : chaque `Liaison` y écrit un champ de l'élément dans une propriété du contrôle qui la porte (le ton en
+## variation du thème, `art/theme.tres`), chaque `Geste` joue l'intention que l'élément porte par le signal `geste` de
+## la zone (un bouton à bascule garde l'état que la vue lui donne ; le routeur envoie `{ fiche }` à `fiche`, `{ creation
+## }` à `creation`, toute autre intention à `jouer`), chaque `Saisie` lit la valeur d'un formulaire, et une zone
+## imbriquée y montre le champ que sa `source` nomme. Le plan (`plan`) est le seul composant qui se dessine : son
+## contrôle `Plan` (`projet/scripts/plan.gd`) trace chaque trait d'un point à l'autre et chaque point à sa place dans le
+## contrôle, chacun à la couleur de son ton, et pose sous chaque point son composant (`point` : son nom, puis ses
+## éléments). Le `detail` d'une puce ou d'une ligne se pose sur sa `Bulle` (`projet/scripts/bulle.gd`), qui couvre le
+## composant et montre au survol la bulle du thème repliée au mot. Les héros du groupe se rangent au bord gauche de
+## l'écran, « Nouveau héros » sous eux ; la création ouverte se pose au centre, sa page titrée en tête, ses rubriques
+## défilant dessous, ses gestes en rangée au pied ; la conversation se pose en bas au centre, son interlocuteur en
+## titre, sa réplique, puis ses réponses l'une sous l'autre ; la fiche ouverte se pose au centre, au-dessus du panneau,
+## sous la fenêtre qui tient la main, en statbloc au thème `art/statbloc.tres` (papier, encre, bandeau de chaque
+## section : la variation `TeteDEntite` de la tête d'une entité), la possession choisie et ses gestes sous ses sections.
+## Un clic droit sur une case occupée ouvre la fiche de son occupant (`case_inspectee`, `projet/scripts/plateau.gd`). Un
+## refus se dit au-dessus de l'écran, qui reste tel quel, saisies comprises. Changer l'écran, c'est éditer ces scènes ;
+## un type d'élément nouveau, c'est un composant.
+
 @onready var _plateau: Plateau = $Plateau
 @onready var _lumiere: Lumiere = $Plateau/Monde/Lumiere
 @onready var _ecran: Node = $Ecran

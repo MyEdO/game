@@ -155,6 +155,18 @@
 //     --base <production> --element <production> --reexport <production> [--clip Sword_Attack]
 //   node hotes/godot/recette.mjs --parcours composition --web <export> --captures <dossier> --modeles <dossier neuf>
 //     --base <production> --piece <production skinnée>
+/**
+ * Les recettes de `hotes/godot/recette.mjs` partent du menu et ne jouent aucun geste par le pont. Le tour complet
+ * clique « Combat », puis y lit où cliquer ; il observe la partie par `vue`. L'atelier (`--parcours atelier`) clique
+ * « Atelier », lit ses boutons et son état dans `wfrpEcran`, et sert un dossier de modèles neuf que la recette remplit
+ * par `importer.mjs --sans-publier` ; sans `--modeles`, il sert le dossier des modèles du projet et y pose un véhicule,
+ * qu'il compare à la réponse de `vehicule`, appelée de la page pour l'observer. Un cran de molette de l'atelier attend
+ * que `atelier.defilement` change, jamais une publication quelconque. L'éditeur (`--parcours editeur`) sert une copie
+ * neuve des projets manuscrits du dépôt, clique « Éditeur », puis ses boutons et les cases de la carte, lit son état
+ * dans `wfrpEcran.editeur`, et le fichier que « Enregistrer » écrit à la copie ; il intercepte le choix de fichier de
+ * la page (`Page.setInterceptFileChooserDialog`) et remplit l'`input[data-planche]` d'une planche qu'il écrit.
+ * @contrat Écran publié
+ */
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'

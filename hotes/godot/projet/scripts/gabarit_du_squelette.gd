@@ -7,6 +7,15 @@
 class_name GabaritDuSquelette
 extends SkeletonModifier3D
 
+## @contrat Gabarit d'une base
+## Godot applique actuellement (1) la lecture du plus bas des os `appuis.pieds` sans gabarit, (2) la composition des
+## facteurs après le clip, puis (3) la translation qui ramène ces os à leur minimum de (1), dans `GabaritDuSquelette`.
+## Le lot GD devra remplacer (1) par le minimum des copies `appuis.plusBas` skinnées sans gabarit et sans clés
+## `gabarit_*`, (2) par la même mesure avec les binds compensés et les formes au gabarit, et (3) par la translation
+## vers `sl` fois le minimum de (1). Le code de l'hôte reste celui des os jusqu'à ce lot. `appuis.pieds` reste
+## consommé par les surfaces de marche (`evaluer.ts`, `surfacesDesPieds`), par la composition et par les mesures de
+## l'atelier Godot.
+
 ## Le gabarit posé est mesuré au repos : `mesures()` porte `neutre` et `repos`.
 signal mesure
 
