@@ -110,7 +110,7 @@ export function parseDiceRequired(s: string, champ: string): DiceSpec {
 
 /** Valeur authorée TIRÉE au dé (`tirageSchema`, `src/data/schemas/grammaire/valeurs.ts`). #1652 */
 export interface Tirage { dice: DiceSpec }
-/** Un nombre OU un tirage (`quantiteTireeSchema`). */
+/** Un nombre OU un tirage. */
 export type QuantiteTiree = number | Tirage;
 /** La valeur d'une `QuantiteTiree` : le nombre tel quel, le tirage roulé (`rollDice`). PUR (RNG injecté). */
 export const tirer = (v: QuantiteTiree, rng: RNG): number => (typeof v === 'number' ? v : rollDice(v.dice, rng));

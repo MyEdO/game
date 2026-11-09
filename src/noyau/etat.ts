@@ -277,6 +277,9 @@ export interface CampaignVessel {
   /** Recueillis à un rôle d'équipage qui servent SANS SOLDE jusqu'au prochain port, où ils rejoignent
    *  `crew` (op `equipage`, `sansSolde: 'jusquAuPort'`). MDG 15 l.213-218 */
   recueillisSansSolde?: import('../engine/crewMorale').CrewHire[];
+  /** Le lieu de la carte où le navire est à quai : posé à l'accostage, levé à l'appareillage ; absent en mer.
+   *  Le « port de l'escale » de l'op `marcheDuPort`. MDG 15 l.129 */
+  escale?: string;
   /** Enc de cargaison perdus au PROCHAIN déchargement dans le port de l'escale (op `cargaison`,
    *  `perteAuDechargement`) ; levé à l'accostage suivant. MDG 15 l.250 */
   perteAuDechargement?: number;
@@ -669,6 +672,9 @@ export interface EtatDeJeu {
    *  panneau auberge, appliquées à la vente au Lieu désigné. Persiste au niveau GROUPE (sauvegardé, remis
    *  à zéro en nouvelle partie via l'état initial). */
   tradeRumours: import('../engine/landCargo').TradeRumour[];
+  /** Altérations TEMPORAIRES du marché des ports (op `marcheDuPort`), lues par le port ouvert (`currentPort`) :
+   *  levées au départ du navire (`escale`) ou à leur échéance d'horloge. MDG 15 l.253, l.256, l.259, l.263 */
+  alterationsDuMarche: import('../engine/seaVoyage').AlterationDuMarche[];
   /** Écran MARCHÉ TERRESTRE ouvert (commerce de cargaison à un Lieu `market` de la carte — MSRC 13 l.3) :
    *  offres d'achat générées à l'arrivée. `null` = fermé. */
   landMarket: import('./landMarketFlow').LandMarketState | null;
@@ -694,6 +700,7 @@ export function etatInitialDuJeu(): EtatDeJeu {
     possessions: [],
     objetsAuSol: {},
     tradeRumours: [],
+    alterationsDuMarche: [],
     landMarket: null,
     worldMap: null,
     worldMapOpen: false,
