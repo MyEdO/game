@@ -11,6 +11,9 @@
     "etat": "en-flammes",
     "typeDeDegats": {
       "id": "feu"
+    },
+    "rendu": {
+      "id": "souffle-de-feu"
     }
   },
   {
@@ -22,7 +25,10 @@
       "page": 341
     },
     "etat": "sonne",
-    "trancheDeBlessures": 5
+    "trancheDeBlessures": 5,
+    "rendu": {
+      "id": "souffle-de-froid"
+    }
   },
   {
     "id": "corrosif",
@@ -32,7 +38,10 @@
       "book": "livre-de-base",
       "page": 341
     },
-    "endommageLEquipement": true
+    "endommageLEquipement": true,
+    "rendu": {
+      "id": "souffle-corrosif"
+    }
   },
   {
     "id": "electrique",
@@ -46,6 +55,9 @@
     "etat": "sonne",
     "typeDeDegats": {
       "id": "electrique"
+    },
+    "rendu": {
+      "id": "souffle-electrique"
     }
   },
   {
@@ -60,6 +72,9 @@
     "etat": "empoisonne",
     "typeDeDegats": {
       "id": "poison"
+    },
+    "rendu": {
+      "id": "souffle-empoisonne"
     }
   },
   {
@@ -70,7 +85,10 @@
       "book": "livre-de-base",
       "page": 341
     },
-    "fumee": true
+    "fumee": true,
+    "rendu": {
+      "id": "souffle-de-fumee"
+    }
   },
   {
     "id": "corrosion-et-poison",
@@ -87,7 +105,10 @@
       {
         "id": "poison"
       }
-    ]
+    ],
+    "rendu": {
+      "id": "souffle-corrosif"
+    }
   },
   {
     "id": "vomi-d-ivrogne",
@@ -96,6 +117,9 @@
     "source": {
       "book": "livre-de-base",
       "page": 320
+    },
+    "rendu": {
+      "id": "vomissement"
     }
   },
   {
@@ -107,7 +131,10 @@
       "page": 23,
       "note": "ZI 02 l.56"
     },
-    "ignoreAP": true
+    "ignoreAP": true,
+    "rendu": {
+      "id": "souffle-gluant"
+    }
   },
   {
     "id": "soporifique",
@@ -118,7 +145,10 @@
       "page": 30,
       "note": "ZI 03 l.27"
     },
-    "ignoreAP": true
+    "ignoreAP": true,
+    "rendu": {
+      "id": "souffle-soporifique"
+    }
   },
   {
     "id": "cauchemars",
@@ -129,6 +159,9 @@
       "page": 91,
       "note": "ZI 13 l.128"
     },
-    "ignoreAP": true
+    "ignoreAP": true,
+    "rendu": {
+      "id": "souffle-de-cauchemars"
+    }
   }
 ]

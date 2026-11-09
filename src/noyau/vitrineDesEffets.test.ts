@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { domains, siegeEngines } from '../data';
+import { breathTypes, domains, lightTones, maneuvers, siegeEngines } from '../data';
 import { sonsDEffet } from '../data/sons/registre';
 import { vitrineDesEffets, type Effet } from './effetsDeLAppel';
 
@@ -7,8 +7,12 @@ const coupDe = (e: Effet) => {
   if (e.quoi !== 'coup') throw new Error(`un coup attendu, reçu ${e.quoi}`);
   return e;
 };
+const zoneDe = (e: Effet) => {
+  if (e.quoi !== 'zone') throw new Error(`une zone attendue, reçu ${e.quoi}`);
+  return e;
+};
 
-describe('la vitrine des effets de l’atelier (#3777)', () => {
+describe('la vitrine des effets de l’atelier (#3777, #3783)', () => {
   const v = vitrineDesEffets();
 
   it('chaque engin de siège attaque par le rendu de son objet', () => {
@@ -36,11 +40,37 @@ describe('la vitrine des effets de l’atelier (#3777)', () => {
   it('chaque Domaine se teint de sa couleur, la Prière a son halo, aucun rendu de sort parmi les armes', () => {
     expect(v.sorts.map((s) => s.id)).toEqual([...domains.map((d) => d.id), 'sort-arcane', 'priere']);
     const feu = v.sorts.find((s) => s.id === 'feu')!;
-    expect(feu.variantes.map((x) => x.variante)).toEqual(['touche', 'manque', 'incantation', 'incantation-ratee']);
+    expect(feu.variantes.map((x) => x.variante)).toEqual(['touche', 'manque', 'incantation', 'incantation-ratee', 'zone']);
     expect(coupDe(feu.variantes[0].effet)).toMatchObject({ couleur: '#ff5a2a', arrivee: { visuel: 'gerbe-de-flammes' } });
     expect(feu.variantes[3].effet).toMatchObject({ quoi: 'incantation', reussie: false, arrivee: null });
     expect(v.sorts.find((s) => s.id === 'priere')!.variantes[2].effet).toMatchObject({ arrivee: { visuel: 'halo' } });
     expect(v.armes.map((a) => a.id)).not.toContain('sort-de-feu');
+  });
+
+  it('la zone d’un sort couvre la case de la cible ; celle du Feu y pose sa nappe de flammes, celle des Vents son impact', () => {
+    const cible = { x: v.distanceM / v.metresParCase, y: 0 };
+    const feu = zoneDe(v.sorts.find((s) => s.id === 'feu')!.variantes[4].effet);
+    expect(feu).toMatchObject({ de: v.de, centre: cible, couleur: '#ff5a2a', nappe: { visuel: 'nappe-de-flammes' } });
+    expect(feu.cases).toContainEqual(cible);
+    expect(zoneDe(v.sorts.find((s) => s.id === 'sort-arcane')!.variantes[4].effet).nappe?.visuel).toBe('eclat-magique');
+  });
+
+  it('chaque manœuvre de zone et chaque Type de Souffle a son rendu ; le hurlement se centre sur son auteur', () => {
+    const deZone = maneuvers.filter((m) => ['zone', 'allFoes', 'allAround'].includes(m.targeting));
+    expect(deZone.filter((m) => !m.rendu).map((m) => m.id)).toEqual([]);
+    expect(v.manoeuvres.map((m) => m.id)).toEqual(deZone.map((m) => m.id));
+    expect(zoneDe(v.manoeuvres.find((m) => m.id === 'hurlement-fantomatique')!.effet)).toMatchObject({ centre: { x: 0, y: 0 }, trajet: null, nappe: { visuel: 'onde' } });
+    expect(v.souffles.map((s) => s.id)).toEqual(breathTypes.map((b) => b.id));
+    expect(zoneDe(v.souffles.find((s) => s.id === 'feu')!.effet)).toMatchObject({ trajet: { projectile: 'jet-de-flammes' }, nappe: { visuel: 'nappe-de-flammes' } });
+    expect(zoneDe(v.souffles.find((s) => s.id === 'froid')!.effet)).toMatchObject({ trajet: { projectile: 'jet-de-souffle' }, nappe: { visuel: 'nuage' } });
+    const rendusDeZone = new Set([...deZone.map((m) => m.rendu!.id), ...breathTypes.map((b) => b.rendu.id)]);
+    expect(v.armes.filter((a) => rendusDeZone.has(a.id)).map((a) => a.id)).toEqual([]);
+  });
+
+  it('chaque ton de lumière se pose au lieu de la cible, avec sa flamme et son son en boucle', () => {
+    expect(v.lumieres.map((l) => l.id)).toEqual(lightTones.map((t) => t.id));
+    expect(v.lumieres.find((l) => l.id === 'flamme')!.source).toMatchObject({ x: v.distanceM / v.metresParCase, y: 0, visuel: 'feu', son: { id: 'crepitement' }, scintillement: { hz: expect.any(Number) } });
+    expect(v.lumieres.find((l) => l.id === 'magique')!.source).toMatchObject({ visuel: 'lueur', son: null, scintillement: null });
   });
 
   it('chaque son d’effet du registre se joue, musique exclue', () => {

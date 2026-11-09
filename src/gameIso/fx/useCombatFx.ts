@@ -8,20 +8,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGame } from '../../state/store';
 import { bus, EVT } from '../../noyau/bus';
 import { spellFxForSpell } from './spellClips';
+import { renduDeLaZone } from '../../noyau/effetsDeLAppel';
 import { conditionMeta } from '../effectIcons';
 import { conditionLabel } from '../../data';
 import type { Combatant } from '../../engine/types';
 import type { IconId } from '../../data/icons';
-
-/** Couleur du flash de zone d'effet selon l'élément (feu/froid/poison/foudre), défaut rouge. */
-const aoeColor = (type?: string): string => {
-  const t = (type ?? '').toLowerCase();
-  if (/feu/.test(t)) return '#ff7a3c';
-  if (/froid|glace/.test(t)) return '#7fd0ff';
-  if (/poison|corros/.test(t)) return '#8fce5a';
-  if (/électric|electric|foudre/.test(t)) return '#ffe066';
-  return '#ff5a4d';
-};
 
 // Flottants TYPÉS (R8) — chaque échange se lit d'un coup d'œil : touche/raté/parade/soin/mort, pas
 // seulement les Blessures. Déclenchés sur ANIM_IMPACT (`fx/impactClock`) + canal ANIM_FLOAT (soin/État).
@@ -126,10 +117,10 @@ export function useCombatFx() {
   const [aoes, setAoes] = useState<AoeFlash[]>([]);
   const aoeId = useRef(0);
   useEffect(() => {
-    const off = bus.on(EVT.ANIM_AOE, (d: { tiles?: { x: number; y: number }[]; type?: string }) => {
-      if (!d?.tiles?.length) return;
+    const off = bus.on(EVT.ANIM_AOE, (d) => {
+      if (!d.tiles.length) return;
       const key = ++aoeId.current;
-      setAoes((a) => [...a, { key, tiles: d.tiles!, color: aoeColor(d.type) }]);
+      setAoes((a) => [...a, { key, tiles: d.tiles, color: renduDeLaZone(d).couleur }]);
       setTimeout(() => setAoes((a) => a.filter((x) => x.key !== key)), 1150);
     });
     return off;
