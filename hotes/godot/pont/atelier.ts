@@ -80,7 +80,8 @@ export interface ModelesDeLAtelier {
   couches: Record<string, CoucheDeLAtelier>;
   /** Les emblèmes de la garde-robe (`kind: 'embleme'`). */
   emblemes: EmblemeDeLAtelier[];
-  /** Par fiche de véhicule ou d'engin (`cle.definition`), l'id de l'élément `vehicule` servi qui la dessine (#2987). */
+  /** Par fiche de véhicule ou d'engin (`cle.definition`), l'id de l'élément `vehicule` servi qui la dessine (#2987), dans
+   *  l'ordre des libellés de ces éléments. */
   vehicules: Record<string, string>;
   /** Par Amélioration navale (`cle.amelioration`), l'id de l'élément `amelioration` servi qui la dessine (#2987). */
   ameliorations: Record<string, string>;
@@ -195,7 +196,8 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     const m = e.brut as ManifesteDElement;
     return m.categorie === categorie ? [[cleDe(m)[champ]!, servir([e])[0]]] : [];
   }));
-  return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules: parCle('vehicule', 'definition'), ameliorations: parCle('amelioration', 'amelioration') };
+  const vehicules = Object.fromEntries(Object.entries(parCle('vehicule', 'definition')).sort(([, a], [, b]) => libelles[a].localeCompare(libelles[b], 'fr')));
+  return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules, ameliorations: parCle('amelioration', 'amelioration') };
 }
 
 /** Une pièce montée sur un véhicule : l'élément `vehicule` servi qui dessine sa fiche, son bord, sa position dans la
@@ -231,6 +233,13 @@ export function postesMontes(manifeste: unknown, ameliorations: readonly string[
     return position && element ? [{ element, bord, position, palette: { ...palette, ...findTeinteById(teinte)?.palette } }] : [];
   });
 }
+
+/** Les Améliorations de `offertes` que le véhicule de manifeste `manifeste` peut monter, dans leur ordre : celles que
+ *  nomment ses `ancrages` ou son `selon`. */
+export const ameliorationsMontables = (manifeste: unknown, offertes: readonly string[]): string[] => {
+  const { ancrages, selon } = manifeste as ManifesteDeVehicule;
+  return offertes.filter((a) => (ancrages && a in ancrages) || (selon && a in selon));
+};
 
 type EtatAuPoste = (typeof ETATS_AU_POSTE)[keyof typeof ETATS_AU_POSTE];
 

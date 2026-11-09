@@ -42,12 +42,12 @@ console.log('\n--- par famille ---');
 for (const [k, e] of tally((s) => s.family ?? '(sans famille)')) console.log(line(k, e));
 
 console.log('\n--- par domaine ---');
-for (const [k, e] of tally((s) => s.domainId ?? '(hors domaine)')) console.log(line(k, e));
+for (const [k, e] of tally((s) => s.domainId?.id ?? '(hors domaine)')) console.log(line(k, e));
 
 const narr = sortsNarratifs();
 console.log(`\n--- NARRATIFS : ${narr.length} (aucun effet appliqué par le moteur) ---`);
 if (process.argv.includes('--list')) {
   for (const s of narr) {
-    console.log(`  ${s.id.padEnd(38)} | ${s.family ?? '-'} | ${s.domainId ?? '-'} | ${s.source?.book} p.${s.source?.page}`);
+    console.log(`  ${s.id.padEnd(38)} | ${s.family ?? '-'} | ${s.domainId?.id ?? '-'} | ${s.source?.book} p.${s.source?.page}`);
   }
 }

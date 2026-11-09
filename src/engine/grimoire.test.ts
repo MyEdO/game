@@ -98,7 +98,7 @@ describe('coûts de mémorisation (Talents LDB 10)', () => {
     const c = hero({ talents: [{ talentId: 'magie-du-chaos', spec: 'tzeentch', times: 1 }], spells: ['trahison-de-tzeentch'] });
     expect(spellCost(c, sp('arme-aethyrique'))).toBe(100); // Sort d'Arcane
     expect(spellCost(c, sp('aspect-sublime'))).toBe(100); // Sort d'Arcanes du Chaos
-    const feu = spells.find((s) => s.family === 'arcane' && s.domainId === 'feu')!;
+    const feu = spells.find((s) => s.family === 'arcane' && s.domainId?.id === 'feu')!;
     expect(spellCost(c, feu)).toBeNull(); // Domaine des Arcanes
   });
 

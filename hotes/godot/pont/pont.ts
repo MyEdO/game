@@ -17,7 +17,7 @@ import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteig
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { fenetreADessiner } from '../../../src/hote/gestes';
 import { lignesDuJournal, zonesDeLEcran, type ZonesDeLaSuite, type ZonesDeLEcran } from '../../../src/hote/ecran';
-import { ameliorationsMontees, emblemeMonte, modelesDeLAtelier, noeudsCaches, postesEnVigueur, postesMontes, type AmeliorationMontee, type ModelesDeLAtelier, type PosteMonte } from './atelier';
+import { ameliorationsMontables, ameliorationsMontees, emblemeMonte, modelesDeLAtelier, noeudsCaches, postesEnVigueur, postesMontes, type AmeliorationMontee, type ModelesDeLAtelier, type PosteMonte } from './atelier';
 import { composerSurLaBase, paletteDesCouleurs, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
 import type { TableDeClips } from '../asset/clips';
@@ -108,12 +108,14 @@ export interface PlaceDuVehicule {
 }
 
 /** Le véhicule de l'atelier (`vehicule`) : son corps, les places de ses bords dans ses postes en vigueur
- *  (`postesEnVigueur`), dans l'ordre de `FIRE_ARCS`, les fiches servies qui se montent à un poste, et ses Améliorations. */
+ *  (`postesEnVigueur`), dans l'ordre de `FIRE_ARCS`, les fiches servies qui se montent à un poste, ses Améliorations, et
+ *  celles qu'il peut monter (`montables`, `ameliorationsMontables`). */
 export interface VehiculeDeLAtelier {
   vehicule: CorpsDuVehicule;
   places: PlaceDuVehicule[];
   pieces: string[];
   ameliorations: readonly string[];
+  montables: string[];
 }
 
 /** La vue : la projection commune (`projeter`), les corps de ses combattants (`CorpsDuCombat`), la disposition de la
@@ -449,7 +451,8 @@ export function creerPont() {
         upgrades: (ameliorations as string[]).map((id) => ({ id })),
       }, () => undefined);
       const vehicule = vehiculeDuCombattant(fiche, undefined)!;
-      const enVigueur = postesEnVigueur(servis.manifestes[servis.modeles.vehicules[vehicule.definition]], vehicule.ameliorations) ?? {};
+      const manifeste = servis.manifestes[servis.modeles.vehicules[vehicule.definition]];
+      const enVigueur = postesEnVigueur(manifeste, vehicule.ameliorations) ?? {};
       return {
         vehicule: corpsDuVehicule(vehicule, servis)!,
         places: FIRE_ARCS.flatMap((bord) => {
@@ -458,6 +461,7 @@ export function creerPont() {
         }),
         pieces,
         ameliorations: vehicule.ameliorations,
+        montables: ameliorationsMontables(manifeste, offertes),
       };
     },
     catalogues(json) {

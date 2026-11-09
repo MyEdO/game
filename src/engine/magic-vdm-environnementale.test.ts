@@ -32,7 +32,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 
 const RULE = 'magic-vdm-environnementale';
 
-const spell = (domainId: string | null) => ({ domainId });
+const spell = (domainId: string | null) => (domainId === null ? {} : { domainId: { id: domainId } });
 const sorcier = (talents: { talentId: string; spec?: string }[] = []): Combatant =>
   ({ id: 'c1', label: 'Sorcier', talents } as unknown as Combatant);
 
@@ -360,7 +360,7 @@ describe('câblage — resolveCasting / castLandProbability / resolveFocus lisen
       ...p,
     }) as unknown as Combatant);
 
-  const feu = { id: 's', label: 'Flamme d’essai', ecole: 'Magie des Arcanes', domainId: 'feu', cn: 0, range: null, target: 1, duration: null, damage: 0, desc: '' };
+  const feu = { id: 's', label: 'Flamme d’essai', ecole: 'Magie des Arcanes', domainId: { id: 'feu' }, cn: 0, range: null, target: 1, duration: null, damage: 0, desc: '' };
   const lieu = { saturationLevelId: 'elevee', dominantWinds: ['feu'] };
 
   it('resolveCasting : +1 DR sur le MÊME jet dans une zone Élevée dominée par Aqshy', () => {

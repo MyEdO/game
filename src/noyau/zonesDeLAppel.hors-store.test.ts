@@ -86,7 +86,7 @@ describe('les zones d’effet de l’appel (#3783)', () => {
     castCommitZone(banc.getState, banc.setState, { x: 9, y: 5 });
     expect(zones[0]).toMatchObject({ de: 'lanceur', centre: { x: 9, y: 5 }, sort: 'comete-de-cassandora' });
     expect(zones[0].tiles).toHaveLength(9);
-    const domaine = findDomainById(findSpellById('comete-de-cassandora')!.domainId)!;
+    const domaine = findDomainById(findSpellById('comete-de-cassandora')!.domainId?.id)!;
     expect(laZone()).toMatchObject({ couleur: domaine.couleur, trajet: { projectile: 'trait-magique' } });
   });
 
