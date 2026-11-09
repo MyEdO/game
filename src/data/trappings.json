@@ -3203,6 +3203,12 @@
     "id": "besace",
     "type": "trappings",
     "label": "Besace",
+    "shape": {
+      "id": "besace"
+    },
+    "rangement": {
+      "id": "ceinture_d"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "sacs-et-contenants"
@@ -3232,6 +3238,12 @@
     "id": "bourse",
     "type": "trappings",
     "label": "Bourse",
+    "shape": {
+      "id": "bourse"
+    },
+    "rangement": {
+      "id": "ceinture_avant"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "sacs-et-contenants"
@@ -3314,6 +3326,12 @@
     "id": "etui-a-parchemin",
     "type": "trappings",
     "label": "Étui à parchemin",
+    "shape": {
+      "id": "etui_a_parchemin"
+    },
+    "rangement": {
+      "id": "ceinture_g"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "sacs-et-contenants"
@@ -3541,6 +3559,12 @@
     "id": "amulette",
     "type": "trappings",
     "label": "Amulette",
+    "shape": {
+      "id": "amulette"
+    },
+    "rangement": {
+      "id": "ceinture_avant"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "vetements-et-accessoires"
@@ -8892,6 +8916,12 @@
     "id": "sac-de-couchage",
     "type": "trappings",
     "label": "Sac de couchage",
+    "shape": {
+      "id": "sac_de_couchage"
+    },
+    "rangement": {
+      "id": "dos"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "possessions-diverses"
