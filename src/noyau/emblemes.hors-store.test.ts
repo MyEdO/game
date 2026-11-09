@@ -13,7 +13,7 @@ describe('emblème des porteurs (#3155)', () => {
 
   it('la fiche conserve l’emblème de l’entité malgré une apparence de preset', () => {
     const ent = sceneEntitySchema.parse({ id: 'e', kind: 'personnage', presetId: 'p', pos: { x: 1, y: 1 }, appearance: { embleme: taureau } });
-    const preset = { id: 'p', label: 'P', base: 'humain', profil: {}, apparence: entityAppearanceSchema.parse({ sex: 'F', embleme: crane }) };
+    const preset = { id: 'p', label: 'P', base: { id: 'humain' }, profil: {}, apparence: entityAppearanceSchema.parse({ sex: 'F', embleme: crane }) };
     const ficheDeLue = (lue: ReturnType<typeof sceneEntitySchema.parse>) => ficheDEntite({ id: lue.id, kind: lue.kind, pos: lue.pos, presetId: lue.presetId, appearance: lue.appearance }, () => preset);
     const fiche = ficheDeLue(ent);
     expect(emblemeDe(fiche.appearanceOverride, fiche.creatureId)).toEqual(taureau);

@@ -50,7 +50,7 @@ function Narratif({ initial }: { initial: NarratifBlock }) {
 }
 
 describe('noms accessibles uniques — éditeur Narratif', () => {
-  const base = creatures[0].id;
+  const base = { id: creatures[0].id };
   const narratif: NarratifBlock = {
     ...emptyNarratif(),
     affaires: [{ id: 'affaire-1', titre: 'Affaire' }, { id: 'affaire-2', titre: 'Affaire' }],
